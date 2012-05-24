@@ -62,7 +62,6 @@ struct dfa_stats_d
 
 /* Local functions.  */
 static void collect_dfa_stats (struct dfa_stats_d *);
-static tree find_vars_r (tree *, int *, void *);
 
 
 /*---------------------------------------------------------------------------
@@ -118,27 +117,6 @@ struct gimple_opt_pass pass_referenced_vars =
  }
 };
 
-
-/*---------------------------------------------------------------------------
-			    Manage annotations
----------------------------------------------------------------------------*/
-/* Create a new annotation for a _DECL node T.  */
-
-var_ann_t
-create_var_ann (tree t)
-{
-  var_ann_t ann;
-
-  gcc_assert (t);
-  gcc_assert (TREE_CODE (t) == VAR_DECL
-	      || TREE_CODE (t) == PARM_DECL
-	      || TREE_CODE (t) == RESULT_DECL);
-
-  ann = ggc_alloc_cleared_var_ann_d ();
-  *DECL_VAR_ANN_PTR (t) = ann;
-
-  return ann;
-}
 
 /* Renumber all of the gimple stmt uids.  */
 
@@ -198,10 +176,9 @@ make_rename_temp (tree type, const char *prefix)
   tree t = create_tmp_reg (type, prefix);
 
   if (gimple_referenced_vars (cfun))
-    {
-      add_referenced_var (t);
-      mark_sym_for_renaming (t);
-    }
+    add_referenced_var (t);
+  if (gimple_in_ssa_p (cfun))
+    mark_sym_for_renaming (t);
 
   return t;
 }
@@ -442,17 +419,19 @@ collect_dfa_stats (struct dfa_stats_d *dfa_stats_p ATTRIBUTE_UNUSED)
    the function.  */
 
 static tree
-find_vars_r (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
+find_vars_r (tree *tp, int *walk_subtrees, void *data)
 {
+  struct function *fn = (struct function *) data;
+
   /* If we are reading the lto info back in, we need to rescan the
      referenced vars.  */
   if (TREE_CODE (*tp) == SSA_NAME)
-    add_referenced_var (SSA_NAME_VAR (*tp));
+    add_referenced_var_1 (SSA_NAME_VAR (*tp), fn);
 
   /* If T is a regular variable that the optimizers are interested
      in, add it to the list of variables.  */
   else if (SSA_VAR_P (*tp))
-    add_referenced_var (*tp);
+    add_referenced_var_1 (*tp, fn);
 
   /* Type, _DECL and constant nodes have no interesting children.
      Ignore them.  */
@@ -462,9 +441,7 @@ find_vars_r (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
   return NULL_TREE;
 }
 
-/* Find referenced variables in STMT.  In contrast with
-   find_new_referenced_vars, this function will not mark newly found
-   variables for renaming.  */
+/* Find referenced variables in STMT.  */
 
 void
 find_referenced_vars_in (gimple stmt)
@@ -474,16 +451,16 @@ find_referenced_vars_in (gimple stmt)
   if (gimple_code (stmt) != GIMPLE_PHI)
     {
       for (i = 0; i < gimple_num_ops (stmt); i++)
-	walk_tree (gimple_op_ptr (stmt, i), find_vars_r, NULL, NULL);
+	walk_tree (gimple_op_ptr (stmt, i), find_vars_r, cfun, NULL);
     }
   else
     {
-      walk_tree (gimple_phi_result_ptr (stmt), find_vars_r, NULL, NULL);
+      walk_tree (gimple_phi_result_ptr (stmt), find_vars_r, cfun, NULL);
 
       for (i = 0; i < gimple_phi_num_args (stmt); i++)
 	{
 	  tree arg = gimple_phi_arg_def (stmt, i);
-	  walk_tree (&arg, find_vars_r, NULL, NULL);
+	  walk_tree (&arg, find_vars_r, cfun, NULL);
 	}
     }
 }
@@ -505,25 +482,24 @@ referenced_var_lookup (struct function *fn, unsigned int uid)
 /* Check if TO is in the referenced_vars hash table and insert it if not.
    Return true if it required insertion.  */
 
-bool
-referenced_var_check_and_insert (tree to)
+static bool
+referenced_var_check_and_insert (tree to, struct function *fn)
 {
-  tree h, *loc;
+  tree *loc;
   struct tree_decl_minimal in;
   unsigned int uid = DECL_UID (to);
 
   in.uid = uid;
-  h = (tree) htab_find_with_hash (gimple_referenced_vars (cfun), &in, uid);
-  if (h)
+  loc = (tree *) htab_find_slot_with_hash (gimple_referenced_vars (fn),
+					   &in, uid, INSERT);
+  if (*loc)
     {
       /* DECL_UID has already been entered in the table.  Verify that it is
 	 the same entry as TO.  See PR 27793.  */
-      gcc_assert (h == to);
+      gcc_assert (*loc == to);
       return false;
     }
 
-  loc = (tree *) htab_find_slot_with_hash (gimple_referenced_vars (cfun),
-					   &in, uid, INSERT);
   *loc = to;
   return true;
 }
@@ -578,26 +554,23 @@ set_default_def (tree var, tree def)
 /* Add VAR to the list of referenced variables if it isn't already there.  */
 
 bool
-add_referenced_var (tree var)
+add_referenced_var_1 (tree var, struct function *fn)
 {
-  gcc_assert (DECL_P (var));
+  gcc_checking_assert (TREE_CODE (var) == VAR_DECL
+		       || TREE_CODE (var) == PARM_DECL
+		       || TREE_CODE (var) == RESULT_DECL);
+
+  if (!(TREE_CODE (var) == VAR_DECL
+	&& VAR_DECL_IS_VIRTUAL_OPERAND (var))
+      && is_global_var (var))
+    return false;
+
   if (!*DECL_VAR_ANN_PTR (var))
-    create_var_ann (var);
+    *DECL_VAR_ANN_PTR (var) = ggc_alloc_cleared_var_ann_d ();
 
   /* Insert VAR into the referenced_vars hash table if it isn't present.  */
-  if (referenced_var_check_and_insert (var))
-    {
-      /* Scan DECL_INITIAL for pointer variables as they may contain
-	 address arithmetic referencing the address of other
-	 variables.  As we are only interested in directly referenced
-	 globals or referenced locals restrict this to initializers
-	 than can refer to local variables.  */
-      if (DECL_INITIAL (var)
-          && DECL_CONTEXT (var) == current_function_decl)
-      	walk_tree (&DECL_INITIAL (var), find_vars_r, NULL, 0);
-
-      return true;
-    }
+  if (referenced_var_check_and_insert (var, fn))
+    return true;
 
   return false;
 }
@@ -624,78 +597,6 @@ remove_referenced_var (tree var)
   loc = htab_find_slot_with_hash (gimple_referenced_vars (cfun), &in, uid,
 				  NO_INSERT);
   htab_clear_slot (gimple_referenced_vars (cfun), loc);
-}
-
-
-/* Return the virtual variable associated to the non-scalar variable VAR.  */
-
-tree
-get_virtual_var (tree var)
-{
-  STRIP_NOPS (var);
-
-  if (TREE_CODE (var) == SSA_NAME)
-    var = SSA_NAME_VAR (var);
-
-  while (TREE_CODE (var) == REALPART_EXPR || TREE_CODE (var) == IMAGPART_EXPR
-	 || handled_component_p (var))
-    var = TREE_OPERAND (var, 0);
-
-  /* Treating GIMPLE registers as virtual variables makes no sense.
-     Also complain if we couldn't extract a _DECL out of the original
-     expression.  */
-  gcc_assert (SSA_VAR_P (var));
-  gcc_assert (!is_gimple_reg (var));
-
-  return var;
-}
-
-/* Mark all the naked symbols in STMT for SSA renaming.  */
-
-void
-mark_symbols_for_renaming (gimple stmt)
-{
-  tree op;
-  ssa_op_iter iter;
-
-  update_stmt (stmt);
-
-  /* Mark all the operands for renaming.  */
-  FOR_EACH_SSA_TREE_OPERAND (op, stmt, iter, SSA_OP_ALL_OPERANDS)
-    if (DECL_P (op))
-      mark_sym_for_renaming (op);
-}
-
-
-/* Find all variables within the gimplified statement that were not
-   previously visible to the function and add them to the referenced
-   variables list.  */
-
-static tree
-find_new_referenced_vars_1 (tree *tp, int *walk_subtrees,
-			    void *data ATTRIBUTE_UNUSED)
-{
-  tree t = *tp;
-
-  if (TREE_CODE (t) == VAR_DECL && !var_ann (t))
-    {
-      add_referenced_var (t);
-      mark_sym_for_renaming (t);
-    }
-
-  if (IS_TYPE_OR_DECL_P (t))
-    *walk_subtrees = 0;
-
-  return NULL;
-}
-
-
-/* Find any new referenced variables in STMT.  */
-
-void
-find_new_referenced_vars (gimple stmt)
-{
-  walk_gimple_op (stmt, find_new_referenced_vars_1, NULL);
 }
 
 
@@ -814,21 +715,24 @@ get_ref_base_and_extent (tree exp, HOST_WIDE_INT *poffset,
 	  {
 	    tree index = TREE_OPERAND (exp, 1);
 	    tree low_bound, unit_size;
+	    double_int doffset;
 
 	    /* If the resulting bit-offset is constant, track it.  */
 	    if (TREE_CODE (index) == INTEGER_CST
-		&& host_integerp (index, 0)
 		&& (low_bound = array_ref_low_bound (exp),
-		    host_integerp (low_bound, 0))
+ 		    TREE_CODE (low_bound) == INTEGER_CST)
 		&& (unit_size = array_ref_element_size (exp),
-		    host_integerp (unit_size, 1)))
+		    host_integerp (unit_size, 1))
+		&& (doffset = double_int_sext
+			      (double_int_sub (TREE_INT_CST (index),
+					       TREE_INT_CST (low_bound)),
+			       TYPE_PRECISION (TREE_TYPE (index))),
+		    double_int_fits_in_shwi_p (doffset)))
 	      {
-		HOST_WIDE_INT hindex = TREE_INT_CST_LOW (index);
-
-		hindex -= TREE_INT_CST_LOW (low_bound);
-		hindex *= TREE_INT_CST_LOW (unit_size);
-		hindex *= BITS_PER_UNIT;
-		bit_offset += hindex;
+		HOST_WIDE_INT hoffset = double_int_to_shwi (doffset);
+		hoffset *= TREE_INT_CST_LOW (unit_size);
+		hoffset *= BITS_PER_UNIT;
+		bit_offset += hoffset;
 
 		/* An array ref with a constant index up in the structure
 		   hierarchy will constrain the size of any variable array ref

@@ -169,7 +169,7 @@ dse_possible_dead_store_p (gimple stmt, gimple *use_stmt)
 	 just pretend the stmt makes itself dead.  Otherwise fail.  */
       if (!temp)
 	{
-	  if (is_hidden_global_store (stmt))
+	  if (stmt_may_clobber_global_p (stmt))
 	    return false;
 
 	  temp = stmt;
@@ -199,9 +199,9 @@ dse_possible_dead_store_p (gimple stmt, gimple *use_stmt)
    post dominates the first store, then the first store is dead.  */
 
 static void
-dse_optimize_stmt (gimple_stmt_iterator gsi)
+dse_optimize_stmt (gimple_stmt_iterator *gsi)
 {
-  gimple stmt = gsi_stmt (gsi);
+  gimple stmt = gsi_stmt (*gsi);
 
   /* If this statement has no virtual defs, then there is nothing
      to do.  */
@@ -232,6 +232,8 @@ dse_optimize_stmt (gimple_stmt_iterator gsi)
 				gimple_get_lhs (use_stmt), 0)))
 	  || stmt_kills_ref_p (use_stmt, gimple_assign_lhs (stmt)))
 	{
+	  basic_block bb;
+
 	  /* If use_stmt is or might be a nop assignment, e.g. for
 	     struct { ... } S a, b, *p; ...
 	     b = a; b = b;
@@ -250,17 +252,17 @@ dse_optimize_stmt (gimple_stmt_iterator gsi)
 	  if (dump_file && (dump_flags & TDF_DETAILS))
             {
               fprintf (dump_file, "  Deleted dead store '");
-              print_gimple_stmt (dump_file, gsi_stmt (gsi), dump_flags, 0);
+              print_gimple_stmt (dump_file, gsi_stmt (*gsi), dump_flags, 0);
               fprintf (dump_file, "'\n");
             }
 
 	  /* Then we need to fix the operand of the consuming stmt.  */
 	  unlink_stmt_vdef (stmt);
 
-	  bitmap_set_bit (need_eh_cleanup, gimple_bb (stmt)->index);
-
 	  /* Remove the dead store.  */
-	  gsi_remove (&gsi, true);
+	  bb = gimple_bb (stmt);
+	  if (gsi_remove (gsi, true))
+	    bitmap_set_bit (need_eh_cleanup, bb->index);
 
 	  /* And release any SSA_NAMEs set in this statement back to the
 	     SSA_NAME manager.  */
@@ -275,8 +277,14 @@ dse_enter_block (struct dom_walk_data *walk_data ATTRIBUTE_UNUSED,
 {
   gimple_stmt_iterator gsi;
 
-  for (gsi = gsi_last (bb_seq (bb)); !gsi_end_p (gsi); gsi_prev (&gsi))
-    dse_optimize_stmt (gsi);
+  for (gsi = gsi_last_bb (bb); !gsi_end_p (gsi);)
+    {
+      dse_optimize_stmt (&gsi);
+      if (gsi_end_p (gsi))
+	gsi = gsi_last_bb (bb);
+      else
+	gsi_prev (&gsi);
+    }
 }
 
 /* Main entry point.  */

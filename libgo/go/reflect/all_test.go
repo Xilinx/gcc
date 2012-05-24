@@ -638,6 +638,7 @@ var (
 
 var deepEqualTests = []DeepEqualTest{
 	// Equalities
+	{nil, nil, true},
 	{1, 1, true},
 	{int32(1), int32(1), true},
 	{0.5, 0.5, true},
@@ -696,6 +697,10 @@ func TestDeepEqual(t *testing.T) {
 }
 
 func TestTypeOf(t *testing.T) {
+	// Special case for nil
+	if typ := TypeOf(nil); typ != nil {
+		t.Errorf("expected nil type for nil value; got %v", typ)
+	}
 	for _, test := range deepEqualTests {
 		v := ValueOf(test.a)
 		if !v.IsValid() {
@@ -1378,7 +1383,7 @@ func TestImportPath(t *testing.T) {
 		t    Type
 		path string
 	}{
-		{TypeOf(&base64.Encoding{}).Elem(), "libgo_encoding.base64"},
+		{TypeOf(&base64.Encoding{}).Elem(), "encoding/base64"},
 		{TypeOf(uint(0)), ""},
 		{TypeOf(map[string]int{}), ""},
 		{TypeOf((*error)(nil)).Elem(), ""},

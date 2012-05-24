@@ -1390,6 +1390,9 @@ check_sym_interfaces (gfc_symbol *sym)
 
       for (p = sym->generic; p; p = p->next)
 	{
+	  if (sym->attr.access != ACCESS_PRIVATE)
+	    p->sym->attr.public_used = 1;
+
 	  if (p->sym->attr.mod_proc
 	      && (p->sym->attr.if_source != IFSRC_DECL
 		  || p->sym->attr.procedure))
@@ -1415,10 +1418,15 @@ check_uop_interfaces (gfc_user_op *uop)
   char interface_name[100];
   gfc_user_op *uop2;
   gfc_namespace *ns;
+  gfc_interface *p;
 
   sprintf (interface_name, "operator interface '%s'", uop->name);
   if (check_interface0 (uop->op, interface_name))
     return;
+
+  if (uop->access != ACCESS_PRIVATE)
+    for (p = uop->op; p; p = p->next)
+      p->sym->attr.public_used = 1;
 
   for (ns = gfc_current_ns; ns; ns = ns->parent)
     {
@@ -1489,6 +1497,7 @@ void
 gfc_check_interfaces (gfc_namespace *ns)
 {
   gfc_namespace *old_ns, *ns2;
+  gfc_interface *p;
   char interface_name[100];
   int i;
 
@@ -1512,6 +1521,10 @@ gfc_check_interfaces (gfc_namespace *ns)
 
       if (check_interface0 (ns->op[i], interface_name))
 	continue;
+
+      for (p = ns->op[i]; p; p = p->next)
+	p->sym->attr.public_used = 1;
+
 
       if (ns->op[i])
 	gfc_check_operator_interface (ns->op[i]->sym, (gfc_intrinsic_op) i,
@@ -2504,7 +2517,9 @@ compare_actual_formal (gfc_actual_arglist **ap, gfc_formal_arglist *formal,
 				 ? _("actual argument to INTENT = OUT/INOUT")
 				 : NULL);
 
-	  if (f->sym->attr.pointer
+	  if (((f->sym->ts.type == BT_CLASS && f->sym->attr.class_ok
+		&& CLASS_DATA (f->sym)->attr.class_pointer)
+	       || (f->sym->ts.type != BT_CLASS && f->sym->attr.pointer))
 	      && gfc_check_vardef_context (a->expr, true, false, context)
 		   == FAILURE)
 	    return 0;
@@ -2799,25 +2814,6 @@ check_some_aliasing (gfc_formal_arglist *f, gfc_actual_arglist *a)
 }
 
 
-/* Given a symbol of a formal argument list and an expression,
-   return nonzero if their intents are compatible, zero otherwise.  */
-
-static int
-compare_parameter_intent (gfc_symbol *formal, gfc_expr *actual)
-{
-  if (actual->symtree->n.sym->attr.pointer && !formal->attr.pointer)
-    return 1;
-
-  if (actual->symtree->n.sym->attr.intent != INTENT_IN)
-    return 1;
-
-  if (formal->attr.intent == INTENT_INOUT || formal->attr.intent == INTENT_OUT)
-    return 0;
-
-  return 1;
-}
-
-
 /* Given formal and actual argument lists that correspond to one
    another, check that they are compatible in the sense that intents
    are not mismatched.  */
@@ -2839,25 +2835,11 @@ check_intents (gfc_formal_arglist *f, gfc_actual_arglist *a)
 
       f_intent = f->sym->attr.intent;
 
-      if (!compare_parameter_intent(f->sym, a->expr))
-	{
-	  gfc_error ("Procedure argument at %L is INTENT(IN) while interface "
-		     "specifies INTENT(%s)", &a->expr->where,
-		     gfc_intent_string (f_intent));
-	  return FAILURE;
-	}
-
       if (gfc_pure (NULL) && gfc_impure_variable (a->expr->symtree->n.sym))
 	{
-	  if (f_intent == INTENT_INOUT || f_intent == INTENT_OUT)
-	    {
-	      gfc_error ("Procedure argument at %L is local to a PURE "
-			 "procedure and is passed to an INTENT(%s) argument",
-			 &a->expr->where, gfc_intent_string (f_intent));
-	      return FAILURE;
-	    }
-
-	  if (f->sym->attr.pointer)
+	  if ((f->sym->ts.type == BT_CLASS && f->sym->attr.class_ok
+	       && CLASS_DATA (f->sym)->attr.class_pointer)
+	      || (f->sym->ts.type != BT_CLASS && f->sym->attr.pointer))
 	    {
 	      gfc_error ("Procedure argument at %L is local to a PURE "
 			 "procedure and has the POINTER attribute",
@@ -2877,7 +2859,9 @@ check_intents (gfc_formal_arglist *f, gfc_actual_arglist *a)
 	      return FAILURE;
 	    }
 
-	  if (f->sym->attr.pointer)
+	  if ((f->sym->ts.type == BT_CLASS && f->sym->attr.class_ok
+               && CLASS_DATA (f->sym)->attr.class_pointer)
+              || (f->sym->ts.type != BT_CLASS && f->sym->attr.pointer))
 	    {
 	      gfc_error ("Coindexed actual argument at %L in PURE procedure "
 			 "is passed to a POINTER dummy argument",

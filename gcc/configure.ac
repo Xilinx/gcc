@@ -1059,7 +1059,7 @@ fi
 AC_CHECK_TYPE(ssize_t, int)
 AC_CHECK_TYPE(caddr_t, char *)
 
-gcc_AC_FUNC_MMAP_BLACKLIST
+GCC_AC_FUNC_MMAP_BLACKLIST
 
 case "${host}" in
 *-*-*vms*)
@@ -2001,15 +2001,15 @@ else
 fi])
 
 ORIGINAL_PLUGIN_LD_FOR_TARGET=$gcc_cv_ld
-PLUGIN_LD=`basename $gcc_cv_ld`
+PLUGIN_LD_SUFFIX=`basename $gcc_cv_ld | sed -e "s,$target_alias-,,"`
 AC_ARG_WITH(plugin-ld,
 [AS_HELP_STRING([[--with-plugin-ld=[ARG]]], [specify the plugin linker])],
 [if test x"$withval" != x; then
    ORIGINAL_PLUGIN_LD_FOR_TARGET="$withval"
-   PLUGIN_LD="$withval"
+   PLUGIN_LD_SUFFIX=`echo $withval | sed -e "s,$target_alias-,,"`
  fi])
 AC_SUBST(ORIGINAL_PLUGIN_LD_FOR_TARGET)
-AC_DEFINE_UNQUOTED(PLUGIN_LD, "$PLUGIN_LD", [Specify plugin linker])
+AC_DEFINE_UNQUOTED(PLUGIN_LD_SUFFIX, "$PLUGIN_LD_SUFFIX", [Specify plugin linker])
 
 # Check to see if we are using gold instead of ld
 AC_MSG_CHECKING(whether we are using gold)
@@ -3597,6 +3597,14 @@ foo:	nop
       [AC_DEFINE(HAVE_AS_IX86_SAHF, 1,
         [Define if your assembler supports the sahf mnemonic in 64bit mode.])])
 
+    gcc_GAS_CHECK_FEATURE([hle prefixes],
+      gcc_cv_as_ix86_hle,,,
+      [.code64
+       lock xacquire cmpxchg %esi, (%rcx)
+       ],,
+      [AC_DEFINE(HAVE_AS_IX86_HLE, 1,
+        [Define if your assembler supports HLE prefixes.])])
+
     gcc_GAS_CHECK_FEATURE([swap suffix],
       gcc_cv_as_ix86_swap,,,
       [movl.s %esp, %ebp],,
@@ -4558,6 +4566,11 @@ AC_CACHE_CHECK(__stack_chk_fail in target C library,
 	     $target_header_dir/bits/uClibc_config.h > /dev/null; then
 	  gcc_cv_libc_provides_ssp=yes
 	fi
+      # all versions of Bionic support stack protector
+      elif test -f $target_header_dir/sys/cdefs.h \
+        && $EGREP '^[  ]*#[    ]*define[       ]+__BIONIC__[   ]+1' \
+           $target_header_dir/sys/cdefs.h > /dev/null; then
+         gcc_cv_libc_provides_ssp=yes
       fi]
 	;;
        *-*-gnu*)

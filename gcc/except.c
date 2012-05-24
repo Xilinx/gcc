@@ -144,6 +144,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "timevar.h"
 #include "tree-flow.h"
+#include "cfgloop.h"
 
 /* Provide defaults for stuff that may not be defined when using
    sjlj exceptions.  */
@@ -898,7 +899,7 @@ static basic_block
 emit_to_new_bb_before (rtx seq, rtx insn)
 {
   rtx last;
-  basic_block bb;
+  basic_block bb, prev_bb;
   edge e;
   edge_iterator ei;
 
@@ -913,7 +914,8 @@ emit_to_new_bb_before (rtx seq, rtx insn)
   last = emit_insn_before (seq, insn);
   if (BARRIER_P (last))
     last = PREV_INSN (last);
-  bb = create_basic_block (seq, last, BLOCK_FOR_INSN (insn)->prev_bb);
+  prev_bb = BLOCK_FOR_INSN (insn)->prev_bb;
+  bb = create_basic_block (seq, last, prev_bb);
   update_bb_for_insn (bb);
   bb->flags |= BB_SUPERBLOCK;
   return bb;
@@ -987,6 +989,16 @@ dw2_build_landing_pads (void)
       e = make_edge (bb, bb->next_bb, e_flags);
       e->count = bb->count;
       e->probability = REG_BR_PROB_BASE;
+      if (current_loops)
+	{
+	  struct loop *loop = bb->next_bb->loop_father;
+	  /* If we created a pre-header block, add the new block to the
+	     outer loop, otherwise to the loop itself.  */
+	  if (bb->next_bb == loop->header)
+	    add_bb_to_loop (bb, loop_outer (loop));
+	  else
+	    add_bb_to_loop (bb, loop);
+	}
     }
 }
 
@@ -1143,7 +1155,7 @@ sjlj_emit_function_enter (rtx dispatch_label)
       rtx x, last;
       x = emit_library_call_value (setjmp_libfunc, NULL_RTX, LCT_RETURNS_TWICE,
 				   TYPE_MODE (integer_type_node), 1,
-				   plus_constant (XEXP (fc, 0),
+				   plus_constant (Pmode, XEXP (fc, 0),
 						  sjlj_fc_jbuf_ofs), Pmode);
 
       emit_cmp_and_jump_insns (x, const0_rtx, NE, 0,
@@ -1156,7 +1168,7 @@ sjlj_emit_function_enter (rtx dispatch_label)
 	  add_reg_note (last, REG_BR_PROB, GEN_INT (REG_BR_PROB_BASE / 100));
 	}
 #else
-      expand_builtin_setjmp_setup (plus_constant (XEXP (fc, 0),
+      expand_builtin_setjmp_setup (plus_constant (Pmode, XEXP (fc, 0),
 						  sjlj_fc_jbuf_ofs),
 				   dispatch_label);
 #endif
@@ -1332,6 +1344,28 @@ sjlj_emit_dispatch_table (rtx dispatch_label, int num_dispatch)
 	e = make_edge (bb, bb->next_bb, EDGE_FALLTHRU);
 	e->count = bb->count;
 	e->probability = REG_BR_PROB_BASE;
+	if (current_loops)
+	  {
+	    struct loop *loop = bb->next_bb->loop_father;
+	    /* If we created a pre-header block, add the new block to the
+	       outer loop, otherwise to the loop itself.  */
+	    if (bb->next_bb == loop->header)
+	      add_bb_to_loop (bb, loop_outer (loop));
+	    else
+	      add_bb_to_loop (bb, loop);
+	    /* ???  For multiple dispatches we will end up with edges
+	       from the loop tree root into this loop, making it a
+	       multiple-entry loop.  Discard all affected loops.  */
+	    if (num_dispatch > 1)
+	      {
+		for (loop = bb->loop_father;
+		     loop_outer (loop); loop = loop_outer (loop))
+		  {
+		    loop->header = NULL;
+		    loop->latch = NULL;
+		  }
+	      }
+	  }
 
 	disp_index++;
       }
@@ -1352,6 +1386,24 @@ sjlj_emit_dispatch_table (rtx dispatch_label, int num_dispatch)
       e = make_edge (bb, bb->next_bb, EDGE_FALLTHRU);
       e->count = bb->count;
       e->probability = REG_BR_PROB_BASE;
+      if (current_loops)
+	{
+	  struct loop *loop = bb->next_bb->loop_father;
+	  /* If we created a pre-header block, add the new block to the
+	     outer loop, otherwise to the loop itself.  */
+	  if (bb->next_bb == loop->header)
+	    add_bb_to_loop (bb, loop_outer (loop));
+	  else
+	    add_bb_to_loop (bb, loop);
+	}
+    }
+  else
+    {
+      /* We are not wiring up edges here, but as the dispatcher call
+         is at function begin simply associate the block with the
+	 outermost (non-)loop.  */
+      if (current_loops)
+	add_bb_to_loop (bb, current_loops->tree_root);
     }
 }
 
@@ -2042,7 +2094,7 @@ expand_builtin_extract_return_addr (tree addr_tree)
 
   /* Then adjust to find the real return address.  */
 #if defined (RETURN_ADDR_OFFSET)
-  addr = plus_constant (addr, RETURN_ADDR_OFFSET);
+  addr = plus_constant (Pmode, addr, RETURN_ADDR_OFFSET);
 #endif
 
   return addr;
@@ -2061,7 +2113,7 @@ expand_builtin_frob_return_addr (tree addr_tree)
 
 #ifdef RETURN_ADDR_OFFSET
   addr = force_reg (Pmode, addr);
-  addr = plus_constant (addr, -RETURN_ADDR_OFFSET);
+  addr = plus_constant (Pmode, addr, -RETURN_ADDR_OFFSET);
 #endif
 
   return addr;
@@ -2762,8 +2814,6 @@ output_ttype (tree type, int tt_format, int tt_format_size)
     value = const0_rtx;
   else
     {
-      struct varpool_node *node;
-
       /* FIXME lto.  pass_ipa_free_lang_data changes all types to
 	 runtime types so TYPE should already be a runtime type
 	 reference.  When pass_ipa_free_lang data is made a default
@@ -2782,12 +2832,7 @@ output_ttype (tree type, int tt_format, int tt_format_size)
 	{
 	  type = TREE_OPERAND (type, 0);
 	  if (TREE_CODE (type) == VAR_DECL)
-	    {
-	      node = varpool_node (type);
-	      if (node)
-		varpool_mark_needed_node (node);
-	      is_public = TREE_PUBLIC (type);
-	    }
+	    is_public = TREE_PUBLIC (type);
 	}
       else
 	gcc_assert (TREE_CODE (type) == INTEGER_CST);

@@ -1,6 +1,7 @@
 /* Functions related to building classes and their related objects.
    Copyright (C) 1987, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011,
+   2012
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
 
@@ -3149,8 +3150,9 @@ check_field_decls (tree t, tree *access_decls,
 	CLASSTYPE_NON_AGGREGATE (t) = 1;
 
       /* If at least one non-static data member is non-literal, the whole
-         class becomes non-literal.  */
-      if (!literal_type_p (type))
+         class becomes non-literal.  Note: if the type is incomplete we
+	 will complain later on.  */
+      if (COMPLETE_TYPE_P (type) && !literal_type_p (type))
         CLASSTYPE_LITERAL_P (t) = false;
 
       /* A standard-layout class is a class that:
@@ -3217,8 +3219,7 @@ check_field_decls (tree t, tree *access_decls,
 	 to members which might hold dynamic memory. So do not warn
 	 for pointers to functions or pointers to members.  */
       if (TYPE_PTR_P (type)
-	  && !TYPE_PTRFN_P (type)
-	  && !TYPE_PTR_TO_MEMBER_P (type))
+	  && !TYPE_PTRFN_P (type))
 	has_pointers = true;
 
       if (CLASS_TYPE_P (type))
@@ -4320,6 +4321,41 @@ clone_constructors_and_destructors (tree t)
     clone_function_decl (OVL_CURRENT (fns), /*update_method_vec_p=*/1);
 }
 
+/* Deduce noexcept for a destructor DTOR.  */
+
+void
+deduce_noexcept_on_destructor (tree dtor)
+{
+  if (!TYPE_RAISES_EXCEPTIONS (TREE_TYPE (dtor)))
+    {
+      tree ctx = DECL_CONTEXT (dtor);
+      tree implicit_fn = implicitly_declare_fn (sfk_destructor, ctx,
+						/*const_p=*/false);
+      tree eh_spec = TYPE_RAISES_EXCEPTIONS (TREE_TYPE (implicit_fn));
+      TREE_TYPE (dtor) = build_exception_variant (TREE_TYPE (dtor), eh_spec);
+    }
+}
+
+/* For each destructor in T, deduce noexcept:
+
+   12.4/3: A declaration of a destructor that does not have an
+   exception-specification is implicitly considered to have the
+   same exception-specification as an implicit declaration (15.4).  */
+
+static void
+deduce_noexcept_on_destructors (tree t)
+{
+  tree fns;
+
+  /* If for some reason we don't have a CLASSTYPE_METHOD_VEC, we bail
+     out now.  */
+  if (!CLASSTYPE_METHOD_VEC (t))
+    return;
+
+  for (fns = CLASSTYPE_DESTRUCTORS (t); fns; fns = OVL_NEXT (fns))
+    deduce_noexcept_on_destructor (OVL_CURRENT (fns));
+}
+
 /* Subroutine of set_one_vmethod_tm_attributes.  Search base classes
    of TYPE for virtual functions which FNDECL overrides.  Return a
    mask of the tm attributes found therein.  */
@@ -4993,6 +5029,10 @@ check_bases_and_members (tree t)
   cant_have_const_ctor = 0;
   no_const_asn_ref = 0;
 
+  /* Deduce noexcept on destructors.  */
+  if (cxx_dialect >= cxx0x)
+    deduce_noexcept_on_destructors (t);
+
   /* Check all the base-classes.  */
   check_bases (t, &cant_have_const_ctor,
 	       &no_const_asn_ref);
@@ -5104,9 +5144,6 @@ check_bases_and_members (tree t)
 		 give the synthesis error.  */
 	      error ("%q+D declared to take const reference, but implicit "
 		     "declaration would take non-const", fn);
-	    else if (imp_const_p && !fn_const_p)
-	      error ("%q+D declared to take non-const reference cannot be "
-		     "defaulted in the class body", fn);
 	  }
 	defaulted_late_check (fn);
       }

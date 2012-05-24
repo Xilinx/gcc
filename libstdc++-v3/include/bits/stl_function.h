@@ -1,6 +1,7 @@
 // Functor implementations -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009, 2010, 2011
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009, 2010,
+// 2011, 2012
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -471,7 +472,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   /** @}  */
 
   template<typename _Tp>
-    struct _Identity : public unary_function<_Tp,_Tp>
+    struct _Identity
+    : public unary_function<_Tp,_Tp>
     {
       _Tp&
       operator()(_Tp& __x) const
@@ -483,8 +485,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     };
 
   template<typename _Pair>
-    struct _Select1st : public unary_function<_Pair,
-					      typename _Pair::first_type>
+    struct _Select1st
+    : public unary_function<_Pair, typename _Pair::first_type>
     {
       typename _Pair::first_type&
       operator()(_Pair& __x) const
@@ -508,8 +510,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     };
 
   template<typename _Pair>
-    struct _Select2nd : public unary_function<_Pair,
-					      typename _Pair::second_type>
+    struct _Select2nd
+    : public unary_function<_Pair, typename _Pair::second_type>
     {
       typename _Pair::second_type&
       operator()(_Pair& __x) const

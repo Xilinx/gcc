@@ -87,7 +87,6 @@ init_ic_make_global_vars (void)
       decl_default_tls_model (ic_void_ptr_var);
 
   varpool_finalize_decl (ic_void_ptr_var);
-  varpool_mark_needed_node (varpool_node (ic_void_ptr_var));
 
   gcov_type_ptr = build_pointer_type (get_gcov_type ());
   ic_gcov_type_ptr_var
@@ -103,7 +102,6 @@ init_ic_make_global_vars (void)
       decl_default_tls_model (ic_gcov_type_ptr_var);
 
   varpool_finalize_decl (ic_gcov_type_ptr_var);
-  varpool_mark_needed_node (varpool_node (ic_gcov_type_ptr_var));
 }
 
 void
@@ -349,7 +347,6 @@ gimple_gen_ic_profiler (histogram_value value, unsigned tag, unsigned base)
   gimple_assign_set_lhs (stmt2, make_ssa_name (tmp1, stmt2));
   find_referenced_vars_in (stmt2);
   stmt3 = gimple_build_assign (ic_void_ptr_var, gimple_assign_lhs (stmt2));
-  add_referenced_var (ic_void_ptr_var);
 
   gsi_insert_before (&gsi, stmt1, GSI_SAME_STMT);
   gsi_insert_before (&gsi, stmt2, GSI_SAME_STMT);
@@ -385,11 +382,9 @@ gimple_gen_ic_func_profiler (void)
   counter_ptr = force_gimple_operand_gsi (&gsi, ic_gcov_type_ptr_var,
 					  true, NULL_TREE, true,
 					  GSI_SAME_STMT);
-  add_referenced_var (ic_gcov_type_ptr_var);
   ptr_var = force_gimple_operand_gsi (&gsi, ic_void_ptr_var,
 				      true, NULL_TREE, true,
 				      GSI_SAME_STMT);
-  add_referenced_var (ic_void_ptr_var);
   tree_uid = build_int_cst (gcov_type_node, current_function_funcdef_no);
   stmt1 = gimple_build_call (tree_indirect_call_profiler_fn, 4,
 			     counter_ptr, tree_uid, cur_func, ptr_var);
@@ -479,25 +474,25 @@ tree_profiling (void)
 
   init_node_map();
 
-  for (node = cgraph_nodes; node; node = node->next)
+  FOR_EACH_DEFINED_FUNCTION (node)
     {
-      if (!node->analyzed
-	  || !gimple_has_body_p (node->decl))
+      if (!gimple_has_body_p (node->symbol.decl))
 	continue;
 
       /* Don't profile functions produced for builtin stuff.  */
-      if (DECL_SOURCE_LOCATION (node->decl) == BUILTINS_LOCATION
-	  || DECL_STRUCT_FUNCTION (node->decl)->after_tree_profile)
+      if (DECL_SOURCE_LOCATION (node->symbol.decl) == BUILTINS_LOCATION
+	  || DECL_STRUCT_FUNCTION (node->symbol.decl)->after_tree_profile)
 	continue;
 
-      push_cfun (DECL_STRUCT_FUNCTION (node->decl));
-      current_function_decl = node->decl;
+      push_cfun (DECL_STRUCT_FUNCTION (node->symbol.decl));
+      current_function_decl = node->symbol.decl;
 
       /* Re-set global shared temporary variable for edge-counters.  */
       gcov_type_tmp_var = NULL_TREE;
 
       /* Local pure-const may imply need to fixup the cfg.  */
-      execute_fixup_cfg ();
+      if (execute_fixup_cfg () & TODO_cleanup_cfg)
+	cleanup_tree_cfg ();
       branch_prob ();
 
       if (! flag_branch_probabilities
@@ -520,16 +515,16 @@ tree_profiling (void)
     }
 
   /* Drop pure/const flags from instrumented functions.  */
-  for (node = cgraph_nodes; node; node = node->next)
+  FOR_EACH_DEFINED_FUNCTION (node)
     {
-      if (!node->analyzed
-	  || !gimple_has_body_p (node->decl)
-	  || !(!node->clone_of || node->decl != node->clone_of->decl))
+      if (!gimple_has_body_p (node->symbol.decl)
+	  || !(!node->clone_of
+	  || node->symbol.decl != node->clone_of->symbol.decl))
 	continue;
 
       /* Don't profile functions produced for builtin stuff.  */
-      if (DECL_SOURCE_LOCATION (node->decl) == BUILTINS_LOCATION
-	  || DECL_STRUCT_FUNCTION (node->decl)->after_tree_profile)
+      if (DECL_SOURCE_LOCATION (node->symbol.decl) == BUILTINS_LOCATION
+	  || DECL_STRUCT_FUNCTION (node->symbol.decl)->after_tree_profile)
 	continue;
 
       cgraph_set_const_flag (node, false, false);
@@ -537,22 +532,22 @@ tree_profiling (void)
     }
 
   /* Update call statements and rebuild the cgraph.  */
-  for (node = cgraph_nodes; node; node = node->next)
+  FOR_EACH_DEFINED_FUNCTION (node)
     {
       basic_block bb;
 
-      if (!node->analyzed
-	  || !gimple_has_body_p (node->decl)
-	  || !(!node->clone_of || node->decl != node->clone_of->decl))
+      if (!gimple_has_body_p (node->symbol.decl)
+	  || !(!node->clone_of
+	  || node->symbol.decl != node->clone_of->symbol.decl))
 	continue;
 
       /* Don't profile functions produced for builtin stuff.  */
-      if (DECL_SOURCE_LOCATION (node->decl) == BUILTINS_LOCATION
-	  || DECL_STRUCT_FUNCTION (node->decl)->after_tree_profile)
+      if (DECL_SOURCE_LOCATION (node->symbol.decl) == BUILTINS_LOCATION
+	  || DECL_STRUCT_FUNCTION (node->symbol.decl)->after_tree_profile)
 	continue;
 
-      push_cfun (DECL_STRUCT_FUNCTION (node->decl));
-      current_function_decl = node->decl;
+      push_cfun (DECL_STRUCT_FUNCTION (node->symbol.decl));
+      current_function_decl = node->symbol.decl;
 
       FOR_EACH_BB (bb)
 	{

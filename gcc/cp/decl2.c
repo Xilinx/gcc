@@ -1,7 +1,7 @@
 /* Process declarations and variables for C++ compiler.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
    1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010,
-   2011 Free Software Foundation, Inc.
+   2011, 2012 Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
 This file is part of GCC.
@@ -150,6 +150,9 @@ change_return_type (tree new_ret, tree fntype)
   tree args = TYPE_ARG_TYPES (fntype);
   tree raises = TYPE_RAISES_EXCEPTIONS (fntype);
   tree attrs = TYPE_ATTRIBUTES (fntype);
+
+  if (new_ret == error_mark_node)
+    return fntype;
 
   if (same_type_p (new_ret, TREE_TYPE (fntype)))
     return fntype;
@@ -333,7 +336,7 @@ grokclassfn (tree ctype, tree function, enum overload_flags flags)
    along the way.  */
 
 tree
-grok_array_decl (tree array_expr, tree index_exp)
+grok_array_decl (location_t loc, tree array_expr, tree index_exp)
 {
   tree type;
   tree expr;
@@ -347,8 +350,8 @@ grok_array_decl (tree array_expr, tree index_exp)
     {
       if (type_dependent_expression_p (array_expr)
 	  || type_dependent_expression_p (index_exp))
-	return build_min_nt (ARRAY_REF, array_expr, index_exp,
-			     NULL_TREE, NULL_TREE);
+	return build_min_nt_loc (loc, ARRAY_REF, array_expr, index_exp,
+				 NULL_TREE, NULL_TREE);
       array_expr = build_non_dependent_expr (array_expr);
       index_exp = build_non_dependent_expr (index_exp);
     }
@@ -359,9 +362,8 @@ grok_array_decl (tree array_expr, tree index_exp)
 
   /* If they have an `operator[]', use that.  */
   if (MAYBE_CLASS_TYPE_P (type) || MAYBE_CLASS_TYPE_P (TREE_TYPE (index_exp)))
-    expr = build_new_op (ARRAY_REF, LOOKUP_NORMAL,
-			 array_expr, index_exp, NULL_TREE,
-			 /*overload=*/NULL, tf_warning_or_error);
+    expr = build_new_op (loc, ARRAY_REF, LOOKUP_NORMAL, array_expr, index_exp,
+			 NULL_TREE, /*overload=*/NULL, tf_warning_or_error);
   else
     {
       tree p1, p2, i1, i2;
@@ -370,7 +372,7 @@ grok_array_decl (tree array_expr, tree index_exp)
 	 It is a little-known fact that, if `a' is an array and `i' is
 	 an int, you can write `i[a]', which means the same thing as
 	 `a[i]'.  */
-      if (TREE_CODE (type) == ARRAY_TYPE)
+      if (TREE_CODE (type) == ARRAY_TYPE || TREE_CODE (type) == VECTOR_TYPE)
 	p1 = array_expr;
       else
 	p1 = build_expr_type_conversion (WANT_POINTER, array_expr, false);
@@ -436,9 +438,8 @@ delete_sanity (tree exp, tree size, bool doing_vec, int use_global_delete,
     }
 
   /* An array can't have been allocated by new, so complain.  */
-  if (TREE_CODE (exp) == VAR_DECL
-      && TREE_CODE (TREE_TYPE (exp)) == ARRAY_TYPE)
-    warning (0, "deleting array %q#D", exp);
+  if (TREE_CODE (TREE_TYPE (exp)) == ARRAY_TYPE)
+    warning (0, "deleting array %q#E", exp);
 
   t = build_expr_type_conversion (WANT_POINTER, exp, true);
 
@@ -861,7 +862,7 @@ grokfield (const cp_declarator *declarator,
 	  cplus_decl_attributes (&value, attrlist, attrflags);
 	}
 
-      if (declspecs->specs[(int)ds_typedef]
+      if (decl_spec_seq_has_spec_p (declspecs, ds_typedef)
           && TREE_TYPE (value) != error_mark_node
           && TYPE_NAME (TYPE_MAIN_VARIANT (TREE_TYPE (value))) != value)
 	set_underlying_type (value);
@@ -1367,8 +1368,8 @@ build_anon_union_vars (tree type, tree object)
 	permerror (input_location, "protected member %q+#D in anonymous union", field);
 
       if (processing_template_decl)
-	ref = build_min_nt (COMPONENT_REF, object,
-			    DECL_NAME (field), NULL_TREE);
+	ref = build_min_nt_loc (UNKNOWN_LOCATION, COMPONENT_REF, object,
+				DECL_NAME (field), NULL_TREE);
       else
 	ref = build_class_member_access_expr (object, field, NULL_TREE,
 					      false, tf_warning_or_error);
@@ -1453,12 +1454,7 @@ finish_anon_union (tree anon_union_decl)
     }
 
   pushdecl (anon_union_decl);
-  if (building_stmt_list_p ()
-      && at_function_scope_p ())
-    add_decl_expr (anon_union_decl);
-  else if (!processing_template_decl)
-    rest_of_decl_compilation (anon_union_decl,
-			      toplevel_bindings_p (), at_eof);
+  cp_finish_decl (anon_union_decl, NULL_TREE, false, NULL_TREE, 0);
 }
 
 /* Auxiliary functions to make type signatures for
@@ -1679,6 +1675,7 @@ maybe_make_one_only (tree decl)
 	  DECL_COMDAT (decl) = 1;
 	  /* Mark it needed so we don't forget to emit it.  */
 	  mark_decl_referenced (decl);
+	  TREE_USED (decl) = 1;
 	}
     }
 }
@@ -1784,10 +1781,7 @@ var_finalized_p (tree var)
 void
 mark_needed (tree decl)
 {
-  /* It's possible that we no longer need to set
-     TREE_SYMBOL_REFERENCED here directly, but doing so is
-     harmless.  */
-  TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (decl)) = 1;
+  TREE_USED (decl) = 1;
   mark_decl_referenced (decl);
 }
 
@@ -1813,9 +1807,7 @@ decl_needed_p (tree decl)
     return true;
   /* If this entity was used, let the back end see it; it will decide
      whether or not to emit it into the object file.  */
-  if (TREE_USED (decl)
-      || (DECL_ASSEMBLER_NAME_SET_P (decl)
-	  && TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (decl))))
+  if (TREE_USED (decl))
       return true;
   /* Functions marked "dllexport" must be emitted so that they are
      visible to other DLLs.  */
@@ -1836,7 +1828,7 @@ maybe_emit_vtables (tree ctype)
   tree vtbl;
   tree primary_vtbl;
   int needed = 0;
-  struct varpool_node *current = NULL, *last = NULL, *first = NULL;
+  struct varpool_node *current = NULL, *last = NULL;
 
   /* If the vtables for this class have already been emitted there is
      nothing more to do.  */
@@ -1896,19 +1888,14 @@ maybe_emit_vtables (tree ctype)
 	 actually marking the variable as written.  */
       if (flag_syntax_only)
 	TREE_ASM_WRITTEN (vtbl) = 1;
-      else if (DECL_COMDAT (vtbl))
+      else if (DECL_ONE_ONLY (vtbl))
 	{
 	  current = varpool_node (vtbl);
 	  if (last)
-	    last->same_comdat_group = current;
+	    symtab_add_to_same_comdat_group ((symtab_node) current, (symtab_node) last);
 	  last = current;
-	  if (!first)
-	    first = current;
 	}
     }
-
-  if (first != last)
-    last->same_comdat_group = first;
 
   /* Since we're writing out the vtable here, also write the debug
      info.  */
@@ -3438,44 +3425,6 @@ generate_ctor_and_dtor_functions_for_priority (splay_tree_node n, void * data)
   return 0;
 }
 
-/* Called via LANGHOOK_CALLGRAPH_ANALYZE_EXPR.  It is supposed to mark
-   decls referenced from front-end specific constructs; it will be called
-   only for language-specific tree nodes.
-
-   Here we must deal with member pointers.  */
-
-tree
-cxx_callgraph_analyze_expr (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED)
-{
-  tree t = *tp;
-
-  switch (TREE_CODE (t))
-    {
-    case PTRMEM_CST:
-      if (TYPE_PTRMEMFUNC_P (TREE_TYPE (t)))
-	cgraph_mark_address_taken_node (
-			      cgraph_get_create_node (PTRMEM_CST_MEMBER (t)));
-      break;
-    case BASELINK:
-      if (TREE_CODE (BASELINK_FUNCTIONS (t)) == FUNCTION_DECL)
-	cgraph_mark_address_taken_node (
-			      cgraph_get_create_node (BASELINK_FUNCTIONS (t)));
-      break;
-    case VAR_DECL:
-      if (DECL_CONTEXT (t)
-	  && flag_use_repository
-	  && TREE_CODE (DECL_CONTEXT (t)) == FUNCTION_DECL)
-	/* If we need a static variable in a function, then we
-	   need the containing function.  */
-	mark_decl_referenced (DECL_CONTEXT (t));
-      break;
-    default:
-      break;
-    }
-
-  return NULL;
-}
-
 /* Java requires that we be able to reference a local address for a
    method, and not be confused by PLT entries.  If hidden aliases are
    supported, collect and return all the functions for which we should
@@ -3491,9 +3440,9 @@ collect_candidates_for_java_method_aliases (void)
   return candidates;
 #endif
 
-  for (node = cgraph_nodes; node ; node = node->next)
+  FOR_EACH_FUNCTION (node)
     {
-      tree fndecl = node->decl;
+      tree fndecl = node->symbol.decl;
 
       if (DECL_CONTEXT (fndecl)
 	  && TYPE_P (DECL_CONTEXT (fndecl))
@@ -3525,9 +3474,9 @@ build_java_method_aliases (struct pointer_set_t *candidates)
   return;
 #endif
 
-  for (node = cgraph_nodes; node ; node = node->next)
+  FOR_EACH_FUNCTION (node)
     {
-      tree fndecl = node->decl;
+      tree fndecl = node->symbol.decl;
 
       if (TREE_ASM_WRITTEN (fndecl)
 	  && pointer_set_contains (candidates, fndecl))
@@ -3708,7 +3657,7 @@ collect_all_refs (const char *source_file)
 static bool
 clear_decl_external (struct cgraph_node *node, void *data ATTRIBUTE_UNUSED)
 {
-  DECL_EXTERNAL (node->decl) = 0;
+  DECL_EXTERNAL (node->symbol.decl) = 0;
   return false;
 }
 
@@ -3947,10 +3896,10 @@ cp_write_global_declarations (void)
 	      /* If we mark !DECL_EXTERNAL one of the symbols in some comdat
 		 group, we need to mark all symbols in the same comdat group
 		 that way.  */
-	      if (node->same_comdat_group)
-		for (next = node->same_comdat_group;
+	      if (node->symbol.same_comdat_group)
+		for (next = cgraph (node->symbol.same_comdat_group);
 		     next != node;
-		     next = next->same_comdat_group)
+		     next = cgraph (next->symbol.same_comdat_group))
 	          cgraph_for_node_and_aliases (next, clear_decl_external,
 					       NULL, true);
 	    }
@@ -4071,7 +4020,7 @@ cp_write_global_declarations (void)
   timevar_stop (TV_PHASE_DEFERRED);
   timevar_start (TV_PHASE_CGRAPH);
 
-  cgraph_finalize_compilation_unit ();
+  finalize_compilation_unit ();
 
   timevar_stop (TV_PHASE_CGRAPH);
   timevar_start (TV_PHASE_CHECK_DBGINFO);
@@ -4177,7 +4126,8 @@ build_offset_ref_call_from_tree (tree fn, VEC(tree,gc) **args)
     {
       tree object_addr = cp_build_addr_expr (object, tf_warning_or_error);
       fn = TREE_OPERAND (fn, 1);
-      fn = get_member_function_from_ptrfunc (&object_addr, fn);
+      fn = get_member_function_from_ptrfunc (&object_addr, fn,
+					     tf_warning_or_error);
       VEC_safe_insert (tree, gc, *args, 0, object_addr);
     }
 
@@ -4281,7 +4231,11 @@ mark_used (tree decl)
   if ((TREE_CODE (decl) != VAR_DECL && TREE_CODE (decl) != FUNCTION_DECL)
       || DECL_LANG_SPECIFIC (decl) == NULL
       || DECL_THUNK_P (decl))
-    return true;
+    {
+      if (!processing_template_decl && type_uses_auto (TREE_TYPE (decl)))
+	error ("use of %qD before deduction of %<auto%>", decl);
+      return true;
+    }
 
   /* We only want to do this processing once.  We don't need to keep trying
      to instantiate inline templates, because unit-at-a-time will make sure
@@ -4303,10 +4257,13 @@ mark_used (tree decl)
   /* Normally, we can wait until instantiation-time to synthesize DECL.
      However, if DECL is a static data member initialized with a constant
      or a constexpr function, we need it right now because a reference to
-     such a data member or a call to such function is not value-dependent.  */
+     such a data member or a call to such function is not value-dependent.
+     For a function that uses auto in the return type, we need to instantiate
+     it to find out its type.  */
   if ((decl_maybe_constant_var_p (decl)
        || (TREE_CODE (decl) == FUNCTION_DECL
-	   && DECL_DECLARED_CONSTEXPR_P (decl)))
+	   && (DECL_DECLARED_CONSTEXPR_P (decl)
+	       || type_uses_auto (TREE_TYPE (TREE_TYPE (decl))))))
       && DECL_LANG_SPECIFIC (decl)
       && DECL_TEMPLATE_INFO (decl)
       && !uses_template_parms (DECL_TI_ARGS (decl)))
@@ -4320,6 +4277,9 @@ mark_used (tree decl)
 			/*expl_inst_class_mem_p=*/false);
       --function_depth;
     }
+
+  if (type_uses_auto (TREE_TYPE (decl)))
+    error ("use of %qD before deduction of %<auto%>", decl);
 
   /* If we don't need a value, then we don't need to synthesize DECL.  */
   if (cp_unevaluated_operand != 0)

@@ -38,7 +38,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm_p.h"
 #include "function.h"
 #include "obstack.h"
-#include "toplev.h"
+#include "toplev.h" /* get_random_seed */
 #include "ggc.h"
 #include "hashtab.h"
 #include "filenames.h"
@@ -724,6 +724,10 @@ tree_size (const_tree node)
       return (sizeof (struct tree_vec)
 	      + (TREE_VEC_LENGTH (node) - 1) * sizeof (tree));
 
+    case VECTOR_CST:
+      return (sizeof (struct tree_vector)
+	      + (TYPE_VECTOR_SUBPARTS (TREE_TYPE (node)) - 1) * sizeof (tree));
+
     case STRING_CST:
       return TREE_STRING_LENGTH (node) + offsetof (struct tree_string, str) + 1;
 
@@ -1058,10 +1062,7 @@ build_int_cst_type (tree type, HOST_WIDE_INT low)
 tree
 double_int_to_tree (tree type, double_int cst)
 {
-  /* Size types *are* sign extended.  */
-  bool sign_extended_type = (!TYPE_UNSIGNED (type)
-			     || (TREE_CODE (type) == INTEGER_TYPE
-				 && TYPE_IS_SIZETYPE (type)));
+  bool sign_extended_type = !TYPE_UNSIGNED (type);
 
   cst = double_int_ext (cst, TYPE_PRECISION (type), !sign_extended_type);
 
@@ -1075,9 +1076,7 @@ bool
 double_int_fits_to_tree_p (const_tree type, double_int cst)
 {
   /* Size types *are* sign extended.  */
-  bool sign_extended_type = (!TYPE_UNSIGNED (type)
-			     || (TREE_CODE (type) == INTEGER_TYPE
-				 && TYPE_IS_SIZETYPE (type)));
+  bool sign_extended_type = !TYPE_UNSIGNED (type);
 
   double_int ext
     = double_int_ext (cst, TYPE_PRECISION (type), !sign_extended_type);
@@ -1107,9 +1106,7 @@ force_fit_type_double (tree type, double_int cst, int overflowable,
   bool sign_extended_type;
 
   /* Size types *are* sign extended.  */
-  sign_extended_type = (!TYPE_UNSIGNED (type)
-                        || (TREE_CODE (type) == INTEGER_TYPE
-                            && TYPE_IS_SIZETYPE (type)));
+  sign_extended_type = !TYPE_UNSIGNED (type);
 
   /* If we need to set overflow flags, return a new unshared node.  */
   if (overflowed || !double_int_fits_to_tree_p(type, cst))
@@ -1311,6 +1308,24 @@ cst_and_fits_in_hwi (const_tree x)
 	  || TREE_INT_CST_HIGH (x) == -1);
 }
 
+/* Build a newly constructed TREE_VEC node of length LEN.  */
+
+tree
+make_vector_stat (unsigned len MEM_STAT_DECL)
+{
+  tree t;
+  unsigned length = (len - 1) * sizeof (tree) + sizeof (struct tree_vector);
+
+  record_node_allocation_statistics (VECTOR_CST, length);
+
+  t = ggc_alloc_zone_cleared_tree_node_stat (&tree_zone, length PASS_MEM_STAT);
+
+  TREE_SET_CODE (t, VECTOR_CST);
+  TREE_CONSTANT (t) = 1;
+
+  return t;
+}
+
 /* Return a new VECTOR_CST node whose type is TYPE and whose values
    are in a list pointed to by VALS.  */
 
@@ -1319,16 +1334,7 @@ build_vector_stat (tree type, tree *vals MEM_STAT_DECL)
 {
   int over = 0;
   unsigned cnt = 0;
-  tree v;
-  int length = ((TYPE_VECTOR_SUBPARTS (type) - 1) * sizeof (tree)
-		+ sizeof (struct tree_vector));
-
-  record_node_allocation_statistics (VECTOR_CST, length);
-
-  v = ggc_alloc_zone_cleared_tree_node_stat (&tree_zone, length PASS_MEM_STAT);
-
-  TREE_SET_CODE (v, VECTOR_CST);
-  TREE_CONSTANT (v) = 1;
+  tree v = make_vector (TYPE_VECTOR_SUBPARTS (type));
   TREE_TYPE (v) = type;
 
   /* Iterate through elements and check for overflow.  */
@@ -5044,14 +5050,14 @@ find_decls_types_in_node (struct cgraph_node *n, struct free_lang_data_d *fld)
   unsigned ix;
   tree t;
 
-  find_decls_types (n->decl, fld);
+  find_decls_types (n->symbol.decl, fld);
 
-  if (!gimple_has_body_p (n->decl))
+  if (!gimple_has_body_p (n->symbol.decl))
     return;
 
   gcc_assert (current_function_decl == NULL_TREE && cfun == NULL);
 
-  fn = DECL_STRUCT_FUNCTION (n->decl);
+  fn = DECL_STRUCT_FUNCTION (n->symbol.decl);
 
   /* Traverse locals. */
   FOR_EACH_LOCAL_DECL (fn, ix, t)
@@ -5107,7 +5113,7 @@ find_decls_types_in_node (struct cgraph_node *n, struct free_lang_data_d *fld)
 static void
 find_decls_types_in_var (struct varpool_node *v, struct free_lang_data_d *fld)
 {
-  find_decls_types (v->decl, fld);
+  find_decls_types (v->symbol.decl, fld);
 }
 
 /* If T needs an assembler name, have one created for it.  */
@@ -5172,14 +5178,14 @@ free_lang_data_in_cgraph (void)
   fld.types = VEC_alloc (tree, heap, 100);
 
   /* Find decls and types in the body of every function in the callgraph.  */
-  for (n = cgraph_nodes; n; n = n->next)
+  FOR_EACH_FUNCTION (n)
     find_decls_types_in_node (n, &fld);
 
   FOR_EACH_VEC_ELT (alias_pair, alias_pairs, i, p)
     find_decls_types (p->decl, &fld);
 
   /* Find decls and types in every varpool symbol.  */
-  for (v = varpool_nodes; v; v = v->next)
+  FOR_EACH_VARIABLE (v)
     find_decls_types_in_var (v, &fld);
 
   /* Set the assembler name on every decl found.  We need to do this
@@ -5231,7 +5237,6 @@ free_lang_data (void)
 
   /* Reset some langhooks.  Do not reset types_compatible_p, it may
      still be used indirectly via the get_alias_set langhook.  */
-  lang_hooks.callgraph.analyze_expr = NULL;
   lang_hooks.dwarf_name = lhd_dwarf_name;
   lang_hooks.decl_printable_name = gimple_decl_printable_name;
   /* We do not want the default decl_assembler_name implementation,
@@ -5242,9 +5247,7 @@ free_lang_data (void)
      devise a separate, middle-end private scheme for it.  */
 
   /* Reset diagnostic machinery.  */
-  diagnostic_starter (global_dc) = default_tree_diagnostic_starter;
-  diagnostic_finalizer (global_dc) = default_diagnostic_finalizer;
-  diagnostic_format_decoder (global_dc) = default_tree_printer;
+  tree_diagnostics_defaults (global_dc);
 
   return 0;
 }
@@ -6543,9 +6546,7 @@ host_integerp (const_tree t, int pos)
 	       && (HOST_WIDE_INT) TREE_INT_CST_LOW (t) >= 0)
 	      || (! pos && TREE_INT_CST_HIGH (t) == -1
 		  && (HOST_WIDE_INT) TREE_INT_CST_LOW (t) < 0
-		  && (!TYPE_UNSIGNED (TREE_TYPE (t))
-		      || (TREE_CODE (TREE_TYPE (t)) == INTEGER_TYPE
-			  && TYPE_IS_SIZETYPE (TREE_TYPE (t)))))
+		  && !TYPE_UNSIGNED (TREE_TYPE (t)))
 	      || (pos && TREE_INT_CST_HIGH (t) == 0)));
 }
 
@@ -6838,6 +6839,20 @@ compare_tree_int (const_tree t, unsigned HOST_WIDE_INT u)
     return -1;
   else
     return 1;
+}
+
+/* Return true if SIZE represents a constant size that is in bounds of
+   what the middle-end and the backend accepts (covering not more than
+   half of the address-space).  */
+
+bool
+valid_constant_size_p (const_tree size)
+{
+  if (! host_integerp (size, 1)
+      || TREE_OVERFLOW (size)
+      || tree_int_cst_sign_bit (size) != 0)
+    return false;
+  return true;
 }
 
 /* Return true if CODE represents an associative tree code.  Otherwise
@@ -8266,18 +8281,6 @@ int_fits_type_p (const_tree c, const_tree type)
   dc = tree_to_double_int (c);
   unsc = TYPE_UNSIGNED (TREE_TYPE (c));
 
-  if (TREE_CODE (TREE_TYPE (c)) == INTEGER_TYPE
-      && TYPE_IS_SIZETYPE (TREE_TYPE (c))
-      && unsc)
-    /* So c is an unsigned integer whose type is sizetype and type is not.
-       sizetype'd integers are sign extended even though they are
-       unsigned. If the integer value fits in the lower end word of c,
-       and if the higher end word has all its bits set to 1, that
-       means the higher end bits are set to 1 only for sign extension.
-       So let's convert c into an equivalent zero extended unsigned
-       integer.  */
-    dc = double_int_zext (dc, TYPE_PRECISION (TREE_TYPE (c)));
-
 retry:
   type_low_bound = TYPE_MIN_VALUE (type);
   type_high_bound = TYPE_MAX_VALUE (type);
@@ -8296,10 +8299,6 @@ retry:
   if (type_low_bound && TREE_CODE (type_low_bound) == INTEGER_CST)
     {
       dd = tree_to_double_int (type_low_bound);
-      if (TREE_CODE (type) == INTEGER_TYPE
-	  && TYPE_IS_SIZETYPE (type)
-	  && TYPE_UNSIGNED (type))
-	dd = double_int_zext (dd, TYPE_PRECISION (type));
       if (unsc != TYPE_UNSIGNED (TREE_TYPE (type_low_bound)))
 	{
 	  int c_neg = (!unsc && double_int_negative_p (dc));
@@ -8321,10 +8320,6 @@ retry:
   if (type_high_bound && TREE_CODE (type_high_bound) == INTEGER_CST)
     {
       dd = tree_to_double_int (type_high_bound);
-      if (TREE_CODE (type) == INTEGER_TYPE
-	  && TYPE_IS_SIZETYPE (type)
-	  && TYPE_UNSIGNED (type))
-	dd = double_int_zext (dd, TYPE_PRECISION (type));
       if (unsc != TYPE_UNSIGNED (TREE_TYPE (type_high_bound)))
 	{
 	  int c_neg = (!unsc && double_int_negative_p (dc));
@@ -9384,6 +9379,7 @@ build_common_tree_nodes (bool signed_char, bool short_double)
   integer_ptr_type_node = build_pointer_type (integer_type_node);
 
   /* Fixed size integer types.  */
+  uint16_type_node = build_nonstandard_integer_type (16, true);
   uint32_type_node = build_nonstandard_integer_type (32, true);
   uint64_type_node = build_nonstandard_integer_type (64, true);
 

@@ -117,6 +117,7 @@
 			; that.
   UNSPEC_UNALIGNED_STORE ; Same for str/strh.
   UNSPEC_PIC_UNIFIED    ; Create a common pic addressing form.
+  UNSPEC_LL		; Represent an unpaired load-register-exclusive.
 ])
 
 ;; UNSPEC_VOLATILE Usage:
@@ -196,7 +197,7 @@
 ; for ARM or Thumb-2 with arm_arch6, and nov6 for ARM without
 ; arm_arch6.  This attribute is used to compute attribute "enabled",
 ; use type "any" to enable an alternative in all cases.
-(define_attr "arch" "any,a,t,32,t1,t2,v6,nov6,onlya8,nota8"
+(define_attr "arch" "any,a,t,32,t1,t2,v6,nov6,onlya8,neon_onlya8,nota8,neon_nota8"
   (const_string "any"))
 
 (define_attr "arch_enabled" "no,yes"
@@ -235,8 +236,18 @@
 	      (eq_attr "tune" "cortexa8"))
 	 (const_string "yes")
 
+	 (and (eq_attr "arch" "neon_onlya8")
+	      (eq_attr "tune" "cortexa8")
+	      (match_test "TARGET_NEON"))
+	 (const_string "yes")
+
 	 (and (eq_attr "arch" "nota8")
 	      (not (eq_attr "tune" "cortexa8")))
+	 (const_string "yes")
+
+	 (and (eq_attr "arch" "neon_nota8")
+	      (not (eq_attr "tune" "cortexa8"))
+	      (match_test "TARGET_NEON"))
 	 (const_string "yes")]
 	(const_string "no")))
 
@@ -3509,21 +3520,37 @@
                    (match_operand:SI 2 "reg_or_int_operand" "")))]
   "TARGET_32BIT"
   "
-  if (GET_CODE (operands[2]) == CONST_INT)
+  if (!CONST_INT_P (operands[2])
+      && (TARGET_REALLY_IWMMXT || (TARGET_HARD_FLOAT && TARGET_MAVERICK)))
+    ; /* No special preparation statements; expand pattern as above.  */
+  else
     {
-      if ((HOST_WIDE_INT) INTVAL (operands[2]) == 1)
+      rtx scratch1, scratch2;
+
+      if (CONST_INT_P (operands[2])
+	  && (HOST_WIDE_INT) INTVAL (operands[2]) == 1)
         {
           emit_insn (gen_arm_ashldi3_1bit (operands[0], operands[1]));
           DONE;
         }
-        /* Ideally we shouldn't fail here if we could know that operands[1] 
-           ends up already living in an iwmmxt register. Otherwise it's
-           cheaper to have the alternate code being generated than moving
-           values to iwmmxt regs and back.  */
-        FAIL;
+
+      /* Ideally we should use iwmmxt here if we could know that operands[1]
+         ends up already living in an iwmmxt register. Otherwise it's
+         cheaper to have the alternate code being generated than moving
+         values to iwmmxt regs and back.  */
+
+      /* If we're optimizing for size, we prefer the libgcc calls.  */
+      if (optimize_function_for_size_p (cfun))
+	FAIL;
+
+      /* Expand operation using core-registers.
+	 'FAIL' would achieve the same thing, but this is a bit smarter.  */
+      scratch1 = gen_reg_rtx (SImode);
+      scratch2 = gen_reg_rtx (SImode);
+      arm_emit_coreregs_64bit_shift (ASHIFT, operands[0], operands[1],
+				     operands[2], scratch1, scratch2);
+      DONE;
     }
-  else if (!TARGET_REALLY_IWMMXT && !(TARGET_HARD_FLOAT && TARGET_MAVERICK))
-    FAIL;
   "
 )
 
@@ -3568,21 +3595,37 @@
                      (match_operand:SI 2 "reg_or_int_operand" "")))]
   "TARGET_32BIT"
   "
-  if (GET_CODE (operands[2]) == CONST_INT)
+  if (!CONST_INT_P (operands[2])
+      && (TARGET_REALLY_IWMMXT || (TARGET_HARD_FLOAT && TARGET_MAVERICK)))
+    ; /* No special preparation statements; expand pattern as above.  */
+  else
     {
-      if ((HOST_WIDE_INT) INTVAL (operands[2]) == 1)
+      rtx scratch1, scratch2;
+
+      if (CONST_INT_P (operands[2])
+	  && (HOST_WIDE_INT) INTVAL (operands[2]) == 1)
         {
           emit_insn (gen_arm_ashrdi3_1bit (operands[0], operands[1]));
           DONE;
         }
-        /* Ideally we shouldn't fail here if we could know that operands[1] 
-           ends up already living in an iwmmxt register. Otherwise it's
-           cheaper to have the alternate code being generated than moving
-           values to iwmmxt regs and back.  */
-        FAIL;
+
+      /* Ideally we should use iwmmxt here if we could know that operands[1]
+         ends up already living in an iwmmxt register. Otherwise it's
+         cheaper to have the alternate code being generated than moving
+         values to iwmmxt regs and back.  */
+
+      /* If we're optimizing for size, we prefer the libgcc calls.  */
+      if (optimize_function_for_size_p (cfun))
+	FAIL;
+
+      /* Expand operation using core-registers.
+	 'FAIL' would achieve the same thing, but this is a bit smarter.  */
+      scratch1 = gen_reg_rtx (SImode);
+      scratch2 = gen_reg_rtx (SImode);
+      arm_emit_coreregs_64bit_shift (ASHIFTRT, operands[0], operands[1],
+				     operands[2], scratch1, scratch2);
+      DONE;
     }
-  else if (!TARGET_REALLY_IWMMXT)
-    FAIL;
   "
 )
 
@@ -3625,21 +3668,37 @@
                      (match_operand:SI 2 "reg_or_int_operand" "")))]
   "TARGET_32BIT"
   "
-  if (GET_CODE (operands[2]) == CONST_INT)
+  if (!CONST_INT_P (operands[2])
+      && (TARGET_REALLY_IWMMXT || (TARGET_HARD_FLOAT && TARGET_MAVERICK)))
+    ; /* No special preparation statements; expand pattern as above.  */
+  else
     {
-      if ((HOST_WIDE_INT) INTVAL (operands[2]) == 1)
+      rtx scratch1, scratch2;
+
+      if (CONST_INT_P (operands[2])
+	  && (HOST_WIDE_INT) INTVAL (operands[2]) == 1)
         {
           emit_insn (gen_arm_lshrdi3_1bit (operands[0], operands[1]));
           DONE;
         }
-        /* Ideally we shouldn't fail here if we could know that operands[1] 
-           ends up already living in an iwmmxt register. Otherwise it's
-           cheaper to have the alternate code being generated than moving
-           values to iwmmxt regs and back.  */
-        FAIL;
+
+      /* Ideally we should use iwmmxt here if we could know that operands[1]
+         ends up already living in an iwmmxt register. Otherwise it's
+         cheaper to have the alternate code being generated than moving
+         values to iwmmxt regs and back.  */
+
+      /* If we're optimizing for size, we prefer the libgcc calls.  */
+      if (optimize_function_for_size_p (cfun))
+	FAIL;
+
+      /* Expand operation using core-registers.
+	 'FAIL' would achieve the same thing, but this is a bit smarter.  */
+      scratch1 = gen_reg_rtx (SImode);
+      scratch2 = gen_reg_rtx (SImode);
+      arm_emit_coreregs_64bit_shift (LSHIFTRT, operands[0], operands[1],
+				     operands[2], scratch1, scratch2);
+      DONE;
     }
-  else if (!TARGET_REALLY_IWMMXT)
-    FAIL;
   "
 )
 
@@ -4091,7 +4150,13 @@
 	 (neg:DI (match_operand:DI 1 "s_register_operand" "")))
     (clobber (reg:CC CC_REGNUM))])]
   "TARGET_EITHER"
-  ""
+  {
+    if (TARGET_NEON)
+      {
+        emit_insn (gen_negdi2_neon (operands[0], operands[1]));
+	DONE;
+      }
+  }
 )
 
 ;; The constraints here are to prevent a *partial* overlap (where %Q0 == %R1).
@@ -4250,11 +4315,16 @@
   "")
 
 (define_insn_and_split "one_cmpldi2"
-  [(set (match_operand:DI 0 "s_register_operand" "=&r,&r")
-	(not:DI (match_operand:DI 1 "s_register_operand" "0,r")))]
+  [(set (match_operand:DI 0 "s_register_operand"	 "=w,&r,&r,?w")
+	(not:DI (match_operand:DI 1 "s_register_operand" " w, 0, r, w")))]
   "TARGET_32BIT"
-  "#"
-  "TARGET_32BIT && reload_completed"
+  "@
+   vmvn\t%P0, %P1
+   #
+   #
+   vmvn\t%P0, %P1"
+  "TARGET_32BIT && reload_completed
+   && arm_general_register_operand (operands[0], DImode)"
   [(set (match_dup 0) (not:SI (match_dup 1)))
    (set (match_dup 2) (not:SI (match_dup 3)))]
   "
@@ -4264,8 +4334,10 @@
     operands[3] = gen_highpart (SImode, operands[1]);
     operands[1] = gen_lowpart (SImode, operands[1]);
   }"
-  [(set_attr "length" "8")
-   (set_attr "predicable" "yes")]
+  [(set_attr "length" "*,8,8,*")
+   (set_attr "predicable" "no,yes,yes,no")
+   (set_attr "neon_type" "neon_int_1,*,*,neon_int_1")
+   (set_attr "arch" "neon_nota8,*,*,neon_onlya8")]
 )
 
 (define_expand "one_cmplsi2"
@@ -4905,7 +4977,8 @@
     rtx addr = copy_to_mode_reg (SImode, XEXP (operands[1], 0));
 
     mem1 = change_address (operands[1], QImode, addr);
-    mem2 = change_address (operands[1], QImode, plus_constant (addr, 1));
+    mem2 = change_address (operands[1], QImode,
+			   plus_constant (Pmode, addr, 1));
     operands[0] = gen_lowpart (SImode, operands[0]);
     operands[1] = mem1;
     operands[2] = gen_reg_rtx (SImode);
@@ -5421,7 +5494,7 @@
       return thumb_load_double_from_address (operands);
     case 6:
       operands[2] = gen_rtx_MEM (SImode,
-			     plus_constant (XEXP (operands[0], 0), 4));
+			     plus_constant (Pmode, XEXP (operands[0], 0), 4));
       output_asm_insn (\"str\\t%1, %0\;str\\t%H1, %2\", operands);
       return \"\";
     case 7:
@@ -5632,6 +5705,21 @@
     operands[1] = GEN_INT (val >> i);
     operands[2] = can_create_pseudo_p () ? gen_reg_rtx (SImode) : operands[0];
     operands[3] = GEN_INT (i);
+  }"
+)
+
+;; For thumb1 split imm move [256-510] into mov [1-255] and add #255
+(define_split 
+  [(set (match_operand:SI 0 "register_operand" "")
+	(match_operand:SI 1 "const_int_operand" ""))]
+  "TARGET_THUMB1 && satisfies_constraint_Pe (operands[1])"
+  [(set (match_dup 2) (match_dup 1))
+   (set (match_dup 0) (plus:SI (match_dup 2) (match_dup 3)))]
+  "
+  {
+    operands[1] = GEN_INT (INTVAL (operands[1]) - 255);
+    operands[2] = can_create_pseudo_p () ? gen_reg_rtx (SImode) : operands[0];
+    operands[3] = GEN_INT (255);
   }"
 )
 
@@ -6184,7 +6272,8 @@
     rtx addr = copy_to_mode_reg (SImode, XEXP (operands[1], 0));
 
     mem1 = change_address (operands[1], QImode, addr);
-    mem2 = change_address (operands[1], QImode, plus_constant (addr, 1));
+    mem2 = change_address (operands[1], QImode,
+			   plus_constant (Pmode, addr, 1));
     operands[0] = gen_lowpart (SImode, operands[0]);
     operands[1] = mem1;
     operands[2] = gen_reg_rtx (SImode);
@@ -6707,7 +6796,8 @@
       return thumb_load_double_from_address (operands);
     case 4:
       operands[2] = gen_rtx_MEM (SImode,
-				 plus_constant (XEXP (operands[0], 0), 4));
+				 plus_constant (Pmode,
+						XEXP (operands[0], 0), 4));
       output_asm_insn (\"str\\t%1, %0\;str\\t%H1, %2\", operands);
       return \"\";
     case 5:
@@ -6887,12 +6977,12 @@
 	        (match_operand:SI 2 "nonmemory_operand" "")])
 	      (label_ref (match_operand 3 "" ""))
 	      (pc)))]
-  "TARGET_THUMB1 || TARGET_32BIT"
+  "TARGET_EITHER"
   "
   if (!TARGET_THUMB1)
     {
-      if (!arm_add_operand (operands[2], SImode))
-	operands[2] = force_reg (SImode, operands[2]);
+      if (!arm_validize_comparison (&operands[0], &operands[1], &operands[2]))
+        FAIL;
       emit_jump_insn (gen_cbranch_cc (operands[0], operands[1], operands[2],
 				      operands[3]));
       DONE;
@@ -6964,33 +7054,13 @@
 	      (pc)))]
   "TARGET_32BIT"
   "{
-     rtx swap = NULL_RTX;
-     enum rtx_code code = GET_CODE (operands[0]);
-
      /* We should not have two constants.  */
      gcc_assert (GET_MODE (operands[1]) == DImode
 		 || GET_MODE (operands[2]) == DImode);
 
-    /* Flip unimplemented DImode comparisons to a form that
-       arm_gen_compare_reg can handle.  */
-     switch (code)
-     {
-     case GT:
-       swap = gen_rtx_LT (VOIDmode, operands[2], operands[1]); break;
-     case LE:
-       swap = gen_rtx_GE (VOIDmode, operands[2], operands[1]); break;
-     case GTU:
-       swap = gen_rtx_LTU (VOIDmode, operands[2], operands[1]); break;
-     case LEU:
-       swap = gen_rtx_GEU (VOIDmode, operands[2], operands[1]); break;
-     default:
-       break;
-     }
-     if (swap)
-       emit_jump_insn (gen_cbranch_cc (swap, operands[2], operands[1],
-                                       operands[3]));
-     else
-       emit_jump_insn (gen_cbranch_cc (operands[0], operands[1], operands[2],
+     if (!arm_validize_comparison (&operands[0], &operands[1], &operands[2]))		 
+       FAIL;
+     emit_jump_insn (gen_cbranch_cc (operands[0], operands[1], operands[2],
 				       operands[3]));
      DONE;
    }"
@@ -7713,7 +7783,7 @@
 ;; Patterns to match conditional branch insns.
 ;;
 
-(define_insn "*arm_cond_branch"
+(define_insn "arm_cond_branch"
   [(set (pc)
 	(if_then_else (match_operator 1 "arm_comparison_operator"
 		       [(match_operand 2 "cc_register" "") (const_int 0)])
@@ -7975,33 +8045,15 @@
 	  (match_operand:DI 3 "cmpdi_operand" "")]))]
   "TARGET_32BIT"
   "{
-     rtx swap = NULL_RTX;
-     enum rtx_code code = GET_CODE (operands[1]);
-
      /* We should not have two constants.  */
      gcc_assert (GET_MODE (operands[2]) == DImode
 		 || GET_MODE (operands[3]) == DImode);
 
-    /* Flip unimplemented DImode comparisons to a form that
-       arm_gen_compare_reg can handle.  */
-     switch (code)
-     {
-     case GT:
-       swap = gen_rtx_LT (VOIDmode, operands[3], operands[2]); break;
-     case LE:
-       swap = gen_rtx_GE (VOIDmode, operands[3], operands[2]); break;
-     case GTU:
-       swap = gen_rtx_LTU (VOIDmode, operands[3], operands[2]); break;
-     case LEU:
-       swap = gen_rtx_GEU (VOIDmode, operands[3], operands[2]); break;
-     default:
-       break;
-     }
-     if (swap)
-       emit_insn (gen_cstore_cc (operands[0], swap, operands[3],
-		      	         operands[2]));
-     else
-       emit_insn (gen_cstore_cc (operands[0], operands[1], operands[2],
+     if (!arm_validize_comparison (&operands[1],
+     				   &operands[2],
+				   &operands[3]))
+       FAIL;
+     emit_insn (gen_cstore_cc (operands[0], operands[1], operands[2],
 		      	         operands[3]));
      DONE;
    }"
@@ -8096,12 +8148,14 @@
   "TARGET_32BIT"
   "
   {
-    enum rtx_code code = GET_CODE (operands[1]);
+    enum rtx_code code;
     rtx ccreg;
 
-    if (code == UNEQ || code == LTGT)
+    if (!arm_validize_comparison (&operands[1], &XEXP (operands[1], 0), 
+       				  &XEXP (operands[1], 1)))
       FAIL;
-
+    
+    code = GET_CODE (operands[1]);
     ccreg = arm_gen_compare_reg (code, XEXP (operands[1], 0),
 				 XEXP (operands[1], 1), NULL_RTX);
     operands[1] = gen_rtx_fmt_ee (code, VOIDmode, ccreg, const0_rtx);
@@ -8112,22 +8166,18 @@
   [(set (match_operand:SF 0 "s_register_operand" "")
 	(if_then_else:SF (match_operand 1 "expandable_comparison_operator" "")
 			 (match_operand:SF 2 "s_register_operand" "")
-			 (match_operand:SF 3 "nonmemory_operand" "")))]
+			 (match_operand:SF 3 "arm_float_add_operand" "")))]
   "TARGET_32BIT && TARGET_HARD_FLOAT"
   "
   {
     enum rtx_code code = GET_CODE (operands[1]);
     rtx ccreg;
 
-    if (code == UNEQ || code == LTGT)
-      FAIL;
+    if (!arm_validize_comparison (&operands[1], &XEXP (operands[1], 0), 
+       				  &XEXP (operands[1], 1)))
+       FAIL;
 
-    /* When compiling for SOFT_FLOAT, ensure both arms are in registers. 
-       Otherwise, ensure it is a valid FP add operand */
-    if ((!(TARGET_HARD_FLOAT && TARGET_FPA))
-        || (!arm_float_add_operand (operands[3], SFmode)))
-      operands[3] = force_reg (SFmode, operands[3]);
-
+    code = GET_CODE (operands[1]);
     ccreg = arm_gen_compare_reg (code, XEXP (operands[1], 0),
 				 XEXP (operands[1], 1), NULL_RTX);
     operands[1] = gen_rtx_fmt_ee (code, VOIDmode, ccreg, const0_rtx);
@@ -8145,9 +8195,10 @@
     enum rtx_code code = GET_CODE (operands[1]);
     rtx ccreg;
 
-    if (code == UNEQ || code == LTGT)
-      FAIL;
-
+    if (!arm_validize_comparison (&operands[1], &XEXP (operands[1], 0), 
+       				  &XEXP (operands[1], 1)))
+       FAIL;
+    code = GET_CODE (operands[1]);
     ccreg = arm_gen_compare_reg (code, XEXP (operands[1], 0),
 				 XEXP (operands[1], 1), NULL_RTX);
     operands[1] = gen_rtx_fmt_ee (code, VOIDmode, ccreg, const0_rtx);
@@ -8717,7 +8768,7 @@
 	rtx reg = XEXP (XVECEXP (par, 0, i), 0);
 
 	if (size != 0)
-	  emit_move_insn (addr, plus_constant (addr, size));
+	  emit_move_insn (addr, plus_constant (Pmode, addr, size));
 
 	mem = change_address (mem, GET_MODE (reg), NULL);
 	if (REGNO (reg) == R0_REGNUM)
@@ -8764,7 +8815,7 @@
 	rtx reg = SET_DEST (XVECEXP (operands[1], 0, i));
 
 	if (size != 0)
-	  emit_move_insn (addr, plus_constant (addr, size));
+	  emit_move_insn (addr, plus_constant (Pmode, addr, size));
 
 	mem = change_address (mem, GET_MODE (reg), NULL);
 	if (REGNO (reg) == R0_REGNUM)
@@ -10673,7 +10724,7 @@
   if (TARGET_32BIT)
     return arm_output_epilogue (NULL);
   else /* TARGET_THUMB1 */
-    return thumb_unexpanded_epilogue ();
+    return thumb1_unexpanded_epilogue ();
   "
   ; Length is absolute worst case
   [(set_attr "length" "44")

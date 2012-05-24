@@ -78,6 +78,35 @@ file_name_as_prefix (const char *f)
 
 
 
+/* Return the value of the getenv("COLUMNS") as an integer. If the
+   value is not set to a positive integer, then return INT_MAX.  */
+static int
+getenv_columns (void)
+{
+  const char * s = getenv ("COLUMNS");
+  if (s != NULL) {
+    int n = atoi (s);
+    if (n > 0)
+      return n;
+  }
+  return INT_MAX;
+}
+
+/* Set caret_max_width to value.  */
+void
+diagnostic_set_caret_max_width (diagnostic_context *context, int value)
+{
+  /* One minus to account for the leading empty space.  */
+  value = value ? value - 1 
+    : (isatty (fileno (context->printer->buffer->stream))
+       ? getenv_columns () - 1: INT_MAX);
+  
+  if (value <= 0) 
+    value = INT_MAX;
+
+  context->caret_max_width = value;
+}
+
 /* Initialize the diagnostic message outputting machinery.  */
 void
 diagnostic_initialize (diagnostic_context *context, int n_opts)
@@ -100,6 +129,8 @@ diagnostic_initialize (diagnostic_context *context, int n_opts)
   context->classify_diagnostic = XNEWVEC (diagnostic_t, n_opts);
   for (i = 0; i < n_opts; i++)
     context->classify_diagnostic[i] = DK_UNSPECIFIED;
+  context->show_caret = false;
+  diagnostic_set_caret_max_width (context, pp_line_cutoff (context->printer));
   context->show_option_requested = false;
   context->abort_on_error = false;
   context->show_column = false;
@@ -116,6 +147,7 @@ diagnostic_initialize (diagnostic_context *context, int n_opts)
   context->option_enabled = NULL;
   context->option_state = NULL;
   context->option_name = NULL;
+  context->last_location = UNKNOWN_LOCATION;
   context->last_module = 0;
   context->x_data = NULL;
   context->lock = 0;
@@ -183,7 +215,7 @@ diagnostic_build_prefix (diagnostic_context *context,
     "must-not-happen"
   };
   const char *text = _(diagnostic_kind_text[diagnostic->kind]);
-  expanded_location s = expand_location (diagnostic->location);
+  expanded_location s = expand_location_to_spelling_point (diagnostic->location);
   if (diagnostic->override_column)
     s.column = diagnostic->override_column;
   gcc_assert (diagnostic->kind < DK_LAST_DIAGNOSTIC_KIND);
@@ -194,6 +226,74 @@ diagnostic_build_prefix (diagnostic_context *context,
      : context->show_column
      ? build_message_string ("%s:%d:%d: %s", s.file, s.line, s.column, text)
      : build_message_string ("%s:%d: %s", s.file, s.line, text));
+}
+
+/* If LINE is longer than MAX_WIDTH, and COLUMN is not smaller than
+   MAX_WIDTH by some margin, then adjust the start of the line such
+   that the COLUMN is smaller than MAX_WIDTH minus the margin.  The
+   margin is either 10 characters or the difference between the column
+   and the length of the line, whatever is smaller.  */
+static const char *
+adjust_line (const char *line, int max_width, int *column_p)
+{
+  int right_margin = 10;
+  int line_width = strlen (line);
+  int column = *column_p;
+
+  right_margin = MIN(line_width - column, right_margin);
+  right_margin = max_width - right_margin;
+  if (line_width >= max_width && column > right_margin)
+    {
+      line += column - right_margin;
+      *column_p = right_margin;
+    }
+  return line;
+}
+
+/* Print the physical source line corresponding to the location of
+   this diagnostics, and a caret indicating the precise column.  */
+void
+diagnostic_show_locus (diagnostic_context * context,
+		       const diagnostic_info *diagnostic)
+{
+  const char *line;
+  char *buffer;
+  expanded_location s;
+  int max_width;
+  const char *saved_prefix;
+
+
+  if (!context->show_caret
+      || diagnostic->location <= BUILTINS_LOCATION
+      || diagnostic->location == context->last_location)
+    return;
+
+  context->last_location = diagnostic->location;
+  s = expand_location_to_spelling_point (diagnostic->location);
+  line = location_get_source_line (s);
+  if (line == NULL)
+    return;
+
+  max_width = context->caret_max_width;
+  line = adjust_line (line, max_width, &(s.column));
+
+  pp_newline (context->printer);
+  saved_prefix = pp_get_prefix (context->printer);
+  pp_set_prefix (context->printer, NULL);
+  pp_character (context->printer, ' ');
+  while (max_width > 0 && *line != '\0')
+    {
+      char c = *line == '\t' ? ' ' : *line;
+      pp_character (context->printer, c);
+      max_width--;
+      line++;
+    }
+  pp_newline (context->printer);
+  /* pp_printf does not implement %*c.  */
+  buffer = XALLOCAVEC (char, s.column + 3);
+  snprintf (buffer, s.column + 3, " %*c", s.column, '^');
+  pp_string (context->printer, buffer);
+  pp_set_prefix (context->printer, saved_prefix);
 }
 
 /* Take any action which is expected to happen after the diagnostic
@@ -445,7 +545,8 @@ diagnostic_report_diagnostic (diagnostic_context *context,
       diagnostic->kind = DK_ERROR;
     }
 
-  if (diagnostic->option_index)
+  if (diagnostic->option_index
+      && diagnostic->option_index != permissive_error_option (context))
     {
       diagnostic_t diag_class = DK_UNSPECIFIED;
 
@@ -547,6 +648,7 @@ diagnostic_report_diagnostic (diagnostic_context *context,
   pp_format (context->printer, &diagnostic->message);
   (*diagnostic_starter (context)) (context, diagnostic);
   pp_output_formatted_text (context->printer);
+  diagnostic_show_locus (context, diagnostic);
   (*diagnostic_finalizer (context)) (context, diagnostic);
   pp_flush (context->printer);
   diagnostic_action_after_output (context, diagnostic);
@@ -616,6 +718,7 @@ emit_diagnostic (diagnostic_t kind, location_t location, int opt,
 {
   diagnostic_info diagnostic;
   va_list ap;
+  bool ret;
 
   va_start (ap, gmsgid);
   if (kind == DK_PERMERROR)
@@ -629,9 +732,10 @@ emit_diagnostic (diagnostic_t kind, location_t location, int opt,
       if (kind == DK_WARNING || kind == DK_PEDWARN)
 	diagnostic.option_index = opt;
   }
-  va_end (ap);
 
-  return report_diagnostic (&diagnostic);
+  ret = report_diagnostic (&diagnostic);
+  va_end (ap);
+  return ret;
 }
 
 /* An informative note at LOCATION.  Use this for additional details on an error
@@ -673,13 +777,15 @@ warning (int opt, const char *gmsgid, ...)
 {
   diagnostic_info diagnostic;
   va_list ap;
+  bool ret;
 
   va_start (ap, gmsgid);
   diagnostic_set_info (&diagnostic, gmsgid, &ap, input_location, DK_WARNING);
   diagnostic.option_index = opt;
 
+  ret = report_diagnostic (&diagnostic);
   va_end (ap);
-  return report_diagnostic (&diagnostic);
+  return ret;
 }
 
 /* A warning at LOCATION.  Use this for code which is correct according to the
@@ -691,12 +797,14 @@ warning_at (location_t location, int opt, const char *gmsgid, ...)
 {
   diagnostic_info diagnostic;
   va_list ap;
+  bool ret;
 
   va_start (ap, gmsgid);
   diagnostic_set_info (&diagnostic, gmsgid, &ap, location, DK_WARNING);
   diagnostic.option_index = opt;
+  ret = report_diagnostic (&diagnostic);
   va_end (ap);
-  return report_diagnostic (&diagnostic);
+  return ret;
 }
 
 /* A "pedantic" warning at LOCATION: issues a warning unless
@@ -705,10 +813,10 @@ warning_at (location_t location, int opt, const char *gmsgid, ...)
    language standard, if you have chosen not to make them errors.
 
    Note that these diagnostics are issued independent of the setting
-   of the -pedantic command-line switch.  To get a warning enabled
+   of the -Wpedantic command-line switch.  To get a warning enabled
    only with that switch, use either "if (pedantic) pedwarn
-   (OPT_pedantic,...)" or just "pedwarn (OPT_pedantic,..)".  To get a
-   pedwarn independently of the -pedantic switch use "pedwarn (0,...)".
+   (OPT_Wpedantic,...)" or just "pedwarn (OPT_Wpedantic,..)".  To get a
+   pedwarn independently of the -Wpedantic switch use "pedwarn (0,...)".
 
    Returns true if the warning was printed, false if it was inhibited.  */
 
@@ -717,12 +825,14 @@ pedwarn (location_t location, int opt, const char *gmsgid, ...)
 {
   diagnostic_info diagnostic;
   va_list ap;
+  bool ret;
 
   va_start (ap, gmsgid);
   diagnostic_set_info (&diagnostic, gmsgid, &ap, location,  DK_PEDWARN);
   diagnostic.option_index = opt;
+  ret = report_diagnostic (&diagnostic);
   va_end (ap);
-  return report_diagnostic (&diagnostic);
+  return ret;
 }
 
 /* A "permissive" error at LOCATION: issues an error unless
@@ -737,13 +847,15 @@ permerror (location_t location, const char *gmsgid, ...)
 {
   diagnostic_info diagnostic;
   va_list ap;
+  bool ret;
 
   va_start (ap, gmsgid);
   diagnostic_set_info (&diagnostic, gmsgid, &ap, location,
                        permissive_error_kind (global_dc));
   diagnostic.option_index = permissive_error_option (global_dc);
+  ret = report_diagnostic (&diagnostic);
   va_end (ap);
-  return report_diagnostic (&diagnostic);
+  return ret;
 }
 
 /* A hard error: the code is definitely ill-formed, and an object file

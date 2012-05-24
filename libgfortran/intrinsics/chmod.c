@@ -141,7 +141,6 @@ chmod_func (char *name, char *mode, gfc_charlen_type name_len,
       rwxXstugo[6] = false;
       rwxXstugo[7] = false;
       rwxXstugo[8] = false;
-      rwxXstugo[9] = false;
       part = 0;
       set_mode = -1;
       for (; i < mode_len; i++)
@@ -460,17 +459,19 @@ clause_done:
 	if ((ugo[2] || honor_umask) && !rwxXstugo[8])
 	  file_mode = (file_mode & ~(S_IROTH | S_IWOTH | S_IXOTH))
 		      | (new_mode & (S_IROTH | S_IWOTH | S_IXOTH));
+#ifndef __VXWORKS__
 	if (is_dir && rwxXstugo[5])
 	  file_mode |= S_ISVTX;
 	else if (!is_dir)
 	  file_mode &= ~S_ISVTX;
+#endif
 #endif
       }
     else if (set_mode == 2)
       {
 	/* Clear '-'.  */
 	file_mode &= ~new_mode;
-#ifndef __MINGW32__
+#if !defined( __MINGW32__) && !defined (__VXWORKS__)
 	if (rwxXstugo[5] || !is_dir)
 	  file_mode &= ~S_ISVTX;
 #endif
@@ -478,7 +479,7 @@ clause_done:
     else if (set_mode == 3)
       {
 	file_mode |= new_mode;
-#ifndef __MINGW32__
+#if !defined (__MINGW32__) && !defined (__VXWORKS__)
 	if (rwxXstugo[5] && is_dir)
 	  file_mode |= S_ISVTX;
 	else if (!is_dir)

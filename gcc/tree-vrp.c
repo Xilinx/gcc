@@ -695,17 +695,22 @@ get_value_range (const_tree var)
   /* If VAR is a default definition of a parameter, the variable can
      take any value in VAR's type.  */
   sym = SSA_NAME_VAR (var);
-  if (SSA_NAME_IS_DEFAULT_DEF (var)
-      && TREE_CODE (sym) == PARM_DECL)
+  if (SSA_NAME_IS_DEFAULT_DEF (var))
     {
-      /* Try to use the "nonnull" attribute to create ~[0, 0]
-	 anti-ranges for pointers.  Note that this is only valid with
-	 default definitions of PARM_DECLs.  */
-      if (POINTER_TYPE_P (TREE_TYPE (sym))
-	  && nonnull_arg_p (sym))
+      if (TREE_CODE (sym) == PARM_DECL)
+	{
+	  /* Try to use the "nonnull" attribute to create ~[0, 0]
+	     anti-ranges for pointers.  Note that this is only valid with
+	     default definitions of PARM_DECLs.  */
+	  if (POINTER_TYPE_P (TREE_TYPE (sym))
+	      && nonnull_arg_p (sym))
+	    set_value_range_to_nonnull (vr, TREE_TYPE (sym));
+	  else
+	    set_value_range_to_varying (vr);
+	}
+      else if (TREE_CODE (sym) == RESULT_DECL
+	       && DECL_BY_REFERENCE (sym))
 	set_value_range_to_nonnull (vr, TREE_TYPE (sym));
-      else
-	set_value_range_to_varying (vr);
     }
 
   return vr;
@@ -2398,6 +2403,7 @@ extract_range_from_binary_expr_1 (value_range_t *vr,
       && code != ROUND_DIV_EXPR
       && code != TRUNC_MOD_EXPR
       && code != RSHIFT_EXPR
+      && code != LSHIFT_EXPR
       && code != MIN_EXPR
       && code != MAX_EXPR
       && code != BIT_AND_EXPR
@@ -2589,6 +2595,40 @@ extract_range_from_binary_expr_1 (value_range_t *vr,
 	}
 
       extract_range_from_multiplicative_op_1 (vr, code, &vr0, &vr1);
+      return;
+    }
+  else if (code == LSHIFT_EXPR)
+    {
+      /* If we have a LSHIFT_EXPR with any shift values outside [0..prec-1],
+	 then drop to VR_VARYING.  Outside of this range we get undefined
+	 behavior from the shift operation.  We cannot even trust
+	 SHIFT_COUNT_TRUNCATED at this stage, because that applies to rtl
+	 shifts, and the operation at the tree level may be widened.  */
+      if (vr1.type != VR_RANGE
+	  || !value_range_nonnegative_p (&vr1)
+	  || TREE_CODE (vr1.max) != INTEGER_CST
+	  || compare_tree_int (vr1.max, TYPE_PRECISION (expr_type) - 1) == 1)
+	{
+	  set_value_range_to_varying (vr);
+	  return;
+	}
+
+      /* We can map shifts by constants to MULT_EXPR handling.  */
+      if (range_int_cst_singleton_p (&vr1))
+	{
+	  value_range_t vr1p = { VR_RANGE, NULL_TREE, NULL_TREE, NULL };
+	  vr1p.min
+	    = double_int_to_tree (expr_type,
+				  double_int_lshift (double_int_one,
+						     TREE_INT_CST_LOW (vr1.min),
+						     TYPE_PRECISION (expr_type),
+						     false));
+	  vr1p.max = vr1p.min;
+	  extract_range_from_multiplicative_op_1 (vr, MULT_EXPR, &vr0, &vr1p);
+	  return;
+	}
+
+      set_value_range_to_varying (vr);
       return;
     }
   else if (code == TRUNC_DIV_EXPR
@@ -3242,8 +3282,8 @@ extract_range_from_cond_expr (value_range_t *vr, gimple stmt)
     set_value_range_to_varying (&vr1);
 
   /* The resulting value range is the union of the operand ranges */
-  vrp_meet (&vr0, &vr1);
   copy_value_range (vr, &vr0);
+  vrp_meet (vr, &vr1);
 }
 
 
@@ -3420,7 +3460,9 @@ adjust_range_with_scev (value_range_t *vr, struct loop *loop,
     {
       double_int nit;
 
-      if (estimated_loop_iterations (loop, true, &nit))
+      /* We are only entering here for loop header PHI nodes, so using
+	 the number of latch executions is the correct thing to use.  */
+      if (max_loop_iterations (loop, &nit))
 	{
 	  value_range_t maxvr = { VR_UNDEFINED, NULL_TREE, NULL_TREE, NULL };
 	  double_int dtmp;
@@ -4563,6 +4605,7 @@ register_edge_assert_for_2 (tree name, edge e, gimple_stmt_iterator bsi,
 	      && INTEGRAL_TYPE_P (TREE_TYPE (name2))
 	      && IN_RANGE (tree_low_cst (cst2, 1), 1, prec - 1)
 	      && prec <= 2 * HOST_BITS_PER_WIDE_INT
+	      && prec == GET_MODE_PRECISION (TYPE_MODE (TREE_TYPE (val)))
 	      && live_on_edge (e, name2)
 	      && !has_single_use (name2))
 	    {
@@ -4596,8 +4639,10 @@ register_edge_assert_for_2 (tree name, edge e, gimple_stmt_iterator bsi,
 	    new_val = val2;
 	  else
 	    {
+	      double_int maxval
+		= double_int_max_value (prec, TYPE_UNSIGNED (TREE_TYPE (val)));
 	      mask = double_int_ior (tree_to_double_int (val2), mask);
-	      if (double_int_minus_one_p (double_int_sext (mask, prec)))
+	      if (double_int_equal_p (mask, maxval))
 		new_val = NULL_TREE;
 	      else
 		new_val = double_int_to_tree (TREE_TYPE (val2), mask);
@@ -6843,13 +6888,17 @@ vrp_meet (value_range_t *vr0, value_range_t *vr1)
 {
   if (vr0->type == VR_UNDEFINED)
     {
-      copy_value_range (vr0, vr1);
+      /* Drop equivalences.  See PR53465.  */
+      set_value_range (vr0, vr1->type, vr1->min, vr1->max, NULL);
       return;
     }
 
   if (vr1->type == VR_UNDEFINED)
     {
-      /* Nothing to do.  VR0 already has the resulting range.  */
+      /* VR0 already has the resulting range, just drop equivalences.
+	 See PR53465.  */
+      if (vr0->equiv)
+	bitmap_clear (vr0->equiv);
       return;
     }
 
@@ -6991,6 +7040,7 @@ vrp_visit_phi_node (gimple phi)
   tree lhs = PHI_RESULT (phi);
   value_range_t *lhs_vr = get_value_range (lhs);
   value_range_t vr_result = { VR_UNDEFINED, NULL_TREE, NULL_TREE, NULL };
+  bool first = true;
   int edges, old_edges;
   struct loop *l;
 
@@ -7047,7 +7097,11 @@ vrp_visit_phi_node (gimple phi)
 	      fprintf (dump_file, "\n");
 	    }
 
-	  vrp_meet (&vr_result, &vr_arg);
+	  if (first)
+	    copy_value_range (&vr_result, &vr_arg);
+	  else
+	    vrp_meet (&vr_result, &vr_arg);
+	  first = false;
 
 	  if (vr_result.type == VR_VARYING)
 	    break;
@@ -8271,12 +8325,6 @@ execute_vrp (void)
   scev_initialize ();
 
   insert_range_assertions ();
-
-  /* Estimate number of iterations - but do not use undefined behavior
-     for this.  We can't do this lazily as other functions may compute
-     this using undefined behavior.  */
-  free_numbers_of_iterations_estimates ();
-  estimate_numbers_of_iterations (false);
 
   to_remove_edges = VEC_alloc (edge, heap, 10);
   to_update_switch_stmts = VEC_alloc (switch_update, heap, 5);

@@ -876,8 +876,8 @@ remap_gimple_op_r (tree *tp, int *walk_subtrees, void *data)
 
       /* Global variables we haven't seen yet need to go into referenced
 	 vars.  If not referenced from types only.  */
-      if (gimple_in_ssa_p (cfun)
-	  && TREE_CODE (*tp) == VAR_DECL
+      if (gimple_referenced_vars (cfun)
+	  && TREE_CODE (*tp) == VAR_DECL && !is_global_var (*tp)
 	  && id->remapping_type_depth == 0
 	  && !processing_debug_stmt)
 	add_referenced_var (*tp);
@@ -1119,8 +1119,8 @@ copy_tree_body_r (tree *tp, int *walk_subtrees, void *data)
 
       /* Global variables we haven't seen yet needs to go into referenced
 	 vars.  If not referenced from types or debug stmts only.  */
-      if (gimple_in_ssa_p (cfun)
-	  && TREE_CODE (*tp) == VAR_DECL
+      if (gimple_referenced_vars (cfun)
+	  && TREE_CODE (*tp) == VAR_DECL && !is_global_var (*tp)
 	  && id->remapping_type_depth == 0
 	  && !processing_debug_stmt)
 	add_referenced_var (*tp);
@@ -1702,7 +1702,7 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 		         doing so would introduce roundoff errors and make
 			 verifier unhappy.  */
 		      edge->frequency
-		        = compute_call_stmt_bb_frequency (id->dst_node->decl,
+		        = compute_call_stmt_bb_frequency (id->dst_node->symbol.decl,
 							  copy_basic_block);
 		      if (dump_file
 		      	  && profile_status_for_function (cfun) != PROFILE_ABSENT
@@ -1755,21 +1755,22 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 		     producing dead clone (for further cloning).  In all
 		     other cases we hit a bug (incorrect node sharing is the
 		     most common reason for missing edges).  */
-		  gcc_assert (dest->needed || !dest->analyzed
-			      || dest->address_taken
+		  gcc_assert (!dest->analyzed
+			      || dest->symbol.address_taken
 		  	      || !id->src_node->analyzed
 			      || !id->dst_node->analyzed);
 		  if (id->transform_call_graph_edges == CB_CGE_MOVE_CLONES)
 		    cgraph_create_edge_including_clones
 		      (id->dst_node, dest, orig_stmt, stmt, bb->count,
-		       compute_call_stmt_bb_frequency (id->dst_node->decl,
+		       compute_call_stmt_bb_frequency (id->dst_node->symbol.decl,
 		       				       copy_basic_block),
 		       CIF_ORIGINALLY_INDIRECT_CALL);
 		  else
 		    cgraph_create_edge (id->dst_node, dest, stmt,
 					bb->count,
 					compute_call_stmt_bb_frequency
-					  (id->dst_node->decl, copy_basic_block))->inline_failed
+					  (id->dst_node->symbol.decl,
+					   copy_basic_block))->inline_failed
 		      = CIF_ORIGINALLY_INDIRECT_CALL;
 		  if (dump_file)
 		    {
@@ -1793,7 +1794,7 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 	      ssa_op_iter i;
 	      tree def;
 
-	      find_new_referenced_vars (gsi_stmt (copy_gsi));
+	      find_referenced_vars_in (gsi_stmt (copy_gsi));
 	      FOR_EACH_SSA_TREE_OPERAND (def, stmt, i, SSA_OP_DEF)
 		if (TREE_CODE (def) == SSA_NAME)
 		  SSA_NAME_DEF_STMT (def) = stmt;
@@ -1920,11 +1921,7 @@ copy_edges_for_bb (basic_block bb, gcov_type count_scale, basic_block ret_bb)
 
       copy_stmt = gsi_stmt (si);
       if (!is_gimple_debug (copy_stmt))
-	{
-	  update_stmt (copy_stmt);
-	  if (gimple_in_ssa_p (cfun))
-	    mark_symbols_for_renaming (copy_stmt);
-	}
+	update_stmt (copy_stmt);
 
       /* Do this before the possible split_block.  */
       gsi_next (&si);
@@ -1995,7 +1992,7 @@ copy_phis_for_bb (basic_block bb, copy_body_data *id)
   edge new_edge;
   bool inserted = false;
 
-  for (si = gsi_start (phi_nodes (bb)); !gsi_end_p (si); gsi_next (&si))
+  for (si = gsi_start_phis (bb); !gsi_end_p (si); gsi_next (&si))
     {
       tree res, new_res;
       gimple new_phi;
@@ -2093,7 +2090,7 @@ initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count)
   cfun->static_chain_decl = src_cfun->static_chain_decl;
   cfun->nonlocal_goto_save_area = src_cfun->nonlocal_goto_save_area;
   cfun->function_end_locus = src_cfun->function_end_locus;
-  cfun->curr_properties = src_cfun->curr_properties;
+  cfun->curr_properties = src_cfun->curr_properties & ~PROP_loops;
   cfun->last_verified = src_cfun->last_verified;
   cfun->va_list_gpr_size = src_cfun->va_list_gpr_size;
   cfun->va_list_fpr_size = src_cfun->va_list_fpr_size;
@@ -2126,7 +2123,7 @@ initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count)
     {
       init_tree_ssa (cfun);
       cfun->gimple_df->in_ssa_p = true;
-      init_ssa_operands ();
+      init_ssa_operands (cfun);
     }
   pop_cfun ();
 }
@@ -2396,8 +2393,6 @@ copy_debug_stmt (gimple stmt, copy_body_data *id)
   processing_debug_stmt = 0;
 
   update_stmt (stmt);
-  if (gimple_in_ssa_p (cfun))
-    mark_symbols_for_renaming (stmt);
 }
 
 /* Process deferred debug stmts.  In order to give values better odds
@@ -2541,7 +2536,6 @@ insert_init_stmt (copy_body_data *id, basic_block bb, gimple init_stmt)
 	}
       gsi_insert_after (&si, init_stmt, GSI_NEW_STMT);
       gimple_regimplify_operands (init_stmt, &si);
-      mark_symbols_for_renaming (init_stmt);
 
       if (!is_gimple_debug (init_stmt) && MAY_HAVE_DEBUG_STMTS)
 	{
@@ -2606,6 +2600,17 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
 
   /* Make gimplifier happy about this variable.  */
   DECL_SEEN_IN_BIND_EXPR_P (var) = 1;
+
+  /* We are eventually using the value - make sure all variables
+     referenced therein are properly recorded.  */
+  if (value
+      && gimple_referenced_vars (cfun)
+      && TREE_CODE (value) == ADDR_EXPR)
+    {
+      tree base = get_base_address (TREE_OPERAND (value, 0));
+      if (base && TREE_CODE (base) == VAR_DECL && !is_global_var (base))
+	add_referenced_var (base);
+    }
 
   /* If the parameter is never assigned to, has no SSA_NAMEs created,
      we would not need to create a new variable here at all, if it
@@ -2695,14 +2700,23 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
 
       STRIP_USELESS_TYPE_CONVERSION (rhs);
 
-      /* We want to use MODIFY_EXPR, not INIT_EXPR here so that we
-	 keep our trees in gimple form.  */
-      if (def && gimple_in_ssa_p (cfun) && is_gimple_reg (p))
+      /* If we are in SSA form properly remap the default definition
+         or assign to a dummy SSA name if the parameter is unused and
+	 we are not optimizing.  */
+      if (gimple_in_ssa_p (cfun) && is_gimple_reg (p))
 	{
-	  def = remap_ssa_name (def, id);
-          init_stmt = gimple_build_assign (def, rhs);
-	  SSA_NAME_IS_DEFAULT_DEF (def) = 0;
-	  set_default_def (var, NULL);
+	  if (def)
+	    {
+	      def = remap_ssa_name (def, id);
+	      init_stmt = gimple_build_assign (def, rhs);
+	      SSA_NAME_IS_DEFAULT_DEF (def) = 0;
+	      set_default_def (var, NULL);
+	    }
+	  else if (!optimize)
+	    {
+	      def = make_ssa_name (var, NULL);
+	      init_stmt = gimple_build_assign (def, rhs);
+	    }
 	}
       else
         init_stmt = gimple_build_assign (var, rhs);
@@ -2903,7 +2917,7 @@ declare_return_variable (copy_body_data *id, tree return_slot, tree modify_dest,
   gcc_assert (TREE_CODE (TYPE_SIZE_UNIT (callee_type)) == INTEGER_CST);
 
   var = copy_result_decl_to_var (result, id);
-  if (gimple_in_ssa_p (cfun))
+  if (gimple_referenced_vars (cfun))
     add_referenced_var (var);
 
   DECL_SEEN_IN_BIND_EXPR_P (var) = 1;
@@ -2947,6 +2961,11 @@ declare_return_variable (copy_body_data *id, tree return_slot, tree modify_dest,
       TREE_ADDRESSABLE (var) = 1;
       var = build_fold_addr_expr (var);
     }
+  else if (gimple_in_ssa_p (cfun)
+	   && is_gimple_reg (var))
+    /* ???  Re-org id->retval and its special handling so that we can
+       record an SSA name directly and not need to invoke the SSA renamer.  */
+    mark_sym_for_renaming (var);
 
  done:
   /* Register the VAR_DECL as the equivalent for the RESULT_DECL; that
@@ -2959,13 +2978,18 @@ declare_return_variable (copy_body_data *id, tree return_slot, tree modify_dest,
       && !is_gimple_val (var))
     {
       tree temp = create_tmp_var (TREE_TYPE (result), "retvalptr");
-      if (gimple_in_ssa_p (id->src_cfun))
+      if (gimple_referenced_vars (cfun))
 	add_referenced_var (temp);
       insert_decl_map (id, result, temp);
-      /* When RESULT_DECL is in SSA form, we need to use it's default_def
-	 SSA_NAME.  */
-      if (gimple_in_ssa_p (id->src_cfun) && gimple_default_def (id->src_cfun, result))
-        temp = remap_ssa_name (gimple_default_def (id->src_cfun, result), id);
+      /* When RESULT_DECL is in SSA form, we need to remap and initialize
+	 it's default_def SSA_NAME.  */
+      if (gimple_in_ssa_p (id->src_cfun)
+	  && is_gimple_reg (result))
+	{
+	  temp = make_ssa_name (temp, NULL);
+	  insert_decl_map (id, gimple_default_def (id->src_cfun, result),
+			   temp);
+	}
       insert_init_stmt (id, entry_bb, gimple_build_assign (temp, var));
     }
   else
@@ -3790,7 +3814,7 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
      If we cannot, then there is no hope of inlining the function.  */
   if (cg_edge->indirect_unknown_callee)
     goto egress;
-  fn = cg_edge->callee->decl;
+  fn = cg_edge->callee->symbol.decl;
   gcc_checking_assert (fn);
 
   /* If FN is a declaration of a function in a nested scope that was
@@ -3806,8 +3830,9 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
     fn = DECL_ABSTRACT_ORIGIN (fn);
 
   /* Don't try to inline functions that are not well-suited to inlining.  */
-  if (!cgraph_inline_p (cg_edge, &reason))
+  if (cg_edge->inline_failed)
     {
+      reason = cg_edge->inline_failed;
       /* If this call was originally indirect, we do not want to emit any
 	 inlining related warnings or sorry messages because there are no
 	 guarantees regarding those.  */
@@ -3841,10 +3866,10 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
 	}
       goto egress;
     }
-  fn = cg_edge->callee->decl;
+  fn = cg_edge->callee->symbol.decl;
 
 #ifdef ENABLE_CHECKING
-  if (cg_edge->callee->decl != id->dst_node->decl)
+  if (cg_edge->callee->symbol.decl != id->dst_node->symbol.decl)
     verify_cgraph_node (cg_edge->callee);
 #endif
 
@@ -3852,9 +3877,9 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
   id->eh_lp_nr = lookup_stmt_eh_lp (stmt);
 
   /* Update the callers EH personality.  */
-  if (DECL_FUNCTION_PERSONALITY (cg_edge->callee->decl))
-    DECL_FUNCTION_PERSONALITY (cg_edge->caller->decl)
-      = DECL_FUNCTION_PERSONALITY (cg_edge->callee->decl);
+  if (DECL_FUNCTION_PERSONALITY (cg_edge->callee->symbol.decl))
+    DECL_FUNCTION_PERSONALITY (cg_edge->caller->symbol.decl)
+      = DECL_FUNCTION_PERSONALITY (cg_edge->callee->symbol.decl);
 
   /* Split the block holding the GIMPLE_CALL.  */
   e = split_block (bb, stmt);
@@ -4012,8 +4037,6 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
       gimple old_stmt = stmt;
       stmt = gimple_build_assign (gimple_call_lhs (stmt), use_retvar);
       gsi_replace (&stmt_gsi, stmt, false);
-      if (gimple_in_ssa_p (cfun))
-	mark_symbols_for_renaming (stmt);
       maybe_clean_or_replace_eh_stmt (old_stmt, stmt);
     }
   else
@@ -4066,7 +4089,7 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
      inlined.  If we don't do this now, we can lose the information about the
      variables in the function when the blocks get blown away as soon as we
      remove the cgraph node.  */
-  (*debug_hooks->outlining_inline_function) (cg_edge->callee->decl);
+  (*debug_hooks->outlining_inline_function) (cg_edge->callee->symbol.decl);
 
   /* Update callgraph if needed.  */
   cgraph_remove_node (cg_edge->callee);
@@ -5171,10 +5194,8 @@ tree_function_versioning (tree old_decl, tree new_decl,
 
 	    if (TREE_CODE (op) == ADDR_EXPR)
 	      {
-		op = TREE_OPERAND (op, 0);
-		while (handled_component_p (op))
-		  op = TREE_OPERAND (op, 0);
-		if (TREE_CODE (op) == VAR_DECL)
+		op = get_base_address (TREE_OPERAND (op, 0));
+		if (op && TREE_CODE (op) == VAR_DECL && !is_global_var (op))
 		  add_referenced_var (op);
 	      }
 	    gcc_assert (TREE_CODE (replace_info->old_tree) == PARM_DECL);

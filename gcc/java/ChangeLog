@@ -1,3 +1,58 @@
+2012-05-21  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR java/52815
+	* class.c (emit_register_classes_in_jcr_section): Revise placement
+	of #ifdef JCR_SECTION_NAME.
+
+2012-04-22  Jan Hubicka  <jh@suse.cz>
+
+	* class.c (build_utf8_ref): Do not mark varpool node as needed.
+
+2012-04-20  Jan Hubicka  <jh@suse.cz>
+
+	* class.c (make_local_function_alias): Do not mark symbol referenced.
+
+2012-04-11  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* jcf-dump.c (print_constant): Cast JPOOL_USHORT2, JPOOL_USHORT1
+	results to long to match formats.
+
+2012-04-11  Andrew Haley  <aph@redhat.com>
+
+	* jcf-reader.c (jcf_parse_bootstrap_methods): Add
+	ATTRIBUTE_UNUSED.
+
+2012-04-11  Andrew Haley  <aph@redhat.com>
+
+	* jcf.h (bootstrap_method): New.
+	(BootstrapMethods): New.
+	(JCF): Add BootstrapMethods.
+	(enum cpool_tag): Add MethodHandle, MethodType, and InvokeDynamic.
+	* jcf-reader.c (jcf_parse_bootstrap_methods): New.
+	(jcf_parse_constant_pool): Handlers for MethodHandle, MethodType,
+	and InvokeDynamic.
+	(jcf_parse_bootstrap_methods): New.
+	* javaop.def (invokedynamic): New opcode.
+	* jcf-parse.c (get_constant): An unknown constant type should not
+	be an internal error, but a fatal one.  Make it so.
+	* jcf-dump.c (HANDLE_BOOTSTRAP_METHODS_ATTRIBUTE): New.
+	(HANDLE_END_BOOTSTRAP_METHODS): New.
+	(print_constant): Handlers for MethodHandle, MethodType, and
+	InvokeDynamic.
+
+2012-04-02  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* class.c (emit_register_classes_in_jcr_section): Set DECL_USER_ALIGN.
+	Clear TREE_READONLY.
+
+2012-03-29  Steven Bosscher  <steven@gcc.gnu.org>
+
+	PR java/52730
+	* class.c (emit_register_classes_in_jcr_section): New function.
+	(emit_Jv_RegisterClass_calls): New function, split out from ...
+	(emit_register_classes): ... here. Reorganize.  Do not call
+	output_constant.
+
 2012-01-23  Andreas Schwab  <schwab@linux-m68k.org>
 
 	* lang.c (java_init_options_struct): Set

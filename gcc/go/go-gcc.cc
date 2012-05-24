@@ -271,7 +271,7 @@ class Gcc_backend : public Backend
 
   Bvariable*
   global_variable(const std::string& package_name,
-		  const std::string& unique_prefix,
+		  const std::string& pkgpath,
 		  const std::string& name,
 		  Btype* btype,
 		  bool is_external,
@@ -1087,7 +1087,7 @@ Gcc_backend::switch_statement(
   if (tv == error_mark_node)
     return this->error_statement();
   tree t = build3_loc(switch_location.gcc_location(), SWITCH_EXPR,
-                      void_type_node, tv, stmt_list, NULL_TREE);
+                      NULL_TREE, tv, stmt_list, NULL_TREE);
   return this->make_statement(t);
 }
 
@@ -1281,7 +1281,7 @@ Gcc_backend::non_zero_size_type(tree type)
 
 Bvariable*
 Gcc_backend::global_variable(const std::string& package_name,
-			     const std::string& unique_prefix,
+			     const std::string& pkgpath,
 			     const std::string& name,
 			     Btype* btype,
 			     bool is_external,
@@ -1310,9 +1310,9 @@ Gcc_backend::global_variable(const std::string& package_name,
     {
       TREE_PUBLIC(decl) = 1;
 
-      std::string asm_name(unique_prefix);
+      std::string asm_name(pkgpath);
       asm_name.push_back('.');
-      asm_name.append(var_name);
+      asm_name.append(name);
       SET_DECL_ASSEMBLER_NAME(decl, get_identifier_from_string(asm_name));
     }
   TREE_USED(decl) = 1;

@@ -151,8 +151,14 @@ lvalue_kind (const_tree ref)
       /* A scope ref in a template, left as SCOPE_REF to support later
 	 access checking.  */
     case SCOPE_REF:
-      gcc_assert (!type_dependent_expression_p (CONST_CAST_TREE(ref)));
-      return lvalue_kind (TREE_OPERAND (ref, 1));
+      gcc_assert (!type_dependent_expression_p (CONST_CAST_TREE (ref)));
+      {
+	tree op = TREE_OPERAND (ref, 1);
+	if (TREE_CODE (op) == FIELD_DECL)
+	  return (DECL_C_BIT_FIELD (op) ? clk_bitfield : clk_ordinary);
+	else
+	  return lvalue_kind (op);
+      }
 
     case MAX_EXPR:
     case MIN_EXPR:
@@ -1237,12 +1243,11 @@ copy_binfo (tree binfo, tree type, tree t, tree *igo_prev, int virt)
   TREE_CHAIN (*igo_prev) = new_binfo;
   *igo_prev = new_binfo;
 
-  if (binfo)
+  if (binfo && !BINFO_DEPENDENT_BASE_P (binfo))
     {
       int ix;
       tree base_binfo;
 
-      gcc_assert (!BINFO_DEPENDENT_BASE_P (binfo));
       gcc_assert (SAME_BINFO_TYPE_P (BINFO_TYPE (binfo), type));
 
       BINFO_OFFSET (new_binfo) = BINFO_OFFSET (binfo);
@@ -1255,8 +1260,6 @@ copy_binfo (tree binfo, tree type, tree t, tree *igo_prev, int virt)
       for (ix = 0; BINFO_BASE_ITERATE (binfo, ix, base_binfo); ix++)
 	{
 	  tree new_base_binfo;
-
-	  gcc_assert (!BINFO_DEPENDENT_BASE_P (base_binfo));
 	  new_base_binfo = copy_binfo (base_binfo, BINFO_TYPE (base_binfo),
 				       t, igo_prev,
 				       BINFO_VIRTUAL_P (base_binfo));
@@ -2022,7 +2025,7 @@ break_out_target_exprs (tree t)
    expressions  */
 
 tree
-build_min_nt (enum tree_code code, ...)
+build_min_nt_loc (location_t loc, enum tree_code code, ...)
 {
   tree t;
   int length;
@@ -2034,6 +2037,7 @@ build_min_nt (enum tree_code code, ...)
   va_start (p, code);
 
   t = make_node (code);
+  SET_EXPR_LOCATION (t, loc);
   length = TREE_CODE_LENGTH (code);
 
   for (i = 0; i < length; i++)
@@ -2595,8 +2599,8 @@ maybe_dummy_object (tree type, tree* binfop)
 	   && context == nonlambda_method_basetype ())
     /* In a lambda, need to go through 'this' capture.  */
     decl = (build_x_indirect_ref
-	    ((lambda_expr_this_capture
-	      (CLASSTYPE_LAMBDA_EXPR (current_class_type))),
+	    (input_location, (lambda_expr_this_capture
+			      (CLASSTYPE_LAMBDA_EXPR (current_class_type))),
 	     RO_NULL, tf_warning_or_error));
   else
     decl = build_dummy_object (context);
@@ -2770,7 +2774,7 @@ zero_init_p (const_tree t)
     return 1;
 
   /* NULL pointers to data members are initialized with -1.  */
-  if (TYPE_PTRMEM_P (t))
+  if (TYPE_PTRDATAMEM_P (t))
     return 0;
 
   /* Classes that contain types that can't be zero-initialized, cannot
@@ -3505,7 +3509,7 @@ cp_fix_function_decl_p (tree decl)
       /* Don't fix same_body aliases.  Although they don't have their own
 	 CFG, they share it with what they alias to.  */
       if (!node || !node->alias
-	  || !VEC_length (ipa_ref_t, node->ref_list.references))
+	  || !VEC_length (ipa_ref_t, node->symbol.ref_list.references))
 	return true;
     }
 

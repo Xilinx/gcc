@@ -1,7 +1,8 @@
 /* Breadth-first and depth-first routines for
    searching multiple-inheritance lattice for GNU C++.
    Copyright (C) 1987, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
+   1999, 2000, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011,
+   2012
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
 
@@ -1891,7 +1892,8 @@ check_final_overrider (tree overrider, tree basefn)
 	    }
 	}
       else if (!pedantic
-	       && can_convert (TREE_TYPE (base_type), TREE_TYPE (over_type)))
+	       && can_convert (TREE_TYPE (base_type), TREE_TYPE (over_type),
+			       tf_warning_or_error))
 	/* GNU extension, allow trivial pointer conversions such as
 	   converting to void *, or qualification conversion.  */
 	{
@@ -2430,6 +2432,11 @@ lookup_conversions_r (tree binfo,
 	  if (!IDENTIFIER_MARKED (name))
 	    {
 	      tree type = DECL_CONV_FN_TYPE (cur);
+	      if (type_uses_auto (type))
+		{
+		  mark_used (cur);
+		  type = DECL_CONV_FN_TYPE (cur);
+		}
 
 	      if (check_hidden_convs (binfo, virtual_depth, virtualness,
 				      type, parent_convs, other_convs))

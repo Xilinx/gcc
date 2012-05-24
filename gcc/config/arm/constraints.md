@@ -30,7 +30,7 @@
 
 ;; The following multi-letter normal constraints have been used:
 ;; in ARM/Thumb-2 state: Da, Db, Dc, Dn, Dl, DL, Dv, Dy, Di, Dt, Dz
-;; in Thumb-1 state: Pa, Pb, Pc, Pd
+;; in Thumb-1 state: Pa, Pb, Pc, Pd, Pe
 ;; in Thumb-2 state: Pj, PJ, Ps, Pt, Pu, Pv, Pw, Px, Py
 
 ;; The following memory constraints have been used:
@@ -172,6 +172,11 @@
   (and (match_code "const_int")
        (match_test "TARGET_THUMB1 && ival >= 0 && ival <= 7")))
 
+(define_constraint "Pe"
+  "@internal In Thumb-1 state a constant in the range 256 to +510"
+  (and (match_code "const_int")
+       (match_test "TARGET_THUMB1 && ival >= 256 && ival <= 510")))
+
 (define_constraint "Ps"
   "@internal In Thumb-2 state a constant in the range -255 to +255"
   (and (match_code "const_int")
@@ -255,9 +260,9 @@
 
 (define_constraint "Dn"
  "@internal
-  In ARM/Thumb-2 state a const_vector which can be loaded with a Neon vmov
-  immediate instruction."
- (and (match_code "const_vector")
+  In ARM/Thumb-2 state a const_vector or const_int which can be loaded with a
+  Neon vmov immediate instruction."
+ (and (match_code "const_vector,const_int")
       (match_test "TARGET_32BIT
 		   && imm_for_neon_mov_operand (op, GET_MODE (op))")))
 

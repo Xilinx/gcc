@@ -242,11 +242,11 @@ gfc_finish (void)
 /* ??? This is something of a hack.
 
    Emulated tls lowering needs to see all TLS variables before we call
-   cgraph_finalize_compilation_unit.  The C/C++ front ends manage this
+   finalize_compilation_unit.  The C/C++ front ends manage this
    by calling decl_rest_of_compilation on each global and static variable
    as they are seen.  The Fortran front end waits until this hook.
 
-   A Correct solution is for cgraph_finalize_compilation_unit not to be
+   A Correct solution is for finalize_compilation_unit not to be
    called during the WRITE_GLOBALS langhook, and have that hook only do what
    its name suggests and write out globals.  But the C++ and Java front ends
    have (unspecified) problems with aliases that gets in the way.  It has
@@ -641,7 +641,6 @@ gfc_init_builtin_functions (void)
 #undef DEF_POINTER_TYPE
     BT_LAST
   };
-  typedef enum builtin_type builtin_type;
 
   tree mfunc_float[6];
   tree mfunc_double[6];

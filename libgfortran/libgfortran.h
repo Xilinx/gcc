@@ -42,10 +42,18 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #include "config.h"
 
 #include <stdio.h>
-#include <math.h>
 #include <stddef.h>
 #include <float.h>
 #include <stdarg.h>
+
+#if HAVE_COMPLEX_H
+/* Must appear before math.h on VMS systems.  */
+# include <complex.h>
+#else
+#define complex __complex__
+#endif
+
+#include <math.h>
 
 /* If we're support quad-precision floating-point type, include the
    header to our support library.  */
@@ -64,12 +72,6 @@ extern long double __strtold (const char *, char **);
 #define gfc_strtof strtof
 #define gfc_strtod strtod
 #define gfc_strtold strtold
-#endif
-
-#if HAVE_COMPLEX_H
-# include <complex.h>
-#else
-#define complex __complex__
 #endif
 
 #include "../gcc/fortran/libgfortran.h"
@@ -533,7 +535,6 @@ typedef struct
   size_t record_marker;
   int max_subrecord_length;
   int bounds_check;
-  int range_check;
 }
 compile_options_t;
 
@@ -581,10 +582,6 @@ iexport_data_proto(filename);
    GCC's builtin alloca().  */
 #define gfc_alloca(x)  __builtin_alloca(x)
 
-
-/* Directory for creating temporary files.  Only used when none of the
-   following environment variables exist: GFORTRAN_TMPDIR, TMP and TEMP.  */
-#define DEFAULT_TEMPDIR "/tmp"
 
 /* The default value of record length for preconnected units is defined
    here. This value can be overriden by an environment variable.
@@ -753,11 +750,12 @@ internal_proto(set_fpu);
 
 /* memory.c */
 
-extern void *get_mem (size_t) __attribute__ ((malloc));
-internal_proto(get_mem);
+extern void *xmalloc (size_t) __attribute__ ((malloc));
+internal_proto(xmalloc);
 
-extern void *internal_malloc_size (size_t) __attribute__ ((malloc));
-internal_proto(internal_malloc_size);
+extern void *xcalloc (size_t, size_t) __attribute__ ((malloc));
+internal_proto(xcalloc);
+
 
 /* environ.c */
 
@@ -773,6 +771,18 @@ internal_proto(show_variables);
 unit_convert get_unformatted_convert (int);
 internal_proto(get_unformatted_convert);
 
+/* Secure getenv() which returns NULL if running as SUID/SGID.  */
+#ifdef HAVE___SECURE_GETENV
+#define secure_getenv __secure_getenv
+#elif defined(HAVE_GETUID) && defined(HAVE_GETEUID) \
+  && defined(HAVE_GETGID) && defined(HAVE_GETEGID)
+#define FALLBACK_SECURE_GETENV
+extern char *secure_getenv (const char *);
+internal_proto(secure_getenv);
+#else
+#define secure_getenv getenv
+#endif
+
 /* string.c */
 
 extern int find_option (st_parameter_common *, const char *, gfc_charlen_type,
@@ -787,6 +797,13 @@ internal_proto(fstrcpy);
 
 extern gfc_charlen_type cf_strcpy (char *, gfc_charlen_type, const char *);
 internal_proto(cf_strcpy);
+
+extern gfc_charlen_type string_len_trim (gfc_charlen_type, const char *);
+export_proto(string_len_trim);
+
+extern gfc_charlen_type string_len_trim_char4 (gfc_charlen_type,
+					       const gfc_char4_t *);
+export_proto(string_len_trim_char4);
 
 /* io/intrinsics.c */
 

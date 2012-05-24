@@ -488,6 +488,10 @@ fi
 
 case ${target} in
 i[34567]86-*-*)
+	if test "x$with_abi" != x; then
+		echo "This target does not support --with-abi."
+		exit 1
+	fi
 	if test "x$enable_cld" = xyes; then
 		tm_defines="${tm_defines} USE_IX86_CLD=1"
 	fi
@@ -497,7 +501,24 @@ i[34567]86-*-*)
 	tm_file="vxworks-dummy.h ${tm_file}"
 	;;
 x86_64-*-*)
-	tm_file="i386/biarch64.h ${tm_file}"
+	case ${with_abi} in
+	"")
+		if test "x$with_multilib_list" = xmx32; then
+			tm_file="i386/biarchx32.h ${tm_file}"
+		else
+			tm_file="i386/biarch64.h ${tm_file}"
+		fi
+		;;
+	64 | m64)
+		tm_file="i386/biarch64.h ${tm_file}"
+		;;
+	x32 | mx32)
+		tm_file="i386/biarchx32.h ${tm_file}"
+		;;
+	*)
+		echo "Unknown ABI used in --with-abi=$with_abi"
+		exit 1
+	esac
 	if test "x$enable_cld" = xyes; then
 		tm_defines="${tm_defines} USE_IX86_CLD=1"
 	fi
@@ -740,6 +761,7 @@ case ${target} in
   xm_file="vms/xm-vms.h"
   c_target_objs="vms-c.o"
   cxx_target_objs="vms-c.o"
+  fortran_target_objs="vms-f.o"
   use_gcc_stdint=provide
   tm_file="${tm_file} vms/vms-stdint.h"
   if test x$gnu_ld != xyes; then
@@ -898,13 +920,13 @@ arm*-wince-pe*)
 	extra_objs="pe.o"
 	;;
 avr-*-rtems*)
-	tm_file="elfos.h avr/elf.h avr/avr.h avr/multilib.h dbxelf.h avr/rtems.h rtems.h newlib-stdint.h"
+	tm_file="elfos.h avr/elf.h avr/avr.h dbxelf.h avr/rtems.h rtems.h newlib-stdint.h"
 	tmake_file="avr/t-avr avr/t-multilib t-rtems avr/t-rtems"
 	extra_gcc_objs="driver-avr.o avr-devices.o"
 	extra_objs="avr-devices.o avr-log.o"
 	;;
 avr-*-*)
-	tm_file="elfos.h avr/elf.h avr/avr.h avr/multilib.h dbxelf.h newlib-stdint.h"
+	tm_file="elfos.h avr/elf.h avr/avr.h dbxelf.h newlib-stdint.h"
 	tmake_file="avr/t-avr avr/t-multilib"
 	use_gcc_stdint=wrap
 	extra_gcc_objs="driver-avr.o avr-devices.o"
@@ -1206,7 +1228,7 @@ i[34567]86-*-linux* | i[34567]86-*-kfreebsd*-gnu | i[34567]86-*-knetbsd*-gnu | i
 		# Assume modern glibc
 		default_gnu_indirect_function=yes
 		if test x$enable_targets = xall; then
-			tm_file="${tm_file} i386/x86-64.h i386/gnu-user64.h i386/linux64.h"
+			tm_file="${tm_file} i386/x86-64.h i386/gnu-user-common.h i386/gnu-user64.h i386/linux-common.h i386/linux64.h"
 			tm_defines="${tm_defines} TARGET_BI_ARCH=1"
 			tmake_file="${tmake_file} i386/t-linux64"
 			x86_multilibs="${with_multilib_list}"
@@ -1241,29 +1263,29 @@ i[34567]86-*-linux* | i[34567]86-*-kfreebsd*-gnu | i[34567]86-*-knetbsd*-gnu | i
 				;;
 			esac
 		else
-			tm_file="${tm_file} i386/gnu-user.h i386/linux.h"
+			tm_file="${tm_file} i386/gnu-user-common.h i386/gnu-user.h i386/linux-common.h i386/linux.h"
 		fi
 		;;
 	i[34567]86-*-knetbsd*-gnu)
-		tm_file="${tm_file} i386/gnu-user.h knetbsd-gnu.h i386/knetbsd-gnu.h"
+		tm_file="${tm_file} i386/gnu-user-common.h i386/gnu-user.h knetbsd-gnu.h i386/knetbsd-gnu.h"
 		;;
 	i[34567]86-*-kfreebsd*-gnu)
-		tm_file="${tm_file} i386/gnu-user.h kfreebsd-gnu.h i386/kfreebsd-gnu.h"
+		tm_file="${tm_file} i386/gnu-user-common.h i386/gnu-user.h kfreebsd-gnu.h i386/kfreebsd-gnu.h"
 		;;
 	i[34567]86-*-kopensolaris*-gnu)
-		tm_file="${tm_file} i386/gnu-user.h kopensolaris-gnu.h i386/kopensolaris-gnu.h"
+		tm_file="${tm_file} i386/gnu-user-common.h i386/gnu-user.h kopensolaris-gnu.h i386/kopensolaris-gnu.h"
 		;;
 	i[34567]86-*-gnu*)
-		tm_file="$tm_file i386/gnu-user.h gnu.h i386/gnu.h"
+		tm_file="$tm_file i386/gnu-user-common.h i386/gnu-user.h gnu.h i386/gnu.h"
 		;;
 	esac
 	;;
 x86_64-*-linux* | x86_64-*-kfreebsd*-gnu | x86_64-*-knetbsd*-gnu)
 	tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h gnu-user.h glibc-stdint.h \
-		 i386/x86-64.h i386/gnu-user64.h"
+		 i386/x86-64.h i386/gnu-user-common.h i386/gnu-user64.h"
 	case ${target} in
 	x86_64-*-linux*)
-		tm_file="${tm_file} linux.h i386/linux64.h"
+		tm_file="${tm_file} linux.h i386/linux-common.h i386/linux64.h"
 		# Assume modern glibc
 		default_gnu_indirect_function=yes
 	  	;;
@@ -1690,7 +1712,7 @@ mips*-*-netbsd*)			# NetBSD/mips, either endian.
 	extra_options="${extra_options} netbsd.opt netbsd-elf.opt"
 	;;
 mips64*-*-linux* | mipsisa64*-*-linux*)
-	tm_file="dbxelf.h elfos.h gnu-user.h linux.h glibc-stdint.h ${tm_file} mips/gnu-user.h mips/gnu-user64.h mips/linux64.h"
+	tm_file="dbxelf.h elfos.h gnu-user.h linux.h glibc-stdint.h ${tm_file} mips/gnu-user.h mips/gnu-user64.h mips/linux64.h mips/linux-common.h"
 	tmake_file="${tmake_file} mips/t-linux64"
 	tm_defines="${tm_defines} MIPS_ABI_DEFAULT=ABI_N32"
 	case ${target} in
@@ -1716,6 +1738,7 @@ mips*-*-linux*)				# Linux MIPS, either endian.
 		tm_file="${tm_file} mips/gnu-user64.h mips/linux64.h"
 		tmake_file="${tmake_file} mips/t-linux64"
 	fi
+	tm_file="${tm_file} mips/linux-common.h"
 	case ${target} in
         mipsisa32r2*)
 		tm_defines="${tm_defines} MIPS_ISA_DEFAULT=33"
@@ -2805,6 +2828,13 @@ if test x$with_cpu = x ; then
     mips*-*-vxworks)
       with_arch=mips2
       ;;
+    powerpc*-*-*spe*)
+      if test x$enable_e500_double = xyes; then
+         with_cpu=8548
+      else
+         with_cpu=8540
+      fi       
+      ;;
     sparc-leon*-*)
       with_cpu=v8;
       ;;
@@ -3137,7 +3167,7 @@ case "${target}" in
 		;;
 
 	i[34567]86-*-* | x86_64-*-*)
-		supported_defaults="arch arch_32 arch_64 cpu cpu_32 cpu_64 tune tune_32 tune_64"
+		supported_defaults="abi arch arch_32 arch_64 cpu cpu_32 cpu_64 tune tune_32 tune_64"
 		for which in arch arch_32 arch_64 cpu cpu_32 cpu_64 tune tune_32 tune_64; do
 			eval "val=\$with_$which"
 			case ${val} in
@@ -3486,11 +3516,6 @@ case ${target} in
 		c_target_objs="${c_target_objs} rs6000-c.o"
 		cxx_target_objs="${cxx_target_objs} rs6000-c.o"
 		tmake_file="rs6000/t-rs6000 ${tmake_file}"
-
-                if test x$enable_e500_double = xyes
-                then
-                        tm_file="$tm_file rs6000/e500-double.h"
-                fi
 		;;
 
 	sh[123456ble]*-*-* | sh-*-*)

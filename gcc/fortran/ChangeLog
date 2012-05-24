@@ -1,3 +1,279 @@
+2012-05-23  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51055
+	PR fortran/45170
+	* match.c (gfc_match_allocate): Set length_from_typespec
+	for characters.
+	* resolve.c (resolve_charlen): If set, don't check whether
+	the len is a specification expression.
+
+2012-05-22  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/53389
+	* trans-array.c (gfc_add_loop_ss_code): Don't evaluate expression, if
+	ss->is_alloc_lhs is set.
+
+2012-05-22  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/53322
+	* f95-lang.c (gfc_init_builtin_functions): Remove the unused
+	typedef builtin_type.
+
+2012-05-14  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR fortran/52428
+	* gfortran.texi: Update _gfortran_set_options documentation.
+	* invoke.texi: Remove runtime behavior description of
+	-fno-range-check.
+	* trans-decl.c (create_main_function): Don't pass the range-check
+	setting to the library.
+
+2012-05-14  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/49110
+	PR fortran/51055
+	PR fortran/53329
+	* trans-expr.c (gfc_trans_assignment_1): Fix allocation
+	handling for assignment of function results to allocatable
+	deferred-length strings.
+	* trans-decl.c (gfc_create_string_length): For deferred-length
+	module variables, include module name in the assembler name.
+	(gfc_get_symbol_decl): Don't override the assembler name.
+
+2012-05-14  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 53063
+	* options.c (gfc_handle_option): Call lang-specific generated function.
+
+2012-05-13  Alessandro Fanfarillo  <fanfarillo.gcc@gmail.com>
+	    Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52158
+	PR fortran/45170
+	PR fortran/49430
+	* resolve.c (resolve_fl_derived0): Deferred character length 
+	procedure components are supported.
+	* trans-expr.c (gfc_conv_procedure_call): Handle TBP with 
+	deferred-length results.
+	(gfc_string_to_single_character): Add a new check to prevent
+	NULL read.
+	(gfc_conv_procedure_call): Remove unuseful checks on 
+	symbol's attributes. Add new checks to prevent NULL read on
+	string length. 
+
+2012-05-12  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/49110
+	PR fortran/52843
+	* resolve.c (resolve_fl_procedure): Don't regard
+	character(len=:) as character(*) in the diagnostic.
+
+2012-05-11  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/52537
+	* frontend-passes.c (optimize_op):  Change
+	old-style comparison operators to new-style, simplify
+	switch as a result.
+	(empty_string):  New function.
+	(get_len_trim_call):  New function.
+	(optimize_comparison):  If comparing to an empty string,
+	use comparison of len_trim to zero.
+	Use new-style comparison operators only.
+	(optimize_trim):  Use get_len_trim_call.
+
+2012-05-11  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 53063
+	* options.c: Include diagnostics.h instead of
+	diagnostics-core.h.
+	(set_Wall): Do not see warn_unused here.
+	(gfc_handle_option): Set it here using handle_generated_option.
+
+2012-05-08  Jan Hubicka  <jh@suse.cz>
+
+	* trans-common.c (create_common): Do not fake TREE_ASM_WRITTEN.
+	* trans-decl.c (gfc_finish_cray_pointee): Likewise.
+
+2012-05-07  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/53255
+	* resolve.c (resolve_typebound_static): Fix handling
+	of overridden specific to generic operator.
+
+2012-05-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41587
+	* decl.c (build_struct): Don't ignore FAILED status.
+
+2012-05-05  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/41600
+	* trans-array.c (build_array_ref): New static function.
+	(gfc_conv_array_ref, gfc_get_dataptr_offset): Call it.
+	* trans-expr.c (gfc_get_vptr_from_expr): New function.
+	(gfc_conv_derived_to_class): Add a new argument for a caller
+	supplied vptr and use it if it is not NULL.
+	(gfc_conv_procedure_call): Add NULL to call to above.
+	symbol.c (gfc_is_associate_pointer): Return true if symbol is
+	a class object.
+	* trans-stmt.c (trans_associate_var): Handle class associate-
+	names.
+	* expr.c (gfc_get_variable_expr): Supply the array-spec if
+	possible.
+	* trans-types.c (gfc_typenode_for_spec): Set GFC_CLASS_TYPE_P
+	for class types.
+	* trans.h : Add prototypes for gfc_get_vptr_from_expr and
+	gfc_conv_derived_to_class. Define GFC_CLASS_TYPE_P.
+	* resolve.c (resolve_variable): For class arrays, ensure that
+	the target expression has all the necessary _data references.
+	(resolve_assoc_var): Throw a "not yet implemented" error for
+	class array selectors that need a temporary.
+	* match.c (copy_ts_from_selector_to_associate,
+	select_derived_set_tmp, select_class_set_tmp): New functions.
+	(select_type_set_tmp): Call one of last two new functions.
+	(gfc_match_select_type): Copy_ts_from_selector_to_associate is
+	called if associate-name is typed.
+
+	PR fortran/53191
+	* resolve.c (resolve_ref): C614 applied to class expressions.
+
+2012-05-05  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR fortran/49010
+	PR fortran/24518
+	* intrinsic.texi (MOD, MODULO): Mention sign and magnitude of result.
+	* simplify.c (gfc_simplify_mod): Use mpfr_fmod.
+	(gfc_simplify_modulo): Likewise, use copysign to fix the result if
+	zero.
+	* trans-intrinsic.c (gfc_conv_intrinsic_mod): Remove fallback as
+	builtin_fmod is always available. For modulo, call copysign to fix
+	the result when signed zeros are enabled.
+
+2012-05-05  Janne Blomqvist  <jb@gcc.gnu.org>
+
+        * gfortran.texi (GFORTRAN_TMPDIR): Rename to TMPDIR, explain
+        algorithm for choosing temp directory.
+
+2012-05-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/53175
+	* resolve.c (resolve_variable): Set public_used
+	if a private module variable is used in a (public)
+	specification expression.
+	* trans-decl.c (gfc_finish_var_decl): Mark those
+	TREE_PUBLIC.
+
+2012-05-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/53111
+	* resolve.c (resolve_fl_derived): Fix -std=f95
+	diagnostic for generic vs. DT names.
+
+2012-05-03  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52864
+	* interface.c (compare_parameter_intent): Remove.
+	(check_intents): Remove call, handle CLASS pointer.
+	(compare_actual_formal): Handle CLASS pointer.
+
+2012-04-30  Jan Hubicka  <jh@suse.cz>
+
+	* f95-lang.c (gfc_finish): Update comments.
+
+2012-04-29  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/53148
+	* frontend-passes.c (create_var):  If the statement has a label,
+	put the label around the block.
+
+2012-04-25  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52196
+	* lang.opt (Wrealloc-lhs, Wrealloc-lhs-all): New flags.
+	* gfortran.h (gfc_option_t): Add them.
+	* options.c (gfc_init_options, gfc_post_options,
+	gfc_handle_option): Handle them.
+	* invoke.texi: Document them.
+	* trans-expr.c (realloc_lhs_warning): New function.
+	(gfc_trans_arrayfunc_assign,
+	alloc_scalar_allocatable_for_assignment,
+	gfc_trans_assignment_1): Use it.
+
+2012-04-18  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* trans-decl.c (gfc_trans_entry_master_switch): Build SWITCH_EXPR
+	with NULL_TREE type instead of void_type_node.
+	* trans-io.c (io_result): Likewise.
+	* trans-stmt.c (gfc_trans_integer_select,
+	gfc_trans_character_select): Likewise.
+
+2012-04-16  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52864
+	* expr.c (gfc_check_vardef_context): Fix assignment check for
+	pointer components.
+
+2012-04-16  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/52968
+	* class.c (gfc_build_class_symbol): Make sure the 'f2k_derived'
+	namespace is present.
+
+2012-04-15  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/51082
+	* trans-expr.c (gfc_conv_expr_reference): Check if the expression is a
+	simple function call (or a more involved PPC reference).
+
+2012-04-15  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52916
+	PR fortran/40973
+	* gfortran.h (symbol_attribute): Add public_used.
+	* interface.c (check_sym_interfaces, check_uop_interfaces,
+	gfc_check_interfaces): Set it.
+	* resolve.c (resolve_typebound_procedure): Ditto.
+	* trans-decl.c (build_function_decl): Use it.
+
+2012-04-11  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52729
+	* resolve.c (resolve_symbol): Fix searching for parent NS decl.
+
+2012-04-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52751
+	* trans-decl.c (gfc_finish_var_decl): Don't set TREE_PUBLIC
+	for PRIVATE module variables without C-binding label.
+
+	PR fortran/40973
+	* trans-decl.c (build_function_decl): Ditto for procedures.
+
+2012-04-07  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/52893
+	* frontend-passes.c:  Keep track of wether we are in an implicit
+	DO loop; do not do function elimination if we are.
+
+2012-04-06  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/52668
+	* module.c:  Only mark symbols as use_only if they have been
+	imported via an only list.
+
+2012-03-28  Paul Thomas  <pault@gcc.gnu.org>
+	Tobias Burnus  <burnus@gcc.gnu.org>
+
+	PR fortran/52652
+	* match.c (gfc_match_allocate, gfc_match_deallocate): Change
+	"not.. or" to "neither.. nor".
+	* parse.c (decode_specification_statement): Correct error in
+	chpice of matching function for "allocatable".
+
+2012-03-23  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* gfortran.h (GFC_MAX_LINE): Remove unused macro.
+
 2012-03-19  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
 
 	PR fortran/52559

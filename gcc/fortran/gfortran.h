@@ -42,7 +42,6 @@ along with GCC; see the file COPYING3.  If not see
 /* Major control parameters.  */
 
 #define GFC_MAX_SYMBOL_LEN 63   /* Must be at least 63 for F2003.  */
-#define GFC_MAX_LINE 132	/* Characters beyond this are not seen.  */
 #define GFC_LETTERS 26		/* Number of letters in the alphabet.  */
 
 #define MAX_SUBRECORD_LENGTH 2147483639   /* 2**31-9 */
@@ -726,6 +725,10 @@ typedef struct
   /* Function/subroutine attributes */
   unsigned sequence:1, elemental:1, pure:1, recursive:1;
   unsigned unmaskable:1, masked:1, contained:1, mod_proc:1, abstract:1;
+
+  /* Set if a (public) symbol [e.g. generic name] exposes this symbol,
+     which is relevant for private module procedures.  */
+  unsigned public_used:1;
 
   /* This is set if a contained procedure could be declared pure.  This is
      used for certain optimizations that require the result or arguments
@@ -2216,6 +2219,8 @@ typedef struct
   int warn_align_commons;
   int warn_real_q_constant;
   int warn_unused_dummy_argument;
+  int warn_realloc_lhs;
+  int warn_realloc_lhs_all;
   int max_errors;
 
   int flag_all_intrinsics;

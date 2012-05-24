@@ -97,6 +97,7 @@ mode_signbit_p (enum machine_mode mode, const_rtx x)
       width -= HOST_BITS_PER_WIDE_INT;
     }
   else
+    /* FIXME: We don't yet have a representation for wider modes.  */
     return false;
 
   if (width < HOST_BITS_PER_WIDE_INT)
@@ -612,7 +613,7 @@ simplify_unary_operation_1 (enum rtx_code code, enum machine_mode mode, rtx op)
 
       /* Similarly, (not (neg X)) is (plus X -1).  */
       if (GET_CODE (op) == NEG)
-	return plus_constant (XEXP (op, 0), -1);
+	return plus_constant (mode, XEXP (op, 0), -1);
 
       /* (not (xor X C)) for C constant is (xor X D) with D = ~C.  */
       if (GET_CODE (op) == XOR
@@ -712,7 +713,7 @@ simplify_unary_operation_1 (enum rtx_code code, enum machine_mode mode, rtx op)
 
       /* Similarly, (neg (not X)) is (plus X 1).  */
       if (GET_CODE (op) == NOT)
-	return plus_constant (XEXP (op, 0), 1);
+	return plus_constant (mode, XEXP (op, 0), 1);
 
       /* (neg (minus X Y)) can become (minus Y X).  This transformation
 	 isn't safe for modes with signed zeros, since if X and Y are
@@ -781,7 +782,7 @@ simplify_unary_operation_1 (enum rtx_code code, enum machine_mode mode, rtx op)
       if (GET_CODE (op) == XOR
 	  && XEXP (op, 1) == const1_rtx
 	  && nonzero_bits (XEXP (op, 0), mode) == 1)
-	return plus_constant (XEXP (op, 0), -1);
+	return plus_constant (mode, XEXP (op, 0), -1);
 
       /* (neg (lt x 0)) is (ashiftrt X C) if STORE_FLAG_VALUE is 1.  */
       /* (neg (lt x 0)) is (lshiftrt X C) if STORE_FLAG_VALUE is -1.  */
@@ -1139,7 +1140,7 @@ simplify_unary_operation_1 (enum rtx_code code, enum machine_mode mode, rtx op)
 	}
 
 #if defined(POINTERS_EXTEND_UNSIGNED) && !defined(HAVE_ptr_extend)
-      /* As we do not know which address space the pointer is refering to,
+      /* As we do not know which address space the pointer is referring to,
 	 we can do this only if the target does not support different pointer
 	 or address modes depending on the address space.  */
       if (target_default_pointer_address_modes_p ()
@@ -1232,7 +1233,7 @@ simplify_unary_operation_1 (enum rtx_code code, enum machine_mode mode, rtx op)
 	}
 
 #if defined(POINTERS_EXTEND_UNSIGNED) && !defined(HAVE_ptr_extend)
-      /* As we do not know which address space the pointer is refering to,
+      /* As we do not know which address space the pointer is referring to,
 	 we can do this only if the target does not support different pointer
 	 or address modes depending on the address space.  */
       if (target_default_pointer_address_modes_p ()
@@ -1355,16 +1356,11 @@ simplify_const_unary_operation (enum rtx_code code, enum machine_mode mode,
       else
 	lv = CONST_DOUBLE_LOW (op),  hv = CONST_DOUBLE_HIGH (op);
 
-      if (op_mode == VOIDmode)
-	{
-	  /* We don't know how to interpret negative-looking numbers in
-	     this case, so don't try to fold those.  */
-	  if (hv < 0)
-	    return 0;
-	}
-      else if (GET_MODE_PRECISION (op_mode) >= HOST_BITS_PER_WIDE_INT * 2)
-	;
-      else
+      if (op_mode == VOIDmode
+	  || GET_MODE_PRECISION (op_mode) > 2 * HOST_BITS_PER_WIDE_INT)
+	/* We should never get a negative number.  */
+	gcc_assert (hv >= 0);
+      else if (GET_MODE_PRECISION (op_mode) <= HOST_BITS_PER_WIDE_INT)
 	hv = 0, lv &= GET_MODE_MASK (op_mode);
 
       REAL_VALUE_FROM_UNSIGNED_INT (d, lv, hv, mode);
@@ -1718,7 +1714,7 @@ simplify_const_unary_operation (enum rtx_code code, enum machine_mode mode,
   else if (GET_CODE (op) == CONST_DOUBLE
 	   && SCALAR_FLOAT_MODE_P (GET_MODE (op))
 	   && GET_MODE_CLASS (mode) == MODE_INT
-	   && width <= 2*HOST_BITS_PER_WIDE_INT && width > 0)
+	   && width <= 2 * HOST_BITS_PER_WIDE_INT && width > 0)
     {
       /* Although the overflow semantics of RTL's FIX and UNSIGNED_FIX
 	 operators are intentionally left unspecified (to ease implementation
@@ -1783,7 +1779,7 @@ simplify_const_unary_operation (enum rtx_code code, enum machine_mode mode,
 	    return const0_rtx;
 
 	  /* Test against the unsigned upper bound.  */
-	  if (width == 2*HOST_BITS_PER_WIDE_INT)
+	  if (width == 2 * HOST_BITS_PER_WIDE_INT)
 	    {
 	      th = -1;
 	      tl = -1;
@@ -1958,12 +1954,12 @@ simplify_binary_operation_1 (enum rtx_code code, enum machine_mode mode,
 	   || GET_CODE (op0) == SYMBOL_REF
 	   || GET_CODE (op0) == LABEL_REF)
 	  && CONST_INT_P (op1))
-	return plus_constant (op0, INTVAL (op1));
+	return plus_constant (mode, op0, INTVAL (op1));
       else if ((GET_CODE (op1) == CONST
 		|| GET_CODE (op1) == SYMBOL_REF
 		|| GET_CODE (op1) == LABEL_REF)
 	       && CONST_INT_P (op0))
-	return plus_constant (op1, INTVAL (op0));
+	return plus_constant (mode, op1, INTVAL (op0));
 
       /* See if this is something like X * C - X or vice versa or
 	 if the multiplication is written as a shift.  If so, we can
@@ -2380,7 +2376,9 @@ simplify_binary_operation_1 (enum rtx_code code, enum machine_mode mode,
 	      || GET_MODE_CLASS (GET_MODE (trueop1)) == MODE_INT)
 	  && GET_MODE (op0) == mode
 	  && CONST_DOUBLE_LOW (trueop1) == 0
-	  && (val = exact_log2 (CONST_DOUBLE_HIGH (trueop1))) >= 0)
+	  && (val = exact_log2 (CONST_DOUBLE_HIGH (trueop1))) >= 0
+	  && (val < 2 * HOST_BITS_PER_WIDE_INT - 1
+	      || GET_MODE_BITSIZE (mode) <= 2 * HOST_BITS_PER_WIDE_INT))
 	return simplify_gen_binary (ASHIFT, mode, op0,
 				    GEN_INT (val + HOST_BITS_PER_WIDE_INT));
 
@@ -2559,7 +2557,8 @@ simplify_binary_operation_1 (enum rtx_code code, enum machine_mode mode,
           if (mask >> count == INTVAL (trueop1)
               && (mask & nonzero_bits (XEXP (op0, 0), mode)) == 0)
 	    return simplify_gen_binary (ASHIFTRT, mode,
-					plus_constant (XEXP (op0, 0), mask),
+					plus_constant (mode, XEXP (op0, 0),
+						       mask),
 					XEXP (op0, 1));
         }
 
@@ -4120,7 +4119,8 @@ simplify_plus_minus (enum rtx_code code, enum machine_mode mode, rtx op0,
       rtx value = ops[n_ops - 1].op;
       if (ops[n_ops - 1].neg ^ ops[n_ops - 2].neg)
 	value = neg_const_int (mode, value);
-      ops[n_ops - 2].op = plus_constant (ops[n_ops - 2].op, INTVAL (value));
+      ops[n_ops - 2].op = plus_constant (mode, ops[n_ops - 2].op,
+					 INTVAL (value));
       n_ops--;
     }
 
@@ -5189,6 +5189,7 @@ simplify_immed_subreg (enum machine_mode outermode, rtx op,
 	case CONST_DOUBLE:
 	  if (GET_MODE (el) == VOIDmode)
 	    {
+	      unsigned char extend = 0;
 	      /* If this triggers, someone should have generated a
 		 CONST_INT instead.  */
 	      gcc_assert (elem_bitsize > HOST_BITS_PER_WIDE_INT);
@@ -5201,10 +5202,11 @@ simplify_immed_subreg (enum machine_mode outermode, rtx op,
 		    = CONST_DOUBLE_HIGH (el) >> (i - HOST_BITS_PER_WIDE_INT);
 		  i += value_bit;
 		}
-	      /* It shouldn't matter what's done here, so fill it with
-		 zero.  */
+
+	      if (CONST_DOUBLE_HIGH (el) >> (HOST_BITS_PER_WIDE_INT - 1))
+		extend = -1;
 	      for (; i < elem_bitsize; i += value_bit)
-		*vp++ = 0;
+		*vp++ = extend;
 	    }
 	  else
 	    {

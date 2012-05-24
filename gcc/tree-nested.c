@@ -577,18 +577,18 @@ get_nl_goto_field (struct nesting_info *info)
   return field;
 }
 
-/* Invoke CALLBACK on all statements of GIMPLE sequence SEQ.  */
+/* Invoke CALLBACK on all statements of GIMPLE sequence *PSEQ.  */
 
 static void
 walk_body (walk_stmt_fn callback_stmt, walk_tree_fn callback_op,
-	   struct nesting_info *info, gimple_seq seq)
+	   struct nesting_info *info, gimple_seq *pseq)
 {
   struct walk_stmt_info wi;
 
   memset (&wi, 0, sizeof (wi));
   wi.info = info;
   wi.val_only = true;
-  walk_gimple_seq (seq, callback_stmt, callback_op, &wi);
+  walk_gimple_seq_mod (pseq, callback_stmt, callback_op, &wi);
 }
 
 
@@ -598,7 +598,9 @@ static inline void
 walk_function (walk_stmt_fn callback_stmt, walk_tree_fn callback_op,
 	       struct nesting_info *info)
 {
-  walk_body (callback_stmt, callback_op, info, gimple_body (info->context));
+  gimple_seq body = gimple_body (info->context);
+  walk_body (callback_stmt, callback_op, info, &body);
+  gimple_set_body (info->context, body);
 }
 
 /* Invoke CALLBACK on a GIMPLE_OMP_FOR's init, cond, incr and pre-body.  */
@@ -613,9 +615,9 @@ walk_gimple_omp_for (gimple for_stmt,
   tree t;
   size_t i;
 
-  walk_body (callback_stmt, callback_op, info, gimple_omp_for_pre_body (for_stmt));
+  walk_body (callback_stmt, callback_op, info, gimple_omp_for_pre_body_ptr (for_stmt));
 
-  seq = gimple_seq_alloc ();
+  seq = NULL;
   memset (&wi, 0, sizeof (wi));
   wi.info = info;
   wi.gsi = gsi_last (seq);
@@ -644,9 +646,8 @@ walk_gimple_omp_for (gimple for_stmt,
       walk_tree (&TREE_OPERAND (t, 1), callback_op, &wi, NULL);
     }
 
-  if (gimple_seq_empty_p (seq))
-    gimple_seq_free (seq);
-  else
+  seq = gsi_seq (wi.gsi);
+  if (!gimple_seq_empty_p (seq))
     {
       gimple_seq pre_body = gimple_omp_for_pre_body (for_stmt);
       annotate_all_with_location (seq, gimple_location (for_stmt));
@@ -698,11 +699,12 @@ check_for_nested_with_variably_modified (tree fndecl, tree orig_fndecl)
 
   for (cgn = cgn->nested; cgn ; cgn = cgn->next_nested)
     {
-      for (arg = DECL_ARGUMENTS (cgn->decl); arg; arg = DECL_CHAIN (arg))
+      for (arg = DECL_ARGUMENTS (cgn->symbol.decl); arg; arg = DECL_CHAIN (arg))
 	if (variably_modified_type_p (TREE_TYPE (arg), orig_fndecl))
 	  return true;
 
-      if (check_for_nested_with_variably_modified (cgn->decl, orig_fndecl))
+      if (check_for_nested_with_variably_modified (cgn->symbol.decl,
+						   orig_fndecl))
 	return true;
     }
 
@@ -720,7 +722,7 @@ create_nesting_tree (struct cgraph_node *cgn)
   info->var_map = pointer_map_create ();
   info->mem_refs = pointer_set_create ();
   info->suppress_expansion = BITMAP_ALLOC (&nesting_info_bitmap_obstack);
-  info->context = cgn->decl;
+  info->context = cgn->symbol.decl;
 
   for (cgn = cgn->nested; cgn ; cgn = cgn->next_nested)
     {
@@ -1135,10 +1137,10 @@ convert_nonlocal_omp_clauses (tree *pclauses, struct walk_stmt_info *wi)
 		= info->context;
 	      walk_body (convert_nonlocal_reference_stmt,
 			 convert_nonlocal_reference_op, info,
-			 OMP_CLAUSE_REDUCTION_GIMPLE_INIT (clause));
+			 &OMP_CLAUSE_REDUCTION_GIMPLE_INIT (clause));
 	      walk_body (convert_nonlocal_reference_stmt,
 			 convert_nonlocal_reference_op, info,
-			 OMP_CLAUSE_REDUCTION_GIMPLE_MERGE (clause));
+			 &OMP_CLAUSE_REDUCTION_GIMPLE_MERGE (clause));
 	      DECL_CONTEXT (OMP_CLAUSE_REDUCTION_PLACEHOLDER (clause))
 		= old_context;
 	    }
@@ -1147,7 +1149,7 @@ convert_nonlocal_omp_clauses (tree *pclauses, struct walk_stmt_info *wi)
 	case OMP_CLAUSE_LASTPRIVATE:
 	  walk_body (convert_nonlocal_reference_stmt,
 		     convert_nonlocal_reference_op, info,
-		     OMP_CLAUSE_LASTPRIVATE_GIMPLE_SEQ (clause));
+		     &OMP_CLAUSE_LASTPRIVATE_GIMPLE_SEQ (clause));
 	  break;
 
 	default:
@@ -1260,7 +1262,7 @@ convert_nonlocal_reference_stmt (gimple_stmt_iterator *gsi, bool *handled_ops_p,
       info->new_local_var_chain = NULL;
 
       walk_body (convert_nonlocal_reference_stmt, convert_nonlocal_reference_op,
-	         info, gimple_omp_body (stmt));
+	         info, gimple_omp_body_ptr (stmt));
 
       if (info->new_local_var_chain)
 	declare_vars (info->new_local_var_chain,
@@ -1276,7 +1278,7 @@ convert_nonlocal_reference_stmt (gimple_stmt_iterator *gsi, bool *handled_ops_p,
       walk_gimple_omp_for (stmt, convert_nonlocal_reference_stmt,
 	  		   convert_nonlocal_reference_op, info);
       walk_body (convert_nonlocal_reference_stmt,
-	  	 convert_nonlocal_reference_op, info, gimple_omp_body (stmt));
+	  	 convert_nonlocal_reference_op, info, gimple_omp_body_ptr (stmt));
       info->suppress_expansion = save_suppress;
       break;
 
@@ -1284,7 +1286,7 @@ convert_nonlocal_reference_stmt (gimple_stmt_iterator *gsi, bool *handled_ops_p,
       save_suppress = info->suppress_expansion;
       convert_nonlocal_omp_clauses (gimple_omp_sections_clauses_ptr (stmt), wi);
       walk_body (convert_nonlocal_reference_stmt, convert_nonlocal_reference_op,
-	         info, gimple_omp_body (stmt));
+	         info, gimple_omp_body_ptr (stmt));
       info->suppress_expansion = save_suppress;
       break;
 
@@ -1292,7 +1294,7 @@ convert_nonlocal_reference_stmt (gimple_stmt_iterator *gsi, bool *handled_ops_p,
       save_suppress = info->suppress_expansion;
       convert_nonlocal_omp_clauses (gimple_omp_single_clauses_ptr (stmt), wi);
       walk_body (convert_nonlocal_reference_stmt, convert_nonlocal_reference_op,
-	         info, gimple_omp_body (stmt));
+	         info, gimple_omp_body_ptr (stmt));
       info->suppress_expansion = save_suppress;
       break;
 
@@ -1300,7 +1302,7 @@ convert_nonlocal_reference_stmt (gimple_stmt_iterator *gsi, bool *handled_ops_p,
     case GIMPLE_OMP_MASTER:
     case GIMPLE_OMP_ORDERED:
       walk_body (convert_nonlocal_reference_stmt, convert_nonlocal_reference_op,
-	         info, gimple_omp_body (stmt));
+	         info, gimple_omp_body_ptr (stmt));
       break;
 
     case GIMPLE_BIND:
@@ -1634,10 +1636,10 @@ convert_local_omp_clauses (tree *pclauses, struct walk_stmt_info *wi)
 		= info->context;
 	      walk_body (convert_local_reference_stmt,
 			 convert_local_reference_op, info,
-			 OMP_CLAUSE_REDUCTION_GIMPLE_INIT (clause));
+			 &OMP_CLAUSE_REDUCTION_GIMPLE_INIT (clause));
 	      walk_body (convert_local_reference_stmt,
 			 convert_local_reference_op, info,
-			 OMP_CLAUSE_REDUCTION_GIMPLE_MERGE (clause));
+			 &OMP_CLAUSE_REDUCTION_GIMPLE_MERGE (clause));
 	      DECL_CONTEXT (OMP_CLAUSE_REDUCTION_PLACEHOLDER (clause))
 		= old_context;
 	    }
@@ -1646,7 +1648,7 @@ convert_local_omp_clauses (tree *pclauses, struct walk_stmt_info *wi)
 	case OMP_CLAUSE_LASTPRIVATE:
 	  walk_body (convert_local_reference_stmt,
 		     convert_local_reference_op, info,
-		     OMP_CLAUSE_LASTPRIVATE_GIMPLE_SEQ (clause));
+		     &OMP_CLAUSE_LASTPRIVATE_GIMPLE_SEQ (clause));
 	  break;
 
 	default:
@@ -1691,7 +1693,7 @@ convert_local_reference_stmt (gimple_stmt_iterator *gsi, bool *handled_ops_p,
       info->new_local_var_chain = NULL;
 
       walk_body (convert_local_reference_stmt, convert_local_reference_op, info,
-	         gimple_omp_body (stmt));
+	         gimple_omp_body_ptr (stmt));
 
       if (info->new_local_var_chain)
 	declare_vars (info->new_local_var_chain,
@@ -1706,7 +1708,7 @@ convert_local_reference_stmt (gimple_stmt_iterator *gsi, bool *handled_ops_p,
       walk_gimple_omp_for (stmt, convert_local_reference_stmt,
 			   convert_local_reference_op, info);
       walk_body (convert_local_reference_stmt, convert_local_reference_op,
-		 info, gimple_omp_body (stmt));
+		 info, gimple_omp_body_ptr (stmt));
       info->suppress_expansion = save_suppress;
       break;
 
@@ -1714,7 +1716,7 @@ convert_local_reference_stmt (gimple_stmt_iterator *gsi, bool *handled_ops_p,
       save_suppress = info->suppress_expansion;
       convert_local_omp_clauses (gimple_omp_sections_clauses_ptr (stmt), wi);
       walk_body (convert_local_reference_stmt, convert_local_reference_op,
-		 info, gimple_omp_body (stmt));
+		 info, gimple_omp_body_ptr (stmt));
       info->suppress_expansion = save_suppress;
       break;
 
@@ -1722,7 +1724,7 @@ convert_local_reference_stmt (gimple_stmt_iterator *gsi, bool *handled_ops_p,
       save_suppress = info->suppress_expansion;
       convert_local_omp_clauses (gimple_omp_single_clauses_ptr (stmt), wi);
       walk_body (convert_local_reference_stmt, convert_local_reference_op,
-		 info, gimple_omp_body (stmt));
+		 info, gimple_omp_body_ptr (stmt));
       info->suppress_expansion = save_suppress;
       break;
 
@@ -1730,7 +1732,7 @@ convert_local_reference_stmt (gimple_stmt_iterator *gsi, bool *handled_ops_p,
     case GIMPLE_OMP_MASTER:
     case GIMPLE_OMP_ORDERED:
       walk_body (convert_local_reference_stmt, convert_local_reference_op,
-		 info, gimple_omp_body (stmt));
+		 info, gimple_omp_body_ptr (stmt));
       break;
 
     case GIMPLE_COND:
@@ -1808,12 +1810,12 @@ convert_nl_goto_reference (gimple_stmt_iterator *gsi, bool *handled_ops_p,
 
   /* Build: __builtin_nl_goto(new_label, &chain->nl_goto_field).  */
   field = get_nl_goto_field (i);
-  x = get_frame_field (info, target_context, field, &wi->gsi);
+  x = get_frame_field (info, target_context, field, gsi);
   x = build_addr (x, target_context);
-  x = gsi_gimplify_val (info, x, &wi->gsi);
+  x = gsi_gimplify_val (info, x, gsi);
   call = gimple_build_call (builtin_decl_implicit (BUILT_IN_NONLOCAL_GOTO),
 			    2, build_addr (new_label, target_context), x);
-  gsi_replace (&wi->gsi, call, false);
+  gsi_replace (gsi, call, false);
 
   /* We have handled all of STMT's operands, no need to keep going.  */
   *handled_ops_p = true;
@@ -1978,7 +1980,7 @@ convert_tramp_reference_stmt (gimple_stmt_iterator *gsi, bool *handled_ops_p,
 	save_local_var_chain = info->new_local_var_chain;
 	info->new_local_var_chain = NULL;
         walk_body (convert_tramp_reference_stmt, convert_tramp_reference_op,
-		   info, gimple_omp_body (stmt));
+		   info, gimple_omp_body_ptr (stmt));
 	if (info->new_local_var_chain)
 	  declare_vars (info->new_local_var_chain,
 			gimple_seq_first_stmt (gimple_omp_body (stmt)),
@@ -2034,7 +2036,7 @@ convert_gimple_call (gimple_stmt_iterator *gsi, bool *handled_ops_p,
     case GIMPLE_OMP_TASK:
       save_static_chain_added = info->static_chain_added;
       info->static_chain_added = 0;
-      walk_body (convert_gimple_call, NULL, info, gimple_omp_body (stmt));
+      walk_body (convert_gimple_call, NULL, info, gimple_omp_body_ptr (stmt));
       for (i = 0; i < 2; i++)
 	{
 	  tree c, decl;
@@ -2064,7 +2066,7 @@ convert_gimple_call (gimple_stmt_iterator *gsi, bool *handled_ops_p,
 
     case GIMPLE_OMP_FOR:
       walk_body (convert_gimple_call, NULL, info,
-	  	 gimple_omp_for_pre_body (stmt));
+	  	 gimple_omp_for_pre_body_ptr (stmt));
       /* FALLTHRU */
     case GIMPLE_OMP_SECTIONS:
     case GIMPLE_OMP_SECTION:
@@ -2072,7 +2074,7 @@ convert_gimple_call (gimple_stmt_iterator *gsi, bool *handled_ops_p,
     case GIMPLE_OMP_MASTER:
     case GIMPLE_OMP_ORDERED:
     case GIMPLE_OMP_CRITICAL:
-      walk_body (convert_gimple_call, NULL, info, gimple_omp_body (stmt));
+      walk_body (convert_gimple_call, NULL, info, gimple_omp_body_ptr (stmt));
       break;
 
     default:
@@ -2589,8 +2591,8 @@ static void
 gimplify_all_functions (struct cgraph_node *root)
 {
   struct cgraph_node *iter;
-  if (!gimple_body (root->decl))
-    gimplify_function_tree (root->decl);
+  if (!gimple_body (root->symbol.decl))
+    gimplify_function_tree (root->symbol.decl);
   for (iter = root->nested; iter; iter = iter->next_nested)
     gimplify_all_functions (iter);
 }

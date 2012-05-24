@@ -1,5 +1,5 @@
 /* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-   2011
+   2011, 2012
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
    F2003 I/O support contributed by Jerry DeLisle
@@ -173,6 +173,17 @@ fallback_access (const char *path, int mode)
 
 #undef access
 #define access fallback_access
+#endif
+
+
+/* Fallback directory for creating temporary files.  P_tmpdir is
+   defined on many POSIX platforms.  */
+#ifndef P_tmpdir
+#ifdef _P_tmpdir
+#define P_tmpdir _P_tmpdir  /* MinGW */
+#else
+#define P_tmpdir "/tmp"
+#endif
 #endif
 
 
@@ -639,7 +650,7 @@ buf_init (unix_stream * s)
 {
   s->st.vptr = &buf_vtable;
 
-  s->buffer = get_mem (BUFFER_SIZE);
+  s->buffer = xmalloc (BUFFER_SIZE);
   return 0;
 }
 
@@ -736,7 +747,7 @@ mem_alloc_w4 (stream * strm, int * len)
 }
 
 
-/* Stream read function for character(kine=1) internal units.  */
+/* Stream read function for character(kind=1) internal units.  */
 
 static ssize_t
 mem_read (stream * s, void * buf, ssize_t nbytes)
@@ -919,13 +930,11 @@ open_internal (char *base, int length, gfc_offset offset)
 {
   unix_stream *s;
 
-  s = get_mem (sizeof (unix_stream));
-  memset (s, '\0', sizeof (unix_stream));
+  s = xcalloc (1, sizeof (unix_stream));
 
   s->buffer = base;
   s->buffer_offset = offset;
 
-  s->logical_offset = 0;
   s->active = s->file_length = length;
 
   s->st.vptr = &mem_vtable;
@@ -941,13 +950,11 @@ open_internal4 (char *base, int length, gfc_offset offset)
 {
   unix_stream *s;
 
-  s = get_mem (sizeof (unix_stream));
-  memset (s, '\0', sizeof (unix_stream));
+  s = xcalloc (1, sizeof (unix_stream));
 
   s->buffer = base;
   s->buffer_offset = offset;
 
-  s->logical_offset = 0;
   s->active = s->file_length = length;
 
   s->st.vptr = &mem4_vtable;
@@ -965,13 +972,9 @@ fd_to_stream (int fd)
   struct stat statbuf;
   unix_stream *s;
 
-  s = get_mem (sizeof (unix_stream));
-  memset (s, '\0', sizeof (unix_stream));
+  s = xcalloc (1, sizeof (unix_stream));
 
   s->fd = fd;
-  s->buffer_offset = 0;
-  s->physical_offset = 0;
-  s->logical_offset = 0;
 
   /* Get the current length of the file. */
 
@@ -1034,54 +1037,23 @@ unpack_filename (char *cstring, const char *fstring, int len)
 }
 
 
-/* tempfile()-- Generate a temporary filename for a scratch file and
- * open it.  mkstemp() opens the file for reading and writing, but the
- * library mode prevents anything that is not allowed.  The descriptor
- * is returned, which is -1 on error.  The template is pointed to by 
- * opp->file, which is copied into the unit structure
- * and freed later. */
+/* Helper function for tempfile(). Tries to open a temporary file in
+   the directory specified by tempdir. If successful, the file name is
+   stored in fname and the descriptor returned. Returns -1 on
+   failure.  */
 
 static int
-tempfile (st_parameter_open *opp)
+tempfile_open (const char *tempdir, char **fname)
 {
-  const char *tempdir;
-  char *template;
-  const char *slash = "/";
   int fd;
-  size_t tempdirlen;
+  const char *slash = "/";
 
-#ifndef HAVE_MKSTEMP
-  int count;
-  size_t slashlen;
-#endif
+  if (!tempdir)
+    return -1;
 
-  tempdir = getenv ("GFORTRAN_TMPDIR");
-#ifdef __MINGW32__
-  if (tempdir == NULL)
-    {
-      char buffer[MAX_PATH + 1];
-      DWORD ret;
-      ret = GetTempPath (MAX_PATH, buffer);
-      /* If we are not able to get a temp-directory, we use
-	 current directory.  */
-      if (ret > MAX_PATH || !ret)
-        buffer[0] = 0;
-      else
-        buffer[ret] = 0;
-      tempdir = strdup (buffer);
-    }
-#else
-  if (tempdir == NULL)
-    tempdir = getenv ("TMP");
-  if (tempdir == NULL)
-    tempdir = getenv ("TEMP");
-  if (tempdir == NULL)
-    tempdir = DEFAULT_TEMPDIR;
-#endif
-
-  /* Check for special case that tempdir contains slash
-     or backslash at end.  */
-  tempdirlen = strlen (tempdir);
+  /* Check for the special case that tempdir ends with a slash or
+     backslash.  */
+  size_t tempdirlen = strlen (tempdir);
   if (*tempdir == 0 || tempdir[tempdirlen - 1] == '/'
 #ifdef __MINGW32__
       || tempdir[tempdirlen - 1] == '\\'
@@ -1090,7 +1062,7 @@ tempfile (st_parameter_open *opp)
     slash = "";
 
   // Take care that the template is longer in the mktemp() branch.
-  template = get_mem (tempdirlen + 23);
+  char * template = xmalloc (tempdirlen + 23);
 
 #ifdef HAVE_MKSTEMP
   snprintf (template, tempdirlen + 23, "%s%sgfortrantmpXXXXXX", 
@@ -1100,8 +1072,8 @@ tempfile (st_parameter_open *opp)
 
 #else /* HAVE_MKSTEMP */
   fd = -1;
-  count = 0;
-  slashlen = strlen (slash);
+  int count = 0;
+  size_t slashlen = strlen (slash);
   do
     {
       snprintf (template, tempdirlen + 23, "%s%sgfortrantmpaaaXXXXXX", 
@@ -1127,16 +1099,67 @@ tempfile (st_parameter_open *opp)
 
 #if defined(HAVE_CRLF) && defined(O_BINARY)
       fd = open (template, O_RDWR | O_CREAT | O_EXCL | O_BINARY,
-		 S_IRUSR | S_IWUSR);
+		 S_IRUSR | S_IWUSR, 0600);
 #else
-      fd = open (template, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+      fd = open (template, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 0600);
 #endif
     }
   while (fd == -1 && errno == EEXIST);
 #endif /* HAVE_MKSTEMP */
 
-  opp->file = template;
-  opp->file_len = strlen (template);	/* Don't include trailing nul */
+  *fname = template;
+  return fd;
+}
+
+
+/* tempfile()-- Generate a temporary filename for a scratch file and
+ * open it.  mkstemp() opens the file for reading and writing, but the
+ * library mode prevents anything that is not allowed.  The descriptor
+ * is returned, which is -1 on error.  The template is pointed to by 
+ * opp->file, which is copied into the unit structure
+ * and freed later. */
+
+static int
+tempfile (st_parameter_open *opp)
+{
+  const char *tempdir;
+  char *fname;
+  int fd = -1;
+
+  tempdir = secure_getenv ("TMPDIR");
+  fd = tempfile_open (tempdir, &fname);
+#ifdef __MINGW32__
+  if (fd == -1)
+    {
+      char buffer[MAX_PATH + 1];
+      DWORD ret;
+      ret = GetTempPath (MAX_PATH, buffer);
+      /* If we are not able to get a temp-directory, we use
+	 current directory.  */
+      if (ret > MAX_PATH || !ret)
+        buffer[0] = 0;
+      else
+        buffer[ret] = 0;
+      tempdir = strdup (buffer);
+      fd = tempfile_open (tempdir, &fname);
+    }
+#elif defined(__CYGWIN__)
+  if (fd == -1)
+    {
+      tempdir = secure_getenv ("TMP");
+      fd = tempfile_open (tempdir, &fname);
+    }
+  if (fd == -1)
+    {
+      tempdir = secure_getenv ("TEMP");
+      fd = tempfile_open (tempdir, &fname);
+    }
+#endif
+  if (fd == -1)
+    fd = tempfile_open (P_tmpdir, &fname);
+ 
+  opp->file = fname;
+  opp->file_len = strlen (fname);	/* Don't include trailing nul */
 
   return fd;
 }

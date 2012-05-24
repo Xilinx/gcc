@@ -457,8 +457,6 @@ gfc_finish_cray_pointee (tree decl, gfc_symbol *sym)
   SET_DECL_VALUE_EXPR (decl, value);
   DECL_HAS_VALUE_EXPR_P (decl) = 1;
   GFC_DECL_CRAY_POINTEE (decl) = 1;
-  /* This is a fake variable just for debugging purposes.  */
-  TREE_ASM_WRITTEN (decl) = 1;
 }
 
 
@@ -539,7 +537,7 @@ gfc_finish_var_decl (tree decl, gfc_symbol * sym)
   if (sym->attr.cray_pointee)
     return;
 
-  if(sym->attr.is_bind_c == 1)
+  if(sym->attr.is_bind_c == 1 && sym->binding_label)
     {
       /* We need to put variables that are bind(c) into the common
 	 segment of the object file, because this is what C would do.
@@ -565,7 +563,8 @@ gfc_finish_var_decl (tree decl, gfc_symbol * sym)
       /* TODO: Don't set sym->module for result or dummy variables.  */
       gcc_assert (current_function_decl == NULL_TREE || sym->result == sym);
       /* This is the declaration of a module variable.  */
-      TREE_PUBLIC (decl) = 1;
+      if (sym->attr.access != ACCESS_PRIVATE || sym->attr.public_used)
+	TREE_PUBLIC (decl) = 1;
       TREE_STATIC (decl) = 1;
     }
 
@@ -1088,11 +1087,14 @@ gfc_create_string_length (gfc_symbol * sym)
   if (sym->ts.u.cl->backend_decl == NULL_TREE)
     {
       tree length;
-      char name[GFC_MAX_MANGLED_SYMBOL_LEN + 2];
+      const char *name;
 
       /* Also prefix the mangled name.  */
-      strcpy (&name[1], sym->name);
-      name[0] = '.';
+      if (sym->module)
+	name = gfc_get_string (".__%s_MOD_%s", sym->module, sym->name);
+      else
+	name = gfc_get_string (".%s", sym->name);
+
       length = build_decl (input_location,
 			   VAR_DECL, get_identifier (name),
 			   gfc_charlen_type_node);
@@ -1102,6 +1104,13 @@ gfc_create_string_length (gfc_symbol * sym)
 	gfc_defer_symbol_init (sym);
 
       sym->ts.u.cl->backend_decl = length;
+
+      if (sym->attr.save || sym->ns->proc_name->attr.flavor == FL_MODULE)
+	TREE_STATIC (length) = 1;
+
+      if (sym->ns->proc_name->attr.flavor == FL_MODULE
+	  && (sym->attr.access != ACCESS_PRIVATE || sym->attr.public_used))
+	TREE_PUBLIC (length) = 1;
     }
 
   gcc_assert (sym->ts.u.cl->backend_decl != NULL_TREE);
@@ -1403,17 +1412,6 @@ gfc_get_symbol_decl (gfc_symbol * sym)
 
       if (TREE_CODE (length) != INTEGER_CST)
 	{
-	  char name[GFC_MAX_MANGLED_SYMBOL_LEN + 2];
-
-	  if (sym->module)
-	    {
-	      /* Also prefix the mangled name for symbols from modules.  */
-	      strcpy (&name[1], sym->name);
-	      name[0] = '.';
-	      strcpy (&name[1],
-		      IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (length)));
-	      gfc_set_decl_assembler_name (decl, get_identifier (name));
-	    }
 	  gfc_finish_var_decl (length, sym);
 	  gcc_assert (!sym->value);
 	}
@@ -1842,7 +1840,9 @@ build_function_decl (gfc_symbol * sym, bool global)
   DECL_EXTERNAL (fndecl) = 0;
 
   if (!current_function_decl
-      && !sym->attr.entry_master && !sym->attr.is_main_program)
+      && !sym->attr.entry_master && !sym->attr.is_main_program
+      && (sym->attr.access != ACCESS_PRIVATE || sym->binding_label
+	  || sym->attr.public_used))
     TREE_PUBLIC (fndecl) = 1;
 
   attributes = add_attributes_to_decl (attr, NULL_TREE);
@@ -4746,7 +4746,8 @@ gfc_trans_entry_master_switch (gfc_entry_list * el)
   tmp = gfc_finish_block (&block);
   /* The first argument selects the entry point.  */
   val = DECL_ARGUMENTS (current_function_decl);
-  tmp = build3_v (SWITCH_EXPR, val, tmp, NULL_TREE);
+  tmp = fold_build3_loc (input_location, SWITCH_EXPR, NULL_TREE,
+			 val, tmp, NULL_TREE);
   return tmp;
 }
 
@@ -5038,12 +5039,17 @@ create_main_function (tree fndecl)
                             build_int_cst (integer_type_node,
                                            (gfc_option.rtcheck
                                             & GFC_RTCHECK_BOUNDS)));
+    /* TODO: This is the -frange-check option, which no longer affects
+       library behavior; when bumping the library ABI this slot can be
+       reused for something else. As it is the last element in the
+       array, we can instead leave it out altogether.
     CONSTRUCTOR_APPEND_ELT (v, NULL_TREE,
                             build_int_cst (integer_type_node,
                                            gfc_option.flag_range_check));
+    */
 
     array_type = build_array_type (integer_type_node,
-				   build_index_type (size_int (7)));
+				   build_index_type (size_int (6)));
     array = build_constructor (array_type, v);
     TREE_CONSTANT (array) = 1;
     TREE_STATIC (array) = 1;
@@ -5058,7 +5064,7 @@ create_main_function (tree fndecl)
 
     tmp = build_call_expr_loc (input_location,
 			   gfor_fndecl_set_options, 2,
-			   build_int_cst (integer_type_node, 8), var);
+			   build_int_cst (integer_type_node, 7), var);
     gfc_add_expr_to_block (&body, tmp);
   }
 

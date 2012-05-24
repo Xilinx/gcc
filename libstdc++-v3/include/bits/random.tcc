@@ -41,58 +41,42 @@ namespace std _GLIBCXX_VISIBILITY(default)
   {
   _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
-    // General case for x = (ax + c) mod m -- use Schrage's algorithm to
-    // avoid integer overflow.
-    //
-    // Because a and c are compile-time integral constants the compiler
-    // kindly elides any unreachable paths.
+    // General case for x = (ax + c) mod m -- use Schrage's algorithm
+    // to avoid integer overflow.
     //
     // Preconditions:  a > 0, m > 0.
     //
-    // XXX FIXME: as-is, only works correctly for __m % __a < __m / __a. 
-    //
-    template<typename _Tp, _Tp __m, _Tp __a, _Tp __c, bool>
-      struct _Mod
-      {
-	static _Tp
-	__calc(_Tp __x)
-	{
-	  if (__a == 1)
-	    __x %= __m;
-	  else
-	    {
-	      static const _Tp __q = __m / __a;
-	      static const _Tp __r = __m % __a;
-
-	      _Tp __t1 = __a * (__x % __q);
-	      _Tp __t2 = __r * (__x / __q);
-	      if (__t1 >= __t2)
-		__x = __t1 - __t2;
-	      else
-		__x = __m - __t2 + __t1;
-	    }
-
-	  if (__c != 0)
-	    {
-	      const _Tp __d = __m - __x;
-	      if (__d > __c)
-		__x += __c;
-	      else
-		__x = __c - __d;
-	    }
-	  return __x;
-	}
-      };
-
-    // Special case for m == 0 -- use unsigned integer overflow as modulo
-    // operator.
+    // Note: only works correctly for __m % __a < __m / __a.
     template<typename _Tp, _Tp __m, _Tp __a, _Tp __c>
-      struct _Mod<_Tp, __m, __a, __c, true>
+      _Tp
+      _Mod<_Tp, __m, __a, __c, false, true>::
+      __calc(_Tp __x)
       {
-	static _Tp
-	__calc(_Tp __x)
-	{ return __a * __x + __c; }
-      };
+	if (__a == 1)
+	  __x %= __m;
+	else
+	  {
+	    static const _Tp __q = __m / __a;
+	    static const _Tp __r = __m % __a;
+
+	    _Tp __t1 = __a * (__x % __q);
+	    _Tp __t2 = __r * (__x / __q);
+	    if (__t1 >= __t2)
+	      __x = __t1 - __t2;
+	    else
+	      __x = __m - __t2 + __t1;
+	  }
+
+	if (__c != 0)
+	  {
+	    const _Tp __d = __m - __x;
+	    if (__d > __c)
+	      __x += __c;
+	    else
+	      __x = __c - __d;
+	  }
+	return __x;
+      }
 
     template<typename _InputIterator, typename _OutputIterator,
 	     typename _UnaryOperation>
@@ -730,40 +714,65 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     independent_bits_engine<_RandomNumberEngine, __w, _UIntType>::
     operator()()
     {
-      const long double __r = static_cast<long double>(_M_b.max())
-			    - static_cast<long double>(_M_b.min()) + 1.0L;
-      const result_type __m = std::log(__r) / std::log(2.0L);
-      result_type __n, __n0, __y0, __y1, __s0, __s1;
+      typedef typename _RandomNumberEngine::result_type _Eresult_type;
+      const _Eresult_type __r
+	= (_M_b.max() - _M_b.min() < std::numeric_limits<_Eresult_type>::max()
+	   ? _M_b.max() - _M_b.min() + 1 : 0);
+      const unsigned __edig = std::numeric_limits<_Eresult_type>::digits;
+      const unsigned __m = __r ? std::__lg(__r) : __edig;
+
+      typedef typename std::common_type<_Eresult_type, result_type>::type
+	__ctype;
+      const unsigned __cdig = std::numeric_limits<__ctype>::digits;
+
+      unsigned __n, __n0;
+      __ctype __s0, __s1, __y0, __y1;
+
       for (size_t __i = 0; __i < 2; ++__i)
 	{
 	  __n = (__w + __m - 1) / __m + __i;
 	  __n0 = __n - __w % __n;
-	  const result_type __w0 = __w / __n;
-	  const result_type __w1 = __w0 + 1;
-	  __s0 = result_type(1) << __w0;
-	  __s1 = result_type(1) << __w1;
-	  __y0 = __s0 * (__r / __s0);
-	  __y1 = __s1 * (__r / __s1);
-	  if (__r - __y0 <= __y0 / __n)
+	  const unsigned __w0 = __w / __n;  // __w0 <= __m
+
+	  __s0 = 0;
+	  __s1 = 0;
+	  if (__w0 < __cdig)
+	    {
+	      __s0 = __ctype(1) << __w0;
+	      __s1 = __s0 << 1;
+	    }
+
+	  __y0 = 0;
+	  __y1 = 0;
+	  if (__r)
+	    {
+	      __y0 = __s0 * (__r / __s0);
+	      if (__s1)
+		__y1 = __s1 * (__r / __s1);
+
+	      if (__r - __y0 <= __y0 / __n)
+		break;
+	    }
+	  else
 	    break;
 	}
 
       result_type __sum = 0;
       for (size_t __k = 0; __k < __n0; ++__k)
 	{
-	  result_type __u;
+	  __ctype __u;
 	  do
 	    __u = _M_b() - _M_b.min();
-	  while (__u >= __y0);
-	  __sum = __s0 * __sum + __u % __s0;
+	  while (__y0 && __u >= __y0);
+	  __sum = __s0 * __sum + (__s0 ? __u % __s0 : __u);
 	}
       for (size_t __k = __n0; __k < __n; ++__k)
 	{
-	  result_type __u;
+	  __ctype __u;
 	  do
 	    __u = _M_b() - _M_b.min();
-	  while (__u >= __y1);
-	  __sum = __s1 * __sum + __u % __s1;
+	  while (__y1 && __u >= __y1);
+	  __sum = __s1 * __sum + (__s1 ? __u % __s1 : __u);
 	}
       return __sum;
     }
@@ -840,12 +849,11 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       operator()(_UniformRandomNumberGenerator& __urng,
 		 const param_type& __param)
       {
-	typedef typename std::make_unsigned<typename
-	  _UniformRandomNumberGenerator::result_type>::type __urngtype;
+	typedef typename _UniformRandomNumberGenerator::result_type
+	  _Gresult_type;
 	typedef typename std::make_unsigned<result_type>::type __utype;
-	typedef typename std::conditional<(sizeof(__urngtype)
-					   > sizeof(__utype)),
-	  __urngtype, __utype>::type __uctype;
+	typedef typename std::common_type<_Gresult_type, __utype>::type
+	  __uctype;
 
 	const __uctype __urngmin = __urng.min();
 	const __uctype __urngmax = __urng.max();
@@ -2765,7 +2773,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		       : (__n - 1) / 2;
       const size_t __p = (__n - __t) / 2;
       const size_t __q = __p + __t;
-      const size_t __m = std::max(__s + 1, __n);
+      const size_t __m = std::max(size_t(__s + 1), __n);
 
       for (size_t __k = 0; __k < __m; ++__k)
 	{

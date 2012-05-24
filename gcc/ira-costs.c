@@ -1650,6 +1650,8 @@ find_costs_and_classes (FILE *dump_file)
 			COSTS (total_allocno_costs, parent_a_num)->mem_cost
 			  += add_cost;
 
+		      if (i >= first_moveable_pseudo && i < last_moveable_pseudo)
+			COSTS (total_allocno_costs, parent_a_num)->mem_cost = 0;
 		    }
 		  a_costs = COSTS (costs, a_num)->cost;
 		  for (k = cost_classes_ptr->num - 1; k >= 0; k--)
@@ -1667,7 +1669,9 @@ find_costs_and_classes (FILE *dump_file)
 		    i_mem_cost += add_cost;
 		}
 	    }
-	  if (equiv_savings < 0)
+	  if (i >= first_moveable_pseudo && i < last_moveable_pseudo)
+	    i_mem_cost = 0;
+	  else if (equiv_savings < 0)
 	    i_mem_cost = -equiv_savings;
 	  else if (equiv_savings > 0)
 	    {
@@ -2103,7 +2107,8 @@ ira_tune_allocno_costs (void)
       mode = ALLOCNO_MODE (a);
       n = ira_class_hard_regs_num[aclass];
       min_cost = INT_MAX;
-      if (ALLOCNO_CALLS_CROSSED_NUM (a) != 0)
+      if (ALLOCNO_CALLS_CROSSED_NUM (a)
+	  != ALLOCNO_CHEAP_CALLS_CROSSED_NUM (a))
 	{
 	  ira_allocate_and_set_costs
 	    (&ALLOCNO_HARD_REG_COSTS (a), aclass,

@@ -245,8 +245,8 @@ LIBS = $(LIBINTL) $(LIBICONV) $(LIBIBERTY) $(SYSLIBS)
 LIBDEPS = $(LIBINTL_DEP) $(LIBICONV_DEP) $(LIBIBERTY)
 # Default is no TGT_LIB; one might be passed down or something
 TGT_LIB =
-TOOLS_LIBS = targext.o link.o ../../libcommon-target.a ../../libcommon.a \
-  ../../../libcpp/libcpp.a $(LIBGNAT) $(LIBINTL) $(LIBICONV) \
+TOOLS_LIBS = targext.o link.o ../../ggc-none.o ../../libcommon-target.a \
+  ../../libcommon.a ../../../libcpp/libcpp.a $(LIBGNAT) $(LIBINTL) $(LIBICONV) \
   ../../../libiberty/libiberty.a $(SYSLIBS) $(TGT_LIB)
 
 # Convert the target variable into a space separated list of architecture,
@@ -1083,6 +1083,8 @@ ifeq ($(strip $(filter-out %86 %x86_64 solaris2%,$(arch) $(osys))),)
 
   TOOLS_TARGET_PAIRS=mlib-tgt-specific.adb<mlib-tgt-specific-solaris.adb
 
+  EXTRA_GNATRTL_NONTASKING_OBJS=g-sse.o g-ssvety.o
+
   EH_MECHANISM=-gcc
   THREADSLIB = -lposix4 -lthread
   MISCLIB = -lposix4 -lnsl -lsocket
@@ -1175,6 +1177,8 @@ ifeq ($(strip $(filter-out %86 kfreebsd%,$(arch) $(osys))),)
     mlib-tgt-specific.adb<mlib-tgt-specific-linux.adb \
     indepsw.adb<indepsw-gnu.adb
 
+  EXTRA_GNATRTL_NONTASKING_OBJS=g-sse.o g-ssvety.o
+
   EH_MECHANISM=-gcc
   THREADSLIB = -lpthread
   GNATLIB_SHARED = gnatlib-shared-dual
@@ -1231,6 +1235,8 @@ ifeq ($(strip $(filter-out %86 freebsd%,$(arch) $(osys))),)
   mlib-tgt-specific.adb<mlib-tgt-specific-linux.adb
   GNATLIB_SHARED = gnatlib-shared-dual
 
+  EXTRA_GNATRTL_NONTASKING_OBJS=g-sse.o g-ssvety.o
+
   EH_MECHANISM=-gcc
   THREADSLIB= -lpthread
   GMEM_LIB = gmemlib
@@ -1258,6 +1264,8 @@ ifeq ($(strip $(filter-out %86_64 freebsd%,$(arch) $(osys))),)
   TOOLS_TARGET_PAIRS = \
   mlib-tgt-specific.adb<mlib-tgt-specific-linux.adb
   GNATLIB_SHARED = gnatlib-shared-dual
+
+  EXTRA_GNATRTL_NONTASKING_OBJS=g-sse.o g-ssvety.o
 
   EH_MECHANISM=-gcc
   THREADSLIB= -lpthread
@@ -1539,19 +1547,16 @@ ifeq ($(strip $(filter-out cygwin% mingw32% pe,$(osys))),)
   # the Cygwin port has always been a CygMing frankenhybrid and it is
   # a long-term project to disentangle them.
   ifeq ($(strip $(filter-out cygwin%,$(osys))),)
-    WIN_SO_PREFIX=cyg
     LIBGNAT_TARGET_PAIRS = \
     s-memory.adb<s-memory.adb \
     g-socthi.ads<g-socthi.ads \
     g-socthi.adb<g-socthi.adb
   else
-    WIN_SO_PREFIX=lib
     LIBGNAT_TARGET_PAIRS = \
     s-memory.adb<s-memory-mingw.adb \
     g-socthi.ads<g-socthi-mingw.ads \
     g-socthi.adb<g-socthi-mingw.adb
   endif
-  WIN_SO_INSTALL_DIR = $(bindir)
   LIBGNAT_TARGET_PAIRS += \
   a-dirval.adb<a-dirval-mingw.adb \
   a-excpol.adb<a-excpol-abort.adb \
@@ -2143,7 +2148,7 @@ ifeq ($(strip $(filter-out darwin%,$(osys))),)
     s-taprop.adb<s-taprop-posix.adb \
     s-taspri.ads<s-taspri-posix.ads \
     s-tpopsp.adb<s-tpopsp-posix-foreign.adb
-  
+
   ifeq ($(strip $(filter-out %86,$(arch))),)
     LIBGNAT_TARGET_PAIRS += \
       s-intman.adb<s-intman-susv3.adb \
@@ -2160,6 +2165,8 @@ ifeq ($(strip $(filter-out darwin%,$(osys))),)
         $(X86_TARGET_PAIRS) \
         system.ads<system-darwin-x86.ads
     endif
+
+    EXTRA_GNATRTL_NONTASKING_OBJS=g-sse.o g-ssvety.o
   endif
 
   ifeq ($(strip $(filter-out %x86_64,$(arch))),)
@@ -2178,6 +2185,8 @@ ifeq ($(strip $(filter-out darwin%,$(osys))),)
         $(X86_64_TARGET_PAIRS) \
         system.ads<system-darwin-x86_64.ads
     endif
+
+    EXTRA_GNATRTL_NONTASKING_OBJS=g-sse.o g-ssvety.o
   endif
 
   ifeq ($(strip $(filter-out powerpc%,$(arch))),)
@@ -2186,7 +2195,7 @@ ifeq ($(strip $(filter-out darwin%,$(osys))),)
       s-osprim.adb<s-osprim-posix.adb \
       a-numaux.ads<a-numaux-darwin.ads \
       a-numaux.adb<a-numaux-darwin.adb
-    
+
     ifeq ($(strip $(MULTISUBDIR)),/ppc64)
       LIBGNAT_TARGET_PAIRS += \
         system.ads<system-darwin-ppc64.ads
@@ -2488,14 +2497,11 @@ install-gnatlib: ../stamp-gnatlib-$(RTSDIR)
 #     for shared libraries on some targets, e.g. on HP-UX where the x
 #     permission is required.
 #     Also install the .dSYM directories if they exist (these directories
-#     contain the debug information for the shared libraries on darwin),
-#     and the windows import libraries if they exist.
-	libpfx=$(if $(WIN_SO_PREFIX),$(WIN_SO_PREFIX),lib); \
-	librtlobjdir=$(if $(WIN_SO_INSTALL_DIR),$(WIN_SO_INSTALL_DIR),$(ADA_RTL_OBJ_DIR)); \
+#     contain the debug information for the shared libraries on darwin)
 	for file in gnat gnarl; do \
-	   if [ -f $(RTSDIR)/$${libpfx}$${file}$(hyphen)$(LIBRARY_VERSION)$(soext) ]; then \
-	      $(INSTALL) $(RTSDIR)/$${libpfx}$${file}$(hyphen)$(LIBRARY_VERSION)$(soext) \
-			 $(DESTDIR)$${librtlobjdir}; \
+	   if [ -f $(RTSDIR)/lib$${file}$(hyphen)$(LIBRARY_VERSION)$(soext) ]; then \
+	      $(INSTALL) $(RTSDIR)/lib$${file}$(hyphen)$(LIBRARY_VERSION)$(soext) \
+			 $(DESTDIR)$(ADA_RTL_OBJ_DIR); \
 	   fi; \
 	   if [ -f $(RTSDIR)/lib$${file}$(soext) ]; then \
 	      $(LN_S) lib$${file}$(hyphen)$(LIBRARY_VERSION)$(soext) \
@@ -2504,10 +2510,6 @@ install-gnatlib: ../stamp-gnatlib-$(RTSDIR)
 	   if [ -d $(RTSDIR)/lib$${file}$(hyphen)$(LIBRARY_VERSION)$(soext).dSYM ]; then \
 	      $(CP) -r $(RTSDIR)/lib$${file}$(hyphen)$(LIBRARY_VERSION)$(soext).dSYM \
 	        $(DESTDIR)$(ADA_RTL_OBJ_DIR); \
-	   fi; \
-	   if [ -f $(RTSDIR)/lib$${file}$(hyphen)$(LIBRARY_VERSION)$(soext)$(arext) ]; then \
-	      $(INSTALL_DATA) $(RTSDIR)/lib$${file}$(hyphen)$(LIBRARY_VERSION)$(soext)$(arext) \
-			 $(DESTDIR)$(ADA_RTL_OBJ_DIR); \
 	   fi; \
 	done
 # This copy must be done preserving the date on the original file.
@@ -2714,18 +2716,16 @@ gnatlib-shared-win32:
 	cd $(RTSDIR); `echo "$(GCC_FOR_TARGET)" \
                 | sed -e 's,\./xgcc,../../xgcc,' -e 's,-B\./,-B../../,'` -shared -shared-libgcc \
 		$(PICFLAG_FOR_TARGET) \
-		-o $(WIN_SO_PREFIX)gnat$(hyphen)$(LIBRARY_VERSION)$(soext) \
-		-Wl,-out-implib,libgnat$(hyphen)$(LIBRARY_VERSION)$(soext)$(arext) \
+		-o libgnat$(hyphen)$(LIBRARY_VERSION)$(soext) \
 		$(GNATRTL_NONTASKING_OBJS) $(LIBGNAT_OBJS) \
-		$(SO_OPTS)$(WIN_SO_PREFIX)gnat$(hyphen)$(LIBRARY_VERSION)$(soext) $(MISCLIB)
+		$(SO_OPTS)libgnat$(hyphen)$(LIBRARY_VERSION)$(soext) $(MISCLIB)
 	cd $(RTSDIR); `echo "$(GCC_FOR_TARGET)" \
                 | sed -e 's,\./xgcc,../../xgcc,' -e 's,-B\./,-B../../,'` -shared -shared-libgcc \
 		$(PICFLAG_FOR_TARGET) \
-		-o $(WIN_SO_PREFIX)gnarl$(hyphen)$(LIBRARY_VERSION)$(soext) \
-		-Wl,-out-implib,libgnarl$(hyphen)$(LIBRARY_VERSION)$(soext)$(arext) \
+		-o libgnarl$(hyphen)$(LIBRARY_VERSION)$(soext) \
 		$(GNATRTL_TASKING_OBJS) \
-		$(SO_OPTS)$(WIN_SO_PREFIX)gnarl$(hyphen)$(LIBRARY_VERSION)$(soext) \
-		$(THREADSLIB) -L. -lgnat$(hyphen)$(LIBRARY_VERSION)
+		$(SO_OPTS)libgnarl$(hyphen)$(LIBRARY_VERSION)$(soext) \
+		$(THREADSLIB) -Wl,libgnat$(hyphen)$(LIBRARY_VERSION)$(soext)
 
 gnatlib-shared-darwin:
 	$(MAKE) $(FLAGS_TO_PASS) \

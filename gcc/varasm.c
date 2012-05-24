@@ -1,7 +1,7 @@
 /* Output variables, constants and external declarations, for GNU compiler.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997,
    1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
-   2010, 2011  Free Software Foundation, Inc.
+   2010, 2011, 2012  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -314,11 +314,16 @@ get_section (const char *name, unsigned int flags, tree decl)
 	  if (decl == 0)
 	    decl = sect->named.decl;
 	  gcc_assert (decl);
-	  error ("%+D causes a section type conflict with %D", 
-			decl, sect->named.decl);
-	  if (decl != sect->named.decl)
-            inform (DECL_SOURCE_LOCATION (sect->named.decl), 
-		    "%qD was declared here", sect->named.decl);
+	  if (sect->named.decl == NULL)
+	    error ("%+D causes a section type conflict", decl);
+	  else
+	    {
+	      error ("%+D causes a section type conflict with %D",
+		     decl, sect->named.decl);
+	      if (decl != sect->named.decl)
+		inform (DECL_SOURCE_LOCATION (sect->named.decl),
+			"%qD was declared here", sect->named.decl);
+	    }
 	  /* Make sure we don't error about one section multiple times.  */
 	  sect->common.flags |= SECTION_OVERRIDE;
 	}
@@ -1987,7 +1992,7 @@ assemble_variable (tree decl, int top_level ATTRIBUTE_UNUSED,
     return;
 
   if (! dont_output_data
-      && ! host_integerp (DECL_SIZE_UNIT (decl), 1))
+      && ! valid_constant_size_p (DECL_SIZE_UNIT (decl)))
     {
       error ("size of variable %q+D is too large", decl);
       return;
@@ -2166,11 +2171,22 @@ static GTY(()) tree weak_decls;
 void
 assemble_external (tree decl ATTRIBUTE_UNUSED)
 {
-  /* Because most platforms do not define ASM_OUTPUT_EXTERNAL, the
-     main body of this code is only rarely exercised.  To provide some
-     testing, on all platforms, we make sure that the ASM_OUT_FILE is
-     open.  If it's not, we should not be calling this function.  */
+  /*  Make sure that the ASM_OUT_FILE is open.
+      If it's not, we should not be calling this function.  */
   gcc_assert (asm_out_file);
+
+  /* In a perfect world, the following condition would be true.
+     Sadly, the Java and Go front ends emit assembly *from the front end*,
+     bypassing the call graph.  See PR52739.  Fix before GCC 4.8.  */
+#if 0
+  /* This function should only be called if we are expanding, or have
+     expanded, to RTL.
+     Ideally, only final.c would be calling this function, but it is
+     not clear whether that would break things somehow.  See PR 17982
+     for further discussion.  */
+  gcc_assert (cgraph_state == CGRAPH_STATE_EXPANSION
+	      || cgraph_state == CGRAPH_STATE_FINISHED);
+#endif
 
   if (!DECL_P (decl) || !DECL_EXTERNAL (decl) || !TREE_PUBLIC (decl))
     return;
@@ -2238,15 +2254,14 @@ mark_decl_referenced (tree decl)
       struct cgraph_node *node = cgraph_get_create_node (decl);
       if (!DECL_EXTERNAL (decl)
 	  && !node->local.finalized)
-	cgraph_mark_needed_node (node);
+	cgraph_mark_force_output_node (node);
     }
   else if (TREE_CODE (decl) == VAR_DECL)
     {
       struct varpool_node *node = varpool_node (decl);
-      varpool_mark_needed_node (node);
       /* C++ frontend use mark_decl_references to force COMDAT variables
          to be output that might appear dead otherwise.  */
-      node->force_output = true;
+      node->symbol.force_output = true;
     }
   /* else do nothing - we can get various sorts of CST nodes here,
      which do not need to be marked.  */
@@ -3919,6 +3934,13 @@ compute_reloc_for_constant (tree exp)
 	   tem = TREE_OPERAND (tem, 0))
 	;
 
+      if (TREE_CODE (tem) == MEM_REF
+	  && TREE_CODE (TREE_OPERAND (tem, 0)) == ADDR_EXPR)
+	{
+	  reloc = compute_reloc_for_constant (TREE_OPERAND (tem, 0));
+	  break;
+	}
+
       if (TREE_PUBLIC (tem))
 	reloc |= 2;
       else
@@ -3987,6 +4009,9 @@ output_addressed_constants (tree exp)
 
       if (CONSTANT_CLASS_P (tem) || TREE_CODE (tem) == CONSTRUCTOR)
 	output_constant_def (tem, 0);
+
+      if (TREE_CODE (tem) == MEM_REF)
+	output_addressed_constants (TREE_OPERAND (tem, 0));
       break;
 
     case PLUS_EXPR:
@@ -4409,6 +4434,7 @@ initializer_constant_valid_for_bitfield_p (tree value)
       }
 
     case INTEGER_CST:
+    case REAL_CST:
       return true;
 
     case VIEW_CONVERT_EXPR:
@@ -4747,9 +4773,13 @@ output_constructor_regular_field (oc_local_state *local)
 
   if (local->index != NULL_TREE)
     {
+      /* Perform the index calculation in modulo arithmetic but
+	 sign-extend the result because Ada has negative DECL_FIELD_OFFSETs
+	 but we are using an unsigned sizetype.  */
+      unsigned prec = TYPE_PRECISION (sizetype);
       double_int idx = double_int_sub (tree_to_double_int (local->index),
 				       tree_to_double_int (local->min_index));
-      gcc_assert (double_int_fits_in_shwi_p (idx));
+      idx = double_int_sext (idx, prec);
       fieldpos = (tree_low_cst (TYPE_SIZE_UNIT (TREE_TYPE (local->val)), 1)
 		  * idx.low);
     }
@@ -5064,10 +5094,7 @@ output_constructor (tree exp, unsigned HOST_WIDE_INT size,
 
       /* The element in a union constructor specifies the proper field
 	 or index.  */
-      if ((TREE_CODE (local.type) == RECORD_TYPE
-	   || TREE_CODE (local.type) == UNION_TYPE
-	   || TREE_CODE (local.type) == QUAL_UNION_TYPE)
-	  && ce->index != NULL_TREE)
+      if (RECORD_OR_UNION_TYPE_P (local.type) && ce->index != NULL_TREE)
 	local.field = ce->index;
 
       else if (TREE_CODE (local.type) == ARRAY_TYPE)
@@ -5099,9 +5126,18 @@ output_constructor (tree exp, unsigned HOST_WIDE_INT size,
 		   || !CONSTRUCTOR_BITFIELD_P (local.field)))
 	output_constructor_regular_field (&local);
 
-      /* For a true bitfield or part of an outer one.  */
+      /* For a true bitfield or part of an outer one.  Only INTEGER_CSTs are
+	 supported for scalar fields, so we may need to convert first.  */
       else
-	output_constructor_bitfield (&local, outer);
+        {
+	  if (TREE_CODE (local.val) == REAL_CST)
+	    local.val
+	      = fold_unary (VIEW_CONVERT_EXPR,
+			    build_nonstandard_integer_type
+			    (TYPE_PRECISION (TREE_TYPE (local.val)), 0),
+			    local.val);
+	  output_constructor_bitfield (&local, outer);
+	}
     }
 
   /* If we are not at toplevel, save the pending data for our caller.
@@ -5253,12 +5289,19 @@ weak_finish_1 (tree decl)
 #endif
 }
 
+/* Fiven an assembly name, find the decl it is associated with.  */
+static tree
+find_decl (tree target)
+{
+  symtab_node node = symtab_node_for_asm (target);
+  if (node)
+    return node->symbol.decl;
+  return NULL_TREE;
+}
+
 /* This TREE_LIST contains weakref targets.  */
 
 static GTY(()) tree weakref_targets;
-
-/* Forward declaration.  */
-static tree find_decl_and_mark_needed (tree decl, tree target);
 
 /* Emit any pending weak declarations.  */
 
@@ -5285,7 +5328,7 @@ weak_finish (void)
 # if defined ASM_WEAKEN_LABEL && ! defined ASM_WEAKEN_DECL
 	  ASM_WEAKEN_LABEL (asm_out_file, IDENTIFIER_POINTER (target));
 # else
-	  tree decl = find_decl_and_mark_needed (alias_decl, target);
+	  tree decl = find_decl (target);
 
 	  if (! decl)
 	    {
@@ -5388,48 +5431,11 @@ globalize_decl (tree decl)
 
 VEC(alias_pair,gc) *alias_pairs;
 
-/* Given an assembly name, find the decl it is associated with.  At the
-   same time, mark it needed for cgraph.  */
-
-static tree
-find_decl_and_mark_needed (tree decl, tree target)
-{
-  struct cgraph_node *fnode = NULL;
-  struct varpool_node *vnode = NULL;
-
-  if (TREE_CODE (decl) == FUNCTION_DECL)
-    {
-      fnode = cgraph_node_for_asm (target);
-      if (fnode == NULL)
-	vnode = varpool_node_for_asm (target);
-    }
-  else
-    {
-      vnode = varpool_node_for_asm (target);
-      if (vnode == NULL)
-	fnode = cgraph_node_for_asm (target);
-    }
-
-  if (fnode)
-    {
-      cgraph_mark_needed_node (fnode);
-      return fnode->decl;
-    }
-  else if (vnode)
-    {
-      varpool_mark_needed_node (vnode);
-      vnode->force_output = 1;
-      return vnode->decl;
-    }
-  else
-    return NULL_TREE;
-}
-
 /* Output the assembler code for a define (equate) using ASM_OUTPUT_DEF
    or ASM_OUTPUT_DEF_FROM_DECLS.  The function defines the symbol whose
    tree node is DECL to have the value of the tree node TARGET.  */
 
-static void
+void
 do_assemble_alias (tree decl, tree target)
 {
   /* Emulated TLS had better not get this var.  */
@@ -5529,255 +5535,6 @@ do_assemble_alias (tree decl, tree target)
 #endif
 }
 
-
-/* Allocate and construct a symbol alias set.  */
-
-static symbol_alias_set_t *
-symbol_alias_set_create (void)
-{
-  return pointer_set_create ();
-}
-
-/* Destruct and free a symbol alias set.  */
-
-void
-symbol_alias_set_destroy (symbol_alias_set_t *aset)
-{
-  pointer_set_destroy (aset);
-}
-
-/* Test if a symbol alias set contains a given name.  */
-
-int
-symbol_alias_set_contains (const symbol_alias_set_t *aset, tree t)
-{
-  /* We accept either a DECL or an IDENTIFIER directly.  */
-  if (TREE_CODE (t) != IDENTIFIER_NODE)
-    t = DECL_ASSEMBLER_NAME (t);
-  t = targetm.asm_out.mangle_assembler_name (IDENTIFIER_POINTER (t));
-  return pointer_set_contains (aset, t);
-}
-
-/* Enter a new name into a symbol alias set.  */
-
-static int
-symbol_alias_set_insert (symbol_alias_set_t *aset, tree t)
-{
-  /* We accept either a DECL or an IDENTIFIER directly.  */
-  if (TREE_CODE (t) != IDENTIFIER_NODE)
-    t = DECL_ASSEMBLER_NAME (t);
-  t = targetm.asm_out.mangle_assembler_name (IDENTIFIER_POINTER (t));
-  return pointer_set_insert (aset, t);
-}
-
-/* IN_SET_P is a predicate function assuming to be taken
-   alias_pair->decl, alias_pair->target and DATA arguments.
-
-   Compute set of aliases by including everything where TRIVIALLY_VISIBLE
-   predeicate is true and propagate across aliases such that when
-   alias DECL is included, its TARGET is included too.  */
-
-static symbol_alias_set_t *
-propagate_aliases_forward (bool (*in_set_p)
-			     (tree decl, tree target, void *data),
-		           void *data)
-{
-  symbol_alias_set_t *set;
-  unsigned i;
-  alias_pair *p;
-  bool changed;
-
-  set = symbol_alias_set_create ();
-  for (i = 0; VEC_iterate (alias_pair, alias_pairs, i, p); ++i)
-    if (in_set_p (p->decl, p->target, data))
-      symbol_alias_set_insert (set, p->decl);
-  do
-    {
-      changed = false;
-      for (i = 0; VEC_iterate (alias_pair, alias_pairs, i, p); ++i)
-	if (symbol_alias_set_contains (set, p->decl)
-	    && !symbol_alias_set_insert (set, p->target))
-	  changed = true;
-    }
-  while (changed);
-
-  return set;
-}
-
-/* Like propagate_aliases_forward but do backward propagation.  */
-
-symbol_alias_set_t *
-propagate_aliases_backward (bool (*in_set_p)
-			     (tree decl, tree target, void *data),
-		           void *data)
-{
-  symbol_alias_set_t *set;
-  unsigned i;
-  alias_pair *p;
-  bool changed;
-
-  /* We have to compute the set of set nodes including aliases
-     themselves.  */
-  set = symbol_alias_set_create ();
-  for (i = 0; VEC_iterate (alias_pair, alias_pairs, i, p); ++i)
-    if (in_set_p (p->decl, p->target, data))
-      symbol_alias_set_insert (set, p->target);
-  do
-    {
-      changed = false;
-      for (i = 0; VEC_iterate (alias_pair, alias_pairs, i, p); ++i)
-	if (symbol_alias_set_contains (set, p->target)
-	    && !symbol_alias_set_insert (set, p->decl))
-	  changed = true;
-    }
-  while (changed);
-
-  return set;
-}
-/* See if the alias is trivially visible.  This means
-     1) alias is expoerted from the unit or
-     2) alias is used in the code.
-   We assume that unused cgraph/varpool nodes has been
-   removed.
-   Used as callback for propagate_aliases.  */
-
-static bool
-trivially_visible_alias (tree decl, tree target ATTRIBUTE_UNUSED,
-			 void *data ATTRIBUTE_UNUSED)
-{
-  struct cgraph_node *fnode = NULL;
-  struct varpool_node *vnode = NULL;
-
-  if (!TREE_PUBLIC (decl))
-    {
-      if (TREE_CODE (decl) == FUNCTION_DECL)
-	fnode = cgraph_get_node (decl);
-      else
-	vnode = varpool_get_node (decl);
-      return vnode || fnode;
-    }
-  else
-    return true;
-}
-
-/* See if the target of alias is defined in this unit.
-   Used as callback for propagate_aliases.  */
-
-static bool
-trivially_defined_alias (tree decl ATTRIBUTE_UNUSED,
-			 tree target,
-			 void *data ATTRIBUTE_UNUSED)
-{
-  struct cgraph_node *fnode = NULL;
-  struct varpool_node *vnode = NULL;
-
-  fnode = cgraph_node_for_asm (target);
-  vnode = (fnode == NULL) ? varpool_node_for_asm (target) : NULL;
-  return (fnode && fnode->analyzed) || (vnode && vnode->finalized);
-}
-
-/* Remove the alias pairing for functions that are no longer in the call
-   graph.  */
-
-void
-remove_unreachable_alias_pairs (void)
-{
-  symbol_alias_set_t *visible;
-  unsigned i;
-  alias_pair *p;
-
-  if (alias_pairs == NULL)
-    return;
-
-  /* We have to compute the set of visible nodes including aliases
-     themselves.  */
-  visible = propagate_aliases_forward (trivially_visible_alias, NULL);
-
-  for (i = 0; VEC_iterate (alias_pair, alias_pairs, i, p); )
-    {
-      if (!DECL_EXTERNAL (p->decl)
-	  && !symbol_alias_set_contains (visible, p->decl))
-	{
-	  VEC_unordered_remove (alias_pair, alias_pairs, i);
-	  continue;
-	}
-
-      i++;
-    }
-
-  symbol_alias_set_destroy (visible);
-}
-
-
-/* First pass of completing pending aliases.  Make sure that cgraph knows
-   which symbols will be required.  */
-
-void
-finish_aliases_1 (void)
-{
-  symbol_alias_set_t *defined;
-  unsigned i;
-  alias_pair *p;
-
-  if (alias_pairs == NULL)
-    return;
-
-  /* We have to compute the set of defined nodes including aliases
-     themselves.  */
-  defined = propagate_aliases_backward (trivially_defined_alias, NULL);
-
-  FOR_EACH_VEC_ELT (alias_pair, alias_pairs, i, p)
-    {
-      tree target_decl;
-
-      target_decl = find_decl_and_mark_needed (p->decl, p->target);
-      if (target_decl == NULL)
-	{
-	  if (symbol_alias_set_contains (defined, p->target))
-	    continue;
-
-	  if (! (p->emitted_diags & ALIAS_DIAG_TO_UNDEF)
-	      && ! lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl)))
-	    {
-	      error ("%q+D aliased to undefined symbol %qE",
-		     p->decl, p->target);
-	      p->emitted_diags |= ALIAS_DIAG_TO_UNDEF;
-	    }
-	}
-      else if (! (p->emitted_diags & ALIAS_DIAG_TO_EXTERN)
-	       && DECL_EXTERNAL (target_decl)
-	       /* We use local aliases for C++ thunks to force the tailcall
-		  to bind locally.  This is a hack - to keep it working do
-		  the following (which is not strictly correct).  */
-	       && (! TREE_CODE (target_decl) == FUNCTION_DECL
-		   || ! DECL_VIRTUAL_P (target_decl))
-	       && ! lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl)))
-	{
-	  error ("%q+D aliased to external symbol %qE",
-		 p->decl, p->target);
-	  p->emitted_diags |= ALIAS_DIAG_TO_EXTERN;
-	}
-    }
-
-  symbol_alias_set_destroy (defined);
-}
-
-/* Second pass of completing pending aliases.  Emit the actual assembly.
-   This happens at the end of compilation and thus it is assured that the
-   target symbol has been emitted.  */
-
-void
-finish_aliases_2 (void)
-{
-  unsigned i;
-  alias_pair *p;
-
-  FOR_EACH_VEC_ELT (alias_pair, alias_pairs, i, p)
-    do_assemble_alias (p->decl, p->target);
-
-  VEC_truncate (alias_pair, alias_pairs, 0);
-}
-
 /* Emit an assembler directive to make the symbol for DECL an alias to
    the symbol for TARGET.  */
 
@@ -5836,17 +5593,17 @@ assemble_alias (tree decl, tree target)
   /* If the target has already been emitted, we don't have to queue the
      alias.  This saves a tad of memory.  */
   if (cgraph_global_info_ready)
-    target_decl = find_decl_and_mark_needed (decl, target);
+    target_decl = find_decl (target);
   else
     target_decl= NULL;
-  if (target_decl && TREE_ASM_WRITTEN (target_decl))
+  if ((target_decl && TREE_ASM_WRITTEN (target_decl))
+      || cgraph_state >= CGRAPH_STATE_EXPANSION)
     do_assemble_alias (decl, target);
   else
     {
       alias_pair *p = VEC_safe_push (alias_pair, gc, alias_pairs, NULL);
       p->decl = decl;
       p->target = target;
-      p->emitted_diags = ALIAS_DIAG_NONE;
     }
 }
 
@@ -5942,12 +5699,12 @@ dump_tm_clone_pairs (VEC(tm_alias_pair,heap) *tm_alias_pairs)
 	 TM_GETTMCLONE.  If neither of these are true, we didn't generate
 	 a clone, and we didn't call it indirectly... no sense keeping it
 	 in the clone table.  */
-      if (!dst_n || !dst_n->needed)
+      if (!dst_n || !dst_n->analyzed)
 	continue;
 
       /* This covers the case where we have optimized the original
 	 function away, and only access the transactional clone.  */
-      if (!src_n || !src_n->needed)
+      if (!src_n || !src_n->analyzed)
 	continue;
 
       if (!switched)
@@ -6882,20 +6639,20 @@ default_binds_local_p_1 (const_tree exp, int shlib)
       && (TREE_STATIC (exp) || DECL_EXTERNAL (exp)))
     {
       struct varpool_node *vnode = varpool_get_node (exp);
-      if (vnode && resolution_local_p (vnode->resolution))
+      if (vnode && resolution_local_p (vnode->symbol.resolution))
 	resolved_locally = true;
       if (vnode
-	  && resolution_to_local_definition_p (vnode->resolution))
+	  && resolution_to_local_definition_p (vnode->symbol.resolution))
 	resolved_to_local_def = true;
     }
   else if (TREE_CODE (exp) == FUNCTION_DECL && TREE_PUBLIC (exp))
     {
       struct cgraph_node *node = cgraph_get_node (exp);
       if (node
-	  && resolution_local_p (node->resolution))
+	  && resolution_local_p (node->symbol.resolution))
 	resolved_locally = true;
       if (node
-	  && resolution_to_local_definition_p (node->resolution))
+	  && resolution_to_local_definition_p (node->symbol.resolution))
 	resolved_to_local_def = true;
     }
 
@@ -6976,15 +6733,15 @@ decl_binds_to_current_def_p (tree decl)
     {
       struct varpool_node *vnode = varpool_get_node (decl);
       if (vnode
-	  && vnode->resolution != LDPR_UNKNOWN)
-	return resolution_to_local_definition_p (vnode->resolution);
+	  && vnode->symbol.resolution != LDPR_UNKNOWN)
+	return resolution_to_local_definition_p (vnode->symbol.resolution);
     }
   else if (TREE_CODE (decl) == FUNCTION_DECL)
     {
       struct cgraph_node *node = cgraph_get_node (decl);
       if (node
-	  && node->resolution != LDPR_UNKNOWN)
-	return resolution_to_local_definition_p (node->resolution);
+	  && node->symbol.resolution != LDPR_UNKNOWN)
+	return resolution_to_local_definition_p (node->symbol.resolution);
     }
   /* Otherwise we have to assume the worst for DECL_WEAK (hidden weaks
      binds locally but still can be overwritten).

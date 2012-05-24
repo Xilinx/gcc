@@ -462,7 +462,7 @@ init_reload (void)
 			  gen_rtx_REG (Pmode, i));
 
       /* This way, we make sure that reg+reg is an offsettable address.  */
-      tem = plus_constant (tem, 4);
+      tem = plus_constant (Pmode, tem, 4);
 
       if (memory_address_p (QImode, tem))
 	{
@@ -1746,11 +1746,12 @@ count_pseudo (int reg)
   int r = reg_renumber[reg];
   int nregs;
 
+  /* Ignore spilled pseudo-registers which can be here only if IRA is used.  */
+  if (ira_conflicts_p && r < 0)
+    return;
+
   if (REGNO_REG_SET_P (&pseudos_counted, reg)
-      || REGNO_REG_SET_P (&spilled_pseudos, reg)
-      /* Ignore spilled pseudo-registers which can be here only if IRA
-	 is used.  */
-      || (ira_conflicts_p && r < 0))
+      || REGNO_REG_SET_P (&spilled_pseudos, reg))
     return;
 
   SET_REGNO_REG_SET (&pseudos_counted, reg);
@@ -1827,12 +1828,17 @@ count_spilled_pseudo (int spilled, int spilled_nregs, int reg)
 {
   int freq = REG_FREQ (reg);
   int r = reg_renumber[reg];
-  int nregs = hard_regno_nregs[r][PSEUDO_REGNO_MODE (reg)];
+  int nregs;
 
-  /* Ignore spilled pseudo-registers which can be here only if IRA is
-     used.  */
-  if ((ira_conflicts_p && r < 0)
-      || REGNO_REG_SET_P (&spilled_pseudos, reg)
+  /* Ignore spilled pseudo-registers which can be here only if IRA is used.  */
+  if (ira_conflicts_p && r < 0)
+    return;
+
+  gcc_assert (r >= 0);
+
+  nregs = hard_regno_nregs[r][PSEUDO_REGNO_MODE (reg)];
+
+  if (REGNO_REG_SET_P (&spilled_pseudos, reg)
       || spilled + spilled_nregs <= r || r + nregs <= spilled)
     return;
 
@@ -2584,7 +2590,7 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
 	  for (ep = reg_eliminate; ep < &reg_eliminate[NUM_ELIMINABLE_REGS];
 	       ep++)
 	    if (ep->from_rtx == x && ep->can_eliminate)
-	      return plus_constant (ep->to_rtx, ep->previous_offset);
+	      return plus_constant (Pmode, ep->to_rtx, ep->previous_offset);
 
 	}
       else if (reg_renumber && reg_renumber[regno] < 0
@@ -2640,7 +2646,7 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
 		  return ep->to_rtx;
 		else
 		  return gen_rtx_PLUS (Pmode, ep->to_rtx,
-				       plus_constant (XEXP (x, 1),
+				       plus_constant (Pmode, XEXP (x, 1),
 						      ep->previous_offset));
 	      }
 
@@ -2717,7 +2723,8 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
 		ep->ref_outside_mem = 1;
 
 	      return
-		plus_constant (gen_rtx_MULT (Pmode, ep->to_rtx, XEXP (x, 1)),
+		plus_constant (Pmode,
+			       gen_rtx_MULT (Pmode, ep->to_rtx, XEXP (x, 1)),
 			       ep->previous_offset * INTVAL (XEXP (x, 1)));
 	    }
 
@@ -3291,8 +3298,8 @@ eliminate_regs_in_insn (rtx insn, int replace)
 
 		if (base == ep->to_rtx)
 		  {
-		    rtx src
-		      = plus_constant (ep->to_rtx, offset - ep->offset);
+		    rtx src = plus_constant (Pmode, ep->to_rtx,
+					     offset - ep->offset);
 
 		    new_body = old_body;
 		    if (! replace)
@@ -3406,7 +3413,8 @@ eliminate_regs_in_insn (rtx insn, int replace)
 	       had a PLUS before.  */
 	    if (offset == 0 || plus_src)
 	      {
-		rtx new_src = plus_constant (to_rtx, offset);
+		rtx new_src = plus_constant (GET_MODE (to_rtx),
+					     to_rtx, offset);
 
 		new_body = old_body;
 		if (! replace)
@@ -5423,6 +5431,13 @@ reload_reg_reaches_end_p (unsigned int regno, int reloadnum)
 	if (TEST_HARD_REG_BIT (reload_reg_used_in_input[i], regno))
 	  return 0;
 
+      /* Reload register of reload with type RELOAD_FOR_INPADDR_ADDRESS
+	 could be killed if the register is also used by reload with type
+	 RELOAD_FOR_INPUT_ADDRESS, so check it.  */
+      if (type == RELOAD_FOR_INPADDR_ADDRESS
+	  && TEST_HARD_REG_BIT (reload_reg_used_in_input_addr[opnum], regno))
+	return 0;
+
       for (i = opnum + 1; i < reload_n_operands; i++)
 	if (TEST_HARD_REG_BIT (reload_reg_used_in_input_addr[i], regno)
 	    || TEST_HARD_REG_BIT (reload_reg_used_in_inpaddr_addr[i], regno))
@@ -5496,6 +5511,13 @@ reload_reg_reaches_end_p (unsigned int regno, int reloadnum)
 	if (TEST_HARD_REG_BIT (reload_reg_used_in_output_addr[i], regno)
 	    || TEST_HARD_REG_BIT (reload_reg_used_in_outaddr_addr[i], regno))
 	  return 0;
+
+      /* Reload register of reload with type RELOAD_FOR_OUTADDR_ADDRESS
+	 could be killed if the register is also used by reload with type
+	 RELOAD_FOR_OUTPUT_ADDRESS, so check it.  */
+      if (type == RELOAD_FOR_OUTADDR_ADDRESS
+	  && TEST_HARD_REG_BIT (reload_reg_used_in_outaddr_addr[opnum], regno))
+	return 0;
 
       return 1;
 

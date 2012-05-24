@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -226,6 +226,7 @@ package body Prj.Attr is
    "Lainclude_switches#" &
    "Sainclude_path#" &
    "Sainclude_path_file#" &
+   "Laobject_path_switches#" &
 
    --  package Builder
 
@@ -279,6 +280,13 @@ package body Prj.Attr is
    "SVmax_command_line_length#" &
    "SVresponse_file_format#" &
    "LVresponse_file_switches#" &
+
+   --  package Clean
+
+   "Pclean#" &
+   "LVswitches#" &
+   "Lasource_artifact_extensions#" &
+   "Laobject_artifact_extensions#" &
 
    --  package Cross_Reference
 

@@ -1845,7 +1845,7 @@ write_type (tree type)
       if (TREE_CODE (type) == RECORD_TYPE && TYPE_TRANSPARENT_AGGR (type))
 	type = TREE_TYPE (first_field (type));
 
-      if (TYPE_PTRMEM_P (type))
+      if (TYPE_PTRDATAMEM_P (type))
 	write_pointer_to_member_type (type);
       else
         {
@@ -2023,6 +2023,8 @@ write_type (tree type)
 
 	    case NULLPTR_TYPE:
 	      write_string ("Dn");
+	      if (abi_version_at_least (7))
+		++is_builtin_type;
 	      break;
 
 	    case TYPEOF_TYPE:

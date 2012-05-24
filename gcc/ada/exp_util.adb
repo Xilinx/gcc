@@ -150,16 +150,16 @@ package body Exp_Util is
 
    function Requires_Cleanup_Actions
      (L                 : List_Id;
-      For_Package       : Boolean;
+      Lib_Level         : Boolean;
       Nested_Constructs : Boolean) return Boolean;
    --  Given a list L, determine whether it contains one of the following:
    --
    --    1) controlled objects
    --    2) library-level tagged types
    --
-   --  Flag For_Package should be set when the list comes from a package spec
-   --  or body. Flag Nested_Constructs should be set when any nested packages
-   --  declared in L must be processed.
+   --  Lib_Level is True when the list comes from a construct at the library
+   --  level, and False otherwise. Nested_Constructs is True when any nested
+   --  packages declared in L must be processed, and False otherwise.
 
    -------------------------------------
    -- Activate_Atomic_Synchronization --
@@ -3940,27 +3940,29 @@ package body Exp_Util is
       return True;
    end Is_All_Null_Statements;
 
-   ---------------------------------------------
-   -- Is_Displacement_Of_Ctrl_Function_Result --
-   ---------------------------------------------
+   --------------------------------------------------
+   -- Is_Displacement_Of_Object_Or_Function_Result --
+   --------------------------------------------------
 
-   function Is_Displacement_Of_Ctrl_Function_Result
+   function Is_Displacement_Of_Object_Or_Function_Result
      (Obj_Id : Entity_Id) return Boolean
    is
-      function Initialized_By_Ctrl_Function (N : Node_Id) return Boolean;
-      --  Determine whether object declaration N is initialized by a controlled
-      --  function call.
+      function Is_Controlled_Function_Call (N : Node_Id) return Boolean;
+      --  Determine if particular node denotes a controlled function call
 
       function Is_Displace_Call (N : Node_Id) return Boolean;
       --  Determine whether a particular node is a call to Ada.Tags.Displace.
       --  The call might be nested within other actions such as conversions.
 
-      ----------------------------------
-      -- Initialized_By_Ctrl_Function --
-      ----------------------------------
+      function Is_Source_Object (N : Node_Id) return Boolean;
+      --  Determine whether a particular node denotes a source object
 
-      function Initialized_By_Ctrl_Function (N : Node_Id) return Boolean is
-         Expr : Node_Id := Original_Node (Expression (N));
+      ---------------------------------
+      -- Is_Controlled_Function_Call --
+      ---------------------------------
+
+      function Is_Controlled_Function_Call (N : Node_Id) return Boolean is
+         Expr : Node_Id := Original_Node (N);
 
       begin
          if Nkind (Expr) = N_Function_Call then
@@ -3977,7 +3979,7 @@ package body Exp_Util is
            Nkind_In (Expr, N_Expanded_Name, N_Identifier)
              and then Ekind (Entity (Expr)) = E_Function
              and then Needs_Finalization (Etype (Entity (Expr)));
-      end Initialized_By_Ctrl_Function;
+      end Is_Controlled_Function_Call;
 
       ----------------------
       -- Is_Displace_Call --
@@ -4004,9 +4006,23 @@ package body Exp_Util is
          end loop;
 
          return
-           Nkind (Call) = N_Function_Call
+           Present (Call)
+             and then Nkind (Call) = N_Function_Call
              and then Is_RTE (Entity (Name (Call)), RE_Displace);
       end Is_Displace_Call;
+
+      ----------------------
+      -- Is_Source_Object --
+      ----------------------
+
+      function Is_Source_Object (N : Node_Id) return Boolean is
+      begin
+         return
+           Present (N)
+             and then Nkind (N) in N_Has_Entity
+             and then Is_Object (Entity (N))
+             and then Comes_From_Source (N);
+      end Is_Source_Object;
 
       --  Local variables
 
@@ -4014,29 +4030,42 @@ package body Exp_Util is
       Obj_Typ   : constant Entity_Id := Base_Type (Etype (Obj_Id));
       Orig_Decl : constant Node_Id   := Original_Node (Decl);
 
-   --  Start of processing for Is_Displacement_Of_Ctrl_Function_Result
+   --  Start of processing for Is_Displacement_Of_Object_Or_Function_Result
 
    begin
-      --  Detect the following case:
+      --  Case 1:
 
-      --     Obj : Class_Wide_Type := Function_Call (...);
+      --     Obj : CW_Type := Function_Call (...);
 
-      --  which is rewritten into:
+      --  rewritten into:
 
-      --     Temp : ... := Function_Call (...)'reference;
-      --     Obj  : Class_Wide_Type renames (... Ada.Tags.Displace (Temp));
+      --     Tmp : ... := Function_Call (...)'reference;
+      --     Obj : CW_Type renames (... Ada.Tags.Displace (Tmp));
 
-      --  when the return type of the function and the class-wide type require
+      --  where the return type of the function and the class-wide type require
+      --  dispatch table pointer displacement.
+
+      --  Case 2:
+
+      --     Obj : CW_Type := Src_Obj;
+
+      --  rewritten into:
+
+      --     Obj : CW_Type renames (... Ada.Tags.Displace (Src_Obj));
+
+      --  where the type of the source object and the class-wide type require
       --  dispatch table pointer displacement.
 
       return
         Nkind (Decl) = N_Object_Renaming_Declaration
           and then Nkind (Orig_Decl) = N_Object_Declaration
           and then Comes_From_Source (Orig_Decl)
-          and then Initialized_By_Ctrl_Function (Orig_Decl)
           and then Is_Class_Wide_Type (Obj_Typ)
-          and then Is_Displace_Call (Renamed_Object (Obj_Id));
-   end Is_Displacement_Of_Ctrl_Function_Result;
+          and then Is_Displace_Call (Renamed_Object (Obj_Id))
+          and then
+            (Is_Controlled_Function_Call (Expression (Orig_Decl))
+              or else Is_Source_Object (Expression (Orig_Decl)));
+   end Is_Displacement_Of_Object_Or_Function_Result;
 
    ------------------------------
    -- Is_Finalizable_Transient --
@@ -4475,74 +4504,6 @@ package body Exp_Util is
         and then Is_Library_Level_Entity (Typ);
    end Is_Library_Level_Tagged_Type;
 
-   ----------------------------------
-   -- Is_Null_Access_BIP_Func_Call --
-   ----------------------------------
-
-   function Is_Null_Access_BIP_Func_Call (Expr : Node_Id) return Boolean is
-      Call : Node_Id := Expr;
-
-   begin
-      --  Build-in-place calls usually appear in 'reference format
-
-      if Nkind (Call) = N_Reference then
-         Call := Prefix (Call);
-      end if;
-
-      if Nkind_In (Call, N_Qualified_Expression,
-                         N_Unchecked_Type_Conversion)
-      then
-         Call := Expression (Call);
-      end if;
-
-      if Is_Build_In_Place_Function_Call (Call) then
-         declare
-            Access_Nam : Name_Id := No_Name;
-            Actual     : Node_Id;
-            Param      : Node_Id;
-            Formal     : Node_Id;
-
-         begin
-            --  Examine all parameter associations of the function call
-
-            Param := First (Parameter_Associations (Call));
-            while Present (Param) loop
-               if Nkind (Param) = N_Parameter_Association
-                 and then Nkind (Selector_Name (Param)) = N_Identifier
-               then
-                  Formal := Selector_Name (Param);
-                  Actual := Explicit_Actual_Parameter (Param);
-
-                  --  Construct the name of formal BIPaccess. It is much easier
-                  --  to extract the name of the function using an arbitrary
-                  --  formal's scope rather than the Name field of Call.
-
-                  if Access_Nam = No_Name
-                    and then Present (Entity (Formal))
-                  then
-                     Access_Nam :=
-                       New_External_Name
-                         (Chars (Scope (Entity (Formal))),
-                          BIP_Formal_Suffix (BIP_Object_Access));
-                  end if;
-
-                  --  A match for BIPaccess => null has been found
-
-                  if Chars (Formal) = Access_Nam
-                    and then Nkind (Actual) = N_Null
-                  then
-                     return True;
-                  end if;
-               end if;
-
-               Next (Param);
-            end loop;
-         end;
-      end if;
-
-      return False;
-   end Is_Null_Access_BIP_Func_Call;
-
    --------------------------
    -- Is_Non_BIP_Func_Call --
    --------------------------
@@ -4948,6 +4909,77 @@ package body Exp_Util is
          return False;
       end if;
    end Is_Renamed_Object;
+
+   --------------------------------------
+   -- Is_Secondary_Stack_BIP_Func_Call --
+   --------------------------------------
+
+   function Is_Secondary_Stack_BIP_Func_Call (Expr : Node_Id) return Boolean is
+      Call : Node_Id := Expr;
+
+   begin
+      --  Build-in-place calls usually appear in 'reference format. Note that
+      --  the accessibility check machinery may add an extra 'reference due to
+      --  side effect removal.
+
+      while Nkind (Call) = N_Reference loop
+         Call := Prefix (Call);
+      end loop;
+
+      if Nkind_In (Call, N_Qualified_Expression,
+                         N_Unchecked_Type_Conversion)
+      then
+         Call := Expression (Call);
+      end if;
+
+      if Is_Build_In_Place_Function_Call (Call) then
+         declare
+            Access_Nam : Name_Id := No_Name;
+            Actual     : Node_Id;
+            Param      : Node_Id;
+            Formal     : Node_Id;
+
+         begin
+            --  Examine all parameter associations of the function call
+
+            Param := First (Parameter_Associations (Call));
+            while Present (Param) loop
+               if Nkind (Param) = N_Parameter_Association
+                 and then Nkind (Selector_Name (Param)) = N_Identifier
+               then
+                  Formal := Selector_Name (Param);
+                  Actual := Explicit_Actual_Parameter (Param);
+
+                  --  Construct the name of formal BIPalloc. It is much easier
+                  --  to extract the name of the function using an arbitrary
+                  --  formal's scope rather than the Name field of Call.
+
+                  if Access_Nam = No_Name
+                    and then Present (Entity (Formal))
+                  then
+                     Access_Nam :=
+                       New_External_Name
+                         (Chars (Scope (Entity (Formal))),
+                          BIP_Formal_Suffix (BIP_Alloc_Form));
+                  end if;
+
+                  --  A match for BIPalloc => 2 has been found
+
+                  if Chars (Formal) = Access_Nam
+                    and then Nkind (Actual) = N_Integer_Literal
+                    and then Intval (Actual) = Uint_2
+                  then
+                     return True;
+                  end if;
+               end if;
+
+               Next (Param);
+            end loop;
+         end;
+      end if;
+
+      return False;
+   end Is_Secondary_Stack_BIP_Func_Call;
 
    -------------------------------------
    -- Is_Tag_To_Class_Wide_Conversion --
@@ -7006,9 +7038,16 @@ package body Exp_Util is
    -- Requires_Cleanup_Actions --
    ------------------------------
 
-   function Requires_Cleanup_Actions (N : Node_Id) return Boolean is
-      For_Pkg : constant Boolean :=
-                  Nkind_In (N, N_Package_Body, N_Package_Specification);
+   function Requires_Cleanup_Actions
+     (N         : Node_Id;
+      Lib_Level : Boolean) return Boolean
+   is
+      At_Lib_Level : constant Boolean :=
+                       Lib_Level
+                         and then Nkind_In (N, N_Package_Body,
+                                               N_Package_Specification);
+      --  N is at the library level if the top-most context is a package and
+      --  the path taken to reach N does not inlcude non-package constructs.
 
    begin
       case Nkind (N) is
@@ -7020,20 +7059,21 @@ package body Exp_Util is
               N_Subprogram_Body       |
               N_Task_Body             =>
             return
-              Requires_Cleanup_Actions (Declarations (N), For_Pkg, True)
+              Requires_Cleanup_Actions (Declarations (N), At_Lib_Level, True)
                 or else
-              (Present (Handled_Statement_Sequence (N))
-                and then
-              Requires_Cleanup_Actions (Statements
-                (Handled_Statement_Sequence (N)), For_Pkg, True));
+                  (Present (Handled_Statement_Sequence (N))
+                    and then
+                      Requires_Cleanup_Actions
+                        (Statements (Handled_Statement_Sequence (N)),
+                         At_Lib_Level, True));
 
          when N_Package_Specification =>
             return
               Requires_Cleanup_Actions
-                (Visible_Declarations (N), For_Pkg, True)
+                (Visible_Declarations (N), At_Lib_Level, True)
                   or else
               Requires_Cleanup_Actions
-                (Private_Declarations (N), For_Pkg, True);
+                (Private_Declarations (N), At_Lib_Level, True);
 
          when others                  =>
             return False;
@@ -7046,7 +7086,7 @@ package body Exp_Util is
 
    function Requires_Cleanup_Actions
      (L                 : List_Id;
-      For_Package       : Boolean;
+      Lib_Level         : Boolean;
       Nested_Constructs : Boolean) return Boolean
    is
       Decl    : Node_Id;
@@ -7093,9 +7133,7 @@ package body Exp_Util is
             --  finalization disabled. This applies only to objects at the
             --  library level.
 
-            if For_Package
-              and then Finalize_Storage_Only (Obj_Typ)
-            then
+            if Lib_Level and then Finalize_Storage_Only (Obj_Typ) then
                null;
 
             --  Transient variables are treated separately in order to minimize
@@ -7123,18 +7161,17 @@ package body Exp_Util is
             --    Obj : Access_Typ := Non_BIP_Function_Call'reference;
             --
             --    Obj : Access_Typ :=
-            --            BIP_Function_Call
-            --              (..., BIPaccess => null, ...)'reference;
+            --            BIP_Function_Call (BIPalloc => 2, ...)'reference;
 
             elsif Is_Access_Type (Obj_Typ)
               and then Needs_Finalization
                          (Available_View (Designated_Type (Obj_Typ)))
               and then Present (Expr)
               and then
-                (Is_Null_Access_BIP_Func_Call (Expr)
-                   or else
-                (Is_Non_BIP_Func_Call (Expr)
-                   and then not Is_Related_To_Func_Return (Obj_Id)))
+                (Is_Secondary_Stack_BIP_Func_Call (Expr)
+                  or else
+                    (Is_Non_BIP_Func_Call (Expr)
+                      and then not Is_Related_To_Func_Return (Obj_Id)))
             then
                return True;
 
@@ -7172,9 +7209,7 @@ package body Exp_Util is
             --  finalization disabled. This applies only to objects at the
             --  library level.
 
-            if For_Package
-              and then Finalize_Storage_Only (Obj_Typ)
-            then
+            if Lib_Level and then Finalize_Storage_Only (Obj_Typ) then
                null;
 
             --  Return object of a build-in-place function. This case is
@@ -7187,17 +7222,18 @@ package body Exp_Util is
             then
                return True;
 
-            --  Detect a case where a source object has been initialized by a
-            --  controlled function call which was later rewritten as a class-
-            --  wide conversion of Ada.Tags.Displace.
+            --  Detect a case where a source object has been initialized by
+            --  a controlled function call or another object which was later
+            --  rewritten as a class-wide conversion of Ada.Tags.Displace.
 
-            --     Obj : Class_Wide_Type := Function_Call (...);
+            --     Obj1 : CW_Type := Src_Obj;
+            --     Obj2 : CW_Type := Function_Call (...);
 
-            --     Temp : ... := Function_Call (...)'reference;
-            --     Obj  : Class_Wide_Type renames
-            --              (... Ada.Tags.Displace (Temp));
+            --     Obj1 : CW_Type renames (... Ada.Tags.Displace (Src_Obj));
+            --     Tmp  : ... := Function_Call (...)'reference;
+            --     Obj2 : CW_Type renames (... Ada.Tags.Displace (Tmp));
 
-            elsif Is_Displacement_Of_Ctrl_Function_Result (Obj_Id) then
+            elsif Is_Displacement_Of_Object_Or_Function_Result (Obj_Id) then
                return True;
             end if;
 
@@ -7225,7 +7261,7 @@ package body Exp_Util is
                 (Is_Type (Typ)
                    and then Needs_Finalization (Typ)))
               and then Requires_Cleanup_Actions
-                         (Actions (Decl), For_Package, Nested_Constructs)
+                         (Actions (Decl), Lib_Level, Nested_Constructs)
             then
                return True;
             end if;
@@ -7242,7 +7278,8 @@ package body Exp_Util is
             end if;
 
             if Ekind (Pack_Id) /= E_Generic_Package
-              and then Requires_Cleanup_Actions (Specification (Decl))
+              and then Requires_Cleanup_Actions
+                         (Specification (Decl), Lib_Level)
             then
                return True;
             end if;
@@ -7255,7 +7292,7 @@ package body Exp_Util is
             Pack_Id := Corresponding_Spec (Decl);
 
             if Ekind (Pack_Id) /= E_Generic_Package
-              and then Requires_Cleanup_Actions (Decl)
+              and then Requires_Cleanup_Actions (Decl, Lib_Level)
             then
                return True;
             end if;

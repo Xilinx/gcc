@@ -1812,7 +1812,6 @@ package body Sem_Ch6 is
       Prev_Id      : constant Entity_Id  := Current_Entity_In_Scope (Body_Id);
       Conformant   : Boolean;
       HSS          : Node_Id;
-      P_Ent        : Entity_Id;
       Prot_Typ     : Entity_Id := Empty;
       Spec_Id      : Entity_Id;
       Spec_Decl    : Node_Id   := Empty;
@@ -2507,44 +2506,12 @@ package body Sem_Ch6 is
          end if;
       end if;
 
-      --  Do not inline any subprogram that contains nested subprograms, since
-      --  the backend inlining circuit seems to generate uninitialized
-      --  references in this case. We know this happens in the case of front
-      --  end ZCX support, but it also appears it can happen in other cases as
-      --  well. The backend often rejects attempts to inline in the case of
-      --  nested procedures anyway, so little if anything is lost by this.
-      --  Note that this is test is for the benefit of the back-end. There is
-      --  a separate test for front-end inlining that also rejects nested
-      --  subprograms.
+      --  Previously we scanned the body to look for nested subprograms, and
+      --  rejected an inline directive if nested subprograms were present,
+      --  because the back-end would generate conflicting symbols for the
+      --  nested bodies. This is now unnecessary.
 
-      --  Do not do this test if errors have been detected, because in some
-      --  error cases, this code blows up, and we don't need it anyway if
-      --  there have been errors, since we won't get to the linker anyway.
-
-      if Comes_From_Source (Body_Id)
-        and then Serious_Errors_Detected = 0
-        and then not Debug_Flag_Dot_K
-      then
-         P_Ent := Body_Id;
-         loop
-            P_Ent := Scope (P_Ent);
-            exit when No (P_Ent) or else P_Ent = Standard_Standard;
-
-            if Is_Subprogram (P_Ent) then
-               Set_Is_Inlined (P_Ent, False);
-
-               if Comes_From_Source (P_Ent)
-                 and then Has_Pragma_Inline (P_Ent)
-               then
-                  Cannot_Inline
-                    ("cannot inline& (nested subprogram)?",
-                     N, P_Ent);
-               end if;
-            end if;
-         end loop;
-      end if;
-
-      --  Look ahead to recognize a pragma inline that appears after the body
+      --  Look ahead to recognize a pragma Inline that appears after the body
 
       Check_Inline_Pragma (Spec_Id);
 
@@ -6105,7 +6072,6 @@ package body Sem_Ch6 is
 
    begin
       while Present (Old_Discr) and then Present (New_Discr) loop
-
          New_Discr_Id := Defining_Identifier (New_Discr);
 
          --  The subtype mark of the discriminant on the full type has not
@@ -7383,6 +7349,7 @@ package body Sem_Ch6 is
 
    function Can_Override_Operator (Subp : Entity_Id) return Boolean is
       Typ : Entity_Id;
+
    begin
       if Nkind (Subp) /= N_Defining_Operator_Symbol then
          return False;
@@ -7390,7 +7357,10 @@ package body Sem_Ch6 is
       else
          Typ := Base_Type (Etype (First_Formal (Subp)));
 
+         --  Check explicitly that the operation is a primitive of the type
+
          return Operator_Matches_Spec (Subp, Subp)
+           and then not Is_Generic_Type (Typ)
            and then Scope (Subp) = Scope (Typ)
            and then not Is_Class_Wide_Type (Typ);
       end if;
@@ -8702,7 +8672,9 @@ package body Sem_Ch6 is
                                 Discrete_Subtype_Definition (L2));
                   end;
 
-               else   --  quantified expression with an iterator
+               elsif Present (Iterator_Specification (E1))
+                 and then Present (Iterator_Specification (E2))
+               then
                   declare
                      I1 : constant Node_Id := Iterator_Specification (E1);
                      I2 : constant Node_Id := Iterator_Specification (E2);
@@ -8719,6 +8691,12 @@ package body Sem_Ch6 is
                        and then FCE (Subtype_Indication (I1),
                                       Subtype_Indication (I2));
                   end;
+
+               --  The quantified expressions used different specifications to
+               --  walk their respective ranges.
+
+               else
+                  return False;
                end if;
 
             when N_Range =>
@@ -8955,7 +8933,7 @@ package body Sem_Ch6 is
         or else not Is_Dispatching_Operation (Prim)
         or else Scope (Prim) /= Scope (Tagged_Type)
         or else No (Typ)
-        or else Base_Type (Typ) /= Tagged_Type
+        or else Base_Type (Typ) /= Base_Type (Tagged_Type)
         or else not Primitive_Names_Match (Iface_Prim, Prim)
       then
          return False;
@@ -10805,15 +10783,19 @@ package body Sem_Ch6 is
                        Related_Nod => Related_Nod,
                        Scope_Id    => Scope (Current_Scope));
 
-                  --  If the designated type of the itype is an itype we
-                  --  decorate it with the Has_Delayed_Freeze attribute to
-                  --  avoid problems with the backend.
+                  --  If the designated type of the itype is an itype that is
+                  --  not frozen yet, we set the Has_Delayed_Freeze attribute
+                  --  on the access subtype, to prevent order-of-elaboration
+                  --  issues in the backend.
 
                   --  Example:
                   --     type T is access procedure;
                   --     procedure Op (O : not null T);
 
-                  if Is_Itype (Directly_Designated_Type (Formal_Type)) then
+                  if Is_Itype (Directly_Designated_Type (Formal_Type))
+                    and then
+                      not Is_Frozen (Directly_Designated_Type (Formal_Type))
+                  then
                      Set_Has_Delayed_Freeze (Formal_Type);
                   end if;
                end if;
@@ -11056,6 +11038,9 @@ package body Sem_Ch6 is
       --  contains the declaration of the private type). A True value means
       --  that an invariant check is required (for an IN OUT parameter, or
       --  the returned value of a function.
+
+      function Last_Implicit_Declaration return Node_Id;
+      --  Return the last internally-generated declaration of N
 
       -------------
       -- Grab_CC --
@@ -11306,6 +11291,50 @@ package body Sem_Ch6 is
             return TL = List_Containing (DD);
          end if;
       end Is_Public_Subprogram_For;
+
+      -------------------------------
+      -- Last_Implicit_Declaration --
+      -------------------------------
+
+      function Last_Implicit_Declaration return Node_Id is
+         Loc   : constant Source_Ptr := Sloc (N);
+         Decls : List_Id := Declarations (N);
+         Decl  : Node_Id;
+         Succ  : Node_Id;
+
+      begin
+         if No (Decls) then
+            Decls := New_List (Make_Null_Statement (Loc));
+            Set_Declarations (N, Decls);
+
+         elsif Is_Empty_List (Declarations (N)) then
+            Append_To (Decls, Make_Null_Statement (Loc));
+         end if;
+
+         --  Implicit and source declarations may be interspersed. Search for
+         --  the last implicit declaration which is either succeeded by a
+         --  source construct or is the last node in the declarative list.
+
+         Decl := First (Declarations (N));
+         while Present (Decl) loop
+            Succ := Next (Decl);
+
+            --  The current declaration is the last one, do not return Empty
+
+            if No (Succ) then
+               exit;
+
+            --  The successor is a source construct
+
+            elsif Comes_From_Source (Succ) then
+               exit;
+            end if;
+
+            Next (Decl);
+         end loop;
+
+         return Decl;
+      end Last_Implicit_Declaration;
 
    --  Start of processing for Process_PPCs
 
@@ -11712,7 +11741,7 @@ package body Sem_Ch6 is
             --  The entity for the _Postconditions procedure
 
          begin
-            Prepend_To (Declarations (N),
+            Insert_After (Last_Implicit_Declaration,
               Make_Subprogram_Body (Loc,
                 Specification =>
                   Make_Procedure_Specification (Loc,

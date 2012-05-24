@@ -513,7 +513,7 @@ get_value_from_alignment (tree expr)
 
   gcc_assert (TREE_CODE (expr) == ADDR_EXPR);
 
-  align = get_object_alignment_1 (TREE_OPERAND (expr, 0), &bitpos);
+  get_object_alignment_1 (TREE_OPERAND (expr, 0), &align, &bitpos);
   val.mask
     = double_int_and_not (POINTER_TYPE_P (type) || TYPE_UNSIGNED (type)
 			  ? double_int_mask (TYPE_PRECISION (type))
@@ -807,7 +807,6 @@ ccp_finalize (void)
     {
       tree name = ssa_name (i);
       prop_value_t *val;
-      struct ptr_info_def *pi;
       unsigned int tem, align;
 
       if (!name
@@ -823,12 +822,9 @@ ccp_finalize (void)
 	 bits the misalignment.  */
       tem = val->mask.low;
       align = (tem & -tem);
-      if (align == 1)
-	continue;
-
-      pi = get_ptr_info (name);
-      pi->align = align;
-      pi->misalign = TREE_INT_CST_LOW (val->value) & (align - 1);
+      if (align > 1)
+	set_ptr_info_alignment (get_ptr_info (name), align,
+				TREE_INT_CST_LOW (val->value) & (align - 1));
     }
 
   /* Perform substitutions based on the known constant values.  */
@@ -1101,14 +1097,12 @@ bit_value_unop_1 (enum tree_code code, tree type,
 	bool uns;
 
 	/* First extend mask and value according to the original type.  */
-	uns = (TREE_CODE (rtype) == INTEGER_TYPE && TYPE_IS_SIZETYPE (rtype)
-	       ? 0 : TYPE_UNSIGNED (rtype));
+	uns = TYPE_UNSIGNED (rtype);
 	*mask = double_int_ext (rmask, TYPE_PRECISION (rtype), uns);
 	*val = double_int_ext (rval, TYPE_PRECISION (rtype), uns);
 
 	/* Then extend mask and value according to the target type.  */
-	uns = (TREE_CODE (type) == INTEGER_TYPE && TYPE_IS_SIZETYPE (type)
-	       ? 0 : TYPE_UNSIGNED (type));
+	uns = TYPE_UNSIGNED (type);
 	*mask = double_int_ext (*mask, TYPE_PRECISION (type), uns);
 	*val = double_int_ext (*val, TYPE_PRECISION (type), uns);
 	break;
@@ -1130,8 +1124,7 @@ bit_value_binop_1 (enum tree_code code, tree type,
 		   tree r1type, double_int r1val, double_int r1mask,
 		   tree r2type, double_int r2val, double_int r2mask)
 {
-  bool uns = (TREE_CODE (type) == INTEGER_TYPE
-	      && TYPE_IS_SIZETYPE (type) ? 0 : TYPE_UNSIGNED (type));
+  bool uns = TYPE_UNSIGNED (type);
   /* Assume we'll get a constant result.  Use an initial varying value,
      we fall back to varying in the end if necessary.  */
   *mask = double_int_minus_one;
@@ -1198,13 +1191,6 @@ bit_value_binop_1 (enum tree_code code, tree type,
 	    }
 	  else if (shift < 0)
 	    {
-	      /* ???  We can have sizetype related inconsistencies in
-		 the IL.  */
-	      if ((TREE_CODE (r1type) == INTEGER_TYPE
-		   && (TYPE_IS_SIZETYPE (r1type)
-		       ? 0 : TYPE_UNSIGNED (r1type))) != uns)
-		break;
-
 	      shift = -shift;
 	      *mask = double_int_rshift (r1mask, shift,
 					 TYPE_PRECISION (type), !uns);
@@ -1316,12 +1302,7 @@ bit_value_binop_1 (enum tree_code code, tree type,
 	  break;
 
 	/* For comparisons the signedness is in the comparison operands.  */
-	uns = (TREE_CODE (r1type) == INTEGER_TYPE
-	       && TYPE_IS_SIZETYPE (r1type) ? 0 : TYPE_UNSIGNED (r1type));
-	/* ???  We can have sizetype related inconsistencies in the IL.  */
-	if ((TREE_CODE (r2type) == INTEGER_TYPE
-	     && TYPE_IS_SIZETYPE (r2type) ? 0 : TYPE_UNSIGNED (r2type)) != uns)
-	  break;
+	uns = TYPE_UNSIGNED (r1type);
 
 	/* If we know the most significant bits we know the values
 	   value ranges by means of treating varying bits as zero
@@ -1764,23 +1745,25 @@ gsi_prev_dom_bb_nondebug (gimple_stmt_iterator *i)
 }
 
 /* Find a BUILT_IN_STACK_SAVE dominating gsi_stmt (I), and insert
-   a clobber of VAR before each matching BUILT_IN_STACK_RESTORE.  */
+   a clobber of VAR before each matching BUILT_IN_STACK_RESTORE.
+
+   It is possible that BUILT_IN_STACK_SAVE cannot be find in a dominator when a
+   previous pass (such as DOM) duplicated it along multiple paths to a BB.  In
+   that case the function gives up without inserting the clobbers.  */
 
 static void
 insert_clobbers_for_var (gimple_stmt_iterator i, tree var)
 {
-  bool save_found;
   gimple stmt;
   tree saved_val;
   htab_t visited = NULL;
 
-  for (save_found = false; !gsi_end_p (i); gsi_prev_dom_bb_nondebug (&i))
+  for (; !gsi_end_p (i); gsi_prev_dom_bb_nondebug (&i))
     {
       stmt = gsi_stmt (i);
 
       if (!gimple_call_builtin_p (stmt, BUILT_IN_STACK_SAVE))
 	continue;
-      save_found = true;
 
       saved_val = gimple_call_lhs (stmt);
       if (saved_val == NULL_TREE)
@@ -1792,7 +1775,6 @@ insert_clobbers_for_var (gimple_stmt_iterator i, tree var)
 
   if (visited != NULL)
     htab_delete (visited);
-  gcc_assert (save_found);
 }
 
 /* Detects a __builtin_alloca_with_align with constant size argument.  Declares
@@ -2288,7 +2270,7 @@ optimize_stdarg_builtin (gimple call)
     case BUILT_IN_VA_START:
       if (!va_list_simple_ptr
 	  || targetm.expand_builtin_va_start != NULL
-          || builtin_decl_explicit_p (BUILT_IN_NEXT_ARG))
+	  || !builtin_decl_explicit_p (BUILT_IN_NEXT_ARG))
 	return NULL_TREE;
 
       if (gimple_call_num_args (call) != 2)

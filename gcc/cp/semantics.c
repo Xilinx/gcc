@@ -1382,7 +1382,7 @@ finish_asm_stmt (int volatile_p, tree string, tree output_operands,
       for (i = 0, t = input_operands; t; ++i, t = TREE_CHAIN (t))
 	{
 	  constraint = TREE_STRING_POINTER (TREE_VALUE (TREE_PURPOSE (t)));
-	  operand = decay_conversion (TREE_VALUE (t));
+	  operand = decay_conversion (TREE_VALUE (t), tf_warning_or_error);
 
 	  /* If the type of the operand hasn't been determined (e.g.,
 	     because it involves an overloaded function), then issue
@@ -1498,7 +1498,8 @@ finish_mem_initializers (tree mem_inits)
             TREE_VALUE (mem) = error_mark_node;
         }
 
-      add_stmt (build_min_nt (CTOR_INITIALIZER, mem_inits));
+      add_stmt (build_min_nt_loc (UNKNOWN_LOCATION,
+				  CTOR_INITIALIZER, mem_inits));
     }
   else
     emit_mem_initializers (mem_inits);
@@ -1590,7 +1591,7 @@ finish_non_static_data_member (tree decl, tree object, tree qualifying_scope)
   else if (processing_template_decl)
     return build_qualified_name (TREE_TYPE (decl),
 				 qualifying_scope,
-				 DECL_NAME (decl),
+				 decl,
 				 /*template_p=*/false);
   else
     {
@@ -2224,7 +2225,7 @@ finish_call_expr (tree fn, VEC(tree,gc) **args, bool disallow_virtual,
 tree
 finish_increment_expr (tree expr, enum tree_code code)
 {
-  return build_x_unary_op (code, expr, tf_warning_or_error);
+  return build_x_unary_op (input_location, code, expr, tf_warning_or_error);
 }
 
 /* Finish a use of `this'.  Returns an expression for `this'.  */
@@ -2318,9 +2319,9 @@ finish_pseudo_destructor_expr (tree object, tree scope, tree destructor)
 /* Finish an expression of the form CODE EXPR.  */
 
 tree
-finish_unary_op_expr (enum tree_code code, tree expr)
+finish_unary_op_expr (location_t loc, enum tree_code code, tree expr)
 {
-  tree result = build_x_unary_op (code, expr, tf_warning_or_error);
+  tree result = build_x_unary_op (loc, code, expr, tf_warning_or_error);
   if (TREE_OVERFLOW_P (result) && !TREE_OVERFLOW_P (expr))
     overflow_warning (input_location, result);
 
@@ -4456,7 +4457,9 @@ handle_omp_for_class_iterator (int i, location_t locus, tree declv, tree initv,
 	cond = error_mark_node;
       else
 	{
-	  tree tem = build_x_binary_op (TREE_CODE (cond), iter, ERROR_MARK,
+	  tree tem = build_x_binary_op (EXPR_LOCATION (cond),
+					TREE_CODE (cond),
+					iter, ERROR_MARK,
 					TREE_OPERAND (cond, 1), ERROR_MARK,
 					NULL, tf_warning_or_error);
 	  if (error_operand_p (tem))
@@ -4472,7 +4475,7 @@ handle_omp_for_class_iterator (int i, location_t locus, tree declv, tree initv,
       error_at (elocus, "invalid controlling predicate");
       return true;
     }
-  diff = build_x_binary_op (MINUS_EXPR, TREE_OPERAND (cond, 1),
+  diff = build_x_binary_op (elocus, MINUS_EXPR, TREE_OPERAND (cond, 1),
 			    ERROR_MARK, iter, ERROR_MARK, NULL,
 			    tf_warning_or_error);
   if (error_operand_p (diff))
@@ -4495,7 +4498,8 @@ handle_omp_for_class_iterator (int i, location_t locus, tree declv, tree initv,
 	  incr = error_mark_node;
 	  break;
 	}
-      iter_incr = build_x_unary_op (TREE_CODE (incr), iter,
+      iter_incr = build_x_unary_op (EXPR_LOCATION (incr),
+				    TREE_CODE (incr), iter,
 				    tf_warning_or_error);
       if (error_operand_p (iter_incr))
 	return true;
@@ -4519,7 +4523,8 @@ handle_omp_for_class_iterator (int i, location_t locus, tree declv, tree initv,
 		incr = error_mark_node;
 	      else
 		{
-		  iter_incr = build_x_modify_expr (iter, TREE_CODE (rhs),
+		  iter_incr = build_x_modify_expr (EXPR_LOCATION (rhs),
+						   iter, TREE_CODE (rhs),
 						   TREE_OPERAND (rhs, 1),
 						   tf_warning_or_error);
 		  if (error_operand_p (iter_incr))
@@ -4545,14 +4550,16 @@ handle_omp_for_class_iterator (int i, location_t locus, tree declv, tree initv,
 		incr = error_mark_node;
 	      else
 		{
-		  iter_incr = build_x_binary_op (PLUS_EXPR,
+		  iter_incr = build_x_binary_op (EXPR_LOCATION (rhs),
+						 PLUS_EXPR,
 						 TREE_OPERAND (rhs, 0),
 						 ERROR_MARK, iter,
 						 ERROR_MARK, NULL,
 						 tf_warning_or_error);
 		  if (error_operand_p (iter_incr))
 		    return true;
-		  iter_incr = build_x_modify_expr (iter, NOP_EXPR,
+		  iter_incr = build_x_modify_expr (EXPR_LOCATION (rhs),
+						   iter, NOP_EXPR,
 						   iter_incr,
 						   tf_warning_or_error);
 		  if (error_operand_p (iter_incr))
@@ -4603,18 +4610,22 @@ handle_omp_for_class_iterator (int i, location_t locus, tree declv, tree initv,
   if (orig_pre_body)
     add_stmt (orig_pre_body);
   if (init != NULL)
-    finish_expr_stmt (build_x_modify_expr (iter, NOP_EXPR, init,
+    finish_expr_stmt (build_x_modify_expr (elocus,
+					   iter, NOP_EXPR, init,
 					   tf_warning_or_error));
   init = build_int_cst (TREE_TYPE (diff), 0);
   if (c && iter_incr == NULL)
     {
-      finish_expr_stmt (build_x_modify_expr (incr_var, NOP_EXPR,
+      finish_expr_stmt (build_x_modify_expr (elocus,
+					     incr_var, NOP_EXPR,
 					     incr, tf_warning_or_error));
       incr = incr_var;
-      iter_incr = build_x_modify_expr (iter, PLUS_EXPR, incr,
+      iter_incr = build_x_modify_expr (elocus,
+				       iter, PLUS_EXPR, incr,
 				       tf_warning_or_error);
     }
-  finish_expr_stmt (build_x_modify_expr (last, NOP_EXPR, init,
+  finish_expr_stmt (build_x_modify_expr (elocus,
+					 last, NOP_EXPR, init,
 					 tf_warning_or_error));
   *pre_body = pop_stmt_list (*pre_body);
 
@@ -4627,11 +4638,13 @@ handle_omp_for_class_iterator (int i, location_t locus, tree declv, tree initv,
   orig_body = *body;
   *body = push_stmt_list ();
   iter_init = build2 (MINUS_EXPR, TREE_TYPE (diff), decl, last);
-  iter_init = build_x_modify_expr (iter, PLUS_EXPR, iter_init,
+  iter_init = build_x_modify_expr (elocus,
+				   iter, PLUS_EXPR, iter_init,
 				   tf_warning_or_error);
   iter_init = build1 (NOP_EXPR, void_type_node, iter_init);
   finish_expr_stmt (iter_init);
-  finish_expr_stmt (build_x_modify_expr (last, NOP_EXPR, decl,
+  finish_expr_stmt (build_x_modify_expr (elocus,
+					 last, NOP_EXPR, decl,
 					 tf_warning_or_error));
   add_stmt (orig_body);
   *body = pop_stmt_list (*body);
@@ -4938,7 +4951,8 @@ finish_omp_atomic (enum tree_code code, enum tree_code opcode, tree lhs,
     {
       if (code == OMP_ATOMIC_READ)
 	{
-	  stmt = build_min_nt (OMP_ATOMIC_READ, orig_lhs);
+	  stmt = build_min_nt_loc (EXPR_LOCATION (orig_lhs),
+				   OMP_ATOMIC_READ, orig_lhs);
 	  stmt = build2 (MODIFY_EXPR, void_type_node, orig_v, stmt);
 	}
       else
@@ -4948,10 +4962,12 @@ finish_omp_atomic (enum tree_code code, enum tree_code opcode, tree lhs,
 	  else 
 	    stmt = build2 (opcode, void_type_node, orig_lhs, orig_rhs);
 	  if (orig_rhs1)
-	    stmt = build_min_nt (COMPOUND_EXPR, orig_rhs1, stmt);
+	    stmt = build_min_nt_loc (EXPR_LOCATION (orig_rhs1),
+				     COMPOUND_EXPR, orig_rhs1, stmt);
 	  if (code != OMP_ATOMIC)
 	    {
-	      stmt = build_min_nt (code, orig_lhs1, stmt);
+	      stmt = build_min_nt_loc (EXPR_LOCATION (orig_lhs1),
+				       code, orig_lhs1, stmt);
 	      stmt = build2 (MODIFY_EXPR, void_type_node, orig_v, stmt);
 	    }
 	}
@@ -5425,7 +5441,7 @@ trait_expr_value (cp_trait_kind kind, tree type1, tree type2)
       return type_has_virtual_destructor (type1);
 
     case CPTK_IS_ABSTRACT:
-      return (CLASS_TYPE_P (type1) && CLASSTYPE_PURE_VIRTUALS (type1));
+      return (ABSTRACT_CLASS_TYPE_P (type1));
 
     case CPTK_IS_BASE_OF:
       return (NON_UNION_CLASS_TYPE_P (type1) && NON_UNION_CLASS_TYPE_P (type2)
@@ -5920,6 +5936,12 @@ build_constexpr_constructor_member_initializers (tree type, tree body)
 	  if (!ok)
 	    break;
 	}
+    }
+  else if (TREE_CODE (body) == TRY_BLOCK)
+    {
+      error ("body of %<constexpr%> constructor cannot be "
+	     "a function-try-block");
+      return error_mark_node;
     }
   else if (EXPR_P (body))
     ok = build_data_member_initialization (body, &vec);
@@ -7202,7 +7224,8 @@ cxx_fold_indirect_ref (location_t loc, tree type, tree op0, bool *empty_base)
   sub = op0;
   STRIP_NOPS (sub);
   subtype = TREE_TYPE (sub);
-  gcc_assert (POINTER_TYPE_P (subtype));
+  if (!POINTER_TYPE_P (subtype))
+    return NULL_TREE;
 
   if (TREE_CODE (sub) == ADDR_EXPR)
     {
@@ -7750,18 +7773,16 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
     case NOP_EXPR:
       {
 	tree oldop = TREE_OPERAND (t, 0);
-	tree op = oldop;
-	tree to = TREE_TYPE (t);
-	op = cxx_eval_constant_expression (call, TREE_OPERAND (t, 0),
-					   allow_non_constant, addr,
-					   non_constant_p);
+	tree op = cxx_eval_constant_expression (call, oldop,
+						allow_non_constant, addr,
+						non_constant_p);
 	if (*non_constant_p)
 	  return t;
 	if (op == oldop)
 	  /* We didn't fold at the top so we could check for ptr-int
 	     conversion.  */
 	  return fold (t);
-	r = fold_build1 (TREE_CODE (t), to, op);
+	r = fold_build1 (TREE_CODE (t), TREE_TYPE (t), op);
 	/* Conversion of an out-of-range value has implementation-defined
 	   behavior; the language considers it different from arithmetic
 	   overflow, which is undefined.  */
@@ -8691,18 +8712,16 @@ begin_lambda_type (tree lambda)
 tree
 lambda_return_type (tree expr)
 {
-  tree type;
+  if (expr == NULL_TREE)
+    return void_type_node;
   if (type_unknown_p (expr)
       || BRACE_ENCLOSED_INITIALIZER_P (expr))
     {
       cxx_incomplete_type_error (expr, TREE_TYPE (expr));
       return void_type_node;
     }
-  if (type_dependent_expression_p (expr))
-    type = dependent_lambda_return_type_node;
-  else
-    type = cv_unqualified (type_decays_to (unlowered_expr_type (expr)));
-  return type;
+  gcc_checking_assert (!type_dependent_expression_p (expr));
+  return cv_unqualified (type_decays_to (unlowered_expr_type (expr)));
 }
 
 /* Given a LAMBDA_EXPR or closure type LAMBDA, return the op() of the
@@ -8749,28 +8768,31 @@ lambda_capture_field_type (tree expr)
   return type;
 }
 
-/* Recompute the return type for LAMBDA with body of the form:
-     { return EXPR ; }  */
+/* Insert the deduced return type for an auto function.  */
 
 void
-apply_lambda_return_type (tree lambda, tree return_type)
+apply_deduced_return_type (tree fco, tree return_type)
 {
-  tree fco = lambda_function (lambda);
   tree result;
-
-  LAMBDA_EXPR_RETURN_TYPE (lambda) = return_type;
 
   if (return_type == error_mark_node)
     return;
-  if (TREE_TYPE (TREE_TYPE (fco)) == return_type)
-    return;
 
-  /* TREE_TYPE (FUNCTION_DECL) == METHOD_TYPE
-     TREE_TYPE (METHOD_TYPE)   == return-type  */
+  if (LAMBDA_FUNCTION_P (fco))
+    {
+      tree lambda = CLASSTYPE_LAMBDA_EXPR (current_class_type);
+      LAMBDA_EXPR_RETURN_TYPE (lambda) = return_type;
+    }
+
+  if (DECL_CONV_FN_P (fco))
+    DECL_NAME (fco) = mangle_conv_op_name_for_type (return_type);
+
   TREE_TYPE (fco) = change_return_type (return_type, TREE_TYPE (fco));
 
   result = DECL_RESULT (fco);
   if (result == NULL_TREE)
+    return;
+  if (TREE_TYPE (result) == return_type)
     return;
 
   /* We already have a DECL_RESULT from start_preparsed_function.
@@ -8786,12 +8808,13 @@ apply_lambda_return_type (tree lambda, tree return_type)
 
   DECL_RESULT (fco) = result;
 
-  if (!processing_template_decl && aggregate_value_p (result, fco))
+  if (!processing_template_decl)
     {
+      bool aggr = aggregate_value_p (result, fco);
 #ifdef PCC_STATIC_STRUCT_RETURN
-      cfun->returns_pcc_struct = 1;
+      cfun->returns_pcc_struct = aggr;
 #endif
-      cfun->returns_struct = 1;
+      cfun->returns_struct = aggr;
     }
 
 }
@@ -9321,8 +9344,9 @@ maybe_add_lambda_conv_op (tree type)
   if (DECL_ONE_ONLY (statfn))
     {
       /* Put the thunk in the same comdat group as the call op.  */
-      cgraph_add_to_same_comdat_group (cgraph_get_create_node (statfn),
-				       cgraph_get_create_node (callop));
+      symtab_add_to_same_comdat_group
+	 ((symtab_node) cgraph_get_create_node (statfn),
+          (symtab_node) cgraph_get_create_node (callop));
     }
   body = begin_function_body ();
   compound_stmt = begin_compound_stmt (0);
@@ -9356,7 +9380,7 @@ maybe_add_lambda_conv_op (tree type)
   body = begin_function_body ();
   compound_stmt = begin_compound_stmt (0);
 
-  finish_return_stmt (decay_conversion (statfn));
+  finish_return_stmt (decay_conversion (statfn, tf_warning_or_error));
 
   finish_compound_stmt (compound_stmt);
   finish_function_body (body);

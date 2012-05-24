@@ -94,10 +94,12 @@ Texts.  A copy of the license is included in the section entitled
 
 @ifset unw
 @set PLATFORM
+@set TITLESUFFIX
 @end ifset
 
 @ifset vms
 @set PLATFORM OpenVMS
+@set TITLESUFFIX for OpenVMS
 @end ifset
 
 @c @ovar(ARG)
@@ -115,7 +117,7 @@ Texts.  A copy of the license is included in the section entitled
 @c of the @ovar macro have been expanded inline.
 
 
-@settitle @value{EDITION} User's Guide @value{PLATFORM}
+@settitle @value{EDITION} User's Guide @value{TITLESUFFIX}
 @dircategory GNU Ada tools
 @direntry
 * @value{EDITION} User's Guide: (gnat_ugn). @value{PLATFORM}
@@ -193,6 +195,7 @@ AdaCore@*
 * Verifying Properties Using gnatcheck::
 * Creating Sample Bodies Using gnatstub::
 * Creating Unit Tests Using gnattest::
+* Performing Dimensionality Analysis in GNAT::
 * Generating Ada Bindings for C and C++ headers::
 * Other Utility Programs::
 * Running and Debugging Ada Programs::
@@ -484,6 +487,7 @@ Creating Unit Tests Using gnattest
 * Tagged Types Substitutability Testing::
 * Testing with Contracts::
 * Additional Tests::
+* Support for other platforms/run-times::
 * Current Limitations::
 
 Other Utility Programs
@@ -833,6 +837,12 @@ a utility that generates empty but compilable bodies for library units.
 @item
 @ref{Creating Unit Tests Using gnattest}, discusses @code{gnattest},
 a utility that generates unit testing templates for library units.
+
+@item
+@ref{Performing Dimensionality Analysis in GNAT}, describes the Ada 2012
+facilities used in GNAT to declare dimensioned objects, and to verify that
+uses of these objects are consistent with their given physical dimensions
+(so that meters cannot be assigned to kilograms, and so on).
 
 @item
 @ref{Generating Ada Bindings for C and C++ headers}, describes how to
@@ -3077,7 +3087,7 @@ $ gnatlink ada_unit file1.o file2.o --LINK=./my_script
 Where CC is the name of the non-GNU C++ compiler.
 
 If the @code{zero cost} exception mechanism is used, and the platform
-supports automatic registration of exception tables (e.g.@: Solaris or IRIX),
+supports automatic registration of exception tables (e.g.@: Solaris),
 paths to more objects are required:
 
 @smallexample
@@ -13380,7 +13390,7 @@ stops.
 @cindex @option{^--no-separate-is^/NO_SEPARATE_IS^} (@command{gnatpp})
 @item ^--no-separate-is^/NO_SEPARATE_IS^
 Do not place the keyword @code{is} on a separate line in a subprogram body in
-case if the spec occupies more then one line.
+case if the spec occupies more than one line.
 
 @cindex @option{^--separate-label^/SEPARATE_LABEL^} (@command{gnatpp})
 @item ^--separate-label^/SEPARATE_LABEL^
@@ -13455,7 +13465,7 @@ Indentation level, @var{nnn} from 1@dots{}9, the default value is 3
 Indentation level for continuation lines (relative to the line being
 continued), @var{nnn} from 1@dots{}9.
 The default
-value is one less then the (normal) indentation level, unless the
+value is one less than the (normal) indentation level, unless the
 indentation is set to 1 (in which case the default value for continuation
 line indentation is also 1)
 @end table
@@ -14769,7 +14779,7 @@ statements unless @option{^-ne^NO_EXITS_AS_GOTOS^} option is specified.
 The Ada essential complexity metric defined here is intended to quantify
 the extent to which the software is unstructured. It is adapted from
 the McCabe essential complexity metric defined in
-http://www.mccabe.com/pdf/nist235r.pdf but is modified to be more
+@url{http://www.mccabe.com/pdf/mccabe-nist235r.pdf} but is modified to be more
 suitable for typical Ada usage. For example, short circuit forms
 are not penalized as unstructured in the Ada essential complexity metric.
 
@@ -14944,14 +14954,88 @@ upon units that define subprograms are counted, so control fan-out coupling
 is reported for all units, but control fan-in coupling - only for the units
 that define subprograms.
 
+The following simple example illustrates the difference between unit coupling
+and control coupling metrics:
 
+@smallexample @c ada
+package Lib_1 is
+    function F_1 (I : Integer) return Integer;
+end Lib_1;
 
+package Lib_2 is
+    type T_2 is new Integer;
+end Lib_2;
 
+package body Lib_1 is
+    function F_1 (I : Integer) return Integer is
+    begin
+       return I + 1;
+    end F_1;
+end Lib_1;
 
+with Lib_2; use Lib_2;
+package Pack is
+    Var : T_2;
+    function Fun (I : Integer) return Integer;
+end Pack;
+
+with Lib_1; use Lib_1;
+package body Pack is
+    function Fun (I : Integer) return Integer is
+    begin
+       return F_1 (I);
+    end Fun;
+end Pack;
+@end smallexample
+
+@noindent
+if we apply @command{gnatmetric} with @code{--coupling-all} option to these
+units, the result will be:
+
+@smallexample
+Coupling metrics:
+=================
+    Unit Lib_1 (C:\customers\662\L406-007\lib_1.ads)
+       control fan-out coupling  : 0
+       control fan-in coupling   : 1
+       unit fan-out coupling     : 0
+       unit fan-in coupling      : 1
+
+    Unit Pack (C:\customers\662\L406-007\pack.ads)
+       control fan-out coupling  : 1
+       control fan-in coupling   : 0
+       unit fan-out coupling     : 2
+       unit fan-in coupling      : 0
+
+    Unit Lib_2 (C:\customers\662\L406-007\lib_2.ads)
+       control fan-out coupling  : 0
+       unit fan-out coupling     : 0
+       unit fan-in coupling      : 1
+@end smallexample
+
+@noindent
+The result does not contain values for object-oriented
+coupling because none of the argument unit contains a tagged type and
+therefore none of these units can be treated as a class.
+
+@code{Pack} (considered as a program unit, that is spec+body) depends on two
+units - @code{Lib_1} @code{and Lib_2}, therefore it has unit fan-out coupling
+equals to 2. And nothing depend on it, so its unit fan-in coupling is 0 as
+well as control fan-in coupling. Only one of the units @code{Pack} depends
+upon defines a subprogram, so its control fan-out coupling is 1.
+
+@code{Lib_2} depends on nothing, so fan-out metrics for it are 0. It does
+not define a subprogram, so control fan-in metric cannot be applied to it,
+and there is one unit that depends on it (@code{Pack}), so it has
+unit fan-in coupling equals to 1.
+
+@code{Lib_1} is similar to @code{Lib_2}, but it does define a subprogram.
+So it has control fan-in coupling equals to 1 (because there is a unit
+depending on it).
 
 When computing coupling metrics, @command{gnatmetric} counts only
-dependencies between units that are arguments of the gnatmetric call.
-Coupling metrics are program-wide (or project-wide) metrics, so to
+dependencies between units that are arguments of the @command{gnatmetric}
+call. Coupling metrics are program-wide (or project-wide) metrics, so to
 get a valid result, you should call @command{gnatmetric} for
 the whole set of sources that make up your program. It can be done
 by calling @command{gnatmetric} from the GNAT driver with @option{-U}
@@ -17988,6 +18072,7 @@ default location.
 * Tagged Types Substitutability Testing::
 * Testing with Contracts::
 * Additional Tests::
+* Support for other platforms/run-times::
 * Current Limitations::
 @end menu
 
@@ -18474,6 +18559,25 @@ gnatmake -Pmixing/test_driver.gpr
 mixing/test_runner
 @end smallexample
 
+@node Support for other platforms/run-times
+@section Support for other platforms/run-times
+
+@noindent
+@command{gnattest} can be used to generate the test harness for platforms
+and run-time libraries others than the default native target with the
+default full run-time. For example, when using a limited run-time library
+such as Zero FootPrint (ZFP), a simplified harness is generated.
+
+Two variables are used to tell the underlying AUnit framework how to generate
+the test harness: @code{PLATFORM}, which identifies the target, and
+@code{RUNTIME}, used to determine the run-time library for which the harness
+is generated. For example, the following options are used to generate the
+AUnit test harness for a PowerPC ELF target using the ZFP run-time library:
+
+@smallexample
+gnattest -Psimple.gpr -XPLATFORM=powerpc-elf -XRUNTIME=zfp
+@end smallexample
+
 @node Current Limitations
 @section Current Limitations
 
@@ -18488,6 +18592,160 @@ The tool currently does not support following features:
 @item generating test packages for code that is not conformant with ada 2005
 
 @end itemize
+
+@c *********************************
+@node Performing Dimensionality Analysis in GNAT
+@chapter Performing Dimensionality Analysis in GNAT
+@noindent
+The GNAT compiler now supports dimensionality checking. The user can
+specify physical units for objects, and the compiler will verify that uses
+of these objects are compatible with their dimensions, in a fashion that is
+familiar to engineering practice. The dimensions of algebraic expressions
+(including powers with static exponents) are computed from their consistuents.
+
+This feature depends on Ada 2012 aspect specifications, and is available from
+version 7.0.1 of GNAT onwards. The GNAT-specific aspect Dimension_System allows
+the user to define a system of units; the aspect Dimension then allows the user
+to declare dimensioned quantities within a given system.
+
+The major advantage of this model is that it does not require the declaration of
+multiple operators for all possible combinations of types: it is only necessary
+to use the proper subtypes in object declarations.
+
+The simplest way to impose dimensionality checking on a computation is to make
+use of the package System.Dim.Mks, which is part of the GNAT library. This
+package defines a floating-point type MKS_Type, for which a sequence of
+dimension names are specified, together with their conventional abbreviations.
+The following should be read together with the full specification of the
+package, in file s-dimmks.ads.
+
+@smallexample @c ada
+   type Mks_Type is new Long_Long_Float
+     with
+      Dimension_System => (
+        (Meter,    'm'),
+        (Kilogram, "kg"),
+        (Second,   's'),
+        (Ampere,   'A'),
+        (Kelvin,   'K'),
+        (Mole,     "mol"),
+        (Candela,  "cd"));
+@end smallexample
+
+@noindent
+The package then defines a series of subtypes that correspond to these
+conventional units. For example:
+@smallexample @c ada
+   subtype Length is Mks_Type
+     with
+      Dimension => ('m',
+        Meter =>  1,
+        others => 0);
+@end smallexample
+@noindent
+and similarly for Mass, Time, Electric_Current, Thermodynamic_Temperature,
+Amount_Of_Substance, and Luminous_Intensity (the standard set of units of
+the SI system).
+
+The package also defines conventional names for values of each unit, for
+example:
+
+@smallexample @c ada
+   m   : constant Length                    := 1.0;
+   kg  : constant Mass                      := 1.0;
+   s   : constant Time                      := 1.0;
+   A   : constant Electric_Current          := 1.0;
+@end smallexample
+
+@noindent
+as well as useful multiples of these units:
+
+@smallexample @c ada
+   cm  : constant Length := 1.0E-02;
+   g   : constant Mass   := 1.0E-03;
+   min : constant Time   := 60.0;
+   day : constant TIme   := 60.0 * 24.0 * min;
+  ...
+@end smallexample
+
+@noindent
+The user can then define a derived unit by providing the aspect that
+specifies its dimensions within the MKS system, as well as the string to
+be used for output of a value of that unit:
+
+@smallexample @c ada
+  subtype Acceleration is Mks_Type
+    with Dimension => ("m/sec^^^2", Meter => 1, Second => -2, others => 0);
+@end smallexample
+
+@noindent
+Here is a complete example of use:
+
+@smallexample @c ada
+with System.Dim.MKS; use System.Dim.Mks;
+with System.Dim.Mks_IO; use System.Dim.Mks_IO;
+with Text_IO; use Text_IO;
+procedure Free_Fall is
+  subtype Acceleration is Mks_Type
+    with Dimension => ("m/sec^^^2", 1, 0, -2, others => 0);
+  G : constant acceleration := 9.81 * m / (s ** 2);
+  T : Time := 10.0*s;
+  Distance : Length;
+begin
+  Put ("Gravitational constant: ");
+  Put (G, Aft => 2, Exp => 0); Put_Line ("");
+  Distance := 0.5 * G * T ** 2;
+  Put ("distance travelled in 10 seconds of free fall ");
+  Put (Distance, Aft => 2, Exp => 0);
+  Put_Line ("");
+end Free_Fall;
+@end smallexample
+
+@noindent
+Execution of this program yields:
+@smallexample
+Gravitational constant:  9.81 m/sec^^^2
+distance travelled in 10 seconds of free fall 490.50 m
+@end smallexample
+
+@noindent
+However, incorrect assignments such as:
+
+@smallexample @c ada
+   Distance := 5.0;
+   Distance := 5.0 * kg:
+@end smallexample
+
+@noindent
+are rejected with the following diagnoses:
+
+@smallexample
+   Distance := 5.0;
+      >>> dimensions mismatch in assignment
+      >>> left-hand side has dimensions (1, 0, 0, 0, 0, 0, 0)
+      >>> right-hand side is dimensionless
+
+   Distance := 5.0 * kg:
+      >>> dimensions mismatch in assignment
+      >>> left-hand side has dimensions  (1, 0, 0, 0, 0, 0, 0)
+      >>> right-hand side has dimensions (0, 1, 0, 0, 0, 0, 0)
+@end smallexample
+
+@noindent
+The dimensions of an expression are properly displayed, even if there is
+no explicit subtype for it. If we add to the program:
+
+@smallexample @c ada
+      Put ("Final velocity: ");
+      Put (G * T, Aft =>2, Exp =>0);
+      Put_Line ("");
+@end smallexample
+
+@noindent
+then the output includes:
+@smallexample
+     Final velocity: 98.10 m.s**(-1)
+@end smallexample
 
 @c *********************************
 @node Generating Ada Bindings for C and C++ headers

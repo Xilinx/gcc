@@ -238,6 +238,62 @@ release_ssa_name (tree var)
     }
 }
 
+/* If the alignment of the pointer described by PI is known, return true and
+   store the alignment and the deviation from it into *ALIGNP and *MISALIGNP
+   respectively.  Otherwise return false.  */
+
+bool
+get_ptr_info_alignment (struct ptr_info_def *pi, unsigned int *alignp,
+			unsigned int *misalignp)
+{
+  if (pi->align)
+    {
+      *alignp = pi->align;
+      *misalignp = pi->misalign;
+      return true;
+    }
+  else
+    return false;
+}
+
+/* State that the pointer described by PI has unknown alignment.  */
+
+void
+mark_ptr_info_alignment_unknown (struct ptr_info_def *pi)
+{
+  pi->align = 0;
+  pi->misalign = 0;
+}
+
+/* Store the the power-of-two byte alignment and the deviation from that
+   alignment of pointer described by PI to ALIOGN and MISALIGN
+   respectively.  */
+
+void
+set_ptr_info_alignment (struct ptr_info_def *pi, unsigned int align,
+			    unsigned int misalign)
+{
+  gcc_checking_assert (align != 0);
+  gcc_assert ((align & (align - 1)) == 0);
+  gcc_assert ((misalign & ~(align - 1)) == 0);
+
+  pi->align = align;
+  pi->misalign = misalign;
+}
+
+/* If pointer decribed by PI has known alignment, increase its known
+   misalignment by INCREMENT modulo its current alignment.  */
+
+void
+adjust_ptr_info_misalignment (struct ptr_info_def *pi,
+			      unsigned int increment)
+{
+  if (pi->align != 0)
+    {
+      pi->misalign += increment;
+      pi->misalign &= (pi->align - 1);
+    }
+}
 
 /* Return the alias information associated with pointer T.  It creates a
    new instance if none existed.  */
@@ -254,8 +310,7 @@ get_ptr_info (tree t)
     {
       pi = ggc_alloc_cleared_ptr_info_def ();
       pt_solution_reset (&pi->pt);
-      pi->align = 1;
-      pi->misalign = 0;
+      mark_ptr_info_alignment_unknown (pi);
       SSA_NAME_PTR_INFO (t) = pi;
     }
 
@@ -325,14 +380,14 @@ replace_ssa_name_symbol (tree ssa_name, tree sym)
   TREE_TYPE (ssa_name) = TREE_TYPE (sym);
 }
 
-/* Return SSA names that are unused to GGC memory.  This is used to keep
-   footprint of compiler during interprocedural optimization.
-   As a side effect the SSA_NAME_VERSION number reuse is reduced
-   so this function should not be used too often.  */
+/* Return SSA names that are unused to GGC memory and compact the SSA
+   version namespace.  This is used to keep footprint of compiler during
+   interprocedural optimization.  */
 static unsigned int
 release_dead_ssa_names (void)
 {
   tree t;
+  unsigned i, j;
   int n = VEC_length (tree, FREE_SSANAMES (cfun));
   referenced_var_iterator rvi;
 
@@ -340,14 +395,33 @@ release_dead_ssa_names (void)
      eventually dead variables so a bunch of memory is held live.  */
   FOR_EACH_REFERENCED_VAR (cfun, t, rvi)
     set_current_def (t, NULL);
+
   /* Now release the freelist.  */
   VEC_free (tree, gc, FREE_SSANAMES (cfun));
   FREE_SSANAMES (cfun) = NULL;
 
+  /* And compact the SSA number space.  We make sure to not change the
+     relative order of SSA versions.  */
+  for (i = 1, j = 1; i < VEC_length (tree, cfun->gimple_df->ssa_names); ++i)
+    {
+      tree name = ssa_name (i);
+      if (name)
+	{
+	  if (i != j)
+	    {
+	      SSA_NAME_VERSION (name) = j;
+	      VEC_replace (tree, cfun->gimple_df->ssa_names, j, name);
+	    }
+	  j++;
+	}
+    }
+  VEC_truncate (tree, cfun->gimple_df->ssa_names, j);
+
   statistics_counter_event (cfun, "SSA names released", n);
+  statistics_counter_event (cfun, "SSA name holes removed", i - j);
   if (dump_file)
-    fprintf (dump_file, "Released %i names, %.2f%%\n",
-	     n, n * 100.0 / num_ssa_names);
+    fprintf (dump_file, "Released %i names, %.2f%%, removed %i holes\n",
+	     n, n * 100.0 / num_ssa_names, i - j);
   return 0;
 }
 

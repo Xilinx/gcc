@@ -404,7 +404,7 @@
       if (GET_CODE (x) == PLUS
 	  && REG_P (XEXP (x, 0))
 	  && CONST_INT_P (XEXP (x, 1)))
-	return sh_legitimate_index_p (mode, XEXP (x, 1));
+	return sh_legitimate_index_p (mode, XEXP (x, 1), TARGET_SH2A, false);
     }
 
   if (TARGET_SHMEDIA
@@ -453,7 +453,7 @@
     return 0;
   if (mode == DImode && TARGET_SHMEDIA && GET_CODE (op) == SUBREG
       && GET_MODE_SIZE (GET_MODE (SUBREG_REG (op))) < 8
-      && ! (high_life_started || reload_completed))
+      && ! (reload_in_progress || reload_completed))
     return 0;
 
   if ((mode == QImode || mode == HImode)
@@ -466,7 +466,7 @@
       if (GET_CODE (x) == PLUS
 	  && REG_P (XEXP (x, 0))
 	  && CONST_INT_P (XEXP (x, 1)))
-	return sh_legitimate_index_p (mode, XEXP (x, 1));
+	return sh_legitimate_index_p (mode, XEXP (x, 1), TARGET_SH2A, false);
     }
 
   return general_operand (op, mode);

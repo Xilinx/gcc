@@ -15,7 +15,7 @@
 /* Set the C environment from Go.  This is called by syscall.Setenv.  */
 
 void setenv_c (struct __go_string, struct __go_string)
-  __asm__ ("libgo_syscall.syscall.setenv_c");
+  __asm__ ("syscall.setenv_c");
 
 void
 setenv_c (struct __go_string k, struct __go_string v)
@@ -50,7 +50,7 @@ setenv_c (struct __go_string k, struct __go_string v)
 
 #else /* !defined(HAVE_SETENV) */
 
-  kn = malloc (k.__length + v.__length + 2);
+  kn = __go_alloc (k.__length + v.__length + 2);
   __builtin_memcpy (kn, ks, k.__length);
   kn[k.__length] = '=';
   __builtin_memcpy (kn + k.__length + 1, vs, v.__length);

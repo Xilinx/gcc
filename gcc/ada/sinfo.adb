@@ -1427,6 +1427,14 @@ package body Sinfo is
       return Flag15 (N);
    end Has_Created_Identifier;
 
+   function Has_Dereference_Action
+      (N : Node_Id) return Boolean is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Explicit_Dereference);
+      return Flag13 (N);
+   end Has_Dereference_Action;
+
    function Has_Dynamic_Length_Check
       (N : Node_Id) return Boolean is
    begin
@@ -1623,6 +1631,14 @@ package body Sinfo is
         or else NT (N).Nkind = N_With_Clause);
       return Flag16 (N);
    end Implicit_With;
+
+   function Implicit_With_From_Instantiation
+      (N : Node_Id) return Boolean is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_With_Clause);
+      return Flag12 (N);
+   end Implicit_With_From_Instantiation;
 
    function Interface_List
       (N : Node_Id) return List_Id is
@@ -4507,6 +4523,14 @@ package body Sinfo is
       Set_Flag15 (N, Val);
    end Set_Has_Created_Identifier;
 
+   procedure Set_Has_Dereference_Action
+      (N : Node_Id; Val : Boolean := True) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Explicit_Dereference);
+      Set_Flag13 (N, Val);
+   end Set_Has_Dereference_Action;
+
    procedure Set_Has_Dynamic_Length_Check
       (N : Node_Id; Val : Boolean := True) is
    begin
@@ -4703,6 +4727,14 @@ package body Sinfo is
         or else NT (N).Nkind = N_With_Clause);
       Set_Flag16 (N, Val);
    end Set_Implicit_With;
+
+   procedure Set_Implicit_With_From_Instantiation
+      (N : Node_Id; Val : Boolean := True) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_With_Clause);
+      Set_Flag12 (N, Val);
+   end Set_Implicit_With_From_Instantiation;
 
    procedure Set_Interface_List
       (N : Node_Id; Val : List_Id) is

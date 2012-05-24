@@ -1117,9 +1117,37 @@ init_tree_ssa (struct function *fn)
 				                 uid_ssaname_map_eq, NULL);
   pt_solution_reset (&fn->gimple_df->escaped);
   init_ssanames (fn, 0);
-  init_phinodes ();
 }
 
+/* Do the actions required to initialize internal data structures used
+   in tree-ssa optimization passes.  */
+
+static unsigned int
+execute_init_datastructures (void)
+{
+  /* Allocate hash tables, arrays and other structures.  */
+  init_tree_ssa (cfun);
+  return 0;
+}
+
+struct gimple_opt_pass pass_init_datastructures =
+{
+ {
+  GIMPLE_PASS,
+  "*init_datastructures",		/* name */
+  NULL,					/* gate */
+  execute_init_datastructures,		/* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
+  0,					/* static_pass_number */
+  TV_NONE,				/* tv_id */
+  PROP_cfg,				/* properties_required */
+  0,					/* properties_provided */
+  0,					/* properties_destroyed */
+  0,					/* todo_flags_start */
+  0					/* todo_flags_finish */
+ }
+};
 
 /* Deallocate memory associated with SSA data structures for FNDECL.  */
 
@@ -1144,7 +1172,6 @@ delete_tree_ssa (void)
   cfun->gimple_df->referenced_vars = NULL;
 
   fini_ssanames ();
-  fini_phinodes ();
 
   /* We no longer maintain the SSA operand cache at this point.  */
   if (ssa_operands_active ())
@@ -1584,7 +1611,7 @@ warn_uninit (enum opt_code wc, tree t,
 	     tree expr, tree var, const char *gmsgid, void *data)
 {
   gimple context = (gimple) data;
-  location_t location;
+  location_t location, cfun_loc;
   expanded_location xloc, floc;
 
   if (!ssa_undefined_value_p (t))
@@ -1602,8 +1629,12 @@ warn_uninit (enum opt_code wc, tree t,
   location = (context != NULL && gimple_has_location (context))
 	     ? gimple_location (context)
 	     : DECL_SOURCE_LOCATION (var);
+  location = linemap_resolve_location (line_table, location,
+				       LRK_SPELLING_LOCATION,
+				       NULL);
+  cfun_loc = DECL_SOURCE_LOCATION (cfun->decl);
   xloc = expand_location (location);
-  floc = expand_location (DECL_SOURCE_LOCATION (cfun->decl));
+  floc = expand_location (cfun_loc);
   if (warning_at (location, wc, gmsgid, expr))
     {
       TREE_NO_WARNING (expr) = 1;
@@ -1611,8 +1642,11 @@ warn_uninit (enum opt_code wc, tree t,
       if (location == DECL_SOURCE_LOCATION (var))
 	return;
       if (xloc.file != floc.file
-	  || xloc.line < floc.line
-	  || xloc.line > LOCATION_LINE (cfun->function_end_locus))
+	  || linemap_location_before_p (line_table,
+					location, cfun_loc)
+	  || linemap_location_before_p (line_table,
+					cfun->function_end_locus,
+					location))
 	inform (DECL_SOURCE_LOCATION (var), "%qD was declared here", var);
     }
 }

@@ -822,8 +822,10 @@ can_generate_builtin (struct graph *rdg, bitmap partition)
       nb_reads++;
     else if (RDG_MEM_WRITE_STMT (rdg, i))
       {
+	gimple stmt = RDG_STMT (rdg, i);
 	nb_writes++;
-	if (stmt_with_adjacent_zero_store_dr_p (RDG_STMT (rdg, i)))
+	if (!gimple_has_volatile_ops (stmt)
+	    && stmt_with_adjacent_zero_store_dr_p (stmt))
 	  stores_zero++;
       }
 
@@ -1131,8 +1133,11 @@ ldist_gen (struct loop *loop, struct graph *rdg,
   BITMAP_FREE (processed);
   nbp = VEC_length (bitmap, partitions);
 
-  if (nbp <= 1
-      || partition_contains_all_rw (rdg, partitions))
+  if (nbp == 0
+      || (nbp == 1
+	  && !can_generate_builtin (rdg, VEC_index (bitmap, partitions, 0)))
+      || (nbp > 1
+	  && partition_contains_all_rw (rdg, partitions)))
     goto ldist_done;
 
   if (dump_file && (dump_flags & TDF_DETAILS))

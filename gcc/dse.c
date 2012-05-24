@@ -1,5 +1,5 @@
 /* RTL dead store elimination.
-   Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
 
    Contributed by Richard Sandiford <rsandifor@codesourcery.com>
@@ -44,7 +44,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "insn-config.h"
 #include "expr.h"
 #include "recog.h"
-#include "dse.h"
 #include "optabs.h"
 #include "dbgcnt.h"
 #include "target.h"
@@ -614,7 +613,6 @@ static bitmap kill_on_calls;
 static unsigned int current_position;
 
 
-static bool gate_dse (void);
 static bool gate_dse1 (void);
 static bool gate_dse2 (void);
 
@@ -624,28 +622,6 @@ static bool gate_dse2 (void);
 
    Initialization.
 ----------------------------------------------------------------------------*/
-
-/* Hashtable callbacks for maintaining the "bases" field of
-   store_group_info, given that the addresses are function invariants.  */
-
-static int
-clear_alias_mode_eq (const void *p1, const void *p2)
-{
-  const struct clear_alias_mode_holder * h1
-    = (const struct clear_alias_mode_holder *) p1;
-  const struct clear_alias_mode_holder * h2
-    = (const struct clear_alias_mode_holder *) p2;
-  return h1->alias_set == h2->alias_set;
-}
-
-
-static hashval_t
-clear_alias_mode_hash (const void *p)
-{
-  const struct clear_alias_mode_holder *holder
-    = (const struct clear_alias_mode_holder *) p;
-  return holder->alias_set;
-}
 
 
 /* Find the entry associated with ALIAS_SET.  */
@@ -1170,8 +1146,7 @@ canon_address (rtx mem,
 	       HOST_WIDE_INT *offset,
 	       cselib_val **base)
 {
-  enum machine_mode address_mode
-    = targetm.addr_space.address_mode (MEM_ADDR_SPACE (mem));
+  enum machine_mode address_mode = get_address_mode (mem);
   rtx mem_address = XEXP (mem, 0);
   rtx expanded_address, address;
   int expanded;
@@ -1523,11 +1498,7 @@ record_store (rtx body, bb_info_t bb_info)
     }
   else
     {
-      rtx base_term = find_base_term (XEXP (mem, 0));
-      if (!base_term
-	  || (GET_CODE (base_term) == ADDRESS
-	      && GET_MODE (base_term) == Pmode
-	      && XEXP (base_term, 0) == stack_pointer_rtx))
+      if (may_be_sp_based_p (XEXP (mem, 0)))
 	insn_info->stack_pointer_based = true;
       insn_info->contains_cselib_groups = true;
 
@@ -1589,7 +1560,7 @@ record_store (rtx body, bb_info_t bb_info)
 	  mem_addr = group->canon_base_addr;
 	}
       if (offset)
-	mem_addr = plus_constant (mem_addr, offset);
+	mem_addr = plus_constant (get_address_mode (mem), mem_addr, offset);
     }
 
   while (ptr)
@@ -2206,7 +2177,7 @@ check_mem_read_rtx (rtx *loc, void *data)
 	  mem_addr = group->canon_base_addr;
 	}
       if (offset)
-	mem_addr = plus_constant (mem_addr, offset);
+	mem_addr = plus_constant (get_address_mode (mem), mem_addr, offset);
     }
 
   /* We ignore the clobbers in store_info.  The is mildly aggressive,
@@ -3042,85 +3013,6 @@ dse_step2_spill (void)
 
   Build the bit vectors for the transfer functions.
 ----------------------------------------------------------------------------*/
-
-
-/* Note that this is NOT a general purpose function.  Any mem that has
-   an alias set registered here expected to be COMPLETELY unaliased:
-   i.e it's addresses are not and need not be examined.
-
-   It is known that all references to this address will have this
-   alias set and there are NO other references to this address in the
-   function.
-
-   Currently the only place that is known to be clean enough to use
-   this interface is the code that assigns the spill locations.
-
-   All of the mems that have alias_sets registered are subjected to a
-   very powerful form of dse where function calls, volatile reads and
-   writes, and reads from random location are not taken into account.
-
-   It is also assumed that these locations go dead when the function
-   returns.  This assumption could be relaxed if there were found to
-   be places that this assumption was not correct.
-
-   The MODE is passed in and saved.  The mode of each load or store to
-   a mem with ALIAS_SET is checked against MEM.  If the size of that
-   load or store is different from MODE, processing is halted on this
-   alias set.  For the vast majority of aliases sets, all of the loads
-   and stores will use the same mode.  But vectors are treated
-   differently: the alias set is established for the entire vector,
-   but reload will insert loads and stores for individual elements and
-   we do not necessarily have the information to track those separate
-   elements.  So when we see a mode mismatch, we just bail.  */
-
-
-void
-dse_record_singleton_alias_set (alias_set_type alias_set,
-				enum machine_mode mode)
-{
-  struct clear_alias_mode_holder tmp_holder;
-  struct clear_alias_mode_holder *entry;
-  void **slot;
-
-  /* If we are not going to run dse, we need to return now or there
-     will be problems with allocating the bitmaps.  */
-  if ((!gate_dse()) || !alias_set)
-    return;
-
-  if (!clear_alias_sets)
-    {
-      clear_alias_sets = BITMAP_ALLOC (NULL);
-      disqualified_clear_alias_sets = BITMAP_ALLOC (NULL);
-      clear_alias_mode_table = htab_create (11, clear_alias_mode_hash,
-					    clear_alias_mode_eq, NULL);
-      clear_alias_mode_pool = create_alloc_pool ("clear_alias_mode_pool",
-						 sizeof (struct clear_alias_mode_holder), 100);
-    }
-
-  bitmap_set_bit (clear_alias_sets, alias_set);
-
-  tmp_holder.alias_set = alias_set;
-
-  slot = htab_find_slot (clear_alias_mode_table, &tmp_holder, INSERT);
-  gcc_assert (*slot == NULL);
-
-  *slot = entry =
-    (struct clear_alias_mode_holder *) pool_alloc (clear_alias_mode_pool);
-  entry->alias_set = alias_set;
-  entry->mode = mode;
-}
-
-
-/* Remove ALIAS_SET from the sets of stack slots being considered.  */
-
-void
-dse_invalidate_singleton_alias_set (alias_set_type alias_set)
-{
-  if ((!gate_dse()) || !alias_set)
-    return;
-
-  bitmap_clear_bit (clear_alias_sets, alias_set);
-}
 
 
 /* Look up the bitmap index for OFFSET in GROUP_INFO.  If it is not
@@ -4012,12 +3904,6 @@ rest_of_handle_dse (void)
     fprintf (dump_file, "dse: local deletions = %d, global deletions = %d, spill deletions = %d\n",
 	     locally_deleted, globally_deleted, spill_deleted);
   return 0;
-}
-
-static bool
-gate_dse (void)
-{
-  return gate_dse1 () || gate_dse2 ();
 }
 
 static bool

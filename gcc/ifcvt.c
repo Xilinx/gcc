@@ -1520,8 +1520,7 @@ noce_try_cmove_arith (struct noce_if_info *if_info)
       && MEM_ADDR_SPACE (a) == MEM_ADDR_SPACE (b)
       && if_info->branch_cost >= 5)
     {
-      enum machine_mode address_mode
-	= targetm.addr_space.address_mode (MEM_ADDR_SPACE (a));
+      enum machine_mode address_mode = get_address_mode (a);
 
       a = XEXP (a, 0);
       b = XEXP (b, 0);
@@ -3926,6 +3925,11 @@ find_if_case_2 (basic_block test_bb, edge then_edge, edge else_edge)
   basic_block else_bb = else_edge->dest;
   edge else_succ;
   int then_prob, else_prob;
+
+  /* We do not want to speculate (empty) loop latches.  */
+  if (current_loops
+      && else_bb->loop_father->latch == else_bb)
+    return FALSE;
 
   /* If we are partitioning hot/cold basic blocks, we don't want to
      mess up unconditional or indirect jumps that cross between hot
