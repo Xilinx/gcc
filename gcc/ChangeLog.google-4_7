@@ -1,3 +1,7 @@
+2012-05-24   Rong Xu  <xur@google.com>
+
+	* l-ipo.c (create_unique_name): Make temp names demanglable.
+
 2012-05-21   Easwaran Raman  <eraman@google.com>
 
 	* gcc/basic-block.h (maybe_hot_count_p): New declaration.

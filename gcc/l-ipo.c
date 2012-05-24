@@ -1726,15 +1726,15 @@ create_unique_name (tree decl, unsigned module_id)
       char *n;
       unsigned fno =  FUNC_DECL_FUNC_ID (context);
       n = (char *)alloca (strlen (name) + 15);
-      sprintf (n, "%s_%u", name, fno);
+      sprintf (n, "%s.%u", name, fno);
       name = n;
     }
 
   assembler_name = (char*) alloca (strlen (name) + 30);
-  sprintf (assembler_name, "%s_cmo_%u", name, module_id);
+  sprintf (assembler_name, "%s.cmo.%u", name, module_id);
   seq = get_name_seq_num (assembler_name);
   if (seq)
-    sprintf (assembler_name, "%s_%d", assembler_name, seq);
+    sprintf (assembler_name, "%s.%d", assembler_name, seq);
 
   assemb_id = get_identifier (assembler_name);
 
