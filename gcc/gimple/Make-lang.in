@@ -64,6 +64,11 @@ gimple.stage4:
 gimple.stageprofile:
 gimple.stagefeedback:
 
+# Testsuite support.
+lang_checks += check-gimple
+lang_checks_parallelized += check-gimple
+check_gimple_parallelize = gimple.exp=*
+
 # GIMPLE rules.
 
 # Use strict warnings for this front end.

@@ -1,3 +1,7 @@
+2012-05-24   Diego Novillo  <dnovillo@google.com>
+
+	* Make-lang.in: Add support for check-gimple.
+
 2012-03-23   Diego Novillo  <dnovillo@google.com>
 
 	* gimple-lang.c (def_builtin_1): Call set_builtin_decl.

@@ -1,0 +1,6 @@
+2012-05-24   Diego Novillo  <dnovillo@google.com>
+
+	* gimple.dg/20120523-1.gimple: New.
+	* gimple.dg/dg.exp: New.
+	* lib/gimple-dg.exp: New.
+	* lib/gimple.exp: New.
