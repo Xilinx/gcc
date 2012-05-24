@@ -296,9 +296,9 @@ add_clause (conditions conditions, struct predicate *p, clause_t clause)
       condition *cc1;
       if (!(clause & (1 << c1)))
 	continue;
-      cc1 = VEC_index (condition,
-		       conditions,
-		       c1 - predicate_first_dynamic_condition);
+      cc1 = &VEC_index (condition,
+		        conditions,
+		        c1 - predicate_first_dynamic_condition);
       /* We have no way to represent !CHANGED and !IS_NOT_CONSTANT
 	 and thus there is no point for looking for them.  */
       if (cc1->code == CHANGED
@@ -307,12 +307,12 @@ add_clause (conditions conditions, struct predicate *p, clause_t clause)
       for (c2 = c1 + 1; c2 <= NUM_CONDITIONS; c2++)
 	if (clause & (1 << c2))
 	  {
-	    condition *cc1 = VEC_index (condition,
-					conditions,
-					c1 - predicate_first_dynamic_condition);
-	    condition *cc2 = VEC_index (condition,
-					conditions,
-					c2 - predicate_first_dynamic_condition);
+	    condition *cc1 = &VEC_index (condition,
+					 conditions,
+					 c1 - predicate_first_dynamic_condition);
+	    condition *cc2 = &VEC_index (condition,
+					 conditions,
+					 c2 - predicate_first_dynamic_condition);
 	    if (cc1->operand_num == cc2->operand_num
 		&& cc1->val == cc2->val
 		&& cc2->code != IS_NOT_CONSTANT
@@ -477,7 +477,7 @@ predicate_probability (conditions conds,
 	      {
 		if (i2 >= predicate_first_dynamic_condition)
 		  {
-		    condition *c = VEC_index
+		    condition *c = &VEC_index
 				    (condition, conds,
 				     i2 - predicate_first_dynamic_condition);
 		    if (c->code == CHANGED
@@ -487,7 +487,7 @@ predicate_probability (conditions conds,
 		      {
 			int iprob = VEC_index (inline_param_summary_t,
 					       inline_param_summary,
-					       c->operand_num)->change_prob;
+					       c->operand_num).change_prob;
 			this_prob = MAX (this_prob, iprob);
 		      }
 		    else
@@ -517,8 +517,8 @@ dump_condition (FILE *f, conditions conditions, int cond)
     fprintf (f, "not inlined");
   else
     {
-      c = VEC_index (condition, conditions,
-		     cond - predicate_first_dynamic_condition);
+      c = &VEC_index (condition, conditions,
+		      cond - predicate_first_dynamic_condition);
       fprintf (f, "op%i", c->operand_num);
       if (c->code == IS_NOT_CONSTANT)
 	{
@@ -610,7 +610,7 @@ account_size_time (struct inline_summary *summary, int size, int time,
     {
       i = 0;
       found = true;
-      e = VEC_index (size_time_entry, summary->entry, 0);
+      e = &VEC_index (size_time_entry, summary->entry, 0);
       gcc_assert (!e->predicate.clause[0]);
     }
   if (dump_file && (dump_flags & TDF_DETAILS) && (time || size))
@@ -760,7 +760,7 @@ evaluate_properties_for_edge (struct cgraph_edge *e, bool inline_p,
 	  else if (inline_p
 		   && !VEC_index (inline_param_summary_t,
 				  es->param,
-				  i)->change_prob)
+				  i).change_prob)
 	    VEC_replace (tree, known_vals, i, error_mark_node);
 	}
     }
@@ -1135,7 +1135,7 @@ dump_inline_edge_summary (FILE * f, int indent, struct cgraph_node *node,
 	     i++)
 	  {
 	    int prob = VEC_index (inline_param_summary_t,
-				  es->param, i)->change_prob;
+				  es->param, i).change_prob;
 
 	    if (!prob)
 	      fprintf (f, "%*s op%i is compile time invariant\n",
@@ -1712,8 +1712,8 @@ will_be_nonconstant_predicate (struct ipa_node_params *info,
 	return p;
       /* If we know when operand is constant,
 	 we still can say something useful.  */
-      if (!true_predicate_p (VEC_index (predicate_t, nonconstant_names,
-					SSA_NAME_VERSION (use))))
+      if (!true_predicate_p (&VEC_index (predicate_t, nonconstant_names,
+					 SSA_NAME_VERSION (use))))
 	continue;
       return p;
     }
@@ -1735,14 +1735,14 @@ will_be_nonconstant_predicate (struct ipa_node_params *info,
 			   ipa_get_param_decl_index (info, parm),
 			   CHANGED, NULL);
       else
-	p = *VEC_index (predicate_t, nonconstant_names,
-			SSA_NAME_VERSION (use));
+	p = VEC_index (predicate_t, nonconstant_names,
+		       SSA_NAME_VERSION (use));
       op_non_const = or_predicates (summary->conds, &p, &op_non_const);
     }
   if (gimple_code (stmt) == GIMPLE_ASSIGN
       && TREE_CODE (gimple_assign_lhs (stmt)) == SSA_NAME)
     VEC_replace (predicate_t, nonconstant_names,
-		 SSA_NAME_VERSION (gimple_assign_lhs (stmt)), &op_non_const);
+		 SSA_NAME_VERSION (gimple_assign_lhs (stmt)), op_non_const);
   return op_non_const;
 }
 
@@ -1957,7 +1957,7 @@ estimate_function_body_sizes (struct cgraph_node *node, bool early)
 		  struct predicate false_p = false_predicate ();
 		  VEC_replace (predicate_t, nonconstant_names,
 			       SSA_NAME_VERSION (gimple_call_lhs (stmt)),
-			       &false_p);
+			       false_p);
 		}
 	      if (ipa_node_params_vector)
 		{
@@ -1972,7 +1972,7 @@ estimate_function_body_sizes (struct cgraph_node *node, bool early)
 		      int prob = param_change_prob (stmt, i);
 		      gcc_assert (prob >= 0 && prob <= REG_BR_PROB_BASE);
 		      VEC_index (inline_param_summary_t,
-				 es->param, i)->change_prob = prob;
+				 es->param, i).change_prob = prob;
 		    }
 		}
 
@@ -2431,8 +2431,8 @@ remap_predicate (struct inline_summary *info,
 	      {
 		 struct condition *c;
 
-		 c = VEC_index (condition, callee_info->conds,
-				cond - predicate_first_dynamic_condition);
+		 c = &VEC_index (condition, callee_info->conds,
+				 cond - predicate_first_dynamic_condition);
 		 /* See if we can remap condition operand to caller's operand.
 		    Otherwise give up.  */
 		 if (!operand_map
@@ -2519,11 +2519,11 @@ remap_edge_change_prob (struct cgraph_edge *inlined_edge,
 				      inlined_es->param)))
 	    {
 	      int prob1 = VEC_index (inline_param_summary_t,
-				     es->param, i)->change_prob;
+				     es->param, i).change_prob;
 	      int prob2 = VEC_index
 			     (inline_param_summary_t,
 			     inlined_es->param,
-			     jfunc->value.pass_through.formal_id)->change_prob;
+			     jfunc->value.pass_through.formal_id).change_prob;
 	      int prob = ((prob1 * prob2 + REG_BR_PROB_BASE / 2)
 			  / REG_BR_PROB_BASE);
 
@@ -2531,7 +2531,7 @@ remap_edge_change_prob (struct cgraph_edge *inlined_edge,
 		prob = 1;
 
 	      VEC_index (inline_param_summary_t,
-			 es->param, i)->change_prob = prob;
+			 es->param, i).change_prob = prob;
 	    }
 	}
   }
@@ -2743,12 +2743,12 @@ do_estimate_edge_time (struct cgraph_edge *edge)
 	  <= edge->uid)
 	VEC_safe_grow_cleared (edge_growth_cache_entry, heap, edge_growth_cache,
 			       cgraph_edge_max_uid);
-      VEC_index (edge_growth_cache_entry, edge_growth_cache, edge->uid)->time
+      VEC_index (edge_growth_cache_entry, edge_growth_cache, edge->uid).time
 	= ret + (ret >= 0);
 
       ret_size = size - es->call_stmt_size;
       gcc_checking_assert (es->call_stmt_size);
-      VEC_index (edge_growth_cache_entry, edge_growth_cache, edge->uid)->size
+      VEC_index (edge_growth_cache_entry, edge_growth_cache, edge->uid).size
 	= ret_size + (ret_size >= 0);
     }
   return ret;
@@ -2774,7 +2774,7 @@ do_estimate_edge_growth (struct cgraph_edge *edge)
       do_estimate_edge_time (edge);
       size = VEC_index (edge_growth_cache_entry,
 			edge_growth_cache,
-			edge->uid)->size;
+			edge->uid).size;
       gcc_checking_assert (size);
       return size - (size > 0);
     }
@@ -3009,7 +3009,7 @@ read_inline_edge_summary (struct lto_input_block *ib, struct cgraph_edge *e)
     {
       VEC_safe_grow_cleared (inline_param_summary_t, heap, es->param, length);
       for (i = 0; i < length; i++)
-	VEC_index (inline_param_summary_t, es->param, i)->change_prob
+	VEC_index (inline_param_summary_t, es->param, i).change_prob
 	  = streamer_read_uhwi (ib);
     }
 }
@@ -3163,7 +3163,7 @@ write_inline_edge_summary (struct output_block *ob, struct cgraph_edge *e)
   streamer_write_uhwi (ob, VEC_length (inline_param_summary_t, es->param));
   for (i = 0; i < (int)VEC_length (inline_param_summary_t, es->param); i++)
     streamer_write_uhwi (ob, VEC_index (inline_param_summary_t,
-				        es->param, i)->change_prob);
+				        es->param, i).change_prob);
 }
 
 

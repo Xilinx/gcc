@@ -2295,6 +2295,34 @@ struct walk_type_data
   int loopcounter;
 };
 
+
+/* Given a string TYPE_NAME, representing a C++ typename, return a valid
+   pre-processor identifier to use in a #define directive.  This replaces
+   special characters used in C++ identifiers like '>', '<' and ':' with
+   '_'.
+
+   If no C++ special characters are found in TYPE_NAME, return
+   TYPE_NAME.  Otherwise, return a copy of TYPE_NAME with the special
+   characters replaced with '_'.  In this case, the caller is
+   responsible for freeing the allocated string.  */
+
+static const char *
+filter_type_name (const char *type_name)
+{
+  if (strchr (type_name, '<') || strchr (type_name, ':'))
+    {
+      size_t i;
+      char *s = xstrdup (type_name);
+      for (i = 0; i < strlen (s); i++)
+	if (s[i] == '<' || s[i] == '>' || s[i] == ':')
+	  s[i] = '_';
+      return s;
+    }
+  else
+    return type_name;
+}
+
+
 /* Print a mangled name representing T to OF.  */
 
 static void
@@ -2321,8 +2349,13 @@ output_mangled_typename (outf_p of, const_type_p t)
       case TYPE_STRUCT:
       case TYPE_UNION:
       case TYPE_LANG_STRUCT:
-	oprintf (of, "%lu%s", (unsigned long) strlen (t->u.s.tag),
-		 t->u.s.tag);
+	{
+	  const char *id_for_tag = filter_type_name (t->u.s.tag);
+	  oprintf (of, "%lu%s", (unsigned long) strlen (id_for_tag),
+		   id_for_tag);
+	  if (id_for_tag != t->u.s.tag)
+	    free (CONST_CAST(char *, id_for_tag));
+	}
 	break;
       case TYPE_PARAM_STRUCT:
 	{
@@ -3099,7 +3132,12 @@ write_func_for_structure (type_p orig_s, type_p s, type_p *param,
   oprintf (d.of, "\n");
   oprintf (d.of, "void\n");
   if (param == NULL)
-    oprintf (d.of, "gt_%sx_%s", wtd->prefix, orig_s->u.s.tag);
+    {
+      const char *id_for_tag = filter_type_name (orig_s->u.s.tag);
+      oprintf (d.of, "gt_%sx_%s", wtd->prefix, id_for_tag);
+      if (id_for_tag != orig_s->u.s.tag)
+	free (CONST_CAST(char *, id_for_tag));
+    }
   else
     {
       oprintf (d.of, "gt_%s_", wtd->prefix);
@@ -3230,16 +3268,19 @@ write_types (outf_p output_header, type_p structures, type_p param_structs,
     if (s->gc_used == GC_POINTED_TO || s->gc_used == GC_MAYBE_POINTED_TO)
       {
 	options_p opt;
+	const char *s_id_for_tag;
 
 	if (s->gc_used == GC_MAYBE_POINTED_TO && s->u.s.line.file == NULL)
 	  continue;
+
+	s_id_for_tag = filter_type_name (s->u.s.tag);
 
 	oprintf (output_header, "#define gt_%s_", wtd->prefix);
 	output_mangled_typename (output_header, s);
 	oprintf (output_header, "(X) do { \\\n");
 	oprintf (output_header,
 		 "  if (X != NULL) gt_%sx_%s (X);\\\n", wtd->prefix,
-		 s->u.s.tag);
+		 s_id_for_tag);
 	oprintf (output_header, "  } while (0)\n");
 
 	for (opt = s->u.s.opt; opt; opt = opt->next)
@@ -3249,9 +3290,14 @@ write_types (outf_p output_header, type_p structures, type_p param_structs,
 	      const_type_p const t = (const_type_p) opt->info.type;
 	      if (t->kind == TYPE_STRUCT
 		  || t->kind == TYPE_UNION || t->kind == TYPE_LANG_STRUCT)
-		oprintf (output_header,
-			 "#define gt_%sx_%s gt_%sx_%s\n",
-			 wtd->prefix, s->u.s.tag, wtd->prefix, t->u.s.tag);
+		{
+		  const char *t_id_for_tag = filter_type_name (t->u.s.tag);
+		  oprintf (output_header,
+			   "#define gt_%sx_%s gt_%sx_%s\n",
+			   wtd->prefix, s->u.s.tag, wtd->prefix, t_id_for_tag);
+		  if (t_id_for_tag != t->u.s.tag)
+		    free (CONST_CAST(char *, t_id_for_tag));
+		}
 	      else
 		error_at_line (&s->u.s.line,
 			       "structure alias is not a structure");
@@ -3263,7 +3309,10 @@ write_types (outf_p output_header, type_p structures, type_p param_structs,
 	/* Declare the marker procedure only once.  */
 	oprintf (output_header,
 		 "extern void gt_%sx_%s (void *);\n",
-		 wtd->prefix, s->u.s.tag);
+		 wtd->prefix, s_id_for_tag);
+
+	if (s_id_for_tag != s->u.s.tag)
+	  free (CONST_CAST(char *, s_id_for_tag));
 
 	if (s->u.s.line.file == NULL)
 	  {
@@ -3867,11 +3916,14 @@ write_root (outf_p f, pair_p v, type_p type, const char *name, int has_length,
 
 	if (!has_length && UNION_OR_STRUCT_P (tp))
 	  {
-	    oprintf (f, "    &gt_ggc_mx_%s,\n", tp->u.s.tag);
+	    const char *id_for_tag = filter_type_name (tp->u.s.tag);
+	    oprintf (f, "    &gt_ggc_mx_%s,\n", id_for_tag);
 	    if (emit_pch)
-	      oprintf (f, "    &gt_pch_nx_%s", tp->u.s.tag);
+	      oprintf (f, "    &gt_pch_nx_%s", id_for_tag);
 	    else
 	      oprintf (f, "    NULL");
+	    if (id_for_tag != tp->u.s.tag)
+	      free (CONST_CAST(char *, id_for_tag));
 	  }
 	else if (!has_length && tp->kind == TYPE_PARAM_STRUCT)
 	  {
@@ -4270,7 +4322,7 @@ note_def_vec (const char *type_name, bool is_scalar, struct fileloc *pos)
   pair_p fields;
   type_p t;
   options_p o;
-  const char *name = concat ("VEC_", type_name, "_base", (char *) 0);
+  const char *name = concat ("vec_t<", type_name, ">", (char *) 0);
 
   if (is_scalar)
     {
@@ -4287,25 +4339,6 @@ note_def_vec (const char *type_name, bool is_scalar, struct fileloc *pos)
   fields = create_field_at (fields, vec_prefix_type (), "prefix", 0, pos);
 
   do_typedef (name, new_structure (name, 0, pos, fields, 0), pos);
-}
-
-/* Record the definition of an allocation-specific VEC structure, as if
-   we had expanded the macros in vec.h:
-
-   typedef struct VEC_<type>_<astrat> {
-     VEC_<type>_base base;
-   } VEC_<type>_<astrat>;
-*/
-void
-note_def_vec_alloc (const char *type, const char *astrat, struct fileloc *pos)
-{
-  const char *astratname = concat ("VEC_", type, "_", astrat, (char *) 0);
-  const char *basename = concat ("VEC_", type, "_base", (char *) 0);
-
-  pair_p field = create_field_at (0, resolve_typedef (basename, pos),
-				  "base", 0, pos);
-
-  do_typedef (astratname, new_structure (astratname, 0, pos, field, 0), pos);
 }
 
 /* Returns the specifier keyword for a string or union type S, empty string
@@ -4355,8 +4388,10 @@ write_typed_alloc_def (outf_p f,
   bool two_args = variable_size && (quantity == vector);
   bool third_arg = ((zone == specific_zone)
 		    && (variable_size || (quantity == vector)));
+  const char *type_name_as_id;
   gcc_assert (f != NULL);
-  oprintf (f, "#define ggc_alloc_%s%s", allocator_type, type_name);
+  type_name_as_id = filter_type_name (type_name);
+  oprintf (f, "#define ggc_alloc_%s%s", allocator_type, type_name_as_id);
   oprintf (f, "(%s%s%s%s%s) ",
 	   (variable_size ? "SIZE" : ""),
 	   (two_args ? ", " : ""),
@@ -4373,6 +4408,8 @@ write_typed_alloc_def (outf_p f,
   if (quantity == vector)
     oprintf (f, ", n");
   oprintf (f, " MEM_STAT_INFO)))\n");
+  if (type_name_as_id != type_name)
+    free (CONST_CAST(char *, type_name_as_id));
 }
 
 /* Writes a typed allocator definition into output F for a struct or

@@ -1941,9 +1941,9 @@ undo_transformations (av_set_t *av_ptr, rtx insn)
         {
           expr_history_def *phist;
 
-          phist = VEC_index (expr_history_def,
-                             EXPR_HISTORY_OF_CHANGES (expr),
-                             index);
+          phist = &VEC_index (expr_history_def,
+                              EXPR_HISTORY_OF_CHANGES (expr),
+                              index);
 
           switch (phist->type)
             {

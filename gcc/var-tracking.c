@@ -7553,7 +7553,7 @@ loc_exp_dep_clear (variable var)
 {
   while (!VEC_empty (loc_exp_dep, VAR_LOC_DEP_VEC (var)))
     {
-      loc_exp_dep *led = VEC_last (loc_exp_dep, VAR_LOC_DEP_VEC (var));
+      loc_exp_dep *led = &VEC_last (loc_exp_dep, VAR_LOC_DEP_VEC (var));
       if (led->next)
 	led->next->pprev = led->pprev;
       if (led->pprev)
@@ -7593,7 +7593,7 @@ loc_exp_insert_dep (variable var, rtx x, htab_t vars)
     return;
 
   VEC_quick_push (loc_exp_dep, VAR_LOC_DEP_VEC (var), NULL);
-  led = VEC_last (loc_exp_dep, VAR_LOC_DEP_VEC (var));
+  led = &VEC_last (loc_exp_dep, VAR_LOC_DEP_VEC (var));
   led->dv = var->dv;
   led->value = x;
 

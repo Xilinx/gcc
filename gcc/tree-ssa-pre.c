@@ -1627,12 +1627,12 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 		if (double_int_fits_in_shwi_p (off))
 		  newop.off = off.low;
 	      }
-	    VEC_replace (vn_reference_op_s, newoperands, j, &newop);
+	    VEC_replace (vn_reference_op_s, newoperands, j, newop);
 	    /* If it transforms from an SSA_NAME to an address, fold with
 	       a preceding indirect reference.  */
 	    if (j > 0 && op[0] && TREE_CODE (op[0]) == ADDR_EXPR
 		&& VEC_index (vn_reference_op_s,
-			      newoperands, j - 1)->opcode == MEM_REF)
+			      newoperands, j - 1).opcode == MEM_REF)
 	      vn_reference_fold_indirect (&newoperands, &j);
 	  }
 	if (i != VEC_length (vn_reference_op_s, operands))
@@ -2621,8 +2621,8 @@ create_component_ref_by_pieces_1 (basic_block block, vn_reference_t ref,
 				  unsigned int *operand, gimple_seq *stmts,
 				  gimple domstmt)
 {
-  vn_reference_op_t currop = VEC_index (vn_reference_op_s, ref->operands,
-					*operand);
+  vn_reference_op_t currop = &VEC_index (vn_reference_op_s, ref->operands,
+					 *operand);
   tree genop;
   ++*operand;
   switch (currop->opcode)
@@ -2699,8 +2699,8 @@ create_component_ref_by_pieces_1 (basic_block block, vn_reference_t ref,
       {
 	pre_expr op0expr, op1expr;
 	tree genop0 = NULL_TREE, genop1 = NULL_TREE;
-	vn_reference_op_t nextop = VEC_index (vn_reference_op_s, ref->operands,
-					      ++*operand);
+	vn_reference_op_t nextop = &VEC_index (vn_reference_op_s, ref->operands,
+					       ++*operand);
 	tree baseop = create_component_ref_by_pieces_1 (block, ref, operand,
 							stmts, domstmt);
 	if (!baseop)
@@ -4822,7 +4822,7 @@ init_pre (bool do_fre)
 
   next_expression_id = 1;
   expressions = NULL;
-  VEC_safe_push (pre_expr, heap, expressions, NULL);
+  VEC_safe_push (pre_expr, heap, expressions, (pre_expr)NULL);
   value_expressions = VEC_alloc (bitmap_set_t, heap, get_max_value_id () + 1);
   VEC_safe_grow_cleared (bitmap_set_t, heap, value_expressions,
 			 get_max_value_id() + 1);

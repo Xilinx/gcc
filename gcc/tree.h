@@ -1475,7 +1475,7 @@ struct GTY(()) tree_vec {
 /* In a CONSTRUCTOR node.  */
 #define CONSTRUCTOR_ELTS(NODE) (CONSTRUCTOR_CHECK (NODE)->constructor.elts)
 #define CONSTRUCTOR_ELT(NODE,IDX) \
-  (VEC_index (constructor_elt, CONSTRUCTOR_ELTS (NODE), IDX))
+  (&VEC_index (constructor_elt, CONSTRUCTOR_ELTS (NODE), IDX))
 #define CONSTRUCTOR_NELTS(NODE) \
   (VEC_length (constructor_elt, CONSTRUCTOR_ELTS (NODE)))
 
@@ -1485,7 +1485,7 @@ struct GTY(()) tree_vec {
 #define FOR_EACH_CONSTRUCTOR_VALUE(V, IX, VAL) \
   for (IX = 0; (IX >= VEC_length (constructor_elt, V)) \
 	       ? false \
-	       : ((VAL = VEC_index (constructor_elt, V, IX)->value), \
+	       : ((VAL = VEC_index (constructor_elt, V, IX).value), \
 	       true); \
        (IX)++)
 
@@ -1495,8 +1495,8 @@ struct GTY(()) tree_vec {
 #define FOR_EACH_CONSTRUCTOR_ELT(V, IX, INDEX, VAL) \
   for (IX = 0; (IX >= VEC_length (constructor_elt, V)) \
 	       ? false \
-	       : (((void) (VAL = VEC_index (constructor_elt, V, IX)->value)), \
-		  (INDEX = VEC_index (constructor_elt, V, IX)->index), \
+	       : (((void) (VAL = VEC_index (constructor_elt, V, IX).value)), \
+		  (INDEX = VEC_index (constructor_elt, V, IX).index), \
 		  true); \
        (IX)++)
 

@@ -422,8 +422,6 @@ extern void note_variable (const char *s, type_p t, options_p o,
 			   struct fileloc *pos);
 extern void note_def_vec (const char *type_name, bool is_scalar,
 			  struct fileloc *pos);
-extern void note_def_vec_alloc (const char *type, const char *astrat,
-				struct fileloc *pos);
 
 /* Lexer and parser routines.  */
 extern int yylex (const char **yylval);
@@ -451,7 +449,6 @@ enum
     VEC_TOKEN,
     DEFVEC_OP,
     DEFVEC_I,
-    DEFVEC_ALLOC,
     ELLIPSIS,
     PTR_ALIAS,
     NESTED_PTR,

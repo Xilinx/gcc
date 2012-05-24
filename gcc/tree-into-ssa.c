@@ -1048,7 +1048,7 @@ mark_phi_for_rewrite (basic_block bb, gimple phi)
   bitmap_set_bit (blocks_with_phis_to_rewrite, idx);
   VEC_reserve (gimple_vec, heap, phis_to_rewrite, last_basic_block + 1);
   for (i = VEC_length (gimple_vec, phis_to_rewrite); i <= idx; i++)
-    VEC_quick_push (gimple_vec, phis_to_rewrite, NULL);
+    VEC_quick_push (gimple_vec, phis_to_rewrite, (gimple_vec)NULL);
 
   phis = VEC_index (gimple_vec, phis_to_rewrite, idx);
   if (!phis)

@@ -97,7 +97,7 @@ ipa_populate_param_decls (struct cgraph_node *node,
   for (parm = fnargs; parm; parm = DECL_CHAIN (parm))
     {
       VEC_index (ipa_param_descriptor_t,
-		 info->descriptors, param_num)->decl = parm;
+		 info->descriptors, param_num).decl = parm;
       param_num++;
     }
 }
@@ -2298,7 +2298,7 @@ ipa_modify_formal_parameters (tree fndecl, ipa_parm_adjustment_vec adjustments,
       struct ipa_parm_adjustment *adj;
       gcc_assert (link);
 
-      adj = VEC_index (ipa_parm_adjustment_t, adjustments, i);
+      adj = &VEC_index (ipa_parm_adjustment_t, adjustments, i);
       parm = VEC_index (tree, oparms, adj->base_index);
       adj->base = parm;
 
@@ -2366,8 +2366,8 @@ ipa_modify_formal_parameters (tree fndecl, ipa_parm_adjustment_vec adjustments,
      When we are asked to remove it, we need to build new FUNCTION_TYPE
      instead.  */
   if (TREE_CODE (orig_type) != METHOD_TYPE
-       || (VEC_index (ipa_parm_adjustment_t, adjustments, 0)->copy_param
-	 && VEC_index (ipa_parm_adjustment_t, adjustments, 0)->base_index == 0))
+       || (VEC_index (ipa_parm_adjustment_t, adjustments, 0).copy_param
+	  && VEC_index (ipa_parm_adjustment_t, adjustments, 0).base_index == 0))
     {
       new_type = build_distinct_type_copy (orig_type);
       TYPE_ARG_TYPES (new_type) = new_reversed;
@@ -2434,7 +2434,7 @@ ipa_modify_call_arguments (struct cgraph_edge *cs, gimple stmt,
     {
       struct ipa_parm_adjustment *adj;
 
-      adj = VEC_index (ipa_parm_adjustment_t, adjustments, i);
+      adj = &VEC_index (ipa_parm_adjustment_t, adjustments, i);
 
       if (adj->copy_param)
 	{
@@ -2617,7 +2617,7 @@ index_in_adjustments_multiple_times_p (int base_index,
   for (i = 0; i < len; i++)
     {
       struct ipa_parm_adjustment *adj;
-      adj = VEC_index (ipa_parm_adjustment_t, adjustments, i);
+      adj = &VEC_index (ipa_parm_adjustment_t, adjustments, i);
 
       if (adj->base_index == base_index)
 	{
@@ -2648,7 +2648,7 @@ ipa_combine_adjustments (ipa_parm_adjustment_vec inner,
   for (i = 0; i < inlen; i++)
     {
       struct ipa_parm_adjustment *n;
-      n = VEC_index (ipa_parm_adjustment_t, inner, i);
+      n = &VEC_index (ipa_parm_adjustment_t, inner, i);
 
       if (n->remove_param)
 	removals++;
@@ -2660,10 +2660,10 @@ ipa_combine_adjustments (ipa_parm_adjustment_vec inner,
   for (i = 0; i < outlen; i++)
     {
       struct ipa_parm_adjustment *r;
-      struct ipa_parm_adjustment *out = VEC_index (ipa_parm_adjustment_t,
-						   outer, i);
-      struct ipa_parm_adjustment *in = VEC_index (ipa_parm_adjustment_t, tmp,
-						  out->base_index);
+      struct ipa_parm_adjustment *out = &VEC_index (ipa_parm_adjustment_t,
+						    outer, i);
+      struct ipa_parm_adjustment *in = &VEC_index (ipa_parm_adjustment_t, tmp,
+						   out->base_index);
 
       gcc_assert (!in->remove_param);
       if (out->remove_param)
@@ -2696,8 +2696,8 @@ ipa_combine_adjustments (ipa_parm_adjustment_vec inner,
 
   for (i = 0; i < inlen; i++)
     {
-      struct ipa_parm_adjustment *n = VEC_index (ipa_parm_adjustment_t,
-						 inner, i);
+      struct ipa_parm_adjustment *n = &VEC_index (ipa_parm_adjustment_t,
+						  inner, i);
 
       if (n->remove_param)
 	VEC_quick_push (ipa_parm_adjustment_t, adjustments, n);
@@ -2722,7 +2722,7 @@ ipa_dump_param_adjustments (FILE *file, ipa_parm_adjustment_vec adjustments,
   for (i = 0; i < len; i++)
     {
       struct ipa_parm_adjustment *adj;
-      adj = VEC_index (ipa_parm_adjustment_t, adjustments, i);
+      adj = &VEC_index (ipa_parm_adjustment_t, adjustments, i);
 
       if (!first)
 	fprintf (file, "                 ");

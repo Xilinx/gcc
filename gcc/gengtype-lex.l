@@ -100,10 +100,6 @@ EOID	[^[:alnum:]_]
   BEGIN(in_struct);
   return DEFVEC_I;
 }
-^{HWS}DEF_VEC_ALLOC_[IOP]/{EOID} {
-  BEGIN(in_struct);
-  return DEFVEC_ALLOC;
-}
 }
 
 <in_struct>{

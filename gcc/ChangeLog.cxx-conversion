@@ -1,3 +1,143 @@
+2012-05-23   Diego Novillo  <dnovillo@google.com>
+
+	Re-implement VEC in C++.
+
+	* vec.c (vec_heap_free): Convert into a template function.
+	(vec_gc_o_reserve_1): Make extern.
+	(vec_gc_p_reserve): Remove.
+	(vec_gc_p_reserve_exact): Remove.
+	(vec_gc_o_reserve): Remove.
+	(vec_gc_o_reserve_exact): Remove.
+	(vec_heap_o_reserve_1): Make extern.
+	(vec_heap_p_reserve): Remove.
+	(vec_heap_p_reserve_exact): Remove.
+	(vec_heap_o_reserve): Remove.
+	(vec_heap_o_reserve_exact): Remove.
+	(vec_stack_p_reserve): Remove.
+	(vec_stack_p_reserve_exact): Remove.
+	* vec.h (VEC_CHECK_INFO, VEC_CHECK_DECL, VEC_CHECK_PASS,
+	VEC_ASSERT, VEC_ASSERT_FAIL, vec_assert_fail): Move earlier
+	in the file.
+	(VEC): Define to vec_t<T>.
+	(vec_allocation_t): Define.
+	(struct vec_prefix): Move earlier in the file.
+	(vec_t<T>): New template.
+	(DEF_VEC_I, DEF_VECL_ALLOC_I, DEF_VEC_P, DEF_VEC_ALLOC_P,
+	DEF_VEC_O, DEF_VEC_ALLOC_P, DEF_VEC_O, DEF_VEC_ALLOC_O,
+	DEF_VEC_ALLOC_P_STACK, DEF_VEC_ALLOC_O_STACK,
+	DEF_VEC_ALLOC_I_STACK): Expand to 'struct vec_swallow_trailing_semi'.
+	(vec_stack_p_reserve): Remove.
+	(vec_stack_p_reserve_exact): Remove.
+	(vec_stack_p_reserve_exact_1): Remove.
+	(vec_stack_o_reserve): Remove.
+	(vec_stack_o_reserve_exact): Remove.
+	(vec_stack_free): Re-write as a template function.
+	(vec_reserve): New template function.
+	(vec_reserve_exact): New template function.
+	(vec_heap_free): New template function if GATHER_STATISTICS is
+	defined.  Otherwise, macro that expands to free().
+	(VEC_length_1): New template function.
+	(VEC_length): Call it.
+	(VEC_empty_1): New template function.
+	(VEC_empty): Call it.
+	(VEC_address_1): New template function.
+	(VEC_address): Call it.
+	(VEC_last_1): New template function.
+	(VEC_last): Call it.  Change return type to T&.
+	Change all users that used VEC_Os.
+	(VEC_index_1): New template function.
+	(VEC_index): Call it.  Return a T& instead of a T*.
+	Update all callers that were using VEC_O before.
+	(VEC_iterate_1): New template function.
+	(VEC_iterate): Call it.
+	(VEC_embedded_size_1): New template function.
+	(VEC_embedded_size): Call it.
+	(VEC_embedded_init_1): New template function.
+	(VEC_embedded_init): Call it.
+	(VEC_alloc_1): New template function.
+	(VEC_alloc): Call it.  If A is 'stack', call XALLOCAVAR to
+	do the allocation.
+	(VEC_free_1): New template function.
+	(VEC_free): Call it.
+	(VEC_copy_1): New template function.
+	(VEC_copy): Call it.
+	(VEC_space_1): New template function
+	(VEC_space): Call it.
+	(VEC_reserve_1): New template function.
+	(VEC_reserve): Call it.
+	(VEC_reserve_exact_1): New template function.
+	(VEC_reserve_exact): Call it.
+	(VEC_splice_1): New template function.
+	(VEC_splice): Call it.
+	(VEC_safe_splice_1): New template function.
+	(VEC_safe_splice): Call it.
+	(VEC_quick_push_1): New template function.  Create two overloads, one
+	accepting T, the other accepting T *.  Update all callers
+	where T and T * are ambiguous.
+	(VEC_quick_push): Call it.
+	(VEC_safe_push_1): New template function. Create two overloads, one
+	accepting T, the other accepting T *.  Update all callers
+	where T and T * are ambiguous.
+	(VEC_safe_push): Call it.
+	(VEC_pop_1): New template function.
+	(VEC_pop): Call it.
+	(VEC_truncate_1): New template function.
+	(VEC_truncate): Call it.
+	(VEC_safe_grow_1): New template function.
+	(VEC_safe_grow): Call it.
+	(VEC_safe_grow_cleared_1): New template function.
+	(VEC_safe_grow_cleared): Call it.
+	(VEC_replace_1): New template function.
+	(VEC_replace): Call it.  Always accept T instead of T*.
+	Update all callers that used VEC_Os.
+	(VEC_quick_insert_1): New template function.
+	(VEC_quick_insert): Call it.
+	(VEC_safe_insert_1): New template function.
+	(VEC_safe_insert): Call it.
+	(VEC_ordered_remove_1): New template function.
+	(VEC_ordered_remove): Call it.
+	(VEC_unordered_remove_1): New template function.
+	(VEC_unordered_remove): Call it.
+	(VEC_block_remove_1): New template function.
+	(VEC_block_remove): Call it.
+	(VEC_lower_bound_1): New template function.
+	(VEC_lower_bound): Call it.
+	(VEC_OP): Remove.
+	(DEF_VEC_FUNC_P): Remove.
+	(DEF_VEC_ALLOC_FUNC_P): Remove.
+	(DEF_VEC_NONALLOC_FUNCS_P): Remove.
+	(DEF_VEC_FUNC_O): Remove.
+	(DEF_VEC_ALLOC_FUNC_O): Remove.
+	(DEF_VEC_NONALLOC_FUNCS_O): Remove.
+	(DEF_VEC_ALLOC_FUNC_I): Remove.
+	(DEF_VEC_NONALLOC_FUNCS_I): Remove.
+	(DEF_VEC_ALLOC_FUNC_P_STACK): Remove.
+	(DEF_VEC_ALLOC_FUNC_O_STACK): Remove.
+	(DEF_VEC_ALLOC_FUNC_I_STACK): Remove.
+	(vec_reserve_exact): New template function.
+
+	* gengtype-lex.l (DEF_VEC_ALLOC_[IOP]/{EOID}): Remove.
+	* gengtype-parse.c (token_names): Remove DEF_VEC_ALLOC_[IOP].
+	(typedef_name): Emit vec_t<C1> instead of VEC_C1_C2.
+	(def_vec_alloc): Remove.  Update all callers.
+	* gengtype.c (filter_type_name): New.
+	(output_mangled_typename): Call it.
+	(write_func_for_structure): Likewise.
+	(write_types): Likewise.
+	(write_root): Likewise.
+	(write_typed_alloc_def): Likewise.
+	(note_def_vec): Emit vec_t<TYPE_NAME> instead of VEC_TYPE_NAME_base.
+	(note_def_vec_alloc): Remove.
+	* gengtype.h (note_def_vec_alloc): Remove.
+	(DEFVEC_ALLOC): Remove token code.
+
+	* df-scan.c (df_bb_verify): Remove call to df_free_collection_rec
+	inside the insn traversal loop.
+	* gimplify.c (gimplify_compound_lval): Rename STACK to EXPR_STACK.
+	* ipa-inline.c (inline_small_functions): Rename HEAP to EDGE_HEAP.
+	* reg-stack.c (stack): Rename to STACK_PTR.  Update all users.
+	* tree-vrp.c (stack): Rename to EQUIV_STACK.  Update all users.
+
 2012-05-21   Diego Novillo  <dnovillo@google.com>
 
 	Merge from trunk rev 187703.

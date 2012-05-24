@@ -79,7 +79,6 @@ static const char *const token_names[] = {
   "VEC",
   "DEF_VEC_[OP]",
   "DEF_VEC_I",
-  "DEF_VEC_ALLOC_[IOP]",
   "...",
   "ptr_alias",
   "nested_ptr",
@@ -227,7 +226,7 @@ typedef_name (void)
       require (',');
       c2 = require (ID);
       require (')');
-      r = concat ("VEC_", c1, "_", c2, (char *) 0);
+      r = concat ("vec_t<", c1, ">", (char *) 0);
       free (CONST_CAST (char *, c1));
       free (CONST_CAST (char *, c2));
       return r;
@@ -916,31 +915,6 @@ def_vec (void)
     return;
 
   note_def_vec (type, is_scalar, &lexer_line);
-  note_def_vec_alloc (type, "none", &lexer_line);
-}
-
-/* Definition of an allocation strategy for a VEC structure:
-
-   'DEF_VEC_ALLOC_[IPO]' '(' id ',' id ')' ';'
-
-   For purposes of gengtype, this just declares a wrapper structure.  */
-static void
-def_vec_alloc (void)
-{
-  const char *type, *astrat;
-
-  require (DEFVEC_ALLOC);
-  require ('(');
-  type = require2 (ID, SCALAR);
-  require (',');
-  astrat = require (ID);
-  require (')');
-  require (';');
-
-  if (!type || !astrat)
-    return;
-
-  note_def_vec_alloc (type, astrat, &lexer_line);
 }
 
 /* Parse the file FNAME for GC-relevant declarations and definitions.
@@ -970,10 +944,6 @@ parse_file (const char *fname)
 	case DEFVEC_OP:
 	case DEFVEC_I:
 	  def_vec ();
-	  break;
-
-	case DEFVEC_ALLOC:
-	  def_vec_alloc ();
 	  break;
 
 	case EOF_TOKEN:
