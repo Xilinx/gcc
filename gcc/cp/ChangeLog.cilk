@@ -1,4 +1,4 @@
-2012-05-24  balaji.v.iyer  <bviyer@nhelv409>
+2012-05-24  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* parser.c (cp_parser_elem_fn_processor_clause): Added a underscore
 	between pentium and 4 for sse3, removed an extra 's' in
