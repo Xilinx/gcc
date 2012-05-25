@@ -11,7 +11,7 @@
 	create_processor_attribute function.
 	(c_parser_elem_fn_expr_list): Changed unmask to nomask.
 
-2012-05-23  Balaji V Iyer  <balaji.v.iyer@intel.com>
+2012-05-23  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cgraphunit.c (cgraph_decide_is_function_needed): Added a check for
 	a cloned elemental function in the checking assert.
