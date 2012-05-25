@@ -88,7 +88,7 @@ create_processor_attribute (elem_fn_info *elem_fn_values, tree *opposite_attr)
 				       "arch=pentium4"));
 	}
     }
-  else if (!strcmp (elem_fn_values->proc_type, "pentium4_sse3"))
+  else if (!strcmp (elem_fn_values->proc_type, "pentium_4_sse3"))
     {
       VEC_safe_push (tree, gc, proc_vec_list,
 		     build_string (strlen ("arch=pentium4"), "arch=pentium4"));
@@ -103,21 +103,21 @@ create_processor_attribute (elem_fn_info *elem_fn_values, tree *opposite_attr)
 			 build_string (strlen ("no-sse3"), "no-sse3"));
 	}
     }
-  else if (!strcmp (elem_fn_values->proc_type, "core2_duo_ssse3"))
+  else if (!strcmp (elem_fn_values->proc_type, "core2_duo_sse3"))
     {
       VEC_safe_push (tree, gc, proc_vec_list,
 		     build_string (strlen ("arch=core2"), "arch=core2"));
       VEC_safe_push (tree, gc, proc_vec_list,
-		     build_string (strlen ("ssse3"), "ssse3"));
+		     build_string (strlen ("sse3"), "sse3"));
       if (opposite_attr)
 	{
 	  VEC_safe_push (tree, gc, opp_proc_vec_list,
 			 build_string (strlen ("arch=core2"), "arch=core2"));
 	  VEC_safe_push (tree, gc, opp_proc_vec_list,
-			 build_string (strlen ("no-ssse3"), "no-ssse3"));
+			 build_string (strlen ("no-sse3"), "no-sse3"));
 	}
     }
-  else if (!strcmp (elem_fn_values->proc_type, "core2_duo_sse_4_1"))
+  else if (!strcmp (elem_fn_values->proc_type, "core_2_duo_sse_4_1"))
     {
       VEC_safe_push (tree, gc, proc_vec_list,
 		     build_string (strlen ("arch=core2"), "arch=core2"));
@@ -546,8 +546,6 @@ elem_fn_create_fn (tree fndecl)
       if (DECL_STRUCT_FUNCTION (new_unmasked_fn))
 	DECL_STRUCT_FUNCTION (new_unmasked_fn)->elem_fn_already_cloned = true;
     }
-  DECL_ATTRIBUTES (fndecl) = remove_attribute ("vector",
-					       DECL_ATTRIBUTES (fndecl));
   free (elem_fn_values);
   return;
 }

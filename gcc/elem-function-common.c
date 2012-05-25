@@ -73,11 +73,11 @@ find_processor_code (elem_fn_info *elem_fn_values)
 
   if (!strcmp (elem_fn_values->proc_type, "pentium_4"))
     return xstrdup ("B");
-  else if (!strcmp (elem_fn_values->proc_type, "pentium4_sse3"))
+  else if (!strcmp (elem_fn_values->proc_type, "pentium_4_sse3"))
     return xstrdup ("D");
-  else if (!strcmp (elem_fn_values->proc_type, "core2_duo_ssse3"))
+  else if (!strcmp (elem_fn_values->proc_type, "core2_duo_sse3"))
     return xstrdup ("E");
-  else if (!strcmp (elem_fn_values->proc_type, "core2_duo_sse_4_1"))
+  else if (!strcmp (elem_fn_values->proc_type, "core_2_duo_sse_4_1"))
     return xstrdup ("F");
   else if (!strcmp (elem_fn_values->proc_type, "core_i7_sse4_2"))
     return xstrdup ("H");
@@ -107,11 +107,11 @@ find_vlength_code (elem_fn_info *elem_fn_values)
     {
       if (!strcmp (elem_fn_values->proc_type, "pentium_4"))
 	sprintf (vlength_code,"4");
-      else if (!strcmp (elem_fn_values->proc_type, "pentium4_sse3"))
+      else if (!strcmp (elem_fn_values->proc_type, "pentium_4_sse3"))
 	sprintf (vlength_code, "4");
-      else if (!strcmp (elem_fn_values->proc_type, "core2_duo_ssse3"))
+      else if (!strcmp (elem_fn_values->proc_type, "core2_duo_sse3"))
 	sprintf (vlength_code, "4");
-      else if (!strcmp (elem_fn_values->proc_type, "core2_duo_sse_4_1"))
+      else if (!strcmp (elem_fn_values->proc_type, "core_2_duo_sse_4_1"))
 	sprintf (vlength_code, "4");
       else if (!strcmp (elem_fn_values->proc_type, "core_i7_sse4_2"))
 	sprintf (vlength_code, "4");
@@ -329,8 +329,20 @@ extract_elem_fn_values (tree decl)
 	  for (jj_tree = ii_value; jj_tree;
 	       jj_tree = TREE_CHAIN (jj_tree))
 	    {
-	      tree jj_value = TREE_VALUE (jj_tree);
-	      tree jj_purpose = TREE_PURPOSE (jj_value);
+	      tree jj_purpose = NULL_TREE, jj_value = TREE_VALUE (jj_tree);
+
+	      /* this means we have a mask/nomask */
+	      if (TREE_CODE (jj_value) == IDENTIFIER_NODE)
+		{ 
+		  if (!strcmp (IDENTIFIER_POINTER (jj_value), "mask"))
+		    elem_fn_values->mask = USE_MASK;		    
+		  else if (!strcmp (IDENTIFIER_POINTER (jj_value), "nomask"))
+		    elem_fn_values->mask = USE_NOMASK;
+		  continue;
+		}
+	      else
+		jj_purpose = TREE_PURPOSE (jj_value);
+	      
 	      if (TREE_CODE (jj_purpose) == IDENTIFIER_NODE
 		  && !strcmp (IDENTIFIER_POINTER (jj_purpose), "processor"))
 		{
@@ -388,12 +400,6 @@ extract_elem_fn_values (tree decl)
 		      elem_fn_values->no_lvars++;
 		    }
 		}
-	      else if (TREE_CODE (jj_purpose) == IDENTIFIER_NODE
-		       && !strcmp (IDENTIFIER_POINTER (jj_purpose), "mask"))
-		elem_fn_values->mask = USE_MASK;
-	      else if (TREE_CODE (jj_purpose) == IDENTIFIER_NODE
-		       && !strcmp (IDENTIFIER_POINTER (jj_purpose), "nomask"))
-		elem_fn_values->mask = USE_NOMASK;
 	    }
 	}
     }

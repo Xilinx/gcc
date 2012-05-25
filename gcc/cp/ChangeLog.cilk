@@ -1,3 +1,10 @@
+2012-05-24  balaji.v.iyer  <bviyer@nhelv409>
+
+	* parser.c (cp_parser_elem_fn_processor_clause): Added a underscore
+	between pentium and 4 for sse3, removed an extra 's' in
+	sse3 for core2_duo and put underscore between core and 2 in core2.
+	* cp-gimplify.c (cp_gimplify_expr): Added a check if stmt tree is valid.
+
 2012-05-22  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cp-array-notation.c (fix_conditional_array_notations_1): Changed

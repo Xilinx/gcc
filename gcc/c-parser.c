@@ -11927,30 +11927,30 @@ c_parser_elem_fn_processor_clause (c_parser *parser)
 	}
       else if (token->value && TREE_CODE (token->value) == IDENTIFIER_NODE
 	       && simple_cst_equal (token->value,
-				    get_identifier ("pentium4_sse3")) == 1)
+				    get_identifier ("pentium_4_sse3")) == 1)
 	{
 	  c_parser_consume_token (parser);
 	  VEC_safe_push (tree, gc, proc_vec_list,
-			 build_string (strlen ("pentium4_sse3"),
-				       "pentium4_sse3"));
+			 build_string (strlen ("pentium_4_sse3"),
+				       "pentium_4_sse3"));
 	}
       else if (token->value && TREE_CODE (token->value) == IDENTIFIER_NODE
 	       && simple_cst_equal (token->value,
-				    get_identifier ("core2_duo_ssse3")) == 1)
+				    get_identifier ("core2_duo_sse3")) == 1)
 	{
 	  c_parser_consume_token (parser);
 	  VEC_safe_push (tree, gc, proc_vec_list,
-			 build_string (strlen ("core2_duo_ssse3"),
-				       "core2_duo_ssse3"));
+			 build_string (strlen ("core2_duo_sse3"),
+				       "core2_duo_sse3"));
 	}
       else if (token->value && TREE_CODE (token->value) == IDENTIFIER_NODE
 	       && simple_cst_equal (token->value,
-				    get_identifier ("core2_duo_sse_4_1")) == 1)
+				    get_identifier ("core_2_duo_sse_4_1")) == 1)
 	{
 	  c_parser_consume_token (parser);
 	  VEC_safe_push (tree, gc, proc_vec_list,
-			 build_string (strlen ("core2_duo_sse_4_1"),
-				       "core2_duo_sse_4_1"));
+			 build_string (strlen ("core_2_duo_sse_4_1"),
+				       "core_2_duo_sse_4_1"));
 	}
       else if (token->value && TREE_CODE (token->value) == IDENTIFIER_NODE
 	       && simple_cst_equal (token->value,
@@ -12226,11 +12226,11 @@ c_parser_elem_fn_expr_list (c_parser *parser)
 	}
       else if (token->value && TREE_CODE (token->value) == IDENTIFIER_NODE
 	       && simple_cst_equal (token->value,
-				    get_identifier ("unmask")) == 1)
+				    get_identifier ("nomask")) == 1)
 	{
 	  c_parser_consume_token (parser);
 	  gcc_assert (mask_list == NULL_TREE);
-	  mask_list = get_identifier ("unmask");
+	  mask_list = get_identifier ("nomask");
 	  if (c_parser_next_token_is (parser, CPP_COMMA))
 	    {
 	      c_parser_consume_token (parser);

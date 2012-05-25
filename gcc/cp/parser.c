@@ -29337,24 +29337,24 @@ cp_parser_elem_fn_processor_clause (cp_parser *parser)
       else if (token->u.value
 	       && TREE_CODE (token->u.value) == IDENTIFIER_NODE
 	       && simple_cst_equal (token->u.value,
-				    get_identifier ("pentium4_sse3")) == 1)
+				    get_identifier ("pentium_4_sse3")) == 1)
 	VEC_safe_push (tree, gc, proc_vec_list,
-		       build_string (strlen ("pentium4_sse3"),
-				     "pentium4_sse3"));
+		       build_string (strlen ("pentium_4_sse3"),
+				     "pentium_4_sse3"));
       else if (token->u.value
 	       && TREE_CODE (token->u.value) == IDENTIFIER_NODE
 	       && simple_cst_equal (token->u.value,
-				    get_identifier ("core2_duo_ssse3")) == 1)
+				    get_identifier ("core2_duo_sse3")) == 1)
 	VEC_safe_push (tree, gc, proc_vec_list,
-		       build_string (strlen ("core2_duo_ssse3"),
-				     "core2_duo_ssse3"));
+		       build_string (strlen ("core2_duo_sse3"),
+				     "core2_duo_sse3"));
       else if (token->u.value
 	       && TREE_CODE (token->u.value) == IDENTIFIER_NODE
 	       && simple_cst_equal (token->u.value,
-				    get_identifier ("core2_duo_sse_4_1")) == 1)
+				    get_identifier ("core_2_duo_sse_4_1")) == 1)
 	VEC_safe_push (tree, gc, proc_vec_list,
-		       build_string (strlen ("core2_duo_sse_4_1"),
-				     "core2_duo_sse_4_1"));
+		       build_string (strlen ("core_2_duo_sse_4_1"),
+				     "core_2_duo_sse_4_1"));
       else if (token->u.value
 	       && TREE_CODE (token->u.value) == IDENTIFIER_NODE
 	       && simple_cst_equal (token->u.value,

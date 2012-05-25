@@ -1,3 +1,16 @@
+2012-05-24  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* elem-function.c (elem_fn_create_fn): Mistakenly removed a necessary
+	attribute.
+	(create_processor_attribute): Added a underscore
+	between pentium and 4 for sse3, removed an extra 's' in
+	sse3 for core2_duo and put underscore between core and 2 in core2.
+	* elem-function-common.c (find_processor_code): Likewise.
+	(extract_elem_fn_values): Fixed a bug for mask parsing.
+	* c-parser.c (c_parser_elem_fn_processor_attribute): Same change as the
+	create_processor_attribute function.
+	(c_parser_elem_fn_expr_list): Changed unmask to nomask.
+
 2012-05-23  Balaji V Iyer  <balaji.v.iyer@intel.com>
 
 	* cgraphunit.c (cgraph_decide_is_function_needed): Added a check for
