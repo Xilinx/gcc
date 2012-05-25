@@ -1599,7 +1599,6 @@ vectorizable_function (gimple call, tree vectype_out, tree vectype_in)
 					       vectype_out, vectype_in);
 	  if (new_fndecl)
 	    DECL_ELEM_FN_ALREADY_CLONED (new_fndecl) = 1;
-	  /* gimple_call_set_fntype (call, TREE_TYPE (new_fndecl)); */
 	  return new_fndecl;
 	}
     }
