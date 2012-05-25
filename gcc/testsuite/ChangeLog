@@ -1,3 +1,71 @@
+2012-05-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/lto14.adb: New test.
+
+2012-05-24  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/53460
+	* g++.dg/tree-prof/pr53460.C: New testcase.
+
+2012-05-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53465
+	* gcc.c-torture/execute/pr53465.c: New test.
+
+2012-05-23  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/53389
+	* gfortran.dg/realloc_on_assign_15.f90: New.
+
+2012-05-22  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53408
+	* gcc.dg/torture/pr53408.c: New testcase.
+
+2012-05-22  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/51071
+	* gcc.dg/torture/pr51071-2.c: New testcase.
+
+2012-05-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53366
+	* gcc.dg/torture/pr53366-1.c: New test.
+	* gcc.dg/torture/pr53366-2.c: New test.
+	* gcc.target/i386/pr53366-1.c: New test.
+	* gcc.target/i386/pr53366-2.c: New test.
+
+	PR tree-optimization/53409
+	* gcc.c-torture/compile/pr53409.c: New test.
+
+	PR tree-optimization/53410
+	* gcc.c-torture/compile/pr53410-1.c: New test.
+	* gcc.c-torture/compile/pr53410-2.c: New test.
+
+2012-05-21  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/53418
+	* gcc.c-torture/compile/pr53418-1.c,
+	gcc.c-torture/compile/pr53418-2.c: New tests.
+
+2012-05-21  Patrick Marlier  <patrick.marlier@gmail.com>
+
+	* gcc.dg/tm/indirect-2.c: New test.
+
+2012-05-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	Backport from mainline
+	2012-05-21  Uros Bizjak  <ubizjak@gmail.com>
+		    H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/53416
+	* gcc.target/i386/pr53416.c: New file.
+
+2012-05-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/lto13.adb: New test.
+	* gnat.dg/lto13_pkg.ad[sb]: New helper.
+
 2012-05-18  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gnat.dg/specs/lto12.ads: New test.
