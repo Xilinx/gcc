@@ -1,2 +1,1 @@
-gimple_assign <modify_expr, a, 12.3>
-
+gimple_assign <modify_expr, a, 12.3>	/* { dg-error "Invalid RHS.*modify_expr" } */

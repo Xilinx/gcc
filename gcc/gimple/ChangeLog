@@ -1,3 +1,34 @@
+2012-05-25   Diego Novillo  <dnovillo@google.com>
+
+	* parser.c (gimple_register_var_decl_in_symtab): Tidy.
+	(gl_peek_token): New.
+	(gl_consume_token): Call it.
+	(gl_tree_code_for_token): Add FIXME note.
+	(gl_gimple_code_for_token): Likewise.
+	(gl_dump): Surround the current token in '[[[' ']]]'.
+	(gl_consume_expected_token): Only emit an error if no other errors
+	have been emitted.
+	(gp_parse_expect_subcode): Return the recognized code.  Return
+	the read token in new argument *TOKEN_P.
+	Update all callers.
+	(gp_parse_expect_lhs): Call gl_peek_token.
+	(gp_parse_expect_rhs_op): Rename from gp_parse_expect_rhs1.
+	Call gl_peek_token.
+	(gp_parse_expect_rhs2): Remove.
+	(gp_parse_assign_stmt): Re-write to support all gimple RHS
+	classes.
+	(gp_parse_cond_stmt): Tidy.
+	Emit an error if OPCODE is anything but a GIMPLE_BINARY_RHS.
+	(gp_parse_goto_stmt): Tidy.
+	(gp_parse_label_stmt): Tidy.
+	(gp_parse_switch_stmt): Tidy.
+	(gp_parse_stmt): Do not emit an error if one has been emitted
+	already.
+	(realloc_for_line_map): New.
+	(gp_init): Use it.
+	Update code to initialize the line table.
+	(gimple_main): Tidy.
+
 2012-05-24   Diego Novillo  <dnovillo@google.com>
 
 	* Make-lang.in: Add support for check-gimple.
