@@ -1828,20 +1828,29 @@ microblaze_option_override (void)
         microblaze_has_clz = 0;
     }
   ver = MICROBLAZE_VERSION_COMPARE (microblaze_select_cpu, "v8.30.a");
-  microblaze_has_swap = 1;
   if (ver < 0)
     {
         /* MicroBlaze prior to 8.30a didn't have swapb or swaph insns. */
-        microblaze_has_swap = 0;
         if (TARGET_REORDER)
           warning (0,
                  "-mxl-reorder can be used only with -mcpu=v8.30.a or greater");
     }
+  else if (ver == 0)
+   {
+        /* MicroBlaze v8.30a has an undocumented dependency on pattern compare for swapb / swaph insns. */
+        if (TARGET_PATTERN_COMPARE)
+        {
+            microblaze_has_swap = 1;
+            target_flags |= MASK_REORDER;
+        }
+    }
   else
    {
-       /* Add to Default target_flags if v8.30a or greater  */
-       target_flags |= MASK_REORDER;
+        /* Microblaze versions greater than v8.30a will be able to use swapb / swaph without pattern compare */
+        microblaze_has_swap = 1;
+        target_flags |= MASK_REORDER;
    }
+
   if (TARGET_MULTIPLY_HIGH && TARGET_SOFT_MUL)
     error ("-mxl-multiply-high requires -mno-xl-soft-mul");
 
