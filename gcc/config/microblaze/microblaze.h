@@ -64,7 +64,7 @@ extern enum pipeline_type microblaze_pipe;
 #define TARGET_HAS_CLZ      (TARGET_PATTERN_COMPARE && microblaze_has_clz)
 
 /* Do we have SWAPB and SWAPH?  */
-#define TARGET_HAS_SWAP     (TARGET_REORDER && microblaze_has_swap)
+#define TARGET_HAS_SWAP     (microblaze_has_swap)
 
 /* The default is to not need GOT for TLS.  */
 #define TLS_NEEDS_GOT 0
