@@ -1,3 +1,7 @@
+2012-05-29   Diego Novillo  <dnovillo@google.com>
+
+	Merge from trunk rev 187927.
+
 2012-05-23   Diego Novillo  <dnovillo@google.com>
 
 	Re-implement VEC in C++.
