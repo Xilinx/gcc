@@ -35,8 +35,8 @@
 ;; buffer length. The biggest file is often one of
 ;; melt-stage2/warmelt*c or one of melt-sources/xtramelt*c. 9Mbytes is
 ;; not enough!
-(definstance buffer_limit_cont class_container
-  :container_value '18765000)
+(definstance buffer_limit_cont class_reference
+  :referenced_value '18765000)
 
 
 (defun get_code_buffer_limit () 
@@ -1086,8 +1086,8 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 ;; we really want to avoid outputint the same location twice, so we
 ;; keep the previous location and implbuf
 
-(definstance prevloc_container class_container)
-(definstance previmplbuf_container class_container)
+(definstance prevloc_container class_reference)
+(definstance previmplbuf_container class_reference)
 
 ;; return the line number and file name of a location
 (defun line_and_file_of_location (loc)
@@ -1104,8 +1104,8 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 
 ;; output the location & set the frame's location
 (defun output_location (loc implbuf :long depth :cstring msg)
-  (let ( (prevloc (unsafe_get_field :container_value prevloc_container))
-	 (prevbuf (unsafe_get_field :container_value previmplbuf_container))
+  (let ( (prevloc (unsafe_get_field :referenced_value prevloc_container))
+	 (prevbuf (unsafe_get_field :referenced_value previmplbuf_container))
 	 )
     (if (== prevbuf implbuf)
 	(if (or (== prevloc loc)
@@ -1147,8 +1147,8 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	      )
 	  )
       )
-    (unsafe_put_fields  prevloc_container :container_value loc)
-    (unsafe_put_fields  previmplbuf_container :container_value implbuf)
+    (unsafe_put_fields  prevloc_container :referenced_value loc)
+    (unsafe_put_fields  previmplbuf_container :referenced_value implbuf)
     ;;
     (cond
      ( (is_mixint loc) 
@@ -1868,8 +1868,8 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	       (list_append chunkbuflist newchunkbuf)
 	       (setq chunkbuf newchunkbuf)))
 	 ;; clear the previous location memoization
-	 (unsafe_put_fields prevloc_container :container_value ())
-	 (unsafe_put_fields previmplbuf_container :container_value ())
+	 (unsafe_put_fields prevloc_container :referenced_value ())
+	 (unsafe_put_fields previmplbuf_container :referenced_value ())
 	 (let ( (curloc (get_field :obi_loc curbody))
 		)
 	   (if curloc 
@@ -1885,8 +1885,8 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	 
 	 ))
       ;; clear the previous location memoization
-      (unsafe_put_fields prevloc_container :container_value ())
-      (unsafe_put_fields previmplbuf_container :container_value ())
+      (unsafe_put_fields prevloc_container :referenced_value ())
+      (unsafe_put_fields previmplbuf_container :referenced_value ())
       (let ( (chunktup (list_to_multiple chunkbuflist discr_multiple)) 
 	     )
 	;; declare each chunk and call it
@@ -3601,7 +3601,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 (install_method class_objputuple output_c_code outpucod_objputuple)
 
 ;;;;
-(definstance objputpairhead_counter class_container :container_value '0)
+(definstance objputpairhead_counter class_reference :referenced_value '0)
 
 (defun outpucod_objputpairhead (oput declbuf implbuf :long depth)
   (let ( (oloc (unsafe_get_field :obi_loc oput))

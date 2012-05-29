@@ -1167,14 +1167,14 @@ source location.}#
        (curpair curproc)
        (debug "normbind_anybind const curproc" curproc)
        (assert_msg "check curproc" (is_a curproc class_nrep_anyproc))
-       (let ( (clcont (instance class_container :container_value kocc))
+       (let ( (clcont (instance class_reference :referenced_value kocc))
 	      (constproc (unsafe_get_field :nrpro_const curproc)) )
 	 (foreach_in_list
 	  (constproc)
 	  (curpaircl curcl)
 	  (if (== curcl kocc)
-	      (progn (put_fields clcont :container_value ()) ())))
-	 (let ( (newcl (get_field :container_value clcont)) )
+	      (progn (put_fields clcont :referenced_value ()) ())))
+	 (let ( (newcl (get_field :referenced_value clcont)) )
 	   (if newcl (list_append constproc newcl))) 
 	 ))
       (return kocc)
@@ -1389,13 +1389,13 @@ source location.}#
 		 (lambda (pr)
 		   (assert_msg "check pr" (is_a pr class_nrep_anyproc))
 		   (let ( (clcont
-			   (instance class_container :container_value fxocc))
+			   (instance class_reference :referenced_value fxocc))
 			  (cnstproc (unsafe_get_field :nrpro_const pr)) )
 		     (list_every 
 		      cnstproc
 		      (lambda (cx) (if (== cx fxocc)
-				       (progn (put_fields clcont :container_value ()) ()))))
-		     (let ( (newcl (get_field :container_value clcont)) )
+				       (progn (put_fields clcont :referenced_value ()) ()))))
+		     (let ( (newcl (get_field :referenced_value clcont)) )
 		       (if newcl (list_append cnstproc newcl))) 
 		     )))
 		fxocc
@@ -1445,14 +1445,14 @@ source location.}#
 		 (lambda (pr)
 		   (assert_msg "check pr" (is_a pr class_nrep_anyproc))
 		   (let ( (clcont
-			   (instance class_container :container_value fxocc))
+			   (instance class_reference :referenced_value fxocc))
 			  (cnstproc (unsafe_get_field :nrpro_const pr)) )
 		     (list_every 
 		      cnstproc
 		      (lambda (cx) (if (== cx fxocc)
 				       (progn
-					 (put_fields clcont :container_value ()) ()))))
-		     (let ( (newcl (get_field :container_value clcont)) )
+					 (put_fields clcont :referenced_value ()) ()))))
+		     (let ( (newcl (get_field :referenced_value clcont)) )
 		       (if newcl (list_append cnstproc newcl))) 
 		     )))
 		fxocc
@@ -1473,13 +1473,13 @@ source location.}#
 	       procs
 	       (lambda (pr)
 		 (assert_msg "check pr" (is_a pr class_nrep_anyproc))
-		 (let ( (clcont (instance class_container :container_value clocc))
+		 (let ( (clcont (instance class_reference :referenced_value clocc))
 			(clobindl (unsafe_get_field :nrpro_closedb pr)) )
 		   (list_every 
 		    clobindl
 		    (lambda (clbnd) (if (== clbnd bind)
-					(progn (put_fields clcont :container_value ()) ()))))
-		   (let ( (newcl (get_field :container_value clcont)) )
+					(progn (put_fields clcont :referenced_value ()) ()))))
+		   (let ( (newcl (get_field :referenced_value clcont)) )
 		     (if newcl (list_append clobindl bind))) 
 		   )))
 	      clocc
@@ -2505,9 +2505,9 @@ source location.}#
 	(sdisj (unsafe_get_field :sor_disj recv))
 	(:long nbdisj (multiple_length sdisj))
 	(:long ix (-i nbdisj 1))
-	(norcont (container ()))
-	(nbindorcont (container (make_list discr_list)))
-	(ctyporcont (container ctype_void))
+	(norcont (reference ()))
+	(nbindorcont (reference (make_list discr_list)))
+	(ctyporcont (reference ctype_void))
 	(newenv (fresh_env env))
 	)
     (multiple_backward_every 
@@ -2979,7 +2979,7 @@ source location.}#
 			   :nocc_ctyp ctype_void
 			   :nocc_symb csym
 			   :nocc_bind cbind))
-	 (clacont (container ()))
+	 (clacont (reference ()))
 	 )
     (multicall
      (nobj nobjbind)
@@ -3894,7 +3894,7 @@ source location.}#
 ;;; whose binder is the nocc_symb of the ncall
      (assert_msg "normexp_multicall check ncall" (is_a ncall class_nrep_locsymocc))
      (let ( (ncallsym (unsafe_get_field :nocc_symb ncall)) 
-	    (ncontcall (container ())) ;container to contain the real normalized call
+	    (ncontcall (reference ())) ;container to contain the real normalized call
 	    (nrealcall ())		       ;the real call
 	    (nincallbindings (make_list discr_list)) ;list of internal bindings to the call
 	    )
@@ -5925,7 +5925,7 @@ source location.}#
 	 (sinstobjnum (unsafe_get_field :sinst_objnum recv))
 	 (sinstfields (unsafe_get_field :sinst_fields recv))
 	 (nbindlist (make_list discr_list))
-	 (nbindcont (container nbindlist))
+	 (nbindcont (reference nbindlist))
 	 (bindins (find_env env sname))
 	 (namdata (normal_symbol_data sname ncx sloc))
 	 ;; data representing the class
@@ -6114,7 +6114,7 @@ source location.}#
 	(sinstfields (unsafe_get_field :sinst_fields recv))
 	(sformals (unsafe_get_field :sdefsel_formals recv))
 	(nbindlist (make_list discr_list))
-	(nbindcont (container nbindlist))
+	(nbindcont (reference nbindlist))
 	(bindsel (find_env env sname))
 	(namdata (normal_symbol_data sname ncx sloc))
 	;; data representing the class
@@ -6861,7 +6861,7 @@ source location.}#
 	)
     (cond ( (is_a spred class_symbol)
 	    ;; if the spred is a symbol, check that it is a value in the predefmap
-	    (let ( (contk (container ())) 
+	    (let ( (contk (reference ())) 
 		   )
 	      (mapobject_every predefmap
 			       (lambda (key val)
@@ -6908,7 +6908,7 @@ source location.}#
 	)
     (cond ( (is_a spred class_symbol)
 	    ;; if the spred is a symbol, check that it is a value in the predefmap
-	    (let ( (contk (container ())) 
+	    (let ( (contk (reference ())) 
 		   )
 	      (mapobject_every predefmap
 			       (lambda (key val)

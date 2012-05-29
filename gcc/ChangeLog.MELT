@@ -1,5 +1,39 @@
 
 2012-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Speak of "references", not "containers"}}
+	* melt-runtime.h (MELTGLOB_CLASS_REFERENCE): temporary macro for
+	MELTGLOB_CLASS_CONTAINER.
+	(MELTFIELD_REFERENCED_VALUE): temporary macro for
+	MELTFIELD_CONTAINER_VALUE.
+	(MELTLENGTH_CLASS_REFERENCE): temporary macro for
+	MELTLENGTH_CLASS_CONTAINER.
+	(melt_container_value): macro, for renamed ...
+	(melt_reference_value): New function.
+	(meltgc_new_container): macro, for renamed ...
+	(meltgc_new_reference): New function.
+	(meltgc_container_put): macro, for renamed ...
+	(meltgc_reference_put): New function.
+	Add #warning about temporary renaming.
+
+	* melt-runtime.c (meltgc_new_reference, meltgc_reference_put): New
+	function, renaming ...
+	(meltgc_new_container, meltgc_reference_put): Renamed functions..
+	(meltgc_poll_inputs): Bette debugeprintf.
+
+	* melt/warmelt-genobj.melt (compile2obj_initproc): Emit
+	melt_reference_value not melt_container_value.
+
+	* melt/warmelt-macro.melt: Use class_reference instead of
+	class_container.
+	* melt/warmelt-modes.melt: Ditto.
+	* melt/warmelt-normal.melt: Ditto.
+	* melt/warmelt-normatch.melt: Ditto.
+	* melt/warmelt-outobj.melt
+	* melt/xtramelt-ana-simple.melt
+	* melt/xtramelt-opengpu.melt
+	* melt/xtramelt-probe.melt
+
+2012-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Speak of "references", not "containers", which was used
 	improperly in MELT}}
 	* melt/warmelt-first.melt (class_reference): Synonym for

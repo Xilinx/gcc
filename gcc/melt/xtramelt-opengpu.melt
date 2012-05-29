@@ -40,7 +40,7 @@
 	    (let ( (vtrssa (make_tree discr_tree trssa))
 		   (vtvar (make_tree discr_tree tvar))
 		   (lincr (make_list discr_list))
-		   (transcont (container trans))
+		   (transcont (reference trans))
 		   )
 	      (debug "opengpu_increment_ssaname before walkusedef have trssa=" trssa)
 	      (walk_use_def_chain_depth_first 
@@ -547,7 +547,7 @@ and $OPGPULC_GIMPLE the gimple making it.}#
 			(?(tree_parm_decl ?(tree_pointer_type_p ?r1typp) ?r1nam)
 			  (debug "opengpu_affine_accessed_array assign_mult parm r2typp=" r1typp "\n* r2nam=" r1nam)
 			  (let ( (oldaprop (maptree_get arrayprop rvar1)) 
-				 (aprop (instance class_container))
+				 (aprop (instance class_reference))
 				)
 			  (maptree_put arrayprop rvar1 aprop)
 			  (debug "opengpu_affine_accessed_array assign_mult updated arrayprop=" arrayprop
@@ -612,7 +612,7 @@ and $OPGPULC_GIMPLE the gimple making it.}#
 			(?(tree_parm_decl ?(tree_pointer_type_p ?r1typp) ?r1nam)
 			  (debug "opengpu_affine_accessed_array assign_pointerplus parm r2typp=" r1typp "\n* r2nam=" r1nam)
 			  (let ( (oldaprop (maptree_get arrayprop rvar1)) 
-				 (aprop (instance class_container))
+				 (aprop (instance class_reference))
 				)
 			  (maptree_put arrayprop rvar1 aprop)
 			  (debug "opengpu_affine_accessed_array updated arrayprop=" arrayprop

@@ -1454,7 +1454,7 @@ the object-map for pattern variables. $PCTX_MODCTX is the module context.}#
 	 (modctx (get_field :pctx_modctx pctx))
 	 (:long nbmins (multiple_length mins))
 	 (:long nbouts (multiple_length mouts))
-	 (paircont (instance class_container :referenced_value pairs))
+	 (paircont (instance class_reference :referenced_value pairs))
 	 (inargs (multiple_map 
 		  mins
 		  (lambda (curfbind :long inix)
@@ -3665,7 +3665,7 @@ messages. Syntax is (DEFSELECTOR <symbol> <selector-class> [:doc
   (assert_msg "check cla" (is_a cla class_class))
   (let (
 	(clafields (unsafe_get_field :class_fields cla))
-	(fldcont (instance class_container :referenced_value ())) 
+	(fldcont (instance class_reference :referenced_value ())) 
 	(flpat (patternexpand_1 flpsexp env pctx psloc)) 
 	)
     (debug "parse_field_pattern clafields" clafields)
@@ -4774,16 +4774,16 @@ condition is a string such as "4.5." or a list of strings.}#)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; CONTENT & CONTAINER
 
 ;; (container x) is a shorthand for 
-;; (instance class_container :referenced_value x)
+;; (instance class_reference :referenced_value x)
 (defun mexpand_container (sexpr env mexpander modctx)
   (debug "mexpand_container sexpr" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
   (if (null mexpander) (setq mexpander macroexpand_1))
   (assert_msg "check modctx" (is_object modctx))
-  (assert_msg "check class_container has one field"
+  (assert_msg "check class_reference has one field"
 	      (==i 1 (multiple_length
-		     (get_field :class_fields class_container))))
+		     (get_field :class_fields class_reference))))
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
@@ -4793,13 +4793,13 @@ condition is a string such as "4.5." or a list of strings.}#)
 	(spredclasscont (instance class_source_fetch_predefined
 				  :loca_location loc
 				  :sfepd_predef 'CLASS_CONTAINER))
-	(clabind (find_env env 'class_container))
+	(clabind (find_env env 'class_reference))
 	(flda (parse_field_assignment 
-	       class_container loc :referenced_value arg1 env mexpander modctx))
+	       class_reference loc :referenced_value arg1 env mexpander modctx))
 	(sinst (instance 
 		class_source_instance
 		:loca_location loc
-		:smins_class class_container
+		:smins_class class_reference
 		:smins_clabind clabind
 		:smins_fields (tuple flda)))
 	)
@@ -4807,10 +4807,10 @@ condition is a string such as "4.5." or a list of strings.}#)
 	(progn
 	  (error_plain loc "(CONTAINER <value>) needs exactly one argument")
 	  (return)))
-    ;; testing that clabind binds exactly the same class_container
+    ;; testing that clabind binds exactly the same class_reference
     ;; don't work well for makedoc mode.
     (if (null clabind)
-	(warning_plain loc  "(CONTAINER <value>) where CLASS_CONTAINER is not visible"))
+	(warning_plain loc  "(CONTAINER <value>) where CLASS_REFERENCE is not visible"))
     ;;
     (debug "mexpand_container returns sinst" sinst)
     (return sinst)
@@ -4828,11 +4828,11 @@ condition is a string such as "4.5." or a list of strings.}#)
 	(curpair (pair_tail (list_first cont)))
 	(argsp (patternexpand_pairlist_as_tuple curpair env pctx loc))
 	(arg1 (multiple_nth argsp 0))
-	(fldp (parse_field_pattern :referenced_value class_container arg1 env pctx loc))
+	(fldp (parse_field_pattern :referenced_value class_reference arg1 env pctx loc))
 	(res (instance class_source_pattern_instance
 		       :loca_location loc
 		       :pat_weight '1
-		       :spat_class class_container
+		       :spat_class class_reference
 		       :spat_fields (tuple fldp)))
 	)
     (if (!=i (multiple_length argsp) 1)

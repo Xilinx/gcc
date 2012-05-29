@@ -151,7 +151,7 @@
 (definstance initial_smallabstractenv class_smallabstractenv
   :abenv_maptree (make_maptree discr_map_trees 20))
 
-(definstance smallana_cont class_container)
+(definstance smallana_cont class_reference)
 
 
 (defun smallana_cfun_entbb (sman :tree decltree :basic_block bbent)
@@ -852,7 +852,7 @@
     ;;
     (smallana_interpret sman)
     ;;
-    (put_fields  smallana_cont :container_value sman)
+    (put_fields  smallana_cont :referenced_value sman)
     (debug "smallanapass_exec final smallana_cont=" smallana_cont)
     ))
 

@@ -2531,78 +2531,78 @@ end:
 
 
 
-/* safely return the content of a container - instance of CLASS_CONTAINER */
+/* safely return the content of a reference - instance of CLASS_REFERENCE */
 melt_ptr_t
-melt_container_value (melt_ptr_t cont)
+melt_reference_value (melt_ptr_t cont)
 {
   if (melt_magic_discr (cont) != MELTOBMAG_OBJECT
-      || ((meltobject_ptr_t) cont)->obj_len < MELTLENGTH_CLASS_CONTAINER)
-    return 0;
+      || ((meltobject_ptr_t) cont)->obj_len < MELTLENGTH_CLASS_REFERENCE)
+    return NULL;
   /* This case is so common that we handle it explicitly! */
   if (((meltobject_ptr_t)cont)->discr
-      == (meltobject_ptr_t)MELT_PREDEF (CLASS_CONTAINER))
-    return  ((meltobject_ptr_t) cont)->obj_vartab[MELTFIELD_CONTAINER_VALUE];
+      == (meltobject_ptr_t)MELT_PREDEF (CLASS_REFERENCE))
+    return  ((meltobject_ptr_t) cont)->obj_vartab[MELTFIELD_REFERENCED_VALUE];
   if (!melt_is_instance_of
-      ((melt_ptr_t) cont, (melt_ptr_t) MELT_PREDEF (CLASS_CONTAINER)))
-    return 0;
-  return ((meltobject_ptr_t) cont)->obj_vartab[MELTFIELD_CONTAINER_VALUE];
+      ((melt_ptr_t) cont, (melt_ptr_t) MELT_PREDEF (CLASS_REFERENCE)))
+    return NULL;
+  return ((meltobject_ptr_t) cont)->obj_vartab[MELTFIELD_REFERENCED_VALUE];
 }
 
 
-/* make a new container */
+/* make a new reference */
 melt_ptr_t
-meltgc_new_container (melt_ptr_t val_p)
+meltgc_new_reference (melt_ptr_t val_p)
 {
   MELT_ENTERFRAME(3, NULL);
 #define valv        meltfram__.mcfr_varptr[0]
 #define resv        meltfram__.mcfr_varptr[1]
-#define classcontv  meltfram__.mcfr_varptr[2]
+#define classrefv  meltfram__.mcfr_varptr[2]
   valv = val_p;
-  classcontv = MELT_PREDEF (CLASS_CONTAINER);
-  gcc_assert (melt_magic_discr ((melt_ptr_t)classcontv) == MELTOBMAG_OBJECT);
+  classrefv = MELT_PREDEF (CLASS_REFERENCE);
+  gcc_assert (melt_magic_discr ((melt_ptr_t)classrefv) == MELTOBMAG_OBJECT);
   /* we really need that containers have one single field */
-  gcc_assert (MELTFIELD_CONTAINER_VALUE == 0);
-  gcc_assert (MELTLENGTH_CLASS_CONTAINER == 1);
-  resv = meltgc_new_raw_object ((meltobject_ptr_t) classcontv,
-                                MELTLENGTH_CLASS_CONTAINER);
-  ((meltobject_ptr_t) (resv))->obj_vartab[MELTFIELD_CONTAINER_VALUE] =
+  gcc_assert (MELTFIELD_REFERENCED_VALUE == 0);
+  gcc_assert (MELTLENGTH_CLASS_REFERENCE == 1);
+  resv = meltgc_new_raw_object ((meltobject_ptr_t) classrefv,
+                                MELTLENGTH_CLASS_REFERENCE);
+  ((meltobject_ptr_t) (resv))->obj_vartab[MELTFIELD_REFERENCED_VALUE] =
     (melt_ptr_t) valv;
   MELT_EXITFRAME();
   return (melt_ptr_t)resv;
 #undef valv
 #undef resv
-#undef classcontv
+#undef classrefv
 }
 
-/* put inside a container */
+/* put inside a reference */
 void
-meltgc_container_put (melt_ptr_t cont_p, melt_ptr_t val_p)
+meltgc_reference_put (melt_ptr_t ref_p, melt_ptr_t val_p)
 {
   MELT_ENTERFRAME(3, NULL);
-#define contv    meltfram__.mcfr_varptr[0]
+#define refv    meltfram__.mcfr_varptr[0]
 #define valv     meltfram__.mcfr_varptr[1]
-#define classcontv  meltfram__.mcfr_varptr[2]
-  contv = cont_p;
+#define classrefv  meltfram__.mcfr_varptr[2]
+  refv = ref_p;
   valv  = val_p;
-  classcontv = MELT_PREDEF (CLASS_CONTAINER);
-  gcc_assert (melt_magic_discr ((melt_ptr_t)classcontv) == MELTOBMAG_OBJECT);
+  classrefv = MELT_PREDEF (CLASS_REFERENCE);
+  gcc_assert (melt_magic_discr ((melt_ptr_t)classrefv) == MELTOBMAG_OBJECT);
   /* we really need that containers have one single field */
-  gcc_assert (MELTFIELD_CONTAINER_VALUE == 0);
-  if (melt_magic_discr((melt_ptr_t)contv) != MELTOBMAG_OBJECT)
+  gcc_assert (MELTFIELD_REFERENCED_VALUE == 0);
+  if (melt_magic_discr((melt_ptr_t)refv) != MELTOBMAG_OBJECT)
     goto end;
   /* This case is so common that we handle it explicitly! */
-  if (((meltobject_ptr_t)contv)->discr != classcontv
+  if (((meltobject_ptr_t)refv)->discr != classrefv
       && !melt_is_instance_of
-      ((melt_ptr_t) contv, (melt_ptr_t) classcontv))
+      ((melt_ptr_t) refv, (melt_ptr_t) classrefv))
     goto end;
-  ((meltobject_ptr_t) (contv))->obj_vartab[MELTFIELD_CONTAINER_VALUE] =
+  ((meltobject_ptr_t) (refv))->obj_vartab[MELTFIELD_REFERENCED_VALUE] =
     (melt_ptr_t) valv;
-  meltgc_touch_dest (contv, valv);
+  meltgc_touch_dest (refv, valv);
 end:
   MELT_EXITFRAME();
 #undef valv
-#undef contv
-#undef classcontv
+#undef refv
+#undef classrefv
 }
 
 /****** MULTIPLES ******/
@@ -13274,7 +13274,7 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
 				     rfd);
 	  argtab[0].meltbp_aptr = (melt_ptr_t *) & seqv;
 	  debugeprintf ("meltgc_poll_inputs closv=%p before apply for end of input", 
-			(void*) closv, (void*) seqv);
+			(void*) closv);
 	  melt_apply ((meltclosure_ptr_t) closv, (melt_ptr_t) curhandv,
 		      MELTBPARSTR_PTR, argtab, NULL, NULL);
 	  debugeprintf ("meltgc_poll_inputs after end of input apply closv %p", closv);

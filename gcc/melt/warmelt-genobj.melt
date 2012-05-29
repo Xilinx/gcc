@@ -1399,7 +1399,7 @@ $SBUF.}#
 	;; emit setting the retinit from the boxloc
 	(let ( (osetretinit
 		(make_objcompute () ctype_value
-				 ##{/* finalfreshenvget */ melt_container_value((melt_ptr_t)($BOXLOC))}#))
+				 ##{/* finalfreshenvget */ melt_reference_value((melt_ptr_t)($BOXLOC))}#))
 	       )
 	  (put_objdest osetretinit retinit)
 	  (debug "compile2obj_initproc adding osetretinit=" osetretinit)

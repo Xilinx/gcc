@@ -615,7 +615,7 @@ scanning variables.}#
 	 (curdisjtuple)
 	 (curdisj :long disjix)
 	 (debug "put_tester_then curdisj=" curdisj)
-	 (let ( (curcont (instance class_container :container_value curdisj)) )
+	 (let ( (curcont (instance class_reference :referenced_value curdisj)) )
 	 (debug "put_tester_then curcont start=" curcont)
 	 (set_new_tester_last_then thentester curcont)
 	 (debug "put_tester_then curcont done" curcont)
@@ -629,8 +629,8 @@ scanning variables.}#
   (debug "set_new_tester_last_then newtester=" newtester " testercont=" testercont)
   (shortbacktrace_dbg "set_new_tester_last_then start" 15)
   (assert_msg "check newtester" (is_a newtester class_normtester_any))
-  (assert_msg "check testercont" (is_a testercont class_container))
-  (let ( (curtester (get_field :container_value testercont)) )
+  (assert_msg "check testercont" (is_a testercont class_reference))
+  (let ( (curtester (get_field :referenced_value testercont)) )
     (forever 
      lastesterloop
      (debug "set_new_tester_last_then loop curtester" curtester)
@@ -641,7 +641,7 @@ scanning variables.}#
 	 (exit lastesterloop))))
     (debug "set_new_tester_last_then final curtester" curtester)
     (assert_msg "check curtester set_new_tester_last_then" curtester)
-    (put_fields testercont :container_value curtester)
+    (put_fields testercont :referenced_value curtester)
     (put_tester_then curtester newtester)
     (debug "set_new_tester_last_then end testercont" testercont)
     ))
@@ -874,7 +874,7 @@ scanning variables.}#
 		)
 	      ;; the or-variable was already bound in a previous
 	      ;; disjunction
-	      ( (is_a realococc class_container)
+	      ( (is_a realococc class_reference)
 		(let ( 
 		      (ctyp (get_ctype nmatch env))
 		      (bxclocc (content realococc))
@@ -1033,8 +1033,8 @@ scanning variables.}#
      )
     (debug "normpat_instancepat tester=" tester "recv=" recv " patcla=" patcla)
     (let ( (testloccl (get_field :ntest_locclist tester)) 
-	   (testercont (instance class_container
-				 :container_value tester
+	   (testercont (instance class_reference
+				 :referenced_value tester
 				 ))
 	   (sortedpatfields
 	    (multiple_sort 
@@ -1070,7 +1070,7 @@ scanning variables.}#
 		 (debug "normpat_instancepat.subhdler newsubtester=" newsubtester
 			"testercont=" testercont)
 		 (shortbacktrace_dbg "normpat_instancepat.subhdler" 16)
-		 (let ( (prevtester (get_field :container_value testercont)) )
+		 (let ( (prevtester (get_field :referenced_value testercont)) )
 		   (debug "normpat_instancepat.subhdler prevtester" prevtester)
 		   (assert_msg "check prevtester" (is_a prevtester class_normtester_anytester))
 		   (set_new_tester_last_then newsubtester testercont)
@@ -1221,8 +1221,8 @@ scanning variables.}#
     (debug "normpat_tuplepat tester=" tester
 	   "\n recv=" recv "\n  tupsubpa=" tupsubpa)
     (let ( (testloccl (get_field :ntest_locclist tester)) 
-	   (testercont (instance class_container
-				 :container_value tester
+	   (testercont (instance class_reference
+				 :referenced_value tester
 				 ))
 	   (unsortedsubpa
 	    (let (
@@ -1268,7 +1268,7 @@ scanning variables.}#
 		 (debug "normpat_tuplepat.subhdler newsubtester=" newsubtester
 			"testercont=" testercont)
 		 (shortbacktrace_dbg "normpat_tuplepat.subhdler" 16)
-		 (let ( (prevtester (get_field :container_value testercont)) )
+		 (let ( (prevtester (get_field :referenced_value testercont)) )
 		   (debug "normpat_tuplepat.subhdler prevtester" prevtester)
 		   (assert_msg "check prevtester" (is_a prevtester class_normtester_anytester))
 		   (set_new_tester_last_then newsubtester testercont)
@@ -1347,12 +1347,12 @@ scanning variables.}#
   (let (
 	(sloc (get_field :loca_location recv))
 	(conjpats (get_field :andpat_conj recv))
-	(testercont (instance class_container))
+	(testercont (instance class_reference))
 	(subhdler
 	 (lambda (newtester) 
 	   (debug "normpat_andpat.subhdler newtester=" newtester
 		  " testercont=" testercont)
-	   (let ( (prevtester (get_field :container_value testercont)) )
+	   (let ( (prevtester (get_field :referenced_value testercont)) )
 	     (cond
 	      ((is_a prevtester class_normtester_any)
 	       (debug "normpat_andpat.subhdler prevtester" prevtester)
@@ -1361,7 +1361,7 @@ scanning variables.}#
 	      (:else
 	       (debug "normpat_andpat.subhdler before calling hdler" newtester)
 	       (hdler newtester)
-	       (put_fields testercont :container_value newtester)
+	       (put_fields testercont :referenced_value newtester)
 	       (debug "normpat_andpat.subhdler after calling hdler" newtester)
 	       ))
 	     (debug "normpat_andpat.subhdler done testercont" testercont)
@@ -1438,8 +1438,8 @@ scanning variables.}#
 	      (return curorvar)
 	      ))
 	  ))
-	(prevcont (instance class_container
-			    :container_value disjtester))
+	(prevcont (instance class_reference
+			    :referenced_value disjtester))
 	)
     (debug "normpat_orpat orig stuffmap=" stuffmap " pvarlocmap=" pvarlocmap
 	   " orvarmap=" orvarmap)
@@ -1465,7 +1465,7 @@ scanning variables.}#
 	(let ( (orvarlocc (unsafe_get_field :norvar_locsym curorvar))
 	       )
 	  (if (is_a orvarlocc class_nrep_locsymocc)
-	      (let ( (orvarcont (container orvarlocc)) )
+	      (let ( (orvarcont (reference orvarlocc)) )
 		(put_fields curorvar :norvar_locsym orvarcont)
 		(list_append clearloclist orvarlocc)
 		))
@@ -1485,31 +1485,31 @@ scanning variables.}#
 	 (debug "normpat_orpat curdisj before normalization" curdisj)
 	 ;; add the norclear
 	 (let (
-	       (prevtest (get_field :container_value prevcont))
+	       (prevtest (get_field :referenced_value prevcont))
 	       (prevloc (get_field :nrep_loc prevtest))
 	       )
 	   (debug "normpat_orpat prevtest=" prevtest " norclear=" norclear)
 	   (list_append testlist norclear)
 	   (debug "normpat_orclear setallelses norclear=" norclear " prevtest=" prevtest)
 	   (set_new_tester_all_elses norclear prevtest)
-	   (put_fields prevcont :container_value norclear)
+	   (put_fields prevcont :referenced_value norclear)
 	   (debug "normpat_orpat prevcont with norclear" prevcont)
 	   ;;
 	   (let (
-		 (subdisjcont (container ()))
+		 (subdisjcont (reference ()))
 		 (subdisjhandler 
 		  (lambda (subtester)
 		    (debug "normpat_orpat.lambda subtester" subtester)
 		    (set_reference subdisjcont subtester)
 		    (let (
-			  (prevtestsub (unsafe_get_field :container_value prevcont))
+			  (prevtestsub (unsafe_get_field :referenced_value prevcont))
 			  )
 		      (list_append subtestlist subtester)
 		      (debug "normpat_orpat.lambda setlastthen subtester=" subtester
 			     " prevcont=" prevcont)
 		      (set_new_tester_last_then subtester prevcont)
 		      (debug "normpat_orpat.lambda done subtester" subtester)
-		      (put_fields prevcont :container_value subtester)
+		      (put_fields prevcont :referenced_value subtester)
 		      (debug "normpat_orpat prevcont with subtester" prevcont)
 		      ))
 		  )
@@ -1519,7 +1519,7 @@ scanning variables.}#
 	     (debug "normpat_orpat curdisj after normalization" curdisj)
 	     (let (
 		   (lastdisj (deref subdisjcont))
-		   (prevtestrans (unsafe_get_field :container_value prevcont))
+		   (prevtestrans (unsafe_get_field :referenced_value prevcont))
 		   (nortransm (instance class_normtester_or_transmit
 					:nrep_loc sloc
 					:ntest_matched nmatch
@@ -1558,7 +1558,7 @@ scanning variables.}#
 		      (patvar (unsafe_get_field :norvar_patvar curorvar))
 		      (orsymb (get_field :spatvar_symb patvar))
 		      )
-		 (if (is_a orlocsy class_container)
+		 (if (is_a orlocsy class_reference)
 		     (setq orlocsy (deref orlocsy)))
 		 ;; the pvarlocmap should already have orsymb bound to orlocsy
 		 (debug "normpat_orpat/finalambda orsymb=" orsymb " orlocsy=" orlocsy)
@@ -1814,8 +1814,8 @@ scanning variables.}#
 	    (debug "normpat_anymatchpat curmatch in foreach" curmatch)
 	    (let ( (clocc (multiple_nth outlocs ixm)) 
 		   (curout (multiple_nth outargs ixm))
-		   (testercont (instance class_container
-					 :container_value tester))
+		   (testercont (instance class_reference
+					 :referenced_value tester))
 		   (subhdler 
 		    ;; put the new tester as the last element of its
 		    ;; ntest_then chain
@@ -1921,13 +1921,13 @@ scanning variables.}#
 ;;  the instance containing the string value prefix of the generated
 ;;  .dot file, should be something like /tmp/mygr to generated
 ;;  /tmp/mygr1.dot /tmp/mygr2.dot etc...
-(definstance match_graphic_dot_prefix class_container
-  :container_value ())
+(definstance match_graphic_dot_prefix class_reference
+  :referenced_value ())
 
 (defun match_graphic_optset (optsymb :cstring prefixs)
   (debug "match_graphic_optset optsumb" optsymb)
   (let ( (prefstr (make_stringconst discr_string prefixs)) )
-    (put_fields match_graphic_dot_prefix :container_value prefstr)
+    (put_fields match_graphic_dot_prefix :referenced_value prefstr)
     (debug "match_graphic_optset match_graphic_dot_prefix" match_graphic_dot_prefix)
     (return match_graphic_dot_prefix)
     ))
@@ -2367,7 +2367,7 @@ scanning variables.}#
 			     :pctn_tests testlist
 			     :pctn_varhandlers varhdlerlist
 			     ))
-	      (ntestcont (instance class_container)) ;container for tester
+	      (ntestcont (instance class_reference)) ;container for tester
 	      )
 	  (debug "normexp_match curpat before scan_pattern" curpat)
 	  ;; I am not entirely sure of this assert! Perhaps there maybe
@@ -2388,8 +2388,8 @@ scanning variables.}#
 	     (debug "normexp_match.lambda tester" tester)
 	     (shortbacktrace_dbg "normexp_match lambda tester" 12)
 	     (assert_msg "check empty ntestcont" 
-			 (null (unsafe_get_field :container_value ntestcont)))
-	     (put_fields ntestcont :container_value tester))
+			 (null (unsafe_get_field :referenced_value ntestcont)))
+	     (put_fields ntestcont :referenced_value tester))
 	   pcn)
 	  (debug "normexp_match  after normal_pattern curpat=" curpat
 		 " pvarlocmap=" pvarlocmap
@@ -2397,7 +2397,7 @@ scanning variables.}#
 		 "shabindlist= " shabindlist)
 	  ;; 
 	  (let ( (newenv (get_field :pctn_env pcn))
-		 (curtester (get_field :container_value ntestcont))
+		 (curtester (get_field :referenced_value ntestcont))
 		 ;; we need a success. For the last joker case, it
 		 ;; becomes the curtester; for the usual case it is
 		 ;; added as the last then. Anyway, it will contain
@@ -2440,8 +2440,8 @@ scanning variables.}#
 	      (assert_msg "check curtester not success" 
 			  (is_not_a curtester class_normtester_success))
 ;;; add the newsuctester as the last then of the curtester
-	      (let ( (curtestcont (instance class_container
-					    :container_value curtester)) )
+	      (let ( (curtestcont (instance class_reference
+					    :referenced_value curtester)) )
 		(debug "normexp_match our curtestcont=" curtestcont
 		       " newsuctester=" newsuctester)
 		(set_new_tester_last_then newsuctester curtestcont)
@@ -2588,7 +2588,7 @@ scanning variables.}#
 	  (debug "normexp_match indexed curtest" curtest)
 	  )
 	 (if (melt_need_dbg 1)
-	     (let ( (dotprefix (get_field :container_value match_graphic_dot_prefix)) )
+	     (let ( (dotprefix (get_field :referenced_value match_graphic_dot_prefix)) )
 	       (debug "normexp_match match_graphic_dot_prefix=" match_graphic_dot_prefix
 		      " dotprefix=" dotprefix)
 	       (if (is_string dotprefix) 
@@ -6669,7 +6669,7 @@ normalized expression.}#
 	 ;;
 	 (debug "normexp_altmatch updated mdata" mdata)
 	 (if (melt_need_dbg 1)
-	     (let ( (dotprefix (get_field :container_value match_graphic_dot_prefix)) )
+	     (let ( (dotprefix (get_field :referenced_value match_graphic_dot_prefix)) )
 	       (debug "normexp_altmatch dotprefix=" dotprefix
 		      " match_graphic_dot_prefix=" match_graphic_dot_prefix)
 	       (if (is_string dotprefix) 

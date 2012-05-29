@@ -172,7 +172,7 @@
 ))
 
 
-(definstance probe_data_container class_container)
+(definstance probe_data_container class_reference)
 
 (defun probe_get_data ()
   :doc #{function to retrieve the probe data, or null.}#

@@ -1334,7 +1334,7 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
     (if (not (is_string outarg))
 	(errormsg_plain 
 	 "makedoc MELT mode needs an -f[plugin-arg-]melt-output *.texi file"))
-    (put_fields melt_mode_container :container_value mdinfo)
+    (set_reference melt_mode_reference mdinfo)
     (assert_msg "check rlist" (is_list rlist))
     (list_every 
      arglist 
@@ -3904,12 +3904,12 @@ ASSERT_MSG) is enabled"
       )))
 
 ;; alarm processing need a sorted bucket of timeouts -> alarm-handlers
-(definstance alarm_bucket_container
-  class_container)
+(definstance alarm_bucket_reference
+  class_reference)
 
 (defun handle_alarm_signal ()
-  (let ( (alarmbuck !alarm_bucket_container)
-	 (gotalarm_cont (instance class_container))
+  (let ( (alarmbuck !alarm_bucket_reference)
+	 (gotalarm_cont (instance class_reference))
 	 (:long cureltim (relative_time_millisec))
 	 )
     (debug "handle_alarm_signal start alarmbuck=" alarmbuck " cureltim=" cureltim)
@@ -3945,7 +3945,7 @@ ASSERT_MSG) is enabled"
 		 (set_reference gotalarm_cont ())
 		 (again handleloop))
 	       ))			;end handleloop
-    (set_reference alarm_bucket_container alarmbuck)
+    (set_reference alarm_bucket_reference alarmbuck)
     (let ( (:long nowtim (relative_time_millisec))
 	   (:long nextalarm (bucketlong_nth_key alarmbuck 0))
 	   )
@@ -3978,7 +3978,7 @@ ASSERT_MSG) is enabled"
 	    (block_signals 
 	     () ()
 	     (let ( (periodbox (make_integerbox discr_constant_integer periodms))
-		    (oldbuck (or !alarm_bucket_container (make_bucketlong discr_bucket_longs 31)))
+		    (oldbuck (or !alarm_bucket_reference (make_bucketlong discr_bucket_longs 31)))
 		    (alhd (instance class_alarm_handler
 				    :alarmh_period periodbox
 				    :alarmh_clos clos
@@ -3989,7 +3989,7 @@ ASSERT_MSG) is enabled"
 		    (:long firstkey (bucketlong_nth_key newbuck 0))
 		    (:long firstdelay (if firstkey (-i firstkey cureltim)))
 		    )
-	       (set_reference alarm_bucket_container newbuck)
+	       (set_reference alarm_bucket_reference newbuck)
 	       (put_fields initial_system_data :sysdata_alarm_hook handle_alarm_signal)
 	       (set_real_timer_millisec firstdelay)
 	       (setq res alhd)))
@@ -4006,13 +4006,13 @@ ASSERT_MSG) is enabled"
     (return))
   (block_signals
    () ()
-   (let ( (oldbuck !alarm_bucket_container)
+   (let ( (oldbuck !alarm_bucket_reference)
 	  (:long oldbucklen (bucketlong_count oldbuck))
 	  (newbuck (make_bucketlong discr_bucket_longs oldbucklen))
 	  )
      (unless oldbucklen 
        ;; no more alarms
-       (set_reference alarm_bucket_container ())
+       (set_reference alarm_bucket_reference ())
        (set_real_timer_millisec 0)
        (put_fields initial_system_data 
 		   :sysdata_alarm_hook ())
@@ -4024,19 +4024,19 @@ ASSERT_MSG) is enabled"
       (unless (== oldala tim)
 	(setq newbuck (bucketlong_put newbuck oldkey oldala))
 	))
-     (set_reference alarm_bucket_container newbuck)
+     (set_reference alarm_bucket_reference newbuck)
      )
    ))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(definstance childproc_bucket_container class_container)
+(definstance childproc_bucket_reference class_reference)
 
 
 (defun child_process_sigchld_handler ()
-  (debug "child_process_sigchld_handler childproc_bucket_container=" childproc_bucket_container)
+  (debug "child_process_sigchld_handler childproc_bucket_reference=" childproc_bucket_reference)
   (let ( (lischph (make_list discr_list))
 	 (liswstat (make_list discr_list))
-	 (buck !childproc_bucket_container)
+	 (buck !childproc_bucket_reference)
 	 )
     (unless (is_bucketlong buck) (return))
     (block_signals 
@@ -4096,10 +4096,10 @@ ASSERT_MSG) is enabled"
 		" curwstat=" curwstat " ix=" ix)
 	 (block_signals
 	  () ()
-	  (let ( (cbuck  !childproc_bucket_container)
+	  (let ( (cbuck  !childproc_bucket_reference)
 		 )
 	    (setq cbuck (bucketlong_remove cbuck curpid))
-	    (set_reference childproc_bucket_container cbuck)
+	    (set_reference childproc_bucket_reference cbuck)
 	    ))
 	 (code_chunk 
 	  lookwstatchk
@@ -4167,12 +4167,12 @@ ASSERT_MSG) is enabled"
 	      (debug "register_child_process_handler chph=" chph)
 	      (block_signals 
 	       () ()
-	       (let ( (buck (or !childproc_bucket_container
+	       (let ( (buck (or !childproc_bucket_reference
 				   (make_bucketlong discr_bucket_longs 13)))
 		     )
 		 (assert_msg "check buck" (is_bucketlong buck))
 		 (setq buck (bucketlong_put buck pid chph))
-		 (set_reference childproc_bucket_container buck)
+		 (set_reference childproc_bucket_reference buck)
 		 )
 	       (put_fields initial_system_data
 			   :sysdata_child_hook child_process_sigchld_handler)
