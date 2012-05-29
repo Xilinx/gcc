@@ -1,4 +1,15 @@
 
+2012-05-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.cc: Using GtkMM 3.4 application...
+	Program argument parsed.
+	(SmeltMainWindow::SmeltMainWindow): Move show_all elsewhere.
+	(SmeltApplication::create_windows): New.
+	(SmeltApplication::on_command_line): More debug.
+	(SmeltApplication::on_startup): Remove.
+	(SmeltApplication::on_activate): Call create_windows.
+	(main): Handle first argument -D specially. Register and activate
+	the application.
+
 2012-05-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.cc: Using GtkMM 3.4 application...
 	Buggy...

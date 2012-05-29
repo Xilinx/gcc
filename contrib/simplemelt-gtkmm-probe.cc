@@ -338,7 +338,6 @@ public:
     }
     _mainvbox.pack_start(_mainnotebook,Gtk::PACK_EXPAND_WIDGET);
     _mainvbox.pack_start(_mainstatusbar,Gtk::PACK_SHRINK);
-    show_all();
   }
   void send_quit_req(void);
   virtual ~SmeltMainWindow() {
@@ -844,6 +843,20 @@ protected:
   bool reqbuf_to_melt_cb(Glib::IOCondition);
   bool cmdbuf_from_melt_cb(Glib::IOCondition);
   void process_command_from_melt (std::string& str);
+  void create_windows(void) {
+    SMELT_DEBUG("start of create_windows");
+    if (_app_mainwinp) return;
+    {
+      SmeltMainWindow* mainwin = new SmeltMainWindow();
+      SMELT_DEBUG("mainwin=" << (void*)mainwin);
+      add_window(*mainwin);
+      _app_mainwinp = Glib::RefPtr<SmeltMainWindow>(mainwin);
+      mainwin->show_all();
+    }
+    SMELT_DEBUG("_app_traced=" << _app_traced);
+    if (_app_traced) {
+    }
+  };
 public:
   std::ostringstream& outreq() {
     return _app_writestream_to_melt;
@@ -887,10 +900,10 @@ public:
   };
   SmeltApplication()
     : Gtk::Application
-      ("org.gcc-melt.simple-probe",
-       Gio::ApplicationFlags(Gio::APPLICATION_HANDLES_COMMAND_LINE 
-			     | Gio::APPLICATION_NON_UNIQUE)),
-      _app_traced(false) {
+    ("org.gcc-melt.simple-probe",
+     Gio::ApplicationFlags(Gio::APPLICATION_HANDLES_COMMAND_LINE
+                           | Gio::APPLICATION_NON_UNIQUE)),
+    _app_traced(false) {
     Gsv::init(); /// initialize GtkSourceviewMM very early!
     _application = this;
   };
@@ -900,6 +913,7 @@ public:
   }
   void set_reqchan_to_melt(const std::string &reqname) {
     const char* reqcstr = reqname.c_str();
+    SMELT_DEBUG("reqname=" << reqname);
     char* endstr = nullptr;
     long reqfd = strtol(reqcstr, &endstr, 10);
     struct stat reqstat = {};
@@ -918,6 +932,7 @@ public:
   }
   void set_cmdchan_from_melt(const std::string &cmdname) {
     const char* cmdcstr = cmdname.c_str();
+    SMELT_DEBUG("cmdname=" << cmdname);
     char* endstr = nullptr;
     long cmdfd = strtol(cmdcstr, &endstr, 10);
     struct stat cmdstat = {};
@@ -938,48 +953,34 @@ public:
   }
   ~SmeltApplication() {
   };
+  //Overrides of default signal handlers
   virtual int
-  on_command_line(const Glib::RefPtr<Gio::ApplicationCommandLine>& cmdline)
-  {
+  on_command_line(const Glib::RefPtr<Gio::ApplicationCommandLine>& cmdline) {
     int argc = 0;
     char** argv = cmdline->get_arguments(argc);
+    SMELT_DEBUG("on_command_line argc=" << argc << " argv=" << argv);
     Glib::OptionContext optcontext;
     SmeltOptionGroup optgroup;
     optcontext.set_main_group(optgroup);
     try {
       optcontext.parse(argc,argv);
-    } catch (const Glib::Error& ex)
-      {
-	std::clog 
-	  << argv[0] 
-	  << " got exception when parsing command line:" << ex.what() << std::endl;
-	std::cerr << optcontext.get_help() << std::endl;
-	return EXIT_FAILURE;
-      }
-    SMELT_DEBUG ("command_line activating");
-    activate ();
-    SMELT_DEBUG ("command_line done");
+      SMELT_DEBUG("on_command_line parsed _app_traced=" << _app_traced);
+      optgroup.setup_appl(*this);
+      SMELT_DEBUG("on_command_line after setup_appl _app_traced=" << _app_traced);
+    } catch (const Glib::Error& ex) {
+      std::clog
+          << argv[0]
+          << " got exception when parsing command line:" << ex.what() << std::endl;
+      std::cerr << optcontext.get_help() << std::endl;
+      return EXIT_FAILURE;
+    }
+    SMELT_DEBUG ("on_command_line done");
     return EXIT_SUCCESS;
   }
   virtual void
-  on_startup (void)
-  {
-    std::clog << __FILE__ << ":" << __LINE__ << " start on_startup " << std::endl;
-    Gtk::Application::on_startup();
-  }
-
-  virtual void
-  on_activate(void) 
-  {
-    std::clog << __FILE__ << ":" << __LINE__ << " start on_activate " << std::endl;
+  on_activate(void) {
     SMELT_DEBUG ("activated");
-    if (!_app_mainwinp)
-      {
-	SmeltMainWindow* mainwin = new SmeltMainWindow();
-	SMELT_DEBUG("mainwin=" << (void*)mainwin);
-	add_window(*mainwin);
-	_app_mainwinp = Glib::RefPtr<SmeltMainWindow>(mainwin);
-      }
+    create_windows ();
     Gtk::Application::on_activate();
   }
   void set_trace(bool =true);
@@ -1504,6 +1505,9 @@ void SmeltTraceWindow::add_reply_to_melt(const std::string& str)
 
 void SmeltOptionGroup::setup_appl(SmeltApplication& app)
 {
+  SMELT_DEBUG("setup_appl _file_to_melt=" << _file_to_melt
+              << " _file_from_melt=" << _file_from_melt
+              << " _trace_melt=" << _trace_melt);
   if (!_file_to_melt.empty())
     app.set_reqchan_to_melt(_file_to_melt);
   if (!_file_from_melt.empty())
@@ -1653,13 +1657,20 @@ SmeltApplication::process_command_from_melt(std::string& str)
 ////////////////////////////////////////////////////////////////
 int main (int argc, char** argv)
 {
-#warning not working well yet..., should handle program argument
-  auto progname = (argc>0)?(argv[0]):"Simple Melt Probe";
+  auto progname = (argc>0)?(argv[0]):"*Simple-Melt-Probe*";
+  if (argc>1 && !strcmp(argv[1],"-D"))
+    smelt_debugging = true;
+  SMELT_DEBUG("start " << progname << " pid#" << (int)getpid());
   try {
-     Glib::RefPtr<SmeltApplication> appl = 
-       SmeltApplication::create();
+    Glib::RefPtr<SmeltApplication> appl =
+      SmeltApplication::create();
+    SMELT_DEBUG("before application registration");
+    appl->register_application ();
+    SMELT_DEBUG("before application activation");
+    appl->activate();
+    SMELT_DEBUG("before application run");
     appl->run(argc, argv);
-    SMELT_DEBUG("after run");
+    SMELT_DEBUG("after application run");
   } catch (std::exception ex) {
     std::clog << progname << " got exception: " << ex.what() << std::endl;
     exit(EXIT_FAILURE);
