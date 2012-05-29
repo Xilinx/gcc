@@ -26755,15 +26755,15 @@ lab_endgetargs:;
 			 melt_is_instance_of ((melt_ptr_t)
 					      (( /*!MELT_MODE_CONTAINER */
 						meltfrout->tabval[14])),
-					      (melt_ptr_t) (( /*!CLASS_CONTAINER */ meltfrout->tabval[15])))
+					      (melt_ptr_t) (( /*!CLASS_REFERENCE */ meltfrout->tabval[15])))
 	    )			/*then */
 	    {
 	      /*^cond.then */
 	      /*^getslot */
 	      {
 		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) (( /*!MELT_MODE_CONTAINER */ meltfrout->tabval[14])), 0, "CONTAINER_VALUE");
-														      /*_.CONTAINER_VALUE__V86*/
+		melt_object_get_field (slot, (melt_ptr_t) (( /*!MELT_MODE_CONTAINER */ meltfrout->tabval[14])), 0, "REFERENCED_VALUE");
+														       /*_.REFERENCED_VALUE__V86*/
 		meltfptr[58] = slot;
 	      };
 	      ;
@@ -26771,13 +26771,13 @@ lab_endgetargs:;
 	  else
 	    {			/*^cond.else */
 
-    /*_.CONTAINER_VALUE__V86*/ meltfptr[58] = NULL;;
+    /*_.REFERENCED_VALUE__V86*/ meltfptr[58] = NULL;;
 	    }
 	  ;
 	  /*^compute */
 
    /*_#NULL__L24*/ meltfnum[16] =
-	    (( /*_.CONTAINER_VALUE__V86*/ meltfptr[58]) == NULL);;
+	    (( /*_.REFERENCED_VALUE__V86*/ meltfptr[58]) == NULL);;
 	  MELT_LOCATION ("warmelt-macro.melt:3470:/ cond");
 	  /*cond */ if ( /*_#NULL__L24*/ meltfnum[16])	/*then */
 	    {
@@ -26830,7 +26830,7 @@ lab_endgetargs:;
 	  MELT_LOCATION ("warmelt-macro.melt:3464:/ clear");
 	     /*clear *//*_.IFCPP___V82*/ meltfptr[56] = 0;
 	  /*^clear */
-	     /*clear *//*_.CONTAINER_VALUE__V86*/ meltfptr[58] = 0;
+	     /*clear *//*_.REFERENCED_VALUE__V86*/ meltfptr[58] = 0;
 	  /*^clear */
 	     /*clear *//*_#NULL__L24*/ meltfnum[16] = 0;
 	  /*^clear */
@@ -31056,21 +31056,21 @@ lab_endgetargs:;
     {
       melt_ptr_t newobj = 0;
       melt_raw_object_create (newobj,
-			      (melt_ptr_t) (( /*!CLASS_CONTAINER */
+			      (melt_ptr_t) (( /*!CLASS_REFERENCE */
 					     meltfrout->tabval[5])), (1),
-			      "CLASS_CONTAINER");
+			      "CLASS_REFERENCE");
   /*_.INST__V23*/ meltfptr[22] =
 	newobj;
     };
     ;
     /*^putslot */
     /*putslot */
-    melt_assertmsg ("putslot checkobj @CONTAINER_VALUE",
+    melt_assertmsg ("putslot checkobj @REFERENCED_VALUE",
 		    melt_magic_discr ((melt_ptr_t)
 				      ( /*_.INST__V23*/ meltfptr[22])) ==
 		    MELTOBMAG_OBJECT);
     melt_putfield_object (( /*_.INST__V23*/ meltfptr[22]), (0),
-			  (( /*nil */ NULL)), "CONTAINER_VALUE");
+			  (( /*nil */ NULL)), "REFERENCED_VALUE");
     ;
     /*_.FLDCONT__V22*/ meltfptr[21] = /*_.INST__V23*/ meltfptr[22];;
     MELT_LOCATION ("warmelt-macro.melt:3669:/ checksignal");
@@ -31271,7 +31271,7 @@ lab_endgetargs:;
 		   /*ifisa */
 		   melt_is_instance_of ((melt_ptr_t)
 					( /*_.FLDCONT__V22*/ meltfptr[21]),
-					(melt_ptr_t) (( /*!CLASS_CONTAINER */
+					(melt_ptr_t) (( /*!CLASS_REFERENCE */
 						       meltfrout->tabval[5])))
       )				/*then */
       {
@@ -31279,8 +31279,8 @@ lab_endgetargs:;
 	/*^getslot */
 	{
 	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) ( /*_.FLDCONT__V22*/ meltfptr[21]), 0, "CONTAINER_VALUE");
-												   /*_.FLD__V33*/
+	  melt_object_get_field (slot, (melt_ptr_t) ( /*_.FLDCONT__V22*/ meltfptr[21]), 0, "REFERENCED_VALUE");
+												    /*_.FLD__V33*/
 	  meltfptr[32] = slot;
 	};
 	;
@@ -31899,7 +31899,7 @@ lab_endgetargs:;
 			 melt_is_instance_of ((melt_ptr_t)
 					      (( /*~FLDCONT */ meltfclos->
 						tabval[1])),
-					      (melt_ptr_t) (( /*!CLASS_CONTAINER */ meltfrout->tabval[1])))
+					      (melt_ptr_t) (( /*!CLASS_REFERENCE */ meltfrout->tabval[1])))
 	    )			/*then */
 	    {
 	      /*^cond.then */
@@ -31909,14 +31909,14 @@ lab_endgetargs:;
 
 		/*^putslot */
 		/*putslot */
-		melt_assertmsg ("putslot checkobj @CONTAINER_VALUE",
+		melt_assertmsg ("putslot checkobj @REFERENCED_VALUE",
 				melt_magic_discr ((melt_ptr_t)
 						  (( /*~FLDCONT */ meltfclos->
 						    tabval[1]))) ==
 				MELTOBMAG_OBJECT);
 		melt_putfield_object ((( /*~FLDCONT */ meltfclos->tabval[1])),
 				      (0), ( /*_.CFLD__V2*/ meltfptr[1]),
-				      "CONTAINER_VALUE");
+				      "REFERENCED_VALUE");
 		;
 		/*^touch */
 		meltgc_touch (( /*~FLDCONT */ meltfclos->tabval[1]));

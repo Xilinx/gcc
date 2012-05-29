@@ -2669,9 +2669,9 @@ lab_endgetargs:;
 	    /*^apply.arg */
 	    argtab[0].meltbp_aptr =
 	      (melt_ptr_t *) & /*_.NREALCALLEX__V8*/ meltfptr[7];
-	    /*_.SET_CONTENT__V9*/ meltfptr[8] =
+	    /*_.SET_REFERENCE__V9*/ meltfptr[8] =
 	      melt_apply ((meltclosure_ptr_t)
-			  (( /*!SET_CONTENT */ meltfrout->tabval[1])),
+			  (( /*!SET_REFERENCE */ meltfrout->tabval[1])),
 			  (melt_ptr_t) (( /*~NCONTCALL */ meltfclos->
 					 tabval[1])), (MELTBPARSTR_PTR ""),
 			  argtab, "", (union meltparam_un *) 0);
@@ -2682,7 +2682,7 @@ lab_endgetargs:;
 	  MELT_LOCATION ("warmelt-normal.melt:3906:/ clear");
 	     /*clear *//*_.NREALCALLEX__V8*/ meltfptr[7] = 0;
 	  /*^clear */
-	     /*clear *//*_.SET_CONTENT__V9*/ meltfptr[8] = 0;
+	     /*clear *//*_.SET_REFERENCE__V9*/ meltfptr[8] = 0;
 	  /*_.IFELSE___V6*/ meltfptr[5] = /*_.LET___V7*/ meltfptr[6];;
 	  /*epilog */
 

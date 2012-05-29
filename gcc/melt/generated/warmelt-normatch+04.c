@@ -15691,7 +15691,7 @@ lab_endgetargs:;
       ;
       /*^putpairtail */
       /*putpairtail */
-      melt_assertmsg ("putpairtail /1eb1fcce checkpair",
+      melt_assertmsg ("putpairtail /263af376 checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.NSETFLAG__V25*/ meltfptr[24]))
 		      == MELTOBMAG_PAIR);
@@ -16608,7 +16608,7 @@ lab_endgetargs:;
       ;
       /*^putpairtail */
       /*putpairtail */
-      melt_assertmsg ("putpairtail /2ec18c91 checkpair",
+      melt_assertmsg ("putpairtail /2218c176 checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.NSETFLAG__V26*/ meltfptr[25]))
 		      == MELTOBMAG_PAIR);
@@ -59065,15 +59065,15 @@ lab_endgetargs:;
 			 /*ifisa */
 			 melt_is_instance_of ((melt_ptr_t)
 					      (( /*!MATCH_GRAPHIC_DOT_PREFIX */ meltfrout->tabval[30])),
-					      (melt_ptr_t) (( /*!CLASS_CONTAINER */ meltfrout->tabval[31])))
+					      (melt_ptr_t) (( /*!CLASS_REFERENCE */ meltfrout->tabval[31])))
 	    )			/*then */
 	    {
 	      /*^cond.then */
 	      /*^getslot */
 	      {
 		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) (( /*!MATCH_GRAPHIC_DOT_PREFIX */ meltfrout->tabval[30])), 0, "CONTAINER_VALUE");
-															   /*_.DOTPREFIX__V169*/
+		melt_object_get_field (slot, (melt_ptr_t) (( /*!MATCH_GRAPHIC_DOT_PREFIX */ meltfrout->tabval[30])), 0, "REFERENCED_VALUE");
+															    /*_.DOTPREFIX__V169*/
 		meltfptr[100] = slot;
 	      };
 	      ;

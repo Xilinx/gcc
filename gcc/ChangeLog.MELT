@@ -1,5 +1,64 @@
 
-2012-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
+2012-05-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Regenerate}}
+	* melt/generated/meltrunsup-inc.c
+	* melt/generated/meltrunsup.h
+	* melt/generated/warmelt-base+01.c
+	* melt/generated/warmelt-base+02.c
+	* melt/generated/warmelt-base+meltdesc.c
+	* melt/generated/warmelt-base+melttime.h
+	* melt/generated/warmelt-base.c
+	* melt/generated/warmelt-debug+01.c
+	* melt/generated/warmelt-debug+meltdesc.c
+	* melt/generated/warmelt-debug+melttime.h
+	* melt/generated/warmelt-debug.c
+	* melt/generated/warmelt-first+01.c
+	* melt/generated/warmelt-first+02.c
+	* melt/generated/warmelt-first+03.c
+	* melt/generated/warmelt-first+meltdesc.c
+	* melt/generated/warmelt-first+melttime.h
+	* melt/generated/warmelt-first.c
+	* melt/generated/warmelt-genobj+01.c
+	* melt/generated/warmelt-genobj+04.c
+	* melt/generated/warmelt-genobj+05.c
+	* melt/generated/warmelt-genobj+meltdesc.c
+	* melt/generated/warmelt-genobj+melttime.h
+	* melt/generated/warmelt-genobj.c
+	* melt/generated/warmelt-macro+01.c
+	* melt/generated/warmelt-macro+02.c
+	* melt/generated/warmelt-macro+03.c
+	* melt/generated/warmelt-macro+04.c
+	* melt/generated/warmelt-macro+meltdesc.c
+	* melt/generated/warmelt-macro+melttime.h
+	* melt/generated/warmelt-macro.c
+	* melt/generated/warmelt-modes+01.c
+	* melt/generated/warmelt-modes+02.c
+	* melt/generated/warmelt-modes+meltdesc.c
+	* melt/generated/warmelt-modes+melttime.h
+	* melt/generated/warmelt-modes.c
+	* melt/generated/warmelt-normal+01.c
+	* melt/generated/warmelt-normal+02.c
+	* melt/generated/warmelt-normal+03.c
+	* melt/generated/warmelt-normal+04.c
+	* melt/generated/warmelt-normal+05.c
+	* melt/generated/warmelt-normal+meltdesc.c
+	* melt/generated/warmelt-normal+melttime.h
+	* melt/generated/warmelt-normal.c
+	* melt/generated/warmelt-normatch+01.c
+	* melt/generated/warmelt-normatch+02.c
+	* melt/generated/warmelt-normatch+04.c
+	* melt/generated/warmelt-normatch+meltdesc.c
+	* melt/generated/warmelt-normatch+melttime.h
+	* melt/generated/warmelt-normatch.c
+	* melt/generated/warmelt-outobj+01.c
+	* melt/generated/warmelt-outobj+02.c
+	* melt/generated/warmelt-outobj+03.c
+	* melt/generated/warmelt-outobj+04.c
+	* melt/generated/warmelt-outobj+meltdesc.c
+	* melt/generated/warmelt-outobj+melttime.h
+	* melt/generated/warmelt-outobj.c
+
+2012-05-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-predef.list (CLASS_REFERENCE): New
 	(CLASS_CONTAINER): Obsolete.
 
@@ -15,7 +74,7 @@
 	* melt/warmelt-modes.melt (generate_runtypesupport_predef_fields):
 	Emit #define MELT_HAS_PREDEF_<predefname>
 
-2012-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
+2012-05-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Speak of "references", not "containers"}}
 	* melt-runtime.h (MELTGLOB_CLASS_REFERENCE): temporary macro for
 	MELTGLOB_CLASS_CONTAINER.
@@ -49,7 +108,7 @@
 	* melt/xtramelt-opengpu.melt: Ditto.
 	* melt/xtramelt-probe.melt: Ditto.
 
-2012-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
+2012-05-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Speak of "references", not "containers", which was used
 	improperly in MELT}}
 	* melt/warmelt-first.melt (class_reference): Synonym for

@@ -2597,19 +2597,19 @@ lab_endgetargs:;
 	    /*^apply.arg */
 	    argtab[0].meltbp_aptr =
 	      (melt_ptr_t *) & /*_.KEY__V2*/ meltfptr[1];
-	    /*_.SET_CONTENT__V5*/ meltfptr[4] =
+	    /*_.SET_REFERENCE__V5*/ meltfptr[4] =
 	      melt_apply ((meltclosure_ptr_t)
-			  (( /*!SET_CONTENT */ meltfrout->tabval[0])),
+			  (( /*!SET_REFERENCE */ meltfrout->tabval[0])),
 			  (melt_ptr_t) (( /*~CONTK */ meltfclos->tabval[1])),
 			  (MELTBPARSTR_PTR ""), argtab, "",
 			  (union meltparam_un *) 0);
 	  }
 	  ;
-	  /*_.IF___V4*/ meltfptr[3] = /*_.SET_CONTENT__V5*/ meltfptr[4];;
+	  /*_.IF___V4*/ meltfptr[3] = /*_.SET_REFERENCE__V5*/ meltfptr[4];;
 	  /*epilog */
 
 	  MELT_LOCATION ("warmelt-normal.melt:6915:/ clear");
-	     /*clear *//*_.SET_CONTENT__V5*/ meltfptr[4] = 0;
+	     /*clear *//*_.SET_REFERENCE__V5*/ meltfptr[4] = 0;
 	}
 	;
       }

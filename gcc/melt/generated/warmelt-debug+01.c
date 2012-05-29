@@ -967,7 +967,7 @@ lab_endgetargs:;
 		   melt_is_instance_of ((melt_ptr_t)
 					(( /*!EDGE_DEBUG_FUNCONT */
 					  meltfrout->tabval[0])),
-					(melt_ptr_t) (( /*!CLASS_CONTAINER */
+					(melt_ptr_t) (( /*!CLASS_REFERENCE */
 						       meltfrout->tabval[1])))
       )				/*then */
       {
@@ -975,8 +975,8 @@ lab_endgetargs:;
 	/*^getslot */
 	{
 	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) (( /*!EDGE_DEBUG_FUNCONT */ meltfrout->tabval[0])), 0, "CONTAINER_VALUE");
-														  /*_.OLDCONT__V4*/
+	  melt_object_get_field (slot, (melt_ptr_t) (( /*!EDGE_DEBUG_FUNCONT */ meltfrout->tabval[0])), 0, "REFERENCED_VALUE");
+														   /*_.OLDCONT__V4*/
 	  meltfptr[3] = slot;
 	};
 	;
@@ -1038,19 +1038,19 @@ lab_endgetargs:;
 	    memset (&argtab, 0, sizeof (argtab));
 	    /*^apply.arg */
 	    argtab[0].meltbp_aptr = (melt_ptr_t *) & /*_.F__V2*/ meltfptr[1];
-	    /*_.SET_CONTENT__V6*/ meltfptr[5] =
+	    /*_.SET_REFERENCE__V6*/ meltfptr[5] =
 	      melt_apply ((meltclosure_ptr_t)
-			  (( /*!SET_CONTENT */ meltfrout->tabval[2])),
+			  (( /*!SET_REFERENCE */ meltfrout->tabval[2])),
 			  (melt_ptr_t) (( /*!EDGE_DEBUG_FUNCONT */ meltfrout->
 					 tabval[0])), (MELTBPARSTR_PTR ""),
 			  argtab, "", (union meltparam_un *) 0);
 	  }
 	  ;
-	  /*_.IF___V5*/ meltfptr[4] = /*_.SET_CONTENT__V6*/ meltfptr[5];;
+	  /*_.IF___V5*/ meltfptr[4] = /*_.SET_REFERENCE__V6*/ meltfptr[5];;
 	  /*epilog */
 
 	  MELT_LOCATION ("warmelt-debug.melt:233:/ clear");
-	     /*clear *//*_.SET_CONTENT__V6*/ meltfptr[5] = 0;
+	     /*clear *//*_.SET_REFERENCE__V6*/ meltfptr[5] = 0;
 	}
 	;
       }
@@ -1194,7 +1194,7 @@ lab_endgetargs:;
 		   melt_is_instance_of ((melt_ptr_t)
 					(( /*!BASICBLOCK_DEBUG_FUNCONT */
 					  meltfrout->tabval[0])),
-					(melt_ptr_t) (( /*!CLASS_CONTAINER */
+					(melt_ptr_t) (( /*!CLASS_REFERENCE */
 						       meltfrout->tabval[1])))
       )				/*then */
       {
@@ -1202,8 +1202,8 @@ lab_endgetargs:;
 	/*^getslot */
 	{
 	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) (( /*!BASICBLOCK_DEBUG_FUNCONT */ meltfrout->tabval[0])), 0, "CONTAINER_VALUE");
-															/*_.OLDCONT__V4*/
+	  melt_object_get_field (slot, (melt_ptr_t) (( /*!BASICBLOCK_DEBUG_FUNCONT */ meltfrout->tabval[0])), 0, "REFERENCED_VALUE");
+															 /*_.OLDCONT__V4*/
 	  meltfptr[3] = slot;
 	};
 	;
@@ -1265,20 +1265,20 @@ lab_endgetargs:;
 	    memset (&argtab, 0, sizeof (argtab));
 	    /*^apply.arg */
 	    argtab[0].meltbp_aptr = (melt_ptr_t *) & /*_.F__V2*/ meltfptr[1];
-	    /*_.SET_CONTENT__V6*/ meltfptr[5] =
+	    /*_.SET_REFERENCE__V6*/ meltfptr[5] =
 	      melt_apply ((meltclosure_ptr_t)
-			  (( /*!SET_CONTENT */ meltfrout->tabval[2])),
+			  (( /*!SET_REFERENCE */ meltfrout->tabval[2])),
 			  (melt_ptr_t) (( /*!BASICBLOCK_DEBUG_FUNCONT */
 					 meltfrout->tabval[0])),
 			  (MELTBPARSTR_PTR ""), argtab, "",
 			  (union meltparam_un *) 0);
 	  }
 	  ;
-	  /*_.IF___V5*/ meltfptr[4] = /*_.SET_CONTENT__V6*/ meltfptr[5];;
+	  /*_.IF___V5*/ meltfptr[4] = /*_.SET_REFERENCE__V6*/ meltfptr[5];;
 	  /*epilog */
 
 	  MELT_LOCATION ("warmelt-debug.melt:246:/ clear");
-	     /*clear *//*_.SET_CONTENT__V6*/ meltfptr[5] = 0;
+	     /*clear *//*_.SET_REFERENCE__V6*/ meltfptr[5] = 0;
 	}
 	;
       }
@@ -1418,7 +1418,7 @@ lab_endgetargs:;
 		   melt_is_instance_of ((melt_ptr_t)
 					(( /*!LOOP_DEBUG_FUNCONT */
 					  meltfrout->tabval[0])),
-					(melt_ptr_t) (( /*!CLASS_CONTAINER */
+					(melt_ptr_t) (( /*!CLASS_REFERENCE */
 						       meltfrout->tabval[1])))
       )				/*then */
       {
@@ -1426,8 +1426,8 @@ lab_endgetargs:;
 	/*^getslot */
 	{
 	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) (( /*!LOOP_DEBUG_FUNCONT */ meltfrout->tabval[0])), 0, "CONTAINER_VALUE");
-														  /*_.OLDCONT__V4*/
+	  melt_object_get_field (slot, (melt_ptr_t) (( /*!LOOP_DEBUG_FUNCONT */ meltfrout->tabval[0])), 0, "REFERENCED_VALUE");
+														   /*_.OLDCONT__V4*/
 	  meltfptr[3] = slot;
 	};
 	;
@@ -1489,19 +1489,19 @@ lab_endgetargs:;
 	    memset (&argtab, 0, sizeof (argtab));
 	    /*^apply.arg */
 	    argtab[0].meltbp_aptr = (melt_ptr_t *) & /*_.F__V2*/ meltfptr[1];
-	    /*_.SET_CONTENT__V6*/ meltfptr[5] =
+	    /*_.SET_REFERENCE__V6*/ meltfptr[5] =
 	      melt_apply ((meltclosure_ptr_t)
-			  (( /*!SET_CONTENT */ meltfrout->tabval[2])),
+			  (( /*!SET_REFERENCE */ meltfrout->tabval[2])),
 			  (melt_ptr_t) (( /*!LOOP_DEBUG_FUNCONT */ meltfrout->
 					 tabval[0])), (MELTBPARSTR_PTR ""),
 			  argtab, "", (union meltparam_un *) 0);
 	  }
 	  ;
-	  /*_.IF___V5*/ meltfptr[4] = /*_.SET_CONTENT__V6*/ meltfptr[5];;
+	  /*_.IF___V5*/ meltfptr[4] = /*_.SET_REFERENCE__V6*/ meltfptr[5];;
 	  /*epilog */
 
 	  MELT_LOCATION ("warmelt-debug.melt:259:/ clear");
-	     /*clear *//*_.SET_CONTENT__V6*/ meltfptr[5] = 0;
+	     /*clear *//*_.SET_REFERENCE__V6*/ meltfptr[5] = 0;
 	}
 	;
       }
@@ -3366,15 +3366,15 @@ lab_endgetargs:;
 							   melt_is_instance_of
 							   ((melt_ptr_t)
 							    (( /*!TREE_DEBUG_FUNCONT */ meltfrout->tabval[10])),
-							    (melt_ptr_t) (( /*!CLASS_CONTAINER */ meltfrout->tabval[11])))
+							    (melt_ptr_t) (( /*!CLASS_REFERENCE */ meltfrout->tabval[11])))
 					      )	/*then */
 					      {
 						/*^cond.then */
 						/*^getslot */
 						{
 						  melt_ptr_t slot = 0;
-						  melt_object_get_field (slot, (melt_ptr_t) (( /*!TREE_DEBUG_FUNCONT */ meltfrout->tabval[10])), 0, "CONTAINER_VALUE");
-																 /*_.TDF__V42*/
+						  melt_object_get_field (slot, (melt_ptr_t) (( /*!TREE_DEBUG_FUNCONT */ meltfrout->tabval[10])), 0, "REFERENCED_VALUE");
+																  /*_.TDF__V42*/
 						  meltfptr[31] = slot;
 						};
 						;
@@ -3569,15 +3569,15 @@ lab_endgetargs:;
 								 ((melt_ptr_t)
 								  (( /*!GIMPLE_DEBUG_FUNCONT */ meltfrout->tabval[12])),
 								  (melt_ptr_t)
-								  (( /*!CLASS_CONTAINER */ meltfrout->tabval[11])))
+								  (( /*!CLASS_REFERENCE */ meltfrout->tabval[11])))
 						    )	/*then */
 						    {
 						      /*^cond.then */
 						      /*^getslot */
 						      {
 							melt_ptr_t slot = 0;
-							melt_object_get_field (slot, (melt_ptr_t) (( /*!GIMPLE_DEBUG_FUNCONT */ meltfrout->tabval[12])), 0, "CONTAINER_VALUE");
-																     /*_.GDF__V46*/
+							melt_object_get_field (slot, (melt_ptr_t) (( /*!GIMPLE_DEBUG_FUNCONT */ meltfrout->tabval[12])), 0, "REFERENCED_VALUE");
+																      /*_.GDF__V46*/
 							meltfptr[26] = slot;
 						      };
 						      ;
@@ -3780,7 +3780,7 @@ lab_endgetargs:;
 								       /*ifisa */
 								       melt_is_instance_of
 								       ((melt_ptr_t) (( /*!GIMPLESEQ_DEBUG_FUNCONT */ meltfrout->tabval[13])),
-									(melt_ptr_t) (( /*!CLASS_CONTAINER */ meltfrout->tabval[11])))
+									(melt_ptr_t) (( /*!CLASS_REFERENCE */ meltfrout->tabval[11])))
 							  )	/*then */
 							  {
 							    /*^cond.then */
@@ -3788,8 +3788,8 @@ lab_endgetargs:;
 							    {
 							      melt_ptr_t slot
 								= 0;
-							      melt_object_get_field (slot, (melt_ptr_t) (( /*!GIMPLESEQ_DEBUG_FUNCONT */ meltfrout->tabval[13])), 0, "CONTAINER_VALUE");
-																	  /*_.GSDF__V50*/
+							      melt_object_get_field (slot, (melt_ptr_t) (( /*!GIMPLESEQ_DEBUG_FUNCONT */ meltfrout->tabval[13])), 0, "REFERENCED_VALUE");
+																	   /*_.GSDF__V50*/
 							      meltfptr[29] =
 								slot;
 							    };
@@ -4007,7 +4007,7 @@ lab_endgetargs:;
 									     /*ifisa */
 									     melt_is_instance_of
 									     ((melt_ptr_t) (( /*!EDGE_DEBUG_FUNCONT */ meltfrout->tabval[14])),
-									      (melt_ptr_t) (( /*!CLASS_CONTAINER */ meltfrout->tabval[11])))
+									      (melt_ptr_t) (( /*!CLASS_REFERENCE */ meltfrout->tabval[11])))
 								)	/*then */
 								{
 								  /*^cond.then */
@@ -4016,8 +4016,8 @@ lab_endgetargs:;
 								    melt_ptr_t
 								      slot =
 								      0;
-								    melt_object_get_field (slot, (melt_ptr_t) (( /*!EDGE_DEBUG_FUNCONT */ meltfrout->tabval[14])), 0, "CONTAINER_VALUE");
-																       /*_.EDF__V54*/
+								    melt_object_get_field (slot, (melt_ptr_t) (( /*!EDGE_DEBUG_FUNCONT */ meltfrout->tabval[14])), 0, "REFERENCED_VALUE");
+																	/*_.EDF__V54*/
 								    meltfptr
 								      [25] =
 								      slot;
@@ -4247,7 +4247,7 @@ lab_endgetargs:;
 										   /*ifisa */
 										   melt_is_instance_of
 										   ((melt_ptr_t) (( /*!BASICBLOCK_DEBUG_FUNCONT */ meltfrout->tabval[15])),
-										    (melt_ptr_t) (( /*!CLASS_CONTAINER */ meltfrout->tabval[11])))
+										    (melt_ptr_t) (( /*!CLASS_REFERENCE */ meltfrout->tabval[11])))
 								      )	/*then */
 								      {
 									/*^cond.then */
@@ -4257,8 +4257,8 @@ lab_endgetargs:;
 									    slot
 									    =
 									    0;
-									  melt_object_get_field (slot, (melt_ptr_t) (( /*!BASICBLOCK_DEBUG_FUNCONT */ meltfrout->tabval[15])), 0, "CONTAINER_VALUE");
-																	       /*_.BDF__V58*/
+									  melt_object_get_field (slot, (melt_ptr_t) (( /*!BASICBLOCK_DEBUG_FUNCONT */ meltfrout->tabval[15])), 0, "REFERENCED_VALUE");
+																		/*_.BDF__V58*/
 									  meltfptr
 									    [27]
 									    =
@@ -4501,7 +4501,7 @@ lab_endgetargs:;
 											 /*ifisa */
 											 melt_is_instance_of
 											 ((melt_ptr_t) (( /*!LOOP_DEBUG_FUNCONT */ meltfrout->tabval[16])),
-											  (melt_ptr_t) (( /*!CLASS_CONTAINER */ meltfrout->tabval[11])))
+											  (melt_ptr_t) (( /*!CLASS_REFERENCE */ meltfrout->tabval[11])))
 									    )	/*then */
 									    {
 									      /*^cond.then */
@@ -4511,8 +4511,8 @@ lab_endgetargs:;
 										  slot
 										  =
 										  0;
-										melt_object_get_field (slot, (melt_ptr_t) (( /*!LOOP_DEBUG_FUNCONT */ meltfrout->tabval[16])), 0, "CONTAINER_VALUE");
-																	   /*_.LDF__V62*/
+										melt_object_get_field (slot, (melt_ptr_t) (( /*!LOOP_DEBUG_FUNCONT */ meltfrout->tabval[16])), 0, "REFERENCED_VALUE");
+																	    /*_.LDF__V62*/
 										meltfptr
 										  [28]
 										  =

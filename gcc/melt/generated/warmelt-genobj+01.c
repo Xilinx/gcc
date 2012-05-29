@@ -12869,7 +12869,7 @@ lab_endgetargs:;
 	(melt_ptr_t *) & ( /*!CTYPE_VALUE */ meltfrout->tabval[39]);
       /*^apply.arg */
       argtab[1].meltbp_cstring =
-	"/* finalfreshenvget */ melt_container_value((melt_ptr_t)(";
+	"/* finalfreshenvget */ melt_reference_value((melt_ptr_t)(";
       /*^apply.arg */
       argtab[2].meltbp_aptr = (melt_ptr_t *) & /*_.BOXLOC__V50*/ meltfptr[48];
       /*^apply.arg */
