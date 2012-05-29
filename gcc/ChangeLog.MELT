@@ -28,10 +28,10 @@
 	* melt/warmelt-modes.melt: Ditto.
 	* melt/warmelt-normal.melt: Ditto.
 	* melt/warmelt-normatch.melt: Ditto.
-	* melt/warmelt-outobj.melt
-	* melt/xtramelt-ana-simple.melt
-	* melt/xtramelt-opengpu.melt
-	* melt/xtramelt-probe.melt
+	* melt/warmelt-outobj.melt: Ditto.
+	* melt/xtramelt-ana-simple.melt: Ditto.
+	* melt/xtramelt-opengpu.melt: Ditto.
+	* melt/xtramelt-probe.melt: Ditto.
 
 2012-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Speak of "references", not "containers", which was used
