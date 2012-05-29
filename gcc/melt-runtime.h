@@ -3284,10 +3284,12 @@ extern void melt_gt_ggc_mx_gimple_seq_d(void*);
 #define gt_ggc_mx_gimple_seq_d melt_gt_ggc_mx_gimple_seq_d
 #endif /* GCC 4.8 */
 
+#ifndef MELT_HAS_PREDEF_CLASS_REFERENCE
 #warning MELT temporary synonym macros reference == container
 #define MELTGLOB_CLASS_REFERENCE MELTGLOB_CLASS_CONTAINER
 #define MELTFIELD_REFERENCED_VALUE MELTFIELD_CONTAINER_VALUE
 #define MELTLENGTH_CLASS_REFERENCE MELTLENGTH_CLASS_CONTAINER
+#endif
 
 #endif /*MELT_INCLUDED_ */
 

@@ -13759,4 +13759,18 @@ void melt_gt_ggc_mx_gimple_seq_d(void*p)
 }
 #endif /* GCC 4.8 */
 
+
+#ifndef MELT_HAS_PREDEF_CLASS_REFERENCE
+#warning temporary meltfieldoff__CONTAINER_VALUE
+#ifdef __cplusplus
+extern "C"
+#endif
+const int meltfieldoff__CONTAINER_VALUE = 0;
+
+#ifdef __cplusplus
+extern "C"
+#endif
+const int meltclasslen__CLASS_CONTAINER = 1;
+#endif
+
 /* eof $Id$ */

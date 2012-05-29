@@ -1,5 +1,21 @@
 
 2012-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-predef.list (CLASS_REFERENCE): New
+	(CLASS_CONTAINER): Obsolete.
+
+	* melt-runtime.c (meltfieldoff__CONTAINER_VALUE)
+	(meltclasslen__CLASS_CONTAINER): New, temporarily.
+
+	* melt-runtime.h (MELTGLOB_CLASS_REFERENCE)
+	(MELTFIELD_REFERENCED_VALUE,MELTLENGTH_CLASS_REFERENCE): #define-d
+	only #ifndef MELT_HAS_PREDEF_CLASS_REFERENCE.
+
+	* melt/warmelt-first.melt (class_reference): New predefined...
+
+	* melt/warmelt-modes.melt (generate_runtypesupport_predef_fields):
+	Emit #define MELT_HAS_PREDEF_<predefname>
+
+2012-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Speak of "references", not "containers"}}
 	* melt-runtime.h (MELTGLOB_CLASS_REFERENCE): temporary macro for
 	MELTGLOB_CLASS_CONTAINER.

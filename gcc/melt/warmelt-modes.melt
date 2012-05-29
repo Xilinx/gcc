@@ -3377,6 +3377,7 @@ melt_scanning (melt_ptr_t p)
 		(:long nbfields (multiple_length clasfields))
 		)
 	   (add2sbuf_indentnl outbuf 0)
+	   (add2out outbuf "#define MELT_HAS_PREDEF_" clasnam)
 	   (add2sbuf_indentnl outbuf 0)
 	   (add2out outbuf ##{/* predefined class $CLASNAM index $PRIX */ enum { }#)
 	   (foreach_in_multiple

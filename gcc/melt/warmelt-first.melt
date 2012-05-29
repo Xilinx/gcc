@@ -52,13 +52,13 @@ should be the only class without superclass. Actually its super
 discriminant is $DISCR_ANY_RECEIVER.}# )
 
 ;; arbitrary container as class
-(defclass class_container
+(defclass class_reference
   :super class_root
-  :predef CLASS_CONTAINER
-  :fields (container_value)
-  :doc #{The $CLASS_CONTAINER is a class for mutable containers (that
-is references). The contained value is $CONTAINER_VALUE. See also
-$CONTAINER and $CONTENT macros.}#)
+  :predef CLASS_REFERENCE
+  :fields (referenced_value)
+  :doc #{The $CLASS_REFERENCE is a class for mutable references (incorrectly
+called containers). The contained value is $REFERENCED_VALUE. See also
+$REFERENCE and $DEREF macros.}#)
 
 ;; class of everything with a property table
 (defclass class_proped 
@@ -2199,11 +2199,11 @@ the routine pointer and the constants inside MELT function closure values. See a
   :named_name '"DISCR_ROUTINE")
 
 
-(definstance container_ctype_gty_dict class_container
-  :container_value (make_mapstring discr_map_strings 60))
+(definstance container_ctype_gty_dict class_reference
+  :referenced_value (make_mapstring discr_map_strings 60))
 
-(definstance container_ctype_dict class_container
-  :container_value (make_mapstring discr_map_strings 60))
+(definstance container_ctype_dict class_reference
+  :referenced_value (make_mapstring discr_map_strings 60))
 
 ;;; by having the install_ctype_descr called inside each ctype
 ;;; initialization, we are sure it is called once for each, because
@@ -2227,11 +2227,11 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
     (unsafe_put_fields ckw :symb_data ctyp)
     (if (is_a altkw class_keyword)
 	(put_fields altkw :symb_data ctyp))
-    (mapstring_putstr (get_field :container_value container_ctype_dict)
+    (mapstring_putstr (get_field :referenced_value container_ctype_dict)
 		      (get_field :named_name ckw)
 		      ctyp)
     (if (is_a ctyp class_ctype_gty)
-	(mapstring_putstr (get_field :container_value container_ctype_gty_dict)
+	(mapstring_putstr (get_field :referenced_value container_ctype_gty_dict)
 			  (get_field :named_name ckw)
 			  ctyp))
     ds
@@ -2814,13 +2814,13 @@ Keyword is :cstring.}#
     ))
 
 ;;; container of a mapstring for cloning symbol, maping symbol names to boxed integer
-(definstance container_clonemapstring class_container
-  :container_value (make_mapstring discr_map_strings 200)
+(definstance container_clonemapstring class_reference
+  :referenced_value (make_mapstring discr_map_strings 200)
   )
 
 (defun clone_symbol (symb)
   :doc #{Function to clone a given symbol or string $SYMB, producing a new instance of class_cloned_symbol}#
-  (let ( (mapstr (unsafe_get_field :container_value container_clonemapstring)) 
+  (let ( (mapstr (unsafe_get_field :referenced_value container_clonemapstring)) 
 	 (synam
 	  (cond
 	   ( (is_string symb) 
@@ -2875,8 +2875,8 @@ Keyword is :cstring.}#
   (let (
 	(descr (if modnam (make_stringconst discr_string modnam)))
 	(newenv (fresh_env prevenv descr)) 
-	(newcont (instance class_container 
-			   :container_value newenv))
+	(newcont (instance class_reference 
+			   :referenced_value newenv))
 	)
     (return newcont)
     ))
@@ -2891,8 +2891,8 @@ Keyword is :cstring.}#
 	  (return)
 	  ))
     (assert_msg "check sym" (is_a sym class_symbol))
-    (assert_msg "check contenv" (is_a contenv class_container))
-    (let ( (env (unsafe_get_field :container_value contenv)) )
+    (assert_msg "check contenv" (is_a contenv class_reference))
+    (let ( (env (unsafe_get_field :referenced_value contenv)) )
       (if  (and (null env) parenv)
 	  (progn
 	    (informsg_strv "exporting value too early with null environment" (unsafe_get_field :named_name sym))
@@ -3016,8 +3016,8 @@ Keyword is :cstring.}#
 			     (unsafe_get_field :named_name sym)))
 	(return)
 	))
-  (assert_msg "check contenv" (is_a contenv class_container))
-  (let ( (env (unsafe_get_field :container_value contenv)) )
+  (assert_msg "check contenv" (is_a contenv class_reference))
+  (let ( (env (unsafe_get_field :referenced_value contenv)) )
     (if (null env)
 	(progn
 	  (informsg_strv "exporting macro too early with null environment"
@@ -3045,8 +3045,8 @@ Keyword is :cstring.}#
 	;;		     (unsafe_get_field :named_name sym)))
 	(return)
 	))
-  (assert_msg "check contenv" (is_a contenv class_container))
-  (let ( (env (unsafe_get_field :container_value contenv)) )
+  (assert_msg "check contenv" (is_a contenv class_reference))
+  (let ( (env (unsafe_get_field :referenced_value contenv)) )
     (if (null env)
 	(progn
 	  (informsg_strv "exporting patmacro too early with null environment"
@@ -3093,7 +3093,7 @@ Keyword is :cstring.}#
   (let ( (firstlist (unsafe_get_field :delqu_first final_delayed_queue))
 	 (lastlist (unsafe_get_field :delqu_last final_delayed_queue))
 	 (revlastlist (make_list discr_list))
-	 (rescont (instance class_container))
+	 (rescont (instance class_reference))
 	 )
 ;;; call the first routines in natural order
     (foreach_in_list
@@ -3101,10 +3101,10 @@ Keyword is :cstring.}#
      (curpair firstproc)
      (code_chunk firstroutchk #{debugeprintf("init_exitfinalizer $FIRSTROUTCHK firstproc=%p", (void*) $FIRSTPROC) ;
 		 }#)
-     (let ( (prevres (unsafe_get_field :container_value rescont)) 
+     (let ( (prevres (unsafe_get_field :referenced_value rescont)) 
 	    (nextres (firstproc prevres final_delayed_queue))
 	    )
-       (unsafe_put_fields rescont :container_value nextres)
+       (unsafe_put_fields rescont :referenced_value nextres)
        ))
 ;;; reverse the last list
     (foreach_in_list
@@ -3119,10 +3119,10 @@ Keyword is :cstring.}#
      (curpair lastproc)
      (code_chunk lastrevprocchk #{debugeprintf("init_exitfinalizer $LASTREVPROCCHK lastproc=%p", (void*) $LASTPROC) ;
 		 }#)
-     (let ( (prevres (unsafe_get_field :container_value rescont)) 
+     (let ( (prevres (unsafe_get_field :referenced_value rescont)) 
 	    (nextres (lastproc prevres final_delayed_queue))
 	    )
-       (unsafe_put_fields rescont :container_value nextres)
+       (unsafe_put_fields rescont :referenced_value nextres)
        ))
     ;;
     (code_chunk initendchk #{debugeprintf("init_exitfinalizer $INITENDCHK start clock %ld", (long) clock()) ;
@@ -3159,7 +3159,7 @@ exit, in last place.}#
   (let ( (firstlist (unsafe_get_field :delqu_first end_melt_pass_execution_delayed_queue))
 	 (lastlist (unsafe_get_field :delqu_last end_melt_pass_execution_delayed_queue))
 	 (revlastlist (make_list discr_list))
-	 (rescont (instance class_container))
+	 (rescont (instance class_reference))
 	 (valpassname (make_stringconst discr_string passname))
 	 (valpassnumber (make_integerbox discr_constant_integer passnumber))
 	 )
@@ -3173,10 +3173,10 @@ exit, in last place.}#
     (list_every 
      firstlist
      (lambda (firstproc)
-       (let ( (prevres (unsafe_get_field :container_value rescont)) 
+       (let ( (prevres (unsafe_get_field :referenced_value rescont)) 
 	      (nextres (firstproc prevres valpassname valpassnumber))
 	      )
-	 (unsafe_put_fields rescont :container_value nextres)
+	 (unsafe_put_fields rescont :referenced_value nextres)
 	 )))
 ;;; reverse the last list
     (list_every 
@@ -3187,10 +3187,10 @@ exit, in last place.}#
     (list_every
      revlastlist
      (lambda (lastproc)
-       (let ( (prevres (unsafe_get_field :container_value rescont)) 
+       (let ( (prevres (unsafe_get_field :referenced_value rescont)) 
 	      (nextres (lastproc prevres valpassname valpassnumber))
 	      )
-	 (unsafe_put_fields rescont :container_value nextres)
+	 (unsafe_put_fields rescont :referenced_value nextres)
 	 )))
     ))
 
@@ -3247,16 +3247,16 @@ exit, in last place.}#
   (let ( (firstlist (unsafe_get_field :delqu_first start_unit_delayed_queue))
 	 (lastlist (unsafe_get_field :delqu_last start_unit_delayed_queue))
 	 (revlastlist (make_list discr_list))
-	 (rescont (instance class_container))
+	 (rescont (instance class_reference))
 	 )
 ;;; call the first routines in natural order
     (list_every 
      firstlist
      (lambda (firstproc)
-       (let ( (prevres (unsafe_get_field :container_value rescont)) 
+       (let ( (prevres (unsafe_get_field :referenced_value rescont)) 
 	      (nextres (firstproc prevres start_unit_delayed_queue))
 	      )
-	 (unsafe_put_fields rescont :container_value nextres)
+	 (unsafe_put_fields rescont :referenced_value nextres)
 	 )))
 ;;; reverse the last list
     (list_every 
@@ -3267,10 +3267,10 @@ exit, in last place.}#
     (list_every
      revlastlist
      (lambda (lastproc)
-       (let ( (prevres (unsafe_get_field :container_value rescont)) 
+       (let ( (prevres (unsafe_get_field :referenced_value rescont)) 
 	      (nextres (lastproc prevres start_unit_delayed_queue))
 	      )
-	 (unsafe_put_fields rescont :container_value nextres)
+	 (unsafe_put_fields rescont :referenced_value nextres)
 	 )))
     ))
 
@@ -3301,16 +3301,16 @@ exit, in last place.}#
   (let ( (firstlist (unsafe_get_field :delqu_first finish_unit_delayed_queue))
 	 (lastlist (unsafe_get_field :delqu_last finish_unit_delayed_queue))
 	 (revlastlist (make_list discr_list))
-	 (rescont (instance class_container))
+	 (rescont (instance class_reference))
 	 )
 ;;; call the first routines in natural order
     (list_every 
      firstlist
      (lambda (firstproc)
-       (let ( (prevres (unsafe_get_field :container_value rescont)) 
+       (let ( (prevres (unsafe_get_field :referenced_value rescont)) 
 	      (nextres (firstproc prevres finish_unit_delayed_queue))
 	      )
-	 (unsafe_put_fields rescont :container_value nextres)
+	 (unsafe_put_fields rescont :referenced_value nextres)
 	 )))
 ;;; reverse the last list
     (list_every 
@@ -3321,10 +3321,10 @@ exit, in last place.}#
     (list_every
      revlastlist
      (lambda (lastproc)
-       (let ( (prevres (unsafe_get_field :container_value rescont)) 
+       (let ( (prevres (unsafe_get_field :referenced_value rescont)) 
 	      (nextres (lastproc prevres finish_unit_delayed_queue))
 	      )
-	 (unsafe_put_fields rescont :container_value nextres)
+	 (unsafe_put_fields rescont :referenced_value nextres)
 	 )))
     ))
 
@@ -3346,8 +3346,8 @@ end of compilation unit in last place}#
   )
 
 
-(definstance option_map_container class_container 
-  :container_value (make_mapobject discr_map_objects 41))
+(definstance option_map_container class_reference 
+  :referenced_value (make_mapobject discr_map_objects 41))
 
 (defclass class_option_descriptor
   :doc #{The internal $CLASS_OPTION_DESCRIPTOR describes MELT
@@ -3360,7 +3360,7 @@ function, and $OPTDESC_HELP is the help string.}#
 )
 
 (defun init_optionsetter (optsymb :cstring optval)
-  (let ( (optmap (unsafe_get_field :container_value option_map_container)) 
+  (let ( (optmap (unsafe_get_field :referenced_value option_map_container)) 
 	 (optdec (mapobject_get optmap optsymb))
 	 (optname (get_field :named_name optsymb))
 	 )
@@ -3385,7 +3385,7 @@ function $OPTFUN.}#
    (if (and (is_a optsymb class_symbol)
 	    (is_string opthelp)
 	    (is_closure optfun))
-       (let ( (optmap (unsafe_get_field :container_value option_map_container)) 
+       (let ( (optmap (unsafe_get_field :referenced_value option_map_container)) 
 	      (optdesc (instance class_option_descriptor
 				 :optdesc_name optsymb
 				 :optdesc_fun optfun
@@ -3395,7 +3395,7 @@ function $OPTFUN.}#
 	 )))
 
 (defun option_helper_fun (helpsymb :cstring helpstr)
-  (let ( (optmap (unsafe_get_field :container_value option_map_container))
+  (let ( (optmap (unsafe_get_field :referenced_value option_map_container))
 	 (symb (if helpstr (get_raw_symbol helpstr)))
 	 (optd (mapobject_get optmap symb))
 	 )
@@ -4162,14 +4162,14 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
 ;;; which magically adds a call to it at end of the read list
 (defun post_initialization (unusedarg :cstring meltfilnam)
   (let ( (curmodenvcont (current_module_environment_container)) )
-    (if (not (is_a curmodenvcont class_container))
+    (if (not (is_a curmodenvcont class_reference))
 	(progn
 	  (warningmsg_strv "post_initialization strange curmodenvcont of discr"
 			   (unsafe_get_field :named_name (discrim curmodenvcont)))
 	  (return)
 	  ))
-    (assert_msg "check curmodenvcont" (is_a curmodenvcont class_container))
-    (let ( (curmodenv (unsafe_get_field :container_value curmodenvcont)) )
+    (assert_msg "check curmodenvcont" (is_a curmodenvcont class_reference))
+    (let ( (curmodenv (unsafe_get_field :referenced_value curmodenvcont)) )
       (if (is_a curmodenv class_environment)
 	  (let ( (curbindmap (unsafe_get_field :env_bind curmodenv))
 		 )
@@ -4211,12 +4211,12 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
 
 (defun retrieve_dictionnary_ctype_gty ()
   :doc #{Retrieve the dictionnary of GTY-ed ctypes.}#
-  (get_field :container_value container_ctype_gty_dict)
+  (get_field :referenced_value container_ctype_gty_dict)
 )
 
 (defun retrieve_dictionnary_ctype ()
   :doc #{Retrieve the dictionnary of all ctypes.}#
-  (get_field :container_value container_ctype_dict)
+  (get_field :referenced_value container_ctype_dict)
 )
 
 ;;;;;; export the above classes
@@ -4233,7 +4233,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  class_cloned_symbol
  class_cmatcher
  class_cmatcher_binding
- class_container
+ class_reference
  class_ctype
  class_ctype_gty
  class_defined_value_binding
@@ -4532,10 +4532,10 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  )
 
 (export_synonym 
- class_reference class_container
+ class_container class_reference
  :doc #{A better name for container is mutable reference, so $CLASS_CONTAINER is also $CLASS_REFERENCE}#)
 
-(export_synonym referenced_value container_value
+(export_synonym container_value referenced_value
  :doc #{A better name for contained value is referenced value, so field $CONTAINER_VALUE is also $REFERENCED_VALUE.}#)
 
 
