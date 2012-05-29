@@ -1,3 +1,5 @@
+FAIL: gcc.dg/attr-weakref-1.c (test for excess errors)
+UNRESOLVED: gcc.dg/attr-weakref-1.c compilation failed to produce executable
 FAIL: g++.dg/other/anon5.C -std=gnu++11 (test for excess errors)
 FAIL: g++.dg/other/anon5.C -std=gnu++98 (test for excess errors)
 XPASS: gcc.dg/Wstrict-overflow-18.c (test for bogus messages, line 20)
