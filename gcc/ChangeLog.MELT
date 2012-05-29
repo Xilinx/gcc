@@ -1,5 +1,26 @@
 
 2012-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Speak of "references", not "containers", which was used
+	improperly in MELT}}
+	* melt/warmelt-first.melt (class_reference): Synonym for
+	class_container.
+	(referenced_value): Synonym for field container_value.
+
+	* melt/warmelt-base.melt (set_reference): Was set_content.
+	(melt_mode_reference): was melt_mode_container
+	(set_content, melt_mode_container): Obsolete synonyms
+
+	* melt/warmelt-macro.melt (reference): same as container macro.
+	(deref): same as content macro.
+
+	* melt/warmelt-normal.melt: Change names accordingly
+	* melt/warmelt-normatch.melt: Ditto
+	* melt/warmelt-outobj.melt: Ditto
+	* melt/warmelt-modes.melt: Ditto
+	* melt/xtramelt-probe.melt: Ditto
+	* melt/xtramelt-opengpu.melt: Ditto
+
+2012-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-probe.melt (probe_start): New function.
 	(probe_docmd): Call it.
 

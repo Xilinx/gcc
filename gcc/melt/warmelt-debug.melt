@@ -183,7 +183,7 @@ See $MELT_NEED_DBGLIM.}#
 
 
 ;; hook to support debug of :tree-s
-(definstance tree_debug_funcont class_container)
+(definstance tree_debug_funcont class_reference)
 (defun register_tree_debug_fun (f)
   :doc #{Register a function for $DEBUG output of :tree-s. The first
   argument to the registered function is an instance of
@@ -192,11 +192,11 @@ See $MELT_NEED_DBGLIM.}#
   (let ( (oldcont !tree_debug_funcont)
 	 )
     (if (or (null f) (is_closure f))
-	(set_content tree_debug_funcont f))
+	(set_reference tree_debug_funcont f))
     oldcont))
 
 ;; hook to support debug of :gimple-s
-(definstance gimple_debug_funcont class_container)
+(definstance gimple_debug_funcont class_reference)
 (defun register_gimple_debug_fun (f)
   :doc #{Register a function for $DEBUG output of :gimple-s. The first
   argument to the registered function is an instance of
@@ -205,11 +205,11 @@ See $MELT_NEED_DBGLIM.}#
   (let ( (oldcont !gimple_debug_funcont)
 	 )
     (if (or (null f) (is_closure f))
-	(set_content gimple_debug_funcont f))
+	(set_reference gimple_debug_funcont f))
     oldcont))
 
 ;; hook to support debug of :gimple_seq-s
-(definstance gimpleseq_debug_funcont class_container)
+(definstance gimpleseq_debug_funcont class_reference)
 (defun register_gimpleseq_debug_fun (f)
   :doc #{Register a function for $DEBUG output of :gimple_seq-s. The first
   argument to the registered function is an instance of
@@ -218,11 +218,11 @@ See $MELT_NEED_DBGLIM.}#
   (let ( (oldcont !gimpleseq_debug_funcont)
 	 )
     (if (or (null f) (is_closure f))
-	(set_content gimpleseq_debug_funcont f))
+	(set_reference gimpleseq_debug_funcont f))
     oldcont))
 
 ;; hook to support debug of :edge-s
-(definstance edge_debug_funcont class_container)
+(definstance edge_debug_funcont class_reference)
 (defun register_edge_debug_fun (f)
   :doc #{Register a function for $DEBUG output of :edge-s. The first
   argument to the registered function is an instance of
@@ -231,11 +231,11 @@ See $MELT_NEED_DBGLIM.}#
   (let ( (oldcont !edge_debug_funcont)
 	 )
     (if (or (null f) (is_closure f))
-	(set_content edge_debug_funcont f))
+	(set_reference edge_debug_funcont f))
     oldcont))
 
 ;; hook to support debug of :basic_block-s
-(definstance basicblock_debug_funcont class_container)
+(definstance basicblock_debug_funcont class_reference)
 (defun register_basicblock_debug_fun (f)
   :doc #{Register a function for $DEBUG output of :basic_block-s. The first
   argument to the registered function is an instance of
@@ -244,11 +244,11 @@ See $MELT_NEED_DBGLIM.}#
   (let ( (oldcont !basicblock_debug_funcont)
 	 )
     (if (or (null f) (is_closure f))
-	(set_content basicblock_debug_funcont f))
+	(set_reference basicblock_debug_funcont f))
     oldcont))
 
 ;; hook to support debug of :loop-s
-(definstance loop_debug_funcont class_container)
+(definstance loop_debug_funcont class_reference)
 (defun register_loop_debug_fun (f)
   :doc #{Register a function for $DEBUG output of :loop-s. The first
   argument to the registered function is an instance of
@@ -257,7 +257,7 @@ See $MELT_NEED_DBGLIM.}#
   (let ( (oldcont !loop_debug_funcont)
 	 )
     (if (or (null f) (is_closure f))
-	(set_content loop_debug_funcont f))
+	(set_reference loop_debug_funcont f))
     oldcont))
 
 ;;; the discriminant for debug closures

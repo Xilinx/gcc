@@ -4531,6 +4531,14 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  closure
  )
 
+(export_synonym 
+ class_reference class_container
+ :doc #{A better name for container is mutable reference, so $CLASS_CONTAINER is also $CLASS_REFERENCE}#)
+
+(export_synonym referenced_value container_value
+ :doc #{A better name for contained value is referenced value, so field $CONTAINER_VALUE is also $REFERENCED_VALUE.}#)
+
+
 ;; we predefine :true as the TRUE. Currently no handcoded C function
 ;; uses it, but perhaps that could change!!
 

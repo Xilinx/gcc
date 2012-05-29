@@ -1454,15 +1454,15 @@ the object-map for pattern variables. $PCTX_MODCTX is the module context.}#
 	 (modctx (get_field :pctx_modctx pctx))
 	 (:long nbmins (multiple_length mins))
 	 (:long nbouts (multiple_length mouts))
-	 (paircont (instance class_container :container_value pairs))
+	 (paircont (instance class_container :referenced_value pairs))
 	 (inargs (multiple_map 
 		  mins
 		  (lambda (curfbind :long inix)
 		    (assert_msg "check curfbind" (is_a curfbind class_formal_binding))
-		    (let ( (curpair (get_field :container_value paircont)) )
+		    (let ( (curpair (get_field :referenced_value paircont)) )
 		      (if (is_pair curpair)
 			  (let ( (curin (pair_head curpair)) )
-			    (put_fields paircont :container_value (pair_tail curpair))
+			    (put_fields paircont :referenced_value (pair_tail curpair))
 			    (mexpander curin env mexpander modctx))
 			(error_strv psloc "missing in argument for matcher"
 				    (get_field :named_name matcher))
@@ -1470,16 +1470,16 @@ the object-map for pattern variables. $PCTX_MODCTX is the module context.}#
 	 (outpats (multiple_map
 		   mouts 
 		   (lambda (curformal :long outix)
-		     (let ( (curpair (get_field :container_value paircont)) )
+		     (let ( (curpair (get_field :referenced_value paircont)) )
 		       (if (is_pair curpair)
 			   (let ( (curout (pair_head curpair)) )
-			     (put_fields paircont :container_value (pair_tail curpair))
+			     (put_fields paircont :referenced_value (pair_tail curpair))
 			     (patternexpand_1 curout env pctx psloc))
 			 (error_strv psloc "missing out argument for matcher"
 				     (get_field :named_name matcher))
 			 )))))
 	 )
-    (let ( (curpair (get_field :container_value paircont)) )
+    (let ( (curpair (get_field :referenced_value paircont)) )
       (if (is_pair curpair)
 	  (progn
 	    (debug "extra stuff in patmacexpand_for_matcher" curpair)
@@ -3467,7 +3467,7 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
 	      ;; strangely, this error happens in makedoc mode all the
 	      ;; times. We disable it in that case..., but it is the
 	      ;; symptom of another bug...
-	      (if (null (get_field :container_value melt_mode_container))
+	      (if (null (get_field :referenced_value melt_mode_container))
 		  (error_strv loc "invalid class in (DEFSELECTOR <name> <class>); expecting CLASS_SELECTOR or its subclass"  
 			      (unsafe_get_field :named_name claname)))
 	      (return)))
@@ -3665,7 +3665,7 @@ messages. Syntax is (DEFSELECTOR <symbol> <selector-class> [:doc
   (assert_msg "check cla" (is_a cla class_class))
   (let (
 	(clafields (unsafe_get_field :class_fields cla))
-	(fldcont (instance class_container :container_value ())) 
+	(fldcont (instance class_container :referenced_value ())) 
 	(flpat (patternexpand_1 flpsexp env pctx psloc)) 
 	)
     (debug "parse_field_pattern clafields" clafields)
@@ -3677,12 +3677,12 @@ messages. Syntax is (DEFSELECTOR <symbol> <selector-class> [:doc
        (if (==s (unsafe_get_field :named_name cfld) 
 		(unsafe_get_field :named_name fkeyw))
 	   (progn 
-	     (put_fields fldcont :container_value cfld)
+	     (put_fields fldcont :referenced_value cfld)
 	     ()				; nil to exit to iteration
 	     )
 	 cfld))
      )
-    (let ( (fld (get_field :container_value fldcont))
+    (let ( (fld (get_field :referenced_value fldcont))
 	   )
       (if (is_not_a fld class_field)
 	  (progn
@@ -4774,7 +4774,7 @@ condition is a string such as "4.5." or a list of strings.}#)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; CONTENT & CONTAINER
 
 ;; (container x) is a shorthand for 
-;; (instance class_container :container_value x)
+;; (instance class_container :referenced_value x)
 (defun mexpand_container (sexpr env mexpander modctx)
   (debug "mexpand_container sexpr" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
@@ -4795,7 +4795,7 @@ condition is a string such as "4.5." or a list of strings.}#)
 				  :sfepd_predef 'CLASS_CONTAINER))
 	(clabind (find_env env 'class_container))
 	(flda (parse_field_assignment 
-	       class_container loc :container_value arg1 env mexpander modctx))
+	       class_container loc :referenced_value arg1 env mexpander modctx))
 	(sinst (instance 
 		class_source_instance
 		:loca_location loc
@@ -4828,7 +4828,7 @@ condition is a string such as "4.5." or a list of strings.}#)
 	(curpair (pair_tail (list_first cont)))
 	(argsp (patternexpand_pairlist_as_tuple curpair env pctx loc))
 	(arg1 (multiple_nth argsp 0))
-	(fldp (parse_field_pattern :container_value class_container arg1 env pctx loc))
+	(fldp (parse_field_pattern :referenced_value class_container arg1 env pctx loc))
 	(res (instance class_source_pattern_instance
 		       :loca_location loc
 		       :pat_weight '1
@@ -4848,17 +4848,31 @@ condition is a string such as "4.5." or a list of strings.}#)
  :doc #{The $CONTAINER syntax is a short-hand for making or matching
  instances of $CLASS_CONTAINER. Expression syntax (CONTAINER
  <subexpression>) is a short-hand for (INSTANCE
- CLASS_CONTAINER :CONTAINER_VALUE <subexpression>) to make an instance
- of $CLASS_CONTAINER with the given value as $CONTAINER_VALUE. Pattern
+ CLASS_CONTAINER :REFERENCED_VALUE <subexpression>) to make an instance
+ of $CLASS_CONTAINER with the given value as $REFERENCED_VALUE. Pattern
  syntax is ?(CONTAINER <subpattern>) to match an instance of
- $CLASS_CONTAINER with its $CONTAINER_VALUE matching
+ $CLASS_CONTAINER with its $REFERENCED_VALUE matching
  <subpattern>. $CONTAINER expressions are constructive, so can appear
  in $LETREC bindings.}#)
 
 
+(install_initial_patmacro 'reference patexpand_container mexpand_container)
+(export_patmacro 
+ reference patexpand_container mexpand_container
+ :doc #{The $REFERENCE syntax -same as $CONTAINER- is a short-hand for making or matching
+ instances of $CLASS_REFERENCE -same as $CLASS_CONTAINER -. 
+Expression syntax (REFERENCE  <subexpression>) is a short-hand for (INSTANCE
+ CLASS_REFERENCE :REFERENCED_VALUE <subexpression>) to make an instance
+ of $CLASS_REFERENCE with the given value as $REFERENCED_VALUE. Pattern
+ syntax is ?(REFERENCE <subpattern>) -same as ?(CONTAINER <subpattern>)- 
+to match an instance of
+ $CLASS_REFERENCE with its $REFERENCED_VALUE matching
+ <subpattern>. $REFERENCE expressions are constructive, so can appear
+ in $LETREC bindings.}#)
+
 
 ;; (content x) is a shorthand for 
-;; (get_field :container_value x)
+;; (get_field :referenced_value x)
 (defun mexpand_content (sexpr env mexpander modctx)
   (debug "mexpand_content sexpr" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
@@ -4881,9 +4895,9 @@ condition is a string such as "4.5." or a list of strings.}#)
 		class_source_get_field
 		:loca_location loc
 		:suget_obj arg1
-		:suget_field container_value))
+		:suget_field referenced_value))
 	)
-    (assert_msg "check container_value" (is_a container_value class_field))
+    (assert_msg "check referenced_value" (is_a referenced_value class_field))
     (if (!=i nbarg 1)
 	(progn
 	  (error_plain loc "(CONTENT <value>) needs exactly one argument")
@@ -4900,8 +4914,17 @@ condition is a string such as "4.5." or a list of strings.}#)
  content mexpand_content
  :doc #{The $CONTENT macro is a short-hand to retrieve values inside
  instances of $CLASS_CONTAINER. So (CONTENT <value>)
- means (GET_FIELD :CONTAINER_VALUE <value>), hence test that <value>
+ means (GET_FIELD :REFERENCED_VALUE <value>), hence test that <value>
  is indeed an instance of $CLASS_CONTAINER, or else gives null. The special syntax !<expr> is a syntactic sugar for (CONTENT <expr>).}#)
+
+
+(install_initial_macro 'deref mexpand_content)
+(export_macro 
+ deref mexpand_content
+ :doc #{The $DEREF macro is a short-hand to retrieve values inside
+ instances of $CLASS_REFERENCE i.e. $CLASS_CONTAINER. So (DEREF <value>)
+ means (GET_FIELD :REFERENCED_VALUE <value>), hence test that <value>
+ is indeed an instance of $CLASS_REFERENCE, or else gives null. The special syntax !<expr> is a syntactic sugar for (DEREF <expr>) ie (CONTENT <expr>).}#)
 
 
 ;;; exclaim is the same as content, but export_synonym don't work for macros
@@ -4909,7 +4932,7 @@ condition is a string such as "4.5." or a list of strings.}#)
 (export_macro exclaim mexpand_content 
  :doc #{$EXCLAIM [usually given thru the ! syntactic sugar] is a
  synonym for $CONTENT, e.g. !(IF p c) means (CONTENT (IF P C))
- hence (GET_FIELD :CONTAINER_VALUE (IF P C))}#)
+ hence (GET_FIELD :REFERENCED_VALUE (IF P C))}#)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; TUPLE 
 ;;;; the TUPLE macro expander
@@ -5572,7 +5595,7 @@ condition is a string such as "4.5." or a list of strings.}#)
      (debug "mexpand_variadic done curcase" curcase)
      )
     (debug "mexpand_variadic rescont" rescont)
-    (let ( (res (content rescont)) 
+    (let ( (res !rescont) 
 	   )
       (debug "mexpand_variadic result" res)
       (return res)

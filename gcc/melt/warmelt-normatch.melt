@@ -1500,7 +1500,7 @@ scanning variables.}#
 		 (subdisjhandler 
 		  (lambda (subtester)
 		    (debug "normpat_orpat.lambda subtester" subtester)
-		    (set_content subdisjcont subtester)
+		    (set_reference subdisjcont subtester)
 		    (let (
 			  (prevtestsub (unsafe_get_field :container_value prevcont))
 			  )
@@ -1518,7 +1518,7 @@ scanning variables.}#
 			     subdisjhandler pcn)       
 	     (debug "normpat_orpat curdisj after normalization" curdisj)
 	     (let (
-		   (lastdisj (content subdisjcont))
+		   (lastdisj (deref subdisjcont))
 		   (prevtestrans (unsafe_get_field :container_value prevcont))
 		   (nortransm (instance class_normtester_or_transmit
 					:nrep_loc sloc
@@ -1559,7 +1559,7 @@ scanning variables.}#
 		      (orsymb (get_field :spatvar_symb patvar))
 		      )
 		 (if (is_a orlocsy class_container)
-		     (setq orlocsy (content orlocsy)))
+		     (setq orlocsy (deref orlocsy)))
 		 ;; the pvarlocmap should already have orsymb bound to orlocsy
 		 (debug "normpat_orpat/finalambda orsymb=" orsymb " orlocsy=" orlocsy)
 		 (return orlocsy))

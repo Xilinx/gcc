@@ -1559,13 +1559,12 @@ significant iff ENABLE_CHECKING.}# #{(melt_application_depth() <
   :doc #{Count of MELT closures application - significant iff ENABLE_CHECKING.}#
   #{melt_application_count()}#)
 
-(definstance melt_mode_container class_container
-  :doc #{$MELT_MODE_CONTAINER is a container dedicated to share data at the mode level.}#)
+(definstance melt_mode_reference class_reference
+  :doc #{$MELT_MODE_REFERENCE is a reference dedicated to share data at the mode level.}#)
 
 
-;;; a private container for the list of closures for PLUGIN_PASS_EXECUTION
-(definstance pass_execution_container class_container
-  :container_value ()
+;;; a private reference for the list of closures for PLUGIN_PASS_EXECUTION
+(definstance pass_execution_reference class_reference
   )
 
 ;;; private function to run all pass execution hooks
@@ -1587,13 +1586,13 @@ registration.  Their first argument is the boxed pass name string,
 their second argument is the raw pass number stuff.  See also
 $UNREGISTER_PASS_EXECUTION_HOOK.}#
   (if (is_closure fun)
-      (let ( (hooklist (unsafe_get_field :container_value 
-					 pass_execution_container))
+      (let ( (hooklist (unsafe_get_field :referenced_value 
+					 pass_execution_reference))
 	     )
 	(if (null hooklist)
 	    (progn
 	      (setq hooklist (list))
-	      (put_fields pass_execution_container :container_value hooklist)))
+	      (put_fields pass_execution_reference :referenced_value hooklist)))
 	(assert_msg "check hooklist" (is_list hooklist))
 	;; check that the fun is not already registered
 	(foreach_in_list
@@ -1615,8 +1614,8 @@ $UNREGISTER_PASS_EXECUTION_HOOK.}#
   :doc #{Unregister a pass execution hook function $FUN previously
 registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   (if (is_closure fun)
-      (let ( (oldhooklist (unsafe_get_field :container_value 
-					    pass_execution_container))
+      (let ( (oldhooklist (unsafe_get_field :referenced_value 
+					    pass_execution_reference))
 	     (newhooklist (list))
 	     )
 	(foreach_in_list
@@ -2503,26 +2502,26 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
  class_varisized_value_descriptor)
 
 
-;; maybe set_content should become a macro for performance reasons...
-(defun set_content (c v)
-  :doc #{Safely put in a container $C instance of $CLASS_CONTAINER 
-the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
-  (put_fields c :container_value v))
+;; maybe set_reference should become a macro for performance reasons...
+(defun set_reference (r v)
+  :doc #{Safely put in a reference $R instance of $CLASS_REFERENCE 
+the field :REFERENCED_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
+  (put_fields r :referenced_value v))
 
 
 ;;;;;;;;;;;;;;;;
-(definstance value_descriptor_list_container
-  class_container
-  :container_value (make_list discr_list)
+(definstance value_descriptor_list_reference
+  class_reference
+  :referenced_value (make_list discr_list)
 )
 
 (defun install_value_descriptor (vd)
   (assert_msg "check vd" (is_a vd class_value_descriptor))
-  (list_append (get_field :container_value value_descriptor_list_container) 
+  (list_append (get_field :referenced_value value_descriptor_list_reference) 
 	       vd))
 
 (defun retrieve_value_descriptor_list ()
-  (get_field  :container_value value_descriptor_list_container))
+  (get_field  :referenced_value value_descriptor_list_reference))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;; object value
@@ -4027,7 +4026,7 @@ which signals are not handled. It could be dynamically nested.}#
  melt_application_shallower
  melt_increment_dbgcounter
  melt_is_bootstrapping
- melt_mode_container
+ melt_mode_reference
  melt_version_str
  message_dbg
  messagenum_dbg 
@@ -4097,7 +4096,7 @@ which signals are not handled. It could be dynamically nested.}#
  register_pre_genericize_hook_first
  register_pre_genericize_hook_last
  retrieve_value_descriptor_list
- set_content
+ set_reference
  set_real_timer_millisec
  some_integer_different_from
  some_integer_equal_to
@@ -4174,4 +4173,9 @@ which signals are not handled. It could be dynamically nested.}#
  )
 
 (export_synonym generate_melt_module generate_optimized_melt_module)
+
+(export_synonym melt_mode_container melt_mode_reference)
+
+(export_synonym set_content set_reference)
+
 ;;;; eof warmelt-base.melt
