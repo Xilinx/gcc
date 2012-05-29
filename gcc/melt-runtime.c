@@ -2560,7 +2560,7 @@ meltgc_new_reference (melt_ptr_t val_p)
   valv = val_p;
   classrefv = MELT_PREDEF (CLASS_REFERENCE);
   gcc_assert (melt_magic_discr ((melt_ptr_t)classrefv) == MELTOBMAG_OBJECT);
-  /* we really need that containers have one single field */
+  /* we really need that references have one single field */
   gcc_assert (MELTFIELD_REFERENCED_VALUE == 0);
   gcc_assert (MELTLENGTH_CLASS_REFERENCE == 1);
   resv = meltgc_new_raw_object ((meltobject_ptr_t) classrefv,
@@ -2586,7 +2586,7 @@ meltgc_reference_put (melt_ptr_t ref_p, melt_ptr_t val_p)
   valv  = val_p;
   classrefv = MELT_PREDEF (CLASS_REFERENCE);
   gcc_assert (melt_magic_discr ((melt_ptr_t)classrefv) == MELTOBMAG_OBJECT);
-  /* we really need that containers have one single field */
+  /* we really need that references have one single field */
   gcc_assert (MELTFIELD_REFERENCED_VALUE == 0);
   if (melt_magic_discr((melt_ptr_t)refv) != MELTOBMAG_OBJECT)
     goto end;
@@ -13760,17 +13760,5 @@ void melt_gt_ggc_mx_gimple_seq_d(void*p)
 #endif /* GCC 4.8 */
 
 
-#ifndef MELT_HAS_PREDEF_CLASS_REFERENCE
-#warning temporary meltfieldoff__CONTAINER_VALUE
-#ifdef __cplusplus
-extern "C"
-#endif
-const int meltfieldoff__CONTAINER_VALUE = 0;
-
-#ifdef __cplusplus
-extern "C"
-#endif
-const int meltclasslen__CLASS_CONTAINER = 1;
-#endif
 
 /* eof $Id$ */

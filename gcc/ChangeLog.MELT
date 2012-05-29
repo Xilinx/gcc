@@ -1,5 +1,14 @@
 
 2012-05-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_container_value, meltgc_new_container)
+	(meltgc_container_put, MELTGLOB_CLASS_REFERENCE)
+	(MELTFIELD_REFERENCED_VALUE, MELTLENGTH_CLASS_REFERENCE): Remove
+	macros.
+
+	* melt-runtime.c (meltfieldoff__CONTAINER_VALUE)
+	(meltclasslen__CLASS_CONTAINER): Remove.
+
+2012-05-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c
 	* melt/generated/meltrunsup.h

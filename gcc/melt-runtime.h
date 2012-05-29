@@ -778,15 +778,12 @@ meltgc_sort_multiple(melt_ptr_t mult_p, melt_ptr_t clo_p, melt_ptr_t discrm_p);
 /* safely return the value inside a reference - instance of CLASS_REFERENCE */
 melt_ptr_t
 melt_reference_value  (melt_ptr_t cont);
-#define melt_container_value(C) melt_reference_value(C)
 
 /* make a new reference, instance of CLASS_REFERENCE */
 melt_ptr_t meltgc_new_reference (melt_ptr_t val_p);
-#define meltgc_new_container(V) meltgc_new_reference(V)
 
 /* put inside a reference */
 void meltgc_reference_put (melt_ptr_t cont, melt_ptr_t val);
-#define meltgc_container_put(C,V) meltgc_reference_put(C,V)
 
 /* return the phinodes of a boxed basicblock */
 static inline gimple_seq
@@ -3284,12 +3281,6 @@ extern void melt_gt_ggc_mx_gimple_seq_d(void*);
 #define gt_ggc_mx_gimple_seq_d melt_gt_ggc_mx_gimple_seq_d
 #endif /* GCC 4.8 */
 
-#ifndef MELT_HAS_PREDEF_CLASS_REFERENCE
-#warning MELT temporary synonym macros reference == container
-#define MELTGLOB_CLASS_REFERENCE MELTGLOB_CLASS_CONTAINER
-#define MELTFIELD_REFERENCED_VALUE MELTFIELD_CONTAINER_VALUE
-#define MELTLENGTH_CLASS_REFERENCE MELTLENGTH_CLASS_CONTAINER
-#endif
 
 #endif /*MELT_INCLUDED_ */
 
