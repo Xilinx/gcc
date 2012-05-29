@@ -25,3 +25,8 @@ dg-init
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/array_notation_tests/*.c]] " -O3 -ftree-vectorize" " "
 
 dg-finish
+
+dg-init
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/elem_fn_tests/*.c]] " -O3 -ftree-vectorize" " "
+
+dg-finish

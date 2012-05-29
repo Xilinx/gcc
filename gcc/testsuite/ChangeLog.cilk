@@ -1,3 +1,49 @@
+2012-05-29  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* g++.dg/cilk-plus/elem_fn_tests/ctrl_flow2.cc: New elem. function test.
+	* g++.dg/cilk-plus/elem_fn_tests/ctrl_flow.cc: Likewise.
+	* g++.dg/cilk-plus/elem_fn_tests/ctrl_flow_template.cc: Likewise.
+	* g++.dg/cilk-plus/elem_fn_tests/switch_stmt.cc: Likewise.
+	* g++.dg/cilk-plus/elem_fn_tests/test1.cc: Likewise.
+	* g++.dg/cilk-plus/elem_fn_tests/test2.cc: Likewise.
+	* g++.dg/cilk-plus/elem_fn_tests/test3.cc: Likewise.
+	* g++.dg/cilk-plus/elem_fn_tests/test4.cc: Likewise
+	* g++.dg/cilk-plus/elem_fn_tests/test5.cc: Likewise.
+	* g++.dg/cilk-plus/elem_fn_tests/test6.cc: Likewise.
+	* g++.dg/cilk-plus/elem_fn_tests/test7.cc: Likewise.
+	* g++.dg/cilk-plus/elem_fn_tests/test8.cc: Likewise.
+	* g++.dg/cilk-plus/elem_fn_tests/test9.cc: Likewise.
+	* g++.dg/cilk-plus/elem_fn_tests/test10.cc: Likewise.
+	* g++.dg/cilk-plus/elem_fn_tests/test11.cc: Likewise.
+	* g++.dg/cilk-plus/elem_fn_tests/test12.cc: Likewise.
+	* g++.dg/cilk-plus/elem_fn_tests/test13.cc: Likewise.
+	* g++.dg/cilk-plus/elem_fn_tests/test14.cc: Likewise.
+	* g++.dg/cilk-plus/elem_fn_tests/test15.cc: Likewise.
+	* g++.dg/cilk-plus/elem_fn_tests/test16.cc: Likewise.
+	* g++.dg/cilk-plus/elem_fn_tests/test17.cc: Likewise.
+	* g++.dg/cilk-plus/elem_fn_tests/test18.cc: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/ctrl_flow2.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/ctrl_flow.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/switch_stmt.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test1.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test2.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test3.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test4.c: Likewise
+	* gcc.dg/cilk-plus/elem_fn_tests/test5.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test6.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test7.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test8.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test9.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test10.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test11.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test12.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test13.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test14.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test15.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test16.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test17.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test18.c: Likewise.
+
 2012-04-14  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* gcc.dg/cilk-plus/array_notation_tests/builtin_func_double.c (main):
