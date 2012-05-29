@@ -8623,15 +8623,23 @@ apply_late_template_attributes (tree *decl_p, tree attributes, int attr_flags,
 	    {
 	      *p = TREE_CHAIN (t);
 	      TREE_CHAIN (t) = NULL_TREE;
+
+	      if (flag_enable_cilk
+		  && (TREE_PURPOSE (t)
+		      && (simple_cst_equal (TREE_PURPOSE (t),
+					    get_identifier ("vector")) == 1)))
+		{
+		  ;
+		}
 	      /* If the first attribute argument is an identifier, don't
 		 pass it through tsubst.  Attributes like mode, format,
 		 cleanup and several target specific attributes expect it
 		 unmodified.  */
-	      if (TREE_VALUE (t)
-		  && TREE_CODE (TREE_VALUE (t)) == TREE_LIST
-		  && TREE_VALUE (TREE_VALUE (t))
-		  && (TREE_CODE (TREE_VALUE (TREE_VALUE (t)))
-		      == IDENTIFIER_NODE))
+	      else if (TREE_VALUE (t)
+		   && TREE_CODE (TREE_VALUE (t)) == TREE_LIST
+		   && TREE_VALUE (TREE_VALUE (t))
+		   && (TREE_CODE (TREE_VALUE (TREE_VALUE (t)))
+		       == IDENTIFIER_NODE))
 		{
 		  tree chain
 		    = tsubst_expr (TREE_CHAIN (TREE_VALUE (t)), args, complain,

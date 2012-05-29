@@ -105,8 +105,10 @@ find_vlength_code (elem_fn_info *elem_fn_values)
     sprintf(vlength_code,"%d", elem_fn_values->vectorlength[0]);
   else
     {
-      if (!strcmp (elem_fn_values->proc_type, "pentium_4"))
-	sprintf (vlength_code,"4");
+      if (!elem_fn_values->proc_type)
+	sprintf(vlength_code, "4");
+      else if (!strcmp (elem_fn_values->proc_type, "pentium_4"))
+	sprintf (vlength_code, "4");
       else if (!strcmp (elem_fn_values->proc_type, "pentium_4_sse3"))
 	sprintf (vlength_code, "4");
       else if (!strcmp (elem_fn_values->proc_type, "core2_duo_sse3"))

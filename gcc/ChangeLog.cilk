@@ -1,3 +1,14 @@
+2012-05-29  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* elem-function-common.c (find_vlength_code): Added a check for
+	no processor type.
+	* elem-function.c (cg_hacks): Added a check if cfun is non-NULL.
+	(elem_fn_create_fn): Marked function as already cloned in function tree
+	node.
+	* ipa.c (symtab_remove_unreachable_nodes): Added a check for cloned
+	elemental function.
+	* cgraphunit.c (cgraph_analyze_functions): Likewise.
+
 2012-05-24  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* elem-function.c (elem_fn_create_fn): Mistakenly removed a necessary

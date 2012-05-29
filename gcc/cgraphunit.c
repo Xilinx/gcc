@@ -891,13 +891,15 @@ cgraph_analyze_functions (void)
 	   node != (symtab_node)first_analyzed
 	   && node != (symtab_node)first_analyzed_var; node = node->symbol.next)
 	{
-	  if ((symtab_function_p (node)
+	  if ((TREE_CODE (node->symbol.decl) == FUNCTION_DECL 
+	       && DECL_ELEM_FN_ALREADY_CLONED (node->symbol.decl))
+	      || ((symtab_function_p (node)
 	       && cgraph (node)->local.finalized
 	       && cgraph_decide_is_function_needed (cgraph (node), node->symbol.decl))
 	      || (symtab_variable_p (node)
 		  && varpool (node)->finalized
 		  && !DECL_EXTERNAL (node->symbol.decl)
-		  && decide_is_variable_needed (varpool (node), node->symbol.decl)))
+		  && decide_is_variable_needed (varpool (node), node->symbol.decl))))
 	    {
 	      enqueue_node (node);
 	      if (!changed && cgraph_dump_file)
@@ -999,7 +1001,9 @@ cgraph_analyze_functions (void)
        && node != (symtab_node)first_handled_var; node = next)
     {
       next = node->symbol.next;
-      if (!node->symbol.aux && !referred_to_p (node))
+      if (!node->symbol.aux && !referred_to_p (node) 
+	  && (TREE_CODE (node->symbol.decl) == FUNCTION_DECL 
+	      && !DECL_ELEM_FN_ALREADY_CLONED (node->symbol.decl)))
 	{
 	  if (cgraph_dump_file)
 	    fprintf (cgraph_dump_file, " %s", symtab_node_name (node));

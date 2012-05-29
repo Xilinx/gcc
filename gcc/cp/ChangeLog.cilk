@@ -1,3 +1,8 @@
+2012-05-29  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* pt.c (apply_late_template_attributes): Added a check for "vector"
+	attribute for elemental functions.
+
 2012-05-24  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* parser.c (cp_parser_elem_fn_processor_clause): Added a underscore
