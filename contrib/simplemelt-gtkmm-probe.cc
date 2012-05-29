@@ -843,8 +843,8 @@ protected:
   bool reqbuf_to_melt_cb(Glib::IOCondition);
   bool cmdbuf_from_melt_cb(Glib::IOCondition);
   void process_command_from_melt (std::string& str);
-  void create_windows(void) {
-    SMELT_DEBUG("start of create_windows");
+  void initialize(void) {
+    SMELT_DEBUG("start of initialize");
     if (_app_mainwinp) return;
     {
       SmeltMainWindow* mainwin = new SmeltMainWindow();
@@ -853,9 +853,7 @@ protected:
       _app_mainwinp = Glib::RefPtr<SmeltMainWindow>(mainwin);
       mainwin->show_all();
     }
-    SMELT_DEBUG("_app_traced=" << _app_traced);
-    if (_app_traced) {
-    }
+    _app_langman = Gsv::LanguageManager::get_default ();
   };
 public:
   std::ostringstream& outreq() {
@@ -980,7 +978,7 @@ public:
   virtual void
   on_activate(void) {
     SMELT_DEBUG ("activated");
-    create_windows ();
+    initialize ();
     Gtk::Application::on_activate();
   }
   void set_trace(bool =true);

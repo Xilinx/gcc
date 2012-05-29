@@ -1,5 +1,12 @@
 
 2012-05-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.cc {{working again}}
+	(SmeltApplication::create_windows): Rename as...
+	(SmeltApplication::initialize): New function name. Call
+	Gsv::LanguageManager::get_default.
+	(SmeltApplication::on_activate): call initialize.
+
+2012-05-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.cc: Using GtkMM 3.4 application...
 	Program argument parsed.
 	(SmeltMainWindow::SmeltMainWindow): Move show_all elsewhere.
