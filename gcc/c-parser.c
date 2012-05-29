@@ -3639,7 +3639,12 @@ c_parser_attributes (c_parser *parser)
 		{
 		  tree tree_list;
 		  c_parser_consume_token (parser);
-		  expr_list = c_parser_expr_list (parser, false, true, NULL);
+		  if (TREE_CODE (attr_name) == IDENTIFIER_NODE
+		      && simple_cst_equal (attr_name,
+					   get_identifier ("vector")) == 1)
+		    expr_list = c_parser_elem_fn_expr_list (parser);
+		  else
+		    expr_list = c_parser_expr_list (parser, false, true, NULL);
 		  tree_list = build_tree_list_vec (expr_list);
 		  attr_args = tree_cons (NULL_TREE, arg1, tree_list);
 		  release_tree_vector (expr_list);

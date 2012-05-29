@@ -1,5 +1,6 @@
 2012-05-29  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
+	* c-parser.c (c_parser_attributes): Added a check for vector attribute.
 	* elem-function-common.c (find_vlength_code): Added a check for
 	no processor type.
 	* elem-function.c (cg_hacks): Added a check if cfun is non-NULL.
