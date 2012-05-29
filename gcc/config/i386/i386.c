@@ -2408,7 +2408,6 @@ struct ix86_frame
   int va_arg_size;
   int red_zone_size;
   int outgoing_arguments_size;
-  HOST_WIDE_INT frame;
 
   /* The offsets relative to ARG_POINTER.  */
   HOST_WIDE_INT frame_pointer_offset;
@@ -8951,9 +8950,9 @@ ix86_builtin_setjmp_frame_value (void)
 static void
 ix86_compute_frame_layout (struct ix86_frame *frame)
 {
-  unsigned int stack_alignment_needed;
+  unsigned HOST_WIDE_INT stack_alignment_needed;
   HOST_WIDE_INT offset;
-  unsigned int preferred_alignment;
+  unsigned HOST_WIDE_INT preferred_alignment;
   HOST_WIDE_INT size = get_frame_size ();
   HOST_WIDE_INT to_allocate;
 
@@ -13932,8 +13931,8 @@ get_some_local_dynamic_name (void)
    C -- print opcode suffix for set/cmov insn.
    c -- like C, but print reversed condition
    F,f -- likewise, but for floating-point.
-   O -- if HAVE_AS_IX86_CMOV_SUN_SYNTAX, print the opcode suffix for
-	the size of the current operand, otherwise nothing.
+   O -- if HAVE_AS_IX86_CMOV_SUN_SYNTAX, expand to "w.", "l." or "q.",
+	otherwise nothing
    R -- print the prefix for register names.
    z -- print the opcode suffix for the size of the current operand.
    Z -- likewise, with special suffixes for x87 instructions.
@@ -14062,6 +14061,8 @@ ix86_print_operand (FILE *file, rtx x, int code)
 		("invalid operand size for operand code 'O'");
 	      return;
 	    }
+
+	  putc ('.', file);
 #endif
 	  return;
 
@@ -14321,20 +14322,21 @@ ix86_print_operand (FILE *file, rtx x, int code)
 	    }
 	  return;
 
-	case 'C':
-	case 'c':
 	case 'F':
 	case 'f':
+#ifdef HAVE_AS_IX86_CMOV_SUN_SYNTAX
+	  if (ASSEMBLER_DIALECT == ASM_ATT)
+	    putc ('.', file);
+#endif
+
+	case 'C':
+	case 'c':
 	  if (!COMPARISON_P (x))
 	    {
 	      output_operand_lossage ("operand is not a condition code, "
 				      "invalid operand code '%c'", code);
 	      return;
 	    }
-#ifdef HAVE_AS_IX86_CMOV_SUN_SYNTAX
-	  if (ASSEMBLER_DIALECT == ASM_ATT)
-	    putc ('.', file);
-#endif
 	  put_condition_code (GET_CODE (x), GET_MODE (XEXP (x, 0)),
 			      code == 'c' || code == 'f',
 			      code == 'F' || code == 'f',
@@ -19922,7 +19924,7 @@ ix86_expand_vec_perm (rtx operands[])
 	      t1 = gen_reg_rtx (V8SImode);
 	      t2 = gen_reg_rtx (V8SImode);
 	      emit_insn (gen_avx2_permvarv8si (t1, op0, mask));
-	      emit_insn (gen_avx2_permvarv8si (t2, op0, mask));
+	      emit_insn (gen_avx2_permvarv8si (t2, op1, mask));
 	      goto merge_two;
 	    }
 	  return;
@@ -19955,10 +19957,10 @@ ix86_expand_vec_perm (rtx operands[])
 
         case V4SFmode:
 	  t1 = gen_reg_rtx (V8SFmode);
-	  t2 = gen_reg_rtx (V8SFmode);
-	  mask = gen_lowpart (V4SFmode, mask);
+	  t2 = gen_reg_rtx (V8SImode);
+	  mask = gen_lowpart (V4SImode, mask);
 	  emit_insn (gen_avx_vec_concatv8sf (t1, op0, op1));
-	  emit_insn (gen_avx_vec_concatv8sf (t2, mask, mask));
+	  emit_insn (gen_avx_vec_concatv8si (t2, mask, mask));
 	  emit_insn (gen_avx2_permvarv8sf (t1, t1, t2));
 	  emit_insn (gen_avx_vextractf128v8sf (target, t1, const0_rtx));
 	  return;
@@ -36474,12 +36476,6 @@ expand_vec_perm_pshufb (struct expand_vec_perm_d *d)
   vperm = gen_rtx_CONST_VECTOR (vmode,
 				gen_rtvec_v (GET_MODE_NUNITS (vmode), rperm));
   vperm = force_reg (vmode, vperm);
-
-  if (vmode == V8SImode && d->vmode == V8SFmode)
-    {
-      vmode = V8SFmode;
-      vperm = gen_lowpart (vmode, vperm);
-    }
 
   target = gen_lowpart (vmode, d->target);
   op0 = gen_lowpart (vmode, d->op0);
