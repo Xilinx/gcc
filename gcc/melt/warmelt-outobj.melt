@@ -60,7 +60,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 			 "MELT code buffer limit set to %ld Kb = %ld Mb", 
 			 ($L) >>10, ($L) >> 20);
 		      }#)
-	  (set_reference buffer_limit_cont vlim)
+	  (set_ref buffer_limit_cont vlim)
 	  )
       )))
 
@@ -3613,7 +3613,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (output_location oloc implbuf depth "putpairhead")
     (add2sbuf_strconst implbuf "/*putpairhead*/")
     (add2sbuf_indentnl implbuf depth)
-    (set_reference objputpairhead_counter newcount)
+    (set_ref objputpairhead_counter newcount)
     (add2sbuf_strconst implbuf "melt_assertmsg(\"putpairhead /")
     (add2sbuf_longhex implbuf (get_int newcount))
     (add2sbuf_strconst implbuf " checkpair\", melt_magic_discr((melt_ptr_t)(")

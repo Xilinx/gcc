@@ -2522,9 +2522,9 @@ source location.}#
 		    (lambda (bnd) (put_env newenv bnd)))
 	(if (null (deref norcont))
 	    (progn
-	      (set_reference nbindorcont nbind)
-	      (set_reference norcont ncur) 
-	      (set_reference ctyporcont (get_ctype ncur newenv))
+	      (set_ref nbindorcont nbind)
+	      (set_ref norcont ncur) 
+	      (set_ref ctyporcont (get_ctype ncur newenv))
 	      ()
 	      )
 	  (let ( (ctypcur (get_ctype ncur newenv))
@@ -2557,10 +2557,10 @@ source location.}#
 			   :nocc_symb csymor
 			   :nocc_bind corbind))
 		  )
-	      (set_reference nbindorcont (make_list discr_list))
+	      (set_ref nbindorcont (make_list discr_list))
 	      (list_append2list (deref nbindorcont) nbind)
 	      (list_append (deref nbindorcont) corbind)
-	      (set_reference norcont corocc)
+	      (set_ref norcont corocc)
 	      ()
 	      )
 	    )
@@ -2999,7 +2999,7 @@ source location.}#
 	       (precla (deref clacont))
 	       )
 	  (cond ( (null precla)
-		  (set_reference clacont fcla)
+		  (set_ref clacont fcla)
 		  )
 		( (== precla fcla)
 		  ()
@@ -3008,7 +3008,7 @@ source location.}#
 		  ()
 		  )
 		( (subclass_of fcla precla)
-		  (set_reference clacont fcla)
+		  (set_ref clacont fcla)
 		  )
 		(:else
 		 (debug "normexp_put_fields bad fld=" fld " fcla=" fcla
@@ -3904,7 +3904,7 @@ source location.}#
 	  (assert_msg "normexp_multicall check cbnd" (is_a cbnd class_normal_let_binding))
 	  (if (== ncallsym (unsafe_get_field :binder cbnd))
 	      (let ( (nrealcallex (unsafe_get_field :letbind_expr cbnd)) )
-		(set_reference ncontcall nrealcallex)
+		(set_ref ncontcall nrealcallex)
 		())
 	    (progn (list_append nincallbindings cbnd) cbnd))))
        (setq nrealcall (deref ncontcall))
@@ -5991,7 +5991,7 @@ source location.}#
 	    (if (is_list nbindcur)
 		(let ( (thebindlist (deref nbindcont)))
 		  (setq thebindlist (list_append2list thebindlist nbindcur))
-		  (set_reference nbindcont thebindlist)))))))
+		  (set_ref nbindcont thebindlist)))))))
 ;;; put the binding into the data
       (let ( (thebindlist (deref nbindcont)) 
 	     (nbindtup (list_to_multiple thebindlist discr_multiple))
@@ -6189,7 +6189,7 @@ source location.}#
 	    (if (is_list nbindcur)
 		(let ( (thebindlist (deref nbindcont)))
 		  (setq thebindlist (list_append2list thebindlist nbindcur))
-		  (set_reference nbindcont thebindlist)))))))
+		  (set_ref nbindcont thebindlist)))))))
 ;;; put the binding into the data
       (let ( (thebindlist (deref nbindcont)) 
 	     (nbindtup (list_to_multiple thebindlist discr_multiple))
@@ -6865,7 +6865,7 @@ source location.}#
 		   )
 	      (mapobject_every predefmap
 			       (lambda (key val)
-				 (if (== val spred) (set_reference contk key))))
+				 (if (== val spred) (set_ref contk key))))
 	      (if (null (deref contk))
 		  (warning_strv sloc "FETCH_PREDEFINED unknown predef name"
 				(unsafe_get_field :named_name spred)))
@@ -6912,7 +6912,7 @@ source location.}#
 		   )
 	      (mapobject_every predefmap
 			       (lambda (key val)
-				 (if (== val spred) (set_reference contk key))))
+				 (if (== val spred) (set_ref contk key))))
 	      (if (null (deref contk))
 		  (warning_strv sloc "STORE_PREDEFINED unknown predef name"
 				(unsafe_get_field :named_name spred)))

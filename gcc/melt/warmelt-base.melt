@@ -2502,10 +2502,9 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
  class_varisized_value_descriptor)
 
 
-;; maybe set_reference should become a macro for performance reasons...
 (defun set_reference (r v)
   :doc #{Safely put in a reference $R instance of $CLASS_REFERENCE 
-the field :REFERENCED_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
+the field :REFERENCED_VALUE to $V. Obsolete function, use $SET_REF macro.}#
   (put_fields r :referenced_value v))
 
 

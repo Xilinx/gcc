@@ -1334,7 +1334,7 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
     (if (not (is_string outarg))
 	(errormsg_plain 
 	 "makedoc MELT mode needs an -f[plugin-arg-]melt-output *.texi file"))
-    (set_reference melt_mode_reference mdinfo)
+    (set_ref melt_mode_reference mdinfo)
     (assert_msg "check rlist" (is_list rlist))
     (list_every 
      arglist 
@@ -3920,7 +3920,7 @@ ASSERT_MSG) is enabled"
 	     ;; erase the alarm hook to avoid spurious recursive calls
 	     (put_fields initial_system_data 
 			 :sysdata_alarm_hook
-			 (lambda () (set_reference gotalarm_cont :true)))
+			 (lambda () (set_ref gotalarm_cont :true)))
 	     (unless (bucketlong_count alarmbuck) (exit handleloop))
 	     (let ( (:long nextim (bucketlong_nth_key alarmbuck 0))
 		    (nextalhd (bucketlong_nth_val alarmbuck 0))
@@ -3943,10 +3943,10 @@ ASSERT_MSG) is enabled"
 				       (bucketlong_put alarmbuck 
 						       (+i newperiod cureltim) nextalhd))))))))
 	       (when !gotalarm_cont
-		 (set_reference gotalarm_cont ())
+		 (set_ref gotalarm_cont ())
 		 (again handleloop))
 	       ))			;end handleloop
-    (set_reference alarm_bucket_reference alarmbuck)
+    (set_ref alarm_bucket_reference alarmbuck)
     (let ( (:long nowtim (relative_time_millisec))
 	   (:long nextalarm (bucketlong_nth_key alarmbuck 0))
 	   )
@@ -3990,7 +3990,7 @@ ASSERT_MSG) is enabled"
 		    (:long firstkey (bucketlong_nth_key newbuck 0))
 		    (:long firstdelay (if firstkey (-i firstkey cureltim)))
 		    )
-	       (set_reference alarm_bucket_reference newbuck)
+	       (set_ref alarm_bucket_reference newbuck)
 	       (put_fields initial_system_data :sysdata_alarm_hook handle_alarm_signal)
 	       (set_real_timer_millisec firstdelay)
 	       (setq res alhd)))
@@ -4013,7 +4013,7 @@ ASSERT_MSG) is enabled"
 	  )
      (unless oldbucklen 
        ;; no more alarms
-       (set_reference alarm_bucket_reference ())
+       (set_ref alarm_bucket_reference ())
        (set_real_timer_millisec 0)
        (put_fields initial_system_data 
 		   :sysdata_alarm_hook ())
@@ -4025,7 +4025,7 @@ ASSERT_MSG) is enabled"
       (unless (== oldala tim)
 	(setq newbuck (bucketlong_put newbuck oldkey oldala))
 	))
-     (set_reference alarm_bucket_reference newbuck)
+     (set_ref alarm_bucket_reference newbuck)
      )
    ))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -4100,7 +4100,7 @@ ASSERT_MSG) is enabled"
 	  (let ( (cbuck  !childproc_bucket_reference)
 		 )
 	    (setq cbuck (bucketlong_remove cbuck curpid))
-	    (set_reference childproc_bucket_reference cbuck)
+	    (set_ref childproc_bucket_reference cbuck)
 	    ))
 	 (code_chunk 
 	  lookwstatchk
@@ -4173,7 +4173,7 @@ ASSERT_MSG) is enabled"
 		     )
 		 (assert_msg "check buck" (is_bucketlong buck))
 		 (setq buck (bucketlong_put buck pid chph))
-		 (set_reference childproc_bucket_reference buck)
+		 (set_ref childproc_bucket_reference buck)
 		 )
 	       (put_fields initial_system_data
 			   :sysdata_child_hook child_process_sigchld_handler)

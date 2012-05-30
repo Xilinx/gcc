@@ -1500,7 +1500,7 @@ scanning variables.}#
 		 (subdisjhandler 
 		  (lambda (subtester)
 		    (debug "normpat_orpat.lambda subtester" subtester)
-		    (set_reference subdisjcont subtester)
+		    (set_ref subdisjcont subtester)
 		    (let (
 			  (prevtestsub (unsafe_get_field :referenced_value prevcont))
 			  )

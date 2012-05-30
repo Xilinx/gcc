@@ -172,11 +172,11 @@
 ))
 
 
-(definstance probe_data_container class_reference)
+(definstance probe_data_ref class_reference)
 
 (defun probe_get_data ()
   :doc #{function to retrieve the probe data, or null.}#
-  !probe_data_container)
+  !probe_data_ref)
 
 
 (defun probe_register_request_verb (symb clos)
@@ -273,7 +273,7 @@
     (assert_msg "check probedata" (is_a probedata class_probe_data))
     (unless inlist
       (debug "probe_request_processor end of input probereqfd=" probereqfd)
-      (set_reference probe_data_container ())
+      (set_ref probe_data_ref ())
       (put_fields probedata 
 		  :probedata_cmdtoprobefd ()
 		  :probedata_reqfromprobefd ())
@@ -286,7 +286,7 @@
     (debug "probe_request_processor reqverb=" reqverb " intup=" intup)
     ;; the quit_prq verb is deeply wired in
     (when (== reqverb 'quit_prq)
-      (set_reference probe_data_container ())
+      (set_ref probe_data_ref ())
       (debug "probe_request_processor quitting probe")
       (return)
       )
@@ -364,7 +364,7 @@
     (put_fields probedata
 		:probedata_cmdtoprobefd (make_integerbox discr_constant_integer toprobenumfd)
 		:probedata_reqfromprobefd (make_integerbox discr_constant_integer fromprobenumfd))
-    (set_reference probe_data_container probedata)
+    (set_ref probe_data_ref probedata)
     (register_input_channel_handler probe_request_processor probedata fromprobenumfd)
     (probe_register_request_verb 'VERSION_prq  show_version_probe)
     (debug "start_probe registered probe_request_processor=" probe_request_processor 

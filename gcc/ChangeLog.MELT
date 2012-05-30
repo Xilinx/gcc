@@ -1,5 +1,18 @@
 
 2012-05-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-predef.list (CLASS_CONTAINER): Remove.
+	* melt/warmelt-macro.melt: Use set_ref macro instead of
+	set_reference function.
+	* melt/warmelt-outobj.melt: Ditto.
+	* melt/warmelt-modes.melt: Ditto.
+	* melt/warmelt-base.melt: Ditto.
+	* melt/warmelt-normal.melt: Ditto.
+	* melt/warmelt-normatch.melt: Ditto.
+	* melt/warmelt-debug.melt: Ditto.
+	* melt/xtramelt-opengpu.melt: Ditto.
+	* melt/xtramelt-probe.melt: Ditto.
+
+2012-05-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* make-warmelt-predef.awk: Emit comment for lisp emacs mode.
 	* melt-predef.list: Comment out CLASS_CONTAINER.
 

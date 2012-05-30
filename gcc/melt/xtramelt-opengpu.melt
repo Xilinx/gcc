@@ -81,13 +81,13 @@
 			    )
 			  (?(gimple_assign_to trssa)
 			    (debug "opengpu_increment_ssaname bad assign g=" g)
-			    (set_reference transcont ())
+			    (set_ref transcont ())
 			    (debug "opengpu_increment_ssaname/walker gives null")
 			    (return ()))
 			  (?(gimple_call trssa ?fndecl ?nbargs)
 			    (debug "opengpu_increment_ssaname bad call g=" g 
 				   " fndecl=" fndecl " nbargs=" nbargs)
-			    (set_reference transcont ())
+			    (set_ref transcont ())
 			    (debug "opengpu_increment_ssaname gives null")
 			    (return ()))
 			  (?_
