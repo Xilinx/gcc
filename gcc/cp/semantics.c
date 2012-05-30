@@ -2110,7 +2110,7 @@ finish_call_expr (tree fn, VEC(tree,gc) **args, bool disallow_virtual,
                                          ? LOOKUP_NORMAL | LOOKUP_NONVIRTUAL
 					 : LOOKUP_NORMAL),
 					/*fn_p=*/NULL,
-					CALL_NORMAL,
+					spawning,
 					complain);
 	}
     }
@@ -2161,7 +2161,7 @@ finish_call_expr (tree fn, VEC(tree,gc) **args, bool disallow_virtual,
 				       ? LOOKUP_NORMAL|LOOKUP_NONVIRTUAL
 				       : LOOKUP_NORMAL),
 				      /*fn_p=*/NULL,
-				      CALL_NORMAL,
+				      spawning,
 				      complain);
     }
   else if (is_overloaded_fn (fn))
@@ -2174,7 +2174,7 @@ finish_call_expr (tree fn, VEC(tree,gc) **args, bool disallow_virtual,
 
       if (!result)
 	/* A call to a namespace-scope function.  */
-	result = build_new_function_call (fn, args, koenig_p, CALL_NORMAL,
+	result = build_new_function_call (fn, args, koenig_p, spawning,
 					  complain);
     }
   else if (TREE_CODE (fn) == PSEUDO_DTOR_EXPR)
@@ -2191,11 +2191,11 @@ finish_call_expr (tree fn, VEC(tree,gc) **args, bool disallow_virtual,
   else if (CLASS_TYPE_P (TREE_TYPE (fn)))
     /* If the "function" is really an object of class type, it might
        have an overloaded `operator ()'.  */
-    result = build_op_call (fn, args, CALL_NORMAL, complain);
+    result = build_op_call (fn, args, spawning, complain);
 
   if (!result)
     /* A call where the function is unknown.  */
-    result = cp_build_function_call_vec (fn, args, CALL_NORMAL, complain);
+    result = cp_build_function_call_vec (fn, args, spawning, complain);
 
   if (processing_template_decl && result != error_mark_node)
     {

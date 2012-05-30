@@ -1,3 +1,8 @@
+2012-05-30  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* semantics.c (finish_call_expr): Used spawning for call_type instead of
+	default CALL_NORMAL to support spawned call.
+
 2012-05-29  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* pt.c (apply_late_template_attributes): Added a check for "vector"
