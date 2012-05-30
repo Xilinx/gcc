@@ -32,7 +32,7 @@
   CLASS_CITERATOR
   CLASS_CLASS
   CLASS_CMATCHER
-  CLASS_CONTAINER                               @POISON
+#  CLASS_CONTAINER                               @POISON
   CLASS_CTYPE
   CLASS_CTYPE_GTY
   CLASS_DISCRIMINANT
@@ -124,6 +124,5 @@
   DISCR_VERBATIM_STRING
   INITIAL_SYSTEM_DATA
   TRUE
-
 
 #eof melt-predef.list

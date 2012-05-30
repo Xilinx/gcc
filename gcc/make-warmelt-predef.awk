@@ -21,7 +21,7 @@
 # <http://www.gnu.org/licenses/>.
 BEGIN {
     predefcount = 0;
-    print ";; generated file warmmelt-predef.melt -- DO NOT EDIT "
+    print ";; generated file warmmelt-predef.melt -- DO NOT EDIT -- -*- Lisp -*- "
     print ";; generated from melt-predef.list by make-warmelt-predef.awk"
     print "(defun fill_initial_predefmap (predefmap)"
     print "  (let ( (curpredef ()) )"

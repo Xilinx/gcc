@@ -1,5 +1,9 @@
 
 2012-05-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* make-warmelt-predef.awk: Emit comment for lisp emacs mode.
+	* melt-predef.list: Comment out CLASS_CONTAINER.
+
+2012-05-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.
