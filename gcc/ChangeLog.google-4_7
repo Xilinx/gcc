@@ -1,3 +1,8 @@
+2012-05-30  Dehao Chen  <dehao@google.com>
+
+	* predict.c (predict_extra_loop_exit): New function to predict for
+	extra loop exits resulted from short-circuit conditions.
+
 2012-05-24   Rong Xu  <xur@google.com>
 
 	* l-ipo.c (create_unique_name): Make temp names demanglable.
