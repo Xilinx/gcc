@@ -18365,7 +18365,7 @@ lab_endgetargs:;
 	      /*^apply.arg */
 	      argtab[2].meltbp_long = 4950;
 	      /*^apply.arg */
-	      argtab[3].meltbp_cstring = "mexpand_set_reference sexpr";
+	      argtab[3].meltbp_cstring = "mexpand_set_ref sexpr";
 	      /*^apply.arg */
 	      argtab[4].meltbp_aptr =
 		(melt_ptr_t *) & /*_.SEXPR__V2*/ meltfptr[1];
