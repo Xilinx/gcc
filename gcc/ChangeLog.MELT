@@ -1,5 +1,48 @@
 
 2012-05-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: Use deref, not content.
+
+2012-05-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Regenerate}}
+
+	* melt/generated/meltrunsup.h: Regenerate.
+	* melt/generated/warmelt-base+02.c: Regenerate.
+	* melt/generated/warmelt-base+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-base+melttime.h: Regenerate.
+	* melt/generated/warmelt-base.c: Regenerate.
+	* melt/generated/warmelt-debug+01.c: Regenerate.
+	* melt/generated/warmelt-debug+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-debug+melttime.h: Regenerate.
+	* melt/generated/warmelt-debug.c: Regenerate.
+	* melt/generated/warmelt-first+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-first+melttime.h: Regenerate.
+	* melt/generated/warmelt-genobj+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-genobj+melttime.h: Regenerate.
+	* melt/generated/warmelt-macro+03.c: Regenerate.
+	* melt/generated/warmelt-macro+04.c: Regenerate.
+	* melt/generated/warmelt-macro+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-macro+melttime.h: Regenerate.
+	* melt/generated/warmelt-macro.c: Regenerate.
+	* melt/generated/warmelt-modes+01.c: Regenerate.
+	* melt/generated/warmelt-modes+02.c: Regenerate.
+	* melt/generated/warmelt-modes+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-modes+melttime.h: Regenerate.
+	* melt/generated/warmelt-modes.c: Regenerate.
+	* melt/generated/warmelt-normal+02.c: Regenerate.
+	* melt/generated/warmelt-normal+03.c: Regenerate.
+	* melt/generated/warmelt-normal+04.c: Regenerate.
+	* melt/generated/warmelt-normal+05.c: Regenerate.
+	* melt/generated/warmelt-normal+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-normal+melttime.h: Regenerate.
+	* melt/generated/warmelt-normal.c: Regenerate.
+	* melt/generated/warmelt-normatch+01.c: Regenerate.
+	* melt/generated/warmelt-normatch+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-normatch+melttime.h: Regenerate.
+	* melt/generated/warmelt-normatch.c: Regenerate.
+	* melt/generated/warmelt-outobj+03.c: Regenerate.
+	* melt/generated/warmelt-outobj+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-outobj+melttime.h: Regenerate.
+	* melt/generated/warmelt-outobj.c: Regenerate.
 	* melt-predef.list (CLASS_CONTAINER): Remove.
 	* melt/warmelt-macro.melt: Use set_ref macro instead of
 	set_reference function.

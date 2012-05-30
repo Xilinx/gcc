@@ -877,7 +877,7 @@ scanning variables.}#
 	      ( (is_a realococc class_reference)
 		(let ( 
 		      (ctyp (get_ctype nmatch env))
-		      (bxclocc (content realococc))
+		      (bxclocc (deref realococc))
 		      )
 		  (debug "normpat_variablepat bxclocc" bxclocc)
 		  (assert_msg "check bxclocc" (is_a bxclocc class_nrep_locsymocc))
