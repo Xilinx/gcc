@@ -1,4 +1,14 @@
 
+2012-05-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt (mexpand_reference)
+	(patexpand_reference): New functions renaming of mexpand_container
+	& patexpand_container.
+	(mexpandobsolete_container, patexpandobsolete_container):
+	expansion for obsolete container macro.
+	(mexpand_deref, mexppand_set_ref): New functions with
+	mexpand_deref renaming mexpand_content.
+	(mexpandobsolete_content): expansion for obsolete content macro.
+
 2012-05-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_container_value, meltgc_new_container)
 	(meltgc_container_put, MELTGLOB_CLASS_REFERENCE)
