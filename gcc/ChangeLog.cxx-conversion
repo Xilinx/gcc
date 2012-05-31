@@ -1,3 +1,9 @@
+2012-05-31    <dnovillo@google.com>
+
+	* configure.ac (BUILD_CXXFLAGS): Define.
+	* Makefile.in (BUILD_CXXFLAGS): Use it.
+	* configure: Regenerate.
+
 2012-05-30   Lawrence Crowl  <crowl@google.com>
 
 	* tree.h (tree_check): Change from template to const overload.
