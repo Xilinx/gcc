@@ -1,4 +1,15 @@
 
+2012-05-31  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt (foreach_in_multiple): Emit better comment.
+
+	* melt/xtramelt-probe.melt (class_probed_file): Add
+	probedfile_linesbucket field.
+	(class_probed_interesting_location): New class wirh probiloc_* fields.
+	(class_probed_data): Add probedata_ilocvec & probedata_nbiloc
+	fields.
+	(probe_get_interesting_location): New function.
+	(start_probe): Export function.
+
 2012-05-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 

@@ -3691,7 +3691,7 @@ of pairs.}#
   eachtup				;state
   (comp :long ix)			;local formals
   :doc #{Iterate in the given tuple $TUP for each component $COMP at index $IX}#
-  #{ /* start $eachtup: */
+  #{ /* start foreach_in_multiple $EACHTUP */
    long  $eachtup#_ln = melt_multiple_length((melt_ptr_t)$tup);
    for ($ix = 0;  
 	($ix >= 0) && ($ix <  $eachtup#_ln);  
@@ -3699,7 +3699,7 @@ of pairs.}#
    $comp = melt_multiple_nth((melt_ptr_t)($tup),  $ix);
    }#
    #{ if ($ix<0) break;
-   } /* end $eachtup */ }#
+   } /* end  foreach_in_multiple $EACHTUP */ }#
 )
 
 (defciterator foreach_in_multiple_backward
@@ -3708,7 +3708,7 @@ of pairs.}#
   (comp :long ix)			;local formals
   :doc #{Iterate backwards from last to first in the given tuple $TUP
   for each component $COMP at index $IX}#
-  #{ /* start $eachtupback: */
+  #{ /* start foreach_in_multiple_backward $EACHTUPBACK */
    long  $eachtupback#_ln = melt_multiple_length((melt_ptr_t)$tup);
    long  $eachtupback#_ix = 0;
    for ($eachtupback#_ix = $eachtupback#_ln - 1;  
@@ -3716,7 +3716,7 @@ of pairs.}#
 	$eachtupback#_ix--) {
    $comp = melt_multiple_nth((melt_ptr_t)($tup),  $eachtupback#_ix);
    $ix  =  $eachtupback#_ix;}#
-   #{ } /* end $eachtupback */ }#
+   #{ } /* end  foreach_in_multiple_backward $EACHTUPBACK */ }#
   )
 
 ;;; iterator on tuple , if the called f returns nil the iteration is stopped
