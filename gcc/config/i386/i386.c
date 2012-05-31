@@ -2408,7 +2408,6 @@ struct ix86_frame
   int va_arg_size;
   int red_zone_size;
   int outgoing_arguments_size;
-  HOST_WIDE_INT frame;
 
   /* The offsets relative to ARG_POINTER.  */
   HOST_WIDE_INT frame_pointer_offset;
@@ -8963,9 +8962,9 @@ ix86_builtin_setjmp_frame_value (void)
 static void
 ix86_compute_frame_layout (struct ix86_frame *frame)
 {
-  unsigned int stack_alignment_needed;
+  unsigned HOST_WIDE_INT stack_alignment_needed;
   HOST_WIDE_INT offset;
-  unsigned int preferred_alignment;
+  unsigned HOST_WIDE_INT preferred_alignment;
   HOST_WIDE_INT size = get_frame_size ();
   HOST_WIDE_INT to_allocate;
 
@@ -9198,7 +9197,7 @@ choose_baseaddr (HOST_WIDE_INT cfa_offset)
   if (m->use_fast_prologue_epilogue)
     {
       /* Choose the base register most likely to allow the most scheduling
-         opportunities.  Generally FP is valid througout the function,
+         opportunities.  Generally FP is valid throughout the function,
          while DRAP must be reloaded within the epilogue.  But choose either
          over the SP due to increased encoding size.  */
 
@@ -12823,13 +12822,13 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
     case TLS_MODEL_INITIAL_EXEC:
       if (TARGET_64BIT)
 	{
-	  if (TARGET_SUN_TLS)
+	  if (TARGET_SUN_TLS && !TARGET_X32)
 	    {
 	      /* The Sun linker took the AMD64 TLS spec literally
 		 and can only handle %rax as destination of the
 		 initial executable code sequence.  */
 
-	      dest = gen_reg_rtx (Pmode);
+	      dest = gen_reg_rtx (DImode);
 	      emit_insn (gen_tls_initial_exec_64_sun (dest, x));
 	      return dest;
 	    }
@@ -13944,8 +13943,8 @@ get_some_local_dynamic_name (void)
    C -- print opcode suffix for set/cmov insn.
    c -- like C, but print reversed condition
    F,f -- likewise, but for floating-point.
-   O -- if HAVE_AS_IX86_CMOV_SUN_SYNTAX, print the opcode suffix for
-	the size of the current operand, otherwise nothing.
+   O -- if HAVE_AS_IX86_CMOV_SUN_SYNTAX, expand to "w.", "l." or "q.",
+	otherwise nothing
    R -- print the prefix for register names.
    z -- print the opcode suffix for the size of the current operand.
    Z -- likewise, with special suffixes for x87 instructions.
@@ -14074,6 +14073,8 @@ ix86_print_operand (FILE *file, rtx x, int code)
 		("invalid operand size for operand code 'O'");
 	      return;
 	    }
+
+	  putc ('.', file);
 #endif
 	  return;
 
@@ -14333,20 +14334,21 @@ ix86_print_operand (FILE *file, rtx x, int code)
 	    }
 	  return;
 
-	case 'C':
-	case 'c':
 	case 'F':
 	case 'f':
+#ifdef HAVE_AS_IX86_CMOV_SUN_SYNTAX
+	  if (ASSEMBLER_DIALECT == ASM_ATT)
+	    putc ('.', file);
+#endif
+
+	case 'C':
+	case 'c':
 	  if (!COMPARISON_P (x))
 	    {
 	      output_operand_lossage ("operand is not a condition code, "
 				      "invalid operand code '%c'", code);
 	      return;
 	    }
-#ifdef HAVE_AS_IX86_CMOV_SUN_SYNTAX
-	  if (ASSEMBLER_DIALECT == ASM_ATT)
-	    putc ('.', file);
-#endif
 	  put_condition_code (GET_CODE (x), GET_MODE (XEXP (x, 0)),
 			      code == 'c' || code == 'f',
 			      code == 'F' || code == 'f',
@@ -19934,7 +19936,7 @@ ix86_expand_vec_perm (rtx operands[])
 	      t1 = gen_reg_rtx (V8SImode);
 	      t2 = gen_reg_rtx (V8SImode);
 	      emit_insn (gen_avx2_permvarv8si (t1, op0, mask));
-	      emit_insn (gen_avx2_permvarv8si (t2, op0, mask));
+	      emit_insn (gen_avx2_permvarv8si (t2, op1, mask));
 	      goto merge_two;
 	    }
 	  return;
@@ -19967,10 +19969,10 @@ ix86_expand_vec_perm (rtx operands[])
 
         case V4SFmode:
 	  t1 = gen_reg_rtx (V8SFmode);
-	  t2 = gen_reg_rtx (V8SFmode);
-	  mask = gen_lowpart (V4SFmode, mask);
+	  t2 = gen_reg_rtx (V8SImode);
+	  mask = gen_lowpart (V4SImode, mask);
 	  emit_insn (gen_avx_vec_concatv8sf (t1, op0, op1));
-	  emit_insn (gen_avx_vec_concatv8sf (t2, mask, mask));
+	  emit_insn (gen_avx_vec_concatv8si (t2, mask, mask));
 	  emit_insn (gen_avx2_permvarv8sf (t1, t1, t2));
 	  emit_insn (gen_avx_vextractf128v8sf (target, t1, const0_rtx));
 	  return;
@@ -33122,7 +33124,7 @@ ix86_count_insn (basic_block bb)
   return min_prev_count;
 }
 
-/* Pad short funtion to 4 instructions.   */
+/* Pad short function to 4 instructions.   */
 
 static void
 ix86_pad_short_function (void)
@@ -34420,7 +34422,7 @@ half:
     }
   else
     {
-      rtx mem = assign_stack_temp (mode, GET_MODE_SIZE (mode), false);
+      rtx mem = assign_stack_temp (mode, GET_MODE_SIZE (mode));
 
       emit_move_insn (mem, target);
 
@@ -34637,7 +34639,7 @@ ix86_expand_vector_extract (bool mmx_ok, rtx target, rtx vec, int elt)
     }
   else
     {
-      rtx mem = assign_stack_temp (mode, GET_MODE_SIZE (mode), false);
+      rtx mem = assign_stack_temp (mode, GET_MODE_SIZE (mode));
 
       emit_move_insn (mem, vec);
 
@@ -36487,12 +36489,6 @@ expand_vec_perm_pshufb (struct expand_vec_perm_d *d)
 				gen_rtvec_v (GET_MODE_NUNITS (vmode), rperm));
   vperm = force_reg (vmode, vperm);
 
-  if (vmode == V8SImode && d->vmode == V8SFmode)
-    {
-      vmode = V8SFmode;
-      vperm = gen_lowpart (vmode, vperm);
-    }
-
   target = gen_lowpart (vmode, d->target);
   op0 = gen_lowpart (vmode, d->op0);
   if (d->one_operand_p)
@@ -36925,7 +36921,7 @@ expand_vec_perm_interleave2 (struct expand_vec_perm_d *d)
 	{
 	  if (d->perm[0] / nelt2 == nonzero_halves[1])
 	    {
-	      /* Attempt to increase the likelyhood that dfinal
+	      /* Attempt to increase the likelihood that dfinal
 		 shuffle will be intra-lane.  */
 	      char tmph = nonzero_halves[0];
 	      nonzero_halves[0] = nonzero_halves[1];
@@ -39001,7 +38997,7 @@ fits_dispatch_window (rtx insn)
   /* Make disp_cmp and disp_jcc get scheduled at the latest.  These
      instructions should be given the lowest priority in the
      scheduling process in Haifa scheduler to make sure they will be
-     scheduled in the same dispatch window as the refrence to them.  */
+     scheduled in the same dispatch window as the reference to them.  */
   if (group == disp_jcc || group == disp_cmp)
     return false;
 

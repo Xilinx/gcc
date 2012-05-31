@@ -1187,7 +1187,7 @@ varpool_alias_aliased_node (struct varpool_node *n)
 
 /* Given NODE, walk the alias chain to return the function NODE is alias of.
    Walk through thunk, too.
-   When AVAILABILITY is non-NULL, get minimal availablity in the chain.  */
+   When AVAILABILITY is non-NULL, get minimal availability in the chain.  */
 
 static inline struct cgraph_node *
 cgraph_function_node (struct cgraph_node *node, enum availability *availability)
@@ -1217,7 +1217,7 @@ cgraph_function_node (struct cgraph_node *node, enum availability *availability)
 
 /* Given NODE, walk the alias chain to return the function NODE is alias of.
    Do not walk through thunks.
-   When AVAILABILITY is non-NULL, get minimal availablity in the chain.  */
+   When AVAILABILITY is non-NULL, get minimal availability in the chain.  */
 
 static inline struct cgraph_node *
 cgraph_function_or_thunk_node (struct cgraph_node *node, enum availability *availability)
@@ -1245,7 +1245,7 @@ cgraph_function_or_thunk_node (struct cgraph_node *node, enum availability *avai
 
 /* Given NODE, walk the alias chain to return the function NODE is alias of.
    Do not walk through thunks.
-   When AVAILABILITY is non-NULL, get minimal availablity in the chain.  */
+   When AVAILABILITY is non-NULL, get minimal availability in the chain.  */
 
 static inline struct varpool_node *
 varpool_variable_node (struct varpool_node *node, enum availability *availability)

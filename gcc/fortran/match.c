@@ -597,7 +597,7 @@ gfc_match_name_C (const char **buffer)
   c = gfc_next_char_literal (INSTRING_WARN);
 
   /* If the user put nothing expect spaces between the quotes, it is valid
-     and simply means there is no name= specifier and the name is the fortran
+     and simply means there is no name= specifier and the name is the Fortran
      symbol name, all lowercase.  */
   if (c == '"' || c == '\'')
     {
@@ -3466,6 +3466,9 @@ gfc_match_allocate (void)
 			 "type parameter", &old_locus);
 	      goto cleanup;
 	    }
+
+	  if (ts.type == BT_CHARACTER)
+	    ts.u.cl->length_from_typespec = true;
 	}
       else
 	{
@@ -5363,7 +5366,7 @@ gfc_match_select_type (void)
      array, which can have a reference, from other expressions that
      have references, such as derived type components, and are not
      allowed by the standard.
-     TODO; see is it is sufficent to exclude component and substring
+     TODO; see is it is sufficient to exclude component and substring
      references.  */
   class_array = expr1->expr_type == EXPR_VARIABLE
 		  && expr1->ts.type != BT_UNKNOWN

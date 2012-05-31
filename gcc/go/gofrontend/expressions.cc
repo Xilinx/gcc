@@ -1312,30 +1312,18 @@ Func_expression::do_get_tree(Translate_context* context)
 	     && TREE_CODE(TREE_OPERAND(fnaddr, 0)) == FUNCTION_DECL);
   TREE_ADDRESSABLE(TREE_OPERAND(fnaddr, 0)) = 1;
 
-  // For a normal non-nested function call, that is all we have to do.
-  if (!this->function_->is_function()
-      || this->function_->func_value()->enclosing() == NULL)
-    {
-      go_assert(this->closure_ == NULL);
-      return fnaddr;
-    }
+  // If there is no closure, that is all have to do.
+  if (this->closure_ == NULL)
+    return fnaddr;
 
-  // For a nested function call, we have to always allocate a
-  // trampoline.  If we don't always allocate, then closures will not
-  // be reliably distinct.
-  Expression* closure = this->closure_;
-  tree closure_tree;
-  if (closure == NULL)
-    closure_tree = null_pointer_node;
-  else
-    {
-      // Get the value of the closure.  This will be a pointer to
-      // space allocated on the heap.
-      closure_tree = closure->get_tree(context);
-      if (closure_tree == error_mark_node)
-	return error_mark_node;
-      go_assert(POINTER_TYPE_P(TREE_TYPE(closure_tree)));
-    }
+  go_assert(this->function_->func_value()->enclosing() != NULL);
+
+  // Get the value of the closure.  This will be a pointer to space
+  // allocated on the heap.
+  tree closure_tree = this->closure_->get_tree(context);
+  if (closure_tree == error_mark_node)
+    return error_mark_node;
+  go_assert(POINTER_TYPE_P(TREE_TYPE(closure_tree)));
 
   // Now we need to build some code on the heap.  This code will load
   // the static chain pointer with the closure and then jump to the
@@ -4487,9 +4475,8 @@ Binary_expression::eval_constant(Operator op, Numeric_constant* left_nc,
     case OPERATOR_LE:
     case OPERATOR_GT:
     case OPERATOR_GE:
-      // These return boolean values and as such must be handled
-      // elsewhere.
-      go_unreachable();
+      // These return boolean values, not numeric.
+      return false;
     default:
       break;
     }
@@ -5316,24 +5303,13 @@ Binary_expression::operand_address(Statement_inserter* inserter,
 bool
 Binary_expression::do_numeric_constant_value(Numeric_constant* nc) const
 {
-  Operator op = this->op_;
-
-  if (op == OPERATOR_EQEQ
-      || op == OPERATOR_NOTEQ
-      || op == OPERATOR_LT
-      || op == OPERATOR_LE
-      || op == OPERATOR_GT
-      || op == OPERATOR_GE)
-    return false;
-
   Numeric_constant left_nc;
   if (!this->left_->numeric_constant_value(&left_nc))
     return false;
   Numeric_constant right_nc;
   if (!this->right_->numeric_constant_value(&right_nc))
     return false;
-
-  return Binary_expression::eval_constant(op, &left_nc, &right_nc,
+  return Binary_expression::eval_constant(this->op_, &left_nc, &right_nc,
 					  this->location(), nc);
 }
 

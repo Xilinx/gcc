@@ -259,7 +259,7 @@ varpool_analyze_node (struct varpool_node *node)
   node->analyzed = true;
 }
 
-/* Assemble thunks and aliases asociated to NODE.  */
+/* Assemble thunks and aliases associated to NODE.  */
 
 static void
 assemble_aliases (struct varpool_node *node)
@@ -270,7 +270,7 @@ assemble_aliases (struct varpool_node *node)
     if (ref->use == IPA_REF_ALIAS)
       {
 	struct varpool_node *alias = ipa_ref_referring_varpool_node (ref);
-	assemble_alias (alias->symbol.decl,
+	do_assemble_alias (alias->symbol.decl,
 			DECL_ASSEMBLER_NAME (alias->alias_of));
 	assemble_aliases (alias);
       }
@@ -349,7 +349,6 @@ varpool_remove_unreferenced_decls (void)
 
   if (cgraph_dump_file)
     fprintf (cgraph_dump_file, "Trivially needed variables:");
-  finish_aliases_1 ();
   FOR_EACH_DEFINED_VARIABLE (node)
     {
       if (node->analyzed
@@ -450,7 +449,7 @@ add_new_static_var (tree type)
   tree new_decl;
   struct varpool_node *new_node;
 
-  new_decl = create_tmp_var (type, NULL);
+  new_decl = create_tmp_var_raw (type, NULL);
   DECL_NAME (new_decl) = create_tmp_var_name (NULL);
   TREE_READONLY (new_decl) = 0;
   TREE_STATIC (new_decl) = 1;
@@ -458,9 +457,7 @@ add_new_static_var (tree type)
   DECL_CONTEXT (new_decl) = NULL_TREE;
   DECL_ABSTRACT (new_decl) = 0;
   lang_hooks.dup_lang_specific_decl (new_decl);
-  create_var_ann (new_decl);
   new_node = varpool_node (new_decl);
-  add_referenced_var (new_decl);
   varpool_finalize_decl (new_decl);
 
   return new_node->symbol.decl;
@@ -511,7 +508,7 @@ varpool_extra_name_alias (tree alias, tree decl)
   return alias_node;
 }
 
-/* Call calback on NODE and aliases asociated to NODE. 
+/* Call calback on NODE and aliases associated to NODE. 
    When INCLUDE_OVERWRITABLE is false, overwritable aliases and thunks are
    skipped. */
 

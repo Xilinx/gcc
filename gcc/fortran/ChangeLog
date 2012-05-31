@@ -1,3 +1,35 @@
+2012-05-31  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/53521
+	* trans.c (gfc_deallocate_scalar_with_status): Properly
+	handle the case size == 0.
+
+2012-05-30  Tobias Burnus  <burnus@net-b.de>
+
+	PR c/53502
+	* decl.c (match_attr_spec): Remove "typedef".
+
+2012-05-30  Tobias Burnus  <burnus@net-b.de>
+
+	* decl.c: Fix comment typos.
+	* expr.c: Ditto.
+	* frontend-passes.c: Ditto.
+	* match.c: Ditto.
+	* resolve.c: Ditto.
+	* trans-array.c: Ditto.
+	* trans-common.c: Ditto.
+	* trans-intrinsic.c: Ditto.
+	* trans-types.c: Ditto.
+
+2012-05-23  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51055
+	PR fortran/45170
+	* match.c (gfc_match_allocate): Set length_from_typespec
+	for characters.
+	* resolve.c (resolve_charlen): If set, don't check whether
+	the len is a specification expression.
+
 2012-05-22  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/53389

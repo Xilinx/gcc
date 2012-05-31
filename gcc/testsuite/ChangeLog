@@ -1,3 +1,217 @@
+2012-05-31  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/ldist-pr45948-2.c: New testcase copy of
+	ldist-pr45948.c with disabled SCCP.
+
+2012-05-31  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/48493
+	* gcc.dg/torture/pr48493.c: New testcase.
+
+2012-05-31  Greta Yorsh  <Greta.Yorsh@arm.com>
+
+	* lib/target-supports.exp (check_effective_target_vect_char_mult): Add
+	arm32 to targets.
+	* gcc.dg/vect/slp-perm-8.c (main): Prevent vectorization
+	of the initialization loop.
+        (dg-final): Adjust the expected number of vectorized loops depending
+	on vect_char_mult target selector.
+
+2012-05-31  Hans-Peter Nilsson  <hp@axis.com>
+
+	* gcc.target/cris/asm-v8.S, gcc.target/cris/asm-v10.S,
+	gcc.target/cris/asm-other.S, gcc.target/cris/inasm-v8.c,
+	gcc.target/cris/inasm-v10.c, gcc.target/cris/inasm-other.c:
+	New tests.
+
+2012-05-30  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53356
+	* g++.dg/init/new34.C: New.
+	* g++.dg/tree-ssa/stabilize1.C: New.
+
+2012-05-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/53356
+	* g++.dg/init/new33.C: New test.
+
+2012-05-30  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/53501
+	* gcc.dg/torture/pr53501.c: New testcase.
+	* c-c++-common/restrict-2.c: Adjust.
+
+2012-05-30  Alan Modra  <amodra@gmail.com>
+
+	* gcc.target/powerpc/powerpc.exp: Load torture-options.exp, call
+	torture-finish.
+
+2012-05-30  Marc Glisse  <marc.glisse@inria.fr>
+
+	* gcc.target/i386/shuf-concat.c: New test.
+
+2012-05-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/53519
+	* gcc.c-torture/compile/pr53519.c: New test.
+
+2012-05-30  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	* gcc.target/arm/neon-vrev.c: New.
+
+2012-05-29  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/51340
+	* gcc.target/sh/pr51340-1.c: New.
+	* gcc.target/sh/pr51340-2.c: New.
+	* gcc.target/sh/pr51340-3.c: New.
+
+2012-05-29  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53516
+	* gcc.dg/torture/pr53516.c: New testcase.
+
+2012-05-29  Dodji Seketeli  <dodji@redhat.com>
+
+	PR preprocessor/53229
+	* gcc.dg/cpp/paste6.c: Force to run without
+	-ftrack-macro-expansion.
+	* gcc.dg/cpp/paste8.c: Likewise.
+	* gcc.dg/cpp/paste8-2.c: New test, like paste8.c but run with
+	-ftrack-macro-expansion.
+	* gcc.dg/cpp/paste12.c: Force to run without
+	-ftrack-macro-expansion.
+	* gcc.dg/cpp/paste12-2.c: New test, like paste12.c but run with
+	-ftrack-macro-expansion.
+	* gcc.dg/cpp/paste13.c: Likewise.
+	* gcc.dg/cpp/paste14.c: Likewise.
+	* gcc.dg/cpp/paste14-2.c: New test, like paste14.c but run with
+	-ftrack-macro-expansion.
+	* gcc.dg/cpp/paste18.c: New test.
+
+2012-05-29  Hans-Peter Nilsson  <hp@axis.com>
+
+	* gcc.target/cris/torture/trap-1.c,
+	gcc.target/cris/torture/trap-2.c,
+	gcc.target/cris/torture/trap-3.c,
+	gcc.target/cris/torture/trap-v0.c,
+	gcc.target/cris/torture/trap-v3.c: New tests.
+
+2012-05-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/25137
+	* g++.dg/warn/Wbraces3.C: New.
+	* g++.dg/warn/Wbraces4.C: Likewise.
+
+2012-05-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53505
+	* c-c++-common/torture/pr53505.c: New test.
+
+2012-05-27  Nathan Sidwell  <nathan@acm.org>
+
+	* gcc.dg/stmt-expr-4.c: New.
+
+2012-05-26  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/53491
+	* g++.dg/parse/crash60.C: New.
+
+2012-05-26  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53220
+	* c-c++-common/array-lit.c: New.
+	* g++.dg/ext/complit12.C: #if 0 out decay-to-pointer test.
+
+2012-05-26  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/50294
+	* gnat.dg/array21.adb: New test.
+
+2012-05-26  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/renaming5.adb: Adjust dg-final directive.
+
+2012-05-25  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/32054
+	* g++.dg/other/anon-union3.C: New.
+
+2012-05-25  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/split-6.c: New test.
+
+2012-05-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/lto14.adb: New test.
+
+2012-05-25  Tristan Gingold  <gingold@adacore.com>
+
+	* gcc.target/i386/large-frame.c: New.
+
+2012-05-24  Pat Haugen <pthaugen@us.ibm.com>
+	* gcc.target/powerpc/lhs-1.c: New.
+	* gcc.target/powerpc/lhs-2.c: New.
+	* gcc.target/powerpc/lhs-3.c: New.
+
+2012-05-24  Dodji Seketeli  <dodji@redhat.com>
+
+	Make unwound macro expansion trace less redundant
+	* gcc.dg/cpp/macro-exp-tracking-1.c: Adjust.
+	* gcc.dg/cpp/macro-exp-tracking-2.c: Likewise.
+	* gcc.dg/cpp/macro-exp-tracking-3.c: Likewise.
+	* gcc.dg/cpp/macro-exp-tracking-4.c: Likewise.
+	* gcc.dg/cpp/macro-exp-tracking-5.c: Likewise.
+	* gcc.dg/cpp/pragma-diagnostic-2.c: Likewise.
+
+2012-05-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/53464
+	* g++.dg/cpp0x/constexpr-default1.C: New.
+
+2012-05-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/32080
+	* g++.dg/eh/goto2.C: New.
+
+2012-05-24  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/53460
+	* g++.dg/tree-prof/pr53460.C: New testcase.
+
+2012-05-24  Richard Guenther  <rguenther@suse.de>
+
+	PR bootstrap/53466
+	* g++.dg/debug/pr53466.C: New testcase.
+
+2012-05-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53465
+	* gcc.c-torture/execute/pr53465.c: New test.
+
+2012-05-23  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51055
+	PR fortran/45170
+	* gfortran.dg/allocate_with_typespec_6.f90: New.
+
+2012-05-23  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/29185
+	* g++.dg/warn/delete-array-1.C: New.
+
+2012-05-23  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/torture/pr39074-2.c: Adjust.
+	* gcc.dg/torture/pr39074.c: Likewise.
+	* gcc.dg/torture/pta-structcopy-1.c: Likewise.
+	* gcc.dg/tree-ssa/alias-19.c: Likewise.
+
+2012-05-22  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/53161
+	* g++.dg/torture/pr53161.C: New testcase.
+
 2012-05-22  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/53389

@@ -1,3 +1,53 @@
+2012-05-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/arm/ieee754-df.S: Fix typos.
+	* config/arm/ieee754-sf.S: Fix typos.
+	* config/c6x/libunwind.S: Fix typos.
+	* config/epiphany/udivsi3-float.c: Fix typos.
+	* config/microblaze/muldi3_hard.S: Fix typos.
+	* config/picochip/adddi3.S: Fix typos.
+	* config/picochip/ashlsi3.S: Fix typos.
+	* config/picochip/ashrsi3.S: Fix typos.
+	* config/picochip/clzsi2.S: Fix typos.
+	* config/picochip/cmpsi2.S: Fix typos.
+	* config/picochip/divmod15.S: Fix typos.
+	* config/picochip/divmodhi4.S: Fix typos.
+	* config/picochip/divmodsi4.S: Fix typos.
+	* config/picochip/longjmp.S: Fix typos.
+	* config/picochip/lshrsi3.S: Fix typos.
+	* config/picochip/parityhi2.S: Fix typos.
+	* config/picochip/popcounthi2.S: Fix typos.
+	* config/picochip/setjmp.S: Fix typos.
+	* config/picochip/subdi3.S: Fix typos.
+	* config/picochip/ucmpsi2.S: Fix typos.
+	* config/picochip/udivmodhi4.S: Fix typos.
+	* config/picochip/udivmodsi4.S: Fix typos.
+	* config/spu/divv2df3.c: Fix typos.
+	* config/spu/mfc_multi_tag_release.c: Fix typos.
+	* config/spu/mfc_tag_release.c: Fix typos.
+	* configure.ac: Fix typos.
+	* configure: Regenerate.
+
+2012-05-25  Ian Lance Taylor  <iant@google.com>
+
+	* config/i386/morestack.S (__morestack_non_split): Check whether
+	caller is varargs and needs %bp to hold the stack frame on return.
+
+2012-05-25  Olivier Hainque  <hainque@adacore.com>
+
+	* config/rs6000/vxworks/tramp.S (trampoline_setup): Use a longcall
+	sequence in the non pic case on VxWorks.
+
+2012-05-24  Olivier Hainque  <hainque@adacore.com>
+
+	* Makefile.in: Move dependency on install-unwind_h from
+	"install-leaf" to "install".
+
+2012-05-24  Olivier Hainque  <hainque@adacore.com>
+
+	* Makefile.in (clean): Remove libgcc_tm.stamp as well.
+	Use a separate command for stamp removals.
+
 2012-05-21  Andrew Pinski  <apinski@cavium.com>
 
 	PR bootstrap/53183
@@ -65,9 +115,9 @@
 
 2012-04-28  Aurelien Jarno  <aurelien@aurel32.net>
 
-	* config.host (mips64*-*-linux*, mipsisa64*-*-linux*): Remove. 
-	(mips*-*-linux*): Include mips/t-tpbit when long double is 
-	16 bytes long. 
+	* config.host (mips64*-*-linux*, mipsisa64*-*-linux*): Remove.
+	(mips*-*-linux*): Include mips/t-tpbit when long double is
+	16 bytes long.
 
 2012-04-25  Sriraman Tallam  <tmsriram@google.com>
 

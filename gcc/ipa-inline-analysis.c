@@ -2013,7 +2013,7 @@ estimate_function_body_sizes (struct cgraph_node *node, bool early)
 		p = true_predicate ();
 
 	      /* We account everything but the calls.  Calls have their own
-		 size/time info attached to cgraph edges.  This is neccesary
+		 size/time info attached to cgraph edges.  This is necessary
 		 in order to make the cost disappear after inlining.  */
 	      if (!is_gimple_call (stmt))
 		{
@@ -2699,6 +2699,7 @@ inline_merge_summary (struct cgraph_edge *edge)
   edge_set_predicate (edge, &true_p);
   /* Similarly remove param summaries.  */
   VEC_free (inline_param_summary_t, heap, es->param);
+  VEC_free (int, heap, operand_map);
 
   info->time = (info->time + INLINE_TIME_SCALE / 2) / INLINE_TIME_SCALE;
   info->size = (info->size + INLINE_SIZE_SCALE / 2) / INLINE_SIZE_SCALE;

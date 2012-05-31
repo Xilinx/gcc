@@ -1530,7 +1530,7 @@
   "movs<m> %1,%0"
   [(set_attr "slottable" "yes,yes,no")])
 
-;; To do a byte->word extension, extend to dword, exept that the top half
+;; To do a byte->word extension, extend to dword, except that the top half
 ;; of the register will be clobbered.  FIXME: Perhaps this is not needed.
 
 (define_insn "extendqihi2"
@@ -3825,6 +3825,14 @@
   ""
   "nop"
   [(set_attr "cc" "none")])
+
+;; Same as the gdb trap breakpoint, will cause a SIGTRAP for
+;; cris-linux* and crisv32-linux*, as intended.  Will work in
+;; freestanding environments with sufficient framework.
+(define_insn "trap"
+  [(trap_if (const_int 1) (const_int 8))]
+  "TARGET_TRAP_USING_BREAK8"
+  "break 8")
 
 ;; We need to stop accesses to the stack after the memory is
 ;; deallocated.  Unfortunately, reorg doesn't look at naked clobbers,

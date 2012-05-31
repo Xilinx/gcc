@@ -59,7 +59,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "reload.h"
 #include "ira.h"
 #include "dwarf2asm.h"
-#include "integrate.h"
 #include "debug.h"
 #include "target.h"
 #include "common/common-target.h"
@@ -578,8 +577,6 @@ compile_file (void)
      basically finished.  */
   if (in_lto_p || !flag_lto || flag_fat_lto_objects)
     {
-      finish_aliases_2 ();
-
       /* Likewise for mudflap static object registrations.  */
       if (flag_mudflap)
 	mudflap_finish_file ();
