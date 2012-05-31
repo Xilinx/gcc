@@ -1,3 +1,29 @@
+2012-05-30   Lawrence Crowl  <crowl@google.com>
+
+	* tree.h (tree_check): Change from template to const overload.
+	(tree_not_check): Likewise.
+	(tree_check2): Likewise.
+	(tree_not_check2): Likewise.
+	(tree_check3): Likewise.
+	(tree_not_check3): Likewise.
+	(tree_check4): Likewise.
+	(tree_not_check4): Likewise.
+	(tree_check5): Likewise.
+	(tree_not_check5): Likewise.
+	(contains_struct_check): Likewise.
+	(tree_class_check): Likewise.
+	(tree_range_check): Likewise.
+	(omp_clause_subcode_check): Likewise.
+	(omp_clause_range_check): Likewise.
+	(expr_check): Likewise.
+	(non_type_check): Likewise.
+	(tree_vec_elt_check): Likewise.
+	(omp_clause_elt_check): Likewise.
+	(tree_operand_check): Likewise.
+	(tree_operand_check_code): Likewise.
+	(tree_operand_length): Move to avoid a duplicate copy.
+	* gdbinit.in (set unwindonsignal on): New.
+
 2012-05-29   Diego Novillo  <dnovillo@google.com>
 
 	Merge from trunk rev 187927.
