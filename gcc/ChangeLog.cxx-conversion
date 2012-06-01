@@ -1,3 +1,69 @@
+2012-06-01   Lawrence Crowl  <crowl@google.com>
+
+	* hash-table.h: New. Implementation borrowed from libiberty/hashtab.c.
+	* hash-table.c: Likewise.
+	* tree-ssa-tail-merge.c: Include hash-table.h instead of hashtab.h.
+	(static htab_t same_succ_htab): Change type to hash_table;
+	move specification of helper functions from create call to declaration.
+	Change users to invoke member functions.
+	(same_succ_print_traverse): Make extern ssa_.... Change callers.
+	Remove void* casting.
+	(same_succ_hash): Likewise.
+	(same_succ_equal): Likewise.
+	(same_succ_delete): Likewise.
+	* tree-ssa-threadupdate.c: Include hash-table.h.
+	(struct local_info): Rename to ssa_local_info_t to avoid overloading
+	the type name local_info with the variable name local_info.
+	(static htab_t redirection_data): Change type to hash_table.
+	Move specification of helper functions from create call to declaration.
+	Change users to invoke member functions.
+	(redirection_data_hash): Make extern ssa_.... Change callers.
+	Remove void* casting.
+	(redirection_data_eq): Likewise.
+	(fix_duplicate_block_edges): Likewise.
+	(create_duplicates): Likewise.
+	(fixup_template_block): Likewise.
+	(redirect_edges): Likewise.
+	(lookup_redirection_data): Change types associated with the hash table
+	from void* to their actual type. Remove unnecessary casts.
+	* tree-ssa-ccp.c: Include hash-table.h.
+	(typedef gimple_htab): New.  Uses hash_table.  Replace specific uses
+	of htab_t with gimple_htab.  Change users to invoke member functions.
+	Move specification of helper functions from create call to declaration.
+	* tree-ssa-coalesce.c: Include hash-table.h instead of hashtab.h.
+	(hash_ssa_name_by_var): Make extern. Remove void* casting.
+	(eq_ssa_name_by_var): Likewise.
+	(coalesce_ssa_name): Change type of local static htab_t ssa_name_hash
+	to hash_table. Change users to invoke member functions.
+	Move specification of helper functions from create call to declaration.
+	* coverage.c: Include hash-table.h instead of hashtab.h.
+	(static htab_t counts_hash): Change type to hash_table;
+	move specification of helper functions from create call to declaration.
+	Change users to invoke member functions.
+	(htab_counts_entry_hash): Make extern. Rename with coverage_... instead
+	of htab_... Remove void* casting.
+	(htab_counts_entry_eq): Likewise.
+	(htab_counts_entry_del): Likewise.
+	* tree-ssa-pre.c: Include hash-table.h instead of hashtab.h.
+	(static htab_t expression_to_id): Change type to hash_table.
+	Move specification of helper functions from create call to declaration.
+	Change users to invoke member functions.
+	(static htab_t phi_translate_table): Likewise.
+	(pre_expr_eq): Make extern ssa_.... Change callers.
+	Remove void* casting.
+	(pre_expr_hash): Likewise.
+	(expr_pred_trans_hash): Likewise.
+	(expr_pred_trans_eq): Likewise.
+	(alloc_expression_id): Change types associated with the hash table
+	from void* to their actual type. Remove unnecessary casts.
+	(lookup_expression_id): Likewise.
+	(phi_trans_lookup): Likewise.
+	(phi_trans_add): Likewise.
+	* stringpool.c: Rename uses of libcpp typedef hash_table to
+	cpp_hash_table.
+	* Makefile.in: Add hash-table.o to OBJS-libcommon-target.
+	Add $(HASH_TABLE_H). Add new dependences on $(HASH_TABLE_H).
+
 2012-05-31    <dnovillo@google.com>
 
 	* configure.ac (BUILD_CXXFLAGS): Define.
@@ -182,7 +248,7 @@
 
 	* tree.h (tree_operand_length): Move out of #ifdef ENABLE_CHECKING.
 
-2012-05-15  Lawrence Crowl  <crowl@google.com>
+2012-05-15   Lawrence Crowl  <crowl@google.com>
 
 	* tree.h (tree_check): New.
 	(TREE_CHECK): Use inline function above instead of __extension__.

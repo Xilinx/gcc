@@ -49,7 +49,7 @@ static const char digit_vector[] = {
 
 struct ht *ident_hash;
 
-static hashnode alloc_node (hash_table *);
+static hashnode alloc_node (cpp_hash_table *);
 static int mark_ident (struct cpp_reader *, hashnode, const void *);
 
 static void *
@@ -70,7 +70,7 @@ init_stringpool (void)
 
 /* Allocate a hash node.  */
 static hashnode
-alloc_node (hash_table *table ATTRIBUTE_UNUSED)
+alloc_node (cpp_hash_table *table ATTRIBUTE_UNUSED)
 {
   return GCC_IDENT_TO_HT_IDENT (make_node (IDENTIFIER_NODE));
 }

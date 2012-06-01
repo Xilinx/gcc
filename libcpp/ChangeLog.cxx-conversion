@@ -1,3 +1,8 @@
+2012-06-01   Lawrence Crowl  <crowl@google.com>
+
+	* include/symtab.h (typedef struct ht hash_table): Change the typedef
+	name to cpp_hash_table.  Update all users of the typedef.
+
 2012-04-11   Diego Novillo  <dnovillo@google.com>
 
 	* configure.ac (ENABLE_BUILD_WITH_CXX): Default to 'yes'.
