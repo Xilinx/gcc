@@ -1,3 +1,76 @@
+2012-05-31  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/ldist-pr45948-2.c: New testcase copy of
+	ldist-pr45948.c with disabled SCCP.
+
+2012-05-31  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/48493
+	* gcc.dg/torture/pr48493.c: New testcase.
+
+2012-05-31  Greta Yorsh  <Greta.Yorsh@arm.com>
+
+	* lib/target-supports.exp (check_effective_target_vect_char_mult): Add
+	arm32 to targets.
+	* gcc.dg/vect/slp-perm-8.c (main): Prevent vectorization
+	of the initialization loop.
+        (dg-final): Adjust the expected number of vectorized loops depending
+	on vect_char_mult target selector.
+
+2012-05-31  Hans-Peter Nilsson  <hp@axis.com>
+
+	* gcc.target/cris/asm-v8.S, gcc.target/cris/asm-v10.S,
+	gcc.target/cris/asm-other.S, gcc.target/cris/inasm-v8.c,
+	gcc.target/cris/inasm-v10.c, gcc.target/cris/inasm-other.c:
+	New tests.
+
+2012-05-30  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53356
+	* g++.dg/init/new34.C: New.
+	* g++.dg/tree-ssa/stabilize1.C: New.
+
+2012-05-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/53356
+	* g++.dg/init/new33.C: New test.
+
+2012-05-30  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/53501
+	* gcc.dg/torture/pr53501.c: New testcase.
+	* c-c++-common/restrict-2.c: Adjust.
+
+2012-05-30  Alan Modra  <amodra@gmail.com>
+
+	* gcc.target/powerpc/powerpc.exp: Load torture-options.exp, call
+	torture-finish.
+
+2012-05-30  Marc Glisse  <marc.glisse@inria.fr>
+
+	* gcc.target/i386/shuf-concat.c: New test.
+
+2012-05-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/53519
+	* gcc.c-torture/compile/pr53519.c: New test.
+
+2012-05-30  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	* gcc.target/arm/neon-vrev.c: New.
+
+2012-05-29  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/51340
+	* gcc.target/sh/pr51340-1.c: New.
+	* gcc.target/sh/pr51340-2.c: New.
+	* gcc.target/sh/pr51340-3.c: New.
+
+2012-05-29  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53516
+	* gcc.dg/torture/pr53516.c: New testcase.
+
 2012-05-29  Dodji Seketeli  <dodji@redhat.com>
 
 	PR preprocessor/53229

@@ -2567,7 +2567,7 @@ operand_equal_p (const_tree arg0, const_tree arg1, unsigned int flags)
 	  return OP_SAME (0);
 
 	case TARGET_MEM_REF:
-	  /* Require equal extra operands and then fall thru to MEM_REF
+	  /* Require equal extra operands and then fall through to MEM_REF
 	     handling of the two common operands.  */
 	  if (!OP_SAME_WITH_NULL (2)
 	      || !OP_SAME_WITH_NULL (3)
@@ -10045,12 +10045,12 @@ fold_binary_loc (location_t loc,
       /* Handle (A1 * C1) + (A2 * C2) with A1, A2 or C1, C2 being the
 	 same or one.  Make sure type is not saturating.
 	 fold_plusminus_mult_expr will re-associate.  */
-      if ((TREE_CODE (arg0) == MULT_EXPR
-	   || TREE_CODE (arg1) == MULT_EXPR)
+      if ((TREE_CODE (op0) == MULT_EXPR
+	   || TREE_CODE (op1) == MULT_EXPR)
 	  && !TYPE_SATURATING (type)
 	  && (!FLOAT_TYPE_P (type) || flag_associative_math))
         {
-	  tree tem = fold_plusminus_mult_expr (loc, code, type, arg0, arg1);
+	  tree tem = fold_plusminus_mult_expr (loc, code, type, op0, op1);
 	  if (tem)
 	    return tem;
 	}
@@ -10668,12 +10668,12 @@ fold_binary_loc (location_t loc,
       /* Handle (A1 * C1) - (A2 * C2) with A1, A2 or C1, C2 being the
 	 same or one.  Make sure type is not saturating.
 	 fold_plusminus_mult_expr will re-associate.  */
-      if ((TREE_CODE (arg0) == MULT_EXPR
-	   || TREE_CODE (arg1) == MULT_EXPR)
+      if ((TREE_CODE (op0) == MULT_EXPR
+	   || TREE_CODE (op1) == MULT_EXPR)
 	  && !TYPE_SATURATING (type)
 	  && (!FLOAT_TYPE_P (type) || flag_associative_math))
         {
-	  tree tem = fold_plusminus_mult_expr (loc, code, type, arg0, arg1);
+	  tree tem = fold_plusminus_mult_expr (loc, code, type, op0, op1);
 	  if (tem)
 	    return tem;
 	}
@@ -12018,7 +12018,7 @@ fold_binary_loc (location_t loc,
 	  }
 	}
 
-      /* Fall thru */
+      /* Fall through */
       
     case FLOOR_DIV_EXPR:
       /* Simplify A / (B << N) where A and B are positive and B is
@@ -12061,7 +12061,7 @@ fold_binary_loc (location_t loc,
 	  && code == FLOOR_DIV_EXPR)
 	return fold_build2_loc (loc, TRUNC_DIV_EXPR, type, op0, op1);
 
-      /* Fall thru */
+      /* Fall through */
 
     case ROUND_DIV_EXPR:
     case CEIL_DIV_EXPR:

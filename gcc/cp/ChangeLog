@@ -1,3 +1,28 @@
+2012-05-31  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* call.c: Do not include output.h.
+	* class.c: Likewise.
+	* except.c: Likewise.
+	* friend.c: Likewise.
+	* init.c: Likewise.
+	* lex.c: Likewise.
+	* method.c: Likewise.
+	* parser.c: Likewise.
+	* pt.c: Likewise.
+	* rtti.c: Likewise.
+	* search.c: Likewise.
+
+2012-05-30  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53356
+	* tree.c (stabilize_init): Handle stabilizing a TARGET_EXPR
+	representing a bitwise copy of a glvalue.
+
+	* tree.c (stabilize_expr): Tweak logic.
+
+	PR c++/53356
+	* tree.c (stabilize_init): Side effects make the init unstable.
+
 2012-05-28  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/53503
