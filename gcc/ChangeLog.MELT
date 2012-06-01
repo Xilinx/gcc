@@ -1,5 +1,9 @@
 
 2012-06-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-probe.melt (probe_gimple_interesting_location):
+	New function.
+
+2012-06-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-probe.melt (probe_tree_interesting_location): New
 	function.
 

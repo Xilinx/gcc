@@ -407,6 +407,9 @@
 
 ;; get the interesting location at a given expression or declaration tree
 (defun probe_tree_interesting_location  (probedata :tree tree)
+  :doc #{Get the interesting location of
+  $CLASS_PROBED_INTERESTING_LOCATION with $PROBEDATA at a given $TREE
+  -expression or declaration for GCC}#
   (if (null probedata)
       (setq probedata (probe_get_data)))
   (debug "probe_tree_interesting_location probedata=" probedata " tree=" tree)
@@ -447,6 +450,52 @@
 	  (return iloc)
 	  ))))
 
+;;;;;;;;;;;;;;;;
+;; get the interesting location at a given gimple
+(defun probe_gimple_interesting_location  (probedata :gimple gimple)
+  :doc #{Get the interesting location of
+  $CLASS_PROBED_INTERESTING_LOCATION with $PROBEDATA at a given $GIMPLE}#
+  (if (null probedata)
+      (setq probedata (probe_get_data)))
+  (debug "probe_tree_interesting_location probedata=" probedata
+	 " gimple=" gimple)
+  (unless gimple (return))
+  (let ( (filev ())
+	 (:long lineno 0)
+	 (:long col 0)
+	 )
+    (code_chunk 
+     gimpiloch
+     #{ /* probe_gimple_interesting_location start $GIMPILOCH */
+     location_t $GIMPILOCH#_loc = UNKNOWN_LOCATION;
+     if ($GIMPLE) 
+       $GIMPILOCH#_loc = gimple_location ($GIMPLE);
+     if ($GIMPILOCH#_loc != UNKNOWN_LOCATION) 
+       {
+         const char* $GIMPILOCH#_file = LOCATION_FILE ($GIMPILOCH#_loc) ;
+         $FILEV =
+         meltgc_new_string (MELT_PREDEF (DISCR_STRING), 
+	  			         $GIMPILOCH#_file) ;
+         $LINENO = LOCATION_LINE ($GIMPILOCH#_loc) ;
+         $COL = LOCATION_COLUMN ($GIMPILOCH#_loc) ;
+       }
+     else
+       $FILEV = NULL, $LINENO = 0 ;
+     /* end probe_gimple_interesting_location $GIMPILOCH */
+     }#)
+    (debug "probe_gimple_interesting_location filev=" filev
+	   " lineno=" lineno " col=" col)
+    ;;
+    (if filev
+	(let ( (iloc (probe_get_interesting_location probedata 
+						     filev lineno col))
+	       )
+	  (debug "probe_gimple_interesting_location return iloc=" iloc)
+	  (return iloc)
+	  ))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; the internal request processor
 (defun probe_request_processor (inch inlist)
   (debug "probe_request_processor start inch=" inch " inlist=" inlist)
@@ -590,6 +639,7 @@
  probe_get_data
  probe_get_file_of_name
  probe_get_interesting_location
+ probe_gimple_interesting_location
  probe_tree_interesting_location
  probe_register_request_verb
  send_command_to_probe
