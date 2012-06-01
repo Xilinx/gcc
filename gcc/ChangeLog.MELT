@@ -1,6 +1,11 @@
 
+2012-06-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-probe.melt (probe_tree_interesting_location): New
+	function.
+
 2012-05-31  Basile Starynkevitch  <basile@starynkevitch.net>
-	* melt/warmelt-first.melt (foreach_in_multiple): Emit better comment.
+	* melt/warmelt-first.melt (foreach_in_multiple): Emit better
+	comment.
 
 	* melt/xtramelt-probe.melt (class_probed_file): Add
 	probedfile_linesbucket field.
