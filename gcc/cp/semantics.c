@@ -7256,7 +7256,8 @@ cxx_fold_indirect_ref (location_t loc, tree type, tree op0, bool *empty_base)
   sub = op0;
   STRIP_NOPS (sub);
   subtype = TREE_TYPE (sub);
-  gcc_assert (POINTER_TYPE_P (subtype));
+  if (!POINTER_TYPE_P (subtype))
+    return NULL_TREE;
 
   if (TREE_CODE (sub) == ADDR_EXPR)
     {
@@ -8524,6 +8525,7 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
     case UNGT_EXPR:
     case UNGE_EXPR:
     case UNEQ_EXPR:
+    case LTGT_EXPR:
     case RANGE_EXPR:
     case COMPLEX_EXPR:
       want_rval = true;

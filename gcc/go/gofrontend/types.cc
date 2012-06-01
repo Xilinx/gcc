@@ -1301,15 +1301,10 @@ Type::type_descriptor_var_name(Gogo* gogo, Named_type* nt)
     go_assert(in_function == NULL);
   else
     {
-      const std::string& unique_prefix(no->package() == NULL
-				       ? gogo->unique_prefix()
-				       : no->package()->unique_prefix());
-      const std::string& package_name(no->package() == NULL
-				      ? gogo->package_name()
-				      : no->package()->name());
-      ret.append(unique_prefix);
-      ret.append(1, '.');
-      ret.append(package_name);
+      const std::string& pkgpath(no->package() == NULL
+				 ? gogo->pkgpath_symbol()
+				 : no->package()->pkgpath_symbol());
+      ret.append(pkgpath);
       ret.append(1, '.');
       if (in_function != NULL)
 	{
@@ -1317,7 +1312,20 @@ Type::type_descriptor_var_name(Gogo* gogo, Named_type* nt)
 	  ret.append(1, '.');
 	}
     }
-  ret.append(no->name());
+
+  // FIXME: This adds in pkgpath twice for hidden symbols, which is
+  // pointless.
+  const std::string& name(no->name());
+  if (!Gogo::is_hidden_name(name))
+    ret.append(name);
+  else
+    {
+      ret.append(1, '.');
+      ret.append(Gogo::pkgpath_for_symbol(Gogo::hidden_name_pkgpath(name)));
+      ret.append(1, '.');
+      ret.append(Gogo::unpack_hidden_name(name));
+    }
+
   return ret;
 }
 
@@ -1740,7 +1748,7 @@ Type::specific_type_functions(Gogo* gogo, Named_type* name,
       base_name = name->name();
       const Named_object* in_function = name->in_function();
       if (in_function != NULL)
-	base_name += '$' + in_function->name();
+	base_name += '$' + Gogo::unpack_hidden_name(in_function->name());
     }
   std::string hash_name = base_name + "$hash";
   std::string equal_name = base_name + "$equal";
@@ -1977,15 +1985,10 @@ Type::uncommon_type_constructor(Gogo* gogo, Type* uncommon_type,
       else
 	{
 	  const Package* package = no->package();
-	  const std::string& unique_prefix(package == NULL
-					   ? gogo->unique_prefix()
-					   : package->unique_prefix());
-	  const std::string& package_name(package == NULL
-					  ? gogo->package_name()
-					  : package->name());
-	  n.assign(unique_prefix);
-	  n.append(1, '.');
-	  n.append(package_name);
+	  const std::string& pkgpath(package == NULL
+				     ? gogo->pkgpath()
+				     : package->pkgpath());
+	  n.assign(pkgpath);
 	  if (name->in_function() != NULL)
 	    {
 	      n.append(1, '.');
@@ -2096,7 +2099,8 @@ Type::method_constructor(Gogo*, Type* method_type,
     vals->push_back(Expression::make_nil(bloc));
   else
     {
-      s = Expression::make_string(Gogo::hidden_name_prefix(method_name), bloc);
+      s = Expression::make_string(Gogo::hidden_name_pkgpath(method_name),
+				  bloc);
       vals->push_back(Expression::make_unary(OPERATOR_AND, s, bloc));
     }
 
@@ -2230,15 +2234,13 @@ Type::is_backend_type_size_known(Gogo* gogo)
 	  return true;
 	else
 	  {
-	    mpz_t ival;
-	    mpz_init(ival);
-	    Type* dummy;
-	    bool length_known = at->length()->integer_constant_value(true,
-								     ival,
-								     &dummy);
-	    mpz_clear(ival);
-	    if (!length_known)
+	    Numeric_constant nc;
+	    if (!at->length()->numeric_constant_value(&nc))
 	      return false;
+	    mpz_t ival;
+	    if (!nc.to_int(&ival))
+	      return false;
+	    mpz_clear(ival);
 	    return at->element_type()->is_backend_type_size_known(gogo);
 	  }
       }
@@ -4670,7 +4672,7 @@ Struct_type::do_type_descriptor(Gogo* gogo, Named_type* name)
 	fvals->push_back(Expression::make_nil(bloc));
       else
 	{
-	  std::string n = Gogo::hidden_name_prefix(pf->field_name());
+	  std::string n = Gogo::hidden_name_pkgpath(pf->field_name());
 	  Expression* s = Expression::make_string(n, bloc);
 	  fvals->push_back(Expression::make_unary(OPERATOR_AND, s, bloc));
 	}
@@ -5106,17 +5108,22 @@ Array_type::is_identical(const Array_type* t, bool errors_are_identical) const
       // Try to determine the lengths.  If we can't, assume the arrays
       // are not identical.
       bool ret = false;
-      mpz_t v1;
-      mpz_init(v1);
-      Type* type1;
-      mpz_t v2;
-      mpz_init(v2);
-      Type* type2;
-      if (l1->integer_constant_value(true, v1, &type1)
-	  && l2->integer_constant_value(true, v2, &type2))
-	ret = mpz_cmp(v1, v2) == 0;
-      mpz_clear(v1);
-      mpz_clear(v2);
+      Numeric_constant nc1, nc2;
+      if (l1->numeric_constant_value(&nc1)
+	  && l2->numeric_constant_value(&nc2))
+	{
+	  mpz_t v1;
+	  if (nc1.to_int(&v1))
+	    {
+	      mpz_t v2;
+	      if (nc2.to_int(&v2))
+		{
+		  ret = mpz_cmp(v1, v2) == 0;
+		  mpz_clear(v2);
+		}
+	      mpz_clear(v1);
+	    }
+	}
       return ret;
     }
 
@@ -5154,57 +5161,43 @@ Array_type::verify_length()
       return false;
     }
 
-  mpz_t val;
-  mpz_init(val);
-  Type* vt;
-  if (!this->length_->integer_constant_value(true, val, &vt))
+  Numeric_constant nc;
+  if (!this->length_->numeric_constant_value(&nc))
     {
-      mpfr_t fval;
-      mpfr_init(fval);
-      if (!this->length_->float_constant_value(fval, &vt))
-	{
-	  if (this->length_->type()->integer_type() != NULL
-	      || this->length_->type()->float_type() != NULL)
-	    error_at(this->length_->location(),
-		     "array bound is not constant");
-	  else
-	    error_at(this->length_->location(),
-		     "array bound is not numeric");
-	  mpfr_clear(fval);
-	  mpz_clear(val);
-	  return false;
-	}
-      if (!mpfr_integer_p(fval))
-	{
-	  error_at(this->length_->location(),
-		   "array bound truncated to integer");
-	  mpfr_clear(fval);
-	  mpz_clear(val);
-	  return false;
-	}
-      mpz_init(val);
-      mpfr_get_z(val, fval, GMP_RNDN);
-      mpfr_clear(fval);
+      if (this->length_->type()->integer_type() != NULL
+	  || this->length_->type()->float_type() != NULL)
+	error_at(this->length_->location(), "array bound is not constant");
+      else
+	error_at(this->length_->location(), "array bound is not numeric");
+      return false;
     }
 
-  if (mpz_sgn(val) < 0)
+  unsigned long val;
+  switch (nc.to_unsigned_long(&val))
     {
-      error_at(this->length_->location(), "negative array bound");
-      mpz_clear(val);
+    case Numeric_constant::NC_UL_VALID:
+      break;
+    case Numeric_constant::NC_UL_NOTINT:
+      error_at(this->length_->location(), "array bound truncated to integer");
       return false;
+    case Numeric_constant::NC_UL_NEGATIVE:
+      error_at(this->length_->location(), "negative array bound");
+      return false;
+    case Numeric_constant::NC_UL_BIG:
+      error_at(this->length_->location(), "array bound overflows");
+      return false;
+    default:
+      go_unreachable();
     }
 
   Type* int_type = Type::lookup_integer_type("int");
-  int tbits = int_type->integer_type()->bits();
-  int vbits = mpz_sizeinbase(val, 2);
-  if (vbits + 1 > tbits)
+  unsigned int tbits = int_type->integer_type()->bits();
+  if (sizeof(val) <= tbits * 8
+      && val >> (tbits - 1) != 0)
     {
       error_at(this->length_->location(), "array bound overflows");
-      mpz_clear(val);
       return false;
     }
-
-  mpz_clear(val);
 
   return true;
 }
@@ -5457,11 +5450,16 @@ Array_type::get_length_tree(Gogo* gogo)
   go_assert(this->length_ != NULL);
   if (this->length_tree_ == NULL_TREE)
     {
+      Numeric_constant nc;
       mpz_t val;
-      mpz_init(val);
-      Type* t;
-      if (this->length_->integer_constant_value(true, val, &t))
+      if (this->length_->numeric_constant_value(&nc) && nc.to_int(&val))
 	{
+	  if (mpz_sgn(val) < 0)
+	    {
+	      this->length_tree_ = error_mark_node;
+	      return this->length_tree_;
+	    }
+	  Type* t = nc.type();
 	  if (t == NULL)
 	    t = Type::lookup_integer_type("int");
 	  else if (t->is_abstract())
@@ -5472,8 +5470,6 @@ Array_type::get_length_tree(Gogo* gogo)
 	}
       else
 	{
-	  mpz_clear(val);
-
 	  // Make up a translation context for the array length
 	  // expression.  FIXME: This won't work in general.
 	  Translate_context context(gogo, NULL, NULL, NULL);
@@ -5824,23 +5820,17 @@ Array_type::do_reflection(Gogo* gogo, std::string* ret) const
   ret->push_back('[');
   if (this->length_ != NULL)
     {
-      mpz_t val;
-      mpz_init(val);
-      Type* type;
-      if (!this->length_->integer_constant_value(true, val, &type))
-	error_at(this->length_->location(),
-		 "array length must be integer constant expression");
-      else if (mpz_cmp_si(val, 0) < 0)
-	error_at(this->length_->location(), "array length is negative");
-      else if (mpz_cmp_ui(val, mpz_get_ui(val)) != 0)
-	error_at(this->length_->location(), "array length is too large");
+      Numeric_constant nc;
+      unsigned long val;
+      if (!this->length_->numeric_constant_value(&nc)
+	  || nc.to_unsigned_long(&val) != Numeric_constant::NC_UL_VALID)
+	error_at(this->length_->location(), "invalid array length");
       else
 	{
 	  char buf[50];
-	  snprintf(buf, sizeof buf, "%lu", mpz_get_ui(val));
+	  snprintf(buf, sizeof buf, "%lu", val);
 	  ret->append(buf);
 	}
-      mpz_clear(val);
     }
   ret->push_back(']');
 
@@ -5856,23 +5846,17 @@ Array_type::do_mangled_name(Gogo* gogo, std::string* ret) const
   this->append_mangled_name(this->element_type_, gogo, ret);
   if (this->length_ != NULL)
     {
-      mpz_t val;
-      mpz_init(val);
-      Type* type;
-      if (!this->length_->integer_constant_value(true, val, &type))
-	error_at(this->length_->location(),
-		 "array length must be integer constant expression");
-      else if (mpz_cmp_si(val, 0) < 0)
-	error_at(this->length_->location(), "array length is negative");
-      else if (mpz_cmp_ui(val, mpz_get_ui(val)) != 0)
-	error_at(this->length_->location(), "array size is too large");
+      Numeric_constant nc;
+      unsigned long val;
+      if (!this->length_->numeric_constant_value(&nc)
+	  || nc.to_unsigned_long(&val) != Numeric_constant::NC_UL_VALID)
+	error_at(this->length_->location(), "invalid array length");
       else
 	{
 	  char buf[50];
-	  snprintf(buf, sizeof buf, "%lu", mpz_get_ui(val));
+	  snprintf(buf, sizeof buf, "%lu", val);
 	  ret->append(buf);
 	}
-      mpz_clear(val);
     }
   ret->push_back('e');
 }
@@ -6576,7 +6560,11 @@ bool
 Interface_type::is_identical(const Interface_type* t,
 			     bool errors_are_identical) const
 {
-  go_assert(this->methods_are_finalized_ && t->methods_are_finalized_);
+  // If methods have not been finalized, then we are asking whether
+  // func redeclarations are the same.  This is an error, so for
+  // simplicity we say they are never the same.
+  if (!this->methods_are_finalized_ || !t->methods_are_finalized_)
+    return false;
 
   // We require the same methods with the same types.  The methods
   // have already been sorted.
@@ -7072,7 +7060,7 @@ Interface_type::do_type_descriptor(Gogo* gogo, Named_type* name)
 	    mvals->push_back(Expression::make_nil(bloc));
 	  else
 	    {
-	      s = Gogo::hidden_name_prefix(pm->name());
+	      s = Gogo::hidden_name_pkgpath(pm->name());
 	      e = Expression::make_string(s, bloc);
 	      mvals->push_back(Expression::make_unary(OPERATOR_AND, e, bloc));
 	    }
@@ -7121,11 +7109,15 @@ Interface_type::do_reflection(Gogo* gogo, std::string* ret) const
 	    {
 	      if (!Gogo::is_hidden_name(p->name()))
 		ret->append(p->name());
+	      else if (gogo->pkgpath_from_option())
+		ret->append(p->name().substr(1));
 	      else
 		{
-		  // This matches what the gc compiler does.
-		  std::string prefix = Gogo::hidden_name_prefix(p->name());
-		  ret->append(prefix.substr(prefix.find('.') + 1));
+		  // If no -fgo-pkgpath option, backward compatibility
+		  // for how this used to work before -fgo-pkgpath was
+		  // introduced.
+		  std::string pkgpath = Gogo::hidden_name_pkgpath(p->name());
+		  ret->append(pkgpath.substr(pkgpath.find('.') + 1));
 		  ret->push_back('.');
 		  ret->append(Gogo::unpack_hidden_name(p->name()));
 		}
@@ -7955,20 +7947,14 @@ Named_type::do_hash_for_method(Gogo* gogo) const
   // where we are going to be comparing named types for equality.  In
   // other cases, which are cases where the runtime is going to
   // compare hash codes to see if the types are the same, we need to
-  // include the package prefix and name in the hash.
+  // include the pkgpath in the hash.
   if (gogo != NULL && !Gogo::is_hidden_name(name) && !this->is_builtin())
     {
       const Package* package = this->named_object()->package();
       if (package == NULL)
-	{
-	  ret = Type::hash_string(gogo->unique_prefix(), ret);
-	  ret = Type::hash_string(gogo->package_name(), ret);
-	}
+	ret = Type::hash_string(gogo->pkgpath(), ret);
       else
-	{
-	  ret = Type::hash_string(package->unique_prefix(), ret);
-	  ret = Type::hash_string(package->name(), ret);
-	}
+	ret = Type::hash_string(package->pkgpath(), ret);
     }
 
   return ret;
@@ -8340,11 +8326,16 @@ Named_type::do_reflection(Gogo* gogo, std::string* ret) const
     }
   if (!this->is_builtin())
     {
+      // We handle -fgo-prefix and -fgo-pkgpath differently here for
+      // compatibility with how the compiler worked before
+      // -fgo-pkgpath was introduced.
       const Package* package = this->named_object_->package();
-      if (package != NULL)
-	ret->append(package->name());
+      if (gogo->pkgpath_from_option())
+	ret->append(package != NULL ? package->pkgpath() : gogo->pkgpath());
       else
-	ret->append(gogo->package_name());
+	ret->append(package != NULL
+		    ? package->package_name()
+		    : gogo->package_name());
       ret->push_back('.');
     }
   if (this->in_function_ != NULL)
@@ -8371,15 +8362,10 @@ Named_type::do_mangled_name(Gogo* gogo, std::string* ret) const
     go_assert(this->in_function_ == NULL);
   else
     {
-      const std::string& unique_prefix(no->package() == NULL
-				       ? gogo->unique_prefix()
-				       : no->package()->unique_prefix());
-      const std::string& package_name(no->package() == NULL
-				      ? gogo->package_name()
-				      : no->package()->name());
-      name = unique_prefix;
-      name.append(1, '.');
-      name.append(package_name);
+      const std::string& pkgpath(no->package() == NULL
+				 ? gogo->pkgpath_symbol()
+				 : no->package()->pkgpath_symbol());
+      name = pkgpath;
       name.append(1, '.');
       if (this->in_function_ != NULL)
 	{
@@ -9503,9 +9489,9 @@ Forward_declaration_type::do_mangled_name(Gogo* gogo, std::string* ret) const
       const Named_object* no = this->named_object();
       std::string name;
       if (no->package() == NULL)
-	name = gogo->package_name();
+	name = gogo->pkgpath_symbol();
       else
-	name = no->package()->name();
+	name = no->package()->pkgpath_symbol();
       name += '.';
       name += Gogo::unpack_hidden_name(no->name());
       char buf[20];

@@ -1877,6 +1877,14 @@ decay_conversion (tree exp)
 	  return error_mark_node;
 	}
 
+      /* Don't let an array compound literal decay to a pointer.  It can
+	 still be used to initialize an array or bind to a reference.  */
+      if (TREE_CODE (exp) == TARGET_EXPR)
+	{
+	  error ("taking address of temporary array");
+	  return error_mark_node;
+	}
+
       ptrtype = build_pointer_type (TREE_TYPE (type));
 
       if (TREE_CODE (exp) == VAR_DECL)
@@ -2411,6 +2419,11 @@ lookup_destructor (tree object, tree scope, tree dtor_name)
 			tf_warning_or_error);
   expr = (adjust_result_of_qualified_name_lookup
 	  (expr, dtor_type, object_type));
+  if (scope == NULL_TREE)
+    /* We need to call adjust_result_of_qualified_name_lookup in case the
+       destructor names a base class, but we unset BASELINK_QUALIFIED_P so
+       that we still get virtual function binding.  */
+    BASELINK_QUALIFIED_P (expr) = false;
   return expr;
 }
 

@@ -152,8 +152,14 @@ lvalue_kind (const_tree ref)
       /* A scope ref in a template, left as SCOPE_REF to support later
 	 access checking.  */
     case SCOPE_REF:
-      gcc_assert (!type_dependent_expression_p (CONST_CAST_TREE(ref)));
-      return lvalue_kind (TREE_OPERAND (ref, 1));
+      {
+	tree op = TREE_OPERAND (ref, 1);
+	/* The member must be an lvalue; assume it isn't a bit-field.  */
+	if (TREE_CODE (op) == IDENTIFIER_NODE)
+	  return clk_ordinary;
+	gcc_assert (!type_dependent_expression_p (CONST_CAST_TREE (ref)));
+	return lvalue_kind (op);
+      }
 
     case MAX_EXPR:
     case MIN_EXPR:
@@ -1230,12 +1236,11 @@ copy_binfo (tree binfo, tree type, tree t, tree *igo_prev, int virt)
   TREE_CHAIN (*igo_prev) = new_binfo;
   *igo_prev = new_binfo;
 
-  if (binfo)
+  if (binfo && !BINFO_DEPENDENT_BASE_P (binfo))
     {
       int ix;
       tree base_binfo;
 
-      gcc_assert (!BINFO_DEPENDENT_BASE_P (binfo));
       gcc_assert (SAME_BINFO_TYPE_P (BINFO_TYPE (binfo), type));
 
       BINFO_OFFSET (new_binfo) = BINFO_OFFSET (binfo);
@@ -1248,8 +1253,6 @@ copy_binfo (tree binfo, tree type, tree t, tree *igo_prev, int virt)
       for (ix = 0; BINFO_BASE_ITERATE (binfo, ix, base_binfo); ix++)
 	{
 	  tree new_base_binfo;
-
-	  gcc_assert (!BINFO_DEPENDENT_BASE_P (base_binfo));
 	  new_base_binfo = copy_binfo (base_binfo, BINFO_TYPE (base_binfo),
 				       t, igo_prev,
 				       BINFO_VIRTUAL_P (base_binfo));
@@ -3272,6 +3275,11 @@ stabilize_expr (tree exp, tree* initp)
 
   if (!TREE_SIDE_EFFECTS (exp))
     init_expr = NULL_TREE;
+  else if (VOID_TYPE_P (TREE_TYPE (exp)))
+    {
+      *initp = exp;
+      return void_zero_node;
+    }
   /* There are no expressions with REFERENCE_TYPE, but there can be call
      arguments with such a type; just treat it as a pointer.  */
   else if (TREE_CODE (TREE_TYPE (exp)) == REFERENCE_TYPE
@@ -3444,7 +3452,7 @@ stabilize_init (tree init, tree *initp)
 
   /* The initialization is being performed via a bitwise copy -- and
      the item copied may have side effects.  */
-  return TREE_SIDE_EFFECTS (init);
+  return !TREE_SIDE_EFFECTS (init);
 }
 
 /* Like "fold", but should be used whenever we might be processing the

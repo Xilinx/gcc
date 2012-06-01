@@ -5792,11 +5792,15 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	  (elttype, cp_type_quals (elttype) | TYPE_QUAL_CONST);
 	array = build_array_of_n_type (elttype, len);
 	array = finish_compound_literal (array, new_ctor, complain);
+	/* Take the address explicitly rather than via decay_conversion
+	   to avoid the error about taking the address of a temporary.  */
+	array = cp_build_addr_expr (array, complain);
+	array = cp_convert (build_pointer_type (elttype), array);
 
 	/* Build up the initializer_list object.  */
 	totype = complete_type (totype);
 	field = next_initializable_field (TYPE_FIELDS (totype));
-	CONSTRUCTOR_APPEND_ELT (vec, field, decay_conversion (array));
+	CONSTRUCTOR_APPEND_ELT (vec, field, array);
 	field = next_initializable_field (DECL_CHAIN (field));
 	CONSTRUCTOR_APPEND_ELT (vec, field, size_int (len));
 	new_ctor = build_constructor (totype, vec);
@@ -6484,6 +6488,12 @@ build_over_call (struct z_candidate *cand, int flags,
 	  else
 	    return error_mark_node;
 	}
+
+      /* See if the function member or the whole class type is declared
+	 final and the call can be devirtualized.  */
+      if (DECL_FINAL_P (fn)
+	  || CLASSTYPE_FINAL (TYPE_METHOD_BASETYPE (TREE_TYPE (fn))))
+	flags |= LOOKUP_NONVIRTUAL;
 
       /* [class.mfct.nonstatic]: If a nonstatic member function of a class
 	 X is called for an object that is not of type X, or of a type
@@ -7347,8 +7357,7 @@ build_new_method_call_1 (tree instance, tree fns, VEC(tree,gc) **args,
 	      /* Optimize away vtable lookup if we know that this function
 		 can't be overridden.  */
 	      if (DECL_VINDEX (fn) && ! (flags & LOOKUP_NONVIRTUAL)
-		  && (resolves_to_fixed_type_p (instance, 0)
-		      || DECL_FINAL_P (fn) || CLASSTYPE_FINAL (basetype)))
+		  && resolves_to_fixed_type_p (instance, 0))
 		flags |= LOOKUP_NONVIRTUAL;
               if (explicit_targs)
                 flags |= LOOKUP_EXPLICIT_TMPL_ARGS;
@@ -7639,7 +7648,7 @@ compare_ics (conversion *ics1, conversion *ics2)
      Specifically, we need to do the reference binding comparison at the
      end of this function.  */
 
-  if (ics1->user_conv_p || ics1->kind == ck_list)
+  if (ics1->user_conv_p || ics1->kind == ck_list || ics1->kind == ck_aggr)
     {
       conversion *t1;
       conversion *t2;
@@ -8029,6 +8038,12 @@ joust (struct z_candidate *cand1, struct z_candidate *cand2, bool warn)
     {
       int static_1 = DECL_STATIC_FUNCTION_P (cand1->fn);
       int static_2 = DECL_STATIC_FUNCTION_P (cand2->fn);
+
+      if (DECL_CONSTRUCTOR_P (cand1->fn)
+	  && is_list_ctor (cand1->fn) != is_list_ctor (cand2->fn))
+	/* We're comparing a near-match list constructor and a near-match
+	   non-list constructor.  Just treat them as unordered.  */
+	return 0;
 
       gcc_assert (static_1 != static_2);
 
