@@ -206,6 +206,18 @@ DEFPARAM(PARAM_EARLY_INLINING_INSNS,
 	 "early-inlining-insns",
 	 "Maximal estimated growth of function body caused by early inlining of single call",
 	 11, 0, 0)
+DEFPARAM(PARAM_EARLY_INLINING_INSNS_NON_LEAF,
+	 "early-inlining-insns-non-leaf",
+	 "Maximal allowed growth of a non-leaf function body caused by early inlining of single call",
+	 0, 0, 0)
+DEFPARAM(PARAM_EARLY_INLINING_INSNS_ANY,
+	 "early-inlining-insns-any",
+	 "Early inline calls if growth does not exceed this limit",
+	 0, 0, 0)
+DEFPARAM(PARAM_EARLY_INLINING_INSNS_COMDAT,
+	 "early-inlining-insns-comdat",
+	 "Early inline calls to comdate functions if growth does not exceed this limit",
+	 15, 0, 0)
 DEFPARAM(PARAM_LARGE_STACK_FRAME,
 	 "large-stack-frame",
 	 "The size of stack frame to be considered large",

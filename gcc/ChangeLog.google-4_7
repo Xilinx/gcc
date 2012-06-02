@@ -1,3 +1,11 @@
+2012-06-02   Easwaran Raman  <eraman@google.com>
+
+	* gcc/ipa-inline.c (want_early_inline_function_p): Boost early
+	inlining of comdats. Allow more tuning by using params.
+	* gcc/params.def (PARAM_EARLY_INLINING_INSNS_NON_LEAF): New param.
+	(PARAM_EARLY_INLINING_INSNS_ANY): Likewise.
+	(PARAM_EARLY_INLINING_INSNS_COMDAT): Likewise.
+
 2012-05-30  Dehao Chen  <dehao@google.com>
 
 	* predict.c (predict_extra_loop_exit): New function to predict for
