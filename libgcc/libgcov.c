@@ -119,6 +119,21 @@ extern int gcov_dump_complete ATTRIBUTE_HIDDEN;
 #ifdef L_gcov
 #include "gcov-io.c"
 
+/* Create a strong reference to these symbols so that they are
+   unconditionally pulled into the instrumented binary, even when
+   the only reference is a weak reference. This is necessary because
+   we are using weak references to handle older compilers that
+   pre-date these new functions. A subtlety of the linker is that
+   it will only resolve weak references defined within archive libraries
+   when there is a string reference to something else defined within
+   the same object file. Since these two functions are defined within
+   their own object files (using L_gcov_reset and L_gcov_dump), they
+   would not get resolved. Since there are symbols within the main L_gcov
+   section that are strongly referenced during -fprofile-generate builds,
+   these symbols will always need to be resolved.  */
+void (*__gcov_dummy_ref1)() = &__gcov_reset;
+void (*__gcov_dummy_ref2)() = &__gcov_dump;
+
 /* Utility function for outputing errors.  */
 static int
 gcov_error (const char *fmt, ...)
