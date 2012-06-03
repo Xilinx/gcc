@@ -854,8 +854,14 @@ remap_gimple_op_r (tree *tp, int *walk_subtrees, void *data)
 
       /* We should never have TREE_BLOCK set on non-statements.  */
       if (EXPR_P (*tp))
-	gcc_assert (!TREE_BLOCK (*tp));
-
+	{
+	  /* Some part of Cilk Code maybe setting this but not using. So if
+	   * we do see this, then we clear it out */
+	  if (flag_enable_cilk && TREE_BLOCK (*tp))
+	    TREE_BLOCK (*tp) = NULL_TREE; 
+	  else
+	    gcc_assert (!TREE_BLOCK (*tp));
+	}
       if (TREE_CODE (*tp) == MEM_REF)
 	{
 	  tree ptr = TREE_OPERAND (*tp, 0);

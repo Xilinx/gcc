@@ -1,3 +1,8 @@
+2012-06-02  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* tree-inline.c (remap_gimple_op_r): Added a check for NON-NULL
+	TREE_BLOCK, if so then clear it.
+
 2012-05-29  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-parser.c (c_parser_attributes): Added a check for vector attribute.
