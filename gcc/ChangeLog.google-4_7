@@ -1,3 +1,10 @@
+2012-06-02  Xinliang David Li  <davidxl@google.com>
+
+	l-ipo.c (promote_static_var_func): Promoted static variables from
+	primary modules should be marked as externally visible and being
+	prevailing def to avoid being localized again later.
+
+
 2012-06-02   Easwaran Raman  <eraman@google.com>
 
 	* gcc/ipa-inline.c (want_early_inline_function_p): Boost early

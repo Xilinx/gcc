@@ -1781,6 +1781,16 @@ promote_static_var_func (unsigned module_id, tree decl, bool is_extern)
     {
       struct varpool_node *node = varpool_node (decl);
       node->resolution = LDPR_UNKNOWN;
+      /* Statics from exported primary module are very likely
+         referenced by other modules, so they should be made
+         externally visible (to be avoided to be localized again).
+         Another way to do this is to set force_output bit or
+         change the logic in varpool_externally_visible in ipa.c.  */
+      if (!is_extern)
+        {
+          node->resolution = LDPR_PREVAILING_DEF;
+          node->externally_visible = true;
+        }
       varpool_link_node (node);
     }
 
