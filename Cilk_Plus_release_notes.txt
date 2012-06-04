@@ -1,4 +1,4 @@
-Release Notes for Intel(R) Cilk(TM) Plus for GCC Release 1.0
+Release Notes for Intel(R) Cilk(TM) Plus for GCC Release 1.0 
 
 This release of Intel Cilk Plus language extensions for GCC implements the 
 following features from the Intel Cilk Plus Language Specification:
