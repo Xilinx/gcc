@@ -252,6 +252,7 @@ class SmeltMainWindow : public Gtk::ApplicationWindow {
   Gtk::Notebook _mainnotebook;
   Gtk::Statusbar _mainstatusbar;
   Glib::RefPtr<Gtk::ActionGroup> _mainactgroup;
+  //////
   class ShownFile {
     friend class SmeltMainWindow;
     long _sfilnum;		// unique number in _mainsfilemapnum;
@@ -279,9 +280,26 @@ class SmeltMainWindow : public Gtk::ApplicationWindow {
       return _sfilview.get_gutter(Gtk::TEXT_WINDOW_LEFT);
     }
   };				// end internal class ShownFile
-  ////
+  //////
+  class ShownLocationInfo : public sigc::trackable {
+    ShownFile* _sli_fil;
+    long _sli_num;
+    int _sli_lineno;
+    int _sli_col;
+    Glib::RefPtr<Gtk::TextBuffer> _sli_bufp;
+    Glib::RefPtr<Gtk::MessageDialog> _sli_dialp;
+    Glib::RefPtr<Gtk::TextView> _sli_tviewp;
+  public:
+    ShownLocationInfo(long num, ShownFile* fil, int lineno, int col)
+      : _sli_fil(fil), _sli_num(num), _sli_lineno(lineno), _sli_col(col) {
+    }
+    ~ShownLocationInfo() 
+    { _sli_fil=nullptr; _sli_num=0; _sli_lineno=0, _sli_col=0; }
+    void on_update(void);
+  };				// end internal class ShownLocationInfo
   static std::map<long,ShownFile*> mainsfilemapnum_;
   static std::map<std::string,ShownFile*> mainsfiledict_;
+  static std::map<long,ShownLocationInfo*> mainlocinfmapnum_;
   static ShownFile* shown_file_by_path(const std::string& filepath) {
     if (filepath.empty()) return nullptr;
     auto itsfil = mainsfiledict_.find(filepath);
@@ -293,6 +311,12 @@ class SmeltMainWindow : public Gtk::ApplicationWindow {
     auto itsfil = mainsfilemapnum_.find(l);
     if (itsfil == mainsfilemapnum_.end()) return nullptr;
     return itsfil->second;
+  }
+  static ShownLocationInfo* shown_location_by_number (long l) {
+    if (l == 0) return nullptr;
+    auto itsloc = mainlocinfmapnum_.find(l);
+    if (itsloc == mainlocinfmapnum_.end()) return nullptr;
+    return itsloc->second;
   }
   ////
 public:
@@ -360,6 +384,8 @@ public:
 
 std::map<long,SmeltMainWindow::ShownFile*> SmeltMainWindow::mainsfilemapnum_;
 std::map<std::string,SmeltMainWindow::ShownFile*> SmeltMainWindow::mainsfiledict_;
+std::map<long,SmeltMainWindow::ShownLocationInfo*>  SmeltMainWindow::mainlocinfmapnum_;
+
 
 class SmeltTraceWindow : public Gtk::Window {
   Gtk::VBox _tracevbox;
@@ -1259,6 +1285,12 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
   if (lineno<=0 || lineno>sfil->nblines())
     throw smelt_domain_error("mark_location invalid line number",
                              smelt_long_to_string(lineno));
+  if (marknum==0)
+    throw smelt_domain_error("mark_location invalid number",
+			     smelt_long_to_string(marknum));
+  if (shown_location_by_number(marknum))
+      throw smelt_domain_error("mark_location duplicate number",
+			       smelt_long_to_string(marknum));
   auto tbuf = sfil->view().get_source_buffer();
   auto itlin = tbuf->get_iter_at_line (lineno-1);
   auto itendlin = itlin;
@@ -1271,25 +1303,34 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
     col = linwidth-1;
   SMELT_DEBUG ("linwidth=" << linwidth << " normalized col=" << col);
 
-
   /* create_source_mark works only at the start of the line */
   auto linemark = tbuf->create_source_mark(SMELT_MARKLOC_CATEGORY,itlin);
-
   /* add the button inside the line */
   itlin = tbuf->get_iter_at_line (lineno-1);
   auto itcur = itlin;
   if (col>0)
     itcur.forward_chars(col);
   SMELT_DEBUG("itcur=" << itcur);
+  ShownLocationInfo* inf = new ShownLocationInfo(marknum,sfil,lineno,col);
+  mainlocinfmapnum_[marknum] = inf;
+  
   auto but = new Gtk::Button("*");
   Glib::RefPtr<Gtk::TextChildAnchor> chanch = Gtk::TextChildAnchor::create ();
   tbuf->insert_child_anchor(itcur,chanch);
   sfil->view().add_child_at_anchor(*but,chanch);
+  but->signal_clicked().connect(sigc::mem_fun(*inf,
+					      &ShownLocationInfo::on_update));
   but->show();
   sfil->view().show_all ();
   sfil->view().queue_draw();
   SMELT_DEBUG("added mark but@" << (void*) but);
-#warning incomplete SmeltMainWindow::mark_location
+}
+
+void SmeltMainWindow::ShownLocationInfo::on_update(void)
+{
+  SMELT_DEBUG("updating loc#" << _sli_num);
+  SmeltApplication::instance()->sendreq(SmeltApplication::instance()->outreq()
+					<< "INFOLOCATION_prq" << _sli_num);
 }
 
 ////////////////////////////////////////////////////////////////
