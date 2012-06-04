@@ -1,3 +1,41 @@
+2012-06-03  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-parser.c (c_parser_declaration_or_fndef): Saved function arguments
+	for a declaration marked as elemental function.
+	(c_parser_attributes): If vector attribute is used, then we call
+	a function to parse elemental function data.
+	(c_parser_elem_fn_processor_clause): Fixed couple spelling mistakes.
+	(c_parser_elem_fn_expr_list): Consumed a token as needed.  Also fixed
+	a couple spelling mistakes.
+	* c-array-notation.c (find_rank): Fixed a bug of looking for not
+	ignored builtin function.
+	(fix_builtin_array_notation_fn): Similar to above, fixed a bug of
+	looking for true not false.
+	* expr.c (expand_expr_real_1): Enclosed a gcc_assert so that is is only
+	called when cilk is disabled.
+	* final.c (rest_of_handle_final): Moved outputing metadata after the
+	assemble_end_function.
+	* gimplify.c (gimplify_function_tree): Called function to create elem.
+	function when appropriate vector attribute is set.
+	* ipa.c (cgraph_remove_unreachable_nodes): Make elem. functions always
+	needed.
+	* passes.c (init_optimization_passes): Removed the elem function pass.
+	* tree-data-ref.c (find_data_references_in_stmt): Ignored data refs.
+	for elemental function params.
+	* tree-inline.c (elem_fn_add_local_variables): New function.
+	(elem_fn_copy_arguments_for_versioning): Likewise.
+	(initialize_elem_fn_cfun): Likewise.
+	(tree_elem_fn_versioning): Likewise.
+	* tree-vect-stmts.c (vect_get_vec_def_for_operand): Check if parm_type
+	is linear or uniform, if so set them as constant.  If uniform call
+	build_vector_from_val or linear call the appropriate linear equivalent.
+	(vectorizble_function): Insert appropriate elemental function in loop
+	if the attribute is set.
+	(vectorizable_call): Check fi the parm type is linear or uniform.  Also
+	save function call if they got changed during the elem. function
+	insertion.
+	* tree.c (build_elem_fn_linear_vector_from_val): New function.
+
 2012-03-20  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* elem-function.c (extract_elem_fn_values): Initialized proc_type field

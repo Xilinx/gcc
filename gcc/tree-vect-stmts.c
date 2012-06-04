@@ -40,7 +40,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic-core.h"
 #include "tree-vectorizer.h"
 #include "langhooks.h"
-
+#include "cilk.h"
 
 /* Return a variable of type ELEM_TYPE[NELEMS].  */
 
@@ -1233,6 +1233,8 @@ vect_get_vec_def_for_operand (tree op, gimple stmt, tree *scalar_def)
   enum vect_def_type dt;
   bool is_simple_use;
   tree vector_type;
+  enum elem_fn_parm_type parm_type;
+  tree step_size = NULL_TREE;
 
   if (vect_print_dump_info (REPORT_DETAILS))
     {
@@ -1256,7 +1258,18 @@ vect_get_vec_def_for_operand (tree op, gimple stmt, tree *scalar_def)
 	  print_gimple_stmt (vect_dump, def_stmt, 0, TDF_SLIM);
         }
     }
-
+  
+  if (flag_enable_cilk
+      && gimple_code (stmt) == GIMPLE_CALL
+      && is_elem_fn (gimple_call_fndecl (stmt)))
+    {
+      parm_type = find_elem_fn_parm_type (stmt, op, &step_size);
+      if (parm_type == TYPE_UNIFORM || parm_type == TYPE_LINEAR)
+	dt = vect_constant_def;
+    }
+  else
+    parm_type = TYPE_NONE;
+  
   switch (dt)
     {
     /* Case 1: operand is a constant.  */
@@ -1273,9 +1286,14 @@ vect_get_vec_def_for_operand (tree op, gimple stmt, tree *scalar_def)
         if (vect_print_dump_info (REPORT_DETAILS))
           fprintf (vect_dump, "Create vector_cst. nunits = %d", nunits);
 
-        vec_cst = build_vector_from_val (vector_type,
-					 fold_convert (TREE_TYPE (vector_type),
-						       op));
+	if (!flag_enable_cilk
+	    || (parm_type == TYPE_NONE || parm_type == TYPE_UNIFORM))
+	  vec_cst = build_vector_from_val
+	    (vector_type, fold_convert (TREE_TYPE (vector_type), op));
+	else
+	  vec_cst = build_elem_fn_linear_vector_from_val
+	    (vector_type, fold_convert (TREE_TYPE (vector_type), op),
+	     step_size);
         return vect_init_vector (stmt, vec_cst, vector_type, NULL);
       }
 
@@ -1551,6 +1569,19 @@ vectorizable_function (gimple call, tree vectype_out, tree vectype_in)
 {
   tree fndecl = gimple_call_fndecl (call);
 
+  if (flag_enable_cilk && is_elem_fn (fndecl))
+    {
+      if (DECL_ELEM_FN_ALREADY_CLONED (fndecl))
+	return fndecl;
+      else
+	{
+	  tree new_fndecl = find_elem_fn_name (copy_node (fndecl),
+					       vectype_out, vectype_in);
+	  if (new_fndecl)
+	    DECL_ELEM_FN_ALREADY_CLONED (new_fndecl) = 1;
+	  return new_fndecl;
+	}
+    }
   /* We only handle functions that do not read or clobber memory -- i.e.
      const or novops ones.  */
   if (!(gimple_call_flags (call) & (ECF_CONST | ECF_NOVOPS)))
@@ -1596,6 +1627,7 @@ vectorizable_call (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
   enum { NARROW, NONE, WIDEN } modifier;
   size_t i, nargs;
   tree lhs;
+  tree step_size;
 
   if (!STMT_VINFO_RELEVANT_P (stmt_info) && !bb_vinfo)
     return false;
@@ -1799,6 +1831,16 @@ vectorizable_call (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 	      else
 		{
 		  vec_oprnd0 = gimple_call_arg (new_stmt, i);
+		  if (flag_enable_cilk
+		      && gimple_code (new_stmt) == GIMPLE_CALL
+		      && is_elem_fn (gimple_call_fndecl (new_stmt)))
+		    {
+		      enum elem_fn_parm_type parm_type =
+			find_elem_fn_parm_type (stmt, op, &step_size);
+		      if (parm_type == TYPE_UNIFORM
+			  || parm_type == TYPE_LINEAR)
+			dt[i] = vect_constant_def;
+		    }		  
 		  vec_oprnd0
                     = vect_get_vec_def_for_stmt_copy (dt[i], vec_oprnd0);
 		}
@@ -1809,7 +1851,8 @@ vectorizable_call (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 	  new_stmt = gimple_build_call_vec (fndecl, vargs);
 	  new_temp = make_ssa_name (vec_dest, new_stmt);
 	  gimple_call_set_lhs (new_stmt, new_temp);
-
+	  if (flag_enable_cilk && is_elem_fn (fndecl))
+	    gimple_call_set_fntype (new_stmt, TREE_TYPE (fndecl));
 	  vect_finish_stmt_generation (stmt, new_stmt, gsi);
 	  mark_symbols_for_renaming (new_stmt);
 

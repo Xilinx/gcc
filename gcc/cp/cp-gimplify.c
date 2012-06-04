@@ -528,7 +528,7 @@ cp_gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
   enum tree_code code = TREE_CODE (*expr_p);
   enum gimplify_status ret;
 
-  if (STATEMENT_CODE_P (code))
+  if (STATEMENT_CODE_P (code) && current_stmt_tree ())
     {
       saved_stmts_are_full_exprs_p = stmts_are_full_exprs_p ();
       current_stmt_tree ()->stmts_are_full_exprs_p
@@ -744,7 +744,7 @@ cp_gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
     }
 
   /* Restore saved state.  */
-  if (STATEMENT_CODE_P (code))
+  if (STATEMENT_CODE_P (code) && current_stmt_tree ())
     current_stmt_tree ()->stmts_are_full_exprs_p
       = saved_stmts_are_full_exprs_p;
 

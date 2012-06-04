@@ -1,3 +1,19 @@
+2012-06-03  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cp-gimplify.c (cp_gimplify_expr): Added a check to see if
+	current_stmt_tree is valid.
+	* parser.c (cp_parser_attribute_list): If vector attribute is set
+	then call a function to parse vector attributes.
+	(cp_parser_elem_fn_processor_clause): New function.
+	(cp_parser_elem_fn_uniform_clause): Likewise.
+	(cp_parser_elem_fn_vlength_clause): Likewise.
+	(cp_parser_elem_fn_linear_clause): Likewise.
+	(cp_parser_elem_fn_expression_list): Likewise.
+	* pt.c (apply_late_template_attributes): Make sure vector attributes
+	are not processed differently.
+	* semantics.c (finish_call_expr): Replace CALL_NORMAL with spawning
+	parameter.
+
 2012-03-16  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* decl.c (finish_function_body): called DECL_HAS_SPAWN_P and set it to
@@ -5,7 +21,7 @@
 	* pt.c (tsubst_copy): Carried the spawn call information from one
 	call expression to another.
 	(tsubst_copy_and_build): Likewise.
-	
+
 2012-02-14  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* parser.c (cp_parser_compound_stmt): Added a check to see if the

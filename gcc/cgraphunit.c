@@ -159,6 +159,9 @@ static GTY (()) tree vtable_entry_type;
 bool
 cgraph_decide_is_function_needed (struct cgraph_node *node, tree decl)
 {
+  /* bviyer: If we have a error here, then check the commit called
+   * "Add support for mask clause of elemental function" in cilkplus branch */
+  
   /* If the user told us it is used, then it must be so.  */
   if (node->local.externally_visible)
     return true;

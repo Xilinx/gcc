@@ -1131,7 +1131,7 @@ C_COMMON_OBJS = c-family/c-common.o c-family/c-cppbuiltin.o c-family/c-dump.o \
   c-family/c-format.o c-family/c-gimplify.o c-family/c-lex.o \
   c-family/c-omp.o c-family/c-opts.o c-family/c-pch.o \
   c-family/c-ppoutput.o c-family/c-pragma.o c-family/c-pretty-print.o \
-  c-family/c-semantics.o c-family/c-ada-spec.o cilk-spawn.o
+  c-family/c-semantics.o c-family/c-ada-spec.o cilk-spawn.o elem-function.o
 
 # Language-specific object files for C and Objective C.
 C_AND_OBJC_OBJS = attribs.o c-errors.o c-decl.o c-typeck.o \
@@ -1453,7 +1453,7 @@ OBJS = \
         cilk.o \
         cilk-low.o \
 	array-notation-common.o \
-	elem-function.o \
+	elem-function-common.o \
 	$(out_object_file) \
 	$(EXTRA_OBJS) \
 	$(host_hook_obj)

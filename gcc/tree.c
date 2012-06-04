@@ -11518,8 +11518,53 @@ build_call_list (tree return_type, tree fn, tree arglist)
   process_call_operands (t);
   return t;
 }
+/* Build a vector of type VECTYPE where all the elements are SCs.  */
+tree
+build_elem_fn_linear_vector_from_val (tree vectype, tree sc, tree step_size) 
+{
+  int i, nunits = TYPE_VECTOR_SUBPARTS (vectype);
 
+  if (sc == error_mark_node)
+    return sc;
 
+  /* Verify that the vector type is suitable for SC.  Note that there
+     is some inconsistency in the type-system with respect to restrict
+     qualifications of pointers.  Vector types always have a main-variant
+     element type and the qualification is applied to the vector-type.
+     So TREE_TYPE (vector-type) does not return a properly qualified
+     vector element-type.  */
+  gcc_checking_assert (types_compatible_p (TYPE_MAIN_VARIANT (TREE_TYPE (sc)),
+					   TREE_TYPE (vectype)));
+
+  if (CONSTANT_CLASS_P (sc))
+    {
+      VEC(constructor_elt, gc) *v = VEC_alloc (constructor_elt, gc, nunits);
+      for (i = 0; i < nunits; ++i) 
+	{
+	  tree i_tree = build_int_cst (integer_type_node, i);
+	  tree tmp = build2 (PLUS_EXPR, TREE_TYPE (sc), sc, 
+			     fold_build2 (MULT_EXPR, TREE_TYPE (step_size), 
+					  step_size, i_tree));
+	  CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, tmp);
+	}
+      return build_vector_from_ctor (vectype, v);
+    }
+  else
+    {
+      VEC(constructor_elt, gc) *v = VEC_alloc (constructor_elt, gc, nunits);
+      for (i = 0; i < nunits; ++i)
+	{
+	  // CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, sc);
+	  tree tmp = NULL_TREE;
+	  tmp = build2 (PLUS_EXPR, TREE_TYPE (sc), sc,
+			fold_build2 (MULT_EXPR, TREE_TYPE (step_size), 
+				     step_size, 
+				     build_int_cst (integer_type_node, i)));
+	  CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, tmp);
+	}
+      return build_constructor (vectype, v);
+    }
+}
 
 
 

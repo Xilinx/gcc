@@ -1,3 +1,8 @@
+2012-06-03  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* gcc.dg/cilk-plus/array_notation_tests/builtin_func_double.c: Fixed
+	spelling mistake for a builtin array notation function.
+
 2012-02-13  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* gcc.dg/cilk-plus/array_notation_tests/builtin_func_double2.c: New.

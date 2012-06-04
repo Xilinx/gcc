@@ -3661,6 +3661,9 @@ extern VEC(tree, gc) **decl_debug_args_insert (tree);
 #define DECL_FUNCTION_SPECIFIC_OPTIMIZATION(NODE) \
    (FUNCTION_DECL_CHECK (NODE)->function_decl.function_specific_optimization)
 
+#define DECL_ELEM_FN_ALREADY_CLONED(NODE) \
+  (FUNCTION_DECL_CHECK (NODE)->function_decl.elem_fn_already_cloned)		     
+		     
 /* FUNCTION_DECL inherits from DECL_NON_COMMON because of the use of the
    arguments/result/saved_tree fields by front ends.   It was either inherit
    FUNCTION_DECL from non_common, or inherit non_common from FUNCTION_DECL,
@@ -3708,7 +3711,7 @@ struct GTY(()) tree_function_decl {
   unsigned cilk_has_spawn : 1;
   signed int kills_registers : DECL_KILLS_REGISTERS_BITS;
   unsigned tm_clone_flag : 1;
-
+  unsigned elem_fn_already_cloned : 1;
   /* 1 bit left */
 };
 
@@ -3789,6 +3792,13 @@ enum function_linkage
 {
   linkage_native = 0,
   linkage_cilk
+};
+
+enum elem_fn_parm_type
+{
+  TYPE_NONE = 0,
+  TYPE_UNIFORM = 1,
+  TYPE_LINEAR = 2
 };
 
 
@@ -4505,7 +4515,7 @@ extern tree build_call_valist (tree, tree, int, va_list);
    build_call_array_loc (UNKNOWN_LOCATION, T1, T2, N, T3)
 extern tree build_call_array_loc (location_t, tree, tree, int, const tree *);
 extern tree build_call_vec (tree, tree, VEC(tree,gc) *);
-
+extern tree build_elem_fn_linear_vector_from_val (tree, tree, tree);
 /* Construct various nodes representing data types.  */
 
 extern tree make_signed_type (int);
@@ -6210,6 +6220,10 @@ extern HOST_WIDE_INT find_linear_step_size (int pragma_simd_index, tree var);
 tree build_call_list (tree return_type, tree fn, tree arglist);
 tree build_function_linkage_variant (tree ttype,
 				     enum function_linkage linkage);
+bool is_elem_fn (tree);
+enum elem_fn_parm_type find_elem_fn_parm_type (gimple, tree, tree*);
+void elem_fn_create_fn (tree) __attribute__((weak));
+
 
 /* Functional interface to the builtin functions.  */
 

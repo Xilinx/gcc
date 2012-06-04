@@ -1840,9 +1840,11 @@ static tree cp_parser_postfix_open_square_expression
   (cp_parser *, tree, bool);
 static tree cp_parser_postfix_dot_deref_expression
   (cp_parser *, enum cpp_ttype, tree, bool, cp_id_kind *, location_t);
+static VEC(tree,gc) *cp_parser_elem_fn_expression_list
+  (cp_parser *);
 static VEC(tree,gc) *cp_parser_parenthesized_expression_list
   (cp_parser *, int, bool, bool, bool *);
-/* Values for the second parameter of cp_parser_parenthesized_expression_list.  */
+/* Values for the second parameter of cp_parser_parenthesized_expression_list.*/
 enum { non_attr = 0, normal_attr = 1, id_attr = 2 };
 static void cp_parser_pseudo_destructor_name
   (cp_parser *, tree *, tree *);
@@ -20758,10 +20760,15 @@ cp_parser_attribute_list (cp_parser* parser)
 	      VEC(tree,gc) *vec;
 	      int attr_flag = (attribute_takes_identifier_p (identifier)
 			       ? id_attr : normal_attr);
-	      vec = cp_parser_parenthesized_expression_list
-		    (parser, attr_flag, /*cast_p=*/false,
-		     /*allow_expansion_p=*/false,
-		     /*non_constant_p=*/NULL);
+	      if (TREE_CODE (identifier) == IDENTIFIER_NODE
+		  && simple_cst_equal (identifier,
+				       get_identifier ("vector")) == 1)
+		vec = cp_parser_elem_fn_expression_list (parser);
+	      else
+		vec = cp_parser_parenthesized_expression_list
+		  (parser, attr_flag, /*cast_p=*/false,
+		   /*allow_expansion_p=*/false,
+		   /*non_constant_p=*/NULL);
 	      if (vec == NULL)
 		arguments = error_mark_node;
 	      else
@@ -29203,5 +29210,404 @@ cp_parser_array_notation (cp_parser *parser, tree init_index, tree array_value)
 
   return value_tree;
 }
+
+/* this function handles the processor clause in elemental func. attribute */
+static tree
+cp_parser_elem_fn_processor_clause (cp_parser *parser)
+{
+  VEC (tree,gc) *proc_vec_list = NULL;
+  tree proc_tree_list = NULL_TREE;
+
+  if (cp_lexer_next_token_is_not (parser->lexer, CPP_OPEN_PAREN))
+    {
+      cp_parser_error (parser, "expected %<)%>");
+      cp_parser_skip_to_end_of_block_or_statement (parser);
+      return NULL_TREE;
+    }
+  else
+    cp_lexer_consume_token (parser->lexer);
+
+  proc_vec_list = make_tree_vector ();
+
+  if (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_PAREN))
+    {
+      cp_token *token = cp_lexer_consume_token (parser->lexer);
+      if (token->u.value
+	  && TREE_CODE (token->u.value) == IDENTIFIER_NODE
+	  && simple_cst_equal (token->u.value,
+			       get_identifier ("pentium_4")) == 1)
+	VEC_safe_push (tree, gc, proc_vec_list,
+		       build_string (strlen ("pentium_4"), "pentium_4"));
+      else if (token->u.value
+	       && TREE_CODE (token->u.value) == IDENTIFIER_NODE
+	       && simple_cst_equal (token->u.value,
+				    get_identifier ("pentium_4_sse3")) == 1)
+	VEC_safe_push (tree, gc, proc_vec_list,
+		       build_string (strlen ("pentium_4_sse3"),
+				     "pentium_4_sse3"));
+      else if (token->u.value
+	       && TREE_CODE (token->u.value) == IDENTIFIER_NODE
+	       && simple_cst_equal (token->u.value,
+				    get_identifier ("core2_duo_sse3")) == 1)
+	VEC_safe_push (tree, gc, proc_vec_list,
+		       build_string (strlen ("core2_duo_sse3"),
+				     "core2_duo_sse3"));
+      else if (token->u.value
+	       && TREE_CODE (token->u.value) == IDENTIFIER_NODE
+	       && simple_cst_equal (token->u.value,
+				    get_identifier ("core_2_duo_sse_4_1")) == 1)
+	VEC_safe_push (tree, gc, proc_vec_list,
+		       build_string (strlen ("core_2_duo_sse_4_1"),
+				     "core_2_duo_sse_4_1"));
+      else if (token->u.value
+	       && TREE_CODE (token->u.value) == IDENTIFIER_NODE
+	       && simple_cst_equal (token->u.value,
+				    get_identifier ("core_i7_sse4_2")) == 1)
+	VEC_safe_push (tree, gc, proc_vec_list,
+		       build_string (strlen ("core_i7_sse4_2"),
+				     "core_i7_sse4_2"));
+      else
+	sorry ("processor type not supported.");
+
+      if (cp_lexer_next_token_is (parser->lexer, CPP_CLOSE_PAREN))
+	cp_lexer_consume_token (parser->lexer);
+      else
+	cp_parser_error (parser, "expected %>)%>");
+    }
+  else
+    cp_parser_error (parser, "expected %>(%> and CPUID");
+
+  proc_tree_list = build_tree_list_vec (proc_vec_list);
+  release_tree_vector (proc_vec_list);
+  proc_tree_list = build_tree_list (get_identifier ("processor"),
+				    proc_tree_list);
+  return proc_tree_list;
+}
+
+/* this function handles the uniform clause in elemental func. attribute */
+static tree
+cp_parser_elem_fn_uniform_clause (cp_parser *parser)
+{
+  VEC(tree,gc) *uniform_vec = NULL;
+  tree uniform_tree, str_token = NULL_TREE;
+
+  if (cp_lexer_next_token_is_not (parser->lexer, CPP_OPEN_PAREN))
+    {
+      cp_parser_error (parser, "expected %<)%>");
+      cp_parser_skip_to_end_of_block_or_statement (parser);
+      return NULL_TREE;
+    }
+  else
+    cp_lexer_consume_token (parser->lexer);
+
+  uniform_vec = make_tree_vector ();
+  while (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_PAREN))
+    {
+      cp_token *token = cp_lexer_consume_token (parser->lexer);
+      if (token->u.value && token->type == CPP_NAME)
+	{
+	  /* convert the variable to a string */
+	  str_token =
+	    build_string (strlen (IDENTIFIER_POINTER (token->u.value)),
+			  IDENTIFIER_POINTER (token->u.value));
+	  VEC_safe_push (tree, gc, uniform_vec, str_token);
+	  if (cp_lexer_next_token_is (parser->lexer, CPP_COMMA))
+	    {
+	      cp_lexer_consume_token (parser->lexer);
+	      
+	      if (cp_lexer_next_token_is_not (parser->lexer, CPP_NAME))
+		{
+		  cp_parser_error (parser, "expected identifier after %<,%>");
+		  cp_parser_skip_to_end_of_block_or_statement (parser);
+		  return NULL_TREE;
+		}
+	    }
+	  else if (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_PAREN))
+	    {
+	      cp_parser_error (parser,
+			       "expected %<,%> or %<)%> after identifier");
+	      cp_parser_skip_to_end_of_block_or_statement (parser);
+	      return NULL_TREE;
+	    }
+	}
+      else
+	{
+	  cp_parser_error (parser, "expected variable");
+	  cp_parser_skip_to_end_of_block_or_statement (parser);
+	  return NULL_TREE;
+	}
+    }
+  cp_lexer_consume_token (parser->lexer);
+
+  uniform_tree = build_tree_list_vec (uniform_vec);
+  release_tree_vector (uniform_vec);
+  uniform_tree = build_tree_list (get_identifier ("uniform"), uniform_tree);
+  return uniform_tree;
+}
+
+/* this function handles the vectorlength clause in elemental func. attribute */
+static tree
+cp_parser_elem_fn_vlength_clause (cp_parser *parser)
+{
+  VEC(tree,gc) *vlength_vec = NULL;
+  tree vlength_tree = NULL_TREE;
+
+  if (cp_lexer_next_token_is_not (parser->lexer, CPP_OPEN_PAREN))
+    {
+      cp_parser_error (parser, "expected %<)%>");
+      cp_parser_skip_to_end_of_block_or_statement (parser);
+      return NULL_TREE;
+    }
+  else
+    cp_lexer_consume_token (parser->lexer);
+
+  if (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_PAREN))
+    {
+      cp_token *token = cp_lexer_consume_token (parser->lexer);
+      if (token->u.value && token->type == CPP_NUMBER)
+	VEC_safe_push (tree, gc, vlength_vec, token->u.value);
+      if (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_PAREN))
+	{
+	  cp_parser_error (parser, "Cannot have multiple vector lengths for "
+			   "elemental functions");
+	  cp_parser_skip_to_end_of_block_or_statement (parser);
+	  return NULL_TREE;
+	}
+      else
+	cp_lexer_consume_token (parser->lexer);
+    }
+  else
+    {
+      cp_parser_error (parser, "expected integer");
+      cp_parser_skip_to_end_of_block_or_statement (parser);
+      return NULL_TREE;
+    }
+
+  vlength_tree = build_tree_list_vec (vlength_vec);
+  release_tree_vector (vlength_vec);
+  vlength_tree = build_tree_list (get_identifier ("vectorlength"),
+				  vlength_tree);
+  return vlength_tree;
+}
+
+/* this function handles the linear clause in elemental func. attribute */
+static tree
+cp_parser_elem_fn_linear_clause (cp_parser *parser)
+{
+  VEC(tree,gc) *linear_vec = NULL;
+  tree linear_tree = NULL_TREE, var_str, step_size;
+
+  if (cp_lexer_next_token_is_not (parser->lexer, CPP_OPEN_PAREN))
+    {
+      cp_parser_error (parser, "expected %<(%>");
+      cp_parser_skip_to_end_of_block_or_statement (parser);
+      return NULL_TREE;
+    }
+  else
+    cp_lexer_consume_token (parser->lexer);
+
+  linear_vec = make_tree_vector ();
+
+  while (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_PAREN))
+    {
+      cp_token *token = cp_lexer_consume_token (parser->lexer);
+      if (token->u.value && token->type == CPP_NAME)
+	{
+	  var_str = build_string (strlen (IDENTIFIER_POINTER (token->u.value)),
+				  IDENTIFIER_POINTER (token->u.value));
+	  if (cp_lexer_next_token_is (parser->lexer, CPP_COLON))
+	    {
+	      cp_lexer_consume_token (parser->lexer);
+	      token = cp_lexer_consume_token (parser->lexer);
+	      if (token->u.value && token->type == CPP_NUMBER)
+		step_size = token->u.value;
+	      else
+		{
+		  cp_parser_error (parser, "expected step-size");
+		  return NULL_TREE;
+		}
+	    }
+	  else
+	    step_size = integer_one_node;
+	  
+	  VEC_safe_push (tree, gc, linear_vec, var_str);
+	  VEC_safe_push (tree, gc, linear_vec, step_size);
+	  if (cp_lexer_next_token_is (parser->lexer, CPP_COMMA))
+	    {
+	      cp_lexer_consume_token (parser->lexer);
+	      if (cp_lexer_next_token_is_not (parser->lexer, CPP_NAME))
+		{
+		  cp_parser_error (parser,
+				   "expected variable after %<,%>");
+		  cp_parser_skip_to_end_of_block_or_statement (parser);
+		  return NULL_TREE;
+		}
+	    }
+	  else if (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_PAREN))
+	    {
+	      cp_parser_error (parser,
+			       "expected %<,%> or %<)%> after variable/step");
+	      cp_parser_skip_to_end_of_block_or_statement (parser);
+	      return NULL_TREE;
+	    }
+	}
+      else
+	{
+	  cp_parser_error (parser, "expected variable name");
+	  cp_parser_skip_to_end_of_block_or_statement (parser);
+	  return NULL_TREE;
+	}
+    }
+  cp_lexer_consume_token (parser->lexer); /* consume the ')' */
+  linear_tree = build_tree_list_vec (linear_vec);
+  release_tree_vector (linear_vec);
+  linear_tree = build_tree_list (get_identifier ("linear"), linear_tree);
+  return linear_tree;
+}
+	
+/* this function handles all the clauses in elemental func. attribute */
+static VEC(tree,gc) *
+cp_parser_elem_fn_expression_list (cp_parser *parser)
+{
+  VEC(tree,gc) *expr_list = make_tree_vector ();
+  tree proc_list = NULL_TREE, vlength_list = NULL_TREE, mask_list = NULL_TREE;
+  tree uniform_list = NULL_TREE, linear_list = NULL_TREE;
+
+  if (cp_lexer_next_token_is (parser->lexer, CPP_OPEN_PAREN))
+    cp_lexer_consume_token (parser->lexer);
+  else
+    {
+      cp_parser_error (parser, "expected %<(%>");
+      cp_parser_skip_to_end_of_block_or_statement (parser);
+      return NULL;
+    }
+  
+  while (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_PAREN))
+    {
+      cp_token *token = cp_lexer_consume_token (parser->lexer);
+      
+      if (token->u.value
+	  && TREE_CODE (token->u.value) == IDENTIFIER_NODE
+	  && simple_cst_equal (token->u.value,
+			       get_identifier ("processor")) == 1)
+	{
+	  if (proc_list)
+	    {
+	      cp_parser_error
+		(parser, "Cannot have multiple processor clauses");
+	      cp_parser_skip_to_end_of_block_or_statement (parser);
+	      return NULL;
+	    }
+	  gcc_assert (NULL_TREE == proc_list);
+	  proc_list = cp_parser_elem_fn_processor_clause (parser);
+
+	}
+      else if (token->u.value
+	       && TREE_CODE (token->u.value) == IDENTIFIER_NODE
+	       && simple_cst_equal (token->u.value,
+				    get_identifier ("mask")) == 1)
+	{
+	  if (mask_list)
+	    {
+	      cp_parser_error (parser, "Cannot have multiple mask clause");
+	      cp_parser_skip_to_end_of_block_or_statement (parser);
+	      return NULL;
+	    }
+	  gcc_assert (mask_list == NULL_TREE);
+	  mask_list = get_identifier ("mask");
+	}
+      else if (token->u.value
+	       && TREE_CODE (token->u.value) == IDENTIFIER_NODE
+	       && simple_cst_equal (token->u.value,
+				    get_identifier ("nomask")) == 1)
+	{
+	  if (mask_list)
+	    {
+	      cp_parser_error (parser, "Cannot have multiple [no]mask clause");
+	      cp_parser_skip_to_end_of_block_or_statement (parser);
+	      return NULL;
+	    }
+	  gcc_assert (mask_list == NULL_TREE);
+	  mask_list = get_identifier ("nomask");
+	}
+      else if (token->u.value
+	       && TREE_CODE (token->u.value) == IDENTIFIER_NODE
+	       && simple_cst_equal (token->u.value,
+				    get_identifier ("vectorlength")) == 1)
+	{
+	  if (vlength_list)
+	    {
+	      cp_parser_error (parser, "Cannot have multiple vectorlength "
+			       "clause");
+	      cp_parser_skip_to_end_of_block_or_statement (parser);
+	      return NULL;
+	    }
+	  gcc_assert (NULL_TREE == vlength_list);
+	  vlength_list = cp_parser_elem_fn_vlength_clause (parser);
+	}
+      else if (token->u.value
+	       && TREE_CODE (token->u.value) == IDENTIFIER_NODE
+	       && simple_cst_equal (token->u.value,
+				    get_identifier ("uniform")) == 1)
+	{
+	  if (uniform_list)
+	    {
+	      cp_parser_error (parser,
+			       "Cannot have multiple uniform clauses");
+	      cp_parser_skip_to_end_of_block_or_statement (parser);
+	      return NULL;
+	    }
+	  gcc_assert (NULL_TREE == uniform_list);
+	  uniform_list = cp_parser_elem_fn_uniform_clause (parser); 
+	}
+      else if (token->u.value
+	       && TREE_CODE (token->u.value) == IDENTIFIER_NODE
+	       && simple_cst_equal (token->u.value,
+				    get_identifier ("linear")) == 1)
+	{
+	  if (linear_list)
+	    {
+	      cp_parser_error (parser,
+			       "Cannot have multiple linear clauses");
+	      cp_parser_skip_to_end_of_block_or_statement (parser);
+	      return NULL;
+	    }
+	  gcc_assert (NULL_TREE == linear_list);
+	  linear_list = cp_parser_elem_fn_linear_clause (parser);
+	}
+      else
+	{
+	  cp_parser_error (parser, "unknown clause");
+	  cp_parser_skip_to_end_of_block_or_statement (parser);
+	  return expr_list;
+	}
+      
+      if (cp_lexer_next_token_is (parser->lexer, CPP_COMMA))
+	{
+	  cp_lexer_consume_token (parser->lexer);
+	  if (cp_lexer_next_token_is (parser->lexer, CPP_CLOSE_PAREN))
+	    {
+	      cp_parser_error (parser, "expected identifier after %<,%>");
+	      cp_parser_skip_to_end_of_block_or_statement (parser);
+	      return expr_list;
+	    }
+	}
+    }
+  cp_lexer_consume_token (parser->lexer); /* consume the ')' */
+
+  if (proc_list)
+    VEC_safe_push (tree, gc, expr_list, proc_list);
+  if (vlength_list)
+    VEC_safe_push (tree, gc, expr_list, vlength_list);
+  if (uniform_list)
+    VEC_safe_push (tree, gc, expr_list, uniform_list);
+  if (mask_list)
+    VEC_safe_push (tree, gc, expr_list, mask_list);
+  if (linear_list)
+    VEC_safe_push (tree, gc, expr_list, linear_list);
+  
+  return expr_list;
+}
+
 
 #include "gt-cp-parser.h"

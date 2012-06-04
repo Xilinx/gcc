@@ -9219,7 +9219,9 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	    }
 	  else
 	    pmode = promote_decl_mode (exp, &unsignedp);
-	  gcc_assert (GET_MODE (decl_rtl) == pmode);
+	  
+	  if (!flag_enable_cilk)
+	    gcc_assert (GET_MODE (decl_rtl) == pmode);
 
 	  temp = gen_lowpart_SUBREG (mode, decl_rtl);
 	  SUBREG_PROMOTED_VAR_P (temp) = 1;

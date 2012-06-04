@@ -3797,6 +3797,46 @@ add_local_variables (struct function *callee, struct function *caller,
       }
 }
 
+/* Add local variables from CALLEE to CALLER.  */
+
+static inline void
+elem_fn_add_local_variables (struct function *callee, struct function *caller,
+			     copy_body_data *id, bool check_var_ann,
+			     int vlength ATTRIBUTE_UNUSED)
+{
+  tree var;
+  unsigned ix;
+
+  FOR_EACH_LOCAL_DECL (callee, ix, var)
+    if (TREE_STATIC (var) && !TREE_ASM_WRITTEN (var))
+      {
+	if (!check_var_ann
+	    || (var_ann (var) && add_referenced_var (var)))
+	  add_local_decl (caller, var);
+      }
+    else if (!can_be_nonlocal (var, id))
+      {
+        tree new_var = remap_decl (var, id);
+
+        /* Remap debug-expressions.  */
+	if (TREE_CODE (new_var) == VAR_DECL
+	    && DECL_DEBUG_EXPR_IS_FROM (new_var)
+	    && new_var != var)
+	  {
+	    tree tem = DECL_DEBUG_EXPR (var);
+	    bool old_regimplify = id->regimplify;
+	    id->remapping_type_depth++;
+	    walk_tree (&tem, copy_tree_body_r, id, NULL);
+	    id->remapping_type_depth--;
+	    id->regimplify = old_regimplify;
+	    SET_DECL_DEBUG_EXPR (new_var, tem);
+	  }
+	TREE_TYPE (new_var) = copy_node (TREE_TYPE (new_var));
+ 	add_local_decl (caller, new_var);
+      }
+}
+
+
 /* If STMT is a GIMPLE_CALL, replace it with its inline expansion.  */
 
 static bool
@@ -4945,6 +4985,67 @@ copy_arguments_for_versioning (tree orig_parm, copy_body_data * id,
   return new_parm;
 }
 
+/* Return a copy of the function's argument tree.  */
+static tree
+elem_fn_copy_arguments_for_versioning (tree orig_parm, copy_body_data * id,
+				       bitmap args_to_skip, tree *vars,
+				       int vlength, bool masked)
+{
+  tree arg, *parg;
+  tree new_parm = NULL;
+  int i = 0;
+  tree masked_parm = NULL_TREE;
+  parg = &new_parm;
+
+  if (masked)
+    {
+      masked_parm = build_decl (UNKNOWN_LOCATION, PARM_DECL,
+				get_identifier ("__elem_fn_mask"),
+				build_vector_type (integer_type_node, vlength));
+      DECL_ARG_TYPE (masked_parm) = build_vector_type (integer_type_node,
+						       vlength);
+      DECL_ARTIFICIAL (masked_parm) = 1;
+      lang_hooks.dup_lang_specific_decl (masked_parm);
+    }
+  for (arg = orig_parm; arg; arg = DECL_CHAIN (arg), i++)
+    if (!args_to_skip || !bitmap_bit_p (args_to_skip, i))
+      {
+        tree new_tree = remap_decl (arg, id);
+	if (TREE_CODE (new_tree) != PARM_DECL)
+	  new_tree = id->copy_decl (arg, id);
+	TREE_TYPE (new_tree) = copy_node (TREE_TYPE (new_tree));
+	TREE_TYPE (new_tree) = build_vector_type (TREE_TYPE (new_tree),
+						  vlength);
+	DECL_ARG_TYPE (new_tree) = build_vector_type (DECL_ARG_TYPE (new_tree),
+						      vlength);
+        lang_hooks.dup_lang_specific_decl (new_tree);
+        *parg = new_tree;
+	parg = &DECL_CHAIN (new_tree);
+      }
+    else if (!pointer_map_contains (id->decl_map, arg))
+      {
+	/* Make an equivalent VAR_DECL.  If the argument was used
+	   as temporary variable later in function, the uses will be
+	   replaced by local variable.  */
+	tree var = copy_decl_to_var (arg, id);
+	add_referenced_var (var);
+	insert_decl_map (id, arg, var);
+        /* Declare this new variable.  */
+        DECL_CHAIN (var) = *vars;
+        *vars = var;
+      }
+  if (masked && masked_parm)
+    {
+      for (arg = new_parm; DECL_CHAIN (arg); arg = DECL_CHAIN(arg))
+	;
+      
+      DECL_CONTEXT (masked_parm) = DECL_CONTEXT (arg);
+      DECL_CHAIN (arg) = masked_parm;
+    }
+  return new_parm;
+}
+
+
 /* Return a copy of the function's static chain.  */
 static tree
 copy_static_chain (tree static_chain, copy_body_data * id)
@@ -5352,6 +5453,255 @@ tree_function_versioning (tree old_decl, tree new_decl,
 	      || DECL_STRUCT_FUNCTION (current_function_decl) == cfun);
   return;
 }
+
+static void
+initialize_elem_fn_cfun (tree new_fndecl, tree callee_fndecl)
+{
+  struct function *src_cfun = DECL_STRUCT_FUNCTION (callee_fndecl);
+
+  /* Get clean struct function.  */
+  push_struct_function (new_fndecl);
+
+  /* We will rebuild these, so just sanity check that they are empty.  */
+  gcc_assert (VALUE_HISTOGRAMS (cfun) == NULL);
+  gcc_assert (cfun->local_decls == NULL);
+  gcc_assert (cfun->cfg == NULL);
+  gcc_assert (cfun->decl == new_fndecl);
+
+  /* Copy items we preserve during cloning.  */
+  cfun->static_chain_decl = src_cfun->static_chain_decl;
+  cfun->nonlocal_goto_save_area = src_cfun->nonlocal_goto_save_area;
+  cfun->function_end_locus = src_cfun->function_end_locus;
+  cfun->curr_properties = src_cfun->curr_properties;
+  cfun->last_verified = src_cfun->last_verified;
+  cfun->va_list_gpr_size = src_cfun->va_list_gpr_size;
+  cfun->va_list_fpr_size = src_cfun->va_list_fpr_size;
+  cfun->has_nonlocal_label = src_cfun->has_nonlocal_label;
+  cfun->stdarg = src_cfun->stdarg;
+  cfun->after_inlining = src_cfun->after_inlining;
+  cfun->can_throw_non_call_exceptions
+    = src_cfun->can_throw_non_call_exceptions;
+  cfun->returns_struct = src_cfun->returns_struct;
+  cfun->returns_pcc_struct = src_cfun->returns_pcc_struct;
+  cfun->after_tree_profile = src_cfun->after_tree_profile;
+  
+  if (src_cfun->eh)
+    init_eh_for_function ();
+
+  if (src_cfun->gimple_df)
+    {
+      init_tree_ssa (cfun);
+      cfun->gimple_df->in_ssa_p = true;
+      init_ssa_operands ();
+    }
+  pop_cfun ();
+}
+
+void
+tree_elem_fn_versioning (tree old_decl, tree new_decl,
+			 VEC(ipa_replace_map_p,gc)* tree_map,
+			 bool update_clones, bitmap args_to_skip,
+			 bool skip_return, bitmap blocks_to_copy ATTRIBUTE_UNUSED,
+			 basic_block new_entry ATTRIBUTE_UNUSED, int vlength, bool masked)
+{
+  copy_body_data id;
+  tree p;
+  unsigned i;
+  struct ipa_replace_map *replace_info;
+  VEC (gimple, heap) *init_stmts = VEC_alloc (gimple, heap, 10);
+
+  tree old_current_function_decl = current_function_decl;
+  tree vars = NULL_TREE;
+
+  gcc_assert (TREE_CODE (old_decl) == FUNCTION_DECL
+	      && TREE_CODE (new_decl) == FUNCTION_DECL);
+  DECL_POSSIBLY_INLINED (old_decl) = 1;
+  
+  /* Copy over debug args.  */
+  if (DECL_HAS_DEBUG_ARGS_P (old_decl))
+    {
+      VEC(tree, gc) **new_debug_args, **old_debug_args;
+      gcc_checking_assert (decl_debug_args_lookup (new_decl) == NULL);
+      DECL_HAS_DEBUG_ARGS_P (new_decl) = 0;
+      old_debug_args = decl_debug_args_lookup (old_decl);
+      if (old_debug_args)
+	{
+	  new_debug_args = decl_debug_args_insert (new_decl);
+	  *new_debug_args = VEC_copy (tree, gc, *old_debug_args);
+	}
+    }
+
+  /* Output the inlining info for this abstract function, since it has been
+     inlined.  If we don't do this now, we can lose the information about the
+     variables in the function when the blocks get blown away as soon as we
+     remove the cgraph node.  */
+  (*debug_hooks->outlining_inline_function) (old_decl);
+
+  DECL_ARTIFICIAL (new_decl) = 1;
+  /* Prepare the data structures for the tree copy.  */
+  memset (&id, 0, sizeof (id));
+
+  /* Generate a new name for the new version. */
+  id.statements_to_fold = pointer_set_create ();
+
+  id.decl_map = pointer_map_create ();
+  id.debug_map = NULL;
+  id.src_fn = old_decl;
+  id.dst_fn = new_decl;
+  id.src_node = NULL;
+  id.dst_node = NULL;
+  id.src_cfun = DECL_STRUCT_FUNCTION (old_decl);
+
+  id.copy_decl = copy_decl_no_change;
+  id.transform_call_graph_edges
+    = update_clones ? CB_CGE_MOVE_CLONES : CB_CGE_MOVE;
+  id.transform_new_cfg = true;
+  id.transform_return_to_modify = false;
+  id.transform_lang_insert_block = NULL;
+
+  current_function_decl = new_decl;
+  
+  initialize_elem_fn_cfun (new_decl, old_decl);
+  push_cfun (DECL_STRUCT_FUNCTION (new_decl));
+
+  /* Copy the function's static chain.  */
+  p = DECL_STRUCT_FUNCTION (old_decl)->static_chain_decl;
+  if (p)
+    DECL_STRUCT_FUNCTION (new_decl)->static_chain_decl =
+      copy_static_chain (DECL_STRUCT_FUNCTION (old_decl)->static_chain_decl,
+			 &id);
+
+  /* If there's a tree_map, prepare for substitution.  */
+  if (tree_map)
+    for (i = 0; i < VEC_length (ipa_replace_map_p, tree_map); i++)
+      {
+	gimple init;
+	replace_info = VEC_index (ipa_replace_map_p, tree_map, i);
+	if (replace_info->replace_p)
+	  {
+	    tree op = replace_info->new_tree;
+	    if (!replace_info->old_tree)
+	      {
+		int i = replace_info->parm_num;
+		tree parm;
+		for (parm = DECL_ARGUMENTS (old_decl); i;
+		     parm = DECL_CHAIN (parm))
+		  i --;
+		replace_info->old_tree = parm;
+	      }
+		
+
+	    STRIP_NOPS (op);
+
+	    if (TREE_CODE (op) == VIEW_CONVERT_EXPR)
+	      op = TREE_OPERAND (op, 0);
+
+	    if (TREE_CODE (op) == ADDR_EXPR)
+	      {
+		op = TREE_OPERAND (op, 0);
+		while (handled_component_p (op))
+		  op = TREE_OPERAND (op, 0);
+		if (TREE_CODE (op) == VAR_DECL)
+		  add_referenced_var (op);
+	      }
+	    gcc_assert (TREE_CODE (replace_info->old_tree) == PARM_DECL);
+	    init = setup_one_parameter (&id, replace_info->old_tree,
+	    			        replace_info->new_tree, id.src_fn,
+				        NULL,
+				        &vars);
+	    if (init)
+	      VEC_safe_push (gimple, heap, init_stmts, init);
+	  }
+      }
+  /* Copy the function's arguments.  */
+  if (DECL_ARGUMENTS (old_decl) != NULL_TREE)
+    DECL_ARGUMENTS (new_decl) =
+      elem_fn_copy_arguments_for_versioning (DECL_ARGUMENTS (old_decl), &id,
+					     args_to_skip, &vars,
+					     vlength, masked);
+
+  DECL_INITIAL (new_decl) = remap_blocks (DECL_INITIAL (id.src_fn), &id);
+  BLOCK_SUPERCONTEXT (DECL_INITIAL (new_decl)) = new_decl;
+
+  declare_inline_vars (DECL_INITIAL (new_decl), vars);
+
+  if (!VEC_empty (tree, DECL_STRUCT_FUNCTION (old_decl)->local_decls))
+    /* Add local vars.  */
+    elem_fn_add_local_variables (DECL_STRUCT_FUNCTION (old_decl), cfun, &id,
+				 false, vlength);
+
+  if (DECL_RESULT (old_decl) == NULL_TREE)
+    ;
+  else if (skip_return && !VOID_TYPE_P (TREE_TYPE (DECL_RESULT (old_decl))))
+    {
+      DECL_RESULT (new_decl)
+	= build_decl (DECL_SOURCE_LOCATION (DECL_RESULT (old_decl)),
+		      RESULT_DECL, NULL_TREE, void_type_node);
+      DECL_CONTEXT (DECL_RESULT (new_decl)) = new_decl;
+      cfun->returns_struct = 0;
+      cfun->returns_pcc_struct = 0;
+    }
+  else
+    {
+      tree old_name;
+      DECL_RESULT (new_decl) = remap_decl (DECL_RESULT (old_decl), &id);
+      if (TREE_TYPE (DECL_RESULT (new_decl)) != void_type_node)
+	{
+	  TREE_TYPE (DECL_RESULT (new_decl)) =
+	    build_vector_type (copy_node (TREE_TYPE (DECL_RESULT (new_decl))),
+			       vlength);
+	  DECL_MODE (DECL_RESULT (new_decl)) =
+	    TYPE_MODE (TREE_TYPE (DECL_RESULT (new_decl)));
+	}
+      if (TREE_TYPE (TREE_TYPE (old_decl)) != void_type_node)
+	{
+	  TREE_TYPE (new_decl) = copy_node (TREE_TYPE (old_decl));
+	  TREE_TYPE (TREE_TYPE (new_decl)) =
+	    copy_node (TREE_TYPE (TREE_TYPE (old_decl)));
+	  TREE_TYPE (TREE_TYPE (new_decl)) =
+	    build_vector_type (TREE_TYPE (TREE_TYPE (new_decl)), vlength);
+	}
+      lang_hooks.dup_lang_specific_decl (DECL_RESULT (new_decl));
+      if (gimple_in_ssa_p (id.src_cfun)
+	  && DECL_BY_REFERENCE (DECL_RESULT (old_decl))
+	  && (old_name
+	      = gimple_default_def (id.src_cfun, DECL_RESULT (old_decl))))
+	{
+	  tree new_name = make_ssa_name (DECL_RESULT (new_decl), NULL);
+	  insert_decl_map (&id, old_name, new_name);
+	  SSA_NAME_DEF_STMT (new_name) = gimple_build_nop ();
+	  set_default_def (DECL_RESULT (new_decl), new_name);
+	}
+    }
+  walk_tree (&DECL_SAVED_TREE (new_decl), copy_tree_body_r, &id, NULL);
+  /* Renumber the lexical scoping (non-code) blocks consecutively.  */
+  number_blocks (new_decl);
+
+  
+  /* Remap the nonlocal_goto_save_area, if any.  */
+  if (cfun->nonlocal_goto_save_area)
+    {
+      struct walk_stmt_info wi;
+
+      memset (&wi, 0, sizeof (wi));
+      wi.info = &id;
+      walk_tree (&cfun->nonlocal_goto_save_area, remap_gimple_op_r, &wi, NULL);
+    }
+  
+  /* Clean up.  */
+  pointer_map_destroy (id.decl_map);
+  if (id.debug_map)
+    pointer_map_destroy (id.debug_map);
+
+  gcc_assert (!id.debug_stmts);
+  VEC_free (gimple, heap, init_stmts);
+  pop_cfun ();
+  current_function_decl = old_current_function_decl;
+  gcc_assert (!current_function_decl
+	      || DECL_STRUCT_FUNCTION (current_function_decl) == cfun);
+  return;
+}
+
 
 /* EXP is CALL_EXPR present in a GENERIC expression tree.  Try to integrate
    the callee and return the inlined body on success.  */

@@ -61,8 +61,8 @@ int main(int argc, char **argv)
 	array3[ii] = (double) ii + 0.00;
       array4[ii] = (double) (1.00000/ (double)(ii+1));
     }
-  y_int = __sec_reduce_any_zeros (array3[:] * array4[:]); 
-  y = __sec_reduce_all_zeros ( array3[:] * array4[:]); 
+  y_int = __sec_reduce_any_zero (array3[:] * array4[:]); 
+  y = __sec_reduce_all_zero ( array3[:] * array4[:]); 
 #if HAVE_IO
   for (ii = 0; ii < 10; ii++) 
     printf("%5.3f ", array3[ii] * array4[ii]);

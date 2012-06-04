@@ -191,12 +191,14 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
      are special since their declarations are shared with master clone and thus
      cgraph_can_remove_if_no_direct_calls_and_refs_p should not be called on them.  */
   for (node = cgraph_nodes; node; node = node->next)
-    if (node->analyzed && !node->global.inlined_to
-	&& (!cgraph_can_remove_if_no_direct_calls_and_refs_p (node)
-	    /* Keep around virtual functions for possible devirtualization.  */
-	    || (before_inlining_p
-		&& DECL_VIRTUAL_P (node->decl)
-		&& (DECL_COMDAT (node->decl) || DECL_EXTERNAL (node->decl)))))
+    if (DECL_ELEM_FN_ALREADY_CLONED (node->decl)
+	|| (node->analyzed && !node->global.inlined_to
+	    && (!cgraph_can_remove_if_no_direct_calls_and_refs_p (node)
+		/* Keep around virtual functions for possible devirtualization */
+		|| (before_inlining_p
+		    && DECL_VIRTUAL_P (node->decl)
+		    && (DECL_COMDAT (node->decl)
+			|| DECL_EXTERNAL (node->decl))))))
       {
         gcc_assert (!node->global.inlined_to);
 	enqueue_cgraph_node (node, &first);
