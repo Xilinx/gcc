@@ -570,6 +570,11 @@
     (send_command_to_probe 'SETSTATUS_pcd (strbuf2string discr_string sbuf))))
 
 
+(defun info_location_probe (tup)
+  (debug "info_location_probe tup=" tup)
+  (assert_msg "check tup len" (>=i (multiple_length tup) 1))
+)
+
 (defun start_probe ()
   :doc #{function to start the probe. Return the probe data. Can be used by any mode wanting the probe.}#
   (debug "start_probe")
@@ -605,6 +610,7 @@
     (set_ref probe_data_ref probedata)
     (register_input_channel_handler probe_request_processor probedata fromprobenumfd)
     (probe_register_request_verb 'VERSION_prq  show_version_probe)
+    (probe_register_request_verb 'INFOLOCATION_prq info_location_probe)
     (debug "start_probe registered probe_request_processor=" probe_request_processor 
 	   " with probedata=" probedata " fromprobenumfd=" fromprobenumfd)
     (let ( (mainprfil (probe_get_file_of_name probedata mainfilename))

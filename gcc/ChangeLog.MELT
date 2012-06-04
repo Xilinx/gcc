@@ -1,4 +1,17 @@
 
+2012-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h (meltgc_walk_gimple_seq): New declaration.
+
+	* melt-runtime.c (meltgc_walk_gimple_seq): New function.
+	(meltgc_walkstmt_cb, meltgc_walktree_cb): New internal functions.
+
+	* melt/xtramelt-ana-gimple.melt (walk_gimple_seq)
+	(walk_gimple_seq_unique_tree): New primitives.
+
+	* melt/xtramelt-probe.melt (info_location_probe): New stub function.
+	(start_probe): Call it.
+
 2012-06-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-probe.melt (probe_gimple_interesting_location):
 	New function.

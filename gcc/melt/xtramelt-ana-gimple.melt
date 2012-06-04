@@ -2102,6 +2102,18 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
   #{($TR)?gimple_build_return(($TR)):((gimple)0)}#
 )
 
+
+;;;;;;;;;;;;;;;; walk recursively inside a gimple
+(defprimitive walk_gimple_seq (:value data :gimple_seq gseq :value stmtclos treeclos) :gimple
+ #{ /* walk_gimple_seq */ meltgc_walk_gimple_seq ((melt_ptr_t)$DATA, ($GSEQ),
+                                                  $STMTCLOS, $TREECLOS, FALSE) 
+}#)
+
+(defprimitive walk_gimple_seq_unique_tree  (:value data :gimple_seq gseq :value stmtclos treeclos) :gimple
+ #{ /* walk_gimple_seq_unique_tree */ meltgc_walk_gimple_seq ((melt_ptr_t)$DATA, ($GSEQ),
+                                                              $STMTCLOS, $TREECLOS, TRUE) 
+}#)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; gimpleseq iteration
 ;;;; iterate on a gimpleseq
 (defciterator each_in_gimpleseq
@@ -2337,6 +2349,8 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  null_gimple 
  null_gimpleseq
  reveach_in_gimpleseq
+ walk_gimple_seq
+ walk_gimple_seq_unique_tree
  warning_at_gimple
  warning_at_gimple_strbuf
  )

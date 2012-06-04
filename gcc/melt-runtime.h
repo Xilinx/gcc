@@ -3250,6 +3250,23 @@ melt_get_inisysdata(int off)
 ****/
 void meltgc_walk_use_def_chain (melt_ptr_t clos_p, melt_ptr_t val_p, tree trvar, bool depthfirstflag);
 
+
+
+
+/*** MELT interface to walk_gimple_seq; using the given DATA as first
+     argument to closures, walk recursively inside gimple_seq GSEQ,
+     applying closure STMTCLOS_P to statements and closure TREECLOS_P
+     to trees if given. The UNIQUETREEVISIT flag is set if we don't
+     want to visit tree operands several times. The STMTCLOS_P gets
+     the DATA and the raw current GIMPLE as argument, and return a
+     boolean value as primary result, and the resulting TREE, if any,
+     as secondary result. The TREECLOS_P gets the DATA and the GIMPLE
+     as arguments, and return a boolean value, with a substree walking
+     integer flag and the resulting tree as secondary results.
+ ***/
+gimple 
+meltgc_walk_gimple_seq (melt_ptr_t data_p, gimple_seq gseq, melt_ptr_t stmtclos_p, melt_ptr_t treeclos_p, bool uniquetreevisit);
+
 #if ENABLE_CHECKING
 /* two useless routines in wich we can add a breakpoint from gdb. */
 void melt_sparebreakpoint_1_at (const char*fil, int lin, void*ptr, const char*msg);

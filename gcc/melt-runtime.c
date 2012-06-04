@@ -13025,6 +13025,124 @@ end:
 }
 
 
+
+
+/***************** gimple walkers ****************/
+static tree meltgc_walkstmt_cb (gimple_stmt_iterator *, bool *,
+			      struct walk_stmt_info *);
+static tree meltgc_walktree_cb (tree*, int*, void*);
+
+enum {
+  meltwgs_data,
+  meltwgs_stmtclos,
+  meltwgs_treeclos,
+  meltwgs__LAST
+};
+
+gimple 
+meltgc_walk_gimple_seq (melt_ptr_t data_p, gimple_seq gseq, melt_ptr_t stmtclos_p, melt_ptr_t treeclos_p, bool uniquetreevisit)
+{
+  struct walk_stmt_info wi;
+  struct pointer_set_t *pvisitset = NULL;
+  gimple gres = NULL;
+  MELT_ENTERFRAME (meltwgs__LAST, NULL);
+#define datav      meltfram__.mcfr_varptr[meltwgs_data]
+#define stmtclosv  meltfram__.mcfr_varptr[meltwgs_stmtclos]
+#define treeclosv  meltfram__.mcfr_varptr[meltwgs_treeclos]
+  memset (&wi, 0, sizeof(wi));
+  wi.info = &meltfram__;
+  if (uniquetreevisit)
+    wi.pset = pvisitset = pointer_set_create ();
+  datav = data_p;
+  stmtclosv = stmtclos_p;
+  treeclosv = treeclos_p;
+  gres = walk_gimple_seq 
+    (gseq, 
+     (melt_magic_discr((melt_ptr_t)stmtclosv) == MELTOBMAG_CLOSURE)
+     ? (&meltgc_walkstmt_cb)
+     :NULL,
+     (melt_magic_discr((melt_ptr_t)treeclosv) == MELTOBMAG_CLOSURE)
+     ? (&meltgc_walktree_cb)
+     :NULL,
+     &wi);
+  if (pvisitset) 
+    pointer_set_destroy (pvisitset);
+  MELT_EXITFRAME();
+#undef datav
+#undef stmtclosv
+#undef treeclosv
+  return gres;
+}
+
+tree 
+meltgc_walkstmt_cb (gimple_stmt_iterator *gsip, bool *okp, struct walk_stmt_info *wi)
+{
+  tree restree = NULL;
+  gimple gstmt = gsi_stmt (*gsip);
+  MELT_ENTERFRAME (3, NULL);
+#define datav      meltfram__.mcfr_varptr[0]
+#define closv      meltfram__.mcfr_varptr[1]
+#define resv       meltfram__.mcfr_varptr[2]
+  datav = ((struct melt_callframe_st*)(wi->info))->mcfr_varptr[meltwgs_data];
+  closv = ((struct melt_callframe_st*)(wi->info))->mcfr_varptr[meltwgs_stmtclos];
+  gcc_assert (melt_magic_discr((melt_ptr_t)closv) == MELTOBMAG_CLOSURE);
+  {
+    union meltparam_un argtab[1];
+    union meltparam_un restab[1];
+    memset (argtab, 0, sizeof(argtab));
+    memset (restab, 0, sizeof(restab));
+    argtab[0].meltbp_gimple = gstmt;
+    restab[0].meltbp_treeptr = &restree;
+    MELT_LOCATION_HERE ("meltgc_walkstmt_cb from meltgc_walk_gimple_seq before apply");
+    resv = melt_apply ((meltclosure_ptr_t) closv, (melt_ptr_t) datav,
+		       MELTBPARSTR_GIMPLE, argtab, MELTBPARSTR_TREE, restab);
+    if (resv && okp)
+      *okp = TRUE;
+  }
+  MELT_EXITFRAME();
+#undef datav
+#undef closv
+#undef resv
+  return restree;
+}
+
+
+tree meltgc_walktree_cb (tree*ptree, int*walksubtrees, void*data)
+{
+  tree restree = NULL;
+  struct walk_stmt_info* wi = (struct walk_stmt_info*) data;
+  MELT_ENTERFRAME (3, NULL);
+#define datav      meltfram__.mcfr_varptr[0]
+#define closv      meltfram__.mcfr_varptr[1]
+#define resv       meltfram__.mcfr_varptr[2]
+  datav = ((struct melt_callframe_st*)(wi->info))->mcfr_varptr[meltwgs_data];
+  closv = ((struct melt_callframe_st*)(wi->info))->mcfr_varptr[meltwgs_treeclos];
+  gcc_assert (melt_magic_discr((melt_ptr_t)closv) == MELTOBMAG_CLOSURE);
+  {
+    long seclng = -2;
+    union meltparam_un argtab[1];
+    union meltparam_un restab[2];
+    memset (argtab, 0, sizeof(argtab));
+    memset (restab, 0, sizeof(restab));
+    argtab[0].meltbp_tree = ptree?(*ptree):NULL;
+    restab[0].meltbp_longptr = &seclng;
+    restab[1].meltbp_treeptr = &restree;
+    MELT_LOCATION_HERE ("meltgc_walktree_cb from meltgc_walk_gimple_seq before apply");
+    resv = melt_apply ((meltclosure_ptr_t) closv, (melt_ptr_t) datav,
+		       MELTBPARSTR_TREE, argtab, MELTBPARSTR_LONG MELTBPARSTR_TREE, restab);
+    if (seclng != -2 && walksubtrees)
+      *walksubtrees = (int)seclng;
+  }
+  MELT_EXITFRAME();
+#undef datav
+#undef closv
+#undef resv
+  return restree;
+}
+
+
+
+
 /*****
  * called from handle_melt_attribute
  *****/
