@@ -857,7 +857,6 @@ cp_make_cilk_frame (void)
 						  obody, dtor),
 				      &body);
 
-      TREE_CHAIN (obody) = body;
       *saved_tree = body;
     }
 
