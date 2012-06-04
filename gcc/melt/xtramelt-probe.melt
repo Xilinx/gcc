@@ -160,6 +160,7 @@
            probiloc_lineno		;boxed line number
 	   probiloc_column		;boxed column number
 	   probiloc_rank 		;unique rank in probedata_ilocvec
+	   probiloc_closinfolist	;list of closures to give information
 	   ))
 
 (defclass class_probe_data 
@@ -395,7 +396,9 @@
 	      (setq ilocveclen newveclen)))
 	(assert_msg "check newrank" (<i newrank ilocveclen))
 	(assert_msg "check empty newrank" (null (multiple_nth ilocvec newrank)))
-	(put_fields newiloc :probiloc_rank (make_integerbox discr_constant_integer newrank))
+	(put_fields newiloc 
+		    :probiloc_rank (make_integerbox discr_constant_integer newrank)
+		    :probiloc_closinfolist (make_list discr_list))
 	(multiple_put_nth ilocvec newrank newiloc)
 	(debug "probe_get_interesting_location newiloc=" newiloc
 	       " newrank=" newrank " filerank=" filerank " lineno=" lineno " col=" col)
@@ -495,6 +498,17 @@
 	  ))))
 
 
+(defun probe_interesting_location_add_informer (probeloc closinfo)
+  (debug "probe_interesting_location_add_informer probeloc=" probeloc " closinfo=")
+  (if (null probeloc) (return))
+  (if (null closinfo) (return))
+  (assert_msg "check probeloc" (is_a probeloc  class_probed_interesting_location))
+  (assert_msg "check closinfo" (is_closure closinfo))
+  (let ( (lisinfo (get_field :probiloc_closinfolist probeloc))
+	 )
+    (assert_msg "check lisinfo" (is_list lisinfo))
+    (list_append lisinfo closinfo)
+))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; the internal request processor
 (defun probe_request_processor (inch inlist)
@@ -577,7 +591,12 @@
 
 (defun start_probe ()
   :doc #{function to start the probe. Return the probe data. Can be used by any mode wanting the probe.}#
-  (debug "start_probe")
+  (let ( (oldprobedata !probe_data_ref)
+	 )
+  (debug "start_probe oldprobedata=" oldprobedata)
+  (when oldprobedata 
+    (assert_msg "check oldprobedata" (is_a oldprobedata class_probe_data))
+    (return oldprobedata))
   (let (
         (mainfilename (make_string_real_access_path discr_string (main_input_filename)))
         (filesvec  (make_multiple discr_multiple 10))
@@ -618,12 +637,32 @@
       (debug "start_probe mainprfil=" mainprfil)
       (at_exit_last probe_at_exit)
       (return probedata)
-      )))
+      ))))
 
 
+(defun scanprobe_exec (pass)
+  (debug "scanprobe_exec start pass=" pass)
+  (compile_warning "incomplete scanprobe_exec")
+)
+
+(defun install_scanprobe_pass ()
+  (let ( (scpropass (instance class_gcc_gimple_pass
+			      :named_name '"melt_scanprobe_pass"
+			      :gccpass_gate ()
+			      :gccpass_exec scanprobe_exec
+			      :gccpass_data ())
+		    )
+	 )
+  (debug "install_scanprobe_pass start scpropass=" scpropass)
+  (install_melt_gcc_pass scpropass "after" "*build_cgraph_edges" 0)
+  (debug "install_scanprobe_pass installed scpropass=" scpropass)
+  (return scpropass)))
+
+;;;;;;;;;;;;;;;; mode to start the probe
 (defun probe_docmd (cmd moduldata)
   (debug "probe_docmd cmd=" cmd " moduldata=" moduldata)
   (start_probe)
+  (install_scanprobe_pass)
   (return :true)
   )
 
@@ -635,6 +674,9 @@
   :meltmode_fun probe_docmd
 )
 (install_melt_mode probe_mode)
+;;;;;;;;;;;;;;;;
+
+
 
 (export_class 
  class_probed_file 
