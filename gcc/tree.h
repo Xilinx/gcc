@@ -5063,7 +5063,7 @@ typedef struct record_layout_info_s
   /* The alignment of the record so far, ignoring #pragma pack and
      __attribute__ ((packed)), in bits.  */
   unsigned int unpacked_align;
-  /* The previous field layed out.  */
+  /* The previous field laid out.  */
   tree prev_field;
   /* The static variables (i.e., class variables, as opposed to
      instance variables) encountered in T.  */
@@ -5296,7 +5296,7 @@ extern bool contains_placeholder_p (const_tree);
 
 extern bool type_contains_placeholder_p (tree);
 
-/* Given a tree EXP, find all occurences of references to fields
+/* Given a tree EXP, find all occurrences of references to fields
    in a PLACEHOLDER_EXPR and place them in vector REFS without
    duplicates.  Also record VAR_DECLs and CONST_DECLs.  Note that
    we assume here that EXP contains only arithmetic expressions
@@ -6021,10 +6021,6 @@ extern tree decl_attributes (tree *, tree, int);
 
 extern void apply_tm_attr (tree, tree);
 
-/* In integrate.c */
-extern void set_decl_abstract_flags (tree, int);
-extern void set_decl_origin_self (tree);
-
 /* In stor-layout.c */
 extern void set_min_and_max_values_for_integral_type (tree, int, bool);
 extern void fixup_signed_type (tree);
@@ -6045,6 +6041,31 @@ extern void set_user_assembler_name (tree, const char *);
 extern void process_pending_assemble_externals (void);
 extern bool decl_replaceable_p (tree);
 extern bool decl_binds_to_current_def_p (tree);
+extern enum tls_model decl_default_tls_model (const_tree);
+
+/* Declare DECL to be a weak symbol.  */
+extern void declare_weak (tree);
+/* Merge weak status.  */
+extern void merge_weak (tree, tree);
+/* Make one symbol an alias for another.  */
+extern void assemble_alias (tree, tree);
+
+/* Return nonzero if VALUE is a valid constant-valued expression
+   for use in initializing a static variable; one that can be an
+   element of a "constant" initializer.
+
+   Return null_pointer_node if the value is absolute;
+   if it is relocatable, return the variable that determines the relocation.
+   We assume that VALUE has been folded as much as possible;
+   therefore, we do not need to check for such things as
+   arithmetic-combinations of integers.  */
+extern tree initializer_constant_valid_p (tree, tree);
+
+/* Return true if VALUE is a valid constant-valued expression
+   for use in initializing a static bit-field; one that can be
+   an element of a "constant" initializer.  */
+extern bool initializer_constant_valid_for_bitfield_p (tree);
+
 /* In stmt.c */
 extern void expand_computed_goto (tree);
 extern bool parse_output_constraint (const char **, int, int, int,
@@ -6056,7 +6077,6 @@ extern tree resolve_asm_operand_names (tree, tree, tree, tree);
 extern bool expand_switch_using_bit_tests_p (tree, tree, unsigned int,
 					     unsigned int);
 extern void expand_case (gimple);
-extern void expand_decl (tree);
 #ifdef HARD_CONST
 /* Silly ifdef to avoid having all includers depend on hard-reg-set.h.  */
 extern tree tree_overlaps_hard_reg_set (tree, HARD_REG_SET *);

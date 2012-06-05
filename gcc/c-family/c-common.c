@@ -26,7 +26,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "intl.h"
 #include "tree.h"
 #include "flags.h"
-#include "output.h"
 #include "c-pragma.h"
 #include "ggc.h"
 #include "c-common.h"
@@ -3960,7 +3959,7 @@ pointer_int_sum (location_t loc, enum tree_code resultcode,
 
   /* Replace the integer argument with a suitable product by the object size.
      Do this multiplication as signed, then convert to the appropriate type
-     for the pointer operation and disregard an overflow that occured only
+     for the pointer operation and disregard an overflow that occurred only
      because of the sign-extension change in the latter conversion.  */
   {
     tree t = build_binary_op (loc,

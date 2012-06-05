@@ -1,5 +1,5 @@
 /* Functions to determine/estimate number of iterations of a loop.
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -25,7 +25,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "tm_p.h"
 #include "basic-block.h"
-#include "output.h"
 #include "tree-pretty-print.h"
 #include "gimple-pretty-print.h"
 #include "intl.h"
@@ -591,7 +590,7 @@ number_of_iterations_ne_max (mpz_t bnd, bool no_overflow, tree c, tree s,
      overflow, ... */
   if (exit_must_be_taken)
     {
-      /* ... then we can strenghten this to C / S, and possibly we can use
+      /* ... then we can strengthen this to C / S, and possibly we can use
 	 the upper bound on C given by BNDS.  */
       if (TREE_CODE (c) == INTEGER_CST)
 	mpz_set_double_int (bnd, tree_to_double_int (c), true);
@@ -1276,13 +1275,14 @@ number_of_iterations_cond (struct loop *loop,
      practice, but it is simple enough to manage.  */
   if (!integer_zerop (iv0->step) && !integer_zerop (iv1->step))
     {
+      tree step_type = POINTER_TYPE_P (type) ? sizetype : type;
       if (code != NE_EXPR)
 	return false;
 
-      iv0->step = fold_binary_to_constant (MINUS_EXPR, type,
+      iv0->step = fold_binary_to_constant (MINUS_EXPR, step_type,
 					   iv0->step, iv1->step);
       iv0->no_overflow = false;
-      iv1->step = build_int_cst (type, 0);
+      iv1->step = build_int_cst (step_type, 0);
       iv1->no_overflow = true;
     }
 

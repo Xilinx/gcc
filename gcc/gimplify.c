@@ -37,7 +37,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "hashtab.h"
 #include "flags.h"
 #include "function.h"
-#include "output.h"
 #include "ggc.h"
 #include "diagnostic-core.h"
 #include "target.h"
@@ -2811,7 +2810,7 @@ shortcut_cond_r (tree pred, tree *true_label_p, tree *false_label_p,
 
 /* Given a conditional expression EXPR with short-circuit boolean
    predicates using TRUTH_ANDIF_EXPR or TRUTH_ORIF_EXPR, break the
-   predicate appart into the equivalent sequence of conditionals.  */
+   predicate apart into the equivalent sequence of conditionals.  */
 
 static tree
 shortcut_cond_expr (tree expr)
