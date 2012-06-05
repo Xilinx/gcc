@@ -587,6 +587,8 @@
 (defun info_location_probe (tup)
   (debug "info_location_probe tup=" tup)
   (assert_msg "check tup len" (>=i (multiple_length tup) 1))
+  ;; should send one STARTINFOLOC_pcd command followed by zero, one or
+  ;; more ADDINFOLOC_pcd commands
 )
 
 (defun start_probe ()
@@ -642,6 +644,11 @@
 
 (defun scanprobe_exec (pass)
   (debug "scanprobe_exec start pass=" pass)
+  (with_cfun_decl 
+   ()
+   (:tree cfundecl)
+   (debug "scanprobe_exec cfundecl=" cfundecl)
+   )
   (compile_warning "incomplete scanprobe_exec")
 )
 

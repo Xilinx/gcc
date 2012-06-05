@@ -49,6 +49,8 @@ Exchanges between the probe and MELT are "asynchronous" and
 textual. Each textual message is ended by two consecutive newlines
 that is \n\n in C parlance.
 
+The MELT code of the probe is in file melt/xtramelt-probe.melt
+
 A message from probe to MELT is a request. It is syntactically a
 sequence of MELT s-expressions which is passed to the channel handler
 inside MELT (see CLASS_INPUT_CHANNEL_HANDLER). It should be ended by
@@ -281,14 +283,27 @@ class SmeltMainWindow : public Gtk::ApplicationWindow {
     }
   };				// end internal class ShownFile
   //////
+  class ShownLocationInfo;
+  class ShownLocationDialog : public Gtk::MessageDialog {
+    friend class ShownLocationInfo;
+    ShownLocationInfo *_sld_info;
+    Gtk::TextView _sld_view;
+    Gtk::ScrolledWindow _sld_swin;
+  public:
+    ShownLocationDialog(ShownLocationInfo*sli);
+    virtual ~ShownLocationDialog();
+    ShownLocationInfo* info() const { return _sld_info; };
+    Glib::RefPtr<Gtk::TextBuffer> tbuf() { return _sld_view.get_buffer(); };
+    Gtk::TextView& view() { return _sld_view; };
+    Gtk::ScrolledWindow& scrwin() { return _sld_swin; };
+  };
   class ShownLocationInfo : public sigc::trackable {
     ShownFile* _sli_fil;
     long _sli_num;
     int _sli_lineno;
     int _sli_col;
-    Glib::RefPtr<Gtk::TextBuffer> _sli_bufp;
-    Glib::RefPtr<Gtk::MessageDialog> _sli_dialp;
-    Glib::RefPtr<Gtk::TextView> _sli_tviewp;
+    Glib::RefPtr<ShownLocationDialog> _sli_dialp;
+    static Glib::RefPtr<Gtk::TextTagTable> sli_tagtbl_;
   public:
     ShownLocationInfo(long num, ShownFile* fil, int lineno, int col)
       : _sli_fil(fil), _sli_num(num), _sli_lineno(lineno), _sli_col(col) {
@@ -296,6 +311,11 @@ class SmeltMainWindow : public Gtk::ApplicationWindow {
     ~ShownLocationInfo() 
     { _sli_fil=nullptr; _sli_num=0; _sli_lineno=0, _sli_col=0; }
     void on_update(void);
+    static Glib::RefPtr<Gtk::TextTagTable> the_tag_table() { return sli_tagtbl_;};
+    ShownFile* sfile() const { return _sli_fil;};
+    long num() const { return _sli_num; };
+    int lineno() const { return _sli_lineno; };
+    int col() const { return _sli_col; };
   };				// end internal class ShownLocationInfo
   static std::map<long,ShownFile*> mainsfilemapnum_;
   static std::map<std::string,ShownFile*> mainsfiledict_;
@@ -385,7 +405,7 @@ public:
 std::map<long,SmeltMainWindow::ShownFile*> SmeltMainWindow::mainsfilemapnum_;
 std::map<std::string,SmeltMainWindow::ShownFile*> SmeltMainWindow::mainsfiledict_;
 std::map<long,SmeltMainWindow::ShownLocationInfo*>  SmeltMainWindow::mainlocinfmapnum_;
-
+Glib::RefPtr<Gtk::TextTagTable> SmeltMainWindow::ShownLocationInfo::sli_tagtbl_;
 
 class SmeltTraceWindow : public Gtk::Window {
   Gtk::VBox _tracevbox;
@@ -1015,6 +1035,8 @@ public:
   void echo_cmd(SmeltVector&);
   void showfile_cmd(SmeltVector&);
   void marklocation_cmd(SmeltVector&);
+  void startinfoloc_cmd(SmeltVector&);
+  void addinfoloc_cmd(SmeltVector&);
   void clearstatus_cmd(SmeltVector&);
   void pushstatus_cmd(SmeltVector&);
   void popstatus_cmd(SmeltVector&);
@@ -1326,11 +1348,80 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
   SMELT_DEBUG("added mark but@" << (void*) but);
 }
 
+/* When the user press a location button, on_update is called. It
+   should send an INFOLOCATION_prq request to MELT, which should
+   respond with one STARTINFOLOC_pcd followed by zero, one or more
+   ADDINFOLOC_pcd commands */
+
 void SmeltMainWindow::ShownLocationInfo::on_update(void)
 {
   SMELT_DEBUG("updating loc#" << _sli_num);
   SmeltApplication::instance()->sendreq(SmeltApplication::instance()->outreq()
 					<< "INFOLOCATION_prq" << _sli_num);
+  if (!sli_tagtbl_) 
+    {
+      sli_tagtbl_ = Gtk::TextTagTable::create();
+      {
+	auto tagtitle = Gtk::TextTag::create ("title");
+	tagtitle->property_weight() = Pango::WEIGHT_BOLD;
+	tagtitle->property_scale() = Pango::SCALE_X_LARGE;
+	tagtitle->property_foreground() = "FireBrick";
+	sli_tagtbl_->add(tagtitle);
+      }
+      {
+	auto tagsubtitle = Gtk::TextTag::create ("subtitle");
+	tagsubtitle->property_weight() = Pango::WEIGHT_BOLD;
+	tagsubtitle->property_scale() = Pango::SCALE_LARGE;
+	tagsubtitle->property_foreground() = "Navy";
+	sli_tagtbl_->add(tagsubtitle);
+      }
+      {
+	auto tagbold = Gtk::TextTag::create ("bold");
+	tagbold->property_weight() = Pango::WEIGHT_BOLD;
+	sli_tagtbl_->add(tagbold);
+      }
+      {
+	auto tagitalic = Gtk::TextTag::create ("italic");    
+	tagitalic->property_style() = Pango::STYLE_OBLIQUE;
+	sli_tagtbl_->add(tagitalic);
+      }
+    }
+  if (!_sli_dialp) 
+    {
+      auto mdial = new ShownLocationDialog(this);
+      _sli_dialp = Glib::RefPtr<ShownLocationDialog>(mdial);
+    }
+}
+
+
+SmeltMainWindow::ShownLocationDialog::ShownLocationDialog(SmeltMainWindow::ShownLocationInfo*info)
+  : Gtk::MessageDialog
+  (Glib::ustring::compose("MELT info at <tt>%1<tt> <small>L%dC%d</small>",
+    basename(info->sfile()->name().c_str()), info->lineno(), info->col()),
+    /*use_markup*/ true,
+    Gtk::MESSAGE_INFO,
+    Gtk::BUTTONS_CLOSE,
+  /*modal*/ false),
+  _sld_info(info),
+  _sld_view(),
+  _sld_swin()
+{
+  auto tbuf = Gtk::TextBuffer::create (ShownLocationInfo::the_tag_table());
+  _sld_view.set_buffer (tbuf);
+  _sld_view.set_editable (false);
+  _sld_swin.set_policy (Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
+  _sld_swin.add(_sld_view);
+  get_content_area()->pack_start(_sld_swin, 
+    /*expand:*/ true,
+    /*fill:*/ true,
+    /*padding:*/ 2);
+  SMELT_DEBUG("constructing location dialog for info#" << info->num() << " @" << (void*)this);
+}
+
+SmeltMainWindow::ShownLocationDialog::~ShownLocationDialog()
+{
+  SMELT_DEBUG("destructing location dialog @" << (void*)this << " for info #" << _sld_info->num());
+  _sld_info = nullptr;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -1801,6 +1892,28 @@ SmeltApplication::marklocation_cmd(SmeltVector&v)
   _app_mainwinp->mark_location(marknum,filnum,lineno,col);
 }
 
+
+//////////////// startinfoloc_pcd <marknum> <titlestring> to start information for a location
+
+
+#warning info location very incomplete
+SmeltCommandSymbol smeltsymb_startinfoloc_cmd("STARTINFOLOC_PCD",&SmeltApplication::startinfoloc_cmd);
+
+void
+SmeltApplication::startinfoloc_cmd(SmeltVector&)
+{
+  SMELT_DEBUG("STARTINFOLOC");
+}
+
+//////////////// addinfoloc_pcd <marknum> <subtitlestring> <content> to add  information for a location
+
+SmeltCommandSymbol smeltsymb_addinfoloc_cmd("ADDINFOLOC_PCD",&SmeltApplication::addinfoloc_cmd);
+
+void
+SmeltApplication::addinfoloc_cmd(SmeltVector&)
+{
+  SMELT_DEBUG("ADDINFOLOC");
+}
 
 ////////////////////////////////////////////////////////////////
 //////////////// clearstatus_pcd to clear the status stack

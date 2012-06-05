@@ -1,4 +1,7 @@
 
+2012-06-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-probe.melt (scanprobe_exec): Incomplete.
+
 2012-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-probe.melt (scanprobe_exec): New stub.
 	(install_scanprobe_pass): New function.
