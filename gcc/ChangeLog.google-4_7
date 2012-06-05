@@ -1,3 +1,7 @@
+2012-06-05   Diego Novillo  <dnovillo@google.com>
+
+	Merge from gcc-4_7-branch rev 188095 (minus rev 187877).
+
 2012-06-02  Xinliang David Li  <davidxl@google.com>
 
 	l-ipo.c (promote_static_var_func): Promoted static variables from

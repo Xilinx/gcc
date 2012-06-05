@@ -1,3 +1,165 @@
+2012-05-31  Jason Merrill  <jason@redhat.com>
+
+	PR c++/52905
+	* g++.dg/cpp0x/initlist-ctor1.C: New.
+
+2012-05-31  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/48493
+	* gcc.dg/torture/pr48493.c: New testcase.
+
+2012-05-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/53356
+	* g++.dg/init/new33.C: New test.
+
+2012-05-30  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53220
+	* c-c++-common/array-lit.c: New.
+	* g++.dg/ext/complit12.C: #if 0 out decay-to-pointer test.
+
+2012-05-30  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/53501
+	* gcc.dg/torture/pr53501.c: New testcase.
+	* c-c++-common/restrict-2.c: Adjust.
+
+2012-05-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/53519
+	* gcc.c-torture/compile/pr53519.c: New test.
+
+2012-05-29  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53516
+	* gcc.dg/torture/pr53516.c: New testcase.
+
+2012-05-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/53491
+	* g++.dg/parse/crash60.C: New.
+
+2012-05-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53505
+	* c-c++-common/torture/pr53505.c: New test.
+
+2012-05-25  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/split-6.c: New test.
+
+2012-05-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/lto14.adb: New test.
+
+2012-05-24  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/53460
+	* g++.dg/tree-prof/pr53460.C: New testcase.
+
+2012-05-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53465
+	* gcc.c-torture/execute/pr53465.c: New test.
+
+2012-05-23  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/53389
+	* gfortran.dg/realloc_on_assign_15.f90: New.
+
+2012-05-22  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53408
+	* gcc.dg/torture/pr53408.c: New testcase.
+
+2012-05-22  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/51071
+	* gcc.dg/torture/pr51071-2.c: New testcase.
+
+2012-05-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53366
+	* gcc.dg/torture/pr53366-1.c: New test.
+	* gcc.dg/torture/pr53366-2.c: New test.
+	* gcc.target/i386/pr53366-1.c: New test.
+	* gcc.target/i386/pr53366-2.c: New test.
+
+	PR tree-optimization/53409
+	* gcc.c-torture/compile/pr53409.c: New test.
+
+	PR tree-optimization/53410
+	* gcc.c-torture/compile/pr53410-1.c: New test.
+	* gcc.c-torture/compile/pr53410-2.c: New test.
+
+2012-05-21  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/53418
+	* gcc.c-torture/compile/pr53418-1.c,
+	gcc.c-torture/compile/pr53418-2.c: New tests.
+
+2012-05-21  Patrick Marlier  <patrick.marlier@gmail.com>
+
+	* gcc.dg/tm/indirect-2.c: New test.
+
+2012-05-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	Backport from mainline
+	2012-05-21  Uros Bizjak  <ubizjak@gmail.com>
+		    H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/53416
+	* gcc.target/i386/pr53416.c: New file.
+
+2012-05-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/lto13.adb: New test.
+	* gnat.dg/lto13_pkg.ad[sb]: New helper.
+
+2012-05-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/lto12.ads: New test.
+	* gnat.dg/specs/lto12_pkg.ads: New helper.
+
+2012-05-17  David S. Miller  <davem@davemloft.net>
+
+	* gfortran.dg/bessel_7.f90: Bump allowed precision to avoid
+	failure on sparc-*-linux-gnu.
+
+2012-05-16  Richard Henderson  <rth@redhat.com>
+
+	PR debug/52727
+	* g++.dg/opt/pr52727.C: New testcase.
+
+2012-05-16  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53364
+	* g++.dg/torture/pr53364.C: New testcase.
+
+2012-05-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/53358
+	* gcc.dg/pr53358.c: New test.
+
+2012-05-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/avx256-unaligned-load-[1234].c: Update scan strings.
+	* gcc.target/i386/avx256-unaligned-store-[1234].c: Ditto.
+
+2012-05-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/null_pointer_deref3.adb: New test.
+
+2012-05-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/53301
+	* g++.dg/warn/Wzero-as-null-pointer-constant-6.C: New.
+
+2012-05-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/lto11.ad[sb]: New test.
+
 2012-05-08  Hans-Peter Nilsson  <hp@axis.com>
 
 	PR target/53272

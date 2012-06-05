@@ -1,3 +1,15 @@
+2012-05-31  Benjamin Kosnik  <bkoz@redhat.com>
+
+        PR libstdc++/52007
+        * configure.ac: Allow gnu, gnu* variants for --enable-symvers argument.
+        * configure: Regenerated.
+
+2012-05-12  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/53310
+	* intrinsics/eoshift2.c (eoshift2): Do not leak
+	memory by allocating it in the loop.
+
 2012-03-30  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR libgfortran/52758

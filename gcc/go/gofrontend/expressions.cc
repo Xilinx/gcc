@@ -1312,30 +1312,18 @@ Func_expression::do_get_tree(Translate_context* context)
 	     && TREE_CODE(TREE_OPERAND(fnaddr, 0)) == FUNCTION_DECL);
   TREE_ADDRESSABLE(TREE_OPERAND(fnaddr, 0)) = 1;
 
-  // For a normal non-nested function call, that is all we have to do.
-  if (!this->function_->is_function()
-      || this->function_->func_value()->enclosing() == NULL)
-    {
-      go_assert(this->closure_ == NULL);
-      return fnaddr;
-    }
+  // If there is no closure, that is all have to do.
+  if (this->closure_ == NULL)
+    return fnaddr;
 
-  // For a nested function call, we have to always allocate a
-  // trampoline.  If we don't always allocate, then closures will not
-  // be reliably distinct.
-  Expression* closure = this->closure_;
-  tree closure_tree;
-  if (closure == NULL)
-    closure_tree = null_pointer_node;
-  else
-    {
-      // Get the value of the closure.  This will be a pointer to
-      // space allocated on the heap.
-      closure_tree = closure->get_tree(context);
-      if (closure_tree == error_mark_node)
-	return error_mark_node;
-      go_assert(POINTER_TYPE_P(TREE_TYPE(closure_tree)));
-    }
+  go_assert(this->function_->func_value()->enclosing() != NULL);
+
+  // Get the value of the closure.  This will be a pointer to space
+  // allocated on the heap.
+  tree closure_tree = this->closure_->get_tree(context);
+  if (closure_tree == error_mark_node)
+    return error_mark_node;
+  go_assert(POINTER_TYPE_P(TREE_TYPE(closure_tree)));
 
   // Now we need to build some code on the heap.  This code will load
   // the static chain pointer with the closure and then jump to the
@@ -4044,19 +4032,50 @@ Unary_expression::do_get_tree(Translate_context* context)
 
       if (this->create_temp_
 	  && !TREE_ADDRESSABLE(TREE_TYPE(expr))
-	  && !DECL_P(expr)
+	  && (TREE_CODE(expr) == CONST_DECL || !DECL_P(expr))
 	  && TREE_CODE(expr) != INDIRECT_REF
 	  && TREE_CODE(expr) != COMPONENT_REF)
 	{
-	  tree tmp = create_tmp_var(TREE_TYPE(expr), get_name(expr));
-	  DECL_IGNORED_P(tmp) = 1;
-	  DECL_INITIAL(tmp) = expr;
-	  TREE_ADDRESSABLE(tmp) = 1;
-	  return build2_loc(loc.gcc_location(), COMPOUND_EXPR,
-			    build_pointer_type(TREE_TYPE(expr)),
-			    build1_loc(loc.gcc_location(), DECL_EXPR,
-                                       void_type_node, tmp),
-			    build_fold_addr_expr_loc(loc.gcc_location(), tmp));
+	  if (current_function_decl != NULL)
+	    {
+	      tree tmp = create_tmp_var(TREE_TYPE(expr), get_name(expr));
+	      DECL_IGNORED_P(tmp) = 1;
+	      DECL_INITIAL(tmp) = expr;
+	      TREE_ADDRESSABLE(tmp) = 1;
+	      return build2_loc(loc.gcc_location(), COMPOUND_EXPR,
+				build_pointer_type(TREE_TYPE(expr)),
+				build1_loc(loc.gcc_location(), DECL_EXPR,
+					   void_type_node, tmp),
+				build_fold_addr_expr_loc(loc.gcc_location(),
+							 tmp));
+	    }
+	  else
+	    {
+	      tree tmp = build_decl(loc.gcc_location(), VAR_DECL,
+				    create_tmp_var_name("A"), TREE_TYPE(expr));
+	      DECL_EXTERNAL(tmp) = 0;
+	      TREE_PUBLIC(tmp) = 0;
+	      TREE_STATIC(tmp) = 1;
+	      DECL_ARTIFICIAL(tmp) = 1;
+	      TREE_ADDRESSABLE(tmp) = 1;
+	      tree make_tmp;
+	      if (!TREE_CONSTANT(expr))
+		make_tmp = fold_build2_loc(loc.gcc_location(), INIT_EXPR,
+					   void_type_node, tmp, expr);
+	      else
+		{
+		  TREE_READONLY(tmp) = 1;
+		  TREE_CONSTANT(tmp) = 1;
+		  DECL_INITIAL(tmp) = expr;
+		  make_tmp = NULL_TREE;
+		}
+	      rest_of_decl_compilation(tmp, 1, 0);
+	      tree addr = build_fold_addr_expr_loc(loc.gcc_location(), tmp);
+	      if (make_tmp == NULL_TREE)
+		return addr;
+	      return build2_loc(loc.gcc_location(), COMPOUND_EXPR,
+				TREE_TYPE(addr), make_tmp, addr);
+	    }
 	}
 
       return build_fold_addr_expr_loc(loc.gcc_location(), expr);
@@ -4456,9 +4475,8 @@ Binary_expression::eval_constant(Operator op, Numeric_constant* left_nc,
     case OPERATOR_LE:
     case OPERATOR_GT:
     case OPERATOR_GE:
-      // These return boolean values and as such must be handled
-      // elsewhere.
-      go_unreachable();
+      // These return boolean values, not numeric.
+      return false;
     default:
       break;
     }
@@ -5285,24 +5303,13 @@ Binary_expression::operand_address(Statement_inserter* inserter,
 bool
 Binary_expression::do_numeric_constant_value(Numeric_constant* nc) const
 {
-  Operator op = this->op_;
-
-  if (op == OPERATOR_EQEQ
-      || op == OPERATOR_NOTEQ
-      || op == OPERATOR_LT
-      || op == OPERATOR_LE
-      || op == OPERATOR_GT
-      || op == OPERATOR_GE)
-    return false;
-
   Numeric_constant left_nc;
   if (!this->left_->numeric_constant_value(&left_nc))
     return false;
   Numeric_constant right_nc;
   if (!this->right_->numeric_constant_value(&right_nc))
     return false;
-
-  return Binary_expression::eval_constant(op, &left_nc, &right_nc,
+  return Binary_expression::eval_constant(this->op_, &left_nc, &right_nc,
 					  this->location(), nc);
 }
 
@@ -6194,7 +6201,9 @@ Expression::comparison_tree(Translate_context* context, Operator op,
 	  make_tmp = NULL_TREE;
 	  arg = right_tree;
 	}
-      else if (TREE_ADDRESSABLE(TREE_TYPE(right_tree)) || DECL_P(right_tree))
+      else if (TREE_ADDRESSABLE(TREE_TYPE(right_tree))
+	       || (TREE_CODE(right_tree) != CONST_DECL
+		   && DECL_P(right_tree)))
 	{
 	  make_tmp = NULL_TREE;
 	  arg = build_fold_addr_expr_loc(location.gcc_location(), right_tree);
@@ -11792,8 +11801,7 @@ Open_array_construction_expression::do_get_tree(Translate_context* context)
       if (this->indexes() == NULL)
 	max_index = this->vals()->size() - 1;
       else
-	max_index = *std::max_element(this->indexes()->begin(),
-				      this->indexes()->end());
+	max_index = this->indexes()->back();
       tree max_tree = size_int(max_index);
       tree constructor_type = build_array_type(element_type_tree,
 					       build_index_type(max_tree));
@@ -12544,6 +12552,17 @@ Composite_literal_expression::lower_struct(Gogo* gogo, Type* type)
   return ret;
 }
 
+// Used to sort an index/value array.
+
+class Index_value_compare
+{
+ public:
+  bool
+  operator()(const std::pair<unsigned long, Expression*>& a,
+	     const std::pair<unsigned long, Expression*>& b)
+  { return a.first < b.first; }
+};
+
 // Lower an array composite literal.
 
 Expression*
@@ -12555,6 +12574,7 @@ Composite_literal_expression::lower_array(Type* type)
 
   std::vector<unsigned long>* indexes = new std::vector<unsigned long>;
   indexes->reserve(this->vals_->size());
+  bool indexes_out_of_order = false;
   Expression_list* vals = new Expression_list();
   vals->reserve(this->vals_->size());
   unsigned long index = 0;
@@ -12625,6 +12645,9 @@ Composite_literal_expression::lower_array(Type* type)
 	      return Expression::make_error(location);
 	    }
 
+	  if (!indexes->empty() && index < indexes->back())
+	    indexes_out_of_order = true;
+
 	  indexes->push_back(index);
 	}
 
@@ -12637,6 +12660,34 @@ Composite_literal_expression::lower_array(Type* type)
     {
       delete indexes;
       indexes = NULL;
+    }
+
+  if (indexes_out_of_order)
+    {
+      typedef std::vector<std::pair<unsigned long, Expression*> > V;
+
+      V v;
+      v.reserve(indexes->size());
+      std::vector<unsigned long>::const_iterator pi = indexes->begin();
+      for (Expression_list::const_iterator pe = vals->begin();
+	   pe != vals->end();
+	   ++pe, ++pi)
+	v.push_back(std::make_pair(*pi, *pe));
+
+      std::sort(v.begin(), v.end(), Index_value_compare());
+
+      delete indexes;
+      delete vals;
+      indexes = new std::vector<unsigned long>();
+      indexes->reserve(v.size());
+      vals = new Expression_list();
+      vals->reserve(v.size());
+
+      for (V::const_iterator p = v.begin(); p != v.end(); ++p)
+	{
+	  indexes->push_back(p->first);
+	  vals->push_back(p->second);
+	}
     }
 
   return this->make_array(type, indexes, vals);
@@ -12659,7 +12710,9 @@ Composite_literal_expression::make_array(
       size_t size;
       if (vals == NULL)
 	size = 0;
-      else if (indexes == NULL)
+      else if (indexes != NULL)
+	size = indexes->back() + 1;
+      else
 	{
 	  size = vals->size();
 	  Integer_type* it = Type::lookup_integer_type("int")->integer_type();
@@ -12669,11 +12722,6 @@ Composite_literal_expression::make_array(
 	      error_at(location, "too many elements in composite literal");
 	      return Expression::make_error(location);
 	    }
-	}
-      else
-	{
-	  size = *std::max_element(indexes->begin(), indexes->end());
-	  ++size;
 	}
 
       mpz_t vlen;
@@ -12702,8 +12750,7 @@ Composite_literal_expression::make_array(
 	    }
 	  else
 	    {
-	      unsigned long max = *std::max_element(indexes->begin(),
-						    indexes->end());
+	      unsigned long max = indexes->back();
 	      if (max >= val)
 		{
 		  error_at(location,

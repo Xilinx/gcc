@@ -1,3 +1,15 @@
+2012-05-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/53503
+	* testsuite/26_numerics/headers/cmath/53503.cc: New.
+
+2012-05-10  DJ Delorie  <dj@redhat.com>
+
+	* include/bits/random.tcc (seed_seq::generate): Cast max()
+	operands to size_t to ensure a template match.
+	* include/std/bitset (_M_copy_from_ptr): Cast min() operands to
+	size_t to ensure a template match.
+
 2012-05-02  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR libstdc++/53193
