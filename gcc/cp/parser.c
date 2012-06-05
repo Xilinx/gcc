@@ -18045,6 +18045,11 @@ cp_parser_ctor_initializer_opt_and_function_body (cp_parser *parser,
   cp_parser_function_body (parser, in_function_try_block);
   if (check_body_p)
     check_constexpr_ctor_body (last, list);
+
+  if (flag_enable_cilk)
+    if (contains_array_notation_expr (body))
+      body = fix_array_notation_exprs (body);
+  
   /* Finish the function body.  */
   finish_function_body (body);
 
