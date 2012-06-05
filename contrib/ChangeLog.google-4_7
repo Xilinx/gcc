@@ -1,0 +1,4 @@
+2012-06-04   Diego Novillo  <dnovillo@google.com>
+
+        * testsuite-management/validate_failures.py: Merge from
+        trunk rev 188217.
