@@ -1,8 +1,34 @@
+2012-06-04  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/53524
+	* doc/invoke.texi (Wenum-compare): Update documentation.
+
+2012-06-04  Edmar Wienskoski  <edmar@freescale.com>
+
+	PR target/53559
+	* config/rs6000/altivec.md (altivec_stvlx): Change machine mode of
+	operands.
+	(altivec_stvlxl): Ditto.
+	(altivec_stvrx): Ditto.
+	(altivec_stvrxl): Ditto.
+
+2012-06-04  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR middle-end/47530
+	* trans-mem.c (expand_block_edges): Do not skip the first
+	statement when resetting the BB.
+
+2012-06-04  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/53471
+	* dwarf2out.c (dwarf2out_finish): If generating LTO do not
+	create new assembler names.
+
 2012-06-04  Richard Guenther  <rguenther@suse.de>
 
 	Backport from mainline
 	2012-04-25  Jakub Jelinek  <jakub@redhat.com>
- 
+
 	PR middle-end/52979
 	* stor-layout.c (get_best_mode): Don't return mode with bitsize
 	larger than maxbits.  Don't compute maxbits modulo align.
