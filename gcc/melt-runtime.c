@@ -9650,7 +9650,7 @@ end:
 static void
 melt_raw_sigio_signal(int sig)
 {
-  gcc_assert (sig == SIGIO);
+  gcc_assert (sig == SIGIO || sig == SIGPIPE);
   melt_got_sigio = 1;
   melt_signaled = 1;
 }

@@ -1,4 +1,10 @@
 
+2012-06-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_raw_sigio_signal): sig can be SIGIO or
+	SIGPIPE.
+
+	* melt/warmelt-debug.melt (melt_debug_fun): Use block_signals.
+
 2012-06-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-probe.melt (scanprobe_exec): Incomplete.
 

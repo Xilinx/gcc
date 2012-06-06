@@ -644,13 +644,17 @@
 
 (defun scanprobe_exec (pass)
   (debug "scanprobe_exec start pass=" pass)
-  (with_cfun_decl 
-   ()
-   (:tree cfundecl)
-   (debug "scanprobe_exec cfundecl=" cfundecl)
-   )
-  (compile_warning "incomplete scanprobe_exec")
-)
+  (let ( (probdat (probe_get_data))
+	 )
+    (with_cfun_decl 
+     ()
+     (:tree cfundecl)
+     (debug "scanprobe_exec cfundecl=" cfundecl " probdat=" probdat)
+     (let ( (ilfundecl (probe_tree_interesting_location probdat cfundecl)) )
+       (debug "scanprobe_exec ilfundecl=" ilfundecl)
+       ))
+    (compile_warning "incomplete scanprobe_exec")
+    ))
 
 (defun install_scanprobe_pass ()
   (let ( (scpropass (instance class_gcc_gimple_pass

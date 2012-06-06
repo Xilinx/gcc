@@ -1,10 +1,20 @@
 
+2012-06-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.cc
+	(SmeltMainWindow::mark_location): Show button at left of position.
+	(SmeltMainWindow::ShownLocationInfo::on_update): Missing space in
+	INFOLOCATION_prq request.
+	(SmeltApplication::startinfoloc_cmd): Get the marknum, but
+	incomplete.
+
 2012-06-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.cc
 	(SmeltMainWindow::ShownLocationDialog): New class.
 	(SmeltApplication::startinfoloc_cmd): New stub.
 	(SmeltApplication::addinfoloc_cmd): New stub.
 
 2012-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.cc
 	(SmeltMainWindow::ShownLocationInfo): New class.
 	(SmeltMainWindow::mainlocinfmapnum_): New static variable.
 	(SmeltMainWindow::mark_location): Use it.

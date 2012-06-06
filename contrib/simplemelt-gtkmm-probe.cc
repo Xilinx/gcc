@@ -1320,9 +1320,9 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
   itendlin.backward_char();
   int linwidth = itendlin.get_line_offset();
   if (col<=0 || linwidth==0)
-    col = 0;
-  else if (col>=linwidth)
-    col = linwidth-1;
+    col = 1;
+  else if (col>linwidth)
+    col = linwidth;
   SMELT_DEBUG ("linwidth=" << linwidth << " normalized col=" << col);
 
   /* create_source_mark works only at the start of the line */
@@ -1330,8 +1330,8 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
   /* add the button inside the line */
   itlin = tbuf->get_iter_at_line (lineno-1);
   auto itcur = itlin;
-  if (col>0)
-    itcur.forward_chars(col);
+  if (col>1)
+    itcur.forward_chars(col-1);
   SMELT_DEBUG("itcur=" << itcur);
   ShownLocationInfo* inf = new ShownLocationInfo(marknum,sfil,lineno,col);
   mainlocinfmapnum_[marknum] = inf;
@@ -1357,7 +1357,7 @@ void SmeltMainWindow::ShownLocationInfo::on_update(void)
 {
   SMELT_DEBUG("updating loc#" << _sli_num);
   SmeltApplication::instance()->sendreq(SmeltApplication::instance()->outreq()
-					<< "INFOLOCATION_prq" << _sli_num);
+					<< "INFOLOCATION_prq " << _sli_num);
   if (!sli_tagtbl_) 
     {
       sli_tagtbl_ = Gtk::TextTagTable::create();
@@ -1900,9 +1900,10 @@ SmeltApplication::marklocation_cmd(SmeltVector&v)
 SmeltCommandSymbol smeltsymb_startinfoloc_cmd("STARTINFOLOC_PCD",&SmeltApplication::startinfoloc_cmd);
 
 void
-SmeltApplication::startinfoloc_cmd(SmeltVector&)
+SmeltApplication::startinfoloc_cmd(SmeltVector&v)
 {
-  SMELT_DEBUG("STARTINFOLOC");
+  auto marknum = v.at(1).to_long();
+  SMELT_DEBUG("STARTINFOLOC marknum=" << marknum);
 }
 
 //////////////// addinfoloc_pcd <marknum> <subtitlestring> <content> to add  information for a location

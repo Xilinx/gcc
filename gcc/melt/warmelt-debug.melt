@@ -285,7 +285,7 @@ See $MELT_NEED_DBGLIM.}#
 	;; if we don't have a dumpfile, use stderr; this may also
 	;; happens when the dumpf exists, but its dump_file is null.
 	(code_chunk ensuregoodout #{/* melt_debug_fun $ENSUREGOODOUT*/
-		    static int nbwarn	;
+		    static int nbwarn;
 		    if (melt_get_file ((melt_ptr_t) $OUT) == NULL) {
 		    gcc_assert (melt_get_file ((melt_ptr_t) $STDERRF) == stderr) ;
 		    $OUT = $STDERRF ;
@@ -303,141 +303,145 @@ See $MELT_NEED_DBGLIM.}#
 	(if (null out)
 	    (setq out (make_strbuf discr_strbuf)))
 	(assert_msg "check good out" (is_out out))
-	(let ( 
-	      (dbgi (instance class_debug_information
-			      :dbgi_out out
-			      :dbgi_occmap occmap
-			      :dbgi_maxdepth boxedmaxdepth))
-	      (:long framdepth (the_framedepth)) 
-	      (:long outlen (output_length out)) 
-	      (:long laststroutlen outlen)
-	      (:long initoutlen outlen)
-	      )
-	  (add2out out "!!!!****####" dbgcounter "#^"  (-i framdepth 1) ":")
-	  (if filename
-	      (add2out out filename ":" lineno ":"))
-	  (if (>i count 0) 
-	      (progn
-		(add2out out " !" count ": ")))
-	  (forever 
-	   argloop
-	   (variadic 
-	    ( ()
-	      (exit argloop))
-	    ( (:long l)
-	      (add2out_longdec out l))
-	    ( (:cstring s)
-	      (let ( (:long curoutlen (output_length out)) 
+	;; we don't want signals to happen during debugging output
+	(block_signals
+	 ()
+	 ()
+	 (let ( 
+	       (dbgi (instance class_debug_information
+			       :dbgi_out out
+			       :dbgi_occmap occmap
+			       :dbgi_maxdepth boxedmaxdepth))
+	       (:long framdepth (the_framedepth)) 
+	       (:long outlen (output_length out)) 
+	       (:long laststroutlen outlen)
+	       (:long initoutlen outlen)
+	       )
+	   (add2out out "!!!!****####" dbgcounter "#^"  (-i framdepth 1) ":")
+	   (if filename
+	       (add2out out filename ":" lineno ":"))
+	   (if (>i count 0) 
+	       (progn
+		 (add2out out " !" count ": ")))
+	   (forever 
+	    argloop
+	    (variadic 
+	     ( ()
+	       (exit argloop))
+	     ( (:long l)
+	       (add2out_longdec out l))
+	     ( (:cstring s)
+	       (let ( (:long curoutlen (output_length out)) 
+		      )
+		 (match s
+			( ?(cstring_prefixed " ")
+			   (if (>i curoutlen (+i laststroutlen 70))
+			       (add2out_indentnl out 0)))
+			( ?_ (void)))
+		 )
+	       (setq laststroutlen (output_length out))
+	       (add2out_strconst out s)
+	       )
+	     ( (:value val)
+	       (add2out_strconst out " ")
+	       (cond 
+		( (null val)
+		  (add2out_strconst out "(**nil**)"))
+		( (== (discrim val) discr_debug_closure)
+		  (variadic
+		   ( ()
+		     ;; if a debug closure is the last variadic, we
+		     ;; output it as an ordinary value
+		     (dbg_out val dbgi 0)
 		     )
-		(match s
-		       ( ?(cstring_prefixed " ")
-			  (if (>i curoutlen (+i laststroutlen 70))
-			      (add2out_indentnl out 0)))
-		       ( ?_ (void)))
-		)
-	      (setq laststroutlen (output_length out))
-	      (add2out_strconst out s)
-	      )
-	    ( (:value val)
-	      (add2out_strconst out " ")
-	      (cond 
-	       ( (null val)
-		 (add2out_strconst out "(**nil**)"))
-	       ( (== (discrim val) discr_debug_closure)
-		 (variadic
-		  ( ()
-		    ;; if a debug closure is the last variadic, we
-		    ;; output it as an ordinary value
-		    (dbg_out val dbgi 0)
-		    )
-		  ( (:value vv)
-		    (val dbgi vv))
-		  ( (:long ll)
-		    (val dbgi ll))
-		  ( (:tree tt)
-		    (val dbgi tt))
-		  ( (:gimple g)
-		    (val dbgi g))
-		  ( (:gimple_seq xgs)
-		    (val dbgi xgs))
-		  ( (:edge xed)
-		    (val dbgi xed))
-		  ( (:loop xlo)
-		    (val dbgi xlo))
-		 )
-		 (void)
-		 )
-	       (:else
+		   ( (:value vv)
+		     (val dbgi vv))
+		   ( (:long ll)
+		     (val dbgi ll))
+		   ( (:tree tt)
+		     (val dbgi tt))
+		   ( (:gimple g)
+		     (val dbgi g))
+		   ( (:gimple_seq xgs)
+		     (val dbgi xgs))
+		   ( (:edge xed)
+		     (val dbgi xed))
+		   ( (:loop xlo)
+		     (val dbgi xlo))
+		   )
+		  (void)
+		  )
+		(:else
 		 (dbg_out val dbgi 0))))
-	    ( (:tree tr)
-	      (let ( (tdf !tree_debug_funcont)
+	     ( (:tree tr)
+	       (let ( (tdf !tree_debug_funcont)
+		      )
+		 (if (is_closure tdf)
+		     (tdf dbgi tr)
+		   (if tr
+		       (add2out_strconst out " ?*tree*?")
+		     (add2out_strconst out " ?*nulltree*?")))))
+	     ( (:gimple gi)
+	       (let ( (gdf !gimple_debug_funcont)
+		      )
+		 (if (is_closure gdf)
+		     (gdf dbgi gi)
+		   (if gi 
+		       (add2out_strconst out " ?*gimple*?") 
+		     (add2out_strconst out " ?*nullgimple*?")))))
+	     ( (:gimple_seq gs)
+	       (let ( (gsdf !gimpleseq_debug_funcont)
+		      )
+		 (if (is_closure gsdf)
+		     (gsdf dbgi gs)
+		   (if gs
+		       (add2out_strconst out " ?*gimpleseq*?") 
+		     (add2out_strconst out " ?*nullgimpleseq*?")))))
+	     ( (:edge ed)
+	       (let ( (edf !edge_debug_funcont)
+		      )
+		 (if (is_closure edf)
+		     (edf dbgi ed)
+		   (if ed
+		       (add2out_strconst out " ?*edge*?") 
+		     (add2out_strconst out " ?*nulledge*?")))))
+	     ( (:basic_block bb)
+	       (let ( (bdf !basicblock_debug_funcont)
+		      )
+		 (if (is_closure bdf)
+		     (bdf dbgi bb)
+		   (if bb
+		       (add2out_strconst out " ?*basicblock*?") 
+		     (add2out_strconst out " ?*nullbasicblock*?")))))
+	     ( (:loop lo)
+	       (let ( (ldf !loop_debug_funcont)
+		      )
+		 (if (is_closure ldf)
+		     (ldf dbgi lo)
+		   (if lo
+		       (add2out_strconst out " ?*loop*?") 
+		     (add2out_strconst out " ?*loop*?")))))
+	     (:else
+	      (let ( (vctyp (variadic_ctype 0))
+		     (vctypname (get_field :named_name vctyp))
 		     )
-		(if (is_closure tdf)
-		    (tdf dbgi tr)
-		  (if tr
-		      (add2out_strconst out " ?*tree*?")
-		    (add2out_strconst out " ?*nulltree*?")))))
-	    ( (:gimple gi)
-	      (let ( (gdf !gimple_debug_funcont)
-		     )
-		(if (is_closure gdf)
-		    (gdf dbgi gi)
-		  (if gi 
-		      (add2out_strconst out " ?*gimple*?") 
-		    (add2out_strconst out " ?*nullgimple*?")))))
-	    ( (:gimple_seq gs)
-	      (let ( (gsdf !gimpleseq_debug_funcont)
-		     )
-		(if (is_closure gsdf)
-		    (gsdf dbgi gs)
-		  (if gs
-		      (add2out_strconst out " ?*gimpleseq*?") 
-		    (add2out_strconst out " ?*nullgimpleseq*?")))))
-	    ( (:edge ed)
-	      (let ( (edf !edge_debug_funcont)
-		     )
-		(if (is_closure edf)
-		    (edf dbgi ed)
-		  (if ed
-		      (add2out_strconst out " ?*edge*?") 
-		    (add2out_strconst out " ?*nulledge*?")))))
-	    ( (:basic_block bb)
-	      (let ( (bdf !basicblock_debug_funcont)
-		     )
-		(if (is_closure bdf)
-		    (bdf dbgi bb)
-		  (if bb
-		      (add2out_strconst out " ?*basicblock*?") 
-		    (add2out_strconst out " ?*nullbasicblock*?")))))
-	    ( (:loop lo)
-	      (let ( (ldf !loop_debug_funcont)
-		     )
-		(if (is_closure ldf)
-		    (ldf dbgi lo)
-		  (if lo
-		      (add2out_strconst out " ?*loop*?") 
-		    (add2out_strconst out " ?*loop*?")))))
-	    (:else
-	     (let ( (vctyp (variadic_ctype 0))
-		    (vctypname (get_field :named_name vctyp))
-		    )
-	       (code_chunk warnbadctype #{/* $WARNBADCTYPE */ 
-			   warning (0,
-				    "MELT invalid ctype %s in (DEBUG ...) file %s line %d",
-				    melt_string_str ((melt_ptr_t) $VCTYPNAME),
-				    $FILENAME, (int) $LINENO) ;
-			   }#)
-	       (add2out out "??:" (get_field :ctype_keyword vctyp) "?? ")
-	       )))
-	   (setq outlen (output_length out))
-	   )				;end forever argloop
-	  ;; if the debug message is long enough, add an extra newline.
-	  (if (>i outlen (+i initoutlen 200))
-	      (progn
-		(add2out_strconst out " .##.")
-		(add2out_indentnl out 0)))
-	  (add2out_indentnl out 0)
-	  ))))
+		(code_chunk warnbadctype #{/* $WARNBADCTYPE */ 
+			    warning (0,
+				     "MELT invalid ctype %s in (DEBUG ...) file %s line %d",
+				     melt_string_str ((melt_ptr_t) $VCTYPNAME),
+				     $FILENAME, (int) $LINENO) ;
+			    }#)
+		(add2out out "??:" (get_field :ctype_keyword vctyp) "?? ")
+		)))
+	    (setq outlen (output_length out))
+	    )				;end forever argloop
+	   ;; if the debug message is long enough, add an extra newline.
+	   (if (>i outlen (+i initoutlen 200))
+	       (progn
+		 (add2out_strconst out " .##.")
+		 (add2out_indentnl out 0)))
+	   (add2out_indentnl out 0)
+	   )))))
 
 
 (defun dbg_outobject (obj dbgi :long depth)
