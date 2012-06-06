@@ -2217,6 +2217,12 @@ source location.}#
 	 (foreach_in_multiple
 	  (nrets)
 	  (ncomp :long ix)
+	  (let ( (nctyp (get_ctype ncomp env))
+		 )
+	    (assert_msg "check nctyp" (is_a nctyp class_ctype))
+	    (unless (get_field :ctype_parchar nctyp)
+	      (error_strv sloc "impossible secondary result type" (get_field :named_name nctyp)))
+	    )
 	  (if (>i ix 0)
 	      (multiple_put_nth toth (-i ix 1) ncomp)))
 	 (let ( (nret

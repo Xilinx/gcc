@@ -4111,23 +4111,25 @@ $SBUF.}#
     (if (null (unsafe_get_field :obrout_retval orout))
 	(unsafe_put_fields orout :obrout_retval retloc))
     (list_append olis (put_objdest omainv retloc))
-    (multiple_every
-     rrest
-     (lambda (rxtra :long ix)
-       (let ( (oxres 
-	       (instance class_objputxtraresult
-			 :obi_loc rloc
-			 :obxres_rank (make_integerbox discr_integer ix)
-			 :obxres_obloc (compile_obj rxtra gcx))) )
-	 ;; maybe we need to compute the ctype of the extra result....
-	 (list_append olis oxres))))
+    (foreach_in_multiple
+     (rrest)
+     (rxtra :long ix)
+     (debug "compilobj_nrep_return rxtra=" rxtra " ix=" ix)
+     (let ( (oxres 
+	     (instance class_objputxtraresult
+		       :obi_loc rloc
+		       :obxres_rank (make_integerbox discr_integer ix)
+		       :obxres_obloc (compile_obj rxtra gcx))) 
+	    )
+       ;; maybe we need to compute the ctype of the extra result....
+       (list_append olis oxres)))
     (list_append olis 
 		 (instance class_objfinalreturn
 			   :obi_loc rloc))
     (debug "compilobj_nrep_return final oblock=" oblock)
     oblock
-    )
-  )
+    ))
+ 
 (install_method class_nrep_return compile_obj compilobj_nrep_return)
 
 (install_method class_nrep_return get_ctype 

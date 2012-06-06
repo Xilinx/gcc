@@ -1,5 +1,14 @@
 
 2012-06-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.cc (SmeltMainWindow): Declare
+	showinfo_location & addinfo_location &
+	SmeltLocationDialog::append_buffer member functions.
+	(SmeltMainWindow::ShownLocationDialog::ShownLocationDialog): Improve messages.
+	(SmeltMainWindow::ShownLocationDialog::append_buffer): Unimplemented functions.
+	(SmeltMainWindow::showinfo_location): New.
+	(SmeltMainWindow::addinfo_location): New.
+
+2012-06-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.cc
 	(SmeltMainWindow::mark_location): Show button at left of position.
 	(SmeltMainWindow::ShownLocationInfo::on_update): Missing space in

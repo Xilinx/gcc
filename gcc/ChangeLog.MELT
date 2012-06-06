@@ -1,5 +1,18 @@
 
 2012-06-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt (normexp_return): Check secondary
+	result types.
+	* melt/warmelt-genobj.melt (compilobj_nrep_return): Use
+	foreach_in_multiple not multiple_every.
+	* melt/warmelt-outobj.melt (outpucod_objputxtraresult): Issue an
+	error when a result has an impossible ctype (e.g. ctype_string).
+	* melt/xtramelt-probe.melt (probe_tree_interesting_location)
+	(probe_gimple_interesting_location): Cast argument to
+	meltgc_new_string in code chunks.
+	(info_location_probe): Call the stored closures.
+	(scanprobe_exec): Add informer on function declaration.
+
+2012-06-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.

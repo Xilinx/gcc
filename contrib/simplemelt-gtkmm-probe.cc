@@ -174,17 +174,17 @@ static const char *const smelt_key_16x16_xpm[] = {
 #endif
 
 #define SMELT_FATAL(C) do { int er = errno;	\
-  std::clog << __FILE__ << ":" << __LINE__	\
+  std::cerr << __FILE__ << ":" << __LINE__	\
 	    << "@" << __func__ << " " << C;	\
-  if (er) std::clog << " ~" << strerror(er) ;	\
-  std::clog << std::endl;			\
+  if (er) std::cerr << " ~" << strerror(er) ;	\
+  std::cerr << std::endl;			\
   abort();					\
 } while(0)
 
 bool smelt_debugging;
 
 #define SMELT_DEBUG(C) do { if (smelt_debugging)	\
-  std::clog <<  __FILE__ << ":" << __LINE__		\
+  std::cerr <<  __FILE__ << ":" << __LINE__		\
 	    << "@" << __func__ << " " << C << std::endl; } while(0)
 
 
@@ -243,6 +243,7 @@ public:
 static Glib::OptionContext smelt_options_context(" - a simple MELT Gtk probe");
 
 static void smelt_quit(void);
+class SmeltArg;
 
 #define SMELT_MARKLOC_CATEGORY "smeltmarkloc"
 #define SMELT_MARKLOC_STOCKID GTK_STOCK_YES
@@ -296,6 +297,8 @@ class SmeltMainWindow : public Gtk::ApplicationWindow {
     Glib::RefPtr<Gtk::TextBuffer> tbuf() { return _sld_view.get_buffer(); };
     Gtk::TextView& view() { return _sld_view; };
     Gtk::ScrolledWindow& scrwin() { return _sld_swin; };
+    void append_buffer (const std::string&s, const std::string &tagname="");
+    void append_buffer (const SmeltArg&a, const std::string &tagname="");
   };
   class ShownLocationInfo : public sigc::trackable {
     ShownFile* _sli_fil;
@@ -313,6 +316,7 @@ class SmeltMainWindow : public Gtk::ApplicationWindow {
     void on_update(void);
     static Glib::RefPtr<Gtk::TextTagTable> the_tag_table() { return sli_tagtbl_;};
     ShownFile* sfile() const { return _sli_fil;};
+    Glib::RefPtr<ShownLocationDialog> dialog() const { return _sli_dialp; };
     long num() const { return _sli_num; };
     int lineno() const { return _sli_lineno; };
     int col() const { return _sli_col; };
@@ -395,11 +399,13 @@ public:
   void on_version_show(void);
   void show_file(const std::string&path, long num);
   void mark_location(long marknum,long filenum,int lineno, int col);
+  void showinfo_location(long marknum);
+  void addinfo_location(long marknum, const std::string& title, const SmeltArg& arg);
   guint push_status(const std::string&msg);
   void pop_status(void);
   void remove_status(guint msgid);
   void remove_all_status(void);
-};
+};				// end SmeltMainWindow
 
 
 std::map<long,SmeltMainWindow::ShownFile*> SmeltMainWindow::mainsfilemapnum_;
@@ -1012,7 +1018,7 @@ public:
       optgroup.setup_appl(*this);
       SMELT_DEBUG("on_command_line after setup_appl _app_traced=" << _app_traced);
     } catch (const Glib::Error& ex) {
-      std::clog
+      std::cerr
           << argv[0]
           << " got exception when parsing command line:" << ex.what() << std::endl;
       std::cerr << optcontext.get_help() << std::endl;
@@ -1396,8 +1402,8 @@ void SmeltMainWindow::ShownLocationInfo::on_update(void)
 
 SmeltMainWindow::ShownLocationDialog::ShownLocationDialog(SmeltMainWindow::ShownLocationInfo*info)
   : Gtk::MessageDialog
-  (Glib::ustring::compose("MELT info at <tt>%1<tt> <small>L%dC%d</small>",
-    basename(info->sfile()->name().c_str()), info->lineno(), info->col()),
+  (Glib::ustring::compose("MELT info at <tt>%1<tt> <small>L%2C%3</small>",
+			  basename(info->sfile()->name().c_str()), info->lineno(), info->col()),
     /*use_markup*/ true,
     Gtk::MESSAGE_INFO,
     Gtk::BUTTONS_CLOSE,
@@ -1411,6 +1417,13 @@ SmeltMainWindow::ShownLocationDialog::ShownLocationDialog(SmeltMainWindow::Shown
   _sld_view.set_editable (false);
   _sld_swin.set_policy (Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
   _sld_swin.add(_sld_view);
+  set_title(Glib::ustring::compose("MELT info #%1", info->num()));
+  set_secondary_text
+    (Glib::ustring::compose
+     ("<i>MELT</i> about <tt>%1</tt> [#%2]\n"
+      "line <b>%3</b> column <i>%4</i>",  
+      info->sfile()->name(), info->sfile()->number(), info->lineno(), info->col()),
+     /*use_markup:*/ true);	     
   get_content_area()->pack_start(_sld_swin, 
     /*expand:*/ true,
     /*fill:*/ true,
@@ -1422,6 +1435,54 @@ SmeltMainWindow::ShownLocationDialog::~ShownLocationDialog()
 {
   SMELT_DEBUG("destructing location dialog @" << (void*)this << " for info #" << _sld_info->num());
   _sld_info = nullptr;
+}
+
+
+#warning ShownLocationDialog::append_buffer unimplemented
+void
+SmeltMainWindow::ShownLocationDialog::append_buffer(const std::string& s, const std::string &tagname)
+{
+  auto tb = tbuf();
+  SMELT_FATAL("unimplemented append_buffer s=" << s);
+}
+
+void
+SmeltMainWindow::ShownLocationDialog::append_buffer(const SmeltArg&a, const std::string &tagname)
+{
+  auto tb = tbuf();
+  SMELT_FATAL("unimplemented append_buffer arg");
+}
+
+void  
+SmeltMainWindow::showinfo_location(long marknum)
+{
+  SMELT_DEBUG("start marknum=" << marknum);
+  ShownLocationInfo* inf = shown_location_by_number(marknum);
+  if (inf == nullptr)
+    {
+      SMELT_DEBUG("invalid marknum=" << marknum);
+      throw smelt_domain_error("showinfo_location invalid mark number",
+			       smelt_long_to_string(marknum));
+    }
+  g_assert (inf->dialog());
+  inf->dialog()->show_all();
+}
+
+void  
+SmeltMainWindow::addinfo_location(long marknum, const std::string& title, const SmeltArg&arg)
+{
+  SMELT_DEBUG("start marknum=" << marknum);
+  ShownLocationInfo* inf = shown_location_by_number(marknum);
+  if (inf == nullptr)
+    {
+      SMELT_DEBUG("invalid marknum=" << marknum);
+      throw smelt_domain_error("addinfo_location invalid mark number",
+			       smelt_long_to_string(marknum));
+    }
+  Glib::RefPtr<ShownLocationDialog> dial = inf->dialog();
+  g_assert (dial);
+  dial->append_buffer(title,"title");
+  dial->append_buffer(arg);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -1769,15 +1830,15 @@ SmeltApplication::process_command_from_melt(std::string& str)
       throw smelt_domain_error("process_command_from_melt: invalid command", sym.name());
     csym->call(this,v);
   } catch (SmeltDomainErrorAt derr) {
-    std::clog << "Smelt domain error:" << derr.what() << std::endl;
+    std::cerr << "Smelt domain error:" << derr.what() << std::endl;
     if (_app_traced)
       _app_tracewin->add_title(std::string("Domain error: ") + derr.what());
   } catch (SmeltParseErrorAt perr) {
-    std::clog << "Smelt parse error:" << perr.what() << std::endl;
+    std::cerr << "Smelt parse error:" << perr.what() << std::endl;
     if (_app_traced)
       _app_tracewin->add_title(std::string("Parse error: ") + perr.what());
   } catch (std::exception ex) {
-    std::clog << "Command error:" << ex.what() << std::endl;
+    std::cerr << "Command error:" << ex.what() << std::endl;
     if (_app_traced)
       _app_tracewin->add_title(std::string("Command error: ") + ex.what());
   }
@@ -1802,10 +1863,10 @@ int main (int argc, char** argv)
     appl->run(argc, argv);
     SMELT_DEBUG("after application run");
   } catch (std::exception ex) {
-    std::clog << progname << " got exception: " << ex.what() << std::endl;
+    std::cerr << progname << " got exception: " << ex.what() << std::endl;
     exit(EXIT_FAILURE);
   } catch (Glib::Error opterr) {
-    std::clog << progname << " got Glib error: " << opterr.what() << std::endl;
+    std::cerr << progname << " got Glib error: " << opterr.what() << std::endl;
     exit(EXIT_FAILURE);
   }
   return EXIT_SUCCESS;
@@ -1904,6 +1965,7 @@ SmeltApplication::startinfoloc_cmd(SmeltVector&v)
 {
   auto marknum = v.at(1).to_long();
   SMELT_DEBUG("STARTINFOLOC marknum=" << marknum);
+  _app_mainwinp->showinfo_location(marknum);
 }
 
 //////////////// addinfoloc_pcd <marknum> <subtitlestring> <content> to add  information for a location
@@ -1911,9 +1973,12 @@ SmeltApplication::startinfoloc_cmd(SmeltVector&v)
 SmeltCommandSymbol smeltsymb_addinfoloc_cmd("ADDINFOLOC_PCD",&SmeltApplication::addinfoloc_cmd);
 
 void
-SmeltApplication::addinfoloc_cmd(SmeltVector&)
+SmeltApplication::addinfoloc_cmd(SmeltVector&v)
 {
-  SMELT_DEBUG("ADDINFOLOC");
+  auto marknum = v.at(1).to_long();
+  auto title = v.at(2).to_string();
+  SMELT_DEBUG("ADDINFOLOC marknum=" << marknum << " title=" << title);
+  _app_mainwinp->addinfo_location(marknum, title, v.at(3));
 }
 
 ////////////////////////////////////////////////////////////////

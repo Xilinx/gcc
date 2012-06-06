@@ -433,8 +433,8 @@
        {
          const char* $TREEILOCH#_file = LOCATION_FILE ($TREEILOCH#_loc) ;
          $FILEV =
-         meltgc_new_string (MELT_PREDEF (DISCR_STRING), 
-	  			         $TREEILOCH#_file) ;
+           meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), 
+	  		      $TREEILOCH#_file) ;
          $LINENO = LOCATION_LINE ($TREEILOCH#_loc) ;
          $COL = LOCATION_COLUMN ($TREEILOCH#_loc) ;
        }
@@ -477,8 +477,8 @@
        {
          const char* $GIMPILOCH#_file = LOCATION_FILE ($GIMPILOCH#_loc) ;
          $FILEV =
-         meltgc_new_string (MELT_PREDEF (DISCR_STRING), 
-	  			         $GIMPILOCH#_file) ;
+           meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), 
+	    		      $GIMPILOCH#_file) ;
          $LINENO = LOCATION_LINE ($GIMPILOCH#_loc) ;
          $COL = LOCATION_COLUMN ($GIMPILOCH#_loc) ;
        }
@@ -586,10 +586,45 @@
 
 (defun info_location_probe (tup)
   (debug "info_location_probe tup=" tup)
-  (assert_msg "check tup len" (>=i (multiple_length tup) 1))
-  ;; should send one STARTINFOLOC_pcd command followed by zero, one or
-  ;; more ADDINFOLOC_pcd commands
-)
+  (assert_msg "check tup len" (>=i (multiple_length tup) 2))
+  (let ( (:long locnum (get_int (multiple_nth tup 1)))
+	 (probdata (probe_get_data))
+	 (iloc (multiple_nth (get_field :probedata_ilocvec probdata) locnum))
+	 )
+    (debug "info_location_probe locnum=" locnum " probdata=" probdata "\n iloc=" iloc)
+    (assert_msg "check locnum" (>i locnum 0))
+    (assert_msg "check iloc" (is_a iloc class_probed_interesting_location))
+    ;; should send one STARTINFOLOC_pcd command followed by zero, one or
+    ;; more ADDINFOLOC_pcd commands
+    (send_command_to_probe 'STARTINFOLOC_pcd locnum)
+    (debug "info_location_probe incomplete iloc=" iloc)
+    (let ( (closlist (get_field :probiloc_closinfolist iloc))
+	   (:long infocnt 0)
+	   )
+      (debug "info_location_probe closlist=" closlist)
+      (foreach_in_list
+       (closlist)
+       (curpair curclos)
+       (debug "info_location_probe curclos=" curclos)
+       (if (is_closure curclos)
+	   (multicall
+	    (curcont curtit)
+	    (curclos iloc)
+	    (increment infocnt 1)
+	    (debug "info_location_probe infocnt=" infocnt " curcont=" curcont " curtit=" curtit)
+	    (let ( (titsbuf (make_strbuf discr_strbuf))
+		   )
+	      (add2out titsbuf infocnt ":")
+	      (if (is_string curtit) (add2out titsbuf curtit))
+	      (let ( (tit (strbuf2string discr_strbuf titsbuf))
+		     )
+		(debug "info_location_probe locnum=" locnum " tit=" tit " curcont=" curcont " before command to probe")
+		(send_command_to_probe 'ADDINFOLOC_pcd locnum tit curcont)
+		)))			;end foreach_in_list
+	 (debug "info_location_probe done iloc=" iloc)
+	 )))))
+
+
 
 (defun start_probe ()
   :doc #{function to start the probe. Return the probe data. Can be used by any mode wanting the probe.}#
@@ -650,11 +685,21 @@
      ()
      (:tree cfundecl)
      (debug "scanprobe_exec cfundecl=" cfundecl " probdat=" probdat)
-     (let ( (ilfundecl (probe_tree_interesting_location probdat cfundecl)) )
+     (let ( (ilfundecl (probe_tree_interesting_location probdat cfundecl)) 
+	    (declval (make_tree discr_tree cfundecl))
+	    )
        (debug "scanprobe_exec ilfundecl=" ilfundecl)
-       ))
+       (probe_interesting_location_add_informer
+	(lambda (iloc)
+	  (debug "probe_interesting_location_add_informer/declambda iloc=" iloc)
+	  (let ( (sbuf (make_strbuf discr_strbuf))
+		 )
+	    (add2out sbuf (tree_content declval))
+	    (debug "probe_interesting_location_add_informer/declambda sbuf=" sbuf)
+	    (return (strbuf2string discr_string sbuf) '"Function Declaration")
+       ))))
     (compile_warning "incomplete scanprobe_exec")
-    ))
+    )))
 
 (defun install_scanprobe_pass ()
   (let ( (scpropass (instance class_gcc_gimple_pass
