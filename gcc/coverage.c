@@ -2333,7 +2333,7 @@ coverage_finish (void)
   if (bbg_file_name && gcov_close ())
     unlink (bbg_file_name);
   
-  if (!local_tick || local_tick == (unsigned)-1)
+  if (!local_tick)
     /* Only remove the da file, if we cannot stamp it.  If we can
        stamp it, libgcov will DTRT.  */
     unlink (da_file_name);
