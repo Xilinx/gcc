@@ -1,3 +1,25 @@
+2012-06-06   Diego Novillo  <dnovillo@google.com>
+
+  Cherry pick rev 188207.
+
+      2012-06-04  Paolo Carlini  <paolo.carlini@oracle.com>
+      
+	    PR c++/53524
+	    * doc/invoke.texi (Wenum-compare): Update documentation.
+      
+      /cp
+      2012-06-04  Paolo Carlini  <paolo.carlini@oracle.com>
+      
+	    PR c++/53524
+	    * call.c (build_conditional_expr_1): Use OPT_Wenum_compare
+	    to control enumeral mismatch in conditional expression too.
+      
+      /testsuite
+      2012-06-04  Paolo Carlini  <paolo.carlini@oracle.com>
+      
+	    PR c++/53524
+	    * g++.dg/warn/Wenum-compare-no-2: New.
+
 2012-06-06   Xinliang David Li  <davidxl@google.com>
 
 	coverage.c (coverage_finish): Do not remove gcda file with
