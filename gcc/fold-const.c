@@ -1590,7 +1590,7 @@ fold_convert_const_int_from_fixed (tree type, const_tree arg1)
   /* Right shift FIXED_CST to temp by fbit.  */
   temp = TREE_FIXED_CST (arg1).data;
   mode = TREE_FIXED_CST (arg1).mode;
-  if (GET_MODE_FBIT (mode) < 2 * HOST_BITS_PER_WIDE_INT)
+  if (GET_MODE_FBIT (mode) < HOST_BITS_PER_DOUBLE_INT)
     {
       temp = double_int_rshift (temp, GET_MODE_FBIT (mode),
 			        HOST_BITS_PER_DOUBLE_INT,
@@ -3633,7 +3633,7 @@ sign_bit_p (tree exp, const_tree val)
       lo = 0;
 
       mask_hi = ((unsigned HOST_WIDE_INT) -1
-		 >> (2 * HOST_BITS_PER_WIDE_INT - width));
+		 >> (HOST_BITS_PER_DOUBLE_INT - width));
       mask_lo = -1;
     }
   else
@@ -7379,7 +7379,7 @@ native_interpret_int (tree type, const unsigned char *ptr, int len)
 
   if (total_bytes > len)
     return NULL_TREE;
-  if (total_bytes * BITS_PER_UNIT > 2 * HOST_BITS_PER_WIDE_INT)
+  if (total_bytes * BITS_PER_UNIT > HOST_BITS_PER_DOUBLE_INT)
     return NULL_TREE;
 
   result = double_int_zero;
@@ -10042,15 +10042,18 @@ fold_binary_loc (location_t loc,
 	    }
 	}
 
-      /* Handle (A1 * C1) + (A2 * C2) with A1, A2 or C1, C2 being the
-	 same or one.  Make sure type is not saturating.
-	 fold_plusminus_mult_expr will re-associate.  */
-      if ((TREE_CODE (op0) == MULT_EXPR
-	   || TREE_CODE (op1) == MULT_EXPR)
+      /* Handle (A1 * C1) + (A2 * C2) with A1, A2 or C1, C2 being the same or
+	 one.  Make sure the type is not saturating and has the signedness of
+	 the stripped operands, as fold_plusminus_mult_expr will re-associate.
+	 ??? The latter condition should use TYPE_OVERFLOW_* flags instead.  */
+      if ((TREE_CODE (arg0) == MULT_EXPR
+	   || TREE_CODE (arg1) == MULT_EXPR)
 	  && !TYPE_SATURATING (type)
+	  && TYPE_UNSIGNED (type) == TYPE_UNSIGNED (TREE_TYPE (arg0))
+	  && TYPE_UNSIGNED (type) == TYPE_UNSIGNED (TREE_TYPE (arg1))
 	  && (!FLOAT_TYPE_P (type) || flag_associative_math))
         {
-	  tree tem = fold_plusminus_mult_expr (loc, code, type, op0, op1);
+	  tree tem = fold_plusminus_mult_expr (loc, code, type, arg0, arg1);
 	  if (tem)
 	    return tem;
 	}
@@ -10665,15 +10668,18 @@ fold_binary_loc (location_t loc,
 	  && (tem = distribute_real_division (loc, code, type, arg0, arg1)))
 	return tem;
 
-      /* Handle (A1 * C1) - (A2 * C2) with A1, A2 or C1, C2 being the
-	 same or one.  Make sure type is not saturating.
-	 fold_plusminus_mult_expr will re-associate.  */
-      if ((TREE_CODE (op0) == MULT_EXPR
-	   || TREE_CODE (op1) == MULT_EXPR)
+      /* Handle (A1 * C1) - (A2 * C2) with A1, A2 or C1, C2 being the same or
+	 one.  Make sure the type is not saturating and has the signedness of
+	 the stripped operands, as fold_plusminus_mult_expr will re-associate.
+	 ??? The latter condition should use TYPE_OVERFLOW_* flags instead.  */
+      if ((TREE_CODE (arg0) == MULT_EXPR
+	   || TREE_CODE (arg1) == MULT_EXPR)
 	  && !TYPE_SATURATING (type)
+	  && TYPE_UNSIGNED (type) == TYPE_UNSIGNED (TREE_TYPE (arg0))
+	  && TYPE_UNSIGNED (type) == TYPE_UNSIGNED (TREE_TYPE (arg1))
 	  && (!FLOAT_TYPE_P (type) || flag_associative_math))
         {
-	  tree tem = fold_plusminus_mult_expr (loc, code, type, op0, op1);
+	  tree tem = fold_plusminus_mult_expr (loc, code, type, arg0, arg1);
 	  if (tem)
 	    return tem;
 	}
@@ -13285,7 +13291,7 @@ fold_binary_loc (location_t loc,
 	unsigned int width = TYPE_PRECISION (arg1_type);
 
 	if (TREE_CODE (arg1) == INTEGER_CST
-	    && width <= 2 * HOST_BITS_PER_WIDE_INT
+	    && width <= HOST_BITS_PER_DOUBLE_INT
 	    && (INTEGRAL_TYPE_P (arg1_type) || POINTER_TYPE_P (arg1_type)))
 	  {
 	    HOST_WIDE_INT signed_max_hi;
@@ -13885,7 +13891,7 @@ fold_ternary_loc (location_t loc, enum tree_code code, tree type,
 	      if (outer_width > HOST_BITS_PER_WIDE_INT)
 		{
 		  mask_hi = ((unsigned HOST_WIDE_INT) -1
-			     >> (2 * HOST_BITS_PER_WIDE_INT - outer_width));
+			     >> (HOST_BITS_PER_DOUBLE_INT - outer_width));
 		  mask_lo = -1;
 		}
 	      else

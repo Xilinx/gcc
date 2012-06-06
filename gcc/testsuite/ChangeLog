@@ -1,3 +1,153 @@
+2012-06-05  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/powerpc/pr53487.c: New test.
+
+2012-06-05  Pat Haugen <pthaugen@us.ibm.com>
+
+	* gcc.target/powerpc/lhs-1.c: Use parm instead of stack space.
+
+2012-06-05  Edmar Wienskoski  <edmar@freescale.com>
+
+	* gcc.dg/tree-ssa/vector-3.c: Adjust regular expression.
+
+2012-06-05  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/30442
+	* gcc.dg/vect/bb-slp-30.c: New testcase.
+
+2012-06-05  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53081
+	* gcc.dg/tree-ssa/ldist-19.c: New testcase.
+	* gcc.c-torture/execute/builtins/builtins.exp: Always pass
+	-fno-tree-loop-distribute-patterns.
+
+2012-06-05  Alan Modra  <amodra@gmail.com>
+
+	* gcc.target/powerpc/savres.c: Add -mdynamic-no-pic for darwin.
+	Check static chain in nested funcs.
+
+2012-06-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/50619
+	* gfortran.dg/init_flag_10.f90: New.
+
+2012-06-04  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/53524
+	* g++.dg/warn/Wenum-compare-no-2: New.
+
+2012-06-04  Dodji Seketeli  <dodji@redhat.com>
+
+	PR preprocessor/53463
+	* g++.dg/cpp/limits.C: New test.
+	* g++.dg/parse/error19.C: Adjust.
+	* g++.dg/warn/Wconversion-real-integer2.C: Likewise.
+	* g++.dg/warn/pr35635.C: Likewise.
+	* g++.old-deja/g++.pt/assign1.C: Likewise.
+
+2012-06-04  Edmar Wienskoski  <edmar@freescale.com>
+
+	PR target/53559
+	* gcc.target/powerpc/cell_builtin_1.c: New test case.
+	* gcc.target/powerpc/cell_builtin_2.c: Ditto.
+	* gcc.target/powerpc/cell_builtin_3.c: Ditto.
+	* gcc.target/powerpc/cell_builtin_4.c: Ditto.
+	* gcc.target/powerpc/cell_builtin_5.c: Ditto.
+	* gcc.target/powerpc/cell_builtin_6.c: Ditto.
+	* gcc.target/powerpc/cell_builtin_7.c: Ditto.
+	* gcc.target/powerpc/cell_builtin_8.c: Ditto.
+
+2012-06-04  Andreas Schwab  <schwab@linux-m68k.org>
+
+	* g++.dg/debug/dwarf2/nested-3.C: Allow for | comments.
+
+2012-06-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53550
+	* gcc.dg/pr53550.c: New test.
+
+2012-06-04  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/ldist-11.c: Enable -ftree-loop-distribute-patterns.
+	* gcc.dg/tree-ssa/ldist-17.c: Likewise.
+	* gcc.dg/tree-ssa/ldist-pr45948.c: Likewise.
+
+2012-06-03  Alessandro Fanfarillo  <fanfarillo.gcc@gmail.com>
+
+	PR fortran/48831
+	* gfortran.dg/parameter_array_element_2.f90: New.
+
+2012-06-03  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/53512
+	* gcc.target/sh/pr53512-1.c: New.
+	* gcc.target/sh/pr53512-2.c: New.
+	* gcc.target/sh/pr53512-3.c: New.
+	* gcc.target/sh/pr53512-4.c: New.
+
+2012-06-01  Jason Merrill  <jason@redhat.com>
+
+	PR c++/52973
+	* g++.dg/ext/visibility/template12.C: New.
+	* g++.dg/ext/attrib14.C: Adjust warning line.
+
+	PR c++/52725
+	* g++.dg/parse/new6.C: New.
+	* g++.dg/template/sizeof-template-argument.C: Adjust error message.
+
+2012-06-01  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* c-c++-common/restrict-2.c: Revert previous change.
+
+2012-06-01  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53137
+	* g++.dg/cpp0x/lambda/lambda-template5.C: New.
+
+	PR c++/53484
+	* g++.dg/cpp0x/auto33.C: New.
+
+2012-06-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/26155
+	* g++.dg/parse/namespace-alias-1.C: New.
+
+2012-06-01  Christian Bruel  <christian.bruel@st.com>
+
+	* gcc.dg/spec-options.c: New test.
+	* gcc.dg/foo.specs: New file.
+
+2012-06-01  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/53517
+	* gnat.dg/lto14.adb: Skip on Solaris.
+
+2012-06-01  Hans-Peter Nilsson  <hp@axis.com>
+
+	* gcc.target/cris/sync-1-v10.c,
+	gcc.target/cris/sync-1-v32.c, gcc.target/cris/sync-1.c,
+	gcc.target/cris/sync-2c.c, gcc.target/cris/sync-2i.c,
+	gcc.target/cris/sync-2s.c, gcc.target/cris/sync-3i.c,
+	gcc.target/cris/sync-3s.c, gcc.target/cris/sync-4c.c,
+	gcc.target/cris/sync-4i.c, gcc.target/cris/sync-4s.c,
+	gcc.target/cris/torture/sync-mis-op-i-1.c,
+	gcc.target/cris/torture/sync-mis-op-i-1a.c,
+	gcc.target/cris/torture/sync-mis-op-i-2.c,
+	gcc.target/cris/torture/sync-mis-op-i-2a.c,
+	gcc.target/cris/torture/sync-mis-op-i-3.c,
+	gcc.target/cris/torture/sync-mis-op-i-3a.c,
+	gcc.target/cris/torture/sync-mis-op-s-1.c,
+	gcc.target/cris/torture/sync-mis-op-s-1a.c,
+	gcc.target/cris/torture/sync-mis-xchg-i-1.c,
+	gcc.target/cris/torture/sync-mis-xchg-i-1a.c,
+	gcc.target/cris/torture/sync-mis-xchg-i-2.c,
+	gcc.target/cris/torture/sync-mis-xchg-i-2a.c,
+	gcc.target/cris/torture/sync-mis-xchg-i-3.c,
+	gcc.target/cris/torture/sync-mis-xchg-i-3a.c,
+	gcc.target/cris/torture/sync-mis-xchg-s-1.c,
+	gcc.target/cris/torture/sync-mis-xchg-s-1a.c: New tests.
+
 2012-05-31  Richard Guenther  <rguenther@suse.de>
 
 	* gcc.dg/tree-ssa/ldist-pr45948-2.c: New testcase copy of
