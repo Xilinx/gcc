@@ -11053,7 +11053,7 @@ lab_endgetargs:;
 	  ;
 	  /*citerblock FOREACH_IN_MULTIPLE */
 	  {
-	    /* start meltcit1__EACHTUP: */
+	    /* start foreach_in_multiple meltcit1__EACHTUP */
 	    long meltcit1__EACHTUP_ln =
 	      melt_multiple_length ((melt_ptr_t) /*_.OARGS__V11*/
 				    meltfptr[10]);
@@ -11774,7 +11774,7 @@ lab_endgetargs:;
 		;
 		if ( /*_#CURANK__L10*/ meltfnum[9] < 0)
 		  break;
-	      }			/* end meltcit1__EACHTUP */
+	      }			/* end  foreach_in_multiple meltcit1__EACHTUP */
 
 	    /*citerepilog */
 
@@ -12980,7 +12980,7 @@ lab_endgetargs:;
 	  ;
 	  /*citerblock FOREACH_IN_MULTIPLE */
 	  {
-	    /* start meltcit1__EACHTUP: */
+	    /* start foreach_in_multiple meltcit1__EACHTUP */
 	    long meltcit1__EACHTUP_ln =
 	      melt_multiple_length ((melt_ptr_t) /*_.OARGS__V12*/
 				    meltfptr[11]);
@@ -13675,7 +13675,7 @@ lab_endgetargs:;
 	      /*clear *//*_#GET_INT__L22*/ meltfnum[12] = 0;
 		if ( /*_#CURANK__L9*/ meltfnum[8] < 0)
 		  break;
-	      }			/* end meltcit1__EACHTUP */
+	      }			/* end  foreach_in_multiple meltcit1__EACHTUP */
 
 	    /*citerepilog */
 
@@ -15160,7 +15160,7 @@ lab_endgetargs:;
 	  ;
 	  /*citerblock FOREACH_IN_MULTIPLE */
 	  {
-	    /* start meltcit1__EACHTUP: */
+	    /* start foreach_in_multiple meltcit1__EACHTUP */
 	    long meltcit1__EACHTUP_ln =
 	      melt_multiple_length ((melt_ptr_t) /*_.OARGS__V11*/
 				    meltfptr[10]);
@@ -15733,7 +15733,7 @@ lab_endgetargs:;
 		;
 		if ( /*_#CURANK__L19*/ meltfnum[18] < 0)
 		  break;
-	      }			/* end meltcit1__EACHTUP */
+	      }			/* end  foreach_in_multiple meltcit1__EACHTUP */
 
 	    /*citerepilog */
 
@@ -18095,7 +18095,7 @@ lab_endgetargs:;
 
 	  /*citerblock FOREACH_IN_MULTIPLE */
 	  {
-	    /* start meltcit1__EACHTUP: */
+	    /* start foreach_in_multiple meltcit1__EACHTUP */
 	    long meltcit1__EACHTUP_ln =
 	      melt_multiple_length ((melt_ptr_t) /*_.OARGS__V12*/
 				    meltfptr[11]);
@@ -18628,7 +18628,7 @@ lab_endgetargs:;
 		;
 		if ( /*_#CURANK__L16*/ meltfnum[15] < 0)
 		  break;
-	      }			/* end meltcit1__EACHTUP */
+	      }			/* end  foreach_in_multiple meltcit1__EACHTUP */
 
 	    /*citerepilog */
 
