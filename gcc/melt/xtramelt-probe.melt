@@ -685,6 +685,7 @@
      ()
      (:tree cfundecl)
      (debug "scanprobe_exec cfundecl=" cfundecl " probdat=" probdat)
+     ;; the function declaration is intersting
      (let ( (ilfundecl (probe_tree_interesting_location probdat cfundecl)) 
 	    (declval (make_tree discr_tree cfundecl))
 	    )
@@ -697,9 +698,36 @@
 	    (add2out sbuf (tree_content declval))
 	    (debug "probe_interesting_location_add_informer/declambda sbuf=" sbuf)
 	    (return (strbuf2string discr_string sbuf) '"Function Declaration")
-       ))))
-    (compile_warning "incomplete scanprobe_exec")
-    )))
+	    )))
+       )
+     ;; every basic block of the current cfun is interesting
+     (each_bb_current_fun 
+      ()
+      (:basic_block bb)
+      (debug "scanprobe_exec bb=" bb)
+      (let (
+	    (:long bbix (basicblock_index bb))
+	    (:gimple_seq bbgs (gimple_seq_of_basic_block bb))
+	    ;; we need to copy the sequence, because a basic block
+	    ;; will eventually lose it...
+	    (:gimple_seq gscopy (gimple_seq_copy bbgs))
+	    )
+	(debug "scanprobe_exec gscopy=" gscopy " bbix=" bbix " bb=" bb)
+	(walk_gimple_seq_unique_tree 
+	 probdat gscopy
+	 (lambda (pd :gimple g)
+	   (debug "scanprobe_exec/lambda-stmt g=" g)
+	   (return)
+	   )
+	 (lambda (pd :tree tr)
+	   (debug "scanprobe_exec/lambda-tree tr=" tr)
+	   (return)
+	   )
+	 )
+	(debug "scanprobe_exec walked gscopy=" gscopy)
+	))
+     (compile_warning "incomplete scanprobe_exec")
+     )))
 
 (defun install_scanprobe_pass ()
   (let ( (scpropass (instance class_gcc_gimple_pass

@@ -1,4 +1,10 @@
 
+2012-06-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt (basicblock_index): New primitive.
+
+	* melt/xtramelt-ana-probe.melt (scanprobe_exec): Walk thru the
+	gimpleseq, but incomplete.
+
 2012-06-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt (normexp_return): Check secondary
 	result types.

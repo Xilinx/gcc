@@ -330,11 +330,15 @@
 
 (defprimitive notnull_basicblock (:basic_block bb) :long
   :doc #{Test if $BB is a real not null raw basic_block.}#
- #{($bb != (basic_block)0)}# )
+ #{/* notnull_basicblock */ ($BB != (basic_block)0)}# )
 
 (defprimitive null_basicblock () :basic_block
   :doc #{Gives the null raw basic_block pointer}#
-  #{((basic_block)0)}#)
+  #{/* null_basicblock */ ((basic_block)0)}#)
+
+(defprimitive basicblock_index (:basic_block bb) :long
+  :doc #{Gives the index of a basic block.}#
+  #{/* basicblock_index */ (($BB)?(($BB)->index):0L) }#)
 
 (defprimitive make_basicblock (discr :basic_block bb) :value
   :doc #{Box with given $DISCR the raw basic_block $BB into a value.}#
@@ -353,7 +357,7 @@
   :doc #{Safely retrieve the phinodes, if any, inside a boxed basic
   block value $V.}# 
   #{(melt_basicblock_phinodes ((melt_ptr_t)($V)))}# )
-  
+
 (defprimitive ppstrbuf_gimple (sbuf :long indent :gimple g) :void
   :doc #{Pretty-print inside strbuf $SBUF with indentation $INDENT the raw gimple $G.}#
   #{ meltgc_ppstrbuf_gimple((melt_ptr_t)($sbuf), 
@@ -1721,6 +1725,7 @@ current function and gives its declaration in $CFUNDECL}#
  ==e
  basicblock_content
  basicblock_gimpleseq
+ basicblock_index
  basicblock_nb_succ
  basicblock_phinodes
  basicblock_single_succ 
