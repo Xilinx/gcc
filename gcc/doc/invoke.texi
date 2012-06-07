@@ -370,7 +370,8 @@ Objective-C and Objective-C++ Dialects}.
 -fdelete-null-pointer-checks -fdevirtualize -fdse @gol
 -fearly-inlining -fipa-sra -fexpensive-optimizations -ffat-lto-objects @gol
 -ffast-math -ffinite-math-only -ffloat-store -fexcess-precision=@var{style} @gol
--fforward-propagate -ffp-contract=@var{style} -ffunction-sections @gol
+-fforward-propagate -ffp-contract=@var{style} @gol
+-ffunction-attribute-list -ffunction-sections @gol
 -fgcse -fgcse-after-reload -fgcse-las -fgcse-lm -fgraphite-identity @gol
 -fgcse-sm -fif-conversion -fif-conversion2 -findirect-inlining @gol
 -finline-functions -finline-functions-called-once -finline-limit=@var{n} @gol
@@ -8809,6 +8810,15 @@ create larger object and executable files and will also be slower.
 You will not be able to use @code{gprof} on all systems if you
 specify this option and you may have problems with debugging if
 you specify both this option and @option{-g}.
+
+@item -ffunction-attribute-list
+@opindex ffunction-attribute-list
+List of function name patterns that will be applied specified attribute.
+For example, the following command line will add "cold" attribute to
+functions that has "ErrorMessage" in its name.
+@smallexample
+gcc -ffunction-atribute-list=cold:ErrorMessage -c foo.c
+@end smallexample
 
 @item -fbranch-target-load-optimize
 @opindex fbranch-target-load-optimize

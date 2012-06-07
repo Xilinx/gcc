@@ -1236,6 +1236,10 @@ Enum(fp_contract_mode) String(on) Value(FP_CONTRACT_OFF)
 EnumValue
 Enum(fp_contract_mode) String(fast) Value(FP_CONTRACT_FAST)
 
+ffunction-attribute-list=
+Common Joined RejectNegative Var(common_deferred_options) Defer
+-ffunction-attribute-list=attribute:name,...  Add attribute to named functions
+
 ; Nonzero means don't put addresses of constant functions in registers.
 ; Used for compiling the Unix kernel, where strange substitutions are
 ; done on the assembly output.

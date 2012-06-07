@@ -100,6 +100,7 @@ The callgraph:
 #include "lto-streamer.h"
 #include "l-ipo.h"
 #include "ipa-inline.h"
+#include "opts.h"
 
 const char * const ld_plugin_symbol_resolution_names[]=
 {
@@ -550,6 +551,7 @@ cgraph_create_node (tree decl)
       node->origin->nested = node;
     }
   cgraph_add_assembler_hash_node (node);
+  pattern_match_function_attributes (decl);
   return node;
 }
 

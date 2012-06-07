@@ -1693,6 +1693,10 @@ common_handle_option (struct gcc_options *opts,
       /* Deferred.  */
       break;
 
+    case OPT_ffunction_attribute_list_:
+      /* Deferred.  */
+      break;
+
     case OPT_fsched_verbose_:
 #ifdef INSN_SCHEDULING
       /* Handled with Var in common.opt.  */

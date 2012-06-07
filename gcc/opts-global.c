@@ -39,6 +39,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "params.h"
 #include "l-ipo.h"
+#include "xregex.h"
 
 typedef const char *const_char_p; /* For DEF_VEC_P.  */
 DEF_VEC_P(const_char_p);
@@ -49,6 +50,13 @@ static VEC(const_char_p,heap) *ignored_options;
 /* Input file names.  */
 const char **in_fnames;
 unsigned num_in_fnames;
+
+static struct reg_func_attr_patterns
+{
+  regex_t r;
+  const char *attribute;
+  struct reg_func_attr_patterns *next;
+} *reg_func_attr_patterns;
 
 /* Return a malloced slash-separated list of languages in MASK.  */
 
@@ -77,6 +85,62 @@ write_langs (unsigned int mask)
   result[len] = 0;
 
   return result;
+}
+
+/* Add strings like attribute_str:pattern... to attribute pattern list.  */
+
+static void
+add_attribute_pattern (const char *arg)
+{
+  char *tmp;
+  char *pattern_str;
+  struct reg_func_attr_patterns *one_pat;
+  int ec;
+  
+  /* We never free this string.  */
+  tmp = xstrdup (arg);
+
+  pattern_str = strchr (tmp, ':');
+  if (!pattern_str)
+    error ("invalid pattern in -ffunction-attribute-list option: %qs", tmp);
+
+  *pattern_str = '\0';
+  pattern_str ++;
+
+  one_pat = XCNEW (struct reg_func_attr_patterns);
+  one_pat->next = reg_func_attr_patterns;
+  one_pat->attribute = tmp;
+  reg_func_attr_patterns = one_pat;
+  if ((ec= regcomp (&one_pat->r, pattern_str, REG_EXTENDED|REG_NOSUB) != 0))
+    {
+      char err[100];
+      regerror (ec, &one_pat->r, err, 99);
+      error ("invalid pattern in -ffunction-attribute-list option: %qs: %qs",
+	     pattern_str, err);
+    }
+}
+
+/* Match FNDECL's name with user specified patterns, and add attributes
+   to FNDECL.  */
+
+void
+pattern_match_function_attributes (tree fndecl)
+{
+  const char *name;
+  struct reg_func_attr_patterns *one_pat;
+
+  if (!fndecl)
+    return;
+
+  if (!reg_func_attr_patterns)
+    return;
+
+  name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (fndecl));
+
+  for (one_pat = reg_func_attr_patterns; one_pat; one_pat = one_pat->next)
+    if (regexec (&one_pat->r, name, 0, NULL, 0) == 0)
+      decl_attributes (&fndecl, tree_cons (
+	  get_identifier (one_pat->attribute), NULL, NULL), 0);
 }
 
 /* Complain that switch DECODED does not apply to this front end (mask
@@ -429,6 +493,10 @@ handle_common_deferred_options (void)
 
 	case OPT_frandom_seed_:
 	  set_random_seed (opt->arg);
+	  break;
+
+	case OPT_ffunction_attribute_list_:
+	  add_attribute_pattern (opt->arg);
 	  break;
 
 	case OPT_fstack_limit:

@@ -1,3 +1,13 @@
+2012-06-07  Dehao Chen  <dehao@google.com>
+
+	* gcc/cgraph.c (cgraph_node): Add attribute to function decl.
+	* gcc/opts-global.c (add_attribute_pattern): New function.
+	(pattern_match_function_attributes): New function.
+	(handle_common_deferred_options): Handle new options.
+	* gcc/opts.c (common_handle_option): Handle new options.
+	* gcc/opts.h (handle_common_deferred_options): New function.
+	* gcc/common.opt (ffunction_attribute_list): New option.
+
 2012-06-06   Diego Novillo  <dnovillo@google.com>
 
   Cherry pick rev 188207.
