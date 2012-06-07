@@ -163,10 +163,10 @@ init_ic_make_global_vars (void)
 static struct pointer_set_t *instrumentation_to_be_sampled = NULL;
 
 /* extern __thread gcov_unsigned_t __gcov_sample_counter  */
-static tree gcov_sample_counter_decl = NULL_TREE;
+static GTY(()) tree gcov_sample_counter_decl = NULL_TREE;
 
 /* extern gcov_unsigned_t __gcov_sampling_period  */
-static tree gcov_sampling_period_decl = NULL_TREE;
+static tree GTY(()) gcov_sampling_period_decl = NULL_TREE;
 
 /* extern gcov_unsigned_t __gcov_has_sampling  */
 static tree gcov_has_sampling_decl = NULL_TREE;
@@ -286,9 +286,13 @@ add_sampling_to_edge_counters (void)
             break;
           }
       }
+}
 
+static void
+cleanup_instrumentation_sampling (void)
+{
   /* Free the bitmap.  */
-  if (instrumentation_to_be_sampled)
+  if (flag_profile_generate_sampling && instrumentation_to_be_sampled)
     {
       pointer_set_destroy (instrumentation_to_be_sampled);
       instrumentation_to_be_sampled = NULL;
@@ -1496,6 +1500,7 @@ tree_profiling (void)
     }
 
   del_node_map();
+  cleanup_instrumentation_sampling();
   return 0;
 }
 

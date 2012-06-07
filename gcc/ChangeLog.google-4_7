@@ -1,3 +1,14 @@
+2012-06-07   Easwaran Raman  <eraman@google.com>
+  Backport r179412 from google/gcc-4_6 branch.
+	2011-09-30  Easwaran Raman  <eraman@google.com>
+
+		* tree-profile.c (gcov_sample_counter_decl): Add GTY marker.
+		(gcov_sampling_rate_decl): Likewise.
+		(add_sampling_to_edge_counters): Do not free
+		instrumentation_to_be_sampled.
+		(cleanup_instrumentation_sampling): New function.
+		(tree_profiling): Call cleanup_instrumentation_sampling at the end.
+
 2012-06-07  Teresa Johnson  <tejohnson@google.com>
 
 	Backport from google/main r188308.
