@@ -1,4 +1,8 @@
 
+2012-06-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.cc: Moved classes outside of SmeltMainWindow-s.
+	still incomplete.
+
 2012-06-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.cc (SmeltMainWindow): Declare
 	showinfo_location & addinfo_location &
