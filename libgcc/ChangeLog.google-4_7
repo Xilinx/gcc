@@ -1,3 +1,13 @@
+2012-06-07  Teresa Johnson  <tejohnson@google.com>
+
+	Backport from google/main r188308.
+	2012-06-07  Teresa Johnson  <tejohnson@google.com>
+
+	* libgcov.c (sort_by_reverse_gcov_value): New function.
+	(gcov_compute_cutoff_values): Ditto.
+        (gcov_merge_gcda_file): Merge new summary information.
+	(gcov_exit_init): Call gcov_compute_cutoff_values.
+
 2012-06-01   Teresa Johnson  <tejohnson@google.com>
 
 	Backport from google/main r188134.

@@ -1,3 +1,37 @@
+2012-06-07  Teresa Johnson  <tejohnson@google.com>
+
+	Backport from google/main r188308.
+	2012-06-07  Teresa Johnson  <tejohnson@google.com>
+
+	* doc/invoke.texi: Rename -fripa-peel-size-limit
+        and -fripa-unroll-size-limit to -fpeel-codesize-limit and
+        -funroll-codesize-limit, respectively. Remove
+        codesize-hotness-threshold param and add unrollpeel-hotness-threshold
+        param.
+	* gcov-io.c (gcov_write_summary): Write new summary info.
+	(gcov_read_summary): Read new summary info.
+	* gcov-io.h (GCOV_TAG_SUMMARY_LENGTH): Update for new summary info.
+        (struct gcov_ctr_summary): Add new summary info: num_hot_counters.
+	* loop-unroll.c (limit_code_size): Renamed to
+        code_size_limit_factor.
+	(code_size_limit_factor): Renamed from limit_code size. Update to
+        use new summary info and refine for very hot loops.
+	(decide_unrolling_and_peeling): Remove call to limit_code_size.
+        (decide_unroll_runtime_iterations): Call code_size_limit_factor
+        to control the unroll factor.
+	(decide_peel_simple, decide_unroll_stupid): Ditto.
+	* coverage.c (read_counts_file): Propagate new summary info.
+	* common.opt: Rename -fripa-peel-size-limit
+        and -fripa-unroll-size-limit to -fpeel-codesize-limit and
+        -funroll-codesize-limit, respectively.
+	* tree-optimize.c (cgraph_codesize_estimate): Remove.
+	(compute_codesize_estimate): Remove.
+	(execute_cleanup_cfg_post_optimizing): Remove call to
+        compute_codesize_estimate.
+	* params.def (PARAM_UNROLLPEEL_CODESIZE_THRESHOLD): Remove.
+        (PARAM_UNROLLPEEL_HOTNESS_THRESHOLD): Add.
+	* gcov-dump.c (tag_summary): Dump new summary info.
+
 2012-06-07  Dehao Chen  <dehao@google.com>
 
 	* gcc/cgraph.c (cgraph_node): Add attribute to function decl.

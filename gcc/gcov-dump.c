@@ -526,8 +526,10 @@ tag_summary (const char *filename ATTRIBUTE_UNUSED,
     {
       printf ("\n");
       print_prefix (filename, 0, 0);
-      printf ("\t\tcounts=%u, runs=%u",
-	      summary.ctrs[ix].num, summary.ctrs[ix].runs);
+      printf ("\t\tcounts=%u (num hot counts=%u), runs=%u",
+	      summary.ctrs[ix].num,
+	      summary.ctrs[ix].num_hot_counters,
+	      summary.ctrs[ix].runs);
 
       printf (", sum_all=" HOST_WIDEST_INT_PRINT_DEC,
 	      (HOST_WIDEST_INT)summary.ctrs[ix].sum_all);

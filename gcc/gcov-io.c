@@ -520,6 +520,7 @@ gcov_write_summary (gcov_unsigned_t tag, const struct gcov_summary *summary)
   for (csum = summary->ctrs, ix = GCOV_COUNTERS_SUMMABLE; ix--; csum++)
     {
       gcov_write_unsigned (csum->num);
+      gcov_write_unsigned (csum->num_hot_counters);
       gcov_write_unsigned (csum->runs);
       gcov_write_counter (csum->sum_all);
       gcov_write_counter (csum->run_max);
@@ -637,6 +638,7 @@ gcov_read_summary (struct gcov_summary *summary)
   for (csum = summary->ctrs, ix = GCOV_COUNTERS_SUMMABLE; ix--; csum++)
     {
       csum->num = gcov_read_unsigned ();
+      csum->num_hot_counters = gcov_read_unsigned ();
       csum->runs = gcov_read_unsigned ();
       csum->sum_all = gcov_read_counter ();
       csum->run_max = gcov_read_counter ();
