@@ -1,3 +1,10 @@
+2012-06-05  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cilk-spawn.c (compute_loop_var): Removed an unwanted assert.
+	(build_cilk_for_body): Changed var type from min_parms's to the original
+	var_type. This change is propagated in several places with the
+	appropriate type conversions.
+
 2012-06-02  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* tree-inline.c (remap_gimple_op_r): Added a check for NON-NULL

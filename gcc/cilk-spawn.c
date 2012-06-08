@@ -2290,9 +2290,6 @@ compute_loop_var (struct cilk_for_desc *cfd, tree loop_var, tree lower_bound)
   int incr_sign = cfd->incr_sign;
   enum tree_code add_op = incr_sign >= 0 ? PLUS_EXPR : MINUS_EXPR;
 
-  gcc_assert (TYPE_MAIN_VARIANT (TREE_TYPE (loop_var)) ==
-	      TYPE_MAIN_VARIANT (count_type));
-
   /* Compute an expression to be added or subtracted.
 
      We want to add or subtract LOOP_VAR * INCR.  INCR may be negative.
@@ -2374,8 +2371,8 @@ build_cilk_for_body (struct cilk_for_desc *cfd)
   tree body, block;
   tree lower_bound;
   tree loop_var;
-  tree count_type;
   tree tempx,tempy;
+
   declare_cilk_for_parms (cfd);
 
   cfd->wd.fntype = build_function_type (void_type_node, cfd->wd.argtypes);
@@ -2420,13 +2417,11 @@ build_cilk_for_body (struct cilk_for_desc *cfd)
       lower_bound = hack;
     }
   loop_var = build_decl (UNKNOWN_LOCATION, VAR_DECL, NULL_TREE,
-			 TREE_TYPE (cfd->min_parm));
+			 cfd->var_type);
   DECL_CONTEXT (loop_var) = fndecl;
-  add_stmt (build2 (INIT_EXPR, void_type_node, loop_var, cfd->min_parm));
-
-  count_type = cfd->count_type;
-  gcc_assert (TYPE_MAIN_VARIANT (TREE_TYPE (loop_var)) ==
-	      TYPE_MAIN_VARIANT (count_type));
+  add_stmt (build_modify_expr (UNKNOWN_LOCATION, loop_var, TREE_TYPE (loop_var),
+			       NOP_EXPR, UNKNOWN_LOCATION,
+			       cfd->min_parm, TREE_TYPE (cfd->min_parm)));
 
   /* The new loop body is
 
@@ -2464,14 +2459,15 @@ build_cilk_for_body (struct cilk_for_desc *cfd)
     add_stmt (loop_body);
 
     tempx = build2 (MODIFY_EXPR, void_type_node, loop_var,
-		    build2 (PLUS_EXPR, count_type,
+		    build2 (PLUS_EXPR, TREE_TYPE (loop_var),
 			    loop_var,
-			    build_int_cst (count_type, 1)));
+			    build_int_cst (TREE_TYPE (loop_var), 1)));
     add_stmt(tempx);
     
     tempy = build3 (COND_EXPR, void_type_node,
 		    build2 (LT_EXPR, boolean_type_node, loop_var,
-			    cfd->max_parm),
+			    build_c_cast (UNKNOWN_LOCATION,
+					  TREE_TYPE (loop_var), cfd->max_parm)),
 		    build1 (GOTO_EXPR, void_type_node, lab),
 		    build_empty_stmt (UNKNOWN_LOCATION));
 
