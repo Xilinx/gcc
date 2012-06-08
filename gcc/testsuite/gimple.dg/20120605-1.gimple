@@ -1,0 +1,1 @@
+gimple_switch <a, default: <default_label>, case 1: <first_label>, case 2: <second_label>, case 3: <third_label>>

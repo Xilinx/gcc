@@ -1,3 +1,9 @@
+2012-06-08   Sandeep Soni  <soni.sandeepb@gmail.com>
+
+	* gimple.dg/20120604-1.gimple: New.
+	* gimple.dg/20120604-2.gimple: New.
+	* gimple.dg/20120605-1.gimple: New.
+
 2012-05-25   Diego Novillo  <dnovillo@google.com>
 
 	* gimple.dg/20120523-1.gimple: Add expected error.
