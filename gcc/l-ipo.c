@@ -33,6 +33,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "l-ipo.h"
 #include "coverage.h"
 #include "gcov-io.h"
+#include "timevar.h"
 
 struct GTY(()) saved_module_scope
 {
@@ -392,6 +393,7 @@ pop_module_scope (void)
   at_eof = 1;
   cgraph_process_same_body_aliases ();
   lang_hooks.l_ipo.process_pending_decls (input_location);
+  timevar_stop (TV_PHASE_DEFERRED);
   lang_hooks.l_ipo.clear_deferred_fns ();
   at_eof = 0;
 

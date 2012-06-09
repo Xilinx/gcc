@@ -1,3 +1,9 @@
+2012-06-09   Xinliang David Li  <davidxl@google.com>
+
+	* decl.c (poplevel): Start/stop timer conditionally.
+	* decl2.c (cp_write_gloobal_declarations): Stop timer
+	in non-lipo mode.
+
 2012-05-15   Ollie Wild  <aaw@google.com>
 
 	* decl.c (check_static_variable_definition): Only generate a constexpr

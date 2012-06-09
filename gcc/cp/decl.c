@@ -553,8 +553,9 @@ poplevel (int keep, int reverse, int functionbody)
   scope_kind kind;
   unsigned ix;
   cp_label_binding *label_bind;
+  bool subtime;
 
-  timevar_start (TV_NAME_LOOKUP);
+  subtime = timevar_cond_start (TV_NAME_LOOKUP);
  restart:
 
   block = NULL_TREE;
@@ -820,7 +821,7 @@ poplevel (int keep, int reverse, int functionbody)
   if (kind == sk_cleanup)
     goto restart;
 
-  timevar_stop (TV_NAME_LOOKUP);
+  timevar_cond_stop (TV_NAME_LOOKUP, subtime);
   return block;
 }
 
