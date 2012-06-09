@@ -1,3 +1,9 @@
+2012-06-09   Xinliang Davidl Li  <davidxl@google.com>
+
+	c-family/c-opts.c (lipo_max_mem_reached):  Scale up
+	memory allocated to acount for optimizer uses.
+	params.def: tune up max lipo mem parameter to 2.8G.
+
 2012-06-07   Easwaran Raman  <eraman@google.com>
   Backport r179412 from google/gcc-4_6 branch.
 	2011-09-30  Easwaran Raman  <eraman@google.com>

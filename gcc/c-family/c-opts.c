@@ -1129,7 +1129,9 @@ lipo_max_mem_reached (unsigned int i)
 {
   if (L_IPO_COMP_MODE && PARAM_VALUE (PARAM_MAX_LIPO_MEMORY)
       && i < (num_in_fnames - 1)
-      && ((ggc_total_allocated () >> 10)
+      /* Scale up memory usage by 25% to account for memory consumption
+         by the optimizer.  */
+      && ((ggc_total_allocated () >> 10) * 1.25
           > (size_t) PARAM_VALUE (PARAM_MAX_LIPO_MEMORY))) {
     i++;
     do {

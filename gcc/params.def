@@ -945,7 +945,7 @@ DEFPARAM (PARAM_MAX_LIPO_GROUP,
 DEFPARAM (PARAM_MAX_LIPO_MEMORY,
 	  "max-lipo-mem",
 	  "don't import aux files if memory consumption exceeds this value",
-	  2400000, 0, 0)
+	  2800000, 0, 0)
 
 DEFPARAM (PARAM_PROFILE_GENERATE_SAMPLING_PERIOD,
          "profile-generate-sampling-period",
