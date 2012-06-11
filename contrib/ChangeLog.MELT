@@ -1,5 +1,9 @@
 
 2012-06-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.cc
+	(ShownLocationInfo::destroy_dialog): More debug.
+
+2012-06-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.cc: Better indentation.
 	(ShownLocationInfo::destroy_dialog): New.
 	(notebook_append_page): Create a label with markup.

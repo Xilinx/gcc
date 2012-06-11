@@ -375,9 +375,11 @@ public:
     return _sli_col;
   };
   void destroy_dialog() {
-    SMELT_DEBUG("destroy dialog in this=" << (void*)this);
+    SMELT_DEBUG("destroy dialog " << _sli_dialp->thisptr()
+		<< " in this locationinfo @" << (void*)this);
     if (!_sli_dialp) return;
     _sli_dialp.reset();
+    SMELT_DEBUG("destroyed dialog this locationinfo @" <<  (void*)this);
   }
 };        // end class ShownLocationInfo
 
