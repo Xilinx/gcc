@@ -1,3 +1,8 @@
+2012-06-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cilk.c (cilk_init_builtins): Made the stack frame structure runtime
+	independent.
+
 2012-06-05  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cilk-spawn.c (compute_loop_var): Removed an unwanted assert.

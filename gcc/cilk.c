@@ -165,7 +165,7 @@ cilk_init_builtins (void)
   TYPE_ALIGN (frame) = PREFERRED_STACK_BOUNDARY;
   TREE_ADDRESSABLE (frame) = 1;
   /* XXX Is this right? */
-  finish_builtin_struct (frame, "__cilkrts_stack_frame", fields, NULL_TREE);
+  finish_builtin_struct (frame, "__cilkrts_stack_frame_GCC", fields, NULL_TREE);
   /* XXX C++ only SET_CLASS_TYPE_P(record, 1); */
   /* XXX C++ only xref_basetypes (record, NULL_TREE); */
   cilk_frame_type_decl = frame;
