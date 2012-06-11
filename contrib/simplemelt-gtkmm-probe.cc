@@ -346,8 +346,10 @@ public:
   }; // for debugging
   ShownLocationInfo(long num, ShownFile* fil, int lineno, int col)
     : _sli_fil(fil), _sli_num(num), _sli_lineno(lineno), _sli_col(col) {
+    SMELT_DEBUG("num=" << num << " this@" << (void*)this);
   }
   ~ShownLocationInfo() {
+    SMELT_DEBUG("destroying this@" << (void*)this);
     _sli_fil=nullptr;
     _sli_num=0;
     _sli_lineno=0, _sli_col=0;
@@ -372,6 +374,11 @@ public:
   int col() const {
     return _sli_col;
   };
+  void destroy_dialog() {
+    SMELT_DEBUG("destroy dialog in this=" << (void*)this);
+    if (!_sli_dialp) return;
+    _sli_dialp.reset();
+  }
 };        // end class ShownLocationInfo
 
 /* The SmeltMainWindow is our graphical interface; allmost all GUI
@@ -447,7 +454,9 @@ public:
     return Gtk::Window::on_delete_event(ev);
   }
   void notebook_append_page(Gtk::Widget&child,const Glib::ustring&markup) {
-    _mainnotebook.append_page(child,markup,true);
+    Gtk::Label lab;
+    lab.set_markup(markup);
+    _mainnotebook.append_page(child,lab);
     _mainnotebook.show_all();
   }
   void on_version_show(void);
@@ -838,7 +847,9 @@ std::ostream& operator << (std::ostream& os, const SmeltVector& v)
   return os;
 }
 
-void SmeltArg::out(std::ostream& os) const
+
+void
+SmeltArg::out(std::ostream& os) const
 {
   switch (_argkind) {
   case SmeltArg_None:
@@ -975,6 +986,7 @@ protected:
       mainwin->show_all();
     }
     _app_langman = Gsv::LanguageManager::get_default ();
+    SMELT_DEBUG("done");
   };
 public:
   void* thisptr() const {
@@ -1350,11 +1362,11 @@ ShownFile::ShownFile(SmeltMainWindow*mwin,const std::string&filepath,long num)
       free(realfilpath);
     }
     auto vbox = new Gtk::VBox(false,2);
-    vbox->pack_start(*labtit,Gtk::PACK_SHRINK);
-    vbox->pack_start(*new Gtk::Separator(Gtk::ORIENTATION_HORIZONTAL),Gtk::PACK_SHRINK);
-    vbox->pack_start(*scrowin,Gtk::PACK_EXPAND_WIDGET);
+    vbox->pack_start(*Gtk::manage(labtit),Gtk::PACK_SHRINK);
+    vbox->pack_start(*Gtk::manage(new Gtk::Separator(Gtk::ORIENTATION_HORIZONTAL)),Gtk::PACK_SHRINK);
+    vbox->pack_start(*Gtk::manage(scrowin),Gtk::PACK_EXPAND_WIDGET);
     scrowin->show_all();
-    mwin->notebook_append_page(*vbox,labstr);
+    mwin->notebook_append_page(*Gtk::manage(vbox),labstr);
   }
   mainsfilemapnum_[num] = this;
   mainsfiledict_[filepath] = this;
@@ -1430,12 +1442,14 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
   SMELT_DEBUG("added mark but@" << (void*) but);
 }
 
+
+
 /* When the user press a location button, on_update is called. It
    should send an INFOLOCATION_prq request to MELT, which should
    respond with one STARTINFOLOC_pcd followed by zero, one or more
    ADDINFOLOC_pcd commands */
-
-void ShownLocationInfo::on_update(void)
+void
+ShownLocationInfo::on_update(void)
 {
   SMELT_DEBUG("updating loc#" << _sli_num);
   SmeltApplication::instance()->sendreq(SmeltApplication::instance()->outreq()
@@ -1474,14 +1488,10 @@ void ShownLocationInfo::on_update(void)
 }
 
 
-static void smelt_destroy_location_dialog(Glib::RefPtr<ShownLocationDialog> dialp)
-{
-  SMELT_DEBUG("destroying dial@" << dialp->thisptr());
-  dialp.clear();
-  SMELT_DEBUG("destroyed dial");
-}
 
-void ShownLocationInfo::on_dialog_response(int resp)
+
+void
+ShownLocationInfo::on_dialog_response(int resp)
 {
   SMELT_DEBUG("responding loc#" << _sli_num << " resp=" << resp);
   switch (resp) {
@@ -1500,7 +1510,7 @@ void ShownLocationInfo::on_dialog_response(int resp)
     // we cannot destroy the dial inside this event, we queue to
     // destroy it latter
 #warning should signal_idle connect_once
-    //    Glib::signal_idle().connect_once(sigc::ptr_fun(&smelt_destroy_location_dialog,_sli_dialp));
+    Glib::signal_idle().connect_once(sigc::mem_fun(this,&ShownLocationInfo::destroy_dialog));
   }
 }
 
@@ -1592,33 +1602,44 @@ SmeltMainWindow::addinfo_location(long marknum, const std::string& title, const 
 }
 
 ////////////////////////////////////////////////////////////////
-guint SmeltMainWindow::push_status(const std::string&msg)
+guint
+SmeltMainWindow::push_status(const std::string&msg)
 {
   return _mainstatusbar.push(msg);
 }
 
-void  SmeltMainWindow::pop_status(void)
+
+void
+SmeltMainWindow::pop_status(void)
 {
   _mainstatusbar.pop();
 }
 
-void SmeltMainWindow::remove_status(guint msgid)
+
+void
+SmeltMainWindow::remove_status(guint msgid)
 {
   _mainstatusbar.remove_message(msgid);
 }
 
-void SmeltMainWindow::remove_all_status(void)
+
+void
+SmeltMainWindow::remove_all_status(void)
 {
   _mainstatusbar.remove_all_messages();
 }
 
-void SmeltMainWindow::send_quit_req(void)
+
+void
+SmeltMainWindow::send_quit_req(void)
 {
   SmeltApplication::instance()->sendreq(SmeltApplication::instance()->outreq() << "QUIT_prq");
   Glib::signal_timeout().connect_once(sigc::ptr_fun(&smelt_quit),250);
 }
 
-void SmeltMainWindow::on_version_show(void)
+
+void
+SmeltMainWindow::on_version_show(void)
 {
   SMELT_DEBUG("on_version_show start");
   Gtk::AboutDialog dial;
@@ -1641,7 +1662,8 @@ void SmeltMainWindow::on_version_show(void)
 }
 
 ////////////////////////////////////////////////////////////////
-void SmeltTraceWindow::add_title(const std::string &str)
+void
+SmeltTraceWindow::add_title(const std::string &str)
 {
   auto tbuf =  _tracetextview.get_buffer();
   tbuf->insert_with_tag(tbuf->end(), str, "title");
@@ -1652,7 +1674,9 @@ void SmeltTraceWindow::add_title(const std::string &str)
 }
 
 
-void SmeltTraceWindow::on_trace_clear(void)
+
+void
+SmeltTraceWindow::on_trace_clear(void)
 {
   static long nbclear;
   nbclear++;
@@ -1663,7 +1687,9 @@ void SmeltTraceWindow::on_trace_clear(void)
   add_title(out);
 }
 
-void SmeltTraceWindow::add_date(const std::string &s)
+
+void
+SmeltTraceWindow::add_date(const std::string &s)
 {
   struct timeval tv= {0,0};
   gettimeofday (&tv,nullptr);
@@ -1776,13 +1802,16 @@ SmeltTraceWindow::SmeltTraceWindow()
   show_all();
 }
 
-void SmeltCommandSymbol::call(SmeltApplication* app, SmeltVector&v)
+
+void
+SmeltCommandSymbol::call(SmeltApplication* app, SmeltVector&v)
 {
   ((*app).*(_cmdfun))(v);
 }
 
 
-void SmeltTraceWindow::add_command_from_melt(const std::string& str)
+void
+SmeltTraceWindow::add_command_from_melt(const std::string& str)
 {
   auto tbuf =  _tracetextview.get_buffer();
   add_date();
@@ -1791,7 +1820,9 @@ void SmeltTraceWindow::add_command_from_melt(const std::string& str)
     tbuf->insert(tbuf->end(), "\n");
 }
 
-void SmeltTraceWindow::add_reply_to_melt(const std::string& str)
+
+void
+SmeltTraceWindow::add_reply_to_melt(const std::string& str)
 {
   auto tbuf =  _tracetextview.get_buffer();
   add_date();
@@ -1800,7 +1831,8 @@ void SmeltTraceWindow::add_reply_to_melt(const std::string& str)
     tbuf->insert(tbuf->end(), "\n");
 }
 
-void SmeltOptionGroup::setup_appl(SmeltApplication& app)
+void
+SmeltOptionGroup::setup_appl(SmeltApplication& app)
 {
   SMELT_DEBUG("setup_appl _file_to_melt=" << _file_to_melt
               << " _file_from_melt=" << _file_from_melt
@@ -1952,7 +1984,8 @@ SmeltApplication::process_command_from_melt(std::string& str)
 
 
 ////////////////////////////////////////////////////////////////
-int main (int argc, char** argv)
+int
+main (int argc, char** argv)
 {
   auto progname = (argc>0)?(argv[0]):"*Simple-Melt-Probe*";
   if (argc>1 && !strcmp(argv[1],"-D"))
