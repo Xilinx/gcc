@@ -15061,6 +15061,9 @@ cp_parser_alias_declaration (cp_parser* parser)
 
   cp_parser_require (parser, CPP_EQ, RT_EQ);
 
+  if (cp_parser_error_occurred (parser))
+    return error_mark_node;
+
   /* Now we are going to parse the type-id of the declaration.  */
 
   /*
@@ -20317,12 +20320,8 @@ cp_parser_lookup_name (cp_parser *parser, tree name,
 		       tree *ambiguous_decls,
 		       location_t name_location)
 {
-  int flags = 0;
   tree decl;
   tree object_type = parser->context->object_type;
-
-  if (!cp_parser_uncommitted_to_tentative_parse_p (parser))
-    flags |= LOOKUP_COMPLAIN;
 
   /* Assume that the lookup will be unambiguous.  */
   if (ambiguous_decls)
@@ -20495,7 +20494,7 @@ cp_parser_lookup_name (cp_parser *parser, tree name,
       /* Look it up in the enclosing context, too.  */
       decl = lookup_name_real (name, tag_type != none_type,
 			       /*nonclass=*/0,
-			       /*block_p=*/true, is_namespace, flags);
+			       /*block_p=*/true, is_namespace, 0);
       parser->object_scope = object_type;
       parser->qualifying_scope = NULL_TREE;
       if (object_decl)
@@ -20505,7 +20504,7 @@ cp_parser_lookup_name (cp_parser *parser, tree name,
     {
       decl = lookup_name_real (name, tag_type != none_type,
 			       /*nonclass=*/0,
-			       /*block_p=*/true, is_namespace, flags);
+			       /*block_p=*/true, is_namespace, 0);
       parser->qualifying_scope = NULL_TREE;
       parser->object_scope = NULL_TREE;
     }
