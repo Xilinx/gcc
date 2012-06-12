@@ -1859,7 +1859,7 @@ identifier_type_value_1 (tree id)
     return REAL_IDENTIFIER_TYPE_VALUE (id);
   /* Have to search for it. It must be on the global level, now.
      Ask lookup_name not to return non-types.  */
-  id = lookup_name_real (id, 2, 1, /*block_p=*/true, 0, LOOKUP_COMPLAIN);
+  id = lookup_name_real (id, 2, 1, /*block_p=*/true, 0, 0);
   if (id)
     return TREE_TYPE (id);
   return NULL_TREE;
@@ -3523,8 +3523,8 @@ void
 push_namespace (tree name)
 {
   tree d = NULL_TREE;
-  int need_new = 1;
-  int implicit_use = 0;
+  bool need_new = true;
+  bool implicit_use = false;
   bool anon = !name;
 
   bool subtime = timevar_cond_start (TV_NAME_LOOKUP);
@@ -3540,8 +3540,8 @@ push_namespace (tree name)
       d = IDENTIFIER_NAMESPACE_VALUE (name);
       if (d)
 	/* Reopening anonymous namespace.  */
-	need_new = 0;
-      implicit_use = 1;
+	need_new = false;
+      implicit_use = true;
     }
   else
     {
@@ -3549,13 +3549,36 @@ push_namespace (tree name)
       d = IDENTIFIER_NAMESPACE_VALUE (name);
       if (d != NULL_TREE && TREE_CODE (d) == NAMESPACE_DECL)
 	{
-	  need_new = 0;
-	  if (DECL_NAMESPACE_ALIAS (d))
-	    {
-	      error ("namespace alias %qD not allowed here, assuming %qD",
-		     d, DECL_NAMESPACE_ALIAS (d));
-	      d = DECL_NAMESPACE_ALIAS (d);
+	  tree dna = DECL_NAMESPACE_ALIAS (d);
+	  if (dna)
+ 	    {
+	      /* We do some error recovery for, eg, the redeclaration
+		 of M here:
+
+		 namespace N {}
+		 namespace M = N;
+		 namespace M {}
+
+		 However, in nasty cases like:
+
+		 namespace N
+		 {
+		   namespace M = N;
+		   namespace M {}
+		 }
+
+		 we just error out below, in duplicate_decls.  */
+	      if (NAMESPACE_LEVEL (dna)->level_chain
+		  == current_binding_level)
+		{
+		  error ("namespace alias %qD not allowed here, "
+			 "assuming %qD", d, dna);
+		  d = dna;
+		  need_new = false;
+		}
 	    }
+	  else
+	    need_new = false;
 	}
     }
 
@@ -4327,7 +4350,6 @@ lookup_qualified_name (tree scope, tree name, bool is_type_p, bool complain)
     {
       struct scope_binding binding = EMPTY_SCOPE_BINDING;
 
-      flags |= LOOKUP_COMPLAIN;
       if (is_type_p)
 	flags |= LOOKUP_PREFER_TYPES;
       if (qualified_lookup_using_namespace (name, scope, &binding, flags))
@@ -4754,7 +4776,7 @@ lookup_name_real (tree name, int prefer_type, int nonclass, bool block_p,
 tree
 lookup_name_nonclass (tree name)
 {
-  return lookup_name_real (name, 0, 1, /*block_p=*/true, 0, LOOKUP_COMPLAIN);
+  return lookup_name_real (name, 0, 1, /*block_p=*/true, 0, 0);
 }
 
 tree
@@ -4762,22 +4784,20 @@ lookup_function_nonclass (tree name, VEC(tree,gc) *args, bool block_p)
 {
   return
     lookup_arg_dependent (name,
-			  lookup_name_real (name, 0, 1, block_p, 0,
-					    LOOKUP_COMPLAIN),
+			  lookup_name_real (name, 0, 1, block_p, 0, 0),
 			  args, false);
 }
 
 tree
 lookup_name (tree name)
 {
-  return lookup_name_real (name, 0, 0, /*block_p=*/true, 0, LOOKUP_COMPLAIN);
+  return lookup_name_real (name, 0, 0, /*block_p=*/true, 0, 0);
 }
 
 tree
 lookup_name_prefer_type (tree name, int prefer_type)
 {
-  return lookup_name_real (name, prefer_type, 0, /*block_p=*/true,
-			   0, LOOKUP_COMPLAIN);
+  return lookup_name_real (name, prefer_type, 0, /*block_p=*/true, 0, 0);
 }
 
 /* Look up NAME for type used in elaborated name specifier in

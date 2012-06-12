@@ -1490,20 +1490,6 @@ package body Exp_Ch7 is
 
             Append_To (Finalizer_Stmts, Label);
 
-            --  The local exception does not need to be reraised for library-
-            --  level finalizers. Generate:
-            --
-            --    if Raised and then not Abort then
-            --       Raise_From_Controlled_Operation (E);
-            --    end if;
-
-            if not For_Package
-              and then Exceptions_OK
-            then
-               Append_To (Finalizer_Stmts,
-                 Build_Raise_Statement (Finalizer_Data));
-            end if;
-
             --  Create the jump block which controls the finalization flow
             --  depending on the value of the state counter.
 
@@ -1570,6 +1556,22 @@ package body Exp_Ch7 is
                 Name => New_Reference_To (RTE (RE_Abort_Undefer), Loc)));
          end if;
 
+         --  The local exception does not need to be reraised for library-level
+         --  finalizers. Note that this action must be carried out after object
+         --  clean up, secondary stack release and abort undeferral. Generate:
+
+         --    if Raised and then not Abort then
+         --       Raise_From_Controlled_Operation (E);
+         --    end if;
+
+         if Has_Ctrl_Objs
+           and then Exceptions_OK
+           and then not For_Package
+         then
+            Append_To (Finalizer_Stmts,
+              Build_Raise_Statement (Finalizer_Data));
+         end if;
+
          --  Generate:
          --    procedure Fin_Id is
          --       Abort  : constant Boolean := Triggered_By_Abort;
@@ -1590,6 +1592,7 @@ package body Exp_Ch7 is
          --       <finalization statements>  --  Added if Has_Ctrl_Objs
          --       <stack release>            --  Added if Mark_Id exists
          --       Abort_Undefer;             --  Added if abort is allowed
+         --       <exception propagation>    --  Added if Has_Ctrl_Objs
          --    end Fin_Id;
 
          --  Create the body of the finalizer
@@ -2091,6 +2094,22 @@ package body Exp_Ch7 is
                then
                   Last_Top_Level_Ctrl_Construct := Decl;
                end if;
+
+            --  Handle the case where the original context has been wrapped in
+            --  a block to avoid interference between exception handlers and
+            --  At_End handlers. Treat the block as transparent and process its
+            --  contents.
+
+            elsif Nkind (Decl) = N_Block_Statement
+              and then Is_Finalization_Wrapper (Decl)
+            then
+               if Present (Handled_Statement_Sequence (Decl)) then
+                  Process_Declarations
+                    (Statements (Handled_Statement_Sequence (Decl)),
+                     Preprocess);
+               end if;
+
+               Process_Declarations (Declarations (Decl), Preprocess);
             end if;
 
             Prev_Non_Pragma (Decl);
@@ -3693,6 +3712,11 @@ package body Exp_Ch7 is
            Make_Block_Statement (Loc,
              Handled_Statement_Sequence => HSS);
 
+         --  Signal the finalization machinery that this particular block
+         --  contains the original context.
+
+         Set_Is_Finalization_Wrapper (Block);
+
          Set_Handled_Statement_Sequence (N,
            Make_Handled_Sequence_Of_Statements (Loc, New_List (Block)));
          HSS := Handled_Statement_Sequence (N);
@@ -4324,10 +4348,29 @@ package body Exp_Ch7 is
          Last_Object  : Node_Id;
          Related_Node : Node_Id)
       is
-         Requires_Hooking : constant Boolean :=
-                              Nkind_In (N, N_Function_Call,
-                                           N_Procedure_Call_Statement);
+         function Requires_Hooking return Boolean;
+         --  Determine whether the context requires transient variable export
+         --  to the outer finalizer. This scenario arises when the context may
+         --  raise an exception.
 
+         ----------------------
+         -- Requires_Hooking --
+         ----------------------
+
+         function Requires_Hooking return Boolean is
+         begin
+            --  The context is either a procedure or function call or an object
+            --  declaration initialized by a function call. In all these cases,
+            --  the calls might raise an exception.
+
+            return Nkind (N) in N_Subprogram_Call
+               or else (Nkind (N) = N_Object_Declaration
+                         and then Nkind (Expression (N)) = N_Function_Call);
+         end Requires_Hooking;
+
+         --  Local variables
+
+         Must_Hook : constant Boolean := Requires_Hooking;
          Built     : Boolean := False;
          Desig_Typ : Entity_Id;
          Fin_Block : Node_Id;
@@ -4392,7 +4435,7 @@ package body Exp_Ch7 is
                --  enclosing sequence of statements where their corresponding
                --  "hooks" are picked up by the finalization machinery.
 
-               if Requires_Hooking then
+               if Must_Hook then
                   declare
                      Expr   : Node_Id;
                      Ptr_Id : Entity_Id;
@@ -4467,7 +4510,7 @@ package body Exp_Ch7 is
                --  Generate:
                --    Temp := null;
 
-               if Requires_Hooking then
+               if Must_Hook then
                   Append_To (Stmts,
                     Make_Assignment_Statement (Loc,
                       Name       => New_Reference_To (Temp_Id, Loc),

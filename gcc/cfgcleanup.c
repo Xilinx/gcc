@@ -39,7 +39,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "hard-reg-set.h"
 #include "regs.h"
 #include "timevar.h"
-#include "output.h"
 #include "insn-config.h"
 #include "flags.h"
 #include "recog.h"
@@ -2991,7 +2990,7 @@ cleanup_cfg (int mode)
 }
 
 static unsigned int
-rest_of_handle_jump2 (void)
+execute_jump (void)
 {
   delete_trivially_dead_insns (get_insns (), max_reg_num ());
   if (dump_file)
@@ -3001,22 +3000,47 @@ rest_of_handle_jump2 (void)
   return 0;
 }
 
+struct rtl_opt_pass pass_jump =
+{
+ {
+  RTL_PASS,
+  "jump",				/* name */
+  NULL,					/* gate */
+  execute_jump,				/* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
+  0,					/* static_pass_number */
+  TV_JUMP,				/* tv_id */
+  0,					/* properties_required */
+  0,					/* properties_provided */
+  0,					/* properties_destroyed */
+  TODO_ggc_collect,			/* todo_flags_start */
+  TODO_verify_rtl_sharing,		/* todo_flags_finish */
+ }
+};
+
+static unsigned int
+execute_jump2 (void)
+{
+  cleanup_cfg (flag_crossjumping ? CLEANUP_CROSSJUMP : 0);
+  return 0;
+}
 
 struct rtl_opt_pass pass_jump2 =
 {
  {
   RTL_PASS,
-  "jump",                               /* name */
-  NULL,                                 /* gate */
-  rest_of_handle_jump2,			/* execute */
-  NULL,                                 /* sub */
-  NULL,                                 /* next */
-  0,                                    /* static_pass_number */
-  TV_JUMP,                              /* tv_id */
-  0,                                    /* properties_required */
-  0,                                    /* properties_provided */
-  0,                                    /* properties_destroyed */
-  TODO_ggc_collect,                     /* todo_flags_start */
-  TODO_verify_rtl_sharing,              /* todo_flags_finish */
+  "jump2",				/* name */
+  NULL,					/* gate */
+  execute_jump2,			/* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
+  0,					/* static_pass_number */
+  TV_JUMP,				/* tv_id */
+  0,					/* properties_required */
+  0,					/* properties_provided */
+  0,					/* properties_destroyed */
+  TODO_ggc_collect,			/* todo_flags_start */
+  TODO_verify_rtl_sharing,		/* todo_flags_finish */
  }
 };

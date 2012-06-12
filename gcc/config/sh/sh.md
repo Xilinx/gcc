@@ -10329,6 +10329,9 @@ label:
   "fmul.s	%1, %2, %0"
   [(set_attr "type" "fparith_media")])
 
+;; FIXME: These fmac combine pass assisting specifics are obsolete since 
+;;	  we now use the FMA patterns, which do not depend on the combine
+;;	  pass anymore.
 ;; Unfortunately, the combiner is unable to cope with the USE of the FPSCR
 ;; register in feeding fp instructions.  Thus, in order to generate fmac,
 ;; we start out with a mulsf pattern that does not depend on fpscr.
@@ -10359,25 +10362,41 @@ label:
   [(set_attr "type" "fp")
    (set_attr "fp_mode" "single")])
 
-(define_insn "mac_media"
-  [(set (match_operand:SF 0 "fp_arith_reg_operand" "=f")
-	(plus:SF (mult:SF (match_operand:SF 1 "fp_arith_reg_operand" "%f")
-			  (match_operand:SF 2 "fp_arith_reg_operand" "f"))
-		 (match_operand:SF 3 "fp_arith_reg_operand" "0")))]
-  "TARGET_SHMEDIA_FPU && TARGET_FMAC"
-  "fmac.s %1, %2, %0"
-  [(set_attr "type" "fparith_media")])
+;; FMA (fused multiply-add) patterns
+(define_expand "fmasf4"
+  [(set (match_operand:SF 0 "fp_arith_reg_operand" "")
+	(fma:SF (match_operand:SF 1 "fp_arith_reg_operand" "")
+		(match_operand:SF 2 "fp_arith_reg_operand" "")
+		(match_operand:SF 3 "fp_arith_reg_operand" "")))]
+  "TARGET_SH2E || TARGET_SHMEDIA_FPU"
+{
+  if (TARGET_SH2E)
+    {
+      emit_sf_insn (gen_fmasf4_i (operands[0], operands[1], operands[2],
+				  operands[3], get_fpscr_rtx ()));
+      DONE;
+    }
+})
 
-(define_insn "*macsf3"
+(define_insn "fmasf4_i"
   [(set (match_operand:SF 0 "fp_arith_reg_operand" "=f")
-	(plus:SF (mult:SF (match_operand:SF 1 "fp_arith_reg_operand" "%w")
-			  (match_operand:SF 2 "fp_arith_reg_operand" "f"))
-		 (match_operand:SF 3 "arith_reg_operand" "0")))
+	(fma:SF (match_operand:SF 1 "fp_arith_reg_operand" "w")
+		(match_operand:SF 2 "fp_arith_reg_operand" "f")
+		(match_operand:SF 3 "fp_arith_reg_operand" "0")))
    (use (match_operand:PSI 4 "fpscr_operand" "c"))]
-  "TARGET_SH2E && TARGET_FMAC"
-  "fmac	fr0,%2,%0"
+  "TARGET_SH2E"
+  "fmac	%1,%2,%0"
   [(set_attr "type" "fp")
    (set_attr "fp_mode" "single")])
+
+(define_insn "fmasf4_media"
+  [(set (match_operand:SF 0 "fp_arith_reg_operand" "=f")
+	(fma:SF (match_operand:SF 1 "fp_arith_reg_operand" "f")
+		(match_operand:SF 2 "fp_arith_reg_operand" "f")
+		(match_operand:SF 3 "fp_arith_reg_operand" "0")))]
+  "TARGET_SHMEDIA_FPU"
+  "fmac.s %1, %2, %0"
+  [(set_attr "type" "fparith_media")])
 
 (define_expand "divsf3"
   [(set (match_operand:SF 0 "arith_reg_operand" "")
@@ -10689,7 +10708,7 @@ label:
 	(div:SF (match_operand:SF 1 "immediate_operand" "i")
 		(sqrt:SF (match_operand:SF 2 "register_operand" "0"))))
    (use (match_operand:PSI 3 "fpscr_operand" "c"))]
-  "TARGET_SH4A_FP && flag_unsafe_math_optimizations
+  "TARGET_FPU_ANY && TARGET_FSRRA
    && operands[1] == CONST1_RTX (SFmode)"
   "fsrra	%0"
   [(set_attr "type" "fsrra")
@@ -10705,47 +10724,35 @@ label:
 	 (unspec:SF [(mult:SF (float:SF (match_dup 1)) (match_dup 2))
 		    ] UNSPEC_FCOSA)))
    (use (match_operand:PSI 3 "fpscr_operand" "c"))]
-  "TARGET_SH4A_FP && flag_unsafe_math_optimizations
+  "TARGET_FPU_ANY && TARGET_FSCA
    && operands[2] == sh_fsca_int2sf ()"
   "fsca	fpul,%d0"
   [(set_attr "type" "fsca")
    (set_attr "fp_mode" "single")])
 
-(define_expand "sinsf2"
+;; When the sincos pattern is defined, the builtin functions sin and cos
+;; will be expanded to the sincos pattern and one of the output values will
+;; remain unused.
+(define_expand "sincossf3"
   [(set (match_operand:SF 0 "nonimmediate_operand" "")
-	(unspec:SF [(match_operand:SF 1 "fp_arith_reg_operand" "")]
-		   UNSPEC_FSINA))]
-  "TARGET_SH4A_FP && flag_unsafe_math_optimizations"
+	(unspec:SF [(match_operand:SF 2 "fp_arith_reg_operand" "")]
+		   UNSPEC_FSINA))
+   (set (match_operand:SF 1 "nonimmediate_operand" "")
+	(unspec:SF [(match_dup 2)] UNSPEC_FCOSA))]
+  "TARGET_FPU_ANY && TARGET_FSCA"
 {
   rtx scaled = gen_reg_rtx (SFmode);
   rtx truncated = gen_reg_rtx (SImode);
   rtx fsca = gen_reg_rtx (V2SFmode);
   rtx scale_reg = force_reg (SFmode, sh_fsca_sf2int ());
 
-  emit_sf_insn (gen_mulsf3 (scaled, operands[1], scale_reg));
+  emit_sf_insn (gen_mulsf3 (scaled, operands[2], scale_reg));
   emit_sf_insn (gen_fix_truncsfsi2 (truncated, scaled));
   emit_sf_insn (gen_fsca (fsca, truncated, sh_fsca_int2sf (),
 			  get_fpscr_rtx ()));
+
   emit_move_insn (operands[0], gen_rtx_SUBREG (SFmode, fsca, 0));
-  DONE;
-})
-
-(define_expand "cossf2"
-  [(set (match_operand:SF 0 "nonimmediate_operand" "")
-	(unspec:SF [(match_operand:SF 1 "fp_arith_reg_operand" "")]
-		   UNSPEC_FCOSA))]
-  "TARGET_SH4A_FP && flag_unsafe_math_optimizations"
-{
-  rtx scaled = gen_reg_rtx (SFmode);
-  rtx truncated = gen_reg_rtx (SImode);
-  rtx fsca = gen_reg_rtx (V2SFmode);
-  rtx scale_reg = force_reg (SFmode, sh_fsca_sf2int ());
-
-  emit_sf_insn (gen_mulsf3 (scaled, operands[1], scale_reg));
-  emit_sf_insn (gen_fix_truncsfsi2 (truncated, scaled));
-  emit_sf_insn (gen_fsca (fsca, truncated, sh_fsca_int2sf (),
-			  get_fpscr_rtx ()));
-  emit_move_insn (operands[0], gen_rtx_SUBREG (SFmode, fsca, 4));
+  emit_move_insn (operands[1], gen_rtx_SUBREG (SFmode, fsca, 4));
   DONE;
 })
 

@@ -48,7 +48,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "basic-block.h"
 #include "regs.h"
 #include "flags.h"
-#include "output.h"
 #include "function.h"
 #include "except.h"
 #include "rtl-error.h"
@@ -1294,21 +1293,21 @@ force_nonfallthru_and_redirect (edge e, basic_block target, rtx jump_label)
     }
 
   /* If e->src ends with asm goto, see if any of the ASM_OPERANDS_LABELs
-     don't point to target label.  */
+     don't point to the target or fallthru label.  */
   if (JUMP_P (BB_END (e->src))
       && target != EXIT_BLOCK_PTR
-      && e->dest == target
       && (e->flags & EDGE_FALLTHRU)
       && (note = extract_asm_operands (PATTERN (BB_END (e->src)))))
     {
       int i, n = ASM_OPERANDS_LABEL_LENGTH (note);
 
       for (i = 0; i < n; ++i)
-	if (XEXP (ASM_OPERANDS_LABEL (note, i), 0) == BB_HEAD (target))
-	  {
+	{
+	  if (XEXP (ASM_OPERANDS_LABEL (note, i), 0) == BB_HEAD (e->dest))
+	    XEXP (ASM_OPERANDS_LABEL (note, i), 0) = block_label (target);
+	  if (XEXP (ASM_OPERANDS_LABEL (note, i), 0) == BB_HEAD (target))
 	    asm_goto_edge = true;
-	    break;
-	  }
+	}
     }
 
   if (EDGE_COUNT (e->src->succs) >= 2 || abnormal_edge_flags || asm_goto_edge)

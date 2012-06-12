@@ -876,12 +876,22 @@ sh_option_override (void)
 	align_functions = min_align;
     }
 
-  /* Enable fmac insn for "a * b + c" SFmode calculations when -ffast-math
-     is enabled and -mno-fused-madd is not specified by the user.
-     The fmac insn can't be enabled by default due to the implied
-     FMA semantics.   See also PR target/29100.  */
-  if (global_options_set.x_TARGET_FMAC == 0 && flag_unsafe_math_optimizations)
-    TARGET_FMAC = 1;
+  if (flag_unsafe_math_optimizations)
+    {
+      /* Enable fsca insn for SH4A if not otherwise specified by the user.  */
+      if (global_options_set.x_TARGET_FSCA == 0 && TARGET_SH4A_FP)
+	TARGET_FSCA = 1;
+
+      /* Enable fsrra insn for SH4A if not otherwise specified by the user.  */
+      if (global_options_set.x_TARGET_FSRRA == 0 && TARGET_SH4A_FP)
+	TARGET_FSRRA = 1;
+    }
+
+  /*  Allow fsrra insn only if -funsafe-math-optimizations and
+      -ffinite-math-only is enabled.  */
+  TARGET_FSRRA = TARGET_FSRRA
+		 && flag_unsafe_math_optimizations
+		 && flag_finite_math_only;
 
   if (sh_fixed_range_str)
     sh_fix_range (sh_fixed_range_str);
@@ -896,7 +906,6 @@ sh_option_override (void)
     error ("-msoft-atomic and -mhard-atomic cannot be used at the same time");
   if (TARGET_HARD_ATOMIC && ! TARGET_SH4A_ARCH)
     error ("-mhard-atomic is only available for SH4A targets");
-
 }
 
 /* Print the operand address in x to the stream.  */
@@ -6474,11 +6483,10 @@ output_stack_adjust (int size, rtx reg, int epilogue_p,
 	      emit_insn (GEN_MOV (const_reg, GEN_INT (size)));
 	      insn = emit_fn (GEN_ADD3 (reg, reg, const_reg));
 	    }
-	  if (! epilogue_p)
-	    add_reg_note (insn, REG_FRAME_RELATED_EXPR,
-			  gen_rtx_SET (VOIDmode, reg,
-				       gen_rtx_PLUS (SImode, reg,
-						     GEN_INT (size))));
+	  add_reg_note (insn, REG_FRAME_RELATED_EXPR,
+			gen_rtx_SET (VOIDmode, reg,
+				     gen_rtx_PLUS (SImode, reg,
+						   GEN_INT (size))));
 	}
     }
 }
@@ -6523,7 +6531,7 @@ push (int rn)
 static void
 pop (int rn)
 {
-  rtx x;
+  rtx x, sp_reg, reg;
   if (rn == FPUL_REG)
     x = gen_pop_fpul ();
   else if (rn == FPSCR_REG)
@@ -6541,7 +6549,18 @@ pop (int rn)
     x = gen_pop (gen_rtx_REG (SImode, rn));
 
   x = emit_insn (x);
+
+  sp_reg = gen_rtx_REG (SImode, STACK_POINTER_REGNUM);
+  reg = copy_rtx (GET_CODE (PATTERN (x)) == PARALLEL
+		  ? SET_DEST (XVECEXP (PATTERN (x), 0, 0))
+		  : SET_DEST (PATTERN (x)));
+  add_reg_note (x, REG_CFA_RESTORE, reg);
+  add_reg_note (x, REG_CFA_ADJUST_CFA,
+		gen_rtx_SET (SImode, sp_reg,
+			     plus_constant (SImode, sp_reg,
+					    GET_MODE_SIZE (GET_MODE (reg)))));
   add_reg_note (x, REG_INC, gen_rtx_REG (SImode, STACK_POINTER_REGNUM));
+  RTX_FRAME_RELATED_P (x) = 1;
 }
 
 /* Generate code to push the regs specified in the mask.  */
@@ -7424,14 +7443,14 @@ sh_expand_epilogue (bool sibcall_p)
 	 See PR/18032 and PR/40313.  */
       emit_insn (gen_blockage ());
       output_stack_adjust (frame_size, hard_frame_pointer_rtx, e,
-			   &live_regs_mask, false);
+			   &live_regs_mask, true);
 
       /* We must avoid moving the stack pointer adjustment past code
 	 which reads from the local frame, else an interrupt could
 	 occur after the SP adjustment and clobber data in the local
 	 frame.  */
       emit_insn (gen_blockage ());
-      emit_insn (GEN_MOV (stack_pointer_rtx, hard_frame_pointer_rtx));
+      frame_insn (GEN_MOV (stack_pointer_rtx, hard_frame_pointer_rtx));
     }
   else if (frame_size)
     {
@@ -7441,7 +7460,7 @@ sh_expand_epilogue (bool sibcall_p)
 	 frame.  */
       emit_insn (gen_blockage ());
       output_stack_adjust (frame_size, stack_pointer_rtx, e,
-			   &live_regs_mask, false);
+			   &live_regs_mask, true);
     }
 
   if (SHMEDIA_REGS_STACK_ADJUST ())
@@ -7658,7 +7677,7 @@ sh_expand_epilogue (bool sibcall_p)
   output_stack_adjust (crtl->args.pretend_args_size
 		       + save_size + d_rounding
 		       + crtl->args.info.stack_regs * 8,
-		       stack_pointer_rtx, e, NULL, false);
+		       stack_pointer_rtx, e, NULL, true);
 
   if (crtl->calls_eh_return)
     emit_insn (GEN_ADD3 (stack_pointer_rtx, stack_pointer_rtx,
@@ -11215,7 +11234,6 @@ static struct builtin_description bdesc[] =
   { CODE_FOR_fsina_s,	"__builtin_sh_media_FSINA_S", SH_BLTIN_SISF, 0 },
   { CODE_FOR_fipr,	"__builtin_sh_media_FIPR_S", SH_BLTIN_3, 0 },
   { CODE_FOR_ftrv,	"__builtin_sh_media_FTRV_S", SH_BLTIN_3, 0 },
-  { CODE_FOR_mac_media,	"__builtin_sh_media_FMAC_S", SH_BLTIN_3, 0 },
   { CODE_FOR_sqrtdf2,	"__builtin_sh_media_FSQRT_D", SH_BLTIN_2, 0 },
   { CODE_FOR_sqrtsf2,	"__builtin_sh_media_FSQRT_S", SH_BLTIN_2, 0 },
   { CODE_FOR_fsrra_s,	"__builtin_sh_media_FSRRA_S", SH_BLTIN_2, 0 },

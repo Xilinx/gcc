@@ -1872,7 +1872,7 @@ integer_pow2p (const_tree expr)
   /* First clear all bits that are beyond the type's precision in case
      we've been sign extended.  */
 
-  if (prec == 2 * HOST_BITS_PER_WIDE_INT)
+  if (prec == HOST_BITS_PER_DOUBLE_INT)
     ;
   else if (prec > HOST_BITS_PER_WIDE_INT)
     high &= ~((HOST_WIDE_INT) (-1) << (prec - HOST_BITS_PER_WIDE_INT));
@@ -1936,7 +1936,7 @@ tree_log2 (const_tree expr)
   /* First clear all bits that are beyond the type's precision in case
      we've been sign extended.  */
 
-  if (prec == 2 * HOST_BITS_PER_WIDE_INT)
+  if (prec == HOST_BITS_PER_DOUBLE_INT)
     ;
   else if (prec > HOST_BITS_PER_WIDE_INT)
     high &= ~((HOST_WIDE_INT) (-1) << (prec - HOST_BITS_PER_WIDE_INT));
@@ -1973,7 +1973,7 @@ tree_floor_log2 (const_tree expr)
      we've been sign extended.  Ignore if type's precision hasn't been set
      since what we are doing is setting it.  */
 
-  if (prec == 2 * HOST_BITS_PER_WIDE_INT || prec == 0)
+  if (prec == HOST_BITS_PER_DOUBLE_INT || prec == 0)
     ;
   else if (prec > HOST_BITS_PER_WIDE_INT)
     high &= ~((HOST_WIDE_INT) (-1) << (prec - HOST_BITS_PER_WIDE_INT));
@@ -4578,11 +4578,17 @@ free_lang_data_in_type (tree type)
   free_lang_data_in_one_sizepos (&TYPE_SIZE (type));
   free_lang_data_in_one_sizepos (&TYPE_SIZE_UNIT (type));
 
-  if (debug_info_level < DINFO_LEVEL_TERSE
-      || (TYPE_CONTEXT (type)
-	  && TREE_CODE (TYPE_CONTEXT (type)) != FUNCTION_DECL
-	  && TREE_CODE (TYPE_CONTEXT (type)) != NAMESPACE_DECL))
-    TYPE_CONTEXT (type) = NULL_TREE;
+  if (TYPE_CONTEXT (type)
+      && TREE_CODE (TYPE_CONTEXT (type)) == BLOCK)
+    {
+      tree ctx = TYPE_CONTEXT (type);
+      do
+	{
+	  ctx = BLOCK_SUPERCONTEXT (ctx);
+	}
+      while (ctx && TREE_CODE (ctx) == BLOCK);
+      TYPE_CONTEXT (type) = ctx;
+    }
 }
 
 
@@ -10204,7 +10210,7 @@ widest_int_cst_value (const_tree x)
   unsigned HOST_WIDEST_INT val = TREE_INT_CST_LOW (x);
 
 #if HOST_BITS_PER_WIDEST_INT > HOST_BITS_PER_WIDE_INT
-  gcc_assert (HOST_BITS_PER_WIDEST_INT >= 2 * HOST_BITS_PER_WIDE_INT);
+  gcc_assert (HOST_BITS_PER_WIDEST_INT >= HOST_BITS_PER_DOUBLE_INT);
   val |= (((unsigned HOST_WIDEST_INT) TREE_INT_CST_HIGH (x))
 	  << HOST_BITS_PER_WIDE_INT);
 #else
@@ -10322,7 +10328,7 @@ upper_bound_in_type (tree outer, tree inner)
   else
     {
       high.high = ((~(unsigned HOST_WIDE_INT) 0)
-	    >> (2 * HOST_BITS_PER_WIDE_INT - prec));
+	    >> (HOST_BITS_PER_DOUBLE_INT - prec));
       high.low = ~(unsigned HOST_WIDE_INT) 0;
     }
 

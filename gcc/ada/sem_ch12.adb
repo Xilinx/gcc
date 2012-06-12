@@ -2664,6 +2664,14 @@ package body Sem_Ch12 is
                Error_Msg_N
                  ("abstract formal subprogram must have a controlling type",
                   N);
+
+            elsif Ada_Version >= Ada_2012
+              and then Is_Incomplete_Type (Ctrl_Type)
+            then
+               Error_Msg_NE
+                 ("controlling type of abstract formal subprogram cannot " &
+                     "be incomplete type", N, Ctrl_Type);
+
             else
                Check_Controlling_Formals (Ctrl_Type, Nam);
             end if;
@@ -11442,7 +11450,7 @@ package body Sem_Ch12 is
             then
                null;
             else
-               Error_Msg_N ("Unchecked_Union cannot be the actual for a" &
+               Error_Msg_N ("unchecked union cannot be the actual for a" &
                  " discriminated formal type", Act_T);
 
             end if;
@@ -13517,9 +13525,7 @@ package body Sem_Ch12 is
                      --  information on aggregates in instances.
 
                      if Nkind (N2) = Nkind (N)
-                       and then
-                         Nkind_In (Parent (N2), N_Procedure_Call_Statement,
-                                                N_Function_Call)
+                       and then Nkind (Parent (N2)) in N_Subprogram_Call
                        and then Comes_From_Source (Typ)
                      then
                         if Is_Immediately_Visible (Scope (Typ)) then

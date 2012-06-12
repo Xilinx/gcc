@@ -1,3 +1,49 @@
+2012-06-08  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/52552
+	* match.c (gfc_match_allocate): Modify order of checks. Change wording
+	of error message. Remove FIXME note.
+	* resolve.c (resolve_allocate_expr): Add a comment.
+
+2012-06-07  Thomas König  <tkoenig@gcc.gnu.org>
+
+	PR fortran/52861
+	* frontend-passes.c (optimize_assignment):  Don't set the
+	length of an empty string for deferred-length character
+	variables.
+
+2012-06-07  Thomas König  <tkoenig@gcc.gnu.org>
+
+	PR fortran/52861
+	* frontend-passes.c (empty_string):  Add prototype.
+	(optimize_assignment):  Set the length of an empty string
+	constant to zero.
+
+2012-06-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/50619
+	* resolve.c (build_default_init_expr): Don't initialize
+	ASSOCIATE names.
+
+2012-06-03  Alessandro Fanfarillo  <fanfarillo.gcc@gmail.com>
+	    Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/48831
+	* gfortran.h (gfc_check_init_expr): Add prototype declaration
+	of function.
+	* check.c (kind_check): Change if condition to use
+	to gfc_check_init_expr.
+	* expr.c (check_init_expr): Remove forward declaration
+	and static keyword. Change name in gfc_check_init_expr.
+	(scalarize_intrinsic_call, check_init_expr_arguments,
+	check_inquiry, check_conversion, gfc_reduce_init_expr): Update
+	call to gfc_check_init_expr.
+
+2012-05-31  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* trans-common.c: Do not include output.h.
+	* trans-decl.c: Likewise.
+
 2012-05-31  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/53521

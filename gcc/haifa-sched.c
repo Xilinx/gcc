@@ -142,7 +142,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "sched-int.h"
 #include "target.h"
 #include "common/common-target.h"
-#include "output.h"
 #include "params.h"
 #include "vecprim.h"
 #include "dbgcnt.h"
@@ -6230,7 +6229,8 @@ sched_init (void)
   if (flag_sched_pressure
       && !reload_completed
       && common_sched_info->sched_pass_id == SCHED_RGN_PASS)
-    sched_pressure = flag_sched_pressure_algorithm;
+    sched_pressure = ((enum sched_pressure_algorithm)
+		      PARAM_VALUE (PARAM_SCHED_PRESSURE_ALGORITHM));
   else
     sched_pressure = SCHED_PRESSURE_NONE;
 

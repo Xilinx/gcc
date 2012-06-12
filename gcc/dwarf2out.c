@@ -93,7 +93,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "gimple.h"
 #include "tree-pass.h"
 #include "tree-flow.h"
-#include "cfglayout.h"
+#include "cfglayout.h" /* for insn_scope.  */
 #include "opts.h"
 
 static void dwarf2out_source_line (unsigned int, const char *, int, bool);
@@ -1578,7 +1578,7 @@ size_of_loc_descr (dw_loc_descr_ref loc)
 	    size += HOST_BITS_PER_WIDE_INT / BITS_PER_UNIT;
 	    break;
 	  case dw_val_class_const_double:
-	    size += 2 * HOST_BITS_PER_WIDE_INT / BITS_PER_UNIT;
+	    size += HOST_BITS_PER_DOUBLE_INT / BITS_PER_UNIT;
 	    break;
 	  default:
 	    gcc_unreachable ();
@@ -5970,6 +5970,16 @@ is_cu_die (dw_die_ref c)
   return c && c->die_tag == DW_TAG_compile_unit;
 }
 
+/* Returns true iff C is a unit DIE of some sort.  */
+
+static inline bool
+is_unit_die (dw_die_ref c)
+{
+  return c && (c->die_tag == DW_TAG_compile_unit
+	       || c->die_tag == DW_TAG_partial_unit
+	       || c->die_tag == DW_TAG_type_unit);
+}
+
 static char *
 gen_internal_sym (const char *prefix)
 {
@@ -6377,8 +6387,7 @@ copy_declaration_context (dw_die_ref unit, dw_die_ref die)
     }
 
   if (decl->die_parent != NULL
-      && decl->die_parent->die_tag != DW_TAG_compile_unit
-      && decl->die_parent->die_tag != DW_TAG_type_unit)
+      && !is_unit_die (decl->die_parent))
     {
       new_decl = copy_ancestor_tree (unit, decl, NULL);
       if (new_decl != NULL)
@@ -6652,8 +6661,7 @@ copy_ancestor_tree (dw_die_ref unit, dw_die_ref die, htab_t decl_table)
       dw_die_ref spec = get_AT_ref (parent, DW_AT_specification);
       if (spec != NULL)
         parent = spec;
-      if (parent->die_tag != DW_TAG_compile_unit
-          && parent->die_tag != DW_TAG_type_unit)
+      if (!is_unit_die (parent))
         new_parent = copy_ancestor_tree (unit, parent, decl_table);
     }
 
@@ -6752,8 +6760,7 @@ copy_decls_walk (dw_die_ref unit, dw_die_ref die, htab_t decl_table)
               /* If TARG has surrounding context, copy its ancestor tree
                  into the new type unit.  */
               if (targ->die_parent != NULL
-                  && targ->die_parent->die_tag != DW_TAG_compile_unit
-                  && targ->die_parent->die_tag != DW_TAG_type_unit)
+		  && !is_unit_die (targ->die_parent))
                 parent = copy_ancestor_tree (unit, targ->die_parent,
                                              decl_table);
 
@@ -7131,7 +7138,7 @@ size_of_die (dw_die_ref die)
 	  }
 	  break;
 	case dw_val_class_const_double:
-	  size += 2 * HOST_BITS_PER_WIDE_INT / HOST_BITS_PER_CHAR;
+	  size += HOST_BITS_PER_DOUBLE_INT / HOST_BITS_PER_CHAR;
 	  if (HOST_BITS_PER_WIDE_INT >= 64)
 	    size++; /* block */
 	  break;
@@ -7770,7 +7777,7 @@ output_die (dw_die_ref die)
 
 	    if (HOST_BITS_PER_WIDE_INT >= 64)
 	      dw2_asm_output_data (1,
-				   2 * HOST_BITS_PER_WIDE_INT
+				   HOST_BITS_PER_DOUBLE_INT
 				   / HOST_BITS_PER_CHAR,
 				   NULL);
 
@@ -10120,12 +10127,12 @@ const_ok_for_output_1 (rtx *rtlp, void *data ATTRIBUTE_UNUSED)
 	 we can't express it in the debug info.  */
 #ifdef ENABLE_CHECKING
       /* Don't complain about TLS UNSPECs, those are just too hard to
-	 delegitimize.  */
-      if (XVECLEN (rtl, 0) != 1
+	 delegitimize.  Note this could be a non-decl SYMBOL_REF such as
+	 one in a constant pool entry, so testing SYMBOL_REF_TLS_MODEL
+	 rather than DECL_THREAD_LOCAL_P is not just an optimization.  */
+      if (XVECLEN (rtl, 0) == 0
 	  || GET_CODE (XVECEXP (rtl, 0, 0)) != SYMBOL_REF
-	  || SYMBOL_REF_DECL (XVECEXP (rtl, 0, 0)) == NULL
-	  || TREE_CODE (SYMBOL_REF_DECL (XVECEXP (rtl, 0, 0))) != VAR_DECL
-	  || !DECL_THREAD_LOCAL_P (SYMBOL_REF_DECL (XVECEXP (rtl, 0, 0))))
+	  || SYMBOL_REF_TLS_MODEL (XVECEXP (rtl, 0, 0)) == TLS_MODEL_NONE)
 	inform (current_function_decl
 		? DECL_SOURCE_LOCATION (current_function_decl)
 		: UNKNOWN_LOCATION,
@@ -10627,7 +10634,7 @@ clz_loc_descriptor (rtx rtl, enum machine_mode mode,
   if (GET_MODE_CLASS (mode) != MODE_INT
       || GET_MODE (XEXP (rtl, 0)) != mode
       || (GET_CODE (rtl) == CLZ
-	  && GET_MODE_BITSIZE (mode) > 2 * HOST_BITS_PER_WIDE_INT))
+	  && GET_MODE_BITSIZE (mode) > HOST_BITS_PER_DOUBLE_INT))
     return NULL;
 
   op0 = mem_loc_descriptor (XEXP (rtl, 0), mode, mem_mode,
@@ -11543,7 +11550,7 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
 	}
       if (!dwarf_strict
 	  && (GET_MODE_BITSIZE (mode) == HOST_BITS_PER_WIDE_INT
-	      || GET_MODE_BITSIZE (mode) == 2 * HOST_BITS_PER_WIDE_INT))
+	      || GET_MODE_BITSIZE (mode) == HOST_BITS_PER_DOUBLE_INT))
 	{
 	  dw_die_ref type_die = base_type_for_mode (mode, 1);
 	  enum machine_mode amode;
@@ -11595,7 +11602,7 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
 	     adequately represented.  We output CONST_DOUBLEs as blocks.  */
 	  if (mode == VOIDmode
 	      || (GET_MODE (rtl) == VOIDmode
-		  && GET_MODE_BITSIZE (mode) != 2 * HOST_BITS_PER_WIDE_INT))
+		  && GET_MODE_BITSIZE (mode) != HOST_BITS_PER_DOUBLE_INT))
 	    break;
 	  type_die = base_type_for_mode (mode,
 					 GET_MODE_CLASS (mode) == MODE_INT);
@@ -22167,7 +22174,11 @@ dwarf2out_finish (const char *filename)
   for (node = deferred_asm_name; node; node = node->next)
     {
       tree decl = node->created_for;
-      if (DECL_ASSEMBLER_NAME (decl) != DECL_NAME (decl))
+      /* When generating LTO bytecode we can not generate new assembler
+         names at this point and all important decls got theirs via
+	 free-lang-data.  */
+      if ((!flag_generate_lto || DECL_ASSEMBLER_NAME_SET_P (decl))
+	  && DECL_ASSEMBLER_NAME (decl) != DECL_NAME (decl))
 	{
 	  add_linkage_attr (node->die, decl);
 	  move_linkage_attr (node->die);

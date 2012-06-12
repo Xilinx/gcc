@@ -257,10 +257,6 @@ mfixed-range=
 Target RejectNegative Joined Var(sh_fixed_range_str)
 Specify range of registers to make fixed
 
-mfused-madd
-Target Var(TARGET_FMAC)
-Enable the use of the fused floating point multiply-accumulate operation
-
 mgettrcost=
 Target RejectNegative Joined UInteger Var(sh_gettrcost) Init(-1)
 Cost to assume for gettr insn
@@ -348,3 +344,12 @@ Don't generate privileged-mode only code; implies -mno-inline-ic_invalidate if t
 mpretend-cmove
 Target Var(TARGET_PRETEND_CMOVE)
 Pretend a branch-around-a-move is a conditional move.
+
+mfsca
+Target Var(TARGET_FSCA)
+Enable the use of the fsca instruction
+
+mfsrra
+Target Var(TARGET_FSRRA)
+Enable the use of the fsrra instruction
+
