@@ -1,4 +1,17 @@
 
+2012-06-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.cc: Working at last.
+	Using raw pointers for ShownLocationDialog.
+	See https://mail.gnome.org/archives/gtkmm-list/2012-June/msg00036.html
+	(ShownLocationInfo): _sli_dial is a raw pointer.
+	(ShownLocationInfo::ShownLocationInfo): Clear it in constructor.
+	(ShownLocationInfo::~ShownLocationInfo): Delete it in destructor.
+	(ShownLocationInfo::destroy_dialog): Work at last.
+	(ShownLocationInfo::on_update): Update accordingly.
+	(ShownLocationInfo::on_dialog_response): Ditto.
+	(SmeltMainWindow::showinfo_location): Ditto.
+	(SmeltMainWindow::addinfo_location): Ditto.
+
 2012-06-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.cc
 	(ShownLocationInfo::destroy_dialog): More debug.

@@ -338,21 +338,27 @@ class ShownLocationInfo : public sigc::trackable {
   long _sli_num;
   int _sli_lineno;
   int _sli_col;
-  Glib::RefPtr<ShownLocationDialog> _sli_dialp;
+  // this cannot be a smart pointer,
+  // see https://mail.gnome.org/archives/gtkmm-list/2012-June/msg00036.html
+  ShownLocationDialog* _sli_dial;
   static Glib::RefPtr<Gtk::TextTagTable> sli_tagtbl_;
 public:
   void* thisptr() const {
     return (void*) this;
   }; // for debugging
   ShownLocationInfo(long num, ShownFile* fil, int lineno, int col)
-    : _sli_fil(fil), _sli_num(num), _sli_lineno(lineno), _sli_col(col) {
+    : _sli_fil(fil), _sli_num(num), _sli_lineno(lineno), _sli_col(col), _sli_dial(nullptr) {
     SMELT_DEBUG("num=" << num << " this@" << (void*)this);
   }
   ~ShownLocationInfo() {
-    SMELT_DEBUG("destroying this@" << (void*)this);
-    _sli_fil=nullptr;
-    _sli_num=0;
-    _sli_lineno=0, _sli_col=0;
+    SMELT_DEBUG("destroying this@" << (void*)this
+                << " with _sli_dial@" << (void*) _sli_dial);
+    if (_sli_dial)
+      delete _sli_dial;
+    _sli_dial = nullptr;
+    _sli_fil = nullptr;
+    _sli_num = 0;
+    _sli_lineno = 0, _sli_col = 0;
   }
   void on_update(void);
   void on_dialog_response(int);
@@ -362,8 +368,8 @@ public:
   ShownFile* sfile() const {
     return _sli_fil;
   };
-  Glib::RefPtr<ShownLocationDialog> dialog() const {
-    return _sli_dialp;
+  ShownLocationDialog* dialog() const {
+    return _sli_dial;
   };
   long num() const {
     return _sli_num;
@@ -375,10 +381,14 @@ public:
     return _sli_col;
   };
   void destroy_dialog() {
-    SMELT_DEBUG("destroy dialog " << _sli_dialp->thisptr()
-		<< " in this locationinfo @" << (void*)this);
-    if (!_sli_dialp) return;
-    _sli_dialp.reset();
+    SMELT_DEBUG("destroy dialog " << (void*) _sli_dial
+                << " in this locationinfo @" << (void*)this);
+    if (!_sli_dial) return;
+    {
+      ShownLocationDialog* dial = _sli_dial;
+      _sli_dial = nullptr;
+      delete dial;
+    }
     SMELT_DEBUG("destroyed dialog this locationinfo @" <<  (void*)this);
   }
 };        // end class ShownLocationInfo
@@ -1483,10 +1493,8 @@ ShownLocationInfo::on_update(void)
       sli_tagtbl_->add(tagitalic);
     }
   }
-  if (!_sli_dialp) {
-    auto mdial = new ShownLocationDialog(this);
-    _sli_dialp = Glib::RefPtr<ShownLocationDialog>(mdial);
-  }
+  if (!_sli_dial)
+    _sli_dial = new ShownLocationDialog(this);
 }
 
 
@@ -1507,11 +1515,9 @@ ShownLocationInfo::on_dialog_response(int resp)
     break;
   }
   {
-    Glib::RefPtr<ShownLocationDialog> dial = _sli_dialp;
-    dial->hide();
+    _sli_dial->hide();
     // we cannot destroy the dial inside this event, we queue to
     // destroy it latter
-#warning should signal_idle connect_once
     Glib::signal_idle().connect_once(sigc::mem_fun(this,&ShownLocationInfo::destroy_dialog));
   }
 }
@@ -1583,8 +1589,11 @@ SmeltMainWindow::showinfo_location(long marknum)
     throw smelt_domain_error("showinfo_location invalid mark number",
                              smelt_long_to_string(marknum));
   }
+  SMELT_DEBUG ("inf @" << ((void*)inf)
+               << " with dialog@" << (void*) (inf->dialog()));
   g_assert (inf->dialog());
   inf->dialog()->show_all();
+  SMELT_DEBUG ("inf did show all dialog@" << (void*) (inf->dialog()));
 }
 
 void
@@ -1597,8 +1606,8 @@ SmeltMainWindow::addinfo_location(long marknum, const std::string& title, const 
     throw smelt_domain_error("addinfo_location invalid mark number",
                              smelt_long_to_string(marknum));
   }
-  Glib::RefPtr<ShownLocationDialog> dial = inf->dialog();
-  g_assert (dial);
+  ShownLocationDialog* dial = inf->dialog();
+  g_assert (dial != nullptr);
   dial->append_buffer(title,"title");
   dial->append_buffer(arg);
 }
