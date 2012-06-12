@@ -2,7 +2,7 @@
  *
  *************************************************************************
  *
- * Copyright (C) 2009-2011 
+ * Copyright (C) 2009-2012 
  * Intel Corporation
  * 
  * This file is part of the Intel Cilk Plus Library.  This library is free
@@ -30,8 +30,22 @@
  * Implementation of functions declared in cilk_api.h
  */
 
-#include <cilk/cilk_api.h>
+/*
+ * Define the COMPILING_CILK_ABI_FUNCTIONS macro, so that
+ * compilation of this file generates non-inlined definitions for the
+ * functions marked as CILK_EXPORT_AND_INLINE in cilk_api.h.
+ *
+ * We must deal with these functions differently because we need to
+ * continue to ship nonlined versions of these functions.
+ *
+ *   CILK_EXPORT_AND_INLINE int __cilkrts_get_worker_rank(uint64_t *rank);
+ *   CILK_EXPORT_AND_INLINE int __cilkrts_bump_worker_rank();
+ *   CILK_EXPORT_AND_INLINE int __cilkrts_bump_loop_rank();
+ */
+#define COMPILING_CILK_API_FUNCTIONS
+
 #include <internal/abi.h>
+#include <cilk/cilk_api.h>
 
 #include "os.h"
 #include "os_mutex.h"
@@ -49,8 +63,11 @@ CILK_API_VOID __cilkrts_init(void)
 
 CILK_API_VOID __cilkrts_end_cilk(void)
 {
-    __cilkrts_os_mutex_lock(__cilkrts_global_os_mutex);
-    if (cilkg_is_initialized()) {
+    // Take out the global OS mutex while we do this to protect against
+    // another thread attempting to bind while we do this
+    global_os_mutex_lock();
+
+    if (cilkg_is_published()) {
         global_state_t *g = cilkg_get_global_state();
         if (g->Q || __cilkrts_get_tls_worker())
             __cilkrts_bug("Attempt to shut down Cilk while Cilk is still "
@@ -58,7 +75,8 @@ CILK_API_VOID __cilkrts_end_cilk(void)
         __cilkrts_stop_workers(g);
         __cilkrts_deinit_internal(g);
     }
-    __cilkrts_os_mutex_unlock(__cilkrts_global_os_mutex);
+
+    global_os_mutex_unlock();
 }
 
 CILK_API_INT
@@ -118,22 +136,6 @@ __cilkrts_get_worker_number(void)
         return w->self + 1;
 }
 
-/*
- * __cilkrts_get_worker_rank(uint64_t *rank)
- */
-
-CILK_API_INT __cilkrts_get_worker_rank(uint64_t *rank)
-{
-    __cilkrts_worker *w = __cilkrts_get_tls_worker();
-
-    // If we don't have a worker, then there is no rank to return
-    if (NULL == w)
-        return -1;
-
-    *rank = w->pedigree.rank;
-    return 0;
-}
-
 /**
  * Internal definition of the pedigree context.  The size of the
  * structure must match __cilkrts_pedigree_context_t defined in abi.i
@@ -144,7 +146,7 @@ typedef struct pedigree_context_t
     size_t size;
 
     /** Next __cilkrts_pedigree to return */
-    __cilkrts_pedigree *pedigree;
+    const __cilkrts_pedigree *pedigree;
 
     /** Unused.  Left over from previous implementation */
     void *unused1;
@@ -176,13 +178,7 @@ CILK_API_INT
 __cilkrts_get_pedigree_info(__cilkrts_pedigree_context_t *external_context,
                             uint64_t *sf_birthrank)
 {
-    __cilkrts_worker *w = __cilkrts_get_tls_worker();
     pedigree_context_t *context = (pedigree_context_t *)external_context;
-
-    // If we don't have a worker, then the runtime is not bound to this
-    // thread and there is no rank to return
-    if (NULL == w)
-        return -1;
 
     CILK_ASSERT(sizeof(__cilkrts_pedigree_context_t) ==
                 sizeof(pedigree_context_t));
@@ -195,16 +191,28 @@ __cilkrts_get_pedigree_info(__cilkrts_pedigree_context_t *external_context,
         return 1;
 
     // The passed in context value contains a pointer to the last
-    // __cilkrts_pedigree returned, or NULL if we're starting a new
-    // walk
-    if (NULL == context->pedigree)
-        context->pedigree = w->pedigree.next;
-    else
-        context->pedigree = context->pedigree->next;
-
+    // __cilkrts_pedigree returned, or NULL if we're starting a
+    // new walk
     if (NULL == context->pedigree)
     {
-        context->pedigree = PEDIGREE_WALK_COMPLETE;
+        __cilkrts_worker *w = __cilkrts_get_tls_worker();
+	__cilkrts_pedigree* pedigree_node;
+        if (NULL != w) {
+	    pedigree_node = &w->pedigree;
+	}
+	else {
+	    pedigree_node = __cilkrts_get_tls_pedigree_leaf(1);
+	}
+	context->pedigree = pedigree_node->parent;
+    }
+    else
+        context->pedigree = context->pedigree->parent;
+
+    // Note: If we want to omit the user root node,
+    // stop at context->pedigree->parent instead.
+    if (NULL == context->pedigree)
+    {
+	context->pedigree = PEDIGREE_WALK_COMPLETE;
         return 1;
     }
 
@@ -212,16 +220,25 @@ __cilkrts_get_pedigree_info(__cilkrts_pedigree_context_t *external_context,
     return 0;
 }
 
-CILK_API_INT __cilkrts_bump_worker_rank()
+CILK_API_PEDIGREE
+__cilkrts_get_pedigree_internal(__cilkrts_worker *w)
 {
-    __cilkrts_worker *w = __cilkrts_get_tls_worker();
+    if (NULL != w) {
+	return w->pedigree;
+    }
+    else {
+	const __cilkrts_pedigree *pedigree =
+            __cilkrts_get_tls_pedigree_leaf(1);
+	return *pedigree;
+    }
+}
 
-    // If we don't have a worker, then the runtime is not bound to this
-    // thread and there is no rank to increment
-    if (NULL == w)
-        return -1;
 
-    w->pedigree.rank++;
+CILK_API_INT __cilkrts_bump_worker_rank_internal(__cilkrts_worker *w)
+{
+    __cilkrts_pedigree *pedigree;
+    pedigree = (w ? &w->pedigree : __cilkrts_get_tls_pedigree_leaf(1));
+    pedigree->rank++;
     return 0;
 }
 

@@ -37,7 +37,10 @@
 #ifndef INCLUDED_WORKER_MUTEX_DOT_H
 #define INCLUDED_WORKER_MUTEX_DOT_H
 
+#include <cilk/common.h>
 #include "rts-common.h"
+
+__CILKRTS_BEGIN_EXTERN_C
 
 // Forwarded declarations
 typedef struct __cilkrts_worker __cilkrts_worker;
@@ -110,5 +113,7 @@ void __cilkrts_mutex_unlock(__cilkrts_worker *w,
 COMMON_PORTABLE
 void __cilkrts_mutex_destroy(__cilkrts_worker *w,
                              struct mutex *m);
+
+__CILKRTS_END_EXTERN_C
 
 #endif // ! defined(INCLUDED_WORKER_MUTEX_DOT_H)

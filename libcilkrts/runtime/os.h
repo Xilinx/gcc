@@ -76,6 +76,7 @@ typedef void*    cilkos_thread_id_t;
    manipulate this state. */
 typedef struct __cilkrts_worker __cilkrts_worker;
 typedef struct cilkred_map cilkred_map;
+typedef struct __cilkrts_pedigree __cilkrts_pedigree;
 
 COMMON_SYSDEP void __cilkrts_init_tls_variables(void);
 
@@ -92,6 +93,23 @@ COMMON_SYSDEP
 __cilk_tbb_stack_op_thunk *__cilkrts_get_tls_tbb_interop(void);
 COMMON_SYSDEP
 void __cilkrts_set_tls_tbb_interop(__cilk_tbb_stack_op_thunk *t);
+
+/**
+ * Function to get a pointer to the thread's pedigree leaf node.  This
+ * pointer can be NULL.
+ */
+COMMON_SYSDEP
+__cilkrts_pedigree * __cilkrts_get_tls_pedigree_leaf(int create_new);
+
+/**
+ * Set the pointer to the pedigree leaf node.
+ *
+ * If the previous pointer value was not NULL, it is the caller's
+ * responsibility to ensure that previous pointer value is saved and
+ * freed.
+ */ 
+COMMON_SYSDEP
+void __cilkrts_set_tls_pedigree_leaf(__cilkrts_pedigree* pedigree_leaf);
 
 /* Return number of CPUs supported by this hardware, using whatever definition
    of CPU is considered appropriate. */
@@ -188,6 +206,16 @@ unsigned short win_get_active_processor_group_count(void);
 int win_set_thread_group_affinity(/*HANDLE*/ void* hThread,
                                   const GROUP_AFFINITY *GroupAffinity,
                                   GROUP_AFFINITY* PreviousGroupAffinity);
+
+/**
+ * This method should be called to clean up any state it allocated in
+ * TLS.
+ *
+ * Only defined for Windows because Linux calls destructors for each
+ * thread-local variable.
+ */
+void __cilkrts_per_thread_tls_cleanup(void);
+
 
 #endif // _WIN32
 

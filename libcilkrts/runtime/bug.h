@@ -52,7 +52,7 @@ COMMON_PORTABLE NORETURN __cilkrts_bug(const char *fmt,...) cilk_nothrow;
 #ifndef CILK_ASSERT
 
 /** Standard text for failed assertion */
-COMMON_PORTABLE const char *const __cilkrts_assertion_failed;
+COMMON_PORTABLE extern const char *const __cilkrts_assertion_failed;
 
 /**
  * Macro to assert an invariant that must be true.  If the statement evalutes

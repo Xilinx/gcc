@@ -57,7 +57,7 @@
 #include <unistd.h>
 
 #ifdef __APPLE__
-#   include <scheduler.h>  // Angle brackets include Apple's scheduler.h, not ours.
+//#   include <scheduler.h>  // Angle brackets include Apple's scheduler.h, not ours.
 #endif
 #ifdef __linux__
 #   include <sys/resource.h>
@@ -67,10 +67,6 @@
 #   include <sys/resource.h>
 // BSD does not define MAP_ANONYMOUS, but *does* define MAP_ANON. Aren't standards great!
 #   define MAP_ANONYMOUS MAP_ANON
-#endif
-
-#if JFC_DEBUG
-void __cilkrts_psf(const char *what, __cilkrts_worker *w, __cilkrts_stack_frame *sf, full_frame *);
 #endif
 
 static void internal_enforce_global_visibility();
@@ -103,12 +99,11 @@ void __cilkrts_init_global_sysdep(global_state_t *g)
     g->sysdep = __cilkrts_malloc(sizeof (struct global_sysdep_state));
     CILK_ASSERT(g->sysdep);
     g->sysdep->pthread_t_size = sizeof (pthread_t);
-    if (g->total_workers > g->P - 1) {
-        g->sysdep->threads = __cilkrts_malloc((g->P - 1) * sizeof (pthread_t));
-        CILK_ASSERT(g->sysdep->threads);
-    } else {
-        g->sysdep->threads = 0;
-    }
+    
+    // TBD: Should this value be g->total_workers, or g->P?
+    //      Need to check what we are using this field for.
+    g->sysdep->threads = __cilkrts_malloc(sizeof(pthread_t) * g->total_workers);
+    CILK_ASSERT(g->sysdep->threads);
 
     return;
 }
@@ -134,10 +129,6 @@ static void internal_run_scheduler_with_exceptions(__cilkrts_worker *w)
     __cilkrts_run_scheduler_with_exceptions(w);
 }
 
-#if JFC_DEBUG
-#include <stdio.h>
-#endif
-
 /*
  * __cilkrts_worker_stub
  *
@@ -151,10 +142,6 @@ NON_COMMON void* __cilkrts_worker_stub(void *arg)
     /*int status;*/
     __cilkrts_worker *w = (__cilkrts_worker *)arg;
 
-#if JFC_DEBUG
-    fprintf(stderr, "Launch worker %p/%u\n", w, w->self);
-#endif
-
 #ifdef __INTEL_COMPILER
 #ifdef USE_ITTNOTIFY
     // Name the threads for Advisor.  They don't want a worker number.
@@ -166,21 +153,11 @@ NON_COMMON void* __cilkrts_worker_stub(void *arg)
     status = pthread_mutex_lock(&__cilkrts_global_mutex);
     CILK_ASSERT(status == 0);*/
     CILK_ASSERT(w->l->type == WORKER_SYSTEM);
-    /*status = pthread_mutex_lock(&__cilkrts_global_mutex);
+    /*status = pthread_mutex_unlock(&__cilkrts_global_mutex);
     CILK_ASSERT(status == 0);*/
 
     __cilkrts_set_tls_worker(w);
     internal_run_scheduler_with_exceptions(w);
-
-    /*status = pthread_mutex_lock(&__cilkrts_global_mutex);
-    CILK_ASSERT(status == 0);
-    w->l->type = WORKER_FREE;
-    status = pthread_mutex_unlock(&__cilkrts_global_mutex);
-    CILK_ASSERT(status == 0);*/
-
-#if JFC_DEBUG
-    fprintf(stderr, "Exit worker %p/%u\n", w, w->self);
-#endif
 
     return 0;
 }
@@ -229,7 +206,8 @@ static void create_threads(global_state_t *g, int base, int top)
 #if PARALLEL_THREAD_CREATE
 static int volatile threads_created = 0;
 
-// Create approximately half of the worker threads, and then become a worker ourselves.
+// Create approximately half of the worker threads, and then become a worker
+// ourselves.
 static void * create_threads_and_work (void * arg)
 {
     global_state_t *g = ((__cilkrts_worker *)arg)->g;
@@ -240,10 +218,11 @@ static void * create_threads_and_work (void * arg)
 
     // Ideally this turns into a tail call that wipes out this stack frame.
     return __cilkrts_worker_stub (arg);
+}
 #endif
 void __cilkrts_start_workers(global_state_t *g, int n)
 {
-    g->running = 1;
+    g->workers_running = 1;
     g->work_done = 0;
 
     if (!g->sysdep->threads)
@@ -291,7 +270,7 @@ void __cilkrts_stop_workers(global_state_t *g)
 
     g->work_done = 1;
 
-    if (g->running == 0)
+    if (g->workers_running == 0)
         return;
 
     if (!g->sysdep->threads)
@@ -312,7 +291,7 @@ void __cilkrts_stop_workers(global_state_t *g)
                 __cilkrts_bug("Cilk runtime error: thread join (%d) failed: %d\n", i, sc_status);
         }
 
-    g->running = 0;
+    g->workers_running = 0;
 
 
     return;
@@ -336,16 +315,19 @@ static inline void restore_fp_state (__cilkrts_stack_frame *sf) {
    error rather than change the stack pointer in the wrong direction.
    Linux appears to let the program take the chance.
 
-   This function is is called to resume after a sync or steal.  In both cases
-   f->sync_sp starts out containing the original stack pointer of the loot.
+   This function is called to resume after a sync or steal.  In both cases
+   ff->sync_sp starts out containing the original stack pointer of the loot.
    In the case of a steal, the stack pointer stored in sf points to the
    thief's new stack.  In the case of a sync, the stack pointer stored in sf
-   points into original stack (i.e., it is either the same as f->sync_sp or a
+   points into original stack (i.e., it is either the same as ff->sync_sp or a
    small offset from it caused by pushes and pops between the spawn and the
    sync).  */
-NORETURN __cilkrts_resume(__cilkrts_worker *w, full_frame *f,
+NORETURN __cilkrts_resume(__cilkrts_worker *w, full_frame *ff,
                           __cilkrts_stack_frame *sf)
 {
+    // Assert: w is the only worker that knows about ff right now, no
+    // lock is needed on ff.
+
     const int flags = sf->flags;
     void *sp;
 
@@ -354,36 +336,33 @@ NORETURN __cilkrts_resume(__cilkrts_worker *w, full_frame *f,
     CILK_ASSERT(flags & CILK_FRAME_SUSPENDED);
     CILK_ASSERT(!sf->call_parent);
     CILK_ASSERT(w->head == w->tail);
-#if JFC_DEBUG
-    __cilkrts_psf(flags & CILK_FRAME_UNSYNCHED ? "r-spawn" : "r-sync", w, sf, f);
-#endif
 
-    if (f->simulated_stolen)
+    if (ff->simulated_stolen)
         /* We can't prevent __cilkrts_make_unrunnable_sysdep from discarding
          * the stack pointer because there is no way to tell it that we are
          * doing a simulated steal.  Thus, we must recover the stack pointer
          * here. */
-        SP(sf) = f->sync_sp;
+        SP(sf) = ff->sync_sp;
 
     sp = SP(sf);
 
     /* Debugging: make sure stack is accessible. */
     ((volatile char *)sp)[-1];
 
-    __cilkrts_take_stack(f, sp);
+    __cilkrts_take_stack(ff, sp);
 
     /* The leftmost frame has no allocated stack */
-    if (f->simulated_stolen)
-        CILK_ASSERT(flags & CILK_FRAME_UNSYNCHED && f->sync_sp == NULL);
+    if (ff->simulated_stolen)
+        CILK_ASSERT(flags & CILK_FRAME_UNSYNCHED && ff->sync_sp == NULL);
     else if (flags & CILK_FRAME_UNSYNCHED)
         /* XXX By coincidence sync_sp could be null. */
-        CILK_ASSERT(f->stack_self != NULL && f->sync_sp != NULL);
+        CILK_ASSERT(ff->stack_self != NULL && ff->sync_sp != NULL);
     else
         /* XXX This frame could be resumed unsynched on the leftmost stack */
-        CILK_ASSERT((f->sync_master == 0 || f->sync_master == w) &&
-                    f->sync_sp == 0);
+        CILK_ASSERT((ff->sync_master == 0 || ff->sync_master == w) &&
+                    ff->sync_sp == 0);
     /*if (w->l->type == WORKER_USER)
-        CILK_ASSERT(f->stack_self == NULL);*/
+        CILK_ASSERT(ff->stack_self == NULL);*/
 
     // Notify the Intel tools that we're stealing code
     ITT_SYNC_ACQUIRED(sf->worker);
@@ -391,9 +370,9 @@ NORETURN __cilkrts_resume(__cilkrts_worker *w, full_frame *f,
     __notify_zc_intrinsic("cilk_continue", sf);
 #endif // defined ENABLE_NOTIFY_ZC_INTRINSIC
 
-    if (f->stack_self) {
+    if (ff->stack_self) {
         // Notify TBB that we are resuming.
-        __cilkrts_invoke_stack_op(w, CILK_TBB_STACK_ADOPT, f->stack_self);
+        __cilkrts_invoke_stack_op(w, CILK_TBB_STACK_ADOPT, ff->stack_self);
     }
 
     sf->flags &= ~CILK_FRAME_SUSPENDED;
@@ -418,10 +397,6 @@ NORETURN __cilkrts_resume(__cilkrts_worker *w, full_frame *f,
 #include <string.h>
 #include <sys/mman.h>
 #include <errno.h>
-
-#if JFC_DEBUG
-#include <stdio.h>
-#endif
 
 struct __cilkrts_stack
 {
@@ -554,17 +529,17 @@ void tbb_interop_free_stack_op_info(void)
     __cilkrts_set_tls_tbb_interop(NULL);
 }
 
-void __cilkrts_bind_stack(full_frame *f, char *new_sp,
+void __cilkrts_bind_stack(full_frame *ff, char *new_sp,
                           __cilkrts_stack *parent_stack,
                           __cilkrts_worker *owner)
 {
-    __cilkrts_stack_frame *sf = f->call_stack;
-    __cilkrts_stack *sd = f->stack_self;
+    __cilkrts_stack_frame *sf = ff->call_stack;
+    __cilkrts_stack *sd = ff->stack_self;
     CILK_ASSERT(sizeof SP(sf) <= sizeof (size_t));
 
     SP(sf) = new_sp;
 
-    // Need to do something with parent_stack and owner
+    // Need to do something with parent_stack and owner?
     return;
 }
 
@@ -641,7 +616,7 @@ void sysdep_destroy_tiny_stack (void *p)
 
 __cilkrts_stack *__cilkrts_make_stack(__cilkrts_worker *w)
 {
-    __cilkrts_stack *f, *s;
+    __cilkrts_stack *s;
     char *p;
     size_t stack_size;
 
@@ -666,12 +641,14 @@ __cilkrts_stack *__cilkrts_make_stack(__cilkrts_worker *w)
                 return NULL;
             }
 
+#ifdef CILK_PROFILE
             /* Keeping track of the largest stack count observed by this worker
                is part of profiling.  The copies will be merged at the end of
                execution. */
             if (PROFILING_STACKS && hwm > w->l->stats.stack_hwm) {
                 w->l->stats.stack_hwm = hwm;
             }
+#endif
         }
     }
 
@@ -732,11 +709,6 @@ void __cilkrts_free_stack(global_state_t *g,
 
     s += PAGE;
     size += PAGE + PAGE;
-#if JFC_DEBUG
-    /* debug */
-    if (mprotect(s - size, size, PROT_NONE) == -1)
-        __cilkrts_bug("Cilk: stack protect failed error %d", errno);
-#endif
 
     if (munmap(s - size, size) < 0)
         __cilkrts_bug("Cilk: stack release failed error %d", errno);
@@ -756,56 +728,20 @@ void __cilkrts_sysdep_reset_stack(__cilkrts_stack *sd)
 }
 
 void __cilkrts_make_unrunnable_sysdep(__cilkrts_worker *w,
-                                      full_frame *f,
+                                      full_frame *ff,
                                       __cilkrts_stack_frame *sf,
                                       int state_valid,
                                       const char *why)
 {
-#if JFC_DEBUG
-    __cilkrts_psf(why, w, sf, f);
-#else
     (void)w; /* unused */
-#endif
     sf->except_data = 0;
 
-    if (state_valid && f->frame_size == 0)
-        f->frame_size = __cilkrts_get_frame_size(sf);
+    if (state_valid && ff->frame_size == 0)
+        ff->frame_size = __cilkrts_get_frame_size(sf);
 
     SP(sf) = 0;
 }
 
-#if JFC_DEBUG
-#include <stdio.h>
-void __cilkrts_psf(const char *what, __cilkrts_worker *w,
-                   __cilkrts_stack_frame *sf, full_frame *f)
-{
-    char flags[9], pc[20];
-
-    if (f)
-        CILK_ASSERT(!(f->is_call_child && (sf->flags & CILK_FRAME_DETACHED)));
-
-    flags[0] = sf->flags & CILK_FRAME_STOLEN ? 'S' : ' ';
-    flags[1] = sf->flags & CILK_FRAME_UNSYNCHED ? 'U' : ' ';
-    if (sf->flags & CILK_FRAME_DETACHED)
-        flags[2] = 'D';
-    else if (sf->flags & CILK_FRAME_LAST)
-        flags[2] = '$';
-    else if (f && f->is_call_child)
-        flags[2] = 'C';
-    else 
-        flags[2] = '?';
-    flags[3] = ' ';
-    flags[4] = f ? f->sync_sp ? '+' : '-' : ' ';
-    flags[5] = f ? f->stack_self ? 'S' : '-' : ' ';
-    flags[6] = f ? f->stack_child ? 'C' : '-' : ' ';
-    flags[7] = '\0';
-
-    fprintf(stderr, "Cilk: %u %-8s %p at %-6s %p S %p\n\0 F %p\n",
-            w->self, what, sf, flags, (void *)PC(sf), (void *)SP(sf), (void *)FP(sf));
-
-    fflush(0);
-}
-#endif
 
 /*
  * __cilkrts_sysdep_is_worker_thread_id
@@ -1032,7 +968,7 @@ void __cilkrts_establish_c_stack(void)
  * The workaround is for the library to open itself with RTLD_GLOBAL flag.
  */
 
-__attribute__((noinline))
+static __attribute__((noinline))
 void internal_enforce_global_visibility()
 {
     void* handle = dlopen( get_runtime_path(), RTLD_GLOBAL|RTLD_LAZY );
@@ -1063,6 +999,9 @@ void worker_user_scheduler()
     w->reducer_map = 0;
 
     cilkbug_assert_no_uncaught_exception();
+
+    STOP_INTERVAL(w, INTERVAL_IN_SCHEDULER);
+    STOP_INTERVAL(w, INTERVAL_WORKING);
 
     // Enter the scheduling loop on the user worker.  This function will
     // never return
@@ -1124,6 +1063,8 @@ void sysdep_destroy_user_stack (__cilkrts_stack *sd)
 {
     free(sd);
 }
+
+
 
 /*
   Local Variables: **

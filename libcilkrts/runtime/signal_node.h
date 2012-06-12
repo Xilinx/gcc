@@ -41,6 +41,9 @@
 #define INCLUDED_SIGNAL_NODE_DOT_H
 
 #include "rts-common.h"
+#include <cilk/common.h>
+
+__CILKRTS_BEGIN_EXTERN_C
 
 /* Opaque type. */
 typedef struct signal_node_t signal_node_t;
@@ -90,5 +93,7 @@ void signal_node_msg(signal_node_t *node, unsigned int msg);
  */
 COMMON_SYSDEP
 void signal_node_wait(signal_node_t *node);
+
+__CILKRTS_END_EXTERN_C
 
 #endif // ! defined(INCLUDED_SIGNAL_NODE_DOT_H)

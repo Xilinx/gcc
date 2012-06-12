@@ -41,8 +41,6 @@ static const char *names[] = {
     /*[INTERVAL_IN_SCHEDULER]*/                 "in scheduler",
     /*[INTERVAL_WORKING]*/                      "  of which: working",
     /*[INTERVAL_STEALING]*/                     "  of which: stealing",
-    /*[INTERVAL_USER_WAITING]*/                 "  of which: user thread wait",
-    /*[INTERVAL_SYSTEM_WAITING]*/               "  of which: system thread wait",
     /*[INTERVAL_STEAL_SUCCESS]*/                "steal success: detach",
     /*[INTERVAL_STEAL_FAIL_EMPTYQ]*/            "steal fail: empty queue",
     /*[INTERVAL_STEAL_FAIL_LOCK]*/              "steal fail: victim locked",
@@ -53,9 +51,6 @@ static const char *names[] = {
     /*[INTERVAL_THE_EXCEPTION_CHECK_USELESS]*/  "  of which: useless",
     /*[INTERVAL_RETURNING]*/                    "returning",
     /*[INTERVAL_FINALIZE_CHILD]*/               "finalize child",
-    /*[INTERVAL_SPLICE_REDUCERS]*/              "  of which: splice_reducers",
-    /*[INTERVAL_SPLICE_EXCEPTIONS]*/            "  of which: splice_exceptions",
-    /*[INTERVAL_SPLICE_STACKS]*/                "  of which: splice_stacks",
     /*[INTERVAL_PROVABLY_GOOD_STEAL]*/          "provably good steal",
     /*[INTERVAL_UNCONDITIONAL_STEAL]*/          "unconditional steal",
     /*[INTERVAL_ALLOC_FULL_FRAME]*/             "alloc full frame",
@@ -70,7 +65,7 @@ static const char *names[] = {
     /*[INTERVAL_MUTEX_LOCK_YIELDING]*/          "  yielding",
     /*[INTERVAL_MUTEX_TRYLOCK]*/                "mutex trylock",
     /*[INTERVAL_ALLOC_STACK]*/                  "alloc stack",
-    /*[INTERVAL_FREE_STACK]*/                   "free stack",
+    /*[INTERVAL_FREE_STACK]*/                   "free stack",    
 };
 #endif
 
@@ -87,6 +82,7 @@ void __cilkrts_init_stats(statistics *s)
     s->stack_hwm = 0;
 }
 
+#ifdef CILK_PROFILE
 void __cilkrts_accum_stats(statistics *to, statistics *from)
 {
     int i;
@@ -132,13 +128,12 @@ void __cilkrts_stop_interval(__cilkrts_worker *w, enum interval i)
     }
 }
 
-#ifdef CILK_PROFILE
-static void dump_stats_to_file(FILE *f, statistics *s)
+void dump_stats_to_file(FILE *stat_file, statistics *s)
 {
     int i;
-    fprintf(f, "\nCILK++ RUNTIME SYSTEM STATISTICS:\n\n");
+    fprintf(stat_file, "\nCILK PLUS RUNTIME SYSTEM STATISTICS:\n\n");
 
-    fprintf(f,
+    fprintf(stat_file,
             "  %-32s: %15s %10s %12s %10s\n",
             "event",
             "count",
@@ -147,17 +142,17 @@ static void dump_stats_to_file(FILE *f, statistics *s)
             "%total"
         );
     for (i = 0; i < INTERVAL_N; ++i) {
-        fprintf(f, "  %-32s: %15llu", names[i], s->count[i]);
+        fprintf(stat_file, "  %-32s: %15llu", names[i], s->count[i]);
         if (s->accum[i]) {
-            fprintf(f, " %10.3g %12.3g %10.2f", 
+            fprintf(stat_file, " %10.3g %12.3g %10.2f",
                     (double)s->accum[i],
                     (double)s->accum[i] / (double)s->count[i],
                     100.0 * (double)s->accum[i] / 
                     (double)s->accum[INTERVAL_IN_SCHEDULER]);
         }
-        fprintf(f, "\n");
+        fprintf(stat_file, "\n");
     }
 }
-#endif
+#endif // CILK_PROFILE
 
 /* End stats.c */

@@ -100,9 +100,6 @@ struct __cilkrts_frame_cache
 
     /** Bytes of memory allocated from the global cache */
     size_t allocated_from_global_pool;
-
-    /** Bytes of memory at end of execution */
-    size_t in_buckets_at_end_of_execution;
 };
 
 /**

@@ -2,7 +2,7 @@
  *
  *************************************************************************
  *
- * Copyright (C) 2009-2011 
+ * Copyright (C) 2009-2012 
  * Intel Corporation
  * 
  * This file is part of the Intel Cilk Plus Library.  This library is free
@@ -46,7 +46,13 @@ struct os_mutex {
     pthread_mutex_t mutex;  ///< On Linux, os_mutex is implemented with a pthreads mutex
 };
 
-struct os_mutex *__cilkrts_global_os_mutex = NULL;
+// Unix implementation of the global OS mutex.  This will be created by the
+// first call to global_os_mutex_lock() and *NEVER* destroyed.  On gcc-based
+// systems there's no way to guarantee the ordering of constructors and
+// destructors, so we can't be guaranteed that our destructor for a static
+// object will be called *after* any static destructors that may use Cilk
+// in the user's application
+static struct os_mutex *global_os_mutex = NULL;
 
 /* Sometimes during shared library load malloc doesn't work.
    To handle that case, preallocate space for one mutex. */
@@ -72,7 +78,7 @@ struct os_mutex *__cilkrts_os_mutex_create(void)
 
     status = pthread_mutexattr_init(&attr);
     CILK_ASSERT (status == 0);
-#if defined DEBUG || CILK_LIB_DEBUG || JFC_DEBUG
+#if defined DEBUG || CILK_LIB_DEBUG 
 #ifdef PTHREAD_MUTEX_ERRORCHECK
     status = pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
 #else
@@ -90,12 +96,6 @@ struct os_mutex *__cilkrts_os_mutex_create(void)
 void __cilkrts_os_mutex_lock(struct os_mutex *p)
 {
     int status;
-
-#if JFC_DEBUG > 1
-    fprintf(stderr, "Cilk: worker %d pthread mutex lock %p from %p\n",
-            __cilkrts_try_get_worker_number(), p,
-            __builtin_return_address(0));
-#endif
 
     status = pthread_mutex_lock (&p->mutex);
     ITT_SYNC_ACQUIRED(p);
@@ -123,11 +123,6 @@ void __cilkrts_os_mutex_unlock(struct os_mutex *p)
 {
     int status;
 
-#if JFC_DEBUG > 1
-    fprintf(stderr, "Cilk worker %d pthread mutex unlock %p\n",
-            __cilkrts_try_get_worker_number(), p);
-#endif
-
     ITT_SYNC_RELEASING(p);
     status = pthread_mutex_unlock (&p->mutex);
     CILK_ASSERT(status == 0);
@@ -141,6 +136,53 @@ void __cilkrts_os_mutex_destroy(struct os_mutex *p)
     } else {
         free(p);
     }
+}
+
+/*
+ * create_global_os_mutex
+ *
+ * Function used with pthread_once to initialize the global OS mutex.  Since
+ * pthread_once requires a function which takes no parameters and has no
+ * return value, the global OS mutex will be stored in the static (global
+ * to the compilation unit) variable "global_os_mutex."
+ * 
+ * 
+ * global_os_mutex will never be destroyed.
+ */
+static void create_global_os_mutex(void)
+{
+    CILK_ASSERT(NULL == global_os_mutex);
+    global_os_mutex = __cilkrts_os_mutex_create();
+}
+
+void global_os_mutex_lock(void)
+{
+    // pthread_once_t used with pthread_once to guarantee that
+    // create_global_os_mutex() is only called once
+    static pthread_once_t global_os_mutex_is_initialized = PTHREAD_ONCE_INIT;
+
+    // Execute create_global_os_mutex once in a thread-safe manner
+    // Note that create_global_os_mutex returns the mutex in the static
+    // (global to the module) variable "global_os_mutex"
+    pthread_once(&global_os_mutex_is_initialized,
+		 create_global_os_mutex);
+
+    // We'd better have allocated a global_os_mutex
+    CILK_ASSERT(NULL != global_os_mutex);
+    
+    // Acquire the global OS mutex
+    __cilkrts_os_mutex_lock(global_os_mutex);
+}
+
+void global_os_mutex_unlock(void)
+{
+    // We'd better have allocated a global_os_mutex.  This means you should
+    // have called global_os_mutex_lock() before calling
+    // global_os_mutex_unlock(), but this is the only check for it.
+    CILK_ASSERT(NULL != global_os_mutex);
+
+    // Release the global OS mutex
+    __cilkrts_os_mutex_unlock(global_os_mutex);
 }
 
 /* End os_mutex-unix.c */

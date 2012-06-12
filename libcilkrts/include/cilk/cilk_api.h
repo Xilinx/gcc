@@ -96,12 +96,23 @@ enum {
  *
  * Allowable parameter names:
  *
- * - "nworkers" - number of processors that should run Cilk code.
- *   The value is a string of digits to be parsed by strtol.  "nworkers" can
- *   only be set *before* the runtime has started.  Attempting to set it when
- *   the runtime is running will return an error code.  You can use
- *   __cilkrts_end_cilk() to shut down the runtime to change the number of
- *   workers.
+ * - "nworkers" - number of cores that should run Cilk code. The value is a
+ *   string of digits to be parsed by strtol. Negative numbers are not valid
+ *   for "nworkers". 
+ *
+ *   The precedence for "nworkers" is:
+ *   1) __cilkrts_set_param("nworkers")
+ *   2) The CILK_NWORKERS environment variable
+ *   3) The number of cores returned by the OS.
+ *
+ *   Setting "nworkers" to "0" sets the number of workers to the value of
+ *   CILK_NWORKERS environment number or the number of cores returned by the
+ *   OS.
+ *
+ *   "nworkers" can only be set *before* the runtime has started.  Attempting
+ *   to set "nworkers" when the runtime is running will return an error code.
+ *   You can use __cilkrts_end_cilk() to shut down the runtime to change the 
+ *   number of workers.
  *
  * - "force reduce" - test reducer callbacks by allocating new views
  *   for every spawn within which a reducer is accessed.  This can
@@ -185,8 +196,39 @@ typedef void (*__cilkrts_pfn_seh_callback)(const _EXCEPTION_RECORD *exception);
 CILK_API(int) __cilkrts_set_seh_callback(__cilkrts_pfn_seh_callback pfn);
 #endif
 
+#if __CILKRTS_ABI_VERSION >= 1
+// Pedigree API is available only for compilers that use ABI version >= 1.
+
 /**
- * Context used by __cilkrts_get_pedigree_info.  Callers should initialize the
+ * Pedigree API
+ */
+
+/* Internal implementation of __cilkrts_get_pedigree */
+CILK_API(__cilkrts_pedigree)
+__cilkrts_get_pedigree_internal(__cilkrts_worker *w);
+
+/**
+ * @brief Returns the current pedigree, in a linked list representation.
+ *
+ * This routine returns a copy of the last node in the pedigree list.
+ * For example, if the current pedigree (in order) is <1, 2, 3, 4>,
+ * then this method returns a node with rank == 4, and whose parent
+ * field points to the node with rank of 3.  In summary, following the
+ * nodes in the chain visits the terms of the pedigree in reverse.
+ * 
+ * The returned node is guaranteed to be valid only until the caller
+ * of this routine has returned.
+ */
+__CILKRTS_INLINE
+__cilkrts_pedigree __cilkrts_get_pedigree(void) 
+{
+    return __cilkrts_get_pedigree_internal(__cilkrts_get_tls_worker());    
+}
+
+/**
+ * @brief DEPRECATED -- Context used by __cilkrts_get_pedigree_info.
+ *
+ * Callers should initialize the
  * data array to NULL, and set the size to sizeof(__cilkrts_pedigree_context_t
  * before the first call to __cilkrts_get_pedigree_info and should not examine
  * or modify it after.
@@ -198,7 +240,7 @@ typedef struct
 } __cilkrts_pedigree_context_t;
 
 /**
- * Pedigree API
+ * @brief DEPRECATED -- Use __cilkrts_get_pedigree instead.
  *
  * This routine allows code to walk up the stack of Cilk frames to gather
  * the pedigree.
@@ -209,49 +251,54 @@ typedef struct
  * consider the pedigree context data opaque and should not examine or
  * modify it.
  *
- * Returns:
- *    0 - Success - birthrank is valid
- *   >0 - End of pedigree walk
- *   <0 - Failure - -1: No worker bound to thread,
- *                  -2: Sanity check failed
- *                  -3: Invalid context size
- *                  -4: Internal error - walked off end of chain of frames
+ * @returns  0 - Success - birthrank is valid
+ * @returns >0 - End of pedigree walk
+ * @returns -1 - Failure - No worker bound to thread
+ * @returns -2 - Failure - Sanity check failed,
+ * @returns -3 - Failure - Invalid context size
+ * @returns -4 - Failure - Internal error - walked off end of chain of frames
  */
 CILK_API(int)
 __cilkrts_get_pedigree_info(/* In/Out */ __cilkrts_pedigree_context_t *context,
                             /* Out */    uint64_t *sf_birthrank);
 
 /**
- * Pedigree API
+ * @brief DEPRECATED -- Use __cilkrts_get_pedigree().rank instead.
  *
  * Fetch the rank from the currently executing worker
  *
- * Returns:
- *    0 - Success - rank is valid
- *   <0 - Failure - -1: No worker bound to thread
+ * @returns  0 - Success - *rank is valid
+ * @returns <0 - Failure - *rank is not changed
  */
+CILK_EXPORT_AND_INLINE
+int __cilkrts_get_worker_rank(uint64_t *rank) 
+{
+    *rank = __cilkrts_get_pedigree().rank;
+    return 0;
+}
 
+/* Internal implementation of __cilkrts_bump_worker_rank */
 CILK_API(int)
-__cilkrts_get_worker_rank(uint64_t *rank);
-
+__cilkrts_bump_worker_rank_internal(__cilkrts_worker* w);
 
 /**
- * Pedigree API
+ * @brief Increment the pedigree rank of the currently executing worker
  *
- * Increment the rank of the currently executing worker
- *
- * Returns:
- *    0 - Success - rank was incremented
- *   -1 - Failure - No worker bound to thread
+ * @returns 0 - Success - rank was incremented
+ * @returns-1 - Failure
  */
+CILK_EXPORT_AND_INLINE
+int __cilkrts_bump_worker_rank(void)
+{
+    return __cilkrts_bump_worker_rank_internal(__cilkrts_get_tls_worker());
+}
 
+/* Internal implementation of __cilkrts_bump_worker_rank */
 CILK_API(int)
-__cilkrts_bump_worker_rank(void);
+__cilkrts_bump_loop_rank_internal(__cilkrts_worker* w);
 
 /**
- * Pedigree API
- *
- * Increment the rank for a cilk_for loop.
+ * @brief Increment the pedigree rank for a cilk_for loop.
  *
  * A cilk_for loop is implemented using a divide and conquer recursive
  * algorithm.  This allows the work of the cilk_for loop to spread optimally
@@ -266,26 +313,31 @@ __cilkrts_bump_worker_rank(void);
  * the low and high bounds of the loop indicies it should iterate over.  This
  * range is the "grain size". When the loop body lambda function is called,
  * the pedigree rank of the loop index node is initialized to the lower loop
- * index minus 1.
+ * index.
  *
  * Eventually, the compiler generated loop body lambda function should
- * increment the cilk_for rank at the beginning of each iteration around the
+ * increment the cilk_for rank at the end of each iteration around the
  * cilk_for loop body. However, this is not currently implemented.
  *
  * This function is provided to allow users to increment the cilk_for rank
- * themselves.  Users should only call this function at the beginning of a
- * cilk_for loop body.
+ * themselves.  Users should call this function only at the end of a cilk_for
+ * loop body.  Use of this function is not required.  If not used, the
+ * pedigree sequence will change any time the loop's grainsize changes, i.e.,
+ * if the program is run with a different number of workers.
  *
- * When the code generated by the compiler for the cilk_for loop body lambda
- * function "does the right thing" this function will become a noop.
+ * When the code generated by the compiler for the cilk_for loop body
+ * "does the right thing" this function will become a noop.
  *
- * Returns:
- *    0 - Success - rank was incremented
- *   -1 - Failure - No worker bound to thread
+ * @returns  0 - Success - rank was incremented
+ * @returns -1 - Failure
  */
+CILK_EXPORT_AND_INLINE
+int __cilkrts_bump_loop_rank(void) 
+{
+    return __cilkrts_bump_loop_rank_internal(__cilkrts_get_tls_worker()); 
+}
 
-CILK_API(int)
-__cilkrts_bump_loop_rank(void);
+#endif // __CILKRTS_ABI_VERSION >= 1
 
 __CILKRTS_END_EXTERN_C
 
@@ -304,10 +356,31 @@ __CILKRTS_END_EXTERN_C
 #define __cilkrts_get_worker_number() (0)
 #define __cilkrts_get_force_reduce() (0)
 #define __cilkrts_metacall(tool,code,data) ((tool), (code), (data), 0)
+
+#if __CILKRTS_ABI_VERSION >= 1
+/* Pedigree stubs */
 #define __cilkrts_get_pedigree_info(context, sf_birthrank) (-1)
-#define __cilkrts_get_worker_rank(rank) (-1)
+#define __cilkrts_get_worker_rank(rank) (*(rank) = 0)
 #define __cilkrts_bump_worker_rank() (-1)
 #define __cilkrts_bump_loop_rank() (-1)
+
+/**
+ * A stub method for __cilkrts_get_pedigree.
+ * Returns an empty __cilkrts_pedigree. 
+ */ 
+__CILKRTS_INLINE
+__cilkrts_pedigree __cilkrts_get_pedigree_stub(void)
+{
+    __cilkrts_pedigree ans;
+    ans.rank = 0;
+    ans.parent = NULL;
+    return ans;
+}
+
+// Renamed to an actual stub method.
+#define __cilkrts_get_pedigree() __cilkrts_get_pedigree_stub()
+
+#endif // __CILKRTS_ABI_VERSION >= 1
 
 #endif /* CILK_STUB */
 

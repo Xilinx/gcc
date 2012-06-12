@@ -2,7 +2,7 @@
  *
  *************************************************************************
  *
- * Copyright (C) 2009-2011 
+ * Copyright (C) 2009-2012 
  * Intel Corporation
  * 
  * This file is part of the Intel Cilk Plus Library.  This library is free
@@ -37,19 +37,12 @@
 #ifndef INCLUDED_OS_MUTEX_DOT_H
 #define INCLUDED_OS_MUTEX_DOT_H
 
+#include <cilk/common.h>
 #include "rts-common.h"
 
+__CILKRTS_BEGIN_EXTERN_C
+
 typedef struct os_mutex os_mutex;
-
-/**
- * __cilkrts_global_os_mutex is used to serialize accesses that may change data
- * in the global state.
- *
- * Specifically, when binding and unbinding threads, and when initializing and
- * shutting down the runtime.
- */
-COMMON_SYSDEP os_mutex *__cilkrts_global_os_mutex;
-
 /**
  * Allocate and initialize an os_mutex
  *
@@ -79,5 +72,45 @@ COMMON_SYSDEP void __cilkrts_os_mutex_unlock(os_mutex *m);
  * @param m The os_mutex that is to be deallocated.
  */
 COMMON_SYSDEP void __cilkrts_os_mutex_destroy(os_mutex *m);
+
+/**
+ * Acquire the global os_mutex for exclusive use.  The global os_mutex
+ * will be initialized the first time this function is called in a
+ * thread-safe manner.
+ */
+COMMON_SYSDEP void global_os_mutex_lock();
+
+/**
+ * Release the global os_mutex.  global_os_mutex_lock() must have been
+ * called first.
+ */
+COMMON_SYSDEP void global_os_mutex_unlock();
+
+
+#ifdef _MSC_VER
+
+/**
+ * @brief Create the global OS mutex - Windows only.
+ *
+ * On Windows we use DllMain() to create the global OS mutex when cilkrts20.dll
+ * is loaded. As opposed to Linux/MacOS where we use pthread_once to implement
+ * a singleton since there are no guarantees about constructor or destructor
+ * ordering between shared objects.
+ */
+NON_COMMON void global_os_mutex_create();
+
+/**
+ * @brief Destroy the global OS mutex - Windows only
+ *
+ * On Windows we use DllMain() to destroy the global OS mutex when
+ * cilkrts20.dll is unloaded.  As opposed to Linux/MacOS where we cannot
+ * know when it's safe to destroy the global OS mutex since there are no
+ * guarantees about constructor or destructor ordering.
+ */
+NON_COMMON void global_os_mutex_destroy();
+
+#endif  // _MSC_VER
+
+__CILKRTS_END_EXTERN_C
 
 #endif // ! defined(INCLUDED_OS_MUTEX_DOT_H)

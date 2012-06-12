@@ -80,22 +80,40 @@ void __cilkrts_set_leftmost_reducer_map(cilkred_map *h,
 /**
  * Merge reducer map RIGHT_MAP into LEFT_MAP and return the result of the
  * merge.  Both maps must be allocated from the global context associated
- * with the specified worker.  The  returned reducer map must be destroyed
+ * with the specified worker.  The returned reducer map must be destroyed
  * before the worker's associated global context is destroyed.
  *
  * If two cilkred_maps are specified, one will be destroyed and the other
  * one will be returned as the merged cilkred_map.
  *
- * @param w __cilkrts_worker that owns the cilkred_maps.
- * @param left_map The left cilkred_map.
- * @param right_map The right cilkred_map.
+ * When reducers can contain nested parallelism, execution can return
+ * on a different worker than when it started (but still using the
+ * same stack).
  *
+ * Upon return, *w_ptr stores the pointer to the worker that execution
+ * returns on.
+ *
+ * @param w_ptr      Pointer to the currently executing worker.
+ * @param left_map   The left cilkred_map.
+ * @param right_map  The right cilkred_map.
+ *                  
  * @return pointer to merged cilkred_map.
  */
 extern
-cilkred_map *__cilkrts_merge_reducer_maps(__cilkrts_worker *w,
-                                          cilkred_map *left_map,
-                                          cilkred_map *right_map);
+cilkred_map *merge_reducer_maps(__cilkrts_worker **w_ptr,
+				cilkred_map *left_map,
+				cilkred_map *right_map);
+
+/**
+ * Similar to merge_reducer_maps(), except that after merging
+ * RIGHT_MAP into LEFT_MAP, it repeatedly merges (*w_ptr)->reducer_map
+ * into LEFT_MAP.  This procedure ensures that any new reducers
+ * created by the reductions themselves also get merged into LEFT_MAP.
+ */ 
+extern
+cilkred_map *repeated_merge_reducer_maps(__cilkrts_worker **w_ptr,
+					 cilkred_map *left_map,
+					 cilkred_map *right_map);
 
 __CILKRTS_END_EXTERN_C
 

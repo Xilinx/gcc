@@ -296,7 +296,7 @@ public:
     void set_value(const Type& value);
 
     /// Compare the current value with the one passed and retain the
-    /// larger of the two.  Return this reducer.
+    /// smaller of the two.  Return this reducer.
     reducer_min& calc_min(const Type& value);
 
     /// Merge the result of a 'min' operation into this object.  The
@@ -624,7 +624,7 @@ public:
                    const Value& value);
 
     /// Compare the current value with the one passed and retain the
-    /// larger of the two.
+    /// smaller of the two.
     void calc_min(const Index& index, const Value& value);
 
     // DEPRECATED.  Use calc_min instead.

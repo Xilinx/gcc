@@ -53,14 +53,14 @@ typedef struct __cilkrts_region_properties __cilkrts_region_properties;
 /**
  * Bind the __cilkrts_stack_frame to the stack
  *
- * @param f full_frame for the frame we're binding
+ * @param ff full_frame for the frame we're binding
  * @param new_sp Not used.
  * @param parent_stack __cilkrts_stack of this frames parent
  * @param owner __cilkrts_worker for the user worker thread that captains
  * the team that this stack is contributing to.
  */
 COMMON_SYSDEP
-void __cilkrts_bind_stack(full_frame *f,
+void __cilkrts_bind_stack(full_frame *ff,
                           char *new_sp,
                           __cilkrts_stack *parent_stack,
                           __cilkrts_worker *owner);
@@ -169,7 +169,7 @@ void __cilkrts_sysdep_reset_stack(__cilkrts_stack *sd);
  * __cilkrts_stack_frame to a full_frame.
  *
  * @param w The worker the frame was running on.  Not used.
- * @param f The full frame that is being created for the
+ * @param ff The full frame that is being created for the
  * __cilkrts_stack_frame.
  * @param sf The __cilkrts_stack_frame that's being promoted
  * to a full frame.
@@ -179,7 +179,7 @@ void __cilkrts_sysdep_reset_stack(__cilkrts_stack *sd);
  */
 COMMON_SYSDEP
 void __cilkrts_make_unrunnable_sysdep(__cilkrts_worker *w,
-                                      full_frame *f,
+                                      full_frame *ff,
                                       __cilkrts_stack_frame *sf,
                                       int state_valid,
                                       const char *why);
@@ -188,12 +188,12 @@ void __cilkrts_make_unrunnable_sysdep(__cilkrts_worker *w,
  * Resume execution of the full frame.
  *
  * @param w The worker to resume execution on.
- * @param f The full_frame to resume executing.
+ * @param ff The full_frame to resume executing.
  * @param sf The __cilkrts_stack_frame to resume executing.
  */
 COMMON_SYSDEP
 NORETURN __cilkrts_resume(__cilkrts_worker *w,
-                          full_frame *f,
+                          full_frame *ff,
                           __cilkrts_stack_frame *sf);
 
 /**
@@ -316,11 +316,11 @@ void __cilkrts_destroy_worker_sysdep(__cilkrts_worker *w);
  * frame. Mostly deals with exception handling data.
  *
  * @param w The worker the frame will run on.
- * @param f The full_frame that is about to be resumed.
+ * @param ff The full_frame that is about to be resumed.
  */
 COMMON_SYSDEP
 void __cilkrts_setup_for_execution_sysdep(__cilkrts_worker *w,
-                                          full_frame *f);
+                                          full_frame *ff);
 
 /****************************************************************************
  * TBB interop functions
@@ -387,6 +387,7 @@ void tbb_interop_free_stack_op_info(void);
  */
 COMMON_SYSDEP
 void tbb_interop_save_info_from_stack(__cilkrts_stack *sd);
+
 
 __CILKRTS_END_EXTERN_C
 

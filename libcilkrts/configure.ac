@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 
 AC_INIT([Cilk Runtime], [2.0], [cilk@intel.com])
-AC_PREREQ([2.64])
+AC_PREREQ([2.67])
 AM_INIT_AUTOMAKE([1.11 no-define])
 AC_PROG_CXX
 AC_PROG_CC

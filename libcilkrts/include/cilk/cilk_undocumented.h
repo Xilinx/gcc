@@ -42,9 +42,11 @@ __CILKRTS_BEGIN_EXTERN_C
 /*
  * __cilkrts_synched
  *
- * Allows an application to determine if there are any outstanding
- * children at this instant.  This function will examine the current
- * full frame to determine this.
+ * Allows an application to determine if there are any outstanding children at
+ * this instant. This function will examine the current full frame to
+ * determine this. This function will return a valid result only when called
+ * within a spawn continuation, within the stack frame of the continuation
+ * itself.
  */
 
 CILK_EXPORT __CILKRTS_NOTHROW
@@ -75,6 +77,13 @@ void *__cilkrts_get_sf(void);
  */
 CILK_EXPORT __CILKRTS_NOTHROW
 size_t __cilkrts_get_stack_size(void);
+
+/** 
+ * Dumps runtime statistics to stderr.
+ * Undocumented API for debugging. 
+ */
+CILK_EXPORT __CILKRTS_NOTHROW
+void __cilkrts_dump_stats(void);
 
 CILK_EXPORT __CILKRTS_NOTHROW
 int __cilkrts_irml_version(void);

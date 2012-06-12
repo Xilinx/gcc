@@ -48,11 +48,29 @@
 #include "cilktools/cilkscreen.h"
 #include "internal/abi.h"
 
+#if REDPAR_DEBUG > 0
+#include <stdio.h>
+#include <stdlib.h>
+#endif
+
+
 #define DBG if(0) // if(1) enables some internal checks
 
-#if JFC_DEBUG
-volatile int reducer_map_count = 1;
+// Check that w is the currently executing worker.  This method is a
+// no-op unless the debug level is set high enough.
+static inline void verify_current_wkr(__cilkrts_worker *w)
+{
+#if REDPAR_DEBUG >= 5
+    __cilkrts_worker* tmp = __cilkrts_get_tls_worker();
+    if (w != tmp) {
+        fprintf(stderr, "W=%d, actual=%d... missing a refresh....\n",
+                w->self,
+                tmp->self);
+    }
+    CILK_ASSERT(w == tmp); // __cilkrts_get_tls_worker());
 #endif
+}
+
 
 /// Helper class to disable and re-enable Cilkscreen
 struct DisableCilkscreen
@@ -70,10 +88,9 @@ struct EnableCilkscreen
 
 /** Element for a hyperobject */
 struct elem {
-    void                *key;    // Shared key for this hyperobject
-    const cilk_c_monoid *monoid; // Shared monoid for this hyperobject
-    void                *val;    // Strand-private view of this hyperobject
-
+    void                       *key; // Shared key for this hyperobject
+    __cilkrts_hyperobject_base *hb;  // Base of the hyperobject.
+    void                       *val; // Strand-private view of this hyperobject
     /// Destructor for an instance of this hyperobject
     void destroy();
 };
@@ -120,13 +137,17 @@ struct cilkred_map {
 
     /* Insert key/value element into hash map without rehashing. Does not
      * check for duplicate key. */
-    elem *insert_no_rehash(__cilkrts_worker *, void *key,
-                           const cilk_c_monoid *monoid, void *value);
+    elem *insert_no_rehash(__cilkrts_worker           *w,
+			   void                       *key,
+			   __cilkrts_hyperobject_base *hb,
+                           void                       *value);
 
     /* Insert key/value element into hash map, rehashing if necessary. Does not
      * check for duplicate key. */
-    inline elem *rehash_and_insert(__cilkrts_worker *, void *key,
-                                   const cilk_c_monoid *monoid, void *value);
+    inline elem *rehash_and_insert(__cilkrts_worker           *w,
+				   void                       *key,
+				   __cilkrts_hyperobject_base *hb,
+                                   void                       *value);
 
     /** Grow bucket by one element, reallocating bucket if necessary */
     static elem *grow(__cilkrts_worker *w, bucket **bp);
@@ -158,17 +179,23 @@ struct cilkred_map {
      * Merge another reducer map into this one, destroying the other map in
      * the process.
      */
-    void merge(__cilkrts_worker *, cilkred_map *, __cilkrts_worker *, enum merge_kind);
+    __cilkrts_worker* merge(__cilkrts_worker *current_wkr,
+			    cilkred_map      *other_map,
+			    enum merge_kind   kind);
 
     /** check consistency of a reducer map */
     void check(bool allow_null_val);
 
-    /** Move a reducer map from one memory allocation context to another. */
-    static cilkred_map *move(cilkred_map *r, __cilkrts_worker *from, __cilkrts_worker *to);
-
     /** Test whether the cilkred_map is empty */
     bool is_empty() { return nelem == 0; }
 };
+
+static inline struct cilkred_map* install_new_reducer_map(__cilkrts_worker *w) {
+    cilkred_map *h;
+    h = __cilkrts_make_reducer_map(w);
+    w->reducer_map = h;
+    return h;
+}
 
 static size_t sizeof_bucket(size_t nmax)
 {
@@ -213,7 +240,7 @@ static bool is_power_of_2(size_t n)
 }
 
 void cilkred_map::make_buckets(__cilkrts_worker *w, 
-                               size_t new_nbuckets)
+                               size_t            new_nbuckets)
 {     
     nbuckets = new_nbuckets;
 
@@ -226,6 +253,11 @@ void cilkred_map::make_buckets(__cilkrts_worker *w,
 #endif
         __cilkrts_frame_malloc(w, nbuckets * sizeof(*(buckets)));
 
+#if REDPAR_DEBUG >= 1
+    fprintf(stderr, "W=%d, desc=make_buckets, new_buckets=%p, new_nbuckets=%zd\n",
+	    w->self, new_buckets, new_nbuckets);
+#endif
+
     for (size_t i = 0; i < new_nbuckets; ++i)
         new_buckets[i] = 0;
 #if defined __GNUC__ && defined __ICC 
@@ -236,13 +268,22 @@ void cilkred_map::make_buckets(__cilkrts_worker *w,
     nelem = 0;
 }
 
-static void free_buckets(__cilkrts_worker *w, 
-                         bucket **buckets,
-                         size_t nbuckets)
+static void free_buckets(__cilkrts_worker  *w, 
+                         bucket           **buckets,
+                         size_t             nbuckets)
 {
     size_t i;
+
+#if REDPAR_DEBUG >= 1
+    verify_current_wkr(w);
+    fprintf(stderr, "W=%d, desc=free_buckets, buckets=%p, size=%zd\n",
+	    w->self, buckets,
+	    nbuckets * sizeof(*buckets));
+#endif
+
     for (i = 0; i < nbuckets; ++i)
         free_bucket(w, buckets + i);
+
     __cilkrts_frame_free(w, buckets, nbuckets * sizeof(*buckets));
 }
 
@@ -324,10 +365,12 @@ elem *cilkred_map::grow(__cilkrts_worker *w,
     } else {
         nmax = 0;
     }
-     
+
+    verify_current_wkr(w);
     /* allocate a new bucket */
     nnmax = roundup(2 * nmax);
     nb = alloc_bucket(w, nnmax);
+
 
     /* copy old bucket into new */
     for (i = 0; i < nmax; ++i)
@@ -345,17 +388,32 @@ elem *cilkred_map::grow(__cilkrts_worker *w,
     return &(nb->el[nmax]);
 }
 
-elem *cilkred_map::insert_no_rehash(__cilkrts_worker *w, void *key,
-                                    const cilk_c_monoid* monoid, void *val)
+elem *cilkred_map::insert_no_rehash(__cilkrts_worker           *w,
+				    void                       *key,
+				    __cilkrts_hyperobject_base *hb,
+                                    void                       *val)
 {
+
+#if REDPAR_DEBUG >= 2
+    fprintf(stderr, "[W=%d, desc=insert_no_rehash, this_map=%p]\n",
+	    w->self, this);
+    verify_current_wkr(w);
+#endif
+    
     CILK_ASSERT((w == 0 && g == 0) || w->g == g);
     CILK_ASSERT(key != 0);
     CILK_ASSERT(val != 0);
-
+	    
     elem *el = grow(w, &(buckets[hashfun(this, key)]));
-    el->key    = key;
-    el->monoid = monoid;
-    el->val    = val;
+
+#if REDPAR_DEBUG >= 3
+    fprintf(stderr, "[W=%d, this=%p, inserting key=%p, val=%p, el = %p]\n",
+	    w->self, this, key, val, el);
+#endif
+
+    el->key = key;
+    el->hb  = hb;
+    el->val = val;
     ++nelem;
 
     return el;
@@ -363,8 +421,13 @@ elem *cilkred_map::insert_no_rehash(__cilkrts_worker *w, void *key,
 
 void cilkred_map::rehash(__cilkrts_worker *w)
 {
+#if REDPAR_DEBUG >= 1
+    fprintf(stderr, "[W=%d, desc=rehash, this_map=%p, g=%p, w->g=%p]\n",
+	    w->self, this, g, w->g);
+    verify_current_wkr(w);
+#endif
     CILK_ASSERT((w == 0 && g == 0) || w->g == g);
-
+    
     size_t onbuckets = nbuckets;
     size_t onelem = nelem;
     bucket **obuckets = buckets;
@@ -377,8 +440,8 @@ void cilkred_map::rehash(__cilkrts_worker *w)
         b = obuckets[i];
         if (b) {
             elem *oel;
-            for (oel = b->el; oel->key; ++oel) 
-                insert_no_rehash(w, oel->key, oel->monoid, oel->val);
+            for (oel = b->el; oel->key; ++oel)
+                insert_no_rehash(w, oel->key, oel->hb, oel->val);
         }
     }
 
@@ -387,13 +450,22 @@ void cilkred_map::rehash(__cilkrts_worker *w)
     free_buckets(w, obuckets, onbuckets);
 }
 
-elem *cilkred_map::rehash_and_insert(__cilkrts_worker *w, void *key,
-                                     const cilk_c_monoid* monoid, void *val)
+elem *cilkred_map::rehash_and_insert(__cilkrts_worker           *w,
+				     void                       *key,
+                                     __cilkrts_hyperobject_base *hb,
+				     void                       *val)
 {
-    if (need_rehash_p())
+
+#if REDPAR_DEBUG >= 1
+    fprintf(stderr, "W=%d, this_map =%p, inserting key=%p, val=%p\n",
+	    w->self, this, key, val);
+    verify_current_wkr(w);
+#endif
+
+    if (need_rehash_p()) 
         rehash(w);
 
-    return insert_no_rehash(w, key, monoid, val);
+    return insert_no_rehash(w, key, hb, val);
 }
 
 
@@ -419,11 +491,12 @@ void elem::destroy()
     // Call destroy_fn and deallocate_fn on all but the leftmost value
     if (val != key)
     {
+	cilk_c_monoid *monoid = &(hb->__c_monoid);
         cilk_c_reducer_destroy_fn_t    destroy_fn    = monoid->destroy_fn;
         cilk_c_reducer_deallocate_fn_t deallocate_fn = monoid->deallocate_fn;
-
-        destroy_fn(key, val);
-        deallocate_fn(key, val);
+	
+        destroy_fn((void*)hb, val);
+        deallocate_fn((void*)hb, val);
     }
     val = 0;
 }
@@ -433,7 +506,7 @@ void elem::destroy()
    undefined. */
 extern "C"
 CILK_EXPORT void __CILKRTS_STRAND_STALE(
-    __cilkrts_hyper_destroy(__cilkrts_hyperobject_base *key))
+    __cilkrts_hyper_destroy(__cilkrts_hyperobject_base *hb))
 {
     // Disable Cilkscreen for the duration of this call.  The destructor for
     // this class will re-enable Cilkscreen when the method returns.  This
@@ -451,12 +524,21 @@ CILK_EXPORT void __CILKRTS_STRAND_STALE(
     cilkred_map* h = w->reducer_map;
     CILK_ASSERT(h);
 
-    if (h->merging)
-        __cilkrts_bug("User error: hyperobject used by another hyperobject");
+    if (h->merging) {
+	verify_current_wkr(w);
+	__cilkrts_bug("User error: hyperobject used by another hyperobject");
+    }
+
+    void* key = get_leftmost_view(hb);
     elem *el = h->lookup(key);
     if (el) {
         /* found. */
 
+#if REDPAR_DEBUG >= 3
+	fprintf(stderr, "[W=%d, key=%p, lookup in map %p, found el=%p, about to destroy]\n",
+		w->self, key, h, el);
+#endif
+	
         /* Destroy view and remove element from bucket. */
         el->destroy();
 
@@ -466,11 +548,15 @@ CILK_EXPORT void __CILKRTS_STRAND_STALE(
             el[0] = el[1];
             ++el;
         } while (el->key);
-
         --h->nelem;
     }
-}
 
+#if REDPAR_DEBUG >= 2
+    fprintf(stderr, "[W=%d, desc=hyper_destroy_finish, key=%p, w->reducer_map=%p]\n",
+	    w->self, key, w->reducer_map);
+#endif 
+}
+    
 extern "C"
 CILK_EXPORT
 void __cilkrts_hyper_create(__cilkrts_hyperobject_base *hb)
@@ -494,13 +580,34 @@ void __cilkrts_hyper_create(__cilkrts_hyperobject_base *hb)
     void* val = get_leftmost_view(hb);
     cilkred_map *h = w->reducer_map;
 
+    if (__builtin_expect(!h, 0)) {
+	h = install_new_reducer_map(w);
+#if REDPAR_DEBUG >= 2
+	fprintf(stderr, "[W=%d, hb=%p, hyper_create, isntalled new map %p, val=%p]\n",
+		w->self, hb, h, val);
+#endif
+    }
+
     /* Must not exist. */
     CILK_ASSERT(h->lookup(val) == NULL);
+
+#if REDPAR_DEBUG >= 3
+    verify_current_wkr(w);
+    fprintf(stderr, "[W=%d, hb=%p, lookup in map %p of val %p, should be null]\n",
+	    w->self, hb, h, val);
+    fprintf(stderr, "W=%d, h=%p, inserting key %p, val%p\n",
+	    w->self,
+	    h,
+	    &(hb->__c_monoid),
+	    val);
+#endif    
+
     if (h->merging)
         __cilkrts_bug("User error: hyperobject used by another hyperobject");
 
+    CILK_ASSERT(w->reducer_map == h);
     // The address of the leftmost value is the same as the key for lookup.
-    (void) h->rehash_and_insert(w, val, &hb->__c_monoid, val);
+    (void) h->rehash_and_insert(w, val, hb, val);
 }
 
 extern "C"
@@ -520,6 +627,10 @@ CILK_EXPORT void* __CILKRTS_STRAND_PURE(
         __cilkrts_promote_own_deque(w);
     cilkred_map* h = w->reducer_map;
 
+    if (__builtin_expect(!h, 0)) {
+	h = install_new_reducer_map(w);
+    }
+
     if (h->merging)
         __cilkrts_bug("User error: hyperobject used by another hyperobject");
     elem* el = h->lookup(key);
@@ -533,19 +644,28 @@ CILK_EXPORT void* __CILKRTS_STRAND_PURE(
             if (h->is_leftmost)
             {
                 // This special case is called only if the reducer was not
-                // registered using __cilkrts_hyper_create, i.e., if this is a
-                // C reducer in global scope.
+                // registered using __cilkrts_hyper_create, e.g., if this is a
+                // C reducer in global scope or if there is no bound worker.
                 rep = get_leftmost_view(key);
             }
             else
             {
-                rep = hb->__c_monoid.allocate_fn(hb, hb->__view_size);
+                rep = hb->__c_monoid.allocate_fn((void*)hb,
+						 hb->__view_size);
                 // TBD: Handle exception on identity function
-                hb->__c_monoid.identity_fn(hb, rep);
+                hb->__c_monoid.identity_fn((void*)hb, rep);
             }
         }
 
-        el = h->rehash_and_insert(w, key, &hb->__c_monoid, rep);
+#if REDPAR_DEBUG >= 3
+	fprintf(stderr, "W=%d, h=%p, inserting key %p, val%p\n",
+		w->self,
+		h,
+		&(hb->__c_monoid),
+		rep);
+	CILK_ASSERT(w->reducer_map == h);
+#endif
+        el = h->rehash_and_insert(w, key, hb, rep);
     }
 
     return el->val;
@@ -569,33 +689,23 @@ void __cilkrts_hyperobject_noop_destroy(void* ignore, void* ignore2)
 {
 }
 
-#if JFC_DEBUG
-#include <stdio.h>
-#endif
-
 cilkred_map *__cilkrts_make_reducer_map(__cilkrts_worker *w)
 {
     CILK_ASSERT(w);
 
     cilkred_map *h;
     size_t nbuckets = 1; /* default value */
-
+    
     h = (cilkred_map *)__cilkrts_frame_malloc(w, sizeof(*h));
+#if REDPAR_DEBUG >= 1
+    fprintf(stderr, "[W=%d, desc=make_reducer_frame_malloc_reducer_map, h=%p]\n",
+	    w->self, h);
+#endif
 
     h->g = w ? w->g : 0;
     h->make_buckets(w, nbuckets);
     h->merging = false;
     h->is_leftmost = false;
-
-#if JFC_DEBUG
-    __sync_add_and_fetch(&reducer_map_count, 1);
-#if JFC_DEBUG > 1
-    if (w)
-      fprintf(stderr, "worker %u reducer map = %p\n", w->self, h);
-    else
-      fprintf(stderr, "global reducer map = %p\n", h);
-#endif
-#endif
 
     return h;
 }
@@ -606,6 +716,7 @@ cilkred_map *__cilkrts_make_reducer_map(__cilkrts_worker *w)
 void __cilkrts_destroy_reducer_map(__cilkrts_worker *w, cilkred_map *h)
 {
     CILK_ASSERT((w == 0 && h->g == 0) || w->g == h->g);
+    verify_current_wkr(w);
 
     /* the reducer map is allowed to contain el->val == NULL here (and
        only here).  We set el->val == NULL only when we know that the
@@ -627,16 +738,13 @@ void __cilkrts_destroy_reducer_map(__cilkrts_worker *w, cilkred_map *h)
     }
 
     free_buckets(w, h->buckets, h->nbuckets);
+
+#if REDPAR_DEBUG >= 1
+    fprintf(stderr, "W=%d, destroy_red_map, freeing map h=%p, size=%zd\n",
+	    w->self, h, sizeof(*h));
+#endif
+    
     __cilkrts_frame_free(w, h, sizeof(*h));
-#if JFC_DEBUG
-#if JFC_DEBUG > 1
-    if (w)
-      fprintf(stderr, "destroy worker %u reducer map %p\n", w->self, h);
-    else
-      fprintf(stderr, "destroy global reducer map %p\n", h);
-#endif
-    __sync_sub_and_fetch(&reducer_map_count, 1);
-#endif
 }
 
 /* Set the specified reducer map as the leftmost map if is_leftmost is true,
@@ -646,78 +754,10 @@ void __cilkrts_set_leftmost_reducer_map(cilkred_map *h, int is_leftmost)
     h->is_leftmost = is_leftmost;
 }
 
-/* Make a copy of a reducer map for the indicated worker.
-   In general this requires a copy of the hash table (but moving --
-   not copying -- the values) to ensure that memory is allocated from
-   the worker's Cilk context. */
-cilkred_map *cilkred_map::move(cilkred_map *r,
-                               __cilkrts_worker *from,
-                               __cilkrts_worker *to)
-{
-    cilkred_map *n = __cilkrts_make_reducer_map(to);
 
-    if (r == NULL)
-        return n;
-
-    DBG r->check(/*allow_null_val=*/false);
-
-    for (size_t i = 0; i < r->nbuckets; ++i) {
-        bucket *b = r->buckets[i];
-        if (b) {
-            elem *el;
-            for (el = b->el; el->key; ++el) {
-                CILK_ASSERT(el->val);
-
-                /* move object from right map to left */
-                n->rehash_and_insert(to, el->key, el->monoid, el->val);
-                el->val = 0;
-            }
-        }
-    }
-    n->is_leftmost = r->is_leftmost;
-    __cilkrts_destroy_reducer_map(from, r);
-    return n;
-}
-
-#if 0 // OBSOLETE: For reference only.  We no longer need to import or export reducer maps.
-void __cilkrts_import_reducer_map(__cilkrts_worker *w)
-{
-    CILK_ASSERT(w->reducer_map == NULL);
-    cilkred_map *r = cilkred_map::move(get_and_clear_tls(), 0, w);
-    r->is_leftmost = true;
-    w->reducer_map = r;
-}
-
-/* We do not allow Cilk code to access reducers while executing
-   in parallel with non-Cilk code.  The order of operation is
-   not defined.  (This will change for splitters, where the
-   value need not propagate back out.)
-
-   At global scope some other reducer might have been created,
-   so merge the maps with duplicates forbidden.  If the reducer
-   map was borrowed from a worker, nobody should have touched it. */
-void __cilkrts_export_reducer_map(
-    __cilkrts_worker *from, __cilkrts_worker *to, cilkred_map **rf)
-{
-    cilkred_map *r = *rf;
-    CILK_ASSERT(r != NULL);
-    *rf = 0;
-    if (to == NULL) {
-        cilkred_map *g = get_tls_map();
-        g->merge(0, r, from, cilkred_map::MERGE_UNORDERED);
-        /*destroy_tls_if_empty();*/
-    } else {
-        cilkred_map *nmap = cilkred_map::move(r, from, to);
-        (void)__cilkrts_xchg_reducer(to, nmap);
-    }
-    return;
-}
-#endif // End OBSOLETE code
-
-void cilkred_map::merge(__cilkrts_worker *w,
-                        cilkred_map *other_map,
-                        __cilkrts_worker *other_w,
-                        enum merge_kind kind)
+__cilkrts_worker* cilkred_map::merge(__cilkrts_worker *w,
+				     cilkred_map *other_map,
+				     enum merge_kind kind)
 {
     // Disable Cilkscreen while the we merge the maps.  The destructor for
     // the guard class will re-enable Cilkscreen when it goes out of scope.
@@ -727,6 +767,13 @@ void cilkred_map::merge(__cilkrts_worker *w,
     // other strand will access them.
     DisableCilkscreen guard;
 
+#if REDPAR_DEBUG >= 2
+    fprintf(stderr, "[W=%d, desc=merge, this_map=%p, other_map=%p]\n",
+	    w->self,
+	    this, other_map);
+#endif
+    // Remember the current stack frame.
+    __cilkrts_stack_frame *current_sf = w->current_stack_frame;
     merging = true;
     other_map->merging = true;
 
@@ -749,7 +796,7 @@ void cilkred_map::merge(__cilkrts_worker *w,
                 CILK_ASSERT(other_val);
 
                 void *key = other_el->key;
-                const cilk_c_monoid *monoid = other_el->monoid;
+		__cilkrts_hyperobject_base *hb = other_el->hb;
                 elem *this_el = lookup(key);
 
                 if (this_el == 0 && merge_to_leftmost) {
@@ -768,12 +815,12 @@ void cilkred_map::merge(__cilkrts_worker *w,
                     // true and we must avoid reducing the initial view with
                     // itself.
                     if (leftmost != other_val)
-                        this_el = rehash_and_insert(w, key, monoid, leftmost);
+                        this_el = rehash_and_insert(w, key, hb, leftmost);
                 }
 
                 if (this_el == 0) {
                     /* move object from other map into this one */
-                    rehash_and_insert(w, key, monoid, other_val);
+                    rehash_and_insert(w, key, hb, other_val);
                     other_el->val = 0;
                     continue; /* No element-level merge necessary */
                 }
@@ -794,16 +841,34 @@ void cilkred_map::merge(__cilkrts_worker *w,
                 case MERGE_INTO_LEFT: {
                     /* Stealing should be disabled during reduce
                        (even if force-reduce is enabled). */
-                    __cilkrts_stack_frame * volatile *saved_protected_tail =
-                        __cilkrts_disallow_stealing(w, NULL);
 
-                    /* TBD: if reduce throws an exception we need to stop it
-                       here. */
-                    this_el->monoid->reduce_fn(key,this_el->val,other_el->val);
+#if DISABLE_PARALLEL_REDUCERS
+		    __cilkrts_stack_frame * volatile *saved_protected_tail;
+		    saved_protected_tail = __cilkrts_disallow_stealing(w, NULL);
+#endif
 
-                    /* Restore stealing */
-                    __cilkrts_restore_stealing(w, saved_protected_tail);
-                   
+		    {			
+			CILK_ASSERT(current_sf->worker == w);
+			CILK_ASSERT(w->current_stack_frame == current_sf);
+
+			/* TBD: if reduce throws an exception we need to stop it
+			   here. */
+			hb->__c_monoid.reduce_fn((void*)hb,
+						 this_el->val,
+						 other_el->val);
+			w = current_sf->worker;
+
+#if REDPAR_DEBUG >= 2
+			verify_current_wkr(w);
+			CILK_ASSERT(w->current_stack_frame == current_sf);
+#endif
+		    }
+
+#if DISABLE_PARALLEL_REDUCERS
+		    /* Restore stealing */
+		    __cilkrts_restore_stealing(w, saved_protected_tail);
+#endif
+
                   } break;
                 }
             }
@@ -812,31 +877,87 @@ void cilkred_map::merge(__cilkrts_worker *w,
     this->is_leftmost = this->is_leftmost || other_map->is_leftmost;
     merging = false;
     other_map->merging = false;
-    __cilkrts_destroy_reducer_map(other_w, other_map);
+    verify_current_wkr(w);
+    __cilkrts_destroy_reducer_map(w, other_map);
+    return w;
 }
 
-/* merge RIGHT into LEFT; return whichever map allows for faster
-   merge; destroy the other one */
-cilkred_map *__cilkrts_merge_reducer_maps(
-    __cilkrts_worker *w,
-    cilkred_map *left_map,
-    cilkred_map *right_map)
+
+/**
+ * Print routine for debugging the merging of reducer maps.
+ * A no-op unless REDPAR_DEBUG set high enough.
+ */
+static inline
+void debug_map_merge(__cilkrts_worker *w,
+		     cilkred_map      *left_map,
+		     cilkred_map      *right_map,
+		     __cilkrts_worker **final_wkr)
+{    
+#if REDPAR_DEBUG >= 2
+    fprintf(stderr, "[W=%d, desc=finish_merge, left_map=%p, right_map=%p, w->reducer_map=%p, right_ans=%p, final_wkr=%d]\n",
+	    w->self, left_map, right_map, w->reducer_map, right_map, (*final_wkr)->self);
+#endif
+}
+
+
+/**
+ * merge RIGHT into LEFT;
+ * return whichever map allows for faster merge, and destroy the other one.
+ * 
+ * *w_ptr should be the currently executing worker.
+ * *w_ptr may change during execution if the reduction is parallel.
+ */ 
+cilkred_map*
+merge_reducer_maps(__cilkrts_worker **w_ptr,
+		   cilkred_map *left_map,
+		   cilkred_map *right_map)
 {
-    if (!left_map)
-        return right_map;
-    if (!right_map)
-        return left_map;
-
-    /* Special case, if left_map is leftmost, then always merge into it.
-       For C reducers this forces lazy creation of the leftmost views. */
-    if (left_map->is_leftmost || left_map->nelem > right_map->nelem) {
-        left_map->merge(w, right_map, w, cilkred_map::MERGE_INTO_LEFT);
-        return left_map;
-    } else {
-        right_map->merge(w, left_map, w, cilkred_map::MERGE_INTO_RIGHT);
-
+    __cilkrts_worker *w = *w_ptr;
+    if (!left_map) {
+	debug_map_merge(w, left_map, right_map, w_ptr);
         return right_map;
     }
+
+    if (!right_map) {
+	debug_map_merge(w, left_map, right_map, w_ptr);
+        return left_map;
+    }
+    
+    /* Special case, if left_map is leftmost, then always merge into it.
+       For C reducers this forces lazy creation of the leftmost views. */
+    if (left_map->is_leftmost || left_map->nelem > right_map->nelem) {	
+	*w_ptr = left_map->merge(w, right_map, cilkred_map::MERGE_INTO_LEFT);
+	debug_map_merge(*w_ptr, left_map, right_map, w_ptr);
+        return left_map;
+    } else {
+        *w_ptr = right_map->merge(w, left_map, cilkred_map::MERGE_INTO_RIGHT);
+	debug_map_merge(*w_ptr, left_map, right_map, w_ptr);
+        return right_map;
+    }
+}
+
+/**
+ * Merges RIGHT into LEFT, and then repeatedly calls
+ * merge_reducer_maps_helper() until (*w_ptr)->reducer_map is NULL.
+ *
+ *  *w_ptr may change as reductions execute.
+ */ 
+cilkred_map*
+repeated_merge_reducer_maps(__cilkrts_worker **w_ptr,
+			    cilkred_map      *left_map,
+			    cilkred_map      *right_map)
+{
+    // Note: if right_map == NULL but w->reducer_map != NULL, then
+    // this loop will reduce w->reducer_map into left_map.
+    do {
+	left_map = merge_reducer_maps(w_ptr, left_map, right_map);
+	verify_current_wkr(*w_ptr);
+
+	// Pull any newly created reducer map and loop around again.
+	right_map = (*w_ptr)->reducer_map;
+	(*w_ptr)->reducer_map = NULL;
+    } while (right_map);
+    return left_map;
 }
 
 /* End reducer_impl.cpp */

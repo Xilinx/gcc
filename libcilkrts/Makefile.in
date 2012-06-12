@@ -133,7 +133,7 @@ am_libcilkrts_la_OBJECTS = cilk-abi.lo cilk_api.lo cilk_malloc.lo \
 	local_state.lo metacall_impl.lo os_mutex-unix.lo os-unix.lo \
 	scheduler.lo signal_node.lo stacks.lo stats.lo symbol_test.lo \
 	sysdep-unix.lo worker_mutex.lo bug.lo cilk-abi-cilk-for.lo \
-	except-gcc.lo global_state.lo reducer_impl.lo
+	except-gcc.lo global_state.lo reducer_impl.lo pedigrees.lo
 libcilkrts_la_OBJECTS = $(am_libcilkrts_la_OBJECTS)
 libcilkrts_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
@@ -295,7 +295,7 @@ AUTOMAKE_OPTIONS = foreign
 ACLOCAL_AMFLAGS = -I ..
 
 # Compiler and linker flags.
-GENERAL_FLAGS = -I$(top_srcdir)/include -fpic -O3 \
+GENERAL_FLAGS = -I$(top_srcdir)/include -DIN_CILK_RUNTIME=1 -fpic -O3 \
 	-DBUILD_USER=\"$(USER)\" -DBUILD_HOST=\"`hostname`\"
 AM_CFLAGS = $(GENERAL_FLAGS) -std=c99
 AM_CPPFLAGS = $(GENERAL_FLAGS)
@@ -311,9 +311,9 @@ libcilkrts_la_SOURCES = runtime/cilk-abi.c runtime/cilk_api.c           \
   runtime/stacks.c runtime/stats.c runtime/symbol_test.c                \
   runtime/sysdep-unix.c runtime/worker_mutex.c runtime/bug.cpp          \
   runtime/cilk-abi-cilk-for.cpp runtime/except-gcc.cpp                  \
-  runtime/global_state.cpp runtime/reducer_impl.cpp
+  runtime/global_state.cpp runtime/reducer_impl.cpp runtime/pedigrees.c
 
-CILK_REVISION = 2068
+CILK_REVISION = 2546
 
 # Load the $(REVISION) value.
 libcilkrts_la_LDFLAGS = -rpath '$(libdir)' -version-info \
@@ -435,6 +435,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/metacall_impl.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/os-unix.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/os_mutex-unix.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pedigrees.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reducer_impl.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scheduler.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/signal_node.Plo@am__quote@
@@ -590,6 +591,13 @@ worker_mutex.lo: runtime/worker_mutex.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/worker_mutex.c' object='worker_mutex.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o worker_mutex.lo `test -f 'runtime/worker_mutex.c' || echo '$(srcdir)/'`runtime/worker_mutex.c
+
+pedigrees.lo: runtime/pedigrees.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pedigrees.lo -MD -MP -MF $(DEPDIR)/pedigrees.Tpo -c -o pedigrees.lo `test -f 'runtime/pedigrees.c' || echo '$(srcdir)/'`runtime/pedigrees.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/pedigrees.Tpo $(DEPDIR)/pedigrees.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/pedigrees.c' object='pedigrees.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pedigrees.lo `test -f 'runtime/pedigrees.c' || echo '$(srcdir)/'`runtime/pedigrees.c
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

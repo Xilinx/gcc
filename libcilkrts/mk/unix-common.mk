@@ -62,52 +62,92 @@ endif
 ifeq ($(OUT),linux64)
     # Linux 64 release mode
     SIZE = 64
+    TARGET_OS=linux
+    TARGET_ARCHITECTURE=intel64
 else ifeq ($(OUT),linux32)
     # Linux 32 release mode
     SIZE = 32
+    TARGET_OS=linux
+    TARGET_ARCHITECTURE=ia32
 else ifeq ($(OUT),mac64)
     # Mac OS 64 release mode
     SIZE = 64
+    TARGET_OS=macos
+    TARGET_ARCHITECTURE=intel64
 else ifeq ($(OUT),mac32)
     # Mac OS 32 release mode
     SIZE = 32
+    TARGET_OS=macos
+    TARGET_ARCHITECTURE=ia32
 else ifeq ($(OUT),mic)
     # MIC release mode
     SIZE = 64
+    TARGET_OS=mic
+    TARGET_ARCHITECTURE=intel64
 else ifeq ($(OUT),miclinux)
     # MIC, Linux, release mode
     SIZE = 64
+    TARGET_OS=miclinux
+    TARGET_ARCHITECTURE=intel64
 else ifeq ($(OUT),mic2linux)
     # MIC, Linux, release mode
     SIZE = 64
+    TARGET_OS=miclinux
+    TARGET_ARCHITECTURE=intel64
+else ifeq ($(findstring mic,$(OUT)),mic)
+    # Generic MIC.
+    SIZE = 64
+    TARGET_OS=miclinux
+    TARGET_ARCHITECTURE=intel64
 else ifeq ($(OUT),linux64d)
     # Linux 64 debug mode
     SIZE = 64
     OPT ?= -g --no-inline
+    TARGET_OS=linux
+    TARGET_ARCHITECTURE=intel64
+    DEBUG_BUILD=true
 else ifeq ($(OUT),linux32d)
     # Linux 32 debug mode
     SIZE = 32
     OPT ?= -g --no-inline
+    TARGET_OS=linux
+    TARGET_ARCHITECTURE=ia32
+    DEBUG_BUILD=true
 else ifeq ($(OUT),mac64d)
     # Mac OS 64 debug mode
     SIZE = 64
     OPT ?= -g --no-inline
+    TARGET_OS=macos
+    TARGET_ARCHITECTURE=intel64
+    DEBUG_BUILD=true
 else ifeq ($(OUT),mac32d)
     # Mac OS 32 debug mode
     SIZE = 32
     OPT ?= -g --no-inline
+    TARGET_OS=macos
+    TARGET_ARCHITECTURE=ia32
+    DEBUG_BUILD=true
 else ifeq ($(OUT),micd)
     # MIC debug mode
     SIZE = 64
     OPT ?= -g --no-inline
+    TARGET_OS=mic
+    TARGET_ARCHITECTURE=intel64
+    DEBUG_BUILD=true
 else ifeq ($(OUT),miclinuxd)
     # MIC LInux debug mode
     SIZE = 64
     OPT ?= -g --no-inline
+    TARGET_OS=miclinux
+    TARGET_ARCHITECTURE=intel64
+    DEBUG_BUILD=true
 else ifeq ($(OUT),mic2linuxd)
     # MIC2 Linux debug mode
     SIZE = 64
     OPT ?= -g --no-inline
+    TARGET_OS=miclinux
+    TARGET_ARCHITECTURE=intel64
+    DEBUG_BUILD=true
 else
     $(error OUT="$(OUT)" not one of linux32[rd], linux64[rd], mac64[rd], mac32[rd], mic[rd], miclinux[rd], mic2linux[rd])
 endif

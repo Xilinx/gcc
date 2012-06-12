@@ -1,3 +1,55 @@
+2012-06-12  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* configure: Updated to revision 2546.
+	* Makefile.in: Likewise.
+	* include/cilk/reducer.h: Likewise.
+	* include/cilk/reducer_min.h: Likewise.
+	* include/cilk/cilk_undocumented.h: Likewise.
+	* include/cilk/cilk_api.h: Likewise.
+	* include/cilk/common.h: Likewise.
+	* include/cilktools/fake_mutex.h: Likewise.
+	* include/internal/abi.h: Likewise.
+	* include/internal/rev.mk: Likewise.
+	* include/internal/cilk_revision.h: Likewise.
+	* runtime/stats.c: Likewise.
+	* runtime/local_state.h: Likewise.
+	* runtime/os-unix.c: Likewise.
+	* runtime/stats.h: Likewise.
+	* runtime/global_state.h: Likewise.
+	* runtime/os_mutex.h: Likewise.
+	* runtime/cilk-abi.c: Likewise.
+	* runtime/cilk_api.c: Likewise.
+	* runtime/sysdep.h: Likewise.
+	* runtime/unix_symbols.t: Likewise.
+	* runtime/bug.cpp: Likewise.
+	* runtime/scheduler.c: Likewise.
+	* runtime/cilk-abi-cilk-for.cpp: Likewise.
+	* runtime/reducer_impl.h: Likewise.
+	* runtime/except-gcc.cpp: Likewise.
+	* runtime/scheduler.h: Likewise.
+	* runtime/os.h: Likewise.
+	* runtime/worker_mutex.c: Likewise.
+	* runtime/except.h: Likewise.
+	* runtime/global_state.cpp: Likewise.
+	* runtime/worker_mutex.h: Likewise.
+	* runtime/rts-common.h: Likewise.
+	* runtime/pedigrees.c: Likewise.
+	* runtime/pedigrees.h: Likewise.
+	* runtime/reducer_impl.cpp: Likewise.
+	* runtime/full_frame.cpp: Likewise.
+	* runtime/frame_malloc.c: Likewise.
+	* runtime/full_frame.c: Likewise.
+	* runtime/bug.h: Likewise.
+	* runtime/os_mutex-unix.c: Likewise.
+	* runtime/frame_malloc.h: Likewise.
+	* runtime/signal_node.h: Likewise.
+	* runtime/stacks.c: Likewise.
+	* runtime/sysdep-unix.c: Likewise.
+	* runtime/local_state.c: Likewise.
+	* configure.ac: Likewise.
+	* mk/unix-common.mk: Likewise.
+	* Makefile.am: Likewise.
+
 2011-12-02  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* include/cilk/cilk.h: Updated to version 2068.

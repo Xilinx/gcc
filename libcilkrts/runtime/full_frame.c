@@ -38,118 +38,116 @@ COMMON_PORTABLE
 full_frame *__cilkrts_make_full_frame(__cilkrts_worker *w,
                                       __cilkrts_stack_frame *sf)
 {
-    full_frame *f;
+    full_frame *ff;
 
     START_INTERVAL(w, INTERVAL_ALLOC_FULL_FRAME) {
-        f = (full_frame *)__cilkrts_frame_malloc(w, sizeof(*f));
-        __cilkrts_mutex_init(&f->lock);
+        ff = (full_frame *)__cilkrts_frame_malloc(w, sizeof(*ff));
+        __cilkrts_mutex_init(&ff->lock);
 
-        f->full_frame_magic_0 = FULL_FRAME_MAGIC_0;
-        f->join_counter = 0;
-        f->parent = 0;
-        f->rightmost_child = 0;
-        f->left_sibling = f->right_sibling = 0;
-        f->call_stack = sf;
-        f->stable_call_stack = sf;
-        f->is_call_child = 0;
-        f->simulated_stolen = 0;
-        f->reducer_map = f->children_reducer_map = f->right_reducer_map = 0;
-        f->pending_exception = 
-            f->child_pending_exception = 
-            f->right_pending_exception = NULL;
+        ff->full_frame_magic_0 = FULL_FRAME_MAGIC_0;
+        ff->join_counter = 0;
+        ff->parent = 0;
+        ff->rightmost_child = 0;
+        ff->left_sibling = ff->right_sibling = 0;
+        ff->call_stack = sf;
+        ff->is_call_child = 0;
+        ff->simulated_stolen = 0;
+	ff->children_reducer_map = ff->right_reducer_map = 0;
+        ff->pending_exception = 
+            ff->child_pending_exception = 
+            ff->right_pending_exception = NULL;
 
-        f->sync_sp = 0;
+        ff->sync_sp = 0;
 #ifdef _WIN32
-        f->exception_sp = 0;
-        f->trylevel = (unsigned long)-1;
-        f->registration = 0;
+        ff->exception_sp = 0;
+        ff->trylevel = (unsigned long)-1;
+        ff->registration = 0;
 #endif
-	f->frame_size = 0;
-//        f->exception_sp_offset = 0;
-//        f->eh_kind = EH_NONE;
-        f->stack_self = 0;
-        f->stack_child = 0;
+	ff->frame_size = 0;
+//        ff->exception_sp_offset = 0;
+//        ff->eh_kind = EH_NONE;
+        ff->stack_self = 0;
+        ff->stack_child = 0;
 
-        f->sync_master = 0;
+        ff->sync_master = 0;
 
-        /*__cilkrts_init_full_frame_sysdep(w, f);*/
-        f->full_frame_magic_1 = FULL_FRAME_MAGIC_1;
+        /*__cilkrts_init_full_frame_sysdep(w, ff);*/
+        ff->full_frame_magic_1 = FULL_FRAME_MAGIC_1;
     } STOP_INTERVAL(w, INTERVAL_ALLOC_FULL_FRAME);
-    return f;
+    return ff;
 }
 
-COMMON_PORTABLE void __cilkrts_put_stack(full_frame *f,
+COMMON_PORTABLE void __cilkrts_put_stack(full_frame *ff,
                                          __cilkrts_stack_frame *sf)
 {
-    /* When suspending frame f prior to stealing it, __cilkrts_put_stack is
+    /* When suspending frame ff prior to stealing it, __cilkrts_put_stack is
      * used to store the stack pointer for eventual sync.  When suspending
-     * frame f prior to a sync, __cilkrts_put_stack is called to re-establish
+     * frame ff prior to a sync, __cilkrts_put_stack is called to re-establish
      * the sync stack pointer, offsetting it by any change in the stack depth
      * that occured between the spawn and the sync.
      * Although it is not usually meaningful to add two pointers, the value of
-     * f->sync_sp at the time of this call is really an integer, not a
+     * ff->sync_sp at the time of this call is really an integer, not a
      * pointer.
      */
-    ptrdiff_t sync_sp_i = (ptrdiff_t) f->sync_sp;
+    ptrdiff_t sync_sp_i = (ptrdiff_t) ff->sync_sp;
     char* sp = (char*) __cilkrts_get_sp(sf);
 
-    f->sync_sp = sp + sync_sp_i;
+    ff->sync_sp = sp + sync_sp_i;
 
     DBGPRINTF("%d-                __cilkrts_put_stack - adjust (+) sync "
               "stack of full frame %p (+sp: %p) to %p\n",
-              __cilkrts_get_tls_worker()->self, f, sp, f->sync_sp);
+              __cilkrts_get_tls_worker()->self, ff, sp, ff->sync_sp);
 }
 
-COMMON_PORTABLE void __cilkrts_take_stack(full_frame *f, void *sp)
+COMMON_PORTABLE void __cilkrts_take_stack(full_frame *ff, void *sp)
 {
     /* When resuming the parent after a steal, __cilkrts_take_stack is used to
      * subtract the new stack pointer from the current stack pointer, storing
-     * the offset in f->sync_sp.  When resuming after a sync,
+     * the offset in ff->sync_sp.  When resuming after a sync,
      * __cilkrts_take_stack is used to subtract the new stack pointer from
-     * itself, leaving f->sync_sp at zero (null).  Although the pointers being
+     * itself, leaving ff->sync_sp at zero (null).  Although the pointers being
      * subtracted are not part of the same contiguous chunk of memory, the
      * flat memory model allows us to subtract them and get a useable offset.
      */
-    ptrdiff_t sync_sp_i = f->sync_sp - (char*) sp;
+    ptrdiff_t sync_sp_i = ff->sync_sp - (char*) sp;
 
-    f->sync_sp = (char *) sync_sp_i;
+    ff->sync_sp = (char *) sync_sp_i;
 
     DBGPRINTF("%d-                __cilkrts_take_stack - adjust (-) sync "
               "stack of full frame %p to %p (-sp: %p)\n",
-              __cilkrts_get_tls_worker()->self, f, f->sync_sp, sp);
+              __cilkrts_get_tls_worker()->self, ff, ff->sync_sp, sp);
 }
 
 COMMON_PORTABLE
-void __cilkrts_destroy_full_frame(__cilkrts_worker *w, full_frame *f)
+void __cilkrts_destroy_full_frame(__cilkrts_worker *w, full_frame *ff)
 {
-    validate_full_frame(f);
-    CILK_ASSERT(f->reducer_map == 0);
-    CILK_ASSERT(f->children_reducer_map == 0);
-    CILK_ASSERT(f->right_reducer_map == 0);
-    CILK_ASSERT(NULL == f->pending_exception);
-    CILK_ASSERT(NULL == f->child_pending_exception);
-    CILK_ASSERT(NULL == f->right_pending_exception);
-    __cilkrts_mutex_destroy(w, &f->lock);
-    __cilkrts_frame_free(w, f, sizeof(*f));
+    validate_full_frame(ff);
+    CILK_ASSERT(ff->children_reducer_map == 0);
+    CILK_ASSERT(ff->right_reducer_map == 0);
+    CILK_ASSERT(NULL == ff->pending_exception);
+    CILK_ASSERT(NULL == ff->child_pending_exception);
+    CILK_ASSERT(NULL == ff->right_pending_exception);
+    __cilkrts_mutex_destroy(w, &ff->lock);
+    __cilkrts_frame_free(w, ff, sizeof(*ff));
 }
 
-COMMON_PORTABLE void validate_full_frame(full_frame *f)
+COMMON_PORTABLE void validate_full_frame(full_frame *ff)
 {
     /* check the magic numbers, for debugging purposes */
-    if (f->full_frame_magic_0 != FULL_FRAME_MAGIC_0 ||
-        f->full_frame_magic_1 != FULL_FRAME_MAGIC_1)
+    if (ff->full_frame_magic_0 != FULL_FRAME_MAGIC_0 ||
+        ff->full_frame_magic_1 != FULL_FRAME_MAGIC_1)
         abort_because_rts_is_corrupted();
 }
 
-void __cilkrts_frame_lock(__cilkrts_worker *w, full_frame *f)
+void __cilkrts_frame_lock(__cilkrts_worker *w, full_frame *ff)
 {
-    validate_full_frame(f);
-    __cilkrts_mutex_lock(w, &f->lock);
+    validate_full_frame(ff);
+    __cilkrts_mutex_lock(w, &ff->lock);
 }
 
-void __cilkrts_frame_unlock(__cilkrts_worker *w, full_frame *f)
+void __cilkrts_frame_unlock(__cilkrts_worker *w, full_frame *ff)
 {
-    __cilkrts_mutex_unlock(w, &f->lock);
+    __cilkrts_mutex_unlock(w, &ff->lock);
 }
 
 /* End full_frame.c */

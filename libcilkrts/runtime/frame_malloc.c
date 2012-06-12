@@ -33,7 +33,7 @@
 
 #include <memory.h>
 
-/* #define USE_MMAP 1 */
+/* #define USE_MMAP 1 */ 
 #if USE_MMAP
 #define __USE_MISC 1
 #include <sys/mman.h>
@@ -179,15 +179,49 @@ void __cilkrts_frame_malloc_global_init(global_state_t *g)
     g->frame_malloc.allocated_from_os = 0;
     g->frame_malloc.allocated_from_global_pool = 0;
     g->frame_malloc.wasted = 0;
-    g->frame_malloc.in_buckets_at_end_of_execution = 0;
     for (i = 0; i < FRAME_MALLOC_NBUCKETS; ++i) 
         g->frame_malloc.global_free_list[i] = 0;
 }
+
+// Counts how many bytes are in the global free list.
+static size_t count_memory_in_global_list(global_state_t *g)
+{
+
+    // Count the memory remaining in the global free list.
+    size_t size_remaining_in_global_list = 0;
+    int i;
+    for (i = 0; i < FRAME_MALLOC_NBUCKETS; ++i) {
+        struct free_list *p;
+        size_t size_in_bucket = 0;
+        p = g->frame_malloc.global_free_list[i];
+
+        while (p) {
+            size_in_bucket += FRAME_MALLOC_BUCKET_TO_SIZE(i);
+            p = p->cdr;
+        }
+        size_remaining_in_global_list += size_in_bucket;
+    }
+    return size_remaining_in_global_list;
+}
+
 
 void __cilkrts_frame_malloc_global_cleanup(global_state_t *g)
 {
     struct pool_cons *c;
 
+    if (g->frame_malloc.check_for_leaks) {
+        size_t memory_in_global_list = count_memory_in_global_list(g);
+        // TBD: This check is weak.  Short of memory corruption,
+        // I don't see how we have more memory in the free list
+        // than allocated from the os.
+        // Ideally, we should count the memory in the global free list
+        // and check that we have it all.  But I believe the runtime
+        // itself also uses some memory, which is not being tracked.
+        if (memory_in_global_list > g->frame_malloc.allocated_from_os) {
+            __cilkrts_bug("\nError. The Cilk runtime data structures may have been corrupted.\n");
+        }
+    }
+    
     while ((c = g->frame_malloc.pool_list)) {
         g->frame_malloc.pool_list = c->cdr;
         __cilkrts_free(c->p);
@@ -196,9 +230,10 @@ void __cilkrts_frame_malloc_global_cleanup(global_state_t *g)
 
     __cilkrts_mutex_destroy(0, &g->frame_malloc.lock);
 
+    // Check that all the memory moved from the global pool into
+    // workers has been returned to the global pool.
     if (g->frame_malloc.check_for_leaks
-        && (g->frame_malloc.allocated_from_global_pool !=
-            g->frame_malloc.in_buckets_at_end_of_execution))
+        && (g->frame_malloc.allocated_from_global_pool != 0))
     {
         __cilkrts_bug("\n"
                       "---------------------------" "\n"
@@ -238,6 +273,7 @@ static void allocate_batch(__cilkrts_worker *w, int bucket, size_t size)
         } while (bytes_allocated < g->frame_malloc.batch_size);
 #endif
     } __cilkrts_mutex_unlock(w, &g->frame_malloc.lock);
+
 }
 
 static void gc_bucket(__cilkrts_worker *w, int bucket, size_t size)
@@ -269,6 +305,33 @@ static void gc_bucket(__cilkrts_worker *w, int bucket, size_t size)
 #endif
         } __cilkrts_mutex_unlock(w, &g->frame_malloc.lock);
     }
+}
+
+// Free all the memory in this bucket for the specified worker,
+// returning it to the global pool's free list.
+static void move_bucket_to_global_free_list(__cilkrts_worker *w,
+                                            int bucket)
+{
+    struct free_list *p, *q;
+    global_state_t *g = w->g;
+    p = w->l->free_list[bucket];
+    
+    if (p) {
+        __cilkrts_mutex_lock(w, &g->frame_malloc.lock); {
+            while ((q = pop(&p))) {
+#if USE_MMAP
+                size_t size = FRAME_MALLOC_BUCKET_TO_SIZE(bucket);
+                munmap((char *)q + size - 8192, 12288);
+#else
+                global_free(g, q, bucket);
+#endif
+            }
+        } __cilkrts_mutex_unlock(w, &g->frame_malloc.lock);
+    }
+
+    // I'm not sure this does anything useful now, since
+    // the worker is about to be destroyed. But why not?
+    w->l->bucket_potential[bucket] = 0;
 }
 
 static int bucket_of_size(size_t size)
@@ -367,24 +430,16 @@ void __cilkrts_frame_malloc_per_worker_init(__cilkrts_worker *w)
     }
 }
 
-static void collect_buckets(__cilkrts_worker *w, struct free_list **buckets)
-{
-    global_state_t *g = w->g;
-    int i;
-    for (i = 0; i < FRAME_MALLOC_NBUCKETS; ++i) {
-        struct free_list **b = buckets + i;
-        size_t size = FRAME_MALLOC_BUCKET_TO_SIZE(i);
-        while (pop(b)) 
-            g->frame_malloc.in_buckets_at_end_of_execution += size;
-    }
-}
-
 void __cilkrts_frame_malloc_per_worker_cleanup(__cilkrts_worker *w)
 {
-    if (w->g->frame_malloc.check_for_leaks) 
-        collect_buckets(w, w->l->free_list);
+    int i;
+    // Move memory to the global pool.  This operation
+    // ensures the memory does not become unreachable / leak
+    // when the worker is destroyed.
+    for (i = 0; i < FRAME_MALLOC_NBUCKETS; ++i) {
+        move_bucket_to_global_free_list(w, i);
+    }
 }
-
 
 /*
   Local Variables: **

@@ -80,7 +80,67 @@ typedef struct full_frame full_frame;
  * worker. 
  *
  * Full frames are in contrast to the entries in the worker's deque which
- * are only represented by a pointer to their __cilkrts_stack_frame. */
+ * are only represented by a pointer to their __cilkrts_stack_frame.
+ *
+ * At any instant, we say that a full frame ff is either "suspended",
+ * or "owned" by some worker w.
+ *
+ * More precisely, we say that a worker w owns a frame ff under one of
+ * the following conditions:
+ *
+ *  1. Creation: Worker w has just created ff, but not yet linked ff
+ *     into the tree of full frames.  This situation can occur when a
+ *     worker is unrolling a call stack to promote a
+ *     __cilkrts_stack_frame to a full_frame.
+ *  2. Executing frame: We have w->l->frame_ff == ff, i.e,. ff is the
+ *     currently executing frame for w.
+ *  3. Next frame: We have w->l->next_frame_ff == ff, i.e,. ff is the
+ *     next frame that w is about to execute.
+ *  4. Resume execution: Worker w has popped ff from
+ *     w->l->next_frame_ff, and is about to resume execution of ff.
+ *  5. Dying leaf: Worker w has finished executing a frame ff
+ *     that is a leaf the tree of full frames, and is in the process
+ *     of unlinking "ff" from the tree.
+ *
+ * Otherwise, the frame ff is suspended, and has no owner.
+ * Note that work-stealing changes the owner of a full frame from the
+ * victim to the thief.  
+ *
+ * Using this notion of ownership, we classify the fields of a full
+ * frame into one of several categories:
+ *
+ *  1. Local: 
+ *     These fields are accessed only by the owner of the full frame.
+ *     Because a frame can have only one owner at a time, these fields
+ *     can be modified without any (additional) locking or
+ *     synchronization, assuming the correct synchronization for
+ *     changing the ownership of full frame (e.g., on a successful
+ *     steal) is already in place.
+ *
+ *  2. Constant (i.e., read-only):
+ *     This field is constant for the lifetime of the full frame.
+ *     No locks are needed to access this field.
+ *     Technically, a field could be read-only and local, but we assume
+ *     it is shared.
+ *  
+ *  3. Self-locked:
+ *     To access this field in the frame ff, a worker should acquire
+ *     the lock on ff.  
+ *     A self-locked field is conceptually "shared" between the worker
+ *     that owns frame ff (which is a child) and the worker that
+ *     owns the frame ff->parent (which is the parent of ff).
+ *
+ *  4. Parent-locked:
+ *     To access this field in the frame ff, a worker should
+ *     acquire the lock on ff->parent.
+ *     A parent-locked field is conceptually "shared" between the worker
+ *     that owns frame ff, and a worker that is either owns the
+ *     parent frame (ff->parent) or owns a sibling frame of ff (i.e.,
+ *     any child of ff->parent).
+ *
+ *  5. Synchronization
+ *     A field used explicitly for synchronization (i.e., locks).
+ */
 
 /* COMMON_PORTABLE */ 
 struct full_frame
@@ -93,18 +153,26 @@ struct full_frame
     /**
      * Field to detect writes off the beginning of a full_frame.  Must be
      * FULL_FRAME_MAGIC_0.
+     * [constant]
      */
     ff_magic_t full_frame_magic_0;
 
-    /** Used to serialize access to this full_frame */
+    /**
+     * Used to serialize access to this full_frame
+     * [synchronization]
+     */
     struct mutex lock;
 
-    /** Count of outstanding children running in parallel */
+    /**
+     * Count of outstanding children running in parallel
+     * [self-locked]
+     */
     int join_counter;
 
     /**
      * If TRUE: frame was called by the parent.
      * If FALSE: frame was spawned by parent.
+     * [constant]
      */
     int is_call_child;
 
@@ -117,10 +185,14 @@ struct full_frame
      * execution on an infinite number of processors where all spawns
      * are stolen.  In this case, the frame is marked as the loot of a fake
      * steal.
+     * [local]
      */
     int simulated_stolen;
 
-    /** Caller of this full_frame */
+    /**
+     * Caller of this full_frame
+     * [constant]
+     */
     full_frame *parent;
 
     /**
@@ -128,68 +200,114 @@ struct full_frame
      * by definition from left to right.  Because of how we do work
      * stealing, the parent is always to the right of all its
      * children.
+     *
+     * For a frame ff, we lock the ff->parent to follow the sibling
+     * links for ff.
+     *
+     * [parent-locked]
      */
     full_frame *left_sibling;
 
-    /** @copydoc left_sibling */
+    /**
+     * @copydoc left_sibling
+     */
     full_frame *right_sibling;
 
-    /** Pointer to rightmost child */
+    /**
+     * Pointer to rightmost child
+     *
+     * [self-locked]
+     */
     full_frame *rightmost_child;
 
     /**
      * Call stack associated with this frame.
      * Set and reset in make_unrunnable and make_runnable
+     *
+     * [self-locked]
      */
     __cilkrts_stack_frame *call_stack;
 
     /**
-     * Stable copy of call stack associated with this frame - never NULLed.
+     * Accumulated reducers of children
+     *
+     * [self-locked]
      */
-    __cilkrts_stack_frame *stable_call_stack;
-
-    /** Map from reducer names to reducer values */
-    struct cilkred_map *reducer_map;
-
-    /** Accumulated reducers of children */
     struct cilkred_map *children_reducer_map;
 
     /**
      * Accumulated reducers of right siblings that have already
      * terminated
+     *
+     * [parent-locked]
      */
     struct cilkred_map *right_reducer_map;
 
-    /** Exception that needs to be pass to our parent */
+    /**
+     * Exception that needs to be pass to our parent
+     *
+     * [local]
+     *
+     * TBD: verify that the exception code satisfies this requirement.
+     */
     struct pending_exception_info *pending_exception;
 
-    /** Exception from one of our children */
+    /**
+     * Exception from one of our children
+     *
+     * [self-locked]
+     */
     struct pending_exception_info *child_pending_exception;
 
-    /** Exception from any right siblings */
+    /**
+     * Exception from any right siblings
+     *
+     * [parent-locked]
+     */
     struct pending_exception_info *right_pending_exception;
 
-    /** Stack pointer to restore on sync. */
+    /**
+     * Stack pointer to restore on sync.
+     * [local]
+     */
     char *sync_sp;
 
 #ifdef _WIN32
-    /** Stack pointer to restore on exception. */
+    /**
+     * Stack pointer to restore on exception.
+     * [local]
+     */
     char *exception_sp;
 
-    /** Exception trylevel at steal */
+    /**
+     * Exception trylevel at steal
+     * [local]
+     *
+     * TBD: this field is set but not read?
+     */
     unsigned long trylevel;
 
-    /** Exception registration head pointer to restore on sync. */
+    /**
+     * Exception registration head pointer to restore on sync.
+     * [local]
+     */
     unsigned long registration;
 #endif
 
-    /** Size of frame to match sync sp */
+    /**
+     * Size of frame to match sync sp
+     * [local]
+     * TBD: obsolete field only used in debugging?
+     */
     ptrdiff_t frame_size;
 
     /**
      * Allocated stacks that need to be freed.  The stacks work
      * like a reducer.  The leftmost frame may have stack_self
      * null and owner non-null.
+     *
+     * [local]
+     * TBD: verify exception code satisfies this requirement.
      */
     __cilkrts_stack *stack_self;
 
@@ -197,6 +315,8 @@ struct full_frame
      * Allocated stacks that need to be freed.  The stacks work
      * like a reducer.  The leftmost frame may have stack_self
      * null and owner non-null.
+     *
+     * [self-locked]
      */
     __cilkrts_stack *stack_child;
 
@@ -204,6 +324,8 @@ struct full_frame
      * If the sync_master is set, this function can only be sync'd by the team
      * leader, who first entered Cilk.  This is set by the first worker to steal
      * from the user worker.
+     *
+     * [self-locked]
      */
     __cilkrts_worker *sync_master;
 
@@ -215,6 +337,8 @@ struct full_frame
     /**
      * Field to detect writes off the end of a full_frame.  Must be
      * FULL_FRAME_MAGIC_1.
+     *
+     * [constant]
      */
     ff_magic_t full_frame_magic_1;
 };
@@ -235,8 +359,8 @@ struct full_frame
  * (which may be on a different stack) at
  * the point of resume.  If the stack pointer changes between steps 2 and 3,
  * e.g., as a result of pushing 4 bytes onto the stack,
- * the offset is reflected in the value of f->sync_sp after step 3 relative to
- * its value after step 1 (e.g., the value of f->sync_sp after step 3 would be
+ * the offset is reflected in the value of ff->sync_sp after step 3 relative to
+ * its value after step 1 (e.g., the value of ff->sync_sp after step 3 would be
  * 4 less than its value after step 1, for a down-growing stack).
  *
  * Imp detail: The actual call chains for each of these phase-change events is:
@@ -252,48 +376,48 @@ struct full_frame
 
 /**
  * Records the stack pointer within the 'sf' stack frame as the current stack
- * pointer at the point of suspending full frame 'f'.
+ * pointer at the point of suspending full frame 'ff'.
  *
  * Preconditions:
- *   - f->sync_sp must be either null or contain the result of a prior call to
+ *   - ff->sync_sp must be either null or contain the result of a prior call to
  *     __cilkrts_take_stack().
- *   - If f->sync_sp is not null, then SP(sf) must refer to the same stack as
+ *   - If ff->sync_sp is not null, then SP(sf) must refer to the same stack as
  *     the 'sp' argument to the prior call to __cilkrts_take_stack().
  * 
  * Postconditions:
- *   - If f->sync_sp was null before the call, then f->sync_sp will be set to
+ *   - If ff->sync_sp was null before the call, then ff->sync_sp will be set to
  *     SP(sf). 
- *   - Otherwise, f->sync_sp will be restored to the value it had just prior
+ *   - Otherwise, ff->sync_sp will be restored to the value it had just prior
  *     to the last call to __cilkrts_take_stack(), except offset by any change
  *     in the stack pointer between the call to __cilkrts_take_stack() and
  *      this call to __cilkrts_put_stack().
  *
- * @param f The full frame that is being suspended.
+ * @param ff The full frame that is being suspended.
  * @param sf The __cilkrts_stack_frame that is being suspended.  The stack
  *   pointer will be taken from the jmpbuf contained within this
  *   __cilkrts_stack_frame.
  */
-COMMON_PORTABLE void __cilkrts_put_stack(full_frame *f,
+COMMON_PORTABLE void __cilkrts_put_stack(full_frame *ff,
                                          __cilkrts_stack_frame *sf);
 
 /**
  * Records the stack pointer 'sp' as the stack pointer at the point of
- * resuming execution on full frame 'f'.  The value of 'sp' may be on a
+ * resuming execution on full frame 'ff'.  The value of 'sp' may be on a
  * different stack than the original value recorded for the stack pointer
  * using __cilkrts_put_stack().
  *
  * Precondition:
- *   - f->sync_sp must contain a value set by __cilkrts_put_stack().
+ *   - ff->sync_sp must contain a value set by __cilkrts_put_stack().
  *
  * Postcondition:
- *   - f->sync_sp contains an *integer* value used to compute a change in the
+ *   - ff->sync_sp contains an *integer* value used to compute a change in the
  *     stack pointer upon the next call to __cilkrts_take_stack().
- *   - If 'sp' equals f->sync_sp, then f->sync_sp is set to null.
+ *   - If 'sp' equals ff->sync_sp, then ff->sync_sp is set to null.
  *
- * @param f The full frame that is being resumed.
+ * @param ff The full frame that is being resumed.
  * @param sp The stack pointer for the stack the function is being resumed on.
  */
-COMMON_PORTABLE void __cilkrts_take_stack(full_frame *f, void *sp);
+COMMON_PORTABLE void __cilkrts_take_stack(full_frame *ff, void *sp);
 
 /**
  * Allocates and initailizes a full_frame.
@@ -313,43 +437,43 @@ full_frame *__cilkrts_make_full_frame(__cilkrts_worker *w,
  * Deallocates a full_frame.
  *
  * @param w The memory for the full_frame will be returned to the worker's pool.
- * @param f The full_frame to be deallocated.
+ * @param ff The full_frame to be deallocated.
  */
 COMMON_PORTABLE
-void __cilkrts_destroy_full_frame(__cilkrts_worker *w, full_frame *f);
+void __cilkrts_destroy_full_frame(__cilkrts_worker *w, full_frame *ff);
 
 /**
  * Performs sanity checks to check the integrity of a full_frame.
  *
- * @param f The full_frame to be validated.
+ * @param ff The full_frame to be validated.
  */
-COMMON_PORTABLE void validate_full_frame(full_frame *f);
+COMMON_PORTABLE void validate_full_frame(full_frame *ff);
 
 /**
  * Locks the mutex contained in a full_frame.  The full_frame is validated
  * before the runtime attempts to lock it.
  *
  * Postcondition:
- *   - f->lock will be owned by w.
+ *   - ff->lock will be owned by w.
  *
  * @param w  The worker that will own the full_frame.  If the runtime is
  * collecting stats, the intervals will be attributed to the worker.
- * @param f The full_frame containing the mutex to be locked.
+ * @param ff The full_frame containing the mutex to be locked.
  */
 COMMON_PORTABLE void __cilkrts_frame_lock(__cilkrts_worker *w,
-                                          full_frame *f);
+                                          full_frame *ff);
 
 /**
  * Unlocks the mutex contained in a full_frame.
  *
  * Precondition:
- *   - f->lock must must be owned by w.
+ *   - ff->lock must must be owned by w.
  *
  * @param w  The worker that currently owns the full_frame.
- * @param f The full_frame containing the mutex to be unlocked.
+ * @param ff The full_frame containing the mutex to be unlocked.
  */
 COMMON_PORTABLE void __cilkrts_frame_unlock(__cilkrts_worker *w,
-                                            full_frame *f);
+                                            full_frame *ff);
 /** @} */
 
 __CILKRTS_END_EXTERN_C

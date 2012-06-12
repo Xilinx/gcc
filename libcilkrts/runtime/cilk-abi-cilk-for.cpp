@@ -54,35 +54,42 @@
 #endif
 
 template <typename count_t>
-static inline int grainsize(long req, count_t iter)
+static inline int grainsize(int req, count_t count)
 {
-    
+    // A positive requested grain size comes from the user.  A very high grain
+    // size risks losing parallelism, but the user told us what they want for
+    // grainsize.  Who are we to argue?
     if (req > 0)
-    {
-        // This could be if req > INT_MAX return INT_MAX but limits.h is
-        // broken on some Linux's.  A limit this high risks losing
-        // parallelism, but the user told us what they want for grainsize.
-        // Who are we to argue?
-        if (req > 0x7fffffff)
-            return 0x7fffffff;
-        return (int)req;
-    }
+        return req;
+
+    // At present, a negative requested grain size is treated the same way as
+    // a zero grain size, i.e., the runtime computes the actual grainsize
+    // using a hueristic.  In the future, the compiler may give us additional
+    // information about the size of the cilk_for body by passing a negative
+    // grain size.
+
+    // Avoid generating a zero grainsize, even for empty loops.
+    if (count < 1)
+        return 1;
 
     global_state_t* g = cilkg_get_global_state();
     if (g->under_ptool)
     {
-        // Grainsize = 1, when running under PIN, and when the grainsize has not
-        // explicitly been set by the user.
+        // Grainsize = 1, when running under PIN, and when the grainsize has
+        // not explicitly been set by the user.
         return 1;
     }
     else
     {
-        count_t n = iter / (8 * g->P) + 1;
-        // 2K should be enough to amortize the cost of the cilk_for and any
-        // larger grainsize risks losing parallelism
+        // Divide loop count by 8 times the worker count and round up.
+        const int Px8 = g->P * 8;
+        count_t n = (count + Px8 - 1) / Px8;
+
+        // 2K should be enough to amortize the cost of the cilk_for. Any
+        // larger grainsize risks losing parallelism.
         if (n > 2048)
             return 2048;
-        return (int)n;
+        return (int) n;  // n <= 2048, so no loss of precision on cast to int
     }
 }
 
@@ -104,47 +111,49 @@ template <typename count_t, typename F>
 inline static
 void call_cilk_for_loop_body(count_t low, count_t high,
                              F body, void *data,
-                             struct __cilkrts_worker *w,
-                             struct __cilkrts_pedigree *loop_root_pedigree)
+                             /* __cilkrts_worker *w, */
+                             __cilkrts_pedigree *loop_root_pedigree)
 {
     // The worker is only valid until the first spawn.  Fetch the
     // __cilkrts_stack_frame out of the worker, since it will be stable across
-    // steals
-    volatile struct __cilkrts_stack_frame *sf = w->current_stack_frame;
+    // steals.  The sf pointer actually points to the *parent's*
+    // __cilkrts_stack_frame, since this function is a non-spawning function
+    // and therefore has no cilk stack frame of its own.
+    __cilkrts_worker *w = __cilkrts_get_tls_worker();
+    __cilkrts_stack_frame *sf = w->current_stack_frame;
 
-    // Save the pedigree node pointer to by the worker.  We'll need to restore
+    // Save the pedigree node pointed to by the worker.  We'll need to restore
     // that when we exit since the spawn helpers in the cilk_for call tree
     // will assume that it's valid
-    struct __cilkrts_pedigree *saved_next_pedigree_node = w->pedigree.next;
+    const __cilkrts_pedigree *saved_next_pedigree_node = w->pedigree.parent;
 
     // Add the leaf pedigree node to the chain. The parent is the root node
     // to flatten the tree regardless of the DAG branches in the cilk_for
     // divide-and-conquer recursion.
     //
-    // The rank is initailized to the low index - 1, because the user is
-    // expected to call __cilkrts_bump_loop_rank at the start of the cilk_for
-    // loop body.  This is because it's less error-prone to do it once at the
-    // top of the loop body rather than multiple places if the loop includes
-    // branches
-    struct __cilkrts_pedigree loop_leaf_pedigree;
+    // The rank is initailized to the low index.  The user is
+    // expected to call __cilkrts_bump_loop_rank at the end of the cilk_for
+    // loop body.
+    __cilkrts_pedigree loop_leaf_pedigree;
 
-    loop_leaf_pedigree.rank = (uint64_t)low - 1;
-    loop_leaf_pedigree.next = loop_root_pedigree;
+    loop_leaf_pedigree.rank = (uint64_t)low;
+    loop_leaf_pedigree.parent = loop_root_pedigree;
 
     // The worker's pedigree always starts with a rank of 0
     w->pedigree.rank = 0;
-    w->pedigree.next = &loop_leaf_pedigree;
+    w->pedigree.parent = &loop_leaf_pedigree;
 
     // Call the compiler generated cilk_for loop body lambda function
     body(data, low, high);
 
+    // The loop body may have included spawns, so we must refetch the worker
+    // from the __cilkrts_stack_frame, which is stable regardless of which
+    // worker we're executing on.
+    w = sf->worker;
+
     // Restore the pedigree chain. It must be valid because the spawn helpers
     // generated by the cilk_for implementation will access it.
-    //
-    // Remember that the loop body may have included spawns, so we must
-    // refetch the worker from the __cilkrts_stack_frame which is stable
-    // regardless of which worker we're executing on.
-    sf->worker->pedigree.next = saved_next_pedigree_node;
+    w->pedigree.parent = saved_next_pedigree_node;
 }
 
 /*
@@ -166,13 +175,13 @@ template <typename count_t, typename F>
 static
 void cilk_for_recursive(count_t low, count_t high,
                         F body, void *data, int grain,
-                        struct __cilkrts_worker *w,
-                        struct __cilkrts_pedigree *loop_root_pedigree)
+                        /* __cilkrts_worker *w, */
+                        __cilkrts_pedigree *loop_root_pedigree)
 {
-    // The worker is only valid until the first spawn.  Fetch the
+    // The worker is valid only until the first spawn.  Fetch the
     // __cilkrts_stack_frame out of the worker, since it will be stable across
     // steals
-    volatile struct __cilkrts_stack_frame *sf = w->current_stack_frame;
+/*    __cilkrts_stack_frame *sf = w->current_stack_frame; */
 
 tail_recurse:
     count_t count = high - low;
@@ -182,7 +191,7 @@ tail_recurse:
         // Invariant: count >= 2
         count_t mid = low + count / 2;
         _Cilk_spawn cilk_for_recursive(low, mid, body, data, grain,
-                                       sf->worker, loop_root_pedigree);
+                                       /* sf->worker, */ loop_root_pedigree);
         low = mid;
         goto tail_recurse;
     }
@@ -190,9 +199,11 @@ tail_recurse:
     // Call the cilk_for loop body lambda function passed in by the compiler to
     // execute one grain
     call_cilk_for_loop_body(low, high, body, data,
-                            sf->worker, loop_root_pedigree);
+                            /* sf->worker, */ loop_root_pedigree);
 
 }
+
+static void noop() { }
 
 /*
  * cilk_for_root
@@ -207,9 +218,16 @@ tail_recurse:
 template <typename count_t, typename F>
 static void cilk_for_root(F body, void *data, count_t count, int grain)
 {
-    struct __cilkrts_pedigree loop_root_pedigree;
-    struct __cilkrts_worker *w;
-    volatile struct __cilkrts_stack_frame *sf;
+    __cilkrts_pedigree loop_root_pedigree;
+    __cilkrts_worker *w;
+    __cilkrts_stack_frame *sf;
+
+    // TBD: Since the shrink-wrap optimization was turned on in the compiler,
+    // it is not possible to get the current stack frame without actually
+    // forcing a call to bind-thread.  This spurious spawn is a temporary
+    // stopgap until the correct intrinsics are added to give us total control
+    // over frame initialization.
+    _Cilk_spawn noop();
 
     // Fetch the current worker.  From that we can get the current stack frame
     // which will be constant even if we're stolen
@@ -217,6 +235,7 @@ static void cilk_for_root(F body, void *data, count_t count, int grain)
     sf = w->current_stack_frame;
 
     // Save the current worker pedigree into the loop root
+    --w->pedigree.rank;  // Undo change from spawn
     loop_root_pedigree = w->pedigree;
 
     // Don't splice the loop_root node in yet.  It will be done when we
@@ -231,17 +250,18 @@ static void cilk_for_root(F body, void *data, count_t count, int grain)
     if (count > gs)
     {
         count_t mid = count / 2;
-        _Cilk_spawn cilk_for_recursive((count_t) 0, mid, body, data, gs, w,
+        _Cilk_spawn cilk_for_recursive((count_t) 0, mid, body, data, gs, /* w, */
                                        &loop_root_pedigree);
-        cilk_for_recursive(mid, count, body, data, gs, sf->worker,
-                                       &loop_root_pedigree);
+        cilk_for_recursive(mid, count, body, data, gs, /* sf->worker, */
+                           &loop_root_pedigree);
 
         // We must sync before touching the worker below
         _Cilk_sync;
 
-        // Need to refetch the worker.  The loop body (or something it calls) may
-        // have included spawns, or the continuation after the cilk_spawn above may
-        // have been stolen, so we can't assume we're on the same worker
+        // Need to refetch the worker.  The loop body (or something it calls)
+        // may have included spawns, or the continuation after the cilk_spawn
+        // above may have been stolen, so we can't assume we're on the same
+        // worker
         w = sf->worker;
 
         // Restore the pedigree in the worker.  The rank will be bumped
@@ -250,18 +270,18 @@ static void cilk_for_root(F body, void *data, count_t count, int grain)
     }
     else
     {
-        // Call the cilk_for loop body lambda function to execute over the entire
-        // range
-        call_cilk_for_loop_body((count_t)0, count, body, data, w,
+        // Call the cilk_for loop body lambda function to execute over the
+        // entire range
+        call_cilk_for_loop_body((count_t)0, count, body, data, /* w, */
                                 &loop_root_pedigree);
     }
 
-    // If this is an optimized build, then the compiler will have optimized out the
-    // increment of the worker's pedigree in the implied sync.  We need to add one
-    // to make the pedigree_loop test work correctly
+    // If this is an optimized build, then the compiler will have optimized
+    // out the increment of the worker's pedigree in the implied sync.  We
+    // need to add one to make the pedigree_loop test work correctly
     if (CILKRTS_OPTIMIZED)
     {
-        sf->worker->pedigree.rank++;
+        ++sf->worker->pedigree.rank;
     }
 }
 
@@ -285,7 +305,7 @@ CILK_ABI_THROWS_VOID __cilkrts_cilk_for_32(__cilk_abi_f32_t body, void *data,
                                             cilk32_t count, int grain)
 {
     // Check for an empty range here as an optimization - don't need to do any
-    // __cilkrts_stack_fram initialization
+    // __cilkrts_stack_frame initialization
     if (count > 0)
         cilk_for_root(body, data, count, grain);
 }
@@ -305,7 +325,7 @@ CILK_ABI_THROWS_VOID __cilkrts_cilk_for_64(__cilk_abi_f64_t body, void *data,
                                             cilk64_t count, int grain)
 {
     // Check for an empty range here as an optimization - don't need to do any
-    // __cilkrts_stack_fram initialization
+    // __cilkrts_stack_frame initialization
     if (count > 0)
         cilk_for_root(body, data, count, grain);
 }

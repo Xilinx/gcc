@@ -44,6 +44,10 @@
 #include "rts-common.h"
 #include "internal/abi.h"
 
+#ifdef CILK_PROFILE
+#include <stdio.h>     // Define FILE *
+#endif
+
 __CILKRTS_BEGIN_EXTERN_C
 
 /** Events that we measure. */
@@ -52,8 +56,6 @@ enum interval
     INTERVAL_IN_SCHEDULER,                  ///< Time spent in the scheduler
     INTERVAL_WORKING,                       ///< Time spent working
     INTERVAL_STEALING,                      ///< Time spent stealing work
-    INTERVAL_USER_WAITING,                  ///< Time user thread spent waiting - appears to be obsolete
-    INTERVAL_SYSTEM_WAITING,                ///< Appears to be unused
     INTERVAL_STEAL_SUCCESS,                 ///< Time to do a successful steal
     INTERVAL_STEAL_FAIL_EMPTYQ,             ///< Count of steal failures due to lack of stealable work
     INTERVAL_STEAL_FAIL_LOCK,               ///< Count of steal failures due to failure to lock worker
@@ -64,9 +66,6 @@ enum interval
     INTERVAL_THE_EXCEPTION_CHECK_USELESS,   ///< Count of useless THE exception checks
     INTERVAL_RETURNING,                     ///< Time spent returning from calls
     INTERVAL_FINALIZE_CHILD,                ///< Time spent in finalize_child
-    INTERVAL_SPLICE_REDUCERS,               ///< Time spent in finalize_child merging reducers
-    INTERVAL_SPLICE_EXCEPTIONS,             ///< Time spent in finalize_child merging pending exceptions
-    INTERVAL_SPLICE_STACKS,                 ///< Time spent in finalize_child managing stacks
     INTERVAL_PROVABLY_GOOD_STEAL,           ///< Time spent in provably_good_steal
     INTERVAL_UNCONDITIONAL_STEAL,           ///< Time spent in unconditional_steal
     INTERVAL_ALLOC_FULL_FRAME,              ///< Time spent in __cilkrts_make_full_frame
@@ -176,6 +175,11 @@ void __cilkrts_note_interval(__cilkrts_worker *w, enum interval i);
  */
 COMMON_PORTABLE
 void __cilkrts_init_stats(statistics *s);
+
+#ifdef CILK_PROFILE
+COMMON_PORTABLE
+void dump_stats_to_file(FILE *stat_file, statistics *s);
+#endif
 
 
 #ifdef CILK_PROFILE

@@ -180,12 +180,12 @@ __cilkrts_return_exception(__cilkrts_stack_frame *sf)
            rethrow flag. */
         save_exception_info(w, state, exc, exc == NULL, "save_except");
         {
-            full_frame *f = w->l->frame;
-            CILK_ASSERT(NULL == f->pending_exception);
-            f->pending_exception = w->l->pending_exception;
+            full_frame *ff = w->l->frame_ff;
+            CILK_ASSERT(NULL == ff->pending_exception);
+            ff->pending_exception = w->l->pending_exception;
             w->l->pending_exception = NULL;
         }
-        __cilkrts_exception_from_spawn(w); /* does not return */
+        __cilkrts_exception_from_spawn(w, sf); /* does not return */
     }
     /* This code path is taken when the parent is attached.  It is on
        the same stack and part of the same full frame.  The caller is
@@ -225,11 +225,11 @@ __cilkrts_return_exception(__cilkrts_stack_frame *sf)
 /* Save the exception state into the full frame, which is exiting
    or suspending. */
 extern "C"
-void __cilkrts_save_exception_state(__cilkrts_worker *w, full_frame *f)
+void __cilkrts_save_exception_state(__cilkrts_worker *w, full_frame *ff)
 {
     save_exception_info(w, __cxa_get_globals(), 0, false, "undo-detach");
-    CILK_ASSERT(NULL == f->pending_exception);
-    f->pending_exception = w->l->pending_exception;
+    CILK_ASSERT(NULL == ff->pending_exception);
+    ff->pending_exception = w->l->pending_exception;
     w->l->pending_exception = NULL;    
 }
 
@@ -272,9 +272,9 @@ NORETURN __cilkrts_c_sync_except (__cilkrts_worker *w, __cilkrts_stack_frame *sf
     save_exception_info(w, state, exc, false, "sync_except");
 #if 0
     {
-        full_frame *f = w->l->frame;
-        CILK_ASSERT(NULL == f->pending_exception);
-        f->pending_exception = w->l->pending_exception;
+        full_frame *ff = w->l->frame_ff;
+        CILK_ASSERT(NULL == ff->pending_exception);
+        ff->pending_exception = w->l->pending_exception;
         w->l->pending_exception = NULL;    
     }
 #endif
@@ -459,8 +459,10 @@ void __cilkrts_c_resume_except (_Unwind_Exception *exc)
    to be resumed free the object. */
 
 extern "C"
-void __cilkrts_setup_for_execution_sysdep(__cilkrts_worker *w, full_frame *f)
+void __cilkrts_setup_for_execution_sysdep(__cilkrts_worker *w, full_frame *ff)
 {
+    // ASSERT: We own w->lock and ff->lock || P == 1
+
     __cxa_eh_globals *state = __cxa_get_globals ();
     struct pending_exception_info *info = w->l->pending_exception;
 
@@ -493,11 +495,11 @@ void __cilkrts_setup_for_execution_sysdep(__cilkrts_worker *w, full_frame *f)
         info->rethrow = false;
         /* Resuming function will rethrow.  Runtime calls
            std::terminate if there is no caught exception. */
-        f->call_stack->flags |= CILK_FRAME_EXCEPTING;
+        ff->call_stack->flags |= CILK_FRAME_EXCEPTING;
     }
     if (info->active) {
-        f->call_stack->flags |= CILK_FRAME_EXCEPTING;
-        f->call_stack->except_data = info->active;
+        ff->call_stack->flags |= CILK_FRAME_EXCEPTING;
+        ff->call_stack->except_data = info->active;
         info->active = 0;
     }
 
@@ -508,7 +510,7 @@ void __cilkrts_setup_for_execution_sysdep(__cilkrts_worker *w, full_frame *f)
     }
 
 #if CILK_LIB_DEBUG
-    if (f->call_stack->except_data)
+    if (ff->call_stack->except_data)
         CILK_ASSERT(std::uncaught_exception());
 #endif
 }

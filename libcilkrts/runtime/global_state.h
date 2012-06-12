@@ -2,7 +2,7 @@
  *
  *************************************************************************
  *
- * Copyright (C) 2009-2011 
+ * Copyright (C) 2009-2012 
  * Intel Corporation
  * 
  * This file is part of the Intel Cilk Plus Library.  This library is free
@@ -79,11 +79,26 @@ typedef struct __cilkrts_stack_cache {
  * @brief The global state is a structure that is shared by all workers in
  * Cilk.
  *
- * Make the structure ready for use by calling cilkg_init_global_state() and
- * clean up by calling cilkg_deinit_global_state().  Before initialization and
- * after deinitializations, the fields in the global state have unspecified
- * values, except for a few special fields labeled "USER SETTING", which can
- * be read and written before initialization and after deinitialization.
+ * Make the structure ready for use by calling
+ * cilkg_init_global_state() and then cilkg_publish_global_state().
+ *
+ * The same global lock should be held while both of these methods are
+ * called.  These methods are split because it is useful to execute
+ * other runtime initialization code in between.
+ *
+ * After cilkg_publish_global_state() has completed, Cilk runtime
+ * methods may call cilkg_get_global_state() to look at the published
+ * value without holding the global lock.
+ *
+ * Finally, clean up the global state by calling
+ * cilkg_deinit_global_state().  This method should be called only
+ * after all calls to cilkg_get_global_state() have completed, and
+ * while holding the global lock.
+ *
+ * Before initialization and after deinitialization, the fields in the
+ * global state have unspecified values, except for a few special
+ * fields labeled "USER SETTING", which can be read and written before
+ * initialization and after deinitialization.
  */
 
 typedef /* COMMON_PORTABLE */ struct global_state_t {
@@ -95,12 +110,12 @@ typedef /* COMMON_PORTABLE */ struct global_state_t {
     /*************************************************************************
      * Note that debugger integration must reach into the
      * global state!  The debugger integration is depending on the
-     * offsets of the addr_size, system_workers, total_workers, stealing_disabled,
-     * sysdep, and workers.  If these offsets change, the debugger integration
-     * library will need to be changed to match!!!
+     * offsets of the addr_size, system_workers, total_workers,
+     * stealing_disabled, sysdep, and workers.  If these offsets change, the
+     * debugger integration library will need to be changed to match!!!
      *************************************************************************/
 
-    int addr_size; /**< Number of bytes for an address, for Windows debugger */
+    int addr_size; /**< Number of bytes for an address, used by debugger (fixed)*/
 
     int system_workers; /**< Number of system workers (fixed) */
 
@@ -112,10 +127,10 @@ typedef /* COMMON_PORTABLE */ struct global_state_t {
     int max_user_workers; /* USER SETTING - max Q (fixed) */
 
     int total_workers;  /**< Total number of worker threads allocated (fixed) */
-   
-    int running;   /**< True when Cilk code is running */
 
-    /** Set by debugger to disable stealing (Windows only for now) */
+    int workers_running; /**< True when system workers have beens started */
+
+    /** Set by debugger to disable stealing (fixed) */
     int stealing_disabled;
 
     /** System-dependent part of the global state */
@@ -141,9 +156,17 @@ typedef /* COMMON_PORTABLE */ struct global_state_t {
     /** Global stack cache size */
     int global_stack_cache_size; /* USER SETTING  */
 
-    volatile int work_done; /**< TRUE when workers should exit scheduler */
-
-    int exiting_runtime; /**< Tells workers that the runtime is shutting down */
+    /**
+     * TRUE when workers should exit scheduling loop so we can shut down the
+     * runtime and free the global state.
+     *
+     * Note that work_done will be checked *FREQUENTLY* in the scheduling loop
+     * by idle workers.  We need to ensure that it's not in a cache line which
+     * may be invalidated by other cores.  The surrounding fields are either
+     * constant after initialization or not used until shutdown (stats) so we
+     * should be OK.
+     */
+    volatile int work_done;
 
     int under_ptool;     /**< True when running under a serial PIN tool */
 
@@ -207,11 +230,30 @@ typedef /* COMMON_PORTABLE */ struct global_state_t {
 } global_state_t;
 
 /**
- * @brief Initializes and returns the global state object.  Must be called
- * before referencing any fields in the global state except those specified as
- * "user-settable values".
+ * @brief Initialize the global state object.  This method must both
+ * complete before referencing any fields in the global state, except
+ * those specified as "user-settable values".
  */
 global_state_t* cilkg_init_global_state();
+
+/**
+ * @brief Publish the global state object, so that
+ * cilkg_is_published can return true.
+ *
+ * @param g - the global state created by cilkg_init_global_state() to
+ * publish.
+ *
+ * After the global state object has been published, a thread should
+ * not modify this state unless it has exclusive access (i.e., holds
+ * the global lock).
+ */
+void cilkg_publish_global_state(global_state_t* g);
+
+/**
+ * @brief Return true if the global state has been fully initialized
+ * and published, and has not been deinitialized.
+ */
+int cilkg_is_published(void);
 
 /**
  * @brief De-initializes the global state object.  Must be called to free
@@ -221,7 +263,7 @@ void cilkg_deinit_global_state(void);
 
 /**
  * @brief Returns the global state object.  Result is valid only if the
- * global state was already initialized (see cilkg_init_global_state()).
+ * global state has been published (see cilkg_publish_global_state()).
  */
 static inline
 global_state_t* cilkg_get_global_state(void)
@@ -233,11 +275,6 @@ global_state_t* cilkg_get_global_state(void)
     return cilkg_singleton_ptr;
 }
 
-/**
- * @brief Return true if the global state has been fully initialized and has
- * not been deinitialized.
- */
-int cilkg_is_initialized(void);
 
 /**
  * @brief Implementation of __cilkrts_set_params.

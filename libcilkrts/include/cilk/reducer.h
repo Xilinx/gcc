@@ -119,6 +119,13 @@ class reducer
     const Monoid                monoid_; // implementation of monoid interface
     void*                       initialThis_; // Sanity checker
 
+    // Primary (leftmost) view, on its own cache line to avoid false sharing.
+    // IMPORTANT: Even though this view is known in advance, access to it from
+    // outside the reducer should be through the __cilkrts_hyper_lookup()
+    // function only (which is called by the view() function.  This
+    // restriction is necessary so that the compiler can assume that
+    // __cilkrts_hyper_lookup() is the ONLY source of the address of this
+    // object, and can therefore optimize as if it had no aliases.
     __CILKRTS_CACHE_ALIGNED(value_type leftmost_);
 
     // Wrappers around C monoid dispatch functions
@@ -128,9 +135,13 @@ class reducer
     static void* allocate_wrapper(void* r, __STDNS size_t bytes);
     static void deallocate_wrapper(void* r, void* view);
 
+    // Used for certain asserts
+    bool reducer_is_cache_aligned() const
+        { return 0 == ((std::size_t) this & (__CILKRTS_CACHE_LINE__ - 1)); }
+
     void init();
 
-    /* disable copy */
+    // disable copy
     reducer(const reducer&);
     reducer& operator=(const reducer&);
 
@@ -253,7 +264,12 @@ class reducer
 
     /* access the unwrapped object */
     value_type& view() {
-        /* look up reducer in current map */
+        // Look up reducer in current map.  IMPORTANT: Even though the
+        // leftmost view is known in advance, access to it should be through
+        // the __cilkrts_hyper_lookup() function only.  This restriction is
+        // necessary so that the compiler can assume that
+        // __cilkrts_hyper_lookup() is the ONLY source of the address of this
+        // object, and can therefore optimize as if it had no aliases.
         return *static_cast<value_type *>(__cilkrts_hyper_lookup(&base_));
     }
 
@@ -278,6 +294,26 @@ void reducer<Monoid>::init()
         (cilk_c_reducer_allocate_fn_t)   &allocate_wrapper,
         (cilk_c_reducer_deallocate_fn_t) &deallocate_wrapper
     };
+
+#ifdef CILK_CHECK_REDUCER_ALIGNMENT
+    // ASSERT THAT LEFTMOST VIEW IS CACHE-LINE ALIGNED:
+    // We use an attribute to ensure that the leftmost view, and therefore the
+    // entire reducer object, is cache-line (64-byte) aligned.  The compiler
+    // enforces this alignment for static- and automatic-duration objects.
+    // However, if a reducer or a structure containing a reducer is allocated
+    // from the heap using a custom allocator (which typically guarantee only
+    // 8- or 16-byte alignment), the compiler cannot guarantee this cache-line
+    // alignment.  Certain vector instructions require that the operands be
+    // aligned on vector boundaries (up to 16-bytes in SSE, 32-bytes in AVX
+    // and 64-bytes in MIC).  At high optimazation levels, the allocator's
+    // failure to keep the promised alignment can cause a program to fault
+    // mysteriously in a vector instruction.  The assertion is intended to
+    // catch this situation.  If the assertion fails, the user is advised
+    // to change the way that reducer or the the structure containing the
+    // reducer is allocated such that it is guaranteed to be on a 64-byte
+    // boundary, thus preventing both the possible crash and false sharing.
+    __CILKRTS_ASSERT(reducer_is_cache_aligned());
+#endif // CILK_CHECK_REDUCER_ALIGNMENT
 
     base_.__c_monoid = c_monoid_initializer;
     base_.__flags = 0;
@@ -488,7 +524,9 @@ class reducer {
  *
  *      CILK_C_UNREGISTER_REDUCER(total);
  *
- *      return total.value;
+ *      // Never access total.value directly -- the compiler optimizer assumes
+ *      // that REDUCER_VIEW(total) is the ONLY way to refer to the value. 
+ *      return REDUCER_VIEW(total);
  *  }
  */
 

@@ -25,7 +25,7 @@ AUTOMAKE_OPTIONS = foreign
 ACLOCAL_AMFLAGS = -I ..
 
 # Compiler and linker flags.
-GENERAL_FLAGS = -I$(top_srcdir)/include
+GENERAL_FLAGS = -I$(top_srcdir)/include -DIN_CILK_RUNTIME=1
 GENERAL_FLAGS += -fpic -O3
 GENERAL_FLAGS += -DBUILD_USER=\"$(USER)\"
 GENERAL_FLAGS += -DBUILD_HOST=\"`hostname`\"
@@ -44,7 +44,7 @@ libcilkrts_la_SOURCES = runtime/cilk-abi.c runtime/cilk_api.c           \
   runtime/stacks.c runtime/stats.c runtime/symbol_test.c                \
   runtime/sysdep-unix.c runtime/worker_mutex.c runtime/bug.cpp          \
   runtime/cilk-abi-cilk-for.cpp runtime/except-gcc.cpp                  \
-  runtime/global_state.cpp runtime/reducer_impl.cpp
+  runtime/global_state.cpp runtime/reducer_impl.cpp runtime/pedigrees.c
 
 # Load the $(REVISION) value.
 include include/internal/rev.mk

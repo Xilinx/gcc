@@ -2,7 +2,7 @@
  *
  *************************************************************************
  *
- * Copyright (C) 2010-2011 
+ * Copyright (C) 2010-2012 
  * Intel Corporation
  * 
  * This file is part of the Intel Cilk Plus Library.  This library is free
@@ -27,10 +27,14 @@
  *
  **************************************************************************/
 
+/*
+ * Define this macro so that compiliation of this file generates the
+ * non-inlined versions of certain functions in cilk_api.h.
+ */
+#include "internal/abi.h"
 #include "cilk/cilk_api.h"
 #include "cilk/cilk_undocumented.h"
 #include "cilktools/cilkscreen.h"
-#include "internal/abi.h"
 #include "internal/inspector-abi.h"
 
 #include "global_state.h"
@@ -39,6 +43,7 @@
 #include "bug.h"
 #include "local_state.h"
 #include "full_frame.h"
+#include "pedigrees.h"
 #include "scheduler.h"
 #include "sysdep.h"
 #include "except.h"
@@ -69,12 +74,6 @@ void * _ReturnAddress(void);
 
 // ABI version
 #define BIND_THREAD_RTN __cilkrts_bind_thread_1
-
-#if JFC_DEBUG
-#include <stdio.h>
-void __cilkrts_psf(const char *what, __cilkrts_worker *w,
-                   __cilkrts_stack_frame *sf, full_frame *f);
-#endif
 
 static inline
 void enter_frame_internal(__cilkrts_stack_frame *sf, uint32_t version)
@@ -162,6 +161,16 @@ CILK_ABI_VOID __cilkrts_leave_frame(__cilkrts_stack_frame *sf)
     if (sf->flags & CILK_FRAME_UNWINDING)
     {
 /*        DBGPRINTF("%d - __cilkrts_leave_frame - aborting due to UNWINDING flag\n", w->self); */
+
+        // If this is the frame of a spawn helper (indicated by the
+        // CILK_FRAME_DETACHED flag) we must update the pedigree.  The pedigree
+        // points to nodes allocated on the stack.  Failing to update it will
+        // result in a accvio/segfault if the pedigree is walked.  This must happen
+        // for all spawn helper frames, even if we're processing an exception
+        if ((sf->flags & CILK_FRAME_DETACHED))
+        {
+	    update_pedigree_on_leave_frame(w, sf);
+        }
         return;
     }
 #endif
@@ -178,17 +187,16 @@ CILK_ABI_VOID __cilkrts_leave_frame(__cilkrts_stack_frame *sf)
     if (__builtin_expect(sf->flags & (CILK_FRAME_EXITING|CILK_FRAME_UNSYNCHED), 0))
         __cilkrts_bug("W%u: function exiting with invalid flags %02x\n",
                       w->self, sf->flags);
-#if JFC_DEBUG
-    memset(sf->ctx, 0, sizeof sf->ctx);
-#endif
 #endif
 
     /* Must return normally if (1) the active function was called
        and not spawned, or (2) the parent has never been stolen. */
     if ((sf->flags & CILK_FRAME_DETACHED)) {
 /*        DBGPRINTF("%d - __cilkrts_leave_frame - CILK_FRAME_DETACHED\n", w->self); */
+
 #ifndef _WIN32
         if (__builtin_expect(sf->flags & CILK_FRAME_EXCEPTING, 0)) {
+	    update_pedigree_on_leave_frame(w, sf);
             __cilkrts_return_exception(sf);
             /* If return_exception returns the caller is attached.
                leave_frame is called from a cleanup (destructor)
@@ -198,11 +206,12 @@ CILK_ABI_VOID __cilkrts_leave_frame(__cilkrts_stack_frame *sf)
         }
 #endif
         if (__builtin_expect(__cilkrts_undo_detach(sf), 0)) {
-#if JFC_DEBUG
-            __cilkrts_psf("except", w, sf, 0);
-#endif
-            __cilkrts_c_THE_exception_check(w);
+	    // The update of pedigree for leaving the frame occurs
+	    // inside this call if it does not return.
+            __cilkrts_c_THE_exception_check(w, sf);
         }
+
+	update_pedigree_on_leave_frame(w, sf);
         /* This path is taken when undo-detach wins the race with stealing.
            Otherwise this strand terminates and the caller will be resumed
            via setjmp at sync. */
@@ -210,23 +219,11 @@ CILK_ABI_VOID __cilkrts_leave_frame(__cilkrts_stack_frame *sf)
             __cilkrts_bug("W%u: frame won undo-detach race with flags %02x\n",
                           w->self, sf->flags);
 
-        // Update the worker's pedigree information if this is an ABI 1 or later
-        // frame
-        if (CILK_FRAME_VERSION_VALUE(sf->flags) >= 1)
-        {
-            w->pedigree.rank = sf->spawn_helper_pedigree.rank + 1;
-            w->pedigree.next = sf->spawn_helper_pedigree.next;
-        }
-
         return;
     }
 
 #if CILK_LIB_DEBUG
     sf->flags |= CILK_FRAME_EXITING;
-#if JFC_DEBUG
-    if (JFC_DEBUG > 1)
-        __cilkrts_psf("leave", w, sf, 0);
-#endif
 #endif
 
     if (__builtin_expect(sf->flags & CILK_FRAME_LAST, 0))
@@ -255,9 +252,6 @@ CILK_ABI_VOID __cilkrts_sync(__cilkrts_stack_frame *sf)
     w->l->sync_return_address =  _ReturnAddress();
 #endif
 
-#if JFC_DEBUG
-    sf->worker = 0;
-#endif
     __cilkrts_c_sync(w, sf);
 }
 
@@ -278,13 +272,6 @@ __cilkrts_get_sf(void)
 
     return w->current_stack_frame;
 }
-
-#ifndef _WIN32
-static void __attribute__((constructor)) init_cilk_mutex(void)
-{
-    __cilkrts_global_os_mutex = __cilkrts_os_mutex_create();
-}
-#endif
 
 /* Call with global lock held */
 static __cilkrts_worker *find_free_worker(global_state_t *g)
@@ -344,32 +331,45 @@ CILK_ABI_WORKER_PTR BIND_THREAD_RTN(void)
     ITT_SYNC_PREPARE(&unique_obj);
     ITT_SYNC_ACQUIRED(&unique_obj);
 
-    /* John - not sure how you initialize this on Linux */
-    CILK_ASSERT (NULL != __cilkrts_global_os_mutex);
 
     /* 1: Initialize and start the Cilk runtime */
     __cilkrts_init_internal(1);
 
-    /* 2: Choose a worker for this thread (fail if none left) */
+    /*
+     * 2: Choose a worker for this thread (fail if none left).  The table of
+     *    user workers is protected by the global OS mutex lock.
+     */
     g = cilkg_get_global_state();
-    __cilkrts_os_mutex_lock(__cilkrts_global_os_mutex);
+    global_os_mutex_lock();
     if (__builtin_expect(g->work_done, 0))
         __cilkrts_bug("Attempt to enter Cilk while Cilk is shutting down");
     w = find_free_worker(g);
     CILK_ASSERT(w);
+
     __cilkrts_set_tls_worker(w);
     __cilkrts_cilkscreen_establish_worker(w);
     {
-        full_frame *f = __cilkrts_make_full_frame(w, 0);
-        f->stack_self = sysdep_make_user_stack(w);
-        tbb_interop_use_saved_stack_op_info(w, f->stack_self);
+        full_frame *ff = __cilkrts_make_full_frame(w, 0);
+        ff->stack_self = sysdep_make_user_stack(w);
+        tbb_interop_use_saved_stack_op_info(w, ff->stack_self);
         w->l->user_thread_imported = 0;
-        CILK_ASSERT(f->join_counter == 0);
-        f->join_counter = 1;
-        w->l->frame = f;
-        f->reducer_map = w->reducer_map = __cilkrts_make_reducer_map(w);
-        __cilkrts_set_leftmost_reducer_map(f->reducer_map, 1);
+        CILK_ASSERT(ff->join_counter == 0);
+        ff->join_counter = 1;
+        w->l->frame_ff = ff;
+        w->reducer_map = __cilkrts_make_reducer_map(w);
+        __cilkrts_set_leftmost_reducer_map(w->reducer_map, 1);
+    	load_pedigree_leaf_into_user_worker(w);
     }
+
+    // Make sure that the head and tail are reset, and saved_protected_tail
+    // allows all frames to be stolen.
+    //
+    // Note that we must NOT check w->exc, since workers that are trying to
+    // steal from it will be updating w->exc and we don't own the worker lock.
+    // It's not worth taking out the lock just for an assertion.
+    CILK_ASSERT(w->head == w->l->ltq);
+    CILK_ASSERT(w->tail == w->l->ltq);
+    CILK_ASSERT(w->protected_tail  == w->ltq_limit);
 
     if (0 != __cilkrts_sysdep_bind_thread(w))
         // User thread couldn't be bound (probably because of a lack of
@@ -391,11 +391,7 @@ CILK_ABI_WORKER_PTR BIND_THREAD_RTN(void)
         __cilkrts_enter_cilk(w->g);
     }
 
-    __cilkrts_os_mutex_unlock(__cilkrts_global_os_mutex);
-
-#if JFC_DEBUG
-    fprintf(stderr, "Worker %d entered Cilk\n", w->self);
-#endif
+    global_os_mutex_unlock();
 
     /* If there's only 1 worker, the counts will be started in
      * __cilkrts_scheduler */
@@ -452,6 +448,22 @@ __cilkrts_get_stack_size(void) {
     return cilkg_get_stack_size();
 }
 
+// Method for debugging.
+CILK_API_VOID __cilkrts_dump_stats(void)
+{
+    // While the stats aren't protected by the global OS mutex, the table
+    // of workers is, so take out the global OS mutex while we're doing this
+    global_os_mutex_lock();
+    if (cilkg_is_published()) {
+        global_state_t *g = cilkg_get_global_state();
+	__cilkrts_dump_stats_to_stderr(g);
+    }
+    else {
+	__cilkrts_bug("Attempting to report Cilk stats before the runtime has started\n");
+    }    
+    global_os_mutex_unlock();
+}
+
 /*
  * __cilkrts_get_stack_region_id
  *
@@ -475,7 +487,7 @@ __cilkrts_get_stack_region_id(__cilkrts_thread_id thread_id)
         if (WORKER_FREE != g->workers[i]->l->type)
         {
             if (__cilkrts_sysdep_is_worker_thread_id(g, i, thread_id))
-                return (__cilkrts_region_id)g->workers[i]->l->frame->stack_self;
+                return (__cilkrts_region_id)g->workers[i]->l->frame_ff->stack_self;
         }
     }
 
@@ -527,7 +539,7 @@ static __cilk_tbb_retcode __cilkrts_unwatch_stack(void *data)
     if (TBB_INTEROP_DATA_DELAYED_UNTIL_BIND == data)
     {
         __cilkrts_stack *sd;
-        full_frame *f;
+        full_frame *ff;
         __cilkrts_worker *w = __cilkrts_get_tls_worker();
         if (NULL == w)
         {
@@ -538,24 +550,24 @@ static __cilk_tbb_retcode __cilkrts_unwatch_stack(void *data)
         }
 
         __cilkrts_worker_lock(w);
-        f = w->l->frame;
-        __cilkrts_frame_lock(w,f);
-        data = f->stack_self;
-        __cilkrts_frame_unlock(w,f);
+        ff = w->l->frame_ff;
+        __cilkrts_frame_lock(w,ff);
+        data = ff->stack_self;
+        __cilkrts_frame_unlock(w,ff);
         __cilkrts_worker_unlock(w);
     }
 
 #if CILK_LIB_DEBUG /* Debug code */
     /* Get current stack */
     __cilkrts_stack *sd;
-    full_frame *f;
+    full_frame *ff;
     __cilkrts_worker *w = __cilkrts_get_tls_worker();
     __cilkrts_worker_lock(w);
-    f = w->l->frame;
-    __cilkrts_frame_lock(w,f);
-    sd = f->stack_self;
+    ff = w->l->frame_ff;
+    __cilkrts_frame_lock(w,ff);
+    sd = ff->stack_self;
     CILK_ASSERT (data==sd);
-    __cilkrts_frame_unlock(w,f);
+    __cilkrts_frame_unlock(w,ff);
     __cilkrts_worker_unlock(w);
 #endif
 
@@ -610,7 +622,7 @@ __cilkrts_watch_stack(__cilk_tbb_unwatch_thunk *u,
 
     /* Get current stack */
     __cilkrts_worker_lock(w);
-    sd = w->l->frame->stack_self;
+    sd = w->l->frame_ff->stack_self;
     __cilkrts_worker_unlock(w);
 
 /*    CILK_ASSERT( !sd->stack_op_data ); */
@@ -626,6 +638,8 @@ __cilkrts_watch_stack(__cilk_tbb_unwatch_thunk *u,
 }
 
 
+// This function must be called only within a continuation, within the stack
+// frame of the continuation itself.
 CILK_API_INT __cilkrts_synched(void)
 {
     __cilkrts_worker *w = __cilkrts_get_tls_worker();
@@ -634,29 +648,52 @@ CILK_API_INT __cilkrts_synched(void)
     if (NULL == w)
         return 1;
 
+    // Check to see if we are in a stolen continuation.  If not, then
+    // we are synched.
+    uint32_t flags = w->current_stack_frame->flags;
+    if (0 == (flags & CILK_FRAME_UNSYNCHED))
+        return 1;
+
+    // We are in a stolen continutation, but the join counter might have been
+    // decremented to one, making us synched again.  Get the full frame so
+    // that we can check the join counter.  ASSUME: frame_ff is stable (can be
+    // read without a lock) in a stolen continuation -- it can't be stolen
+    // while it's currently executing.
+    full_frame *ff = w->l->frame_ff;
+
     // Make sure we have a full frame
-    if (NULL == w->l->frame)
+    // TBD: Don't think that we should ever not have a full frame here.
+    // CILK_ASSERT(NULL != ff); ?
+    if (NULL == ff)
         return 1;
 
     // We're synched if there are no outstanding children at this instant in
     // time.  Note that this is a known race, but it's ok since we're only
-    // reading
-    return 1 == w->l->frame->join_counter;
+    // reading.  We can get false negatives, but not false positives. (I.e.,
+    // we can read a non-one join_counter just before it goes to one, but the
+    // join_counter cannot go from one to greater than one while we're
+    // reading.)
+    return 1 == ff->join_counter;
 }
 
-CILK_API_INT
-__cilkrts_bump_loop_rank()
-{
-    struct __cilkrts_worker *w = __cilkrts_get_tls_worker();
 
+
+
+CILK_API_INT
+__cilkrts_bump_loop_rank_internal(__cilkrts_worker* w)
+{
     // If we don't have a worker, then the runtime is not bound to this
     // thread and there is no rank to increment
     if (NULL == w)
         return -1;
 
-    // We're at the start of the loop body.  Advance the cilk_for loop body
-    // pedigree rank
-    w->pedigree.next->rank++;
+    // We're at the start of the loop body.  Advance the cilk_for loop
+    // body pedigree by following the parent link and updating its
+    // rank.
+
+    // Normally, we'd just write "w->pedigree.parent->rank++"
+    // But we need to cast away the "const".
+    ((__cilkrts_pedigree*) w->pedigree.parent)->rank++;
 
     // Zero the worker's pedigree rank since this is the start of a new
     // pedigree domain.

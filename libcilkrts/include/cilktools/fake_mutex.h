@@ -29,6 +29,10 @@
  *
  * Cilkscreen fake mutexes are provided to indicate to the Cilkscreen race
  * detector that a race should be ignored.
+ *
+ * NOTE: This class does not provide mutual exclusion.  You should use the
+ * mutual exclusion constructs provided by TBB or your operating system to
+ * protect against real data races.
  */
 
 #ifndef FAKE_MUTEX_H_INCLUDED
@@ -69,10 +73,12 @@ namespace cilkscreen
     };
 
     // Factory function for fake mutex
+    inline
     fake_mutex *CILKSCREEN_CDECL create_fake_mutex() { return new fake_mutex(); }
 
     // Destructor function for fake mutex - The mutex cannot be used after
     // calling this function
+    inline
     void CILKSCREEN_CDECL destroy_fake_mutex(fake_mutex *m) { delete m; }
 
 } // namespace cilk

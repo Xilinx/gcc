@@ -46,6 +46,10 @@
 
 __CILKRTS_BEGIN_EXTERN_C
 
+// Set to 0 to allow parallel reductions.
+#define DISABLE_PARALLEL_REDUCERS 0
+#define REDPAR_DEBUG 0
+
 /**
  * Lock the worker mutex to allow exclusive access to the values in the
  * __cilkrts_worker and local_state structures.
@@ -87,11 +91,11 @@ void __cilkrts_worker_unlock(__cilkrts_worker *w);
  * complete.
  *
  * @param w The worker which the frame is to be pushed onto.
- * @param f The full_frame which is to be continued by the worker.
+ * @param ff The full_frame which is to be continued by the worker.
  */
 COMMON_PORTABLE
 void __cilkrts_push_next_frame(__cilkrts_worker *w,
-                               full_frame *f);
+                               full_frame *ff);
 
 /**
  * Sync on this worker. If this is the last worker to reach the sync,
@@ -136,9 +140,11 @@ void __cilkrts_promote_own_deque(__cilkrts_worker *w);
  *
  * @param w The worker which attempting to return from a spawn to
  * a stolen parent.
+ * @param returning_sf The stack frame which is returning. 
  */
 COMMON_PORTABLE
-void __cilkrts_c_THE_exception_check(__cilkrts_worker *w);
+void __cilkrts_c_THE_exception_check(__cilkrts_worker *w,
+				     __cilkrts_stack_frame *returning_sf);
 
 /**
  * Used by the gcc implementation of exceptions to return an exception
@@ -148,7 +154,8 @@ void __cilkrts_c_THE_exception_check(__cilkrts_worker *w);
  * exception to a stolen parent.
  */
 COMMON_PORTABLE
-NORETURN __cilkrts_exception_from_spawn(__cilkrts_worker *w);
+NORETURN __cilkrts_exception_from_spawn(__cilkrts_worker *w,
+					__cilkrts_stack_frame *returning_sf);
 
 /**
  * Used by the Windows implementations of exceptions to migrate an exception
@@ -306,6 +313,19 @@ void __cilkrts_enter_cilk(global_state_t *g);
  */
 COMMON_PORTABLE
 void __cilkrts_leave_cilk(global_state_t *g);
+
+
+/**
+ * Prints out Cilk runtime statistics.
+ *
+ * @param g The runtime global state.
+ *
+ * This method is useful only for debugging purposes.  No guarantees
+ * are made as to the validity of this data. :)
+ */
+COMMON_PORTABLE
+void __cilkrts_dump_stats_to_stderr(global_state_t *g);
+
 
 __CILKRTS_END_EXTERN_C
 

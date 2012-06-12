@@ -82,11 +82,11 @@ struct pending_exception_info *__cilkrts_merge_pending_exceptions(
  * Move the exception information from the worker to the full_frame.
  *
  * @param w The worker which is suspending work on a full_frame.
- * @param f The full_frame which is being suspended.
+ * @param ff The full_frame which is being suspended.
  */
 COMMON_SYSDEP
 void __cilkrts_save_exception_state(__cilkrts_worker *w,
-                                    full_frame *f);
+                                    full_frame *ff);
 
 /**
  * Function to delete pending exception.  This will delete the

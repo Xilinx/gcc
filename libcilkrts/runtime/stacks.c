@@ -53,6 +53,7 @@ static void push(__cilkrts_worker *w, __cilkrts_stack *sd)
     __cilkrts_stack_cache *local = &w->l->stack_cache;
     const unsigned int local_size = local->size;
 
+    /* If room in local, push sd to local stack-of-stacks */
     if (local->n < local_size) {
         local->stacks[local->n++] = sd;
         return;
@@ -63,12 +64,17 @@ static void push(__cilkrts_worker *w, __cilkrts_stack *sd)
         return;
     }
 
-    /* push half (round up) of the free stacks */
+    /* No room in local stack-of-stacks.
+     * Push half (round down) of the free stacks */
     move_to_global(w, local_size / 2);
 
+    /* If some of the stacks didn't get moved (i.e., because the global
+     * stack-of-stacks is full), then permanently destroy some stacks until we
+     * are back down to half */
     while (local->n > local_size / 2)
         __cilkrts_free_stack(w->g, local->stacks[--local->n]);
 
+    /* Push the stack onto our local stack-of-stacks */
     local->stacks[local->n++] = sd;
     return;
 }

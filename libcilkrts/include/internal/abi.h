@@ -36,6 +36,7 @@
 #ifndef CILK_INTERNAL_ABI_H
 #define CILK_INTERNAL_ABI_H
 
+
 #include <cilk/common.h>
 
 /**
@@ -96,22 +97,6 @@ typedef struct __cilkrts_worker_sysdep_state
                                      __cilkrts_worker_sysdep_state;
 
 /**
- * Version number assigned to frames.  When considering this value in code, use
- * CILK_FRAME_VERSION which has this value appropriately shifted.
- */
-#define __CILKRTS_ABI_VERSION 1
-
-/** Pedigree information kept in the worker and stack frame */
-typedef struct __cilkrts_pedigree
-{
-    /** Rank at start of spawn helper. Saved rank for spawning functions */
-    uint64_t rank;
-                                         
-    /** Link to next in chain */
-    struct __cilkrts_pedigree *next;
-} __cilkrts_pedigree;
-
-/**
  * The worker struct contains per-worker information that needs to be
  * visible to the compiler, or rooted here.
  *
@@ -121,6 +106,31 @@ typedef struct __cilkrts_pedigree
  * aligned.  This is OK because the compiler is dealing with the 64-bit
  * quantities as two 32-bit values.  So change the packing to be on
  * 4-byte boundaries.
+ *
+ * The fields of the worker struct can be classified as either local
+ * or shared.
+ *
+ *  Local: This field is only accessed by the thread bound to this
+ *    worker struct.  Local fields can be freely accessed without
+ *    acquiring locks.
+ *  
+ *  Shared: This field may be accessed by multiple worker threads.
+ *    Accesses to shared fields usually requires locks, except in
+ *    special situations where one can prove that locks are
+ *    unnecessary.
+ *
+ * The fields of the worker struct can also be classified as
+ * "read-only" if the field does not change after it is initialized.
+ * Otherwise, the field is "read/write".  Read-only fields do not
+ * require locks to access (ignoring the synchronization that might be
+ * needed for initialization if this can occur in parallel).
+ *
+ * Finally, we explicitly classify some fields as "synchronization"
+ * fields if they are used as part of a synchronization protocol in
+ * the runtime.  These variables are generally shared and read/write.
+ * Mostly, this category includes lock variables and other variables
+ * that are involved in synchronization protocols (i.e., the THE
+ * protocol).
  */
 #if defined(_MSC_VER) && defined(_M_IX86)
 #pragma pack(push, 4)
@@ -131,6 +141,8 @@ struct __cilkrts_worker {
      * T, H, and E pointers in the THE protocol See "The implementation of
      * the Cilk-5 multithreaded language", PLDI 1998:
      * http://portal.acm.org/citation.cfm?doid=277652.277725
+     *
+     * Synchronization fields.  [shared read/write]
      */
     __cilkrts_stack_frame *volatile *volatile tail;
     __cilkrts_stack_frame *volatile *volatile head;  /**< @copydoc tail */
@@ -143,40 +155,65 @@ struct __cilkrts_worker {
      * available for stealing.  During exception handling, protected_tail
      * may be set to the first entry in the task queue, indicating that
      * stealing is not allowed.
+     *
+     * Synchronization field.
      */
     __cilkrts_stack_frame *volatile *volatile protected_tail;
 
-    /** Limit of the Lazy Task Queue, to detect queue overflow */
+    /**
+     * Limit of the Lazy Task Queue, to detect queue overflow
+     * [local read-only]
+     */
     __cilkrts_stack_frame *volatile *ltq_limit;
 
-    /** Worker id */
+    /**
+     * Worker id.
+     * [local read-only]
+     */
     int32_t self;
 
-    /** Global state of the runtime system, opaque to the client */
+    /**
+     * Global state of the runtime system, opaque to the client.
+     * [local read-only]
+     */
     global_state_t *g;
 
     /**
      * Additional per-worker state of the runtime system that we want
-     * to maintain hidden from the client
+     * to maintain hidden from the client.
+     * [shared read-only]
      */
     local_state *l;
 
-    /** map from reducer names to reducer values */
+    /**
+     * Map from reducer names to reducer values.
+     * [local read/write]
+     */
     cilkred_map *reducer_map;
 
-    /** A slot that points to the currently executing Cilk frame. */
+    /**
+     * A slot that points to the currently executing Cilk frame.
+     * [local read/write]
+     */
     __cilkrts_stack_frame *current_stack_frame;
 
-    /** Saved protected tail.  Set to NULL by runtime.  No longer used. */
-    __cilkrts_stack_frame *volatile *volatile saved_protected_tail;
+    /**
+     * Reserved space for a pointer.
+     * Used to be __cilkrts_stack_frame *volatile *volatile saved_protected_tail; 
+     */
+    void* reserved;
 
-    /** System-dependent part of the worker state */
+    /**
+     * System-dependent part of the worker state
+     * [local read-only]
+     */
     __cilkrts_worker_sysdep_state *sysdep;
 
 #if __CILKRTS_ABI_VERSION >= 1
     /**
      * Per-worker pedigree information used to support scheduling-independent
      * pseudo-random numbers.
+     * [local read/write]
      */
     __cilkrts_pedigree   pedigree;    
 #endif  /* __CILKRTS_ABI_VERSION >= 1 */
@@ -219,7 +256,7 @@ struct __cilkrts_stack_frame
     /**
      * The client copies the worker from TLS here when initializing
      * the structure.  The runtime ensures that the field always points
-     * to the __cilrts_worker which currently "owns" the frame.
+     * to the __cilkrts_worker which currently "owns" the frame.
      */
     __cilkrts_worker *worker;
 
@@ -276,8 +313,8 @@ struct __cilkrts_stack_frame
      */
     union
     {
-        __cilkrts_pedigree spawn_helper_pedigree;/* Used in spawn helpers */
-        __cilkrts_pedigree parent_pedigree;      /* Used in spawning funcs */
+        __cilkrts_pedigree spawn_helper_pedigree; /* Used in spawn helpers */
+        __cilkrts_pedigree parent_pedigree;       /* Used in spawning funcs */
     };
 #endif  /* __CILKRTS_ABI_VERSION >= 1 */
 };

@@ -2,7 +2,7 @@
  *
  *************************************************************************
  *
- * Copyright (C) 2007-2011 
+ * Copyright (C) 2007-2012 
  * Intel Corporation
  * 
  * This file is part of the Intel Cilk Plus Library.  This library is free
@@ -42,6 +42,7 @@
 #include "sysdep.h"
 #include "except.h"
 #include "cilk_malloc.h"
+#include "pedigrees.h"
 
 #include <string.h> /* memcpy */
 #include <stdio.h>  // sprintf
@@ -51,7 +52,6 @@
 #   pragma warning(disable:1786)   // disable warning: sprintf is deprecated
 #   include "sysdep-win.h"
 #endif  // _WIN32
-
 
 // ICL: Don't complain about conversion from pointer to same-sized integral
 // type in __cilkrts_put_stack.  That's why we're using ptrdiff_t
@@ -77,22 +77,48 @@
 #   include <unistd.h>
 #endif
 
+//#define DEBUG_LOCKS 1
+#ifdef DEBUG_LOCKS
+// The currently executing worker must own this worker's lock
+#   define ASSERT_WORKER_LOCK_OWNED(w) \
+        { \
+            __cilkrts_worker *tls_worker = __cilkrts_get_tls_worker(); \
+            CILK_ASSERT((w)->l->lock.owner == tls_worker); \
+        }
+#else
+#   define ASSERT_WORKER_LOCK_OWNED(w)
+#endif // DEBUG_LOCKS
+
 // Options for the scheduler.
 enum schedule_t { SCHEDULE_RUN,
                   SCHEDULE_WAIT,
                   SCHEDULE_EXIT };
 
+
+// Verify that "w" is the worker we are currently executing on.
+// Because this check is expensive, this method is usually a no-op.
+static inline void verify_current_wkr(__cilkrts_worker *w)
+{
+#if REDPAR_DEBUG >= 3
+    // Lookup the worker from TLS and compare to w. 
+    __cilkrts_worker* tmp = __cilkrts_get_tls_worker();
+    if (w != tmp) {
+        fprintf(stderr, "Error.  W=%d, actual worker =%d...\n",
+                w->self,
+                tmp->self);
+    }
+    CILK_ASSERT(w == tmp);
+#endif
+}                                                            
+
 static enum schedule_t worker_runnable(__cilkrts_worker *w);
 
 // Scheduling-stack functions:
 static void do_return_from_spawn (__cilkrts_worker *w,
-                                  full_frame *f,
-                                  __cilkrts_stack_frame *sf);
-static void do_migrate_exception (__cilkrts_worker *w,
-                                  full_frame *f,
+                                  full_frame *ff,
                                   __cilkrts_stack_frame *sf);
 static void do_sync (__cilkrts_worker *w,
-                     full_frame *f,
+                     full_frame *ff,
                      __cilkrts_stack_frame *sf);
 
 #ifndef _WIN32
@@ -100,7 +126,7 @@ static void do_sync (__cilkrts_worker *w,
 #   define max(a, b) ((a) < (b) ? (b) : (a))
 #endif
 
-static void __cilkrts_dump_stats_to_stderr(global_state_t *g)
+void __cilkrts_dump_stats_to_stderr(global_state_t *g)
 {
 #ifdef CILK_PROFILE
     int i;
@@ -109,12 +135,17 @@ static void __cilkrts_dump_stats_to_stderr(global_state_t *g)
     dump_stats_to_file(stderr, &g->stats);
 #endif
     fprintf(stderr,
-            "\nCILK++ RUNTIME MEMORY USAGE: %lld bytes",
+            "CILK PLUS Thread Info: P=%d, Q=%d\n",
+            g->P,
+            g->Q);
+    fprintf(stderr,
+            "CILK PLUS RUNTIME MEMORY USAGE: %lld bytes",
             (long long)g->frame_malloc.allocated_from_os);
+#ifdef CILK_PROFILE
     if (g->stats.stack_hwm)
-        fprintf(stderr, ", %ld stacks\n", g->stats.stack_hwm);
-    else
-        fputc('\n', stderr);
+        fprintf(stderr, ", %ld stacks", g->stats.stack_hwm);
+#endif
+    fputc('\n', stderr);
 }
 
 static void validate_worker(__cilkrts_worker *w)
@@ -125,44 +156,44 @@ static void validate_worker(__cilkrts_worker *w)
         abort_because_rts_is_corrupted();
 }
 
-static void double_link(full_frame *left, full_frame *right)
+static void double_link(full_frame *left_ff, full_frame *right_ff)
 {
-    if (left)
-        left->right_sibling = right;
-    if (right)
-        right->left_sibling = left;
+    if (left_ff)
+        left_ff->right_sibling = right_ff;
+    if (right_ff)
+        right_ff->left_sibling = left_ff;
 }
 
 /* add CHILD to the right of all children of PARENT */
-static void push_child(full_frame *parent, full_frame *child)
+static void push_child(full_frame *parent_ff, full_frame *child_ff)
 {
-    double_link(parent->rightmost_child, child);
-    double_link(child, 0);
-    parent->rightmost_child = child;
+    double_link(parent_ff->rightmost_child, child_ff);
+    double_link(child_ff, 0);
+    parent_ff->rightmost_child = child_ff;
 }
 
 /* unlink CHILD from the list of all children of PARENT */
-static void unlink_child(full_frame *parent, full_frame *child)
+static void unlink_child(full_frame *parent_ff, full_frame *child_ff)
 {
-    double_link(child->left_sibling, child->right_sibling);
+    double_link(child_ff->left_sibling, child_ff->right_sibling);
 
-    if (!child->right_sibling) {
+    if (!child_ff->right_sibling) {
         /* this is the rightmost child -- update parent link */
-        CILK_ASSERT(parent->rightmost_child == child);
-        parent->rightmost_child = child->left_sibling;
+        CILK_ASSERT(parent_ff->rightmost_child == child_ff);
+        parent_ff->rightmost_child = child_ff->left_sibling;
     }
-    child->left_sibling = child->right_sibling = 0; /* paranoia */
+    child_ff->left_sibling = child_ff->right_sibling = 0; /* paranoia */
 }
 
-static void incjoin(full_frame *f)
+static void incjoin(full_frame *ff)
 {
-    ++f->join_counter;
+    ++ff->join_counter;
 }
 
-static int decjoin(full_frame *f)
+static int decjoin(full_frame *ff)
 {
-    CILK_ASSERT(f->join_counter > 0);
-    return (--f->join_counter);
+    CILK_ASSERT(ff->join_counter > 0);
+    return (--ff->join_counter);
 }
 
 /*
@@ -224,7 +255,7 @@ void __cilkrts_worker_unlock(__cilkrts_worker *w)
 static int worker_trylock_other(__cilkrts_worker *w,
                                 __cilkrts_worker *other)
 {
-    int success = 0;
+    int status = 0;
 
     validate_worker(other);
 
@@ -242,13 +273,13 @@ static int worker_trylock_other(__cilkrts_worker *w,
         if (other->l->do_not_steal) {
             /* leave it alone */
         } else {
-            success = __cilkrts_mutex_trylock(w, &other->l->lock);
+            status = __cilkrts_mutex_trylock(w, &other->l->lock);
         }
         __cilkrts_mutex_unlock(w, &other->l->steal_lock);
     }
 
 
-    return success;
+    return status;
 }
 
 static void worker_unlock_other(__cilkrts_worker *w,
@@ -262,60 +293,74 @@ static void worker_unlock_other(__cilkrts_worker *w,
     BEGIN_WITH_WORKER_LOCK(w) {
         statement;
         statement;
-        BEGIN_WITH_FRAME_LOCK(w, f) {
+        BEGIN_WITH_FRAME_LOCK(w, ff) {
             statement;
             statement;
-        } END_WITH_FRAME_LOCK(w, f);
+        } END_WITH_FRAME_LOCK(w, ff);
     } END_WITH_WORKER_LOCK(w);
  */
 #define BEGIN_WITH_WORKER_LOCK(w) __cilkrts_worker_lock(w); do
 #define END_WITH_WORKER_LOCK(w)   while (__cilkrts_worker_unlock(w), 0)
 
-#define BEGIN_WITH_FRAME_LOCK(w, f)                                     \
-    do { full_frame *_locked = f; __cilkrts_frame_lock(w, _locked); do
+// TBD(jsukha): These are worker lock acquistions on
+// a worker whose deque is empty.  My conjecture is that we
+// do not need to hold the worker lock at these points.
+// I have left them in for now, however.
+//
+// #define REMOVE_POSSIBLY_OPTIONAL_LOCKS
+#ifdef REMOVE_POSSIBLY_OPTIONAL_LOCKS
+    #define BEGIN_WITH_WORKER_LOCK_OPTIONAL(w) do
+    #define END_WITH_WORKER_LOCK_OPTIONAL(w)   while (0)
+#else
+    #define BEGIN_WITH_WORKER_LOCK_OPTIONAL(w) __cilkrts_worker_lock(w); do
+    #define END_WITH_WORKER_LOCK_OPTIONAL(w)   while (__cilkrts_worker_unlock(w), 0)
+#endif
 
-#define END_WITH_FRAME_LOCK(w, f)                       \
-    while (__cilkrts_frame_unlock(w, _locked), 0); } while (0)
+
+#define BEGIN_WITH_FRAME_LOCK(w, ff)                                     \
+    do { full_frame *_locked_ff = ff; __cilkrts_frame_lock(w, _locked_ff); do
+
+#define END_WITH_FRAME_LOCK(w, ff)                       \
+    while (__cilkrts_frame_unlock(w, _locked_ff), 0); } while (0)
 
 /* W becomes the owner of F and F can be stolen from W */
-static void make_runnable(__cilkrts_worker *w, full_frame *f)
+static void make_runnable(__cilkrts_worker *w, full_frame *ff)
 {
-    w->l->frame = f;
+    w->l->frame_ff = ff;
 
     /* CALL_STACK is invalid (the information is stored implicitly in W) */
-    f->call_stack = 0;
+    ff->call_stack = 0;
 }
 
+/*
+ * The worker parameter is unused, except for print-debugging purposes.
+ */
 static void make_unrunnable(__cilkrts_worker *w,
-                            full_frame *f,
+                            full_frame *ff,
                             __cilkrts_stack_frame *sf,
                             int state_valid,
                             const char *why)
 {
     /* CALL_STACK becomes valid again */
-    f->call_stack = sf;
-
-    /* stable_call_stack has to be valid */
-    if (f->stable_call_stack && sf)
-        CILK_ASSERT(f->stable_call_stack == sf);
-    f->stable_call_stack = sf;
+    ff->call_stack = sf;
 
     if (sf) {
 #if CILK_LIB_DEBUG
         if (__builtin_expect(sf->flags & CILK_FRAME_EXITING, 0))
-            __cilkrts_bug("W%d suspending exiting frame %p/%p\n", w->self, f, sf);
+            __cilkrts_bug("W%d suspending exiting frame %p/%p\n", w->self, ff, sf);
 #endif
         sf->flags |= CILK_FRAME_STOLEN | CILK_FRAME_SUSPENDED;
         sf->worker = 0;
 
         if (state_valid)
-            __cilkrts_put_stack(f, sf);
+            __cilkrts_put_stack(ff, sf);
 
         /* perform any system-dependent action, such as saving the
            state of the stack */
-        __cilkrts_make_unrunnable_sysdep(w, f, sf, state_valid, why);
+        __cilkrts_make_unrunnable_sysdep(w, ff, sf, state_valid, why);
     }
 }
+
 
 /* Push the next full frame to be made active in this worker and increment its
  * join counter.  __cilkrts_push_next_frame and pop_next_frame work on a
@@ -325,13 +370,12 @@ static void make_unrunnable(__cilkrts_worker *w,
  * increments the join counter but pop does not decrement it.  Rather, a
  * single push/pop combination makes a frame active and increments its join
  * counter once. */
-void __cilkrts_push_next_frame(__cilkrts_worker *w, full_frame *f)
+void __cilkrts_push_next_frame(__cilkrts_worker *w, full_frame *ff)
 {
-    CILK_ASSERT(f);
-    CILK_ASSERT(!w->l->next_frame);
-    incjoin(f);
-
-    w->l->next_frame = f;
+    CILK_ASSERT(ff);
+    CILK_ASSERT(!w->l->next_frame_ff);
+    incjoin(ff);
+    w->l->next_frame_ff = ff;
 }
 
 /* Get the next full-frame to be made active in this worker.  The join count
@@ -340,8 +384,8 @@ void __cilkrts_push_next_frame(__cilkrts_worker *w, full_frame *f)
  */
 static full_frame *pop_next_frame(__cilkrts_worker *w)
 {
-    full_frame *f;
-    f = w->l->next_frame;
+    full_frame *ff;
+    ff = w->l->next_frame_ff;
     // Remove the frame from the next_frame field.
     //
     // If this is a user worker, then there is a chance that another worker
@@ -353,10 +397,10 @@ static full_frame *pop_next_frame(__cilkrts_worker *w)
     // there is no chance of another team member populating next_frame.  Thus,
     // it is safe to set next_frame to NULL, if it was populated.  There is no
     // need for an atomic op.
-    if (NULL != f) {
-        w->l->next_frame = NULL;
+    if (NULL != ff) {
+        w->l->next_frame_ff = NULL;
     }
-    return f;
+    return ff;
 }
 
 /*
@@ -368,10 +412,10 @@ static full_frame *pop_next_frame(__cilkrts_worker *w)
  *
  * This should happen while holding the worker and frame lock.
  */
-static void set_sync_master(__cilkrts_worker *w, full_frame *f)
+static void set_sync_master(__cilkrts_worker *w, full_frame *ff)
 {
-    w->l->last_full_frame = f;
-    f->sync_master = w;
+    w->l->last_full_frame = ff;
+    ff->sync_master = w;
 }
 
 /*
@@ -381,13 +425,13 @@ static void set_sync_master(__cilkrts_worker *w, full_frame *f)
  * No locks need to be held since the user worker isn't doing anything, and none
  * of the system workers can steal from it.  But unset_sync_master() should be
  * called before the user worker knows about this work (i.e., before it is
- * inserted into the w->l->next_frame is set).
+ * inserted into the w->l->next_frame_ff is set).
  */
-static void unset_sync_master(__cilkrts_worker *w, full_frame *f)
+static void unset_sync_master(__cilkrts_worker *w, full_frame *ff)
 {
     CILK_ASSERT(WORKER_USER == w->l->type);
-    CILK_ASSERT(f->sync_master == w);
-    f->sync_master = NULL;
+    CILK_ASSERT(ff->sync_master == w);
+    ff->sync_master = NULL;
     w->l->last_full_frame = NULL;
 }
 
@@ -427,7 +471,9 @@ static void increment_E(__cilkrts_worker *victim)
 {
     __cilkrts_stack_frame *volatile *tmp;
 
-    /* ASSERT: we own victim->lock */
+    // The currently executing worker must own the worker lock to touch
+    // victim->exc
+    ASSERT_WORKER_LOCK_OWNED(victim);
 
     tmp = victim->exc;
     if (tmp != EXC_INFINITY) {
@@ -443,7 +489,9 @@ static void decrement_E(__cilkrts_worker *victim)
 {
     __cilkrts_stack_frame *volatile *tmp;
 
-    /* ASSERT: we own victim->lock */
+    // The currently executing worker must own the worker lock to touch
+    // victim->exc
+    ASSERT_WORKER_LOCK_OWNED(victim);
 
     tmp = victim->exc;
     if (tmp != EXC_INFINITY) {
@@ -466,6 +514,10 @@ static void signal_THE_exception(__cilkrts_worker *wparent)
 
 static void reset_THE_exception(__cilkrts_worker *w)
 {
+    // The currently executing worker must own the worker lock to touch
+    // w->exc
+    ASSERT_WORKER_LOCK_OWNED(w);
+
     w->exc = w->head;
     __cilkrts_fence();
 }
@@ -473,11 +525,6 @@ static void reset_THE_exception(__cilkrts_worker *w)
 /* conditions under which victim->head can be stolen: */
 static int can_steal_from(__cilkrts_worker *victim)
 {
-#if JFC_DEBUG
-    if ((unsigned long)(victim->tail + 1) - (unsigned long)victim->head > 1000)
-        __cilkrts_bug("can steal from: victim %d head %p tail %p\n",
-                      victim->self, victim->head, victim->tail);
-#endif
     return ((victim->head < victim->tail) && 
             (victim->head < victim->protected_tail));
 }
@@ -485,6 +532,11 @@ static int can_steal_from(__cilkrts_worker *victim)
 /* Return TRUE if the frame can be stolen, false otherwise */
 static int dekker_protocol(__cilkrts_worker *victim)
 {
+    // increment_E and decrement_E are going to touch victim->exc.  The
+    // currently executing worker must own victim's lock before they can
+    // modify it
+    ASSERT_WORKER_LOCK_OWNED(victim);
+
     /* ASSERT(E >= H); */
 
     increment_E(victim);
@@ -503,14 +555,14 @@ static int dekker_protocol(__cilkrts_worker *victim)
 
 /* Link PARENT and CHILD in the spawn tree */
 static full_frame *make_child(__cilkrts_worker *w, 
-                              full_frame *parent,
+                              full_frame *parent_ff,
                               __cilkrts_stack_frame *child_sf,
                               __cilkrts_stack *sd)
 {
-    full_frame *child = __cilkrts_make_full_frame(w, child_sf);
+    full_frame *child_ff = __cilkrts_make_full_frame(w, child_sf);
 
-    child->parent = parent;
-    push_child(parent, child);
+    child_ff->parent = parent_ff;
+    push_child(parent_ff, child_ff);
 
     //DBGPRINTF("%d-          make_child - child_frame: %p, parent_frame: %p, child_sf: %p\n"
     //    "            parent - parent: %p, left_sibling: %p, right_sibling: %p, rightmost_child: %p\n"
@@ -519,8 +571,8 @@ static full_frame *make_child(__cilkrts_worker *w,
     //          parent->parent, parent->left_sibling, parent->right_sibling, parent->rightmost_child,
     //          child->parent, child->left_sibling, child->right_sibling, child->rightmost_child);
 
-    CILK_ASSERT(parent->call_stack);
-    child->is_call_child = (sd == NULL);
+    CILK_ASSERT(parent_ff->call_stack);
+    child_ff->is_call_child = (sd == NULL);
 
     /* PLACEHOLDER_STACK is used as non-null marker indicating that
        child should be treated as a spawn child even though we have not
@@ -534,26 +586,23 @@ static full_frame *make_child(__cilkrts_worker *w,
 
     /* Child gets reducer map and stack of parent.
        Parent gets a new map and new stack. */
-    child->reducer_map = parent->reducer_map;
-    child->stack_self = parent->stack_self;
-    child->sync_master = NULL;
+    child_ff->stack_self = parent_ff->stack_self;
+    child_ff->sync_master = NULL;
 
-    if (child->is_call_child) {
+    if (child_ff->is_call_child) {
         /* Cause segfault on any attempted access.  The parent gets
            the child map and stack when the child completes. */
-        parent->reducer_map = 0;
-        parent->stack_self = 0;
+        parent_ff->stack_self = 0;
     } else {
-        parent->stack_self = sd;
-        parent->reducer_map = __cilkrts_make_reducer_map(w);
-        __cilkrts_bind_stack(parent,
-                             __cilkrts_stack_to_pointer(parent->stack_self, child_sf),
-                             child->stack_self,
-                             child->sync_master);
+        parent_ff->stack_self = sd;
+        __cilkrts_bind_stack(parent_ff,
+                             __cilkrts_stack_to_pointer(parent_ff->stack_self, child_sf),
+                             child_ff->stack_self,
+                             child_ff->sync_master);
     }
 
-    incjoin(parent);
-    return child;
+    incjoin(parent_ff);
+    return child_ff;
 }
 
 static inline __cilkrts_stack_frame *__cilkrts_advance_frame(__cilkrts_stack_frame *sf)
@@ -563,13 +612,30 @@ static inline __cilkrts_stack_frame *__cilkrts_advance_frame(__cilkrts_stack_fra
     return p;
 }
 
+/* w should be the currently executing worker.  
+ * loot_sf is the youngest stack frame in the call stack being 
+ *   unrolled (i.e., the most deeply nested stack frame.)
+ *
+ * When this method is called for a steal, loot_sf should be on a
+ * victim worker which is different from w.
+ * For CILK_FORCE_REDUCE, the victim worker will equal w.
+ *
+ * Before execution, the __cilkrts_stack_frame's have pointers from
+ * older to younger, i.e., a __cilkrts_stack_frame points to parent.
+ *
+ * This method creates a full frame for each __cilkrts_stack_frame in
+ * the call stack, with each full frame also pointing to its parent. 
+ *
+ * The method returns the full frame created for loot_sf, i.e., the
+ * youngest full frame.
+ */
 static full_frame *unroll_call_stack(__cilkrts_worker *w, 
-                                     full_frame *f, 
-                                     __cilkrts_stack_frame *const sf0)
+                                     full_frame *ff, 
+                                     __cilkrts_stack_frame *const loot_sf)
 {
-    __cilkrts_stack_frame *sf = sf0;
-    __cilkrts_stack_frame *rev = 0;
-    __cilkrts_stack_frame *t;
+    __cilkrts_stack_frame *sf = loot_sf;
+    __cilkrts_stack_frame *rev_sf = 0;
+    __cilkrts_stack_frame *t_sf;
 
     CILK_ASSERT(sf);
     /*CILK_ASSERT(sf->call_parent != sf);*/
@@ -582,22 +648,21 @@ static full_frame *unroll_call_stack(__cilkrts_worker *w,
        to child.  sf->call_parent points to the child of SF instead of
        the parent.  */
     do {
-        t = (sf->flags & (CILK_FRAME_DETACHED|CILK_FRAME_STOLEN|CILK_FRAME_LAST))? 0 : sf->call_parent;
-        sf->call_parent = rev;
-        rev = sf;
-        sf = t;
+        t_sf = (sf->flags & (CILK_FRAME_DETACHED|CILK_FRAME_STOLEN|CILK_FRAME_LAST))? 0 : sf->call_parent;
+        sf->call_parent = rev_sf;
+        rev_sf = sf;
+        sf = t_sf;
     } while (sf);
-    sf = rev;
+    sf = rev_sf;
 
-    /* Promote each frame in order from parent to child, following the
-       reversed list we just built. */
-    make_unrunnable(w, f, sf, sf == sf0, "steal 1");
-
+    /* Promote each stack frame to a full frame in order from parent
+       to child, following the reversed list we just built. */
+    make_unrunnable(w, ff, sf, sf == loot_sf, "steal 1");
     /* T is the *child* of SF, because we have reversed the list */
-    for (t = __cilkrts_advance_frame(sf); t;
-         sf = t, t = __cilkrts_advance_frame(sf)) {
-        f = make_child(w, f, t, NULL);
-        make_unrunnable(w, f, t, t == sf0, "steal 2");
+    for (t_sf = __cilkrts_advance_frame(sf); t_sf;
+         sf = t_sf, t_sf = __cilkrts_advance_frame(sf)) {
+        ff = make_child(w, ff, t_sf, NULL);
+        make_unrunnable(w, ff, t_sf, t_sf == loot_sf, "steal 2");
     }
 
     /* XXX What if the leafmost frame does not contain a sync
@@ -605,39 +670,35 @@ static full_frame *unroll_call_stack(__cilkrts_worker *w,
     /*sf->flags |= CILK_FRAME_UNSYNCHED;*/
 
     CILK_ASSERT(!sf->call_parent);
-    return f;
+    return ff;
 }
 
 /* detach the top of the deque frame from the VICTIM and install a new
    CHILD frame in its place */
-static void detach(__cilkrts_worker *w,
-                   __cilkrts_worker *victim,
-                   __cilkrts_stack *sd)
+static void detach_for_steal(__cilkrts_worker *w,
+                             __cilkrts_worker *victim,
+                             __cilkrts_stack *sd)
 {
     /* ASSERT: we own victim->lock */
 
-    full_frame *parent, *child, *loot;
+    full_frame *parent_ff, *child_ff, *loot_ff;
     __cilkrts_stack_frame *volatile *h;
     __cilkrts_stack_frame *sf;
 
     w->l->team = victim->l->team;
 
-    CILK_ASSERT(w->l->frame == 0 || w == victim);
+    CILK_ASSERT(w->l->frame_ff == 0 || w == victim);
 
     h = victim->head;
 
     CILK_ASSERT(*h);
 
-#if JFC_DEBUG
-    fprintf(stderr, "detach %u tail %p head <- %p { %p %p ... }\n",
-            victim->self, (void *)victim->tail, (void *)(h+1), h[0], h[1]);
-#endif
     victim->head = h + 1;
 
-    parent = victim->l->frame;
-    BEGIN_WITH_FRAME_LOCK(w, parent) {
+    parent_ff = victim->l->frame_ff;
+    BEGIN_WITH_FRAME_LOCK(w, parent_ff) {
         /* parent no longer referenced by victim */
-        decjoin(parent);
+        decjoin(parent_ff);
 
         /* obtain the victim call stack */
         sf = *h;
@@ -645,15 +706,26 @@ static void detach(__cilkrts_worker *w,
         /* perform system-dependent normalizations */
         /*__cilkrts_normalize_call_stack_on_steal(sf);*/
 
-        /* unroll PARENT with call stack SF, adopt the youngest
-           frame LOOT */
-        loot = unroll_call_stack(w, parent, sf);
+        /* unroll PARENT_FF with call stack SF, adopt the youngest
+           frame LOOT.  If loot_ff == parent_ff, then we hold loot_ff->lock,
+           otherwise, loot_ff is newly created and we can modify it without
+           holding its lock. */
+        loot_ff = unroll_call_stack(w, parent_ff, sf);
+
+        #if REDPAR_DEBUG >= 3
+        fprintf(stderr, "[W=%d, victim=%d, desc=detach, parent_ff=%p, loot=%p]\n",
+                w->self, victim->self,
+                parent_ff, loot_ff);
+        #endif
 
         if (WORKER_USER == victim->l->type &&
             NULL == victim->l->last_full_frame) {
             // Mark this looted frame as special: only the original user worker
             // may cross the sync.
-            set_sync_master(victim, loot);
+            // 
+            // This call is a shared access to
+            // victim->l->last_full_frame.
+            set_sync_master(victim, loot_ff);
         }
 
         /* LOOT is the next frame that the thief W is supposed to
@@ -662,23 +734,34 @@ static void detach(__cilkrts_worker *w,
            executes LOOT. */
         if (w == victim) {
             /* Pretend that frame has been stolen */
-            loot->call_stack->flags |= CILK_FRAME_UNSYNCHED;
-            loot->simulated_stolen = 1;
+            loot_ff->call_stack->flags |= CILK_FRAME_UNSYNCHED;
+            loot_ff->simulated_stolen = 1;
         }
         else
-            __cilkrts_push_next_frame(w, loot);
+            __cilkrts_push_next_frame(w, loot_ff);
 
-        child = make_child(w, loot, 0, sd);
+        // After this "push_next_frame" call, w now owns loot_ff.
+        child_ff = make_child(w, loot_ff, 0, sd);
 
-        BEGIN_WITH_FRAME_LOCK(w, child) {
+        BEGIN_WITH_FRAME_LOCK(w, child_ff) {
             /* install child in the victim's work queue, taking
-               the parent's place */
+               the parent_ff's place */
             /* child is referenced by victim */
-            incjoin(child);
-            make_runnable(victim, child);
-            CILK_ASSERT(victim->reducer_map == child->reducer_map);
-        } END_WITH_FRAME_LOCK(w, child);
-    } END_WITH_FRAME_LOCK(w, parent);
+            incjoin(child_ff);
+
+            // With this call, w is bestowing ownership of the newly
+            // created frame child_ff to the victim, and victim is
+            // giving up ownership of parent_ff.
+            //
+            // Worker w will either take ownership of parent_ff
+            // if parent_ff == loot_ff, or parent_ff will be
+            // suspended.
+            //
+            // Note that this call changes the victim->frame_ff
+            // while the victim may be executing.
+            make_runnable(victim, child_ff);
+        } END_WITH_FRAME_LOCK(w, child_ff);
+    } END_WITH_FRAME_LOCK(w, parent_ff);
 }
 
 static void random_steal(__cilkrts_worker *w)
@@ -740,16 +823,28 @@ static void random_steal(__cilkrts_worker *w)
             // holds it.
             NOTE_INTERVAL(w, INTERVAL_STEAL_FAIL_USER_WORKER);
 
-        } else if (victim->l->frame) {
+        } else if (victim->l->frame_ff) {
+            // A successful steal will change victim->frame_ff, even
+            // though the victim may be executing.  Thus, the lock on
+            // the victim's deque is also protecting victim->frame_ff.
             if (dekker_protocol(victim)) {
                 START_INTERVAL(w, INTERVAL_STEAL_SUCCESS) {
                     success = 1;
-                    detach(w, victim, sd);
+                    detach_for_steal(w, victim, sd);
+                    #if REDPAR_DEBUG >= 1
+                        fprintf(stderr, "Wkr %d stole from victim %d, sd = %p\n",
+                                w->self, victim->self, sd);
+                    #endif
+
+                    // The use of victim->self contradicts our
+                    // classification of the "self" field as 
+                    // local.  But since this code is only for
+                    // debugging, it is ok.
                     DBGPRINTF ("%d-%p: Stealing work from worker %d\n"
                                "            sf: %p, call parent: %p\n",
                                w->self, GetCurrentFiber(), victim->self,
-                               w->l->next_frame->call_stack,
-                               w->l->next_frame->call_stack->call_parent);
+                               w->l->next_frame_ff->call_stack,
+                               w->l->next_frame_ff->call_stack->call_parent);
                 } STOP_INTERVAL(w, INTERVAL_STEAL_SUCCESS);
             } else {
                 NOTE_INTERVAL(w, INTERVAL_STEAL_FAIL_DEKKER);
@@ -772,87 +867,100 @@ static void random_steal(__cilkrts_worker *w)
     }
 }
 
-/* at a provably good steal, incorporate the accumulated reducers of
-   children into the parent's map */
-static void provably_good_steal_reducers(__cilkrts_worker *w,
-                                         full_frame       *f)
+/**
+ * At a provably good steal, we need to transfer the child reducer map
+ * from ff->children_reducer_map into v->reducer_map, where v is the
+ * worker that resumes execution of ff.
+ *
+ * Normally, we have v == w, where w is the currently executing
+ * worker.  In the case where we are resuming a team leader on a user
+ * worker, however, v might differ from w.
+
+ * Thus, this, operation is a no-op, since we can't really move
+ * ff->children_reducer_map into w here.
+ *
+ * Instead, this work is done in setup_for_execution_reducers().
+ */
+static inline void provably_good_steal_reducers(__cilkrts_worker *w,
+                                                full_frame       *ff)
 {
-    f->reducer_map = 
-        __cilkrts_merge_reducer_maps(
-            w, f->children_reducer_map, f->reducer_map);
-    f->children_reducer_map = 0;
+    // No-op.
 }
 
 /* at a provably good steal, incorporate the accumulated exceptions of
    children into the parent's exception */
 static void provably_good_steal_exceptions(__cilkrts_worker *w, 
-                                           full_frame *f)
+                                           full_frame       *ff)
 {
-    f->pending_exception =
-        __cilkrts_merge_pending_exceptions(
-            w, f->child_pending_exception, f->pending_exception);
-    f->child_pending_exception = NULL;
+    // ASSERT: we own ff->lock
+    ff->pending_exception =
+        __cilkrts_merge_pending_exceptions(w,
+                                           ff->child_pending_exception,
+                                           ff->pending_exception);
+    ff->child_pending_exception = NULL;
 }
 
 /* At sync discard the frame's old stack and take the leftmost child's. */
-static void provably_good_steal_stacks(__cilkrts_worker *w, full_frame *f)
+static void provably_good_steal_stacks(__cilkrts_worker *w, full_frame *ff)
 {
     __cilkrts_stack *s;
-
-#if JFC_DEBUG
-    fprintf(stderr, "W%d sync stacks %p/%p free %p owner %p/%p\n", w->self,
-            f, f->call_stack, f->stack_self, f->owner, f->owner_child);
-#endif
-    s = f->stack_self;
-    f->stack_self = f->stack_child;
-    f->stack_child = NULL;
-    if (s)
+    s = ff->stack_self;
+    ff->stack_self = ff->stack_child;
+    ff->stack_child = NULL;
+    if (s) {
         __cilkrts_release_stack(w, s);
+    }
 
     /* We don't have a stack to bind right now, so use the
        BIND_PROVABLY_GOOD_STACK magic number, instead */
-    __cilkrts_bind_stack(f, f->sync_sp, BIND_PROVABLY_GOOD_STACK, NULL);
+    __cilkrts_bind_stack(ff, ff->sync_sp, BIND_PROVABLY_GOOD_STACK, NULL);
 }
 
-static void __cilkrts_mark_synched(full_frame *f)
+static void __cilkrts_mark_synched(full_frame *ff)
 {
-    f->call_stack->flags &= ~CILK_FRAME_UNSYNCHED;
-    f->simulated_stolen = 0;
+    ff->call_stack->flags &= ~CILK_FRAME_UNSYNCHED;
+    ff->simulated_stolen = 0;
 }
 
 static int provably_good_steal(__cilkrts_worker *w,
-                               full_frame       *f)
+                               full_frame       *ff)
 {
+    // ASSERT: we hold w->lock and ff->lock
+
     int abandoned = 1;  // True if we can't make any more progress on this
                         // thread and are going to attempt to steal work from
                         // someone else
 
     START_INTERVAL(w, INTERVAL_PROVABLY_GOOD_STEAL) {
-        if (decjoin(f) == 0) {
-            provably_good_steal_reducers(w, f);
-            provably_good_steal_exceptions(w, f);
-            provably_good_steal_stacks(w, f);
-            __cilkrts_mark_synched(f);
+        if (decjoin(ff) == 0) {
+            provably_good_steal_reducers(w, ff);
+            provably_good_steal_exceptions(w, ff);
+            provably_good_steal_stacks(w, ff);
+            __cilkrts_mark_synched(ff);
 
-            /* If the original owner wants this frame back (to resume
-               it on its original thread) pass it back now. */
-            if (NULL != f->sync_master) {
+            // If the original owner wants this frame back (to resume
+            // it on its original thread) pass it back now.
+            if (NULL != ff->sync_master) {
                 // The frame wants to go back and be executed by the original
                 // user thread.  We can throw caution to the wind and push the
                 // frame straight onto its queue because the only way we have
                 // gotten to this point of being able to continue execution of
                 // the frame is if the original user worker is spinning without
                 // work.
-                unset_sync_master(w->l->team, f);
-                __cilkrts_push_next_frame(w->l->team, f);
+
+                unset_sync_master(w->l->team, ff);
+                __cilkrts_push_next_frame(w->l->team, ff);
 
                 // If this is the team leader we're not abandoning the work
                 if (w == w->l->team)
                     abandoned = 0;
             } else {
-                __cilkrts_push_next_frame(w, f);
+                __cilkrts_push_next_frame(w, ff);
                 abandoned = 0;  // Continue working on this thread
             }
+
+            // The __cilkrts_push_next_frame() call changes ownership
+            // of ff to the specified worker.
         }
     } STOP_INTERVAL(w, INTERVAL_PROVABLY_GOOD_STEAL);
 
@@ -860,215 +968,194 @@ static int provably_good_steal(__cilkrts_worker *w,
 }
 
 static void unconditional_steal(__cilkrts_worker *w,
-                                full_frame *f)
+                                full_frame *ff)
 {
+    // ASSERT: we hold ff->lock
+
     START_INTERVAL(w, INTERVAL_UNCONDITIONAL_STEAL) {
-        decjoin(f);
-        __cilkrts_push_next_frame(w, f);
+        decjoin(ff);
+        __cilkrts_push_next_frame(w, ff);
     } STOP_INTERVAL(w, INTERVAL_UNCONDITIONAL_STEAL);
 }
 
-/* CHILD is about to die.  Give its reducers to a sibling
-   or to the parent. */
-static void splice_reducers(__cilkrts_worker *w, 
-                            full_frame *parent,
-                            full_frame *child)
-{
-    /* ASSERT: we own parent->lock */
-    CILK_ASSERT(!child->children_reducer_map);
-
-    if (child->is_call_child) {
-        /* if CHILD is attached to PARENT, then CHILD cannot have
-           right siblings */
-        CILK_ASSERT(child->right_reducer_map == 0);
-
-        /* merge own map with map of parent, which is guaranteed not
-           to be running because the child is attached to it */
-        CILK_ASSERT(child == parent->rightmost_child);
-
-        /* if the child is attached to the parent, then the parent
-           cannot have accumulated any updates in its reducer
-           map. */
-        CILK_ASSERT(parent->reducer_map == 0);
-
-        parent->reducer_map = child->reducer_map;
-        child->reducer_map = 0;        
-    } else {
-        full_frame *left;
-
-        child->reducer_map = __cilkrts_merge_reducer_maps(
-            w, child->reducer_map, child->right_reducer_map);
-        child->right_reducer_map = 0;
-
-        if ((left = child->left_sibling)) {
-            /* merge own map with right map of left sibling */
-            left->right_reducer_map = __cilkrts_merge_reducer_maps(
-                w, left->right_reducer_map, child->reducer_map);
-            child->reducer_map = 0;
-        } else {
-            /* merge own map with children map in the parent */
-            parent->children_reducer_map = __cilkrts_merge_reducer_maps(
-                w, parent->children_reducer_map, child->reducer_map);
-            child->reducer_map = 0;
-        }
-    }
-}
 
 /* CHILD is about to die.  Give its exceptions to a sibling or to the
    parent.  */
-static void splice_exceptions(__cilkrts_worker *w, 
-                              full_frame *parent,
-                              full_frame *child)
+static inline void splice_exceptions_for_call(__cilkrts_worker *w,
+                                              full_frame *parent_ff,
+                                              full_frame *child_ff)
 {
-    if (child->is_call_child) {
-        CILK_ASSERT(NULL == child->right_pending_exception);
-        CILK_ASSERT(NULL == parent->pending_exception);
-        parent->pending_exception = child->pending_exception;
-        child->pending_exception = 0;
-    } else {
-        full_frame *left;
-
-        /* If any exceptions occurred logically after us, merge that
-           exception with ours */
-        child->pending_exception =
-            __cilkrts_merge_pending_exceptions(
-                w, child->pending_exception, child->right_pending_exception);
-        child->right_pending_exception = 0;
-
-        if ((left = child->left_sibling)) {
-            /* If there's a sibling to our left, which means they're
-               logically executing "before" us.  Merge our pending
-               exception into their right_pending_exception */
-            left->right_pending_exception =
-                __cilkrts_merge_pending_exceptions(
-                    w, left->right_pending_exception, child->pending_exception);
-            child->pending_exception = 0;
-        } else {
-            /* We are the left-most sibling.  Merge our pending
-               exception into our parent */
-            parent->child_pending_exception =
-                __cilkrts_merge_pending_exceptions(
-                    w, parent->child_pending_exception, 
-                    child->pending_exception);
-            child->pending_exception = 0;
-        }
-    }
+    // ASSERT: We own parent_ff->lock
+    CILK_ASSERT(child_ff->is_call_child);
+    CILK_ASSERT(NULL == child_ff->right_pending_exception);
+    CILK_ASSERT(NULL == parent_ff->pending_exception);
+    
+    parent_ff->pending_exception = child_ff->pending_exception;
+    child_ff->pending_exception = NULL;
 }
 
-static void splice_stacks(__cilkrts_worker *w, 
-                          full_frame *parent,
-                          full_frame *child)
+/**
+ * Merge exceptions for a dying child. 
+ *
+ * @param w                   The currently executing worker.
+ * @param ff                  The child frame that is dying.
+ * @param left_exception_ptr  Pointer to the exception that is to our left.
+ */ 
+static inline
+void splice_exceptions_for_spawn(__cilkrts_worker *w,
+                                 full_frame *ff,
+                                 struct pending_exception_info **left_exception_ptr)
+{
+    // ASSERT: parent_ff == child_ff->parent.
+    // ASSERT: We own parent_ff->lock
+
+    // Merge current exception into the slot where the left
+    // exception should go.
+    *left_exception_ptr =
+        __cilkrts_merge_pending_exceptions(w,
+                                           *left_exception_ptr,
+                                           ff->pending_exception);
+    ff->pending_exception = NULL;
+
+
+    // Merge right exception into the slot where the left exception
+    // should go.
+    *left_exception_ptr =
+        __cilkrts_merge_pending_exceptions(w,
+                                           *left_exception_ptr,
+                                           ff->right_pending_exception);
+    ff->right_pending_exception = NULL;
+}
+
+
+static inline void splice_stacks_for_call(__cilkrts_worker *w,
+                                          full_frame *parent_ff,
+                                          full_frame *child_ff)
 {
 #if CILK_LIB_DEBUG
-    if (parent->call_stack)
-        CILK_ASSERT(!(parent->call_stack->flags & CILK_FRAME_MBZ));
-    CILK_ASSERT(!(parent->stack_child && parent->owner_child));
+    if (parent_ff->call_stack)
+        CILK_ASSERT(!(parent_ff->call_stack->flags & CILK_FRAME_MBZ));
 #endif
 
     /* A synched frame does not have accumulated child reducers. */
-    CILK_ASSERT(!child->stack_child);
+    CILK_ASSERT(!child_ff->stack_child);
+    CILK_ASSERT(child_ff->is_call_child);
 
-    if (child->is_call_child) {
-#if JFC_DEBUG
-        fprintf(stderr, "W%d return %p to %p/%p stack %p owner %p/%p\n",
-                w->self,
-                child, parent, parent->call_stack,
-                child->stack_self ? __cilkrts_stack_to_pointer(child->stack_self, 0) : 0,
-                parent->owner, child->owner);
-#endif
-        /* An attached parent has no self stack.  It may have
-           accumulated child stacks or child owners, which should be
-           ignored until sync. */
-        CILK_ASSERT(!parent->stack_self);
-        parent->stack_self = child->stack_self;
-        child->stack_self = NULL;
-    } else {
-        __cilkrts_stack *s = child->stack_self;
-#if JFC_DEBUG
-        fprintf(stderr, "W%d unspawn %p to %p/%p %s %p/%p\n", w->self,
-                child, parent, parent->call_stack,
-                (child->left_sibling || parent->stack_child) ? "free" : "keep",
-                s, s ? __cilkrts_stack_to_pointer(s, 0) : 0);
-#endif
-        /* This assertion is no longer valid when the leftmost thread
-           has no allocated stack. CILK_ASSERT(s); */
-        child->stack_self = NULL;
-        /* A spawned child deposits a stack or an owner into the
-           parent's child slot. */
-        if (child->left_sibling || parent->stack_child) {
-            __cilkrts_release_stack(w, s);
-        } else {
-            parent->stack_child = s;
-            if (s)
-                CILK_ASSERT(parent->stack_self != s);
-        }
-    }
-#if CILK_LIB_DEBUG
-    CILK_ASSERT(!(parent->stack_child && parent->owner_child));
-#endif
+    /* An attached parent has no self stack.  It may have
+       accumulated child stacks or child owners, which should be
+       ignored until sync. */
+    CILK_ASSERT(!parent_ff->stack_self);
+    parent_ff->stack_self = child_ff->stack_self;
+    child_ff->stack_self = NULL;
 }
 
-static void finalize_child(__cilkrts_worker *w, 
-                           full_frame *parent,
-                           full_frame *child)
+static void finalize_child_for_call(__cilkrts_worker *w,
+                                    full_frame *parent_ff,
+                                    full_frame *child_ff)
 {
+    // ASSERT: we hold w->lock and parent_ff->lock
+    
     START_INTERVAL(w, INTERVAL_FINALIZE_CHILD) {
-        CILK_ASSERT(child->join_counter == 0);
-        CILK_ASSERT(!child->rightmost_child);
+        CILK_ASSERT(child_ff->is_call_child);
+        CILK_ASSERT(child_ff->join_counter == 0);
+        CILK_ASSERT(!child_ff->rightmost_child);
+        CILK_ASSERT(child_ff == parent_ff->rightmost_child);
 
-        START_INTERVAL(w, INTERVAL_SPLICE_REDUCERS) {
-            splice_reducers(w, parent, child);
-        } STOP_INTERVAL(w, INTERVAL_SPLICE_REDUCERS);
-        START_INTERVAL(w, INTERVAL_SPLICE_EXCEPTIONS) {
-            splice_exceptions(w, parent, child);
-        } STOP_INTERVAL(w, INTERVAL_SPLICE_EXCEPTIONS);
-        START_INTERVAL(w, INTERVAL_SPLICE_STACKS) {
-            splice_stacks(w, parent, child);
-        } STOP_INTERVAL(w, INTERVAL_SPLICE_STACKS);
+        // CHILD is about to die. 
+        // Splicing out reducers is a no-op for a call since
+        // w->reducer_map should already store the correct 
+        // reducer map.
+        
+        // ASSERT there are no maps left to reduce.
+        CILK_ASSERT(NULL == child_ff->children_reducer_map);
+        CILK_ASSERT(NULL == child_ff->right_reducer_map);
+        
+        splice_exceptions_for_call(w, parent_ff, child_ff);
+
+        splice_stacks_for_call(w, parent_ff, child_ff);
 
         /* remove CHILD from list of children of PARENT */
-        unlink_child(parent, child);
+        unlink_child(parent_ff, child_ff);
 
-        if (child->is_call_child) {
-            /* continue with the parent. */
-            unconditional_steal(w, parent);
-        }
-        else if (parent->simulated_stolen) {
-            /* continue with the parent. */
-            unconditional_steal(w, parent);
-        }
-        else {
-            /* continue with the parent, maybe */
-            provably_good_steal(w, parent);
-        }
-
-        __cilkrts_destroy_full_frame(w, child);
+        /* continue with the parent. */
+        unconditional_steal(w, parent_ff);
+        __cilkrts_destroy_full_frame(w, child_ff);
     } STOP_INTERVAL(w, INTERVAL_FINALIZE_CHILD);
 }
 
 
-static void setup_for_execution_reducers(__cilkrts_worker *w, 
-                                         full_frame *f)
+/**
+ * The invariant on ff->children_reducer_map is that when ff is
+ * synched and when we are about to resume execution of ff, at least
+ * one of ff->children_reducer_map and w->reducer_map must be NULL.
+ *
+ * Consider the two possibilities before resuming execution of ff:
+ *
+ * 1.  Suppose ff is synched and suspended.  Then either
+ *
+ *     (a) ff->children_reducer_map stores the reducer map that w
+ *         should use, where w is the worker resuming execution of ff, 
+ *         OR
+ *     (b) w already has a user map, and ff->children_reducer_map is NULL. 
+ *
+ *     Case (a) happens when we are resuming execution of ff as a
+ *     provably good steal.  In this case, w->reducer_map should be
+ *     NULL and ff->children_reducer_map is valid.  To resume
+ *     execution of ff on w, set w->reducer_map to
+ *     ff->children_reducer_map.
+ * 
+ *     Case (b) occurs when we resume execution of ff because ff is a
+ *     called child.  Then, ff->children_reducer_map should be NULL,
+ *     and w should already have a valid reducer map when resuming
+ *     execution of ff.  We resume execution of ff without changing
+ *     w->reducer_map.
+ *
+ * 2. Suppose frame ff is not synched (i.e., it is active and might have
+ *    active children).   Then ff->children_reducer_map is the slot for
+ *    storing the reducer map from ff's leftmost child, as in the reducer
+ *    protocol.   The runtime may resume execution of ff while it is not 
+ *    synched only because of a steal.
+ *    In this case, while we are resuming ff, ff->children_reducer_map
+ *    may be non-NULL (because one of ff's children has completed).
+ *    We resume execution of ff without changing w->reducer_map.
+ */ 
+static void setup_for_execution_reducers(__cilkrts_worker *w,
+                                         full_frame *ff)
 {
-    w->reducer_map = f->reducer_map;
+    // We only need to move ff->children_reducer_map into
+    // w->reducer_map in case 1(a).
+    //
+    // First check whether ff is synched.
+    __cilkrts_stack_frame *sf = ff->call_stack;
+    if (!(sf->flags & CILK_FRAME_UNSYNCHED)) {
+        // In this case, ff is synched. (Case 1).
+        CILK_ASSERT(!ff->rightmost_child);
+
+        // Test whether we are in case 1(a) and have
+        // something to do.  Note that if both
+        // ff->children_reducer_map and w->reducer_map are NULL, we
+        // can't distinguish between cases 1(a) and 1(b) here.
+        if (ff->children_reducer_map) {
+            // We are in Case 1(a).
+            CILK_ASSERT(!w->reducer_map);
+            w->reducer_map = ff->children_reducer_map;
+            ff->children_reducer_map = NULL;
+        }
+    }
 }
 
 static void setup_for_execution_exceptions(__cilkrts_worker *w, 
-                                           full_frame *f)
+                                           full_frame *ff)
 {
     CILK_ASSERT(NULL == w->l->pending_exception);
-    w->l->pending_exception = f->pending_exception;
-    f->pending_exception = NULL;
+    w->l->pending_exception = ff->pending_exception;
+    ff->pending_exception = NULL;
 }
 
 #if 0 /* unused */
 static void setup_for_execution_stack(__cilkrts_worker *w, 
-                                      full_frame *f)
+                                      full_frame *ff)
 {
-#if JFC_DEBUG
-    fprintf(stderr, "W%d setup_for_execution_stack %p stack %p\n",
-            w->self, f, f->stack_self);
-#endif
 }
 #endif
 
@@ -1105,27 +1192,33 @@ static void setup_for_execution_pedigree(__cilkrts_worker *w)
             w->pedigree.rank = sf->parent_pedigree.rank;
     }
 
-    w->pedigree.next = sf->parent_pedigree.next;
+    w->pedigree.parent = sf->parent_pedigree.parent;
     w->l->work_stolen = 0;
 }
 
 static void setup_for_execution(__cilkrts_worker *w, 
-                                full_frame *f)
+                                full_frame *ff,
+                                int is_return_from_call)
 {
-    setup_for_execution_reducers(w, f);
-    setup_for_execution_exceptions(w, f);
-    /*setup_for_execution_stack(w, f);*/
+    // ASSERT: We own w->lock and ff->lock || P == 1
 
-    f->call_stack->worker = w;
-    w->current_stack_frame = f->call_stack;
+    setup_for_execution_reducers(w, ff);
+    setup_for_execution_exceptions(w, ff);
+    /*setup_for_execution_stack(w, ff);*/
 
-    setup_for_execution_pedigree(w);
-    __cilkrts_setup_for_execution_sysdep(w, f);
+    ff->call_stack->worker = w;
+    w->current_stack_frame = ff->call_stack;
+
+    // If this is a return from a call, leave the pedigree alone
+    if (! is_return_from_call)
+        setup_for_execution_pedigree(w);
+
+    __cilkrts_setup_for_execution_sysdep(w, ff);
 
     w->head = w->tail = w->l->ltq;
     reset_THE_exception(w);
 
-    make_runnable(w, f);
+    make_runnable(w, ff);
 }
 
 /* The current stack is about to either be suspended or destroyed.  This
@@ -1138,10 +1231,10 @@ static NORETURN longjmp_into_runtime(__cilkrts_worker *w,
                                      scheduling_stack_fcn_t fcn,
                                      __cilkrts_stack_frame *sf)
 {
-    full_frame *f, *f2;
+    full_frame *ff, *ff2;
 
     CILK_ASSERT(!w->l->post_suspend);
-    f = w->l->frame;
+    ff = w->l->frame_ff;
 
     // If we've got only one worker, stealing shouldn't be possible.
     //
@@ -1149,16 +1242,16 @@ static NORETURN longjmp_into_runtime(__cilkrts_worker *w,
     // We don't have a scheduling stack to switch to, so call the continuation
     // function directly.
     if (1 == w->g->P) {
-        fcn(w, f, sf);
+        fcn(w, ff, sf);
 
-        /* The call to function c() will have pushed f as the next frame.  If
+        /* The call to function c() will have pushed ff as the next frame.  If
          * this were a normal (non-forced-reduce) execution, there would have
          * been a pop_next_frame call in a separate part of the runtime.  We
          * must call pop_next_frame here to complete the push/pop cycle. */
-        f2 = pop_next_frame(w);
+        ff2 = pop_next_frame(w);
 
-        setup_for_execution(w, f2);
-        __cilkrts_resume(w, f2, w->current_stack_frame); /* no return */
+        setup_for_execution(w, ff2, 0);
+        __cilkrts_resume(w, ff2, w->current_stack_frame); /* no return */
         CILK_ASSERT(("returned from __cilkrts_resume", 0));
     }
 
@@ -1176,7 +1269,6 @@ static NORETURN longjmp_into_runtime(__cilkrts_worker *w,
     {
         // We're importing the thread
         w->l->user_thread_imported = 1;
-
         __cilkrts_sysdep_import_user_thread(w);
         CILK_ASSERT(0); // Should never reach this point.
     }
@@ -1248,39 +1340,35 @@ static void notify_children_run(__cilkrts_worker *w)
     notify_children(w, 1);
 }
 
-static void do_work(__cilkrts_worker *w, full_frame *f)
+static void do_work(__cilkrts_worker *w, full_frame *ff)
 {
     __cilkrts_stack_frame *sf;
-
-#if JFC_DEBUG
-    fprintf(stderr, "do_work %u %p\n", w->self, f);
-#endif
 
 #ifndef _WIN32
     cilkbug_assert_no_uncaught_exception();
 #endif
 
     BEGIN_WITH_WORKER_LOCK(w) {
-        CILK_ASSERT(!w->l->frame);
-        BEGIN_WITH_FRAME_LOCK(w, f) {
-            sf = f->call_stack;
+        CILK_ASSERT(!w->l->frame_ff);
+        BEGIN_WITH_FRAME_LOCK(w, ff) {
+            sf = ff->call_stack;
             CILK_ASSERT(sf && !sf->call_parent);
-            setup_for_execution(w, f);
-        } END_WITH_FRAME_LOCK(w, f);
+            setup_for_execution(w, ff, 0);
+        } END_WITH_FRAME_LOCK(w, ff);
     } END_WITH_WORKER_LOCK(w);
 
 #if CILK_LIB_DEBUG
     if (!(sf->flags & CILK_FRAME_UNSYNCHED))
-        CILK_ASSERT(!f->stack_child);
+        CILK_ASSERT(!ff->stack_child);
     if (sf->flags & CILK_FRAME_EXITING) {
         __cilkrts_bug("W%d: resuming frame %p/%p suspended in exit\n",
-                      w->self, f, sf);
+                      w->self, ff, sf);
     }
 #endif
 
     /* run it */
     if (setjmp(w->l->env) == 0) {
-        __cilkrts_resume(w, f, sf);
+        __cilkrts_resume(w, ff, sf);
 
         /* unreached---the call to cilk_resume exits through longjmp */
         CILK_ASSERT(0);
@@ -1315,12 +1403,12 @@ static void do_work(__cilkrts_worker *w, full_frame *f)
  */
 static void schedule_work(__cilkrts_worker *w)
 {
-    full_frame *f;
+    full_frame *ff;
 
-    f = pop_next_frame(w);
+    ff = pop_next_frame(w);
 
     // If there is no work on the queue, try to steal some.
-    if (NULL == f) {
+    if (NULL == ff) {
         START_INTERVAL(w, INTERVAL_STEALING) {
             if (w->l->type != WORKER_USER && w->l->team != NULL) {
                 // At this point, the worker knows for certain that it has run
@@ -1335,8 +1423,8 @@ static void schedule_work(__cilkrts_worker *w)
 
         // If the steal was successful, then the worker has populated its next
         // frame with the work to resume.
-        f = pop_next_frame(w);
-        if (NULL == f) {
+        ff = pop_next_frame(w);
+        if (NULL == ff) {
             // Punish the worker for failing to steal.
             // No quantum for you!
             __cilkrts_yield();
@@ -1348,11 +1436,11 @@ static void schedule_work(__cilkrts_worker *w)
             w->l->steal_failure_count = 0;
         }
     }
-    CILK_ASSERT(f);
+    CILK_ASSERT(ff);
 
     // Do the work that was on the queue or was stolen.
     START_INTERVAL(w, INTERVAL_WORKING) {
-        do_work(w, f);
+        do_work(w, ff);
         ITT_SYNC_SET_NAME_AND_PREPARE(w, w->l->sync_return_address);
     } STOP_INTERVAL(w, INTERVAL_WORKING);
 }
@@ -1419,80 +1507,169 @@ static void __cilkrts_scheduler(__cilkrts_worker *w)
     CILK_ASSERT(WORKER_SYSTEM == w->l->type);
 }
 
+
+/*************************************************************
+  Forward declarations for reduction protocol.
+*************************************************************/
+
+static __cilkrts_worker*
+execute_reductions_for_sync(__cilkrts_worker *w,
+                            full_frame *ff,
+                            __cilkrts_stack_frame *sf_at_sync);
+
+static __cilkrts_worker*
+execute_reductions_for_spawn_return(__cilkrts_worker *w,
+                                    full_frame *ff,
+                                    __cilkrts_stack_frame *returning_sf);
+
+                                                             
+
 /*************************************************************
   Scheduler functions that are callable by client code
 *************************************************************/
 static full_frame *disown(__cilkrts_worker *w,
-                          full_frame *f,
+                          full_frame *ff,
                           __cilkrts_stack_frame *sf,
                           const char *why)
 {
-    CILK_ASSERT(f);
-    make_unrunnable(w, f, sf, sf != 0, why);
-    w->l->frame = 0;
-    return f->parent;
+    CILK_ASSERT(ff);
+    make_unrunnable(w, ff, sf, sf != 0, why);
+    w->l->frame_ff = 0;
+    return ff->parent;
 }
+
+/**
+ * Called when ff is returning from a spawn, and we need to execute a
+ * reduction.
+ *
+ * @param w             The currently executing worker.
+ * @param ff            The full frame for w.
+ * @param returning_sf  The stack frame for the spawn helper that is returning.
+ *
+ * Normally, by the time we gain control in the runtime, the worker
+ * has already popped off the __cilkrts_stack_frame "returning_sf"
+ * from its call chain.
+ * 
+ * When we have only serial reductions, w->current_stack_frame is not
+ * needed any more, because w is about to enter the runtime scheduling
+ * loop anyway.  Similarly, the frame "ff" is slated to be destroyed
+ * after the runtime finishes the return from spawn and splices ff out
+ * of the tree of full frames.
+ *
+ * To execute a parallel reduction, however, we still want
+ * w->current_stack_frame == returning_sf, and we are going to use the
+ * frame ff for a little bit longer.
+ *
+ * This method:
+ *
+ *   1. Puts returning_sf back as w's current stack frame.
+ *   2. Makes "ff" runnable again on w.
+ */ 
+static inline
+void restore_frame_for_spawn_return_reduction(__cilkrts_worker *w,
+                                              full_frame *ff,
+                                              __cilkrts_stack_frame *returning_sf) {
+#if REDPAR_DEBUG >= 2
+    CILK_ASSERT(returning_sf);
+    CILK_ASSERT(returning_sf->worker == w);
+#endif
+    // Change w's current stack frame back to "returning_sf".
+    //
+    // Intuitively, w->current_stack_frame should be
+    // returning_sf->call_parent at this point.
+    //
+    // We can not assert this, however, because the pop of
+    // returning_sf from the call chain has already cleared
+    // returning_sf->call_parent.  We don't want to restore the call
+    // parent of returning_sf, because its parent has been stolen, and
+    // the runtime assumes that steals break this link.
+
+    // We cannot assert call_parent is NULL either, since that's not true for
+    // Win64 exception handling
+//    CILK_ASSERT(returning_sf->call_parent == NULL);
+    w->current_stack_frame = returning_sf;
+
+    // Make the full frame "ff" runnable again, in preparation for
+    // executing the reduction.
+    make_runnable(w, ff);
+}
+
 
 NORETURN __cilkrts_c_sync(__cilkrts_worker *w,
-                          __cilkrts_stack_frame *sf)
+                          __cilkrts_stack_frame *sf_at_sync)
 {
-    longjmp_into_runtime(w, do_sync, sf);
+    full_frame *ff; 
+
+    // Claim: This read of w->l->frame_ff can occur without
+    // holding the worker lock because when w has reached a sync
+    // and entered the runtime (because it stalls), w's deque is empty
+    // and no one else can steal and change w->l->frame_ff.
+
+    ff = w->l->frame_ff;
+#ifdef _WIN32
+    __cilkrts_save_exception_state(w, ff);
+#else
+    // Move any pending exceptions into the full frame
+    CILK_ASSERT(NULL == ff->pending_exception);
+    ff->pending_exception = w->l->pending_exception;
+    w->l->pending_exception = NULL;
+#endif
+    
+    w = execute_reductions_for_sync(w, ff, sf_at_sync);
+
+    longjmp_into_runtime(w, do_sync, sf_at_sync);
 }
 
-static void do_sync(__cilkrts_worker *w, full_frame *f, __cilkrts_stack_frame *sf)
+static void do_sync(__cilkrts_worker *w, full_frame *ff,
+                    __cilkrts_stack_frame *sf)
 {
-    int abandoned = 1;
-
+    int abandoned = 1;     
     START_INTERVAL(w, INTERVAL_SYNC_CHECK) {
-        BEGIN_WITH_WORKER_LOCK(w) {
-            f = w->l->frame;
-            CILK_ASSERT(f);
-            CILK_ASSERT(sf->call_parent == 0);
-            CILK_ASSERT(sf->flags & CILK_FRAME_UNSYNCHED);
+        BEGIN_WITH_WORKER_LOCK_OPTIONAL(w) {
+            ff = w->l->frame_ff;
+            w->l->frame_ff = NULL;
+            // Conceptually, after clearing w->l->frame_ff, 
+            // w no longer owns the full frame ff.
+            // The next time another (possibly different) worker takes
+            // ownership of ff will be at a provably_good_steal on ff. 
 
-            /* A frame entering a nontrivial sync always has a
-               stack_self.  A topmost frame after a sync does
-               not; it is back on the caller's stack. */
-            CILK_ASSERT(f->stack_self || f->simulated_stolen);
+            CILK_ASSERT(ff);
+            BEGIN_WITH_FRAME_LOCK(w, ff) {
+                CILK_ASSERT(sf->call_parent == 0);
+                CILK_ASSERT(sf->flags & CILK_FRAME_UNSYNCHED);
 
-            // Notify TBB that we're orphaning the stack. We'll reclaim it
-            // again if we continue
-            __cilkrts_invoke_stack_op(w, CILK_TBB_STACK_ORPHAN, f->stack_self);
+                /* A frame entering a nontrivial sync always has a
+                   stack_self.  A topmost frame after a sync does
+                   not; it is back on the caller's stack. */
+                CILK_ASSERT(ff->stack_self || ff->simulated_stolen);
 
-            BEGIN_WITH_FRAME_LOCK(w, f) {
-#ifdef _WIN32
-                __cilkrts_save_exception_state(w, f);
-#else
-                // Move any pending exceptions into the full frame
-                CILK_ASSERT(NULL == f->pending_exception);
-                f->pending_exception = w->l->pending_exception;
-                w->l->pending_exception = NULL;
-#endif
-                /* if (f->stack_self) see above comment */ {
-                    __cilkrts_stack *s = f->stack_self;
-                    f->stack_self = NULL;
+                // Notify TBB that we're orphaning the stack. We'll reclaim it
+                // again if we continue
+                __cilkrts_invoke_stack_op(w, CILK_TBB_STACK_ORPHAN, ff->stack_self);
+
+                /* if (ff->stack_self) see above comment */ {
+                    __cilkrts_stack *s = ff->stack_self;
+                    ff->stack_self = NULL;
                     __cilkrts_release_stack(w, s);
                 }
-                disown(w, f, sf, "sync"); 
 
                 // Update the frame's pedigree information if this is an ABI 1 or later
                 // frame
                 if (CILK_FRAME_VERSION_VALUE(sf->flags) >= 1)
                 {
                     sf->parent_pedigree.rank = w->pedigree.rank;
-                    sf->parent_pedigree.next = w->pedigree.next;
+                    sf->parent_pedigree.parent = w->pedigree.parent;
 
                     // Note that the pedigree rank needs to be updated
                     // when setup_for_execution_pedigree runs
                     sf->flags |= CILK_FRAME_SF_PEDIGREE_UNSYNCHED;
                 }
 
-                /* the decjoin() for disown() is in
-                   provably_good_steal() */
-
-                abandoned = provably_good_steal(w, f);
-            } END_WITH_FRAME_LOCK(w, f);
-        } END_WITH_WORKER_LOCK(w);
+                /* the decjoin() occurs in provably_good_steal() */
+                abandoned = provably_good_steal(w, ff);
+                
+            } END_WITH_FRAME_LOCK(w, ff);
+        } END_WITH_WORKER_LOCK_OPTIONAL(w);
     } STOP_INTERVAL(w, INTERVAL_SYNC_CHECK);
 
 #ifdef ENABLE_NOTIFY_ZC_INTRINSIC
@@ -1513,15 +1690,12 @@ static void do_sync(__cilkrts_worker *w, full_frame *f, __cilkrts_stack_frame *s
    purposes. */
 void __cilkrts_promote_own_deque(__cilkrts_worker *w)
 {
-#if JFC_DEBUG > 0
-    fprintf(stderr, "W%d promote own deque (%ld)\n", w->self, w->tail - w->head);
-#endif
     BEGIN_WITH_WORKER_LOCK(w) {
         while (dekker_protocol(w)) {
             /* PLACEHOLDER_STACK is used as non-null marker to tell detach()
                and make_child() that this frame should be treated as a spawn
                parent, even though we have not assigned it a stack. */
-            detach(w, w, PLACEHOLDER_STACK);
+            detach_for_steal(w, w, PLACEHOLDER_STACK);
 
         }
     } END_WITH_WORKER_LOCK(w);
@@ -1531,18 +1705,23 @@ void __cilkrts_promote_own_deque(__cilkrts_worker *w)
 
 /* the client code calls this function after a spawn when the dekker
    protocol fails.  The function may either return or longjmp
-   into the rts */
-void __cilkrts_c_THE_exception_check(__cilkrts_worker *w)
-{
-    full_frame *f;
-    int stolen_p;
+   into the rts
 
+   This function takes in a "returning_sf" argument which corresponds
+   to the __cilkrts_stack_frame that we are finishing (i.e., the
+   argument to __cilkrts_leave_frame).
+   */
+void __cilkrts_c_THE_exception_check(__cilkrts_worker *w, 
+                                     __cilkrts_stack_frame *returning_sf)
+{
+    full_frame *ff;
+    int stolen_p;
+    __cilkrts_stack_frame *saved_sf = NULL;
     START_INTERVAL(w, INTERVAL_THE_EXCEPTION_CHECK);
 
     BEGIN_WITH_WORKER_LOCK(w) {
-        f = w->l->frame;
-        CILK_ASSERT(f);
-
+        ff = w->l->frame_ff;
+        CILK_ASSERT(ff);
         /* This code is called only upon a normal return and never
            upon an exceptional return.  Assert that this is the
            case. */
@@ -1554,21 +1733,44 @@ void __cilkrts_c_THE_exception_check(__cilkrts_worker *w)
                                                   decremented by the
                                                   compiled code */
 
-        if (stolen_p)
+        if (stolen_p) {
             /* XXX This will be charged to THE for accounting purposes */
-            __cilkrts_save_exception_state(w, f);
+            __cilkrts_save_exception_state(w, ff);
+
+            // Save the value of the current stack frame.
+            saved_sf = w->current_stack_frame;
+
+            // Reverse the decrement from undo_detach.
+            // This update effectively resets the deque to be
+            // empty (i.e., changes w->tail back to equal w->head). 
+            // We need to reset the deque to execute parallel
+            // reductions.  When we have only serial reductions, it
+            // does not matter, since serial reductions do not
+            // change the deque.
+            w->tail++;
+#if REDPAR_DEBUG > 1            
+            // ASSERT our deque is empty.
+            CILK_ASSERT(w->head == w->tail);
+#endif
+        }
     } END_WITH_WORKER_LOCK(w);
 
     STOP_INTERVAL(w, INTERVAL_THE_EXCEPTION_CHECK);
 
     if (stolen_p)
     {
+        w = execute_reductions_for_spawn_return(w, ff, returning_sf);
+
+        // Update the pedigree only after we've finished the
+        // reductions.
+        update_pedigree_on_leave_frame(w, returning_sf);
+
 #ifdef ENABLE_NOTIFY_ZC_INTRINSIC
         // Notify Inspector that the parent has been stolen and we're
         // going to abandon this work and go do something else.  This
         // will match the cilk_leave_begin in the compiled code
-        __notify_zc_intrinsic("cilk_leave_stolen", w->current_stack_frame);
-#endif // defined ENTABLE_NOTIFY_ZC_INTRINSIC
+        __notify_zc_intrinsic("cilk_leave_stolen", saved_sf);
+#endif // defined ENABLE_NOTIFY_ZC_INTRINSIC
 
         DBGPRINTF ("%d-%p: longjmp_into_runtime from __cilkrts_c_THE_exception_check\n", w->self, GetWorkerFiber(w));
         longjmp_into_runtime(w, do_return_from_spawn, 0);
@@ -1582,50 +1784,65 @@ void __cilkrts_c_THE_exception_check(__cilkrts_worker *w)
 }
 
 /* Return an exception to a stolen parent. */
-NORETURN __cilkrts_exception_from_spawn(__cilkrts_worker *w)
+NORETURN __cilkrts_exception_from_spawn(__cilkrts_worker *w,
+                                        __cilkrts_stack_frame *returning_sf) 
 {
-    full_frame *f = w->l->frame;
-    __cilkrts_stack_frame *sf;
+    full_frame *ff = w->l->frame_ff;
+    // This is almost the same as THE_exception_check, except
+    // the detach didn't happen, we don't need to undo the tail
+    // update.
+    CILK_ASSERT(w->head == w->tail);
+    w = execute_reductions_for_spawn_return(w, ff, returning_sf);
 
     longjmp_into_runtime(w, do_return_from_spawn, 0);
     CILK_ASSERT(0);
 }
 
 static void do_return_from_spawn(__cilkrts_worker *w,
-                                 full_frame *f,
+                                 full_frame *ff,
                                  __cilkrts_stack_frame *sf)
 {
-    full_frame *parent;
-
-    // If we're interoperating with TBB, tell them that we are orphaning the
-    // stack.
-    // FIXME - can finalize_child call into user-defined code?  If so, we have a
-    // problem because that code might be calling TBB.
-    // FIXME - having out of line call seems inefficient.  Does Intel compiler
-    // inline it across translation units?
-
-    BEGIN_WITH_WORKER_LOCK(w) {
-        CILK_ASSERT(!f->is_call_child);
-        CILK_ASSERT(f == w->l->frame);
-
-        BEGIN_WITH_FRAME_LOCK(w, f) {
-            if( f->stack_self )
+    full_frame *parent_ff;
+    BEGIN_WITH_WORKER_LOCK_OPTIONAL(w) {
+        CILK_ASSERT(ff);
+        CILK_ASSERT(!ff->is_call_child);
+        CILK_ASSERT(ff == w->l->frame_ff);
+        CILK_ASSERT(sf == NULL);
+        parent_ff = ff->parent;
+    
+        BEGIN_WITH_FRAME_LOCK(w, ff) {
+            if( ff->stack_self )
             {
                 // Notify TBB that we're returning from a spawn and orphaning
                 // the stack. We'll re-adopt it if we continue
                 __cilkrts_invoke_stack_op(w, CILK_TBB_STACK_ORPHAN,
-                                          f->stack_self);
+                                          ff->stack_self);
             }
-            parent = disown(w, f, 0, "unspawn");
-            CILK_ASSERT(parent);
-            decjoin(f);
-        } END_WITH_FRAME_LOCK(w, f);
+            decjoin(ff);
+        } END_WITH_FRAME_LOCK(w, ff);
 
-        BEGIN_WITH_FRAME_LOCK(w, parent) {
-            finalize_child(w, parent, f);
-        } END_WITH_FRAME_LOCK(w, parent);
-    } END_WITH_WORKER_LOCK(w);
+        BEGIN_WITH_FRAME_LOCK(w, parent_ff) {
+            __cilkrts_stack* stack_to_free = w->l->stack_to_free;
+            w->l->stack_to_free = NULL;
+            w->l->frame_ff = NULL;
 
+            if (stack_to_free) {
+                __cilkrts_release_stack(w, stack_to_free);
+            }
+            ff->stack_self = NULL;
+
+            if (parent_ff->simulated_stolen) {
+                unconditional_steal(w, parent_ff);
+            }
+            else {
+                provably_good_steal(w, parent_ff);
+            }
+        } END_WITH_FRAME_LOCK(w, parent_ff);
+
+    } END_WITH_WORKER_LOCK_OPTIONAL(w);
+
+    // Cleanup the child frame.
+    __cilkrts_destroy_full_frame(w, ff);
     return;
 }
 
@@ -1638,53 +1855,29 @@ static void do_return_from_spawn(__cilkrts_worker *w,
 void __cilkrts_migrate_exception(__cilkrts_stack_frame *sf) {
 
     __cilkrts_worker *w = sf->worker;
-    full_frame *f;
+    full_frame *ff;
 
     BEGIN_WITH_WORKER_LOCK(w) {
-
-        f = w->l->frame;
+        ff = w->l->frame_ff;
         reset_THE_exception(w);
         /* there is no need to check for a steal because we wouldn't be here if
            there weren't a steal. */
-        __cilkrts_save_exception_state(w, f);
+        __cilkrts_save_exception_state(w, ff);
 
+        CILK_ASSERT(w->head == w->tail);
     } END_WITH_WORKER_LOCK(w);
 
-    longjmp_into_runtime(w, do_migrate_exception, 0); /* does not return. */
+    {
+        // TBD(jsukha): This function emulates the
+        // the "do_return_from_spawn" path.
+        w = execute_reductions_for_spawn_return(w, ff, sf);
+    }
+
+    longjmp_into_runtime(w, do_return_from_spawn, 0); /* does not return. */
     CILK_ASSERT(! "Shouldn't be here...");
 }
-
-static void do_migrate_exception(__cilkrts_worker *w,
-                                  full_frame *f,
-                                  __cilkrts_stack_frame *sf) {
-
-    full_frame *parent;
-
-    BEGIN_WITH_WORKER_LOCK(w) {
-        CILK_ASSERT(!f->is_call_child);
-        CILK_ASSERT(f == w->l->frame);
-
-        BEGIN_WITH_FRAME_LOCK(w, f) {
-            parent = disown(w, f, 0, "unspawn");
-            decjoin(f);
-        } END_WITH_FRAME_LOCK(w, f);
-
-        BEGIN_WITH_FRAME_LOCK(w, parent) {
-            finalize_child(w, parent, f);
-        } END_WITH_FRAME_LOCK(w, parent);
-
-#ifndef _WIN32
-        if (!w->current_stack_frame) {
-            w->current_stack_frame = parent->call_stack;
-        }
-        w->current_stack_frame->flags |= CILK_FRAME_EXCEPTING;
 #endif
 
-    } END_WITH_WORKER_LOCK(w);
-
-    return;
-}
-#endif
 
 /* Pop a call stack from TAIL.  Return the call stack, or NULL if the
    queue is empty */
@@ -1697,9 +1890,6 @@ __cilkrts_stack_frame *__cilkrts_pop_tail(__cilkrts_worker *w)
             --tail;
             sf = *tail;
             w->tail = tail;
-#if JFC_DEBUG
-            fprintf(stderr, "Cilk: %u tail <- %p (restore stealing)\n", w->self, tail);
-#endif
         } else {
             sf = 0;
         }
@@ -1710,66 +1900,60 @@ __cilkrts_stack_frame *__cilkrts_pop_tail(__cilkrts_worker *w)
 /* Return from a call, not a spawn. */
 void __cilkrts_return(__cilkrts_worker *w)
 {
-    full_frame *f, *parent;
+    full_frame *ff, *parent_ff;
     START_INTERVAL(w, INTERVAL_RETURNING);
 
-    BEGIN_WITH_WORKER_LOCK(w) {
-        f = w->l->frame;
-        CILK_ASSERT(f);
-        CILK_ASSERT(f->join_counter == 1);
+    BEGIN_WITH_WORKER_LOCK_OPTIONAL(w) {
+        ff = w->l->frame_ff;
+        CILK_ASSERT(ff);
+        CILK_ASSERT(ff->join_counter == 1);
         /* This path is not used to return from spawn. */
-        CILK_ASSERT(f->is_call_child);
+        CILK_ASSERT(ff->is_call_child);
 
-        BEGIN_WITH_FRAME_LOCK(w, f) {
-            parent = disown(w, f, 0, "return");
-            decjoin(f);
+        BEGIN_WITH_FRAME_LOCK(w, ff) {
+            // After this call, w->l->frame_ff != ff.
+            // Technically, w will "own" ff until ff is freed,
+            // however, because ff is a dying leaf full frame.
+            parent_ff = disown(w, ff, 0, "return");
+            decjoin(ff);
 
 #ifdef _WIN32
-            __cilkrts_save_exception_state(w, f);
+            __cilkrts_save_exception_state(w, ff);
 #else
             // Move the pending exceptions into the full frame
             // This should always be NULL if this isn't a
             // return with an exception
-            CILK_ASSERT(NULL == f->pending_exception);
-            f->pending_exception = w->l->pending_exception;
+            CILK_ASSERT(NULL == ff->pending_exception);
+            ff->pending_exception = w->l->pending_exception;
             w->l->pending_exception = NULL;
 #endif  // _WIN32
 
-        } END_WITH_FRAME_LOCK(w, f);
+        } END_WITH_FRAME_LOCK(w, ff);
 
         __cilkrts_fence(); /* redundant */
 
-        CILK_ASSERT(parent);
+        CILK_ASSERT(parent_ff);
 
-        BEGIN_WITH_FRAME_LOCK(w, parent) {
-            finalize_child(w, parent, f);
-        } END_WITH_FRAME_LOCK(w, parent);
+        BEGIN_WITH_FRAME_LOCK(w, parent_ff) {
+            finalize_child_for_call(w, parent_ff, ff);
+        } END_WITH_FRAME_LOCK(w, parent_ff);
 
-        f = pop_next_frame(w);
-        /* f will be non-null except when the parent frame is owned
+        ff = pop_next_frame(w);
+        /* ff will be non-null except when the parent frame is owned
            by another worker.
-           CILK_ASSERT(f)
+           CILK_ASSERT(ff)
         */
-        CILK_ASSERT(!w->l->frame);
-        if (f) {
-            BEGIN_WITH_FRAME_LOCK(w, f) {
-                __cilkrts_stack_frame *sf = f->call_stack;
+        CILK_ASSERT(!w->l->frame_ff);
+        if (ff) {
+            BEGIN_WITH_FRAME_LOCK(w, ff) {
+                __cilkrts_stack_frame *sf = ff->call_stack;
                 CILK_ASSERT(sf && !sf->call_parent);
-                setup_for_execution(w, f);
-            } END_WITH_FRAME_LOCK(w, f);
+                setup_for_execution(w, ff, 1);
+            } END_WITH_FRAME_LOCK(w, ff);
         }
-    } END_WITH_WORKER_LOCK(w);
+    } END_WITH_WORKER_LOCK_OPTIONAL(w);
 
     STOP_INTERVAL(w, INTERVAL_RETURNING);
-
-#if JFC_DEBUG
-    {
-        char var;
-        fprintf(stderr, "W%d __cilkrts_return stack ~ %p parent stack %p %p\n",
-                w->self, (char *)&var, parent->stack_self,
-                parent->stack_child);
-    }
-#endif            
 }
 
 static void __cilkrts_unbind_thread()
@@ -1777,8 +1961,10 @@ static void __cilkrts_unbind_thread()
     int stop_cilkscreen = 0;
     global_state_t *g;
 
-    __cilkrts_os_mutex_lock(__cilkrts_global_os_mutex);
-    if (cilkg_is_initialized()) {
+    // Take out the global OS mutex to protect accesses to the table of workers
+    global_os_mutex_lock();
+
+    if (cilkg_is_published()) {
         __cilkrts_worker *w = __cilkrts_get_tls_worker();
         if (w) {
             g = w->g;
@@ -1809,7 +1995,7 @@ static void __cilkrts_unbind_thread()
             stop_cilkscreen = (0 == g->Q);
         }
     }
-    __cilkrts_os_mutex_unlock(__cilkrts_global_os_mutex);
+    global_os_mutex_unlock();
 
     /* Turn off Cilkscreen.  This needs to be done when we are NOT holding the
      * os mutex. */
@@ -1826,33 +2012,45 @@ void __cilkrts_c_return_from_initial(__cilkrts_worker *w)
     /* This is only called on a user thread worker. */
     CILK_ASSERT(w->l->type == WORKER_USER);
 
-    BEGIN_WITH_WORKER_LOCK(w) {
-        full_frame *f = w->l->frame;
-        CILK_ASSERT(f);
-        CILK_ASSERT(f->join_counter == 1);
-        w->l->frame = 0;
+    #if REDPAR_DEBUG >= 3
+    fprintf(stderr, "[W=%d, desc=cilkrts_c_return_from_initial, ff=%p]\n",
+            w->self, w->l->frame_ff);
+    #endif
+    
+    BEGIN_WITH_WORKER_LOCK_OPTIONAL(w) {
+        full_frame *ff = w->l->frame_ff;
+        CILK_ASSERT(ff);
+        CILK_ASSERT(ff->join_counter == 1);
+        w->l->frame_ff = 0;
 
-        CILK_ASSERT(f->stack_self);
+        CILK_ASSERT(ff->stack_self);
         // Save any TBB interop data for the next time this thread enters Cilk
-        tbb_interop_save_info_from_stack(f->stack_self);
-        sysdep_destroy_user_stack(f->stack_self);
+        tbb_interop_save_info_from_stack(ff->stack_self);
+        sysdep_destroy_user_stack(ff->stack_self);
 
         /* Save reducer map into global_state object */
-        CILK_ASSERT(w->reducer_map == f->reducer_map);
         rm = w->reducer_map;
-        w->reducer_map = 0;
-        f->reducer_map = 0;
+        w->reducer_map = NULL;
 
-        __cilkrts_destroy_full_frame(w, f);
+#if REDPAR_DEBUG >= 3
+        fprintf(stderr, "W=%d, reducer_map_to_delete=%p, was in ff=%p\n",
+                w->self,
+                rm,
+                ff);
+#endif
+        __cilkrts_destroy_full_frame(w, ff);
+
 
         /* Work is never done. w->g->work_done = 1; __cilkrts_fence(); */
-    } END_WITH_WORKER_LOCK(w);
+    } END_WITH_WORKER_LOCK_OPTIONAL(w);
 
-#if JFC_DEBUG
-    fprintf(stderr, "Cilk: %u leave\n", w->self);
-#endif
 
-    __cilkrts_destroy_reducer_map(w, rm);
+    save_pedigree_leaf_from_user_worker(w);
+
+    // Workers can have NULL reducer maps now.
+    if (rm) {
+        __cilkrts_destroy_reducer_map(w, rm);
+    }
 
     w = NULL;
     __cilkrts_unbind_thread();
@@ -1875,9 +2073,6 @@ void __cilkrts_restore_stealing(
     __cilkrts_worker *w,
     __cilkrts_stack_frame *volatile *saved_protected_tail)
 {
-#if JFC_DEBUG > 1
-    fprintf(stderr, "Cilk: %u tail <- %p\n", w->self, saved_protected_tail);
-#endif
     /* On most x86 this pair of operations would be slightly faster
        as an atomic exchange due to the implicit memory barrier in
        an atomic instruction. */
@@ -1923,15 +2118,16 @@ __cilkrts_stack_frame *volatile *__cilkrts_disallow_stealing(
 *************************************************************/
 
 __cilkrts_worker *make_worker(global_state_t *g,
-                                     int self, __cilkrts_worker *w)
+                              int self, __cilkrts_worker *w)
 {
     w->self = self;
     w->g = g;
 
     w->pedigree.rank = 0;    // Initial rank is 0
-    w->pedigree.next = NULL;
+    w->pedigree.parent = NULL;
 
     w->l = (local_state *)__cilkrts_malloc(sizeof(*w->l));
+
     __cilkrts_init_stats(&w->l->stats);
 
     __cilkrts_frame_malloc_per_worker_init(w);
@@ -1940,12 +2136,15 @@ __cilkrts_worker *make_worker(global_state_t *g,
     __cilkrts_mutex_init(&w->l->lock);
     __cilkrts_mutex_init(&w->l->steal_lock);
     w->l->do_not_steal = 0;
-    w->l->frame = 0;
+    w->l->frame_ff = 0;
     w->l->ltq = (__cilkrts_stack_frame **)
         __cilkrts_malloc(g->ltqsize * sizeof(*w->l->ltq));
     w->ltq_limit = w->l->ltq + g->ltqsize;
+
+    w->l->original_pedigree_leaf = NULL;
+    
     w->l->rand_seed = 0; /* the scheduler will overwrite this field */
-    w->l->next_frame = 0;
+    w->l->next_frame_ff = 0;
     __cilkrts_init_stack_cache(w, &w->l->stack_cache, g->stack_cache_size);
 
     w->head = w->tail = w->l->ltq;
@@ -1959,6 +2158,7 @@ __cilkrts_worker *make_worker(global_state_t *g,
 
     w->l->post_suspend = 0;
     w->l->suspended_stack = 0;
+    w->l->stack_to_free = NULL;
 
     w->l->steal_failure_count = 0;
 
@@ -1969,10 +2169,10 @@ __cilkrts_worker *make_worker(global_state_t *g,
 
     w->l->signal_node = NULL;
 
-    w->saved_protected_tail = NULL;
+    w->reserved = NULL;
     /*w->parallelism_disabled = 0;*/
 
-    /* Allow stealing all frames. */
+    // Allow stealing all frames. Sets w->saved_protected_tail
     __cilkrts_restore_stealing(w, w->ltq_limit);
 
     w->l->type = WORKER_FREE;
@@ -2025,9 +2225,6 @@ static void make_worker_system(__cilkrts_worker *w) {
 }
 
 void __cilkrts_deinit_internal(global_state_t *g)
-
-
-
 {
     int i;
     __cilkrts_worker *w;
@@ -2041,9 +2238,9 @@ void __cilkrts_deinit_internal(global_state_t *g)
 #endif
 
     w = g->workers[0];
-    if (w->l->frame) {
-        __cilkrts_destroy_full_frame(w, w->l->frame);
-        w->l->frame = 0;
+    if (w->l->frame_ff) {
+        __cilkrts_destroy_full_frame(w, w->l->frame_ff);
+        w->l->frame_ff = 0;
     }
 
     // Destroy any system dependent global state
@@ -2059,23 +2256,6 @@ void __cilkrts_deinit_internal(global_state_t *g)
     __cilkrts_destroy_stack_cache(0, g, &g->stack_cache);
     __cilkrts_frame_malloc_global_cleanup(g);
     cilkg_deinit_global_state();
-}
-
-/* install NEWMAP in both W and W->L->FRAME; return the old reducer map */
-struct cilkred_map *__cilkrts_xchg_reducer(__cilkrts_worker *w, 
-                                           struct cilkred_map *newmap)
-{
-    struct cilkred_map *oldmap;
-    BEGIN_WITH_WORKER_LOCK(w) {
-        full_frame *f = w->l->frame;
-        BEGIN_WITH_FRAME_LOCK(w, f) {
-            oldmap = w->reducer_map;
-            CILK_ASSERT(f->reducer_map == oldmap);
-            w->reducer_map = newmap;
-            f->reducer_map = newmap;
-        } END_WITH_FRAME_LOCK(w, f);
-    } END_WITH_WORKER_LOCK(w);
-    return oldmap;
 }
 
 /*
@@ -2143,7 +2323,7 @@ static enum schedule_t worker_runnable(__cilkrts_worker *w)
 
     /* If this worker has something to do, do it.
        Otherwise the work would be lost. */
-    if (w->l->next_frame)
+    if (w->l->next_frame_ff)
         return SCHEDULE_RUN;
 
     // If Cilk has explicitly (by the user) been told to exit (i.e., by
@@ -2178,7 +2358,7 @@ static void init_workers(global_state_t *g)
 {
     int total_workers = g->total_workers;
     int i;
-    struct CILK_ALIGNAS(64) buffered_worker {
+    struct CILK_ALIGNAS(256) buffered_worker {
         __cilkrts_worker w;
         char buf[64];
     } *workers_memory;
@@ -2194,21 +2374,23 @@ static void init_workers(global_state_t *g)
     // like Inspector which run multithreaded and need to know the memory
     // range for all the workers that will be accessed in a user's program
     workers_memory = (struct buffered_worker*)
-        __cilkrts_malloc(sizeof(*workers_memory) * total_workers);
-
+        __cilkrts_malloc(sizeof(*workers_memory) * total_workers);    
+    
     // Notify any tools that care (Cilkscreen and Inspector) that they should
     // ignore memory allocated for the workers
     __cilkrts_cilkscreen_ignore_block(&workers_memory[0],
                                       &workers_memory[total_workers]);
 
     // Initialize worker structs, including unused worker slots.
-    for (i = 0; i < total_workers; ++i)
+    for (i = 0; i < total_workers; ++i) {
         g->workers[i] = make_worker(g, i, &workers_memory[i].w);
+    }
 
     // Set the workers in the first P - 1 slots to be system workers.
     // Remaining worker structs already have type == 0.
-    for (i = 0; i < g->system_workers; ++i)
+    for (i = 0; i < g->system_workers; ++i) {
         make_worker_system(g->workers[i]);
+    }
 }
 
 void __cilkrts_init_internal(int start)
@@ -2216,11 +2398,20 @@ void __cilkrts_init_internal(int start)
     int i;
     global_state_t *g = NULL;
 
-    if (! cilkg_is_initialized())
-    {
-        __cilkrts_os_mutex_lock(__cilkrts_global_os_mutex);
-        if (! cilkg_is_initialized())
-        {
+    if (cilkg_is_published()) {
+        g = cilkg_init_global_state();
+    }
+    else {
+
+        // We think the state has not been published yet.
+        // Grab the lock and try to initialize/publish.
+        global_os_mutex_lock();
+
+        if (cilkg_is_published()) {
+            // Some other thread must have snuck in and published.
+            g = cilkg_init_global_state();
+        }
+        else {
             // Initialize and retrieve global state
             g = cilkg_init_global_state();
 
@@ -2236,24 +2427,754 @@ void __cilkrts_init_internal(int start)
 
             // Initialize any system dependent global state
             __cilkrts_init_global_sysdep(g);
+
+            cilkg_publish_global_state(g);
         }
-        __cilkrts_os_mutex_unlock(__cilkrts_global_os_mutex);
+
+        global_os_mutex_unlock();
     }
-    else
-        g = cilkg_get_global_state();
 
     CILK_ASSERT(g);
 
-    if (start && !g->running)
+    if (start && !g->workers_running)
     {
-        __cilkrts_os_mutex_lock(__cilkrts_global_os_mutex);
-        if (!g->running)
+        // Acquire the global OS mutex while we're starting the workers
+        global_os_mutex_lock();
+        if (!g->workers_running)
             // Start P - 1 system workers since P includes the first user
             // worker.
             __cilkrts_start_workers(g, g->P - 1);
-        __cilkrts_os_mutex_unlock(__cilkrts_global_os_mutex);
+        global_os_mutex_unlock();
     }
 }
+
+
+/************************************************************************
+  Methods for reducer protocol.
+
+  Reductions occur in two places:
+    A. A full frame "ff" is returning from a spawn with a stolen parent.
+    B. A full frame "ff" is stalling at a sync.
+
+  To support parallel reductions, reduction functions need to be
+  executed while control is on a user stack, before jumping into the
+  runtime.  These reductions can not occur while holding a worker or
+  frame lock.
+
+  Before a worker w executes a reduction in either Case A or B, w's
+  deque is empty.
+
+  Since parallel reductions push work onto the deque, we must do extra
+  work to set up runtime data structures properly before reductions
+  begin to allow stealing.  ( Normally, when we have only serial
+  reductions, once a worker w starts a reduction, its deque remains
+  empty until w either steals another frame or resumes a suspended
+  frame.  Thus, we don't care about the state of the deque, since w
+  will reset its deque when setting up execution of a frame. )
+
+  To allow for parallel reductions, we coerce the runtime data
+  structures so that, from their perspective, it looks as though we
+  have spliced in an "execute_reductions()" function.  Consider the
+  two cases for reductions:
+
+    Case A: Return from a spawn with a stolen parent.
+      Consider a spawned function g is returning on a worker w.
+      Assume:
+          -   g was spawned from a parent function f.  
+          -   ff is the full frame for g's spawn helper
+          -   sf be the __cilkrts_stack_frame for g's spawn helper.
+
+      We are conceptually splicing "execute_reductions()" so that it
+      occurs immediately before the spawn helper of g returns to f.
+
+      We do so by creating two different world views --- one for the
+      runtime data structures, and one for the actual control flow.
+
+        - Before reductions begin, the runtime data structures should
+          look as though the spawn helper of g is calling
+          "execute_reductions()", in terms of both the user stack and
+          worker deque.  More precisely, w should satisfy the
+          following properties:
+
+              (a) w has ff as its full frame,
+              (b) w has sf as its __cilkrts_stack_frame, and
+              (c) w has an empty deque. 
+
+          If the runtime satisfies these properties, then if w
+          encounters a spawn in a parallel reduction, it can push onto
+          a valid deque.  Also, when a steal from w occurs, it will
+          build the correct tree of full frames when w is stolen from.
+
+        - In actual control flow, however, once the
+          "execute_reductions()" function returns, it is actually
+          returning to runtime code instead of g's spawn helper. 
+
+          At the point a worker w began executing reductions, the
+          control flow / compiled code had already finished g's spawn
+          helper, and w was about to enter the runtime.  With parallel
+          reductions, some worker v (which might be different from w)
+          is the one returning to the runtime.
+
+
+      The reduction logic consists of 4 steps:
+
+       A1. Restore runtime data structures to make it look as though
+           the spawn helper of g() is still the currently executing
+           frame for w.
+
+       A2. Execute reductions on the user stack.  Reductions also
+           includes the logic for exceptions and stacks.  Note that
+           reductions start on w, but may finish on a different
+           worker if there is parallelism in the reduce.
+
+       A3. Splice out ff from the tree of full frames.
+
+       A4. Jump into the runtime/scheduling stack and execute
+           "do_return_from_spawn".  This method
+
+           (a) Frees the user stack we were just on if it is no longer needed.
+           (b) Decrement the join counter on ff->parent, and tries to do a
+               provably good steal.
+           (c) Clean up the full frame ff. 
+
+
+   Case B: Stalling at a sync.
+
+     Consider a function g(), with full frame ff and
+     __cilkrts_stack_frame sf.  Suppose g() stalls at a sync, and we
+     are executing reductions.
+
+     Conceptually, we are splicing in an "execute_reductions()"
+     function into g() as the last action that g() takes immediately
+     before it executes the cilk_sync.
+
+     The reduction logic for this case is similar to Case A.
+
+       B1. Restore the runtime data structures. 
+
+           The main difference from Case A is that ff/sf is still a
+           frame that needs to be executed later (since it is stalling
+           at a cilk_sync).  Thus, we also need to save the current
+           stack information into "ff" so that we can correctly resume
+           execution of "ff" after the sync.
+
+       B2. Execute reductions on the user stack.
+
+       B3. No frame to splice out of the tree.
+
+       B4. Jump into the runtime/scheduling stack and execute "do_sync".
+           This method:
+           (a) Frees the user stack we were just on if it is no longer needed.
+           (b) Tries to execute a provably good steal.
+
+  Finally, for the reducer protocol, we consider two reduction paths,
+  namely a "fast" and "slow" path.  On a fast path, only trivial
+  merges of reducer maps happen (i.e., one or both of the maps are
+  NULL).  Otherwise, on the slow path, a reduction actually needs to
+  happen.
+
+*****************************************************************/
+
+// Struct storing pointers to the fields in our "left" sibling
+// that we should update when splicing out a full frame or stalling at
+// a sync.
+typedef struct {
+    // A pointer to the location of our left reducer map. 
+    struct cilkred_map **map_ptr;
+
+    // A pointer to the location of our left exception.
+    struct pending_exception_info **exception_ptr;
+} splice_left_ptrs;
+
+/**
+ * For a full frame returning from a spawn, calculate the pointers to
+ * the maps and exceptions to my left.
+ *
+ * @param w   The currently executing worker.
+ * @param ff  Full frame that is dying
+ * @return    Pointers to our "left" for reducers and exceptions.
+ */
+static inline
+splice_left_ptrs compute_left_ptrs_for_spawn_return(__cilkrts_worker *w,
+                                                    full_frame *ff)
+{
+    // ASSERT: we hold the lock on ff->parent
+
+    splice_left_ptrs left_ptrs;
+    if (ff->left_sibling) {
+        left_ptrs.map_ptr = &ff->left_sibling->right_reducer_map;
+        left_ptrs.exception_ptr = &ff->left_sibling->right_pending_exception;
+    }
+    else {
+        full_frame *parent_ff = ff->parent;
+        left_ptrs.map_ptr = &parent_ff->children_reducer_map;
+        left_ptrs.exception_ptr = &parent_ff->child_pending_exception;
+    }
+    return left_ptrs;
+}
+
+/**
+ * For a full frame at a sync, calculate the pointers to the maps and
+ * exceptions to my left.
+ *
+ * @param w   The currently executing worker.
+ * @param ff  Full frame that is stalling at a sync.
+ * @return    Pointers to our "left" for reducers and exceptions.
+ */
+static inline
+splice_left_ptrs compute_left_ptrs_for_sync(__cilkrts_worker *w,
+                                            full_frame *ff)
+{
+    // ASSERT: we hold the lock on ff
+    splice_left_ptrs left_ptrs;
+
+    // Figure out which map to the left we should merge into.
+    if (ff->rightmost_child) {
+        CILK_ASSERT(ff->rightmost_child->parent == ff);
+        left_ptrs.map_ptr = &(ff->rightmost_child->right_reducer_map);
+        left_ptrs.exception_ptr = &(ff->rightmost_child->right_pending_exception);
+    }
+    else {
+        // We have no children.  Then, we should be the last
+        // worker at the sync... "left" is our child map.
+        left_ptrs.map_ptr = &(ff->children_reducer_map);
+        left_ptrs.exception_ptr = &(ff->child_pending_exception);
+    }
+    return left_ptrs;
+}
+
+/**
+ * After we have completed all reductions on a spawn return, call this
+ * method to finish up before jumping into the runtime.
+ *
+ *   1. Perform the "reduction" on stacks, i.e., execute the left
+ *      holder logic to pass the leftmost stack up.
+ *
+ *      w->l->stack_to_free holds any stack that needs to be freed
+ *      after control longjmps into the runtime.
+ * 
+ *   2. Unlink and remove child_ff from the tree of full frames.
+ *
+ * @param   w          The currently executing worker.
+ * @param   parent_ff  The parent of child_ff.
+ * @param   child_ff   The full frame returning from a spawn.
+ */
+static inline
+void finish_spawn_return_on_user_stack(__cilkrts_worker *w,
+                                       full_frame *parent_ff,
+                                       full_frame *child_ff)
+{
+    CILK_ASSERT(w->l->stack_to_free == NULL);
+    
+    // Execute left-holder logic for stacks.
+    if (child_ff->left_sibling || parent_ff->stack_child) {
+        // Case where we are not the leftmost stack.
+        CILK_ASSERT(parent_ff->stack_child != child_ff->stack_self);
+
+        // Remember any stack we need to free in the worker.
+        // After we jump into the runtime, we will actually do the
+        // free.
+        w->l->stack_to_free = child_ff->stack_self;
+    }
+    else {
+        // We are leftmost, pass stack up to parent.
+        // Thus, no stack to free.
+        parent_ff->stack_child = child_ff->stack_self;
+        w->l->stack_to_free = NULL;
+    }
+
+    // We cannot NULL this out yet.  Importing a user worker on Windows
+    // depends on this field in the full_frame being valid in
+    // __cilkrts_sysdep_import_user_thread()
+//    child_ff->stack_self = NULL;
+
+    unlink_child(parent_ff, child_ff);
+}
+
+
+/**
+ * Executes any fast reductions necessary to splice ff out of the tree
+ * of full frames.
+ *
+ * This "fast" path performs only trivial merges of reducer maps,
+ * i.e,. when one of them is NULL.
+ * (See slow_path_reductions_for_spawn_return() for slow path.)
+ *
+ * Returns: 1 if we finished all reductions.
+ * Returns: 0 if there are still reductions to execute, and
+ *            we should execute the slow path.
+ *
+ * This method assumes w holds the frame lock on parent_ff.
+ * After this method completes:
+ *    1. We have spliced ff out of the tree of full frames.
+ *    2. The reducer maps of child_ff have been deposited
+ *       "left" according to the reducer protocol.
+ *    3. w->l->stack_to_free stores the stack
+ *       that needs to be freed once we jump into the runtime.
+ *
+ * We have not, however, decremented the join counter on ff->parent.
+ * This prevents any other workers from resuming execution of the parent.
+ *
+ * @param   w    The currently executing worker.
+ * @param   ff   The full frame returning from a spawn.
+ * @return  NULL if we finished all reductions.
+ * @return  The address where the left map is stored (which should be passed to 
+ *          slow_path_reductions_for_spawn_return()) if there are
+ *          still reductions to execute. 
+ */
+struct cilkred_map**
+fast_path_reductions_for_spawn_return(__cilkrts_worker *w,
+                                      full_frame *ff)
+{
+    // ASSERT: we hold ff->parent->lock.
+    full_frame *parent_ff = ff->parent;
+    splice_left_ptrs left_ptrs;
+
+    CILK_ASSERT(NULL == w->l->pending_exception);
+
+    // Figure out the pointers to the left where I want
+    // to put reducers and exceptions.
+    left_ptrs = compute_left_ptrs_for_spawn_return(w, ff);
+    
+    // Go ahead and merge exceptions while holding the lock.
+    splice_exceptions_for_spawn(w, ff, left_ptrs.exception_ptr);
+
+    // Now check if we have any reductions to perform.
+    //
+    // Consider all the cases of left, middle and right maps.
+    //  0. (-, -, -)  :  finish and return 1
+    //  1. (L, -, -)  :  finish and return 1
+    //  2. (-, M, -)  :  slide over to left, finish, and return 1.
+    //  3. (L, M, -)  :  return 0
+    //  4. (-, -, R)  :  slide over to left, finish, and return 1.
+    //  5. (L, -, R)  :  return 0
+    //  6. (-, M, R)  :  return 0
+    //  7. (L, M, R)  :  return 0
+    //
+    // In terms of code:
+    //  L == *left_ptrs.map_ptr
+    //  M == w->reducer_map
+    //  R == f->right_reducer_map.
+    //
+    // The goal of the code below is to execute the fast path with
+    // as few branches and writes as possible.
+    
+    int case_value = (*(left_ptrs.map_ptr) != NULL);
+    case_value += ((w->reducer_map != NULL) << 1);
+    case_value += ((ff->right_reducer_map != NULL) << 2);
+
+    // Fastest path is case_value == 0 or 1.
+    if (case_value >=2) {
+        switch (case_value) {
+        case 2:
+            *(left_ptrs.map_ptr) = w->reducer_map;
+            w->reducer_map = NULL;
+            return NULL;
+            break;
+        case 4:
+            *(left_ptrs.map_ptr) = ff->right_reducer_map;
+            ff->right_reducer_map = NULL;
+            return NULL;
+        default:
+            // If we have to execute the slow path, then
+            // return the pointer to the place to deposit the left
+            // map.
+            return left_ptrs.map_ptr;
+        }
+    }
+
+    // Do nothing
+    return NULL;
+}
+
+
+/**
+ * Executes any reductions necessary to splice "ff" frame out of
+ * the steal tree.
+ *
+ * This method executes the "slow" path for reductions on a spawn
+ * return, i.e., there are non-NULL maps that need to be merged
+ * together.
+ *
+ * This method should execute only if
+ * fast_path_reductions_for_spawn_return() returns a non-NULL
+ * left_map_ptr.
+ *
+ * Upon entry, left_map_ptr should be the location of the left map
+ * at the start of the reduction, as calculated by
+ * fast_path_reductions_for_spawn_return().
+ *
+ * After this method completes:
+ *    1. We have spliced ff out of the tree of full frames.
+ *    2. The reducer maps of child_ff have been deposited
+ *       "left" according to the reducer protocol.
+ *    3. w->l->stack_to_free stores the stack
+ *       that needs to be freed once we jump into the runtime.
+ * We have not, however, decremented the join counter on ff->parent,
+ * so no one can resume execution of the parent yet.
+ *
+ * WARNING: 
+ *   This method assumes the lock on ff->parent is held upon entry, and
+ *   Upon exit, the worker that returns still holds a lock on ff->parent
+ *   This method can, however, release and reacquire the lock on ff->parent.
+ *
+ * @param w             The currently executing worker.
+ * @param ff            The full frame returning from a spawn.
+ * @param left_map_ptr  Pointer to our initial left map.
+ * @return              The worker that this method returns on. 
+ */ 
+static __cilkrts_worker*
+slow_path_reductions_for_spawn_return(__cilkrts_worker *w,
+                                      full_frame *ff,
+                                      struct cilkred_map **left_map_ptr)
+{
+
+    // CILK_ASSERT: w is holding frame lock on parent_ff.
+#if REDPAR_DEBUG > 0
+    CILK_ASSERT(!ff->rightmost_child);
+    CILK_ASSERT(!ff->is_call_child);
+#endif
+
+    // Loop invariant:
+    // When beginning this loop, we should
+    //   1. Be holding the lock on ff->parent.
+    //   2. left_map_ptr should be the address of the pointer to the left map.
+    //   3. All maps should be slid over left by one, if possible.
+    //   4. All exceptions should be merged so far.
+    while (1) {
+        
+        // Slide middle map left if possible.
+        if (!(*left_map_ptr)) {
+            *left_map_ptr = w->reducer_map;
+            w->reducer_map = NULL;
+        }
+        // Slide right map to middle if possible.
+        if (!w->reducer_map) {
+            w->reducer_map = ff->right_reducer_map;
+            ff->right_reducer_map = NULL;
+        }
+
+        // Since we slid everything left by one,
+        // we are finished if there is no middle map.
+        if (!w->reducer_map) {
+            verify_current_wkr(w);
+            return w;
+        }
+        else {
+            struct cilkred_map* left_map;
+            struct cilkred_map* middle_map;
+            struct cilkred_map* right_map;
+
+            // Take all the maps from their respective locations.
+            // We can't leave them in place and execute a reduction because these fields
+            // might change once we release the lock.
+            left_map = *left_map_ptr;
+            *left_map_ptr = NULL;
+            middle_map = w->reducer_map;
+            w->reducer_map = NULL;
+            right_map = ff->right_reducer_map;
+            ff->right_reducer_map = NULL;
+        
+            // WARNING!!! Lock release here.
+            // We have reductions to execute (and we can't hold locks).
+            __cilkrts_frame_unlock(w, ff->parent);
+
+            // Merge all reducers into the left map.
+            left_map = repeated_merge_reducer_maps(&w,
+                                                   left_map,
+                                                   middle_map);
+            verify_current_wkr(w);
+            left_map = repeated_merge_reducer_maps(&w,
+                                                   left_map,
+                                                   right_map);
+            verify_current_wkr(w);
+            CILK_ASSERT(NULL == w->reducer_map);
+            // Put the final answer back into w->reducer_map.
+            w->reducer_map = left_map;
+            
+            // Save any exceptions generated because of the reduction
+            // process from the returning worker.  These get merged
+            // the next time around the loop.
+            CILK_ASSERT(NULL == ff->pending_exception);
+            ff->pending_exception = w->l->pending_exception;
+            w->l->pending_exception = NULL;
+
+            // Lock ff->parent for the next loop around.
+            __cilkrts_frame_lock(w, ff->parent);
+
+            // Once we have the lock again, recompute who is to our
+            // left.
+            splice_left_ptrs left_ptrs;
+            left_ptrs = compute_left_ptrs_for_spawn_return(w, ff);
+
+            // Update the pointer for the left map.
+            left_map_ptr = left_ptrs.map_ptr;
+            // Splice the exceptions for spawn.
+            splice_exceptions_for_spawn(w, ff, left_ptrs.exception_ptr);
+        }
+    }
+    // We should never break out of this loop.
+    
+    CILK_ASSERT(0);
+    return NULL;
+}
+
+
+
+/**
+ * Execute reductions when returning from a spawn whose parent has
+ * been stolen.
+ *
+ * Execution may start on w, but may finish on a different worker.
+ * This method acquires/releases the lock on ff->parent. 
+ *
+ * @param w            The currently executing worker.
+ * @param ff           The full frame of the spawned function that is returning.
+ * @param returning_sf The __cilkrts_stack_frame for this returning function.
+ * @return             The worker returning from this method. 
+ */ 
+static __cilkrts_worker*
+execute_reductions_for_spawn_return(__cilkrts_worker *w,
+                                    full_frame *ff,
+                                    __cilkrts_stack_frame *returning_sf)
+{ 
+    // Step A1 from reducer protocol described above.
+    //
+    // Coerce the runtime into thinking that 
+    // ff/returning_sf are still on the bottom of
+    // w's deque.
+    restore_frame_for_spawn_return_reduction(w, ff, returning_sf);
+
+    // Step A2 and A3: Execute reductions on user stack.
+    BEGIN_WITH_FRAME_LOCK(w, ff->parent) {
+        struct cilkred_map **left_map_ptr;
+        left_map_ptr = fast_path_reductions_for_spawn_return(w, ff);
+
+        // Pointer will be non-NULL if there are
+        // still reductions to execute.
+        if (left_map_ptr) {
+            // WARNING: This method call may release the lock
+            // on ff->parent and re-acquire it (possibly on a
+            // different worker).
+            // We can't hold locks while actually executing
+            // reduce functions.
+            w = slow_path_reductions_for_spawn_return(w,
+                                                      ff,
+                                                      left_map_ptr);
+            verify_current_wkr(w);
+        }
+
+        finish_spawn_return_on_user_stack(w, ff->parent, ff);      
+        // WARNING: the use of this lock macro is deceptive.
+        // The worker may have changed here.
+    } END_WITH_FRAME_LOCK(w, ff->parent);
+    return w;
+}
+
+
+
+/**
+ * Execute fast "reductions" when ff stalls at a sync.
+ *
+ * @param   w  The currently executing worker.
+ * @param   ff The full frame stalling at a sync.
+ * @return  1 if we are finished with all reductions after calling this method.
+ * @return  0 if we still need to execute the slow path reductions.
+ */ 
+static inline
+int fast_path_reductions_for_sync(__cilkrts_worker *w,
+                                  full_frame *ff) {
+    // Return 0 if there is some reduction that needs to happen.
+    return !(w->reducer_map  || ff->pending_exception);
+}
+
+/**
+ * Executes slow reductions when ff stalls at a sync.
+ * This method should execute only if
+ *   fast_path_reductions_for_sync(w, ff) returned 0.
+ *
+ * After this method completes:
+ *   1. ff's current reducer map has been deposited into
+ *       right_reducer_map of ff's rightmost child, or
+ *       ff->children_reducer_map if ff has no children.
+ *   2. Similarly for ff's current exception.
+ *   3. Nothing to calculate for stacks --- if we are stalling
+ *      we will always free a stack.
+ *
+ * This method may repeatedly acquire/release the lock on ff.
+ *
+ * @param   w  The currently executing worker.
+ * @param   ff The full frame stalling at a sync.
+ * @return  The worker returning from this method.
+ */
+static __cilkrts_worker*
+slow_path_reductions_for_sync(__cilkrts_worker *w,
+                              full_frame *ff)
+{
+    struct cilkred_map *left_map;
+    struct cilkred_map *middle_map;
+    
+#if (REDPAR_DEBUG > 0)
+    CILK_ASSERT(ff);
+    CILK_ASSERT(w->head == w->tail);
+#endif
+
+    middle_map = w->reducer_map;
+    w->reducer_map = NULL;
+
+    // Loop invariant: middle_map should be valid (the current map to reduce). 
+    //                 left_map is junk.
+    //                 w->reducer_map == NULL.
+    while (1) {
+        BEGIN_WITH_FRAME_LOCK(w, ff) {
+            splice_left_ptrs left_ptrs = compute_left_ptrs_for_sync(w, ff);
+            
+            // Grab the "left" map and store pointers to those locations.
+            left_map = *(left_ptrs.map_ptr);
+            *(left_ptrs.map_ptr) = NULL;
+            
+            // Slide the maps in our struct left as far as possible.
+            if (!left_map) {
+                left_map = middle_map;
+                middle_map = NULL;
+            }
+
+            *(left_ptrs.exception_ptr) =
+                __cilkrts_merge_pending_exceptions(w,
+                                                   *left_ptrs.exception_ptr,
+                                                   ff->pending_exception);
+            ff->pending_exception = NULL;
+
+            // If there is no middle map, then we are done.
+            // Deposit left and return.
+            if (!middle_map) {
+                *(left_ptrs).map_ptr = left_map;
+                #if (REDPAR_DEBUG > 0)
+                CILK_ASSERT(NULL == w->reducer_map);
+                #endif
+                // Sanity check upon leaving the loop.
+                verify_current_wkr(w);
+                // Make sure to unlock before we return!
+                __cilkrts_frame_unlock(w, ff);
+                return w;
+            }
+        } END_WITH_FRAME_LOCK(w, ff);
+        
+        // If we get here, we have a nontrivial reduction to execute.
+        middle_map = repeated_merge_reducer_maps(&w,
+                                                 left_map,
+                                                 middle_map);
+        verify_current_wkr(w);
+
+        // Save any exceptions generated because of the reduction
+        // process.  These get merged the next time around the
+        // loop.
+        CILK_ASSERT(NULL == ff->pending_exception);
+        ff->pending_exception = w->l->pending_exception;
+        w->l->pending_exception = NULL;
+    }
+    
+    // We should never break out of the loop above.
+    CILK_ASSERT(0);
+    return NULL;
+}
+
+
+/**
+ * Execute reductions when ff stalls at a sync.
+ *
+ * Execution starts on w, but may finish on a different worker.
+ * This method may acquire/release the lock on ff.
+ *
+ * @param w          The currently executing worker.
+ * @param ff         The full frame of the spawned function at the sync
+ * @param sf_at_sync The __cilkrts_stack_frame stalling at a sync
+ * @return           The worker returning from this method.
+ */ 
+static __cilkrts_worker*
+execute_reductions_for_sync(__cilkrts_worker *w,
+                            full_frame *ff,
+                            __cilkrts_stack_frame *sf_at_sync)
+{
+    int finished_reductions;
+    // Step B1 from reducer protocol above:
+    // Restore runtime invariants.
+    //
+    // The following code for this step is almost equivalent to
+    // the following sequence:
+    //   1. disown(w, ff, sf_at_sync, "sync") (which itself
+    //        calls make_unrunnable(w, ff, sf_at_sync))
+    //   2. make_runnable(w, ff, sf_at_sync).
+    //
+    // The "disown" will mark the frame "sf_at_sync"
+    // as stolen and suspended, and save its place on the stack,
+    // so it can be resumed after the sync. 
+    //
+    // The difference is, that we don't want the disown to 
+    // break the following connections yet, since we are
+    // about to immediately make sf/ff runnable again anyway.
+    //   sf_at_sync->worker == w
+    //   w->l->frame_ff == ff.
+    //
+    // These connections are needed for parallel reductions, since
+    // we will use sf / ff as the stack frame / full frame for
+    // executing any potential reductions.
+    //
+    // TBD: Can we refactor the disown / make_unrunnable code
+    // to avoid the code duplication here?
+
+    ff->call_stack = NULL;
+
+    // Normally, "make_unrunnable" would add CILK_FRAME_STOLEN and
+    // CILK_FRAME_SUSPENDED to sf_at_sync->flags and save the state of
+    // the stack so that a worker can resume the frame in the correct
+    // place.
+    //
+    // But on this path, CILK_FRAME_STOLEN should already be set.
+    // Also, we technically don't want to suspend the frame until
+    // the reduction finishes.
+    // We do, however, need to save the stack before
+    // we start any reductions, since the reductions might push more
+    // data onto the stack.
+    CILK_ASSERT(sf_at_sync->flags | CILK_FRAME_STOLEN);
+    __cilkrts_put_stack(ff, sf_at_sync);
+    __cilkrts_make_unrunnable_sysdep(w, ff, sf_at_sync, 1,
+                                     "execute_reductions_for_sync");
+    CILK_ASSERT(w->l->frame_ff == ff);
+
+    // Step B2: Execute reductions on user stack.
+    // Check if we have any "real" reductions to do.
+    finished_reductions = fast_path_reductions_for_sync(w, ff);
+    
+    if (!finished_reductions) {
+        // Still have some real reductions to execute.
+        // Run them here.
+
+        // This method may acquire/release the lock on ff.
+        w = slow_path_reductions_for_sync(w, ff);
+
+        // The previous call may return on a different worker.
+        // than what we started on.
+        verify_current_wkr(w);
+    }
+
+#if REDPAR_DEBUG >= 0
+    CILK_ASSERT(w->l->frame_ff == ff);
+    CILK_ASSERT(ff->call_stack == NULL);
+#endif
+
+    // Now we suspend the frame ff (since we've
+    // finished the reductions).  Roughly, we've split apart the 
+    // "make_unrunnable" call here --- we've already saved the
+    // stack info earlier before the reductions execute.
+    // All that remains is to restore the call stack back into the
+    // full frame, and mark the frame as suspended.
+    ff->call_stack = sf_at_sync;
+    sf_at_sync->flags |= CILK_FRAME_SUSPENDED;
+
+    return w;
+}
+
 
 /*
   Local Variables: **

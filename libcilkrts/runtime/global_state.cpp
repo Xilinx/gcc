@@ -2,7 +2,7 @@
  *
  *************************************************************************
  *
- * Copyright (C) 2009-2011 
+ * Copyright (C) 2009-2012 
  * Intel Corporation
  * 
  * This file is part of the Intel Cilk Plus Library.  This library is free
@@ -43,6 +43,9 @@
 #   include <wchar.h>
 #endif
 
+// TBD: There is a race when multiple threads try to initialize the
+// user_settable_values??
+// 
 // Set to true if the user settable values portion of the global state
 // singleton is initialized, even if the rest of the singleton is not
 // initialized.
@@ -51,16 +54,20 @@ int cilkg_user_settable_values_initialized = false;
 // Pointer to the global state singleton.  
 extern "C" global_state_t *cilkg_singleton_ptr = NULL;  
 
-// __cilkrts_global_state is exported and referenced by the debugger
-// It is always equal to cilkg_singleton_ptr.
-extern "C" global_state_t *__cilkrts_global_state = NULL;
-
 namespace {
 
 // Single copy of the global state.  Zero-filled until
 // cilkg_get_user_settable_values() is called and partially-zero-filled until
-// cilkg_init_global_state() is called.
-global_state_t global_state_singleton = { };
+// cilkg_init_global_state() is called.  The first field is filled in with
+// the size of a void* for the debugger and must be valid before initialization
+global_state_t global_state_singleton =
+{
+    sizeof(void *),    // addr_size
+};
+
+// __cilkrts_global_state is exported and referenced by the debugger.
+// The debugger expects it to be valid when the module loads.
+extern "C" global_state_t *__cilkrts_global_state = &global_state_singleton;
 
 // Returns true if 'a' and 'b' are equal null-terminated strings
 inline bool strmatch(const char* a, const char* b)
@@ -282,16 +289,16 @@ int set_param_imp(global_state_t* g, const CHAR_T* param, const CHAR_T* value)
         // ** UNDOCUMENTED **
         //
         // Sets the size (in bytes) of the stacks that Cilk creates.
-	// Maximum value that can be parsed is MAX_INT (32-bit).
-	int ret = store_int<size_t>(&g->stack_size, value, 0, INT_MAX);
+        // Maximum value that can be parsed is MAX_INT (32-bit).
+        int ret = store_int<size_t>(&g->stack_size, value, 0, INT_MAX);
 
-	// Process the value the user set (or 0 if the user didn't set
-	// anything) into something nice for the current OS.  This
-	// processing is done immediately and stored into
-	// g->stack_size so that a call to get stack size will return
-	// the value that the runtime will actually use.
-	g->stack_size = cilkos_validate_stack_size(g->stack_size);
-	return ret;	
+        // Process the value the user set (or 0 if the user didn't set
+        // anything) into something nice for the current OS.  This
+        // processing is done immediately and stored into
+        // g->stack_size so that a call to get stack size will return
+        // the value that the runtime will actually use.
+        g->stack_size = cilkos_validate_stack_size(g->stack_size);
+        return ret;     
     }
 
 
@@ -330,8 +337,14 @@ global_state_t* cilkg_get_user_settable_values()
     // in the runtime code.
     global_state_t* g = &global_state_singleton;
 
+    // TBD: We need synchronization around this loop to prevent
+    // multiple threads from initializing this data.
     if (! cilkg_user_settable_values_initialized)
     {
+        // Preserve stealing disabled since it may have been set by the
+        // debugger
+        int stealing_disabled = g->stealing_disabled;
+
         // All fields will be zero until set.  In particular
         std::memset(g, 0, sizeof(global_state_t));
 
@@ -340,6 +353,7 @@ global_state_t* cilkg_get_user_settable_values()
         if (under_ptool)
             hardware_cpu_count = 1;
 
+        g->stealing_disabled        = stealing_disabled;
         g->under_ptool              = under_ptool;
         g->force_reduce             = 0;   // Default Off
         g->P                        = hardware_cpu_count;   // Defaults to hardware CPU count
@@ -348,7 +362,7 @@ global_state_t* cilkg_get_user_settable_values()
         g->global_stack_cache_size  = 3;   // Arbitrary default
         g->max_stacks               = 0;   // 0 == unlimited
         g->max_steal_failures       = 128; // TBD: depend on max_workers?
-	g->stack_size               = 0;   // 0 unless set by the user
+        g->stack_size               = 0;   // 0 unless set by the user
 
         if (always_force_reduce())
             g->force_reduce = true;
@@ -397,6 +411,7 @@ int cilkg_calc_total_workers()
     return g->P + calc_max_user_workers(g) - 1;
 }
 
+// Should be called while holding the global lock.
 global_state_t* cilkg_init_global_state()
 {
     if (cilkg_singleton_ptr)
@@ -446,9 +461,7 @@ global_state_t* cilkg_init_global_state()
     g->total_workers = cilkg_calc_total_workers();
     g->system_workers = g->P - 1; // system_workers is here for the debugger.
     g->work_done = 0;
-    g->running = 0;
-    g->stealing_disabled = 0;
-    g->exiting_runtime = 0;
+    g->workers_running = 0;
     g->ltqsize = 1024; /* FIXME */
 
     g->stacks = 0;
@@ -456,10 +469,19 @@ global_state_t* cilkg_init_global_state()
     g->failure_to_allocate_stack = 0;
 
 
-    cilkg_singleton_ptr = g;
-    __cilkrts_global_state = g;
-
     return g;
+}
+
+void cilkg_publish_global_state(global_state_t* g) 
+{
+
+    // TBD: which one of these needs to be executed first?  I say
+    // cilkg_singleton_ptr needs to be set last, with a mfence in
+    // between, since it is the flag that cilkg_is_published_is
+    // checking for.
+    __cilkrts_global_state = g;
+    __cilkrts_fence();
+    cilkg_singleton_ptr = g;
 }
 
 void cilkg_deinit_global_state()
@@ -468,7 +490,7 @@ void cilkg_deinit_global_state()
     __cilkrts_global_state = NULL;
 }
 
-int cilkg_is_initialized(void)
+int cilkg_is_published(void)
 {
     return NULL != cilkg_singleton_ptr;
 }
