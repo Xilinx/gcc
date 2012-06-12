@@ -924,10 +924,6 @@ callable(enum tree_code code, tree op0, tree op1, const char *what, bool cry)
     }
 
   flags = LOOKUP_PROTECT | LOOKUP_CONSTRUCTOR_CALLABLE | LOOKUP_ONLYCONVERTING;
-  if (cry)
-    {
-      flags |= LOOKUP_COMPLAIN;
-    }
 
   exp = build_new_op (UNKNOWN_LOCATION, code, flags, op0, op1, NULL_TREE, 
 		      NULL, 0); 

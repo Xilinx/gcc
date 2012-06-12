@@ -1,3 +1,7 @@
+2012-06-12  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cilk.c (callable): Removed a check to add LOOKUP_COMPLAIN.
+
 2012-06-05  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* parser.c (cp_parser_ctor_initializer_opt_and_function_body): Added a
