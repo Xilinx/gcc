@@ -311,6 +311,7 @@ class SmeltLocationDialog : public Gtk::MessageDialog {
   SmeltLocationInfo *_sld_info;
   Gtk::TextView _sld_view;
   Gtk::ScrolledWindow _sld_swin;
+  std::vector<Glib::RefPtr<Gtk::TextTag>> _sld_tagvect;
 public:
   SmeltLocationDialog(SmeltLocationInfo*sli);
   virtual ~SmeltLocationDialog();
@@ -329,6 +330,33 @@ public:
   Gtk::ScrolledWindow& scrwin() {
     return _sld_swin;
   };
+  void clear_tag_vector (void) {
+    _sld_tagvect.clear();
+  };
+  void grow_tag_vector (unsigned gap) {
+    unsigned sz = _sld_tagvect.size();
+    _sld_tagvect.reserve (sz + gap);
+  }
+  Glib::RefPtr<Gtk::TextTag> find_tag(const Glib::ustring &tagname) {
+    g_assert (tbuf ());
+    return tbuf()->get_tag_table()->lookup(tagname);
+  }
+  void push_tag (Glib::RefPtr<Gtk::TextTag> tgref) {
+    _sld_tagvect.push_back (tgref);
+  }
+  void push_tag(const Glib::ustring &tagname) {
+    g_assert (tbuf ());
+    Glib::RefPtr<Gtk::TextTag> tgref = find_tag(tagname);
+    push_tag (tgref);
+  }
+  void pop_tag (void) {
+    _sld_tagvect.pop_back ();
+  }
+  void append_buffer (const Glib::ustring &str) {
+    auto tb = tbuf();
+    g_assert (tb);
+    tb->insert_with_tags(tb->end(),str,_sld_tagvect);
+  }
   void append_buffer (const std::string&s, const std::string &tagname="");
   void append_buffer (const SmeltArg&a, const std::string &tagname="");
 };        // end class SmeltLocationDialog
@@ -677,7 +705,7 @@ public:
   SmeltSymbol* symbol_ptr() const {
     return (_argkind==SmeltArg_Symbol)?_argsymbol:nullptr;
   };
-  SmeltVector* vecor_ptr() const {
+  SmeltVector* vector_ptr() const {
     return  (_argkind==SmeltArg_Vector)?_argvector:nullptr;
   };
   const std::string& as_string() const {
@@ -964,6 +992,24 @@ public:
   void call(SmeltApplication*, SmeltVector&);
 };        // end class SmeltCommandSymbol
 
+
+class SmeltTagSymbol : public SmeltSymbol {
+  SmeltTagSymbol(const std::string&name) : SmeltSymbol(name) {};
+  virtual ~SmeltTagSymbol() {};
+public:
+  static SmeltTagSymbol* create(const std::string&name) {
+    g_assert (SmeltSymbol::find(name) == nullptr);
+    SmeltTagSymbol *tgsym = new SmeltTagSymbol(name);
+    return tgsym;
+  };
+  static SmeltTagSymbol* register_tag(Glib::RefPtr<Gtk::TextTag>tgref) {
+    if (!tgref) return nullptr;
+    auto tgname = tgref->property_name().get_value();
+    if (!tgname.empty())
+      return SmeltTagSymbol::create(tgname);
+    return nullptr;
+  }
+};
 
 class SmeltApplication
     : public Gtk::Application {
@@ -1473,6 +1519,7 @@ SmeltLocationInfo::on_update(void)
       tagtitle->property_weight() = Pango::WEIGHT_BOLD;
       tagtitle->property_scale() = Pango::SCALE_X_LARGE;
       tagtitle->property_foreground() = "FireBrick";
+      SmeltTagSymbol::register_tag(tagtitle);
       sli_tagtbl_->add(tagtitle);
     }
     {
@@ -1480,16 +1527,19 @@ SmeltLocationInfo::on_update(void)
       tagsubtitle->property_weight() = Pango::WEIGHT_BOLD;
       tagsubtitle->property_scale() = Pango::SCALE_LARGE;
       tagsubtitle->property_foreground() = "Navy";
+      SmeltTagSymbol::register_tag(tagsubtitle);
       sli_tagtbl_->add(tagsubtitle);
     }
     {
       auto tagbold = Gtk::TextTag::create ("bold");
       tagbold->property_weight() = Pango::WEIGHT_BOLD;
+      SmeltTagSymbol::register_tag(tagbold);
       sli_tagtbl_->add(tagbold);
     }
     {
       auto tagitalic = Gtk::TextTag::create ("italic");
       tagitalic->property_style() = Pango::STYLE_OBLIQUE;
+      SmeltTagSymbol::register_tag(tagitalic);
       sli_tagtbl_->add(tagitalic);
     }
   }
@@ -1562,13 +1612,18 @@ SmeltLocationDialog::~SmeltLocationDialog()
 }
 
 
-#warning SmeltLocationDialog::append_buffer unimplemented
 void
 SmeltLocationDialog::append_buffer(const std::string& s, const std::string &tagname)
 {
   auto tb = tbuf();
   SMELT_DEBUG ("s=" << s << " tagname=" << tagname << " this@" << (void*)this);
-  SMELT_FATAL("unimplemented append_buffer s=" << s);
+  if (!tb) return;
+  bool withtag = !tagname.empty();
+  if (withtag)
+    push_tag (tagname);
+  append_buffer (s);
+  if (withtag)
+    pop_tag ();
 }
 
 void
@@ -1576,7 +1631,56 @@ SmeltLocationDialog::append_buffer(const SmeltArg&a, const std::string &tagname)
 {
   auto tb = tbuf();
   SMELT_DEBUG ("a=" << a << " tagname=" << tagname << " this@" << (void*)this);
-  SMELT_FATAL("unimplemented append_buffer arg");
+  if (!tb) return;
+  bool withtag = !tagname.empty();
+  if (withtag)
+    push_tag (tagname);
+  switch (a.kind()) {
+  case SmeltArg_None:
+    break;
+  case SmeltArg_Long: {
+    long l = a.as_long();
+    char str[48];
+    snprintf(str, sizeof(str), "%ld", l);
+    append_buffer(std::string(str));
+  };
+  case SmeltArg_Double: {
+    double x = a.as_double();
+    char str[64];
+    snprintf(str, sizeof(str), "%g", x);
+    append_buffer(std::string(str));
+  };
+  break;
+  case SmeltArg_String: {
+    const std::string& s = a.as_string();
+    append_buffer (s);
+  }
+  break;
+  case SmeltArg_Symbol: {
+    SmeltSymbol* sy = a.symbol_ptr();
+    if (sy)
+      append_buffer (sy->name());
+  }
+  break;
+  case SmeltArg_Vector: {
+    SmeltVector* vec = a.vector_ptr();
+    Glib::RefPtr<Gtk::TextTag> tagfirstref;
+    if (vec && vec->size() > 0) {
+      SmeltSymbol* firstsy = vec->at(0).symbol_ptr();
+      if (firstsy)
+        tagfirstref = find_tag(Glib::ustring(firstsy->name()).lowercase());
+      if (tagfirstref)
+        push_tag(tagfirstref);
+      for (unsigned ix = 1; ix < vec->size(); ix++)
+        append_buffer (vec->at(ix));
+      if (tagfirstref)
+        pop_tag();
+    }
+  }
+  break;
+  }
+  if (withtag)
+    pop_tag ();
 }
 
 void
@@ -2107,7 +2211,6 @@ SmeltApplication::marklocation_cmd(SmeltVector&v)
 //////////////// startinfoloc_pcd <marknum> <titlestring> to start information for a location
 
 
-#warning info location very incomplete
 SmeltCommandSymbol smeltsymb_startinfoloc_cmd("STARTINFOLOC_PCD",&SmeltApplication::startinfoloc_cmd);
 
 void

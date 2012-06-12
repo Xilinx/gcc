@@ -1,5 +1,12 @@
 
 2012-06-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.c:
+	(SmeltTagSymbol): new class.
+	(SmeltLocationDialog): Add vector of tags.
+	(SmeltLocationDialog::append_buffer)
+	(SmeltMainWindow::addinfo_location): Implement functions.
+
+2012-06-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.cc: Rename all Shown* as Smelt*
 	identifiers.
 
