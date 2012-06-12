@@ -460,7 +460,7 @@
   $CLASS_PROBED_INTERESTING_LOCATION with $PROBEDATA at a given $GIMPLE}#
   (if (null probedata)
       (setq probedata (probe_get_data)))
-  (debug "probe_tree_interesting_location probedata=" probedata
+  (debug "probe_gimple_interesting_location probedata=" probedata
 	 " gimple=" gimple)
   (unless gimple (return))
   (let ( (filev ())
@@ -691,6 +691,7 @@
 	    )
        (debug "scanprobe_exec ilfundecl=" ilfundecl)
        (probe_interesting_location_add_informer
+	ilfundecl
 	(lambda (iloc)
 	  (debug "probe_interesting_location_add_informer/declambda iloc=" iloc)
 	  (let ( (sbuf (make_strbuf discr_strbuf))
@@ -711,22 +712,52 @@
 	    ;; we need to copy the sequence, because a basic block
 	    ;; will eventually lose it...
 	    (:gimple_seq gscopy (gimple_seq_copy bbgs))
+	    (bbixbox (make_integerbox discr_constant_integer bbix))
+	    (bbgimpletitle (let ( (titsbuf (make_strbuf discr_strbuf))
+				  )
+			     (add2out titsbuf "Basic Block #" bbix " Gimple")
+			     (strbuf2string discr_string titsbuf)))
+	    (bbtreetitle (let ( (titsbuf (make_strbuf discr_strbuf))
+				)
+			   (add2out titsbuf "Basic Block #" bbix " Tree")
+			   (strbuf2string discr_string titsbuf)))
 	    )
 	(debug "scanprobe_exec gscopy=" gscopy " bbix=" bbix " bb=" bb)
 	(walk_gimple_seq_unique_tree 
 	 probdat gscopy
 	 (lambda (pd :gimple g)
 	   (debug "scanprobe_exec/lambda-stmt g=" g)
-	   (return)
-	   )
+	   (let ( (gbox (make_gimple discr_gimple g))
+		  )
+	     (probe_interesting_location_add_informer
+	      (probe_gimple_interesting_location probdat g)
+	      (lambda (iloc)
+		(debug "scanprobe_exec/lambda-stmt/lambda-loc iloc=" iloc " gbox=" gbox)
+		(let ( (gsbuf (make_strbuf discr_strbuf))
+		       )
+		  (add2out gsbuf (gimple_content gbox))
+		  (return (strbuf2string discr_string gsbuf) bbgimpletitle)
+		  )))
+	     (return)
+	     ))
 	 (lambda (pd :tree tr)
 	   (debug "scanprobe_exec/lambda-tree tr=" tr)
-	   (return)
-	   )
+	   (let ( (tbox (make_tree discr_tree tr))
+		  )
+	     (probe_interesting_location_add_informer
+	      (probe_tree_interesting_location probdat tr)
+	      (lambda (iloc)
+		(debug "scanprobe_exec/lambda-tree/lambda-loc iloc=" iloc " tbox=" tbox)
+		(let ( (tsbuf (make_strbuf discr_strbuf))
+		       )
+		  (add2out tsbuf (tree_content tbox))
+		  (return (strbuf2string discr_string tsbuf) bbtreetitle)
+		  )))
+	     (return)
+	     ))
 	 )
 	(debug "scanprobe_exec walked gscopy=" gscopy)
 	))
-     (compile_warning "incomplete scanprobe_exec")
      )))
 
 (defun install_scanprobe_pass ()

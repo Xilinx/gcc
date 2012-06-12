@@ -1,4 +1,9 @@
 
+2012-06-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-probe.melt (scanprobe_exec): Walk thru the
+	gimpleseq and give to probe information on gimples & trees of
+	basic blocks.
+
 2012-06-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt (basicblock_index): New primitive.
 
