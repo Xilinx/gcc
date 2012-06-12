@@ -258,14 +258,14 @@ class SmeltArg;
 #define SMELT_MARKLOC_STOCKID GTK_STOCK_YES
 
 class SmeltMainWindow;
-class ShownFile {
+class SmeltFile {
   friend class SmeltMainWindow;
   long _sfilnum;    // unique number in _mainsfilemapnum;
   int _sfilnblines;   // number of lines
   std::string _sfilname;  // file path
   Gsv::View _sfilview;  // source view
-  static std::map<long,ShownFile*> mainsfilemapnum_;
-  static std::map<std::string,ShownFile*> mainsfiledict_;
+  static std::map<long,SmeltFile*> mainsfilemapnum_;
+  static std::map<std::string,SmeltFile*> mainsfiledict_;
 public:
   void* thisptr() const {
     return (void*) this;
@@ -282,42 +282,42 @@ public:
   Gsv::View& view() {
     return _sfilview;
   };
-  ShownFile(SmeltMainWindow*,const std::string&filepath,long num);
-  ShownFile() =delete;
-  ShownFile(const ShownFile&) =delete;
-  ~ShownFile();
+  SmeltFile(SmeltMainWindow*,const std::string&filepath,long num);
+  SmeltFile() =delete;
+  SmeltFile(const SmeltFile&) =delete;
+  ~SmeltFile();
   Glib::RefPtr<Gsv::Gutter> left_gutter() {
     return _sfilview.get_gutter(Gtk::TEXT_WINDOW_LEFT);
   }
-  static ShownFile* by_path(const std::string& filepath) {
+  static SmeltFile* by_path(const std::string& filepath) {
     if (filepath.empty()) return nullptr;
     auto itsfil = mainsfiledict_.find(filepath);
     if (itsfil == mainsfiledict_.end()) return nullptr;
     return itsfil->second;
   }
-  static ShownFile* by_number (long l) {
+  static SmeltFile* by_number (long l) {
     if (l == 0) return nullptr;
     auto itsfil = mainsfilemapnum_.find(l);
     if (itsfil == mainsfilemapnum_.end()) return nullptr;
     return itsfil->second;
   }
-};        // end class ShownFile
+};        // end class SmeltFile
 
-class ShownLocationInfo;
+class SmeltLocationInfo;
 
 //////
-class ShownLocationDialog : public Gtk::MessageDialog {
-  friend class ShownLocationInfo;
-  ShownLocationInfo *_sld_info;
+class SmeltLocationDialog : public Gtk::MessageDialog {
+  friend class SmeltLocationInfo;
+  SmeltLocationInfo *_sld_info;
   Gtk::TextView _sld_view;
   Gtk::ScrolledWindow _sld_swin;
 public:
-  ShownLocationDialog(ShownLocationInfo*sli);
-  virtual ~ShownLocationDialog();
+  SmeltLocationDialog(SmeltLocationInfo*sli);
+  virtual ~SmeltLocationDialog();
   void* thisptr() const {
     return (void*) this;
   }; // for debugging
-  ShownLocationInfo* info() const {
+  SmeltLocationInfo* info() const {
     return _sld_info;
   };
   Glib::RefPtr<Gtk::TextBuffer> tbuf() {
@@ -331,26 +331,26 @@ public:
   };
   void append_buffer (const std::string&s, const std::string &tagname="");
   void append_buffer (const SmeltArg&a, const std::string &tagname="");
-};        // end class ShownLocationDialog
+};        // end class SmeltLocationDialog
 
-class ShownLocationInfo : public sigc::trackable {
-  ShownFile* _sli_fil;
+class SmeltLocationInfo : public sigc::trackable {
+  SmeltFile* _sli_fil;
   long _sli_num;
   int _sli_lineno;
   int _sli_col;
   // this cannot be a smart pointer,
   // see https://mail.gnome.org/archives/gtkmm-list/2012-June/msg00036.html
-  ShownLocationDialog* _sli_dial;
+  SmeltLocationDialog* _sli_dial;
   static Glib::RefPtr<Gtk::TextTagTable> sli_tagtbl_;
 public:
   void* thisptr() const {
     return (void*) this;
   }; // for debugging
-  ShownLocationInfo(long num, ShownFile* fil, int lineno, int col)
+  SmeltLocationInfo(long num, SmeltFile* fil, int lineno, int col)
     : _sli_fil(fil), _sli_num(num), _sli_lineno(lineno), _sli_col(col), _sli_dial(nullptr) {
     SMELT_DEBUG("num=" << num << " this@" << (void*)this);
   }
-  ~ShownLocationInfo() {
+  ~SmeltLocationInfo() {
     SMELT_DEBUG("destroying this@" << (void*)this
                 << " with _sli_dial@" << (void*) _sli_dial);
     if (_sli_dial)
@@ -365,10 +365,10 @@ public:
   static Glib::RefPtr<Gtk::TextTagTable> the_tag_table() {
     return sli_tagtbl_;
   };
-  ShownFile* sfile() const {
+  SmeltFile* sfile() const {
     return _sli_fil;
   };
-  ShownLocationDialog* dialog() const {
+  SmeltLocationDialog* dialog() const {
     return _sli_dial;
   };
   long num() const {
@@ -385,13 +385,13 @@ public:
                 << " in this locationinfo @" << (void*)this);
     if (!_sli_dial) return;
     {
-      ShownLocationDialog* dial = _sli_dial;
+      SmeltLocationDialog* dial = _sli_dial;
       _sli_dial = nullptr;
       delete dial;
     }
     SMELT_DEBUG("destroyed dialog this locationinfo @" <<  (void*)this);
   }
-};        // end class ShownLocationInfo
+};        // end class SmeltLocationInfo
 
 /* The SmeltMainWindow is our graphical interface; allmost all GUI
    code is inside. */
@@ -401,8 +401,8 @@ class SmeltMainWindow : public Gtk::ApplicationWindow {
   Gtk::Notebook _mainnotebook;
   Gtk::Statusbar _mainstatusbar;
   Glib::RefPtr<Gtk::ActionGroup> _mainactgroup;
-  static std::map<long,ShownLocationInfo*> mainlocinfmapnum_;
-  static ShownLocationInfo* shown_location_by_number (long l) {
+  static std::map<long,SmeltLocationInfo*> mainlocinfmapnum_;
+  static SmeltLocationInfo* shown_location_by_number (long l) {
     if (l == 0) return nullptr;
     auto itsloc = mainlocinfmapnum_.find(l);
     if (itsloc == mainlocinfmapnum_.end()) return nullptr;
@@ -483,10 +483,10 @@ public:
 };        // end SmeltMainWindow
 
 
-std::map<long,ShownFile*> ShownFile::mainsfilemapnum_;
-std::map<std::string,ShownFile*> ShownFile::mainsfiledict_;
-std::map<long,ShownLocationInfo*>  SmeltMainWindow::mainlocinfmapnum_;
-Glib::RefPtr<Gtk::TextTagTable> ShownLocationInfo::sli_tagtbl_;
+std::map<long,SmeltFile*> SmeltFile::mainsfilemapnum_;
+std::map<std::string,SmeltFile*> SmeltFile::mainsfiledict_;
+std::map<long,SmeltLocationInfo*>  SmeltMainWindow::mainlocinfmapnum_;
+Glib::RefPtr<Gtk::TextTagTable> SmeltLocationInfo::sli_tagtbl_;
 
 class SmeltTraceWindow : public Gtk::Window {
   Gtk::VBox _tracevbox;
@@ -1316,7 +1316,7 @@ SmeltArg SmeltArg::parse_string_arg(const std::string& s, int& pos) throw (std::
 
 
 ////////////////////////////////////////////////////////////////
-ShownFile::ShownFile(SmeltMainWindow*mwin,const std::string&filepath,long num)
+SmeltFile::SmeltFile(SmeltMainWindow*mwin,const std::string&filepath,long num)
   : _sfilnum(num), _sfilnblines(0), _sfilname(filepath), _sfilview()
 {
   SMELT_DEBUG("constructing filepath=" << filepath << " num=" << num << " this@" << (void*)this);
@@ -1324,9 +1324,9 @@ ShownFile::ShownFile(SmeltMainWindow*mwin,const std::string&filepath,long num)
   if (access(filepath.c_str(), R_OK))
     SMELT_FATAL("invalid filepath " << filepath);
   if (num == 0 || mainsfilemapnum_.find(num) != mainsfilemapnum_.end())
-    throw smelt_domain_error("ShownFile: invalid shown file number",smelt_long_to_string(num));
+    throw smelt_domain_error("SmeltFile: invalid shown file number",smelt_long_to_string(num));
   if (filepath.empty() || mainsfiledict_.find(filepath) != mainsfiledict_.end())
-    throw smelt_domain_error("ShownFile: invalid shown file name",filepath);
+    throw smelt_domain_error("SmeltFile: invalid shown file name",filepath);
   SMELT_DEBUG("guessing language for filepath=" << filepath);
   auto langman = SmeltApplication::instance()->langman();
   auto lang = langman->guess_language(filepath,std::string());
@@ -1384,7 +1384,7 @@ ShownFile::ShownFile(SmeltMainWindow*mwin,const std::string&filepath,long num)
   mainsfiledict_[filepath] = this;
 }
 
-ShownFile::~ShownFile()
+SmeltFile::~SmeltFile()
 {
   SMELT_DEBUG("destructing this@" << (void*)this);
   assert (mainsfilemapnum_[_sfilnum] == this);
@@ -1397,7 +1397,7 @@ void
 SmeltMainWindow::show_file(const std::string&path, long num)
 {
   SMELT_DEBUG("show_file path:" << path << " num:" << num);
-  new ShownFile(this,path,num);
+  new SmeltFile(this,path,num);
 }
 
 
@@ -1406,7 +1406,7 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
 {
   SMELT_DEBUG("marknum=" << marknum << " filenum=" << filenum
               << " lineno=" << lineno << " col=" << col);
-  ShownFile* sfil = ShownFile::by_number (filenum);
+  SmeltFile* sfil = SmeltFile::by_number (filenum);
   if (!sfil)
     throw smelt_domain_error("mark_location invalid file number",
                              smelt_long_to_string(filenum));
@@ -1439,7 +1439,7 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
   if (col>1)
     itcur.forward_chars(col-1);
   SMELT_DEBUG("itcur=" << itcur);
-  ShownLocationInfo* inf = new ShownLocationInfo(marknum,sfil,lineno,col);
+  SmeltLocationInfo* inf = new SmeltLocationInfo(marknum,sfil,lineno,col);
   mainlocinfmapnum_[marknum] = inf;
 
   auto but = new Gtk::Button("*");
@@ -1447,7 +1447,7 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
   tbuf->insert_child_anchor(itcur,chanch);
   sfil->view().add_child_at_anchor(*but,chanch);
   but->signal_clicked().connect(sigc::mem_fun(*inf,
-                                &ShownLocationInfo::on_update));
+                                &SmeltLocationInfo::on_update));
   but->show();
   sfil->view().show_all ();
   sfil->view().queue_draw();
@@ -1461,7 +1461,7 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
    respond with one STARTINFOLOC_pcd followed by zero, one or more
    ADDINFOLOC_pcd commands */
 void
-ShownLocationInfo::on_update(void)
+SmeltLocationInfo::on_update(void)
 {
   SMELT_DEBUG("updating loc#" << _sli_num);
   SmeltApplication::instance()->sendreq(SmeltApplication::instance()->outreq()
@@ -1494,14 +1494,14 @@ ShownLocationInfo::on_update(void)
     }
   }
   if (!_sli_dial)
-    _sli_dial = new ShownLocationDialog(this);
+    _sli_dial = new SmeltLocationDialog(this);
 }
 
 
 
 
 void
-ShownLocationInfo::on_dialog_response(int resp)
+SmeltLocationInfo::on_dialog_response(int resp)
 {
   SMELT_DEBUG("responding loc#" << _sli_num << " resp=" << resp);
   switch (resp) {
@@ -1518,11 +1518,11 @@ ShownLocationInfo::on_dialog_response(int resp)
     _sli_dial->hide();
     // we cannot destroy the dial inside this event, we queue to
     // destroy it latter
-    Glib::signal_idle().connect_once(sigc::mem_fun(this,&ShownLocationInfo::destroy_dialog));
+    Glib::signal_idle().connect_once(sigc::mem_fun(this,&SmeltLocationInfo::destroy_dialog));
   }
 }
 
-ShownLocationDialog::ShownLocationDialog(ShownLocationInfo*info)
+SmeltLocationDialog::SmeltLocationDialog(SmeltLocationInfo*info)
   : Gtk::MessageDialog
   (Glib::ustring::compose("MELT info at <tt>%1</tt> <small>L%2C%3</small>",
                           basename(info->sfile()->name().c_str()), info->lineno(), info->col()),
@@ -1535,7 +1535,7 @@ ShownLocationDialog::ShownLocationDialog(ShownLocationInfo*info)
   _sld_swin()
 {
   SMELT_DEBUG("constructing this@" << (void*)this);
-  auto tbuf = Gtk::TextBuffer::create (ShownLocationInfo::the_tag_table());
+  auto tbuf = Gtk::TextBuffer::create (SmeltLocationInfo::the_tag_table());
   _sld_view.set_buffer (tbuf);
   _sld_view.set_editable (false);
   _sld_swin.set_policy (Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
@@ -1552,19 +1552,19 @@ ShownLocationDialog::ShownLocationDialog(ShownLocationInfo*info)
                                  /*fill:*/ true,
                                  /*padding:*/ 2);
   SMELT_DEBUG("constructing location dialog for info#" << info->num() << " @" << (void*)this);
-  signal_response().connect(sigc::mem_fun(*info,&ShownLocationInfo::on_dialog_response));
+  signal_response().connect(sigc::mem_fun(*info,&SmeltLocationInfo::on_dialog_response));
 }
 
-ShownLocationDialog::~ShownLocationDialog()
+SmeltLocationDialog::~SmeltLocationDialog()
 {
   SMELT_DEBUG("destructing this@" << (void*)this << " for info #" << _sld_info->num());
   _sld_info = nullptr;
 }
 
 
-#warning ShownLocationDialog::append_buffer unimplemented
+#warning SmeltLocationDialog::append_buffer unimplemented
 void
-ShownLocationDialog::append_buffer(const std::string& s, const std::string &tagname)
+SmeltLocationDialog::append_buffer(const std::string& s, const std::string &tagname)
 {
   auto tb = tbuf();
   SMELT_DEBUG ("s=" << s << " tagname=" << tagname << " this@" << (void*)this);
@@ -1572,7 +1572,7 @@ ShownLocationDialog::append_buffer(const std::string& s, const std::string &tagn
 }
 
 void
-ShownLocationDialog::append_buffer(const SmeltArg&a, const std::string &tagname)
+SmeltLocationDialog::append_buffer(const SmeltArg&a, const std::string &tagname)
 {
   auto tb = tbuf();
   SMELT_DEBUG ("a=" << a << " tagname=" << tagname << " this@" << (void*)this);
@@ -1583,7 +1583,7 @@ void
 SmeltMainWindow::showinfo_location(long marknum)
 {
   SMELT_DEBUG("start marknum=" << marknum << " this@" << (void*)this);
-  ShownLocationInfo* inf = shown_location_by_number(marknum);
+  SmeltLocationInfo* inf = shown_location_by_number(marknum);
   if (inf == nullptr) {
     SMELT_DEBUG("invalid marknum=" << marknum);
     throw smelt_domain_error("showinfo_location invalid mark number",
@@ -1600,13 +1600,13 @@ void
 SmeltMainWindow::addinfo_location(long marknum, const std::string& title, const SmeltArg&arg)
 {
   SMELT_DEBUG("start marknum=" << marknum << " this@" << (void*)this);
-  ShownLocationInfo* inf = shown_location_by_number(marknum);
+  SmeltLocationInfo* inf = shown_location_by_number(marknum);
   if (inf == nullptr) {
     SMELT_DEBUG("invalid marknum=" << marknum);
     throw smelt_domain_error("addinfo_location invalid mark number",
                              smelt_long_to_string(marknum));
   }
-  ShownLocationDialog* dial = inf->dialog();
+  SmeltLocationDialog* dial = inf->dialog();
   g_assert (dial != nullptr);
   dial->append_buffer(title,"title");
   dial->append_buffer(arg);

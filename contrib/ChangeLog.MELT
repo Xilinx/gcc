@@ -1,5 +1,9 @@
 
 2012-06-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.cc: Rename all Shown* as Smelt*
+	identifiers.
+
+2012-06-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.cc: Working at last.
 	Using raw pointers for ShownLocationDialog.
 	See https://mail.gnome.org/archives/gtkmm-list/2012-June/msg00036.html
