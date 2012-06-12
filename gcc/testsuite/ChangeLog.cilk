@@ -1,3 +1,19 @@
+2012-06-12  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* gcc.dg/cilk-plus/elem_fn_tests/test7.c: Enclosed the function inside
+	a #ifdef __x86__ since these processors do not have 64 bit support.
+	* gcc.dg/cilk-plus/elem_fn_tests/test8.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test9.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test10.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test11.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test12.c: Likewise.
+	* g++.dg/cilk-plus/elem_fn_tests/test7.cc: Likewise
+	* g++.dg/cilk-plus/elem_fn_tests/test8.cc: Likewise.
+	* g++.dg/cilk-plus/elem_fn_tests/test9.cc: Likewise.
+	* g++.dg/cilk-plus/elem_fn_tests/test10.cc: Likewise.
+	* g++.dg/cilk-plus/elem_fn_tests/test11.cc: Likewise.
+	* g++.dg/cilk-plus/elem_fn_tests/test12.cc: Likewise
+
 2012-05-29  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* g++.dg/cilk-plus/elem_fn_tests/ctrl_flow2.cc: New elem. function test.
