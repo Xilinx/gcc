@@ -113,14 +113,19 @@
       (forever 
        argloop
        (add2out outsbuf " ")
+       (debug "send_command_to_probe variadic#" (variadic_index) " ctype=" (variadic_ctype 0))
        (variadic 
 	( ()
+	  (debug "send_command_to_probe end variadic")
 	  (exit argloop))
 	( (:long l)
+	  (debug "send_command_to_probe variadic long l=" l)
 	  (a+num outsbuf l))
 	( (:cstring s)
+	  (debug "send_command_to_probe variadic string s=" s)
 	  (a+str outsbuf s))
 	( (:value v)
+	  (debug "send_command_to_probe variadic value v=" v)
 	  (a+val outsbuf v 0))
 	( :else
 	  (assert_msg "invalid variadic in send_command_to_probe" ()))))

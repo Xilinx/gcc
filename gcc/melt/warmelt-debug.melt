@@ -704,16 +704,18 @@ $TORANK}#
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_out dbgi))
 	 )
-    (if (== dis DISCR_INTEGER)
-	(progn 
-	  (add2sbuf_strconst sbuf " #")
-	  (add2sbuf_longdec sbuf (get_int self)))
-      (progn
-	(add2sbuf_strconst sbuf " |")
-	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
-	(add2sbuf_strconst sbuf "#")
-	(add2sbuf_longdec sbuf (get_int self)))
-      )))
+    (cond 
+     ( (== dis discr_integer)
+       (add2sbuf_strconst sbuf " #")
+       (add2sbuf_longdec sbuf (get_int self)))
+     ( (and (== dis discr_constant_integer) (>i depth 0))
+       (add2out sbuf " #'"  (get_int self)))
+     (:else
+      (add2sbuf_strconst sbuf " |")
+      (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+      (add2sbuf_strconst sbuf "#")
+      (add2sbuf_longdec sbuf (get_int self)))
+     )))
 
 (install_method discr_integer dbg_output dbgout_integer_method)
 

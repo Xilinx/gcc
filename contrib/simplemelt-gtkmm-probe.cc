@@ -1747,7 +1747,10 @@ SmeltMainWindow::addinfo_location(long marknum, const std::string& title, const 
   }
   SmeltLocationDialog* dial = inf->dialog();
   g_assert (dial != nullptr);
-  dial->append_buffer(title,"title");
+  if (!title.empty()) {
+    dial->append_buffer(title,"title");
+    dial->append_buffer(Glib::ustring("\n"));
+  }
   dial->append_buffer(arg);
 }
 
@@ -1905,7 +1908,7 @@ SmeltTraceWindow::SmeltTraceWindow()
   }
   _tracevbox.pack_start(_tracescrollw,Gtk::PACK_EXPAND_WIDGET);
   _tracescrollw.add(_tracetextview);
-  _tracescrollw.set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC);
+  _tracescrollw.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
   _tracetextview.set_editable(false);
   {
     auto tbuf =  _tracetextview.get_buffer();
@@ -2266,7 +2269,7 @@ void
 SmeltApplication::addinfoloc_cmd(SmeltVector&v)
 {
   auto marknum = v.at(1).to_long();
-  auto title = v.at(2).to_string();
+  auto title = v.at(2).as_string();
   SMELT_DEBUG("ADDINFOLOC marknum=" << marknum << " title=" << title);
   _app_mainwinp->addinfo_location(marknum, title, v.at(3));
 }

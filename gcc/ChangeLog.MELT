@@ -1,6 +1,13 @@
 
 2012-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-debug.melt (dbgout_integer_method): Output
+	specially constant integers.
+
+	* melt/xtramelt-probe.melt (send_command_to_probe): More debug.
+
+2012-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-base.melt (add2out): Improve error messages.
 
 2012-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
