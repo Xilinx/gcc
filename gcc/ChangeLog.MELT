@@ -1,6 +1,10 @@
 
 2012-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-base.melt (add2out): Improve error messages.
+
+2012-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/xtramelt-ana-base.melt (output_tree): New function.
 
 	* melt/xtramelt-ana-gimple.melt (output_gimple, output_gimpleseq):
