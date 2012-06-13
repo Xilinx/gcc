@@ -1,5 +1,11 @@
 
 2012-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-debug.melt (dbgout_bucketlong_method): Emit
+	better indentation.
+	* melt/xtramelt-ana-probe.melt (probe_get_interesting_location):
+	Better.
+
+2012-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-debug.melt (dbgout_bucketlong_method): New method
 	for dbg_out on discr_bucket_longs.
 

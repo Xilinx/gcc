@@ -290,7 +290,7 @@
   with the $PROBEDATA for given $FILE at line $LINENO and column
   $COL. May register a new location at the probe.}#
   (if (null probedata)
-    (setq probedata (probe_get_data)))
+      (setq probedata (probe_get_data)))
   (debug "probe_get_interesting_location probedata=" probedata 
 	 " file=" file " lineno=" lineno " col=" col)
   (assert_msg "check probedata" (is_a probedata class_probe_data))
@@ -374,6 +374,8 @@
 	 (setq ix -1) ;;to break the forach_in_multiple
 	 (void)
 	 ))
+      (debug "probe_get_interesting_location loctup=" loctup 
+	     " newiloc=" newiloc)
       ;; insert the newiloc inside the vector of interesting locations
       (let ( (ilocvec (get_field :probedata_ilocvec probedata))
 	     (:long ilocveclen (multiple_length ilocvec))
@@ -394,12 +396,17 @@
 	      (put_fields probedata :probedata_ilocvec newvec)
 	      (setq ilocvec newvec)
 	      (setq ilocveclen newveclen)))
+	(debug "probe_get_interesting_location newrank=" newrank " ilocvec=" ilocvec)
 	(assert_msg "check newrank" (<i newrank ilocveclen))
 	(assert_msg "check empty newrank" (null (multiple_nth ilocvec newrank)))
-	(put_fields newiloc 
-		    :probiloc_rank (make_integerbox discr_constant_integer newrank)
-		    :probiloc_closinfolist (make_list discr_list))
-	(multiple_put_nth ilocvec newrank newiloc)
+	(let ( (boxnewrank (make_integerbox discr_constant_integer newrank))
+	       )
+	  (put_fields newiloc
+		      :probiloc_rank boxnewrank
+		      :probiloc_closinfolist (make_list discr_list))
+	  (multiple_put_nth ilocvec newrank newiloc)
+	  (put_fields probedata
+		      :probedata_nbiloc boxnewrank))
 	(debug "probe_get_interesting_location newiloc=" newiloc
 	       " newrank=" newrank " filerank=" filerank " lineno=" lineno " col=" col)
 	(send_command_to_probe 'marklocation_pcd newrank filerank lineno col)
