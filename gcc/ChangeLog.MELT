@@ -1,4 +1,11 @@
 
+2012-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-debug.melt (dbgout_bucketlong_method): New method
+	for dbg_out on discr_bucket_longs.
+
+	* melt/xtramelt-ana-probe.melt (probe_get_file_of_name): Better
+	debug.
+
 2012-06-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-probe.melt (scanprobe_exec): Walk thru the
 	gimpleseq and give to probe information on gimples & trees of

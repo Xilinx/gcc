@@ -221,7 +221,7 @@
   probe}#
   (if (null probedata)
     (setq probedata (probe_get_data)))
-  (debug "probe_get_file_of_name probedata=" probedata " name=" name)
+  (debug "probe_get_file_of_name probedata=" probedata "\n* name=" name)
   (assert_msg "check probedata" (is_a probedata class_probe_data))
   (assert_msg "check name" (is_string name))
   (let (

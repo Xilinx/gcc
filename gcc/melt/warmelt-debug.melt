@@ -1122,6 +1122,43 @@ $TORANK}#
 (install_method discr_map_strings dbg_output dbgout_mapstring_method)
 
 
+
+;;;;;;;;;;;;;;;; bucket_longs debug output
+(defun dbgout_bucketlong_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (assert_msg "check self" (is_bucketlong self))
+  (let ( (dis (discrim self)) 
+	 (sbuf (unsafe_get_field :dbgi_out dbgi))
+	 (:long ix 0)
+	 (:long nextdepth  (+i 2 depth))
+	 (nextdepthbox (make_integerbox discr_integer nextdepth))
+	 (aux (bucketlong_aux self))
+	 (:long xnum (bucketlong_xnum self))
+	 )
+    (add2out sbuf ".bucklong/" (get_field :named_name dis) "!{")
+    (when (or (<=i depth 0) (notnull aux))
+      (add2sbuf_indent sbuf nextdepth)
+      (add2out sbuf "*aux= ")
+      (dbg_out aux dbgi (+i nextdepth 2))
+      )
+    (when (or (<=i depth 0) xnum)
+      (add2sbuf_indent sbuf nextdepth)
+      (add2out sbuf "*xnum= " xnum)
+      )
+    (foreach_in_bucketlong
+     (self)
+     (:long key :value val)
+      (add2sbuf_indent sbuf nextdepth)
+      (add2out sbuf "* " key "= ")
+      (dbg_out val dbgi nextdepth)
+    )
+    (if (bucketlong_count self) 
+      (add2sbuf_indent sbuf (+i 1 depth)))
+    (add2out sbuf "}!")
+))
+(install_method discr_bucket_longs dbg_output dbgout_bucketlong_method)
+
+
 ;;;; generic object debug
 (defun dbgout_anyobject_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debug_information))
