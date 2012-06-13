@@ -1,5 +1,12 @@
 
 2012-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.c: More comments on debugging.
+	(SmeltLocationInfo::initialize): New function which initialize the
+	text tag table.
+	(SmeltSymbol::find): Use std::map::find...
+	(main): Call SmeltLocationInfo::initialize.
+
+2012-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.c (smelt_quit)
 	(SmeltApplication::quit_cmd): Don't use Gtk::Main::quit but
 	Gio::Application::quit.

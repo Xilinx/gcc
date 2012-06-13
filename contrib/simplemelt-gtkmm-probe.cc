@@ -72,6 +72,15 @@ may also send several requests to MELT at any moment.
 
 Indent this file with
    astyle -v -s2 -gnu -c simplemelt-gtkmm-probe.cc
+
+To debug this program in isolation, start it with e.g.
+   simplemelt-gtkmm-probe -D -T --command-from-MELT 0 --request-to-MELT 1
+then type (assuming you have simplemelt-gtkmm-probe.cc, replace it appropriately) 
+   SHOWFILE_PCD "simplemelt-gtkmm-probe.cc" 1
+   MARKLOCATION_PCD 1 1 1002 3
+   MARKLOCATION_PCD 2 1 1023 4
+syntax is MARKLOCATION_PCD <marknum> <filenum> <line> <col>
+
 ****/
 
 
@@ -418,7 +427,8 @@ public:
       delete dial;
     }
     SMELT_DEBUG("destroyed dialog this locationinfo @" <<  (void*)this);
-  }
+  };
+  static void initialize (void);
 };        // end class SmeltLocationInfo
 
 /* The SmeltMainWindow is our graphical interface; allmost all GUI
@@ -616,8 +626,17 @@ public:
   }; // for debugging
   SmeltSymbol(const std::string& name, void* data=nullptr)
     : _symname(name), _symdata(data) {
+    SMELT_DEBUG("constructing SmeltSymbol name=" << name << " this@" << (void*)this);
     assert (!name.empty());
-    assert(dictsym_.find(name) == dictsym_.end());
+    {
+      auto symit = dictsym_.find(_symname);
+      if (symit == dictsym_.end())
+	SMELT_DEBUG("symit at end");
+      else
+	SMELT_DEBUG("symit key=" << (symit->first) 
+		    << " value=" << (void*)(symit->second));
+    }
+    assert(dictsym_.find(_symname) == dictsym_.end());
     dictsym_[_symname] = this;
   };
   SmeltSymbol(const SmeltSymbol&) = delete;
@@ -633,8 +652,17 @@ public:
     return _symdata;
   };
   static SmeltSymbol* find(const std::string& name) {
-    return dictsym_[name];
+    if (name.empty()) return nullptr;
+    auto symit = dictsym_.find (name);
+    if (symit != dictsym_.end())
+      return symit->second;
+    return nullptr;
   };
+  static SmeltSymbol* find(const char* s) {
+    if (!s) return nullptr;
+    std::string str(s);
+    return find(str);
+  }
 };
 
 std::map<std::string,SmeltSymbol*> SmeltSymbol::dictsym_;
@@ -1005,6 +1033,7 @@ public:
   static SmeltTagSymbol* register_tag(Glib::RefPtr<Gtk::TextTag>tgref) {
     if (!tgref) return nullptr;
     auto tgname = tgref->property_name().get_value();
+    SMELT_DEBUG("tgname=" << tgname);
     if (!tgname.empty())
       return SmeltTagSymbol::create(tgname);
     return nullptr;
@@ -1502,6 +1531,42 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
 
 
 
+void
+SmeltLocationInfo::initialize (void)
+{
+  g_assert (!sli_tagtbl_);
+  sli_tagtbl_ = Gtk::TextTagTable::create();
+  SMELT_DEBUG("created tagtbl gobj@" << (void*)sli_tagtbl_->gobj());
+  {
+    auto tagtitle = Gtk::TextTag::create ("title");
+    tagtitle->property_weight() = Pango::WEIGHT_BOLD;
+    tagtitle->property_scale() = Pango::SCALE_X_LARGE;
+    tagtitle->property_foreground() = "FireBrick";
+    SmeltTagSymbol::register_tag(tagtitle);
+    sli_tagtbl_->add(tagtitle);
+  }
+  {
+    auto tagsubtitle = Gtk::TextTag::create ("subtitle");
+    tagsubtitle->property_weight() = Pango::WEIGHT_BOLD;
+    tagsubtitle->property_scale() = Pango::SCALE_LARGE;
+    tagsubtitle->property_foreground() = "Navy";
+    SmeltTagSymbol::register_tag(tagsubtitle);
+    sli_tagtbl_->add(tagsubtitle);
+  }
+  {
+    auto tagbold = Gtk::TextTag::create ("bold");
+    tagbold->property_weight() = Pango::WEIGHT_BOLD;
+    SmeltTagSymbol::register_tag(tagbold);
+    sli_tagtbl_->add(tagbold);
+  }
+  {
+    auto tagitalic = Gtk::TextTag::create ("italic");
+    tagitalic->property_style() = Pango::STYLE_OBLIQUE;
+    SmeltTagSymbol::register_tag(tagitalic);
+    sli_tagtbl_->add(tagitalic);
+  }
+}
+
 /* When the user press a location button, on_update is called. It
    should send an INFOLOCATION_prq request to MELT, which should
    respond with one STARTINFOLOC_pcd followed by zero, one or more
@@ -1512,37 +1577,7 @@ SmeltLocationInfo::on_update(void)
   SMELT_DEBUG("updating loc#" << _sli_num);
   SmeltApplication::instance()->sendreq(SmeltApplication::instance()->outreq()
                                         << "INFOLOCATION_prq " << _sli_num);
-  if (!sli_tagtbl_) {
-    sli_tagtbl_ = Gtk::TextTagTable::create();
-    {
-      auto tagtitle = Gtk::TextTag::create ("title");
-      tagtitle->property_weight() = Pango::WEIGHT_BOLD;
-      tagtitle->property_scale() = Pango::SCALE_X_LARGE;
-      tagtitle->property_foreground() = "FireBrick";
-      SmeltTagSymbol::register_tag(tagtitle);
-      sli_tagtbl_->add(tagtitle);
-    }
-    {
-      auto tagsubtitle = Gtk::TextTag::create ("subtitle");
-      tagsubtitle->property_weight() = Pango::WEIGHT_BOLD;
-      tagsubtitle->property_scale() = Pango::SCALE_LARGE;
-      tagsubtitle->property_foreground() = "Navy";
-      SmeltTagSymbol::register_tag(tagsubtitle);
-      sli_tagtbl_->add(tagsubtitle);
-    }
-    {
-      auto tagbold = Gtk::TextTag::create ("bold");
-      tagbold->property_weight() = Pango::WEIGHT_BOLD;
-      SmeltTagSymbol::register_tag(tagbold);
-      sli_tagtbl_->add(tagbold);
-    }
-    {
-      auto tagitalic = Gtk::TextTag::create ("italic");
-      tagitalic->property_style() = Pango::STYLE_OBLIQUE;
-      SmeltTagSymbol::register_tag(tagitalic);
-      sli_tagtbl_->add(tagitalic);
-    }
-  }
+  g_assert (sli_tagtbl_);
   if (!_sli_dial)
     _sli_dial = new SmeltLocationDialog(this);
 }
@@ -2113,6 +2148,8 @@ main (int argc, char** argv)
     appl->register_application ();
     SMELT_DEBUG("before application activation");
     appl->activate();
+    SMELT_DEBUG("before location info initialize");
+    SmeltLocationInfo::initialize ();
     SMELT_DEBUG("before application run");
     appl->run(argc, argv);
     SMELT_DEBUG("after application run");
