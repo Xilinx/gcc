@@ -75,7 +75,7 @@ Indent this file with
 
 To debug this program in isolation, start it with e.g.
    simplemelt-gtkmm-probe -D -T --command-from-MELT 0 --request-to-MELT 1
-then type (assuming you have simplemelt-gtkmm-probe.cc, replace it appropriately) 
+then type (assuming you have simplemelt-gtkmm-probe.cc, replace it appropriately)
    SHOWFILE_PCD "simplemelt-gtkmm-probe.cc" 1
    MARKLOCATION_PCD 1 1 1002 3
    MARKLOCATION_PCD 2 1 1023 4
@@ -366,7 +366,7 @@ public:
     g_assert (tb);
     tb->insert_with_tags(tb->end(),str,_sld_tagvect);
   }
-  void append_buffer (const std::string&s, const std::string &tagname="");
+  void append_buffer (const std::string&s, const std::string &tagname);
   void append_buffer (const SmeltArg&a, const std::string &tagname="");
 };        // end class SmeltLocationDialog
 
@@ -631,10 +631,10 @@ public:
     {
       auto symit = dictsym_.find(_symname);
       if (symit == dictsym_.end())
-	SMELT_DEBUG("symit at end");
+        SMELT_DEBUG("symit at end");
       else
-	SMELT_DEBUG("symit key=" << (symit->first) 
-		    << " value=" << (void*)(symit->second));
+        SMELT_DEBUG("symit key=" << (symit->first)
+                    << " value=" << (void*)(symit->second));
     }
     assert(dictsym_.find(_symname) == dictsym_.end());
     dictsym_[_symname] = this;
@@ -1625,6 +1625,7 @@ SmeltLocationDialog::SmeltLocationDialog(SmeltLocationInfo*info)
   _sld_view.set_editable (false);
   _sld_swin.set_policy (Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
   _sld_swin.add(_sld_view);
+  _sld_swin.set_min_content_height(200);
   set_title(Glib::ustring::compose("MELT info #%1", info->num()));
   set_secondary_text
   (Glib::ustring::compose
@@ -1656,7 +1657,8 @@ SmeltLocationDialog::append_buffer(const std::string& s, const std::string &tagn
   bool withtag = !tagname.empty();
   if (withtag)
     push_tag (tagname);
-  append_buffer (s);
+  /* Explicit conversion to Glib::ustring to avoid infinite recursion.  */
+  append_buffer (Glib::ustring(s));
   if (withtag)
     pop_tag ();
 }
@@ -1677,24 +1679,28 @@ SmeltLocationDialog::append_buffer(const SmeltArg&a, const std::string &tagname)
     long l = a.as_long();
     char str[48];
     snprintf(str, sizeof(str), "%ld", l);
-    append_buffer(std::string(str));
+    /* Explicit conversion to Glib::ustring to avoid infinite recursion.  */
+    append_buffer(Glib::ustring(str));
   };
   case SmeltArg_Double: {
     double x = a.as_double();
     char str[64];
     snprintf(str, sizeof(str), "%g", x);
-    append_buffer(std::string(str));
+    /* Explicit conversion to Glib::ustring to avoid infinite recursion.  */
+    append_buffer(Glib::ustring(str));
   };
   break;
   case SmeltArg_String: {
     const std::string& s = a.as_string();
-    append_buffer (s);
+    /* Explicit conversion to Glib::ustring to avoid infinite recursion.  */
+    append_buffer (Glib::ustring(s));
   }
   break;
   case SmeltArg_Symbol: {
     SmeltSymbol* sy = a.symbol_ptr();
     if (sy)
-      append_buffer (sy->name());
+      /* Explicit conversion to Glib::ustring to avoid infinite recursion.  */
+      append_buffer (Glib::ustring(sy->name()));
   }
   break;
   case SmeltArg_Vector: {

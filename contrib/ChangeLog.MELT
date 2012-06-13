@@ -1,6 +1,13 @@
 
 2012-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
-	* simplemelt-gtkmm-probe.c More comments on debugging.
+	* simplemelt-gtkmm-probe.c
+	(SmeltLocationDialog::SmeltLocationDialog): Set the minimum
+	content height.
+	(SmeltLocationDialog::append_buffer): Avoid infinite recursion
+	thru explicit cast.
+
+2012-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.c: More comments on debugging.
 	(SmeltLocationInfo::initialize): New function which initialize the
 	text tag table.
 	(SmeltSymbol::find): Use std::map::find...
