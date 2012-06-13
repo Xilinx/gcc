@@ -2150,7 +2150,7 @@ SmeltCommandSymbol smeltsymb_quit_cmd("QUIT_PCD",&SmeltApplication::quit_cmd);
 static void smelt_quit(void)
 {
   SMELT_DEBUG("delayed quit");
-  Gtk::Main::quit();
+  SmeltApplication::instance()->quit();
 }
 
 void
@@ -2159,7 +2159,7 @@ SmeltApplication::quit_cmd(SmeltVector&v)
   long delay = (v.size()>0)?v.at(1).as_long():0L;
   SMELT_DEBUG("QUIT command delay:" << delay);
   if (delay <= 0)
-    Gtk::Main::quit();
+    quit ();
   else  /* delayed quit; the delay is in milliseconds */
     Glib::signal_timeout().connect_once(sigc::ptr_fun(&smelt_quit),delay);
 }
