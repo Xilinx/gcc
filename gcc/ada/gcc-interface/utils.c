@@ -572,14 +572,14 @@ gnat_pushdecl (tree decl, Node_Id gnat_node)
   if (!(TREE_CODE (decl) == TYPE_DECL
         && TREE_CODE (TREE_TYPE (decl)) == UNCONSTRAINED_ARRAY_TYPE))
     {
-      if (global_bindings_p ())
+      if (DECL_EXTERNAL (decl))
 	{
-	  VEC_safe_push (tree, gc, global_decls, decl);
-
 	  if (TREE_CODE (decl) == FUNCTION_DECL && DECL_BUILT_IN (decl))
 	    VEC_safe_push (tree, gc, builtin_decls, decl);
 	}
-      else if (!DECL_EXTERNAL (decl))
+      else if (global_bindings_p ())
+	VEC_safe_push (tree, gc, global_decls, decl);
+      else
 	{
 	  DECL_CHAIN (decl) = BLOCK_VARS (current_binding_level->block);
 	  BLOCK_VARS (current_binding_level->block) = decl;
@@ -3601,7 +3601,7 @@ build_vms_descriptor (tree type, Mechanism_Type mech, Entity_Id gnat_entity)
 			     record_type, size_int (klass), field_list);
   field_list
     = make_descriptor_field ("MBMO", gnat_type_for_size (32, 1),
-			     record_type, ssize_int (-1), field_list);
+			     record_type, size_int (-1), field_list);
   field_list
     = make_descriptor_field ("LENGTH", gnat_type_for_size (64, 1),
 			     record_type,
