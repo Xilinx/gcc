@@ -1659,8 +1659,18 @@ current function and gives its declaration in $CFUNDECL}#
   (if (is_out out)
       (if tr
 	  (code_chunk 
+	   treeoutbchbr
+	   #{ /* output_tree_briefly $TREEOUTBCHBR */ meltgc_ppout_tree_briefly ((melt_ptr_t)$OUT, 0, $TR) ; }#
+	   )
+	(add2out_strconst out "*nulltree*")
+	)))
+
+(defun output_tree (out :tree tr)
+  (if (is_out out)
+      (if tr
+	  (code_chunk 
 	   treeoutchbr
-	   #{ /* $TREEOUTCHBR */ meltgc_ppout_tree_briefly ((melt_ptr_t)$OUT, 0, $TR) ; }#
+	   #{ /* output_tree $TREEOUTCHBR */ meltgc_ppout_tree ((melt_ptr_t)$OUT, 0, $TR) ; }#
 	   )
 	(add2out_strconst out "*nulltree*")
 	)))
@@ -1835,6 +1845,7 @@ current function and gives its declaration in $CFUNDECL}#
  number_of_loops
  output_edge
  output_loop
+ output_tree
  output_tree_briefly
  post_dominated_by_other
  post_dominated_by_other

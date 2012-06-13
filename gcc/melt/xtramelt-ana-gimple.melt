@@ -2185,7 +2185,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
 
 
 ;;;;;;;;;;;;;;;;
-;; debug function for gimple
+;; debug & output functions for gimple
 (defun debugfun_gimple (dbgi :gimple g)
   (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (out (get_field :dbgi_out dbgi))
@@ -2200,10 +2200,18 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
 (register_gimple_debug_fun debugfun_gimple)
 
 
+(defun output_gimple (out :gimple g)
+  (if (is_out out)
+      (if g
+	  (code_chunk outgimplechk
+	   #{ /* output_gimple $OUTGIMPLECHK */ meltgc_ppout_gimple((melt_ptr_t)$OUT, 0, $G) }#)
+	(add2out_strconst out "*nullgimple*")
+      )))
+
 
 
 ;;;;;;;;;;;;;;;;
-;; debug function for gimpleseq
+;; debug & output functions for gimpleseq
 (defun debugfun_gimpleseq (dbgi :gimple_seq gs)
   (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (out (get_field :dbgi_out dbgi))
@@ -2211,13 +2219,24 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
     (if gs
 	(code_chunk
 	 outgimpleseqchk
-	 #{ /*$OUTGIMPLESEQCHK*/ meltgc_ppout_gimple_seq ((melt_ptr_t)$OUT, 0, $GS);}#
+	 #{ /*debugfun_gimpleseq $OUTGIMPLESEQCHK*/ meltgc_ppout_gimple_seq ((melt_ptr_t)$OUT, 0, $GS);}#
 	 )
       (add2out_strconst out "*nullgimpleseq*")
       )))
 (register_gimpleseq_debug_fun debugfun_gimpleseq)
 
 
+(defun output_gimpleseq (out :gimple_seq gs)
+  (if (is_out out)
+      (if gs
+	(code_chunk
+	 outgimpleseqchk
+	 #{ /* output_gimpleseq $OUTGIMPLESEQCHK*/ meltgc_ppout_gimple_seq ((melt_ptr_t)$OUT, 0, $GS);}#
+	 )
+      (add2out_strconst out "*nullgimpleseq*")
+      )))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values
  ;; alphanumerical order
  ==g  
@@ -2348,6 +2367,8 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  mapgimple_size
  null_gimple 
  null_gimpleseq
+ output_gimple
+ output_gimpleseq
  reveach_in_gimpleseq
  walk_gimple_seq
  walk_gimple_seq_unique_tree

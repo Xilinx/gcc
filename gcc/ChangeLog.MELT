@@ -1,5 +1,15 @@
 
 2012-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/xtramelt-ana-base.melt (output_tree): New function.
+
+	* melt/xtramelt-ana-gimple.melt (output_gimple, output_gimpleseq):
+	New functions.
+
+	* melt/xtramelt-probe.melt (scanprobe_exec): Use them.
+
+2012-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{Regenerate}}
 
 	* melt/generated/meltrunsup-inc.c: Regenerate.
