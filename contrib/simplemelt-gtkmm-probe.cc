@@ -1758,6 +1758,7 @@ SmeltMainWindow::addinfo_location(long marknum, const std::string& title, const 
     dial->append_buffer(Glib::ustring("\n"));
   }
   dial->append_buffer(arg);
+  dial->append_buffer(Glib::ustring("\n"));
 }
 
 ////////////////////////////////////////////////////////////////

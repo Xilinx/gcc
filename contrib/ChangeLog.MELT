@@ -1,4 +1,8 @@
 
+2012-06-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.c (SmeltMainWindow::addinfo_location):
+	Append a newline character.
+
 2012-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.c
 	(SmeltLocationDialog::SmeltLocationDialog): Set the minimum
