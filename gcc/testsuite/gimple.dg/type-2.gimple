@@ -1,0 +1,3 @@
+UNION_TYPE <some_union,4,
+FIELD_DECL <first_var,INTEGER_TYPE<4>>,
+FIELD_DECL<second_var,REAL_TYPE<4>>>

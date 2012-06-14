@@ -1,3 +1,7 @@
+2012-06-09   Sandeep Soni   <soni.sandeepb@gmail.com>
+
+	* parser.c: Modify gp_parse_return_var to have correct code flow.
+ 
 2012-05-25   Diego Novillo  <dnovillo@google.com>
 
 	* parser.c (gimple_register_var_decl_in_symtab): Tidy.

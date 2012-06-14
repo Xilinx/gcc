@@ -1,3 +1,17 @@
+2012-06-14 Sandeep Soni  <soni.sandeepb@gmail.com>
+
+	* gimple.dg/20120611-1.gimple: New.
+	* gimple.dg/20120611-2.gimple: New.
+	* gimple.dg/20120611-3.gimple: New.
+	* gimple.dg/20120611-4.gimple: New.
+	* gimple.dg/type-1.gimple: New.
+	* gimple.dg/type-2.gimple: New.
+	* gimple.dg/type-3.gimple: New.
+
+2012-06-09   Sandeep Soni  <soni.sandeepb@gmail.com>
+
+	* gimple.dg/20120605-2.gimple: New.
+
 2012-06-08   Sandeep Soni  <soni.sandeepb@gmail.com>
 
 	* gimple.dg/20120604-1.gimple: New.

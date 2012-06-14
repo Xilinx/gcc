@@ -634,16 +634,11 @@ gp_parse_expect_function_name (gimple_parser *parser)
 static void
 gp_parse_expect_return_var (gimple_parser *parser)
 {
-  const gimple_token *next_token;
-
-  next_token = gl_consume_token (parser->lexer);
-
-  if (next_token->type == CPP_NAME)
-    next_token = gl_consume_token (parser->lexer);
-  
   /* There may be no variable in which the return value is collected.
      In that case this field in the tuple will contain NULL. We need 
      to handle it too.  */
+  gl_consume_expected_token (parser->lexer, CPP_NAME);
+  
 }
 
 
@@ -664,7 +659,6 @@ gp_parse_expect_argument (gimple_parser *parser)
       break;
 
     case CPP_MULT:
-      next_token = gl_consume_token (parser->lexer);
       gl_consume_expected_token (parser->lexer, CPP_NAME);
       break;
 
@@ -692,7 +686,6 @@ gp_parse_call_stmt (gimple_parser *parser)
 	break;
       else if (next_token->type == CPP_COMMA)
         {
-          next_token = gl_consume_token (parser->lexer);
           gp_parse_expect_argument (parser);
         }
     } 

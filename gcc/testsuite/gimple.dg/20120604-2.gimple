@@ -1,0 +1,1 @@
+gimple_cond<modify_expr,a,3,<tlabel>,<flabel>> /* { dg-error "Unsupported gimple_cond expression" } */

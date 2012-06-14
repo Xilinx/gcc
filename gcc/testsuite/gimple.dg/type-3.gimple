@@ -1,0 +1,4 @@
+ENUMERAL_TYPE<some_enum,3,
+      	      <FIRST,1>,
+      	      <SECOND,2>,
+              <LAST,5>>

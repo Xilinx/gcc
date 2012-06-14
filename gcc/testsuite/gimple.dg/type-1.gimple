@@ -1,0 +1,3 @@
+record_type <some_struct,8,
+field_decl<first_var, INTEGER_TYPE<4>>,
+field_decl<second_var, INTEGER_TYPE<4>>>
