@@ -1,4 +1,12 @@
 
+2012-06-14  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/xtramelt-probe.melt (probe_get_file_of_name)
+	(probe_get_interesting_location): Improve typography of commands
+	sent to probe.
+	(info_location_probe): Title is correctly made.
+	(scanprobe_exec): Use output_tree_briefly.
+
 2012-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-debug.melt (dbgout_integer_method): Output
