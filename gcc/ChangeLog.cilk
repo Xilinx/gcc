@@ -1,3 +1,16 @@
+2012-06-15  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cilk.c (install_builtin): Added a check if pushdecl is successful.
+	Only update the fndecl if it is.
+	(cilk_init_builtins): Removed duplicate code and changed fixed a small
+	bug.
+	(get_frame_arg): Added a check if compatable_p is available.
+	(expand_builtin_cilk_metadata): Removed attribute_unused for the parms,
+	and set is_cilk_function whenever notify_intrinsic is set.
+	* tree.h (GTY): Added a new enum field called BUILT_IN_CILK.
+	* builtins.def: Set the builtin type as BUILT_IN_CILK for all cilk
+	related functions.
+
 2012-06-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cilk.c (cilk_init_builtins): Made the stack frame structure runtime

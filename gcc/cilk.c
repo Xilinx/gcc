@@ -80,7 +80,11 @@ install_builtin (const char *name, tree fntype, enum built_in_function code,
   DECL_BUILT_IN_CLASS (fndecl) = BUILT_IN_NORMAL;
   DECL_FUNCTION_CODE (fndecl) = code;
   if (publish)
-    fndecl = lang_hooks.decls.pushdecl (fndecl);
+    { 
+      tree t = lang_hooks.decls.pushdecl (fndecl);
+      if (t)
+	fndecl = t;
+    }
   set_builtin_decl (code, fndecl, true);
   return fndecl;
 }
@@ -293,27 +297,9 @@ cilk_init_builtins (void)
   mark_cold (cilk_leave_fndecl);
   cilk_leave_fndecl = lang_hooks.decls.pushdecl (cilk_leave_fndecl);
 
-  cilk_enter_fndecl = build_fn_decl ("__cilkrts_enter_frame", fptr_fun);
-  mark_cold (cilk_enter_fndecl);
-  cilk_enter_fndecl = lang_hooks.decls.pushdecl (cilk_enter_fndecl);
-
-
-
-  cilk_pop_fndecl = install_builtin ("__cilkrts_pop_frame", fptr_fun,
-				     BUILT_IN_CILK_POP_FRAME, false);
-
-  cilk_leave_fndecl = build_fn_decl ("__cilkrts_leave_frame", fptr_fun);
-  mark_cold (cilk_leave_fndecl);
-  cilk_leave_fndecl = lang_hooks.decls.pushdecl (cilk_leave_fndecl);
-
-
-  cilk_sync_fndecl = build_fn_decl ("__cilkrts_sync", fptr_fun);
-  mark_cold (cilk_leave_fndecl);
-  /* Unlike ordinary library functions cilk_sync can throw. */
-
   /* extern void __cilkrts_sync(void) */
   cilk_sync_fndecl = build_fn_decl ("__cilkrts_sync", fptr_fun);
-  mark_cold (cilk_leave_fndecl);
+  mark_cold (cilk_sync_fndecl);
   /* Unlike ordinary library functions cilk_sync can throw.
      Exceptions from spawns earlier in the same spawn scope
      may be deferred until a sync. */
@@ -448,7 +434,8 @@ cilk_test_flag (tree fptr, enum tree_code code, int bit)
   return expand_expr (field, NULL_RTX, VOIDmode, EXPAND_NORMAL);
 }
 
-static tree get_frame_arg (tree call)
+static tree
+get_frame_arg (tree call)
 {
   tree arg, argtype;
 
@@ -461,7 +448,9 @@ static tree get_frame_arg (tree call)
     return NULL_TREE;
 
   argtype = TREE_TYPE (argtype);
-  if (!lang_hooks.types_compatible_p (argtype, cilk_frame_type_decl))
+  
+  if (lang_hooks.types_compatible_p &&
+      !lang_hooks.types_compatible_p (argtype, cilk_frame_type_decl))
     return NULL_TREE;
 
   return arg;
@@ -1059,8 +1048,7 @@ cilk_fix_stack_reg (rtx mem_rtx)
 }
 
 rtx
-expand_builtin_cilk_metadata (const char *annotation ATTRIBUTE_UNUSED,
-			      tree exp ATTRIBUTE_UNUSED)
+expand_builtin_cilk_metadata (const char *annotation, tree exp)
 {
   rtx metadata_label = NULL_RTX, call_insn = NULL_RTX;
   rtx expr_list_rtx = NULL_RTX, ii_rtx = NULL_RTX, reg_rtx = NULL_RTX;
@@ -1114,8 +1102,11 @@ expand_builtin_cilk_metadata (const char *annotation ATTRIBUTE_UNUSED,
     }
   metadata_info.ptr_next = NULL;
   insert_into_zca_list (metadata_info);
-  if (cfun)
-    cfun->calls_notify_intrinsic = 1;
+  if (cfun) 
+    { 
+      cfun->calls_notify_intrinsic = 1;
+      cfun->is_cilk_function = 1; 
+    }
 
   return const0_rtx;
 }

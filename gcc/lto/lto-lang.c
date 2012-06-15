@@ -35,6 +35,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic-core.h"
 #include "toplev.h"
 #include "lto-streamer.h"
+#include "cilk.h"
 
 static tree lto_type_for_size (unsigned, int);
 
@@ -665,6 +666,14 @@ lto_define_builtins (tree va_list_ref_type_node ATTRIBUTE_UNUSED,
   builtin_types[(int) BT_LAST] = NULL_TREE;
 
   lto_init_attributes ();
+
+  /* this function will initialize all the builtin functions required by
+   * the cilkplus port */
+  if (flag_enable_cilk)
+    {
+      cilk_init_builtins ();
+      array_notation_init_builtins ();
+    }
 
 #define DEF_BUILTIN(ENUM, NAME, CLASS, TYPE, LIBTYPE, BOTH_P, FALLBACK_P,\
 		    NONANSI_P, ATTRS, IMPLICIT, COND)			\

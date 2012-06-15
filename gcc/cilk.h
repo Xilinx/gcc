@@ -316,4 +316,5 @@ extern char *find_suffix (elem_fn_info *, bool);
 extern enum elem_fn_parm_type find_elem_fn_parm_type (gimple, tree, tree *);
 extern tree find_elem_fn_name (tree, tree, tree);
 elem_fn_info *extract_elem_fn_values (tree);
+extern void array_notation_init_builtins (void);
 #endif /* GCC_CILK_H */

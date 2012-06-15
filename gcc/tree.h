@@ -342,6 +342,7 @@ enum built_in_class
   NOT_BUILT_IN = 0,
   BUILT_IN_FRONTEND,
   BUILT_IN_MD,
+  BUILT_IN_CILK,
   BUILT_IN_NORMAL
 };
 
@@ -3680,7 +3681,7 @@ struct GTY(()) tree_function_decl {
      ???  The bitfield needs to be able to hold all target function
 	  codes as well.  */
   ENUM_BITFIELD(built_in_function) function_code : 11;
-  ENUM_BITFIELD(built_in_class) built_in_class : 2;
+  ENUM_BITFIELD(built_in_class) built_in_class : 3;
 
   unsigned static_ctor_flag : 1;
   unsigned static_dtor_flag : 1;

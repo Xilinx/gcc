@@ -1,0 +1,5 @@
+2012-06-15  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* lto-lang.c (lto_define_builtins): If cilk flag is set we initialize
+	all array notation and cilk builtin functions.
+
