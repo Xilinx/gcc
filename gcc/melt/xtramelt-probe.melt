@@ -740,6 +740,8 @@
 				)
 			   (add2out titsbuf "Basic Block #" bbix " Tree")
 			   (strbuf2string discr_string titsbuf)))
+	    (:long nbsuccbb (basicblock_nb_succ bb))
+	    (:long nbpredbb (basicblock_nb_pred bb))
 	    )
 	(debug "scanprobe_exec gscopy=" gscopy " bbix=" bbix " bb=" bb)
 	;; show the gimpleseq at first gimple if non-empty
@@ -748,17 +750,27 @@
 	  (if gfirst
 	      (let ( (gsbox (make_gimpleseq discr_gimple_seq gscopy))
 		     )
-	    (debug "scanprobe_exec gfirst=" gfirst)
-	    (probe_interesting_location_add_informer
-	     (probe_gimple_interesting_location probdat gfirst)
-	     (lambda (iloc)
-	      (debug "scanprobe_exec/lambda-gimpleseq/lambda-loc iloc=" iloc)
-	      (shortbacktrace_dbg "scanprobe_exec/lambda-gimpleseq/lambda-loc" 15)
-	      (let ( (sbuf (make_strbuf discr_strbuf)) 
-		     )
-		(output_gimpleseq sbuf (gimpleseq_content gsbox))
-		(return (strbuf2string discr_string sbuf) bbgimpleseqtitle)
-	  ))))))
+		(debug "scanprobe_exec gfirst=" gfirst)
+		;; show the gimpleseq
+		(probe_interesting_location_add_informer
+		 (probe_gimple_interesting_location probdat gfirst)
+		 (lambda (iloc)
+		   (debug "scanprobe_exec/lambda-gimpleseq/lambda-loc iloc=" iloc)
+		   (shortbacktrace_dbg "scanprobe_exec/lambda-gimpleseq/lambda-loc" 15)
+		   (let ( (sbuf (make_strbuf discr_strbuf)) 
+			  )
+		     (output_gimpleseq sbuf (gimpleseq_content gsbox))
+		     (return (strbuf2string discr_string sbuf) bbgimpleseqtitle)
+		     )))
+
+		;; show successor edges, if relevant
+		(if nbsuccbb
+		    (let ( 
+			  )
+		      (compile_warning "incomplete show successor edges")
+		      ))
+		)
+	    ))
 	;; walk the gimpleseq to show gimples inside
 	(walk_gimple_seq_unique_tree 
 	 probdat gscopy
@@ -780,7 +792,7 @@
 		       (titbuf (make_strbuf discr_strbuf))
 		       )
 		  (output_gimple gsbuf (gimple_content gbox))
-		  (add2out titbuf bbgimpleseqtitle " ##" (get_int uniqgimpcount))
+		  (add2out titbuf bbgimpletitle " ##" (get_int uniqgimpcount))
 		  (return (strbuf2string discr_string gsbuf) 
 			  (strbuf2string discr_string titbuf))
 		  )))

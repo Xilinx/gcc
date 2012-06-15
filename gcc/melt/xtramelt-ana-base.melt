@@ -388,8 +388,14 @@
 (defprimitive basicblock_nb_succ (:basic_block bb) :long
   #{(($bb)?EDGE_COUNT($bb->succs):0)}#)
 
+(defprimitive basicblock_nb_pred (:basic_block bb) :long
+  #{(($bb)?EDGE_COUNT($bb->preds):0)}#)
+
 (defprimitive basicblock_nth_succ_edge  (:basic_block bb :long ix) :edge
-  #{(($bb && $ix>=0 && $ix<EDGE_COUNT($bb->succs))?EDGE_SUCC($bb,$ix):NULL)}#)
+  #{(($BB && $IX>=0 && $IX<EDGE_COUNT($BB->succs))?EDGE_SUCC($BB,$IX):NULL)}#)
+
+(defprimitive basicblock_nth_pred_edge  (:basic_block bb :long ix) :edge
+  #{(($BB && $IX>=0 && $IX<EDGE_COUNT($BB->preds))?EDGE_PRED($BB,$IX):NULL)}#)
 
 ;; Primitives concerning dominance in basic_blocks
 ;; those functions mainly come from gcc/dominance.c
@@ -1736,9 +1742,12 @@ current function and gives its declaration in $CFUNDECL}#
  basicblock_content
  basicblock_gimpleseq
  basicblock_index
+ basicblock_nb_pred
  basicblock_nb_succ
  basicblock_phinodes
  basicblock_single_succ 
+ basicblock_nth_pred_edge
+ basicblock_nth_succ_edge
  bb_dominator_iterator
  bb_post_dominator_iterator
  cfun_cfg_entry_block

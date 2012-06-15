@@ -1,6 +1,14 @@
 
 2012-06-15  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/xtramelt-ana-base.melt (basicblock_nb_pred)
+	(basicblock_nth_pred_edge, basicblock_nth_succ_edge): New
+	primitives.
+
+	* melt/xtramelt-probe.melt (scanprobe_exec): Should show edges.
+
+2012-06-15  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/xtramelt-probe.melt (scanprobe_exec): Show gimple number
 	in basic blocks.
 
