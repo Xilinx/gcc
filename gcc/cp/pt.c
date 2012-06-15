@@ -12866,6 +12866,10 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl,
       do_using_directive (USING_STMT_NAMESPACE (t));
       break;
 
+    case SYNC_STMT:
+      finish_sync_stmt (false);
+      break;
+
     case DECL_EXPR:
       {
 	tree decl, pattern_decl;
