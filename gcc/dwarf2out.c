@@ -19550,7 +19550,7 @@ dwarf2out_function_decl (tree decl)
 {
   if (flag_enable_cilk && decl && TREE_CODE (decl) == FUNCTION_DECL)
     {
-      function *f = DECL_STRUCT_FUNCTION (decl);
+      struct function *f = DECL_STRUCT_FUNCTION (decl);
       if (f && f->is_cilk_helper_function)
 	return; /* can't do debuging output for spawn helper */
     }
