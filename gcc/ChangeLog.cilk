@@ -1,5 +1,10 @@
 2012-06-15  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
+	PR 53672
+	* dwarf2out.c (dwarf2out_function_decl): Added a check for spawn helper.
+
+2012-06-15  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
 	* cilk.c (install_builtin): Added a check if pushdecl is successful.
 	Only update the fndecl if it is.
 	(cilk_init_builtins): Removed duplicate code and changed fixed a small
