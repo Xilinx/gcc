@@ -1,6 +1,11 @@
 
 2012-06-15  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/xtramelt-probe.melt (scanprobe_exec): Show gimple number
+	in basic blocks.
+
+2012-06-15  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/xtramelt-probe.melt (scanprobe_exec): Show the gimpleseq
 	when non-empty.
 

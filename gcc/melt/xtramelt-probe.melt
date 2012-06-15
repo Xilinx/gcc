@@ -689,6 +689,8 @@
       ))))
 
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun scanprobe_exec (pass)
   (debug "scanprobe_exec start pass=" pass)
   (let ( (probdat (probe_get_data))
@@ -721,6 +723,7 @@
       (let (
 	    (:long bbix (basicblock_index bb))
 	    (:gimple_seq bbgs (gimple_seq_of_basic_block bb))
+	    (gimpcount (make_integerbox discr_integer 0))
 	    ;; we need to copy the sequence, because a basic block
 	    ;; will eventually lose it...
 	    (:gimple_seq gscopy (gimple_seq_copy bbgs))
@@ -760,8 +763,13 @@
 	(walk_gimple_seq_unique_tree 
 	 probdat gscopy
 	 (lambda (pd :gimple g)
-	   (debug "scanprobe_exec/lambda-stmt g=" g)
+	   (let ( (:long cntgimp (get_int gimpcount))
+		  )
+	     (put_int gimpcount (+i cntgimp 1)))
+	   (debug "scanprobe_exec/lambda-stmt g=" g " gimpcount=" gimpcount)
 	   (let ( (gbox (make_gimple discr_gimple g))
+		  (uniqgimpcount
+		   (make_integerbox discr_constant_integer (get_int gimpcount)))
 		  )
 	     (probe_interesting_location_add_informer
 	      (probe_gimple_interesting_location probdat g)
@@ -769,9 +777,12 @@
 		(debug "scanprobe_exec/lambda-stmt/lambda-loc iloc=" iloc " gbox=" gbox)
 		(shortbacktrace_dbg "scanprobe_exec/lambda-stmt/lambda-loc" 15)
 		(let ( (gsbuf (make_strbuf discr_strbuf))
+		       (titbuf (make_strbuf discr_strbuf))
 		       )
 		  (output_gimple gsbuf (gimple_content gbox))
-		  (return (strbuf2string discr_string gsbuf) bbgimpletitle)
+		  (add2out titbuf bbgimpleseqtitle " ##" (get_int uniqgimpcount))
+		  (return (strbuf2string discr_string gsbuf) 
+			  (strbuf2string discr_string titbuf))
 		  )))
 	     (return)
 	     ))
