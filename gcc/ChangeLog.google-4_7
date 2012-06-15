@@ -1,3 +1,9 @@
+2012-06-15   Easwaran Raman  <eraman@google.com>
+  Cherrypick r188675 from trunk.
+	2012-06-15  Easwaran Raman  <eraman@google.com>
+		* passes.c (init_optimization_passes): Remove pass_call_cdce
+		from its current position and insert after pass_dce.
+
 2012-06-09   Xinliang Davidl Li  <davidxl@google.com>
 
 	l-ipo.c (pop_module_scope): Stop timer after
