@@ -1,4 +1,9 @@
 
+2012-06-15  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/xtramelt-probe.melt (scanprobe_exec): Show the gimpleseq
+	when non-empty.
+
 2012-06-14  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/xtramelt-probe.melt (probe_get_file_of_name)
