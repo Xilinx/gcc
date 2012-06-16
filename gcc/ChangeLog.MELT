@@ -1,6 +1,12 @@
 
 2012-06-16  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.c: Re-indent with both astyle & indent.
+	(melt_output_cfile_decl_impl_secondary_option): Initialize
+	workdir, add debug..
+
+2012-06-16  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* common.opt (fmelt-generate-work-link): New flag.
 
 	* doc/melt.texi (Invoking MELT): Explain -fmelt-bootstrapping,
