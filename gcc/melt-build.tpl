@@ -86,6 +86,7 @@ meltarg_tempdir=$(if $(melt_is_plugin),-fplugin-arg-melt-tempdir,-fmelt-tempdir)
 meltarg_workdir=$(if $(melt_is_plugin),-fplugin-arg-melt-workdir,-fmelt-workdir)
 meltarg_arg=$(if $(melt_is_plugin),-fplugin-arg-melt-arg,-fmelt-arg)
 meltarg_bootstrapping=$(if $(melt_is_plugin),-fplugin-arg-melt-bootstrapping,-fmelt-bootstrapping)
+meltarg_genworklink=$(if $(melt_is_plugin),-fplugin-arg-melt-generate-work-link,-fmelt-generate-work-link)
 meltarg_makefile=$(if $(melt_is_plugin),-fplugin-arg-melt-module-makefile,-fmelt-module-makefile)
 meltarg_makecmd=$(if $(melt_is_plugin),-fplugin-arg-melt-module-make-command,-fmelt-module-make-command)
 meltarg_arglist=$(if $(melt_is_plugin),-fplugin-arg-melt-arglist,-fmelt-arglist)
@@ -340,7 +341,7 @@ melt-stage0-[+zeroflavor+]-fullstage.stamp: \
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell $(MD5SUM) $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath [+melt_stage+]):$(realpath [+ (. prevstage)+]):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath [+melt_stage+]):$(realpath [+ (. prevstage)+]):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=[+melt_stage+]/[+ (. outbase)+] $(meltarg_workdir)=melt-workdir \
+	      $(meltarg_output)=[+melt_stage+]/[+ (. outbase)+] $(meltarg_workdir)=melt-workdir $(meltarg_genworklink) \
 	      empty-file-for-melt.c >> [+ (. outbase)+]+[+melt_stage+].args-tmp
 	@$(melt_move_if_change)  [+ (. outbase)+]+[+melt_stage+].args-tmp  [+ (. outbase)+]+[+melt_stage+].args
 	@echo; echo; echo -n  [+ (. outbase)+]+[+melt_stage+].args: ; cat [+ (. outbase)+]+[+melt_stage+].args ; echo; echo; echo "***** doing " $@  [+ (. (tpl-file-line))+]
@@ -523,7 +524,7 @@ melt-sources/[+base+].c melt-sources/[+base+]+meltdesc.c: \
 	     $(meltarg_module_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-modules): \
 	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources):$(realpath $(melt_source_dir)) \
 	     $(meltarg_init)=@$(basename $(WARMELT_LAST_MODLIS)) \
-	     $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
+	     $(meltarg_workdir)=melt-workdir  $(meltarg_genworklink) $(meltarg_inhibitautobuild) \
 	     $(meltarg_output)=melt-sources/[+base+] empty-file-for-melt.c > [+base+]+sources.args-tmp
 	@$(melt_move_if_change) [+base+]+sources.args-tmp [+base+]+sources.args
 	@echo; echo; echo; echo -n [+base+]+sources.args: ; cat [+base+]+sources.args ; echo "***** doing " $@ [+ (. (tpl-file-line))+]
@@ -619,7 +620,7 @@ melt-sources/[+base+].c: \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell $(MD5SUM) $< | cut -b-24) \
 	     $(meltarg_module_path)=$(realpath melt-modules) \
 	     $(meltarg_source_path)=$(realpath melt-sources) \
-             $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
+             $(meltarg_workdir)=melt-workdir  $(meltarg_genworklink) $(meltarg_inhibitautobuild) \
 	     $(meltarg_init)=@warmelt-quicklybuilt:[+ (. (join ":" (reverse prevapplbase)))+] \
 	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@))-quickb.args-tmp
 	@$(melt_move_if_change) $(notdir $(basename $@))-quickb.args-tmp $(notdir $(basename $@))-quickb.args
@@ -631,7 +632,7 @@ melt-sources/[+base+].c: \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell $(MD5SUM) $< | cut -b-24) \
 	     $(meltarg_module_path)=$(realpath melt-modules) \
 	     $(meltarg_source_path)=$(realpath melt-sources) \
-             $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
+             $(meltarg_workdir)=melt-workdir  $(meltarg_genworklink) $(meltarg_inhibitautobuild) \
 	     $(meltarg_init)=@warmelt-optimized:[+ (. (join ":" (reverse prevapplbase)))+] \
 	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@))-optim.args-tmp
 	@$(melt_move_if_change) $(notdir $(basename $@))-optim.args-tmp $(notdir $(basename $@))-optim.args
@@ -681,7 +682,7 @@ melt-tiny-tests: melt-sayhello.melt melt-modules melt-sources \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell $(MD5SUM) $< | cut -b-24) \
 	     $(meltarg_module_path)=$(realpath melt-modules) \
 	     $(meltarg_source_path)=$(realpath melt-sources) \
-       $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
+       $(meltarg_workdir)=melt-workdir  $(meltarg_genworklink) $(meltarg_inhibitautobuild) \
        $(meltarg_output)=$(basename $<) empty-file-for-melt.c > $(basename $<).args-tmp
 	@$(melt_move_if_change) $(basename $<).args-tmp $(basename $<).args
 	@echo; echo; echo; echo -n $(basename $<).args: ; cat $(basename $<).args ; echo "***** doing " $(basename $<)  [+ (. (tpl-file-line))+]
@@ -691,7 +692,7 @@ melt-tiny-tests: melt-sayhello.melt melt-modules melt-sources \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell $(MD5SUM) $< | cut -b-24) \
 	     $(meltarg_module_path)=$(realpath melt-modules) \
 	     $(meltarg_source_path)=$(realpath melt-sources) \
-       $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
+       $(meltarg_workdir)=melt-workdir  $(meltarg_genworklink) $(meltarg_inhibitautobuild) \
        $(meltarg_output)=$(basename $<) empty-file-for-melt.c > $(basename $<)-run.args-tmp
 	@$(melt_move_if_change) $(basename $<)-run.args-tmp $(basename $<)-run.args
 	@echo; echo; echo; echo -n $(basename $<)-run.args: ; cat $(basename $<)-run.args ; echo "***** doing " $(basename $<)-run  [+ (. (tpl-file-line))+]
@@ -707,7 +708,7 @@ melt-tiny-tests: melt-sayhello.melt melt-modules melt-sources \
 	      $(meltarg_tempdir)=. $(MELT_DEBUG) $(meltarg_init)=@melt-default-modules-quicklybuilt \
 	     $(meltarg_module_path)=$(realpath melt-modules) \
 	     $(meltarg_source_path)=$(realpath melt-sources) \
-       $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) >>  meltframe.args-tmp
+       $(meltarg_workdir)=melt-workdir  $(meltarg_genworklink) $(meltarg_inhibitautobuild) >>  meltframe.args-tmp
 	@echo -frandom-seed=$(shell $(MD5SUM) $< | cut -b-24) -o /dev/null >> meltframe.args-tmp
 	@echo -Iinclude/ >> meltframe.args-tmp
 	@if [ -d include-fixed ] ; then echo -Iinclude-fixed/  >> meltframe.args-tmp ; fi
@@ -779,7 +780,7 @@ meltrun-generate: $(WARMELT_LAST) $(WARMELT_LAST_MODLIS)  $(WARMELT_LAST_STAGEST
 	@rm -f $(wildcard meltrunsup*)
 	@echo $(melt_make_cc1flags) \
 	      $(meltarg_mode)=runtypesupport  \
-	      $(meltarg_workdir)=melt-workdir $(meltarg_bootstrapping)  $(MELT_DEBUG) \
+	      $(meltarg_workdir)=melt-workdir $(meltarg_genworklink) $(meltarg_bootstrapping)  $(MELT_DEBUG) \
 	      $(meltarg_init)=@$(basename $(WARMELT_LAST_MODLIS)) \
 	      $(meltarg_module_path)=$(MELT_LAST_STAGE):. \
 	      $(meltarg_source_path)=$(MELT_LAST_STAGE):$(melt_source_dir):. \
@@ -853,7 +854,7 @@ meltgendoc.texi: $(melt_default_modules_list).modlis \
 	echo $(melt_make_cc1flags) $(meltarg_mode)=makedoc  \
 	      $(meltarg_makefile)=$(melt_make_module_makefile) \
 	      $(meltarg_makecmd)=$(MAKE) \
-	      $(meltarg_workdir)=melt-workdir  $(meltarg_bootstrapping)  $(MELT_DEBUG) \
+	      $(meltarg_workdir)=melt-workdir  $(meltarg_genworklink) $(meltarg_bootstrapping)  $(MELT_DEBUG) \
 	      $(meltarg_init)=@$(melt_default_modules_list) \
 	      $(meltarg_module_path)=$(realpath melt-modules):. \
 	      $(meltarg_source_path)=$(realpath melt-sources):. \

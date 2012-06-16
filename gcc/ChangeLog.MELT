@@ -1,6 +1,15 @@
 
 2012-06-16  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-build.tpl (meltarg_genworklink):  Define and use it.
+
+	* melt-build.mk: Regenerate.
+
+	* melt/warmelt-base.melt (checkval_dbg): Cast argument to void to
+	avoid warnings in generated C file.
+
+2012-06-16  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.c (melt_output_cfile_decl_impl_secondary_option):
 	Detect when symlinked work source already exists and is same...
 
