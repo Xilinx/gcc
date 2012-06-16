@@ -11853,7 +11853,7 @@ melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
         || cfilstat.st_size != oldfilstat.st_size)
       samefil = false;
   }
-  while (samefil) {
+  while (samefil && (!feof(cfil) || !feof(oldfil))) {
     int c = getc (cfil);
     int o = getc (oldfil);
     if (c != o)
@@ -11866,7 +11866,7 @@ melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
   if (oldfil) fclose (oldfil);
   if (samefil) {
     /* Rare case when the generated file is the same as what existed
-    in the filesystem, so discard the generated temporary file. */
+       in the filesystem, so discard the generated temporary file. */
     if (remove (dotempnam))
       melt_fatal_error ("failed to remove %s as melt generated file - %m",
                         dotempnam);
@@ -11876,8 +11876,10 @@ melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
       inform (UNKNOWN_LOCATION, "MELT generated same file %s in %s",
               dotcnam, mycwd);
   } else {
+    bool samemdfil = false;
+    char *md5nam = NULL;
     /* Usual case when the generated file is not the same as its
-    former variant; rename the old foo.c as foo.c% for backup, etc... */
+       former variant; rename the old foo.c as foo.c% for backup, etc... */
     (void) rename (dotcnam, dotcpercentnam);
 
     if (melt_flag_generate_work_link && workdir) {
@@ -11885,7 +11887,7 @@ melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
          unique filename in the work directory using the md5sum of
          the generated file, then we symlink it.. */
       int  mln = 0;
-      char *md5nam = NULL;
+      FILE* mdfil = NULL;
       char *realworkdir = NULL;
       char md5hexbuf[40]; /* larger than md5 hex, for null termination... */
       memset (md5hexbuf, 0, sizeof(md5hexbuf));
@@ -11899,18 +11901,56 @@ melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
       mln = strlen (md5nam);
       if (mln>3 && !strcmp(md5nam + mln -2, ".c"))
         md5nam[mln-2] = (char)0;
-      md5nam = reconcat (md5nam, md5nam, "-m", md5hexbuf, ".mdsumed.c", NULL);
-      if (rename (dotempnam, md5nam))
-        melt_fatal_error ("failed to rename %s as %s melt generated work file - %m",
-                          dotempnam, md5nam);
-      if (symlink (md5nam, dotcnam))
-        melt_fatal_error ("failed to symlink %s as %s - %m", md5nam, dotcnam);
-      if (IS_ABSOLUTE_PATH (dotcnam))
-        inform (UNKNOWN_LOCATION, "MELT symlinked new file %s to %s",
-                md5nam, dotcnam);
-      else
-        inform (UNKNOWN_LOCATION, "MELT symlinked new file %s to %s in %s",
-                md5nam, dotcnam, mycwd);
+      md5nam = reconcat (md5nam, md5nam, ".", md5hexbuf, ".mdsumed.c", NULL);
+      mdfil = fopen (md5nam, "r");
+      if (mdfil)
+	{
+	  FILE* dotempfil = fopen(dotempnam, "r");
+	  samemdfil = (dotempfil != NULL);
+	  while (samemdfil && (!feof(mdfil) || !feof(dotempfil)))
+	    {
+	      int c = getc (mdfil);
+	      int o = getc (dotempfil);
+	      if (c != o)
+		samemdfil = false;
+	      if (c < 0) /*both are eof*/
+		break;
+	    };
+	  fclose (mdfil), mdfil = NULL;
+	  if (dotempfil) 
+	    fclose (dotempfil);
+	};
+      if (samemdfil) 
+	{
+	  unlink (dotempnam);
+	  if (symlink (md5nam, dotcnam))
+	    melt_fatal_error ("failed to symlink old %s as %s - %m", md5nam, dotcnam);
+	  if (IS_ABSOLUTE_PATH (dotcnam))
+	    inform (UNKNOWN_LOCATION, "MELT symlinked existing file %s to %s",
+		    md5nam, dotcnam);
+	  else
+	    inform (UNKNOWN_LOCATION, "MELT symlinked existing file %s to %s in %s",
+		    md5nam, dotcnam, mycwd);
+	}
+      else 
+	{
+	  /* if the file md5nam exist, either we have an improbable md5
+	     collision, or it was edited after generation. */
+	  if (!access (md5nam, R_OK))
+	    inform (UNKNOWN_LOCATION, 
+		    "MELT overwriting generated file %s (perhaps manually edited)", md5nam);
+	  if (rename (dotempnam, md5nam))
+	    melt_fatal_error ("failed to rename %s as %s melt generated work file - %m",
+			      dotempnam, md5nam);
+	  if (symlink (md5nam, dotcnam))
+	    melt_fatal_error ("failed to symlink new %s as %s - %m", md5nam, dotcnam);
+	  if (IS_ABSOLUTE_PATH (dotcnam))
+	    inform (UNKNOWN_LOCATION, "MELT symlinked new file %s to %s",
+		    md5nam, dotcnam);
+	  else
+	    inform (UNKNOWN_LOCATION, "MELT symlinked new file %s to %s in %s",
+		    md5nam, dotcnam, mycwd);
+	}
       free (md5nam), md5nam = NULL;
     } else {
       /* rename the generated temporary */

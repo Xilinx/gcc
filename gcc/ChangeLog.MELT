@@ -1,6 +1,11 @@
 
 2012-06-16  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.c (melt_output_cfile_decl_impl_secondary_option):
+	Detect when symlinked work source already exists and is same...
+
+2012-06-16  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.c: Re-indent with both astyle & indent.
 	(melt_output_cfile_decl_impl_secondary_option): Initialize
 	workdir, add debug..
