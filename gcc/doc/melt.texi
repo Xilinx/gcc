@@ -271,6 +271,30 @@ This is mostly useful in configuration, building, or packaging scripts.
 @opindex fplugin-arg-melt-coutput=
 This flag gives the name of the generated C file.
 
+@item -fmelt-bootstrapping
+@gccoptlist{-fplugin-arg-melt-bootstrapping}
+@opindex fmelt-bootstrapping
+@opindex fplugin-arg-melt-bootstrapping
+This flag is useless to most users. When given, MELT is
+bootstrapping (translating its own translator from MELT to C), so some
+environment variables and options are ignored. Only for gurus working
+on the MELT translator. See @code{melt-runtime.c} for dirty details.
+
+@item -fmelt-print-settings=
+@gccoptlist{-fplugin-arg-melt-print-settings=}
+@opindex fmelt-print-settings=
+@opindex fplugin-arg-melt-print-settings=
+The builtin settings (notably MELT builtin modules directory and MELT
+builtin source directory) used by MELT are output in the given file,
+which should be source-able by a Posix shell if you are lucky enough.
+This is mostly useful in configuration, building, or packaging scripts.
+
+@item -fmelt-coutput=
+@gccoptlist{-fplugin-arg-melt-coutput=}
+@opindex fmelt-coutput=
+@opindex fplugin-arg-melt-coutput=
+This flag gives the name of the generated C file.
+
 @item -fmelt-output=
 @gccoptlist{-fplugin-arg-melt-output=}
 @opindex fmelt-coutput=
@@ -283,16 +307,41 @@ This flag gives the name of the generated files.
 @opindex fplugin-arg-melt-debug
 This flag has no argument and asks for lot of debugging output. It is
 only useful to debug MELT code and is unrelated to the @code{-g} flag
-asking GCC to output debug information.
+asking GCC to output debug information. Obsolete, use
+@code{-fmelt-debugging=mode} instead.
 
-@item -fmelt-debugskip=
-@gccoptlist{-fplugin-arg-melt-debugskip=}
-@opindex fmelt-debugskip=
-@opindex fplugin-arg-melt-debugskip=
-This flag (only useful with @code{-fmelt-debug}) has an integer
-argument. When @code{-fmelt-debug} is given with
-@code{-fmelt-debugskip=1000} the first thousand debug messages are
-skipped, so are not printed.
+@item -fmelt-generate-work-link
+@gccoptlist{-fplugin-arg-melt-generate-work-link}
+@opindex fmelt-generate-work-link
+@opindex fplugin-arg-melt-generate-work-link
+This flag, when used in translating modes (for MELT to C
+translations), generates the files as a unique name in the work
+directory, with a symbolic link to it from the output path.
+
+@item -fmelt-output=
+@gccoptlist{-fplugin-arg-melt-output=}
+@opindex fmelt-coutput=
+@opindex fplugin-arg-melt-output=
+This flag gives the name of the generated files.
+
+@item -fmelt-debug
+@gccoptlist{-fplugin-arg-melt-debug}
+@opindex fmelt-debug
+@opindex fplugin-arg-melt-debug
+This flag has no argument and asks for lot of debugging output. It is
+only useful to debug MELT code and is unrelated to the @code{-g} flag
+asking GCC to output debug information. Obsolete, use the equivalent
+@code{-fmelt-debugging=mode} or
+@code{-fplugin-arg-melt-debugging=mode} instead.
+
+@item -fmelt-debugging=
+@gccoptlist{-fplugin-arg-melt-debugging=}
+@opindex fmelt-debugging=
+@opindex fplugin-arg-melt-debugging=
+This flag should either be set to @code{mode} or to @code{all}. When
+set (e.g. with @code{fplugin-arg-melt-debugging=mode}) to @code{mode},
+debugging messages happen only after mode processing; when set to
+@code{all}, they happen everywhere.
 
 @item -fmelt-source-path=
 @gccoptlist{-fplugin-arg-melt-source-path=}

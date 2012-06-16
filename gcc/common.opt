@@ -895,6 +895,11 @@ fmelt-bootstrapping
 Common Report Var(melt_flag_bootstrapping)
 Only used to bootstrap the MELT translator
 
+; generate symbolic links to work directory files
+fmelt-generate-work-link
+Common Report Var(melt_flag_generate_work_link)
+Generate symbolic links to file under work directory
+
 ; debug depth for MELT
 fmelt-debug-depth=
 Common Report Var(melt_debug_depth_string) RejectNegative Joined

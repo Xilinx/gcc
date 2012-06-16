@@ -198,6 +198,7 @@ extern void gt_ggc_mx_melt_un (void *);
 #ifdef MELT_IS_PLUGIN
 int melt_flag_debug =0; /* for MELT plugin */
 int melt_flag_bootstrapping =0;
+int melt_flag_generate_work_link =0;
 /* In the MELT branch melt_flag_debug is #define-d in generated "options.h"
    as global_options.x_melt_flag_debug. */
 
@@ -528,6 +529,8 @@ melt_argument (const char* argname)
     return melt_flag_inhibit_auto_build?"yes":NULL;
   else if (!strcmp (argname, "bootstrapping"))
     return melt_flag_bootstrapping?"yes":NULL;
+  else if (!strcmp (argname, "generate-work-link"))
+    return melt_flag_generate_work_link?"yes":NULL;
   else if (!strcmp (argname, "debugskip") || !strcmp (argname, "debug-skip"))
     return melt_count_debugskip_string;
   else if (!strcmp (argname, "debug-depth"))
@@ -5554,31 +5557,28 @@ end:
   MELT_EXITFRAME ();
 }
 
-/* compute the hexadecimal encoded md5sum string of a file */
-melt_ptr_t
-meltgc_string_hex_md5sum_file (const char* path)
+
+
+/* compute the hexadecimal encoded md5sum string of a file into a given md5 hexbuf*/
+static void
+melt_string_hex_md5sum_file_to_hexbuf (const char* path, char md5hex[32])
 {
   int ix = 0;
   char md5srctab[16];
-  char md5hex[50];
   FILE *fil = NULL;
-  MELT_ENTERFRAME(1, NULL);
-#define resv meltfram__.mcfr_varptr[0]
   memset (md5srctab, 0, sizeof (md5srctab));
-  memset (md5hex, 0, sizeof (md5hex));
+  memset (md5hex, 0, sizeof(md5hex));
   if (!path || !path[0])
-    goto end;
+    return;
   fil = fopen(path, "r");
   if (!fil)
-    goto end;
+    return;
   if (md5_stream (fil, &md5srctab))
     melt_fatal_error
     ("failed to compute md5sum of file %s - %m",
      path);
   fclose (fil);
   fil = NULL;
-  path = NULL;
-  /* We forgot the path, so a GC could move it later! */
   memset (md5hex, 0, sizeof(md5hex));
   for (ix=0; ix<16; ix++) {
     char hexb[4] = {0,0,0,0};
@@ -5587,12 +5587,30 @@ meltgc_string_hex_md5sum_file (const char* path)
     md5hex[2*ix] = hexb[0];
     md5hex[2*ix+1] = hexb[1];
   }
-  resv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING), md5hex);
+}
+
+
+melt_ptr_t
+meltgc_string_hex_md5sum_file (const char* path)
+{
+  char hexbuf[48];		/* a bit longer than needed, to ensure null termination */
+  MELT_ENTERFRAME(1, NULL);
+#define resv meltfram__.mcfr_varptr[0]
+  if (!path || !path[0])
+    goto end;
+  MELT_LOCATION_HERE("meltgc_string_hex_md5sum_file");
+  memset (hexbuf, 0, sizeof(hexbuf));
+  melt_string_hex_md5sum_file_to_hexbuf (path, hexbuf);
+  if (!hexbuf[0]) 
+    goto end;
+  resv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING),
+			    hexbuf);
 end:
   MELT_EXITFRAME();
   return (melt_ptr_t)resv;
 #undef resv
 }
+
 
 /* compute the hexadecimal encoded md5sum string of a tuple of file
    paths, or NULL on failure.
@@ -11721,6 +11739,7 @@ melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
     melt_ptr_t optbuf,
     int filrank)
 {
+  static unsigned cnt;
   bool samefil = false;
   char *dotcnam = NULL;
   char *dotempnam = NULL;
@@ -11728,31 +11747,43 @@ melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
   FILE *cfil = NULL;
   FILE *oldfil = NULL;
   char *mycwd = getpwd ();
+  char *workdir = NULL;
   gcc_assert (melt_magic_discr (unitnam) == MELTOBMAG_STRING);
   gcc_assert (melt_magic_discr (declbuf) == MELTOBMAG_STRBUF);
   gcc_assert (melt_magic_discr (implbuf) == MELTOBMAG_STRBUF);
+  cnt++;
   /** FIXME : should implement some policy about the location of the
       generated C file; currently using the pwd */
   {
     const char *s = melt_string_str (unitnam);
     int slen = strlen (s);
-    char bufpid[32];
+    char bufpid[48];
     time_t now = 0;
     time (&now);
     debugeprintf ("melt_output_cfile_decl_impl_secondary s=%s", s);
     /* generate in bufpid a unique file suffix from the pid and the time */
     memset (bufpid, 0, sizeof(bufpid));
-    snprintf (bufpid, sizeof(bufpid)-1, "_%d_%d_%x",
-              (int) getpid(), (int) (now%10000), (int)((melt_lrand()) & 0xffff));
-    if (slen>2 && (s[slen-2]!='.' || s[slen-1]!='c')) {
-      dotcnam = concat (s, ".c", NULL);
-      dotcpercentnam = concat (s, ".c%", NULL);
-      dotempnam = concat (s, ".c%", bufpid, NULL);
-    } else {
-      dotcnam = xstrdup (s);
-      dotcpercentnam = concat (s, "%", NULL);
-      dotempnam = concat (s, "%", bufpid, NULL);
-    };
+    snprintf (bufpid, sizeof(bufpid)-1, "_p%d_n%d_r%x_c%u",
+              (int) getpid(), (int) (now%100000), (int)((melt_lrand()) & 0xffff), cnt);
+    if (slen>2 && (s[slen-2]!='.' || s[slen-1]!='c'))
+      {
+	dotcnam = concat (s, ".c", NULL);
+	dotcpercentnam = concat (s, ".c%", NULL);
+	if (workdir && !strcmp(workdir, ".") && melt_flag_generate_work_link)
+	  dotempnam = concat (workdir, /*DIR_SEPARATOR here*/ "/",  melt_basename (s), 
+			      ".c%", bufpid, NULL);
+	else
+	  dotempnam = concat (s, ".c%", bufpid, NULL);
+      } else
+      {
+	dotcnam = xstrdup (s);
+	dotcpercentnam = concat (s, "%", NULL);
+	if (workdir && !strcmp(workdir, ".") && melt_flag_generate_work_link)
+	  dotempnam = concat (workdir, /*DIR_SEPARATOR here*/ "/",  melt_basename (s), 
+			      "%", bufpid, NULL);
+	else
+	  dotempnam = concat (s, "%", bufpid, NULL);
+      };
   }
   /* we first write in the temporary name */
   cfil = fopen (dotempnam, "w");
@@ -11761,17 +11792,18 @@ melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
   fprintf (cfil,
            "/* GCC MELT GENERATED FILE %s - DO NOT EDIT */\n",
            melt_basename (dotcnam));
-  if (filrank <= 0) {
-    if (melt_magic_discr (optbuf) == MELTOBMAG_STRBUF) {
-      fprintf (cfil, "\n/***+ %s options +***\n",
-               melt_basename (melt_string_str (unitnam)));
-      melt_putstrbuf (cfil, optbuf);
-      fprintf (cfil, "\n***- end %s options -***/\n",
-               melt_basename (melt_string_str (unitnam)));
+  if (filrank <= 0)
+    {
+      if (melt_magic_discr (optbuf) == MELTOBMAG_STRBUF) {
+	fprintf (cfil, "\n/***+ %s options +***\n",
+		 melt_basename (melt_string_str (unitnam)));
+	melt_putstrbuf (cfil, optbuf);
+	fprintf (cfil, "\n***- end %s options -***/\n",
+		 melt_basename (melt_string_str (unitnam)));
+      } else
+	fprintf (cfil, "\n/***+ %s without options +***/\n",
+		 melt_basename (melt_string_str (unitnam)));
     } else
-      fprintf (cfil, "\n/***+ %s without options +***/\n",
-               melt_basename (melt_string_str (unitnam)));
-  } else
     fprintf (cfil, "/* secondary MELT generated C file of rank #%d */\n",
              filrank);
   fprintf (cfil, "#include \"melt-run.h\"\n\n");;
@@ -11804,57 +11836,102 @@ melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
   /* we compare oldfil & cfil; if they are the same we don't overwrite
      the oldfil; this is for the happiness of make utility. */
   samefil = oldfil != NULL;
-  if (samefil) {
-    /* files of different sizes are different */
-    struct stat cfilstat, oldfilstat;
-    memset (&cfilstat, 0, sizeof (cfilstat));
-    memset (&oldfilstat, 0, sizeof (oldfilstat));
-    if (fstat (fileno(cfil), &cfilstat)
-        || fstat (fileno (oldfil), &oldfilstat)
-        || cfilstat.st_size != oldfilstat.st_size)
-      samefil = false;
-  }
-  while (samefil) {
-    int c = getc (cfil);
-    int o = getc (oldfil);
-    if (c != o)
-      samefil = false;
-    if (c < 0)
-      break;
-  };
+  if (samefil) 
+    {
+      /* files of different sizes are different */
+      struct stat cfilstat, oldfilstat;
+      memset (&cfilstat, 0, sizeof (cfilstat));
+      memset (&oldfilstat, 0, sizeof (oldfilstat));
+      if (fstat (fileno(cfil), &cfilstat)
+	  || fstat (fileno (oldfil), &oldfilstat)
+	  || cfilstat.st_size != oldfilstat.st_size)
+	samefil = false;
+    }
+  while (samefil)
+    {
+      int c = getc (cfil);
+      int o = getc (oldfil);
+      if (c != o)
+	samefil = false;
+      if (c < 0)
+	break;
+    };
   samefil = samefil && feof(cfil) && feof(oldfil);
   fclose (cfil);
   if (oldfil) fclose (oldfil);
-  if (samefil) {
-    /* Rare case when the generated file is the same as what existed
-    in the filesystem, so discard the generated temporary file. */
-    if (remove (dotempnam))
-      melt_fatal_error ("failed to remove %s as melt generated file - %m",
-                        dotempnam);
-    if (IS_ABSOLUTE_PATH(dotcnam))
-      inform (UNKNOWN_LOCATION, "MELT generated same file %s", dotcnam);
-    else
-      inform (UNKNOWN_LOCATION, "MELT generated same file %s in %s",
-              dotcnam, mycwd);
-  } else {
-    /* Usual case when the generate file is not the same as its
-    previous flavor; rename the old foo.c as foo.c% for backup
-    and rename the new temporary foo.c%_12_34 as foo.c */
-    (void) rename (dotcnam, dotcpercentnam);
-    if (rename (dotempnam, dotcnam))
-      melt_fatal_error ("failed to rename %s as %s melt generated file - %m",
-                        dotempnam, dotcnam);
-    if (IS_ABSOLUTE_PATH (dotcnam))
-      inform (UNKNOWN_LOCATION, "MELT generated new file %s",	dotcnam);
-    else
-      inform (UNKNOWN_LOCATION, "MELT generated new file %s in %s",
-              dotcnam, mycwd);
-  }
+  if (samefil) 
+    {
+      /* Rare case when the generated file is the same as what existed
+	 in the filesystem, so discard the generated temporary file. */
+      if (remove (dotempnam))
+	melt_fatal_error ("failed to remove %s as melt generated file - %m",
+			  dotempnam);
+      if (IS_ABSOLUTE_PATH(dotcnam))
+	inform (UNKNOWN_LOCATION, "MELT generated same file %s", dotcnam);
+      else
+	inform (UNKNOWN_LOCATION, "MELT generated same file %s in %s",
+		dotcnam, mycwd);
+    } else
+    {
+      /* Usual case when the generated file is not the same as its
+	 former variant; rename the old foo.c as foo.c% for backup, etc... */
+      (void) rename (dotcnam, dotcpercentnam);
+
+      if (melt_flag_generate_work_link && workdir) 
+	{
+	  /* if symlinks to work files are required, we generate a
+	     unique filename in the work directory using the md5sum of
+	     the generated file, then we symlink it.. */
+	  int  mln = 0;
+	  char *md5nam = NULL;
+	  char *realworkdir = NULL;
+	  char md5hexbuf[40];	/* larger than md5 hex, for null termination... */
+	  memset (md5hexbuf, 0, sizeof(md5hexbuf));
+	  melt_string_hex_md5sum_file_to_hexbuf (dotempnam, md5hexbuf);
+	  if (!md5hexbuf[0])
+	    melt_fatal_error ("failed to compute md5sum of %s - %m", dotempnam);
+	  realworkdir = lrealpath (workdir);
+	  md5nam = concat (realworkdir, /*DIR_SEPARATOR here*/ "/", 
+			   melt_basename (dotcnam), NULL);
+	  free (realworkdir), realworkdir = NULL;
+	  mln = strlen (md5nam);
+	  if (mln>3 && !strcmp(md5nam + mln -2, ".c"))
+	    md5nam[mln-2] = (char)0;
+	  md5nam = reconcat (md5nam, md5nam, "-m", md5hexbuf, ".mdsumed.c", NULL);
+	  if (rename (dotempnam, md5nam))
+	    melt_fatal_error ("failed to rename %s as %s melt generated work file - %m",
+			      dotempnam, md5nam);
+	  if (symlink (md5nam, dotcnam))
+	    melt_fatal_error ("failed to symlink %s as %s - %m", md5nam, dotcnam);
+	  if (IS_ABSOLUTE_PATH (dotcnam))
+	    inform (UNKNOWN_LOCATION, "MELT symlinked new file %s to %s", 
+		    md5nam, dotcnam);
+	  else
+	    inform (UNKNOWN_LOCATION, "MELT symlinked new file %s to %s in %s",
+		    md5nam, dotcnam, mycwd);
+	  free (md5nam), md5nam = NULL;
+	}
+      else 
+	{
+	  /* rename the generated temporary */
+	  if (rename (dotempnam, dotcnam))
+	    melt_fatal_error ("failed to rename %s as %s melt generated file - %m",
+			      dotempnam, dotcnam);
+	  if (IS_ABSOLUTE_PATH (dotcnam))
+	    inform (UNKNOWN_LOCATION, "MELT generated new file %s",	dotcnam);
+	  else
+	    inform (UNKNOWN_LOCATION, "MELT generated new file %s in %s",
+		    dotcnam, mycwd);
+	}
+    }
   debugeprintf ("output_cfile done dotcnam %s", dotcnam);
   free (dotcnam);
   free (dotempnam);
   free (dotcpercentnam);
 }
+
+
+
 
 /* recursive function to output to a file. Handle boxed integers,
    lists, tuples, strings, strbufs, but don't handle objects! */

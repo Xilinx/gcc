@@ -1,4 +1,19 @@
 
+2012-06-16  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* common.opt (fmelt-generate-work-link): New flag.
+
+	* doc/melt.texi (Invoking MELT): Explain -fmelt-bootstrapping,
+	-fmelt-debugging, -fmelt-generate-work-link.
+
+	* melt-runtime.c (melt_flag_generate_work_link): Declare when
+	MELT_IS_PLUGIN.
+	(melt_argument): Handle "generate-work-link".
+	(melt_string_hex_md5sum_file_to_hexbuf): New static function.
+	(meltgc_string_hex_md5sum_file): Use it.
+	(melt_output_cfile_decl_impl_secondary_option): Use
+	melt_flag_generate_work_link, etc.
+
 2012-06-15  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/xtramelt-ana-base.melt (basicblock_nb_pred)
