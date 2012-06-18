@@ -27,7 +27,6 @@ following features from the Intel Cilk Plus Language Specification:
         - __sec_implicit_index     
 
 The following features are not implemented in this release
-* Elemental functions
 
 Known Issues:
 * Exception support - Exceptions are not supported for Cilk keywords.
