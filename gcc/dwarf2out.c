@@ -16565,6 +16565,14 @@ dwarf2out_abstract_function (tree decl)
   /* Make sure we have the actual abstract inline, not a clone.  */
   decl = DECL_ORIGIN (decl);
 
+  if (flag_enable_cilk && decl && TREE_CODE (decl) == FUNCTION_DECL)
+    {
+      struct function *f = DECL_STRUCT_FUNCTION (decl);
+      if (f && f->is_cilk_helper_function)
+	return; /* can't do debuging output for spawn helper */
+      else if (!f && CILK_FN_P (decl))
+	return; /* can't do it if it is a cilk function and f is NULL */
+    }
   old_die = lookup_decl_die (decl);
   if (old_die && get_AT (old_die, DW_AT_inline))
     /* We've already generated the abstract instance.  */
@@ -19553,6 +19561,8 @@ dwarf2out_function_decl (tree decl)
       struct function *f = DECL_STRUCT_FUNCTION (decl);
       if (f && f->is_cilk_helper_function)
 	return; /* can't do debuging output for spawn helper */
+      else if (!f && CILK_FN_P (decl))
+	return;
     }
   dwarf2out_decl (decl);
   call_arg_locations = NULL;

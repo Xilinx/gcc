@@ -1,3 +1,16 @@
+2012-06-17  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	PR 53672
+	* dwarf2out.c (dwarf2out_abstract_function): Added a check for the
+	spawn helper.
+	(dwarf2out_function_decl): Added a check if CILK_FN_P is set when there
+	is no function struct.
+	* cilk.c (expand_builtin_cilk_metadata): Set the CILK_FN_P field to 1.
+	* cilk-spawn.c (cg-hacks): Likewise.
+	(gimplify_cilk_for_2): Likewise.
+	(gimplify_cilk_for): Likewise.
+	* tree.h (CILK_FN_P): Added new #define to access a base field of tree.
+
 2012-06-15  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	PR 53672

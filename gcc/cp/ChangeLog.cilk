@@ -1,3 +1,8 @@
+2012-06-17  balaji.v.iyer  <bviyer@nhelv406>
+
+	* cilk.c (cp_build_cilk_for_body): Set CILK_FN_P field to 1.
+	(cp_make_cilk_frame): Likewise.
+
 2012-06-14  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* pt.c (tsubst_expr): Added a check for CILK_SYNC statement.

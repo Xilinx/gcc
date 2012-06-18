@@ -1105,7 +1105,8 @@ expand_builtin_cilk_metadata (const char *annotation, tree exp)
   if (cfun) 
     { 
       cfun->calls_notify_intrinsic = 1;
-      cfun->is_cilk_function = 1; 
+      cfun->is_cilk_function = 1;
+      CILK_FN_P (cfun->decl) = 1;
     }
 
   return const0_rtx;
@@ -1184,3 +1185,4 @@ cilk_remove_annotated_functions (rtx first)
   
   return;
 }
+

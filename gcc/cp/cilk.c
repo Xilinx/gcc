@@ -585,6 +585,7 @@ cp_build_cilk_for_body (struct cilk_for_desc *cfd)
      the uncopyable value in the outer frame. */
 
   cfun->is_cilk_function = 1;
+  CILK_FN_P (cfun->decl) = 1;
   pre = 0;
   lower_bound = cfd->lower_bound;
   if (!lower_bound)
@@ -833,7 +834,7 @@ cp_make_cilk_frame (void)
   tree decl = cfun->cilk_frame_decl;
 
   cfun->is_cilk_function = 1;
-  
+  CILK_FN_P (cfun->decl) = 1;
   if (!decl)
     {
       tree addr, body, ctor, dtor, obody;

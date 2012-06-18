@@ -520,6 +520,7 @@ struct GTY(()) tree_base {
   unsigned deprecated_flag : 1;
   unsigned saturating_flag : 1;
   unsigned is_cilk_spawn : 1;
+  unsigned is_cilk_helper_fn : 1;
   unsigned default_def_flag : 1;
   unsigned lang_flag_0 : 1;
   unsigned lang_flag_1 : 1;
@@ -1890,6 +1891,10 @@ extern void protected_set_expr_location (tree, location_t);
 #define FUNCTION_DECL_CALL_CHECK(N) \
 	(TREE_CODE(N) == CALL_EXPR || TREE_CODE(N) == FUNCTION_DECL)
 #define SPAWN_CALL_P(N) (/* FUNCTION_DECL_CALL_CHECK */(N)->base.is_cilk_spawn)
+
+/* True if the function is a cilk helper function or something that cilk
+   touches */
+#define CILK_FN_P(N) (N->base.is_cilk_helper_fn)
 
 /* True if this call is the point at which a wrapper should detach. */
 #define SPAWN_DETACH_POINT(NODE) (CALL_EXPR_CHECK (NODE)->base.default_def_flag)

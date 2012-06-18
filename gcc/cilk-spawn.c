@@ -129,6 +129,7 @@ cg_hacks (tree fndecl, struct wrapper_data *wd)
 
   f->is_cilk_function = 1;
   f->is_cilk_helper_function = 1;
+  CILK_FN_P (fndecl) = 1;
   /* gimplify_body may garbage collect.  Save a root. */
   cilk_trees[CILK_TI_PENDING_FUNCTIONS] =
     tree_cons (NULL_TREE, fndecl, cilk_trees[CILK_TI_PENDING_FUNCTIONS]);
@@ -388,7 +389,7 @@ gimplify_cilk_spawn (tree *spawn_p, gimple_seq *before ATTRIBUTE_UNUSED,
 
   cfun->calls_spawn = 1;
   cfun->is_cilk_function = 1;
-  
+  CILK_FN_P (cfun->decl) = 1;
 
   /* Convert this statement into a nested function, using capture
      by value when that is equivalent but faster. */
@@ -2549,7 +2550,7 @@ gimplify_cilk_for_2 (struct cilk_for_desc *cfd,
   set_cfun (DECL_STRUCT_FUNCTION (current_function_decl));
 
   cfun->is_cilk_function = 1;
-  
+  CILK_FN_P (cfun->decl) = 1;
   /* Apparently we need to gimplify now because we can't leave
      non-GIMPLE functions lying around. */
   cg_hacks (fn, &cfd->wd); 
@@ -2778,7 +2779,7 @@ gimplify_cilk_for (tree *expr_p,
   *expr_p = NULL_TREE;
 
   cfun->is_cilk_function = 1;
-  
+  CILK_FN_P (cfun->decl) = 1;
   init_cfd (&cfd);
 
   cfd.wd.block = block_for_loop (loop);
