@@ -26,8 +26,6 @@ following features from the Intel Cilk Plus Language Specification:
         - __sec_reduce_any_nonzero
         - __sec_implicit_index     
 
-The following features are not implemented in this release
-
 Known Issues:
 * Exception support - Exceptions are not supported for Cilk keywords.
 
