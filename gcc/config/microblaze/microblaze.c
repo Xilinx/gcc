@@ -2031,6 +2031,13 @@ microblaze_must_save_register (int regno)
 	return 1;
     }
 
+  if (crtl->calls_eh_return
+      && (regno == EH_RETURN_DATA_REGNO (0)
+          || regno == EH_RETURN_DATA_REGNO (1)))
+    {
+      return 1;
+    }
+
   return 0;
 }
 
@@ -3048,6 +3055,12 @@ microblaze_expand_epilogue (void)
       emit_insn (gen_addsi3 (stack_pointer_rtx, stack_pointer_rtx, fsiz_rtx));
     }
 
+  if (crtl->calls_eh_return)
+    emit_insn (gen_addsi3 (stack_pointer_rtx,
+                           stack_pointer_rtx,
+                           gen_rtx_raw_REG (SImode,
+                                            MB_EH_STACKADJ_REGNUM)));
+
   emit_jump_insn (gen_return_internal (gen_rtx_REG (Pmode, GP_REG_FIRST +
 						    MB_ABI_SUB_RETURN_ADDR_REGNUM)));
 }
@@ -3590,9 +3603,6 @@ microblaze_adjust_cost (rtx insn ATTRIBUTE_UNUSED, rtx link,
 
 #undef  TARGET_OPTION_OPTIMIZATION_TABLE
 #define TARGET_OPTION_OPTIMIZATION_TABLE microblaze_option_optimization_table
-
-#undef TARGET_EXCEPT_UNWIND_INFO
-#define TARGET_EXCEPT_UNWIND_INFO  sjlj_except_unwind_info
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
