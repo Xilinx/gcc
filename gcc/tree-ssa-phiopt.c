@@ -1853,7 +1853,9 @@ hoist_adjacent_loads (basic_block bb0, basic_block bb1,
       if (TREE_CODE (arg1) != SSA_NAME
 	  || TREE_CODE (arg2) != SSA_NAME
 	  || SSA_NAME_IS_DEFAULT_DEF (arg1)
-	  || SSA_NAME_IS_DEFAULT_DEF (arg2))
+	  || SSA_NAME_IS_DEFAULT_DEF (arg2)
+	  || !is_gimple_reg (arg1)
+	  || !is_gimple_reg (arg2))
 	continue;
 
       def1 = SSA_NAME_DEF_STMT (arg1);
@@ -1914,16 +1916,10 @@ hoist_adjacent_loads (basic_block bb0, basic_block bb1,
 	  defswap = def1;
 	  def1 = def2;
 	  def2 = defswap;
-	  /* Don't swap bb1 and bb2 as we may have more than one
-	     phi to process successfully.  */
-	  bb_for_def1 = bb2;
-	  bb_for_def2 = bb1;
 	}
-      else
-	{
-	  bb_for_def1 = bb1;
-	  bb_for_def2 = bb2;
-	}
+
+      bb_for_def1 = gimple_bb (def1);
+      bb_for_def2 = gimple_bb (def2);
 
       /* Check for proper alignment of the first field.  */
       tree_offset1 = bit_position (field1);
@@ -1976,12 +1972,14 @@ hoist_adjacent_loads (basic_block bb0, basic_block bb1,
 /* Determine whether we should attempt to hoist adjacent loads out of
    diamond patterns in pass_phiopt.  Always hoist loads if
    -fhoist-adjacent-loads is specified and the target machine has
-   a conditional move instruction.  */
+   both a conditional move instruction and a defined cache line size.  */
 
 static bool
 gate_hoist_loads (void)
 {
-  return (flag_hoist_adjacent_loads == 1 && HAVE_conditional_move);
+  return (flag_hoist_adjacent_loads == 1
+	  && PARAM_VALUE (PARAM_L1_CACHE_LINE_SIZE)
+	  && HAVE_conditional_move);
 }
 
 /* Always do these optimizations if we have SSA

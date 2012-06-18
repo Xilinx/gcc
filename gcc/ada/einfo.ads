@@ -29,7 +29,6 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Namet;  use Namet;
 with Snames; use Snames;
 with Types;  use Types;
 with Uintp;  use Uintp;
@@ -3508,15 +3507,6 @@ package Einfo is
 --       is True only for implicitly declare subprograms; it is not set on the
 --       parent type's subprogram. See also Is_Abstract_Subprogram.
 
---    Return_Flag_Or_Transient_Decl (Node15)
---       Applies to variables and constants. Set for objects which act as the
---       return value of an extended return statement. The node contains the
---       entity of a locally declared flag which controls the finalization of
---       the return object should the function fail. Also set for access-to-
---       controlled objects used to provide a hook to controlled transients
---       declared inside an Expression_With_Actions. The node contains the
---       object declaration of the controlled transient.
-
 --    Return_Present (Flag54)
 --       Present in function and generic function entities. Set if the
 --       function contains a return statement (used for error checking).
@@ -3686,6 +3676,14 @@ package Einfo is
 --       The entries in this list are fully analyzed and typed with the base
 --       type of the subtype. Note that all entries are static and have values
 --       within the subtype range.
+
+--    Status_Flag_Or_Transient_Decl (Node15)
+--       Present in variables and constants. Applies to objects that require
+--       special treatment by the finalization machinery. Such examples are
+--       extended return results, conditional expression results and objects
+--       inside N_Expression_With_Actions nodes. The attribute contains the
+--       entity of a flag which specifies particular behavior over a region
+--       of code or the declaration of a "hook" object.
 
 --    Storage_Size_Variable (Node15) [implementation base type only]
 --       Present in access types and task type entities. This flag is set
@@ -5086,7 +5084,7 @@ package Einfo is
    --    Esize                               (Uint12)
    --    Extra_Accessibility                 (Node13)   (constants only)
    --    Alignment                           (Uint14)
-   --    Return_Flag_Or_Transient_Decl       (Node15)   (constants only)
+   --    Status_Flag_Or_Transient_Decl       (Node15)   (constants only)
    --    Actual_Subtype                      (Node17)
    --    Renamed_Object                      (Node18)
    --    Size_Check_Code                     (Node19)   (constants only)
@@ -5747,7 +5745,7 @@ package Einfo is
    --    Esize                               (Uint12)
    --    Extra_Accessibility                 (Node13)
    --    Alignment                           (Uint14)
-   --    Return_Flag_Or_Transient_Decl       (Node15)   (transient object only)
+   --    Status_Flag_Or_Transient_Decl       (Node15)   (transient object only)
    --    Unset_Reference                     (Node16)
    --    Actual_Subtype                      (Node17)
    --    Renamed_Object                      (Node18)
@@ -6367,7 +6365,6 @@ package Einfo is
    function Renaming_Map                        (Id : E) return U;
    function Requires_Overriding                 (Id : E) return B;
    function Return_Applies_To                   (Id : E) return N;
-   function Return_Flag_Or_Transient_Decl       (Id : E) return E;
    function Return_Present                      (Id : E) return B;
    function Returns_By_Ref                      (Id : E) return B;
    function Reverse_Bit_Order                   (Id : E) return B;
@@ -6386,6 +6383,7 @@ package Einfo is
    function Static_Elaboration_Desired          (Id : E) return B;
    function Static_Initialization               (Id : E) return N;
    function Static_Predicate                    (Id : E) return S;
+   function Status_Flag_Or_Transient_Decl       (Id : E) return E;
    function Storage_Size_Variable               (Id : E) return E;
    function Stored_Constraint                   (Id : E) return L;
    function Strict_Alignment                    (Id : E) return B;
@@ -6963,7 +6961,6 @@ package Einfo is
    procedure Set_Renaming_Map                    (Id : E; V : U);
    procedure Set_Requires_Overriding             (Id : E; V : B := True);
    procedure Set_Return_Applies_To               (Id : E; V : N);
-   procedure Set_Return_Flag_Or_Transient_Decl   (Id : E; V : E);
    procedure Set_Return_Present                  (Id : E; V : B := True);
    procedure Set_Returns_By_Ref                  (Id : E; V : B := True);
    procedure Set_Reverse_Bit_Order               (Id : E; V : B := True);
@@ -6982,6 +6979,7 @@ package Einfo is
    procedure Set_Static_Elaboration_Desired      (Id : E; V : B);
    procedure Set_Static_Initialization           (Id : E; V : N);
    procedure Set_Static_Predicate                (Id : E; V : S);
+   procedure Set_Status_Flag_Or_Transient_Decl   (Id : E; V : E);
    procedure Set_Storage_Size_Variable           (Id : E; V : E);
    procedure Set_Stored_Constraint               (Id : E; V : L);
    procedure Set_Strict_Alignment                (Id : E; V : B := True);
@@ -7190,66 +7188,10 @@ package Einfo is
    --  value returned is the N_Attribute_Definition_Clause node, otherwise
    --  Empty is returned.
 
-   --  What is difference between following two, and why are they named
-   --  the way they are ???
-
-   function Get_Rep_Item
-     (E   : Entity_Id;
-      Nam : Name_Id) return Node_Id;
-   --  Searches the Rep_Item chain for a given entity E, for the first
-   --  occurrence of a rep item (pragma, attribute definition clause, or aspect
-   --  specification) whose name matches the given name. If one is found, it is
-   --  returned, otherwise Empty is returned. A special case is that when Nam
-   --  is Name_Priority, the call will also find Interrupt_Priority.
-
-   function Get_Rep_Item_For_Entity
-     (E   : Entity_Id;
-      Nam : Name_Id) return Node_Id;
-   --  Searches the Rep_Item chain for a given entity E, for an instance of a
-   --  rep item (pragma, attribute definition clause, or aspect specification)
-   --  whose name matches the given name. If one is found, it is returned,
-   --  otherwise Empty is returned. This routine only returns items whose
-   --  entity matches E (it does not return items from the parent chain). A
-   --  special case is that when Nam is Name_Priority, the call will also find
-   --  Interrupt_Priority.
-
    function Get_Record_Representation_Clause (E : Entity_Id) return Node_Id;
    --  Searches the Rep_Item chain for a given entity E, for a record
    --  representation clause, and if found, returns it. Returns Empty
    --  if no such clause is found.
-
-   --  I still don't get it, if the first one returns stuff from the parent
-   --  it should say so, and it doesn't, and the names make no sense ???
-
-   function Get_Rep_Pragma (E : Entity_Id; Nam : Name_Id) return Node_Id;
-   --  Searches the Rep_Item chain for the given entity E, for an instance
-   --  a representation pragma with the given name Nam. If found then the
-   --  value returned is the N_Pragma node, otherwise Empty is returned. A
-   --  special case is that when Nam is Name_Priority, the call will also find
-   --  Interrupt_Priority.
-
-   function Get_Rep_Pragma_For_Entity
-     (E : Entity_Id; Nam : Name_Id) return Node_Id;
-   --  Same as Get_Rep_Pragma except that this routine returns a pragma that
-   --  doesn't appear in the Rep Item chain of the parent of E (if any).
-
-   function Has_Rep_Item (E : Entity_Id; Nam : Name_Id) return Boolean;
-   --  Searches the Rep_Item chain for the given entity E, for an instance
-   --  of rep item with the given name Nam. If found then True is returned,
-   --  otherwise False indicates that no matching entry was found.
-
-   --  Again, the following two have bizarre names, and unclear specs ???
-
-   function Has_Rep_Pragma (E : Entity_Id; Nam : Name_Id) return Boolean;
-   --  Searches the Rep_Item chain for the given entity E, for an instance
-   --  of representation pragma with the given name Nam. If found then True
-   --  is returned, otherwise False indicates that no matching entry was found.
-
-   function Has_Rep_Pragma_For_Entity
-     (E : Entity_Id; Nam : Name_Id) return Boolean;
-   --  Same as Has_Rep_Pragma except that this routine doesn't return True if
-   --  the representation pragma is also present in the Rep Item chain of the
-   --  parent of E (if any).
 
    function Present_In_Rep_Item (E : Entity_Id; N : Node_Id) return Boolean;
    --  Return True if N is present in the Rep_Item chain for a given entity E
@@ -7740,7 +7682,6 @@ package Einfo is
    pragma Inline (Renaming_Map);
    pragma Inline (Requires_Overriding);
    pragma Inline (Return_Applies_To);
-   pragma Inline (Return_Flag_Or_Transient_Decl);
    pragma Inline (Return_Present);
    pragma Inline (Returns_By_Ref);
    pragma Inline (Reverse_Bit_Order);
@@ -7759,6 +7700,7 @@ package Einfo is
    pragma Inline (Static_Elaboration_Desired);
    pragma Inline (Static_Initialization);
    pragma Inline (Static_Predicate);
+   pragma Inline (Status_Flag_Or_Transient_Decl);
    pragma Inline (Storage_Size_Variable);
    pragma Inline (Stored_Constraint);
    pragma Inline (Strict_Alignment);
@@ -8142,7 +8084,6 @@ package Einfo is
    pragma Inline (Set_Renaming_Map);
    pragma Inline (Set_Requires_Overriding);
    pragma Inline (Set_Return_Applies_To);
-   pragma Inline (Set_Return_Flag_Or_Transient_Decl);
    pragma Inline (Set_Return_Present);
    pragma Inline (Set_Returns_By_Ref);
    pragma Inline (Set_Reverse_Bit_Order);
@@ -8161,6 +8102,7 @@ package Einfo is
    pragma Inline (Set_Static_Elaboration_Desired);
    pragma Inline (Set_Static_Initialization);
    pragma Inline (Set_Static_Predicate);
+   pragma Inline (Set_Status_Flag_Or_Transient_Decl);
    pragma Inline (Set_Storage_Size_Variable);
    pragma Inline (Set_Stored_Constraint);
    pragma Inline (Set_Strict_Alignment);
