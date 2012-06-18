@@ -1,6 +1,48 @@
 
 2012-06-18  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	{{Regenerate}}
+	* melt/generated/meltrunsup-inc.c: Regenerate.
+	* melt/generated/meltrunsup.h: Regenerate.
+	* melt/generated/warmelt-base+01.c: Regenerate.
+	* melt/generated/warmelt-base+02.c: Regenerate.
+	* melt/generated/warmelt-base+03.c: New generated file.
+	* melt/generated/warmelt-base+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-base+melttime.h: Regenerate.
+	* melt/generated/warmelt-base.c: Regenerate.
+	* melt/generated/warmelt-debug+01.c: Regenerate.
+	* melt/generated/warmelt-debug+02.c: Regenerate.
+	* melt/generated/warmelt-debug+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-debug+melttime.h: Regenerate.
+	* melt/generated/warmelt-debug.c: Regenerate.
+	* melt/generated/warmelt-first+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-first+melttime.h: Regenerate.
+	* melt/generated/warmelt-first.c: Regenerate.
+	* melt/generated/warmelt-genobj+04.c: Regenerate.
+	* melt/generated/warmelt-genobj+05.c: Regenerate.
+	* melt/generated/warmelt-genobj+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-genobj+melttime.h: Regenerate.
+	* melt/generated/warmelt-genobj.c: Regenerate.
+	* melt/generated/warmelt-macro+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-macro+melttime.h: Regenerate.
+	* melt/generated/warmelt-macro.c: Regenerate.
+	* melt/generated/warmelt-modes+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-modes+melttime.h: Regenerate.
+	* melt/generated/warmelt-modes.c: Regenerate.
+	* melt/generated/warmelt-normal+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-normal+melttime.h: Regenerate.
+	* melt/generated/warmelt-normal.c: Regenerate.
+	* melt/generated/warmelt-normatch+04.c: Regenerate.
+	* melt/generated/warmelt-normatch+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-normatch+melttime.h: Regenerate.
+	* melt/generated/warmelt-normatch.c: Regenerate.
+	* melt/generated/warmelt-outobj+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-outobj+melttime.h: Regenerate.
+	* melt/generated/warmelt-outobj.c: Regenerate.
+
+
+2012-06-18  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-module.mk (GCCMELT_SECONDARY_CFILES): Rename
 	GCCMELT_SECONDARIES variable.
 	(GCCMELT_SECONDARY_MD5SUMS): Rename -GCCMELT_SECONDARIES_MD5
