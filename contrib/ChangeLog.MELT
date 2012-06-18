@@ -1,4 +1,9 @@
 
+2012-06-18  Alexandre Lissy  <alissy@mandriva.com>
+
+	* MELT-Plugin-Makefile (distclean,clean,test): new phony targets
+	to make package makers happier.
+
 2012-06-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.c (SmeltMainWindow::addinfo_location):
 	Append a newline character.

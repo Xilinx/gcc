@@ -166,7 +166,7 @@ MELTGCC_INCLUDEFLAGS= -I $(melt_header_dir) -I $(MELTGCC_PLUGIN_DIR)/include -I 
 ## the make command started by make.so
 MELTGCC_MAKE= $(MAKE)
 
-.PHONY: all clean doc doc-pdf doc-info doc-html install bootstrap-melt  install-melt-includes install-melt-sources install-melt-modules  install-melt-mk install-melt-default-modules-list install-melt-so
+.PHONY: all distclean clean doc doc-pdf doc-info doc-html install bootstrap-melt  install-melt-includes install-melt-sources install-melt-modules  install-melt-mk install-melt-default-modules-list install-melt-so
 
 # the GCC compiler into which we plug the MELT metaplugin
 melt_make_cc1= $(MELTGCC) -c
@@ -306,6 +306,8 @@ melt-build.mk: melt-build.def melt-build.tpl
 
 include melt-build.mk
 
+distclean: clean
+
 ## melt-clean comes from melt-build.mk
 clean: melt-clean
 	$(RM) *.o melt.so *~ melt-predef.h gt-melt-runtime.h gfmelt* *tmp stamp-* *.args
@@ -408,4 +410,7 @@ install-melt-doc: doc doc-info doc-pdf doc-html
 	$(mkinstalldirs) $(DESTDIR)$(MELTGCC_DOC_PDF_DIR)
 	$(INSTALL_DATA) *.pdf $(DESTDIR)$(MELTGCC_DOC_PDF_DIR)
 
+## fake test target to make Debian happy
+test:
+	true
 ## eof MELT-Plugin-Makefile
