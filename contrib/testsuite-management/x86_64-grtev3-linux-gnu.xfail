@@ -43,6 +43,14 @@ FAIL: gcc.c-torture/execute/vshuf-v8hi.c execution,  -Os
 FAIL: gcc.c-torture/execute/vshuf-v2di.c execution,  -Os
 FAIL: gcc.c-torture/execute/vshuf-v8hi.c execution,  -Os
 FAIL: gcc.c-torture/execute/vshuf-v16qi.c execution,  -Os
+FAIL: 23_containers/vector/requirements/dr438/assign_neg.cc  (test for errors, line 1207)
+FAIL: 23_containers/vector/requirements/dr438/assign_neg.cc (test for excess errors)
+FAIL: 23_containers/vector/requirements/dr438/constructor_1_neg.cc  (test for errors, line 1137)
+FAIL: 23_containers/vector/requirements/dr438/constructor_1_neg.cc (test for excess errors)
+FAIL: 23_containers/vector/requirements/dr438/constructor_2_neg.cc  (test for errors, line 1137)
+FAIL: 23_containers/vector/requirements/dr438/constructor_2_neg.cc (test for excess errors)
+FAIL: 23_containers/vector/requirements/dr438/insert_neg.cc  (test for errors, line 1248)
+FAIL: 23_containers/vector/requirements/dr438/insert_neg.cc (test for excess errors)
 
 # These are flaky when tested in loaded machines (they exceed the timeout)
 flaky | FAIL: libmudflap.cth/pass40-frag.c (-O2) output pattern test
