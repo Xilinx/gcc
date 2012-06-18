@@ -1,4 +1,22 @@
 
+2012-06-18  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-module.mk (GCCMELT_SECONDARY_CFILES): Rename
+	GCCMELT_SECONDARIES variable.
+	(GCCMELT_SECONDARY_MD5SUMS): Rename -GCCMELT_SECONDARIES_MD5
+	variable.
+	(GCCMELT_PRIMARY_MDSUMED_BASE): Rename GCCMELT_PRIMARY_OBJ
+	variable.
+	(GCCMELT_SECONDARY_MDSUMED_BASES): Rename GCCMELT_SECONDARIES_OBJ
+	variable.
+	Updated rules accordingly.
+	(melt_module): Use melt_workspace.
+	(melt_workspace): New phony target.
+
+	* melt/warmelt-base.melt (string4out): New function.
+
+	* melt/xtramelt-probe.melt (scanprobe_exec): Use it.
+
 2012-06-16  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-build.tpl (meltarg_genworklink):  Define and use it.

@@ -1351,8 +1351,74 @@ output $OUT. It is called by the $ADD2OUT variadic function.}#
 		       (get_field :named_name vcty))
 	)
       (assert_msg "invalid variadic argument to ADD2OUT" ())
-      (return out)
       ))))
+
+;;;;;;;;;;;;;;;;
+(defun string4out (dis :rest)
+  :doc #{Variadic function to make of string for output, 
+  using $DIS as the string discriminant and the rest for filling it. See also $ADD2OUT.}#
+  (unless dis (setq dis discr_string))
+  (unless (is_a dis class_discriminant)
+    (return))
+  (let ( (:long goodmag 0)
+	 )
+    (code_chunk getmagidischk #{/* string4out $GETMAGIDISCHK */ $GOODMAG = 
+		((meltobject_ptr_t)$DIS)->meltobj_magic == MELTOBMAG_STRING ;}#
+		)
+    (unless goodmag (return)))
+  (let ( (out (make_strbuf discr_strbuf))
+	 )
+    (forever 
+     argloop
+     (variadic 
+      ( ()
+	(exit argloop))
+      ( (:value v)
+	(if (is_closure v)
+	    (variadic
+	     ((:value vv)
+	      (v out vv))
+	     ((:long ll)
+	      (v out ll))
+	     ((:cstring ss)
+	      (v out ss))
+	     ((:tree tt)
+	      (v out tt))
+	     ((:gimple gg)
+	      (v out gg))
+	     ((:gimple_seq gs)
+	      (v out gs))
+	     ((:edge ee)
+	      (v out ee))
+	     ((:loop lo)
+	      (v out lo))
+	     (:else
+	      (let ( (vcty (variadic_ctype 0))
+		     )
+		(errormsg_strv "STRING4OUT with manipulator for unsupported ctype"
+			       (get_field :named_name vcty))
+		(assert_msg "invalid variadic argument after closure to STRING4OUT" ())
+		(return)
+		)))
+	  (add_to_out v out)))
+      ( (:long n)
+	(add2out_longdec out n))
+      ( (:cstring s)
+	(add2out_strconst out s))
+      ( :else
+	(let ( (vcty (variadic_ctype 0))
+	       )
+	  (errormsg_strv "STRING4OUT for unsupported ctype; use a manipulator like OUTPUT_TREE "
+			 (get_field :named_name vcty))
+	  )
+	(assert_msg "invalid variadic argument to STRING4OUT" ())
+	)))
+    (let ( (str (strbuf2string dis out))
+	   )
+      (return str)
+      )))
+
+;;;;;;;;;;;;;;;
 
 ;; read add2out4null as "add to out for null"
 (defun add2out4null (v out)
@@ -4113,6 +4179,7 @@ which signals are not handled. It could be dynamically nested.}#
  strbuf2string
  strbuf_reserve
  strbuf_usedlength
+ string4out
  string_dynloaded_suffixed
  string_ends
  string_hex_md5sum_constpath 
