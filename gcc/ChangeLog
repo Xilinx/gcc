@@ -1,3 +1,516 @@
+2012-06-17  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* output.h (split_double): Move prototype to rtl.h.
+	(constructor_static_from_elts_p): Move prototype to tree.c.
+	* rtl.h (split_double): Moved here from output.h.
+	* tree.h (constructor_static_from_elts_p): Moved here from output.h.
+	* final.c (split_double): Move from here ...
+	* rtlanal.c (split_double): ... to here.
+	* expr.c: Do not include output.h.
+
+2012-06-17  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* cfglayout.h: Remove.
+	* cfglayout.c: Remove.
+	* function.h (struct function): Remove x_last_location field.
+	* function.c: Do not include cfglayout.h.
+	(expand_function_start): Do not call no-op force_next_line_note.
+	(expand_function_end): Likewise.
+	* cfgrtl.c: Do not include cfglayout.h.  Include gt-cfgrtl.h.
+	(unlink_insn_chain): Moved here from cfglayout.c.
+	(skip_insns_after_block, label_for_bb, record_effective_endpoints,
+	into_cfg_layout_mode, outof_cfg_layout_mode,
+	pass_into_cfg_layout_mode, pass_outof_cfg_layout_mode,
+	relink_block_chain, fixup_reorder_chain, verify_insn_chain,
+	fixup_fallthru_exit_predecessor, force_one_exit_fallthru,
+	cfg_layout_can_duplicate_bb_p, duplicate_insn_chain,
+	cfg_layout_duplicate_bb, cfg_layout_initialize, break_superblocks,
+	cfg_layout_finalize): Likewise.
+	(rtl_can_remove_branch_p): Likewise.
+	* rtl.h (insn_scope): Move prototype from cfglayout.h here.
+	(duplicate_insn_chain): Likewise.
+	(force_next_line_note): Remove prototype.
+	* emit-rtl.c: Do not include tree-flow.h, egad.  Include vecprim.h.
+	(last_location): Remove #define to emit.x_last_location.
+	(force_next_line_note): Remove no-op function.
+	(init_emit): Don't set x_last_location.
+	(block_locators_locs, block_locators_blocks, locations_locators_locs,
+	locations_locators_vals, prologue_locator, epilogue_locator,
+	curr_location, last_location, curr_block, last_block, curr_rtl_loc):
+	Move POD to here from cfglayout.c.
+	(insn_locators_alloc, insn_locators_finalize, insn_locators_free,
+	set_curr_insn_source_location, get_curr_insn_source_location,
+	set_curr_insn_block, get_curr_insn_block, curr_insn_locator,
+	locator_scope, insn_scope, locator_location, locator_line, insn_line,
+	locator_file, insn_file, locator_eq): Move to here from cfglayout.c.
+	* cfghooks.h: Remove double-include protection.
+	(can_copy_bbs_p, copy_bbs): Move prototypes from cfglayout.h to here.
+	* cfghooks.c (can_copy_bbs_p, copy_bbs): Move to here from cfglayout.c.
+	* final.c: Do not include cfglayout.h.
+	(choose_inner_scope, change_scope): Move to here from cfglayout.c.
+	(reemit_insn_block_notes): Likewise.  Make static.
+	* tree-flow.h (tree_could_trap_p, operation_could_trap_helper_p,
+	operation_could_trap_p, tree_could_throw_p): Move from here...
+	* tree.h: ... to here.
+	* gengtype.c (open_base_files): Remove cfglayout.h from the list.
+	* profile.c: Do not include cfghooks.h.
+	* cfgloopmanip.c: Do not include cfglayout.h and cfghooks.h.
+	* modulo-sched.c: Likewise.
+	* loop-unswitch.c: Do not include cfglayout.h.
+	* sched-ebb.c: Likewise.
+	* tracer.c: Likewise.
+	* ddg.c: Likewise.
+	* tree-vect-loop-manip.c: Likewise.
+	* loop-init.c: Likewise.
+	* dwarf2out.c: Likewise.
+	* hw-doloop.c: Likewise.
+	* loop-unroll.c: Likewise.
+	* cfgcleanup.c: Likewise.
+	* bb-reorder.c: Likewise.
+	* sched-rgn.c: Likewise.
+	* tree-cfg.c: Likewise.
+	* config/alpha/alpha.c: Likewise.
+	* config/spu/spu.c: Likewise.
+	* config/sparc/sparc.c: Likewise.
+	* config/sh/sh.c: Likewise.
+	* config/c6x/c6x.c: Likewise.
+	* config/ia64/ia64.c: Likewise.
+	* config/rs6000/rs6000.c: Likewise.
+	* config/score/score.c: Likewise.
+	* config/mips/mips.c: Likewise.
+	* config/bfin/bfin.c: Likewise.
+	* Makefile.in (CFGAYOUT_H): Remove, and fixup users.
+	* config/rs6000/t-rs6000 (rs6000.o): Do not depend on cfglayout.h.
+	* config/spu/t-spu-elf (spu.o: $): Likewise.
+	* config/sparc/t-sparc (sparc.o): Do not depend on CFGLAYOUT_H.
+
+2012-06-17  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* cfgloop.h: Do not include rtl.h.
+	(enum iv_extend_code): New.
+	(struct rtx_iv): Use iv_extend_code instead of rtx_code.
+	* Makefile.in (CFGLOOP_H): Do not depend on RTL_H.
+	* loop-iv.c (iv_extend_to_rtx_code): New function to translate
+	an IV_EXTEND_CODE to an RTX_CODE.
+	(dump_iv_info): Update for rtx_iv field type change.
+	(iv_constant): Likewise.
+	(iv_subreg): Likewise.
+	(iv_extend): Likewise.
+	(iv_neg): Likewise.
+	(iv_add): Likewise.
+	(iv_mult): Likewise.
+	(iv_shift): Likewise.
+	(get_biv_step_1): Likewise.
+	(get_biv_step): Likewise.
+	(iv_analyze_biv): Likewise.
+	(get_iv_value): Likewise.
+	(shorten_into_mode): Likewise.
+	(canonicalize_iv_subregs): Likewise.
+	* sese.c (sese_build_liveouts): Use MAY_HAVE_DEBUG_STMTS instead
+	of MAY_HAVE_DEBUG_INSNS.
+	* tree-ssa-loop-ivopts.c: Include recog.h after expr.h.
+	* tree-ssa-loop-prefetch.c: Likewise.
+
+2012-06-17  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* expmed.c (ceil_log2): Move from here...
+	* hwint.c: ... to here for older GCCs...
+	* hwint.h: ... and here for newer GCCs.
+	* rtl.h (ceil_log2): Remove prototype.
+
+	* tree-phinodes.c: Do not include rtl.h.
+	* Makefile.in (tree-phinodes.o): Do not depend on RTL_H.
+
+2012-06-17  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* config/cris/cris.h (TARGET_ELF): Remove.
+	(FORCE_EH_FRAME_INFO_IN_DATA_SECTION): Remove.
+	(CRIS_ASM_OUTPUT_ALIGNED_DECL_COMMON): Simpify using TARGET_ELF==1.
+	(LOCAL_LABEL_PREFIX): Likewise.
+	* config/cris/cris.c (cris_target_asm_named_section): Remove.
+	(cris_option_override): Simpify using TARGET_ELF==1.
+	(cris_file_start): Likewise.
+	* config/cris/cris-protos.h (cris_target_asm_named_section): Remove.
+
+2012-06-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (vcvtph2ps): Fix vec_select selector.
+
+2012-06-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR middle-end/53590
+	* tree-inline.c (initialize_cfun): Copy can_delete_dead_exceptions.
+
+2012-06-15  Easwaran Raman  <eraman@google.com>
+
+	* passes.c (init_optimization_passes): Remove pass_call_cdce
+	from its current position and insert after pass_dce.
+
+2012-06-15  Walter Lee  <walt@tilera.com>
+
+	* config/tilegx/sync.md (atomic_fetch_<fetchop_name><mode>): Fix typo.
+
+2012-06-15  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm.c (note_invalid_constants): Don't return a result.
+	(arm_memory_load_p): Delete function.
+	(arm_const_double_rtx): Delete iterator variable i;
+	(fp_immediate_constant): Likewise.
+	(fp_const_from_val): Likewise.
+
+	* arm.c (arm_init_iwmmxt_builtins): Delete void_ftype_void.
+
+2012-06-15  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR c++/51033
+	* c-typeck.c (c_build_vec_perm_expr): Move to c-family/c-common.c.
+        * c-tree.h (c_build_vec_perm_expr): Move to c-family/c-common.h.
+
+2012-06-15  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.c (avr_default_expand_builtin): New function.
+	(avr_expand_builtin): Use it.
+	(avr_expand_unop_builtin): Remove.
+	(avr_expand_binop_builtin): Remove.
+	(avr_expand_triop_builtin): Remove.
+
+2012-06-15  Michael Matz  <matz@suse.de>
+
+	PR middle-end/38474
+	* cfgexpand.c (add_alias_set_conflicts): Remove.
+	(expand_used_vars): Don't call it.
+	(aggregate_contains_union_type): Remove.
+	* function.c (n_temp_slots_in_use): New static data.
+	(make_slot_available, assign_stack_temp_for_type): Update it.
+	(init_temp_slots): Zero it.
+	(remove_unused_temp_slot_addresses): Use it for quicker removal.
+	(remove_unused_temp_slot_addresses_1): Use htab_clear_slot.
+
+2012-06-15  Michael Matz  <matz@suse.de>
+
+	* gimplify.c (gimplify_compound_literal_expr): Take gimple_test_f
+	argument, don't emit assign statement if value is directly usable.
+	(gimplify_expr): Adjust.
+
+2012-06-15  Michael Matz  <matz@suse.de>
+
+	* gimplify.c (gimplify_modify_expr): Fold generated statements.
+	* gimple-fold.c (can_refer_decl_in_current_unit_p): Check flag_ltrans.
+
+2012-06-15  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vrp.c (set_and_canonicalize_value_range): Use canonical
+	predicates to set VR_UNDEFINED and VR_VARYING.  Drop a case
+	we assert for in set_value_range to VR_VARYING.
+
+2012-06-15  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm.md (addsf3, adddf3): Use s_register_operand.
+	(subsf3, subdf3): Likewise.
+	(mulsf3, muldf3): Likewise.
+	(difsf3, divdf3): Likewise.
+	(movsfcc, movdfcc): Likewise.
+	* predicates.md (f_register_operand): Delete.
+	(arm_float_rhs_operand): Delete.
+	(arm_float_add_operand): Delete.
+	(arm_float_compare_operand): Use s_register_operand when
+	there's no VFP.
+	(cirrus_register_operand): Delete.
+	(cirrus_fp_register): Delete.
+	(cirrus_shift_const): Delete.
+	(cmpdi_operand): Remove Maverick support.
+	* constraints.md (f, v, H): Delete constraints.
+	(G): Update documentation.
+	* arm.c (fp_consts_inited): Convert to bool.
+	(strings_fp): Delete.
+	(values_fp): Delete.
+	(value_fp0): New variable.
+	(init_fp_table): Simplify logic.
+	(arm_const_double_rtx): Likewise.
+	(fp_immediate_constant): Likewise.
+	(fp_const_from_val): Likewise.
+	(neg_const_double_rtx_ok_for_fpa): Delete.
+	* doc/md.texi (ARM constraints): Update documentation.
+
+2012-06-15  Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	PR tree-optimization/53636
+	* tree-vect-data-refs.c (vect_compute_data_ref_alignment): Verify
+	stride when doing basic-block vectorization.
+
+2012-06-15  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	* tree-vect-generic.c (lower_vec_perm): Propagate vector constants
+	into VEC_PERM_EXPR.
+
+2012-06-15  Jakub Jelinek  <jakub@redhat.com>
+
+	* tree-vect-patterns.c (vect_pattern_recog): Don't unnecessarily
+	allocate and free bbs array for the SLP case.
+
+	PR tree-optimization/51581
+	* expr.h (choose_multiplier): New prototype.
+	* expmed.c (choose_multiplier): No longer static.
+	Change multiplier_ptr from rtx * to UHWI *.
+	(expand_divmod): Adjust callers.
+	* tree-vect-patterns.c (vect_recog_sdivmod_pow2_pattern): Renamed to...
+	(vect_recog_divmod_pattern): ... this.  Pass bb_vinfo as last
+	argument to new_stmt_vec_info.  Attempt to optimize also divisions
+	by non-pow2 constants if integer vector division isn't supported.
+	* tree-vect-stmts.c (vect_analyze_stmt): If node != NULL,
+	don't look at pattern stmts and sequences.
+
+2012-06-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR middle-end/53590
+	* common.opt (-fdelete-dead-exceptions): New switch.
+	* doc/invoke.texi (Code Gen Options): Document it.
+	* cse.c (count_reg_usage) <CALL_INSN>: Use !insn_nothrow_p in lieu of
+	insn_could_throw_p predicate.  Do not skip an insn that could throw
+	if dead exceptions can be deleted.
+	(insn_live_p): Likewise, do not return true in that case.
+	* dce.c (can_alter_cfg): New flag.
+	(deletable_insn_p): Do not return false for an insn that can throw if
+	the CFG can be altered and dead exceptions can be deleted.
+	(init_dce): Set can_alter_cfg to false for fast DCE, true otherwise.
+	* dse.c (scan_insn): Use !insn_nothrow_p in lieu of insn_could_throw_
+	predicate. Do not preserve an insn that could throw if dead exceptions
+	can be deleted.
+	* function.h (struct function): Add can_delete_dead_exceptions flag.
+	* function.c (allocate_struct_function): Set it.
+	* lto-streamer-in.c (input_struct_function_base): Stream it.
+	* lto-streamer-out.c (input_struct_function_base): Likewise.
+	* tree-ssa-dce.c (mark_stmt_if_obviously_necessary): Do not mark a
+	statement that could throw as necessary if dead exceptions can be
+	deleted.
+
+2012-06-14  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* config/tilegx/sync.md (atomic_fetch_sub<mode>): Fix typo.
+
+2012-06-14  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/53568
+	* config/sh/sh.md: Add peephole for swapbsi2.
+	(*swapbisi2_and_shl8, *swapbhisi2): New insns and splits.
+
+2012-06-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (*zero_extendsidi2): Remove x,x alternative.
+	(*zero_extendsidi2_rex64): Ditto.  Remove isa attribute.
+
+2012-06-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/53639
+	* config/i386/i386.md (*anddi_1 into *andsi_1_zext splitter): New.
+
+2012-06-14  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm.c (arm_cirrus_insn_p): Delete.
+	(cirrus_reorg): Delete.
+	(arm_reorg): Don't call cirrus_reorg.
+	(arm_final_prescan_insn_p): Don't check for cirrus insns.
+	* arm.md (define_attr "type"): Remove mav_farith and mav_dmult.
+	(adddi3, subdi3): Remove Maverick support.
+	(arm_adddi3): Likewise.
+	(adddi_sesidi_di, adddi_zesidi_di): Likewise.
+	(addsf3, adddf3): Likewise.
+	(subsf3, subdf3): Likewise.
+	(mulsf3, muldf3): Likewise.
+	(ashldi3, ashrdi3, lshrdi3): Likewise.
+	(floatsisf2, floatsidf2): Likewise.
+	(fix_truncsfsi2, fix_truncdfsi2): Likewise.
+	(arm_movdi, thumb1_movdi_insn): Likewise.
+	(arm_cmpdi_insn): Likewise.
+	(cirrus_cmpsf, cirrus_cmpdf, cirrus_cmpdi): Likewise.
+	(cirrus.md): Don't include.
+	* cirrus.md: Delete file.
+	* t-arm (MD_INCLUDES): Remove cirrus.md.
+
+2012-06-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* dwarf2out.c (function_possibly_abstracted_p): New static function.
+	(gen_subprogram_die): Use it function_possibly_abstracted_p in lieu of
+	cgraph_function_possibly_inlined_p.
+	(gen_inlined_subroutine_die): Return if the origin is to be ignored.
+	(process_scope_var): Do not emit concrete instances of abstracted
+	nested functions from here.
+	(gen_decl_die): Emit the abstract instance if the function is possibly
+	abstracted and not only possibly inlined.
+	(dwarf2out_finish): Find the first non-abstract parent instance and
+	attach concrete instances on the limbo list to it.
+
+2012-06-14  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm.md (divsf3, divdf3): Remove FPA support.
+	(negsf2, negdf2): Likewise.
+	(sqrtsf2, sqrtdf2): Likewise.
+	(movdfcc): Likewise.
+	(modsf3, moddf3, movxf): Delete.
+	(push_fp_multi): Delete.
+	(fpa.md): Don't include it.
+	* fpa.md: Delete file.
+	* t-arm (MD_INCLUDES): Remove fpa.md.
+
+2012-06-14  Bill Schmidt  <wschmidt@linux.ibm.com>
+
+	* tree-vectorizer.h (vect_get_stmt_cost): Move from tree-vect-stmts.c.
+	(cost_for_stmt): Remove decl.
+	(vect_get_single_scalar_iteration_cost): Correct typo in name.
+	* tree-vect-loop.c (vect_get_cost): Remove.
+	(vect_get_single_scalar_iteration_cost): Correct typo in name; use
+	vect_get_stmt_cost rather than vect_get_cost.
+	(vect_get_known_peeling_cost): Use vect_get_stmt_cost rather than
+	vect_get_cost.
+	(vect_estimate_min_profitable_iters): Correct typo in call to
+	vect_get_single_scalar_iteration_cost; use vect_get_stmt_cost rather
+	than vect_get_cost.
+	(vect_model_reduction_cost): Use vect_get_stmt_cost rather than
+	vect_get_cost.
+	(vect_model_induction_cost): Likewise.
+	* tree-vect-data-refs.c (vect_peeling_hash_get_lowest_cost): Correct
+	typo in call to vect_get_single_scalar_iteration_cost.
+	* tree-vect-stmts.c (vect_get_stmt_cost): Move to tree-vectorizer.h.
+	(cost_for_stmt): Remove unnecessary function.
+	* Makefile.in (TREE_VECTORIZER_H): Update dependencies.
+
+2012-06-14  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm.opt (mfp=2, mfp=3, mfpe, mfpe=2, mfpe=3): Delete options.
+	* arm-fpus.def (fpa, fpe2, fpe3, maverick): Delete FPU types.
+	* arm-tables.opt: Regenerated.
+	* doc/invoke.texi: Remove references to deleted options.
+
+2012-06-14  Sandeep Kumar Singh  <Sandeep.Singh2@kpitcummins.com>
+
+	* config/h8300/genmova.sh: Modified to add offset bits of
+	mova/Sz assembly instruction for memory access.
+	* config/h8300/h8300.c: Likewise.
+	* config/h8300/mova.md: Likewise.
+
+2012-06-12  Christian Bruel  <christian.bruel@st.com>
+
+	PR target/53621
+	* config/sh/sh.c (sh_option_override): Don't force
+	 flag_omit_frame_pointer and maccumulate_outgoing_args.
+	* config/sh/sh.opt (maccumulate-outgoing-args): Init as Var.
+
+2012-06-14  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vrp.c (VR_INITIALIZER): New define.
+	(ranges_from_anti_range): New function.
+	(extract_range_from_binary_expr_1): Decompose operations on
+	VR_ANTI_RANGEs to operations on VR_RANGE.
+	(extract_range_from_unary_expr_1): Likewise.
+	(extract_range_from_binary_expr_1, extract_range_from_binary_expr,
+	extract_range_from_unary_expr_1, extract_range_from_unary_expr,
+	extract_range_from_cond_expr, adjust_range_with_scev,
+	vrp_visit_assignment_or_call, vrp_visit_phi_node,
+	simplify_bit_ops_using_ranges): Use VR_INITIALIZER.
+
+2012-06-13  Richard Henderson  <rth@redhat.com>
+
+	* hwint.h (HOST_WIDEST_INT_C): New.
+	(HOST_WIDE_INT_C): New.
+	(HOST_WIDE_INT_1): Use it.
+	* config/alpha/alpha.c (alpha_trampoline_init): Use it.
+
+2012-06-13  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/49888
+	* var-tracking.c: Include alias.h.
+	(overlapping_mems): New struct.
+	(drop_overlapping_mem_locs): New.
+	(clobber_overlapping_mems): New.
+	(var_mem_delete_and_set, var_mem_delete): Call it.
+	(val_bind): Likewise, but only if modified.
+	(compute_bb_dataflow, emit_notes_in_bb): Call it on MEMs.
+	* Makefile.in (var-tracking.o): Depend in $(ALIAS_H).
+
+2012-06-13  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/47624
+	* var-tracking.c (loc_exp_dep_pool): New.
+	(vt_emit_notes): Create and release the pool.
+	(compute_bb_dataflow): Use value-based locations in MO_VAL_SET.
+	(emit_notes_in_bb): Likewise.
+	(loc_exp_dep_insert): Deal with NOT_ONEPART vars.
+	(notify_dependents_of_changed_value): Likewise.
+	(notify_dependents_of_resolved_value): Check that NOT_ONEPART
+	variables don't have a VAR_LOC_DEP_LST.
+	(emit_note_insn_var_location): Expand NOT_ONEPART locs that are
+	VALUEs or MEMs of VALUEs.
+
+2012-06-13  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/52983
+	PR debug/48866
+	* dce.c (word_dce_process_block): Insert debug temps only if the
+	insn is not marked.
+	(dce_process_block): Likewise, and if debug.used is not empty,
+	and only after iterating over all DEFs that might mark the insn.
+
+2012-06-13  Alexandre Oliva  <aoliva@redhat.com>
+
+	* common.opt (ftree-coalesce-inlined-vars): New.
+	(ftree-coalesce-vars): New.
+	* doc/invoke.texi: Document them.
+	* tree-ssa-copyrename.c (copy_rename_partition_coalesce):
+	Implement them.
+
+2012-06-13  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* read-rtl.c (mapping): Remove index field.  Add current_value field.
+	Define heap vectors.
+	(iterator_group): Fix long line.  Remove num_builtins field and
+	uses_iterator fields.  Make apply_iterator take a void * parameter.
+	(iterator_use, atttribute_use): New structures.
+	(iterator_traverse_data, BELLWETHER_CODE, bellwether_codes): Delete.
+	(current_iterators, iterator_uses, attribute_uses): New variables.
+	(uses_mode_iterator_p, uses_code_iterator_p): Delete.
+	(apply_mode_iterator, apply_code_iterator): Take a void * parameter.
+	(map_attr_string, apply_iterator_to_string): Remove iterator
+	and value parameters.  Look through all current iterator values
+	for a matching attribute.
+	(mode_attr_index, apply_mode_maps): Delete.
+	(apply_iterator_to_rtx): Replace with...
+	(copy_rtx_for_iterators): ...this new function.
+	(uses_iterator_p, apply_iterator_traverse): Delete.
+	(apply_attribute_uses, add_current_iterators, apply_iterators): New
+	functions.
+	(add_mapping): Remove index field.  Set current_value field.
+	(initialize_iterators): Don't set num_builtins and uses_iterator_p
+	fields.
+	(find_iterator): Delete.
+	(record_iterator_use, record_attribute_use): New functions.
+	(record_potential_iterator_use): New function.
+	(check_code_iterator): Remove handling of bellwether codes.
+	(read_rtx): Remove mode maps.  Truncate iterator and attribute uses.
+	(read_rtx_code, read_nested_rtx, read_rtx_variadic): Remove mode_maps
+	parameter.  Use the first code iterator value instead of the
+	bellwether_codes array.  Use record_potential_iterator_use for modes.
+
+2012-06-13  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/53568
+	* config/sh/sh.md (bswapsi2): New expander.
+	(swapbsi2): New insn.
+
+2012-06-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/53647
+	* config/i386/i386.c (ix86_tune_cost): New variable.
+	(ix86_option_override_internal): Set ix86_tune_cost.  Use
+	ix86_tune_cost for simultaneous_prefetches, prefetch_block,
+	l1_cache_size and l2_cache_size.
+
+2012-06-13  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vrp.c (vrp_meet): Properly meet equivalent ranges.
+	Handle meeting two VR_RANGE to an VR_ANTI_RANGE.  Implement
+	all possible meetings of VR_RANGE with VR_ANTI_RANGE and
+	VR_ANTI_RANGE with VR_ANTI_RANGE.
+
 2012-06-13  Richard Earnshaw  <rearnsha@arm.com>
 
 	* config.gcc (unsupported): Move obsoleted FPA-based configurations

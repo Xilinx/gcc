@@ -1120,6 +1120,10 @@ fdelayed-branch
 Common Report Var(flag_delayed_branch) Optimization
 Attempt to fill delay slots of branch instructions
 
+fdelete-dead-exceptions
+Common Report Var(flag_delete_dead_exceptions) Init(0)
+Delete dead instructions that may throw exceptions
+
 fdelete-null-pointer-checks
 Common Report Var(flag_delete_null_pointer_checks) Init(1) Optimization
 Delete useless null pointer checks
@@ -2084,6 +2088,14 @@ Does nothing.  Preserved for backward compatibility.
 ftree-ch
 Common Report Var(flag_tree_ch) Optimization
 Enable loop header copying on trees
+
+ftree-coalesce-inlined-vars
+Common Report Var(flag_ssa_coalesce_vars,1) Init(2) RejectNegative Optimization
+Enable coalescing of copy-related user variables that are inlined
+
+ftree-coalesce-vars
+Common Report Var(flag_ssa_coalesce_vars,2) Optimization
+Enable coalescing of all copy-related user variables
 
 ftree-copyrename
 Common Report Var(flag_tree_copyrename) Optimization

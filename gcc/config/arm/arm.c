@@ -117,7 +117,7 @@ static void push_minipool_barrier (rtx, HOST_WIDE_INT);
 static void push_minipool_fix (rtx, HOST_WIDE_INT, rtx *, enum machine_mode,
 			       rtx);
 static void arm_reorg (void);
-static bool note_invalid_constants (rtx, HOST_WIDE_INT, int);
+static void note_invalid_constants (rtx, HOST_WIDE_INT, int);
 static unsigned long arm_compute_save_reg0_reg12_mask (void);
 static unsigned long arm_compute_save_reg_mask (void);
 static unsigned long arm_isr_value (tree);
@@ -166,9 +166,6 @@ static bool arm_rtx_costs (rtx, int, int, int, int *, bool);
 static int arm_address_cost (rtx, bool);
 static int arm_register_move_cost (enum machine_mode, reg_class_t, reg_class_t);
 static int arm_memory_move_cost (enum machine_mode, reg_class_t, bool);
-static bool arm_memory_load_p (rtx);
-static bool arm_cirrus_insn_p (rtx);
-static void cirrus_reorg (rtx);
 static void arm_init_builtins (void);
 static void arm_init_iwmmxt_builtins (void);
 static rtx safe_vector_operand (rtx, enum machine_mode);
@@ -8678,33 +8675,18 @@ arm_cortex_a5_branch_cost (bool speed_p, bool predictable_p)
   return speed_p ? 0 : arm_default_branch_cost (speed_p, predictable_p);
 }
 
-static int fp_consts_inited = 0;
+static bool fp_consts_inited = false;
 
-/* Only zero is valid for VFP.  Other values are also valid for FPA.  */
-static const char * const strings_fp[8] =
-{
-  "0",   "1",   "2",   "3",
-  "4",   "5",   "0.5", "10"
-};
-
-static REAL_VALUE_TYPE values_fp[8];
+static REAL_VALUE_TYPE value_fp0;
 
 static void
 init_fp_table (void)
 {
-  int i;
   REAL_VALUE_TYPE r;
 
-  if (TARGET_VFP)
-    fp_consts_inited = 1;
-  else
-    fp_consts_inited = 8;
-
-  for (i = 0; i < fp_consts_inited; i++)
-    {
-      r = REAL_VALUE_ATOF (strings_fp[i], DFmode);
-      values_fp[i] = r;
-    }
+  r = REAL_VALUE_ATOF ("0", DFmode);
+  value_fp0 = r;
+  fp_consts_inited = true;
 }
 
 /* Return TRUE if rtx X is a valid immediate FP constant.  */
@@ -8712,7 +8694,6 @@ int
 arm_const_double_rtx (rtx x)
 {
   REAL_VALUE_TYPE r;
-  int i;
 
   if (!fp_consts_inited)
     init_fp_table ();
@@ -8721,35 +8702,11 @@ arm_const_double_rtx (rtx x)
   if (REAL_VALUE_MINUS_ZERO (r))
     return 0;
 
-  for (i = 0; i < fp_consts_inited; i++)
-    if (REAL_VALUES_EQUAL (r, values_fp[i]))
-      return 1;
+  if (REAL_VALUES_EQUAL (r, value_fp0))
+    return 1;
 
   return 0;
 }
-
-/* Return TRUE if rtx X is a valid immediate FPA constant.  */
-int
-neg_const_double_rtx_ok_for_fpa (rtx x)
-{
-  REAL_VALUE_TYPE r;
-  int i;
-
-  if (!fp_consts_inited)
-    init_fp_table ();
-
-  REAL_VALUE_FROM_CONST_DOUBLE (r, x);
-  r = real_value_negate (&r);
-  if (REAL_VALUE_MINUS_ZERO (r))
-    return 0;
-
-  for (i = 0; i < 8; i++)
-    if (REAL_VALUES_EQUAL (r, values_fp[i]))
-      return 1;
-
-  return 0;
-}
-
 
 /* VFPv3 has a fairly wide range of representable immediates, formed from
    "quarter-precision" floating-point values. These can be evaluated using this
@@ -9784,179 +9741,6 @@ arm_return_in_msb (const_tree valtype)
 	  && (AGGREGATE_TYPE_P (valtype)
 	      || TREE_CODE (valtype) == COMPLEX_TYPE
 	      || FIXED_POINT_TYPE_P (valtype)));
-}
-
-/* Returns TRUE if INSN is an "LDR REG, ADDR" instruction.
-   Use by the Cirrus Maverick code which has to workaround
-   a hardware bug triggered by such instructions.  */
-static bool
-arm_memory_load_p (rtx insn)
-{
-  rtx body, lhs, rhs;;
-
-  if (insn == NULL_RTX || GET_CODE (insn) != INSN)
-    return false;
-
-  body = PATTERN (insn);
-
-  if (GET_CODE (body) != SET)
-    return false;
-
-  lhs = XEXP (body, 0);
-  rhs = XEXP (body, 1);
-
-  lhs = REG_OR_SUBREG_RTX (lhs);
-
-  /* If the destination is not a general purpose
-     register we do not have to worry.  */
-  if (GET_CODE (lhs) != REG
-      || REGNO_REG_CLASS (REGNO (lhs)) != GENERAL_REGS)
-    return false;
-
-  /* As well as loads from memory we also have to react
-     to loads of invalid constants which will be turned
-     into loads from the minipool.  */
-  return (GET_CODE (rhs) == MEM
-	  || GET_CODE (rhs) == SYMBOL_REF
-	  || note_invalid_constants (insn, -1, false));
-}
-
-/* Return TRUE if INSN is a Cirrus instruction.  */
-static bool
-arm_cirrus_insn_p (rtx insn)
-{
-  enum attr_cirrus attr;
-
-  /* get_attr cannot accept USE or CLOBBER.  */
-  if (!insn
-      || GET_CODE (insn) != INSN
-      || GET_CODE (PATTERN (insn)) == USE
-      || GET_CODE (PATTERN (insn)) == CLOBBER)
-    return 0;
-
-  attr = get_attr_cirrus (insn);
-
-  return attr != CIRRUS_NOT;
-}
-
-/* Cirrus reorg for invalid instruction combinations.  */
-static void
-cirrus_reorg (rtx first)
-{
-  enum attr_cirrus attr;
-  rtx body = PATTERN (first);
-  rtx t;
-  int nops;
-
-  /* Any branch must be followed by 2 non Cirrus instructions.  */
-  if (GET_CODE (first) == JUMP_INSN && GET_CODE (body) != RETURN)
-    {
-      nops = 0;
-      t = next_nonnote_insn (first);
-
-      if (arm_cirrus_insn_p (t))
-	++ nops;
-
-      if (arm_cirrus_insn_p (next_nonnote_insn (t)))
-	++ nops;
-
-      while (nops --)
-	emit_insn_after (gen_nop (), first);
-
-      return;
-    }
-
-  /* (float (blah)) is in parallel with a clobber.  */
-  if (GET_CODE (body) == PARALLEL && XVECLEN (body, 0) > 0)
-    body = XVECEXP (body, 0, 0);
-
-  if (GET_CODE (body) == SET)
-    {
-      rtx lhs = XEXP (body, 0), rhs = XEXP (body, 1);
-
-      /* cfldrd, cfldr64, cfstrd, cfstr64 must
-	 be followed by a non Cirrus insn.  */
-      if (get_attr_cirrus (first) == CIRRUS_DOUBLE)
-	{
-	  if (arm_cirrus_insn_p (next_nonnote_insn (first)))
-	    emit_insn_after (gen_nop (), first);
-
-	  return;
-	}
-      else if (arm_memory_load_p (first))
-	{
-	  unsigned int arm_regno;
-
-	  /* Any ldr/cfmvdlr, ldr/cfmvdhr, ldr/cfmvsr, ldr/cfmv64lr,
-	     ldr/cfmv64hr combination where the Rd field is the same
-	     in both instructions must be split with a non Cirrus
-	     insn.  Example:
-
-	     ldr r0, blah
-	     nop
-	     cfmvsr mvf0, r0.  */
-
-	  /* Get Arm register number for ldr insn.  */
-	  if (GET_CODE (lhs) == REG)
-	    arm_regno = REGNO (lhs);
-	  else
-	    {
-	      gcc_assert (GET_CODE (rhs) == REG);
-	      arm_regno = REGNO (rhs);
-	    }
-
-	  /* Next insn.  */
-	  first = next_nonnote_insn (first);
-
-	  if (! arm_cirrus_insn_p (first))
-	    return;
-
-	  body = PATTERN (first);
-
-          /* (float (blah)) is in parallel with a clobber.  */
-          if (GET_CODE (body) == PARALLEL && XVECLEN (body, 0))
-	    body = XVECEXP (body, 0, 0);
-
-	  if (GET_CODE (body) == FLOAT)
-	    body = XEXP (body, 0);
-
-	  if (get_attr_cirrus (first) == CIRRUS_MOVE
-	      && GET_CODE (XEXP (body, 1)) == REG
-	      && arm_regno == REGNO (XEXP (body, 1)))
-	    emit_insn_after (gen_nop (), first);
-
-	  return;
-	}
-    }
-
-  /* get_attr cannot accept USE or CLOBBER.  */
-  if (!first
-      || GET_CODE (first) != INSN
-      || GET_CODE (PATTERN (first)) == USE
-      || GET_CODE (PATTERN (first)) == CLOBBER)
-    return;
-
-  attr = get_attr_cirrus (first);
-
-  /* Any coprocessor compare instruction (cfcmps, cfcmpd, ...)
-     must be followed by a non-coprocessor instruction.  */
-  if (attr == CIRRUS_COMPARE)
-    {
-      nops = 0;
-
-      t = next_nonnote_insn (first);
-
-      if (arm_cirrus_insn_p (t))
-	++ nops;
-
-      if (arm_cirrus_insn_p (next_nonnote_insn (t)))
-	++ nops;
-
-      while (nops --)
-	emit_insn_after (gen_nop (), first);
-
-      return;
-    }
 }
 
 /* Return TRUE if X references a SYMBOL_REF.  */
@@ -13424,13 +13208,10 @@ arm_const_double_by_immediates (rtx val)
 
 /* Scan INSN and note any of its operands that need fixing.
    If DO_PUSHES is false we do not actually push any of the fixups
-   needed.  The function returns TRUE if any fixups were needed/pushed.
-   This is used by arm_memory_load_p() which needs to know about loads
-   of constants that will be converted into minipool loads.  */
-static bool
+   needed.  */
+static void
 note_invalid_constants (rtx insn, HOST_WIDE_INT address, int do_pushes)
 {
-  bool result = false;
   int opno;
 
   extract_insn (insn);
@@ -13439,7 +13220,7 @@ note_invalid_constants (rtx insn, HOST_WIDE_INT address, int do_pushes)
     fatal_insn_not_found (insn);
 
   if (recog_data.n_alternatives == 0)
-    return false;
+    return;
 
   /* Fill in recog_op_alt with information about the constraints of
      this insn.  */
@@ -13464,7 +13245,6 @@ note_invalid_constants (rtx insn, HOST_WIDE_INT address, int do_pushes)
 	      if (do_pushes)
 		push_minipool_fix (insn, address, recog_data.operand_loc[opno],
 				   recog_data.operand_mode[opno], op);
-	      result = true;
 	    }
 	  else if (GET_CODE (op) == MEM
 		   && GET_CODE (XEXP (op, 0)) == SYMBOL_REF
@@ -13487,12 +13267,11 @@ note_invalid_constants (rtx insn, HOST_WIDE_INT address, int do_pushes)
 				     recog_data.operand_mode[opno], cop);
 		}
 
-	      result = true;
 	    }
 	}
     }
 
-  return result;
+  return;
 }
 
 /* Convert instructions to their cc-clobbering variant if possible, since
@@ -13698,12 +13477,6 @@ arm_reorg (void)
   /* Scan all the insns and record the operands that will need fixing.  */
   for (insn = next_nonnote_insn (insn); insn; insn = next_nonnote_insn (insn))
     {
-      if (TARGET_CIRRUS_FIX_INVALID_INSNS
-          && (arm_cirrus_insn_p (insn)
-	      || GET_CODE (insn) == JUMP_INSN
-	      || arm_memory_load_p (insn)))
-	cirrus_reorg (insn);
-
       if (GET_CODE (insn) == BARRIER)
 	push_minipool_barrier (insn, address);
       else if (INSN_P (insn))
@@ -13855,33 +13628,25 @@ const char *
 fp_immediate_constant (rtx x)
 {
   REAL_VALUE_TYPE r;
-  int i;
 
   if (!fp_consts_inited)
     init_fp_table ();
 
   REAL_VALUE_FROM_CONST_DOUBLE (r, x);
-  for (i = 0; i < 8; i++)
-    if (REAL_VALUES_EQUAL (r, values_fp[i]))
-      return strings_fp[i];
 
-  gcc_unreachable ();
+  gcc_assert (REAL_VALUES_EQUAL (r, value_fp0));
+  return "0";
 }
 
 /* As for fp_immediate_constant, but value is passed directly, not in rtx.  */
 static const char *
 fp_const_from_val (REAL_VALUE_TYPE *r)
 {
-  int i;
-
   if (!fp_consts_inited)
     init_fp_table ();
 
-  for (i = 0; i < 8; i++)
-    if (REAL_VALUES_EQUAL (*r, values_fp[i]))
-      return strings_fp[i];
-
-  gcc_unreachable ();
+  gcc_assert (REAL_VALUES_EQUAL (*r, value_fp0));
+  return "0";
 }
 
 /* Output the operands of a LDM/STM instruction to STREAM.
@@ -18984,18 +18749,6 @@ arm_final_prescan_insn (rtx insn)
 		    || GET_CODE (scanbody) == PARALLEL)
 		  || get_attr_conds (this_insn) != CONDS_NOCOND)
 		fail = TRUE;
-
-	      /* A conditional cirrus instruction must be followed by
-		 a non Cirrus instruction.  However, since we
-		 conditionalize instructions in this function and by
-		 the time we get here we can't add instructions
-		 (nops), because shorten_branches() has already been
-		 called, we will disable conditionalizing Cirrus
-		 instructions to be safe.  */
-	      if (GET_CODE (scanbody) != USE
-		  && GET_CODE (scanbody) != CLOBBER
-		  && get_attr_cirrus (this_insn) != CIRRUS_NOT)
-		fail = TRUE;
 	      break;
 
 	    default:
@@ -20695,10 +20448,6 @@ arm_init_iwmmxt_builtins (void)
                                  long_long_unsigned_type_node,
                                  long_long_unsigned_type_node,
                                  integer_type_node, NULL_TREE);
-
-   tree void_ftype_void
-     = build_function_type_list (void_type_node,
-                                 NULL_TREE);
 
    tree void_ftype_int
      = build_function_type_list (void_type_node,

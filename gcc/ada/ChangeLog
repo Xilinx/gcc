@@ -1,3 +1,247 @@
+2012-06-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/53592
+	* gcc-interface/gigi.h (maybe_vector_array): Make static inline.
+	* gcc-interface/utils.c (maybe_vector_array): Delete.
+	* gcc-interface/trans.c (gnat_to_gnu) <N_Indexed_Component>: Mark the
+	array object as addressable if it has vector type and is on the LHS.
+
+2012-06-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR middle-end/53590
+	* gcc-interface/misc.c (gnat_init_options_struct): Set
+	opts->x_flag_delete_dead_exceptions to 1.
+
+2012-06-14  Jose Ruiz  <ruiz@adacore.com>
+
+	* gcc-interface/Make-lang.in (ada.install-common, ada.uninstall):
+	Use the prefix specified with the --program-prefix configure option
+	to determine the install name of the Ada tools.
+	(ada.all.cross): Use a for loop to iterate over the set of Ada tools
+	instead of duplicate the same processing.
+	Update dependencies.
+
+2012-06-14  Vincent Pucci  <pucci@adacore.com>
+
+	* exp_ch6.adb (Expand_Call): Expand_Put_Call_With_Dimension_Symbol
+	call replaced by Expand_Put_Call_With_Symbol call.
+	* sem_dim.adb: New fields Unit_Names, Unit_Symbols
+	and Dim_Symbols for record type System_Type.
+	(From_Dimension_To_String_Of_Symbols): Removed.
+	(From_Dim_To_Str_Of_Dim_Symbols): Renames previous
+	routine From_Dimension_To_String_Of_Symbols.
+	(From_Dim_To_Str_Of_Unit_Symbols): New routine.
+	(Analyze_Aspect_Dimension): argument Symbol in aspect
+	Dimension aggregate is optional. Named association implemented.
+	(Has_Compile_Time_Known_Expressions): Removed.
+	(Analyze_Aspect_Dimension_System): New
+	component Dim_Symbol in each Dimension aggregate in
+	aspect Dimension_System. Named associations implemented.
+	(Add_Dimension_Vector_To_Buffer): Removed.
+	(Add_Whole_To_Buffer): Removed.
+	(Expand_Put_Call_With_Dimension_Symbol.): Removed.
+	(Expand_Put_Call_With_Symbol): Renames previous routine
+	Expand_Put_Call_With_Dimension_Symbol.
+	(Has_Dimension_Symbols): Removed.
+	(Has_Symbols): Renames previous routine
+	Has_Dimension_Symbols.	(Store_String_Oexpon): New routine.
+	* sem_dim.ads (Expand_Put_Call_With_Dimension_Symbol.): Removed.
+	(Expand_Put_Call_With_Symbol): Renames previous routine
+	Expand_Put_Call_With_Dimension_Symbol.
+	* s-diflio.adb, s-diinio.adb (Put): Symbol renames Symbols.
+	(Put_Dim_Of): New routines.
+	* s-diflio.ads, s-diinio.ads: documentation updated.
+	(Put): Symbol renames Symbols.
+	(Put_Dim_Of): New routines.
+	* s-dim.ads: documentation updated.
+	* s-dimmks.ads: dimensioned type and subtypes updated.
+	* snames.ads-tmpl: Name_Dim_Symbol, Name_Put_Dim_Of, Name_Symbol,
+	and Name_Unit_Symbol added. Name_Symbols removed.
+
+2012-06-14  Vincent Pucci  <pucci@adacore.com>
+
+	* freeze.adb (In_Exp_Body): Expression function case added.
+	(Freeze_Expression): Insert the Freeze_Nodes
+	list before the correct current scope in case of a quantified
+	expression.
+
+2012-06-14  Pascal Obry  <obry@adacore.com>
+
+	* projects.texi: Document the Install package for gprinstall.
+2012-06-14  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_elim.adb (Check_For_Eliminated_Subprogram): Do not check within
+	a default expression.
+	* sem_res.adb (Resolve_Call): simplify code.
+
+2012-06-14  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_case.adb (Check, Issue_Msg): within an instance, non-other
+	values in a variant part or a case expression do not have to
+	belong to the actual subtype.
+
+2012-06-14  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch12.adb (Validate_Derived_Type_Instance): If parent is
+	an interface type, check whether it is itself a previous formal
+	already instantiated in the current list of actuals.
+
+2012-06-14  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch13.adb (Check_Aspect_At_End_Of_Declarations): The
+	expression for a stream attribute is a name that may be overloaded
+	with other declarations. To determine whether it matches the
+	aspect at the freeze point, it is necessary to verify that one
+	of its interpretations matches.
+
+2012-06-14  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch7.adb, exp_util.adb, sem_aux.ads, exp_ch9.adb,
+	sem_ch10.adb, freeze.adb, sem_util.adb, exp_ch4.adb,
+	s-taprop-dummy.adb: Minor reformatting.
+
+2012-06-14  Vincent Pucci  <pucci@adacore.com>
+
+	* exp_attr.adb (Expand_N_Attribute_Reference): Lock_Free
+	attribute case added.
+	* par-prag.adb (Prag): Lock_Free pragma case added.
+	* sem_attr.adb (Analyze_Attribute_Reference): Lock_Free attribute
+	case added.
+	* sem_ch13.adb (Analyze_Aspect_Specifications): Record_Rep_Item
+	call added for Aspect_Lock_Free.
+	* sem_ch9.adb (Allows_Lock_Free_Implementation): New Lock_Free
+	error messages for subprogram bodies.
+	(Lock_Free_Disabled): New routine.
+	(Analyze_Protected_Body): Call to Lock_Free_Disabled added.
+	* sem_prag.adb (Analyze_Pragma): Lock_Free pragma case added.
+	* snames.adb-tmpl (Get_Pragma_Id): Name_Lock_Free case added.
+	(Is_Pragma_Name): Name_Lock_Free case added.
+	* snames.ads-tmpl: Attribute_Lock_Free and Pragma_Lock_Free added.
+
+2012-06-14  Ed Schonberg  <schonberg@adacore.com>
+
+	* a-coorma.adb, a-cborma.adb, a-cbhama.adb, a-ciorma.adb: Add missing
+	aliased keyword.
+
+2012-06-14  Bob Duff  <duff@adacore.com>
+
+	* lib.ads, lib.adb, sem.adb (Write_Unit_Info): Move this
+	procedure from Sem body to Lib spec, so it can be used for
+	debugging elsewhere.
+
+2012-06-14  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch6.adb (Check_Conformance): Add Ada 2012 check on mode
+	conformance: "aliased" must apply to both or neither formal
+	parameters.
+
+2012-06-14  Gary Dismukes  <dismukes@adacore.com>
+
+	* exp_ch9.adb: Minor reformatting.
+
+2012-06-14  Thomas Quinot  <quinot@adacore.com>
+
+	* freeze.adb (Freeze_Record_Type): Warn about useless bit order
+	specification [when there's no component clause] regardless
+	of whether the specified bit order is reversed or not.
+
+2012-06-14  Tristan Gingold  <gingold@adacore.com>
+
+	* raise-gcc.c (__gnat_personality_seh0): New function.
+
+2012-06-14  Tristan Gingold  <gingold@adacore.com>
+
+	* gnatname.adb (Gnatname): Make sure that dynamic table
+	argument_data is initialized.
+
+2012-06-14  Robert Dewar  <dewar@adacore.com>
+
+	* sem_aux.adb: Minor code reorganization.
+
+2012-06-14  Vincent Pucci  <pucci@adacore.com>
+
+	* einfo.adb einfo.ads (Get_Rep_Item): Removed.
+	(Get_Rep_Item_For_Entity): Removed.
+	(Get_Rep_Pragma): Removed.
+	(Get_Rep_Pragma_For_Entity): Removed.
+	(Has_Rep_Item): Removed.
+	(Has_Rep_Pragma): Removed.
+	(Has_Rep_Pragma_For_Entity): Removed.
+	* exp_ch9.adb (Expand_N_Task_Type_Declaration):
+	Has_Rep_Pragma_For_Entity replaced by Has_Rep_Pragma
+	and Get_Rep_Pragma_For_Entity replaced by Get_Rep_Pragma.
+	(Make_Task_Create_Call): Has_Rep_Pragma_For_Entity replaced
+	by Has_Rep_Pragma and Get_Rep_Pragma_For_Entity replaced by
+	Get_Rep_Pragma.
+	* exp_intr.adb: Dependency to Sem_Aux added for call to Get_Rep_Pragma.
+	* sem_aux.adb (Get_Rep_Item): New routine.
+	(Get_Rep_Pragma): New routine.
+	(Has_Rep_Item): New routine.
+	(Has_Rep_Pragma): New routine.
+	(Nearest_Ancestor): Minor reformatting.
+	* sem_aux.ads (Get_Rep_Item): New routine.
+	(Get_Rep_Pragma): New routine.
+	(Has_Rep_Item): New routine.
+	(Has_Rep_Pragma): New routine.
+	* sem_ch13.adb (Duplicate_Clause): Restore original error messages.
+	* sem_eval.adb (Subtypes_Statically_Match): Get_Rep_Item_For_Entity
+	replaced by Get_Rep_Item.
+	* sem_prag.adb (Analyze_Pragma): Restore original error messages.
+	(Check_Duplicate_Pragma): Restore original error messages.
+
+2012-06-14  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_util.adb (Is_Object_Reference): in Ada 2012, qualified
+	expressions are valid names.
+
+2012-06-14  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch10.adb (Analyze_Compilation_Unit): If the unit is an
+	instantiation do not emit warnings for obsolescent units. The
+	warnings belong on the corresponding generic.
+
+2012-06-14  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* einfo.adb: Update the usage of Node15.
+	(Return_Flag_Or_Transient_Decl): Removed.
+	(Set_Return_Flag_Or_Transient_Decl): Removed.
+	(Set_Status_Flag_Or_Transient_Decl): New routine.
+	(Status_Flag_Or_Transient_Decl): New routine.
+	(Write_Field15_Name): Update the output for variables and constants.
+	* einfo.ads: Remove attribute
+	Return_Flag_Or_Transient_Decl along with occurrences in nodes.
+	(Return_Flag_Or_Transient_Decl): Removed along with pragma Inline.
+	(Set_Return_Flag_Or_Transient_Decl): Removed along with pragma Inline.
+	(Set_Status_Flag_Or_Transient_Decl): New routine along with pragma
+	Inline.
+	(Status_Flag_Or_Transient_Decl): New routine along with pragma Inline.
+	* exp_ch4.adb (Create_Alternative): New routine.
+	(Expand_N_Conditional_Expression): Handle the case
+	where at least one of the conditional expression
+	alternatives prodices a controlled temporary by means of a function
+	call.
+	(Is_Controlled_Function_Call): New routine.
+	(Process_Transient_Object): Update the call to
+	Set_Return_Flag_Or_Transient_Decl.
+	* exp_ch6.adb (Enclosing_Context): New routine.
+	(Expand_N_Extended_Return_Statement): Update all calls to
+	Set_Return_Flag_Or_Transient_Decl.
+	(Expand_Ctrl_Function_Call): Prohibit the finalization of a controlled
+	function result when the context is a conditional expression.
+	* exp_ch7.adb (Process_Declarations): Update all calls to
+	Return_Flag_Or_Transient_Decl. Add processing for intermediate
+	results of conditional expressions where one of the alternatives
+	uses a controlled function call.
+	(Process_Object_Declaration): Update all calls to
+	Return_Flag_Or_Transient_Decl and rearrange the logic to process
+	"hook" objects first.
+	(Process_Transient_Objects): Update the call to
+	Set_Return_Flag_Or_Transient_Decl.
+	* exp_util.adb (Requires_Cleanup_Actions (List_Id, Boolean,
+	Boolean)): Update all calls to Return_Flag_Or_Transient_Decl. Add
+	detection for intermediate results of conditional expressions
+	where one of the alternatives uses a controlled function call.
+
 2012-06-13  Eric Botcazou  <ebotcazou@adacore.com>
 
 	Revert

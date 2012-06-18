@@ -1613,7 +1613,7 @@ package body Sem_Prag is
          --  previously given aspect specification or attribute definition
          --  clause for the same pragma.
 
-         P := Get_Rep_Item_For_Entity (E, Pragma_Name (N));
+         P := Get_Rep_Item (E, Pragma_Name (N), Check_Parents => False);
 
          if Present (P) then
             Error_Msg_Name_1 := Pragma_Name (N);
@@ -1630,12 +1630,8 @@ package body Sem_Prag is
               or else From_Aspect_Specification (P)
             then
                Error_Msg_NE ("aspect% for & previously given#", N, Id);
-
-            elsif Nkind (P) = N_Pragma then
-               Error_Msg_NE ("pragma% for & duplicates pragma#", N, Id);
-
             else
-               Error_Msg_NE ("pragma% for & duplicates clause#", N, Id);
+               Error_Msg_NE ("pragma% for & duplicates pragma#", N, Id);
             end if;
 
             raise Pragma_Exit;
@@ -8024,7 +8020,6 @@ package body Sem_Prag is
             --  Item chain of Ent.
 
             Check_Duplicate_Pragma (Ent);
-
             Record_Rep_Item (Ent, N);
          end CPU;
 
@@ -8317,7 +8312,6 @@ package body Sem_Prag is
                --  Item chain of Ent.
 
                Check_Duplicate_Pragma (Ent);
-
                Record_Rep_Item (Ent, N);
 
             --  Anything else is incorrect
@@ -10284,7 +10278,6 @@ package body Sem_Prag is
                --  Item chain of Ent.
 
                Check_Duplicate_Pragma (Ent);
-
                Record_Rep_Item (Ent, N);
             end if;
          end Interrupt_Priority;
@@ -11124,6 +11117,54 @@ package body Sem_Prag is
 
          when Pragma_List =>
             null;
+
+         ---------------
+         -- Lock_Free --
+         ---------------
+
+         --  pragma Lock_Free [(Boolean_EXPRESSION)];
+
+         when Pragma_Lock_Free => Lock_Free : declare
+            P   : constant Node_Id := Parent (N);
+            Arg : Node_Id;
+            Ent : Entity_Id;
+            Val : Boolean;
+
+         begin
+            Check_No_Identifiers;
+            Check_At_Most_N_Arguments (1);
+
+            --  Protected definition case
+
+            if Nkind (P) = N_Protected_Definition then
+               Ent := Defining_Identifier (Parent (P));
+
+               --  One argument
+
+               if Arg_Count = 1 then
+                  Arg := Get_Pragma_Arg (Arg1);
+                  Val := Is_True (Static_Boolean (Arg));
+
+               --  Zero argument. In this case the expression is considered to
+               --  be True.
+
+               else
+                  Val := True;
+               end if;
+
+               --  Check duplicate pragma before we chain the pragma in the Rep
+               --  Item chain of Ent.
+
+               Check_Duplicate_Pragma (Ent);
+               Record_Rep_Item        (Ent, N);
+               Set_Uses_Lock_Free     (Ent, Val);
+
+            --  Anything else is incorrect
+
+            else
+               Pragma_Misplaced;
+            end if;
+         end Lock_Free;
 
          --------------------
          -- Locking_Policy --
@@ -12410,7 +12451,6 @@ package body Sem_Prag is
             --  Item chain of Ent.
 
             Check_Duplicate_Pragma (Ent);
-
             Record_Rep_Item (Ent, N);
          end Priority;
 
@@ -13928,7 +13968,12 @@ package body Sem_Prag is
             --  Check duplicate pragma before we chain the pragma in the Rep
             --  Item chain of Ent.
 
-            Check_Duplicate_Pragma (Ent);
+            if Has_Rep_Pragma
+                 (Ent, Name_Task_Info, Check_Parents => False)
+            then
+               Error_Pragma ("duplicate pragma% not allowed");
+            end if;
+
             Record_Rep_Item (Ent, N);
          end Task_Info;
 
@@ -13965,7 +14010,12 @@ package body Sem_Prag is
             --  Check duplicate pragma before we chain the pragma in the Rep
             --  Item chain of Ent.
 
-            Check_Duplicate_Pragma (Ent);
+            if Has_Rep_Pragma
+                 (Ent, Name_Task_Name, Check_Parents => False)
+            then
+               Error_Pragma ("duplicate pragma% not allowed");
+            end if;
+
             Record_Rep_Item (Ent, N);
          end Task_Name;
 
@@ -15210,6 +15260,7 @@ package body Sem_Prag is
       Pragma_Linker_Options                 => -1,
       Pragma_Linker_Section                 => -1,
       Pragma_List                           => -1,
+      Pragma_Lock_Free                      => -1,
       Pragma_Locking_Policy                 => -1,
       Pragma_Long_Float                     => -1,
       Pragma_Machine_Attribute              => -1,
