@@ -1,6 +1,10 @@
 
 2012-06-19  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-module.mk: Add rules for various *.meltpic.o
+
+2012-06-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-module.mk (GCCMELTGEN_BUILD): Define
 	include  $(GCCMELT_MODULE_SOURCEBASE)+meltbuild.mk
 
