@@ -1,6 +1,11 @@
 
 2012-06-19  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-outobj.melt (output_melt_descriptor): Better
+	generation of make fragment file.
+
+2012-06-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-outobj.melt (output_melt_descriptor): Start adding
 	generation of make fragment file FOO+meltbuild.mk ...
 
