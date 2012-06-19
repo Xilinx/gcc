@@ -1999,6 +1999,11 @@ microblaze_must_save_register (int regno)
   if (frame_pointer_needed && (regno == HARD_FRAME_POINTER_REGNUM))
     return 1;
 
+  if (crtl->calls_eh_return
+      && regno == MB_ABI_SUB_RETURN_ADDR_REGNUM) {
+    return 1;
+  }
+
   if (!current_function_is_leaf)
     {
       if (regno == MB_ABI_SUB_RETURN_ADDR_REGNUM)
@@ -3307,6 +3312,15 @@ microblaze_return_addr (int count, rtx frame ATTRIBUTE_UNUSED)
 		       get_hard_reg_initial_val (Pmode,
 						 MB_ABI_SUB_RETURN_ADDR_REGNUM),
 		       GEN_INT (8));
+}
+
+void microblaze_eh_return (rtx op0)
+{
+  rtx off, tmp;
+
+  tmp = force_reg (SImode, op0);
+  off = gen_rtx_PLUS (SImode, tmp, GEN_INT(-8));
+  emit_insn (gen_movsi(gen_rtx_MEM(Pmode, stack_pointer_rtx), off));
 }
 
 /* Put string into .sdata2 if below threashold.  */
