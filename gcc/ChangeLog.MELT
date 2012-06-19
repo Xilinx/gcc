@@ -1,6 +1,11 @@
 
 2012-06-19  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-module.mk: Add rules for various *.meltmod.so and make a
+	symlink if MELTGEN_MODULENAME defined.
+
+2012-06-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-module.mk: Add rules for various *.meltpic.o
 
 2012-06-19  Basile Starynkevitch  <basile@starynkevitch.net>

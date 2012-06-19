@@ -164,6 +164,8 @@ GCCMELT_SECONDARY_MDSUMED_BASES := $(join $(basename $(notdir $(GCCMELT_SECONDAR
 GCCMELTGEN_BUILD=$(GCCMELT_MODULE_WORKSPACE)/
 -include $(GCCMELT_MODULE_SOURCEBASE)+meltbuild.mk
 
+
+## rules for meltpic.o  object files
 $(GCCMELTGEN_BUILD)%.quicklybuilt.meltpic.o:
 	@echo quicklybuilt.meltpic at= $@ inf= $< question= $? caret= $^
 	$(GCCMELT_CC) -DMELTGCC_MODULE_QUICKLYBUILT -DMELT_HAVE_DEBUG=1 \
@@ -193,6 +195,32 @@ $(GCCMELTGEN_BUILD)%.descr.meltpic.o:
 	$(GCCMELT_CC) -DMELTGCC_MODULE_DESCRIPTOR  \
           $(GCCMELT_DESCRIPTOR_FLAGS) $(GCCMELT_CFLAGS)  \
 	   -fPIC -c -o $@ $<
+
+
+## rules for meltmod.so shared objects
+$(GCCMELTGEN_BUILD)%.quicklybuilt.meltmod.so:
+	@echo quicklybuilt.meltmod at= $@ inf= $< question= $? caret= $^
+	$(GCCMELT_CC) -o $@ \
+          $(GCCMELT_QUICKLYBUILT_FLAGS) $(GCCMELT_CFLAGS) \
+          -shared $^
+
+$(GCCMELTGEN_BUILD)%.optimized.meltmod.so:
+	@echo optimized.meltmod at= $@ inf= $< question= $? caret= $^
+	$(GCCMELT_CC) -o $@ \
+          $(GCCMELT_OPTIMIZED_FLAGS) $(GCCMELT_CFLAGS) \
+          -shared $^
+
+$(GCCMELTGEN_BUILD)%.debugnoline.meltmod.so:
+	@echo debugnoline.meltmod at= $@ inf= $< question= $? caret= $^
+	$(GCCMELT_CC) -o $@ \
+          $(GCCMELT_DEBUGNOLINE_FLAGS) $(GCCMELT_CFLAGS) \
+          -shared $^
+
+$(GCCMELTGEN_BUILD)%.dynamic.meltmod.so:
+	@echo dynamic.meltmod at= $@ inf= $< question= $? caret= $^
+	$(GCCMELT_CC) -o $@ \
+          $(GCCMELT_DYNAMIC_FLAGS) $(GCCMELT_CFLAGS) \
+          -shared $^
 
 ################################################################
 vpath %.optimized.pic.o $(GCCMELT_MODULE_WORKSPACE)
@@ -292,11 +320,22 @@ $(GCCMELT_MODULE_WORKSPACE)/$(GCCMELT_BASE).$(GCCMELT_CUMULATED_MD5).debugnoline
 	$(GCCMELT_CC) $(GCCMELT_DEBUGNOLINE_FLAGS) $(GCCMELT_CFLAGS) -fPIC $(SHARED_LIBRARY_FLAGS) -o $@  $^  $(GCCMELT_MODULE_EXTRALIBES)
 
 
-$(GCCMELT_MODULE_BINARYBASE).$(GCCMELT_MODULE_FLAVOR).so: $(GCCMELT_MODULE_WORKSPACE)/$(GCCMELT_BASE).$(GCCMELT_CUMULATED_MD5).$(GCCMELT_MODULE_FLAVOR).so
-	echo @+@melt-module inf= $< at= $@
+
+################################################################
+ifdef MELTGEN_MODULENAME
+$(GCCMELT_MODULE_BINARYBASE).$(GCCMELT_MODULE_FLAVOR).so: \
+  $(GCCMELTGEN_BUILD)$(notdir $(MELTGEN_MODULENAME)).$(GCCMELT_CUMULATED_MD5).$(GCCMELT_MODULE_FLAVOR).meltmod.so
+	@echo @-@melt-module with MELTGEN_MODULENAME= $(MELTGEN_MODULENAME) inf= $< at= $@
+## the melt-runtime.c requires the link with the cumulated md5
+	$(LN_S) -v -f $(realpath $<) $(GCCMELT_MODULE_WORKSPACE)/$(GCCMELT_BASE).$(GCCMELT_CUMULATED_MD5).$(GCCMELT_MODULE_FLAVOR).so
 	$(LN_S) -v -f $(realpath $<) $@
 
+else
+$(GCCMELT_MODULE_BINARYBASE).$(GCCMELT_MODULE_FLAVOR).so: $(GCCMELT_MODULE_WORKSPACE)/$(GCCMELT_BASE).$(GCCMELT_CUMULATED_MD5).$(GCCMELT_MODULE_FLAVOR).so
+	echo @+@melt-module inf=  without MELTGEN_MODULENAME $< at= $@
+	$(LN_S) -v -f $(realpath $<) $@
 
+endif
 
 melt_module: melt_workspace $(GCCMELT_MODULE_BINARYBASE).$(GCCMELT_MODULE_FLAVOR).so
 
