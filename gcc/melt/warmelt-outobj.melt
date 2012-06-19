@@ -4235,33 +4235,33 @@ extern "C" {
 
 ;;; retrieve or create the nth secondary file in a module
 (defun nth_secundary_file (modctx modnamstr declbuf :long ix)
-  (assert_msg "check modctx" (is_a modctx class_module_context))
-  (assert_msg "check modnamstr" (is_string modnamstr))
-  (assert_msg "check declbuf" (is_strbuf declbuf))
-  (let ( (mofiles (get_field :mocx_filetuple modctx))
-	 (:long nbfiles (multiple_length mofiles))
-	 (nthfile (multiple_nth mofiles ix))
-	 )
-    (if nthfile (return nthfile))
-    (if (<=i ix 0) (return))
-    (if (>=i ix nbfiles) (return))
-    (compile_warning "nth_secundary_file incomplete")
-    (let ( 	 
-	  (path (generated_c_filename discr_string
-				      modnamstr
-				      ()
-				      ix))
-	  (implbuf (make_strbuf discr_strbuf))
-	  (newfile (instance class_secondary_c_file
-			      :secfil_modnam modnamstr
-			      :secfil_path path 
-			      :secfil_declbuf declbuf
-			      :secfil_implbuf implbuf))
+    (assert_msg "check modctx" (is_a modctx class_module_context))
+    (assert_msg "check modnamstr" (is_string modnamstr))
+    (assert_msg "check declbuf" (is_strbuf declbuf))
+    (let ( (mofiles (get_field :mocx_filetuple modctx))
+	   (:long nbfiles (multiple_length mofiles))
+	   (nthfile (multiple_nth mofiles ix))
 	   )
-      (put_int newfile ix)
-      (multiple_put_nth mofiles ix newfile)
-      (return newfile)
-  )))
+      (if nthfile (return nthfile))
+      (if (<=i ix 0) (return))
+      (if (>=i ix nbfiles) (return))
+      (compile_warning "nth_secundary_file incomplete")
+      (let ( 	 
+	    (path (generated_c_filename discr_string
+					modnamstr
+					()
+					ix))
+	    (implbuf (make_strbuf discr_strbuf))
+	    (newfile (instance class_secondary_c_file
+			       :secfil_modnam modnamstr
+			       :secfil_path path 
+			       :secfil_declbuf declbuf
+			       :secfil_implbuf implbuf))
+	    )
+	(put_int newfile ix)
+	(multiple_put_nth mofiles ix newfile)
+	(return newfile)
+	)))
 
 
 
@@ -4277,10 +4277,17 @@ extern "C" {
 	(tibuf (make_strbuf discr_strbuf))
 	(mkbuf (make_strbuf discr_strbuf))
 	(pathlist (make_list discr_list))
+	(md5list (make_list discr_list))
+	(modbuildstr (make_string_nakedbasename discr_string modnamstr))
 	(modcident (let ( (buf (make_strbuf discr_strbuf))
 			  )
 		     (add2out_cident buf modnamstr)
 		     (strbuf2string discr_string buf)))
+	(modbuildcident (let ( (buf (make_strbuf discr_strbuf))
+			  )
+		     (add2out_cident buf modbuildstr)
+		     (strbuf2string discr_string buf)))
+	(modprefstr (string4out discr_string "$(GCCMELTGEN_BUILD)" modbuildstr))
 	(flavortuple
 	 (tuple '"quicklybuilt" '"optimized" '"dynamic" '"debugnoline"))
 	)
@@ -4406,17 +4413,19 @@ extern "C" {
 	  )
       (debug "output_melt_descriptor primpath=" primpath)
       (list_append pathlist primpath)
+      (list_append md5list primmd5s)
       (add2sbuf_cencstring debuf primmd5s)
       (add2out mkbuf "#primary path and checksum\n")
       (add2out mkbuf "MELTGENMOD_PRIMPATH_" modcident "=" primpath)
       (add2sbuf_indentnl mkbuf 0)
       (add2out mkbuf "MELTGENMOD_MD5PRIM_" modcident "=" primmd5s)
       (add2sbuf_indentnl mkbuf 0)
-      (add2out mkrulebuf "#rules for primary of " modcident "\n")
+      (add2out mkrulebuf "### generated dependencies for " modnamstr"\n")
+      (add2out mkrulebuf "# dependency for primary of " modcident "\n")
       (foreach_in_multiple
        (flavortuple)
        (curflav :long flavix)
-       (add2out mkrulebuf modnamstr "." primmd5s "." curflav ".pic.o: " primpath "\n")
+       (add2out mkrulebuf modprefstr "." primmd5s "." curflav ".meltpic.o: " primpath "\n")
        )
       (add2sbuf_strconst debuf "\";")
       (add2sbuf_indentnl debuf 0)
@@ -4441,6 +4450,7 @@ extern "C" {
 		    (secmd5s (string_hex_md5sum_pathstrv secpath))
 		    )
 	       (list_append pathlist secpath)
+	       (list_append md5list secmd5s)
 	       (add2sbuf_strconst debuf "/*sechexmd5checksum ")
 	       (add2sbuf_ccomstring debuf secpath)
 	       (add2sbuf_strconst debuf " #")
@@ -4450,14 +4460,14 @@ extern "C" {
 	       (add2sbuf_strconst debuf "\",")
 	       (add2out secpathbuf " " secpath)
 	       (add2out secmd5buf " " secmd5s)
-	       ;; make rules
-	       (add2out mkrulebuf "# rules for secondary " filix " of " modcident "\n")
+	       ;; make secondary dependencies
+	       (add2out mkrulebuf "# dependencies for secondary " filix " of " modcident "\n")
 	       (foreach_in_multiple
 		(flavortuple)
 		(curflav :long flavix)
-		(add2out mkrulebuf modnamstr "+" 
+		(add2out mkrulebuf modprefstr "+" 
 			 (if (<i filix 10) "0" "") 
-			 filix "." secmd5s "." curflav ".pic.o: " modnamstr "+" 
+			 filix "." secmd5s "." curflav ".meltpic.o: " modnamstr "+" 
 			 (if (<i filix 10) "0" "") 
 			 filix ".c" "\n")
 		)
@@ -4495,22 +4505,52 @@ extern "C" {
 		       )
 	     )
 	(assert_msg "check cumpathmds" (is_string cumpathmds)) 
-	(add2out mkrulebuf "## rule for descriptor object of " modnamstr "\n")
-	(add2out mkrulebuf  modnamstr "."  cumpathmds ".descr.pic.o: " modnamstr "+meltdesc.c " 
+	;;
+	(add2out mkrulebuf "## dependency for descriptor object of " modnamstr "\n")
+	(add2out mkrulebuf  modprefstr "."  cumpathmds ".descr.meltpic.o: " modnamstr "+meltdesc.c " 
 		 modnamstr "+melttime.h\n")
+	;;
+	(add2out mkrulebuf "## dependency for modules " modnamstr "\n")
+	(foreach_in_multiple
+	 (flavortuple)
+	 (curflav :long flavix)
+	(add2out mkrulebuf "## dependency for flavor " curflav " of module " modnamstr "\n")
+	 (add2out mkrulebuf modprefstr "." cumpathmds "." curflav ".meltmod.so: \\\n"
+		  "  " modprefstr "."  cumpathmds ".descr.meltpic.o "
+		  )
+	 (let ( (pathtup (list_to_multiple pathlist discr_multiple))
+		(md5tup (list_to_multiple md5list discr_multiple))
+		)
+	   (assert_msg "check same length pathtup md5tup" (==i (multiple_length pathtup) (multiple_length md5tup)))
+	   (foreach_in_multiple
+	    (pathtup)
+	    (curpath :long ix)
+	    (let ( (curmd5 (multiple_nth md5tup ix))
+		   )
+	      (debug "output_melt_descriptor curpath=" curpath " ix=" ix " curmd5=" curmd5)
+	      (add2out mkrulebuf " \\\n   "  "$(GCCMELTGEN_BUILD)" (make_string_nakedbasename discr_string curpath) 
+		       "." curmd5 "." curflav ".meltpic.o")
+	      )
+	    )
+	   )
+	 (add2out mkrulebuf "\n\n")
+	 )
+	;;
+	(add2out mkrulebuf "\n#end of generated dependencies for " modnamstr "\n\n")
+	(add2out mkbuf mkrulebuf)
+	(setq mkrulebuf ())
 	(add2out mkbuf "## cumulated checksum and naked name\n")
 	(add2out mkbuf "MELTGENMOD_CUMULATED_MD5SUM_" modcident "=" cumpathmds "\n")
 	(add2out mkbuf "MELTGENMOD_NAKED_NAME_" modcident "=" midstr "\n")
-	(add2out mkbuf mkrulebuf)
 	(add2sbuf_indentnl debuf 0) 
 	(add2out 
 	 debuf 
 	 ##{/* cumulated checksum of primary & secondary files */
-	 const char melt_cumulated_hexmd5[]="$CUMPATHMDS" ;
+const char melt_cumulated_hexmd5[]="$CUMPATHMDS" ;
 
-	 /* include the timestamp file */
-	 #define $MODIDNAM 1
-	 #include "$MIDSTR+melttime.h"
+/* include the timestamp file */
+#define $MODIDNAM 1
+#include "$MIDSTR+melttime.h"
 	 }#
 	 )
 	;;
@@ -4523,17 +4563,17 @@ extern "C" {
 	(add2sbuf_indentnl tibuf 0)
 	(add2sbuf_indentnl tibuf 0) 
 	(add2out tibuf ##{
-		 /* This $MIDSTR+melttime.h is included from $MIDSTR+meltdesc.c only. */
-		 #if $MODIDNAM
-		 /* MELT generation timestamp for $MODNAMSTR */
+/* This $MIDSTR+melttime.h is included from $MIDSTR+meltdesc.c only. */
+#if $MODIDNAM
+/* MELT generation timestamp for $MODNAMSTR */
 
-		 #ifdef __cplusplus
-		 /* these symbols are extern "C" since dlsym-ed */
-		 extern "C" const char melt_gen_timestamp[]   ;
-		 extern "C" const long long melt_gen_timenum  ;
-		 extern "C" const char melt_build_timestamp[] ;
-		 extern "C" {
-		 #endif /*__cplusplus */
+#ifdef __cplusplus
+/* these symbols are extern "C" since dlsym-ed */
+extern "C" const char melt_gen_timestamp[] ;
+extern "C" const long long melt_gen_timenum ;
+extern "C" const char melt_build_timestamp[] ;
+extern "C" {
+#endif /*__cplusplus */
 
 		 }#
 		 )
@@ -4541,10 +4581,10 @@ extern "C" {
 	(code_chunk 
 	 gentimch
 	 #{ /* output_melt_descriptor $GENTIMCH + */
-	 time_t now = 0						     ;
-	 char nowbuf[64]					     ;
-	 time (&now)						     ;
-	 memset (nowbuf, 0, sizeof(nowbuf))			     ;
+	 time_t now = 0			    ;
+	 char nowbuf[64]		    ;
+	 time (&now)			    ;
+	 memset (nowbuf, 0, sizeof(nowbuf)) ;
 	 strftime (nowbuf, sizeof(nowbuf)-1, "%c %Z", localtime(&now)) ;
 	 if (melt_flag_bootstrapping)
 	 meltgc_add_strbuf ((melt_ptr_t) $TIBUF, "/*MELT BOOTSTRAP*/\n") ;

@@ -1,6 +1,12 @@
 
 2012-06-19  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-outobj.melt (output_melt_descriptor): Generated
+	dependencies assume all binary object and module files are prefixed 
+	by $(GCCMELTGEN_BUILD).
+
+2012-06-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-outobj.melt (output_melt_descriptor): Generete
 	dependency of .descr.pic.o file.
 
