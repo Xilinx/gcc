@@ -146,3 +146,4 @@ FAIL: libgomp.c++/for-7.C -O1  (test for excess errors)
 FAIL: libgomp.c++/for-7.C -O3 -fomit-frame-pointer -funroll-loops  (test for excess errors)
 UNRESOLVED: libgomp.c++/for-7.C -O3 -g  compilation failed to produce executable
 UNRESOLVED: libgomp.c++/for-7.C -O1  compilation failed to produce executable
+FAIL: gcc.dg/tree-ssa/vrp68.c scan-tree-dump-times vrp1 "link_error" 1
