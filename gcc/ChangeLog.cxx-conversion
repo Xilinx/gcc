@@ -1,3 +1,12 @@
+2012-06-19   Diego Novillo  <dnovillo@google.com>
+
+	* Makefile.in: Remove all handlers of ENABLE_BUILD_WITH_CXX.
+	* configure.ac: Likewise.
+	* configure: Regenerate.
+	* config.in: Regenerate.
+	* doc/install.texi: Remove documentation for --enable-build-with-cxx
+	and --enable-build-poststage1-with-cxx.
+
 2012-06-18   Diego Novillo  <dnovillo@google.com>
 
 	Merge from trunk rev 188722.

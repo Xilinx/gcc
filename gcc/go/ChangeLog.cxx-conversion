@@ -1,0 +1,5 @@
+2012-06-19   Diego Novillo  <dnovillo@google.com>
+
+	* go-c.h: Remove all handlers of ENABLE_BUILD_WITH_CXX.
+	* go-gcc.cc: Likewise.
+	* go-system.h: Likewise.

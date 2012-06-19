@@ -223,13 +223,6 @@ RANLIB_FLAGS = @ranlib_flags@
 HOST_LIBS = @HOST_LIBS@
 
 # The name of the compiler to use.
-ENABLE_BUILD_WITH_CXX = @ENABLE_BUILD_WITH_CXX@
-ifneq ($(ENABLE_BUILD_WITH_CXX),yes)
-COMPILER = $(CC)
-COMPILER_FLAGS = $(CFLAGS)
-LINKER = $(CC)
-LINKER_FLAGS = $(CFLAGS)
-else
 COMPILER = $(CXX)
 COMPILER_FLAGS = $(CXXFLAGS)
 # If HOST_LIBS is set, then the user is controlling the libraries to
@@ -242,7 +235,6 @@ LINKER_FLAGS = $(CXXFLAGS)
 else
 LINKER = $(CC)
 LINKER_FLAGS = $(CFLAGS)
-endif
 endif
 
 # -------------------------------------------
@@ -337,13 +329,8 @@ CLOOGINC = @CLOOGINC@
 enable_lto = @enable_lto@
 
 # Compiler and flags needed for plugin support
-ifneq ($(ENABLE_BUILD_WITH_CXX),yes)
-PLUGINCC = @CC@
-PLUGINCFLAGS = @CFLAGS@
-else
 PLUGINCC = @CXX@
 PLUGINCFLAGS = @CXXFLAGS@
-endif
 
 # Libs and linker options needed for plugin support
 PLUGINLIBS = @pluginlibs@
@@ -733,22 +720,12 @@ BUILD_CFLAGS= @BUILD_CFLAGS@ -DGENERATOR_FILE
 BUILD_CXXFLAGS = @BUILD_CXXFLAGS@ -DGENERATOR_FILE
 
 # Native compiler that we use.  This may be C++ some day.
-ifneq ($(ENABLE_BUILD_WITH_CXX),yes)
-COMPILER_FOR_BUILD = $(CC_FOR_BUILD)
-BUILD_COMPILERFLAGS = $(BUILD_CFLAGS)
-else
 COMPILER_FOR_BUILD = $(CXX_FOR_BUILD)
 BUILD_COMPILERFLAGS = $(BUILD_CXXFLAGS)
-endif
 
 # Native linker that we use.
-ifneq ($(ENABLE_BUILD_WITH_CXX),yes)
-LINKER_FOR_BUILD = $(CC_FOR_BUILD)
-BUILD_LINKERFLAGS = $(BUILD_CFLAGS)
-else
 LINKER_FOR_BUILD = $(CXX_FOR_BUILD)
 BUILD_LINKERFLAGS = $(BUILD_CXXFLAGS)
-endif
 
 # Native linker and preprocessor flags.  For x-fragment overrides.
 BUILD_LDFLAGS=@BUILD_LDFLAGS@
@@ -999,18 +976,10 @@ ALL_CXXFLAGS = $(T_CFLAGS) $(CFLAGS-$@) $(CXXFLAGS) $(INTERNAL_CFLAGS) \
 ALL_CPPFLAGS = $(INCLUDES) $(CPPFLAGS)
 
 # This is the variable to use when using $(COMPILER).
-ifneq ($(ENABLE_BUILD_WITH_CXX),yes)
-ALL_COMPILERFLAGS = $(ALL_CFLAGS)
-else
 ALL_COMPILERFLAGS = $(ALL_CXXFLAGS)
-endif
 
 # This is the variable to use when using $(LINKER).
-ifneq ($(ENABLE_BUILD_WITH_CXX),yes)
-ALL_LINKERFLAGS = $(ALL_CFLAGS)
-else
 ALL_LINKERFLAGS = $(ALL_CXXFLAGS)
-endif
 
 # Build and host support libraries.
 LIBIBERTY = ../libiberty/libiberty.a

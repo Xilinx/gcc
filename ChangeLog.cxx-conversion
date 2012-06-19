@@ -1,3 +1,11 @@
+2012-06-19   Diego Novillo  <dnovillo@google.com>
+
+	* Makefile.tpl (STAGE[+id+]_CXXFLAGS): Remove
+	POSTSTAGE1_CONFIGURE_FLAGS.
+	* Makefile.in: Regenerate.
+	* configure.ac (ENABLE_BUILD_WITH_CXX): Remove.  Update all users.
+	* configure: Regenerate.
+
 2012-04-11   Diego Novillo  <dnovillo@google.com>
 
 	* configure.ac (ENABLE_BUILD_WITH_CXX): Default to 'yes'.

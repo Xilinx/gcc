@@ -1,3 +1,9 @@
+2012-06-19   Diego Novillo  <dnovillo@google.com>
+
+	* Makefile.in: Remove all handlers of ENABLE_BUILD_WITH_CXX.
+	* configure.ac: Likewise.
+	* configure: Regenerate.
+
 2012-06-01   Lawrence Crowl  <crowl@google.com>
 
 	* include/symtab.h (typedef struct ht hash_table): Change the typedef
