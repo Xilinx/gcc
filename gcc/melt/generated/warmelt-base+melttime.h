@@ -4,37 +4,37 @@
  & handled in melt-runtime.c carefully. */
 
 
-  /* This warmelt-base+melttime.h is included from warmelt-base+meltdesc.c only. */
-#if meltmod_warmelt_base_mds__cab3271126a2c5ed9ae02f356986b191
-  /* MELT generation timestamp for MELT-STAGE-ZERO/warmelt-base */
+	       /* This warmelt-base+melttime.h is included from warmelt-base+meltdesc.c only. */
+	       #if meltmod_warmelt_base_mds__cab3271126a2c5ed9ae02f356986b191
+	       /* MELT generation timestamp for MELT-STAGE-ZERO/warmelt-base */
 
-#ifdef __cplusplus
-/* these symbols are extern "C" since dlsym-ed */
-extern "C" const char melt_gen_timestamp[];
-extern "C" const long long melt_gen_timenum;
-extern "C" const char melt_build_timestamp[];
-extern "C" {
-#endif /*__cplusplus */
+	       #ifdef __cplusplus
+	       /* these symbols are extern "C" since dlsym-ed */
+	       extern "C" const char melt_gen_timestamp[]   ;
+	       extern "C" const long long melt_gen_timenum  ;
+	       extern "C" const char melt_build_timestamp[] ;
+	       extern "C" {
+	       #endif /*__cplusplus */
 
-
+	       
 /*MELT BOOTSTRAP*/
-const char melt_gen_timestamp[]="Mon Jun 18 16:35:06 2012 MEST";
-const long long melt_gen_timenum=1340030106;
+const char melt_gen_timestamp[]="Tue Jun 19 09:58:35 2012 CEST";
+const long long melt_gen_timenum=1340092715;
 
-const char melt_build_timestamp[]= __DATE__ "@" __TIME__
-#ifdef __cplusplus
-      " (in C++)"
-#else
-      " (in C)"
-#endif /*__cplusplus*/
-      ;
+	       const char melt_build_timestamp[]= __DATE__ "@" __TIME__
+	       #ifdef __cplusplus
+	       " (in C++)"
+	       #else
+	       " (in C)"
+	       #endif /*__cplusplus*/
+					;
+	       
 
+	       #ifdef __cplusplus
+	       }			; /* end extern C */
+	       #endif /*__cplusplus */
 
-#ifdef __cplusplus
-}; /* end extern C */
-#endif /*__cplusplus */
-
-#else /* ! meltmod_warmelt_base_mds__cab3271126a2c5ed9ae02f356986b191 */
-#error invalid timestamp file for MELT-STAGE-ZERO/warmelt-base 
-#endif /* meltmod_warmelt_base_mds__cab3271126a2c5ed9ae02f356986b191 */
-		
+	       #else /* ! meltmod_warmelt_base_mds__cab3271126a2c5ed9ae02f356986b191 */
+	       #error invalid timestamp file for MELT-STAGE-ZERO/warmelt-base 
+	       #endif /* meltmod_warmelt_base_mds__cab3271126a2c5ed9ae02f356986b191 */
+	       
