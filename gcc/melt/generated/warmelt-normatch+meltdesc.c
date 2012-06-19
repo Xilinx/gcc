@@ -5,12 +5,12 @@
 
 	     #ifdef __cplusplus
 	     /* explicitly declare as extern "C" our dlsym-ed symbols */
-	     extern "C" const char melt_versionmeltstr[] ;
-	     extern "C" const char melt_genversionstr[]	 ;
-	     extern "C" const char melt_modulename[]	 ;
-	     extern "C" const char melt_modulerealpath[] ;
-	     extern "C" const char melt_prepromd5meltrun[] ;
-	     extern "C" const char melt_primaryhexmd5[]	   ;
+	     extern "C" const char melt_versionmeltstr[]	    ;
+	     extern "C" const char melt_genversionstr[]		    ;
+	     extern "C" const char melt_modulename[]		    ;
+	     extern "C" const char melt_modulerealpath[]	    ;
+	     extern "C" const char melt_prepromd5meltrun[]	    ;
+	     extern "C" const char melt_primaryhexmd5[]		    ;
 	     extern "C" const char* const melt_secondaryhexmd5tab[] ;
 	     extern "C" const int melt_lastsecfileindex		    ;
 	     extern "C" const char melt_cumulated_hexmd5[]	    ;
@@ -36,7 +36,7 @@ const char melt_modulename[]="warmelt-normatch";
 const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown-linux-gnu/4.8.0/melt-modules/0.9.6-pre/warmelt-normatch";
 
 /* hash of preprocessed melt-run.h generating this */
-const char melt_prepromd5meltrun[]="034fff7d5c2045b3a08da4a4da5ade2e";
+const char melt_prepromd5meltrun[]="480ab491b9dfa192c0337af216220c24";
 /* hexmd5checksum of primary C file */
 const char melt_primaryhexmd5[]="89fc75dadc1931dff35f2f33880d405a";
 
@@ -55,15 +55,15 @@ const char* const melt_secondaryhexmd5tab[]={
 const int melt_lastsecfileindex=5;
 
 /* cumulated checksum of primary & secondary files */
-       const char melt_cumulated_hexmd5[]="eb844adfd6aca06b6ce02a90714a93d7" ;
+const char melt_cumulated_hexmd5[]="eb844adfd6aca06b6ce02a90714a93d7" ;
 
-       /* include the timestamp file */
-       #define meltmod_warmelt_normatch_mds__eb844adfd6aca06b6ce02a90714a93d7 1
-       #include "warmelt-normatch+melttime.h"
-       
+/* include the timestamp file */
+#define meltmod_warmelt_normatch_mds__eb844adfd6aca06b6ce02a90714a93d7 1
+#include "warmelt-normatch+melttime.h"
+	 
 
-	       #ifdef __cplusplus
-	       }			; /* end extern C */
-	       #endif /*__cplusplus */
-	       
+		 #ifdef __cplusplus
+		 }			; /* end extern C */
+		 #endif /*__cplusplus */
+		 
 /* end of melt descriptor file */

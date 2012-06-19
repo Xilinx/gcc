@@ -4628,6 +4628,7 @@ extern "C" {
 	(add2sbuf_indentnl debuf 0)
 	(add2sbuf_strconst debuf "/* end of melt descriptor file */")
 	(add2sbuf_indentnl debuf 0)
+	(add2out mkbuf "\n## eof of generated " modnamstr "+meltbuild.mk\n")
 	)
       (let (
 	    (meltdescpath (string4out discr_string  modnamstr "+meltdesc.c"))
