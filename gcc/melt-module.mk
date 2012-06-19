@@ -158,8 +158,13 @@ GCCMELT_PRIMARY_MDSUMED_BASE:= $(basename $(notdir $(GCCMELT_PRIMARY))).$(GCCMEL
 GCCMELT_SECONDARY_MDSUMED_BASES := $(join $(basename $(notdir $(GCCMELT_SECONDARY_CFILES))),$(addprefix .,$(GCCMELT_SECONDARY_MD5SUMS)))
 
 
+################################################################
+## this is probably still useless, but should be very useful
+GCCMELTGEN_BUILD=$(GCCMELT_MODULE_WORKSPACE)/
+-include $(GCCMELT_MODULE_SOURCEBASE)+meltbuild.mk
 
 
+################################################################
 vpath %.optimized.pic.o $(GCCMELT_MODULE_WORKSPACE)
 $(GCCMELT_MODULE_WORKSPACE)/%.optimized.pic.o: 
 	$(GCCMELT_CC) -DMELTGCC_MODULE_OPTIMIZED  -DMELT_HAVE_DEBUG=0  $(GCCMELT_OPTIMIZED_FLAGS) $(GCCMELT_CFLAGS) \
