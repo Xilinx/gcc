@@ -207,6 +207,9 @@ extern enum pipeline_type microblaze_pipe;
 #define INCOMING_RETURN_ADDR_RTX  			\
   gen_rtx_REG (VOIDmode, GP_REG_FIRST + MB_ABI_SUB_RETURN_ADDR_REGNUM)
 
+/* Specifies the offset from INCOMING_RETURN_ADDR_RTX and the actual return PC.  */
+#define RETURN_ADDR_OFFSET (8)
+
 /* Describe how we implement __builtin_eh_return.  */
 #define EH_RETURN_DATA_REGNO(N) (((N) < 2) ? MB_ABI_FIRST_ARG_REGNUM + (N) : INVALID_REGNUM)
 

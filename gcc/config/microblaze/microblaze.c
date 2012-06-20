@@ -3308,19 +3308,13 @@ microblaze_return_addr (int count, rtx frame ATTRIBUTE_UNUSED)
   if (count != 0)
     return NULL_RTX;
 
-  return gen_rtx_PLUS (Pmode,
-		       get_hard_reg_initial_val (Pmode,
-						 MB_ABI_SUB_RETURN_ADDR_REGNUM),
-		       GEN_INT (8));
+  return get_hard_reg_initial_val (Pmode,
+                                   MB_ABI_SUB_RETURN_ADDR_REGNUM);
 }
 
 void microblaze_eh_return (rtx op0)
 {
-  rtx off, tmp;
-
-  tmp = force_reg (SImode, op0);
-  off = gen_rtx_PLUS (SImode, tmp, GEN_INT(-8));
-  emit_insn (gen_movsi(gen_rtx_MEM(Pmode, stack_pointer_rtx), off));
+  emit_insn (gen_movsi(gen_rtx_MEM(Pmode, stack_pointer_rtx), op0));
 }
 
 /* Put string into .sdata2 if below threashold.  */
