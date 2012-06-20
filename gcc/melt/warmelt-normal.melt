@@ -6981,6 +6981,47 @@ source location.}#
 (install_method class_source_cheader normal_exp normexp_cheader)
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;; normalize a use_package_from_pkg_config
+(defun normexp_use_package_from_pkg_config (recv env ncx psloc)
+  (debug "normexp_use_package_from_pkg_config recv=" recv "\n* ncx=" ncx)
+  (assert_msg "check cheader recv" (is_a recv class_source_use_package_from_pkg_config))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normalization_context))
+  (let ( 
+	(sloc (unsafe_get_field :loca_location recv))
+	(pkgtup (get_field :susepackage_pkgtuple recv))
+	(modctx (get_field :nctx_modulcontext ncx))
+	(mcpackagelist (get_field :mocx_packagepclist modctx))
+	)
+    (debug "normexp_use_package_from_pkg_config initial mcpackagelist=" mcpackagelist)
+    (assert_msg "check modctx" (is_a modctx class_module_context))
+    (assert_msg "check mcpackagelist" (is_list mcpackagelist))
+    ;; append each package name only if it is not already in the list
+    (foreach_in_multiple
+     (pkgtup)
+     (curpkgname :long pkgix)
+     (debug "normexp_use_package_from_pkg_config curpkgname=" curpkgname)
+     (assert_msg "check curpkgname" (is_string curpkgname))
+     (let ( (:long found 0)
+	    )
+       (foreach_in_list
+	(mcpackagelist)
+	(curpair oldpkgname)
+	(when (==s oldpkgname curpkgname)
+	  (setq found 1)
+	  (setq curpair ())))
+       (unless found
+	 (list_append mcpackagelist curpkgname))
+       )
+     )
+    ;;
+    (debug "normexp_use_package_from_pkg_config final mcpackagelist=" mcpackagelist)
+    ))
+(install_method class_source_use_package_from_pkg_config normal_exp normexp_use_package_from_pkg_config)
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -190,6 +190,16 @@ declaration part. }#
 	   )
 )
 
+;;;; source use_package_from_pkg_config
+(defclass class_source_use_package_from_pkg_config
+  :doc #{The internal $CLASS_SOURCE_USE_PACKAGE_FROM_PKG_CONFIG is for
+$USE_PACKAGE_FROM_PKG_CONFIG abstract syntax.  $SUSEPACKAGE_PKGTUPLE
+gives the tuple of pkg-config package string names. }#
+  :super class_source
+  :fields (susepackage_pkgtuple
+	   )
+)
+
 ;;;; source quote
 (defclass class_source_quote
   :doc #{The internal $SCLASS_SOURCE_QUOTE is for $QUOTE abstract syntax. $SQUOTED is the quoted stuff.}#
@@ -5859,6 +5869,95 @@ remain.}#)
  cheader mexpand_cheader
  :doc #{The $CHEADER syntax inserts C code in the header part of the generated code.}#)
 
+
+;;;;;;;;;;;;;;;;
+;;; for USE_PACKAGE_FROM_PKG_CONFIG
+
+(defun mexpand_use_package_from_pkg_config  (sexpr env mexpander modctx)
+  (debug "mexpand_use_package_from_pkg_config sexpr=" sexpr)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check modctx" (is_object modctx))
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (xargtup (expand_restlist_as_tuple cont env mexpander modctx))
+	 (cmdbuf (make_strbuf discr_strbuf))
+	 )
+    (debug "mexpand_use_package_from_pkg_config xargtup=" xargtup)
+    (add2out cmdbuf "pkg-config --exists")
+    (foreach_in_multiple
+     (xargtup)
+     (curpkgname :long pkgix)
+     (unless 
+	 (is_string curpkgname)
+       (error_plain loc "invalid argument to (USE_PACKAGE_FROM_PKG_CONFIG <pkg-name>...), expecting string")
+       (return)
+       )
+     (let ( (:long goodpkgname 1)
+	    )
+       (code_chunk checkpkgname_chk #{/* mexpand_use_package_from_pkg_config $CHECKPKGNAME_CHK */
+		   const char* pkgs_$CHECKPKGNAME_CHK = melt_string_str ((melt_ptr_t) $CURPKGNAME) ;
+		   if (!pkgs_$CHECKPKGNAME_CHK) 
+                      $GOODPKGNAME = 0 ;
+		   else {
+		   const char* pc = NULL;
+		   for (pc = pkgs_$CHECKPKGNAME_CHK   ; 
+			   *pc && $GOODPKGNAME   ; 
+			   pc++)
+		   {
+		   if (ISALNUM(*pc) || *pc == '+' || *pc == '-' || *pc == '_' || *pc == '.' || *pc == '@')
+		   continue ;
+		   else $GOODPKGNAME = 0L ;
+		   }
+		   }	;		   
+		   }#)
+       (unless goodpkgname
+	 (error_strv loc "invalid package name for (USE_PACKAGE_FROM_PKG_CONFIG ...)" curpkgname)
+	 (return))
+       (add2out cmdbuf " " curpkgname)
+       )
+     ) ;; end foreach_in_multiple
+    ;; check by running pkg-config --exists that the package are existing
+    (let ( (cmdstr (strbuf2string discr_string cmdbuf))
+	   (:long failcmd 0)
+	   )
+      (debug "mexpand_use_package_from_pkg_config cmdstr=" cmdstr)
+      (code_chunk testpkgconfig_chk #{ /* mexpand_use_package_from_pkg_config $TESTPKGCONFIG_CHK */
+		  const char* cmd_$TESTPKGCONFIG_CHK = melt_string_str ((melt_ptr_t) $CMDSTR) ;
+		  fflush (NULL)		;
+		  $FAILCMD = (cmd_$TESTPKGCONFIG_CHK 
+			      ? system (cmd_$TESTPKGCONFIG_CHK) 
+			      : 1000) ;
+		  }#)
+      (debug "mexpand_use_package_from_pkg_config failcmd=" failcmd)
+      (when failcmd
+	(error_strv loc "unexistent package names for USE_PACKAGE_FROM_PKG_CONFIG " cmdstr)
+	(return))
+      )
+    ;; return the source 
+    (let ( (sup (instance class_source_use_package_from_pkg_config
+			  :loca_location loc
+			  :susepackage_pkgtuple xargtup)) )
+      (debug "mexpand_use_package_from_pkg_config gives sup=" sup)
+      (return sup)
+    )))
+
+(install_initial_macro 'use_package_from_pkg_config mexpand_use_package_from_pkg_config)
+(export_macro 
+ use_package_from_pkg_config mexpand_use_package_from_pkg_config
+ :doc #{The $USE_PACKAGE_FROM_PKG_CONFIG or
+ $USE-PACKAGE-FROM-PKG-CONFIG syntax enables usage of
+ @code{pkg-config}-ured packages. Arguments are strings naming
+ packages. This modifies the compilation and linking of generated C
+ code. Probably using some $CHEADER for some @code{#include} is useful.}#)
+(export_macro 
+ use-package-from-pkg-config mexpand_use_package_from_pkg_config
+ :doc #{The $USE-PACKAGE-FROM-PKG-CONFIG or
+ $USE_PACKAGE_FROM_PKG_CONFIG syntax enables usage of
+ @code{pkg-config}-ured packages. Arguments are strings naming
+ packages. This modifies the compilation and linking of generated C
+ code. Probably using some $CHEADER for some @code{#include} is useful.}#)
+
 ;;;;;;;;;;;;;;;;
 ;;;;;;;; for PROGN
 
@@ -6793,6 +6892,7 @@ remain.}#)
  class_source_unsafe_get_field
  class_source_unsafe_put_fields
  class_source_update_current_module_environment_container
+ class_source_use_package_from_pkg_config
  )			       ;end classes for source representations
 
 (export_values			 ;values for source representations

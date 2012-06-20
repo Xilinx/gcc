@@ -818,6 +818,7 @@ subclasses are produced by macro expanders.}# )
 	   mocx_linkflags		;linkflags of generated module
 	   mocx_cheaderlist		;list of cheaders
 	   mocx_gendevlist		;list of generator devices
+	   mocx_packagepclist		;list of pkg-config package string names
 	   )
   :doc #{The internal $CLASS_MODULE_CONTEXT describes the whole module
 context of a translation. $MOCX_MODULENAME gives the module name,

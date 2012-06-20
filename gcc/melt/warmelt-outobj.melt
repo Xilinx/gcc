@@ -4268,8 +4268,10 @@ extern "C" {
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; utility to output the melt descriptor FOO+meltdesc.c and melt
 ;; timestamp FOO+melttime.h [#include-d by FOO+meltdesc.c] from files
-(defun output_melt_descriptor (modnamstr secfiles)
-  (debug "output_melt_descriptor modnamstr=" modnamstr " secfiles=" secfiles)
+(defun output_melt_descriptor (modnamstr secfiles modctx)
+  (debug "output_melt_descriptor modnamstr=" modnamstr " secfiles=" secfiles " modctx=" modctx)
+  (assert_msg "check modnamstr" (is_string modnamstr))
+  (assert_msg "check modctx" (is_a modctx class_module_context))
   (let ( 
 	(:long nbsecfiles (multiple_length secfiles))
 	(:long lastsecfileix 0)
@@ -4288,6 +4290,7 @@ extern "C" {
 		     (add2out_cident buf modbuildstr)
 		     (strbuf2string discr_string buf)))
 	(modprefstr (string4out discr_string "$(GCCMELTGEN_BUILD)" modbuildstr))
+	(packagepclist (get_field :mocx_packagepclist modctx))
 	(flavortuple
 	 (tuple '"quicklybuilt" '"optimized" '"dynamic" '"debugnoline"))
 	)
@@ -4420,6 +4423,24 @@ extern "C" {
       (add2sbuf_indentnl mkbuf 0)
       (add2out mkbuf "MELTGENMOD_MD5PRIM_" modcident "=" primmd5s)
       (add2sbuf_indentnl mkbuf 0)
+      ;; emit pkg-config information in make fragment
+      (let ( (packagepctup (list_to_multiple packagepclist discr_multiple))
+	     (:long nbpackagepc (multiple_length packagepctup))
+	     )
+	(debug "output_melt_descriptor packagepctup=" packagepctup)
+	(when nbpackagepc
+	  (add2out mkbuf "# " nbpackagepc " packages for pkg-config utility\n")
+	  (add2out mkbuf "MELTGENMOD_PACKAGELIST_PKGCONFIG_" modcident "=")
+	  (foreach_in_multiple 
+	   (packagepctup)
+	   (curpack :long pkix)
+	   (add2out mkbuf " " curpack))
+	  (add2out mkbuf "\n# global name for these pkg-config packages:\n")
+	  (add2out mkbuf "MELTGENMOD_PACKAGELIST=$(MELTGENMOD_PACKAGELIST_PKGCONFIG_" modcident ")\n")
+	)
+	(unless nbpackagepc
+	  (add2out mkbuf "# no packages needed thru pkg-config\n"))
+	)
       (add2out mkrulebuf "### generated dependencies for " modnamstr"\n")
       (add2out mkrulebuf "# dependency for primary of " modcident "\n")
       (foreach_in_multiple
@@ -5254,7 +5275,7 @@ if (1) return;
 	       ))
 	    ;;
 	    ;; output the descriptive C file 
-	    (output_melt_descriptor modnamstr secfiles)
+	    (output_melt_descriptor modnamstr secfiles modctx)
 	    ;; remove the old extra files
 	    (foreach_long_upto 
 	     ((+i hisecfilerk 1) (+i hisecfilerk 25))
@@ -5334,6 +5355,7 @@ if (1) return;
 			  :mocx_cheaderlist (make_list discr_list)
 			  ;; :mocx_cflags (make_list discr_list)
 			  ;; :mocx_linkflags (make_list discr_list)
+			  :mocx_packagepclist (make_list discr_list)
 			  :mocx_gendevlist (make_list discr_list)
 			  ))
 	(ncx (create_normcontext modctx)) 

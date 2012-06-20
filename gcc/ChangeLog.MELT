@@ -1,5 +1,25 @@
 
 2012-06-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Adding support of use_package_from_pkg_config macro}}
+
+	* melt/warmelt-first.melt (class_module_context): Add
+	mocx_packagepclist field.
+
+	* melt/warmelt-macro.melt (class_source_use_package_from_pkg_config): New class.
+	(mexpand_use_package_from_pkg_config): New macro expander.
+	(use_package_from_pkg_config, use-package-from-pkg-config): New
+	synonymous macros.
+
+	* melt/warmelt-normal.melt (normexp_use_package_from_pkg_config):
+	New method for normal_exp of
+	class_source_use_package_from_pkg_config
+
+	* melt/warmelt-outobj.melt (compile_list_sexpr): Initialize
+	the :mocx_packagepclist field.
+	(output_melt_descriptor): New modctx argument.
+	Emit package information in makefile chunk.
+
+2012-06-20  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-module.mk: Handle appropriate *mdsumed.c symlinks with
 	special rules for them, e..g.
