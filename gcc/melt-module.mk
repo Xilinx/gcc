@@ -168,6 +168,8 @@ GCCMELT_SECONDARY_MDSUMED_BASES := $(join $(basename $(notdir $(GCCMELT_SECONDAR
 GCCMELTGEN_BUILD=$(GCCMELT_MODULE_WORKSPACE)/
 -include $(GCCMELT_MODULE_SOURCEBASE)+meltbuild.mk
 
+GCCMELT_PACKAGES_CFLAGS=$(if $(MELTGENMOD_PACKAGELIST),$(shell pkg-config --cflags $(MELTGENMOD_PACKAGELIST)))
+GCCMELT_PACKAGES_LIBES=$(if $(MELTGENMOD_PACKAGELIST),$(shell pkg-config --libs $(MELTGENMOD_PACKAGELIST)))
 ################
 ## rules for meltpic.o  object files
 ## quicklybuilt flavor
@@ -175,7 +177,7 @@ $(GCCMELTGEN_BUILD)%.quicklybuilt.meltpic.o:
 	@echo @+@melt-module quicklybuilt.meltpic at= $@ inf= $< question= $? caret= $^ realpathinf= $(realpath $<)
 	if [ -z "$(filter %.mdsumed.c, $(realpath $<))" ]; then \
 	   $(GCCMELT_CC) -DMELTGCC_MODULE_QUICKLYBUILT -DMELT_HAVE_DEBUG=1 \
-              $(GCCMELT_QUICKLYBUILT_FLAGS) $(GCCMELT_CFLAGS) \
+              $(GCCMELT_QUICKLYBUILT_FLAGS) $(GCCMELT_CFLAGS) $(GCCMELT_PACKAGES_CFLAGS) \
 	        -fPIC -c -o $@ $< ; \
 	else \
           GCCMELTGENMDSUMEDPIC=$(GCCMELTGEN_BUILD)$(notdir $(patsubst %.mdsumed.c,%.quicklybuilt.meltmdsumedpic.o,$(realpath $<))); \
@@ -186,7 +188,7 @@ $(GCCMELTGEN_BUILD)%.quicklybuilt.meltpic.o:
 $(GCCMELTGEN_BUILD)%.quicklybuilt.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed.c
 	@echo @+@melt-module quicklybuilt.meltmdsumedpic at= $@ inf= $< question= $? caret= $^
 	$(GCCMELT_CC) -DMELTGCC_MODULE_QUICKLYBUILT  -DMELT_HAVE_DEBUG=1 \
-           $(GCCMELT_QUICKLYBUILT_FLAGS) $(GCCMELT_CFLAGS) \
+           $(GCCMELT_QUICKLYBUILT_FLAGS) $(GCCMELT_CFLAGS)  $(GCCMELT_PACKAGES_CFLAGS) \
 	   -fPIC -c -o $@ $<
 
 ## optimized flavor
@@ -194,7 +196,7 @@ $(GCCMELTGEN_BUILD)%.optimized.meltpic.o:
 	@echo @+@melt-module optimized.meltpic at= $@ inf= $< question= $? caret= $^ realpathinf= $(realpath $<)
 	if [ -z "$(filter %.mdsumed.c, $(realpath $<))" ]; then \
 	   $(GCCMELT_CC) -DMELTGCC_MODULE_OPTIMIZED -DMELT_HAVE_DEBUG=0 \
-              $(GCCMELT_OPTIMIZED_FLAGS) $(GCCMELT_CFLAGS) \
+              $(GCCMELT_OPTIMIZED_FLAGS) $(GCCMELT_CFLAGS)  $(GCCMELT_PACKAGES_CFLAGS) \
 	        -fPIC -c -o $@ $< ; \
 	else \
           GCCMELTGENMDSUMEDPIC=$(GCCMELTGEN_BUILD)$(notdir $(patsubst %.mdsumed.c,%.optimized.meltmdsumedpic.o,$(realpath $<))); \
@@ -205,7 +207,7 @@ $(GCCMELTGEN_BUILD)%.optimized.meltpic.o:
 $(GCCMELTGEN_BUILD)%.optimized.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed.c
 	@echo @+@melt-module optimized.meltmdsumedpic at= $@ inf= $< question= $? caret= $^
 	$(GCCMELT_CC) -DMELTGCC_MODULE_OPTIMIZED  -DMELT_HAVE_DEBUG=0 \
-           $(GCCMELT_OPTIMIZED_FLAGS) $(GCCMELT_CFLAGS) \
+           $(GCCMELT_OPTIMIZED_FLAGS) $(GCCMELT_CFLAGS)  $(GCCMELT_PACKAGES_CFLAGS) \
 	   -fPIC -c -o $@ $<
 
 ## debugnoline flavor
@@ -213,7 +215,7 @@ $(GCCMELTGEN_BUILD)%.debugnoline.meltpic.o:
 	@echo @+@melt-module debugnoline.meltpic at= $@ inf= $< question= $? caret= $^ realpathinf= $(realpath $<)
 	if [ -z "$(filter %.mdsumed.c, $(realpath $<))" ]; then \
 	   $(GCCMELT_CC) -DMELTGCC_MODULE_DEBUGNOLINE  -DMELTGCC_NOLINENUMBERING -DMELT_HAVE_DEBUG=1 \
-              $(GCCMELT_DEBUGNOLINE_FLAGS) $(GCCMELT_CFLAGS) \
+              $(GCCMELT_DEBUGNOLINE_FLAGS) $(GCCMELT_CFLAGS)  $(GCCMELT_PACKAGES_CFLAGS) \
 	        -fPIC -c -o $@ $< ; \
 	else \
           GCCMELTGENMDSUMEDPIC=$(GCCMELTGEN_BUILD)$(notdir $(patsubst %.mdsumed.c,%.debugnoline.meltmdsumedpic.o,$(realpath $<))); \
@@ -224,7 +226,7 @@ $(GCCMELTGEN_BUILD)%.debugnoline.meltpic.o:
 $(GCCMELTGEN_BUILD)%.debugnoline.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed.c
 	@echo @+@melt-module debugnoline.meltmdsumedpic at= $@ inf= $< question= $? caret= $^
 	$(GCCMELT_CC) -DMELTGCC_MODULE_DEBUGNOLINE   -DMELTGCC_NOLINENUMBERING -DMELT_HAVE_DEBUG=1 \
-           $(GCCMELT_DEBUGNOLINE_FLAGS) $(GCCMELT_CFLAGS) \
+           $(GCCMELT_DEBUGNOLINE_FLAGS) $(GCCMELT_CFLAGS)  $(GCCMELT_PACKAGES_CFLAGS) \
 	   -fPIC -c -o $@ $<
 
 
@@ -233,7 +235,7 @@ $(GCCMELTGEN_BUILD)%.dynamic.meltpic.o:
 	@echo @+@melt-module dynamic.meltpic at= $@ inf= $< question= $? caret= $^ realpathinf= $(realpath $<)
 	if [ -z "$(filter %.mdsumed.c, $(realpath $<))" ]; then \
 	   $(GCCMELT_CC) -DMELTGCC_MODULE_DYNAMIC  -DMELTGCC_NOLINENUMBERING -DMELT_HAVE_DEBUG=1  -DMELTGCC_DYNAMIC_OBJSTRUCT \
-              $(GCCMELT_DYNAMIC_FLAGS) $(GCCMELT_CFLAGS) \
+              $(GCCMELT_DYNAMIC_FLAGS) $(GCCMELT_CFLAGS)  $(GCCMELT_PACKAGES_CFLAGS) \
 	        -fPIC -c -o $@ $< ; \
 	else \
           GCCMELTGENMDSUMEDPIC=$(GCCMELTGEN_BUILD)$(notdir $(patsubst %.mdsumed.c,%.dynamic.meltmdsumedpic.o,$(realpath $<))); \
@@ -244,7 +246,7 @@ $(GCCMELTGEN_BUILD)%.dynamic.meltpic.o:
 $(GCCMELTGEN_BUILD)%.dynamic.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed.c
 	@echo @+@melt-module dynamic.meltmdsumedpic at= $@ inf= $< question= $? caret= $^
 	$(GCCMELT_CC) -DMELTGCC_MODULE_DYNAMIC   -DMELTGCC_NOLINENUMBERING -DMELT_HAVE_DEBUG=1  -DMELTGCC_DYNAMIC_OBJSTRUCT \
-           $(GCCMELT_DEBUGNOLINE_FLAGS) $(GCCMELT_CFLAGS) \
+           $(GCCMELT_DEBUGNOLINE_FLAGS) $(GCCMELT_CFLAGS)  $(GCCMELT_PACKAGES_CFLAGS) \
 	   -fPIC -c -o $@ $<
 
 
@@ -264,25 +266,25 @@ $(GCCMELTGEN_BUILD)%.quicklybuilt.meltmod.so:
 	@echo @+@melt-module quicklybuilt.meltmod at= $@ inf= $< question= $? caret= $^
 	$(GCCMELT_CC) -o $@ \
           $(GCCMELT_QUICKLYBUILT_FLAGS) $(GCCMELT_CFLAGS) \
-          -shared $^
+          -shared $^ $(GCCMELT_PACKAGES_LIBES)
 
 $(GCCMELTGEN_BUILD)%.optimized.meltmod.so:
 	@echo @+@melt-module optimized.meltmod at= $@ inf= $< question= $? caret= $^
 	$(GCCMELT_CC) -o $@ \
           $(GCCMELT_OPTIMIZED_FLAGS) $(GCCMELT_CFLAGS) \
-          -shared $^
+          -shared $^ $(GCCMELT_PACKAGES_LIBES)
 
 $(GCCMELTGEN_BUILD)%.debugnoline.meltmod.so:
 	@echo @+@melt-module debugnoline.meltmod at= $@ inf= $< question= $? caret= $^
 	$(GCCMELT_CC) -o $@ \
           $(GCCMELT_DEBUGNOLINE_FLAGS) $(GCCMELT_CFLAGS) \
-          -shared $^
+          -shared $^ $(GCCMELT_PACKAGES_LIBES)
 
 $(GCCMELTGEN_BUILD)%.dynamic.meltmod.so:
 	@echo @+@melt-module dynamic.meltmod at= $@ inf= $< question= $? caret= $^
 	$(GCCMELT_CC) -o $@ \
           $(GCCMELT_DYNAMIC_FLAGS) $(GCCMELT_CFLAGS) \
-          -shared $^
+          -shared $^ $(GCCMELT_PACKAGES_LIBES)
 
 ################################################################
 vpath %.optimized.pic.o $(GCCMELT_MODULE_WORKSPACE)

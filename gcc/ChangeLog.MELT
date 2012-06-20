@@ -1,5 +1,10 @@
 
 2012-06-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-module.mk (GCCMELT_PACKAGES_CFLAGS,GCCMELT_PACKAGES_LIBES):
+	Define and use them for package support.
+	See https://groups.google.com/d/topic/gcc-melt/c2iPrRJHn88
+
+2012-06-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Adding support of use_package_from_pkg_config macro}}
 
 	* melt/warmelt-first.melt (class_module_context): Add
