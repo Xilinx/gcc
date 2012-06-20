@@ -1,3 +1,403 @@
+2012-06-20  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/30318
+	* tree-vrp.c (range_int_cst_p): Do not reject overflowed
+	constants here.
+	(range_int_cst_singleton_p): But explicitely here.
+	(zero_nonzero_bits_from_vr): And here.
+	(extract_range_from_binary_expr_1): Re-implement PLUS_EXPR
+	to cover all cases we can perform arbitrary precision
+	arithmetic with double-ints.
+	(intersect_ranges): Handle adjacent anti-ranges.
+
+2012-06-20  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (rounding_insn): New int attribute.
+	(<rounding_insn>xf2): Macroize insn from
+	{floor,ceil,btrunc}xf2 using FRNDINT_ROUNDING int iterator.
+	(l<rounding_insn>xf<mode>2): Rename from l<rounding>xf<mode>2.
+
+2012-06-20  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (IEEE_MAXMIN): New int iterator.
+	(ieee_maxmin): New int attribute.
+	(*ieee_s<ieee_maxmin><mode>3): Macroize insn from
+	*ieee_s{max,min}<mode>3 using IEEE_MAXMIN mode iterator.
+
+2012-06-20  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* config/arm/arm.h (EMIT_EABI_ATTRIBUTE): Remove.
+	* config/arm/arm.c: Do not include c-pragma.h.
+	(arm_emit_eabi_attribute): New function based on EMIT_EABI_ATTRIBUTE.
+	(arm_file_start): Replace uses of EMIT_EABI_ATTRIBUTE with calls
+	to arm_emit_eabi_attribute.
+	* arm-c.c: Do not include output.h.
+	(arm_output_c_attributes): Replace use of EMIT_EABI_ATTRIBUTE with a
+	call to arm_emit_eabi_attribute.
+	* config/arm/arm-protos.h (arm_emit_eabi_attribute): Prototype it.
+
+2012-06-20  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vect-data-refs.c (vect_can_force_dr_alignment_p):
+	Allow adjusting alignment of user-aligned decls again.
+
+2012-06-20  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* config/rl78/rl78-c.c: Remove unnecessary includes.
+
+2012-06-20  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* config/cris/cris.c: Include cgraph.h.
+	(cris_option_override): Do not set non-existing flag_no_gcc_ident.
+
+2012-06-19  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* emit-rtl.c (need_atomic_barrier_p): New function.
+	* emit-rtl.h (need_atomic_barrier_p): Declare it.
+	* config/alpha/alpha.c (alpha_{pre,post}_atomic_barrier): Use it.
+	* config/arm/arm.c (arm_{pre,post}_atomic_barrier): Use it.
+	* config/tilegx/tilegx.c (tile_{pre,post}_atomic_barrier): Use it.
+	* config/mips/mips.c (mips_{pre,post}_atomic_barrier_p): Remove.
+	(mips_process_sync_loop): Use generic version instead.
+
+2012-06-19  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* config/mips/mips.c (mips_process_sync_loop): Emit cmp result only if
+	it is used.
+
+2012-06-19  Tom de Vries  <vries@codesourcery.com>
+	    Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* config/mips/constraints.md (ZR): New constraint.
+	* config/mips/predicates.md (mem_noofs_operand): New predicate.
+	* config/mips/mips.c (mips_print_operand): Handle new print modifier.
+	* config/mips/mips.h (TARGET_XLP): Define.
+	(TARGET_SYNC_AFTER_SC): Update.
+	(ISA_HAS_SWAP, ISA_HAS_LDADD): Define.
+	* config/mips/sync.md (atomic_exchange, atomic_fetch_add): Use
+	XLP-specific swap and ldadd patterns.
+	(atomic_exchange_swap, atomic_fetch_add_ldadd): New patterns.
+
+2012-06-19  Tom de Vries  <vries@codesourcery.com>
+	    Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* config/mips/mips.c (mips_emit_pre_atomic_barrier_p,)
+	(mips_emit_post_atomic_barrier_p): New static functions.
+	(mips_process_sync_loop): Use them.  Emit sync memory barriers in
+	accordance with memory model semantics.  Add return of CMP result for
+	compare_and_swap.
+	* config/mips/mips.md: Update comment.
+	(sync_cmp): New attribute.
+	(sync_memmodel): New attribute replacing sync_release_barrier.
+	* config/mips/sync.md (UNSPEC_ATOMIC_COMPARE_AND_SWAP,)
+	(UNSPEC_ATOMIC_EXCHANGE, UNSPEC_ATOMIC_FETCH_OP): New constants.
+	(sync_lock_test_and_set, test_and_set_12): Update.
+	(atomic_compare_and_swap, atomic_exchange, atomic_exchange_llsc,)
+	(atomic_fetch_add, atomic_fetch_add_llsc): New patterns.
+
+2012-06-19  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/rs6000/spe.md (*mov_si<mode>_e500_subreg0): Rename to
+	mov_si<mode>_e500_subreg0.
+	(*mov_si<mode>_e500_subreg0_elf_low)
+	(*mov_si<mode>_e500_subreg4_elf_low): New patterns.
+
+2012-06-19  Richard Henderson  <rth@redhat.com>
+
+	* config/alpha/alpha.c: Include params.h.
+	(alpha_option_override): Initialize PARAM_L1_CACHE_LINE_SIZE,
+	PARAM_L1_CACHE_SIZE, PARAM_L2_CACHE_SIZE for the cpu tuning.
+
+2012-06-19  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* doc/tm.texi.in (TARGET_OBJC_DECLARE_UNRESOLVED_CLASS_REFERENCE,
+	TARGET_OBJC_DECLARE_CLASS_DEFINITION): Add @hooks.
+	(ASM_DECLARE_CLASS_REFERENCE, ASM_DECLARE_UNRESOLVED_REFERENCE):
+	Remove.
+	* doc/tm.texi: Regenerate.
+	* config/darwin.h (ASM_OUTPUT_LABELREF): Remove special case for
+	.objc_class_name_*.
+	* config/darwin-c.c: Include target.h.
+	(darwin_objc_declare_unresolved_class_reference): New function.
+	(darwin_objc_declare_class_definition): New function.
+	(TARGET_OBJC_DECLARE_UNRESOLVED_CLASS_REFERENCE): Define.
+	(TARGET_OBJC_DECLARE_CLASS_DEFINITION): Define.
+
+2012-06-19  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* target.def (output_ident): New hook.
+	* targhooks.h (default_asm_output_ident_directive): Add prototype.
+	* varasm.c (assemble_asm): Only prefix a tab if the string does not
+	already start with one.
+	(default_asm_output_ident_directive): New function to emit
+	.ident as a top-level asm node while parsing, or directly to
+	asm_out_file after parsing.
+	* toplev.c (compile_file): Print a GCC .ident with
+	targetm.asm_out.output_ident.
+	* doc/tm.texi.in (ASM_OUTPUT_IDENT): Remove documentation for macro.
+	(TARGET_ASM_OUTPUT_IDENT): Add @hook for this.
+	* doc/tm.texi: Update.
+
+	* config/elfos.h (ASM_OUTPUT_IDENT, IDENT_ASM_OP): Remove.
+	(TARGET_ASM_OUTPUT_IDENT): Define.
+	* config/i386/djgpp.h (IDENT_ASM_OP): Remove.
+	* config/i386/gas.h (ASM_OUTPUT_IDENT): Remove.
+	* config/arm/aout.h (ASM_OUTPUT_IDENT): Remove.
+	* config/sparc/sparc.h (IDENT_ASM_OP): Remove.
+	(TARGET_ASM_OUTPUT_IDENT): Define.
+	* config/picochip/picochip.h (IDENT_ASM_OP): Remove.
+	(TARGET_ASM_OUTPUT_IDENT): Define.
+
+	* config/cris/cris-protos.h (cris_asm_output_ident): Add prototype.
+	* config/cris/cris.c (cris_asm_output_ident): New function.
+	* config/cris/cris.h (ASM_OUTPUT_IDENT, IDENT_ASM_OP): Remove.
+
+	* config/microblaze/microblaze-protos.h (microblaze_asm_output_ident):
+	Add prototype.
+	* config/microblaze/microblaze.c: Include cgraph.h for add_asm_node.
+	(microblaze_asm_output_ident): Rewrite to work similar to
+	default_asm_output_ident_directive for front-end .idents.
+	* config/microblaze/microblaze.h (ASM_OUTPUT_IDENT): Remove.
+	(TARGET_ASM_OUTPUT_IDENT): Define.
+
+	* config/mips/mips.h (ASM_OUTPUT_IDENT): Remove.
+	* config/mips/sde.h (IDENT_ASM_OP, ASM_OUTPUT_IDENT): Remove.
+
+	* config/rx/rx.c: Include cgraph.h for add_asm_node.
+	(rx_asm_output_ident): New function, similar to
+	default_asm_output_ident_directive, but handle AS100 syntax also, so
+	that #ident also works for rx in AS100 syntax.
+	(TARGET_ASM_OUTPUT_IDENT): Define.
+	* config/rx/rx.h (IDENT_ASM_OP): Remove.
+
+	* Makefile.in: Fix dependencies for c-family/c-lex.o.
+
+2012-06-19  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (FIST_ROUNDING): New int iterator.
+	(rounding): Handle UNSPEC_FIST_{FLOOR,CEIL}.
+	(ROUNDING): Ditto.
+	(*fist<mode>2_<rounding>_1): Macroize insn from
+	*fist<mode>2_{floor,ceil}_1 using FIST_ROUNDING int iterator.
+	(fistdi2_<rounding>): Macroize insn from
+	fistdi2_{floor,ceil} using FIST_ROUNDING int iterator.
+	(fistdi2_<rounding>_with_temp and splitters): Macroize insn and
+	corresponding splitters from fistdi2_{floor,ceil} and corresponding
+	splitters using FIST_ROUNDING int iterator.
+	(fist<mode>2_<rounding>): Macroize insn from
+	fist<mode>2_{floor,ceil} using FIST_ROUNDING int iterator.
+	(fist<mode>2_<rounding>_with_temp and splitters): Macroize insn and
+	corresponding splitters from fist<mode>2_{floor,ceil} and corresponding
+	splitters using FIST_ROUNDING int iterator.
+	(l<rounding>xf<mode>2): Macroize expander from l{floor,ceil}xf<mode>2
+	using FIST_ROUNDING int iterator.
+
+2012-06-19  Richard Henderson  <rth@redhat.com>
+
+	* config/i386/i386-protos.h (ix86_expand_sse2_mulv4si3): Declare.
+	* config/i386/i386.c (ix86_expand_sse2_mulv4si3): New.
+	* config/i386/predicates.md (nonimmediate_or_const_vector_operand): New.
+	* config/i386/sse.md (sse2_mulv4si3): Delete.
+	(mul<VI4_AVX2>3): Use ix86_expand_sse2_mulv4si3 and
+	nonimmediate_or_const_vector_operand.
+
+2012-06-19  Richard Henderson  <rth@redhat.com>
+
+	* expmed.c (struct init_expmed_rtl): Split ...
+	(init_expmed_one_mode): ... out of ...
+	(init_expmed): ... here.  Initialize integer vector modes also.
+	(synth_mult): Handle integer vector modes.
+	(choose_mult_variant): Likewise.
+	(expand_mult_const): Likewise.
+	(expand_mult): Likewise.
+	* machmode.h (GET_MODE_UNIT_BITSIZE): New.
+
+2012-06-19  Richard Henderson  <rth@redhat.com>
+
+	* config/i386/i386.c (ix86_rtx_costs): Handle CONST_VECTOR, and
+	integral vector modes.
+
+2012-06-19  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (FRNDINT_ROUNDING): New int iterator.
+	(rounding): New int attribute.
+	(ROUNDING): Ditto.
+	(frndintxf2_<rounding>): Macroize insn from
+	frndintxf2_{floor,ceil,trunc} using FRNDINT_ROUNDING int iterator.
+	(frndintxf2_<rounding>_i387): Macroize insn from
+	frndintxf2_{floor,ceil,trunc}_i387 using FRNDINT_ROUNDING int iterator.
+
+2012-06-19  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vrp.c (union_ranges): New function.
+	(vrp_meet_1): Use union_ranges.
+	(vrp_meet): Dump what we union and call vrp_meet_1.
+
+2012-06-19  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm.md (enum unspec): Delete UNSPEC_SIN and UNSPEC_COS.
+	(attr type): Remove fmul, ffmul, farith, ffarith, float_em
+	f_fpa_load, f_fpa_store, f_mem_r, r_mem_f.
+	(attr write_conflict, attr core_cycles): Update.
+	* arm-generic.md (r_mem_f_wbuf): Delete reservation.
+
+2012-06-19  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vrp.c (intersect_ranges): Handle more cases.
+	(vrp_intersect_ranges): Dump what we intersect and call ...
+	(vrp_intersect_ranges_1): ... this.
+
+2012-06-19  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53708
+	* tree-vect-data-refs.c (vect_can_force_dr_alignment_p): Preserve
+	user-supplied alignment and alignment of decls with the used
+	attribute.
+
+2012-06-18  Lawrence Crowl  <crowl@google.com>
+
+	* timevar.def (TV_PHASE_GENERATE): Rename to TV_PHASE_LATE_ASM.
+	(TV_PHASE_CGRAPH): Rename to TV_PHASE_OPT_GEN.
+	(TV_PHASE_STREAM_IN): New.
+	(TV_PHASE_STREAM_OUT): New.
+	* timevar.c (validate_phases): New.
+	(timevar_print): Call validate_phases.
+	* c-decl.c (c_write_global_declarations): Rename use of TV_PHASE_CGRAPH
+	to TV_PHASE_OPT_GEN.
+	* langhooks.c (write_global_declarations): Rename use of
+	TV_PHASE_CGRAPH to TV_PHASE_OPT_GEN.  Use TV_PHASE_DBGINFO instead of
+	TV_PHASE_CHECK_DBGINFO.
+	* toplev.c (compile_file): Rename use of TV_PHASE_GENERATE to
+	TV_PHASE_LATE_ASM.  Move start of TV_PHASE_LATE_ASM to after call to
+	lang_hooks.decls.final_write_globals.
+
+2012-06-18  David Edelshn  <dje.gcc@gmail.com>
+
+	* config/rs6000/aix52.h (TARGET_EXTRA_BUILTINS): Define as 0.
+
+2012-06-18  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/53712
+	* config/i386/sse.md (*sse4_2_pcmpestr_unaligned): New.
+	(*sse4_2_pcmpistr_unaligned): New.
+
+2012-06-18  Ian Bolton  <ian.bolton@arm.com>
+	    Sameera Deshpande  <sameera.deshpande@arm.com>
+	    Greta Yorsh  <greta.yorsh@arm.com>
+
+	* config/arm/arm-protos.h (arm_output_epilogue): Remove.
+	* config/arm/arm.c (print_multi_reg): Remove.
+	(vfp_output_fldmd): Likewise.
+	(arm_output_epilogue): Likewise.
+	* config/arm/arm.md (epilogue_insns): Update condition and code.
+
+2012-06-18  Ian Bolton  <ian.bolton@arm.com>
+	    Sameera Deshpande  <sameera.deshpande@arm.com>
+	    Greta Yorsh  <greta.yorsh@arm.com>
+
+	* config/arm/arm-protos.h (thumb2_expand_return): New declaration.
+	* config/arm/arm.c (thumb2_expand_return): New function.
+	* config/arm/arm.md (return): Update condition and code.
+
+2012-06-18  Ian Bolton  <ian.bolton@arm.com>
+	    Sameera Deshpande  <sameera.deshpande@arm.com>
+	    Greta Yorsh  <greta.yorsh@arm.com>
+
+	* config/arm/arm-protos.h (output_return_instruction): New parameter
+	and int to bool change of parameter types.
+	* config/arm/arm.c (output_return_instruction): Likewise.
+	* config/arm/arm.md (arm_simple_return): New pattern.
+	(arm_return, cond_return, cond_return_inverted): Add new arguments.
+	* config/arm/thumb2.md (thumb2_return): Update condition and code.
+
+2012-06-18  Ian Bolton  <ian.bolton@arm.com>
+	    Sameera Deshpande  <sameera.deshpande@arm.com>
+	    Greta Yorsh  <greta.yorsh@arm.com>
+
+	* config/arm/arm-protos.h (arm_expand_epilogue): New declaration.
+	* config/arm/arm.c (arm_expand_epilogue): New function.
+	* config/arm/arm.md (epilogue): Update condition and code.
+	(sibcall_epilogue): Likewise.
+
+2012-06-18  Ian Bolton  <ian.bolton@arm.com>
+	    Sameera Deshpande  <sameera.deshpande@arm.com>
+	    Greta Yorsh  <greta.yorsh@arm.com>
+
+	* config/arm/arm.c (arm_expand_epilogue_apcs_frame): New function.
+	* config/arm/arm.md (arm_addsi3) Add an alternative.
+
+2012-06-18  Ian Bolton  <ian.bolton@arm.com>
+	    Sameera Deshpande  <sameera.deshpande@arm.com>
+	    Greta Yorsh  <greta.yorsh@arm.com>
+
+	* config/arm/arm.md (vfp_pop_multiple_with_writeback) New define_insn.
+	* config/arm/predicates.md (pop_multiple_fp) New special predicate.
+	* config/arm/arm.c (arm_emit_vfp_multi_reg_pop): New function.
+
+2012-06-18  Ian Bolton  <ian.bolton@arm.com>
+	    Sameera Deshpande  <sameera.deshpande@arm.com>
+	    Greta Yorsh  <greta.yorsh@arm.com>
+
+	* config/arm/arm.md (load_multiple_with_writeback) New define_insn.
+	(load_multiple, pop_multiple_with_writeback_and_return) Likewise.
+	(pop_multiple_with_return, ldr_with_return) Likewise.
+	* config/arm/predicates.md (pop_multiple_return) New special predicate.
+	* config/arm/arm-protos.h (arm_output_multireg_pop) New declaration.
+	* config/arm/arm.c (arm_output_multireg_pop) New function.
+	(arm_emit_multi_reg_pop): New function.
+
+2012-06-18  Greta Yorsh  <Greta.Yorsh@arm.com>
+
+	* config/arm/arm.c (ldm_stm_operation_p): Require SP
+	as base register for loads if SP is in the register list.
+
+2012-06-18  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53693
+	* tree-vect-patterns.c (vect_operation_fits_smaller_type):
+	Reject operands with more than one use.
+
+2012-06-18  Bill Schmidt  <wschmidt@linux.ibm.com>
+
+	PR tree-optimization/53703
+	* tree-ssa-phiopt.c (hoist_adjacent_loads): Skip virtual phis;
+	correctly set bb_for_def[12].
+
+2012-06-18  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* config/vax/vax.h (VMS_TARGET): Remove.
+
+2012-06-18  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vrp.c (extract_range_from_assert): Split out range
+	intersecting code.
+	(intersect_ranges): New function.
+	(vrp_intersect_ranges): Likewise.
+
+2012-06-18  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/s390/s390.c (s390_gimplify_va_arg): Revert change from
+	r187965.
+
+2012-06-18  Tejas Belagod  <tejas.belagod@arm.com>
+
+	* doc/md.texi: Document int iterators.
+	* read-rtl.c (ints): New iterator group.
+	(find_int): Int iterator group callback.
+	(apply_int_iterator): Likewise.
+	(apply_iterators): Traverse int iterator table and add all the used
+	iterators to list.
+	(initialize_iterators): Initialize data structures and callbacks for
+	int iterators.
+	(read_rtx): Parse and read mappings for int iterators.
+	(read_rtx_code): Record int iterator usage.
+
+2012-06-18  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR middle-end/53698
+	* expr.c (expand_expr_addr_expr_1): Convert to tmode before
+	performing an addition.
+
 2012-06-17  Steven Bosscher  <steven@gcc.gnu.org>
 
 	* output.h (split_double): Move prototype to rtl.h.
@@ -164,7 +564,7 @@
 
 	PR c++/51033
 	* c-typeck.c (c_build_vec_perm_expr): Move to c-family/c-common.c.
-        * c-tree.h (c_build_vec_perm_expr): Move to c-family/c-common.h.
+	* c-tree.h (c_build_vec_perm_expr): Move to c-family/c-common.h.
 
 2012-06-15  Georg-Johann Lay  <avr@gjlay.de>
 

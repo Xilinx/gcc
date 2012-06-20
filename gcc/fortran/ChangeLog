@@ -1,3 +1,30 @@
+2012-06-18  Tobias Burnus  <burnus@net-b.de>
+
+	* intrinsic.h (gfc_resolve_rank): New prototype.
+	* intrinsic.c (add_functions): Use gfc_resolve_rank.
+	* iresolve.c (add_functions): New function.
+	* trans-intrinsic.c (gfc_conv_intrinsic_rank): New function.
+	(gfc_conv_intrinsic_function): Call it.
+
+2012-06-18  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/53692
+	* trans-array.c (set_loop_bounds): Don't scalarize via absent
+	optional arrays.
+	* resolve.c (resolve_elemental_actual): Don't stop resolving after printing
+	a warning.
+
+2012-06-18  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/53526
+	* trans-intrinsic.c (conv_intrinsic_move_alloc): Handle coarrays.
+
+2012-06-18  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/53526
+	* check.c (gfc_check_move_alloc): Reject coindexed actual arguments
+	and those with different corank.
+
 2012-06-17  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/53691

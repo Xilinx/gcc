@@ -5610,12 +5610,22 @@
 
 (define_expand "mul<mode>3"
   [(set (match_operand:VI4_AVX2 0 "register_operand")
-	(mult:VI4_AVX2 (match_operand:VI4_AVX2 1 "register_operand")
-		       (match_operand:VI4_AVX2 2 "register_operand")))]
+	(mult:VI4_AVX2
+	  (match_operand:VI4_AVX2 1 "nonimmediate_operand")
+	  (match_operand:VI4_AVX2 2 "nonimmediate_or_const_vector_operand")))]
   "TARGET_SSE2"
 {
   if (TARGET_SSE4_1 || TARGET_AVX)
-    ix86_fixup_binary_operands_no_copy (MULT, <MODE>mode, operands);
+    {
+      if (CONSTANT_P (operands[2]))
+	operands[2] = force_const_mem (<MODE>mode, operands[2]);
+      ix86_fixup_binary_operands_no_copy (MULT, <MODE>mode, operands);
+    }
+  else
+    {
+      ix86_expand_sse2_mulv4si3 (operands[0], operands[1], operands[2]);
+      DONE;
+    }
 })
 
 (define_insn "*<sse4_1_avx2>_mul<mode>3"
@@ -5632,62 +5642,6 @@
    (set_attr "prefix_extra" "1")
    (set_attr "prefix" "orig,vex")
    (set_attr "mode" "<sseinsnmode>")])
-
-(define_insn_and_split "*sse2_mulv4si3"
-  [(set (match_operand:V4SI 0 "register_operand")
-	(mult:V4SI (match_operand:V4SI 1 "register_operand")
-		   (match_operand:V4SI 2 "register_operand")))]
-  "TARGET_SSE2 && !TARGET_SSE4_1 && !TARGET_AVX
-   && can_create_pseudo_p ()"
-  "#"
-  "&& 1"
-  [(const_int 0)]
-{
-  rtx t1, t2, t3, t4, t5, t6, thirtytwo;
-  rtx op0, op1, op2;
-
-  op0 = operands[0];
-  op1 = operands[1];
-  op2 = operands[2];
-  t1 = gen_reg_rtx (V4SImode);
-  t2 = gen_reg_rtx (V4SImode);
-  t3 = gen_reg_rtx (V4SImode);
-  t4 = gen_reg_rtx (V4SImode);
-  t5 = gen_reg_rtx (V4SImode);
-  t6 = gen_reg_rtx (V4SImode);
-  thirtytwo = GEN_INT (32);
-
-  /* Multiply elements 2 and 0.  */
-  emit_insn (gen_sse2_umulv2siv2di3 (gen_lowpart (V2DImode, t1),
-				     op1, op2));
-
-  /* Shift both input vectors down one element, so that elements 3
-     and 1 are now in the slots for elements 2 and 0.  For K8, at
-     least, this is faster than using a shuffle.  */
-  emit_insn (gen_sse2_lshrv1ti3 (gen_lowpart (V1TImode, t2),
-				 gen_lowpart (V1TImode, op1),
-				 thirtytwo));
-  emit_insn (gen_sse2_lshrv1ti3 (gen_lowpart (V1TImode, t3),
-				 gen_lowpart (V1TImode, op2),
-				 thirtytwo));
-  /* Multiply elements 3 and 1.  */
-  emit_insn (gen_sse2_umulv2siv2di3 (gen_lowpart (V2DImode, t4),
-				     t2, t3));
-
-  /* Move the results in element 2 down to element 1; we don't care
-     what goes in elements 2 and 3.  */
-  emit_insn (gen_sse2_pshufd_1 (t5, t1, const0_rtx, const2_rtx,
-				const0_rtx, const0_rtx));
-  emit_insn (gen_sse2_pshufd_1 (t6, t4, const0_rtx, const2_rtx,
-				const0_rtx, const0_rtx));
-
-  /* Merge the parts back together.  */
-  emit_insn (gen_vec_interleave_lowv4si (op0, t5, t6));
-
-  set_unique_reg_note (get_last_insn (), REG_EQUAL,
-		       gen_rtx_MULT (V4SImode, operands[1], operands[2]));
-  DONE;
-})
 
 (define_insn_and_split "mul<mode>3"
   [(set (match_operand:VI8_AVX2 0 "register_operand")
@@ -9679,6 +9633,68 @@
    (set_attr "memory" "none,load")
    (set_attr "mode" "TI")])
 
+(define_insn_and_split "*sse4_2_pcmpestr_unaligned"
+  [(set (match_operand:SI 0 "register_operand" "=c")
+	(unspec:SI
+	  [(match_operand:V16QI 2 "reg_not_xmm0_operand" "x")
+	   (match_operand:SI 3 "register_operand" "a")
+	   (unspec:V16QI
+	     [(match_operand:V16QI 4 "memory_operand" "m")]
+	     UNSPEC_MOVU)
+	   (match_operand:SI 5 "register_operand" "d")
+	   (match_operand:SI 6 "const_0_to_255_operand" "n")]
+	  UNSPEC_PCMPESTR))
+   (set (match_operand:V16QI 1 "register_operand" "=Yz")
+	(unspec:V16QI
+	  [(match_dup 2)
+	   (match_dup 3)
+	   (unspec:V16QI [(match_dup 4)] UNSPEC_MOVU)
+	   (match_dup 5)
+	   (match_dup 6)]
+	  UNSPEC_PCMPESTR))
+   (set (reg:CC FLAGS_REG)
+	(unspec:CC
+	  [(match_dup 2)
+	   (match_dup 3)
+	   (unspec:V16QI [(match_dup 4)] UNSPEC_MOVU)
+	   (match_dup 5)
+	   (match_dup 6)]
+	  UNSPEC_PCMPESTR))]
+  "TARGET_SSE4_2
+   && can_create_pseudo_p ()"
+  "#"
+  "&& 1"
+  [(const_int 0)]
+{
+  int ecx = !find_regno_note (curr_insn, REG_UNUSED, REGNO (operands[0]));
+  int xmm0 = !find_regno_note (curr_insn, REG_UNUSED, REGNO (operands[1]));
+  int flags = !find_regno_note (curr_insn, REG_UNUSED, FLAGS_REG);
+
+  if (ecx)
+    emit_insn (gen_sse4_2_pcmpestri (operands[0], operands[2],
+				     operands[3], operands[4],
+				     operands[5], operands[6]));
+  if (xmm0)
+    emit_insn (gen_sse4_2_pcmpestrm (operands[1], operands[2],
+				     operands[3], operands[4],
+				     operands[5], operands[6]));
+  if (flags && !(ecx || xmm0))
+    emit_insn (gen_sse4_2_pcmpestr_cconly (NULL, NULL,
+					   operands[2], operands[3],
+					   operands[4], operands[5],
+					   operands[6]));
+  if (!(flags || ecx || xmm0))
+    emit_note (NOTE_INSN_DELETED);
+
+  DONE;
+}
+  [(set_attr "type" "sselog")
+   (set_attr "prefix_data16" "1")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
+   (set_attr "memory" "load")
+   (set_attr "mode" "TI")])
+
 (define_insn "sse4_2_pcmpestri"
   [(set (match_operand:SI 0 "register_operand" "=c,c")
 	(unspec:SI
@@ -9807,6 +9823,59 @@
    (set_attr "prefix_extra" "1")
    (set_attr "length_immediate" "1")
    (set_attr "memory" "none,load")
+   (set_attr "mode" "TI")])
+
+(define_insn_and_split "*sse4_2_pcmpistr_unaligned"
+  [(set (match_operand:SI 0 "register_operand" "=c")
+	(unspec:SI
+	  [(match_operand:V16QI 2 "reg_not_xmm0_operand" "x")
+	   (unspec:V16QI
+	     [(match_operand:V16QI 3 "memory_operand" "m")]
+	     UNSPEC_MOVU)
+	   (match_operand:SI 4 "const_0_to_255_operand" "n")]
+	  UNSPEC_PCMPISTR))
+   (set (match_operand:V16QI 1 "register_operand" "=Yz")
+	(unspec:V16QI
+	  [(match_dup 2)
+	   (unspec:V16QI [(match_dup 3)] UNSPEC_MOVU)
+	   (match_dup 4)]
+	  UNSPEC_PCMPISTR))
+   (set (reg:CC FLAGS_REG)
+	(unspec:CC
+	  [(match_dup 2)
+	   (unspec:V16QI [(match_dup 3)] UNSPEC_MOVU)
+	   (match_dup 4)]
+	  UNSPEC_PCMPISTR))]
+  "TARGET_SSE4_2
+   && can_create_pseudo_p ()"
+  "#"
+  "&& 1"
+  [(const_int 0)]
+{
+  int ecx = !find_regno_note (curr_insn, REG_UNUSED, REGNO (operands[0]));
+  int xmm0 = !find_regno_note (curr_insn, REG_UNUSED, REGNO (operands[1]));
+  int flags = !find_regno_note (curr_insn, REG_UNUSED, FLAGS_REG);
+
+  if (ecx)
+    emit_insn (gen_sse4_2_pcmpistri (operands[0], operands[2],
+				     operands[3], operands[4]));
+  if (xmm0)
+    emit_insn (gen_sse4_2_pcmpistrm (operands[1], operands[2],
+				     operands[3], operands[4]));
+  if (flags && !(ecx || xmm0))
+    emit_insn (gen_sse4_2_pcmpistr_cconly (NULL, NULL,
+					   operands[2], operands[3],
+					   operands[4]));
+  if (!(flags || ecx || xmm0))
+    emit_note (NOTE_INSN_DELETED);
+
+  DONE;
+}
+  [(set_attr "type" "sselog")
+   (set_attr "prefix_data16" "1")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
+   (set_attr "memory" "load")
    (set_attr "mode" "TI")])
 
 (define_insn "sse4_2_pcmpistri"
