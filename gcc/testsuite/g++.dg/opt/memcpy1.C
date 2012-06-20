@@ -4,6 +4,10 @@
 // { dg-do compile }
 // { dg-options "-O" }
 
+#if defined (__MICROBLAZE__)
+#error "too slow on mb. Investigate."
+#endif
+
 typedef unsigned char uint8_t;
 typedef uint8_t uint8;
 __extension__ typedef __SIZE_TYPE__ size_t;
