@@ -1,4 +1,12 @@
 
+2012-06-20  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-module.mk: Handle appropriate *mdsumed.c symlinks with
+	special rules for them, e..g.
+	($(GCCMELTGEN_BUILD)%.quicklybuilt.meltmdsumedpic.o): New rules
+	($(GCCMELTGEN_BUILD)%.optimized.meltmdsumedpic.o): New rules
+	etc...
+
 2012-06-19  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-module.mk: Add rules for various *.meltmod.so and make a
