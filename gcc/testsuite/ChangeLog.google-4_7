@@ -1,3 +1,17 @@
+2012-06-15   Cary Coutant  <ccoutant@google.com>
+
+    Revert Fission patches r182490, r182891, r183042, and r183320.
+    This will clear the way to backport the final patches from trunk.
+
+	2012-01-04   Sterling Augustine  <saugustine@google.com>
+
+	    * g++.dg/diagnostic/bindings1.C: Adjust expected output.
+	    * g++.dg/ext/pretty3.C: Likewise.
+	    * g++.dg/pr44486.C: Likewise.
+	    * g++.dg/warn/Wuninitializable-member.C: Likewise.
+	    * g++.dg/warn/pr35711.C: Likewise.
+	    * g++.old-deja/g++.pt/memtemp77.C: Likewise.
+
 2012-06-07   Easwaran Raman  <eraman@google.com>
   Backport r179412 from google/gcc-4_6 branch.
 	2011-09-30  Easwaran Raman  <eraman@google.com>

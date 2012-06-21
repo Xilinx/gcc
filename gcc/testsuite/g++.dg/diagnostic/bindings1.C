@@ -10,7 +10,7 @@ struct x {typedef int type;};
 
 int main()
 {
-  if (strcmp (foo(x(), 3), "char const* foo(T, typename T::type) "
+  if (strcmp (foo(x(), 3), "const char* foo(T, typename T::type) "
 	      "[with T = x; typename T::type = int]") == 0)
     return 0;
   else 

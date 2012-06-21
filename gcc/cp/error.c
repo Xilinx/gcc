@@ -1028,7 +1028,7 @@ dump_decl (tree t, int flags)
 	    dump_scope (CP_DECL_CONTEXT (t), flags);
 	  flags &= ~TFF_UNQUALIFIED_NAME;
 	  if (DECL_NAME (t) == NULL_TREE)
-	    pp_cxx_ws_string (cxx_pp, M_("(anonymous namespace)"));
+	    pp_cxx_ws_string (cxx_pp, M_("{anonymous}"));
 	  else
 	    pp_cxx_tree_identifier (cxx_pp, DECL_NAME (t));
 	}
@@ -2595,8 +2595,6 @@ lang_decl_name (tree decl, int v, bool translate)
 
   if (TREE_CODE (decl) == FUNCTION_DECL)
     dump_function_name (decl, TFF_PLAIN_IDENTIFIER);
-  else if (DECL_NAME (decl) == NULL && TREE_CODE (decl) == NAMESPACE_DECL)
-    pp_string (cxx_pp, M_("(anonymous namespace)"));
   else
     dump_decl (DECL_NAME (decl), TFF_PLAIN_IDENTIFIER);
 

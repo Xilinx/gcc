@@ -1,3 +1,15 @@
+2012-06-15   Cary Coutant  <ccoutant@google.com>
+
+    Revert Fission patches r182490, r182891, r183042, and r183320.
+    This will clear the way to backport the final patches from trunk.
+
+    r182490:
+
+	2011-12-19  Sterling Augustine <saugustine@google.com>
+
+	    * c-pretty-print.c (pp_c_specifier_qualifier_list): Move conditional
+	    from beginning to end.
+
 2012-03-13  Easwaran Raman <eraman@google.com>
 
 	Backport r185349 from google/main
