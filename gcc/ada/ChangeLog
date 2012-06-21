@@ -1,3 +1,42 @@
+2012-06-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/53592
+	* gcc-interface/gigi.h (maybe_vector_array): Make static inline.
+	* gcc-interface/utils.c (maybe_vector_array): Delete.
+	* gcc-interface/trans.c (gnat_to_gnu) <N_Indexed_Component>: Mark the
+	array object as addressable if it has vector type and is on the LHS.
+
+2012-06-14  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc-interface/Makefile.in (gnatlib-shared-default): Append
+	$(PICFLAG_FOR_TARGET) to GNATLIBCFLAGS_FOR_C passed to submake.
+
+2012-06-14  Release Manager
+
+	* GCC 4.7.1 released.
+
+2012-06-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	Revert
+	2012-05-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (Has_Thiscall_Convention): New macro.
+	(gnat_to_gnu_entity) <E_Subprogram_Type>: Test it to set the thiscall
+	calling convention
+	(get_minimal_subprog_decl): Likewise.
+	(gnat_first_param_is_class): New predicate.
+
+2012-06-12  Olivier Hainque  <hainque@adacore.com>
+
+	* gcc-interface/Makefile.in (GNATLIBCFLAGS_FOR_C): Remove
+	$(PIC_FLAG_FOR_TARGET).
+	(gnatlib-shared-default): Add $(PIC_FLAG_FOR_TARGET) to
+	GNATLIBCFLAGS_FOR_C passed to gnatlib.
+	(gnatlib-shared-win32): Likewise.
+	(gnatlib-shared-darwin): Likewise.
+	(gnatlib-shared-dual-win32): Pass PIC_FLAG_FOR_TARGET to
+	gnatlib-shared-win32.
+
 2012-05-26  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gcc-interface/decl.c (variant_desc): Rename 'record' to 'new_type'.

@@ -1,3 +1,136 @@
+2012-06-18  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-optimization/53700
+
+	Backport from mainline
+	2012-03-29  Vladimir Makarov  <vmakarov@redhat.com>
+
+	* ira-color.c (setup_left_conflict_sizes_p): Process all
+	conflicting objects.
+
+2012-06-18  Venkataramanan Kumar <venkataramanan.kumar@amd.com>
+
+	Backport from mainline
+	2012-05-09 Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/52908
+	* config/i386/sse.md (vec_widen_smult_hi_v4si): Expand using
+	xop_pmacsdqh insn pattern instead of xop_mulv2div2di3_high.
+	(vec_widen_smult_lo_v4si): Expand using xop_pmacsdql insn pattern
+	instead of xop_mulv2div2di3_low.
+	(xop_p<macs>dql): Fix vec_select selector.
+	(xop_p<macs>dqh): Ditto.
+	(xop_mulv2div2di3_low): Remove insn_and_split pattern.
+	(xop_mulv2div2di3_high): Ditto.
+
+2012-06-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline:
+	2012-06-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (vcvtph2ps): Fix vec_select selector.
+
+2012-06-16  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	Backport from mainline:
+	2012-06-03  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* config/pa/pa.h (MAX_PCREL17F_OFFSET): Define.
+	* config/pa/pa.c (pa_attr_length_millicode_call): Use
+	MAX_PCREL17F_OFFSET instead of fixed offset.
+	(pa_attr_length_call): Likewise.
+	(pa_attr_length_indirect_call): Likewise.
+
+2012-06-15  Walter Lee  <walt@tilera.com>
+
+	Backport from mainline:
+	2012-06-15  Walter Lee  <walt@tilera.com>
+
+	* config/tilegx/sync.md (atomic_fetch_<fetchop_name><mode>): Fix typo.
+
+	2012-06-14  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* config/tilegx/sync.md (atomic_fetch_sub<mode>): Fix typo.
+
+2012-06-15  Aldy Hernandez  <aldyh@redhat.com>
+
+	Backport from mainline:
+
+	2012-05-31  Aldy Hernandez  <aldyh@redhat.com>
+	* tree-ssa-loop-im.c (execute_sm): Do not check flag_tm.
+	* gimple.h (block_in_transaction): Check for flag_tm.
+
+2012-06-14  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR tree-optimization/52558
+
+	Backport from mainline:
+	2012-05-21  Aldy Hernandez  <aldyh@redhat.com>
+	* gimple.h (gimple_set_in_transaction): Remove.
+	(gimple_in_transaction): Look in BB instead.
+	(gimple_statement_base): Remove in_transaction field.
+	* basic-block.h (enum bb_flags): Add BB_IN_TRANSACTION.
+	* trans-mem.c (compute_transaction_bits): Place transaction bit
+	information into basic blocks.
+
+	2012-05-31  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR tree-optimization/52558
+	* cfg.c (alloc_aux_for_edge): Fix comment.
+	(alloc_aux_for_edge): Remove static.
+	* basic-block.h (alloc_aux_for_edge): Protoize.
+	* tree-ssa-loop-im.c (execute_sm_if_changed): New.
+	(execute_sm_if_changed_flag): New.
+	(execute_sm_if_changed_flag_set): New.
+	(execute_sm): Do not generate data races unless requested.
+	(tree_ssa_lim_initialize): Call alloc_aux_for_edges.
+	(tree_ssa_lim_finalize): Call free_aux_for_edges.
+	* gimple.h (block_in_transaction): New.
+	(gimple_in_transaction): Use block_in_transaction.
+
+2012-06-14  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from mainline
+	2012-06-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/53589
+	* cfgrtl.c (force_nonfallthru_and_redirect): Do asm_goto_edge
+	discovery even when e->dest != target.  If any LABEL_REF points
+	to e->dest label, redirect it to target's label.
+
+	2012-06-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/53580
+	* omp-low.c (scan_omp_1_stmt): If check_omp_nesting_restrictions
+	returns false, replace stmt with GIMPLE_NOP.
+	(check_omp_nesting_restrictions): Instead of issuing warnings,
+	issue errors and return false if any errors were reported.
+
+2012-06-14  Richard Guenther  <rguenther@suse.de>
+
+	* BASE-VER: Set to 4.7.2.
+	* DEV-PHASE: Set to prerelease.
+
+2012-06-12  Christian Bruel  <christian.bruel@st.com>
+
+	PR target/53621
+	* config/sh/sh.c (sh_option_override): Don't force
+	 flag_omit_frame_pointer and maccumulate_outgoing_args.
+	* config/sh/sh.opt (maccumulate-outgoing-args): Init as Var.
+
+2012-06-14  Release Manager
+
+	* GCC 4.7.1 released.
+
+2012-06-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/ia64/sync.md (fetchop_name): Change ior attribute to "or".
+
+2012-06-13  Richard Henderson  <rth@redhat.com>
+
+	* config/rs6000/sync.md (atomic_load, atomic_store): Use INT1 mode
+	iterator instead of INT.
+
 2012-06-08  Richard Henderson  <rth@redhat.com>
 
 	PR c++/53602
@@ -67,33 +200,33 @@
 	Backport from mainline
 	2012-04-03  Eric Botcazou  <ebotcazou@adacore.com>
 
-        * expr.c (get_bit_range): Add OFFSET parameter and adjust BITPOS.
-        Change type of BITOFFSET to signed.  Make sure the lower bound of
-        the computed range is non-negative by adjusting OFFSET and BITPOS.
-        (expand_assignment): Adjust call to get_bit_range.
+	* expr.c (get_bit_range): Add OFFSET parameter and adjust BITPOS.
+	Change type of BITOFFSET to signed.  Make sure the lower bound of
+	the computed range is non-negative by adjusting OFFSET and BITPOS.
+	(expand_assignment): Adjust call to get_bit_range.
 
 	2012-03-27  Eric Botcazou  <ebotcazou@adacore.com>
 
-        * expr.c (get_bit_range): Return the null range if the enclosing record
-        is part of a larger bit field.
+	* expr.c (get_bit_range): Return the null range if the enclosing record
+	is part of a larger bit field.
 
 	2012-03-20  Richard Guenther  <rguenther@suse.de>
 
-        * stor-layout.c (finish_bitfield_representative): Fallback
-        to conservative maximum size if the padding up to the next
-        field cannot be computed as a constant.
-        (finish_bitfield_layout): If we cannot compute the distance
-        between the start of the bitfield representative and the
-        bitfield member start a new representative.
-        * expr.c (get_bit_range): The distance between the start of
-        the bitfield representative and the bitfield member is zero
-        if the field offsets are not constants.
+	* stor-layout.c (finish_bitfield_representative): Fallback
+	to conservative maximum size if the padding up to the next
+	field cannot be computed as a constant.
+	(finish_bitfield_layout): If we cannot compute the distance
+	between the start of the bitfield representative and the
+	bitfield member start a new representative.
+	* expr.c (get_bit_range): The distance between the start of
+	the bitfield representative and the bitfield member is zero
+	if the field offsets are not constants.
 
 	2012-03-16  Richard Guenther  <rguenther@suse.de>
 
-        * stor-layout.c (finish_bitfield_representative): Fall back
-        to the conservative maximum size if we cannot compute the
-        size of the tail padding.
+	* stor-layout.c (finish_bitfield_representative): Fall back
+	to the conservative maximum size if we cannot compute the
+	size of the tail padding.
 
 	2012-03-14  Richard Guenther  <rguenther@suse.de>
 
@@ -224,7 +357,7 @@
 2012-05-28  Bill Schmidt  <wschmidt@linux.ibm.com>
 
 	Backport from mainline
-        2012-05-28  Richard Guenther  <rguenther@suse.de>
+	2012-05-28  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/53438
 	* tree-sra.c (analyze_access_subtree): Correct bitfield exclusion.
@@ -270,14 +403,14 @@
 2012-05-25  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
 
 	Backport from mainline
-        2012-03-12  Richard Guenther  <rguenther@suse.de>
+	2012-03-12  Richard Guenther  <rguenther@suse.de>
 	* config/arm/arm.c (neon_dereference_pointer): Do not call
 	covert during RTL expansion.
 
 2012-05-24  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
 
 	Backport from mainline
-        2012-05-18  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
+	2012-05-18  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
 
 	PR target/53385
 	* config/rs6000/rs6000.c (print_operand): Revise code that unsafely

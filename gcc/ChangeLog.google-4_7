@@ -1,3 +1,7 @@
+2012-06-21   Diego Novillo  <dnovillo@google.com>
+
+	Merge from trunk rev 188808.
+
 2012-06-15   Cary Coutant  <ccoutant@google.com>
 
     Revert Fission patches r182490, r182891, r183042, and r183320.

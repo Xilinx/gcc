@@ -1,3 +1,87 @@
+2012-06-16  Venkataramanan Kumar  <venkataramanan.kumar@amd.com>
+
+	Back port from mainline
+	2012-05-09 Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/52908
+	* gcc.target/i386/xop-imul32widen-vector.c: Update scan-assembler
+	directive to Scan for vpmuldq, not vpmacsdql.
+
+2012-06-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/vect8.ad[sb]: New test.
+
+2012-06-14  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from mainline
+	2012-06-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/53589
+	* gcc.dg/torture/pr53589.c: New test.
+
+	2012-06-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/53580
+	* gcc.dg/gomp/nesting-1.c: Expect errors rather than warnings.
+	* gcc.dg/gomp/critical-4.c: Likewise.
+	* gfortran.dg/gomp/appendix-a/a.35.1.f90: Likewise.
+	* gfortran.dg/gomp/appendix-a/a.35.3.f90: Likewise.
+	* gfortran.dg/gomp/appendix-a/a.35.4.f90: Likewise.
+	* gfortran.dg/gomp/appendix-a/a.35.6.f90: Likewise.
+	* c-c++-common/gomp/pr53580.c: New test.
+
+2012-06-14  Tobias Burnus  <burnus@net-b.de>
+
+	Backport from mainline
+	2012-06-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/50619
+	* gfortran.dg/init_flag_10.f90: New.
+
+2012-06-14  Richard Guenther  <rguenther@suse.de>
+
+	Backport from mainline
+	2012-06-11  Richard Guenther  <rguenther@suse.de>
+
+	PR c++/53616
+	* g++.dg/ext/pr53605.C: New testcase.
+
+2012-06-14  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/53597
+	* gfortran.dg/save_4.f90: New.
+
+2012-06-14  Richard Guenther  <rguenther@suse.de>
+
+	Backport from mainline
+	2012-06-06  Fabien Chêne  <fabien@gcc.gnu.org>
+
+	PR c++/52841
+	* g++.dg/cpp0x/pr52841.C: New testcase.
+
+2012-06-13  Christian Bruel  <christian.bruel@st.com>
+
+	PR target/53621
+	* gcc.dg/stack-usage-1.c: Force -fomit-frame-pointer on SH.
+
+2012-06-14  Release Manager
+
+	* GCC 4.7.1 released.
+
+2012-06-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53599
+	* g++.dg/template/local7.C: New.
+
+	Revert:
+	PR c++/53137
+	* g++.dg/cpp0x/lambda/lambda-template5.C: New.
+
+2012-06-04  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/53524
+	* g++.dg/warn/Wenum-compare-no-2: New.
+
 2012-06-04  Edmar Wienskoski  <edmar@freescale.com>
 
 	PR target/53559
