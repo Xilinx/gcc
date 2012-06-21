@@ -1,3 +1,12 @@
+2012-06-20  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* g++.dg/cilk-plus/cilk_for_cont2_inside_for.cc: New test file.
+	* g++.dg/cilk-plus/cilk_for_cont2_inside_for_tplt.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_for_cont_inside_for.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_for_cont_with_for.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_for_cont_with_if.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_for_cont_with_while.cc: Likewise.
+
 2012-06-12  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* gcc.dg/cilk-plus/elem_fn_tests/test7.c: Enclosed the function inside

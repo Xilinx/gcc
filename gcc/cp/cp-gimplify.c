@@ -314,6 +314,17 @@ genericize_for_stmt (tree *stmt_p, int *walk_subtrees, void *data)
   *stmt_p = expr;
 }
 
+/* Genericize a Cilk_FOR node *STMT_P. */
+
+static void
+genericize_cilk_for_stmt (tree *stmt_p ATTRIBUTE_UNUSED, int *walk_subtrees,
+			  void *data ATTRIBUTE_UNUSED)
+{
+  /* When we have a cilk for we resolve all the internal statements such as
+   * continue, while, for etc during gimplification */
+  *walk_subtrees = 0;
+}
+
 /* Genericize a WHILE_STMT node *STMT_P.  */
 
 static void
@@ -1158,6 +1169,8 @@ cp_genericize_r (tree *stmt_p, int *walk_subtrees, void *data)
     gcc_assert (!CONVERT_EXPR_VBASE_PATH (stmt));
   else if (TREE_CODE (stmt) == FOR_STMT)
     genericize_for_stmt (stmt_p, walk_subtrees, data);
+  else if (TREE_CODE (stmt) == CILK_FOR_STMT)
+    genericize_cilk_for_stmt (stmt_p, walk_subtrees, data);
   else if (TREE_CODE (stmt) == WHILE_STMT)
     genericize_while_stmt (stmt_p, walk_subtrees, data);
   else if (TREE_CODE (stmt) == DO_STMT)

@@ -243,6 +243,34 @@ add_incr (tree incr)
     }
 }
 
+/* This function will be used to fixup all the continues inside a cilk_for */
+
+static tree
+resolve_continue_stmts (tree *tp, int *walk_subtrees, void *data)
+{
+  tree goto_label = NULL_TREE, goto_stmt = NULL_TREE;
+  if (!tp || *tp == NULL_TREE)
+    return NULL_TREE;
+
+  if (TREE_CODE (*tp) == CONTINUE_STMT)
+    {
+      goto_label = (tree) data;
+      goto_stmt = build1 (GOTO_EXPR, void_type_node, goto_label);
+      *tp = goto_stmt;
+      *walk_subtrees = 0;
+    }
+  else if (TREE_CODE (*tp) == FOR_STMT || TREE_CODE (*tp) == WHILE_STMT
+	   || TREE_CODE (*tp) == DO_STMT)
+    {
+      /* Inside these statements, the continue goes to a different place not
+       * end of cilk_for, you do not want to go into these trees because we
+       * will resolve those later 
+       */
+      *walk_subtrees = 0;
+    }
+      
+  return NULL_TREE;
+}
 
 /* this function will simplify the cilk loop */
 static tree
@@ -490,7 +518,8 @@ cp_build_cilk_for_body (struct cilk_for_desc *cfd)
   char *cc = NULL;
   char *dd = NULL;
   tree loop_end_comp = NULL_TREE;
-  tree c_for_loop, top_label, slab, cond_expr, mod_expr;
+  tree c_for_loop, top_label, slab, cond_expr, mod_expr, cont_lab;
+  tree continue_label;
   
   push_function_context ();
 
@@ -656,6 +685,13 @@ cp_build_cilk_for_body (struct cilk_for_desc *cfd)
   DECL_IGNORED_P (slab) = 1;
   DECL_CONTEXT (slab) = fndecl;
 
+  cont_lab = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
+			 void_type_node);
+  DECL_ARTIFICIAL (cont_lab) = 0;
+  DECL_IGNORED_P (cont_lab) = 1;
+  DECL_CONTEXT (cont_lab) = fndecl;
+  continue_label = build1 (LABEL_EXPR, void_type_node, cont_lab);
+  
   mod_expr = build2 (MODIFY_EXPR, void_type_node, loop_var,
 		     build2 (PLUS_EXPR, count_type, loop_var,
 			     build_int_cst (count_type, 1)));
@@ -667,10 +703,12 @@ cp_build_cilk_for_body (struct cilk_for_desc *cfd)
 
   add_stmt (top_label);
   add_stmt (loop_body);
+  add_stmt (continue_label);
   add_stmt (mod_expr);
   add_stmt (cond_expr);
 
   pop_stmt_list (c_for_loop);
+  walk_tree (&c_for_loop, resolve_continue_stmts, (void *)cont_lab, NULL);
   add_stmt (c_for_loop);
 
   DECL_INITIAL (fndecl) = make_node (BLOCK);
@@ -1901,6 +1939,10 @@ cg_hacks (tree fndecl, bool is_nested)
   push_cfun (f);
   current_function_decl = fndecl;
 
+  /* We did not do this earlier so that we can do it here in the cilk_for
+   * nested function body */
+  cp_genericize (fndecl);
+  
   /* If this is a genuine nested function, the nested function
      handling will deal with it.  If this is not a nested function
      it must be handled now or the compiler will crash in a

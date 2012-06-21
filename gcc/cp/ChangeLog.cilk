@@ -1,4 +1,14 @@
-2012-06-17  balaji.v.iyer  <bviyer@nhelv406>
+2012-06-20  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cp-gimplify.c (cp_genericize_r): Added a check for cilk-for.
+	(genericize_cilk_for_stmt): New function.
+	* cilk.c (resolve_continue_stmts): Likewise.
+	(cp_build_cilk_for_body): Added a new label to point goto for continue
+	inside cilk_for.  Also did a walk_tree to fix up all these continues.
+	(cg_hacks): called cp_genericize to breakup all the statements inside
+	cilk-for nested function.
+
+2012-06-17  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cilk.c (cp_build_cilk_for_body): Set CILK_FN_P field to 1.
 	(cp_make_cilk_frame): Likewise.
