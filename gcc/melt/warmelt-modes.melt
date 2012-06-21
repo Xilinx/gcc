@@ -3850,6 +3850,96 @@ ASSERT_MSG) is enabled"
 (install_melt_mode translateinit_mode)
 
 
+
+;;;;;;;;;;;;;;;;
+;; translate the initial module
+(defun translateinitmodule_docmd (cmd moduldata)
+  (debug "start translateinitmodule_mode cmd=" cmd " moduldata=" moduldata
+	 " initial_environment=" initial_environment)
+  (let ( (rlist (make_list discr_list))
+	 (:cstring progarg (melt_argument "arg"))
+	 (:cstring progarglist (melt_argument "arglist"))
+	 (inarg
+	  (cond ( progarg 
+		  (let ( (progargstr (make_stringconst discr_string progarg))
+			 )
+		    (if (not (string_suffixed progargstr ".melt"))
+			(warningmsg_strv "MELT translated initial file without .melt suffix" 
+					 progargstr))
+		    progargstr))
+		( progarglist
+		  (split_string_comma discr_string (make_stringconst discr_string progarglist))
+		  )
+		(:else
+		 (errormsg_plain "invalid arg or arglist to translateinitmodule mode")
+		 (return))))
+	 (outarg (make_stringconst discr_string (melt_argument "output")))
+	 (basnam (cond
+		  ( (is_string outarg) outarg)
+		  ( (is_string inarg) (make_string_nakedbasename discr_string inarg))
+		  (:else
+		   (errormsg_plain "invalid translateinitmodule mode")
+		   (return)
+		   )))
+	 )
+    (debug "translateinitmodule_mode basnam=" basnam)
+    (if (or (string_dynloaded_suffixed basnam)
+	    (string_suffixed basnam ".melt")
+	    (string_suffixed basnam ".c"))
+	(progn 
+	  (errormsg_strv "tranlateinit mode needs a base name without suffix" 
+			 basnam)
+	  (return)
+	  ))
+    (cond 
+     ((is_string inarg) 
+      (list_append2list rlist (read_file inarg)))
+     ((is_list inarg)
+      (list_every inarg 
+		  (lambda (curarg)
+		    (informsg_strv "reading from file" curarg)
+		    (let ( (curead (read_file curarg))
+			   )
+		      (assert_msg "check rlist" (is_list rlist))
+		      (assert_msg "check curead" (is_list_or_null curead))
+		      (debug "translateinitmodule_mode curead=" curead)
+		      (list_append2list rlist curead)))))
+     )
+    (debug "after read translateinitmodule_mode rlist=" rlist)
+    (compile_list_sexpr rlist initial_environment basnam)
+    ;; we trigger explicitly a full GC to stress the runtime. The
+    ;; translateinitmodule mode is not useful to the casual user.
+    (full_garbcoll 10000)
+    (let ( 
+	  (flavorstuple (tuple '"quicklybuilt" '"optimized" '"debugnoline"))
+	  (outbase (or outarg basnam))
+	  )
+      (foreach_in_multiple 
+       (flavorstuple)
+       (curflavor :long flavix)
+       (debug "translateinitmodule_mode before module generation basnam=" basnam 
+	      " outbase=" outbase " curflavor=" curflavor)
+       (generate_flavored_melt_module basnam outbase curflavor)
+       (debug "translateinitmodule_mode after module generation basnam=" basnam 
+	      " outbase=" outbase " curflavor=" curflavor)
+       )
+      )
+    (return :true)			;mode succeed
+    ))
+
+;;;
+(definstance translateinitmodule_mode
+  class_melt_mode
+  :named_name '"translateinitmodule"
+  :meltmode_help '"translate the very first *.melt file into quicklybuilt, optimized, debugnoline falvors of modules;\n
+\t useful only at MELT installation! ARGUMENT= input file; OUTPUT= generated module base."
+  :meltmode_fun translateinitmodule_docmd
+)
+(install_melt_mode translateinitmodule_mode)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defun register_input_channel_handler (clos data :long inchfd)
   :doc #{$REGISTER_INPUT_CHANNEL_HANDLER registers an asynchronous
   input channel handler, such as for the graphical user interface
