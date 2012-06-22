@@ -3852,10 +3852,8 @@ ASSERT_MSG) is enabled"
 
 
 ;;;;;;;;;;;;;;;;
-;; translate the initial module
-(defun translateinitmodule_docmd (cmd moduldata)
-  (debug "start translateinitmodule_mode cmd=" cmd " moduldata=" moduldata
-	 " initial_environment=" initial_environment)
+
+(defun translateinit_flavored (flavor)
   (let ( (rlist (make_list discr_list))
 	 (:cstring progarg (melt_argument "arg"))
 	 (:cstring progarglist (melt_argument "arglist"))
@@ -3882,7 +3880,7 @@ ASSERT_MSG) is enabled"
 		   (return)
 		   )))
 	 )
-    (debug "translateinitmodule_mode basnam=" basnam)
+    (debug "translateinitmodule_flavored basnam=" basnam " flavor=" flavor)
     (if (or (string_dynloaded_suffixed basnam)
 	    (string_suffixed basnam ".melt")
 	    (string_suffixed basnam ".c"))
@@ -3902,7 +3900,7 @@ ASSERT_MSG) is enabled"
 			   )
 		      (assert_msg "check rlist" (is_list rlist))
 		      (assert_msg "check curead" (is_list_or_null curead))
-		      (debug "translateinitmodule_mode curead=" curead)
+		      (debug "translateinitmodule_flavored curead=" curead)
 		      (list_append2list rlist curead)))))
      )
     (debug "after read translateinitmodule_mode rlist=" rlist)
@@ -3911,22 +3909,45 @@ ASSERT_MSG) is enabled"
     ;; translateinitmodule mode is not useful to the casual user.
     (full_garbcoll 10000)
     (let ( 
-	  (flavorstuple (tuple '"quicklybuilt" '"optimized" '"debugnoline"))
 	  (outbase (or outarg basnam))
 	  )
-      (foreach_in_multiple 
-       (flavorstuple)
-       (curflavor :long flavix)
-       (debug "translateinitmodule_mode before module generation basnam=" basnam 
-	      " outbase=" outbase " curflavor=" curflavor)
-       (generate_flavored_melt_module basnam outbase curflavor)
-       (debug "translateinitmodule_mode after module generation basnam=" basnam 
-	      " outbase=" outbase " curflavor=" curflavor)
+      (cond
+       ((is_multiple flavor)
+	(foreach_in_multiple 
+	 (flavor)
+	 (curflavor :long flavix)
+	 (debug "translateinitmodule_flavored before module generation basnam=" basnam 
+		" outbase=" outbase " curflavor=" curflavor)
+	 (generate_flavored_melt_module basnam outbase curflavor)
+	 (debug "translateinitmodule_flavored after module generation basnam=" basnam 
+		" outbase=" outbase " curflavor=" curflavor)
+	 )
+	)
+       ((is_string flavor)
+	(debug "translateinitmodule_flavored before module generation basnam=" basnam 
+	       " outbase=" outbase " flavor=" flavor)
+	(generate_flavored_melt_module basnam outbase flavor)
+	(debug "translateinitmodule_flavored after module generation basnam=" basnam 
+	       " outbase=" outbase " flavor=" flavor)
+	)
+       (:else
+	(debug "translateinitmodule_flavored bad flavor=" flavor)
+	(errormsg_plain "bad flavor for translating initial module")
+	(assert_msg "translateinitmodule_flavored bad flavor"))
        )
       )
-    (return :true)			;mode succeed
-    ))
+    )
+  )
 
+;; translate the initial module in all 3 flavors: 
+(defun translateinitmodule_docmd (cmd moduldata)
+  (debug "start translateinitmodule_mode cmd=" cmd " moduldata=" moduldata
+	 " initial_environment=" initial_environment)
+  (translateinit_flavored (tuple '"quicklybuilt" '"debugnoline" '"optimized"))
+  )
+
+
+;; three modes for each flavor of init module
 ;;;
 (definstance translateinitmodule_mode
   class_melt_mode
@@ -3936,6 +3957,60 @@ ASSERT_MSG) is enabled"
   :meltmode_fun translateinitmodule_docmd
 )
 (install_melt_mode translateinitmodule_mode)
+
+
+;; translate the initial module quicklybuilt: 
+(defun translateinitmodulequicklybuilt_docmd (cmd moduldata)
+  (debug "start translateinitmodulequicklybuild_mode cmd=" cmd " moduldata=" moduldata
+	 " initial_environment=" initial_environment)
+  (translateinit_flavored '"quicklybuilt")
+  )
+
+;;;
+(definstance translateinitmodulequicklybuilt_mode
+  class_melt_mode
+  :named_name '"translateinitmodulequicklybuilt"
+  :meltmode_help '"translate the very first *.melt file into quicklybuilt module;\n
+\t useful only at MELT installation! ARGUMENT= input file; OUTPUT= generated module base."
+  :meltmode_fun translateinitmodulequicklybuilt_docmd
+)
+(install_melt_mode translateinitmodulequicklybuilt_mode)
+
+
+;; translate the initial module debugnoline: 
+(defun translateinitmoduledebugnoline_docmd (cmd moduldata)
+  (debug "start translateinitmodulequicklybuild_mode cmd=" cmd " moduldata=" moduldata
+	 " initial_environment=" initial_environment)
+  (translateinit_flavored '"debugnoline")
+  )
+
+;;;
+(definstance translateinitmoduledebugnoline_mode
+  class_melt_mode
+  :named_name '"translateinitmoduledebugnoline"
+  :meltmode_help '"translate the very first *.melt file into debugnoline module;\n
+\t useful only at MELT installation! ARGUMENT= input file; OUTPUT= generated module base."
+  :meltmode_fun translateinitmoduledebugnoline_docmd
+)
+(install_melt_mode translateinitmoduledebugnoline_mode)
+
+
+;; translate the initial module optimized: 
+(defun translateinitmoduleoptimized_docmd (cmd moduldata)
+  (debug "start translateinitmodulequicklybuild_mode cmd=" cmd " moduldata=" moduldata
+	 " initial_environment=" initial_environment)
+  (translateinit_flavored '"optimized")
+  )
+
+;;;
+(definstance translateinitmoduleoptimized_mode
+  class_melt_mode
+  :named_name '"translateinitmoduleoptimized"
+  :meltmode_help '"translate the very first *.melt file into optimized module;\n
+\t useful only at MELT installation! ARGUMENT= input file; OUTPUT= generated module base."
+  :meltmode_fun translateinitmoduleoptimized_docmd
+)
+(install_melt_mode translateinitmoduleoptimized_mode)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

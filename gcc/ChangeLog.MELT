@@ -1,5 +1,12 @@
 
-2012-06-20  Basile Starynkevitch  <basile@starynkevitch.net>
+2012-06-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Adding variants to translateinit modes}}
+	* melt/warmelt-modes.melt (translateinit_flavored): New.
+	(translateinitmodulequicklybuilt_mode)
+	(translateinitmoduledebugnoline_mode)
+	(translateinitmoduleoptimized_mode): New.
+
+2012-06-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 
 	* melt/generated/meltrunsup-inc.c: Regenerate.
