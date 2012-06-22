@@ -1,3 +1,43 @@
+2012-06-19  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* gcc.dg/stack-usage-1.c: Remove dg-options line for sh targets
+	and add __sh__ case.
+
+2012-06-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53651
+	* g++.dg/cpp0x/decltype37.C: New.
+
+	PR c++/52637
+	* g++.dg/debug/localclass1.C: New.
+
+	* g++.dg/debug/dwarf2/namespace-2.C: New.
+	* g++.dg/debug/dwarf2/localclass3.C: New.
+
+2012-06-19  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/53470
+	* g++.dg/lto/pr53470_0.C: New testcase.
+	* gcc.dg/lto/pr53470_0.c: Likewise.
+
+2012-06-19  Jason Merrill  <jason@redhat.com>
+
+	Reapply:
+	PR c++/53137
+	* g++.dg/cpp0x/lambda/lambda-template5.C: New.
+
+	PR c++/53599
+	* g++.dg/template/local7.C: New.
+
+2012-06-16  Venkataramanan Kumar  <venkataramanan.kumar@amd.com>
+
+	Back port from mainline
+	2012-05-09 Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/52908
+	* gcc.target/i386/xop-imul32widen-vector.c: Update scan-assembler
+	directive to Scan for vpmuldq, not vpmacsdql.
+
 2012-06-15  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gnat.dg/vect8.ad[sb]: New test.
