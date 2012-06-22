@@ -1,3 +1,7 @@
+2012-06-21  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* g++.dg/cilk-plus/nested_cilk_for_cont_test.cc: New test file.
+	
 2012-06-20  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* g++.dg/cilk-plus/cilk_for_cont2_inside_for.cc: New test file.

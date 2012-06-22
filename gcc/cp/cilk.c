@@ -260,7 +260,7 @@ resolve_continue_stmts (tree *tp, int *walk_subtrees, void *data)
       *walk_subtrees = 0;
     }
   else if (TREE_CODE (*tp) == FOR_STMT || TREE_CODE (*tp) == WHILE_STMT
-	   || TREE_CODE (*tp) == DO_STMT)
+	   || TREE_CODE (*tp) == DO_STMT || TREE_CODE (*tp) == CILK_FOR_STMT)
     {
       /* Inside these statements, the continue goes to a different place not
        * end of cilk_for, you do not want to go into these trees because we
