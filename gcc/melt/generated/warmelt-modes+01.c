@@ -871,20 +871,17 @@ meltrout_58_warmelt_modes_LAMBDA___16__ (meltclosure_ptr_t meltclosp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_59_warmelt_modes_TRANSLATEINITMODULE_DOCMD (meltclosure_ptr_t
-						     meltclosp_,
-						     melt_ptr_t
-						     meltfirstargp_,
-						     const
-						     melt_argdescr_cell_t
-						     meltxargdescr_[],
-						     union meltparam_un
-						     *meltxargtab_,
-						     const
-						     melt_argdescr_cell_t
-						     meltxresdescr_[],
-						     union meltparam_un
-						     *meltxrestab_);
+meltrout_59_warmelt_modes_TRANSLATEINIT_FLAVORED (meltclosure_ptr_t
+						  meltclosp_,
+						  melt_ptr_t meltfirstargp_,
+						  const melt_argdescr_cell_t
+						  meltxargdescr_[],
+						  union meltparam_un
+						  *meltxargtab_,
+						  const melt_argdescr_cell_t
+						  meltxresdescr_[],
+						  union meltparam_un
+						  *meltxrestab_);
 
 
 
@@ -903,7 +900,53 @@ meltrout_60_warmelt_modes_LAMBDA___17__ (meltclosure_ptr_t meltclosp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_61_warmelt_modes_REGISTER_INPUT_CHANNEL_HANDLER (meltclosure_ptr_t
+meltrout_61_warmelt_modes_TRANSLATEINITMODULE_DOCMD (meltclosure_ptr_t
+						     meltclosp_,
+						     melt_ptr_t
+						     meltfirstargp_,
+						     const
+						     melt_argdescr_cell_t
+						     meltxargdescr_[],
+						     union meltparam_un
+						     *meltxargtab_,
+						     const
+						     melt_argdescr_cell_t
+						     meltxresdescr_[],
+						     union meltparam_un
+						     *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_62_warmelt_modes_TRANSLATEINITMODULEQUICKLYBUILT_DOCMD
+(meltclosure_ptr_t meltclosp_, melt_ptr_t meltfirstargp_, const melt_argdescr_cell_t meltxargdescr_[],
+union meltparam_un *meltxargtab_, const melt_argdescr_cell_t meltxresdescr_[],
+union meltparam_un *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_63_warmelt_modes_TRANSLATEINITMODULEDEBUGNOLINE_DOCMD
+(meltclosure_ptr_t meltclosp_, melt_ptr_t meltfirstargp_, const melt_argdescr_cell_t meltxargdescr_[],
+union meltparam_un *meltxargtab_, const melt_argdescr_cell_t meltxresdescr_[],
+union meltparam_un *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_64_warmelt_modes_TRANSLATEINITMODULEOPTIMIZED_DOCMD
+(meltclosure_ptr_t meltclosp_, melt_ptr_t meltfirstargp_, const melt_argdescr_cell_t meltxargdescr_[],
+union meltparam_un *meltxargtab_, const melt_argdescr_cell_t meltxresdescr_[],
+union meltparam_un *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_65_warmelt_modes_REGISTER_INPUT_CHANNEL_HANDLER (meltclosure_ptr_t
 							  meltclosp_,
 							  melt_ptr_t
 							  meltfirstargp_,
@@ -922,7 +965,7 @@ meltrout_61_warmelt_modes_REGISTER_INPUT_CHANNEL_HANDLER (meltclosure_ptr_t
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_62_warmelt_modes_HANDLE_ALARM_SIGNAL (meltclosure_ptr_t meltclosp_,
+meltrout_66_warmelt_modes_HANDLE_ALARM_SIGNAL (meltclosure_ptr_t meltclosp_,
 					       melt_ptr_t meltfirstargp_,
 					       const melt_argdescr_cell_t
 					       meltxargdescr_[],
@@ -937,7 +980,7 @@ meltrout_62_warmelt_modes_HANDLE_ALARM_SIGNAL (meltclosure_ptr_t meltclosp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_63_warmelt_modes_LAMBDA___18__ (meltclosure_ptr_t meltclosp_,
+meltrout_67_warmelt_modes_LAMBDA___18__ (meltclosure_ptr_t meltclosp_,
 					 melt_ptr_t meltfirstargp_,
 					 const melt_argdescr_cell_t
 					 meltxargdescr_[],
@@ -950,7 +993,7 @@ meltrout_63_warmelt_modes_LAMBDA___18__ (meltclosure_ptr_t meltclosp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_64_warmelt_modes_REGISTER_ALARM_TIMER (meltclosure_ptr_t meltclosp_,
+meltrout_68_warmelt_modes_REGISTER_ALARM_TIMER (meltclosure_ptr_t meltclosp_,
 						melt_ptr_t meltfirstargp_,
 						const melt_argdescr_cell_t
 						meltxargdescr_[],
@@ -965,7 +1008,7 @@ meltrout_64_warmelt_modes_REGISTER_ALARM_TIMER (meltclosure_ptr_t meltclosp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_65_warmelt_modes_UNREGISTER_ALARM_TIMER (meltclosure_ptr_t
+meltrout_69_warmelt_modes_UNREGISTER_ALARM_TIMER (meltclosure_ptr_t
 						  meltclosp_,
 						  melt_ptr_t meltfirstargp_,
 						  const melt_argdescr_cell_t
@@ -981,7 +1024,7 @@ meltrout_65_warmelt_modes_UNREGISTER_ALARM_TIMER (meltclosure_ptr_t
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_66_warmelt_modes_CHILD_PROCESS_SIGCHLD_HANDLER (meltclosure_ptr_t
+meltrout_70_warmelt_modes_CHILD_PROCESS_SIGCHLD_HANDLER (meltclosure_ptr_t
 							 meltclosp_,
 							 melt_ptr_t
 							 meltfirstargp_,
@@ -1000,7 +1043,7 @@ meltrout_66_warmelt_modes_CHILD_PROCESS_SIGCHLD_HANDLER (meltclosure_ptr_t
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_67_warmelt_modes_REGISTER_CHILD_PROCESS_HANDLER (meltclosure_ptr_t
+meltrout_71_warmelt_modes_REGISTER_CHILD_PROCESS_HANDLER (meltclosure_ptr_t
 							  meltclosp_,
 							  melt_ptr_t
 							  meltfirstargp_,
@@ -1019,7 +1062,7 @@ meltrout_67_warmelt_modes_REGISTER_CHILD_PROCESS_HANDLER (meltclosure_ptr_t
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_68_warmelt_modes_UNREGISTER_CHILD_PROCESS_HANDLER (meltclosure_ptr_t
+meltrout_72_warmelt_modes_UNREGISTER_CHILD_PROCESS_HANDLER (meltclosure_ptr_t
 							    meltclosp_,
 							    melt_ptr_t
 							    meltfirstargp_,
@@ -1102,6 +1145,11 @@ void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_7 (struct
 									char
 									*);
 void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_8 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_9 (struct
 									frame_start_module_melt_st
 									*,
 									char
