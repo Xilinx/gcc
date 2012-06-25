@@ -25,6 +25,9 @@ following features from the Intel Cilk Plus Language Specification:
         - __sec_reduce_any_zero
         - __sec_reduce_any_nonzero
         - __sec_implicit_index     
+* Elemental functions: Elemental functions allow the compiler to create vector
+  version of a function so that the vectorizer can use them to vectorize
+  functions.
 
 Known Issues:
 * Exception support - Exceptions are not supported for Cilk keywords.
