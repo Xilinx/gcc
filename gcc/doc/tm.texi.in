@@ -690,6 +690,10 @@ should use @code{TARGET_HANDLE_C_OPTION} instead.
 
 @hook TARGET_OBJC_CONSTRUCT_STRING_OBJECT
 
+@hook TARGET_OBJC_DECLARE_UNRESOLVED_CLASS_REFERENCE
+
+@hook TARGET_OBJC_DECLARE_CLASS_DEFINITION
+
 @hook TARGET_STRING_OBJECT_REF_TYPE_P
 
 @hook TARGET_CHECK_STRING_OBJECT_FORMAT_ARG
@@ -7302,18 +7306,14 @@ for the file format in use is appropriate.
 
 @hook TARGET_ASM_OUTPUT_SOURCE_FILENAME
 
+@hook TARGET_ASM_OUTPUT_IDENT
+
 @defmac OUTPUT_QUOTED_STRING (@var{stream}, @var{string})
 A C statement to output the string @var{string} to the stdio stream
 @var{stream}.  If you do not call the function @code{output_quoted_string}
 in your config files, GCC will only call it to output filenames to
 the assembler source.  So you can use it to canonicalize the format
 of the filename using this macro.
-@end defmac
-
-@defmac ASM_OUTPUT_IDENT (@var{stream}, @var{string})
-A C statement to output something to the assembler file to handle a
-@samp{#ident} directive containing the text @var{string}.  If this
-macro is not defined, nothing is output for a @samp{#ident} directive.
 @end defmac
 
 @hook TARGET_ASM_NAMED_SECTION
@@ -8163,20 +8163,6 @@ On systems where the assembler can handle quoted names, you can use this
 macro to provide more human-readable names.
 @end defmac
 
-@defmac ASM_DECLARE_CLASS_REFERENCE (@var{stream}, @var{name})
-A C statement (sans semicolon) to output to the stdio stream
-@var{stream} commands to declare that the label @var{name} is an
-Objective-C class reference.  This is only needed for targets whose
-linkers have special support for NeXT-style runtimes.
-@end defmac
-
-@defmac ASM_DECLARE_UNRESOLVED_REFERENCE (@var{stream}, @var{name})
-A C statement (sans semicolon) to output to the stdio stream
-@var{stream} commands to declare that the label @var{name} is an
-unresolved Objective-C class reference.  This is only needed for targets
-whose linkers have special support for NeXT-style runtimes.
-@end defmac
-
 @node Initialization
 @subsection How Initialization Functions Are Handled
 @cindex initialization routines
@@ -8868,6 +8854,14 @@ command-line option processing.
 Define this macro to 1 if the @code{setjmp}/@code{longjmp}-based scheme
 should use the @code{setjmp}/@code{longjmp} functions from the C library
 instead of the @code{__builtin_setjmp}/@code{__builtin_longjmp} machinery.
+@end defmac
+
+@defmac JMP_BUF_SIZE
+This macro has no effect unless @code{DONT_USE_BUILTIN_SETJMP} is also
+defined.  Define this macro if the default size of @code{jmp_buf} buffer
+for the @code{setjmp}/@code{longjmp}-based exception handling mechanism
+is not large enough, or if it is much too large.
+The default size is @code{FIRST_PSEUDO_REGISTER * sizeof(void *)}.
 @end defmac
 
 @defmac DWARF_CIE_DATA_ALIGNMENT
