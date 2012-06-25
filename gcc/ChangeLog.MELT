@@ -1,5 +1,11 @@
 
 2012-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in: Enable melt-newbuild.* files. when MELT_NEWBUILD
+	* melt-newbuild.tpl: New file, incomplete.
+	* melt-newbuild.def: New file.
+	* melt-newbuild.mk: New generated file, incomplete.
+
+2012-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-module.mk: Improve slightly.
 
 2012-06-22  Basile Starynkevitch  <basile@starynkevitch.net>
