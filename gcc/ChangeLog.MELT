@@ -1,4 +1,7 @@
 
+2012-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-module.mk: Improve slightly.
+
 2012-06-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
