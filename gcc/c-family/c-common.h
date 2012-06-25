@@ -544,8 +544,6 @@ extern tree build_modify_expr (location_t, tree, tree, enum tree_code,
 			       location_t, tree, tree);
 extern tree build_indirect_ref (location_t, tree, ref_operator);
 
-extern int c_expand_decl (tree);
-
 extern int field_decl_cmp (const void *, const void *);
 extern void resort_sorted_fields (void *, void *, gt_pointer_operator,
 				  void *);
@@ -921,6 +919,7 @@ extern bool lvalue_p (const_tree);
 
 extern bool vector_targets_convertible_p (const_tree t1, const_tree t2);
 extern bool vector_types_convertible_p (const_tree t1, const_tree t2, bool emit_lax_note);
+extern tree c_build_vec_perm_expr (location_t, tree, tree, tree);
 
 extern rtx c_expand_expr (tree, rtx, enum machine_mode, int, rtx *);
 
@@ -1021,7 +1020,6 @@ extern void c_common_read_pch (cpp_reader *pfile, const char *name, int fd,
 extern void c_common_write_pch (void);
 extern void c_common_no_more_pch (void);
 extern void c_common_pch_pragma (cpp_reader *pfile, const char *);
-extern void c_common_print_pch_checksum (FILE *f);
 
 /* In *-checksum.c */
 extern const unsigned char executable_checksum[16];
@@ -1118,5 +1116,7 @@ struct GTY(()) tree_userdef_literal {
   (TREE_TYPE (USERDEF_LITERAL_VALUE (NODE)))
 
 extern tree build_userdef_literal (tree suffix_id, tree value, tree num_string);
+
+extern void convert_vector_to_pointer_for_subscript (location_t, tree*, tree);
 
 #endif /* ! GCC_C_COMMON_H */

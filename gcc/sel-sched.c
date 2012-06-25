@@ -43,7 +43,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "vec.h"
 #include "langhooks.h"
 #include "rtlhooks-def.h"
-#include "output.h"
 #include "emit-rtl.h"
 
 #ifdef INSN_SCHEDULING
@@ -285,7 +284,7 @@ struct rtx_search_arg
   /* What we are searching for.  */
   rtx x;
 
-  /* The occurence counter.  */
+  /* The occurrence counter.  */
   int n;
 };
 
@@ -733,7 +732,7 @@ can_substitute_through_p (insn_t insn, ds_t ds)
   return false;
 }
 
-/* Substitute all occurences of INSN's destination in EXPR' vinsn with INSN's
+/* Substitute all occurrences of INSN's destination in EXPR' vinsn with INSN's
    source (if INSN is eligible for substitution).  Returns TRUE if
    substitution was actually performed, FALSE otherwise.  Substitution might
    be not performed because it's either EXPR' vinsn doesn't contain INSN's
@@ -1140,7 +1139,7 @@ init_regs_for_mode (enum machine_mode mode)
 #ifdef LEAF_REGISTERS
             /* We can't use a non-leaf register if we're in a
                leaf function.  */
-            || (current_function_is_leaf
+            || (crtl->is_leaf
                 && !LEAF_REGISTERS[cur_reg + i])
 #endif
             )
@@ -4138,7 +4137,7 @@ invoke_reorder_hooks (fence_t fence)
   return issue_more;
 }
 
-/* Return an EXPR correponding to INDEX element of ready list, if
+/* Return an EXPR corresponding to INDEX element of ready list, if
    FOLLOW_READY_ELEMENT is true (i.e., an expr of
    ready_element (&ready, INDEX) will be returned), and to INDEX element of
    ready.vec otherwise.  */

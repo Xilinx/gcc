@@ -54,7 +54,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "hard-reg-set.h"
 #include "regs.h"
 #include "flags.h"
-#include "output.h"
 #include "function.h"
 #include "except.h"
 #include "diagnostic-core.h"
@@ -242,13 +241,13 @@ disconnect_src (edge e)
       if (tmp == e)
 	{
 	  VEC_unordered_remove (edge, src->succs, ei.index);
+	  df_mark_solutions_dirty ();
 	  return;
 	}
       else
 	ei_next (&ei);
     }
 
-  df_mark_solutions_dirty ();
   gcc_unreachable ();
 }
 
@@ -814,10 +813,10 @@ free_aux_for_blocks (void)
   clear_aux_for_blocks ();
 }
 
-/* Allocate a memory edge of SIZE as BB->aux.  The obstack must
+/* Allocate a memory edge of SIZE as E->aux.  The obstack must
    be first initialized by alloc_aux_for_edges.  */
 
-static void
+void
 alloc_aux_for_edge (edge e, int size)
 {
   /* Verify that aux field is clear.  */

@@ -159,7 +159,7 @@ static outf_p *base_files;
 
 #if ENABLE_CHECKING
 /* Utility debugging function, printing the various type counts within
-   a list of types.  Called thru the DBGPRINT_COUNT_TYPE macro.  */
+   a list of types.  Called through the DBGPRINT_COUNT_TYPE macro.  */
 void
 dbgprint_count_type_at (const char *fil, int lin, const char *msg, type_p t)
 {
@@ -1563,7 +1563,7 @@ open_base_files (void)
       "hard-reg-set.h", "basic-block.h", "cselib.h", "insn-addr.h",
       "optabs.h", "libfuncs.h", "debug.h", "ggc.h", "cgraph.h",
       "tree-flow.h", "reload.h", "cpp-id-data.h", "tree-chrec.h",
-      "cfglayout.h", "except.h", "output.h", "gimple.h", "cfgloop.h",
+      "except.h", "output.h", "gimple.h", "cfgloop.h",
       "target.h", "ipa-prop.h", "lto-streamer.h", "target-globals.h",
       "ipa-inline.h", "dwarf2out.h", NULL
     };
@@ -1828,7 +1828,7 @@ struct file_rule_st files_rules[] = {
 
   /* Source *.c files are using get_file_gtfilename to compute their
      output_name and get_file_basename to compute their for_name
-     thru the source_dot_c_frul action.  */
+     through the source_dot_c_frul action.  */
   { DIR_PREFIX_REGEX "([[:alnum:]_-]*)\\.c$",
     REG_EXTENDED, NULL_REGEX, "gt-$3.h", "$3.c", source_dot_c_frul},
   /* Common header files get "gtype-desc.c" as their output_name,
@@ -2004,7 +2004,7 @@ get_output_file_with_visibility (input_file *inpf)
   /* Try each rule in sequence in files_rules until one is triggered. */
   {
     int rulix = 0;
-    DBGPRINTF ("passing input file @ %p named %s thru the files_rules",
+    DBGPRINTF ("passing input file @ %p named %s through the files_rules",
 	       (void*) inpf, inpfname);
 
     for (; files_rules[rulix].frul_srcexpr != NULL; rulix++)
@@ -2930,7 +2930,26 @@ write_types_process_field (type_p f, const struct walk_type_data *d)
 	       wtd->subfield_marker_routine, cast, d->val);
       if (wtd->param_prefix)
 	{
-	  oprintf (d->of, ", %s", d->prev_val[3]);
+	  if (f->u.p->kind == TYPE_SCALAR)
+	    /* The current type is a pointer to a scalar (so not
+	       considered like a pointer to instances of user defined
+	       types) and we are seeing it; it means we must be even
+	       more careful about the second argument of the
+	       SUBFIELD_MARKER_ROUTINE call.  That argument must
+	       always be the instance of the type for which
+	       write_func_for_structure was called - this really is
+	       what the function SUBFIELD_MARKER_ROUTINE expects.
+	       That is, it must be an instance of the ORIG_S type
+	       parameter of write_func_for_structure.  The convention
+	       is that that argument must be "x" in that case (as set
+	       by write_func_for_structure).  The problem is, we can't
+	       count on d->prev_val[3] to be always set to "x" in that
+	       case.  Sometimes walk_type can set it to something else
+	       (to e.g cooperate with write_array when called from
+	       write_roots).  So let's set it to "x" here then.  */
+	    oprintf (d->of, ", x");
+	  else
+	    oprintf (d->of, ", %s", d->prev_val[3]);
 	  if (d->orig_s)
 	    {
 	      oprintf (d->of, ", gt_%s_", wtd->param_prefix);
@@ -3267,7 +3286,7 @@ write_types (outf_p output_header, type_p structures, type_p param_structs,
 	if (stru->u.s.line.file == NULL)
 	  {
 	    fprintf (stderr, "warning: structure `%s' used but not defined\n",
-		     s->u.s.tag);
+		     stru->u.s.tag);
 	    continue;
 	  }
       }
@@ -3503,7 +3522,7 @@ write_local (outf_p output_header, type_p structures, type_p param_structs)
 	if (stru->u.s.line.file == NULL)
 	  {
 	    fprintf (stderr, "warning: structure `%s' used but not defined\n",
-		     s->u.s.tag);
+		     stru->u.s.tag);
 	    continue;
 	  }
 

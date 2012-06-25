@@ -1226,6 +1226,7 @@ extern unsigned int num_sign_bit_copies (const_rtx, enum machine_mode);
 extern bool constant_pool_constant_p (rtx);
 extern bool truncated_to_mode (enum machine_mode, const_rtx);
 extern int low_bitmask_len (enum machine_mode, unsigned HOST_WIDE_INT);
+extern void split_double (rtx, rtx *, rtx *);
 
 #ifndef GENERATOR_FILE
 /* Return the cost of SET X.  SPEED_P is true if optimizing for speed
@@ -1638,13 +1639,9 @@ extern int currently_expanding_to_rtl;
 
 /* Generally useful functions.  */
 
-/* In expmed.c */
-extern int ceil_log2 (unsigned HOST_WIDE_INT);
-
 /* In explow.c */
 extern HOST_WIDE_INT trunc_int_for_mode	(HOST_WIDE_INT, enum machine_mode);
-extern rtx plus_constant (rtx, HOST_WIDE_INT);
-extern rtx plus_constant_mode (enum machine_mode, rtx, HOST_WIDE_INT);
+extern rtx plus_constant (enum machine_mode, rtx, HOST_WIDE_INT);
 
 /* In rtl.c */
 extern rtx rtx_alloc_stat (RTX_CODE MEM_STAT_DECL);
@@ -1731,10 +1728,9 @@ extern rtx assign_stack_local (enum machine_mode, HOST_WIDE_INT, int);
 #define ASLK_REDUCE_ALIGN 1
 #define ASLK_RECORD_PAD 2
 extern rtx assign_stack_local_1 (enum machine_mode, HOST_WIDE_INT, int, int);
-extern rtx assign_stack_temp (enum machine_mode, HOST_WIDE_INT, int);
-extern rtx assign_stack_temp_for_type (enum machine_mode,
-				       HOST_WIDE_INT, int, tree);
-extern rtx assign_temp (tree, int, int, int);
+extern rtx assign_stack_temp (enum machine_mode, HOST_WIDE_INT);
+extern rtx assign_stack_temp_for_type (enum machine_mode, HOST_WIDE_INT, tree);
+extern rtx assign_temp (tree, int, int);
 
 /* In emit-rtl.c */
 extern rtx emit_insn_before (rtx, rtx);
@@ -1804,7 +1800,7 @@ extern rtx skip_consecutive_labels (rtx);
 extern rtx next_cc0_user (rtx);
 extern rtx prev_cc0_setter (rtx);
 
-/* In cfglayout.c  */
+/* In emit-rtl.c  */
 extern int insn_line (const_rtx);
 extern const char * insn_file (const_rtx);
 extern location_t locator_location (int);
@@ -1812,6 +1808,7 @@ extern int locator_line (int);
 extern const char * locator_file (int);
 extern bool locator_eq (int, int);
 extern int prologue_locator, epilogue_locator;
+extern tree insn_scope (const_rtx);
 
 /* In jump.c */
 extern enum rtx_code reverse_condition (enum rtx_code);
@@ -1900,6 +1897,7 @@ typedef struct replace_label_data
   bool update_label_nuses;
 } replace_label_data;
 
+extern enum machine_mode get_address_mode (rtx mem);
 extern int rtx_addr_can_trap_p (const_rtx);
 extern bool nonzero_address_p (const_rtx);
 extern int rtx_unstable_p (const_rtx);
@@ -2045,8 +2043,6 @@ extern rtx remove_free_EXPR_LIST_node (rtx *);
 
 /* reginfo.c */
 
-/* Initialize may_move_cost and friends for mode M.  */
-extern void init_move_cost (enum machine_mode);
 /* Resize reg info.  */
 extern bool resize_reg_info (void);
 /* Free up register info memory.  */
@@ -2426,7 +2422,6 @@ extern void reorder_insns (rtx, rtx, rtx);
 extern void reorder_insns_nobb (rtx, rtx, rtx);
 extern int get_max_insn_count (void);
 extern int in_sequence_p (void);
-extern void force_next_line_note (void);
 extern void init_emit (void);
 extern void init_emit_regs (void);
 extern void init_emit_once (void);
@@ -2498,7 +2493,6 @@ extern void print_inline_rtx (FILE *, const_rtx, int);
 extern void reposition_prologue_and_epilogue_notes (void);
 extern int prologue_epilogue_contains (const_rtx);
 extern int sibcall_epilogue_contains (const_rtx);
-extern void mark_temp_addr_taken (rtx);
 extern void update_temp_slot_address (rtx, rtx);
 extern void maybe_copy_prologue_epilogue_insn (rtx, rtx);
 extern void set_return_jump_label (rtx);
@@ -2516,6 +2510,7 @@ extern int fixup_args_size_notes (rtx, rtx, int);
 
 /* In cfgrtl.c */
 extern void print_rtl_with_bb (FILE *, const_rtx);
+extern rtx duplicate_insn_chain (rtx, rtx);
 
 /* In cfg.c.  */
 extern void dump_reg_info (FILE *);
@@ -2525,6 +2520,9 @@ extern void dump_flow_info (FILE *, int);
 extern void init_expmed (void);
 extern void expand_inc (rtx, rtx);
 extern void expand_dec (rtx, rtx);
+
+/* In lower-subreg.c */
+extern void init_lower_subreg (void);
 
 /* In gcse.c */
 extern bool can_copy_p (enum machine_mode);

@@ -1,3 +1,129 @@
+2012-06-21  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR fortran/39654
+	* io/intrinsics.c (ftell2): New function.
+	* gfortran.map (_gfortran_ftell2): Export function.
+
+2012-06-04  Robert Mason  <rbmj@verizon.net>
+	    Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR fortran/53456
+	* intrinsics/time_1.h (gf_cputime): Fix typo in clock_gettime branch.
+
+2012-06-01  Tobias Burnus  <burnus@net-b.de>
+
+	* intrinsics/chmod.c (chmod_func): On MinGW, don't set is_dir and
+	fix octal-mode handling.
+	* io/unit.c (get_internal_unit): Add cast.
+	* io/unix.c (min): Undef "min" before defining it.
+	* runtime/backtrace.c (show_backtrace): Move label into
+	ifndef __MINGW__ block.
+
+2012-05-31  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/51007
+	* configure.ac: Allow gnu, gnu* variants for --enable-symvers argument.
+	* configure: Regenerated.
+
+2012-05-31  Tobias Burnus  <burnus@net-b.de>
+
+	Revert:
+	2012-05-16  Tobias Burnus  <burnus@net-b.de>
+
+	* io/unix.c (tempfile_open): Pass mode to "open" for O_CREAT.
+
+2012-05-30  Tobias Burnus  <burnus@net-b.de>
+
+	* io/io.h: Fix comment typos.
+	* io/list_read.c: Ditto.
+
+2012-05-27  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* intrinsics/time_1.h (gf_cputime): Don't reevaluate HZ expression
+	for times fallback, clarify operation ordering for times and clock
+	fallbacks.
+	(gf_gettime): Fix comment typo.
+
+2012-05-24  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR fortran/53456
+	* intrinsics/time_1.h (gf_cputime): Fallback for clock_gettime.
+
+2012-05-23  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR fortran/53456
+	* intrinsics/time_1.h (gf_gettime): Fallback for clock_gettime.
+
+2012-05-23  Robert Mason  <rbmj@verizon.net>
+	    Tobias Burnus  <burnus@net-b.de>
+
+	PR libfortran/53445
+	* intrinsics/chmod.c (chmod_func): Ignore S_ISVTX on VxWorks.
+
+2012-05-23  Tobias Burnus  <burnus@net-b.de>
+
+	PR libfortran/53444
+	* acinclude.m4 (LIBGFOR_CHECK_STRERROR_R): Add configure checks for
+	two- and three-argument versions of strerror_r.
+	* configure.ac (LIBGFOR_CHECK_STRERROR_R): Use it.
+	* runtime/error.c (gf_strerror): Handle two-argument version
+	of strerror_r.
+	* config.h.in: Regenerate.
+	* configure: Regenerate.
+
+2012-05-16  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* configure: Regenerated.
+
+2012-05-16  Tobias Burnus  <burnus@net-b.de>
+
+	* io/unix.c (tempfile_open): Pass mode to "open" for O_CREAT.
+
+2012-05-14  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR fortran/52428
+	* io/io.h (max_value): Rename to si_max, remove second argument.
+	* io/list_read.c (convert_integer): Use unsigned types when
+	parsing the digits, set max value depending on the sign.
+	* io/read.c (max_value): Rename to si_max, remove second argument,
+	simplify.
+	(read_decimal): Set max value depending on sign, always check
+	overflow.
+	(read_radix): Calculate max unsigned value directly.
+	* libgfortran.h (struct compile_options_t): Remove range_check
+	field.
+	* runtime/compile_options.c (set_options): Skip handling
+	options[7].
+	(init_compile_options): Don't set removed field.
+
+2012-05-11  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/53310
+	* intrinsics/eoshift2.c (eoshift2): Do not leak
+	memory by allocating it in the loop.
+
+2012-05-05  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* config.h.in: Regenerated.
+	* configure: Regenerated.
+	* configure.ac: Add checks for getegid and __secure_getenv.
+	* io/unix.c (P_tmpdir): Fallback definition for macro.
+	(tempfile_open): New function.
+	(tempfile): Use secure_getenv, call tempfile_open to try each
+	directory in turn.
+	* libgfortran.h (DEFAULT_TMPDIR): Remove macro.
+	(secure_getenv): New macro/prototype.
+	* runtime/environ.c (secure_getenv): New function.
+	(variable_table): Rename GFORTRAN_TMPDIR to TMPDIR.
+	* runtime/main.c (find_addr2line): Use secure_getenv.
+
+2012-04-22  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/53051
+	* io/list_read.c (parse_real): Support "q" for the
+	exponential.
+	* io/read.c (read_f): Ditto.
+
 2012-04-17  Tobias Burnus  <burnus@net-b.de>
 
 	PR libfortran/38199
@@ -457,24 +583,24 @@
 
 2012-03-15  Janne Blomqvist  <jb@gcc.gnu.org>
 
-        PR libfortran/52434
-        PR libfortran/48878
-        PR libfortran/38199
-        * io/unit.c (get_internal_unit): Default to ROUND_UNSPECIFIED.
-        (init_units): Likewise.
-        * io/write_float.def (determine_precision): New function.
-        (output_float): Take into account buffer with %f format, no need
-        for our own rounding if unspecified or processor specified
-        rounding.
-        (DTOA): Simplify format string, add parameters.
-        (FDTOA): New macros similar to DTOA, but using %f format.
-        (OUTPUT_FLOAT_FMT_G): Stack allocate newf, determine correct
-        precision and fill buffer.
-        (EN_PREC): New macro.
-        (determine_en_precision): New function.
-        (WRITE_FLOAT): For G format, move buffer filling into
-        output_float_FMT_G, use FDTOA for F format.
-        (write_float): Increase buffer due to F format.
+	PR libfortran/52434
+	PR libfortran/48878
+	PR libfortran/38199
+	* io/unit.c (get_internal_unit): Default to ROUND_UNSPECIFIED.
+	(init_units): Likewise.
+	* io/write_float.def (determine_precision): New function.
+	(output_float): Take into account buffer with %f format, no need
+	for our own rounding if unspecified or processor specified
+	rounding.
+	(DTOA): Simplify format string, add parameters.
+	(FDTOA): New macros similar to DTOA, but using %f format.
+	(OUTPUT_FLOAT_FMT_G): Stack allocate newf, determine correct
+	precision and fill buffer.
+	(EN_PREC): New macro.
+	(determine_en_precision): New function.
+	(WRITE_FLOAT): For G format, move buffer filling into
+	output_float_FMT_G, use FDTOA for F format.
+	(write_float): Increase buffer due to F format.
 
 2012-03-14  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 

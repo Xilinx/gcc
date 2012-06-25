@@ -43,7 +43,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "debug.h"
 #include "vec.h"
 #include "timevar.h"
-#include "output.h"
 #include "ipa-utils.h"
 #include "data-streamer.h"
 #include "gimple-streamer.h"
@@ -599,10 +598,7 @@ make_new_block (struct function *fn, unsigned int index)
   basic_block bb = alloc_block ();
   bb->index = index;
   SET_BASIC_BLOCK_FOR_FUNCTION (fn, index, bb);
-  bb->il.gimple = ggc_alloc_cleared_gimple_bb_info ();
   n_basic_blocks_for_function (fn)++;
-  bb->flags = 0;
-  set_bb_seq (bb, gimple_seq_alloc ());
   return bb;
 }
 
@@ -619,7 +615,7 @@ input_cfg (struct lto_input_block *ib, struct function *fn,
   int index;
 
   init_empty_tree_cfg_for_function (fn);
-  init_ssa_operands ();
+  init_ssa_operands (fn);
 
   profile_status_for_function (fn) = streamer_read_enum (ib, profile_status_d,
 							 PROFILE_LAST);
@@ -807,6 +803,7 @@ input_struct_function_base (struct function *fn, struct data_in *data_in,
   fn->returns_pcc_struct = bp_unpack_value (&bp, 1);
   fn->returns_struct = bp_unpack_value (&bp, 1);
   fn->can_throw_non_call_exceptions = bp_unpack_value (&bp, 1);
+  fn->can_delete_dead_exceptions = bp_unpack_value (&bp, 1);
   fn->always_inline_functions_inlined = bp_unpack_value (&bp, 1);
   fn->after_inlining = bp_unpack_value (&bp, 1);
   fn->stdarg = bp_unpack_value (&bp, 1);
@@ -934,39 +931,6 @@ input_function (tree fn_decl, struct data_in *data_in,
 }
 
 
-/* Read initializer expressions for public statics.  DATA_IN is the
-   file being read.  IB is the input block used for reading.  */
-
-static void
-input_alias_pairs (struct lto_input_block *ib, struct data_in *data_in)
-{
-  tree var;
-
-  clear_line_info (data_in);
-
-  var = stream_read_tree (ib, data_in);
-  while (var)
-    {
-      const char *orig_name, *new_name;
-      alias_pair *p;
-
-      p = VEC_safe_push (alias_pair, gc, alias_pairs, NULL);
-      p->decl = var;
-      p->target = stream_read_tree (ib, data_in);
-
-      /* If the target is a static object, we may have registered a
-	 new name for it to avoid clashes between statics coming from
-	 different files.  In that case, use the new name.  */
-      orig_name = IDENTIFIER_POINTER (p->target);
-      new_name = lto_get_decl_name_mapping (data_in->file_data, orig_name);
-      if (strcmp (orig_name, new_name) != 0)
-	p->target = get_identifier (new_name);
-
-      var = stream_read_tree (ib, data_in);
-    }
-}
-
-
 /* Read the body from DATA for function FN_DECL and fill it in.
    FILE_DATA are the global decls and types.  SECTION_TYPE is either
    LTO_section_function_body or LTO_section_static_initializer.  If
@@ -1062,10 +1026,6 @@ lto_read_body (struct lto_file_decl_data *file_data, tree fn_decl,
 
       pop_cfun ();
     }
-  else
-    {
-      input_alias_pairs (&ib_main, data_in);
-    }
 
   clear_line_info (data_in);
   lto_data_in_delete (data_in);
@@ -1081,17 +1041,6 @@ lto_input_function_body (struct lto_file_decl_data *file_data,
 {
   current_function_decl = fn_decl;
   lto_read_body (file_data, fn_decl, data, LTO_section_function_body);
-}
-
-
-/* Read in VAR_DECL using DATA.  FILE_DATA holds the global decls and
-   types.  */
-
-void
-lto_input_constructors_and_inits (struct lto_file_decl_data *file_data,
-				  const char *data)
-{
-  lto_read_body (file_data, NULL, data, LTO_section_static_initializer);
 }
 
 
@@ -1223,7 +1172,7 @@ lto_input_toplevel_asms (struct lto_file_decl_data *file_data, int order_base)
 
   while ((str = streamer_read_string_cst (data_in, &ib)))
     {
-      struct cgraph_asm_node *node = cgraph_add_asm_node (str);
+      struct asm_node *node = add_asm_node (str);
       node->order = streamer_read_hwi (&ib) + order_base;
       if (node->order >= symtab_order)
 	symtab_order = node->order + 1;

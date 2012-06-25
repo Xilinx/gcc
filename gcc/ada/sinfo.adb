@@ -1427,6 +1427,14 @@ package body Sinfo is
       return Flag15 (N);
    end Has_Created_Identifier;
 
+   function Has_Dereference_Action
+      (N : Node_Id) return Boolean is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Explicit_Dereference);
+      return Flag13 (N);
+   end Has_Dereference_Action;
+
    function Has_Dynamic_Length_Check
       (N : Node_Id) return Boolean is
    begin
@@ -1467,33 +1475,6 @@ package body Sinfo is
         or else NT (N).Nkind = N_Compilation_Unit);
       return Flag17 (N);
    end Has_No_Elaboration_Code;
-
-   function Has_Pragma_CPU
-      (N : Node_Id) return Boolean is
-   begin
-      pragma Assert (False
-        or else NT (N).Nkind = N_Subprogram_Body
-        or else NT (N).Nkind = N_Task_Definition);
-      return Flag14 (N);
-   end Has_Pragma_CPU;
-
-   function Has_Pragma_Dispatching_Domain
-     (N : Node_Id) return Boolean is
-   begin
-      pragma Assert (False
-        or else NT (N).Nkind = N_Task_Definition);
-      return Flag15 (N);
-   end Has_Pragma_Dispatching_Domain;
-
-   function Has_Pragma_Priority
-      (N : Node_Id) return Boolean is
-   begin
-      pragma Assert (False
-        or else NT (N).Nkind = N_Protected_Definition
-        or else NT (N).Nkind = N_Subprogram_Body
-        or else NT (N).Nkind = N_Task_Definition);
-      return Flag6 (N);
-   end Has_Pragma_Priority;
 
    function Has_Pragma_Suppress_All
       (N : Node_Id) return Boolean is
@@ -1540,22 +1521,6 @@ package body Sinfo is
         or else NT (N).Nkind = N_Task_Definition);
       return Flag5 (N);
    end Has_Storage_Size_Pragma;
-
-   function Has_Task_Info_Pragma
-      (N : Node_Id) return Boolean is
-   begin
-      pragma Assert (False
-        or else NT (N).Nkind = N_Task_Definition);
-      return Flag7 (N);
-   end Has_Task_Info_Pragma;
-
-   function Has_Task_Name_Pragma
-      (N : Node_Id) return Boolean is
-   begin
-      pragma Assert (False
-        or else NT (N).Nkind = N_Task_Definition);
-      return Flag8 (N);
-   end Has_Task_Name_Pragma;
 
    function Has_Wide_Character
       (N : Node_Id) return Boolean is
@@ -1797,6 +1762,14 @@ package body Sinfo is
         or else NT (N).Nkind = N_Function_Call);
       return Flag11 (N);
    end Is_Expanded_Build_In_Place_Call;
+
+   function Is_Finalization_Wrapper
+      (N : Node_Id) return Boolean is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Block_Statement);
+      return Flag9 (N);
+   end Is_Finalization_Wrapper;
 
    function Is_Folded_In_Parser
       (N : Node_Id) return Boolean is
@@ -4515,6 +4488,14 @@ package body Sinfo is
       Set_Flag15 (N, Val);
    end Set_Has_Created_Identifier;
 
+   procedure Set_Has_Dereference_Action
+      (N : Node_Id; Val : Boolean := True) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Explicit_Dereference);
+      Set_Flag13 (N, Val);
+   end Set_Has_Dereference_Action;
+
    procedure Set_Has_Dynamic_Length_Check
       (N : Node_Id; Val : Boolean := True) is
    begin
@@ -4555,33 +4536,6 @@ package body Sinfo is
         or else NT (N).Nkind = N_Compilation_Unit);
       Set_Flag17 (N, Val);
    end Set_Has_No_Elaboration_Code;
-
-   procedure Set_Has_Pragma_CPU
-      (N : Node_Id; Val : Boolean := True) is
-   begin
-      pragma Assert (False
-        or else NT (N).Nkind = N_Subprogram_Body
-        or else NT (N).Nkind = N_Task_Definition);
-      Set_Flag14 (N, Val);
-   end Set_Has_Pragma_CPU;
-
-   procedure Set_Has_Pragma_Dispatching_Domain
-      (N : Node_Id; Val : Boolean := True) is
-   begin
-      pragma Assert (False
-        or else NT (N).Nkind = N_Task_Definition);
-      Set_Flag15 (N, Val);
-   end Set_Has_Pragma_Dispatching_Domain;
-
-   procedure Set_Has_Pragma_Priority
-      (N : Node_Id; Val : Boolean := True) is
-   begin
-      pragma Assert (False
-        or else NT (N).Nkind = N_Protected_Definition
-        or else NT (N).Nkind = N_Subprogram_Body
-        or else NT (N).Nkind = N_Task_Definition);
-      Set_Flag6 (N, Val);
-   end Set_Has_Pragma_Priority;
 
    procedure Set_Has_Pragma_Suppress_All
       (N : Node_Id; Val : Boolean := True) is
@@ -4628,22 +4582,6 @@ package body Sinfo is
         or else NT (N).Nkind = N_Task_Definition);
       Set_Flag5 (N, Val);
    end Set_Has_Storage_Size_Pragma;
-
-   procedure Set_Has_Task_Info_Pragma
-      (N : Node_Id; Val : Boolean := True) is
-   begin
-      pragma Assert (False
-        or else NT (N).Nkind = N_Task_Definition);
-      Set_Flag7 (N, Val);
-   end Set_Has_Task_Info_Pragma;
-
-   procedure Set_Has_Task_Name_Pragma
-      (N : Node_Id; Val : Boolean := True) is
-   begin
-      pragma Assert (False
-        or else NT (N).Nkind = N_Task_Definition);
-      Set_Flag8 (N, Val);
-   end Set_Has_Task_Name_Pragma;
 
    procedure Set_Has_Wide_Character
       (N : Node_Id; Val : Boolean := True) is
@@ -4885,6 +4823,14 @@ package body Sinfo is
         or else NT (N).Nkind = N_Function_Call);
       Set_Flag11 (N, Val);
    end Set_Is_Expanded_Build_In_Place_Call;
+
+   procedure Set_Is_Finalization_Wrapper
+      (N : Node_Id; Val : Boolean := True) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Block_Statement);
+      Set_Flag9 (N, Val);
+   end Set_Is_Finalization_Wrapper;
 
    procedure Set_Is_Folded_In_Parser
       (N : Node_Id; Val : Boolean := True) is

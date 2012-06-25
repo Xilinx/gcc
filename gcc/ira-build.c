@@ -35,7 +35,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic-core.h"
 #include "params.h"
 #include "df.h"
-#include "output.h"
 #include "reload.h"
 #include "sparseset.h"
 #include "ira-int.h"
@@ -508,6 +507,7 @@ ira_create_allocno (int regno, bool cap_p,
   ALLOCNO_HARD_REGNO (a) = -1;
   ALLOCNO_CALL_FREQ (a) = 0;
   ALLOCNO_CALLS_CROSSED_NUM (a) = 0;
+  ALLOCNO_CHEAP_CALLS_CROSSED_NUM (a) = 0;
 #ifdef STACK_REGS
   ALLOCNO_NO_STACK_REG_P (a) = false;
   ALLOCNO_TOTAL_NO_STACK_REG_P (a) = false;
@@ -904,6 +904,7 @@ create_cap_allocno (ira_allocno_t a)
   merge_hard_reg_conflicts (a, cap, false);
 
   ALLOCNO_CALLS_CROSSED_NUM (cap) = ALLOCNO_CALLS_CROSSED_NUM (a);
+  ALLOCNO_CHEAP_CALLS_CROSSED_NUM (cap) = ALLOCNO_CHEAP_CALLS_CROSSED_NUM (a);
   if (internal_flag_ira_verbose > 2 && ira_dump_file != NULL)
     {
       fprintf (ira_dump_file, "    Creating cap ");
@@ -1707,6 +1708,8 @@ propagate_allocno_info (void)
 	  merge_hard_reg_conflicts (a, parent_a, true);
 	  ALLOCNO_CALLS_CROSSED_NUM (parent_a)
 	    += ALLOCNO_CALLS_CROSSED_NUM (a);
+	  ALLOCNO_CHEAP_CALLS_CROSSED_NUM (parent_a)
+	    += ALLOCNO_CHEAP_CALLS_CROSSED_NUM (a);
 	  ALLOCNO_EXCESS_PRESSURE_POINTS_NUM (parent_a)
 	    += ALLOCNO_EXCESS_PRESSURE_POINTS_NUM (a);
 	  aclass = ALLOCNO_CLASS (a);
@@ -1825,8 +1828,8 @@ low_pressure_loop_node_p (ira_loop_tree_node_t node)
   for (i = 0; i < ira_pressure_classes_num; i++)
     {
       pclass = ira_pressure_classes[i];
-      if (node->reg_pressure[pclass] > ira_available_class_regs[pclass]
-	  && ira_available_class_regs[pclass] > 1)
+      if (node->reg_pressure[pclass] > ira_class_hard_regs_num[pclass]
+	  && ira_class_hard_regs_num[pclass] > 1)
 	return false;
     }
   return true;
@@ -2082,6 +2085,8 @@ propagate_some_info_from_allocno (ira_allocno_t a, ira_allocno_t from_a)
   ALLOCNO_FREQ (a) += ALLOCNO_FREQ (from_a);
   ALLOCNO_CALL_FREQ (a) += ALLOCNO_CALL_FREQ (from_a);
   ALLOCNO_CALLS_CROSSED_NUM (a) += ALLOCNO_CALLS_CROSSED_NUM (from_a);
+  ALLOCNO_CHEAP_CALLS_CROSSED_NUM (a)
+    += ALLOCNO_CHEAP_CALLS_CROSSED_NUM (from_a);
   ALLOCNO_EXCESS_PRESSURE_POINTS_NUM (a)
     += ALLOCNO_EXCESS_PRESSURE_POINTS_NUM (from_a);
   if (! ALLOCNO_BAD_SPILL_P (from_a))
@@ -2709,6 +2714,8 @@ copy_info_to_removed_store_destinations (int regno)
       ALLOCNO_CALL_FREQ (parent_a) += ALLOCNO_CALL_FREQ (a);
       ALLOCNO_CALLS_CROSSED_NUM (parent_a)
 	+= ALLOCNO_CALLS_CROSSED_NUM (a);
+      ALLOCNO_CHEAP_CALLS_CROSSED_NUM (parent_a)
+	+= ALLOCNO_CHEAP_CALLS_CROSSED_NUM (a);
       ALLOCNO_EXCESS_PRESSURE_POINTS_NUM (parent_a)
 	+= ALLOCNO_EXCESS_PRESSURE_POINTS_NUM (a);
       merged_p = true;
@@ -2804,6 +2811,8 @@ ira_flattening (int max_regno_before_emit, int ira_max_point_before_emit)
 	      ALLOCNO_CALL_FREQ (parent_a) -= ALLOCNO_CALL_FREQ (a);
 	      ALLOCNO_CALLS_CROSSED_NUM (parent_a)
 		-= ALLOCNO_CALLS_CROSSED_NUM (a);
+	      ALLOCNO_CHEAP_CALLS_CROSSED_NUM (parent_a)
+		-= ALLOCNO_CHEAP_CALLS_CROSSED_NUM (a);
 	      ALLOCNO_EXCESS_PRESSURE_POINTS_NUM (parent_a)
 		-= ALLOCNO_EXCESS_PRESSURE_POINTS_NUM (a);
 	      ira_assert (ALLOCNO_CALLS_CROSSED_NUM (parent_a) >= 0

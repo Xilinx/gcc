@@ -28,8 +28,9 @@ extern int use_return_insn (int, rtx);
 extern enum reg_class arm_regno_class (int);
 extern void arm_load_pic_register (unsigned long);
 extern int arm_volatile_func (void);
-extern const char *arm_output_epilogue (rtx);
 extern void arm_expand_prologue (void);
+extern void arm_expand_epilogue (bool);
+extern void thumb2_expand_return (void);
 extern const char *arm_strip_name_encoding (const char *);
 extern void arm_asm_output_labelref (FILE *, const char *);
 extern void thumb2_asm_output_opcode (FILE *);
@@ -62,6 +63,8 @@ extern bool arm_legitimize_reload_address (rtx *, enum machine_mode, int, int,
 extern rtx thumb_legitimize_reload_address (rtx *, enum machine_mode, int, int,
 					    int);
 extern int thumb1_legitimate_address_p (enum machine_mode, rtx, int);
+extern bool ldm_stm_operation_p (rtx, bool, enum machine_mode mode,
+                                 bool, bool);
 extern int arm_const_double_rtx (rtx);
 extern int neg_const_double_rtx_ok_for_fpa (rtx);
 extern int vfp3_const_double_rtx (rtx);
@@ -145,7 +148,7 @@ extern int arm_address_offset_is_imm (rtx);
 extern const char *output_add_immediate (rtx *);
 extern const char *arithmetic_instr (rtx, int);
 extern void output_ascii_pseudo_op (FILE *, const unsigned char *, int);
-extern const char *output_return_instruction (rtx, int, int);
+extern const char *output_return_instruction (rtx, bool, bool, bool);
 extern void arm_poke_function_name (FILE *, const char *);
 extern void arm_final_prescan_insn (rtx);
 extern int arm_debugger_arg_offset (int, rtx);
@@ -154,9 +157,12 @@ extern int    arm_emit_vector_const (FILE *, rtx);
 extern void arm_emit_fp16_const (rtx c);
 extern const char * arm_output_load_gr (rtx *);
 extern const char *vfp_output_fstmd (rtx *);
+extern void arm_output_multireg_pop (rtx *, bool, rtx, bool, bool);
 extern void arm_set_return_address (rtx, rtx);
 extern int arm_eliminable_register (rtx);
 extern const char *arm_output_shift(rtx *, int);
+extern const char *arm_output_iwmmxt_shift_immediate (const char *, rtx *, bool);
+extern const char *arm_output_iwmmxt_tinsr (rtx *);
 extern unsigned int arm_sync_loop_insns (rtx , rtx *);
 extern int arm_attr_length_push_multi(rtx, rtx);
 extern void arm_expand_compare_and_swap (rtx op[]);
@@ -176,7 +182,7 @@ extern int arm_float_words_big_endian (void);
 
 /* Thumb functions.  */
 extern void arm_init_expanders (void);
-extern const char *thumb_unexpanded_epilogue (void);
+extern const char *thumb1_unexpanded_epilogue (void);
 extern void thumb1_expand_prologue (void);
 extern void thumb1_expand_epilogue (void);
 extern const char *thumb1_output_interwork (void);
@@ -243,9 +249,17 @@ struct tune_params
 
 extern const struct tune_params *current_tune;
 extern int vfp3_const_double_for_fract_bits (rtx);
+
+extern void arm_emit_coreregs_64bit_shift (enum rtx_code, rtx, rtx, rtx, rtx,
+					   rtx);
+extern bool arm_validize_comparison (rtx *, rtx *, rtx *);
 #endif /* RTX_CODE */
 
 extern void arm_expand_vec_perm (rtx target, rtx op0, rtx op1, rtx sel);
 extern bool arm_expand_vec_perm_const (rtx target, rtx op0, rtx op1, rtx sel);
+
+extern bool arm_autoinc_modes_ok_p (enum machine_mode, enum arm_auto_incmodes);
+
+extern void arm_emit_eabi_attribute (const char *, int, int);
 
 #endif /* ! GCC_ARM_PROTOS_H */

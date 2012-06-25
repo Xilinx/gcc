@@ -36,7 +36,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "function.h"
 #include "flags.h"
 #include "basic-block.h"
-#include "output.h"
 #include "reload.h"
 #include "target.h"
 #include "timevar.h"
@@ -309,10 +308,14 @@ canonicalize_change_group (rtx insn, rtx x)
 
 
 /* This subroutine of apply_change_group verifies whether the changes to INSN
-   were valid; i.e. whether INSN can still be recognized.  */
+   were valid; i.e. whether INSN can still be recognized.
+
+   If IN_GROUP is true clobbers which have to be added in order to
+   match the instructions will be added to the current change group.
+   Otherwise the changes will take effect immediately.  */
 
 int
-insn_invalid_p (rtx insn)
+insn_invalid_p (rtx insn, bool in_group)
 {
   rtx pat = PATTERN (insn);
   int num_clobbers = 0;
@@ -344,7 +347,10 @@ insn_invalid_p (rtx insn)
       newpat = gen_rtx_PARALLEL (VOIDmode, rtvec_alloc (num_clobbers + 1));
       XVECEXP (newpat, 0, 0) = pat;
       add_clobbers (newpat, icode);
-      PATTERN (insn) = pat = newpat;
+      if (in_group)
+	validate_change (insn, &PATTERN (insn), newpat, 1);
+      else
+	PATTERN (insn) = pat = newpat;
     }
 
   /* After reload, verify that all constraints are satisfied.  */
@@ -413,7 +419,7 @@ verify_changes (int num)
 	}
       else if (DEBUG_INSN_P (object))
 	continue;
-      else if (insn_invalid_p (object))
+      else if (insn_invalid_p (object, true))
 	{
 	  rtx pat = PATTERN (object);
 
@@ -1962,7 +1968,7 @@ offsettable_address_addr_space_p (int strictp, enum machine_mode mode, rtx y,
       int good;
 
       y1 = *y2;
-      *y2 = plus_constant (*y2, mode_sz - 1);
+      *y2 = plus_constant (GET_MODE (y), *y2, mode_sz - 1);
       /* Use QImode because an odd displacement may be automatically invalid
 	 for any wider mode.  But it should be valid for a single byte.  */
       good = (*addressp) (QImode, y, as);
@@ -1984,9 +1990,10 @@ offsettable_address_addr_space_p (int strictp, enum machine_mode mode, rtx y,
       && mode != BLKmode
       && mode_sz <= GET_MODE_ALIGNMENT (mode) / BITS_PER_UNIT)
     z = gen_rtx_LO_SUM (GET_MODE (y), XEXP (y, 0),
-			plus_constant (XEXP (y, 1), mode_sz - 1));
+			plus_constant (GET_MODE (y), XEXP (y, 1),
+				       mode_sz - 1));
   else
-    z = plus_constant (y, mode_sz - 1);
+    z = plus_constant (GET_MODE (y), y, mode_sz - 1);
 
   /* Use QImode because an odd displacement may be automatically invalid
      for any wider mode.  But it should be valid for a single byte.  */
@@ -2673,6 +2680,16 @@ constrain_operands (int strict)
 			   /* Every address operand can be reloaded to fit.  */
 			   && strict < 0)
 		    win = 1;
+		  /* Cater to architectures like IA-64 that define extra memory
+		     constraints without using define_memory_constraint.  */
+		  else if (reload_in_progress
+			   && REG_P (op)
+			   && REGNO (op) >= FIRST_PSEUDO_REGISTER
+			   && reg_renumber[REGNO (op)] < 0
+			   && reg_equiv_mem (REGNO (op)) != 0
+			   && EXTRA_CONSTRAINT_STR
+			      (reg_equiv_mem (REGNO (op)), c, p))
+		    win = 1;
 #endif
 		  break;
 		}
@@ -2774,14 +2791,16 @@ bool
 reg_fits_class_p (const_rtx operand, reg_class_t cl, int offset,
 		  enum machine_mode mode)
 {
-  int regno = REGNO (operand);
+  unsigned int regno = REGNO (operand);
 
   if (cl == NO_REGS)
     return false;
 
+  /* Regno must not be a pseudo register.  Offset may be negative.  */
   return (HARD_REGISTER_NUM_P (regno)
-	  && in_hard_reg_set_p (reg_class_contents[(int) cl],
-				mode, regno + offset));
+	  && HARD_REGISTER_NUM_P (regno + offset)
+	  && in_hard_reg_set_p (reg_class_contents[(int) cl], mode, 
+				regno + offset));
 }
 
 /* Split single instruction.  Helper function for split_all_insns and

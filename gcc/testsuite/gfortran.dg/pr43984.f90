@@ -54,4 +54,3 @@ end
 
 ! { dg-final { scan-tree-dump-times "= iyz.base_addr" 3 "pre" } }
 ! { dg-final { cleanup-tree-dump "pre" } }
-! { dg-final { cleanup-modules "test" } }

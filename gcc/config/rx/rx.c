@@ -52,6 +52,7 @@
 #include "target-def.h"
 #include "langhooks.h"
 #include "opts.h"
+#include "cgraph.h"
 
 static unsigned int rx_gp_base_regnum_val = INVALID_REGNUM;
 static unsigned int rx_pid_base_regnum_val = INVALID_REGNUM;
@@ -1381,7 +1382,7 @@ rx_get_stack_layout (unsigned int * lowest,
 	      be used in (non-interrupt aware) routines called from this one.  */
 	   || (call_used_regs[reg]
 	       && is_interrupt_func (NULL_TREE)
-	       && ! current_function_is_leaf))
+	       && ! crtl->is_leaf))
 	  && (! call_used_regs[reg]
 	      /* Even call clobbered registered must
 		 be pushed inside interrupt handlers.  */
@@ -1779,7 +1780,7 @@ gen_rx_rtsd_vector (unsigned int adjust, unsigned int low, unsigned int high)
 
   XVECEXP (vector, 0, 0) =
     gen_rtx_SET (VOIDmode, stack_pointer_rtx,
-		 plus_constant (stack_pointer_rtx, adjust));
+		 plus_constant (Pmode, stack_pointer_rtx, adjust));
 
   for (i = 0; i < count - 2; i++)
     XVECEXP (vector, 0, i + 1) =
@@ -1787,7 +1788,7 @@ gen_rx_rtsd_vector (unsigned int adjust, unsigned int low, unsigned int high)
 		   gen_rtx_REG (SImode, low + i),
 		   gen_rtx_MEM (SImode,
 				i == 0 ? stack_pointer_rtx
-				: plus_constant (stack_pointer_rtx,
+				: plus_constant (Pmode, stack_pointer_rtx,
 						 i * UNITS_PER_WORD)));
 
   XVECEXP (vector, 0, count - 1) = ret_rtx;
@@ -1808,7 +1809,7 @@ gen_rx_popm_vector (unsigned int low, unsigned int high)
 
   XVECEXP (vector, 0, 0) =
     gen_rtx_SET (VOIDmode, stack_pointer_rtx,
-		 plus_constant (stack_pointer_rtx,
+		 plus_constant (Pmode, stack_pointer_rtx,
 				(count - 1) * UNITS_PER_WORD));
 
   for (i = 0; i < count - 1; i++)
@@ -1817,7 +1818,7 @@ gen_rx_popm_vector (unsigned int low, unsigned int high)
 		   gen_rtx_REG (SImode, low + i),
 		   gen_rtx_MEM (SImode,
 				i == 0 ? stack_pointer_rtx
-				: plus_constant (stack_pointer_rtx,
+				: plus_constant (Pmode, stack_pointer_rtx,
 						 i * UNITS_PER_WORD)));
 
   return vector;

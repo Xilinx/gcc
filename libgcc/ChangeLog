@@ -1,3 +1,218 @@
+2012-06-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sfp-machine.h (FP_HANDLE_EXCEPTIONS): Use
+	__builtin_expect when checking for exceptions.
+	* config/ia64/sfp-machine.h (FP_HANDLE_EXCEPTIONS): Ditto.
+
+2012-06-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/ia64/sfp-machine.h (__sfp_handle_exceptions): New
+	function declaration.
+	(FP_HANDLE_EXCEPTIONS): Use __sfp_handle_exceptions.
+	(FP_RND_MASK): New.
+	* config/ia64/sfp-exceptions.c: New.
+	* config/ia64/t-softfp (LIB2ADD): Add sfp-exceptions.c.
+
+2012-06-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/32/sfp-machine.h (_FP_NANSIGN_S, _FP_NANSIGN_D,
+	_FP_NANSIGN_E, _FP_NANSIGN_Q): Move ...
+	* config/i386/64/sfp-machine: ... (delete here) ...
+	* config/i386/sfp-machine.h: ... to here.
+	(FP_EX_MASK): Remove.
+	(FP_RND_MASK): New.
+	(FP_INIT_ROUNDMODE): Declare asm as volatile.
+
+2012-06-11  Sriraman Tallam  <tmsriram@google.com>
+
+	* config/i386/libgcc-bsd.ver: Version symbol __cpu_indicator_init.
+	* config/i386/libgcc-sol2.ver: Ditto.
+	* config/i386/libgcc-glibc.ver: Ditto.
+
+2012-06-11  Roland McGrath  <mcgrathr@google.com>
+
+	* gthr-posix.h [neither FreeBSD nor Solaris] (__gthread_active_p):
+	If __GLIBC__ is defined, refer to __pthread_key_create instead of
+	pthread_cancel.
+
+2012-06-09  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/32/sfp-machine.h (__gcc_CMPtype, CMPtype,
+	_FP_KEEPNANFRACP, _FP_CHOOSENAN, FP_EX_INVALID, FP_EX_DENORM,
+	FP_EX_DIVZERO, FP_EX_OVERFLOW, FP_EX_UNDERFLOW, FP_EX_INEXACT,
+	FP_HANDLE_EXCEPTIONS, FP_RND_NEAREST, FP_RND_ZERO, FP_RND_PINF,
+	FP_RND_MINF, _FP_DEXL_EX, FP_INIT_ROUNDMODE, FP_ROUNDMODE,
+	__LITTLE_ENDIAN, __BIG_ENDIAN, strong_alias): Move ...
+	* config/i386/64/sfp-machine: ... (delete here) ...
+	* config/i386/sfp-machine.h: ... to here.
+	(FP_EX_MASK): New.
+	(__sfp_handle_exceptions): New function declaration.
+	(FP_HANDLE_EXCEPTIONS): Use __sfp_handle_exceptions.
+	* config/i386/sfp-exceptions.c: New.
+	* config/i386/t-softfp: New.
+	* config.host (i[34567]86-*-* and x86_64-*-* soft-fp targets): Add
+	i386/t-softfp to tmake_file.
+
+2012-06-03  David S. Miller  <davem@davemloft.net>
+
+	* longlong.h [SPARC] (sub_ddmmss): Fix thinko in previous 64-bit
+	change.
+
+2012-05-31  David S. Miller  <davem@davemloft.net>
+
+	* longlong.h [SPARC] (umul_ppmm, udiv_qrnnd): Use hardware integer
+	multiply and divide instructions on 32-bit when V9.
+	(add_ssaaaa, sub_ddmmss): Convert to branchless code on 64-bit.
+
+2012-05-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/arm/ieee754-df.S: Fix typos.
+	* config/arm/ieee754-sf.S: Fix typos.
+	* config/c6x/libunwind.S: Fix typos.
+	* config/epiphany/udivsi3-float.c: Fix typos.
+	* config/microblaze/muldi3_hard.S: Fix typos.
+	* config/picochip/adddi3.S: Fix typos.
+	* config/picochip/ashlsi3.S: Fix typos.
+	* config/picochip/ashrsi3.S: Fix typos.
+	* config/picochip/clzsi2.S: Fix typos.
+	* config/picochip/cmpsi2.S: Fix typos.
+	* config/picochip/divmod15.S: Fix typos.
+	* config/picochip/divmodhi4.S: Fix typos.
+	* config/picochip/divmodsi4.S: Fix typos.
+	* config/picochip/longjmp.S: Fix typos.
+	* config/picochip/lshrsi3.S: Fix typos.
+	* config/picochip/parityhi2.S: Fix typos.
+	* config/picochip/popcounthi2.S: Fix typos.
+	* config/picochip/setjmp.S: Fix typos.
+	* config/picochip/subdi3.S: Fix typos.
+	* config/picochip/ucmpsi2.S: Fix typos.
+	* config/picochip/udivmodhi4.S: Fix typos.
+	* config/picochip/udivmodsi4.S: Fix typos.
+	* config/spu/divv2df3.c: Fix typos.
+	* config/spu/mfc_multi_tag_release.c: Fix typos.
+	* config/spu/mfc_tag_release.c: Fix typos.
+	* configure.ac: Fix typos.
+	* configure: Regenerate.
+
+2012-05-25  Ian Lance Taylor  <iant@google.com>
+
+	* config/i386/morestack.S (__morestack_non_split): Check whether
+	caller is varargs and needs %bp to hold the stack frame on return.
+
+2012-05-25  Olivier Hainque  <hainque@adacore.com>
+
+	* config/rs6000/vxworks/tramp.S (trampoline_setup): Use a longcall
+	sequence in the non pic case on VxWorks.
+
+2012-05-24  Olivier Hainque  <hainque@adacore.com>
+
+	* Makefile.in: Move dependency on install-unwind_h from
+	"install-leaf" to "install".
+
+2012-05-24  Olivier Hainque  <hainque@adacore.com>
+
+	* Makefile.in (clean): Remove libgcc_tm.stamp as well.
+	Use a separate command for stamp removals.
+
+2012-05-21  Andrew Pinski  <apinski@cavium.com>
+
+	PR bootstrap/53183
+	* configure.ac: Define the default includes to being none.
+	* configure: Regenerate.
+
+2012-05-16  Olivier Hainque  <hainque@adacore.com>
+
+	* Makefile.in (install-unwind_h): Rename into ...
+	(install-unwind_h-forbuild): New target.
+	(all): Use it instead of the former install-unwind_h.
+	(install-unwind_h): Reinstate, copy to user install destination
+	for include files, not to the internal gcc object directory one.
+	(install-leaf): Depend on it.
+
+2012-05-15  Olivier Hainque  <hainque@adacore.com>
+
+	* config/rs6000/aix-unwind.h (*_REGNO): New, set of useful
+	register numbers. LR_REGNO replaces R_LR.
+	(ucontext_for): New, helper for ...
+	(ppc_aix_fallback_frame_state): New, implementation for aix 5.2
+	and 5.3 of ...
+	(MD_FALLBACK_FRAME_STATE_FOR): Define for 32bit configurations.
+
+2012-05-10  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config.host (i[34567]86-*-linux*, x86_64-*-linux*)
+	(i[34567]86-*-kfreebsd*-gnu, x86_64-*-kfreebsd*-gnu)
+	(i[34567]86-*-knetbsd*-gnu, i[34567]86-*-gnu*): Move
+	i386/t-cpuinfo ...
+	(i[34567]86-*-*, x86_64-*-*): ... here.
+
+	* config/i386/libgcc-bsd.ver (GCC_4.8.0): New version.
+	* config/i386/libgcc-sol2.ver (GCC_4.8.0): New version.
+
+	* config/i386/i386-cpuinfo.c: Rename to ...
+	* config/i386/cpuinfo.c: ... this.
+	* config/i386/t-cpuinfo (LIB2ADD): Reflect this.
+
+	* configure.ac (AC_CONFIG_HEADER): Call for auto-target.h.
+	(libgcc_cv_init_priority): New test.
+	* configure: Regenerate.
+	* config.in: New file.
+	* Makefile.in (clean): Rename config.h to auto-target.h.
+	(config.h): Likewise.
+	(stamp-h): Likewise.
+
+	* config/i386/cpuinfo.c (auto-target.h): Include.
+	(CONSTRUCTOR_PRIORITY): Define.
+	(__cpu_indicator_init): Use it.
+
+2012-05-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* longlong.h: Use a URL instead of an FSF postal address.
+	Replace spaces with tab.
+
+2012-05-08  Teresa Johnson  <tejohnson@google.com>
+
+	* libgcov.c (gcov_clear, __gcov_reset): New functions.
+	(__gcov_dump): Ditto.
+	(gcov_dump_complete): New global variable.
+	(gcov_exit): Export hidden to enable use in L_gcov_dump.
+	(__gcov_flush): Outline functionality now in gcov_clear.
+	* Makefile.in (L_gcov_reset, L_gcov_dump): Define.
+
+2012-04-28  Aurelien Jarno  <aurelien@aurel32.net>
+
+	* config.host (mips64*-*-linux*, mipsisa64*-*-linux*): Remove.
+	(mips*-*-linux*): Include mips/t-tpbit when long double is
+	16 bytes long.
+
+2012-04-25  Sriraman Tallam  <tmsriram@google.com>
+
+	* config/i386/i386-cpuinfo.c (FEATURE_AVX2): New enum value.
+	(get_available_features): New argument. Check for AVX2.
+	(__cpu_indicator_init): Modify call to get_available_features.
+
+2012-04-25  Alan Modra  <amodra@gmail.com>
+
+	* config/rs6000/crtsavevr.S: New file.
+	* config/rs6000/crtrestvr.S: New file.
+	* config/rs6000/t-savresfgpr: Build the above.
+	* config/rs6000/t-netbsd: Likewise.
+
+2012-04-24  Sriraman Tallam  <tmsriram@google.com>
+
+	* libgcc/config/i386/i386-cpuinfo.c: Set __cpu_vendor always.
+
+2012-04-24  Sriraman Tallam  <tmsriram@google.com>
+
+	* libgcc/config/i386/i386-cpuinfo.c: New file.
+	* libgcc/config/i386/t-cpuinfo: New file.
+	* libgcc/config.host: Include t-cpuinfo.
+	* libgcc/config/i386/libgcc-glibc.ver: Version symbol __cpu_model.
+
+2012-04-24  Chao-ying Fu  <fu@mips.com>
+
+	* unwind-dw2-fde-dip.c: Define USE_PT_GNU_EH_FRAME for BIONIC.
+
 2012-04-20  Thomas Schwinge  <thomas@codesourcery.com>
 
 	struct siginfo vs. siginfo_t
@@ -164,8 +379,8 @@
 
 2012-03-11  Michael Hope  <michael.hope@linaro.org>
 
-       * longlong.h [ARM] (add_ssaaaa, sub_ddmmss, umul_ppmm): Enable
-       for Thumb-2.
+	* longlong.h [ARM] (add_ssaaaa, sub_ddmmss, umul_ppmm): Enable
+	for Thumb-2.
 
 2012-03-07  Walter Lee  <walt@tilera.com>
 

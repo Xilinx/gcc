@@ -281,6 +281,13 @@ package body Prj.Attr is
    "SVresponse_file_format#" &
    "LVresponse_file_switches#" &
 
+   --  package Clean
+
+   "Pclean#" &
+   "LVswitches#" &
+   "Lasource_artifact_extensions#" &
+   "Laobject_artifact_extensions#" &
+
    --  package Cross_Reference
 
    "Pcross_reference#" &
@@ -343,6 +350,16 @@ package body Prj.Attr is
    "SVvcs_file_check#" &
    "SVvcs_log_check#" &
    "SVdocumentation_dir#" &
+
+   --  package Install
+
+   "Pinstall#" &
+   "SVprefix#" &
+   "SVsources_subdir#" &
+   "SVexec_subdir#" &
+   "SVlib_subdir#" &
+   "SVproject_subdir#" &
+   "SVactive#" &
 
    --  package Stack
 

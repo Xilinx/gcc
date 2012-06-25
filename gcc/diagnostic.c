@@ -147,6 +147,7 @@ diagnostic_initialize (diagnostic_context *context, int n_opts)
   context->option_enabled = NULL;
   context->option_state = NULL;
   context->option_name = NULL;
+  context->last_location = UNKNOWN_LOCATION;
   context->last_module = 0;
   context->x_data = NULL;
   context->lock = 0;
@@ -214,7 +215,7 @@ diagnostic_build_prefix (diagnostic_context *context,
     "must-not-happen"
   };
   const char *text = _(diagnostic_kind_text[diagnostic->kind]);
-  expanded_location s = expand_location (diagnostic->location);
+  expanded_location s = expand_location_to_spelling_point (diagnostic->location);
   if (diagnostic->override_column)
     s.column = diagnostic->override_column;
   gcc_assert (diagnostic->kind < DK_LAST_DIAGNOSTIC_KIND);
@@ -263,10 +264,12 @@ diagnostic_show_locus (diagnostic_context * context,
 
 
   if (!context->show_caret
-      || diagnostic->location <= BUILTINS_LOCATION)
+      || diagnostic->location <= BUILTINS_LOCATION
+      || diagnostic->location == context->last_location)
     return;
 
-  s = expand_location(diagnostic->location);
+  context->last_location = diagnostic->location;
+  s = expand_location_to_spelling_point (diagnostic->location);
   line = location_get_source_line (s);
   if (line == NULL)
     return;
@@ -542,7 +545,8 @@ diagnostic_report_diagnostic (diagnostic_context *context,
       diagnostic->kind = DK_ERROR;
     }
 
-  if (diagnostic->option_index)
+  if (diagnostic->option_index
+      && diagnostic->option_index != permissive_error_option (context))
     {
       diagnostic_t diag_class = DK_UNSPECIFIED;
 
@@ -809,10 +813,10 @@ warning_at (location_t location, int opt, const char *gmsgid, ...)
    language standard, if you have chosen not to make them errors.
 
    Note that these diagnostics are issued independent of the setting
-   of the -pedantic command-line switch.  To get a warning enabled
+   of the -Wpedantic command-line switch.  To get a warning enabled
    only with that switch, use either "if (pedantic) pedwarn
-   (OPT_pedantic,...)" or just "pedwarn (OPT_pedantic,..)".  To get a
-   pedwarn independently of the -pedantic switch use "pedwarn (0,...)".
+   (OPT_Wpedantic,...)" or just "pedwarn (OPT_Wpedantic,..)".  To get a
+   pedwarn independently of the -Wpedantic switch use "pedwarn (0,...)".
 
    Returns true if the warning was printed, false if it was inhibited.  */
 

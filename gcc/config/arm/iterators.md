@@ -1,5 +1,5 @@
 ;; Code and mode itertator and attribute definitions for the ARM backend
-;; Copyright (C) 2010 Free Software Foundation, Inc.
+;; Copyright (C) 2010, 2012 Free Software Foundation, Inc.
 ;; Contributed by ARM Ltd.
 ;;
 ;; This file is part of GCC.
@@ -36,7 +36,7 @@
 ;; A list of integer modes that are less than a word
 (define_mode_iterator NARROW [QI HI])
 
-;; A list of all the integer modes upto 64bit
+;; A list of all the integer modes up to 64bit
 (define_mode_iterator QHSD [QI HI SI DI])
 
 ;; A list of the 32bit and 64bit integer modes
@@ -44,6 +44,8 @@
 
 ;; Integer element sizes implemented by IWMMXT.
 (define_mode_iterator VMMX [V2SI V4HI V8QI])
+
+(define_mode_iterator VMMX2 [V4HI V2SI])
 
 ;; Integer element sizes for shifts.
 (define_mode_iterator VSHFT [V4HI V2SI DI])

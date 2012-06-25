@@ -1914,7 +1914,6 @@ transform_access_sites (void **slot, void *data ATTRIBUTE_UNUSED)
 	      num_elements =
 		fold_build2 (MULT_EXPR, sizetype, fold_convert (sizetype, acc_info->index),
 			    fold_convert (sizetype, d_size));
-	      add_referenced_var (d_size);
 	      gsi = gsi_for_stmt (acc_info->stmt);
 	      tmp1 = force_gimple_operand_gsi (&gsi, num_elements, true,
 					       NULL, true, GSI_SAME_STMT);
@@ -2159,7 +2158,6 @@ transform_allocation_sites (void **slot, void *data ATTRIBUTE_UNUSED)
 					   true, GSI_SAME_STMT);
       /* GLOBAL_HOLDING_THE_SIZE = DIM_SIZE.  */
       stmt = gimple_build_assign (dim_var, dim_size);
-      mark_symbols_for_renaming (stmt);
       gsi_insert_before (&gsi, stmt, GSI_SAME_STMT);
 
       prev_dim_size = mi->dimension_size[i] = dim_var;

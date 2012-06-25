@@ -28,7 +28,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm_p.h"
 #include "langhooks.h"
 #include "basic-block.h"
-#include "output.h"
 #include "function.h"
 #include "tree-pretty-print.h"
 #include "gimple-pretty-print.h"
@@ -2471,7 +2470,7 @@ rewrite_into_ssa (void)
   basic_block bb;
 
   /* Initialize operand data structures.  */
-  init_ssa_operands ();
+  init_ssa_operands (cfun);
 
   /* Initialize internal data needed by the renamer.  */
   init_ssa_renamer ();
@@ -3050,26 +3049,6 @@ name_registered_for_update_p (tree n ATTRIBUTE_UNUSED)
   gcc_assert (update_ssa_initialized_fn == cfun);
 
   return is_new_name (n) || is_old_name (n);
-}
-
-
-/* Return the set of all the SSA names marked to be replaced.  */
-
-bitmap
-ssa_names_to_replace (void)
-{
-  unsigned i = 0;
-  bitmap ret;
-  sbitmap_iterator sbi;
-
-  gcc_assert (update_ssa_initialized_fn == NULL
-	      || update_ssa_initialized_fn == cfun);
-
-  ret = BITMAP_ALLOC (NULL);
-  EXECUTE_IF_SET_IN_SBITMAP (old_ssa_names, 0, i, sbi)
-    bitmap_set_bit (ret, i);
-
-  return ret;
 }
 
 

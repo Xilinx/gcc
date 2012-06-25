@@ -168,6 +168,8 @@
 %{mcpu=e300c3: -me300} \
 %{mcpu=e500mc: -me500mc} \
 %{mcpu=e500mc64: -me500mc64} \
+%{mcpu=e5500: -me5500} \
+%{mcpu=e6500: -me6500} \
 %{maltivec: -maltivec} \
 %{mvsx: -mvsx %{!maltivec: -maltivec} %{!mcpu*: %(asm_cpu_power7)}} \
 -many"
@@ -457,7 +459,6 @@ extern int rs6000_vector_align[];
 
 #define TARGET_SPE_ABI 0
 #define TARGET_SPE 0
-#define TARGET_E500 0
 #define TARGET_ISEL64 (TARGET_ISEL && TARGET_POWERPC64)
 #define TARGET_FPRS 1
 #define TARGET_E500_SINGLE 0
@@ -500,10 +501,10 @@ extern int rs6000_vector_align[];
 				      || TARGET_ALTIVEC			 \
 				      || TARGET_VSX)))
 
+/* E500 cores only support plain "sync", not lwsync.  */
+#define TARGET_NO_LWSYNC (rs6000_cpu == PROCESSOR_PPC8540 \
+			  || rs6000_cpu == PROCESSOR_PPC8548)
 
-
-/* E500 processors only support plain "sync", not lwsync.  */
-#define TARGET_NO_LWSYNC TARGET_E500
 
 /* Which machine supports the various reciprocal estimate instructions.  */
 #define TARGET_FRES	(TARGET_HARD_FLOAT && TARGET_PPC_GFXOPT \
@@ -909,8 +910,8 @@ extern unsigned rs6000_pointer_size;
 #define TOTAL_ALTIVEC_REGS	(LAST_ALTIVEC_REGNO - FIRST_ALTIVEC_REGNO + 1)
 
 #define FIRST_SAVED_ALTIVEC_REGNO (FIRST_ALTIVEC_REGNO+20)
-#define FIRST_SAVED_FP_REGNO    (14+32)
-#define FIRST_SAVED_GP_REGNO 13
+#define FIRST_SAVED_FP_REGNO	  (14+32)
+#define FIRST_SAVED_GP_REGNO	  (FIXED_R13 ? 14 : 13)
 
 /* List the order in which to allocate registers.  Each register must be
    listed once, even those in FIXED_REGISTERS.
@@ -1394,7 +1395,7 @@ extern enum reg_class rs6000_constraints[RS6000_CONSTRAINT_MAX];
 
 /* MEM representing address to save the TOC register */
 #define RS6000_SAVE_TOC gen_rtx_MEM (Pmode, \
-				     plus_constant (stack_pointer_rtx, \
+				     plus_constant (Pmode, stack_pointer_rtx, \
 						    (TARGET_32BIT ? 20 : 40)))
 
 /* Align an address */

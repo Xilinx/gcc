@@ -427,6 +427,15 @@ DEFHOOK
  void, (rtx x),
  default_asm_output_anchor)
 
+DEFHOOK
+(output_ident,
+ "Output a string based on @var{name}, suitable for the @samp{#ident} \
+ directive, or the equivalent directive or pragma in non-C-family languages. \
+ If this hook is not defined, nothing is output for the @samp{#ident} \
+ directive.",
+ void, (const char *name),
+ hook_void_constcharptr)
+
 /* Output a DTP-relative reference to a TLS symbol.  */
 DEFHOOK
 (output_dwarf_dtprel,
@@ -678,11 +687,11 @@ DEFHOOK
    of INSN on CPU that are not described in DFA.
    READY_TRY and N_READY represent the current state of search in the
    optimization space.  The target can filter out instructions that
-   should not be tried after issueing INSN by setting corresponding
+   should not be tried after issuing INSN by setting corresponding
    elements in READY_TRY to non-zero.
    INSN is the instruction being evaluated.
    PREV_DATA is a pointer to target-specific data corresponding
-   to a state before issueing INSN.  */
+   to a state before issuing INSN.  */
 DEFHOOK
 (first_cycle_multipass_issue,
  "",
@@ -696,7 +705,7 @@ DEFHOOK
    described in DFA.
    READY_TRY and N_READY represent the current state of search in the
    optimization space.  The target can filter out instructions that
-   should not be tried after issueing INSN by setting corresponding
+   should not be tried after issuing INSN by setting corresponding
    elements in READY_TRY to non-zero.  */
 DEFHOOK
 (first_cycle_multipass_backtrack,
@@ -1940,6 +1949,12 @@ DEFHOOKPOD
  "",
  unsigned HOST_WIDE_INT, 0)
 
+/* Defines, which target-dependent bits (upper 16) are used by port  */
+DEFHOOK
+(memmodel_check,
+ "",
+ unsigned HOST_WIDE_INT, (unsigned HOST_WIDE_INT val), NULL)
+
 /* Functions relating to calls - argument passing, returns, etc.  */
 /* Members of struct call have no special macro prefix.  */
 HOOK_VECTOR (TARGET_CALLS, calls)
@@ -2740,6 +2755,13 @@ DEFHOOKPOD
  "True if the @code{.debug_pubtypes} and @code{.debug_pubnames} sections\
  should be emitted.  These sections are not used on most platforms, and\
  in particular GDB does not use them.",
+ bool, false)
+
+DEFHOOKPOD
+(force_at_comp_dir,
+ "True if the @code{DW_AT_comp_dir} attribute should be emitted for each \
+ compilation unit.  This attribute is required for the darwin linker \
+ to emit debug information.",
  bool, false)
 
 DEFHOOKPOD

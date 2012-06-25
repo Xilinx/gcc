@@ -39,7 +39,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "insn-attr.h"
 #include "diagnostic-core.h"
 #include "recog.h"
-#include "integrate.h"
 #include "dwarf2.h"
 #include "tm_p.h"
 #include "target.h"
@@ -47,7 +46,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "basic-block.h"
 #include "df.h"
-#include "cfglayout.h"
 #include "intl.h"
 #include "sched-int.h"
 #include "params.h"
@@ -393,7 +391,7 @@ static const struct attribute_spec sh_attribute_table[] =
    The insn that frees registers is most likely to be the insn with lowest
    LUID (original insn order); but such an insn might be there in the stalled
    queue (Q) instead of the ready queue (R).  To solve this, we skip cycles
-   upto a max of 8 cycles so that such insns may move from Q -> R.
+   up to a max of 8 cycles so that such insns may move from Q -> R.
 
    The description of the hooks are as below:
 
@@ -752,8 +750,6 @@ sh_option_override (void)
     if (! VALID_REGISTER_P (ADDREGNAMES_REGNO (regno)))
       sh_additional_register_names[regno][0] = '\0';
 
-  flag_omit_frame_pointer = (PREFERRED_DEBUGGING_TYPE == DWARF2_DEBUG);
-
   if ((flag_pic && ! TARGET_PREFERGOT)
       || (TARGET_SHMEDIA && !TARGET_PT_FIXED))
     flag_no_function_cse = 1;
@@ -785,22 +781,17 @@ sh_option_override (void)
 	flag_schedule_insns = 0;
     }
 
-    if ((target_flags_explicit & MASK_ACCUMULATE_OUTGOING_ARGS) == 0)
-       target_flags |= MASK_ACCUMULATE_OUTGOING_ARGS;
-
-  /* Unwind info is not correct around the CFG unless either a frame 
-     pointer is present or M_A_O_A is set.  Fixing this requires rewriting 
-     unwind info generation to be aware of the CFG and propagating states 
+  /* Unwind info is not correct around the CFG unless either a frame
+     pointer is present or M_A_O_A is set.  Fixing this requires rewriting
+     unwind info generation to be aware of the CFG and propagating states
      around edges.  */
   if ((flag_unwind_tables || flag_asynchronous_unwind_tables
-       || flag_exceptions || flag_non_call_exceptions)   
-      && flag_omit_frame_pointer
-      && !(target_flags & MASK_ACCUMULATE_OUTGOING_ARGS))
+       || flag_exceptions || flag_non_call_exceptions)
+      && flag_omit_frame_pointer && !TARGET_ACCUMULATE_OUTGOING_ARGS)
     {
-      if (target_flags_explicit & MASK_ACCUMULATE_OUTGOING_ARGS)
-	warning (0, "unwind tables currently require either a frame pointer "
-		 "or -maccumulate-outgoing-args for correctness");
-      target_flags |= MASK_ACCUMULATE_OUTGOING_ARGS;
+      warning (0, "unwind tables currently require either a frame pointer "
+	       "or -maccumulate-outgoing-args for correctness");
+      TARGET_ACCUMULATE_OUTGOING_ARGS = 1;
     }
 
   /* Unwinding with -freorder-blocks-and-partition does not work on this
@@ -877,12 +868,36 @@ sh_option_override (void)
 	align_functions = min_align;
     }
 
+  if (flag_unsafe_math_optimizations)
+    {
+      /* Enable fsca insn for SH4A if not otherwise specified by the user.  */
+      if (global_options_set.x_TARGET_FSCA == 0 && TARGET_SH4A_FP)
+	TARGET_FSCA = 1;
+
+      /* Enable fsrra insn for SH4A if not otherwise specified by the user.  */
+      if (global_options_set.x_TARGET_FSRRA == 0 && TARGET_SH4A_FP)
+	TARGET_FSRRA = 1;
+    }
+
+  /*  Allow fsrra insn only if -funsafe-math-optimizations and
+      -ffinite-math-only is enabled.  */
+  TARGET_FSRRA = TARGET_FSRRA
+		 && flag_unsafe_math_optimizations
+		 && flag_finite_math_only;
+
   if (sh_fixed_range_str)
     sh_fix_range (sh_fixed_range_str);
 
   /* This target defaults to strict volatile bitfields.  */
   if (flag_strict_volatile_bitfields < 0 && abi_version_at_least(2))
     flag_strict_volatile_bitfields = 1;
+
+  /* Make sure that only one atomic mode is selected and that the selection
+     is valid for the current target CPU.  */
+  if (TARGET_SOFT_ATOMIC && TARGET_HARD_ATOMIC)
+    error ("-msoft-atomic and -mhard-atomic cannot be used at the same time");
+  if (TARGET_HARD_ATOMIC && ! TARGET_SH4A_ARCH)
+    error ("-mhard-atomic is only available for SH4A targets");
 }
 
 /* Print the operand address in x to the stream.  */
@@ -1499,7 +1514,7 @@ expand_block_move (rtx *operands)
 
 	  set_mem_size (from, 4);
 	  emit_insn (gen_movua (temp, from));
-	  emit_move_insn (src_addr, plus_constant (src_addr, 4));
+	  emit_move_insn (src_addr, plus_constant (Pmode, src_addr, 4));
 	  emit_move_insn (to, temp);
 	  copied += 4;
 	}
@@ -2999,6 +3014,27 @@ sh_rtx_costs (rtx x, int code, int outer_code, int opno ATTRIBUTE_UNUSED,
 {
   switch (code)
     {
+      /* The lower-subreg pass decides whether to split multi-word regs
+	 into individual regs by looking at the cost for a SET of certain
+	 modes with the following patterns:
+	   (set (reg) (reg)) 
+	   (set (reg) (const_int 0))
+	 On machines that support vector-move operations a multi-word move
+	 is the same cost as individual reg move.  On SH there is no
+	 vector-move, so we have to provide the correct cost in the number
+	 of move insns to load/store the reg of the mode in question.  */
+    case SET:
+      if (register_operand (SET_DEST (x), VOIDmode)
+	    && (register_operand (SET_SRC (x), VOIDmode)
+		|| satisfies_constraint_Z (SET_SRC (x))))
+	{
+	  const enum machine_mode mode = GET_MODE (SET_DEST (x));
+	  *total = COSTS_N_INSNS (GET_MODE_SIZE (mode)
+				  / mov_insn_size (mode, TARGET_SH2A));
+	  return true;
+        }
+      return false;
+
     case CONST_INT:
       if (TARGET_SHMEDIA)
         {
@@ -6439,11 +6475,10 @@ output_stack_adjust (int size, rtx reg, int epilogue_p,
 	      emit_insn (GEN_MOV (const_reg, GEN_INT (size)));
 	      insn = emit_fn (GEN_ADD3 (reg, reg, const_reg));
 	    }
-	  if (! epilogue_p)
-	    add_reg_note (insn, REG_FRAME_RELATED_EXPR,
-			  gen_rtx_SET (VOIDmode, reg,
-				       gen_rtx_PLUS (SImode, reg,
-						     GEN_INT (size))));
+	  add_reg_note (insn, REG_FRAME_RELATED_EXPR,
+			gen_rtx_SET (VOIDmode, reg,
+				     gen_rtx_PLUS (SImode, reg,
+						   GEN_INT (size))));
 	}
     }
 }
@@ -6488,7 +6523,7 @@ push (int rn)
 static void
 pop (int rn)
 {
-  rtx x;
+  rtx x, sp_reg, reg;
   if (rn == FPUL_REG)
     x = gen_pop_fpul ();
   else if (rn == FPSCR_REG)
@@ -6506,7 +6541,18 @@ pop (int rn)
     x = gen_pop (gen_rtx_REG (SImode, rn));
 
   x = emit_insn (x);
+
+  sp_reg = gen_rtx_REG (SImode, STACK_POINTER_REGNUM);
+  reg = copy_rtx (GET_CODE (PATTERN (x)) == PARALLEL
+		  ? SET_DEST (XVECEXP (PATTERN (x), 0, 0))
+		  : SET_DEST (PATTERN (x)));
+  add_reg_note (x, REG_CFA_RESTORE, reg);
+  add_reg_note (x, REG_CFA_ADJUST_CFA,
+		gen_rtx_SET (SImode, sp_reg,
+			     plus_constant (SImode, sp_reg,
+					    GET_MODE_SIZE (GET_MODE (reg)))));
   add_reg_note (x, REG_INC, gen_rtx_REG (SImode, STACK_POINTER_REGNUM));
+  RTX_FRAME_RELATED_P (x) = 1;
 }
 
 /* Generate code to push the regs specified in the mask.  */
@@ -6584,12 +6630,13 @@ push_regs (HARD_REG_SET *mask, int interrupt_handler)
 	  x = frame_insn (x);
 	  for (i = FIRST_BANKED_REG; i <= LAST_BANKED_REG; i++)
 	    {
-	      mem = gen_rtx_MEM (SImode, plus_constant (sp_reg, i * 4));
+	      mem = gen_rtx_MEM (SImode, plus_constant (Pmode, sp_reg, i * 4));
 	      reg = gen_rtx_REG (SImode, i);
 	      add_reg_note (x, REG_CFA_OFFSET, gen_rtx_SET (SImode, mem, reg));
 	    }
 
-	  set = gen_rtx_SET (SImode, sp_reg, plus_constant (sp_reg, - 32));
+	  set = gen_rtx_SET (SImode, sp_reg,
+			     plus_constant (Pmode, sp_reg, - 32));
 	  add_reg_note (x, REG_CFA_ADJUST_CFA, set);
 	  emit_insn (gen_blockage ());
 	}
@@ -6836,7 +6883,7 @@ sh_media_register_for_return (void)
   int regno;
   int tr0_used;
 
-  if (! current_function_is_leaf)
+  if (! crtl->is_leaf)
     return -1;
   if (lookup_attribute ("interrupt_handler",
 			DECL_ATTRIBUTES (current_function_decl)))
@@ -7388,14 +7435,14 @@ sh_expand_epilogue (bool sibcall_p)
 	 See PR/18032 and PR/40313.  */
       emit_insn (gen_blockage ());
       output_stack_adjust (frame_size, hard_frame_pointer_rtx, e,
-			   &live_regs_mask, false);
+			   &live_regs_mask, true);
 
       /* We must avoid moving the stack pointer adjustment past code
 	 which reads from the local frame, else an interrupt could
 	 occur after the SP adjustment and clobber data in the local
 	 frame.  */
       emit_insn (gen_blockage ());
-      emit_insn (GEN_MOV (stack_pointer_rtx, hard_frame_pointer_rtx));
+      frame_insn (GEN_MOV (stack_pointer_rtx, hard_frame_pointer_rtx));
     }
   else if (frame_size)
     {
@@ -7405,7 +7452,7 @@ sh_expand_epilogue (bool sibcall_p)
 	 frame.  */
       emit_insn (gen_blockage ());
       output_stack_adjust (frame_size, stack_pointer_rtx, e,
-			   &live_regs_mask, false);
+			   &live_regs_mask, true);
     }
 
   if (SHMEDIA_REGS_STACK_ADJUST ())
@@ -7622,7 +7669,7 @@ sh_expand_epilogue (bool sibcall_p)
   output_stack_adjust (crtl->args.pretend_args_size
 		       + save_size + d_rounding
 		       + crtl->args.info.stack_regs * 8,
-		       stack_pointer_rtx, e, NULL, false);
+		       stack_pointer_rtx, e, NULL, true);
 
   if (crtl->calls_eh_return)
     emit_insn (GEN_ADD3 (stack_pointer_rtx, stack_pointer_rtx,
@@ -7817,7 +7864,8 @@ sh_builtin_saveregs (void)
       rtx addr, mask;
 
       regbuf = assign_stack_local (BLKmode, bufsize + UNITS_PER_WORD, 0);
-      addr = copy_to_mode_reg (Pmode, plus_constant (XEXP (regbuf, 0), 4));
+      addr = copy_to_mode_reg (Pmode, plus_constant (Pmode,
+						     XEXP (regbuf, 0), 4));
       mask = copy_to_mode_reg (Pmode, GEN_INT (-8));
       emit_insn (gen_andsi3 (addr, addr, mask));
       regbuf = change_address (regbuf, BLKmode, addr);
@@ -7849,8 +7897,8 @@ sh_builtin_saveregs (void)
      We emit the moves in reverse order so that we can use predecrement.  */
 
   fpregs = copy_to_mode_reg (Pmode,
-			     plus_constant (XEXP (regbuf, 0),
-                                            n_floatregs * UNITS_PER_WORD));
+			     plus_constant (Pmode, XEXP (regbuf, 0),
+					    n_floatregs * UNITS_PER_WORD));
   if (TARGET_SH4 || TARGET_SH2A_DOUBLE)
     {
       rtx mem;
@@ -10429,7 +10477,7 @@ sh_allocate_initial_value (rtx hard_reg)
 
   if (REGNO (hard_reg) == (TARGET_SHMEDIA ? PR_MEDIA_REG : PR_REG))
     {
-      if (current_function_is_leaf
+      if (crtl->is_leaf
 	  && ! sh_pr_n_sets ()
 	  && ! (TARGET_SHCOMPACT
 		&& ((crtl->args.info.call_cookie
@@ -11178,7 +11226,6 @@ static struct builtin_description bdesc[] =
   { CODE_FOR_fsina_s,	"__builtin_sh_media_FSINA_S", SH_BLTIN_SISF, 0 },
   { CODE_FOR_fipr,	"__builtin_sh_media_FIPR_S", SH_BLTIN_3, 0 },
   { CODE_FOR_ftrv,	"__builtin_sh_media_FTRV_S", SH_BLTIN_3, 0 },
-  { CODE_FOR_mac_media,	"__builtin_sh_media_FMAC_S", SH_BLTIN_3, 0 },
   { CODE_FOR_sqrtdf2,	"__builtin_sh_media_FSQRT_D", SH_BLTIN_2, 0 },
   { CODE_FOR_sqrtsf2,	"__builtin_sh_media_FSQRT_S", SH_BLTIN_2, 0 },
   { CODE_FOR_fsrra_s,	"__builtin_sh_media_FSRRA_S", SH_BLTIN_2, 0 },
@@ -11455,7 +11502,7 @@ sh_expand_binop_v2sf (enum rtx_code code, rtx op0, rtx op1, rtx op2)
    We could hold SFmode / SCmode values in XD registers, but that
    would require a tertiary reload when reloading from / to memory,
    and a secondary reload to reload from / to general regs; that
-   seems to be a loosing proposition.
+   seems to be a losing proposition.
 
    We want to allow TImode FP regs so that when V4SFmode is loaded as TImode,
    it won't be ferried through GP registers first.  */
@@ -11716,7 +11763,7 @@ sh_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
 
   reload_completed = 1;
   epilogue_completed = 1;
-  current_function_uses_only_leaf_regs = 1;
+  crtl->uses_only_leaf_regs = 1;
 
   emit_note (NOTE_INSN_PROLOGUE_END);
 
@@ -11777,7 +11824,7 @@ sh_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
 	error ("need a call-clobbered target register");
     }
 
-  this_value = plus_constant (this_rtx, delta);
+  this_value = plus_constant (Pmode, this_rtx, delta);
   if (vcall_offset
       && (simple_add || scratch0 != scratch1)
       && strict_memory_address_p (ptr_mode, this_value))
@@ -11803,7 +11850,7 @@ sh_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
       if (!did_load)
 	emit_load_ptr (scratch0, this_rtx);
 
-      offset_addr = plus_constant (scratch0, vcall_offset);
+      offset_addr = plus_constant (Pmode, scratch0, vcall_offset);
       if (strict_memory_address_p (ptr_mode, offset_addr))
 	; /* Do nothing.  */
       else if (! TARGET_SH5 && scratch0 != scratch1)

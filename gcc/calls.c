@@ -574,6 +574,41 @@ special_function_p (const_tree fndecl, int flags)
   return flags;
 }
 
+/* Similar to special_function_p; return a set of ERF_ flags for the
+   function FNDECL.  */
+static int
+decl_return_flags (tree fndecl)
+{
+  tree attr;
+  tree type = TREE_TYPE (fndecl);
+  if (!type)
+    return 0;
+
+  attr = lookup_attribute ("fn spec", TYPE_ATTRIBUTES (type));
+  if (!attr)
+    return 0;
+
+  attr = TREE_VALUE (TREE_VALUE (attr));
+  if (!attr || TREE_STRING_LENGTH (attr) < 1)
+    return 0;
+
+  switch (TREE_STRING_POINTER (attr)[0])
+    {
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+      return ERF_RETURNS_ARG | (TREE_STRING_POINTER (attr)[0] - '1');
+
+    case 'm':
+      return ERF_NOALIAS;
+
+    case '.':
+    default:
+      return 0;
+    }
+}
+
 /* Return nonzero when FNDECL represents a call to setjmp.  */
 
 int
@@ -868,6 +903,7 @@ save_fixed_argument_area (int reg_parm_stack_space, rtx argblock, int *low_to_sa
 	int num_to_save;
 	enum machine_mode save_mode;
 	int delta;
+	rtx addr;
 	rtx stack_area;
 	rtx save_area;
 
@@ -891,15 +927,13 @@ save_fixed_argument_area (int reg_parm_stack_space, rtx argblock, int *low_to_sa
 #else
 	delta = low;
 #endif
-	stack_area = gen_rtx_MEM (save_mode,
-				  memory_address (save_mode,
-						  plus_constant (argblock,
-								 delta)));
+	addr = plus_constant (Pmode, argblock, delta);
+	stack_area = gen_rtx_MEM (save_mode, memory_address (save_mode, addr));
 
 	set_mem_align (stack_area, PARM_BOUNDARY);
 	if (save_mode == BLKmode)
 	  {
-	    save_area = assign_stack_temp (BLKmode, num_to_save, 0);
+	    save_area = assign_stack_temp (BLKmode, num_to_save);
 	    emit_block_move (validize_mem (save_area), stack_area,
 			     GEN_INT (num_to_save), BLOCK_OP_CALL_PARM);
 	  }
@@ -920,16 +954,15 @@ restore_fixed_argument_area (rtx save_area, rtx argblock, int high_to_save, int 
 {
   enum machine_mode save_mode = GET_MODE (save_area);
   int delta;
-  rtx stack_area;
+  rtx addr, stack_area;
 
 #ifdef ARGS_GROW_DOWNWARD
   delta = -high_to_save;
 #else
   delta = low_to_save;
 #endif
-  stack_area = gen_rtx_MEM (save_mode,
-			    memory_address (save_mode,
-					    plus_constant (argblock, delta)));
+  addr = plus_constant (Pmode, argblock, delta);
+  stack_area = gen_rtx_MEM (save_mode, memory_address (save_mode, addr));
   set_mem_align (stack_area, PARM_BOUNDARY);
 
   if (save_mode != BLKmode)
@@ -1225,7 +1258,7 @@ initialize_argument_information (int num_actuals ATTRIBUTE_UNUSED,
 		  set_mem_attributes (copy, type, 1);
 		}
 	      else
-		copy = assign_temp (type, 0, 1, 0);
+		copy = assign_temp (type, 1, 0);
 
 	      store_expr (args[i].tree_value, copy, 0, false);
 
@@ -1560,11 +1593,11 @@ compute_argument_addresses (struct arg_data *args, rtx argblock, int num_actuals
 	    continue;
 
 	  if (CONST_INT_P (offset))
-	    addr = plus_constant (arg_reg, INTVAL (offset));
+	    addr = plus_constant (Pmode, arg_reg, INTVAL (offset));
 	  else
 	    addr = gen_rtx_PLUS (Pmode, arg_reg, offset);
 
-	  addr = plus_constant (addr, arg_offset);
+	  addr = plus_constant (Pmode, addr, arg_offset);
 
 	  if (args[i].partial != 0)
 	    {
@@ -1594,11 +1627,11 @@ compute_argument_addresses (struct arg_data *args, rtx argblock, int num_actuals
 	  set_mem_align (args[i].stack, align);
 
 	  if (CONST_INT_P (slot_offset))
-	    addr = plus_constant (arg_reg, INTVAL (slot_offset));
+	    addr = plus_constant (Pmode, arg_reg, INTVAL (slot_offset));
 	  else
 	    addr = gen_rtx_PLUS (Pmode, arg_reg, slot_offset);
 
-	  addr = plus_constant (addr, arg_offset);
+	  addr = plus_constant (Pmode, addr, arg_offset);
 
 	  if (args[i].partial != 0)
 	    {
@@ -1759,7 +1792,7 @@ internal_arg_pointer_based_exp (rtx rtl, bool toplevel)
       rtx val = internal_arg_pointer_based_exp (XEXP (rtl, 0), toplevel);
       if (val == NULL_RTX || val == pc_rtx)
 	return val;
-      return plus_constant (val, INTVAL (XEXP (rtl, 1)));
+      return plus_constant (Pmode, val, INTVAL (XEXP (rtl, 1)));
     }
 
   /* When called at the topmost level, scan pseudo assignments in between the
@@ -2249,8 +2282,9 @@ expand_call (tree exp, rtx target, int ignore)
      (on machines that lack push insns), or 0 if space not preallocated.  */
   rtx argblock = 0;
 
-  /* Mask of ECF_ flags.  */
+  /* Mask of ECF_ and ERF_ flags.  */
   int flags = 0;
+  int return_flags = 0;
 #ifdef REG_PARM_STACK_SPACE
   /* Define the boundary of the register parm stack space that needs to be
      saved, if any.  */
@@ -2295,6 +2329,7 @@ expand_call (tree exp, rtx target, int ignore)
     {
       fntype = TREE_TYPE (fndecl);
       flags |= flags_from_decl_or_type (fndecl);
+      return_flags |= decl_return_flags (fndecl);
     }
   else
     {
@@ -2369,9 +2404,7 @@ expand_call (tree exp, rtx target, int ignore)
 	    /* For variable-sized objects, we must be called with a target
 	       specified.  If we were to allocate space on the stack here,
 	       we would have no way of knowing when to free it.  */
-	    rtx d = assign_temp (rettype, 0, 1, 1);
-
-	    mark_temp_addr_taken (d);
+	    rtx d = assign_temp (rettype, 1, 1);
 	    structure_value_addr = XEXP (d, 0);
 	    target = 0;
 	  }
@@ -2716,9 +2749,9 @@ expand_call (tree exp, rtx target, int ignore)
 	  argblock = crtl->args.internal_arg_pointer;
 	  argblock
 #ifdef STACK_GROWS_DOWNWARD
-	    = plus_constant (argblock, crtl->args.pretend_args_size);
+	    = plus_constant (Pmode, argblock, crtl->args.pretend_args_size);
 #else
-	    = plus_constant (argblock, -crtl->args.pretend_args_size);
+	    = plus_constant (Pmode, argblock, -crtl->args.pretend_args_size);
 #endif
 	  stored_args_map = sbitmap_alloc (args_size.constant);
 	  sbitmap_zero (stored_args_map);
@@ -2853,7 +2886,7 @@ expand_call (tree exp, rtx target, int ignore)
 		    {
 		      argblock = push_block (GEN_INT (needed), 0, 0);
 #ifdef ARGS_GROW_DOWNWARD
-		      argblock = plus_constant (argblock, needed);
+		      argblock = plus_constant (Pmode, argblock, needed);
 #endif
 		    }
 
@@ -3107,6 +3140,20 @@ expand_call (tree exp, rtx target, int ignore)
 						   VOIDmode, void_type_node,
 						   true);
 
+      if (pass == 1 && (return_flags & ERF_RETURNS_ARG))
+	{
+	  int arg_nr = return_flags & ERF_RETURN_ARG_MASK;
+	  if (PUSH_ARGS_REVERSED)
+	    arg_nr = num_actuals - arg_nr - 1;
+	  if (args[arg_nr].reg
+	      && valreg
+	      && REG_P (valreg)
+	      && GET_MODE (args[arg_nr].reg) == GET_MODE (valreg))
+	  call_fusage
+	    = gen_rtx_EXPR_LIST (TYPE_MODE (TREE_TYPE (args[arg_nr].tree_value)),
+				 gen_rtx_SET (VOIDmode, valreg, args[arg_nr].reg),
+				 call_fusage);
+	}
       /* All arguments and registers used for the call must be set up by
 	 now!  */
 
@@ -3231,7 +3278,7 @@ expand_call (tree exp, rtx target, int ignore)
 					      (TYPE_QUALS (rettype)
 					       | TYPE_QUAL_CONST));
 
-	      target = assign_temp (nt, 0, 1, 1);
+	      target = assign_temp (nt, 1, 1);
 	    }
 
 	  if (! rtx_equal_p (target, valreg))
@@ -3647,7 +3694,7 @@ emit_library_call_value_1 (int retval, rtx orgfun, rtx value,
 	  if (value != 0 && MEM_P (value))
 	    mem_value = value;
 	  else
-	    mem_value = assign_temp (tfom, 0, 1, 1);
+	    mem_value = assign_temp (tfom, 1, 1);
 #endif
 	  /* This call returns a big structure.  */
 	  flags &= ~(ECF_CONST | ECF_PURE | ECF_LOOPING_CONST_OR_PURE);
@@ -3762,7 +3809,7 @@ emit_library_call_value_1 (int retval, rtx orgfun, rtx value,
 	  else
 	    {
 	      slot = assign_temp (lang_hooks.types.type_for_mode (mode, 0),
-				  0, 1, 1);
+				  1, 1);
 	      emit_move_insn (slot, val);
 	    }
 
@@ -3890,7 +3937,8 @@ emit_library_call_value_1 (int retval, rtx orgfun, rtx value,
 	 use virtuals anyway, they won't match the rtl patterns.  */
 
       if (virtuals_instantiated)
-	argblock = plus_constant (stack_pointer_rtx, STACK_POINTER_OFFSET);
+	argblock = plus_constant (Pmode, stack_pointer_rtx,
+				  STACK_POINTER_OFFSET);
       else
 	argblock = virtual_outgoing_args_rtx;
     }
@@ -3976,7 +4024,7 @@ emit_library_call_value_1 (int retval, rtx orgfun, rtx value,
 		  enum machine_mode save_mode
 		    = mode_for_size (size, MODE_INT, 1);
 		  rtx adr
-		    = plus_constant (argblock,
+		    = plus_constant (Pmode, argblock,
 				     argvec[argnum].locate.offset.constant);
 		  rtx stack_area
 		    = gen_rtx_MEM (save_mode, memory_address (save_mode, adr));
@@ -3985,8 +4033,8 @@ emit_library_call_value_1 (int retval, rtx orgfun, rtx value,
 		    {
 		      argvec[argnum].save_area
 			= assign_stack_temp (BLKmode,
-					     argvec[argnum].locate.size.constant,
-					     0);
+					     argvec[argnum].locate.size.constant
+					     );
 
 		      emit_block_move (validize_mem (argvec[argnum].save_area),
 				       stack_area,
@@ -4018,7 +4066,7 @@ emit_library_call_value_1 (int retval, rtx orgfun, rtx value,
 	  /* Indicate argument access so that alias.c knows that these
 	     values are live.  */
 	  if (argblock)
-	    use = plus_constant (argblock,
+	    use = plus_constant (Pmode, argblock,
 				 argvec[argnum].locate.offset.constant);
 	  else
 	    /* When arguments are pushed, trying to tell alias.c where
@@ -4244,7 +4292,7 @@ emit_library_call_value_1 (int retval, rtx orgfun, rtx value,
 	if (argvec[count].save_area)
 	  {
 	    enum machine_mode save_mode = GET_MODE (argvec[count].save_area);
-	    rtx adr = plus_constant (argblock,
+	    rtx adr = plus_constant (Pmode, argblock,
 				     argvec[count].locate.offset.constant);
 	    rtx stack_area = gen_rtx_MEM (save_mode,
 					  memory_address (save_mode, adr));
@@ -4396,7 +4444,7 @@ store_one_arg (struct arg_data *arg, rtx argblock, int flags,
 		  tree nt = build_qualified_type (ot, (TYPE_QUALS (ot)
 						       | TYPE_QUAL_CONST));
 
-		  arg->save_area = assign_temp (nt, 0, 1, 1);
+		  arg->save_area = assign_temp (nt, 1, 1);
 		  preserve_temp_slots (arg->save_area);
 		  emit_block_move (validize_mem (arg->save_area), stack_area,
 				   GEN_INT (arg->locate.size.constant),
@@ -4673,11 +4721,7 @@ store_one_arg (struct arg_data *arg, rtx argblock, int flags,
      be deferred during the rest of the arguments.  */
   NO_DEFER_POP;
 
-  /* Free any temporary slots made in processing this argument.  Show
-     that we might have taken the address of something and pushed that
-     as an operand.  */
-  preserve_temp_slots (NULL_RTX);
-  free_temp_slots ();
+  /* Free any temporary slots made in processing this argument.  */
   pop_temp_slots ();
 
   return sibcall_failure;

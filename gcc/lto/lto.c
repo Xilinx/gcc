@@ -156,20 +156,6 @@ lto_splay_tree_new (void)
 			 NULL);
 }
 
-/* Read the constructors and inits.  */
-
-static void
-lto_materialize_constructors_and_inits (struct lto_file_decl_data * file_data)
-{
-  size_t len;
-  const char *data = lto_get_section_data (file_data, 
-					   LTO_section_static_initializer,
-					   NULL, &len);
-  lto_input_constructors_and_inits (file_data, data);
-  lto_free_section_data (file_data, LTO_section_static_initializer, NULL,
-			 data, len);
-}
-
 /* Return true when NODE has a clone that is analyzed (i.e. we need
    to load its body even if the node itself is not needed).  */
 
@@ -1883,15 +1869,6 @@ read_cgraph_and_symbols (unsigned nfiles, const char **fnames)
 
   timevar_push (TV_IPA_LTO_DECL_INIT_IO);
 
-  /* FIXME lto. This loop needs to be changed to use the pass manager to
-     call the ipa passes directly.  */
-  if (!seen_error ())
-    for (i = 0; i < last_file_ix; i++)
-      {
-	struct lto_file_decl_data *file_data = all_file_decl_data [i];
-	lto_materialize_constructors_and_inits (file_data);
-      }
-
   /* Indicate that the cgraph is built and ready.  */
   cgraph_function_flags_ready = true;
 
@@ -1958,6 +1935,8 @@ materialize_cgraph (void)
 static void
 do_whole_program_analysis (void)
 {
+  timevar_start (TV_PHASE_OPT_GEN);
+
   /* Note that since we are in WPA mode, materialize_cgraph will not
      actually read in all the function bodies.  It only materializes
      the decls and cgraph nodes so that analysis can be performed.  */
@@ -2001,16 +1980,21 @@ do_whole_program_analysis (void)
   else
     lto_balanced_map ();
 
+  timevar_stop (TV_PHASE_OPT_GEN);
+  timevar_start (TV_PHASE_STREAM_OUT);
+
   if (!quiet_flag)
     {
       fprintf (stderr, "\nStreaming out");
       fflush (stderr);
     }
   lto_wpa_write_files ();
-  ggc_collect ();
   if (!quiet_flag)
     fprintf (stderr, "\n");
 
+  timevar_stop (TV_PHASE_STREAM_OUT);
+
+  ggc_collect ();
   if (post_ipa_mem_report)
     {
       fprintf (stderr, "Memory consumption after IPA\n");
@@ -2096,12 +2080,27 @@ lto_init (void)
 void
 lto_main (void)
 {
+  /* LTO is called as a front end, even though it is not a front end.
+     Because it is called as a front end, TV_PHASE_PARSING and
+     TV_PARSE_GLOBAL are active, and we need to turn them off while
+     doing LTO.  Later we turn them back on so they are active up in
+     toplev.c.  */
+  timevar_pop (TV_PARSE_GLOBAL);
+  timevar_stop (TV_PHASE_PARSING);
+
+  timevar_start (TV_PHASE_SETUP);
+
   /* Initialize the LTO front end.  */
   lto_init ();
+
+  timevar_stop (TV_PHASE_SETUP);
+  timevar_start (TV_PHASE_STREAM_IN);
 
   /* Read all the symbols and call graph from all the files in the
      command line.  */
   read_cgraph_and_symbols (num_in_fnames, in_fnames);
+
+  timevar_stop (TV_PHASE_STREAM_IN);
 
   if (!seen_error ())
     {
@@ -2112,11 +2111,15 @@ lto_main (void)
 	do_whole_program_analysis ();
       else
 	{
+	  timevar_start (TV_PHASE_OPT_GEN);
+
 	  materialize_cgraph ();
 
 	  /* Let the middle end know that we have read and merged all of
 	     the input files.  */ 
-	  cgraph_optimize ();
+	  compile ();
+
+	  timevar_stop (TV_PHASE_OPT_GEN);
 
 	  /* FIXME lto, if the processes spawned by WPA fail, we miss
 	     the chance to print WPA's report, so WPA will call
@@ -2127,6 +2130,10 @@ lto_main (void)
 	    print_lto_report ();
 	}
     }
+
+  /* Here we make LTO pretend to be a parser.  */
+  timevar_start (TV_PHASE_PARSING);
+  timevar_push (TV_PARSE_GLOBAL);
 }
 
 #include "gt-lto-lto.h"

@@ -53,12 +53,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic-core.h"
 #include "params.h"
 #include "reload.h"
-#include "dwarf2asm.h"
-#include "integrate.h"
 #include "debug.h"
 #include "target.h"
 #include "langhooks.h"
-#include "cfglayout.h"
 #include "cfgloop.h"
 #include "hosthooks.h"
 #include "cgraph.h"
@@ -74,24 +71,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "lto-streamer.h"
 #include "plugin.h"
 #include "ipa-utils.h"
-#include "tree-pretty-print.h"
-
-#if defined (DWARF2_UNWIND_INFO) || defined (DWARF2_DEBUGGING_INFO)
-#include "dwarf2out.h"
-#endif
-
-#if defined (DBX_DEBUGGING_INFO) || defined (XCOFF_DEBUGGING_INFO)
-#include "dbxout.h"
-#endif
-
-#ifdef SDB_DEBUGGING_INFO
-#include "sdbout.h"
-#endif
-
-#ifdef XCOFF_DEBUGGING_INFO
-#include "xcoffout.h"		/* Needed for external data
-				   declarations for e.g. AIX 4.x.  */
-#endif
+#include "tree-pretty-print.h" /* for dump_function_header */
 
 /* This is used for debugging.  It allows the current pass to printed
    from anywhere in compilation.
@@ -186,6 +166,7 @@ rest_of_decl_compilation (tree decl,
       if ((at_end
 	   || !DECL_DEFER_OUTPUT (decl)
 	   || DECL_INITIAL (decl))
+	  && (TREE_CODE (decl) != VAR_DECL || !DECL_HAS_VALUE_EXPR_P (decl))
 	  && !DECL_EXTERNAL (decl))
 	{
 	  /* When reading LTO unit, we also read varpool, so do not
@@ -333,7 +314,7 @@ gate_all_early_optimizations (void)
 	  && !seen_error ());
 }
 
-struct gimple_opt_pass pass_all_early_optimizations =
+static struct gimple_opt_pass pass_all_early_optimizations =
 {
  {
   GIMPLE_PASS,
@@ -363,7 +344,7 @@ gate_all_optimizations (void)
 	  && (!seen_error () || gimple_in_ssa_p (cfun)));
 }
 
-struct gimple_opt_pass pass_all_optimizations =
+static struct gimple_opt_pass pass_all_optimizations =
 {
  {
   GIMPLE_PASS,
@@ -390,10 +371,10 @@ gate_rest_of_compilation (void)
   return !(rtl_dump_and_exit || flag_syntax_only || seen_error ());
 }
 
-struct gimple_opt_pass pass_rest_of_compilation =
+static struct rtl_opt_pass pass_rest_of_compilation =
 {
  {
-  GIMPLE_PASS,
+  RTL_PASS,
   "*rest_of_compilation",               /* name */
   gate_rest_of_compilation,             /* gate */
   NULL,                                 /* execute */
@@ -415,7 +396,7 @@ gate_postreload (void)
   return reload_completed;
 }
 
-struct rtl_opt_pass pass_postreload =
+static struct rtl_opt_pass pass_postreload =
 {
  {
   RTL_PASS,
@@ -1248,19 +1229,24 @@ register_pass (struct register_pass_info *pass_info)
 /* Construct the pass tree.  The sequencing of passes is driven by
    the cgraph routines:
 
-   cgraph_finalize_compilation_unit ()
+   finalize_compilation_unit ()
        for each node N in the cgraph
 	   cgraph_analyze_function (N)
 	       cgraph_lower_function (N) -> all_lowering_passes
 
-   If we are optimizing, cgraph_optimize is then invoked:
+   If we are optimizing, compile is then invoked:
 
-   cgraph_optimize ()
+   compile ()
        ipa_passes () 			-> all_small_ipa_passes
-       cgraph_expand_all_functions ()
+					-> Analysis of all_regular_ipa_passes
+	* possible LTO streaming at copmilation time *
+					-> Execution of all_regular_ipa_passes
+	* possible LTO streaming at link time *
+					-> all_late_ipa_passes
+       expand_all_functions ()
            for each node N in the cgraph
-	       cgraph_expand_function (N)
-		  tree_rest_of_compilation (DECL (N))  -> all_passes
+	       expand_function (N)      -> Transformation of all_regular_ipa_passes
+				        -> all_passes
 */
 
 void
@@ -1371,6 +1357,7 @@ init_optimization_passes (void)
   p = &all_late_ipa_passes;
   NEXT_PASS (pass_ipa_pta);
   *p = NULL;
+
   /* These passes are run after IPA passes on every function that is being
      output to the assembler file.  */
   p = &all_passes;
@@ -1387,7 +1374,6 @@ init_optimization_passes (void)
       NEXT_PASS (pass_complete_unrolli);
       NEXT_PASS (pass_ccp);
       NEXT_PASS (pass_forwprop);
-      NEXT_PASS (pass_call_cdce);
       /* pass_build_alias is a dummy pass that ensures that we
 	 execute TODO_rebuild_alias at this point.  Re-building
 	 alias information also rewrites no longer addressed
@@ -1400,6 +1386,7 @@ init_optimization_passes (void)
       NEXT_PASS (pass_merge_phi);
       NEXT_PASS (pass_vrp);
       NEXT_PASS (pass_dce);
+      NEXT_PASS (pass_call_cdce);
       NEXT_PASS (pass_cselim);
       NEXT_PASS (pass_tree_ifcombine);
       NEXT_PASS (pass_phiopt);
@@ -1528,7 +1515,7 @@ init_optimization_passes (void)
       struct opt_pass **p = &pass_rest_of_compilation.pass.sub;
       NEXT_PASS (pass_instantiate_virtual_regs);
       NEXT_PASS (pass_into_cfg_layout_mode);
-      NEXT_PASS (pass_jump2);
+      NEXT_PASS (pass_jump);
       NEXT_PASS (pass_lower_subreg);
       NEXT_PASS (pass_df_initialize_opt);
       NEXT_PASS (pass_cse);
@@ -1590,6 +1577,7 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_thread_prologue_and_epilogue);
 	  NEXT_PASS (pass_rtl_dse2);
 	  NEXT_PASS (pass_stack_adjustments);
+	  NEXT_PASS (pass_jump2);
 	  NEXT_PASS (pass_peephole2);
 	  NEXT_PASS (pass_if_after_reload);
 	  NEXT_PASS (pass_regrename);
@@ -1859,7 +1847,7 @@ execute_todo (unsigned int flags)
   if (flags & TODO_remove_functions)
     {
       gcc_assert (!cfun);
-      cgraph_remove_unreachable_nodes (true, dump_file);
+      symtab_remove_unreachable_nodes (true, dump_file);
     }
 
   if ((flags & TODO_dump_symtab) && dump_file && !current_function_decl)
@@ -2144,7 +2132,7 @@ execute_one_pass (struct opt_pass *pass)
       bool applied = false;
       do_per_function (apply_ipa_transforms, (void *)&applied);
       if (applied)
-        cgraph_remove_unreachable_nodes (true, dump_file);
+        symtab_remove_unreachable_nodes (true, dump_file);
       /* Restore current_pass.  */
       current_pass = pass;
     }
@@ -2342,8 +2330,8 @@ ipa_write_summaries (void)
     }
   vset = varpool_node_set_new ();
 
-  FOR_EACH_VARIABLE (vnode)
-    if (vnode->needed && (!vnode->alias || vnode->alias_of))
+  FOR_EACH_DEFINED_VARIABLE (vnode)
+    if ((!vnode->alias || vnode->alias_of))
       varpool_node_set_add (vset, vnode);
 
   ipa_write_summaries_1 (set, vset);

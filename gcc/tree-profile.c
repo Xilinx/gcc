@@ -31,7 +31,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "flags.h"
-#include "regs.h"
 #include "function.h"
 #include "basic-block.h"
 #include "diagnostic-core.h"
@@ -45,7 +44,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "cgraph.h"
 #include "profile.h"
 #include "target.h"
-#include "output.h"
 
 static GTY(()) tree gcov_type_node;
 static GTY(()) tree gcov_type_tmp_var;
@@ -87,7 +85,6 @@ init_ic_make_global_vars (void)
       decl_default_tls_model (ic_void_ptr_var);
 
   varpool_finalize_decl (ic_void_ptr_var);
-  varpool_mark_needed_node (varpool_node (ic_void_ptr_var));
 
   gcov_type_ptr = build_pointer_type (get_gcov_type ());
   ic_gcov_type_ptr_var
@@ -103,7 +100,6 @@ init_ic_make_global_vars (void)
       decl_default_tls_model (ic_gcov_type_ptr_var);
 
   varpool_finalize_decl (ic_gcov_type_ptr_var);
-  varpool_mark_needed_node (varpool_node (ic_gcov_type_ptr_var));
 }
 
 void
@@ -349,7 +345,6 @@ gimple_gen_ic_profiler (histogram_value value, unsigned tag, unsigned base)
   gimple_assign_set_lhs (stmt2, make_ssa_name (tmp1, stmt2));
   find_referenced_vars_in (stmt2);
   stmt3 = gimple_build_assign (ic_void_ptr_var, gimple_assign_lhs (stmt2));
-  add_referenced_var (ic_void_ptr_var);
 
   gsi_insert_before (&gsi, stmt1, GSI_SAME_STMT);
   gsi_insert_before (&gsi, stmt2, GSI_SAME_STMT);
@@ -385,11 +380,9 @@ gimple_gen_ic_func_profiler (void)
   counter_ptr = force_gimple_operand_gsi (&gsi, ic_gcov_type_ptr_var,
 					  true, NULL_TREE, true,
 					  GSI_SAME_STMT);
-  add_referenced_var (ic_gcov_type_ptr_var);
   ptr_var = force_gimple_operand_gsi (&gsi, ic_void_ptr_var,
 				      true, NULL_TREE, true,
 				      GSI_SAME_STMT);
-  add_referenced_var (ic_void_ptr_var);
   tree_uid = build_int_cst (gcov_type_node, current_function_funcdef_no);
   stmt1 = gimple_build_call (tree_indirect_call_profiler_fn, 4,
 			     counter_ptr, tree_uid, cur_func, ptr_var);
@@ -496,7 +489,8 @@ tree_profiling (void)
       gcov_type_tmp_var = NULL_TREE;
 
       /* Local pure-const may imply need to fixup the cfg.  */
-      execute_fixup_cfg ();
+      if (execute_fixup_cfg () & TODO_cleanup_cfg)
+	cleanup_tree_cfg ();
       branch_prob ();
 
       if (! flag_branch_probabilities

@@ -142,9 +142,6 @@ C ObjC C++ ObjC++ Joined Separate
 -pedantic
 C ObjC C++ ObjC++ Alias(pedantic)
 
--pedantic-errors
-C ObjC C++ ObjC++ Alias(pedantic-errors)
-
 -preprocess
 C ObjC C++ ObjC++ Undocumented Alias(E)
 
@@ -288,7 +285,7 @@ C ObjC Var(warn_cxx_compat) Warning
 Warn about C constructs that are not in the common subset of C and C++
 
 Wc++0x-compat
-C++ ObjC++ Var(warn_cxx0x_compat) Warning
+C++ ObjC++ Var(warn_cxx0x_compat) Warning LangEnabledBy(C++ ObjC++,Wall)
 Deprecated in favor of -Wc++11-compat
 
 Wc++11-compat
@@ -304,7 +301,7 @@ C ObjC C++ ObjC++ Var(warn_char_subscripts) Warning
 Warn about subscripts whose type is \"char\"
 
 Wclobbered
-C ObjC C++ ObjC++ Var(warn_clobbered) Init(-1) Warning
+C ObjC C++ ObjC++ Var(warn_clobbered) Warning EnabledBy(Wextra)
 Warn about variables that might be changed by \"longjmp\" or \"vfork\"
 
 Wcomment
@@ -336,7 +333,7 @@ C ObjC Var(warn_declaration_after_statement) Warning
 Warn when a declaration is found after a statement
 
 Wdelete-non-virtual-dtor
-C++ ObjC++ Var(warn_delnonvdtor) Warning
+C++ ObjC++ Var(warn_delnonvdtor) Warning LangEnabledBy(C++ ObjC++,Wall)
 Warn about deleting polymorphic objects with non-virtual destructors
 
 Wdeprecated
@@ -352,7 +349,7 @@ C++ ObjC++ Var(warn_ecpp) Warning
 Warn about violations of Effective C++ style rules
 
 Wempty-body
-C ObjC C++ ObjC++ Var(warn_empty_body) Init(-1) Warning
+C ObjC C++ ObjC++ Var(warn_empty_body) Warning EnabledBy(Wextra)
 Warn about an empty body in an if or else statement
 
 Wendif-labels
@@ -407,7 +404,7 @@ Wformat=
 C ObjC C++ ObjC++ Joined Warning
 
 Wignored-qualifiers
-C C++ Var(warn_ignored_qualifiers) Init(-1) Warning
+C C++ Var(warn_ignored_qualifiers) Warning EnabledBy(Wextra)
 Warn whenever type qualifiers are ignored.
 
 Winit-self
@@ -446,8 +443,12 @@ C ObjC C++ ObjC++ Warning
 Warn about PCH files that are found but not used
 
 Wjump-misses-init
-C ObjC Var(warn_jump_misses_init) Init(-1) Warning
+C ObjC Var(warn_jump_misses_init) Warning LangEnabledby(C ObjC,Wc++-compat)
 Warn when a jump misses a variable initialization
+
+Wliteral-suffix
+C++ ObjC++ Warning
+Warn when a string or character literal is followed by a ud-suffix which does not begin with an underscore.
 
 Wlogical-op
 C ObjC C++ ObjC++ Var(warn_logical_op) Init(0) Warning 
@@ -462,7 +463,7 @@ C ObjC C++ ObjC++ Var(warn_main) Init(-1) Warning
 Warn about suspicious declarations of \"main\"
 
 Wmissing-braces
-C ObjC C++ ObjC++ Var(warn_missing_braces) Warning
+C ObjC C++ ObjC++ Var(warn_missing_braces) Warning LangEnabledBy(C ObjC,Wall)
 Warn about possibly missing braces around initializers
 
 Wmissing-declarations
@@ -470,19 +471,23 @@ C ObjC C++ ObjC++ Var(warn_missing_declarations) Warning
 Warn about global functions without previous declarations
 
 Wmissing-field-initializers
-C ObjC C++ ObjC++ Var(warn_missing_field_initializers) Init(-1) Warning
+C ObjC C++ ObjC++ Var(warn_missing_field_initializers) Warning EnabledBy(Wextra)
 Warn about missing fields in struct initializers
 
-Wmissing-format-attribute
-C ObjC C++ ObjC++ Var(warn_missing_format_attribute) Warning
+Wsuggest-attribute=format
+C ObjC C++ ObjC++ Var(warn_suggest_attribute_format) Warning
 Warn about functions which might be candidates for format attributes
+
+Wmissing-format-attribute
+C ObjC C++ ObjC++ Alias(Wsuggest-attribute=format)
+;
 
 Wmissing-include-dirs
 C ObjC C++ ObjC++ Warning
 Warn about user-specified include directories that do not exist
 
 Wmissing-parameter-type
-C ObjC Var(warn_missing_parameter_type) Init(-1) Warning
+C ObjC Var(warn_missing_parameter_type) Warning EnabledBy(Wextra)
 Warn about function parameters declared without a type specifier in K&R-style functions
 
 Wmissing-prototypes
@@ -530,7 +535,7 @@ C++ ObjC++ Var(warn_old_style_cast) Warning
 Warn if a C-style cast is used in a program
 
 Wold-style-declaration
-C ObjC Var(warn_old_style_declaration) Init(-1) Warning
+C ObjC Var(warn_old_style_declaration) Warning EnabledBy(Wextra)
 Warn for obsolescent usage in a declaration
 
 Wold-style-definition
@@ -546,7 +551,7 @@ C++ ObjC++ Var(warn_overloaded_virtual) Warning
 Warn about overloaded virtual function names
 
 Woverride-init
-C ObjC Var(warn_override_init) Init(-1) Warning
+C ObjC Var(warn_override_init) Warning EnabledBy(Wextra)
 Warn about overriding initializers without side effects
 
 Wpacked-bitfield-compat
@@ -556,6 +561,10 @@ Warn about packed bit-fields whose offset changed in GCC 4.4
 Wparentheses
 C ObjC C++ ObjC++ Var(warn_parentheses) Warning
 Warn about possibly missing parentheses
+
+Wpedantic
+C ObjC C++ ObjC++ Warning
+; Documented in common.opt
 
 Wpmf-conversions
 C++ ObjC++ Var(warn_pmf2ptr) Init(1) Warning
@@ -586,7 +595,7 @@ C ObjC C++ ObjC++ Var(warn_redundant_decls) Warning
 Warn about multiple declarations of the same object
 
 Wreorder
-C++ ObjC++ Var(warn_reorder) Warning
+C++ ObjC++ Var(warn_reorder) Warning LangEnabledBy(C++ ObjC++,Wall)
 Warn when the compiler reorders code
 
 Wreturn-type
@@ -662,7 +671,7 @@ C ObjC Var(warn_unsuffixed_float_constants) Warning
 Warn about unsuffixed float constants
 
 Wunused-local-typedefs
-C ObjC C++ ObjC++ Var(warn_unused_local_typedefs) Warning
+C ObjC C++ ObjC++ Var(warn_unused_local_typedefs) Warning EnabledBy(Wunused)
 Warn when typedefs locally defined in a function are not used
 
 Wunused-macros
@@ -676,6 +685,10 @@ Warn if a caller of a function, marked with attribute warn_unused_result, does n
 Wvariadic-macros
 C ObjC C++ ObjC++ Warning
 Do not warn about using variadic macros when -pedantic
+
+Wvarargs
+C ObjC C++ ObjC++ Warning Var(warn_varargs) Init(1)
+Warn about questionable usage of the macros used to retrieve variable arguments
 
 Wvla
 C ObjC C++ ObjC++ Var(warn_vla) Init(-1) Warning
@@ -749,7 +762,7 @@ Allow the arguments of the '?' operator to have different types
 
 fconserve-space
 C++ ObjC++ Var(flag_conserve_space)
-Reduce the size of object files
+Does nothing.  Preserved for backward compatibility.
 
 fconstant-string-class=
 ObjC ObjC++ Joined MissingArgError(no class name specified with %qs)
@@ -966,7 +979,7 @@ C ObjC C++ ObjC++
 Look for and use PCH files even when preprocessing
 
 fpermissive
-C++ ObjC++
+C++ ObjC++ Var(flag_permissive)
 Downgrade conformance errors to warnings
 
 fplan9-extensions
@@ -1184,11 +1197,7 @@ C ObjC C++ ObjC++ Joined Separate
 ; Documented in common.opt
 
 pedantic
-C ObjC C++ ObjC++
-; Documented in common.opt
-
-pedantic-errors
-C ObjC C++ ObjC++
+C ObjC C++ ObjC++ Alias(Wpedantic)
 ; Documented in common.opt
 
 print-objc-runtime-info

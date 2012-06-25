@@ -2766,7 +2766,7 @@ color_pass (ira_loop_tree_node_t loop_tree_node)
 	pclass = ira_pressure_class_translate[rclass];
 	if (flag_ira_region == IRA_REGION_MIXED
 	    && (loop_tree_node->reg_pressure[pclass]
-		<= ira_available_class_regs[pclass]))
+		<= ira_class_hard_regs_num[pclass]))
 	  {
 	    mode = ALLOCNO_MODE (a);
 	    hard_regno = ALLOCNO_HARD_REGNO (a);
@@ -2819,7 +2819,7 @@ color_pass (ira_loop_tree_node_t loop_tree_node)
 				    ALLOCNO_NUM (subloop_allocno)));
 	  if ((flag_ira_region == IRA_REGION_MIXED)
 	      && (loop_tree_node->reg_pressure[pclass]
-		  <= ira_available_class_regs[pclass]))
+		  <= ira_class_hard_regs_num[pclass]))
 	    {
 	      if (! ALLOCNO_ASSIGNED_P (subloop_allocno))
 		{
@@ -2941,8 +2941,9 @@ move_spill_restore (void)
 		 copies and the reload pass can spill the allocno set
 		 by copy although the allocno will not get memory
 		 slot.  */
-	      || ira_reg_equiv_invariant_p[regno]
-	      || ira_reg_equiv_const[regno] != NULL_RTX
+	      || (regno < ira_reg_equiv_len
+		  && (ira_reg_equiv_invariant_p[regno]
+		      || ira_reg_equiv_const[regno] != NULL_RTX))
 	      || !bitmap_bit_p (loop_node->border_allocnos, ALLOCNO_NUM (a)))
 	    continue;
 	  mode = ALLOCNO_MODE (a);

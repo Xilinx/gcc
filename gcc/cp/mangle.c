@@ -1845,7 +1845,7 @@ write_type (tree type)
       if (TREE_CODE (type) == RECORD_TYPE && TYPE_TRANSPARENT_AGGR (type))
 	type = TREE_TYPE (first_field (type));
 
-      if (TYPE_PTRMEM_P (type))
+      if (TYPE_PTRDATAMEM_P (type))
 	write_pointer_to_member_type (type);
       else
         {
@@ -3119,8 +3119,10 @@ write_array_type (const tree type)
 	{
 	  /* The ABI specifies that we should mangle the number of
 	     elements in the array, not the largest allowed index.  */
-	  max = size_binop (PLUS_EXPR, max, size_one_node);
-	  write_unsigned_number (tree_low_cst (max, 1));
+	  double_int dmax
+	    = double_int_add (tree_to_double_int (max), double_int_one);
+	  gcc_assert (double_int_fits_in_uhwi_p (dmax));
+	  write_unsigned_number (dmax.low);
 	}
       else
 	{

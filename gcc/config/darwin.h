@@ -356,7 +356,9 @@ extern GTY(()) int darwin_ms_struct;
      %{!Zbundle:%{pg:%{static:-lgcrt0.o}				    \
                      %{!static:%{object:-lgcrt0.o}			    \
                                %{!object:%{preload:-lgcrt0.o}		    \
-                                 %{!preload:-lgcrt1.o %(darwin_crt2)}}}}    \
+                                 %{!preload:-lgcrt1.o                       \
+                                 %:version-compare(>= 10.8 mmacosx-version-min= -no_new_main) \
+                                 %(darwin_crt2)}}}}    \
                 %{!pg:%{static:-lcrt0.o}				    \
                       %{!static:%{object:-lcrt0.o}			    \
                                 %{!object:%{preload:-lcrt0.o}		    \
@@ -379,7 +381,7 @@ extern GTY(()) int darwin_ms_struct;
 #define DARWIN_CRT1_SPEC						\
   "%:version-compare(!> 10.5 mmacosx-version-min= -lcrt1.o)		\
    %:version-compare(>< 10.5 10.6 mmacosx-version-min= -lcrt1.10.5.o)	\
-   %:version-compare(>= 10.6 mmacosx-version-min= -lcrt1.10.6.o)	\
+   %:version-compare(>< 10.6 10.8 mmacosx-version-min= -lcrt1.10.6.o)	\
    %{fgnu-tm: -lcrttms.o}"
 
 /* Default Darwin ASM_SPEC, very simple.  */
@@ -413,6 +415,8 @@ extern GTY(()) int darwin_ms_struct;
 #define DEBUG_MACRO_SECTION    "__DWARF,__debug_macro,regular,debug"
 
 #define TARGET_WANT_DEBUG_PUB_SECTIONS true
+
+#define TARGET_FORCE_AT_COMP_DIR true
 
 /* When generating stabs debugging, use N_BINCL entries.  */
 
@@ -612,8 +616,6 @@ int darwin_label_is_anonymous_local_objc_name (const char *name);
          fprintf (FILE, "\"%s\"", xname);				     \
        else if (darwin_label_is_anonymous_local_objc_name (xname))	     \
          fprintf (FILE, "L%s", xname);					     \
-       else if (!strncmp (xname, ".objc_class_name_", 17))		     \
-	 fprintf (FILE, "%s", xname);					     \
        else if (xname[0] != '"' && name_needs_quotes (xname))		     \
 	 asm_fprintf (FILE, "\"%U%s\"", xname);				     \
        else								     \
@@ -695,29 +697,6 @@ extern GTY(()) section * darwin_sections[NUM_DARWIN_SECTIONS];
 
 #undef  TARGET_ASM_RELOC_RW_MASK
 #define TARGET_ASM_RELOC_RW_MASK machopic_reloc_rw_mask
-
-
-#define ASM_DECLARE_UNRESOLVED_REFERENCE(FILE,NAME)			\
-    do {								\
-	 if (FILE) {							\
-	   if (MACHOPIC_INDIRECT)					\
-	     fprintf (FILE, "\t.lazy_reference ");			\
-	   else								\
-	     fprintf (FILE, "\t.reference ");				\
-	   assemble_name (FILE, NAME);					\
-	   fprintf (FILE, "\n");					\
-	 }                                                              \
-       } while (0)
-
-#define ASM_DECLARE_CLASS_REFERENCE(FILE,NAME)				\
-    do {								\
-	 if (FILE) {							\
-	   fprintf (FILE, "\t");					\
-	   assemble_name (FILE, NAME);					\
-	   fprintf (FILE, "=0\n");					\
-	   (*targetm.asm_out.globalize_label) (FILE, NAME);		\
-	 }								\
-       } while (0)
 
 /* Globalizing directive for a label.  */
 #define GLOBAL_ASM_OP "\t.globl "

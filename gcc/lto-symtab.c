@@ -215,8 +215,8 @@ lto_cgraph_replace_node (struct cgraph_node *node,
     {
       fprintf (cgraph_dump_file, "Replacing cgraph node %s/%i by %s/%i"
  	       " for symbol %s\n",
-	       cgraph_node_name (node), node->uid,
-	       cgraph_node_name (prevailing_node),
+	       xstrdup (cgraph_node_name (node)), node->uid,
+	       xstrdup (cgraph_node_name (prevailing_node)),
 	       prevailing_node->uid,
 	       IDENTIFIER_POINTER ((*targetm.asm_out.mangle_assembler_name)
 		 (IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (node->symbol.decl)))));
@@ -225,8 +225,6 @@ lto_cgraph_replace_node (struct cgraph_node *node,
   /* Merge node flags.  */
   if (node->symbol.force_output)
     cgraph_mark_force_output_node (prevailing_node);
-  if (node->reachable)
-    cgraph_mark_reachable_node (prevailing_node);
   if (node->symbol.address_taken)
     {
       gcc_assert (!prevailing_node->global.inlined_to);
@@ -262,12 +260,6 @@ static void
 lto_varpool_replace_node (struct varpool_node *vnode,
 			  struct varpool_node *prevailing_node)
 {
-  /* Merge node flags.  */
-  if (vnode->needed)
-    {
-      gcc_assert (!vnode->analyzed || prevailing_node->analyzed);
-      varpool_mark_needed_node (prevailing_node);
-    }
   gcc_assert (!vnode->finalized || prevailing_node->finalized);
   gcc_assert (!vnode->analyzed || prevailing_node->analyzed);
 
@@ -497,7 +489,21 @@ lto_symtab_resolve_symbols (void **slot)
       /* From variables that can prevail choose the largest one.  */
       if (!prevailing
 	  || tree_int_cst_lt (DECL_SIZE (prevailing->decl),
-			      DECL_SIZE (e->decl)))
+			      DECL_SIZE (e->decl))
+	  /* When variables are equivalent try to chose one that has useful
+	     DECL_INITIAL.  This makes sense for keyed vtables that are
+	     DECL_EXTERNAL but initialized.  In units that do not need them
+	     we replace the initializer by error_mark_node to conserve
+	     memory.
+
+	     We know that the vtable is keyed outside the LTO unit - otherwise
+	     the keyed instance would prevail.  We still can preserve useful
+	     info in the initializer.  */
+	  || (DECL_SIZE (prevailing->decl) == DECL_SIZE (e->decl)
+	      && (DECL_INITIAL (e->decl)
+		  && DECL_INITIAL (e->decl) != error_mark_node)
+	      && (!DECL_INITIAL (prevailing->decl)
+		  || DECL_INITIAL (prevailing->decl) == error_mark_node)))
 	prevailing = e;
     }
 

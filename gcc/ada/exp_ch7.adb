@@ -716,61 +716,100 @@ package body Exp_Ch7 is
    is
       Actuals      : List_Id;
       Proc_To_Call : Entity_Id;
+      Except       : Node_Id;
+      Stmts        : List_Id;
 
    begin
-      pragma Assert (Present (Data.E_Id));
       pragma Assert (Present (Data.Raised_Id));
 
-      --  Generate:
-      --    Get_Current_Excep.all.all
+      if Exception_Extra_Info
+        or else (For_Library and not Restricted_Profile)
+      then
+         if Exception_Extra_Info then
 
-      Actuals := New_List (
-        Make_Explicit_Dereference (Data.Loc,
-          Prefix =>
-            Make_Function_Call (Data.Loc,
-              Name =>
-                Make_Explicit_Dereference (Data.Loc,
-                  Prefix =>
-                    New_Reference_To (RTE (RE_Get_Current_Excep),
-                                      Data.Loc)))));
+            --  Generate:
 
-      if For_Library and then not Restricted_Profile then
-         Proc_To_Call := RTE (RE_Save_Library_Occurrence);
+            --    Get_Current_Excep.all
+
+            Except :=
+              Make_Function_Call (Data.Loc,
+                Name =>
+                  Make_Explicit_Dereference (Data.Loc,
+                    Prefix =>
+                      New_Reference_To
+                        (RTE (RE_Get_Current_Excep), Data.Loc)));
+
+         else
+            --  Generate:
+
+            --    null
+
+            Except := Make_Null (Data.Loc);
+         end if;
+
+         if For_Library and then not Restricted_Profile then
+            Proc_To_Call := RTE (RE_Save_Library_Occurrence);
+            Actuals := New_List (Except);
+
+         else
+            Proc_To_Call := RTE (RE_Save_Occurrence);
+
+            --  The dereference occurs only when Exception_Extra_Info is true,
+            --  and therefore Except is not null.
+
+            Actuals :=
+              New_List (
+                New_Reference_To (Data.E_Id, Data.Loc),
+                Make_Explicit_Dereference (Data.Loc, Except));
+         end if;
+
+         --  Generate:
+
+         --    when others =>
+         --       if not Raised_Id then
+         --          Raised_Id := True;
+
+         --          Save_Occurrence (E_Id, Get_Current_Excep.all.all);
+         --            or
+         --          Save_Library_Occurrence (Get_Current_Excep.all);
+         --       end if;
+
+         Stmts :=
+           New_List (
+             Make_If_Statement (Data.Loc,
+               Condition       =>
+                 Make_Op_Not (Data.Loc,
+                   Right_Opnd => New_Reference_To (Data.Raised_Id, Data.Loc)),
+
+               Then_Statements => New_List (
+                 Make_Assignment_Statement (Data.Loc,
+                   Name       => New_Reference_To (Data.Raised_Id, Data.Loc),
+                   Expression => New_Reference_To (Standard_True, Data.Loc)),
+
+                 Make_Procedure_Call_Statement (Data.Loc,
+                   Name                   =>
+                     New_Reference_To (Proc_To_Call, Data.Loc),
+                   Parameter_Associations => Actuals))));
 
       else
-         Proc_To_Call := RTE (RE_Save_Occurrence);
-         Prepend_To (Actuals, New_Reference_To (Data.E_Id, Data.Loc));
+         --  Generate:
+
+         --    Raised_Id := True;
+
+         Stmts := New_List (
+           Make_Assignment_Statement (Data.Loc,
+             Name       => New_Reference_To (Data.Raised_Id, Data.Loc),
+             Expression => New_Reference_To (Standard_True, Data.Loc)));
       end if;
 
       --  Generate:
-      --    when others =>
-      --       if not Raised_Id then
-      --          Raised_Id := True;
 
-      --          Save_Occurrence (E_Id, Get_Current_Excep.all.all);
-      --            or
-      --          Save_Library_Occurrence (Get_Current_Excep.all.all);
-      --       end if;
+      --    when others =>
 
       return
         Make_Exception_Handler (Data.Loc,
-          Exception_Choices =>
-            New_List (Make_Others_Choice (Data.Loc)),
-          Statements => New_List (
-            Make_If_Statement (Data.Loc,
-              Condition       =>
-                Make_Op_Not (Data.Loc,
-                  Right_Opnd => New_Reference_To (Data.Raised_Id, Data.Loc)),
-
-              Then_Statements => New_List (
-                Make_Assignment_Statement (Data.Loc,
-                  Name       => New_Reference_To (Data.Raised_Id, Data.Loc),
-                  Expression => New_Reference_To (Standard_True, Data.Loc)),
-
-                Make_Procedure_Call_Statement (Data.Loc,
-                  Name                   =>
-                    New_Reference_To (Proc_To_Call, Data.Loc),
-                  Parameter_Associations => Actuals)))));
+          Exception_Choices => New_List (Make_Others_Choice (Data.Loc)),
+          Statements        => Stmts);
    end Build_Exception_Handler;
 
    -------------------------------
@@ -1451,20 +1490,6 @@ package body Exp_Ch7 is
 
             Append_To (Finalizer_Stmts, Label);
 
-            --  The local exception does not need to be reraised for library-
-            --  level finalizers. Generate:
-            --
-            --    if Raised and then not Abort then
-            --       Raise_From_Controlled_Operation (E);
-            --    end if;
-
-            if not For_Package
-              and then Exceptions_OK
-            then
-               Append_To (Finalizer_Stmts,
-                 Build_Raise_Statement (Finalizer_Data));
-            end if;
-
             --  Create the jump block which controls the finalization flow
             --  depending on the value of the state counter.
 
@@ -1531,6 +1556,22 @@ package body Exp_Ch7 is
                 Name => New_Reference_To (RTE (RE_Abort_Undefer), Loc)));
          end if;
 
+         --  The local exception does not need to be reraised for library-level
+         --  finalizers. Note that this action must be carried out after object
+         --  clean up, secondary stack release and abort undeferral. Generate:
+
+         --    if Raised and then not Abort then
+         --       Raise_From_Controlled_Operation (E);
+         --    end if;
+
+         if Has_Ctrl_Objs
+           and then Exceptions_OK
+           and then not For_Package
+         then
+            Append_To (Finalizer_Stmts,
+              Build_Raise_Statement (Finalizer_Data));
+         end if;
+
          --  Generate:
          --    procedure Fin_Id is
          --       Abort  : constant Boolean := Triggered_By_Abort;
@@ -1551,6 +1592,7 @@ package body Exp_Ch7 is
          --       <finalization statements>  --  Added if Has_Ctrl_Objs
          --       <stack release>            --  Added if Mark_Id exists
          --       Abort_Undefer;             --  Added if abort is allowed
+         --       <exception propagation>    --  Added if Has_Ctrl_Objs
          --    end Fin_Id;
 
          --  Create the body of the finalizer
@@ -1842,11 +1884,23 @@ package body Exp_Ch7 is
                --  transients declared inside an Expression_With_Actions.
 
                elsif Is_Access_Type (Obj_Typ)
-                 and then Present (Return_Flag_Or_Transient_Decl (Obj_Id))
-                 and then Nkind (Return_Flag_Or_Transient_Decl (Obj_Id)) =
+                 and then Present (Status_Flag_Or_Transient_Decl (Obj_Id))
+                 and then Nkind (Status_Flag_Or_Transient_Decl (Obj_Id)) =
                                    N_Object_Declaration
                  and then Is_Finalizable_Transient
-                            (Return_Flag_Or_Transient_Decl (Obj_Id), Decl)
+                            (Status_Flag_Or_Transient_Decl (Obj_Id), Decl)
+               then
+                  Processing_Actions (Has_No_Init => True);
+
+               --  Process intermediate results of conditional expression with
+               --  one of the alternatives using a controlled function call.
+
+               elsif Is_Access_Type (Obj_Typ)
+                 and then Present (Status_Flag_Or_Transient_Decl (Obj_Id))
+                 and then Nkind (Status_Flag_Or_Transient_Decl (Obj_Id)) =
+                                                       N_Defining_Identifier
+                 and then Present (Expr)
+                 and then Nkind (Expr) = N_Null
                then
                   Processing_Actions (Has_No_Init => True);
 
@@ -1912,7 +1966,7 @@ package body Exp_Ch7 is
 
                elsif Needs_Finalization (Obj_Typ)
                  and then Is_Return_Object (Obj_Id)
-                 and then Present (Return_Flag_Or_Transient_Decl (Obj_Id))
+                 and then Present (Status_Flag_Or_Transient_Decl (Obj_Id))
                then
                   Processing_Actions (Has_No_Init => True);
 
@@ -2052,6 +2106,22 @@ package body Exp_Ch7 is
                then
                   Last_Top_Level_Ctrl_Construct := Decl;
                end if;
+
+            --  Handle the case where the original context has been wrapped in
+            --  a block to avoid interference between exception handlers and
+            --  At_End handlers. Treat the block as transparent and process its
+            --  contents.
+
+            elsif Nkind (Decl) = N_Block_Statement
+              and then Is_Finalization_Wrapper (Decl)
+            then
+               if Present (Handled_Statement_Sequence (Decl)) then
+                  Process_Declarations
+                    (Statements (Handled_Statement_Sequence (Decl)),
+                     Preprocess);
+               end if;
+
+               Process_Declarations (Declarations (Decl), Preprocess);
             end if;
 
             Prev_Non_Pragma (Decl);
@@ -2627,27 +2697,8 @@ package body Exp_Ch7 is
             end if;
 
             if Ekind_In (Obj_Id, E_Constant, E_Variable)
-              and then Present (Return_Flag_Or_Transient_Decl (Obj_Id))
+              and then Present (Status_Flag_Or_Transient_Decl (Obj_Id))
             then
-               --  Return objects use a flag to aid their potential
-               --  finalization when the enclosing function fails to return
-               --  properly. Generate:
-
-               --    if not Flag then
-               --       <object finalization statements>
-               --    end if;
-
-               if Is_Return_Object (Obj_Id) then
-                  Fin_Stmts := New_List (
-                    Make_If_Statement (Loc,
-                      Condition     =>
-                        Make_Op_Not (Loc,
-                          Right_Opnd =>
-                            New_Reference_To
-                              (Return_Flag_Or_Transient_Decl (Obj_Id), Loc)),
-
-                    Then_Statements => Fin_Stmts));
-
                --  Temporaries created for the purpose of "exporting" a
                --  controlled transient out of an Expression_With_Actions (EWA)
                --  need guards. The following illustrates the usage of such
@@ -2675,19 +2726,35 @@ package body Exp_Ch7 is
                --       <object finalization statements>
                --    end if;
 
-               else
-                  pragma Assert
-                    (Nkind (Return_Flag_Or_Transient_Decl (Obj_Id)) =
-                       N_Object_Declaration);
-
+               if Nkind (Status_Flag_Or_Transient_Decl (Obj_Id)) =
+                                                      N_Object_Declaration
+               then
                   Fin_Stmts := New_List (
                     Make_If_Statement (Loc,
                       Condition       =>
                         Make_Op_Ne (Loc,
                           Left_Opnd  => New_Reference_To (Obj_Id, Loc),
                           Right_Opnd => Make_Null (Loc)),
-
                       Then_Statements => Fin_Stmts));
+
+               --  Return objects use a flag to aid in processing their
+               --  potential finalization when the enclosing function fails
+               --  to return properly. Generate:
+
+               --    if not Flag then
+               --       <object finalization statements>
+               --    end if;
+
+               else
+                  Fin_Stmts := New_List (
+                    Make_If_Statement (Loc,
+                      Condition     =>
+                        Make_Op_Not (Loc,
+                          Right_Opnd =>
+                            New_Reference_To
+                              (Status_Flag_Or_Transient_Decl (Obj_Id), Loc)),
+
+                    Then_Statements => Fin_Stmts));
                end if;
             end if;
          end if;
@@ -2995,8 +3062,6 @@ package body Exp_Ch7 is
          return;
       end if;
 
-      Data.Abort_Id  := Make_Temporary (Loc, 'A');
-      Data.E_Id      := Make_Temporary (Loc, 'E');
       Data.Raised_Id := Make_Temporary (Loc, 'R');
 
       --  In certain scenarios, finalization can be triggered by an abort. If
@@ -3016,37 +3081,49 @@ package body Exp_Ch7 is
         and then VM_Target = No_VM
         and then not For_Package
       then
+         Data.Abort_Id  := Make_Temporary (Loc, 'A');
+
          A_Expr := New_Reference_To (RTE (RE_Triggered_By_Abort), Loc);
 
-      --  No abort, .NET/JVM or library-level finalizers
+         --  Generate:
+
+         --    Abort_Id : constant Boolean := <A_Expr>;
+
+         Append_To (Decls,
+           Make_Object_Declaration (Loc,
+             Defining_Identifier => Data.Abort_Id,
+             Constant_Present    => True,
+             Object_Definition   => New_Reference_To (Standard_Boolean, Loc),
+             Expression          => A_Expr));
 
       else
-         A_Expr := New_Reference_To (Standard_False, Loc);
+         --  No abort, .NET/JVM or library-level finalizers
+
+         Data.Abort_Id  := Empty;
+      end if;
+
+      if Exception_Extra_Info then
+         Data.E_Id      := Make_Temporary (Loc, 'E');
+
+         --  Generate:
+
+         --    E_Id : Exception_Occurrence;
+
+         E_Decl :=
+           Make_Object_Declaration (Loc,
+             Defining_Identifier => Data.E_Id,
+             Object_Definition   =>
+               New_Reference_To (RTE (RE_Exception_Occurrence), Loc));
+         Set_No_Initialization (E_Decl);
+
+         Append_To (Decls, E_Decl);
+
+      else
+         Data.E_Id      := Empty;
       end if;
 
       --  Generate:
-      --    Abort_Id : constant Boolean := <A_Expr>;
 
-      Append_To (Decls,
-        Make_Object_Declaration (Loc,
-          Defining_Identifier => Data.Abort_Id,
-          Constant_Present    => True,
-          Object_Definition   => New_Reference_To (Standard_Boolean, Loc),
-          Expression          => A_Expr));
-
-      --  Generate:
-      --    E_Id : Exception_Occurrence;
-
-      E_Decl :=
-        Make_Object_Declaration (Loc,
-          Defining_Identifier => Data.E_Id,
-          Object_Definition   =>
-            New_Reference_To (RTE (RE_Exception_Occurrence), Loc));
-      Set_No_Initialization (E_Decl);
-
-      Append_To (Decls, E_Decl);
-
-      --  Generate:
       --    Raised_Id : Boolean := False;
 
       Append_To (Decls,
@@ -3064,12 +3141,15 @@ package body Exp_Ch7 is
      (Data : Finalization_Exception_Data) return Node_Id
    is
       Stmt : Node_Id;
+      Expr : Node_Id;
 
    begin
       --  Standard run-time and .NET/JVM targets use the specialized routine
       --  Raise_From_Controlled_Operation.
 
-      if RTE_Available (RE_Raise_From_Controlled_Operation) then
+      if Exception_Extra_Info
+        and then RTE_Available (RE_Raise_From_Controlled_Operation)
+      then
          Stmt :=
            Make_Procedure_Call_Statement (Data.Loc,
               Name                   =>
@@ -3089,6 +3169,23 @@ package body Exp_Ch7 is
       end if;
 
       --  Generate:
+
+      --    Raised_Id and then not Abort_Id
+      --      <or>
+      --    Raised_Id
+
+      Expr := New_Reference_To (Data.Raised_Id, Data.Loc);
+
+      if Present (Data.Abort_Id) then
+         Expr := Make_And_Then (Data.Loc,
+           Left_Opnd  => Expr,
+           Right_Opnd =>
+             Make_Op_Not (Data.Loc,
+               Right_Opnd => New_Reference_To (Data.Abort_Id, Data.Loc)));
+      end if;
+
+      --  Generate:
+
       --    if Raised_Id and then not Abort_Id then
       --       Raise_From_Controlled_Operation (E_Id);
       --         <or>
@@ -3097,13 +3194,7 @@ package body Exp_Ch7 is
 
       return
         Make_If_Statement (Data.Loc,
-          Condition       =>
-            Make_And_Then (Data.Loc,
-              Left_Opnd  => New_Reference_To (Data.Raised_Id, Data.Loc),
-              Right_Opnd =>
-                Make_Op_Not (Data.Loc,
-                  Right_Opnd => New_Reference_To (Data.Abort_Id, Data.Loc))),
-
+          Condition       => Expr,
           Then_Statements => New_List (Stmt));
    end Build_Raise_Statement;
 
@@ -3599,7 +3690,7 @@ package body Exp_Ch7 is
                                  and then VM_Target = No_VM;
 
       Actions_Required     : constant Boolean :=
-                               Requires_Cleanup_Actions (N)
+                               Requires_Cleanup_Actions (N, True)
                                  or else Is_Asynchronous_Call
                                  or else Is_Master
                                  or else Is_Protected_Body
@@ -3629,6 +3720,11 @@ package body Exp_Ch7 is
          Block :=
            Make_Block_Statement (Loc,
              Handled_Statement_Sequence => HSS);
+
+         --  Signal the finalization machinery that this particular block
+         --  contains the original context.
+
+         Set_Is_Finalization_Wrapper (Block);
 
          Set_Handled_Statement_Sequence (N,
            Make_Handled_Sequence_Of_Statements (Loc, New_List (Block)));
@@ -4261,10 +4357,29 @@ package body Exp_Ch7 is
          Last_Object  : Node_Id;
          Related_Node : Node_Id)
       is
-         Requires_Hooking : constant Boolean :=
-                              Nkind_In (N, N_Function_Call,
-                                           N_Procedure_Call_Statement);
+         function Requires_Hooking return Boolean;
+         --  Determine whether the context requires transient variable export
+         --  to the outer finalizer. This scenario arises when the context may
+         --  raise an exception.
 
+         ----------------------
+         -- Requires_Hooking --
+         ----------------------
+
+         function Requires_Hooking return Boolean is
+         begin
+            --  The context is either a procedure or function call or an object
+            --  declaration initialized by a function call. In all these cases,
+            --  the calls might raise an exception.
+
+            return Nkind (N) in N_Subprogram_Call
+               or else (Nkind (N) = N_Object_Declaration
+                         and then Nkind (Expression (N)) = N_Function_Call);
+         end Requires_Hooking;
+
+         --  Local variables
+
+         Must_Hook : constant Boolean := Requires_Hooking;
          Built     : Boolean := False;
          Desig_Typ : Entity_Id;
          Fin_Block : Node_Id;
@@ -4329,7 +4444,7 @@ package body Exp_Ch7 is
                --  enclosing sequence of statements where their corresponding
                --  "hooks" are picked up by the finalization machinery.
 
-               if Requires_Hooking then
+               if Must_Hook then
                   declare
                      Expr   : Node_Id;
                      Ptr_Id : Entity_Id;
@@ -4369,7 +4484,7 @@ package body Exp_Ch7 is
                      --  the machinery in Build_Finalizer to recognize this
                      --  special case.
 
-                     Set_Return_Flag_Or_Transient_Decl (Temp_Id, Stmt);
+                     Set_Status_Flag_Or_Transient_Decl (Temp_Id, Stmt);
 
                      --  Step 3: Hook the transient object to the temporary
 
@@ -4404,7 +4519,7 @@ package body Exp_Ch7 is
                --  Generate:
                --    Temp := null;
 
-               if Requires_Hooking then
+               if Must_Hook then
                   Append_To (Stmts,
                     Make_Assignment_Statement (Loc,
                       Name       => New_Reference_To (Temp_Id, Loc),
@@ -4602,6 +4717,7 @@ package body Exp_Ch7 is
    begin
       return
         Is_Protected_Type (T)
+          and then not Uses_Lock_Free (T)
           and then not Has_Entries (T)
           and then Is_RTE (Find_Protection_Type (T), RE_Protection);
    end Is_Simple_Protected_Type;

@@ -72,5 +72,3 @@ print *, myF90DerivedArray(1)
 !    endif
   end subroutine testDerivedPtrs
 end module c_f_pointer_tests
-
-! { dg-final { cleanup-modules "c_f_pointer_tests" } }

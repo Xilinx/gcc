@@ -694,6 +694,14 @@ should use @code{TARGET_HANDLE_C_OPTION} instead.
 Targets may provide a string object type that can be used within and between C, C++ and their respective Objective-C dialects. A string object might, for example, embed encoding and length information. These objects are considered opaque to the compiler and handled as references. An ideal implementation makes the composition of the string object match that of the Objective-C @code{NSString} (@code{NXString} for GNUStep), allowing efficient interworking between C-only and Objective-C code. If a target implements string objects then this hook should return a reference to such an object constructed from the normal `C' string representation provided in @var{string}. At present, the hook is used by Objective-C only, to obtain a common-format string object when the target provides one.
 @end deftypefn
 
+@deftypefn {C Target Hook} void TARGET_OBJC_DECLARE_UNRESOLVED_CLASS_REFERENCE (const char *@var{classname})
+Declare that Objective C class @var{classname} is referenced  by the current TU.
+@end deftypefn
+
+@deftypefn {C Target Hook} void TARGET_OBJC_DECLARE_CLASS_DEFINITION (const char *@var{classname})
+Declare that Objective C class @var{classname} is defined  by the current TU.
+@end deftypefn
+
 @deftypefn {C Target Hook} bool TARGET_STRING_OBJECT_REF_TYPE_P (const_tree @var{stringref})
 If a target implements string objects then this hook should return @code{true} if @var{stringref} is a valid reference to such an object.
 @end deftypefn
@@ -1634,9 +1642,9 @@ The string can contain more than one keyword.  If so, separate them with
 spaces, and write first any length keyword, then @code{unsigned} if
 appropriate, and finally @code{int}.  The string must exactly match one
 of the data type names defined in the function
-@code{init_decl_processing} in the file @file{c-decl.c}.  You may not
-omit @code{int} or change the order---that would cause the compiler to
-crash on startup.
+@code{c_common_nodes_and_builtins} in the file @file{c-family/c-common.c}.
+You may not omit @code{int} or change the order---that would cause the
+compiler to crash on startup.
 
 If you don't define this macro, the default is @code{"long unsigned
 int"}.
@@ -5529,8 +5537,10 @@ The code of the hook should not alter the substructure of
 @var{x}.  If it transforms @var{x} into a more legitimate form, it
 should return the new @var{x}.
 
-It is not necessary for this hook to come up with a legitimate address.
-The compiler has standard ways of doing so in all cases.  In fact, it
+It is not necessary for this hook to come up with a legitimate address,
+with the exception of native TLS addresses (@pxref{Emulated TLS}).
+The compiler has standard ways of doing so in all cases.  In fact, if
+the target supports only emulated TLS, it
 is safe to omit this hook or make it return @var{x} if it cannot find
 a valid way to legitimize the address.  But often a machine-dependent
 strategy can generate better code.
@@ -7390,18 +7400,16 @@ Output COFF information or DWARF debugging information which indicates that file
  This target hook need not be defined if the standard form of output for the file format in use is appropriate.
 @end deftypefn
 
+@deftypefn {Target Hook} void TARGET_ASM_OUTPUT_IDENT (const char *@var{name})
+Output a string based on @var{name}, suitable for the @samp{#ident}  directive, or the equivalent directive or pragma in non-C-family languages.  If this hook is not defined, nothing is output for the @samp{#ident}  directive.
+@end deftypefn
+
 @defmac OUTPUT_QUOTED_STRING (@var{stream}, @var{string})
 A C statement to output the string @var{string} to the stdio stream
 @var{stream}.  If you do not call the function @code{output_quoted_string}
 in your config files, GCC will only call it to output filenames to
 the assembler source.  So you can use it to canonicalize the format
 of the filename using this macro.
-@end defmac
-
-@defmac ASM_OUTPUT_IDENT (@var{stream}, @var{string})
-A C statement to output something to the assembler file to handle a
-@samp{#ident} directive containing the text @var{string}.  If this
-macro is not defined, nothing is output for a @samp{#ident} directive.
 @end defmac
 
 @deftypefn {Target Hook} void TARGET_ASM_NAMED_SECTION (const char *@var{name}, unsigned int @var{flags}, tree @var{decl})
@@ -8254,20 +8262,6 @@ in a category); and @var{sel_name} is the name of the selector.
 
 On systems where the assembler can handle quoted names, you can use this
 macro to provide more human-readable names.
-@end defmac
-
-@defmac ASM_DECLARE_CLASS_REFERENCE (@var{stream}, @var{name})
-A C statement (sans semicolon) to output to the stdio stream
-@var{stream} commands to declare that the label @var{name} is an
-Objective-C class reference.  This is only needed for targets whose
-linkers have special support for NeXT-style runtimes.
-@end defmac
-
-@defmac ASM_DECLARE_UNRESOLVED_REFERENCE (@var{stream}, @var{name})
-A C statement (sans semicolon) to output to the stdio stream
-@var{stream} commands to declare that the label @var{name} is an
-unresolved Objective-C class reference.  This is only needed for targets
-whose linkers have special support for NeXT-style runtimes.
 @end defmac
 
 @node Initialization
@@ -9491,6 +9485,10 @@ tables, and hence is desirable if it works.
 
 @deftypevr {Target Hook} bool TARGET_WANT_DEBUG_PUB_SECTIONS
 True if the @code{.debug_pubtypes} and @code{.debug_pubnames} sections should be emitted.  These sections are not used on most platforms, and in particular GDB does not use them.
+@end deftypevr
+
+@deftypevr {Target Hook} bool TARGET_FORCE_AT_COMP_DIR
+True if the @code{DW_AT_comp_dir} attribute should be emitted for each  compilation unit.  This attribute is required for the darwin linker  to emit debug information.
 @end deftypevr
 
 @deftypevr {Target Hook} bool TARGET_DELAY_SCHED2
@@ -11361,6 +11359,11 @@ value of @code{TARGET_CONST_ANCHOR} is a power of 2.  For example, on
 MIPS, where add-immediate takes a 16-bit signed value,
 @code{TARGET_CONST_ANCHOR} is set to @samp{0x8000}.  The default value
 is zero, which disables this optimization.  @end deftypevr
+
+@deftypefn {Target Hook} {unsigned HOST_WIDE_INT} TARGET_MEMMODEL_CHECK (unsigned HOST_WIDE_INT @var{val})
+Validate target specific memory model mask bits. When NULL no target specific
+memory model bits are allowed.
+@end deftypefn
 
 @deftypevr {Target Hook} {unsigned char} TARGET_ATOMIC_TEST_AND_SET_TRUEVAL
 This value should be set if the result written by @code{atomic_test_and_set} is not exactly 1, i.e. the @code{bool} @code{true}.

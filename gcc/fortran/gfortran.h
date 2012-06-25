@@ -2219,6 +2219,8 @@ typedef struct
   int warn_align_commons;
   int warn_real_q_constant;
   int warn_unused_dummy_argument;
+  int warn_realloc_lhs;
+  int warn_realloc_lhs_all;
   int max_errors;
 
   int flag_all_intrinsics;
@@ -2706,6 +2708,7 @@ gfc_actual_arglist *gfc_copy_actual_arglist (gfc_actual_arglist *);
 const char *gfc_extract_int (gfc_expr *, int *);
 bool is_subref_array (gfc_expr *);
 bool gfc_is_simply_contiguous (gfc_expr *, bool);
+gfc_try gfc_check_init_expr (gfc_expr *);
 
 gfc_expr *gfc_build_conversion (gfc_expr *);
 void gfc_free_ref_list (gfc_ref *);
@@ -2839,7 +2842,7 @@ void gfc_free_interface (gfc_interface *);
 int gfc_compare_derived_types (gfc_symbol *, gfc_symbol *);
 int gfc_compare_types (gfc_typespec *, gfc_typespec *);
 int gfc_compare_interfaces (gfc_symbol*, gfc_symbol*, const char *, int, int,
-			    char *, int);
+			    char *, int, const char *, const char *);
 void gfc_check_interfaces (gfc_namespace *);
 void gfc_procedure_use (gfc_symbol *, gfc_actual_arglist **, locus *);
 void gfc_ppc_use (gfc_component *, gfc_actual_arglist **, locus *);

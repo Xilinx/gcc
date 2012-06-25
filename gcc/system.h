@@ -663,6 +663,14 @@ extern int vsnprintf(char *, size_t, const char *, va_list);
 #define __builtin_expect(a, b) (a)
 #endif
 
+/* Default file in which to dump debug output.  Here for lack of a better
+   place to put it.  This used to be defined in output.h, but that results
+   in almost all files including output.h, even if they don't output anything
+   except, maybe, something to the dump file.  */
+#ifdef BUFSIZ
+extern FILE *dump_file;
+#endif
+
 /* Redefine abort to report an internal error w/o coredump, and
    reporting the location of the error in the source file.  */
 extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
@@ -807,7 +815,8 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 	LABEL_ALIGN_AFTER_BARRIER_MAX_SKIP JUMP_ALIGN_MAX_SKIP 		\
 	CAN_DEBUG_WITHOUT_FP UNLIKELY_EXECUTED_TEXT_SECTION_NAME	\
 	HOT_TEXT_SECTION_NAME LEGITIMATE_CONSTANT_P ALWAYS_STRIP_DOTDOT	\
-	OUTPUT_ADDR_CONST_EXTRA SMALL_REGISTER_CLASSES
+	OUTPUT_ADDR_CONST_EXTRA SMALL_REGISTER_CLASSES ASM_OUTPUT_IDENT	\
+	ASM_BYTE_OP
 
 /* Target macros only used for code built for the target, that have
    moved to libgcc-tm.h or have never been present elsewhere.  */
@@ -879,7 +888,8 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 	SETJMP_VIA_SAVE_AREA FORBIDDEN_INC_DEC_CLASSES			   \
 	PREFERRED_OUTPUT_RELOAD_CLASS SYSTEM_INCLUDE_DIR		   \
 	STANDARD_INCLUDE_DIR STANDARD_INCLUDE_COMPONENT			   \
-	LINK_ELIMINATE_DUPLICATE_LDIRECTORIES MIPS_DEBUGGING_INFO
+	LINK_ELIMINATE_DUPLICATE_LDIRECTORIES MIPS_DEBUGGING_INFO	   \
+	IDENT_ASM_OP
 
 /* Hooks that are no longer used.  */
  #pragma GCC poison LANG_HOOKS_FUNCTION_MARK LANG_HOOKS_FUNCTION_FREE	\

@@ -461,12 +461,20 @@ convert_integer (st_parameter_dt *dtp, int length, int negative)
 {
   char c, *buffer, message[MSGLEN];
   int m;
-  GFC_INTEGER_LARGEST v, max, max10;
+  GFC_UINTEGER_LARGEST v, max, max10;
+  GFC_INTEGER_LARGEST value;
 
   buffer = dtp->u.p.saved_string;
   v = 0;
 
-  max = (length == -1) ? MAX_REPEAT : max_value (length, 1);
+  if (length == -1)
+    max = MAX_REPEAT;
+  else
+    {
+      max = si_max (length);
+      if (negative)
+	max++;
+    }
   max10 = max / 10;
 
   for (;;)
@@ -490,8 +498,10 @@ convert_integer (st_parameter_dt *dtp, int length, int negative)
   if (length != -1)
     {
       if (negative)
-	v = -v;
-      set_integer (dtp->u.p.value, v, length);
+	value = -v;
+      else
+	value = v;
+      set_integer (dtp->u.p.value, value, length);
     }
   else
     {
@@ -1136,6 +1146,8 @@ parse_real (st_parameter_dt *dtp, void *buffer, int length)
 	case 'E':
 	case 'd':
 	case 'D':
+	case 'q':
+	case 'Q':
 	  push_char (dtp, 'e');
 	  goto exp1;
 
@@ -1449,6 +1461,8 @@ read_real (st_parameter_dt *dtp, void * dest, int length)
 	case 'e':
 	case 'D':
 	case 'd':
+	case 'Q':
+	case 'q':
 	  goto exp1;
 
 	case '+':
@@ -1546,6 +1560,8 @@ read_real (st_parameter_dt *dtp, void * dest, int length)
 	case 'e':
 	case 'D':
 	case 'd':
+	case 'Q':
+	case 'q':
 	  goto exp1;
 
 	case '+':
@@ -3058,7 +3074,7 @@ find_nml_name:
   if (dtp->u.p.nml_read_error)
     goto find_nml_name;
 
-  /* A trailing space is required, we give a little lattitude here, 10.9.1.  */ 
+  /* A trailing space is required, we give a little latitude here, 10.9.1.  */ 
   c = next_char (dtp);
   if (!is_separator(c) && c != '!')
     {

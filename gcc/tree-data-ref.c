@@ -720,13 +720,12 @@ dr_analyze_innermost (struct data_reference *dr, struct loop *nest)
     {
       if (!integer_zerop (TREE_OPERAND (base, 1)))
 	{
+	  double_int moff = mem_ref_offset (base);
+	  tree mofft = double_int_to_tree (sizetype, moff);
 	  if (!poffset)
-	    {
-	      double_int moff = mem_ref_offset (base);
-	      poffset = double_int_to_tree (sizetype, moff);
-	    }
+	    poffset = mofft;
 	  else
-	    poffset = size_binop (PLUS_EXPR, poffset, TREE_OPERAND (base, 1));
+	    poffset = size_binop (PLUS_EXPR, poffset, mofft);
 	}
       base = TREE_OPERAND (base, 0);
     }
@@ -736,7 +735,7 @@ dr_analyze_innermost (struct data_reference *dr, struct loop *nest)
   if (in_loop)
     {
       if (!simple_iv (loop, loop_containing_stmt (stmt), base, &base_iv,
-                      false))
+                      nest ? true : false))
         {
           if (nest)
             {
@@ -773,7 +772,8 @@ dr_analyze_innermost (struct data_reference *dr, struct loop *nest)
           offset_iv.step = ssize_int (0);
         }
       else if (!simple_iv (loop, loop_containing_stmt (stmt),
-                           poffset, &offset_iv, false))
+                           poffset, &offset_iv,
+			   nest ? true : false))
         {
           if (nest)
             {
@@ -4924,29 +4924,14 @@ dot_rdg (struct graph *rdg)
 #endif
 }
 
-/* This structure is used for recording the mapping statement index in
-   the RDG.  */
-
-struct GTY(()) rdg_vertex_info
-{
-  gimple stmt;
-  int index;
-};
-
 /* Returns the index of STMT in RDG.  */
 
 int
-rdg_vertex_for_stmt (struct graph *rdg, gimple stmt)
+rdg_vertex_for_stmt (struct graph *rdg ATTRIBUTE_UNUSED, gimple stmt)
 {
-  struct rdg_vertex_info rvi, *slot;
-
-  rvi.stmt = stmt;
-  slot = (struct rdg_vertex_info *) htab_find (rdg->indices, &rvi);
-
-  if (!slot)
-    return -1;
-
-  return slot->index;
+  int index = gimple_uid (stmt);
+  gcc_checking_assert (index == -1 || RDG_STMT (rdg, index) == stmt);
+  return index;
 }
 
 /* Creates an edge in RDG for each distance vector from DDR.  The
@@ -5041,8 +5026,8 @@ create_rdg_edges (struct graph *rdg, VEC (ddr_p, heap) *ddrs)
 
 /* Build the vertices of the reduced dependence graph RDG.  */
 
-void
-create_rdg_vertices (struct graph *rdg, VEC (gimple, heap) *stmts)
+static void
+create_rdg_vertices (struct graph *rdg, VEC (gimple, heap) *stmts, loop_p loop)
 {
   int i, j;
   gimple stmt;
@@ -5052,33 +5037,31 @@ create_rdg_vertices (struct graph *rdg, VEC (gimple, heap) *stmts)
       VEC (data_ref_loc, heap) *references;
       data_ref_loc *ref;
       struct vertex *v = &(rdg->vertices[i]);
-      struct rdg_vertex_info *rvi = XNEW (struct rdg_vertex_info);
-      struct rdg_vertex_info **slot;
 
-      rvi->stmt = stmt;
-      rvi->index = i;
-      slot = (struct rdg_vertex_info **) htab_find_slot (rdg->indices, rvi, INSERT);
-
-      if (!*slot)
-	*slot = rvi;
-      else
-	free (rvi);
+      /* Record statement to vertex mapping.  */
+      gimple_set_uid (stmt, i);
 
       v->data = XNEW (struct rdg_vertex);
-      RDG_STMT (rdg, i) = stmt;
-
-      RDG_MEM_WRITE_STMT (rdg, i) = false;
-      RDG_MEM_READS_STMT (rdg, i) = false;
+      RDGV_STMT (v) = stmt;
+      RDGV_DATAREFS (v) = NULL;
+      RDGV_HAS_MEM_WRITE (v) = false;
+      RDGV_HAS_MEM_READS (v) = false;
       if (gimple_code (stmt) == GIMPLE_PHI)
 	continue;
 
       get_references_in_stmt (stmt, &references);
       FOR_EACH_VEC_ELT (data_ref_loc, references, j, ref)
-	if (!ref->is_read)
-	  RDG_MEM_WRITE_STMT (rdg, i) = true;
-	else
-	  RDG_MEM_READS_STMT (rdg, i) = true;
-
+	{
+	  data_reference_p dr;
+	  if (!ref->is_read)
+	    RDGV_HAS_MEM_WRITE (v) = true;
+	  else
+	    RDGV_HAS_MEM_READS (v) = true;
+	  dr = create_data_ref (loop, loop_containing_stmt (stmt),
+				*ref->pos, stmt, ref->is_read);
+	  if (dr)
+	    VEC_safe_push (data_reference_p, heap, RDGV_DATAREFS (v), dr);
+	}
       VEC_free (data_ref_loc, heap, references);
     }
 }
@@ -5130,37 +5113,6 @@ known_dependences_p (VEC (ddr_p, heap) *dependence_relations)
   return true;
 }
 
-/* Computes a hash function for element ELT.  */
-
-static hashval_t
-hash_stmt_vertex_info (const void *elt)
-{
-  const struct rdg_vertex_info *const rvi =
-    (const struct rdg_vertex_info *) elt;
-  gimple stmt = rvi->stmt;
-
-  return htab_hash_pointer (stmt);
-}
-
-/* Compares database elements E1 and E2.  */
-
-static int
-eq_stmt_vertex_info (const void *e1, const void *e2)
-{
-  const struct rdg_vertex_info *elt1 = (const struct rdg_vertex_info *) e1;
-  const struct rdg_vertex_info *elt2 = (const struct rdg_vertex_info *) e2;
-
-  return elt1->stmt == elt2->stmt;
-}
-
-/* Free the element E.  */
-
-static void
-hash_stmt_vertex_del (void *e)
-{
-  free (e);
-}
-
 /* Build the Reduced Dependence Graph (RDG) with one vertex per
    statement of the loop nest, and one edge per data dependence or
    scalar dependence.  */
@@ -5168,11 +5120,7 @@ hash_stmt_vertex_del (void *e)
 struct graph *
 build_empty_rdg (int n_stmts)
 {
-  int nb_data_refs = 10;
   struct graph *rdg = new_graph (n_stmts);
-
-  rdg->indices = htab_create (nb_data_refs, hash_stmt_vertex_info,
-			      eq_stmt_vertex_info, hash_stmt_vertex_del);
   return rdg;
 }
 
@@ -5195,7 +5143,7 @@ build_rdg (struct loop *loop,
       VEC (gimple, heap) *stmts = VEC_alloc (gimple, heap, 10);
       stmts_from_loop (loop, &stmts);
       rdg = build_empty_rdg (VEC_length (gimple, stmts));
-      create_rdg_vertices (rdg, stmts);
+      create_rdg_vertices (rdg, stmts, loop);
       create_rdg_edges (rdg, *dependence_relations);
       VEC_free (gimple, heap, stmts);
     }
@@ -5218,120 +5166,12 @@ free_rdg (struct graph *rdg)
       for (e = v->succ; e; e = e->succ_next)
 	free (e->data);
 
+      gimple_set_uid (RDGV_STMT (v), -1);
+      free_data_refs (RDGV_DATAREFS (v));
       free (v->data);
     }
 
-  htab_delete (rdg->indices);
   free_graph (rdg);
-}
-
-/* Initialize STMTS with all the statements of LOOP that contain a
-   store to memory.  */
-
-void
-stores_from_loop (struct loop *loop, VEC (gimple, heap) **stmts)
-{
-  unsigned int i;
-  basic_block *bbs = get_loop_body_in_dom_order (loop);
-
-  for (i = 0; i < loop->num_nodes; i++)
-    {
-      basic_block bb = bbs[i];
-      gimple_stmt_iterator bsi;
-
-      for (bsi = gsi_start_bb (bb); !gsi_end_p (bsi); gsi_next (&bsi))
-	if (gimple_vdef (gsi_stmt (bsi)))
-	  VEC_safe_push (gimple, heap, *stmts, gsi_stmt (bsi));
-    }
-
-  free (bbs);
-}
-
-/* Returns true when the statement at STMT is of the form "A[i] = 0"
-   that contains a data reference on its LHS with a stride of the same
-   size as its unit type.  */
-
-bool
-stmt_with_adjacent_zero_store_dr_p (gimple stmt)
-{
-  tree op0, op1;
-  bool res;
-  struct data_reference *dr;
-
-  if (!stmt
-      || !gimple_vdef (stmt)
-      || !is_gimple_assign (stmt)
-      || !gimple_assign_single_p (stmt)
-      || !(op1 = gimple_assign_rhs1 (stmt))
-      || !(integer_zerop (op1) || real_zerop (op1)))
-    return false;
-
-  dr = XCNEW (struct data_reference);
-  op0 = gimple_assign_lhs (stmt);
-
-  DR_STMT (dr) = stmt;
-  DR_REF (dr) = op0;
-
-  res = dr_analyze_innermost (dr, loop_containing_stmt (stmt))
-    && stride_of_unit_type_p (DR_STEP (dr), TREE_TYPE (op0));
-
-  free_data_ref (dr);
-  return res;
-}
-
-/* Initialize STMTS with all the statements of LOOP that contain a
-   store to memory of the form "A[i] = 0".  */
-
-void
-stores_zero_from_loop (struct loop *loop, VEC (gimple, heap) **stmts)
-{
-  unsigned int i;
-  basic_block bb;
-  gimple_stmt_iterator si;
-  gimple stmt;
-  basic_block *bbs = get_loop_body_in_dom_order (loop);
-
-  for (i = 0; i < loop->num_nodes; i++)
-    for (bb = bbs[i], si = gsi_start_bb (bb); !gsi_end_p (si); gsi_next (&si))
-      if ((stmt = gsi_stmt (si))
-	  && stmt_with_adjacent_zero_store_dr_p (stmt))
-	VEC_safe_push (gimple, heap, *stmts, gsi_stmt (si));
-
-  free (bbs);
-}
-
-/* For a data reference REF, return the declaration of its base
-   address or NULL_TREE if the base is not determined.  */
-
-static inline tree
-ref_base_address (gimple stmt, data_ref_loc *ref)
-{
-  tree base = NULL_TREE;
-  tree base_address;
-  struct data_reference *dr = XCNEW (struct data_reference);
-
-  DR_STMT (dr) = stmt;
-  DR_REF (dr) = *ref->pos;
-  dr_analyze_innermost (dr, loop_containing_stmt (stmt));
-  base_address = DR_BASE_ADDRESS (dr);
-
-  if (!base_address)
-    goto end;
-
-  switch (TREE_CODE (base_address))
-    {
-    case ADDR_EXPR:
-      base = TREE_OPERAND (base_address, 0);
-      break;
-
-    default:
-      base = base_address;
-      break;
-    }
-
- end:
-  free_data_ref (dr);
-  return base;
 }
 
 /* Determines whether the statement from vertex V of the RDG has a
@@ -5361,100 +5201,3 @@ rdg_defs_used_in_other_loops_p (struct graph *rdg, int v)
 
   return false;
 }
-
-/* Determines whether statements S1 and S2 access to similar memory
-   locations.  Two memory accesses are considered similar when they
-   have the same base address declaration, i.e. when their
-   ref_base_address is the same.  */
-
-bool
-have_similar_memory_accesses (gimple s1, gimple s2)
-{
-  bool res = false;
-  unsigned i, j;
-  VEC (data_ref_loc, heap) *refs1, *refs2;
-  data_ref_loc *ref1, *ref2;
-
-  get_references_in_stmt (s1, &refs1);
-  get_references_in_stmt (s2, &refs2);
-
-  FOR_EACH_VEC_ELT (data_ref_loc, refs1, i, ref1)
-    {
-      tree base1 = ref_base_address (s1, ref1);
-
-      if (base1)
-	FOR_EACH_VEC_ELT (data_ref_loc, refs2, j, ref2)
-	  if (base1 == ref_base_address (s2, ref2))
-	    {
-	      res = true;
-	      goto end;
-	    }
-    }
-
- end:
-  VEC_free (data_ref_loc, heap, refs1);
-  VEC_free (data_ref_loc, heap, refs2);
-  return res;
-}
-
-/* Helper function for the hashtab.  */
-
-static int
-have_similar_memory_accesses_1 (const void *s1, const void *s2)
-{
-  return have_similar_memory_accesses (CONST_CAST_GIMPLE ((const_gimple) s1),
-				       CONST_CAST_GIMPLE ((const_gimple) s2));
-}
-
-/* Helper function for the hashtab.  */
-
-static hashval_t
-ref_base_address_1 (const void *s)
-{
-  gimple stmt = CONST_CAST_GIMPLE ((const_gimple) s);
-  unsigned i;
-  VEC (data_ref_loc, heap) *refs;
-  data_ref_loc *ref;
-  hashval_t res = 0;
-
-  get_references_in_stmt (stmt, &refs);
-
-  FOR_EACH_VEC_ELT (data_ref_loc, refs, i, ref)
-    if (!ref->is_read)
-      {
-	res = htab_hash_pointer (ref_base_address (stmt, ref));
-	break;
-      }
-
-  VEC_free (data_ref_loc, heap, refs);
-  return res;
-}
-
-/* Try to remove duplicated write data references from STMTS.  */
-
-void
-remove_similar_memory_refs (VEC (gimple, heap) **stmts)
-{
-  unsigned i;
-  gimple stmt;
-  htab_t seen = htab_create (VEC_length (gimple, *stmts), ref_base_address_1,
-			     have_similar_memory_accesses_1, NULL);
-
-  for (i = 0; VEC_iterate (gimple, *stmts, i, stmt); )
-    {
-      void **slot;
-
-      slot = htab_find_slot (seen, stmt, INSERT);
-
-      if (*slot)
-	VEC_ordered_remove (gimple, *stmts, i);
-      else
-	{
-	  *slot = (void *) stmt;
-	  i++;
-	}
-    }
-
-  htab_delete (seen);
-}
-

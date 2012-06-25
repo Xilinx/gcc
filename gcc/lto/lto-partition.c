@@ -83,6 +83,7 @@ add_references_to_partition (ltrans_partition part, struct ipa_ref_list *refs)
       else
         if (symtab_variable_p (ref->referred)
 	    && (DECL_COMDAT (ipa_ref_varpool_node (ref)->symbol.decl)
+		|| DECL_EXTERNAL (ipa_ref_varpool_node (ref)->symbol.decl)
 	        || (ref->use == IPA_REF_ALIAS
 		    && lookup_attribute
 		         ("weakref",
@@ -270,7 +271,7 @@ partition_cgraph_node_p (struct cgraph_node *node)
   if (DECL_EXTERNAL (node->symbol.decl)
       || (DECL_COMDAT (node->symbol.decl)
 	  && !node->symbol.force_output
-	  && !cgraph_used_from_object_file_p (node)))
+	  && !symtab_used_from_object_file_p ((symtab_node) node)))
     return false;
   if (lookup_attribute ("weakref", DECL_ATTRIBUTES (node->symbol.decl)))
     return false;
@@ -283,13 +284,14 @@ partition_cgraph_node_p (struct cgraph_node *node)
 static bool
 partition_varpool_node_p (struct varpool_node *vnode)
 {
-  if (vnode->alias || !vnode->needed)
+  if (vnode->alias || !vnode->analyzed)
     return false;
   /* Constant pool and comdat are always only in partitions they are needed.  */
   if (DECL_IN_CONSTANT_POOL (vnode->symbol.decl)
+      || DECL_EXTERNAL (vnode->symbol.decl)
       || (DECL_COMDAT (vnode->symbol.decl)
 	  && !vnode->symbol.force_output
-	  && !varpool_used_from_object_file_p (vnode)))
+	  && !symtab_used_from_object_file_p ((symtab_node) vnode)))
     return false;
   if (lookup_attribute ("weakref", DECL_ATTRIBUTES (vnode->symbol.decl)))
     return false;
@@ -843,6 +845,7 @@ lto_promote_cross_file_statics (void)
 	     be made global.  It is sensible to keep those ltrans local to
 	     allow better optimization.  */
 	  if (!DECL_IN_CONSTANT_POOL (vnode->symbol.decl)
+	      && !DECL_EXTERNAL (vnode->symbol.decl)
 	      && !DECL_COMDAT (vnode->symbol.decl)
 	      && !vnode->symbol.externally_visible && vnode->analyzed
 	      && referenced_from_other_partition_p (&vnode->symbol.ref_list,
@@ -893,8 +896,11 @@ lto_promote_cross_file_statics (void)
 
 		  /* Constant pool references use internal labels and thus
 		     cannot be made global.  It is sensible to keep those
-		     ltrans local to allow better optimization.  */
-		  if (DECL_IN_CONSTANT_POOL (v->symbol.decl))
+		     ltrans local to allow better optimization.
+		     Similarly we ship external vars initializers into
+		     every ltrans unit possibly referring to it.  */
+		  if (DECL_IN_CONSTANT_POOL (v->symbol.decl)
+		      || DECL_EXTERNAL (v->symbol.decl))
 		    {
 		      if (!pointer_set_insert (inserted, vnode))
 			VEC_safe_push (varpool_node_ptr, heap,

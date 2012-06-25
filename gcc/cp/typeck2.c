@@ -36,7 +36,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "intl.h"
 #include "cp-tree.h"
 #include "flags.h"
-#include "output.h"
 #include "diagnostic-core.h"
 
 static tree
@@ -1265,7 +1264,7 @@ process_init_constructor_record (tree type, tree init,
 
       /* If this is a bitfield, now convert to the lowered type.  */
       if (type != TREE_TYPE (field))
-	next = cp_convert_and_check (TREE_TYPE (field), next);
+	next = cp_convert_and_check (TREE_TYPE (field), next, complain);
       flags |= picflag_from_initializer (next);
       CONSTRUCTOR_APPEND_ELT (v, field, next);
     }
@@ -1471,7 +1470,7 @@ build_scoped_ref (tree datum, tree basetype, tree* binfo_p)
    delegation is detected.  */
 
 tree
-build_x_arrow (tree expr, tsubst_flags_t complain)
+build_x_arrow (location_t loc, tree expr, tsubst_flags_t complain)
 {
   tree orig_expr = expr;
   tree type = TREE_TYPE (expr);
@@ -1484,7 +1483,7 @@ build_x_arrow (tree expr, tsubst_flags_t complain)
   if (processing_template_decl)
     {
       if (type_dependent_expression_p (expr))
-	return build_min_nt (ARROW_EXPR, expr);
+	return build_min_nt_loc (loc, ARROW_EXPR, expr);
       expr = build_non_dependent_expr (expr);
     }
 
@@ -1493,8 +1492,8 @@ build_x_arrow (tree expr, tsubst_flags_t complain)
       struct tinst_level *actual_inst = current_instantiation ();
       tree fn = NULL;
 
-      while ((expr = build_new_op (COMPONENT_REF, LOOKUP_NORMAL, expr,
-				   NULL_TREE, NULL_TREE,
+      while ((expr = build_new_op (loc, COMPONENT_REF,
+				   LOOKUP_NORMAL, expr, NULL_TREE, NULL_TREE,
 				   &fn, complain)))
 	{
 	  if (expr == error_mark_node)
@@ -1573,7 +1572,7 @@ build_m_component_ref (tree datum, tree component, tsubst_flags_t complain)
   component = mark_rvalue_use (component);
 
   ptrmem_type = TREE_TYPE (component);
-  if (!TYPE_PTR_TO_MEMBER_P (ptrmem_type))
+  if (!TYPE_PTRMEM_P (ptrmem_type))
     {
       if (complain & tf_error)
 	error ("%qE cannot be used as a member pointer, since it is of "
@@ -1615,7 +1614,7 @@ build_m_component_ref (tree datum, tree component, tsubst_flags_t complain)
 	return error_mark_node;
     }
 
-  if (TYPE_PTRMEM_P (ptrmem_type))
+  if (TYPE_PTRDATAMEM_P (ptrmem_type))
     {
       bool is_lval = real_lvalue_p (datum);
       tree ptype;

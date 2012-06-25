@@ -54,6 +54,7 @@
   r4300
   r4600
   r4650
+  r4700
   r5000
   r5400
   r5500
@@ -348,13 +349,15 @@
 ;;       if (RELEASE_BARRIER == YES) sync
 ;;    1: OLDVAL = *MEM
 ;;       if ((OLDVAL & INCLUSIVE_MASK) != REQUIRED_OLDVAL) goto 2
+;;         CMP  = 0 [delay slot]
 ;;       $TMP1 = OLDVAL & EXCLUSIVE_MASK
 ;;       $TMP2 = INSN1 (OLDVAL, INSN1_OP2)
 ;;       $TMP3 = INSN2 ($TMP2, INCLUSIVE_MASK)
 ;;       $AT |= $TMP1 | $TMP3
 ;;       if (!commit (*MEM = $AT)) goto 1.
 ;;         if (INSN1 != MOVE && INSN1 != LI) NEWVAL = $TMP3 [delay slot]
-;;       sync
+;;       CMP  = 1
+;;       if (ACQUIRE_BARRIER == YES) sync
 ;;    2:
 ;;
 ;; where "$" values are temporaries and where the other values are
@@ -363,6 +366,7 @@
 ;; specified, the following values are used instead:
 ;;
 ;;    - OLDVAL: $AT
+;;    - CMP: NONE
 ;;    - NEWVAL: $AT
 ;;    - INCLUSIVE_MASK: -1
 ;;    - REQUIRED_OLDVAL: OLDVAL & INCLUSIVE_MASK
@@ -374,6 +378,7 @@
 ;; but the gen* programs don't yet support that.
 (define_attr "sync_mem" "none,0,1,2,3,4,5" (const_string "none"))
 (define_attr "sync_oldval" "none,0,1,2,3,4,5" (const_string "none"))
+(define_attr "sync_cmp" "none,0,1,2,3,4,5" (const_string "none"))
 (define_attr "sync_newval" "none,0,1,2,3,4,5" (const_string "none"))
 (define_attr "sync_inclusive_mask" "none,0,1,2,3,4,5" (const_string "none"))
 (define_attr "sync_exclusive_mask" "none,0,1,2,3,4,5" (const_string "none"))
@@ -383,8 +388,11 @@
   (const_string "move"))
 (define_attr "sync_insn2" "nop,and,xor,not"
   (const_string "nop"))
-(define_attr "sync_release_barrier" "yes,no"
-  (const_string "yes"))
+;; Memory model specifier.
+;; "0"-"9" values specify the operand that stores the memory model value.
+;; "10" specifies MEMMODEL_ACQ_REL,
+;; "11" specifies MEMMODEL_ACQUIRE.
+(define_attr "sync_memmodel" "" (const_int 10))
 
 ;; Length of instruction in bytes.
 (define_attr "length" ""
@@ -5756,7 +5764,7 @@
 {
   rtx addr;
 
-  addr = plus_constant (operands[0], GET_MODE_SIZE (Pmode) * 3);
+  addr = plus_constant (Pmode, operands[0], GET_MODE_SIZE (Pmode) * 3);
   mips_emit_move (gen_rtx_MEM (Pmode, addr), pic_offset_table_rtx);
   DONE;
 })
@@ -5772,9 +5780,9 @@
   /* The elements of the buffer are, in order:  */
   int W = GET_MODE_SIZE (Pmode);
   rtx fp = gen_rtx_MEM (Pmode, operands[0]);
-  rtx lab = gen_rtx_MEM (Pmode, plus_constant (operands[0], 1*W));
-  rtx stack = gen_rtx_MEM (Pmode, plus_constant (operands[0], 2*W));
-  rtx gpv = gen_rtx_MEM (Pmode, plus_constant (operands[0], 3*W));
+  rtx lab = gen_rtx_MEM (Pmode, plus_constant (Pmode, operands[0], 1*W));
+  rtx stack = gen_rtx_MEM (Pmode, plus_constant (Pmode, operands[0], 2*W));
+  rtx gpv = gen_rtx_MEM (Pmode, plus_constant (Pmode, operands[0], 3*W));
   rtx pv = gen_rtx_REG (Pmode, PIC_FUNCTION_ADDR_REGNUM);
   /* Use gen_raw_REG to avoid being given pic_offset_table_rtx.
      The target is bound to be using $28 as the global pointer

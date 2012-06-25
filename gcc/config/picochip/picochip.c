@@ -40,7 +40,6 @@ along with GCC; see the file COPYING3.  If not, see
 #include "function.h"
 #include "output.h"
 #include "basic-block.h"
-#include "integrate.h"
 #include "diagnostic-core.h"
 #include "ggc.h"
 #include "hashtab.h"
@@ -1137,7 +1136,7 @@ picochip_can_eliminate_link_sp_save (void)
     accesses become wrong. This wouldnt happen only if we were not using the
     stack at all. The following conditions ensures that.*/
 
-  return (current_function_is_leaf &&
+  return (crtl->is_leaf &&
           !df_regs_ever_live_p(LINK_REGNUM) &&
           !df_regs_ever_live_p(STACK_POINTER_REGNUM) &&
           (picochip_special_save_area_byte_offset() == 0) &&
@@ -1817,7 +1816,7 @@ picochip_output_frame_debug (FILE * file)
 {
   int i = 0;
 
-  if (current_function_is_leaf)
+  if (crtl->is_leaf)
     fprintf (file, "\t\t// Leaf function\n");
   else
     fprintf (file, "\t\t// Non-leaf function\n");
@@ -4696,6 +4695,6 @@ picochip_static_chain (const_tree ARG_UNUSED (fndecl), bool incoming_p)
   if (incoming_p)
     addr = arg_pointer_rtx;
   else
-    addr = plus_constant (stack_pointer_rtx, -2 * UNITS_PER_WORD);
+    addr = plus_constant (Pmode, stack_pointer_rtx, -2 * UNITS_PER_WORD);
   return gen_frame_mem (Pmode, addr);
 }

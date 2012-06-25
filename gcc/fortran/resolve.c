@@ -1152,7 +1152,7 @@ resolve_structure_cons (gfc_expr *expr, int init)
 	    }
 
 	  if (s2 && !gfc_compare_interfaces (comp->ts.interface, s2, name, 0, 1,
-					     err, sizeof (err)))
+					     err, sizeof (err), NULL, NULL))
 	    {
 	      gfc_error ("Interface mismatch for procedure-pointer component "
 			 "'%s' in structure constructor at %L: %s",
@@ -1401,7 +1401,7 @@ count_specific_procs (gfc_expr *e)
 
 
 /* See if a call to sym could possibly be a not allowed RECURSION because of
-   a missing RECURIVE declaration.  This means that either sym is the current
+   a missing RECURSIVE declaration.  This means that either sym is the current
    context itself, or sym is the parent of a contained procedure calling its
    non-RECURSIVE containing procedure.
    This also works if sym is an ENTRY.  */
@@ -1957,7 +1957,6 @@ resolve_elemental_actual (gfc_expr *expr, gfc_code *c)
 		       "ELEMENTAL procedure unless there is a non-optional "
 		       "argument with the same rank (12.4.1.5)",
 		       arg->expr->symtree->n.sym->name, &arg->expr->where);
-	  return FAILURE;
 	}
     }
 
@@ -4904,14 +4903,19 @@ resolve_ref (gfc_expr *expr)
 	    {
 	      /* F03:C614.  */
 	      if (ref->u.c.component->attr.pointer
-		  || ref->u.c.component->attr.proc_pointer)
+		  || ref->u.c.component->attr.proc_pointer
+		  || (ref->u.c.component->ts.type == BT_CLASS
+			&& CLASS_DATA (ref->u.c.component)->attr.pointer))
 		{
 		  gfc_error ("Component to the right of a part reference "
 			     "with nonzero rank must not have the POINTER "
 			     "attribute at %L", &expr->where);
 		  return FAILURE;
 		}
-	      else if (ref->u.c.component->attr.allocatable)
+	      else if (ref->u.c.component->attr.allocatable
+			|| (ref->u.c.component->ts.type == BT_CLASS
+			    && CLASS_DATA (ref->u.c.component)->attr.allocatable))
+
 		{
 		  gfc_error ("Component to the right of a part reference "
 			     "with nonzero rank must not have the ALLOCATABLE "
@@ -5081,9 +5085,15 @@ resolve_variable (gfc_expr *e)
     }
 
   /* If this is an associate-name, it may be parsed with an array reference
-     in error even though the target is scalar.  Fail directly in this case.  */
-  if (sym->assoc && !sym->attr.dimension && e->ref && e->ref->type == REF_ARRAY)
-    return FAILURE;
+     in error even though the target is scalar.  Fail directly in this case.
+     TODO Understand why class scalar expressions must be excluded.  */
+  if (sym->assoc && !(sym->ts.type == BT_CLASS && e->rank == 0))
+    {
+      if (sym->ts.type == BT_CLASS)
+	gfc_fix_class_refs (e);
+      if (!sym->attr.dimension && e->ref && e->ref->type == REF_ARRAY)
+	return FAILURE;
+    }
 
   if (sym->ts.type == BT_DERIVED && sym->ts.u.derived->attr.generic)
     sym->ts.u.derived = gfc_find_dt_in_generic (sym->ts.u.derived);
@@ -5123,6 +5133,19 @@ resolve_variable (gfc_expr *e)
 
   if (check_assumed_size_reference (sym, e))
     return FAILURE;
+
+  /* If a PRIVATE variable is used in the specification expression of the
+     result variable, it might be accessed from outside the module and can
+     thus not be TREE_PUBLIC() = 0.
+     TODO: sym->attr.public_used only has to be set for the result variable's
+     type-parameter expression and not for dummies or automatic variables.
+     Additionally, it only has to be set if the function is either PUBLIC or
+     used in a generic interface or TBP; unfortunately,
+     proc_name->attr.public_used can get set at a later stage.  */
+  if (specification_expr && sym->attr.access == ACCESS_PRIVATE
+      && !sym->attr.function && !sym->attr.use_assoc
+      && gfc_current_ns->proc_name && gfc_current_ns->proc_name->attr.function)
+    sym->attr.public_used = 1;
 
   /* Deal with forward references to entries during resolve_code, to
      satisfy, at least partially, 12.5.2.5.  */
@@ -5647,12 +5670,11 @@ resolve_typebound_static (gfc_expr* e, gfc_symtree** target,
   e->value.compcall.actual = NULL;
 
   /* If we find a deferred typebound procedure, check for derived types
-     that an over-riding typebound procedure has not been missed.  */
-  if (e->value.compcall.tbp->deferred
-	&& e->value.compcall.name
-	&& !e->value.compcall.tbp->non_overridable
-	&& e->value.compcall.base_object
-	&& e->value.compcall.base_object->ts.type == BT_DERIVED)
+     that an overriding typebound procedure has not been missed.  */
+  if (e->value.compcall.name
+      && !e->value.compcall.tbp->non_overridable
+      && e->value.compcall.base_object
+      && e->value.compcall.base_object->ts.type == BT_DERIVED)
     {
       gfc_symtree *st;
       gfc_symbol *derived;
@@ -5661,7 +5683,7 @@ resolve_typebound_static (gfc_expr* e, gfc_symtree** target,
       derived = e->value.compcall.base_object->ts.u.derived;
       st = NULL;
 
-      /* If necessary, go throught the inheritance chain.  */
+      /* If necessary, go through the inheritance chain.  */
       while (!st && derived)
 	{
 	  /* Look for the typebound procedure 'name'.  */
@@ -6856,7 +6878,7 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
   gfc_component *c;
   gfc_try t;
 
-  /* Mark the ultimost array component as being in allocate to allow DIMEN_STAR
+  /* Mark the utmost array component as being in allocate to allow DIMEN_STAR
      checking of coarrays.  */
   for (ref = e->ref; ref; ref = ref->next)
     if (ref->next == NULL)
@@ -6963,6 +6985,7 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
 	}
     }
 
+  /* Check for F08:C628.  */
   if (allocatable == 0 && pointer == 0)
     {
       gfc_error ("Allocate-object at %L must be ALLOCATABLE or a POINTER",
@@ -7107,7 +7130,7 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
   if (dimension == 0 && codimension == 0)
     goto success;
 
-  /* Make sure the last reference node is an array specifiction.  */
+  /* Make sure the last reference node is an array specification.  */
 
   if (!ref2 || ref2->type != REF_ARRAY || ref2->u.ar.type == AR_FULL
       || (dimension && ref2->u.ar.dimen == 0))
@@ -7928,7 +7951,7 @@ gfc_type_is_extensible (gfc_symbol *sym)
 }
 
 
-/* Resolve an associate name:  Resolve target and ensure the type-spec is
+/* Resolve an associate-name:  Resolve target and ensure the type-spec is
    correct as well as possibly the array-spec.  */
 
 static void
@@ -7984,8 +8007,25 @@ resolve_assoc_var (gfc_symbol* sym, bool resolve_target)
       sym->attr.dimension = 0;
       return;
     }
-  if (target->rank > 0)
+
+  /* We cannot deal with class selectors that need temporaries.  */
+  if (target->ts.type == BT_CLASS
+	&& gfc_ref_needs_temporary_p (target->ref))
+    {
+      gfc_error ("CLASS selector at %L needs a temporary which is not "
+		 "yet implemented", &target->where);
+      return;
+    }
+
+  if (target->ts.type != BT_CLASS && target->rank > 0)
     sym->attr.dimension = 1;
+  else if (target->ts.type == BT_CLASS)
+    gfc_fix_class_refs (target);
+
+  /* The associate-name will have a correct type by now. Make absolutely
+     sure that it has not picked up a dimension attribute.  */
+  if (sym->ts.type == BT_CLASS)
+    sym->attr.dimension = 0;
 
   if (sym->attr.dimension)
     {
@@ -8160,7 +8200,7 @@ resolve_select_type (gfc_code *code, gfc_namespace *old_ns)
 
       /* Chain in the new list only if it is marked as dangling.  Otherwise
 	 there is a CASE label overlap and this is already used.  Just ignore,
-	 the error is diagonsed elsewhere.  */
+	 the error is diagnosed elsewhere.  */
       if (st->n.sym->assoc->dangling)
 	{
 	  new_st->ext.block.assoc = st->n.sym->assoc;
@@ -9326,7 +9366,7 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	    case EXEC_OMP_WORKSHARE:
 	      omp_workshare_save = omp_workshare_flag;
 	      omp_workshare_flag = 1;
-	      /* FALLTHROUGH */
+	      /* FALL THROUGH */
 	    default:
 	      gfc_resolve_blocks (code->block, ns);
 	      break;
@@ -9905,12 +9945,24 @@ resolve_charlen (gfc_charlen *cl)
 
   cl->resolved = 1;
 
-  specification_expr = 1;
 
-  if (resolve_index_expr (cl->length) == FAILURE)
+  if (cl->length_from_typespec)
     {
-      specification_expr = 0;
-      return FAILURE;
+      if (gfc_resolve_expr (cl->length) == FAILURE)
+	return FAILURE;
+
+      if (gfc_simplify_expr (cl->length, 0) == FAILURE)
+	return FAILURE;
+    }
+  else
+    {
+      specification_expr = 1;
+
+      if (resolve_index_expr (cl->length) == FAILURE)
+	{
+	  specification_expr = 0;
+	  return FAILURE;
+	}
     }
 
   /* "If the character length parameter value evaluates to a negative
@@ -10051,7 +10103,8 @@ build_default_init_expr (gfc_symbol *sym)
       || sym->attr.data
       || sym->module
       || sym->attr.cray_pointee
-      || sym->attr.cray_pointer)
+      || sym->attr.cray_pointer
+      || sym->assoc)
     return NULL;
 
   /* Now we'll try to build an initializer expression.  */
@@ -10686,7 +10739,7 @@ resolve_fl_procedure (gfc_symbol *sym, int mp_flag)
      actual length; (ii) To declare a named constant; or (iii) External
      function - but length must be declared in calling scoping unit.  */
   if (sym->attr.function
-      && sym->ts.type == BT_CHARACTER
+      && sym->ts.type == BT_CHARACTER && !sym->ts.deferred
       && sym->ts.u.cl && sym->ts.u.cl->length == NULL)
     {
       if ((sym->as && sym->as->rank) || (sym->attr.pointer)
@@ -10967,8 +11020,8 @@ static gfc_try
 check_generic_tbp_ambiguity (gfc_tbp_generic* t1, gfc_tbp_generic* t2,
 			     const char* generic_name, locus where)
 {
-  gfc_symbol* sym1;
-  gfc_symbol* sym2;
+  gfc_symbol *sym1, *sym2;
+  const char *pass1, *pass2;
 
   gcc_assert (t1->specific && t2->specific);
   gcc_assert (!t1->specific->is_generic);
@@ -10992,8 +11045,20 @@ check_generic_tbp_ambiguity (gfc_tbp_generic* t1, gfc_tbp_generic* t2,
     }
 
   /* Compare the interfaces.  */
+  if (t1->specific->nopass)
+    pass1 = NULL;
+  else if (t1->specific->pass_arg)
+    pass1 = t1->specific->pass_arg;
+  else
+    pass1 = t1->specific->u.specific->n.sym->formal->sym->name;
+  if (t2->specific->nopass)
+    pass2 = NULL;
+  else if (t2->specific->pass_arg)
+    pass2 = t2->specific->pass_arg;
+  else
+    pass2 = t2->specific->u.specific->n.sym->formal->sym->name;  
   if (gfc_compare_interfaces (sym1, sym2, sym2->name, !t1->is_operator, 0,
-			      NULL, 0))
+			      NULL, 0, pass1, pass2))
     {
       gfc_error ("'%s' and '%s' for GENERIC '%s' at %L are ambiguous",
 		 sym1->name, sym2->name, generic_name, &where);
@@ -11625,7 +11690,7 @@ resolve_fl_derived0 (gfc_symbol *sym)
   for ( ; c != NULL; c = c->next)
     {
       /* See PRs 51550, 47545, 48654, 49050, 51075 - and 45170.  */
-      if (c->ts.type == BT_CHARACTER && c->ts.deferred)
+      if (c->ts.type == BT_CHARACTER && c->ts.deferred && !c->attr.function)
 	{
 	  gfc_error ("Deferred-length character component '%s' at %L is not "
 		     "yet supported", c->name, &c->loc);
@@ -12015,6 +12080,8 @@ resolve_fl_derived (gfc_symbol *sym)
   if (!sym->attr.is_class)
     gfc_find_symbol (sym->name, sym->ns, 0, &gen_dt);
   if (gen_dt && gen_dt->generic && gen_dt->generic->next
+      && (!gen_dt->generic->sym->attr.use_assoc
+	  || gen_dt->generic->sym->module != gen_dt->generic->next->sym->module)
       && gfc_notify_std (GFC_STD_F2003, "Fortran 2003: Generic name '%s' of "
 			 "function '%s' at %L being the same name as derived "
 			 "type at %L", sym->name,

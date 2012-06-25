@@ -97,6 +97,8 @@ extern char arm_arch_name[];
 	  builtin_define ("__XSCALE__");		\
 	if (arm_arch_iwmmxt)				\
 	  builtin_define ("__IWMMXT__");		\
+	if (arm_arch_iwmmxt2)				\
+	  builtin_define ("__IWMMXT2__");		\
 	if (TARGET_AAPCS_BASED)				\
 	  {						\
 	    if (arm_pcs_default == ARM_PCS_AAPCS_VFP)	\
@@ -194,7 +196,9 @@ extern void (*arm_lang_output_object_attributes_hook)(void);
 #define TARGET_MAVERICK		(arm_fpu_desc->model == ARM_FP_MODEL_MAVERICK)
 #define TARGET_VFP		(arm_fpu_desc->model == ARM_FP_MODEL_VFP)
 #define TARGET_IWMMXT			(arm_arch_iwmmxt)
+#define TARGET_IWMMXT2			(arm_arch_iwmmxt2)
 #define TARGET_REALLY_IWMMXT		(TARGET_IWMMXT && TARGET_32BIT)
+#define TARGET_REALLY_IWMMXT2		(TARGET_IWMMXT2 && TARGET_32BIT)
 #define TARGET_IWMMXT_ABI (TARGET_32BIT && arm_abi == ARM_ABI_IWMMXT)
 #define TARGET_ARM                      (! TARGET_THUMB)
 #define TARGET_EITHER			1 /* (TARGET_ARM | TARGET_THUMB) */
@@ -409,6 +413,9 @@ extern int arm_arch_cirrus;
 
 /* Nonzero if this chip supports Intel XScale with Wireless MMX technology.  */
 extern int arm_arch_iwmmxt;
+
+/* Nonzero if this chip supports Intel Wireless MMX2 technology.  */
+extern int arm_arch_iwmmxt2;
 
 /* Nonzero if this chip is an XScale.  */
 extern int arm_arch_xscale;
@@ -1613,6 +1620,30 @@ typedef struct
 #define HAVE_PRE_MODIFY_REG   TARGET_32BIT
 #define HAVE_POST_MODIFY_REG  TARGET_32BIT
 
+enum arm_auto_incmodes
+  {
+    ARM_POST_INC,
+    ARM_PRE_INC,
+    ARM_POST_DEC,
+    ARM_PRE_DEC
+  };
+
+#define ARM_AUTOINC_VALID_FOR_MODE_P(mode, code) \
+  (TARGET_32BIT && arm_autoinc_modes_ok_p (mode, code))
+#define USE_LOAD_POST_INCREMENT(mode) \
+  ARM_AUTOINC_VALID_FOR_MODE_P(mode, ARM_POST_INC)
+#define USE_LOAD_PRE_INCREMENT(mode)  \
+  ARM_AUTOINC_VALID_FOR_MODE_P(mode, ARM_PRE_INC)
+#define USE_LOAD_POST_DECREMENT(mode) \
+  ARM_AUTOINC_VALID_FOR_MODE_P(mode, ARM_POST_DEC)
+#define USE_LOAD_PRE_DECREMENT(mode)  \
+  ARM_AUTOINC_VALID_FOR_MODE_P(mode, ARM_PRE_DEC)
+
+#define USE_STORE_PRE_DECREMENT(mode) USE_LOAD_PRE_DECREMENT(mode)
+#define USE_STORE_PRE_INCREMENT(mode) USE_LOAD_PRE_INCREMENT(mode)
+#define USE_STORE_POST_DECREMENT(mode) USE_LOAD_POST_DECREMENT(mode)
+#define USE_STORE_POST_INCREMENT(mode) USE_LOAD_POST_INCREMENT(mode)
+
 /* Macros to check register numbers against specific register classes.  */
 
 /* These assume that REGNO is a hard or pseudo reg number.
@@ -2159,21 +2190,6 @@ extern int making_const_table;
 #define ASM_CPU_SPEC \
    " %{mcpu=generic-*:-march=%*;"				\
    "   :%{mcpu=*:-mcpu=%*} %{march=*:-march=%*}}"
-
-/* This macro is used to emit an EABI tag and its associated value.
-   We emit the numerical value of the tag in case the assembler does not
-   support textual tags.  (Eg gas prior to 2.20).  If requested we include
-   the tag name in a comment so that anyone reading the assembler output
-   will know which tag is being set.  */
-#define EMIT_EABI_ATTRIBUTE(NAME,NUM,VAL)				\
-  do									\
-    {									\
-      asm_fprintf (asm_out_file, "\t.eabi_attribute %d, %d", NUM, VAL); \
-      if (flag_verbose_asm || flag_debug_asm)				\
-	asm_fprintf (asm_out_file, "\t%s " #NAME, ASM_COMMENT_START);	\
-      asm_fprintf (asm_out_file, "\n");					\
-    }									\
-  while (0)
 
 /* -mcpu=native handling only makes sense with compiler running on
    an ARM chip.  */

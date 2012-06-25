@@ -33,11 +33,15 @@
 
 namespace std _GLIBCXX_VISIBILITY(default)
 {
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
+
   template<typename _Key, typename _Value, typename _Alloc,
 	   typename _ExtractKey, typename _Equal,
 	   typename _H1, typename _H2, typename _Hash,
 	   typename _RehashPolicy, typename _Traits>
     class _Hashtable;
+
+_GLIBCXX_END_NAMESPACE_VERSION
 
 namespace __detail
 {
@@ -82,6 +86,23 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	noexcept(declval<const _Hash&>()(declval<const _Key&>()))>
     { };
 
+  struct _Identity
+  {
+    template<typename _Tp>
+      _Tp&&
+      operator()(_Tp&& __x) const
+      { return std::forward<_Tp>(__x); }
+  };
+
+  struct _Select1st
+  {
+    template<typename _Tp>
+      auto
+      operator()(_Tp&& __x) const
+      -> decltype(std::get<0>(std::forward<_Tp>(__x)))
+      { return std::get<0>(std::forward<_Tp>(__x)); }
+  };
+
   // Auxiliary types used for all instantiations of _Hashtable nodes
   // and iterators.
 
@@ -121,10 +142,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   /**
    *  struct _Hash_node_base
    *
-   * Nodes, used to wrap elements stored in the hash table.  A policy
-   * template parameter of class template _Hashtable controls whether
-   * nodes also store a hash code. In some cases (e.g. strings) this
-   * may be a performance win.
+   *  Nodes, used to wrap elements stored in the hash table.  A policy
+   *  template parameter of class template _Hashtable controls whether
+   *  nodes also store a hash code. In some cases (e.g. strings) this
+   *  may be a performance win.
    */
   struct _Hash_node_base
   {
@@ -141,7 +162,11 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   template<typename _Value, bool _Cache_hash_code>
     struct _Hash_node;
 
-  /// Specialization.
+  /**
+   *  Specialization for nodes with caches, struct _Hash_node.
+   *
+   *  Base class is __detail::_Hash_node_base.
+   */
   template<typename _Value>
     struct _Hash_node<_Value, true> : _Hash_node_base
     {
@@ -156,7 +181,11 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       _M_next() const { return static_cast<_Hash_node*>(_M_nxt); }
     };
 
-  /// Specialization.
+  /**
+   *  Specialization for nodes without caches, struct _Hash_node.
+   *
+   *  Base class is __detail::_Hash_node_base.
+   */
   template<typename _Value>
     struct _Hash_node<_Value, false> : _Hash_node_base
     {
@@ -485,27 +514,27 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   template<typename _Key, typename _Pair, typename _Alloc, typename _Equal,
 	   typename _H1, typename _H2, typename _Hash,
 	   typename _RehashPolicy, typename _Traits>
-    struct _Map_base<_Key, _Pair, _Alloc, std::_Select1st<_Pair>, _Equal,
+    struct _Map_base<_Key, _Pair, _Alloc, _Select1st, _Equal,
 		     _H1, _H2, _Hash, _RehashPolicy, _Traits, false>
     {
-      using mapped_type = typename _Pair::second_type;
+      using mapped_type = typename std::tuple_element<1, _Pair>::type;
     };
 
   /// Partial specialization, __unique_keys set to true.
   template<typename _Key, typename _Pair, typename _Alloc, typename _Equal,
 	   typename _H1, typename _H2, typename _Hash,
 	   typename _RehashPolicy, typename _Traits>
-    struct _Map_base<_Key, _Pair, _Alloc, std::_Select1st<_Pair>, _Equal,
+    struct _Map_base<_Key, _Pair, _Alloc, _Select1st, _Equal,
 		     _H1, _H2, _Hash, _RehashPolicy, _Traits, true>
     {
     private:
       using __hashtable_base = __detail::_Hashtable_base<_Key, _Pair,
-							 std::_Select1st<_Pair>,
+							 _Select1st,
 							_Equal, _H1, _H2, _Hash,
 							  _Traits>;
 
       using __hashtable = _Hashtable<_Key, _Pair, _Alloc,
-				     std::_Select1st<_Pair>, _Equal,
+				     _Select1st, _Equal,
 				     _H1, _H2, _Hash, _RehashPolicy, _Traits>;
 
       using __hash_code = typename __hashtable_base::__hash_code;
@@ -514,7 +543,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     public:
       using key_type = typename __hashtable_base::key_type;
       using iterator = typename __hashtable_base::iterator;
-      using mapped_type = typename _Pair::second_type;
+      using mapped_type = typename std::tuple_element<1, _Pair>::type;
 
       mapped_type&
       operator[](const key_type& __k);
@@ -534,10 +563,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   template<typename _Key, typename _Pair, typename _Alloc, typename _Equal,
 	   typename _H1, typename _H2, typename _Hash,
 	   typename _RehashPolicy, typename _Traits>
-    typename _Map_base<_Key, _Pair, _Alloc, std::_Select1st<_Pair>, _Equal,
+    typename _Map_base<_Key, _Pair, _Alloc, _Select1st, _Equal,
 		       _H1, _H2, _Hash, _RehashPolicy, _Traits, true>
 		       ::mapped_type&
-    _Map_base<_Key, _Pair, _Alloc, std::_Select1st<_Pair>, _Equal,
+    _Map_base<_Key, _Pair, _Alloc, _Select1st, _Equal,
 	      _H1, _H2, _Hash, _RehashPolicy, _Traits, true>::
     operator[](const key_type& __k)
     {
@@ -555,10 +584,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   template<typename _Key, typename _Pair, typename _Alloc, typename _Equal,
 	   typename _H1, typename _H2, typename _Hash,
 	   typename _RehashPolicy, typename _Traits>
-    typename _Map_base<_Key, _Pair, _Alloc, std::_Select1st<_Pair>, _Equal,
+    typename _Map_base<_Key, _Pair, _Alloc, _Select1st, _Equal,
 		       _H1, _H2, _Hash, _RehashPolicy, _Traits, true>
 		       ::mapped_type&
-    _Map_base<_Key, _Pair, _Alloc, std::_Select1st<_Pair>, _Equal,
+    _Map_base<_Key, _Pair, _Alloc, _Select1st, _Equal,
 	      _H1, _H2, _Hash, _RehashPolicy, _Traits, true>::
     operator[](key_type&& __k)
     {
@@ -577,10 +606,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   template<typename _Key, typename _Pair, typename _Alloc, typename _Equal,
 	   typename _H1, typename _H2, typename _Hash,
 	   typename _RehashPolicy, typename _Traits>
-    typename _Map_base<_Key, _Pair, _Alloc, std::_Select1st<_Pair>, _Equal,
+    typename _Map_base<_Key, _Pair, _Alloc, _Select1st, _Equal,
 		       _H1, _H2, _Hash, _RehashPolicy, _Traits, true>
 		       ::mapped_type&
-    _Map_base<_Key, _Pair, _Alloc, std::_Select1st<_Pair>, _Equal,
+    _Map_base<_Key, _Pair, _Alloc, _Select1st, _Equal,
 	      _H1, _H2, _Hash, _RehashPolicy, _Traits, true>::
     at(const key_type& __k)
     {
@@ -597,11 +626,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   template<typename _Key, typename _Pair, typename _Alloc, typename _Equal,
 	   typename _H1, typename _H2, typename _Hash,
 	   typename _RehashPolicy, typename _Traits>
-    const typename _Map_base<_Key, _Pair, _Alloc, std::_Select1st<_Pair>,
-			     _Equal,
-		       _H1, _H2, _Hash, _RehashPolicy, _Traits, true>
-		       ::mapped_type&
-    _Map_base<_Key, _Pair, _Alloc, std::_Select1st<_Pair>, _Equal,
+    const typename _Map_base<_Key, _Pair, _Alloc, _Select1st,
+			     _Equal, _H1, _H2, _Hash, _RehashPolicy,
+			     _Traits, true>::mapped_type&
+    _Map_base<_Key, _Pair, _Alloc, _Select1st, _Equal,
 	      _H1, _H2, _Hash, _RehashPolicy, _Traits, true>::
     at(const key_type& __k) const
     {
@@ -803,10 +831,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       using __base_type::insert;
 
       template<typename _Pair>
-	using __is_convertible = std::is_convertible<_Pair, value_type>;
+	using __is_conv = std::is_convertible<_Pair, value_type>;
 
       template<typename _Pair>
-	using _IFconv = std::enable_if<__is_convertible<_Pair>::value>;
+	using _IFconv = std::enable_if<__is_conv<_Pair>::value>;
 
       template<typename _Pair>
 	using _IFconvp = typename _IFconv<_Pair>::type;
@@ -882,7 +910,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   /// Specialization using EBO.
   template<int _Nm, typename _Tp>
-    struct _Hashtable_ebo_helper<_Nm, _Tp, true> : private _Tp
+    struct _Hashtable_ebo_helper<_Nm, _Tp, true>
+    // See PR53067.
+    : public _Tp
     {
       _Hashtable_ebo_helper() = default;
 
@@ -949,8 +979,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   template<typename _Key, typename _Value, typename _ExtractKey,
 	   typename _H1, typename _H2, typename _Hash>
     struct _Hash_code_base<_Key, _Value, _ExtractKey, _H1, _H2, _Hash, false>
-    : private _Hashtable_ebo_helper<0, _ExtractKey>,
-      private _Hashtable_ebo_helper<1, _Hash>
+    // See PR53067.
+    : public  _Hashtable_ebo_helper<0, _ExtractKey>,
+      public  _Hashtable_ebo_helper<1, _Hash>
     {
     private:
       typedef _Hashtable_ebo_helper<0, _ExtractKey> 	_EboExtractKey;
@@ -1025,9 +1056,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	   typename _H1, typename _H2>
     struct _Hash_code_base<_Key, _Value, _ExtractKey, _H1, _H2,
 			   _Default_ranged_hash, false>
-    : private _Hashtable_ebo_helper<0, _ExtractKey>,
-      private _Hashtable_ebo_helper<1, _H1>,
-      private _Hashtable_ebo_helper<2, _H2>
+    // See PR53067.
+    : public  _Hashtable_ebo_helper<0, _ExtractKey>,
+      public  _Hashtable_ebo_helper<1, _H1>,
+      public  _Hashtable_ebo_helper<2, _H2>
     {
     private:
       typedef _Hashtable_ebo_helper<0, _ExtractKey> 	_EboExtractKey;
@@ -1108,9 +1140,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	   typename _H1, typename _H2>
     struct _Hash_code_base<_Key, _Value, _ExtractKey, _H1, _H2,
 			   _Default_ranged_hash, true>
-    : private _Hashtable_ebo_helper<0, _ExtractKey>,
-      private _Hashtable_ebo_helper<1, _H1>,
-      private _Hashtable_ebo_helper<2, _H2>
+    // See PR53067.
+    : public  _Hashtable_ebo_helper<0, _ExtractKey>,
+      public  _Hashtable_ebo_helper<1, _H1>,
+      public  _Hashtable_ebo_helper<2, _H2>
     {
     private:
       typedef _Hashtable_ebo_helper<0, _ExtractKey>	_EboExtractKey;
@@ -1229,7 +1262,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	   typename _H1, typename _H2, typename _Hash>
     struct _Local_iterator_base<_Key, _Value, _ExtractKey,
 				_H1, _H2, _Hash, true>
-      : private _H2
+    // See PR53067.
+    : public _H2
     {
       _Local_iterator_base() = default;
       _Local_iterator_base(_Hash_node<_Value, true>* __p,
@@ -1261,8 +1295,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	   typename _H1, typename _H2, typename _Hash>
     struct _Local_iterator_base<_Key, _Value, _ExtractKey,
 				_H1, _H2, _Hash, false>
-      : private _Hash_code_base<_Key, _Value, _ExtractKey,
-				_H1, _H2, _Hash, false>
+    // See PR53067.
+    : public _Hash_code_base<_Key, _Value, _ExtractKey,
+			     _H1, _H2, _Hash, false>
     {
       _Local_iterator_base() = default;
       _Local_iterator_base(_Hash_node<_Value, false>* __p,
@@ -1414,16 +1449,21 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   /**
    *  Primary class template _Hashtable_base.
    *
-   *  Base class for _Hashtable. Helper class adding management of
-   *  _Equal functor to _Hash_code_base type.
+   *  Helper class adding management of _Equal functor to
+   *  _Hash_code_base type.
+   *
+   *  Base class templates are:
+   *    - __detail::_Hash_code_base
+   *    - __detail::_Hashtable_ebo_helper
    */
   template<typename _Key, typename _Value,
 	   typename _ExtractKey, typename _Equal,
 	   typename _H1, typename _H2, typename _Hash, typename _Traits>
   struct _Hashtable_base
+  // See PR53067.
   : public  _Hash_code_base<_Key, _Value, _ExtractKey, _H1, _H2, _Hash,
-			    _Traits::__hash_cached::value>,
-    private _Hashtable_ebo_helper<0, _Equal>
+			      _Traits::__hash_cached::value>,
+    public _Hashtable_ebo_helper<0, _Equal>
   {
   public:
     typedef _Key                                    key_type;
@@ -1468,8 +1508,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 						     iterator>::type;
 
     using __iconv_type = typename  std::conditional<__unique_keys::value,
-					       std::_Select1st<__ireturn_type>,
-					       std::_Identity<__ireturn_type>
+						    _Select1st, _Identity
 						    >::type;
   private:
     using _EqualEBO = _Hashtable_ebo_helper<0, _Equal>;

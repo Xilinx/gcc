@@ -37,7 +37,7 @@ along with GCC; see the file COPYING3.  If not see
    descriptors and data pointers are also translated.
 
    If the expression is an assignment, we must then resolve any dependencies.
-   In fortran all the rhs values of an assignment must be evaluated before
+   In Fortran all the rhs values of an assignment must be evaluated before
    any assignments take place.  This can require a temporary array to store the
    values.  We also require a temporary when we are passing array expressions
    or vector subscripts as procedure parameters.
@@ -1045,7 +1045,7 @@ get_array_ref_dim_for_loop_dim (gfc_ss *ss, int loop_dim)
 
    'eltype' == NULL signals that the temporary should be a class object.
    The 'initial' expression is used to obtain the size of the dynamic
-   type; otehrwise the allocation and initialisation proceeds as for any
+   type; otherwise the allocation and initialisation proceeds as for any
    other expression
 
    PRE, POST, INITIAL, DYNAMIC and DEALLOC are as for
@@ -1826,7 +1826,7 @@ gfc_trans_array_constructor_value (stmtblock_t * pblock, tree type,
 	  tmp = build1_v (LABEL_EXPR, exit_label);
 	  gfc_add_expr_to_block (&implied_do_block, tmp);
 
-	  /* Finishe the implied-do loop.  */
+	  /* Finish the implied-do loop.  */
 	  tmp = gfc_finish_block(&implied_do_block);
 	  gfc_add_expr_to_block(pblock, tmp);
 
@@ -1837,7 +1837,7 @@ gfc_trans_array_constructor_value (stmtblock_t * pblock, tree type,
 }
 
 
-/* A catch-all to obtain the string length for anything that is not a
+/* A catch-all to obtain the string length for anything that is not
    a substring of non-constant length, a constant, array or variable.  */
 
 static void
@@ -2472,6 +2472,11 @@ gfc_add_loop_ss_code (gfc_loopinfo * loop, gfc_ss * ss, bool subscript,
   gfc_expr *expr;
   bool skip_nested = false;
   int n;
+
+  /* Don't evaluate the arguments for realloc_lhs_loop_for_fcn_call; otherwise,
+     arguments could get evaluated multiple times.  */
+  if (ss->is_alloc_lhs)
+    return;
 
   outer_loop = outermost_loop (loop);
 
@@ -3191,6 +3196,36 @@ add_to_offset (tree *cst_offset, tree *offset, tree t)
     }
 }
 
+
+static tree
+build_array_ref (tree desc, tree offset, tree decl)
+{
+  tree tmp;
+
+  /* Class array references need special treatment because the assigned
+     type size needs to be used to point to the element.  */ 
+  if (GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (desc))
+	&& TREE_CODE (desc) == COMPONENT_REF
+	&& GFC_CLASS_TYPE_P (TREE_TYPE (TREE_OPERAND (desc, 0))))
+    {
+      tree type = gfc_get_element_type (TREE_TYPE (desc));
+      tmp = TREE_OPERAND (desc, 0);
+      tmp = gfc_get_class_array_ref (offset, tmp);
+      tmp = fold_convert (build_pointer_type (type), tmp);
+      tmp = build_fold_indirect_ref_loc (input_location, tmp);
+    }
+  else
+    {
+      tmp = gfc_conv_array_data (desc);
+      tmp = build_fold_indirect_ref_loc (input_location, tmp);
+      tmp = gfc_build_array_ref (tmp, offset, decl);
+    }
+
+  return tmp;
+}
+
+
+
 /* Build an array reference.  se->expr already holds the array descriptor.
    This should be either a variable, indirect variable reference or component
    reference.  For arrays which do not have a descriptor, se->expr will be
@@ -3318,10 +3353,7 @@ gfc_conv_array_ref (gfc_se * se, gfc_array_ref * ar, gfc_symbol * sym,
     offset = fold_build2_loc (input_location, PLUS_EXPR,
 			      gfc_array_index_type, offset, cst_offset);
 
-  /* Access the calculated element.  */
-  tmp = gfc_conv_array_data (se->expr);
-  tmp = build_fold_indirect_ref (tmp);
-  se->expr = gfc_build_array_ref (tmp, offset, sym->backend_decl);
+  se->expr = build_array_ref (se->expr, offset, sym->backend_decl);
 }
 
 
@@ -4414,7 +4446,7 @@ temporary:
 
 /* Browse through each array's information from the scalarizer and set the loop
    bounds according to the "best" one (per dimension), i.e. the one which
-   provides the most information (constant bounds, shape, etc).  */
+   provides the most information (constant bounds, shape, etc.).  */
 
 static void
 set_loop_bounds (gfc_loopinfo *loop)
@@ -4428,6 +4460,7 @@ set_loop_bounds (gfc_loopinfo *loop)
   bool dynamic[GFC_MAX_DIMENSIONS];
   mpz_t *cshape;
   mpz_t i;
+  bool nonoptional_arr;
 
   loopspec = loop->specloop;
 
@@ -4436,6 +4469,18 @@ set_loop_bounds (gfc_loopinfo *loop)
     {
       loopspec[n] = NULL;
       dynamic[n] = false;
+
+      /* If there are both optional and nonoptional array arguments, scalarize
+	 over the nonoptional; otherwise, it does not matter as then all
+	 (optional) arrays have to be present per F2008, 125.2.12p3(6).  */
+
+      nonoptional_arr = false;
+
+      for (ss = loop->ss; ss != gfc_ss_terminator; ss = ss->loop_chain)
+	if (ss->info->type != GFC_SS_SCALAR && ss->info->type != GFC_SS_TEMP
+	    && ss->info->type != GFC_SS_REFERENCE && !ss->info->can_be_null_ref)
+	  nonoptional_arr = true;
+
       /* We use one SS term, and use that to determine the bounds of the
 	 loop for this dimension.  We try to pick the simplest term.  */
       for (ss = loop->ss; ss != gfc_ss_terminator; ss = ss->loop_chain)
@@ -4445,7 +4490,8 @@ set_loop_bounds (gfc_loopinfo *loop)
 	  ss_type = ss->info->type;
 	  if (ss_type == GFC_SS_SCALAR
 	      || ss_type == GFC_SS_TEMP
-	      || ss_type == GFC_SS_REFERENCE)
+	      || ss_type == GFC_SS_REFERENCE
+	      || (ss->info->can_be_null_ref && nonoptional_arr))
 	    continue;
 
 	  info = &ss->info->data.array;
@@ -4458,7 +4504,7 @@ set_loop_bounds (gfc_loopinfo *loop)
 	    }
 	  else
 	    {
-	      /* Silence unitialized warnings.  */
+	      /* Silence uninitialized warnings.  */
 	      specinfo = NULL;
 	      spec_dim = 0;
 	    }
@@ -4997,7 +5043,7 @@ gfc_array_init_size (tree descriptor, int rank, int corank, tree * poffset,
     }
 
   /* The stride is the number of elements in the array, so multiply by the
-     size of an element to get the total size.  Obviously, if there ia a
+     size of an element to get the total size.  Obviously, if there is a
      SOURCE expression (expr3) we must use its element size.  */
   if (expr3_elem_size != NULL_TREE)
     tmp = expr3_elem_size;
@@ -6133,10 +6179,7 @@ gfc_get_dataptr_offset (stmtblock_t *block, tree parm, tree desc, tree offset,
 	return;
     }
 
-  tmp = gfc_conv_array_data (desc);
-  tmp = build_fold_indirect_ref_loc (input_location,
-				 tmp);
-  tmp = gfc_build_array_ref (tmp, offset, NULL);
+  tmp = build_array_ref (desc, offset, NULL);
 
   /* Offset the data pointer for pointer assignments from arrays with
      subreferences; e.g. my_integer => my_type(:)%integer_component.  */
@@ -6476,7 +6519,7 @@ gfc_conv_expr_descriptor (gfc_se * se, gfc_expr * expr, gfc_ss * ss)
 
       /* A transformational function return value will be a temporary
 	 array descriptor.  We still need to go through the scalarizer
-	 to create the descriptor.  Elemental functions ar handled as
+	 to create the descriptor.  Elemental functions are handled as
 	 arbitrary expressions, i.e. copy to a temporary.  */
 
       if (se->direct_byref)
@@ -7412,9 +7455,7 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
 
   if ((POINTER_TYPE_P (decl_type) && rank != 0)
 	|| (TREE_CODE (decl_type) == REFERENCE_TYPE && rank == 0))
-
-    decl = build_fold_indirect_ref_loc (input_location,
-				    decl);
+    decl = build_fold_indirect_ref_loc (input_location, decl);
 
   /* Just in case in gets dereferenced.  */
   decl_type = TREE_TYPE (decl);
@@ -7422,7 +7463,7 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
   /* If this an array of derived types with allocatable components
      build a loop and recursively call this function.  */
   if (TREE_CODE (decl_type) == ARRAY_TYPE
-	|| GFC_DESCRIPTOR_TYPE_P (decl_type))
+      || (GFC_DESCRIPTOR_TYPE_P (decl_type) && rank != 0))
     {
       tmp = gfc_conv_array_data (decl);
       var = build_fold_indirect_ref_loc (input_location,
@@ -7517,7 +7558,7 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
 	case DEALLOCATE_ALLOC_COMP:
 
 	  /* gfc_deallocate_scalar_with_status calls gfc_deallocate_alloc_comp
-	     (ie. this function) so generate all the calls and suppress the
+	     (i.e. this function) so generate all the calls and suppress the
 	     recursion from here, if necessary.  */
 	  called_dealloc_with_status = false;
 	  gfc_init_block (&tmpblock);
@@ -8549,7 +8590,7 @@ gfc_reverse_ss (gfc_ss * ss)
 }
 
 
-/* Given an expression refering to a procedure, return the symbol of its
+/* Given an expression referring to a procedure, return the symbol of its
    interface.  We can't get the procedure symbol directly as we have to handle
    the case of (deferred) type-bound procedures.  */
 

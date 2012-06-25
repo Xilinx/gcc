@@ -133,7 +133,7 @@ eq_ivtype_map_elts (const void *e1, const void *e2)
 
 
 
-/* Record LOOP as occuring in REGION.  */
+/* Record LOOP as occurring in REGION.  */
 
 static void
 sese_record_loop (sese region, loop_p loop)
@@ -304,7 +304,7 @@ sese_build_liveouts (sese region, bitmap liveouts)
 
   FOR_EACH_BB (bb)
     sese_build_liveouts_bb (region, liveouts, bb);
-  if (MAY_HAVE_DEBUG_INSNS)
+  if (MAY_HAVE_DEBUG_STMTS)
     FOR_EACH_BB (bb)
       sese_reset_debug_liveouts_bb (region, liveouts, bb);
 }

@@ -1,3 +1,71 @@
+2012-06-21  Meador Inge  <meadori@codesourcery.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2012-06-20  Jason Merrill  <jason@redhat.com>
+
+	* Makefile.tpl (check-target-libgomp-c++): New.
+	(check-target-libitm-c++): New.
+	* Makefile.def (c++): Add them.
+	* Makefile.in: Regenerate.
+
+2012-05-29  Edmar Wienskoski  <edmar@freescale.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2012-05-16  Olivier Hainque  <hainque@adacore.com>
+
+	* Makefile.tpl (gcc-no-fixedincludes): Rename into ...
+	(gcc-install-no-fixedincludes): Now forwarder to local target in gcc/
+	(install-no-fixedincludes): Adjust accordingly.
+	* Makefile.in: Regenerate.
+
+2012-05-15  H.J. Lu  <hongjiu.lu@intel.com>
+
+	Merge upstream change
+	* libtool.m4 (_LT_ENABLE_LOCK): Support x32.
+
+2012-05-14  Marc Glisse  <marc.glisse@inria.fr>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2012-05-09  Nick Clifton  <nickc@redhat.com>
+	    Paul Smith  <psmith@gnu.org>
+
+	PR bootstrap/50461
+	* configure.ac (mpfr-dir): When using in-tree MPFR sources
+	allow for the fact that from release v3.1.0 of MPFR the source
+	files were moved into a src sub-directory.
+	* configure: Regenerate.
+
+2012-05-07  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* configure.ac: Bump minimum MPFR version to 2.4.0.
+	* configure: Regenerated.
+
+2012-05-03  Olivier Hainque  <hainque@adacore.com>
+
+	* config/mh-ppc-aix (LDFLAGS): Quote $(CC).
+
+2012-05-01  Richard Henderson  <rth@redhat.com>
+
+	* Makefile.def (libatomic): New target_module.
+	* configure.ac (target_libraries): Add libatomic.
+	(noconfigdirs): Check if libatomic is supported.
+	* Makefile.in, configure: Rebuild.
+
+2012-05-01  Greta Yorsh  <Greta.Yorsh@arm.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2012-04-25  Joel Brobecker  <brobecker@adacore.com>
+
+	* config.sub: Update to 2012-04-18 version from official repo.
+
+2012-04-24  Naveen H.S  <naveen.S@kpitcummins.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
 2012-04-11  Steve Ellcey  <sellcey@mips.com>
 
 	* MAINTAINERS: Changed email address.
@@ -41,9 +109,8 @@
 
 2012-02-12  Gerald Pfeifer  <gerald@pfeifer.com>
 
-	* MAINTAINERS (Various Maintainers): Add Diego Novillo,
-	Gerald Pfeifer and Joseph Myers as docstring relicensing
-	maintainers.
+	* MAINTAINERS (Various Maintainers): Add Diego Novillo, Gerald Pfeifer
+	and Joseph Myers as docstring relicensing maintainers.
 
 2012-02-09  Bin Cheng  <bin.cheng@arm.com>
 
@@ -56,7 +123,8 @@
 
 2012-02-04  Venkataramanan Kumar  <venkataramanan.kumar@amd.com>
 
-	* MAINTAINERS (Write After Approval): Move myself to maintain alphabetical order.
+	* MAINTAINERS (Write After Approval): Move myself to
+	maintain alphabetical order.
 
 2012-02-03  Venkataramanan Kumar  <venkataramanan.kumar@amd.com>
 
@@ -209,7 +277,7 @@
 	2011-09-09  Linas Vepstas  <linasvepstas@gmail.com>
 	    Ben Elliston  <bje@gnu.org>
 
-        * config.sub (hexagon, hexagon-*): New.
+	* config.sub (hexagon, hexagon-*): New.
 
 	2011-08-23  Roland McGrath  <mcgrathr@google.com>
 
@@ -797,7 +865,8 @@
 
 2011-03-11  Chen Liqin <liqin.gcc@gmail.com>
 
-	* MAINTAINERS: Update myself as score backend maintainer, update my e-mail address.
+	* MAINTAINERS: Update myself as score backend maintainer,
+	update my e-mail address.
 
 2011-03-09  Xuepeng Guo  <terry.guo@arm.com>
 
@@ -1032,7 +1101,7 @@
 2010-11-23  Matthias Klose  <doko@ubuntu.com>
 
 	* configure.ac: For --enable-gold, handle value `default' instead of
-	`both*'.   New configure option --{en,dis}able-ld.
+	`both*'.  New configure option --{en,dis}able-ld.
 	* configure: Regenerate.
 
 2010-11-20  Ian Lance Taylor  <iant@google.com>
@@ -1630,11 +1699,11 @@
 	* configure: Regenerate.
 
 2010-01-07  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
-            Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+	    Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
 
 	PR bootstrap/42424
 	* configure.ac: Include libtool m4 files.
-        (_LT_CHECK_OBJDIR): Call it.
+	(_LT_CHECK_OBJDIR): Call it.
 	(extra_mpc_mpfr_configure_flags, extra_mpc_gmp_configure_flags,
 	gmplibs, ppllibs, clooglibs): Use $lt_cv_objdir.
 
@@ -1775,7 +1844,7 @@
 
 2009-10-26  Johannes Singler  <singler@kit.edu>
 
-        * MAINTAINERS (Write After Approval): Update my e-mail address.
+	* MAINTAINERS (Write After Approval): Update my e-mail address.
 
 2009-10-23  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
@@ -2128,7 +2197,7 @@
 
 2009-06-09  Ghassan Shobaki  <ghassan.shobaki@amd.com>
 
-        * MAINTAINERS: Added my name to the write-after-approval list
+	* MAINTAINERS: Added my name to the write-after-approval list
 
 2009-06-08  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
 
@@ -2138,8 +2207,8 @@
 2009-06-03  Jerome Guitton  <guitton@adacore.com>
 	    Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
-        * Makefile.tpl (all): Avoid a trailing backslash.
-        * Makefile.in: Regenerate.
+	* Makefile.tpl (all): Avoid a trailing backslash.
+	* Makefile.in: Regenerate.
 
 2009-06-03  Ben Elliston  <bje@au.ibm.com>
 
@@ -2232,7 +2301,7 @@
 	(EXTRA_HOST_FLAGS): Pass GCJ and GFORTRAN.
 	(POSTSTAGE1_FLAGS_TO_PASS): Move SYSROOT_CFLAGS_FOR_TARGET and
 	DEBUG_PREFIX_CFLAGS_FOR_TARGET from CFLAGS, CXXFLAGS, LIBCFLAGS,
-	LIBCXXFLAGS to XGCC_FLAGS_FOR_TARGET.    Add it along with TFLAGS
+	LIBCXXFLAGS to XGCC_FLAGS_FOR_TARGET.  Add it along with TFLAGS
 	to CC, CXX, GCJ, and GFORTRAN.  Pass XGCC_FLAGS_FOR_TARGET and
 	TFLAGS.
 	(BUILD_CONFIG): Include if requested.

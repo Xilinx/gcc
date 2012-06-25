@@ -237,6 +237,12 @@ static const char *target_system_root = TARGET_SYSTEM_ROOT;
 static const char *target_system_root = "";
 #endif
 
+/* Whether we may unlink the output file, which should be set as soon as we
+   know we have successfully produced it.  This is typically useful to prevent
+   blindly attempting to unlink a read-only output that the target linker
+   would leave untouched.  */
+bool may_unlink_output_file = false;
+
 /* Structure to hold all the directories in which to search for files to
    execute.  */
 
@@ -400,13 +406,13 @@ collect_exit (int status)
 
   if (ldout != 0 && ldout[0])
     {
-      dump_file (ldout, stdout);
+      dump_ld_file (ldout, stdout);
       maybe_unlink (ldout);
     }
 
   if (lderrout != 0 && lderrout[0])
     {
-      dump_file (lderrout, stderr);
+      dump_ld_file (lderrout, stderr);
       maybe_unlink (lderrout);
     }
 
@@ -512,7 +518,7 @@ extract_string (const char **pp)
 }
 
 void
-dump_file (const char *name, FILE *to)
+dump_ld_file (const char *name, FILE *to)
 {
   FILE *stream = fopen (name, "r");
 
@@ -836,7 +842,7 @@ add_lto_object (struct lto_object_list *list, const char *name)
    files contain LTO info.  The linker command line LTO_LD_ARGV
    represents the linker command that would produce a final executable
    without the use of LTO. OBJECT_LST is a vector of object file names
-   appearing in LTO_LD_ARGV that are to be considerd for link-time
+   appearing in LTO_LD_ARGV that are to be considered for link-time
    recompilation, where OBJECT is a pointer to the last valid element.
    (This awkward convention avoids an impedance mismatch with the
    usage of similarly-named variables in main().)  The elements of
@@ -1018,7 +1024,7 @@ int
 main (int argc, char **argv)
 {
   static const char *const ld_suffix	= "ld";
-  static const char *const plugin_ld_suffix = PLUGIN_LD;
+  static const char *const plugin_ld_suffix = PLUGIN_LD_SUFFIX;
   static const char *const real_ld_suffix = "real-ld";
   static const char *const collect_ld_suffix = "collect-ld";
   static const char *const nm_suffix	= "nm";
@@ -2095,15 +2101,22 @@ fork_execute (const char *prog, char **argv)
   do_wait (prog, pex);
 }
 
-/* Unlink a file unless we are debugging.  */
+/* Unlink FILE unless we are debugging or this is the output_file
+   and we may not unlink it.  */
 
 static void
 maybe_unlink (const char *file)
 {
-  if (!debug)
-    unlink_if_ordinary (file);
-  else
-    notice ("[Leaving %s]\n", file);
+  if (debug)
+    {
+      notice ("[Leaving %s]\n", file);
+      return;
+    }
+
+  if (file == output_file && !may_unlink_output_file)
+    return;
+
+  unlink_if_ordinary (file);
 }
 
 /* Call maybe_unlink on the NULL-terminated list, FILE_LIST.  */
@@ -2554,7 +2567,7 @@ scan_prog_file (const char *prog_name, scanpass which_pass,
 
   /* LTO objects must be in a known format.  This check prevents
      us from accepting an archive containing LTO objects, which
-     gcc cannnot currently handle.  */
+     gcc cannot currently handle.  */
   if (which_pass == PASS_LTOINFO && !maybe_lto_object_file (prog_name))
     return;
 

@@ -1,4 +1,4 @@
-#  Copyright (C) 2003,2004,2005,2006,2007,2008, 2010, 2011
+#  Copyright (C) 2003,2004,2005,2006,2007,2008, 2010, 2011, 2012
 #  Free Software Foundation, Inc.
 #  Contributed by Kelley Cook, June 2004.
 #  Original code from Neil Booth, May 2003.
@@ -293,6 +293,30 @@ print "extern void cl_target_option_restore (struct gcc_options *, struct cl_tar
 print "";
 print "/* Print target option variables from a structure.  */";
 print "extern void cl_target_option_print (FILE *, int, struct cl_target_option *);";
+print "";
+print "/* Anything that includes tm.h, does not necessarily need this.  */"
+print "#if !defined(GCC_TM_H)"
+print "#include \"input.h\" /* for location_t */"
+print "bool                                                                  "
+print "common_handle_option_auto (struct gcc_options *opts,                  "
+print "                           struct gcc_options *opts_set,              "
+print "                           const struct cl_decoded_option *decoded,   "
+print "                           unsigned int lang_mask, int kind,          "
+print "                           location_t loc,                            "
+print "                           const struct cl_option_handlers *handlers, "
+print "                           diagnostic_context *dc);                   "
+for (i = 0; i < n_langs; i++) {
+    lang_name = lang_sanitized_name(langs[i]);
+    print "bool                                                                  "
+    print lang_name "_handle_option_auto (struct gcc_options *opts,              "
+    print "                           struct gcc_options *opts_set,              "
+    print "                           size_t scode, const char *arg, int value,  "
+    print "                           unsigned int lang_mask, int kind,          "
+    print "                           location_t loc,                            "
+    print "                           const struct cl_option_handlers *handlers, "
+    print "                           diagnostic_context *dc);                   "
+}
+print "#endif";
 print "#endif";
 print "";
 
@@ -314,12 +338,14 @@ for (i = 0; i < n_opts; i++) {
 			mask = "OPTION_MASK_"
 			if (host_wide_int[vname] == "yes")
 				mask_1 = "HOST_WIDE_INT_1"
-		}
+		} else
+			extra_mask_bits[name] = 1
 		print "#define " mask name " (" mask_1 " << " masknum[vname]++ ")"
 	}
 }
 for (i = 0; i < n_extra_masks; i++) {
-	print "#define MASK_" extra_masks[i] " (1 << " masknum[""]++ ")"
+	if (extra_mask_bits[extra_masks[i]] == 0)
+		print "#define MASK_" extra_masks[i] " (1 << " masknum[""]++ ")"
 }
 
 for (var in masknum) {
@@ -355,14 +381,16 @@ for (i = 0; i < n_opts; i++) {
 			vname = "target_flags"
 			macro = "TARGET_"
 			mask = "MASK_"
+			extra_mask_macros[name] = 1
 		}
 		print "#define " macro name \
 		      " ((" vname " & " mask name ") != 0)"
 	}
 }
 for (i = 0; i < n_extra_masks; i++) {
-	print "#define TARGET_" extra_masks[i] \
-	      " ((target_flags & MASK_" extra_masks[i] ") != 0)"
+	if (extra_mask_macros[extra_masks[i]] == 0)
+		print "#define TARGET_" extra_masks[i] \
+		      " ((target_flags & MASK_" extra_masks[i] ") != 0)"
 }
 print ""
 
@@ -384,8 +412,7 @@ for (i = 0; i < n_opts; i++) {
 print ""
 
 for (i = 0; i < n_langs; i++) {
-	macros[i] = "CL_" langs[i]
-	gsub( "[^" alnum "_]", "X", macros[i] )
+        macros[i] = "CL_" lang_sanitized_name(langs[i])
 	s = substr("            ", length (macros[i]))
 	print "#define " macros[i] s " (1U << " i ")"
     }

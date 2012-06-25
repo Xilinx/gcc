@@ -1,5 +1,5 @@
 /* Operations with long integers.
-   Copyright (C) 2006, 2007, 2008, 2010 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007, 2008, 2010, 2012 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -129,7 +129,7 @@ double_int_fits_in_uhwi_p (double_int cst)
 /* The following operations perform arithmetics modulo 2^precision,
    so you do not need to call double_int_ext between them, even if
    you are representing numbers with precision less than
-   2 * HOST_BITS_PER_WIDE_INT bits.  */
+   HOST_BITS_PER_DOUBLE_INT bits.  */
 
 double_int double_int_mul (double_int, double_int);
 double_int double_int_mul_with_sign (double_int, double_int, bool, int *);
@@ -139,7 +139,7 @@ double_int double_int_neg (double_int);
 
 /* You must ensure that double_int_ext is called on the operands
    of the following operations, if the precision of the numbers
-   is less than 2 * HOST_BITS_PER_WIDE_INT bits.  */
+   is less than HOST_BITS_PER_DOUBLE_INT bits.  */
 double_int double_int_div (double_int, double_int, bool, unsigned);
 double_int double_int_sdiv (double_int, double_int, unsigned);
 double_int double_int_udiv (double_int, double_int, unsigned);
@@ -149,6 +149,8 @@ double_int double_int_umod (double_int, double_int, unsigned);
 double_int double_int_divmod (double_int, double_int, bool, unsigned, double_int *);
 double_int double_int_sdivmod (double_int, double_int, unsigned, double_int *);
 double_int double_int_udivmod (double_int, double_int, unsigned, double_int *);
+
+bool double_int_multiple_of (double_int, double_int, bool, double_int *);
 
 double_int double_int_setbit (double_int, unsigned);
 int double_int_ctz (double_int);
@@ -242,11 +244,14 @@ double_int double_int_sext (double_int, unsigned);
 double_int double_int_zext (double_int, unsigned);
 double_int double_int_mask (unsigned);
 
+double_int double_int_max_value (unsigned int, bool);
+double_int double_int_min_value (unsigned int, bool);
+
 #define ALL_ONES (~((unsigned HOST_WIDE_INT) 0))
 
 /* The operands of the following comparison functions must be processed
    with double_int_ext, if their precision is less than
-   2 * HOST_BITS_PER_WIDE_INT bits.  */
+   HOST_BITS_PER_DOUBLE_INT bits.  */
 
 /* Returns true if CST is zero.  */
 

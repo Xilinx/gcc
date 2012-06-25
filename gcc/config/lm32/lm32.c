@@ -460,7 +460,7 @@ lm32_compute_frame_size (int size)
 	  callee_size += UNITS_PER_WORD;
 	}
     }
-  if (df_regs_ever_live_p (RA_REGNUM) || !current_function_is_leaf
+  if (df_regs_ever_live_p (RA_REGNUM) || crtl->is_leaf!
       || !optimize)
     {
       reg_save_mask |= 1 << RA_REGNUM;
@@ -715,7 +715,7 @@ lm32_setup_incoming_varargs (cumulative_args_t cum_v, enum machine_mode mode,
       rtx regblock;
 
       regblock = gen_rtx_MEM (BLKmode,
-			      plus_constant (arg_pointer_rtx,
+			      plus_constant (Pmode, arg_pointer_rtx,
 					     FIRST_PARM_OFFSET (0)));
       move_block_from_reg (first_reg_offset, regblock, size);
 

@@ -54,7 +54,7 @@ record_reference (tree *tp, int *walk_subtrees, void *data)
   tree decl;
   struct record_reference_ctx *ctx = (struct record_reference_ctx *)data;
 
-  t = canonicalize_constructor_val (t);
+  t = canonicalize_constructor_val (t, NULL);
   if (!t)
     t = *tp;
   else if (t != *tp)
@@ -85,9 +85,6 @@ record_reference (tree *tp, int *walk_subtrees, void *data)
       if (TREE_CODE (decl) == VAR_DECL)
 	{
 	  struct varpool_node *vnode = varpool_node (decl);
-	  if (lang_hooks.callgraph.analyze_expr)
-	    lang_hooks.callgraph.analyze_expr (&decl, walk_subtrees);
-	  varpool_mark_needed_node (vnode);
 	  ipa_record_reference ((symtab_node)ctx->varpool_node,
 				(symtab_node)vnode,
 				IPA_REF_ADDR, NULL);
@@ -103,9 +100,6 @@ record_reference (tree *tp, int *walk_subtrees, void *data)
 	  *walk_subtrees = 0;
 	  break;
 	}
-
-      if ((unsigned int) TREE_CODE (t) >= LAST_AND_UNUSED_TREE_CODE)
-	return lang_hooks.callgraph.analyze_expr (tp, walk_subtrees);
       break;
     }
 
@@ -130,7 +124,6 @@ record_type_list (struct cgraph_node *node, tree list)
 	  if (TREE_CODE (type) == VAR_DECL)
 	    {
 	      struct varpool_node *vnode = varpool_node (type);
-	      varpool_mark_needed_node (vnode);
 	      ipa_record_reference ((symtab_node)node,
 				    (symtab_node)vnode,
 				    IPA_REF_ADDR, NULL);
@@ -241,11 +234,7 @@ mark_address (gimple stmt, tree addr, void *data)
 	   && (TREE_STATIC (addr) || DECL_EXTERNAL (addr)))
     {
       struct varpool_node *vnode = varpool_node (addr);
-      int walk_subtrees;
 
-      if (lang_hooks.callgraph.analyze_expr)
-	lang_hooks.callgraph.analyze_expr (&addr, &walk_subtrees);
-      varpool_mark_needed_node (vnode);
       ipa_record_reference ((symtab_node)data,
 			    (symtab_node)vnode,
 			    IPA_REF_ADDR, stmt);
@@ -274,11 +263,7 @@ mark_load (gimple stmt, tree t, void *data)
 	   && (TREE_STATIC (t) || DECL_EXTERNAL (t)))
     {
       struct varpool_node *vnode = varpool_node (t);
-      int walk_subtrees;
 
-      if (lang_hooks.callgraph.analyze_expr)
-	lang_hooks.callgraph.analyze_expr (&t, &walk_subtrees);
-      varpool_mark_needed_node (vnode);
       ipa_record_reference ((symtab_node)data,
 			    (symtab_node)vnode,
 			    IPA_REF_LOAD, stmt);
@@ -296,11 +281,7 @@ mark_store (gimple stmt, tree t, void *data)
       && (TREE_STATIC (t) || DECL_EXTERNAL (t)))
     {
       struct varpool_node *vnode = varpool_node (t);
-      int walk_subtrees;
 
-      if (lang_hooks.callgraph.analyze_expr)
-	lang_hooks.callgraph.analyze_expr (&t, &walk_subtrees);
-      varpool_mark_needed_node (vnode);
       ipa_record_reference ((symtab_node)data,
 			    (symtab_node)vnode,
 			    IPA_REF_STORE, stmt);
@@ -367,7 +348,7 @@ build_cgraph_edges (void)
 				      IPA_REF_ADDR, stmt);
 	    }
 	}
-      for (gsi = gsi_start (phi_nodes (bb)); !gsi_end_p (gsi); gsi_next (&gsi))
+      for (gsi = gsi_start_phis (bb); !gsi_end_p (gsi); gsi_next (&gsi))
 	walk_stmt_load_store_addr_ops (gsi_stmt (gsi), node,
 				       mark_load, mark_store, mark_address);
    }
@@ -375,7 +356,8 @@ build_cgraph_edges (void)
   /* Look for initializers of constant variables and private statics.  */
   FOR_EACH_LOCAL_DECL (cfun, ix, decl)
     if (TREE_CODE (decl) == VAR_DECL
-	&& (TREE_STATIC (decl) && !DECL_EXTERNAL (decl)))
+	&& (TREE_STATIC (decl) && !DECL_EXTERNAL (decl))
+	&& !DECL_HAS_VALUE_EXPR_P (decl))
       varpool_finalize_decl (decl);
   record_eh_tables (node, cfun);
 
@@ -459,7 +441,7 @@ rebuild_cgraph_edges (void)
 					 mark_store, mark_address);
 
 	}
-      for (gsi = gsi_start (phi_nodes (bb)); !gsi_end_p (gsi); gsi_next (&gsi))
+      for (gsi = gsi_start_phis (bb); !gsi_end_p (gsi); gsi_next (&gsi))
 	walk_stmt_load_store_addr_ops (gsi_stmt (gsi), node,
 				       mark_load, mark_store, mark_address);
     }
@@ -493,7 +475,7 @@ cgraph_rebuild_references (void)
 					 mark_store, mark_address);
 
 	}
-      for (gsi = gsi_start (phi_nodes (bb)); !gsi_end_p (gsi); gsi_next (&gsi))
+      for (gsi = gsi_start_phis (bb); !gsi_end_p (gsi); gsi_next (&gsi))
 	walk_stmt_load_store_addr_ops (gsi_stmt (gsi), node,
 				       mark_load, mark_store, mark_address);
     }

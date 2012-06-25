@@ -35,7 +35,6 @@
 #include "function.h"
 #include "output.h"
 #include "basic-block.h"
-#include "integrate.h"
 #include "diagnostic-core.h"
 #include "ggc.h"
 #include "hashtab.h"
@@ -44,7 +43,6 @@
 #include "target-def.h"
 #include "langhooks.h"
 #include "reload.h"
-#include "cfglayout.h"
 #include "sched-int.h"
 #include "params.h"
 #include "machmode.h"
@@ -858,7 +856,7 @@ spu_expand_insv (rtx ops[])
 	  rtx mask1 = gen_reg_rtx (TImode);
 	  rtx dst1 = gen_reg_rtx (TImode);
 	  rtx mem1;
-	  addr1 = plus_constant (addr, 16);
+	  addr1 = plus_constant (Pmode, addr, 16);
 	  addr1 = gen_rtx_AND (Pmode, addr1, GEN_INT (-16));
 	  emit_insn (gen_subsi3 (shl, GEN_INT (16), low));
 	  emit_insn (gen_shlqby_ti (mask1, mask, shl));
@@ -1763,7 +1761,7 @@ get_pic_reg (void)
      "switch back" to using pic_offset_table_rtx.  */
   if (!cfun->machine->pic_reg)
     {
-      if (current_function_is_leaf && !df_regs_ever_live_p (LAST_ARG_REGNUM))
+      if (crtl->is_leaf && !df_regs_ever_live_p (LAST_ARG_REGNUM))
 	cfun->machine->pic_reg = gen_rtx_REG (SImode, LAST_ARG_REGNUM);
       else
 	cfun->machine->pic_reg = pic_offset_table_rtx;
@@ -1965,7 +1963,7 @@ direct_return (void)
 	      + get_frame_size ()
 	      + crtl->outgoing_args_size
 	      + crtl->args.pretend_args_size == 0)
-	  && current_function_is_leaf)
+	  && crtl->is_leaf)
 	return 1;
     }
   return 0;
@@ -2025,13 +2023,13 @@ spu_expand_prologue (void)
     + crtl->outgoing_args_size
     + crtl->args.pretend_args_size;
 
-  if (!current_function_is_leaf
+  if (!crtl->is_leaf
       || cfun->calls_alloca || total_size > 0)
     total_size += STACK_POINTER_OFFSET;
 
   /* Save this first because code after this might use the link
      register as a scratch register. */
-  if (!current_function_is_leaf)
+  if (!crtl->is_leaf)
     {
       insn = frame_emit_store (LINK_REGISTER_REGNUM, sp_reg, 16);
       RTX_FRAME_RELATED_P (insn) = 1;
@@ -2138,7 +2136,7 @@ spu_expand_epilogue (bool sibcall_p)
     + crtl->outgoing_args_size
     + crtl->args.pretend_args_size;
 
-  if (!current_function_is_leaf
+  if (!crtl->is_leaf
       || cfun->calls_alloca || total_size > 0)
     total_size += STACK_POINTER_OFFSET;
 
@@ -2162,7 +2160,7 @@ spu_expand_epilogue (bool sibcall_p)
 	}
     }
 
-  if (!current_function_is_leaf)
+  if (!crtl->is_leaf)
     frame_emit_load (LINK_REGISTER_REGNUM, sp_reg, 16);
 
   if (!sibcall_p)
@@ -2870,7 +2868,7 @@ spu_machine_dependent_reorg (void)
 	    prop = prev;
 
 	  /* If this is the JOIN block of a simple IF-THEN then
-	     propogate the hint to the HEADER block. */
+	     propagate the hint to the HEADER block. */
 	  else if (prev && prev2
 		   && EDGE_COUNT (bb->preds) == 2
 		   && EDGE_COUNT (prev->preds) == 1
@@ -2949,7 +2947,7 @@ spu_machine_dependent_reorg (void)
 	  if (NONJUMP_INSN_P (branch))
 	    offset += get_attr_length (branch);
 	if (offset > 0)
-	  XVECEXP (unspec, 0, 0) = plus_constant (label_ref, offset);
+	  XVECEXP (unspec, 0, 0) = plus_constant (Pmode, label_ref, offset);
       }
 
   spu_var_tracking ();
@@ -3124,7 +3122,7 @@ spu_sched_variable_issue (FILE *file ATTRIBUTE_UNUSED,
 	prev_priority = INSN_PRIORITY (insn);
     }
 
-  /* Always try issueing more insns.  spu_sched_reorder will decide 
+  /* Always try issuing more insns.  spu_sched_reorder will decide 
      when the cycle should be advanced. */
   return 1;
 }
@@ -3231,7 +3229,7 @@ spu_sched_reorder (FILE *file ATTRIBUTE_UNUSED, int verbose ATTRIBUTE_UNUSED,
      used to effect it. */
   if (in_spu_reorg && spu_dual_nops < 10)
     {
-      /* When we are at an even address and we are not issueing nops to
+      /* When we are at an even address and we are not issuing nops to
          improve scheduling then we need to advance the cycle.  */
       if ((spu_sched_length & 7) == 0 && prev_clock_var == clock
 	  && (spu_dual_nops == 0
@@ -4057,7 +4055,7 @@ spu_initial_elimination_offset (int from, int to)
 {
   int saved_regs_size = spu_saved_regs_size ();
   int sp_offset = 0;
-  if (!current_function_is_leaf || crtl->outgoing_args_size
+  if (!crtl->is_leaf || crtl->outgoing_args_size
       || get_frame_size () || saved_regs_size)
     sp_offset = STACK_POINTER_OFFSET;
   if (from == FRAME_POINTER_REGNUM && to == STACK_POINTER_REGNUM)
@@ -4379,7 +4377,7 @@ spu_setup_incoming_varargs (cumulative_args_t cum, enum machine_mode mode,
       for (regno = ncum; regno < MAX_REGISTER_ARGS; regno++)
 	{
 	  tmp = gen_frame_mem (V4SImode,
-			       plus_constant (virtual_incoming_args_rtx,
+			       plus_constant (Pmode, virtual_incoming_args_rtx,
 					      offset));
 	  emit_move_insn (tmp,
 			  gen_rtx_REG (V4SImode, FIRST_ARG_REGNUM + regno));
@@ -4556,7 +4554,7 @@ ea_load_store_inline (rtx mem, bool is_store, rtx ea_addr, rtx data_addr)
       tag_equal_hi = gen_reg_rtx (V4SImode);
     }
 
-  emit_move_insn (index_mask, plus_constant (tag_size_sym, -128));
+  emit_move_insn (index_mask, plus_constant (Pmode, tag_size_sym, -128));
   emit_move_insn (tag_arr, tag_arr_sym);
   v = 0x0001020300010203LL;
   emit_move_insn (splat_mask, immed_double_const (v, v, TImode));
@@ -4583,14 +4581,16 @@ ea_load_store_inline (rtx mem, bool is_store, rtx ea_addr, rtx data_addr)
   emit_move_insn (cache_tag, gen_rtx_MEM (V4SImode, tag_addr));
   if (spu_ea_model != 32)
     emit_move_insn (cache_tag_hi, gen_rtx_MEM (V4SImode,
-					       plus_constant (tag_addr, 16)));
+					       plus_constant (Pmode,
+							      tag_addr, 16)));
 
   /* tag = ea_addr & -128  */
   emit_insn (gen_andv4si3 (tag, splat, spu_const (V4SImode, -128)));
 
   /* Read all four cache data pointers.  */
   emit_move_insn (cache_ptrs, gen_rtx_MEM (TImode,
-					   plus_constant (tag_addr, 32)));
+					   plus_constant (Pmode,
+							  tag_addr, 32)));
 
   /* Compare tags.  */
   emit_insn (gen_ceq_v4si (tag_equal, tag, cache_tag));
@@ -4941,7 +4941,7 @@ spu_expand_load (rtx dst0, rtx dst1, rtx src, int extra_rotby)
 
   if (dst1)
     {
-      addr1 = plus_constant (copy_rtx (addr), 16);
+      addr1 = plus_constant (SImode, copy_rtx (addr), 16);
       addr1 = gen_rtx_AND (SImode, addr1, GEN_INT (-16));
       emit_insn (gen__movti (dst1, change_address (src, TImode, addr1)));
     }
@@ -6907,9 +6907,11 @@ spu_builtin_mask_for_load (void)
 /* Implement targetm.vectorize.builtin_vectorization_cost.  */
 static int 
 spu_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost,
-                                tree vectype ATTRIBUTE_UNUSED,
+                                tree vectype,
                                 int misalign ATTRIBUTE_UNUSED)
 {
+  unsigned elements;
+
   switch (type_of_cost)
     {
       case scalar_stmt:
@@ -6935,6 +6937,10 @@ spu_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost,
 
       case cond_branch_taken:
         return 6;
+
+      case vec_construct:
+	elements = TYPE_VECTOR_SUBPARTS (vectype);
+	return elements / 2 + 1;
 
       default:
         gcc_unreachable ();

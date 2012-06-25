@@ -597,7 +597,7 @@ gfc_match_name_C (const char **buffer)
   c = gfc_next_char_literal (INSTRING_WARN);
 
   /* If the user put nothing expect spaces between the quotes, it is valid
-     and simply means there is no name= specifier and the name is the fortran
+     and simply means there is no name= specifier and the name is the Fortran
      symbol name, all lowercase.  */
   if (c == '"' || c == '\'')
     {
@@ -3466,6 +3466,9 @@ gfc_match_allocate (void)
 			 "type parameter", &old_locus);
 	      goto cleanup;
 	    }
+
+	  if (ts.type == BT_CHARACTER)
+	    ts.u.cl->length_from_typespec = true;
 	}
       else
 	{
@@ -3530,6 +3533,28 @@ gfc_match_allocate (void)
 	    }
 	}
 
+      /* Check for F08:C628.  */
+      sym = tail->expr->symtree->n.sym;
+      b1 = !(tail->expr->ref
+	     && (tail->expr->ref->type == REF_COMPONENT
+		 || tail->expr->ref->type == REF_ARRAY));
+      if (sym && sym->ts.type == BT_CLASS && sym->attr.class_ok)
+	b2 = !(CLASS_DATA (sym)->attr.allocatable
+	       || CLASS_DATA (sym)->attr.class_pointer);
+      else
+	b2 = sym && !(sym->attr.allocatable || sym->attr.pointer
+		      || sym->attr.proc_pointer);
+      b3 = sym && sym->ns && sym->ns->proc_name
+	   && (sym->ns->proc_name->attr.allocatable
+	       || sym->ns->proc_name->attr.pointer
+	       || sym->ns->proc_name->attr.proc_pointer);
+      if (b1 && b2 && !b3)
+	{
+	  gfc_error ("Allocate-object at %L is neither a data pointer "
+		     "nor an allocatable variable", &tail->expr->where);
+	  goto cleanup;
+	}
+
       /* The ALLOCATE statement had an optional typespec.  Check the
 	 constraints.  */
       if (ts.type != BT_UNKNOWN)
@@ -3554,28 +3579,6 @@ gfc_match_allocate (void)
 
       if (tail->expr->ts.type == BT_DERIVED)
 	tail->expr->ts.u.derived = gfc_use_derived (tail->expr->ts.u.derived);
-
-      /* FIXME: disable the checking on derived types and arrays.  */
-      sym = tail->expr->symtree->n.sym;
-      b1 = !(tail->expr->ref
-	   && (tail->expr->ref->type == REF_COMPONENT
-		|| tail->expr->ref->type == REF_ARRAY));
-      if (sym && sym->ts.type == BT_CLASS && sym->attr.class_ok)
-	b2 = !(CLASS_DATA (sym)->attr.allocatable
-	       || CLASS_DATA (sym)->attr.class_pointer);
-      else
-	b2 = sym && !(sym->attr.allocatable || sym->attr.pointer
-		      || sym->attr.proc_pointer);
-      b3 = sym && sym->ns && sym->ns->proc_name
-	   && (sym->ns->proc_name->attr.allocatable
-		|| sym->ns->proc_name->attr.pointer
-		|| sym->ns->proc_name->attr.proc_pointer);
-      if (b1 && b2 && !b3)
-	{
-	  gfc_error ("Allocate-object at %L is neither a nonprocedure pointer "
-		     "nor an allocatable variable", &tail->expr->where);
-	  goto cleanup;
-	}
 
       if (gfc_peek_ascii_char () == '(' && !sym->attr.dimension)
 	{
@@ -5112,6 +5115,78 @@ gfc_match_select (void)
 }
 
 
+/* Transfer the selector typespec to the associate name.  */
+
+static void
+copy_ts_from_selector_to_associate (gfc_expr *associate, gfc_expr *selector)
+{
+  gfc_ref *ref;
+  gfc_symbol *assoc_sym;
+
+  assoc_sym = associate->symtree->n.sym;
+
+  /* Ensure that any array reference is resolved.  */
+  gfc_resolve_expr (selector);
+
+  /* At this stage the expression rank and arrayspec dimensions have
+     not been completely sorted out. We must get the expr2->rank
+     right here, so that the correct class container is obtained.  */
+  ref = selector->ref;
+  while (ref && ref->next)
+    ref = ref->next;
+
+  if (selector->ts.type == BT_CLASS
+	&& CLASS_DATA (selector)->as
+	&& ref && ref->type == REF_ARRAY)
+    {
+      if (ref->u.ar.type == AR_FULL)
+	selector->rank = CLASS_DATA (selector)->as->rank;
+      else if (ref->u.ar.type == AR_SECTION)
+	selector->rank = ref->u.ar.dimen;
+      else
+	selector->rank = 0;
+    }
+
+  if (selector->ts.type != BT_CLASS)
+    {
+      /* The correct class container has to be available.  */
+      if (selector->rank)
+	{
+	  assoc_sym->attr.dimension = 1;
+	  assoc_sym->as = gfc_get_array_spec ();
+	  assoc_sym->as->rank = selector->rank;
+	  assoc_sym->as->type = AS_DEFERRED;
+	}
+      else
+	assoc_sym->as = NULL;
+
+      assoc_sym->ts.type = BT_CLASS;
+      assoc_sym->ts.u.derived = selector->ts.u.derived;
+      assoc_sym->attr.pointer = 1;
+      gfc_build_class_symbol (&assoc_sym->ts, &assoc_sym->attr,
+			      &assoc_sym->as, false);
+    }
+  else
+    {
+      /* The correct class container has to be available.  */
+      if (selector->rank)
+	{
+	  assoc_sym->attr.dimension = 1;
+	  assoc_sym->as = gfc_get_array_spec ();
+	  assoc_sym->as->rank = selector->rank;
+	  assoc_sym->as->type = AS_DEFERRED;
+	}
+      else
+	assoc_sym->as = NULL;
+      assoc_sym->ts.type = BT_CLASS;
+      assoc_sym->ts.u.derived = CLASS_DATA (selector)->ts.u.derived;
+      assoc_sym->attr.pointer = 1;
+      gfc_build_class_symbol (&assoc_sym->ts, &assoc_sym->attr,
+			      &assoc_sym->as, false);
+    }
+}
+
+
 /* Push the current selector onto the SELECT TYPE stack.  */
 
 static void
@@ -5126,14 +5201,85 @@ select_type_push (gfc_symbol *sel)
 }
 
 
-/* Set the temporary for the current SELECT TYPE selector.  */
+/* Set the temporary for the current derived type SELECT TYPE selector.  */
 
-static void
-select_type_set_tmp (gfc_typespec *ts)
+static gfc_symtree *
+select_derived_set_tmp (gfc_typespec *ts)
 {
   char name[GFC_MAX_SYMBOL_LEN];
   gfc_symtree *tmp;
   
+  sprintf (name, "__tmp_type_%s", ts->u.derived->name);
+  gfc_get_sym_tree (name, gfc_current_ns, &tmp, false);
+  gfc_add_type (tmp->n.sym, ts, NULL);
+
+  /* Copy across the array spec to the selector.  */
+  if (select_type_stack->selector->ts.type == BT_CLASS
+      && select_type_stack->selector->attr.class_ok
+      && (CLASS_DATA (select_type_stack->selector)->attr.dimension
+	  || CLASS_DATA (select_type_stack->selector)->attr.codimension))
+    {
+      tmp->n.sym->attr.dimension
+		= CLASS_DATA (select_type_stack->selector)->attr.dimension;
+      tmp->n.sym->attr.codimension
+		= CLASS_DATA (select_type_stack->selector)->attr.codimension;
+      tmp->n.sym->as
+	= gfc_copy_array_spec (CLASS_DATA (select_type_stack->selector)->as);
+    }
+
+  gfc_set_sym_referenced (tmp->n.sym);
+  gfc_add_flavor (&tmp->n.sym->attr, FL_VARIABLE, name, NULL);
+  tmp->n.sym->attr.select_type_temporary = 1;
+
+  return tmp;
+}
+
+
+/* Set the temporary for the current class SELECT TYPE selector.  */
+
+static gfc_symtree *
+select_class_set_tmp (gfc_typespec *ts)
+{
+  char name[GFC_MAX_SYMBOL_LEN];
+  gfc_symtree *tmp;
+  
+  if (select_type_stack->selector->ts.type == BT_CLASS
+      && !select_type_stack->selector->attr.class_ok)
+    return NULL;
+
+  sprintf (name, "__tmp_class_%s", ts->u.derived->name);
+  gfc_get_sym_tree (name, gfc_current_ns, &tmp, false);
+  gfc_add_type (tmp->n.sym, ts, NULL);
+
+/* Copy across the array spec to the selector.  */
+  if (select_type_stack->selector->ts.type == BT_CLASS
+      && (CLASS_DATA (select_type_stack->selector)->attr.dimension
+	  || CLASS_DATA (select_type_stack->selector)->attr.codimension))
+    {
+      tmp->n.sym->attr.pointer = 1;
+      tmp->n.sym->attr.dimension
+		= CLASS_DATA (select_type_stack->selector)->attr.dimension;
+      tmp->n.sym->attr.codimension
+		= CLASS_DATA (select_type_stack->selector)->attr.codimension;
+      tmp->n.sym->as
+	= gfc_copy_array_spec (CLASS_DATA (select_type_stack->selector)->as);
+    }
+
+  gfc_set_sym_referenced (tmp->n.sym);
+  gfc_add_flavor (&tmp->n.sym->attr, FL_VARIABLE, name, NULL);
+  tmp->n.sym->attr.select_type_temporary = 1;
+  gfc_build_class_symbol (&tmp->n.sym->ts, &tmp->n.sym->attr,
+			  &tmp->n.sym->as, false);
+
+  return tmp;
+}
+
+
+static void
+select_type_set_tmp (gfc_typespec *ts)
+{
+  gfc_symtree *tmp;
+
   if (!ts)
     {
       select_type_stack->tmp = NULL;
@@ -5143,47 +5289,15 @@ select_type_set_tmp (gfc_typespec *ts)
   if (!gfc_type_is_extensible (ts->u.derived))
     return;
 
+  /* Logic is a LOT clearer with separate functions for class and derived
+     type temporaries! There are not many more lines of code either.  */
   if (ts->type == BT_CLASS)
-    sprintf (name, "__tmp_class_%s", ts->u.derived->name);
+    tmp = select_class_set_tmp (ts);
   else
-    sprintf (name, "__tmp_type_%s", ts->u.derived->name);
-  gfc_get_sym_tree (name, gfc_current_ns, &tmp, false);
-  gfc_add_type (tmp->n.sym, ts, NULL);
+    tmp = select_derived_set_tmp (ts);
 
-/* Copy across the array spec to the selector, taking care as to
-   whether or not it is a class object or not.  */
-  if (select_type_stack->selector->ts.type == BT_CLASS
-      && select_type_stack->selector->attr.class_ok
-      && (CLASS_DATA (select_type_stack->selector)->attr.dimension
-	  || CLASS_DATA (select_type_stack->selector)->attr.codimension))
-    {
-      if (ts->type == BT_CLASS)
-	{
-	  CLASS_DATA (tmp->n.sym)->attr.dimension
-		= CLASS_DATA (select_type_stack->selector)->attr.dimension;
-	  CLASS_DATA (tmp->n.sym)->attr.codimension
-		= CLASS_DATA (select_type_stack->selector)->attr.codimension;
-	  CLASS_DATA (tmp->n.sym)->as = gfc_get_array_spec ();
-	  CLASS_DATA (tmp->n.sym)->as
-			= CLASS_DATA (select_type_stack->selector)->as;
-	}
-      else
-	{
-	  tmp->n.sym->attr.dimension
-		= CLASS_DATA (select_type_stack->selector)->attr.dimension;
-	  tmp->n.sym->attr.codimension
-		= CLASS_DATA (select_type_stack->selector)->attr.codimension;
-	  tmp->n.sym->as = gfc_get_array_spec ();
-	  tmp->n.sym->as = CLASS_DATA (select_type_stack->selector)->as;
-	}
-    }
-
-  gfc_set_sym_referenced (tmp->n.sym);
-  gfc_add_flavor (&tmp->n.sym->attr, FL_VARIABLE, name, NULL);
-  tmp->n.sym->attr.select_type_temporary = 1;
-  if (ts->type == BT_CLASS)
-    gfc_build_class_symbol (&tmp->n.sym->ts, &tmp->n.sym->attr,
-			    &tmp->n.sym->as, false);
+  if (tmp == NULL)
+    return;
 
   /* Add an association for it, so the rest of the parser knows it is
      an associate-name.  The target will be set during resolution.  */
@@ -5194,7 +5308,7 @@ select_type_set_tmp (gfc_typespec *ts)
   select_type_stack->tmp = tmp;
 }
 
-
+  
 /* Match a SELECT TYPE statement.  */
 
 match
@@ -5204,6 +5318,7 @@ gfc_match_select_type (void)
   match m;
   char name[GFC_MAX_SYMBOL_LEN];
   bool class_array;
+  gfc_symbol *sym;
 
   m = gfc_match_label ();
   if (m == MATCH_ERROR)
@@ -5225,13 +5340,16 @@ gfc_match_select_type (void)
 	  m = MATCH_ERROR;
 	  goto cleanup;
 	}
+
+      sym = expr1->symtree->n.sym;
       if (expr2->ts.type == BT_UNKNOWN)
-	expr1->symtree->n.sym->attr.untyped = 1;
+	sym->attr.untyped = 1;
       else
-	expr1->symtree->n.sym->ts = expr2->ts;
-      expr1->symtree->n.sym->attr.flavor = FL_VARIABLE;
-      expr1->symtree->n.sym->attr.referenced = 1;
-      expr1->symtree->n.sym->attr.class_ok = 1;
+	copy_ts_from_selector_to_associate (expr1, expr2);
+
+      sym->attr.flavor = FL_VARIABLE;
+      sym->attr.referenced = 1;
+      sym->attr.class_ok = 1;
     }
   else
     {
@@ -5248,7 +5366,7 @@ gfc_match_select_type (void)
      array, which can have a reference, from other expressions that
      have references, such as derived type components, and are not
      allowed by the standard.
-     TODO; see is it is sufficent to exclude component and substring
+     TODO; see is it is sufficient to exclude component and substring
      references.  */
   class_array = expr1->expr_type == EXPR_VARIABLE
 		  && expr1->ts.type != BT_UNKNOWN

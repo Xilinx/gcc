@@ -446,7 +446,7 @@ _cpp_handle_directive (cpp_reader *pfile, int indented)
 	 
 	 We exclude the -fdirectives-only case because macro expansion
 	 has not been performed yet, and block comments can cause spaces
-	 to preceed the directive.  */
+	 to precede the directive.  */
       if (CPP_OPTION (pfile, preprocessed)
 	  && !CPP_OPTION (pfile, directives_only)
 	  && (indented || !(dir->flags & IN_I)))
@@ -1362,35 +1362,7 @@ do_pragma (cpp_reader *pfile)
 	{
 	  bool allow_name_expansion = p->allow_expansion;
 	  if (allow_name_expansion)
-	    {
-	      pfile->state.prevent_expansion--;
-	      /*
-		Kludge ahead.
-
-		Consider this code snippet:
-
-		#define P parallel
-		#pragma omp P for
-		... a for loop ...
-
-		Once we parsed the 'omp' namespace of the #pragma
-		directive, we then parse the 'P' token that represents the
-		pragma name.  P being a macro, it is expanded into the
-		resulting 'parallel' token.
-
-		At this point the 'p' variable contains the 'parallel'
-		pragma name.  And pfile->context->macro is non-null
-		because we are still right at the end of the macro
-		context of 'P'.  The problem is, if we are being
-		(indirectly) called by cpp_get_token_with_location,
-		that function might test pfile->context->macro to see
-		if we are in the context of a macro expansion, (and we
-		are) and then use pfile->invocation_location as the
-		location of the macro invocation.  So we must instruct
-		cpp_get_token below to set
-		pfile->invocation_location.  */
-	      pfile->set_invocation_location = true;
-	    }
+	    pfile->state.prevent_expansion--;
 
 	  token = cpp_get_token (pfile);
 	  if (token->type == CPP_NAME)
@@ -1741,10 +1713,7 @@ destringize_and_run (cpp_reader *pfile, const cpp_string *in)
   saved_cur_token = pfile->cur_token;
   saved_cur_run = pfile->cur_run;
 
-  pfile->context = XNEW (cpp_context);
-  pfile->context->c.macro = 0;
-  pfile->context->prev = 0;
-  pfile->context->next = 0;
+  pfile->context = XCNEW (cpp_context);
 
   /* Inline run_directive, since we need to delay the _cpp_pop_buffer
      until we've read all of the tokens that we want.  */

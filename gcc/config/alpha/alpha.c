@@ -43,7 +43,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "function.h"
 #include "diagnostic-core.h"
 #include "ggc.h"
-#include "integrate.h"
 #include "tm_p.h"
 #include "target.h"
 #include "target-def.h"
@@ -51,7 +50,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "debug.h"
 #include "langhooks.h"
 #include "splay-tree.h"
-#include "cfglayout.h"
 #include "gimple.h"
 #include "tree-flow.h"
 #include "tree-stdarg.h"
@@ -59,6 +57,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "df.h"
 #include "libfuncs.h"
 #include "opts.h"
+#include "params.h"
 
 /* Specify which cpu to schedule for.  */
 enum processor_type alpha_tune;
@@ -226,24 +225,40 @@ alpha_option_override (void)
     const char *const name;
     const enum processor_type processor;
     const int flags;
+    const unsigned short line_size; /* in bytes */
+    const unsigned short l1_size;   /* in kb.  */
+    const unsigned short l2_size;   /* in kb.  */
   } cpu_table[] = {
-    { "ev4",	PROCESSOR_EV4, 0 },
-    { "ev45",	PROCESSOR_EV4, 0 },
-    { "21064",	PROCESSOR_EV4, 0 },
-    { "ev5",	PROCESSOR_EV5, 0 },
-    { "21164",	PROCESSOR_EV5, 0 },
-    { "ev56",	PROCESSOR_EV5, MASK_BWX },
-    { "21164a",	PROCESSOR_EV5, MASK_BWX },
-    { "pca56",	PROCESSOR_EV5, MASK_BWX|MASK_MAX },
-    { "21164PC",PROCESSOR_EV5, MASK_BWX|MASK_MAX },
-    { "21164pc",PROCESSOR_EV5, MASK_BWX|MASK_MAX },
-    { "ev6",	PROCESSOR_EV6, MASK_BWX|MASK_MAX|MASK_FIX },
-    { "21264",	PROCESSOR_EV6, MASK_BWX|MASK_MAX|MASK_FIX },
-    { "ev67",	PROCESSOR_EV6, MASK_BWX|MASK_MAX|MASK_FIX|MASK_CIX },
-    { "21264a",	PROCESSOR_EV6, MASK_BWX|MASK_MAX|MASK_FIX|MASK_CIX }
+    /* EV4/LCA45 had 8k L1 caches; EV45 had 16k L1 caches.
+       EV4/EV45 had 128k to 16M 32-byte direct Bcache.  LCA45
+       had 64k to 8M 8-byte direct Bcache.  */
+    { "ev4",	PROCESSOR_EV4, 0, 32, 8, 8*1024 },
+    { "21064",	PROCESSOR_EV4, 0, 32, 8, 8*1024 },
+    { "ev45",	PROCESSOR_EV4, 0, 32, 16, 16*1024 },
+
+    /* EV5 or EV56 had 8k 32 byte L1, 96k 32 or 64 byte L2,
+       and 1M to 16M 64 byte L3 (not modeled).
+       PCA56 had 16k 64-byte cache; PCA57 had 32k Icache.
+       PCA56 had 8k 64-byte cache; PCA57 had 16k Dcache.  */
+    { "ev5",	PROCESSOR_EV5, 0, 32, 8, 96 },
+    { "21164",	PROCESSOR_EV5, 0, 32, 8, 96 },
+    { "ev56",	PROCESSOR_EV5, MASK_BWX, 32, 8, 96 },
+    { "21164a",	PROCESSOR_EV5, MASK_BWX, 32, 8, 96 },
+    { "pca56",	PROCESSOR_EV5, MASK_BWX|MASK_MAX, 64, 16, 4*1024 },
+    { "21164PC",PROCESSOR_EV5, MASK_BWX|MASK_MAX, 64, 16, 4*1024 },
+    { "21164pc",PROCESSOR_EV5, MASK_BWX|MASK_MAX, 64, 16, 4*1024 },
+
+    /* EV6 had 64k 64 byte L1, 1M to 16M Bcache.  */
+    { "ev6",	PROCESSOR_EV6, MASK_BWX|MASK_MAX|MASK_FIX, 64, 64, 16*1024 },
+    { "21264",	PROCESSOR_EV6, MASK_BWX|MASK_MAX|MASK_FIX, 64, 64, 16*1024 },
+    { "ev67",	PROCESSOR_EV6, MASK_BWX|MASK_MAX|MASK_FIX|MASK_CIX,
+      64, 64, 16*1024 },
+    { "21264a",	PROCESSOR_EV6, MASK_BWX|MASK_MAX|MASK_FIX|MASK_CIX,
+      64, 64, 16*1024 }
   };
 
   int const ct_size = ARRAY_SIZE (cpu_table);
+  int line_size = 0, l1_size = 0, l2_size = 0;
   int i;
 
 #ifdef SUBTARGET_OVERRIDE_OPTIONS
@@ -316,9 +331,12 @@ alpha_option_override (void)
       for (i = 0; i < ct_size; i++)
 	if (! strcmp (alpha_cpu_string, cpu_table [i].name))
 	  {
-	    alpha_tune = alpha_cpu = cpu_table [i].processor;
+	    alpha_tune = alpha_cpu = cpu_table[i].processor;
+	    line_size = cpu_table[i].line_size;
+	    l1_size = cpu_table[i].l1_size;
+	    l2_size = cpu_table[i].l2_size;
 	    target_flags &= ~ (MASK_BWX | MASK_MAX | MASK_FIX | MASK_CIX);
-	    target_flags |= cpu_table [i].flags;
+	    target_flags |= cpu_table[i].flags;
 	    break;
 	  }
       if (i == ct_size)
@@ -330,12 +348,28 @@ alpha_option_override (void)
       for (i = 0; i < ct_size; i++)
 	if (! strcmp (alpha_tune_string, cpu_table [i].name))
 	  {
-	    alpha_tune = cpu_table [i].processor;
+	    alpha_tune = cpu_table[i].processor;
+	    line_size = cpu_table[i].line_size;
+	    l1_size = cpu_table[i].l1_size;
+	    l2_size = cpu_table[i].l2_size;
 	    break;
 	  }
       if (i == ct_size)
 	error ("bad value %qs for -mtune switch", alpha_tune_string);
     }
+
+  if (line_size)
+    maybe_set_param_value (PARAM_L1_CACHE_LINE_SIZE, line_size,
+			   global_options.x_param_values,
+			   global_options_set.x_param_values);
+  if (l1_size)
+    maybe_set_param_value (PARAM_L1_CACHE_SIZE, l1_size,
+			   global_options.x_param_values,
+			   global_options_set.x_param_values);
+  if (l2_size)
+    maybe_set_param_value (PARAM_L2_CACHE_SIZE, l2_size,
+			   global_options.x_param_values,
+			   global_options_set.x_param_values);
 
   /* Do some sanity checks on the above options.  */
 
@@ -988,7 +1022,7 @@ alpha_legitimize_address_1 (rtx x, rtx scratch, enum machine_mode mode)
 			       (!can_create_pseudo_p () ? scratch : NULL_RTX),
 			       1, OPTAB_LIB_WIDEN);
 
-    return plus_constant (x, low);
+    return plus_constant (Pmode, x, low);
   }
 }
 
@@ -1388,7 +1422,7 @@ get_unaligned_address (rtx ref)
   if (GET_CODE (base) == PLUS)
     offset += INTVAL (XEXP (base, 1)), base = XEXP (base, 0);
 
-  return plus_constant (base, offset);
+  return plus_constant (Pmode, base, offset);
 }
 
 /* Compute a value X, such that X & 7 == (ADDR + OFS) & 7.
@@ -2335,7 +2369,7 @@ alpha_emit_conditional_branch (rtx operands[], enum machine_mode cmp_mode)
     {
     case EQ:  case LE:  case LT:  case LEU:  case LTU:
     case UNORDERED:
-      /* We have these compares: */
+      /* We have these compares.  */
       cmp_code = code, branch_code = NE;
       break;
 
@@ -2572,13 +2606,15 @@ alpha_emit_conditional_move (rtx cmp, enum machine_mode mode)
       switch (code)
 	{
 	case EQ: case LE: case LT: case LEU: case LTU:
+	case UNORDERED:
 	  /* We have these compares.  */
 	  cmp_code = code, code = NE;
 	  break;
 
 	case NE:
-	  /* This must be reversed.  */
-	  cmp_code = EQ, code = EQ;
+	case ORDERED:
+	  /* These must be reversed.  */
+	  cmp_code = reverse_condition (code), code = EQ;
 	  break;
 
 	case GE: case GT: case GEU: case GTU:
@@ -2598,6 +2634,14 @@ alpha_emit_conditional_move (rtx cmp, enum machine_mode mode)
 	  gcc_unreachable ();
 	}
 
+      if (cmp_mode == DImode)
+	{
+	  if (!reg_or_0_operand (op0, DImode))
+	    op0 = force_reg (DImode, op0);
+	  if (!reg_or_8bit_operand (op1, DImode))
+	    op1 = force_reg (DImode, op1);
+	}
+
       tem = gen_reg_rtx (cmp_mode);
       emit_insn (gen_rtx_SET (VOIDmode, tem,
 			      gen_rtx_fmt_ee (cmp_code, cmp_mode,
@@ -2607,6 +2651,14 @@ alpha_emit_conditional_move (rtx cmp, enum machine_mode mode)
       op0 = gen_lowpart (cmp_mode, tem);
       op1 = CONST0_RTX (cmp_mode);
       local_fast_math = 1;
+    }
+
+  if (cmp_mode == DImode)
+    {
+      if (!reg_or_0_operand (op0, DImode))
+	op0 = force_reg (DImode, op0);
+      if (!reg_or_8bit_operand (op1, DImode))
+	op1 = force_reg (DImode, op1);
     }
 
   /* We may be able to use a conditional move directly.
@@ -2627,11 +2679,13 @@ alpha_emit_conditional_move (rtx cmp, enum machine_mode mode)
   switch (code)
     {
     case EQ:  case LE:  case LT:  case LEU:  case LTU:
+    case UNORDERED:
       /* We have these compares: */
       break;
 
     case NE:
-      /* This must be reversed.  */
+    case ORDERED:
+      /* These must be reversed.  */
       code = reverse_condition (code);
       cmov_code = EQ;
       break;
@@ -3233,21 +3287,22 @@ alpha_expand_unaligned_load (rtx tgt, rtx mem, HOST_WIDE_INT size,
 
   tmp = change_address (mem, DImode,
 			gen_rtx_AND (DImode,
-				     plus_constant (mema, ofs),
+				     plus_constant (DImode, mema, ofs),
 				     GEN_INT (-8)));
   set_mem_alias_set (tmp, 0);
   emit_move_insn (meml, tmp);
 
   tmp = change_address (mem, DImode,
 			gen_rtx_AND (DImode,
-				     plus_constant (mema, ofs + size - 1),
+				     plus_constant (DImode, mema,
+						    ofs + size - 1),
 				     GEN_INT (-8)));
   set_mem_alias_set (tmp, 0);
   emit_move_insn (memh, tmp);
 
   if (sign && size == 2)
     {
-      emit_move_insn (addr, plus_constant (mema, ofs+2));
+      emit_move_insn (addr, plus_constant (Pmode, mema, ofs+2));
 
       emit_insn (gen_extql (extl, meml, addr));
       emit_insn (gen_extqh (exth, memh, addr));
@@ -3261,7 +3316,7 @@ alpha_expand_unaligned_load (rtx tgt, rtx mem, HOST_WIDE_INT size,
     }
   else
     {
-      emit_move_insn (addr, plus_constant (mema, ofs));
+      emit_move_insn (addr, plus_constant (Pmode, mema, ofs));
       emit_insn (gen_extxl (extl, meml, GEN_INT (size*8), addr));
       switch ((int) size)
 	{
@@ -3333,20 +3388,21 @@ alpha_expand_unaligned_store (rtx dst, rtx src,
 
   meml = change_address (dst, DImode,
 			 gen_rtx_AND (DImode,
-				      plus_constant (dsta, ofs),
+				      plus_constant (DImode, dsta, ofs),
 				      GEN_INT (-8)));
   set_mem_alias_set (meml, 0);
 
   memh = change_address (dst, DImode,
 			 gen_rtx_AND (DImode,
-				      plus_constant (dsta, ofs + size - 1),
+				      plus_constant (DImode, dsta,
+						     ofs + size - 1),
 				      GEN_INT (-8)));
   set_mem_alias_set (memh, 0);
 
   emit_move_insn (dsth, memh);
   emit_move_insn (dstl, meml);
 
-  addr = copy_addr_to_reg (plus_constant (dsta, ofs));
+  addr = copy_addr_to_reg (plus_constant (Pmode, dsta, ofs));
 
   if (src != CONST0_RTX (GET_MODE (src)))
     {
@@ -3436,7 +3492,7 @@ alpha_expand_unaligned_load_words (rtx *out_regs, rtx smem,
     {
       tmp = change_address (smem, DImode,
 			    gen_rtx_AND (DImode,
-					 plus_constant (smema, 8*i),
+					 plus_constant (DImode, smema, 8*i),
 					 im8));
       set_mem_alias_set (tmp, 0);
       emit_move_insn (data_regs[i], tmp);
@@ -3444,7 +3500,8 @@ alpha_expand_unaligned_load_words (rtx *out_regs, rtx smem,
 
   tmp = change_address (smem, DImode,
 			gen_rtx_AND (DImode,
-				     plus_constant (smema, 8*words - 1),
+				     plus_constant (DImode, smema,
+						    8*words - 1),
 				     im8));
   set_mem_alias_set (tmp, 0);
   emit_move_insn (data_regs[words], tmp);
@@ -3504,8 +3561,9 @@ alpha_expand_unaligned_store_words (rtx *data_regs, rtx dmem,
 
   st_addr_2 = change_address (dmem, DImode,
 			      gen_rtx_AND (DImode,
-					   plus_constant (dmema, words*8 - 1),
-				       im8));
+					   plus_constant (DImode, dmema,
+							  words*8 - 1),
+					   im8));
   set_mem_alias_set (st_addr_2, 0);
 
   st_addr_1 = change_address (dmem, DImode,
@@ -3551,7 +3609,8 @@ alpha_expand_unaligned_store_words (rtx *data_regs, rtx dmem,
     {
       rtx tmp = change_address (dmem, DImode,
 				gen_rtx_AND (DImode,
-					     plus_constant (dmema, i*8),
+					     plus_constant (DImode,
+							    dmema, i*8),
 					     im8));
       set_mem_alias_set (tmp, 0);
       emit_move_insn (tmp, data_regs ? ins_tmps[i-1] : const0_rtx);
@@ -3961,7 +4020,8 @@ alpha_expand_block_clear (rtx operands[])
 	  rtx mem
 	    = change_address (orig_dst, DImode,
 			      gen_rtx_AND (DImode,
-					   plus_constant (orig_dsta, ofs + i*8),
+					   plus_constant (DImode, orig_dsta,
+							  ofs + i*8),
 					   GEN_INT (-8)));
 	  set_mem_alias_set (mem, 0);
 	  emit_move_insn (mem, const0_rtx);
@@ -4202,39 +4262,15 @@ emit_store_conditional (enum machine_mode mode, rtx res, rtx mem, rtx val)
 static void
 alpha_pre_atomic_barrier (enum memmodel model)
 {
-  switch (model)
-    {
-    case MEMMODEL_RELAXED:
-    case MEMMODEL_CONSUME:
-    case MEMMODEL_ACQUIRE:
-      break;
-    case MEMMODEL_RELEASE:
-    case MEMMODEL_ACQ_REL:
-    case MEMMODEL_SEQ_CST:
-      emit_insn (gen_memory_barrier ());
-      break;
-    default:
-      gcc_unreachable ();
-    }
+  if (need_atomic_barrier_p (model, true))
+    emit_insn (gen_memory_barrier ());
 }
 
 static void
 alpha_post_atomic_barrier (enum memmodel model)
 {
-  switch (model)
-    {
-    case MEMMODEL_RELAXED:
-    case MEMMODEL_CONSUME:
-    case MEMMODEL_RELEASE:
-      break;
-    case MEMMODEL_ACQUIRE:
-    case MEMMODEL_ACQ_REL:
-    case MEMMODEL_SEQ_CST:
-      emit_insn (gen_memory_barrier ());
-      break;
-    default:
-      gcc_unreachable ();
-    }
+  if (need_atomic_barrier_p (model, false))
+    emit_insn (gen_memory_barrier ());
 }
 
 /* A subroutine of the atomic operation splitters.  Emit an insxl
@@ -4718,8 +4754,8 @@ alpha_init_machine_status (void)
 void
 alpha_expand_builtin_establish_vms_condition_handler (rtx target, rtx handler)
 {
-  rtx handler_slot_address
-    = plus_constant (hard_frame_pointer_rtx, VMS_COND_HANDLER_FP_OFFSET);
+  rtx handler_slot_address = plus_constant (Pmode, hard_frame_pointer_rtx,
+					    VMS_COND_HANDLER_FP_OFFSET);
 
   rtx handler_slot
     = gen_rtx_MEM (DImode, handler_slot_address);
@@ -5443,7 +5479,9 @@ alpha_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
 	 the function's procedure descriptor with certain fields zeroed IAW
 	 the VMS calling standard. This is stored in the first quadword.  */
       word1 = force_reg (DImode, gen_const_mem (DImode, fnaddr));
-      word1 = expand_and (DImode, word1, GEN_INT (0xffff0fff0000fff0), NULL);
+      word1 = expand_and (DImode, word1,
+			  GEN_INT (HOST_WIDE_INT_C (0xffff0fff0000fff0)),
+			  NULL);
     }
   else
     {
@@ -5454,8 +5492,8 @@ alpha_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
 	    nop
 	 We don't bother setting the HINT field of the jump; the nop
 	 is merely there for padding.  */
-      word1 = GEN_INT (0xa77b0010a43b0018);
-      word2 = GEN_INT (0x47ff041f6bfb0000);
+      word1 = GEN_INT (HOST_WIDE_INT_C (0xa77b0010a43b0018));
+      word2 = GEN_INT (HOST_WIDE_INT_C (0x47ff041f6bfb0000));
     }
 
   /* Store the first two words, as computed above.  */
@@ -6055,7 +6093,7 @@ alpha_setup_incoming_varargs (cumulative_args_t pcum, enum machine_mode mode,
       if (cfun->va_list_fpr_size & 1)
 	{
 	  tmp = gen_rtx_MEM (BLKmode,
-			     plus_constant (virtual_incoming_args_rtx,
+			     plus_constant (Pmode, virtual_incoming_args_rtx,
 					    (cum + 6) * UNITS_PER_WORD));
 	  MEM_NOTRAP_P (tmp) = 1;
 	  set_mem_alias_set (tmp, set);
@@ -6065,7 +6103,7 @@ alpha_setup_incoming_varargs (cumulative_args_t pcum, enum machine_mode mode,
       if (cfun->va_list_fpr_size & 2)
 	{
 	  tmp = gen_rtx_MEM (BLKmode,
-			     plus_constant (virtual_incoming_args_rtx,
+			     plus_constant (Pmode, virtual_incoming_args_rtx,
 					    cum * UNITS_PER_WORD));
 	  MEM_NOTRAP_P (tmp) = 1;
 	  set_mem_alias_set (tmp, set);
@@ -7514,7 +7552,7 @@ emit_frame_store_1 (rtx value, rtx base_reg, HOST_WIDE_INT frame_bias,
 {
   rtx addr, mem, insn;
 
-  addr = plus_constant (base_reg, base_ofs);
+  addr = plus_constant (Pmode, base_reg, base_ofs);
   mem = gen_frame_mem (DImode, addr);
 
   insn = emit_move_insn (mem, value);
@@ -7524,7 +7562,8 @@ emit_frame_store_1 (rtx value, rtx base_reg, HOST_WIDE_INT frame_bias,
     {
       if (frame_bias)
 	{
-	  addr = plus_constant (stack_pointer_rtx, frame_bias + base_ofs);
+	  addr = plus_constant (Pmode, stack_pointer_rtx,
+			        frame_bias + base_ofs);
 	  mem = gen_rtx_MEM (DImode, addr);
 	}
 
@@ -7679,7 +7718,8 @@ alpha_expand_prologue (void)
 
       if ((leftover > 4096 && sa_size == 0) || flag_stack_check)
 	{
-	  rtx last = gen_rtx_MEM (DImode, plus_constant (ptr, -leftover));
+	  rtx last = gen_rtx_MEM (DImode,
+				  plus_constant (Pmode, ptr, -leftover));
 	  MEM_VOLATILE_P (last) = 1;
 	  emit_move_insn (last, const0_rtx);
 	}
@@ -7710,7 +7750,7 @@ alpha_expand_prologue (void)
       RTX_FRAME_RELATED_P (seq) = 1;
       add_reg_note (seq, REG_FRAME_RELATED_EXPR,
 		    gen_rtx_SET (VOIDmode, stack_pointer_rtx,
-				 plus_constant (stack_pointer_rtx,
+				 plus_constant (Pmode, stack_pointer_rtx,
 						-frame_size)));
     }
 
@@ -7791,7 +7831,7 @@ alpha_expand_prologue (void)
 	  rtx seq
 	    = emit_move_insn (stack_pointer_rtx,
 			      plus_constant
-			      (hard_frame_pointer_rtx,
+			      (Pmode, hard_frame_pointer_rtx,
 			       - (ALPHA_ROUND
 				  (crtl->outgoing_args_size))));
 
@@ -8087,14 +8127,14 @@ alpha_expand_epilogue (void)
 	    bias = reg_offset, reg_offset = 0;
 
 	  sa_reg = gen_rtx_REG (DImode, 22);
-	  sa_reg_exp = plus_constant (stack_pointer_rtx, bias);
+	  sa_reg_exp = plus_constant (Pmode, stack_pointer_rtx, bias);
 
 	  emit_move_insn (sa_reg, sa_reg_exp);
 	}
 
       /* Restore registers in order, excepting a true frame pointer.  */
 
-      mem = gen_frame_mem (DImode, plus_constant (sa_reg, reg_offset));
+      mem = gen_frame_mem (DImode, plus_constant (Pmode, sa_reg, reg_offset));
       reg = gen_rtx_REG (DImode, REG_RA);
       emit_move_insn (reg, mem);
       cfa_restores = alloc_reg_note (REG_CFA_RESTORE, reg, cfa_restores);
@@ -8110,7 +8150,8 @@ alpha_expand_epilogue (void)
 	    else
 	      {
 		mem = gen_frame_mem (DImode,
-				     plus_constant (sa_reg, reg_offset));
+				     plus_constant (Pmode, sa_reg,
+						    reg_offset));
 		reg = gen_rtx_REG (DImode, i);
 		emit_move_insn (reg, mem);
 		cfa_restores = alloc_reg_note (REG_CFA_RESTORE, reg,
@@ -8122,7 +8163,8 @@ alpha_expand_epilogue (void)
       for (i = 0; i < 31; ++i)
 	if (fmask & (1UL << i))
 	  {
-	    mem = gen_frame_mem (DFmode, plus_constant (sa_reg, reg_offset));
+	    mem = gen_frame_mem (DFmode, plus_constant (Pmode, sa_reg,
+						        reg_offset));
 	    reg = gen_rtx_REG (DFmode, i+32);
 	    emit_move_insn (reg, mem);
 	    cfa_restores = alloc_reg_note (REG_CFA_RESTORE, reg, cfa_restores);
@@ -8150,7 +8192,7 @@ alpha_expand_epilogue (void)
 	{
 	  int low = ((frame_size & 0xffff) ^ 0x8000) - 0x8000;
 
-	  sp_adj2 = plus_constant (sp_adj1, frame_size - low);
+	  sp_adj2 = plus_constant (Pmode, sp_adj1, frame_size - low);
 	  if (sa_reg_exp && rtx_equal_p (sa_reg_exp, sp_adj2))
 	    sp_adj1 = sa_reg;
 	  else
@@ -8180,7 +8222,8 @@ alpha_expand_epilogue (void)
       if (fp_is_frame_pointer)
 	{
 	  emit_insn (gen_blockage ());
-	  mem = gen_frame_mem (DImode, plus_constant (sa_reg, fp_offset));
+	  mem = gen_frame_mem (DImode, plus_constant (Pmode, sa_reg,
+						      fp_offset));
 	  emit_move_insn (hard_frame_pointer_rtx, mem);
 	  cfa_restores = alloc_reg_note (REG_CFA_RESTORE,
 					 hard_frame_pointer_rtx, cfa_restores);
@@ -9509,7 +9552,7 @@ alpha_use_linkage (rtx func, bool lflag, bool rflag)
   al->rkind = rflag ? KIND_CODEADDR : KIND_LINKAGE;
 
   if (lflag)
-    return gen_rtx_MEM (Pmode, plus_constant (al->linkage, 8));
+    return gen_rtx_MEM (Pmode, plus_constant (Pmode, al->linkage, 8));
   else
     return al->linkage;
 }

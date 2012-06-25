@@ -1,3 +1,214 @@
+2012-06-21  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* c-common.h (c_common_print_pch_checksum): Remove.
+	* c-pch.c: Do not include output.h.
+	(CHECK_NO_ASM_OUT_DURING_PCH): Define and add FIXME.
+	(asm_out_file): Define iff CHECK_NO_ASM_OUT_DURING_PCH isdefined.
+	(asm_file_startpos): Define iff CHECK_NO_ASM_OUT_DURING_PCH is defined.
+	(struct c_pch_header): Remove.
+	(get_ident): Update gpch version.
+	(pch_init): Do not print executable_checksum to asm_out_file.
+	Do not fail if there is no asm_out_file to read back from.  Set
+	asm_file_startpos only if CHECK_NO_ASM_OUT_DURING_PCH is defined.
+	(c_common_write_pch): Verify that nothing was written to asm_out_file
+	since pch_init was called.  Do not write a c_pch_header, and do not
+	copy from asm_out_file to the PCH.
+	(c_common_read_pch): Do not read a c_pch_header, and do not restore
+	the content of asm_out_file from the PCH.
+	(c_common_print_pch_checksum): Remove.
+	* c-opts.c (c_common_init): Print out executable_checksum directly.
+
+2012-06-19  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* c-target.def (objc_declare_unresolved_class_reference,
+	objc_declare_class_definition): Add new hooks.
+
+2012-06-19  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* c-lex.c: Do not include output.h.
+	(cb_ident): Try to put out .ident with targetm.asm_out.output_ident.
+	Remove uses of ASM_OUTPUT_IDENT.
+
+2012-06-15  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR c++/51033
+	* c-common.h (c_build_vec_perm_expr): Move decl here.
+	* c-common.c (c_build_vec_perm_expr): Move definition
+	here.
+
+2012-06-06  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* c.opt (fconserve-space): Turn into a no-op.
+
+2012-06-04   Sterling Augustine  <saugustine@google.com>
+
+	* c-pretty-print.h (pp_c_flag_gnu_v3): New enumerator.
+	* c-pretty-print.c (pp_c_specifier_qualifier_list): Check it at
+	both the start and end of the function.
+
+2012-06-04  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* c-common.c: Do not include output.h.
+	* c-pragma.c: Likewise.
+
+2012-06-04  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* error.c (dump_decl): Check pp_c_flag_gnu_v3.
+	(decl_as_dwarf_string, lang_decl_dwarf_name): New functions.
+	(lang_decl_name): Handle namespace decls.
+
+2012-05-31  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* c-ada-spec.c: Do not include output.h.
+	* c-semantics.c: Likewise.
+
+2012-05-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.c: Fix typo.
+
+2012-05-29  Michael Matz  <matz@suse.de>
+
+	* c-common.h (c_expand_decl): Remove prototype.
+
+2012-05-29  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* c.opt (Wmissing-braces): Use LangEnabledBy(C ObjC,Wall).
+	* c-opts.c (c_common_handle_option): Remove code handling
+	warn_missing_braces.
+
+2012-05-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/25137
+	* c-opts.c (c_common_handle_option): For C++ -Wall doesn't enable
+	-Wmissing_braces.
+
+2012-05-22  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/53322
+	* c.opt (Wunused-local-typedefs): Use EnabledBy(Wunused).
+
+2012-05-17  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* c.opt (--pedantic-errors,-pedantic-errors): Do not handle here.
+	* c-opts.c (c_common_handle_option): Do not handle explicitly
+	Wreturn-type, Wwrite-strings, warn_ecpp, and -pedantic-errors.
+
+2012-05-16  Dodji Seketeli  <dodji@redhat.com>
+
+	PR preprocessor/7263
+	* c-lex.c (c_lex_with_flags):  Pass a virtual location to the call
+	to cpp_classify_number.  For diagnostics, use the precise location
+	instead of the global input_location.
+
+2012-05-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/11856
+	* c-common.c (shorten_compare): Check c_inhibit_evaluation_warnings.
+
+2012-05-14  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* c-common.c (DEF_ATTR_STRING): Define and undefine as necessary.
+
+2012-05-14  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 53063
+	* c.opt (Wc++0X-compat,Wdelete-non-virtual-dtor,Wjump-misses-init,
+	Wreorder): Use LangEnabledBy.
+	* c-opts.c (c_common_handle_option): Do not enable them
+	explicitly. Call lang-specific generated functions.
+	(c_common_post_options): Do not set them here.
+
+2012-05-13  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* c.opt (Wclobbered,Wempty-body,Wignored-qualifiers,
+	Wmissing-field-initializers,Wmissing-parameter-type,
+	Wold-style-declaration,Woverride-init): Use EnabledBy.
+	* c-opts.c (c_common_post_options): Do not set here explicitly.
+
+2012-05-11  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 53063
+	* c-opts.c (c_common_handle_option): Use handle_generated_option
+	to enable sub-options.
+
+2012-05-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/53158
+	* c-common.c (warnings_for_convert_and_check): Use warning_at.
+
+2012-05-10  Richard Guenther  <rguenther@suse.de>
+
+	* c-common.c (c_sizeof_or_alignof_type): Remove assert and
+	adjust commentary about TYPE_IS_SIZETYPE types.
+
+2012-05-09  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/53261
+	* c-common.c (warn_logical_operator): Check that argument of
+	integer_zerop is not NULL.
+
+2012-05-05  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/43772
+	* c-common.c (warn_logical_operator): Do not warn if either side
+	is already true or false.
+
+2012-05-04  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/51712
+	* c-common.c (expr_original_type): New.
+	(shorten_compare): Do not warn for enumeration types.
+
+2012-05-03  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* c.opt (fpermissive): Add Var(flag_permissive).
+
+2012-04-30  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR c++/51033
+	* c-common.c (convert_vector_to_pointer_for_subscript): New function.
+	* c-common.h (convert_vector_to_pointer_for_subscript): Declare it.
+
+2012-04-30  Dodji Seketeli  <dodji@redhat.com>
+
+	Add -Wvarargs option
+	* c.opt (Wvarargs):  Define new option.
+
+2012-04-30  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* c-common.c (check_function_arguments): Replace
+	Wmissing-format-attribute with Wsuggest-attribute=format.
+
+2012-04-30  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* c.opt (Wsuggest-attribute=format): New. Alias of
+	Wmissing-format-attribute.
+	* c-format.c (decode_format_type): Replace
+	Wmissing-format-attribute with Wsuggest-attribute=format.
+	(check_function_format): Likewise.
+
+2012-04-27   Ollie Wild  <aaw@google.com>
+
+	* c-common.c: Add CPP_W_LITERAL_SUFFIX mapping.
+	* c-opts.c (c_common_handle_option): Handle OPT_Wliteral_suffix.
+	* c.opt: Add Wliteral-suffix.
+
+2012-04-22  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/44774
+	* c.opt (Wpedantic): New.
+	(pedantic): Alias Wpedantic.
+	* c-opts.c (c_common_handle_option): Replace -pedantic with -Wpedantic.
+	(c_common_post_options): Likewise.
+	(sanitize_cpp_opts): Likewise.
+	* c-lex.c (interpret_float): Likewise.
+	* c-format.c (check_format_types): Likewise.
+	* c-common.c (pointer_int_sum): Likewise.
+	(c_sizeof_or_alignof_type): Likewise.
+	(c_add_case_label): Likewise.
+	(c_do_switch_warnings): Likewise.
+	* c-pragma.c (handle_pragma_float_const_decimal64): Likewise.
+
 2012-04-15  Jason Merrill  <jason@redhat.com>
 
 	PR c++/52818

@@ -944,8 +944,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     lower_bound(_ForwardIterator __first, _ForwardIterator __last,
 		const _Tp& __val)
     {
+#ifdef _GLIBCXX_CONCEPT_CHECKS
       typedef typename iterator_traits<_ForwardIterator>::value_type
 	_ValueType;
+#endif
       typedef typename iterator_traits<_ForwardIterator>::difference_type
 	_DistanceType;
 
@@ -975,37 +977,27 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   /// This is a helper function for the sort routines and for random.tcc.
   //  Precondition: __n > 0.
-  template<typename _Size>
-    inline _Size
-    __lg(_Size __n)
-    {
-      _Size __k;
-      for (__k = 0; __n != 0; __n >>= 1)
-	++__k;
-      return __k - 1;
-    }
-
-  inline int
+  inline _GLIBCXX_CONSTEXPR int
   __lg(int __n)
   { return sizeof(int) * __CHAR_BIT__  - 1 - __builtin_clz(__n); }
 
-  inline unsigned
+  inline _GLIBCXX_CONSTEXPR unsigned
   __lg(unsigned __n)
   { return sizeof(int) * __CHAR_BIT__  - 1 - __builtin_clz(__n); }
 
-  inline long
+  inline _GLIBCXX_CONSTEXPR long
   __lg(long __n)
   { return sizeof(long) * __CHAR_BIT__ - 1 - __builtin_clzl(__n); }
 
-  inline unsigned long
+  inline _GLIBCXX_CONSTEXPR unsigned long
   __lg(unsigned long __n)
   { return sizeof(long) * __CHAR_BIT__ - 1 - __builtin_clzl(__n); }
 
-  inline long long
+  inline _GLIBCXX_CONSTEXPR long long
   __lg(long long __n)
   { return sizeof(long long) * __CHAR_BIT__ - 1 - __builtin_clzll(__n); }
 
-  inline unsigned long long
+  inline _GLIBCXX_CONSTEXPR unsigned long long
   __lg(unsigned long long __n)
   { return sizeof(long long) * __CHAR_BIT__ - 1 - __builtin_clzll(__n); }
 
@@ -1093,9 +1085,11 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
     lexicographical_compare(_II1 __first1, _II1 __last1,
 			    _II2 __first2, _II2 __last2)
     {
+#ifdef _GLIBCXX_CONCEPT_CHECKS
       // concept requirements
       typedef typename iterator_traits<_II1>::value_type _ValueType1;
       typedef typename iterator_traits<_II2>::value_type _ValueType2;
+#endif
       __glibcxx_function_requires(_InputIteratorConcept<_II1>)
       __glibcxx_function_requires(_InputIteratorConcept<_II2>)
       __glibcxx_function_requires(_LessThanOpConcept<_ValueType1, _ValueType2>)

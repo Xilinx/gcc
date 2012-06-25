@@ -711,7 +711,7 @@ mn10300_gen_multiple_store (unsigned int mask)
 	continue;
 
       ++count;
-      x = plus_constant (stack_pointer_rtx, count * -4);
+      x = plus_constant (Pmode, stack_pointer_rtx, count * -4);
       x = gen_frame_mem (SImode, x);
       x = gen_rtx_SET (VOIDmode, x, gen_rtx_REG (SImode, regno));
       elts[count] = F(x);
@@ -725,7 +725,7 @@ mn10300_gen_multiple_store (unsigned int mask)
   gcc_assert (mask == 0);
 
   /* Create the instruction that updates the stack pointer.  */
-  x = plus_constant (stack_pointer_rtx, count * -4);
+  x = plus_constant (Pmode, stack_pointer_rtx, count * -4);
   x = gen_rtx_SET (VOIDmode, stack_pointer_rtx, x);
   elts[0] = F(x);
 
@@ -1464,7 +1464,7 @@ mn10300_builtin_saveregs (void)
   alias_set_type set = get_varargs_alias_set ();
 
   if (argadj)
-    offset = plus_constant (crtl->args.arg_offset_rtx, argadj);
+    offset = plus_constant (Pmode, crtl->args.arg_offset_rtx, argadj);
   else
     offset = crtl->args.arg_offset_rtx;
 
@@ -1473,7 +1473,8 @@ mn10300_builtin_saveregs (void)
   emit_move_insn (mem, gen_rtx_REG (SImode, 0));
 
   mem = gen_rtx_MEM (SImode,
-		     plus_constant (crtl->args.internal_arg_pointer, 4));
+		     plus_constant (Pmode,
+				    crtl->args.internal_arg_pointer, 4));
   set_mem_alias_set (mem, set);
   emit_move_insn (mem, gen_rtx_REG (SImode, 1));
 
@@ -2516,7 +2517,7 @@ mn10300_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
      clobber the flags but do not affect the contents of D0 or D1.  */
 
   disp = expand_binop (SImode, sub_optab, fnaddr,
-		       plus_constant (XEXP (m_tramp, 0), 11),
+		       plus_constant (Pmode, XEXP (m_tramp, 0), 11),
 		       NULL_RTX, 1, OPTAB_DIRECT);
 
   mem = adjust_address (m_tramp, SImode, 0);
@@ -2761,7 +2762,7 @@ mn10300_adjust_sched_cost (rtx insn, rtx link, rtx dep, int cost)
       Chapter 3 of the MN103E Series Instruction Manual
       where it says:
 
-        "When the preceeding instruction is a CPU load or
+        "When the preceding instruction is a CPU load or
 	 store instruction, a following FPU instruction
 	 cannot be executed until the CPU completes the
 	 latency period even though there are no register
@@ -2787,7 +2788,7 @@ mn10300_adjust_sched_cost (rtx insn, rtx link, rtx dep, int cost)
     return cost;
 
   /* XXX: Verify: The text of 1-7-4 implies that the restriction
-     only applies when an INTEGER load/store preceeds an FPU
+     only applies when an INTEGER load/store precedes an FPU
      instruction, but is this true ?  For now we assume that it is.  */
   if (GET_MODE_CLASS (GET_MODE (SET_SRC (PATTERN (insn)))) != MODE_INT)
     return cost;

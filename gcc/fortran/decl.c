@@ -586,7 +586,7 @@ cleanup:
 /************************ Declaration statements *********************/
 
 
-/* Auxilliary function to merge DIMENSION and CODIMENSION array specs.  */
+/* Auxiliary function to merge DIMENSION and CODIMENSION array specs.  */
 
 static void
 merge_array_spec (gfc_array_spec *from, gfc_array_spec *to, bool copy)
@@ -1658,7 +1658,10 @@ scalar:
       bool delayed = (gfc_state_stack->sym == c->ts.u.derived)
 		     || (!c->ts.u.derived->components
 			 && !c->ts.u.derived->attr.zero_comp);
-      return gfc_build_class_symbol (&c->ts, &c->attr, &c->as, delayed);
+      gfc_try t2 = gfc_build_class_symbol (&c->ts, &c->attr, &c->as, delayed);
+
+      if (t != FAILURE)
+	t = t2;
     }
 
   return t;
@@ -1712,7 +1715,7 @@ match_pointer_init (gfc_expr **init, int procptr)
       return MATCH_ERROR;
     }
 
-  /* Match NULL() initilization.  */
+  /* Match NULL() initialization.  */
   m = gfc_match_null (init);
   if (m != MATCH_NO)
     return m;
@@ -2232,7 +2235,7 @@ kind_expr:
      C interoperable kind (and store the fact).	 */
   if (e->ts.is_c_interop == 1)
     {
-      /* Mark this as c interoperable if being declared with one
+      /* Mark this as C interoperable if being declared with one
 	 of the named constants from iso_c_binding.  */
       ts->is_c_interop = e->ts.is_iso_c;
       ts->f90_type = e->ts.f90_type;
@@ -2530,10 +2533,10 @@ done:
   ts->kind = kind == 0 ? gfc_default_character_kind : kind;
   ts->deferred = deferred;
 
-  /* We have to know if it was a c interoperable kind so we can
+  /* We have to know if it was a C interoperable kind so we can
      do accurate type checking of bind(c) procs, etc.  */
   if (kind != 0)
-    /* Mark this as c interoperable if being declared with one
+    /* Mark this as C interoperable if being declared with one
        of the named constants from iso_c_binding.  */
     ts->is_c_interop = is_iso_c;
   else if (len != NULL)
@@ -2763,7 +2766,7 @@ gfc_match_decl_type_spec (gfc_typespec *ts, int implicit_flag)
   /* Search for the name but allow the components to be defined later.  If
      type = -1, this typespec has been seen in a function declaration but
      the type could not be accessed at that point.  The actual derived type is
-     stored in a symtree with the first letter of the name captialized; the
+     stored in a symtree with the first letter of the name capitalized; the
      symtree with the all lower-case name contains the associated
      generic function.  */
   dt_name = gfc_get_string ("%c%s",
@@ -3197,7 +3200,7 @@ gfc_match_import (void)
 	  if (sym->attr.generic && (sym = gfc_find_dt_in_generic (sym)))
 	    {
 	      /* The actual derived type is stored in a symtree with the first
-		 letter of the name captialized; the symtree with the all
+		 letter of the name capitalized; the symtree with the all
 		 lower-case name contains the associated generic function. */
 	      st = gfc_new_symtree (&gfc_current_ns->sym_root,
 			gfc_get_string ("%c%s",
@@ -3261,7 +3264,7 @@ static match
 match_attr_spec (void)
 {
   /* Modifiers that can exist in a type statement.  */
-  typedef enum
+  enum
   { GFC_DECL_BEGIN = 0,
     DECL_ALLOCATABLE = GFC_DECL_BEGIN, DECL_DIMENSION, DECL_EXTERNAL,
     DECL_IN, DECL_OUT, DECL_INOUT, DECL_INTRINSIC, DECL_OPTIONAL,
@@ -3269,8 +3272,7 @@ match_attr_spec (void)
     DECL_PUBLIC, DECL_SAVE, DECL_TARGET, DECL_VALUE, DECL_VOLATILE,
     DECL_IS_BIND_C, DECL_CODIMENSION, DECL_ASYNCHRONOUS, DECL_CONTIGUOUS,
     DECL_NONE, GFC_DECL_END /* Sentinel */
-  }
-  decl_types;
+  };
 
 /* GFC_DECL_END is the sentinel, index starts at 0.  */
 #define NUM_DECL GFC_DECL_END
@@ -3808,8 +3810,9 @@ match_attr_spec (void)
 	}
     }
 
-  /* Module variables implicitly have the SAVE attribute.  */
-  if (gfc_current_state () == COMP_MODULE && !current_attr.save)
+  /* Since Fortran 2008 module variables implicitly have the SAVE attribute.  */
+  if (gfc_current_state () == COMP_MODULE && !current_attr.save
+      && (gfc_option.allow_std & GFC_STD_F2008) != 0)
     current_attr.save = SAVE_IMPLICIT;
 
   colon_seen = 1;
@@ -3841,7 +3844,7 @@ set_binding_label (const char **dest_label, const char *sym_name,
     }
 
   if (curr_binding_label)
-    /* Binding label given; store in temp holder til have sym.  */
+    /* Binding label given; store in temp holder till have sym.  */
     *dest_label = curr_binding_label;
   else
     {
@@ -7861,7 +7864,7 @@ match_binding_attributes (gfc_typebound_proc* ba, bool generic, bool ppc)
   bool seen_ptr = false;
   match m = MATCH_YES;
 
-  /* Intialize to defaults.  Do so even before the MATCH_NO check so that in
+  /* Initialize to defaults.  Do so even before the MATCH_NO check so that in
      this case the defaults are in there.  */
   ba->access = ACCESS_UNKNOWN;
   ba->pass_arg = NULL;

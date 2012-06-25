@@ -272,8 +272,10 @@ static void
 mark_stmt_if_obviously_necessary (gimple stmt, bool aggressive)
 {
   /* With non-call exceptions, we have to assume that all statements could
-     throw.  If a statement may throw, it is inherently necessary.  */
-  if (cfun->can_throw_non_call_exceptions && stmt_could_throw_p (stmt))
+     throw.  If a statement could throw, it can be deemed necessary.  */
+  if (cfun->can_throw_non_call_exceptions
+      && !cfun->can_delete_dead_exceptions
+      && stmt_could_throw_p (stmt))
     {
       mark_stmt_necessary (stmt, true);
       return;
@@ -370,7 +372,7 @@ mark_stmt_if_obviously_necessary (gimple stmt, bool aggressive)
       return;
     }
 
-  if (is_hidden_global_store (stmt))
+  if (stmt_may_clobber_global_p (stmt))
     {
       mark_stmt_necessary (stmt, true);
       return;
@@ -1042,12 +1044,10 @@ static bool
 remove_dead_phis (basic_block bb)
 {
   bool something_changed = false;
-  gimple_seq phis;
   gimple phi;
   gimple_stmt_iterator gsi;
-  phis = phi_nodes (bb);
 
-  for (gsi = gsi_start (phis); !gsi_end_p (gsi);)
+  for (gsi = gsi_start_phis (bb); !gsi_end_p (gsi);)
     {
       stats.total_phis++;
       phi = gsi_stmt (gsi);

@@ -1,3 +1,296 @@
+2012-06-18  Jörg Sonnenberger <joerg@britannica.bec.de>
+	    Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/53678
+	* config/os/bsd/netbsd/ctype_base.h: Check for _CTYPE_U.
+	* testsuite/22_locale/ctype_base/53678.cc: New.
+
+2012-06-15  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/53578
+	* include/ext/concurrence.h (__recursive_mutex::_S_destroy): Fix
+	narrowing conversion.
+	* include/std/mutex (__recursive_mutex_base::_S_destroy): Likewise.
+
+2012-06-14  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/53270
+	* include/ext/concurrence.h (__mutex, __recursive_mutex, __cond): Use
+	NSDMI in C++11 mode.
+	* include/ext/rope (_Refcount_Base): Likewise. Destroy mutex in
+	destructor when initialized by function.
+
+2012-06-14  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/53648
+	* include/std/tuple (__empty_not_final): Do not use EBO for tuples.
+	* testsuite/20_util/tuple/53648.cc: New.
+	* testsuite/20_util/uses_allocator/cons_neg.cc: Adjust dg-error line
+	number.
+
+2012-06-14  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/status_cxx2011.xml: Correct C++11 status table.
+
+2012-06-01  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/status_cxx2011.xml: Correct C++11 status table.
+
+2012-05-31  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/53543
+	* include/bits/hashtable_policy.h (_Insert::__is_convertible):
+	Rename to __is_conv to avoid clash with clang built-in.
+
+2012-05-29  François Dumont  <fdumont@gcc.gnu.org>
+
+	* include/bits/stl_tempbuf.h (__uninitialized_construct_buf)
+	(__uninitialized_construct_buf_dispatch<>::__ucr): Fix to work
+	with iterator returning rvalue.
+	* testsuite/25_algorithms/stable_sort/3.cc: New.
+
+2012-05-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/53503
+	* testsuite/26_numerics/headers/cmath/53503.cc: New.
+
+2012-05-22  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/53322
+	* include/bits/stl_algobase.h (lower_bound)
+    	(lexicographical_compare): Do not declare unused local typedefs
+    	here when Concepts are turned off.
+
+2012-05-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/22_locale/num_put/put/char/9780-2.cc: Avoid -Wall warnings.
+	* testsuite/29_atomics/atomic/cons/49445.cc: Likewise.
+	* testsuite/29_atomics/atomic/operators/pointer_partial_void.cc:
+	* Likewise.
+	* testsuite/23_containers/unordered_map/observers.cc: Likewise.
+	* testsuite/23_containers/unordered_map/erase/1.cc: Likewise.
+	* testsuite/23_containers/unordered_multimap/erase/1.cc: Likewise.
+	* testsuite/23_containers/unordered_multimap/erase/2.cc: Likewise.
+	* testsuite/23_containers/unordered_multimap/insert/53115.cc: Likewise.
+	* testsuite/23_containers/unordered_multimap/observers.cc: Likewise.
+	* testsuite/23_containers/vector/debug/alloc_prop.cc: Likewise.
+	* testsuite/23_containers/unordered_set/observers.cc: Likewise.
+	* testsuite/23_containers/unordered_set/erase/1.cc: Likewise.
+	* testsuite/23_containers/unordered_multiset/erase/1.cc: Likewise.
+	* testsuite/23_containers/unordered_multiset/erase/2.cc: Likewise.
+	* testsuite/23_containers/unordered_multiset/insert/53115.cc: Likewise.
+	* testsuite/23_containers/unordered_multiset/insert/multiset_range.cc:
+	* Likewise.
+	* testsuite/23_containers/unordered_multiset/observers.cc: Likewise.
+
+2012-05-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/53361
+	* testsuite/23_containers/array/cons/53361.cc: New.
+
+2012-05-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/44516
+	* testsuite/20_util/ratio/cons/cons_overflow_neg.cc: Adjust
+	dg-error line number.
+
+2012-05-16  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* configure: Regenerated.
+
+2012-05-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/53339
+	* include/bits/hashtable_policy.h (__detail::_Identity,
+	__detail::_Select1st): Add.
+	(_Map_base, _Hashtable_base): Use the latter, adjust parameters.
+	* include/bits/hashtable.h (_Hashtable::__key_extract): Adjust.
+	* include/bits/unordered_set.h (__uset_hashtable, __umset_hashtable):
+	Likewise.
+	* include/bits/unordered_map.h (__umap_hashtable, __ummap_hashtable):
+	Likewise.
+	* include/bits/stl_function.h (_Identity, _Select1st, _Select2nd)
+	Unconditionally derive from unary_function.
+	* include/ext/functional (identity, select1st, select2nd): Remove
+	#ifdef __GXX_EXPERIMENTAL_CXX0X__ bits.
+	* testsuite/23_containers/unordered_map/requirements/53339.cc: New.
+	* testsuite/23_containers/unordered_multimap/requirements/
+	53339.cc: Likewise.
+
+2012-05-11  François Dumont  <fdumont@gcc.gnu.org>
+
+	PR libstdc++/53263
+	* include/debug/safe_iterator.h (__gnu_debug::__base): Move...
+	* include/debug/functions.h: ... Here.
+	(__check_sorted_aux): Add overload for random access safe
+	iterators.
+	(__check_partition_lower_aux): New.
+	(__check_partition_lower): Use latter.
+	(__check_partition_upper_aux): New.
+	(__check_partition_upper): Use latter.
+	* include/debug/macros.h (__glibcxx_check_heap)
+	(__glibcxx_check_heap_pred): Use __gnu_debug::__base on iterator range.
+
+2012-05-10  DJ Delorie  <dj@redhat.com>
+
+	* include/bits/random.tcc (seed_seq::generate): Cast max()
+	operands to size_t to ensure a template match.
+	* include/std/bitset (_M_copy_from_ptr): Cast min() operands to
+	size_t to ensure a template match.
+
+2012-05-03  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* scripts/testsuite_flags.in (cxxflags): Remove
+	-ftrack-macro-expansion=0.
+
+2012-05-03  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/faq.xml: Update outdated allocator documentation.
+	* doc/xml/manual/allocator.xml: Likewise.
+	* doc/xml/manual/debug.xml: Likewise.
+	* doc/xml/manual/evolution.xml: Likewise.
+	* doc/xml/manual/using.xml: Likewise.
+
+2012-05-02  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/44015
+	* include/bits/basic_ios.h: Add tparam markup for
+	* doxygen.  include/bits/basic_string.h: Same.
+	* include/bits/forward_list.h: Same.
+	* include/bits/stl_bvector.h: Same.
+	* include/bits/stl_deque.h: Same.
+	* include/bits/stl_list.h: Same.  include/bits/stl_map.h:
+	* Same.  include/bits/stl_multimap.h: Same.
+	* include/bits/stl_multiset.h: Same.
+	* include/bits/stl_pair.h: Same.
+	* include/bits/stl_queue.h: Same.
+	* include/bits/stl_set.h: Same.
+	* include/bits/stl_stack.h: Same.
+	* include/bits/stl_vector.h: Same.
+	* include/bits/unordered_map.h: Same.
+	* include/bits/unordered_set.h: Same.  include/std/array:
+	* Same.  include/std/atomic: Same.  include/std/fstream:
+	* Same.  include/std/istream: Same.  include/std/ostream:
+	* Same.  include/std/sstream: Same.
+	* include/std/streambuf: Same.
+	* testsuite/23_containers/deque/requirements/dr438/*:
+	Adjust line numbers.
+	* testsuite/23_containers/list/requirements/dr438/*: Same.
+	* testsuite/23_containers/vector/requirements/dr438/*: Same.
+
+2012-05-02  DJ Delorie  <dj@redhat.com>
+
+	* crossconfig.m4: Since we know that all TPF builds are cross-
+	builds and cannot run configuration-time link tests, do not
+	allow it; just go with known supported linker options.
+	* configure: Regenerate (called as GLIBCXX_CROSSCONFIG).
+
+2012-05-02  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/bits/hashtable_policy.h: Correct namepace nesting for
+	_Hashtable forward declaration.
+
+2012-05-01  François Dumont  <fdumont@gcc.gnu.org>
+
+	PR libstdc++/53115
+	* include/bits/hashtable.h
+	(_Hashtable<>::_M_rehash_aux(size_type, false_type)): Fix buckets
+	after insertion of several equivalent elements.
+	* testsuite/23_containers/unordered_multiset/insert/53115.cc: New.
+	* testsuite/23_containers/unordered_multimap/insert/53115.cc: New.
+
+2012-04-29  Marc Glisse  <marc.glisse@inria.fr>
+	    Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/51795
+	* include/bits/stl_algobase.h (__lg<>(_Size)): Remove.
+	(__lg(int), __lg(unsigned), __lg(long), __lg(unsigned long),
+	__lg(long long), __lg(unsigned long long)): Define constexpr.
+	* include/bits/random.h (_Mod<>): Overcome Schrage's algorithm
+	limitations.
+	(__mod): Adjust.
+	(linear_congruential): Remove FIXME static_assert.
+	* include/bits/random.tcc (_Mod<>): Adjust.
+	* testsuite/26_numerics/random/linear_congruential_engine/operators/
+	51795.cc: New.
+
+2012-04-29  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/functional (function::function(F)): LWG 2132: Disable
+	constructor if argument isn't callable.
+	* testsuite/20_util/function/cons/callable.cc: New.
+
+2012-04-29  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR libstdc++/22200
+	* include/std/limits (numeric_limits<>::is_modulo): False for
+	signed types.
+
+2012-04-25  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/bits/hashtable.h: Adjust doxygen markup for base
+	classes.
+	* include/bits/hashtable_policy.h: Same.
+
+2012-04-25  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/52689
+	* testsuite/17_intro/static.cc: Fix.
+	* testsuite/lib/dg-options.exp (dg-require-static-libstdcxx): New.
+	* testsuite/lib/libstdc++.exp (check_v3_target_static_libstdcxx): New.
+
+2012-04-25  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/scoped_allocator (scoped_allocator::__outermost): Do
+	not pass non-POD to varargs function.
+	* testsuite/20_util/scoped_allocator/1.cc: Fix test.
+
+2012-04-24  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/52689
+	* testsuite/17_intro/static.cc: New.
+
+2012-04-23  Daniel Krugler  <daniel.kruegler@googlemail.com>
+
+	* include/std/type_traits (is_nothrow_destructible): Implement.
+	(is_destructible): Implement LWG 2049.
+	* testsuite/util/testsuite_tr1.h: Add tests.
+	* testsuite/20_util/is_nothrow_destructible/value.cc: New.
+	* testsuite/20_util/is_nothrow_destructible/requirements/typedefs.cc:
+	* testsuite/20_util/is_nothrow_destructible/requirements/
+	explicit_instantiation.cc: Likewise.
+	* testsuite/20_util/is_destructible/value.cc: Adjust and extend.
+	* testsuite/20_util/is_default_constructible/value.cc: Tweak.
+	* testsuite/20_util/is_constructible/value-2.cc: Likewise.
+	* testsuite/20_util/make_signed/requirements/typedefs_neg.cc: Adjust
+	dg-error line numbers.
+	* testsuite/20_util/make_unsigned/requirements/typedefs_neg.cc:
+	Likewise.
+	* testsuite/20_util/declval/requirements/1_neg.cc: Likewise.
+
+2012-04-23  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/53080
+	* include/std/array (tuple_element, get): static_assert I < N.
+	* testsuite/23_containers/array/tuple_interface/tuple_element_neg.cc:
+	New.
+	* testsuite/23_containers/array/tuple_interface/get_neg.cc: Likewise.
+	* testsuite/23_containers/array/tuple_interface/tuple_element.cc: Fix.
+
+2012-04-23  Chris Jefferson  <chris@bubblescope.net>
+
+	PR testsuite/53046
+	* testsuite/25_algorithms/stable_partition/mem_check.cc: Fix size
+	of array A.
+	* testsuite/25_algorithms/stable_sort/mem_check.cc: Likewise.
+
+2012-04-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/53067
+	* include/bits/hashtable_policy.h: Change inheritances to public.
+	* testsuite/23_containers/unordered_map/requirements/53067.cc: New.
+	* testsuite/23_containers/unordered_set/requirements/53067.cc: Likewise.
+
 2012-04-22  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	* include/ext/alloc_traits.h (__alloc_traits::difference_type):

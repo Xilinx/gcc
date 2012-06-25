@@ -237,8 +237,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "optabs.h"
 #include "insn-codes.h"
 #include "rtlhooks-def.h"
-/* Include output.h for dump_file.  */
-#include "output.h"
 #include "params.h"
 #include "timevar.h"
 #include "tree-pass.h"
@@ -666,6 +664,24 @@ combine_reaching_defs (ext_cand *cand, const_rtx set_pat, ext_state *state)
 
   if (!outcome)
     return false;
+
+  /* If cand->insn has been already modified, update cand->mode to a wider
+     mode if possible, or punt.  */
+  if (state->modified[INSN_UID (cand->insn)].kind != EXT_MODIFIED_NONE)
+    {
+      enum machine_mode mode;
+      rtx set;
+
+      if (state->modified[INSN_UID (cand->insn)].kind
+	  != (cand->code == ZERO_EXTEND
+	      ? EXT_MODIFIED_ZEXT : EXT_MODIFIED_SEXT)
+	  || state->modified[INSN_UID (cand->insn)].mode != cand->mode
+	  || (set = single_set (cand->insn)) == NULL_RTX)
+	return false;
+      mode = GET_MODE (SET_DEST (set));
+      gcc_assert (GET_MODE_SIZE (mode) >= GET_MODE_SIZE (cand->mode));
+      cand->mode = mode;
+    }
 
   merge_successful = true;
 

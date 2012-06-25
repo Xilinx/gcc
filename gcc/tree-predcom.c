@@ -100,7 +100,7 @@ along with GCC; see the file COPYING3.  If not see
       and we can combine the chains for e and f into one chain.
 
    5) For each root reference (end of the chain) R, let N be maximum distance
-      of a reference reusing its value.  Variables R0 upto RN are created,
+      of a reference reusing its value.  Variables R0 up to RN are created,
       together with phi nodes that transfer values from R1 .. RN to
       R0 .. R(N-1).
       Initial values are loaded to R0..R(N-1) (in case not all references
@@ -1707,6 +1707,7 @@ remove_stmt (gimple stmt)
     {
       name = PHI_RESULT (stmt);
       next = single_nonlooparound_use (name);
+      reset_debug_uses (stmt);
       psi = gsi_for_stmt (stmt);
       remove_phi_node (&psi, true);
 
@@ -1728,6 +1729,7 @@ remove_stmt (gimple stmt)
       gcc_assert (TREE_CODE (name) == SSA_NAME);
 
       next = single_nonlooparound_use (name);
+      reset_debug_uses (stmt);
 
       mark_virtual_ops_for_renaming (stmt);
       gsi_remove (&bsi, true);

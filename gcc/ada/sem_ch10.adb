@@ -1257,10 +1257,14 @@ package body Sem_Ch10 is
       --  know if the with'ing unit is itself obsolescent (which suppresses
       --  the warnings).
 
-      if not GNAT_Mode and then Warn_On_Obsolescent_Feature then
-
+      if not GNAT_Mode
+        and then Warn_On_Obsolescent_Feature
+        and then Nkind (Unit_Node) not in N_Generic_Instantiation
+      then
          --  Push current compilation unit as scope, so that the test for
-         --  being within an obsolescent unit will work correctly.
+         --  being within an obsolescent unit will work correctly. The check
+         --  is not performed within an instantiation, because the warning
+         --  will have been emitted in the corresponding generic unit.
 
          Push_Scope (Defining_Entity (Unit_Node));
 
@@ -2987,10 +2991,13 @@ package body Sem_Ch10 is
       Set_First_Name         (Withn, True);
       Set_Implicit_With      (Withn, True);
 
-      --  If the unit is a package declaration, a private_with_clause on a
-      --  child unit implies the implicit with on the parent is also private.
+      --  If the unit is a package or generic package  declaration, a private_
+      --  with_clause on a child unit implies that the implicit with on the
+      --  parent is also private.
 
-      if Nkind (Unit (N)) = N_Package_Declaration then
+      if Nkind_In (Unit (N), N_Package_Declaration,
+                             N_Generic_Package_Declaration)
+      then
          Set_Private_Present (Withn, Private_Present (Item));
       end if;
 
@@ -6208,6 +6215,13 @@ package body Sem_Ch10 is
 
       Set_Is_Potentially_Use_Visible (Unit_Name, False);
       Set_Is_Immediately_Visible     (Unit_Name, False);
+
+      --  If the unit is a wrapper package, the subprogram instance is
+      --  what must be removed from visibility.
+
+      if Is_Wrapper_Package (Unit_Name) then
+         Set_Is_Immediately_Visible (Current_Entity (Unit_Name), False);
+      end if;
    end Remove_Unit_From_Visibility;
 
    --------

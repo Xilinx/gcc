@@ -42,7 +42,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "reload.h"
 #include "diagnostic-core.h"
 #include "basic-block.h"
-#include "integrate.h"
 #include "ggc.h"
 #include "target.h"
 #include "target-def.h"
@@ -1650,6 +1649,11 @@ s390_option_override (void)
      is beneficial on s390, we enable it if available.  */
   if (flag_prefetch_loop_arrays < 0 && HAVE_prefetch && optimize >= 3)
     flag_prefetch_loop_arrays = 1;
+
+  /* Use the alternative scheduling-pressure algorithm by default.  */
+  maybe_set_param_value (PARAM_SCHED_PRESSURE_ALGORITHM, 2,
+                         global_options.x_param_values,
+                         global_options_set.x_param_values);
 }
 
 /* Map for smallest class containing reg regno.  */
@@ -1994,7 +1998,7 @@ s390_decompose_address (rtx addr, struct s390_address *out)
 	      if (offset >= GET_MODE_SIZE (get_pool_mode (sym)))
 		return false;
 
-              orig_disp = plus_constant (orig_disp, offset);
+              orig_disp = plus_constant (Pmode, orig_disp, offset);
 	    }
         }
 
@@ -3564,7 +3568,7 @@ legitimize_pic_address (rtx orig, rtx reg)
 	      new_rtx  = legitimize_pic_address (XEXP (addr, 1),
 					     base == reg ? NULL_RTX : reg);
 	      if (GET_CODE (new_rtx) == CONST_INT)
-		new_rtx = plus_constant (base, INTVAL (new_rtx));
+		new_rtx = plus_constant (Pmode, base, INTVAL (new_rtx));
 	      else
 		{
 		  if (GET_CODE (new_rtx) == PLUS && CONSTANT_P (XEXP (new_rtx, 1)))
@@ -3807,7 +3811,8 @@ legitimize_tls_address (rtx addr, rtx reg)
 	new_rtx = gen_rtx_CONST (Pmode, new_rtx);
 
       new_rtx = legitimize_tls_address (new_rtx, reg);
-      new_rtx = plus_constant (new_rtx, INTVAL (XEXP (XEXP (addr, 0), 1)));
+      new_rtx = plus_constant (Pmode, new_rtx,
+			       INTVAL (XEXP (XEXP (addr, 0), 1)));
       new_rtx = force_operand (new_rtx, 0);
     }
 
@@ -4413,7 +4418,7 @@ s390_expand_addcc (enum rtx_code cmp_code, rtx cmp_op0, rtx cmp_op1,
       insn = gen_rtx_SET (VOIDmode, gen_rtx_REG (cc_mode, CC_REGNUM),
 			  gen_rtx_COMPARE (cc_mode, cmp_op0, cmp_op1));
       /* We use insn_invalid_p here to add clobbers if required.  */
-      ret = insn_invalid_p (emit_insn (insn));
+      ret = insn_invalid_p (emit_insn (insn), false);
       gcc_assert (!ret);
 
       /* Emit ALC instruction pattern.  */
@@ -4485,7 +4490,7 @@ s390_expand_addcc (enum rtx_code cmp_code, rtx cmp_op0, rtx cmp_op1,
       insn = gen_rtx_SET (VOIDmode, gen_rtx_REG (cc_mode, CC_REGNUM),
 			  gen_rtx_COMPARE (cc_mode, cmp_op0, cmp_op1));
       /* We use insn_invalid_p here to add clobbers if required.  */
-      ret = insn_invalid_p (emit_insn (insn));
+      ret = insn_invalid_p (emit_insn (insn), false);
       gcc_assert (!ret);
 
       /* Emit SLB instruction pattern.  */
@@ -4941,7 +4946,7 @@ s390_delegitimize_address (rtx orig_x)
       if (GET_CODE (y) == UNSPEC
 	  && (XINT (y, 1) == UNSPEC_GOTOFF
 	      || XINT (y, 1) == UNSPEC_PLTOFF))
-	return plus_constant (XVECEXP (y, 0, 0), offset);
+	return plus_constant (Pmode, XVECEXP (y, 0, 0), offset);
     }
 
   if (GET_CODE (x) != MEM)
@@ -5328,7 +5333,8 @@ print_operand (FILE *file, rtx x, int code)
       if (GET_CODE (x) == REG)
 	x = gen_rtx_REG (GET_MODE (x), REGNO (x) + 1);
       else if (GET_CODE (x) == MEM)
-	x = change_address (x, VOIDmode, plus_constant (XEXP (x, 0), 4));
+	x = change_address (x, VOIDmode,
+			    plus_constant (Pmode, XEXP (x, 0), 4));
       else
 	output_operand_lossage ("register or memory expression expected "
 				"for 'N' output modifier");
@@ -5338,7 +5344,8 @@ print_operand (FILE *file, rtx x, int code)
       if (GET_CODE (x) == REG)
 	x = gen_rtx_REG (GET_MODE (x), REGNO (x) + 1);
       else if (GET_CODE (x) == MEM)
-	x = change_address (x, VOIDmode, plus_constant (XEXP (x, 0), 8));
+	x = change_address (x, VOIDmode,
+			    plus_constant (Pmode, XEXP (x, 0), 8));
       else
 	output_operand_lossage ("register or memory expression expected "
 				"for 'M' output modifier");
@@ -5644,7 +5651,7 @@ annotate_constant_pool_refs (rtx *x)
 	  rtx addr = gen_rtx_UNSPEC (Pmode, gen_rtvec (2, sym, base),
 				     UNSPEC_LTREF);
 
-	  *x = replace_equiv_address (*x, plus_constant (addr, off));
+	  *x = replace_equiv_address (*x, plus_constant (Pmode, addr, off));
 	  return;
 	}
     }
@@ -5677,7 +5684,7 @@ annotate_constant_pool_refs (rtx *x)
 	  rtx addr = gen_rtx_UNSPEC (Pmode, gen_rtvec (2, sym, base),
 				     UNSPEC_LTREF);
 
-	  SET_SRC (*x) = plus_constant (addr, off);
+	  SET_SRC (*x) = plus_constant (Pmode, addr, off);
 	  return;
 	}
     }
@@ -5874,7 +5881,7 @@ replace_constant_pool_ref (rtx *x, rtx ref, rtx offset)
       && XVECEXP (XEXP (*x, 0), 0, 0) == ref)
     {
       rtx addr = gen_rtx_PLUS (Pmode, XVECEXP (XEXP (*x, 0), 0, 1), offset);
-      *x = plus_constant (addr, INTVAL (XEXP (*x, 1)));
+      *x = plus_constant (Pmode, addr, INTVAL (XEXP (*x, 1)));
       return;
     }
 
@@ -7033,7 +7040,7 @@ s390_return_addr_rtx (int count, rtx frame ATTRIBUTE_UNUSED)
   else
     offset = RETURN_REGNUM * UNITS_PER_LONG;
 
-  addr = plus_constant (frame, offset);
+  addr = plus_constant (Pmode, frame, offset);
   addr = memory_address (Pmode, addr);
   return gen_rtx_MEM (Pmode, addr);
 }
@@ -7049,7 +7056,7 @@ s390_back_chain_rtx (void)
   gcc_assert (TARGET_BACKCHAIN);
 
   if (TARGET_PACKED_STACK)
-    chain = plus_constant (stack_pointer_rtx,
+    chain = plus_constant (Pmode, stack_pointer_rtx,
 			   STACK_POINTER_OFFSET - UNITS_PER_LONG);
   else
     chain = stack_pointer_rtx;
@@ -7117,7 +7124,7 @@ s390_regs_ever_clobbered (int *regs_ever_clobbered)
 
   /* For non-leaf functions we have to consider all call clobbered regs to be
      clobbered.  */
-  if (!current_function_is_leaf)
+  if (!crtl->is_leaf)
     {
       for (i = 0; i < 16; i++)
 	regs_ever_clobbered[i] = call_really_used_regs[i];
@@ -7241,7 +7248,7 @@ s390_register_info (int clobbered_regs[])
         && REGNO (cfun->machine->base_reg) == BASE_REGNUM);
 
   clobbered_regs[RETURN_REGNUM]
-    |= (!current_function_is_leaf
+    |= (!crtl->is_leaf
 	|| TARGET_TPF_PROFILING
 	|| cfun->machine->split_branches_pending_p
 	|| cfun_frame_layout.save_return_addr_p
@@ -7249,7 +7256,7 @@ s390_register_info (int clobbered_regs[])
 	|| cfun->stdarg);
 
   clobbered_regs[STACK_POINTER_REGNUM]
-    |= (!current_function_is_leaf
+    |= (!crtl->is_leaf
 	|| TARGET_TPF_PROFILING
 	|| cfun_save_high_fprs_p
 	|| get_frame_size () > 0
@@ -7425,7 +7432,7 @@ s390_frame_info (void)
 	= cfun_frame_layout.f0_offset - cfun_gprs_save_area_size;
     }
 
-  if (current_function_is_leaf
+  if (crtl->is_leaf
       && !TARGET_TPF_PROFILING
       && cfun_frame_layout.frame_size == 0
       && !cfun_save_high_fprs_p
@@ -7500,7 +7507,7 @@ s390_init_frame_layout (void)
 	 as base register to avoid save/restore overhead.  */
       if (!base_used)
 	cfun->machine->base_reg = NULL_RTX;
-      else if (current_function_is_leaf && !df_regs_ever_live_p (5))
+      else if (crtl->is_leaf && !df_regs_ever_live_p (5))
 	cfun->machine->base_reg = gen_rtx_REG (Pmode, 5);
       else
 	cfun->machine->base_reg = gen_rtx_REG (Pmode, BASE_REGNUM);
@@ -7711,7 +7718,7 @@ static rtx
 save_fpr (rtx base, int offset, int regnum)
 {
   rtx addr;
-  addr = gen_rtx_MEM (DFmode, plus_constant (base, offset));
+  addr = gen_rtx_MEM (DFmode, plus_constant (Pmode, base, offset));
 
   if (regnum >= 16 && regnum <= (16 + FP_ARG_NUM_REG))
     set_mem_alias_set (addr, get_varargs_alias_set ());
@@ -7728,7 +7735,7 @@ static rtx
 restore_fpr (rtx base, int offset, int regnum)
 {
   rtx addr;
-  addr = gen_rtx_MEM (DFmode, plus_constant (base, offset));
+  addr = gen_rtx_MEM (DFmode, plus_constant (Pmode, base, offset));
   set_mem_alias_set (addr, get_frame_alias_set ());
 
   return emit_move_insn (gen_rtx_REG (DFmode, regnum), addr);
@@ -7759,7 +7766,7 @@ save_gprs (rtx base, int offset, int first, int last)
   rtx addr, insn, note;
   int i;
 
-  addr = plus_constant (base, offset);
+  addr = plus_constant (Pmode, base, offset);
   addr = gen_rtx_MEM (Pmode, addr);
 
   set_mem_alias_set (addr, get_frame_alias_set ());
@@ -7826,7 +7833,8 @@ save_gprs (rtx base, int offset, int first, int last)
       if (start > last)
 	return insn;
 
-      addr = plus_constant (base, offset + (start - first) * UNITS_PER_LONG);
+      addr = plus_constant (Pmode, base,
+			    offset + (start - first) * UNITS_PER_LONG);
       note = gen_store_multiple (gen_rtx_MEM (Pmode, addr),
 				 gen_rtx_REG (Pmode, start),
 				 GEN_INT (last - start + 1));
@@ -7855,7 +7863,7 @@ restore_gprs (rtx base, int offset, int first, int last)
 {
   rtx addr, insn;
 
-  addr = plus_constant (base, offset);
+  addr = plus_constant (Pmode, base, offset);
   addr = gen_rtx_MEM (Pmode, addr);
   set_mem_alias_set (addr, get_frame_alias_set ());
 
@@ -7970,7 +7978,7 @@ s390_emit_prologue (void)
      See below for why TPF must use the register 1.  */
 
   if (!has_hard_reg_initial_val (Pmode, RETURN_REGNUM)
-      && !current_function_is_leaf
+      && !crtl->is_leaf
       && !TARGET_TPF_PROFILING)
     temp_reg = gen_rtx_REG (Pmode, RETURN_REGNUM);
   else
@@ -8158,7 +8166,7 @@ s390_emit_prologue (void)
 	{
 	  if (cfun_frame_layout.backchain_offset)
 	    addr = gen_rtx_MEM (Pmode,
-				plus_constant (stack_pointer_rtx,
+				plus_constant (Pmode, stack_pointer_rtx,
 				  cfun_frame_layout.backchain_offset));
 	  else
 	    addr = gen_rtx_MEM (Pmode, stack_pointer_rtx);
@@ -8193,7 +8201,7 @@ s390_emit_prologue (void)
       for (i = 24; i <= next_fpr; i++)
 	if (cfun_fpr_bit_p (i - 16))
 	  {
-	    rtx addr = plus_constant (stack_pointer_rtx,
+	    rtx addr = plus_constant (Pmode, stack_pointer_rtx,
 				      cfun_frame_layout.frame_size
 				      + cfun_frame_layout.f8_offset
 				      + offset);
@@ -8375,7 +8383,7 @@ s390_emit_epilogue (bool sibcall)
 	{
 	  if (global_not_special_regno_p (i))
 	    {
-	      addr = plus_constant (frame_pointer,
+	      addr = plus_constant (Pmode, frame_pointer,
 				    offset + cfun_frame_layout.gprs_offset
 				    + (i - cfun_frame_layout.first_save_gpr_slot)
 				    * UNITS_PER_LONG);
@@ -8403,7 +8411,7 @@ s390_emit_epilogue (bool sibcall)
 		return_regnum = 4;
 	      return_reg = gen_rtx_REG (Pmode, return_regnum);
 
-	      addr = plus_constant (frame_pointer,
+	      addr = plus_constant (Pmode, frame_pointer,
 				    offset + cfun_frame_layout.gprs_offset
 				    + (RETURN_REGNUM
 				       - cfun_frame_layout.first_save_gpr_slot)
@@ -8424,7 +8432,8 @@ s390_emit_epilogue (bool sibcall)
       insn = emit_insn (insn);
       REG_NOTES (insn) = cfa_restores;
       add_reg_note (insn, REG_CFA_DEF_CFA,
-		    plus_constant (stack_pointer_rtx, STACK_POINTER_OFFSET));
+		    plus_constant (Pmode, stack_pointer_rtx,
+				   STACK_POINTER_OFFSET));
       RTX_FRAME_RELATED_P (insn) = 1;
     }
 
@@ -9285,7 +9294,7 @@ s390_function_profiler (FILE *file, int labelno)
 
   op[0] = gen_rtx_REG (Pmode, RETURN_REGNUM);
   op[1] = gen_rtx_REG (Pmode, STACK_POINTER_REGNUM);
-  op[1] = gen_rtx_MEM (Pmode, plus_constant (op[1], UNITS_PER_LONG));
+  op[1] = gen_rtx_MEM (Pmode, plus_constant (Pmode, op[1], UNITS_PER_LONG));
 
   op[2] = gen_rtx_REG (Pmode, 1);
   op[3] = gen_rtx_SYMBOL_REF (Pmode, label);
@@ -10528,7 +10537,7 @@ s390_z10_prevent_earlyload_conflicts (rtx *ready, int *nready_p)
 }
 
 /* This function is called via hook TARGET_SCHED_REORDER before
-   issueing one insn from list READY which contains *NREADYP entries.
+   issuing one insn from list READY which contains *NREADYP entries.
    For target z10 it reorders load instructions to avoid early load
    conflicts in the floating point pipeline  */
 static int

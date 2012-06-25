@@ -2429,18 +2429,20 @@ scan_trace (dw_trace_info *trace)
 
 	      elt = XVECEXP (pat, 0, 1);
 
-	      /* If ELT is an instruction from target of an annulled branch,
-		 the effects are for the target only and so the args_size
-		 and CFA along the current path shouldn't change.  */
 	      if (INSN_FROM_TARGET_P (elt))
 		{
 		  HOST_WIDE_INT restore_args_size;
 		  cfi_vec save_row_reg_save;
 
+		  /* If ELT is an instruction from target of an annulled
+		     branch, the effects are for the target only and so
+		     the args_size and CFA along the current path
+		     shouldn't change.  */
 		  add_cfi_insn = NULL;
 		  restore_args_size = cur_trace->end_true_args_size;
 		  cur_cfa = &cur_row->cfa;
-		  save_row_reg_save = VEC_copy (dw_cfi_ref, gc, cur_row->reg_save);
+		  save_row_reg_save
+		    = VEC_copy (dw_cfi_ref, gc, cur_row->reg_save);
 
 		  scan_insn_after (elt);
 
@@ -2453,8 +2455,20 @@ scan_trace (dw_trace_info *trace)
 		  cur_row->cfa = this_cfa;
 		  cur_row->reg_save = save_row_reg_save;
 		  cur_cfa = &this_cfa;
-		  continue;
 		}
+	      else
+		{
+		  /* If ELT is a annulled branch-taken instruction (i.e.
+		     executed only when branch is not taken), the args_size
+		     and CFA should not change through the jump.  */
+		  create_trace_edges (control);
+
+		  /* Update and continue with the trace.  */
+		  add_cfi_insn = insn;
+		  scan_insn_after (elt);
+		  def_cfa_1 (&this_cfa);
+		}
+	      continue;
 	    }
 
 	  /* The insns in the delay slot should all be considered to happen
@@ -2925,72 +2939,12 @@ execute_dwarf2_frame (void)
 static const char *
 dwarf_cfi_name (unsigned int cfi_opc)
 {
-  switch (cfi_opc)
-    {
-    case DW_CFA_advance_loc:
-      return "DW_CFA_advance_loc";
-    case DW_CFA_offset:
-      return "DW_CFA_offset";
-    case DW_CFA_restore:
-      return "DW_CFA_restore";
-    case DW_CFA_nop:
-      return "DW_CFA_nop";
-    case DW_CFA_set_loc:
-      return "DW_CFA_set_loc";
-    case DW_CFA_advance_loc1:
-      return "DW_CFA_advance_loc1";
-    case DW_CFA_advance_loc2:
-      return "DW_CFA_advance_loc2";
-    case DW_CFA_advance_loc4:
-      return "DW_CFA_advance_loc4";
-    case DW_CFA_offset_extended:
-      return "DW_CFA_offset_extended";
-    case DW_CFA_restore_extended:
-      return "DW_CFA_restore_extended";
-    case DW_CFA_undefined:
-      return "DW_CFA_undefined";
-    case DW_CFA_same_value:
-      return "DW_CFA_same_value";
-    case DW_CFA_register:
-      return "DW_CFA_register";
-    case DW_CFA_remember_state:
-      return "DW_CFA_remember_state";
-    case DW_CFA_restore_state:
-      return "DW_CFA_restore_state";
-    case DW_CFA_def_cfa:
-      return "DW_CFA_def_cfa";
-    case DW_CFA_def_cfa_register:
-      return "DW_CFA_def_cfa_register";
-    case DW_CFA_def_cfa_offset:
-      return "DW_CFA_def_cfa_offset";
+  const char *name = get_DW_CFA_name (cfi_opc);
 
-    /* DWARF 3 */
-    case DW_CFA_def_cfa_expression:
-      return "DW_CFA_def_cfa_expression";
-    case DW_CFA_expression:
-      return "DW_CFA_expression";
-    case DW_CFA_offset_extended_sf:
-      return "DW_CFA_offset_extended_sf";
-    case DW_CFA_def_cfa_sf:
-      return "DW_CFA_def_cfa_sf";
-    case DW_CFA_def_cfa_offset_sf:
-      return "DW_CFA_def_cfa_offset_sf";
+  if (name != NULL)
+    return name;
 
-    /* SGI/MIPS specific */
-    case DW_CFA_MIPS_advance_loc8:
-      return "DW_CFA_MIPS_advance_loc8";
-
-    /* GNU extensions */
-    case DW_CFA_GNU_window_save:
-      return "DW_CFA_GNU_window_save";
-    case DW_CFA_GNU_args_size:
-      return "DW_CFA_GNU_args_size";
-    case DW_CFA_GNU_negative_offset_extended:
-      return "DW_CFA_GNU_negative_offset_extended";
-
-    default:
-      return "DW_CFA_<unknown>";
-    }
+  return "DW_CFA_<unknown>";
 }
 
 /* This routine will generate the correct assembly data for a location

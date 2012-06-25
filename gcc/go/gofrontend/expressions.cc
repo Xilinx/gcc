@@ -6,6 +6,8 @@
 
 #include "go-system.h"
 
+#include <algorithm>
+
 #include <gmp.h>
 
 #ifndef ENABLE_BUILD_WITH_CXX
@@ -166,7 +168,8 @@ Expression::convert_for_assignment(Translate_context* context, Type* lhs_type,
   if (lhs_type_tree == error_mark_node)
     return error_mark_node;
 
-  if (lhs_type != rhs_type && lhs_type->interface_type() != NULL)
+  if (lhs_type->forwarded() != rhs_type->forwarded()
+      && lhs_type->interface_type() != NULL)
     {
       if (rhs_type->interface_type() == NULL)
 	return Expression::convert_type_to_interface(context, lhs_type,
@@ -177,7 +180,8 @@ Expression::convert_for_assignment(Translate_context* context, Type* lhs_type,
 							  rhs_type, rhs_tree,
 							  false, location);
     }
-  else if (lhs_type != rhs_type && rhs_type->interface_type() != NULL)
+  else if (lhs_type->forwarded() != rhs_type->forwarded()
+	   && rhs_type->interface_type() != NULL)
     return Expression::convert_interface_to_type(context, lhs_type, rhs_type,
 						 rhs_tree, location);
   else if (lhs_type->is_slice_type() && rhs_type->is_nil_type())
@@ -1310,30 +1314,18 @@ Func_expression::do_get_tree(Translate_context* context)
 	     && TREE_CODE(TREE_OPERAND(fnaddr, 0)) == FUNCTION_DECL);
   TREE_ADDRESSABLE(TREE_OPERAND(fnaddr, 0)) = 1;
 
-  // For a normal non-nested function call, that is all we have to do.
-  if (!this->function_->is_function()
-      || this->function_->func_value()->enclosing() == NULL)
-    {
-      go_assert(this->closure_ == NULL);
-      return fnaddr;
-    }
+  // If there is no closure, that is all have to do.
+  if (this->closure_ == NULL)
+    return fnaddr;
 
-  // For a nested function call, we have to always allocate a
-  // trampoline.  If we don't always allocate, then closures will not
-  // be reliably distinct.
-  Expression* closure = this->closure_;
-  tree closure_tree;
-  if (closure == NULL)
-    closure_tree = null_pointer_node;
-  else
-    {
-      // Get the value of the closure.  This will be a pointer to
-      // space allocated on the heap.
-      closure_tree = closure->get_tree(context);
-      if (closure_tree == error_mark_node)
-	return error_mark_node;
-      go_assert(POINTER_TYPE_P(TREE_TYPE(closure_tree)));
-    }
+  go_assert(this->function_->func_value()->enclosing() != NULL);
+
+  // Get the value of the closure.  This will be a pointer to space
+  // allocated on the heap.
+  tree closure_tree = this->closure_->get_tree(context);
+  if (closure_tree == error_mark_node)
+    return error_mark_node;
+  go_assert(POINTER_TYPE_P(TREE_TYPE(closure_tree)));
 
   // Now we need to build some code on the heap.  This code will load
   // the static chain pointer with the closure and then jump to the
@@ -3604,8 +3596,7 @@ Unary_expression::do_lower(Gogo*, Named_object*, Statement_inserter*, int)
       return Expression::make_error(this->location());
     }
 
-  if (op == OPERATOR_PLUS || op == OPERATOR_MINUS
-      || op == OPERATOR_NOT || op == OPERATOR_XOR)
+  if (op == OPERATOR_PLUS || op == OPERATOR_MINUS || op == OPERATOR_XOR)
     {
       Numeric_constant nc;
       if (expr->numeric_constant_value(&nc))
@@ -3695,10 +3686,10 @@ Unary_expression::eval_constant(Operator op, const Numeric_constant* unc,
       else
 	go_unreachable();
 
-    case OPERATOR_NOT:
     case OPERATOR_XOR:
       break;
 
+    case OPERATOR_NOT:
     case OPERATOR_AND:
     case OPERATOR_MULT:
       return false;
@@ -3711,7 +3702,10 @@ Unary_expression::eval_constant(Operator op, const Numeric_constant* unc,
     return false;
 
   mpz_t uval;
-  unc->get_int(&uval);
+  if (unc->is_rune())
+    unc->get_rune(&uval);
+  else
+    unc->get_int(&uval);
   mpz_t val;
   mpz_init(val);
 
@@ -3909,6 +3903,10 @@ Unary_expression::do_check_types(Gogo*)
       break;
 
     case OPERATOR_NOT:
+      if (!type->is_boolean_type())
+	this->report_error(_("expected boolean type"));
+      break;
+
     case OPERATOR_XOR:
       if (type->integer_type() == NULL
 	  && !type->is_boolean_type())
@@ -4036,19 +4034,50 @@ Unary_expression::do_get_tree(Translate_context* context)
 
       if (this->create_temp_
 	  && !TREE_ADDRESSABLE(TREE_TYPE(expr))
-	  && !DECL_P(expr)
+	  && (TREE_CODE(expr) == CONST_DECL || !DECL_P(expr))
 	  && TREE_CODE(expr) != INDIRECT_REF
 	  && TREE_CODE(expr) != COMPONENT_REF)
 	{
-	  tree tmp = create_tmp_var(TREE_TYPE(expr), get_name(expr));
-	  DECL_IGNORED_P(tmp) = 1;
-	  DECL_INITIAL(tmp) = expr;
-	  TREE_ADDRESSABLE(tmp) = 1;
-	  return build2_loc(loc.gcc_location(), COMPOUND_EXPR,
-			    build_pointer_type(TREE_TYPE(expr)),
-			    build1_loc(loc.gcc_location(), DECL_EXPR,
-                                       void_type_node, tmp),
-			    build_fold_addr_expr_loc(loc.gcc_location(), tmp));
+	  if (current_function_decl != NULL)
+	    {
+	      tree tmp = create_tmp_var(TREE_TYPE(expr), get_name(expr));
+	      DECL_IGNORED_P(tmp) = 1;
+	      DECL_INITIAL(tmp) = expr;
+	      TREE_ADDRESSABLE(tmp) = 1;
+	      return build2_loc(loc.gcc_location(), COMPOUND_EXPR,
+				build_pointer_type(TREE_TYPE(expr)),
+				build1_loc(loc.gcc_location(), DECL_EXPR,
+					   void_type_node, tmp),
+				build_fold_addr_expr_loc(loc.gcc_location(),
+							 tmp));
+	    }
+	  else
+	    {
+	      tree tmp = build_decl(loc.gcc_location(), VAR_DECL,
+				    create_tmp_var_name("A"), TREE_TYPE(expr));
+	      DECL_EXTERNAL(tmp) = 0;
+	      TREE_PUBLIC(tmp) = 0;
+	      TREE_STATIC(tmp) = 1;
+	      DECL_ARTIFICIAL(tmp) = 1;
+	      TREE_ADDRESSABLE(tmp) = 1;
+	      tree make_tmp;
+	      if (!TREE_CONSTANT(expr))
+		make_tmp = fold_build2_loc(loc.gcc_location(), INIT_EXPR,
+					   void_type_node, tmp, expr);
+	      else
+		{
+		  TREE_READONLY(tmp) = 1;
+		  TREE_CONSTANT(tmp) = 1;
+		  DECL_INITIAL(tmp) = expr;
+		  make_tmp = NULL_TREE;
+		}
+	      rest_of_decl_compilation(tmp, 1, 0);
+	      tree addr = build_fold_addr_expr_loc(loc.gcc_location(), tmp);
+	      if (make_tmp == NULL_TREE)
+		return addr;
+	      return build2_loc(loc.gcc_location(), COMPOUND_EXPR,
+				TREE_TYPE(addr), make_tmp, addr);
+	    }
 	}
 
       return build_fold_addr_expr_loc(loc.gcc_location(), expr);
@@ -4448,9 +4477,8 @@ Binary_expression::eval_constant(Operator op, Numeric_constant* left_nc,
     case OPERATOR_LE:
     case OPERATOR_GT:
     case OPERATOR_GE:
-      // These return boolean values and as such must be handled
-      // elsewhere.
-      go_unreachable();
+      // These return boolean values, not numeric.
+      return false;
     default:
       break;
     }
@@ -5277,24 +5305,13 @@ Binary_expression::operand_address(Statement_inserter* inserter,
 bool
 Binary_expression::do_numeric_constant_value(Numeric_constant* nc) const
 {
-  Operator op = this->op_;
-
-  if (op == OPERATOR_EQEQ
-      || op == OPERATOR_NOTEQ
-      || op == OPERATOR_LT
-      || op == OPERATOR_LE
-      || op == OPERATOR_GT
-      || op == OPERATOR_GE)
-    return false;
-
   Numeric_constant left_nc;
   if (!this->left_->numeric_constant_value(&left_nc))
     return false;
   Numeric_constant right_nc;
   if (!this->right_->numeric_constant_value(&right_nc))
     return false;
-
-  return Binary_expression::eval_constant(op, &left_nc, &right_nc,
+  return Binary_expression::eval_constant(this->op_, &left_nc, &right_nc,
 					  this->location(), nc);
 }
 
@@ -6186,7 +6203,9 @@ Expression::comparison_tree(Translate_context* context, Operator op,
 	  make_tmp = NULL_TREE;
 	  arg = right_tree;
 	}
-      else if (TREE_ADDRESSABLE(TREE_TYPE(right_tree)) || DECL_P(right_tree))
+      else if (TREE_ADDRESSABLE(TREE_TYPE(right_tree))
+	       || (TREE_CODE(right_tree) != CONST_DECL
+		   && DECL_P(right_tree)))
 	{
 	  make_tmp = NULL_TREE;
 	  arg = build_fold_addr_expr_loc(location.gcc_location(), right_tree);
@@ -8641,7 +8660,14 @@ Call_expression::lower_varargs(Gogo* gogo, Named_object* function,
 	new_args->push_back(*pa);
       else if (this->is_varargs_)
 	{
-	  this->report_error(_("too many arguments"));
+	  if ((*pa)->type()->is_slice_type())
+	    this->report_error(_("too many arguments"));
+	  else
+	    {
+	      error_at(this->location(),
+		       _("invalid use of %<...%> with non-slice"));
+	      this->set_is_error();
+	    }
 	  return;
 	}
       else
@@ -8886,6 +8912,9 @@ Call_expression::check_argument_type(int i, const Type* parameter_type,
 void
 Call_expression::do_check_types(Gogo*)
 {
+  if (this->classification() == EXPRESSION_ERROR)
+    return;
+
   Function_type* fntype = this->get_function_type();
   if (fntype == NULL)
     {
@@ -8921,7 +8950,17 @@ Call_expression::do_check_types(Gogo*)
     }
 
   // Note that varargs was handled by the lower_varargs() method, so
-  // we don't have to worry about it here.
+  // we don't have to worry about it here unless something is wrong.
+  if (this->is_varargs_ && !this->varargs_are_lowered_)
+    {
+      if (!fntype->is_varargs())
+	{
+	  error_at(this->location(),
+		   _("invalid use of %<...%> calling non-variadic function"));
+	  this->set_is_error();
+	  return;
+	}
+    }
 
   const Typed_identifier_list* parameters = fntype->parameters();
   if (this->args_ == NULL)
@@ -9203,7 +9242,7 @@ Call_expression::set_results(Translate_context* context, tree call_tree)
       ref->set_is_lvalue();
       tree temp_tree = ref->get_tree(context);
       if (temp_tree == error_mark_node)
-	continue;
+	return error_mark_node;
 
       tree val_tree = build3_loc(loc.gcc_location(), COMPONENT_REF,
                                  TREE_TYPE(field), call_tree, field, NULL_TREE);
@@ -11372,11 +11411,12 @@ class Array_construction_expression : public Expression
 {
  protected:
   Array_construction_expression(Expression_classification classification,
-				Type* type, Expression_list* vals,
-				Location location)
+				Type* type,
+				const std::vector<unsigned long>* indexes,
+				Expression_list* vals, Location location)
     : Expression(classification, location),
-      type_(type), vals_(vals)
-  { }
+      type_(type), indexes_(indexes), vals_(vals)
+  { go_assert(indexes == NULL || indexes->size() == vals->size()); }
 
  public:
   // Return whether this is a constant initializer.
@@ -11405,6 +11445,11 @@ protected:
   void
   do_export(Export*) const;
 
+  // The indexes.
+  const std::vector<unsigned long>*
+  indexes()
+  { return this->indexes_; }
+
   // The list of values.
   Expression_list*
   vals()
@@ -11420,7 +11465,10 @@ protected:
  private:
   // The type of the array to construct.
   Type* type_;
-  // The list of values.
+  // The list of indexes into the array, one for each value.  This may
+  // be NULL, in which case the indexes start at zero and increment.
+  const std::vector<unsigned long>* indexes_;
+  // The list of values.  This may be NULL if there are no values.
   Expression_list* vals_;
 };
 
@@ -11503,18 +11551,6 @@ Array_construction_expression::do_check_types(Gogo*)
 	  this->set_is_error();
 	}
     }
-
-  Expression* length = at->length();
-  Numeric_constant nc;
-  unsigned long val;
-  if (length != NULL
-      && !length->is_error_expression()
-      && length->numeric_constant_value(&nc)
-      && nc.to_unsigned_long(&val) == Numeric_constant::NC_UL_VALID)
-    {
-      if (this->vals_->size() > val)
-	this->report_error(_("too many elements in composite literal"));
-    }
 }
 
 // Get a constructor tree for the array values.
@@ -11532,12 +11568,22 @@ Array_construction_expression::get_constructor_tree(Translate_context* context,
   if (this->vals_ != NULL)
     {
       size_t i = 0;
+      std::vector<unsigned long>::const_iterator pi;
+      if (this->indexes_ != NULL)
+	pi = this->indexes_->begin();
       for (Expression_list::const_iterator pv = this->vals_->begin();
 	   pv != this->vals_->end();
 	   ++pv, ++i)
 	{
+	  if (this->indexes_ != NULL)
+	    go_assert(pi != this->indexes_->end());
 	  constructor_elt* elt = VEC_quick_push(constructor_elt, values, NULL);
-	  elt->index = size_int(i);
+
+	  if (this->indexes_ == NULL)
+	    elt->index = size_int(i);
+	  else
+	    elt->index = size_int(*pi);
+
 	  if (*pv == NULL)
 	    {
 	      Gogo* gogo = context->gogo();
@@ -11558,7 +11604,11 @@ Array_construction_expression::get_constructor_tree(Translate_context* context,
 	    return error_mark_node;
 	  if (!TREE_CONSTANT(elt->value))
 	    is_constant = false;
+	  if (this->indexes_ != NULL)
+	    ++pi;
 	}
+      if (this->indexes_ != NULL)
+	go_assert(pi == this->indexes_->end());
     }
 
   tree ret = build_constructor(type_tree, values);
@@ -11576,13 +11626,28 @@ Array_construction_expression::do_export(Export* exp) const
   exp->write_type(this->type_);
   if (this->vals_ != NULL)
     {
+      std::vector<unsigned long>::const_iterator pi;
+      if (this->indexes_ != NULL)
+	pi = this->indexes_->begin();
       for (Expression_list::const_iterator pv = this->vals_->begin();
 	   pv != this->vals_->end();
 	   ++pv)
 	{
 	  exp->write_c_string(", ");
+
+	  if (this->indexes_ != NULL)
+	    {
+	      char buf[100];
+	      snprintf(buf, sizeof buf, "%lu", *pi);
+	      exp->write_c_string(buf);
+	      exp->write_c_string(":");
+	    }
+
 	  if (*pv != NULL)
 	    (*pv)->export_expression(exp);
+
+	  if (this->indexes_ != NULL)
+	    ++pi;
 	}
     }
   exp->write_c_string(")");
@@ -11594,8 +11659,7 @@ void
 Array_construction_expression::do_dump_expression(
     Ast_dump_context* ast_dump_context) const
 {
-  Expression* length = this->type_->array_type() != NULL ?
-			 this->type_->array_type()->length() : NULL;
+  Expression* length = this->type_->array_type()->length();
 
   ast_dump_context->ostream() << "[" ;
   if (length != NULL)
@@ -11605,7 +11669,22 @@ Array_construction_expression::do_dump_expression(
   ast_dump_context->ostream() << "]" ;
   ast_dump_context->dump_type(this->type_);
   ast_dump_context->ostream() << "{" ;
-  ast_dump_context->dump_expression_list(this->vals_);
+  if (this->indexes_ == NULL)
+    ast_dump_context->dump_expression_list(this->vals_);
+  else
+    {
+      Expression_list::const_iterator pv = this->vals_->begin();
+      for (std::vector<unsigned long>::const_iterator pi =
+	     this->indexes_->begin();
+	   pi != this->indexes_->end();
+	   ++pi, ++pv)
+	{
+	  if (pi != this->indexes_->begin())
+	    ast_dump_context->ostream() << ", ";
+	  ast_dump_context->ostream() << *pi << ':';
+	  ast_dump_context->dump_expression(*pv);
+	}
+    }
   ast_dump_context->ostream() << "}" ;
 
 }
@@ -11616,20 +11695,19 @@ class Fixed_array_construction_expression :
   public Array_construction_expression
 {
  public:
-  Fixed_array_construction_expression(Type* type, Expression_list* vals,
-				      Location location)
+  Fixed_array_construction_expression(Type* type,
+				      const std::vector<unsigned long>* indexes,
+				      Expression_list* vals, Location location)
     : Array_construction_expression(EXPRESSION_FIXED_ARRAY_CONSTRUCTION,
-				    type, vals, location)
-  {
-    go_assert(type->array_type() != NULL
-	       && type->array_type()->length() != NULL);
-  }
+				    type, indexes, vals, location)
+  { go_assert(type->array_type() != NULL && !type->is_slice_type()); }
 
  protected:
   Expression*
   do_copy()
   {
     return new Fixed_array_construction_expression(this->type(),
+						   this->indexes(),
 						   (this->vals() == NULL
 						    ? NULL
 						    : this->vals()->copy()),
@@ -11638,9 +11716,6 @@ class Fixed_array_construction_expression :
 
   tree
   do_get_tree(Translate_context*);
-
-  void
-  do_dump_expression(Ast_dump_context*);
 };
 
 // Return a tree for constructing a fixed array.
@@ -11653,35 +11728,17 @@ Fixed_array_construction_expression::do_get_tree(Translate_context* context)
   return this->get_constructor_tree(context, type_to_tree(btype));
 }
 
-// Dump ast representation of an array construction expressin.
-
-void
-Fixed_array_construction_expression::do_dump_expression(
-    Ast_dump_context* ast_dump_context)
-{
-
-  ast_dump_context->ostream() << "[";
-  ast_dump_context->dump_expression (this->type()->array_type()->length());
-  ast_dump_context->ostream() << "]";
-  ast_dump_context->dump_type(this->type());
-  ast_dump_context->ostream() << "{";
-  ast_dump_context->dump_expression_list(this->vals());
-  ast_dump_context->ostream() << "}";
-
-}
 // Construct an open array.
 
 class Open_array_construction_expression : public Array_construction_expression
 {
  public:
-  Open_array_construction_expression(Type* type, Expression_list* vals,
-				     Location location)
+  Open_array_construction_expression(Type* type,
+				     const std::vector<unsigned long>* indexes,
+				     Expression_list* vals, Location location)
     : Array_construction_expression(EXPRESSION_OPEN_ARRAY_CONSTRUCTION,
-				    type, vals, location)
-  {
-    go_assert(type->array_type() != NULL
-	       && type->array_type()->length() == NULL);
-  }
+				    type, indexes, vals, location)
+  { go_assert(type->is_slice_type()); }
 
  protected:
   // Note that taking the address of an open array literal is invalid.
@@ -11690,6 +11747,7 @@ class Open_array_construction_expression : public Array_construction_expression
   do_copy()
   {
     return new Open_array_construction_expression(this->type(),
+						  this->indexes(),
 						  (this->vals() == NULL
 						   ? NULL
 						   : this->vals()->copy()),
@@ -11741,13 +11799,18 @@ Open_array_construction_expression::do_get_tree(Translate_context* context)
     }
   else
     {
-      tree max = size_int(this->vals()->size() - 1);
+      unsigned long max_index;
+      if (this->indexes() == NULL)
+	max_index = this->vals()->size() - 1;
+      else
+	max_index = this->indexes()->back();
+      tree max_tree = size_int(max_index);
       tree constructor_type = build_array_type(element_type_tree,
-					       build_index_type(max));
+					       build_index_type(max_tree));
       if (constructor_type == error_mark_node)
 	return error_mark_node;
       values = this->get_constructor_tree(context, constructor_type);
-      length_tree = size_int(this->vals()->size());
+      length_tree = size_int(max_index + 1);
     }
 
   if (values == error_mark_node)
@@ -11855,7 +11918,7 @@ Expression::make_slice_composite_literal(Type* type, Expression_list* vals,
 					 Location location)
 {
   go_assert(type->is_slice_type());
-  return new Open_array_construction_expression(type, vals, location);
+  return new Open_array_construction_expression(type, NULL, vals, location);
 }
 
 // Construct a map.
@@ -12209,7 +12272,7 @@ class Composite_literal_expression : public Parser_expression
   lower_array(Type*);
 
   Expression*
-  make_array(Type*, Expression_list*);
+  make_array(Type*, const std::vector<unsigned long>*, Expression_list*);
 
   Expression*
   lower_map(Gogo*, Named_object*, Statement_inserter*, Type*);
@@ -12491,6 +12554,17 @@ Composite_literal_expression::lower_struct(Gogo* gogo, Type* type)
   return ret;
 }
 
+// Used to sort an index/value array.
+
+class Index_value_compare
+{
+ public:
+  bool
+  operator()(const std::pair<unsigned long, Expression*>& a,
+	     const std::pair<unsigned long, Expression*>& b)
+  { return a.first < b.first; }
+};
+
 // Lower an array composite literal.
 
 Expression*
@@ -12498,10 +12572,13 @@ Composite_literal_expression::lower_array(Type* type)
 {
   Location location = this->location();
   if (this->vals_ == NULL || !this->has_keys_)
-    return this->make_array(type, this->vals_);
+    return this->make_array(type, NULL, this->vals_);
 
-  std::vector<Expression*> vals;
-  vals.reserve(this->vals_->size());
+  std::vector<unsigned long>* indexes = new std::vector<unsigned long>;
+  indexes->reserve(this->vals_->size());
+  bool indexes_out_of_order = false;
+  Expression_list* vals = new Expression_list();
+  vals->reserve(this->vals_->size());
   unsigned long index = 0;
   Expression_list::const_iterator p = this->vals_->begin();
   while (p != this->vals_->end())
@@ -12514,8 +12591,19 @@ Composite_literal_expression::lower_array(Type* type)
 
       ++p;
 
-      if (index_expr != NULL)
+      if (index_expr == NULL)
 	{
+	  if (!indexes->empty())
+	    indexes->push_back(index);
+	}
+      else
+	{
+	  if (indexes->empty() && !vals->empty())
+	    {
+	      for (size_t i = 0; i < vals->size(); ++i)
+		indexes->push_back(i);
+	    }
+
 	  Numeric_constant nc;
 	  if (!index_expr->numeric_constant_value(&nc))
 	    {
@@ -12551,59 +12639,93 @@ Composite_literal_expression::lower_array(Type* type)
 	      return Expression::make_error(location);
 	    }
 
-	  // FIXME: Our representation isn't very good; this avoids
-	  // thrashing.
-	  if (index > 0x1000000)
+	  if (std::find(indexes->begin(), indexes->end(), index)
+	      != indexes->end())
 	    {
-	      error_at(index_expr->location(), "index too large for compiler");
-	      return Expression::make_error(location);
-	    }
-	}
-
-      if (index == vals.size())
-	vals.push_back(val);
-      else
-	{
-	  if (index > vals.size())
-	    {
-	      vals.reserve(index + 32);
-	      vals.resize(index + 1, static_cast<Expression*>(NULL));
-	    }
-	  if (vals[index] != NULL)
-	    {
-	      error_at((index_expr != NULL
-			? index_expr->location()
-			: val->location()),
-		       "duplicate value for index %lu",
+	      error_at(index_expr->location(), "duplicate value for index %lu",
 		       index);
 	      return Expression::make_error(location);
 	    }
-	  vals[index] = val;
+
+	  if (!indexes->empty() && index < indexes->back())
+	    indexes_out_of_order = true;
+
+	  indexes->push_back(index);
 	}
+
+      vals->push_back(val);
 
       ++index;
     }
 
-  size_t size = vals.size();
-  Expression_list* list = new Expression_list;
-  list->reserve(size);
-  for (size_t i = 0; i < size; ++i)
-    list->push_back(vals[i]);
+  if (indexes->empty())
+    {
+      delete indexes;
+      indexes = NULL;
+    }
 
-  return this->make_array(type, list);
+  if (indexes_out_of_order)
+    {
+      typedef std::vector<std::pair<unsigned long, Expression*> > V;
+
+      V v;
+      v.reserve(indexes->size());
+      std::vector<unsigned long>::const_iterator pi = indexes->begin();
+      for (Expression_list::const_iterator pe = vals->begin();
+	   pe != vals->end();
+	   ++pe, ++pi)
+	v.push_back(std::make_pair(*pi, *pe));
+
+      std::sort(v.begin(), v.end(), Index_value_compare());
+
+      delete indexes;
+      delete vals;
+      indexes = new std::vector<unsigned long>();
+      indexes->reserve(v.size());
+      vals = new Expression_list();
+      vals->reserve(v.size());
+
+      for (V::const_iterator p = v.begin(); p != v.end(); ++p)
+	{
+	  indexes->push_back(p->first);
+	  vals->push_back(p->second);
+	}
+    }
+
+  return this->make_array(type, indexes, vals);
 }
 
 // Actually build the array composite literal. This handles
 // [...]{...}.
 
 Expression*
-Composite_literal_expression::make_array(Type* type, Expression_list* vals)
+Composite_literal_expression::make_array(
+    Type* type,
+    const std::vector<unsigned long>* indexes,
+    Expression_list* vals)
 {
   Location location = this->location();
   Array_type* at = type->array_type();
+
   if (at->length() != NULL && at->length()->is_nil_expression())
     {
-      size_t size = vals == NULL ? 0 : vals->size();
+      size_t size;
+      if (vals == NULL)
+	size = 0;
+      else if (indexes != NULL)
+	size = indexes->back() + 1;
+      else
+	{
+	  size = vals->size();
+	  Integer_type* it = Type::lookup_integer_type("int")->integer_type();
+	  if (sizeof(size) <= static_cast<size_t>(it->bits() * 8)
+	      && size >> (it->bits() - 1) != 0)
+	    {
+	      error_at(location, "too many elements in composite literal");
+	      return Expression::make_error(location);
+	    }
+	}
+
       mpz_t vlen;
       mpz_init_set_ui(vlen, size);
       Expression* elen = Expression::make_integer(&vlen, NULL, location);
@@ -12611,10 +12733,43 @@ Composite_literal_expression::make_array(Type* type, Expression_list* vals)
       at = Type::make_array_type(at->element_type(), elen);
       type = at;
     }
+  else if (at->length() != NULL
+	   && !at->length()->is_error_expression()
+	   && this->vals_ != NULL)
+    {
+      Numeric_constant nc;
+      unsigned long val;
+      if (at->length()->numeric_constant_value(&nc)
+	  && nc.to_unsigned_long(&val) == Numeric_constant::NC_UL_VALID)
+	{
+	  if (indexes == NULL)
+	    {
+	      if (this->vals_->size() > val)
+		{
+		  error_at(location, "too many elements in composite literal");
+		  return Expression::make_error(location);
+		}
+	    }
+	  else
+	    {
+	      unsigned long max = indexes->back();
+	      if (max >= val)
+		{
+		  error_at(location,
+			   ("some element keys in composite literal "
+			    "are out of range"));
+		  return Expression::make_error(location);
+		}
+	    }
+	}
+    }
+
   if (at->length() != NULL)
-    return new Fixed_array_construction_expression(type, vals, location);
+    return new Fixed_array_construction_expression(type, indexes, vals,
+						   location);
   else
-    return new Open_array_construction_expression(type, vals, location);
+    return new Open_array_construction_expression(type, indexes, vals,
+						  location);
 }
 
 // Lower a map composite literal.
@@ -13620,7 +13775,13 @@ Numeric_constant::set_float(Type* type, const mpfr_t val)
   this->clear();
   this->classification_ = NC_FLOAT;
   this->type_ = type;
-  mpfr_init_set(this->u_.float_val, val, GMP_RNDN);
+  // Numeric constants do not have negative zero values, so remove
+  // them here.  They also don't have infinity or NaN values, but we
+  // should never see them here.
+  if (mpfr_zero_p(val))
+    mpfr_init_set_ui(this->u_.float_val, 0, GMP_RNDN);
+  else
+    mpfr_init_set(this->u_.float_val, val, GMP_RNDN);
 }
 
 // Set to a complex value.

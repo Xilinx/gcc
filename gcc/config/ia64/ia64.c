@@ -47,10 +47,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "target.h"
 #include "target-def.h"
+#include "common/common-target.h"
 #include "tm_p.h"
 #include "hashtab.h"
 #include "langhooks.h"
-#include "cfglayout.h"
 #include "gimple.h"
 #include "intl.h"
 #include "df.h"
@@ -272,6 +272,7 @@ static int get_template (state_t, int);
 
 static rtx get_next_important_insn (rtx, rtx);
 static bool important_for_bundling_p (rtx);
+static bool unknown_for_bundling_p (rtx);
 static void bundling (FILE *, int, rtx, rtx);
 
 static void ia64_output_mi_thunk (FILE *, tree, HOST_WIDE_INT,
@@ -1104,7 +1105,7 @@ ia64_expand_load_address (rtx dest, rtx src)
 	  if (lo != 0)
 	    {
 	      addend = lo;
-	      src = plus_constant (XEXP (XEXP (src, 0), 0), hi);
+	      src = plus_constant (Pmode, XEXP (XEXP (src, 0), 0), hi);
 	    }
 	}
 
@@ -1213,7 +1214,7 @@ ia64_expand_tls_address (enum tls_model tls_kind, rtx op0, rtx op1,
       addend_lo = ((addend & 0x3fff) ^ 0x2000) - 0x2000;
       addend_hi = addend - addend_lo;
 
-      op1 = plus_constant (op1, addend_hi);
+      op1 = plus_constant (Pmode, op1, addend_hi);
       addend = addend_lo;
 
       tmp = gen_reg_rtx (Pmode);
@@ -1290,7 +1291,7 @@ ia64_expand_move (rtx op0, rtx op1)
 
 	  if (addend_lo != 0)
 	    {
-	      op1 = plus_constant (sym, addend_hi);
+	      op1 = plus_constant (mode, sym, addend_hi);
 	      addend = addend_lo;
 	    }
 	  else
@@ -1441,7 +1442,8 @@ ia64_split_tmode (rtx out[2], rtx in, bool reversed, bool dead)
 	      (in, DImode, gen_rtx_POST_INC (Pmode, base), 0);
 	    out[1] = adjust_automodify_address
 	      (in, DImode,
-	       gen_rtx_POST_MODIFY (Pmode, base, plus_constant (base, -24)),
+	       gen_rtx_POST_MODIFY (Pmode, base,
+				    plus_constant (Pmode, base, -24)),
 	       8);
 	    break;
 
@@ -1582,13 +1584,13 @@ spill_xfmode_rfmode_operand (rtx in, int force, enum machine_mode mode)
       && GET_MODE (SUBREG_REG (in)) == TImode
       && GET_CODE (SUBREG_REG (in)) == REG)
     {
-      rtx memt = assign_stack_temp (TImode, 16, 0);
+      rtx memt = assign_stack_temp (TImode, 16);
       emit_move_insn (memt, SUBREG_REG (in));
       return adjust_address (memt, mode, 0);
     }
   else if (force && GET_CODE (in) == REG)
     {
-      rtx memx = assign_stack_temp (mode, 16, 0);
+      rtx memx = assign_stack_temp (mode, 16);
       emit_move_insn (memx, in);
       return memx;
     }
@@ -1713,7 +1715,7 @@ ia64_expand_movxf_movrf (enum machine_mode mode, rtx operands[])
 	    memt = adjust_address (in, TImode, 0);
 	  else
 	    {
-	      memt = assign_stack_temp (TImode, 16, 0);
+	      memt = assign_stack_temp (TImode, 16);
 	      memx = adjust_address (memt, mode, 0);
 	      emit_move_insn (memx, in);
 	    }
@@ -2545,7 +2547,7 @@ find_gr_spill (enum ia64_frame_regs r, int try_locals)
       if (regno >= LOC_REG (0) && regno < LOC_REG (80 - frame_pointer_needed)
 	  && current_frame_info.n_local_regs < regno - LOC_REG (0) + 1)
         current_frame_info.n_local_regs = regno - LOC_REG (0) + 1;
-      else if (current_function_is_leaf 
+      else if (crtl->is_leaf
                && regno >= GR_REG (1) && regno <= GR_REG (31))
         current_frame_info.gr_used_mask |= 1 << regno;
 
@@ -2554,7 +2556,7 @@ find_gr_spill (enum ia64_frame_regs r, int try_locals)
 
   /* If this is a leaf function, first try an otherwise unused
      call-clobbered register.  */
-  if (current_function_is_leaf)
+  if (crtl->is_leaf)
     {
       for (regno = GR_REG (1); regno <= GR_REG (31); regno++)
 	if (! df_regs_ever_live_p (regno)
@@ -2671,6 +2673,10 @@ ia64_compute_frame_size (HOST_WIDE_INT size)
   if (cfun->machine->ia64_eh_epilogue_bsp)
     mark_reg_gr_used_mask (cfun->machine->ia64_eh_epilogue_bsp, NULL);
 
+  /* Static stack checking uses r2 and r3.  */
+  if (flag_stack_check == STATIC_BUILTIN_STACK_CHECK)
+    current_frame_info.gr_used_mask |= 0xc;
+
   /* Find the size of the register stack frame.  We have only 80 local
      registers, because we reserve 8 for the inputs and 8 for the
      outputs.  */
@@ -2764,7 +2770,7 @@ ia64_compute_frame_size (HOST_WIDE_INT size)
 	}
     }
 
-  if (! current_function_is_leaf)
+  if (! crtl->is_leaf)
     {
       /* Emit a save of BR0 if we call other functions.  Do this even
 	 if this function doesn't return, as EH depends on this to be
@@ -2916,7 +2922,7 @@ ia64_compute_frame_size (HOST_WIDE_INT size)
   /* We always use the 16-byte scratch area provided by the caller, but
      if we are a leaf function, there's no one to which we need to provide
      a scratch area.  */
-  if (current_function_is_leaf)
+  if (crtl->is_leaf)
     total_size = MAX (0, total_size - 16);
 
   current_frame_info.total_size = total_size;
@@ -2933,7 +2939,7 @@ ia64_compute_frame_size (HOST_WIDE_INT size)
 bool
 ia64_can_eliminate (const int from ATTRIBUTE_UNUSED, const int to)
 {
-  return (to == BR_REG (0) ? current_function_is_leaf : true);
+  return (to == BR_REG (0) ? crtl->is_leaf : true);
 }
 
 /* Compute the initial difference between the specified pair of registers.  */
@@ -2950,7 +2956,7 @@ ia64_initial_elimination_offset (int from, int to)
       switch (to)
 	{
 	case HARD_FRAME_POINTER_REGNUM:
-	  if (current_function_is_leaf)
+	  if (crtl->is_leaf)
 	    offset = -current_frame_info.total_size;
 	  else
 	    offset = -(current_frame_info.total_size
@@ -2958,7 +2964,7 @@ ia64_initial_elimination_offset (int from, int to)
 	  break;
 
 	case STACK_POINTER_REGNUM:
-	  if (current_function_is_leaf)
+	  if (crtl->is_leaf)
 	    offset = 0;
 	  else
 	    offset = 16 + crtl->outgoing_args_size;
@@ -3190,7 +3196,8 @@ do_spill (rtx (*move_fn) (rtx, rtx, rtx), rtx reg, HOST_WIDE_INT cfa_off,
       add_reg_note (insn, REG_CFA_OFFSET,
 		    gen_rtx_SET (VOIDmode,
 				 gen_rtx_MEM (GET_MODE (reg),
-					      plus_constant (base, off)),
+					      plus_constant (Pmode,
+							     base, off)),
 				 frame_reg));
     }
 }
@@ -3228,6 +3235,214 @@ gen_fr_restore_x (rtx dest, rtx src, rtx offset ATTRIBUTE_UNUSED)
   return gen_fr_restore (dest, src);
 }
 
+#define PROBE_INTERVAL (1 << STACK_CHECK_PROBE_INTERVAL_EXP)
+
+/* See Table 6.2 of the IA-64 Software Developer Manual, Volume 2.  */
+#define BACKING_STORE_SIZE(N) ((N) > 0 ? ((N) + (N)/63 + 1) * 8 : 0)
+
+/* Emit code to probe a range of stack addresses from FIRST to FIRST+SIZE,
+   inclusive.  These are offsets from the current stack pointer.  SOL is the
+   size of local registers.  ??? This clobbers r2 and r3.  */
+
+static void
+ia64_emit_probe_stack_range (HOST_WIDE_INT first, HOST_WIDE_INT size, int sol)
+{
+ /* On the IA-64 there is a second stack in memory, namely the Backing Store
+    of the Register Stack Engine.  We also need to probe it after checking
+    that the 2 stacks don't overlap.  */
+  const int bs_size = BACKING_STORE_SIZE (sol);
+  rtx r2 = gen_rtx_REG (Pmode, GR_REG (2));
+  rtx r3 = gen_rtx_REG (Pmode, GR_REG (3));
+
+  /* Detect collision of the 2 stacks if necessary.  */
+  if (bs_size > 0 || size > 0)
+    {
+      rtx p6 = gen_rtx_REG (BImode, PR_REG (6));
+
+      emit_insn (gen_bsp_value (r3));
+      emit_move_insn (r2, GEN_INT (-(first + size)));
+
+      /* Compare current value of BSP and SP registers.  */
+      emit_insn (gen_rtx_SET (VOIDmode, p6,
+			      gen_rtx_fmt_ee (LTU, BImode,
+					      r3, stack_pointer_rtx)));
+
+      /* Compute the address of the probe for the Backing Store (which grows
+	 towards higher addresses).  We probe only at the first offset of
+	 the next page because some OS (eg Linux/ia64) only extend the
+	 backing store when this specific address is hit (but generate a SEGV
+	 on other address).  Page size is the worst case (4KB).  The reserve
+	 size is at least 4096 - (96 + 2) * 8 = 3312 bytes, which is enough.
+	 Also compute the address of the last probe for the memory stack
+	 (which grows towards lower addresses).  */
+      emit_insn (gen_rtx_SET (VOIDmode, r3, plus_constant (Pmode, r3, 4095)));
+      emit_insn (gen_rtx_SET (VOIDmode, r2,
+			      gen_rtx_PLUS (Pmode, stack_pointer_rtx, r2)));
+
+      /* Compare them and raise SEGV if the former has topped the latter.  */
+      emit_insn (gen_rtx_COND_EXEC (VOIDmode,
+				    gen_rtx_fmt_ee (NE, VOIDmode, p6,
+						    const0_rtx),
+				    gen_rtx_SET (VOIDmode, p6,
+						 gen_rtx_fmt_ee (GEU, BImode,
+								 r3, r2))));
+      emit_insn (gen_rtx_SET (VOIDmode,
+			      gen_rtx_ZERO_EXTRACT (DImode, r3, GEN_INT (12),
+						    const0_rtx),
+			      const0_rtx));
+      emit_insn (gen_rtx_COND_EXEC (VOIDmode,
+				    gen_rtx_fmt_ee (NE, VOIDmode, p6,
+						    const0_rtx),
+				    gen_rtx_TRAP_IF (VOIDmode, const1_rtx,
+						     GEN_INT (11))));
+    }
+
+  /* Probe the Backing Store if necessary.  */
+  if (bs_size > 0)
+    emit_stack_probe (r3);
+
+  /* Probe the memory stack if necessary.  */
+  if (size == 0)
+    ;
+
+  /* See if we have a constant small number of probes to generate.  If so,
+     that's the easy case.  */
+  else if (size <= PROBE_INTERVAL)
+    emit_stack_probe (r2);
+
+  /* The run-time loop is made up of 8 insns in the generic case while this
+     compile-time loop is made up of 5+2*(n-2) insns for n # of intervals.  */
+  else if (size <= 4 * PROBE_INTERVAL)
+    {
+      HOST_WIDE_INT i;
+
+      emit_move_insn (r2, GEN_INT (-(first + PROBE_INTERVAL)));
+      emit_insn (gen_rtx_SET (VOIDmode, r2,
+			      gen_rtx_PLUS (Pmode, stack_pointer_rtx, r2)));
+      emit_stack_probe (r2);
+
+      /* Probe at FIRST + N * PROBE_INTERVAL for values of N from 2 until
+	 it exceeds SIZE.  If only two probes are needed, this will not
+	 generate any code.  Then probe at FIRST + SIZE.  */
+      for (i = 2 * PROBE_INTERVAL; i < size; i += PROBE_INTERVAL)
+	{
+	  emit_insn (gen_rtx_SET (VOIDmode, r2,
+				  plus_constant (Pmode, r2, -PROBE_INTERVAL)));
+	  emit_stack_probe (r2);
+	}
+
+      emit_insn (gen_rtx_SET (VOIDmode, r2,
+			      plus_constant (Pmode, r2,
+					     (i - PROBE_INTERVAL) - size)));
+      emit_stack_probe (r2);
+    }
+
+  /* Otherwise, do the same as above, but in a loop.  Note that we must be
+     extra careful with variables wrapping around because we might be at
+     the very top (or the very bottom) of the address space and we have
+     to be able to handle this case properly; in particular, we use an
+     equality test for the loop condition.  */
+  else
+    {
+      HOST_WIDE_INT rounded_size;
+
+      emit_move_insn (r2, GEN_INT (-first));
+
+
+      /* Step 1: round SIZE to the previous multiple of the interval.  */
+
+      rounded_size = size & -PROBE_INTERVAL;
+
+
+      /* Step 2: compute initial and final value of the loop counter.  */
+
+      /* TEST_ADDR = SP + FIRST.  */
+      emit_insn (gen_rtx_SET (VOIDmode, r2,
+			      gen_rtx_PLUS (Pmode, stack_pointer_rtx, r2)));
+
+      /* LAST_ADDR = SP + FIRST + ROUNDED_SIZE.  */
+      if (rounded_size > (1 << 21))
+	{
+	  emit_move_insn (r3, GEN_INT (-rounded_size));
+	  emit_insn (gen_rtx_SET (VOIDmode, r3, gen_rtx_PLUS (Pmode, r2, r3)));
+	}
+      else
+        emit_insn (gen_rtx_SET (VOIDmode, r3,
+				gen_rtx_PLUS (Pmode, r2,
+					      GEN_INT (-rounded_size))));
+
+
+      /* Step 3: the loop
+
+	 while (TEST_ADDR != LAST_ADDR)
+	   {
+	     TEST_ADDR = TEST_ADDR + PROBE_INTERVAL
+	     probe at TEST_ADDR
+	   }
+
+	 probes at FIRST + N * PROBE_INTERVAL for values of N from 1
+	 until it is equal to ROUNDED_SIZE.  */
+
+      emit_insn (gen_probe_stack_range (r2, r2, r3));
+
+
+      /* Step 4: probe at FIRST + SIZE if we cannot assert at compile-time
+	 that SIZE is equal to ROUNDED_SIZE.  */
+
+      /* TEMP = SIZE - ROUNDED_SIZE.  */
+      if (size != rounded_size)
+	{
+	  emit_insn (gen_rtx_SET (VOIDmode, r2,
+				  plus_constant (Pmode, r2,
+						 rounded_size - size)));
+	  emit_stack_probe (r2);
+	}
+    }
+
+  /* Make sure nothing is scheduled before we are done.  */
+  emit_insn (gen_blockage ());
+}
+
+/* Probe a range of stack addresses from REG1 to REG2 inclusive.  These are
+   absolute addresses.  */
+
+const char *
+output_probe_stack_range (rtx reg1, rtx reg2)
+{
+  static int labelno = 0;
+  char loop_lab[32], end_lab[32];
+  rtx xops[3];
+
+  ASM_GENERATE_INTERNAL_LABEL (loop_lab, "LPSRL", labelno);
+  ASM_GENERATE_INTERNAL_LABEL (end_lab, "LPSRE", labelno++);
+
+  ASM_OUTPUT_INTERNAL_LABEL (asm_out_file, loop_lab);
+
+  /* Jump to END_LAB if TEST_ADDR == LAST_ADDR.  */
+  xops[0] = reg1;
+  xops[1] = reg2;
+  xops[2] = gen_rtx_REG (BImode, PR_REG (6));
+  output_asm_insn ("cmp.eq %2, %I2 = %0, %1", xops);
+  fprintf (asm_out_file, "\t(%s) br.cond.dpnt ", reg_names [REGNO (xops[2])]);
+  assemble_name_raw (asm_out_file, end_lab);
+  fputc ('\n', asm_out_file);
+
+  /* TEST_ADDR = TEST_ADDR + PROBE_INTERVAL.  */
+  xops[1] = GEN_INT (-PROBE_INTERVAL);
+  output_asm_insn ("addl %0 = %1, %0", xops);
+  fputs ("\t;;\n", asm_out_file);
+
+  /* Probe at TEST_ADDR and branch.  */
+  output_asm_insn ("probe.w.fault %0, 0", xops);
+  fprintf (asm_out_file, "\tbr ");
+  assemble_name_raw (asm_out_file, loop_lab);
+  fputc ('\n', asm_out_file);
+
+  ASM_OUTPUT_INTERNAL_LABEL (asm_out_file, end_lab);
+
+  return "";
+}
+
 /* Called after register allocation to add any instructions needed for the
    prologue.  Using a prologue insn is favored compared to putting all of the
    instructions in output_function_prologue(), since it allows the scheduler
@@ -3238,7 +3453,7 @@ gen_fr_restore_x (rtx dest, rtx src, rtx offset ATTRIBUTE_UNUSED)
    Also any insns generated here should have RTX_FRAME_RELATED_P(insn) = 1
    so that the debug info generation code can handle them properly.
 
-   The register save area is layed out like so:
+   The register save area is laid out like so:
    cfa+16
 	[ varargs spill area ]
 	[ fr register spill area ]
@@ -3262,6 +3477,12 @@ ia64_expand_prologue (void)
 
   if (flag_stack_usage_info)
     current_function_static_stack_size = current_frame_info.total_size;
+
+  if (flag_stack_check == STATIC_BUILTIN_STACK_CHECK)
+    ia64_emit_probe_stack_range (STACK_CHECK_PROTECT,
+				 current_frame_info.total_size,
+				 current_frame_info.n_input_regs
+				   + current_frame_info.n_local_regs);
 
   if (dump_file) 
     {
@@ -4253,7 +4474,7 @@ ia64_trampoline_init (rtx m_tramp, tree fndecl, rtx static_chain)
   emit_insn (gen_adddi3 (addr_reg, addr_reg, eight));
   m_tramp = adjust_automodify_address (m_tramp, VOIDmode, NULL, 8);
 
-  emit_move_insn (m_tramp, force_reg (Pmode, plus_constant (addr, 16)));
+  emit_move_insn (m_tramp, force_reg (Pmode, plus_constant (Pmode, addr, 16)));
   emit_insn (gen_adddi3 (addr_reg, addr_reg, eight));
   m_tramp = adjust_automodify_address (m_tramp, VOIDmode, NULL, 8);
 
@@ -6527,6 +6748,7 @@ rtx_needs_barrier (rtx x, struct reg_flags flags, int pred)
 	  return 1;
 
 	case UNSPECV_SET_BSP:
+	case UNSPECV_PROBE_STACK_RANGE:
 	  need_barrier = 1;
           break;
 
@@ -6536,6 +6758,10 @@ rtx_needs_barrier (rtx x, struct reg_flags flags, int pred)
 	case UNSPECV_PSAC_ALL:
 	case UNSPECV_PSAC_NORMAL:
 	  return 0;
+
+	case UNSPECV_PROBE_STACK_ADDRESS:
+	  need_barrier = rtx_needs_barrier (XVECEXP (x, 0, 0), flags, pred);
+	  break;
 
 	default:
 	  gcc_unreachable ();
@@ -6698,10 +6924,7 @@ group_barrier_needed (rtx insn)
       gcc_unreachable ();
     }
 
-  if (first_instruction && INSN_P (insn)
-      && ia64_safe_itanium_class (insn) != ITANIUM_CLASS_IGNORE
-      && GET_CODE (PATTERN (insn)) != USE
-      && GET_CODE (PATTERN (insn)) != CLOBBER)
+  if (first_instruction && important_for_bundling_p (insn))
     {
       need_barrier = 0;
       first_instruction = 0;
@@ -7395,8 +7618,7 @@ ia64_dfa_new_cycle (FILE *dump, int verbose, rtx insn, int last_clock,
 	       && scheduled_good_insn (last_scheduled_insn))))
       || (last_scheduled_insn
 	  && (GET_CODE (last_scheduled_insn) == CALL_INSN
-	      || GET_CODE (PATTERN (last_scheduled_insn)) == ASM_INPUT
-	      || asm_noperands (PATTERN (last_scheduled_insn)) >= 0)))
+	      || unknown_for_bundling_p (last_scheduled_insn))))
     {
       init_insn_group_barriers ();
 
@@ -7421,8 +7643,7 @@ ia64_dfa_new_cycle (FILE *dump, int verbose, rtx insn, int last_clock,
 
       if (last_scheduled_insn)
 	{
-	  if (GET_CODE (PATTERN (last_scheduled_insn)) == ASM_INPUT
-	      || asm_noperands (PATTERN (last_scheduled_insn)) >= 0)
+	  if (unknown_for_bundling_p (last_scheduled_insn))
 	    state_reset (curr_state);
 	  else
 	    {
@@ -8538,8 +8759,7 @@ issue_nops_and_insn (struct bundle_state *originator, int before_nops_num,
       if (!try_issue_insn (curr_state, insn))
 	return;
       curr_state->accumulated_insns_num++;
-      gcc_assert (GET_CODE (PATTERN (insn)) != ASM_INPUT
-		  && asm_noperands (PATTERN (insn)) < 0);
+      gcc_assert (!unknown_for_bundling_p (insn));
 
       if (ia64_safe_type (insn) == TYPE_L)
 	curr_state->accumulated_insns_num++;
@@ -8565,8 +8785,7 @@ issue_nops_and_insn (struct bundle_state *originator, int before_nops_num,
       if (!try_issue_insn (curr_state, insn))
 	return;
       curr_state->accumulated_insns_num++;
-      if (GET_CODE (PATTERN (insn)) == ASM_INPUT
-	  || asm_noperands (PATTERN (insn)) >= 0)
+      if (unknown_for_bundling_p (insn))
 	{
 	  /* Finish bundle containing asm insn.  */
 	  curr_state->after_nops_num
@@ -8700,6 +8919,7 @@ get_template (state_t state, int pos)
 }
 
 /* True when INSN is important for bundling.  */
+
 static bool
 important_for_bundling_p (rtx insn)
 {
@@ -8719,6 +8939,17 @@ get_next_important_insn (rtx insn, rtx tail)
     if (important_for_bundling_p (insn))
       return insn;
   return NULL_RTX;
+}
+
+/* True when INSN is unknown, but important, for bundling.  */
+
+static bool
+unknown_for_bundling_p (rtx insn)
+{
+  return (INSN_P (insn)
+	  && ia64_safe_itanium_class (insn) == ITANIUM_CLASS_UNKNOWN
+	  && GET_CODE (PATTERN (insn)) != USE
+	  && GET_CODE (PATTERN (insn)) != CLOBBER);
 }
 
 /* Add a bundle selector TEMPLATE0 before INSN.  */
@@ -8848,19 +9079,14 @@ bundling (FILE *dump, int verbose, rtx prev_head_insn, rtx tail)
        insn != tail;
        insn = NEXT_INSN (insn))
     if (INSN_P (insn)
-	&& (ia64_safe_itanium_class (insn) == ITANIUM_CLASS_IGNORE
-	    || GET_CODE (PATTERN (insn)) == USE
-	    || GET_CODE (PATTERN (insn)) == CLOBBER)
+	&& !important_for_bundling_p (insn)
 	&& GET_MODE (insn) == TImode)
       {
 	PUT_MODE (insn, VOIDmode);
 	for (next_insn = NEXT_INSN (insn);
 	     next_insn != tail;
 	     next_insn = NEXT_INSN (next_insn))
-	  if (INSN_P (next_insn)
-	      && ia64_safe_itanium_class (next_insn) != ITANIUM_CLASS_IGNORE
-	      && GET_CODE (PATTERN (next_insn)) != USE
-	      && GET_CODE (PATTERN (next_insn)) != CLOBBER
+	  if (important_for_bundling_p (next_insn)
 	      && INSN_CODE (next_insn) != CODE_FOR_insn_group_barrier)
 	    {
 	      PUT_MODE (next_insn, TImode);
@@ -8872,10 +9098,7 @@ bundling (FILE *dump, int verbose, rtx prev_head_insn, rtx tail)
        insn != NULL_RTX;
        insn = next_insn)
     {
-      gcc_assert (INSN_P (insn)
-		  && ia64_safe_itanium_class (insn) != ITANIUM_CLASS_IGNORE
-		  && GET_CODE (PATTERN (insn)) != USE
-		  && GET_CODE (PATTERN (insn)) != CLOBBER);
+      gcc_assert (important_for_bundling_p (insn));
       type = ia64_safe_type (insn);
       next_insn = get_next_important_insn (NEXT_INSN (insn), tail);
       insn_num++;
@@ -8892,7 +9115,7 @@ bundling (FILE *dump, int verbose, rtx prev_head_insn, rtx tail)
 	  only_bundle_end_p
 	    = (next_insn != NULL_RTX
 	       && INSN_CODE (insn) == CODE_FOR_insn_group_barrier
-	       && ia64_safe_type (next_insn) == TYPE_UNKNOWN);
+	       && unknown_for_bundling_p (next_insn));
 	  /* We may fill up the current bundle if it is the cycle end
 	     without a group barrier.  */
 	  bundle_end_p
@@ -8976,8 +9199,7 @@ bundling (FILE *dump, int verbose, rtx prev_head_insn, rtx tail)
        curr_state = curr_state->originator)
     {
       insn = curr_state->insn;
-      asm_p = (GET_CODE (PATTERN (insn)) == ASM_INPUT
-	       || asm_noperands (PATTERN (insn)) >= 0);
+      asm_p = unknown_for_bundling_p (insn);
       insn_num++;
       if (verbose >= 2 && dump)
 	{
@@ -9053,8 +9275,7 @@ bundling (FILE *dump, int verbose, rtx prev_head_insn, rtx tail)
       /* Move the position backward in the window.  Group barrier has
 	 no slot.  Asm insn takes all bundle.  */
       if (INSN_CODE (insn) != CODE_FOR_insn_group_barrier
-	  && GET_CODE (PATTERN (insn)) != ASM_INPUT
-	  && asm_noperands (PATTERN (insn)) < 0)
+	  && !unknown_for_bundling_p (insn))
 	pos--;
       /* Long insn takes 2 slots.  */
       if (ia64_safe_type (insn) == TYPE_L)
@@ -9062,8 +9283,7 @@ bundling (FILE *dump, int verbose, rtx prev_head_insn, rtx tail)
       gcc_assert (pos >= 0);
       if (pos % 3 == 0
 	  && INSN_CODE (insn) != CODE_FOR_insn_group_barrier
-	  && GET_CODE (PATTERN (insn)) != ASM_INPUT
-	  && asm_noperands (PATTERN (insn)) < 0)
+	  && !unknown_for_bundling_p (insn))
 	{
 	  /* The current insn is at the bundle start: emit the
 	     template.  */
@@ -9137,8 +9357,7 @@ bundling (FILE *dump, int verbose, rtx prev_head_insn, rtx tail)
 	    if (recog_memoized (insn) == CODE_FOR_insn_group_barrier
 		&& !start_bundle && !end_bundle
 		&& next_insn
-		&& GET_CODE (PATTERN (next_insn)) != ASM_INPUT
-		&& asm_noperands (PATTERN (next_insn)) < 0)
+		&& !unknown_for_bundling_p (next_insn))
 	      num--;
 
 	    start_bundle = false;
@@ -9268,8 +9487,7 @@ final_emit_insn_group_barriers (FILE *dump ATTRIBUTE_UNUSED)
 		   && important_for_bundling_p (insn))
 	    seen_good_insn = 1;
 	  need_barrier_p = (GET_CODE (insn) == CALL_INSN
-			    || GET_CODE (PATTERN (insn)) == ASM_INPUT
-			    || asm_noperands (PATTERN (insn)) >= 0);
+			    || unknown_for_bundling_p (insn));
 	}
     }
 }

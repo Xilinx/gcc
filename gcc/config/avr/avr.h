@@ -133,6 +133,14 @@ struct mcu_type_s {
   const char *const library_name; 
 };
 
+struct arch_info_s {
+  /* Architecture ID.  */
+  enum avr_arch arch;
+
+  /* textinfo source to describe the archtiecture.  */
+  const char *texinfo;
+};
+
 /* Preprocessor macros to define depending on MCU type.  */
 extern const char *avr_extra_arch_macro;
 extern const struct base_arch_s *avr_current_arch;
@@ -394,6 +402,11 @@ enum reg_class {
 
 #define REGNO_OK_FOR_INDEX_P(NUM) 0
 
+#define HARD_REGNO_CALL_PART_CLOBBERED(REGNO, MODE)                    \
+  (((REGNO) < 18 && (REGNO) + GET_MODE_SIZE (MODE) > 18)               \
+   || ((REGNO) < REG_Y && (REGNO) + GET_MODE_SIZE (MODE) > REG_Y)      \
+   || ((REGNO) < REG_Z && (REGNO) + GET_MODE_SIZE (MODE) > REG_Z))
+
 #define TARGET_SMALL_REGISTER_CLASSES_FOR_MODE_P hook_bool_mode_true
 
 #define STACK_PUSH_CODE POST_DEC
@@ -544,10 +557,10 @@ typedef struct avr_args {
 #define ASM_OUTPUT_ADDR_VEC_ELT(STREAM, VALUE)		\
   avr_output_addr_vec_elt(STREAM, VALUE)
 
-#define ASM_OUTPUT_ALIGN(STREAM, POWER)			\
-  do {							\
-      if ((POWER) > 1)					\
-          fprintf (STREAM, "\t.p2align\t%d\n", POWER);	\
+#define ASM_OUTPUT_ALIGN(STREAM, POWER)                 \
+  do {                                                  \
+    if ((POWER) > 0)                                    \
+      fprintf (STREAM, "\t.p2align\t%d\n", POWER);      \
   } while (0)
 
 #define CASE_VECTOR_MODE HImode
@@ -694,9 +707,13 @@ struct GTY(()) machine_function
 
   /* 'true' if a callee might be tail called */
   int sibcall_fails;
+
+  /* 'true' if the above is_foo predicates are sanity-checked to avoid
+     multiple diagnose for the same function.  */
+  int attributes_checked_p;
 };
 
-/* AVR does not round pushes, but the existance of this macro is
+/* AVR does not round pushes, but the existence of this macro is
    required in order for pushes to be generated.  */
 #define PUSH_ROUNDING(X)	(X)
 

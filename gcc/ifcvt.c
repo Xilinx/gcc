@@ -1520,8 +1520,7 @@ noce_try_cmove_arith (struct noce_if_info *if_info)
       && MEM_ADDR_SPACE (a) == MEM_ADDR_SPACE (b)
       && if_info->branch_cost >= 5)
     {
-      enum machine_mode address_mode
-	= targetm.addr_space.address_mode (MEM_ADDR_SPACE (a));
+      enum machine_mode address_mode = get_address_mode (a);
 
       a = XEXP (a, 0);
       b = XEXP (b, 0);
@@ -3878,7 +3877,7 @@ find_if_case_1 (basic_block test_bb, edge then_edge, edge else_edge)
 
   /* We can avoid creating a new basic block if then_bb is immediately
      followed by else_bb, i.e. deleting then_bb allows test_bb to fall
-     thru to else_bb.  */
+     through to else_bb.  */
 
   if (then_bb->next_bb == else_bb
       && then_bb->prev_bb == test_bb

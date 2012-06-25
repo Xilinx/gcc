@@ -853,9 +853,11 @@ package body Sem_Res is
                      Prev (Nod);
                   end loop;
 
-                  --  If no raise statement, give warning
+                  --  If no raise statement, give warning. We look at the
+                  --  original node, because in the case of "raise ... with
+                  --  ...", the node has been transformed into a call.
 
-                  exit when Nkind (Nod) /= N_Raise_Statement
+                  exit when Nkind (Original_Node (Nod)) /= N_Raise_Statement
                     and then
                       (Nkind (Nod) not in N_Raise_xxx_Error
                         or else Present (Condition (Nod)));
@@ -1967,7 +1969,10 @@ package body Sem_Res is
                --  Prefix (N) must statically denote a remote subprogram
                --  declared in a package specification.
 
-               if Attr = Attribute_Access then
+               if Attr = Attribute_Access           or else
+                  Attr = Attribute_Unchecked_Access or else
+                  Attr = Attribute_Unrestricted_Access
+               then
                   Decl := Unit_Declaration_Node (Entity (Pref));
 
                   if Nkind (Decl) = N_Subprogram_Body then
@@ -1990,26 +1995,22 @@ package body Sem_Res is
                        ("prefix must statically denote a remote subprogram ",
                         N);
                   end if;
-               end if;
 
-               --   If we are generating code for a distributed program.
-               --   perform semantic checks against the corresponding
-               --   remote entities.
+                  --  If we are generating code in distributed mode, perform
+                  --  semantic checks against corresponding remote entities.
 
-               if (Attr = Attribute_Access           or else
-                   Attr = Attribute_Unchecked_Access or else
-                   Attr = Attribute_Unrestricted_Access)
-                 and then Full_Expander_Active
-                 and then Get_PCS_Name /= Name_No_DSA
-               then
-                  Check_Subtype_Conformant
-                    (New_Id  => Entity (Prefix (N)),
-                     Old_Id  => Designated_Type
-                                  (Corresponding_Remote_Type (Typ)),
-                     Err_Loc => N);
+                  if Full_Expander_Active
+                    and then Get_PCS_Name /= Name_No_DSA
+                  then
+                     Check_Subtype_Conformant
+                       (New_Id  => Entity (Prefix (N)),
+                        Old_Id  => Designated_Type
+                                     (Corresponding_Remote_Type (Typ)),
+                        Err_Loc => N);
 
-                  if Is_Remote then
-                     Process_Remote_AST_Attribute (N, Typ);
+                     if Is_Remote then
+                        Process_Remote_AST_Attribute (N, Typ);
+                     end if;
                   end if;
                end if;
             end if;
@@ -2143,9 +2144,7 @@ package body Sem_Res is
                      --  of the arguments is Any_Type, and if so, suppress
                      --  the message, since it is a cascaded error.
 
-                     if Nkind_In (N, N_Function_Call,
-                                     N_Procedure_Call_Statement)
-                     then
+                     if Nkind (N) in N_Subprogram_Call then
                         declare
                            A : Node_Id;
                            E : Node_Id;
@@ -2211,8 +2210,7 @@ package body Sem_Res is
                              ("\\possible interpretation#!", N);
                         end if;
 
-                        if Nkind_In
-                             (N, N_Procedure_Call_Statement, N_Function_Call)
+                        if Nkind (N) in N_Subprogram_Call
                           and then Present (Parameter_Associations (N))
                         then
                            Report_Ambiguous_Argument;
@@ -2359,7 +2357,7 @@ package body Sem_Res is
                --  For procedure or function calls, set the type of the name,
                --  and also the entity pointer for the prefix.
 
-               elsif Nkind_In (N, N_Procedure_Call_Statement, N_Function_Call)
+               elsif Nkind (N) in N_Subprogram_Call
                  and then Is_Entity_Name (Name (N))
                then
                   Set_Etype  (Name (N), Expr_Type);
@@ -2989,8 +2987,7 @@ package body Sem_Res is
 
          if not Warn_On_Parameter_Order
            or else No (Parameter_Associations (N))
-           or else not Nkind_In (Original_Node (N), N_Procedure_Call_Statement,
-                                                    N_Function_Call)
+           or else Nkind (Original_Node (N)) not in N_Subprogram_Call
            or else not Comes_From_Source (N)
          then
             return;
@@ -4222,11 +4219,9 @@ package body Sem_Res is
          Par : constant Node_Id := Parent (N);
 
       begin
-         return
-           Nkind_In (Par, N_Function_Call,
-                          N_Procedure_Call_Statement)
-             and then Is_Entity_Name (Name (Par))
-             and then Is_Dispatching_Operation (Entity (Name (Par)));
+         return Nkind (Par) in N_Subprogram_Call
+           and then Is_Entity_Name (Name (Par))
+           and then Is_Dispatching_Operation (Entity (Name (Par)));
       end In_Dispatching_Context;
 
    --  Start of processing for Resolve_Allocator
@@ -5844,14 +5839,11 @@ package body Sem_Res is
          Check_Restriction (No_Relative_Delay, N);
       end if;
 
-      --  Issue an error for a call to an eliminated subprogram. We skip this
-      --  in a spec expression, e.g. a call in a default parameter value, since
-      --  we are not really doing a call at this time. That's important because
-      --  the spec expression may itself belong to an eliminated subprogram.
+      --  Issue an error for a call to an eliminated subprogram.
+      --  The routine will not perform the check if the call appears within
+      --  a default expression.
 
-      if not In_Spec_Expression then
-         Check_For_Eliminated_Subprogram (Subp, Nam);
-      end if;
+      Check_For_Eliminated_Subprogram (Subp, Nam);
 
       --  In formal mode, the primitive operations of a tagged type or type
       --  extension do not include functions that return the tagged type.
@@ -7748,9 +7740,7 @@ package body Sem_Res is
          --  In the common case of a call which uses an explicitly null value
          --  for an access parameter, give specialized error message.
 
-         if Nkind_In (Parent (N), N_Procedure_Call_Statement,
-                                  N_Function_Call)
-         then
+         if Nkind (Parent (N)) in N_Subprogram_Call then
             Error_Msg_N
               ("null is not allowed as argument for an access parameter", N);
 
@@ -8880,10 +8870,10 @@ package body Sem_Res is
    -------------------
 
    procedure Resolve_Slice (N : Node_Id; Typ : Entity_Id) is
-      Name       : constant Node_Id := Prefix (N);
       Drange     : constant Node_Id := Discrete_Range (N);
+      Name       : constant Node_Id := Prefix (N);
       Array_Type : Entity_Id        := Empty;
-      Index      : Node_Id;
+      Index_Type : Entity_Id;
 
    begin
       if Is_Overloaded (Name) then
@@ -9003,8 +8993,13 @@ package body Sem_Res is
       --  necessary. Else resolve the bounds, and apply needed checks.
 
       if not Is_Entity_Name (Drange) then
-         Index := First_Index (Array_Type);
-         Resolve (Drange, Base_Type (Etype (Index)));
+         if Ekind (Array_Type) = E_String_Literal_Subtype then
+            Index_Type := Etype (String_Literal_Low_Bound (Array_Type));
+         else
+            Index_Type := Etype (First_Index (Array_Type));
+         end if;
+
+         Resolve (Drange, Base_Type (Index_Type));
 
          if Nkind (Drange) = N_Range then
 
@@ -9026,7 +9021,7 @@ package body Sem_Res is
                   and then Entity (Selector_Name (Prefix (N))) =
                                          RTE_Record_Component (RE_Prims_Ptr))
             then
-               Apply_Range_Check (Drange, Etype (Index));
+               Apply_Range_Check (Drange, Index_Type);
             end if;
          end if;
       end if;
@@ -10119,26 +10114,24 @@ package body Sem_Res is
       Set_Is_Constrained (Subtype_Id);
       Set_Etype          (N, Subtype_Id);
 
-      if Is_OK_Static_Expression (Low_Bound) then
-
       --  The low bound is set from the low bound of the corresponding index
       --  type. Note that we do not store the high bound in the string literal
       --  subtype, but it can be deduced if necessary from the length and the
       --  low bound.
 
+      if Is_OK_Static_Expression (Low_Bound) then
          Set_String_Literal_Low_Bound (Subtype_Id, Low_Bound);
 
+      --  If the lower bound is not static we create a range for the string
+      --  literal, using the index type and the known length of the literal.
+      --  The index type is not necessarily Positive, so the upper bound is
+      --  computed as T'Val (T'Pos (Low_Bound) + L - 1).
+
       else
-         --  If the lower bound is not static we create a range for the string
-         --  literal, using the index type and the known length of the literal.
-         --  The index type is not necessarily Positive, so the upper bound is
-         --  computed as  T'Val (T'Pos (Low_Bound) + L - 1)
-
          declare
-            Index_List    : constant List_Id    := New_List;
-            Index_Type    : constant Entity_Id := Etype (First_Index (Typ));
-
-            High_Bound : constant Node_Id :=
+            Index_List : constant List_Id   := New_List;
+            Index_Type : constant Entity_Id := Etype (First_Index (Typ));
+            High_Bound : constant Node_Id   :=
                            Make_Attribute_Reference (Loc,
                              Attribute_Name => Name_Val,
                              Prefix         =>
@@ -10157,9 +10150,9 @@ package body Sem_Res is
                                      String_Length (Strval (N)) - 1))));
 
             Array_Subtype : Entity_Id;
-            Index_Subtype : Entity_Id;
             Drange        : Node_Id;
             Index         : Node_Id;
+            Index_Subtype : Entity_Id;
 
          begin
             if Is_Integer_Type (Index_Type) then
@@ -10214,7 +10207,7 @@ package body Sem_Res is
             Rewrite (N,
               Make_Unchecked_Type_Conversion (Loc,
                 Subtype_Mark => New_Occurrence_Of (Array_Subtype, Loc),
-                Expression => Relocate_Node (N)));
+                Expression   => Relocate_Node (N)));
             Set_Etype (N, Array_Subtype);
          end;
       end if;

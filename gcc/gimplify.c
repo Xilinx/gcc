@@ -37,7 +37,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "hashtab.h"
 #include "flags.h"
 #include "function.h"
-#include "output.h"
 #include "ggc.h"
 #include "diagnostic-core.h"
 #include "target.h"
@@ -169,11 +168,7 @@ gimple_seq_add_stmt_without_update (gimple_seq *seq_p, gimple gs)
   if (gs == NULL)
     return;
 
-  if (*seq_p == NULL)
-    *seq_p = gimple_seq_alloc ();
-
   si = gsi_last (*seq_p);
-
   gsi_insert_after_without_update (&si, gs, GSI_NEW_STMT);
 }
 
@@ -199,9 +194,6 @@ gimplify_seq_add_seq (gimple_seq *dst_p, gimple_seq src)
 
   if (src == NULL)
     return;
-
-  if (*dst_p == NULL)
-    *dst_p = gimple_seq_alloc ();
 
   si = gsi_last (*dst_p);
   gsi_insert_seq_after_without_update (&si, src, GSI_NEW_STMT);
@@ -1448,6 +1440,13 @@ gimplify_decl_expr (tree *stmt_p, gimple_seq *seq_p)
       && !TYPE_SIZES_GIMPLIFIED (TREE_TYPE (decl)))
     gimplify_type_sizes (TREE_TYPE (decl), seq_p);
 
+  /* ??? DECL_ORIGINAL_TYPE is streamed for LTO so it needs to be gimplified
+     in case its size expressions contain problematic nodes like CALL_EXPR.  */
+  if (TREE_CODE (decl) == TYPE_DECL
+      && DECL_ORIGINAL_TYPE (decl)
+      && !TYPE_SIZES_GIMPLIFIED (DECL_ORIGINAL_TYPE (decl)))
+    gimplify_type_sizes (DECL_ORIGINAL_TYPE (decl), seq_p);
+
   if (TREE_CODE (decl) == VAR_DECL && !DECL_EXTERNAL (decl))
     {
       tree init = DECL_INITIAL (decl);
@@ -1538,7 +1537,7 @@ gimplify_statement_list (tree *expr_p, gimple_seq *pre_p)
 
   return GS_ALL_DONE;
 }
-
+
 /* Compare two case labels.  Because the front end should already have
    made sure that case ranges do not overlap, it is enough to only compare
    the CASE_LOW values of each case label.  */
@@ -1565,8 +1564,183 @@ sort_case_labels (VEC(tree,heap)* label_vec)
 {
   VEC_qsort (tree, label_vec, compare_case_labels);
 }
+
+/* Prepare a vector of case labels to be used in a GIMPLE_SWITCH statement.
 
-/* Gimplify a SWITCH_EXPR, and collect a TREE_VEC of the labels it can
+   LABELS is a vector that contains all case labels to look at.
+
+   INDEX_TYPE is the type of the switch index expression.  Case labels
+   in LABELS are discarded if their values are not in the value range
+   covered by INDEX_TYPE.  The remaining case label values are folded
+   to INDEX_TYPE.
+
+   If a default case exists in LABELS, it is removed from LABELS and
+   returned in DEFAULT_CASEP.  If no default case exists, but the
+   case labels already cover the whole range of INDEX_TYPE, a default
+   case is returned pointing to one of the existing case labels.
+   Otherwise DEFAULT_CASEP is set to NULL_TREE.
+
+   DEFAULT_CASEP may be NULL, in which case the above comment doesn't
+   apply and no action is taken regardless of whether a default case is
+   found or not.  */
+
+void
+preprocess_case_label_vec_for_gimple (VEC(tree,heap) *labels,
+				      tree index_type,
+				      tree *default_casep)
+{
+  tree min_value, max_value;
+  tree default_case = NULL_TREE;
+  size_t i, len;
+
+  i = 0;
+  min_value = TYPE_MIN_VALUE (index_type);
+  max_value = TYPE_MAX_VALUE (index_type);
+  while (i < VEC_length (tree, labels))
+    {
+      tree elt = VEC_index (tree, labels, i);
+      tree low = CASE_LOW (elt);
+      tree high = CASE_HIGH (elt);
+      bool remove_element = FALSE;
+
+      if (low)
+	{
+	  gcc_checking_assert (TREE_CODE (low) == INTEGER_CST);
+	  gcc_checking_assert (!high || TREE_CODE (high) == INTEGER_CST);
+
+	  /* This is a non-default case label, i.e. it has a value.
+
+	     See if the case label is reachable within the range of
+	     the index type.  Remove out-of-range case values.  Turn
+	     case ranges into a canonical form (high > low strictly)
+	     and convert the case label values to the index type.
+
+	     NB: The type of gimple_switch_index() may be the promoted
+	     type, but the case labels retain the original type.  */
+
+	  if (high)
+	    {
+	      /* This is a case range.  Discard empty ranges.
+		 If the bounds or the range are equal, turn this
+		 into a simple (one-value) case.  */
+	      int cmp = tree_int_cst_compare (high, low);
+	      if (cmp < 0)
+		remove_element = TRUE;
+	      else if (cmp == 0)
+		high = NULL_TREE;
+	    }
+
+	  if (! high)
+	    {
+	      /* If the simple case value is unreachable, ignore it.  */
+	      if ((TREE_CODE (min_value) == INTEGER_CST
+		   && tree_int_cst_compare (low, min_value) < 0)
+		  || (TREE_CODE (max_value) == INTEGER_CST
+		      && tree_int_cst_compare (low, max_value) > 0))
+		remove_element = TRUE;
+	      else
+		low = fold_convert (index_type, low);
+	    }
+	  else
+	    {
+	      /* If the entire case range is unreachable, ignore it.  */
+	      if ((TREE_CODE (min_value) == INTEGER_CST
+		   && tree_int_cst_compare (high, min_value) < 0)
+		  || (TREE_CODE (max_value) == INTEGER_CST
+		      && tree_int_cst_compare (low, max_value) > 0))
+		remove_element = TRUE;
+	      else
+		{
+		  /* If the lower bound is less than the index type's
+		     minimum value, truncate the range bounds.  */
+		  if (TREE_CODE (min_value) == INTEGER_CST
+		      && tree_int_cst_compare (low, min_value) < 0)
+		    low = min_value;
+		  low = fold_convert (index_type, low);
+
+		  /* If the upper bound is greater than the index type's
+		     maximum value, truncate the range bounds.  */
+		  if (TREE_CODE (max_value) == INTEGER_CST
+		      && tree_int_cst_compare (high, max_value) > 0)
+		    high = max_value;
+		  high = fold_convert (index_type, high);
+
+		  /* We may have folded a case range to a one-value case.  */
+		  if (tree_int_cst_equal (low, high))
+		    high = NULL_TREE;
+		}
+	    }
+
+	  CASE_LOW (elt) = low;
+	  CASE_HIGH (elt) = high;
+	}
+      else
+	{
+	  gcc_assert (!default_case);
+	  default_case = elt;
+	  /* The default case must be passed separately to the
+	     gimple_build_switch routines.  But if DEFAULT_CASEP
+	     is NULL, we do not remove the default case (it would
+	     be completely lost).  */
+	  if (default_casep)
+	    remove_element = TRUE;
+	}
+
+      if (remove_element)
+	VEC_ordered_remove (tree, labels, i);
+      else
+	i++;
+    }
+  len = i;
+
+  if (!VEC_empty (tree, labels))
+    sort_case_labels (labels);
+
+  if (default_casep && !default_case)
+    {
+      /* If the switch has no default label, add one, so that we jump
+	 around the switch body.  If the labels already cover the whole
+	 range of the switch index_type, add the default label pointing
+	 to one of the existing labels.  */
+      if (len
+	  && TYPE_MIN_VALUE (index_type)
+	  && TYPE_MAX_VALUE (index_type)
+	  && tree_int_cst_equal (CASE_LOW (VEC_index (tree, labels, 0)),
+				 TYPE_MIN_VALUE (index_type)))
+	{
+	  tree low, high = CASE_HIGH (VEC_index (tree, labels, len - 1));
+	  if (!high)
+	    high = CASE_LOW (VEC_index (tree, labels, len - 1));
+	  if (tree_int_cst_equal (high, TYPE_MAX_VALUE (index_type)))
+	    {
+	      for (i = 1; i < len; i++)
+		{
+		  high = CASE_LOW (VEC_index (tree, labels, i));
+		  low = CASE_HIGH (VEC_index (tree, labels, i - 1));
+		  if (!low)
+		    low = CASE_LOW (VEC_index (tree, labels, i - 1));
+		  if ((TREE_INT_CST_LOW (low) + 1
+		       != TREE_INT_CST_LOW (high))
+		      || (TREE_INT_CST_HIGH (low)
+			  + (TREE_INT_CST_LOW (high) == 0)
+			  != TREE_INT_CST_HIGH (high)))
+		    break;
+		}
+	      if (i == len)
+		{
+		  tree label = CASE_LABEL (VEC_index (tree, labels, 0));
+		  default_case = build_case_label (NULL_TREE, NULL_TREE,
+						   label);
+		}
+	    }
+	}
+    }
+
+  if (default_casep)
+    *default_casep = default_case;
+}
+
+/* Gimplify a SWITCH_EXPR, and collect the vector of labels it can
    branch to.  */
 
 static enum gimplify_status
@@ -1588,9 +1762,7 @@ gimplify_switch_expr (tree *expr_p, gimple_seq *pre_p)
     {
       VEC (tree,heap) *labels;
       VEC (tree,heap) *saved_labels;
-      tree min_value, max_value;
       tree default_case = NULL_TREE;
-      size_t i, len;
       gimple gimple_switch;
 
       /* If someone can be bothered to fill in the labels, they can
@@ -1606,155 +1778,22 @@ gimplify_switch_expr (tree *expr_p, gimple_seq *pre_p)
       labels = gimplify_ctxp->case_labels;
       gimplify_ctxp->case_labels = saved_labels;
 
-      i = 0;
-      min_value = TYPE_MIN_VALUE (index_type);
-      max_value = TYPE_MAX_VALUE (index_type);
-      while (i < VEC_length (tree, labels))
-	{
-	  tree elt = VEC_index (tree, labels, i);
-	  tree low = CASE_LOW (elt);
-	  tree high = CASE_HIGH (elt);
-	  bool remove_element = FALSE;
-
-
-	  if (low)
-	    {
-	      gcc_checking_assert (TREE_CODE (low) == INTEGER_CST);
-	      gcc_checking_assert (!high || TREE_CODE (high) == INTEGER_CST);
-
-	      /* This is a non-default case label, i.e. it has a value.
-
-		 See if the case label is reachable within the range of
-		 the index type.  Remove out-of-range case values.  Turn
-		 case ranges into a canonical form (high > low strictly)
-		 and convert the case label values to the index type.
-
-		 NB: The type of gimple_switch_index() may be the promoted
-		 type, but the case labels retain the original type.  */
-
-	      if (high)
-		{
-		  /* This is a case range.  Discard empty ranges.
-		     If the bounds or the range are equal, turn this
-		     into a simple (one-value) case.  */
-		  int cmp = tree_int_cst_compare (high, low);
-		  if (cmp < 0)
-		    remove_element = TRUE;
-		  else if (cmp == 0)
-		    high = NULL_TREE;
-		}
-
-	      if (! high)
-		{
-		  /* If the simple case value is unreachable, ignore it.  */
-		  if ((TREE_CODE (min_value) == INTEGER_CST
-		       && tree_int_cst_compare (low, min_value) < 0)
-		      || (TREE_CODE (max_value) == INTEGER_CST
-			  && tree_int_cst_compare (low, max_value) > 0))
-		    remove_element = TRUE;
-		  else
-		    low = fold_convert (index_type, low);
-		}
-	      else
-		{
-		  /* If the entire case range is unreachable, ignore it.  */
-		  if ((TREE_CODE (min_value) == INTEGER_CST
-		       && tree_int_cst_compare (high, min_value) < 0)
-		      || (TREE_CODE (max_value) == INTEGER_CST
-			  && tree_int_cst_compare (low, max_value) > 0))
-		    remove_element = TRUE;
-		  else
-		    {
-		      /* If the lower bound is less than the index type's
-			 minimum value, truncate the range bounds.  */
-		      if (TREE_CODE (min_value) == INTEGER_CST
-			  && tree_int_cst_compare (low, min_value) < 0)
-			low = min_value;
-		      low = fold_convert (index_type, low);
-
-		      /* If the upper bound is greater than the index type's
-			 maximum value, truncate the range bounds.  */
-		      if (TREE_CODE (max_value) == INTEGER_CST
-			  && tree_int_cst_compare (high, max_value) > 0)
-			high = max_value;
-		      high = fold_convert (index_type, high);
-		    }
-		}
-
-	      CASE_LOW (elt) = low;
-	      CASE_HIGH (elt) = high;
-	    }
-	  else
-	    {
-	      /* The default case must be the last label in the list.  */
-	      gcc_assert (!default_case);
-	      default_case = elt;
-	      remove_element = TRUE;
-	    }
-
-	  if (remove_element)
-	    VEC_ordered_remove (tree, labels, i);
-	  else
-	    i++;
-	}
-      len = i;
-
-      if (!VEC_empty (tree, labels))
-	sort_case_labels (labels);
+      preprocess_case_label_vec_for_gimple (labels, index_type,
+					    &default_case);
 
       if (!default_case)
 	{
-	  /* If the switch has no default label, add one, so that we jump
-	     around the switch body.  If the labels already cover the whole
-	     range of the switch index_type, add the default label pointing
-	     to one of the existing labels.  */
-	  if (len
-	      && TYPE_MIN_VALUE (index_type)
-	      && TYPE_MAX_VALUE (index_type)
-	      && tree_int_cst_equal (CASE_LOW (VEC_index (tree, labels, 0)),
-				     TYPE_MIN_VALUE (index_type)))
-	    {
-	      tree low, high = CASE_HIGH (VEC_index (tree, labels, len - 1));
-	      if (!high)
-		high = CASE_LOW (VEC_index (tree, labels, len - 1));
-	      if (tree_int_cst_equal (high, TYPE_MAX_VALUE (index_type)))
-		{
-		  for (i = 1; i < len; i++)
-		    {
-		      high = CASE_LOW (VEC_index (tree, labels, i));
-		      low = CASE_HIGH (VEC_index (tree, labels, i - 1));
-		      if (!low)
-			low = CASE_LOW (VEC_index (tree, labels, i - 1));
-		      if ((TREE_INT_CST_LOW (low) + 1
-			   != TREE_INT_CST_LOW (high))
-			  || (TREE_INT_CST_HIGH (low)
-			      + (TREE_INT_CST_LOW (high) == 0)
-			      != TREE_INT_CST_HIGH (high)))
-			break;
-		    }
-		  if (i == len)
-		    {
-		      tree label = CASE_LABEL (VEC_index (tree, labels, 0));
-		      default_case = build_case_label (NULL_TREE, NULL_TREE,
-						       label);
-		    }
-		}
-	    }
+	  gimple new_default;
 
-	  if (!default_case)
-	    {
-	      gimple new_default;
-
-	      default_case
-		= build_case_label (NULL_TREE, NULL_TREE,
-				    create_artificial_label (UNKNOWN_LOCATION));
-	      new_default = gimple_build_label (CASE_LABEL (default_case));
-	      gimplify_seq_add_stmt (&switch_body_seq, new_default);
-	    }
+	  default_case
+	    = build_case_label (NULL_TREE, NULL_TREE,
+				create_artificial_label (UNKNOWN_LOCATION));
+	  new_default = gimple_build_label (CASE_LABEL (default_case));
+	  gimplify_seq_add_stmt (&switch_body_seq, new_default);
 	}
 
       gimple_switch = gimple_build_switch_vec (SWITCH_COND (switch_expr),
-                                               default_case, labels);
+					       default_case, labels);
       gimplify_seq_add_stmt (pre_p, gimple_switch);
       gimplify_seq_add_seq (pre_p, switch_body_seq);
       VEC_free(tree, heap, labels);
@@ -2771,7 +2810,7 @@ shortcut_cond_r (tree pred, tree *true_label_p, tree *false_label_p,
 
 /* Given a conditional expression EXPR with short-circuit boolean
    predicates using TRUTH_ANDIF_EXPR or TRUTH_ORIF_EXPR, break the
-   predicate appart into the equivalent sequence of conditionals.  */
+   predicate apart into the equivalent sequence of conditionals.  */
 
 static tree
 shortcut_cond_expr (tree expr)
@@ -3756,15 +3795,30 @@ rhs_predicate_for (tree lhs)
    decl instead.  */
 
 static enum gimplify_status
-gimplify_compound_literal_expr (tree *expr_p, gimple_seq *pre_p)
+gimplify_compound_literal_expr (tree *expr_p, gimple_seq *pre_p,
+				bool (*gimple_test_f) (tree),
+				fallback_t fallback)
 {
   tree decl_s = COMPOUND_LITERAL_EXPR_DECL_EXPR (*expr_p);
   tree decl = DECL_EXPR_DECL (decl_s);
+  tree init = DECL_INITIAL (decl);
   /* Mark the decl as addressable if the compound literal
      expression is addressable now, otherwise it is marked too late
      after we gimplify the initialization expression.  */
   if (TREE_ADDRESSABLE (*expr_p))
     TREE_ADDRESSABLE (decl) = 1;
+  /* Otherwise, if we don't need an lvalue and have a literal directly
+     substitute it.  Check if it matches the gimple predicate, as
+     otherwise we'd generate a new temporary, and we can as well just
+     use the decl we already have.  */
+  else if (!TREE_ADDRESSABLE (decl)
+	   && init
+	   && (fallback & fb_lvalue) == 0
+	   && gimple_test_f (init))
+    {
+      *expr_p = init;
+      return GS_OK;
+    }
 
   /* Preliminarily mark non-addressed complex variables as eligible
      for promotion to gimple registers.  We'll transform their uses
@@ -3774,6 +3828,12 @@ gimplify_compound_literal_expr (tree *expr_p, gimple_seq *pre_p)
       && !TREE_THIS_VOLATILE (decl)
       && !needs_to_live_in_memory (decl))
     DECL_GIMPLE_REG_P (decl) = 1;
+
+  /* If the decl is not addressable, then it is being used in some
+     expression or on the right hand side of a statement, and it can
+     be put into a readonly data section.  */
+  if (!TREE_ADDRESSABLE (decl) && (fallback & fb_lvalue) == 0)
+    TREE_READONLY (decl) = 1;
 
   /* This decl isn't mentioned in the enclosing block, so add it to the
      list of temps.  FIXME it seems a bit of a kludge to say that
@@ -3986,9 +4046,13 @@ gimplify_init_constructor (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	    else
 	      align = TYPE_ALIGN (type);
 
+	    /* Do a block move either if the size is so small as to make
+	       each individual move a sub-unit move on average, or if it
+	       is so large as to make individual moves inefficient.  */
 	    if (size > 0
 		&& num_nonzero_elements > 1
-		&& !can_move_by_pieces (size, align))
+		&& (size < num_nonzero_elements
+		    || !can_move_by_pieces (size, align)))
 	      {
 		if (notify_temp_creation)
 		  return GS_ERROR;
@@ -4722,6 +4786,7 @@ gimplify_modify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
   enum gimplify_status ret = GS_UNHANDLED;
   gimple assign;
   location_t loc = EXPR_LOCATION (*expr_p);
+  gimple_stmt_iterator gsi;
 
   gcc_assert (TREE_CODE (*expr_p) == MODIFY_EXPR
 	      || TREE_CODE (*expr_p) == INIT_EXPR);
@@ -4862,8 +4927,6 @@ gimplify_modify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
       gimple_set_location (assign, EXPR_LOCATION (*expr_p));
     }
 
-  gimplify_seq_add_stmt (pre_p, assign);
-
   if (gimplify_ctxp->into_ssa && is_gimple_reg (*to_p))
     {
       /* If we've somehow already got an SSA_NAME on the LHS, then
@@ -4872,6 +4935,10 @@ gimplify_modify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
       *to_p = make_ssa_name (*to_p, assign);
       gimple_set_lhs (assign, *to_p);
     }
+
+  gimplify_seq_add_stmt (pre_p, assign);
+  gsi = gsi_last (*pre_p);
+  fold_stmt (&gsi);
 
   if (want_value)
     {
@@ -5424,8 +5491,8 @@ gimplify_cleanup_point_expr (tree *expr_p, gimple_seq *pre_p)
 	      gtry = gimple_build_try (seq, gimple_wce_cleanup (wce), kind);
               /* Do not use gsi_replace here, as it may scan operands.
                  We want to do a simple structural modification only.  */
-              *gsi_stmt_ptr (&iter) = gtry;
-	      iter = gsi_start (seq);
+	      gsi_set_stmt (&iter, gtry);
+	      iter = gsi_start (gtry->gimple_try.eval);
 	    }
 	}
       else
@@ -5606,9 +5673,6 @@ bool
 gimplify_stmt (tree *stmt_p, gimple_seq *seq_p)
 {
   gimple_seq_node last;
-
-  if (!*seq_p)
-    *seq_p = gimple_seq_alloc ();
 
   last = gimple_seq_last (*seq_p);
   gimplify_expr (stmt_p, seq_p, NULL, is_gimple_stmt, fb_none);
@@ -6106,8 +6170,8 @@ gimplify_scan_omp_clauses (tree *list_p, gimple_seq *pre_p,
 	      gimplify_omp_ctxp = ctx;
 	      push_gimplify_context (&gctx);
 
-	      OMP_CLAUSE_REDUCTION_GIMPLE_INIT (c) = gimple_seq_alloc ();
-	      OMP_CLAUSE_REDUCTION_GIMPLE_MERGE (c) = gimple_seq_alloc ();
+	      OMP_CLAUSE_REDUCTION_GIMPLE_INIT (c) = NULL;
+	      OMP_CLAUSE_REDUCTION_GIMPLE_MERGE (c) = NULL;
 
 	      gimplify_and_add (OMP_CLAUSE_REDUCTION_INIT (c),
 		  		&OMP_CLAUSE_REDUCTION_GIMPLE_INIT (c));
@@ -6443,7 +6507,7 @@ gimplify_omp_for (tree *expr_p, gimple_seq *pre_p)
   gimplify_and_add (OMP_FOR_PRE_BODY (for_stmt), &for_pre_body);
   OMP_FOR_PRE_BODY (for_stmt) = NULL_TREE;
 
-  for_body = gimple_seq_alloc ();
+  for_body = NULL;
   gcc_assert (TREE_VEC_LENGTH (OMP_FOR_INIT (for_stmt))
 	      == TREE_VEC_LENGTH (OMP_FOR_COND (for_stmt)));
   gcc_assert (TREE_VEC_LENGTH (OMP_FOR_INIT (for_stmt))
@@ -7071,7 +7135,8 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	  break;
 
 	case COMPOUND_LITERAL_EXPR:
-	  ret = gimplify_compound_literal_expr (expr_p, pre_p);
+	  ret = gimplify_compound_literal_expr (expr_p, pre_p,
+						gimple_test_f, fallback);
 	  break;
 
 	case MODIFY_EXPR:
@@ -7903,19 +7968,7 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	 TMP.  First, make sure that the expression has a type so that
 	 it can be assigned into a temporary.  */
       gcc_assert (!VOID_TYPE_P (TREE_TYPE (*expr_p)));
-
-      if (!gimple_seq_empty_p (internal_post) || (fallback & fb_lvalue))
-	/* The postqueue might change the value of the expression between
-	   the initialization and use of the temporary, so we can't use a
-	   formal temp.  FIXME do we care?  */
-	{
-	  *expr_p = get_initialized_tmp_var (*expr_p, pre_p, post_p);
-	  if (TREE_CODE (TREE_TYPE (*expr_p)) == COMPLEX_TYPE
-	      || TREE_CODE (TREE_TYPE (*expr_p)) == VECTOR_TYPE)
-	    DECL_GIMPLE_REG_P (*expr_p) = 1;
-	}
-      else
-	*expr_p = get_formal_tmp_var (*expr_p, pre_p);
+      *expr_p = get_formal_tmp_var (*expr_p, pre_p);
     }
   else
     {
@@ -8061,7 +8114,7 @@ gimplify_type_sizes (tree type, gimple_seq *list_p)
 void
 gimplify_one_sizepos (tree *expr_p, gimple_seq *stmt_p)
 {
-  tree type, expr = *expr_p;
+  tree expr = *expr_p;
 
   /* We don't do anything if the value isn't there, is constant, or contains
      A PLACEHOLDER_EXPR.  We also don't want to do anything if it's already
@@ -8073,30 +8126,10 @@ gimplify_one_sizepos (tree *expr_p, gimple_seq *stmt_p)
       || CONTAINS_PLACEHOLDER_P (expr))
     return;
 
-  type = TREE_TYPE (expr);
   *expr_p = unshare_expr (expr);
 
   gimplify_expr (expr_p, stmt_p, NULL, is_gimple_val, fb_rvalue);
   expr = *expr_p;
-
-  /* Verify that we've an exact type match with the original expression.
-     In particular, we do not wish to drop a "sizetype" in favour of a
-     type of similar dimensions.  We don't want to pollute the generic
-     type-stripping code with this knowledge because it doesn't matter
-     for the bulk of GENERIC/GIMPLE.  It only matters that TYPE_SIZE_UNIT
-     and friends retain their "sizetype-ness".  */
-  if (TREE_TYPE (expr) != type
-      && TREE_CODE (type) == INTEGER_TYPE
-      && TYPE_IS_SIZETYPE (type))
-    {
-      tree tmp;
-      gimple stmt;
-
-      *expr_p = create_tmp_var (type, NULL);
-      tmp = build1 (NOP_EXPR, type, expr);
-      stmt = gimplify_assign (*expr_p, tmp, stmt_p);
-      gimple_set_location (stmt, EXPR_LOC_OR_HERE (expr));
-    }
 }
 
 /* Gimplify the body of statements of FNDECL and return a GIMPLE_BIND node
@@ -8279,7 +8312,7 @@ gimplify_function_tree (tree fndecl)
 
   /* The tree body of the function is no longer needed, replace it
      with the new GIMPLE body.  */
-  seq = gimple_seq_alloc ();
+  seq = NULL;
   gimple_seq_add_stmt (&seq, bind);
   gimple_set_body (fndecl, seq);
 
@@ -8328,7 +8361,7 @@ gimplify_function_tree (tree fndecl)
 
       /* Replace the current function body with the body
          wrapped in the try/finally TF.  */
-      seq = gimple_seq_alloc ();
+      seq = NULL;
       gimple_seq_add_stmt (&seq, new_bind);
       gimple_set_body (fndecl, seq);
     }
@@ -8519,7 +8552,13 @@ gimple_regimplify_operands (gimple stmt, gimple_stmt_iterator *gsi_p)
 	  gimple_stmt_iterator i;
 
 	  for (i = gsi_start (pre); !gsi_end_p (i); gsi_next (&i))
-	    mark_symbols_for_renaming (gsi_stmt (i));
+	    {
+	      tree lhs = gimple_get_lhs (gsi_stmt (i));
+	      if (lhs
+		  && TREE_CODE (lhs) != SSA_NAME
+		  && is_gimple_reg (lhs))
+		mark_sym_for_renaming (lhs);
+	    }
 	}
       gsi_insert_seq_before (gsi_p, pre, GSI_SAME_STMT);
     }
@@ -8573,6 +8612,21 @@ force_gimple_operand_1 (tree expr, gimple_seq *stmts,
     for (t = gimplify_ctxp->temps; t ; t = DECL_CHAIN (t))
       add_referenced_var (t);
 
+  if (!gimple_seq_empty_p (*stmts)
+      && gimplify_ctxp->into_ssa)
+    {
+      gimple_stmt_iterator i;
+
+      for (i = gsi_start (*stmts); !gsi_end_p (i); gsi_next (&i))
+	{
+	  tree lhs = gimple_get_lhs (gsi_stmt (i));
+	  if (lhs
+	      && TREE_CODE (lhs) != SSA_NAME
+	      && is_gimple_reg (lhs))
+	    mark_sym_for_renaming (lhs);
+	}
+    }
+
   pop_gimplify_context (NULL);
 
   return expr;
@@ -8609,14 +8663,6 @@ force_gimple_operand_gsi_1 (gimple_stmt_iterator *gsi, tree expr,
 
   if (!gimple_seq_empty_p (stmts))
     {
-      if (gimple_in_ssa_p (cfun))
-	{
-	  gimple_stmt_iterator i;
-
-	  for (i = gsi_start (stmts); !gsi_end_p (i); gsi_next (&i))
-	    mark_symbols_for_renaming (gsi_stmt (i));
-	}
-
       if (before)
 	gsi_insert_seq_before (gsi, stmts, m);
       else

@@ -202,7 +202,7 @@ Target RejectNegative Condition(SUPPORT_SH5_32MEDIA_NOFPU)
 Generate FPU-less SHcompact code
 
 maccumulate-outgoing-args
-Target Report Mask(ACCUMULATE_OUTGOING_ARGS)
+Target Report Var(TARGET_ACCUMULATE_OUTGOING_ARGS) Init(1)
 Reserve space for outgoing arguments in the function prologue
 
 madjust-unroll
@@ -256,10 +256,6 @@ Enable the use of 64-bit floating point registers in fmov instructions.  See -md
 mfixed-range=
 Target RejectNegative Joined Var(sh_fixed_range_str)
 Specify range of registers to make fixed
-
-mfused-madd
-Target Var(TARGET_FMAC)
-Enable the use of the fused floating point multiply-accumulate operation
 
 mgettrcost=
 Target RejectNegative Joined UInteger Var(sh_gettrcost) Init(-1)
@@ -321,7 +317,11 @@ Follow Renesas (formerly Hitachi) / SuperH calling conventions
 
 msoft-atomic
 Target Report Var(TARGET_SOFT_ATOMIC)
-Use software atomic sequences supported by kernel
+Use gUSA software atomic sequences
+
+mhard-atomic
+Target Report Var(TARGET_HARD_ATOMIC)
+Use hardware atomic sequences
 
 menable-tas
 Target Report RejectNegative Var(TARGET_ENABLE_TAS)
@@ -344,3 +344,12 @@ Don't generate privileged-mode only code; implies -mno-inline-ic_invalidate if t
 mpretend-cmove
 Target Var(TARGET_PRETEND_CMOVE)
 Pretend a branch-around-a-move is a conditional move.
+
+mfsca
+Target Var(TARGET_FSCA)
+Enable the use of the fsca instruction
+
+mfsrra
+Target Var(TARGET_FSRRA)
+Enable the use of the fsrra instruction
+

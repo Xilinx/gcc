@@ -1,6 +1,24 @@
+2012-06-19  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* objc-next-runtime-abi-01.c: Do not include tm.h and output.h.
+	Include c-family/c-target.h.
+	(handle_next_class_ref): Rewrite to emit top-level asm statements.
+	(handle_next_impent): Likewise.
+	* objc/Make-lang.in: Fix dependencies for objc-next-runtime-abi-01.o.
+
+2012-05-31  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* objc-act.c: Do not include output.h.
+
+2012-05-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR objc++/53388
+	* objc-act.c (objc_get_class_reference, objc_build_message_expr):
+	Use build_min_nt_loc.
+
 2012-04-20  Jan Hubicka  <jh@suse.cz>
 
-	* objc-acct.c (mark_referenced_methods); Use
+	* objc-act.c (mark_referenced_methods); Use
 	cgraph_mark_force_output_node.
 
 2012-03-21  Steven Bosscher  <steven@gcc.gnu.org>

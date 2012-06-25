@@ -33,11 +33,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "tree.h"
 #include "output.h"
+#include "dbxout.h"
 #include "except.h"
 #include "expr.h"
 #include "optabs.h"
 #include "reload.h"
-#include "integrate.h"
 #include "function.h"
 #include "diagnostic-core.h"
 #include "ggc.h"
@@ -188,6 +188,7 @@ static enum machine_mode pa_c_mode_for_suffix (char);
 static section *pa_function_section (tree, enum node_frequency, bool, bool);
 static bool pa_cannot_force_const_mem (enum machine_mode, rtx);
 static bool pa_legitimate_constant_p (enum machine_mode, rtx);
+static unsigned int pa_section_type_flags (tree, const char *, int);
 
 /* The following extra sections are only used for SOM.  */
 static GTY(()) section *som_readonly_data_section;
@@ -383,6 +384,8 @@ static size_t n_deferred_plabels = 0;
 
 #undef TARGET_LEGITIMATE_CONSTANT_P
 #define TARGET_LEGITIMATE_CONSTANT_P pa_legitimate_constant_p
+#undef TARGET_SECTION_TYPE_FLAGS
+#define TARGET_SECTION_TYPE_FLAGS pa_section_type_flags
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -863,7 +866,7 @@ legitimize_pic_address (rtx orig, enum machine_mode mode, rtx reg)
       if (GET_CODE (orig) == CONST_INT)
 	{
 	  if (INT_14_BITS (orig))
-	    return plus_constant (base, INTVAL (orig));
+	    return plus_constant (Pmode, base, INTVAL (orig));
 	  orig = force_reg (Pmode, orig);
 	}
       pic_ref = gen_rtx_PLUS (Pmode, base, orig);
@@ -1073,7 +1076,7 @@ hppa_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
       if (! VAL_14_BITS_P (newoffset)
 	  && GET_CODE (XEXP (x, 0)) == SYMBOL_REF)
 	{
-	  rtx const_part = plus_constant (XEXP (x, 0), newoffset);
+	  rtx const_part = plus_constant (Pmode, XEXP (x, 0), newoffset);
 	  rtx tmp_reg
 	    = force_reg (Pmode,
 			 gen_rtx_HIGH (Pmode, const_part));
@@ -1094,7 +1097,7 @@ hppa_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
 					     force_reg (Pmode, XEXP (x, 0)),
 					     int_part));
 	}
-      return plus_constant (ptr_reg, offset - newoffset);
+      return plus_constant (Pmode, ptr_reg, offset - newoffset);
     }
 
   /* Handle (plus (mult (a) (shadd_constant)) (b)).  */
@@ -3484,7 +3487,7 @@ store_reg (int reg, HOST_WIDE_INT disp, int base)
   basereg = gen_rtx_REG (Pmode, base);
   if (VAL_14_BITS_P (disp))
     {
-      dest = gen_rtx_MEM (word_mode, plus_constant (basereg, disp));
+      dest = gen_rtx_MEM (word_mode, plus_constant (Pmode, basereg, disp));
       insn = emit_move_insn (dest, src);
     }
   else if (TARGET_64BIT && !VAL_32_BITS_P (disp))
@@ -3568,7 +3571,8 @@ set_reg_plus_d (int reg, int base, HOST_WIDE_INT disp, int note)
   if (VAL_14_BITS_P (disp))
     {
       insn = emit_move_insn (gen_rtx_REG (Pmode, reg),
-			     plus_constant (gen_rtx_REG (Pmode, base), disp));
+			     plus_constant (Pmode,
+					    gen_rtx_REG (Pmode, base), disp));
     }
   else if (TARGET_64BIT && !VAL_32_BITS_P (disp))
     {
@@ -3669,7 +3673,7 @@ pa_compute_frame_size (HOST_WIDE_INT size, int *fregs_live)
   /* Allocate space for the fixed frame marker.  This space must be
      allocated for any function that makes calls or allocates
      stack space.  */
-  if (!current_function_is_leaf || size)
+  if (!crtl->is_leaf || size)
     size += TARGET_64BIT ? 48 : 32;
 
   /* Finally, round to the preferred stack boundary.  */
@@ -3707,7 +3711,7 @@ pa_output_function_prologue (FILE *file, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
      to output the assembler directives which denote the start
      of a function.  */
   fprintf (file, "\t.CALLINFO FRAME=" HOST_WIDE_INT_PRINT_DEC, actual_fsize);
-  if (current_function_is_leaf)
+  if (crtl->is_leaf)
     fputs (",NO_CALLS", file);
   else
     fputs (",CALLS", file);
@@ -4007,16 +4011,19 @@ pa_expand_prologue (void)
 		  if (TARGET_64BIT)
 		    {
 		      rtx mem = gen_rtx_MEM (DFmode,
-					     plus_constant (base, offset));
+					     plus_constant (Pmode, base,
+							    offset));
 		      add_reg_note (insn, REG_FRAME_RELATED_EXPR,
 				    gen_rtx_SET (VOIDmode, mem, reg));
 		    }
 		  else
 		    {
 		      rtx meml = gen_rtx_MEM (SFmode,
-					      plus_constant (base, offset));
+					      plus_constant (Pmode, base,
+							     offset));
 		      rtx memr = gen_rtx_MEM (SFmode,
-					      plus_constant (base, offset + 4));
+					      plus_constant (Pmode, base,
+							     offset + 4));
 		      rtx regl = gen_rtx_REG (SFmode, i);
 		      rtx regr = gen_rtx_REG (SFmode, i + 1);
 		      rtx setl = gen_rtx_SET (VOIDmode, meml, regl);
@@ -4048,7 +4055,7 @@ load_reg (int reg, HOST_WIDE_INT disp, int base)
   rtx src;
 
   if (VAL_14_BITS_P (disp))
-    src = gen_rtx_MEM (word_mode, plus_constant (basereg, disp));
+    src = gen_rtx_MEM (word_mode, plus_constant (Pmode, basereg, disp));
   else if (TARGET_64BIT && !VAL_32_BITS_P (disp))
     {
       rtx delta = GEN_INT (disp);
@@ -4562,7 +4569,7 @@ pa_return_addr_rtx (int count, rtx frameaddr)
 
   for (i = 0; i < len; i++)
     {
-      rtx op0 = gen_rtx_MEM (SImode, plus_constant (ins, i * 4)); 
+      rtx op0 = gen_rtx_MEM (SImode, plus_constant (Pmode, ins, i * 4));
       rtx op1 = GEN_INT (insns[i]);
       emit_cmp_and_jump_insns (op0, op1, NE, NULL, SImode, 0, label);
     }
@@ -4575,7 +4582,7 @@ pa_return_addr_rtx (int count, rtx frameaddr)
   emit_move_insn (saved_rp,
 		  gen_rtx_MEM (Pmode,
 			       memory_address (Pmode,
-					       plus_constant (frameaddr,
+					       plus_constant (Pmode, frameaddr,
 							      -24))));
 
   emit_label (label);
@@ -5935,7 +5942,7 @@ pa_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
 	}
 
       /* Request a secondary reload with a general scratch register
-	 for everthing else.  ??? Could symbolic operands be handled
+	 for everything else.  ??? Could symbolic operands be handled
 	 directly when generating non-pic PA 2.0 code?  */
       sri->icode = (in_p
 		    ? direct_optab_handler (reload_in_optab, mode)
@@ -6080,7 +6087,7 @@ hppa_builtin_saveregs (void)
 		? UNITS_PER_WORD : 0);
 
   if (argadj)
-    offset = plus_constant (crtl->args.arg_offset_rtx, argadj);
+    offset = plus_constant (Pmode, crtl->args.arg_offset_rtx, argadj);
   else
     offset = crtl->args.arg_offset_rtx;
 
@@ -6090,7 +6097,7 @@ hppa_builtin_saveregs (void)
 
       /* Adjust for varargs/stdarg differences.  */
       if (argadj)
-	offset = plus_constant (crtl->args.arg_offset_rtx, -argadj);
+	offset = plus_constant (Pmode, crtl->args.arg_offset_rtx, -argadj);
       else
 	offset = crtl->args.arg_offset_rtx;
 
@@ -6098,7 +6105,8 @@ hppa_builtin_saveregs (void)
 	 from the incoming arg pointer and growing to larger addresses.  */
       for (i = 26, off = -64; i >= 19; i--, off += 8)
 	emit_move_insn (gen_rtx_MEM (word_mode,
-				     plus_constant (arg_pointer_rtx, off)),
+				     plus_constant (Pmode,
+						    arg_pointer_rtx, off)),
 			gen_rtx_REG (word_mode, i));
 
       /* The incoming args pointer points just beyond the flushback area;
@@ -6106,7 +6114,7 @@ hppa_builtin_saveregs (void)
 	 varargs/stdargs we want to make the arg pointer point to the start
 	 of the incoming argument area.  */
       emit_move_insn (virtual_incoming_args_rtx,
-		      plus_constant (arg_pointer_rtx, -64));
+		      plus_constant (Pmode, arg_pointer_rtx, -64));
 
       /* Now return a pointer to the first anonymous argument.  */
       return copy_to_reg (expand_binop (Pmode, add_optab,
@@ -6116,7 +6124,7 @@ hppa_builtin_saveregs (void)
 
   /* Store general registers on the stack.  */
   dest = gen_rtx_MEM (BLKmode,
-		      plus_constant (crtl->args.internal_arg_pointer,
+		      plus_constant (Pmode, crtl->args.internal_arg_pointer,
 				     -16));
   set_mem_alias_set (dest, get_varargs_alias_set ());
   set_mem_align (dest, BITS_PER_WORD);
@@ -7449,7 +7457,7 @@ pa_attr_length_millicode_call (rtx insn)
     return 24;
   else
     {
-      if (!TARGET_LONG_CALLS && distance < 240000)
+      if (!TARGET_LONG_CALLS && distance < MAX_PCREL17F_OFFSET)
 	return 8;
 
       if (TARGET_LONG_ABS_CALL && !flag_pic)
@@ -7662,7 +7670,7 @@ pa_attr_length_call (rtx insn, int sibcall)
   /* pc-relative branch.  */
   if (!TARGET_LONG_CALLS
       && ((TARGET_PA_20 && !sibcall && distance < 7600000)
-	  || distance < 240000))
+	  || distance < MAX_PCREL17F_OFFSET))
     length += 8;
 
   /* 64-bit plabel sequence.  */
@@ -8021,7 +8029,7 @@ pa_attr_length_indirect_call (rtx insn)
   if (TARGET_FAST_INDIRECT_CALLS
       || (!TARGET_PORTABLE_RUNTIME
 	  && ((TARGET_PA_20 && !TARGET_SOM && distance < 7600000)
-	      || distance < 240000)))
+	      || distance < MAX_PCREL17F_OFFSET)))
     return 8;
 
   if (flag_pic)
@@ -10126,7 +10134,8 @@ pa_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
 	 cache lines to minimize the number of lines flushed.  */
       emit_insn (gen_andsi3 (start_addr, r_tramp,
 			     GEN_INT (-MIN_CACHELINE_SIZE)));
-      tmp = force_reg (Pmode, plus_constant (r_tramp, TRAMPOLINE_CODE_SIZE-1));
+      tmp = force_reg (Pmode, plus_constant (Pmode, r_tramp,
+					     TRAMPOLINE_CODE_SIZE-1));
       emit_insn (gen_andsi3 (end_addr, tmp,
 			     GEN_INT (-MIN_CACHELINE_SIZE)));
       emit_move_insn (line_length, GEN_INT (MIN_CACHELINE_SIZE));
@@ -10144,7 +10153,8 @@ pa_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
 
       /* Create a fat pointer for the trampoline.  */
       tmp = adjust_address (m_tramp, Pmode, 16);
-      emit_move_insn (tmp, force_reg (Pmode, plus_constant (r_tramp, 32)));
+      emit_move_insn (tmp, force_reg (Pmode, plus_constant (Pmode,
+							    r_tramp, 32)));
       tmp = adjust_address (m_tramp, Pmode, 24);
       emit_move_insn (tmp, gen_rtx_REG (Pmode, 27));
 
@@ -10152,10 +10162,11 @@ pa_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
 	 they do not accept integer displacements.  We align the
 	 start and end addresses to the beginning of their respective
 	 cache lines to minimize the number of lines flushed.  */
-      tmp = force_reg (Pmode, plus_constant (r_tramp, 32));
+      tmp = force_reg (Pmode, plus_constant (Pmode, r_tramp, 32));
       emit_insn (gen_anddi3 (start_addr, tmp,
 			     GEN_INT (-MIN_CACHELINE_SIZE)));
-      tmp = force_reg (Pmode, plus_constant (tmp, TRAMPOLINE_CODE_SIZE - 1));
+      tmp = force_reg (Pmode, plus_constant (Pmode, tmp,
+					     TRAMPOLINE_CODE_SIZE - 1));
       emit_insn (gen_anddi3 (end_addr, tmp,
 			     GEN_INT (-MIN_CACHELINE_SIZE)));
       emit_move_insn (line_length, GEN_INT (MIN_CACHELINE_SIZE));
@@ -10174,7 +10185,7 @@ static rtx
 pa_trampoline_adjust_address (rtx addr)
 {
   if (!TARGET_64BIT)
-    addr = memory_address (Pmode, plus_constant (addr, 46));
+    addr = memory_address (Pmode, plus_constant (Pmode, addr, 46));
   return addr;
 }
 
@@ -10336,6 +10347,25 @@ pa_legitimate_constant_p (enum machine_mode mode, rtx x)
     return false;
 
   return true;
+}
+
+/* Implement TARGET_SECTION_TYPE_FLAGS.  */
+
+static unsigned int
+pa_section_type_flags (tree decl, const char *name, int reloc)
+{
+  unsigned int flags;
+
+  flags = default_section_type_flags (decl, name, reloc);
+
+  /* Function labels are placed in the constant pool.  This can
+     cause a section conflict if decls are put in ".data.rel.ro"
+     or ".data.rel.ro.local" using the __attribute__ construct.  */
+  if (strcmp (name, ".data.rel.ro") == 0
+      || strcmp (name, ".data.rel.ro.local") == 0)
+    flags |= SECTION_WRITE | SECTION_RELRO;
+
+  return flags;
 }
 
 #include "gt-pa.h"

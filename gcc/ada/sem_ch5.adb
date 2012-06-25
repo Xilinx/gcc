@@ -1650,13 +1650,17 @@ package body Sem_Ch5 is
 
    begin
       Enter_Name (Def_Id);
-      Set_Ekind (Def_Id, E_Variable);
 
       if Present (Subt) then
          Analyze (Subt);
       end if;
 
       Preanalyze_Range (Iter_Name);
+
+      --  Set the kind of the loop variable, which is not visible within
+      --  the iterator name.
+
+      Set_Ekind (Def_Id, E_Variable);
 
       --  If the domain of iteration is an expression, create a declaration for
       --  it, so that finalization actions are introduced outside of the loop.
@@ -1678,6 +1682,13 @@ package body Sem_Ch5 is
 
          begin
             Typ := Etype (Iter_Name);
+
+            --  Protect against malformed iterator
+
+            if Typ = Any_Type then
+               Error_Msg_N ("invalid expression in loop iterator", Iter_Name);
+               return;
+            end if;
 
             --  The name in the renaming declaration may be a function call.
             --  Indicate that it does not come from source, to suppress
@@ -2267,7 +2278,20 @@ package body Sem_Ch5 is
          --  free.
 
          else
-            Analyze (DS);
+            --  A quantified expression that appears in a pre/post condition
+            --  is pre-analyzed several times.  If the range is given by an
+            --  attribute reference it is rewritten as a range, and this is
+            --  done even with expansion disabled. If the type is already set
+            --  do not reanalyze, because a range with static bounds may be
+            --  typed Integer by default.
+
+            if Nkind (Parent (N)) = N_Quantified_Expression
+              and then Present (Etype (DS))
+            then
+               null;
+            else
+               Analyze (DS);
+            end if;
          end if;
       end if;
 
@@ -2337,16 +2361,20 @@ package body Sem_Ch5 is
       Generate_Reference (Base_Type (Etype (DS)), N, ' ');
       Set_Is_Known_Valid (Id, True);
 
-      --  The loop is not a declarative part, so the only entity declared
-      --  "within" must be frozen explicitly.
+      --  The loop is not a declarative part, so the loop variable must be
+      --  frozen explicitly. Do not freeze while preanalyzing a quantified
+      --  expression because the freeze node will not be inserted into the
+      --  tree due to flag Is_Spec_Expression being set.
 
-      declare
-         Flist : constant List_Id := Freeze_Entity (Id, N);
-      begin
-         if Is_Non_Empty_List (Flist) then
-            Insert_Actions (N, Flist);
-         end if;
-      end;
+      if Nkind (Parent (N)) /= N_Quantified_Expression then
+         declare
+            Flist : constant List_Id := Freeze_Entity (Id, N);
+         begin
+            if Is_Non_Empty_List (Flist) then
+               Insert_Actions (N, Flist);
+            end if;
+         end;
+      end if;
 
       --  Check for null or possibly null range and issue warning. We suppress
       --  such messages in generic templates and instances, because in practice
@@ -2766,6 +2794,12 @@ package body Sem_Ch5 is
 
          begin
             Nxt := Original_Node (Next (N));
+
+            --  Skip past pragmas
+
+            while Nkind (Nxt) = N_Pragma loop
+               Nxt := Original_Node (Next (Nxt));
+            end loop;
 
             --  If a label follows us, then we never have dead code, since
             --  someone could branch to the label, so we just ignore it, unless

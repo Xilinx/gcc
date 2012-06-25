@@ -127,7 +127,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "regs.h"
 #include "recog.h"
 #include "flags.h"
-#include "output.h"
 #include "obstack.h"
 #include "insn-attr.h"
 #include "resource.h"
@@ -902,38 +901,6 @@ get_jump_flags (rtx insn, rtx label)
   /* No valid direction information.  */
   else
     flags = 0;
-
-  /* If insn is a conditional branch call mostly_true_jump to get
-     determine the branch prediction.
-
-     Non conditional branches are predicted as very likely taken.  */
-  if (JUMP_P (insn)
-      && (condjump_p (insn) || condjump_in_parallel_p (insn)))
-    {
-      int prediction;
-
-      prediction = mostly_true_jump (insn, get_branch_condition (insn, label));
-      switch (prediction)
-	{
-	case 2:
-	  flags |= (ATTR_FLAG_very_likely | ATTR_FLAG_likely);
-	  break;
-	case 1:
-	  flags |= ATTR_FLAG_likely;
-	  break;
-	case 0:
-	  flags |= ATTR_FLAG_unlikely;
-	  break;
-	case -1:
-	  flags |= (ATTR_FLAG_very_unlikely | ATTR_FLAG_unlikely);
-	  break;
-
-	default:
-	  gcc_unreachable ();
-	}
-    }
-  else
-    flags |= (ATTR_FLAG_very_likely | ATTR_FLAG_likely);
 
   return flags;
 }
@@ -2466,7 +2433,7 @@ fill_simple_delay_slots (int non_jumps_p)
       SET_HARD_REG_BIT (needed.regs, HARD_FRAME_POINTER_REGNUM);
 #endif
       if (! EXIT_IGNORE_STACK
-	  || current_function_sp_is_unchanging)
+	  || crtl->sp_is_unchanging)
 	SET_HARD_REG_BIT (needed.regs, STACK_POINTER_REGNUM);
     }
   else

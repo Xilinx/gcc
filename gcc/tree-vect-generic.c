@@ -64,7 +64,7 @@ build_replicated_const (tree type, tree inner_type, HOST_WIDE_INT value)
     low &= ((HOST_WIDE_INT)1 << TYPE_PRECISION (type)) - 1, high = 0;
   else if (TYPE_PRECISION (type) == HOST_BITS_PER_WIDE_INT)
     high = 0;
-  else if (TYPE_PRECISION (type) == 2 * HOST_BITS_PER_WIDE_INT)
+  else if (TYPE_PRECISION (type) == HOST_BITS_PER_DOUBLE_INT)
     high = low;
   else
     gcc_unreachable ();
@@ -508,7 +508,7 @@ type_for_widest_vector_mode (tree type, optab op)
    returns either the element itself, either BIT_FIELD_REF, or an
    ARRAY_REF expression.
 
-   GSI is requred to insert temporary variables while building a
+   GSI is required to insert temporary variables while building a
    refernece to the element of the vector VECT.
 
    PTMPVEC is a pointer to the temporary variable for caching
@@ -628,6 +628,14 @@ lower_vec_perm (gimple_stmt_iterator *gsi)
   location_t loc = gimple_location (gsi_stmt (*gsi));
   unsigned i;
 
+  if (TREE_CODE (mask) == SSA_NAME)
+    {
+      gimple def_stmt = SSA_NAME_DEF_STMT (mask);
+      if (is_gimple_assign (def_stmt)
+	  && gimple_assign_rhs_code (def_stmt) == VECTOR_CST)
+	mask = gimple_assign_rhs1 (def_stmt);
+    }
+
   if (TREE_CODE (mask) == VECTOR_CST)
     {
       unsigned char *sel_int = XALLOCAVEC (unsigned char, elements);
@@ -637,7 +645,11 @@ lower_vec_perm (gimple_stmt_iterator *gsi)
 		      & (2 * elements - 1));
 
       if (can_vec_perm_p (TYPE_MODE (vect_type), false, sel_int))
-	return;
+	{
+	  gimple_assign_set_rhs3 (stmt, mask);
+	  update_stmt (stmt);
+	  return;
+	}
     }
   else if (can_vec_perm_p (TYPE_MODE (vect_type), true, NULL))
     return;

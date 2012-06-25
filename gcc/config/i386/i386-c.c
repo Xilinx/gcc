@@ -1,5 +1,5 @@
 /* Subroutines used for macro/preprocessor support on the ia-32.
-   Copyright (C) 2008, 2009, 2010
+   Copyright (C) 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -48,7 +48,7 @@ ix86_target_macros_internal (HOST_WIDE_INT isa_flag,
 			     void (*def_or_undef) (cpp_reader *,
 						   const char *))
 {
-  /* For some of the k6/pentium varients there weren't seperate ISA bits to
+  /* For some of the k6/pentium varients there weren't separate ISA bits to
      identify which tune/arch flag was passed, so figure it out here.  */
   size_t arch_len = strlen (ix86_arch_string);
   size_t tune_len = strlen (ix86_tune_string);
@@ -395,6 +395,9 @@ ix86_target_macros (void)
       cpp_assert (parse_in, "machine=i386");
       builtin_define_std ("i386");
     }
+
+  cpp_define_formatted (parse_in, "__ATOMIC_HLE_ACQUIRE=%d", IX86_HLE_ACQUIRE);
+  cpp_define_formatted (parse_in, "__ATOMIC_HLE_RELEASE=%d", IX86_HLE_RELEASE);
 
   ix86_target_macros_internal (ix86_isa_flags,
 			       ix86_arch,

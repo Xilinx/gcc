@@ -159,6 +159,15 @@ package body Sem_Case is
          Msg_Sloc : constant Source_Ptr := Sloc (Case_Node);
 
       begin
+         --  AI05-0188 : within an instance the non-others choices do not
+         --  have to belong to the actual subtype.
+
+         if Ada_Version >= Ada_2012
+           and then In_Instance
+         then
+            return;
+         end if;
+
          --  In some situations, we call this with a null range, and
          --  obviously we don't want to complain in this case!
 
@@ -718,6 +727,14 @@ package body Sem_Case is
                Raises_CE := True;
                return;
 
+            --  AI05-0188 : within an instance the non-others choices do not
+            --  have to belong to the actual subtype.
+
+            elsif Ada_Version >= Ada_2012
+              and then In_Instance
+            then
+               return;
+
             --  Otherwise we have an OK static choice
 
             else
@@ -803,8 +820,18 @@ package body Sem_Case is
          --  bounds of its base type to determine the values covered by the
          --  discrete choices.
 
+         --  In Ada 2012, if the subtype has a non-static predicate the full
+         --  range of the base type must be covered as well.
+
          if Is_OK_Static_Subtype (Subtyp) then
-            Bounds_Type := Subtyp;
+            if not Has_Predicates (Subtyp)
+              or else Present (Static_Predicate (Subtyp))
+            then
+               Bounds_Type := Subtyp;
+            else
+               Bounds_Type := Choice_Type;
+            end if;
+
          else
             Bounds_Type := Choice_Type;
          end if;

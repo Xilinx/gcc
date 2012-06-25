@@ -245,18 +245,7 @@ md_file=
 
 # Obsolete configurations.
 case ${target} in
- # Avoid special cases that are not obsolete
-   arm*-*-*eabi*			\
- )
-     ;;
-   arm*-*-ecos-elf			\
- | arm*-*-elf				\
- | arm*-*-freebsd*			\
- | arm*-*-linux*			\
- | arm*-*-rtems*			\
- | arm*-*-uclinux*			\
- | arm*-wince-pe*			\
- | score-*				\
+   score-*				\
  )
     if test "x$enable_obsolete" != xyes; then
       echo "*** Configuration ${target} is obsolete." >&2
@@ -271,7 +260,18 @@ esac
 # it would otherwise be caught by a more permissive pattern.  The list
 # should be in alphabetical order.
 case ${target} in
-   i[34567]86-go32-*			\
+ # Avoid special cases that are not obsolete
+   arm*-*-*eabi*			\
+ )
+	;;
+   arm*-wince-pe*			\
+ | arm*-*-ecos-elf			\
+ | arm*-*-elf				\
+ | arm*-*-freebsd*			\
+ | arm*-*-linux*			\
+ | arm*-*-rtems*			\
+ | arm*-*-uclinux*			\
+ | i[34567]86-go32-*			\
  | i[34567]86-*-go32*			\
  | m68k-*-uclinuxoldabi*		\
  | mips64orion*-*-rtems*		\
@@ -415,7 +415,7 @@ powerpc*-*-*)
 	extra_headers="ppc-asm.h altivec.h spe.h ppu_intrinsics.h paired.h spu2vmx.h vec_types.h si2vmx.h"
 	need_64bit_hwint=yes
 	case x$with_cpu in
-	    xpowerpc64|xdefault64|x6[23]0|x970|xG5|xpower[34567]|xpower6x|xrs64a|xcell|xa2|xe500mc64)
+	    xpowerpc64|xdefault64|x6[23]0|x970|xG5|xpower[34567]|xpower6x|xrs64a|xcell|xa2|xe500mc64|xe5500|Xe6500)
 		cpu_is_64bit=yes
 		;;
 	esac
@@ -449,6 +449,7 @@ s390*-*-*)
 sh[123456789lbe]*-*-* | sh-*-*)
 	cpu_type=sh
 	need_64bit_hwint=yes
+	extra_options="${extra_options} fused-madd.opt"
 	;;
 v850*-*-*)
 	cpu_type=v850
@@ -817,66 +818,44 @@ arm-wrs-vxworks)
 	extra_options="${extra_options} arm/vxworks.opt"
 	tmake_file="${tmake_file} arm/t-arm arm/t-vxworks"
 	;;
-arm*-*-freebsd*)
-	tm_file="dbxelf.h elfos.h ${fbsd_tm_file} arm/elf.h arm/aout.h arm/freebsd.h arm/arm.h"
-	tmake_file="${tmake_file} arm/t-arm arm/t-strongarm-elf"
-	;;
 arm*-*-netbsdelf*)
 	tm_file="dbxelf.h elfos.h netbsd.h netbsd-elf.h arm/elf.h arm/aout.h arm/arm.h arm/netbsd-elf.h"
 	extra_options="${extra_options} netbsd.opt netbsd-elf.opt"
 	tmake_file="${tmake_file} arm/t-arm"
 	;;
-arm*-*-linux*)			# ARM GNU/Linux with ELF
+arm*-*-linux-*eabi*)			# ARM GNU/Linux with ELF
 	tm_file="dbxelf.h elfos.h gnu-user.h linux.h linux-android.h glibc-stdint.h arm/elf.h arm/linux-gas.h arm/linux-elf.h"
 	case $target in
 	arm*b-*-linux*)
-		tm_defines="${tm_defines} TARGET_BIG_ENDIAN_DEFAULT=1"
-		;;
+	    tm_defines="${tm_defines} TARGET_BIG_ENDIAN_DEFAULT=1"
+	    ;;
 	esac
-	tmake_file="${tmake_file} arm/t-arm"
+	tmake_file="${tmake_file} arm/t-arm arm/t-arm-elf arm/t-bpabi arm/t-linux-eabi"
+	tm_file="$tm_file arm/bpabi.h arm/linux-eabi.h arm/aout.h arm/arm.h"
+	# Define multilib configuration for arm-linux-androideabi.
 	case ${target} in
-	arm*-*-linux-*eabi)
-	    tm_file="$tm_file arm/bpabi.h arm/linux-eabi.h"
-	    tmake_file="$tmake_file arm/t-arm-elf arm/t-bpabi arm/t-linux-eabi"
-	    # Define multilib configuration for arm-linux-androideabi.
-	    case ${target} in
-	    *-androideabi)
-		tmake_file="$tmake_file arm/t-linux-androideabi"
-		;;
-	    esac
-  	    # The BPABI long long divmod functions return a 128-bit value in
-	    # registers r0-r3.  Correctly modeling that requires the use of
-	    # TImode.
-	    need_64bit_hwint=yes
-	    # The EABI requires the use of __cxa_atexit.
-	    default_use_cxa_atexit=yes
-	    ;;
-	*)
-	    tmake_file="$tmake_file arm/t-linux"
+	*-androideabi)
+	    tmake_file="$tmake_file arm/t-linux-androideabi"
 	    ;;
 	esac
+  	# The BPABI long long divmod functions return a 128-bit value in
+	# registers r0-r3.  Correctly modeling that requires the use of
+	# TImode.
+	need_64bit_hwint=yes
+	# The EABI requires the use of __cxa_atexit.
+	default_use_cxa_atexit=yes
 	with_tls=${with_tls:-gnu}
-	tm_file="$tm_file arm/aout.h arm/arm.h"
 	;;
-arm*-*-uclinux*)		# ARM ucLinux
+arm*-*-uclinux*eabi*)		# ARM ucLinux
 	tm_file="dbxelf.h elfos.h arm/unknown-elf.h arm/elf.h arm/linux-gas.h arm/uclinux-elf.h glibc-stdint.h"
-	tmake_file="arm/t-arm arm/t-arm-elf"
-	case ${target} in
-	arm*-*-uclinux*eabi)
-	    tm_file="$tm_file arm/bpabi.h arm/uclinux-eabi.h"
-	    tmake_file="$tmake_file arm/t-bpabi"
-  	    # The BPABI long long divmod functions return a 128-bit value in
-	    # registers r0-r3.  Correctly modeling that requires the use of
-	    # TImode.
-	    need_64bit_hwint=yes
-	    # The EABI requires the use of __cxa_atexit.
-	    default_use_cxa_atexit=yes
-	esac
-	tm_file="$tm_file arm/aout.h arm/arm.h"
-	;;
-arm*-*-ecos-elf)
-	tm_file="dbxelf.h elfos.h newlib-stdint.h arm/unknown-elf.h arm/elf.h arm/aout.h arm/arm.h arm/ecos-elf.h"
-	tmake_file="arm/t-arm arm/t-arm-elf"
+	tmake_file="arm/t-arm arm/t-arm-elf arm/t-bpabi"
+	tm_file="$tm_file arm/bpabi.h arm/uclinux-eabi.h arm/aout.h arm/arm.h"
+	# The BPABI long long divmod functions return a 128-bit value in
+	# registers r0-r3.  Correctly modeling that requires the use of
+	# TImode.
+	need_64bit_hwint=yes
+	# The EABI requires the use of __cxa_atexit.
+	default_use_cxa_atexit=yes
 	;;
 arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtemseabi*)
 	# The BPABI long long divmod functions return a 128-bit value in
@@ -905,20 +884,6 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtemseabi*)
 	esac
 	tm_file="${tm_file} arm/aout.h arm/arm.h"
 	;;
-arm*-*-rtems*)
-	tm_file="dbxelf.h elfos.h arm/unknown-elf.h arm/elf.h arm/aout.h arm/arm.h arm/rtems-elf.h rtems.h newlib-stdint.h"
-	tmake_file="arm/t-arm arm/t-arm-elf t-rtems arm/t-rtems"
-	;;
-arm*-*-elf)
-	tm_file="dbxelf.h elfos.h newlib-stdint.h arm/unknown-elf.h arm/elf.h arm/aout.h arm/arm.h"
-	tmake_file="arm/t-arm arm/t-arm-elf"
-	;;
-arm*-wince-pe*)
-	tm_file="arm/semi.h arm/aout.h arm/arm.h arm/coff.h dbxcoff.h arm/pe.h arm/wince-pe.h"
-	tmake_file="arm/t-arm arm/t-wince-pe"
-	extra_options="${extra_options} arm/pe.opt"
-	extra_objs="pe.o"
-	;;
 avr-*-rtems*)
 	tm_file="elfos.h avr/elf.h avr/avr.h dbxelf.h avr/rtems.h rtems.h newlib-stdint.h"
 	tmake_file="avr/t-avr avr/t-multilib t-rtems avr/t-rtems"
@@ -926,7 +891,7 @@ avr-*-rtems*)
 	extra_objs="avr-devices.o avr-log.o"
 	;;
 avr-*-*)
-	tm_file="elfos.h avr/elf.h avr/avr.h dbxelf.h newlib-stdint.h"
+	tm_file="elfos.h avr/elf.h avr/avr.h dbxelf.h avr/avr-stdint.h"
 	tmake_file="avr/t-avr avr/t-multilib"
 	use_gcc_stdint=wrap
 	extra_gcc_objs="driver-avr.o avr-devices.o"
@@ -1299,7 +1264,14 @@ x86_64-*-linux* | x86_64-*-kfreebsd*-gnu | x86_64-*-knetbsd*-gnu)
 	tmake_file="${tmake_file} i386/t-linux64"
 	x86_multilibs="${with_multilib_list}"
 	if test "$x86_multilibs" = "default"; then
-		x86_multilibs="m64,m32"
+		case ${with_abi} in
+		x32 | mx32)
+			x86_multilibs="mx32"
+			;;
+		*)
+			x86_multilibs="m64,m32"
+			;;
+		esac
 	fi
 	x86_multilibs=`echo $x86_multilibs | sed -e 's/,/ /g'`
 	for x86_multilib in ${x86_multilibs}; do
@@ -1470,6 +1442,8 @@ i[34567]86-*-mingw* | x86_64-*-mingw*)
 	extra_objs="winnt.o winnt-stubs.o"
 	c_target_objs="${c_target_objs} msformat-c.o"
 	cxx_target_objs="${cxx_target_objs} winnt-cxx.o msformat-c.o"
+	gas=yes
+	gnu_ld=yes
 	default_use_cxa_atexit=yes
 	use_gcc_stdint=wrap
 	case ${enable_threads} in
@@ -1712,7 +1686,7 @@ mips*-*-netbsd*)			# NetBSD/mips, either endian.
 	extra_options="${extra_options} netbsd.opt netbsd-elf.opt"
 	;;
 mips64*-*-linux* | mipsisa64*-*-linux*)
-	tm_file="dbxelf.h elfos.h gnu-user.h linux.h glibc-stdint.h ${tm_file} mips/gnu-user.h mips/gnu-user64.h mips/linux64.h"
+	tm_file="dbxelf.h elfos.h gnu-user.h linux.h glibc-stdint.h ${tm_file} mips/gnu-user.h mips/gnu-user64.h mips/linux64.h mips/linux-common.h"
 	tmake_file="${tmake_file} mips/t-linux64"
 	tm_defines="${tm_defines} MIPS_ABI_DEFAULT=ABI_N32"
 	case ${target} in
@@ -1738,6 +1712,7 @@ mips*-*-linux*)				# Linux MIPS, either endian.
 		tm_file="${tm_file} mips/gnu-user64.h mips/linux64.h"
 		tmake_file="${tmake_file} mips/t-linux64"
 	fi
+	tm_file="${tm_file} mips/linux-common.h"
 	case ${target} in
         mipsisa32r2*)
 		tm_defines="${tm_defines} MIPS_ISA_DEFAULT=33"
@@ -2827,6 +2802,13 @@ if test x$with_cpu = x ; then
     mips*-*-vxworks)
       with_arch=mips2
       ;;
+    powerpc*-*-*spe*)
+      if test x$enable_e500_double = xyes; then
+         with_cpu=8548
+      else
+         with_cpu=8540
+      fi       
+      ;;
     sparc-leon*-*)
       with_cpu=v8;
       ;;
@@ -3029,14 +3011,6 @@ case "${target}" in
 		| vfpv3xd-fp16 | neon | neon-fp16 | vfpv4 | vfpv4-d16 \
 		| fpv4-sp-d16 | neon-vfpv4)
 			# OK
-			;;
-		fpa | fpe2 | fpe3 | maverick)
-    			if test "x$enable_obsolete" != xyes; then
-			    echo "*** Configuration option --with-fpu=${with_fpu} is obsolete." >&2
-			    echo "*** Specify --enable-obsolete to build it anyway." >&2
-      			    echo "*** Support will be REMOVED in the next major release of GCC." >&2
-      			    exit 1
-			fi
 			;;
 		*)
 			echo "Unknown fpu used in --with-fpu=$with_fpu" 2>&1
@@ -3305,8 +3279,8 @@ case "${target}" in
 			| 401 | 403 | 405 | 405fp | 440 | 440fp | 464 | 464fp \
 			| 476 | 476fp | 505 | 601 | 602 | 603 | 603e | ec603e \
 			| 604 | 604e | 620 | 630 | 740 | 750 | 7400 | 7450 \
-			| a2 | e300c[23] | 854[08] | e500mc | e500mc64 | titan\
-			| 801 | 821 | 823 | 860 | 970 | G3 | G4 | G5 | cell)
+			| a2 | e300c[23] | 854[08] | e500mc | e500mc64 | e5500 | e6500 \
+			| titan | 801 | 821 | 823 | 860 | 970 | G3 | G4 | G5 | cell)
 				# OK
 				;;
 			*)
@@ -3508,11 +3482,6 @@ case ${target} in
 		c_target_objs="${c_target_objs} rs6000-c.o"
 		cxx_target_objs="${cxx_target_objs} rs6000-c.o"
 		tmake_file="rs6000/t-rs6000 ${tmake_file}"
-
-                if test x$enable_e500_double = xyes
-                then
-                        tm_file="$tm_file rs6000/e500-double.h"
-                fi
 		;;
 
 	sh[123456ble]*-*-* | sh-*-*)

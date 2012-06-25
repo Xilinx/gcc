@@ -275,13 +275,13 @@ mark_all_labels (rtx f)
 	  /* In cfglayout mode, there may be non-insns between the
 	     basic blocks.  If those non-insns represent tablejump data,
 	     they contain label references that we must record.  */
-	  for (insn = bb->il.rtl->header; insn; insn = NEXT_INSN (insn))
+	  for (insn = BB_HEADER (bb); insn; insn = NEXT_INSN (insn))
 	    if (INSN_P (insn))
 	      {
 		gcc_assert (JUMP_TABLE_DATA_P (insn));
 		mark_jump_label (PATTERN (insn), insn, 0);
 	      }
-	  for (insn = bb->il.rtl->footer; insn; insn = NEXT_INSN (insn))
+	  for (insn = BB_FOOTER (bb); insn; insn = NEXT_INSN (insn))
 	    if (INSN_P (insn))
 	      {
 		gcc_assert (JUMP_TABLE_DATA_P (insn));
@@ -1251,6 +1251,26 @@ delete_related_insns (rtx insn)
 
   if (next != 0 && BARRIER_P (next))
     delete_insn (next);
+
+  /* If this is a call, then we have to remove the var tracking note
+     for the call arguments.  */
+
+  if (CALL_P (insn)
+      || (NONJUMP_INSN_P (insn)
+	  && GET_CODE (PATTERN (insn)) == SEQUENCE
+	  && CALL_P (XVECEXP (PATTERN (insn), 0, 0))))
+    {
+      rtx p = insn;
+
+      for (p = NEXT_INSN (p);
+	   p && NOTE_P (p);
+	   p = NEXT_INSN (p))
+	if (NOTE_KIND (p) == NOTE_INSN_CALL_ARG_LOCATION)
+	  {
+	    remove_insn (p);
+	    break;
+	  }
+    }
 
   /* If deleting a jump, decrement the count of the label,
      and delete the label if it is now unused.  */

@@ -29,7 +29,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "cp-tree.h"
-#include "output.h"
 #include "flags.h"
 #include "toplev.h"
 #include "tm_p.h"
@@ -389,7 +388,8 @@ use_thunk (tree thunk_fndecl, bool emit_p)
 				 this_adjusting, fixed_offset, virtual_value,
 				 virtual_offset, alias);
   if (DECL_ONE_ONLY (function))
-    cgraph_add_to_same_comdat_group (thunk_node, funcn);
+    symtab_add_to_same_comdat_group ((symtab_node) thunk_node,
+				     (symtab_node) funcn);
 
   if (!this_adjusting
       || !targetm.asm_out.can_output_mi_thunk (thunk_fndecl, fixed_offset,
@@ -1228,16 +1228,9 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
 
   scope = push_scope (ctype);
 
-  if (diag)
-    {
-      flags = LOOKUP_NORMAL|LOOKUP_SPECULATIVE|LOOKUP_DEFAULTED;
-      complain = tf_warning_or_error;
-    }
-  else
-    {
-      flags = LOOKUP_PROTECT|LOOKUP_SPECULATIVE|LOOKUP_DEFAULTED;
-      complain = tf_none;
-    }
+  flags = LOOKUP_NORMAL|LOOKUP_SPECULATIVE|LOOKUP_DEFAULTED;
+
+  complain = diag ? tf_warning_or_error : tf_none;
 
   if (const_p)
     quals = TYPE_QUAL_CONST;

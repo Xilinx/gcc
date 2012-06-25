@@ -1651,8 +1651,8 @@ combine_blocks (struct loop *loop)
       free_bb_predicate (bb);
       if (bb_with_exit_edge_p (loop, bb))
 	{
+	  gcc_assert (exit_bb == NULL);
 	  exit_bb = bb;
-	  break;
 	}
     }
   gcc_assert (exit_bb != loop->latch);
@@ -1793,6 +1793,14 @@ main_tree_if_conversion (void)
     todo |= TODO_update_ssa_only_virtuals;
 
   free_dominance_info (CDI_POST_DOMINATORS);
+
+#ifdef ENABLE_CHECKING
+  {
+    basic_block bb;
+    FOR_EACH_BB (bb)
+      gcc_assert (!bb->aux);
+  }
+#endif
 
   return todo;
 }

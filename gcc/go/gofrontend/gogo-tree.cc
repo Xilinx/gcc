@@ -260,9 +260,7 @@ Gogo::get_init_fn_name()
 	}
       else
 	{
-	  std::string s = this->unique_prefix();
-	  s.append(1, '.');
-	  s.append(this->package_name());
+	  std::string s = this->pkgpath_symbol();
 	  s.append("..import");
 	  this->init_fn_name_ = s;
 	}
@@ -403,7 +401,7 @@ Gogo::register_gc_vars(const std::vector<Named_object*>& var_gc,
 
   // Build a constructor for the struct.
 
-  VEC(constructor_elt,gc*) root_list_init = VEC_alloc(constructor_elt, gc, 2);
+  VEC(constructor_elt,gc)* root_list_init = VEC_alloc(constructor_elt, gc, 2);
 
   elt = VEC_quick_push(constructor_elt, root_list_init, NULL);
   field = TYPE_FIELDS(root_list_type);
@@ -590,10 +588,11 @@ Find_var::expression(Expression** pexpr)
   return TRAVERSE_CONTINUE;
 }
 
-// Return true if EXPR refers to VAR.
+// Return true if EXPR, PREINIT, or DEP refers to VAR.
 
 static bool
-expression_requires(Expression* expr, Block* preinit, Named_object* var)
+expression_requires(Expression* expr, Block* preinit, Named_object* dep,
+		    Named_object* var)
 {
   Find_var::Seen_objects seen_objects;
   Find_var find_var(var, &seen_objects);
@@ -601,7 +600,15 @@ expression_requires(Expression* expr, Block* preinit, Named_object* var)
     Expression::traverse(&expr, &find_var);
   if (preinit != NULL)
     preinit->traverse(&find_var);
-  
+  if (dep != NULL)
+    {
+      Expression* init = dep->var_value()->init();
+      if (init != NULL)
+	Expression::traverse(&init, &find_var);
+      if (dep->var_value()->has_pre_init())
+	dep->var_value()->preinit()->traverse(&find_var);
+    }
+
   return find_var.found();
 }
 
@@ -658,7 +665,7 @@ typedef std::list<Var_init> Var_inits;
 // variable V2 then we initialize V1 after V2.
 
 static void
-sort_var_inits(Var_inits* var_inits)
+sort_var_inits(Gogo* gogo, Var_inits* var_inits)
 {
   Var_inits ready;
   while (!var_inits->empty())
@@ -667,6 +674,7 @@ sort_var_inits(Var_inits* var_inits)
       Named_object* var = p1->var();
       Expression* init = var->var_value()->init();
       Block* preinit = var->var_value()->preinit();
+      Named_object* dep = gogo->var_depends_on(var->var_value());
 
       // Start walking through the list to see which variables VAR
       // needs to wait for.  We can skip P1->WAITING variables--that
@@ -678,20 +686,22 @@ sort_var_inits(Var_inits* var_inits)
 
       for (; p2 != var_inits->end(); ++p2)
 	{
-	  if (expression_requires(init, preinit, p2->var()))
+	  Named_object* p2var = p2->var();
+	  if (expression_requires(init, preinit, dep, p2var))
 	    {
 	      // Check for cycles.
-	      if (expression_requires(p2->var()->var_value()->init(),
-				      p2->var()->var_value()->preinit(),
+	      if (expression_requires(p2var->var_value()->init(),
+				      p2var->var_value()->preinit(),
+				      gogo->var_depends_on(p2var->var_value()),
 				      var))
 		{
 		  error_at(var->location(),
 			   ("initialization expressions for %qs and "
 			    "%qs depend upon each other"),
 			   var->message_name().c_str(),
-			   p2->var()->message_name().c_str());
+			   p2var->message_name().c_str());
 		  inform(p2->var()->location(), "%qs defined here",
-			 p2->var()->message_name().c_str());
+			 p2var->message_name().c_str());
 		  p2 = var_inits->end();
 		}
 	      else
@@ -714,9 +724,11 @@ sort_var_inits(Var_inits* var_inits)
 	  // VAR does not depends upon any other initialization expressions.
 
 	  // Check for a loop of VAR on itself.  We only do this if
-	  // INIT is not NULL; when INIT is NULL, it means that
-	  // PREINIT sets VAR, which we will interpret as a loop.
-	  if (init != NULL && expression_requires(init, preinit, var))
+	  // INIT is not NULL and there is no dependency; when INIT is
+	  // NULL, it means that PREINIT sets VAR, which we will
+	  // interpret as a loop.
+	  if (init != NULL && dep == NULL
+	      && expression_requires(init, preinit, NULL, var))
 	    error_at(var->location(),
 		     "initialization expression for %qs depends upon itself",
 		     var->message_name().c_str());
@@ -783,7 +795,7 @@ Gogo::write_globals()
 	}
 
       // There is nothing useful we can output for constants which
-      // have ideal or non-integeral type.
+      // have ideal or non-integral type.
       if (no->is_const())
 	{
 	  Type* type = no->const_value()->type();
@@ -834,7 +846,9 @@ Gogo::write_globals()
 		;
 	      else if (TREE_CONSTANT(init))
 		{
-		  if (expression_requires(no->var_value()->init(), NULL, no))
+		  if (expression_requires(no->var_value()->init(), NULL,
+					  this->var_depends_on(no->var_value()),
+					  no))
 		    error_at(no->location(),
 			     "initialization expression for %qs depends "
 			     "upon itself",
@@ -879,6 +893,14 @@ Gogo::write_globals()
 	      else
 		var_inits.push_back(Var_init(no, var_init_tree));
 	    }
+	  else if (this->var_depends_on(no->var_value()) != NULL)
+	    {
+	      // This variable is initialized from something that is
+	      // not in its init or preinit.  This variable needs to
+	      // participate in dependency analysis sorting, in case
+	      // some other variable depends on this one.
+	      var_inits.push_back(Var_init(no, integer_zero_node));
+	    }
 
 	  if (!is_sink && no->var_value()->type()->has_pointer())
 	    var_gc.push_back(no);
@@ -896,7 +918,7 @@ Gogo::write_globals()
   // workable order.
   if (!var_inits.empty())
     {
-      sort_var_inits(&var_inits);
+      sort_var_inits(this, &var_inits);
       for (Var_inits::const_iterator p = var_inits.begin();
 	   p != var_inits.end();
 	   ++p)
@@ -930,7 +952,7 @@ Gogo::write_globals()
 
   wrapup_global_declarations(vec, count);
 
-  cgraph_finalize_compilation_unit();
+  finalize_compilation_unit();
 
   check_global_declarations(vec, count);
   emit_debug_global_declarations(vec, count);
@@ -960,7 +982,7 @@ Named_object::get_id(Gogo* gogo)
       if (this->package_ == NULL)
 	package_name = gogo->package_name();
       else
-	package_name = this->package_->name();
+	package_name = this->package_->package_name();
 
       decl_name = package_name + '.' + Gogo::unpack_hidden_name(this->name_);
 
@@ -981,7 +1003,7 @@ Named_object::get_id(Gogo* gogo)
     {
       const Named_object* in_function = this->type_value()->in_function();
       if (in_function != NULL)
-	decl_name += '$' + in_function->name();
+	decl_name += '$' + Gogo::unpack_hidden_name(in_function->name());
     }
   return get_identifier_from_string(decl_name);
 }
@@ -1253,9 +1275,15 @@ Function::get_or_make_decl(Gogo* gogo, Named_object* no, tree id)
 		   || this->type_->is_method())
 	    {
 	      TREE_PUBLIC(decl) = 1;
-	      std::string asm_name = gogo->unique_prefix();
+	      std::string asm_name = gogo->pkgpath_symbol();
 	      asm_name.append(1, '.');
-	      asm_name.append(IDENTIFIER_POINTER(id), IDENTIFIER_LENGTH(id));
+	      asm_name.append(Gogo::unpack_hidden_name(no->name()));
+	      if (this->type_->is_method())
+		{
+		  asm_name.append(1, '.');
+		  Type* rtype = this->type_->receiver()->type();
+		  asm_name.append(rtype->mangled_name(gogo));
+		}
 	      SET_DECL_ASSEMBLER_NAME(decl,
 				      get_identifier_from_string(asm_name));
 	    }
@@ -1358,10 +1386,16 @@ Function_declaration::get_or_make_decl(Gogo* gogo, Named_object* no, tree id)
 	  if (this->asm_name_.empty())
 	    {
 	      std::string asm_name = (no->package() == NULL
-				      ? gogo->unique_prefix()
-				      : no->package()->unique_prefix());
+				      ? gogo->pkgpath_symbol()
+				      : no->package()->pkgpath_symbol());
 	      asm_name.append(1, '.');
-	      asm_name.append(IDENTIFIER_POINTER(id), IDENTIFIER_LENGTH(id));
+	      asm_name.append(Gogo::unpack_hidden_name(no->name()));
+	      if (this->fntype_->is_method())
+		{
+		  asm_name.append(1, '.');
+		  Type* rtype = this->fntype_->receiver()->type();
+		  asm_name.append(rtype->mangled_name(gogo));
+		}
 	      SET_DECL_ASSEMBLER_NAME(decl,
 				      get_identifier_from_string(asm_name));
 	    }

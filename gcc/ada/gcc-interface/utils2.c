@@ -31,7 +31,6 @@
 #include "flags.h"
 #include "toplev.h"
 #include "ggc.h"
-#include "output.h"
 #include "tree-inline.h"
 
 #include "ada.h"
@@ -789,16 +788,28 @@ build_binary_op (enum tree_code op_code, tree result_type,
       else if (TYPE_IS_PADDING_P (left_type)
 	       && TREE_CONSTANT (TYPE_SIZE (left_type))
 	       && ((TREE_CODE (right_operand) == COMPONENT_REF
-		    && TYPE_IS_PADDING_P
-		       (TREE_TYPE (TREE_OPERAND (right_operand, 0)))
-		    && gnat_types_compatible_p
-		       (left_type,
-			TREE_TYPE (TREE_OPERAND (right_operand, 0))))
+		    && TYPE_MAIN_VARIANT (left_type)
+		       == TYPE_MAIN_VARIANT
+			  (TREE_TYPE (TREE_OPERAND (right_operand, 0))))
 		   || (TREE_CODE (right_operand) == CONSTRUCTOR
 		       && !CONTAINS_PLACEHOLDER_P
 			   (DECL_SIZE (TYPE_FIELDS (left_type)))))
 	       && !integer_zerop (TYPE_SIZE (right_type)))
-	operation_type = left_type;
+	{
+	  /* We make an exception for a BLKmode type padding a non-BLKmode
+	     inner type and do the conversion of the LHS right away, since
+	     unchecked_convert wouldn't do it properly.  */
+	  if (TYPE_MODE (left_type) == BLKmode
+	      && TYPE_MODE (right_type) != BLKmode
+	      && TREE_CODE (right_operand) != CONSTRUCTOR)
+	    {
+	      operation_type = right_type;
+	      left_operand = convert (operation_type, left_operand);
+	      left_type = operation_type;
+	    }
+	  else
+	    operation_type = left_type;
+	}
 
       /* If we have a call to a function that returns an unconstrained type
 	 with default discriminant on the RHS, use the RHS type (which is
@@ -2276,7 +2287,7 @@ build_allocator (tree type, tree init, tree result_type, Entity_Id gnat_proc,
 
       /* If the size overflows, pass -1 so Storage_Error will be raised.  */
       if (TREE_CODE (size) == INTEGER_CST && TREE_OVERFLOW (size))
-	size = ssize_int (-1);
+	size = size_int (-1);
 
       storage = build_call_alloc_dealloc (NULL_TREE, size, storage_type,
 					  gnat_proc, gnat_pool, gnat_node);
@@ -2334,7 +2345,7 @@ build_allocator (tree type, tree init, tree result_type, Entity_Id gnat_proc,
 
   /* If the size overflows, pass -1 so Storage_Error will be raised.  */
   if (TREE_CODE (size) == INTEGER_CST && TREE_OVERFLOW (size))
-    size = ssize_int (-1);
+    size = size_int (-1);
 
   storage = convert (result_type,
 		     build_call_alloc_dealloc (NULL_TREE, size, type,

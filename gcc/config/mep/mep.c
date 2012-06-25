@@ -45,7 +45,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm_p.h"
 #include "ggc.h"
 #include "diagnostic-core.h"
-#include "integrate.h"
 #include "target.h"
 #include "target-def.h"
 #include "langhooks.h"
@@ -2366,7 +2365,7 @@ mep_allocate_initial_value (rtx reg)
     }
 
   rss = cfun->machine->reg_save_slot[REGNO(reg)];
-  return gen_rtx_MEM (SImode, plus_constant (arg_pointer_rtx, -rss));
+  return gen_rtx_MEM (SImode, plus_constant (Pmode, arg_pointer_rtx, -rss));
 }
 
 rtx
@@ -2523,16 +2522,16 @@ mep_interrupt_saved_reg (int r)
 	  || (r == RPB_REGNO || r == RPE_REGNO || r == RPC_REGNO || r == LP_REGNO)
 	  || IVC2_ISAVED_REG (r)))
     return true;
-  if (!current_function_is_leaf)
+  if (!crtl->is_leaf)
     /* Function calls mean we need to save $lp.  */
     if (r == LP_REGNO || IVC2_ISAVED_REG (r))
       return true;
-  if (!current_function_is_leaf || cfun->machine->doloop_tags > 0)
+  if (!crtl->is_leaf || cfun->machine->doloop_tags > 0)
     /* The interrupt handler might use these registers for repeat blocks,
        or it might call a function that does so.  */
     if (r == RPB_REGNO || r == RPE_REGNO || r == RPC_REGNO)
       return true;
-  if (current_function_is_leaf && call_used_regs[r] && !df_regs_ever_live_p(r))
+  if (crtl->is_leaf && call_used_regs[r] && !df_regs_ever_live_p(r))
     return false;
   /* Functions we call might clobber these.  */
   if (call_used_regs[r] && !fixed_regs[r])
@@ -2743,7 +2742,7 @@ mep_reload_pointer (int regno, const char *symbol)
 {
   rtx reg, sym;
 
-  if (!df_regs_ever_live_p(regno) && current_function_is_leaf)
+  if (!df_regs_ever_live_p(regno) && crtl->is_leaf)
     return;
 
   reg = gen_rtx_REG (SImode, regno);
@@ -2844,7 +2843,8 @@ mep_expand_prologue (void)
 	   ALLOCATE_INITIAL_VALUE.  The moves emitted here can then be safely
 	   deleted as dead.  */
 	mem = gen_rtx_MEM (rmode,
-			   plus_constant (stack_pointer_rtx, sp_offset - rss));
+			   plus_constant (Pmode, stack_pointer_rtx,
+					  sp_offset - rss));
 	maybe_dead_p = rtx_equal_p (mem, has_hard_reg_initial_val (rmode, i));
 
 	if (GR_REGNO_P (i) || LOADABLE_CR_REGNO_P (i))
@@ -2855,7 +2855,8 @@ mep_expand_prologue (void)
 	    int be = TARGET_BIG_ENDIAN ? 4 : 0;
 
 	    mem = gen_rtx_MEM (SImode,
-			       plus_constant (stack_pointer_rtx, sp_offset - rss + be));
+			       plus_constant (Pmode, stack_pointer_rtx,
+					      sp_offset - rss + be));
 
 	    maybe_dead_move (gen_rtx_REG (SImode, REGSAVE_CONTROL_TEMP),
 			     gen_rtx_REG (SImode, i),
@@ -2876,7 +2877,8 @@ mep_expand_prologue (void)
 				       copy_rtx (mem),
 				       gen_rtx_REG (rmode, i)));
 	    mem = gen_rtx_MEM (SImode,
-			       plus_constant (stack_pointer_rtx, sp_offset - rss + (4-be)));
+			       plus_constant (Pmode, stack_pointer_rtx,
+					      sp_offset - rss + (4-be)));
 	    insn = maybe_dead_move (mem,
 				    gen_rtx_REG (SImode, REGSAVE_CONTROL_TEMP+1),
 				    maybe_dead_p);
@@ -3083,8 +3085,8 @@ mep_expand_epilogue (void)
 	if (GR_REGNO_P (i) || LOADABLE_CR_REGNO_P (i))
 	  emit_move_insn (gen_rtx_REG (rmode, i),
 			  gen_rtx_MEM (rmode,
-				       plus_constant (stack_pointer_rtx,
-						      sp_offset-rss)));
+				       plus_constant (Pmode, stack_pointer_rtx,
+						      sp_offset - rss)));
 	else
 	  {
 	    if (i == LP_REGNO && !mep_sibcall_epilogue && !interrupt_handler)
@@ -3096,7 +3098,8 @@ mep_expand_epilogue (void)
 	      {
 		emit_move_insn (gen_rtx_REG (rmode, REGSAVE_CONTROL_TEMP),
 				gen_rtx_MEM (rmode,
-					     plus_constant (stack_pointer_rtx,
+					     plus_constant (Pmode,
+							    stack_pointer_rtx,
 							    sp_offset-rss)));
 		emit_move_insn (gen_rtx_REG (rmode, i),
 				gen_rtx_REG (rmode, REGSAVE_CONTROL_TEMP));
@@ -3109,7 +3112,7 @@ mep_expand_epilogue (void)
 	 register when we return by jumping indirectly via the temp.  */
       emit_move_insn (gen_rtx_REG (SImode, REGSAVE_CONTROL_TEMP),
 		      gen_rtx_MEM (SImode,
-				   plus_constant (stack_pointer_rtx,
+				   plus_constant (Pmode, stack_pointer_rtx,
 						  lp_slot)));
       lp_temp = REGSAVE_CONTROL_TEMP;
     }
@@ -3865,7 +3868,7 @@ static int prev_opcode = 0;
 
 /* This isn't as optimal as it could be, because we don't know what
    control register the STC opcode is storing in.  We only need to add
-   the nop if it's the relevent register, but we add it for irrelevent
+   the nop if it's the relevant register, but we add it for irrelevant
    registers also.  */
 
 void
@@ -6989,7 +6992,7 @@ core_insn_p (rtx insn)
 }
 
 /* Mark coprocessor instructions that can be bundled together with
-   the immediately preceeding core instruction.  This is later used
+   the immediately preceding core instruction.  This is later used
    to emit the "+" that tells the assembler to create a VLIW insn.
 
    For unbundled insns, the assembler will automatically add coprocessor

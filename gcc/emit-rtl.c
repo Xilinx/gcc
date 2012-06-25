@@ -45,6 +45,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "function.h"
 #include "expr.h"
+#include "vecprim.h"
 #include "regs.h"
 #include "hard-reg-set.h"
 #include "hashtab.h"
@@ -59,7 +60,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "df.h"
 #include "params.h"
 #include "target.h"
-#include "tree-flow.h"
 
 struct target_rtl default_target_rtl;
 #if SWITCHABLE_TARGET
@@ -147,7 +147,6 @@ static GTY ((if_marked ("ggc_marked_p"), param_is (struct rtx_def)))
 
 #define cur_insn_uid (crtl->emit.x_cur_insn_uid)
 #define cur_debug_insn_uid (crtl->emit.x_cur_debug_insn_uid)
-#define last_location (crtl->emit.x_last_location)
 #define first_label_num (crtl->emit.x_first_label_num)
 
 static rtx make_call_insn_raw (rtx);
@@ -517,7 +516,7 @@ immed_double_int_const (double_int i, enum machine_mode mode)
 
 /* Return a CONST_DOUBLE or CONST_INT for a value specified as a pair
    of ints: I0 is the low-order word and I1 is the high-order word.
-   For values that are larger than 2*HOST_BITS_PER_WIDE_INT, the
+   For values that are larger than HOST_BITS_PER_DOUBLE_INT, the
    implied upper bits are copies of the high bit of i1.  The value
    itself is neither signed nor unsigned.  Do not use this routine for
    non-integer modes; convert to REAL_VALUE_TYPE and use
@@ -530,7 +529,7 @@ immed_double_const (HOST_WIDE_INT i0, HOST_WIDE_INT i1, enum machine_mode mode)
   unsigned int i;
 
   /* There are the following cases (note that there are no modes with
-     HOST_BITS_PER_WIDE_INT < GET_MODE_BITSIZE (mode) < 2 * HOST_BITS_PER_WIDE_INT):
+     HOST_BITS_PER_WIDE_INT < GET_MODE_BITSIZE (mode) < HOST_BITS_PER_DOUBLE_INT):
 
      1) If GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT, then we use
 	gen_int_mode.
@@ -1206,7 +1205,7 @@ gen_lowpart_common (enum machine_mode mode, rtx x)
       && msize * BITS_PER_UNIT <= HOST_BITS_PER_WIDE_INT)
     innermode = mode_for_size (HOST_BITS_PER_WIDE_INT, MODE_INT, 0);
   else if (innermode == VOIDmode)
-    innermode = mode_for_size (HOST_BITS_PER_WIDE_INT * 2, MODE_INT, 0);
+    innermode = mode_for_size (HOST_BITS_PER_DOUBLE_INT, MODE_INT, 0);
 
   xsize = GET_MODE_SIZE (innermode);
 
@@ -1838,15 +1837,6 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 	      /* ??? Any reason the field size would be different than
 		 the size we got from the type?  */
 	    }
-
-	  /* If this is an indirect reference, record it.  */
-	  else if (TREE_CODE (t) == MEM_REF)
-	    {
-	      attrs.expr = t;
-	      attrs.offset_known_p = true;
-	      attrs.offset = 0;
-	      apply_bitpos = bitpos;
-	    }
 	}
 
       /* If this is an indirect reference, record it.  */
@@ -2092,7 +2082,7 @@ adjust_address_1 (rtx memref, enum machine_mode mode, HOST_WIDE_INT offset,
 
   /* Convert a possibly large offset to a signed value within the
      range of the target address space.  */
-  address_mode = targetm.addr_space.address_mode (attrs.addrspace);
+  address_mode = get_address_mode (memref);
   pbits = GET_MODE_BITSIZE (address_mode);
   if (HOST_BITS_PER_WIDE_INT > pbits)
     {
@@ -2110,9 +2100,10 @@ adjust_address_1 (rtx memref, enum machine_mode mode, HOST_WIDE_INT offset,
 	  && (unsigned HOST_WIDE_INT) offset
 	      < GET_MODE_ALIGNMENT (GET_MODE (memref)) / BITS_PER_UNIT)
 	addr = gen_rtx_LO_SUM (address_mode, XEXP (addr, 0),
-			       plus_constant (XEXP (addr, 1), offset));
+			       plus_constant (address_mode,
+					      XEXP (addr, 1), offset));
       else
-	addr = plus_constant (addr, offset);
+	addr = plus_constant (address_mode, addr, offset);
     }
 
   new_rtx = change_address_1 (memref, mode, addr, validate);
@@ -2178,7 +2169,7 @@ offset_address (rtx memref, rtx offset, unsigned HOST_WIDE_INT pow2)
   struct mem_attrs attrs, *defattrs;
 
   attrs = *get_mem_attrs (memref);
-  address_mode = targetm.addr_space.address_mode (attrs.addrspace);
+  address_mode = get_address_mode (memref);
   new_rtx = simplify_gen_binary (PLUS, address_mode, addr, offset);
 
   /* At this point we don't know _why_ the address is invalid.  It
@@ -4935,15 +4926,6 @@ gen_use (rtx x)
   return seq;
 }
 
-/* Cause next statement to emit a line note even if the line number
-   has not changed.  */
-
-void
-force_next_line_note (void)
-{
-  last_location = -1;
-}
-
 /* Place a note of KIND on insn INSN with DATUM as the datum. If a
    note of this type already exists, remove it first.  */
 
@@ -5412,7 +5394,6 @@ init_emit (void)
     cur_insn_uid = 1;
   cur_debug_insn_uid = 1;
   reg_rtx_no = LAST_VIRTUAL_REGISTER + 1;
-  last_location = UNKNOWN_LOCATION;
   first_label_num = label_num;
   seq_stack = NULL;
 
@@ -5698,9 +5679,9 @@ init_emit_once (void)
 	   mode = GET_MODE_WIDER_MODE (mode))
 	const_tiny_rtx[i][(int) mode] = GEN_INT (i);
 
-      for (mode = GET_CLASS_NARROWEST_MODE (MODE_PARTIAL_INT);
-	   mode != VOIDmode;
-	   mode = GET_MODE_WIDER_MODE (mode))
+      for (mode = MIN_MODE_PARTIAL_INT;
+	   mode <= MAX_MODE_PARTIAL_INT;
+	   mode = (enum machine_mode)((int)(mode) + 1))
 	const_tiny_rtx[i][(int) mode] = GEN_INT (i);
     }
 
@@ -5711,9 +5692,9 @@ init_emit_once (void)
        mode = GET_MODE_WIDER_MODE (mode))
     const_tiny_rtx[3][(int) mode] = constm1_rtx;
 
-  for (mode = GET_CLASS_NARROWEST_MODE (MODE_PARTIAL_INT);
-       mode != VOIDmode;
-       mode = GET_MODE_WIDER_MODE (mode))
+  for (mode = MIN_MODE_PARTIAL_INT;
+       mode <= MAX_MODE_PARTIAL_INT;
+       mode = (enum machine_mode)((int)(mode) + 1))
     const_tiny_rtx[3][(int) mode] = constm1_rtx;
       
   for (mode = GET_CLASS_NARROWEST_MODE (MODE_COMPLEX_INT);
@@ -5786,7 +5767,7 @@ init_emit_once (void)
       FCONST1(mode).data.low = 0;
       FCONST1(mode).mode = mode;
       lshift_double (1, 0, GET_MODE_FBIT (mode),
-                     2 * HOST_BITS_PER_WIDE_INT,
+                     HOST_BITS_PER_DOUBLE_INT,
                      &FCONST1(mode).data.low,
 		     &FCONST1(mode).data.high,
                      SIGNED_FIXED_POINT_MODE_P (mode));
@@ -5809,7 +5790,7 @@ init_emit_once (void)
       FCONST1(mode).data.low = 0;
       FCONST1(mode).mode = mode;
       lshift_double (1, 0, GET_MODE_FBIT (mode),
-                     2 * HOST_BITS_PER_WIDE_INT,
+                     HOST_BITS_PER_DOUBLE_INT,
                      &FCONST1(mode).data.low,
 		     &FCONST1(mode).data.high,
                      SIGNED_FIXED_POINT_MODE_P (mode));
@@ -5937,4 +5918,272 @@ gen_hard_reg_clobber (enum machine_mode mode, unsigned int regno)
 	    gen_rtx_CLOBBER (VOIDmode, gen_rtx_REG (mode, regno)));
 }
 
+/* Data structures representing mapping of INSN_LOCATOR into scope blocks, line
+   numbers and files.  In order to be GGC friendly we need to use separate
+   varrays.  This also slightly improve the memory locality in binary search.
+   The _locs array contains locators where the given property change.  The
+   block_locators_blocks contains the scope block that is used for all insn
+   locator greater than corresponding block_locators_locs value and smaller
+   than the following one.  Similarly for the other properties.  */
+static VEC(int,heap) *block_locators_locs;
+static GTY(()) VEC(tree,gc) *block_locators_blocks;
+static VEC(int,heap) *locations_locators_locs;
+DEF_VEC_O(location_t);
+DEF_VEC_ALLOC_O(location_t,heap);
+static VEC(location_t,heap) *locations_locators_vals;
+int prologue_locator;
+int epilogue_locator;
+
+/* Hold current location information and last location information, so the
+   datastructures are built lazily only when some instructions in given
+   place are needed.  */
+static location_t curr_location, last_location;
+static tree curr_block, last_block;
+static int curr_rtl_loc = -1;
+
+/* Allocate insn locator datastructure.  */
+void
+insn_locators_alloc (void)
+{
+  prologue_locator = epilogue_locator = 0;
+
+  block_locators_locs = VEC_alloc (int, heap, 32);
+  block_locators_blocks = VEC_alloc (tree, gc, 32);
+  locations_locators_locs = VEC_alloc (int, heap, 32);
+  locations_locators_vals = VEC_alloc (location_t, heap, 32);
+
+  curr_location = UNKNOWN_LOCATION;
+  last_location = UNKNOWN_LOCATION;
+  curr_block = NULL;
+  last_block = NULL;
+  curr_rtl_loc = 0;
+}
+
+/* At the end of emit stage, clear current location.  */
+void
+insn_locators_finalize (void)
+{
+  if (curr_rtl_loc >= 0)
+    epilogue_locator = curr_insn_locator ();
+  curr_rtl_loc = -1;
+}
+
+/* Allocate insn locator datastructure.  */
+void
+insn_locators_free (void)
+{
+  prologue_locator = epilogue_locator = 0;
+
+  VEC_free (int, heap, block_locators_locs);
+  VEC_free (tree,gc, block_locators_blocks);
+  VEC_free (int, heap, locations_locators_locs);
+  VEC_free (location_t, heap, locations_locators_vals);
+}
+
+/* Set current location.  */
+void
+set_curr_insn_source_location (location_t location)
+{
+  /* IV opts calls into RTL expansion to compute costs of operations.  At this
+     time locators are not initialized.  */
+  if (curr_rtl_loc == -1)
+    return;
+  curr_location = location;
+}
+
+/* Get current location.  */
+location_t
+get_curr_insn_source_location (void)
+{
+  return curr_location;
+}
+
+/* Set current scope block.  */
+void
+set_curr_insn_block (tree b)
+{
+  /* IV opts calls into RTL expansion to compute costs of operations.  At this
+     time locators are not initialized.  */
+  if (curr_rtl_loc == -1)
+    return;
+  if (b)
+    curr_block = b;
+}
+
+/* Get current scope block.  */
+tree
+get_curr_insn_block (void)
+{
+  return curr_block;
+}
+
+/* Return current insn locator.  */
+int
+curr_insn_locator (void)
+{
+  if (curr_rtl_loc == -1 || curr_location == UNKNOWN_LOCATION)
+    return 0;
+  if (last_block != curr_block)
+    {
+      curr_rtl_loc++;
+      VEC_safe_push (int, heap, block_locators_locs, curr_rtl_loc);
+      VEC_safe_push (tree, gc, block_locators_blocks, curr_block);
+      last_block = curr_block;
+    }
+  if (last_location != curr_location)
+    {
+      curr_rtl_loc++;
+      VEC_safe_push (int, heap, locations_locators_locs, curr_rtl_loc);
+      VEC_safe_push (location_t, heap, locations_locators_vals, &curr_location);
+      last_location = curr_location;
+    }
+  return curr_rtl_loc;
+}
+
+
+/* Return lexical scope block locator belongs to.  */
+static tree
+locator_scope (int loc)
+{
+  int max = VEC_length (int, block_locators_locs);
+  int min = 0;
+
+  /* When block_locators_locs was initialized, the pro- and epilogue
+     insns didn't exist yet and can therefore not be found this way.
+     But we know that they belong to the outer most block of the
+     current function.
+     Without this test, the prologue would be put inside the block of
+     the first valid instruction in the function and when that first
+     insn is part of an inlined function then the low_pc of that
+     inlined function is messed up.  Likewise for the epilogue and
+     the last valid instruction.  */
+  if (loc == prologue_locator || loc == epilogue_locator)
+    return DECL_INITIAL (cfun->decl);
+
+  if (!max || !loc)
+    return NULL;
+  while (1)
+    {
+      int pos = (min + max) / 2;
+      int tmp = VEC_index (int, block_locators_locs, pos);
+
+      if (tmp <= loc && min != pos)
+	min = pos;
+      else if (tmp > loc && max != pos)
+	max = pos;
+      else
+	{
+	  min = pos;
+	  break;
+	}
+    }
+  return VEC_index (tree, block_locators_blocks, min);
+}
+
+/* Return lexical scope block insn belongs to.  */
+tree
+insn_scope (const_rtx insn)
+{
+  return locator_scope (INSN_LOCATOR (insn));
+}
+
+/* Return line number of the statement specified by the locator.  */
+location_t
+locator_location (int loc)
+{
+  int max = VEC_length (int, locations_locators_locs);
+  int min = 0;
+
+  while (1)
+    {
+      int pos = (min + max) / 2;
+      int tmp = VEC_index (int, locations_locators_locs, pos);
+
+      if (tmp <= loc && min != pos)
+	min = pos;
+      else if (tmp > loc && max != pos)
+	max = pos;
+      else
+	{
+	  min = pos;
+	  break;
+	}
+    }
+  return *VEC_index (location_t, locations_locators_vals, min);
+}
+
+/* Return source line of the statement that produced this insn.  */
+int
+locator_line (int loc)
+{
+  expanded_location xloc;
+  if (!loc)
+    return 0;
+  else
+    xloc = expand_location (locator_location (loc));
+  return xloc.line;
+}
+
+/* Return line number of the statement that produced this insn.  */
+int
+insn_line (const_rtx insn)
+{
+  return locator_line (INSN_LOCATOR (insn));
+}
+
+/* Return source file of the statement specified by LOC.  */
+const char *
+locator_file (int loc)
+{
+  expanded_location xloc;
+  if (!loc)
+    return 0;
+  else
+    xloc = expand_location (locator_location (loc));
+  return xloc.file;
+}
+
+/* Return source file of the statement that produced this insn.  */
+const char *
+insn_file (const_rtx insn)
+{
+  return locator_file (INSN_LOCATOR (insn));
+}
+
+/* Return true if LOC1 and LOC2 locators have the same location and scope.  */
+bool
+locator_eq (int loc1, int loc2)
+{
+  if (loc1 == loc2)
+    return true;
+  if (locator_location (loc1) != locator_location (loc2))
+    return false;
+  return locator_scope (loc1) == locator_scope (loc2);
+}
+
+
+/* Return true if memory model MODEL requires a pre-operation (release-style)
+   barrier or a post-operation (acquire-style) barrier.  While not universal,
+   this function matches behavior of several targets.  */
+
+bool
+need_atomic_barrier_p (enum memmodel model, bool pre)
+{
+  switch (model)
+    {
+    case MEMMODEL_RELAXED:
+    case MEMMODEL_CONSUME:
+      return false;
+    case MEMMODEL_RELEASE:
+      return pre;
+    case MEMMODEL_ACQUIRE:
+      return !pre;
+    case MEMMODEL_ACQ_REL:
+    case MEMMODEL_SEQ_CST:
+      return true;
+    default:
+      gcc_unreachable ();
+    }
+}
+
 #include "gt-emit-rtl.h"

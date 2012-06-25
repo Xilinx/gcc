@@ -1,7 +1,7 @@
 /* Output variables, constants and external declarations, for GNU compiler.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997,
    1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
-   2010, 2011  Free Software Foundation, Inc.
+   2010, 2011, 2012  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -50,9 +50,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "targhooks.h"
 #include "tree-mudflap.h"
 #include "cgraph.h"
-#include "cfglayout.h"
-#include "basic-block.h"
-#include "tree-iterator.h"
 #include "pointer-set.h"
 
 #ifdef XCOFF_DEBUGGING_INFO
@@ -314,11 +311,16 @@ get_section (const char *name, unsigned int flags, tree decl)
 	  if (decl == 0)
 	    decl = sect->named.decl;
 	  gcc_assert (decl);
-	  error ("%+D causes a section type conflict with %D", 
-			decl, sect->named.decl);
-	  if (decl != sect->named.decl)
-            inform (DECL_SOURCE_LOCATION (sect->named.decl), 
-		    "%qD was declared here", sect->named.decl);
+	  if (sect->named.decl == NULL)
+	    error ("%+D causes a section type conflict", decl);
+	  else
+	    {
+	      error ("%+D causes a section type conflict with %D",
+		     decl, sect->named.decl);
+	      if (decl != sect->named.decl)
+		inform (DECL_SOURCE_LOCATION (sect->named.decl),
+			"%qD was declared here", sect->named.decl);
+	    }
 	  /* Make sure we don't error about one section multiple times.  */
 	  sect->common.flags |= SECTION_OVERRIDE;
 	}
@@ -541,7 +543,7 @@ default_function_section (tree decl, enum node_frequency freq,
     return NULL;
   /* Startup code should go to startup subsection unless it is
      unlikely executed (this happens especially with function splitting
-     where we can split away unnecesary parts of static constructors.  */
+     where we can split away unnecessary parts of static constructors.  */
   if (startup && freq != NODE_FREQUENCY_UNLIKELY_EXECUTED)
     return get_named_text_section (decl, ".text.startup", NULL);
 
@@ -1361,31 +1363,14 @@ make_decl_rtl_for_debug (tree decl)
 void
 assemble_asm (tree string)
 {
+  const char *p;
   app_enable ();
 
   if (TREE_CODE (string) == ADDR_EXPR)
     string = TREE_OPERAND (string, 0);
 
-  fprintf (asm_out_file, "\t%s\n", TREE_STRING_POINTER (string));
-}
-
-/* Record an element in the table of global destructors.  SYMBOL is
-   a SYMBOL_REF of the function to be called; PRIORITY is a number
-   between 0 and MAX_INIT_PRIORITY.  */
-
-void
-default_stabs_asm_out_destructor (rtx symbol ATTRIBUTE_UNUSED,
-				  int priority ATTRIBUTE_UNUSED)
-{
-#if defined DBX_DEBUGGING_INFO || defined XCOFF_DEBUGGING_INFO
-  /* Tell GNU LD that this is part of the static destructor set.
-     This will work for any system that uses stabs, most usefully
-     aout systems.  */
-  dbxout_begin_simple_stabs ("___DTOR_LIST__", 22 /* N_SETT */);
-  dbxout_stab_value_label (XSTR (symbol, 0));
-#else
-  sorry ("global destructors not supported on this target");
-#endif
+  p = TREE_STRING_POINTER (string);
+  fprintf (asm_out_file, "%s%s\n", p[0] == '\t' ? "" : "\t", p);
 }
 
 /* Write the address of the entity given by SYMBOL to SEC.  */
@@ -1436,23 +1421,6 @@ default_dtor_section_asm_out_destructor (rtx symbol,
   assemble_addr_to_section (symbol, dtors_section);
 }
 #endif
-
-/* Likewise for global constructors.  */
-
-void
-default_stabs_asm_out_constructor (rtx symbol ATTRIBUTE_UNUSED,
-				   int priority ATTRIBUTE_UNUSED)
-{
-#if defined DBX_DEBUGGING_INFO || defined XCOFF_DEBUGGING_INFO
-  /* Tell GNU LD that this is part of the static destructor set.
-     This will work for any system that uses stabs, most usefully
-     aout systems.  */
-  dbxout_begin_simple_stabs ("___CTOR_LIST__", 22 /* N_SETT */);
-  dbxout_stab_value_label (XSTR (symbol, 0));
-#else
-  sorry ("global constructors not supported on this target");
-#endif
-}
 
 void
 default_named_section_asm_out_constructor (rtx symbol, int priority)
@@ -1987,7 +1955,7 @@ assemble_variable (tree decl, int top_level ATTRIBUTE_UNUSED,
     return;
 
   if (! dont_output_data
-      && ! host_integerp (DECL_SIZE_UNIT (decl), 1))
+      && ! valid_constant_size_p (DECL_SIZE_UNIT (decl)))
     {
       error ("size of variable %q+D is too large", decl);
       return;
@@ -2254,7 +2222,6 @@ mark_decl_referenced (tree decl)
   else if (TREE_CODE (decl) == VAR_DECL)
     {
       struct varpool_node *node = varpool_node (decl);
-      varpool_mark_needed_node (node);
       /* C++ frontend use mark_decl_references to force COMDAT variables
          to be output that might appear dead otherwise.  */
       node->symbol.force_output = true;
@@ -3930,6 +3897,13 @@ compute_reloc_for_constant (tree exp)
 	   tem = TREE_OPERAND (tem, 0))
 	;
 
+      if (TREE_CODE (tem) == MEM_REF
+	  && TREE_CODE (TREE_OPERAND (tem, 0)) == ADDR_EXPR)
+	{
+	  reloc = compute_reloc_for_constant (TREE_OPERAND (tem, 0));
+	  break;
+	}
+
       if (TREE_PUBLIC (tem))
 	reloc |= 2;
       else
@@ -3998,6 +3972,9 @@ output_addressed_constants (tree exp)
 
       if (CONSTANT_CLASS_P (tem) || TREE_CODE (tem) == CONSTRUCTOR)
 	output_constant_def (tem, 0);
+
+      if (TREE_CODE (tem) == MEM_REF)
+	output_addressed_constants (TREE_OPERAND (tem, 0));
       break;
 
     case PLUS_EXPR:
@@ -4759,9 +4736,13 @@ output_constructor_regular_field (oc_local_state *local)
 
   if (local->index != NULL_TREE)
     {
+      /* Perform the index calculation in modulo arithmetic but
+	 sign-extend the result because Ada has negative DECL_FIELD_OFFSETs
+	 but we are using an unsigned sizetype.  */
+      unsigned prec = TYPE_PRECISION (sizetype);
       double_int idx = double_int_sub (tree_to_double_int (local->index),
 				       tree_to_double_int (local->min_index));
-      gcc_assert (double_int_fits_in_shwi_p (idx));
+      idx = double_int_sext (idx, prec);
       fieldpos = (tree_low_cst (TYPE_SIZE_UNIT (TREE_TYPE (local->val)), 1)
 		  * idx.low);
     }
@@ -4972,7 +4953,7 @@ output_constructor_bitfield (oc_local_state *local, oc_outer_state *outer)
 	    value = TREE_INT_CST_LOW (local->val);
 	  else
 	    {
-	      gcc_assert (shift < 2 * HOST_BITS_PER_WIDE_INT);
+	      gcc_assert (shift < HOST_BITS_PER_DOUBLE_INT);
 	      value = TREE_INT_CST_HIGH (local->val);
 	      shift -= HOST_BITS_PER_WIDE_INT;
 	    }
@@ -5004,7 +4985,7 @@ output_constructor_bitfield (oc_local_state *local, oc_outer_state *outer)
 	    value = TREE_INT_CST_LOW (local->val);
 	  else
 	    {
-	      gcc_assert (shift < 2 * HOST_BITS_PER_WIDE_INT);
+	      gcc_assert (shift < HOST_BITS_PER_DOUBLE_INT);
 	      value = TREE_INT_CST_HIGH (local->val);
 	      shift -= HOST_BITS_PER_WIDE_INT;
 	    }
@@ -5417,7 +5398,7 @@ VEC(alias_pair,gc) *alias_pairs;
    or ASM_OUTPUT_DEF_FROM_DECLS.  The function defines the symbol whose
    tree node is DECL to have the value of the tree node TARGET.  */
 
-static void
+void
 do_assemble_alias (tree decl, tree target)
 {
   /* Emulated TLS had better not get this var.  */
@@ -5517,255 +5498,6 @@ do_assemble_alias (tree decl, tree target)
 #endif
 }
 
-
-/* Allocate and construct a symbol alias set.  */
-
-static symbol_alias_set_t *
-symbol_alias_set_create (void)
-{
-  return pointer_set_create ();
-}
-
-/* Destruct and free a symbol alias set.  */
-
-void
-symbol_alias_set_destroy (symbol_alias_set_t *aset)
-{
-  pointer_set_destroy (aset);
-}
-
-/* Test if a symbol alias set contains a given name.  */
-
-int
-symbol_alias_set_contains (const symbol_alias_set_t *aset, tree t)
-{
-  /* We accept either a DECL or an IDENTIFIER directly.  */
-  if (TREE_CODE (t) != IDENTIFIER_NODE)
-    t = DECL_ASSEMBLER_NAME (t);
-  t = targetm.asm_out.mangle_assembler_name (IDENTIFIER_POINTER (t));
-  return pointer_set_contains (aset, t);
-}
-
-/* Enter a new name into a symbol alias set.  */
-
-static int
-symbol_alias_set_insert (symbol_alias_set_t *aset, tree t)
-{
-  /* We accept either a DECL or an IDENTIFIER directly.  */
-  if (TREE_CODE (t) != IDENTIFIER_NODE)
-    t = DECL_ASSEMBLER_NAME (t);
-  t = targetm.asm_out.mangle_assembler_name (IDENTIFIER_POINTER (t));
-  return pointer_set_insert (aset, t);
-}
-
-/* IN_SET_P is a predicate function assuming to be taken
-   alias_pair->decl, alias_pair->target and DATA arguments.
-
-   Compute set of aliases by including everything where TRIVIALLY_VISIBLE
-   predeicate is true and propagate across aliases such that when
-   alias DECL is included, its TARGET is included too.  */
-
-static symbol_alias_set_t *
-propagate_aliases_forward (bool (*in_set_p)
-			     (tree decl, tree target, void *data),
-		           void *data)
-{
-  symbol_alias_set_t *set;
-  unsigned i;
-  alias_pair *p;
-  bool changed;
-
-  set = symbol_alias_set_create ();
-  for (i = 0; VEC_iterate (alias_pair, alias_pairs, i, p); ++i)
-    if (in_set_p (p->decl, p->target, data))
-      symbol_alias_set_insert (set, p->decl);
-  do
-    {
-      changed = false;
-      for (i = 0; VEC_iterate (alias_pair, alias_pairs, i, p); ++i)
-	if (symbol_alias_set_contains (set, p->decl)
-	    && !symbol_alias_set_insert (set, p->target))
-	  changed = true;
-    }
-  while (changed);
-
-  return set;
-}
-
-/* Like propagate_aliases_forward but do backward propagation.  */
-
-symbol_alias_set_t *
-propagate_aliases_backward (bool (*in_set_p)
-			     (tree decl, tree target, void *data),
-		           void *data)
-{
-  symbol_alias_set_t *set;
-  unsigned i;
-  alias_pair *p;
-  bool changed;
-
-  /* We have to compute the set of set nodes including aliases
-     themselves.  */
-  set = symbol_alias_set_create ();
-  for (i = 0; VEC_iterate (alias_pair, alias_pairs, i, p); ++i)
-    if (in_set_p (p->decl, p->target, data))
-      symbol_alias_set_insert (set, p->target);
-  do
-    {
-      changed = false;
-      for (i = 0; VEC_iterate (alias_pair, alias_pairs, i, p); ++i)
-	if (symbol_alias_set_contains (set, p->target)
-	    && !symbol_alias_set_insert (set, p->decl))
-	  changed = true;
-    }
-  while (changed);
-
-  return set;
-}
-/* See if the alias is trivially visible.  This means
-     1) alias is expoerted from the unit or
-     2) alias is used in the code.
-   We assume that unused cgraph/varpool nodes has been
-   removed.
-   Used as callback for propagate_aliases.  */
-
-static bool
-trivially_visible_alias (tree decl, tree target ATTRIBUTE_UNUSED,
-			 void *data ATTRIBUTE_UNUSED)
-{
-  struct cgraph_node *fnode = NULL;
-  struct varpool_node *vnode = NULL;
-
-  if (!TREE_PUBLIC (decl))
-    {
-      if (TREE_CODE (decl) == FUNCTION_DECL)
-	fnode = cgraph_get_node (decl);
-      else
-	vnode = varpool_get_node (decl);
-      return vnode || fnode;
-    }
-  else
-    return true;
-}
-
-/* See if the target of alias is defined in this unit.
-   Used as callback for propagate_aliases.  */
-
-static bool
-trivially_defined_alias (tree decl ATTRIBUTE_UNUSED,
-			 tree target,
-			 void *data ATTRIBUTE_UNUSED)
-{
-  struct cgraph_node *fnode = NULL;
-  struct varpool_node *vnode = NULL;
-
-  fnode = cgraph_node_for_asm (target);
-  vnode = (fnode == NULL) ? varpool_node_for_asm (target) : NULL;
-  return (fnode && fnode->analyzed) || (vnode && vnode->finalized);
-}
-
-/* Remove the alias pairing for functions that are no longer in the call
-   graph.  */
-
-void
-remove_unreachable_alias_pairs (void)
-{
-  symbol_alias_set_t *visible;
-  unsigned i;
-  alias_pair *p;
-
-  if (alias_pairs == NULL)
-    return;
-
-  /* We have to compute the set of visible nodes including aliases
-     themselves.  */
-  visible = propagate_aliases_forward (trivially_visible_alias, NULL);
-
-  for (i = 0; VEC_iterate (alias_pair, alias_pairs, i, p); )
-    {
-      if (!DECL_EXTERNAL (p->decl)
-	  && !symbol_alias_set_contains (visible, p->decl))
-	{
-	  VEC_unordered_remove (alias_pair, alias_pairs, i);
-	  continue;
-	}
-
-      i++;
-    }
-
-  symbol_alias_set_destroy (visible);
-}
-
-
-/* First pass of completing pending aliases.  Make sure that cgraph knows
-   which symbols will be required.  */
-
-void
-finish_aliases_1 (void)
-{
-  symbol_alias_set_t *defined;
-  unsigned i;
-  alias_pair *p;
-
-  if (alias_pairs == NULL)
-    return;
-
-  /* We have to compute the set of defined nodes including aliases
-     themselves.  */
-  defined = propagate_aliases_backward (trivially_defined_alias, NULL);
-
-  FOR_EACH_VEC_ELT (alias_pair, alias_pairs, i, p)
-    {
-      tree target_decl;
-
-      target_decl = find_decl (p->target);
-      if (target_decl == NULL)
-	{
-	  if (symbol_alias_set_contains (defined, p->target))
-	    continue;
-
-	  if (! (p->emitted_diags & ALIAS_DIAG_TO_UNDEF)
-	      && ! lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl)))
-	    {
-	      error ("%q+D aliased to undefined symbol %qE",
-		     p->decl, p->target);
-	      p->emitted_diags |= ALIAS_DIAG_TO_UNDEF;
-	    }
-	}
-      else if (! (p->emitted_diags & ALIAS_DIAG_TO_EXTERN)
-	       && DECL_EXTERNAL (target_decl)
-	       /* We use local aliases for C++ thunks to force the tailcall
-		  to bind locally.  This is a hack - to keep it working do
-		  the following (which is not strictly correct).  */
-	       && (! TREE_CODE (target_decl) == FUNCTION_DECL
-		   || ! DECL_VIRTUAL_P (target_decl))
-	       && ! lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl)))
-	{
-	  error ("%q+D aliased to external symbol %qE",
-		 p->decl, p->target);
-	  p->emitted_diags |= ALIAS_DIAG_TO_EXTERN;
-	}
-    }
-
-  symbol_alias_set_destroy (defined);
-}
-
-/* Second pass of completing pending aliases.  Emit the actual assembly.
-   This happens at the end of compilation and thus it is assured that the
-   target symbol has been emitted.  */
-
-void
-finish_aliases_2 (void)
-{
-  unsigned i;
-  alias_pair *p;
-
-  FOR_EACH_VEC_ELT (alias_pair, alias_pairs, i, p)
-    do_assemble_alias (p->decl, p->target);
-
-  VEC_truncate (alias_pair, alias_pairs, 0);
-}
-
 /* Emit an assembler directive to make the symbol for DECL an alias to
    the symbol for TARGET.  */
 
@@ -5827,14 +5559,14 @@ assemble_alias (tree decl, tree target)
     target_decl = find_decl (target);
   else
     target_decl= NULL;
-  if (target_decl && TREE_ASM_WRITTEN (target_decl))
+  if ((target_decl && TREE_ASM_WRITTEN (target_decl))
+      || cgraph_state >= CGRAPH_STATE_EXPANSION)
     do_assemble_alias (decl, target);
   else
     {
       alias_pair *p = VEC_safe_push (alias_pair, gc, alias_pairs, NULL);
       p->decl = decl;
       p->target = target;
-      p->emitted_diags = ALIAS_DIAG_NONE;
     }
 }
 
@@ -7679,6 +7411,29 @@ default_elf_fini_array_asm_out_destructor (rtx symbol, int priority)
   section *sec = get_elf_initfini_array_priority_section (priority,
 							  false);
   assemble_addr_to_section (symbol, sec);
+}
+
+/* Default TARGET_ASM_OUTPUT_IDENT hook.
+
+   This is a bit of a cheat.  The real default is a no-op, but this
+   hook is the default for all targets with a .ident directive.  */
+
+void
+default_asm_output_ident_directive (const char *ident_str)
+{
+  const char *ident_asm_op = "\t.ident\t";
+
+  /* If we are still in the front end, do not write out the string
+     to asm_out_file.  Instead, add a fake top-level asm statement.
+     This allows the front ends to use this hook without actually
+     writing to asm_out_file, to handle #ident or Pragma Ident.  */
+  if (cgraph_state == CGRAPH_STATE_PARSING)
+    {
+      char *buf = ACONCAT ((ident_asm_op, "\"", ident_str, "\"\n", NULL));
+      add_asm_node (build_string (strlen (buf), buf));
+    }
+  else
+    fprintf (asm_out_file, "%s\"%s\"\n", ident_asm_op, ident_str);
 }
 
 #include "gt-varasm.h"

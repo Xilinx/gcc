@@ -453,7 +453,7 @@ no)
   ;;
 esac
 
-AC_CHECK_HEADERS(sys/file.h sys/mman.h syscall.h sys/epoll.h sys/inotify.h sys/ptrace.h sys/syscall.h sys/user.h sys/utsname.h sys/select.h sys/socket.h net/if.h net/if_arp.h net/route.h netpacket/packet.h sys/prctl.h sys/mount.h sys/vfs.h sys/statfs.h sys/timex.h sys/sysinfo.h utime.h linux/ether.h linux/reboot.h netinet/in_syst.h netinet/ip.h netinet/ip_mroute.h netinet/if_ether.h)
+AC_CHECK_HEADERS(sys/file.h sys/mman.h syscall.h sys/epoll.h sys/inotify.h sys/ptrace.h sys/syscall.h sys/user.h sys/utsname.h sys/select.h sys/socket.h net/if.h net/if_arp.h net/route.h netpacket/packet.h sys/prctl.h sys/mount.h sys/vfs.h sys/statfs.h sys/timex.h sys/sysinfo.h utime.h linux/ether.h linux/fs.h linux/reboot.h netinet/in_syst.h netinet/ip.h netinet/ip_mroute.h netinet/if_ether.h)
 
 AC_CHECK_HEADERS([linux/filter.h linux/if_addr.h linux/if_ether.h linux/if_tun.h linux/netlink.h linux/rtnetlink.h], [], [],
 [#ifdef HAVE_SYS_SOCKET_H
@@ -481,13 +481,18 @@ fi
 
 AM_CONDITIONAL(HAVE_SYS_MMAN_H, test "$ac_cv_header_sys_mman_h" = yes)
 
-AC_CHECK_FUNCS(strerror_r strsignal wait4 mincore setenv)
+AC_CHECK_FUNCS(strerror_r strsignal wait4 mincore setenv dl_iterate_phdr)
 AM_CONDITIONAL(HAVE_STRERROR_R, test "$ac_cv_func_strerror_r" = yes)
 AM_CONDITIONAL(HAVE_WAIT4, test "$ac_cv_func_wait4" = yes)
 
 AC_CHECK_FUNCS(epoll_create1 faccessat fallocate fchmodat fchownat futimesat inotify_add_watch inotify_init inotify_init1 inotify_rm_watch mkdirat mknodat openat renameat sync_file_range splice tee unlinkat unshare)
 AC_TYPE_OFF_T
 AC_CHECK_TYPES([loff_t])
+
+LIBS_hold="$LIBS"
+LIBS="$LIBS -lm"
+AC_CHECK_FUNCS(cosl expl logl sinl tanl acosl asinl atanl atan2l expm1l ldexpl log10l log1pl)
+LIBS="$LIBS_hold"
 
 CFLAGS_hold="$CFLAGS"
 CFLAGS="$CFLAGS $PTHREAD_CFLAGS"

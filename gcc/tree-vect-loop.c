@@ -32,7 +32,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-flow.h"
 #include "tree-dump.h"
 #include "cfgloop.h"
-#include "cfglayout.h"
 #include "expr.h"
 #include "recog.h"
 #include "optabs.h"
@@ -183,7 +182,7 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
   HOST_WIDE_INT dummy;
   gimple stmt, pattern_stmt = NULL;
   gimple_seq pattern_def_seq = NULL;
-  gimple_stmt_iterator pattern_def_si = gsi_start (NULL);
+  gimple_stmt_iterator pattern_def_si = gsi_none ();
   bool analyze_pattern_stmt = false;
 
   if (vect_print_dump_info (REPORT_DETAILS))
@@ -336,7 +335,7 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 		    }
 		  else
 		    {
-		      pattern_def_si = gsi_start (NULL);
+		      pattern_def_si = gsi_none ();
 		      analyze_pattern_stmt = false;
 		    }
 		}
@@ -1202,19 +1201,6 @@ vect_analyze_loop_form (struct loop *loop)
 }
 
 
-/* Get cost by calling cost target builtin.  */
-
-static inline int
-vect_get_cost (enum vect_cost_for_stmt type_of_cost)
-{
-  tree dummy_type = NULL;
-  int dummy = 0;
-
-  return targetm.vectorize.builtin_vectorization_cost (type_of_cost,
-                                                       dummy_type, dummy);
-}
-
- 
 /* Function vect_analyze_loop_operations.
 
    Scan the loop stmts and make sure they are all vectorizable.  */
@@ -1327,7 +1313,9 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
                     return false;
 
                   op_def_stmt = SSA_NAME_DEF_STMT (phi_op);
-                  if (!op_def_stmt || !vinfo_for_stmt (op_def_stmt))
+		  if (!op_def_stmt
+		      || !flow_bb_inside_loop_p (loop, gimple_bb (op_def_stmt))
+		      || !vinfo_for_stmt (op_def_stmt))
                     return false;
 
                   if (STMT_VINFO_RELEVANT (vinfo_for_stmt (op_def_stmt))
@@ -1411,7 +1399,7 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
   if ((LOOP_VINFO_NITERS_KNOWN_P (loop_vinfo)
        && (LOOP_VINFO_INT_NITERS (loop_vinfo) < vectorization_factor))
       || ((max_niter = max_stmt_executions_int (loop)) != -1
-	  && max_niter < vectorization_factor))
+	  && (unsigned HOST_WIDE_INT) max_niter < vectorization_factor))
     {
       if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS))
         fprintf (vect_dump, "not vectorized: iteration count too small.");
@@ -1929,7 +1917,7 @@ vect_is_slp_reduction (loop_vec_info loop_info, gimple phi, gimple first_stmt)
 	      swap_tree_operands (next_stmt,
 	 		          gimple_assign_rhs1_ptr (next_stmt),
                                   gimple_assign_rhs2_ptr (next_stmt));
-	      mark_symbols_for_renaming (next_stmt);
+	      update_stmt (next_stmt);
 	    }
 	  else
 	    return false;
@@ -2384,7 +2372,7 @@ vect_force_simple_reduction (loop_vec_info loop_info, gimple phi,
 
 /* Calculate the cost of one scalar iteration of the loop.  */
 int
-vect_get_single_scalar_iteraion_cost (loop_vec_info loop_vinfo)
+vect_get_single_scalar_iteration_cost (loop_vec_info loop_vinfo)
 {
   struct loop *loop = LOOP_VINFO_LOOP (loop_vinfo);
   basic_block *bbs = LOOP_VINFO_BBS (loop_vinfo);
@@ -2433,12 +2421,12 @@ vect_get_single_scalar_iteraion_cost (loop_vec_info loop_vinfo)
           if (STMT_VINFO_DATA_REF (vinfo_for_stmt (stmt)))
             {
               if (DR_IS_READ (STMT_VINFO_DATA_REF (vinfo_for_stmt (stmt))))
-               stmt_cost = vect_get_cost (scalar_load);
+               stmt_cost = vect_get_stmt_cost (scalar_load);
              else
-               stmt_cost = vect_get_cost (scalar_store);
+               stmt_cost = vect_get_stmt_cost (scalar_store);
             }
           else
-            stmt_cost = vect_get_cost (scalar_stmt);
+            stmt_cost = vect_get_stmt_cost (scalar_stmt);
 
           scalar_single_iter_cost += stmt_cost * factor;
         }
@@ -2465,7 +2453,7 @@ vect_get_known_peeling_cost (loop_vec_info loop_vinfo, int peel_iters_prologue,
 
       /* If peeled iterations are known but number of scalar loop
          iterations are unknown, count a taken branch per peeled loop.  */
-      peel_guard_costs =  2 * vect_get_cost (cond_branch_taken);
+      peel_guard_costs =  2 * vect_get_stmt_cost (cond_branch_taken);
     }
   else
     {
@@ -2546,7 +2534,7 @@ vect_estimate_min_profitable_iters (loop_vec_info loop_vinfo)
 
   if (LOOP_REQUIRES_VERSIONING_FOR_ALIGNMENT (loop_vinfo)
       || LOOP_REQUIRES_VERSIONING_FOR_ALIAS (loop_vinfo))
-    vec_outside_cost += vect_get_cost (cond_branch_taken); 
+    vec_outside_cost += vect_get_stmt_cost (cond_branch_taken); 
 
   /* Count statements in scalar loop.  Using this as scalar cost for a single
      iteration for now.
@@ -2617,7 +2605,7 @@ vect_estimate_min_profitable_iters (loop_vec_info loop_vinfo)
 	}
     }
 
-  scalar_single_iter_cost = vect_get_single_scalar_iteraion_cost (loop_vinfo);
+  scalar_single_iter_cost = vect_get_single_scalar_iteration_cost (loop_vinfo);
 
   /* Add additional cost for the peeled instructions in prologue and epilogue
      loop.
@@ -2647,8 +2635,8 @@ vect_estimate_min_profitable_iters (loop_vec_info loop_vinfo)
          branch per peeled loop. Even if scalar loop iterations are known,
          vector iterations are not known since peeled prologue iterations are
          not known. Hence guards remain the same.  */
-      peel_guard_costs +=  2 * (vect_get_cost (cond_branch_taken)
-                                + vect_get_cost (cond_branch_not_taken));
+      peel_guard_costs +=  2 * (vect_get_stmt_cost (cond_branch_taken)
+                                + vect_get_stmt_cost (cond_branch_not_taken));
       vec_outside_cost += (peel_iters_prologue * scalar_single_iter_cost)
                            + (peel_iters_epilogue * scalar_single_iter_cost)
                            + peel_guard_costs;
@@ -2721,16 +2709,16 @@ vect_estimate_min_profitable_iters (loop_vec_info loop_vinfo)
       /* Cost model check occurs at versioning.  */
       if (LOOP_REQUIRES_VERSIONING_FOR_ALIGNMENT (loop_vinfo)
           || LOOP_REQUIRES_VERSIONING_FOR_ALIAS (loop_vinfo))
-	scalar_outside_cost += vect_get_cost (cond_branch_not_taken);
+	scalar_outside_cost += vect_get_stmt_cost (cond_branch_not_taken);
       else
 	{
 	  /* Cost model check occurs at prologue generation.  */
 	  if (LOOP_PEELING_FOR_ALIGNMENT (loop_vinfo) < 0)
-	    scalar_outside_cost += 2 * vect_get_cost (cond_branch_taken)
-                                   + vect_get_cost (cond_branch_not_taken); 
+	    scalar_outside_cost += 2 * vect_get_stmt_cost (cond_branch_taken)
+	      + vect_get_stmt_cost (cond_branch_not_taken); 
 	  /* Cost model check occurs at epilogue generation.  */
 	  else
-	    scalar_outside_cost += 2 * vect_get_cost (cond_branch_taken); 
+	    scalar_outside_cost += 2 * vect_get_stmt_cost (cond_branch_taken); 
 	}
     }
 
@@ -2841,7 +2829,7 @@ vect_model_reduction_cost (stmt_vec_info stmt_info, enum tree_code reduc_code,
 
   /* Cost of reduction op inside loop.  */
   STMT_VINFO_INSIDE_OF_LOOP_COST (stmt_info) 
-    += ncopies * vect_get_cost (vector_stmt);
+    += ncopies * vect_get_stmt_cost (vector_stmt);
 
   stmt = STMT_VINFO_STMT (stmt_info);
 
@@ -2884,7 +2872,7 @@ vect_model_reduction_cost (stmt_vec_info stmt_info, enum tree_code reduc_code,
   code = gimple_assign_rhs_code (orig_stmt);
 
   /* Add in cost for initial definition.  */
-  outer_cost += vect_get_cost (scalar_to_vec);
+  outer_cost += vect_get_stmt_cost (scalar_to_vec);
 
   /* Determine cost of epilogue code.
 
@@ -2894,8 +2882,8 @@ vect_model_reduction_cost (stmt_vec_info stmt_info, enum tree_code reduc_code,
   if (!nested_in_vect_loop_p (loop, orig_stmt))
     {
       if (reduc_code != ERROR_MARK)
-	outer_cost += vect_get_cost (vector_stmt) 
-                      + vect_get_cost (vec_to_scalar); 
+	outer_cost += vect_get_stmt_cost (vector_stmt) 
+                      + vect_get_stmt_cost (vec_to_scalar); 
       else
 	{
 	  int vec_size_in_bits = tree_low_cst (TYPE_SIZE (vectype), 1);
@@ -2913,13 +2901,13 @@ vect_model_reduction_cost (stmt_vec_info stmt_info, enum tree_code reduc_code,
 	    /* Final reduction via vector shifts and the reduction operator. Also
 	       requires scalar extract.  */
 	    outer_cost += ((exact_log2(nelements) * 2) 
-              * vect_get_cost (vector_stmt) 
-  	      + vect_get_cost (vec_to_scalar));
+              * vect_get_stmt_cost (vector_stmt) 
+  	      + vect_get_stmt_cost (vec_to_scalar));
 	  else
 	    /* Use extracts and reduction op for final reduction.  For N elements,
                we have N extracts and N-1 reduction ops.  */
 	    outer_cost += ((nelements + nelements - 1) 
-              * vect_get_cost (vector_stmt));
+              * vect_get_stmt_cost (vector_stmt));
 	}
     }
 
@@ -2943,10 +2931,10 @@ vect_model_induction_cost (stmt_vec_info stmt_info, int ncopies)
 {
   /* loop cost for vec_loop.  */
   STMT_VINFO_INSIDE_OF_LOOP_COST (stmt_info) 
-    = ncopies * vect_get_cost (vector_stmt);
+    = ncopies * vect_get_stmt_cost (vector_stmt);
   /* prologue cost for vec_init and vec_step.  */
   STMT_VINFO_OUTSIDE_OF_LOOP_COST (stmt_info)  
-    = 2 * vect_get_cost (scalar_to_vec);
+    = 2 * vect_get_stmt_cost (scalar_to_vec);
 
   if (vect_print_dump_info (REPORT_COST))
     fprintf (vect_dump, "vect_model_induction_cost: inside_cost = %d, "
@@ -4210,7 +4198,7 @@ vect_finalize_reduction:
               orig_name = PHI_RESULT (exit_phi);
               FOR_EACH_IMM_USE_STMT (use_stmt, imm_iter, orig_name)
                 {
-                  stmt_vec_info use_stmt_vinfo = vinfo_for_stmt (use_stmt);
+                  stmt_vec_info use_stmt_vinfo;
                   stmt_vec_info new_phi_vinfo;
                   tree vect_phi_init, preheader_arg, vect_phi_res, init_def;
                   basic_block bb = gimple_bb (use_stmt);
@@ -4220,11 +4208,13 @@ vect_finalize_reduction:
                      node.  */
                   if (gimple_code (use_stmt) != GIMPLE_PHI
                       || gimple_phi_num_args (use_stmt) != 2
-                      || !use_stmt_vinfo
-                      || STMT_VINFO_DEF_TYPE (use_stmt_vinfo)
-                          != vect_double_reduction_def
                       || bb->loop_father != outer_loop)
                     continue;
+                  use_stmt_vinfo = vinfo_for_stmt (use_stmt);
+                  if (!use_stmt_vinfo
+                      || STMT_VINFO_DEF_TYPE (use_stmt_vinfo)
+                          != vect_double_reduction_def)
+		    continue;
 
                   /* Create vector phi node for double reduction:
                      vs1 = phi <vs0, vs2>
@@ -5061,12 +5051,46 @@ vectorizable_induction (gimple phi, gimple_stmt_iterator *gsi ATTRIBUTE_UNUSED,
   tree vec_def;
 
   gcc_assert (ncopies >= 1);
-  /* FORNOW. This restriction should be relaxed.  */
-  if (nested_in_vect_loop_p (loop, phi) && ncopies > 1)
+  /* FORNOW. These restrictions should be relaxed.  */
+  if (nested_in_vect_loop_p (loop, phi))
     {
-      if (vect_print_dump_info (REPORT_DETAILS))
-        fprintf (vect_dump, "multiple types in nested loop.");
-      return false;
+      imm_use_iterator imm_iter;
+      use_operand_p use_p;
+      gimple exit_phi;
+      edge latch_e;
+      tree loop_arg;
+
+      if (ncopies > 1)
+	{
+	  if (vect_print_dump_info (REPORT_DETAILS))
+	    fprintf (vect_dump, "multiple types in nested loop.");
+	  return false;
+	}
+
+      exit_phi = NULL;
+      latch_e = loop_latch_edge (loop->inner);
+      loop_arg = PHI_ARG_DEF_FROM_EDGE (phi, latch_e);
+      FOR_EACH_IMM_USE_FAST (use_p, imm_iter, loop_arg)
+	{
+	  if (!flow_bb_inside_loop_p (loop->inner,
+				      gimple_bb (USE_STMT (use_p))))
+	    {
+	      exit_phi = USE_STMT (use_p);
+	      break;
+	    }
+	}
+      if (exit_phi)
+	{
+	  stmt_vec_info exit_phi_vinfo  = vinfo_for_stmt (exit_phi);
+	  if (!(STMT_VINFO_RELEVANT_P (exit_phi_vinfo)
+		&& !STMT_VINFO_LIVE_P (exit_phi_vinfo)))
+	    {
+	      if (vect_print_dump_info (REPORT_DETAILS))
+		fprintf (vect_dump, "inner-loop induction only used outside "
+			 "of the outer vectorized loop.");
+	      return false;
+	    }
+	}
     }
 
   if (!STMT_VINFO_RELEVANT_P (stmt_info))
@@ -5227,34 +5251,48 @@ vect_transform_loop (loop_vec_info loop_vinfo)
   bool grouped_store;
   bool slp_scheduled = false;
   unsigned int nunits;
-  tree cond_expr = NULL_TREE;
-  gimple_seq cond_expr_stmt_list = NULL;
-  bool do_peeling_for_loop_bound;
   gimple stmt, pattern_stmt;
   gimple_seq pattern_def_seq = NULL;
-  gimple_stmt_iterator pattern_def_si = gsi_start (NULL);
+  gimple_stmt_iterator pattern_def_si = gsi_none ();
   bool transform_pattern_stmt = false;
+  bool check_profitability;
+  int th;
 
   if (vect_print_dump_info (REPORT_DETAILS))
     fprintf (vect_dump, "=== vec_transform_loop ===");
+
+  /* Use the more conservative vectorization threshold.  If the number
+     of iterations is constant assume the cost check has been performed
+     by our caller.  If the threshold makes all loops profitable that
+     run at least the vectorization factor number of times checking
+     is pointless, too.  */
+  th = ((PARAM_VALUE (PARAM_MIN_VECT_LOOP_BOUND)
+	 * LOOP_VINFO_VECT_FACTOR (loop_vinfo)) - 1);
+  th = MAX (th, LOOP_VINFO_COST_MODEL_MIN_ITERS (loop_vinfo));
+  if (th >= LOOP_VINFO_VECT_FACTOR (loop_vinfo) - 1
+      && !LOOP_VINFO_NITERS_KNOWN_P (loop_vinfo))
+    {
+      if (vect_print_dump_info (REPORT_COST))
+	fprintf (vect_dump,
+		 "Profitability threshold is %d loop iterations.", th);
+      check_profitability = true;
+    }
 
   /* Peel the loop if there are data refs with unknown alignment.
      Only one data ref with unknown store is allowed.  */
 
   if (LOOP_PEELING_FOR_ALIGNMENT (loop_vinfo))
-    vect_do_peeling_for_alignment (loop_vinfo);
-
-  do_peeling_for_loop_bound
-    = (!LOOP_VINFO_NITERS_KNOWN_P (loop_vinfo)
-       || (LOOP_VINFO_NITERS_KNOWN_P (loop_vinfo)
-	   && LOOP_VINFO_INT_NITERS (loop_vinfo) % vectorization_factor != 0)
-       || LOOP_VINFO_PEELING_FOR_GAPS (loop_vinfo));
+    {
+      vect_do_peeling_for_alignment (loop_vinfo, th, check_profitability);
+      check_profitability = false;
+    }
 
   if (LOOP_REQUIRES_VERSIONING_FOR_ALIGNMENT (loop_vinfo)
       || LOOP_REQUIRES_VERSIONING_FOR_ALIAS (loop_vinfo))
-    vect_loop_versioning (loop_vinfo,
-			  !do_peeling_for_loop_bound,
-			  &cond_expr, &cond_expr_stmt_list);
+    {
+      vect_loop_versioning (loop_vinfo, th, check_profitability);
+      check_profitability = false;
+    }
 
   /* If the loop has a symbolic number of iterations 'n' (i.e. it's not a
      compile time constant), or it is a constant that doesn't divide by the
@@ -5264,9 +5302,12 @@ vect_transform_loop (loop_vec_info loop_vinfo)
      will remain scalar and will compute the remaining (n%VF) iterations.
      (VF is the vectorization factor).  */
 
-  if (do_peeling_for_loop_bound)
+  if (!LOOP_VINFO_NITERS_KNOWN_P (loop_vinfo)
+       || (LOOP_VINFO_NITERS_KNOWN_P (loop_vinfo)
+	   && LOOP_VINFO_INT_NITERS (loop_vinfo) % vectorization_factor != 0)
+       || LOOP_VINFO_PEELING_FOR_GAPS (loop_vinfo))
     vect_do_peeling_for_loop_bound (loop_vinfo, &ratio,
-				    cond_expr, cond_expr_stmt_list);
+				    th, check_profitability);
   else
     ratio = build_int_cst (TREE_TYPE (LOOP_VINFO_NITERS (loop_vinfo)),
 		LOOP_VINFO_INT_NITERS (loop_vinfo) / vectorization_factor);
@@ -5415,7 +5456,7 @@ vect_transform_loop (loop_vec_info loop_vinfo)
 		    }
 		  else
 		    {
-		      pattern_def_si = gsi_start (NULL);
+		      pattern_def_si = gsi_none ();
 		      transform_pattern_stmt = false;
 		    }
 		}

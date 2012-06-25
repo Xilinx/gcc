@@ -1780,6 +1780,11 @@ package VMS_Data is
    --   than after compilation is terminated. If GNAT terminates prematurely
    --   or goes into an infinite loop, the last error message displayed may
    --   help to pinpoint the culprit.
+   --
+   --   Note that this qualifier is intended only for helping to diagnose
+   --   illegal programs when the compiler fails. It disconnects many of the
+   --   normal handling procedures for error messages, and may for example
+   --   cause malfunction of pragma Warnings.
 
    S_GCC_Inline  : aliased constant S := "/INLINE="                        &
                                             "PRAGMA "                      &
@@ -5996,7 +6001,7 @@ package VMS_Data is
    --        /CONTINUATION_INDENT=nnn
    --
    --   Indentation level for continuation lines, nnn from 1 .. 9.
-   --   The default value is one less then the (normal) indentation level,
+   --   The default value is one less than the (normal) indentation level,
    --   unless the indentation is set to 1: in that case the default value for
    --   continuation line indentation is also 1.
 
@@ -6005,7 +6010,7 @@ package VMS_Data is
    --        /NO_SEPARATE_IS
    --
    --   Do not place the IS keyword on a separate line in a subprogram body in
-   --   case if the specification occupies more then one line.
+   --   case if the specification occupies more than one line.
 
    S_Pretty_Sep_Label : aliased constant S := "/SEPARATE_LABEL "           &
                                                     "--separate-label";
@@ -7160,6 +7165,13 @@ package VMS_Data is
                        S_Sync_Details  'Access,
                        S_Sync_Warnoff  'Access,
                        S_Sync_Output   'Access);
+
+   ----------------------------
+   -- Switches for GNAT TEST --
+   ----------------------------
+
+   Test_Switches : aliased constant Switches :=
+     (1 .. 0 => null);
 
    ----------------------------
    -- Switches for GNAT XREF --

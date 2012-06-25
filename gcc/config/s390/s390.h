@@ -539,7 +539,7 @@ extern const enum reg_class regclass_map[FIRST_PSEUDO_REGISTER];
 /* Defining this macro makes __builtin_frame_address(0) and
    __builtin_return_address(0) work with -fomit-frame-pointer.  */
 #define INITIAL_FRAME_ADDRESS_RTX                                             \
-  (plus_constant (arg_pointer_rtx, -STACK_POINTER_OFFSET))
+  (plus_constant (Pmode, arg_pointer_rtx, -STACK_POINTER_OFFSET))
 
 /* The return address of the current frame is retrieved
    from the initial value of register RETURN_REGNUM.
@@ -547,7 +547,8 @@ extern const enum reg_class regclass_map[FIRST_PSEUDO_REGISTER];
    the corresponding RETURN_REGNUM register was saved.  */
 #define DYNAMIC_CHAIN_ADDRESS(FRAME)                                          \
   (TARGET_PACKED_STACK ?                                                      \
-   plus_constant ((FRAME), STACK_POINTER_OFFSET - UNITS_PER_LONG) : (FRAME))
+   plus_constant (Pmode, (FRAME),					      \
+		  STACK_POINTER_OFFSET - UNITS_PER_LONG) : (FRAME))
 
 /* For -mpacked-stack this adds 160 - 8 (96 - 4) to the output of
    builtin_frame_address.  Otherwise arg pointer -
@@ -761,7 +762,7 @@ do {									\
 /* This value is used in tree-sra to decide whether it might benefical
    to split a struct move into several word-size moves.  For S/390
    only small values make sense here since struct moves are relatively
-   cheap thanks to mvc so the small default value choosen for archs
+   cheap thanks to mvc so the small default value chosen for archs
    with memmove patterns should be ok.  But this value is multiplied
    in tree-sra with UNITS_PER_WORD to make a decision so we adjust it
    here to compensate for that factor since mvc costs exactly the same

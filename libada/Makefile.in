@@ -33,7 +33,6 @@ MULTICLEAN = true
 SHELL = @SHELL@
 srcdir = @srcdir@
 libdir = @libdir@
-bindir = @bindir@
 build = @build@
 target = @target@
 prefix = @prefix@
@@ -55,7 +54,7 @@ CFLAGS=-g
 PICFLAG = @PICFLAG@
 GNATLIBFLAGS= -W -Wall -gnatpg -nostdinc
 GNATLIBCFLAGS= -g -O2
-GNATLIBCFLAGS_FOR_C = -W -Wall $(GNATLIBCFLAGS) $(PICFLAG) \
+GNATLIBCFLAGS_FOR_C = -W -Wall $(GNATLIBCFLAGS) \
 	-fexceptions -DIN_RTS @have_getipinfo@
 
 host_subdir = @host_subdir@
@@ -84,7 +83,6 @@ LIBADA_FLAGS_TO_PASS = \
         "TRACE=$(TRACE)" \
         "MULTISUBDIR=$(MULTISUBDIR)" \
         "libsubdir=$(libsubdir)" \
-        "bindir=$(bindir)" \
         "objext=$(objext)" \
         "prefix=$(prefix)" \
         "exeext=.exeext.should.not.be.used " \

@@ -40,7 +40,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "except.h"
 #include "vec.h"
 #include "timevar.h"
-#include "output.h"
 #include "pointer-set.h"
 #include "lto-streamer.h"
 #include "data-streamer.h"
@@ -440,7 +439,7 @@ lto_output_node (struct lto_simple_output_block *ob, struct cgraph_node *node,
      Cherry-picked nodes:  These are nodes we pulled from other
      translation units into SET during IPA-inlining.  We make them as
      local static nodes to prevent clashes with other local statics.  */
-  if (boundary_p && node->analyzed)
+  if (boundary_p && node->analyzed && !DECL_EXTERNAL (node->symbol.decl))
     {
       /* Inline clones can not be part of boundary.  
          gcc_assert (!node->global.inlined_to);  
@@ -571,11 +570,11 @@ lto_output_varpool_node (struct lto_simple_output_block *ob, struct varpool_node
   bp_pack_value (&bp, node->alias, 1);
   bp_pack_value (&bp, node->alias_of != NULL, 1);
   gcc_assert (node->finalized || !node->analyzed);
-  gcc_assert (node->needed);
   /* Constant pool initializers can be de-unified into individual ltrans units.
      FIXME: Alternatively at -Os we may want to avoid generating for them the local
      labels and share them across LTRANS partitions.  */
   if (DECL_IN_CONSTANT_POOL (node->symbol.decl)
+      && !DECL_EXTERNAL (node->symbol.decl)
       && !DECL_COMDAT (node->symbol.decl))
     {
       bp_pack_value (&bp, 0, 1);  /* used_from_other_parition.  */
@@ -586,7 +585,8 @@ lto_output_varpool_node (struct lto_simple_output_block *ob, struct varpool_node
       bp_pack_value (&bp, node->analyzed
 		     && referenced_from_other_partition_p (&node->symbol.ref_list,
 							   set, vset), 1);
-      bp_pack_value (&bp, boundary_p, 1);  /* in_other_partition.  */
+      bp_pack_value (&bp, boundary_p && !DECL_EXTERNAL (node->symbol.decl), 1);
+	  /* in_other_partition.  */
     }
   streamer_write_bitpack (&bp);
   if (node->alias_of)
@@ -1079,16 +1079,14 @@ input_varpool_node (struct lto_file_decl_data *file_data,
   node->finalized = bp_unpack_value (&bp, 1);
   node->alias = bp_unpack_value (&bp, 1);
   non_null_aliasof = bp_unpack_value (&bp, 1);
-  node->analyzed = node->finalized; 
   node->symbol.used_from_other_partition = bp_unpack_value (&bp, 1);
   node->symbol.in_other_partition = bp_unpack_value (&bp, 1);
+  node->analyzed = (node->finalized && (!node->alias || !node->symbol.in_other_partition)); 
   if (node->symbol.in_other_partition)
     {
       DECL_EXTERNAL (node->symbol.decl) = 1;
       TREE_STATIC (node->symbol.decl) = 0;
     }
-  if (node->finalized)
-    varpool_mark_needed_node (node);
   if (non_null_aliasof)
     {
       decl_index = streamer_read_uhwi (ib);
@@ -1456,6 +1454,8 @@ input_cgraph (void)
   struct lto_file_decl_data *file_data;
   unsigned int j = 0;
   struct cgraph_node *node;
+
+  cgraph_state = CGRAPH_STATE_IPA_SSA;
 
   while ((file_data = file_data_vec[j++]))
     {

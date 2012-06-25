@@ -50,9 +50,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "debug.h"
 #include "target.h"
 #include "target-def.h"
-#include "integrate.h"
 #include "langhooks.h"
-#include "cfglayout.h"
 #include "sched-int.h"
 #include "gimple.h"
 #include "bitmap.h"
@@ -960,6 +958,9 @@ static const struct mips_rtx_cost_data
     DEFAULT_COSTS
   },
   { /* R4650 */
+    DEFAULT_COSTS
+  },
+  { /* R4700 */
     DEFAULT_COSTS
   },
   { /* R5000 */
@@ -2569,7 +2570,7 @@ mips_strip_unspec_address (rtx op)
 
   split_const (op, &base, &offset);
   if (UNSPEC_ADDRESS_P (base))
-    op = plus_constant (UNSPEC_ADDRESS (base), INTVAL (offset));
+    op = plus_constant (Pmode, UNSPEC_ADDRESS (base), INTVAL (offset));
   return op;
 }
 
@@ -2622,7 +2623,8 @@ mips16_gp_pseudo_reg (void)
 	scan = NEXT_INSN (scan);
 
       insn = gen_load_const_gp (cfun->machine->mips16_gp_pseudo_rtx);
-      emit_insn_after (insn, scan);
+      insn = emit_insn_after (insn, scan);
+      INSN_LOCATOR (insn) = 0;
 
       pop_topmost_sequence ();
     }
@@ -2808,7 +2810,7 @@ mips_add_offset (rtx temp, rtx reg, HOST_WIDE_INT offset)
       high = mips_force_temporary (temp, high);
       reg = mips_force_temporary (temp, gen_rtx_PLUS (Pmode, high, reg));
     }
-  return plus_constant (reg, offset);
+  return plus_constant (Pmode, reg, offset);
 }
 
 /* The __tls_get_attr symbol.  */
@@ -3490,6 +3492,37 @@ mips_zero_extend_cost (enum machine_mode mode, rtx op)
   return COSTS_N_INSNS (1);
 }
 
+/* Return the cost of moving between two registers of mode MODE,
+   assuming that the move will be in pieces of at most UNITS bytes.  */
+
+static int
+mips_set_reg_reg_piece_cost (enum machine_mode mode, unsigned int units)
+{
+  return COSTS_N_INSNS ((GET_MODE_SIZE (mode) + units - 1) / units);
+}
+
+/* Return the cost of moving between two registers of mode MODE.  */
+
+static int
+mips_set_reg_reg_cost (enum machine_mode mode)
+{
+  switch (GET_MODE_CLASS (mode))
+    {
+    case MODE_CC:
+      return mips_set_reg_reg_piece_cost (mode, GET_MODE_SIZE (CCmode));
+
+    case MODE_FLOAT:
+    case MODE_COMPLEX_FLOAT:
+    case MODE_VECTOR_FLOAT:
+      if (TARGET_HARD_FLOAT)
+	return mips_set_reg_reg_piece_cost (mode, UNITS_PER_HWFPVALUE);
+      /* Fall through */
+
+    default:
+      return mips_set_reg_reg_piece_cost (mode, UNITS_PER_WORD);
+    }
+}
+
 /* Implement TARGET_RTX_COSTS.  */
 
 static bool
@@ -3875,6 +3908,15 @@ mips_rtx_costs (rtx x, int code, int outer_code, int opno ATTRIBUTE_UNUSED,
     case FLOAT_EXTEND:
     case FLOAT_TRUNCATE:
       *total = mips_cost->fp_add;
+      return false;
+
+    case SET:
+      if (register_operand (SET_DEST (x), VOIDmode)
+	  && reg_or_0_operand (SET_SRC (x), VOIDmode))
+	{
+	  *total = mips_set_reg_reg_cost (GET_MODE (SET_DEST (x)));
+	  return true;
+	}
       return false;
 
     default:
@@ -5392,7 +5434,7 @@ mips_setup_incoming_varargs (cumulative_args_t cum, enum machine_mode mode,
 	{
 	  rtx ptr, mem;
 
-	  ptr = plus_constant (virtual_incoming_args_rtx,
+	  ptr = plus_constant (Pmode, virtual_incoming_args_rtx,
 			       REG_PARM_STACK_SPACE (cfun->decl)
 			       - gp_saved * UNITS_PER_WORD);
 	  mem = gen_frame_mem (BLKmode, ptr);
@@ -5421,7 +5463,7 @@ mips_setup_incoming_varargs (cumulative_args_t cum, enum machine_mode mode,
 	    {
 	      rtx ptr, mem;
 
-	      ptr = plus_constant (virtual_incoming_args_rtx, off);
+	      ptr = plus_constant (Pmode, virtual_incoming_args_rtx, off);
 	      mem = gen_frame_mem (mode, ptr);
 	      set_mem_alias_set (mem, get_varargs_alias_set ());
 	      mips_emit_move (mem, gen_rtx_REG (mode, FP_ARG_FIRST + i));
@@ -5584,7 +5626,7 @@ mips_va_start (tree valist, rtx nextarg)
     }
   else
     {
-      nextarg = plus_constant (nextarg, -cfun->machine->varargs_size);
+      nextarg = plus_constant (Pmode, nextarg, -cfun->machine->varargs_size);
       std_expand_builtin_va_start (valist, nextarg);
     }
 }
@@ -6951,8 +6993,8 @@ mips_block_move_loop (rtx dest, rtx src, HOST_WIDE_INT length,
   mips_block_move_straight (dest, src, bytes_per_iter);
 
   /* Move on to the next block.  */
-  mips_emit_move (src_reg, plus_constant (src_reg, bytes_per_iter));
-  mips_emit_move (dest_reg, plus_constant (dest_reg, bytes_per_iter));
+  mips_emit_move (src_reg, plus_constant (Pmode, src_reg, bytes_per_iter));
+  mips_emit_move (dest_reg, plus_constant (Pmode, dest_reg, bytes_per_iter));
 
   /* Emit the loop condition.  */
   test = gen_rtx_NE (VOIDmode, src_reg, final_src);
@@ -7764,7 +7806,8 @@ mips_print_operand_punct_valid_p (unsigned char code)
    'D'	Print the second part of a double-word register or memory operand.
    'L'	Print the low-order register in a double-word register operand.
    'M'	Print high-order register in a double-word register operand.
-   'z'	Print $0 if OP is zero, otherwise print OP normally.  */
+   'z'	Print $0 if OP is zero, otherwise print OP normally.
+   'b'	Print the address of a memory operand, without offset.  */
 
 static void
 mips_print_operand (FILE *file, rtx op, int letter)
@@ -7892,7 +7935,12 @@ mips_print_operand (FILE *file, rtx op, int letter)
 
 	case MEM:
 	  if (letter == 'D')
-	    output_address (plus_constant (XEXP (op, 0), 4));
+	    output_address (plus_constant (Pmode, XEXP (op, 0), 4));
+	  else if (letter == 'b')
+	    {
+	      gcc_assert (REG_P (XEXP (op, 0)));
+	      mips_print_operand (file, XEXP (op, 0), 0);
+	    }
 	  else if (letter && letter != 'z')
 	    output_operand_lossage ("invalid use of '%%%c'", letter);
 	  else
@@ -8751,7 +8799,8 @@ mips16e_save_restore_reg (bool restore_p, bool reg_parm_p,
 {
   rtx reg, mem;
 
-  mem = gen_frame_mem (SImode, plus_constant (stack_pointer_rtx, offset));
+  mem = gen_frame_mem (SImode, plus_constant (Pmode, stack_pointer_rtx,
+					      offset));
   reg = gen_rtx_REG (SImode, regno);
   if (restore_p)
     {
@@ -8810,7 +8859,7 @@ mips16e_build_save_restore (bool restore_p, unsigned int *mask_ptr,
 
   /* Add the stack pointer adjustment.  */
   set = gen_rtx_SET (VOIDmode, stack_pointer_rtx,
-		     plus_constant (stack_pointer_rtx,
+		     plus_constant (Pmode, stack_pointer_rtx,
 				    restore_p ? size : -size));
   RTX_FRAME_RELATED_P (set) = 1;
   XVECEXP (pattern, 0, n++) = set;
@@ -9170,7 +9219,7 @@ mips_global_pointer (void)
 
   /* If the global pointer is call-saved, try to use a call-clobbered
      alternative.  */
-  if (TARGET_CALL_SAVED_GP && current_function_is_leaf)
+  if (TARGET_CALL_SAVED_GP && crtl->is_leaf)
     for (regno = GP_REG_FIRST; regno <= GP_REG_LAST; regno++)
       if (!df_regs_ever_live_p (regno)
 	  && call_really_used_regs[regno]
@@ -9397,7 +9446,7 @@ mips_cfun_might_clobber_call_saved_reg_p (unsigned int regno)
   /* If REGNO is ordinarily call-clobbered, we must assume that any
      called function could modify it.  */
   if (cfun->machine->interrupt_handler_p
-      && !current_function_is_leaf
+      && !crtl->is_leaf
       && mips_interrupt_extra_call_saved_reg_p (regno))
     return true;
 
@@ -9540,7 +9589,7 @@ mips_compute_frame_info (void)
      slot.  This area isn't needed in leaf functions, but if the
      target-independent frame size is nonzero, we have already committed to
      allocating these in STARTING_FRAME_OFFSET for !FRAME_GROWS_DOWNWARD.  */
-  if ((size == 0 || FRAME_GROWS_DOWNWARD) && current_function_is_leaf)
+  if ((size == 0 || FRAME_GROWS_DOWNWARD) && crtl->is_leaf)
     {
       /* The MIPS 3.0 linker does not like functions that dynamically
 	 allocate the stack and have 0 for STACK_DYNAMIC_OFFSET, since it
@@ -9951,7 +10000,8 @@ mips_save_restore_reg (enum machine_mode mode, int regno,
 {
   rtx mem;
 
-  mem = gen_frame_mem (mode, plus_constant (stack_pointer_rtx, offset));
+  mem = gen_frame_mem (mode, plus_constant (Pmode, stack_pointer_rtx,
+					    offset));
   fn (gen_rtx_REG (mode, regno), mem);
 }
 
@@ -10441,7 +10491,7 @@ mips_expand_prologue (void)
 		{
 		  /* Push EPC into its stack slot.  */
 		  mem = gen_frame_mem (word_mode,
-				       plus_constant (stack_pointer_rtx,
+				       plus_constant (Pmode, stack_pointer_rtx,
 						      offset));
 		  mips_emit_move (mem, gen_rtx_REG (word_mode, K1_REG_NUM));
 		  offset -= UNITS_PER_WORD;
@@ -10460,7 +10510,8 @@ mips_expand_prologue (void)
 
 	      /* Push Status into its stack slot.  */
 	      mem = gen_frame_mem (word_mode,
-				   plus_constant (stack_pointer_rtx, offset));
+				   plus_constant (Pmode, stack_pointer_rtx,
+						  offset));
 	      mips_emit_move (mem, gen_rtx_REG (word_mode, K1_REG_NUM));
 	      offset -= UNITS_PER_WORD;
 
@@ -10532,7 +10583,7 @@ mips_expand_prologue (void)
 	  /* Describe the combined effect of the previous instructions.  */
 	  mips_set_frame_expr
 	    (gen_rtx_SET (VOIDmode, stack_pointer_rtx,
-			  plus_constant (stack_pointer_rtx, -size)));
+			  plus_constant (Pmode, stack_pointer_rtx, -size)));
 	}
       mips_frame_barrier ();
     }
@@ -10563,7 +10614,7 @@ mips_expand_prologue (void)
 				    MIPS_PROLOGUE_TEMP (Pmode)));
 	  mips_set_frame_expr
 	    (gen_rtx_SET (VOIDmode, hard_frame_pointer_rtx,
-			  plus_constant (stack_pointer_rtx, offset)));
+			  plus_constant (Pmode, stack_pointer_rtx, offset)));
 	}
     }
 
@@ -10576,7 +10627,7 @@ mips_expand_prologue (void)
       HOST_WIDE_INT offset;
 
       mips_get_cprestore_base_and_offset (&base, &offset, false);
-      mem = gen_frame_mem (Pmode, plus_constant (base, offset));
+      mem = gen_frame_mem (Pmode, plus_constant (Pmode, base, offset));
       gp = TARGET_MIPS16 ? MIPS16_PIC_TEMP : pic_offset_table_rtx;
       temp = (SMALL_OPERAND (offset)
 	      ? gen_rtx_SCRATCH (Pmode)
@@ -10585,7 +10636,7 @@ mips_expand_prologue (void)
 			     (mem, GEN_INT (offset), gp, temp)));
 
       mips_get_cprestore_base_and_offset (&base, &offset, true);
-      mem = gen_frame_mem (Pmode, plus_constant (base, offset));
+      mem = gen_frame_mem (Pmode, plus_constant (Pmode, base, offset));
       emit_insn (PMODE_INSN (gen_use_cprestore, (mem)));
     }
 
@@ -10641,7 +10692,7 @@ mips_epilogue_set_cfa (rtx reg, HOST_WIDE_INT offset)
     {
       RTX_FRAME_RELATED_P (insn) = 1;
       REG_NOTES (insn) = alloc_reg_note (REG_CFA_DEF_CFA,
-					 plus_constant (reg, offset),
+					 plus_constant (Pmode, reg, offset),
 					 REG_NOTES (insn));
       mips_epilogue.cfa_reg = reg;
       mips_epilogue.cfa_offset = offset;
@@ -10830,7 +10881,8 @@ mips_expand_epilogue (bool sibcall_p)
 	    {
 	      /* Restore the original EPC.  */
 	      mem = gen_frame_mem (word_mode,
-				   plus_constant (stack_pointer_rtx, offset));
+				   plus_constant (Pmode, stack_pointer_rtx,
+						  offset));
 	      mips_emit_move (gen_rtx_REG (word_mode, K0_REG_NUM), mem);
 	      offset -= UNITS_PER_WORD;
 
@@ -10841,7 +10893,8 @@ mips_expand_epilogue (bool sibcall_p)
 
 	  /* Restore the original Status.  */
 	  mem = gen_frame_mem (word_mode,
-			       plus_constant (stack_pointer_rtx, offset));
+			       plus_constant (Pmode, stack_pointer_rtx,
+					      offset));
 	  mips_emit_move (gen_rtx_REG (word_mode, K0_REG_NUM), mem);
 	  offset -= UNITS_PER_WORD;
 
@@ -11949,11 +12002,13 @@ static void
 mips_process_sync_loop (rtx insn, rtx *operands)
 {
   rtx at, mem, oldval, newval, inclusive_mask, exclusive_mask;
-  rtx required_oldval, insn1_op2, tmp1, tmp2, tmp3;
+  rtx required_oldval, insn1_op2, tmp1, tmp2, tmp3, cmp;
   unsigned int tmp3_insn;
   enum attr_sync_insn1 insn1;
   enum attr_sync_insn2 insn2;
   bool is_64bit_p;
+  int memmodel_attr;
+  enum memmodel model;
 
   /* Read an operand from the sync_WHAT attribute and store it in
      variable WHAT.  DEFAULT is the default value if no attribute
@@ -11970,6 +12025,7 @@ mips_process_sync_loop (rtx insn, rtx *operands)
   /* Read the other attributes.  */
   at = gen_rtx_REG (GET_MODE (mem), AT_REGNUM);
   READ_OPERAND (oldval, at);
+  READ_OPERAND (cmp, 0);
   READ_OPERAND (newval, at);
   READ_OPERAND (inclusive_mask, 0);
   READ_OPERAND (exclusive_mask, 0);
@@ -11978,10 +12034,27 @@ mips_process_sync_loop (rtx insn, rtx *operands)
   insn1 = get_attr_sync_insn1 (insn);
   insn2 = get_attr_sync_insn2 (insn);
 
+  /* Don't bother setting CMP result that is never used.  */
+  if (cmp && find_reg_note (insn, REG_UNUSED, cmp))
+    cmp = 0;
+
+  memmodel_attr = get_attr_sync_memmodel (insn);
+  switch (memmodel_attr)
+    {
+    case 10:
+      model = MEMMODEL_ACQ_REL;
+      break;
+    case 11:
+      model = MEMMODEL_ACQUIRE;
+      break;
+    default:
+      model = (enum memmodel) INTVAL (operands[memmodel_attr]);
+    }
+
   mips_multi_start ();
 
   /* Output the release side of the memory barrier.  */
-  if (get_attr_sync_release_barrier (insn) == SYNC_RELEASE_BARRIER_YES)
+  if (need_atomic_barrier_p (model, true))
     {
       if (required_oldval == 0 && TARGET_OCTEON)
 	{
@@ -12019,6 +12092,10 @@ mips_process_sync_loop (rtx insn, rtx *operands)
 	  tmp1 = at;
 	}
       mips_multi_add_insn ("bne\t%0,%z1,2f", tmp1, required_oldval, NULL);
+
+      /* CMP = 0 [delay slot].  */
+      if (cmp)
+        mips_multi_add_insn ("li\t%0,0", cmp, NULL);
     }
 
   /* $TMP1 = OLDVAL & EXCLUSIVE_MASK.  */
@@ -12082,11 +12159,15 @@ mips_process_sync_loop (rtx insn, rtx *operands)
       mips_multi_copy_insn (tmp3_insn);
       mips_multi_set_operand (mips_multi_last_index (), 0, newval);
     }
-  else
+  else if (!(required_oldval && cmp))
     mips_multi_add_insn ("nop", NULL);
 
+  /* CMP = 1 -- either standalone or in a delay slot.  */
+  if (required_oldval && cmp)
+    mips_multi_add_insn ("li\t%0,1", cmp, NULL);
+
   /* Output the acquire side of the memory barrier.  */
-  if (TARGET_SYNC_AFTER_SC)
+  if (TARGET_SYNC_AFTER_SC && need_atomic_barrier_p (model, false))
     mips_multi_add_insn ("sync", NULL);
 
   /* Output the exit label, if needed.  */
@@ -17155,7 +17236,7 @@ static void
 mips_expand_vi_general (enum machine_mode vmode, enum machine_mode imode,
 			unsigned nelt, unsigned nvar, rtx target, rtx vals)
 {
-  rtx mem = assign_stack_temp (vmode, GET_MODE_SIZE (vmode), 0);
+  rtx mem = assign_stack_temp (vmode, GET_MODE_SIZE (vmode));
   unsigned int i, isize = GET_MODE_SIZE (imode);
 
   if (nvar < nelt)

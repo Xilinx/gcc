@@ -45,12 +45,11 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 	   typename _Alloc = std::allocator<std::pair<const _Key, _Tp> >,
 	   typename _Tr = __umap_traits<__cache_default<_Key, _Hash>::value>>
     using __umap_hashtable = _Hashtable<_Key, std::pair<const _Key, _Tp>,
-					_Alloc,
-				   std::_Select1st<std::pair<const _Key, _Tp>>,
-				       _Pred, _Hash,
-				       __detail::_Mod_range_hashing,
-				       __detail::_Default_ranged_hash,
-				       __detail::_Prime_rehash_policy, _Tr>;
+                                        _Alloc, __detail::_Select1st,
+				        _Pred, _Hash,
+				        __detail::_Mod_range_hashing,
+				        __detail::_Default_ranged_hash,
+				        __detail::_Prime_rehash_policy, _Tr>;
 
   /// Base types for unordered_multimap.
   template<bool _Cache>
@@ -63,8 +62,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 	   typename _Alloc = std::allocator<std::pair<const _Key, _Tp> >,
 	   typename _Tr = __ummap_traits<__cache_default<_Key, _Hash>::value>>
     using __ummap_hashtable = _Hashtable<_Key, std::pair<const _Key, _Tp>,
-					 _Alloc,
-				  std::_Select1st<std::pair<const _Key, _Tp>>,
+					 _Alloc, __detail::_Select1st,
 					 _Pred, _Hash,
 					 __detail::_Mod_range_hashing,
 					 __detail::_Default_ranged_hash,
@@ -77,15 +75,15 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
    *
    *  @ingroup unordered_associative_containers
    *
-   *  Meets the requirements of a <a href="tables.html#65">container</a>, and
-   *  <a href="tables.html#xx">unordered associative container</a>
-   *
    *  @tparam  _Key  Type of key objects.
    *  @tparam  _Tp  Type of mapped objects.
    *  @tparam  _Hash  Hashing function object type, defaults to hash<_Value>.
    *  @tparam  _Pred  Predicate function object type, defaults
    *                  to equal_to<_Value>.
    *  @tparam  _Alloc  Allocator type, defaults to allocator<_Key>.
+   *
+   *  Meets the requirements of a <a href="tables.html#65">container</a>, and
+   *  <a href="tables.html#xx">unordered associative container</a>
    *
    * The resulting value type of the container is std::pair<const _Key, _Tp>.
    *
@@ -141,15 +139,15 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
    *
    *  @ingroup unordered_associative_containers
    *
-   *  Meets the requirements of a <a href="tables.html#65">container</a>, and
-   *  <a href="tables.html#xx">unordered associative container</a>
-   *
    *  @tparam  _Key  Type of key objects.
    *  @tparam  _Tp  Type of mapped objects.
    *  @tparam  _Hash  Hashing function object type, defaults to hash<_Value>.
    *  @tparam  _Pred  Predicate function object type, defaults
    *                  to equal_to<_Value>.
    *  @tparam  _Alloc  Allocator type, defaults to allocator<_Key>.
+   *
+   *  Meets the requirements of a <a href="tables.html#65">container</a>, and
+   *  <a href="tables.html#xx">unordered associative container</a>
    *
    * The resulting value type of the container is std::pair<const _Key, _Tp>.
    *

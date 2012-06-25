@@ -136,12 +136,17 @@ struct GTY(()) ptr_info_def
      align and misalign specify low known bits of the pointer.
      ptr & (align - 1) == misalign.  */
 
-  /* The power-of-two byte alignment of the object this pointer
-     points into.  This is usually DECL_ALIGN_UNIT for decls and
-     MALLOC_ABI_ALIGNMENT for allocated storage.  */
+  /* When known, this is the power-of-two byte alignment of the object this
+     pointer points into.  This is usually DECL_ALIGN_UNIT for decls and
+     MALLOC_ABI_ALIGNMENT for allocated storage.  When the alignment is not
+     known, it is zero.  Do not access directly but use functions
+     get_ptr_info_alignment, set_ptr_info_alignment,
+     mark_ptr_info_alignment_unknown and similar.  */
   unsigned int align;
 
-  /* The byte offset this pointer differs from the above alignment.  */
+  /* When alignment is known, the byte offset this pointer differs from the
+     above alignment.  Access only through the same helper functions as align
+     above.  */
   unsigned int misalign;
 };
 
@@ -327,7 +332,6 @@ typedef struct
        (VAR) = next_referenced_var (&(ITER)))
 
 extern tree referenced_var_lookup (struct function *, unsigned int);
-extern bool referenced_var_check_and_insert (tree);
 #define num_referenced_vars htab_elements (gimple_referenced_vars (cfun))
 
 #define num_ssa_names (VEC_length (tree, cfun->gimple_df->ssa_names))
@@ -478,7 +482,6 @@ extern int op_prio (const_tree);
 extern const char *op_symbol_code (enum tree_code);
 
 /* In tree-dfa.c  */
-extern var_ann_t create_var_ann (tree);
 extern void renumber_gimple_stmt_uids (void);
 extern void renumber_gimple_stmt_uids_in_blocks (basic_block *, int);
 extern void dump_dfa_stats (FILE *);
@@ -487,11 +490,9 @@ extern void debug_referenced_vars (void);
 extern void dump_referenced_vars (FILE *);
 extern void dump_variable (FILE *, tree);
 extern void debug_variable (tree);
-extern tree get_virtual_var (tree);
-extern bool add_referenced_var (tree);
+extern bool add_referenced_var_1 (tree, struct function *);
+#define add_referenced_var(v) add_referenced_var_1 ((v), cfun)
 extern void remove_referenced_var (tree);
-extern void mark_symbols_for_renaming (gimple);
-extern void find_new_referenced_vars (gimple);
 extern tree make_rename_temp (tree, const char *);
 extern void set_default_def (tree, tree);
 extern tree gimple_default_def (struct function *, tree);
@@ -509,8 +510,6 @@ extern void add_phi_arg (gimple, tree, edge, source_location);
 extern void remove_phi_args (edge);
 extern void remove_phi_node (gimple_stmt_iterator *, bool);
 extern void remove_phi_nodes (basic_block);
-extern void init_phinodes (void);
-extern void fini_phinodes (void);
 extern void release_phi_node (gimple);
 #ifdef GATHER_STATISTICS
 extern void phinodes_print_statistics (void);
@@ -575,7 +574,6 @@ tree create_new_def_for (tree, gimple, def_operand_p);
 bool need_ssa_update_p (struct function *);
 bool name_mappings_registered_p (void);
 bool name_registered_for_update_p (tree);
-bitmap ssa_names_to_replace (void);
 void release_ssa_name_after_update_ssa (tree);
 void compute_global_livein (bitmap, bitmap);
 void mark_sym_for_renaming (tree);
@@ -593,6 +591,13 @@ extern void duplicate_ssa_name_ptr_info (tree, struct ptr_info_def *);
 extern void release_ssa_name (tree);
 extern void release_defs (gimple);
 extern void replace_ssa_name_symbol (tree, tree);
+extern bool get_ptr_info_alignment (struct ptr_info_def *, unsigned int *,
+				    unsigned int *);
+extern void mark_ptr_info_alignment_unknown (struct ptr_info_def *);
+extern void set_ptr_info_alignment (struct ptr_info_def *, unsigned int,
+				    unsigned int);
+extern void adjust_ptr_info_misalignment (struct ptr_info_def *,
+					  unsigned int);
 
 #ifdef GATHER_STATISTICS
 extern void ssanames_print_statistics (void);
@@ -767,12 +772,7 @@ extern void make_eh_edges (gimple);
 extern bool make_eh_dispatch_edges (gimple);
 extern edge redirect_eh_edge (edge, basic_block);
 extern void redirect_eh_dispatch_edge (gimple, edge, basic_block);
-extern bool tree_could_trap_p (tree);
-extern bool operation_could_trap_helper_p (enum tree_code, bool, bool, bool,
-					   bool, tree, bool *);
-extern bool operation_could_trap_p (enum tree_code, bool, bool, tree);
 extern bool stmt_could_throw_p (gimple);
-extern bool tree_could_throw_p (tree);
 extern bool stmt_can_throw_internal (gimple);
 extern bool stmt_can_throw_external (gimple);
 extern void add_stmt_to_eh_lp_fn (struct function *, gimple, int);
@@ -795,9 +795,6 @@ extern void maybe_remove_unreachable_handlers (void);
 /* In tree-ssa-pre.c  */
 void debug_value_expressions (unsigned int);
 
-/* In tree-ssa-sink.c  */
-bool is_hidden_global_store (gimple);
-
 /* In tree-loop-linear.c  */
 extern void linear_transform_loops (void);
 extern unsigned perfect_loop_nest_depth (struct loop *);
@@ -813,7 +810,12 @@ bool expr_invariant_in_loop_p (struct loop *, tree);
 bool stmt_invariant_in_loop_p (struct loop *, gimple);
 bool multiplier_allowed_in_address_p (HOST_WIDE_INT, enum machine_mode,
 				      addr_space_t);
-unsigned multiply_by_cost (HOST_WIDE_INT, enum machine_mode, bool);
+unsigned multiply_by_const_cost (HOST_WIDE_INT, enum machine_mode, bool);
+unsigned add_regs_cost (enum machine_mode, bool);
+unsigned multiply_regs_cost (enum machine_mode, bool);
+unsigned add_const_cost (enum machine_mode, bool);
+unsigned extend_or_trunc_reg_cost (tree, tree, bool);
+unsigned negate_reg_cost (enum machine_mode, bool);
 bool may_be_nonaddressable_p (tree expr);
 
 /* In tree-ssa-threadupdate.c.  */
@@ -860,6 +862,9 @@ void warn_function_noreturn (tree);
 
 /* In tree-ssa-ter.c  */
 bool stmt_is_replaceable_p (gimple);
+
+/* In tree-parloops.c  */
+bool parallelized_function_p (tree);
 
 #include "tree-flow-inline.h"
 

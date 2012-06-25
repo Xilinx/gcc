@@ -46,7 +46,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "target-def.h"
 #include "targhooks.h"
-#include "integrate.h"
 #include "langhooks.h"
 #include "df.h"
 
@@ -1586,7 +1585,7 @@ frv_dwarf_store (rtx reg, int offset)
 {
   rtx set = gen_rtx_SET (VOIDmode,
 			 gen_rtx_MEM (GET_MODE (reg),
-				      plus_constant (stack_pointer_rtx,
+				      plus_constant (Pmode, stack_pointer_rtx,
 						     offset)),
 			 reg);
   RTX_FRAME_RELATED_P (set) = 1;
@@ -1821,9 +1820,9 @@ frv_expand_prologue (void)
       /* ASM_SRC and DWARF_SRC both point to the frame header.  ASM_SRC is
 	 based on ACCESSOR.BASE but DWARF_SRC is always based on the stack
 	 pointer.  */
-      rtx asm_src = plus_constant (accessor.base,
+      rtx asm_src = plus_constant (Pmode, accessor.base,
 				   fp_offset - accessor.base_offset);
-      rtx dwarf_src = plus_constant (sp, fp_offset);
+      rtx dwarf_src = plus_constant (Pmode, sp, fp_offset);
 
       /* Store the old frame pointer at (sp + FP_OFFSET).  */
       frv_frame_access (&accessor, fp, fp_offset);
@@ -1896,7 +1895,7 @@ frv_expand_epilogue (bool emit_return)
 
   /* Restore the stack pointer to its original value if alloca or the like
      is used.  */
-  if (! current_function_sp_is_unchanging)
+  if (! crtl->sp_is_unchanging)
     emit_insn (gen_addsi3 (sp, fp, frv_frame_offset_rtx (-fp_offset)));
 
   /* Restore the callee-saved registers that were used in this function.  */
@@ -2065,9 +2064,9 @@ frv_frame_pointer_required (void)
   /* If we forgoing the usual linkage requirements, we only need
      a frame pointer if the stack pointer might change.  */
   if (!TARGET_LINKED_FP)
-    return !current_function_sp_is_unchanging;
+    return !crtl->sp_is_unchanging;
 
-  if (! current_function_is_leaf)
+  if (! crtl->is_leaf)
     return true;
 
   if (get_frame_size () != 0)
@@ -2076,7 +2075,7 @@ frv_frame_pointer_required (void)
   if (cfun->stdarg)
     return true;
 
-  if (!current_function_sp_is_unchanging)
+  if (!crtl->sp_is_unchanging)
     return true;
 
   if (!TARGET_FDPIC && flag_pic && crtl->uses_pic_offset_table)
@@ -2272,8 +2271,8 @@ frv_expand_block_move (rtx operands[])
 	}
       else
 	{
-	  src_addr = plus_constant (src_reg, offset);
-	  dest_addr = plus_constant (dest_reg, offset);
+	  src_addr = plus_constant (Pmode, src_reg, offset);
+	  dest_addr = plus_constant (Pmode, dest_reg, offset);
 	}
 
       /* Generate the appropriate load and store, saving the stores
@@ -2357,7 +2356,7 @@ frv_expand_block_clear (rtx operands[])
       /* Calculate the correct offset for src/dest.  */
       dest_addr = ((offset == 0)
 		   ? dest_reg
-		   : plus_constant (dest_reg, offset));
+		   : plus_constant (Pmode, dest_reg, offset));
 
       /* Generate the appropriate store of gr0.  */
       if (bytes >= 4 && align >= 4)
@@ -2471,7 +2470,7 @@ frv_return_addr_rtx (int count, rtx frame)
   if (count != 0)
     return const0_rtx;
   cfun->machine->frame_needed = 1;
-  return gen_rtx_MEM (Pmode, plus_constant (frame, 8));
+  return gen_rtx_MEM (Pmode, plus_constant (Pmode, frame, 8));
 }
 
 /* Given a memory reference MEMREF, interpret the referenced memory as
@@ -2489,7 +2488,8 @@ frv_index_memory (rtx memref, enum machine_mode mode, int index)
   if (GET_CODE (base) == PRE_MODIFY)
     base = XEXP (base, 0);
   return change_address (memref, mode,
-			 plus_constant (base, index * GET_MODE_SIZE (mode)));
+			 plus_constant (Pmode, base,
+					index * GET_MODE_SIZE (mode)));
 }
 
 
@@ -3741,7 +3741,8 @@ static void
 frv_output_const_unspec (FILE *stream, const struct frv_unspec *unspec)
 {
   fprintf (stream, "#%s(", unspec_got_name (unspec->reloc));
-  output_addr_const (stream, plus_constant (unspec->symbol, unspec->offset));
+  output_addr_const (stream, plus_constant (Pmode, unspec->symbol,
+					    unspec->offset));
   fputs (")", stream);
 }
 
@@ -3756,7 +3757,7 @@ frv_find_base_term (rtx x)
 
   if (frv_const_unspec_p (x, &unspec)
       && frv_small_data_reloc_p (unspec.symbol, unspec.reloc))
-    return plus_constant (unspec.symbol, unspec.offset);
+    return plus_constant (Pmode, unspec.symbol, unspec.offset);
 
   return x;
 }
@@ -9647,7 +9648,7 @@ frv_output_dwarf_dtprel (FILE *file, int size, rtx x)
   fputs ("\t.picptr\ttlsmoff(", file);
   /* We want the unbiased TLS offset, so add the bias to the
      expression, such that the implicit biasing cancels out.  */
-  output_addr_const (file, plus_constant (x, TLS_BIAS));
+  output_addr_const (file, plus_constant (Pmode, x, TLS_BIAS));
   fputs (")", file);
 }
 

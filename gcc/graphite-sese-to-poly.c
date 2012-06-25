@@ -87,8 +87,7 @@ remove_invariant_phi (sese region, gimple_stmt_iterator *psi)
   edge e = gimple_phi_arg_edge (phi, entry);
   tree var;
   gimple stmt;
-  gimple_seq stmts;
-  gimple_stmt_iterator gsi;
+  gimple_seq stmts = NULL;
 
   if (tree_contains_chrecs (scev, NULL))
     scev = gimple_phi_arg_def (phi, entry);
@@ -97,11 +96,7 @@ remove_invariant_phi (sese region, gimple_stmt_iterator *psi)
   stmt = gimple_build_assign (res, var);
   remove_phi_node (psi, false);
 
-  if (!stmts)
-    stmts = gimple_seq_alloc ();
-
-  gsi = gsi_last (stmts);
-  gsi_insert_after (&gsi, stmt, GSI_NEW_STMT);
+  gimple_seq_add_stmt (&stmts, stmt);
   gsi_insert_seq_on_edge (e, stmts);
   gsi_commit_edge_inserts ();
   SSA_NAME_DEF_STMT (res) = stmt;
@@ -1228,7 +1223,7 @@ add_condition_to_domain (ppl_Pointset_Powerset_C_Polyhedron_t ps, gimple stmt,
   ppl_delete_Linear_Expression (right);
 }
 
-/* Add conditional statement STMT to pbb.  CODE is used as the comparision
+/* Add conditional statement STMT to pbb.  CODE is used as the comparison
    operator.  This allows us to invert the condition or to handle
    inequalities.  */
 
@@ -1996,6 +1991,7 @@ build_scop_drs (scop_p scop)
     if (VEC_empty (data_reference_p, GBB_DATA_REFS (PBB_BLACK_BOX (pbb))))
       {
 	free_gimple_bb (PBB_BLACK_BOX (pbb));
+	free_poly_bb (pbb);
 	VEC_ordered_remove (poly_bb_p, SCOP_BBS (scop), i);
 	i--;
       }
@@ -2088,11 +2084,7 @@ insert_stmts (scop_p scop, gimple stmt, gimple_seq stmts,
   gimple_stmt_iterator gsi;
   VEC (gimple, heap) *x = VEC_alloc (gimple, heap, 3);
 
-  if (!stmts)
-    stmts = gimple_seq_alloc ();
-
-  gsi = gsi_last (stmts);
-  gsi_insert_after (&gsi, stmt, GSI_NEW_STMT);
+  gimple_seq_add_stmt (&stmts, stmt);
   for (gsi = gsi_start (stmts); !gsi_end_p (gsi); gsi_next (&gsi))
     VEC_safe_push (gimple, heap, x, gsi_stmt (gsi));
 
@@ -2107,16 +2099,12 @@ static void
 insert_out_of_ssa_copy (scop_p scop, tree res, tree expr, gimple after_stmt)
 {
   gimple_seq stmts;
-  gimple_stmt_iterator si;
   gimple_stmt_iterator gsi;
   tree var = force_gimple_operand (expr, &stmts, true, NULL_TREE);
   gimple stmt = gimple_build_assign (res, var);
   VEC (gimple, heap) *x = VEC_alloc (gimple, heap, 3);
 
-  if (!stmts)
-    stmts = gimple_seq_alloc ();
-  si = gsi_last (stmts);
-  gsi_insert_after (&si, stmt, GSI_NEW_STMT);
+  gimple_seq_add_stmt (&stmts, stmt);
   for (gsi = gsi_start (stmts); !gsi_end_p (gsi); gsi_next (&gsi))
     VEC_safe_push (gimple, heap, x, gsi_stmt (gsi));
 
@@ -2167,17 +2155,13 @@ static void
 insert_out_of_ssa_copy_on_edge (scop_p scop, edge e, tree res, tree expr)
 {
   gimple_stmt_iterator gsi;
-  gimple_seq stmts;
+  gimple_seq stmts = NULL;
   tree var = force_gimple_operand (expr, &stmts, true, NULL_TREE);
   gimple stmt = gimple_build_assign (res, var);
   basic_block bb;
   VEC (gimple, heap) *x = VEC_alloc (gimple, heap, 3);
 
-  if (!stmts)
-    stmts = gimple_seq_alloc ();
-
-  gsi = gsi_last (stmts);
-  gsi_insert_after (&gsi, stmt, GSI_NEW_STMT);
+  gimple_seq_add_stmt (&stmts, stmt);
   for (gsi = gsi_start (stmts); !gsi_end_p (gsi); gsi_next (&gsi))
     VEC_safe_push (gimple, heap, x, gsi_stmt (gsi));
 
@@ -2857,7 +2841,7 @@ follow_inital_value_to_phi (tree arg, tree lhs)
 }
 
 
-/* Return the argument of the loop PHI that is the inital value coming
+/* Return the argument of the loop PHI that is the initial value coming
    from outside the loop.  */
 
 static edge
@@ -2877,7 +2861,7 @@ edge_initial_value_for_loop_phi (gimple phi)
   return NULL;
 }
 
-/* Return the argument of the loop PHI that is the inital value coming
+/* Return the argument of the loop PHI that is the initial value coming
    from outside the loop.  */
 
 static tree

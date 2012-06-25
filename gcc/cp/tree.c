@@ -2025,7 +2025,7 @@ break_out_target_exprs (tree t)
    expressions  */
 
 tree
-build_min_nt (enum tree_code code, ...)
+build_min_nt_loc (location_t loc, enum tree_code code, ...)
 {
   tree t;
   int length;
@@ -2037,6 +2037,7 @@ build_min_nt (enum tree_code code, ...)
   va_start (p, code);
 
   t = make_node (code);
+  SET_EXPR_LOCATION (t, loc);
   length = TREE_CODE_LENGTH (code);
 
   for (i = 0; i < length; i++)
@@ -2598,8 +2599,8 @@ maybe_dummy_object (tree type, tree* binfop)
 	   && context == nonlambda_method_basetype ())
     /* In a lambda, need to go through 'this' capture.  */
     decl = (build_x_indirect_ref
-	    ((lambda_expr_this_capture
-	      (CLASSTYPE_LAMBDA_EXPR (current_class_type))),
+	    (input_location, (lambda_expr_this_capture
+			      (CLASSTYPE_LAMBDA_EXPR (current_class_type))),
 	     RO_NULL, tf_warning_or_error));
   else
     decl = build_dummy_object (context);
@@ -2773,7 +2774,7 @@ zero_init_p (const_tree t)
     return 1;
 
   /* NULL pointers to data members are initialized with -1.  */
-  if (TYPE_PTRMEM_P (t))
+  if (TYPE_PTRDATAMEM_P (t))
     return 0;
 
   /* Classes that contain types that can't be zero-initialized, cannot
@@ -3280,6 +3281,11 @@ stabilize_expr (tree exp, tree* initp)
 
   if (!TREE_SIDE_EFFECTS (exp))
     init_expr = NULL_TREE;
+  else if (VOID_TYPE_P (TREE_TYPE (exp)))
+    {
+      init_expr = exp;
+      exp = void_zero_node;
+    }
   /* There are no expressions with REFERENCE_TYPE, but there can be call
      arguments with such a type; just treat it as a pointer.  */
   else if (TREE_CODE (TREE_TYPE (exp)) == REFERENCE_TYPE
@@ -3383,7 +3389,7 @@ stabilize_aggr_init (tree call, tree *initp)
    takes care not to introduce additional temporaries.
 
    Returns TRUE iff the expression was successfully pre-evaluated,
-   i.e., if INIT is now side-effect free, except for, possible, a
+   i.e., if INIT is now side-effect free, except for, possibly, a
    single call to a constructor.  */
 
 bool
@@ -3396,21 +3402,37 @@ stabilize_init (tree init, tree *initp)
   if (t == error_mark_node || processing_template_decl)
     return true;
 
-  if (TREE_CODE (t) == INIT_EXPR
-      && TREE_CODE (TREE_OPERAND (t, 1)) != TARGET_EXPR
-      && TREE_CODE (TREE_OPERAND (t, 1)) != CONSTRUCTOR
-      && TREE_CODE (TREE_OPERAND (t, 1)) != AGGR_INIT_EXPR)
-    {
-      TREE_OPERAND (t, 1) = stabilize_expr (TREE_OPERAND (t, 1), initp);
-      return true;
-    }
-
   if (TREE_CODE (t) == INIT_EXPR)
     t = TREE_OPERAND (t, 1);
   if (TREE_CODE (t) == TARGET_EXPR)
     t = TARGET_EXPR_INITIAL (t);
-  if (TREE_CODE (t) == COMPOUND_EXPR)
-    t = expr_last (t);
+
+  /* If the RHS can be stabilized without breaking copy elision, stabilize
+     it.  We specifically don't stabilize class prvalues here because that
+     would mean an extra copy, but they might be stabilized below.  */
+  if (TREE_CODE (init) == INIT_EXPR
+      && TREE_CODE (t) != CONSTRUCTOR
+      && TREE_CODE (t) != AGGR_INIT_EXPR
+      && (SCALAR_TYPE_P (TREE_TYPE (t))
+	  || lvalue_or_rvalue_with_address_p (t)))
+    {
+      TREE_OPERAND (init, 1) = stabilize_expr (t, initp);
+      return true;
+    }
+
+  if (TREE_CODE (t) == COMPOUND_EXPR
+      && TREE_CODE (init) == INIT_EXPR)
+    {
+      tree last = expr_last (t);
+      /* Handle stabilizing the EMPTY_CLASS_EXPR pattern.  */
+      if (!TREE_SIDE_EFFECTS (last))
+	{
+	  *initp = t;
+	  TREE_OPERAND (init, 1) = last;
+	  return true;
+	}
+    }
+
   if (TREE_CODE (t) == CONSTRUCTOR)
     {
       /* Aggregate initialization: stabilize each of the field
@@ -3433,11 +3455,6 @@ stabilize_init (tree init, tree *initp)
       return good;
     }
 
-  /* If the initializer is a COND_EXPR, we can't preevaluate
-     anything.  */
-  if (TREE_CODE (t) == COND_EXPR)
-    return false;
-
   if (TREE_CODE (t) == CALL_EXPR)
     {
       stabilize_call (t, initp);
@@ -3452,7 +3469,7 @@ stabilize_init (tree init, tree *initp)
 
   /* The initialization is being performed via a bitwise copy -- and
      the item copied may have side effects.  */
-  return TREE_SIDE_EFFECTS (init);
+  return !TREE_SIDE_EFFECTS (init);
 }
 
 /* Like "fold", but should be used whenever we might be processing the

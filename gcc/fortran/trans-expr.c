@@ -147,11 +147,25 @@ gfc_vtable_copy_get (tree decl)
 #undef VTABLE_COPY_FIELD
 
 
+/* Obtain the vptr of the last class reference in an expression.  */
+
+tree
+gfc_get_vptr_from_expr (tree expr)
+{
+  tree tmp = expr;
+  while (tmp && !GFC_CLASS_TYPE_P (TREE_TYPE (tmp)))
+    tmp = TREE_OPERAND (tmp, 0);
+  tmp = gfc_class_vptr_get (tmp);
+  return tmp;
+}
+ 
+
 /* Takes a derived type expression and returns the address of a temporary
-   class object of the 'declared' type.  */ 
-static void
+   class object of the 'declared' type.  If vptr is not NULL, this is
+   used for the temporary class object.  */ 
+void
 gfc_conv_derived_to_class (gfc_se *parmse, gfc_expr *e,
-			   gfc_typespec class_ts)
+			   gfc_typespec class_ts, tree vptr)
 {
   gfc_symbol *vtab;
   gfc_ss *ss;
@@ -167,11 +181,19 @@ gfc_conv_derived_to_class (gfc_se *parmse, gfc_expr *e,
   /* Set the vptr.  */
   ctree =  gfc_class_vptr_get (var);
 
-  /* Remember the vtab corresponds to the derived type
-     not to the class declared type.  */
-  vtab = gfc_find_derived_vtab (e->ts.u.derived);
-  gcc_assert (vtab);
-  tmp = gfc_build_addr_expr (NULL_TREE, gfc_get_symbol_decl (vtab));
+  if (vptr != NULL_TREE)
+    {
+      /* Use the dynamic vptr.  */
+      tmp = vptr;
+    }
+  else
+    {
+      /* In this case the vtab corresponds to the derived type and the
+	 vptr must point to it.  */
+      vtab = gfc_find_derived_vtab (e->ts.u.derived);
+      gcc_assert (vtab);
+      tmp = gfc_build_addr_expr (NULL_TREE, gfc_get_symbol_decl (vtab));
+    }
   gfc_add_modify (&parmse->pre, ctree,
 		  fold_convert (TREE_TYPE (ctree), tmp));
 
@@ -579,6 +601,19 @@ assign:
 
 
 /* End of prototype trans-class.c  */
+
+
+static void
+realloc_lhs_warning (bt type, bool array, locus *where)
+{
+  if (array && type != BT_CLASS && type != BT_DERIVED
+      && gfc_option.warn_realloc_lhs)
+    gfc_warning ("Code for reallocating the allocatable array at %L will "
+		 "be added", where);
+  else if (gfc_option.warn_realloc_lhs_all)
+    gfc_warning ("Code for reallocating the allocatable variable at %L "
+		 "will be added", where);
+}
 
 
 static tree gfc_trans_structure_assign (tree dest, gfc_expr * expr);
@@ -2038,7 +2073,8 @@ tree
 gfc_string_to_single_character (tree len, tree str, int kind)
 {
 
-  if (!INTEGER_CST_P (len) || TREE_INT_CST_HIGH (len) != 0
+  if (len == NULL
+      || !INTEGER_CST_P (len) || TREE_INT_CST_HIGH (len) != 0
       || !POINTER_TYPE_P (TREE_TYPE (str)))
     return NULL_TREE;
 
@@ -3518,7 +3554,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 	  /* The derived type needs to be converted to a temporary
 	     CLASS object.  */
 	  gfc_init_se (&parmse, se);
-	  gfc_conv_derived_to_class (&parmse, e, fsym->ts);
+	  gfc_conv_derived_to_class (&parmse, e, fsym->ts, NULL);
 	}
       else if (se->ss && se->ss->info->useflags)
 	{
@@ -4140,7 +4176,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 	     we take the character length of the first argument for the result.
 	     For dummies, we have to look through the formal argument list for
 	     this function and use the character length found there.*/
-	  if (ts.deferred && (sym->attr.allocatable || sym->attr.pointer))
+	  if (ts.deferred)
 	    cl.backend_decl = gfc_create_var (gfc_charlen_type_node, "slen");
 	  else if (!sym->attr.dummy)
 	    cl.backend_decl = VEC_index (tree, stringargs, 0);
@@ -4151,6 +4187,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 		if (strcmp (formal->sym->name, sym->name) == 0)
 		  cl.backend_decl = formal->sym->ts.u.cl->backend_decl;
 	    }
+	  len = cl.backend_decl;
         }
       else
         {
@@ -4308,9 +4345,13 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 
 	      if ((!comp && sym->attr.allocatable)
 		  || (comp && comp->attr.allocatable))
-		gfc_add_modify (&se->pre, var,
-				fold_convert (TREE_TYPE (var),
-					      null_pointer_node));
+		{
+		  gfc_add_modify (&se->pre, var,
+				  fold_convert (TREE_TYPE (var),
+						null_pointer_node));
+		  tmp = gfc_call_free (convert (pvoid_type_node, var));
+		  gfc_add_expr_to_block (&se->post, tmp);
+		}
 
 	      /* Provide an address expression for the function arguments.  */
 	      var = gfc_build_addr_expr (NULL_TREE, var);
@@ -4329,17 +4370,16 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 	  VEC_safe_push (tree, gc, retargs, var);
 	}
 
-      if (ts.type == BT_CHARACTER && ts.deferred
-	    && (sym->attr.allocatable || sym->attr.pointer))
+      /* Add the string length to the argument list.  */
+      if (ts.type == BT_CHARACTER && ts.deferred)
 	{
 	  tmp = len;
 	  if (TREE_CODE (tmp) != VAR_DECL)
 	    tmp = gfc_evaluate_now (len, &se->pre);
-	  len = gfc_build_addr_expr (NULL_TREE, tmp);
+	  tmp = gfc_build_addr_expr (NULL_TREE, tmp);
+	  VEC_safe_push (tree, gc, retargs, tmp);
 	}
-
-      /* Add the string length to the argument list.  */
-      if (ts.type == BT_CHARACTER)
+      else if (ts.type == BT_CHARACTER)
 	VEC_safe_push (tree, gc, retargs, len);
     }
   gfc_free_interface_mapping (&mapping);
@@ -4448,10 +4488,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 	      else
 	        se->expr = var;
 
-	      if (!ts.deferred)
-		se->string_length = len;
-	      else if (sym->attr.allocatable || sym->attr.pointer)
-		se->string_length = cl.backend_decl;
+	      se->string_length = len;
 	    }
 	  else
 	    {
@@ -5741,8 +5778,7 @@ gfc_trans_pointer_assignment (gfc_expr * expr1, gfc_expr * expr2)
 	 really added if -fbounds-check is enabled.  Exclude deferred
 	 character length lefthand sides.  */
       if (expr1->ts.type == BT_CHARACTER && expr2->expr_type != EXPR_NULL
-	  && !(expr1->ts.deferred
-			&& (TREE_CODE (lse.string_length) == VAR_DECL))
+	  && !expr1->ts.deferred
 	  && !expr1->symtree->n.sym->attr.proc_pointer
 	  && !gfc_is_proc_ptr_comp (expr1, NULL))
 	{
@@ -5755,11 +5791,11 @@ gfc_trans_pointer_assignment (gfc_expr * expr1, gfc_expr * expr2)
 
       /* The assignment to an deferred character length sets the string
 	 length to that of the rhs.  */
-      if (expr1->ts.deferred && (TREE_CODE (lse.string_length) == VAR_DECL))
+      if (expr1->ts.deferred)
 	{
-	  if (expr2->expr_type != EXPR_NULL)
+	  if (expr2->expr_type != EXPR_NULL && lse.string_length != NULL)
 	    gfc_add_modify (&block, lse.string_length, rse.string_length);
-	  else
+	  else if (lse.string_length != NULL)
 	    gfc_add_modify (&block, lse.string_length,
 			    build_int_cst (gfc_charlen_type_node, 0));
 	}
@@ -6479,6 +6515,8 @@ gfc_trans_arrayfunc_assign (gfc_expr * expr1, gfc_expr * expr2)
 	&& !(expr2->value.function.esym
 	    && expr2->value.function.esym->result->attr.allocatable))
     {
+      realloc_lhs_warning (expr1->ts.type, true, &expr1->where);
+
       if (!expr2->value.function.isym)
 	{
 	  realloc_lhs_loop_for_fcn_call (&se, &expr1->where, &ss, &loop);
@@ -6740,6 +6778,8 @@ alloc_scalar_allocatable_for_assignment (stmtblock_t *block,
   if (!expr2 || expr2->rank)
     return;
 
+  realloc_lhs_warning (expr2->ts.type, false, &expr2->where);
+
   /* Since this is a scalar lhs, we can afford to do this.  That is,
      there is no risk of side effects being repeated.  */
   gfc_init_se (&lse, NULL);
@@ -6851,7 +6891,6 @@ gfc_trans_assignment_1 (gfc_expr * expr1, gfc_expr * expr2, bool init_flag,
   stmtblock_t body;
   bool l_is_temp;
   bool scalar_to_array;
-  bool def_clen_func;
   tree string_length;
   int n;
 
@@ -6965,17 +7004,13 @@ gfc_trans_assignment_1 (gfc_expr * expr1, gfc_expr * expr2, bool init_flag,
       gfc_add_expr_to_block (&loop.post, tmp);
     }
 
-  /* For a deferred character length function, the function call must
-     happen before the (re)allocation of the lhs, otherwise the character
-     length of the result is not known.  */
-  def_clen_func = (((expr2->expr_type == EXPR_FUNCTION)
-			   || (expr2->expr_type == EXPR_COMPCALL)
-			   || (expr2->expr_type == EXPR_PPC))
-		       && expr2->ts.deferred);
-  if (gfc_option.flag_realloc_lhs
-	&& expr2->ts.type == BT_CHARACTER
-	&& (def_clen_func || expr2->expr_type == EXPR_OP)
-	&& expr1->ts.deferred)
+  /* When assigning a character function result to a deferred-length variable,
+     the function call must happen before the (re)allocation of the lhs -
+     otherwise the character length of the result is not known.
+     NOTE: This relies on having the exact dependence of the length type
+     parameter available to the caller; gfortran saves it in the .mod files. */
+  if (gfc_option.flag_realloc_lhs && expr2->ts.type == BT_CHARACTER
+      && expr1->ts.deferred)
     gfc_add_block_to_block (&block, &rse.pre);
 
   tmp = gfc_trans_scalar_assign (&lse, &rse, expr1->ts,
@@ -6988,7 +7023,7 @@ gfc_trans_assignment_1 (gfc_expr * expr1, gfc_expr * expr2, bool init_flag,
     {
       /* F2003: Add the code for reallocation on assignment.  */
       if (gfc_option.flag_realloc_lhs
-	    && is_scalar_reallocatable_lhs (expr1))
+	  && is_scalar_reallocatable_lhs (expr1))
 	alloc_scalar_allocatable_for_assignment (&block, rse.string_length,
 						 expr1, expr2);
 
@@ -7031,8 +7066,10 @@ gfc_trans_assignment_1 (gfc_expr * expr1, gfc_expr * expr2, bool init_flag,
       if (gfc_option.flag_realloc_lhs
 	    && gfc_is_reallocatable_lhs (expr1)
 	    && !gfc_expr_attr (expr1).codimension
-	    && !gfc_is_coindexed (expr1))
+	    && !gfc_is_coindexed (expr1)
+	    && expr2->rank)
 	{
+	  realloc_lhs_warning (expr1->ts.type, true, &expr1->where);
 	  ompws_flags &= ~OMPWS_SCALARIZER_WS;
 	  tmp = gfc_alloc_allocatable_for_assignment (&loop, expr1, expr2);
 	  if (tmp != NULL_TREE)

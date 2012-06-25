@@ -34,7 +34,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "function.h"
 #include "emit-rtl.h"
 #include "diagnostic-core.h"
-#include "output.h"
 #include "ggc.h"
 #include "hashtab.h"
 #include "tree-pass.h"
@@ -323,7 +322,7 @@ new_elt_loc_list (cselib_val *val, rtx loc)
 static inline void
 promote_debug_loc (struct elt_loc_list *l)
 {
-  if (l->setting_insn && DEBUG_INSN_P (l->setting_insn)
+  if (l && l->setting_insn && DEBUG_INSN_P (l->setting_insn)
       && (!cselib_current_insn || !DEBUG_INSN_P (cselib_current_insn)))
     {
       n_debug_values--;
@@ -1374,7 +1373,7 @@ cselib_lookup_mem (rtx x, int create)
   return mem_elt;
 }
 
-/* Search thru the possible substitutions in P.  We prefer a non reg
+/* Search through the possible substitutions in P.  We prefer a non reg
    substitution because this allows us to expand the tree further.  If
    we find, just a reg, take the lowest regno.  There may be several
    non-reg results, we just take the first one because they will all
@@ -1866,7 +1865,8 @@ cselib_subst_to_values (rtx x, enum machine_mode memmode)
       i = GET_MODE_SIZE (memmode);
       if (code == PRE_DEC)
 	i = -i;
-      return cselib_subst_to_values (plus_constant (XEXP (x, 0), i),
+      return cselib_subst_to_values (plus_constant (GET_MODE (x),
+						    XEXP (x, 0), i),
 				     memmode);
 
     case PRE_MODIFY:
@@ -2523,8 +2523,7 @@ cselib_record_sets (rtx insn)
 	  sets[i].src_elt = cselib_lookup (src, GET_MODE (dest), 1, VOIDmode);
 	  if (MEM_P (dest))
 	    {
-	      enum machine_mode address_mode
-		= targetm.addr_space.address_mode (MEM_ADDR_SPACE (dest));
+	      enum machine_mode address_mode = get_address_mode (dest);
 
 	      sets[i].dest_addr_elt = cselib_lookup (XEXP (dest, 0),
 						     address_mode, 1,

@@ -74,7 +74,6 @@
 #include "flags.h"
 #include "timevar.h"
 #include "output.h"
-#include "cfglayout.h"
 #include "fibheap.h"
 #include "target.h"
 #include "function.h"
@@ -133,6 +132,9 @@ typedef struct bbro_basic_block_data_def
   /* Which trace is the bb in?  */
   int in_trace;
 
+  /* Which trace was this bb visited in?  */
+  int visited;
+
   /* Which heap is BB in (if any)?  */
   fibheap_t heap;
 
@@ -183,6 +185,29 @@ static void connect_traces (int, struct trace *);
 static bool copy_bb_p (const_basic_block, int);
 static bool push_to_next_round_p (const_basic_block, int, int, int, gcov_type);
 
+/* Return the trace number in which BB was visited.  */
+
+static int
+bb_visited_trace (const_basic_block bb)
+{
+  gcc_assert (bb->index < array_size);
+  return bbd[bb->index].visited;
+}
+
+/* This function marks BB that it was visited in trace number TRACE.  */
+
+static void
+mark_bb_visited (basic_block bb, int trace)
+{
+  bbd[bb->index].visited = trace;
+  if (bbd[bb->index].heap)
+    {
+      fibheap_delete_node (bbd[bb->index].heap, bbd[bb->index].node);
+      bbd[bb->index].heap = NULL;
+      bbd[bb->index].node = NULL;
+    }
+}
+
 /* Check to see if bb should be pushed into the next round of trace
    collections or not.  Reasons for pushing the block forward are 1).
    If the block is cold, we are doing partitioning, and there will be
@@ -306,14 +331,14 @@ rotate_loop (edge back_edge, struct trace *trace, int trace_n)
 
       FOR_EACH_EDGE (e, ei, bb->succs)
 	if (e->dest != EXIT_BLOCK_PTR
-	    && e->dest->il.rtl->visited != trace_n
+	    && bb_visited_trace (e->dest) != trace_n
 	    && (e->flags & EDGE_CAN_FALLTHRU)
 	    && !(e->flags & EDGE_COMPLEX))
 	{
 	  if (is_preferred)
 	    {
 	      /* The best edge is preferred.  */
-	      if (!e->dest->il.rtl->visited
+	      if (!bb_visited_trace (e->dest)
 		  || bbd[e->dest->index].start_of_trace >= 0)
 		{
 		  /* The current edge E is also preferred.  */
@@ -329,7 +354,7 @@ rotate_loop (edge back_edge, struct trace *trace, int trace_n)
 	    }
 	  else
 	    {
-	      if (!e->dest->il.rtl->visited
+	      if (!bb_visited_trace (e->dest)
 		  || bbd[e->dest->index].start_of_trace >= 0)
 		{
 		  /* The current edge E is preferred.  */
@@ -395,20 +420,6 @@ rotate_loop (edge back_edge, struct trace *trace, int trace_n)
     }
   best_bb->aux = NULL;
   return best_bb;
-}
-
-/* This function marks BB that it was visited in trace number TRACE.  */
-
-static void
-mark_bb_visited (basic_block bb, int trace)
-{
-  bb->il.rtl->visited = trace;
-  if (bbd[bb->index].heap)
-    {
-      fibheap_delete_node (bbd[bb->index].heap, bbd[bb->index].node);
-      bbd[bb->index].heap = NULL;
-      bbd[bb->index].node = NULL;
-    }
 }
 
 /* One round of finding traces. Find traces for BRANCH_TH and EXEC_TH i.e. do
@@ -496,8 +507,8 @@ find_traces_1_round (int branch_th, int exec_th, gcov_type count_th,
 	      if (e->dest == EXIT_BLOCK_PTR)
 		continue;
 
-	      if (e->dest->il.rtl->visited
-		  && e->dest->il.rtl->visited != *n_traces)
+	      if (bb_visited_trace (e->dest)
+		  && bb_visited_trace (e->dest) != *n_traces)
 		continue;
 
 	      if (BB_PARTITION (e->dest) != BB_PARTITION (bb))
@@ -550,7 +561,7 @@ find_traces_1_round (int branch_th, int exec_th, gcov_type count_th,
 	    {
 	      if (e == best_edge
 		  || e->dest == EXIT_BLOCK_PTR
-		  || e->dest->il.rtl->visited)
+		  || bb_visited_trace (e->dest))
 		continue;
 
 	      key = bb_to_key (e->dest);
@@ -611,7 +622,7 @@ find_traces_1_round (int branch_th, int exec_th, gcov_type count_th,
 
 	  if (best_edge) /* Suitable successor was found.  */
 	    {
-	      if (best_edge->dest->il.rtl->visited == *n_traces)
+	      if (bb_visited_trace (best_edge->dest) == *n_traces)
 		{
 		  /* We do nothing with one basic block loops.  */
 		  if (best_edge->dest != bb)
@@ -682,7 +693,7 @@ find_traces_1_round (int branch_th, int exec_th, gcov_type count_th,
 		    if (e != best_edge
 			&& (e->flags & EDGE_CAN_FALLTHRU)
 			&& !(e->flags & EDGE_COMPLEX)
-			&& !e->dest->il.rtl->visited
+			&& !bb_visited_trace (e->dest)
 			&& single_pred_p (e->dest)
 			&& !(e->flags & EDGE_CROSSING)
 			&& single_succ_p (e->dest)
@@ -716,7 +727,7 @@ find_traces_1_round (int branch_th, int exec_th, gcov_type count_th,
       FOR_EACH_EDGE (e, ei, bb->succs)
 	{
 	  if (e->dest == EXIT_BLOCK_PTR
-	      || e->dest->il.rtl->visited)
+	      || bb_visited_trace (e->dest))
 	    continue;
 
 	  if (bbd[e->dest->index].heap)
@@ -758,15 +769,11 @@ copy_bb (basic_block old_bb, edge e, basic_block bb, int trace)
   BB_COPY_PARTITION (new_bb, old_bb);
 
   gcc_assert (e->dest == new_bb);
-  gcc_assert (!e->dest->il.rtl->visited);
 
   if (dump_file)
     fprintf (dump_file,
 	     "Duplicated bb %d (created bb %d)\n",
 	     old_bb->index, new_bb->index);
-  new_bb->il.rtl->visited = trace;
-  new_bb->aux = bb->aux;
-  bb->aux = new_bb;
 
   if (new_bb->index >= array_size || last_basic_block > array_size)
     {
@@ -779,8 +786,9 @@ copy_bb (basic_block old_bb, edge e, basic_block bb, int trace)
       for (i = array_size; i < new_size; i++)
 	{
 	  bbd[i].start_of_trace = -1;
-	  bbd[i].in_trace = -1;
 	  bbd[i].end_of_trace = -1;
+	  bbd[i].in_trace = -1;
+	  bbd[i].visited = 0;
 	  bbd[i].heap = NULL;
 	  bbd[i].node = NULL;
 	}
@@ -793,6 +801,11 @@ copy_bb (basic_block old_bb, edge e, basic_block bb, int trace)
 		   array_size);
 	}
     }
+
+  gcc_assert (!bb_visited_trace (e->dest));
+  mark_bb_visited (new_bb, trace);
+  new_bb->aux = bb->aux;
+  bb->aux = new_bb;
 
   bbd[new_bb->index].in_trace = trace;
 
@@ -1214,7 +1227,7 @@ static void
 emit_barrier_after_bb (basic_block bb)
 {
   rtx barrier = emit_barrier_after (BB_END (bb));
-  bb->il.rtl->footer = unlink_insn_chain (barrier, barrier);
+  BB_FOOTER (bb) = unlink_insn_chain (barrier, barrier);
 }
 
 /* The landing pad OLD_LP, in block OLD_BB, has edges from both partitions.
@@ -1510,7 +1523,7 @@ fix_up_fall_thru_edges (void)
 		  /* We know the fall-thru edge crosses; if the cond
 		     jump edge does NOT cross, and its destination is the
 		     next block in the bb order, invert the jump
-		     (i.e. fix it so the fall thru does not cross and
+		     (i.e. fix it so the fall through does not cross and
 		     the cond jump does).  */
 
 		  if (!cond_jump_crosses
@@ -1929,8 +1942,9 @@ reorder_basic_blocks (void)
   for (i = 0; i < array_size; i++)
     {
       bbd[i].start_of_trace = -1;
-      bbd[i].in_trace = -1;
       bbd[i].end_of_trace = -1;
+      bbd[i].in_trace = -1;
+      bbd[i].visited = 0;
       bbd[i].heap = NULL;
       bbd[i].node = NULL;
     }
@@ -2012,6 +2026,7 @@ duplicate_computed_gotos (void)
   if (n_basic_blocks <= NUM_FIXED_BLOCKS + 1)
     return 0;
 
+  clear_bb_flags ();
   cfg_layout_initialize (0);
 
   /* We are estimating the length of uncond jump insn only once
@@ -2075,10 +2090,10 @@ duplicate_computed_gotos (void)
   /* Duplicate computed gotos.  */
   FOR_EACH_BB (bb)
     {
-      if (bb->il.rtl->visited)
+      if (bb->flags & BB_VISITED)
 	continue;
 
-      bb->il.rtl->visited = 1;
+      bb->flags |= BB_VISITED;
 
       /* BB must have one outgoing edge.  That edge must not lead to
 	 the exit block or the next block.
@@ -2096,7 +2111,7 @@ duplicate_computed_gotos (void)
       new_bb = duplicate_block (single_succ (bb), single_succ_edge (bb), bb);
       new_bb->aux = bb->aux;
       bb->aux = new_bb;
-      new_bb->il.rtl->visited = 1;
+      new_bb->flags |= BB_VISITED;
     }
 
 done:
@@ -2235,7 +2250,7 @@ partition_hot_cold_basic_blocks (void)
 
   /* Convert all crossing fall_thru edges to non-crossing fall
      thrus to unconditional jumps (that jump to the original fall
-     thru dest).  */
+     through dest).  */
   fix_up_fall_thru_edges ();
 
   /* If the architecture does not have conditional branches that can

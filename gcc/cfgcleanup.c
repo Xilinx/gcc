@@ -39,7 +39,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "hard-reg-set.h"
 #include "regs.h"
 #include "timevar.h"
-#include "output.h"
 #include "insn-config.h"
 #include "flags.h"
 #include "recog.h"
@@ -48,7 +47,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "params.h"
 #include "tm_p.h"
 #include "target.h"
-#include "cfglayout.h"
+#include "function.h" /* For inline functions in emit-rtl.h they need crtl.  */
 #include "emit-rtl.h"
 #include "tree-pass.h"
 #include "cfgloop.h"
@@ -62,7 +61,7 @@ along with GCC; see the file COPYING3.  If not see
 /* Set to true when we are running first pass of try_optimize_cfg loop.  */
 static bool first_pass;
 
-/* Set to true if crossjumps occured in the latest run of try_optimize_cfg.  */
+/* Set to true if crossjumps occurred in the latest run of try_optimize_cfg.  */
 static bool crossjumps_occured;
 
 /* Set to true if we couldn't run an optimization due to stale liveness
@@ -2586,21 +2585,21 @@ try_optimize_cfg (int mode)
 
 		      if (current_ir_type () == IR_RTL_CFGLAYOUT)
 			{
-			  if (b->il.rtl->footer
-			      && BARRIER_P (b->il.rtl->footer))
+			  if (BB_FOOTER (b)
+			      && BARRIER_P (BB_FOOTER (b)))
 			    FOR_EACH_EDGE (e, ei, b->preds)
 			      if ((e->flags & EDGE_FALLTHRU)
-				  && e->src->il.rtl->footer == NULL)
+				  && BB_FOOTER (e->src) == NULL)
 				{
-				  if (b->il.rtl->footer)
+				  if (BB_FOOTER (b))
 				    {
-				      e->src->il.rtl->footer = b->il.rtl->footer;
-				      b->il.rtl->footer = NULL;
+				      BB_FOOTER (e->src) = BB_FOOTER (b);
+				      BB_FOOTER (b) = NULL;
 				    }
 				  else
 				    {
 				      start_sequence ();
-				      e->src->il.rtl->footer = emit_barrier ();
+				      BB_FOOTER (e->src) = emit_barrier ();
 				      end_sequence ();
 				    }
 				}
@@ -2644,7 +2643,7 @@ try_optimize_cfg (int mode)
 		}
 
 	      /* If we fall through an empty block, we can remove it.  */
-	      if (!(mode & CLEANUP_CFGLAYOUT)
+	      if (!(mode & (CLEANUP_CFGLAYOUT | CLEANUP_NO_INSN_DEL))
 		  && single_pred_p (b)
 		  && (single_pred_edge (b)->flags & EDGE_FALLTHRU)
 		  && !LABEL_P (BB_HEAD (b))
@@ -2991,7 +2990,7 @@ cleanup_cfg (int mode)
 }
 
 static unsigned int
-rest_of_handle_jump2 (void)
+execute_jump (void)
 {
   delete_trivially_dead_insns (get_insns (), max_reg_num ());
   if (dump_file)
@@ -3001,22 +3000,47 @@ rest_of_handle_jump2 (void)
   return 0;
 }
 
+struct rtl_opt_pass pass_jump =
+{
+ {
+  RTL_PASS,
+  "jump",				/* name */
+  NULL,					/* gate */
+  execute_jump,				/* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
+  0,					/* static_pass_number */
+  TV_JUMP,				/* tv_id */
+  0,					/* properties_required */
+  0,					/* properties_provided */
+  0,					/* properties_destroyed */
+  TODO_ggc_collect,			/* todo_flags_start */
+  TODO_verify_rtl_sharing,		/* todo_flags_finish */
+ }
+};
+
+static unsigned int
+execute_jump2 (void)
+{
+  cleanup_cfg (flag_crossjumping ? CLEANUP_CROSSJUMP : 0);
+  return 0;
+}
 
 struct rtl_opt_pass pass_jump2 =
 {
  {
   RTL_PASS,
-  "jump",                               /* name */
-  NULL,                                 /* gate */
-  rest_of_handle_jump2,			/* execute */
-  NULL,                                 /* sub */
-  NULL,                                 /* next */
-  0,                                    /* static_pass_number */
-  TV_JUMP,                              /* tv_id */
-  0,                                    /* properties_required */
-  0,                                    /* properties_provided */
-  0,                                    /* properties_destroyed */
-  TODO_ggc_collect,                     /* todo_flags_start */
-  TODO_verify_rtl_sharing,              /* todo_flags_finish */
+  "jump2",				/* name */
+  NULL,					/* gate */
+  execute_jump2,			/* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
+  0,					/* static_pass_number */
+  TV_JUMP,				/* tv_id */
+  0,					/* properties_required */
+  0,					/* properties_provided */
+  0,					/* properties_destroyed */
+  TODO_ggc_collect,			/* todo_flags_start */
+  TODO_verify_rtl_sharing,		/* todo_flags_finish */
  }
 };

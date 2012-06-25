@@ -121,7 +121,8 @@ installcheck:
 .PHONY: all clean
 
 clean:
-	-rm -f config.h libgcc_tm.h stamp-h stmp-ldirs libgcc.map
+	-rm -f auto-target.h libgcc_tm.h libgcc.map
+	-rm -f libgcc_tm.stamp stamp-h stmp-ldirs
 	-rm -f *$(objext)
 	-rm -f *.dep
 	-rm -f *.a
@@ -139,9 +140,9 @@ Makefile: $(srcdir)/Makefile.in config.status
 
 # Depending on Makefile makes sure that config.status has been re-run
 # if needed.  This prevents problems with parallel builds.
-config.h: stamp-h ; @true
+auto-target.h: stamp-h ; @true
 stamp-h: $(srcdir)/config.in config.status Makefile
-	CONFIG_FILES= CONFIG_HEADERS=config.h:$(srcdir)/config.in $(SHELL) ./config.status
+	CONFIG_FILES= CONFIG_HEADERS=auto-target.h:$(srcdir)/config.in $(SHELL) ./config.status
 
 config.status: $(srcdir)/configure $(srcdir)/config.host
 	$(SHELL) ./config.status --recheck
@@ -849,7 +850,7 @@ include $(iterator)
 # Defined in libgcov.c, included only in gcov library
 LIBGCOV = _gcov _gcov_merge_add _gcov_merge_single _gcov_merge_delta \
     _gcov_fork _gcov_execl _gcov_execlp _gcov_execle \
-    _gcov_execv _gcov_execvp _gcov_execve \
+    _gcov_execv _gcov_execvp _gcov_execve _gcov_reset _gcov_dump \
     _gcov_interval_profiler _gcov_pow2_profiler _gcov_one_value_profiler \
     _gcov_indirect_call_profiler _gcov_average_profiler _gcov_ior_profiler \
     _gcov_merge_ior
@@ -1002,13 +1003,25 @@ $(libgcc-objects) $(libgcc-s-objects) $(libgcc-eh-objects) \
 	$(libunwind-objects) $(libunwind-s-objects) \
 	$(EXTRA_PARTS): libgcc_tm.h
 
-install-unwind_h:
+# Copy unwind.h to the place where gcc will look for it at build-time
+install-unwind_h-forbuild:
 	dest=$(gcc_objdir)/include/tmp$$$$-unwind.h; \
 	cp unwind.h $$dest; \
 	chmod a+r $$dest; \
 	sh $(srcdir)/../move-if-change $$dest $(gcc_objdir)/include/unwind.h
 
-all: install-unwind_h
+# Copy unwind.h to the place where gcc will look at run-time, once installed
+#
+# This is redundant with the internal copy above when using a regular toplevel
+# "install" target, because gcc's install will copy to the destination as well.
+#
+# This is however useful for "install-no-fixincludes" case, when only the gcc
+# internal headers are copied by gcc's install.
+install-unwind_h:
+	$(mkinstalldirs) $(DESTDIR)$(libsubdir)/include
+	$(INSTALL_DATA) unwind.h $(DESTDIR)$(libsubdir)/include
+
+all: install-unwind_h-forbuild
 
 # Documentation targets (empty).
 .PHONY: info html dvi pdf install-info install-html install-pdf
@@ -1067,12 +1080,13 @@ install-leaf: $(install-shared) $(install-libunwind)
 	  esac;							\
 	done
 
-install: install-leaf
+install: install-leaf install-unwind_h
 	@: $(MAKE) ; $(MULTIDO) $(FLAGS_TO_PASS) multi-do DO=install
 
 install-strip: install
 
 .PHONY: install install-shared install-libunwind install-strip
+.PHONY: install-unwind_h install-unwind_h-forbuild
 
 # Don't export variables to the environment, in order to not confuse
 # configure.

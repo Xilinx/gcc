@@ -49,7 +49,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "sbitmap.h"
 #include "cfgloop.h"
 #include "regs.h" /* For reg_renumber.  */
-#include "integrate.h" /* For emit_initial_value_sets.  */
 #include "insn-attr.h" /* For INSN_SCHEDULING.  */
 
 /* This variable holds information helping the rewriting of SSA trees
@@ -328,70 +327,6 @@ stack_var_conflict_p (size_t x, size_t y)
   if (!a->conflicts || !b->conflicts)
     return false;
   return bitmap_bit_p (a->conflicts, y);
-}
-
-/* Returns true if TYPE is or contains a union type.  */
-
-static bool
-aggregate_contains_union_type (tree type)
-{
-  tree field;
-
-  if (TREE_CODE (type) == UNION_TYPE
-      || TREE_CODE (type) == QUAL_UNION_TYPE)
-    return true;
-  if (TREE_CODE (type) == ARRAY_TYPE)
-    return aggregate_contains_union_type (TREE_TYPE (type));
-  if (TREE_CODE (type) != RECORD_TYPE)
-    return false;
-
-  for (field = TYPE_FIELDS (type); field; field = DECL_CHAIN (field))
-    if (TREE_CODE (field) == FIELD_DECL)
-      if (aggregate_contains_union_type (TREE_TYPE (field)))
-	return true;
-
-  return false;
-}
-
-/* A subroutine of expand_used_vars.  If two variables X and Y have alias
-   sets that do not conflict, then do add a conflict for these variables
-   in the interference graph.  We also need to make sure to add conflicts
-   for union containing structures.  Else RTL alias analysis comes along
-   and due to type based aliasing rules decides that for two overlapping
-   union temporaries { short s; int i; } accesses to the same mem through
-   different types may not alias and happily reorders stores across
-   life-time boundaries of the temporaries (See PR25654).  */
-
-static void
-add_alias_set_conflicts (void)
-{
-  size_t i, j, n = stack_vars_num;
-
-  for (i = 0; i < n; ++i)
-    {
-      tree type_i = TREE_TYPE (stack_vars[i].decl);
-      bool aggr_i = AGGREGATE_TYPE_P (type_i);
-      bool contains_union;
-
-      contains_union = aggregate_contains_union_type (type_i);
-      for (j = 0; j < i; ++j)
-	{
-	  tree type_j = TREE_TYPE (stack_vars[j].decl);
-	  bool aggr_j = AGGREGATE_TYPE_P (type_j);
-	  if (aggr_i != aggr_j
-	      /* Either the objects conflict by means of type based
-		 aliasing rules, or we need to add a conflict.  */
-	      || !objects_must_conflict_p (type_i, type_j)
-	      /* In case the types do not conflict ensure that access
-		 to elements will conflict.  In case of unions we have
-		 to be careful as type based aliasing rules may say
-		 access to the same memory does not conflict.  So play
-		 safe and add a conflict in this case when
-                 -fstrict-aliasing is used.  */
-              || (contains_union && flag_strict_aliasing))
-	    add_stack_var_conflict (i, j);
-	}
-    }
 }
 
 /* Callback for walk_stmt_ops.  If OP is a decl touched by add_stack_var
@@ -873,7 +808,7 @@ expand_one_stack_var_at (tree decl, rtx base, unsigned base_align,
   /* If this fails, we've overflowed the stack frame.  Error nicely?  */
   gcc_assert (offset == trunc_int_for_mode (offset, Pmode));
 
-  x = plus_constant (base, offset);
+  x = plus_constant (Pmode, base, offset);
   x = gen_rtx_MEM (DECL_MODE (SSAVAR (decl)), x);
 
   if (TREE_CODE (decl) != SSA_NAME)
@@ -1241,8 +1176,9 @@ expand_one_var (tree var, bool toplevel, bool really_expand)
       if (really_expand)
         expand_one_register_var (origvar);
     }
-  else if (!host_integerp (DECL_SIZE_UNIT (var), 1))
+  else if (! valid_constant_size_p (DECL_SIZE_UNIT (var)))
     {
+      /* Reject variables which cover more than half of the address-space.  */
       if (really_expand)
 	{
 	  error ("size of variable %q+D is too large", var);
@@ -1625,10 +1561,6 @@ expand_used_vars (void)
   if (stack_vars_num > 0)
     {
       add_scope_conflicts ();
-      /* Due to the way alias sets work, no variables with non-conflicting
-	 alias sets may be assigned the same address.  Add conflicts to
-	 reflect this.  */
-      add_alias_set_conflicts ();
 
       /* If stack protection is enabled, we don't share space between
 	 vulnerable data and non-vulnerable data.  */
@@ -2835,6 +2767,7 @@ expand_debug_expr (tree exp)
 	}
       /* FALLTHROUGH */
     case INDIRECT_REF:
+      inner_mode = TYPE_MODE (TREE_TYPE (TREE_OPERAND (exp, 0)));
       op0 = expand_debug_expr (TREE_OPERAND (exp, 0));
       if (!op0)
 	return NULL;
@@ -2852,7 +2785,7 @@ expand_debug_expr (tree exp)
 	  if (!op1 || !CONST_INT_P (op1))
 	    return NULL;
 
-	  op0 = plus_constant (op0, INTVAL (op1));
+	  op0 = plus_constant (inner_mode, op0, INTVAL (op1));
 	}
 
       if (POINTER_TYPE_P (TREE_TYPE (exp)))
@@ -3346,8 +3279,10 @@ expand_debug_expr (tree exp)
 		  && (bitoffset % BITS_PER_UNIT) == 0
 		  && bitsize > 0
 		  && bitsize == maxsize)
-		return plus_constant (gen_rtx_DEBUG_IMPLICIT_PTR (mode, decl),
-				      bitoffset / BITS_PER_UNIT);
+		{
+		  rtx base = gen_rtx_DEBUG_IMPLICIT_PTR (mode, decl);
+		  return plus_constant (mode, base, bitoffset / BITS_PER_UNIT);
+		}
 	    }
 
 	  return NULL;
@@ -3729,7 +3664,8 @@ expand_gimple_basic_block (basic_block bb)
      block to be in GIMPLE, instead of RTL.  Therefore, we need to
      access the BB sequence directly.  */
   stmts = bb_seq (bb);
-  bb->il.gimple = NULL;
+  bb->il.gimple.seq = NULL;
+  bb->il.gimple.phi_nodes = NULL;
   rtl_profile_for_bb (bb);
   init_rtl_bb_info (bb);
   bb->flags |= BB_RTL;

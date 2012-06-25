@@ -150,16 +150,16 @@ package body Exp_Util is
 
    function Requires_Cleanup_Actions
      (L                 : List_Id;
-      For_Package       : Boolean;
+      Lib_Level         : Boolean;
       Nested_Constructs : Boolean) return Boolean;
    --  Given a list L, determine whether it contains one of the following:
    --
    --    1) controlled objects
    --    2) library-level tagged types
    --
-   --  Flag For_Package should be set when the list comes from a package spec
-   --  or body. Flag Nested_Constructs should be set when any nested packages
-   --  declared in L must be processed.
+   --  Lib_Level is True when the list comes from a construct at the library
+   --  level, and False otherwise. Nested_Constructs is True when any nested
+   --  packages declared in L must be processed, and False otherwise.
 
    -------------------------------------
    -- Activate_Atomic_Synchronization --
@@ -7038,9 +7038,16 @@ package body Exp_Util is
    -- Requires_Cleanup_Actions --
    ------------------------------
 
-   function Requires_Cleanup_Actions (N : Node_Id) return Boolean is
-      For_Pkg : constant Boolean :=
-                  Nkind_In (N, N_Package_Body, N_Package_Specification);
+   function Requires_Cleanup_Actions
+     (N         : Node_Id;
+      Lib_Level : Boolean) return Boolean
+   is
+      At_Lib_Level : constant Boolean :=
+                       Lib_Level
+                         and then Nkind_In (N, N_Package_Body,
+                                               N_Package_Specification);
+      --  N is at the library level if the top-most context is a package and
+      --  the path taken to reach N does not inlcude non-package constructs.
 
    begin
       case Nkind (N) is
@@ -7052,20 +7059,21 @@ package body Exp_Util is
               N_Subprogram_Body       |
               N_Task_Body             =>
             return
-              Requires_Cleanup_Actions (Declarations (N), For_Pkg, True)
+              Requires_Cleanup_Actions (Declarations (N), At_Lib_Level, True)
                 or else
-              (Present (Handled_Statement_Sequence (N))
-                and then
-              Requires_Cleanup_Actions (Statements
-                (Handled_Statement_Sequence (N)), For_Pkg, True));
+                  (Present (Handled_Statement_Sequence (N))
+                    and then
+                      Requires_Cleanup_Actions
+                        (Statements (Handled_Statement_Sequence (N)),
+                         At_Lib_Level, True));
 
          when N_Package_Specification =>
             return
               Requires_Cleanup_Actions
-                (Visible_Declarations (N), For_Pkg, True)
+                (Visible_Declarations (N), At_Lib_Level, True)
                   or else
               Requires_Cleanup_Actions
-                (Private_Declarations (N), For_Pkg, True);
+                (Private_Declarations (N), At_Lib_Level, True);
 
          when others                  =>
             return False;
@@ -7078,7 +7086,7 @@ package body Exp_Util is
 
    function Requires_Cleanup_Actions
      (L                 : List_Id;
-      For_Package       : Boolean;
+      Lib_Level         : Boolean;
       Nested_Constructs : Boolean) return Boolean
    is
       Decl    : Node_Id;
@@ -7125,9 +7133,7 @@ package body Exp_Util is
             --  finalization disabled. This applies only to objects at the
             --  library level.
 
-            if For_Package
-              and then Finalize_Storage_Only (Obj_Typ)
-            then
+            if Lib_Level and then Finalize_Storage_Only (Obj_Typ) then
                null;
 
             --  Transient variables are treated separately in order to minimize
@@ -7173,11 +7179,23 @@ package body Exp_Util is
             --  transients declared inside an Expression_With_Actions.
 
             elsif Is_Access_Type (Obj_Typ)
-              and then Present (Return_Flag_Or_Transient_Decl (Obj_Id))
-              and then Nkind (Return_Flag_Or_Transient_Decl (Obj_Id)) =
-                         N_Object_Declaration
+              and then Present (Status_Flag_Or_Transient_Decl (Obj_Id))
+              and then Nkind (Status_Flag_Or_Transient_Decl (Obj_Id)) =
+                                                      N_Object_Declaration
               and then Is_Finalizable_Transient
-                         (Return_Flag_Or_Transient_Decl (Obj_Id), Decl)
+                         (Status_Flag_Or_Transient_Decl (Obj_Id), Decl)
+            then
+               return True;
+
+            --  Processing for intermediate results of conditional expressions
+            --  where one of the alternatives uses a controlled function call.
+
+            elsif Is_Access_Type (Obj_Typ)
+              and then Present (Status_Flag_Or_Transient_Decl (Obj_Id))
+              and then Nkind (Status_Flag_Or_Transient_Decl (Obj_Id)) =
+                         N_Defining_Identifier
+              and then Present (Expr)
+              and then Nkind (Expr) = N_Null
             then
                return True;
 
@@ -7203,9 +7221,7 @@ package body Exp_Util is
             --  finalization disabled. This applies only to objects at the
             --  library level.
 
-            if For_Package
-              and then Finalize_Storage_Only (Obj_Typ)
-            then
+            if Lib_Level and then Finalize_Storage_Only (Obj_Typ) then
                null;
 
             --  Return object of a build-in-place function. This case is
@@ -7214,7 +7230,7 @@ package body Exp_Util is
 
             elsif Needs_Finalization (Obj_Typ)
               and then Is_Return_Object (Obj_Id)
-              and then Present (Return_Flag_Or_Transient_Decl (Obj_Id))
+              and then Present (Status_Flag_Or_Transient_Decl (Obj_Id))
             then
                return True;
 
@@ -7257,7 +7273,7 @@ package body Exp_Util is
                 (Is_Type (Typ)
                    and then Needs_Finalization (Typ)))
               and then Requires_Cleanup_Actions
-                         (Actions (Decl), For_Package, Nested_Constructs)
+                         (Actions (Decl), Lib_Level, Nested_Constructs)
             then
                return True;
             end if;
@@ -7274,7 +7290,8 @@ package body Exp_Util is
             end if;
 
             if Ekind (Pack_Id) /= E_Generic_Package
-              and then Requires_Cleanup_Actions (Specification (Decl))
+              and then Requires_Cleanup_Actions
+                         (Specification (Decl), Lib_Level)
             then
                return True;
             end if;
@@ -7287,7 +7304,7 @@ package body Exp_Util is
             Pack_Id := Corresponding_Spec (Decl);
 
             if Ekind (Pack_Id) /= E_Generic_Package
-              and then Requires_Cleanup_Actions (Decl)
+              and then Requires_Cleanup_Actions (Decl, Lib_Level)
             then
                return True;
             end if;

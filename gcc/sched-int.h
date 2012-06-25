@@ -37,6 +37,14 @@ along with GCC; see the file COPYING3.  If not see
 enum sched_pass_id_t { SCHED_PASS_UNKNOWN, SCHED_RGN_PASS, SCHED_EBB_PASS,
 		       SCHED_SMS_PASS, SCHED_SEL_PASS };
 
+/* The algorithm used to implement -fsched-pressure.  */
+enum sched_pressure_algorithm
+{
+  SCHED_PRESSURE_NONE,
+  SCHED_PRESSURE_WEIGHTED,
+  SCHED_PRESSURE_MODEL
+};
+
 typedef VEC (basic_block, heap) *bb_vec_t;
 typedef VEC (rtx, heap) *insn_vec_t;
 typedef VEC (rtx, heap) *rtx_vec_t;
@@ -649,7 +657,7 @@ extern struct haifa_sched_info *current_sched_info;
 
 /* Do register pressure sensitive insn scheduling if the flag is set
    up.  */
-extern bool sched_pressure_p;
+extern enum sched_pressure_algorithm sched_pressure;
 
 /* Map regno -> its pressure class.  The map defined only when
    SCHED_PRESSURE_P is true.  */
@@ -794,6 +802,11 @@ struct _haifa_insn_data
 
   short cost;
 
+  /* '> 0' if priority is valid,
+     '== 0' if priority was not yet computed,
+     '< 0' if priority in invalid and should be recomputed.  */
+  signed char priority_status;
+
   /* Set if there's DEF-USE dependence between some speculatively
      moved load insn and this one.  */
   unsigned int fed_by_spec_load : 1;
@@ -810,11 +823,6 @@ struct _haifa_insn_data
   /* Used internally in unschedule_insns_until to mark insns that must have
      their TODO_SPEC recomputed.  */
   unsigned int must_recompute_spec : 1;
-
-  /* '> 0' if priority is valid,
-     '== 0' if priority was not yet computed,
-     '< 0' if priority in invalid and should be recomputed.  */
-  signed char priority_status;
 
   /* What speculations are necessary to apply to schedule the instruction.  */
   ds_t todo_spec;
@@ -854,6 +862,7 @@ struct _haifa_insn_data
   /* Info about how scheduling the insn changes cost of register
      pressure excess (between source and target).  */
   int reg_pressure_excess_cost_change;
+  int model_index;
 };
 
 typedef struct _haifa_insn_data haifa_insn_data_def;
@@ -876,6 +885,7 @@ extern VEC(haifa_insn_data_def, heap) *h_i_d;
 #define INSN_REG_PRESSURE_EXCESS_COST_CHANGE(INSN) \
   (HID (INSN)->reg_pressure_excess_cost_change)
 #define INSN_PRIORITY_STATUS(INSN) (HID (INSN)->priority_status)
+#define INSN_MODEL_INDEX(INSN) (HID (INSN)->model_index)
 
 typedef struct _haifa_deps_insn_data haifa_deps_insn_data_def;
 typedef haifa_deps_insn_data_def *haifa_deps_insn_data_t;

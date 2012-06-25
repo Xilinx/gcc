@@ -411,9 +411,6 @@ extern int push_reload (rtx, rtx, rtx *, rtx *, enum reg_class,
 			enum machine_mode, enum machine_mode,
 			int, int, int, enum reload_type);
 
-/* Functions in postreload.c:  */
-extern void reload_cse_regs (rtx);
-
 /* Functions in reload1.c:  */
 
 /* Initialize the reload pass once per compilation.  */
@@ -462,10 +459,6 @@ extern void debug_reload (void);
 /* Compute the actual register we should reload to, in case we're
    reloading to/from a register that is wider than a word.  */
 extern rtx reload_adjust_reg_for_mode (rtx, enum machine_mode);
-
-/* Ideally this function would be in ira.c or reload, but due to dependencies
-   on integrate.h, it's part of integrate.c.  */
-extern void allocate_initial_values (VEC (reg_equivs_t, gc) *);
 
 /* Allocate or grow the reg_equiv tables, initializing new entries to 0.  */
 extern void grow_reg_equivs (void);

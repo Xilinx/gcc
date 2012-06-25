@@ -1081,7 +1081,7 @@ disqualify_ops_if_throwing_stmt (gimple stmt, tree lhs, tree rhs)
   return false;
 }
 
-/* Scan expressions occuring in STMT, create access structures for all accesses
+/* Scan expressions occurring in STMT, create access structures for all accesses
    to candidates for scalarization and remove those candidates which occur in
    statements or expressions that prevent them from being split apart.  Return
    true if any access has been inserted.  */
@@ -1472,11 +1472,13 @@ build_ref_for_offset (location_t loc, tree base, HOST_WIDE_INT offset,
      by looking at the access mode.  That would constrain the
      alignment of base + base_offset which we would need to
      adjust according to offset.  */
-  align = get_pointer_alignment_1 (base, &misalign);
-  if (misalign == 0
-      && (TREE_CODE (prev_base) == MEM_REF
-	  || TREE_CODE (prev_base) == TARGET_MEM_REF))
-    align = MAX (align, TYPE_ALIGN (TREE_TYPE (prev_base)));
+  if (!get_pointer_alignment_1 (base, &align, &misalign))
+    {
+      gcc_assert (misalign == 0);
+      if (TREE_CODE (prev_base) == MEM_REF
+	  || TREE_CODE (prev_base) == TARGET_MEM_REF)
+	align = TYPE_ALIGN (TREE_TYPE (prev_base));
+    }
   misalign += (double_int_sext (tree_to_double_int (off),
 				TYPE_PRECISION (TREE_TYPE (off))).low
 	       * BITS_PER_UNIT);
@@ -1547,17 +1549,20 @@ build_user_friendly_ref_for_offset (tree *res, tree type, HOST_WIDE_INT offset,
 	  for (fld = TYPE_FIELDS (type); fld; fld = DECL_CHAIN (fld))
 	    {
 	      HOST_WIDE_INT pos, size;
-	      tree expr, *expr_ptr;
+	      tree tr_pos, expr, *expr_ptr;
 
 	      if (TREE_CODE (fld) != FIELD_DECL)
 		continue;
 
-	      pos = int_bit_position (fld);
+	      tr_pos = bit_position (fld);
+	      if (!tr_pos || !host_integerp (tr_pos, 1))
+		continue;
+	      pos = TREE_INT_CST_LOW (tr_pos);
 	      gcc_assert (TREE_CODE (type) == RECORD_TYPE || pos == 0);
 	      tr_size = DECL_SIZE (fld);
 	      if (!tr_size || !host_integerp (tr_size, 1))
 		continue;
-	      size = tree_low_cst (tr_size, 1);
+	      size = TREE_INT_CST_LOW (tr_size);
 	      if (size == 0)
 		{
 		  if (pos != offset)
@@ -2094,9 +2099,12 @@ analyze_access_subtree (struct access *root, struct access *parent,
 	  && (TREE_CODE (root->type) != INTEGER_TYPE
 	      || TYPE_PRECISION (root->type) != root->size)
 	  /* But leave bitfield accesses alone.  */
-	  && (root->offset % BITS_PER_UNIT) == 0)
+	  && (TREE_CODE (root->expr) != COMPONENT_REF
+	      || !DECL_BIT_FIELD (TREE_OPERAND (root->expr, 1))))
 	{
 	  tree rt = root->type;
+	  gcc_assert ((root->offset % BITS_PER_UNIT) == 0
+		      && (root->size % BITS_PER_UNIT) == 0);
 	  root->type = build_nonstandard_integer_type (root->size,
 						       TYPE_UNSIGNED (rt));
 	  root->expr = build_ref_for_offset (UNKNOWN_LOCATION,
@@ -3192,6 +3200,7 @@ initialize_parameter_reductions (void)
   gimple_seq seq = NULL;
   tree parm;
 
+  gsi = gsi_start (seq);
   for (parm = DECL_ARGUMENTS (current_function_decl);
        parm;
        parm = DECL_CHAIN (parm))
@@ -3205,12 +3214,6 @@ initialize_parameter_reductions (void)
       if (!access_vec)
 	continue;
 
-      if (!seq)
-	{
-	  seq = gimple_seq_alloc ();
-	  gsi = gsi_start (seq);
-	}
-
       for (access = VEC_index (access_p, access_vec, 0);
 	   access;
 	   access = access->next_grp)
@@ -3218,6 +3221,7 @@ initialize_parameter_reductions (void)
 				 EXPR_LOCATION (parm));
     }
 
+  seq = gsi_seq (gsi);
   if (seq)
     gsi_insert_seq_on_edge_immediate (single_succ_edge (ENTRY_BLOCK_PTR), seq);
 }
@@ -4612,8 +4616,8 @@ convert_callers_for_node (struct cgraph_node *node,
       if (dump_file)
 	fprintf (dump_file, "Adjusting call (%i -> %i) %s -> %s\n",
 		 cs->caller->uid, cs->callee->uid,
-		 cgraph_node_name (cs->caller),
-		 cgraph_node_name (cs->callee));
+		 xstrdup (cgraph_node_name (cs->caller)),
+		 xstrdup (cgraph_node_name (cs->callee)));
 
       ipa_modify_call_arguments (cs, cs->call_stmt, adjustments);
 

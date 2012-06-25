@@ -29,7 +29,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "ggc.h"
 #include "langhooks.h"
 #include "basic-block.h"
-#include "output.h"
 #include "function.h"
 #include "tree-pretty-print.h"
 #include "gimple-pretty-print.h"
@@ -1117,7 +1116,6 @@ init_tree_ssa (struct function *fn)
 				                 uid_ssaname_map_eq, NULL);
   pt_solution_reset (&fn->gimple_df->escaped);
   init_ssanames (fn, 0);
-  init_phinodes ();
 }
 
 /* Do the actions required to initialize internal data structures used
@@ -1173,7 +1171,6 @@ delete_tree_ssa (void)
   cfun->gimple_df->referenced_vars = NULL;
 
   fini_ssanames ();
-  fini_phinodes ();
 
   /* We no longer maintain the SSA operand cache at this point.  */
   if (ssa_operands_active ())
@@ -1613,7 +1610,7 @@ warn_uninit (enum opt_code wc, tree t,
 	     tree expr, tree var, const char *gmsgid, void *data)
 {
   gimple context = (gimple) data;
-  location_t location;
+  location_t location, cfun_loc;
   expanded_location xloc, floc;
 
   if (!ssa_undefined_value_p (t))
@@ -1631,8 +1628,12 @@ warn_uninit (enum opt_code wc, tree t,
   location = (context != NULL && gimple_has_location (context))
 	     ? gimple_location (context)
 	     : DECL_SOURCE_LOCATION (var);
+  location = linemap_resolve_location (line_table, location,
+				       LRK_SPELLING_LOCATION,
+				       NULL);
+  cfun_loc = DECL_SOURCE_LOCATION (cfun->decl);
   xloc = expand_location (location);
-  floc = expand_location (DECL_SOURCE_LOCATION (cfun->decl));
+  floc = expand_location (cfun_loc);
   if (warning_at (location, wc, gmsgid, expr))
     {
       TREE_NO_WARNING (expr) = 1;
@@ -1640,8 +1641,11 @@ warn_uninit (enum opt_code wc, tree t,
       if (location == DECL_SOURCE_LOCATION (var))
 	return;
       if (xloc.file != floc.file
-	  || xloc.line < floc.line
-	  || xloc.line > LOCATION_LINE (cfun->function_end_locus))
+	  || linemap_location_before_p (line_table,
+					location, cfun_loc)
+	  || linemap_location_before_p (line_table,
+					cfun->function_end_locus,
+					location))
 	inform (DECL_SOURCE_LOCATION (var), "%qD was declared here", var);
     }
 }

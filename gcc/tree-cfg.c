@@ -26,7 +26,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "tm_p.h"
 #include "basic-block.h"
-#include "output.h"
 #include "flags.h"
 #include "function.h"
 #include "ggc.h"
@@ -40,7 +39,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic-core.h"
 #include "except.h"
 #include "cfgloop.h"
-#include "cfglayout.h"
 #include "tree-ssa-propagate.h"
 #include "value-prof.h"
 #include "pointer-set.h"
@@ -377,7 +375,7 @@ make_blocks (gimple_seq seq)
       if (start_new_block || stmt_starts_bb_p (stmt, prev_stmt))
 	{
 	  if (!first_stmt_of_seq)
-	    seq = gsi_split_seq_before (&i);
+	    gsi_split_seq_before (&i, &seq);
 	  bb = create_basic_block (seq, NULL, bb);
 	  start_new_block = false;
 	}
@@ -438,8 +436,7 @@ create_bb (void *h, void *e, basic_block after)
 
   bb->index = last_basic_block;
   bb->flags = BB_NEW;
-  bb->il.gimple = ggc_alloc_cleared_gimple_bb_info ();
-  set_bb_seq (bb, h ? (gimple_seq) h : gimple_seq_alloc ());
+  set_bb_seq (bb, h ? (gimple_seq) h : NULL);
 
   /* Add the new block to the linked list of blocks.  */
   link_block (bb, after);
@@ -1655,7 +1652,6 @@ static void
 gimple_merge_blocks (basic_block a, basic_block b)
 {
   gimple_stmt_iterator last, gsi, psi;
-  gimple_seq phis = phi_nodes (b);
 
   if (dump_file)
     fprintf (dump_file, "Merging blocks %d and %d\n", a->index, b->index);
@@ -1663,7 +1659,7 @@ gimple_merge_blocks (basic_block a, basic_block b)
   /* Remove all single-valued PHI nodes from block B of the form
      V_i = PHI <V_j> by propagating V_j to all the uses of V_i.  */
   gsi = gsi_last_bb (a);
-  for (psi = gsi_start (phis); !gsi_end_p (psi); )
+  for (psi = gsi_start_phis (b); !gsi_end_p (psi); )
     {
       gimple phi = gsi_stmt (psi);
       tree def = gimple_phi_result (phi), use = gimple_phi_arg_def (phi, 0);
@@ -1919,7 +1915,8 @@ remove_bb (basic_block bb)
     }
 
   remove_phi_nodes_and_edges_for_unreachable_block (bb);
-  bb->il.gimple = NULL;
+  bb->il.gimple.seq = NULL;
+  bb->il.gimple.phi_nodes = NULL;
 }
 
 
@@ -3374,10 +3371,10 @@ verify_gimple_assign_unary (gimple stmt)
 		    || ptrofftype_p (sizetype))))
 	  return false;
 
-	/* Allow conversion from integer to offset type and vice versa.  */
+	/* Allow conversion from integral to offset type and vice versa.  */
 	if ((TREE_CODE (lhs_type) == OFFSET_TYPE
-	     && TREE_CODE (rhs1_type) == INTEGER_TYPE)
-	    || (TREE_CODE (lhs_type) == INTEGER_TYPE
+	     && INTEGRAL_TYPE_P (rhs1_type))
+	    || (INTEGRAL_TYPE_P (lhs_type)
 		&& TREE_CODE (rhs1_type) == OFFSET_TYPE))
 	  return false;
 
@@ -4123,11 +4120,84 @@ verify_gimple_goto (gimple stmt)
 static bool
 verify_gimple_switch (gimple stmt)
 {
+  unsigned int i, n;
+  tree elt, prev_upper_bound = NULL_TREE;
+  tree index_type, elt_type = NULL_TREE;
+
   if (!is_gimple_val (gimple_switch_index (stmt)))
     {
       error ("invalid operand to switch statement");
       debug_generic_stmt (gimple_switch_index (stmt));
       return true;
+    }
+
+  index_type = TREE_TYPE (gimple_switch_index (stmt));
+  if (! INTEGRAL_TYPE_P (index_type))
+    {
+      error ("non-integral type switch statement");
+      debug_generic_expr (index_type);
+      return true;
+    }
+
+  elt = gimple_switch_default_label (stmt);
+  if (CASE_LOW (elt) != NULL_TREE || CASE_HIGH (elt) != NULL_TREE)
+    {
+      error ("invalid default case label in switch statement");
+      debug_generic_expr (elt);
+      return true;
+    }
+
+  n = gimple_switch_num_labels (stmt);
+  for (i = 1; i < n; i++)
+    {
+      elt = gimple_switch_label (stmt, i);
+
+      if (! CASE_LOW (elt))
+	{
+	  error ("invalid case label in switch statement");
+	  debug_generic_expr (elt);
+	  return true;
+	}
+      if (CASE_HIGH (elt)
+	  && ! tree_int_cst_lt (CASE_LOW (elt), CASE_HIGH (elt)))
+	{
+	  error ("invalid case range in switch statement");
+	  debug_generic_expr (elt);
+	  return true;
+	}
+
+      if (elt_type)
+	{
+	  if (TREE_TYPE (CASE_LOW (elt)) != elt_type
+	      || (CASE_HIGH (elt) && TREE_TYPE (CASE_HIGH (elt)) != elt_type))
+	    {
+	      error ("type mismatch for case label in switch statement");
+	      debug_generic_expr (elt);
+	      return true;
+	    }
+	}
+      else
+	{
+	  elt_type = TREE_TYPE (CASE_LOW (elt));
+	  if (TYPE_PRECISION (index_type) < TYPE_PRECISION (elt_type))
+	    {
+	      error ("type precision mismatch in switch statement");
+	      return true;
+	    }
+	}
+
+      if (prev_upper_bound)
+	{
+	  if (! tree_int_cst_lt (prev_upper_bound, CASE_LOW (elt)))
+	    {
+	      error ("case labels not sorted in switch statement");
+	      return true;
+	    }
+	}
+
+      prev_upper_bound = CASE_HIGH (elt);
+      if (! prev_upper_bound)
+	prev_upper_bound = CASE_LOW (elt);
     }
 
   return false;
@@ -4615,13 +4685,13 @@ gimple_verify_flow_info (void)
   edge e;
   edge_iterator ei;
 
-  if (ENTRY_BLOCK_PTR->il.gimple)
+  if (ENTRY_BLOCK_PTR->il.gimple.seq || ENTRY_BLOCK_PTR->il.gimple.phi_nodes)
     {
       error ("ENTRY_BLOCK has IL associated with it");
       err = 1;
     }
 
-  if (EXIT_BLOCK_PTR->il.gimple)
+  if (EXIT_BLOCK_PTR->il.gimple.seq || EXIT_BLOCK_PTR->il.gimple.phi_nodes)
     {
       error ("EXIT_BLOCK has IL associated with it");
       err = 1;
@@ -5249,7 +5319,7 @@ gimple_split_block (basic_block bb, void *stmt)
      brings ugly quadratic memory consumption in the inliner.
      (We are still quadratic since we need to update stmt BB pointers,
      sadly.)  */
-  list = gsi_split_seq_before (&gsi);
+  gsi_split_seq_before (&gsi, &list);
   set_bb_seq (new_bb, list);
   for (gsi_tgt = gsi_start (list);
        !gsi_end_p (gsi_tgt); gsi_next (&gsi_tgt))
@@ -6085,8 +6155,8 @@ move_stmt_r (gimple_stmt_iterator *gsi_p, bool *handled_ops_p,
 	  p->remap_decls_p = false;
 	  *handled_ops_p = true;
 
-	  walk_gimple_seq (gimple_omp_body (stmt), move_stmt_r,
-			   move_stmt_op, wi);
+	  walk_gimple_seq_mod (gimple_omp_body_ptr (stmt), move_stmt_r,
+			       move_stmt_op, wi);
 
 	  p->remap_decls_p = save_remap_decls_p;
 	}

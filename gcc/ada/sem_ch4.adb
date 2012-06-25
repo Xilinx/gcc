@@ -2299,7 +2299,7 @@ package body Sem_Ch4 is
 
       Analyze (P);
 
-      if Nkind_In (N, N_Function_Call, N_Procedure_Call_Statement) then
+      if Nkind (N) in N_Subprogram_Call then
 
          --  If P is an explicit dereference whose prefix is of a
          --  remote access-to-subprogram type, then N has already
@@ -3891,7 +3891,7 @@ package body Sem_Ch4 is
                if Ekind (Comp) = E_Discriminant then
                   if Is_Unchecked_Union (Base_Type (Prefix_Type)) then
                      Error_Msg_N
-                       ("cannot reference discriminant of Unchecked_Union",
+                       ("cannot reference discriminant of unchecked union",
                         Sel);
                   end if;
 
@@ -4440,9 +4440,10 @@ package body Sem_Ch4 is
    -------------------
 
    procedure Analyze_Slice (N : Node_Id) is
-      P          : constant Node_Id := Prefix (N);
       D          : constant Node_Id := Discrete_Range (N);
+      P          : constant Node_Id := Prefix (N);
       Array_Type : Entity_Id;
+      Index_Type : Entity_Id;
 
       procedure Analyze_Overloaded_Slice;
       --  If the prefix is overloaded, select those interpretations that
@@ -4513,13 +4514,18 @@ package body Sem_Ch4 is
             Error_Msg_N
               ("type is not one-dimensional array in slice prefix", N);
 
-         elsif not
-           Has_Compatible_Type (D, Etype (First_Index (Array_Type)))
-         then
-            Wrong_Type (D, Etype (First_Index (Array_Type)));
-
          else
-            Set_Etype (N, Array_Type);
+            if Ekind (Array_Type) = E_String_Literal_Subtype then
+               Index_Type := Etype (String_Literal_Low_Bound (Array_Type));
+            else
+               Index_Type := Etype (First_Index (Array_Type));
+            end if;
+
+            if not Has_Compatible_Type (D, Index_Type) then
+               Wrong_Type (D, Index_Type);
+            else
+               Set_Etype (N, Array_Type);
+            end if;
          end if;
       end if;
    end Analyze_Slice;
@@ -6730,9 +6736,7 @@ package body Sem_Ch4 is
      (N : Node_Id; CW_Test_Only : Boolean := False) return Boolean
    is
       K              : constant Node_Kind  := Nkind (Parent (N));
-      Is_Subprg_Call : constant Boolean    := Nkind_In
-                                               (K, N_Procedure_Call_Statement,
-                                                   N_Function_Call);
+      Is_Subprg_Call : constant Boolean    := K in N_Subprogram_Call;
       Loc            : constant Source_Ptr := Sloc (N);
       Obj            : constant Node_Id    := Prefix (N);
 
@@ -7081,8 +7085,7 @@ package body Sem_Ch4 is
          --  Common case covering 1) Call to a procedure and 2) Call to a
          --  function that has some additional actuals.
 
-         if Nkind_In (Parent_Node, N_Function_Call,
-                                   N_Procedure_Call_Statement)
+         if Nkind (Parent_Node) in N_Subprogram_Call
 
             --  N is a selected component node containing the name of the
             --  subprogram. If N is not the name of the parent node we must

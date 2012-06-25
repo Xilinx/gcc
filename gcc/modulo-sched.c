@@ -37,9 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "recog.h"
 #include "sched-int.h"
 #include "target.h"
-#include "cfglayout.h"
 #include "cfgloop.h"
-#include "cfghooks.h"
 #include "expr.h"
 #include "params.h"
 #include "gcov-io.h"
@@ -322,7 +320,7 @@ ps_rtl_insn (partial_schedule_ptr ps, int id)
     return ps_reg_move (ps, id)->insn;
 }
 
-/* Partial schedule instruction ID, which belongs to PS, occured in
+/* Partial schedule instruction ID, which belongs to PS, occurred in
    the original (unscheduled) loop.  Return the first instruction
    in the loop that was associated with ps_rtl_insn (PS, ID).
    If the instruction had some notes before it, this is the first

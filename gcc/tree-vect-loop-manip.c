@@ -32,7 +32,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-flow.h"
 #include "tree-dump.h"
 #include "cfgloop.h"
-#include "cfglayout.h"
 #include "diagnostic-core.h"
 #include "tree-scalar-evolution.h"
 #include "tree-vectorizer.h"
@@ -489,8 +488,7 @@ LOOP->  loop1
 
 static void
 slpeel_update_phi_nodes_for_guard1 (edge guard_edge, struct loop *loop,
-                                    bool is_new_loop, basic_block *new_exit_bb,
-                                    bitmap *defs)
+                                    bool is_new_loop, basic_block *new_exit_bb)
 {
   gimple orig_phi, new_phi;
   gimple update_phi, update_phi2;
@@ -586,7 +584,6 @@ slpeel_update_phi_nodes_for_guard1 (edge guard_edge, struct loop *loop,
       gcc_assert (get_current_def (current_new_name) == NULL_TREE);
 
       set_current_def (current_new_name, PHI_RESULT (new_phi));
-      bitmap_set_bit (*defs, SSA_NAME_VERSION (current_new_name));
     }
 }
 
@@ -943,12 +940,11 @@ slpeel_add_loop_guard (basic_block guard_bb, tree cond,
   enter_e->flags |= EDGE_FALSE_VALUE;
   gsi = gsi_last_bb (guard_bb);
 
-  cond = force_gimple_operand (cond, &gimplify_stmt_list, true, NULL_TREE);
+  cond = force_gimple_operand_1 (cond, &gimplify_stmt_list, is_gimple_condexpr,
+				 NULL_TREE);
   if (gimplify_stmt_list)
     gimple_seq_add_seq (&cond_expr_stmt_list, gimplify_stmt_list);
-  cond_stmt = gimple_build_cond (NE_EXPR,
-				 cond, build_int_cst (TREE_TYPE (cond), 0),
-				 NULL_TREE, NULL_TREE);
+  cond_stmt = gimple_build_cond_from_tree (cond, NULL_TREE, NULL_TREE);
   if (cond_expr_stmt_list)
     gsi_insert_seq_after (&gsi, cond_expr_stmt_list, GSI_NEW_STMT);
 
@@ -1048,7 +1044,7 @@ set_prologue_iterations (basic_block bb_before_first_loop,
   gimple newphi;
   edge e_true, e_false, e_fallthru;
   gimple cond_stmt;
-  gimple_seq gimplify_stmt_list = NULL, stmts = NULL;
+  gimple_seq stmts = NULL;
   tree cost_pre_condition = NULL_TREE;
   tree scalar_loop_iters =
     unshare_expr (LOOP_VINFO_NITERS_UNCHANGED (loop_vec_info_for_loop (loop)));
@@ -1070,21 +1066,15 @@ set_prologue_iterations (basic_block bb_before_first_loop,
 
   e_fallthru = EDGE_SUCC (then_bb, 0);
 
+  gsi = gsi_last_bb (cond_bb);
   cost_pre_condition =
     fold_build2 (LE_EXPR, boolean_type_node, scalar_loop_iters,
 	         build_int_cst (TREE_TYPE (scalar_loop_iters), th));
   cost_pre_condition =
-    force_gimple_operand (cost_pre_condition, &gimplify_stmt_list,
-			  true, NULL_TREE);
-  cond_stmt = gimple_build_cond (NE_EXPR, cost_pre_condition,
-				 build_int_cst (TREE_TYPE (cost_pre_condition),
-						0), NULL_TREE, NULL_TREE);
-
-  gsi = gsi_last_bb (cond_bb);
-  if (gimplify_stmt_list)
-    gsi_insert_seq_after (&gsi, gimplify_stmt_list, GSI_NEW_STMT);
-
-  gsi = gsi_last_bb (cond_bb);
+    force_gimple_operand_gsi_1 (&gsi, cost_pre_condition, is_gimple_condexpr,
+				NULL_TREE, false, GSI_CONTINUE_LINKING);
+  cond_stmt = gimple_build_cond_from_tree (cost_pre_condition,
+					   NULL_TREE, NULL_TREE);
   gsi_insert_after (&gsi, cond_stmt, GSI_NEW_STMT);
 
   var = create_tmp_var (TREE_TYPE (scalar_loop_iters),
@@ -1166,7 +1156,6 @@ slpeel_tree_peel_loop_to_edge (struct loop *loop,
   struct loop *new_loop = NULL, *first_loop, *second_loop;
   edge skip_e;
   tree pre_condition = NULL_TREE;
-  bitmap definitions;
   basic_block bb_before_second_loop, bb_after_second_loop;
   basic_block bb_before_first_loop;
   basic_block bb_between_loops;
@@ -1178,12 +1167,6 @@ slpeel_tree_peel_loop_to_edge (struct loop *loop,
 
   if (!slpeel_can_duplicate_loop_p (loop, e))
     return NULL;
-
-  /* We have to initialize cfg_hooks. Then, when calling
-   cfg_hooks->split_edge, the function tree_split_edge
-   is actually called and, when calling cfg_hooks->duplicate_block,
-   the function tree_duplicate_bb is called.  */
-  gimple_register_cfg_hooks ();
 
   /* If the loop has a virtual PHI, but exit bb doesn't, create a virtual PHI
      in the exit bb and rename all the uses after the loop.  This simplifies
@@ -1266,7 +1249,6 @@ slpeel_tree_peel_loop_to_edge (struct loop *loop,
       second_loop = loop;
     }
 
-  definitions = ssa_names_to_replace ();
   slpeel_update_phis_for_duplicate_loop (loop, new_loop, e == exit_e);
   rename_variables_in_loop (new_loop);
 
@@ -1404,7 +1386,7 @@ slpeel_tree_peel_loop_to_edge (struct loop *loop,
                                   bb_before_second_loop, bb_before_first_loop);
   slpeel_update_phi_nodes_for_guard1 (skip_e, first_loop,
 				      first_loop == new_loop,
-				      &new_exit_bb, &definitions);
+				      &new_exit_bb);
 
 
   /* 3. Add the guard that controls whether the second loop is executed.
@@ -1448,7 +1430,6 @@ slpeel_tree_peel_loop_to_edge (struct loop *loop,
   if (update_first_loop_count)
     slpeel_make_loop_iterate_ntimes (first_loop, *first_niters);
 
-  BITMAP_FREE (definitions);
   delete_update_ssa ();
 
   adjust_vec_debug_stmts ();
@@ -1860,34 +1841,6 @@ vect_update_ivs_after_vectorizer (loop_vec_info loop_vinfo, tree niters,
     }
 }
 
-/* Return the more conservative threshold between the
-   min_profitable_iters returned by the cost model and the user
-   specified threshold, if provided.  */
-
-static unsigned int
-conservative_cost_threshold (loop_vec_info loop_vinfo,
-			     int min_profitable_iters)
-{
-  unsigned int th;
-  int min_scalar_loop_bound;
-
-  min_scalar_loop_bound = ((PARAM_VALUE (PARAM_MIN_VECT_LOOP_BOUND)
-			    * LOOP_VINFO_VECT_FACTOR (loop_vinfo)) - 1);
-
-  /* Use the cost model only if it is more conservative than user specified
-     threshold.  */
-  th = (unsigned) min_scalar_loop_bound;
-  if (min_profitable_iters
-      && (!min_scalar_loop_bound
-          || min_profitable_iters > min_scalar_loop_bound))
-    th = (unsigned) min_profitable_iters;
-
-  if (th && vect_print_dump_info (REPORT_COST))
-    fprintf (vect_dump, "Profitability threshold is %u loop iterations.", th);
-
-  return th;
-}
-
 /* Function vect_do_peeling_for_loop_bound
 
    Peel the last iterations of the loop represented by LOOP_VINFO.
@@ -1903,7 +1856,7 @@ conservative_cost_threshold (loop_vec_info loop_vinfo,
 
 void
 vect_do_peeling_for_loop_bound (loop_vec_info loop_vinfo, tree *ratio,
-				tree cond_expr, gimple_seq cond_expr_stmt_list)
+				unsigned int th, bool check_profitability)
 {
   tree ni_name, ratio_mult_vf_name;
   struct loop *loop = LOOP_VINFO_LOOP (loop_vinfo);
@@ -1911,9 +1864,9 @@ vect_do_peeling_for_loop_bound (loop_vec_info loop_vinfo, tree *ratio,
   edge update_e;
   basic_block preheader;
   int loop_num;
-  bool check_profitability = false;
-  unsigned int th = 0;
-  int min_profitable_iters;
+  int max_iter;
+  tree cond_expr = NULL_TREE;
+  gimple_seq cond_expr_stmt_list = NULL;
 
   if (vect_print_dump_info (REPORT_DETAILS))
     fprintf (vect_dump, "=== vect_do_peeling_for_loop_bound ===");
@@ -1930,22 +1883,6 @@ vect_do_peeling_for_loop_bound (loop_vec_info loop_vinfo, tree *ratio,
 				   cond_expr_stmt_list);
 
   loop_num  = loop->num;
-
-  /* If cost model check not done during versioning and
-     peeling for alignment.  */
-  if (!LOOP_REQUIRES_VERSIONING_FOR_ALIGNMENT (loop_vinfo)
-      && !LOOP_REQUIRES_VERSIONING_FOR_ALIAS (loop_vinfo)
-      && !LOOP_PEELING_FOR_ALIGNMENT (loop_vinfo)
-      && !cond_expr)
-    {
-      check_profitability = true;
-
-      /* Get profitability threshold for vectorized loop.  */
-      min_profitable_iters = LOOP_VINFO_COST_MODEL_MIN_ITERS (loop_vinfo);
-
-      th = conservative_cost_threshold (loop_vinfo,
-					min_profitable_iters);
-    }
 
   new_loop = slpeel_tree_peel_loop_to_edge (loop, single_exit (loop),
                                             &ratio_mult_vf_name, ni_name, false,
@@ -1972,6 +1909,14 @@ vect_do_peeling_for_loop_bound (loop_vec_info loop_vinfo, tree *ratio,
   /* Update IVs of original loop as if they were advanced
      by ratio_mult_vf_name steps.  */
   vect_update_ivs_after_vectorizer (loop_vinfo, ratio_mult_vf_name, update_e);
+
+  max_iter = LOOP_VINFO_VECT_FACTOR (loop_vinfo) - 1;
+  if (check_profitability)
+    max_iter = MAX (max_iter, (int) th);
+  record_niter_bound (new_loop, shwi_to_double_int (max_iter), false, true);
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    fprintf (dump_file, "Setting upper bound of nb iterations for epilogue "
+	     "loop to %d\n", max_iter);
 
   /* After peeling we have to reset scalar evolution analyzer.  */
   scev_reset ();
@@ -2158,15 +2103,14 @@ vect_update_inits_of_drs (loop_vec_info loop_vinfo, tree niters)
    peeling is recorded in LOOP_VINFO_UNALIGNED_DR.  */
 
 void
-vect_do_peeling_for_alignment (loop_vec_info loop_vinfo)
+vect_do_peeling_for_alignment (loop_vec_info loop_vinfo,
+			       unsigned int th, bool check_profitability)
 {
   struct loop *loop = LOOP_VINFO_LOOP (loop_vinfo);
   tree niters_of_prolog_loop, ni_name;
   tree n_iters;
   tree wide_prolog_niters;
   struct loop *new_loop;
-  unsigned int th = 0;
-  int min_profitable_iters;
   int max_iter;
 
   if (vect_print_dump_info (REPORT_DETAILS))
@@ -2178,22 +2122,19 @@ vect_do_peeling_for_alignment (loop_vec_info loop_vinfo)
   niters_of_prolog_loop = vect_gen_niters_for_prolog_loop (loop_vinfo,
 							   ni_name);
 
-  /* Get profitability threshold for vectorized loop.  */
-  min_profitable_iters = LOOP_VINFO_COST_MODEL_MIN_ITERS (loop_vinfo);
-  th = conservative_cost_threshold (loop_vinfo,
-				    min_profitable_iters);
-
   /* Peel the prolog loop and iterate it niters_of_prolog_loop.  */
   new_loop =
     slpeel_tree_peel_loop_to_edge (loop, loop_preheader_edge (loop),
 				   &niters_of_prolog_loop, ni_name, true,
-				   th, true, NULL_TREE, NULL);
+				   th, check_profitability, NULL_TREE, NULL);
 
   gcc_assert (new_loop);
 #ifdef ENABLE_CHECKING
   slpeel_verify_cfg_after_peeling (new_loop, loop);
 #endif
-  max_iter = MAX (LOOP_VINFO_VECT_FACTOR (loop_vinfo) - 1, (int) th);
+  max_iter = LOOP_VINFO_VECT_FACTOR (loop_vinfo) - 1;
+  if (check_profitability)
+    max_iter = MAX (max_iter, (int) th);
   record_niter_bound (new_loop, shwi_to_double_int (max_iter), false, true);
   if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, "Setting upper bound of nb iterations for prologue "
@@ -2381,7 +2322,7 @@ vect_vfa_segment_size (struct data_reference *dr, tree length_factor)
 {
   tree segment_length;
 
-  if (!compare_tree_int (DR_STEP (dr), 0))
+  if (integer_zerop (DR_STEP (dr)))
     segment_length = TYPE_SIZE_UNIT (TREE_TYPE (DR_REF (dr)));
   else
     segment_length = size_binop (MULT_EXPR,
@@ -2544,12 +2485,11 @@ vect_create_cond_for_alias_checks (loop_vec_info loop_vinfo,
    cost model initially.
 
    The versioning precondition(s) are placed in *COND_EXPR and
-   *COND_EXPR_STMT_LIST.  If DO_VERSIONING is true versioning is
-   also performed, otherwise only the conditions are generated.  */
+   *COND_EXPR_STMT_LIST.  */
 
 void
-vect_loop_versioning (loop_vec_info loop_vinfo, bool do_versioning,
-		      tree *cond_expr, gimple_seq *cond_expr_stmt_list)
+vect_loop_versioning (loop_vec_info loop_vinfo,
+		      unsigned int th, bool check_profitability)
 {
   struct loop *loop = LOOP_VINFO_LOOP (loop_vinfo);
   basic_block condition_bb;
@@ -2558,47 +2498,35 @@ vect_loop_versioning (loop_vec_info loop_vinfo, bool do_versioning,
   basic_block new_exit_bb;
   edge new_exit_e, e;
   gimple orig_phi, new_phi;
+  tree cond_expr = NULL_TREE;
+  gimple_seq cond_expr_stmt_list = NULL;
   tree arg;
   unsigned prob = 4 * REG_BR_PROB_BASE / 5;
   gimple_seq gimplify_stmt_list = NULL;
   tree scalar_loop_iters = LOOP_VINFO_NITERS (loop_vinfo);
-  int min_profitable_iters = 0;
-  unsigned int th;
 
-  /* Get profitability threshold for vectorized loop.  */
-  min_profitable_iters = LOOP_VINFO_COST_MODEL_MIN_ITERS (loop_vinfo);
-
-  th = conservative_cost_threshold (loop_vinfo,
-				    min_profitable_iters);
-
-  *cond_expr =
-    fold_build2 (GT_EXPR, boolean_type_node, scalar_loop_iters,
- 	         build_int_cst (TREE_TYPE (scalar_loop_iters), th));
-
-  *cond_expr = force_gimple_operand (*cond_expr, cond_expr_stmt_list,
-				     false, NULL_TREE);
+  if (check_profitability)
+    {
+      cond_expr = fold_build2 (GT_EXPR, boolean_type_node, scalar_loop_iters,
+			       build_int_cst (TREE_TYPE (scalar_loop_iters), th));
+      cond_expr = force_gimple_operand_1 (cond_expr, &cond_expr_stmt_list,
+					  is_gimple_condexpr, NULL_TREE);
+    }
 
   if (LOOP_REQUIRES_VERSIONING_FOR_ALIGNMENT (loop_vinfo))
-      vect_create_cond_for_align_checks (loop_vinfo, cond_expr,
-					 cond_expr_stmt_list);
+    vect_create_cond_for_align_checks (loop_vinfo, &cond_expr,
+				       &cond_expr_stmt_list);
 
   if (LOOP_REQUIRES_VERSIONING_FOR_ALIAS (loop_vinfo))
-    vect_create_cond_for_alias_checks (loop_vinfo, cond_expr,
-				       cond_expr_stmt_list);
+    vect_create_cond_for_alias_checks (loop_vinfo, &cond_expr,
+				       &cond_expr_stmt_list);
 
-  *cond_expr =
-    fold_build2 (NE_EXPR, boolean_type_node, *cond_expr, integer_zero_node);
-  *cond_expr =
-    force_gimple_operand (*cond_expr, &gimplify_stmt_list, true, NULL_TREE);
-  gimple_seq_add_seq (cond_expr_stmt_list, gimplify_stmt_list);
-
-  /* If we only needed the extra conditions and a new loop copy
-     bail out here.  */
-  if (!do_versioning)
-    return;
+  cond_expr = force_gimple_operand_1 (cond_expr, &gimplify_stmt_list,
+				      is_gimple_condexpr, NULL_TREE);
+  gimple_seq_add_seq (&cond_expr_stmt_list, gimplify_stmt_list);
 
   initialize_original_copy_tables ();
-  loop_version (loop, *cond_expr, &condition_bb,
+  loop_version (loop, cond_expr, &condition_bb,
 		prob, prob, REG_BR_PROB_BASE - prob, true);
   free_original_copy_tables();
 
@@ -2630,13 +2558,11 @@ vect_loop_versioning (loop_vec_info loop_vinfo, bool do_versioning,
   /* End loop-exit-fixes after versioning.  */
 
   update_ssa (TODO_update_ssa);
-  if (*cond_expr_stmt_list)
+  if (cond_expr_stmt_list)
     {
       cond_exp_gsi = gsi_last_bb (condition_bb);
-      gsi_insert_seq_before (&cond_exp_gsi, *cond_expr_stmt_list,
+      gsi_insert_seq_before (&cond_exp_gsi, cond_expr_stmt_list,
 			     GSI_SAME_STMT);
-      *cond_expr_stmt_list = NULL;
     }
-  *cond_expr = NULL_TREE;
 }
 

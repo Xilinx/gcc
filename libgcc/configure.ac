@@ -14,6 +14,11 @@ AC_PREREQ(2.64)
 AC_INIT([GNU C Runtime Library], 1.0,,[libgcc])
 AC_CONFIG_SRCDIR([static-object.mk])
 
+# The libgcc should not depend on any header files
+AC_DEFUN([_AC_INCLUDES_DEFAULT_REQUIREMENTS],
+  [m4_divert_text([DEFAULTS],
+    [ac_includes_default='/* none */'])])
+
 AC_ARG_WITH(target-subdir,
 [  --with-target-subdir=SUBDIR      Configuring in a subdirectory for target])
 AC_ARG_WITH(cross-host,
@@ -39,6 +44,7 @@ else
 fi
 AC_SUBST(libgcc_topdir)
 AC_CONFIG_AUX_DIR($libgcc_topdir)
+AC_CONFIG_HEADER(auto-target.h:config.in)
 
 AC_ARG_ENABLE(shared,
 [  --disable-shared        don't provide a shared libgcc],
@@ -309,7 +315,7 @@ fi
 AC_SUBST(vis_hide)
 
 # See if we have thread-local storage.  We can only test assembler
-# sicne link-time and run-time tests require the newly built
+# since link-time and run-time tests require the newly built
 # gcc, which can't be used to build executable due to that libgcc
 # is yet to be built here.
 GCC_CHECK_CC_TLS
@@ -326,6 +332,15 @@ if test "$enable_tls $gcc_cv_use_emutls" = "yes yes"; then
   set_use_emutls="-DUSE_EMUTLS"
 fi
 AC_SUBST(set_use_emutls)
+
+AC_CACHE_CHECK(for init priority support, libgcc_cv_init_priority, [
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM(,
+  [[void ip (void) __attribute__ ((constructor (1)));]])],
+  [libgcc_cv_init_priority=yes],[libgcc_cv_init_priority=no])])
+if test $libgcc_cv_init_priority = yes; then
+  AC_DEFINE(HAVE_INIT_PRIORITY, 1,
+  [Define if the compiler supports init priority.])
+fi
 
 # Conditionalize the sfp-machine.h header for this target machine.
 if test -z "${sfp_machine_header}"; then

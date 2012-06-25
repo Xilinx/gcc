@@ -41,13 +41,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #include <errno.h>
 
 
-/* min macro that evaluates its arguments only once.  */
-#define min(a,b)		\
-  ({ typeof (a) _a = (a);	\
-    typeof (b) _b = (b);	\
-    _a < _b ? _a : _b; })
-
-
 /* For mingw, we don't identify files by their inode number, but by a
    64-bit identifier created from a BY_HANDLE_FILE_INFORMATION. */
 #ifdef __MINGW32__
@@ -106,8 +99,19 @@ id_from_fd (const int fd)
   return id_from_handle ((HANDLE) _get_osfhandle (fd));
 }
 
+#endif /* HAVE_WORKING_STAT */
+#endif /* __MINGW32__ */
+
+
+/* min macro that evaluates its arguments only once.  */
+#ifdef min
+#undef min
 #endif
-#endif
+
+#define min(a,b)		\
+  ({ typeof (a) _a = (a);	\
+    typeof (b) _b = (b);	\
+    _a < _b ? _a : _b; })
 
 #ifndef PATH_MAX
 #define PATH_MAX 1024
@@ -173,6 +177,17 @@ fallback_access (const char *path, int mode)
 
 #undef access
 #define access fallback_access
+#endif
+
+
+/* Fallback directory for creating temporary files.  P_tmpdir is
+   defined on many POSIX platforms.  */
+#ifndef P_tmpdir
+#ifdef _P_tmpdir
+#define P_tmpdir _P_tmpdir  /* MinGW */
+#else
+#define P_tmpdir "/tmp"
+#endif
 #endif
 
 
@@ -1026,54 +1041,23 @@ unpack_filename (char *cstring, const char *fstring, int len)
 }
 
 
-/* tempfile()-- Generate a temporary filename for a scratch file and
- * open it.  mkstemp() opens the file for reading and writing, but the
- * library mode prevents anything that is not allowed.  The descriptor
- * is returned, which is -1 on error.  The template is pointed to by 
- * opp->file, which is copied into the unit structure
- * and freed later. */
+/* Helper function for tempfile(). Tries to open a temporary file in
+   the directory specified by tempdir. If successful, the file name is
+   stored in fname and the descriptor returned. Returns -1 on
+   failure.  */
 
 static int
-tempfile (st_parameter_open *opp)
+tempfile_open (const char *tempdir, char **fname)
 {
-  const char *tempdir;
-  char *template;
-  const char *slash = "/";
   int fd;
-  size_t tempdirlen;
+  const char *slash = "/";
 
-#ifndef HAVE_MKSTEMP
-  int count;
-  size_t slashlen;
-#endif
+  if (!tempdir)
+    return -1;
 
-  tempdir = getenv ("GFORTRAN_TMPDIR");
-#ifdef __MINGW32__
-  if (tempdir == NULL)
-    {
-      char buffer[MAX_PATH + 1];
-      DWORD ret;
-      ret = GetTempPath (MAX_PATH, buffer);
-      /* If we are not able to get a temp-directory, we use
-	 current directory.  */
-      if (ret > MAX_PATH || !ret)
-        buffer[0] = 0;
-      else
-        buffer[ret] = 0;
-      tempdir = strdup (buffer);
-    }
-#else
-  if (tempdir == NULL)
-    tempdir = getenv ("TMP");
-  if (tempdir == NULL)
-    tempdir = getenv ("TEMP");
-  if (tempdir == NULL)
-    tempdir = DEFAULT_TEMPDIR;
-#endif
-
-  /* Check for special case that tempdir contains slash
-     or backslash at end.  */
-  tempdirlen = strlen (tempdir);
+  /* Check for the special case that tempdir ends with a slash or
+     backslash.  */
+  size_t tempdirlen = strlen (tempdir);
   if (*tempdir == 0 || tempdir[tempdirlen - 1] == '/'
 #ifdef __MINGW32__
       || tempdir[tempdirlen - 1] == '\\'
@@ -1082,7 +1066,7 @@ tempfile (st_parameter_open *opp)
     slash = "";
 
   // Take care that the template is longer in the mktemp() branch.
-  template = xmalloc (tempdirlen + 23);
+  char * template = xmalloc (tempdirlen + 23);
 
 #ifdef HAVE_MKSTEMP
   snprintf (template, tempdirlen + 23, "%s%sgfortrantmpXXXXXX", 
@@ -1092,8 +1076,8 @@ tempfile (st_parameter_open *opp)
 
 #else /* HAVE_MKSTEMP */
   fd = -1;
-  count = 0;
-  slashlen = strlen (slash);
+  int count = 0;
+  size_t slashlen = strlen (slash);
   do
     {
       snprintf (template, tempdirlen + 23, "%s%sgfortrantmpaaaXXXXXX", 
@@ -1127,8 +1111,59 @@ tempfile (st_parameter_open *opp)
   while (fd == -1 && errno == EEXIST);
 #endif /* HAVE_MKSTEMP */
 
-  opp->file = template;
-  opp->file_len = strlen (template);	/* Don't include trailing nul */
+  *fname = template;
+  return fd;
+}
+
+
+/* tempfile()-- Generate a temporary filename for a scratch file and
+ * open it.  mkstemp() opens the file for reading and writing, but the
+ * library mode prevents anything that is not allowed.  The descriptor
+ * is returned, which is -1 on error.  The template is pointed to by 
+ * opp->file, which is copied into the unit structure
+ * and freed later. */
+
+static int
+tempfile (st_parameter_open *opp)
+{
+  const char *tempdir;
+  char *fname;
+  int fd = -1;
+
+  tempdir = secure_getenv ("TMPDIR");
+  fd = tempfile_open (tempdir, &fname);
+#ifdef __MINGW32__
+  if (fd == -1)
+    {
+      char buffer[MAX_PATH + 1];
+      DWORD ret;
+      ret = GetTempPath (MAX_PATH, buffer);
+      /* If we are not able to get a temp-directory, we use
+	 current directory.  */
+      if (ret > MAX_PATH || !ret)
+        buffer[0] = 0;
+      else
+        buffer[ret] = 0;
+      tempdir = strdup (buffer);
+      fd = tempfile_open (tempdir, &fname);
+    }
+#elif defined(__CYGWIN__)
+  if (fd == -1)
+    {
+      tempdir = secure_getenv ("TMP");
+      fd = tempfile_open (tempdir, &fname);
+    }
+  if (fd == -1)
+    {
+      tempdir = secure_getenv ("TEMP");
+      fd = tempfile_open (tempdir, &fname);
+    }
+#endif
+  if (fd == -1)
+    fd = tempfile_open (P_tmpdir, &fname);
+ 
+  opp->file = fname;
+  opp->file_len = strlen (fname);	/* Don't include trailing nul */
 
   return fd;
 }

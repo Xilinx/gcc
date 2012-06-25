@@ -34,7 +34,7 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #include "obstack.h"
 #include "diagnostic-core.h"
 #include "toplev.h"
-#include "output.h"
+#include "output.h" /* for switch_to_section and get_section */
 #include "parse.h"
 #include "function.h"
 #include "ggc.h"
@@ -1001,7 +1001,6 @@ build_utf8_ref (tree name)
   DECL_SIZE_UNIT (decl) = TYPE_SIZE_UNIT (ctype);
   pushdecl (decl);
   rest_of_decl_compilation (decl, global_bindings_p (), 0);
-  varpool_mark_needed_node (varpool_node (decl));
   ref = build1 (ADDR_EXPR, utf8const_ptr_type, decl);
   IDENTIFIER_UTF8_REF (name) = ref;
   return ref;
@@ -2790,16 +2789,11 @@ emit_indirect_register_classes (tree *list_p)
 static void
 emit_register_classes_in_jcr_section (void)
 {
+#ifdef JCR_SECTION_NAME
   tree klass, cdecl, class_array_type;
   int i;
   int size = VEC_length (tree, registered_class);
   VEC(constructor_elt,gc) *init = VEC_alloc (constructor_elt, gc, size);
-
-#ifndef JCR_SECTION_NAME
-  /* A target has defined TARGET_USE_JCR_SECTION,
-     but doesn't have a JCR_SECTION_NAME.  */
-  gcc_unreachable ();
-#endif
 
   FOR_EACH_VEC_ELT (tree, registered_class, i, klass)
     CONSTRUCTOR_APPEND_ELT (init, NULL_TREE, build_fold_addr_expr (klass));
@@ -2826,6 +2820,11 @@ emit_register_classes_in_jcr_section (void)
   relayout_decl (cdecl);
   rest_of_decl_compilation (cdecl, 1, 0);
   mark_decl_referenced (cdecl);
+#else
+  /* A target has defined TARGET_USE_JCR_SECTION,
+     but doesn't have a JCR_SECTION_NAME.  */
+  gcc_unreachable ();
+#endif
 }
 
 

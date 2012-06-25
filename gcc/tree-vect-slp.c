@@ -33,7 +33,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-flow.h"
 #include "tree-dump.h"
 #include "cfgloop.h"
-#include "cfglayout.h"
 #include "expr.h"
 #include "recog.h"
 #include "optabs.h"
@@ -1199,7 +1198,8 @@ vect_supported_load_permutation_p (slp_instance slp_instn, int group_size,
 
   /* We checked that this case ok, so there is no need to proceed with 
      permutation tests.  */
-  if (complex_numbers == 2)
+  if (complex_numbers == 2
+      && VEC_length (slp_tree, SLP_INSTANCE_LOADS (slp_instn)) == 2)
     {
       VEC_free (slp_tree, heap, SLP_INSTANCE_LOADS (slp_instn));
       VEC_free (int, heap, SLP_INSTANCE_LOAD_PERMUTATION (slp_instn));
@@ -1290,7 +1290,7 @@ vect_supported_load_permutation_p (slp_instance slp_instn, int group_size,
      FORNOW: not supported in loop SLP because of realignment compications.  */
   bb_vinfo = STMT_VINFO_BB_VINFO (vinfo_for_stmt (stmt));
   bad_permutation = false;
-  /* Check that for every node in the instance teh loads form a subchain.  */
+  /* Check that for every node in the instance the loads form a subchain.  */
   if (bb_vinfo)
     {
       FOR_EACH_VEC_ELT (slp_tree, SLP_INSTANCE_LOADS (slp_instn), i, node)

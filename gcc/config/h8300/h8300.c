@@ -480,7 +480,7 @@ byte_reg (rtx x, int b)
 	  handlers.  */							\
        || (h8300_current_function_interrupt_function_p ()		\
 	   && call_used_regs[regno]					\
-	   && !current_function_is_leaf)))
+	   && !crtl->is_leaf)))
 
 /* We use this to wrap all emitted insns in the prologue.  */
 static rtx
@@ -678,12 +678,13 @@ h8300_push_pop (int regno, int nregs, bool pop_p, bool return_p)
 	  /* Register REGNO + NREGS - 1 is popped first.  Before the
 	     stack adjustment, its slot is at address @sp.  */
 	  lhs = gen_rtx_REG (SImode, regno + j);
-	  rhs = gen_rtx_MEM (SImode, plus_constant (sp, (nregs - j - 1) * 4));
+	  rhs = gen_rtx_MEM (SImode, plus_constant (Pmode, sp,
+						    (nregs - j - 1) * 4));
 	}
       else
 	{
 	  /* Register REGNO is pushed first and will be stored at @(-4,sp).  */
-	  lhs = gen_rtx_MEM (SImode, plus_constant (sp, (j + 1) * -4));
+	  lhs = gen_rtx_MEM (SImode, plus_constant (Pmode, sp, (j + 1) * -4));
 	  rhs = gen_rtx_REG (SImode, regno + j);
 	}
       RTVEC_ELT (vec, i + j) = gen_rtx_SET (VOIDmode, lhs, rhs);
@@ -1445,6 +1446,12 @@ h8300_print_operand (FILE *file, rtx x, int code)
 
   switch (code)
     {
+    case 'C':
+      if (h8300_constant_length (x) == 2)
+       fprintf (file, ":16");
+      else
+       fprintf (file, ":32");
+      return;
     case 'E':
       switch (GET_CODE (x))
 	{
@@ -2002,7 +2009,8 @@ h8300_return_addr_rtx (int count, rtx frame)
   else
     ret = gen_rtx_MEM (Pmode,
 		       memory_address (Pmode,
-				       plus_constant (frame, UNITS_PER_WORD)));
+				       plus_constant (Pmode, frame,
+						      UNITS_PER_WORD)));
   set_mem_alias_set (ret, get_frame_alias_set ());
   return ret;
 }
@@ -2719,17 +2727,17 @@ h8300_swap_into_er6 (rtx addr)
   rtx insn = push (HARD_FRAME_POINTER_REGNUM);
   if (frame_pointer_needed)
     add_reg_note (insn, REG_CFA_DEF_CFA,
-		  plus_constant (gen_rtx_MEM (Pmode, stack_pointer_rtx),
+		  plus_constant (Pmode, gen_rtx_MEM (Pmode, stack_pointer_rtx),
 				 2 * UNITS_PER_WORD));
   else
     add_reg_note (insn, REG_CFA_ADJUST_CFA,
 		  gen_rtx_SET (VOIDmode, stack_pointer_rtx,
-			       plus_constant (stack_pointer_rtx, 4)));
+			       plus_constant (Pmode, stack_pointer_rtx, 4)));
 
   emit_move_insn (hard_frame_pointer_rtx, addr);
   if (REGNO (addr) == SP_REG)
     emit_move_insn (hard_frame_pointer_rtx,
-		    plus_constant (hard_frame_pointer_rtx,
+		    plus_constant (Pmode, hard_frame_pointer_rtx,
 				   GET_MODE_SIZE (word_mode)));
 }
 
@@ -2748,11 +2756,12 @@ h8300_swap_out_of_er6 (rtx addr)
   RTX_FRAME_RELATED_P (insn) = 1;
   if (frame_pointer_needed)
     add_reg_note (insn, REG_CFA_DEF_CFA,
-		  plus_constant (hard_frame_pointer_rtx, 2 * UNITS_PER_WORD));
+		  plus_constant (Pmode, hard_frame_pointer_rtx,
+				 2 * UNITS_PER_WORD));
   else
     add_reg_note (insn, REG_CFA_ADJUST_CFA,
 		  gen_rtx_SET (VOIDmode, stack_pointer_rtx,
-			       plus_constant (stack_pointer_rtx, -4)));
+			       plus_constant (Pmode, stack_pointer_rtx, -4)));
 }
 
 /* Return the length of mov instruction.  */

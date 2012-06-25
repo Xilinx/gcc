@@ -606,6 +606,12 @@ package Prj is
       Toolchain_Description : Name_Id := No_Name;
       --  Hold the value of attribute Toolchain_Description for the language
 
+      Clean_Object_Artifacts : Name_List_Index := No_Name_List;
+      --  List of object artifact extensions to be deleted by gprclean
+
+      Clean_Source_Artifacts : Name_List_Index := No_Name_List;
+      --  List of source artifact extensions to be deleted by gprclean
+
    end record;
 
    No_Language_Config : constant Language_Config :=
@@ -654,7 +660,9 @@ package Prj is
                            Binder_Required_Switches     => No_Name_List,
                            Binder_Prefix                => No_Name,
                            Toolchain_Version            => No_Name,
-                           Toolchain_Description        => No_Name);
+                           Toolchain_Description        => No_Name,
+                           Clean_Object_Artifacts       => No_Name_List,
+                           Clean_Source_Artifacts       => No_Name_List);
 
    --  The following record ???
 
@@ -775,8 +783,12 @@ package Prj is
       Locally_Removed : Boolean := False;
       --  True if the source has been "excluded"
 
+      Suppressed : Boolean := False;
+      --  True if the source is a locally removed direct source of the project.
+      --  These sources should not be put in the mapping file.
+
       Replaced_By : Source_Id := No_Source;
-      --  Missing comment ???
+      --  Source in an extending project that replaces the current source
 
       File : File_Name_Type := No_File;
       --  Canonical file name of the source
@@ -858,6 +870,7 @@ package Prj is
                        Unit                   => No_Unit_Index,
                        Index                  => 0,
                        Locally_Removed        => False,
+                       Suppressed             => False,
                        Compilable             => Unknown,
                        In_The_Queue           => False,
                        Replaced_By            => No_Source,

@@ -2581,7 +2581,6 @@ as_fn_append ac_func_list " dup"
 as_fn_append ac_func_list " getcwd"
 as_fn_append ac_func_list " localtime_r"
 as_fn_append ac_func_list " gmtime_r"
-as_fn_append ac_func_list " strerror_r"
 as_fn_append ac_func_list " getpwuid_r"
 as_fn_append ac_func_list " ttyname_r"
 as_fn_append ac_func_list " clock_gettime"
@@ -2592,6 +2591,8 @@ as_fn_append ac_func_list " getppid"
 as_fn_append ac_func_list " getuid"
 as_fn_append ac_func_list " geteuid"
 as_fn_append ac_func_list " umask"
+as_fn_append ac_func_list " getegid"
+as_fn_append ac_func_list " __secure_getenv"
 as_fn_append ac_header_list " math.h"
 # Check that the precious variables saved in the cache have kept the same
 # value.
@@ -5780,7 +5781,7 @@ else
   gfortran_use_symver=yes
 fi
 
-if test "x$gfortran_use_symver" = xyes; then
+if test "x$gfortran_use_symver" != xno; then
   save_LDFLAGS="$LDFLAGS"
   LDFLAGS="$LDFLAGS -fPIC -shared -Wl,--version-script,./conftest.map"
   cat > conftest.map <<EOF
@@ -8072,7 +8073,14 @@ s390*-*linux*|s390*-*tpf*|sparc*-*linux*)
 	    LD="${LD-ld} -m elf_i386_fbsd"
 	    ;;
 	  x86_64-*linux*)
-	    LD="${LD-ld} -m elf_i386"
+	    case `/usr/bin/file conftest.o` in
+	      *x86-64*)
+		LD="${LD-ld} -m elf32_x86_64"
+		;;
+	      *)
+		LD="${LD-ld} -m elf_i386"
+		;;
+	    esac
 	    ;;
 	  ppc64-*linux*|powerpc64-*linux*)
 	    LD="${LD-ld} -m elf32ppclinux"
@@ -12319,7 +12327,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 12322 "configure"
+#line 12330 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -12425,7 +12433,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 12428 "configure"
+#line 12436 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -16534,6 +16542,57 @@ done
 
 
 
+
+
+
+
+# Check strerror_r, cannot be above as versions with two and three arguments exist
+
+    ac_save_CFLAGS="$CFLAGS"
+  CFLAGS="-Wimplicit-function-declaration -Werror"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#define _GNU_SOURCE 1
+	     	  #include <string.h>
+		  #include <locale.h>
+int
+main ()
+{
+char s[128]; strerror_r(5, s, 128);
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_STRERROR_R 1" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  CFLAGS="$ac_save_CFLAGS"
+
+    ac_save_CFLAGS="$CFLAGS"
+  CFLAGS="-Wimplicit-function-declaration -Werror"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#define _GNU_SOURCE 1
+	     	  #include <string.h>
+		  #include <locale.h>
+int
+main ()
+{
+char s[128]; strerror_r(5, s);
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_STRERROR_R_2ARGS 1" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  CFLAGS="$ac_save_CFLAGS"
 
 
 # Check for C99 (and other IEEE) math functions

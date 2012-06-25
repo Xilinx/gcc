@@ -118,9 +118,7 @@ procedure Gnat1drv is
       --  Debug flag -gnatd.I is a synonym for Generate_SCIL and requires code
       --  generation.
 
-      if Debug_Flag_Dot_II
-        and then Operating_Mode = Generate_Code
-      then
+      if Debug_Flag_Dot_II and then Operating_Mode = Generate_Code then
          Generate_SCIL := True;
       end if;
 
@@ -506,6 +504,17 @@ procedure Gnat1drv is
          --  which is more complex to formally verify than the original source.
 
          Tagged_Type_Expansion := False;
+      end if;
+
+      --  If the inlining level has not been set by the user, compute it from
+      --  the optimization level: 1 at -O1/-O2 (and -Os), 2 at -O3 and above.
+
+      if Inline_Level = 0 then
+         if Optimization_Level < 3 then
+            Inline_Level := 1;
+         else
+            Inline_Level := 2;
+         end if;
       end if;
    end Adjust_Global_Switches;
 

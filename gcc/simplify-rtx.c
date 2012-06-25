@@ -1,7 +1,7 @@
 /* RTL simplification functions for GNU compiler.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
    1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-   2011  Free Software Foundation, Inc.
+   2011, 2012  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -35,7 +35,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "function.h"
 #include "expr.h"
 #include "diagnostic-core.h"
-#include "output.h"
 #include "ggc.h"
 #include "target.h"
 
@@ -89,7 +88,7 @@ mode_signbit_p (enum machine_mode mode, const_rtx x)
   if (width <= HOST_BITS_PER_WIDE_INT
       && CONST_INT_P (x))
     val = INTVAL (x);
-  else if (width <= 2 * HOST_BITS_PER_WIDE_INT
+  else if (width <= HOST_BITS_PER_DOUBLE_INT
 	   && GET_CODE (x) == CONST_DOUBLE
 	   && CONST_DOUBLE_LOW (x) == 0)
     {
@@ -613,7 +612,7 @@ simplify_unary_operation_1 (enum rtx_code code, enum machine_mode mode, rtx op)
 
       /* Similarly, (not (neg X)) is (plus X -1).  */
       if (GET_CODE (op) == NEG)
-	return plus_constant (XEXP (op, 0), -1);
+	return plus_constant (mode, XEXP (op, 0), -1);
 
       /* (not (xor X C)) for C constant is (xor X D) with D = ~C.  */
       if (GET_CODE (op) == XOR
@@ -713,7 +712,7 @@ simplify_unary_operation_1 (enum rtx_code code, enum machine_mode mode, rtx op)
 
       /* Similarly, (neg (not X)) is (plus X 1).  */
       if (GET_CODE (op) == NOT)
-	return plus_constant (XEXP (op, 0), 1);
+	return plus_constant (mode, XEXP (op, 0), 1);
 
       /* (neg (minus X Y)) can become (minus Y X).  This transformation
 	 isn't safe for modes with signed zeros, since if X and Y are
@@ -782,7 +781,7 @@ simplify_unary_operation_1 (enum rtx_code code, enum machine_mode mode, rtx op)
       if (GET_CODE (op) == XOR
 	  && XEXP (op, 1) == const1_rtx
 	  && nonzero_bits (XEXP (op, 0), mode) == 1)
-	return plus_constant (XEXP (op, 0), -1);
+	return plus_constant (mode, XEXP (op, 0), -1);
 
       /* (neg (lt x 0)) is (ashiftrt X C) if STORE_FLAG_VALUE is 1.  */
       /* (neg (lt x 0)) is (lshiftrt X C) if STORE_FLAG_VALUE is -1.  */
@@ -1357,7 +1356,7 @@ simplify_const_unary_operation (enum rtx_code code, enum machine_mode mode,
 	lv = CONST_DOUBLE_LOW (op),  hv = CONST_DOUBLE_HIGH (op);
 
       if (op_mode == VOIDmode
-	  || GET_MODE_PRECISION (op_mode) > 2 * HOST_BITS_PER_WIDE_INT)
+	  || GET_MODE_PRECISION (op_mode) > HOST_BITS_PER_DOUBLE_INT)
 	/* We should never get a negative number.  */
 	gcc_assert (hv >= 0);
       else if (GET_MODE_PRECISION (op_mode) <= HOST_BITS_PER_WIDE_INT)
@@ -1518,7 +1517,7 @@ simplify_const_unary_operation (enum rtx_code code, enum machine_mode mode,
   /* We can do some operations on integer CONST_DOUBLEs.  Also allow
      for a DImode operation on a CONST_INT.  */
   else if (GET_MODE (op) == VOIDmode
-	   && width <= HOST_BITS_PER_WIDE_INT * 2
+	   && width <= HOST_BITS_PER_DOUBLE_INT
 	   && (GET_CODE (op) == CONST_DOUBLE
 	       || CONST_INT_P (op)))
     {
@@ -1714,7 +1713,7 @@ simplify_const_unary_operation (enum rtx_code code, enum machine_mode mode,
   else if (GET_CODE (op) == CONST_DOUBLE
 	   && SCALAR_FLOAT_MODE_P (GET_MODE (op))
 	   && GET_MODE_CLASS (mode) == MODE_INT
-	   && width <= 2 * HOST_BITS_PER_WIDE_INT && width > 0)
+	   && width <= HOST_BITS_PER_DOUBLE_INT && width > 0)
     {
       /* Although the overflow semantics of RTL's FIX and UNSIGNED_FIX
 	 operators are intentionally left unspecified (to ease implementation
@@ -1779,7 +1778,7 @@ simplify_const_unary_operation (enum rtx_code code, enum machine_mode mode,
 	    return const0_rtx;
 
 	  /* Test against the unsigned upper bound.  */
-	  if (width == 2 * HOST_BITS_PER_WIDE_INT)
+	  if (width == HOST_BITS_PER_DOUBLE_INT)
 	    {
 	      th = -1;
 	      tl = -1;
@@ -1954,12 +1953,12 @@ simplify_binary_operation_1 (enum rtx_code code, enum machine_mode mode,
 	   || GET_CODE (op0) == SYMBOL_REF
 	   || GET_CODE (op0) == LABEL_REF)
 	  && CONST_INT_P (op1))
-	return plus_constant (op0, INTVAL (op1));
+	return plus_constant (mode, op0, INTVAL (op1));
       else if ((GET_CODE (op1) == CONST
 		|| GET_CODE (op1) == SYMBOL_REF
 		|| GET_CODE (op1) == LABEL_REF)
 	       && CONST_INT_P (op0))
-	return plus_constant (op1, INTVAL (op0));
+	return plus_constant (mode, op1, INTVAL (op0));
 
       /* See if this is something like X * C - X or vice versa or
 	 if the multiplication is written as a shift.  If so, we can
@@ -2377,8 +2376,8 @@ simplify_binary_operation_1 (enum rtx_code code, enum machine_mode mode,
 	  && GET_MODE (op0) == mode
 	  && CONST_DOUBLE_LOW (trueop1) == 0
 	  && (val = exact_log2 (CONST_DOUBLE_HIGH (trueop1))) >= 0
-	  && (val < 2 * HOST_BITS_PER_WIDE_INT - 1
-	      || GET_MODE_BITSIZE (mode) <= 2 * HOST_BITS_PER_WIDE_INT))
+	  && (val < HOST_BITS_PER_DOUBLE_INT - 1
+	      || GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_DOUBLE_INT))
 	return simplify_gen_binary (ASHIFT, mode, op0,
 				    GEN_INT (val + HOST_BITS_PER_WIDE_INT));
 
@@ -2557,7 +2556,8 @@ simplify_binary_operation_1 (enum rtx_code code, enum machine_mode mode,
           if (mask >> count == INTVAL (trueop1)
               && (mask & nonzero_bits (XEXP (op0, 0), mode)) == 0)
 	    return simplify_gen_binary (ASHIFTRT, mode,
-					plus_constant (XEXP (op0, 0), mask),
+					plus_constant (mode, XEXP (op0, 0),
+						       mask),
 					XEXP (op0, 1));
         }
 
@@ -3241,6 +3241,27 @@ simplify_binary_operation_1 (enum rtx_code code, enum machine_mode mode,
 
 	      return gen_rtx_CONST_VECTOR (mode, v);
 	    }
+
+	  /* If we build {a,b} then permute it, build the result directly.  */
+	  if (XVECLEN (trueop1, 0) == 2
+	      && CONST_INT_P (XVECEXP (trueop1, 0, 0))
+	      && CONST_INT_P (XVECEXP (trueop1, 0, 1))
+	      && GET_CODE (trueop0) == VEC_CONCAT
+	      && GET_CODE (XEXP (trueop0, 0)) == VEC_CONCAT
+	      && GET_MODE (XEXP (trueop0, 0)) == mode
+	      && GET_CODE (XEXP (trueop0, 1)) == VEC_CONCAT
+	      && GET_MODE (XEXP (trueop0, 1)) == mode)
+	    {
+	      unsigned int i0 = INTVAL (XVECEXP (trueop1, 0, 0));
+	      unsigned int i1 = INTVAL (XVECEXP (trueop1, 0, 1));
+	      rtx subop0, subop1;
+
+	      gcc_assert (i0 < 4 && i1 < 4);
+	      subop0 = XEXP (XEXP (trueop0, i0 / 2), i0 % 2);
+	      subop1 = XEXP (XEXP (trueop0, i1 / 2), i1 % 2);
+
+	      return simplify_gen_binary (VEC_CONCAT, mode, subop0, subop1);
+	    }
 	}
 
       if (XVECLEN (trueop1, 0) == 1
@@ -3632,7 +3653,10 @@ simplify_const_binary_operation (enum rtx_code code, enum machine_mode mode,
 	    unsigned HOST_WIDE_INT cnt;
 
 	    if (SHIFT_COUNT_TRUNCATED)
-	      o1 = double_int_zext (o1, GET_MODE_PRECISION (mode));
+	      {
+		o1.high = 0; 
+		o1.low &= GET_MODE_PRECISION (mode) - 1;
+	      }
 
 	    if (!double_int_fits_in_uhwi_p (o1)
 	        || double_int_to_uhwi (o1) >= GET_MODE_PRECISION (mode))
@@ -4118,7 +4142,8 @@ simplify_plus_minus (enum rtx_code code, enum machine_mode mode, rtx op0,
       rtx value = ops[n_ops - 1].op;
       if (ops[n_ops - 1].neg ^ ops[n_ops - 2].neg)
 	value = neg_const_int (mode, value);
-      ops[n_ops - 2].op = plus_constant (ops[n_ops - 2].op, INTVAL (value));
+      ops[n_ops - 2].op = plus_constant (mode, ops[n_ops - 2].op,
+					 INTVAL (value));
       n_ops--;
     }
 
@@ -5194,7 +5219,7 @@ simplify_immed_subreg (enum machine_mode outermode, rtx op,
 
 	      for (i = 0; i < HOST_BITS_PER_WIDE_INT; i += value_bit)
 		*vp++ = CONST_DOUBLE_LOW (el) >> i;
-	      while (i < HOST_BITS_PER_WIDE_INT * 2 && i < elem_bitsize)
+	      while (i < HOST_BITS_PER_DOUBLE_INT && i < elem_bitsize)
 		{
 		  *vp++
 		    = CONST_DOUBLE_HIGH (el) >> (i - HOST_BITS_PER_WIDE_INT);
@@ -5249,7 +5274,7 @@ simplify_immed_subreg (enum machine_mode outermode, rtx op,
 	    {
 	      for (i = 0; i < HOST_BITS_PER_WIDE_INT; i += value_bit)
 		*vp++ = CONST_FIXED_VALUE_LOW (el) >> i;
-              for (; i < 2 * HOST_BITS_PER_WIDE_INT && i < elem_bitsize;
+              for (; i < HOST_BITS_PER_DOUBLE_INT && i < elem_bitsize;
 		   i += value_bit)
 		*vp++ = CONST_FIXED_VALUE_HIGH (el)
 			>> (i - HOST_BITS_PER_WIDE_INT);
@@ -5342,7 +5367,7 @@ simplify_immed_subreg (enum machine_mode outermode, rtx op,
 	       know why.  */
 	    if (elem_bitsize <= HOST_BITS_PER_WIDE_INT)
 	      elems[elem] = gen_int_mode (lo, outer_submode);
-	    else if (elem_bitsize <= 2 * HOST_BITS_PER_WIDE_INT)
+	    else if (elem_bitsize <= HOST_BITS_PER_DOUBLE_INT)
 	      elems[elem] = immed_double_const (lo, hi, outer_submode);
 	    else
 	      return NULL_RTX;

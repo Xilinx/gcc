@@ -239,33 +239,19 @@ setup_regno_cost_classes_by_aclass (int regno, enum reg_class aclass)
       COPY_HARD_REG_SET (temp, reg_class_contents[aclass]);
       AND_COMPL_HARD_REG_SET (temp, ira_no_alloc_regs);
       /* We exclude classes from consideration which are subsets of
-	 ACLASS only if ACLASS is a pressure class or subset of a
-	 pressure class.  It means by the definition of pressure classes
-	 that cost of moving between susbets of ACLASS is cheaper than
-	 load or store.  */
-      for (i = 0; i < ira_pressure_classes_num; i++)
-	{
-	  cl = ira_pressure_classes[i];
-	  if (cl == aclass)
-	    break;
-	  COPY_HARD_REG_SET (temp2, reg_class_contents[cl]);
-	  AND_COMPL_HARD_REG_SET (temp2, ira_no_alloc_regs);
-	  if (hard_reg_set_subset_p (temp, temp2))
-	    break;
-	}
-      exclude_p = i < ira_pressure_classes_num;
+	 ACLASS only if ACLASS is an uniform class.  */
+      exclude_p = ira_uniform_class_p[aclass];
       classes.num = 0;
       for (i = 0; i < ira_important_classes_num; i++)
 	{
 	  cl = ira_important_classes[i];
 	  if (exclude_p)
 	    {
-	      /* Exclude no-pressure classes which are subsets of
+	      /* Exclude non-uniform classes which are subsets of
 		 ACLASS.  */
 	      COPY_HARD_REG_SET (temp2, reg_class_contents[cl]);
 	      AND_COMPL_HARD_REG_SET (temp2, ira_no_alloc_regs);
-	      if (! ira_reg_pressure_class_p[cl]
-		  && hard_reg_set_subset_p (temp2, temp) && cl != aclass)
+	      if (hard_reg_set_subset_p (temp2, temp) && cl != aclass)
 		continue;
 	    }
 	  classes.classes[classes.num++] = cl;
@@ -359,9 +345,8 @@ copy_cost (rtx x, enum machine_mode mode, reg_class_t rclass, bool to_p,
 
   if (secondary_class != NO_REGS)
     {
-      if (!move_cost[mode])
-        init_move_cost (mode);
-      return (move_cost[mode][(int) secondary_class][(int) rclass]
+      ira_init_register_move_cost_if_necessary (mode);
+      return (ira_register_move_cost[mode][(int) secondary_class][(int) rclass]
 	      + sri.extra_cost
 	      + copy_cost (x, mode, secondary_class, to_p, &sri));
     }
@@ -374,10 +359,11 @@ copy_cost (rtx x, enum machine_mode mode, reg_class_t rclass, bool to_p,
 	   + ira_memory_move_cost[mode][(int) rclass][to_p != 0];
   else if (REG_P (x))
     {
-      if (!move_cost[mode])
-        init_move_cost (mode);
+      reg_class_t x_class = REGNO_REG_CLASS (REGNO (x));
+
+      ira_init_register_move_cost_if_necessary (mode);
       return (sri.extra_cost
-	      + move_cost[mode][REGNO_REG_CLASS (REGNO (x))][(int) rclass]);
+	      + ira_register_move_cost[mode][(int) x_class][(int) rclass]);
     }
   else
     /* If this is a constant, we may eventually want to call rtx_cost
@@ -2107,7 +2093,8 @@ ira_tune_allocno_costs (void)
       mode = ALLOCNO_MODE (a);
       n = ira_class_hard_regs_num[aclass];
       min_cost = INT_MAX;
-      if (ALLOCNO_CALLS_CROSSED_NUM (a) != 0)
+      if (ALLOCNO_CALLS_CROSSED_NUM (a)
+	  != ALLOCNO_CHEAP_CALLS_CROSSED_NUM (a))
 	{
 	  ira_allocate_and_set_costs
 	    (&ALLOCNO_HARD_REG_COSTS (a), aclass,
