@@ -1,3 +1,133 @@
+2012-06-25  Jason Merrill  <jason@redhat.com>
+
+	PR c++/52988
+	* g++.dg/cpp0x/nullptr28.C: New.
+
+2012-06-19  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* gcc.dg/stack-usage-1.c: Remove dg-options line for sh targets
+	and add __sh__ case.
+
+2012-06-14  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/53597
+	* gfortran.dg/save_4.f90: New.
+
+2012-06-13  Christian Bruel  <christian.bruel@st.com>
+
+	PR target/53621
+	* gcc.dg/stack-usage-1.c: Force -fomit-frame-pointer on SH.
+
+2012-06-05  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/50619
+	* gfortran.dg/init_flag_10.f90: New.
+
+2012-06-04  Edmar Wienskoski  <edmar@freescale.com>
+
+	PR target/53559
+	* gcc.target/powerpc/cell_builtin_1.c: New test case.
+	* gcc.target/powerpc/cell_builtin_2.c: Ditto.
+	* gcc.target/powerpc/cell_builtin_3.c: Ditto.
+	* gcc.target/powerpc/cell_builtin_4.c: Ditto.
+	* gcc.target/powerpc/cell_builtin_5.c: Ditto.
+	* gcc.target/powerpc/cell_builtin_6.c: Ditto.
+	* gcc.target/powerpc/cell_builtin_7.c: Ditto.
+	* gcc.target/powerpc/cell_builtin_8.c: Ditto.
+
+2012-05-23  Michael Hope  <michael.hope@linaro.org>
+
+	PR c++/52796
+	* g++.dg/cpp0x/variadic-value1.C: Change selector for explicit
+	options.
+
+2012-05-23  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/53389
+	* gfortran.dg/realloc_on_assign_15.f90: New.
+
+2012-05-22  Richard Guenther  <rguenther@suse.de>
+
+	Backport from mainline
+	2011-11-10  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/51071
+	* gcc.dg/torture/pr51071.c: New testcase.
+	* gcc.dg/torture/pr51071-2.c: Likewise.
+
+2012-05-22  Richard Guenther  <rguenther@suse.de>
+
+	Backport from mainline
+	2012-02-28  Richard Guenther  <rguenther@suse.de>
+
+	PR target/52407
+	* gcc.dg/torture/pr52407.c: New testcase.
+
+2012-05-22  Richard Guenther  <rguenther@suse.de>
+
+	Backport from mainline
+	2012-04-12  Richard Guenther  <rguenther@suse.de>
+
+	PR c/52862
+	* gcc.dg/pr52862.c: New testcase.
+
+2012-05-21  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/53418
+	* gcc.c-torture/compile/pr53418-1.c,
+	gcc.c-torture/compile/pr53418-2.c: New tests.
+
+2012-05-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	Backport from mainline
+	2012-05-21  Uros Bizjak  <ubizjak@gmail.com>
+		    H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/53416
+	* gcc.target/i386/pr53416.c: New file.
+
+2012-05-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/avx256-unaligned-load-[1234].c: Update scan strings.
+	* gcc.target/i386/avx256-unaligned-store-[1234].c: Ditto.
+
+2012-05-03  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	Backport from mainline
+	2012-05-03  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/53199
+	* gcc.target/powwerpc/pr53199.c: New file.
+
+2012-05-02  Tobias Burnus  <burnus@net-b.de>
+
+	Backport from mainline
+	2012-04-16  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52864
+	* gfortran.dg/pointer_intent_6.f90: New.
+
+2012-04-30  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2012-04-27  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR target/53138
+	* gcc.c-torture/execute/20120427-1.c: New testcase.
+
+2012-04-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/53084
+	* gcc.c-torture/execute/pr53084.c: New test.
+
+2012-04-13  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	Backport from mainline
+	2012-04-12  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/52775
+	* gcc.target/powerpc/pr52775.c: New file.
+
 2012-04-03  Jason Merrill  <jason@redhat.com>
 
 	PR c++/52796

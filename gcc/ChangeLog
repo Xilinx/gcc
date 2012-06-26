@@ -1,3 +1,256 @@
+2012-06-22  Richard Guenther  <rguenther@suse.de>
+
+	* gcov-iov.c: Include bconfig.h and system.h.
+
+2012-06-22  Richard Guenther  <rguenther@suse.de>
+
+	PR gcov-profile/53744
+	* gcov-iov.c (main): Treat "" and "prerelease" the same.
+
+2012-06-19  Joey Ye  <joey.ye@arm.com>
+
+	Backported from mainline
+	2011-10-14  David Alan Gilbert  <david.gilbert@linaro.org>
+
+	* config/arm/arm.h (TARGET_HAVE_DMB_MCR): MCR Not available in Thumb1.
+
+2012-06-18  Joey Ye  <joey.ye@arm.com>
+
+	Backported from mainline
+	2011-10-14  David Alan Gilbert  <david.gilbert@linaro.org>
+
+	PR target/48126
+	* config/arm/arm.c (arm_output_sync_loop): Move label before barrier.
+
+2012-06-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline:
+	2012-06-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (vcvtph2ps): Fix vec_select selector.
+
+2012-06-16  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	Backport from mainline:
+	2012-06-03  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* config/pa/pa.h (MAX_PCREL17F_OFFSET): Define.
+	* config/pa/pa.c (pa_attr_length_millicode_call): Use
+	MAX_PCREL17F_OFFSET instead of fixed offset.
+	(pa_attr_length_call): Likewise.
+	(pa_attr_length_indirect_call): Likewise.
+
+2012-06-12  Christian Bruel  <christian.bruel@st.com>
+
+	PR target/53621
+	* config/sh/sh.c (sh_option_override): Don't force
+	 flag_omit_frame_pointer and maccumulate_outgoing_args.
+	* config/sh/sh.opt (maccumulate-outgoing-args): Init as Var.
+
+2012-06-05  Peter Bergner  <bergner@vnet.ibm.com>
+
+	Backport from mainline
+	2011-08-29  Jakub Jelinek  <jakub@redhat.com>
+
+	* gthr-posix.h (__gthread_active_p): Do not use preprocessor
+	conditionals and comments inside macro arguments.
+
+2012-06-04  Edmar Wienskoski  <edmar@freescale.com>
+
+	PR target/53559
+	* config/rs6000/altivec.md (altivec_stvlx): Change machine mode of
+	operands.
+	(altivec_stvlxl): Ditto.
+	(altivec_stvrx): Ditto.
+	(altivec_stvrxl): Ditto.
+
+2012-06-04  Georg-Johann Lay  <avr@gjlay.de>
+
+	Backport from 2012-06-04 mainline r188172
+
+	PR target/46261
+	* config/avr/avr-stdint.h: New file.
+	* config.gcc (avr-*-*,tm_file): Use avr/avr-stdint.h instead of
+	newlib-stdint.h
+
+2012-06-03  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/52999
+	* config/pa/pa.c (TARGET_SECTION_TYPE_FLAGS): Define.
+	(pa_section_type_flags): New.
+	* config/pa/pa.h (LEGITIMATE_CONSTANT_P): Revert previous change.
+
+2012-05-31  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/53541
+	* tree-pretty-print.c (dump_generic_node): Guard against
+	NULL_TREE TREE_TYPE when dumping MEM_REF offset type.
+
+2012-05-24  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
+
+	Backport from mainline
+	2012-05-18  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
+
+	PR target/53385
+	* config/rs6000/rs6000.c (print_operand): Revise code that unsafely
+	relied on signed overflow behavior.
+
+2012-05-22  Richard Guenther  <rguenther@suse.de>
+
+	Backport from mainline
+	2011-11-10  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/51071
+	* gimple.c (gimple_has_side_effects): Remove checking code
+	that doesn't belong here.
+
+2012-05-22  Richard Guenther  <rguenther@suse.de>
+
+	Backport from mainline
+	2012-02-28  Richard Guenther  <rguenther@suse.de>
+
+	PR target/52407
+	* config/i386/i386.c (ix86_expand_vector_set): Fix element
+	ordering for the VEC_CONCAT for two element vectors for
+	V2SFmode, V2SImode and V2DImode.
+
+2012-05-22  Richard Guenther  <rguenther@suse.de>
+
+	Backport from mainline
+	2012-04-12  Richard Guenther  <rguenther@suse.de>
+
+	PR c/52862
+	* convert.c (convert_to_pointer): Remove special-casing of zero.
+
+2012-05-21  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/53418
+	* c-typeck.c (build_conditional_expr): Remove C_MAYBE_CONST_EXPR
+	from folded operands before wrapping another around the
+	conditional expression.
+
+2012-05-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	Backport from mainline
+	2012-05-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/53416
+	* config/i386/i386.md (UNSPEC_RDRAND): Renamed to ...
+	(UNSPECV_RDRAND): This.
+	(rdrand<mode>_1): Updated.
+
+2012-05-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	Backport from mainline
+	2012-05-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/driver-i386.c (host_detect_local_cpu): Support
+	RDRND, F16C and FSGSBASE.
+
+2012-05-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* configure: Regenerate.
+
+2012-05-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/46098
+	* config/i386/i386.c (ix86_expand_special_args_builtin): Always
+	generate target register for "load" class builtins.
+
+	Revert:
+	2010-10-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/46098
+	* config/i386/sse.md (*avx_movu<ssemodesuffix><avxmodesuffix>):
+	Rename from avx_movu<ssemodesuffix><avxmodesuffix>.
+	(avx_movu<ssemodesuffix><avxmodesuffix>): New expander.
+	(*<sse>_movu<ssemodesuffix>): Rename from <sse>_movu<ssemodesuffix>.
+	(<sse>_movu<ssemodesuffix>): New expander.
+	(*avx_movdqu<avxmodesuffix>): Rename from avx_movdqu<avxmodesuffix>.
+	(avx_movdqu<avxmodesuffix>): New expander.
+	(*sse2_movdqu): Rename from sse2_movdqu.
+	(sse2_movdqu): New expander.
+
+2012-05-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2012-05-12  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/alpha/alpha.c (alpha_emit_conditional_branch): Handle
+	ORDERED and UNORDERED conditions.
+
+2012-05-06  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/52999
+	* config/pa/pa.h (LEGITIMATE_CONSTANT_P): Don't put function labels
+	in constant pool.
+
+2012-05-04  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2012-05-04  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/53228
+	* config/i386/i386.h (X86_ARCH_CMOV): Rename from X86_ARCH_CMOVE.
+	(TARGET_CMOV): Rename from TARGET_CMOVE.
+	(TARGET_CMOVE): New define.
+	* config/i386/i386.c (ix86_option_override_internal): Use TARGET_CMOV.
+	Do not set TARGET_CMOVE here.
+
+2012-05-03  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	Backport from the mainline
+	2012-05-03  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/53199
+	* config/rs6000/rs6000.md (bswapdi splitters): If
+	-mavoid-indexed-addresses (or -mcpu=power6 which sets it by
+	default) is used, generate an alternate sequence that does not
+	depend on using indexed addressing.
+
+2012-04-30  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2012-04-27  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR target/53138
+	* config/i386/i386.md (x86_mov<mode>cc_0_m1_neg): Add clobber.
+
+2012-04-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/53084
+	* varasm.c (compute_reloc_for_constant): Handle ADDR_EXPR of MEM_REF.
+	(output_addressed_constants): Likewise.
+
+2012-04-20  Thomas Schwinge  <thomas@codesourcery.com>
+
+	struct siginfo vs. siginfo_t
+
+	Backport from trunk (but apply to gcc/):
+
+	2012-04-20  Thomas Schwinge  <thomas@codesourcery.com>
+
+	* config/alpha/linux-unwind.h (alpha_fallback_frame_state): Use
+	siginfo_t instead of struct siginfo.
+	* config/bfin/linux-unwind.h (bfin_fallback_frame_state): Likewise.
+	* config/i386/linux-unwind.h (x86_fallback_frame_state): Likewise.
+	* config/ia64/linux-unwind.h (ia64_fallback_frame_state)
+	(ia64_handle_unwabi): Likewise.
+	* config/mips/linux-unwind.h (mips_fallback_frame_state): Likewise.
+	* config/pa/linux-unwind.h (pa32_fallback_frame_state): Likewise.
+	* config/sh/linux-unwind.h (shmedia_fallback_frame_state)
+	(sh_fallback_frame_state): Likewise.
+	* config/xtensa/linux-unwind.h (xtensa_fallback_frame_state): Likewise.
+
+2012-04-13  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	Backport from mainline
+	2012-04-12  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/52775
+	* config/rs6000/rs6000.h (TARGET_FCFID): Add TARGET_PPC_GPOPT to
+	the list of options to enable the FCFID instruction.
+
 2012-04-12  Richard Earnshaw  <rearnsha@arm.com>
 
 	PR target/49448
