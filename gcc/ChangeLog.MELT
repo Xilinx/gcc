@@ -1,4 +1,10 @@
 
+2012-06-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-module.mk (GCCMELT_QUICKLYBUILT_PREPROFLAGS)
+	(GCCMELT_OPTIMIZED_PREPROFLAGS, GCCMELT_DEBUGNOLINE_PREPROFLAGS)
+	(GCCMELT_DYNAMIC_PREPROFLAGS, GCCMELT_DESCRIPTOR_PREPROFLAGS): New.
+	Use them appropriately.
+
 2012-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: Enable melt-newbuild.* files. when MELT_NEWBUILD
 	* melt-newbuild.tpl: New file, incomplete.
