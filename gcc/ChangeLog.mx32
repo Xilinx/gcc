@@ -1,3 +1,23 @@
+2012-06-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/biarch64.h (TARGET_64BIT_DEFAULT): Replace
+	OPTION_MASK_ISA_X86_64 with OPTION_MASK_ABI_64.
+
+	* config/i386/biarchx32.h (TARGET_64BIT_DEFAULT): Replace
+	OPTION_MASK_ISA_X32 with OPTION_MASK_ABI_X32.
+
+	* config/i386/i386.c (isa_opts): Remove -m64.
+	(ix86_target_string): Properly handle -m32/-m64/-mx32.
+	(ix86_option_override_internal): Properly set OPTION_MASK_ISA_64BIT,
+	OPTION_MASK_ABI_64 and OPTION_MASK_ABI_X32.
+
+	* config/i386/i386.h (TARGET_X32): Replace OPTION_ISA_X32
+	with OPTION_ABI_X32.  Moved after TARGET_LP64.
+	(TARGET_LP64): Changed to OPTION_ABI_64.
+
+	* config/i386/i386.opt (m64): Replace ISA_64BIT with ABI_64.
+	(mx32): Replace ISA_X32 with ABI_X32.
+
 2011-12-12  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config.gcc: Check --with-multilib-list for x86-64 Linux targets
