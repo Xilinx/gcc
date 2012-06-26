@@ -42,6 +42,10 @@ if [istarget "powerpc-*-darwin*"] {
    lappend additional_flags "-Wl,-multiply_defined,suppress"
 }
 
+if [istarget "microblaze*-*-linux*"] {
+   lappend additional_flags "-Wl,-zmuldefs"
+}
+
 foreach src [lsort [find $srcdir/$subdir *.c]] {
     if {![string match *-lib.c $src] && [runtest_file_p $runtests $src]} {
 	c-torture-execute [list $src \
