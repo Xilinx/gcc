@@ -188,7 +188,7 @@ melt-stage0-[+zeroflavor+]/melt-stage0-[+zeroflavor+].stamp: \
 
 #@ [+ (. (tpl-file-line))+] symbolic links for stage 0 sources [+zeroflavor+]
 [+FOR melt_translator_file+]
-$(addprefix melt-stage0-[+zeroflavor+]/,$(notdir $(MELT_ZERO_GENERATED_[+mkvarsuf+]_C_FILES)) [+base+]+meltdesc.c  [+base+]+melttime.c): | melt-stage0-[+zeroflavor+]
+$(addprefix melt-stage0-[+zeroflavor+]/,$(notdir $(MELT_ZERO_GENERATED_[+mkvarsuf+]_C_FILES))  [+base+]+melttime.h): | melt-stage0-[+zeroflavor+]
 	@echo @+@melt-newbuild-stamp zero-[+zeroflavor+].[+base+].srcsymlink at= $@ left= $< circ= $^ [+ (. (tpl-file-line))+]
 	$(LN_S) $(realpath $(melt_make_source_dir)/generated/$(@F)) melt-stage0-[+zeroflavor+]/
 #@ [+ (. (tpl-file-line))+]
@@ -206,7 +206,7 @@ melt-stage0-[+zeroflavor+]/[+base+].$(MELT_ZERO_GENERATED_[+mkvarsuf+]_CUMULMD5)
 
 melt-stage0-[+zeroflavor+]/[+base+]+meltdesc.zpic.o: melt-stage0-[+zeroflavor+]/[+base+]+meltdesc.c
 	@echo @+@melt-newbuild-stamp zero-descriptor.[+base+].meltzpic  at= $@ left= $< circ= $^ [+ (. (tpl-file-line))+]
-	$(GCCMELT_COMPILER) $(GCCMELT_COMPILER_FLAGS) $(GCCMELT_PIC_FLAGS) $(GCCMELT_COMPILER_DESCRIPTOR_FLAGS) -c -o $@ $^
+	$(GCCMELT_COMPILER) $(GCCMELT_COMPILER_FLAGS) -I $(^D) $(GCCMELT_PIC_FLAGS) $(GCCMELT_COMPILER_DESCRIPTOR_FLAGS) -c -o $@ $^
 
 melt-stage0-[+zeroflavor+]/[+base+]%.[+zeroflavor+].zpic.o: melt-stage0-[+zeroflavor+]/[+base+]%.c
 	@echo @+@melt-newbuild-stamp zero-[+zeroflavor+].[+base+].meltzpic  at= $@ left= $< circ= $^ [+ (. (tpl-file-line))+]

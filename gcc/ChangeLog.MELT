@@ -1,5 +1,10 @@
 
 2012-06-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-newbuild.tpl: Improve rules for stage 0.
+
+	* melt-newbuild.mk: Regenerate.
+
+2012-06-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-module.mk: Add comment for extracting fragment
 	melt-module-frag.mk.
 
