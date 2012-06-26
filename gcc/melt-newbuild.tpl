@@ -120,6 +120,14 @@ GCCMELT_PIC_FLAGS ?= -fPIC
 ## shared object flag to link *pic.o into *.so [+ (. (tpl-file-line))+]
 GCCMELT_SHARED_FLAGS ?= -shared
 
+## extract important flags from melt-build.mk  [+ (. (tpl-file-line))+]
+melt-module-frag.mk: $(melt_make_module_makefile)
+	sed -n -e '/##__BEGINFRAGMELT/,/##__ENDFRAGMELT/p' $< > $@-tmp
+	mv $@-tmp $@
+
+include melt-module-frag.mk
+
+##############################################  [+ (. (tpl-file-line))+]
 ## The base name of the MELT translator files [+ (. (tpl-file-line))+]
 MELT_TRANSLATOR_BASE= \
   [+FOR melt_translator_file " \\\n"+]  [+base+][+ENDFOR melt_translator_file+]
@@ -173,15 +181,38 @@ melt-stage0-[+zeroflavor+]/melt-stage0-[+zeroflavor+].stamp: \
 +]  melt-stage0-[+zeroflavor+]/[+base+].$(MELT_ZERO_GENERATED_[+mkvarsuf+]_CUMULMD5).[+zeroflavor+].meltmod.so[+ENDFOR  melt_translator_file+] \
 [+FOR melt_translator_file  " \\\n" 
 +]  $(addprefix melt-stage0-[+zeroflavor+]/,$(notdir $(MELT_ZERO_GENERATED_[+mkvarsuf+]_C_FILES)))[+ENDFOR  melt_translator_file+] |  melt-stage0-[+zeroflavor+]
+	@echo @+@melt-newbuild-stamp zero-[+zeroflavor+].[+base+] at= $@ left= $< circ= $^ [+ (. (tpl-file-line))+]
+	$(MD5SUM) $^ > $@-tmp
+	$(melt_move_if_change) $@-tmp $@
 
 
-#@ [+ (. (tpl-file-line))+] symbolic links for stage 0 sources
+#@ [+ (. (tpl-file-line))+] symbolic links for stage 0 sources [+zeroflavor+]
 [+FOR melt_translator_file+]
-$(addprefix melt-stage0-[+zeroflavor+],$(notdir $(MELT_ZERO_GENERATED_[+mkvarsuf+]_C_FILES)) [+base+]+meltdesc.c  [+base+]+melttime.c): | melt-stage0-[+zeroflavor+]
+$(addprefix melt-stage0-[+zeroflavor+]/,$(notdir $(MELT_ZERO_GENERATED_[+mkvarsuf+]_C_FILES)) [+base+]+meltdesc.c  [+base+]+melttime.c): | melt-stage0-[+zeroflavor+]
+	@echo @+@melt-newbuild-stamp zero-[+zeroflavor+].[+base+].srcsymlink at= $@ left= $< circ= $^ [+ (. (tpl-file-line))+]
 	$(LN_S) $(realpath $(melt_make_source_dir)/generated/$(@F)) melt-stage0-[+zeroflavor+]/
 #@ [+ (. (tpl-file-line))+]
 [+ENDFOR melt_translator_file+]
 
+#@ [+ (. (tpl-file-line))+] module and object files for stage 0 [+zeroflavor+]
+
+[+FOR melt_translator_file+]
+
+#@ [+ (. (tpl-file-line))+]
+melt-stage0-[+zeroflavor+]/[+base+].$(MELT_ZERO_GENERATED_[+mkvarsuf+]_CUMULMD5).[+zeroflavor+].meltmod.so: \
+  melt-stage0-[+zeroflavor+]/[+base+]+meltdesc.zpic.o $(addprefix melt-stage0-[+zeroflavor+]/,$(addsuffix .[+zeroflavor+].zpic.o,$(MELT_ZERO_GENERATED_[+mkvarsuf+]_BASE)))
+	@echo @+@melt-newbuild-stamp zero-[+zeroflavor+].[+base+].meltmodule  at= $@ left= $< circ= $^ [+ (. (tpl-file-line))+]
+	$(GCCMELT_LINKER) $(GCCMELT_LINKER_FLAGS) $(GCCMELT_SHARED_FLAGS) $(GCCMELT_LINKER_[+(. (string-upcase (get "zeroflavor")))+]_FLAGS) -o $@ $^
+
+melt-stage0-[+zeroflavor+]/[+base+]+meltdesc.zpic.o: melt-stage0-[+zeroflavor+]/[+base+]+meltdesc.c
+	@echo @+@melt-newbuild-stamp zero-descriptor.[+base+].meltzpic  at= $@ left= $< circ= $^ [+ (. (tpl-file-line))+]
+	$(GCCMELT_COMPILER) $(GCCMELT_COMPILER_FLAGS) $(GCCMELT_PIC_FLAGS) $(GCCMELT_COMPILER_DESCRIPTOR_FLAGS) -c -o $@ $^
+
+melt-stage0-[+zeroflavor+]/[+base+]%.[+zeroflavor+].zpic.o: melt-stage0-[+zeroflavor+]/[+base+]%.c
+	@echo @+@melt-newbuild-stamp zero-[+zeroflavor+].[+base+].meltzpic  at= $@ left= $< circ= $^ [+ (. (tpl-file-line))+]
+	$(GCCMELT_COMPILER) $(GCCMELT_COMPILER_FLAGS) $(GCCMELT_PIC_FLAGS) $(GCCMELT_COMPILER_[+(. (string-upcase (get "zeroflavor")))+]_FLAGS) -c -o $@ $^
+
+[+ENDFOR melt_translator_file+]
 
 ## end stage 0 flavor [+zeroflavor+]  [+ (. (tpl-file-line))+]
 [+ENDFOR zeroflavor+]

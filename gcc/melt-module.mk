@@ -129,6 +129,11 @@ else
 SHARED_LIBRARY_FLAGS=-shared
 endif
 
+
+##### the lines below are extracted into file melt-module-fragmelt.mk for melt-build.mk or melt-newbuild.mk
+## the double underscores lines are used by sed to extract
+##__BEGINFRAGMELT
+## lines extracted from melt-module.mk
 ## these flags should only affect the quality of the generated
 ## binaries. No preprocessor flags please here!
 GCCMELT_OPTIMIZED_FLAGS ?= -O1
@@ -144,7 +149,7 @@ GCCMELT_OPTIMIZED_PREPROFLAGS= -DMELTGCC_MODULE_OPTIMIZED -DMELT_HAVE_DEBUG=0
 GCCMELT_DEBUGNOLINE_PREPROFLAGS= -DMELTGCC_MODULE_DEBUGNOLINE  -DMELTGCC_NOLINENUMBERING -DMELT_HAVE_DEBUG=1
 GCCMELT_DYNAMIC_PREPROFLAGS= -DMELTGCC_MODULE_DYNAMIC  -DMELTGCC_NOLINENUMBERING -DMELT_HAVE_DEBUG=1  -DMELTGCC_DYNAMIC_OBJSTRUCT
 GCCMELT_DESCRIPTOR_PREPROFLAGS= -DMELTGCC_MODULE_DESCRIPTOR 
-
+##__ENDFRAGMELT
 
 ## the primary C file
 GCCMELT_PRIMARY := $(wildcard $(GCCMELT_MODULE_SOURCEBASE).c)

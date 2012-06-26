@@ -1,5 +1,13 @@
 
 2012-06-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-module.mk: Add comment for extracting fragment
+	melt-module-frag.mk.
+
+	* melt-newbuild.tpl: Add rules for stage 0.
+
+	* melt-newbuild.mk: Regenerate.
+
+2012-06-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-module.mk (GCCMELT_QUICKLYBUILT_PREPROFLAGS)
 	(GCCMELT_OPTIMIZED_PREPROFLAGS, GCCMELT_DEBUGNOLINE_PREPROFLAGS)
 	(GCCMELT_DYNAMIC_PREPROFLAGS, GCCMELT_DESCRIPTOR_PREPROFLAGS): New.
