@@ -1,3 +1,25 @@
+2012-06-25  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53498
+	PR c++/53305
+	* pt.c (tsubst_pack_expansion): Copy before dummy tsubst.
+
+	PR c++/52988
+	* typeck.c (decay_conversion): Don't discard side-effects from
+	expressions of nullptr_t.
+
+	PR c++/53202
+	* semantics.c (build_data_member_initialization): Always keep
+	initializer for empty base.
+	(cxx_eval_bare_aggregate): Discard it here.
+
+2012-06-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/53594
+	* class.c (check_bases_and_members): Avoid -Wuninitialized
+	diagnostics for non-static const members or references if they
+	use NSDMI.
+
 2012-06-19  Jason Merrill  <jason@redhat.com>
 
 	PR c++/53651

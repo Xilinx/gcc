@@ -1,3 +1,29 @@
+2012-06-26  Richard Guenther  <rguenther@suse.de>
+
+	PR c++/53752
+	* g++.dg/torture/pr53752.C: New testcase.
+
+2012-06-25  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53498
+	PR c++/53305
+	* g++.dg/cpp0x/decltype38.C: New.
+	* g++.dg/cpp0x/variadic132.C: New.
+
+	PR c++/52988
+	* g++.dg/cpp0x/nullptr28.C: New.
+
+	PR c++/53202
+	* g++.dg/cpp0x/constexpr-tuple.C: New.
+
+2012-06-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/53759
+	* gcc.target/i386/pr53759.c: New test.
+
+	PR c++/53594
+	* g++.dg/cpp0x/nsdmi7.C: New test.
+
 2012-06-22  Tobias Burnus  <burnus@net-b.de>
 
 	Backport from mainline
