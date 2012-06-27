@@ -741,7 +741,7 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_target_attribute, false },
   { "optimize",               1, -1, true, false, false,
 			      handle_optimize_attribute, false },
-  { "vector",                 1, -1, true, false, false,
+  { "vector",                 0, -1, true, false, false,
                               handle_vector_attribute, false },
   /* For internal use only.  The leading '*' both prevents its usage in
      source code and signals that it may be overridden by machine tables.  */

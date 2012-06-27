@@ -307,18 +307,36 @@ extract_elem_fn_values (tree decl)
   int arg_number = 0, ii = 0;
   tree ii_tree, jj_tree, kk_tree;
   tree decl_attr = DECL_ATTRIBUTES (decl);
-  
+  tree decl_ret_type;
   if (!decl_attr)
     return NULL;
 
   elem_fn_values = (elem_fn_info *)xmalloc (sizeof (elem_fn_info));
   gcc_assert (elem_fn_values);
 
+  decl_ret_type = TREE_TYPE (decl);
+  if (decl_ret_type)
+    decl_ret_type = TREE_TYPE (decl_ret_type);
+  
   elem_fn_values->proc_type = NULL;
   elem_fn_values->mask = USE_BOTH;
   elem_fn_values->no_vlengths = 0;
   elem_fn_values->no_uvars = 0;
   elem_fn_values->no_lvars = 0;
+  elem_fn_values->no_pvars = 0;
+  if (decl_ret_type && COMPLETE_TYPE_P (decl_ret_type)
+      && !VOID_TYPE_P (decl_ret_type))
+    switch (compare_tree_int (TYPE_SIZE (decl_ret_type), 64))
+      {
+      case 0: /* means they are equal */
+	elem_fn_values->vectorlength[0] = 2;
+	break;
+      case -1: /* means it is less than 64 */
+	elem_fn_values->vectorlength[0] = 4;
+	break;
+      default:
+	elem_fn_values->vectorlength[0] = 1;
+      }
   
 
   for (ii_tree = decl_attr; ii_tree; ii_tree = TREE_CHAIN (ii_tree))
@@ -444,7 +462,9 @@ extract_elem_fn_values (tree decl)
     }
 
   elem_fn_values->total_no_args = arg_number;
-  
+  if (elem_fn_values->no_vlengths == 0)
+    elem_fn_values->no_vlengths = 1; /* we have a default value if none is
+				      * given */
   return elem_fn_values;
 }
 

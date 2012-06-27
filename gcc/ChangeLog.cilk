@@ -1,3 +1,11 @@
+2012-06-27  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* tree-vect-stmts.c (vectorizable_call): No need to bail out. Some
+	elemental functions will have more than 3 arguments and those are OK.
+	* elem-function-common.c (extract_elem_fn_values): Initialized the
+	vectorlength based on the return value type.  Also, if vectorlength is
+	not set, then we use the initial value based on return value.
+
 2012-06-26  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* tree-cfg.c (make_blocks): Transferred pragma simd value from one node
