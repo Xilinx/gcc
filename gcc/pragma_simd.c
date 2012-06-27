@@ -288,10 +288,10 @@ pragma_simd_assert_requested_p(int ps_index)
     {
       if ((ps_iter->pragma_encountered == true) && (ps_iter->index == ps_index))
 	{
-	  if ((ps_iter->types & P_SIMD_NOASSERT))
-	    return false;
-	  else
+	  if ((ps_iter->types & P_SIMD_ASSERT))
 	    return true;
+	  else
+	    return false;
 	}
     }
   return false;
@@ -1214,7 +1214,7 @@ check_off_reduction_var (gimple reduc_stmt, int pragma_simd_index)
   if (psv_head == NULL)
     return;
 
-  if (gimple_code (reduc_stmt) != GIMPLE_ASSIGN)
+  if (!reduc_stmt || gimple_code (reduc_stmt) != GIMPLE_ASSIGN)
     return;
   else
     {
@@ -1269,6 +1269,7 @@ find_linear_step_size (int pragma_simd_index, tree var)
   tree ii_var_value  = NULL_TREE;
   tree ii_step_iter  = NULL_TREE;
   tree ii_step_value = NULL_TREE;
+  tree real_var      = NULL_TREE;
   HOST_WIDE_INT step = 0;
   struct pragma_simd_values *ps_iter = NULL;
 
@@ -1290,8 +1291,12 @@ find_linear_step_size (int pragma_simd_index, tree var)
 	    {
 	      ii_var_value  = TREE_VALUE (ii_var_iter);
 	      ii_step_value = TREE_VALUE (ii_step_iter);
+	      if (TREE_CODE (var) == SSA_NAME)
+		real_var = SSA_NAME_VAR (var);
+	      else
+		real_var = var;
 
-	      if (simple_cst_equal (ii_var_value, DECL_NAME (var)))
+	      if (simple_cst_equal (ii_var_value, DECL_NAME (real_var)))
 		{
 		  step = int_cst_value (ii_step_value);
 		  return step;

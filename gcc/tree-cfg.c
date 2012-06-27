@@ -377,6 +377,8 @@ make_blocks (gimple_seq seq)
 	  if (!first_stmt_of_seq)
 	    gsi_split_seq_before (&i, &seq);
 	  bb = create_basic_block (seq, NULL, bb);
+	  if (GIMPLE_PRAGMA_SIMD_INDEX (stmt))
+	    bb->pragma_simd_index = GIMPLE_PRAGMA_SIMD_INDEX (stmt);
 	  start_new_block = false;
 	}
 
@@ -1922,6 +1924,7 @@ remove_bb (basic_block bb)
   remove_phi_nodes_and_edges_for_unreachable_block (bb);
   bb->il.gimple.seq = NULL;
   bb->il.gimple.phi_nodes = NULL;
+  bb->next_bb->pragma_simd_index = bb->pragma_simd_index;
 }
 
 

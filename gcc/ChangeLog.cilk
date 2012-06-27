@@ -1,3 +1,13 @@
+2012-06-26  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* tree-cfg.c (make_blocks): Transferred pragma simd value from one node
+	to another.
+	(remove_bb): Likewise.
+	* pragma_simd.c (pragma_simd_assert_requested_p): Compared with ASSERT
+	instead of NOASSERT.
+	(check_off_reduction_var): Checked if reduc_stmt is NULL.
+	(find_linear_step_size): Unwrapped variable from SSA_NAME type.
+
 2012-06-17  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	PR 53672

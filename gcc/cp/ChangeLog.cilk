@@ -1,3 +1,10 @@
+2012-06-26  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* parser.c (cp_parser_pragma): Fixed a bug by calling linear instead of
+	private.
+	(cp_parser_simd_linear): Set the pragma found as true.  Also added the
+	linear vars into the structure.
+
 2012-06-21  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cilk.c (resolve_continue_stmts): Added a check for cilk-for stmt.

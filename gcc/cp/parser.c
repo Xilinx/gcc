@@ -28182,7 +28182,7 @@ cp_parser_pragma (cp_parser *parser, enum pragma_context context)
 	  error("%<#pragma simd linear%> may only be used inside a function");
 	  break;
 	}
-      cp_parser_simd_private (parser, pragma_tok);
+      cp_parser_simd_linear (parser, pragma_tok);
       return true;
 
     case PRAGMA_SIMD_REDUCTION:
@@ -28935,7 +28935,7 @@ cp_parser_simd_linear (cp_parser *parser, cp_token *pragma_token)
   tree linear_var  = NULL_TREE, linear_var_list  = NULL_TREE;
   tree linear_step = NULL_TREE, linear_steps_list = NULL_TREE;
   local_simd_values.types |= P_SIMD_LINEAR;
-  
+  local_simd_values.pragma_encountered = true;  
   if (cp_parser_require (parser, CPP_OPEN_PAREN, RT_OPEN_PAREN))
     {
       while (true)
@@ -29012,6 +29012,11 @@ cp_parser_simd_linear (cp_parser *parser, cp_token *pragma_token)
   gcc_assert (list_length (linear_steps_list) ==
 	      list_length (linear_var_list));
 
+  local_simd_values.linear_vars = linear_var_list;
+  local_simd_values.linear_var_size = list_length (linear_var_list);
+  local_simd_values.linear_steps = linear_steps_list;
+  local_simd_values.linear_steps_size = list_length (linear_steps_list); 
+  
   if (cp_lexer_next_token_is (parser->lexer, CPP_NAME)
       || cp_lexer_next_token_is (parser->lexer, CPP_KEYWORD))
     {
