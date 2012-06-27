@@ -127,6 +127,14 @@ melt-module-frag.mk: $(melt_make_module_makefile)
 
 include melt-module-frag.mk
 
+[+FOR xflavor IN "descriptor" "dynamic" "quicklybuilt" "optimized" "debugnoline"+] 
+
+##xflavor [+xflavor+] [+ (. (tpl-file-line))+]
+GCCMELT_COMPILER_[+(. (string-upcase (get "xflavor")))+]_FLAGS= $(GCCMELT_[+(. (string-upcase (get "xflavor")))+]_FLAGS) $(GCCMELT_[+(. (string-upcase (get "xflavor")))+]_PREPROFLAGS)
+GCCMELT_LINKER_[+(. (string-upcase (get "xflavor")))+]_FLAGS= $(GCCMELT_[+(. (string-upcase (get "xflavor")))+]_FLAGS)
+
+[+ENDFOR xflavor+]
+
 ##############################################  [+ (. (tpl-file-line))+]
 ## The base name of the MELT translator files [+ (. (tpl-file-line))+]
 MELT_TRANSLATOR_BASE= \
@@ -208,13 +216,35 @@ melt-stage0-[+zeroflavor+]/[+base+]+meltdesc.zpic.o: melt-stage0-[+zeroflavor+]/
 	@echo @+@melt-newbuild-stamp zero-descriptor.[+base+].meltzpic  at= $@ left= $< circ= $^ [+ (. (tpl-file-line))+]
 	$(GCCMELT_COMPILER) $(GCCMELT_COMPILER_FLAGS) -I $(^D) $(GCCMELT_PIC_FLAGS) $(GCCMELT_COMPILER_DESCRIPTOR_FLAGS) -c -o $@ $^
 
-melt-stage0-[+zeroflavor+]/[+base+]%.[+zeroflavor+].zpic.o: melt-stage0-[+zeroflavor+]/[+base+]%.c
+melt-stage0-[+zeroflavor+]/[+base+]%.[+zeroflavor+].zpic.o: melt-stage0-[+zeroflavor+]/[+base+]%.c $(melt_make_cc1_dependency)
 	@echo @+@melt-newbuild-stamp zero-[+zeroflavor+].[+base+].meltzpic  at= $@ left= $< circ= $^ [+ (. (tpl-file-line))+]
-	$(GCCMELT_COMPILER) $(GCCMELT_COMPILER_FLAGS) $(GCCMELT_PIC_FLAGS) $(GCCMELT_COMPILER_[+(. (string-upcase (get "zeroflavor")))+]_FLAGS) -c -o $@ $^
+	$(GCCMELT_COMPILER) $(GCCMELT_COMPILER_FLAGS) $(GCCMELT_PIC_FLAGS) $(GCCMELT_COMPILER_[+(. (string-upcase (get "zeroflavor")))+]_FLAGS) -c -o $@ $<
 
 [+ENDFOR melt_translator_file+]
 
 ## end stage 0 flavor [+zeroflavor+]  [+ (. (tpl-file-line))+]
 [+ENDFOR zeroflavor+]
+
+
+#@ [+ (. (tpl-file-line))+] 
+
+[+FOR melt_stage+]
+## stage [+melt_stage+] [+ (. (tpl-file-line))+] 
+
+[+ 
+  (define stageindex (+ 1 (for-index)))
+  (define previndex (for-index))
+  (define prevstage (if (> stageindex 1) (sprintf "melt-stage%d" previndex) "$(MELT_STAGE_ZERO)"))
+  (define prevflavor (if (> stageindex 1) "quicklybuilt" "$(MELT_ZERO_FLAVOR)"))
++]
+[+define melt_prevstage+][+ (. prevstage)+][+enddef+]
+[+define melt_prevflavor+][+ (. prevflavor)+][+enddef+]
+
+## melt_prevstage [+melt_prevstage+] melt_prevflavor [+melt_prevflavor+]  [+ (. (tpl-file-line))+] 
+
+[+melt_stage+]:
+	test -d  [+melt-stage+]/ || mkdir  [+melt-stage+]
+
+[+ENDFOR melt_stage+]
 #@ [+ (. (tpl-file-line))+] eof melt-newbuild.mk
 ## eof melt-newbuild.mk generated from melt-newbuild.tpl & melt-newbuild.def

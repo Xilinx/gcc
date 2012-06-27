@@ -1,4 +1,10 @@
 
+2012-06-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-newbuild.tpl: Improve rules for stage 0, adding some other
+	stages stuff, still incomplete.
+
+	* melt-newbuild.mk: Regenerate.
+
 2012-06-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-newbuild.tpl: Improve rules for stage 0.
 
