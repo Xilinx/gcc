@@ -94,6 +94,23 @@ meltarg_output=$(if $(melt_is_plugin),-fplugin-arg-melt-output,-fmelt-output)
 meltarg_modulecflags=$(if $(melt_is_plugin),-fplugin-arg-melt-module-cflags,-fmelt-module-cflags)
 meltarg_inhibitautobuild=$(if $(melt_is_plugin),-fplugin-arg-melt-inhibit-auto-build,-fmelt-inhibit-auto-build)
 
+#@ [+ (. (tpl-file-line))+]
+## MELT_DEBUG could be set to -fmelt-debug or -fplugin-arg-melt-debug
+## the invocation to translate the very first initial MELT file [+ (. (tpl-file-line))+]
+MELTCCINIT1ARGS= $(melt_make_cc1flags) -Wno-shadow $(meltarg_mode)=translateinit  \
+	      $(meltarg_makefile)=$(melt_make_module_makefile) \
+	      $(meltarg_makecmd)=$(MAKE) \
+              "$(meltarg_modulecflags)='$(melt_cflags)'" \
+	      $(meltarg_tempdir)=. $(meltarg_bootstrapping) $(MELT_DEBUG)
+
+#@ [+ (. (tpl-file-line))+]
+## the invocation to translate the other files [+ (. (tpl-file-line))+]
+MELTCCFILE1ARGS=  $(melt_make_cc1flags) -Wno-shadow $(meltarg_mode)=translatefile  \
+	      $(meltarg_makefile)=$(melt_make_module_makefile) \
+	      $(meltarg_makecmd)=$(MAKE) \
+              "$(meltarg_modulecflags)='$(melt_cflags)'" \
+	      $(meltarg_tempdir)=. $(meltarg_bootstrapping)  $(MELT_DEBUG)
+
 ## compiler used to compile MELT generated C (or C++ compatible) code  [+ (. (tpl-file-line))+]
 ifndef GCCMELT_COMPILER
 $(error GCCMELT_COMPILER should be explicitly given  [+ (. (tpl-file-line))+])
@@ -222,9 +239,23 @@ melt-stage0-[+zeroflavor+]/[+base+]%.[+zeroflavor+].zpic.o: melt-stage0-[+zerofl
 
 [+ENDFOR melt_translator_file+]
 
+
+#@ stage 0 flavor [+zeroflavor+] modulelist  [+ (. (tpl-file-line))+] 
+melt-stage0-[+zeroflavor+]/warmelt.modlis:  | \
+[+FOR melt_translator_file " \\\n" 
++]             melt-stage0-[+zeroflavor+]/[+base+].[+zeroflavor+].so \
+                melt-stage0-[+zeroflavor+]/[+base+]+meltdesc.c [+
+ENDFOR melt_translator_file+]
+	@echo @+@melt-newbuild-modlis  at= $@ left= $< circ= $^ [+ (. (tpl-file-line))+]
+	date  +"#$@ generated %F" > $@-tmp
+[+FOR melt_translator_file+]	echo $(melt_make_source_dir)/generated/[+base+].[+zeroflavor+] >> $@-tmp
+	echo "#end stage 0 flavor [+zeroflavor+] module list" >> $@-tmp
+[+ENDFOR melt_translator_file+]	$(melt_move_if_change) $@-tmp $@
+
 ## end stage 0 flavor [+zeroflavor+]  [+ (. (tpl-file-line))+]
 [+ENDFOR zeroflavor+]
 
+################ end stage 0 [+ (. (tpl-file-line))+] 
 
 #@ [+ (. (tpl-file-line))+] 
 
@@ -244,6 +275,51 @@ melt-stage0-[+zeroflavor+]/[+base+]%.[+zeroflavor+].zpic.o: melt-stage0-[+zerofl
 
 [+melt_stage+]:
 	test -d  [+melt-stage+]/ || mkdir  [+melt-stage+]
+
+
+[+FOR melt_translator_file+]
+[+ 
+  (define outbase (get "base")) (define outindex (for-index)) 
++]
+
+## perhaps we should use MELT mode to generate modules, not C sources?? 
+## the descriptive C of [+melt_stage+] for [+ (. outbase)+] [+ (. (tpl-file-line))+]
+[+melt_stage+]/[+ (. outbase)+]+meltdesc.c [+melt_stage+]/[+ (. outbase)+]+meltbuild.mk [+melt_stage+]/[+ (. outbase)+].c:  \
+     $(melt_make_source_dir)/[+ (. outbase)+].melt \
+     [+melt_stage+]-directory.stamp \
+     [+ (. prevstage)+]-fullstage.stamp [+ (. prevstage)+]/warmelt.modlis \
+[+FOR includeload+]        [+includeload+] \
+[+ENDFOR includeload
++][+FOR melt_translator_file+][+ (define inbase (get "base")) (define inindex (for-index)) 
+  (define depstage (if (< inindex outindex) (get "melt_stage") prevstage))
+  (define depindex (if (< inindex outindex) stageindex (- stageindex 1)))
++]      [+IF (< inindex outindex)+] [+ (. depstage)+]-[+(. inbase)+]-module.stamp \
+[+ENDIF+][+ENDFOR melt_translator_file
++]  empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
+              $(melt_make_cc1_dependency)
+	@echo @+@melt-newbuild-desc-[+melt_stage+]-[+ (. outbase)+]  at= $@ left= $< circ= $^ [+ (. (tpl-file-line))+]
+	@echo [+IF (= outindex 0)+] $(MELTCCINIT1ARGS) $(meltarg_init)=\[+ELSE+] $(MELTCCFILE1ARGS) $(meltarg_init)=\[+ENDIF+]
+[+FOR melt_translator_file ":\\\n"+][+ (define inbase (get "base")) (define inindex (for-index)) 
+  (define depstage (if (< inindex outindex) (get "melt_stage") prevstage))
+  (define depflavor (if (< inindex outindex) "quicklybuilt" prevflavor))
+  (define depindex (if (< inindex outindex) stageindex (- stageindex 1)))
++][+ (. depstage)+]/[+ (. inbase)+].[+ (. depflavor)+][+ENDFOR melt_translator_file
++] > [+ (. outbase)+]+[+melt_stage+].args-tmp
+	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell $(MD5SUM) $< | cut -b-24) \
+	      $(meltarg_module_path)=$(realpath .):$(realpath [+melt_stage+]):$(realpath [+ (. prevstage)+]):$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath .):$(realpath [+melt_stage+]):$(realpath [+ (. prevstage)+]):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
+	      $(meltarg_output)=[+melt_stage+]/[+ (. outbase)+] $(meltarg_workdir)=melt-workdir $(meltarg_genworklink) \
+	      empty-file-for-melt.c >> [+ (. outbase)+]+[+melt_stage+].args-tmp
+	@$(melt_move_if_change)  [+ (. outbase)+]+[+melt_stage+].args-tmp  [+ (. outbase)+]+[+melt_stage+].args
+	@echo; echo; echo -n  [+ (. outbase)+]+[+melt_stage+].args: ; cat [+ (. outbase)+]+[+melt_stage+].args ; echo; echo; echo "***** doing " $@  [+ (. (tpl-file-line))+]
+	@echo doing [+ (. outbase)+]+[+melt_stage+]  [+ (. (tpl-file-line))+]
+	$(melt_make_cc1) @[+ (. outbase)+]+[+melt_stage+].args
+	@ls -l [+melt_stage+]/[+ (. outbase)+].c  || ( echo "*@*MISSING "  [+melt_stage+]/[+ (. outbase)+].c [+ (. (tpl-file-line))+] ; exit 1 )
+
+#@ [+ (. (tpl-file-line))+] 
+-include [+melt_stage+]/[+ (. outbase)+]+meltbuild.mk
+
+[+ENDFOR melt_translator_file+]
 
 [+ENDFOR melt_stage+]
 #@ [+ (. (tpl-file-line))+] eof melt-newbuild.mk
