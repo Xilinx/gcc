@@ -5504,10 +5504,9 @@ melt.encap: $(melt_make_cc1_dependency) $(srcdir)/melt-build.mk
 	$(MAKE) Makefile $(srcdir)/melt-build.mk
 	@echo melt.encap making warmelt0 with melt_cflags= $(melt_cflags)
 	$(MAKE) warmelt0
-## don't bother making warmelt1 because warmelt2 depends on it
-##	@echo melt.encap making warmelt1 with melt_cflags= $(melt_cflags)
-###  melt_cflags are exported!
-##	$(MAKE) warmelt1
+## we probably better need warmelt1, because some make fragments are generated
+	@echo melt.encap making warmelt1 with melt_cflags= $(melt_cflags)
+	$(MAKE) warmelt1
 	@echo melt.encap making warmelt2
 	$(MAKE) warmelt2
 	@echo melt.encap making warmelt

@@ -192,7 +192,10 @@ empty-file-for-melt.c:
 MELT_STAGE_ZERO?=melt-stage0-dynamic
 MELT_ZERO_FLAVOR=$(patsubst melt-stage0-%,%,$(MELT_STAGE_ZERO))
 
-warmelt0: $(MELT_STAGE_ZERO)/$(MELT_STAGE_ZERO).stamp
+#bof: warmelt0: $(MELT_STAGE_ZERO)/$(MELT_STAGE_ZERO).stamp
+ warmelt0:  \
+[+FOR melt_translator_file  " \\\n" 
++]  $(MELT_STAGE_ZERO)/[+base+].$(MELT_ZERO_FLAVOR).meltmod.so[+ENDFOR  melt_translator_file+] 
 
 [+FOR zeroflavor IN "dynamic" "quicklybuilt" +]
 ## stage 0 flavor [+zeroflavor+]  [+ (. (tpl-file-line))+]
@@ -201,14 +204,17 @@ melt-stage0-[+zeroflavor+]:
 	test -d  melt-stage0-[+zeroflavor+]/ || mkdir  melt-stage0-[+zeroflavor+]/
 
 #@  [+ (. (tpl-file-line))+]
-melt-stage0-[+zeroflavor+]/melt-stage0-[+zeroflavor+].stamp: \
-[+FOR melt_translator_file  " \\\n" 
-+]  melt-stage0-[+zeroflavor+]/[+base+].$(MELT_ZERO_GENERATED_[+mkvarsuf+]_CUMULMD5).[+zeroflavor+].meltmod.so[+ENDFOR  melt_translator_file+] \
-[+FOR melt_translator_file  " \\\n" 
-+]  $(addprefix melt-stage0-[+zeroflavor+]/,$(notdir $(MELT_ZERO_GENERATED_[+mkvarsuf+]_C_FILES)))[+ENDFOR  melt_translator_file+] |  melt-stage0-[+zeroflavor+]
-	@echo @+@melt-newbuild-stamp zero-[+zeroflavor+].[+base+] at= $@ left= $< circ= $^ [+ (. (tpl-file-line))+]
-	$(MD5SUM) $^ > $@-tmp
-	$(melt_move_if_change) $@-tmp $@
+
+[+FOR melt_translator_file+]
+
+#@  symlink for module without checksum [+ (. (tpl-file-line))+]
+
+melt-stage0-[+zeroflavor+]/[+base+].[+zeroflavor+].meltmod.so: \
+  melt-stage0-[+zeroflavor+]/[+base+].$(MELT_ZERO_GENERATED_[+mkvarsuf+]_CUMULMD5).[+zeroflavor+].meltmod.so
+	@echo newbuild-symlink-module0.[+zeroflavor+].[+base+]  [+ (. (tpl-file-line))+]
+	$(LN_S) -f -v $(realpath $^) $@
+[+ENDFOR  melt_translator_file+]
+
 
 
 #@ [+ (. (tpl-file-line))+] symbolic links for stage 0 sources [+zeroflavor+]
@@ -266,10 +272,12 @@ ENDFOR melt_translator_file+]
   (define stageindex (+ 1 (for-index)))
   (define previndex (for-index))
   (define prevstage (if (> stageindex 1) (sprintf "melt-stage%d" previndex) "$(MELT_STAGE_ZERO)"))
+  (define stageident (sprintf "melt_stage%d" stageindex))
   (define prevflavor (if (> stageindex 1) "quicklybuilt" "$(MELT_ZERO_FLAVOR)"))
 +]
 [+define melt_prevstage+][+ (. prevstage)+][+enddef+]
 [+define melt_prevflavor+][+ (. prevflavor)+][+enddef+]
+[+define melt_stagident+][+ (. stageident)+][+enddef+]
 
 ## melt_prevstage [+melt_prevstage+] melt_prevflavor [+melt_prevflavor+]  [+ (. (tpl-file-line))+] 
 
@@ -280,14 +288,20 @@ ENDFOR melt_translator_file+]
 [+FOR melt_translator_file+]
 [+ 
   (define outbase (get "base")) (define outindex (for-index)) 
+  (define baseident (string-map 
+    (lambda(c) (if (or (char-alphabetic? c) (char-numeric? c)) c #\_
+    )) (get "base")))
 +]
+
+
+## the generated make fragments warmelt*+meltbuild.mk have rules for $(GCCMELTGEN_BUILD)warmelt*.<md5sum>.<flavor>.so
+GCCMELTGEN_BUILD=melt-workdir/
+
 
 ## perhaps we should use MELT mode to generate modules, not C sources?? 
 ## the descriptive C of [+melt_stage+] for [+ (. outbase)+] [+ (. (tpl-file-line))+]
 [+melt_stage+]/[+ (. outbase)+]+meltdesc.c [+melt_stage+]/[+ (. outbase)+]+meltbuild.mk [+melt_stage+]/[+ (. outbase)+].c:  \
      $(melt_make_source_dir)/[+ (. outbase)+].melt \
-     [+melt_stage+]-directory.stamp \
-     [+ (. prevstage)+]-fullstage.stamp [+ (. prevstage)+]/warmelt.modlis \
 [+FOR includeload+]        [+includeload+] \
 [+ENDFOR includeload
 +][+FOR melt_translator_file+][+ (define inbase (get "base")) (define inindex (for-index)) 
@@ -296,7 +310,7 @@ ENDFOR melt_translator_file+]
 +]      [+IF (< inindex outindex)+] [+ (. depstage)+]-[+(. inbase)+]-module.stamp \
 [+ENDIF+][+ENDFOR melt_translator_file
 +]  empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
-              $(melt_make_cc1_dependency)
+              $(melt_make_cc1_dependency) | [+melt_stage+]
 	@echo @+@melt-newbuild-desc-[+melt_stage+]-[+ (. outbase)+]  at= $@ left= $< circ= $^ [+ (. (tpl-file-line))+]
 	@echo [+IF (= outindex 0)+] $(MELTCCINIT1ARGS) $(meltarg_init)=\[+ELSE+] $(MELTCCFILE1ARGS) $(meltarg_init)=\[+ENDIF+]
 [+FOR melt_translator_file ":\\\n"+][+ (define inbase (get "base")) (define inindex (for-index)) 
@@ -317,7 +331,15 @@ ENDFOR melt_translator_file+]
 	@ls -l [+melt_stage+]/[+ (. outbase)+].c  || ( echo "*@*MISSING "  [+melt_stage+]/[+ (. outbase)+].c [+ (. (tpl-file-line))+] ; exit 1 )
 
 #@ [+ (. (tpl-file-line))+] 
--include [+melt_stage+]/[+ (. outbase)+]+meltbuild.mk
+-include [+melt_stage+]/[+base+]+meltbuild.mk
+
+[+FOR flavor IN "dynamic" "quicklybuilt" "optimized" "debugnoline"+] 
+
+[+melt_stage+]/[+base+].[+flavor+].so: melt-workdir/[+base+].$(MELTGENMOD_CUMULATED_MD5SUM_[+ (. stagident)+][+ (. baseident)+]).[+flavor+].meltmod.so
+
+#@ flavor [+ (. (tpl-file-line))+] 
+
+[+ENDFOR flavor+]
 
 [+ENDFOR melt_translator_file+]
 

@@ -1,5 +1,10 @@
 
 2012-06-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-newbuild.tpl: Adding more.  Still incomplete.
+
+	* Makefile.in: adding explicit make warmelt1.
+
+2012-06-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-newbuild.tpl: Adding some other stages stuff, still
 	incomplete.
 
