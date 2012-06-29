@@ -947,6 +947,33 @@ DEFPARAM (PARAM_MAX_LIPO_MEMORY,
 	  "don't import aux files if memory consumption exceeds this value",
 	  2800000, 0, 0)
 
+/* In LIPO profile-gen, use this parameter to record the cutoff value used at
+   profile collection runtime.  */
+DEFPARAM (PARAM_LIPO_CUTOFF,
+	  "lipo-cutoff",
+	  "The cutoff value of cumulative profile count. The value is between"
+          "0-99. 100 is reserved as a special value indicating default cutoff" 
+          "which is set at runtime. When the parameter is used and if its value"
+          "is not 100, it overrides the dafault as well as the value set by the"
+          " enviornment variable",
+	  100, 0, 100)
+
+/* In LIPO profile-gen, use this parameter to set random group generation
+   seed value.  */
+DEFPARAM (PARAM_LIPO_RANDOM_SEED,
+	  "lipo-random-seed",
+	  "random seed value used in random group testing",
+	  0, 0, 0)
+
+/* In LIPO profile-gen, use this parmaeter to set random group max size at profile
+   collection runtime.  */
+DEFPARAM (PARAM_LIPO_RANDOM_GROUP_SIZE,
+	  "lipo-random-group-size",
+	  "In LIPO random group testing, this parameter is used to set max group"
+          " size. The default value is 0 which is treated specially and specifies"
+          " no random grouping.",
+	  0, 0, 300)
+
 DEFPARAM (PARAM_PROFILE_GENERATE_SAMPLING_PERIOD,
          "profile-generate-sampling-period",
          "sampling rate with -fprofile-generate-sampling",

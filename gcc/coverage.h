@@ -78,5 +78,6 @@ extern void coverage_has_asm_stmt (void);
 
 /* Defined in tree-profile.c.  */
 extern void tree_init_instrumentation_sampling (void);
+extern void tree_init_dyn_ipa_parameters (void);
 
 #endif

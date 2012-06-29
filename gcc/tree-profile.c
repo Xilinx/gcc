@@ -171,8 +171,14 @@ static tree GTY(()) gcov_sampling_period_decl = NULL_TREE;
 /* extern gcov_unsigned_t __gcov_has_sampling  */
 static tree gcov_has_sampling_decl = NULL_TREE;
 
-/* forward declaration.  */
-void gimple_init_instrumentation_sampling (void);
+/* extern gcov_unsigned_t __gcov_lipo_cutoff  */
+static tree GTY(()) gcov_lipo_cutoff_decl = NULL_TREE;
+
+/* extern gcov_unsigned_t __gcov_lipo_random_seed  */
+static tree GTY(()) gcov_lipo_random_seed_decl = NULL_TREE;
+
+/* extern gcov_unsigned_t __gcov_lipo_random_group_size  */
+static tree GTY(()) gcov_lipo_random_group_size_decl = NULL_TREE;
 
 /* Insert STMT_IF around given sequence of consecutive statements in the
    same basic block starting with STMT_START, ending with STMT_END.  */
@@ -288,6 +294,51 @@ add_sampling_to_edge_counters (void)
       }
 }
 
+/* Helper function to define a variable in comdat with initialization.
+   DECL is the variable, PARAM is the parameter to set init value.  */
+
+static void
+init_comdat_decl (tree decl, int param)
+{
+  TREE_PUBLIC (decl) = 1;
+  DECL_ARTIFICIAL (decl) = 1;
+  DECL_COMDAT_GROUP (decl)
+      = DECL_ASSEMBLER_NAME (decl);
+  TREE_STATIC (decl) = 1;
+  DECL_INITIAL (decl) = build_int_cst (
+      get_gcov_unsigned_t (),
+      PARAM_VALUE (param));
+  varpool_finalize_decl (decl);
+}
+
+/* Initialization function for LIPO runtime parameters.  */
+
+void
+tree_init_dyn_ipa_parameters (void)
+{
+  if (!gcov_lipo_cutoff_decl)
+    {
+      gcov_lipo_cutoff_decl = build_decl (
+          UNKNOWN_LOCATION,
+          VAR_DECL,
+          get_identifier ("__gcov_lipo_cutoff"),
+          get_gcov_unsigned_t ());
+      init_comdat_decl (gcov_lipo_cutoff_decl, PARAM_LIPO_CUTOFF);
+      gcov_lipo_random_seed_decl = build_decl (
+          UNKNOWN_LOCATION,
+          VAR_DECL,
+          get_identifier ("__gcov_lipo_random_seed"),
+          get_gcov_unsigned_t ());
+      init_comdat_decl (gcov_lipo_random_seed_decl, PARAM_LIPO_RANDOM_SEED);
+      gcov_lipo_random_group_size_decl = build_decl (
+          UNKNOWN_LOCATION,
+          VAR_DECL,
+          get_identifier ("__gcov_lipo_random_group_size"),
+          get_gcov_unsigned_t ());
+      init_comdat_decl (gcov_lipo_random_group_size_decl, PARAM_LIPO_RANDOM_GROUP_SIZE);
+    }
+}
+
 static void
 cleanup_instrumentation_sampling (void)
 {
@@ -299,8 +350,10 @@ cleanup_instrumentation_sampling (void)
     }
 }
 
+/* Initialization function for FDO sampling.  */
+
 void
-gimple_init_instrumentation_sampling (void)
+tree_init_instrumentation_sampling (void)
 {
   if (!gcov_sampling_period_decl)
     {

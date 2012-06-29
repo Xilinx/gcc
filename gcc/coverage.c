@@ -65,9 +65,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "dbgcnt.h"
 #include "input.h"
 
-/* Defined in tree-profile.c.  */
-void gimple_init_instrumentation_sampling (void);
-
 struct GTY((chain_next ("%h.next"))) coverage_data
 {
   struct coverage_data *next;	 /* next function */
@@ -2212,10 +2209,11 @@ coverage_init (const char *filename, const char* source_name)
 
   /* Define variables which are referenced at runtime by libgcov.  */
   if (profiling_enabled_p ())
-  {
-    init_pmu_profiling ();
-    gimple_init_instrumentation_sampling ();
-  }
+    {
+      tree_init_dyn_ipa_parameters ();
+      init_pmu_profiling ();
+      tree_init_instrumentation_sampling ();
+    }
 }
 
 /* Return True if any type of profiling is enabled which requires linking

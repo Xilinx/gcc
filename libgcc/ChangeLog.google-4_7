@@ -1,3 +1,10 @@
+2012-06-29  Xinliang David Li  <davidxl@google.com>
+
+	* dyn-ipa.c (gcov_compute_cutoff_count): Use
+	parameter (compile time) to control cutoff.
+	(__gcov_compute_module_groups): Use parameters
+	to control random grouping.
+
 2012-06-07  Teresa Johnson  <tejohnson@google.com>
 
 	Backport from google/main r188308.

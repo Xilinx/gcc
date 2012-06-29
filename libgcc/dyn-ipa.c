@@ -95,6 +95,9 @@ struct dyn_pointer_set
   unsigned (*get_key) (const void *);
 };
 
+extern gcov_unsigned_t __gcov_lipo_cutoff;
+extern gcov_unsigned_t __gcov_lipo_random_seed;
+extern gcov_unsigned_t __gcov_lipo_random_group_size;
 
 #if defined(inhibit_libc)
 __gcov_build_callgraph (void) {}
@@ -701,27 +704,39 @@ gcov_compute_cutoff_count (void)
     }
 
   /* Now sort */
- qsort (edges, num_edges, sizeof (void *), sort_by_count);
+  qsort (edges, num_edges, sizeof (void *), sort_by_count);
 #define CUM_CUTOFF_PERCENT 80
 #define MIN_NUM_EDGE_PERCENT 0
-  cutoff_str = getenv ("GCOV_DYN_CGRAPH_CUTOFF");
-  if (cutoff_str && strlen (cutoff_str))
+
+  /* The default parameter value is 100 which is a reserved special value. When
+     the cutoff parameter is 100, use the environment variable setting if it
+     exists, otherwise, use the default value 80.  */
+  if (__gcov_lipo_cutoff != 100)
     {
-      if ((num_perc_str = strchr (cutoff_str, ':')))
-        {
-          *num_perc_str = '\0';
-          num_perc_str++;
-        }
-      cutoff_perc = atoi (cutoff_str);
-      if (num_perc_str)
-        num_perc = atoi (num_perc_str);
-      else
-        num_perc = MIN_NUM_EDGE_PERCENT;
+      cutoff_perc = __gcov_lipo_cutoff;
+      num_perc = MIN_NUM_EDGE_PERCENT;
     }
   else
     {
-      cutoff_perc = CUM_CUTOFF_PERCENT;
-      num_perc = MIN_NUM_EDGE_PERCENT;
+      cutoff_str = getenv ("GCOV_DYN_CGRAPH_CUTOFF");
+      if (cutoff_str && strlen (cutoff_str))
+        {
+          if ((num_perc_str = strchr (cutoff_str, ':')))
+            {
+              *num_perc_str = '\0';
+              num_perc_str++;
+            }
+          cutoff_perc = atoi (cutoff_str);
+          if (num_perc_str)
+            num_perc = atoi (num_perc_str);
+          else
+            num_perc = MIN_NUM_EDGE_PERCENT;
+        }
+      else
+        {
+          cutoff_perc = CUM_CUTOFF_PERCENT;
+          num_perc = MIN_NUM_EDGE_PERCENT;
+        }
     }
 
   total = 0;
@@ -745,6 +760,10 @@ gcov_compute_cutoff_count (void)
           break;
         }
     }
+
+  if (do_dump)
+    fprintf (stderr,"cum count cutoff = %d%%, minimal num edge cutoff = %d%%\n",
+             cutoff_perc, num_perc);
 
   if (do_dump)
     fprintf (stderr, "// total = %.0f cum = %.0f cum/total = %.0f%%"
@@ -1122,7 +1141,7 @@ gcov_compute_random_module_groups (unsigned max_group_size)
   /* Now compute the export attribute  */
   for (m_ix = 0; m_ix < the_dyn_call_graph.num_modules; m_ix++)
     {
-      struct dyn_module_info *mi 
+      struct dyn_module_info *mi
 	= &the_dyn_call_graph.sup_modules[m_ix];
       if (mi->imported_modules)
         pointer_set_traverse (mi->imported_modules,
@@ -1236,13 +1255,31 @@ __gcov_compute_module_groups (void)
   char *seed = getenv ("LIPO_RANDOM_GROUPING");
   char *max_group_size = seed ? strchr (seed, ':') : 0;
 
-  if (seed && max_group_size)
+  /* The random group is set via compile time parameter.  */
+  if (__gcov_lipo_random_group_size != 0)
+    {
+      srandom (__gcov_lipo_random_seed);
+      init_dyn_call_graph ();
+      gcov_compute_random_module_groups (__gcov_lipo_random_group_size);
+      if (getenv ("GCOV_DYN_CGRAPH_DUMP") != 0)
+        {
+          fprintf (stderr, " Creating random grouping with %u:%u\n",
+                   __gcov_lipo_random_seed, __gcov_lipo_random_group_size);
+        }
+      return;
+    }
+  else if (seed && max_group_size)
     {
       *max_group_size = '\0';
       max_group_size++;
       srandom (atoi (seed));
       init_dyn_call_graph ();
       gcov_compute_random_module_groups (atoi (max_group_size));
+      if (getenv ("GCOV_DYN_CGRAPH_DUMP") != 0)
+        {
+          fprintf (stderr, " Creating random grouping with %s:%s\n",
+                   seed, max_group_size);
+        }
       return;
     }
 
