@@ -1,5 +1,14 @@
 
 2012-06-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{melt-newbuild is badly broken}}
+	* Makefile.in (MELTBUILD_MKFILE): New variable for include.
+
+	* melt-newbuild.tpl: Using recursive make for substages...
+	NOT WORKING YET!
+
+	* melt-newbuild.mk: Regenerate.
+
+2012-06-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-newbuild.tpl: Adding more, notably warmelt[123] phony
 	targets. Still incomplete.
 

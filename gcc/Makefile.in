@@ -5477,32 +5477,35 @@ melt_xtra_cflags = -O1
 MELT_STAGE_ZERO?=melt-stage0-dynamic
 AUTOGEN= autogen
 
-GCCMELT_COMPILER= $(COMPILER)
-GCCMELT_COMPILER_FLAGS= $(COMPILER_FLAGS)
-GCCMELT_LINKER= $(LINKER)
-GCCMELT_LINKER_FLAGS= $(LINKER_FLAGS)
+export GCCMELT_COMPILER= $(COMPILER)
+export GCCMELT_COMPILER_FLAGS= $(ALL_COMPILERFLAGS) $(INCLUDES)
+export GCCMELT_LINKER= $(LINKER)
+export GCCMELT_LINKER_FLAGS= $(LINKER_FLAGS)
 
 ## we want to redesign the build system, so have a conditional
 ## newbuild, because we might need to old build to improve and
 ## regenerate MELT for the newbuild...
 ifdef MELT_NEWBUILD
+export MELT_NEWBUILD
 $(srcdir)/melt-newbuild.mk: @MAINT@ $(srcdir)/melt-newbuild.def $(srcdir)/melt-newbuild.tpl
 	cd $(srcdir) && $(AUTOGEN) melt-newbuild.def
-include $(srcdir)/melt-newbuild.mk
+export MELTBUILD_MKFILE=$(srcdir)/melt-newbuild.mk
 else
 $(srcdir)/melt-build.mk: @MAINT@ $(srcdir)/melt-build.def $(srcdir)/melt-build.tpl
 	cd $(srcdir) && $(AUTOGEN) melt-build.def
-include $(srcdir)/melt-build.mk
+export MELTBUILD_MKFILE=$(srcdir)/melt-build.mk
 endif
 
+include $(MELTBUILD_MKFILE)
 MELT_MAKE_MODULE_XTRAMAKEFLAGS ?= -j 2
 
 .PHONY: melt.encap
 
 melt.encap: $(melt_make_cc1_dependency) $(srcdir)/melt-build.mk
-	@echo melt.encap making Makefile and melt-build.mk
-	$(MAKE) Makefile $(srcdir)/melt-build.mk
-	@echo melt.encap making warmelt0 with melt_cflags= $(melt_cflags)
+	@echo melt.encap making Makefile and melt-build.mk 
+	@echo melt.encap GCCMELT_COMPILER= $(GCCMELT_COMPILER) GCCMELT_COMPILER_FLAGS= $(GCCMELT_COMPILER_FLAGS)
+	$(MAKE) Makefile $(MELTBUILD_MKFILE)
+	@echo melt.encap making warmelt0 with melt_cflags= $(melt_cflags) MELTBUILD_MKFILE= $(MELTBUILD_MKFILE)
 	$(MAKE) warmelt0
 ## we probably better need warmelt1, because some make fragments are generated
 	@echo melt.encap making warmelt1 with melt_cflags= $(melt_cflags)
