@@ -1,4 +1,10 @@
 
+2012-06-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-newbuild.tpl: Adding more, notably warmelt[123] phony
+	targets. Still incomplete.
+
+	* melt-newbuild.mk: Regenerate.
+
 2012-06-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-newbuild.tpl: Adding more.  Still incomplete.
 

@@ -263,6 +263,7 @@ ENDFOR melt_translator_file+]
 
 ################ end stage 0 [+ (. (tpl-file-line))+] 
 
+GCCMELTGEN_BUILD=melt-workdir/
 #@ [+ (. (tpl-file-line))+] 
 
 [+FOR melt_stage+]
@@ -293,9 +294,9 @@ ENDFOR melt_translator_file+]
     )) (get "base")))
 +]
 
+[+define melt_basident+][+ (. baseident)+][+enddef+]
 
 ## the generated make fragments warmelt*+meltbuild.mk have rules for $(GCCMELTGEN_BUILD)warmelt*.<md5sum>.<flavor>.so
-GCCMELTGEN_BUILD=melt-workdir/
 
 
 ## perhaps we should use MELT mode to generate modules, not C sources?? 
@@ -304,11 +305,15 @@ GCCMELTGEN_BUILD=melt-workdir/
      $(melt_make_source_dir)/[+ (. outbase)+].melt \
 [+FOR includeload+]        [+includeload+] \
 [+ENDFOR includeload
-+][+FOR melt_translator_file+][+ (define inbase (get "base")) (define inindex (for-index)) 
++][+FOR melt_translator_file+][+ 
+  (define inbase (get "base")) 
+  (define inindex (for-index)) 
   (define depstage (if (< inindex outindex) (get "melt_stage") prevstage))
   (define depindex (if (< inindex outindex) stageindex (- stageindex 1)))
-+]      [+IF (< inindex outindex)+] [+ (. depstage)+]-[+(. inbase)+]-module.stamp \
-[+ENDIF+][+ENDFOR melt_translator_file
+  (define prevflavor (if (> stageindex 1) "quicklybuilt" "$(MELT_ZERO_FLAVOR)"))
+  (define depflavor (if (< inindex outindex) "quicklybuilt" prevflavor))
++]      [+ (. depstage)+]/[+(. inbase)+].[+ (. depflavor)+].so \
+[+ENDFOR melt_translator_file
 +]  empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency) | [+melt_stage+]
 	@echo @+@melt-newbuild-desc-[+melt_stage+]-[+ (. outbase)+]  at= $@ left= $< circ= $^ [+ (. (tpl-file-line))+]
@@ -325,24 +330,33 @@ GCCMELTGEN_BUILD=melt-workdir/
 	      $(meltarg_output)=[+melt_stage+]/[+ (. outbase)+] $(meltarg_workdir)=melt-workdir $(meltarg_genworklink) \
 	      empty-file-for-melt.c >> [+ (. outbase)+]+[+melt_stage+].args-tmp
 	@$(melt_move_if_change)  [+ (. outbase)+]+[+melt_stage+].args-tmp  [+ (. outbase)+]+[+melt_stage+].args
-	@echo; echo; echo -n  [+ (. outbase)+]+[+melt_stage+].args: ; cat [+ (. outbase)+]+[+melt_stage+].args ; echo; echo; echo "***** doing " $@  [+ (. (tpl-file-line))+]
-	@echo doing [+ (. outbase)+]+[+melt_stage+]  [+ (. (tpl-file-line))+]
+	@echo; echo; echo -n   @+@melt-newbuild [+ (. outbase)+]+[+melt_stage+].args: ; cat [+ (. outbase)+]+[+melt_stage+].args ; echo; echo; echo "***** doing " $@  [+ (. (tpl-file-line))+]
+	@echo  @+@melt-newbuild doing [+ (. outbase)+]+[+melt_stage+]  [+ (. (tpl-file-line))+]
 	$(melt_make_cc1) @[+ (. outbase)+]+[+melt_stage+].args
 	@ls -l [+melt_stage+]/[+ (. outbase)+].c  || ( echo "*@*MISSING "  [+melt_stage+]/[+ (. outbase)+].c [+ (. (tpl-file-line))+] ; exit 1 )
 
 #@ [+ (. (tpl-file-line))+] 
 -include [+melt_stage+]/[+base+]+meltbuild.mk
 
-[+FOR flavor IN "dynamic" "quicklybuilt" "optimized" "debugnoline"+] 
+[+FOR flavor IN "dynamic" "quicklybuilt" "optimized" "debugnoline"+]
+#@ flavor  base [+base+] stage [+melt_stage+] [+ (. (tpl-file-line))+]
+[+melt_stage+]/[+base+].[+flavor+].so: melt-workdir/[+base+].$(MELTGENMOD_CUMULATED_MD5SUM_[+melt_stagident+]_[+melt_basident+]).[+flavor+].meltmod.so
+	@echo  @+@melt-newbuild at= $@ circ= $^ [+ (. (tpl-file-line))+]
+	$(LN_S) -v -f $^ $@
 
-[+melt_stage+]/[+base+].[+flavor+].so: melt-workdir/[+base+].$(MELTGENMOD_CUMULATED_MD5SUM_[+ (. stagident)+][+ (. baseident)+]).[+flavor+].meltmod.so
 
-#@ flavor [+ (. (tpl-file-line))+] 
-
+#@ end flavor [+flavor+] base [+base+] stage [+melt_stage+] [+ (. (tpl-file-line))+]
 [+ENDFOR flavor+]
 
+#@ end base [+base+] stage [+melt_stage+] [+ (. (tpl-file-line))+]
 [+ENDFOR melt_translator_file+]
 
+.PHONY: warmelt[+ (. (+ 1 (for-index)))+]  # [+ (. (tpl-file-line))+]
+warmelt[+ (. (+ 1 (for-index)))+]: \
+[+FOR melt_translator_file " \\\n"+]  [+melt_stage+]/[+base+].quicklybuilt.so[+ENDFOR melt_translator_file+]
+	@echo  @+@melt-newbuild-warmelt[+ (. (+ 1 (for-index)))+] at= $@ circ= $^ [+ (. (tpl-file-line))+]
+
+#@ end stage [+melt_stage+] [+ (. (tpl-file-line))+]
 [+ENDFOR melt_stage+]
 #@ [+ (. (tpl-file-line))+] eof melt-newbuild.mk
 ## eof melt-newbuild.mk generated from melt-newbuild.tpl & melt-newbuild.def
