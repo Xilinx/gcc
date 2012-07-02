@@ -658,7 +658,7 @@ avr_regs_to_save (HARD_REG_SET *set)
       if (fixed_regs[reg])
         continue;
 
-      if ((int_or_sig_p && !current_function_is_leaf && call_used_regs[reg])
+      if ((int_or_sig_p && !crtl->is_leaf && call_used_regs[reg])
           || (df_regs_ever_live_p (reg)
               && (int_or_sig_p || !call_used_regs[reg])
               /* Don't record frame pointer registers here.  They are treated
@@ -1010,7 +1010,7 @@ avr_prologue_setup_frame (HOST_WIDE_INT size, HARD_REG_SET set)
 
           gcc_assert (frame_pointer_needed
                       || !isr_p
-                      || !current_function_is_leaf);
+                      || !crtl->is_leaf);
           
           fp = my_fp = (frame_pointer_needed
                         ? frame_pointer_rtx
@@ -1358,7 +1358,7 @@ expand_epilogue (bool sibcall_p)
 
       gcc_assert (frame_pointer_needed
                   || !isr_p
-                  || !current_function_is_leaf);
+                  || !crtl->is_leaf);
       
       fp = my_fp = (frame_pointer_needed
                     ? frame_pointer_rtx
@@ -8853,6 +8853,28 @@ avr_hard_regno_mode_ok (int regno, enum machine_mode mode)
   /* All modes larger than 8 bits should start in an even register.  */
   
   return !(regno & 1);
+}
+
+
+/* Implement `HARD_REGNO_CALL_PART_CLOBBERED'.  */
+
+int
+avr_hard_regno_call_part_clobbered (unsigned regno, enum machine_mode mode)
+{
+  /* FIXME: This hook gets called with MODE:REGNO combinations that don't
+        represent valid hard registers like, e.g. HI:29.  Returning TRUE
+        for such registers can lead to performance degradation as mentioned
+        in PR53595.  Thus, report invalid hard registers as FALSE.  */
+  
+  if (!avr_hard_regno_mode_ok (regno, mode))
+    return 0;
+  
+  /* Return true if any of the following boundaries is crossed:
+     17/18, 27/28 and 29/30.  */
+  
+  return ((regno < 18 && regno + GET_MODE_SIZE (mode) > 18)
+          || (regno < REG_Y && regno + GET_MODE_SIZE (mode) > REG_Y)
+          || (regno < REG_Z && regno + GET_MODE_SIZE (mode) > REG_Z));
 }
 
 

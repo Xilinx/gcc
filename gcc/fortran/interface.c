@@ -826,12 +826,13 @@ bad_repl:
    a given type/rank in f1 and seeing if there are less then that
    number of those arguments in f2 (including optional arguments).
    Since this test is asymmetric, it has to be called twice to make it
-   symmetric.  Returns nonzero if the argument lists are incompatible
-   by this test.  This subroutine implements rule 1 of section
-   14.1.2.3 in the Fortran 95 standard.  */
+   symmetric. Returns nonzero if the argument lists are incompatible
+   by this test. This subroutine implements rule 1 of section F03:16.2.3.
+   'p1' and 'p2' are the PASS arguments of both procedures (if applicable).  */
 
 static int
-count_types_test (gfc_formal_arglist *f1, gfc_formal_arglist *f2)
+count_types_test (gfc_formal_arglist *f1, gfc_formal_arglist *f2,
+		  const char *p1, const char *p2)
 {
   int rc, ac1, ac2, i, j, k, n1;
   gfc_formal_arglist *f;
@@ -868,14 +869,17 @@ count_types_test (gfc_formal_arglist *f1, gfc_formal_arglist *f2)
       if (arg[i].flag != -1)
 	continue;
 
-      if (arg[i].sym && arg[i].sym->attr.optional)
-	continue;		/* Skip optional arguments.  */
+      if (arg[i].sym && (arg[i].sym->attr.optional
+			 || (p1 && strcmp (arg[i].sym->name, p1) == 0)))
+	continue;		/* Skip OPTIONAL and PASS arguments.  */
 
       arg[i].flag = k;
 
-      /* Find other nonoptional arguments of the same type/rank.  */
+      /* Find other non-optional, non-pass arguments of the same type/rank.  */
       for (j = i + 1; j < n1; j++)
-	if ((arg[j].sym == NULL || !arg[j].sym->attr.optional)
+	if ((arg[j].sym == NULL
+	     || !(arg[j].sym->attr.optional
+		  || (p1 && strcmp (arg[j].sym->name, p1) == 0)))
 	    && (compare_type_rank_if (arg[i].sym, arg[j].sym)
 	        || compare_type_rank_if (arg[j].sym, arg[i].sym)))
 	  arg[j].flag = k;
@@ -897,13 +901,14 @@ count_types_test (gfc_formal_arglist *f1, gfc_formal_arglist *f2)
 	if (arg[j].flag == k)
 	  ac1++;
 
-      /* Count the number of arguments in f2 with that type, including
-	 those that are optional.  */
+      /* Count the number of non-pass arguments in f2 with that type,
+	 including those that are optional.  */
       ac2 = 0;
 
       for (f = f2; f; f = f->next)
-	if (compare_type_rank_if (arg[i].sym, f->sym)
-	    || compare_type_rank_if (f->sym, arg[i].sym))
+	if ((!p2 || strcmp (f->sym->name, p2) != 0)
+	    && (compare_type_rank_if (arg[i].sym, f->sym)
+		|| compare_type_rank_if (f->sym, arg[i].sym)))
 	  ac2++;
 
       if (ac1 > ac2)
@@ -921,9 +926,10 @@ count_types_test (gfc_formal_arglist *f1, gfc_formal_arglist *f2)
 }
 
 
-/* Perform the correspondence test in rule 2 of section 14.1.2.3.
-   Returns zero if no argument is found that satisfies rule 2, nonzero
-   otherwise.
+/* Perform the correspondence test in rule 3 of section F03:16.2.3.
+   Returns zero if no argument is found that satisfies rule 3, nonzero
+   otherwise. 'p1' and 'p2' are the PASS arguments of both procedures
+   (if applicable).
 
    This test is also not symmetric in f1 and f2 and must be called
    twice.  This test finds problems caused by sorting the actual
@@ -942,7 +948,8 @@ count_types_test (gfc_formal_arglist *f1, gfc_formal_arglist *f2)
    At this point, 'CALL FOO(A=1, B=1.0)' is ambiguous.  */
 
 static int
-generic_correspondence (gfc_formal_arglist *f1, gfc_formal_arglist *f2)
+generic_correspondence (gfc_formal_arglist *f1, gfc_formal_arglist *f2,
+			const char *p1, const char *p2)
 {
   gfc_formal_arglist *f2_save, *g;
   gfc_symbol *sym;
@@ -954,6 +961,11 @@ generic_correspondence (gfc_formal_arglist *f1, gfc_formal_arglist *f2)
       if (f1->sym->attr.optional)
 	goto next;
 
+      if (p1 && strcmp (f1->sym->name, p1) == 0)
+	f1 = f1->next;
+      if (f2 && p2 && strcmp (f2->sym->name, p2) == 0)
+	f2 = f2->next;
+
       if (f2 != NULL && (compare_type_rank (f1->sym, f2->sym)
 			 || compare_type_rank (f2->sym, f1->sym)))
 	goto next;
@@ -962,7 +974,7 @@ generic_correspondence (gfc_formal_arglist *f1, gfc_formal_arglist *f2)
 	 the current non-match.  */
       for (g = f1; g; g = g->next)
 	{
-	  if (g->sym->attr.optional)
+	  if (g->sym->attr.optional || (p1 && strcmp (g->sym->name, p1) == 0))
 	    continue;
 
 	  sym = find_keyword_arg (g->sym->name, f2_save);
@@ -971,7 +983,8 @@ generic_correspondence (gfc_formal_arglist *f1, gfc_formal_arglist *f2)
 	}
 
     next:
-      f1 = f1->next;
+      if (f1 != NULL)
+	f1 = f1->next;
       if (f2 != NULL)
 	f2 = f2->next;
     }
@@ -1129,12 +1142,14 @@ check_dummy_characteristics (gfc_symbol *s1, gfc_symbol *s2,
    We return nonzero if there exists an actual argument list that
    would be ambiguous between the two interfaces, zero otherwise.
    'strict_flag' specifies whether all the characteristics are
-   required to match, which is not the case for ambiguity checks.*/
+   required to match, which is not the case for ambiguity checks.
+   'p1' and 'p2' are the PASS arguments of both procedures (if applicable).  */
 
 int
 gfc_compare_interfaces (gfc_symbol *s1, gfc_symbol *s2, const char *name2,
 			int generic_flag, int strict_flag,
-			char *errmsg, int err_len)
+			char *errmsg, int err_len,
+			const char *p1, const char *p2)
 {
   gfc_formal_arglist *f1, *f2;
 
@@ -1200,9 +1215,11 @@ gfc_compare_interfaces (gfc_symbol *s1, gfc_symbol *s2, const char *name2,
 
   if (generic_flag)
     {
-      if (count_types_test (f1, f2) || count_types_test (f2, f1))
+      if (count_types_test (f1, f2, p1, p2)
+	  || count_types_test (f2, f1, p2, p1))
 	return 0;
-      if (generic_correspondence (f1, f2) || generic_correspondence (f2, f1))
+      if (generic_correspondence (f1, f2, p1, p2)
+	  || generic_correspondence (f2, f1, p2, p1))
 	return 0;
     }
   else
@@ -1349,7 +1366,7 @@ check_interface1 (gfc_interface *p, gfc_interface *q0,
 	if (p->sym->attr.flavor != FL_DERIVED
 	    && q->sym->attr.flavor != FL_DERIVED
 	    && gfc_compare_interfaces (p->sym, q->sym, q->sym->name,
-				       generic_flag, 0, NULL, 0))
+				       generic_flag, 0, NULL, 0, NULL, NULL))
 	  {
 	    if (referenced)
 	      gfc_error ("Ambiguous interfaces '%s' and '%s' in %s at %L",
@@ -1676,7 +1693,7 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
 	}
 
       if (!gfc_compare_interfaces (formal, act_sym, act_sym->name, 0, 1, err,
-				   sizeof(err)))
+				   sizeof(err), NULL, NULL))
 	{
 	  if (where)
 	    gfc_error ("Interface mismatch in dummy procedure '%s' at %L: %s",
@@ -3534,8 +3551,8 @@ gfc_extend_assign (gfc_code *c, gfc_namespace *ns)
    the given interface list.  Ambiguity isn't checked yet since module
    procedures can be present without interfaces.  */
 
-static gfc_try
-check_new_interface (gfc_interface *base, gfc_symbol *new_sym)
+gfc_try
+gfc_check_new_interface (gfc_interface *base, gfc_symbol *new_sym, locus loc)
 {
   gfc_interface *ip;
 
@@ -3543,8 +3560,8 @@ check_new_interface (gfc_interface *base, gfc_symbol *new_sym)
     {
       if (ip->sym == new_sym)
 	{
-	  gfc_error ("Entity '%s' at %C is already present in the interface",
-		     new_sym->name);
+	  gfc_error ("Entity '%s' at %L is already present in the interface",
+		     new_sym->name, &loc);
 	  return FAILURE;
 	}
     }
@@ -3574,48 +3591,61 @@ gfc_add_interface (gfc_symbol *new_sym)
 	  {
 	    case INTRINSIC_EQ:
 	    case INTRINSIC_EQ_OS:
-	      if (check_new_interface (ns->op[INTRINSIC_EQ], new_sym) == FAILURE ||
-	          check_new_interface (ns->op[INTRINSIC_EQ_OS], new_sym) == FAILURE)
+	      if (gfc_check_new_interface (ns->op[INTRINSIC_EQ], new_sym,
+					   gfc_current_locus) == FAILURE
+	          || gfc_check_new_interface (ns->op[INTRINSIC_EQ_OS], new_sym,
+					      gfc_current_locus) == FAILURE)
 		return FAILURE;
 	      break;
 
 	    case INTRINSIC_NE:
 	    case INTRINSIC_NE_OS:
-	      if (check_new_interface (ns->op[INTRINSIC_NE], new_sym) == FAILURE ||
-	          check_new_interface (ns->op[INTRINSIC_NE_OS], new_sym) == FAILURE)
+	      if (gfc_check_new_interface (ns->op[INTRINSIC_NE], new_sym,
+					   gfc_current_locus) == FAILURE
+	          || gfc_check_new_interface (ns->op[INTRINSIC_NE_OS], new_sym,
+					      gfc_current_locus) == FAILURE)
 		return FAILURE;
 	      break;
 
 	    case INTRINSIC_GT:
 	    case INTRINSIC_GT_OS:
-	      if (check_new_interface (ns->op[INTRINSIC_GT], new_sym) == FAILURE ||
-	          check_new_interface (ns->op[INTRINSIC_GT_OS], new_sym) == FAILURE)
+	      if (gfc_check_new_interface (ns->op[INTRINSIC_GT], new_sym,
+					   gfc_current_locus) == FAILURE
+	          || gfc_check_new_interface (ns->op[INTRINSIC_GT_OS], new_sym,
+					      gfc_current_locus) == FAILURE)
 		return FAILURE;
 	      break;
 
 	    case INTRINSIC_GE:
 	    case INTRINSIC_GE_OS:
-	      if (check_new_interface (ns->op[INTRINSIC_GE], new_sym) == FAILURE ||
-	          check_new_interface (ns->op[INTRINSIC_GE_OS], new_sym) == FAILURE)
+	      if (gfc_check_new_interface (ns->op[INTRINSIC_GE], new_sym,
+					   gfc_current_locus) == FAILURE
+	          || gfc_check_new_interface (ns->op[INTRINSIC_GE_OS], new_sym,
+					      gfc_current_locus) == FAILURE)
 		return FAILURE;
 	      break;
 
 	    case INTRINSIC_LT:
 	    case INTRINSIC_LT_OS:
-	      if (check_new_interface (ns->op[INTRINSIC_LT], new_sym) == FAILURE ||
-	          check_new_interface (ns->op[INTRINSIC_LT_OS], new_sym) == FAILURE)
+	      if (gfc_check_new_interface (ns->op[INTRINSIC_LT], new_sym,
+					   gfc_current_locus) == FAILURE
+	          || gfc_check_new_interface (ns->op[INTRINSIC_LT_OS], new_sym,
+					      gfc_current_locus) == FAILURE)
 		return FAILURE;
 	      break;
 
 	    case INTRINSIC_LE:
 	    case INTRINSIC_LE_OS:
-	      if (check_new_interface (ns->op[INTRINSIC_LE], new_sym) == FAILURE ||
-	          check_new_interface (ns->op[INTRINSIC_LE_OS], new_sym) == FAILURE)
+	      if (gfc_check_new_interface (ns->op[INTRINSIC_LE], new_sym,
+					   gfc_current_locus) == FAILURE
+	          || gfc_check_new_interface (ns->op[INTRINSIC_LE_OS], new_sym,
+					      gfc_current_locus) == FAILURE)
 		return FAILURE;
 	      break;
 
 	    default:
-	      if (check_new_interface (ns->op[current_interface.op], new_sym) == FAILURE)
+	      if (gfc_check_new_interface (ns->op[current_interface.op], new_sym,
+					   gfc_current_locus) == FAILURE)
 		return FAILURE;
 	  }
 
@@ -3629,7 +3659,8 @@ gfc_add_interface (gfc_symbol *new_sym)
 	  if (sym == NULL)
 	    continue;
 
-	  if (check_new_interface (sym->generic, new_sym) == FAILURE)
+	  if (gfc_check_new_interface (sym->generic, new_sym, gfc_current_locus)
+	      == FAILURE)
 	    return FAILURE;
 	}
 
@@ -3637,8 +3668,8 @@ gfc_add_interface (gfc_symbol *new_sym)
       break;
 
     case INTERFACE_USER_OP:
-      if (check_new_interface (current_interface.uop->op, new_sym)
-	  == FAILURE)
+      if (gfc_check_new_interface (current_interface.uop->op, new_sym,
+				   gfc_current_locus) == FAILURE)
 	return FAILURE;
 
       head = &current_interface.uop->op;

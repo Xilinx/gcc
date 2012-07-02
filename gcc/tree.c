@@ -6899,6 +6899,7 @@ commutative_tree_code (enum tree_code code)
     {
     case PLUS_EXPR:
     case MULT_EXPR:
+    case MULT_HIGHPART_EXPR:
     case MIN_EXPR:
     case MAX_EXPR:
     case BIT_IOR_EXPR:
@@ -6913,6 +6914,9 @@ commutative_tree_code (enum tree_code code)
     case TRUTH_AND_EXPR:
     case TRUTH_XOR_EXPR:
     case TRUTH_OR_EXPR:
+    case WIDEN_MULT_EXPR:
+    case VEC_WIDEN_MULT_HI_EXPR:
+    case VEC_WIDEN_MULT_LO_EXPR:
       return true;
 
     default:
@@ -8734,23 +8738,37 @@ dump_tree_statistics (void)
 
 /* Generate a crc32 of a byte.  */
 
-unsigned
-crc32_byte (unsigned chksum, char byte)
+static unsigned
+crc32_unsigned_bits (unsigned chksum, unsigned value, unsigned bits)
 {
-  unsigned value = (unsigned) byte << 24;
-      unsigned ix;
+  unsigned ix;
 
-      for (ix = 8; ix--; value <<= 1)
-  	{
-  	  unsigned feedback;
-
-  	  feedback = (value ^ chksum) & 0x80000000 ? 0x04c11db7 : 0;
- 	  chksum <<= 1;
- 	  chksum ^= feedback;
-  	}
+  for (ix = bits; ix--; value <<= 1)
+    {
+      unsigned feedback;
+      
+      feedback = (value ^ chksum) & 0x80000000 ? 0x04c11db7 : 0;
+      chksum <<= 1;
+      chksum ^= feedback;
+    }
   return chksum;
 }
 
+/* Generate a crc32 of a 32-bit unsigned.  */
+
+unsigned
+crc32_unsigned (unsigned chksum, unsigned value)
+{
+  return crc32_unsigned_bits (chksum, value, 32);
+}
+
+/* Generate a crc32 of a byte.  */
+
+unsigned
+crc32_byte (unsigned chksum, char byte)
+{
+  return crc32_unsigned_bits (chksum, (unsigned) byte << 24, 8);
+}
 
 /* Generate a crc32 of a string.  */
 

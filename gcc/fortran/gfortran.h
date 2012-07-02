@@ -2842,7 +2842,7 @@ void gfc_free_interface (gfc_interface *);
 int gfc_compare_derived_types (gfc_symbol *, gfc_symbol *);
 int gfc_compare_types (gfc_typespec *, gfc_typespec *);
 int gfc_compare_interfaces (gfc_symbol*, gfc_symbol*, const char *, int, int,
-			    char *, int);
+			    char *, int, const char *, const char *);
 void gfc_check_interfaces (gfc_namespace *);
 void gfc_procedure_use (gfc_symbol *, gfc_actual_arglist **, locus *);
 void gfc_ppc_use (gfc_component *, gfc_actual_arglist **, locus *);
@@ -2851,6 +2851,7 @@ gfc_symbol *gfc_search_interface (gfc_interface *, int,
 match gfc_extend_expr (gfc_expr *);
 void gfc_free_formal_arglist (gfc_formal_arglist *);
 gfc_try gfc_extend_assign (gfc_code *, gfc_namespace *);
+gfc_try gfc_check_new_interface (gfc_interface *, gfc_symbol *, locus);
 gfc_try gfc_add_interface (gfc_symbol *);
 gfc_interface *gfc_current_interface_head (void);
 void gfc_set_current_interface_head (gfc_interface *);
