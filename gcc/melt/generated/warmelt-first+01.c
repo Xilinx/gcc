@@ -2365,18 +2365,23 @@ lab_endgetargs:;
 		{
 		  MELT_LOCATION ("warmelt-first.melt:2840:/ locexp");
 		  /* clone_symbol CLONAMSTR__1 */
-		  static char clonambuf[100];
-		  const char *s =
-		    melt_string_str ((melt_ptr_t) /*_.DISCRINAM__V10*/
-				     meltfptr[9]);
-		  if (s)
-		    s = strchr (s, '_');
-		  if (!s)
-		    s = "_What";
-		  memset (clonambuf, 0, sizeof (clonambuf));
-		  snprintf (clonambuf,
-			    sizeof (clonambuf) - 1, "Cloned_Melt%s", s);
-		      /*_?*/ meltfram__.loc_CSTRING__o0 = clonambuf;
+		  {
+		    static char clonambuf_CLONAMSTR__1[100];
+		    const char *s =
+		      melt_string_str ((melt_ptr_t) /*_.DISCRINAM__V10*/
+				       meltfptr[9]);
+		    if (s)
+		      s = strchr (s, '_');
+		    if (!s)
+		      s = "_What";
+		    memset (clonambuf_CLONAMSTR__1, 0,
+			    sizeof (clonambuf_CLONAMSTR__1));
+		    snprintf (clonambuf_CLONAMSTR__1,
+			      sizeof (clonambuf_CLONAMSTR__1),
+			      "Cloned_Melt%s", s);
+		      /*_?*/ meltfram__.loc_CSTRING__o0 =
+		      clonambuf_CLONAMSTR__1;
+		  }		/* end clone_symbol CLONAMSTR__1 */
 		  ;
 		}
 		;
@@ -5363,17 +5368,18 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-first.melt:2997:/ locexp");
-	    /* ERRBADIMPORT__1 */
-	    const char *ERRBADIMPORT__1_str =
-	      melt_string_str ((melt_ptr_t) /*_.SYMNAM__V15*/ meltfptr[14]);
-	    error
-	      ("MELT [%s]: imported symbol %s has unexpected binding of %s",
+	    /* ERRBADIMPORT__1 start */
+	    {
+	      const char *ERRBADIMPORT__1_str =
+		melt_string_str ((melt_ptr_t) /*_.SYMNAM__V15*/ meltfptr[14]);
+	      error
+		("MELT [%s]: imported symbol %s has unexpected binding of %s",
 			     /*_?*/ meltfram__.loc_CSTRING__o1,
-	       ERRBADIMPORT__1_str ? ERRBADIMPORT__1_str : /*_?*/ meltfram__.
-	       loc_CSTRING__o0,
-	       melt_string_str ((melt_ptr_t) /*_.BINDISCRNAM__V17*/
-				meltfptr[16]));
-	    ;
+		 ERRBADIMPORT__1_str ? ERRBADIMPORT__1_str : /*_?*/
+		 meltfram__.loc_CSTRING__o0,
+		 melt_string_str ((melt_ptr_t) /*_.BINDISCRNAM__V17*/
+				  meltfptr[16]));
+	    } /* ERRBADIMPORT__1 end */ ;
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-first.melt:3004:/ quasiblock");

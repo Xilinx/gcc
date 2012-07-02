@@ -43,7 +43,7 @@ const char melt_primaryhexmd5[]="d1cc1b605b927a1ffbf1e25ed8870702";
 /* hexmd5checksum of secondary C files */
 const char* const melt_secondaryhexmd5tab[]={
  /*nosecfile*/ (const char*)0,
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-first+01.c #1 */ "4c1f147046217c8cbdf41b4dbdfc1644",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-first+01.c #1 */ "f93b5b5c2fd4d2cd4a9c9afd718be20e",
  /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-first+02.c #2 */ "a5bbbe047611a6ff6983f11f51e637d6",
  /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-first+03.c #3 */ "034a4a8626acf33699212bb1a32f5733",
  (const char*)0 };
@@ -52,10 +52,10 @@ const char* const melt_secondaryhexmd5tab[]={
 const int melt_lastsecfileindex=3;
 
 /* cumulated checksum of primary & secondary files */
-const char melt_cumulated_hexmd5[]="55153ed6fc168ac2936e9e5ccd95c475" ;
+const char melt_cumulated_hexmd5[]="caa7bc7a5b40a0d2ad0b1e1949af4a1e" ;
 
 /* include the timestamp file */
-#define meltmod_warmelt_first_mds__55153ed6fc168ac2936e9e5ccd95c475 1
+#define meltmod_warmelt_first_mds__caa7bc7a5b40a0d2ad0b1e1949af4a1e 1
 #include "warmelt-first+melttime.h"
 	 
 

@@ -14343,7 +14343,7 @@ lab_endgetargs:;
       argtab[2].meltbp_aptr =
 	(melt_ptr_t *) & /*_.CUMPATHMDS__V97*/ meltfptr[96];
       /*^apply.arg */
-      argtab[3].meltbp_cstring = ".descr.meltpic.o: ";
+      argtab[3].meltbp_cstring = ".descriptor.meltpic.o: ";
       /*^apply.arg */
       argtab[4].meltbp_aptr =
 	(melt_ptr_t *) & /*_.MODNAMSTR__V2*/ meltfptr[1];
@@ -14469,7 +14469,7 @@ lab_endgetargs:;
 	    argtab[9].meltbp_aptr =
 	      (melt_ptr_t *) & /*_.CUMPATHMDS__V97*/ meltfptr[96];
 	    /*^apply.arg */
-	    argtab[10].meltbp_cstring = ".descr.meltpic.o ";
+	    argtab[10].meltbp_cstring = ".descriptor.meltpic.o ";
 	    /*_.ADD2OUT__V112*/ meltfptr[111] =
 	      melt_apply ((meltclosure_ptr_t)
 			  (( /*!ADD2OUT */ meltfrout->tabval[10])),

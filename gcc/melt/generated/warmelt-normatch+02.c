@@ -5638,9 +5638,11 @@ lab_endgetargs:;
     {
       MELT_LOCATION ("warmelt-normatch.melt:2220:/ locexp");
       /* mg_draw_match_graphviz_file UNIQCNT__1 */
-      static long uniqcounter;
-      uniqcounter++;
+      {
+	static long uniqcounter;
+	uniqcounter++;
 	    /*_#CNT__L2*/ meltfnum[1] = uniqcounter;
+      }
       ;
     }
     ;
