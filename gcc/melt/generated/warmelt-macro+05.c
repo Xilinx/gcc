@@ -2298,6 +2298,13 @@ meltrout_143_warmelt_macro_MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER
 	(struct
 	 frame_meltrout_143_warmelt_macro_MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER_st
 	 *) meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 27; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -2984,6 +2991,13 @@ meltrout_144_warmelt_macro_MEXPAND_PARENT_MODULE_ENVIRONMENT
 	(struct
 	 frame_meltrout_144_warmelt_macro_MEXPAND_PARENT_MODULE_ENVIRONMENT_st
 	 *) meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 29; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -3702,6 +3716,13 @@ meltrout_145_warmelt_macro_MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER
 	(struct
 	 frame_meltrout_145_warmelt_macro_MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER_st
 	 *) meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 27; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -4394,6 +4415,13 @@ meltrout_146_warmelt_macro_MEXPAND_FETCH_PREDEFINED (meltclosure_ptr_t
       meltframptr_ =
 	(struct frame_meltrout_146_warmelt_macro_MEXPAND_FETCH_PREDEFINED_st
 	 *) meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 33; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -5264,6 +5292,13 @@ meltrout_147_warmelt_macro_MEXPAND_STORE_PREDEFINED (meltclosure_ptr_t
       meltframptr_ =
 	(struct frame_meltrout_147_warmelt_macro_MEXPAND_STORE_PREDEFINED_st
 	 *) meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 39; ix++)
 	if (meltframptr_->mcfr_varptr[ix])

@@ -694,8 +694,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   meltroutfun_t* routfunad;			\
   melt_ptr_t routdata;				\
   unsigned nbval;				\
-  melt_ptr_t tabval[N];				\
-  long _gap; }
+  melt_ptr_t tabval[N+1]; }
 
 
 

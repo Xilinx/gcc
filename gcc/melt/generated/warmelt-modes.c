@@ -1215,6 +1215,13 @@ meltrout_1_warmelt_modes_INSTALL_MELT_MODE (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct frame_meltrout_1_warmelt_modes_INSTALL_MELT_MODE_st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 11; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -1592,6 +1599,13 @@ meltrout_2_warmelt_modes_RUNFILE_DOCMD (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct frame_meltrout_2_warmelt_modes_RUNFILE_DOCMD_st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 63; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -3132,6 +3146,13 @@ meltrout_3_warmelt_modes_RUNDEBUG_DOCMD (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct frame_meltrout_3_warmelt_modes_RUNDEBUG_DOCMD_st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 57; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -4467,6 +4488,13 @@ meltrout_4_warmelt_modes_INCREMENT_MKDOC_COUNTER (meltclosure_ptr_t
       meltframptr_ =
 	(struct frame_meltrout_4_warmelt_modes_INCREMENT_MKDOC_COUNTER_st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 7; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -4720,10 +4748,6 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
 					  char meltpredefinited[])
 {
 #define meltfram__  (*iniframp__)
-  dbgprintf ("start initialize_module_meltdata_warmelt_modes iniframp__=%p",
-	     (void *) iniframp__);
-  melt_assertmsg ("check module initial frame",
-		  iniframp__->mcfr_nbvar == /*minihash */ -2689);
 
   struct cdata_st
   {
@@ -5203,6 +5227,10 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
     struct MELT_STRING_STRUCT (32) dstr_448__UNREGISTER_CHILD;
     long spare_;
   } *cdat = NULL;
+  dbgprintf ("start initialize_module_meltdata_warmelt_modes iniframp__=%p",
+	     (void *) iniframp__);
+  melt_assertmsg ("check module initial frame",
+		  iniframp__->mcfr_nbvar == /*minihash */ -2689);
   cdat = (struct cdata_st *) meltgc_allocate (sizeof (*cdat), 0);
   melt_prohibit_garbcoll = TRUE;
   /*initial routine predef */
@@ -11297,7 +11325,8 @@ start_module_melt (void *modargp_)
 						  meltfptr[2])) !=
 			       MELTOBMAG_CLOSURE)
 	  warning (0, "bad MELT FRESH_ENV @%p in system data <%s:%d>",
-		   ( /*_.FRESHENV___V3*/ meltfptr[2]), __FILE__, __LINE__);;;
+		   (void *) ( /*_.FRESHENV___V3*/ meltfptr[2]), __FILE__,
+		   __LINE__);;;
 	/*^apply */
 
 	/*apply */
@@ -26769,7 +26798,8 @@ meltmod__warmelt_modes__initialmeltchunk_8 (struct frame_start_module_melt_st
 						  meltfptr[2])) !=
 			       MELTOBMAG_CLOSURE)
 	  warning (0, "bad MELT FRESH_ENV @%p in system data <%s:%d>",
-		   ( /*_.FRESHENV___V3*/ meltfptr[2]), __FILE__, __LINE__);;;
+		   (void *) ( /*_.FRESHENV___V3*/ meltfptr[2]), __FILE__,
+		   __LINE__);;;
 	/*^apply */
 
 	/*apply */

@@ -2302,6 +2302,13 @@ meltrout_1_warmelt_macro_EXPAND_RESTLIST_AS_LIST (meltclosure_ptr_t
       meltframptr_ =
 	(struct frame_meltrout_1_warmelt_macro_EXPAND_RESTLIST_AS_LIST_st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 29; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -3100,6 +3107,13 @@ meltrout_2_warmelt_macro_EXPAND_RESTLIST_AS_TUPLE (meltclosure_ptr_t
       meltframptr_ =
 	(struct frame_meltrout_2_warmelt_macro_EXPAND_RESTLIST_AS_TUPLE_st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 16; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -3557,6 +3571,13 @@ meltrout_3_warmelt_macro_EXPAND_PAIRLIST_AS_LIST (meltclosure_ptr_t
       meltframptr_ =
 	(struct frame_meltrout_3_warmelt_macro_EXPAND_PAIRLIST_AS_LIST_st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 30; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -4295,6 +4316,13 @@ meltrout_4_warmelt_macro_EXPAND_PAIRLIST_AS_TUPLE (meltclosure_ptr_t
       meltframptr_ =
 	(struct frame_meltrout_4_warmelt_macro_EXPAND_PAIRLIST_AS_TUPLE_st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 15; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -4723,10 +4751,6 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
 					  char meltpredefinited[])
 {
 #define meltfram__  (*iniframp__)
-  dbgprintf ("start initialize_module_meltdata_warmelt_macro iniframp__=%p",
-	     (void *) iniframp__);
-  melt_assertmsg ("check module initial frame",
-		  iniframp__->mcfr_nbvar == /*minihash */ -3578);
 
   struct cdata_st
   {
@@ -6381,6 +6405,10 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
     struct MELT_STRING_STRUCT (25) dstr_1613__REGISTER_GENERAT;
     long spare_;
   } *cdat = NULL;
+  dbgprintf ("start initialize_module_meltdata_warmelt_macro iniframp__=%p",
+	     (void *) iniframp__);
+  melt_assertmsg ("check module initial frame",
+		  iniframp__->mcfr_nbvar == /*minihash */ -3578);
   cdat = (struct cdata_st *) meltgc_allocate (sizeof (*cdat), 0);
   melt_prohibit_garbcoll = TRUE;
   /*initial routine predef */
@@ -28157,7 +28185,8 @@ start_module_melt (void *modargp_)
 						  meltfptr[2])) !=
 			       MELTOBMAG_CLOSURE)
 	  warning (0, "bad MELT FRESH_ENV @%p in system data <%s:%d>",
-		   ( /*_.FRESHENV___V3*/ meltfptr[2]), __FILE__, __LINE__);;;
+		   (void *) ( /*_.FRESHENV___V3*/ meltfptr[2]), __FILE__,
+		   __LINE__);;;
 	/*^apply */
 
 	/*apply */
@@ -91618,7 +91647,8 @@ meltmod__warmelt_macro__initialmeltchunk_32 (struct frame_start_module_melt_st
 						  meltfptr[2])) !=
 			       MELTOBMAG_CLOSURE)
 	  warning (0, "bad MELT FRESH_ENV @%p in system data <%s:%d>",
-		   ( /*_.FRESHENV___V3*/ meltfptr[2]), __FILE__, __LINE__);;;
+		   (void *) ( /*_.FRESHENV___V3*/ meltfptr[2]), __FILE__,
+		   __LINE__);;;
 	/*^apply */
 
 	/*apply */

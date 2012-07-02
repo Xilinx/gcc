@@ -1224,6 +1224,13 @@ meltrout_45_warmelt_modes_GENERATE_RUNTYPESUPPORT_COD2CTYPE (meltclosure_ptr_t
 	(struct
 	 frame_meltrout_45_warmelt_modes_GENERATE_RUNTYPESUPPORT_COD2CTYPE_st
 	 *) meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 27; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -2150,6 +2157,13 @@ meltrout_46_warmelt_modes_GENERATE_RUNTYPESUPPORT_MAG2STR (meltclosure_ptr_t
 	(struct
 	 frame_meltrout_46_warmelt_modes_GENERATE_RUNTYPESUPPORT_MAG2STR_st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 35; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -3739,6 +3753,13 @@ meltrout_47_warmelt_modes_GENERATE_RUNTYPESUPPORT_BOXINGFUN (meltclosure_ptr_t
 	(struct
 	 frame_meltrout_47_warmelt_modes_GENERATE_RUNTYPESUPPORT_BOXINGFUN_st
 	 *) meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 56; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -6551,6 +6572,13 @@ meltrout_48_warmelt_modes_GENERATE_RUNTYPESUPPORT_MAPFUN (meltclosure_ptr_t
 	(struct
 	 frame_meltrout_48_warmelt_modes_GENERATE_RUNTYPESUPPORT_MAPFUN_st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 81; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -10877,6 +10905,13 @@ meltrout_49_warmelt_modes_GENERATE_RUNTYPESUPPORT_PREDEF_FIELDS
 	(struct
 	 frame_meltrout_49_warmelt_modes_GENERATE_RUNTYPESUPPORT_PREDEF_FIELDS_st
 	 *) meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 32; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -11994,6 +12029,13 @@ meltrout_50_warmelt_modes_RUNTYPESUPPORT_DOCMD (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct frame_meltrout_50_warmelt_modes_RUNTYPESUPPORT_DOCMD_st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 72; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -13780,6 +13822,13 @@ meltrout_51_warmelt_modes_TRANSLATE_TO_FLAVORED_MODULE (meltclosure_ptr_t
 	(struct
 	 frame_meltrout_51_warmelt_modes_TRANSLATE_TO_FLAVORED_MODULE_st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 54; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -15356,6 +15405,13 @@ meltrout_52_warmelt_modes_TRANSLATETOMODULE_DOCMD (meltclosure_ptr_t
       meltframptr_ =
 	(struct frame_meltrout_52_warmelt_modes_TRANSLATETOMODULE_DOCMD_st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 21; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -15949,6 +16005,13 @@ meltrout_53_warmelt_modes_TRANSLATEDEBUG_DOCMD (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct frame_meltrout_53_warmelt_modes_TRANSLATEDEBUG_DOCMD_st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 19; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -16460,6 +16523,13 @@ meltrout_54_warmelt_modes_TRANSLATEQUICKLY_DOCMD (meltclosure_ptr_t
       meltframptr_ =
 	(struct frame_meltrout_54_warmelt_modes_TRANSLATEQUICKLY_DOCMD_st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 19; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -16970,6 +17040,13 @@ meltrout_55_warmelt_modes_TRANSLATEOPTIMIZED_DOCMD (meltclosure_ptr_t
       meltframptr_ =
 	(struct frame_meltrout_55_warmelt_modes_TRANSLATEOPTIMIZED_DOCMD_st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 19; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -17479,6 +17556,13 @@ meltrout_56_warmelt_modes_TRANSLATEFILE_DOCMD (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct frame_meltrout_56_warmelt_modes_TRANSLATEFILE_DOCMD_st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 35; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -18507,6 +18591,13 @@ meltrout_57_warmelt_modes_TRANSLATEINIT_DOCMD (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct frame_meltrout_57_warmelt_modes_TRANSLATEINIT_DOCMD_st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 43; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -19659,6 +19750,13 @@ meltrout_58_warmelt_modes_LAMBDA___16__ (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct frame_meltrout_58_warmelt_modes_LAMBDA___16___st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 13; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -20066,6 +20164,13 @@ meltrout_59_warmelt_modes_TRANSLATEINIT_FLAVORED (meltclosure_ptr_t
       meltframptr_ =
 	(struct frame_meltrout_59_warmelt_modes_TRANSLATEINIT_FLAVORED_st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 66; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -21952,6 +22057,13 @@ meltrout_60_warmelt_modes_LAMBDA___17__ (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct frame_meltrout_60_warmelt_modes_LAMBDA___17___st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 13; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -22360,6 +22472,13 @@ meltrout_61_warmelt_modes_TRANSLATEINITMODULE_DOCMD (meltclosure_ptr_t
       meltframptr_ =
 	(struct frame_meltrout_61_warmelt_modes_TRANSLATEINITMODULE_DOCMD_st
 	 *) meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 10; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -22709,6 +22828,13 @@ meltrout_62_warmelt_modes_TRANSLATEINITMODULEQUICKLYBUILT_DOCMD
 	(struct
 	 frame_meltrout_62_warmelt_modes_TRANSLATEINITMODULEQUICKLYBUILT_DOCMD_st
 	 *) meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 8; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -22980,6 +23106,13 @@ meltrout_63_warmelt_modes_TRANSLATEINITMODULEDEBUGNOLINE_DOCMD
 	(struct
 	 frame_meltrout_63_warmelt_modes_TRANSLATEINITMODULEDEBUGNOLINE_DOCMD_st
 	 *) meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 8; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -23251,6 +23384,13 @@ meltrout_64_warmelt_modes_TRANSLATEINITMODULEOPTIMIZED_DOCMD
 	(struct
 	 frame_meltrout_64_warmelt_modes_TRANSLATEINITMODULEOPTIMIZED_DOCMD_st
 	 *) meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 8; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -23530,6 +23670,13 @@ meltrout_65_warmelt_modes_REGISTER_INPUT_CHANNEL_HANDLER (meltclosure_ptr_t
 	(struct
 	 frame_meltrout_65_warmelt_modes_REGISTER_INPUT_CHANNEL_HANDLER_st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 19; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -24105,6 +24252,13 @@ meltrout_66_warmelt_modes_HANDLE_ALARM_SIGNAL (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct frame_meltrout_66_warmelt_modes_HANDLE_ALARM_SIGNAL_st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 41; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -25451,6 +25605,13 @@ meltrout_67_warmelt_modes_LAMBDA___18__ (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct frame_meltrout_67_warmelt_modes_LAMBDA___18___st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 1; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -25583,6 +25744,13 @@ meltrout_68_warmelt_modes_REGISTER_ALARM_TIMER (meltclosure_ptr_t meltclosp_,
       meltframptr_ =
 	(struct frame_meltrout_68_warmelt_modes_REGISTER_ALARM_TIMER_st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 21; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -26230,6 +26398,13 @@ meltrout_69_warmelt_modes_UNREGISTER_ALARM_TIMER (meltclosure_ptr_t
       meltframptr_ =
 	(struct frame_meltrout_69_warmelt_modes_UNREGISTER_ALARM_TIMER_st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 26; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -27030,6 +27205,13 @@ meltrout_70_warmelt_modes_CHILD_PROCESS_SIGCHLD_HANDLER (meltclosure_ptr_t
 	(struct
 	 frame_meltrout_70_warmelt_modes_CHILD_PROCESS_SIGCHLD_HANDLER_st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 63; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -28865,6 +29047,13 @@ meltrout_71_warmelt_modes_REGISTER_CHILD_PROCESS_HANDLER (meltclosure_ptr_t
 	(struct
 	 frame_meltrout_71_warmelt_modes_REGISTER_CHILD_PROCESS_HANDLER_st *)
 	meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 32; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -29821,6 +30010,13 @@ meltrout_72_warmelt_modes_UNREGISTER_CHILD_PROCESS_HANDLER (meltclosure_ptr_t
 	(struct
 	 frame_meltrout_72_warmelt_modes_UNREGISTER_CHILD_PROCESS_HANDLER_st
 	 *) meltfirstargp_;
+      /* use arguments output_curframe_declstruct_init */
+      (void) meltclosp_;
+      (void) meltfirstargp_;
+      (void) meltxargdescr_;
+      (void) meltxargtab_;
+      (void) meltxresdescr_;
+      (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 8; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
