@@ -5472,10 +5472,10 @@ melt-build-param.mk:  Makefile
 	date "+#file $@ generated %c%n" > $@-tmp
 	echo '## compiler GCCMELT_COMPILER and flags GCCMELT_COMPILER_FLAGS to compile MELT generated code' >> $@-tmp
 	echo 'GCCMELT_COMPILER='  $(COMPILER) >> $@-tmp
-	echo 'GCCMELT_COMPILER_FLAGS=' $(ALL_COMPILERFLAGS) $(INCLUDES) >> $@-tmp
+	echo 'GCCMELT_COMPILER_FLAGS=' $(filter-out -O% -g% -O -g, $(ALL_COMPILERFLAGS) $(INCLUDES)) >> $@-tmp
 	echo '## linker GCCMELT_LINKER and flags GCCMELT_LINKER_FLAGS to link MELT generated module' >> $@-tmp
 	echo 'GCCMELT_LINKER=' $(LINKER) >> $@-tmp
-	echo 'GCCMELT_LINKER_FLAGS=' $(LINKER_FLAGS) >> $@-tmp
+	echo 'GCCMELT_LINKER_FLAGS='  $(filter-out -O% -g% -O -g, $(LINKER_FLAGS)) >> $@-tmp
 	echo '## source directory containing MELT code is GCCMELT_MELTSOURCEDIR' >> $@-tmp
 	echo 'GCCMELT_MELTSOURCEDIR=' $(srcdir)/melt/ >> $@-tmp
 	echo '## preprocessor definitions of the MELT runtime is GCCMELT_RUNTIME_CPPDEFS'  >> $@-tmp

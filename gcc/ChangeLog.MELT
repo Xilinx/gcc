@@ -1,5 +1,26 @@
 
 2012-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (melt-build-param.mk): filter out optimization and
+	debug compiler flags -O and -g.
+
+	* melt-module.mk (%.descr.meltpic.o): Soon obsolete rule.
+	(%.descriptor.meltpic.o): New rule.
+
+	* melt/warmelt-first.melt: Code chunks with variable declarations
+	need extra braces.
+
+	* melt/warmelt-debug.melt: Ditto.
+
+	* melt/warmelt-normatch.melt (mg_draw_match_graphviz_file): Ditto.
+
+	* melt/warmelt-outobj.melt (output_melt_descriptor): Generate make
+	rule for a %.descriptor.meltpic.o.
+
+	* melt-newbuild.tpl: Much more, still buggy.
+
+	* melt-newbuild.mk: Regenerate.
+
+2012-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate all}}
 
 	* melt/generated/meltrunsup.h: Regenerate.

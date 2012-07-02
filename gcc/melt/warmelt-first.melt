@@ -2837,18 +2837,18 @@ Keyword is :cstring.}#
 	      (let ( (:cstring namcstr (the_null_cstring)
 			       ) )
 		(code_chunk clonamstr
-		      #{ /* clone_symbol $CLONAMSTR */
-		      static char clonambuf[100];
+		      #{ /* clone_symbol $CLONAMSTR */ {
+		      static char clonambuf_$CLONAMSTR[100];
 		      const char *s = melt_string_str ((melt_ptr_t) $DISCRINAM);
 		      if (s) s = strchr(s, '_');
 		      if (!s) s = "_What";
-		      memset (clonambuf, 0, sizeof(clonambuf));
-		      snprintf (clonambuf, 
-				sizeof(clonambuf)-1,
+		      memset (clonambuf_$CLONAMSTR, 0, sizeof(clonambuf_$CLONAMSTR));
+		      snprintf (clonambuf_$CLONAMSTR, 
+				sizeof(clonambuf_$CLONAMSTR),
 				"Cloned_Melt%s", s);
-		      $namcstr = clonambuf;	    
-		      }#
-		      )
+		      $NAMCSTR = clonambuf_$CLONAMSTR;	    
+		      } /* end clone_symbol $CLONAMSTR */
+		      }# )
 		(make_stringconst discr_string namcstr)
 		)))
 	   ))
@@ -2994,13 +2994,13 @@ Keyword is :cstring.}#
 	       )
 	  (assert_msg "check symnam" (is_string symnam))
 	  (code_chunk errbadimport 
-		      #{ /* $errbadimport */
-		      const char* $errbadimport#_str = melt_string_str ((melt_ptr_t)$symnam);
+		      #{ /* $ERRBADIMPORT start */ {
+		      const char* $ERRBADIMPORT#_str = melt_string_str ((melt_ptr_t)$SYMNAM);
 		      error ("MELT [%s]: imported symbol %s has unexpected binding of %s",
 			     $modnam,
-			     $errbadimport#_str?$errbadimport#_str:$strnam,
-			     melt_string_str ((melt_ptr_t)$bindiscrnam));
-		    }#)
+			     $ERRBADIMPORT#_str?$ERRBADIMPORT#_str:$STRNAM,
+			     melt_string_str ((melt_ptr_t)$BINDISCRNAM));
+		    } /* $ERRBADIMPORT end */ }#)
 	  (return)
 	  ))
     (assert_msg "check valbind" (is_a valbind class_value_binding))

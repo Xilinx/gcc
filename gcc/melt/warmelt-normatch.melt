@@ -2217,10 +2217,10 @@ scanning variables.}#
          (progn
            (code_chunk 
             uniqcnt 
-            #{  /* mg_draw_match_graphviz_file $UNIQCNT */
+            #{  /* mg_draw_match_graphviz_file $UNIQCNT */ {
             static long uniqcounter;
             uniqcounter ++;
-            $CNT = uniqcounter; 
+            $CNT = uniqcounter; }
             }#)
            (assert_msg "check pathsbuf" (is_strbuf pathsbuf))
            (add2sbuf_string pathsbuf dotprefix)

@@ -8647,9 +8647,14 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
       melt_fatal_error ("inaccessible MELT module %s after auto build - %m", sopath);
   }
   if (!sopath)
-    melt_fatal_error ("No MELT module for source base %s flavor %s (parsed cumulated checksum %s)",
-                      srcbase, flavor,
-                      desccumulatedhexmd5 ? desccumulatedhexmd5 : "unknown");
+    {
+      if (sobase)
+	error ("MELT failed to find module of base %s with module-path %s", 
+	       sobase, melt_argument ("module-path"));
+      melt_fatal_error ("No MELT module for source base %s flavor %s (parsed cumulated checksum %s)",
+			srcbase, flavor,
+			desccumulatedhexmd5 ? desccumulatedhexmd5 : "unknown");
+    }
   if (!IS_ABSOLUTE_PATH (sopath))
     sopath = reconcat (sopath, getpwd (), "/", sopath, NULL);
   debugeprintf ("melt_load_module_index absolute sopath %s", sopath);

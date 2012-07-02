@@ -4540,7 +4540,7 @@ extern "C" {
 	(assert_msg "check cumpathmds" (is_string cumpathmds)) 
 	;;
 	(add2out mkrulebuf "## dependency for descriptor object of " modnamstr "\n")
-	(add2out mkrulebuf  modprefstr "."  cumpathmds ".descr.meltpic.o: " modnamstr "+meltdesc.c " 
+	(add2out mkrulebuf  modprefstr "."  cumpathmds ".descriptor.meltpic.o: " modnamstr "+meltdesc.c " 
 		 modnamstr "+melttime.h\n")
 	;;
 	(add2out mkrulebuf "## dependency for modules " modnamstr "\n")
@@ -4549,7 +4549,7 @@ extern "C" {
 	 (curflav :long flavix)
 	(add2out mkrulebuf "## dependency for flavor " curflav " of module " modnamstr "\n")
 	 (add2out mkrulebuf modprefstr "." cumpathmds "." curflav ".meltmod.so: \\\n"
-		  "  " modprefstr "."  cumpathmds ".descr.meltpic.o "
+		  "  " modprefstr "."  cumpathmds ".descriptor.meltpic.o "
 		  )
 	 (let ( (pathtup (list_to_multiple pathlist discr_multiple))
 		(md5tup (list_to_multiple md5list discr_multiple))

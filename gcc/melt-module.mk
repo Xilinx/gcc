@@ -265,8 +265,15 @@ $(GCCMELTGEN_BUILD)%.dynamic.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed.c
 
 
 
-## descriptor quasi-flavor, never symlinked!
+## descriptor quasi-flavor, never symlinked! this is an obsolete rule!
 $(GCCMELTGEN_BUILD)%.descr.meltpic.o:
+	@echo @+@melt-module descr.meltpic @obsoleterule at= $@ left= $< question= $? caret= $^
+	$(GCCMELT_CC) $(GCCMELT_DESCRIPTOR_PREPROFLAGS) \
+          $(GCCMELT_DESCRIPTOR_FLAGS) $(GCCMELT_CFLAGS)  \
+	   -fPIC -c -o $@ $<
+
+## descriptor quasi-flavor, never symlinked!
+$(GCCMELTGEN_BUILD)%.descriptor.meltpic.o:
 	@echo @+@melt-module descriptor.meltpic at= $@ left= $< question= $? caret= $^
 	$(GCCMELT_CC) $(GCCMELT_DESCRIPTOR_PREPROFLAGS) \
           $(GCCMELT_DESCRIPTOR_FLAGS) $(GCCMELT_CFLAGS)  \
