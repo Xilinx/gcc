@@ -3170,6 +3170,13 @@ debugnum_at (const char *fil, int lin, const char *msg, long val)
 
 void melt_dbgshortbacktrace(const char* msg, int maxdepth);
 
+static inline 
+void melt_warn_for_no_expected_secondary_results (void) 
+{
+  if (melt_flag_bootstrapping || melt_flag_debug)
+    melt_dbgshortbacktrace("MELT caller expected secondary result[s] but got none", 16);
+}
+
 #if ENABLE_CHECKING
 extern void* melt_checkedp_ptr1;
 extern void* melt_checkedp_ptr2;

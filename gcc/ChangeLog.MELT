@@ -1,5 +1,16 @@
 
 2012-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-newbuild.tpl: Still buggy.
+	* melt-newbuild.mk: Regenerate, as self contained makefile.
+	* Makefile.in (melt-build-param.mk): Better.
+	(melt.encap): Don't work yet with MELT_NEWBUILD.
+	* melt/warmelt-base.melt (valdesc_closure): Add extra pointer, not
+	gap into MELT_CLOSURE_STRUCT.
+	* melt-runtime.h (melt_warn_for_no_expected_secondary_results):
+	New function.
+	* melt/warmelt-genobj.melt (compilobj_nrep_return): Emit it.
+
+2012-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (melt-built-param.mk): New target.
 	(melt.encap): Build it.
 

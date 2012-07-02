@@ -4123,6 +4123,20 @@ $SBUF.}#
 	    )
        ;; maybe we need to compute the ctype of the extra result....
        (list_append olis oxres)))
+    (unless (multiple_length rrest)
+      (let ( (ochecknores 
+	      (make_objlocatedexp rloc ctype_void		
+				  ##{ /*ochecknores compilobj_nrep_return*/
+#if MELT_HAVE_DEBUG
+    if (meltxresdescr_ && meltxrestab_)  melt_warn_for_no_expected_secondary_results();
+     /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG*/
+}#
+	     ))
+	     )
+	(debug "compilobj_nrep_return ochecknores=" ochecknores)
+	(list_append olis ochecknores)
+      ))
     (list_append olis 
 		 (instance class_objfinalreturn
 			   :obi_loc rloc))

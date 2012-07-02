@@ -2978,8 +2978,7 @@ the field :REFERENCED_VALUE to $V. Obsolete function, use $SET_REF macro.}#
     meltobject_ptr_t discr;                     \
     meltroutine_ptr_t rout;			\
     unsigned nbval;                             \
-    melt_ptr_t tabval[N];                       \
-    long _gap; }
+    melt_ptr_t tabval[N+1]; }
   }#
   :valdesc_copychunk #{$' /* copy VALDESC_CLOSURE in warmelt-base.melt  */
 /* ggc_alloc_meltclosure_st should be gengtype generated for VALDESC_CLOSURE */

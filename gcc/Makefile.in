@@ -1910,7 +1910,8 @@ collect2$(exeext): $(COLLECT2_OBJS) $(LIBDEPS)
 	mv -f T$@ $@
 
 CFLAGS-collect2.o += -DTARGET_MACHINE=\"$(target_noncanonical)\" \
-	@TARGET_SYSTEM_ROOT_DEFINE@
+ @TARGET_SYSTEM_ROOT_DEFINE@
+
 collect2.o : collect2.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) intl.h \
 	$(OBSTACK_H) $(DEMANGLE_H) collect2.h collect2-aix.h version.h \
 	$(DIAGNOSTIC_H)
@@ -5426,9 +5427,9 @@ else
 $(srcdir)/melt-build.mk: @MAINT@ $(srcdir)/melt-build.def $(srcdir)/melt-build.tpl
 	cd $(srcdir) && $(AUTOGEN) melt-build.def
 export MELTBUILD_MKFILE=$(srcdir)/melt-build.mk
+include  $(MELTBUILD_MKFILE)
 endif
 
-include $(MELTBUILD_MKFILE)
 MELT_MAKE_MODULE_XTRAMAKEFLAGS ?= -j 2
 
 .PHONY: melt.encap
@@ -5437,7 +5438,19 @@ melt.encap:  melt-build-param.mk $(melt_make_cc1_dependency) $(MELTBUILD_MKFILE)
 	@echo melt.encap making Makefile and $(MELTBUILD_MKFILE)
 	@echo melt.encap GCCMELT_COMPILER= $(GCCMELT_COMPILER) GCCMELT_COMPILER_FLAGS= $(GCCMELT_COMPILER_FLAGS)
 	$(MAKE) Makefile  melt-build-param.mk $(MELTBUILD_MKFILE)
-	@echo melt.encap making warmelt0 with melt_cflags= $(melt_cflags) MELTBUILD_MKFILE= $(MELTBUILD_MKFILE)
+##### new build
+ifdef MELT_NEWBUILD
+	@echo melt.encap making melt-stage0-step with new build $(realpath $(MELTBUILD_MKFILE)) MAKE= $(MAKE) MAKEFLAGS= $(MAKEFLAGS)
+	$(MAKE) -f $(realpath $(MELTBUILD_MKFILE)) GCCMELT_BUILD_MKFILE=$(realpath $(MELTBUILD_MKFILE)) 'MAKEFLAGS=$(MAKEFLAGS)' melt-stage0-step
+	@echo melt.encap making melt-stage1-step with new build $(realpath $(MELTBUILD_MKFILE))
+	$(MAKE) -f $(realpath $(MELTBUILD_MKFILE)) GCCMELT_BUILD_MKFILE=$(realpath $(MELTBUILD_MKFILE)) 'MAKEFLAGS=$(MAKEFLAGS)' melt-stage1-step
+	@echo melt.encap making melt-stage2-step with new build $(realpath $(MELTBUILD_MKFILE))
+	$(MAKE) -f $(realpath $(MELTBUILD_MKFILE)) GCCMELT_BUILD_MKFILE=$(realpath $(MELTBUILD_MKFILE)) 'MAKEFLAGS=$(MAKEFLAGS)' melt-stage2-step
+	@echo melt.encap making melt-stage3-step with new build $(realpath $(MELTBUILD_MKFILE))
+	$(MAKE) -f $(realpath $(MELTBUILD_MKFILE)) GCCMELT_BUILD_MKFILE=$(realpath $(MELTBUILD_MKFILE)) 'MAKEFLAGS=$(MAKEFLAGS)' melt-stage3-step
+#### old build
+else
+	@echo melt.encap making warmelt0 with melt_cflags= $(melt_cflags) MELTBUILD_MKFILE= $(realpath $(MELTBUILD_MKFILE))
 	$(MAKE) warmelt0
 ## we probably better need warmelt1, because some make fragments are generated
 	@echo melt.encap making warmelt1 with melt_cflags= $(melt_cflags)
@@ -5453,27 +5466,46 @@ melt.encap:  melt-build-param.mk $(melt_make_cc1_dependency) $(MELTBUILD_MKFILE)
 	@echo melt.encap making check-melt-runtime
 	$(MAKE) check-melt-runtime
 	@echo melt.encap made check-melt-runtime
-
+endif
 
 melt-build-param.mk:  Makefile
 	date "+#file $@ generated %c%n" > $@-tmp
+	echo '## compiler GCCMELT_COMPILER and flags GCCMELT_COMPILER_FLAGS to compile MELT generated code' >> $@-tmp
 	echo 'GCCMELT_COMPILER='  $(COMPILER) >> $@-tmp
 	echo 'GCCMELT_COMPILER_FLAGS=' $(ALL_COMPILERFLAGS) $(INCLUDES) >> $@-tmp
+	echo '## linker GCCMELT_LINKER and flags GCCMELT_LINKER_FLAGS to link MELT generated module' >> $@-tmp
 	echo 'GCCMELT_LINKER=' $(LINKER) >> $@-tmp
 	echo 'GCCMELT_LINKER_FLAGS=' $(LINKER_FLAGS) >> $@-tmp
+	echo '## source directory containing MELT code is GCCMELT_MELTSOURCEDIR' >> $@-tmp
 	echo 'GCCMELT_MELTSOURCEDIR=' $(srcdir)/melt/ >> $@-tmp
+	echo '## preprocessor definitions of the MELT runtime is GCCMELT_RUNTIME_CPPDEFS'  >> $@-tmp
 	echo 'GCCMELT_RUNTIME_CPPDEFS=' $(MELT_RUNTIME_CPPDEFS) >> $@-tmp
+	echo '## GCCMELT_VERSION_STRING is the string defining the version of MELT'   >> $@-tmp
 	echo 'GCCMELT_VERSION_STRING=' $(shell $(AWK) -F\" '/^.define +MELT_VERSION_STRING/{print $$2}' $(srcdir)/melt-runtime.h)  >> $@-tmp
+	echo '## GCCMELT_CC1 is the compiler to use MELT for its bootstrapping' >> $@-tmp
 	echo 'GCCMELT_CC1=' $(realpath ./cc1$(exeext))  >> $@-tmp
-	echo 'GCCMELT_CC1_DEPENDENCIES=' $(realpath  ./cc1$(exeext) $(MELT_H) melt-runtime.c)  >> $@-tmp
+	echo '## GCCMELT_CC1_DEPENDENCIES is the dependencies, including MELT runtime, for GCCMELT_CC1' >> $@-tmp
+	echo 'GCCMELT_CC1_DEPENDENCIES=' $(realpath  ./cc1$(exeext) $(MELT_H) melt-runtime.o)  >> $@-tmp
+	echo '## GCCMELT_INCLUDES is the include flags for the MELT runtime' >> $@-tmp
 	echo 'GCCMELT_INCLUDES='  -I $(realpath .) -I $(realpath $(srcdir)/melt/generated) $(INCLUDES)  >> $@-tmp
+	echo '## GCCMELT_MODULE_MK is the source location of the makefile melt-module.mk invoked by MELT'   >> $@-tmp
 	echo 'GCCMELT_MODULE_MK=' $(realpath $(srcdir)/melt-module.mk)  >> $@-tmp
+	echo '## GCCMELT_INSTALL_SOURCEDIR is the installed MELT source directory' >> $@-tmp
 	echo 'GCCMELT_INSTALL_SOURCEDIR=' $(libexecsubdir)/melt-sources/$(melt_version_string)  >> $@-tmp
+	echo '## GCCMELT_INSTALL_HEADERDIR is the installed MELT headers directory' >> $@-tmp
 	echo 'GCCMELT_INSTALL_HEADERDIR=' $(plugin_includedir)/melt-headers-$(melt_version_string)  >> $@-tmp
+	echo '## GCCMELT_INSTALL_MODULEDIR is the installed MELT module directory' >> $@-tmp
 	echo 'GCCMELT_INSTALL_MODULEDIR=' $(libexecsubdir)/melt-modules/$(melt_version_string)  >> $@-tmp
+	echo '## GCCMELT_INSTALL_MODULEMK is the installed MELT module makefile' >> $@-tmp
 	echo 'GCCMELT_INSTALL_MODULEMK=' $(libexecsubdir)/melt-module-$(melt_version_string).mk  >> $@-tmp
+	echo '## GCCMELT_IS_PLUGIN is 1 when melt.so is a plugin' >> $@-tmp
 	echo 'GCCMELT_IS_PLUGIN='   >> $@-tmp
+	echo '## GCCMELT_STAGE_ZERO is usually melt-stage0-dynamic, could be melt-stage0-quicklybuilt' >> $@-tmp
 	echo 'GCCMELT_STAGE_ZERO?=' $(MELT_STAGE_ZERO)   >> $@-tmp
+	echo '## GCCMELT_DEFAULT_FLAVOR is the default flavor'
+	echo 'GCCMELT_DEFAULT_FLAVOR?=optimized' >> $@-tmp
+	echo '## utility to move file if content changed GCCMELT_MOVE_IF_CHANGE' >> $@-tmp
+	echo 'GCCMELT_MOVE_IF_CHANGE=' $(realpath $(srcdir)/../move-if-change) >> $@-tmp
 	echo "#eof generated $@" >> $@-tmp
 	mv $@-tmp $@
 
