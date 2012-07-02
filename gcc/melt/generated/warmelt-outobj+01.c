@@ -9148,7 +9148,7 @@ lab_endgetargs:;
 	    MELT_LOCATION ("warmelt-outobj.melt:374:/ locexp");
 	    /*add2sbuf_strconst */
 	      meltgc_add_strbuf ((melt_ptr_t) ( /*_.SBUF__V3*/ meltfptr[2]),
-				 ("MELTPREDEFIX(predefinited,"));
+				 ("MELTPREDEFIX(meltpredefinited,"));
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-outobj.melt:375:/ getslot");
@@ -9396,7 +9396,7 @@ lab_endgetargs:;
 		  /*add2sbuf_strconst */
 		    meltgc_add_strbuf ((melt_ptr_t)
 				       ( /*_.SBUF__V3*/ meltfptr[2]),
-				       ("predefinited["));
+				       ("meltpredefinited["));
 		}
 		;
      /*_#GET_INT__L25*/ meltfnum[24] =

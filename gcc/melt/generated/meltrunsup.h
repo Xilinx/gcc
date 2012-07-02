@@ -599,8 +599,7 @@ struct GTY ((variable_size)) meltmultiple_st /* when MELTOBMAG_MULTIPLE */
 #define MELT_MULTIPLE_STRUCT(N) {               \
     meltobject_ptr_t discr;                     \
     unsigned nbval;                             \
-    melt_ptr_t tabval[N];                       \
-    long _gap; }
+    melt_ptr_t tabval[N+1];  }
 typedef struct meltmultiple_st *meltmultiple_ptr_t;
 
 

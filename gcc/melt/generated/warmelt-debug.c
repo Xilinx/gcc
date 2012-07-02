@@ -2504,7 +2504,7 @@ initial_frame_st;
 
 static void
 initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
-					  char predefinited[])
+					  char meltpredefinited[])
 {
 #define meltfram__  (*iniframp__)
   dbgprintf ("start initialize_module_meltdata_warmelt_debug iniframp__=%p",
@@ -6858,7 +6858,7 @@ void *
 start_module_melt (void *modargp_)
 {
 
-  char predefinited[MELTGLOB__LASTGLOB + 8];
+  char meltpredefinited[MELTGLOB__LASTGLOB + 8];
 
 #if MELT_HAVE_DEBUG
   static long call_counter__;
@@ -8621,16 +8621,16 @@ start_module_melt (void *modargp_)
 
  /**initial routine cdata initializer**/
 
-  memset (predefinited, 0, sizeof (predefinited));
-  initialize_module_meltdata_warmelt_debug (&meltfram__, predefinited);
+  memset (meltpredefinited, 0, sizeof (meltpredefinited));
+  initialize_module_meltdata_warmelt_debug (&meltfram__, meltpredefinited);
  /**initial routine body**/
 
-  meltmod__warmelt_debug__initialmeltchunk_0 (&meltfram__, predefinited);
-  meltmod__warmelt_debug__initialmeltchunk_1 (&meltfram__, predefinited);
-  meltmod__warmelt_debug__initialmeltchunk_2 (&meltfram__, predefinited);
-  meltmod__warmelt_debug__initialmeltchunk_3 (&meltfram__, predefinited);
-  meltmod__warmelt_debug__initialmeltchunk_4 (&meltfram__, predefinited);
-  meltmod__warmelt_debug__initialmeltchunk_5 (&meltfram__, predefinited);;
+  meltmod__warmelt_debug__initialmeltchunk_0 (&meltfram__, meltpredefinited);
+  meltmod__warmelt_debug__initialmeltchunk_1 (&meltfram__, meltpredefinited);
+  meltmod__warmelt_debug__initialmeltchunk_2 (&meltfram__, meltpredefinited);
+  meltmod__warmelt_debug__initialmeltchunk_3 (&meltfram__, meltpredefinited);
+  meltmod__warmelt_debug__initialmeltchunk_4 (&meltfram__, meltpredefinited);
+  meltmod__warmelt_debug__initialmeltchunk_5 (&meltfram__, meltpredefinited);;
   goto labend_rout;
 labend_rout:;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -8650,11 +8650,12 @@ labend_rout:;
 void
 meltmod__warmelt_debug__initialmeltchunk_0 (struct frame_start_module_melt_st
 					    *meltmeltframptr__,
-					    char predefinited[])
+					    char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /**COMMENT: start of oinibody **/ ;
 
   /*putslot */
@@ -10085,11 +10086,12 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct frame_start_module_melt_st
 void
 meltmod__warmelt_debug__initialmeltchunk_1 (struct frame_start_module_melt_st
 					    *meltmeltframptr__,
-					    char predefinited[])
+					    char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*putslot*/
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -11430,11 +11432,12 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct frame_start_module_melt_st
 void
 meltmod__warmelt_debug__initialmeltchunk_2 (struct frame_start_module_melt_st
 					    *meltmeltframptr__,
-					    char predefinited[])
+					    char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-debug.melt:494:/ initchunk");
   /*^putroutconstnotnull */
   /*putroutconstnotnull */
@@ -12723,11 +12726,12 @@ meltmod__warmelt_debug__initialmeltchunk_2 (struct frame_start_module_melt_st
 void
 meltmod__warmelt_debug__initialmeltchunk_3 (struct frame_start_module_melt_st
 					    *meltmeltframptr__,
-					    char predefinited[])
+					    char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-debug.melt:963:/ initchunk");
   /*^putroutconst */
   /*putroutconst */
@@ -14006,11 +14010,12 @@ meltmod__warmelt_debug__initialmeltchunk_3 (struct frame_start_module_melt_st
 void
 meltmod__warmelt_debug__initialmeltchunk_4 (struct frame_start_module_melt_st
 					    *meltmeltframptr__,
-					    char predefinited[])
+					    char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-debug.melt:1358:/ initchunk");
   /*^putroutconst */
   /*putroutconst */
@@ -16518,11 +16523,12 @@ meltmod__warmelt_debug__initialmeltchunk_4 (struct frame_start_module_melt_st
 void
 meltmod__warmelt_debug__initialmeltchunk_5 (struct frame_start_module_melt_st
 					    *meltmeltframptr__,
-					    char predefinited[])
+					    char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*internsym:GIMPLE_DEBUG_FUNCONT*/
   (void)
     meltgc_intern_symbol ((melt_ptr_t) ( /*_.VALDATA___V150*/ meltfptr[149]));

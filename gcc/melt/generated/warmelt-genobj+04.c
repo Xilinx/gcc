@@ -14979,7 +14979,7 @@ lab_endgetargs:;
 		  (meltgc_new_stringdup
 		   ((meltobject_ptr_t)
 		    (( /*!DISCR_VERBATIM_STRING */ meltfrout->tabval[13])),
-		    ("MELTPREDEFIX(predefinited,")));;
+		    ("MELTPREDEFIX(meltpredefinited,")));;
 		MELT_LOCATION ("warmelt-genobj.melt:4331:/ getslot");
 		{
 		  melt_ptr_t slot = 0;

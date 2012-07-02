@@ -6456,7 +6456,7 @@ initial_frame_st;
 
 static void
 initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
-					   char predefinited[])
+					   char meltpredefinited[])
 {
 #define meltfram__  (*iniframp__)
   dbgprintf ("start initialize_module_meltdata_warmelt_genobj iniframp__=%p",
@@ -31830,7 +31830,7 @@ void *
 start_module_melt (void *modargp_)
 {
 
-  char predefinited[MELTGLOB__LASTGLOB + 8];
+  char meltpredefinited[MELTGLOB__LASTGLOB + 8];
 
 #if MELT_HAVE_DEBUG
   static long call_counter__;
@@ -39461,48 +39461,76 @@ start_module_melt (void *modargp_)
 
  /**initial routine cdata initializer**/
 
-  memset (predefinited, 0, sizeof (predefinited));
-  initialize_module_meltdata_warmelt_genobj (&meltfram__, predefinited);
+  memset (meltpredefinited, 0, sizeof (meltpredefinited));
+  initialize_module_meltdata_warmelt_genobj (&meltfram__, meltpredefinited);
  /**initial routine body**/
 
-  meltmod__warmelt_genobj__initialmeltchunk_0 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_1 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_2 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_3 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_4 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_5 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_6 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_7 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_8 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_9 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_10 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_11 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_12 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_13 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_14 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_15 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_16 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_17 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_18 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_19 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_20 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_21 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_22 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_23 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_24 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_25 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_26 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_27 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_28 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_29 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_30 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_31 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_32 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_33 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_34 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_35 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_36 (&meltfram__, predefinited);
-  meltmod__warmelt_genobj__initialmeltchunk_37 (&meltfram__, predefinited);;
+  meltmod__warmelt_genobj__initialmeltchunk_0 (&meltfram__, meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_1 (&meltfram__, meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_2 (&meltfram__, meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_3 (&meltfram__, meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_4 (&meltfram__, meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_5 (&meltfram__, meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_6 (&meltfram__, meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_7 (&meltfram__, meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_8 (&meltfram__, meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_9 (&meltfram__, meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_10 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_11 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_12 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_13 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_14 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_15 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_16 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_17 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_18 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_19 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_20 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_21 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_22 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_23 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_24 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_25 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_26 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_27 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_28 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_29 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_30 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_31 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_32 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_33 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_34 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_35 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_36 (&meltfram__,
+						meltpredefinited);
+  meltmod__warmelt_genobj__initialmeltchunk_37 (&meltfram__,
+						meltpredefinited);;
   goto labend_rout;
 labend_rout:;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -39522,11 +39550,12 @@ labend_rout:;
 void
 meltmod__warmelt_genobj__initialmeltchunk_0 (struct frame_start_module_melt_st
 					     *meltmeltframptr__,
-					     char predefinited[])
+					     char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /**COMMENT: start of oinibody **/ ;
 
   /*putslot */
@@ -41136,11 +41165,12 @@ meltmod__warmelt_genobj__initialmeltchunk_0 (struct frame_start_module_melt_st
 void
 meltmod__warmelt_genobj__initialmeltchunk_1 (struct frame_start_module_melt_st
 					     *meltmeltframptr__,
-					     char predefinited[])
+					     char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*putupl#77*/
   melt_assertmsg ("putupl #77 checktup",
 		  melt_magic_discr ((melt_ptr_t)
@@ -42775,11 +42805,12 @@ meltmod__warmelt_genobj__initialmeltchunk_1 (struct frame_start_module_melt_st
 void
 meltmod__warmelt_genobj__initialmeltchunk_2 (struct frame_start_module_melt_st
 					     *meltmeltframptr__,
-					     char predefinited[])
+					     char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*putupl#125*/
   melt_assertmsg ("putupl #125 checktup",
 		  melt_magic_discr ((melt_ptr_t)
@@ -44436,11 +44467,12 @@ meltmod__warmelt_genobj__initialmeltchunk_2 (struct frame_start_module_melt_st
 void
 meltmod__warmelt_genobj__initialmeltchunk_3 (struct frame_start_module_melt_st
 					     *meltmeltframptr__,
-					     char predefinited[])
+					     char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*putupl#187*/
   melt_assertmsg ("putupl #187 checktup",
 		  melt_magic_discr ((melt_ptr_t)
@@ -46040,11 +46072,12 @@ meltmod__warmelt_genobj__initialmeltchunk_3 (struct frame_start_module_melt_st
 void
 meltmod__warmelt_genobj__initialmeltchunk_4 (struct frame_start_module_melt_st
 					     *meltmeltframptr__,
-					     char predefinited[])
+					     char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*putslot*/
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -47666,11 +47699,12 @@ meltmod__warmelt_genobj__initialmeltchunk_4 (struct frame_start_module_melt_st
 void
 meltmod__warmelt_genobj__initialmeltchunk_5 (struct frame_start_module_melt_st
 					     *meltmeltframptr__,
-					     char predefinited[])
+					     char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*touch:INITUP_*/
   meltgc_touch ( /*_.VALTUP___V460*/ meltfptr[459]);
 
@@ -49295,11 +49329,12 @@ meltmod__warmelt_genobj__initialmeltchunk_5 (struct frame_start_module_melt_st
 void
 meltmod__warmelt_genobj__initialmeltchunk_6 (struct frame_start_module_melt_st
 					     *meltmeltframptr__,
-					     char predefinited[])
+					     char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*putupl#301*/
   melt_assertmsg ("putupl #301 checktup",
 		  melt_magic_discr ((melt_ptr_t)
@@ -50890,11 +50925,12 @@ meltmod__warmelt_genobj__initialmeltchunk_6 (struct frame_start_module_melt_st
 void
 meltmod__warmelt_genobj__initialmeltchunk_7 (struct frame_start_module_melt_st
 					     *meltmeltframptr__,
-					     char predefinited[])
+					     char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-genobj.melt:310:/ initchunk");
   /*^putslot */
   /*putslot */
@@ -52512,11 +52548,12 @@ meltmod__warmelt_genobj__initialmeltchunk_7 (struct frame_start_module_melt_st
 void
 meltmod__warmelt_genobj__initialmeltchunk_8 (struct frame_start_module_melt_st
 					     *meltmeltframptr__,
-					     char predefinited[])
+					     char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-genobj.melt:342:/ initchunk");
   /*^putslot */
   /*putslot */
@@ -54154,11 +54191,12 @@ meltmod__warmelt_genobj__initialmeltchunk_8 (struct frame_start_module_melt_st
 void
 meltmod__warmelt_genobj__initialmeltchunk_9 (struct frame_start_module_melt_st
 					     *meltmeltframptr__,
-					     char predefinited[])
+					     char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*putupl#417*/
   melt_assertmsg ("putupl #417 checktup",
 		  melt_magic_discr ((melt_ptr_t)
@@ -55767,11 +55805,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_10 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*putslot*/
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -57373,11 +57412,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_11 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-genobj.melt:454:/ initchunk");
   /*^putslot */
   /*putslot */
@@ -58994,11 +59034,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_12 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*putupl#523*/
   melt_assertmsg ("putupl #523 checktup",
 		  melt_magic_discr ((melt_ptr_t)
@@ -60628,11 +60669,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_13 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-genobj.melt:521:/ initchunk");
   /*^putslot */
   /*putslot */
@@ -62291,11 +62333,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_14 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*putupl#602*/
   melt_assertmsg ("putupl #602 checktup",
 		  melt_magic_discr ((melt_ptr_t)
@@ -63743,11 +63786,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_15 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*putupl#611*/
   melt_assertmsg ("putupl #611 checktup",
 		  melt_magic_discr ((melt_ptr_t)
@@ -65092,11 +65136,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_16 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-genobj.melt:1424:/ initchunk");
   /*^putroutconst */
   /*putroutconst */
@@ -66553,11 +66598,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_17 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*touch:VALUEDATA_*/
   meltgc_touch ( /*_.VALDATA___V1239*/ meltfptr[1238]);
 
@@ -68058,11 +68104,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_18 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*putslot*/
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -69461,11 +69508,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_19 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-genobj.melt:1850:/ initchunk");
   /*^putroutconst */
   /*putroutconst */
@@ -70902,11 +70950,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_20 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*putslot*/
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -72383,11 +72432,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_21 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-genobj.melt:2416:/ initchunk");
   /*^putroutconst */
   /*putroutconst */
@@ -73904,11 +73954,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_22 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*putclosurout#50*/
   melt_assertmsg ("putclosrout#50 checkclo",
 		  melt_magic_discr ((melt_ptr_t)
@@ -75385,11 +75436,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_23 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-genobj.melt:3067:/ initchunk");
   /*^putroutconst */
   /*putroutconst */
@@ -76868,11 +76920,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_24 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-genobj.melt:3379:/ initchunk");
   /*^touch */
   /*touch:IROUTVAL_ */
@@ -78288,11 +78341,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_25 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-genobj.melt:3788:/ initchunk");
   /*^putroutconst */
   /*putroutconst */
@@ -79727,11 +79781,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_26 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-genobj.melt:4154:/ initchunk");
   /*^putslot */
   /*putslot */
@@ -81243,11 +81298,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_27 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-genobj.melt:4432:/ initchunk");
   /*^putroutconst */
   /*putroutconst */
@@ -82745,11 +82801,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_28 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-genobj.melt:4728:/ initchunk");
   /*^putroutconst */
   /*putroutconst */
@@ -84274,11 +84331,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_29 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-genobj.melt:4992:/ initchunk");
   /*^touch */
   /*touch:IROUTVAL_ */
@@ -85825,11 +85883,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_30 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*putclosurout#106*/
   melt_assertmsg ("putclosrout#106 checkclo",
 		  melt_magic_discr ((melt_ptr_t)
@@ -87312,11 +87371,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_31 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-genobj.melt:5480:/ initchunk");
   /*^putroutconstnotnull */
   /*putroutconstnotnull */
@@ -88745,11 +88805,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_32 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-genobj.melt:5908:/ initchunk");
   /*^putroutconst */
   /*putroutconst */
@@ -90277,11 +90338,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_33 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-genobj.melt:6247:/ initchunk");
   /*^putroutconst */
   /*putroutconst */
@@ -96716,11 +96778,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_34 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-genobj.melt:3459:/ initchunk");
   /*^block */
   /*anyblock */
@@ -99412,11 +99475,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_35 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*internsym:CLASS_OBJCLEAR*/
   (void)
     meltgc_intern_symbol ((melt_ptr_t) ( /*_.VALDATA___V461*/ meltfptr[460]));
@@ -99954,11 +100018,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_36 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*internsym:OIROUT_MODULENAME*/
   (void)
     meltgc_intern_symbol ((melt_ptr_t)
@@ -100607,11 +100672,12 @@ void
 meltmod__warmelt_genobj__initialmeltchunk_37 (struct
 					      frame_start_module_melt_st
 					      *meltmeltframptr__,
-					      char predefinited[])
+					      char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*internsym:DISCR_NULL_RECEIVER*/
   (void)
     meltgc_intern_symbol ((melt_ptr_t)

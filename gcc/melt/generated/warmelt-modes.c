@@ -4717,7 +4717,7 @@ initial_frame_st;
 
 static void
 initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
-					  char predefinited[])
+					  char meltpredefinited[])
 {
 #define meltfram__  (*iniframp__)
   dbgprintf ("start initialize_module_meltdata_warmelt_modes iniframp__=%p",
@@ -11227,7 +11227,7 @@ void *
 start_module_melt (void *modargp_)
 {
 
-  char predefinited[MELTGLOB__LASTGLOB + 8];
+  char meltpredefinited[MELTGLOB__LASTGLOB + 8];
 
 #if MELT_HAVE_DEBUG
   static long call_counter__;
@@ -13802,20 +13802,20 @@ start_module_melt (void *modargp_)
 
  /**initial routine cdata initializer**/
 
-  memset (predefinited, 0, sizeof (predefinited));
-  initialize_module_meltdata_warmelt_modes (&meltfram__, predefinited);
+  memset (meltpredefinited, 0, sizeof (meltpredefinited));
+  initialize_module_meltdata_warmelt_modes (&meltfram__, meltpredefinited);
  /**initial routine body**/
 
-  meltmod__warmelt_modes__initialmeltchunk_0 (&meltfram__, predefinited);
-  meltmod__warmelt_modes__initialmeltchunk_1 (&meltfram__, predefinited);
-  meltmod__warmelt_modes__initialmeltchunk_2 (&meltfram__, predefinited);
-  meltmod__warmelt_modes__initialmeltchunk_3 (&meltfram__, predefinited);
-  meltmod__warmelt_modes__initialmeltchunk_4 (&meltfram__, predefinited);
-  meltmod__warmelt_modes__initialmeltchunk_5 (&meltfram__, predefinited);
-  meltmod__warmelt_modes__initialmeltchunk_6 (&meltfram__, predefinited);
-  meltmod__warmelt_modes__initialmeltchunk_7 (&meltfram__, predefinited);
-  meltmod__warmelt_modes__initialmeltchunk_8 (&meltfram__, predefinited);
-  meltmod__warmelt_modes__initialmeltchunk_9 (&meltfram__, predefinited);;
+  meltmod__warmelt_modes__initialmeltchunk_0 (&meltfram__, meltpredefinited);
+  meltmod__warmelt_modes__initialmeltchunk_1 (&meltfram__, meltpredefinited);
+  meltmod__warmelt_modes__initialmeltchunk_2 (&meltfram__, meltpredefinited);
+  meltmod__warmelt_modes__initialmeltchunk_3 (&meltfram__, meltpredefinited);
+  meltmod__warmelt_modes__initialmeltchunk_4 (&meltfram__, meltpredefinited);
+  meltmod__warmelt_modes__initialmeltchunk_5 (&meltfram__, meltpredefinited);
+  meltmod__warmelt_modes__initialmeltchunk_6 (&meltfram__, meltpredefinited);
+  meltmod__warmelt_modes__initialmeltchunk_7 (&meltfram__, meltpredefinited);
+  meltmod__warmelt_modes__initialmeltchunk_8 (&meltfram__, meltpredefinited);
+  meltmod__warmelt_modes__initialmeltchunk_9 (&meltfram__, meltpredefinited);;
   goto labend_rout;
 labend_rout:;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -13835,11 +13835,12 @@ labend_rout:;
 void
 meltmod__warmelt_modes__initialmeltchunk_0 (struct frame_start_module_melt_st
 					    *meltmeltframptr__,
-					    char predefinited[])
+					    char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /**COMMENT: start of oinibody **/ ;
 
   MELT_LOCATION ("warmelt-modes.melt:35:/ initchunk");
@@ -15386,11 +15387,12 @@ meltmod__warmelt_modes__initialmeltchunk_0 (struct frame_start_module_melt_st
 void
 meltmod__warmelt_modes__initialmeltchunk_1 (struct frame_start_module_melt_st
 					    *meltmeltframptr__,
-					    char predefinited[])
+					    char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*putupl#14*/
   melt_assertmsg ("putupl #14 checktup",
 		  melt_magic_discr ((melt_ptr_t)
@@ -16853,11 +16855,12 @@ meltmod__warmelt_modes__initialmeltchunk_1 (struct frame_start_module_melt_st
 void
 meltmod__warmelt_modes__initialmeltchunk_2 (struct frame_start_module_melt_st
 					    *meltmeltframptr__,
-					    char predefinited[])
+					    char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*touch:VALUEDATA_*/
   meltgc_touch ( /*_.VALDATA___V201*/ meltfptr[200]);
 
@@ -18252,11 +18255,12 @@ meltmod__warmelt_modes__initialmeltchunk_2 (struct frame_start_module_melt_st
 void
 meltmod__warmelt_modes__initialmeltchunk_3 (struct frame_start_module_melt_st
 					    *meltmeltframptr__,
-					    char predefinited[])
+					    char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-modes.melt:890:/ initchunk");
   /*^putroutconst */
   /*putroutconst */
@@ -19726,11 +19730,12 @@ meltmod__warmelt_modes__initialmeltchunk_3 (struct frame_start_module_melt_st
 void
 meltmod__warmelt_modes__initialmeltchunk_4 (struct frame_start_module_melt_st
 					    *meltmeltframptr__,
-					    char predefinited[])
+					    char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-modes.melt:1217:/ initchunk");
   /*^touch */
   /*touch:IROUTVAL_ */
@@ -21189,11 +21194,12 @@ meltmod__warmelt_modes__initialmeltchunk_4 (struct frame_start_module_melt_st
 void
 meltmod__warmelt_modes__initialmeltchunk_5 (struct frame_start_module_melt_st
 					    *meltmeltframptr__,
-					    char predefinited[])
+					    char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-modes.melt:2093:/ initchunk");
   /*^putroutconst */
   /*putroutconst */
@@ -22668,11 +22674,12 @@ meltmod__warmelt_modes__initialmeltchunk_5 (struct frame_start_module_melt_st
 void
 meltmod__warmelt_modes__initialmeltchunk_6 (struct frame_start_module_melt_st
 					    *meltmeltframptr__,
-					    char predefinited[])
+					    char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*putclosurout#37*/
   melt_assertmsg ("putclosrout#37 checkclo",
 		  melt_magic_discr ((melt_ptr_t)
@@ -24203,11 +24210,12 @@ meltmod__warmelt_modes__initialmeltchunk_6 (struct frame_start_module_melt_st
 void
 meltmod__warmelt_modes__initialmeltchunk_7 (struct frame_start_module_melt_st
 					    *meltmeltframptr__,
-					    char predefinited[])
+					    char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-modes.melt:3963:/ initchunk");
   /*^putroutconst */
   /*putroutconst */
@@ -25641,11 +25649,12 @@ meltmod__warmelt_modes__initialmeltchunk_7 (struct frame_start_module_melt_st
 void
 meltmod__warmelt_modes__initialmeltchunk_8 (struct frame_start_module_melt_st
 					    *meltmeltframptr__,
-					    char predefinited[])
+					    char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*putslot*/
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -27154,11 +27163,12 @@ meltmod__warmelt_modes__initialmeltchunk_8 (struct frame_start_module_melt_st
 void
 meltmod__warmelt_modes__initialmeltchunk_9 (struct frame_start_module_melt_st
 					    *meltmeltframptr__,
-					    char predefinited[])
+					    char meltpredefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
+  (void) meltpredefinited;
 /*internsym:DISCR_BUCKET_LONGS*/
   (void)
     meltgc_intern_symbol ((melt_ptr_t) ( /*_.VALDATA___V480*/ meltfptr[479]));
