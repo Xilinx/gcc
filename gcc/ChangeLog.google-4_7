@@ -1,3 +1,8 @@
+2012-07-01  Xinliang David Li  <davidxl@google.com>
+
+	* common.opt: -ftemp-reuse-stack option.
+	* gimplify.c (gimplify_target_expr): Check new flag.
+
 2012-06-29  Xinliang David Li  <davidxl@google.com>
 
 	* coverage.c (coverage_init): Initialize dyn-ipa

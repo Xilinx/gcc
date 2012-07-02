@@ -1322,6 +1322,10 @@ fif-conversion2
 Common Report Var(flag_if_conversion2) Optimization
 Perform conversion of conditional jumps to conditional execution
 
+ftemp-stack-reuse
+Common Report Var(flag_temp_stack_reuse) Init(1)
+Enable stack reuse for compiler generated temps
+
 ftree-loop-if-convert
 Common Report Var(flag_tree_loop_if_convert) Init(-1) Optimization
 Convert conditional jumps in innermost loops to branchless equivalents
