@@ -2454,6 +2454,7 @@ mulsort_cmp (const void *p1, const void *p2)
   memset (restab, 0, sizeof (restab));
   argtab[0].meltbp_aptr = (melt_ptr_t *) & val2v;
   restab[0].meltbp_longptr = & cmplg;
+  MELT_LOCATION_HERE("multiple sort internal compare");
   rescmpv =
     melt_apply ((meltclosure_ptr_t) clov, (melt_ptr_t) val1v,
                 MELTBPARSTR_PTR, argtab, MELTBPARSTR_LONG, restab);
@@ -2509,6 +2510,7 @@ meltgc_sort_multiple (melt_ptr_t mult_p, melt_ptr_t clo_p,
     ixtab[i] = i;
   mulsort_mult_ad = (melt_ptr_t *) & multv;
   mulsort_clos_ad = (melt_ptr_t *) & clov;
+  MELT_LOCATION_HERE("multiple sort before qsort");
   if (!setjmp (mulsort_escapjmp)) {
     qsort (ixtab, (size_t) mulen, sizeof (ixtab[0]), mulsort_cmp);
     resv =
@@ -10754,6 +10756,20 @@ melt_dbgshortbacktrace (const char *msg, int maxdepth)
 
 
 
+
+void melt_warn_for_no_expected_secondary_results_at (const char*fil, int lin) 
+{
+  static long cnt;
+  if (cnt++ > 16)
+    return;
+  /* This warning is emitted when a MELT function caller expects
+     secondary results, but none are returned.  */
+  warning(0, 
+	  "MELT RUNTIME WARNING [#%ld]: Secondary results are exepected at %s line %d",
+	  melt_dbgcounter, fil, lin);
+  if (melt_flag_bootstrapping || melt_flag_debug)
+    melt_dbgshortbacktrace("MELT caller expected secondary result[s] but got none", 10);
+}
 
 /* wrapping gimple & tree prettyprinting for MELT debug */
 

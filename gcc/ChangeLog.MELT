@@ -1,5 +1,16 @@
 
 2012-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_warn_for_no_expected_secondary_results): Becomes a macro.
+	(melt_warn_for_no_expected_secondary_results_at): New function declaration.
+	* melt-runtime.c (melt_warn_for_no_expected_secondary_results_at):
+	New function.
+	* melt/warmelt-base.melt (compare_named_alpha): return two values.
+	* melt/warmelt-genobj.melt (compilobj_nrep_return): Emit check for
+	secondary results..
+	* melt/warmelt-outobj.melt (line_and_file_of_location): Always
+	return two results.
+
+2012-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-newbuild.tpl: Still buggy.
 	* melt-newbuild.mk: Regenerate, as self contained makefile.
 	* Makefile.in (melt-build-param.mk): Better.

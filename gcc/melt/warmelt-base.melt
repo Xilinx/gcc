@@ -991,21 +991,22 @@ of that index, and matches it against the sub-pattern.}#
   :doc #{Alphanumerical compare of named instances $N1 and $N2. 
 Returns a boxed integer.}#
   (cond 
-   ( (== n1 n2) '0)
+   ( (== n1 n2) 
+     (return '0 ()))
    ( (is_not_a n1 class_named) 
-     '1)
+     (return '1 ()))
    ( (is_not_a n2 class_named)
-     '-1)
+     (return '-1 ()))
    (:else
     (let ( (sn1 (unsafe_get_field :named_name n1))
 	   (sn2 (unsafe_get_field :named_name n2)) )
       (cond
        ( (string< sn1 sn2) 
-	 '-1)
+	 (return '-1 ()))
        ( (string> sn1 sn2)
-	 '1)
+	 (return '1 ()))
        (:else
-	'0))))))
+	(return '0 ())))))))
 
 
 

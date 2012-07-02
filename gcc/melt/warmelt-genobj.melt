@@ -4123,12 +4123,14 @@ $SBUF.}#
 	    )
        ;; maybe we need to compute the ctype of the extra result....
        (list_append olis oxres)))
-    (unless (multiple_length rrest)
-      (let ( (ochecknores 
-	      (make_objlocatedexp rloc ctype_void		
-				  ##{ /*ochecknores compilobj_nrep_return*/
+    ;; if no secondary results are returned, emit a check that no
+    ;; secondary actual results are expected
+    (if (==i (multiple_length rrest) 0)
+	(let ( (ochecknores 
+		(make_objlocatedexp rloc ctype_void		
+				    ##{ /*ochecknores compilobj_nrep_return*/
 #if MELT_HAVE_DEBUG
-    if (meltxresdescr_ && meltxrestab_)  melt_warn_for_no_expected_secondary_results();
+    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)  melt_warn_for_no_expected_secondary_results();
      /* we warned when secondary results are expected but not returned. */
 #endif /*MELT_HAVE_DEBUG*/
 }#
