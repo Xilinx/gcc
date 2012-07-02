@@ -8041,7 +8041,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V11*/ meltfptr[6];;
-    MELT_LOCATION ("warmelt-normatch.melt:4949:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:4949:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -8230,7 +8242,19 @@ lab_endgetargs:;
 
     /*_.RETVAL___V1*/ meltfptr[0] =
       /*_.COMPARE_NAMED_ALPHA__V6*/ meltfptr[5];;
-    MELT_LOCATION ("warmelt-normatch.melt:5034:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5034:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -8754,7 +8778,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.NFLA__V14*/ meltfptr[13];;
-    MELT_LOCATION ("warmelt-normatch.melt:5183:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5183:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*_.LET___V12*/ meltfptr[10] = /*_.RETURN___V21*/ meltfptr[17];;
@@ -8778,7 +8814,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V12*/ meltfptr[10];;
-    MELT_LOCATION ("warmelt-normatch.melt:5164:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5164:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -10025,7 +10073,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V9*/ meltfptr[4];;
-    MELT_LOCATION ("warmelt-normatch.melt:5196:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5196:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -10438,7 +10498,19 @@ lab_endgetargs:;
 
 
    /*_.RETVAL___V1*/ meltfptr[0] = NULL;;
-	  MELT_LOCATION ("warmelt-normatch.melt:5236:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-normatch.melt:5236:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  MELT_LOCATION ("warmelt-normatch.melt:5234:/ quasiblock");
@@ -10557,7 +10629,19 @@ lab_endgetargs:;
 
 
 	  /*_.RETVAL___V1*/ meltfptr[0] = /*_.MATINDEX__V17*/ meltfptr[10];;
-	  MELT_LOCATION ("warmelt-normatch.melt:5242:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-normatch.melt:5242:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  MELT_LOCATION ("warmelt-normatch.melt:5240:/ quasiblock");
@@ -11050,7 +11134,19 @@ lab_endgetargs:;
 
 
 	  /*_.RETVAL___V1*/ meltfptr[0] = /*_.MATINDEX__V17*/ meltfptr[10];;
-	  MELT_LOCATION ("warmelt-normatch.melt:5251:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-normatch.melt:5251:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  /*_.LET___V23*/ meltfptr[18] = /*_.RETURN___V42*/ meltfptr[37];;
@@ -11096,7 +11192,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V16*/ meltfptr[9];;
-    MELT_LOCATION ("warmelt-normatch.melt:5230:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5230:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -11829,7 +11937,19 @@ lab_endgetargs:;
 
 
 	  /*_.RETVAL___V1*/ meltfptr[0] = /*_.NORMSTEP__V3*/ meltfptr[2];;
-	  MELT_LOCATION ("warmelt-normatch.melt:5265:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-normatch.melt:5265:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  MELT_LOCATION ("warmelt-normatch.melt:5262:/ quasiblock");
@@ -12727,7 +12847,19 @@ lab_endgetargs:;
 
 
 	  /*_.RETVAL___V1*/ meltfptr[0] = /*_.NORMSTEP__V3*/ meltfptr[2];;
-	  MELT_LOCATION ("warmelt-normatch.melt:5289:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-normatch.melt:5289:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  MELT_LOCATION ("warmelt-normatch.melt:5287:/ quasiblock");
@@ -13362,7 +13494,19 @@ lab_endgetargs:;
 
 		/*_.RETVAL___V1*/ meltfptr[0] =
 		  /*_.NORMSTEPTUP__V84*/ meltfptr[83];;
-		MELT_LOCATION ("warmelt-normatch.melt:5304:/ finalreturn");
+
+		{
+		  MELT_LOCATION ("warmelt-normatch.melt:5304:/ locexp");
+		  /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+		  if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+		    melt_warn_for_no_expected_secondary_results ();
+		  /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+		  ;
+		}
+		;
+		/*^finalreturn */
 		;
 		/*finalret */ goto labend_rout;
 		/*_.LET___V83*/ meltfptr[79] =
@@ -13607,8 +13751,20 @@ lab_endgetargs:;
 
 		      /*_.RETVAL___V1*/ meltfptr[0] =
 			/*_.STEPTUPN__V93*/ meltfptr[84];;
-		      MELT_LOCATION
-			("warmelt-normatch.melt:5308:/ finalreturn");
+
+		      {
+			MELT_LOCATION ("warmelt-normatch.melt:5308:/ locexp");
+			/*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+			if (meltxresdescr_ && meltxresdescr_[0]
+			    && meltxrestab_)
+			  melt_warn_for_no_expected_secondary_results ();
+			/* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+			;
+		      }
+		      ;
+		      /*^finalreturn */
 		      ;
 		      /*finalret */ goto labend_rout;
 		      /*_.LET___V92*/ meltfptr[83] =
@@ -13855,8 +14011,22 @@ lab_endgetargs:;
 
 			    /*_.RETVAL___V1*/ meltfptr[0] =
 			      /*_.NEWNORMSTEP__V104*/ meltfptr[83];;
-			    MELT_LOCATION
-			      ("warmelt-normatch.melt:5316:/ finalreturn");
+
+			    {
+			      MELT_LOCATION
+				("warmelt-normatch.melt:5316:/ locexp");
+			      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+			      if (meltxresdescr_ && meltxresdescr_[0]
+				  && meltxrestab_)
+				melt_warn_for_no_expected_secondary_results
+				  ();
+			      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+			      ;
+			    }
+			    ;
+			    /*^finalreturn */
 			    ;
 			    /*finalret */ goto labend_rout;
 			    /*_.LET___V103*/ meltfptr[86] =
@@ -14073,8 +14243,22 @@ lab_endgetargs:;
 
 				  /*_.RETVAL___V1*/ meltfptr[0] =
 				    /*_.NORMSTEP__V3*/ meltfptr[2];;
-				  MELT_LOCATION
-				    ("warmelt-normatch.melt:5322:/ finalreturn");
+
+				  {
+				    MELT_LOCATION
+				      ("warmelt-normatch.melt:5322:/ locexp");
+				    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+				    if (meltxresdescr_ && meltxresdescr_[0]
+					&& meltxrestab_)
+				      melt_warn_for_no_expected_secondary_results
+					();
+				    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+				    ;
+				  }
+				  ;
+				  /*^finalreturn */
 				  ;
 				  /*finalret */ goto labend_rout;
 				  MELT_LOCATION
@@ -14518,7 +14702,19 @@ lab_endgetargs:;
 
 
 	  /*_.RETVAL___V1*/ meltfptr[0] = /*_.NORMSTEP__V3*/ meltfptr[2];;
-	  MELT_LOCATION ("warmelt-normatch.melt:5330:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-normatch.melt:5330:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  MELT_LOCATION ("warmelt-normatch.melt:5327:/ quasiblock");
@@ -14601,7 +14797,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V28*/ meltfptr[17];;
-    MELT_LOCATION ("warmelt-normatch.melt:5256:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5256:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -15133,7 +15341,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V11*/ meltfptr[6];;
-    MELT_LOCATION ("warmelt-normatch.melt:5335:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5335:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -15691,7 +15911,7 @@ lab_endgetargs:;
       ;
       /*^putpairtail */
       /*putpairtail */
-      melt_assertmsg ("putpairtail /151c6e1e checkpair",
+      melt_assertmsg ("putpairtail /3249662c checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.NSETFLAG__V25*/ meltfptr[24]))
 		      == MELTOBMAG_PAIR);
@@ -15996,7 +16216,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.RES__V33*/ meltfptr[26];;
-    MELT_LOCATION ("warmelt-normatch.melt:5368:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5368:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*_.LET___V32*/ meltfptr[25] = /*_.RETURN___V38*/ meltfptr[34];;
@@ -16038,7 +16270,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V13*/ meltfptr[11];;
-    MELT_LOCATION ("warmelt-normatch.melt:5348:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5348:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -16608,7 +16852,7 @@ lab_endgetargs:;
       ;
       /*^putpairtail */
       /*putpairtail */
-      melt_assertmsg ("putpairtail /325aca55 checkpair",
+      melt_assertmsg ("putpairtail /f6a8a51 checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.NSETFLAG__V26*/ meltfptr[25]))
 		      == MELTOBMAG_PAIR);
@@ -17844,7 +18088,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.RES__V59*/ meltfptr[49];;
-    MELT_LOCATION ("warmelt-normatch.melt:5429:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5429:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*_.LET___V58*/ meltfptr[34] = /*_.RETURN___V64*/ meltfptr[43];;
@@ -17896,7 +18152,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V13*/ meltfptr[11];;
-    MELT_LOCATION ("warmelt-normatch.melt:5372:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5372:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -21576,7 +21844,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.NIFISA__V59*/ meltfptr[58];;
-    MELT_LOCATION ("warmelt-normatch.melt:5539:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5539:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*_.LET___V45*/ meltfptr[40] = /*_.RETURN___V138*/ meltfptr[81];;
@@ -21666,7 +21946,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V13*/ meltfptr[11];;
-    MELT_LOCATION ("warmelt-normatch.melt:5435:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5435:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -24577,7 +24869,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.NIFISTUPLE__V40*/ meltfptr[39];;
-    MELT_LOCATION ("warmelt-normatch.melt:5647:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5647:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*_.LET___V92*/ meltfptr[65] = /*_.RETURN___V111*/ meltfptr[101];;
@@ -24671,7 +24975,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V14*/ meltfptr[5];;
-    MELT_LOCATION ("warmelt-normatch.melt:5546:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5546:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -27510,7 +27826,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.NTESTSAME__V49*/ meltfptr[48];;
-    MELT_LOCATION ("warmelt-normatch.melt:5727:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5727:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*_.LET___V37*/ meltfptr[30] = /*_.RETURN___V109*/ meltfptr[99];;
@@ -27596,7 +27924,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V13*/ meltfptr[11];;
-    MELT_LOCATION ("warmelt-normatch.melt:5655:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5655:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -30460,7 +30800,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V13*/ meltfptr[11];;
-    MELT_LOCATION ("warmelt-normatch.melt:5732:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5732:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -30594,7 +30946,19 @@ lab_endgetargs:;
 
     /*_.RETVAL___V1*/ meltfptr[0] =
       /*_.ALTMATCH_NORMALIZE_STEP__V3*/ meltfptr[2];;
-    MELT_LOCATION ("warmelt-normatch.melt:5755:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5755:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -30722,7 +31086,19 @@ lab_endgetargs:;
 
     /*_.RETVAL___V1*/ meltfptr[0] =
       /*_.ALTMATCH_NORMALIZE_STEP__V3*/ meltfptr[2];;
-    MELT_LOCATION ("warmelt-normatch.melt:5758:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5758:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -30850,7 +31226,19 @@ lab_endgetargs:;
 
     /*_.RETVAL___V1*/ meltfptr[0] =
       /*_.ALTMATCH_NORMALIZE_STEP__V3*/ meltfptr[2];;
-    MELT_LOCATION ("warmelt-normatch.melt:5771:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5771:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -30978,7 +31366,19 @@ lab_endgetargs:;
 
     /*_.RETVAL___V1*/ meltfptr[0] =
       /*_.ALTMATCH_NORMALIZE_STEP__V3*/ meltfptr[2];;
-    MELT_LOCATION ("warmelt-normatch.melt:5774:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5774:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -33690,7 +34090,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.NIFSUCC__V99*/ meltfptr[98];;
-    MELT_LOCATION ("warmelt-normatch.melt:5887:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5887:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*_.LET___V97*/ meltfptr[90] = /*_.RETURN___V105*/ meltfptr[101];;
@@ -33772,7 +34184,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V13*/ meltfptr[11];;
-    MELT_LOCATION ("warmelt-normatch.melt:5800:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5800:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -34601,7 +35025,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V28*/ meltfptr[21];;
-    MELT_LOCATION ("warmelt-normatch.melt:5905:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5905:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -35120,7 +35556,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V18*/ meltfptr[11];;
-    MELT_LOCATION ("warmelt-normatch.melt:5919:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5919:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -38351,7 +38799,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V32*/ meltfptr[27];;
-    MELT_LOCATION ("warmelt-normatch.melt:5931:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:5931:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -40873,7 +41333,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V37*/ meltfptr[35];;
-    MELT_LOCATION ("warmelt-normatch.melt:6016:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:6016:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -46392,7 +46864,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.RESTUP__V201*/ meltfptr[197];;
-    MELT_LOCATION ("warmelt-normatch.melt:6246:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:6246:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*_.LET___V200*/ meltfptr[196] = /*_.RETURN___V207*/ meltfptr[203];;
@@ -46560,7 +47044,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V13*/ meltfptr[11];;
-    MELT_LOCATION ("warmelt-normatch.melt:6092:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:6092:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -47000,7 +47496,19 @@ lab_endgetargs:;
 
 
 	  /*_.RETVAL___V1*/ meltfptr[0] = /*_.ENDLAB__V12*/ meltfptr[11];;
-	  MELT_LOCATION ("warmelt-normatch.melt:6261:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-normatch.melt:6261:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  /*_.LET___V11*/ meltfptr[10] = /*_.RETURN___V17*/ meltfptr[13];;
@@ -47538,7 +48046,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.NLAB__V22*/ meltfptr[10];;
-    MELT_LOCATION ("warmelt-normatch.melt:6282:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:6282:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*_.LET___V20*/ meltfptr[12] = /*_.RETURN___V41*/ meltfptr[29];;
@@ -47568,7 +48088,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V20*/ meltfptr[12];;
-    MELT_LOCATION ("warmelt-normatch.melt:6253:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:6253:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -48121,7 +48653,19 @@ lab_endgetargs:;
 
 
 	  /*_.RETVAL___V1*/ meltfptr[0] = /*_.NDATA__V15*/ meltfptr[14];;
-	  MELT_LOCATION ("warmelt-normatch.melt:6301:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-normatch.melt:6301:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  MELT_LOCATION ("warmelt-normatch.melt:6299:/ quasiblock");
@@ -48346,7 +48890,19 @@ lab_endgetargs:;
 
 
 	  /*_.RETVAL___V1*/ meltfptr[0] = /*_.NDATA__V15*/ meltfptr[14];;
-	  MELT_LOCATION ("warmelt-normatch.melt:6315:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-normatch.melt:6315:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  MELT_LOCATION ("warmelt-normatch.melt:6306:/ quasiblock");
@@ -48883,7 +49439,19 @@ lab_endgetargs:;
 
 
 	  /*_.RETVAL___V1*/ meltfptr[0] = /*_.NDATA__V15*/ meltfptr[14];;
-	  MELT_LOCATION ("warmelt-normatch.melt:6344:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-normatch.melt:6344:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  /*_.LET___V35*/ meltfptr[29] = /*_.RETURN___V55*/ meltfptr[46];;
@@ -48944,7 +49512,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V13*/ meltfptr[4];;
-    MELT_LOCATION ("warmelt-normatch.melt:6288:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:6288:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -50893,7 +51473,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V17*/ meltfptr[15];;
-    MELT_LOCATION ("warmelt-normatch.melt:6348:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:6348:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -51749,7 +52341,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.NMCTXT__V29*/ meltfptr[28];;
-    MELT_LOCATION ("warmelt-normatch.melt:6445:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:6445:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*_.LET___V13*/ meltfptr[6] = /*_.RETURN___V35*/ meltfptr[31];;
@@ -51789,7 +52393,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V13*/ meltfptr[6];;
-    MELT_LOCATION ("warmelt-normatch.melt:6386:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:6386:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -54490,7 +55106,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V19*/ meltfptr[14];;
-    MELT_LOCATION ("warmelt-normatch.melt:6450:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:6450:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -55026,7 +55654,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.IFELSE___V3*/ meltfptr[2];;
-    MELT_LOCATION ("warmelt-normatch.melt:6498:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:6498:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -61732,7 +62372,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V16*/ meltfptr[12];;
-    MELT_LOCATION ("warmelt-normatch.melt:6528:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-normatch.melt:6528:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */

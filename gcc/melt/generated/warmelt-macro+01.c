@@ -2929,7 +2929,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.IF___V15*/ meltfptr[13];;
-    MELT_LOCATION ("warmelt-macro.melt:961:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:961:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -3490,7 +3502,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V14*/ meltfptr[12];;
-    MELT_LOCATION ("warmelt-macro.melt:986:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:986:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -4438,7 +4462,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V23*/ meltfptr[21];;
-    MELT_LOCATION ("warmelt-macro.melt:1006:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1006:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -5204,7 +5240,19 @@ lab_endgetargs:;
 
 
    /*_.RETVAL___V1*/ meltfptr[0] = NULL;;
-	  MELT_LOCATION ("warmelt-macro.melt:1075:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-macro.melt:1075:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  MELT_LOCATION ("warmelt-macro.melt:1073:/ quasiblock");
@@ -5601,7 +5649,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.RES__V43*/ meltfptr[39];;
-    MELT_LOCATION ("warmelt-macro.melt:1087:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1087:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*_.LET___V41*/ meltfptr[37] = /*_.RETURN___V49*/ meltfptr[45];;
@@ -5651,7 +5711,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V21*/ meltfptr[17];;
-    MELT_LOCATION ("warmelt-macro.melt:1038:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1038:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -6553,7 +6625,19 @@ lab_endgetargs:;
 
 
    /*_.RETVAL___V1*/ meltfptr[0] = NULL;;
-	  MELT_LOCATION ("warmelt-macro.melt:1127:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-macro.melt:1127:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  MELT_LOCATION ("warmelt-macro.melt:1124:/ quasiblock");
@@ -6666,7 +6750,19 @@ lab_endgetargs:;
 
 
    /*_.RETVAL___V1*/ meltfptr[0] = NULL;;
-	  MELT_LOCATION ("warmelt-macro.melt:1138:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-macro.melt:1138:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  MELT_LOCATION ("warmelt-macro.melt:1135:/ quasiblock");
@@ -6945,7 +7041,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.SCITER__V65*/ meltfptr[35];;
-    MELT_LOCATION ("warmelt-macro.melt:1153:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1153:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*_.LET___V64*/ meltfptr[37] = /*_.RETURN___V71*/ meltfptr[67];;
@@ -6999,7 +7107,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V21*/ meltfptr[19];;
-    MELT_LOCATION ("warmelt-macro.melt:1096:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1096:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -7134,7 +7254,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.PUT_ENV__V3*/ meltfptr[2];;
-    MELT_LOCATION ("warmelt-macro.melt:1141:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1141:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -8084,7 +8216,19 @@ lab_endgetargs:;
 
 
    /*_.RETVAL___V1*/ meltfptr[0] = NULL;;
-	  MELT_LOCATION ("warmelt-macro.melt:1187:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-macro.melt:1187:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  MELT_LOCATION ("warmelt-macro.melt:1183:/ quasiblock");
@@ -8279,7 +8423,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.RES__V45*/ meltfptr[31];;
-    MELT_LOCATION ("warmelt-macro.melt:1196:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1196:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*_.LET___V44*/ meltfptr[30] = /*_.RETURN___V51*/ meltfptr[47];;
@@ -8329,7 +8485,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V21*/ meltfptr[19];;
-    MELT_LOCATION ("warmelt-macro.melt:1159:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1159:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -9493,7 +9661,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.RES__V44*/ meltfptr[40];;
-    MELT_LOCATION ("warmelt-macro.melt:1227:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1227:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*_.LET___V43*/ meltfptr[36] = /*_.RETURN___V50*/ meltfptr[46];;
@@ -9537,7 +9717,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V22*/ meltfptr[20];;
-    MELT_LOCATION ("warmelt-macro.melt:1202:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1202:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -10222,7 +10414,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V21*/ meltfptr[14];;
-    MELT_LOCATION ("warmelt-macro.melt:1234:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1234:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -11015,7 +11219,19 @@ lab_endgetargs:;
 
 
 		/*_.RETVAL___V1*/ meltfptr[0] = /*_.RESK__V30*/ meltfptr[29];;
-		MELT_LOCATION ("warmelt-macro.melt:1268:/ finalreturn");
+
+		{
+		  MELT_LOCATION ("warmelt-macro.melt:1268:/ locexp");
+		  /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+		  if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+		    melt_warn_for_no_expected_secondary_results ();
+		  /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+		  ;
+		}
+		;
+		/*^finalreturn */
 		;
 		/*finalret */ goto labend_rout;
 		/*_.LET___V29*/ meltfptr[25] =
@@ -11486,8 +11702,22 @@ lab_endgetargs:;
 
 			    /*_.RETVAL___V1*/ meltfptr[0] =
 			      /*_.RESM__V49*/ meltfptr[48];;
-			    MELT_LOCATION
-			      ("warmelt-macro.melt:1278:/ finalreturn");
+
+			    {
+			      MELT_LOCATION
+				("warmelt-macro.melt:1278:/ locexp");
+			      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+			      if (meltxresdescr_ && meltxresdescr_[0]
+				  && meltxrestab_)
+				melt_warn_for_no_expected_secondary_results
+				  ();
+			      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+			      ;
+			    }
+			    ;
+			    /*^finalreturn */
 			    ;
 			    /*finalret */ goto labend_rout;
 			    /*_.LET___V48*/ meltfptr[46] =
@@ -11714,8 +11944,22 @@ lab_endgetargs:;
 
 				  /*_.RETVAL___V1*/ meltfptr[0] =
 				    /*_.RESS__V57*/ meltfptr[49];;
-				  MELT_LOCATION
-				    ("warmelt-macro.melt:1283:/ finalreturn");
+
+				  {
+				    MELT_LOCATION
+				      ("warmelt-macro.melt:1283:/ locexp");
+				    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+				    if (meltxresdescr_ && meltxresdescr_[0]
+					&& meltxrestab_)
+				      melt_warn_for_no_expected_secondary_results
+					();
+				    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+				    ;
+				  }
+				  ;
+				  /*^finalreturn */
 				  ;
 				  /*finalret */ goto labend_rout;
 				  /*_.LET___V56*/ meltfptr[48] =
@@ -11950,8 +12194,23 @@ lab_endgetargs:;
 
 					/*_.RETVAL___V1*/ meltfptr[0] =
 					  /*_.RESP__V66*/ meltfptr[49];;
-					MELT_LOCATION
-					  ("warmelt-macro.melt:1289:/ finalreturn");
+
+					{
+					  MELT_LOCATION
+					    ("warmelt-macro.melt:1289:/ locexp");
+					  /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+					  if (meltxresdescr_
+					      && meltxresdescr_[0]
+					      && meltxrestab_)
+					    melt_warn_for_no_expected_secondary_results
+					      ();
+					  /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+					  ;
+					}
+					;
+					/*^finalreturn */
 					;
 					/*finalret */ goto labend_rout;
 					/*_.LET___V64*/ meltfptr[44] =
@@ -12201,8 +12460,23 @@ lab_endgetargs:;
 
 					      /*_.RETVAL___V1*/ meltfptr[0] =
 						/*_.RESC__V75*/ meltfptr[50];;
-					      MELT_LOCATION
-						("warmelt-macro.melt:1296:/ finalreturn");
+
+					      {
+						MELT_LOCATION
+						  ("warmelt-macro.melt:1296:/ locexp");
+						/*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+						if (meltxresdescr_
+						    && meltxresdescr_[0]
+						    && meltxrestab_)
+						  melt_warn_for_no_expected_secondary_results
+						    ();
+						/* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+						;
+					      }
+					      ;
+					      /*^finalreturn */
 					      ;
 					      /*finalret */ goto labend_rout;
 					      /*_.LET___V73*/ meltfptr[46] =
@@ -12471,8 +12745,23 @@ lab_endgetargs:;
 						      meltfptr[0] =
 						      /*_.RESC__V84*/
 						      meltfptr[40];;
-						    MELT_LOCATION
-						      ("warmelt-macro.melt:1303:/ finalreturn");
+
+						    {
+						      MELT_LOCATION
+							("warmelt-macro.melt:1303:/ locexp");
+						      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+						      if (meltxresdescr_
+							  && meltxresdescr_[0]
+							  && meltxrestab_)
+							melt_warn_for_no_expected_secondary_results
+							  ();
+						      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+						      ;
+						    }
+						    ;
+						    /*^finalreturn */
 						    ;
 						    /*finalret */ goto
 						      labend_rout;
@@ -12774,8 +13063,26 @@ lab_endgetargs:;
 							    meltfptr[0] =
 							    /*_.RESF__V93*/
 							    meltfptr[44];;
-							  MELT_LOCATION
-							    ("warmelt-macro.melt:1310:/ finalreturn");
+
+							  {
+							    MELT_LOCATION
+							      ("warmelt-macro.melt:1310:/ locexp");
+							    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+							    if (meltxresdescr_
+								&&
+								meltxresdescr_
+								[0]
+								&&
+								meltxrestab_)
+							      melt_warn_for_no_expected_secondary_results
+								();
+							    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+							    ;
+							  }
+							  ;
+							  /*^finalreturn */
 							  ;
 							  /*finalret */ goto
 							    labend_rout;
@@ -13113,8 +13420,21 @@ lab_endgetargs:;
 								  /*_.RESF__V102*/
 								  meltfptr
 								  [46];;
-								MELT_LOCATION
-								  ("warmelt-macro.melt:1317:/ finalreturn");
+
+								{
+								  MELT_LOCATION
+								    ("warmelt-macro.melt:1317:/ locexp");
+								  /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+								  if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+								    melt_warn_for_no_expected_secondary_results
+								      ();
+								  /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+								  ;
+								}
+								;
+								/*^finalreturn */
 								;
 								/*finalret */
 								  goto
@@ -13936,8 +14256,21 @@ lab_endgetargs:;
 												      /*_.RESS__V121*/
 												      meltfptr
 												      [120];;
-												    MELT_LOCATION
-												      ("warmelt-macro.melt:1339:/ finalreturn");
+
+												    {
+												      MELT_LOCATION
+													("warmelt-macro.melt:1339:/ locexp");
+												      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+												      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+													melt_warn_for_no_expected_secondary_results
+													  ();
+												      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+												      ;
+												    }
+												    ;
+												    /*^finalreturn */
 												    ;
 												    /*finalret */
 												      goto
@@ -14304,8 +14637,21 @@ lab_endgetargs:;
 													    /*_.RESC__V129*/
 													    meltfptr
 													    [121];;
-													  MELT_LOCATION
-													    ("warmelt-macro.melt:1346:/ finalreturn");
+
+													  {
+													    MELT_LOCATION
+													      ("warmelt-macro.melt:1346:/ locexp");
+													    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+													    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+													      melt_warn_for_no_expected_secondary_results
+														();
+													    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+													    ;
+													  }
+													  ;
+													  /*^finalreturn */
 													  ;
 													  /*finalret */
 													    goto
@@ -14672,8 +15018,21 @@ lab_endgetargs:;
 														  /*_.RESC__V137*/
 														  meltfptr
 														  [122];;
-														MELT_LOCATION
-														  ("warmelt-macro.melt:1351:/ finalreturn");
+
+														{
+														  MELT_LOCATION
+														    ("warmelt-macro.melt:1351:/ locexp");
+														  /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+														  if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+														    melt_warn_for_no_expected_secondary_results
+														      ();
+														  /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+														  ;
+														}
+														;
+														/*^finalreturn */
 														;
 														/*finalret */
 														  goto
@@ -15050,8 +15409,21 @@ lab_endgetargs:;
 															/*_.RESF__V145*/
 															meltfptr
 															[119];;
-														      MELT_LOCATION
-															("warmelt-macro.melt:1355:/ finalreturn");
+
+														      {
+															MELT_LOCATION
+															  ("warmelt-macro.melt:1355:/ locexp");
+															/*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+															if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+															  melt_warn_for_no_expected_secondary_results
+															    ();
+															/* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+															;
+														      }
+														      ;
+														      /*^finalreturn */
 														      ;
 														      /*finalret */
 															goto
@@ -15417,8 +15789,21 @@ lab_endgetargs:;
 															      /*_.RESF__V153*/
 															      meltfptr
 															      [120];;
-															    MELT_LOCATION
-															      ("warmelt-macro.melt:1359:/ finalreturn");
+
+															    {
+															      MELT_LOCATION
+																("warmelt-macro.melt:1359:/ locexp");
+															      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+															      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+																melt_warn_for_no_expected_secondary_results
+																  ();
+															      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+															      ;
+															    }
+															    ;
+															    /*^finalreturn */
 															    ;
 															    /*finalret */
 															      goto
@@ -15536,8 +15921,21 @@ lab_endgetargs:;
 															      [0]
 															      =
 															      NULL;;
-															    MELT_LOCATION
-															      ("warmelt-macro.melt:1365:/ finalreturn");
+
+															    {
+															      MELT_LOCATION
+																("warmelt-macro.melt:1365:/ locexp");
+															      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+															      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+																melt_warn_for_no_expected_secondary_results
+																  ();
+															      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+															      ;
+															    }
+															    ;
+															    /*^finalreturn */
 															    ;
 															    /*finalret */
 															      goto
@@ -16258,8 +16656,21 @@ lab_endgetargs:;
 											  /*_.LAZYMAC__V168*/
 											  meltfptr
 											  [119];;
-											MELT_LOCATION
-											  ("warmelt-macro.melt:1382:/ finalreturn");
+
+											{
+											  MELT_LOCATION
+											    ("warmelt-macro.melt:1382:/ locexp");
+											  /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+											  if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+											    melt_warn_for_no_expected_secondary_results
+											      ();
+											  /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+											  ;
+											}
+											;
+											/*^finalreturn */
 											;
 											/*finalret */
 											  goto
@@ -16726,8 +17137,21 @@ lab_endgetargs:;
 											  /*_.RESA__V177*/
 											  meltfptr
 											  [40];;
-											MELT_LOCATION
-											  ("warmelt-macro.melt:1396:/ finalreturn");
+
+											{
+											  MELT_LOCATION
+											    ("warmelt-macro.melt:1396:/ locexp");
+											  /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+											  if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+											    melt_warn_for_no_expected_secondary_results
+											      ();
+											  /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+											  ;
+											}
+											;
+											/*^finalreturn */
 											;
 											/*finalret */
 											  goto
@@ -17190,8 +17614,22 @@ lab_endgetargs:;
 
 
 			    /*_.RETVAL___V1*/ meltfptr[0] = ( /*nil */ NULL);;
-			    MELT_LOCATION
-			      ("warmelt-macro.melt:1402:/ finalreturn");
+
+			    {
+			      MELT_LOCATION
+				("warmelt-macro.melt:1402:/ locexp");
+			      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+			      if (meltxresdescr_ && meltxresdescr_[0]
+				  && meltxrestab_)
+				melt_warn_for_no_expected_secondary_results
+				  ();
+			      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+			      ;
+			    }
+			    ;
+			    /*^finalreturn */
 			    ;
 			    /*finalret */ goto labend_rout;
 			    MELT_LOCATION
@@ -17401,8 +17839,22 @@ lab_endgetargs:;
 
 			    /*_.RETVAL___V1*/ meltfptr[0] =
 			      /*_.RESCA__V192*/ meltfptr[119];;
-			    MELT_LOCATION
-			      ("warmelt-macro.melt:1406:/ finalreturn");
+
+			    {
+			      MELT_LOCATION
+				("warmelt-macro.melt:1406:/ locexp");
+			      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+			      if (meltxresdescr_ && meltxresdescr_[0]
+				  && meltxrestab_)
+				melt_warn_for_no_expected_secondary_results
+				  ();
+			      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+			      ;
+			    }
+			    ;
+			    /*^finalreturn */
 			    ;
 			    /*finalret */ goto labend_rout;
 			    /*_.LET___V191*/ meltfptr[123] =
@@ -17500,7 +17952,19 @@ lab_endgetargs:;
 
 
 	  /*_.RETVAL___V1*/ meltfptr[0] = /*_.SEXPR__V2*/ meltfptr[1];;
-	  MELT_LOCATION ("warmelt-macro.melt:1409:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-macro.melt:1409:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  /*_.IFELSE___V14*/ meltfptr[12] = /*_.RETURN___V199*/ meltfptr[95];;
@@ -17519,7 +17983,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.IFELSE___V14*/ meltfptr[12];;
-    MELT_LOCATION ("warmelt-macro.melt:1252:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1252:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -17657,7 +18133,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.MEXPANDER__V2*/ meltfptr[1];;
-    MELT_LOCATION ("warmelt-macro.melt:1372:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1372:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -18223,7 +18711,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V17*/ meltfptr[15];;
-    MELT_LOCATION ("warmelt-macro.melt:1412:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1412:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -18676,7 +19176,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.RESTUP__V13*/ meltfptr[12];;
-    MELT_LOCATION ("warmelt-macro.melt:1450:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1450:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*_.LET___V10*/ meltfptr[6] = /*_.RETURN___V18*/ meltfptr[14];;
@@ -18696,7 +19208,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V10*/ meltfptr[6];;
-    MELT_LOCATION ("warmelt-macro.melt:1443:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1443:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -18828,7 +19352,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.PATTERNEXPAND_1__V3*/ meltfptr[2];;
-    MELT_LOCATION ("warmelt-macro.melt:1447:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1447:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -19709,7 +20245,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V13*/ meltfptr[11];;
-    MELT_LOCATION ("warmelt-macro.melt:1457:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1457:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -20080,7 +20628,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V5*/ meltfptr[3];;
-    MELT_LOCATION ("warmelt-macro.melt:1470:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1470:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -20382,7 +20942,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V3*/ meltfptr[2];;
-    MELT_LOCATION ("warmelt-macro.melt:1482:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1482:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -20706,7 +21278,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V5*/ meltfptr[3];;
-    MELT_LOCATION ("warmelt-macro.melt:1501:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1501:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -20920,7 +21504,19 @@ lab_endgetargs:;
 
 	  /*_.RETVAL___V1*/ meltfptr[0] =
 	    /*_.MAKE_INTEGERBOX__V6*/ meltfptr[5];;
-	  MELT_LOCATION ("warmelt-macro.melt:1529:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-macro.melt:1529:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  MELT_LOCATION ("warmelt-macro.melt:1522:/ quasiblock");
@@ -20979,7 +21575,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V3*/ meltfptr[2];;
-    MELT_LOCATION ("warmelt-macro.melt:1514:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1514:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -21574,7 +22182,19 @@ lab_endgetargs:;
 
 
    /*_.RETVAL___V1*/ meltfptr[0] = NULL;;
-	  MELT_LOCATION ("warmelt-macro.melt:1548:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-macro.melt:1548:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  MELT_LOCATION ("warmelt-macro.melt:1545:/ quasiblock");
@@ -22020,7 +22640,19 @@ lab_endgetargs:;
 
 
 		/*_.RETVAL___V1*/ meltfptr[0] = /*_.RESP__V42*/ meltfptr[41];;
-		MELT_LOCATION ("warmelt-macro.melt:1562:/ finalreturn");
+
+		{
+		  MELT_LOCATION ("warmelt-macro.melt:1562:/ locexp");
+		  /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+		  if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+		    melt_warn_for_no_expected_secondary_results ();
+		  /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+		  ;
+		}
+		;
+		/*^finalreturn */
 		;
 		/*finalret */ goto labend_rout;
 		/*_.LET___V41*/ meltfptr[39] =
@@ -22839,7 +23471,20 @@ lab_endgetargs:;
 
 		      /*_.RETVAL___V1*/ meltfptr[0] =
 			/*_.PCOMP__V73*/ meltfptr[72];;
-		      MELT_LOCATION ("warmelt-macro.melt:1587:/ finalreturn");
+
+		      {
+			MELT_LOCATION ("warmelt-macro.melt:1587:/ locexp");
+			/*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+			if (meltxresdescr_ && meltxresdescr_[0]
+			    && meltxrestab_)
+			  melt_warn_for_no_expected_secondary_results ();
+			/* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+			;
+		      }
+		      ;
+		      /*^finalreturn */
 		      ;
 		      /*finalret */ goto labend_rout;
 		      /*_.LET___V71*/ meltfptr[70] =
@@ -24022,8 +24667,22 @@ lab_endgetargs:;
 
 			    /*_.RETVAL___V1*/ meltfptr[0] =
 			      /*_.PCOMP__V114*/ meltfptr[113];;
-			    MELT_LOCATION
-			      ("warmelt-macro.melt:1616:/ finalreturn");
+
+			    {
+			      MELT_LOCATION
+				("warmelt-macro.melt:1616:/ locexp");
+			      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+			      if (meltxresdescr_ && meltxresdescr_[0]
+				  && meltxrestab_)
+				melt_warn_for_no_expected_secondary_results
+				  ();
+			      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+			      ;
+			    }
+			    ;
+			    /*^finalreturn */
 			    ;
 			    /*finalret */ goto labend_rout;
 			    /*_.LET___V112*/ meltfptr[41] =
@@ -25224,8 +25883,23 @@ lab_endgetargs:;
 
 					/*_.RETVAL___V1*/ meltfptr[0] =
 					  /*_.PCOMP__V145*/ meltfptr[75];;
-					MELT_LOCATION
-					  ("warmelt-macro.melt:1649:/ finalreturn");
+
+					{
+					  MELT_LOCATION
+					    ("warmelt-macro.melt:1649:/ locexp");
+					  /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+					  if (meltxresdescr_
+					      && meltxresdescr_[0]
+					      && meltxrestab_)
+					    melt_warn_for_no_expected_secondary_results
+					      ();
+					  /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+					  ;
+					}
+					;
+					/*^finalreturn */
 					;
 					/*finalret */ goto labend_rout;
 					/*_.LET___V143*/ meltfptr[116] =
@@ -26088,8 +26762,23 @@ lab_endgetargs:;
 					      /*_.RETVAL___V1*/ meltfptr[0] =
 						/*_.PCOMP__V183*/
 						meltfptr[72];;
-					      MELT_LOCATION
-						("warmelt-macro.melt:1672:/ finalreturn");
+
+					      {
+						MELT_LOCATION
+						  ("warmelt-macro.melt:1672:/ locexp");
+						/*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+						if (meltxresdescr_
+						    && meltxresdescr_[0]
+						    && meltxrestab_)
+						  melt_warn_for_no_expected_secondary_results
+						    ();
+						/* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+						;
+					      }
+					      ;
+					      /*^finalreturn */
 					      ;
 					      /*finalret */ goto labend_rout;
 					      /*_.LET___V181*/ meltfptr[66] =
@@ -26207,8 +26896,23 @@ lab_endgetargs:;
 
 	       /*_.RETVAL___V1*/ meltfptr[0] =
 						NULL;;
-					      MELT_LOCATION
-						("warmelt-macro.melt:1677:/ finalreturn");
+
+					      {
+						MELT_LOCATION
+						  ("warmelt-macro.melt:1677:/ locexp");
+						/*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+						if (meltxresdescr_
+						    && meltxresdescr_[0]
+						    && meltxrestab_)
+						  melt_warn_for_no_expected_secondary_results
+						    ();
+						/* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+						;
+					      }
+					      ;
+					      /*^finalreturn */
 					      ;
 					      /*finalret */ goto labend_rout;
 					      MELT_LOCATION
@@ -26387,7 +27091,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V16*/ meltfptr[12];;
-    MELT_LOCATION ("warmelt-macro.melt:1535:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1535:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -27169,7 +27885,19 @@ lab_endgetargs:;
 
 
 		/*_.RETVAL___V1*/ meltfptr[0] = /*_.PAT__V29*/ meltfptr[28];;
-		MELT_LOCATION ("warmelt-macro.melt:1710:/ finalreturn");
+
+		{
+		  MELT_LOCATION ("warmelt-macro.melt:1710:/ locexp");
+		  /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+		  if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+		    melt_warn_for_no_expected_secondary_results ();
+		  /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+		  ;
+		}
+		;
+		/*^finalreturn */
 		;
 		/*finalret */ goto labend_rout;
 		/*_.LET___V26*/ meltfptr[22] =
@@ -27464,7 +28192,20 @@ lab_endgetargs:;
 
 		      /*_.RETVAL___V1*/ meltfptr[0] =
 			/*_.JOKP__V44*/ meltfptr[43];;
-		      MELT_LOCATION ("warmelt-macro.melt:1725:/ finalreturn");
+
+		      {
+			MELT_LOCATION ("warmelt-macro.melt:1725:/ locexp");
+			/*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+			if (meltxresdescr_ && meltxresdescr_[0]
+			    && meltxrestab_)
+			  melt_warn_for_no_expected_secondary_results ();
+			/* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+			;
+		      }
+		      ;
+		      /*^finalreturn */
 		      ;
 		      /*finalret */ goto labend_rout;
 		      /*_.LET___V42*/ meltfptr[22] =
@@ -27677,8 +28418,22 @@ lab_endgetargs:;
 
 				  /*_.RETVAL___V1*/ meltfptr[0] =
 				    /*_.PAVR__V54*/ meltfptr[45];;
-				  MELT_LOCATION
-				    ("warmelt-macro.melt:1736:/ finalreturn");
+
+				  {
+				    MELT_LOCATION
+				      ("warmelt-macro.melt:1736:/ locexp");
+				    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+				    if (meltxresdescr_ && meltxresdescr_[0]
+					&& meltxrestab_)
+				      melt_warn_for_no_expected_secondary_results
+					();
+				    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+				    ;
+				  }
+				  ;
+				  /*^finalreturn */
 				  ;
 				  /*finalret */ goto labend_rout;
 				  MELT_LOCATION
@@ -27945,8 +28700,22 @@ lab_endgetargs:;
 
 				  /*_.RETVAL___V1*/ meltfptr[0] =
 				    /*_.NEWPAVR__V64*/ meltfptr[57];;
-				  MELT_LOCATION
-				    ("warmelt-macro.melt:1747:/ finalreturn");
+
+				  {
+				    MELT_LOCATION
+				      ("warmelt-macro.melt:1747:/ locexp");
+				    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+				    if (meltxresdescr_ && meltxresdescr_[0]
+					&& meltxrestab_)
+				      melt_warn_for_no_expected_secondary_results
+					();
+				    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+				    ;
+				  }
+				  ;
+				  /*^finalreturn */
 				  ;
 				  /*finalret */ goto labend_rout;
 				  /*_.LET___V62*/ meltfptr[22] =
@@ -28316,8 +29085,22 @@ lab_endgetargs:;
 
 				  /*_.RETVAL___V1*/ meltfptr[0] =
 				    /*_.PATEX__V77*/ meltfptr[43];;
-				  MELT_LOCATION
-				    ("warmelt-macro.melt:1754:/ finalreturn");
+
+				  {
+				    MELT_LOCATION
+				      ("warmelt-macro.melt:1754:/ locexp");
+				    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+				    if (meltxresdescr_ && meltxresdescr_[0]
+					&& meltxrestab_)
+				      melt_warn_for_no_expected_secondary_results
+					();
+				    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+				    ;
+				  }
+				  ;
+				  /*^finalreturn */
 				  ;
 				  /*finalret */ goto labend_rout;
 				  /*_.LET___V76*/ meltfptr[22] =
@@ -28647,7 +29430,19 @@ lab_endgetargs:;
 
 
 	  /*_.RETVAL___V1*/ meltfptr[0] = /*_.PAT__V86*/ meltfptr[65];;
-	  MELT_LOCATION ("warmelt-macro.melt:1770:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-macro.melt:1770:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  /*_.LET___V84*/ meltfptr[42] = /*_.RETURN___V92*/ meltfptr[66];;
@@ -28684,7 +29479,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.IFELSE___V10*/ meltfptr[8];;
-    MELT_LOCATION ("warmelt-macro.melt:1688:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1688:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -30135,7 +30942,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.RESLIST__V25*/ meltfptr[24];;
-    MELT_LOCATION ("warmelt-macro.melt:1843:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1843:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*_.LET___V24*/ meltfptr[22] = /*_.RETURN___V49*/ meltfptr[36];;
@@ -30159,7 +30978,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V24*/ meltfptr[22];;
-    MELT_LOCATION ("warmelt-macro.melt:1779:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1779:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -30314,7 +31145,19 @@ lab_endgetargs:;
 
 	  /*_.RETVAL___V1*/ meltfptr[0] =
 	    /*_.MAKE_MULTIPLE__V5*/ meltfptr[4];;
-	  MELT_LOCATION ("warmelt-macro.melt:1856:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-macro.melt:1856:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  MELT_LOCATION ("warmelt-macro.melt:1855:/ quasiblock");
@@ -30608,7 +31451,19 @@ lab_endgetargs:;
 
 
        /*_.RETVAL___V1*/ meltfptr[0] = NULL;;
-		    MELT_LOCATION ("warmelt-macro.melt:1878:/ finalreturn");
+
+		    {
+		      MELT_LOCATION ("warmelt-macro.melt:1878:/ locexp");
+		      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+		      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+			melt_warn_for_no_expected_secondary_results ();
+		      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+		      ;
+		    }
+		    ;
+		    /*^finalreturn */
 		    ;
 		    /*finalret */ goto labend_rout;
 		    MELT_LOCATION ("warmelt-macro.melt:1876:/ quasiblock");
@@ -31939,7 +32794,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.BNDTUP__V66*/ meltfptr[28];;
-    MELT_LOCATION ("warmelt-macro.melt:1949:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1949:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*_.LET___V65*/ meltfptr[37] = /*_.RETURN___V81*/ meltfptr[26];;
@@ -31989,7 +32856,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V10*/ meltfptr[6];;
-    MELT_LOCATION ("warmelt-macro.melt:1852:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1852:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -32529,7 +33408,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V12*/ meltfptr[10];;
-    MELT_LOCATION ("warmelt-macro.melt:1956:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1956:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -33265,7 +34156,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V15*/ meltfptr[13];;
-    MELT_LOCATION ("warmelt-macro.melt:1969:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:1969:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -33815,7 +34718,19 @@ lab_endgetargs:;
 
 
    /*_.RETVAL___V1*/ meltfptr[0] = NULL;;
-	  MELT_LOCATION ("warmelt-macro.melt:2012:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-macro.melt:2012:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  MELT_LOCATION ("warmelt-macro.melt:2009:/ quasiblock");
@@ -34288,7 +35203,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.IFELSE___V7*/ meltfptr[5];;
-    MELT_LOCATION ("warmelt-macro.melt:2004:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:2004:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -35183,7 +36110,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.TUPEXP__V30*/ meltfptr[15];;
-    MELT_LOCATION ("warmelt-macro.melt:2066:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:2066:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*_.LET___V29*/ meltfptr[16] = /*_.RETURN___V37*/ meltfptr[32];;
@@ -35213,7 +36152,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V12*/ meltfptr[5];;
-    MELT_LOCATION ("warmelt-macro.melt:2050:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:2050:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -36736,7 +37687,19 @@ lab_endgetargs:;
 
 
    /*_.RETVAL___V1*/ meltfptr[0] = NULL;;
-	  MELT_LOCATION ("warmelt-macro.melt:2129:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-macro.melt:2129:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  MELT_LOCATION ("warmelt-macro.melt:2124:/ quasiblock");
@@ -36966,7 +37929,19 @@ lab_endgetargs:;
 
 
 	  /*_.RETVAL___V1*/ meltfptr[0] = ( /*nil */ NULL);;
-	  MELT_LOCATION ("warmelt-macro.melt:2143:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-macro.melt:2143:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  MELT_LOCATION ("warmelt-macro.melt:2140:/ quasiblock");
@@ -37267,7 +38242,19 @@ lab_endgetargs:;
 
 
 		/*_.RETVAL___V1*/ meltfptr[0] = ( /*nil */ NULL);;
-		MELT_LOCATION ("warmelt-macro.melt:2156:/ finalreturn");
+
+		{
+		  MELT_LOCATION ("warmelt-macro.melt:2156:/ locexp");
+		  /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+		  if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+		    melt_warn_for_no_expected_secondary_results ();
+		  /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+		  ;
+		}
+		;
+		/*^finalreturn */
 		;
 		/*finalret */ goto labend_rout;
 		MELT_LOCATION ("warmelt-macro.melt:2152:/ quasiblock");
@@ -38243,7 +39230,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.SDEFPRI__V75*/ meltfptr[67];;
-    MELT_LOCATION ("warmelt-macro.melt:2210:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:2210:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*_.LET___V69*/ meltfptr[48] = /*_.RETURN___V102*/ meltfptr[98];;
@@ -38369,7 +39368,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V16*/ meltfptr[14];;
-    MELT_LOCATION ("warmelt-macro.melt:2106:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:2106:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
@@ -38825,7 +39836,19 @@ lab_endgetargs:;
 
 
    /*_.RETVAL___V1*/ meltfptr[0] = NULL;;
-	  MELT_LOCATION ("warmelt-macro.melt:2251:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-macro.melt:2251:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  MELT_LOCATION ("warmelt-macro.melt:2248:/ quasiblock");
@@ -38913,7 +39936,19 @@ lab_endgetargs:;
 
 
    /*_.RETVAL___V1*/ meltfptr[0] = NULL;;
-	  MELT_LOCATION ("warmelt-macro.melt:2262:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-macro.melt:2262:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  MELT_LOCATION ("warmelt-macro.melt:2259:/ quasiblock");
@@ -38965,7 +40000,19 @@ lab_endgetargs:;
 
 
    /*_.RETVAL___V1*/ meltfptr[0] = NULL;;
-	  MELT_LOCATION ("warmelt-macro.melt:2267:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-macro.melt:2267:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  MELT_LOCATION ("warmelt-macro.melt:2264:/ quasiblock");
@@ -39042,7 +40089,19 @@ lab_endgetargs:;
 
 
    /*_.RETVAL___V1*/ meltfptr[0] = NULL;;
-	  MELT_LOCATION ("warmelt-macro.melt:2275:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-macro.melt:2275:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  MELT_LOCATION ("warmelt-macro.melt:2272:/ quasiblock");
@@ -39201,7 +40260,19 @@ lab_endgetargs:;
 
 
    /*_.RETVAL___V1*/ meltfptr[0] = NULL;;
-	  MELT_LOCATION ("warmelt-macro.melt:2290:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-macro.melt:2290:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  MELT_LOCATION ("warmelt-macro.melt:2288:/ quasiblock");
@@ -39346,7 +40417,19 @@ lab_endgetargs:;
 
 
    /*_.RETVAL___V1*/ meltfptr[0] = NULL;;
-	  MELT_LOCATION ("warmelt-macro.melt:2300:/ finalreturn");
+
+	  {
+	    MELT_LOCATION ("warmelt-macro.melt:2300:/ locexp");
+	    /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+	    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	      melt_warn_for_no_expected_secondary_results ();
+	    /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+	    ;
+	  }
+	  ;
+	  /*^finalreturn */
 	  ;
 	  /*finalret */ goto labend_rout;
 	  MELT_LOCATION ("warmelt-macro.melt:2298:/ quasiblock");
@@ -40864,7 +41947,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.SRCIT__V104*/ meltfptr[96];;
-    MELT_LOCATION ("warmelt-macro.melt:2364:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:2364:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*_.LET___V98*/ meltfptr[74] = /*_.RETURN___V143*/ meltfptr[139];;
@@ -41016,7 +42111,19 @@ lab_endgetargs:;
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V14*/ meltfptr[12];;
-    MELT_LOCATION ("warmelt-macro.melt:2229:/ finalreturn");
+
+    {
+      MELT_LOCATION ("warmelt-macro.melt:2229:/ locexp");
+      /*ochecknores compilobj_nrep_return */
+#if MELT_HAVE_DEBUG
+      if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
+	melt_warn_for_no_expected_secondary_results ();
+      /* we warned when secondary results are expected but not returned. */
+#endif /*MELT_HAVE_DEBUG */
+      ;
+    }
+    ;
+    /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
