@@ -1213,7 +1213,7 @@ $SBUF.}#
 	       ##{/*checkfreshenv*/ if (($OPREVENV)
 					&& melt_magic_discr((melt_ptr_t)($OFRESHENV)) != MELTOBMAG_CLOSURE)
   	           warning(0, "bad MELT FRESH_ENV @%p in system data <%s:%d>",
-			      ($OFRESHENV), __FILE__, __LINE__);}#
+			      (void*) ($OFRESHENV), __FILE__, __LINE__);}#
 		   )
 	      )
 	     ;; generate the apply of ofreshenv

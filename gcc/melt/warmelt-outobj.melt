@@ -1393,6 +1393,14 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	      (add2out implbuf "meltframptr_ = (struct frame_" rouname "_st*) meltfirstargp_;")
 	    (add2sbuf_strconst implbuf "meltframptr_ = (void*)meltfirstargp_;"))
 	  (add2sbuf_indentnl implbuf 3)
+	  (add2out implbuf ##{  /* use arguments output_curframe_declstruct_init */
+		   (void) meltclosp_;
+		   (void) meltfirstargp_;
+		   (void) meltxargdescr_;
+		   (void) meltxargtab_;
+		   (void) meltxresdescr_;
+		   (void) meltxrestab_;
+		   }#)
 	  (outpucod_marker rou implbuf)
 	  (add2sbuf_strconst implbuf "return NULL;")
 	  (add2sbuf_indentnl implbuf 2)
@@ -1705,6 +1713,9 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "#define meltfram__  (*iniframp__)")
     (add2sbuf_indentnl implbuf 1)
+    (output_curframe_cdat_struct idatup implbuf)
+    (add2sbuf_strconst implbuf " *cdat = NULL;")
+    (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf " dbgprintf (\"start initialize_module_meltdata_")
     (add2sbuf_cident implbuf omodnam)
     (add2sbuf_strconst implbuf " iniframp__=%p\", (void*) iniframp__);")
@@ -1713,9 +1724,6 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (add2sbuf_longdec implbuf minihash)
     (add2sbuf_strconst implbuf ");")
     (add2sbuf_indentnl implbuf 1)
-    (output_curframe_cdat_struct idatup implbuf)
-    (add2sbuf_strconst implbuf " *cdat = NULL;")
-    (add2sbuf_indentnl implbuf 0)
 ;;; fill the cdat
     (output_curframe_cdat_fill idatup implbuf)
     (add2sbuf_indentnl implbuf 0)

@@ -1,5 +1,15 @@
 
 2012-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt (valdesc_routine): Remove gap from
+	MELT_ROUTINE_STRUCT, add extra pointer in tabval.
+
+	* melt/warmelt-genobj.melt (compile2obj_initproc): Cast pointer
+	for %p in checkfreshenv.
+
+	* melt/warmelt-outobj.melt (output_curframe_declstruct_init): Emit
+	cast to (void) to use arguments. Reorder emitted declarations.
+
+2012-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate all}}
 	* melt/generated/meltrunsup.h: Regenerate.
 	* melt/generated/warmelt-base+meltdesc.c: Regenerate.
