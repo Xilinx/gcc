@@ -1,5 +1,16 @@
 
 2012-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-newbuild.tpl: Add space after ifeq.
+	* melt-newbuild.mk: Regenerate.
+	* melt/warmelt-base.melt (valdesc_multiple) The emitted
+	MELT_MULTIPLE_STRUCT macro has a never empty array. Remove gap.
+	* melt/warmelt-outobj.melt: Replace predefinited by meltpredefinited.
+	(outpucod_initialroutine): Use the meltpredefinited in a (void)
+	cast.
+	* melt/warmelt-genobj.melt (compil_data_and_slots_fill): Use
+	meltpredefinited.
+
+2012-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate all}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.

@@ -137,7 +137,7 @@ melt-workdir:
 	test -d $@ || mkdir $@
 
 ### catch excessive recursion  [+ (. (tpl-file-line))+] to help debugging with remake
-ifeq(16,$(MAKELEVEL))
+ifeq (16,$(MAKELEVEL))
 $(error too recursive make MAKELEVEL= $(MAKELEVEL))
 endif
 

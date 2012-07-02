@@ -4316,7 +4316,7 @@ $SBUF.}#
     (unsafe_put_fields obj :oie_locvar locvar)
     (assert_msg "compil_data_and_slots_fill check ifilllis" (is_list ifilllis))
     (assert_msg "compil_data_and_slots_fill check ibodylis" (is_list ibodylis))
-    ;; if the data is predefined, we fill it conditionally on !predefinited[..]
+    ;; if the data is predefined, we fill it conditionally on !meltpredefinited[..]
     (if ipredef
 	(let ( 
 	      (otestpredef 
@@ -4326,7 +4326,7 @@ $SBUF.}#
 		   class_objexpv
 		   :obx_cont (tuple
 					  (make_stringconst discr_verbatim_string 
-							    "MELTPREDEFIX(predefinited,")
+							    "MELTPREDEFIX(meltpredefinited,")
 					  (make_string discr_verbatim_string 
 						       (unsafe_get_field :named_name ipredef))
 					  (make_stringconst discr_verbatim_string 

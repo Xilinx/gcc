@@ -2919,8 +2919,7 @@ the field :REFERENCED_VALUE to $V. Obsolete function, use $SET_REF macro.}#
 #define MELT_MULTIPLE_STRUCT(N) {               \
     meltobject_ptr_t discr;                     \
     unsigned nbval;                             \
-    melt_ptr_t tabval[N];                       \
-    long _gap; }
+    melt_ptr_t tabval[N+1];  }
   typedef struct meltmultiple_st* meltmultiple_ptr_t;
   }#
   :valdesc_copychunk #{$'  /* copy chunk from VALDESC_MULTIPLE */
