@@ -1,5 +1,9 @@
 
 2012-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (melt-built-param.mk): New target.
+	(melt.encap): Build it.
+
+2012-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (MELT_REVISION_STR): New.
 
 2012-06-29  Basile Starynkevitch  <basile@starynkevitch.net>

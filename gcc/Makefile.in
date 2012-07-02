@@ -2698,7 +2698,6 @@ melt-runtime-params-inc.c: build/melt-make-string$(build_exeext) Makefile
              melt_default_probe '$(melt_default_probe)' \
 	     melt_default_modlis '$(melt_default_modules_list)' > $@-tmp
 	mv $@-tmp $@
-	  
 
 ##was -DMELT_REVISION='\"$(shell echo -n $(REVISION_c) | sed "s/ *$$//" | tr -s [:space:] _)\"' \
 
@@ -5434,10 +5433,10 @@ MELT_MAKE_MODULE_XTRAMAKEFLAGS ?= -j 2
 
 .PHONY: melt.encap
 
-melt.encap: $(melt_make_cc1_dependency) $(srcdir)/melt-build.mk
-	@echo melt.encap making Makefile and melt-build.mk 
+melt.encap:  melt-build-param.mk $(melt_make_cc1_dependency) $(MELTBUILD_MKFILE)
+	@echo melt.encap making Makefile and $(MELTBUILD_MKFILE)
 	@echo melt.encap GCCMELT_COMPILER= $(GCCMELT_COMPILER) GCCMELT_COMPILER_FLAGS= $(GCCMELT_COMPILER_FLAGS)
-	$(MAKE) Makefile $(MELTBUILD_MKFILE)
+	$(MAKE) Makefile  melt-build-param.mk $(MELTBUILD_MKFILE)
 	@echo melt.encap making warmelt0 with melt_cflags= $(melt_cflags) MELTBUILD_MKFILE= $(MELTBUILD_MKFILE)
 	$(MAKE) warmelt0
 ## we probably better need warmelt1, because some make fragments are generated
@@ -5454,6 +5453,31 @@ melt.encap: $(melt_make_cc1_dependency) $(srcdir)/melt-build.mk
 	@echo melt.encap making check-melt-runtime
 	$(MAKE) check-melt-runtime
 	@echo melt.encap made check-melt-runtime
+
+
+melt-build-param.mk:  Makefile
+	date "+#file $@ generated %c%n" > $@-tmp
+	echo 'GCCMELT_COMPILER='  $(COMPILER) >> $@-tmp
+	echo 'GCCMELT_COMPILER_FLAGS=' $(ALL_COMPILERFLAGS) $(INCLUDES) >> $@-tmp
+	echo 'GCCMELT_LINKER=' $(LINKER) >> $@-tmp
+	echo 'GCCMELT_LINKER_FLAGS=' $(LINKER_FLAGS) >> $@-tmp
+	echo 'GCCMELT_MELTSOURCEDIR=' $(srcdir)/melt/ >> $@-tmp
+	echo 'GCCMELT_RUNTIME_CPPDEFS=' $(MELT_RUNTIME_CPPDEFS) >> $@-tmp
+	echo 'GCCMELT_VERSION_STRING=' $(shell $(AWK) -F\" '/^.define +MELT_VERSION_STRING/{print $$2}' $(srcdir)/melt-runtime.h)  >> $@-tmp
+	echo 'GCCMELT_CC1=' $(realpath ./cc1$(exeext))  >> $@-tmp
+	echo 'GCCMELT_CC1_DEPENDENCIES=' $(realpath  ./cc1$(exeext) $(MELT_H) melt-runtime.c)  >> $@-tmp
+	echo 'GCCMELT_INCLUDES='  -I $(realpath .) -I $(realpath $(srcdir)/melt/generated) $(INCLUDES)  >> $@-tmp
+	echo 'GCCMELT_MODULE_MK=' $(realpath $(srcdir)/melt-module.mk)  >> $@-tmp
+	echo 'GCCMELT_INSTALL_SOURCEDIR=' $(libexecsubdir)/melt-sources/$(melt_version_string)  >> $@-tmp
+	echo 'GCCMELT_INSTALL_HEADERDIR=' $(plugin_includedir)/melt-headers-$(melt_version_string)  >> $@-tmp
+	echo 'GCCMELT_INSTALL_MODULEDIR=' $(libexecsubdir)/melt-modules/$(melt_version_string)  >> $@-tmp
+	echo 'GCCMELT_INSTALL_MODULEMK=' $(libexecsubdir)/melt-module-$(melt_version_string).mk  >> $@-tmp
+	echo 'GCCMELT_IS_PLUGIN='   >> $@-tmp
+	echo 'GCCMELT_STAGE_ZERO?=' $(MELT_STAGE_ZERO)   >> $@-tmp
+	echo "#eof generated $@" >> $@-tmp
+	mv $@-tmp $@
+
+##
 
 .PHONY: install-all-melt install-melt-includes install-melt-sources install-melt-modules install-melt-mk install-melt-default-modules-list check-melt-runtime
 
