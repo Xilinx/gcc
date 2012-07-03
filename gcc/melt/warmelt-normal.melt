@@ -3912,8 +3912,9 @@ source location.}#
 	  (if (== ncallsym (unsafe_get_field :binder cbnd))
 	      (let ( (nrealcallex (unsafe_get_field :letbind_expr cbnd)) )
 		(set_ref ncontcall nrealcallex)
-		())
-	    (progn (list_append nincallbindings cbnd) cbnd))))
+		(return () ()))
+	    (progn (list_append nincallbindings cbnd) cbnd))
+	  ))
        (setq nrealcall (deref ncontcall))
        (debug "normexp_multicall got nrealcall" nrealcall)
        (multiple_every

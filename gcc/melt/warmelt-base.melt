@@ -1312,7 +1312,7 @@ output $OUT. It is called by the $ADD2OUT variadic function.}#
    argloop
    (variadic 
     ( ()
-      (return out))
+      (exit argloop))
     ( (:value v)
       (if (is_closure v)
 	  (variadic
@@ -1336,7 +1336,7 @@ output $OUT. It is called by the $ADD2OUT variadic function.}#
 	    (let ( (vcty (variadic_ctype 0))
 		   )
 	      (errormsg_strv "ADD2OUT with manipulator for unsupported ctype"
-			    (get_field :named_name vcty))
+			     (get_field :named_name vcty))
 	      (assert_msg "invalid variadic argument after closure to ADD2OUT" ())
 	      (return)
 	      )))
@@ -1352,7 +1352,9 @@ output $OUT. It is called by the $ADD2OUT variadic function.}#
 		       (get_field :named_name vcty))
 	)
       (assert_msg "invalid variadic argument to ADD2OUT" ())
-      ))))
+      )))
+  (return out)
+  )
 
 ;;;;;;;;;;;;;;;;
 (defun string4out (dis :rest)

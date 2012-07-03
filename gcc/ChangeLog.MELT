@@ -1,5 +1,11 @@
 
 2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt (add2out): Loop exits explicitly.
+
+	* melt/warmelt-normal.melt (normexp_multicall): Return secondary
+	value.
+
+2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate all}}
 	* melt/generated/warmelt-base+melttime.h: Regenerate.
 	* melt/generated/warmelt-debug+melttime.h: Regenerate.
