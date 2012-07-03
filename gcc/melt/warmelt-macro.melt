@@ -1265,7 +1265,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 	 ( (is_a soper class_keyword)
 	   (let ( (resk (expand_keywordfun soper sexpr env mexpander)) )
 	     (debug "macroexpand_1 result for keywordfun resk" resk)
-	     (return resk)))
+	     (return resk ())))
 ;;;; test for non-keyword symbols...
 	 ( (is_a soper class_symbol)
 	   (let ( (opbind (find_env env soper)) )
@@ -1275,94 +1275,94 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 		       (assert_msg "check mexp" (is_closure mexp))
 		       (let ( (resm (mexp sexpr env mexpander modctx)) )
 			 (debug "macroexpand_1 result for macro resm" resm)
-			 (return resm)
+			 (return resm ())
 			 )))
 		   ( (is_a opbind class_selector_binding)
 		     (let ( (ress (expand_msend soper sexpr env mexpander modctx)) )
 		       (debug "macroexpand_1 result for send ress" ress)
-		       (return ress)
+		       (return ress ())
 		       ))
 		   ( (is_a opbind class_primitive_binding)
 		     (let ( (resp (expand_primitive (unsafe_get_field :pbind_primitive opbind) 
 						    sexpr env mexpander modctx)) )
 		       (debug "macroexpand_1 result for primitive resp" resp)
-		       (return resp)
+		       (return resp ())
 		       ))
 		   ( (is_a opbind class_citerator_binding)
 		     (let ( (citer (unsafe_get_field :cbind_citerator opbind))
 			    (resc (expand_citeration citer sexpr env mexpander modctx))
 			    )
 		       (debug "macroexpand_1 result for citerator resc" resc)
-		       (return resc)
+		       (return resc ())
 		       ))
 		   ( (is_a opbind class_cmatcher_binding)
 		     (let ( (cmatch (unsafe_get_field :cmbind_matcher opbind))
 			    (resc (expand_cmatchexpr cmatch sexpr env mexpander modctx))
 			    )
 		       (debug "macroexpand_1 result for cmatcher resc" resc)
-		       (return resc)
+		       (return resc ())
 		       ))
 		   ( (is_a opbind class_funmatcher_binding)
 		     (let ( (fmatch (unsafe_get_field :fmbind_funmatcher opbind)) 
 			    (resf (expand_funmatchexpr fmatch sexpr env mexpander opbind modctx))
 			    )
 		       (debug "macroexpand_1 result for funmatcher resf" resf)
-		       (return resf)
+		       (return resf ())
 		       ))
 		   ( (is_a opbind class_field_binding)
 		     (let ( (field (unsafe_get_field :flbind_field opbind)) 
 			    (resf (expand_fieldexpr field sexpr env mexpander modctx))
 			    )
 		       (debug "macroexpand_1 result for field resf" resf)
-		       (return resf)
+		       (return resf ())
 		       ))
 		   ;; formals and local variables are always applied.
 		   ( (is_a opbind class_formal_binding)
-		     (expand_apply sexpr env mexpander modctx))
+		     (return (expand_apply sexpr env mexpander modctx) ()))
 		   ( (is_a opbind class_let_binding)
-		     (expand_apply sexpr env mexpander modctx))
-		   ;;; [imported] value bindings are handled case by case
+		     (return (expand_apply sexpr env mexpander modctx) ()))
+;;; [imported] value bindings are handled case by case
 		   ( (is_a opbind class_value_binding)
 		     (let ( (val (unsafe_get_field :vbind_value opbind))
 			    )
 		       (cond
 			( (is_closure val)
-			  (expand_apply sexpr env mexpander modctx)
+			  (return (expand_apply sexpr env mexpander modctx) ())
 			  )
 			( (is_a val class_primitive)
-			  (expand_primitive val sexpr env mexpander modctx)
+			  (return (expand_primitive val sexpr env mexpander modctx) ())
 			  )
 			( (is_a val class_selector) 
 			  (let ( (ress 
 				  (expand_msend soper sexpr env mexpander modctx)) )
 			    (debug "macroexpand_1 result for send ress" ress)
-			    (return ress)
+			    (return ress ())
 			    )
 			  )
 			( (is_a val class_citerator)
 			  (let ( (resc 
 				  (expand_citeration val sexpr env mexpander modctx)) )
 			    (debug "macroexpand_1 result for send resc" resc)
-			    (return resc)))
+			    (return resc ())))
 			( (is_a val class_cmatcher)
 			  (let ( (resc
 				  (expand_cmatchexpr val sexpr env mexpander modctx)) )
 			    (debug "macroexpand_1 result for cmatch resc" resc)
-			    (return resc)))
+			    (return resc ())))
 			( (is_a val class_funmatcher)
 			  (let ( (resf (expand_funmatchexpr val sexpr env mexpander opbind modctx)) )
 			    (debug "macroexpand_1 result for funmatch resf" resf)
-			    (return resf)))
+			    (return resf ())))
 			( (is_a val class_field)
 			  (let ( (resf (expand_fieldexpr val sexpr env mexpander modctx)) )
 			    (debug "macroexpand_1 result for field resf" resf)
-			    (return resf)))
+			    (return resf ())))
 			(:else
 			 (error_strv sloc "macroexpand_1 bad valued operation symbol"_
 				     (unsafe_get_field :named_name soper))
 			 (inform_strv sloc "macroexpand_1 bad symbol value discr"
 				      (unsafe_get_field :named_name (discrim val)))
-			 (return)
+			 (return () ())
 			 )
 			))) ;; end if opbind is a value binding
 		   ( (and 
@@ -1372,14 +1372,14 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 		     (let ( (macthunk (lambda ()
 					(mexpander sexpr env mexpander modctx)
 					))
-			   (lazymac (instance class_source_lazy_macro_expansion
-					      :loca_location sloc
-					      :slazymacro_fun macthunk
-					      :slazymacro_oper soper
+			    (lazymac (instance class_source_lazy_macro_expansion
+					       :loca_location sloc
+					       :slazymacro_fun macthunk
+					       :slazymacro_oper soper
 					       ))
-			   )
+			    )
 		       (debug "macroexpand_1 return lazymac" lazymac)
-		       (return lazymac)
+		       (return lazymac ())
 		       ))
 		   (:else 
 		    (if (and 
@@ -1390,23 +1390,23 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 			 "forward referenced operator handled as application when bootstrapping MELT"
 			 (get_field :named_name soper)
 			 ))
-		   ;; if opbind is null, we should expand to a class_source_lazy_macro_expansion
+		    ;; if opbind is null, we should expand to a class_source_lazy_macro_expansion
 		    (let ( (resa (expand_apply sexpr env mexpander modctx))) 
 		      (debug "macroexpand_1 result for apply resa" resa)
-		      (return resa)
+		      (return resa ())
 		      )
 		    ))))
 	 ;; the empty list is expanded as nil
 	 ( (==i (list_length scont) 0)
 	   (debug "macroexpand_1 result for null")
-	   (return ()))
+	   (return () ()))
 	 (:else 
 	  (let ( (resca (expand_apply sexpr env mexpander modctx)) )
 	    (debug "macroexpand_1 result complex apply resca" resca)
-	    (return resca)
+	    (return resca ())
 	    ))))
     ;; if the sexpr is not an sexpr return itself
-    (return sexpr)))
+    (return sexpr ())))
 
 ;;; expand a primitive s-expression
 (defun expand_primitive (sprim sexpr env mexpander modctx)
@@ -3232,7 +3232,7 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
 		   (return () curfldnam))
 		 (:else
 		  ;; did not found the field, so return true
-		  (return :true))))))
+		  (return :true ()))))))
 	   (if foundfld
 	       (progn
 		 (debug "parse_field_assignment return foundfld" foundfld)
@@ -3688,9 +3688,9 @@ messages. Syntax is (DEFSELECTOR <symbol> <selector-class> [:doc
 		(unsafe_get_field :named_name fkeyw))
 	   (progn 
 	     (put_fields fldcont :referenced_value cfld)
-	     ()				; nil to exit to iteration
+	     (return ()	())			; nil to exit to iteration 
 	     )
-	 cfld))
+	 (return cfld ())))
      )
     (let ( (fld (get_field :referenced_value fldcont))
 	   )

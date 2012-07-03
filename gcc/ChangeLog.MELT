@@ -1,5 +1,9 @@
 
 2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt: Add secondary value return when
+	appropriate to lower warnings.
+
+2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_warn_for_no_expected_secondary_results_at):
 	Give at most 8 warnings.
 
