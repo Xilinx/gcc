@@ -1,4 +1,29 @@
 
+
+2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Regenerate all}}
+
+	* melt/generated/warmelt-base+01.c: Regenerate.
+	* melt/generated/warmelt-base+02.c: Regenerate.
+	* melt/generated/warmelt-base+03.c: Regenerate.
+	* melt/generated/warmelt-base+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-base+melttime.h: Regenerate.
+	* melt/generated/warmelt-base.c: Regenerate.
+	* melt/generated/warmelt-debug+melttime.h: Regenerate.
+	* melt/generated/warmelt-first+melttime.h: Regenerate.
+	* melt/generated/warmelt-genobj+melttime.h: Regenerate.
+	* melt/generated/warmelt-macro+melttime.h: Regenerate.
+	* melt/generated/warmelt-modes+melttime.h: Regenerate.
+	* melt/generated/warmelt-normal+02.c: Regenerate.
+	* melt/generated/warmelt-normal+03.c: Regenerate.
+	* melt/generated/warmelt-normal+04.c: Regenerate.
+	* melt/generated/warmelt-normal+05.c: Regenerate.
+	* melt/generated/warmelt-normal+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-normal+melttime.h: Regenerate.
+	* melt/generated/warmelt-normal.c: Regenerate.
+	* melt/generated/warmelt-normatch+melttime.h: Regenerate.
+	* melt/generated/warmelt-outobj+melttime.h: Regenerate.
+
 2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-base.melt (add2out): Loop exits explicitly.
 
