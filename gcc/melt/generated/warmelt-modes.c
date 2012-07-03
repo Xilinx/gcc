@@ -5229,6 +5229,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   } *cdat = NULL;
   dbgprintf ("start initialize_module_meltdata_warmelt_modes iniframp__=%p",
 	     (void *) iniframp__);
+  (void) meltpredefinited;	/* avoid warning if non-used. */
   melt_assertmsg ("check module initial frame",
 		  iniframp__->mcfr_nbvar == /*minihash */ -2689);
   cdat = (struct cdata_st *) meltgc_allocate (sizeof (*cdat), 0);

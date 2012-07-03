@@ -4703,7 +4703,9 @@ labend_rout:
 #if MELT_HAVE_DEBUG
 
 /* generated syntax checking routine for 1 C generating devices */
-void MELT_MODULE_VISIBILITY
+extern void MELT_MODULE_VISIBILITY melt_syntax_tester_warmelt_macro (void);
+
+void
 melt_syntax_tester_warmelt_macro (void)
 {
   if (1)
@@ -6407,6 +6409,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   } *cdat = NULL;
   dbgprintf ("start initialize_module_meltdata_warmelt_macro iniframp__=%p",
 	     (void *) iniframp__);
+  (void) meltpredefinited;	/* avoid warning if non-used. */
   melt_assertmsg ("check module initial frame",
 		  iniframp__->mcfr_nbvar == /*minihash */ -4088);
   cdat = (struct cdata_st *) meltgc_allocate (sizeof (*cdat), 0);

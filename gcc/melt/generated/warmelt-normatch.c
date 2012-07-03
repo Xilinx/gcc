@@ -6156,6 +6156,7 @@ initialize_module_meltdata_warmelt_normatch (initial_frame_st * iniframp__,
   dbgprintf
     ("start initialize_module_meltdata_warmelt_normatch iniframp__=%p",
      (void *) iniframp__);
+  (void) meltpredefinited;	/* avoid warning if non-used. */
   melt_assertmsg ("check module initial frame",
 		  iniframp__->mcfr_nbvar == /*minihash */ -1879);
   cdat = (struct cdata_st *) meltgc_allocate (sizeof (*cdat), 0);
