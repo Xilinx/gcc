@@ -1,4 +1,8 @@
 
+2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (melt.encap): Add explicit dependency on
+	warmelt-predef.melt & melt-predef.h for the new build.
+
 2012-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate all}}
 

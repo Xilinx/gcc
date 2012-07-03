@@ -5434,7 +5434,7 @@ MELT_MAKE_MODULE_XTRAMAKEFLAGS ?= -j 2
 
 .PHONY: melt.encap
 
-melt.encap:  melt-build-param.mk $(melt_make_cc1_dependency) $(MELTBUILD_MKFILE)
+melt.encap:  melt-build-param.mk $(melt_make_cc1_dependency) $(MELTBUILD_MKFILE) warmelt-predef.melt melt-predef.h
 	@echo melt.encap making Makefile and $(MELTBUILD_MKFILE)
 	@echo melt.encap GCCMELT_COMPILER= $(GCCMELT_COMPILER) GCCMELT_COMPILER_FLAGS= $(GCCMELT_COMPILER_FLAGS)
 	$(MAKE) Makefile  melt-build-param.mk $(MELTBUILD_MKFILE)
