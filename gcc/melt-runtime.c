@@ -10765,7 +10765,7 @@ melt_dbgshortbacktrace (const char *msg, int maxdepth)
 void melt_warn_for_no_expected_secondary_results_at (const char*fil, int lin) 
 {
   static long cnt;
-  if (cnt++ > 16)
+  if (cnt++ > 8)
     return;
   /* This warning is emitted when a MELT function caller expects
      secondary results, but none are returned.  */
