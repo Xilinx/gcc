@@ -1,5 +1,9 @@
 
 2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-debug.melt: codechunk with declarations made as
+	blocks.
+
+2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate all}}
 
 	* melt/generated/warmelt-base+melttime.h: Regenerate.

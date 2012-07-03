@@ -283,7 +283,7 @@ See $MELT_NEED_DBGLIM.}#
 		    }#)
 	;; if we don't have a dumpfile, use stderr; this may also
 	;; happens when the dumpf exists, but its dump_file is null.
-	(code_chunk ensuregoodout #{/* melt_debug_fun $ENSUREGOODOUT*/
+	(code_chunk ensuregoodout #{/* melt_debug_fun $ENSUREGOODOUT*/ {
 		    static int nbwarn;
 		    if (melt_get_file ((melt_ptr_t) $OUT) == NULL) {
 		    gcc_assert (melt_get_file ((melt_ptr_t) $STDERRF) == stderr) ;
@@ -293,7 +293,7 @@ See $MELT_NEED_DBGLIM.}#
 			    "MELT debug output goes to stderr because we have no dump_file.") ;
 		    }
 		    }
-		    }#)
+		    } /* end melt_debug_fun $ENSUREGOODOUT*/ }#)
 	(if (null out)
 	    (setq out (get_field :sysdata_stderr initial_system_data)))
 	;; it may happen that OUT is null, e.g. because the dumpfile &
@@ -628,7 +628,7 @@ $TORANK}#
 	 ( (<i ulen 4000)
 	   (code_chunk 
 	    outallstrbufchk
-	    #{/*$OUTALLSTRBUFCHK*/ meltgc_add_out_cstr_len
+	    #{/*dbgout_strbuf_method $OUTALLSTRBUFCHK*/ meltgc_add_out_cstr_len
 	    ((melt_ptr_t)$SBUF, 
 	     melt_strbuf_str ((melt_ptr_t)$SELF),
 	     (int) $ULEN)		;
@@ -637,7 +637,7 @@ $TORANK}#
 	 (:else
 	  (code_chunk 
 	   outbigslicstrbufchk
-	   #{/*$OUTBIGSLICSTRBUFCHK*/ 
+	   #{/* dbgout_strbuf_method $OUTBIGSLICSTRBUFCHK*/ {
 	   const int startslice = 1000			       ;
 	   const int endslice = 2500			       ;
 	   gcc_assert (startslice + endslice < (int)$ULEN - 5) ;
@@ -652,7 +652,8 @@ $TORANK}#
 	   meltgc_add_out_cstr_len
 	   ((melt_ptr_t)$SBUF, 
 	    (melt_strbuf_str ((melt_ptr_t)$SELF)) + $ULEN - endslice,
-	    endslice)			;
+	    endslice);			;
+	    } /* end  dbgout_strbuf_method $OUTBIGSLICSTRBUFCHK*/
 	   }#
 	   ))
 	 )
@@ -660,7 +661,7 @@ $TORANK}#
        ( (<i ulen 1000)
 	 (code_chunk 
 	  outalltinystrbufchk
-	  #{ /*$OUTALLTINYSTRBUFCHK*/ meltgc_add_out_cstr_len
+	  #{ /* dbgout_strbuf_method $OUTALLTINYSTRBUFCHK*/ meltgc_add_out_cstr_len
 	  ((melt_ptr_t)$SBUF, 
 	   melt_strbuf_str ((melt_ptr_t)$SELF),
 	   (int) $ULEN)			;
@@ -670,14 +671,14 @@ $TORANK}#
        (:else
 	(code_chunk 
 	 outtinyslicstrbufchk
-	 #{ /*+$OUTTINYSLICSTRBUFCHK*/ 
-	 const int startslice = 100			     ;
-	 const int endslice = 550			     ;
+	 #{ /*+ dbgout_strbuf_method $OUTTINYSLICSTRBUFCHK*/ {
+	 const int startslice = 100 ;
+	 const int endslice = 550  ;
 	 gcc_assert (startslice + endslice < (int)$ULEN - 5) ;
 	 meltgc_add_out_cstr_len
 	 ((melt_ptr_t)$SBUF, 
 	  melt_strbuf_str ((melt_ptr_t)$SELF),
-	  startslice)			;
+	  startslice)	;
 	 meltgc_out_printf
 	 ((melt_ptr_t)$SBUF,
 	  "\"\n ... %d bytes skipped\n ...\"", 
@@ -685,8 +686,8 @@ $TORANK}#
 	 meltgc_add_out_cstr_len
 	 ((melt_ptr_t)$SBUF, 
 	  (melt_strbuf_str ((melt_ptr_t)$SELF)) + $ULEN - endslice,
-	  endslice)			; 
-	 /*-$OUTTINYSLICSTRBUFCHK*/
+	  endslice);			; 
+	 } /*-end  dbgout_strbuf_method $OUTTINYSLICSTRBUFCHK*/
 	 }#
 	 ))))
     (add2out sbuf "\">") 
