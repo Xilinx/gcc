@@ -1026,7 +1026,7 @@ create it if not found.}#
 			MELT_CREATE)}#)
 (defprimitive get_raw_symbol (:cstring cstr) :value
   :doc #{Get an existing symbol of given cstring $CSTR or else null.}#
-#{meltgc_named_symbol((char*) $cstr, MELT_GET)}#)
+#{meltgc_named_symbol((const char*) $cstr, MELT_GET)}#)
 
 ;; primitive to get or create a keyword from a string value
 (defprimitive get_keywordstr (strv) :value

@@ -1,5 +1,9 @@
 
 2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt (get_raw_symbol): Cast string to a const
+	char* pointer.
+
+2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate all}}
 
 	* melt/generated/warmelt-base+melttime.h: Regenerate.
