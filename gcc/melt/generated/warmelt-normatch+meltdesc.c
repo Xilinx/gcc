@@ -38,16 +38,16 @@ const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown
 /* hash of preprocessed melt-run.h generating this */
 const char melt_prepromd5meltrun[]="a1812970e3503f555970e02ead913377";
 /* hexmd5checksum of primary C file */
-const char melt_primaryhexmd5[]="5042273df451a4b57e078761f09b328b";
+const char melt_primaryhexmd5[]="5f0e8f9cc2796873c24cee9231cd81f3";
 
 /* hexmd5checksum of secondary C files */
 const char* const melt_secondaryhexmd5tab[]={
  /*nosecfile*/ (const char*)0,
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normatch+01.c #1 */ "278c464e3951a7198702ee5a4ff7d346",
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normatch+02.c #2 */ "e047c04d66cee36eef272ead68d9f902",
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normatch+03.c #3 */ "55710da068631a7d24db40a3041254c3",
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normatch+04.c #4 */ "bce756c118c10eb418653b50e95e14ae",
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normatch+05.c #5 */ "47e5f616ad6719e08501ca047bf123bf",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normatch+01.c #1 */ "42ca4a2256c69dc658b8132da5c4337a",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normatch+02.c #2 */ "6c15c4c5cd9312bd0dc455093a506aa0",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normatch+03.c #3 */ "4cd1733a1fe626d562a676c1c64d407e",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normatch+04.c #4 */ "559a0140df1e40292779df84564ed107",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normatch+05.c #5 */ "0908ed2b90715ff6a1f65214c90f47ea",
  /*nosecfile*/ (const char*)0,
  (const char*)0 };
 
@@ -55,10 +55,10 @@ const char* const melt_secondaryhexmd5tab[]={
 const int melt_lastsecfileindex=5;
 
 /* cumulated checksum of primary & secondary files */
-const char melt_cumulated_hexmd5[]="3fdea9139db2bf77783d22ab23603469" ;
+const char melt_cumulated_hexmd5[]="a58c7c87382043178da9dd48cd2038b0" ;
 
 /* include the timestamp file */
-#define meltmod_warmelt_normatch_mds__3fdea9139db2bf77783d22ab23603469 1
+#define meltmod_warmelt_normatch_mds__a58c7c87382043178da9dd48cd2038b0 1
 #include "warmelt-normatch+melttime.h"
 	 
 

@@ -38,16 +38,16 @@ const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown
 /* hash of preprocessed melt-run.h generating this */
 const char melt_prepromd5meltrun[]="a1812970e3503f555970e02ead913377";
 /* hexmd5checksum of primary C file */
-const char melt_primaryhexmd5[]="b7c6aa3a47b33bd1bbf7817152d366e7";
+const char melt_primaryhexmd5[]="a97cf92e3fe693fff3559cfff8370976";
 
 /* hexmd5checksum of secondary C files */
 const char* const melt_secondaryhexmd5tab[]={
  /*nosecfile*/ (const char*)0,
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normal+01.c #1 */ "ab80d095ce352551b9c61df7d6fcc4bf",
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normal+02.c #2 */ "1312f847c4742376957d1730d4e03e0b",
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normal+03.c #3 */ "f91acae94e7d65ac6776d79fa9ac7766",
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normal+04.c #4 */ "98e56b7903f335cb9f8fe4cbde0064e6",
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normal+05.c #5 */ "827f164a37c4d5eb75f361669cff176c",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normal+01.c #1 */ "584df34339b3730324468c1a6ce96549",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normal+02.c #2 */ "b497f9838c6cbbe2f112cc5c30097a43",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normal+03.c #3 */ "d2c5ed72b0e77aabb91283ea444f653a",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normal+04.c #4 */ "4fbc18eaf96f9b01678922b737d3b952",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normal+05.c #5 */ "106e52d1e892d13e632ee493e47577e1",
  /*nosecfile*/ (const char*)0,
  (const char*)0 };
 
@@ -55,10 +55,10 @@ const char* const melt_secondaryhexmd5tab[]={
 const int melt_lastsecfileindex=5;
 
 /* cumulated checksum of primary & secondary files */
-const char melt_cumulated_hexmd5[]="d9829a2625010910ca2b9a5921bd7da6" ;
+const char melt_cumulated_hexmd5[]="f5444dc74d96fe225e258df5585e70a9" ;
 
 /* include the timestamp file */
-#define meltmod_warmelt_normal_mds__d9829a2625010910ca2b9a5921bd7da6 1
+#define meltmod_warmelt_normal_mds__f5444dc74d96fe225e258df5585e70a9 1
 #include "warmelt-normal+melttime.h"
 	 
 
