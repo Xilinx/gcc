@@ -5019,11 +5019,11 @@ source location.}#
 	  (debug "normexp_keyword routine curproc" curproc)
 	  (list_append constlist kdata)
 	  (debug "normexp_keyword result nconst" nconst)
-	  (return nconst)
+	  (return nconst ())
 	  )
       (progn
 	(debug "normexp_keyword routineinit result kdata" kdata)
-	(return kdata)
+	(return kdata ())
 	))))
 (install_method class_keyword normal_exp normexp_keyword)
 

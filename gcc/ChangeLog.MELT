@@ -1,5 +1,9 @@
 
 2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt (normexp_keyword): Return
+	two values.
+
+2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate all}}
 	* melt/generated/warmelt-base+melttime.h: Regenerate.
 	* melt/generated/warmelt-debug+melttime.h: Regenerate.
@@ -15,7 +19,7 @@
 	* melt/generated/warmelt-outobj+melttime.h: Regenerate.
 
 2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
-	* melt/warmelt-normal.melt (normex_null): Return
+	* melt/warmelt-normal.melt (normexp_null): Return
 	two values.
 
 2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
