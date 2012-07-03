@@ -1,5 +1,18 @@
 
 2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Avoid some runtime warnings about missing secondary results, and
+	some GCC warnings}}
+	* melt/warmelt-first.melt (option_helper_fun): Make a block in a chunk.
+
+	* melt/warmelt-normal.melt (normexp_identical)
+	(normexp_defprimitive, normexp_defclass, normexp_defciterator)
+	(normexp_defun, normexp_parent_module_environment)
+	(normexp_fetch_predefined)
+	(normexp_current_module_environment_container): Return a secondary result.
+
+	* melt/warmelt-outobj.melt: Avoid warnings in emitted code.
+
+2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{Regenerate all}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.

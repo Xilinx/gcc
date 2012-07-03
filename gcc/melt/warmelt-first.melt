@@ -3419,7 +3419,7 @@ function $OPTFUN.}#
 	     )
 	(code_chunk 
 	 informoption
-	 #{ int i=0;
+	 #{ /* option_helper_fun $INFORMOPTION start */ { int i=0;
 	    inform (UNKNOWN_LOCATION, "There are %d MELT options", 
 				      (int) $NBSYMB);
 	    for (i=0;
@@ -3433,6 +3433,7 @@ function $OPTFUN.}#
 		   inform (UNKNOWN_LOCATION, "possible MELT option: %s", n1);
             };
             inform (UNKNOWN_LOCATION, "Use -f[plugin-arg-]melt-option=help=X for help about MELT option X");
+	    } /* option_helper_fun $INFORMOPTION end */ 
 	  }#)
 	(return helpsymb)
       )))

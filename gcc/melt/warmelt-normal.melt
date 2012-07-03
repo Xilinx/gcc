@@ -892,7 +892,7 @@ routine procedures.}#
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   ;; is a no-op
   (debug "normexp_identical recv" recv)
-  recv)
+  (return recv ()))
 
 (install_method discr_any_receiver normal_exp  normexp_identical)
 
@@ -5148,7 +5148,7 @@ source location.}#
 ;;; put the data into the primitive binding
     (if (is_a sprimbind class_primitive_binding)
 	(put_fields sprimbind  :fixbind_data nprimdata))
-    (return ())		     ;normalized defprimitive is empty
+    (return () ())		     ;normalized defprimitive is empty
     ))
 (install_method class_source_defprimitive normal_exp normexp_defprimitive)
 
@@ -5254,7 +5254,7 @@ source location.}#
 ;;;;;;;
     ;; return the data
     (debug "normexp_defciterator return insdata" insdata)
-    (return insdata)
+    (return insdata ())
     ))
 (install_method class_source_defciterator normal_exp normexp_defciterator)
 
@@ -5907,7 +5907,7 @@ source location.}#
       ;; add the superdata as the last component of anctup
       (if superdata (multiple_put_nth anctup (-i nbanc 1) superdata))
       ;; the normalized form of the defclass is the classdata
-      cladata
+      (return cladata ())
       )))
 (install_method class_source_defclass normal_exp normexp_defclass)
 
@@ -6740,7 +6740,7 @@ source location.}#
 	  (list_append ncurmodenvlist curproc)
 	  ))
     (debug "normexp_current_module_environment_container nquasi" nquasi)
-    (return nquasi)
+    (return nquasi ())
     ))
 (install_method class_source_current_module_environment_container normal_exp normexp_current_module_environment_container)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -6766,7 +6766,7 @@ source location.}#
     (if (is_a curproc class_nrep_routproc)
 	(list_append (unsafe_get_field :nrpro_const curproc) qdatpar))
     (debug "normexp_parent_module_environment nquasi" nquasi)
-    (return nquasi)
+    (return nquasi ())
     ))
 (install_method class_source_parent_module_environment normal_exp normexp_parent_module_environment)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -6893,7 +6893,7 @@ source location.}#
 			   ))
 	   )
       (debug "normexp_fetch_predefined result npre" npre)
-      (return npre)
+      (return npre ())
       )))
 (install_method class_source_fetch_predefined normal_exp normexp_fetch_predefined)
 

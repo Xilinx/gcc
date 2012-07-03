@@ -1720,6 +1720,8 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (add2sbuf_cident implbuf omodnam)
     (add2sbuf_strconst implbuf " iniframp__=%p\", (void*) iniframp__);")
     (add2sbuf_indentnl implbuf 1)
+    (add2sbuf_strconst implbuf "(void) meltpredefinited; /* avoid warning if non-used. */")
+    (add2sbuf_indentnl implbuf 1)
     (add2sbuf_strconst implbuf " melt_assertmsg (\"check module initial frame\", iniframp__->mcfr_nbvar == /*minihash*/ -")
     (add2sbuf_longdec implbuf minihash)
     (add2sbuf_strconst implbuf ");")
@@ -5003,7 +5005,9 @@ $MODCTX is the module context, and $IX is the index.}#
     (add2out 
      sbuf ##{
 /* generated syntax checking routine for $NBGENDEV C generating devices */
-void MELT_MODULE_VISIBILITY
+extern void MELT_MODULE_VISIBILITY $SYNTESTNAME (void);
+
+void
 $SYNTESTNAME (void) {
 if (1) return;
 }#)
