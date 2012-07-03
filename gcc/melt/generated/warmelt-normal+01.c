@@ -2531,8 +2531,8 @@ meltrout_5_warmelt_normal_NORMEXP_NULL (meltclosure_ptr_t meltclosp_,
     struct meltclosure_st *mcfr_clos;
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
-#define MELTFRAM_NBVARPTR 16
-    melt_ptr_t mcfr_varptr[16];
+#define MELTFRAM_NBVARPTR 17
+    melt_ptr_t mcfr_varptr[17];
 #define MELTFRAM_NBVARNUM 4
     long mcfr_varnum[4];
 /*others*/
@@ -2554,13 +2554,13 @@ meltrout_5_warmelt_normal_NORMEXP_NULL (meltclosure_ptr_t meltclosp_,
       (void) meltxresdescr_;
       (void) meltxrestab_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
-      for (ix = 0; ix < 16; ix++)
+      for (ix = 0; ix < 17; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
 	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[ix]);
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 16;
+  meltfram__.mcfr_nbvar = 17;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -2872,14 +2872,32 @@ lab_endgetargs:;
     /*_.IFCPP___V13*/ meltfptr[12] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    /*^compute */
+    MELT_LOCATION ("warmelt-normal.melt:907:/ checksignal");
+    MELT_CHECK_SIGNAL ();
+    ;
+    /*^quasiblock */
 
-    /*_.LET___V10*/ meltfptr[8] = /*_.NORMNULL__V11*/ meltfptr[10];;
+
+    /*_.RETVAL___V1*/ meltfptr[0] = /*_.NORMNULL__V11*/ meltfptr[10];;
+    MELT_LOCATION ("warmelt-normal.melt:907:/ putxtraresult");
+    if (!meltxrestab_ || !meltxresdescr_)
+      goto labend_rout;
+    if (meltxresdescr_[0] != MELTBPAR_PTR)
+      goto labend_rout;
+    if (meltxrestab_[0].meltbp_aptr)
+      *(meltxrestab_[0].meltbp_aptr) = (melt_ptr_t) (( /*nil */ NULL));
+    ;
+    /*^finalreturn */
+    ;
+    /*finalret */ goto labend_rout;
+    /*_.LET___V10*/ meltfptr[8] = /*_.RETURN___V17*/ meltfptr[13];;
 
     MELT_LOCATION ("warmelt-normal.melt:905:/ clear");
 	   /*clear *//*_.NORMNULL__V11*/ meltfptr[10] = 0;
     /*^clear */
 	   /*clear *//*_.IFCPP___V13*/ meltfptr[12] = 0;
+    /*^clear */
+	   /*clear *//*_.RETURN___V17*/ meltfptr[13] = 0;
     MELT_LOCATION ("warmelt-normal.melt:902:/ checksignal");
     MELT_CHECK_SIGNAL ();
     ;

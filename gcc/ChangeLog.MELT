@@ -1,5 +1,20 @@
 
 2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Regenerate all}}
+	* melt/generated/warmelt-base+melttime.h: Regenerate.
+	* melt/generated/warmelt-debug+melttime.h: Regenerate.
+	* melt/generated/warmelt-first+melttime.h: Regenerate.
+	* melt/generated/warmelt-genobj+melttime.h: Regenerate.
+	* melt/generated/warmelt-macro+melttime.h: Regenerate.
+	* melt/generated/warmelt-modes+melttime.h: Regenerate.
+	* melt/generated/warmelt-normal+01.c: Regenerate.
+	* melt/generated/warmelt-normal+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-normal+melttime.h: Regenerate.
+	* melt/generated/warmelt-normal.c: Regenerate.
+	* melt/generated/warmelt-normatch+melttime.h: Regenerate.
+	* melt/generated/warmelt-outobj+melttime.h: Regenerate.
+
+2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt (normex_null): Return
 	two values.
 
