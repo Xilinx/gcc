@@ -1,5 +1,9 @@
 
 2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt (normex_symbol, normexp_quote): Return
+	two values.
+
+2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-debug.melt: codechunk with declarations made as
 	blocks.
 

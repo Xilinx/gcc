@@ -1246,7 +1246,7 @@ source location.}#
 		      (unsafe_get_field :named_name symb)
 		      )
 	  ))
-    (assert_msg "normexp_symbol check fixdat" (is_a fixdat class_nrep_bound_data))
+    (assert_msg "normbind_fixbind check fixdat" (is_a fixdat class_nrep_bound_data))
     ;; cache the result & return it
     (mapobject_put sycmap symb fixdat)
     (debug "normbind_fixbind updated sycmap=" sycmap " symb=" symb " fixdat=" fixdat)
@@ -1346,14 +1346,15 @@ source location.}#
 	 (error_strv psloc "unknown name; symbol is not bound"
 		     (unsafe_get_field :named_name recv))
 	 (shortbacktrace_dbg "normex_symbol null bind" 15)
-	 (return ())))
+	 (return () ())))
    (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx))
 	  (syca (mapobject_get sycmap recv)) )
      (assert_msg "check sycmap" (is_mapobject sycmap))
      (debug "normex_symbol syca=" syca " for recv=" recv " bind=" bind)
      (cond 
       ;; check if in the cache
-      (syca syca)	     ;already cached
+      (syca 
+       (return syca ()))	     ;already cached
       ;;
       ;; value binding, get/put it into the map
       ( (is_a bind class_value_binding)
@@ -1398,14 +1399,14 @@ source location.}#
 		     (let ( (newcl (get_field :referenced_value clcont)) )
 		       (if newcl (list_append cnstproc newcl))) 
 		     )))
-		fxocc
+		(return fxocc ())
 		)
 	    ;; otherwise symbol is the direct value
 	    (progn
 	      ;; cache the result
 	      (mapobject_put sycmap recv bvar)
 	      (debug "normexp_symbol local value bvar=" bvar " updated sycmap=" sycmap)
-	      bvar
+	      (return bvar ())
 	      )
 	    )))
       ;;
@@ -1455,7 +1456,7 @@ source location.}#
 		     (let ( (newcl (get_field :referenced_value clcont)) )
 		       (if newcl (list_append cnstproc newcl))) 
 		     )))
-		fxocc
+		(return fxocc ())
 		)
 	    (let ( (clocc 
 		    (instance class_nrep_closedocc
@@ -4904,6 +4905,7 @@ source location.}#
     (multiple_put_nth slots fix val)
     ))
 
+
 ;;;;;; normalize a QUOTE-d symbol, string or integer
 
 (defun normexp_quote (recv env ncx psloc)
@@ -4953,12 +4955,13 @@ source location.}#
 				)) )
 	  (list_append (unsafe_get_field :nrpro_const curproc) ndata)
 	  (debug "normexp_quote in routine nconst" nconst)
-	  (return nconst))
+	  (return nconst ()))
       (progn
 	(debug "normexp_quote in init ndata" ndata)
-	(return ndata)
+	(return ndata ())
 	))))
 (install_method class_source_quote normal_exp normexp_quote)
+
 
 ;;;;;; normalize a COMMENT
 (defun normexp_comment (recv env ncx psloc)
@@ -4992,6 +4995,7 @@ source location.}#
     (return clocc bindlist)
     ))
 (install_method class_source_comment normal_exp normexp_comment)
+
 
 ;;;;;; normalize a keyword
 (defun normexp_keyword (recv env ncx psloc)
