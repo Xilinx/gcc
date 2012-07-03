@@ -5109,6 +5109,10 @@ $SBUF.}#
 ;;;; second argument: the tester context tcx
 ;;;; return values: primary, the objcode or lists; secondary the destination objcode
 (defselector compile_tester class_selector
+  :doc #{Compile a tester $RECV for matching with generator context
+  $GCX and tester context $TCX. Return the compiled tester and
+  secondarily the destination.}#
+  :formals (recv gcx tcx)
  )
 (export_values compile_tester)
 (defclass class_testercompilcontext
@@ -5323,7 +5327,7 @@ $SBUF.}#
     (put_fields ombloc 
 		:omulblo_subcomp (list_to_multiple subcomplist discr_multiple))
     (debug "compilobj_nrep_match return ombloc=" ombloc)
-    (return ombloc)
+    (return ombloc ())
     ))
 (install_method class_nrep_match compile_obj compilobj_nrep_match)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -5799,7 +5803,7 @@ $SBUF.}#
       (debug "compiltst_normtester_matcher matcx=" matcx)
       (compile_matcher nmatcher matcx gcx)
       (debug "compiltst_normtester_matcher return olist=" olist)
-      (return olist)
+      (return olist ())
       )
     ))
 (install_method class_normtester_matcher compile_tester compiltst_normtester_matcher)
@@ -5896,7 +5900,7 @@ $SBUF.}#
     (assert_msg "check gotoelse" (is_object gotoelse))
     (list_append oelselist gotoelse)
     (debug  "compiltst_normtester_instance final olist=" olist)
-    (return olist)
+    (return olist ())
     )
   )
 (install_method class_normtester_instance compile_tester compiltst_normtester_instance)
@@ -5996,7 +6000,7 @@ $SBUF.}#
     (assert_msg "check gotoelse" (is_object gotoelse))
     (list_append oelselist gotoelse)
     (debug "compiltst_normtester_tuple final olist=" olist)
-    (return olist)
+    (return olist ())
     ))
 (install_method class_normtester_tuple compile_tester compiltst_normtester_tuple)
 
@@ -6065,7 +6069,7 @@ $SBUF.}#
     (assert_msg "check gotoelse" (is_object gotoelse))
     (list_append oelselist gotoelse)
     (debug "compiltst_normtester_same return olist=" olist)
-    (return olist)
+    (return olist ())
     )
 )
 (install_method class_normtester_same compile_tester compiltst_normtester_same)
@@ -6148,7 +6152,7 @@ $SBUF.}#
      )
     (list_append olist gotothen)
     (debug "compiltst_normtester_orclear final olist=" olist)
-    (return olist)
+    (return olist ())
     ))
 (install_method class_normtester_or_clear compile_tester compiltst_normtester_orclear)
 ;;;;;;;;;;;;;;;;
@@ -6196,7 +6200,7 @@ $SBUF.}#
        )))
     (list_append olist gotothen)
     (debug "compiltst_normtester_ortransmit final olist=" olist)
-    (return olist)
+    (return olist ())
     ))
 (install_method class_normtester_or_transmit compile_tester compiltst_normtester_ortransmit)
 
@@ -6238,7 +6242,7 @@ $SBUF.}#
        (mapobject_put locmap dbind dobva)
        )
      )
-    (return gotothen)
+    (return gotothen ())
     )
   )
 (install_method class_normtester_disjunction compile_tester compiltst_normtester_disjunction)

@@ -4002,7 +4002,8 @@ given object map $MAPO}#
 		      (e2va (multiple_nth e2 1))
 		      (e2rk (multiple_nth e2 2))
 		      )
-		 (compare_obj_ranked e1at e1rk e2at e2rk boxedminusone boxedzero boxedone)
+		 (return 
+		  (compare_obj_ranked e1at e1rk e2at e2rk boxedminusone boxedzero boxedone) ())
 		 ))
 	     discr_multiple
 	     ))

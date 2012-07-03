@@ -1047,9 +1047,12 @@ scanning variables.}#
 		      (:long wpf2 (get_int (get_field :pat_weight 
 						      (get_field :spaf_pattern pf2))))
 		      )
-		 (cond  ((==i wpf2 wpf2) '0)
-			((<i wpf1 wpf2) '1)
-			(:else '-1))))
+		 (cond  ((==i wpf2 wpf2) 
+			 (return '0 ()))
+			((<i wpf1 wpf2) 
+			 (return '1 ()))
+			(:else 
+			 (return '-1 ())))))
 	     discr_multiple
 	     )		       
 	    )

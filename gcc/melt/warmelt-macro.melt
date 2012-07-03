@@ -5895,11 +5895,12 @@ remain.}#)
        )
      (let ( (:long goodpkgname 1)
 	    )
-       (code_chunk checkpkgname_chk #{/* mexpand_use_package_from_pkg_config $CHECKPKGNAME_CHK */
-		   const char* pkgs_$CHECKPKGNAME_CHK = melt_string_str ((melt_ptr_t) $CURPKGNAME) ;
+       (code_chunk checkpkgname_chk #{/* mexpand_use_package_from_pkg_config $CHECKPKGNAME_CHK */ {
+		   const char* pkgs_$CHECKPKGNAME_CHK
+                      = melt_string_str ((melt_ptr_t) $CURPKGNAME) ;
 		   if (!pkgs_$CHECKPKGNAME_CHK) 
                       $GOODPKGNAME = 0 ;
-		   else {
+		     else {
 		   const char* pc = NULL;
 		   for (pc = pkgs_$CHECKPKGNAME_CHK   ; 
 			   *pc && $GOODPKGNAME   ; 
@@ -5909,8 +5910,8 @@ remain.}#)
 		   continue ;
 		   else $GOODPKGNAME = 0L ;
 		   }
-		   }	;		   
-		   }#)
+		   } ;
+		   } /* end mexpand_use_package_from_pkg_config $CHECKPKGNAME_CHK */ }#)
        (unless goodpkgname
 	 (error_strv loc "invalid package name for (USE_PACKAGE_FROM_PKG_CONFIG ...)" curpkgname)
 	 (return))

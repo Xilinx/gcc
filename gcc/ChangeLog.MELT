@@ -1,6 +1,18 @@
 
 
 2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Avoid ungiven secondary results}}
+	* melt/warmelt-first.melt (mapobject_sorted_attribute_tuple):
+	Return two values.
+	* melt/warmelt-macro.melt (mexpand_use_package_from_pkg_config):
+	Add block inside codechunk with declarations.
+	* melt/warmelt-normal.melt (normexp_multicall): Return two values.
+	* melt/warmelt-normatch.melt (normpat_instancepat): Sorting lambda
+	return two values.
+	* melt/warmelt-genobj.melt (compile_tester): Document; all methods
+	return two values.
+
+2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate all}}
 
 	* melt/generated/warmelt-base+01.c: Regenerate.
