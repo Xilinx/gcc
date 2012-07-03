@@ -3552,10 +3552,11 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	 (oval (unsafe_get_field :oputu_value optup)) 
 	 )
     (code_chunk uniqrankset 
-		#{ static long $UNIQRANKSET#_cnt ;
+		#{ { /* outpucod_objputuple $UNIQRANKSET */  
+                static long $UNIQRANKSET#_cnt ;
 		$UNIQRANKSET#_cnt++		 ;
 		$UNIQRANK = $UNIQRANKSET#_cnt	 ;
-		}#)
+		} /* end  outpucod_objputuple $UNIQRANKSET */ }#)
     (multicall 
      (linev filev)
      (line_and_file_of_location iloc)
@@ -3823,11 +3824,11 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	 )
     (code_chunk 
      getcntchk
-     #{ /* $GETCNTCHK in outpucod_objputclosurout */
+     #{ /* $GETCNTCHK in outpucod_objputclosurout */ {
      static long $GETCNTCHK#_cnt;
      $GETCNTCHK#_cnt++;
      $CNT = $GETCNTCHK#_cnt;
-     }#)
+     } }#)
     (output_location oloc implbuf depth "putclosurout")
     (add2sbuf_strconst implbuf "/*putclosurout#")    
     (add2sbuf_longdec implbuf cnt)
@@ -4388,7 +4389,7 @@ extern "C" {
     (add2sbuf_strconst debuf "const char melt_modulerealpath[]=\"")
     (code_chunk 
      genrpathch
-     #{ /* output_melt_descriptor $GENRPATHCH + */
+     #{ /* output_melt_descriptor $GENRPATHCH + */ {
      char* lrp = lrealpath (melt_string_str ((melt_ptr_t) $MODNAMSTR)) ;
      if (!melt_flag_bootstrapping && !IS_ABSOLUTE_PATH(lrp)) {
      meltgc_add_strbuf_cstr ((melt_ptr_t) $DEBUF, getpwd()) ;
@@ -4403,7 +4404,7 @@ extern "C" {
      else      
      meltgc_add_strbuf_cstr ((melt_ptr_t) $DEBUF, lrp) ;
      free (lrp)					       ;
-     }#)
+     } /* end output_melt_descriptor $GENRPATHCH */}#)
     (add2sbuf_strconst debuf "\";")
     (add2sbuf_indentnl debuf 0)
     (add2sbuf_indentnl debuf 0)
@@ -5305,7 +5306,7 @@ if (1) return;
 			  )
 		     (code_chunk 
 		      backupchk
-		      #{ /*translate_macroexpanded_list $BACKUPCHK*/
+		      #{ /*translate_macroexpanded_list $BACKUPCHK*/ {
 		      const char* $BACKUPCHK#_delfilnamstr =
 		          melt_string_str ((melt_ptr_t) $DELFILNAM) ;
 		      const char* $BACKUPCHK#_bakfilnamstr = 
@@ -5318,7 +5319,7 @@ if (1) return;
 		      }
 		      $BACKUPCHK#_delfilnamstr = NULL ;
 		      $BACKUPCHK#_bakfilnamstr = NULL ;
-		      /*end $BACKUPCHK*/ }#)
+		      } /*end translate_macroexpanded_list $BACKUPCHK*/ }#)
 		     ))))
 	    ;;
 	    (code_chunk 
