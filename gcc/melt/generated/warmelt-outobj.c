@@ -12098,7 +12098,7 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_ROUTINE))));
   strncpy (cdat->drout_627__GENERATE_GPLV3PLUS_COPYRIGHT_NOTICE_C_COMMENT.
 	   routdescr,
-	   "GENERATE_GPLV3PLUS_COPYRIGHT_NOTICE_C_COMMENT @warmelt-outobj.melt:5480",
+	   "GENERATE_GPLV3PLUS_COPYRIGHT_NOTICE_C_COMMENT @warmelt-outobj.melt:5481",
 	   MELT_ROUTDESCR_LEN - 1);
   cdat->drout_627__GENERATE_GPLV3PLUS_COPYRIGHT_NOTICE_C_COMMENT.nbval = 0;
   MELT_ROUTINE_SET_ROUTCODE (&cdat->
@@ -37461,7 +37461,7 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
 	    /*clear *//*_.INSTALL_METHOD__V872*/ meltfptr[788] = 0;
   }
 
-  MELT_LOCATION ("warmelt-outobj.melt:5538:/ initchunk");
+  MELT_LOCATION ("warmelt-outobj.melt:5539:/ initchunk");
   /*^block */
   /*anyblock */
   {
@@ -37613,7 +37613,7 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
 	    /*clear *//*_.VALUEXPORTER___V873*/ meltfptr[789] = 0;
   }
 
-  MELT_LOCATION ("warmelt-outobj.melt:5548:/ initchunk");
+  MELT_LOCATION ("warmelt-outobj.melt:5549:/ initchunk");
   /*^block */
   /*anyblock */
   {
