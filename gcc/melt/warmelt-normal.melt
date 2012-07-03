@@ -904,7 +904,7 @@ routine procedures.}#
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (let ( (normnull (instance class_nrep_nil :nrep_loc psloc)) )
     (debug "normexp_null normnull" normnull)
-    normnull
+    (return normnull ())
     ))
 (install_method discr_null_receiver normal_exp normexp_null)
 
