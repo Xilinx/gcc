@@ -1482,7 +1482,7 @@ source location.}#
 		   (let ( (newcl (get_field :referenced_value clcont)) )
 		     (if newcl (list_append clobindl bind))) 
 		   )))
-	      clocc
+	      (return clocc ())
 	      ) ) ) ) 
       ;;
       ;; dispatch the binding
@@ -1493,7 +1493,7 @@ source location.}#
 	      )
 	 (debug "normexp_symbol after normalize_binding resnormbind=" resnormbind
 		" for bind=" bind " recv=" recv " psloc=" psloc)
-	 (return resnormbind)
+	 (return resnormbind ())
 	 ))))))
 
 (install_method class_symbol normal_exp normexp_symbol)
@@ -5608,7 +5608,7 @@ source location.}#
     (put_fields cmbind :fixbind_data insdata)
     ;; return the data
     (debug "normexp_defcmatcher return insdata" insdata)
-    (return insdata)
+    (return insdata ())
     )
   )
 (install_method class_source_defcmatcher normal_exp normexp_defcmatcher)
@@ -6006,7 +6006,7 @@ source location.}#
 	    (unsafe_put_fields insdata :ndata_locbind nbindtup))
 	;; return the data
 	(debug "normexp_definstance return insdata" insdata)
-	insdata
+	(return insdata ())
 	))))
 (install_method class_source_definstance normal_exp normexp_definstance)
 
@@ -6208,7 +6208,7 @@ source location.}#
 	    (put_fields bindsel :fixbind_data insdata))
 	;; return the data
 	(debug "normexp_defselector return insdata" insdata)
-	insdata
+	(return insdata ())
 	))))
 (install_method class_source_defselector normal_exp normexp_defselector)
 

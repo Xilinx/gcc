@@ -1225,12 +1225,11 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
     (add2sbuf_indentnl outb 0)
     (code_chunk 
      outdat
-     #{/* makedoc_genoutput $OUTDAT */ time_t now = 0;
-     time (&now);
+     #{/* makedoc_genoutput $OUTDAT */ { time_t now$OUTDAT = 0;
+     time (&now$OUTDAT);
      meltgc_add_out_raw ((melt_ptr_t) $OUTB, "@c **** generated ") ;
-     meltgc_add_out_raw ((melt_ptr_t) $OUTB, ctime (&now)) ;
-     }#
-     )
+     meltgc_add_out_raw ((melt_ptr_t) $OUTB, ctime (&now$OUTDAT)) ;
+     } /* end makedoc_genoutput $OUTDAT */ }#)
     (add2sbuf_strconst outb "@node MELT Programming Reference")
     (add2sbuf_indentnl outb 0)
     (add2sbuf_strconst outb "@chapter MELT Programming Reference")
@@ -3510,7 +3509,7 @@ melt_scanning (melt_ptr_t p)
       ;;
       ;;; generated declaration
       (code_chunk termcommentdeclchk 
-		  #{ /* runtypesupport_docmd $TERMCOMMENTDECLCHK */
+		  #{ /* runtypesupport_docmd $TERMCOMMENTDECLCHK */ {
 		  time_t nowdecl = 0;
 		  char decldatebuf[48];
 		  memset (decldatebuf, 0, sizeof(decldatebuf));
@@ -3522,13 +3521,13 @@ melt_scanning (melt_ptr_t p)
 				     " * by GCC MELT %s . ***/\n",
 				     melt_string_str((melt_ptr_t) $OUTDECLNAME),
 				     decldatebuf, melt_gccversionstr);
-		  /* end  $TERMCOMMENTDECLCHK runtypesupport_docmd */}#)
+		  } /* end  $TERMCOMMENTDECLCHK runtypesupport_docmd */}#)
       (output_sbuf_strval outdeclbuf outdeclname)
       (informsg_strv "generated runtype support declaration file" outdeclname)
       ;;; generated code
       (code_chunk 
        termcommentcodechk 
-       #{ /* runtypesupport_docmd $TERMCOMMENTCODECHK */
+       #{ /* runtypesupport_docmd $TERMCOMMENTCODECHK */ {
        time_t nowcode = 0;
        char codedatebuf[48];
        memset (codedatebuf, 0, sizeof(codedatebuf));
@@ -3540,7 +3539,7 @@ melt_scanning (melt_ptr_t p)
 			  " * by GCC MELT %s . ***/\n",
 			  melt_string_str((melt_ptr_t) $OUTCODENAME),
 			  codedatebuf, melt_gccversionstr);
-       /* end  $TERMCOMMENTCODECHK runtypesupport_docmd*/}#)
+       } /* end  $TERMCOMMENTCODECHK runtypesupport_docmd*/}#)
       (output_sbuf_strval outcodebuf outcodename)
       (informsg_strv "generated runtype support implementation file" outcodename)
       ;;
@@ -4033,15 +4032,15 @@ ASSERT_MSG) is enabled"
 	     (>=i inchfd 0))
 	(code_chunk
 	 statinchfdchk
-	 #{ /*register_input_channel_handler $STATINCHFDCHK */ struct stat $STATINCHFDCHK#_stat;
+	 #{ /*register_input_channel_handler $STATINCHFDCHK */ {
+         struct stat $STATINCHFDCHK#_stat;
 	 memset (& $STATINCHFDCHK#_stat, 0, sizeof(struct stat));
 	 if (fstat ($INCHFD, & $STATINCHFDCHK#_stat))
 	 warning(0, "MELT bad registered input channel fd#%d - %s",
 		    (int) $INCHFD, xstrerror (errno));
 	 else
 	 $GOODINCHFD = 1; 
-	 /* end $STATINCHFDCHK */
-         }#)
+	 } /* end $STATINCHFDCHK */ }#)
       )
     (if (not goodinchfd) (return)))
   (let ( (insbuf (make_strbuf discr_strbuf)) 
@@ -4226,17 +4225,16 @@ ASSERT_MSG) is enabled"
 		    (==i keypid (get_int (get_field  :chilproh_pid chph))))
 	(code_chunk 
 	 waitpidchk
-	 #{ /* child_process_sigchld_handler $WAITPIDCHK */
-         pid_t wpid = 0					     ;
-	 int pstatus = 0				     ;
-	 $WAITFAIL = 0L					     ;
-	 $PIDSTAT = 0L					     ;
-	 wpid = waitpid ((pid_t) $KEYPID, &pstatus, WNOHANG) ;
-	 $WAITFAIL = (wpid != (pid_t) $KEYPID)		     ;
-	 if (!$WAITFAIL)
-	 $PIDSTAT = pstatus		;
-         /* child_process_sigchld_handler end $WAITPIDCHK */
-	 }#)
+         #{ /* child_process_sigchld_handler $WAITPIDCHK */ {
+         pid_t wpid = 0 ;
+         int pstatus = 0 ;
+         $WAITFAIL = 0L ;
+         $PIDSTAT = 0L ;
+         wpid = waitpid ((pid_t) $KEYPID, &pstatus, WNOHANG) ;
+         $WAITFAIL = (wpid != (pid_t) $KEYPID) ;
+         if (!$WAITFAIL)
+           $PIDSTAT = pstatus ;
+         } /* child_process_sigchld_handler end $WAITPIDCHK */ }#)
 	(unless waitfail
 	  (list_append lischph chph)
 	  (list_append liswstat (make_integerbox discr_constant_integer pidstat)))
@@ -4269,7 +4267,7 @@ ASSERT_MSG) is enabled"
 	    ))
 	 (code_chunk 
 	  lookwstatchk
-	  #{ /* child_process_sigchld_handler $LOOKWSTATCHK */
+	  #{ /* child_process_sigchld_handler $LOOKWSTATCHK */ {
 	  int wstat = (int) $CURWSTAT ;
 	  if (WIFEXITED(wstat)) {
 	    $EXITED = 1 ;
@@ -4283,7 +4281,7 @@ ASSERT_MSG) is enabled"
 	       ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING),
 	        strsignal($TERMSIG)) ;
           }
-	  }#)
+	  } /* end child_process_sigchld_handler $LOOKWSTATCHK */  }#)
 	 (cond
 	  (exited 
 	   (cond 

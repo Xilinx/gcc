@@ -338,7 +338,7 @@ ifndef MELTGENMOD_CUMULATED_MD5SUM_[+melt_stagident+]_[+melt_basident+]
 MELTGENMOD_CUMULATED_MD5SUM_[+melt_stagident+]_[+melt_basident+]=$(shell cat  [+melt_stage+]/[+base+].c  [+melt_stage+]/[+base+]+[0-9]*.c | $(MD5SUM) | cut -b-24)
 endif
 
-#@ [+ (. (tpl-file-line))+] 
+#@ [+ (. (tpl-file-line))+] base [+base+] flavor [+flavor+]
 [+melt_stage+]/[+base+].[+flavor+].so: [+melt_stage+]/[+base+]+meltbuild.mk \
   [+melt_stage+]/[+base+]+meltdesc.c [+melt_stage+]/[+base+].c 
 	@echo  @+@melt-newbuild module at= $@ circ= $^ MAKE= $(MAKE) MAKEFLAGS= $(MAKEFLAGS) MAKEFILES= $(MAKEFILES) stage=[+melt_stage+] base=[+base+] prevstage=[+melt_prevstage+] GCCMELT_BUILD_MKFILE= $(GCCMELT_BUILD_MKFILE) [+ (. (tpl-file-line))+]

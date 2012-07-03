@@ -5431,12 +5431,13 @@ if (1) return;
 	 )
     (code_chunk 
      setisvalidmodsrcch 
-     #{ /* translate_to_c_one_or_more_melt_files $SETISVALIDMODSRCCH */
+     #{ /* translate_to_c_one_or_more_melt_files $SETISVALIDMODSRCCH */ {
      const char* modsrcstr = melt_string_str ((melt_ptr_t) $MODSRCNAME);
      const char* modsrcbase = modsrcstr ? (lbasename (modsrcstr)) : NULL;
      if (modsrcbase)
        $ISVALIDMODSRC =
        (strchr(modsrcbase,'.') == NULL) && (strchr(modsrcbase,'+') == NULL);
+       } /* end translate_to_c_one_or_more_melt_files $SETISVALIDMODSRCCH */
      }#)
     (if (not isvalidmodsrc)
 	(progn
@@ -5485,7 +5486,7 @@ notice for file named $NAME.}#
   (let ( (:long year 0)
 	 )
     (code_chunk  getyear
-     #{ /*+ $GETYEAR*/
+     #{ /*+ generate_gplv3plus_copyright_notice_c_comment $GETYEAR*/ {
         time_t $GETYEAR#_now = 0;
 	struct tm* $GETYEAR#_tm = NULL;
         $YEAR = atol (__DATE__ + 7);
@@ -5494,7 +5495,7 @@ notice for file named $NAME.}#
 	   $GETYEAR#_tm = localtime (&$GETYEAR#_now);
         if ($GETYEAR#_tm) 
 	   $YEAR = $GETYEAR#_tm->tm_year + 1900;
-        /*- $GETYEAR*/}#)
+        } /*- $GETYEAR*/}#)
     (add2sbuf_longdec sbuf year)
     )
   (add2sbuf_strconst sbuf " Free Software Foundation, Inc.")

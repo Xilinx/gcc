@@ -1,5 +1,17 @@
 
 2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-newbuild.tpl: Better emitted comment.
+
+	* melt-newbuild.mk: Regenerate.
+
+	* melt/warmelt-normal.melt (normexp_symbol, normexp_defcmatcher)
+	(normexp_definstance, normexp_defselector): Return secondary nil.
+
+	* melt/warmelt-outobj.melt: Adding block in codechunk.
+
+	* melt/warmelt-modes.melt: Ditto.
+
+2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate all}}
 
 	* melt/generated/warmelt-base+meltdesc.c: Regenerate.
