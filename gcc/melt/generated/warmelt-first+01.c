@@ -12121,8 +12121,8 @@ lab_endgetargs:;
 	{
 
    /*_.GET_RAW_SYMBOL__V6*/ meltfptr[5] =
-	    meltgc_named_symbol ((char *) /*_?*/ meltfram__.loc_CSTRING__o0,
-				 MELT_GET);;
+	    meltgc_named_symbol ((const char *) /*_?*/ meltfram__.
+				 loc_CSTRING__o0, MELT_GET);;
 	  /*^compute */
 
 	  /*_.SYMB__V5*/ meltfptr[4] = /*_.GET_RAW_SYMBOL__V6*/ meltfptr[5];;
