@@ -1,3 +1,7 @@
+2012-07-03  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cp-gimplify.c (genericize_cp_loop): Removed adding the reset stmt.
+
 2012-06-26  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* parser.c (cp_parser_pragma): Fixed a bug by calling linear instead of

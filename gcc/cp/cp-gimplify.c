@@ -276,7 +276,6 @@ genericize_cp_loop (tree *stmt_p, location_t start_locus, tree cond, tree body,
   append_to_statement_list (entry, &stmt_list);
   append_to_statement_list (exit, &stmt_list);
   finish_bc_block (&stmt_list, bc_break, blab);
-  append_to_statement_list (reset_stmt_list, &stmt_list);
 
   if (stmt_list == NULL_TREE)
     stmt_list = build1 (NOP_EXPR, void_type_node, integer_zero_node);

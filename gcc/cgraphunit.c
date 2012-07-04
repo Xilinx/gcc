@@ -452,7 +452,7 @@ cgraph_finalize_function (tree decl, bool nested)
   if (warn_unused_parameter)
     do_warn_unused_parameter (decl);
 
-  if (!nested)
+  if (!nested && !flag_enable_cilk)
     ggc_collect ();
 
   if (cgraph_state == CGRAPH_STATE_CONSTRUCTION

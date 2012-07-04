@@ -2286,7 +2286,7 @@ static tree
 compute_loop_var (struct cilk_for_desc *cfd, tree loop_var, tree lower_bound)
 {
   tree incr = cfd->incr;
-  tree count_type = cfd->count_type;
+  tree count_type = TREE_TYPE (loop_var);
   tree scaled, adjusted;
   int incr_sign = cfd->incr_sign;
   enum tree_code add_op = incr_sign >= 0 ? PLUS_EXPR : MINUS_EXPR;
