@@ -12289,18 +12289,16 @@ lab_endgetargs:;
 	      for (i = 0; i < (int) /*_#NBSYMB__L2*/ meltfnum[1];
 		   i += 2)
 		{
-		  char *n1 =
-		    (char *) melt_string_str ((melt_ptr_t)
-					      melt_multiple_nth ((melt_ptr_t)
-								 /*_.SORTEDNAMETUP__V16*/
-								 meltfptr[15],
-								 i));
-		  char *n2 =
-		    (char *) melt_string_str ((melt_ptr_t)
-					      melt_multiple_nth ((melt_ptr_t)
-								 /*_.SORTEDNAMETUP__V16*/
-								 meltfptr[15],
-								 i + 1));
+		  const char *n1 =
+		    melt_string_str ((melt_ptr_t)
+				     melt_multiple_nth ((melt_ptr_t)
+							/*_.SORTEDNAMETUP__V16*/
+							meltfptr[15], i));
+		  const char *n2 =
+		    melt_string_str ((melt_ptr_t)
+				     melt_multiple_nth ((melt_ptr_t)
+							/*_.SORTEDNAMETUP__V16*/
+							meltfptr[15], i + 1));
 		  if (n1 && n2)
 		    inform (UNKNOWN_LOCATION,
 			    "possible MELT options: %s & %s", n1, n2);

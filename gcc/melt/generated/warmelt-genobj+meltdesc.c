@@ -19,7 +19,7 @@
 	     #endif /*__cplusplus */
 	     
 /* version of the GCC compiler & MELT runtime generating this */
-const char melt_genversionstr[]="4.8.0 20120702 (experimental) [melt-branch revision 189193] MELT_0.9.6-pre"
+const char melt_genversionstr[]="4.8.0 20120702 (experimental) [melt-branch revision 189247] MELT_0.9.6-pre"
 
 	     #ifdef __cplusplus
 	     " (in C++)"
@@ -28,7 +28,7 @@ const char melt_genversionstr[]="4.8.0 20120702 (experimental) [melt-branch revi
 	     #endif
 					;
 	     
-const char melt_versionmeltstr[]="0.9.6-pre [melt-branch_revision_189193]";
+const char melt_versionmeltstr[]="0.9.6-pre [melt-branch_revision_189247]";
 
 /* source name & real path of the module */
 /*MELTMODULENAME MELT-STAGE-ZERO/warmelt-genobj */
