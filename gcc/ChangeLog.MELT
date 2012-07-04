@@ -1,4 +1,12 @@
 
+2012-07-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt (mexpand_use_package_from_pkg_config):
+	Add block in code chunk.
+
+	* melt-newbuild.tpl: Still buggy, with explicit time stamps...
+
+	* melt-newbuild.mk: Regenerate.
+
 2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt (option_helper_fun): Use const in code chunk.
 

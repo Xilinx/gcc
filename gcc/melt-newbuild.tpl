@@ -37,6 +37,9 @@ GAWK ?= gawk
 ## the md5sum utility is needed  [+ (. (tpl-file-line))+]
 MD5SUM ?= md5sum
 
+## Gnu Grep
+GREP ?= grep
+
 include melt-build-param.mk
 
 GCCMELT_ZERO_FLAVOR=$(patsubst melt-stage0-%,%,$(GCCMELT_STAGE_ZERO))
@@ -58,6 +61,9 @@ GCCMELT_OPTIMIZED_PREPROFLAGS?= -DMELTGCC_MODULE_OPTIMIZED -DMELT_HAVE_DEBUG=0
 ## settings  [+ (. (tpl-file-line))+] for debugnoline 
 GCCMELT_DEBUGNOLINE_FLAGS?= -g
 GCCMELT_DEBUGNOLINE_PREPROFLAGS?= -DMELTGCC_MODULE_DEBUGNOLINE  -DMELTGCC_NOLINENUMBERING -DMELT_HAVE_DEBUG=1
+
+## settings  [+ (. (tpl-file-line))+] for stagingflavor
+GCCMELT_STAGINGFLAVOR?=quicklybuilt 
 
 
 ## xflavors  [+ (. (tpl-file-line))+]
@@ -115,6 +121,8 @@ MELT_ZERO_GENERATED_[+mkvarsuf+]_BASENAME= \
 MELT_ZERO_GENERATED_[+mkvarsuf+]_CUMULMD5:=$(shell $(GAWK) -F\" '/extern/{next} /melt_cumulated_hexmd5/{print $$2}' $(GCCMELT_MELTSOURCEDIR)/generated/[+base+]+meltdesc.c)
 [+ENDFOR melt_translator_file+]
 
+$(warning [+ (. (tpl-file-line))+] buggy since generating melt-stage1/warmelt-first.c again and again)
+
 ## An empty file is needed for every MELT translation [+ (. (tpl-file-line))+]
 empty-file-for-melt.c:
 	date +"/* empty-file-for-melt.c %c */" > $@-tmp
@@ -169,7 +177,7 @@ melt-workdir:
 	test -d $@ || mkdir $@
 
 ### catch excessive recursion  [+ (. (tpl-file-line))+] to help debugging with remake
-ifeq (32,$(MAKELEVEL))
+ifeq (48,$(MAKELEVEL))
 $(error too recursive make MAKELEVEL= $(MAKELEVEL)  [+ (. (tpl-file-line))+])
 endif
 
@@ -188,12 +196,19 @@ melt-stage0-[+zeroflavor+]:
 
 [+FOR melt_translator_file+]
 
-#@  symlink for module without checksum [+ (. (tpl-file-line))+]
+#@  stamp for stage0 [+zeroflavor+] base [+base+] [+ (. (tpl-file-line))+]
+melt-stage0-[+zeroflavor+]/[+base+].[+zeroflavor+].stamp: \
+   melt-stage0-[+zeroflavor+]/[+base+]+meltdesc.c \
+   melt-stage0-[+zeroflavor+]/[+base+].$(MELT_ZERO_GENERATED_[+mkvarsuf+]_CUMULMD5).[+zeroflavor+].so
+	@echo @+@melt-newbuild-stamp [+ (. (tpl-file-line))+] at= $@ circ= $^
+	date +"melttimestamp file $@ [+ (. (tpl-file-line))+] generated %c" > $@-tmp
+	ls -l $(realpath $^) >> $@-tmp
+	$(MD5SUM) $(realpath $^) >> $@-tmp
+	mv $@-tmp $@
 
-melt-stage0-[+zeroflavor+]/[+base+].[+zeroflavor+].so  melt-stage0-[+zeroflavor+]/[+base+].$(MELT_ZERO_GENERATED_[+mkvarsuf+]_CUMULMD5).[+zeroflavor+].so: \
+melt-stage0-[+zeroflavor+]/[+base+].$(MELT_ZERO_GENERATED_[+mkvarsuf+]_CUMULMD5).[+zeroflavor+].so: \
   melt-stage0-[+zeroflavor+]/[+base+].$(MELT_ZERO_GENERATED_[+mkvarsuf+]_CUMULMD5).[+zeroflavor+].meltmod.so
-	@echo newbuild-symlink-module0.[+zeroflavor+].[+base+] at= $@ left= $< circ= $^ [+ (. (tpl-file-line))+]
-	$(LN_S) -f -v $(realpath $<)  $@
+	@echo newbuild-link-module0.[+zeroflavor+].[+base+] at= $@ left= $< circ= $^ [+ (. (tpl-file-line))+]
 	$(LN_S) -f -v $(realpath $<) melt-stage0-[+zeroflavor+]/[+base+].$(MELT_ZERO_GENERATED_[+mkvarsuf+]_CUMULMD5).[+zeroflavor+].so
 [+ENDFOR  melt_translator_file+]
 
@@ -306,26 +321,26 @@ ENDFOR melt_translator_file+]
   (define depindex (if (< inindex outindex) stageindex (- stageindex 1)))
   (define prevflavor (if (> stageindex 1) "quicklybuilt" "$(GCCMELT_ZERO_FLAVOR)"))
   (define depflavor (if (< inindex outindex) "quicklybuilt" prevflavor))
-+]      [+ (. depstage)+]/[+(. inbase)+].[+ (. depflavor)+].so \
++]      [+ (. depstage)+]/[+(. inbase)+].[+ (. depflavor)+].stamp \
 [+ENDFOR melt_translator_file
 +]   empty-file-for-melt.c $(GCCMELT_CC1_DEPENDENCIES) | [+melt_stage+]
 	@echo @+@melt-newbuild-desc-[+melt_stage+]-[+ (. outbase)+]  at= $@ left= $< circ= $^ prevstage=[+melt_prevstage+] prevflavor=[+melt_prevflavor+] [+ (. (tpl-file-line))+]
-	@echo [+IF (= outindex 0)+] $(MELTCCINIT1ARGS)[+ELSE+] $(MELTCCFILE1ARGS)[+ENDIF+] > [+ (. outbase)+]+[+melt_stage+].args-tmp
+	@echo [+IF (= outindex 0)+] $(MELTCCINIT1ARGS)[+ELSE+] $(MELTCCFILE1ARGS)[+ENDIF+] > [+melt_stage+]/[+base+].args-tmp
 	@echo  $(meltarg_init)=[+FOR melt_translator_file ":\\\n"+][+ (define inbase (get "base")) (define inindex (for-index)) 
   (define depstage (if (< inindex outindex) (get "melt_stage") prevstage))
   (define depflavor (if (< inindex outindex) "quicklybuilt" prevflavor))
   (define depindex (if (< inindex outindex) stageindex (- stageindex 1)))
 +][+ (. depstage)+]/[+ (. inbase)+].[+ (. depflavor)+][+ENDFOR melt_translator_file
-+] >> [+ (. outbase)+]+[+melt_stage+].args-tmp
++] >> [+melt_stage+]/[+base+].args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell $(MD5SUM) $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath [+melt_stage+]):$(realpath [+melt_prevstage+]):melt-workdir \
 	      $(meltarg_source_path)=$(realpath .):$(realpath [+melt_stage+]):$(realpath [+melt_prevstage+]):$(realpath $(GCCMELT_MELTSOURCEDIR)):$(realpath $(GCCMELT_MELTSOURCEDIR)/generated):melt-workdir \
 	      $(meltarg_output)=[+melt_stage+]/[+ (. outbase)+] $(meltarg_workdir)=melt-workdir $(meltarg_genworklink) \
-	      empty-file-for-melt.c >> [+ (. outbase)+]+[+melt_stage+].args-tmp
-	@$(melt_move_if_change)  [+ (. outbase)+]+[+melt_stage+].args-tmp  [+ (. outbase)+]+[+melt_stage+].args
-	@echo; echo; echo -n   @+@melt-newbuild [+ (. outbase)+]+[+melt_stage+].args: ; cat [+ (. outbase)+]+[+melt_stage+].args ; echo; echo; echo "***** doing " $@  [+ (. (tpl-file-line))+]
+	      empty-file-for-melt.c >> [+melt_stage+]/[+base+].args-tmp
+	@$(melt_move_if_change)  [+melt_stage+]/[+base+].args-tmp  [+melt_stage+]/[+base+].args
+	@echo; echo; echo -n   @+@melt-newbuild [+melt_stage+]/[+base+].args: ; cat [+melt_stage+]/[+base+].args ; echo; echo; echo "***** doing " $@  [+ (. (tpl-file-line))+]
 	@echo  @+@melt-newbuild doing [+ (. outbase)+]+[+melt_stage+] with GCCMELT_CC1= $(GCCMELT_CC1)  [+ (. (tpl-file-line))+]
-	$(GCCMELT_CC1) -DGCCMELT_FROMTPL=\"$(shell echo  [+ (. (tpl-file-line))+] [+melt_stage+] [+base+] | sed 's/ /_/g')\" @[+ (. outbase)+]+[+melt_stage+].args
+	$(GCCMELT_CC1) -DGCCMELT_FROMTPL=\"$(shell echo  [+ (. (tpl-file-line))+] [+melt_stage+] [+base+] | sed 's/ /_/g')\" @[+melt_stage+]/[+base+].args
 	@ls -l [+melt_stage+]/[+ (. outbase)+].c  || ( echo "*@*MISSING "  [+melt_stage+]/[+ (. outbase)+].c [+ (. (tpl-file-line))+] ; exit 1 )
 
 #@ [+ (. (tpl-file-line))+] 
@@ -335,17 +350,20 @@ ENDFOR melt_translator_file+]
 #@ flavor  base [+base+] stage [+melt_stage+] [+ (. (tpl-file-line))+]
 
 ifndef MELTGENMOD_CUMULATED_MD5SUM_[+melt_stagident+]_[+melt_basident+]
-MELTGENMOD_CUMULATED_MD5SUM_[+melt_stagident+]_[+melt_basident+]=$(shell cat  [+melt_stage+]/[+base+].c  [+melt_stage+]/[+base+]+[0-9]*.c | $(MD5SUM) | cut -b-24)
+MELTGENMOD_CUMULATED_MD5SUM_[+melt_stagident+]_[+melt_basident+]:=$(shell cat  [+melt_stage+]/[+base+].c  [+melt_stage+]/[+base+]+[0-9]*.c | $(MD5SUM) | cut -b-24)
 endif
 
-#@ [+ (. (tpl-file-line))+] base [+base+] flavor [+flavor+]
-[+melt_stage+]/[+base+].[+flavor+].so: [+melt_stage+]/[+base+]+meltbuild.mk \
+#@ [+ (. (tpl-file-line))+] base [+base+] flavor [+flavor+] stamp
+[+melt_stage+]/[+base+].[+flavor+].stamp: [+melt_stage+]/[+base+]+meltbuild.mk \
   [+melt_stage+]/[+base+]+meltdesc.c [+melt_stage+]/[+base+].c 
-	@echo  @+@melt-newbuild module at= $@ circ= $^ MAKE= $(MAKE) MAKEFLAGS= $(MAKEFLAGS) MAKEFILES= $(MAKEFILES) stage=[+melt_stage+] base=[+base+] prevstage=[+melt_prevstage+] GCCMELT_BUILD_MKFILE= $(GCCMELT_BUILD_MKFILE) [+ (. (tpl-file-line))+]
+	@echo  @+@melt-newbuild stamp at= $@ circ= $^ MAKE= $(MAKE) MAKEFLAGS= $(MAKEFLAGS) MAKEFILES= $(MAKEFILES) stage=[+melt_stage+] base=[+base+] prevstage=[+melt_prevstage+] GCCMELT_BUILD_MKFILE= $(GCCMELT_BUILD_MKFILE) [+ (. (tpl-file-line))+]
 	$(MAKE) -f $(GCCMELT_BUILD_MKFILE) GCCMELT_BUILD_MKFILE=$(GCCMELT_BUILD_MKFILE) melt-workdir/[+base+].$(MELTGENMOD_CUMULATED_MD5SUM_[+melt_stagident+]_[+melt_basident+]).[+flavor+].meltmod.so
-	@echo  @+@melt-newbuild module made melt-workdir/[+base+].$(MELTGENMOD_CUMULATED_MD5SUM_[+melt_stagident+]_[+melt_basident+]).[+flavor+].meltmod.so [+ (. (tpl-file-line))+]
-	$(LN_S) -v -f $(realpath melt-workdir)/[+base+].$(MELTGENMOD_CUMULATED_MD5SUM_[+melt_stagident+]_[+melt_basident+]).[+flavor+].meltmod.so  [+melt_stage+]/[+base+].[+flavor+].$(MELTGENMOD_CUMULATED_MD5SUM_[+melt_stagident+]_[+melt_basident+]).so 
-	$(LN_S) -v -f $(realpath melt-workdir)/[+base+].$(MELTGENMOD_CUMULATED_MD5SUM_[+melt_stagident+]_[+melt_basident+]).[+flavor+].meltmod.so  $@
+	@echo  @+@melt-newbuild step made melt-workdir/[+base+].$(MELTGENMOD_CUMULATED_MD5SUM_[+melt_stagident+]_[+melt_basident+]).[+flavor+].meltmod.so [+ (. (tpl-file-line))+]
+	$(LN_S) -v -f $(realpath melt-workdir)/[+base+].$(MELTGENMOD_CUMULATED_MD5SUM_[+melt_stagident+]_[+melt_basident+]).[+flavor+].meltmod.so  [+melt_stage+]/[+base+].$(MELTGENMOD_CUMULATED_MD5SUM_[+melt_stagident+]_[+melt_basident+]).[+flavor+].so 
+	ls -l $(realpath $^) > $@-tmp
+	ls -lL $(realpath $^) >> $@-tmp
+	$(GREP) MELTGENMOD $< >> $@-tmp
+	$(melt_move_if_change) $@-tmp $@
 
 
 #@ end flavor [+flavor+] base [+base+] stage [+melt_stage+] [+ (. (tpl-file-line))+]
@@ -358,14 +376,8 @@ endif
 
 
 #@ stage [+melt_stage+] phony step [+ (. (tpl-file-line))+]
-[+melt_stage+]-step: 
-	@echo  @+@melt-newbuild-[+melt_stage+] at= $@ circ= $^ [+ (. (tpl-file-line))+]
-[+FOR melt_translator_file+]
-	$(MAKE) -f $(realpath $(GCCMELT_BUILD_MKFILE)) GCCMELT_BUILD_MKFILE=$(GCCMELT_BUILD_MKFILE) [+melt_stage+]/[+base+]+meltbuild.mk [+melt_stage+]/[+base+].c
-	@echo  @+@melt-newbuild-[+melt_stage+]-base [+base+] module [+ (. (tpl-file-line))+]
-	$(MAKE) -f $(realpath $(GCCMELT_BUILD_MKFILE)) GCCMELT_BUILD_MKFILE=$(GCCMELT_BUILD_MKFILE)  [+melt_stage+]/[+base+].quicklybuilt.so
-	@echo  @+@melt-newbuild-[+melt_stage+]-base [+base+] done [+ (. (tpl-file-line))+]
-[+ENDFOR melt_translator_file+]
+[+melt_stage+]-step: [+FOR melt_translator_file " \\\n"+][+melt_stage+]/[+base+].$(GCCMELT_STAGINGFLAVOR).stamp[+ENDFOR melt_translator_file+]
+	@echo  @+@melt-newbuild-[+melt_stage+]-step at= $@ circ= $^ [+ (. (tpl-file-line))+]
 
 #@ end stage [+melt_stage+] [+ (. (tpl-file-line))+]
 [+ENDFOR melt_stage+]

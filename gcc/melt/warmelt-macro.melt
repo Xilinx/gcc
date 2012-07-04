@@ -5923,12 +5923,14 @@ remain.}#)
 	   (:long failcmd 0)
 	   )
       (debug "mexpand_use_package_from_pkg_config cmdstr=" cmdstr)
-      (code_chunk testpkgconfig_chk #{ /* mexpand_use_package_from_pkg_config $TESTPKGCONFIG_CHK */
-		  const char* cmd_$TESTPKGCONFIG_CHK = melt_string_str ((melt_ptr_t) $CMDSTR) ;
-		  fflush (NULL)		;
+      (code_chunk testpkgconfig_chk #{ /* mexpand_use_package_from_pkg_config $TESTPKGCONFIG_CHK */ {
+		  const char* cmd_$TESTPKGCONFIG_CHK = 
+		    melt_string_str ((melt_ptr_t) $CMDSTR) ;
+		  fflush (NULL)	;
 		  $FAILCMD = (cmd_$TESTPKGCONFIG_CHK 
 			      ? system (cmd_$TESTPKGCONFIG_CHK) 
 			      : 1000) ;
+		  } /* end mexpand_use_package_from_pkg_config $TESTPKGCONFIG_CHK */
 		  }#)
       (debug "mexpand_use_package_from_pkg_config failcmd=" failcmd)
       (when failcmd
