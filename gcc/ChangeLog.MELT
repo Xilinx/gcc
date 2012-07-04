@@ -1,5 +1,14 @@
 
 2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* Makefile.in: move upper the export of MELTBUILD_MKFILE.
+
+	* melt-newbuild.tpl: Depend more on stamps file. Always rewrite them.
+	Still don't work!
+
+	* melt-newbuild.mk: Regenerate.
+
+2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate all}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.

@@ -62,8 +62,8 @@ GCCMELT_OPTIMIZED_PREPROFLAGS?= -DMELTGCC_MODULE_OPTIMIZED -DMELT_HAVE_DEBUG=0
 GCCMELT_DEBUGNOLINE_FLAGS?= -g
 GCCMELT_DEBUGNOLINE_PREPROFLAGS?= -DMELTGCC_MODULE_DEBUGNOLINE  -DMELTGCC_NOLINENUMBERING -DMELT_HAVE_DEBUG=1
 
-## settings  [+ (. (tpl-file-line))+] for stagingflavor
-GCCMELT_STAGINGFLAVOR?=quicklybuilt 
+## settings  [+ (. (tpl-file-line))+] for stagingflavor; avoid spaces below!
+GCCMELT_STAGINGFLAVOR?=quicklybuilt
 
 
 ## xflavors  [+ (. (tpl-file-line))+]
@@ -202,8 +202,8 @@ melt-stage0-[+zeroflavor+]/[+base+].[+zeroflavor+].stamp: \
    melt-stage0-[+zeroflavor+]/[+base+].$(MELT_ZERO_GENERATED_[+mkvarsuf+]_CUMULMD5).[+zeroflavor+].so
 	@echo @+@melt-newbuild-stamp [+ (. (tpl-file-line))+] at= $@ circ= $^
 	date +"melttimestamp file $@ [+ (. (tpl-file-line))+] generated %c" > $@-tmp
+	ls -l  $^ >> $@-tmp
 	ls -l $(realpath $^) >> $@-tmp
-	$(MD5SUM) $(realpath $^) >> $@-tmp
 	mv $@-tmp $@
 
 melt-stage0-[+zeroflavor+]/[+base+].$(MELT_ZERO_GENERATED_[+mkvarsuf+]_CUMULMD5).[+zeroflavor+].so: \
@@ -256,7 +256,7 @@ melt-stage0-[+zeroflavor+]/[+base+]%.[+zeroflavor+].zpic.o: melt-stage0-[+zerofl
 #@ stage 0 flavor [+zeroflavor+] modulelist  [+ (. (tpl-file-line))+] 
 melt-stage0-[+zeroflavor+]/warmelt.modlis:  | \
 [+FOR melt_translator_file " \\\n" 
-+]             melt-stage0-[+zeroflavor+]/[+base+].[+zeroflavor+].so \
++]             melt-stage0-[+zeroflavor+]/[+base+].[+zeroflavor+].stamp \
                 melt-stage0-[+zeroflavor+]/[+base+]+meltdesc.c [+
 ENDFOR melt_translator_file+]
 	@echo @+@melt-newbuild-modlis  at= $@ left= $< circ= $^ [+ (. (tpl-file-line))+]
@@ -350,7 +350,7 @@ ENDFOR melt_translator_file+]
 #@ flavor  base [+base+] stage [+melt_stage+] [+ (. (tpl-file-line))+]
 
 ifndef MELTGENMOD_CUMULATED_MD5SUM_[+melt_stagident+]_[+melt_basident+]
-MELTGENMOD_CUMULATED_MD5SUM_[+melt_stagident+]_[+melt_basident+]:=$(shell cat  [+melt_stage+]/[+base+].c  [+melt_stage+]/[+base+]+[0-9]*.c | $(MD5SUM) | cut -b-24)
+MELTGENMOD_CUMULATED_MD5SUM_[+melt_stagident+]_[+melt_basident+]=$(shell cat  [+melt_stage+]/[+base+].c  $(wildcard [+melt_stage+]/[+base+]+[0-9]*.c) | $(MD5SUM) | cut -b-24)
 endif
 
 #@ [+ (. (tpl-file-line))+] base [+base+] flavor [+flavor+] stamp
@@ -363,7 +363,9 @@ endif
 	ls -l $(realpath $^) > $@-tmp
 	ls -lL $(realpath $^) >> $@-tmp
 	$(GREP) MELTGENMOD $< >> $@-tmp
-	$(melt_move_if_change) $@-tmp $@
+# we probably want to always move [+melt_stage+]/[+base+].[+flavor+].stamp  [+ (. (tpl-file-line))+] 
+#	$(melt_move_if_change) $@-tmp $@
+	mv $@-tmp $@
 
 
 #@ end flavor [+flavor+] base [+base+] stage [+melt_stage+] [+ (. (tpl-file-line))+]

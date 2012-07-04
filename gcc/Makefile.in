@@ -5420,13 +5420,13 @@ export GCCMELT_LINKER_FLAGS= $(LINKER_FLAGS)
 ## regenerate MELT for the newbuild...
 ifdef MELT_NEWBUILD
 export MELT_NEWBUILD
+export MELTBUILD_MKFILE=$(srcdir)/melt-newbuild.mk
 $(srcdir)/melt-newbuild.mk: @MAINT@ $(srcdir)/melt-newbuild.def $(srcdir)/melt-newbuild.tpl
 	cd $(srcdir) && $(AUTOGEN) melt-newbuild.def
-export MELTBUILD_MKFILE=$(srcdir)/melt-newbuild.mk
 else
+export MELTBUILD_MKFILE=$(srcdir)/melt-build.mk
 $(srcdir)/melt-build.mk: @MAINT@ $(srcdir)/melt-build.def $(srcdir)/melt-build.tpl
 	cd $(srcdir) && $(AUTOGEN) melt-build.def
-export MELTBUILD_MKFILE=$(srcdir)/melt-build.mk
 include  $(MELTBUILD_MKFILE)
 endif
 
