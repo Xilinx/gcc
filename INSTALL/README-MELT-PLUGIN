@@ -186,6 +186,78 @@ welcome by email to <basile@starynkevitch.net> [please mention MELT in
 the subject line] and to <gcc-melt@googlegroups.com>
 
 ################################################################
+NEWS for 0.9.6 MELT plugin for GCC 4.6 & 4.7
+[[july 2012]]
+
+   Language improvements
+   =====================
+
+   Syntax: (USE-PACKAGE-FROM-PKG-CONFIG <packagename>)
+
+   On systems, such as most Linux distributions, with the pkg-config
+   utility http://en.wikipedia.org/wiki/Pkg-config
+   http://pkg-config.freedesktop.org/ the given packagename is used
+   when compiline the generated C code and when linking the generated
+   shared module.
+
+   Emited C code by MELT is more conformant to C++ and C coding standards.
+
+   More primitives, macros, ... notably WHEN & UNLESS, like in Common Lisp...
+
+   The CLASS_CONTAINER has been renamed as CLASS_REFERENCE. Likewise
+   SET_CONTENT is renamed as SET_REFERENCE...
+
+   Runtime improvements
+   ====================
+
+   When a function is called in an occurrence expecting secondary
+   results and does not return secondary results, a warning is
+   emitted.
+
+   MELT may emit symlinks to "unique" C files in the workdir, helpful
+   when regenerating an already generated file...
+
+   "Interrupts" have been inproperly named, speak of "signals" (in the
+   Posix/Unix sense, not the Gtk/Qt one!).
+
+   Add support for timers & child processes...
+
+   Library improvment
+   ==================
+
+   The probe mode is able to to start and communicate an external
+   graphical probe.
+
+   A simple probe, coded in C++ for GTKmm3.4, is available as a self
+   contained program simplemelt-gtkmm-probe.cc; its compilation
+   command is given at the very end of that source file, e.g.:
+
+        g++ -std=gnu++0x -Wall -O -g \
+          $(pkg-config --cflags --libs gtksourceviewmm-3.0  gtkmm-3.0  gtk+-3.0) \
+        -o $HOME/bin/simplemelt-gtkmm-probe simplemelt-gtkmm-probe.cc
+
+   You could have the following shell script, named melt-probe
+                     
+     #! /bin/bash -x
+     exec simplemelt-gtkmm-probe -T $*
+
+   The probe mode is expecting a shell script named melt-probe
+   somewhere in your path.
+
+   You can now compile some C or C++ ... file with GCC enhanced by MELT, e.g.
+     gcc -fplugin=melt -fplugin-arg-melt-mode=probe -c some-file.cc
+
+   A graphical window appears, to display your source code
+   some-file.cc (and others, e.g. included files). Click on the
+   buttons inside it to show the corresponding GCC internals at the
+   corresponding source location.
+
+   Ability to walk on gimple sequences using GCC infrastructure thru
+   walk_gimple_seq & walk_gimple_seq_unique_tree primitives.
+
+   Much more interfaces to Gimple & Trees...
+
+################################################################
 NEWS for 0.9.5 MELT plugin for GCC 4.6 & 4.7
 [[April 12th 2012]] 
 
