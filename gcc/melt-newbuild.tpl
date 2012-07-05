@@ -83,10 +83,10 @@ melt-workdir/%.[+xflavor+].meltpic.o:
 	@echo  @+@melt-newbuild-compile   at= $@ left= $< circ= $^  [+ (. (tpl-file-line))+]; ls -l $<
 	if [ -L "$^" ]; then \
 	   melt_realcircpath_[+xflavor+]=`readlink "$^"` ; \
-           echo  @+@melt-newbuild-compilesym  melt_realcircpath_[+xflavor+]= $$melt_realcircpath_[+xflavor+] circ= $^; \
-	   melt_realbase_[+xflavor+]=`basename $$melt_realcircpath_[+xflavor+] .mdsumed.c` ; \
-	   $(MAKE) -f $(GCCMELT_BUILD_MKFILE) GCCMELT_MAKEFROM=[+ (. (tpl-file-line "%s:%d"))+] GCCMELT_BUILD_MKFILE=$(GCCMELT_BUILD_MKFILE) melt-workdir/$$melt_realbase_[+xflavor+].meltmdsumpic.o ; \
-	   $(LN_S) -f -v $(realpath melt-workdir/$$melt_realbase_[+xflavor+].meltmdsumpic.o) $@ ; \
+	   melt_realbase_[+xflavor+]=`basename $${melt_realcircpath_[+xflavor+]} .mdsumed.c` ; \
+           echo  @+@melt-newbuild-compilesym  melt_realcircpath_[+xflavor+]= $${melt_realcircpath_[+xflavor+]} melt_realbase_[+xflavor+]= $${melt_realbase_[+xflavor+]} circ= $^ will make melt-workdir/$${melt_realbase_[+xflavor+]}.[+xflavor+].meltmdsumpic.o  [+ (. (tpl-file-line))+]; \
+	   $(MAKE) -f $(GCCMELT_BUILD_MKFILE) GCCMELT_MAKEFROM=[+ (. (tpl-file-line "%s:%d"))+] GCCMELT_BUILD_MKFILE=$(GCCMELT_BUILD_MKFILE) melt-workdir/$${melt_realbase_[+xflavor+]}.[+xflavor+].meltmdsumpic.o || exit 1; \
+	   $(LN_S) -f -v $(realpath melt-workdir/$$melt_realbase_[+xflavor+].[+xflavor+].meltmdsumpic.o) $@ ; \
 	else \
 	   $(GCCMELT_COMPILER) $(GCCMELT_COMPILER_FLAGS) $(GCCMELT_COMPILER_[+(. (string-upcase (get "xflavor")))+]_FLAGS) $(GCCMELT_PIC_FLAGS) -o $@ -c $< ; \
 	fi
@@ -158,19 +158,19 @@ meltarg_inhibitautobuild=$(if $(GCCMELT_IS_PLUGIN),-fplugin-arg-melt-inhibit-aut
 #@ [+ (. (tpl-file-line))+]
 ## MELT_DEBUG could be set to -fmelt-debug or -fplugin-arg-melt-debug
 ## the invocation to translate the very first initial MELT file [+ (. (tpl-file-line))+]
+## notice the makecmd is false because we don't want MELT to run make
 MELTCCINIT1ARGS= $(melt_make_cc1flags) -Wno-shadow $(meltarg_mode)=translateinit  \
-	      $(meltarg_makefile)=$(GCCMELT_MODULE_MK) \
-	      $(meltarg_makecmd)=$(MAKE) \
-              "$(meltarg_modulecflags)='$(melt_cflags)'" \
+	      $(meltarg_makecmd)=false \
 	      $(meltarg_tempdir)=. $(meltarg_bootstrapping) $(MELT_DEBUG)
 
-#@ [+ (. (tpl-file-line))+]
 ## the invocation to translate the other files [+ (. (tpl-file-line))+]
 MELTCCFILE1ARGS=  $(melt_make_cc1flags) -Wno-shadow $(meltarg_mode)=translatefile  \
 	      $(meltarg_makefile)=$(GCCMELT_MODULE_MK) \
-	      $(meltarg_makecmd)=$(MAKE) \
-              "$(meltarg_modulecflags)='$(melt_cflags)'" \
+	      $(meltarg_makecmd)=false \
 	      $(meltarg_tempdir)=. $(meltarg_bootstrapping)  $(MELT_DEBUG)
+
+
+#@ [+ (. (tpl-file-line))+]
 
 ## position independent flag to compile *.c into *pic.o [+ (. (tpl-file-line))+]
 GCCMELT_PIC_FLAGS ?= -fPIC
@@ -216,6 +216,8 @@ melt-stage0-[+zeroflavor+]-dir/[+base+].[+zeroflavor+].stamp: \
 	ls -l  $^ >> $@-tmp
 	ls -l $(realpath $^) >> $@-tmp
 	mv $@-tmp $@
+	ls -l $@
+	@echo @+@melt-newbuild-stamp [+ (. (tpl-file-line))+] at= $@ done
 
 melt-stage0-[+zeroflavor+]-dir/[+base+].$(MELT_ZERO_GENERATED_[+mkvarsuf+]_CUMULMD5).[+zeroflavor+].so: \
   melt-stage0-[+zeroflavor+]-dir/[+base+].$(MELT_ZERO_GENERATED_[+mkvarsuf+]_CUMULMD5).[+zeroflavor+].meltmod.so
@@ -374,6 +376,8 @@ ENDFOR melt_translator_file+]
 # we probably want to always move [+melt_stage+]/[+base+].[+flavor+].stamp  [+ (. (tpl-file-line))+] 
 #	$(melt_move_if_change) $@-tmp $@
 	mv $@-tmp $@
+	ls -l $@
+	@echo  @+@melt-newbuild step done $@ [+ (. (tpl-file-line))+]
 
 
 #@ end flavor [+flavor+] base [+base+] stage [+melt_stage+] [+ (. (tpl-file-line))+]

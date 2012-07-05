@@ -2,6 +2,12 @@
 
 2012-07-05  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-newbuild.tpl: Still buggy, with memoizing md5sum...
+
+	* melt-newbuild.mk: Regenerate.
+
+2012-07-05  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* Makefile.in: New build thru melt-build phony target.
 
 	* melt-newbuild.tpl: Using melt-stage*-dir/ directory. But still buggy.
