@@ -4614,25 +4614,25 @@ extern "C" {
 		 }#
 		 )
 	(add2sbuf_indentnl tibuf 0)
-	(code_chunk 
-	 gentimch
-	 #{ /* output_melt_descriptor $GENTIMCH + */
-	 time_t now = 0			    ;
-	 char nowbuf[64]		    ;
-	 time (&now)			    ;
-	 memset (nowbuf, 0, sizeof(nowbuf)) ;
-	 strftime (nowbuf, sizeof(nowbuf)-1, "%c %Z", localtime(&now)) ;
-	 if (melt_flag_bootstrapping)
-	 meltgc_add_strbuf ((melt_ptr_t) $TIBUF, "/*MELT BOOTSTRAP*/\n") ;
-	 meltgc_add_strbuf ((melt_ptr_t) $TIBUF, 
-			    "const char melt_gen_timestamp[]=\"") ;
-	 meltgc_add_strbuf_cstr ((melt_ptr_t) $TIBUF, nowbuf)	  ;
-	 meltgc_add_strbuf ((melt_ptr_t) $TIBUF, "\";\n")	  ;
-	 /*  $GENTIMCH don't use time_t, it is not a predefined C type! */
-	 meltgc_strbuf_printf ((melt_ptr_t) $TIBUF, 
-			       "const long long melt_gen_timenum=%lld;",
-			       (long long) now) ;	       
-	 /* output_melt_descriptor $GENTIMCH - */}#)
+        (code_chunk 
+         gentimch
+         #{ /* output_melt_descriptor $GENTIMCH + */ {
+         time_t now = 0 ;
+         char nowbuf[64] ;
+         time (&now) ;
+         memset (nowbuf, 0, sizeof(nowbuf)) ;
+         strftime (nowbuf, sizeof(nowbuf)-1, "%c %Z", localtime(&now)) ;
+         if (melt_flag_bootstrapping)
+           meltgc_add_strbuf ((melt_ptr_t) $TIBUF, "/*MELT BOOTSTRAP*/\n") ;
+         meltgc_add_strbuf ((melt_ptr_t) $TIBUF, 
+                            "const char melt_gen_timestamp[]=\"") ;
+         meltgc_add_strbuf_cstr ((melt_ptr_t) $TIBUF, nowbuf) ;
+         meltgc_add_strbuf ((melt_ptr_t) $TIBUF, "\";\n") ;
+         /*  $GENTIMCH don't use time_t, it is not a predefined C type! */
+         meltgc_strbuf_printf ((melt_ptr_t) $TIBUF, 
+                               "const long long melt_gen_timenum=%lld;",
+                               (long long) now) ;              
+         } /* output_melt_descriptor $GENTIMCH - */}#)
 	(add2sbuf_indentnl tibuf 0)
 	(add2out tibuf ##{
 		 const char melt_build_timestamp[]= __DATE__ "@" __TIME__

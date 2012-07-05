@@ -1,5 +1,14 @@
 
-2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
+2012-07-05  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-outobj.melt (output_melt_descriptor): Add block in
+	code chunk.
+
+	* melt-newbuild.tpl: Add melt-new phony target.
+
+	* melt-newbuild.mk: Regenerate.
+
+2012-07-04  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* Makefile.in: move upper the export of MELTBUILD_MKFILE.
 
@@ -8,7 +17,7 @@
 
 	* melt-newbuild.mk: Regenerate.
 
-2012-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
+2012-07-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate all}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.

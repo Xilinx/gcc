@@ -384,5 +384,14 @@ endif
 #@ end stage [+melt_stage+] [+ (. (tpl-file-line))+]
 [+ENDFOR melt_stage+]
 
+.PHONY: melt-new
+melt-new:
+	@echo  @+@melt-newbuild-new  at= $@ circ= $^ [+ (. (tpl-file-line))+] start
+	$(MAKE) -f $(realpath $(GCCMELT_BUILD_MKFILE)) GCCMELT_BUILD_MKFILE=$(realpath $(GCCMELT_BUILD_MKFILE)) 'MAKEFLAGS=$(MAKEFLAGS)' melt-stage0-step
+[+FOR melt_stage+]
+	@echo  @+@melt-newbuild-new doing [+melt_stage+]  [+ (. (tpl-file-line))+]
+	$(MAKE) -f $(realpath $(GCCMELT_BUILD_MKFILE)) GCCMELT_BUILD_MKFILE=$(realpath $(GCCMELT_BUILD_MKFILE)) 'MAKEFLAGS=$(MAKEFLAGS)' [+melt_stage+]
+[+ENDFOR melt_stage+]
+	@echo  @+@melt-newbuild-new  at= $@ circ= $^ [+ (. (tpl-file-line))+] end
 #@ [+ (. (tpl-file-line))+] eof melt-newbuild.mk
 ## eof melt-newbuild.mk generated from melt-newbuild.tpl & melt-newbuild.def
