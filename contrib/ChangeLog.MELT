@@ -1,4 +1,9 @@
 
+2012-07-05  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* make-melt-plugin-source-tar.sh: also copy the melt-build.* &
+	melt-newbuild.* files.
+
 2012-06-18  Alexandre Lissy  <alissy@mandriva.com>
 
 	* MELT-Plugin-Makefile (distclean,clean,test): new phony targets

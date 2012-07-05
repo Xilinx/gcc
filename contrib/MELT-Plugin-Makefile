@@ -306,6 +306,10 @@ melt-build.mk: melt-build.def melt-build.tpl
 
 include melt-build.mk
 
+## with MELTBUILD_MKFILE=melt-newbuild.mk we could run
+##	$(MAKE) -f $(realpath $(MELTBUILD_MKFILE)) GCCMELT_BUILD_MKFILE=$(realpath $(MELTBUILD_MKFILE)) 'MAKEFLAGS=$(MAKEFLAGS)' melt-build
+## but it is still so buggy, so I'm mentionning only in a comment...
+
 distclean: clean
 
 ## melt-clean comes from melt-build.mk
@@ -345,6 +349,50 @@ meltplugin.info: meltplugin.texi melt.texi
 meltpluginapi.pdf: meltpluginapi.texi meltgendoc.texi
 meltpluginapi.html: meltpluginapi.texi meltgendoc.texi
 meltpluginapi.info: meltpluginapi.texi meltgendoc.texi
+
+
+## this melt-build-param.mk is only useful for melt-newbuild.mk...
+## this is not really tested so probably wrong - july 2012...
+melt-build-param.mk:  Makefile
+	date "+#file $@ generated %c%n" > $@-tmp
+	echo '## compiler GCCMELT_COMPILER and flags GCCMELT_COMPILER_FLAGS to compile MELT generated code' >> $@-tmp
+	echo 'GCCMELT_COMPILER='  $(COMPILER) >> $@-tmp
+	echo 'GCCMELT_COMPILER_FLAGS=' $(filter-out -O% -g% -O -g, $(ALL_COMPILERFLAGS) $(INCLUDES)) >> $@-tmp
+	echo '## linker GCCMELT_LINKER and flags GCCMELT_LINKER_FLAGS to link MELT generated module' >> $@-tmp
+	echo 'GCCMELT_LINKER=' $(LINKER) >> $@-tmp
+	echo 'GCCMELT_LINKER_FLAGS='  $(filter-out -O% -g% -O -g, $(LINKER_FLAGS)) >> $@-tmp
+	echo '## source directory containing MELT code is GCCMELT_MELTSOURCEDIR' >> $@-tmp
+	echo 'GCCMELT_MELTSOURCEDIR=' $(realpath melt) >> $@-tmp
+	echo '## preprocessor definitions of the MELT runtime is GCCMELT_RUNTIME_CPPDEFS'  >> $@-tmp
+	echo 'GCCMELT_RUNTIME_CPPDEFS=' $(MELT_RUNTIME_CPPDEFS) >> $@-tmp
+	echo '## GCCMELT_VERSION_STRING is the string defining the version of MELT'   >> $@-tmp
+	echo 'GCCMELT_VERSION_STRING=' $(shell $(AWK) -F\" '/^.define +MELT_VERSION_STRING/{print $$2}' $(srcdir)/melt-runtime.h)  >> $@-tmp
+	echo '## GCCMELT_CC1 is the compiler to use MELT for its bootstrapping' >> $@-tmp
+	echo 'GCCMELT_CC1=' $($(GCCMELT_CC) -fplugin=./melt.so)  >> $@-tmp
+	echo '## GCCMELT_CC1_DEPENDENCIES is the dependencies, including MELT runtime, for GCCMELT_CC1' >> $@-tmp
+	echo 'GCCMELT_CC1_DEPENDENCIES=' $(realpath $(GCCMELT_CC) $(MELT_H) melt.so)  >> $@-tmp
+	echo '## GCCMELT_INCLUDES is the include flags for the MELT runtime' >> $@-tmp
+	echo 'GCCMELT_INCLUDES='  -I $(realpath .) $(MELTGCC_INCLUDEFLAGS) -I $(realpath melt/generated) $(INCLUDES)  >> $@-tmp
+	echo '## GCCMELT_MODULE_MK is the source location of the makefile melt-module.mk invoked by MELT'   >> $@-tmp
+	echo 'GCCMELT_MODULE_MK=' $(realpath melt-module.mk)  >> $@-tmp
+	echo '## GCCMELT_INSTALL_SOURCEDIR is the installed MELT source directory' >> $@-tmp
+	echo 'GCCMELT_INSTALL_SOURCEDIR=' $(MELTGCC_PLUGIN_DIR)/melt-sources/$(melt_version_string)  >> $@-tmp
+	echo '## GCCMELT_INSTALL_HEADERDIR is the installed MELT headers directory' >> $@-tmp
+	echo 'GCCMELT_INSTALL_HEADERDIR=' $(plugin_includedir)/melt-headers-$(melt_version_string)  >> $@-tmp
+	echo '## GCCMELT_INSTALL_MODULEDIR is the installed MELT module directory' >> $@-tmp
+	echo 'GCCMELT_INSTALL_MODULEDIR=' $(MELTGCC_PLUGIN_DIR)/melt-modules/$(melt_version_string)  >> $@-tmp
+	echo '## GCCMELT_INSTALL_MODULEMK is the installed MELT module makefile' >> $@-tmp
+	echo 'GCCMELT_INSTALL_MODULEMK=' $(MELTGCC_PLUGIN_DIR)/melt-module-$(melt_version_string).mk  >> $@-tmp
+	echo '## GCCMELT_IS_PLUGIN is 1 when melt.so is a plugin' >> $@-tmp
+	echo 'GCCMELT_IS_PLUGIN=1'   >> $@-tmp
+	echo '## GCCMELT_STAGE_ZERO is usually melt-stage0-dynamic, could be melt-stage0-quicklybuilt' >> $@-tmp
+	echo 'GCCMELT_STAGE_ZERO?=' $(MELT_STAGE_ZERO)   >> $@-tmp
+	echo '## GCCMELT_DEFAULT_FLAVOR is the default flavor'
+	echo 'GCCMELT_DEFAULT_FLAVOR?=optimized' >> $@-tmp
+	echo '## utility to move file if content changed GCCMELT_MOVE_IF_CHANGE' >> $@-tmp
+	echo 'GCCMELT_MOVE_IF_CHANGE=' $(realpath $(srcdir)/../move-if-change) >> $@-tmp
+	echo "#eof generated $@" >> $@-tmp
+	mv $@-tmp $@
 
 ################# installation
 install: all melt.so warmelt  \
