@@ -19,7 +19,7 @@
 	     #endif /*__cplusplus */
 	     
 /* version of the GCC compiler & MELT runtime generating this */
-const char melt_genversionstr[]="4.8.0 20120702 (experimental) [melt-branch revision 189247] MELT_0.9.6-pre"
+const char melt_genversionstr[]="4.8.0 20120702 (experimental) [melt-branch revision 189265] MELT_0.9.6-pre"
 
 	     #ifdef __cplusplus
 	     " (in C++)"
@@ -28,7 +28,7 @@ const char melt_genversionstr[]="4.8.0 20120702 (experimental) [melt-branch revi
 	     #endif
 					;
 	     
-const char melt_versionmeltstr[]="0.9.6-pre [melt-branch_revision_189247]";
+const char melt_versionmeltstr[]="0.9.6-pre [melt-branch_revision_189265]";
 
 /* source name & real path of the module */
 /*MELTMODULENAME MELT-STAGE-ZERO/warmelt-modes */
@@ -36,7 +36,7 @@ const char melt_modulename[]="warmelt-modes";
 const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown-linux-gnu/4.8.0/melt-modules/0.9.6-pre/warmelt-modes";
 
 /* hash of preprocessed melt-run.h generating this */
-const char melt_prepromd5meltrun[]="a1812970e3503f555970e02ead913377";
+const char melt_prepromd5meltrun[]="f28e71b725cbfe53daee8dbccd480755";
 /* hexmd5checksum of primary C file */
 const char melt_primaryhexmd5[]="1427334933475441c37aac3d89716a68";
 

@@ -15145,24 +15145,26 @@ lab_endgetargs:;
     {
       MELT_LOCATION ("warmelt-outobj.melt:4619:/ locexp");
       /* output_melt_descriptor GENTIMCH__1 + */
-      time_t now = 0;
-      char nowbuf[64];
-      time (&now);
-      memset (nowbuf, 0, sizeof (nowbuf));
-      strftime (nowbuf, sizeof (nowbuf) - 1, "%c %Z", localtime (&now));
-      if (melt_flag_bootstrapping)
+      {
+	time_t now = 0;
+	char nowbuf[64];
+	time (&now);
+	memset (nowbuf, 0, sizeof (nowbuf));
+	strftime (nowbuf, sizeof (nowbuf) - 1, "%c %Z", localtime (&now));
+	if (melt_flag_bootstrapping)
+	  meltgc_add_strbuf ((melt_ptr_t) /*_.TIBUF__V14*/ meltfptr[13],
+			     "/*MELT BOOTSTRAP*/\n");
 	meltgc_add_strbuf ((melt_ptr_t) /*_.TIBUF__V14*/ meltfptr[13],
-			   "/*MELT BOOTSTRAP*/\n");
-      meltgc_add_strbuf ((melt_ptr_t) /*_.TIBUF__V14*/ meltfptr[13],
-			 "const char melt_gen_timestamp[]=\"");
-      meltgc_add_strbuf_cstr ((melt_ptr_t) /*_.TIBUF__V14*/ meltfptr[13],
-			      nowbuf);
-      meltgc_add_strbuf ((melt_ptr_t) /*_.TIBUF__V14*/ meltfptr[13], "\";\n");
-      /*  GENTIMCH__1 don't use time_t, it is not a predefined C type! */
-      meltgc_strbuf_printf ((melt_ptr_t) /*_.TIBUF__V14*/ meltfptr[13],
-			    "const long long melt_gen_timenum=%lld;",
-			    (long long) now);
-      /* output_melt_descriptor GENTIMCH__1 - */ ;
+			   "const char melt_gen_timestamp[]=\"");
+	meltgc_add_strbuf_cstr ((melt_ptr_t) /*_.TIBUF__V14*/ meltfptr[13],
+				nowbuf);
+	meltgc_add_strbuf ((melt_ptr_t) /*_.TIBUF__V14*/ meltfptr[13],
+			   "\";\n");
+	/*  GENTIMCH__1 don't use time_t, it is not a predefined C type! */
+	meltgc_strbuf_printf ((melt_ptr_t) /*_.TIBUF__V14*/ meltfptr[13],
+			      "const long long melt_gen_timenum=%lld;",
+			      (long long) now);
+      } /* output_melt_descriptor GENTIMCH__1 - */ ;
     }
     ;
 
