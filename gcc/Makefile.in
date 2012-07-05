@@ -5440,14 +5440,8 @@ melt.encap:  melt-build-param.mk $(melt_make_cc1_dependency) $(MELTBUILD_MKFILE)
 	$(MAKE) Makefile  melt-build-param.mk $(MELTBUILD_MKFILE)
 ##### new build
 ifdef MELT_NEWBUILD
-	@echo melt.encap making melt-stage0-step with new build $(realpath $(MELTBUILD_MKFILE)) MAKE= $(MAKE) MAKEFLAGS= $(MAKEFLAGS)
-	$(MAKE) -f $(realpath $(MELTBUILD_MKFILE)) GCCMELT_BUILD_MKFILE=$(realpath $(MELTBUILD_MKFILE)) 'MAKEFLAGS=$(MAKEFLAGS)' melt-stage0-step
-	@echo melt.encap making melt-stage1-step with new build $(realpath $(MELTBUILD_MKFILE))
-	$(MAKE) -f $(realpath $(MELTBUILD_MKFILE)) GCCMELT_BUILD_MKFILE=$(realpath $(MELTBUILD_MKFILE)) 'MAKEFLAGS=$(MAKEFLAGS)' melt-stage1-step
-	@echo melt.encap making melt-stage2-step with new build $(realpath $(MELTBUILD_MKFILE))
-	$(MAKE) -f $(realpath $(MELTBUILD_MKFILE)) GCCMELT_BUILD_MKFILE=$(realpath $(MELTBUILD_MKFILE)) 'MAKEFLAGS=$(MAKEFLAGS)' melt-stage2-step
-	@echo melt.encap making melt-stage3-step with new build $(realpath $(MELTBUILD_MKFILE))
-	$(MAKE) -f $(realpath $(MELTBUILD_MKFILE)) GCCMELT_BUILD_MKFILE=$(realpath $(MELTBUILD_MKFILE)) 'MAKEFLAGS=$(MAKEFLAGS)' melt-stage3-step
+	@echo melt.encap making new build $(realpath $(MELTBUILD_MKFILE)) MAKE= $(MAKE) MAKEFLAGS= $(MAKEFLAGS)
+	$(MAKE) -f $(realpath $(MELTBUILD_MKFILE)) GCCMELT_BUILD_MKFILE=$(realpath $(MELTBUILD_MKFILE)) 'MAKEFLAGS=$(MAKEFLAGS)' melt-build
 #### old build
 else
 	@echo melt.encap making warmelt0 with melt_cflags= $(melt_cflags) MELTBUILD_MKFILE= $(realpath $(MELTBUILD_MKFILE))
