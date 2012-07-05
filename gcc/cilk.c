@@ -67,7 +67,7 @@ static tree
 add_field (const char *name, tree type, tree fields)
 {
   tree  t = get_identifier(name);
-  tree field = build_decl (EXPR_LOCATION(t), FIELD_DECL, t, type);
+  tree field = build_decl (BUILTINS_LOCATION, FIELD_DECL, t, type);
   TREE_CHAIN (field) = fields;
   return field;
 }

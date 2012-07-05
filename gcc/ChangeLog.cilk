@@ -1,3 +1,8 @@
+2012-07-05  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-typeck.c (build_binary_op): Added a call to c_save_expr.
+	* cilk.c (add_field): Changed the location of field to builtin location.
+
 2012-07-03  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cilk-spawn.c (compute_loop_var): Changed count_type from the struct
