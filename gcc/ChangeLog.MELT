@@ -2,6 +2,17 @@
 
 2012-07-05  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-newbuild.tpl: Still buggy, perhaps not useful, since
+	melt-build.tpl works...
+
+	* melt-newbuild.mk: Regenerate.
+
+	* melt-build.tpl: Add MELT_RUNNER prefix for MELT runs.
+
+	* melt-build.mk: Regenerate.
+
+2012-07-05  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-newbuild.tpl: Still buggy, with memoizing md5sum...
 
 	* melt-newbuild.mk: Regenerate.

@@ -66,6 +66,18 @@ GCCMELT_DEBUGNOLINE_PREPROFLAGS?= -DMELTGCC_MODULE_DEBUGNOLINE  -DMELTGCC_NOLINE
 GCCMELT_STAGINGFLAVOR?=quicklybuilt
 
 
+####### top level melt-build default target  [+ (. (tpl-file-line))+] 
+.PHONY: melt-build
+melt-build:
+	@echo  @+@melt-newbuild-new  at= $@ circ= $^ [+ (. (tpl-file-line))+] start
+	$(MAKE) -f $(realpath $(GCCMELT_BUILD_MKFILE)) GCCMELT_BUILD_MKFILE=$(realpath $(GCCMELT_BUILD_MKFILE)) GCCMELT_MAKEFROM=[+ (. (tpl-file-line "%s:%d"))+]  'MAKEFLAGS=$(MAKEFLAGS)' melt-stage0-step
+[+FOR melt_stage+]
+	@echo  @+@melt-newbuild-new doing [+melt_stage+]  [+ (. (tpl-file-line))+]
+	$(MAKE) -f $(realpath $(GCCMELT_BUILD_MKFILE)) GCCMELT_BUILD_MKFILE=$(realpath $(GCCMELT_BUILD_MKFILE)) GCCMELT_MAKEFROM=[+ (. (tpl-file-line "%s:%d"))+]  'MAKEFLAGS=$(MAKEFLAGS)' [+melt_stage+]-step
+[+ENDFOR melt_stage+]
+	@echo  @+@melt-newbuild-new  at= $@ circ= $^ [+ (. (tpl-file-line))+] end
+
+##################### loop on extended flavors  [+ (. (tpl-file-line))+]
 ## xflavors  [+ (. (tpl-file-line))+]
 [+FOR xflavor IN "descriptor" "dynamic" "quicklybuilt" "optimized" "debugnoline"+]
 
@@ -356,8 +368,12 @@ ENDFOR melt_translator_file+]
 	$(GCCMELT_CC1) -DGCCMELT_FROMTPL=\"$(shell echo  [+ (. (tpl-file-line))+] [+melt_stage+] [+base+] | sed 's/ /_/g')\" @[+melt_stage+]-dir/[+base+].args
 	@ls -l [+melt_stage+]-dir/[+ (. outbase)+].c  || ( echo "*@*MISSING "  [+melt_stage+]-dir/[+ (. outbase)+].c [+ (. (tpl-file-line))+] ; exit 1 )
 
-#@ [+ (. (tpl-file-line))+] 
+#@ [+ (. (tpl-file-line))+]  including generated make fragment [+base+]  [+melt_stage+]
+ifneq ($(wildcard [+melt_stage+]-dir/[+base+]+meltbuild.mk),)
 -include [+melt_stage+]-dir/[+base+]+meltbuild.mk
+else
+$(info not including missing [+melt_stage+]-dir/[+base+]+meltbuild.mk)
+endif
 
 [+FOR flavor IN "dynamic" "quicklybuilt" "optimized" "debugnoline"+]
 #@ flavor  base [+base+] stage [+melt_stage+] [+ (. (tpl-file-line))+]
@@ -390,20 +406,16 @@ ENDFOR melt_translator_file+]
 
 
 #@ stage [+melt_stage+] phony step [+ (. (tpl-file-line))+]
-[+melt_stage+]-step: [+FOR melt_translator_file " \\\n"+][+melt_stage+]-dir/[+base+].$(GCCMELT_STAGINGFLAVOR).stamp[+ENDFOR melt_translator_file+]
-	@echo  @+@melt-newbuild-[+melt_stage+]-step at= $@ circ= $^ [+ (. (tpl-file-line))+]
+[+melt_stage+]-step: 
+	@echo  @+@melt-newbuild-[+melt_stage+]-step start at= $@ circ= $^ [+ (. (tpl-file-line))+]
+[+FOR melt_translator_file+]
+	@echo  @+@melt-newbuild-[+melt_stage+]-step base [+base+]
+	$(MAKE)  -f $(realpath $(GCCMELT_BUILD_MKFILE)) GCCMELT_BUILD_MKFILE=$(realpath $(GCCMELT_BUILD_MKFILE)) GCCMELT_MAKEFROM=[+ (. (tpl-file-line "%s:%d"))+]  'MAKEFLAGS=$(MAKEFLAGS)' [+melt_stage+]-dir/[+base+].$(GCCMELT_STAGINGFLAVOR).stamp
+[+ENDFOR melt_translator_file+]
+	@echo  @+@melt-newbuild-[+melt_stage+]-step end [+ (. (tpl-file-line))+]
 
 #@ end stage [+melt_stage+] [+ (. (tpl-file-line))+]
 [+ENDFOR melt_stage+]
 
-.PHONY: melt-build
-melt-build:
-	@echo  @+@melt-newbuild-new  at= $@ circ= $^ [+ (. (tpl-file-line))+] start
-	$(MAKE) -f $(realpath $(GCCMELT_BUILD_MKFILE)) GCCMELT_BUILD_MKFILE=$(realpath $(GCCMELT_BUILD_MKFILE)) GCCMELT_MAKEFROM=[+ (. (tpl-file-line "%s:%d"))+]  'MAKEFLAGS=$(MAKEFLAGS)' melt-stage0-step
-[+FOR melt_stage+]
-	@echo  @+@melt-newbuild-new doing [+melt_stage+]  [+ (. (tpl-file-line))+]
-	$(MAKE) -f $(realpath $(GCCMELT_BUILD_MKFILE)) GCCMELT_BUILD_MKFILE=$(realpath $(GCCMELT_BUILD_MKFILE)) GCCMELT_MAKEFROM=[+ (. (tpl-file-line "%s:%d"))+]  'MAKEFLAGS=$(MAKEFLAGS)' [+melt_stage+]-step
-[+ENDFOR melt_stage+]
-	@echo  @+@melt-newbuild-new  at= $@ circ= $^ [+ (. (tpl-file-line))+] end
 #@ [+ (. (tpl-file-line))+] eof melt-newbuild.mk
 ## eof melt-newbuild.mk generated from melt-newbuild.tpl & melt-newbuild.def

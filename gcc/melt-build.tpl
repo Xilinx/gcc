@@ -30,6 +30,9 @@ mk
 #@ default MELT variant [+ (. (tpl-file-line))+]
 melt_default_variant ?= optimized
 
+# MELT_RUNNER is usually empty; it could be e.g 'time' or 'nice' or
+# some other "prefix" to run MELT
+
 ## the following Makefile variables are expected to be set [+ (. (tpl-file-line))+] 
 [+FOR meltmac IN 
 	"melt_source_dir: directory containing *.melt & *.c files" 
@@ -346,7 +349,7 @@ melt-stage0-[+zeroflavor+]-fullstage.stamp: \
 	@$(melt_move_if_change)  [+ (. outbase)+]+[+melt_stage+].args-tmp  [+ (. outbase)+]+[+melt_stage+].args
 	@echo; echo; echo -n  [+ (. outbase)+]+[+melt_stage+].args: ; cat [+ (. outbase)+]+[+melt_stage+].args ; echo; echo; echo "***** doing " $@  [+ (. (tpl-file-line))+]
 	@echo doing [+ (. outbase)+]+[+melt_stage+]  [+ (. (tpl-file-line))+]
-	$(melt_make_cc1) @[+ (. outbase)+]+[+melt_stage+].args
+	$(MELT_RUNNER) $(melt_make_cc1) @[+ (. outbase)+]+[+melt_stage+].args
 	@ls -l [+melt_stage+]/[+ (. outbase)+].c  || ( echo "*@*MISSING "  [+melt_stage+]/[+ (. outbase)+].c [+ (. (tpl-file-line))+] ; exit 1 )
 
 #@ [+ (. (tpl-file-line))+]
@@ -528,7 +531,7 @@ melt-sources/[+base+].c melt-sources/[+base+]+meltdesc.c: \
 	     $(meltarg_output)=melt-sources/[+base+] empty-file-for-melt.c > [+base+]+sources.args-tmp
 	@$(melt_move_if_change) [+base+]+sources.args-tmp [+base+]+sources.args
 	@echo; echo; echo; echo -n [+base+]+sources.args: ; cat [+base+]+sources.args ; echo "***** doing " $@ [+ (. (tpl-file-line))+]
-	$(melt_make_cc1) @[+base+]+sources.args
+	$(MELT_RUNNER) $(melt_make_cc1) @[+base+]+sources.args
 
 
 
@@ -625,7 +628,7 @@ melt-sources/[+base+].c: \
 	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@))-quickb.args-tmp
 	@$(melt_move_if_change) $(notdir $(basename $@))-quickb.args-tmp $(notdir $(basename $@))-quickb.args
 	@echo; echo; echo; echo -n $(notdir $(basename $@))-quickb.args: ; cat $(notdir $(basename $@))-quickb.args ; echo "***** doing " $@ [+ (. (tpl-file-line))+]
-	$(melt_make_cc1) @$(notdir $(basename $@))-quickb.args
+	$(MELT_RUNNER) $(melt_make_cc1) @$(notdir $(basename $@))-quickb.args
 #@ [+ (. (tpl-file-line))+]
 	@echo doing $@  [+ (. (tpl-file-line))+] with optimized warmelt
 	@echo 	$(MELTCCAPPLICATION1ARGS) \
@@ -637,7 +640,7 @@ melt-sources/[+base+].c: \
 	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@))-optim.args-tmp
 	@$(melt_move_if_change) $(notdir $(basename $@))-optim.args-tmp $(notdir $(basename $@))-optim.args
 	@echo; echo; echo; echo -n $(notdir $(basename $@))-optim.args: ; cat $(notdir $(basename $@))-optim.args ; echo "***** doing " $@ [+ (. (tpl-file-line))+]
-	$(melt_make_cc1) @$(notdir $(basename $@))-optim.args
+	$(MELT_RUNNER) $(melt_make_cc1) @$(notdir $(basename $@))-optim.args
 
 #@ [+ (. (tpl-file-line))+]
 ## melt application [+base+] various flavors of modules
@@ -686,7 +689,7 @@ melt-tiny-tests: melt-sayhello.melt melt-modules melt-sources \
        $(meltarg_output)=$(basename $<) empty-file-for-melt.c > $(basename $<).args-tmp
 	@$(melt_move_if_change) $(basename $<).args-tmp $(basename $<).args
 	@echo; echo; echo; echo -n $(basename $<).args: ; cat $(basename $<).args ; echo "***** doing " $(basename $<)  [+ (. (tpl-file-line))+]
-	$(melt_make_cc1) @$(basename $<).args
+	$(MELT_RUNNER) $(melt_make_cc1) @$(basename $<).args
 # test that a helloworld can be run [+ (. (tpl-file-line))+]
 	@echo	$(MELTCCRUNFILE1ARGS) $(meltarg_init)=@melt-default-modules-quicklybuilt \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell $(MD5SUM) $< | cut -b-24) \
@@ -696,7 +699,7 @@ melt-tiny-tests: melt-sayhello.melt melt-modules melt-sources \
        $(meltarg_output)=$(basename $<) empty-file-for-melt.c > $(basename $<)-run.args-tmp
 	@$(melt_move_if_change) $(basename $<)-run.args-tmp $(basename $<)-run.args
 	@echo; echo; echo; echo -n $(basename $<)-run.args: ; cat $(basename $<)-run.args ; echo "***** doing " $(basename $<)-run  [+ (. (tpl-file-line))+]
-	$(melt_make_cc1) @$(basename $<)-run.args
+	$(MELT_RUNNER) $(melt_make_cc1) @$(basename $<)-run.args
 # test that the melt-runtime follows MELT coding rules; this also tests
 # a real MELT pass on real code, like our melt-runtime.c
 # test melt-runtime [+ (. (tpl-file-line))+]
@@ -716,7 +719,7 @@ melt-tiny-tests: melt-sayhello.melt melt-modules melt-sources \
 	@cat melt-runtime.args >> meltframe.args-tmp
 	@$(melt_move_if_change) meltframe.args-tmp meltframe.args
 	@echo; echo; echo; echo -n meltframe.args: ; cat meltframe.args ; echo "***** doing " meltframe  [+ (. (tpl-file-line))+]
-	$(melt_make_cc1) @meltframe.args
+	$(MELT_RUNNER) $(melt_make_cc1) @meltframe.args
 
 
 #@ [+ (. (tpl-file-line))+]
@@ -788,7 +791,7 @@ meltrun-generate: $(WARMELT_LAST) $(WARMELT_LAST_MODLIS)  $(WARMELT_LAST_STAGEST
 	      empty-file-for-melt.c > $(basename $@).args-tmp
 	@$(melt_move_if_change) $(basename $@).args-tmp $(basename $@).args
 	@echo; echo; echo; echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
-	 $(melt_make_cc1) @$(basename $@).args
+	 $(MELT_RUNNER) $(melt_make_cc1) @$(basename $@).args
 	if [ -n "$(GCCMELTRUNGEN_DEST)" ]; then \
 	   for f in $(GCCMELTRUNGEN_DEST)/meltrunsup*.[ch]; \
 	     do mv $$f $$f.bak; \
@@ -864,7 +867,7 @@ meltgendoc.texi: $(melt_default_modules_list).modlis \
               empty-file-for-melt.c > $(notdir $(basename $@)).args-tmp
 	$(melt_move_if_change) $(notdir $(basename $@)).args-tmp  $(notdir $(basename $@)).args
 	@echo; echo; echo; echo -n $(notdir $(basename $@)).args: ; cat $(notdir $(basename $@)).args ; echo "***** doing " $@
-	$(melt_make_cc1) @$(notdir $(basename $@)).args
+	$(MELT_RUNNER) $(melt_make_cc1) @$(notdir $(basename $@)).args
 
 
 
