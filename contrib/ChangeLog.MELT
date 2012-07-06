@@ -1,4 +1,9 @@
 
+2012-07-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	    Alexandre Lissy  <alissy@mandriva.com>
+
+	* MELT-Plugin-Makefile (melt-run.h): Add missing comma for sed.
+
 2012-07-05  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* make-melt-plugin-source-tar.sh: also copy the melt-build.* &
