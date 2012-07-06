@@ -1,5 +1,10 @@
 
 2012-07-06  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* MELT-Plugin-Makefile (melt_make_module_dir, GCCMELTGEN_BUILD):
+	Define.
+
+2012-07-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	    Alexandre Lissy  <alissy@mandriva.com>
 
 	* MELT-Plugin-Makefile (melt-run.h): Add missing comma for sed.

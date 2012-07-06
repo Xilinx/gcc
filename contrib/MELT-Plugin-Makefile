@@ -177,7 +177,8 @@ melt_make_module_makefile= melt-module.mk
 
 # the directory containg *.melt files when making. Should be an absolute path
 melt_make_source_dir=$(realpath melt)
-melt_make_module_dir=
+# directory containing the MELT modules when making.
+melt_make_module_dir=$(realpath .)
 melt_move_if_change= $(SHELL) move-if-change
 ## Don't use := definitions here!
 comma= ,
@@ -303,6 +304,9 @@ melt.so melt-runtime.args: melt-runtime.c $(MELTGCC_RUNTIME_INCLUDES) \
 
 melt-build.mk: melt-build.def melt-build.tpl
 	$(AUTOGEN) melt-build.def
+
+## needed by melt-module.mk
+GCCMELTGEN_BUILD=melt-workdir/
 
 include melt-build.mk
 
