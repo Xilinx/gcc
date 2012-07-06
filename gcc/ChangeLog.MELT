@@ -1,4 +1,9 @@
 
+2012-07-06  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.c (melt_probe_stop): Check writing of quit command,
+	hence avoiding a compile-time warning.
+
 2012-07-05  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{Regenerate all}}
