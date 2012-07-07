@@ -1,6 +1,14 @@
 
 2012-07-06  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-build.tpl: Add fromline Guile function to generate unique
+	from location...
+	Perhaps still issues around MELTGEN_MODULENAME for the plugin?
+
+	* melt-build.mk: Regenerate.
+
+2012-07-06  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.c (melt_probe_stop): Check writing of quit command,
 	hence avoiding a compile-time warning.
 
