@@ -1,3 +1,45 @@
+2012-07-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/53872
+	* include/std/thread (thread::_M_make_routine): Qualify make_shared
+	to prevent ADL.
+	* testsuite/30_threads/thread/adl.cc: New.
+
+2012-07-05  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/condition_variable: Update copyright years.
+
+2012-07-05  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/53830
+	* include/std/condition_variable (condition_variable_any::wait):
+	Move _Unlock type to class scope.
+	(condition_variable_any::wait_until): Reuse it.
+	* testsuite/30_threads/condition_variable_any/53830.cc: New.
+
+2012-07-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	Revert:
+	2011-10-04  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/49561
+	* include/bits/stl_list.h (_List_base<>::_List_impl::_M_size):
+	Add in C++0x mode.
+	(_List_base<>::_List_impl, _List_base<>::_M_get_node,
+	_List_base<>::_M_put_node, _List_base<>::_List_base(_List_base&&),
+	list<>::size, list<>::swap, list<>::splice): Use it.
+	(operator==(const list<>&, const list<>&)): Rewrite in C++0x mode.
+	* include/bits/list.tcc (list<>::erase): Likewise.
+	(list<>::merge): Adjust in C++0x mode.
+	* testsuite/23_containers/list/requirements/dr438/assign_neg.cc:
+	Adjust dg-error line number.
+	* testsuite/23_containers/list/requirements/dr438/insert_neg.cc:
+	Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+
 2012-06-19  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	PR libstdc++/53270

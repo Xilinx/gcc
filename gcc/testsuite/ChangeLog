@@ -1,3 +1,65 @@
+2012-07-06  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/53732
+	* gfortran.dg/inline_sum_4.f90: New test.
+
+2012-07-06  Richard Guenther  <rguenther@suse.de>
+
+	Backport from mainline
+	2012-06-18  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53693
+	* g++.dg/torture/pr53693.C: New testcase.
+
+2012-07-06  Richard Guenther  <rguenther@suse.de>
+
+	Backport from mainline
+	2012-04-11  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/52621
+	* gfortran.dg/pr52621.f90: New testcase.
+
+2012-07-05  Pat Haugen <pthaugen@us.ibm.com>
+
+	Backport from mainline
+	2012-05-24  Pat Haugen <pthaugen@us.ibm.com>
+
+	* gcc.target/powerpc/lhs-1.c: New.
+	* gcc.target/powerpc/lhs-2.c: New.
+	* gcc.target/powerpc/lhs-3.c: New.
+
+2012-07-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/recursive_call.adb: New test.
+
+2012-07-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/discr37.ad[sb]: New test.
+
+2012-07-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53816
+	* g++.dg/template/ref6.C: New.
+
+	PR c++/53821
+	* g++.dg/cpp0x/lambda/lambda-template6.C: New.
+
+2012-06-29  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	Backport from mainline.
+	2012-05-30  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+	* gcc.target/arm/neon-vrev.c: New.
+
+2012-06-28  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/53790
+	* gcc.dg/torture/pr53790.c: New testcase.
+
+2012-06-27  Fabien Chêne  <fabien@gcc.gnu.org>
+
+	PR c++/51214
+	* g++.dg/cpp0x/forw_enum11.C: New.
+
 2012-06-26  Richard Guenther  <rguenther@suse.de>
 
 	PR c++/53752
