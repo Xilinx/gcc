@@ -5487,8 +5487,7 @@ gimplify_target_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
       /* Add a clobber for the temporary going out of scope, like
 	 gimplify_bind_expr.  */
       if (gimplify_ctxp->in_cleanup_point_expr
-	  && needs_to_live_in_memory (temp)
-	  && flag_temp_stack_reuse)
+	  && needs_to_live_in_memory (temp))
 	{
 	  tree clobber = build_constructor (TREE_TYPE (temp), NULL);
 	  TREE_THIS_VOLATILE (clobber) = true;
