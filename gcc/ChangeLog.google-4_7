@@ -1,5 +1,15 @@
 2012-07-10  Xinliang David Li  <davidxl@google.com>
 
+	Backport r189413 from trunk
+	* doc/invoke.texi: New option documented.
+	* flag-types.h: New enum type.
+	* gimplify.c (gimplify_bind_expr): Control
+	clobber generation with new option.
+	(gimplify_target_expr): Ditto.
+	common.opt: New option.
+
+2012-07-10  Xinliang David Li  <davidxl@google.com>
+
 	* Revert r189107
 
 2012-07-01  Xinliang David Li  <davidxl@google.com>
