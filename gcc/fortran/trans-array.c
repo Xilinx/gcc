@@ -2470,7 +2470,6 @@ gfc_add_loop_ss_code (gfc_loopinfo * loop, gfc_ss * ss, bool subscript,
   gfc_ss_info *ss_info;
   gfc_array_info *info;
   gfc_expr *expr;
-  bool skip_nested = false;
   int n;
 
   /* Don't evaluate the arguments for realloc_lhs_loop_for_fcn_call; otherwise,
@@ -2559,12 +2558,7 @@ gfc_add_loop_ss_code (gfc_loopinfo * loop, gfc_ss * ss, bool subscript,
 	  /* Add the expressions for scalar and vector subscripts.  */
 	  for (n = 0; n < GFC_MAX_DIMENSIONS; n++)
 	    if (info->subscript[n])
-	      {
-		gfc_add_loop_ss_code (loop, info->subscript[n], true, where);
-		/* The recursive call will have taken care of the nested loops.
-		   No need to do it twice.  */
-		skip_nested = true;
-	      }
+	      gfc_add_loop_ss_code (loop, info->subscript[n], true, where);
 
 	  set_vector_loop_bounds (ss);
 	  break;
@@ -2620,7 +2614,7 @@ gfc_add_loop_ss_code (gfc_loopinfo * loop, gfc_ss * ss, bool subscript,
 	}
     }
 
-  if (!skip_nested)
+  if (!subscript)
     for (nested_loop = loop->nested; nested_loop;
 	 nested_loop = nested_loop->next)
       gfc_add_loop_ss_code (nested_loop, nested_loop->ss, subscript, where);

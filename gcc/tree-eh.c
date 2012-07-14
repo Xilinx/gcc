@@ -1320,9 +1320,8 @@ lower_try_finally_switch (struct leh_state *state, struct leh_tf_state *tf)
 
   /* The location of the finally is either the last stmt in the finally
      block or the location of the TRY_FINALLY itself.  */
-  finally_loc = gimple_seq_last_stmt (tf->top_p_seq) != NULL ?
-    gimple_location (gimple_seq_last_stmt (tf->top_p_seq))
-    : tf_loc;
+  x = gimple_seq_last_stmt (finally);
+  finally_loc = x ? gimple_location (x) : tf_loc;
 
   /* Lower the finally block itself.  */
   lower_eh_constructs_1 (state, &finally);
@@ -3854,13 +3853,15 @@ cleanup_empty_eh_merge_phis (basic_block new_bb, basic_block old_bb,
 	  FOR_EACH_EDGE (e, ei, old_bb->preds)
 	    {
 	      location_t oloc;
+	      tree oblock;
 	      tree oop;
 
 	      if ((e->flags & EDGE_EH) == 0)
 		continue;
 	      oop = gimple_phi_arg_def (ophi, e->dest_idx);
 	      oloc = gimple_phi_arg_location (ophi, e->dest_idx);
-	      redirect_edge_var_map_add (e, nresult, oop, oloc);
+	      oblock = gimple_phi_arg_block (ophi, e->dest_idx);
+	      redirect_edge_var_map_add (e, nresult, oop, oloc, oblock);
 	    }
 	}
       /* If we didn't find the PHI, but it's a VOP, remember to rename
@@ -3875,8 +3876,9 @@ cleanup_empty_eh_merge_phis (basic_block new_bb, basic_block old_bb,
 	{
 	  location_t nloc
 	    = gimple_phi_arg_location (nphi, old_bb_out->dest_idx);
+	  tree nblock = gimple_phi_arg_block (nphi, old_bb_out->dest_idx);
 	  FOR_EACH_EDGE (e, ei, old_bb->preds)
-	    redirect_edge_var_map_add (e, nresult, nop, nloc);
+	    redirect_edge_var_map_add (e, nresult, nop, nloc, nblock);
 	}
     }
 

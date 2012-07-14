@@ -7865,6 +7865,7 @@ package body Sem_Prag is
 
                Set_Has_Completion (Def_Id);
                Set_Is_Constructor (Def_Id);
+               Set_Convention (Def_Id, Convention_CPP);
 
                --  Imported C++ constructors are not dispatching primitives
                --  because in C++ they don't have a dispatch table slot.
@@ -11145,8 +11146,7 @@ package body Sem_Prag is
                   Arg := Get_Pragma_Arg (Arg1);
                   Val := Is_True (Static_Boolean (Arg));
 
-               --  Zero argument. In this case the expression is considered to
-               --  be True.
+               --  No arguments (expression is considered to be True)
 
                else
                   Val := True;
@@ -11159,7 +11159,7 @@ package body Sem_Prag is
                Record_Rep_Item        (Ent, N);
                Set_Uses_Lock_Free     (Ent, Val);
 
-            --  Anything else is incorrect
+            --  Anything else is incorrect placement
 
             else
                Pragma_Misplaced;
@@ -11177,6 +11177,7 @@ package body Sem_Prag is
               range First_Locking_Policy_Name .. Last_Locking_Policy_Name;
             LP_Val : LP_Range;
             LP     : Character;
+
          begin
             Check_Ada_83_Warning;
             Check_Arg_Count (1);
@@ -11186,9 +11187,12 @@ package body Sem_Prag is
             LP_Val := Chars (Get_Pragma_Arg (Arg1));
 
             case LP_Val is
-               when Name_Ceiling_Locking            => LP := 'C';
-               when Name_Inheritance_Locking        => LP := 'I';
-               when Name_Concurrent_Readers_Locking => LP := 'R';
+               when Name_Ceiling_Locking            =>
+                  LP := 'C';
+               when Name_Inheritance_Locking        =>
+                  LP := 'I';
+               when Name_Concurrent_Readers_Locking =>
+                  LP := 'R';
             end case;
 
             if Locking_Policy /= ' '

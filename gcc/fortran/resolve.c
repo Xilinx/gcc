@@ -22,6 +22,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "config.h"
 #include "system.h"
+#include "coretypes.h"
 #include "flags.h"
 #include "gfortran.h"
 #include "obstack.h"
@@ -11264,6 +11265,22 @@ resolve_typebound_intrinsic_op (gfc_symbol* derived, gfc_intrinsic_op op,
 
       if (!gfc_check_operator_interface (target_proc, op, p->where))
 	goto error;
+
+      /* Add target to non-typebound operator list.  */
+      if (!target->specific->deferred && !derived->attr.use_assoc
+	  && p->access != ACCESS_PRIVATE)
+	{
+	  gfc_interface *head, *intr;
+	  if (gfc_check_new_interface (derived->ns->op[op], target_proc,
+				       p->where) == FAILURE)
+	    return FAILURE;
+	  head = derived->ns->op[op];
+	  intr = gfc_get_interface ();
+	  intr->sym = target_proc;
+	  intr->where = p->where;
+	  intr->next = head;
+	  derived->ns->op[op] = intr;
+	}
     }
 
   return SUCCESS;

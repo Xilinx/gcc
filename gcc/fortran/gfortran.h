@@ -29,13 +29,16 @@ along with GCC; see the file COPYING3.  If not see
    multiple header files.  Besides, Microsoft's winnt.h was 250k last
    time I looked, so by comparison this is perfectly reasonable.  */
 
+#ifndef GCC_CORETYPES_H
+#error "gfortran.h must be included after coretypes.h"
+#endif
+
 /* Declarations common to the front-end and library are put in
    libgfortran/libgfortran_frontend.h  */
 #include "libgfortran.h"
 
 
 #include "intl.h"
-#include "coretypes.h"
 #include "input.h"
 #include "splay-tree.h"
 
@@ -2851,6 +2854,7 @@ gfc_symbol *gfc_search_interface (gfc_interface *, int,
 match gfc_extend_expr (gfc_expr *);
 void gfc_free_formal_arglist (gfc_formal_arglist *);
 gfc_try gfc_extend_assign (gfc_code *, gfc_namespace *);
+gfc_try gfc_check_new_interface (gfc_interface *, gfc_symbol *, locus);
 gfc_try gfc_add_interface (gfc_symbol *);
 gfc_interface *gfc_current_interface_head (void);
 void gfc_set_current_interface_head (gfc_interface *);

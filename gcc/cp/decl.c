@@ -1463,6 +1463,7 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
 	    {
 	      error ("declaration of template %q#D", newdecl);
 	      error ("conflicts with previous declaration %q+#D", olddecl);
+	      return error_mark_node;
 	    }
 	  else if (TREE_CODE (DECL_TEMPLATE_RESULT (olddecl)) == FUNCTION_DECL
 		   && TREE_CODE (DECL_TEMPLATE_RESULT (newdecl)) == FUNCTION_DECL
@@ -6189,7 +6190,7 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	    /* Normally local_decls is populated during GIMPLE lowering,
 	       but [cd]tors are never actually compiled directly.  We need
 	       to put statics on the list so we can deal with the label
-	       address extension.  */
+	       address extension.  FIXME.  */
 	    add_local_decl (cfun, decl);
 	}
 
@@ -12560,16 +12561,9 @@ incremented enumerator value is too large for %<long%>");
     course, if we're processing a template, there may be no value.  */
   type = value ? TREE_TYPE (value) : NULL_TREE;
 
-  if (context && context == current_class_type)
-    /* This enum declaration is local to the class.  We need the full
-       lang_decl so that we can record DECL_CLASS_CONTEXT, for example.  */
-    decl = build_lang_decl_loc (loc, CONST_DECL, name, type);
-  else
-    /* It's a global enum, or it's local to a function.  (Note local to
-       a function could mean local to a class method.  */
-    decl = build_decl (loc, CONST_DECL, name, type);
+  decl = build_decl (loc, CONST_DECL, name, type);
   
-  DECL_CONTEXT (decl) = FROB_CONTEXT (context);
+  DECL_CONTEXT (decl) = enumtype;
   TREE_CONSTANT (decl) = 1;
   TREE_READONLY (decl) = 1;
   DECL_INITIAL (decl) = value;

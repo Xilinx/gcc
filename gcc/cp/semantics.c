@@ -571,6 +571,9 @@ finish_goto_stmt (tree destination)
 				    tf_warning_or_error);
 	  if (error_operand_p (destination))
 	    return NULL_TREE;
+	  destination
+	    = fold_build_cleanup_point_expr (TREE_TYPE (destination),
+					     destination);
 	}
     }
 
@@ -1622,7 +1625,7 @@ finish_non_static_data_member (tree decl, tree object, tree qualifying_scope)
 /* If we are currently parsing a template and we encountered a typedef
    TYPEDEF_DECL that is being accessed though CONTEXT, this function
    adds the typedef to a list tied to the current template.
-   At tempate instantiatin time, that list is walked and access check
+   At template instantiation time, that list is walked and access check
    performed for each typedef.
    LOCATION is the location of the usage point of TYPEDEF_DECL.  */
 
@@ -2631,8 +2634,10 @@ finish_member_declaration (tree decl)
       TREE_PROTECTED (DECL_TEMPLATE_RESULT (decl)) = TREE_PROTECTED (decl);
     }
 
-  /* Mark the DECL as a member of the current class.  */
-  DECL_CONTEXT (decl) = current_class_type;
+  /* Mark the DECL as a member of the current class, unless it's
+     a member of an enumeration.  */
+  if (TREE_CODE (decl) != CONST_DECL)
+    DECL_CONTEXT (decl) = current_class_type;
 
   /* Check for bare parameter packs in the member variable declaration.  */
   if (TREE_CODE (decl) == FIELD_DECL)
@@ -3060,18 +3065,6 @@ finish_id_expression (tree id_expression,
 	}
       return r;
     }
-  /* Similarly, we resolve enumeration constants to their
-     underlying values.  */
-  else if (TREE_CODE (decl) == CONST_DECL)
-    {
-      *idk = CP_ID_KIND_NONE;
-      if (!processing_template_decl)
-	{
-	  used_types_insert (TREE_TYPE (decl));
-	  return DECL_INITIAL (decl);
-	}
-      return decl;
-    }
   else
     {
       bool dependent_p;
@@ -3099,6 +3092,9 @@ finish_id_expression (tree id_expression,
       dependent_p = false;
       if (!processing_template_decl)
 	/* No names are dependent outside a template.  */
+	;
+      else if (TREE_CODE (decl) == CONST_DECL)
+	/* We don't want to treat enumerators as dependent.  */
 	;
       /* A template-id where the name of the template was not resolved
 	 is definitely dependent.  */
@@ -3234,15 +3230,17 @@ finish_id_expression (tree id_expression,
 	 marked either below or after overload resolution.  */
       if (TREE_CODE (decl) == VAR_DECL
 	  || TREE_CODE (decl) == PARM_DECL
+	  || TREE_CODE (decl) == CONST_DECL
 	  || TREE_CODE (decl) == RESULT_DECL)
 	mark_used (decl);
 
       /* Only certain kinds of names are allowed in constant
-	 expression.  Enumerators and template parameters have already
+	 expression.  Template parameters have already
 	 been handled above.  */
       if (! error_operand_p (decl)
 	  && integral_constant_expression_p
 	  && ! decl_constant_var_p (decl)
+	  && TREE_CODE (decl) != CONST_DECL
 	  && ! builtin_valid_in_constant_expr_p (decl))
 	{
 	  if (!allow_non_integral_constant_expression_p)
@@ -5838,12 +5836,9 @@ build_data_member_initialization (tree t, VEC(constructor_elt,gc) **vec)
 	member = op;
       else
 	{
-	  /* We don't put out anything for an empty base.  */
+	  /* This is an initializer for an empty base; keep it for now so
+	     we can check it in cxx_eval_bare_aggregate.  */
 	  gcc_assert (is_empty_class (TREE_TYPE (TREE_TYPE (member))));
-	  /* But if the initializer isn't constexpr, leave it in so we
-	     complain later.  */
-	  if (potential_constant_expression (init))
-	    return true;
 	}
     }
   if (TREE_CODE (member) == ADDR_EXPR)
@@ -6212,7 +6207,7 @@ explain_invalid_constexpr_fn (tree fun)
 typedef struct GTY(()) constexpr_call {
   /* Description of the constexpr function definition.  */
   constexpr_fundef *fundef;
-  /* Parameter bindings enironment.  A TREE_LIST where each TREE_PURPOSE
+  /* Parameter bindings environment.  A TREE_LIST where each TREE_PURPOSE
      is a parameter _DECL and the TREE_VALUE is the value of the parameter.
      Note: This arrangement is made to accomodate the use of
      iterative_hash_template_arg (see pt.c).  If you change this
@@ -6236,6 +6231,9 @@ static GTY ((param_is (constexpr_call))) htab_t constexpr_call_table;
 
 static tree cxx_eval_constant_expression (const constexpr_call *, tree,
 					  bool, bool, bool *);
+static tree cxx_eval_vec_perm_expr (const constexpr_call *, tree, bool, bool,
+				    bool *);
+
 
 /* Compute a hash value for a constexpr call representation.  */
 
@@ -7064,6 +7062,12 @@ cxx_eval_bare_aggregate (const constexpr_call *call, tree t,
 	  constructor_elt *inner = base_field_constructor_elt (n, ce->index);
 	  inner->value = elt;
 	}
+      else if (TREE_CODE (ce->index) == NOP_EXPR)
+	{
+	  /* This is an initializer for an empty base; now that we've
+	     checked that it's constant, we can ignore it.  */
+	  gcc_assert (is_empty_class (TREE_TYPE (TREE_TYPE (ce->index))));
+	}
       else
 	CONSTRUCTOR_APPEND_ELT (n, ce->index, elt);
     }
@@ -7492,6 +7496,39 @@ non_const_var_error (tree r)
     }
 }
 
+/* Evaluate VEC_PERM_EXPR (v1, v2, mask).  */
+static tree
+cxx_eval_vec_perm_expr (const constexpr_call *call, tree t, 
+			bool allow_non_constant, bool addr,
+			bool * non_constant_p)
+{
+  int i;
+  tree args[3];
+  tree val;
+  tree elttype = TREE_TYPE (t);
+
+  for (i = 0; i < 3; i++)
+    {
+      args[i] = cxx_eval_constant_expression (call, TREE_OPERAND (t, i),
+					      allow_non_constant, addr,
+					      non_constant_p);
+      if (*non_constant_p)
+      	goto fail;
+    }
+
+  gcc_assert (TREE_CODE (TREE_TYPE (args[0])) == VECTOR_TYPE);
+  gcc_assert (TREE_CODE (TREE_TYPE (args[1])) == VECTOR_TYPE);
+  gcc_assert (TREE_CODE (TREE_TYPE (args[2])) == VECTOR_TYPE);
+
+  val = fold_ternary_loc (EXPR_LOCATION (t), VEC_PERM_EXPR, elttype, 
+			  args[0], args[1], args[2]);
+  if (val != NULL_TREE)
+    return val;
+
+ fail:
+  return t;
+}
+
 /* Attempt to reduce the expression T to a constant value.
    On failure, issue diagnostic and return error_mark_node.  */
 /* FIXME unify with c_fully_fold */
@@ -7768,6 +7805,11 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
 	 corresponding member.  */
       r = cxx_eval_vec_init (call, t, allow_non_constant, addr,
 			     non_constant_p);
+      break;
+
+    case VEC_PERM_EXPR:
+      r = cxx_eval_vec_perm_expr (call, t, allow_non_constant, addr,
+				  non_constant_p);
       break;
 
     case CONVERT_EXPR:
@@ -9297,8 +9339,6 @@ maybe_add_lambda_conv_op (tree type)
   DECL_NOT_REALLY_EXTERN (fn) = 1;
   DECL_DECLARED_INLINE_P (fn) = 1;
   DECL_ARGUMENTS (fn) = build_this_parm (fntype, TYPE_QUAL_CONST);
-  if (nested)
-    DECL_INTERFACE_KNOWN (fn) = 1;
 
   add_method (type, fn, NULL_TREE);
 
@@ -9329,8 +9369,6 @@ maybe_add_lambda_conv_op (tree type)
   DECL_ARGUMENTS (fn) = copy_list (DECL_CHAIN (DECL_ARGUMENTS (callop)));
   for (arg = DECL_ARGUMENTS (fn); arg; arg = DECL_CHAIN (arg))
     DECL_CONTEXT (arg) = fn;
-  if (nested)
-    DECL_INTERFACE_KNOWN (fn) = 1;
 
   add_method (type, fn, NULL_TREE);
 

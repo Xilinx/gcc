@@ -6,7 +6,7 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *           Copyright (C) 2005-2011, Free Software Foundation, Inc.        *
+ *           Copyright (C) 2005-2012, Free Software Foundation, Inc.        *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -178,9 +178,15 @@ __gnat_SEH_error_handler (struct _EXCEPTION_RECORD* ExceptionRecord,
       msg = "EXCEPTION_STACK_OVERFLOW";
       break;
 
-   default:
+    default:
+#if defined (_WIN64) && defined (__SEH__)
+      /* On Windows x64, do not transform other exception as they could
+	 be caught by user (when SEH is used to propagate exceptions).  */
+      return;
+#else
       exception = &program_error;
       msg = "unhandled signal";
+#endif
     }
 
 #if ! defined (_WIN64)
@@ -219,6 +225,9 @@ __gnat_SEH_error_handler (struct _EXCEPTION_RECORD* ExceptionRecord,
     the loaded DLL (for example it results in unexpected behaviors in the
     Win32 subsystem.  */
 
+#ifndef __SEH__
+  /* Don't use this trick when SEH are emitted by gcc, as it will conflict with
+     them.  */
 asm
 (
  " .section .rdata, \"dr\"\n"
@@ -238,6 +247,7 @@ asm
  "\n"
  " .text\n"
 );
+#endif /* __SEH__ */
 
 void __gnat_install_SEH_handler (void *eh ATTRIBUTE_UNUSED)
 {

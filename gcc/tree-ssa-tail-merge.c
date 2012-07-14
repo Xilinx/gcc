@@ -1119,6 +1119,14 @@ gimple_equal_p (same_succ same_succ, gimple s1, gimple s2)
     case GIMPLE_ASSIGN:
       lhs1 = gimple_get_lhs (s1);
       lhs2 = gimple_get_lhs (s2);
+      if (gimple_vdef (s1))
+	{
+	  if (vn_valueize (gimple_vdef (s1)) != vn_valueize (gimple_vdef (s2)))
+	    return false;
+	  if (TREE_CODE (lhs1) != SSA_NAME
+	      && TREE_CODE (lhs2) != SSA_NAME)
+	    return true;
+	}
       return (TREE_CODE (lhs1) == SSA_NAME
 	      && TREE_CODE (lhs2) == SSA_NAME
 	      && vn_valueize (lhs1) == vn_valueize (lhs2));
@@ -1458,7 +1466,7 @@ replace_block_by (basic_block bb1, basic_block bb2)
       bb2_phi = vop_phi (bb2);
 
       add_phi_arg (bb2_phi, SSA_NAME_VAR (gimple_phi_result (bb2_phi)),
-		   pred_edge, UNKNOWN_LOCATION);
+		   pred_edge, UNKNOWN_LOCATION, NULL);
     }
 
   bb2->frequency += bb1->frequency;

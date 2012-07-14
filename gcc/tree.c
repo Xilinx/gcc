@@ -1640,7 +1640,7 @@ build_zero_cst (tree type)
     {
     case INTEGER_TYPE: case ENUMERAL_TYPE: case BOOLEAN_TYPE:
     case POINTER_TYPE: case REFERENCE_TYPE:
-    case OFFSET_TYPE:
+    case OFFSET_TYPE: case NULLPTR_TYPE:
       return build_int_cst (type, 0);
 
     case REAL_TYPE:
@@ -2980,6 +2980,7 @@ type_contains_placeholder_1 (const_tree type)
     case METHOD_TYPE:
     case FUNCTION_TYPE:
     case VECTOR_TYPE:
+    case NULLPTR_TYPE:
       return false;
 
     case INTEGER_TYPE:
@@ -4910,7 +4911,15 @@ find_decls_types_r (tree *tp, int *ws, void *data)
       fld_worklist_push (TYPE_MAIN_VARIANT (t), fld);
       /* Do not walk TYPE_NEXT_VARIANT.  We do not stream it and thus
          do not and want not to reach unused variants this way.  */
-      fld_worklist_push (TYPE_CONTEXT (t), fld);
+      if (TYPE_CONTEXT (t))
+	{
+	  tree ctx = TYPE_CONTEXT (t);
+	  /* We adjust BLOCK TYPE_CONTEXTs to the innermost non-BLOCK one.
+	     So push that instead.  */
+	  while (ctx && TREE_CODE (ctx) == BLOCK)
+	    ctx = BLOCK_SUPERCONTEXT (ctx);
+	  fld_worklist_push (ctx, fld);
+	}
       /* Do not walk TYPE_CANONICAL.  We do not stream it and thus do not
 	 and want not to reach unused types this way.  */
 
@@ -6180,6 +6189,7 @@ type_hash_eq (const void *va, const void *vb)
     case COMPLEX_TYPE:
     case POINTER_TYPE:
     case REFERENCE_TYPE:
+    case NULLPTR_TYPE:
       return 1;
 
     case VECTOR_TYPE:
@@ -6899,6 +6909,7 @@ commutative_tree_code (enum tree_code code)
     {
     case PLUS_EXPR:
     case MULT_EXPR:
+    case MULT_HIGHPART_EXPR:
     case MIN_EXPR:
     case MAX_EXPR:
     case BIT_IOR_EXPR:
@@ -6913,6 +6924,11 @@ commutative_tree_code (enum tree_code code)
     case TRUTH_AND_EXPR:
     case TRUTH_XOR_EXPR:
     case TRUTH_OR_EXPR:
+    case WIDEN_MULT_EXPR:
+    case VEC_WIDEN_MULT_HI_EXPR:
+    case VEC_WIDEN_MULT_LO_EXPR:
+    case VEC_WIDEN_MULT_EVEN_EXPR:
+    case VEC_WIDEN_MULT_ODD_EXPR:
       return true;
 
     default:
@@ -8734,23 +8750,37 @@ dump_tree_statistics (void)
 
 /* Generate a crc32 of a byte.  */
 
-unsigned
-crc32_byte (unsigned chksum, char byte)
+static unsigned
+crc32_unsigned_bits (unsigned chksum, unsigned value, unsigned bits)
 {
-  unsigned value = (unsigned) byte << 24;
-      unsigned ix;
+  unsigned ix;
 
-      for (ix = 8; ix--; value <<= 1)
-  	{
-  	  unsigned feedback;
-
-  	  feedback = (value ^ chksum) & 0x80000000 ? 0x04c11db7 : 0;
- 	  chksum <<= 1;
- 	  chksum ^= feedback;
-  	}
+  for (ix = bits; ix--; value <<= 1)
+    {
+      unsigned feedback;
+      
+      feedback = (value ^ chksum) & 0x80000000 ? 0x04c11db7 : 0;
+      chksum <<= 1;
+      chksum ^= feedback;
+    }
   return chksum;
 }
 
+/* Generate a crc32 of a 32-bit unsigned.  */
+
+unsigned
+crc32_unsigned (unsigned chksum, unsigned value)
+{
+  return crc32_unsigned_bits (chksum, value, 32);
+}
+
+/* Generate a crc32 of a byte.  */
+
+unsigned
+crc32_byte (unsigned chksum, char byte)
+{
+  return crc32_unsigned_bits (chksum, (unsigned) byte << 24, 8);
+}
 
 /* Generate a crc32 of a string.  */
 

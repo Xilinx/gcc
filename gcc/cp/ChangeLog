@@ -1,4 +1,210 @@
-2012-06-16 Ville Voutilainen <ville.voutilainen@gmail.com>
+2012-07-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53953
+	* method.c (synthesized_method_walk): Initialize no_implicit_p sooner.
+
+2012-07-12  Jason Merrill  <jason@redhat.com>
+
+	* pt.c (instantiate_decl): Check typedefs access here.
+	(instantiate_template_1): Not here.
+
+	* pt.c (deduction_tsubst_fntype): Just suppress access checking.
+	(instantiate_template_1): Set DECL_TI_TEMPLATE before access checking.
+	(push_deduction_access_scope, pop_deduction_access_scope): Remove.
+
+2012-07-11  Jason Merrill  <jason@redhat.com>
+
+	DR 1402
+	* method.c (synthesized_method_walk): Replace uses of msg with diag.
+	Correct handling of virtual bases with move operations.
+	(process_subob_fn, walk_field_subobs): Replace uses of msg with diag.
+
+2012-07-11  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* method.c: Do not include tree-pass.h.
+
+2012-07-10  Jason Merrill  <jason@redhat.com>
+
+	DR 1402
+	PR c++/53733
+	* cp-tree.h (FNDECL_SUPPRESS_IMPLICIT_DECL): New.
+	(struct lang_decl_fn): Add suppress_implicit_decl field.
+	* method.c (implicitly_declare_fn): Check it.
+	(process_subob_fn): Add no_implicit_p parm.
+	(walk_field_subobs, synthesized_method_walk): Likewise.
+	(maybe_explain_implicit_delete): Adjust.
+	(explain_implicit_non_constexpr): Adjust.
+
+	* method.c (synthesized_method_walk): Avoid changing
+	EH spec based on cleanups in other places, too.
+
+2012-07-09  Sterling Augustine  <saugustine@google.com>
+
+	* error.c (lang_decl_name): Use TFF_UNQUALIFIED_NAME flag.
+
+2012-07-08  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* decl.c (cp_finish_decl): Add FIXME at add_local_decl call site.
+
+2012-07-06  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53862
+	* pt.c (tsubst_arg_types): Add "end" parameter.
+	(check_undeduced_parms): Use it.
+
+	* cp-tree.h (DECL_DECLARES_TYPE_P): Check DECL_TYPE_TEMPLATE_P.
+
+	PR c++/53858
+	* name-lookup.c (ambiguous_decl): Use DECL_TYPE_TEMPLATE_P.
+
+2012-07-05  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53039
+	* pt.c (arg_from_parm_pack_p): Go back to using same_type_p or
+	cp_tree_equal.
+
+	* cp-tree.h (TEMPLATE_PARM_NUM_SIBLINGS): Remove.
+	(struct template_parm_index_s): Remove num_siblings.
+	* pt.c (fixup_template_parms, fixup_template_parm_index): Remove.
+	(fixup_template_type_parm_type): Remove.
+	(build_template_parm_index): Remove num_siblings parm.
+	(process_template_parm): Likewise.
+	* parser.c (cp_parser_template_parameter_list): Adjust.
+	* tree.c (cp_tree_equal): Don't compare num_siblings.
+	* typeck.c (comp_template_parms_position): Likewise.
+
+	PR c++/50852
+	PR c++/53039
+	* tree.c (strip_typedefs_expr): New.
+	* cp-tree.h: Declare it.
+	* pt.c (convert_template_argument, unify): Use it.
+	* parser.c (cp_parser_template_declaration_after_export): Don't call
+	fixup_template_parms.
+
+2012-07-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53848
+	PR c++/53524
+	* decl.c (build_enumerator): Don't use build_lang_decl_loc.
+
+2012-07-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/53812
+	* semantics.c (finish_goto_stmt): Surround computed goto argument
+	with CLEANUP_POINT_EXPR if needed.
+
+2012-07-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53619
+	* pt.c (in_template_function): New.
+	* cp-tree.h: Declare it.
+	* class.c (build_base_path, resolves_to_fixed_type_p): Use it.
+
+	PR c++/53783
+	* pt.c (tsubst_copy_and_build) [LAMBDA_EXPR]: Use tsubst
+	for LAMBDA_EXPR_EXTRA_SCOPE.
+
+	PR c++/53788
+	* pt.c (build_non_dependent_expr): Don't wrap a dummy object.
+
+	PR c++/53816
+	* class.c (resolves_to_fixed_type_p): Check uses_template_parms
+	(current_function_decl) instead of processing_template_decl.
+
+	PR c++/53821
+	* semantics.c (maybe_add_lambda_conv_op): Don't set
+	DECL_INTERFACE_KNOWN.
+
+	PR c++/53524
+	* call.c (build_conditional_expr_1): Don't warn about comparison of
+	two enumerators before their enumeration is complete.
+	(build_new_op_1): Call decay_conversion before warn_logical_operator.
+	* decl.c (build_enumerator): Set DECL_CONTEXT of an enumerator to
+	its enumeration.
+	* decl2.c (mark_used): Call used_types_insert for enums.
+	* semantics.c (finish_id_expression): Don't decay CONST_DECL.
+	(finish_member_declaration): Don't change DECL_CONTEXT of enumerators.
+	* class.c (check_field_decls): Don't change DECL_CONTEXT of enums.
+	* typeck.c (convert_for_assignment): Don't decay CONST_DECL.
+	(build_class_member_access_expr): Look through unscoped enums.
+	* search.c (context_for_name_lookup): Look through unscoped enums.
+	* pt.c (tsubst_copy_and_build): Don't decay CONST_DECL.
+	(tsubst_copy): Use DECL_CONTEXT to find the enumeration.
+	* tree.c (decl_linkage): Likewise.
+	* cvt.c (ocp_convert): Check decayed expr for enum range warning.
+
+2012-06-29  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* Make-lang.in: Remove tree-mudflap.o from CXX_AND_OBJCXX_OBJS.
+
+2012-06-27  Jason Merrill  <jason@redhat.com>
+
+	* parser.c (cp_parser_check_for_invalid_template_id): tag_type parm.
+	(cp_parser_simple_type_specifier, cp_parser_class_head): Adjust.
+	(cp_parser_elaborated_type_specifier): Adjust.
+	* decl.c (duplicate_decls): Return error_mark_node on template
+	mismatch.
+
+	PR c++/53563
+	* parser.c (cp_parser_template_id): Add tag_type parm.
+	(cp_parser_template_name): Likewise.
+	(cp_parser_id_expression, cp_parser_unqualified_id): Adjust.
+	(cp_parser_pseudo_destructor_name, cp_parser_type_name): Adjust.
+	(cp_parser_simple_type_specifier, cp_parser_class_name): Adjust.
+	(cp_parser_elaborated_type_specifier, cp_parser_class_head): Adjust.
+
+2012-06-27  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	PR C++/51033
+	* semantics.c (constexpr_call): Fix typo in comment.
+	(cxx_eval_vec_perm_expr): New.
+	(cxx_eval_constant_expression): Fold VEC_PERM_EXPRs.
+
+2012-06-26  Richard Guenther  <rguenther@suse.de>
+
+	PR c++/53752
+	* mangle.c (write_array_type): Truncate the number-of-elements
+	result.
+
+2012-06-25  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53498
+	PR c++/53305
+	* pt.c (tsubst_decl) [PARM_DECL]: Don't recurse into DECL_CHAIN
+	if cp_unevaluated_operand is set.
+	(tsubst_copy) [PARM_DECL]: Don't copy before tsubsting.
+
+	PR c++/52988
+	* typeck.c (decay_conversion): Don't discard side-effects from
+	expressions of nullptr_t.
+
+2012-06-25  Florian Weimer  <fweimer@redhat.com>
+
+	* init.c (build_new_1): Warn about (T[N]) for variable N, and
+	reject T[M][N].
+
+	* parser.c (cp_parser_direct_new_declarator): Accept non-constant
+	expressions.  Handled now in build_new_1.
+
+2012-06-25  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53202
+	* semantics.c (build_data_member_initialization): Always keep
+	initializer for empty base.
+	(cxx_eval_bare_aggregate): Discard it here.
+
+	PR c++/53565
+	* pt.c (tsubst_omp_for_iterator): Simplify DECL_EXPR handling.
+	(tsubst_expr) [OMP_FOR]: Here, too.
+
+2012-06-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/53594
+	* class.c (check_bases_and_members): Avoid -Wuninitialized
+	diagnostics for non-static const members or references if they
+	use NSDMI.
+
+2012-06-16  Ville Voutilainen  <ville.voutilainen@gmail.com>
 
 	* parser.c (cp_parser_direct_declarator): Move virt-specifier
 	parsing after late-specified return type parsing.

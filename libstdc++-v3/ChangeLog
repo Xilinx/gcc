@@ -1,3 +1,122 @@
+2012-07-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/53657
+	* include/bits/stl_pair.h (pair<>::pair(pair&&)): Declare defaulted,
+	per C++11.
+	* include/bits/stl_map.h (map<>::insert(_Pair&&), map<>::insert
+	(const_iterator, _Pair&&)): Constrain with std::is_constructible,
+	per LWG2005.
+	* include/bits/stl_multimap.h (multimap<>::insert(_Pair&&),
+	multimap<>::insert(const_iterator, _Pair&&)): Likewise.
+	* include/bits/hashtable_policy.h (_Insert<>::insert(_Pair&&),
+	_Insert<>::insert(const_iterator, _Pair&&)): Likewise.
+	* include/debug/unordered_map: Adjust.
+	* include/debug/map.h: Likewise.
+	* include/debug/multimap.h: Likewise.
+	* include/profile/unordered_map: Likewise.
+	* include/profile/map.h: Likewise.
+	* include/profile/multimap.h: Likewise.
+
+2012-07-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/53872
+	* include/std/thread (thread::_M_make_routine): Qualify make_shared
+	to prevent ADL.
+	* testsuite/30_threads/thread/adl.cc: New.
+
+2012-07-05  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/condition_variable: Update copyright years.
+
+2012-07-04  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/53830
+	* include/std/condition_variable (condition_variable_any::wait):
+	Move _Unlock type to class scope.
+	(condition_variable_any::wait_until): Reuse it.
+	* testsuite/30_threads/condition_variable_any/53830.cc: New.
+
+2012-07-04  Matthias Klose  <doko@ubuntu.com>
+
+	* testsuite/28_regex/headers/04_header: Remove empty directory.
+	* testsuite/28_regex/algorithms/02_match: Likewise.
+
+2012-07-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/53840
+	* include/std/ratio (ratio_multiply, ratio_divide, ratio_add,
+	ratio_subtract): Use template aliases.
+	* include/std/chrono (duration<>::duration(const duration<>&),
+	duration_cast): Adjust.
+	* testsuite/20_util/ratio/operations/53840.cc: New.
+	* testsuite/20_util/duration/requirements/typedefs_neg1.cc: Adjust.
+	* testsuite/20_util/duration/requirements/typedefs_neg2.cc: Likewise.
+	* testsuite/20_util/duration/requirements/typedefs_neg3.cc: Likewise.
+	* testsuite/20_util/ratio/operations/ops_overflow_neg.cc: Likewise.
+
+2012-07-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	Revert:
+	2011-10-04  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/49561
+	* include/bits/stl_list.h (_List_base<>::_List_impl::_M_size):
+	Add in C++0x mode.
+	(_List_base<>::_List_impl, _List_base<>::_M_get_node,
+	_List_base<>::_M_put_node, _List_base<>::_List_base(_List_base&&),
+	list<>::size, list<>::swap, list<>::splice): Use it.
+	(operator==(const list<>&, const list<>&)): Rewrite in C++0x mode.
+	* include/bits/list.tcc (list<>::erase): Likewise.
+	(list<>::merge): Adjust in C++0x mode.
+	* testsuite/23_containers/list/requirements/dr438/assign_neg.cc:
+	Adjust dg-error line number.
+	* testsuite/23_containers/list/requirements/dr438/insert_neg.cc:
+	Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+
+2012-06-27  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/bits/c++config: Remove __regex nested namespace.
+	* include/bits/regex_compiler.h: Change __regex to
+	__detail. Adjust doxygen markup, add regex-details group.
+	* include/bits/regex_constants.h: Same.
+	* include/bits/regex_cursor.h: Same.
+	* include/bits/regex_error.h: Same.
+	* include/bits/regex_grep_matcher.h: Same.
+	* include/bits/regex_grep_matcher.tcc: Same.
+	* include/bits/regex_nfa.h: Same.
+	* include/bits/regex_nfa.tcc: Same.
+	* include/bits/regex.h: Same. Remove static from global constants.
+
+	* testsuite/ext/profile/mutex_extensions_neg.cc: Adjust line numbers.
+
+	* include/bits/locale_classes.tcc: Add use_facet, has_facet to
+	locales group.
+
+2012-06-25  Edward Smith-Rowland  <3dw4rd@verizon.net>
+
+	* include/tr2/bool_set (count, size, num_blocks, empty, max_size):
+	Add noexcept.
+
+2012-06-25  Edward Smith-Rowland  <3dw4rd@verizon.net>
+
+	* include/tr2/dynamic_bitset (count, size, num_blocks, empty, max_size):
+	Add noexcept.
+
+2012-06-25  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/doxygen/user.cfg.in: Change COMPACT_LATEX to NO.
+
+2012-06-24  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/28_regex/algorithms/02_match: To...
+	* testsuite/28_regex/algorithms/match: ...this.
+	* testsuite/28_regex/headers/04_header/regex/std_c++0x_neg.cc: Remove
+	duplicate.
+
 2012-06-18  Jörg Sonnenberger <joerg@britannica.bec.de>
 	    Jonathan Wakely  <jwakely.gcc@gmail.com>
 
@@ -438,20 +557,20 @@
 2012-04-12   Jeffrey Yasskin  <jyasskin@google.com>
 
 	PR libstdc++/52822
-        * include/bits/stl_algo.h (__find_if_not): Expose in C++98 mode.
-        (__find_if_not_n): Like __find_if_not, but works on and updates a
+	* include/bits/stl_algo.h (__find_if_not): Expose in C++98 mode.
+	(__find_if_not_n): Like __find_if_not, but works on and updates a
 	counted range instead of a bounded range.
-        (stable_partition): Guarantee !__pred(*__first) in call to
+	(stable_partition): Guarantee !__pred(*__first) in call to
 	__stable_partition_adaptive() or __inplace_stable_partition().
-        (__stable_partition_adaptive): Use new precondition to avoid
+	(__stable_partition_adaptive): Use new precondition to avoid
 	moving/copying objects onto themselves.  Guarantee new
 	precondition to recursive calls.
-        (__inplace_stable_partition): Use new precondition to simplify
+	(__inplace_stable_partition): Use new precondition to simplify
 	base case, remove __last parameter.  Guarantee new precondition to
 	recursive calls.
-        * testsuite/25_algorithms/stable_partition/moveable.cc (test02):
+	* testsuite/25_algorithms/stable_partition/moveable.cc (test02):
 	Test a sequence that starts with a value matching the predicate.
-        * testsuite/25_algorithms/stable_partition/pr52822.cc: Test
+	* testsuite/25_algorithms/stable_partition/pr52822.cc: Test
 	vectors, which have a destructive self-move-assignment.
 
 2012-04-12  Andreas Schwab  <schwab@linux-m68k.org>

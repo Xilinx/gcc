@@ -1679,6 +1679,8 @@ struct GTY(()) tree_constructor {
   (CAN_HAVE_LOCATION_P ((NODE)) ? (NODE)->exp.locus : UNKNOWN_LOCATION)
 #define SET_EXPR_LOCATION(NODE, LOCUS) EXPR_CHECK ((NODE))->exp.locus = (LOCUS)
 #define EXPR_HAS_LOCATION(NODE) (EXPR_LOCATION (NODE) != UNKNOWN_LOCATION)
+/* The location to be used in a diagnostic about this expression.  Do not
+   use this macro if the location will be assigned to other expressions.  */
 #define EXPR_LOC_OR_HERE(NODE) (EXPR_HAS_LOCATION (NODE) ? (NODE)->exp.locus : input_location)
 #define EXPR_FILENAME(NODE) LOCATION_FILE (EXPR_CHECK ((NODE))->exp.locus)
 #define EXPR_LINENO(NODE) LOCATION_LINE (EXPR_CHECK (NODE)->exp.locus)
@@ -2033,6 +2035,7 @@ struct GTY(()) phi_arg_d {
      pointer arithmetic with it.  See phi_arg_index_from_use.  */
   struct ssa_use_operand_d imm_use;
   tree def;
+  tree block;
   location_t locus;
 };
 
@@ -5168,6 +5171,7 @@ inlined_function_outer_scope_p (const_tree block)
 /* In tree.c */
 extern unsigned crc32_string (unsigned, const char *);
 extern unsigned crc32_byte (unsigned, char);
+extern unsigned crc32_unsigned (unsigned, unsigned);
 extern void clean_symbol_name (char *);
 extern tree get_file_function_name (const char *);
 extern tree get_callee_fndecl (const_tree);
@@ -5725,8 +5729,6 @@ extern bool parse_input_constraint (const char **, int, int, int, int,
 				    const char * const *, bool *, bool *);
 extern void expand_asm_stmt (gimple);
 extern tree resolve_asm_operand_names (tree, tree, tree, tree);
-extern bool expand_switch_using_bit_tests_p (tree, tree, unsigned int,
-					     unsigned int);
 extern void expand_case (gimple);
 #ifdef HARD_CONST
 /* Silly ifdef to avoid having all includers depend on hard-reg-set.h.  */
@@ -5885,6 +5887,12 @@ extern void fini_object_sizes (void);
 extern unsigned HOST_WIDE_INT compute_builtin_object_size (tree, int);
 
 /* In expr.c.  */
+
+/* Determine whether the LEN bytes can be moved by using several move
+   instructions.  Return nonzero if a call to move_by_pieces should
+   succeed.  */
+extern int can_move_by_pieces (unsigned HOST_WIDE_INT, unsigned int);
+
 extern unsigned HOST_WIDE_INT highest_pow2_factor (const_tree);
 extern tree build_personality_function (const char *);
 

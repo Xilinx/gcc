@@ -1,6 +1,6 @@
 /* Definitions of target machine for GCC for IA-32.
    Copyright (C) 1988, 1992, 1994, 1995, 1996, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -224,7 +224,10 @@ extern void ix86_expand_reduc (rtx (*)(rtx, rtx, rtx), rtx, rtx);
 
 extern void ix86_expand_vec_extract_even_odd (rtx, rtx, rtx, unsigned);
 extern bool ix86_expand_pinsr (rtx *);
+extern void ix86_expand_mul_widen_evenodd (rtx, rtx, rtx, bool, bool);
+extern void ix86_expand_mul_widen_hilo (rtx, rtx, rtx, bool, bool);
 extern void ix86_expand_sse2_mulv4si3 (rtx, rtx, rtx);
+extern void ix86_expand_sse2_mulvxdi3 (rtx, rtx, rtx);
 
 /* In i386-c.c  */
 extern void ix86_target_macros (void);
@@ -261,6 +264,8 @@ extern void i386_pe_adjust_class_at_definition (tree);
 extern bool i386_pe_type_dllimport_p (tree);
 extern bool i386_pe_type_dllexport_p (tree);
 
+extern int i386_pe_reloc_rw_mask (void);
+
 extern rtx maybe_get_pool_constant (rtx);
 
 extern char internal_label_prefix[16];
@@ -285,7 +290,6 @@ extern void x86_elf_aligned_common (FILE *, const char *,
 extern void ix86_fp_comparison_codes (enum rtx_code code, enum rtx_code *,
 				      enum rtx_code *, enum rtx_code *);
 extern enum rtx_code ix86_fp_compare_code_to_integer (enum rtx_code);
-extern rtx construct_plt_address (rtx);
 #endif
 extern int asm_preferred_eh_data_format (int, int);
 

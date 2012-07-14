@@ -140,9 +140,6 @@ extern GTY(()) int darwin_ms_struct;
   } while (0)
 
 #define SUBTARGET_C_COMMON_OVERRIDE_OPTIONS do {                        \
-    if (!global_options_set.x_flag_objc_sjlj_exceptions)		\
-      global_options.x_flag_objc_sjlj_exceptions = 			\
-				flag_next_runtime && !TARGET_64BIT;	\
     if (flag_mkernel || flag_apple_kext)				\
       {									\
 	if (flag_use_cxa_atexit == 2)					\
@@ -463,13 +460,6 @@ extern GTY(()) int darwin_ms_struct;
 /* Darwin has the pthread routines in libSystem, which every program
    links to, so there's no need for weak-ness for that.  */
 #define GTHREAD_USE_WEAK 0
-
-/* The Darwin linker imposes two limitations on common symbols: they
-   can't have hidden visibility, and they can't appear in dylibs.  As
-   a consequence, we should never use common symbols to represent
-   vague linkage. */
-#undef USE_COMMON_FOR_ONE_ONLY
-#define USE_COMMON_FOR_ONE_ONLY 0
 
 /* The Darwin linker doesn't want coalesced symbols to appear in
    a static archive's table of contents. */
@@ -912,7 +902,7 @@ void add_framework_path (char *);
 #define TARGET_KEXTABI flag_apple_kext
 
 /* We have target-specific builtins.  */
-#define TARGET_FOLD_BUILTIN darwin_fold_builtin
+#define SUBTARGET_FOLD_BUILTIN darwin_fold_builtin
 
 #define TARGET_N_FORMAT_TYPES 1
 #define TARGET_FORMAT_TYPES darwin_additional_format_types
