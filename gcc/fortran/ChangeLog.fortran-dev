@@ -1,3 +1,8 @@
+2012-07-15  Tobias Burnus  <burnus@net-b.de>
+
+	* trans-intrinsic.c (gfc_conv_associated): Compare sm
+	instead of stride.
+
 2012-03-12  Tobias Burnus  <burnus@net-b.de>
 
 	* trans-types.c (gfc_get_array_descriptor_base): Rename "data"

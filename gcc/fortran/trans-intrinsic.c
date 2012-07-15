@@ -5855,7 +5855,7 @@ gfc_conv_associated (gfc_se *se, gfc_expr *expr)
 	     present.  */
 	  arg1se.descriptor_only = 1;
 	  gfc_conv_expr_lhs (&arg1se, arg1->expr);
-	  tmp = gfc_conv_descriptor_stride_get (arg1se.expr,
+	  tmp = gfc_conv_descriptor_sm_get (arg1se.expr,
 					    gfc_rank_cst[arg1->expr->rank - 1]);
 	  nonzero_arraylen = fold_build2_loc (input_location, NE_EXPR,
 					      boolean_type_node, tmp,

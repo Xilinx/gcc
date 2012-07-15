@@ -48,7 +48,7 @@ associated (const gfc_array_void *pointer, const gfc_array_void *target)
 
       if (extent != GFC_DESCRIPTOR_EXTENT(target,n))
         return 0;
-      if (GFC_DESCRIPTOR_STRIDE(pointer,n) != GFC_DESCRIPTOR_STRIDE(target,n) && extent != 1)
+      if (GFC_DESCRIPTOR_SM (pointer,n) != GFC_DESCRIPTOR_SM (target,n) && extent != 1)
         return 0;
       if (extent <= 0)
 	return 0;

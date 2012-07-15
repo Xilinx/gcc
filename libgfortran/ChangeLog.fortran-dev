@@ -1,3 +1,8 @@
+2012-07-15  Tobias Burnus  <burnus@net-b.de>
+
+	* intrinsics/associated.c (associated): Compare sm
+	instead of stride.
+
 2012-04-14  Thomas König  <tkoenig@gcc.gnu.org>
 
 	* libgfortran.h (GFC_DESCRIPTOR_SIZE_TYPEKNOWN):  New macro.
