@@ -1,5 +1,18 @@
 2012-07-15  Tobias Burnus  <burnus@net-b.de>
 
+	* trans-intrinsic.c (gfc_conv_intrinsic_size,
+	gfc_conv_intrinsic_sizeof): Replace (ubound-lbound+1) calculation
+	by "extent".
+	* trans-expr.c (fcncall_realloc_result): Ditto.
+	* trans-io.c (gfc_convert_array_to_string): Ditto.
+	* trans-openmp.c (gfc_omp_clause_default_ctor,
+	gfc_omp_clause_copy_ctor, gfc_omp_clause_assign_op,
+	gfc_trans_omp_array_reduction): Ditto.
+	* trans-array.c (array_parameter_size): Ditto.
+	(gfc_grow_array): Ditto - and fix size calculation for realloc.
+
+2012-07-15  Tobias Burnus  <burnus@net-b.de>
+
 	* trans-intrinsic.c (gfc_conv_associated): Compare sm
 	instead of stride.
 

@@ -1,3 +1,7 @@
+2012-07-15  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/array_section_2.f90: Update scan-tree-dump pattern.
+
 2012-03-12  Tobias Burnus  <burnus@net-b.de>
 
 	* gfortran.dg/assign_10.f90: Update scan-tree-dump-times.

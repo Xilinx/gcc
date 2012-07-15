@@ -639,16 +639,10 @@ gfc_convert_array_to_string (gfc_se * se, gfc_expr * e)
       else
 	{
 	  gcc_assert (GFC_DESCRIPTOR_TYPE_P (type));
-	  size = gfc_conv_array_stride (array, rank);
-	  tmp = fold_build2_loc (input_location, MINUS_EXPR,
-				 gfc_array_index_type,
-				 gfc_conv_array_ubound (array, rank),
-				 gfc_conv_array_lbound (array, rank));
-	  tmp = fold_build2_loc (input_location, PLUS_EXPR,
-				 gfc_array_index_type, tmp,
-				 gfc_index_one_node);
 	  size = fold_build2_loc (input_location, MULT_EXPR,
-				  gfc_array_index_type, tmp, size);
+				  gfc_array_index_type,
+				  gfc_conv_array_stride (array, rank),
+				  gfc_conv_array_extent (array, rank));
 	}
       gcc_assert (size);
 

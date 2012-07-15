@@ -1287,27 +1287,25 @@ gfc_grow_array (stmtblock_t * pblock, tree desc, tree extra)
   tree arg0, arg1;
   tree tmp;
   tree size;
-  tree ubound;
+  tree extent;
 
   if (integer_zerop (extra))
     return;
 
-  ubound = gfc_conv_descriptor_ubound_get (desc, gfc_rank_cst[0]);
+  extent = gfc_conv_descriptor_extent_get (desc, gfc_rank_cst[0]);
 
-  /* Add EXTRA to the upper bound.  */
-  tmp = fold_build2_loc (input_location, PLUS_EXPR, gfc_array_index_type,
-			 ubound, extra);
-  gfc_conv_descriptor_ubound_set (pblock, desc, gfc_rank_cst[0], tmp);
+  /* Add EXTRA to the extent.  */
+  extent = fold_build2_loc (input_location, PLUS_EXPR, gfc_array_index_type,
+			    extent, extra);
+  gfc_conv_descriptor_extent_set (pblock, desc, gfc_rank_cst[0], extent);
 
   /* Get the value of the current data pointer.  */
   arg0 = gfc_conv_descriptor_data_get (desc);
 
   /* Calculate the new array size.  */
   size = TYPE_SIZE_UNIT (gfc_get_element_type (TREE_TYPE (desc)));
-  tmp = fold_build2_loc (input_location, PLUS_EXPR, gfc_array_index_type,
-			 ubound, gfc_index_one_node);
   arg1 = fold_build2_loc (input_location, MULT_EXPR, size_type_node,
-			  fold_convert (size_type_node, tmp),
+			  fold_convert (size_type_node, extent),
 			  fold_convert (size_type_node, size));
 
   /* Call the realloc() function.  */
@@ -6927,13 +6925,7 @@ array_parameter_size (tree desc, gfc_expr *expr, tree *size)
 			     gfc_build_addr_expr (NULL, desc));
   else
     {
-      tree ubound = gfc_conv_descriptor_ubound_get (desc, gfc_index_zero_node);
-      tree lbound = gfc_conv_descriptor_lbound_get (desc, gfc_index_zero_node);
-
-      *size = fold_build2_loc (input_location, MINUS_EXPR,
-			       gfc_array_index_type, ubound, lbound);
-      *size = fold_build2_loc (input_location, PLUS_EXPR, gfc_array_index_type,
-			       *size, gfc_index_one_node);
+      *size = gfc_conv_descriptor_extent_get (desc, gfc_index_zero_node);
       *size = fold_build2_loc (input_location, MAX_EXPR, gfc_array_index_type,
 			       *size, gfc_index_zero_node);
     }

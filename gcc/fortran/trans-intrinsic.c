@@ -5145,17 +5145,8 @@ gfc_conv_intrinsic_size (gfc_se * se, gfc_expr * expr)
 
   if (se->expr == NULL_TREE)
     {
-      tree ubound, lbound;
-
-      arg1 = build_fold_indirect_ref_loc (input_location,
-				      arg1);
-      ubound = gfc_conv_descriptor_ubound_get (arg1, argse.expr);
-      lbound = gfc_conv_descriptor_lbound_get (arg1, argse.expr);
-      se->expr = fold_build2_loc (input_location, MINUS_EXPR,
-				  gfc_array_index_type, ubound, lbound);
-      se->expr = fold_build2_loc (input_location, PLUS_EXPR,
-				  gfc_array_index_type,
-				  se->expr, gfc_index_one_node);
+      arg1 = build_fold_indirect_ref_loc (input_location, arg1);
+      se->expr = gfc_conv_descriptor_extent_get (arg1, argse.expr);
       se->expr = fold_build2_loc (input_location, MAX_EXPR,
 				  gfc_array_index_type, se->expr,
 				  gfc_index_zero_node);
@@ -5194,8 +5185,6 @@ gfc_conv_intrinsic_sizeof (gfc_se *se, gfc_expr *expr)
   tree source_bytes;
   tree type;
   tree tmp;
-  tree lower;
-  tree upper;
   int n;
 
   arg = expr->value.function.actual->expr;
@@ -5240,12 +5229,7 @@ gfc_conv_intrinsic_sizeof (gfc_se *se, gfc_expr *expr)
 	{
 	  tree idx;
 	  idx = gfc_rank_cst[n];
-	  lower = gfc_conv_descriptor_lbound_get (argse.expr, idx);
-	  upper = gfc_conv_descriptor_ubound_get (argse.expr, idx);
-	  tmp = fold_build2_loc (input_location, MINUS_EXPR,
-				 gfc_array_index_type, upper, lower);
-	  tmp = fold_build2_loc (input_location, PLUS_EXPR,
-				 gfc_array_index_type, tmp, gfc_index_one_node);
+	  tmp = gfc_conv_descriptor_extent_get (argse.expr, idx);
 	  tmp = fold_build2_loc (input_location, MULT_EXPR,
 				 gfc_array_index_type, tmp, source_bytes);
 	  gfc_add_modify (&argse.pre, source_bytes, tmp);

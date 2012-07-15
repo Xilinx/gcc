@@ -6476,19 +6476,10 @@ fcncall_realloc_result (gfc_se *se, int rank)
   for (n = 0 ; n < rank; n++)
     {
       tree tmp1;
-      tmp = gfc_conv_descriptor_lbound_get (desc, gfc_rank_cst[n]);
-      tmp1 = gfc_conv_descriptor_lbound_get (res_desc, gfc_rank_cst[n]);
-      tmp = fold_build2_loc (input_location, MINUS_EXPR,
-			     gfc_array_index_type, tmp, tmp1);
-      tmp1 = gfc_conv_descriptor_ubound_get (desc, gfc_rank_cst[n]);
-      tmp = fold_build2_loc (input_location, MINUS_EXPR,
-			     gfc_array_index_type, tmp, tmp1);
-      tmp1 = gfc_conv_descriptor_ubound_get (res_desc, gfc_rank_cst[n]);
-      tmp = fold_build2_loc (input_location, PLUS_EXPR,
-			     gfc_array_index_type, tmp, tmp1);
+      tmp = gfc_conv_descriptor_extent_get (desc, gfc_rank_cst[n]);
+      tmp1 = gfc_conv_descriptor_extent_get (res_desc, gfc_rank_cst[n]);
       tmp = fold_build2_loc (input_location, NE_EXPR,
-			     boolean_type_node, tmp,
-			     gfc_index_zero_node);
+			     boolean_type_node, tmp, tmp1);
       tmp = gfc_evaluate_now (tmp, &se->post);
       zero_cond = fold_build2_loc (input_location, TRUTH_OR_EXPR,
 				   boolean_type_node, tmp,
