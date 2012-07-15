@@ -79,21 +79,17 @@ cshift1 (gfc_array_char * const restrict ret,
   if (ret->base_addr == NULL)
     {
       int i;
+      index_type sm, ext;
 
       ret->base_addr = xmalloc (size * arraysize);
       ret->offset = 0;
       ret->dtype = array->dtype;
+      sm = sizeof (GFC_INTEGER_4);
+      ext = 1;
       for (i = 0; i < GFC_DESCRIPTOR_RANK (array); i++)
         {
-	  index_type ext, sm;
-
+          sm *= ext;
           ext = GFC_DESCRIPTOR_EXTENT (array, i);
-
-          if (i == 0)
-            sm = 1;
-          else
-	    sm = GFC_DESCRIPTOR_EXTENT (ret, i-1)
-		 * GFC_DESCRIPTOR_SM (ret, i-1);
 
 	  GFC_DIMENSION_SET (ret->dim[i], 0, ext, sm);
         }

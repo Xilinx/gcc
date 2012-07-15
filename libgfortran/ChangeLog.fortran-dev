@@ -1,5 +1,12 @@
 2012-07-15  Tobias Burnus  <burnus@net-b.de>
 
+	* m4/cshift1.m4 (cshift1): Correctly set stride multiplier.
+	* generated/cshift1_16.c: Regenerate.
+	* generated/cshift1_4.c: Regenerate.
+	* generated/cshift1_8.c: Regenerate.
+
+2012-07-15  Tobias Burnus  <burnus@net-b.de>
+
 	* intrinsics/associated.c (associated): Compare sm
 	instead of stride.
 
