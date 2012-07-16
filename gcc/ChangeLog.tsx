@@ -1,6 +1,13 @@
 2012-08-30  H.J. Lu  <hongjiu.lu@intel.com>
 
 	Backport from mainline
+	2012-07-16  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/i386/rtmintrin.h (_xabort): Remove trailing semicolon.
+
+2012-08-30  H.J. Lu  <hongjiu.lu@intel.com>
+
+	Backport from mainline
 	2012-05-14  Andrew Pinski  <apinski@cavium.com>
 		    H.J. Lu  <hongjiu.lu@intel.com>
 		    Jakub Jelinek  <jakub@redhat.com>
