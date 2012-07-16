@@ -1,0 +1,122 @@
+#! /usr/bin/autogen
+AutoGen definitions melt-build-script.tpl;
+
+// melt-build-script.mk is generated from melt-build-script.tpl using melt-build-script.def
+// and the autogen utility by 'autogen melt-build-script.def'.
+// This file is written by Basile Starynkevitch
+//
+//   Copyright 2012  Free Software Foundation
+//
+// This file is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 3 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
+
+// When adding or removing a core melt/*.melt file, please describe it
+// here.
+////////////////////////////////////////////////////////////////
+
+// the MELT translator is described by several similar entries, one
+// for each source file. Entry order is important!
+
+// field 'base' gives the base name of the  *.melt file
+// field 'varsuf' gives a suffix part of a generated shell variable name
+melt_translator_file = {
+  base = "warmelt-first";
+  varsuf = FIRST;
+};
+
+melt_translator_file = {
+  base = "warmelt-base";
+  varsuf = BASE;
+};
+
+melt_translator_file = {
+  base = "warmelt-debug";
+  varsuf = DEBUG;
+};
+
+melt_translator_file = {
+  base = "warmelt-macro";
+  varsuf = MACRO;
+};
+
+melt_translator_file = {
+  base = "warmelt-normal";
+  // warmelt-normal.melt contains (load "warmelt-predef.melt")
+  includeload = "warmelt-predef.melt";
+  varsuf = NORMAL;
+};
+
+melt_translator_file = {
+  base = "warmelt-normatch"; 
+  varsuf = NORMATCH;
+};
+
+melt_translator_file = {
+  base = "warmelt-genobj";
+  varsuf = GENOBJ;
+};
+
+melt_translator_file = {
+  base = "warmelt-outobj";
+  varsuf = OUTOBJ;
+};
+
+melt_translator_file = {
+  base = "warmelt-modes";
+  varsuf = MODES;
+};
+
+
+////////////////
+// the additional MELT application files
+melt_application_file = {
+  base = "xtramelt-ana-base";
+  varsuf = ANA_BASE;
+};
+
+melt_application_file = {
+  base = "xtramelt-ana-tree";
+  varsuf = ANA_TREE;
+};
+
+melt_application_file = {
+  base = "xtramelt-ana-gimple";
+  varsuf = ANA_GIMPLE;
+};
+
+melt_application_file = {
+  base = "xtramelt-probe";
+  varsuf = PROBE;
+};
+
+melt_application_file = {
+  base = "xtramelt-ana-simple";
+  varsuf = ANA_SIMPLE;
+};
+
+melt_application_file = {
+  base = "xtramelt-c-generator";
+  varsuf = C_GENERATOR;
+};
+
+melt_application_file = {
+  base = "xtramelt-opengpu";
+  varsuf = OPENGPU;
+};
+
+// the various MELT stages which should be melt-stage1 melt-stage2
+// etc...
+melt_stage = meltbuild-stage1;
+melt_stage = meltbuild-stage2;
+melt_stage = meltbuild-stage3;

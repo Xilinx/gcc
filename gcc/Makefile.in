@@ -5540,7 +5540,7 @@ melt-build-param.sh:  Makefile
 	echo '## GCCMELT_IS_PLUGIN is 1 when melt.so is a plugin' >> $@-tmp
 	echo 'GCCMELT_IS_PLUGIN='   >> $@-tmp
 	echo '## GCCMELT_STAGE_ZERO is usually melt-stage0-dynamic, could be melt-stage0-quicklybuilt' >> $@-tmp
-	echo 'GCCMELT_STAGE_ZERO=$(MELT_STAGE_ZERO)'   >> $@-tmp
+	echo 'GCCMELT_STAGE_ZERO=$(subst melt-stage0,meltbuild-stage0,$(MELT_STAGE_ZERO))'   >> $@-tmp
 	echo '## GCCMELT_DEFAULT_FLAVOR is the default flavor'
 	echo 'GCCMELT_DEFAULT_FLAVOR=optimized' >> $@-tmp
 	echo '## utility to move file if content changed GCCMELT_MOVE_IF_CHANGE' >> $@-tmp

@@ -1,5 +1,11 @@
 
 2012-07-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (melt-build-param.sh): Bettet GCCMELT_STAGE_ZERO.
+	* melt-build-script.def: New file.
+	* melt-build-script.tpl: New file. Not working yet.
+	* melt-build-script.sh: New generated file. Not working yet.
+
+2012-07-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c
 	(melt_output_cfile_decl_impl_secondary_option): More pretty
 	generated C file list.
