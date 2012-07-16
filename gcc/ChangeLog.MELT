@@ -1,5 +1,10 @@
 
 2012-07-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c
+	(melt_output_cfile_decl_impl_secondary_option): More pretty
+	generated C file list.
+
+2012-07-16  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* common.opt (fmelt-generated-c-file-list=): New option.
 

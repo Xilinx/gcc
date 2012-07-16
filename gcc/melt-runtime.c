@@ -10216,7 +10216,7 @@ do_finalize_melt (void)
   parsedmeltfilevect = NULL;
   if (melt_generated_c_files_list_fil) 
     {
-      fprintf (melt_generated_c_files_list_fil, "#end of generated C file list\n");
+      fprintf (melt_generated_c_files_list_fil, "# end of generated C file list\n");
       fclose (melt_generated_c_files_list_fil);
     }
   dbgprintf ("do_finalize_melt ended melt_nb_modules=%d", melt_nb_modules);
@@ -12020,7 +12020,7 @@ melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
 			md5nam, dotcnam, mycwd);
 	      if (melt_generated_c_files_list_fil)
 		fprintf (melt_generated_c_files_list_fil,
-			 "#symlink to %s is:\n%s\n", md5nam, dotcnam);
+			 "# symlink to %s is:\n%s\n", md5nam, dotcnam);
 	    }
 	  free (md5nam), md5nam = NULL;
 	} 
