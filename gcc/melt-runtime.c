@@ -257,6 +257,8 @@ static long melt_minorsizekilow = 0;
 static long melt_fullthresholdkilow = 0;
 static int melt_fullperiod = 0;
 
+static FILE* melt_generated_c_files_list_fil;
+
 #define MELT_MODULE_MAGIC  0x5cc065cf  /*1556112847*/
 
 typedef melt_ptr_t (melt_start_rout_t) (melt_ptr_t);
@@ -534,6 +536,8 @@ melt_argument (const char* argname)
     return melt_flag_bootstrapping?"yes":NULL;
   else if (!strcmp (argname, "generate-work-link"))
     return melt_flag_generate_work_link?"yes":NULL;
+  else if (!strcmp (argname, "generated-c-file-list"))
+    return melt_generated_c_file_list_string;
   else if (!strcmp (argname, "debugskip") || !strcmp (argname, "debug-skip"))
     return melt_count_debugskip_string;
   else if (!strcmp (argname, "debug-depth"))
@@ -9871,6 +9875,27 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
              melt_module_makefile, xstrerror (errno));
   errno = 0;
 
+  /* Open the list of generated C files */
+  {
+    char* genfilpath = melt_argument("generated-c-file-list");
+    if (genfilpath && genfilpath[0]) 
+      {
+	time_t now = 0;
+	time (&now);
+	melt_generated_c_files_list_fil = fopen(genfilpath, "w");
+	if (!melt_generated_c_files_list_fil)
+	  fatal_error ("failed to open file %s for generated C file list [%s]", 
+		       genfilpath, xstrerror (errno));
+	fprintf (melt_generated_c_files_list_fil,
+		 "# file %s with list of [over-]written generated emitted C files\n",
+		 genfilpath);
+	fprintf (melt_generated_c_files_list_fil,
+		 "# MELT version %s run at %s", MELT_VERSION_STRING, 
+		 /* ctime adds the ending newline! */
+		 ctime (&now));
+      }
+  }
+
   /* These are probably never freed! */
   melt_gccversionstr = concat (versionstr, " MELT_",
                                MELT_VERSION_STRING, NULL);
@@ -10189,6 +10214,11 @@ do_finalize_melt (void)
   }
   VEC_free (meltchar_p, heap, parsedmeltfilevect);
   parsedmeltfilevect = NULL;
+  if (melt_generated_c_files_list_fil) 
+    {
+      fprintf (melt_generated_c_files_list_fil, "#end of generated C file list\n");
+      fclose (melt_generated_c_files_list_fil);
+    }
   dbgprintf ("do_finalize_melt ended melt_nb_modules=%d", melt_nb_modules);
 end:
   MELT_EXITFRAME ();
@@ -11825,17 +11855,18 @@ melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
   fprintf (cfil,
            "/* GCC MELT GENERATED FILE %s - DO NOT EDIT */\n",
            melt_basename (dotcnam));
-  if (filrank <= 0) {
-    if (melt_magic_discr (optbuf) == MELTOBMAG_STRBUF) {
-      fprintf (cfil, "\n/***+ %s options +***\n",
-               melt_basename (melt_string_str (unitnam)));
-      melt_putstrbuf (cfil, optbuf);
-      fprintf (cfil, "\n***- end %s options -***/\n",
-               melt_basename (melt_string_str (unitnam)));
+  if (filrank <= 0) 
+    {
+      if (melt_magic_discr (optbuf) == MELTOBMAG_STRBUF) {
+	fprintf (cfil, "\n/***+ %s options +***\n",
+		 melt_basename (melt_string_str (unitnam)));
+	melt_putstrbuf (cfil, optbuf);
+	fprintf (cfil, "\n***- end %s options -***/\n",
+		 melt_basename (melt_string_str (unitnam)));
+      } else
+	fprintf (cfil, "\n/***+ %s without options +***/\n",
+		 melt_basename (melt_string_str (unitnam)));
     } else
-      fprintf (cfil, "\n/***+ %s without options +***/\n",
-               melt_basename (melt_string_str (unitnam)));
-  } else
     fprintf (cfil, "/* secondary MELT generated C file of rank #%d */\n",
              filrank);
   fprintf (cfil, "#include \"melt-run.h\"\n\n");;
@@ -11868,127 +11899,148 @@ melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
   /* we compare oldfil & cfil; if they are the same we don't overwrite
      the oldfil; this is for the happiness of make utility. */
   samefil = oldfil != NULL;
-  if (samefil) {
-    /* files of different sizes are different */
-    struct stat cfilstat, oldfilstat;
-    memset (&cfilstat, 0, sizeof (cfilstat));
-    memset (&oldfilstat, 0, sizeof (oldfilstat));
-    if (fstat (fileno(cfil), &cfilstat)
-        || fstat (fileno (oldfil), &oldfilstat)
-        || cfilstat.st_size != oldfilstat.st_size)
-      samefil = false;
-  }
-  while (samefil && (!feof(cfil) || !feof(oldfil))) {
-    int c = getc (cfil);
-    int o = getc (oldfil);
-    if (c != o)
-      samefil = false;
-    if (c < 0)
-      break;
-  };
+  if (samefil) 
+    {
+      /* files of different sizes are different */
+      struct stat cfilstat, oldfilstat;
+      memset (&cfilstat, 0, sizeof (cfilstat));
+      memset (&oldfilstat, 0, sizeof (oldfilstat));
+      if (fstat (fileno(cfil), &cfilstat)
+	  || fstat (fileno (oldfil), &oldfilstat)
+	  || cfilstat.st_size != oldfilstat.st_size)
+	samefil = false;
+    }
+  while (samefil && (!feof(cfil) || !feof(oldfil))) 
+    {
+      int c = getc (cfil);
+      int o = getc (oldfil);
+      if (c != o)
+	samefil = false;
+      if (c < 0)
+	break;
+    };
   samefil = samefil && feof(cfil) && feof(oldfil);
   fclose (cfil);
   if (oldfil) fclose (oldfil);
-  if (samefil) {
-    /* Rare case when the generated file is the same as what existed
-       in the filesystem, so discard the generated temporary file. */
-    if (remove (dotempnam))
-      melt_fatal_error ("failed to remove %s as melt generated file - %m",
-                        dotempnam);
-    if (IS_ABSOLUTE_PATH(dotcnam))
-      inform (UNKNOWN_LOCATION, "MELT generated same file %s", dotcnam);
-    else
-      inform (UNKNOWN_LOCATION, "MELT generated same file %s in %s",
-              dotcnam, mycwd);
-  } else {
-    bool samemdfil = false;
-    char *md5nam = NULL;
-    /* Usual case when the generated file is not the same as its
-       former variant; rename the old foo.c as foo.c% for backup, etc... */
-    (void) rename (dotcnam, dotcpercentnam);
+  if (samefil) 
+    {
+      /* Rare case when the generated file is the same as what existed
+	 in the filesystem, so discard the generated temporary file. */
+      if (remove (dotempnam))
+	melt_fatal_error ("failed to remove %s as melt generated file - %m",
+			  dotempnam);
+      if (IS_ABSOLUTE_PATH(dotcnam))
+	inform (UNKNOWN_LOCATION, "MELT generated same file %s", dotcnam);
+      else
+	inform (UNKNOWN_LOCATION, "MELT generated same file %s in %s",
+		dotcnam, mycwd);
+      if (melt_generated_c_files_list_fil)
+	fprintf (melt_generated_c_files_list_fil,
+		 "# same file %s\n", dotcnam);
+    } 
+  else 
+    {
+      bool samemdfil = false;
+      char *md5nam = NULL;
+      /* Usual case when the generated file is not the same as its
+	 former variant; rename the old foo.c as foo.c% for backup, etc... */
+      (void) rename (dotcnam, dotcpercentnam);
 
-    if (melt_flag_generate_work_link && workdir) {
-      /* if symlinks to work files are required, we generate a
-         unique filename in the work directory using the md5sum of
-         the generated file, then we symlink it.. */
-      int  mln = 0;
-      FILE* mdfil = NULL;
-      char *realworkdir = NULL;
-      char md5hexbuf[40]; /* larger than md5 hex, for null termination... */
-      memset (md5hexbuf, 0, sizeof(md5hexbuf));
-      melt_string_hex_md5sum_file_to_hexbuf (dotempnam, md5hexbuf);
-      if (!md5hexbuf[0])
-        melt_fatal_error ("failed to compute md5sum of %s - %m", dotempnam);
-      realworkdir = lrealpath (workdir);
-      md5nam = concat (realworkdir, /*DIR_SEPARATOR here*/ "/",
-                       melt_basename (dotcnam), NULL);
-      free (realworkdir), realworkdir = NULL;
-      mln = strlen (md5nam);
-      if (mln>3 && !strcmp(md5nam + mln -2, ".c"))
-        md5nam[mln-2] = (char)0;
-      md5nam = reconcat (md5nam, md5nam, ".", md5hexbuf, ".mdsumed.c", NULL);
-      mdfil = fopen (md5nam, "r");
-      if (mdfil)
+      if (melt_flag_generate_work_link && workdir) 
 	{
-	  FILE* dotempfil = fopen(dotempnam, "r");
-	  samemdfil = (dotempfil != NULL);
-	  while (samemdfil && (!feof(mdfil) || !feof(dotempfil)))
+	  /* if symlinks to work files are required, we generate a
+	     unique filename in the work directory using the md5sum of
+	     the generated file, then we symlink it.. */
+	  int  mln = 0;
+	  FILE* mdfil = NULL;
+	  char *realworkdir = NULL;
+	  char md5hexbuf[40]; /* larger than md5 hex, for null termination... */
+	  memset (md5hexbuf, 0, sizeof(md5hexbuf));
+	  melt_string_hex_md5sum_file_to_hexbuf (dotempnam, md5hexbuf);
+	  if (!md5hexbuf[0])
+	    melt_fatal_error ("failed to compute md5sum of %s - %m", dotempnam);
+	  realworkdir = lrealpath (workdir);
+	  md5nam = concat (realworkdir, /*DIR_SEPARATOR here*/ "/",
+			   melt_basename (dotcnam), NULL);
+	  free (realworkdir), realworkdir = NULL;
+	  mln = strlen (md5nam);
+	  if (mln>3 && !strcmp(md5nam + mln -2, ".c"))
+	    md5nam[mln-2] = (char)0;
+	  md5nam = reconcat (md5nam, md5nam, ".", md5hexbuf, ".mdsumed.c", NULL);
+	  mdfil = fopen (md5nam, "r");
+	  if (mdfil)
 	    {
-	      int c = getc (mdfil);
-	      int o = getc (dotempfil);
-	      if (c != o)
-		samemdfil = false;
-	      if (c < 0) /*both are eof*/
-		break;
+	      FILE* dotempfil = fopen(dotempnam, "r");
+	      samemdfil = (dotempfil != NULL);
+	      while (samemdfil && (!feof(mdfil) || !feof(dotempfil)))
+		{
+		  int c = getc (mdfil);
+		  int o = getc (dotempfil);
+		  if (c != o)
+		    samemdfil = false;
+		  if (c < 0) /*both are eof*/
+		    break;
+		};
+	      fclose (mdfil), mdfil = NULL;
+	      if (dotempfil) 
+		fclose (dotempfil);
 	    };
-	  fclose (mdfil), mdfil = NULL;
-	  if (dotempfil) 
-	    fclose (dotempfil);
-	};
-      if (samemdfil) 
-	{
-	  unlink (dotempnam);
-	  if (symlink (md5nam, dotcnam))
-	    melt_fatal_error ("failed to symlink old %s as %s - %m", md5nam, dotcnam);
-	  if (IS_ABSOLUTE_PATH (dotcnam))
-	    inform (UNKNOWN_LOCATION, "MELT symlinked existing file %s to %s",
-		    md5nam, dotcnam);
-	  else
-	    inform (UNKNOWN_LOCATION, "MELT symlinked existing file %s to %s in %s",
-		    md5nam, dotcnam, mycwd);
-	}
+	  if (samemdfil) 
+	    {
+	      unlink (dotempnam);
+	      if (symlink (md5nam, dotcnam))
+		melt_fatal_error ("failed to symlink old %s as %s - %m", md5nam, dotcnam);
+	      if (IS_ABSOLUTE_PATH (dotcnam))
+		inform (UNKNOWN_LOCATION, "MELT symlinked existing file %s to %s",
+			md5nam, dotcnam);
+	      else
+		inform (UNKNOWN_LOCATION, "MELT symlinked existing file %s to %s in %s",
+			md5nam, dotcnam, mycwd);
+	      if (melt_generated_c_files_list_fil)
+		fprintf (melt_generated_c_files_list_fil,
+			 "# same symlink %s -> %s\n", dotcnam, md5nam);
+	    }
+	  else 
+	    {
+	      /* if the file md5nam exist, either we have an improbable md5
+		 collision, or it was edited after generation. */
+	      if (!access (md5nam, R_OK))
+		inform (UNKNOWN_LOCATION, 
+			"MELT overwriting generated file %s (perhaps manually edited)", md5nam);
+	      if (rename (dotempnam, md5nam))
+		melt_fatal_error ("failed to rename %s as %s melt generated work file - %m",
+				  dotempnam, md5nam);
+	      if (symlink (md5nam, dotcnam))
+		melt_fatal_error ("failed to symlink new %s as %s - %m", md5nam, dotcnam);
+	      if (IS_ABSOLUTE_PATH (dotcnam))
+		inform (UNKNOWN_LOCATION, "MELT symlinked new file %s to %s",
+			md5nam, dotcnam);
+	      else
+		inform (UNKNOWN_LOCATION, "MELT symlinked new file %s to %s in %s",
+			md5nam, dotcnam, mycwd);
+	      if (melt_generated_c_files_list_fil)
+		fprintf (melt_generated_c_files_list_fil,
+			 "#symlink to %s is:\n%s\n", md5nam, dotcnam);
+	    }
+	  free (md5nam), md5nam = NULL;
+	} 
       else 
 	{
-	  /* if the file md5nam exist, either we have an improbable md5
-	     collision, or it was edited after generation. */
-	  if (!access (md5nam, R_OK))
-	    inform (UNKNOWN_LOCATION, 
-		    "MELT overwriting generated file %s (perhaps manually edited)", md5nam);
-	  if (rename (dotempnam, md5nam))
-	    melt_fatal_error ("failed to rename %s as %s melt generated work file - %m",
-			      dotempnam, md5nam);
-	  if (symlink (md5nam, dotcnam))
-	    melt_fatal_error ("failed to symlink new %s as %s - %m", md5nam, dotcnam);
+	  /* rename the generated temporary */
+	  if (rename (dotempnam, dotcnam))
+	    melt_fatal_error ("failed to rename %s as %s melt generated file - %m",
+			      dotempnam, dotcnam);
 	  if (IS_ABSOLUTE_PATH (dotcnam))
-	    inform (UNKNOWN_LOCATION, "MELT symlinked new file %s to %s",
-		    md5nam, dotcnam);
+	    inform (UNKNOWN_LOCATION, "MELT generated new file %s", dotcnam);
 	  else
-	    inform (UNKNOWN_LOCATION, "MELT symlinked new file %s to %s in %s",
-		    md5nam, dotcnam, mycwd);
+	    inform (UNKNOWN_LOCATION, "MELT generated new file %s in %s",
+		    dotcnam, mycwd);
+	  if (melt_generated_c_files_list_fil)
+		fprintf (melt_generated_c_files_list_fil,
+			 "#new file:\n",
+			 dotcnam);
 	}
-      free (md5nam), md5nam = NULL;
-    } else {
-      /* rename the generated temporary */
-      if (rename (dotempnam, dotcnam))
-        melt_fatal_error ("failed to rename %s as %s melt generated file - %m",
-                          dotempnam, dotcnam);
-      if (IS_ABSOLUTE_PATH (dotcnam))
-        inform (UNKNOWN_LOCATION, "MELT generated new file %s", dotcnam);
-      else
-        inform (UNKNOWN_LOCATION, "MELT generated new file %s in %s",
-                dotcnam, mycwd);
     }
-  }
   debugeprintf ("output_cfile done dotcnam %s", dotcnam);
   free (dotcnam);
   free (dotempnam);

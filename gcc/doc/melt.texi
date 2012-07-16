@@ -318,6 +318,15 @@ This flag, when used in translating modes (for MELT to C
 translations), generates the files as a unique name in the work
 directory, with a symbolic link to it from the output path.
 
+@item -fmelt-generated-c-file-list=
+@gccoptlist{-fplugin-arg-melt-generated-c-file-list=}
+@opindex fmelt-generated-c-file-list=
+@opindex fplugin-arg-melt-generated-c-file-list=
+When given, this is a file name into which MELT lists the set of
+really written or overwritten emitted C file names, one per line (and
+also some lines starting with @code{#}).
+
+
 @item -fmelt-output=
 @gccoptlist{-fplugin-arg-melt-output=}
 @opindex fmelt-coutput=

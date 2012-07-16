@@ -850,7 +850,7 @@ fauto-inc-dec
 Common Report Var(flag_auto_inc_dec) Init(1)
 Generate auto-inc/dec instructions
 
-;;;;;; MELT stuff
+;;;;;; MELT stuff, see http://gcc-melt.org/ for more
 ;;; Midlle End Lisp Translator by Basile Starynkevitch 
 ;;; (source file gcc/melt-runtime.c)
 
@@ -899,6 +899,12 @@ Only used to bootstrap the MELT translator
 fmelt-generate-work-link
 Common Report Var(melt_flag_generate_work_link)
 Generate symbolic links to file under work directory
+
+; generate the list of truely written (or overwritten) emitted C files
+; in a format suitable for shell sourcing
+fmelt-generated-c-file-list=
+Common Report Var(melt_generated_c_file_list_string) RejectNegative Joined
+Generate the list of really written emitted C file names in a file.
 
 ; debug depth for MELT
 fmelt-debug-depth=

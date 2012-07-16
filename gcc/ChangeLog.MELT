@@ -1,4 +1,21 @@
 
+2012-07-16  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* common.opt (fmelt-generated-c-file-list=): New option.
+
+	* melt-runtime.c (melt_generated_c_files_list_fil): New static variable.
+	(melt_argument): Handle generated-c-file-list.
+	(melt_really_initialize): Use it.
+	(do_finalize_melt): Close it.
+	(melt_output_cfile_decl_impl_secondary_option): Write the
+	generated C file list.
+
+	* doc/melt.texi (Invoking MELT): Document
+	-fmelt-generated-c-file-list= option.
+
+	* Makefile.in (melt-build-param.sh): New target, a shell sourcable
+	file.
+
 2012-07-06  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-build.tpl: Add fromline Guile function to generate unique
