@@ -1,6 +1,12 @@
 
 2012-07-17  Basile Starynkevitch  <basile@starynkevitch.net>
-	* melt-build-script.tpl: Emit the meltbuild_emit command. Not working yet.
+	* melt-build-script.tpl: Emit the meltbuild_emit command. Still buggy.
+
+	* melt-build-script.sh: New generated file. Still buggy.
+
+2012-07-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build-script.tpl: Emit the meltbuild_emit command. Not
+	working yet.
 
 	* melt-build-script.sh: New generated file. Not working yet.
 
