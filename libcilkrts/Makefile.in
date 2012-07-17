@@ -296,7 +296,7 @@ ACLOCAL_AMFLAGS = -I ..
 
 # Compiler and linker flags.
 GENERAL_FLAGS = -I$(top_srcdir)/include -DIN_CILK_RUNTIME=1 -fpic -O3 \
-	-DBUILD_USER=\"$(USER)\" -DBUILD_HOST=\"`hostname`\"
+	-fcilkplus -DBUILD_USER=\"$(USER)\" -DBUILD_HOST=\"`hostname`\"
 AM_CFLAGS = $(GENERAL_FLAGS) -std=c99
 AM_CPPFLAGS = $(GENERAL_FLAGS)
 AM_LDFLAGS = -lpthread -ldl
