@@ -5520,7 +5520,7 @@ melt-build-param.sh:  Makefile
 	echo '## GCCMELT_VERSION_STRING is the string defining the version of MELT'   >> $@-tmp
 	echo 'GCCMELT_VERSION_STRING=$(shell $(AWK) -F\" '/^.define +MELT_VERSION_STRING/{print $$2}' $(srcdir)/melt-runtime.h)'  >> $@-tmp
 	echo '## GCCMELT_MAKE is the make utility and options' >> $@-tmp
-	echo GCCMELT_MAKE='$(MAKE)' >> $@-tmp
+	echo 'GCCMELT_MAKE="$(MAKE)"' >> $@-tmp
 	echo '## GCCMELT_CC1 is the compiler to use MELT for its bootstrapping' >> $@-tmp
 	echo GCCMELT_CC1=$(realpath ./cc1$(exeext))  >> $@-tmp
 	echo '## GCCMELT_CC1_DEPENDENCIES is the dependencies, including MELT runtime, for GCCMELT_CC1' >> $@-tmp

@@ -29,6 +29,7 @@ sh
 
 export GAWK=${GAWK:=gawk}
 export MD5SUM=${MD5SUM:=md5sum}
+export GCCMELT_STAGE
 
 date +"/*empty file for MELT build %c*/" > meltbuild-empty-file.c
 
@@ -106,6 +107,7 @@ function meltbuild_emit () {
     meltbuild_info $meltfrom argument file $meltargs is
     cat  $meltargs > /dev/stderr
     $GCCMELT_CC1 @$meltargs || meltbuild_error $meltfrom failed with arguments @$meltargs
+    GCCMELT_STAGE=$meltstage
 }
 
 GCCMELT_ZERO_FLAVOR=${GCCMELT_STAGE_ZERO#meltbuild-stage0-}
@@ -158,7 +160,8 @@ $GCCMELT_MAKE -f $GCCMELT_MODULE_MK melt_module \
    GCCMELT_MODULE_SOURCEBASE=$GCCMELT_MELTSOURCEDIR/generated/[+base+] \
    GCCMELT_CUMULATED_MD5=$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5 \
    GCCMELT_MODULE_BINARYBASE=$GCCMELT_STAGE_ZERO/[+base+] \
- || meltbuild_error  [+(.(fromline))+] stage0 [+base+] did not build
+   GCCMELT_MODULE_DEPENDENCIES="$GCCMELT_CC1_DEPENDENCIES" \
+ || meltbuild_error  [+(.(fromline))+] stage0 [+base+] did not build with $GCCMELT_MAKE 
 
 meltbuild_info [+(.(fromline))+] successfully build stage0 [+base+]
 
