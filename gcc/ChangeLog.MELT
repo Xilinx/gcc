@@ -1,5 +1,9 @@
 
 2012-07-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_load_module_index): Improved error messages
+	when module is not found.
+
+2012-07-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build-script.tpl: Emit the meltbuild_emit command. Still buggy.
 
 	* melt-build-script.sh: New generated file. Still buggy.

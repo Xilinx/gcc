@@ -8447,23 +8447,23 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
 
   /* list of required dynamic symbols (dlsymed in the module, provided
      in the FOO+meltdesc.c or FOO+melttime.h file) */
-#define MELTDESCR_REQUIRED_LIST           \
-  MELTDESCR_REQUIRED_SYMBOL (melt_build_timestamp, char);   \
-  MELTDESCR_REQUIRED_SYMBOL (melt_cumulated_hexmd5, char);    \
-  MELTDESCR_REQUIRED_SYMBOL (melt_gen_timenum, long long);    \
-  MELTDESCR_REQUIRED_SYMBOL (melt_gen_timestamp, char);     \
-  MELTDESCR_REQUIRED_SYMBOL (melt_lastsecfileindex, int);   \
-  MELTDESCR_REQUIRED_SYMBOL (melt_modulename, char);      \
-  MELTDESCR_REQUIRED_SYMBOL (melt_prepromd5meltrun, char);    \
-  MELTDESCR_REQUIRED_SYMBOL (melt_primaryhexmd5, char);     \
-  MELTDESCR_REQUIRED_SYMBOL (melt_secondaryhexmd5tab, char*);   \
-  MELTDESCR_REQUIRED_SYMBOL (melt_versionmeltstr, char);    \
+#define MELTDESCR_REQUIRED_LIST						\
+  MELTDESCR_REQUIRED_SYMBOL (melt_build_timestamp, char);		\
+  MELTDESCR_REQUIRED_SYMBOL (melt_cumulated_hexmd5, char);		\
+  MELTDESCR_REQUIRED_SYMBOL (melt_gen_timenum, long long);		\
+  MELTDESCR_REQUIRED_SYMBOL (melt_gen_timestamp, char);			\
+  MELTDESCR_REQUIRED_SYMBOL (melt_lastsecfileindex, int);		\
+  MELTDESCR_REQUIRED_SYMBOL (melt_modulename, char);			\
+  MELTDESCR_REQUIRED_SYMBOL (melt_prepromd5meltrun, char);		\
+  MELTDESCR_REQUIRED_SYMBOL (melt_primaryhexmd5, char);			\
+  MELTDESCR_REQUIRED_SYMBOL (melt_secondaryhexmd5tab, char*);		\
+  MELTDESCR_REQUIRED_SYMBOL (melt_versionmeltstr, char);		\
   MELTDESCR_REQUIRED_SYMBOL (start_module_melt, melt_start_rout_t)
 
   /* list of optional dynamic symbols (dlsymed in the module, provided
      in the FOO+meltdesc.c or FOO+melttime.h file). */
-#define MELTDESCR_OPTIONAL_LIST       \
-  MELTDESCR_OPTIONAL_SYMBOL (melt_versionstr, char);  \
+#define MELTDESCR_OPTIONAL_LIST				\
+  MELTDESCR_OPTIONAL_SYMBOL (melt_versionstr, char);	\
   MELTDESCR_OPTIONAL_SYMBOL (melt_modulerealpath, char)
 
   /* declare our dymamic symbols */
@@ -8590,7 +8590,7 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
      /* Search in the built-in MELT module directory.  */
      MELT_FILE_IN_DIRECTORY, melt_flag_bootstrapping?NULL:melt_module_dir,
      /* Since the path is a complete path with an md5um in it, we also
-     search in the current directory.  */
+	search in the current directory.  */
      MELT_FILE_IN_DIRECTORY, ".",
      NULL);
   debugeprintf ("melt_load_module_index sopath %s", sopath);
@@ -8623,7 +8623,7 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
          /* Search in the built-in MELT module directory.  */
          MELT_FILE_IN_DIRECTORY, melt_flag_bootstrapping?NULL:melt_module_dir,
          /* Since the path is a complete path with an md5um in it, we also
-         search in the current directory.  */
+	    search in the current directory.  */
          MELT_FILE_IN_DIRECTORY, ".",
          NULL);
       debugeprintf ("melt_load_module_index curflavorix=%d cursopath %s", curflavorix, cursopath);
@@ -8656,9 +8656,25 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
   }
   if (!sopath)
     {
+      /* Show various informative error messages to help the user. */
       if (sobase)
 	error ("MELT failed to find module of base %s with module-path %s", 
 	       sobase, melt_argument ("module-path"));
+      if (tempdir_melt) 
+	error ("MELT failed to find module of base %s in temporary dir %s", 
+	       srcbase, tempdir_melt);
+      if (melt_argument ("workdir")) 
+	error ("MELT failed to find module of base %s in work dir %s", 
+	       srcbase, melt_argument ("workdir"));
+      if (melt_argument ("module-path")) 
+	error ("MELT failed to find module of base %s in module-path %s", 
+	       srcbase, melt_argument ("module-path"));
+      if (getenv ("GCCMELT_MODULE_PATH"))
+	error ("MELT failed to find module of base %s with GCCMELT_MODULE_PATH=%s",
+	       getenv ("GCCMELT_MODULE_PATH"));
+      if (!melt_flag_bootstrapping)
+	error ("MELT failed to find module of base %s in builtin directory %s",
+	       melt_module_dir);
       melt_fatal_error ("No MELT module for source base %s flavor %s (parsed cumulated checksum %s)",
 			srcbase, flavor,
 			desccumulatedhexmd5 ? desccumulatedhexmd5 : "unknown");
@@ -8675,24 +8691,24 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
   validh = TRUE;
 
   /* Retrieve our dynamic symbols. */
-#define MELTDESCR_UNION_SYMBOL(Sym,Typ)  union { void* ptr_##Sym; \
+#define MELTDESCR_UNION_SYMBOL(Sym,Typ)  union { void* ptr_##Sym;	\
     Typ* dat_##Sym; } u_##Sym
 
-#define MELTDESCR_REQUIRED_SYMBOL(Sym,Typ) do {         \
-    MELTDESCR_UNION_SYMBOL(Sym,Typ);                    \
-    u_##Sym.ptr_##Sym = (void*) dlsym (dlh, #Sym);      \
-    debugeprintf ("melt_load_module_index req. " #Sym \
-      " %p validh %d",      \
-      u_##Sym.ptr_##Sym, (int) validh); \
-    if (!u_##Sym.ptr_##Sym) {       \
-     char* dler = dlerror ();       \
-     debugeprintf("melt_load_module_index req. " #Sym \
-      " not found - %s", dler);   \
-     if (dler && errorp && !*errorp)      \
-       *errorp = concat("Cannot find " #Sym, "; ",  \
-      dler, NULL);      \
-     validh = FALSE;          \
-    } else dynr_##Sym = u_##Sym.dat_##Sym; } while(0)
+#define MELTDESCR_REQUIRED_SYMBOL(Sym,Typ) do {			\
+    MELTDESCR_UNION_SYMBOL(Sym,Typ);				\
+    u_##Sym.ptr_##Sym = (void*) dlsym (dlh, #Sym);		\
+      debugeprintf ("melt_load_module_index req. " #Sym		\
+		    " %p validh %d",				\
+		    u_##Sym.ptr_##Sym, (int) validh);		\
+      if (!u_##Sym.ptr_##Sym) {					\
+	char* dler = dlerror ();				\
+	debugeprintf("melt_load_module_index req. " #Sym	\
+		     " not found - %s", dler);			\
+	if (dler && errorp && !*errorp)				\
+	  *errorp = concat("Cannot find " #Sym, "; ",		\
+			   dler, NULL);				\
+	validh = FALSE;						\
+      } else dynr_##Sym = u_##Sym.dat_##Sym; } while(0)
 
   MELTDESCR_REQUIRED_LIST;
 
@@ -8701,8 +8717,8 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
 #define MELTDESCR_OPTIONAL_SYMBOL(Sym,Typ) do {         \
     MELTDESCR_UNION_SYMBOL(Sym,Typ);                    \
     u_##Sym.ptr_##Sym = (void*) dlsym (dlh, #Sym);      \
-    if (u_##Sym.ptr_##Sym)        \
-      dyno_##Sym = u_##Sym.dat_##Sym; } while(0)
+      if (u_##Sym.ptr_##Sym)				\
+	dyno_##Sym = u_##Sym.dat_##Sym; } while(0)
 
   MELTDESCR_OPTIONAL_LIST;
 
@@ -8711,18 +8727,18 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
     debugeprintf ("melt_load_module_index validh %d bootstrapping melt_modulename %s descmodulename %s",
                   validh, MELTDESCR_REQUIRED (melt_modulename), descmodulename);
     validh = validh
-             && !strcmp (melt_basename (MELTDESCR_REQUIRED (melt_modulename)), melt_basename (descmodulename));
+      && !strcmp (melt_basename (MELTDESCR_REQUIRED (melt_modulename)), melt_basename (descmodulename));
   } else {
     debugeprintf ("melt_load_module_index validh %d melt_modulename %s descmodulename %s",
                   validh, MELTDESCR_REQUIRED (melt_modulename), descmodulename);
     validh = validh
-             && !strcmp (MELTDESCR_REQUIRED (melt_modulename), descmodulename);
+      && !strcmp (MELTDESCR_REQUIRED (melt_modulename), descmodulename);
   }
 
   debugeprintf ("melt_load_module_index validh %d melt_cumulated_hexmd5 %s desccumulatedhexmd5 %s",
                 validh, MELTDESCR_REQUIRED (melt_cumulated_hexmd5), desccumulatedhexmd5);
   validh = validh
-           && !strcmp (MELTDESCR_REQUIRED (melt_cumulated_hexmd5), desccumulatedhexmd5);
+    && !strcmp (MELTDESCR_REQUIRED (melt_cumulated_hexmd5), desccumulatedhexmd5);
   debugeprintf ("melt_load_module_index sopath %s validh %d melt_modulename %s melt_cumulated_hexmd5 %s",
                 sopath, (int)validh,
                 MELTDESCR_REQUIRED (melt_modulename),
@@ -8857,7 +8873,7 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
     debugeprintf ("melt_load_module_index invalid dlh %p sopath %s", dlh, sopath);
     dlclose (dlh), dlh = NULL;
   }
-end:
+ end:
   if (srcpath)
     free (srcpath), srcpath= NULL;
   if (descfil)
