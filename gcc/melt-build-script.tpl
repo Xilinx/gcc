@@ -48,9 +48,10 @@ function meltbuild_info () {
 function meltbuild_emit () {
     local meltfrom=$1
     local meltmode=$2
-    local meltoutput=$3
-    local meltsource=$4
+    local meltbase=$3
+    local meltstage=$4
     local meltinit=$5
+    local meltinclude=$6
 }
 
 GCCMELT_ZERO_FLAVOR=${GCCMELT_STAGE_ZERO#melt-stage0-}
@@ -134,7 +135,17 @@ meltbuild_info [+(.(fromline))+] successfully build stage0 [+base+]
 ### the C source of [+melt_stage+] for [+ (. outbase)+] [+ (. (fromline))+]
 #@ [+(.(fromline))+] base [+base+] stage [+melt_stage+] prevstage [+ (. prevstage)+] prevflavor  [+ (. prevflavor)+] 
 
-meltbuild_emit [+(.(fromline))+] 
+meltbuild_emit [+(.(fromline))+] \
+    [+IF (= outindex 0)+]translateinit[+ELSE+]translatefile[+ENDIF+] \
+    [+base+] \
+    [+melt_stage+] \
+    [+FOR melt_translator_file ":"+][+ (define inbase (get "base")) (define inindex (for-index)) 
+  (define depstage (if (< inindex outindex) (get "melt_stage") prevstage))
+  (define depflavor (if (< inindex outindex) "quicklybuilt" prevflavor))
+  (define depindex (if (< inindex outindex) stageindex (- stageindex 1)))
++][+ (. depstage)+]/[+ (. inbase)+].[+ (. depflavor)+][+ENDFOR melt_translator_file+] \
+    "[+FOR includeload ","+][+includeload+][+ENDFOR includeload+]"
+
 #@ [+(.(fromline))+] end base [+base+] stage [+melt_stage+] 
 [+ENDFOR melt_translator_file+]
 
