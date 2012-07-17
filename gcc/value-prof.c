@@ -36,14 +36,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-flow.h"
 #include "tree-flow-inline.h"
 #include "diagnostic.h"
-#include "tree-pretty-print.h"
 #include "gimple-pretty-print.h"
 #include "coverage.h"
 #include "tree.h"
 #include "gcov-io.h"
 #include "cgraph.h"
 #include "timevar.h"
-#include "tree-pass.h"
+#include "dumpfile.h"
 #include "pointer-set.h"
 #include "profile.h"
 
@@ -108,7 +107,7 @@ histogram_hash (const void *x)
   return htab_hash_pointer (((const_histogram_value)x)->hvalue.stmt);
 }
 
-/* Return nonzero if decl_id of die_struct X is the same as UID of decl *Y.  */
+/* Return nonzero if statement for histogram_value X is Y.  */
 
 static int
 histogram_eq (const void *x, const void *y)

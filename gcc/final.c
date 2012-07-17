@@ -74,7 +74,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "expr.h"
 #include "tree-pass.h"
 #include "tree-flow.h"
-#include "timevar.h"
 #include "cgraph.h"
 #include "coverage.h"
 #include "df.h"
@@ -716,6 +715,7 @@ compute_alignments (void)
 
   if (dump_file)
     {
+      dump_reg_info (dump_file);
       dump_flow_info (dump_file, TDF_DETAILS);
       flow_loops_dump (dump_file, NULL, 1);
     }
@@ -1825,7 +1825,6 @@ void
 final (rtx first, FILE *file, int optimize_p)
 {
   rtx insn, next;
-  int max_uid = 0;
   int seen = 0;
 
   /* Used for -dA dump.  */
@@ -1839,11 +1838,9 @@ final (rtx first, FILE *file, int optimize_p)
   if (flag_enable_cilk)
     cilk_remove_annotated_functions (first);
   
+#ifdef HAVE_cc0
   for (insn = first; insn; insn = NEXT_INSN (insn))
     {
-      if (INSN_UID (insn) > max_uid)       /* Find largest UID.  */
-	max_uid = INSN_UID (insn);
-#ifdef HAVE_cc0
       /* If CC tracking across branches is enabled, record the insn which
 	 jumps to each branch only reached from one place.  */
       if (optimize_p && JUMP_P (insn))
@@ -1854,8 +1851,8 @@ final (rtx first, FILE *file, int optimize_p)
 	      LABEL_REFS (lab) = insn;
 	    }
 	}
-#endif
     }
+#endif
 
   init_recog ();
 

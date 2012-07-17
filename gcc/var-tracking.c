@@ -104,7 +104,6 @@
 #include "hashtab.h"
 #include "regs.h"
 #include "expr.h"
-#include "timevar.h"
 #include "tree-pass.h"
 #include "tree-flow.h"
 #include "cselib.h"
@@ -9260,11 +9259,7 @@ vt_emit_notes (void)
   dataflow_set_destroy (&cur);
 
   if (MAY_HAVE_DEBUG_INSNS)
-    {
-      free_alloc_pool (loc_exp_dep_pool);
-      loc_exp_dep_pool = NULL;
-      htab_delete (dropped_values);
-    }
+    htab_delete (dropped_values);
 
   emit_notes = false;
 }
@@ -9331,14 +9326,11 @@ vt_add_function_parameter (tree parm)
   if (GET_MODE (decl_rtl) == BLKmode || GET_MODE (incoming) == BLKmode)
     return;
 
-  /* If there is a DRAP register, rewrite the incoming location of parameters
-     passed on the stack into MEMs based on the argument pointer, as the DRAP
-     register can be reused for other purposes and we do not track locations
-     based on generic registers.  But the prerequisite is that this argument
-     pointer be also the virtual CFA pointer, see vt_initialize.  */
+  /* If there is a DRAP register or a pseudo in internal_arg_pointer,
+     rewrite the incoming location of parameters passed on the stack
+     into MEMs based on the argument pointer, so that incoming doesn't
+     depend on a pseudo.  */
   if (MEM_P (incoming)
-      && stack_realign_drap
-      && arg_pointer_rtx == cfa_base_rtx
       && (XEXP (incoming, 0) == crtl->args.internal_arg_pointer
 	  || (GET_CODE (XEXP (incoming, 0)) == PLUS
 	      && XEXP (XEXP (incoming, 0), 0)
@@ -9453,6 +9445,17 @@ vt_add_function_parameter (tree parm)
 	  set_variable_part (out, val->val_rtx, dv, offset,
 			     VAR_INIT_STATUS_INITIALIZED, NULL, INSERT);
 	  dv = dv_from_value (val->val_rtx);
+	}
+
+      if (MEM_P (incoming))
+	{
+	  val = cselib_lookup_from_insn (XEXP (incoming, 0), mode, true,
+					 VOIDmode, get_insns ());
+	  if (val)
+	    {
+	      preserve_value (val);
+	      incoming = replace_equiv_address_nv (incoming, val->val_rtx);
+	    }
 	}
     }
 
@@ -9963,6 +9966,9 @@ vt_finalize (void)
 
   if (MAY_HAVE_DEBUG_INSNS)
     {
+      if (loc_exp_dep_pool)
+	free_alloc_pool (loc_exp_dep_pool);
+      loc_exp_dep_pool = NULL;
       free_alloc_pool (valvar_pool);
       VEC_free (rtx, heap, preserved_values);
       cselib_finish ();
@@ -10034,6 +10040,7 @@ variable_tracking_main_1 (void)
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
       dump_dataflow_sets ();
+      dump_reg_info (dump_file);
       dump_flow_info (dump_file, dump_flags);
     }
 

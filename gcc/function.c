@@ -61,7 +61,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "predict.h"
 #include "df.h"
-#include "timevar.h"
 #include "vecprim.h"
 #include "params.h"
 #include "bb-reorder.h"
@@ -4664,7 +4663,8 @@ stack_protect_epilogue (void)
   if (JUMP_P (tmp))
     predict_insn_def (tmp, PRED_NORETURN, TAKEN);
 
-  expand_expr_stmt (targetm.stack_protect_fail ());
+  expand_call (targetm.stack_protect_fail (), NULL_RTX, /*ignore=*/true);
+  free_temp_slots ();
   emit_label (label);
 }
 
@@ -6741,13 +6741,20 @@ reposition_prologue_and_epilogue_notes (void)
 #endif /* HAVE_prologue or HAVE_epilogue */
 }
 
+/* Returns the name of function FN.  */
+const char *
+function_name (struct function *fn)
+{
+  if (fn == NULL)
+    return "(nofn)";
+  return lang_hooks.decl_printable_name (fn->decl, 2);
+}
+
 /* Returns the name of the current function.  */
 const char *
 current_function_name (void)
 {
-  if (cfun == NULL)
-    return "<none>";
-  return lang_hooks.decl_printable_name (cfun->decl, 2);
+  return function_name (cfun);
 }
 
 

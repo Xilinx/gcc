@@ -49,7 +49,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "ggc.h"
 #include "graph.h"
 #include "regs.h"
-#include "timevar.h"
 #include "diagnostic-core.h"
 #include "params.h"
 #include "reload.h"
@@ -1463,6 +1462,7 @@ init_optimization_passes (void)
       NEXT_PASS (pass_cse_reciprocals);
       NEXT_PASS (pass_reassoc);
       NEXT_PASS (pass_vrp);
+      NEXT_PASS (pass_strength_reduction);
       NEXT_PASS (pass_dominator);
       /* The only const/copy propagation opportunities left after
 	 DOM should be due to degenerate PHI nodes.  So rather than

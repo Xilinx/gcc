@@ -4457,10 +4457,6 @@ gimple_canonical_types_compatible_p (tree t1, tree t2)
       return true;
     }
 
-  /* If their attributes are not the same they can't be the same type.  */
-  if (!attribute_list_equal (TYPE_ATTRIBUTES (t1), TYPE_ATTRIBUTES (t2)))
-    return false;
-
   /* Do type-specific comparisons.  */
   switch (TREE_CODE (t1))
     {
@@ -4507,13 +4503,6 @@ gimple_canonical_types_compatible_p (tree t1, tree t2)
 	}
 
     case METHOD_TYPE:
-      /* Method types should belong to the same class.  */
-      if (!gimple_canonical_types_compatible_p
-	     (TYPE_METHOD_BASETYPE (t1), TYPE_METHOD_BASETYPE (t2)))
-	return false;
-
-      /* Fallthru  */
-
     case FUNCTION_TYPE:
       /* Function types are the same if the return type and arguments types
 	 are the same.  */

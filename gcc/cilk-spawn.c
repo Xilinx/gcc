@@ -38,11 +38,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pretty-print.h"
 #include "pointer-set.h"
 
+/* C only for now because of cilk_for */
+#include "c/c-tree.h"
 /* Cilk works with C-like languages  */
 #include "c-family/c-common.h"  
 
-/* C only for now because of cilk_for */
-#include "c-tree.h"
+#include "diagnostic.h"
 
 
 

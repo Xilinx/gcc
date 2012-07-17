@@ -1,3 +1,106 @@
+2012-07-17  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52101
+	* decl.c (match_char_length): Extra argument, show obsolenscent
+	warning only if *length is used after the typename.
+	(variable_decl, gfc_match_char_spec): Update call
+
+2012-07-17  Tobias Burnus  <burnus@net-b.de>
+	    Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/49265
+	* decl.c (match_procedure_in_interface): Support "::" for
+	Fortran 2008 and later.
+
+2012-07-16  Thomas König  <tkoenig@gcc.gnu.org>
+
+	PR fortran/53824
+	* resolve.c (resolve_allocate_deallocate):  If both
+	start indices are NULL, skip the test for equality.
+
+2012-07-16  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* f95-lang.c: Include dumpfile.h instead of tree-dump.h.
+	* Make-lang.in: Fix dependencies.
+
+2012-07-16  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/53956
+	* gfortran.h (gfc_copy_formal_args,gfc_copy_formal_args_ppc): Modified
+	prototypes.
+	* symbol.c (gfc_copy_formal_args): New argument 'if_src'. Copy if_source
+	of dummy procedures.
+	(gfc_copy_formal_args_ppc): Ditto.
+	* resolve.c (resolve_procedure_interface): Pass IFSRC_DECL to
+	gfc_copy_formal_args.
+	(resolve_fl_derived0): Pass IFSRC_DECL to gfc_copy_formal_args_ppc.
+
+2012-07-12  Tobias Burnus  <burnus@net-b.de>
+
+	* trans-expr.c (conv_isocbinding_procedure): Generate c_f_pointer code
+	inline.
+
+2012-07-11  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* trans.c: Do not include defaults.h.
+	* trans-intrinsic.c: Likewise.
+
+2012-07-08  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* gfortran.h: Do not include coretypes.h here.
+	Make it an error to include this before coretypes.h
+	* openmp.c: Include coretypes.h.
+	* interface.c: Likewise.
+	* intrinsic.c: Likewise.
+	* symbol.c: Likewise.
+	* class.c: Likewise.
+	* decl.c: Likewise.
+	* matchexp.c: Likewise.
+	* dump-parse-tree.c: Likewise.
+	* array.c: Likewise.
+	* constructor.c: Likewise.
+	* error.c: Likewise.
+	* data.c: Likewise.
+	* expr.c: Likewise.
+	* module.c: Likewise.
+	* scanner.c: Likewise.
+	* bbt.c: Likewise.
+	* io.c: Likewise.
+	* frontend-passes.c: Likewise.
+	* resolve.c: Likewise.
+	* st.c: Likewise.
+	* target-memory.c: Likewise.
+	* match.c: Likewise.
+	* arith.c: Likewise.
+	* parse.c: Likewise.
+	* check.c: Likewise.
+	* dependency.c: Likewise.
+	* primary.c: Likewise.
+	* misc.c: Likewise.
+	* simplify.c: Likewise.
+
+2012-07-05  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/53732
+	* trans-array.c (gfc_add_loop_ss_code): Disable self recursive calls
+	handling nested loop(s) if the subscript flag is true.
+
+2012-07-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR fortran/53449
+	* parse.c (gfc_parse_file): Initialize errors_before.
+
+2012-06-27  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41951
+	PR fortran/49591
+	* interface.c (check_new_interface): Rename, add 'loc' argument,
+	make non-static.
+	(gfc_add_interface): Rename 'check_new_interface'
+	* gfortran.h (gfc_check_new_interface): Add prototype.
+	* resolve.c (resolve_typebound_intrinsic_op): Add typebound operator
+	targets to non-typebound operator list.
+
 2012-06-22  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/47710

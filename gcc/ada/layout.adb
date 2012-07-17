@@ -2452,15 +2452,20 @@ package body Layout is
             Init_Size (E, 2 * System_Address_Size);
 
          --  When the target is AAMP, access-to-subprogram types are fat
-         --  pointers consisting of the subprogram address and a static link
-         --  (with the exception of library-level access types, where a simple
-         --  subprogram address is used).
+         --  pointers consisting of the subprogram address and a static link,
+         --  with the exception of library-level access types (including
+         --  library-level anonymous access types, such as for components),
+         --  where a simple subprogram address is used.
 
          elsif AAMP_On_Target
            and then
-             (Ekind (E) = E_Anonymous_Access_Subprogram_Type
-               or else (Ekind (E) = E_Access_Subprogram_Type
-                         and then Present (Enclosing_Subprogram (E))))
+             ((Ekind (E) = E_Access_Subprogram_Type
+                and then Present (Enclosing_Subprogram (E)))
+                  or else
+                    (Ekind (E) = E_Anonymous_Access_Subprogram_Type
+                      and then
+                        (not Is_Local_Anonymous_Access (E)
+                          or else Present (Enclosing_Subprogram (E)))))
          then
             Init_Size (E, 2 * System_Address_Size);
 
@@ -3103,11 +3108,21 @@ package body Layout is
       --  the type, or the maximum allowed alignment.
 
       declare
-         S             : constant Int := UI_To_Int (Esize (E)) / SSU;
-         A             : Nat;
+         S : Int;
+         A : Nat;
+
          Max_Alignment : Nat;
 
       begin
+         --  The given Esize may be larger that int'last because of a previous
+         --  error, and the call to UI_To_Int will fail, so use default.
+
+         if Esize (E) / SSU > Ttypes.Maximum_Alignment then
+            S := Ttypes.Maximum_Alignment;
+         else
+            S := UI_To_Int (Esize (E)) / SSU;
+         end if;
+
          --  If the default alignment of "double" floating-point types is
          --  specifically capped, enforce the cap.
 

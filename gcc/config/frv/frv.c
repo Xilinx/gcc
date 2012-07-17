@@ -48,6 +48,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "targhooks.h"
 #include "langhooks.h"
 #include "df.h"
+#include "dumpfile.h"
 
 #ifndef FRV_INLINE
 #define FRV_INLINE inline
@@ -5221,12 +5222,11 @@ frv_clear_registers_used (rtx *ptr, void *data)
 }
 
 
-/* Initialize the extra fields provided by IFCVT_EXTRA_FIELDS.  */
-
-/* On the FR-V, we don't have any extra fields per se, but it is useful hook to
+/* Initialize machine-specific if-conversion data.
+   On the FR-V, we don't have any extra fields per se, but it is useful hook to
    initialize the static storage.  */
 void
-frv_ifcvt_init_extra_fields (ce_if_block_t *ce_info ATTRIBUTE_UNUSED)
+frv_ifcvt_machdep_init (ce_if_block_t *ce_info ATTRIBUTE_UNUSED)
 {
   frv_ifcvt.added_insns_list = NULL_RTX;
   frv_ifcvt.cur_scratch_regs = 0;

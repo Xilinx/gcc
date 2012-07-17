@@ -2101,9 +2101,9 @@ static tree cp_parser_template_parameter
 static tree cp_parser_type_parameter
   (cp_parser *, bool *);
 static tree cp_parser_template_id
-  (cp_parser *, bool, bool, bool);
+  (cp_parser *, bool, bool, enum tag_types, bool);
 static tree cp_parser_template_name
-  (cp_parser *, bool, bool, bool, bool *);
+  (cp_parser *, bool, bool, bool, enum tag_types, bool *);
 static tree cp_parser_template_argument_list
   (cp_parser *);
 static tree cp_parser_template_argument
@@ -2317,7 +2317,7 @@ static bool cp_parser_check_type_definition
 static void cp_parser_check_for_definition_in_return_type
   (cp_declarator *, tree, location_t type_location);
 static void cp_parser_check_for_invalid_template_id
-  (cp_parser *, tree, location_t location);
+  (cp_parser *, tree, enum tag_types, location_t location);
 static bool cp_parser_non_integral_constant_expression
   (cp_parser *, non_integral_constant);
 static void cp_parser_diagnose_invalid_type_name
@@ -2611,7 +2611,9 @@ cp_parser_check_for_definition_in_return_type (cp_declarator *declarator,
 
 static void
 cp_parser_check_for_invalid_template_id (cp_parser* parser,
-					 tree type, location_t location)
+					 tree type,
+					 enum tag_types tag_type,
+					 location_t location)
 {
   cp_token_position start = 0;
 
@@ -2620,7 +2622,12 @@ cp_parser_check_for_invalid_template_id (cp_parser* parser,
       if (TYPE_P (type))
 	error_at (location, "%qT is not a template", type);
       else if (TREE_CODE (type) == IDENTIFIER_NODE)
-	error_at (location, "%qE is not a template", type);
+	{
+	  if (tag_type != none_type)
+	    error_at (location, "%qE is not a class template", type);
+	  else
+	    error_at (location, "%qE is not a template", type);
+	}
       else
 	error_at (location, "invalid template-id");
       /* Remember the location of the invalid "<".  */
@@ -4532,6 +4539,7 @@ cp_parser_id_expression (cp_parser *parser,
       id = cp_parser_template_id (parser,
 				  /*template_keyword_p=*/false,
 				  /*check_dependency_p=*/true,
+				  none_type,
 				  declarator_p);
       /* If that worked, we're done.  */
       if (cp_parser_parse_definitely (parser))
@@ -4609,6 +4617,7 @@ cp_parser_unqualified_id (cp_parser* parser,
 	/* Try a template-id.  */
 	id = cp_parser_template_id (parser, template_keyword_p,
 				    check_dependency_p,
+				    none_type,
 				    declarator_p);
 	/* If it worked, we're done.  */
 	if (cp_parser_parse_definitely (parser))
@@ -4620,6 +4629,7 @@ cp_parser_unqualified_id (cp_parser* parser,
     case CPP_TEMPLATE_ID:
       return cp_parser_template_id (parser, template_keyword_p,
 				    check_dependency_p,
+				    none_type,
 				    declarator_p);
 
     case CPP_COMPL:
@@ -4835,6 +4845,7 @@ cp_parser_unqualified_id (cp_parser* parser,
 	  /* Try a template-id.  */
 	  id = cp_parser_template_id (parser, template_keyword_p,
 				      /*check_dependency_p=*/true,
+				      none_type,
 				      declarator_p);
 	  /* If that worked, we're done.  */
 	  if (cp_parser_parse_definitely (parser))
@@ -6448,6 +6459,7 @@ cp_parser_pseudo_destructor_name (cp_parser* parser,
       cp_parser_template_id (parser,
 			     /*template_keyword_p=*/true,
 			     /*check_dependency_p=*/false,
+			     class_type,
 			     /*is_declaration=*/true);
       /* Look for the `::' token.  */
       cp_parser_require (parser, CPP_SCOPE, RT_SCOPE);
@@ -12224,8 +12236,7 @@ cp_parser_template_parameter_list (cp_parser* parser)
 						parm_loc,
 						parameter,
 						is_non_type,
-						is_parameter_pack,
-						0);
+						is_parameter_pack);
       else
        {
          tree err_parm = build_tree_list (parameter, parameter);
@@ -12619,6 +12630,7 @@ static tree
 cp_parser_template_id (cp_parser *parser,
 		       bool template_keyword_p,
 		       bool check_dependency_p,
+		       enum tag_types tag_type,
 		       bool is_declaration)
 {
   int i;
@@ -12675,6 +12687,7 @@ cp_parser_template_id (cp_parser *parser,
   templ = cp_parser_template_name (parser, template_keyword_p,
 				   check_dependency_p,
 				   is_declaration,
+				   tag_type,
 				   &is_identifier);
   if (templ == error_mark_node || is_identifier)
     {
@@ -12847,6 +12860,7 @@ cp_parser_template_name (cp_parser* parser,
 			 bool template_keyword_p,
 			 bool check_dependency_p,
 			 bool is_declaration,
+			 enum tag_types tag_type,
 			 bool *is_identifier)
 {
   tree identifier;
@@ -12953,7 +12967,7 @@ cp_parser_template_name (cp_parser* parser,
 
   /* Look up the name.  */
   decl = cp_parser_lookup_name (parser, identifier,
-				none_type,
+				tag_type,
 				/*is_template=*/true,
 				/*is_namespace=*/false,
 				check_dependency_p,
@@ -13905,7 +13919,8 @@ cp_parser_simple_type_specifier (cp_parser* parser,
       /* There is no valid C++ program where a non-template type is
 	 followed by a "<".  That usually indicates that the user thought
 	 that the type was a template.  */
-      cp_parser_check_for_invalid_template_id (parser, type, token->location);
+      cp_parser_check_for_invalid_template_id (parser, type, none_type,
+					       token->location);
 
       return TYPE_NAME (type);
     }
@@ -13944,6 +13959,7 @@ cp_parser_simple_type_specifier (cp_parser* parser,
 	  type = cp_parser_template_id (parser,
 					/*template_keyword_p=*/true,
 					/*check_dependency_p=*/true,
+					none_type,
 					/*is_declaration=*/false);
 	  /* If the template-id did not name a type, we are out of
 	     luck.  */
@@ -14006,6 +14022,7 @@ cp_parser_simple_type_specifier (cp_parser* parser,
 	 followed by a "<".  That usually indicates that the user
 	 thought that the type was a template.  */
       cp_parser_check_for_invalid_template_id (parser, TREE_TYPE (type),
+					       none_type,
 					       token->location);
     }
 
@@ -14056,6 +14073,7 @@ cp_parser_type_name (cp_parser* parser)
       type_decl = cp_parser_template_id (parser,
 					 /*template_keyword_p=*/false,
 					 /*check_dependency_p=*/false,
+					 none_type,
 					 /*is_declaration=*/false);
       /* Note that this must be an instantiation of an alias template
 	 because [temp.names]/6 says:
@@ -14280,6 +14298,7 @@ cp_parser_elaborated_type_specifier (cp_parser* parser,
       token = cp_lexer_peek_token (parser->lexer);
       decl = cp_parser_template_id (parser, template_p,
 				    /*check_dependency_p=*/true,
+				    tag_type,
 				    is_declaration);
       /* If we didn't find a template-id, look for an ordinary
 	 identifier.  */
@@ -14507,7 +14526,8 @@ cp_parser_elaborated_type_specifier (cp_parser* parser,
 
   /* A "<" cannot follow an elaborated type specifier.  If that
      happens, the user was probably trying to form a template-id.  */
-  cp_parser_check_for_invalid_template_id (parser, type, token->location);
+  cp_parser_check_for_invalid_template_id (parser, type, tag_type,
+					   token->location);
 
   return type;
 }
@@ -18490,6 +18510,7 @@ cp_parser_class_name (cp_parser *parser,
       /* Try a template-id.  */
       decl = cp_parser_template_id (parser, template_keyword_p,
 				    check_dependency_p,
+				    tag_type,
 				    is_declaration);
       if (decl == error_mark_node)
 	return error_mark_node;
@@ -18942,7 +18963,7 @@ cp_parser_class_head (cp_parser* parser,
     = cp_parser_nested_name_specifier_opt (parser,
 					   /*typename_keyword_p=*/false,
 					   /*check_dependency_p=*/false,
-					   /*type_p=*/false,
+					   /*type_p=*/true,
 					   /*is_declaration=*/false);
   /* If there was a nested-name-specifier, then there *must* be an
      identifier.  */
@@ -19017,6 +19038,7 @@ cp_parser_class_head (cp_parser* parser,
       id = cp_parser_template_id (parser,
 				  /*template_keyword_p=*/false,
 				  /*check_dependency_p=*/true,
+				  class_key,
 				  /*is_declaration=*/true);
       /* If that didn't work, it could still be an identifier.  */
       if (!cp_parser_parse_definitely (parser))
@@ -19041,6 +19063,7 @@ cp_parser_class_head (cp_parser* parser,
   if (id)
     {
       cp_parser_check_for_invalid_template_id (parser, id,
+					       class_key,
                                                type_start_token->location);
     }
   virt_specifiers = cp_parser_virt_specifier_seq_opt (parser);
@@ -21815,7 +21838,6 @@ cp_parser_template_declaration_after_export (cp_parser* parser, bool member_p)
     {
       /* Parse the template parameters.  */
       parameter_list = cp_parser_template_parameter_list (parser);
-      fixup_template_parms ();
     }
 
   /* Get the deferred access checks from the parameter list.  These

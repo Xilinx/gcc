@@ -91,8 +91,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cgraph.h"
 #include "input.h"
 #include "gimple.h"
-#include "tree-pass.h"
-#include "tree-flow.h"
+#include "dumpfile.h"
 #include "opts.h"
 
 static void dwarf2out_source_line (unsigned int, const char *, int, bool);
@@ -8150,14 +8149,11 @@ dwarf2_name (tree decl, int scope)
 static void
 add_pubname_string (const char *str, dw_die_ref die)
 {
-  if (want_pubnames ())
-    {
-      pubname_entry e;
+  pubname_entry e;
 
-      e.die = die;
-      e.name = xstrdup (str);
-      VEC_safe_push (pubname_entry, gc, pubname_table, &e);
-    }
+  e.die = die;
+  e.name = xstrdup (str);
+  VEC_safe_push (pubname_entry, gc, pubname_table, &e);
 }
 
 static void
@@ -8166,6 +8162,11 @@ add_pubname (tree decl, dw_die_ref die)
   if (!want_pubnames ())
     return;
 
+  /* Don't add items to the table when we expect that the consumer will have
+     just read the enclosing die.  For example, if the consumer is looking at a
+     class_member, it will either be inside the class already, or will have just
+     looked up the class to find the member.  Either way, searching the class is
+     faster than searching the index.  */
   if ((TREE_PUBLIC (decl) && !is_class_die (die->die_parent))
       || is_cu_die (die->die_parent) || is_namespace_die (die->die_parent))
     {
@@ -8210,11 +8211,11 @@ add_pubtype (tree decl, dw_die_ref die)
 
       scope = TYPE_P (decl) ? TYPE_CONTEXT (decl) : NULL;
       if (scope && TREE_CODE (scope) == NAMESPACE_DECL)
-	    {
+        {
           scope_name = lang_hooks.dwarf_name (scope, 1);
           if (scope_name != NULL && scope_name[0] != '\0')
             scope_name = concat (scope_name, sep, NULL);
-	      else
+          else
             scope_name = "";
 	}
 
@@ -8229,8 +8230,8 @@ add_pubtype (tree decl, dw_die_ref die)
         {
           e.die = die;
           e.name = concat (scope_name, name, NULL);
-	VEC_safe_push (pubname_entry, gc, pubtype_table, &e);
-    }
+          VEC_safe_push (pubname_entry, gc, pubtype_table, &e);
+        }
 
       /* Although it might be more consistent to add the pubinfo for the
          enumerators as their dies are created, they should only be added if the
@@ -8282,6 +8283,12 @@ output_pubnames (VEC (pubname_entry, gc) * names)
 
   FOR_EACH_VEC_ELT (pubname_entry, names, i, pub)
     {
+      /* Enumerator names are part of the pubname table, but the parent
+         DW_TAG_enumeration_type die may have been pruned.  Don't output
+         them if that is the case.  */
+      if (pub->die->die_tag == DW_TAG_enumerator && !pub->die->die_mark)
+        continue;
+
       /* We shouldn't see pubnames for DIEs outside of the main CU.  */
       if (names == pubname_table)
 	gcc_assert (pub->die->die_mark);
@@ -16277,7 +16284,7 @@ gen_enumeration_type_die (tree type, dw_die_ref context_die)
   else
     add_AT_flag (type_die, DW_AT_declaration, 1);
 
-    add_pubtype (type, type_die);
+  add_pubtype (type, type_die);
 
   return type_die;
 }
@@ -16826,30 +16833,6 @@ gen_call_site_die (tree decl, dw_die_ref subr_die,
   return die;
 }
 
-/* Return true if an abstract instance of function DECL can be generated in
-   the debug information.  */
-
-static bool
-function_possibly_abstracted_p (tree decl)
-{
-  /* An abstract instance of DECL can be generated if DECL can be inlined or
-     is nested in a function that can be inlined, recursively.  */
-  while (decl)
-    {
-      if (cgraph_function_possibly_inlined_p (decl))
-	return true;
-      decl = decl_function_context (decl);
-      /* Do not consider Fortran subroutines as nested in the main program.  */
-      if (decl
-	  && is_fortran ()
-	  && !strcmp (IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl)),
-		      "MAIN__"))
-        break;
-    }
-
-  return false;
-}
-
 /* Generate a DIE to represent a declared function (either file-scope or
    block-local).  */
 
@@ -17004,14 +16987,14 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
     {
       if (DECL_DECLARED_INLINE_P (decl))
 	{
-	  if (function_possibly_abstracted_p (decl))
+	  if (cgraph_function_possibly_inlined_p (decl))
 	    add_AT_unsigned (subr_die, DW_AT_inline, DW_INL_declared_inlined);
 	  else
 	    add_AT_unsigned (subr_die, DW_AT_inline, DW_INL_declared_not_inlined);
 	}
       else
 	{
-	  if (function_possibly_abstracted_p (decl))
+	  if (cgraph_function_possibly_inlined_p (decl))
 	    add_AT_unsigned (subr_die, DW_AT_inline, DW_INL_inlined);
 	  else
 	    add_AT_unsigned (subr_die, DW_AT_inline, DW_INL_not_inlined);
@@ -17144,7 +17127,8 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 		  add_AT_lbl_id (seg_die, DW_AT_high_pc,
 				 fde->dw_fde_second_end);
 		  add_name_attribute (seg_die, name);
-		  add_pubname_string (name, seg_die);
+		  if (want_pubnames ())
+		    add_pubname_string (name, seg_die);
 		}
 	    }
 	  else
@@ -17569,7 +17553,8 @@ gen_variable_die (tree decl, tree origin, dw_die_ref context_die)
 	    }
           else if (DECL_EXTERNAL (decl))
 	    add_AT_flag (com_die, DW_AT_declaration, 1);
-	  add_pubname_string (cnam, com_die); /* ??? needed? */
+	  if (want_pubnames ())
+	    add_pubname_string (cnam, com_die); /* ??? needed? */
 	  com_die->decl_id = DECL_UID (com_decl);
 	  slot = htab_find_slot (common_block_die_table, com_die, INSERT);
 	  *slot = (void *) com_die;
@@ -17935,8 +17920,6 @@ gen_inlined_subroutine_die (tree stmt, dw_die_ref context_die, int depth)
   gcc_assert (! BLOCK_ABSTRACT (stmt));
 
   decl = block_ultimate_origin (stmt);
-  if (DECL_IGNORED_P (decl))
-    return;
 
   /* Emit info for the abstract instance first, if we haven't yet.  We
      must emit this even if the block is abstract, otherwise when we
@@ -18881,7 +18864,6 @@ gen_block_die (tree stmt, dw_die_ref context_die, int depth)
 
 /* Process variable DECL (or variable with origin ORIGIN) within
    block STMT and add it to CONTEXT_DIE.  */
-
 static void
 process_scope_var (tree stmt, tree decl, tree origin, dw_die_ref context_die)
 {
@@ -18899,15 +18881,8 @@ process_scope_var (tree stmt, tree decl, tree origin, dw_die_ref context_die)
   if (die != NULL && die->die_parent == NULL)
     add_child_die (context_die, die);
   else if (TREE_CODE (decl_or_origin) == IMPORTED_DECL)
-    dwarf2out_imported_module_or_decl_1 (decl_or_origin,
-					 DECL_NAME (decl_or_origin),
+    dwarf2out_imported_module_or_decl_1 (decl_or_origin, DECL_NAME (decl_or_origin),
 					 stmt, context_die);
-  /* Do not emit concrete instances of abstracted nested functions within
-     concrete instances of parent functions.  */
-  else if (TREE_CODE (decl_or_origin) == FUNCTION_DECL
-	   && die
-	   && get_AT (die, DW_AT_inline))
-    ;
   else
     gen_decl_die (decl, origin, context_die);
 }
@@ -19195,7 +19170,8 @@ gen_namespace_die (tree decl, dw_die_ref context_die)
       equate_decl_number_to_die (decl, namespace_die);
     }
   /* Bypass dwarf2_name's check for DECL_NAMELESS.  */
-  add_pubname_string (lang_hooks.dwarf_name (decl, 1), namespace_die);
+  if (want_pubnames ())
+    add_pubname_string (lang_hooks.dwarf_name (decl, 1), namespace_die);
 }
 
 /* Generate Dwarf debug information for a decl described by DECL.
@@ -19256,11 +19232,11 @@ gen_decl_die (tree decl, tree origin, dw_die_ref context_die)
 				     ? DECL_ORIGIN (origin)
 				     : DECL_ABSTRACT_ORIGIN (decl));
 
-      /* If we're emitting an out-of-line copy of an abstracted function,
+      /* If we're emitting an out-of-line copy of an inline function,
 	 emit info for the abstract instance and set up to refer to it.  */
-      else if (!DECL_ABSTRACT (decl)
-	       && function_possibly_abstracted_p (decl)
-	       && !class_or_namespace_scope_p (context_die)
+      else if (cgraph_function_possibly_inlined_p (decl)
+	       && ! DECL_ABSTRACT (decl)
+	       && ! class_or_namespace_scope_p (context_die)
 	       /* dwarf2out_abstract_function won't emit a die if this is just
 		  a declaration.  We must avoid setting DECL_ABSTRACT_ORIGIN in
 		  that case, because that works only if we have a die.  */
@@ -21259,10 +21235,13 @@ prune_unused_types (void)
       prune_unused_types_mark (ctnode->type_die, 1);
     }
 
-  /* Also set the mark on nodes referenced from the
-     pubname_table.  */
+  /* Also set the mark on nodes referenced from the pubname_table.  Enumerators
+     are unusual in that they are pubnames that are the children of pubtypes.
+     They should only be marked via their parent DW_TAG_enumeration_type die,
+     not as roots in themselves.  */
   FOR_EACH_VEC_ELT (pubname_entry, pubname_table, i, pub)
-    prune_unused_types_mark (pub->die, 1);
+    if (pub->die->die_tag != DW_TAG_enumerator)
+      prune_unused_types_mark (pub->die, 1);
   for (i = 0; VEC_iterate (dw_die_ref, base_types, i, base_type); i++)
     prune_unused_types_mark (base_type, 1);
 
@@ -22269,19 +22248,8 @@ dwarf2out_finish (const char *filename)
 	{
 	  dw_die_ref origin = get_AT_ref (die, DW_AT_abstract_origin);
 
-	  if (origin)
-	    {
-	      /* Find the first non-abstract parent instance.  */
-	      do
-		origin = origin->die_parent;
-	      while (origin
-		     && (origin->die_tag != DW_TAG_subprogram
-			 || get_AT (origin, DW_AT_inline)));
-	      if (origin)
-		add_child_die (origin, die);
-	      else
-		add_child_die (comp_unit_die (), die);
-	    }
+	  if (origin && origin->die_parent)
+	    add_child_die (origin->die_parent, die);
 	  else if (is_cu_die (die))
 	    ;
 	  else if (seen_error ())

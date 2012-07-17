@@ -26,11 +26,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "diagnostic.h"
-#include "tree-pretty-print.h"
 #include "gimple-pretty-print.h"
 #include "hashtab.h"
 #include "tree-flow.h"
-#include "tree-pass.h"
+#include "dumpfile.h"	/* for dump_flags */
 #include "gimple.h"
 #include "value-prof.h"
 #include "trans-mem.h"
@@ -342,6 +341,8 @@ dump_binary_rhs (pretty_printer *buffer, gimple gs, int spc, int flags)
     case MAX_EXPR:
     case VEC_WIDEN_MULT_HI_EXPR:
     case VEC_WIDEN_MULT_LO_EXPR:
+    case VEC_WIDEN_MULT_EVEN_EXPR:
+    case VEC_WIDEN_MULT_ODD_EXPR:
     case VEC_PACK_TRUNC_EXPR:
     case VEC_PACK_SAT_EXPR:
     case VEC_PACK_FIX_TRUNC_EXPR:
@@ -830,7 +831,7 @@ dump_gimple_cond (pretty_printer *buffer, gimple gs, int spc, int flags)
 
 /* Dump a GIMPLE_LABEL tuple on the pretty_printer BUFFER, SPC
    spaces of indent.  FLAGS specifies details to show in the dump (see
-   TDF_* in tree-pass.h).  */
+   TDF_* in dumpfils.h).  */
 
 static void
 dump_gimple_label (pretty_printer *buffer, gimple gs, int spc, int flags)
@@ -851,7 +852,7 @@ dump_gimple_label (pretty_printer *buffer, gimple gs, int spc, int flags)
 
 /* Dump a GIMPLE_GOTO tuple on the pretty_printer BUFFER, SPC
    spaces of indent.  FLAGS specifies details to show in the dump (see
-   TDF_* in tree-pass.h).  */
+   TDF_* in dumpfile.h).  */
 
 static void
 dump_gimple_goto (pretty_printer *buffer, gimple gs, int spc, int flags)
@@ -866,7 +867,7 @@ dump_gimple_goto (pretty_printer *buffer, gimple gs, int spc, int flags)
 
 /* Dump a GIMPLE_BIND tuple on the pretty_printer BUFFER, SPC
    spaces of indent.  FLAGS specifies details to show in the dump (see
-   TDF_* in tree-pass.h).  */
+   TDF_* in dumpfile.h).  */
 
 static void
 dump_gimple_bind (pretty_printer *buffer, gimple gs, int spc, int flags)
@@ -899,7 +900,7 @@ dump_gimple_bind (pretty_printer *buffer, gimple gs, int spc, int flags)
 
 /* Dump a GIMPLE_TRY tuple on the pretty_printer BUFFER, SPC spaces of
    indent.  FLAGS specifies details to show in the dump (see TDF_* in
-   tree-pass.h).  */
+   dumpfile.h).  */
 
 static void
 dump_gimple_try (pretty_printer *buffer, gimple gs, int spc, int flags)
@@ -955,7 +956,7 @@ dump_gimple_try (pretty_printer *buffer, gimple gs, int spc, int flags)
 
 /* Dump a GIMPLE_CATCH tuple on the pretty_printer BUFFER, SPC spaces of
    indent.  FLAGS specifies details to show in the dump (see TDF_* in
-   tree-pass.h).  */
+   dumpfile.h).  */
 
 static void
 dump_gimple_catch (pretty_printer *buffer, gimple gs, int spc, int flags)
@@ -971,7 +972,7 @@ dump_gimple_catch (pretty_printer *buffer, gimple gs, int spc, int flags)
 
 /* Dump a GIMPLE_EH_FILTER tuple on the pretty_printer BUFFER, SPC spaces of
    indent.  FLAGS specifies details to show in the dump (see TDF_* in
-   tree-pass.h).  */
+   dumpfile.h).  */
 
 static void
 dump_gimple_eh_filter (pretty_printer *buffer, gimple gs, int spc, int flags)
@@ -1004,7 +1005,7 @@ dump_gimple_eh_must_not_throw (pretty_printer *buffer, gimple gs,
 
 /* Dump a GIMPLE_EH_ELSE tuple on the pretty_printer BUFFER, SPC spaces of
    indent.  FLAGS specifies details to show in the dump (see TDF_* in
-   tree-pass.h).  */
+   dumpfile.h).  */
 
 static void
 dump_gimple_eh_else (pretty_printer *buffer, gimple gs, int spc, int flags)
@@ -1022,7 +1023,7 @@ dump_gimple_eh_else (pretty_printer *buffer, gimple gs, int spc, int flags)
 
 /* Dump a GIMPLE_RESX tuple on the pretty_printer BUFFER, SPC spaces of
    indent.  FLAGS specifies details to show in the dump (see TDF_* in
-   tree-pass.h).  */
+   dumpfile.h).  */
 
 static void
 dump_gimple_resx (pretty_printer *buffer, gimple gs, int spc, int flags)
@@ -1049,7 +1050,7 @@ dump_gimple_eh_dispatch (pretty_printer *buffer, gimple gs, int spc, int flags)
 
 /* Dump a GIMPLE_DEBUG tuple on the pretty_printer BUFFER, SPC spaces
    of indent.  FLAGS specifies details to show in the dump (see TDF_*
-   in tree-pass.h).  */
+   in dumpfile.h).  */
 
 static void
 dump_gimple_debug (pretty_printer *buffer, gimple gs, int spc, int flags)
@@ -1424,7 +1425,7 @@ dump_gimple_transaction (pretty_printer *buffer, gimple gs, int spc, int flags)
 
 /* Dump a GIMPLE_ASM tuple on the pretty_printer BUFFER, SPC spaces of
    indent.  FLAGS specifies details to show in the dump (see TDF_* in
-   tree-pass.h).  */
+   dumpfile.h).  */
 
 static void
 dump_gimple_asm (pretty_printer *buffer, gimple gs, int spc, int flags)
@@ -1643,7 +1644,7 @@ dump_gimple_phi (pretty_printer *buffer, gimple phi, int spc, int flags)
 
 /* Dump a GIMPLE_OMP_PARALLEL tuple on the pretty_printer BUFFER, SPC spaces
    of indent.  FLAGS specifies details to show in the dump (see TDF_* in
-   tree-pass.h).  */
+   dumpfile.h).  */
 
 static void
 dump_gimple_omp_parallel (pretty_printer *buffer, gimple gs, int spc,
@@ -1697,7 +1698,7 @@ dump_gimple_omp_parallel (pretty_printer *buffer, gimple gs, int spc,
 
 /* Dump a GIMPLE_OMP_TASK tuple on the pretty_printer BUFFER, SPC spaces
    of indent.  FLAGS specifies details to show in the dump (see TDF_* in
-   tree-pass.h).  */
+   dumpfile.h).  */
 
 static void
 dump_gimple_omp_task (pretty_printer *buffer, gimple gs, int spc,
@@ -1754,7 +1755,7 @@ dump_gimple_omp_task (pretty_printer *buffer, gimple gs, int spc,
 
 /* Dump a GIMPLE_OMP_ATOMIC_LOAD tuple on the pretty_printer BUFFER, SPC
    spaces of indent.  FLAGS specifies details to show in the dump (see TDF_*
-   in tree-pass.h).  */
+   in dumpfile.h).  */
 
 static void
 dump_gimple_omp_atomic_load (pretty_printer *buffer, gimple gs, int spc,
@@ -1785,7 +1786,7 @@ dump_gimple_omp_atomic_load (pretty_printer *buffer, gimple gs, int spc,
 
 /* Dump a GIMPLE_OMP_ATOMIC_STORE tuple on the pretty_printer BUFFER, SPC
    spaces of indent.  FLAGS specifies details to show in the dump (see TDF_*
-   in tree-pass.h).  */
+   in dumpfile.h).  */
 
 static void
 dump_gimple_omp_atomic_store (pretty_printer *buffer, gimple gs, int spc,
@@ -1842,7 +1843,7 @@ dump_gimple_mem_ops (pretty_printer *buffer, gimple gs, int spc, int flags)
 
 /* Dump the gimple statement GS on the pretty printer BUFFER, SPC
    spaces of indent.  FLAGS specifies details to show in the dump (see
-   TDF_* in tree-pass.h).  */
+   TDF_* in dumpfile.h).  */
 
 void
 dump_gimple_stmt (pretty_printer *buffer, gimple gs, int spc, int flags)

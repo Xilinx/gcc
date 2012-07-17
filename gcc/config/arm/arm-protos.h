@@ -50,6 +50,7 @@ extern int arm_hard_regno_mode_ok (unsigned int, enum machine_mode);
 extern bool arm_modes_tieable_p (enum machine_mode, enum machine_mode);
 extern int const_ok_for_arm (HOST_WIDE_INT);
 extern int const_ok_for_op (HOST_WIDE_INT, enum rtx_code);
+extern int const_ok_for_dimode_op (HOST_WIDE_INT, enum rtx_code);
 extern int arm_split_constant (RTX_CODE, enum machine_mode, rtx,
 			       HOST_WIDE_INT, rtx, rtx, int);
 extern RTX_CODE arm_canonicalize_comparison (RTX_CODE, rtx *, rtx *);
@@ -66,7 +67,6 @@ extern int thumb1_legitimate_address_p (enum machine_mode, rtx, int);
 extern bool ldm_stm_operation_p (rtx, bool, enum machine_mode mode,
                                  bool, bool);
 extern int arm_const_double_rtx (rtx);
-extern int neg_const_double_rtx_ok_for_fpa (rtx);
 extern int vfp3_const_double_rtx (rtx);
 extern int neon_immediate_valid_for_move (rtx, enum machine_mode, rtx *, int *);
 extern int neon_immediate_valid_for_logic (rtx, enum machine_mode, int, rtx *,
@@ -94,7 +94,6 @@ extern enum reg_class coproc_secondary_reload_class (enum machine_mode, rtx,
 						     bool);
 extern bool arm_tls_referenced_p (rtx);
 
-extern int cirrus_memory_offset (rtx);
 extern int arm_coproc_mem_operand (rtx, bool);
 extern int neon_vector_mem_operand (rtx, int);
 extern int neon_struct_mem_operand (rtx);
@@ -133,11 +132,7 @@ extern void arm_emit_call_insn (rtx, rtx);
 extern const char *output_call (rtx *);
 extern const char *output_call_mem (rtx *);
 void arm_emit_movpair (rtx, rtx);
-extern const char *output_mov_long_double_fpa_from_arm (rtx *);
-extern const char *output_mov_long_double_arm_from_fpa (rtx *);
 extern const char *output_mov_long_double_arm_from_arm (rtx *);
-extern const char *output_mov_double_fpa_from_arm (rtx *);
-extern const char *output_mov_double_arm_from_fpa (rtx *);
 extern const char *output_move_double (rtx *, bool, int *count);
 extern const char *output_move_quad (rtx *);
 extern int arm_count_output_move_double_insns (rtx *);
@@ -177,8 +172,6 @@ extern bool arm_pad_reg_upward (enum machine_mode, tree, int);
 extern int arm_apply_result_size (void);
 
 #endif /* RTX_CODE */
-
-extern int arm_float_words_big_endian (void);
 
 /* Thumb functions.  */
 extern void arm_init_expanders (void);

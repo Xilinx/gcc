@@ -69,11 +69,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "tm_p.h"
 #include "basic-block.h"
-#include "tree-pretty-print.h"
 #include "gimple-pretty-print.h"
 #include "tree-flow.h"
-#include "tree-dump.h"
-#include "timevar.h"
 #include "cfgloop.h"
 #include "tree-pass.h"
 #include "ggc.h"
@@ -856,7 +853,7 @@ htab_inv_expr_hash (const void *ent)
 
 /* Allocate data structures for the cost model.  */
 
-static void
+void
 initialize_costs (void)
 {
   mult_costs[0] = htab_create (100, mbc_entry_hash, mbc_entry_eq, free);
@@ -866,7 +863,7 @@ initialize_costs (void)
 
 /* Release data structures for the cost model.  */
 
-static void
+void
 finalize_costs (void)
 {
   cost_tables_exist = false;

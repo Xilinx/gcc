@@ -23,7 +23,6 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef GENERATOR_FILE
 #include <gmp.h>
 #endif
-#include "coretypes.h"
 
 /* A large integer is currently represented as a pair of HOST_WIDE_INTs.
    It therefore represents a number with precision of
@@ -283,6 +282,14 @@ static inline bool
 double_int_equal_p (double_int cst1, double_int cst2)
 {
   return cst1.low == cst2.low && cst1.high == cst2.high;
+}
+
+/* Return number of set bits of CST.  */
+
+static inline int
+double_int_popcount (double_int cst)
+{
+  return popcount_hwi (cst.high) + popcount_hwi (cst.low);
 }
 
 

@@ -43,7 +43,7 @@
 #include "tree-pass.h"
 #include "timevar.h"
 #include "flags.h"
-#include "c-tree.h"
+#include "c/c-tree.h"
 #include "tree-inline.h"
 #include "cgraph.h"
 #include "ipa-prop.h"
@@ -427,8 +427,8 @@ extract_elem_fn_values (tree decl)
   for (ii_tree = DECL_ARGUMENTS (decl); ii_tree;
        ii_tree = DECL_CHAIN (ii_tree))
     {
-      arg_number++;
       bool already_found = false;
+      arg_number++;
       for (ii = 0; ii < elem_fn_values->no_uvars; ii++)
 	{
 	  if (DECL_NAME (ii_tree)

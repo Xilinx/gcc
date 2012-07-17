@@ -43,7 +43,7 @@
 #include "tree-pass.h"
 #include "timevar.h"
 #include "flags.h"
-#include "c-tree.h"
+#include "c/c-tree.h"
 #include "tree-inline.h"
 #include "cgraph.h"
 #include "ipa-prop.h"

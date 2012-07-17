@@ -45,7 +45,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "opts.h"
 #include "cgraph.h"
 #include "target-def.h"
-#include "libfuncs.h"
 #include "cilk.h"
 
 extern void array_notation_init_builtins (void);
@@ -6611,11 +6610,12 @@ get_priority (tree args, bool is_destructor)
     }
 
   arg = TREE_VALUE (args);
+  arg = default_conversion (arg);
   if (!host_integerp (arg, /*pos=*/0)
       || !INTEGRAL_TYPE_P (TREE_TYPE (arg)))
     goto invalid;
 
-  pri = tree_low_cst (TREE_VALUE (args), /*pos=*/0);
+  pri = tree_low_cst (arg, /*pos=*/0);
   if (pri < 0 || pri > MAX_INIT_PRIORITY)
     goto invalid;
 

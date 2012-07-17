@@ -31,7 +31,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cfgloop.h"
 #include "tree-flow.h"
 #include "tree-chrec.h"
-#include "tree-pass.h"
+#include "dumpfile.h"
 #include "params.h"
 #include "tree-scalar-evolution.h"
 
@@ -1365,6 +1365,23 @@ keep_cast:
     res = fold_build2 (TREE_CODE (chrec), type,
 		       fold_convert (type, TREE_OPERAND (chrec, 0)),
 		       fold_convert (type, TREE_OPERAND (chrec, 1)));
+  /* Similar perform the trick that (signed char)((int)x + 2) can be
+     narrowed to (signed char)((unsigned char)x + 2).  */
+  else if (use_overflow_semantics
+	   && TREE_CODE (chrec) == POLYNOMIAL_CHREC
+	   && TREE_CODE (ct) == INTEGER_TYPE
+	   && TREE_CODE (type) == INTEGER_TYPE
+	   && TYPE_OVERFLOW_UNDEFINED (type)
+	   && TYPE_PRECISION (type) < TYPE_PRECISION (ct))
+    {
+      tree utype = unsigned_type_for (type);
+      res = build_polynomial_chrec (CHREC_VARIABLE (chrec),
+				    fold_convert (utype,
+						  CHREC_LEFT (chrec)),
+				    fold_convert (utype,
+						  CHREC_RIGHT (chrec)));
+      res = chrec_convert_1 (type, res, at_stmt, use_overflow_semantics);
+    }
   else
     res = fold_convert (type, chrec);
 

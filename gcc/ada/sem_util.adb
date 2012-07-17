@@ -6306,16 +6306,17 @@ package body Sem_Util is
    end In_Parameter_Specification;
 
    -------------------------------------
-   -- In_Reverse_Storage_Order_Record --
+   -- In_Reverse_Storage_Order_Object --
    -------------------------------------
 
-   function In_Reverse_Storage_Order_Record (N : Node_Id) return Boolean is
+   function In_Reverse_Storage_Order_Object (N : Node_Id) return Boolean is
       Pref : Node_Id;
-   begin
-      Pref := N;
+      Btyp : Entity_Id := Empty;
 
+   begin
       --  Climb up indexed components
 
+      Pref := N;
       loop
          case Nkind (Pref) is
             when N_Selected_Component =>
@@ -6331,10 +6332,15 @@ package body Sem_Util is
          end case;
       end loop;
 
-      return Present (Pref)
-               and then Is_Record_Type (Etype (Pref))
-               and then Reverse_Storage_Order (Etype (Pref));
-   end In_Reverse_Storage_Order_Record;
+      if Present (Pref) then
+         Btyp := Base_Type (Etype (Pref));
+      end if;
+
+      return
+        Present (Btyp)
+          and then (Is_Record_Type (Btyp) or else Is_Array_Type (Btyp))
+          and then Reverse_Storage_Order (Btyp);
+   end In_Reverse_Storage_Order_Object;
 
    --------------------------------------
    -- In_Subprogram_Or_Concurrent_Unit --

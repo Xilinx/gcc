@@ -29,11 +29,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "function.h"
 #include "ggc.h"
-#include "langhooks.h"
-#include "tree-pretty-print.h"
 #include "gimple-pretty-print.h"
 #include "tree-flow.h"
-#include "timevar.h"
 #include "tree-dump.h"
 #include "tree-pass.h"
 #include "diagnostic-core.h"
@@ -125,7 +122,6 @@ static edge find_taken_edge_computed_goto (basic_block, tree);
 static edge find_taken_edge_cond_expr (basic_block, tree);
 static edge find_taken_edge_switch_expr (basic_block, tree);
 static tree find_case_label_for_value (gimple, tree);
-static void group_case_labels_stmt (gimple);
 
 void
 init_empty_tree_cfg_for_function (struct function *fn)
@@ -1333,7 +1329,7 @@ cleanup_dead_labels (void)
    the ones jumping to the same label.
    Eg. three separate entries 1: 2: 3: become one entry 1..3:  */
 
-static void
+void
 group_case_labels_stmt (gimple stmt)
 {
   int old_size = gimple_switch_num_labels (stmt);
@@ -2139,9 +2135,7 @@ dump_cfg_stats (FILE *file)
   const char * const fmt_str_1 = "%-30s%13d%11lu%c\n";
   const char * const fmt_str_2 = "%-30s%13ld%11lu%c\n";
   const char * const fmt_str_3 = "%-43s%11lu%c\n";
-  const char *funcname
-    = lang_hooks.decl_printable_name (current_function_decl, 2);
-
+  const char *funcname = current_function_name ();
 
   fprintf (file, "\nCFG Statistics for %s\n\n", funcname);
 
@@ -2196,8 +2190,7 @@ gimple_cfg2vcg (FILE *file)
   edge e;
   edge_iterator ei;
   basic_block bb;
-  const char *funcname
-    = lang_hooks.decl_printable_name (current_function_decl, 2);
+  const char *funcname = current_function_name ();
 
   /* Write the file header.  */
   fprintf (file, "graph: { title: \"%s\"\n", funcname);
@@ -3736,6 +3729,8 @@ do_pointer_plus_expr_check:
     case WIDEN_SUM_EXPR:
     case VEC_WIDEN_MULT_HI_EXPR:
     case VEC_WIDEN_MULT_LO_EXPR:
+    case VEC_WIDEN_MULT_EVEN_EXPR:
+    case VEC_WIDEN_MULT_ODD_EXPR:
     case VEC_PACK_TRUNC_EXPR:
     case VEC_PACK_SAT_EXPR:
     case VEC_PACK_FIX_TRUNC_EXPR:
@@ -3743,6 +3738,7 @@ do_pointer_plus_expr_check:
       return false;
 
     case MULT_EXPR:
+    case MULT_HIGHPART_EXPR:
     case TRUNC_DIV_EXPR:
     case CEIL_DIV_EXPR:
     case FLOOR_DIV_EXPR:
@@ -6034,14 +6030,11 @@ move_stmt_op (tree *tp, int *walk_subtrees, void *data)
 	  if ((TREE_CODE (t) == VAR_DECL
 	       && !is_global_var (t))
 	      || TREE_CODE (t) == CONST_DECL)
-	    replace_by_duplicate_decl (tp, p->vars_map, p->to_context);
-
-	  if (SSA_VAR_P (t)
-	      && gimple_in_ssa_p (cfun))
 	    {
-	      push_cfun (DECL_STRUCT_FUNCTION (p->to_context));
-	      add_referenced_var (*tp);
-	      pop_cfun ();
+	      struct function *to_fn = DECL_STRUCT_FUNCTION (p->to_context);
+	      replace_by_duplicate_decl (tp, p->vars_map, p->to_context);
+	      if (gimple_referenced_vars (to_fn))
+		add_referenced_var_1 (*tp, to_fn);
 	    }
 	}
       *walk_subtrees = 0;
@@ -6651,7 +6644,7 @@ dump_function_to_file (tree fn, FILE *file, int flags)
   tree chain;
   bool tmclone = TREE_CODE (fn) == FUNCTION_DECL && decl_is_tm_clone (fn);
 
-  fprintf (file, "%s %s(", lang_hooks.decl_printable_name (fn, 2),
+  fprintf (file, "%s %s(", current_function_name (),
 	   tmclone ? "[tm-clone] " : "");
 
   arg = DECL_ARGUMENTS (fn);

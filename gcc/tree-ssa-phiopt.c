@@ -27,16 +27,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "tm_p.h"
 #include "basic-block.h"
-#include "timevar.h"
 #include "tree-flow.h"
 #include "tree-pass.h"
-#include "tree-dump.h"
 #include "langhooks.h"
 #include "pointer-set.h"
 #include "domwalk.h"
 #include "cfgloop.h"
 #include "tree-data-ref.h"
-#include "tree-pretty-print.h"
 #include "gimple-pretty-print.h"
 #include "insn-config.h"
 #include "expr.h"
@@ -615,8 +612,12 @@ conditional_replacement (basic_block cond_bb, basic_block middle_bb,
   bool neg;
 
   /* FIXME: Gimplification of complex type is too hard for now.  */
-  if (TREE_CODE (TREE_TYPE (arg0)) == COMPLEX_TYPE
-      || TREE_CODE (TREE_TYPE (arg1)) == COMPLEX_TYPE)
+  /* We aren't prepared to handle vectors either (and it is a question
+     if it would be worthwhile anyway).  */
+  if (!(INTEGRAL_TYPE_P (TREE_TYPE (arg0))
+	|| POINTER_TYPE_P (TREE_TYPE (arg0)))
+      || !(INTEGRAL_TYPE_P (TREE_TYPE (arg1))
+	   || POINTER_TYPE_P (TREE_TYPE (arg1))))
     return false;
 
   /* The PHI arguments have the constants 0 and 1, or 0 and -1, then

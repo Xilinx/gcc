@@ -3407,6 +3407,7 @@ estimate_operator_cost (enum tree_code code, eni_weights *weights,
     case POINTER_PLUS_EXPR:
     case MINUS_EXPR:
     case MULT_EXPR:
+    case MULT_HIGHPART_EXPR:
     case FMA_EXPR:
 
     case ADDR_SPACE_CONVERT_EXPR:
@@ -3475,6 +3476,8 @@ estimate_operator_cost (enum tree_code code, eni_weights *weights,
 
     case VEC_WIDEN_MULT_HI_EXPR:
     case VEC_WIDEN_MULT_LO_EXPR:
+    case VEC_WIDEN_MULT_EVEN_EXPR:
+    case VEC_WIDEN_MULT_ODD_EXPR:
     case VEC_UNPACK_HI_EXPR:
     case VEC_UNPACK_LO_EXPR:
     case VEC_UNPACK_FLOAT_HI_EXPR:
@@ -3639,15 +3642,12 @@ estimate_num_insns (gimple stmt, eni_weights *weights)
 	  }
 
 	cost = node ? weights->call_cost : weights->indirect_call_cost;
-	if (!gimple_call_tail_p (stmt))
+	if (gimple_call_lhs (stmt))
+	  cost += estimate_move_cost (TREE_TYPE (gimple_call_lhs (stmt)));
+	for (i = 0; i < gimple_call_num_args (stmt); i++)
 	  {
-	    if (gimple_call_lhs (stmt))
-	      cost += estimate_move_cost (TREE_TYPE (gimple_call_lhs (stmt)));
-	    for (i = 0; i < gimple_call_num_args (stmt); i++)
-	      {
-		tree arg = gimple_call_arg (stmt, i);
-		cost += estimate_move_cost (TREE_TYPE (arg));
-	      }
+	    tree arg = gimple_call_arg (stmt, i);
+	    cost += estimate_move_cost (TREE_TYPE (arg));
 	  }
 	break;
       }
@@ -3902,9 +3902,9 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
 
   /* Set input_location here so we get the right instantiation context
      if we call instantiate_decl from inlinable_function_p.  */
+  /* FIXME: instantiate_decl isn't called by inlinable_function_p.  */
   saved_location = input_location;
-  if (gimple_has_location (stmt))
-    input_location = gimple_location (stmt);
+  input_location = gimple_location (stmt);
 
   /* From here on, we're only interested in CALL_EXPRs.  */
   if (gimple_code (stmt) != GIMPLE_CALL)
