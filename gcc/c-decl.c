@@ -1125,11 +1125,6 @@ pop_scope (void)
 	  if (TREE_USED (p) && !DECL_INITIAL (p))
 	    {
 	      error ("label %q+D used but not defined", p);
-	      if (flag_enable_cilk)
-		{
-		  fnotice(stderr, "compliation terminated due to errors.\n");
-		  exit(ICE_EXIT_CODE);
-		}
 	      DECL_INITIAL (p) = error_mark_node;
 	    }
 	  else

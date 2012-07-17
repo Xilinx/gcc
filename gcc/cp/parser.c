@@ -5534,12 +5534,17 @@ cp_parser_postfix_expression (cp_parser *parser, bool address_p, bool cast_p,
 	    postfix_expression = error_mark_node;
 	    break;
 	  }
-	/* Do not allow break and continue within statement expressions
-	   within this primary expression.  Gimplification would report
-	   an error but detecting the error during parse gives a better
-	   message.  */
-	saved_in_statement = parser->in_statement;
-	parser->in_statement = IN_CILK_SPAWN;
+	if (!flag_enable_cilk) 
+	  error ("-fcilkplus must be enabled to use %<cilk_spawn%>");
+	else 
+	  { 
+	    /* Do not allow break and continue within statement expressions
+	       within this primary expression.  Gimplification would report
+	       an error but detecting the error during parse gives a better
+	       message.  */
+	    saved_in_statement = parser->in_statement;
+	    parser->in_statement = IN_CILK_SPAWN;
+	  }
 	if (saved_in_statement & IN_CILK_SPAWN)
 	  warning (0, "nested %<cilk_spawn%> ignored");
 	else
@@ -9955,9 +9960,12 @@ cp_parser_iteration_statement (cp_parser* parser)
       }
       break;
 
-    case RID_CILK_FOR:
-      statement = cp_parser_cilk_for (parser, (tree) NULL_TREE,
-				      parser->in_statement);
+    case RID_CILK_FOR: 
+      if (!flag_enable_cilk) 
+	fatal_error ("-fcilkplus must be enabled to use %<cilk_for%>");
+      else
+	statement = cp_parser_cilk_for (parser, (tree) NULL_TREE, 
+					parser->in_statement);
       break;
 
     default:
@@ -10162,7 +10170,8 @@ cp_parser_jump_statement (cp_parser* parser)
       break;
 
     case RID_CILK_SYNC:
-      finish_sync_stmt (false);
+      if (flag_enable_cilk)
+	finish_sync_stmt (false);
       cp_parser_require (parser, CPP_SEMICOLON, /* "%<;%>" */ RT_SEMICOLON);
       break;
 

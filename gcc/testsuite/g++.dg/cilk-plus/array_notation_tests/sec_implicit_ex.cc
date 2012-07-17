@@ -1,3 +1,6 @@
+#ifdef HAVE_IO
+#undef HAVE_IO
+#endif
 #define HAVE_IO 1
 
 #if HAVE_IO

@@ -1,3 +1,9 @@
+2012-07-16  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* parser.c (cp_parser_postfix_expression): Added a check for cilkplus
+	flag.
+	* decl.c (finish_function_body): Likewise.
+
 2012-07-03  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cp-gimplify.c (genericize_cp_loop): Removed adding the reset stmt.

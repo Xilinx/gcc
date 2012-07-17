@@ -1,3 +1,13 @@
+2012-07-16  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-parser.c (c_parser_statement_after_labels): Checked if a sync expr
+	is not an error_mark_node.
+	* c-decl.c (pop_scope): Removed a exit when any label errors are found.
+	* dwarf2out.c (dwarf2out_decl): Removed an unnecessary flag_enable_cilk
+	check.
+	* cilk.c (cilk_init_builtins): Removed unused code.  Also, converted the
+	enter_frame function to use install_builtin.
+
 2012-07-05  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-typeck.c (build_binary_op): Added a call to c_save_expr.

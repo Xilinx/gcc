@@ -1,7 +1,14 @@
+2012-07-16  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* gcc.dg/cilk-plus/cilk_plus.exp: Added flag_enable_cilk flag.
+	* g++.dg/cilk-plus/cilk_plus.exp: Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/sec_implicit_ex.cc: Fixed a
+	double define.
+
 2012-06-21  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* g++.dg/cilk-plus/nested_cilk_for_cont_test.cc: New test file.
-	
+
 2012-06-20  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* g++.dg/cilk-plus/cilk_for_cont2_inside_for.cc: New test file.

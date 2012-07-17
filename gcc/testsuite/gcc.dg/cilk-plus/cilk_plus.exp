@@ -18,15 +18,15 @@
 load_lib gcc-dg.exp
 
 dg-init
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.\[cS\]]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 " " "
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.\[cS\]]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus " " "
 dg-finish
 
 dg-init
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/array_notation_tests/*.c]] " -O3 -ftree-vectorize" " "
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/array_notation_tests/*.c]] " -O3 -ftree-vectorize -fcilkplus" " "
 
 dg-finish
 
 dg-init
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/elem_fn_tests/*.c]] " -O3 -ftree-vectorize" " "
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/elem_fn_tests/*.c]] " -O3 -ftree-vectorize -fcilkplus" " "
 
 dg-finish

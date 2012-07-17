@@ -262,20 +262,6 @@ cilk_init_builtins (void)
 
   finish_builtin_struct (worker, "__cilkrts_worker_t", fields, NULL_TREE);
 
-  {
-    tree fn;
-
-    fn = build_fn_decl ("__cilkrts_current_worker_id",
-			build_function_type (integer_type_node,
-					     void_list_node));
-    lang_hooks.decls.pushdecl (fn);
-    /* XXX set attributes */
-
-    fn = build_fn_decl ("__cilkrts_current_worker",
-			build_function_type (wptr_type, void_list_node));
-    lang_hooks.decls.pushdecl (fn);
-  }
-
   cilk_detach_fndecl
     = install_builtin ("__cilkrts_detach", fptr_fun, BUILT_IN_CILK_DETACH, 1);
 
@@ -286,9 +272,8 @@ cilk_init_builtins (void)
      DECL_DETACHES_P (cilk_detach_fndecl) = 1;*/
 
 
-  cilk_enter_fndecl = build_fn_decl ("__cilkrts_enter_frame", fptr_fun);
-  mark_cold (cilk_enter_fndecl);
-  cilk_enter_fndecl = lang_hooks.decls.pushdecl (cilk_enter_fndecl);
+  cilk_enter_fndecl = install_builtin ("__cilkrts_enter_frame", fptr_fun,
+				       BUILT_IN_CILK_ENTER_FRAME, true);
 
   cilk_pop_fndecl = install_builtin ("__cilkrts_pop_frame", fptr_fun,
 				     BUILT_IN_CILK_POP_FRAME, false);

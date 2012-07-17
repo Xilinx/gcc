@@ -4549,8 +4549,8 @@ c_parser_statement_after_labels (c_parser *parser)
 	case RID_CILK_SYNC:
 	  c_parser_consume_token (parser);
 	  c_parser_skip_until_found (parser, CPP_SEMICOLON, "expected %<;%>");
-	  c_build_sync (&stmt);
-	  add_stmt (stmt);
+	  if (c_build_sync (&stmt) != error_mark_node)
+	    add_stmt (stmt);
 	  break;
 	case RID_GOTO:
 	  c_parser_consume_token (parser);

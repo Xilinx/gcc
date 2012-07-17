@@ -13470,9 +13470,11 @@ finish_function_body (tree compstmt)
   if (compstmt == NULL_TREE)
     return;
 
-  if (cfun->calls_spawn)
-    cfun->cilk_frame_decl = cp_make_cilk_frame ();
-  DECL_HAS_SPAWN_P (cfun->decl) = cfun->calls_spawn;
+  if (flag_enable_cilk && cfun->calls_spawn)
+    {
+      cfun->cilk_frame_decl = cp_make_cilk_frame ();
+      DECL_HAS_SPAWN_P (cfun->decl) = 1;
+    }
 
   /* Close the block.  */
   finish_compound_stmt (compstmt);
