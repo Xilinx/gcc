@@ -1,6 +1,11 @@
 
 2012-07-17  Basile Starynkevitch  <basile@starynkevitch.net>
-	* melt-runtime.c (melt_load_module_index): Improved error messages
+	* melt-build-script.tpl: Works up to stage3, with fix for typo
+	melt-workdir -> meltbuild-workdir twice...
+	* melt-build-script.sh: Regenerate.
+
+2012-07-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_load_module_index): Improve error messages
 	when module is not found.
 
 2012-07-17  Basile Starynkevitch  <basile@starynkevitch.net>

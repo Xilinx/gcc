@@ -152,7 +152,7 @@ MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5=$($GAWK -F\" '/extern/{next} /melt_cumul
 
 $GCCMELT_MAKE -f $GCCMELT_MODULE_MK melt_module \
    GCCMELT_FROM=[+(.(fromline))+] \
-   GCCMELT_MODULE_WORKSPACE=melt-workdir \
+   GCCMELT_MODULE_WORKSPACE=meltbuild-workdir \
    GCCMELT_MODULE_FLAVOR=$GCCMELT_ZERO_FLAVOR \
    GCCMELT_CFLAGS="$GCCMELT_COMPILER_FLAGS" \
    GCCMELT_MODULE_SOURCEBASE=$GCCMELT_MELTSOURCEDIR/generated/[+base+] \
@@ -208,7 +208,7 @@ meltbuild_info [+(.(fromline))+] compiling module [+base+] in [+melt_stage+]
 
 $GCCMELT_MAKE -f $GCCMELT_MODULE_MK melt_module \
    GCCMELT_FROM=[+(.(fromline))+] \
-   GCCMELT_MODULE_WORKSPACE=melt-workdir \
+   GCCMELT_MODULE_WORKSPACE=meltbuild-workdir \
    GCCMELT_MODULE_FLAVOR=quicklybuilt \
    GCCMELT_CFLAGS="$GCCMELT_COMPILER_FLAGS" \
    GCCMELT_MODULE_SOURCEBASE=[+melt_stage+]/[+base+] \
