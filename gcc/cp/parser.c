@@ -5818,7 +5818,8 @@ cp_parser_postfix_expression (cp_parser *parser, bool address_p, bool cast_p,
 		    /* Do not do argument dependent lookup if regular
 		       lookup finds a member function or a block-scope
 		       function declaration.  [basic.lookup.argdep]/3  */
-		    if (!DECL_FUNCTION_MEMBER_P (fn))
+		    if (!DECL_FUNCTION_MEMBER_P (fn)
+			&& !DECL_LOCAL_FUNCTION_P (fn))
 		      {
 			koenig_p = true;
 			if (!any_type_dependent_arguments_p (args))
