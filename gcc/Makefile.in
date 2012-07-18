@@ -5480,6 +5480,8 @@ melt-build-param.mk:  Makefile
 	echo 'GCCMELT_VERSION_STRING=' $(shell $(AWK) -F\" '/^.define +MELT_VERSION_STRING/{print $$2}' $(srcdir)/melt-runtime.h)  >> $@-tmp
 	echo '## GCCMELT_CC1 is the compiler to use MELT for its bootstrapping' >> $@-tmp
 	echo 'GCCMELT_CC1=' $(realpath ./cc1$(exeext))  >> $@-tmp
+	echo '## GCCMELT_CC1_PREFIX can be set to a prefix like "time" or "nice" to alter above' >> $@-tmp
+	$(if $(GCCMELT_CC1_PREFIX),echo GCCMELT_CC1_PREFIX='$(GCCMELT_CC1_PREFIX=)' >> $@-tmp)
 	echo '## GCCMELT_CC1_DEPENDENCIES is the dependencies, including MELT runtime, for GCCMELT_CC1' >> $@-tmp
 	echo 'GCCMELT_CC1_DEPENDENCIES=' $(realpath  ./cc1$(exeext) $(MELT_H) melt-runtime.o)  >> $@-tmp
 	echo '## GCCMELT_INCLUDES is the include flags for the MELT runtime' >> $@-tmp
@@ -5523,6 +5525,8 @@ melt-build-param.sh:  Makefile
 	echo 'GCCMELT_MAKE="$(MAKE)"' >> $@-tmp
 	echo '## GCCMELT_CC1 is the compiler to use MELT for its bootstrapping' >> $@-tmp
 	echo GCCMELT_CC1=$(realpath ./cc1$(exeext))  >> $@-tmp
+	echo '## GCCMELT_CC1_PREFIX can be set to a prefix like "time" or "nice" to alter above' >> $@-tmp
+	$(if $(GCCMELT_CC1_PREFIX),echo GCCMELT_CC1_PREFIX='$(GCCMELT_CC1_PREFIX)' >> $@-tmp)
 	echo '## GCCMELT_CC1_DEPENDENCIES is the dependencies, including MELT runtime, for GCCMELT_CC1' >> $@-tmp
 	echo 'GCCMELT_CC1_DEPENDENCIES="$(realpath  ./cc1$(exeext) $(MELT_H) melt-runtime.o)"'  >> $@-tmp
 	echo '## GCCMELT_INCLUDES is the include flags for the MELT runtime' >> $@-tmp

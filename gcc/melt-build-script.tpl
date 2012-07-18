@@ -29,7 +29,16 @@ sh
 
 export GAWK=${GAWK:=gawk}
 export MD5SUM=${MD5SUM:=md5sum}
-export GCCMELT_STAGE
+
+## internal variables for this script  [+(.(fromline))+]
+## GCCMELT_STAGE is an internal variable; it keeps the current MELT stage
+export GCCMELT_STAGE=""
+## GCCMELT_BASE is an internal variable; it keeps the current MELT base
+export GCCMELT_BASE=""
+## GCCMELT_SKIPEMITC is an internal variable; it skips the emission of C code when non-empty
+export GCCMELT_SKIPEMITC=""
+
+
 
 date +"/*empty file for MELT build %c*/" > meltbuild-empty-file.c
 
@@ -106,8 +115,13 @@ function meltbuild_emit () {
     mv $meltargs-$$-tmp $meltargs
     meltbuild_info $meltfrom argument file $meltargs is
     cat  $meltargs > /dev/stderr
-    $GCCMELT_CC1 @$meltargs || meltbuild_error $meltfrom failed with arguments @$meltargs
+    if [ -n "$GCCMELT_SKIPEMITC" ]; then
+	$GCCMELT_CC1_PREFIX $GCCMELT_CC1 @$meltargs || meltbuild_error $meltfrom failed with arguments @$meltargs
+    else
+	meltbuild_info $meltfrom skips emission of C code with  @$meltargs $GCCMELT_SKIPEMITC
+    fi
     GCCMELT_STAGE=$meltstage
+    GCCMELT_BASE=$meltbase
 }
 
 GCCMELT_ZERO_FLAVOR=${GCCMELT_STAGE_ZERO#meltbuild-stage0-}
@@ -225,9 +239,24 @@ $GCCMELT_MAKE -f $GCCMELT_MODULE_MK melt_module \
 #@ [+(.(fromline))+] end base [+base+] stage [+melt_stage+] 
 [+ENDFOR melt_translator_file+]
 
+########@  check that [+melt_stage+] did change something
+if grep -q -v '^#' [+melt_stage+]/*.cfilist ; then
+    meltbuild_info  [+(.(fromline))+] stage [+melt_stage+] did change some generated C files
+else
+    meltbuild_info  [+(.(fromline))+] stage [+melt_stage+] did not change any generated C files
+    GCCMELT_SKIPEMITC="[+melt_stage+] unchanged from [+(.(fromline))+]"
+[+FOR melt_translator_file+]
+    # testing [+(.(fromline))+] stage  [+melt_stage+] base [+base+] module older
+    if [ "[+melt_stage+]/[+base+].quicklybuilt.so" -nt "[+melt_stage+]/[+base+].cfilist" ]; then
+	meltbuild_info  [+(.(fromline))+] [+melt_stage+]/[+base+].quicklybuilt.so newer than  "[+melt_stage+]/[+base+].cfilist"
+	GCCMELT_SKIPEMITC=""
+    fi
+[+ENDFOR melt_translator_file+]
+fi
 
-########@  end for [+melt_stage+] [+ (. (fromline))+]
+########@  end for [+melt_stage+] [+ (. (fromline))+] ################
 [+ENDFOR melt_stage+]
+
 
 GCCMELT_LASTSTAGE=$GCCMELT_STAGE
 

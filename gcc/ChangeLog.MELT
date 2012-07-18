@@ -1,5 +1,15 @@
 
 2012-07-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (melt-build-param.mk, melt-build-param.sh): Emit
+	GCCMELT_CC1_PREFIX if defined.
+
+	* melt-build-script.tpl: Define internal variables like
+	GCCMELT_STAGE or GCCMELT_SKIPEMITC.  Skip useless stages which
+	don't do anything.
+
+	* melt-build-script.sh: Regenerate.
+
+2012-07-18  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-build-script.tpl: More comments. Add meltbuild-sources
 	step.
