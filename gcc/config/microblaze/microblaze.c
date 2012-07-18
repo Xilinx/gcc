@@ -1451,8 +1451,7 @@ legitimate_const_operand_p (rtx x)
 
   if (GET_CODE (x) == CONST_DOUBLE)
     {
-      if ( microblaze_const_double_ok (x, GET_MODE (x)) ) return 0;
-      return 1;
+      return microblaze_const_double_ok (x, GET_MODE (x));
     }
 
    /* Handle Case of (const (plus unspec const_int)) */
