@@ -1,4 +1,11 @@
 
+2012-07-18  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-build-script.tpl: More comments. Add meltbuild-sources
+	step.
+
+	* melt-build-script.sh: Regenerate.
+
 2012-07-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (melt-build-param.sh): Better quoting.
 

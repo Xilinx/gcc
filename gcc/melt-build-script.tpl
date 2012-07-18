@@ -171,7 +171,11 @@ meltbuild_info [+(.(fromline))+] successfully build stage0 [+base+]
 ################################################################
 ################################################################
 #################@ before our stages [+(.(fromline))+] 
-
+### Our stages [+FOR melt_stage " "+][+melt_stage+][+ENDFOR meltstage+] 
+### are incrementally built, with the former modules of
+### the current stage and the later modules of the previous stages
+### used to emit the source of the current module in the current stage.
+### This is a kind of "diagonalization".
 
 [+FOR melt_stage+]
 #@  begin for [+melt_stage+] [+(.(fromline))+]
@@ -225,7 +229,43 @@ $GCCMELT_MAKE -f $GCCMELT_MODULE_MK melt_module \
 ########@  end for [+melt_stage+] [+ (. (fromline))+]
 [+ENDFOR melt_stage+]
 
+GCCMELT_LASTSTAGE=$GCCMELT_STAGE
 
+meltbuild_info [+(.(fromline))+] last stage $GCCMELT_LASTSTAGE
+
+################################################################
+################################################################
+#################@ before our meltbuild-sources [+(.(fromline))+] 
+
+#### the meltbuild-sources is the final sources directory, to be
+#### installed.  They are generated from the last stage, using the
+#### modules inside it. Notice that in contrast from the intermediate
+#### stages no "diagonalization" is involved.
+
+[ -d meltbuild-sources ] || mkdir meltbuild-sources
+
+[ -d meltbuild-modules ] || mkdir meltbuild-modules
+
+#@ [+(.(fromline))+] 
+
+[+FOR melt_translator_file+][+ 
+  (define outbase (get "base")) (define outindex (for-index)) +]
+
+### the C source of meltbuild-sources for [+ (. outbase)+] [+ (. (fromline))+]
+
+meltbuild_info [+(.(fromline))+] generating C code of [+base+] in meltbuild-sources
+
+meltbuild_emit [+(.(fromline))+] \
+    [+IF (= outindex 0)+]translateinit[+ELSE+]translatefile[+ENDIF+] \
+    [+base+] \
+    meltbuild-sources \
+    "$GCCMELT_LASTSTAGE" \
+    [+FOR melt_translator_file ":"+]$GCCMELT_LASTSTAGE/[+base+].quicklybuilt[+ENDFOR melt_translator_file+] \
+    "[+FOR includeload " "+][+includeload+][+ENDFOR includeload+]"
+
+[+ENDFOR melt_translator_file+]
+
+#@ [+(.(fromline))+] 
 ################
 meltbuild_info [+(.(fromline))+] successfully done
 #@ eof [+(.(fromline))+] end of generated melt-build-script.sh
