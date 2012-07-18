@@ -264,7 +264,7 @@ meltbuild_info [+(.(fromline))+] last stage $GCCMELT_LASTSTAGE
 
 ################################################################
 ################################################################
-#################@ before our meltbuild-sources [+(.(fromline))+] 
+###########@ before generating meltbuild-sources [+(.(fromline))+]
 
 #### the meltbuild-sources is the final sources directory, to be
 #### installed.  They are generated from the last stage, using the
@@ -273,14 +273,13 @@ meltbuild_info [+(.(fromline))+] last stage $GCCMELT_LASTSTAGE
 
 [ -d meltbuild-sources ] || mkdir meltbuild-sources
 
-[ -d meltbuild-modules ] || mkdir meltbuild-modules
 
 #@ [+(.(fromline))+] 
 
 [+FOR melt_translator_file+][+ 
   (define outbase (get "base")) (define outindex (for-index)) +]
 
-### the C source of meltbuild-sources for [+ (. outbase)+] [+ (. (fromline))+]
+### the C source of meltbuild-sources for [+base+] from [+ (. (fromline))+]
 
 meltbuild_info [+(.(fromline))+] generating C code of [+base+] in meltbuild-sources
 
@@ -291,6 +290,46 @@ meltbuild_emit [+(.(fromline))+] \
     "$GCCMELT_LASTSTAGE" \
     [+FOR melt_translator_file ":"+]$GCCMELT_LASTSTAGE/[+base+].quicklybuilt[+ENDFOR melt_translator_file+] \
     "[+FOR includeload " "+][+includeload+][+ENDFOR includeload+]"
+
+### symlinking the MELT code in meltbuild-sources for [+base+] from [+ (. (fromline))+]
+
+meltbuild_info [+(.(fromline))+] putting MELT code of [+base+] in meltbuild-sources
+
+meltbuild_symlink $GCCMELT_MELTSOURCEDIR/[+base+].melt meltbuild-sources/
+[+FOR includeload "\n"+]meltbuild_symlink [+includeload+] meltbuild-sources/[+ENDFOR includeload+]
+
+[+ENDFOR melt_translator_file+]
+
+
+################################################################
+
+#@ from  [+(.(fromline))+]  compiling the modules
+[ -d meltbuild-modules ] || mkdir meltbuild-modules
+
+#@ [+(.(fromline))+] 
+
+[+FOR melt_translator_file+][+ 
+  (define outbase (get "base")) (define outindex (for-index)) +]
+
+### the modules in all flavors in meltbuild-modules for [+base+] from [+ (. (fromline))+]
+
+
+[+FOR flavor IN quicklybuilt optimized debugnoline+]
+
+#@ [+(.(fromline))+] flavor [+flavor+] base [+base+]
+$GCCMELT_MAKE -f $GCCMELT_MODULE_MK melt_module \
+   GCCMELT_FROM=[+(.(fromline))+] \
+   GCCMELT_MODULE_WORKSPACE=meltbuild-workdir \
+   GCCMELT_MODULE_FLAVOR=[+flavor+] \
+   GCCMELT_CFLAGS="$GCCMELT_COMPILER_FLAGS" \
+   GCCMELT_MODULE_SOURCEBASE=meltbuild-sources/[+base+] \
+   GCCMELT_MODULE_BINARYBASE=meltbuild-modules/[+base+] \
+ || meltbuild_error  [+(.(fromline))+] in meltbuild-modules failed to make module [+base+] [+flavor+]
+
+meltbuild_info [+(.(fromline))+] compiled [+base+] flavor [+flavor+] in meltbuild-modules
+[+ENDFOR flavor+]
+
+#@ [+(.(fromline))+] base [+base+]
 
 [+ENDFOR melt_translator_file+]
 

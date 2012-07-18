@@ -1,5 +1,12 @@
 
 2012-07-18  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-build-script.tpl: Compile translator modules in all flavors
+	into meltbuild-modules.
+
+	* melt-build-script.sh: Regenerate.
+
+2012-07-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (melt-build-param.mk, melt-build-param.sh): Emit
 	GCCMELT_CC1_PREFIX if defined.
 
