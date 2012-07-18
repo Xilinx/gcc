@@ -1,3 +1,7 @@
+2012-07-18   Diego Novillo  <dnovillo@google.com>
+
+        * testsuite-management/validate_failures.py: Fix /usr/bin/python reference.
+	
 2012-06-18   Diego Novillo  <dnovillo@google.com>
 
 	* testsuite-management/x86_64-grtev3-linux-gnu.xfail: Update.
