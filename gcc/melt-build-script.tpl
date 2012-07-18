@@ -115,7 +115,7 @@ function meltbuild_emit () {
     mv $meltargs-$$-tmp $meltargs
     meltbuild_info $meltfrom argument file $meltargs is
     cat  $meltargs > /dev/stderr
-    if [ -n "$GCCMELT_SKIPEMITC" ]; then
+    if [ -z "$GCCMELT_SKIPEMITC" ]; then
 	$GCCMELT_CC1_PREFIX $GCCMELT_CC1 @$meltargs || meltbuild_error $meltfrom failed with arguments @$meltargs
     else
 	meltbuild_info $meltfrom skips emission of C code with  @$meltargs $GCCMELT_SKIPEMITC
@@ -315,6 +315,10 @@ meltbuild_symlink $GCCMELT_MELTSOURCEDIR/[+base+].melt meltbuild-sources/
 
 
 [+FOR flavor IN quicklybuilt optimized debugnoline+]
+
+## @ [+(.(fromline))+] something might be wrong, we get e.g. a
+## meltbuild-modules/warmelt-outobj.optimized.so symlink, which should
+## be something with a md5sum inside.
 
 #@ [+(.(fromline))+] flavor [+flavor+] base [+base+]
 $GCCMELT_MAKE -f $GCCMELT_MODULE_MK melt_module \

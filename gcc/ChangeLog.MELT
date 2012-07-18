@@ -1,6 +1,13 @@
 
 2012-07-18  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-build-script.tpl: Still buggy, the meltbuild-modules/
+	should have files with an md5sum inside.
+
+	* melt-build-script.sh: Regenerate.
+
+2012-07-18  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-build-script.tpl: Compile translator modules in all flavors
 	into meltbuild-modules.
 
