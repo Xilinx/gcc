@@ -1,3 +1,27 @@
+2012-07-18  Richard Guenther  <rguenther@suse.de>
+
+	Backport from mainline
+	2012-05-03  Richard Guenther  <rguenther@suse.de>
+
+	* gfortran.dg/pr52621.f90: Add -w to avoid diagnostic about
+	unsupported prefetching support.
+
+2012-07-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53995
+	* g++.dg/parse/enum9.C: New.
+
+2012-07-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53989
+	* g++.dg/template/array23.C: New.
+
+2012-07-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53549
+	* g++.dg/template/current-inst1.C: New.
+	* g++.dg/parse/crash35.C: Adjust.
+
 2012-07-13  Hans-Peter Nilsson  <hp@axis.com>
 
 	PR rtl-optimization/53908
