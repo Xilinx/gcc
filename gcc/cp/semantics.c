@@ -3812,6 +3812,7 @@ expand_or_defer_fn_1 (tree fn)
 	      && lookup_attribute ("dllexport", DECL_ATTRIBUTES (fn))))
 	{
 	  mark_needed (fn);
+	  DECL_EXTERNAL (fn) = 0;
 	}
     }
 

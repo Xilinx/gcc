@@ -1,3 +1,10 @@
+2012-07-18  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cp-tree.h (FUNCTION_NEEDS_BODY_BLOCK): Changed the '1' to
+	flag_enable_cilk (since all functions when using cilk must have a body).
+	* semantics.c (expand_or_defer_fn_1): Make sure the DECL_EXTERNAL is
+	not set (as per trunk).
+
 2012-07-17  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* semantics.c (massage_constexpr_body): Reverted to trunk's function

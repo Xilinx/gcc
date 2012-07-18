@@ -277,8 +277,8 @@ typedef struct ptrmem_cst * ptrmem_cst_t;
 #define BIND_EXPR_BODY_BLOCK(NODE) \
   TREE_LANG_FLAG_3 (BIND_EXPR_CHECK (NODE))
 #define FUNCTION_NEEDS_BODY_BLOCK(NODE) \
- (1 || DECL_CONSTRUCTOR_P (NODE) || DECL_DESTRUCTOR_P (NODE) \
-   || LAMBDA_FUNCTION_P (NODE)) /* All CIlk function needs a body */
+ (flag_enable_cilk || DECL_CONSTRUCTOR_P (NODE) || DECL_DESTRUCTOR_P (NODE) \
+   || LAMBDA_FUNCTION_P (NODE)) /* All Cilk functions needs a body.  */
 
 #define STATEMENT_LIST_NO_SCOPE(NODE) \
   TREE_LANG_FLAG_0 (STATEMENT_LIST_CHECK (NODE))
