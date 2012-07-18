@@ -6053,38 +6053,12 @@ massage_constexpr_body (tree fun, tree body)
       (DECL_CONTEXT (fun), body);
   else
     {
-      if (TREE_CODE (body) == BIND_EXPR)
-	{
-	  body = BIND_EXPR_BODY (body);
-	  if (TREE_CODE(body) == BIND_EXPR)
-	    {
-	      body = BIND_EXPR_BODY (body);
-	    }
-	}
       if (TREE_CODE (body) == EH_SPEC_BLOCK)
-	{
-	  body = EH_SPEC_STMTS (body);
-	  if (TREE_CODE(body) == BIND_EXPR)
-	    {
-	      body = BIND_EXPR_BODY(body);
-	    }
-	}
+	body = EH_SPEC_STMTS (body);
       if (TREE_CODE (body) == MUST_NOT_THROW_EXPR)
-	{
-	  body = TREE_OPERAND (body, 0);
-	  if (TREE_CODE(body) == BIND_EXPR)
-	    {
-	      body = BIND_EXPR_BODY(body);
-	    }
-	}
-      if (TREE_CODE (body) == CLEANUP_POINT_EXPR)
-	{
-	  body = TREE_OPERAND (body, 0);
-	  if (TREE_CODE(body) == BIND_EXPR)
-	    {
-	      body = BIND_EXPR_BODY(body);
-	    }
-	}
+	body = TREE_OPERAND (body, 0);
+      while (TREE_CODE (body) == BIND_EXPR)
+	body = BIND_EXPR_BODY (body);
       body = constexpr_fn_retval (body);
     }
   return body;

@@ -1,3 +1,8 @@
+2012-07-17  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* semantics.c (massage_constexpr_body): Reverted to trunk's function
+	with the only exception being using while instead of if for BIND_EXPR.
+
 2012-07-16  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* parser.c (cp_parser_postfix_expression): Added a check for cilkplus
