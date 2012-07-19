@@ -2135,7 +2135,7 @@ union meltparam_un *meltxrestab_);
 #ifdef __cplusplus
 extern "C"
 #endif
-void *start_module_melt (void *);
+void *melt_start_this_module (void *);
 
 
 /* define different names when debugging or not */
@@ -13078,7 +13078,7 @@ lab_endgetargs:;
       memset (&argtab, 0, sizeof (argtab));
       /*^apply.arg */
       argtab[0].meltbp_cstring =
-	"\n #ifdef __cplusplus\n extern \"C\"\n #endif\n void* start_module_melt (void*) ;\n ";
+	"\n #ifdef __cplusplus\n extern \"C\"\n #endif\n void* melt_start_this_module (void*);\n ";
       /*_.ADD2OUT__V14*/ meltfptr[13] =
 	melt_apply ((meltclosure_ptr_t)
 		    (( /*!ADD2OUT */ meltfrout->tabval[2])),
@@ -13857,7 +13857,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-outobj.melt:1806:/ locexp");
       /*add2sbuf_strconst */
 	meltgc_add_strbuf ((melt_ptr_t) ( /*_.IMPLBUF__V4*/ meltfptr[3]),
-			   ("void* start_module_melt(void* modargp_) {"));
+			   ("void* melt_start_this_module (void* modargp_) {"));
     }
     ;
 

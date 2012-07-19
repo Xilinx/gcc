@@ -833,7 +833,7 @@ meltrout_51_warmelt_debug_DISPLAY_DEBUG_MESSAGE (meltclosure_ptr_t meltclosp_,
 #ifdef __cplusplus
 extern "C"
 #endif
-void *start_module_melt (void *);
+void *melt_start_this_module (void *);
 
 
 /* define different names when debugging or not */
@@ -6888,7 +6888,7 @@ const char meltmodule_warmelt_debug__melt_have_debug_disabled[] =
 
 
 void *
-start_module_melt (void *modargp_)
+melt_start_this_module (void *modargp_)
 {
 
   char meltpredefinited[MELTGLOB__LASTGLOB + 8];

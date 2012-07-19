@@ -2135,7 +2135,7 @@ union meltparam_un *meltxrestab_);
 #ifdef __cplusplus
 extern "C"
 #endif
-void *start_module_melt (void *);
+void *melt_start_this_module (void *);
 
 
 /* define different names when debugging or not */

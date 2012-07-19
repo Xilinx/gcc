@@ -1082,7 +1082,7 @@ meltrout_72_warmelt_modes_UNREGISTER_CHILD_PROCESS_HANDLER (meltclosure_ptr_t
 #ifdef __cplusplus
 extern "C"
 #endif
-void *start_module_melt (void *);
+void *melt_start_this_module (void *);
 
 
 /* define different names when debugging or not */

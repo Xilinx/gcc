@@ -850,7 +850,7 @@ meltrout_57_warmelt_base_RETRIEVE_VALUE_DESCRIPTOR_LIST (meltclosure_ptr_t
 #ifdef __cplusplus
 extern "C"
 #endif
-void *start_module_melt (void *);
+void *melt_start_this_module (void *);
 
 
 /* define different names when debugging or not */
