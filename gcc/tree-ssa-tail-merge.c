@@ -190,15 +190,17 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "function.h"
 #include "tree-flow.h"
-#include "timevar.h"
 #include "bitmap.h"
 #include "tree-ssa-alias.h"
 #include "params.h"
-#include "tree-pretty-print.h"
 #include "hash-table.h"
 #include "gimple-pretty-print.h"
 #include "tree-ssa-sccvn.h"
 #include "tree-dump.h"
+
+/* ??? This currently runs as part of tree-ssa-pre.  Why is this not
+   a stand-alone GIMPLE pass?  */
+#include "tree-pass.h"
 
 /* Describes a group of bbs with the same successors.  The successor bbs are
    cached in succs, and the successor edge flags are cached in succ_flags.
@@ -1111,6 +1113,14 @@ gimple_equal_p (same_succ same_succ, gimple s1, gimple s2)
     case GIMPLE_ASSIGN:
       lhs1 = gimple_get_lhs (s1);
       lhs2 = gimple_get_lhs (s2);
+      if (gimple_vdef (s1))
+	{
+	  if (vn_valueize (gimple_vdef (s1)) != vn_valueize (gimple_vdef (s2)))
+	    return false;
+	  if (TREE_CODE (lhs1) != SSA_NAME
+	      && TREE_CODE (lhs2) != SSA_NAME)
+	    return true;
+	}
       return (TREE_CODE (lhs1) == SSA_NAME
 	      && TREE_CODE (lhs2) == SSA_NAME
 	      && vn_valueize (lhs1) == vn_valueize (lhs2));

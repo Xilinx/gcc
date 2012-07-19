@@ -67,6 +67,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "config.h"
 #include "system.h"
+#include "coretypes.h"
 #include "gfortran.h"
 #include "match.h"
 #include "arith.h"
@@ -252,7 +253,7 @@ gfc_match_abstract_interface (void)
 {
   match m;
 
-  if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: ABSTRACT INTERFACE at %C")
+  if (gfc_notify_std (GFC_STD_F2003, "ABSTRACT INTERFACE at %C")
 		      == FAILURE)
     return MATCH_ERROR;
 
@@ -1312,7 +1313,7 @@ check_interface0 (gfc_interface *p, const char *interface_name)
 
       /* F2003, C1207. F2008, C1207.  */
       if (p->sym->attr.proc == PROC_INTERNAL
-	  && gfc_notify_std (GFC_STD_F2008, "Fortran 2008: Internal procedure "
+	  && gfc_notify_std (GFC_STD_F2008, "Internal procedure "
 			     "'%s' in %s at %L", p->sym->name, interface_name,
 			     &p->sym->declared_at) == FAILURE)
 	return 1;

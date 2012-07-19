@@ -3448,6 +3448,8 @@ estimate_operator_cost (enum tree_code code, eni_weights *weights,
 
     case VEC_WIDEN_MULT_HI_EXPR:
     case VEC_WIDEN_MULT_LO_EXPR:
+    case VEC_WIDEN_MULT_EVEN_EXPR:
+    case VEC_WIDEN_MULT_ODD_EXPR:
     case VEC_UNPACK_HI_EXPR:
     case VEC_UNPACK_LO_EXPR:
     case VEC_UNPACK_FLOAT_HI_EXPR:
@@ -3833,6 +3835,7 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
 
   /* Set input_location here so we get the right instantiation context
      if we call instantiate_decl from inlinable_function_p.  */
+  /* FIXME: instantiate_decl isn't called by inlinable_function_p.  */
   saved_location = input_location;
   input_location = gimple_location (stmt);
 

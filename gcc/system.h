@@ -663,14 +663,6 @@ extern int vsnprintf(char *, size_t, const char *, va_list);
 #define __builtin_expect(a, b) (a)
 #endif
 
-/* Default file in which to dump debug output.  Here for lack of a better
-   place to put it.  This used to be defined in output.h, but that results
-   in almost all files including output.h, even if they don't output anything
-   except, maybe, something to the dump file.  */
-#ifdef BUFSIZ
-extern FILE *dump_file;
-#endif
-
 /* Redefine abort to report an internal error w/o coredump, and
    reporting the location of the error in the source file.  */
 extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
@@ -909,7 +901,9 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 	LANG_HOOKS_MISSING_ARGUMENT LANG_HOOKS_HASH_TYPES \
 	TARGET_HANDLE_OFAST TARGET_OPTION_OPTIMIZATION \
 	TARGET_IRA_COVER_CLASSES TARGET_HELP \
-	TARGET_HANDLE_PRAGMA_EXTERN_PREFIX
+	TARGET_HANDLE_PRAGMA_EXTERN_PREFIX \
+	TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_EVEN \
+	TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_ODD \
 
 /* Arrays that were deleted in favor of a functional interface.  */
  #pragma GCC poison built_in_decls implicit_built_in_decls

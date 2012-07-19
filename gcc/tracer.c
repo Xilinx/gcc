@@ -44,7 +44,6 @@
 #include "basic-block.h"
 #include "fibheap.h"
 #include "flags.h"
-#include "timevar.h"
 #include "params.h"
 #include "coverage.h"
 #include "tree-pass.h"
@@ -370,14 +369,12 @@ tracer (void)
 {
   bool changed;
 
-  gcc_assert (current_ir_type () == IR_GIMPLE);
-
   if (n_basic_blocks <= NUM_FIXED_BLOCKS + 1)
     return 0;
 
   mark_dfs_back_edges ();
   if (dump_file)
-    dump_flow_info (dump_file, dump_flags);
+    brief_dump_cfg (dump_file);
 
   /* Trace formation is done on the fly inside tail_duplicate */
   changed = tail_duplicate ();
@@ -385,7 +382,7 @@ tracer (void)
     free_dominance_info (CDI_DOMINATORS);
 
   if (dump_file)
-    dump_flow_info (dump_file, dump_flags);
+    brief_dump_cfg (dump_file);
 
   return changed ? TODO_cleanup_cfg : 0;
 }

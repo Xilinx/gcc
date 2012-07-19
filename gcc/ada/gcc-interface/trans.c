@@ -244,6 +244,7 @@ static void add_cleanup (tree, Node_Id);
 static void add_stmt_list (List_Id);
 static void push_exception_label_stack (VEC(tree,gc) **, Entity_Id);
 static tree build_stmt_group (List_Id, bool);
+static inline bool stmt_group_may_fallthru (void);
 static enum gimplify_status gnat_gimplify_stmt (tree *);
 static void elaborate_all_entities (Node_Id);
 static void process_freeze_entity (Node_Id);
@@ -1423,6 +1424,15 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 	  if (TREE_CODE (gnu_expr) == ADDR_EXPR)
 	    TREE_NO_TRAMPOLINE (gnu_expr) = TREE_CONSTANT (gnu_expr) = 1;
 	}
+
+      /* For 'Access, issue an error message if the prefix is a C++ method
+	 since it can use a special calling convention on some platforms,
+	 which cannot be propagated to the access type.  */
+      else if (attribute == Attr_Access
+	       && Nkind (Prefix (gnat_node)) == N_Identifier
+	       && is_cplusplus_method (Entity (Prefix (gnat_node))))
+	post_error ("access to C++ constructor or member function not allowed",
+		    gnat_node);
 
       /* For other address attributes applied to a nested function,
 	 find an inner ADDR_EXPR and annotate it so that we can issue
@@ -4075,7 +4085,7 @@ Call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target,
 
       /* The first entry is for the actual return value if this is a
 	 function, so skip it.  */
-      if (TREE_VALUE (gnu_cico_list) == void_type_node)
+      if (function_call)
 	gnu_cico_list = TREE_CHAIN (gnu_cico_list);
 
       if (Nkind (Name (gnat_node)) == N_Explicit_Dereference)
@@ -4179,8 +4189,7 @@ Call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target,
 	 return value from it and update the return type.  */
       if (TYPE_CI_CO_LIST (gnu_subprog_type))
 	{
-	  tree gnu_elmt = value_member (void_type_node,
-					TYPE_CI_CO_LIST (gnu_subprog_type));
+	  tree gnu_elmt = TYPE_CI_CO_LIST (gnu_subprog_type);
 	  gnu_call = build_component_ref (gnu_call, NULL_TREE,
 					  TREE_PURPOSE (gnu_elmt), false);
 	  gnu_result_type = TREE_TYPE (gnu_call);
@@ -6189,12 +6198,18 @@ gnat_to_gnu (Node_Id gnat_node)
       break;
 
     case N_Block_Statement:
-      start_stmt_group ();
-      gnat_pushlevel ();
-      process_decls (Declarations (gnat_node), Empty, Empty, true, true);
-      add_stmt (gnat_to_gnu (Handled_Statement_Sequence (gnat_node)));
-      gnat_poplevel ();
-      gnu_result = end_stmt_group ();
+      /* The only way to enter the block is to fall through to it.  */
+      if (stmt_group_may_fallthru ())
+	{
+	  start_stmt_group ();
+	  gnat_pushlevel ();
+	  process_decls (Declarations (gnat_node), Empty, Empty, true, true);
+	  add_stmt (gnat_to_gnu (Handled_Statement_Sequence (gnat_node)));
+	  gnat_poplevel ();
+	  gnu_result = end_stmt_group ();
+	}
+      else
+	gnu_result = alloc_stmt_list ();
       break;
 
     case N_Exit_Statement:
@@ -7230,6 +7245,17 @@ end_stmt_group (void)
   stmt_group_free_list = group;
 
   return gnu_retval;
+}
+
+/* Return whether the current statement group may fall through.  */
+
+static inline bool
+stmt_group_may_fallthru (void)
+{
+  if (current_stmt_group->stmt_list)
+    return block_may_fallthru (current_stmt_group->stmt_list);
+  else
+    return true;
 }
 
 /* Add a list of statements from GNAT_LIST, a possibly-empty list of

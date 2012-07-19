@@ -35,8 +35,8 @@ typedef HOST_WIDEST_INT gcov_type;
 /* Control flow edge information.  */
 struct GTY(()) edge_def {
   /* The two blocks at the ends of the edge.  */
-  struct basic_block_def *src;
-  struct basic_block_def *dest;
+  basic_block src;
+  basic_block dest;
 
   /* Instructions queued on the edge.  */
   union edge_def_insns {
@@ -55,7 +55,7 @@ struct GTY(()) edge_def {
      dest->preds.  */
   unsigned int dest_idx;
 
-  int flags;			/* see EDGE_* below  */
+  int flags;			/* see cfg-flags.def */
   int probability;		/* biased by REG_BR_PROB_BASE */
   gcov_type count;		/* Expected number of executions calculated
 				   in profile.c  */
@@ -65,32 +65,20 @@ DEF_VEC_P(edge);
 DEF_VEC_ALLOC_P(edge,gc);
 DEF_VEC_ALLOC_P(edge,heap);
 
-/* Always update the table in cfg.c dump_edge_info.  */
-#define EDGE_FALLTHRU		0x0001	/* 'Straight line' flow */
-#define EDGE_ABNORMAL		0x0002	/* Strange flow, like computed
-					   label, or eh */
-#define EDGE_ABNORMAL_CALL	0x0004	/* Call with abnormal exit
-					   like an exception, or sibcall */
-#define EDGE_EH			0x0008	/* Exception throw */
-#define EDGE_FAKE		0x0010	/* Not a real edge (profile.c) */
-#define EDGE_DFS_BACK		0x0020	/* A backwards edge */
-#define EDGE_CAN_FALLTHRU	0x0040	/* Candidate for straight line
-					   flow.  */
-#define EDGE_IRREDUCIBLE_LOOP	0x0080	/* Part of irreducible loop.  */
-#define EDGE_SIBCALL		0x0100	/* Edge from sibcall to exit.  */
-#define EDGE_LOOP_EXIT		0x0200	/* Exit of a loop.  */
-#define EDGE_TRUE_VALUE		0x0400	/* Edge taken when controlling
-					   predicate is nonzero.  */
-#define EDGE_FALSE_VALUE	0x0800	/* Edge taken when controlling
-					   predicate is zero.  */
-#define EDGE_EXECUTABLE		0x1000	/* Edge is executable.  Only
-					   valid during SSA-CCP.  */
-#define EDGE_CROSSING		0x2000	/* Edge crosses between hot
-					   and cold sections, when we
-					   do partitioning.  */
-#define EDGE_PRESERVE		0x4000	/* Never merge blocks via this edge. */
-#define EDGE_ALL_FLAGS		0x7fff
+/* Masks for edge.flags.  */
+#define DEF_EDGE_FLAG(NAME,IDX) EDGE_##NAME = 1 << IDX ,
+enum cfg_edge_flags {
+#include "cfg-flags.def"
+  LAST_CFG_EDGE_FLAG		/* this is only used for EDGE_ALL_FLAGS */
+};
+#undef DEF_EDGE_FLAG
 
+/* Bit mask for all edge flags.  */
+#define EDGE_ALL_FLAGS		((LAST_CFG_EDGE_FLAG - 1) * 2 - 1)
+
+/* The following four flags all indicate something special about an edge.
+   Test the edge flags on EDGE_COMPLEX to detect all forms of "strange"
+   control flow transfers.  */
 #define EDGE_COMPLEX \
   (EDGE_ABNORMAL | EDGE_ABNORMAL_CALL | EDGE_EH | EDGE_PRESERVE)
 
@@ -161,8 +149,8 @@ struct GTY((chain_next ("%h.next_bb"), chain_prev ("%h.prev_bb"))) basic_block_d
   struct et_node * GTY ((skip (""))) dom[2];
 
   /* Previous and next blocks in the chain.  */
-  struct basic_block_def *prev_bb;
-  struct basic_block_def *next_bb;
+  basic_block prev_bb;
+  basic_block next_bb;
 
   union basic_block_il_dependent {
       struct gimple_bb_info GTY ((tag ("0"))) gimple;
@@ -184,10 +172,12 @@ struct GTY((chain_next ("%h.next_bb"), chain_prev ("%h.prev_bb"))) basic_block_d
   /* Expected frequency.  Normalized to be in range 0 to BB_FREQ_MAX.  */
   int frequency;
 
-  /* The discriminator for this block.  */
+  /* The discriminator for this block.  The discriminator distinguishes
+     among several basic blocks that share a common locus, allowing for
+     more accurate sample-based profiling.  */
   int discriminator;
 
-  /* Various flags.  See BB_* below.  */
+  /* Various flags.  See cfg-flags.def.  */
   int flags;
 };
 
@@ -204,74 +194,19 @@ DEF_VEC_ALLOC_P(basic_block,heap);
 
 #define BB_FREQ_MAX 10000
 
-/* Masks for basic_block.flags.
-
-   BB_HOT_PARTITION and BB_COLD_PARTITION should be preserved throughout
-   the compilation, so they are never cleared.
-
-   All other flags may be cleared by clear_bb_flags().  It is generally
-   a bad idea to rely on any flags being up-to-date.
-
-   Always update the table in cfg.c dump_bb_info.  */
-
-enum bb_flags
+/* Masks for basic_block.flags.  */
+#define DEF_BASIC_BLOCK_FLAG(NAME,IDX) BB_##NAME = 1 << IDX ,
+enum cfg_bb_flags
 {
-  /* Only set on blocks that have just been created by create_bb.  */
-  BB_NEW = 1 << 0,
-
-  /* Set by find_unreachable_blocks.  Do not rely on this being set in any
-     pass.  */
-  BB_REACHABLE = 1 << 1,
-
-  /* Set for blocks in an irreducible loop by loop analysis.  */
-  BB_IRREDUCIBLE_LOOP = 1 << 2,
-
-  /* Set on blocks that may actually not be single-entry single-exit block.  */
-  BB_SUPERBLOCK = 1 << 3,
-
-  /* Set on basic blocks that the scheduler should not touch.  This is used
-     by SMS to prevent other schedulers from messing with the loop schedule.  */
-  BB_DISABLE_SCHEDULE = 1 << 4,
-
-  /* Set on blocks that should be put in a hot section.  */
-  BB_HOT_PARTITION = 1 << 5,
-
-  /* Set on blocks that should be put in a cold section.  */
-  BB_COLD_PARTITION = 1 << 6,
-
-  /* Set on block that was duplicated.  */
-  BB_DUPLICATED = 1 << 7,
-
-  /* Set if the label at the top of this block is the target of a non-local goto.  */
-  BB_NON_LOCAL_GOTO_TARGET = 1 << 8,
-
-  /* Set on blocks that are in RTL format.  */
-  BB_RTL = 1 << 9 ,
-
-  /* Set on blocks that are forwarder blocks.
-     Only used in cfgcleanup.c.  */
-  BB_FORWARDER_BLOCK = 1 << 10,
-
-  /* Set on blocks that cannot be threaded through.
-     Only used in cfgcleanup.c.  */
-  BB_NONTHREADABLE_BLOCK = 1 << 11,
-
-  /* Set on blocks that were modified in some way.  This bit is set in
-     df_set_bb_dirty, but not cleared by df_analyze, so it can be used
-     to test whether a block has been modified prior to a df_analyze
-     call.  */
-  BB_MODIFIED = 1 << 12,
-
-  /* A general visited flag for passes to use.  */
-  BB_VISITED = 1 << 13,
-
-  /* Set on blocks that are in a transaction.  This is calculated on
-     demand, and is available after calling
-     compute_transaction_bits().  */
-  BB_IN_TRANSACTION = 1 << 14
+#include "cfg-flags.def"
+  LAST_CFG_BB_FLAG		/* this is only used for BB_ALL_FLAGS */
 };
+#undef DEF_BASIC_BLOCK_FLAG
 
-/* Dummy flag for convenience in the hot/cold partitioning code.  */
+/* Bit mask for all edge flags.  */
+#define BB_ALL_FLAGS		((LAST_CFG_BB_FLAG - 1) * 2 - 1)
+
+/* Dummy bitmask for convenience in the hot/cold partitioning code.  */
 #define BB_UNPARTITIONED	0
 
 /* Partitions, to be used when partitioning hot and cold basic blocks into
@@ -448,10 +383,6 @@ basic_block split_edge_and_insert (edge, rtx);
 extern void commit_one_edge_insertion (edge e);
 extern void commit_edge_insertions (void);
 
-extern void remove_fake_edges (void);
-extern void remove_fake_exit_edges (void);
-extern void add_noreturn_fake_exit_edges (void);
-extern void connect_infinite_loops_to_exit (void);
 extern edge unchecked_make_edge (basic_block, basic_block, int);
 extern edge cached_make_edge (sbitmap, basic_block, basic_block, int);
 extern edge make_edge (basic_block, basic_block, int);
@@ -462,16 +393,8 @@ extern edge redirect_edge_succ_nodup (edge, basic_block);
 extern void redirect_edge_pred (edge, basic_block);
 extern basic_block create_basic_block_structure (rtx, rtx, rtx, basic_block);
 extern void clear_bb_flags (void);
-extern int post_order_compute (int *, bool, bool);
-extern int inverted_post_order_compute (int *);
-extern int pre_and_rev_post_order_compute (int *, int *, bool);
-extern int dfs_enumerate_from (basic_block, int,
-			       bool (*)(const_basic_block, const void *),
-			       basic_block *, int, const void *);
-extern void compute_dominance_frontiers (struct bitmap_head_def *);
-extern bitmap compute_idf (bitmap, struct bitmap_head_def *);
-extern void dump_bb_info (basic_block, bool, bool, int, const char *, FILE *);
-extern void dump_edge_info (FILE *, edge, int);
+extern void dump_bb_info (FILE *, basic_block, int, int, bool, bool);
+extern void dump_edge_info (FILE *, edge, int, int);
 extern void brief_dump_cfg (FILE *);
 extern void clear_edges (void);
 extern void scale_bbs_frequencies_int (basic_block *, int, int, int);
@@ -501,9 +424,9 @@ typedef struct ce_if_block
 } ce_if_block_t;
 
 /* This structure maintains an edge list vector.  */
+/* FIXME: Make this a VEC(edge).  */
 struct edge_list
 {
-  int num_blocks;
   int num_edges;
   edge *index_to_edge;
 };
@@ -734,13 +657,6 @@ ei_cond (edge_iterator ei, edge *p)
        ei_cond ((ITER), &(EDGE));		\
        ei_next (&(ITER)))
 
-struct edge_list * create_edge_list (void);
-void free_edge_list (struct edge_list *);
-void print_edge_list (FILE *, struct edge_list *);
-void verify_edge_list (FILE *, struct edge_list *);
-int find_edge_index (struct edge_list *, basic_block, basic_block);
-edge find_edge (basic_block, basic_block);
-
 #define CLEANUP_EXPENSIVE	1	/* Do relatively expensive optimizations
 					   except for edge forwarding */
 #define CLEANUP_CROSSJUMP	2	/* Do crossjumping.  */
@@ -789,6 +705,7 @@ extern bool predictable_edge_p (edge);
 extern void init_flow (struct function *);
 extern void debug_bb (basic_block);
 extern basic_block debug_bb_n (int);
+extern void dump_flow_info (FILE *, int);
 extern void expunge_block (basic_block);
 extern void link_block (basic_block, basic_block);
 extern void unlink_block (basic_block);
@@ -804,11 +721,25 @@ extern void free_aux_for_edges (void);
 
 /* In cfganal.c  */
 extern void find_unreachable_blocks (void);
-extern bool forwarder_block_p (const_basic_block);
-extern bool can_fallthru (basic_block, basic_block);
-extern bool could_fall_through (basic_block, basic_block);
-extern void flow_nodes_print (const char *, const_sbitmap, FILE *);
-extern void flow_edge_list_print (const char *, const edge *, int, FILE *);
+extern bool mark_dfs_back_edges (void);
+struct edge_list * create_edge_list (void);
+void free_edge_list (struct edge_list *);
+void print_edge_list (FILE *, struct edge_list *);
+void verify_edge_list (FILE *, struct edge_list *);
+int find_edge_index (struct edge_list *, basic_block, basic_block);
+edge find_edge (basic_block, basic_block);
+extern void remove_fake_edges (void);
+extern void remove_fake_exit_edges (void);
+extern void add_noreturn_fake_exit_edges (void);
+extern void connect_infinite_loops_to_exit (void);
+extern int post_order_compute (int *, bool, bool);
+extern int inverted_post_order_compute (int *);
+extern int pre_and_rev_post_order_compute (int *, int *, bool);
+extern int dfs_enumerate_from (basic_block, int,
+			       bool (*)(const_basic_block, const void *),
+			       basic_block *, int, const void *);
+extern void compute_dominance_frontiers (struct bitmap_head_def *);
+extern bitmap compute_idf (bitmap, struct bitmap_head_def *);
 
 /* In cfgrtl.c  */
 extern rtx block_label (basic_block);
@@ -817,6 +748,8 @@ extern bool purge_all_dead_edges (void);
 extern bool purge_dead_edges (basic_block);
 extern bool fixup_abnormal_edges (void);
 extern basic_block force_nonfallthru_and_redirect (edge, basic_block, rtx);
+extern bool forwarder_block_p (const_basic_block);
+extern bool can_fallthru (basic_block, basic_block);
 
 /* In cfgbuild.c.  */
 extern void find_many_sub_basic_blocks (sbitmap);
@@ -833,8 +766,6 @@ extern int flow_find_head_matching_sequence (basic_block, basic_block,
 
 extern bool delete_unreachable_blocks (void);
 
-extern bool mark_dfs_back_edges (void);
-extern void set_edge_can_fallthru_flag (void);
 extern void update_br_prob_note (basic_block);
 extern bool inside_basic_block_p (const_rtx);
 extern bool control_flow_insn_p (const_rtx);

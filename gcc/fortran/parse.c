@@ -23,6 +23,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include <setjmp.h>
+#include "coretypes.h"
 #include "gfortran.h"
 #include "match.h"
 #include "parse.h"
@@ -1975,7 +1976,7 @@ parse_derived_contains (void)
 	  goto error;
 
 	case ST_PROCEDURE:
-	  if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003:  Type-bound"
+	  if (gfc_notify_std (GFC_STD_F2003, "Type-bound"
 					     " procedure at %C") == FAILURE)
 	    goto error;
 
@@ -1984,7 +1985,7 @@ parse_derived_contains (void)
 	  break;
 
 	case ST_GENERIC:
-	  if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003:  GENERIC binding"
+	  if (gfc_notify_std (GFC_STD_F2003, "GENERIC binding"
 					     " at %C") == FAILURE)
 	    goto error;
 
@@ -1994,7 +1995,7 @@ parse_derived_contains (void)
 
 	case ST_FINAL:
 	  if (gfc_notify_std (GFC_STD_F2003,
-			      "Fortran 2003:  FINAL procedure declaration"
+			      "FINAL procedure declaration"
 			      " at %C") == FAILURE)
 	    goto error;
 
@@ -2006,7 +2007,7 @@ parse_derived_contains (void)
 	  to_finish = true;
 
 	  if (!seen_comps
-	      && (gfc_notify_std (GFC_STD_F2008, "Fortran 2008: Derived type "
+	      && (gfc_notify_std (GFC_STD_F2008, "Derived type "
 				  "definition at %C with empty CONTAINS "
 				  "section") == FAILURE))
 	    goto error;
@@ -2111,7 +2112,7 @@ endType:
 	  compiling_type = 0;
 
 	  if (!seen_component)
-	    gfc_notify_std (GFC_STD_F2003, "Fortran 2003: Derived type "
+	    gfc_notify_std (GFC_STD_F2003, "Derived type "
 			    "definition at %C without components");
 
 	  accept_statement (ST_END_TYPE);
@@ -2165,7 +2166,7 @@ endType:
 
 	case ST_CONTAINS:
 	  gfc_notify_std (GFC_STD_F2003,
-			  "Fortran 2003:  CONTAINS block in derived type"
+			  "CONTAINS block in derived type"
 			  " definition at %C");
 
 	  accept_statement (ST_CONTAINS);
@@ -3334,7 +3335,7 @@ parse_block_construct (void)
   gfc_namespace* my_ns;
   gfc_state_data s;
 
-  gfc_notify_std (GFC_STD_F2008, "Fortran 2008: BLOCK construct at %C");
+  gfc_notify_std (GFC_STD_F2008, "BLOCK construct at %C");
 
   my_ns = gfc_build_block_ns (gfc_current_ns);
 
@@ -3364,7 +3365,7 @@ parse_associate (void)
   gfc_statement st;
   gfc_association_list* a;
 
-  gfc_notify_std (GFC_STD_F2003, "Fortran 2003: ASSOCIATE construct at %C");
+  gfc_notify_std (GFC_STD_F2003, "ASSOCIATE construct at %C");
 
   my_ns = gfc_build_block_ns (gfc_current_ns);
 
@@ -4094,7 +4095,7 @@ parse_contained (int module)
 
   pop_state ();
   if (!contains_statements)
-    gfc_notify_std (GFC_STD_F2008, "Fortran 2008: CONTAINS statement without "
+    gfc_notify_std (GFC_STD_F2008, "CONTAINS statement without "
 		    "FUNCTION or SUBROUTINE statement at %C");
 }
 
@@ -4512,6 +4513,7 @@ gfc_parse_file (void)
   gfc_global_ns_list = next = NULL;
 
   seen_program = 0;
+  errors_before = 0;
 
   /* Exit early for empty files.  */
   if (gfc_at_eof ())

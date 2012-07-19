@@ -61,6 +61,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "fibheap.h"
 #include "opts.h"
 #include "diagnostic.h"
+#include "dumpfile.h"
 
 enum upper_128bits_state
 {
@@ -3283,7 +3284,7 @@ ix86_option_override_internal (bool main_args_p)
 		   "large", "32");
 	  else if (TARGET_X32)
 	    error ("code model %qs not supported in x32 mode",
-		   "medium");
+		   "large");
 	  break;
 
 	case CM_32:
@@ -23090,7 +23091,7 @@ ix86_expand_strlen (rtx out, rtx src, rtx eoschar, rtx align)
 
 /* For given symbol (function) construct code to compute address of it's PLT
    entry in large x86-64 PIC model.  */
-rtx
+static rtx
 construct_plt_address (rtx symbol)
 {
   rtx tmp, unspec;
@@ -25754,14 +25755,6 @@ enum ix86_builtins
   IX86_BUILTIN_CPYSGNPS256,
   IX86_BUILTIN_CPYSGNPD256,
 
-  IX86_BUILTIN_VEC_WIDEN_SMUL_ODD_V4SI,
-  IX86_BUILTIN_VEC_WIDEN_SMUL_ODD_V8SI,
-  IX86_BUILTIN_VEC_WIDEN_UMUL_ODD_V4SI,
-  IX86_BUILTIN_VEC_WIDEN_UMUL_ODD_V8SI,
-  IX86_BUILTIN_VEC_WIDEN_SMUL_EVEN_V4SI,
-  IX86_BUILTIN_VEC_WIDEN_UMUL_EVEN_V4SI,
-  IX86_BUILTIN_VEC_WIDEN_UMUL_EVEN_V8SI,
-
   /* FMA4 instructions.  */
   IX86_BUILTIN_VFMADDSS,
   IX86_BUILTIN_VFMADDSD,
@@ -26619,11 +26612,7 @@ static const struct builtin_description bdesc_args[] =
   { OPTION_MASK_ISA_SSE2, CODE_FOR_sse2_psadbw, "__builtin_ia32_psadbw128", IX86_BUILTIN_PSADBW128, UNKNOWN, (int) V2DI_FTYPE_V16QI_V16QI },
 
   { OPTION_MASK_ISA_SSE2, CODE_FOR_sse2_umulv1siv1di3, "__builtin_ia32_pmuludq", IX86_BUILTIN_PMULUDQ, UNKNOWN, (int) V1DI_FTYPE_V2SI_V2SI },
-  { OPTION_MASK_ISA_SSE2, CODE_FOR_sse2_umulv2siv2di3, "__builtin_ia32_pmuludq128", IX86_BUILTIN_PMULUDQ128, UNKNOWN, (int) V2DI_FTYPE_V4SI_V4SI },
-  { OPTION_MASK_ISA_SSE2, CODE_FOR_sse2_umulv2siv2di3, "__builtin_vw_umul_even_v4si", IX86_BUILTIN_VEC_WIDEN_UMUL_EVEN_V4SI, UNKNOWN, (int) V2UDI_FTYPE_V4USI_V4USI },
-  { OPTION_MASK_ISA_SSE2, CODE_FOR_vec_widen_smult_even_v4si, "__builtin_ia32_vw_smul_even_v4si", IX86_BUILTIN_VEC_WIDEN_SMUL_EVEN_V4SI, UNKNOWN, (int) V2DI_FTYPE_V4SI_V4SI },
-  { OPTION_MASK_ISA_SSE2, CODE_FOR_vec_widen_umult_odd_v4si, "__builtin_ia32_vw_umul_odd_v4si", IX86_BUILTIN_VEC_WIDEN_UMUL_ODD_V4SI, UNKNOWN, (int) V2UDI_FTYPE_V4USI_V4USI },
-  { OPTION_MASK_ISA_SSE2, CODE_FOR_vec_widen_smult_odd_v4si, "__builtin_ia32_vw_smul_odd_v4si", IX86_BUILTIN_VEC_WIDEN_SMUL_ODD_V4SI, UNKNOWN, (int) V2DI_FTYPE_V4SI_V4SI },
+  { OPTION_MASK_ISA_SSE2, CODE_FOR_vec_widen_umult_even_v4si, "__builtin_ia32_pmuludq128", IX86_BUILTIN_PMULUDQ128, UNKNOWN, (int) V2DI_FTYPE_V4SI_V4SI },
 
   { OPTION_MASK_ISA_SSE2, CODE_FOR_sse2_pmaddwd, "__builtin_ia32_pmaddwd128", IX86_BUILTIN_PMADDWD128, UNKNOWN, (int) V4SI_FTYPE_V8HI_V8HI },
 
@@ -27015,16 +27004,13 @@ static const struct builtin_description bdesc_args[] =
   { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_zero_extendv8hiv8si2  , "__builtin_ia32_pmovzxwd256", IX86_BUILTIN_PMOVZXWD256, UNKNOWN, (int) V8SI_FTYPE_V8HI },
   { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_zero_extendv4hiv4di2  , "__builtin_ia32_pmovzxwq256", IX86_BUILTIN_PMOVZXWQ256, UNKNOWN, (int) V4DI_FTYPE_V8HI },
   { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_zero_extendv4siv4di2  , "__builtin_ia32_pmovzxdq256", IX86_BUILTIN_PMOVZXDQ256, UNKNOWN, (int) V4DI_FTYPE_V4SI },
-  { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_mulv4siv4di3  , "__builtin_ia32_pmuldq256"  , IX86_BUILTIN_PMULDQ256  , UNKNOWN, (int) V4DI_FTYPE_V8SI_V8SI },
-  { OPTION_MASK_ISA_AVX2, CODE_FOR_vec_widen_smult_odd_v8si, "__builtin_ia32_vw_smul_odd_v8si", IX86_BUILTIN_VEC_WIDEN_SMUL_ODD_V8SI, UNKNOWN, (int) V4DI_FTYPE_V8SI_V8SI },
+  { OPTION_MASK_ISA_AVX2, CODE_FOR_vec_widen_smult_even_v8si, "__builtin_ia32_pmuldq256", IX86_BUILTIN_PMULDQ256, UNKNOWN, (int) V4DI_FTYPE_V8SI_V8SI },
   { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_umulhrswv16hi3 , "__builtin_ia32_pmulhrsw256", IX86_BUILTIN_PMULHRSW256, UNKNOWN, (int) V16HI_FTYPE_V16HI_V16HI },
   { OPTION_MASK_ISA_AVX2, CODE_FOR_umulv16hi3_highpart, "__builtin_ia32_pmulhuw256" , IX86_BUILTIN_PMULHUW256 , UNKNOWN, (int) V16HI_FTYPE_V16HI_V16HI },
   { OPTION_MASK_ISA_AVX2, CODE_FOR_smulv16hi3_highpart, "__builtin_ia32_pmulhw256"  , IX86_BUILTIN_PMULHW256  , UNKNOWN, (int) V16HI_FTYPE_V16HI_V16HI },
   { OPTION_MASK_ISA_AVX2, CODE_FOR_mulv16hi3, "__builtin_ia32_pmullw256"  , IX86_BUILTIN_PMULLW256  , UNKNOWN, (int) V16HI_FTYPE_V16HI_V16HI },
   { OPTION_MASK_ISA_AVX2, CODE_FOR_mulv8si3, "__builtin_ia32_pmulld256"  , IX86_BUILTIN_PMULLD256  , UNKNOWN, (int) V8SI_FTYPE_V8SI_V8SI },
-  { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_umulv4siv4di3  , "__builtin_ia32_pmuludq256" , IX86_BUILTIN_PMULUDQ256 , UNKNOWN, (int) V4DI_FTYPE_V8SI_V8SI },
-  { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_umulv4siv4di3  , "__builtin_i386_vw_umul_even_v8si" , IX86_BUILTIN_VEC_WIDEN_UMUL_EVEN_V8SI, UNKNOWN, (int) V4UDI_FTYPE_V8USI_V8USI },
-  { OPTION_MASK_ISA_AVX2, CODE_FOR_vec_widen_umult_odd_v8si, "__builtin_ia32_vw_umul_odd_v8si", IX86_BUILTIN_VEC_WIDEN_UMUL_ODD_V8SI, UNKNOWN, (int) V4UDI_FTYPE_V8USI_V8USI },
+  { OPTION_MASK_ISA_AVX2, CODE_FOR_vec_widen_umult_even_v8si, "__builtin_ia32_pmuludq256", IX86_BUILTIN_PMULUDQ256, UNKNOWN, (int) V4DI_FTYPE_V8SI_V8SI },
   { OPTION_MASK_ISA_AVX2, CODE_FOR_iorv4di3, "__builtin_ia32_por256", IX86_BUILTIN_POR256, UNKNOWN, (int) V4DI_FTYPE_V4DI_V4DI },
   { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_psadbw, "__builtin_ia32_psadbw256", IX86_BUILTIN_PSADBW256, UNKNOWN, (int) V16HI_FTYPE_V32QI_V32QI },
   { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_pshufbv32qi3, "__builtin_ia32_pshufb256", IX86_BUILTIN_PSHUFB256, UNKNOWN, (int) V32QI_FTYPE_V32QI_V32QI },
@@ -28096,6 +28082,10 @@ ix86_fold_builtin (tree fndecl, int n_args,
           return fold_builtin_cpu (fndecl, args);
 	}
     }
+
+#ifdef SUBTARGET_FOLD_BUILTIN
+  return SUBTARGET_FOLD_BUILTIN (fndecl, n_args, args, ignore);
+#endif
 
   return NULL_TREE;
 }
@@ -31059,62 +31049,6 @@ ix86_builtin_reciprocal (unsigned int fn, bool md_fn,
 	return NULL_TREE;
       }
 }
-
-static tree
-ix86_builtin_mul_widen_even (tree type)
-{
-  bool uns_p = TYPE_UNSIGNED (type);
-  enum ix86_builtins code;
-
-  switch (TYPE_MODE (type))
-    {
-    case V4SImode:
-      if (!TARGET_SSE2)
-	return NULL;
-      code = (uns_p ? IX86_BUILTIN_VEC_WIDEN_UMUL_EVEN_V4SI
-	      : IX86_BUILTIN_VEC_WIDEN_SMUL_EVEN_V4SI);
-      break;
-
-    case V8SImode:
-      if (!TARGET_AVX2)
-	return NULL;
-      code = (uns_p ? IX86_BUILTIN_VEC_WIDEN_UMUL_EVEN_V8SI
-	      : IX86_BUILTIN_PMULDQ256);
-      break;
-
-    default:
-      return NULL;
-    }
-  return ix86_builtins[code];
-}
-
-static tree
-ix86_builtin_mul_widen_odd (tree type)
-{
-  bool uns_p = TYPE_UNSIGNED (type);
-  enum ix86_builtins code;
-
-  switch (TYPE_MODE (type))
-    {
-    case V4SImode:
-      if (!TARGET_SSE2)
-	return NULL;
-      code = (uns_p ? IX86_BUILTIN_VEC_WIDEN_UMUL_ODD_V4SI
-	      : IX86_BUILTIN_VEC_WIDEN_SMUL_ODD_V4SI);
-      break;
-
-    case V8SImode:
-      if (!TARGET_AVX2)
-	return NULL;
-      code = (uns_p ? IX86_BUILTIN_VEC_WIDEN_UMUL_ODD_V8SI
-	      : IX86_BUILTIN_VEC_WIDEN_SMUL_ODD_V8SI);
-      break;
-
-    default:
-      return NULL;
-    }
-  return ix86_builtins[code];
-}
 
 /* Helper for avx_vpermilps256_operand et al.  This is also used by
    the expansion functions to turn the parallel back into a mask.
@@ -32029,7 +31963,7 @@ ix86_set_reg_reg_cost (enum machine_mode mode)
       break;
 
     case MODE_FLOAT:
-      if ((TARGET_SSE2 && mode == TFmode)
+      if ((TARGET_SSE && mode == TFmode)
 	  || (TARGET_80387 && mode == XFmode)
 	  || ((TARGET_80387 || TARGET_SSE2) && mode == DFmode)
 	  || ((TARGET_80387 || TARGET_SSE) && mode == SFmode))
@@ -32037,7 +31971,7 @@ ix86_set_reg_reg_cost (enum machine_mode mode)
       break;
 
     case MODE_COMPLEX_FLOAT:
-      if ((TARGET_SSE2 && mode == TCmode)
+      if ((TARGET_SSE && mode == TCmode)
 	  || (TARGET_80387 && mode == XCmode)
 	  || ((TARGET_80387 || TARGET_SSE2) && mode == DCmode)
 	  || ((TARGET_80387 || TARGET_SSE) && mode == SCmode))
@@ -32931,6 +32865,18 @@ x86_output_mi_thunk (FILE *file,
 {
   rtx this_param = x86_this_parameter (function);
   rtx this_reg, tmp, fnaddr;
+  unsigned int tmp_regno;
+
+  if (TARGET_64BIT)
+    tmp_regno = R10_REG;
+  else
+    {
+      unsigned int ccvt = ix86_get_callcvt (TREE_TYPE (function));
+      if ((ccvt & (IX86_CALLCVT_FASTCALL | IX86_CALLCVT_THISCALL)) != 0)
+	tmp_regno = AX_REG;
+      else
+	tmp_regno = CX_REG;
+    }
 
   emit_note (NOTE_INSN_PROLOGUE_END);
 
@@ -32957,7 +32903,7 @@ x86_output_mi_thunk (FILE *file,
 	{
 	  if (!x86_64_general_operand (delta_rtx, Pmode))
 	    {
-	      tmp = gen_rtx_REG (Pmode, R10_REG);
+	      tmp = gen_rtx_REG (Pmode, tmp_regno);
 	      emit_move_insn (tmp, delta_rtx);
 	      delta_rtx = tmp;
 	    }
@@ -32970,18 +32916,7 @@ x86_output_mi_thunk (FILE *file,
   if (vcall_offset)
     {
       rtx vcall_addr, vcall_mem, this_mem;
-      unsigned int tmp_regno;
 
-      if (TARGET_64BIT)
-	tmp_regno = R10_REG;
-      else
-	{
-	  unsigned int ccvt = ix86_get_callcvt (TREE_TYPE (function));
-	  if ((ccvt & (IX86_CALLCVT_FASTCALL | IX86_CALLCVT_THISCALL)) != 0)
-	    tmp_regno = AX_REG;
-	  else
-	    tmp_regno = CX_REG;
-	}
       tmp = gen_rtx_REG (Pmode, tmp_regno);
 
       this_mem = gen_rtx_MEM (ptr_mode, this_reg);
@@ -33056,6 +32991,19 @@ x86_output_mi_thunk (FILE *file,
     emit_jump_insn (gen_indirect_jump (fnaddr));
   else
     {
+      if (ix86_cmodel == CM_LARGE_PIC && SYMBOLIC_CONST (fnaddr))
+	fnaddr = legitimize_pic_address (fnaddr,
+					 gen_rtx_REG (Pmode, tmp_regno));
+
+      if (!sibcall_insn_operand (fnaddr, word_mode))
+	{
+	  tmp = gen_rtx_REG (word_mode, tmp_regno);
+	  if (GET_MODE (fnaddr) != word_mode)
+	    fnaddr = gen_rtx_ZERO_EXTEND (word_mode, fnaddr);
+	  emit_move_insn (tmp, fnaddr);
+	  fnaddr = tmp;
+	}
+
       tmp = gen_rtx_MEM (QImode, fnaddr);
       tmp = gen_rtx_CALL (VOIDmode, tmp, const0_rtx);
       tmp = emit_call_insn (tmp);
@@ -38785,19 +38733,14 @@ ix86_expand_mul_widen_evenodd (rtx dest, rtx op1, rtx op2,
   if (mode == V8SImode)
     {
       if (uns_p)
-	x = gen_avx2_umulv4siv4di3 (dest, op1, op2);
+	x = gen_vec_widen_umult_even_v8si (dest, op1, op2);
       else
-	x = gen_avx2_mulv4siv4di3 (dest, op1, op2);
+	x = gen_vec_widen_smult_even_v8si (dest, op1, op2);
     }
   else if (uns_p)
-    x = gen_sse2_umulv2siv2di3 (dest, op1, op2);
+    x = gen_vec_widen_umult_even_v4si (dest, op1, op2);
   else if (TARGET_SSE4_1)
     x = gen_sse4_1_mulv2siv2di3 (dest, op1, op2);
-  else if (TARGET_XOP)
-    {
-      x = force_reg (wmode, CONST0_RTX (wmode));
-      x = gen_xop_pmacsdql (dest, op1, op2, x);
-    }
   else
     {
       rtx s1, s2, t0, t1, t2;
@@ -38815,12 +38758,12 @@ ix86_expand_mul_widen_evenodd (rtx dest, rtx op1, rtx op2,
       /* Multiply LO(A) * HI(B), and vice-versa.  */
       t1 = gen_reg_rtx (wmode);
       t2 = gen_reg_rtx (wmode);
-      emit_insn (gen_sse2_umulv2siv2di3 (t1, s1, op2));
-      emit_insn (gen_sse2_umulv2siv2di3 (t2, s2, op1));
+      emit_insn (gen_vec_widen_umult_even_v4si (t1, s1, op2));
+      emit_insn (gen_vec_widen_umult_even_v4si (t2, s2, op1));
 
       /* Multiply LO(A) * LO(B).  */
       t0 = gen_reg_rtx (wmode);
-      emit_insn (gen_sse2_umulv2siv2di3 (t0, op1, op2));
+      emit_insn (gen_vec_widen_umult_even_v4si (t0, op1, op2));
 
       /* Combine and shift the highparts into place.  */
       t1 = expand_binop (wmode, add_optab, t1, t2, t1, 1, OPTAB_DIRECT);
@@ -38995,12 +38938,12 @@ ix86_expand_sse2_mulvxdi3 (rtx op0, rtx op1, rtx op2)
 
       if (mode == V2DImode)
 	{
-	  umul = gen_sse2_umulv2siv2di3;
+	  umul = gen_vec_widen_umult_even_v4si;
 	  nmode = V4SImode;
 	}
       else if (mode == V4DImode)
 	{
-	  umul = gen_avx2_umulv4siv4di3;
+	  umul = gen_vec_widen_umult_even_v8si;
 	  nmode = V8SImode;
 	}
       else
@@ -40122,6 +40065,59 @@ ix86_autovectorize_vector_sizes (void)
   return (TARGET_AVX && !TARGET_PREFER_AVX128) ? 32 | 16 : 0;
 }
 
+/* Implement targetm.vectorize.init_cost.  */
+
+static void *
+ix86_init_cost (struct loop *loop_info ATTRIBUTE_UNUSED)
+{
+  unsigned *cost = XNEW (unsigned);
+  *cost = 0;
+  return cost;
+}
+
+/* Implement targetm.vectorize.add_stmt_cost.  */
+
+static unsigned
+ix86_add_stmt_cost (void *data, int count, enum vect_cost_for_stmt kind,
+		    struct _stmt_vec_info *stmt_info, int misalign)
+{
+  unsigned *cost = (unsigned *) data;
+  unsigned retval = 0;
+
+  if (flag_vect_cost_model)
+    {
+      tree vectype = stmt_vectype (stmt_info);
+      int stmt_cost = ix86_builtin_vectorization_cost (kind, vectype, misalign);
+
+      /* Statements in an inner loop relative to the loop being
+	 vectorized are weighted more heavily.  The value here is
+	 arbitrary and could potentially be improved with analysis.  */
+      if (stmt_in_inner_loop_p (stmt_info))
+	count *= 50;  /* FIXME.  */
+
+      retval = (unsigned) (count * stmt_cost);
+      *cost += retval;
+    }
+
+  return retval;
+}
+
+/* Implement targetm.vectorize.finish_cost.  */
+
+static unsigned
+ix86_finish_cost (void *data)
+{
+  return *((unsigned *) data);
+}
+
+/* Implement targetm.vectorize.destroy_cost_data.  */
+
+static void
+ix86_destroy_cost_data (void *data)
+{
+  free (data);
+}
+
 /* Validate target specific memory model bits in VAL. */
 
 static unsigned HOST_WIDE_INT
@@ -40190,11 +40186,6 @@ ix86_memmodel_check (unsigned HOST_WIDE_INT val)
 
 #undef TARGET_VECTORIZE_BUILTIN_GATHER
 #define TARGET_VECTORIZE_BUILTIN_GATHER ix86_vectorize_builtin_gather
-
-#undef TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_EVEN
-#define TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_EVEN ix86_builtin_mul_widen_even
-#undef TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_ODD
-#define TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_ODD ix86_builtin_mul_widen_odd
 
 #undef TARGET_BUILTIN_RECIPROCAL
 #define TARGET_BUILTIN_RECIPROCAL ix86_builtin_reciprocal
@@ -40432,6 +40423,14 @@ ix86_memmodel_check (unsigned HOST_WIDE_INT val)
 #undef TARGET_VECTORIZE_AUTOVECTORIZE_VECTOR_SIZES
 #define TARGET_VECTORIZE_AUTOVECTORIZE_VECTOR_SIZES \
   ix86_autovectorize_vector_sizes
+#undef TARGET_VECTORIZE_INIT_COST
+#define TARGET_VECTORIZE_INIT_COST ix86_init_cost
+#undef TARGET_VECTORIZE_ADD_STMT_COST
+#define TARGET_VECTORIZE_ADD_STMT_COST ix86_add_stmt_cost
+#undef TARGET_VECTORIZE_FINISH_COST
+#define TARGET_VECTORIZE_FINISH_COST ix86_finish_cost
+#undef TARGET_VECTORIZE_DESTROY_COST_DATA
+#define TARGET_VECTORIZE_DESTROY_COST_DATA ix86_destroy_cost_data
 
 #undef TARGET_SET_CURRENT_FUNCTION
 #define TARGET_SET_CURRENT_FUNCTION ix86_set_current_function

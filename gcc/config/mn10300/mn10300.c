@@ -46,6 +46,7 @@
 #include "df.h"
 #include "opts.h"
 #include "cfgloop.h"
+#include "dumpfile.h"
 
 /* This is used in the am33_2.0-linux-gnu port, in which global symbol
    names are not prefixed by underscores, to tell whether to prefix a
@@ -2468,12 +2469,15 @@ mn10300_rtx_costs (rtx x, int code, int outer_code, int opno ATTRIBUTE_UNUSED,
    may access it using GOTOFF instead of GOT.  */
 
 static void
-mn10300_encode_section_info (tree decl, rtx rtl, int first ATTRIBUTE_UNUSED)
+mn10300_encode_section_info (tree decl, rtx rtl, int first)
 {
   rtx symbol;
 
+  default_encode_section_info (decl, rtl, first);
+
   if (! MEM_P (rtl))
     return;
+
   symbol = XEXP (rtl, 0);
   if (GET_CODE (symbol) != SYMBOL_REF)
     return;
@@ -3175,7 +3179,7 @@ mn10300_insert_setlb_lcc (rtx label, rtx branch)
 }
 
 static bool
-mn10300_block_contains_call (struct basic_block_def * block)
+mn10300_block_contains_call (basic_block block)
 {
   rtx insn;
 

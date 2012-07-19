@@ -24,7 +24,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "cgraph.h"
 #include "tree-pass.h"
-#include "timevar.h"
 #include "gimple.h"
 #include "ggc.h"
 #include "flags.h"
@@ -448,11 +447,6 @@ symtab_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 #ifdef ENABLE_CHECKING
   verify_symtab ();
 #endif
-
-  /* If we removed something, perhaps profile could be improved.  */
-  if (changed && optimize && inline_edge_summary_vec)
-    FOR_EACH_DEFINED_FUNCTION (node)
-      cgraph_propagate_frequency (node);
 
   return changed;
 }

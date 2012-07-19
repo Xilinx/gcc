@@ -1,3 +1,198 @@
+2012-07-18  Jason Merrill  <jason@redhat.com>
+
+	* pt.c (instantiate_decl): Don't recheck substitutions.
+
+2012-07-18  Paolo Carlini  <paolo.carlini@oracle.com>
+	    Jason Merrill  <jason@redhat.com>
+
+	DR 1170
+	PR c++/51213
+	* semantics.c (perform_access_checks): Add complain parm, return bool.
+	(perform_deferred_access_checks): Likewise.
+	(perform_or_defer_access_check): Likewise.
+	(speculative_access_check): Remove.
+	* call.c (enforce_access): Add complain parm, return bool.
+	* decl.c, friend.c, class.c, init.c, parser.c: Adjust callers.
+	* search.c: Adjust callers.
+	* cp-tree.h (TINFO_RECHECK_ACCESS_P): New macro.
+	(FNDECL_RECHECK_ACCESS_P): New macro.
+	* method.c (synthesized_method_walk): Stop deferring access checks.
+	* pt.c (recheck_decl_substitution): New.
+	(instantiate_template_1): Set and check FNDECL_RECHECK_ACCESS_P.
+
+2012-07-18  Jason Merrill  <jason@redhat.com>
+
+	* method.c (process_subob_fn): Make sure no_implicit_p is non-null
+	before trying to store through it.
+
+2012-07-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53995
+	* decl.c (finish_enum_value_list): Only call
+	insert_late_enum_def_into_classtype_sorted_fields in class scope.
+
+	PR c++/53989
+	* tree.c (build_cplus_array_type): Also add TYPE_CANONICAL
+	to the list of variants.
+
+	* decl.c (xref_basetypes): Complain about incomplete template base.
+	* class.c (finish_struct): Adjust variants in templates, too.
+
+	PR c++/53549
+	* parser.c (cp_parser_class_head): Call xref_basetypes here.
+	(cp_parser_class_specifier_1): Not here.
+	* pt.c (tsubst_decl) [USING_DECL]: Check uses_template_parms
+	as well as DECL_DEPENDENT_P.
+
+2012-07-16  Jason Merrill  <jason@redhat.com>
+
+	* cp-tree.h (struct deferred_access_check): Add location.
+	* semantics.c (perform_access_checks): Use it.
+	(perform_or_defer_access_check): Store it.
+
+2012-07-16  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* dump.c (dump_stmt): Moved here from c-dump.c.
+	* optimize.c: Include dumpfile.h instead of tree-dump.h.
+	* class.c: Likewise.
+	* decl2.c: Likewise.
+	* Make-lang.in: Fix dependencies.
+
+2012-07-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53953
+	* method.c (synthesized_method_walk): Initialize no_implicit_p sooner.
+
+2012-07-12  Jason Merrill  <jason@redhat.com>
+
+	* pt.c (instantiate_decl): Check typedefs access here.
+	(instantiate_template_1): Not here.
+
+	* pt.c (deduction_tsubst_fntype): Just suppress access checking.
+	(instantiate_template_1): Set DECL_TI_TEMPLATE before access checking.
+	(push_deduction_access_scope, pop_deduction_access_scope): Remove.
+
+2012-07-11  Jason Merrill  <jason@redhat.com>
+
+	DR 1402
+	* method.c (synthesized_method_walk): Replace uses of msg with diag.
+	Correct handling of virtual bases with move operations.
+	(process_subob_fn, walk_field_subobs): Replace uses of msg with diag.
+
+2012-07-11  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* method.c: Do not include tree-pass.h.
+
+2012-07-10  Jason Merrill  <jason@redhat.com>
+
+	DR 1402
+	PR c++/53733
+	* cp-tree.h (FNDECL_SUPPRESS_IMPLICIT_DECL): New.
+	(struct lang_decl_fn): Add suppress_implicit_decl field.
+	* method.c (implicitly_declare_fn): Check it.
+	(process_subob_fn): Add no_implicit_p parm.
+	(walk_field_subobs, synthesized_method_walk): Likewise.
+	(maybe_explain_implicit_delete): Adjust.
+	(explain_implicit_non_constexpr): Adjust.
+
+	* method.c (synthesized_method_walk): Avoid changing
+	EH spec based on cleanups in other places, too.
+
+2012-07-09  Sterling Augustine  <saugustine@google.com>
+
+	* error.c (lang_decl_name): Use TFF_UNQUALIFIED_NAME flag.
+
+2012-07-08  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* decl.c (cp_finish_decl): Add FIXME at add_local_decl call site.
+
+2012-07-06  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53862
+	* pt.c (tsubst_arg_types): Add "end" parameter.
+	(check_undeduced_parms): Use it.
+
+	* cp-tree.h (DECL_DECLARES_TYPE_P): Check DECL_TYPE_TEMPLATE_P.
+
+	PR c++/53858
+	* name-lookup.c (ambiguous_decl): Use DECL_TYPE_TEMPLATE_P.
+
+2012-07-05  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53039
+	* pt.c (arg_from_parm_pack_p): Go back to using same_type_p or
+	cp_tree_equal.
+
+	* cp-tree.h (TEMPLATE_PARM_NUM_SIBLINGS): Remove.
+	(struct template_parm_index_s): Remove num_siblings.
+	* pt.c (fixup_template_parms, fixup_template_parm_index): Remove.
+	(fixup_template_type_parm_type): Remove.
+	(build_template_parm_index): Remove num_siblings parm.
+	(process_template_parm): Likewise.
+	* parser.c (cp_parser_template_parameter_list): Adjust.
+	* tree.c (cp_tree_equal): Don't compare num_siblings.
+	* typeck.c (comp_template_parms_position): Likewise.
+
+	PR c++/50852
+	PR c++/53039
+	* tree.c (strip_typedefs_expr): New.
+	* cp-tree.h: Declare it.
+	* pt.c (convert_template_argument, unify): Use it.
+	* parser.c (cp_parser_template_declaration_after_export): Don't call
+	fixup_template_parms.
+
+2012-07-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53848
+	PR c++/53524
+	* decl.c (build_enumerator): Don't use build_lang_decl_loc.
+
+2012-07-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/53812
+	* semantics.c (finish_goto_stmt): Surround computed goto argument
+	with CLEANUP_POINT_EXPR if needed.
+
+2012-07-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53619
+	* pt.c (in_template_function): New.
+	* cp-tree.h: Declare it.
+	* class.c (build_base_path, resolves_to_fixed_type_p): Use it.
+
+	PR c++/53783
+	* pt.c (tsubst_copy_and_build) [LAMBDA_EXPR]: Use tsubst
+	for LAMBDA_EXPR_EXTRA_SCOPE.
+
+	PR c++/53788
+	* pt.c (build_non_dependent_expr): Don't wrap a dummy object.
+
+	PR c++/53816
+	* class.c (resolves_to_fixed_type_p): Check uses_template_parms
+	(current_function_decl) instead of processing_template_decl.
+
+	PR c++/53821
+	* semantics.c (maybe_add_lambda_conv_op): Don't set
+	DECL_INTERFACE_KNOWN.
+
+	PR c++/53524
+	* call.c (build_conditional_expr_1): Don't warn about comparison of
+	two enumerators before their enumeration is complete.
+	(build_new_op_1): Call decay_conversion before warn_logical_operator.
+	* decl.c (build_enumerator): Set DECL_CONTEXT of an enumerator to
+	its enumeration.
+	* decl2.c (mark_used): Call used_types_insert for enums.
+	* semantics.c (finish_id_expression): Don't decay CONST_DECL.
+	(finish_member_declaration): Don't change DECL_CONTEXT of enumerators.
+	* class.c (check_field_decls): Don't change DECL_CONTEXT of enums.
+	* typeck.c (convert_for_assignment): Don't decay CONST_DECL.
+	(build_class_member_access_expr): Look through unscoped enums.
+	* search.c (context_for_name_lookup): Look through unscoped enums.
+	* pt.c (tsubst_copy_and_build): Don't decay CONST_DECL.
+	(tsubst_copy): Use DECL_CONTEXT to find the enumeration.
+	* tree.c (decl_linkage): Likewise.
+	* cvt.c (ocp_convert): Check decayed expr for enum range warning.
+
 2012-06-29  Steven Bosscher  <steven@gcc.gnu.org>
 
 	* Make-lang.in: Remove tree-mudflap.o from CXX_AND_OBJCXX_OBJS.

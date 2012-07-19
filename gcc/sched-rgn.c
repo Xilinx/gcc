@@ -64,7 +64,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "sched-int.h"
 #include "sel-sched.h"
 #include "target.h"
-#include "timevar.h"
 #include "tree-pass.h"
 #include "dbgcnt.h"
 
@@ -397,7 +396,8 @@ debug_region (int rgn)
 
   for (bb = 0; bb < rgn_table[rgn].rgn_nr_blocks; bb++)
     {
-      debug_bb_n_slim (rgn_bb_table[current_blocks + bb]);
+      dump_bb (stderr, BASIC_BLOCK (rgn_bb_table[current_blocks + bb]),
+	       0, TDF_SLIM);
       fprintf (stderr, "\n");
     }
 
@@ -435,7 +435,7 @@ dump_region_dot (FILE *f, int rgn)
       edge e;
       edge_iterator ei;
       int src_bb_num = rgn_bb_table[current_blocks + i];
-      struct basic_block_def *bb = BASIC_BLOCK (src_bb_num);
+      basic_block bb = BASIC_BLOCK (src_bb_num);
 
       FOR_EACH_EDGE (e, ei, bb->succs)
         if (bb_in_region_p (e->dest->index, rgn))

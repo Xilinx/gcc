@@ -28,18 +28,17 @@
 ;;---------------------------------------------------------------------------
 ;; Constants
 
-;; Register numbers
+;; Register numbers -- All machine registers should be defined here
 (define_constants
-  [(R0_REGNUM        0)		; First CORE register
-   (R1_REGNUM	     1)		; Second CORE register
-   (IP_REGNUM	    12)		; Scratch register
-   (SP_REGNUM	    13)		; Stack pointer
-   (LR_REGNUM       14)		; Return address register
-   (PC_REGNUM	    15)		; Program counter
-   (CC_REGNUM       24)		; Condition code pseudo register
-   (LAST_ARM_REGNUM 15)		;
-   (FPA_F0_REGNUM   16)		; FIRST_FPA_REGNUM
-   (FPA_F7_REGNUM   23)		; LAST_FPA_REGNUM
+  [(R0_REGNUM         0)	; First CORE register
+   (R1_REGNUM	      1)	; Second CORE register
+   (IP_REGNUM	     12)	; Scratch register
+   (SP_REGNUM	     13)	; Stack pointer
+   (LR_REGNUM        14)	; Return address register
+   (PC_REGNUM	     15)	; Program counter
+   (LAST_ARM_REGNUM  15)	;
+   (CC_REGNUM       100)	; Condition code pseudo register
+   (VFPCC_REGNUM    101)	; VFP Condition code pseudo register
   ]
 )
 ;; 3rd operand to select_dominance_cc_mode
@@ -178,7 +177,7 @@
 ; Floating Point Unit.  If we only have floating point emulation, then there
 ; is no point in scheduling the floating point insns.  (Well, for best
 ; performance we should try and group them together).
-(define_attr "fpu" "none,fpa,fpe2,fpe3,maverick,vfp"
+(define_attr "fpu" "none,vfp"
   (const (symbol_ref "arm_fpu_attr")))
 
 ; LENGTH of an instruction (in bytes)
@@ -398,8 +397,6 @@
 (define_attr "ldsched" "no,yes" (const (symbol_ref "arm_ld_sched")))
 
 ;; Classification of NEON instructions for scheduling purposes.
-;; Do not set this attribute and the "type" attribute together in
-;; any one instruction pattern.
 (define_attr "neon_type"
    "neon_int_1,\
    neon_int_2,\
@@ -5476,14 +5473,6 @@
 			       optimize && can_create_pseudo_p ());
           DONE;
         }
-
-      if (TARGET_USE_MOVT && !target_word_relocations
-	  && GET_CODE (operands[1]) == SYMBOL_REF
-	  && !flag_pic && !arm_tls_referenced_p (operands[1]))
-	{
-	  arm_emit_movpair (operands[0], operands[1]);
-	  DONE;
-	}
     }
   else /* TARGET_THUMB1...  */
     {
@@ -5591,6 +5580,24 @@
   DONE;
   "
 )
+
+;; Split symbol_refs at the later stage (after cprop), instead of generating
+;; movt/movw pair directly at expand.  Otherwise corresponding high_sum
+;; and lo_sum would be merged back into memory load at cprop.  However,
+;; if the default is to prefer movt/movw rather than a load from the constant
+;; pool, the performance is better.
+(define_split
+  [(set (match_operand:SI 0 "arm_general_register_operand" "")
+       (match_operand:SI 1 "general_operand" ""))]
+  "TARGET_32BIT
+   && TARGET_USE_MOVT && GET_CODE (operands[1]) == SYMBOL_REF
+   && !flag_pic && !target_word_relocations
+   && !arm_tls_referenced_p (operands[1])"
+  [(clobber (const_int 0))]
+{
+  arm_emit_movpair (operands[0], operands[1]);
+  DONE;
+})
 
 (define_insn "*thumb1_movsi_insn"
   [(set (match_operand:SI 0 "nonimmediate_operand" "=l,l,l,l,l,>,l, m,*l*h*k")

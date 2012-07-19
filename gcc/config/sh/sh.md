@@ -1431,21 +1431,14 @@
   [(set_attr "type" "arith_media")
    (set_attr "highpart" "ignore")])
 
-(define_insn "adddi3_compact"
+(define_insn_and_split "adddi3_compact"
   [(set (match_operand:DI 0 "arith_reg_dest" "=&r")
 	(plus:DI (match_operand:DI 1 "arith_reg_operand" "%0")
 		 (match_operand:DI 2 "arith_reg_operand" "r")))
    (clobber (reg:SI T_REG))]
   "TARGET_SH1"
   "#"
-  [(set_attr "length" "6")])
-
-(define_split
-  [(set (match_operand:DI 0 "arith_reg_dest" "")
-	(plus:DI (match_operand:DI 1 "arith_reg_operand" "")
-		 (match_operand:DI 2 "arith_reg_operand" "")))
-   (clobber (reg:SI T_REG))]
-  "TARGET_SH1 && reload_completed"
+  "&& reload_completed"
   [(const_int 0)]
 {
   rtx high0 = gen_highpart (SImode, operands[0]);
@@ -1556,21 +1549,14 @@
   [(set_attr "type" "arith_media")
    (set_attr "highpart" "ignore")])
 
-(define_insn "subdi3_compact"
+(define_insn_and_split "subdi3_compact"
   [(set (match_operand:DI 0 "arith_reg_dest" "=&r")
 	(minus:DI (match_operand:DI 1 "arith_reg_operand" "0")
 		 (match_operand:DI 2 "arith_reg_operand" "r")))
    (clobber (reg:SI T_REG))]
   "TARGET_SH1"
   "#"
-  [(set_attr "length" "6")])
-
-(define_split
-  [(set (match_operand:DI 0 "arith_reg_dest" "")
-	(minus:DI (match_operand:DI 1 "arith_reg_operand" "")
-		  (match_operand:DI 2 "arith_reg_operand" "")))
-   (clobber (reg:SI T_REG))]
-  "TARGET_SH1 && reload_completed"
+  "&& reload_completed"
   [(const_int 0)]
 {
   rtx high0 = gen_highpart (SImode, operands[0]);
@@ -2861,9 +2847,9 @@ label:
   [(set_attr "type" "dmpy")])
 
 (define_expand "mulsidi3"
-  [(set (match_operand:DI 0 "arith_reg_operand" "=r")
-	(mult:DI (sign_extend:DI (match_operand:SI 1 "arith_reg_operand" "r"))
-		 (sign_extend:DI (match_operand:SI 2 "arith_reg_operand" "r"))))]
+  [(set (match_operand:DI 0 "arith_reg_dest" "")
+	(mult:DI (sign_extend:DI (match_operand:SI 1 "arith_reg_operand" ""))
+		 (sign_extend:DI (match_operand:SI 2 "arith_reg_operand" ""))))]
   "TARGET_SH2 || TARGET_SHMEDIA"
 {
   if (TARGET_SH2)
@@ -2882,7 +2868,7 @@ label:
   [(set_attr "type" "dmpy_media")
    (set_attr "highpart" "ignore")])
 
-(define_insn "mulsidi3_compact"
+(define_insn_and_split "mulsidi3_compact"
   [(set (match_operand:DI 0 "arith_reg_dest" "=r")
 	(mult:DI
 	 (sign_extend:DI (match_operand:SI 1 "arith_reg_operand" "r"))
@@ -2890,16 +2876,8 @@ label:
    (clobber (reg:SI MACH_REG))
    (clobber (reg:SI MACL_REG))]
   "TARGET_SH2"
-  "#")
-
-(define_split
-  [(set (match_operand:DI 0 "arith_reg_dest" "")
-	(mult:DI
-	 (sign_extend:DI (match_operand:SI 1 "arith_reg_operand" ""))
-	 (sign_extend:DI (match_operand:SI 2 "arith_reg_operand" ""))))
-   (clobber (reg:SI MACH_REG))
-   (clobber (reg:SI MACL_REG))]
-  "TARGET_SH2"
+  "#"
+  "&& 1"
   [(const_int 0)]
 {
   rtx low_dst = gen_lowpart (SImode, operands[0]);
@@ -2930,9 +2908,9 @@ label:
   [(set_attr "type" "dmpy")])
 
 (define_expand "umulsidi3"
-  [(set (match_operand:DI 0 "arith_reg_operand" "=r")
-	(mult:DI (zero_extend:DI (match_operand:SI 1 "arith_reg_operand" "r"))
-		 (zero_extend:DI (match_operand:SI 2 "arith_reg_operand" "r"))))]
+  [(set (match_operand:DI 0 "arith_reg_dest" "")
+	(mult:DI (zero_extend:DI (match_operand:SI 1 "arith_reg_operand" ""))
+		 (zero_extend:DI (match_operand:SI 2 "arith_reg_operand" ""))))]
   "TARGET_SH2 || TARGET_SHMEDIA"
 {
   if (TARGET_SH2)
@@ -2951,7 +2929,7 @@ label:
   [(set_attr "type" "dmpy_media")
    (set_attr "highpart" "ignore")])
 
-(define_insn "umulsidi3_compact"
+(define_insn_and_split "umulsidi3_compact"
   [(set (match_operand:DI 0 "arith_reg_dest" "=r")
 	(mult:DI
 	 (zero_extend:DI (match_operand:SI 1 "arith_reg_operand" "r"))
@@ -2959,15 +2937,8 @@ label:
    (clobber (reg:SI MACH_REG))
    (clobber (reg:SI MACL_REG))]
   "TARGET_SH2"
-  "#")
-
-(define_split
-  [(set (match_operand:DI 0 "arith_reg_dest" "")
-	(mult:DI (zero_extend:DI (match_operand:SI 1 "arith_reg_operand" ""))
-		 (zero_extend:DI (match_operand:SI 2 "arith_reg_operand" ""))))
-   (clobber (reg:SI MACH_REG))
-   (clobber (reg:SI MACL_REG))]
-  "TARGET_SH2"
+  "#"
+  "&& 1"
   [(const_int 0)]
 {
   rtx low_dst = gen_lowpart (SImode, operands[0]);
@@ -3113,12 +3084,55 @@ label:
 ;; Logical operations
 ;; -------------------------------------------------------------------------
 
-(define_insn "*andsi3_compact"
-  [(set (match_operand:SI 0 "arith_reg_dest" "=z,r")
-	(and:SI (match_operand:SI 1 "arith_reg_operand" "%0,0")
-		(match_operand:SI 2 "logical_operand" "K08,r")))]
+(define_expand "andsi3"
+  [(set (match_operand:SI 0 "arith_reg_operand" "")
+	(and:SI (match_operand:SI 1 "logical_reg_operand" "")
+		(match_operand:SI 2 "logical_and_operand" "")))]
+  ""
+{
+  /* If it is possible to turn the and insn into a zero extension
+     already, redundant zero extensions will be folded, which results
+     in better code.  
+     Ideally the splitter of *andsi_compact would be enough, if reundant
+     zero extensions were detected after the combine pass, which does not
+     happen at the moment.  */
+  if (TARGET_SH1)
+    {
+      if (satisfies_constraint_Jmb (operands[2]))
+	{
+	  emit_insn (gen_zero_extendqisi2 (operands[0],
+					   gen_lowpart (QImode, operands[1])));
+	  DONE;
+	}
+      else if (satisfies_constraint_Jmw (operands[2]))
+	{
+	  emit_insn (gen_zero_extendhisi2 (operands[0],
+					   gen_lowpart (HImode, operands[1])));
+	  DONE;
+	}
+    }
+})
+
+(define_insn_and_split "*andsi_compact"
+  [(set (match_operand:SI 0 "arith_reg_dest" "=r,r,z,r")
+	(and:SI (match_operand:SI 1 "arith_reg_operand" "%r,r,0,0")
+		(match_operand:SI 2 "logical_and_operand" "Jmb,Jmw,K08,r")))]
   "TARGET_SH1"
-  "and	%2,%0"
+  "@
+	extu.b	%1,%0
+	extu.w	%1,%0
+	and	%2,%0
+	and	%2,%0"
+  "&& 1"
+ [(set (match_dup 0) (zero_extend:SI (match_dup 1)))]
+{
+  if (satisfies_constraint_Jmb (operands[2]))
+    operands[1] = gen_lowpart (QImode, operands[1]);
+  else if (satisfies_constraint_Jmw (operands[2]))
+    operands[1] = gen_lowpart (HImode, operands[1]);
+  else
+    FAIL;
+}
   [(set_attr "type" "arith")])
 
 (define_insn "*andsi3_media"
@@ -3138,24 +3152,6 @@ label:
   "TARGET_SH2A && satisfies_constraint_Psz (operands[2])"
   "bclr\\t%W2,%0"
   [(set_attr "type" "arith")])
-
-;; If the constant is 255, then emit an extu.b instruction instead of an
-;; and, since that will give better code.
-
-(define_expand "andsi3"
-  [(set (match_operand:SI 0 "arith_reg_operand" "")
-	(and:SI (match_operand:SI 1 "logical_reg_operand" "")
-		(match_operand:SI 2 "logical_operand" "")))]
-  ""
-{
-  if (TARGET_SH1
-      && CONST_INT_P (operands[2]) && INTVAL (operands[2]) == 255)
-    {
-      emit_insn (gen_zero_extendqisi2 (operands[0],
-				       gen_lowpart (QImode, operands[1])));
-      DONE;
-    }
-})
 
 (define_insn_and_split "anddi3"
   [(set (match_operand:DI 0 "arith_reg_dest" "=r,r,r")
@@ -3341,9 +3337,9 @@ label:
 ;; -------------------------------------------------------------------------
 
 (define_expand "rotldi3"
-  [(set (match_operand:DI 0 "arith_reg_dest" "=r")
-	(rotate:DI (match_operand:DI 1 "arith_reg_operand" "r")
-		   (match_operand:HI 2 "mextr_bit_offset" "i")))]
+  [(set (match_operand:DI 0 "arith_reg_dest" "")
+	(rotate:DI (match_operand:DI 1 "arith_reg_operand" "")
+		   (match_operand:HI 2 "mextr_bit_offset" "")))]
   "TARGET_SHMEDIA"
   "if (! mextr_bit_offset (operands[2], HImode)) FAIL;")
 
@@ -3362,9 +3358,9 @@ label:
   [(set_attr "type" "arith_media")])
 
 (define_expand "rotrdi3"
-  [(set (match_operand:DI 0 "arith_reg_dest" "=r")
-	(rotatert:DI (match_operand:DI 1 "arith_reg_operand" "r")
-		     (match_operand:HI 2 "mextr_bit_offset" "i")))]
+  [(set (match_operand:DI 0 "arith_reg_dest" "")
+	(rotatert:DI (match_operand:DI 1 "arith_reg_operand" "")
+		     (match_operand:HI 2 "mextr_bit_offset" "")))]
   "TARGET_SHMEDIA"
 {
   if (! mextr_bit_offset (operands[2], HImode))
@@ -3542,13 +3538,19 @@ label:
 	shll%O2	%0"
   [(set_attr "type" "arith")])
 
-(define_insn "ashlsi3_n"
+(define_insn_and_split "ashlsi3_n"
   [(set (match_operand:SI 0 "arith_reg_dest" "=r")
 	(ashift:SI (match_operand:SI 1 "arith_reg_operand" "0")
 		   (match_operand:SI 2 "const_int_operand" "n")))
    (clobber (reg:SI T_REG))]
   "TARGET_SH1 && ! sh_dynamicalize_shift_p (operands[2])"
   "#"
+  "TARGET_SH1 && reload_completed"
+  [(use (reg:SI R0_REG))]
+{
+  gen_shifty_op (ASHIFT, operands);
+  DONE;
+}
   [(set (attr "length")
 	(cond [(match_test "shift_insns_rtx (insn)")
 	       (const_string "2")
@@ -3558,18 +3560,6 @@ label:
 	       (const_string "6")]
 	      (const_string "8")))
    (set_attr "type" "arith")])
-
-(define_split
-  [(set (match_operand:SI 0 "arith_reg_dest" "")
-	(ashift:SI (match_operand:SI 1 "arith_reg_operand" "")
-		   (match_operand:SI 2 "const_int_operand" "")))
-   (clobber (reg:SI T_REG))]
-  "TARGET_SH1 && reload_completed"
-  [(use (reg:SI R0_REG))]
-{
-  gen_shifty_op (ASHIFT, operands);
-  DONE;
-})
 
 (define_insn "ashlsi3_media"
   [(set (match_operand:SI 0 "arith_reg_dest" "=r,r")
@@ -3606,21 +3596,6 @@ label:
     FAIL;
 })
 
-(define_insn "*ashlhi3_n"
-  [(set (match_operand:HI 0 "arith_reg_dest" "=r")
-	(ashift:HI (match_operand:HI 1 "arith_reg_operand" "0")
-		   (match_operand:HI 2 "const_int_operand" "n")))
-   (clobber (reg:SI T_REG))]
-  "TARGET_SH1"
-  "#"
-  [(set (attr "length")
-	(cond [(match_test "shift_insns_rtx (insn)")
-	       (const_string "2")
-	       (eq (symbol_ref "shift_insns_rtx (insn)") (const_int 2))
-	       (const_string "4")]
-	      (const_string "6")))
-   (set_attr "type" "arith")])
-
 (define_expand "ashlhi3"
   [(parallel [(set (match_operand:HI 0 "arith_reg_operand" "")
 		   (ashift:HI (match_operand:HI 1 "arith_reg_operand" "")
@@ -3636,17 +3611,26 @@ label:
     operands[1] = copy_to_mode_reg (HImode, operands[1]);
 })
 
-(define_split
-  [(set (match_operand:HI 0 "arith_reg_dest" "")
-	(ashift:HI (match_operand:HI 1 "arith_reg_operand" "")
-		   (match_operand:HI 2 "const_int_operand" "")))
+(define_insn_and_split "*ashlhi3_n"
+  [(set (match_operand:HI 0 "arith_reg_dest" "=r")
+	(ashift:HI (match_operand:HI 1 "arith_reg_operand" "0")
+		   (match_operand:HI 2 "const_int_operand" "n")))
    (clobber (reg:SI T_REG))]
-  "TARGET_SH1 && reload_completed"
+  "TARGET_SH1"
+  "#"
+  "&& reload_completed"
   [(use (reg:SI R0_REG))]
 {
   gen_shifty_hi_op (ASHIFT, operands);
   DONE;
-})
+}
+  [(set (attr "length")
+	(cond [(match_test "shift_insns_rtx (insn)")
+	       (const_string "2")
+	       (eq (symbol_ref "shift_insns_rtx (insn)") (const_int 2))
+	       (const_string "4")]
+	      (const_string "6")))
+   (set_attr "type" "arith")])
 
 ;;
 ;; arithmetic shift right
@@ -3669,19 +3653,13 @@ label:
 
 ;; ??? This should be a define expand.
 
-(define_insn "ashrsi2_16"
+(define_insn_and_split "ashrsi2_16"
   [(set (match_operand:SI 0 "arith_reg_dest" "=r")
         (ashiftrt:SI (match_operand:SI 1 "arith_reg_operand" "r")
                      (const_int 16)))]
   "TARGET_SH1"
   "#"
-  [(set_attr "length" "4")])
-
-(define_split
-  [(set (match_operand:SI 0 "arith_reg_dest" "")
-        (ashiftrt:SI (match_operand:SI 1 "arith_reg_operand" "")
-		     (const_int 16)))]
-  "TARGET_SH1"
+  "&& 1"
   [(set (match_dup 0) (rotate:SI (match_dup 1) (const_int 16)))
    (set (match_dup 0) (sign_extend:SI (match_dup 2)))]
 {
@@ -3690,21 +3668,14 @@ label:
 
 ;; ??? This should be a define expand.
 
-(define_insn "ashrsi2_31"
+(define_insn_and_split "ashrsi2_31"
   [(set (match_operand:SI 0 "arith_reg_dest" "=r")
 	(ashiftrt:SI (match_operand:SI 1 "arith_reg_operand" "0")
 		     (const_int 31)))
    (clobber (reg:SI T_REG))]
   "TARGET_SH1"
   "#"
-  [(set_attr "length" "4")])
-
-(define_split
-  [(set (match_operand:SI 0 "arith_reg_dest" "")
-	(ashiftrt:SI (match_operand:SI 1 "arith_reg_operand" "")
-		     (const_int 31)))
-   (clobber (reg:SI T_REG))]
-  "TARGET_SH1"
+  "&& 1"
   [(const_int 0)]
 {
   emit_insn (gen_ashlsi_c (operands[0], operands[1]));
@@ -3774,7 +3745,7 @@ label:
    (set_attr "highpart" "ignore")])
 
 (define_expand "ashrsi3"
-  [(parallel [(set (match_operand:SI 0 "arith_reg_operand" "")
+  [(parallel [(set (match_operand:SI 0 "arith_reg_dest" "")
 		   (ashiftrt:SI (match_operand:SI 1 "arith_reg_operand" "")
 				(match_operand:SI 2 "nonmemory_operand" "")))
 	      (clobber (reg:SI T_REG))])]
@@ -3821,13 +3792,19 @@ label:
   "shlr%O2	%0"
   [(set_attr "type" "arith")])
 
-(define_insn "lshrsi3_n"
+(define_insn_and_split "lshrsi3_n"
   [(set (match_operand:SI 0 "arith_reg_dest" "=r")
 	(lshiftrt:SI (match_operand:SI 1 "arith_reg_operand" "0")
 		     (match_operand:SI 2 "const_int_operand" "n")))
    (clobber (reg:SI T_REG))]
   "TARGET_SH1 && ! sh_dynamicalize_shift_p (operands[2])"
   "#"
+  "TARGET_SH1 && reload_completed"
+  [(use (reg:SI R0_REG))]
+{
+  gen_shifty_op (LSHIFTRT, operands);
+  DONE;
+}
   [(set (attr "length")
 	(cond [(match_test "shift_insns_rtx (insn)")
 	       (const_string "2")
@@ -3837,18 +3814,6 @@ label:
 	       (const_string "6")]
 	      (const_string "8")))
    (set_attr "type" "arith")])
-
-(define_split
-  [(set (match_operand:SI 0 "arith_reg_dest" "")
-	(lshiftrt:SI (match_operand:SI 1 "arith_reg_operand" "")
-		     (match_operand:SI 2 "const_int_operand" "")))
-   (clobber (reg:SI T_REG))]
-  "TARGET_SH1 && reload_completed"
-  [(use (reg:SI R0_REG))]
-{
-  gen_shifty_op (LSHIFTRT, operands);
-  DONE;
-})
 
 (define_insn "lshrsi3_media"
   [(set (match_operand:SI 0 "arith_reg_dest" "=r,r")
@@ -4450,8 +4415,8 @@ label:
   emit_insn (gen_movsi (operands[0], operands[1]));
 
   emit_jump_insn (INTVAL (operands[3])
-		  ? gen_branch_true (skip_neg_label)
-		  : gen_branch_false (skip_neg_label));
+		  ? gen_branch_true (skip_neg_label, get_t_reg_rtx ())
+		  : gen_branch_false (skip_neg_label, get_t_reg_rtx ()));
 
   emit_label_after (skip_neg_label,
 		    emit_insn (gen_negsi2 (operands[0], operands[1])));
@@ -4519,8 +4484,8 @@ label:
   emit_insn (gen_movsi (high_dst, high_src));
 
   emit_jump_insn (INTVAL (operands[3]) 
-		  ? gen_branch_true (skip_neg_label)
-		  : gen_branch_false (skip_neg_label));
+		  ? gen_branch_true (skip_neg_label, get_t_reg_rtx ())
+		  : gen_branch_false (skip_neg_label, get_t_reg_rtx ()));
 
   if (!INTVAL (operands[3]))
     emit_insn (gen_clrt ());
@@ -4700,13 +4665,8 @@ label:
 	      (const_string "ignore")))])
 
 (define_expand "zero_extendhisi2"
-  [(set (match_operand:SI 0 "arith_reg_operand" "")
-	(zero_extend:SI (match_operand:HI 1 "general_extend_operand" "")))]
-  ""
-{
-  if (! TARGET_SHMEDIA && ! arith_reg_operand (operands[1], HImode))
-    operands[1] = copy_to_mode_reg (HImode, operands[1]);
-})
+  [(set (match_operand:SI 0 "arith_reg_dest" "")
+	(zero_extend:SI (match_operand:HI 1 "zero_extend_operand" "")))])
 
 (define_insn "*zero_extendhisi2_compact"
   [(set (match_operand:SI 0 "arith_reg_dest" "=r")
@@ -4745,13 +4705,8 @@ label:
 })
 
 (define_expand "zero_extendqisi2"
-  [(set (match_operand:SI 0 "arith_reg_operand" "")
-	(zero_extend:SI (match_operand:QI 1 "general_extend_operand" "")))]
-  ""
-{
-  if (! TARGET_SHMEDIA && ! arith_reg_operand (operands[1], QImode))
-    operands[1] = copy_to_mode_reg (QImode, operands[1]);
-})
+  [(set (match_operand:SI 0 "arith_reg_dest" "")
+	(zero_extend:SI (match_operand:QI 1 "zero_extend_operand" "")))])
 
 (define_insn "*zero_extendqisi2_compact"
   [(set (match_operand:SI 0 "arith_reg_dest" "=r")
@@ -6668,63 +6623,6 @@ label:
     FAIL;
 })
 
-;; If a base address generated by LEGITIMIZE_ADDRESS for SImode is
-;; used only once, let combine add in the index again.
-
-(define_split
-  [(set (match_operand:SI 0 "register_operand" "")
-	(match_operand:SI 1 "" ""))
-   (clobber (match_operand 2 "register_operand" ""))]
-  "TARGET_SH1 && ! reload_in_progress && ! reload_completed
-   && ALLOW_INDEXED_ADDRESS"
-  [(use (reg:SI R0_REG))]
-{
-  rtx addr, reg, const_int;
-
-  if (!MEM_P (operands[1]))
-    FAIL;
-  addr = XEXP (operands[1], 0);
-  if (GET_CODE (addr) != PLUS)
-    FAIL;
-  reg = XEXP (addr, 0);
-  const_int = XEXP (addr, 1);
-  if (! (BASE_REGISTER_RTX_P (reg) && INDEX_REGISTER_RTX_P (operands[2])
-	 && CONST_INT_P (const_int)))
-    FAIL;
-  emit_move_insn (operands[2], const_int);
-  emit_move_insn (operands[0],
-		  change_address (operands[1], VOIDmode,
-				  gen_rtx_PLUS (SImode, reg, operands[2])));
-  DONE;
-})
-
-(define_split
-  [(set (match_operand:SI 1 "" "")
-	(match_operand:SI 0 "register_operand" ""))
-   (clobber (match_operand 2 "register_operand" ""))]
-  "TARGET_SH1 && ! reload_in_progress && ! reload_completed
-   && ALLOW_INDEXED_ADDRESS"
-  [(use (reg:SI R0_REG))]
-{
-  rtx addr, reg, const_int;
-
-  if (!MEM_P (operands[1]))
-    FAIL;
-  addr = XEXP (operands[1], 0);
-  if (GET_CODE (addr) != PLUS)
-    FAIL;
-  reg = XEXP (addr, 0);
-  const_int = XEXP (addr, 1);
-  if (! (BASE_REGISTER_RTX_P (reg) && INDEX_REGISTER_RTX_P (operands[2])
-	 && CONST_INT_P (const_int)))
-    FAIL;
-  emit_move_insn (operands[2], const_int);
-  emit_move_insn (change_address (operands[1], VOIDmode,
-				  gen_rtx_PLUS (SImode, reg, operands[2])),
-		  operands[0]);
-  DONE;
-})
-
 (define_expand "movdf"
   [(set (match_operand:DF 0 "general_movdst_operand" "")
 	(match_operand:DF 1 "general_movsrc_operand" ""))]
@@ -7195,7 +7093,8 @@ label:
 ;; ------------------------------------------------------------------------
 
 (define_insn "branch_true"
-  [(set (pc) (if_then_else (ne (reg:SI T_REG) (const_int 0))
+  [(set (pc) (if_then_else (ne (match_operand 1 "t_reg_operand" "")
+			       (const_int 0))
 			   (label_ref (match_operand 0 "" ""))
 			   (pc)))]
   "TARGET_SH1"
@@ -7204,31 +7103,20 @@ label:
 }
   [(set_attr "type" "cbranch")])
 
-;; The *branch_true patterns help combine when trying to invert conditions.
-(define_insn "*branch_true"
-  [(set (pc) (if_then_else (ne (zero_extend:SI (subreg:QI (reg:SI T_REG) 0))
-			       (const_int 0))
+(define_insn "*branch_true_eq"
+  [(set (pc) (if_then_else (eq (match_operand 1 "t_reg_operand" "")
+			       (const_int 1))
 			   (label_ref (match_operand 0 "" ""))
 			   (pc)))]
-  "TARGET_SH1 && TARGET_LITTLE_ENDIAN"
-{
-  return output_branch (1, insn, operands);
-}
-  [(set_attr "type" "cbranch")])
-
-(define_insn "*branch_true"
-  [(set (pc) (if_then_else (ne (zero_extend:SI (subreg:QI (reg:SI T_REG) 3))
-			       (const_int 0))
-			   (label_ref (match_operand 0 "" ""))
-			   (pc)))]
-  "TARGET_SH1 && ! TARGET_LITTLE_ENDIAN"
+  "TARGET_SH1"
 {
   return output_branch (1, insn, operands);
 }
   [(set_attr "type" "cbranch")])
 
 (define_insn "branch_false"
-  [(set (pc) (if_then_else (eq (reg:SI T_REG) (const_int 0))
+  [(set (pc) (if_then_else (eq (match_operand 1 "t_reg_operand" "")
+			       (const_int 0))
 			   (label_ref (match_operand 0 "" ""))
 			   (pc)))]
   "TARGET_SH1"
@@ -7237,24 +7125,12 @@ label:
 }
   [(set_attr "type" "cbranch")])
 
-;; The *branch_false patterns help combine when trying to invert conditions.
-(define_insn "*branch_false"
-  [(set (pc) (if_then_else (eq (zero_extend:SI (subreg:QI (reg:SI T_REG) 0))
-			       (const_int 0))
+(define_insn "*branch_false_ne"
+  [(set (pc) (if_then_else (ne (match_operand 1 "t_reg_operand" "")
+			       (const_int 1))
 			   (label_ref (match_operand 0 "" ""))
 			   (pc)))]
-  "TARGET_SH1 && TARGET_LITTLE_ENDIAN"
-{
-  return output_branch (0, insn, operands);
-}
-  [(set_attr "type" "cbranch")])
-
-(define_insn "*branch_false"
-  [(set (pc) (if_then_else (eq (zero_extend:SI (subreg:QI (reg:SI T_REG) 3))
-			       (const_int 0))
-			   (label_ref (match_operand 0 "" ""))
-			   (pc)))]
-  "TARGET_SH1 && ! TARGET_LITTLE_ENDIAN"
+  "TARGET_SH1"
 {
   return output_branch (0, insn, operands);
 }
@@ -9449,8 +9325,7 @@ label:
 		    && (crtl->args.info.call_cookie
 			& CALL_COOKIE_RET_TRAMP (1)))
    && reload_completed
-   && lookup_attribute (\"trap_exit\",
-			DECL_ATTRIBUTES (current_function_decl)) == NULL_TREE"
+   && ! sh_cfun_trap_exit_p ()"
 {
   if (TARGET_SH2A && (dbr_sequence_length () == 0)
       && !current_function_interrupt)
@@ -9672,7 +9547,7 @@ label:
 
 (define_insn "movt"
   [(set (match_operand:SI 0 "arith_reg_dest" "=r")
-	(eq:SI (reg:SI T_REG) (const_int 1)))]
+	(match_operand:SI 1 "t_reg_operand"))]
   "TARGET_SH1"
   "movt	%0"
   [(set_attr "type" "arith")])
@@ -9854,61 +9729,38 @@ label:
   "negc	%1,%0"
   [(set_attr "type" "arith")])
 
-;; The *negnegt patterns help the combine pass to figure out how to fold 
+;; The *negnegt pattern helps the combine pass to figure out how to fold 
 ;; an explicit double T bit negation.
 (define_insn_and_split "*negnegt"
   [(set (reg:SI T_REG)
-	(eq:SI (subreg:QI (xor:SI (reg:SI T_REG) (const_int 1)) 3)
-        (const_int 0)))]
-  "! TARGET_LITTLE_ENDIAN"
+	(eq:SI (match_operand 0 "negt_reg_operand" "") (const_int 0)))]
+  "TARGET_SH1"
   "#"
   ""
   [(const_int 0)])
 
-(define_insn_and_split "*negnegt"
-  [(set (reg:SI T_REG)
-	(eq:SI (subreg:QI (xor:SI (reg:SI T_REG) (const_int 1)) 0)
-        (const_int 0)))]
-  "TARGET_LITTLE_ENDIAN"
-  "#"
-  ""
-  [(const_int 0)])
-
-;; The *movtt patterns eliminate redundant T bit to T bit moves / tests.
+;; The *movtt pattern eliminates redundant T bit to T bit moves / tests.
 (define_insn_and_split "*movtt"
   [(set (reg:SI T_REG)
-	(eq:SI (zero_extend:SI (subreg:QI (reg:SI T_REG) 3))
-        (const_int 1)))]
-  "! TARGET_LITTLE_ENDIAN"
+	(eq:SI (match_operand 0 "t_reg_operand" "") (const_int 1)))]
+  "TARGET_SH1"
   "#"
   ""
   [(const_int 0)])
 
-(define_insn_and_split "*movtt"
-  [(set (reg:SI T_REG)
-	(eq:SI (zero_extend:SI (subreg:QI (reg:SI T_REG) 0))
-        (const_int 1)))]
-  "TARGET_LITTLE_ENDIAN"
-  "#"
-  ""
-  [(const_int 0)])
-
-;; The *movt_qi patterns help the combine pass convert a movrt_negc pattern
-;; into a movt Rn, xor #1 Rn pattern.  This can happen when e.g. a function
-;; returns the inverted T bit value.
-(define_insn "*movt_qi"
-  [(set (match_operand:SI 0 "arith_reg_dest" "=r")
-	(zero_extend:SI (subreg:QI (reg:SI T_REG) 3)))]
-  "! TARGET_LITTLE_ENDIAN"
-  "movt	%0"
-  [(set_attr "type" "arith")])
-
-(define_insn "*movt_qi"
-  [(set (match_operand:SI 0 "arith_reg_dest" "=r")
-	(zero_extend:SI (subreg:QI (reg:SI T_REG) 0)))]
-  "TARGET_LITTLE_ENDIAN"
-  "movt	%0"
-  [(set_attr "type" "arith")])
+(define_insn_and_split "nott"
+  [(set (reg:SI T_REG) (xor:SI (reg:SI T_REG) (const_int 1)))]
+  "TARGET_SH1"
+{
+  gcc_assert (TARGET_SH2A);
+  return "nott";
+}
+  "! TARGET_SH2A && can_create_pseudo_p ()"
+  [(set (match_dup 0) (reg:SI T_REG))
+   (set (reg:SI T_REG) (eq:SI (match_dup 0) (const_int 0)))]
+{
+  operands[0] = gen_reg_rtx (SImode);
+})
 
 (define_expand "cstoresf4"
   [(set (match_operand:SI 0 "register_operand" "=r")
@@ -11887,70 +11739,6 @@ label:
   [(set (match_dup 3)
 	(mem:HI (plus:SI (match_dup 1) (match_dup 2))))]
   "")
-
-;; These convert sequences such as `mov #k,r0; add r15,r0; mov.l @r0,rn'
-;; to `mov #k,r0; mov.l @(r0,r15),rn'.  These sequences are generated by
-;; reload when the constant is too large for a reg+offset address.
-
-;; ??? We would get much better code if this was done in reload.  This would
-;; require modifying find_reloads_address to recognize that if the constant
-;; is out-of-range for an immediate add, then we get better code by reloading
-;; the constant into a register than by reloading the sum into a register,
-;; since the former is one instruction shorter if the address does not need
-;; to be offsettable.  Unfortunately this does not work, because there is
-;; only one register, r0, that can be used as an index register.  This register
-;; is also the function return value register.  So, if we try to force reload
-;; to use double-reg addresses, then we end up with some instructions that
-;; need to use r0 twice.  The only way to fix this is to change the calling
-;; convention so that r0 is not used to return values.
-
-(define_peephole
-  [(set (match_operand:SI 0 "register_operand" "=r")
-	(plus:SI (match_dup 0) (match_operand:SI 1 "register_operand" "r")))
-   (set (mem:SI (match_dup 0))
-	(match_operand:SI 2 "general_movsrc_operand" ""))]
-  "TARGET_SH1 && REGNO (operands[0]) == 0 && reg_unused_after (operands[0], insn)"
-  "mov.l	%2,@(%0,%1)")
-
-(define_peephole
-  [(set (match_operand:SI 0 "register_operand" "=r")
-	(plus:SI (match_dup 0) (match_operand:SI 1 "register_operand" "r")))
-   (set (match_operand:SI 2 "general_movdst_operand" "")
-	(mem:SI (match_dup 0)))]
-  "TARGET_SH1 && REGNO (operands[0]) == 0 && reg_unused_after (operands[0], insn)"
-  "mov.l	@(%0,%1),%2")
-
-(define_peephole
-  [(set (match_operand:SI 0 "register_operand" "=r")
-	(plus:SI (match_dup 0) (match_operand:SI 1 "register_operand" "r")))
-   (set (mem:HI (match_dup 0))
-	(match_operand:HI 2 "general_movsrc_operand" ""))]
-  "TARGET_SH1 && REGNO (operands[0]) == 0 && reg_unused_after (operands[0], insn)"
-  "mov.w	%2,@(%0,%1)")
-
-(define_peephole
-  [(set (match_operand:SI 0 "register_operand" "=r")
-	(plus:SI (match_dup 0) (match_operand:SI 1 "register_operand" "r")))
-   (set (match_operand:HI 2 "general_movdst_operand" "")
-	(mem:HI (match_dup 0)))]
-  "TARGET_SH1 && REGNO (operands[0]) == 0 && reg_unused_after (operands[0], insn)"
-  "mov.w	@(%0,%1),%2")
-
-(define_peephole
-  [(set (match_operand:SI 0 "register_operand" "=r")
-	(plus:SI (match_dup 0) (match_operand:SI 1 "register_operand" "r")))
-   (set (mem:QI (match_dup 0))
-	(match_operand:QI 2 "general_movsrc_operand" ""))]
-  "TARGET_SH1 && REGNO (operands[0]) == 0 && reg_unused_after (operands[0], insn)"
-  "mov.b	%2,@(%0,%1)")
-
-(define_peephole
-  [(set (match_operand:SI 0 "register_operand" "=r")
-	(plus:SI (match_dup 0) (match_operand:SI 1 "register_operand" "r")))
-   (set (match_operand:QI 2 "general_movdst_operand" "")
-	(mem:QI (match_dup 0)))]
-  "TARGET_SH1 && REGNO (operands[0]) == 0 && reg_unused_after (operands[0], insn)"
-  "mov.b	@(%0,%1),%2")
 
 (define_peephole
   [(set (match_operand:SI 0 "register_operand" "=r")
@@ -13960,7 +13748,7 @@ label:
   else
     {
       emit_insn (gen_stack_protect_test_si (operands[0], operands[1]));
-      emit_jump_insn (gen_branch_true (operands[2]));
+      emit_jump_insn (gen_branch_true (operands[2], get_t_reg_rtx ()));
     }
 
   DONE;

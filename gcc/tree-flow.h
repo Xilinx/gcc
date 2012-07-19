@@ -414,7 +414,7 @@ extern bool is_ctrl_altering_stmt (gimple);
 extern bool simple_goto_p (gimple);
 extern bool stmt_can_make_abnormal_goto (gimple);
 extern basic_block single_noncomplex_succ (basic_block bb);
-extern void gimple_dump_bb (basic_block, FILE *, int, int);
+extern void gimple_dump_bb (FILE *, basic_block, int, int);
 extern void gimple_debug_bb (basic_block);
 extern basic_block gimple_debug_bb_n (int);
 extern void gimple_dump_cfg (FILE *, int);
@@ -428,6 +428,7 @@ extern void debug_loop_num (unsigned, int);
 extern void print_loops (FILE *, int);
 extern void print_loops_bb (FILE *, basic_block, int, int);
 extern void cleanup_dead_labels (void);
+extern void group_case_labels_stmt (gimple);
 extern void group_case_labels (void);
 extern gimple first_stmt (basic_block);
 extern gimple last_stmt (basic_block);
@@ -497,10 +498,9 @@ extern tree make_rename_temp (tree, const char *);
 extern void set_default_def (tree, tree);
 extern tree gimple_default_def (struct function *, tree);
 extern bool stmt_references_abnormal_ssa_name (gimple);
-extern tree get_ref_base_and_extent (tree, HOST_WIDE_INT *,
-				     HOST_WIDE_INT *, HOST_WIDE_INT *);
 extern tree get_addr_base_and_unit_offset (tree, HOST_WIDE_INT *);
 extern void find_referenced_vars_in (gimple);
+extern void dump_enumerated_decls (FILE *, int);
 
 /* In tree-phinodes.c  */
 extern void reserve_phi_args_for_new_edge (basic_block);

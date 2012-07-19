@@ -4367,6 +4367,7 @@ build_conditional_expr_1 (tree arg1, tree arg2, tree arg3,
   struct z_candidate *candidates = 0;
   struct z_candidate *cand;
   void *p;
+  tree orig_arg2, orig_arg3;
 
   /* As a G++ extension, the second argument to the conditional can be
      omitted.  (So that `a ? : c' is roughly equivalent to `a ? a :
@@ -4406,6 +4407,8 @@ build_conditional_expr_1 (tree arg1, tree arg2, tree arg3,
      array-to-pointer (_conv.array_), and function-to-pointer
      (_conv.func_) standard conversions are performed on the second
      and third operands.  */
+  orig_arg2 = arg2;
+  orig_arg3 = arg3;
   arg2_type = unlowered_expr_type (arg2);
   arg3_type = unlowered_expr_type (arg3);
   if (VOID_TYPE_P (arg2_type) || VOID_TYPE_P (arg3_type))
@@ -4703,7 +4706,12 @@ build_conditional_expr_1 (tree arg1, tree arg2, tree arg3,
       if (TREE_CODE (arg2_type) == ENUMERAL_TYPE
 	  && TREE_CODE (arg3_type) == ENUMERAL_TYPE)
         {
-          if (complain & tf_warning)
+	  if (TREE_CODE (orig_arg2) == CONST_DECL
+	      && TREE_CODE (orig_arg3) == CONST_DECL
+	      && DECL_CONTEXT (orig_arg2) == DECL_CONTEXT (orig_arg3))
+	    /* Two enumerators from the same enumeration can have different
+	       types when the enumeration is still being defined.  */;
+          else if (complain & tf_warning)
             warning (OPT_Wenum_compare, 
                      "enumeral mismatch in conditional expression: %qT vs %qT",
                      arg2_type, arg3_type);
@@ -5223,16 +5231,20 @@ build_new_op_1 (location_t loc, enum tree_code code, int flags, tree arg1,
 
 	  if (arg2)
 	    {
+	      conv = cand->convs[1];
+	      if (conv->kind == ck_ref_bind)
+		conv = next_conversion (conv);
+	      else
+		arg2 = decay_conversion (arg2, complain);
+
 	      /* We need to call warn_logical_operator before
-		 converting arg2 to a boolean_type.  */
+		 converting arg2 to a boolean_type, but after
+		 decaying an enumerator to its value.  */
 	      if (complain & tf_warning)
 		warn_logical_operator (loc, code, boolean_type_node,
 				       code_orig_arg1, arg1,
 				       code_orig_arg2, arg2);
 
-	      conv = cand->convs[1];
-	      if (conv->kind == ck_ref_bind)
-		conv = next_conversion (conv);
 	      arg2 = convert_like (conv, arg2, complain);
 	    }
 	  if (arg3)
@@ -5505,7 +5517,8 @@ build_op_delete_call (enum tree_code code, tree addr, tree size,
       /* If the FN is a member function, make sure that it is
 	 accessible.  */
       if (BASELINK_P (fns))
-	perform_or_defer_access_check (BASELINK_BINFO (fns), fn, fn);
+	perform_or_defer_access_check (BASELINK_BINFO (fns), fn, fn,
+				       complain);
 
       /* Core issue 901: It's ok to new a type with deleted delete.  */
       if (DECL_DELETED_FN (fn) && alloc_fn)
@@ -5563,19 +5576,23 @@ build_op_delete_call (enum tree_code code, tree addr, tree size,
    the declaration to use in the error diagnostic.  */
 
 bool
-enforce_access (tree basetype_path, tree decl, tree diag_decl)
+enforce_access (tree basetype_path, tree decl, tree diag_decl,
+		tsubst_flags_t complain)
 {
   gcc_assert (TREE_CODE (basetype_path) == TREE_BINFO);
 
   if (!accessible_p (basetype_path, decl, true))
     {
-      if (TREE_PRIVATE (decl))
-	error ("%q+#D is private", diag_decl);
-      else if (TREE_PROTECTED (decl))
-	error ("%q+#D is protected", diag_decl);
-      else
-	error ("%q+#D is inaccessible", diag_decl);
-      error ("within this context");
+      if (complain & tf_error)
+	{
+	  if (TREE_PRIVATE (decl))
+	    error ("%q+#D is private", diag_decl);
+	  else if (TREE_PROTECTED (decl))
+	    error ("%q+#D is protected", diag_decl);
+	  else
+	    error ("%q+#D is inaccessible", diag_decl);
+	  error ("within this context");
+	}
       return false;
     }
 
@@ -6500,14 +6517,9 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	access_fn = DECL_TI_TEMPLATE (fn);
       else
 	access_fn = fn;
-      if (flags & LOOKUP_SPECULATIVE)
-	{
-	  if (!speculative_access_check (cand->access_path, access_fn, fn,
-					 complain & tf_error))
-	    return error_mark_node;
-	}
-      else
-	perform_or_defer_access_check (cand->access_path, access_fn, fn);
+      if (!perform_or_defer_access_check (cand->access_path, access_fn,
+					  fn, complain))
+	return error_mark_node;
     }
 
   /* If we're checking for implicit delete, don't bother with argument

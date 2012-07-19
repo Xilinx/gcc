@@ -1,3 +1,28 @@
+2012-07-16  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* c-gimplify.c: Include dumpfile.h instead of tree-dump.h.
+	* c-ada-spec.c: Likewise.
+	* c-dump.c (dump_stmt): Move to cp/dump.c, the only user.
+
+2012-07-14  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* c-pch.c (CHECK_NO_ASM_OUT_DURING_PCH): Do not define.
+	Remove code conditional on it.
+
+2012-07-11  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* c-gimplify.c: Do not include basic-block.h.
+	* c-common.c: Do not include linfuncs.h.
+
+2012-07-08  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* c-common.h: Include tree.h.
+
+2012-07-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53524
+	* c-common.c (get_priority): Call default_conversion.
+
 2012-07-01  Uros Bizjak  <ubizjak@gmail.com>
 
 	* c-pch.c (c_common_write_pch): Remove unused variables.

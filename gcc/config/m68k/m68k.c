@@ -1,6 +1,6 @@
 /* Subroutines for insn-output.c for Motorola 68000 family.
    Copyright (C) 1987, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   2001, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -617,6 +617,12 @@ m68k_option_override (void)
       align_loops = 0;
     }
 #endif
+
+  if (stack_limit_rtx != NULL_RTX && !TARGET_68020)
+    {
+      warning (0, "-fstack-limit- options are not supported on this cpu");
+      stack_limit_rtx = NULL_RTX;
+    }
 
   SUBTARGET_OVERRIDE_OPTIONS;
 
@@ -6498,6 +6504,16 @@ static void
 m68k_init_sync_libfuncs (void)
 {
   init_sync_libfuncs (UNITS_PER_WORD);
+}
+
+/* Implements EPILOGUE_USES.  All registers are live on exit from an
+   interrupt routine.  */
+bool
+m68k_epilogue_uses (int regno ATTRIBUTE_UNUSED)
+{
+  return (reload_completed
+	  && (m68k_get_function_kind (current_function_decl)
+	      == m68k_fk_interrupt_handler));
 }
 
 #include "gt-m68k.h"

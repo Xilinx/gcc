@@ -74,7 +74,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "expr.h"
 #include "tree-pass.h"
 #include "tree-flow.h"
-#include "timevar.h"
 #include "cgraph.h"
 #include "coverage.h"
 #include "df.h"
@@ -716,6 +715,7 @@ compute_alignments (void)
 
   if (dump_file)
     {
+      dump_reg_info (dump_file);
       dump_flow_info (dump_file, TDF_DETAILS);
       flow_loops_dump (dump_file, NULL, 1);
     }
@@ -1799,7 +1799,7 @@ dump_basic_block_info (FILE *file, rtx insn, basic_block *start_to_bb,
       fprintf (file, "\n%s PRED:", ASM_COMMENT_START);
       FOR_EACH_EDGE (e, ei, bb->preds)
         {
-          dump_edge_info (file, e, 0);
+          dump_edge_info (file, e, TDF_DETAILS, 0);
         }
       fprintf (file, "\n");
     }
@@ -1812,7 +1812,7 @@ dump_basic_block_info (FILE *file, rtx insn, basic_block *start_to_bb,
       fprintf (asm_out_file, "%s SUCC:", ASM_COMMENT_START);
       FOR_EACH_EDGE (e, ei, bb->succs)
        {
-         dump_edge_info (asm_out_file, e, 1);
+         dump_edge_info (asm_out_file, e, TDF_DETAILS, 1);
        }
       fprintf (file, "\n");
     }
@@ -1825,7 +1825,6 @@ void
 final (rtx first, FILE *file, int optimize_p)
 {
   rtx insn, next;
-  int max_uid = 0;
   int seen = 0;
 
   /* Used for -dA dump.  */
@@ -1836,11 +1835,9 @@ final (rtx first, FILE *file, int optimize_p)
 
   last_ignored_compare = 0;
 
+#ifdef HAVE_cc0
   for (insn = first; insn; insn = NEXT_INSN (insn))
     {
-      if (INSN_UID (insn) > max_uid)       /* Find largest UID.  */
-	max_uid = INSN_UID (insn);
-#ifdef HAVE_cc0
       /* If CC tracking across branches is enabled, record the insn which
 	 jumps to each branch only reached from one place.  */
       if (optimize_p && JUMP_P (insn))
@@ -1851,8 +1848,8 @@ final (rtx first, FILE *file, int optimize_p)
 	      LABEL_REFS (lab) = insn;
 	    }
 	}
-#endif
     }
+#endif
 
   init_recog ();
 

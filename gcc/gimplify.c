@@ -44,11 +44,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "splay-tree.h"
 #include "vec.h"
 #include "gimple.h"
-#include "tree-pass.h"
 
-#include "langhooks-def.h"	/* FIXME: for lhd_set_decl_assembler_name.  */
-#include "expr.h"		/* FIXME: for can_move_by_pieces
-				   and STACK_CHECK_MAX_VAR_SIZE.  */
+#include "langhooks-def.h"	/* FIXME: for lhd_set_decl_assembler_name */
+#include "tree-pass.h"		/* FIXME: only for PROP_gimple_any */
 
 enum gimplify_omp_var_data
 {
@@ -1247,7 +1245,8 @@ gimplify_bind_expr (tree *expr_p, gimple_seq *pre_p)
 	  && !DECL_HAS_VALUE_EXPR_P (t)
 	  /* Only care for variables that have to be in memory.  Others
 	     will be rewritten into SSA names, hence moved to the top-level.  */
-	  && !is_gimple_reg (t))
+	  && !is_gimple_reg (t)
+	  && flag_stack_reuse != SR_NONE)
 	{
 	  tree clobber = build_constructor (TREE_TYPE (t), NULL);
 	  TREE_THIS_VOLATILE (clobber) = 1;
@@ -3970,7 +3969,7 @@ gimplify_init_constructor (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	    walk_tree (&DECL_INITIAL (object), force_labels_r, NULL, NULL);
 
 	    /* ??? C++ doesn't automatically append a .<number> to the
-	       assembler name, and even when it does, it looks a FE private
+	       assembler name, and even when it does, it looks at FE private
 	       data structures to figure out what that number should be,
 	       which are not set for this variable.  I suppose this is
 	       important for local statics for inline functions, which aren't
@@ -5634,7 +5633,8 @@ gimplify_target_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
       /* Add a clobber for the temporary going out of scope, like
 	 gimplify_bind_expr.  */
       if (gimplify_ctxp->in_cleanup_point_expr
-	  && needs_to_live_in_memory (temp))
+	  && needs_to_live_in_memory (temp)
+	  && flag_stack_reuse == SR_ALL)
 	{
 	  tree clobber = build_constructor (TREE_TYPE (temp), NULL);
 	  TREE_THIS_VOLATILE (clobber) = true;

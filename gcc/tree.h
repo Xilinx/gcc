@@ -1,4 +1,4 @@
-/* Front-end tree definitions for GNU compiler.
+/* Definitions for the ubiquitous 'tree' type for GNU compilers.
    Copyright (C) 1989, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
    2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
@@ -1230,6 +1230,30 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 
 /* In integral and pointer types, means an unsigned type.  */
 #define TYPE_UNSIGNED(NODE) (TYPE_CHECK (NODE)->base.unsigned_flag)
+
+/* True if overflow wraps around for the given integral type.  That
+   is, TYPE_MAX + 1 == TYPE_MIN.  */
+#define TYPE_OVERFLOW_WRAPS(TYPE) \
+  (TYPE_UNSIGNED (TYPE) || flag_wrapv)
+
+/* True if overflow is undefined for the given integral type.  We may
+   optimize on the assumption that values in the type never overflow.
+
+   IMPORTANT NOTE: Any optimization based on TYPE_OVERFLOW_UNDEFINED
+   must issue a warning based on warn_strict_overflow.  In some cases
+   it will be appropriate to issue the warning immediately, and in
+   other cases it will be appropriate to simply set a flag and let the
+   caller decide whether a warning is appropriate or not.  */
+#define TYPE_OVERFLOW_UNDEFINED(TYPE) \
+  (!TYPE_UNSIGNED (TYPE) && !flag_wrapv && !flag_trapv && flag_strict_overflow)
+
+/* True if overflow for the given integral type should issue a
+   trap.  */
+#define TYPE_OVERFLOW_TRAPS(TYPE) \
+  (!TYPE_UNSIGNED (TYPE) && flag_trapv)
+
+/* True if pointer types have undefined overflow.  */
+#define POINTER_TYPE_OVERFLOW_UNDEFINED (flag_strict_overflow)
 
 /* Nonzero in a VAR_DECL or STRING_CST means assembler code has been written.
    Nonzero in a FUNCTION_DECL means that the function has been compiled.
@@ -5407,12 +5431,6 @@ extern tree get_inner_reference (tree, HOST_WIDE_INT *, HOST_WIDE_INT *,
 				 tree *, enum machine_mode *, int *, int *,
 				 bool);
 
-/* Given an expression EXP that may be a COMPONENT_REF, an ARRAY_REF or an
-   ARRAY_RANGE_REF, look for whether EXP or any nested component-refs within
-   EXP is marked as PACKED.  */
-
-extern bool contains_packed_reference (const_tree exp);
-
 /* Return a tree of sizetype representing the size, in bytes, of the element
    of EXP, an ARRAY_REF or an ARRAY_RANGE_REF.  */
 
@@ -5568,7 +5586,6 @@ extern tree unshare_expr (tree);
 
 /* In stmt.c */
 
-extern void expand_expr_stmt (tree);
 extern void expand_label (tree);
 extern void expand_goto (tree);
 
@@ -5825,7 +5842,6 @@ extern bool is_builtin_fn (tree);
 extern bool get_object_alignment_1 (tree, unsigned int *,
 				    unsigned HOST_WIDE_INT *);
 extern unsigned int get_object_alignment (tree);
-extern unsigned int get_object_or_type_alignment (tree);
 extern bool get_pointer_alignment_1 (tree, unsigned int *,
 				     unsigned HOST_WIDE_INT *);
 extern unsigned int get_pointer_alignment (tree);
@@ -5893,6 +5909,8 @@ extern location_t tree_nonartificial_location (tree);
 extern tree block_ultimate_origin (const_tree);
 
 extern tree get_binfo_at_offset (tree, HOST_WIDE_INT, tree);
+extern tree get_ref_base_and_extent (tree, HOST_WIDE_INT *,
+				     HOST_WIDE_INT *, HOST_WIDE_INT *);
 
 /* In tree-nested.c */
 extern tree build_addr (tree, tree);
@@ -6091,8 +6109,6 @@ extern bool parse_input_constraint (const char **, int, int, int, int,
 				    const char * const *, bool *, bool *);
 extern void expand_asm_stmt (gimple);
 extern tree resolve_asm_operand_names (tree, tree, tree, tree);
-extern bool expand_switch_using_bit_tests_p (tree, tree, unsigned int,
-					     unsigned int);
 extern void expand_case (gimple);
 #ifdef HARD_CONST
 /* Silly ifdef to avoid having all includers depend on hard-reg-set.h.  */
@@ -6251,6 +6267,12 @@ extern void fini_object_sizes (void);
 extern unsigned HOST_WIDE_INT compute_builtin_object_size (tree, int);
 
 /* In expr.c.  */
+
+/* Determine whether the LEN bytes can be moved by using several move
+   instructions.  Return nonzero if a call to move_by_pieces should
+   succeed.  */
+extern int can_move_by_pieces (unsigned HOST_WIDE_INT, unsigned int);
+
 extern unsigned HOST_WIDE_INT highest_pow2_factor (const_tree);
 extern tree build_personality_function (const char *);
 

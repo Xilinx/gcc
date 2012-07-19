@@ -53,9 +53,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cfgloop.h"
 #include "tree-flow.h"
 #include "ggc.h"
-#include "tree-dump.h"
 #include "tree-pass.h"
-#include "timevar.h"
 #include "tree-scalar-evolution.h"
 #include "cfgloop.h"
 #include "pointer-set.h"
@@ -150,6 +148,8 @@ maybe_hot_count_p (gcov_type count)
 bool
 maybe_hot_bb_p (const_basic_block bb)
 {
+  /* Make sure CFUN exists, for dump_bb_info.  */
+  gcc_assert (cfun);
   if (profile_status == PROFILE_READ)
     return maybe_hot_count_p (bb->count);
   return maybe_hot_frequency_p (bb->frequency);
@@ -201,6 +201,8 @@ maybe_hot_edge_p (edge e)
 bool
 probably_never_executed_bb_p (const_basic_block bb)
 {
+  /* Make sure CFUN exists, for dump_bb_info.  */
+  gcc_assert (cfun);
   if (profile_info && flag_branch_probabilities)
     return ((bb->count + profile_info->runs / 2) / profile_info->runs) == 0;
   if ((!profile_info || !flag_branch_probabilities)
