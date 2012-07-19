@@ -36,7 +36,7 @@ const char melt_modulename[]="warmelt-debug";
 const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown-linux-gnu/4.8.0/melt-modules/0.9.6-rc1/warmelt-debug";
 
 /* hash of preprocessed melt-run.h generating this */
-const char melt_prepromd5meltrun[]="9a6ac92709d7e395b3888c8006ec551d";
+const char melt_prepromd5meltrun[]="4c05bf3badde4b8184f1bf2dfc921f2a";
 /* hexmd5checksum of primary C file */
 const char melt_primaryhexmd5[]="b35edcf3f4d27948b21b307c77a25567";
 
