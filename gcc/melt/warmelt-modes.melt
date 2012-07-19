@@ -89,7 +89,7 @@
       (translate_to_c_one_or_more_melt_files inarg modsrcbase curenv)
       (debug "runfile_docmd after translation modsrcname=" modsrcname
 	     " modulnam=" modulnam)
-      (generate_quickly_melt_module modsrcbase modulnam)
+      (generate_flavored_melt_module modsrcbase modulnam '"quicklybuilt")
       (debug "runfile_docmd after generation of module runfile_mode modsrcbase=" modsrcbase
 	     " modulnam=" modulnam)
       ;; the new environment is silently discarded
@@ -112,57 +112,56 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 ;;;;;;;;;;;;;;;;
 ;;;;;
 (defun rundebug_docmd (cmd moduldata)
-  (debug "start rundebug_docmd cmd=" cmd " moduldata=" moduldata)
-  (let ( 
+  (debug "start rundebug_docmd cmd=" cmd " moduldata=" moduldata)  (let ( 
 	(parmodenv (parent_module_environment))
 	(curenv (if moduldata moduldata initial_environment))
 	(inarg (make_stringconst discr_string (melt_argument "arg")))
 	(outarg (make_stringconst discr_string (melt_argument "output")))
 	)
-    (debug "before read rundebug_mode parmodenv=" parmodenv
-	       " initial_environment=" initial_environment)
+    (debug "rundebug_docmd before read rundebug_mode parmodenv=" parmodenv 
+	   " initial_environment=" initial_environment
+	   " inarg=" inarg
+	   " outarg=" outarg)
     (assert_msg "check curenv" (is_a curenv class_environment))
     (let ( (modulnam ()) 
 	   (modsrcname
 	    (cond
 	     ( (is_string outarg) 
+	       (setq modulnam outarg)
 	       (setq modulnam
-		     (make_string_without_suffix discr_string outarg ".c"))
+		     (make_string_without_suffix discr_string modulnam ".c"))
+	       (setq modulnam
+		     (make_string_without_dynloaded_suffix discr_string modulnam))
+	       (debug "rundebug_docmd sets modulnam=" modulnam " with outarg")
 	       outarg)
 	     ( (is_string inarg) 
 	       (setq modulnam (make_string_nakedbasename discr_string inarg))
+	       (debug "rundebug_docmd sets modulnam=" modulnam " with inarg")
 	       (make_string_tempname_suffixed discr_string inarg ".c"))
 	     (:else
 	      (errormsg_plain "invalid rundebug mode")
 	      (return)
 	      )))
-	   (modsrcbase
-	     (make_string_without_suffix discr_string modsrcname  ".c"))
-	   (basnam (cond
-		    ( (is_string outarg) (make_string_nakedbasename discr_string outarg))
-		    ( (is_string inarg) (make_string_nakedbasename discr_string inarg))
-		    (:else
-		     (errormsg_plain "invalid rundebug mode")
-		     (return)
-		     )))
-	   (dbgmodulnam 
-	    (or outarg
-		(let ( (dbgnambuf (make_strbuf discr_strbuf)) )
-		  (add2sbuf_string dbgnambuf basnam)
-		  (add2sbuf_strconst dbgnambuf ".debugnoline")
-		  (add2sbuf_dynloaded_suffix dbgnambuf)
-		  (strbuf2string discr_string dbgnambuf))))
 	   )
-      (debug "rundebug_docmd before translation to c inarg=" inarg " modsrcbase=" modsrcbase)
+      (let ( (modsrcbase (make_string_without_suffix discr_string modsrcname ".c")) 
+	     )
+      (debug "rundebug_docmd before translation inarg=" inarg " modulnam=" modulnam
+	     " modsrcname=" modsrcname
+	     " modsrcbase=" modsrcbase)
       (translate_to_c_one_or_more_melt_files inarg modsrcbase curenv)
-      (debug "after compilation rundebug_mode modsrcname=" modsrcname 
-	     " dbgmodulnam=" dbgmodulnam)
-      (generate_debug_melt_module modsrcname dbgmodulnam)
+      (debug "rundebug_docmd after translation modsrcname=" modsrcname
+	     " modulnam=" modulnam)
+      (generate_flavored_melt_module modsrcbase modulnam '"debugnoline")
+      (debug "rundebug_docmd after generation of module rundebug_mode modsrcbase=" modsrcbase
+	     " modulnam=" modulnam)
       ;; the new environment is silently discarded
-      (debug "before starting quicklybuilt module rundebug_mode dbgmodulnam=" dbgmodulnam)
-      (ignore (start_melt_module_of_flavor curenv modulnam '"quicklybuilt"))
-      (return :true) ;; so the mode succeeds and compilation can continue
-      )))
+      (ignore (start_melt_module_of_flavor curenv modulnam '"debugnoline"))
+      (debug "rundebug_docmd done modulnam=" modulnam " modsrcbase=" modsrcbase " return :true")
+      ;; the mode closure should return true to enable further compilation
+      (return :true)
+      ))))
+
+
 ;;;;
 (definstance rundebug_mode
   class_melt_mode

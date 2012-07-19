@@ -862,6 +862,16 @@ removing the MELT_DYNLOADED_SUFFIX if it ends with it, or else a copy of $STR.}#
 					     melt_string_str ($FILEV)))}#)
 
 
+;; generate a loadable module from a MELT generated C source file; the
+;;  out is the dynloaded module without any MELT_DYNLOADED_SUFFIX. 
+(defprimitive generate_flavored_melt_module (src outnam flavor) :void
+  :doc #{Generate and load a module of given $FLAVOR whose source is named after $SRC 
+and whose binary is named after $OUTNAM without any MELT_DYNLOADED_SUFFIX.}#
+  #{ /*generate_flavored_melt_module*/ melt_compile_source (melt_string_str ((melt_ptr_t)$SRC),
+			 melt_string_str ((melt_ptr_t)$OUTNAM),
+			 NULL,
+			 melt_string_str ((melt_ptr_t)$FLAVOR)); /*generate_flavored_melt_module*/
+  }#)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; obsolete compilation primitives
 
@@ -871,29 +881,21 @@ removing the MELT_DYNLOADED_SUFFIX if it ends with it, or else a copy of $STR.}#
 (defprimitive generate_optimized_melt_module (src outnam) :void
   :doc #{Generate and load an optimized module whose source is named after $SRC 
 and whose binary is named after $OUTNAM without any MELT_DYNLOADED_SUFFIX.}#
-  #{melt_compile_source (melt_string_str ((melt_ptr_t)$SRC),
+  #{#warning obsolete generate_optimized_melt_module 
+melt_compile_source (melt_string_str ((melt_ptr_t)$SRC),
 			 melt_string_str ((melt_ptr_t)$OUTNAM),
 			 NULL,
 			 "optimized"); /*generate_melt_module*/
   }#)
 
-;; generate a loadable module from a MELT generated C source file; the
-;;  out is the dynloaded module without any MELT_DYNLOADED_SUFFIX. 
-(defprimitive generate_flavored_melt_module (src outnam flavor) :void
-  :doc #{Generate and load a module of given $FLAVOR whose source is named after $SRC 
-and whose binary is named after $OUTNAM without any MELT_DYNLOADED_SUFFIX.}#
-  #{melt_compile_source (melt_string_str ((melt_ptr_t)$SRC),
-			 melt_string_str ((melt_ptr_t)$OUTNAM),
-			 NULL,
-			 melt_string_str ((melt_ptr_t)$FLAVOR)); /*generate_flavored_melt_module*/
-  }#)
 
 ;; generate a debug loadable module from a MELT generated C source file; the
 ;;  out is the dynloaded module without any MELT_DYNLOADED_SUFFIX.
 (defprimitive generate_debug_melt_module (src outnam) :void
   :doc #{Generate and load a module whose source is named after $SRC 
 and whose binary is named after $OUTNAM without any MELT_DYNLOADED_SUFFIX.}#
-  #{melt_compile_source (melt_string_str ((melt_ptr_t)$SRC),
+  #{#warning obsolete generate_debug_melt_module
+  melt_compile_source (melt_string_str ((melt_ptr_t)$SRC),
 			 melt_string_str ((melt_ptr_t)$OUTNAM),
 			 NULL,
 			 "debugnoline"); /*generate_debug_melt_module*/
@@ -905,7 +907,8 @@ and whose binary is named after $OUTNAM without any MELT_DYNLOADED_SUFFIX.}#
 (defprimitive generate_quickly_melt_module (src outnam) :void
   :doc #{Generate and load a module whose source is named after $SRC 
 and whose binary is named after $OUTNAM without any MELT_DYNLOADED_SUFFIX.}#
-  #{melt_compile_source (melt_string_str ((melt_ptr_t)$SRC),
+  #{#warning obsolete generate_quickly_melt_module
+  melt_compile_source (melt_string_str ((melt_ptr_t)$SRC),
 			 melt_string_str ((melt_ptr_t)$OUTNAM),
 			 NULL,
 			 "quicklybuilt"); /*generate_quickly_melt_module*/
