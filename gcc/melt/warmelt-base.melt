@@ -872,48 +872,8 @@ and whose binary is named after $OUTNAM without any MELT_DYNLOADED_SUFFIX.}#
 			 NULL,
 			 melt_string_str ((melt_ptr_t)$FLAVOR)); /*generate_flavored_melt_module*/
   }#)
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; obsolete compilation primitives
 
 
-;; generate a loadable module from a MELT generated C source file; the
-;;  out is the dynloaded module without any MELT_DYNLOADED_SUFFIX 
-(defprimitive generate_optimized_melt_module (src outnam) :void
-  :doc #{Generate and load an optimized module whose source is named after $SRC 
-and whose binary is named after $OUTNAM without any MELT_DYNLOADED_SUFFIX.}#
-  #{#warning obsolete generate_optimized_melt_module 
-melt_compile_source (melt_string_str ((melt_ptr_t)$SRC),
-			 melt_string_str ((melt_ptr_t)$OUTNAM),
-			 NULL,
-			 "optimized"); /*generate_melt_module*/
-  }#)
-
-
-;; generate a debug loadable module from a MELT generated C source file; the
-;;  out is the dynloaded module without any MELT_DYNLOADED_SUFFIX.
-(defprimitive generate_debug_melt_module (src outnam) :void
-  :doc #{Generate and load a module whose source is named after $SRC 
-and whose binary is named after $OUTNAM without any MELT_DYNLOADED_SUFFIX.}#
-  #{#warning obsolete generate_debug_melt_module
-  melt_compile_source (melt_string_str ((melt_ptr_t)$SRC),
-			 melt_string_str ((melt_ptr_t)$OUTNAM),
-			 NULL,
-			 "debugnoline"); /*generate_debug_melt_module*/
-  }#
-)
-
-;; quickly generate a loadable module from a MELT generated C source file; the
-;;  out is the dynloaded module without any MELT_DYNLOADED_SUFFIX. 
-(defprimitive generate_quickly_melt_module (src outnam) :void
-  :doc #{Generate and load a module whose source is named after $SRC 
-and whose binary is named after $OUTNAM without any MELT_DYNLOADED_SUFFIX.}#
-  #{#warning obsolete generate_quickly_melt_module
-  melt_compile_source (melt_string_str ((melt_ptr_t)$SRC),
-			 melt_string_str ((melt_ptr_t)$OUTNAM),
-			 NULL,
-			 "quicklybuilt"); /*generate_quickly_melt_module*/
-  }#
-)
 
 ;; primitive to load and initialize a module with a flavor in a given environement 
 (defprimitive start_melt_module_of_flavor (env modname flavor) :value
@@ -4047,9 +4007,6 @@ which signals are not handled. It could be dynamically nested.}#
  errormsg_strv
  foreach_long_upto
  full_garbcoll
- generate_debug_melt_module
- generate_optimized_melt_module
- generate_quickly_melt_module
  generate_flavored_melt_module
  get_globpredef
  ignore
@@ -4238,10 +4195,8 @@ which signals are not handled. It could be dynamically nested.}#
  warningmsg_strv
  xori
  zerop
-
  )
 
-(export_synonym generate_melt_module generate_optimized_melt_module)
 
 (export_synonym melt_mode_container melt_mode_reference)
 

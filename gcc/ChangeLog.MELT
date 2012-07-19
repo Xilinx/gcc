@@ -1,5 +1,10 @@
 
 2012-07-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt (generate_debug_melt_module)
+	(generate_optimized_melt_module, generate_quickly_melt_module)
+	(generate_melt_module): Remove.
+
+2012-07-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate all}}
 
 	* melt/generated/warmelt-base+01.c: Regenerate.
