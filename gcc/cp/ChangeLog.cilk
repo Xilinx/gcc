@@ -1,3 +1,10 @@
+2012-07-19  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* parser.c (cp_parser_postfix_open_square_expression): Rearranged code
+	to fix (or unbreak) the regression test error11.C.
+	* semantics.c (finish_id_expression): Converted the decl to the type
+	of assignment.
+
 2012-07-18  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* parser.c (cp_parser_postfix_expression): Added check if the function

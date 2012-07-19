@@ -6010,15 +6010,13 @@ cp_parser_postfix_open_square_expression (cp_parser *parser,
   /* Consume the `[' token.  */
   cp_lexer_consume_token (parser->lexer);
 
-  if (cp_lexer_peek_token (parser->lexer)->type == CPP_COLON)
-    {
-      /* If we reach here, then we have something like this:
-       * ARRAY [:]
-       */
-      if (flag_enable_cilk)
-	postfix_expression = cp_parser_array_notation (parser, NULL_TREE,
-						       postfix_expression);
-    }
+  if (flag_enable_cilk
+      && cp_lexer_peek_token (parser->lexer)->type == CPP_COLON)
+    /* If we reach here, then we have something like this:
+           ARRAY [:]
+     */
+    postfix_expression = cp_parser_array_notation (parser, NULL_TREE,
+						   postfix_expression);
   else
     {
       /* Here we have 3 options:
@@ -6041,12 +6039,10 @@ cp_parser_postfix_open_square_expression (cp_parser *parser,
       else
 	index = cp_parser_expression (parser, /*cast_p=*/false, NULL);
       
-      if (cp_lexer_peek_token (parser->lexer)->type == CPP_COLON)
-	{
-	  if (flag_enable_cilk)
-	    postfix_expression = cp_parser_array_notation (parser, index,
-							   postfix_expression);
-	}
+      if (flag_enable_cilk
+	  && cp_lexer_peek_token (parser->lexer)->type == CPP_COLON)
+	postfix_expression = cp_parser_array_notation (parser, index,
+						       postfix_expression);
       else
 	{
 	  /* Look for the closing `]'.  */
