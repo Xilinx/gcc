@@ -1,5 +1,12 @@
 
 2012-07-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.c (melt_find_file_at): Silently continue when the
+	directory or path or environment name is null or empty.
+	(melt_load_module_index): Better trace message.
+
+2012-07-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.c (MELT_FILE_IN_ENVIRON_PATH): Mew macro constant.
 	(melt_find_file_at): Handle it.
 	(meltgc_read_file, melt_load_module_index)

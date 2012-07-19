@@ -5783,7 +5783,7 @@ melt_find_file_at (int lin, const char*path, ...)
 	{
 	  char* fipath = NULL;
 	  char* indir = va_arg (args, char*);
-	  if (!indir)
+	  if (!indir || !indir[0])
 	    continue;
 	  fipath = concat (indir, "/", path, NULL);
 	  if (!access(fipath, R_OK)) 
@@ -5798,7 +5798,7 @@ melt_find_file_at (int lin, const char*path, ...)
 			    melt_basename(__FILE__), lin);
 	      return fipath;
 	    }
-	  else if (logf)
+	  else if (logf && indir && indir[0])
 	    fprintf (logf, "not found in directory %s\n", indir);
 	  free (fipath);
 	} 
@@ -5810,7 +5810,7 @@ melt_find_file_at (int lin, const char*path, ...)
 	  char* nextpc = NULL;
 	  char* col = NULL;
 	  char* fipath = NULL;
-	  if (!inpath) 
+	  if (!inpath || !inpath[0]) 
 	    continue;
 	  dupinpath = xstrdup (inpath);
 	  pc = dupinpath;
@@ -5850,7 +5850,7 @@ melt_find_file_at (int lin, const char*path, ...)
 	  char* nextpc = NULL;
 	  char* col = NULL;
 	  char* fipath = NULL;
-	  if (!inenv) 
+	  if (!inenv || !inenv[0]) 
 	    continue;
 	  inpath = getenv (inenv);
 	  if (!inpath || !inpath[0]) 
@@ -8806,7 +8806,7 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
     melt_fatal_error ("Failed to dlopen MELT module %s - %s", sopath, dlerror ());
   if (melt_trace_module_fil)
     fprintf (melt_trace_module_fil,
-	     "%s #%d\n", sopath, VEC_length (melt_module_info_t, melt_modinfvec));
+	     "dlopened %s #%d\n", sopath, VEC_length (melt_module_info_t, melt_modinfvec));
   validh = TRUE;
 
   /* Retrieve our dynamic symbols. */
