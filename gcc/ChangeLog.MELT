@@ -1,5 +1,16 @@
 
 2012-07-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-run.proto.h (start_module_melt): Remove.
+
+	* melt-runtime.c (melt_trace_dynlink_fil): Declare static
+	variable.
+	(melt_load_module_index): Use it.
+	(melt_really_initialize): Initialize it from GCCMELT_TRACE_DYNLINK
+	environment variable.
+	(do_finalize_melt): Close it.
+
+2012-07-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate all}}
 
 	* melt/generated/meltrunsup-inc.c: Regenerate.

@@ -259,7 +259,13 @@ static long melt_minorsizekilow = 0;
 static long melt_fullthresholdkilow = 0;
 static int melt_fullperiod = 0;
 
+/* File containing the generated C file list. Enabled by the
+   -f[plugin-arg-]melt-generated-c-file-list= program option. */
 static FILE* melt_generated_c_files_list_fil;
+
+/* Debugging file for tracing dlopen & dlsym calls. Enabled by the
+   GCCMELT_TRACE_DYNLINK environment variable. */
+static FILE* melt_trace_dynlink_fil;
 
 #define MELT_MODULE_MAGIC  0x5cc065cf  /*1556112847*/
 
@@ -8447,8 +8453,9 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
   ssize_t desclinlen = 0;
   int desclinenum = 0;
 
-  /* list of required dynamic symbols (dlsymed in the module, provided
-     in the FOO+meltdesc.c or FOO+melttime.h file) */
+  /* list of required dynamic symbols (dlsymed in the FOO module,
+     provided in the FOO+meltdesc.c or FOO+melttime.h or FOO.c
+     file) */
 #define MELTDESCR_REQUIRED_LIST						\
   MELTDESCR_REQUIRED_SYMBOL (melt_build_timestamp, char);		\
   MELTDESCR_REQUIRED_SYMBOL (melt_cumulated_hexmd5, char);		\
@@ -8690,6 +8697,9 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
   dlh = dlopen (sopath, RTLD_NOW | RTLD_GLOBAL);
   if (!dlh)
     melt_fatal_error ("Failed to dlopen MELT module %s - %s", sopath, dlerror ());
+  if (melt_trace_dynlink_fil)
+    fprintf (melt_trace_dynlink_fil,
+	     "%s #%d\n", sopath, VEC_length (melt_module_info_t, melt_modinfvec));
   validh = TRUE;
 
   /* Retrieve our dynamic symbols. */
@@ -8853,8 +8863,8 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
     melt_module_info_t minf = { 0, NULL, NULL, NULL, NULL };
     ix = VEC_length (melt_module_info_t, melt_modinfvec);
     gcc_assert (ix > 0);
-    if (ix > 32 && melt_flag_bootstrapping)
-      melt_fatal_error("too big module index %d when bootstrapping", ix);
+    if (ix > 40 && melt_flag_bootstrapping)
+      melt_fatal_error ("too big module index %d when bootstrapping", ix);
     minf.mmi_dlh = dlh;
     minf.mmi_descrbase = xstrdup (srcbase);
     minf.mmi_modpath = xstrdup (sopath);
@@ -9816,7 +9826,7 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   if (gettimeofday (&melt_start_time, NULL))
     melt_fatal_error ("MELT cannot call gettimeofday for melt_start_time (%s)", xstrerror(errno));
   debugeprintf ("melt_really_initialize melt_start_time=%ld", (long) melt_start_time.tv_sec);
-
+ 
 #ifdef MELT_IS_PLUGIN
   /* when MELT is a plugin, we need to process the debug
      argument. When MELT is a branch, the melt_argument function is
@@ -10012,6 +10022,7 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
               curlocale);
   }
 
+  /* Give messages for bootstrapping about ignored directories. */
   if (melt_flag_bootstrapping) {
     char* envpath = NULL;
     inform  (UNKNOWN_LOCATION,
@@ -10031,11 +10042,31 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
 
   }
 
+  /* Return immediately if no mode is given.  */
   if (!modstr || *modstr=='\0') {
     debugeprintf ("melt_really_initialize return immediately since no mode (inistr=%s)",
                   inistr);
     return;
+  } 
+
+  /* Optionaly trace the dynamic linking.  */
+  {
+    char* dynlinkenv = getenv ("GCCMELT_TRACE_DYNLINK");
+    if (dynlinkenv)
+      {
+	melt_trace_dynlink_fil = fopen (dynlinkenv, "a");
+	if (melt_trace_dynlink_fil) 
+	  {
+	    time_t now = 0;
+	    time (&now);
+	    fprintf (melt_trace_dynlink_fil, "# start pid %d MELT version %s mode %s at %s",
+		     (int) getpid(), MELT_VERSION_STRING, modstr, ctime (&now));
+	    fflush (melt_trace_dynlink_fil);
+	    inform (UNKNOWN_LOCATION, "MELT tracing dynlinking in %s", dynlinkenv);
+	  }
+      }
   }
+
   if (melt_minorsizekilow == 0) {
     const char* minzstr = melt_argument ("minor-zone");
     melt_minorsizekilow = minzstr ? (atol (minzstr)) : 0;
@@ -10046,6 +10077,7 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   /* don't use the index 0 so push a null at 0 in modinfvec.  */
   VEC_safe_push (melt_module_info_t, heap, melt_modinfvec,
                  (melt_module_info_t *) 0);
+  /* The program handle dlopen is not traced! */
   proghandle = dlopen (NULL, RTLD_NOW | RTLD_GLOBAL);
   if (!proghandle)
     /* Don't call melt_fatal_error - we are initializing! */
@@ -10236,6 +10268,13 @@ do_finalize_melt (void)
     {
       fprintf (melt_generated_c_files_list_fil, "# end of generated C file list\n");
       fclose (melt_generated_c_files_list_fil);
+      melt_generated_c_files_list_fil = NULL;
+    }
+  if (melt_trace_dynlink_fil)
+    {
+      fprintf (melt_trace_dynlink_fil, "# end of dynamic link trace for pid %d\n", (int) getpid());
+      fclose (melt_trace_dynlink_fil);
+      melt_trace_dynlink_fil = NULL;
     }
   dbgprintf ("do_finalize_melt ended melt_nb_modules=%d", melt_nb_modules);
 end:
