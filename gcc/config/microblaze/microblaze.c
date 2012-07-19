@@ -2429,6 +2429,15 @@ print_operand (FILE * file, rtx op, int letter)
 	rtx op4 = adjust_address (op, GET_MODE (op), 4);
 	output_address (XEXP (op4, 0));
       }
+      else if (letter == 'y')
+      {
+	rtx mem_reg = XEXP (op, 0);
+        if (GET_CODE (mem_reg) == REG)
+	{
+	  register int regnum = REGNO (mem_reg);
+	  fprintf (file, "%s", reg_names[regnum]);
+	}
+      }
     else
       output_address (XEXP (op, 0));
 
