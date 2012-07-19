@@ -31092,7 +31092,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /3dab3c5b checkpair",
+	    melt_assertmsg ("putpairtail /2ace6b8e checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.OSUCC__V37*/
 					       meltfptr[33])) ==

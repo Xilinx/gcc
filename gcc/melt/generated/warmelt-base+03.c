@@ -1107,11 +1107,6 @@ void MELT_MODULE_VISIBILITY meltmod__warmelt_base__initialmeltchunk_46 (struct
 									*,
 									char
 									*);
-void MELT_MODULE_VISIBILITY meltmod__warmelt_base__initialmeltchunk_47 (struct
-									frame_start_module_melt_st
-									*,
-									char
-									*);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_base__forward_or_mark_module_start_frame (struct
 							   melt_callframe_st
@@ -1204,11 +1199,11 @@ meltrout_57_warmelt_base_RETRIEVE_VALUE_DESCRIPTOR_LIST (meltclosure_ptr_t
   goto lab_endgetargs;
 lab_endgetargs:;
 /*body*/
-  MELT_LOCATION ("warmelt-base.melt:2594:/ block");
+  MELT_LOCATION ("warmelt-base.melt:2554:/ block");
 /*anyblock*/
   {
 
-    MELT_LOCATION ("warmelt-base.melt:2595:/ cond");
+    MELT_LOCATION ("warmelt-base.melt:2555:/ cond");
     /*cond */ if (
 		   /*ifisa */
 		   melt_is_instance_of ((melt_ptr_t)
@@ -1233,13 +1228,13 @@ lab_endgetargs:;
   /*_.REFERENCED_VALUE__V2*/ meltfptr[1] = NULL;;
       }
     ;
-    MELT_LOCATION ("warmelt-base.melt:2594:/ quasiblock");
+    MELT_LOCATION ("warmelt-base.melt:2554:/ quasiblock");
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.REFERENCED_VALUE__V2*/ meltfptr[1];;
 
     {
-      MELT_LOCATION ("warmelt-base.melt:2594:/ locexp");
+      MELT_LOCATION ("warmelt-base.melt:2554:/ locexp");
       /*ochecknores compilobj_nrep_return */
 #if MELT_HAVE_DEBUG
       if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
