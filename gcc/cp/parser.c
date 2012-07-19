@@ -6037,8 +6037,17 @@ cp_parser_postfix_open_square_expression (cp_parser *parser,
       if (for_offsetof)
 	index = cp_parser_constant_expression (parser, false, NULL);
       else
-	index = cp_parser_expression (parser, /*cast_p=*/false, NULL);
-      
+	{
+	  if (!flag_enable_cilk 
+	      && cp_lexer_next_token_is (parser->lexer, CPP_OPEN_BRACE))
+            {
+	      bool expr_nonconst_p;
+	      maybe_warn_cpp0x (CPP0X_INITIALIZER_LISTS);
+	      index = cp_parser_braced_list (parser, &expr_nonconst_p);
+	    }
+	  else
+	    index = cp_parser_expression (parser, /*cast_p=*/false, NULL);
+	}
       if (flag_enable_cilk
 	  && cp_lexer_peek_token (parser->lexer)->type == CPP_COLON)
 	postfix_expression = cp_parser_array_notation (parser, index,

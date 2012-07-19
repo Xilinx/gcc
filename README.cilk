@@ -1,5 +1,5 @@
 This readme describes the gcc port of the Intel(R) Cilk(TM) Plus extensions to
- C and C++ languages. 
+ C and C++ languages.
 
 The "cilkplus" GCC branch implements the Intel Cilk Plus language 
 extensions to C and C++ frontends. For more information about Intel Cilk Plus, 

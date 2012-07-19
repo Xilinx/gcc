@@ -1,7 +1,8 @@
 2012-07-19  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* parser.c (cp_parser_postfix_open_square_expression): Rearranged code
-	to fix (or unbreak) the regression test error11.C.
+	to fix (or unbreak) the regression test error11.C.  Also added support
+	for braced index list (as per trunk).
 	* semantics.c (finish_id_expression): Converted the decl to the type
 	of assignment.
 
