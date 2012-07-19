@@ -8688,8 +8688,11 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
   sobase =
     concat (melt_basename(descmodulename), ".", desccumulatedhexmd5, ".", flavor,
             MELT_DYNLOADED_SUFFIX, NULL);
+#warning melt_load_module_index should have .meltmod somewhere in sobase
   debugeprintf ("melt_load_module_index long sobase %s workdir %s",
                 sobase, melt_argument ("workdir"));
+  if (melt_trace_module_fil)
+    fprintf (melt_trace_module_fil, "base of module: %s\n", sobase);
   sopath =
     MELT_FIND_FILE
     (sobase,
