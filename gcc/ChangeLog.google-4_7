@@ -1,3 +1,9 @@
+2012-07-19  Rong Xu  <xur@google.com>
+
+	Backport r189691 from google_main.
+	* gcc/gcov-io.h (GCOV_TAG_MODULE_INFO): tag needs to be
+	 an odd number in each active level.
+
 2012-07-10  Xinliang David Li  <davidxl@google.com>
 
 	Backport r189413 from trunk

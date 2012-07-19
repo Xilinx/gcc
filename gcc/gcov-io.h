@@ -441,7 +441,6 @@ typedef HOST_WIDEST_INT gcov_type;
 #define GCOV_TAG_PROGRAM_SUMMARY ((gcov_unsigned_t)0xa3000000)
 #define GCOV_TAG_SUMMARY_LENGTH  \
 	(1 + GCOV_COUNTERS_SUMMABLE * (3 + 3 * 2))
-#define GCOV_TAG_MODULE_INFO ((gcov_unsigned_t)0xa4000000)
 #define GCOV_TAG_PMU_LOAD_LATENCY_INFO ((gcov_unsigned_t)0xa5000000)
 #define GCOV_TAG_PMU_LOAD_LATENCY_LENGTH(filename)  \
   (gcov_string_length (filename) + 12 + 2)
@@ -449,6 +448,7 @@ typedef HOST_WIDEST_INT gcov_type;
 #define GCOV_TAG_PMU_BRANCH_MISPREDICT_LENGTH(filename)  \
   (gcov_string_length (filename) + 5 + 2)
 #define GCOV_TAG_PMU_TOOL_HEADER ((gcov_unsigned_t)0xa9000000)
+#define GCOV_TAG_MODULE_INFO ((gcov_unsigned_t)0xab000000)
 
 /* Counters that are collected.  */
 #define GCOV_COUNTER_ARCS 	0  /* Arc transitions.  */
