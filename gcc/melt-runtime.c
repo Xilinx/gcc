@@ -263,9 +263,13 @@ static int melt_fullperiod = 0;
    -f[plugin-arg-]melt-generated-c-file-list= program option. */
 static FILE* melt_generated_c_files_list_fil;
 
-/* Debugging file for tracing dlopen & dlsym calls. Enabled by the
-   GCCMELT_TRACE_DYNLINK environment variable. */
-static FILE* melt_trace_dynlink_fil;
+/* Debugging file for tracing dlopen & dlsym calls for
+   modules. Enabled by the GCCMELT_TRACE_MODULE environment
+   variable. */
+static FILE* melt_trace_module_fil;
+/* Debugging file for tracing source files related things. Enabled by
+   the GCCMELT_TRACE_SOURCE environment variable. */
+static FILE* melt_trace_source_fil;
 
 #define MELT_MODULE_MAGIC  0x5cc065cf  /*1556112847*/
 
@@ -5754,6 +5758,7 @@ static char*melt_find_file_at (int line, const char*path, ...) ATTRIBUTE_SENTINE
 
 #define MELT_FILE_IN_DIRECTORY "directory"
 #define MELT_FILE_IN_PATH "path"
+#define MELT_FILE_LOG "log"
 
 
 /* Called thru the MELT_FIND_FILE macro, returns a malloced string. */
@@ -5761,57 +5766,93 @@ static char*
 melt_find_file_at (int lin, const char*path, ...)
 {
   char* mode = NULL;
+  FILE *logf = NULL;
   va_list args;
   if (!path)
     return NULL;
   va_start (args, path);
-  while ((mode=va_arg (args, char*)) != NULL) {
-    if (!strcmp(mode, MELT_FILE_IN_DIRECTORY)) {
-      char* fipath = NULL;
-      char* indir = va_arg (args, char*);
-      if (!indir)
-        continue;
-      fipath = concat (indir, "/", path, NULL);
-      if (!access(fipath, R_OK)) {
-        debugeprintf ("found file %s in directory %s [%s:%d]",
-                      fipath, indir,
-                      melt_basename(__FILE__), lin);
-        return fipath;
-      };
-      free (fipath);
-    } else if (!strcmp(mode, MELT_FILE_IN_PATH)) {
-      char* inpath = va_arg(args, char*);
-      char* dupinpath = NULL;
-      char* pc = NULL;
-      char* nextpc = NULL;
-      char* col = NULL;
-      char* fipath = NULL;
-      if (!inpath) continue;
-      dupinpath = xstrdup (inpath);
-      pc = dupinpath;
-      for (pc = dupinpath; pc && *pc; pc = nextpc) {
-        nextpc = NULL;
-        col = strchr(pc, ':');
-        if (col) {
-          *col = (char)0;
-          nextpc = col+1;
-        } else
-          col = pc + strlen(pc);
-        fipath = concat (pc, "/", path, NULL);
-        if (!access (fipath, R_OK)) {
-          debugeprintf ("found file %s in colon path %s [%s:%d]",
-                        fipath, inpath,
-                        melt_basename(__FILE__), lin);
-          free (dupinpath), dupinpath = NULL;
-          return fipath;
-        }
-      };
-      free (dupinpath), dupinpath = NULL;
-    } else
-      fatal_error ("MELT_FIND_FILE %s: bad mode %s [%s:%d]",
-                   path, mode, melt_basename(__FILE__), lin);
-  }
+  while ((mode=va_arg (args, char*)) != NULL) 
+    {
+      if (!strcmp(mode, MELT_FILE_IN_DIRECTORY))
+	{
+	  char* fipath = NULL;
+	  char* indir = va_arg (args, char*);
+	  if (!indir)
+	    continue;
+	  fipath = concat (indir, "/", path, NULL);
+	  if (!access(fipath, R_OK)) 
+	    {
+	      if (logf) 
+		{
+		  fprintf (logf, "found %s in directory %s\n", fipath, indir);
+		  fflush (logf);
+		}
+	      debugeprintf ("found file %s in directory %s [%s:%d]",
+			    fipath, indir,
+			    melt_basename(__FILE__), lin);
+	      return fipath;
+	    }
+	  else if (logf)
+	    fprintf (logf, "not found in directory %s\n", indir);
+	  free (fipath);
+	} 
+      else if (!strcmp(mode, MELT_FILE_IN_PATH)) 
+	{
+	  char* inpath = va_arg(args, char*);
+	  char* dupinpath = NULL;
+	  char* pc = NULL;
+	  char* nextpc = NULL;
+	  char* col = NULL;
+	  char* fipath = NULL;
+	  if (!inpath) 
+	    continue;
+	  dupinpath = xstrdup (inpath);
+	  pc = dupinpath;
+	  for (pc = dupinpath; pc && *pc; pc = nextpc) 
+	    {
+	      nextpc = NULL;
+	      col = strchr(pc, ':');
+	      if (col) {
+		*col = (char)0;
+		nextpc = col+1;
+	      } else
+		col = pc + strlen(pc);
+	      fipath = concat (pc, "/", path, NULL);
+	      if (!access (fipath, R_OK)) {
+		if (logf)
+		  {
+		    fprintf (logf, "found %s in colon path %s\n", fipath, inpath);
+		    fflush (logf);
+		  }
+		debugeprintf ("found file %s in colon path %s [%s:%d]",
+			      fipath, inpath,
+			      melt_basename(__FILE__), lin);
+		free (dupinpath), dupinpath = NULL;
+		return fipath;
+	      }
+	    };
+	  if (logf)
+	    fprintf (logf, "not found in colon path %s\n", inpath);
+	  free (dupinpath), dupinpath = NULL;
+	} 
+      else if (!strcmp(mode, MELT_FILE_LOG)) {
+	logf = va_arg (args, FILE*);
+	if (logf)
+	  fprintf (logf, "finding file %s [from %s:%d]\n",
+		   path, melt_basename(__FILE__), lin);
+	continue;
+      }
+      else
+	fatal_error ("MELT_FIND_FILE %s: bad mode %s [%s:%d]",
+		     path, mode, melt_basename(__FILE__), lin);
+    }
   va_end (args);
+  if (logf)
+    {
+      fprintf (logf, "not found file %s [from %s:%d]\n",
+	       path, melt_basename(__FILE__), lin);
+      fflush (logf);
+    }
   debugeprintf ("not found file %s [%s:%d]", path, melt_basename(__FILE__), lin);
   return NULL;
 }
@@ -7443,6 +7484,11 @@ meltgc_read_file (const char *filnam, const char *locnam)
     goto end;
   if (!locnam || !locnam[0])
     locnam = melt_basename (filnam);
+  if (melt_trace_source_fil)
+    {
+      fprintf (melt_trace_source_fil, "MELT reads MELT source file %s, locally %s\n", filnam, locnam);
+      fflush (melt_trace_source_fil);
+    }
   filnamdup = xstrdup (filnam);
   /* Store the filnamdup in the parsedmeltfilevect vector to be able
      to free them at end; we need to duplicate filnam because
@@ -7452,9 +7498,10 @@ meltgc_read_file (const char *filnam, const char *locnam)
   fil = fopen (filnamdup, "rt");
   /* If needed, find the file in the source path.  */
   if (!fil && !IS_ABSOLUTE_PATH(filnam)) {
-    free (filnamdup),    filnamdup = 0;
+    free (filnamdup), filnamdup = NULL;
     filnamdup =
       MELT_FIND_FILE (filnam,
+		      MELT_FILE_LOG, melt_trace_source_fil,
                       MELT_FILE_IN_PATH, srcpathstr,
                       MELT_FILE_IN_PATH, envpath,
                       MELT_FILE_IN_DIRECTORY, melt_flag_bootstrapping?NULL:melt_source_dir,
@@ -7474,7 +7521,12 @@ meltgc_read_file (const char *filnam, const char *locnam)
               envpath);
     inform (UNKNOWN_LOCATION, "builtin MELT source directory is %s",
             melt_source_dir);
-    melt_fatal_error ("cannot open MELT file %s - %m", filnam);
+    if (melt_trace_source_fil)
+      fflush (melt_trace_source_fil);
+    else
+      inform (UNKNOWN_LOCATION, 
+	      "You could set the GCCMELT_TRACE_SOURCE env.var. to some file path for debugging");
+    melt_fatal_error ("cannot open MELT source file %s - %m", filnam);
   }
   /* warn if the filename has strange characters in its base name,
      notably + */
@@ -8588,6 +8640,7 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
   sopath =
     MELT_FIND_FILE
     (sobase,
+     MELT_FILE_LOG, melt_trace_module_fil,
      /* First search in the temporary directory, but don't bother making it.  */
      MELT_FILE_IN_DIRECTORY, tempdir_melt,
      /* Search in the user provided work directory, if given. */
@@ -8621,6 +8674,7 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
       cursopath =
         MELT_FIND_FILE
         (cursobase,
+	 MELT_FILE_LOG, melt_trace_module_fil,
          /* First search in the temporary directory, but don't bother making it.  */
          MELT_FILE_IN_DIRECTORY, tempdir_melt,
          /* Search in the user provided work directory, if given. */
@@ -8697,8 +8751,8 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
   dlh = dlopen (sopath, RTLD_NOW | RTLD_GLOBAL);
   if (!dlh)
     melt_fatal_error ("Failed to dlopen MELT module %s - %s", sopath, dlerror ());
-  if (melt_trace_dynlink_fil)
-    fprintf (melt_trace_dynlink_fil,
+  if (melt_trace_module_fil)
+    fprintf (melt_trace_module_fil,
 	     "%s #%d\n", sopath, VEC_length (melt_module_info_t, melt_modinfvec));
   validh = TRUE;
 
@@ -8785,6 +8839,7 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
     srcpath = concat (descmodulename, ".c", NULL);
     curpath =
       MELT_FIND_FILE (srcpath,
+		      MELT_FILE_LOG, melt_trace_source_fil,
                       MELT_FILE_IN_DIRECTORY, ".",
                       MELT_FILE_IN_PATH, srcpathstr,
                       MELT_FILE_IN_PATH, getenv ("GCCMELT_SOURCE_PATH"),
@@ -8824,6 +8879,7 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
       srcpath = concat (descmodulename, suffixbuf, NULL);
       curpath =
         MELT_FIND_FILE (srcpath,
+			MELT_FILE_LOG, melt_trace_source_fil,
                         MELT_FILE_IN_DIRECTORY, ".",
                         MELT_FILE_IN_PATH, srcpathstr,
                         MELT_FILE_IN_PATH, getenv ("GCCMELT_SOURCE_PATH"),
@@ -9030,6 +9086,7 @@ meltgc_load_flavored_module (const char*modulbase, const char*flavor)
                 descrfull, flavor);
   descrpath =
     MELT_FIND_FILE (descrfull,
+		    MELT_FILE_LOG, melt_trace_source_fil,
                     MELT_FILE_IN_DIRECTORY, tempdirpath,
                     MELT_FILE_IN_DIRECTORY, ".",
                     MELT_FILE_IN_PATH, srcpathstr,
@@ -9249,6 +9306,11 @@ meltgc_load_module_list (int depth, const char *modlistbase)
                              depth, modlistbase);
   if (!modlistbase)
     goto end;
+  if (melt_trace_source_fil)
+    {
+      fprintf (melt_trace_source_fil, "Loading module list %s at depth %d\n", modlistbase, depth);
+      fflush (melt_trace_source_fil);
+    };
   modlistbaselen = strlen (modlistbase);
   if (modlistbaselen > (int) strlen (MODLIS_SUFFIX)
       && !strcmp(modlistbase + modlistbaselen - strlen(MODLIS_SUFFIX), MODLIS_SUFFIX))
@@ -9257,32 +9319,40 @@ meltgc_load_module_list (int depth, const char *modlistbase)
   modlistfull = concat (modlistbase, MODLIS_SUFFIX, NULL);
   modlistpath =
     MELT_FIND_FILE (modlistfull,
+		    MELT_FILE_LOG, melt_trace_source_fil,
                     MELT_FILE_IN_DIRECTORY, ".",
                     MELT_FILE_IN_PATH, srcpathstr,
                     MELT_FILE_IN_PATH, getenv ("GCCMELT_SOURCE_PATH"),
                     MELT_FILE_IN_DIRECTORY, melt_flag_bootstrapping?NULL:melt_source_dir,
                     NULL);
   debugeprintf ("meltgc_load_module_list modlistpath %s", modlistpath);
-  if (!modlistpath) {
-    error ("cannot load MELT module list %s", modlistbase);
-    if (srcpathstr)
-      inform (UNKNOWN_LOCATION,
-              "MELT source path %s", srcpathstr);
-    if (getenv ("GCCMELT_SOURCE_PATH"))
-      inform (UNKNOWN_LOCATION,
-              "GCCMELT_SOURCE_PATH from environment %s",
-              getenv ("GCCMELT_SOURCE_PATH"));
-    if (!melt_flag_bootstrapping)
-      inform (UNKNOWN_LOCATION,
-              "builtin MELT source directory %s", melt_source_dir);
-    melt_fatal_error ("MELT failed to load module list %s", modlistfull);
-  }
-  if (!IS_ABSOLUTE_PATH (modlistpath)) {
-    char *realmodlistpath = lrealpath (modlistpath);
-    debugeprintf ("real module list path %s", realmodlistpath);
-    free (modlistpath), modlistpath = NULL;
-    modlistpath = realmodlistpath;
-  }
+  if (!modlistpath) 
+    {
+      error ("cannot load MELT module list %s", modlistbase);
+      if (srcpathstr)
+	inform (UNKNOWN_LOCATION,
+		"MELT source path %s", srcpathstr);
+      if (getenv ("GCCMELT_SOURCE_PATH"))
+	inform (UNKNOWN_LOCATION,
+		"GCCMELT_SOURCE_PATH from environment %s",
+		getenv ("GCCMELT_SOURCE_PATH"));
+      if (!melt_flag_bootstrapping)
+	inform (UNKNOWN_LOCATION,
+		"builtin MELT source directory %s", melt_source_dir);
+      if (melt_trace_source_fil)
+	fflush (melt_trace_source_fil);
+      else
+	inform (UNKNOWN_LOCATION,
+		"You could set GCCMELT_TRACE_SOURCE env.var. to a file path for tracing module list loads");
+      melt_fatal_error ("MELT failed to load module list %s", modlistfull);
+    }
+  if (!IS_ABSOLUTE_PATH (modlistpath)) 
+    {
+      char *realmodlistpath = lrealpath (modlistpath);
+      debugeprintf ("real module list path %s", realmodlistpath);
+      free (modlistpath), modlistpath = NULL;
+      modlistpath = realmodlistpath;
+    }
   filmod = fopen (modlistpath, "r");
   debugeprintf ("reading module list '%s'", modlistpath);
   if (!filmod)
@@ -9297,37 +9367,37 @@ meltgc_load_module_list (int depth, const char *modlistbase)
       modlin[--modlinlen] = (char)0;
     debugeprintf ("meltgc_load_module_list line #%d: %s", lincnt, modlin);
     MELT_LOCATION_HERE_PRINTF
-    (curlocbuf,
-     "meltgc_load_module_list %s line %d: %s",
-     modlistpath, lincnt, modlin);
+      (curlocbuf,
+       "meltgc_load_module_list %s line %d: %s",
+       modlistpath, lincnt, modlin);
     /* Handle nested module lists */
     if (modlin[0] == '@') {
       if (depth > MODLIS_MAXDEPTH)
         melt_fatal_error ("MELT has too nested [%d] module list %s with %s",
                           depth, modlistbase, modlin);
       MELT_LOCATION_HERE_PRINTF
-      (curlocbuf,
-       "meltgc_load_module_list %s recursive line %d: '%s'",
-       modlistpath, lincnt, modlin);
+	(curlocbuf,
+	 "meltgc_load_module_list %s recursive line %d: '%s'",
+	 modlistpath, lincnt, modlin);
       debugeprintf ("meltgc_load_module_list recurse depth %d sublist '%s'", depth, modlin+1);
       meltgc_load_module_list (depth+1, modlin+1);
     } else {
       MELT_LOCATION_HERE_PRINTF
-      (curlocbuf,
-       "meltgc_load_module_list %s plain line %d: '%s'",
-       modlistpath, lincnt, modlin);
+	(curlocbuf,
+	 "meltgc_load_module_list %s plain line %d: '%s'",
+	 modlistpath, lincnt, modlin);
       debugeprintf ("meltgc_load_module_list depth %d module '%s'", depth, modlin);
       (void) meltgc_load_one_module (modlin);
     }
     MELT_LOCATION_HERE_PRINTF
-    (curlocbuf,
-     "meltgc_load_module_list %s done line %d: %s",
-     modlistpath, lincnt, modlin);
+      (curlocbuf,
+       "meltgc_load_module_list %s done line %d: %s",
+       modlistpath, lincnt, modlin);
   };
   free (modlin), modlin = NULL;
   fclose (filmod), filmod = NULL;
   goto end;
-end:
+ end:
   MELT_EXITFRAME ();
   if (modlistfull)
     free(modlistfull), modlistfull = NULL;
@@ -10049,20 +10119,48 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
     return;
   } 
 
-  /* Optionaly trace the dynamic linking.  */
+  /* Optionally trace the dynamic linking of modules.  */
   {
-    char* dynlinkenv = getenv ("GCCMELT_TRACE_DYNLINK");
-    if (dynlinkenv)
+    char* moduleenv = getenv ("GCCMELT_TRACE_MODULE");
+    if (moduleenv)
       {
-	melt_trace_dynlink_fil = fopen (dynlinkenv, "a");
-	if (melt_trace_dynlink_fil) 
+	melt_trace_module_fil = fopen (moduleenv, "a");
+	if (melt_trace_module_fil) 
 	  {
+	    const char *outarg = melt_argument ("output");
 	    time_t now = 0;
 	    time (&now);
-	    fprintf (melt_trace_dynlink_fil, "# start pid %d MELT version %s mode %s at %s",
+	    fprintf (melt_trace_module_fil, "# MELT module tracing start pid %d MELT version %s mode %s at %s",
 		     (int) getpid(), MELT_VERSION_STRING, modstr, ctime (&now));
-	    fflush (melt_trace_dynlink_fil);
-	    inform (UNKNOWN_LOCATION, "MELT tracing dynlinking in %s", dynlinkenv);
+	    if (outarg)
+	      fprintf (melt_trace_module_fil, "# MELT output argument %s\n", outarg);
+	    fflush (melt_trace_module_fil);
+	    inform (UNKNOWN_LOCATION, 
+		    "MELT tracing module loading in %s (GCCMELT_TRACE_MODULE environment variable)", 
+		    moduleenv);
+	  }
+      }
+  }
+
+  /* Optionally trace the source files search.  */
+  {
+    char *sourceenv = getenv ("GCCMELT_TRACE_SOURCE");
+    if (sourceenv) 
+      {
+	melt_trace_source_fil = fopen (sourceenv, "a");
+	if (melt_trace_source_fil)
+	  {
+	    const char *outarg = melt_argument ("output");
+	    time_t now = 0;
+	    time (&now);
+	    fprintf (melt_trace_source_fil, "# MELT source tracing start pid %d MELT version %s mode %s at %s",
+		     (int) getpid(), MELT_VERSION_STRING, modstr, ctime (&now));
+	    if (outarg)
+	      fprintf (melt_trace_source_fil, "# MELT output argument %s\n", outarg);
+	    fflush (melt_trace_source_fil);
+	    inform (UNKNOWN_LOCATION, 
+		    "MELT tracing source loading in %s (GCCMELT_TRACE_SOURCE environment variable)", 
+		    sourceenv);
 	  }
       }
   }
@@ -10210,12 +10308,12 @@ do_finalize_melt (void)
   static int didfinal;
   const char* modstr = NULL;
   MELT_ENTERFRAME (1, NULL);
+#define finclosv meltfram__.mcfr_varptr[0]
   if (didfinal++>0)
     goto end;
   modstr = melt_argument ("mode");
   if (!modstr)
     goto end;
-#define finclosv meltfram__.mcfr_varptr[0]
   finclosv = melt_get_inisysdata (MELTFIELD_SYSDATA_EXIT_FINALIZER);
   if (melt_magic_discr ((melt_ptr_t) finclosv) == MELTOBMAG_CLOSURE) {
     MELT_LOCATION_HERE
@@ -10270,11 +10368,17 @@ do_finalize_melt (void)
       fclose (melt_generated_c_files_list_fil);
       melt_generated_c_files_list_fil = NULL;
     }
-  if (melt_trace_dynlink_fil)
+  if (melt_trace_module_fil)
     {
-      fprintf (melt_trace_dynlink_fil, "# end of dynamic link trace for pid %d\n", (int) getpid());
-      fclose (melt_trace_dynlink_fil);
-      melt_trace_dynlink_fil = NULL;
+      fprintf (melt_trace_module_fil, "# end of MELT module trace for pid %d\n\n", (int) getpid());
+      fclose (melt_trace_module_fil);
+      melt_trace_module_fil = NULL;
+    }
+  if (melt_trace_source_fil)
+    {
+      fprintf (melt_trace_source_fil, "# end of MELT source trace for pid %d\n\n", (int) getpid());
+      fclose (melt_trace_source_fil);
+      melt_trace_source_fil = NULL;
     }
   dbgprintf ("do_finalize_melt ended melt_nb_modules=%d", melt_nb_modules);
 end:

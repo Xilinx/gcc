@@ -1,5 +1,20 @@
 
 2012-07-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_trace_dynlink_fil): Remove and rename as...
+	(melt_trace_module_fil): New static variable, see
+	GCCMELT_TRACE_MODULE environment variable.
+	(melt_trace_source_fil): New static variable, see
+	GCCMELT_TRACE_SOURCE environment variable.
+	(MELT_FILE_LOG): New macro constant.
+	(melt_find_file_at): Handle and use it.
+	(meltgc_read_file): Trace source files.
+	(melt_load_module_index): Trace module files.
+	(meltgc_load_module_list): Trace source files.
+	(melt_really_initialize): Trace using GCCMELT_TRACE_MODULE &
+	GCCMELT_TRACE_SOURCE environment variables.
+	(do_finalize_melt): Close trace files of modules & sources.
+
+2012-07-19  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-run.proto.h (start_module_melt): Remove.
 
