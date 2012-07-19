@@ -1694,7 +1694,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
  #ifdef __cplusplus
  extern "C"
  #endif
- void* start_module_melt (void*) ;
+ void* melt_start_this_module (void*);
  }#)
     (add2sbuf_indentnl declbuf 0)
     (add2sbuf_indentnl implbuf 0)
@@ -1803,7 +1803,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     ;; 
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf "void* start_module_melt(void* modargp_) {")
+    (add2sbuf_strconst implbuf "void* melt_start_this_module (void* modargp_) {")
     (add2sbuf_indentnl implbuf 0)
     ;; generate the initial data structure
     (add2sbuf_indentnl implbuf 1)

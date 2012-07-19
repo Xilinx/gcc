@@ -1,4 +1,19 @@
 
+2012-07-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-run.proto.h (start_module_melt): Temporary defined as
+	melt_start_this_module.
+
+	* melt-runtime.h: Use dash in copyright years.
+	Improve comment about gt-melt-runtime.h inclusion.
+	(melt_load_module_index): Use melt_start_this_module.
+	Improve error messages when failing.
+	(melt_output_cfile_decl_impl_secondary_option): Write the main C
+	name in the list of generated C files.
+
+	* melt/warmelt-outobj.melt (outpucod_initialroutine): The emitted
+	module starting routine is melt_start_this_module.
+
 2012-07-18  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-build-script.tpl: Still buggy, the meltbuild-modules/
