@@ -1,5 +1,11 @@
 
 2012-07-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (MELT_FILE_IN_ENVIRON_PATH): Mew macro constant.
+	(melt_find_file_at): Handle it.
+	(meltgc_read_file, melt_load_module_index)
+	(meltgc_load_module_list): Use it.
+
+2012-07-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_trace_dynlink_fil): Remove and rename as...
 	(melt_trace_module_fil): New static variable, see
 	GCCMELT_TRACE_MODULE environment variable.

@@ -5756,8 +5756,14 @@ melt_dlsym_all (const char *nam)
 static char*melt_find_file_at (int line, const char*path, ...) ATTRIBUTE_SENTINEL;
 #define MELT_FIND_FILE(PATH,...) melt_find_file_at (__LINE__,(PATH),__VA_ARGS__,NULL)
 
+/* Option to find a file in a directory.  */
 #define MELT_FILE_IN_DIRECTORY "directory"
+/* Option to find a file in a colon-separated path.  */
 #define MELT_FILE_IN_PATH "path"
+/* Option to find a file in a colon-seperated path given by an environment variable.  */
+#define MELT_FILE_IN_ENVIRON_PATH "envpath"
+/* Option to log to some tracing file the findings of a file, should
+   be first option to MELT_FIND_FILE.  */
 #define MELT_FILE_LOG "log"
 
 
@@ -5835,13 +5841,61 @@ melt_find_file_at (int lin, const char*path, ...)
 	    fprintf (logf, "not found in colon path %s\n", inpath);
 	  free (dupinpath), dupinpath = NULL;
 	} 
-      else if (!strcmp(mode, MELT_FILE_LOG)) {
-	logf = va_arg (args, FILE*);
-	if (logf)
-	  fprintf (logf, "finding file %s [from %s:%d]\n",
-		   path, melt_basename(__FILE__), lin);
-	continue;
-      }
+      else if (!strcmp(mode, MELT_FILE_IN_ENVIRON_PATH))
+	{
+	  char* inenv = va_arg(args, char*);
+	  char* dupinpath = NULL;
+	  char* inpath = NULL;
+	  char* pc = NULL;
+	  char* nextpc = NULL;
+	  char* col = NULL;
+	  char* fipath = NULL;
+	  if (!inenv) 
+	    continue;
+	  inpath = getenv (inenv);
+	  if (!inpath || !inpath[0]) 
+	    {
+	      if (logf)
+		fprintf (logf, "not found in path from unset environment variable %s\n", inenv);
+	      continue;
+	    };
+	  dupinpath = xstrdup (inpath);
+	  pc = dupinpath;
+	  for (pc = dupinpath; pc && *pc; pc = nextpc) 
+	    {
+	      nextpc = NULL;
+	      col = strchr(pc, ':');
+	      if (col) {
+		*col = (char)0;
+		nextpc = col+1;
+	      } else
+		col = pc + strlen(pc);
+	      fipath = concat (pc, "/", path, NULL);
+	      if (!access (fipath, R_OK)) {
+		if (logf)
+		  {
+		    fprintf (logf, "found %s from environ %s in colon path %s\n", fipath, inenv, inpath);
+		    fflush (logf);
+		  }
+		debugeprintf ("found file %s from environ %s in colon path %s [%s:%d]",
+			      fipath, inenv, inpath,
+			      melt_basename(__FILE__), lin);
+		free (dupinpath), dupinpath = NULL;
+		return fipath;
+	      }
+	    };
+	  if (logf)
+	    fprintf (logf, "not found from environ %s in colon path %s\n", inenv, inpath);
+	  free (dupinpath), dupinpath = NULL;
+	} 
+      else if (!strcmp(mode, MELT_FILE_LOG)) 
+	{
+	  logf = va_arg (args, FILE*);
+	  if (logf)
+	    fprintf (logf, "finding file %s [from %s:%d]\n",
+		     path, melt_basename(__FILE__), lin);
+	  continue;
+	}
       else
 	fatal_error ("MELT_FIND_FILE %s: bad mode %s [%s:%d]",
 		     path, mode, melt_basename(__FILE__), lin);
@@ -7472,7 +7526,6 @@ meltgc_read_file (const char *filnam, const char *locnam)
   FILE *fil = 0;
   struct reading_st *rd = 0;
   char *filnamdup = 0;
-  const char* envpath = melt_flag_bootstrapping?NULL:(getenv ("GCCMELT_SOURCE_PATH"));
   const char* srcpathstr = melt_argument ("source-path");
   MELT_ENTERFRAME (3, NULL);
 #define valv      meltfram__.mcfr_varptr[0]
@@ -7503,7 +7556,7 @@ meltgc_read_file (const char *filnam, const char *locnam)
       MELT_FIND_FILE (filnam,
 		      MELT_FILE_LOG, melt_trace_source_fil,
                       MELT_FILE_IN_PATH, srcpathstr,
-                      MELT_FILE_IN_PATH, envpath,
+                      MELT_FILE_IN_ENVIRON_PATH, melt_flag_bootstrapping?NULL:"GCCMELT_SOURCE_PATH",
                       MELT_FILE_IN_DIRECTORY, melt_flag_bootstrapping?NULL:melt_source_dir,
                       NULL);
     debugeprintf ("meltgc_read_file filenamdup %s", filnamdup);
@@ -7515,10 +7568,10 @@ meltgc_read_file (const char *filnam, const char *locnam)
       inform (UNKNOWN_LOCATION,
               "didn't found MELT file %s with source path %s",
               filnam, srcpathstr);
-    if (envpath)
+    if (getenv("GCCMELT_SOURCE_PATH"))
       inform (UNKNOWN_LOCATION,
               "MELT tried from GCCMELT_SOURCE_PATH=%s environment variable",
-              envpath);
+              getenv("GCCMELT_SOURCE_PATH"));
     inform (UNKNOWN_LOCATION, "builtin MELT source directory is %s",
             melt_source_dir);
     if (melt_trace_source_fil)
@@ -8648,7 +8701,7 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
      /* Search in the user provided module path, if given.  */
      MELT_FILE_IN_PATH, melt_argument ("module-path"),
      /* Search using the GCCMELT_MODULE_PATH environment variable.  */
-     MELT_FILE_IN_PATH, getenv ("GCCMELT_MODULE_PATH"),
+     MELT_FILE_IN_ENVIRON_PATH, melt_flag_bootstrapping?NULL:"GCCMELT_MODULE_PATH",
      /* Search in the built-in MELT module directory.  */
      MELT_FILE_IN_DIRECTORY, melt_flag_bootstrapping?NULL:melt_module_dir,
      /* Since the path is a complete path with an md5um in it, we also
@@ -8682,7 +8735,7 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
          /* Search in the user provided module path, if given.  */
          MELT_FILE_IN_PATH, melt_argument ("module-path"),
          /* Search using the GCCMELT_MODULE_PATH environment variable.  */
-         MELT_FILE_IN_PATH, getenv ("GCCMELT_MODULE_PATH"),
+         MELT_FILE_IN_ENVIRON_PATH, melt_flag_bootstrapping?NULL:"GCCMELT_MODULE_PATH",
          /* Search in the built-in MELT module directory.  */
          MELT_FILE_IN_DIRECTORY, melt_flag_bootstrapping?NULL:melt_module_dir,
          /* Since the path is a complete path with an md5um in it, we also
@@ -8842,7 +8895,7 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
 		      MELT_FILE_LOG, melt_trace_source_fil,
                       MELT_FILE_IN_DIRECTORY, ".",
                       MELT_FILE_IN_PATH, srcpathstr,
-                      MELT_FILE_IN_PATH, getenv ("GCCMELT_SOURCE_PATH"),
+                      MELT_FILE_IN_ENVIRON_PATH, melt_flag_bootstrapping?NULL:"GCCMELT_SOURCE_PATH",
                       MELT_FILE_IN_DIRECTORY, melt_source_dir,
                       /* also search in the temporary directory, but don't bother making it.  */
                       MELT_FILE_IN_DIRECTORY, tempdir_melt,
@@ -8882,7 +8935,7 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
 			MELT_FILE_LOG, melt_trace_source_fil,
                         MELT_FILE_IN_DIRECTORY, ".",
                         MELT_FILE_IN_PATH, srcpathstr,
-                        MELT_FILE_IN_PATH, getenv ("GCCMELT_SOURCE_PATH"),
+                        MELT_FILE_IN_ENVIRON_PATH, melt_flag_bootstrapping?NULL:"GCCMELT_SOURCE_PATH",
                         MELT_FILE_IN_DIRECTORY, melt_source_dir,
                         NULL);
       debugeprintf ("melt_load_module_index srcpath %s ", srcpath);
@@ -9090,7 +9143,7 @@ meltgc_load_flavored_module (const char*modulbase, const char*flavor)
                     MELT_FILE_IN_DIRECTORY, tempdirpath,
                     MELT_FILE_IN_DIRECTORY, ".",
                     MELT_FILE_IN_PATH, srcpathstr,
-                    MELT_FILE_IN_PATH, getenv ("GCCMELT_SOURCE_PATH"),
+                    MELT_FILE_IN_ENVIRON_PATH, melt_flag_bootstrapping?NULL:"GCCMELT_SOURCE_PATH",
                     MELT_FILE_IN_DIRECTORY, melt_flag_bootstrapping?NULL:melt_source_dir,
                     NULL);
   debugeprintf ("meltgc_load_flavored_module descrpath %s dupmodul %s",
@@ -9322,7 +9375,7 @@ meltgc_load_module_list (int depth, const char *modlistbase)
 		    MELT_FILE_LOG, melt_trace_source_fil,
                     MELT_FILE_IN_DIRECTORY, ".",
                     MELT_FILE_IN_PATH, srcpathstr,
-                    MELT_FILE_IN_PATH, getenv ("GCCMELT_SOURCE_PATH"),
+                    MELT_FILE_IN_ENVIRON_PATH, melt_flag_bootstrapping?NULL:"GCCMELT_SOURCE_PATH",
                     MELT_FILE_IN_DIRECTORY, melt_flag_bootstrapping?NULL:melt_source_dir,
                     NULL);
   debugeprintf ("meltgc_load_module_list modlistpath %s", modlistpath);
