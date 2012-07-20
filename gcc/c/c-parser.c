@@ -12061,7 +12061,6 @@ c_parser_elem_fn_linear_clause (c_parser *parser)
   else
     c_parser_consume_token (parser);
   linear_vec = make_tree_vector ();
-  // VEC_safe_push (tree, gc, linear_vec, get_identifier ("linear"));
 
   while (!c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
     {
@@ -12138,7 +12137,6 @@ c_parser_elem_fn_vlength_clause (c_parser *parser)
     c_parser_consume_token (parser);
 
   vlength_vec = make_tree_vector ();
-  // VEC_safe_push (tree, gc, vlength_vec, get_identifier ("vectorlength"));
   while (!c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
     {
       token = c_parser_peek_token (parser);
