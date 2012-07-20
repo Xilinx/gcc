@@ -1,3 +1,7 @@
+2012-07-19  Easwaran Raman  <eraman@google.com>
+
+	* params.def (HOT_BB_COUNT_FRACTION): Set default to 60000.
+
 2012-07-19  Rong Xu  <xur@google.com>
 
 	Backport r189691 from google_main.
