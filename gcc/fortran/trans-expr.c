@@ -3315,7 +3315,7 @@ conv_isocbinding_procedure (gfc_se * se, gfc_symbol * sym,
       gfc_se fptrse;
       gfc_se shapese;
       gfc_ss *ss, *shape_ss;
-      tree desc, dim, tmp, stride, offset;
+      tree desc, dim, tmp, sm, offset;
       stmtblock_t body, block;
       gfc_loopinfo loop;
 
@@ -3378,9 +3378,10 @@ conv_isocbinding_procedure (gfc_se * se, gfc_symbol * sym,
       gfc_copy_loopinfo_to_se (&shapese, &loop);
       shapese.ss = shape_ss;
 
-      stride = gfc_create_var (gfc_array_index_type, "stride");
+      sm = gfc_create_var (gfc_array_index_type, "sm");
       offset = gfc_create_var (gfc_array_index_type, "offset");
-      gfc_add_modify (&block, stride, gfc_index_one_node);
+      tmp = size_in_bytes (gfc_get_element_type (TREE_TYPE (desc)));
+      gfc_add_modify (&block, sm, fold_convert (TREE_TYPE (sm), tmp));
       gfc_add_modify (&block, offset, gfc_index_zero_node);
 
       /* Loop body.  */
@@ -3389,23 +3390,27 @@ conv_isocbinding_procedure (gfc_se * se, gfc_symbol * sym,
       dim = fold_build2_loc (input_location, MINUS_EXPR, gfc_array_index_type,
 			     loop.loopvar[0], loop.from[0]);
 
-      /* Set bounds and stride. */
+      /* Set bounds and stride multiplier. */
       gfc_conv_descriptor_lbound_set (&body, desc, dim, gfc_index_one_node);
-      gfc_conv_descriptor_stride_set (&body, desc, dim, stride);
+      gfc_conv_descriptor_sm_set (&body, desc, dim, sm);
 
       gfc_conv_expr (&shapese, arg->next->next->expr);
       gfc_add_block_to_block (&body, &shapese.pre);
-      gfc_conv_descriptor_ubound_set (&body, desc, dim, shapese.expr);
+      gfc_conv_descriptor_extent_set (&body, desc, dim, shapese.expr);
       gfc_add_block_to_block (&body, &shapese.post);
 
-      /* Calculate offset. */
+      /* Calculate offset. Change from the stride multiplier back to the
+	 stride.  */
+      tmp = fold_build2_loc (input_location, TRUNC_DIV_EXPR,
+			     gfc_array_index_type, sm,
+			     fold_convert (TREE_TYPE (sm), tmp));
       gfc_add_modify (&body, offset,
 		      fold_build2_loc (input_location, PLUS_EXPR,
-				       gfc_array_index_type, offset, stride));
+				       gfc_array_index_type, offset, tmp));
       /* Update stride.  */
-      gfc_add_modify (&body, stride,
+      gfc_add_modify (&body, sm,
 		      fold_build2_loc (input_location, MULT_EXPR,
-				       gfc_array_index_type, stride,
+				       gfc_array_index_type, sm,
 				       fold_convert (gfc_array_index_type,
 						     shapese.expr)));
       /* Finish scalarization loop.  */ 

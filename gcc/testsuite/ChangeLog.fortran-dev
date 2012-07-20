@@ -1,3 +1,8 @@
+2012-07-20  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/c_f_pointer_tests_3.f90: Update scan-tree-dump
+	pattern.
+
 2012-07-15  Tobias Burnus  <burnus@net-b.de>
 
 	* gfortran.dg/array_section_2.f90: Update scan-tree-dump pattern.

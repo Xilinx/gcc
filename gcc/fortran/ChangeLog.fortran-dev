@@ -1,3 +1,8 @@
+2012-07-20  Tobias Burnus  <burnus@net-b.de>
+
+	* trans-expr.c (conv_isocbinding_procedure): For C_F_Pointer,
+	directly set extent and sm instead of using ubound and stride.
+
 2012-07-15  Tobias Burnus  <burnus@net-b.de>
 
 	* trans-intrinsic.c (gfc_conv_intrinsic_size,
