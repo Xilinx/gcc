@@ -3396,8 +3396,7 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
 	  (return sinst)
 	  )))))
 (install_initial_macro 'definstance mexpand_definstance)
-(export_macro 
- definstance mexpand_definstance
+(export_macro definstance mexpand_definstance
  :doc #{The $DEFINSTANCE syntax defines a static instance bound by a
  symbol. Syntax is (DEFINSTANCE <symbol> <class> [:doc documentation]
  @{:<field> <value>@}*). The symbol is bound to the newly made
@@ -3546,8 +3545,7 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
 	  res
 	  )))))
 (install_initial_macro 'defselector mexpand_defselector)
-(export_macro 
- defselector mexpand_defselector
+(export_macro defselector mexpand_defselector
  :doc #{The $DEFSELECTOR syntax defines a selector for sending
 messages. Syntax is (DEFSELECTOR <symbol> <selector-class> [:doc
 <documentation>] [:formals ( <formals>...)]).}#)
@@ -3617,8 +3615,7 @@ messages. Syntax is (DEFSELECTOR <symbol> <selector-class> [:doc
 		  :smins_fields fastup)
 	))))
 (install_initial_macro 'instance mexpand_instance)
-(export_macro 
- instance mexpand_instance
+(export_macro instance mexpand_instance
  :doc #{The $INSTANCE syntax is for making new objects. Syntax
  is (INSTANCE <class> @{:<field> <expression>@}*).}#)
 
@@ -3660,8 +3657,7 @@ messages. Syntax is (DEFSELECTOR <symbol> <selector-class> [:doc
       (error_plain loc "LOAD expects a string filename")))
     ))
 (install_initial_macro 'load mexpand_load)
-(export_macro 
- load mexpand_load
+(export_macro load mexpand_load
  :doc #{The $LOAD macro is for reading expressions from another
  file. Syntax is (LOAD <file-name>).}#)
 
@@ -4044,8 +4040,7 @@ without any checks. Using $PUT_FIELDS is prefered.}#)
 		  :suput_fields fastup)
 	))))
 (install_initial_macro 'put_fields mexpand_put_fields)
-(export_macro 
- put_fields mexpand_put_fields
+(export_macro put_fields mexpand_put_fields
  :doc #{The $PUT_FIELDS syntax is for safely setting fields in an
  object. Syntax is (PUT_FIELDS <instance-expression> @{:<field>
  <field-expression>@}*). If the instance is not an object of the class
@@ -4127,8 +4122,7 @@ without any checks. Using $PUT_FIELDS is prefered.}#)
 		    :suget_field fld
 		    ))))))
 (install_initial_macro 'get_field mexpand_get_field)
-(export_macro 
- get_field mexpand_get_field
+(export_macro get_field mexpand_get_field
  :doc #{The $GET_FIELD syntax safely access a field. Syntax
  is (GET_FIELD :<field> <expression>) which evaluates to nil if the
  expression is not of the class defining the field. See also
@@ -4180,8 +4174,7 @@ without any checks. Using $PUT_FIELDS is prefered.}#)
 		)
       )))
 (install_initial_macro 'setq mexpand_setq)
-(export_macro 
- setq mexpand_setq
+(export_macro setq mexpand_setq
  :doc #{The $SETQ syntax is for assignment of local variables, usually
  bound by a LET in the same function. Syntax is (SETQ <symbol>
  <expr>).}#)
@@ -4234,8 +4227,7 @@ without any checks. Using $PUT_FIELDS is prefered.}#)
 	      (return resp))
 	    ))))))
 (install_initial_macro 'if mexpand_if)
-(export_macro 
- if mexpand_if
+(export_macro if mexpand_if
  :doc #{The $IF syntax is for simple conditional expressions. See also $WHEN and $UNLESS and $COND. Syntax
  is (IF <test-expression> <then-expression> [<else-expression>]).}#)
 
@@ -4364,8 +4356,7 @@ without any checks. Using $PUT_FIELDS is prefered.}#)
 	    (return resp)
 	    ))))))
 (install_initial_macro 'cppif mexpand_cppif)
-(export_macro 
- cppif mexpand_cppif
+(export_macro cppif mexpand_cppif
  :doc #{The $CPPIF macro expands to C-code with an #if condition, so
 the condition is handled when compiling the generated C code into a
 MELT module.  Syntax is (CPPIF <symbol> <then> [<else>]).}#)
@@ -4442,8 +4433,7 @@ MELT module.  Syntax is (CPPIF <symbol> <then> [<else>]).}#)
      ))))
 
 (install_initial_macro 'gccif mexpand_gccif)
-(export_macro 
- gccif mexpand_gccif
+(export_macro gccif mexpand_gccif
  :doc #{The $GCCIF macro expands the rest of the expression if the
 version string of the GCC translating this MELT expression matches
 the condition. Syntax is ($GCCIF condition expr...), where the
@@ -4543,8 +4533,7 @@ condition is a string such as "4.5." or a list of strings.}#)
     (return res)
     ))
 (install_initial_macro 'cond mexpand_cond)
-(export_macro 
- cond mexpand_cond
+(export_macro cond mexpand_cond
  :doc #{The usual lisp $COND conditional. Syntax is @code{(COND
  @var{<conditions>...})}. Each condition is a list of the form
  @code{(@var{<test>} @var{<expr>...})}. The last catch-all condition
@@ -4925,8 +4914,7 @@ condition is a string such as "4.5." or a list of strings.}#)
     (return sget)))
 
 (install_initial_macro 'deref mexpand_deref)
-(export_macro 
- deref mexpand_deref
+(export_macro deref mexpand_deref
  :doc #{The $DEREF macro is a short-hand to retrieve values inside
  instances of $CLASS_REFERENCE. So @code{(DEREF @var{<value>})}
  means @code{(GET_FIELD :REFERENCED_VALUE @var{<value>})}, hence test that @var{<value>}
@@ -4940,8 +4928,7 @@ condition is a string such as "4.5." or a list of strings.}#)
 		 "obsolete use of CONTENT in expression; use DEREF instead")
   (mexpand_deref sexpr env mexpander modctx))
 (install_initial_macro 'content mexpandobsolete_content)
-(export_macro 
- content mexpandobsolete_content
+(export_macro content mexpandobsolete_content
  :doc #{The $CONTENT macro is obsolete. Use $DEREF instead.}#)
 
 
@@ -5000,8 +4987,7 @@ condition is a string such as "4.5." or a list of strings.}#)
     (return sput)))
 
 (install_initial_macro 'set_ref mexpand_set_ref)
-(export_macro 
- set_ref mexpand_set_ref
+(export_macro set_ref mexpand_set_ref
  :doc #{The $SET_REF macro is a short-hand to put a value inside
  instances of $CLASS_REFERENCE. So @code{(SET_REF @var{<ref>} @var{<value>})}
  means @code{(PUT_FIELDS @var{<ref>} :REFERENCED_VALUE @var{<value>})}, hence test that @var{<ref>}
@@ -5187,8 +5173,7 @@ condition is a string such as "4.5." or a list of strings.}#)
       )))
 
 (install_initial_macro 'match mexpand_match)
-(export_macro 
- match mexpand_match
+(export_macro match mexpand_match
  :doc #{The $MATCH syntax is for pattern-matching expressions. Syntax
  is (MATCH <matched-expression> <match-case>...). Each match-case
  starts with a pattern followed by expressions. The catch-all pattern
@@ -5506,8 +5491,7 @@ condition is a string such as "4.5." or a list of strings.}#)
       (return letr)
       )))
 (install_initial_macro 'letrec mexpand_letrec)
-(export_macro 
- letrec mexpand_letrec
+(export_macro letrec mexpand_letrec
  :doc #{The $LETREC syntax is for mutually @b{recursive} local
  bindings. Syntax is (LETREC ( <binding>... ) <body>...). Each binding is
  an optional ctype such as :long or :gimple or :value (which is the
@@ -5740,8 +5724,7 @@ remain.}#)
 	    (return mulcr)
 	    ))))))
 (install_initial_macro 'multicall mexpand_multicall)
-(export_macro 
- multicall mexpand_multicall
+(export_macro multicall mexpand_multicall
  :doc #{The $MULTICALL syntax is for accumulating the primary and
  secondary results of a function application or a message
  sending. Syntax is (MULTICALL ( <formals> ) <application-or-sending>
@@ -5815,8 +5798,7 @@ remain.}#)
       (return scom)
       )))
 (install_initial_macro 'comment mexpand_comment)
-(export_macro 
- comment mexpand_comment
+(export_macro comment mexpand_comment
  :doc #{The $COMMENT syntax inserts comment in the generated code, or
  skips MELT code. Syntax is (COMMENT <string>) to insert a comment in
  the generated C code, or (COMMENT ...) to skip some syntax.}#)
@@ -5865,8 +5847,7 @@ remain.}#)
       (return sch)
       )))
 (install_initial_macro 'cheader mexpand_cheader)
-(export_macro 
- cheader mexpand_cheader
+(export_macro cheader mexpand_cheader
  :doc #{The $CHEADER syntax inserts C code in the header part of the generated code.}#)
 
 
@@ -5946,15 +5927,13 @@ remain.}#)
     )))
 
 (install_initial_macro 'use_package_from_pkg_config mexpand_use_package_from_pkg_config)
-(export_macro 
- use_package_from_pkg_config mexpand_use_package_from_pkg_config
+(export_macro use_package_from_pkg_config mexpand_use_package_from_pkg_config
  :doc #{The $USE_PACKAGE_FROM_PKG_CONFIG or
  $USE-PACKAGE-FROM-PKG-CONFIG syntax enables usage of
  @code{pkg-config}-ured packages. Arguments are strings naming
  packages. This modifies the compilation and linking of generated C
  code. Probably using some $CHEADER for some @code{#include} is useful.}#)
-(export_macro 
- use-package-from-pkg-config mexpand_use_package_from_pkg_config
+(export_macro use-package-from-pkg-config mexpand_use_package_from_pkg_config
  :doc #{The $USE-PACKAGE-FROM-PKG-CONFIG or
  $USE_PACKAGE_FROM_PKG_CONFIG syntax enables usage of
  @code{pkg-config}-ured packages. Arguments are strings naming
@@ -6000,8 +5979,7 @@ remain.}#)
       (return progr)
       )))
 (install_initial_macro 'progn mexpand_progn)
-(export_macro 
- progn mexpand_progn
+(export_macro progn mexpand_progn
  :doc #{The $PROGN syntax evaluate a sequence of expressions ignoring
  all but the last which is the result. Syntax is (PROGN
  <expression>...).}# )
@@ -6022,8 +6000,7 @@ remain.}#)
     (return retr)
     ))
 (install_initial_macro 'return mexpand_return)
-(export_macro 
- return mexpand_return
+(export_macro return mexpand_return
  :doc #{The $RETURN syntax is for returning a primary and possibly
  secondary results. Syntax is (RETURN <expression>...). If no
  expression is given, returns nil.}#)
@@ -6193,8 +6170,7 @@ remain.}#)
 	(return res)
 	))))
 (install_initial_macro 'compile_warning mexpand_compile_warning)
-(export_macro 
- compile_warning mexpand_compile_warning
+(export_macro compile_warning mexpand_compile_warning
  :doc #{The $COMPILE_WARNING syntax issues a warning, inspired by GCC
  #warning. Syntax is (COMPILE_WARNING <string> [<expression>]).}#)
 
@@ -6354,7 +6330,8 @@ remain.}#)
       (return dcppif)
       )))
 (install_initial_macro 'debug_msg mexpand_debug_msg)
-(export_macro debug_msg mexpand_debug_msg)
+(export_macro debug_msg mexpand_debug_msg
+	      :doc #{$DEBUG_MSG is obsolete and should not be used. Use $DEBUG instead.}#)
 
 
 
@@ -6472,7 +6449,18 @@ remain.}#)
       (return dcppif)
       )))
 (install_initial_macro 'debug mexpand_debug)
-(export_macro debug mexpand_debug)
+(export_macro debug mexpand_debug
+	      :doc #{$DEBUG is a variadic and polytypic macro for
+	      debugging prints. You can give it arbitrary arguments
+	      -either stuff or values-. Debugging prints should be
+	      enabled at compilation time of the generated C code with
+	      the @code{quicklybuilt} or @code{debugnoline} module
+	      flavors, and at run time with the
+	      @code{-f[plugin-arg-]melt-debugging=} option. Internally
+	      @code{(DEBUG @var{arg...})} is macro expanded to the
+	      equivalent of @code{(cppif
+	      MELT_HAVE_DEBUG (if (melt_need_dbg 0) (melt_debug_fun ()
+	      @var{count} @var{filename} @var{lineno} ...)))}}#)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; export_values macro (export_values <symbol> ...)
@@ -6504,7 +6492,13 @@ remain.}#)
     (return res)
     ))
 (install_initial_macro 'export_values mexpand_export_values)
-(export_macro export_values mexpand_export_values)
+(export_macro export_values mexpand_export_values
+	      :doc #{$EXPORT_VALUES is a macro to export values
+	      defined by names. Give it a sequence of names bound to
+	      values using $DEFINE, $DEFUN, $DEFINSTANCE,
+	      $DEFSELECTOR, $DEFCITERATOR, $DEFCMATCHER,
+	      $DEFFUNMATCHER etc. Use $EXPORT_CLASS for exporting
+	      classes and their fields.}#)
 
 ;;;;
 ;;; export_macro macro (export_macro <symbol> <expander> [:doc <documentation>])
@@ -6544,7 +6538,8 @@ remain.}#)
 	(return res)
 	))))
 (install_initial_macro 'export_macro mexpand_export_macro)
-(export_macro export_macro mexpand_export_macro)
+(export_macro export_macro mexpand_export_macro
+	      :doc #{@code{($EXPORT_MACRO @var{name} @var{macro-expander} [@code{:doc} @var{documentation}])} is used to define an exported macro.}#)
 
 
 
@@ -6595,7 +6590,9 @@ remain.}#)
       (return res)
       )))
 (install_initial_macro 'export_patmacro mexpand_export_patmacro)
-(export_macro export_patmacro mexpand_export_patmacro)
+(export_macro export_patmacro mexpand_export_patmacro
+	      :doc #{@code{($EXPORT_PATMACRO @var{name} @var{pattern-expander} [@var{macro-expander}] [:doc @var{documentation}])} 
+is used to define patmacros.}#)
 
 ;;;;
 ;;; export_class macro (export_class <symbol> ...)
@@ -6625,7 +6622,10 @@ remain.}#)
     (return res)
     ))
 (install_initial_macro 'export_class mexpand_export_class)
-(export_macro export_class mexpand_export_class)
+(export_macro export_class mexpand_export_class
+	      :doc #{@code{($EXPORT_CLASS @var{names...})} is used to export class and their field names.}#)
+
+
 
 ;;; export_synonym macro (export_synonym <newname> <oldname>  [:doc <documentation>])
 (defun mexpand_export_synonym (sexpr env mexpander modctx)
@@ -6671,7 +6671,12 @@ remain.}#)
       (return res)
       )))
 (install_initial_macro 'export_synonym mexpand_export_synonym)
-(export_macro export_synonym mexpand_export_synonym)
+(export_macro export_synonym mexpand_export_synonym
+	      :doc #{@code{($EXPORT_SYNONYM @var{new-name} @var{old-name}
+					    [:doc @var{documentation}])}
+		     is used to define a synonym.
+					    }#)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; current_module_environment_container macro 
@@ -6694,7 +6699,10 @@ remain.}#)
     ))
 
 (install_initial_macro 'current_module_environment_container mexpand_current_module_environment_container)
-(export_macro current_module_environment_container mexpand_current_module_environment_container)
+(export_macro current_module_environment_container mexpand_current_module_environment_container
+	      :doc #{@code{($CURRENT_MODULE_ENVIRONMENT_CONTAINER)} 
+returns a container, i.e. a reference thru @code{$CLASS_REFERENCE}, 
+for the current environment. See also $PARENT_MODULE_ENVIRONMENT and $CLASS_ENVIRONMENT.}#)
 
 
 ;;;;;;;;;;;;;;;;
@@ -6718,7 +6726,11 @@ remain.}#)
     (return res)
     ))
 (install_initial_macro 'parent_module_environment mexpand_parent_module_environment)
-(export_macro parent_module_environment mexpand_parent_module_environment)
+(export_macro parent_module_environment mexpand_parent_module_environment
+	      :doc #{@code{($PARENT_MODULE_ENVIRONMENT)} gives the
+	      parent environnment of this module. See also
+	      $CLASS_ENVIRONMENT and
+	      $CURRENT_MODULE_ENVIRONMENT_CONTAINER.}#)
 
 
 
@@ -6743,7 +6755,12 @@ remain.}#)
     ))
 
 (install_initial_macro 'update_current_module_environment_container mexpand_update_current_module_environment_container)
-(export_macro update_current_module_environment_container mexpand_update_current_module_environment_container)
+(export_macro update_current_module_environment_container mexpand_update_current_module_environment_container
+	      :doc
+#{@code{($UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER)} is a guru
+macro to update the current module environment container.  You
+probably should never use it, but it is necessary inside MELT. See
+$CURRENT_MODULE_ENVIRONMENT_CONTAINER.}#)
 
 
 
@@ -6774,7 +6791,8 @@ remain.}#)
       (return res)
       )))
 (install_initial_macro 'fetch_predefined mexpand_fetch_predefined)
-(export_macro fetch_predefined mexpand_fetch_predefined)
+(export_macro fetch_predefined mexpand_fetch_predefined
+	      :doc #{@code{($FETCH_PREDEFINED @var{predefined-name})} is accessing a predefined value without using environments. You probably don't need that.}#)
 
 ;;;;;;;;;;;;;;;;
 (defun mexpand_store_predefined (sexpr env mexpander modctx)
@@ -6809,7 +6827,8 @@ remain.}#)
       (return res)
       )))
 (install_initial_macro 'store_predefined mexpand_store_predefined)
-(export_macro store_predefined mexpand_store_predefined)
+(export_macro store_predefined mexpand_store_predefined 
+	      :doc #{@code{($STORE_PREDEFINED @var{predefined-name} @var{value})} is storing a predefined value. You probably never need that.}#)
 
 ;;;;;;;;;;;;;;;;
 

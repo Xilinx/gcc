@@ -1,4 +1,20 @@
 
+2012-07-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	* doc/melt.texi (MELT environments and bindings): Mention
+	environment-related macros.
+	(translating a MELT module): Improve documentation, mention
+	melt_start_this_module.
+
+	* melt-runtime.h: Improve comment for MELT_DYNLOADED_SUFFIX.
+
+	* melt/warmelt-macro.melt: export directives on same line as
+	exported name.
+	(debug, export_values, export_macro, export_patmacro)
+	(export_class, export_synonym)
+	(current_module_environment_container, parent_module_environment)
+	(update_current_module_environment_container, fetch_predefined)
+	(store_predefined): Document these macros.
+
 2012-07-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate all}}
 

@@ -1970,6 +1970,11 @@ User MELT code is ordinarily not supposed to explicitly change
 environments and bindings (but they are changed implicitly at module
 initialization).
 
+Advanced MELT extension developers might rarely use with caution the
+@code{current_module_environment_container} -which is actually a
+reference, not a container- and @code{parent_module_environment}
+macros to obtain the current and parent environments.
+
 @node translating a MELT module
 @subsubsection translating a MELT module
 
@@ -1979,25 +1984,25 @@ A MELT file @file{@var{foo}.melt} [which can be viewed as defining the
 @file{@var{foo}.c} which is then compiled into a dynamically loadable
 shared library - usually @file{@var{foo}.so} on Linux. The translation
 to C is done using @code{cc1} or @code{gcc -c}
-with the @code{-fmelt-mode=translatefile -fmelt-arg=@var{foo}.melt
+with the @code{-f[plugin-arg-]melt-mode=translatefile -f[plugin-arg-]melt-arg=@var{foo}.melt
 -fmelt-secondarg=@var{foo}.c} options. The generated file
 @var{foo}.c is usually quite big (and only @code{#include}-ing one
 file, @code{"run-melt.h"} which includes all the rest). It
 essentially contains one static C function (of signature compatible
 with @code{melt_apply}) for each @code{defun} or @code{lambda}
-function in MELT, and one big exported @code{start_module_melt} C
+function in MELT, and one big exported @code{melt_start_this_module} C
 function which does all the initializations, and some other stuff. The
 initialization code builds all the required data (quoted symbols,
 closures, classes, fields, boxed strings, static instances defined
 thru @code{definstance} etc..); MELT modules have no data outside of
-this @code{start_module_melt} function.
+this @code{melt_start_this_module} function.
 
-The start function @code{start_module_melt} (which is found by
+The start function @code{melt_start_this_module} (which is found by
 dynamic loading of the module, usually thru @code{dlopen} and
 @code{dlsym} or their equivalent, and called only once) expects a
 parent environment and returns the newly filled module
 environment@footnote{There is an ordered sequence of MELT modules, the
-very first, @code{warmelt-first}, being translated specially and gets
+very first, @code{warmelt-first}, is being translated specially and gets
 a nil parent.}.
 
 To generate a MELT binary module from a MELT source file, use 

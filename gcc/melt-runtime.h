@@ -131,7 +131,8 @@ struct melt_callframe_st /* forward declaration */;
 
 /* the system dynamically loaded [thru dlopen] library suffix, often
    .so for ELF shared objects; it should be a constant string (so its
-   sizeof is its length +1). */
+   sizeof is its length +1).  MELT_DYNLOADED_SUFFIX is the
+   system-defined suffix.  */
 #ifndef MELT_DYNLOADED_SUFFIX
 #define MELT_DYNLOADED_SUFFIX ".so"
 #endif /*MELT_DYNLOADED_SUFFIX */
