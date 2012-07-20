@@ -1,7 +1,7 @@
 ;; file warmelt-outobj.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright (C) 2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
+    Copyright (C) 2008 - 2012 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -4456,7 +4456,7 @@ extern "C" {
 	(unless nbpackagepc
 	  (add2out mkbuf "# no packages needed thru pkg-config\n"))
 	)
-      (add2out mkrulebuf "### generated dependencies for " modnamstr"\n")
+      (add2out mkrulebuf "### generated dependencies for " modnamstr "\n\n")
       (add2out mkrulebuf "# dependency for primary of " modcident "\n")
       (foreach_in_multiple
        (flavortuple)
@@ -4550,7 +4550,9 @@ extern "C" {
 	(foreach_in_multiple
 	 (flavortuple)
 	 (curflav :long flavix)
-	(add2out mkrulebuf "## dependency for flavor " curflav " of module " modnamstr "\n")
+	 (add2out mkrulebuf "\n#### dependencies for flavor " curflav " of module " modnamstr "\n\n")
+	 ;; old flavored dependencies; the .meltmod is at end
+	 (add2out mkrulebuf "\n## old fashion dependency for flavor " curflav " of module " modnamstr "\n")
 	 (add2out mkrulebuf modprefstr "." cumpathmds "." curflav ".meltmod.so: \\\n"
 		  "  " modprefstr "."  cumpathmds ".descriptor.meltpic.o "
 		  )
@@ -4569,8 +4571,28 @@ extern "C" {
 	      )
 	    )
 	   )
+	 ;; new flavored dependencies; the .meltmod- is before the md5sum 
+	 (add2out mkrulebuf "\n\n## new dependency for flavor " curflav " of module " modnamstr "\n")
+	 (add2out mkrulebuf modprefstr ".meltmod-" cumpathmds "." curflav ".so: \\\n"
+		  "  " modprefstr "."  cumpathmds ".descriptor.meltpic.o "
+		  )
+	 (let ( (pathtup (list_to_multiple pathlist discr_multiple))
+		(md5tup (list_to_multiple md5list discr_multiple))
+		)
+	   (assert_msg "check same length pathtup md5tup" (==i (multiple_length pathtup) (multiple_length md5tup)))
+	   (foreach_in_multiple
+	    (pathtup)
+	    (curpath :long ix)
+	    (let ( (curmd5 (multiple_nth md5tup ix))
+		   )
+	      (debug "output_melt_descriptor curpath=" curpath " ix=" ix " curmd5=" curmd5)
+	      (add2out mkrulebuf " \\\n   "  "$(GCCMELTGEN_BUILD)" (make_string_nakedbasename discr_string curpath) 
+		       "." curmd5 "." curflav ".meltpic.o")
+	      )
+	    )
+	   )
 	 (add2out mkrulebuf "\n\n")
-	 )
+	 ) ;; end foreach flavortuple
 	;;
 	(add2out mkrulebuf "\n#end of generated dependencies for " modnamstr "\n\n")
 	(add2out mkbuf mkrulebuf)

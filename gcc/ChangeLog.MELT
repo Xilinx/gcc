@@ -1,5 +1,10 @@
 
 2012-07-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (output_melt_descriptor): Emit both old
+	fashioned and new fashioned module dependencies in generated make
+	fragment.
+
+2012-07-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	* doc/melt.texi (MELT environments and bindings): Mention
 	environment-related macros.
 	(translating a MELT module): Improve documentation, mention
