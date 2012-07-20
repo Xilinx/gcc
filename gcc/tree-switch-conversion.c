@@ -37,8 +37,9 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "tree-ssa-operands.h"
 #include "tree-pass.h"
 #include "gimple-pretty-print.h"
-#include "tree-dump.h"
-#include "timevar.h"
+
+/* ??? For lang_hooks.types.type_for_mode, but is there a word_mode
+   type in the GIMPLE type system that is language-independent?  */
 #include "langhooks.h"
 
 /* Need to include expr.h and optabs.h for lshift_cheap_p.  */
@@ -1188,10 +1189,8 @@ fix_phi_nodes (edge e1f, edge e2f, basic_block bbf,
        !gsi_end_p (gsi); gsi_next (&gsi), i++)
     {
       gimple phi = gsi_stmt (gsi);
-      add_phi_arg (phi, info->target_inbound_names[i], e1f, UNKNOWN_LOCATION,
-		   NULL);
-      add_phi_arg (phi, info->target_outbound_names[i], e2f, UNKNOWN_LOCATION,
-		   NULL);
+      add_phi_arg (phi, info->target_inbound_names[i], e1f, UNKNOWN_LOCATION);
+      add_phi_arg (phi, info->target_outbound_names[i], e2f, UNKNOWN_LOCATION);
     }
 }
 

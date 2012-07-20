@@ -338,8 +338,8 @@ do { \
 #endif
 
 #define SH_ASM_SPEC \
- "%(subtarget_asm_endian_spec) %{mrelax:-relax %(subtarget_asm_relax_spec)}\
-%(subtarget_asm_isa_spec) %(subtarget_asm_spec)\
+ "%(subtarget_asm_endian_spec) %{mrelax:-relax %(subtarget_asm_relax_spec)} \
+%(subtarget_asm_isa_spec) %(subtarget_asm_spec) \
 %{m2a:--isa=sh2a} \
 %{m2a-single:--isa=sh2a} \
 %{m2a-single-only:--isa=sh2a} \
@@ -1213,12 +1213,8 @@ extern enum reg_class regno_reg_class[FIRST_PSEUDO_REGISTER];
 
 /* Defines for sh.md and constraints.md.  */
 
-#define CONST_OK_FOR_I06(VALUE) (((HOST_WIDE_INT)(VALUE)) >= -32 \
-				 && ((HOST_WIDE_INT)(VALUE)) <= 31)
 #define CONST_OK_FOR_I08(VALUE) (((HOST_WIDE_INT)(VALUE))>= -128 \
 				 && ((HOST_WIDE_INT)(VALUE)) <= 127)
-#define CONST_OK_FOR_I10(VALUE) (((HOST_WIDE_INT)(VALUE)) >= -512 \
-				 && ((HOST_WIDE_INT)(VALUE)) <= 511)
 #define CONST_OK_FOR_I16(VALUE) (((HOST_WIDE_INT)(VALUE)) >= -32768 \
 				 && ((HOST_WIDE_INT)(VALUE)) <= 32767)
 
@@ -2351,7 +2347,7 @@ extern int current_function_interrupt;
    ? get_attr_fp_mode (INSN)						\
    : FP_MODE_NONE)
 
-#define MODE_AFTER(MODE, INSN)                  \
+#define MODE_AFTER(ENTITY, MODE, INSN)		\
      (TARGET_HITACHI				\
       && recog_memoized (INSN) >= 0		\
       && get_attr_fp_set (INSN) != FP_SET_NONE  \
