@@ -1,3 +1,11 @@
+2012-07-19  Balaji V. Iyer  <balaji.v.iyer@intel.com>   
+
+	* cp-lang.c: Added cilk.h header.
+	* cp-objcp-common.h (LANG_HOOKS_CILK_VALID_SPAWN): Defined this.
+	(LANG_HOOKS_GIMPLIFY_CILK_SPAWN): Likewise.
+	(LANG_HOOKS_GIMPLIFY_CILK_FOR): Likewise.
+	(LANG_HOOKS_GIMPLIFYY_CILK_SYNC): Likewise.
+
 2012-07-19  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* parser.c (cp_parser_postfix_open_square_expression): Rearranged code

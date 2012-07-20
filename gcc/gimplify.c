@@ -7122,11 +7122,11 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	break;
 
       ret = GS_OK;
-      if ((cilk_valid_spawn != NULL) && (cilk_valid_spawn (*expr_p)))
+      if (flag_enable_cilk && lang_hooks.cilk.cilk_valid_spawn (*expr_p))
 	{
 	  if (is_statement)
 	    {
-	      gimplify_cilk_spawn (expr_p, pre_p, post_p);
+	      lang_hooks.cilk.gimplify_cilk_spawn (expr_p, pre_p, post_p);
 	      continue;
 	    }
 	  else
@@ -7683,26 +7683,29 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	  ret = GS_ALL_DONE;
 	  break;
 	case CILK_FOR_STMT:
-	    {
-	      gimplify_cilk_for (expr_p, pre_p, post_p);
-	      ret = GS_ALL_DONE;
-	      break;
-	    }	 
+	  {
+	    if (flag_enable_cilk)
+	      lang_hooks.cilk.gimplify_cilk_for (expr_p, pre_p, post_p);
+	    ret = GS_ALL_DONE;
+	    break;
+	  }
 	case SYNC_STMT:
-	    {
-	      if (cfun->cilk_frame_decl == NULL) 
-		{
-		  error ("Expected _Cilk_spawn before _Cilk_sync.");
-		  ret = GS_ERROR;
-		}
-	      else
-		{
-		  gimplify_cilk_sync (expr_p, pre_p);
-		  ret = GS_ALL_DONE;
-		}
-	      break;
-	    }
-
+	  {
+	    if (flag_enable_cilk)
+	      {
+		if (!cfun->cilk_frame_decl) 
+		  {
+		    error ("Expected _Cilk_spawn before _Cilk_sync.");
+		    ret = GS_ERROR;
+		  }
+		else
+		  {
+		    lang_hooks.cilk.gimplify_cilk_sync (expr_p, pre_p);
+		    ret = GS_ALL_DONE;
+		  }
+	      }
+	    break;
+	  }
 	case TRANSACTION_EXPR:
 	  ret = gimplify_transaction (expr_p, pre_p);
 	  break;

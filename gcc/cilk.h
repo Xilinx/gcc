@@ -287,10 +287,10 @@ extern rtx expand_builtin_cilk_synched (tree);
 extern rtx expand_builtin_cilk_enter (tree);
 extern rtx expand_builtin_cilk_metadata (const char *, tree);
 
-extern bool cilk_valid_spawn (tree) __attribute__((weak));
-extern void gimplify_cilk_spawn (tree *, gimple_seq *, gimple_seq *) __attribute__((weak));
-extern void gimplify_cilk_sync (tree *, gimple_seq *) __attribute__((weak));
-extern void gimplify_cilk_for (tree *, gimple_seq *, gimple_seq *) __attribute__ ((weak));
+bool cilk_valid_spawn (tree);
+void gimplify_cilk_spawn (tree *, gimple_seq *, gimple_seq *);
+void gimplify_cilk_sync (tree *, gimple_seq *);
+void gimplify_cilk_for (tree *, gimple_seq *, gimple_seq *);
 
 
 extern tree cilk_call_setjmp (tree);

@@ -229,6 +229,10 @@ struct lang_hooks_for_cilk
 {
   bool (*recognize_spawn) (tree);
   bool (*spawnable_constructor) (tree);
+  bool (*cilk_valid_spawn) (tree);
+  void (*gimplify_cilk_spawn) (tree *, gimple_seq *, gimple_seq *);
+  void (*gimplify_cilk_for) (tree *, gimple_seq *, gimple_seq *);
+  void (*gimplify_cilk_sync) (tree *, gimple_seq *);
 };
 
 

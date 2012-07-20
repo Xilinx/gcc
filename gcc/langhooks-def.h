@@ -211,9 +211,24 @@ extern tree lhd_make_node (enum tree_code);
 #define LANG_HOOKS_OMP_CLAUSE_DTOR hook_tree_tree_tree_null
 #define LANG_HOOKS_OMP_FINISH_CLAUSE hook_void_tree
 
+bool lhd_cilk_valid_spawn (tree);
+void lhd_gimplify_cilk_spawn (tree *, gimple_seq *, gimple_seq *);
+void lhd_gimplify_cilk_for (tree *, gimple_seq *, gimple_seq *);
+void lhd_gimplify_cilk_sync (tree *, gimple_seq *);
 #define LANG_HOOKS_CILK_RECOGNIZE_SPAWN hook_bool_tree_false
 #define LANG_HOOKS_CILK_VALID_CTOR hook_bool_tree_false
-#define LANG_HOOKS_CILK { LANG_HOOKS_CILK_RECOGNIZE_SPAWN, LANG_HOOKS_CILK_VALID_CTOR }
+#define LANG_HOOKS_CILK_VALID_SPAWN lhd_cilk_valid_spawn
+#define LANG_HOOKS_GIMPLIFY_CILK_SPAWN lhd_gimplify_cilk_spawn
+#define LANG_HOOKS_GIMPLIFY_CILK_FOR   lhd_gimplify_cilk_for
+#define LANG_HOOKS_GIMPLIFY_CILK_SYNC  lhd_gimplify_cilk_sync
+#define LANG_HOOKS_CILK {		\
+  LANG_HOOKS_CILK_RECOGNIZE_SPAWN,	\
+  LANG_HOOKS_CILK_VALID_CTOR,		\
+  LANG_HOOKS_CILK_VALID_SPAWN,		\
+  LANG_HOOKS_GIMPLIFY_CILK_SPAWN,      	\
+  LANG_HOOKS_GIMPLIFY_CILK_FOR,		\
+  LANG_HOOKS_GIMPLIFY_CILK_SYNC		\
+}
 
 #define LANG_HOOKS_DECLS { \
   LANG_HOOKS_GLOBAL_BINDINGS_P, \

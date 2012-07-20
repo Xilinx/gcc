@@ -1,3 +1,26 @@
+2012-07-19  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* gimplify.c (gimplify_expr): Replaced all weak symbols with a
+	language hook equivalent for handling cilk_spawn, cilk_sync and
+	cilk_for.
+	* c/c-objc-common.h (LANG_HOOKS_GIMPLIFY_CILK_SPAWN): Defined this.
+	(LANG_HOOKS_CILK_VALID_SPAWN): Likewise.
+	(LANG_HOOKS_GIMPLIFY_CILK_FOR): Likewise.
+	(LANG_HOOKS_GIMPLIFY_CILK_SYNC): Likewise.
+	* cilk.h: Replaced all the weak attributes.
+	* langhooks.c (lhd_recognize_spawn): New function.
+	(lhd_cilk_valid_spawn): Likewise.
+	(lhd_gimplify_cilk_spawn): Likewise.
+	(lhd_gimplify_cilk_for): Likewise.
+	(lhd_gimplify_cilk_sync): Likewise.
+	* langhooks-def.h (LANG_HOOKS_CILK_VALID_SPAWN): New define.
+	(LANG_HOOKS_GIMPLIFY_CILK_FOR): Likewise.
+	(LANG_HOOKS_GIMPLIFY_CILK_SYNC): Likewise.
+	(LANG_HOOKS_GIMPLIFY_CILK_SPAWN): Likewise.
+	(LANG_HOOKS_CILK): Added the 4 new defined phrases above to this
+	structure.
+	* c/c-lang.c: Added cilk.h header.
+
 2012-07-16  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-parser.c (c_parser_statement_after_labels): Checked if a sync expr

@@ -674,3 +674,34 @@ bool lhd_hook_bool_false(void)
 {
   return false;
 }
+
+bool lhd_recognize_spawn (tree x ATTRIBUTE_UNUSED)
+{
+  return false;
+}
+
+bool lhd_cilk_valid_spawn (tree x ATTRIBUTE_UNUSED)
+{
+  return false;
+}
+
+void lhd_gimplify_cilk_spawn (tree *x ATTRIBUTE_UNUSED,
+			      gimple_seq *y ATTRIBUTE_UNUSED,
+			      gimple_seq *z ATTRIBUTE_UNUSED)
+{
+  return;
+}
+
+void lhd_gimplify_cilk_for (tree *x ATTRIBUTE_UNUSED,
+			    gimple_seq *y ATTRIBUTE_UNUSED,
+			    gimple_seq *z ATTRIBUTE_UNUSED)
+{
+  return;
+}
+
+void lhd_gimplify_cilk_sync (tree *y ATTRIBUTE_UNUSED,
+			     gimple_seq *z ATTRIBUTE_UNUSED)
+{
+  return;
+}
+

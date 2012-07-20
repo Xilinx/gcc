@@ -151,4 +151,16 @@ extern void cp_common_init_ts (void);
 #undef LANG_HOOKS_EH_PROTECT_CLEANUP_ACTIONS
 #define LANG_HOOKS_EH_PROTECT_CLEANUP_ACTIONS cp_protect_cleanup_actions
 
+#undef LANG_HOOKS_CILK_VALID_SPAWN
+#define LANG_HOOKS_CILK_VALID_SPAWN cilk_valid_spawn
+
+#undef LANG_HOOKS_GIMPLIFY_CILK_SPAWN
+#define LANG_HOOKS_GIMPLIFY_CILK_SPAWN gimplify_cilk_spawn
+
+#undef LANG_HOOKS_GIMPLIFY_CILK_FOR
+#define LANG_HOOKS_GIMPLIFY_CILK_FOR gimplify_cilk_for
+
+#undef LANG_HOOKS_GIMPLIFY_CILK_SYNC
+#define LANG_HOOKS_GIMPLIFY_CILK_SYNC gimplify_cilk_sync
+
 #endif /* GCC_CP_OBJCP_COMMON */
