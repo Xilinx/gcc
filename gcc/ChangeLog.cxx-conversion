@@ -1,3 +1,18 @@
+2012-07-23   Lawrence Crowl  <crowl@google.com>
+
+	* hash-table.h (xcallocator::control_alloc): Adjust spacing.
+	(xcallocator::data_alloc): Likewise.
+	(xcallocator::control_free): Likewise.
+	(xcallocator::data_free): Likewise.
+	(hash_table::hash_table): Likewise.
+	(hash_table::is_created): Likewise.
+	(hash_table::find): Likewise.
+	(hash_table::find_slot): Likewise.
+	(hash_table::remove_elt): Likewise.
+	(hash_table::size): Likewise.
+	(hash_table::elements): Likewise.
+	(hash_table::collisions): Likewise.
+
 2012-07-20   Lawrence Crowl  <crowl@google.com>
 
         * hash-table.h (xcallocator::control_alloc): Move definition

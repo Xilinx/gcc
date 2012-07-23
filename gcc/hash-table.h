@@ -43,36 +43,44 @@ struct xcallocator
 };
 
 
-  /* Allocate memory for COUNT control blocks.  */
+/* Allocate memory for COUNT control blocks.  */
 
 template <typename Type>
 inline Type *
 xcallocator <Type>::control_alloc (size_t count)
-  { return static_cast <Type *> (xcalloc (count, sizeof (Type))); }
+{
+  return static_cast <Type *> (xcalloc (count, sizeof (Type)));
+}
 
 
-  /* Allocate memory for COUNT data blocks.  */ 
+/* Allocate memory for COUNT data blocks.  */ 
 
 template <typename Type>
 inline Type *
 xcallocator <Type>::data_alloc (size_t count)
-  { return static_cast <Type *> (xcalloc (count, sizeof (Type))); }
+{
+  return static_cast <Type *> (xcalloc (count, sizeof (Type)));
+}
 
 
-  /* Free memory for control blocks.  */
+/* Free memory for control blocks.  */
 
 template <typename Type>
 inline void
 xcallocator <Type>::control_free (Type *memory)
-  { return ::free (memory); }
+{
+  return ::free (memory);
+}
   
 
-  /* Free memory for data blocks.  */
+/* Free memory for data blocks.  */
 
 template <typename Type>
 inline void
 xcallocator <Type>::data_free (Type *memory)
-  { return ::free (memory); }
+{
+  return ::free (memory);
+}
 
 
 /* A common function for hashing a CANDIDATE typed pointer.  */
@@ -234,7 +242,7 @@ public:
 };
 
 
-  /* Construct the hash table.  The only useful operation next is create.  */
+/* Construct the hash table.  The only useful operation next is create.  */
 
 template <typename Element,
 	  hashval_t (*Hash) (const Element *candidate),
@@ -243,12 +251,12 @@ template <typename Element,
 	  template <typename Type> class Allocator>
 inline
 hash_table <Element, Hash, Equal, Remove, Allocator>::hash_table ()
-  : htab (NULL)
-  {
-  }
+: htab (NULL)
+{
+}
 
 
-  /* See if the table has been created, as opposed to constructed.  */
+/* See if the table has been created, as opposed to constructed.  */
 
 template <typename Element,
 	  hashval_t (*Hash) (const Element *candidate),
@@ -257,12 +265,12 @@ template <typename Element,
 	  template <typename Type> class Allocator>
 inline bool
 hash_table <Element, Hash, Equal, Remove, Allocator>::is_created ()
-  {
-    return htab != NULL;
-  }
+{
+  return htab != NULL;
+}
 
 
-  /* Like find_with_hash, but compute the hash value from the element.  */
+/* Like find_with_hash, but compute the hash value from the element.  */
 
 template <typename Element,
 	  hashval_t (*Hash) (const Element *candidate),
@@ -271,12 +279,12 @@ template <typename Element,
 	  template <typename Type> class Allocator>
 inline Element *
 hash_table <Element, Hash, Equal, Remove, Allocator>::find (Element *comparable)
-  {
-    return find_with_hash (comparable, Hash (comparable));
-  }
+{
+  return find_with_hash (comparable, Hash (comparable));
+}
 
 
-  /* Like find_slot_with_hash, but compute the hash value from the element.  */
+/* Like find_slot_with_hash, but compute the hash value from the element.  */
 
 template <typename Element,
 	  hashval_t (*Hash) (const Element *candidate),
@@ -286,12 +294,12 @@ template <typename Element,
 inline Element **
 hash_table <Element, Hash, Equal, Remove, Allocator>
 ::find_slot (Element *comparable, enum insert_option insert)
-  {
-    return find_slot_with_hash (comparable, Hash (comparable), insert);
-  }
+{
+  return find_slot_with_hash (comparable, Hash (comparable), insert);
+}
 
 
-  /* Like remove_elt_with_hash, but compute the hash value from the element.  */
+/* Like remove_elt_with_hash, but compute the hash value from the element.  */
 
 template <typename Element,
 	  hashval_t (*Hash) (const Element *candidate),
@@ -301,13 +309,12 @@ template <typename Element,
 inline void
 hash_table <Element, Hash, Equal, Remove, Allocator>
 ::remove_elt (Element *comparable)
-  {
-    remove_elt_with_hash (comparable, Hash (comparable));
-  }
+{
+  remove_elt_with_hash (comparable, Hash (comparable));
+}
 
 
-
-  /* Return the current size of this hash table.  */
+/* Return the current size of this hash table.  */
 
 template <typename Element,
 	  hashval_t (*Hash) (const Element *candidate),
@@ -316,12 +323,12 @@ template <typename Element,
 	  template <typename Type> class Allocator>
 inline size_t
 hash_table <Element, Hash, Equal, Remove, Allocator>::size()
-  {
-    return htab->size;
-  }
+{
+  return htab->size;
+}
 
 
-  /* Return the current number of elements in this hash table. */
+/* Return the current number of elements in this hash table. */
 
 template <typename Element,
 	  hashval_t (*Hash) (const Element *candidate),
@@ -330,9 +337,9 @@ template <typename Element,
 	  template <typename Type> class Allocator>
 inline size_t
 hash_table <Element, Hash, Equal, Remove, Allocator>::elements()
-  {
-    return htab->n_elements - htab->n_deleted;
-  }
+{
+  return htab->n_elements - htab->n_deleted;
+}
 
 
   /* Return the fraction of fixed collisions during all work with given
@@ -345,12 +352,12 @@ template <typename Element,
 	  template <typename Type> class Allocator>
 inline double
 hash_table <Element, Hash, Equal, Remove, Allocator>::collisions()
-  {
-    if (htab->searches == 0)
-      return 0.0;
+{
+  if (htab->searches == 0)
+    return 0.0;
 
-    return static_cast <double> (htab->collisions) / htab->searches;
-  }
+  return static_cast <double> (htab->collisions) / htab->searches;
+}
 
 
 /* Create a hash table with at least the given number of INITIAL_SLOTS.  */
