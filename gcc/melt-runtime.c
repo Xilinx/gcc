@@ -8686,9 +8686,15 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
              "MELT descriptive file %s for MELT version %s, but this MELT runtime is version %s",
              srcpath, descversionmelt, melt_version_str ());
   sobase =
-    concat (melt_basename(descmodulename), ".", desccumulatedhexmd5, ".", flavor,
-            MELT_DYNLOADED_SUFFIX, NULL);
+    concat (melt_basename(descmodulename), 
+#if MELTNEW
+	    ".meltmod-", 
+#else
+	    "."
 #warning melt_load_module_index should have .meltmod somewhere in sobase
+#endif
+	    desccumulatedhexmd5, ".", flavor,
+            MELT_DYNLOADED_SUFFIX, NULL);
   debugeprintf ("melt_load_module_index long sobase %s workdir %s",
                 sobase, melt_argument ("workdir"));
   if (melt_trace_module_fil)
@@ -8794,6 +8800,11 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
       if (!melt_flag_bootstrapping)
 	error ("MELT failed to find module of base %s in builtin directory %s",
 	       srcbase, melt_module_dir);
+    if (melt_trace_module_fil)
+      fflush (melt_trace_module_fil);
+    else
+      inform (UNKNOWN_LOCATION, 
+	      "You could set the GCCMELT_TRACE_MODULE env.var. to some file path for debugging");
       melt_fatal_error ("No MELT module for source base %s flavor %s (parsed cumulated checksum %s)",
 			srcbase, flavor,
 			desccumulatedhexmd5 ? desccumulatedhexmd5 : "unknown");

@@ -1,4 +1,10 @@
 
+2012-07-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build-script.tpl: Generates the stage0 meltbuild.mk, but not working yet.
+	* melt-build-script.sh: Regenerate.
+
+	* melt-runtime.c (melt_load_module_index): Inform about GCCMELT_TRACE_MODULE.
+
 2012-07-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate all}}
 

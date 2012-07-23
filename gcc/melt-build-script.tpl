@@ -147,12 +147,12 @@ esac
 meltbuild_info making stage0 [+base+]  [+(.(fromline))+]
 
 ##  stage0 [+(.(fromline))+] symlink descriptor file [+base+]
-if ! -f "$GCCMELT_STAGE_ZERO/[+base+]+meltdesc.c" ; then
+if [ ! -f "$GCCMELT_STAGE_ZERO/[+base+]+meltdesc.c" ]; then
     meltbuild_symlink $GCCMELT_MELTSOURCEDIR/generated/[+base+]+meltdesc.c $GCCMELT_STAGE_ZERO/ 
 fi
 
 ##  stage0 [+(.(fromline))+] symlink source code [+base+]
-if ! -f "$GCCMELT_STAGE_ZERO/[+base+].c" ; then
+if [ ! -f "$GCCMELT_STAGE_ZERO/[+base+].c" ]; then
     meltbuild_symlink $GCCMELT_MELTSOURCEDIR/generated/[+base+].c $GCCMELT_STAGE_ZERO/ 
     for f in $GCCMELT_MELTSOURCEDIR/generated/[+base+]+[0-9]*.c ; do
 	meltbuild_symlink $f $GCCMELT_STAGE_ZERO/ 
@@ -160,22 +160,59 @@ if ! -f "$GCCMELT_STAGE_ZERO/[+base+].c" ; then
 fi
 
 ##  stage0 [+(.(fromline))+] symlink stamp [+base+]
-if ! -f "$GCCMELT_STAGE_ZERO/[+base+]+melttime.h" ; then
+if  [ ! -f "$GCCMELT_STAGE_ZERO/[+base+]+melttime.h" ]; then
     meltbuild_symlink $GCCMELT_MELTSOURCEDIR/generated/[+base+]+melttime.h $GCCMELT_STAGE_ZERO/ 
 fi
 
 MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5=$($GAWK -F\" '/extern/{next} /melt_cumulated_hexmd5/{print $2}' $GCCMELT_MELTSOURCEDIR/generated/[+base+]+meltdesc.c)
 
+
+## manually generate the stage0 [+base+]+meltbuild.mk file  [+(.(fromline))+]
+MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK=$GCCMELT_STAGE_ZERO/[+base+]+meltbuild.mk
+
+date +"# file $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK script-generated %c" > $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+echo "# generated " [+(.(fromline))+] >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+echo "MELTGEN_MODULENAME=$GCCMELT_STAGE_ZERO/[+base+]"  >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+echo "MELTGEN_MODULEIDENT=melt_stage_zero_[+varsuf+]"  >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+
+echo '# zerostage objects of [+base+] [+(.(fromline))+]' >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+echo $GCCMELT_STAGE_ZERO/[+base+].$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5.descriptor.meltpic.o: $GCCMELT_STAGE_ZERO/[+base+]+meltdesc.c  >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+for f in $GCCMELT_STAGE_ZERO/[+base+].c $GCCMELT_STAGE_ZERO/[+base+]+[0-9]*.c; do
+ echo >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+ echo $GCCMELT_STAGE_ZERO/`basename $f .c`._NOMDFIVESUM_.$GCCMELT_ZERO_FLAVOR.meltpic.o: $f >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+done
+
+echo >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+echo '# zerostage module of [+base+] [+(.(fromline))+]'  >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+echo $GCCMELT_STAGE_ZERO/[+base+].meltmod-$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5.$GCCMELT_ZERO_FLAVOR.so: \\  >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+echo " " $GCCMELT_STAGE_ZERO/[+base+].$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5.descriptor.meltpic.o \\  >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+for f in $GCCMELT_STAGE_ZERO/[+base+]+[0-9]*.c; do
+    echo " " $GCCMELT_STAGE_ZERO/`basename $f .c`._NOMDFIVESUM_.$GCCMELT_ZERO_FLAVOR.meltpic.o \\ >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+done
+echo " " $GCCMELT_STAGE_ZERO/[+base+]._NOMDFIVESUM_.$GCCMELT_ZERO_FLAVOR.meltpic.o >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+echo >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+echo MELTGENMOD_CUMULATED_MD5SUM_melt_stage_zero_[+varsuf+]=$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5 >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+echo MELTGENMOD_NAKED_NAME_melt_stage_zero_[+varsuf+]=[+base+]  >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+echo '#end of generated file ' $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+##
+mv $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$ $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK
+
 $GCCMELT_MAKE -f $GCCMELT_MODULE_MK melt_module \
-   GCCMELT_FROM=[+(.(fromline))+] \
+   GCCMELT_FROM=stagezero-[+(.(fromline))+] \
+   GCCMELTGEN_BUILD=$GCCMELT_STAGE_ZERO/ \
    GCCMELT_MODULE_WORKSPACE=meltbuild-workdir \
    GCCMELT_MODULE_FLAVOR=$GCCMELT_ZERO_FLAVOR \
    GCCMELT_CFLAGS="$GCCMELT_COMPILER_FLAGS" \
-   GCCMELT_MODULE_SOURCEBASE=$GCCMELT_MELTSOURCEDIR/generated/[+base+] \
+   GCCMELT_MODULE_SOURCEBASE=$GCCMELT_STAGE_ZERO/[+base+] \
    GCCMELT_CUMULATED_MD5=$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5 \
    GCCMELT_MODULE_BINARYBASE=$GCCMELT_STAGE_ZERO/[+base+] \
    GCCMELT_MODULE_DEPENDENCIES="$GCCMELT_CC1_DEPENDENCIES" \
  || meltbuild_error  [+(.(fromline))+] stage0 [+base+] did not build with $GCCMELT_MAKE 
+
+meltbuild_info [+(.(fromline))+] stage0 [+base+] module 
+ls -l "$GCCMELT_STAGE_ZERO/[+base+].meltmod-$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5.$GCCMELT_ZERO_FLAVOR.so" > /dev/stderr \
+  || meltbuild_error  [+(.(fromline))+] stage0 [+base+] fail to build \
+    "$GCCMELT_STAGE_ZERO/[+base+].meltmod-$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5.$GCCMELT_ZERO_FLAVOR.so"
 
 meltbuild_info [+(.(fromline))+] successfully build stage0 [+base+]
 
@@ -228,7 +265,7 @@ meltbuild_emit [+(.(fromline))+] \
 meltbuild_info [+(.(fromline))+] compiling module [+base+] in [+melt_stage+]
 
 $GCCMELT_MAKE -f $GCCMELT_MODULE_MK melt_module \
-   GCCMELT_FROM=[+(.(fromline))+] \
+   GCCMELT_FROM=[+melt_stage+]-[+(.(fromline))+] \
    GCCMELT_MODULE_WORKSPACE=meltbuild-workdir \
    GCCMELT_MODULE_FLAVOR=quicklybuilt \
    GCCMELT_CFLAGS="$GCCMELT_COMPILER_FLAGS" \
