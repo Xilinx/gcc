@@ -36,30 +36,43 @@ along with GCC; see the file COPYING3.  If not see
 template <typename Type>
 struct xcallocator
 {
+  static Type *control_alloc (size_t count);
+  static Type *data_alloc (size_t count);
+  static void control_free (Type *memory);
+  static void data_free (Type *memory);
+};
+
 
   /* Allocate memory for COUNT control blocks.  */
 
-  static Type *control_alloc (size_t count)
+template <typename Type>
+inline Type *
+xcallocator <Type>::control_alloc (size_t count)
   { return static_cast <Type *> (xcalloc (count, sizeof (Type))); }
-  
+
 
   /* Allocate memory for COUNT data blocks.  */ 
 
-  static Type *data_alloc (size_t count)
+template <typename Type>
+inline Type *
+xcallocator <Type>::data_alloc (size_t count)
   { return static_cast <Type *> (xcalloc (count, sizeof (Type))); }
 
 
   /* Free memory for control blocks.  */
 
-  static void control_free (Type *memory)
+template <typename Type>
+inline void
+xcallocator <Type>::control_free (Type *memory)
   { return ::free (memory); }
   
+
   /* Free memory for data blocks.  */
 
-  static void data_free (Type *memory)
+template <typename Type>
+inline void
+xcallocator <Type>::data_free (Type *memory)
   { return ::free (memory); }
-  
-};
 
 
 /* A common function for hashing a CANDIDATE typed pointer.  */
@@ -182,27 +195,34 @@ template <typename Element,
 	  int (*Equal) (const Element *existing, const Element * candidate),
 	  void (*Remove) (Element *retired),
 	  template <typename Type> class Allocator = xcallocator>
-struct hash_table
+class hash_table
 {
 
 private:
 
   hash_table_control <Element> *htab;
 
-
   Element **find_empty_slot_for_expand (hashval_t hash);
   void expand ();
 
 public:
 
+  hash_table ();
   void create (size_t initial_slots);
+  bool is_created ();
   void dispose ();
+  Element *find (Element *comparable);
   Element *find_with_hash (Element *comparable, hashval_t hash);
+  Element **find_slot (Element *comparable, enum insert_option insert);
   Element **find_slot_with_hash (Element *comparable, hashval_t hash,
 				 enum insert_option insert);
   void empty ();
   void clear_slot (Element **slot);
+  void remove_elt (Element *comparable);
   void remove_elt_with_hash (Element *comparable, hashval_t hash);
+  size_t size();
+  size_t elements();
+  double collisions();
 
   template <typename Argument,
 	    int (*Callback) (Element **slot, Argument argument)>
@@ -211,11 +231,18 @@ public:
   template <typename Argument,
 	    int (*Callback) (Element **slot, Argument argument)>
   void traverse (Argument argument);
+};
 
 
   /* Construct the hash table.  The only useful operation next is create.  */
 
-  hash_table ()
+template <typename Element,
+	  hashval_t (*Hash) (const Element *candidate),
+	  int (*Equal) (const Element *existing, const Element * candidate),
+	  void (*Remove) (Element *retired),
+	  template <typename Type> class Allocator>
+inline
+hash_table <Element, Hash, Equal, Remove, Allocator>::hash_table ()
   : htab (NULL)
   {
   }
@@ -223,7 +250,13 @@ public:
 
   /* See if the table has been created, as opposed to constructed.  */
 
-  bool is_created ()
+template <typename Element,
+	  hashval_t (*Hash) (const Element *candidate),
+	  int (*Equal) (const Element *existing, const Element * candidate),
+	  void (*Remove) (Element *retired),
+	  template <typename Type> class Allocator>
+inline bool
+hash_table <Element, Hash, Equal, Remove, Allocator>::is_created ()
   {
     return htab != NULL;
   }
@@ -231,7 +264,13 @@ public:
 
   /* Like find_with_hash, but compute the hash value from the element.  */
 
-  Element *find (Element *comparable)
+template <typename Element,
+	  hashval_t (*Hash) (const Element *candidate),
+	  int (*Equal) (const Element *existing, const Element * candidate),
+	  void (*Remove) (Element *retired),
+	  template <typename Type> class Allocator>
+inline Element *
+hash_table <Element, Hash, Equal, Remove, Allocator>::find (Element *comparable)
   {
     return find_with_hash (comparable, Hash (comparable));
   }
@@ -239,7 +278,14 @@ public:
 
   /* Like find_slot_with_hash, but compute the hash value from the element.  */
 
-  Element **find_slot (Element *comparable, enum insert_option insert)
+template <typename Element,
+	  hashval_t (*Hash) (const Element *candidate),
+	  int (*Equal) (const Element *existing, const Element * candidate),
+	  void (*Remove) (Element *retired),
+	  template <typename Type> class Allocator>
+inline Element **
+hash_table <Element, Hash, Equal, Remove, Allocator>
+::find_slot (Element *comparable, enum insert_option insert)
   {
     return find_slot_with_hash (comparable, Hash (comparable), insert);
   }
@@ -247,7 +293,14 @@ public:
 
   /* Like remove_elt_with_hash, but compute the hash value from the element.  */
 
-  void remove_elt (Element *comparable)
+template <typename Element,
+	  hashval_t (*Hash) (const Element *candidate),
+	  int (*Equal) (const Element *existing, const Element * candidate),
+	  void (*Remove) (Element *retired),
+	  template <typename Type> class Allocator>
+inline void
+hash_table <Element, Hash, Equal, Remove, Allocator>
+::remove_elt (Element *comparable)
   {
     remove_elt_with_hash (comparable, Hash (comparable));
   }
@@ -256,7 +309,13 @@ public:
 
   /* Return the current size of this hash table.  */
 
-  size_t size()
+template <typename Element,
+	  hashval_t (*Hash) (const Element *candidate),
+	  int (*Equal) (const Element *existing, const Element * candidate),
+	  void (*Remove) (Element *retired),
+	  template <typename Type> class Allocator>
+inline size_t
+hash_table <Element, Hash, Equal, Remove, Allocator>::size()
   {
     return htab->size;
   }
@@ -264,7 +323,13 @@ public:
 
   /* Return the current number of elements in this hash table. */
 
-  size_t elements()
+template <typename Element,
+	  hashval_t (*Hash) (const Element *candidate),
+	  int (*Equal) (const Element *existing, const Element * candidate),
+	  void (*Remove) (Element *retired),
+	  template <typename Type> class Allocator>
+inline size_t
+hash_table <Element, Hash, Equal, Remove, Allocator>::elements()
   {
     return htab->n_elements - htab->n_deleted;
   }
@@ -273,15 +338,19 @@ public:
   /* Return the fraction of fixed collisions during all work with given
      hash table. */
 
-  double collisions()
+template <typename Element,
+	  hashval_t (*Hash) (const Element *candidate),
+	  int (*Equal) (const Element *existing, const Element * candidate),
+	  void (*Remove) (Element *retired),
+	  template <typename Type> class Allocator>
+inline double
+hash_table <Element, Hash, Equal, Remove, Allocator>::collisions()
   {
     if (htab->searches == 0)
       return 0.0;
 
     return static_cast <double> (htab->collisions) / htab->searches;
   }
-
-};
 
 
 /* Create a hash table with at least the given number of INITIAL_SLOTS.  */
@@ -292,8 +361,7 @@ template <typename Element,
 	  void (*Remove) (Element *retired),
 	  template <typename Type> class Allocator>
 void
-hash_table <Element, Hash, Equal, Remove, Allocator>
-::create (size_t size)
+hash_table <Element, Hash, Equal, Remove, Allocator>::create (size_t size)
 {
   unsigned int size_prime_index;
 
@@ -318,8 +386,7 @@ template <typename Element,
 	  void (*Remove) (Element *retired),
 	  template <typename Type> class Allocator>
 void
-hash_table <Element, Hash, Equal, Remove, Allocator>
-::dispose ()
+hash_table <Element, Hash, Equal, Remove, Allocator>::dispose ()
 {
   size_t size = htab->size;
   Element **entries = htab->entries;
@@ -389,8 +456,7 @@ template <typename Element,
 	  void (*Remove) (Element *retired),
 	  template <typename Type> class Allocator>
 void
-hash_table <Element, Hash, Equal, Remove, Allocator>
-::expand ()
+hash_table <Element, Hash, Equal, Remove, Allocator>::expand ()
 {
   Element **oentries;
   Element **olimit;
@@ -575,8 +641,7 @@ template <typename Element,
 	  void (*Remove) (Element *retired),
 	  template <typename Type> class Allocator>
 void
-hash_table <Element, Hash, Equal, Remove, Allocator>
-::empty ()
+hash_table <Element, Hash, Equal, Remove, Allocator>::empty ()
 {
   size_t size = htab_size (htab);
   Element **entries = htab->entries;

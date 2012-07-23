@@ -1,3 +1,24 @@
+2012-07-20   Lawrence Crowl  <crowl@google.com>
+
+        * hash-table.h (xcallocator::control_alloc): Move definition
+        out of class.
+	(xcallocator::data_alloc): Likewise.
+	(xcallocator::control_free): Likewise.
+	(xcallocator::data_free): Likewise.
+	(struct hash_table): Use class keyword.
+	(hash_table::hash_table): Move definition out of line.
+	(hash_table::is_created): Likewise.
+	(hash_table::find): Likewise.
+	(hash_table::find_slot): Likewise.
+	(hash_table::remove_elt): Likewise.
+	(hash_table::size): Likewise.
+	(hash_table::elements): Likewise.
+	(hash_table::collisions): Likewise.
+	(hash_table::create): Put method name on same line as class qualifier.
+	(hash_table::dispose): Likewise.
+	(hash_table::expand): Likewise.
+	(hash_table::empty): Likewise.
+
 2012-07-19   Diego Novillo  <dnovillo@google.com>
 
 	Merge from trunk rev 189664.
