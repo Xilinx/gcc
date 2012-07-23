@@ -8690,7 +8690,7 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
 #if MELTNEW
 	    ".meltmod-", 
 #else
-	    "."
+	    ".",
 #warning melt_load_module_index should have .meltmod somewhere in sobase
 #endif
 	    desccumulatedhexmd5, ".", flavor,
