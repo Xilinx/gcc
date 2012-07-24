@@ -236,7 +236,8 @@ typedef struct
 } elem_fn_info;
 
 /* this data structure will hold all the arguments in the function */
-typedef struct {
+typedef struct 
+{
   tree induction_var;
   tree arguments;
   tree return_var;
@@ -317,4 +318,5 @@ extern enum elem_fn_parm_type find_elem_fn_parm_type (gimple, tree, tree *);
 extern tree find_elem_fn_name (tree, tree, tree);
 elem_fn_info *extract_elem_fn_values (tree);
 extern void array_notation_init_builtins (void);
+extern bool is_cilk_must_expand_fn (enum built_in_function);
 #endif /* GCC_CILK_H */

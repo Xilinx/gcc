@@ -4970,10 +4970,9 @@ cp_build_addr_expr_1 (tree arg, bool strict_lvalue, tsubst_flags_t complain)
       cp_lvalue_kind kind = lvalue_kind (arg);
       if (kind == clk_none)
 	{
-	  /* If we are using array notation, we will fix it up at the end,
-	   * so right now, we just ignore this error
-	   */
-	  if (flag_enable_cilk && TREE_CODE (arg) == ARRAY_NOTATION_REF)
+	  /* If we are using array notation, we will fix it up at the end, 
+	     so right now, we just ignore this error.  */
+	  if (flag_enable_cilk && (TREE_CODE (arg) == ARRAY_NOTATION_REF))
 	    ;
 	  else
 	    {
@@ -8623,11 +8622,10 @@ lvalue_or_else (tree ref, enum lvalue_use use, tsubst_flags_t complain)
 {
   cp_lvalue_kind kind = lvalue_kind (ref);
 
-  if (flag_enable_cilk && TREE_CODE (ref) == ARRAY_NOTATION_REF)
-    /* IF we are using array notations then we will fix up later and not
-     * worry about it now. If there is an error, this fucntion will get hit
-     * again and during that time we can catch the error.
-     */
+  if (flag_enable_cilk && (TREE_CODE (ref) == ARRAY_NOTATION_REF))
+    /* If we are using array notations then we will fix up later and not 
+       worry about it now. If there is an error, this fucntion will get hit
+       again and during that time we can catch the error.  */
     return 1;
   else if (kind == clk_none)
     {

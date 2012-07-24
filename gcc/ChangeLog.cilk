@@ -1,3 +1,88 @@
+2012-07-23  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cilk.c (cilk_declare_looper): Added comments to function header.  Also
+	fixed few minor spacing and commenting issues.
+	(add_field): Likewise.
+	(install_builtin): Likewise.
+	(cilk_init_builtin): Likewise.
+	(cilk_call_setjmp): Likewise.
+	(cilk_test_flag): Likewise.
+	(expand_builtin_cilk_detach): Likewise.
+	(expand_builtin_pop_frame): Likewise.
+	(build_cilk_function_exit): Likewise.
+	(make_cilk_frame): Likewise.
+	(gimplify_cilk_sync): Likewise.
+	(create_metadata_label): Likewise.
+	(insert_into_zca_list): Likewise.
+	(find_zca_data): Likewise.
+	(get_zca_entry_count): Likewise.
+	(get_zca_string_table_size): Likewise.
+	(get_zca_exprs_table_size): Likewise.
+	(output_zca_table): Likewise.
+	(output_string_table): Likewise.
+	(output_expr_table): Likewise.
+	(delete_zca_list): Likewise.
+	(cilk_output_metadata): Likewise.
+	(expand_builtin_cilk_metadata): Likewise.
+	(cilk_annotationed_fn_p): Likewise.
+	(cilk_remove_annotated_functions): Likewise.
+	(is_cilk_must_expand_fn): New function.
+	* cilk-spawn.c (call_graph_add_fn): Renamed cg_hacks.  Also removed
+	unwanted comments and fixed some spacing.
+	(gimplify_cilk_spawn): Fixed spacing.
+	(build_cilk_wrapper): Removed unwanted comments.
+	(extract_free_variables): Fixed spacing and removed unwanted curly
+	braces.
+	(cilk_simplify_tree): Likewise.
+	(extract_for_fields): Likewise.
+	(gimplify_cilk_for_1): Likewise.
+	(declare_cilk_for_parms): Likewise.
+	(build_cilk_for_body): Removed unwanted comments and renamed cg_hacks to
+	call_graph_add_fn.
+	* c/c-parser.c (c_parser_expr_no_commas): Modified some comments and
+	restructured && || and removed unwanted curly braces.
+	(c_parser_cilk_grainsize): Likewise.
+	(c_parser_pragma): Likewise.
+	(c_parser_cilk_for_statement): Likewise.
+	* builtins.c (expand_builtin): Replaced plane flag_enable_cilk with
+	specific function that excludes only a certain set of functions.
+	* elem-function-common.c (find_vlength_code): Fixed spacing and comments
+	to conform with the coding standard.
+	* elem-function.c (create_processor_attributes): Likewise.
+	(create_optimize_attribute): Likewise.
+	(replace_return_with_new_var): Likewise.
+	(elem_fn_build_array): Likewise.
+	(replace_array_ref_for_vec): Likewise.
+	(fix_elem_fn_return_value): Likewise.
+	(add_elem_fn_loop): Likewise.
+	(add_elem_fn_mask): Likewise.
+	(call_graph_add_fn): Renamed cg_hacks.
+	(elem_fn_create_fn): Likewise.
+	* gimplify.c (gimplify_call_expr): Fixed spacing and removed unwanted
+	curly braces.
+	(gimplify_function_tree): Fixed comments and spacing.
+	* pragma_simd.c (set_OK_for_certain_clause): Fixed code to conform to
+	popular coding.
+	(psv_find_node): Fixed comments, spacing and removed unwanted curly
+	braces.
+	(psv_head_insert): Likewise.
+	(pragma_simd_assert_requested): Likewise.
+	(pragma_simd_acceptable_vlength_p): Likewise.
+	(pragma_simd_vectorize_loop_p): Likewise.
+	(pragma_simd_create_private_vars): Likewise.
+	(find_var_decl): Likewise.
+	(insert_reduction_values): Likewise.
+	(same_var_in_multiple_lists_p): Likewise.
+	(check_off_reduction_var): Likewise.
+	(find_linear_step_size): Fixed spacing in header comments.
+	* tree-pretty-print.c (dump_generic_node): Renamed SYNC_STMT and
+	SPAWN_STMT to CILK_SYNC_STMT and CILK_SPAWN_STMT, respectively.
+	* tree.def: Likewise.
+	* tree.c (type_hash_code): Remove.
+	(build_function_linkage_variant): Likewise.
+	* tree.h: Removed build_function_linkage_variant and the associated
+	#defines.
+
 2012-07-19  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* gimplify.c (gimplify_expr): Replaced all weak symbols with a

@@ -9112,10 +9112,10 @@ c_finish_bc_stmt (location_t loc, tree *label_p, bool is_break)
       return NULL_TREE;
 
      case 2:
-       if (is_break)
-          error ("break statement within cilk_for loop");
-       else
-          error("Continue statement within cilk_for loop");
+       if (is_break) 
+	 error ("break statement within cilk_for loop");
+       else 
+	 error("Continue statement within cilk_for loop");
        return NULL_TREE;
 
      default:
@@ -11012,7 +11012,6 @@ c_finish_cilk_loop (location_t start_locus ATTRIBUTE_UNUSED, tree cvar,
   if (TREE_CONSTANT (cond))
     {
       error ("cilk_for has constant condition");
-      /* XXX Should be warning */
       return;
     }
   if (!cvar)
@@ -11022,7 +11021,6 @@ c_finish_cilk_loop (location_t start_locus ATTRIBUTE_UNUSED, tree cvar,
     }
   if (clab)
     {
-      /* XXX This should be allowed */
       error ("cilk_for has continue");
       return;
     }
@@ -11060,9 +11058,7 @@ c_build_sync (tree *x)
       return error_mark_node;
     }
   
-  /* For now a sync with no spawns converts a function to a Cilk function. */
-  /* (void) c_make_cilk_frame (); */
-  sync = build0 (SYNC_STMT, void_type_node);
+  sync = build0 (CILK_SYNC_STMT, void_type_node);
   TREE_SIDE_EFFECTS (sync) = 1;
   *x = sync;
   return sync;
@@ -11076,7 +11072,7 @@ c_call_spawns (tree call)
       if (!no_cilk_errored)
 	{
 	  no_cilk_errored = true;
-	  error ("Cilk is not enabled");
+	  error ("CilkPlus (-fcilkplus) is not enabled");
 	}
       return;
     }

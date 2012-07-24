@@ -1551,12 +1551,12 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
       is_expr = false;
       break;
 
-    case SYNC_STMT:
+    case CILK_SYNC_STMT:
       pp_identifier (buffer, "_Cilk_sync");
       /* No pp_semicolon; is_expr should be true */
       break;
 
-    case SPAWN_STMT:
+    case CILK_SPAWN_STMT:
       pp_identifier (buffer, "_Cilk_spawn");
       /* No pp_semicolon; is_expr should be true */
       break;

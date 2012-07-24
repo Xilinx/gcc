@@ -48,7 +48,6 @@ static tree build_local_temp (tree);
 static tree handle_java_interface_attribute (tree *, tree, tree, int, bool *);
 static tree handle_com_interface_attribute (tree *, tree, tree, int, bool *);
 static tree handle_init_priority_attribute (tree *, tree, tree, int, bool *);
-static tree handle_cilk_linkage_attribute  (tree *, tree, tree, int, bool *);
 
 /* If REF is an lvalue, returns the kind of lvalue that REF is.
    Otherwise, returns clk_none.  */
@@ -2985,8 +2984,6 @@ const struct attribute_spec cxx_attribute_table[] =
     handle_com_interface_attribute, false },
   { "init_priority",  1, 1, true,  false, false,
     handle_init_priority_attribute, false },
-  { "cilk",           0, 0, true,  false, false,
-    handle_cilk_linkage_attribute, false},
   { NULL,	      0, 0, false, false, false, NULL, false }
 };
 
@@ -3807,32 +3804,5 @@ lang_check_failed (const char* file, int line, const char* function)
 		  function, trim_filename (file), line);
 }
 #endif /* ENABLE_TREE_CHECKING */
-
-static tree
-handle_cilk_linkage_attribute (tree *node, tree name,
-			       tree args ATTRIBUTE_UNUSED,
-			       int flags ATTRIBUTE_UNUSED, bool *no_add_attrs)
-{
-  tree target = *node;
-
-  if (TREE_CODE (target) != FUNCTION_TYPE && TREE_CODE (target) != METHOD_TYPE)
-    {
-      warning(0, "%qs attribute only applies to functions",
-	      IDENTIFIER_POINTER (name));
-    }
-  else
-    {
-      if (FUNCTION_TYPE_LINKAGE (target) != linkage_cilk)
-	{
-	  *node = build_function_linkage_variant (target, linkage_cilk);
-	}
-      else
-	*node = target;
-    }
-
-  *no_add_attrs = true;
-
-  return NULL_TREE;
-}
 
 #include "gt-cp-tree.h"

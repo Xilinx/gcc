@@ -38,8 +38,6 @@ along with GCC; see the file COPYING3.  If not see
 
 
 #define DECL_KILLS_REGISTERS_BITS 8
-#define FUNCTION_LINKAGE_BITS 1
-
 
 
 /* Codes of tree nodes */
@@ -3816,12 +3814,6 @@ struct GTY(()) tree_optimization_option {
 };
 
 
-enum function_linkage
-{
-  linkage_native = 0,
-  linkage_cilk
-};
-
 enum elem_fn_parm_type
 {
   TYPE_NONE = 0,
@@ -6227,12 +6219,6 @@ is_lang_specific (tree t)
 /* In gimple-low.c.  */
 extern bool block_may_fallthru (const_tree);
 
-#define FUNCTION_TYPE_LINKAGE(N)					\
-  ((enum function_linkage) FUNC_OR_METHOD_CHECK(N)->type_common.transparent_aggr_flag)
-
-#define SET_FUNCTION_TYPE_LINKAGE(N,V)				\
-  (FUNC_OR_METHOD_CHECK(N)->type_common.transparent_aggr_flag=(V))
-
 #define DECL_KILLS_REGISTERS(NODE)				\
   (FUNCTION_DECL_CHECK (NODE)->function_decl.kills_registers)
 
@@ -6277,8 +6263,6 @@ extern void set_OK_for_certain_clause (enum pragma_simd_kind clause_type,
 extern HOST_WIDE_INT find_linear_step_size (int pragma_simd_index, tree var);
 
 tree build_call_list (tree return_type, tree fn, tree arglist);
-tree build_function_linkage_variant (tree ttype,
-				     enum function_linkage linkage);
 bool is_elem_fn (tree);
 enum elem_fn_parm_type find_elem_fn_parm_type (gimple, tree, tree*);
 void elem_fn_create_fn (tree) __attribute__((weak));

@@ -2659,11 +2659,9 @@ gimplify_call_expr (tree *expr_p, gimple_seq *pre_p, bool want_value)
 		   "spawned function call vanished during IL transformation.");
 	frame = cfun->cilk_frame_decl;
 
-	if (frame != NULL_TREE)
-	  {
-	    frame = build1 (ADDR_EXPR, build_pointer_type (TREE_TYPE (frame)),
-			    frame);
-	  }
+	if (frame != NULL_TREE) 
+	  frame = build1 (ADDR_EXPR, build_pointer_type (TREE_TYPE (frame)), 
+			  frame);
 	else
 	  {
 	    warning(0, "spawning function lacks frame descriptor");
@@ -7689,7 +7687,7 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	    ret = GS_ALL_DONE;
 	    break;
 	  }
-	case SYNC_STMT:
+	case CILK_SYNC_STMT:
 	  {
 	    if (flag_enable_cilk)
 	      {
@@ -8381,9 +8379,8 @@ gimplify_function_tree (tree fndecl)
   oldfn = current_function_decl;
   current_function_decl = fndecl;
 
-  /* here we check to see if we have a function with the attribute vector
-   * with it. If so, then we must clone it to masked/unmasked when apropriate.
-   */
+  /* Here we check to see if we have a function with the attribute "vector."  
+     If so, then we must clone it to masked/unmasked when apropriate.  */
   if (flag_enable_cilk && is_elem_fn (fndecl))
     elem_fn_create_fn (fndecl);
   

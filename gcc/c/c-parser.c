@@ -5499,12 +5499,12 @@ c_parser_expr_no_commas (c_parser *parser, struct c_expr *after)
   rhs = c_parser_expr_no_commas (parser, NULL);
   rhs = default_function_array_read_conversion (exp_location, rhs);
 
-  /* bviyer: The line below is where the parser has the form:
-   * A = B, where A&B could contain array notation expressions 
-   * So this is where we must modify the Array Notation arrays */
-
-  if (flag_enable_cilk && (contains_array_notation_expr (lhs.value)
-			   || contains_array_notation_expr (rhs.value)))
+  /* The line below is where the parser has the form:
+     A = B, where A&B could contain array notation expressions.
+     So this is where we must modify the Array Notation arrays.  */
+  if (flag_enable_cilk 
+      && (contains_array_notation_expr (lhs.value) 
+	  || contains_array_notation_expr (rhs.value)))
     ret.value = build_array_notation_expr (op_location, lhs.value,
 					   lhs.original_type, code,
 					   exp_location, rhs.value,
@@ -9250,26 +9250,20 @@ c_parser_cilk_grainsize(c_parser *parser)
       return;
     }
   
-  if (c_parser_require(parser, CPP_EQ, "expected %<=%>") != 0)
+  if (c_parser_require (parser, CPP_EQ, "expected %<=%>") != 0)
     {
       grain_expr = c_parser_binary_expression (parser, NULL, PREC_NONE);
 
-      if ((grain_expr.value != NULL_TREE) &&
-	  (grain_expr.value != error_mark_node))
+      if (grain_expr.value && (grain_expr.value != error_mark_node))
 	{
 	  c_parser_skip_to_pragma_eol (parser);
 	  next_token = c_parser_peek_token(parser);
 
-	  if ((next_token != NULL) && (next_token->type == CPP_KEYWORD) &&
-	      (next_token->keyword == RID_CILK_FOR))
-	    {
-	      c_parser_cilk_for_statement(parser, grain_expr.value);
-	    }
-	  else
-	    {
-	      warning (0,
-		       "%<#pragma cilk grainsize is not followed by cilk_for");
-	    }
+	  if (next_token && (next_token->type == CPP_KEYWORD) 
+	      && (next_token->keyword == RID_CILK_FOR)) 
+	    c_parser_cilk_for_statement (parser, grain_expr.value);
+	  else 
+	    warning (0, "%<#pragma cilk grainsize is not followed by cilk_for");
 	  return;
 	}
     }
@@ -9357,7 +9351,13 @@ c_parser_pragma (c_parser *parser, enum pragma_context context)
 	  c_parser_error (parser,"pragma grainsize must be inside a function");
 	  return false;
 	}
-      c_parser_cilk_grainsize (parser);
+      if (flag_enable_cilk) 
+	c_parser_cilk_grainsize (parser);
+      else
+	{
+	  warning (0, "pragma grainsize ignored");
+	  c_parser_skip_until_found (parser, CPP_PRAGMA_EOL, NULL);
+	}
       return false;
       break;
 
@@ -9371,7 +9371,7 @@ c_parser_pragma (c_parser *parser, enum pragma_context context)
 	  return false;
 	}
       c_parser_consume_pragma (parser);
-      c_parser_simd_assert (parser,true);
+      c_parser_simd_assert (parser, true);
       return false;
 
     case PRAGMA_SIMD_NOASSERT:
@@ -9383,7 +9383,7 @@ c_parser_pragma (c_parser *parser, enum pragma_context context)
 	  return false;
 	}
       c_parser_consume_pragma (parser);
-      c_parser_simd_assert (parser,false);
+      c_parser_simd_assert (parser, false);
       return false;
 
     case PRAGMA_SIMD_VECTORLENGTH:
@@ -11736,7 +11736,7 @@ c_parser_cilk_for_statement (c_parser *parser, tree grain)
   if (c_parser_require (parser, CPP_OPEN_PAREN, "expected %<(%>"))
     {
       /* Parse the initialization declaration.  */
-      if (c_parser_next_tokens_start_declaration(parser))
+      if (c_parser_next_tokens_start_declaration (parser))
 	{
 	  c_parser_declaration_or_fndef (parser, true,false, true,
 					 false, false, NULL);
@@ -11744,30 +11744,30 @@ c_parser_cilk_for_statement (c_parser *parser, tree grain)
 	}
       else
 	{
-	  /* bviyer: If we are here, then we have a cilk_for loop of the form:
+	  /* If we are here, then we have a cilk_for loop of the form:
 	   * int ii = <SOMETHING_OPTIONAL> ;
 	   * . . .
 	   * cilk_for (ii = <SOMETHING ELSE MAYBE> ; ii <OP> <X> ; ii <OP>)
 	   *
 	   */
-	  tree next_token = c_parser_peek_token(parser)->value;
-	  if (c_parser_peek_token(parser)->type == CPP_NAME)
+	  tree next_token = c_parser_peek_token (parser)->value;
+	  if (c_parser_peek_token (parser)->type == CPP_NAME)
 	    {
-	      if (TREE_CODE(next_token) == IDENTIFIER_NODE)
+	      if (TREE_CODE (next_token) == IDENTIFIER_NODE)
 		{
 		  /* take the initial value of the set */
-		  tree init_exp = c_parser_expression(parser).value;
+		  tree init_exp = c_parser_expression (parser).value;
 
 		  cvar = lookup_name (next_token);
 		  /* set the initial value of the induction var as the value
 		   * that is set to whatever the induction variable is set
 		   * here in the init expression
 		   */
-		  if (TREE_CODE(init_exp) == MODIFY_EXPR)
-		    DECL_INITIAL(cvar) = TREE_OPERAND(init_exp,1);
+		  if (TREE_CODE (init_exp) == MODIFY_EXPR)
+		    DECL_INITIAL (cvar) = TREE_OPERAND (init_exp, 1);
 		}
 	    }
-	  c_parser_consume_token(parser);
+	  c_parser_consume_token (parser);
 	}
 		
       /* Parse the loop condition.  */
@@ -11785,7 +11785,7 @@ c_parser_cilk_for_statement (c_parser *parser, tree grain)
       if (c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
 	incr = c_process_expr_stmt (loc, NULL_TREE);
       else
-	incr = c_process_expr_stmt (loc,c_parser_expression (parser).value);
+	incr = c_process_expr_stmt (loc, c_parser_expression (parser).value);
       c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, "expected %<)%>");
     }
   else

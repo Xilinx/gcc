@@ -9368,13 +9368,6 @@ invalid_indirection_error (location_t loc, tree type, ref_operator errstring)
 		"invalid type argument of implicit conversion (have %qT)",
 		type);
       break;
-      
-      /* bviyer: I added this field in the case statement */
-     case RO_CILK_WRAPPER_GENERATION:
-       error_at (loc,
-                 "invalid type of Cilk Wrapper Generation (have %qT)",
-                  type);
-     break;
     default:
       gcc_unreachable ();
     }

@@ -5792,7 +5792,7 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
   /* When not optimizing, generate calls to library functions for a certain
      set of builtins.  */
   if (!optimize
-      && (flag_enable_cilk == 0) /* bviyer:Added this for cilk */
+      && !is_cilk_must_expand_fn (fcode)
       && !called_as_built_in (fndecl)
       && fcode != BUILT_IN_ALLOCA
       && fcode != BUILT_IN_ALLOCA_WITH_ALIGN

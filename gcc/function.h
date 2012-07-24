@@ -616,8 +616,6 @@ struct GTY(()) function {
      either as a subroutine or builtin.  */
   unsigned int calls_alloca : 1;
 
-  unsigned int linkage : 2;
-
   /* this will indicate whether a function is a cilk function */
   unsigned int is_cilk_function : 1;
 

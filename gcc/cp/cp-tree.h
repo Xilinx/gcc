@@ -4052,7 +4052,7 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 #define RECORD_PROMOTED_CILK(N)                                 \
     (TREE_LANG_FLAG_1(TREE_CHECK2 (N, RECORD_TYPE, UNION_TYPE)))
 #define SPAWN_DELAYED_DETACH_P(N)                       \
-    (TREE_LANG_FLAG_0 (TREE_CHECK (N, SPAWN_STMT)))
+    (TREE_LANG_FLAG_0 (TREE_CHECK (N, CILK_SPAWN_STMT)))
 
 /* True if this CONVERT_EXPR is for a conversion to virtual base in
    an NSDMI, and should be re-evaluated when used in a constructor.  */
@@ -6053,17 +6053,12 @@ extern tree cilk_for_var_decl                   (tree, bool);
 extern void finish_cilk_for_stmt                (tree);
 extern void warn_unimplemented_cilk             (bool fatal);
 extern void build_cilk_types                    (void);
-extern void cilk_gimplify_run                   (tree *, gimple_seq *,
-						 gimple_seq *);
 extern void cilk_gimplify_for_stmt             (tree *, tree *);
 extern void gimplify_cilk_for_stmt             (tree *, gimple_seq *);
 extern tree build_cilk_run                     (tree);
 extern bool cilk_valid_spawn                   (tree);
 extern void cilk_init_frame_descriptor         (struct function *, bool);
 extern tree cilk_make_frame_descriptor         (struct function *);
-extern bool cilk_maybe_promote                 (tree fndecl);
-extern void cilk_promote                       (tree fndecl);
-extern void cilk_promote_struct_function       (tree fndecl);
 #define CILK_WRAP_INIT 1
 #define CILK_WRAP_FINI 2
 #define CILK_WRAP_DTOR 3
@@ -6076,8 +6071,6 @@ extern bool cp_tree_uses_cilk                  (tree);
 
 
 extern void cilk_address_modified_variables    (tree);
-extern void mark_receiver_addressable          (tree, tree);
-
 extern void gimplify_cilk_spawn                (tree *, gimple_seq *,
 						gimple_seq *);
 /* In cp/cp-array-notations.c */

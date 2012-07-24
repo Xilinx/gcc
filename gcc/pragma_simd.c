@@ -95,7 +95,7 @@ set_OK_for_certain_clause (enum pragma_simd_kind clause_type, bool set_value,
   if (pragma_simd_index <= INVALID_PRAGMA_SIMD_SLOT)
     return;
 
-  if (psv_head == NULL)
+  if (!psv_head)
     return;
 
   for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next)
@@ -103,7 +103,7 @@ set_OK_for_certain_clause (enum pragma_simd_kind clause_type, bool set_value,
       if (ps_iter->pragma_encountered && (ps_iter->index == pragma_simd_index))
 	break;
     }
-  if (ps_iter == NULL)
+  if (!ps_iter)
     return;
 
   switch (clause_type)
@@ -150,11 +150,11 @@ all_reductions_satisfied_p (int pragma_simd_index)
   return true;
 }
   
-/* This function will search the pragma simd list to see if a node for a
- * certain loop exist (based on an index)
- */
+/* This function will search the pragma simd list to see if a node for a 
+   certain loop exist (based on an index).  */
+
 struct pragma_simd_values *
-psv_find_node(int psv_index)
+psv_find_node (int psv_index)
 {
   struct pragma_simd_values *ps_iter = NULL;
 
@@ -190,8 +190,8 @@ psv_head_insert (struct pragma_simd_values local_simd_values)
   if (psv_head == NULL)
     {
       psv_head = (struct pragma_simd_values *)
-	xmalloc (sizeof(struct pragma_simd_values));
-      gcc_assert(psv_head != NULL);
+	xmalloc (sizeof (struct pragma_simd_values));
+      gcc_assert (psv_head != NULL);
       psv_head->pragma_encountered  = local_simd_values.pragma_encountered;
       /* we keep the head pointer index to be invalid pragma simd slot + 1.
        * This is done before fi we want to debug then we can set invalid pragma
@@ -224,12 +224,10 @@ psv_head_insert (struct pragma_simd_values local_simd_values)
     
       psv_head->reduction_vals = NULL;
       for (rv_iter = local_simd_values.reduction_vals; rv_iter != NULL;
-	   rv_iter = rv_iter->ptr_next)
-	{
-	  insert_reduction_values (&psv_head->reduction_vals,
-				   rv_iter->reduction_operator,
-				   rv_iter->tree_reduction_var_list);
-	}
+	   rv_iter = rv_iter->ptr_next) 
+	insert_reduction_values (&psv_head->reduction_vals, 
+				 rv_iter->reduction_operator, 
+				 rv_iter->tree_reduction_var_list);
 
       if (local_simd_values.reduction_vals != NULL)
 	psv_head->rvars_OK = false;
@@ -247,7 +245,7 @@ psv_head_insert (struct pragma_simd_values local_simd_values)
     }
 
   ps_iter->ptr_next = (struct pragma_simd_values *)
-    xmalloc(sizeof(struct pragma_simd_values));
+    xmalloc (sizeof (struct pragma_simd_values));
   gcc_assert(ps_iter->ptr_next != NULL);
  
   ps_iter->ptr_next->pragma_encountered = local_simd_values.pragma_encountered;
@@ -260,13 +258,11 @@ psv_head_insert (struct pragma_simd_values local_simd_values)
   ps_iter->ptr_next->ptr_next = NULL;
 
   ps_iter->ptr_next->reduction_vals = NULL;
-  for (rv_iter = local_simd_values.reduction_vals; rv_iter != NULL;
-       rv_iter = rv_iter->ptr_next)
-    {
-      insert_reduction_values (&ps_iter->ptr_next->reduction_vals,
-			       rv_iter->reduction_operator,
-			       rv_iter->tree_reduction_var_list);
-    }
+  for (rv_iter = local_simd_values.reduction_vals; rv_iter; 
+       rv_iter = rv_iter->ptr_next) 
+    insert_reduction_values (&ps_iter->ptr_next->reduction_vals, 
+			     rv_iter->reduction_operator, 
+			     rv_iter->tree_reduction_var_list);
 
   return ps_iter->ptr_next->index;
 }
@@ -279,12 +275,10 @@ pragma_simd_assert_requested_p(int ps_index)
 {
   struct pragma_simd_values *ps_iter = NULL;
 
-  if (ps_index == 0)
-    {
-      return 0;
-    }
+  if (ps_index == 0) 
+    return 0;
 
-  for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next)
+  for (ps_iter = psv_head; ps_iter; ps_iter = ps_iter->ptr_next)
     {
       if ((ps_iter->pragma_encountered == true) && (ps_iter->index == ps_index))
 	{
@@ -297,14 +291,14 @@ pragma_simd_assert_requested_p(int ps_index)
   return false;
 }
 
-/* this function will check to see if the vectorlength found by the
- * vectorizer falls in the list of acceptable vectorlengths provided by the
- * user
- */
+/* This function will check to see if the vectorlength found by the 
+   vectorizer falls in the list of acceptable vectorlengths provided by the 
+   user.  */
+
 bool
-pragma_simd_acceptable_vlength_p(int ps_index,
-				 int possible_vectorization_factor,
-				 tree scalar_type)
+pragma_simd_acceptable_vlength_p (int ps_index, 
+				  int possible_vectorization_factor, 
+				  tree scalar_type)
 {
   tree size = NULL_TREE;
   struct pragma_simd_values *ps_iter = NULL;
@@ -314,41 +308,30 @@ pragma_simd_acceptable_vlength_p(int ps_index,
   tree vl_tree = NULL_TREE;
   size = size_in_bytes(scalar_type);
 
-  if (ps_index <= INVALID_PRAGMA_SIMD_SLOT)
-    {
-      return true;
-    }
-
-  if (TREE_CODE(size) == INTEGER_CST)
-    {
-      ;
-    }
-  else
-    {
-      error ("Unable to determine size of scalar type!");
-    }
+  if (ps_index <= INVALID_PRAGMA_SIMD_SLOT) 
+    return true; 
+  if (TREE_CODE (size) == INTEGER_CST) 
+    ;
+  else 
+    error ("Unable to determine size of scalar type!");
 
   possible_vector_length = possible_vectorization_factor;
 
-  vl_tree = build_int_cst(integer_type_node, possible_vector_length);
+  vl_tree = build_int_cst (integer_type_node, possible_vector_length);
   
   for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next)
     {
       if ((ps_iter->pragma_encountered == true) && (ps_iter->index == ps_index))
-	{
-	  break;
-	}
+	break;
     }
 
-  gcc_assert(ps_iter != NULL);
+  gcc_assert (ps_iter != NULL);
 
-  if (list_length(ps_iter->vectorlength) == 0)
-    {
+  if (list_length (ps_iter->vectorlength) == 0)
       /* the user has not given any vectorlength, so whatever the vectorizer
        * found is good enough for us
-       */
-      return true;
-    }
+       */ 
+    return true;
 
   for (ii_tree = ps_iter->vectorlength; ii_tree != NULL_TREE;
        ii_tree = TREE_CHAIN (ii_tree))
@@ -356,13 +339,11 @@ pragma_simd_acceptable_vlength_p(int ps_index,
       ii_value = TREE_VALUE (ii_tree);
       if ((TREE_CODE (ii_value) == INTEGER_CST)
 	  && tree_int_cst_equal ((const_tree)ii_value, (const_tree)vl_tree))
-	{
-	  /* we found a match, so we give the YES! */
-	  return true;
-	}
+	  /* We found a match, so we return TRUE.  */ 
+	return true;
     }
 
-  /* not found a match */
+  /* A match was not found, hence we return a false.  */
   return false;
 }
 
@@ -372,16 +353,12 @@ pragma_simd_vectorize_loop_p (int ps_index)
 {
   struct pragma_simd_values *ps_iter = NULL;
   
-  if (ps_index <= INVALID_PRAGMA_SIMD_SLOT)
-    {
-      return false;
-    }
+  if (ps_index <= INVALID_PRAGMA_SIMD_SLOT) 
+    return false;
 
-  for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next)
-    {
-      if (ps_iter->index == ps_index)
-	return ps_iter->pragma_encountered;
-    }
+  for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next) 
+    if (ps_iter->index == ps_index) 
+      return ps_iter->pragma_encountered;
 
   return false;
 }
@@ -407,18 +384,14 @@ pragma_simd_create_private_vars (tree body,
   tree body_list = NULL_TREE;
   tree reset_stmt= NULL_TREE;
   
-  if (body == NULL_TREE)
-    {
-      return body;
-    }
+  if (body == NULL_TREE) 
+    return body;
 
-  if (ps_info.private_vars == NULL_TREE)
-    {
-      return body;
-    }
+  if (ps_info.private_vars == NULL_TREE) 
+    return body;
   
   if (TREE_CODE (body) == BIND_EXPR)
-    inside_body = BIND_EXPR_BODY(body);
+    inside_body = BIND_EXPR_BODY (body);
   else
     inside_body = body;
 
@@ -428,8 +401,9 @@ pragma_simd_create_private_vars (tree body,
       ii_priv_value = TREE_VALUE (ii_priv_list);
       var = NULL_TREE;
       find_var_decl (body, IDENTIFIER_POINTER (ii_priv_value), &var);
-      if (var == NULL_TREE)
-	continue; /* this means the variable got optimized out */
+      if (var == NULL_TREE) 
+	/* When var is null it implies that it got optimized out.  */
+	continue;
       else
 	{
 	  sprintf (name, "_p_simd_new_var_%d", ++count);
@@ -443,12 +417,10 @@ pragma_simd_create_private_vars (tree body,
       
 	  set_stmt = build2 (INIT_EXPR, TREE_TYPE (var), var_clone,
 			     unshare_expr (var_orig));
-	  reset_stmt = build2 (INIT_EXPR, TREE_TYPE(var),
+	  reset_stmt = build2 (INIT_EXPR, TREE_TYPE (var), 
 			       unshare_expr (var_orig), var_clone);
-	  if (*reset_stmt_list == NULL_TREE)
-	    {
-	      *reset_stmt_list = alloc_stmt_list();
-	    }
+	  if (*reset_stmt_list == NULL_TREE) 
+	    *reset_stmt_list = alloc_stmt_list ();
 	  append_to_statement_list_force (reset_stmt, reset_stmt_list);
       
 	  if (TREE_CODE (inside_body) == STATEMENT_LIST)
@@ -457,10 +429,9 @@ pragma_simd_create_private_vars (tree body,
 	      tsi_link_before (&ii_tree, set_stmt, TSI_NEW_STMT);
       
 
-	      /* after we have added the new initialize expr, we need to go 
-	       * through all the statements after the statements we just
-	       * added
-	       */
+	      /* After we have added the new initialize expr, we need to go 
+		 through all the statements after the statements we just 
+		 added.  */
 	      
 	      /* but ... we skip the recently added statement */
 	      ii_tree = tsi_start (inside_body);
@@ -489,7 +460,8 @@ pragma_simd_create_private_vars (tree body,
 }
   
 				
-/* this function will search the variable from the body, tree or  tree list */
+/* This function will search the variable from the body, tree or  tree list. */
+
 static void
 find_var_decl (tree t, const char *var_name, tree *var)
 {
@@ -518,7 +490,7 @@ find_var_decl (tree t, const char *var_name, tree *var)
     case FIELD_DECL:
     case VOID_TYPE:
     case REAL_TYPE:
-      /* These do not contain variable references. */
+      /* These do not contain variable references.  */
       return;
 
     case SSA_NAME:
@@ -531,10 +503,8 @@ find_var_decl (tree t, const char *var_name, tree *var)
     case RESULT_DECL:
     case VAR_DECL:
     case PARM_DECL:
-      if (strcmp (IDENTIFIER_POINTER (DECL_NAME (t)), var_name) == 0)
-	{
-	  *var = t;
-	}
+      if (strcmp (IDENTIFIER_POINTER (DECL_NAME (t)), var_name) == 0) 
+	*var = t;
       return;
     case NON_LVALUE_EXPR:
     case CONVERT_EXPR:
@@ -613,10 +583,8 @@ find_var_decl (tree t, const char *var_name, tree *var)
     case BIND_EXPR:
       {
 	tree decl;
-	for (decl = BIND_EXPR_VARS (t); decl; decl = TREE_CHAIN (decl))
-	  {
-	    find_var_decl(decl,var_name, var);
-	  }
+	for (decl = BIND_EXPR_VARS (t); decl; decl = TREE_CHAIN (decl)) 
+	  find_var_decl (decl,var_name, var);
 	find_var_decl (BIND_EXPR_BODY (t), var_name, var);
 	return;
       }
@@ -675,27 +643,25 @@ find_var_decl (tree t, const char *var_name, tree *var)
       return;
 
     case RECORD_TYPE:
-      find_var_decl(TYPE_FIELDS (t), var_name, var);
+      find_var_decl (TYPE_FIELDS (t), var_name, var);
       return;
     
     case METHOD_TYPE:
-      find_var_decl(TYPE_ARG_TYPES (t), var_name, var);
-      find_var_decl(TYPE_METHOD_BASETYPE (t), var_name, var);
+      find_var_decl (TYPE_ARG_TYPES (t), var_name, var);
+      find_var_decl (TYPE_METHOD_BASETYPE (t), var_name, var);
 
     case AGGR_INIT_EXPR:
     case CALL_EXPR:
       {
 	int len = 0;
 	int ii = 0;
-	if (TREE_CODE(TREE_OPERAND (t, 0)) == INTEGER_CST)
+	if (TREE_CODE (TREE_OPERAND (t, 0)) == INTEGER_CST)
 	  {
-	    len = TREE_INT_CST_LOW(TREE_OPERAND(t, 0));
+	    len = TREE_INT_CST_LOW (TREE_OPERAND (t, 0));
 
-	    for (ii = 0; ii < len; ii++)
-	      {
-		find_var_decl(TREE_OPERAND (t, ii), var_name, var);
-	      }
-	    find_var_decl(TREE_TYPE (t), var_name, var);
+	    for (ii = 0; ii < len; ii++) 
+	      find_var_decl (TREE_OPERAND (t, ii), var_name, var);
+	    find_var_decl (TREE_TYPE (t), var_name, var);
 	  }
 	break;
       }
@@ -770,10 +736,8 @@ change_var_decl (tree *t, tree new_var, tree var)
     case VAR_DECL:
     case PARM_DECL:
       if (!strcmp (IDENTIFIER_POINTER (DECL_NAME (*t)),
-		   IDENTIFIER_POINTER (DECL_NAME (var))))
-	{
-	  *t = new_var;
-	}
+		   IDENTIFIER_POINTER (DECL_NAME (var)))) 
+	*t = new_var;
       return;
     case NON_LVALUE_EXPR:
     case CONVERT_EXPR:
@@ -879,10 +843,8 @@ change_var_decl (tree *t, tree new_var, tree var)
 
 	for (idx = 0;
 	     VEC_iterate (constructor_elt, CONSTRUCTOR_ELTS (*t), idx, ce);
-	     idx++)
-	  {
-	    change_var_decl (&ce->value, new_var, var);
-	  }
+	     idx++) 
+	  change_var_decl (&ce->value, new_var, var);
 	return;
       }
 
@@ -948,7 +910,6 @@ change_var_decl (tree *t, tree new_var, tree var)
       change_var_decl (&nt2, new_var, var);
       TYPE_MIN_VALUE (*t) = nt;
       TYPE_MAX_VALUE (*t) = nt2;
- 
       return;
 
     case POINTER_TYPE:
@@ -1023,9 +984,9 @@ change_var_decl (tree *t, tree new_var, tree var)
     }
 }
 
-/* this function will insert the appropriate reduction values asked by pragma
- * simd reduction into the internal pragma simd list.
- */
+/* This function will insert the appropriate reduction values asked by pragma
+ * simd reduction into the internal pragma simd list.  */
+
 void
 insert_reduction_values (struct reduction_values **reduction_val_head,
 			 enum tree_code reduction_op, tree var_list)
@@ -1036,7 +997,7 @@ insert_reduction_values (struct reduction_values **reduction_val_head,
     {
       reduction_val_head = (struct reduction_values **)
 	xmalloc (sizeof (struct reduction_values *));
-      gcc_assert(reduction_val_head != NULL);
+      gcc_assert (reduction_val_head != NULL);
     }
   if (*reduction_val_head == NULL)
     {
@@ -1085,13 +1046,14 @@ insert_reduction_values (struct reduction_values **reduction_val_head,
     }
 }
 
-/* this function will check if a same variable is in multiple pragma clause
- * for example, the following pragma is illegal and this function should flag
- * them as true:
- * #pragma simd reduction (+:p) linear(p:1)
+/* this function will check if a same variable is in multiple pragma clause 
+   for example, the following pragma is illegal and this function should flag 
+   them as true: 
+	  #pragma simd reduction (+:p) linear(p:1)
  */
+
 bool
-same_var_in_multiple_lists_p(struct pragma_simd_values *ps_values)
+same_var_in_multiple_lists_p (struct pragma_simd_values *ps_values)
 {
   tree vl_tree = NULL_TREE, vl_value = NULL_TREE;
   tree pr_tree = NULL_TREE, pr_value = NULL_TREE;
@@ -1130,10 +1092,8 @@ same_var_in_multiple_lists_p(struct pragma_simd_values *ps_values)
 		  || ((vl_value != NULL_TREE || rd_value != NULL_TREE)
 		      && (simple_cst_equal (vl_value, rd_value) == 1))
 		  || ((pr_value != NULL_TREE || rd_value != NULL_TREE)
-		      && (simple_cst_equal (pr_value, rd_value) == 1)))
-		{
-		  return true;
-		}
+		      && (simple_cst_equal (pr_value, rd_value) == 1))) 
+		return true;
 
 	      if (vl_tree != NULL_TREE)
 		vl_tree = TREE_CHAIN (vl_tree);
@@ -1166,19 +1126,15 @@ same_var_in_multiple_lists_p(struct pragma_simd_values *ps_values)
 	  else
 	    rd_value = NULL_TREE;
 
-	  /* IF either one is not NULL and the trees are equal, then we
-	   * say we have found a duplicate */
+	  /* IF either one is not NULL and the trees are equal, then we 
+	     say we have found a duplicate.  */
 	  if (((vl_value != NULL_TREE || pr_value != NULL_TREE)
 	       && (simple_cst_equal (vl_value, pr_value) == 1))
 	      || ((vl_value != NULL_TREE || rd_value != NULL_TREE)
 	       && (simple_cst_equal (vl_value, rd_value) == 1))
 	      || ((pr_value != NULL_TREE || rd_value != NULL_TREE)
-	       && (simple_cst_equal (pr_value, rd_value) == 1)))
-	    {
-	      return true;
-	    }
- 
-      
+	       && (simple_cst_equal (pr_value, rd_value) == 1))) 
+	    return true;
 	  if (vl_tree != NULL_TREE)
 	    vl_tree = TREE_CHAIN (vl_tree);
 
@@ -1189,14 +1145,13 @@ same_var_in_multiple_lists_p(struct pragma_simd_values *ps_values)
 	    rd_tree = TREE_CHAIN (rd_tree);
 	}
     }
-  
   return false;
   
 }
 
-/* THis function will check to see if a variable is reduced, if so then it will
- * mark it as being reduced
- */
+/* This function will check to see if a variable is reduced, if so then it will 
+   mark it as being reduced.  */
+
 void
 check_off_reduction_var (gimple reduc_stmt, int pragma_simd_index)
 {
@@ -1221,22 +1176,15 @@ check_off_reduction_var (gimple reduc_stmt, int pragma_simd_index)
       def = gimple_assign_lhs (reduc_stmt);
       gcc_assert (def != NULL_TREE);
 
-      if (TREE_CODE (def) == SSA_NAME)
-	{
-	  def = SSA_NAME_VAR (def);
-	}
-
+      if (TREE_CODE (def) == SSA_NAME) 
+	def = SSA_NAME_VAR (def);
       op_code = gimple_assign_rhs_code (reduc_stmt);
     }
 
 
-  for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next)
-    {
-      if (ps_iter->pragma_encountered && (ps_iter->index == pragma_simd_index))
-	{
-	  break;
-	}
-    }
+  for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next) 
+    if (ps_iter->pragma_encountered && (ps_iter->index == pragma_simd_index)) 
+      break;
 
   gcc_assert (ps_iter != NULL);
 
@@ -1250,18 +1198,16 @@ check_off_reduction_var (gimple reduc_stmt, int pragma_simd_index)
 	    {
 	      ii_value = TREE_VALUE (ii_iter);
 
-	      if (simple_cst_equal (ii_value, DECL_NAME(def)))
-		{
-		  rv_iter->not_reduced--;
-		}
+	      if (simple_cst_equal (ii_value, DECL_NAME (def))) 
+		rv_iter->not_reduced--;
 	    }
 	}
     }
   return;
 }
       
-/* this function will find the step size from the pragma simd linear clause
- */
+/* This function will find the step size from the pragma simd linear clause.  */
+
 HOST_WIDE_INT
 find_linear_step_size (int pragma_simd_index, tree var)
 {
@@ -1306,6 +1252,3 @@ find_linear_step_size (int pragma_simd_index, tree var)
     }
   return 0;
 }
-	
-	  
-  

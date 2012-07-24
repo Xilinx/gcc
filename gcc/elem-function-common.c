@@ -102,11 +102,11 @@ find_vlength_code (elem_fn_info *elem_fn_values)
   memset (vlength_code, 10, 0);
   
   if (elem_fn_values->no_vlengths != 0)
-    sprintf(vlength_code,"%d", elem_fn_values->vectorlength[0]);
+    sprintf (vlength_code,"%d", elem_fn_values->vectorlength[0]);
   else
     {
       if (!elem_fn_values->proc_type)
-	sprintf(vlength_code, "4");
+	sprintf (vlength_code, "4");
       else if (!strcmp (elem_fn_values->proc_type, "pentium_4"))
 	sprintf (vlength_code, "4");
       else if (!strcmp (elem_fn_values->proc_type, "pentium_4_sse3"))
@@ -173,7 +173,7 @@ find_suffix (elem_fn_info *elem_fn_values, bool masked)
 	  if (elem_fn_values->linear_location[ii_lvar] == arg_number)
 	    {
 	      strcat (suffix, "_l");
-	      sprintf(tmp_str, "%d", elem_fn_values->linear_steps[ii_lvar]);
+	      sprintf (tmp_str, "%d", elem_fn_values->linear_steps[ii_lvar]);
 	      strcat (suffix, tmp_str);
 	    }
 	}

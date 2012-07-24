@@ -1,3 +1,11 @@
+2012-07-23  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-pretty-print.c (pp_c_postfix_expression): Renamed SYNC_STMT to
+	CILK_SYNC_STMT.
+	* c-common.c (invalid_indirection_error): Removed a case called
+	RO_CILK_WRAPPER_GENERATION.
+	* c-common.h (ref_operator): Likewise.
+
 2012-03-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-common.c (handle_vector_attribute): New function.

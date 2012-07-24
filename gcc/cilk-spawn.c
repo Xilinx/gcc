@@ -108,7 +108,8 @@ static bool var_mentioned_p (tree exp, tree var);
 extern tree build_unary_op (location_t location, enum tree_code code,
 			    tree xarg, int flag);
 
-/* Trying to get cfun right */
+/* Trying to get the correct cfun for the function.  */
+
 static void
 pop_cfun_to (tree outer)
 {
@@ -120,8 +121,9 @@ pop_cfun_to (tree outer)
 
 /* This function is whatever is necessary to make the compiler
    emit a newly generated function if it is needed.  */
+
 static void
-cg_hacks (tree fndecl, struct wrapper_data *wd)
+call_graph_add_fn (tree fndecl, struct wrapper_data *wd)
 {
   const tree outer = current_function_decl;
   struct function *f = DECL_STRUCT_FUNCTION (fndecl);
@@ -411,14 +413,12 @@ gimplify_cilk_spawn (tree *spawn_p, gimple_seq *before ATTRIBUTE_UNUSED,
   /* thsi should give the number of parameters */
   total_args = list_length (new_args);
   arg_array = XNEWVEC (tree, total_args);
-  /* gcc_assert(arg_array != NULL_TREE); */
-  
 
   ii_args = new_args;
   for (ii = 0; ii < total_args; ii++)
     {
       arg_array[ii] = TREE_VALUE (ii_args);
-      ii_args=TREE_CHAIN (ii_args);
+      ii_args = TREE_CHAIN (ii_args);
     }
   
   
@@ -438,7 +438,7 @@ gimplify_cilk_spawn (tree *spawn_p, gimple_seq *before ATTRIBUTE_UNUSED,
 					 function, total_args, arg_array);
     }
 
-  *spawn_p = alloc_stmt_list();  
+  *spawn_p = alloc_stmt_list ();  
   gcc_assert (cfun->cilk_frame_decl != NULL_TREE);
   addr = build1 (ADDR_EXPR, cilk_frame_ptr_type_decl, cfun->cilk_frame_decl); 
   spawn_prepare = build_call_expr (cilk_spawn_prepare_fndecl, 1, addr);
@@ -455,7 +455,7 @@ gimplify_cilk_spawn (tree *spawn_p, gimple_seq *before ATTRIBUTE_UNUSED,
 				  build_int_cst (TREE_TYPE (call1), 0));
   
   spawn_expr = fold_build3 (COND_EXPR, void_type_node, setjmp_cond_expr, call2,
-			    build_empty_stmt (EXPR_LOCATION(call1)));
+			    build_empty_stmt (EXPR_LOCATION (call1)));
   append_to_statement_list (spawn_expr, spawn_p);
 
   return;
@@ -666,7 +666,7 @@ build_cilk_wrapper (tree exp, tree *args_out)
 
   if (TREE_CODE (exp) == CONVERT_EXPR)
     {
-      exp = TREE_OPERAND(exp,0);
+      exp = TREE_OPERAND (exp,0);
     }
   
   /* Special handling for top level INIT_EXPR.
@@ -699,7 +699,6 @@ build_cilk_wrapper (tree exp, tree *args_out)
 
   fndecl = build_cilk_wrapper_body (exp, &wd, fname);
   *args_out = wd.arglist;
-  /* TREE_TYPE(*args_out)=wd.argtypes;  */
   
   free_wd (&wd);
 
@@ -914,9 +913,9 @@ extract_free_variables (tree t, struct wrapper_data *wd,
   enum tree_code code;
   bool is_expr;
 
-#define SUBTREE(EXP)  extract_free_variables(EXP, wd, ADD_READ)
-#define MODIFIED(EXP) extract_free_variables(EXP, wd, ADD_WRITE)
-#define INITIALIZED(EXP) extract_free_variables(EXP, wd, ADD_BIND)
+#define SUBTREE(EXP)  extract_free_variables (EXP, wd, ADD_READ)
+#define MODIFIED(EXP) extract_free_variables (EXP, wd, ADD_WRITE)
+#define INITIALIZED(EXP) extract_free_variables (EXP, wd, ADD_BIND)
 
   /* Skip empty subtrees.  */
   if (t == NULL_TREE)
@@ -1139,12 +1138,12 @@ extract_free_variables (tree t, struct wrapper_data *wd,
       return;
 
     case RECORD_TYPE:
-      SUBTREE(TYPE_FIELDS(t));
+      SUBTREE (TYPE_FIELDS (t));
       return;
     
     case METHOD_TYPE:
-      SUBTREE(TYPE_ARG_TYPES(t));
-      SUBTREE(TYPE_METHOD_BASETYPE(t));
+      SUBTREE (TYPE_ARG_TYPES (t));
+      SUBTREE (TYPE_METHOD_BASETYPE (t));
       return;
 
     case AGGR_INIT_EXPR:
@@ -1154,7 +1153,7 @@ extract_free_variables (tree t, struct wrapper_data *wd,
 	int ii = 0;
 	if (TREE_CODE (TREE_OPERAND (t, 0)) == INTEGER_CST)
 	  {
-	    len = TREE_INT_CST_LOW (TREE_OPERAND(t, 0));
+	    len = TREE_INT_CST_LOW (TREE_OPERAND (t, 0));
 
 	    for (ii = 0; ii < len; ii++)
 	      {
@@ -1245,7 +1244,7 @@ build_cilk_helper_decl (struct wrapper_data *wd, const char *wrapped)
     {
       if (*cc == ' ')
 	++cc;
-      else if (!ISIDNUM(*cc))
+      else if (!ISIDNUM (*cc))
 	{
 	  *cc = '_';
 	  *dd++ = *cc++;
@@ -1256,8 +1255,8 @@ build_cilk_helper_decl (struct wrapper_data *wd, const char *wrapped)
   
 
   
-  t = get_identifier(name);
-  fndecl = build_decl (EXPR_LOCATION(t), FUNCTION_DECL, t, wd->fntype);
+  t = get_identifier (name);
+  fndecl = build_decl (EXPR_LOCATION (t), FUNCTION_DECL, t, wd->fntype);
 
   TREE_PUBLIC (fndecl) = 0;
   TREE_STATIC (fndecl) = 1;
@@ -1279,7 +1278,7 @@ build_cilk_helper_decl (struct wrapper_data *wd, const char *wrapped)
       DECL_CONTEXT (fndecl) = DECL_CONTEXT (wd->context);
       /* This is wrong because the block could be inside
 	 a cilk_for even if it isn't one.  However, the
-	 crash noted in cg_hacks (or a similar one) will
+	 crash noted in call_graph_add_fn (or a similar one) will
 	 occur if NO_STATIC_CHAIN is cleared. */
       DECL_STATIC_CHAIN (fndecl) = DECL_STATIC_CHAIN (wd->context);
     }
@@ -1376,7 +1375,7 @@ build_wrapper_type (struct wrapper_data *wd)
 
   /* Cilk++ 1.x code to put parent frame at end of list removed. */
 
-  pointer_map_traverse_ordered(wd->decl_map, wrapper_parm_cb, sort_decl, wd);
+  pointer_map_traverse_ordered (wd->decl_map, wrapper_parm_cb, sort_decl, wd);
 
   gcc_assert (wd->type != CILK_BLOCK_FOR);
 
@@ -1471,7 +1470,7 @@ build_cilk_wrapper_body (tree stmt,
 
   /* Apparently we need to gimplify now because we can't leave
      non-GIMPLE functions lying around. */
-  cg_hacks (fndecl, wd);
+  call_graph_add_fn (fndecl, wd);
 
   return fndecl;
 }
@@ -1624,7 +1623,7 @@ install_body_with_frame_cleanup (tree fndecl, tree body)
   append_to_statement_list_force (enter_h_begin, &list);
   append_to_statement_list_force (ctor, &list);
   append_to_statement_list_force (enter_end, &list);
-  append_to_statement_list_force (build_stmt (EXPR_LOCATION(body), 
+  append_to_statement_list_force (build_stmt (EXPR_LOCATION (body), 
 					      TRY_FINALLY_EXPR, body, dtor),
 				  &list);
 }
@@ -1778,19 +1777,14 @@ tree_operand_noconv (tree exp, int n)
 }
 
 static tree
-cilk_simplify_tree(tree t)
+cilk_simplify_tree (tree t)
 {
   extern bool tree_ssa_useless_type_conversion (tree);
 
-  if (TREE_CODE(t) == CLEANUP_POINT_EXPR)
-    {
-      t = TREE_OPERAND (t, 0);
-    }
-  if ((TREE_CODE(t) == CONVERT_EXPR) &&
-      (VOID_TYPE_P (TREE_TYPE (t)) != 0))
-    {
-      t = TREE_OPERAND (t, 0);
-    }
+  if (TREE_CODE (t) == CLEANUP_POINT_EXPR)
+    t = TREE_OPERAND (t, 0);
+  if ((TREE_CODE (t) == CONVERT_EXPR) && (VOID_TYPE_P (TREE_TYPE (t)) != 0))
+    t = TREE_OPERAND (t, 0);
 
   STRIP_USELESS_TYPE_CONVERSION (t);
 
@@ -1875,7 +1869,7 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
     case ENUMERAL_TYPE:
     case BOOLEAN_TYPE:
       iterator = false;
-      difference_type = lang_hooks.types.type_promotes_to (TREE_TYPE(var));
+      difference_type = lang_hooks.types.type_promotes_to (TREE_TYPE (var));
       break;
     case RECORD_TYPE:
     case UNION_TYPE:
@@ -2329,8 +2323,8 @@ compute_loop_var (struct cilk_for_desc *cfd, tree loop_var, tree lower_bound)
       exp = build2 (add_op, TREE_TYPE (loop_var), low, loop_var);
       gcc_assert (exp != error_mark_node);
       exp = build_modify_expr (UNKNOWN_LOCATION, cfd->var2, 
-			       TREE_TYPE(cfd->var2), INIT_EXPR, 
-			       UNKNOWN_LOCATION, exp, TREE_TYPE(exp));
+			       TREE_TYPE (cfd->var2), INIT_EXPR, 
+			       UNKNOWN_LOCATION, exp, TREE_TYPE (exp));
       gcc_assert (exp != error_mark_node);
       return exp;
     }
@@ -2464,7 +2458,7 @@ build_cilk_for_body (struct cilk_for_desc *cfd)
 		    build2 (PLUS_EXPR, TREE_TYPE (loop_var),
 			    loop_var,
 			    build_int_cst (TREE_TYPE (loop_var), 1)));
-    add_stmt(tempx);
+    add_stmt (tempx);
     
     tempy = build3 (COND_EXPR, void_type_node,
 		    build2 (LT_EXPR, boolean_type_node, loop_var,
@@ -2473,7 +2467,7 @@ build_cilk_for_body (struct cilk_for_desc *cfd)
 		    build1 (GOTO_EXPR, void_type_node, lab),
 		    build_empty_stmt (UNKNOWN_LOCATION));
 
-    add_stmt(tempy);
+    add_stmt (tempy);
     pop_stmt_list (loop);
 
     add_stmt (loop);
@@ -2554,12 +2548,7 @@ gimplify_cilk_for_2 (struct cilk_for_desc *cfd,
   CILK_FN_P (cfun->decl) = 1;
   /* Apparently we need to gimplify now because we can't leave
      non-GIMPLE functions lying around. */
-  cg_hacks (fn, &cfd->wd); 
-
-  /*debug_function(fn, 0);*/
-
-  /* TODO: This function could be marked "hot."  It's not clear if that
-     is worth doing when the rest of the program isn't being profiled. */
+  call_graph_add_fn (fn, &cfd->wd); 
 
   return fn;
 }
@@ -2711,11 +2700,11 @@ gimplify_cilk_for_1 (struct cilk_for_desc *cfd,
   else
     {
       gcc_assert (fn);
-      ctx = build1 (ADDR_EXPR,  build_pointer_type (TREE_TYPE(fn)), fn);
+      ctx = build1 (ADDR_EXPR,  build_pointer_type (TREE_TYPE (fn)), fn);
       /* CTX and FN must be copied to variables because the nested
 	 function module will not replace FDESC_EXPR inside a CALL_EXPR.  */
       ctx = get_formal_tmp_var (ctx, &inner_seq);
-      fn = build1 (ADDR_EXPR, build_pointer_type(TREE_TYPE(fn)), fn);
+      fn = build1 (ADDR_EXPR, build_pointer_type (TREE_TYPE (fn)), fn);
     }
 
   TREE_CONSTANT (fn) = 1;
@@ -2790,9 +2779,9 @@ gimplify_cilk_for (tree *expr_p,
   extract_for_fields (&cfd, loop);
 
   
-  init_expr = build2(MODIFY_EXPR, void_type_node, CILK_FOR_VAR(loop),
-		     CILK_FOR_INIT(loop)); 
-  gimplify_and_add(init_expr, pre_p);
+  init_expr = build2(MODIFY_EXPR, void_type_node, CILK_FOR_VAR (loop),
+		     CILK_FOR_INIT (loop)); 
+  gimplify_and_add (init_expr, pre_p);
   
   if (!cfd.invalid)
     gimplify_cilk_for_1 (&cfd, pre_p, post_p);
@@ -2843,9 +2832,9 @@ declare_cilk_for_parms (struct cilk_for_desc *cfd)
   count_type = cfd->count_type;
   ro_count = build_qualified_type (count_type, TYPE_QUAL_CONST);
   ctx = build_decl (UNKNOWN_LOCATION, PARM_DECL, NULL_TREE, ptr_type_node);
-  t1=get_identifier ("__low");
+  t1 = get_identifier ("__low");
   min_parm = build_decl (EXPR_LOCATION (t1), PARM_DECL, t1, ro_count);
-  t2=get_identifier ("__high");
+  t2 = get_identifier ("__high");
   max_parm = build_decl (EXPR_LOCATION (t2), PARM_DECL, t2, ro_count);
 
   DECL_ARG_TYPE (max_parm) = count_type;
@@ -2885,7 +2874,7 @@ declare_cilk_for_vars (struct cilk_for_desc *cfd, tree fndecl)
   tree p;
   tree var2;
 
-  var2 = build_decl (UNKNOWN_LOCATION, VAR_DECL, get_identifier("Balaji"),
+  var2 = build_decl (UNKNOWN_LOCATION, VAR_DECL, get_identifier ("Balaji"),
 		     cfd->var_type);
   
   DECL_CONTEXT (var2) = fndecl;
@@ -2916,4 +2905,52 @@ declare_cilk_for_vars (struct cilk_for_desc *cfd, tree fndecl)
       p = TREE_CHAIN (p);
     }
   while (p);
+}
+
+/* Add appropriate frames needed for a Cilk spawn function call.  */
+
+tree
+c_make_cilk_frame (void)
+{
+  tree decl = cfun->cilk_frame_decl;
+  tree addr, body, ctor, dtor, orig_body;
+  tree enter_begin, enter_end;
+  gcc_assert (flag_enable_cilk);
+
+  if (decl == NULL_TREE)
+    {
+      tree *saved_tree = &DECL_SAVED_TREE (current_function_decl);
+      decl = make_cilk_frame (current_function_decl);
+
+      add_local_decl (cfun, decl);
+      addr = build1 (ADDR_EXPR, cilk_frame_ptr_type_decl, decl);
+      ctor = build_call_expr (cilk_enter_fndecl, 1, addr);
+      dtor = build_cilk_function_exit (decl, false, true);
+
+      enter_begin = build_call_expr (cilk_enter_begin_fndecl, 1, addr);
+      enter_end = build_call_expr (cilk_enter_end_fndecl, 1, addr);
+
+      
+      /* The new body will be
+         ctor
+         try old body finally dtor
+      */
+      body = alloc_stmt_list ();
+      orig_body = *saved_tree;
+      /* Some inner block has a chain pointing to orig_body.
+         orig_body must point to the new body and remain as
+         a separate statement list. */
+      gcc_assert (TREE_CODE (orig_body) == STATEMENT_LIST);
+      append_to_statement_list_force (enter_begin , &body);
+      append_to_statement_list_force (ctor, &body);
+      append_to_statement_list_force (enter_end, &body);
+      
+      append_to_statement_list_force (build_stmt (UNKNOWN_LOCATION,
+                                                  TRY_FINALLY_EXPR,
+                                                  orig_body, dtor),
+                                      &body);
+      TREE_CHAIN (orig_body) = body;
+      *saved_tree = body;
+    }
+  return decl;
 }

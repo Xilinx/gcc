@@ -43,6 +43,8 @@ static HOST_WIDE_INT worker_tail_offset;
 
 zca_data *zca_head;
 
+/* This function will add a function of type "name" to a chain of functions.  */
+
 static tree
 cilk_declare_looper (const char *name, tree type)
 {
@@ -52,7 +54,6 @@ cilk_declare_looper (const char *name, tree type)
 				 ptr_type_node, type, type,
 				 NULL_TREE);
   cb = build_pointer_type (cb);
-
   ft = build_function_type_list (void_type_node,
 				 cb, ptr_type_node, type,
 				 integer_type_node, NULL_TREE);
@@ -62,15 +63,18 @@ cilk_declare_looper (const char *name, tree type)
   return fn;
 }
 
+/* This function will add a field to a defined builtin structure.  */
 
 static tree
 add_field (const char *name, tree type, tree fields)
 {
-  tree  t = get_identifier(name);
+  tree  t = get_identifier (name);
   tree field = build_decl (BUILTINS_LOCATION, FIELD_DECL, t, type);
   TREE_CHAIN (field) = fields;
   return field;
 }
+
+/* This function will define a builtin function.  */
 
 static tree
 install_builtin (const char *name, tree fntype, enum built_in_function code,
@@ -89,6 +93,8 @@ install_builtin (const char *name, tree fntype, enum built_in_function code,
   return fndecl;
 }
 
+/* This function will add the cold attribute to a builtin function.  */
+
 static void
 mark_cold (tree fndecl)
 {
@@ -96,7 +102,8 @@ mark_cold (tree fndecl)
 					DECL_ATTRIBUTES (fndecl));
 }
 
-/* This function wil initialize/create all the builtin cilk plus functions */
+/* This function wil initialize/create all the builtin cilk plus functions.  */
+
 void
 cilk_init_builtins (void)
 {
@@ -168,10 +175,8 @@ cilk_init_builtins (void)
   /* ??? */
   TYPE_ALIGN (frame) = PREFERRED_STACK_BOUNDARY;
   TREE_ADDRESSABLE (frame) = 1;
-  /* XXX Is this right? */
+  
   finish_builtin_struct (frame, "__cilkrts_stack_frame_GCC", fields, NULL_TREE);
-  /* XXX C++ only SET_CLASS_TYPE_P(record, 1); */
-  /* XXX C++ only xref_basetypes (record, NULL_TREE); */
   cilk_frame_type_decl = frame;
   lang_hooks.types.register_builtin_type (frame, "__cilkrts_frame_t");
 
@@ -210,14 +215,10 @@ cilk_init_builtins (void)
   notify_intrinsic_arg = tree_cons
     (NULL_TREE, build_pointer_type (char_type_node), notify_intrinsic_arg);
 				    
-  /* object could be named __cilk_frame_var for compatibility */
-
   fptr_v_type = build_qualified_type (fptr_type, TYPE_QUAL_VOLATILE);
   fptr_v_ptr_type = build_pointer_type (fptr_v_type);
   fptr_v_ptr_v_type = build_qualified_type (fptr_v_ptr_type,
 					    TYPE_QUAL_VOLATILE);
-  /* frame * volatile * volatile, the type of the worker fields */
-
   cilk_trees[CILK_TI_F_LOOP_32] =
     cilk_declare_looper ("__cilkrts_cilk_for_32", unsigned_intSI_type_node);
   cilk_trees[CILK_TI_F_LOOP_64] =
@@ -236,34 +237,28 @@ cilk_init_builtins (void)
   fields = add_field ("ltq_limit", fptr_v_ptr_type, fields);
   cilk_trees[CILK_TI_WORKER_LTQ_LIMIT] = fields;
   fields = add_field ("self", unsigned_type_node, fields);
-  cilk_trees[CILK_TI_WORKER_SELF] = fields;
-  {
-    tree g = lang_hooks.types.make_type (RECORD_TYPE);
-    finish_builtin_struct (g, "__cilkrts_global_state", NULL_TREE, NULL_TREE);
-    fields = add_field ("g", build_pointer_type (g), fields);
-  }
-  {
-    tree l = lang_hooks.types.make_type (RECORD_TYPE);
-    finish_builtin_struct (l, "__cilkrts_local_state", NULL_TREE, NULL_TREE);
-    fields = add_field ("l", build_pointer_type (l), fields);
-  }
+  cilk_trees[CILK_TI_WORKER_SELF] = fields; 
+
+  tree g = lang_hooks.types.make_type (RECORD_TYPE); 
+  finish_builtin_struct (g, "__cilkrts_global_state", NULL_TREE, NULL_TREE); 
+  fields = add_field ("g", build_pointer_type (g), fields); 
+  tree l = lang_hooks.types.make_type (RECORD_TYPE); 
+  finish_builtin_struct (l, "__cilkrts_local_state", NULL_TREE, NULL_TREE); 
+  fields = add_field ("l", build_pointer_type (l), fields);
   fields = add_field ("reducer_map", ptr_type_node, fields);
   fields = add_field ("current_stack_frame", fptr_type, fields);
   cilk_trees[CILK_TI_WORKER_CUR] = fields;
   fields = add_field ("saved_protected_tail", fptr_v_ptr_type, fields);
-  {
-    tree sysdep_t = lang_hooks.types.make_type (RECORD_TYPE);
-    finish_builtin_struct (sysdep_t, "__cilkrts_worker_sysdep_state",
-			   NULL_TREE, NULL_TREE);
-    fields = add_field ("sysdep", build_pointer_type (sysdep_t), fields);
-  }
-
+  tree sysdep_t = lang_hooks.types.make_type (RECORD_TYPE); 
+  finish_builtin_struct (sysdep_t, "__cilkrts_worker_sysdep_state", NULL_TREE, 
+			 NULL_TREE); 
+  fields = add_field ("sysdep", build_pointer_type (sysdep_t), fields);
   DECL_ALIGN (fields) = BIGGEST_ALIGNMENT;
 
   finish_builtin_struct (worker, "__cilkrts_worker_t", fields, NULL_TREE);
 
-  cilk_detach_fndecl
-    = install_builtin ("__cilkrts_detach", fptr_fun, BUILT_IN_CILK_DETACH, 1);
+  cilk_detach_fndecl = install_builtin ("__cilkrts_detach", fptr_fun, 
+					BUILT_IN_CILK_DETACH, 1);
 
   /* The detach function does not detach in the sense meant by
      DECL_DETACHES_P.  Control flow past a detach is smooth and
@@ -282,7 +277,6 @@ cilk_init_builtins (void)
   mark_cold (cilk_leave_fndecl);
   cilk_leave_fndecl = lang_hooks.decls.pushdecl (cilk_leave_fndecl);
 
-  /* extern void __cilkrts_sync(void) */
   cilk_sync_fndecl = build_fn_decl ("__cilkrts_sync", fptr_fun);
   mark_cold (cilk_sync_fndecl);
   /* Unlike ordinary library functions cilk_sync can throw.
@@ -290,7 +284,7 @@ cilk_init_builtins (void)
      may be deferred until a sync. */
   TREE_NOTHROW (cilk_sync_fndecl) = 0;
   
-  /* A call to __cilkrts_sync is a knot, but not a detach. */
+  /* A call to __cilkrts_sync is a knot, but not a detach.  */
   DECL_SET_KNOT (cilk_sync_fndecl, 2);
   cilk_sync_fndecl = lang_hooks.decls.pushdecl (cilk_sync_fndecl);
 
@@ -377,7 +371,8 @@ cilk_init_builtins (void)
   zca_head = NULL;
 }
 
-/* this function will call the value in a structure. eg. x.y */
+/* This function will call the value in a structure. eg. x.y  */
+
 static tree
 dot (tree frame, int field_number, bool volatil)
 {
@@ -388,7 +383,8 @@ dot (tree frame, int field_number, bool volatil)
   return field;
 }
 
-/* this function will call the address in a structure. e.g. (&x)->y */
+/* This function will call the address in a structure. e.g. (&x)->y  */
+
 static tree
 arrow (tree fptr, int field_number, bool volatil)
 {
@@ -396,15 +392,19 @@ arrow (tree fptr, int field_number, bool volatil)
 	      field_number, volatil);
 }
 
+/* This function will call the correct setjmp for a field in struct.  */
+
 tree
 cilk_call_setjmp (tree frame)
 {
   tree c;
 
-  c = dot(frame, CILK_TI_FRAME_CONTEXT, false);
+  c = dot (frame, CILK_TI_FRAME_CONTEXT, false);
   c = build1 (ADDR_EXPR, build_pointer_type (ptr_type_node), c);
   return build_call_expr (builtin_decl_implicit (BUILT_IN_SETJMP), 1, c);
 }
+
+/* This function will create a conditional expression that will test a bit.  */
 
 static rtx
 cilk_test_flag (tree fptr, enum tree_code code, int bit)
@@ -418,6 +418,8 @@ cilk_test_flag (tree fptr, enum tree_code code, int bit)
 
   return expand_expr (field, NULL_RTX, VOIDmode, EXPAND_NORMAL);
 }
+
+/* Get the appropriate frame arguments for a function call.  */
 
 static tree
 get_frame_arg (tree call)
@@ -440,6 +442,8 @@ get_frame_arg (tree call)
 
   return arg;
 }
+
+/* Expands the cilk_detach function call.  */
 
 rtx
 expand_builtin_cilk_detach (tree exp)
@@ -488,8 +492,7 @@ expand_builtin_cilk_detach (tree exp)
 
      The predicate may return false even for a REG if this is
      the limited release operation that only stores 0. */
-  /* icode = sync_lock_release[Pmode];  */
-  icode =direct_optab_handler(sync_lock_release_optab,Pmode); 
+  icode = direct_optab_handler (sync_lock_release_optab, Pmode); 
   if (icode != CODE_FOR_nothing
       && insn_data[icode].operand[1].predicate (treg, Pmode)
       && (insn = GEN_FCN (icode) (tmem0, treg)) != NULL_RTX)
@@ -515,23 +518,27 @@ expand_builtin_cilk_detach (tree exp)
   return const0_rtx;
 }
 
+/* Expand the cilk_synched function call.  */
+
 rtx
 expand_builtin_cilk_synched (tree exp)
 {
   tree frame = get_frame_arg (exp);
 
-  if (frame == NULL_TREE)
+  if (!frame)
     return NULL_RTX;
 
   return cilk_test_flag (frame, EQ_EXPR, CILK_FRAME_UNSYNCHED);
 }
 
+/* Expand the cilk_stolen function call.  */
+
 rtx
-expand_builtin_cilk_stolen (tree ARG_UNUSED(exp))
+expand_builtin_cilk_stolen (tree ARG_UNUSED (exp))
 {
   tree frame = get_frame_arg (exp);
 
-  if (frame == NULL_TREE)
+  if (!frame)
     return NULL_RTX;
 
   return cilk_test_flag (frame, NE_EXPR, CILK_FRAME_STOLEN);
@@ -570,12 +577,8 @@ expand_builtin_cilk_enter (tree exp)
   return NULL_RTX;
 }
 
-/* this function will explain the __pop frame function call . This function
- * expands to the following:
- * w = sf->worker;
- * w->current = sf->parent;
- * sf->parent = 0
- */
+/* this function will explain the __pop frame function call.  */
+
 rtx
 expand_builtin_cilk_pop_frame (tree exp)
 {
@@ -583,7 +586,12 @@ expand_builtin_cilk_pop_frame (tree exp)
   tree parent, worker, current, assign;
   rtx x;
 
-  if (fptr == NULL_TREE)
+ /* This function expands to the following:
+      w = sf->worker;
+      w->current = sf->parent;
+      sf->parent = 0
+ */
+  if (!fptr)
     return NULL_RTX;
 
   worker = arrow (fptr, CILK_TI_FRAME_WORKER, 0);
@@ -595,6 +603,8 @@ expand_builtin_cilk_pop_frame (tree exp)
 
   return const0_rtx;
 }
+
+/* This function will output the exit conditions for a spawn call.  */
 
 tree
 build_cilk_function_exit (tree frame, bool detaches, bool needs_sync)
@@ -608,21 +618,15 @@ build_cilk_function_exit (tree frame, bool detaches, bool needs_sync)
   tree sync_expr = NULL_TREE;
   tree leave_begin, leave_end;
 
-  /* tree debug_stmt=NULL_TREE; */
-  
   addr = build1 (ADDR_EXPR, cilk_frame_ptr_type_decl, frame);
-  
-  /* debug_stmt = build_call_expr (cilk_debug_fndecl,1,addr); */
   
   epi = alloc_stmt_list ();
 
-  /* append_to_statement_list(debug_stmt, &epi); */
   if (needs_sync == true)
     {
       sync_expr = build_cilk_sync();
-      /* For now always sync.  The optimizer can delete it later. */
+      /* For now always sync.  The optimizer can delete it later.  */
       append_to_statement_list (sync_expr, &epi);
-
     }
   
   func_ptr = (addr);
@@ -630,8 +634,8 @@ build_cilk_function_exit (tree frame, bool detaches, bool needs_sync)
   current = arrow (worker, CILK_TI_WORKER_CUR, 0);
   parent = arrow (func_ptr, CILK_TI_FRAME_PARENT, 0);
 
-  /* this should replace the pop_fndecl */
-  call = build2 (MODIFY_EXPR,void_type_node, current, parent);
+  /* This should replace the pop_fndecl.  */
+  call = build2 (MODIFY_EXPR, void_type_node, current, parent);
    
   
   append_to_statement_list (call, &epi);
@@ -639,7 +643,7 @@ build_cilk_function_exit (tree frame, bool detaches, bool needs_sync)
 			 build_int_cst (TREE_TYPE (parent), 0));
   append_to_statement_list (clear_parent, &epi);
 
-  /* added cilk_leave_begin */
+  /* Added cilk_leave_begin.  */
   leave_begin = build_call_expr (cilk_leave_begin_fndecl, 1, addr);
   append_to_statement_list (leave_begin, &epi);
   
@@ -648,14 +652,14 @@ build_cilk_function_exit (tree frame, bool detaches, bool needs_sync)
     {
       tree flags_cmp_expr = NULL_TREE;
       tree flags = dot (frame, CILK_TI_FRAME_FLAGS, false);
-      flags_cmp_expr = fold_build2 (NE_EXPR, TREE_TYPE(flags), flags,
+      flags_cmp_expr = fold_build2 (NE_EXPR, TREE_TYPE (flags), flags,
 				    build_int_cst (TREE_TYPE (flags), 0));
       call = fold_build3 (COND_EXPR, void_type_node, flags_cmp_expr,
-			  call, build_empty_stmt (EXPR_LOCATION(flags)));
+			  call, build_empty_stmt (EXPR_LOCATION (flags)));
     }
   append_to_statement_list (call, &epi);
 
-  /* added cilk_leave_end */
+  /* Added cilk_leave_end.  */
   leave_end = build_call_expr (cilk_leave_end_fndecl, 0);
   append_to_statement_list (leave_end, &epi);
   
@@ -663,6 +667,8 @@ build_cilk_function_exit (tree frame, bool detaches, bool needs_sync)
 }
 
 static int cilk_frame_name_count;
+
+/* Make the frames necessary for a spawn call.  */
 
 tree
 make_cilk_frame (tree fn)
@@ -690,16 +696,6 @@ make_cilk_frame (tree fn)
 
 /*
  * This function will expand a cilk_sync call.
- * cilk_sync becomes
- * if (frame.flags & CILK_FRAME_UNSYNCHED)
- *     if (!builtin_setjmp (frame.ctx)
- *           // cilk_enter_begin();
- *         __cilkrts_sync(&frame);
- *           // cilk_enter_end();
- *      else
- *         <NOTHING> ;
- * else
- *         <NOTHING> ;
 */
 
 tree
@@ -713,32 +709,43 @@ build_cilk_sync (void)
   tree setjmp_expr;
   tree sync_list, frame_addr;
   tree sync_begin, sync_end;
-  /* tree debug_expr; */
+
+  /* Cilk_sync becomes the following code:
+     if (frame.flags & CILK_FRAME_UNSYNCHED)
+      if (!builtin_setjmp (frame.ctx)
+            // cilk_enter_begin();
+          __cilkrts_sync(&frame);
+            // cilk_enter_end();
+       else
+          <NOTHING> ;
+    else
+          <NOTHING> ;
+  */
   flags = dot (frame, CILK_TI_FRAME_FLAGS, false);
   
   unsynched = fold_build2 (BIT_AND_EXPR, TREE_TYPE (flags), flags,
 			   build_int_cst (TREE_TYPE (flags),
 					  CILK_FRAME_UNSYNCHED));
 
-  unsynched = fold_build2 (NE_EXPR, TREE_TYPE(unsynched), unsynched,
+  unsynched = fold_build2 (NE_EXPR, TREE_TYPE (unsynched), unsynched,
 			   build_int_cst (TREE_TYPE (unsynched), 0));
 
   frame_addr = build1 (ADDR_EXPR, cilk_frame_ptr_type_decl, frame);
   sync_expr = build_call_expr (cilk_sync_fndecl, 1, frame_addr);
   setjmp_expr = cilk_call_setjmp (frame);
-  setjmp_expr = fold_build2 (EQ_EXPR, TREE_TYPE(setjmp_expr), setjmp_expr,
-			     build_int_cst(TREE_TYPE(setjmp_expr), 0));
+  setjmp_expr = fold_build2 (EQ_EXPR, TREE_TYPE (setjmp_expr), setjmp_expr,
+			     build_int_cst (TREE_TYPE (setjmp_expr), 0));
   
   setjmp_expr = fold_build3 (COND_EXPR, void_type_node, setjmp_expr,
 			     sync_expr,
 			     build_empty_stmt (EXPR_LOCATION (unsynched)));
   
   sync = fold_build3 (COND_EXPR, void_type_node, unsynched, setjmp_expr,
-		      build_empty_stmt (EXPR_LOCATION(unsynched)));
+		      build_empty_stmt (EXPR_LOCATION (unsynched)));
   
   sync_begin = build_call_expr (cilk_sync_begin_fndecl, 1, frame_addr);
   sync_end = build_call_expr (cilk_sync_end_fndecl, 1, frame_addr);
-  sync_list = alloc_stmt_list();
+  sync_list = alloc_stmt_list ();
   append_to_statement_list_force (sync_begin, &sync_list);
   append_to_statement_list_force (sync, &sync_list);
   append_to_statement_list_force (sync_end, &sync_list);
@@ -746,18 +753,17 @@ build_cilk_sync (void)
   return sync_list;
 }
 
-/* this function will gimplify the cilk_sync expression */
+/* This function will gimplify the cilk_sync expression.  */
+
 void
 gimplify_cilk_sync (tree *expr_p, gimple_seq *pre_p)
 {
-  tree sync_expr = build_cilk_sync();
-  
+  tree sync_expr = build_cilk_sync ();
   *expr_p = NULL_TREE;
-
-
   gimplify_and_add (sync_expr, pre_p);
 }
 
+/* This function will create a label for the metadata section given by name.  */ 
 static rtx
 create_metadata_label (const char *name)
 {
@@ -772,6 +778,8 @@ create_metadata_label (const char *name)
   LABEL_NUSES (new_label) = 1;
   return new_label;
 }
+
+/* This function will insert zca_entry into a linked list.  */
 
 static void
 insert_into_zca_list (zca_data zca_entry)
@@ -798,6 +806,8 @@ insert_into_zca_list (zca_data zca_entry)
   return;
 }
 
+/* This function will return an entry number from the linked list.  */
+
 static zca_data *
 find_zca_data (int entry_no)
 {
@@ -812,6 +822,8 @@ find_zca_data (int entry_no)
   return NULL;
 }
 
+/* This function returns the number of elements in the ZCA linked list.  */
+
 static int
 get_zca_entry_count (void)
 {
@@ -823,6 +835,8 @@ get_zca_entry_count (void)
   
   return length; 
 }
+
+/* This function computes the string table size of entire zca list.  */
 
 static int
 get_zca_string_table_size (void)
@@ -840,6 +854,8 @@ get_zca_string_table_size (void)
   return str_length; 
 }
 
+/* This function returns the zca list's expression table size.  */
+
 static int
 get_zca_exprs_table_size (void)
 {
@@ -848,6 +864,8 @@ get_zca_exprs_table_size (void)
 
   return (length * (int) sizeof (zca_entry.dwarf_expr));
 }
+
+/* This function will output the entire ZCA table in the appropriate format.  */
 
 static void
 output_zca_table (section *s)
@@ -869,20 +887,22 @@ output_zca_table (section *s)
       output_asm_label (zca_entry->label);
       fputc ('\n', asm_out_file);
 
-      /* this outputs the probspace, it is unused, so It is kept to zero */
+      /* This outputs the probspace, currently unused, thus is kept to zero.  */
       assemble_integer (gen_rtx_CONST_INT (BLKmode, 0), 4, 1, 1);
 
-      /* this outputs the offset to the string table */
+      /* This outputs the offset to the string table.  */
       assemble_integer (gen_rtx_CONST_INT (BLKmode, str_table_offset), 4, 1, 1);
       str_table_offset += strlen (zca_entry->string) + 1;
 
-      /* this outputs the offset to the annotation table */
+      /* This outputs the offset to the annotation table. */
       assemble_integer (gen_rtx_CONST_INT (BLKmode, annotation_table_offset),
 			4, 1, 1);
-      annotation_table_offset += (int)sizeof (zca_entry->dwarf_expr);
+      annotation_table_offset += (int) sizeof (zca_entry->dwarf_expr);
     }    
   return;
 }
+
+/* This function will output the whole string table.  */
 
 static void
 output_string_table (section *s)
@@ -904,6 +924,8 @@ output_string_table (section *s)
   return;
 }
 
+/* This function will output the expression table.  */
+
 static void
 output_expr_table (section *s)
 {
@@ -922,12 +944,17 @@ output_expr_table (section *s)
   return;
 }
 
+/* This function will clear the zca head.  */
+
 static void
 delete_zca_list (void)
 {
   zca_head = NULL;
   return;
 }
+
+/* The main function to output all the metadata information for Cilk.  */
+
 void
 cilk_output_metadata (void)
 {
@@ -943,7 +970,7 @@ cilk_output_metadata (void)
   if (get_zca_entry_count () == 0)
     return;
   
-  /* create a new zca section (if necessary) and switch to it */
+  /* Create a new zca section (if necessary) and switch to it.  */
   s = get_unnamed_section (0, output_section_asm_op,
 			   "\t.section .itt_notify_tab,\"a\"");
   switch_to_section (s);
@@ -957,7 +984,7 @@ cilk_output_metadata (void)
   fputs (":\n", asm_out_file);
   
   
-  /* here we output the magic number */
+  /* Here we output the magic number. */
   for (ii = 0; ii < (int)strlen (itt_string); ii++)
     assemble_integer (gen_rtx_CONST_INT (BLKmode, itt_string[ii]), 1, 1, 1);
   assemble_integer (gen_rtx_CONST_INT (BLKmode, 0), 1, 1, 1);
@@ -968,8 +995,8 @@ cilk_output_metadata (void)
   entry_count = get_zca_entry_count ();
   assemble_integer (gen_rtx_CONST_INT (BLKmode, entry_count), 2, 1, 1);
 
-  /* now we output the offet to the string table. This is done by printing out
-   * the label for string_table_start, then a '-' then start_label. The linker
+  /* Now we output the offet to the string table.  This is done by printing out
+   * the label for string_table_start, then a '-' then start_label.  The linker
    * should find out the correct absolute value.
    */
   fputs (integer_asm_op (GET_MODE_SIZE (SImode), 1), asm_out_file);
@@ -981,7 +1008,7 @@ cilk_output_metadata (void)
   strings_len = get_zca_string_table_size ();
   assemble_integer (gen_rtx_CONST_INT (BLKmode, strings_len), 4, 1, 1);
 
-  /* now we output the expr table the same way */
+  /* Now we output the expr table the same way.  */
   fputs (integer_asm_op (GET_MODE_SIZE (SImode), 1), asm_out_file);
   output_asm_label (expr_label);
   fputc ('-', asm_out_file);
@@ -1006,14 +1033,15 @@ cilk_output_metadata (void)
   return;
 }
 
-/* This function will go through an RTL of type MEM and then check to see if
- * the register is PSEUDO, if so then we replace it with stack_pointer_rtx.
- * This is mainly used to find the DWARF codes for parameters that are pushed
- * in the stack.
- */
+/* This will replace pseudo registers with appropriate stack pointer.  */
 static rtx
 cilk_fix_stack_reg (rtx mem_rtx)
 {
+  /* This function will go through an RTL of type MEM and then check to see if
+   * the register is PSEUDO, if so then we replace it with stack_pointer_rtx.
+   * This is mainly used to find the DWARF codes for parameters that are pushed
+   * in the stack.
+   */
   if (!mem_rtx || !MEM_P (mem_rtx))
     return mem_rtx;
 
@@ -1032,6 +1060,7 @@ cilk_fix_stack_reg (rtx mem_rtx)
   return mem_rtx;
 }
 
+/* This function will expand the cilk metadata.  */
 rtx
 expand_builtin_cilk_metadata (const char *annotation, tree exp)
 {
@@ -1053,11 +1082,9 @@ expand_builtin_cilk_metadata (const char *annotation, tree exp)
     {
       for (ii_rtx  = expr_list_rtx; ii_rtx ; ii_rtx = XEXP (ii_rtx, 1))
 	{
-	  /* this is a bit confusing. We have 2 options, either functions with 1
-	   * parameter or functions with 2 parameter. Either case, you take the
-	   * last parameter (1st in the former and 2nd in the latter). So we
-	   * do this
-	   */
+	  /* We have 2 options, either functions with 1 parameter or functions 
+	     with 2 parameter.  Either case, you take the last parameter 
+	     (1st in the former and 2nd in the latter).  So we do this */
 	  reg_rtx = XEXP (ii_rtx, 0);
 	  if (reg_rtx)
 	    if (GET_CODE (reg_rtx) == USE)
@@ -1082,8 +1109,9 @@ expand_builtin_cilk_metadata (const char *annotation, tree exp)
     }  
   else
     {
-      /* this means we have no arguments */
-      metadata_info.dwarf_expr = (1) | (DW_OP_lit0 << 8);
+      /* This means we have no arguments.  */
+
+      metadata_info.dwarf_expr = 1 | (DW_OP_lit0 << 8);
     }
   metadata_info.ptr_next = NULL;
   insert_into_zca_list (metadata_info);
@@ -1096,6 +1124,8 @@ expand_builtin_cilk_metadata (const char *annotation, tree exp)
 
   return const0_rtx;
 }
+
+/* This function will return true if the function is an annotated function.  */
 
 bool
 cilk_annotated_function_p (char *name)
@@ -1124,6 +1154,7 @@ cilk_annotated_function_p (char *name)
     return false;
 }
 
+/* This function will remove the false annotation functions we inserted.  */
 void
 cilk_remove_annotated_functions (rtx first)
 {
@@ -1171,3 +1202,42 @@ cilk_remove_annotated_functions (rtx first)
   return;
 }
 
+/* This function will check if the builtin function is a must expand one.  */
+
+bool
+is_cilk_must_expand_fn (enum built_in_function func_code)
+{
+  if (!flag_enable_cilk)
+    return false;
+  
+  switch (func_code)
+    {
+    case BUILT_IN_CILK_ENTER_FRAME:
+    case BUILT_IN_CILK_ENTER_BEGIN:
+    case BUILT_IN_CILK_ENTER_H_BEGIN:
+    case BUILT_IN_CILK_ENTER_END:
+    case BUILT_IN_CILK_SPAWN_PREPARE:
+    case BUILT_IN_CILK_POP_FRAME:
+    case BUILT_IN_SPAWN_OR_CONT:
+    case BUILT_IN_CILK_DETACH_BEGIN:
+    case BUILT_IN_CILK_DETACH_END:
+    case BUILT_IN_CILK_SYNC_BEGIN:
+    case BUILT_IN_CILK_SYNC_END:
+    case BUILT_IN_CILK_LEAVE_BEGIN:
+    case BUILT_IN_CILK_LEAVE_END:
+    case BUILT_IN_CILKSCREEN_METACALL:
+    case BUILT_IN_CILK_RESUME:
+    case BUILT_IN_CILK_STOLEN:
+    case BUILT_IN_SYNC_ABANDON:
+    case BUILT_IN_CILKSCREEN_EN_INSTR:
+    case BUILT_IN_CILKSCREEN_DS_INSTR:
+    case BUILT_IN_CILKSCREEN_EN_CHK:
+    case BUILT_IN_CILKSCREEN_AQUIRE_LOCK:
+    case BUILT_IN_CILKSCREEN_REL_LOCK:
+    case BUILT_IN_NOTIFY_ZC_INTRINSIC:
+    case BUILT_IN_NOTIFY_INTRINSIC:
+      return true;
+    default:
+      return false;
+    }
+}

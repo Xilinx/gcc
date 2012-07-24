@@ -495,9 +495,6 @@ cp_gimplify_init_expr (tree *expr_p)
     {
       tree sub = TREE_CODE (t) == COMPOUND_EXPR ? TREE_OPERAND (t, 0) : t;
 
-      if (TREE_CODE(sub) == CILK_RUN_EXPR)
-	sub = TREE_OPERAND (sub, 0);
-
       /* If we are initializing from an AGGR_INIT_EXPR, drop the INIT_EXPR and
 	 replace the slot operand with our target.
 
@@ -716,14 +713,9 @@ cp_gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
       ret = cp_gimplify_omp_for (expr_p, pre_p);
       break;
 
-    case SPAWN_STMT:
+    case CILK_SPAWN_STMT:
       gimplify_cilk_spawn (expr_p, pre_p, post_p);
-      gcc_assert (TREE_CODE (*expr_p) != SPAWN_STMT);
-      ret = GS_OK;
-      break;
-
-    case CILK_RUN_EXPR:
-      cilk_gimplify_run (expr_p, pre_p, post_p);
+      gcc_assert (TREE_CODE (*expr_p) != CILK_SPAWN_STMT);
       ret = GS_OK;
       break;
 

@@ -1270,7 +1270,7 @@ begin_compound_stmt (unsigned int flags)
 
   if (flags & BCS_CILK_BLOCK)
     {
-      r = build1 (SPAWN_STMT, void_type_node, r);
+      r = build1 (CILK_SPAWN_STMT, void_type_node, r);
       SPAWN_DELAYED_DETACH_P (r) = 0;
     }
 
@@ -6564,7 +6564,7 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t,
     }
 
   /* Shortcut trivial copy constructor/op=.  */
-  /* can't do this in Cilk */
+  /* We can't do this in Cilk Plus. */
   if (!flag_enable_cilk && (call_expr_nargs (t) == 2 && trivial_fn_p (fun)))
     {
       tree arg = convert_from_reference (get_nth_callarg (t, 1));
@@ -9498,7 +9498,9 @@ is_lambda_ignored_entity (tree val)
   return false;
 }
 
-/* Cilk */
+/* Here we have Cilk Plus related functions.  */
+
+/* This function will mark the beginning of a Cilk Block.  */
 
 void
 begin_cilk_block (void)
@@ -9506,17 +9508,20 @@ begin_cilk_block (void)
   (void) begin_scope (sk_cilk_block, NULL_TREE);
 }
 
+/* This function will mark the end of a Cilk Block.  */
+
 void
 finish_cilk_block (void)
 {
   leave_scope ();
 }
 
-/* Finish a Cilk sync-statement. */
+/* Finish a Cilk sync-statement.  */
+
 tree
 finish_sync_stmt (bool implicit)
 {
-  tree s = build_stmt (UNKNOWN_LOCATION, SYNC_STMT);
+  tree s = build_stmt (UNKNOWN_LOCATION, CILK_SYNC_STMT);
 
   TREE_THIS_VOLATILE (s) = 1;
   TREE_SIDE_EFFECTS (s) = 1;
@@ -9525,26 +9530,29 @@ finish_sync_stmt (bool implicit)
   return add_stmt (s);
 }
 
+/* This function will mark the beginning of a Cilk for statement.  */
+
 tree
 begin_cilk_for_stmt (void)
 {
   tree c_tree = NULL_TREE;
 
-  c_tree = build_stmt(UNKNOWN_LOCATION, CILK_FOR_STMT, NULL_TREE, NULL_TREE,
-		      NULL_TREE, NULL_TREE, NULL_TREE, NULL_TREE, NULL_TREE);
+  c_tree = build_stmt (UNKNOWN_LOCATION, CILK_FOR_STMT, NULL_TREE, NULL_TREE, 
+		       NULL_TREE, NULL_TREE, NULL_TREE, NULL_TREE, NULL_TREE);
   /* add a new scope for uncond cilk_for */
   TREE_CHAIN (c_tree) = do_pushlevel (sk_cilk_for);
 
   return c_tree;
 }
 
+/* This function will mark the ending of a Cilk for statement.  */
 
 void
-finish_cilk_for_stmt(tree c_for_stmt)
+finish_cilk_for_stmt (tree c_for_stmt)
 {
   tree scope = NULL_TREE;
 
-  FOR_BODY (c_for_stmt) = do_poplevel(FOR_BODY(c_for_stmt));
+  FOR_BODY (c_for_stmt) = do_poplevel (FOR_BODY (c_for_stmt));
 
   scope = TREE_CHAIN (c_for_stmt);
   TREE_CHAIN (c_for_stmt) = NULL;
@@ -9552,20 +9560,22 @@ finish_cilk_for_stmt(tree c_for_stmt)
 
   finish_stmt ();
 }
+
+/* This function will handle the initializer for a Cilk_for statement.  */
+
 void
-finish_cilk_for_init_stmt(tree c_for_stmt)
+finish_cilk_for_init_stmt (tree c_for_stmt)
 {
   add_stmt (c_for_stmt);
-  FOR_BODY (c_for_stmt) = do_pushlevel(sk_block);
+  FOR_BODY (c_for_stmt) = do_pushlevel (sk_block);
 }
 
+/* This function will handle the condition part of a Cilk_for statement.  */
 
 void
-finish_cilk_for_cond(tree cond, tree c_for_stmt)
+finish_cilk_for_cond (tree cond, tree c_for_stmt)
 {
   FOR_COND (c_for_stmt) = cond;
 }
-
-
 
 #include "gt-cp-semantics.h"

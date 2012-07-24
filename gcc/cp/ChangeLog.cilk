@@ -1,4 +1,103 @@
-2012-07-19  Balaji V. Iyer  <balaji.v.iyer@intel.com>   
+2012-07-23  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cilk.c (cilk_c_declare_looper): Added header comment and did some
+	minor spacing and commenting issues to conform to the coding standard.
+	(initialize_cilk_for_desc): Likewise.
+	(release_cilk_for_desc): Likewise.
+	(add_incr): Likewise.
+	(resolve_continue_stmts): Likewise.
+	(cilk_loop_convert): Likewise.
+	(copy_decl_for_cilk): Likewise.
+	(cilk_outline): Likewise.
+	(declare_for_loop_variables): Likewise.
+	(compute_loop_var): Likewise.
+	(cp_recognize_spawn): Likewise.
+	(cp_make_cilk_frame): Likewise.
+	(cilk_erase_for): Likewise.
+	(callable): Likewise.
+	(check_limit_record): Likewise.
+	(var_mentioned_p_cb): Likewise.
+	(var_mentioned_p): Likewise.
+	(check_incr): Likewise.
+	(check_limit_scalar): Likewise.
+	(validate_for_scalar): Likewise.
+	(validate_for_record): Likewise.
+	(check_loop_difference_type): Likewise.
+	(cilk_validate_for): Likewise.
+	(add_variable): Likewise.
+	(extract_free_variables): Likewise.
+	(gimplify_cilk_for_1): Likewise.
+	(mangle_count): Likewise.
+	(compute_loop_count): Likewise.
+	(cp_extract_for_fields): Likewise.
+	(gimplify_cilk_for_stmt): Likewise.
+	(tree_uses_cilk): Likewise.
+	(cilkish_type): Likewise.
+	(cilk_block_local_label): Likewise.
+	(cp_build_cilk_for_body): Fixed spacing, added header comment, removed
+	unwanted curly brances, modified existing comments to conform to the
+	coding standard and removed all cilk_linkage occurances.
+	(race_warning): Activated this function (i.e., removed the #if 0 inside
+	it.).
+	(call_graph_add_fn): Renamed cg_hacks to this.  Also removed some
+	unwanted comments, curly braces and fixed comments.
+	(build_cilk_run_body): Remove.
+	(cilk_gimplify_run): Likewise.
+	(build_cilk_run): Likewise.
+	(look_for_spawn): Likewise.
+	(mark_receiver_addressable): Likewise.
+	(cilk_init_common): Likewise.
+	(cilk_find_parent_frame): Likewise.
+	(cilk_detach): Likewise.
+	(cilk_make_frame_descriptor): Likewise.
+	(cilk_init_frame_descriptor): Likewise.
+	(cilk_promote_struct_function): Likewise.
+	(cilk_promote): Likewise.
+	(cilk_maybe_promote): Likewise.
+	(declare_cilk_void_wrapper): Likewise.
+	(push_cilk_void_wrapper): Likewise.
+	(find_cilk_void_wrapper): Likewise.
+	(finish_cilk_wrappers): Likewise.
+	(uses_cilk_aux): Fixed spacing, added header comment, fixed comments to
+	reflect appropriately and replaced all SYNC_STMT to CILK_SYNC_STMT.
+	* cp-gimplify.c (cp_gimplify_init_expr): Remove CILK_RUN_EXPR checks.
+	(cp_gimplify_tree): Renamed SYNC_STMT and SPAWN_STMT to CILK_SYNC_STMT
+	and CILK_SPAWN_STMT, respectively.
+	(cp_gimplify_expr): Likewise.
+	* parser.c (cp_parser_jump_statement): Fixed a comment to conform to
+	the coding standard.
+	(cp_parser_cilk_for): Added header comments, removed unwanted curly
+	braces, fixed spacing and modified comments to conform to the coding
+	standard.
+	(cp_parser_cilk_for_condition): Likewise.
+	(cp_parser_cilk_for_expression_iterator): Likewise.
+	(cp_parser_simd_vectorlength): Likewise.
+	(cp_parser_simd_private): Likewise.
+	(cp_parser_simd_reduction): Likewise.
+	(cp_parser_simd_linear): Likewise.
+	(cp_parser_simd_assert): Likewise.
+	(cp_parser_cilk_grainsize): Likewise.
+	(cp_parser_cilk_for_init_statement): Likewise.
+	(cp_parser_array_notation): Likewise.
+	(cp_parser_elem_fn_processor_clause): Likewise.
+	(cp_parser_elem_fn_uniform_clause): Likewise.
+	(cp_parser_elem_fn_vlength_clause): Likewise.
+	(cp_parser_elem_fn_expression_list): Likewise.
+	* pt.c (tsubst_expr): Renamed SYNC_STMT to CILK_SYNC_STMT.
+	* semantics.c (begin_compound_stmt): Likewise.
+	(cxx_eval_call_expression): Modified comment to conform to the coding
+	standard.
+	(finish_sync_stmt): Likewise.
+	(finish_cilk_block): Added a comment to the header of the function.
+	(begin_cilk_for_stmt): Added a header comment and fixed spacing.
+	(finish_cilk_for_init_stmt): Likewise.
+	(finish_cilk_for_cond): Likewise.
+	* tree.c (handle_cilk_linkage_attribute): Remove.
+	* typeck.c (cp_build_addr_expr_1): Modified comments to conform to the
+	coding standard.
+	(lvalue_or_else): Likewise.
+
+2012-07-19  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cp-lang.c: Added cilk.h header.
 	* cp-objcp-common.h (LANG_HOOKS_CILK_VALID_SPAWN): Defined this.

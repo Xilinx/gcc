@@ -1239,11 +1239,11 @@ DEFTREECODE (OPTIMIZATION_NODE, "optimization_node", tcc_exceptional, 0)
 /* TARGET_OPTION_NODE.  Node to store the target specific options.  */
 DEFTREECODE (TARGET_OPTION_NODE, "target_option_node", tcc_exceptional, 0)
 
-/* SYNC_STMT is tcc_expression so it has location. */
-DEFTREECODE (SPAWN_STMT, "spawn_stmt", tcc_statement, 1)
+/* CILK_SPAWN_STMT is tcc_expression so it has location. */
+DEFTREECODE (CILK_SPAWN_STMT, "cilk_spawn_stmt", tcc_statement, 1)
 
-/* SYNC_STMT is tcc_expression so it has location. */
-DEFTREECODE (SYNC_STMT, "sync_stmt", tcc_expression, 0)
+/* CILK_SYNC_STMT is tcc_expression so it has location. */
+DEFTREECODE (CILK_SYNC_STMT, "cilk_sync_stmt", tcc_expression, 0)
 
 
 

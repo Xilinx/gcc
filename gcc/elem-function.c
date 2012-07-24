@@ -60,12 +60,12 @@ static tree create_processor_attribute (elem_fn_info *, tree *);
 static tree elem_fn_build_array (tree base_var, tree index);
 
 
-/* This function will create the appropriate __target__ attribute for the
- * processor */
+/* This function will create the appropriate __target__ attribute for the 
+   processor.  */
 static tree
 create_processor_attribute (elem_fn_info *elem_fn_values, tree *opposite_attr)
 {
-  /* you need the opposite attribute for the scalar code part */
+  /* You will need the opposite attribute for the scalar code part.  */
   tree proc_attr, opp_proc_attr;
   VEC(tree,gc) *proc_vec_list = VEC_alloc (tree, gc, 4);
   VEC(tree,gc) *opp_proc_vec_list = VEC_alloc (tree, gc, 4);
@@ -166,7 +166,8 @@ create_processor_attribute (elem_fn_info *elem_fn_values, tree *opposite_attr)
 }
 
 /* this will create an optimize attribute for the vector function, to make sure
- * the vectorizer is turned on and has its full capabilities */
+   the vectorizer is turned on and has its full capabilities.  */
+
 static tree
 create_optimize_attribute (int option)
 {
@@ -192,7 +193,8 @@ create_optimize_attribute (int option)
 }
 
 
-/* this function will store return expression to a temporary var */
+/* This function will store return expression to a temporary var.  */
+
 static tree
 replace_return_with_new_var (tree *tp, int *walk_subtrees, void *data)
 {
@@ -214,14 +216,16 @@ replace_return_with_new_var (tree *tp, int *walk_subtrees, void *data)
 }
 
 
-/* This function will create a vector access as a array access */
+/* This function will create a vector access as a array access.  */
+
 static tree
 elem_fn_build_array (tree base_var, tree index)
 {
   return build_array_ref (UNKNOWN_LOCATION, base_var, index);
 }
 
-/* this function wil replace all vector references with array references. */
+/* This function wil replace all vector references with array references.  */
+
 static tree
 replace_array_ref_for_vec (tree *tp, int *walk_subtrees, void *data)
 {
@@ -243,8 +247,8 @@ replace_array_ref_for_vec (tree *tp, int *walk_subtrees, void *data)
 	      return NULL_TREE;
 	    }
 	}
-      if (func_data->return_var &&
-	  (DECL_NAME (*tp) == DECL_NAME (func_data->return_var)))
+      if (func_data->return_var 
+	  && (DECL_NAME (*tp) == DECL_NAME (func_data->return_var)))
 	{
 	  *tp = elem_fn_build_array (*tp, func_data->induction_var);
 	  *walk_subtrees = 0;
@@ -253,7 +257,8 @@ replace_array_ref_for_vec (tree *tp, int *walk_subtrees, void *data)
   return NULL_TREE;
 }
 
-/* this function will move return values to the end of the function */
+/* This function will move return values to the end of the function.  */
+
 static void
 fix_elem_fn_return_value (tree fndecl, tree induction_var)
 {
@@ -278,7 +283,7 @@ fix_elem_fn_return_value (tree fndecl, tree induction_var)
      build_zero_cst (TREE_TYPE (TREE_TYPE (DECL_RESULT (fndecl)))));
   DECL_INITIAL (new_var) = new_var_init;
   walk_tree (&DECL_SAVED_TREE (fndecl), replace_return_with_new_var,
-	     (void *)new_var, NULL);
+	     (void *) new_var, NULL);
   data.return_var = new_var;
   data.arguments = DECL_ARGUMENTS (fndecl);
   data.induction_var = induction_var;
@@ -291,7 +296,6 @@ fix_elem_fn_return_value (tree fndecl, tree induction_var)
   ret_stmt = build1 (RETURN_EXPR, TREE_TYPE (ret_expr), ret_expr);
   if (TREE_CODE (DECL_SAVED_TREE (fndecl)) == BIND_EXPR)
     {
-      
       if (!BIND_EXPR_BODY (DECL_SAVED_TREE (fndecl)))
         ;
       else if (TREE_CODE (BIND_EXPR_BODY (DECL_SAVED_TREE (fndecl))) !=
@@ -314,7 +318,8 @@ fix_elem_fn_return_value (tree fndecl, tree induction_var)
   return;
 }
 
-/* this function will break a vector value to scalar with a for loop in front */
+/* This function converts a vector value to scalar with a for loop in front.  */
+
 static tree
 add_elem_fn_loop (tree fndecl, int vlength)
 {
@@ -395,7 +400,8 @@ add_elem_fn_loop (tree fndecl, int vlength)
   return loop_var;
 }
 
-/* this function will add the mask if statement for masked clone */
+/* This function will add the mask if statement for masked clone.  */
+
 static void
 add_elem_fn_mask (tree fndecl)
 {
@@ -418,7 +424,7 @@ add_elem_fn_mask (tree fndecl)
   if (TREE_CODE (DECL_SAVED_TREE (fndecl)) == BIND_EXPR)
     fn_body = BIND_EXPR_BODY (DECL_SAVED_TREE (fndecl));
   else
-    fn_body = DECL_SAVED_TREE (fndecl); /* not sure if we ever get here */
+    fn_body = DECL_SAVED_TREE (fndecl); /* Not sure if we ever get here.  */
 
   gcc_assert (DECL_NAME (ii_arg) == get_identifier ("__elem_fn_mask"));
 
@@ -439,9 +445,10 @@ add_elem_fn_mask (tree fndecl)
  
 }
 
-/* this function will do hacks necessary to recognize the cloned function */
+/* This function will do hacks necessary to recognize the cloned function.  */
+
 static void
-cg_hacks (tree fndecl)
+call_graph_add_fn (tree fndecl)
 {
   const tree outer = current_function_decl;
   struct function *f = DECL_STRUCT_FUNCTION (fndecl);
@@ -460,7 +467,8 @@ cg_hacks (tree fndecl)
   return;
 }
 
-/* this function will create clones for function marked with vector attribute */
+/* Function to create clones for function marked with vector attribute.  */
+
 void
 elem_fn_create_fn (tree fndecl)
 {
@@ -469,11 +477,11 @@ elem_fn_create_fn (tree fndecl)
   elem_fn_info *elem_fn_values = NULL;
   char *masked_suffix = NULL, *unmasked_suffix = NULL;
   tree proc_attr = NULL_TREE, opp_proc_attr = NULL_TREE, opt_attr = NULL_TREE;
+
   if (!fndecl)
     return;
 
   elem_fn_values = extract_elem_fn_values (fndecl);
-
   if (!elem_fn_values)
     return;
 
@@ -486,7 +494,6 @@ elem_fn_create_fn (tree fndecl)
       masked_suffix   = find_suffix (elem_fn_values, true);
       unmasked_suffix = find_suffix (elem_fn_values, false);
     }
-
   if (masked_suffix)
     {
       new_masked_fn = copy_node (fndecl);
@@ -502,7 +509,7 @@ elem_fn_create_fn (tree fndecl)
       if (opp_proc_attr)
 	decl_attributes (&fndecl, opp_proc_attr, 0);
       
-      opt_attr = create_optimize_attribute (3); /* will turn vectorizer on */
+      opt_attr = create_optimize_attribute (3); /* Turn vectorizer on.  */
       if (opt_attr)
 	decl_attributes (&new_masked_fn, opt_attr, 0);
 
@@ -513,7 +520,7 @@ elem_fn_create_fn (tree fndecl)
       induction_var = add_elem_fn_loop (new_masked_fn,
 					elem_fn_values->vectorlength[0]);
       fix_elem_fn_return_value (new_masked_fn, induction_var);
-      cg_hacks (new_masked_fn);
+      call_graph_add_fn (new_masked_fn);
       SET_DECL_ASSEMBLER_NAME (new_masked_fn, DECL_NAME (new_masked_fn));
       DECL_ELEM_FN_ALREADY_CLONED (new_masked_fn) = true;
       if (DECL_STRUCT_FUNCTION (new_masked_fn))
@@ -534,7 +541,7 @@ elem_fn_create_fn (tree fndecl)
       if (opp_proc_attr)
 	decl_attributes (&fndecl, opp_proc_attr, 0);
       
-      opt_attr = create_optimize_attribute (3); /* will turn vectorizer on */
+      opt_attr = create_optimize_attribute (3); /* Turn vectorizer on.  */
       if (opt_attr)
 	decl_attributes (&new_unmasked_fn, opt_attr, 0);
 
@@ -543,12 +550,13 @@ elem_fn_create_fn (tree fndecl)
       induction_var = add_elem_fn_loop (new_unmasked_fn,
 					elem_fn_values->vectorlength[0]);
       fix_elem_fn_return_value (new_unmasked_fn, induction_var);
-      cg_hacks (new_unmasked_fn);
+      call_graph_add_fn (new_unmasked_fn);
       SET_DECL_ASSEMBLER_NAME (new_unmasked_fn, DECL_NAME (new_unmasked_fn));
       DECL_ELEM_FN_ALREADY_CLONED (new_unmasked_fn) = true;
       if (DECL_STRUCT_FUNCTION (new_unmasked_fn))
 	DECL_STRUCT_FUNCTION (new_unmasked_fn)->elem_fn_already_cloned = true;
     }
+
   free (elem_fn_values);
   return;
 }

@@ -482,10 +482,7 @@ typedef enum ref_operator {
   /* -> */
   RO_ARROW,
   /* implicit conversion */
-  RO_IMPLICIT_CONVERSION,
-  /* Cilk wrapper generation */
-  RO_CILK_WRAPPER_GENERATION
-
+  RO_IMPLICIT_CONVERSION
 } ref_operator;
 
 /* Information about a statement tree.  */
