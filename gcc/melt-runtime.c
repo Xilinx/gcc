@@ -8687,7 +8687,7 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
              srcpath, descversionmelt, melt_version_str ());
   sobase =
     concat (melt_basename(descmodulename), 
-#if MELTNEW
+#if 1
 	    ".meltmod-", 
 #else
 	    ".",

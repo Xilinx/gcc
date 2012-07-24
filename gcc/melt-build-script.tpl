@@ -70,6 +70,8 @@ function meltbuild_arg () {
     fi
 }
 
+
+################################################################
 ## function to run MELT to emit C code
 function meltbuild_emit () {
     local meltfrom=$1
@@ -83,6 +85,7 @@ function meltbuild_emit () {
     local meltsrc=$(realpath $GCCMELT_MELTSOURCEDIR/$meltbase.melt)
     meltbuild_info meltfrom=$meltfrom meltmode=$meltmode meltbase=$meltbase meltstage=$meltstage meltprevstage=$meltprevstage meltinit=$meltinit meltinclude=$meltinclude meltsrc=$meltsrc
     local meltsum
+    local meltprevf
     if [ -z "$meltmode" ]; then
 	meltbuild_error $meltfrom no MELT mode at stage $meltstage
     fi
@@ -96,6 +99,7 @@ function meltbuild_emit () {
     meltbuild_info $meltfrom emit C code for $meltbase of $meltstage
     echo -Wno-shadow -frandom-seed=$meltsum > $meltargs-$$-tmp
     ## various arguments
+    echo " -DGCCMELT_FROM_ARG=\"$meltfrom\"" >>  $meltargs-$$-tmp
     meltbuild_arg mode=$meltmode >> $meltargs-$$-tmp
     meltbuild_arg arg=$meltsrc >>  $meltargs-$$-tmp
     meltbuild_arg output=$meltstage/$meltbase  >>  $meltargs-$$-tmp
@@ -118,11 +122,19 @@ function meltbuild_emit () {
     if [ -z "$GCCMELT_SKIPEMITC" ]; then
 	$GCCMELT_CC1_PREFIX $GCCMELT_CC1 @$meltargs || meltbuild_error $meltfrom failed with arguments @$meltargs
     else
-	meltbuild_info $meltfrom skips emission of C code with  @$meltargs $GCCMELT_SKIPEMITC
+	meltbuild_info $meltfrom skips emission of C code with  @$meltargs stage $meltstage prevstage $meltprevstage skipreason $GCCMELT_SKIPEMITC
+	ls -l $meltprevstage/$meltbase*
+	for meltprevf in $meltprevstage/$meltbase.c  $meltprevstage/$meltbase+[0-9][0-9].c  $meltprevstage/$meltbase+meltdesc.c  $meltprevstage/$meltbase+melttime.h   $meltprevstage/$meltbase+meltbuild.mk ; do
+	    meltbuild_symlink $meltprevf $meltstage
+	done
+	meltbuild_info $meltfrom symlinked previous stage $meltprevstage/$meltbase
     fi
     GCCMELT_STAGE=$meltstage
     GCCMELT_BASE=$meltbase
-}
+} ################################ end function meltbuild_emit
+
+
+################ stage zero
 
 GCCMELT_ZERO_FLAVOR=${GCCMELT_STAGE_ZERO#meltbuild-stage0-}
 
@@ -196,6 +208,8 @@ echo MELTGENMOD_NAKED_NAME_melt_stage_zero_[+varsuf+]=[+base+]  >> $MELT_ZERO_GE
 echo '#end of generated file ' $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
 ##
 mv $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$ $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK
+meltbuild_info [+(.(fromline))+] generated stagezero makedep $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK
+ls -l $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK > /dev/stderr
 
 $GCCMELT_MAKE -f $GCCMELT_MODULE_MK melt_module \
    GCCMELT_FROM=stagezero-[+(.(fromline))+] \
@@ -227,11 +241,14 @@ meltbuild_info [+(.(fromline))+] successfully build stage0 [+base+]
 ### the current stage and the later modules of the previous stages
 ### used to emit the source of the current module in the current stage.
 ### This is a kind of "diagonalization".
+GCCMELT_SKIPEMITC=
 
 [+FOR melt_stage+]
-#@  begin for [+melt_stage+] [+(.(fromline))+]
+#@  begin for stage "[+melt_stage+]" [+(.(fromline))+]
 
 [ -d [+melt_stage+] ] || mkdir [+melt_stage+]
+
+meltbuild_info [+(.(fromline))+] at start of [+melt_stage+] GCCMELT_SKIPEMITC=$GCCMELT_SKIPEMITC.
 
 #### rules for [+melt_stage+][+ 
   (define stageindex (+ 1 (for-index)))
@@ -261,18 +278,26 @@ meltbuild_emit [+(.(fromline))+] \
 +][+(. depstage)+]/[+(. inbase)+].[+ (. depflavor)+][+ENDFOR melt_translator_file+] \
     "[+FOR includeload " "+][+includeload+][+ENDFOR includeload+]"
 
+meltbuild_info [+(.(fromline))+] before compilation of C generated at [+melt_stage+] GCCMELT_SKIPEMITC=$GCCMELT_SKIPEMITC.
 
-meltbuild_info [+(.(fromline))+] compiling module [+base+] in [+melt_stage+]
 
-$GCCMELT_MAKE -f $GCCMELT_MODULE_MK melt_module \
-   GCCMELT_FROM=[+melt_stage+]-[+(.(fromline))+] \
-   GCCMELT_MODULE_WORKSPACE=meltbuild-workdir \
-   GCCMELT_MODULE_FLAVOR=quicklybuilt \
-   GCCMELT_CFLAGS="$GCCMELT_COMPILER_FLAGS" \
-   GCCMELT_MODULE_SOURCEBASE=[+melt_stage+]/[+base+] \
-   GCCMELT_MODULE_BINARYBASE=[+melt_stage+]/[+base+] \
- || meltbuild_error  [+(.(fromline))+] stage [+melt_stage+] failed to make module [+base+]
+if [ -z "$GCCMELT_SKIPEMITC" ]; then
+    meltbuild_info [+(.(fromline))+] compiling module [+base+] in [+melt_stage+]
+    $GCCMELT_MAKE -f $GCCMELT_MODULE_MK melt_module \
+	GCCMELT_FROM=[+melt_stage+]-[+(.(fromline))+] \
+	GCCMELT_MODULE_WORKSPACE=meltbuild-workdir \
+	GCCMELT_MODULE_FLAVOR=quicklybuilt \
+	GCCMELT_CFLAGS="$GCCMELT_COMPILER_FLAGS" \
+	GCCMELT_MODULE_SOURCEBASE=[+melt_stage+]/[+base+] \
+	GCCMELT_MODULE_BINARYBASE=[+melt_stage+]/[+base+] \
+	|| meltbuild_error  [+(.(fromline))+] stage [+melt_stage+] failed to make module [+base+]
 
+else
+    MELT_COMPUTED_[+varsuf+]_CUMULMD5=$(cat [+melt_stage+]/[+base+].c [+melt_stage+]/[+base+]+[0-9]*.c | $MD5SUM | cut -b 1-32)
+    meltbuild_info [+(.(fromline))+] NOT compiling module [+base+] in [+melt_stage+] but symlinking previous [+ (. prevstage)+] module [+base+] checksum MELT_COMPUTED_[+varsuf+]_CUMULMD5=$MELT_COMPUTED_[+varsuf+]_CUMULMD5 skipemitc=$GCCMELT_SKIPEMITC.
+    meltbuild_symlink [+ (. prevstage)+]/[+base+].meltmod-$MELT_COMPUTED_[+varsuf+]_CUMULMD5.[+ (. prevflavor)+].so [+melt_stage+]/
+    
+fi
 #@ [+(.(fromline))+] end base [+base+] stage [+melt_stage+] 
 [+ENDFOR melt_translator_file+]
 
@@ -283,9 +308,11 @@ else
     meltbuild_info  [+(.(fromline))+] stage [+melt_stage+] did not change any generated C files
     GCCMELT_SKIPEMITC="[+melt_stage+] unchanged from [+(.(fromline))+]"
 [+FOR melt_translator_file+]
+    MELT_COMPUTED_[+varsuf+]_CUMULMD5=$(cat [+melt_stage+][+base+].c [+melt_stage+][+base+]+[0-9]*.c | cut -b 1-32)
+    meltbuild_info  [+(.(fromline))+] stage [+melt_stage+] for [+base+] cumulated checksum is MELT_COMPUTED_[+varsuf+]_CUMULMD5= $MELT_COMPUTED_[+varsuf+]_CUMULMD5
     # testing [+(.(fromline))+] stage  [+melt_stage+] base [+base+] module older
-    if [ "[+melt_stage+]/[+base+].quicklybuilt.so" -nt "[+melt_stage+]/[+base+].cfilist" ]; then
-	meltbuild_info  [+(.(fromline))+] [+melt_stage+]/[+base+].quicklybuilt.so newer than  "[+melt_stage+]/[+base+].cfilist"
+    if [ -f "[+melt_stage+]/[+base+].meltmod-$MELT_COMPUTED_[+varsuf+]_CUMULMD5.$quicklybuilt.so" -a "[+melt_stage+]/[+base+].meltmod-$MELT_COMPUTED_[+varsuf+]_CUMULMD5.$quicklybuilt.so" -nt "[+melt_stage+]/[+base+].cfilist" ]; then
+	meltbuild_info  [+(.(fromline))+] [+melt_stage+]/[+base+].meltmod-$MELT_COMPUTED_[+varsuf+]_CUMULMD5.quicklybuilt.so newer than  "[+melt_stage+]/[+base+].cfilist"
 	GCCMELT_SKIPEMITC=""
     fi
 [+ENDFOR melt_translator_file+]
@@ -310,7 +337,7 @@ meltbuild_info [+(.(fromline))+] last stage $GCCMELT_LASTSTAGE
 
 [ -d meltbuild-sources ] || mkdir meltbuild-sources
 
-
+GCCMELT_SKIPEMITC=""
 #@ [+(.(fromline))+] 
 
 [+FOR melt_translator_file+][+ 

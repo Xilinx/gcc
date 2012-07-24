@@ -1,7 +1,7 @@
 ## file melt-module.mk
 ## a -*- Makefile -*- for GNU make. 
 
-# Copyright (C) 2009, 2011, 2012 Free Software Foundation, Inc.
+# Copyright (C) 2009 - 2012 Free Software Foundation, Inc.
 # Contributed by Basile Starynkevitch  <basile@starynkevitch.net>
 # This file is part of GCC.
 
@@ -124,9 +124,9 @@ GCCMELT_SOURCEDIR=$(dir $(GCCMELT_MODULE_SOURCEBASE))
 
 ## FIXME: this probably should be autoconf-ed...
 ifeq ($(shell uname),Darwin)
-SHARED_LIBRARY_FLAGS=-bundle -undefined dynamic_lookup
+GCCMELT_SHARED_FLAGS=-bundle -undefined dynamic_lookup
 else
-SHARED_LIBRARY_FLAGS=-shared
+GCCMELT_SHARED_FLAGS=-shared
 endif
 
 
@@ -178,8 +178,8 @@ GCCMELT_SECONDARY_MDSUMED_BASES := $(join $(basename $(notdir $(GCCMELT_SECONDAR
 
 ################################################################
 ## if available, include the melt generated make fragment
-GCCMELTGEN_BUILD=$(GCCMELT_MODULE_WORKSPACE)/
--include $(GCCMELT_MODULE_SOURCEBASE)+meltbuild.mk
+GCCMELTGEN_BUILD?=$(GCCMELT_MODULE_WORKSPACE)/
+include $(GCCMELT_MODULE_SOURCEBASE)+meltbuild.mk
 
 GCCMELT_PACKAGES_CFLAGS=$(if $(MELTGENMOD_PACKAGELIST),$(shell pkg-config --cflags $(MELTGENMOD_PACKAGELIST)))
 GCCMELT_PACKAGES_LIBES=$(if $(MELTGENMOD_PACKAGELIST),$(shell pkg-config --libs $(MELTGENMOD_PACKAGELIST)))
@@ -198,14 +198,14 @@ $(GCCMELTGEN_BUILD)%.quicklybuilt.meltpic.o:
           $(MAKE) -e -f $(filter %melt-module.mk, $(MAKEFILE_LIST)) $$GCCMELTGENMDSUMEDPIC ;  \
           $(LN_S) -v -f `realpath $$GCCMELTGENMDSUMEDPIC` $@ ; fi
 
-$(GCCMELTGEN_BUILD)%.quicklybuilt.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed.c $(GCCMELT_MODULE_DEPENDENCIES)
+$(GCCMELTGEN_BUILD)%.quicklybuilt.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed.c | $(GCCMELT_MODULE_DEPENDENCIES)
 	@echo @+@melt-module quicklybuilt.meltmdsumedpic at= $@ left= $< question= $? caret= $^
 	$(GCCMELT_CC) $(GCCMELT_QUICKLYBUILT_PREPROFLAGS) \
            $(GCCMELT_QUICKLYBUILT_FLAGS) $(GCCMELT_CFLAGS)  $(GCCMELT_PACKAGES_CFLAGS) \
 	   -fPIC -c -o $@ $<
 
 ## optimized flavor
-$(GCCMELTGEN_BUILD)%.optimized.meltpic.o: $(GCCMELT_MODULE_DEPENDENCIES)
+$(GCCMELTGEN_BUILD)%.optimized.meltpic.o: | $(GCCMELT_MODULE_DEPENDENCIES)
 	@echo @+@melt-module optimized.meltpic at= $@ left= $< question= $? caret= $^ realpathleft= $(realpath $<)
 	if [ -z "$(filter %.mdsumed.c, $(realpath $<))" ]; then \
 	   $(GCCMELT_CC) $(GCCMELT_OPTIMIZED_PREPROFLAGS) \
@@ -217,14 +217,14 @@ $(GCCMELTGEN_BUILD)%.optimized.meltpic.o: $(GCCMELT_MODULE_DEPENDENCIES)
           $(MAKE) -e -f $(filter %melt-module.mk, $(MAKEFILE_LIST)) $$GCCMELTGENMDSUMEDPIC ;  \
           $(LN_S) -v -f `realpath $$GCCMELTGENMDSUMEDPIC` $@ ; fi
 
-$(GCCMELTGEN_BUILD)%.optimized.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed.c $(GCCMELT_MODULE_DEPENDENCIES)
+$(GCCMELTGEN_BUILD)%.optimized.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed.c | $(GCCMELT_MODULE_DEPENDENCIES)
 	@echo @+@melt-module optimized.meltmdsumedpic at= $@ left= $< question= $? caret= $^
 	$(GCCMELT_CC)  $(GCCMELT_OPTIMIZED_PREPROFLAGS) \
            $(GCCMELT_OPTIMIZED_FLAGS) $(GCCMELT_CFLAGS)  $(GCCMELT_PACKAGES_CFLAGS) \
 	   -fPIC -c -o $@ $<
 
 ## debugnoline flavor
-$(GCCMELTGEN_BUILD)%.debugnoline.meltpic.o: $(GCCMELT_MODULE_DEPENDENCIES)
+$(GCCMELTGEN_BUILD)%.debugnoline.meltpic.o: | $(GCCMELT_MODULE_DEPENDENCIES)
 	@echo @+@melt-module debugnoline.meltpic at= $@ left= $< question= $? caret= $^ realpathleft= $(realpath $<)
 	if [ -z "$(filter %.mdsumed.c, $(realpath $<))" ]; then \
 	   $(GCCMELT_CC) $(GCCMELT_DEBUGNOLINE_PREPROFLAGS) \
@@ -236,7 +236,7 @@ $(GCCMELTGEN_BUILD)%.debugnoline.meltpic.o: $(GCCMELT_MODULE_DEPENDENCIES)
           $(MAKE) -e -f $(filter %melt-module.mk, $(MAKEFILE_LIST)) $$GCCMELTGENMDSUMEDPIC ;  \
           $(LN_S) -v -f `realpath $$GCCMELTGENMDSUMEDPIC` $@ ; fi
 
-$(GCCMELTGEN_BUILD)%.debugnoline.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed.c $(GCCMELT_MODULE_DEPENDENCIES)
+$(GCCMELTGEN_BUILD)%.debugnoline.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed.c | $(GCCMELT_MODULE_DEPENDENCIES)
 	@echo @+@melt-module debugnoline.meltmdsumedpic at= $@ left= $< question= $? caret= $^
 	$(GCCMELT_CC)   $(GCCMELT_DEBUGNOLINE_PREPROFLAGS) \
            $(GCCMELT_DEBUGNOLINE_FLAGS) $(GCCMELT_CFLAGS)  $(GCCMELT_PACKAGES_CFLAGS) \
@@ -244,7 +244,7 @@ $(GCCMELTGEN_BUILD)%.debugnoline.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed.
 
 
 ## dynamic flavor
-$(GCCMELTGEN_BUILD)%.dynamic.meltpic.o: $(GCCMELT_MODULE_DEPENDENCIES)
+$(GCCMELTGEN_BUILD)%.dynamic.meltpic.o: | $(GCCMELT_MODULE_DEPENDENCIES)
 	@echo @+@melt-module dynamic.meltpic at= $@ left= $< question= $? caret= $^ realpathleft= $(realpath $<)
 	if [ -z "$(filter %.mdsumed.c, $(realpath $<))" ]; then \
 	   $(GCCMELT_CC) $(GCCMELT_DYNAMIC_PREPROFLAGS) \
@@ -256,7 +256,7 @@ $(GCCMELTGEN_BUILD)%.dynamic.meltpic.o: $(GCCMELT_MODULE_DEPENDENCIES)
           $(MAKE) -e -f $(filter %melt-module.mk, $(MAKEFILE_LIST)) $$GCCMELTGENMDSUMEDPIC ;  \
           $(LN_S) -v -f `realpath $$GCCMELTGENMDSUMEDPIC` $@ ; fi
 
-$(GCCMELTGEN_BUILD)%.dynamic.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed.c $(GCCMELT_MODULE_DEPENDENCIES)
+$(GCCMELTGEN_BUILD)%.dynamic.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed.c | $(GCCMELT_MODULE_DEPENDENCIES)
 	@echo @+@melt-module dynamic.meltmdsumedpic at= $@ left= $< question= $? caret= $^
 	$(GCCMELT_CC) $(GCCMELT_DYNAMIC_PREPROFLAGS) \
            $(GCCMELT_DEBUGNOLINE_FLAGS) $(GCCMELT_CFLAGS)  $(GCCMELT_PACKAGES_CFLAGS) \
@@ -264,95 +264,48 @@ $(GCCMELTGEN_BUILD)%.dynamic.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed.c $(
 
 
 
-
-## descriptor quasi-flavor, never symlinked! this is an obsolete rule!
-$(GCCMELTGEN_BUILD)%.descr.meltpic.o: $(GCCMELT_MODULE_DEPENDENCIES)
-	@echo @+@melt-module descr.meltpic @obsoleterule at= $@ left= $< question= $? caret= $^
-	$(GCCMELT_CC) $(GCCMELT_DESCRIPTOR_PREPROFLAGS) \
-          $(GCCMELT_DESCRIPTOR_FLAGS) $(GCCMELT_CFLAGS)  \
-	   -fPIC -c -o $@ $<
-
 ## descriptor quasi-flavor, never symlinked!
-$(GCCMELTGEN_BUILD)%.descriptor.meltpic.o: $(GCCMELT_MODULE_DEPENDENCIES)
+$(GCCMELTGEN_BUILD)%.descriptor.meltpic.o: | $(GCCMELT_MODULE_DEPENDENCIES)
 	@echo @+@melt-module descriptor.meltpic at= $@ left= $< question= $? caret= $^
 	$(GCCMELT_CC) $(GCCMELT_DESCRIPTOR_PREPROFLAGS) \
           $(GCCMELT_DESCRIPTOR_FLAGS) $(GCCMELT_CFLAGS)  \
 	   -fPIC -c -o $@ $<
 
 
-################
-## rules for meltmod.so shared objects
-$(GCCMELTGEN_BUILD)%.quicklybuilt.meltmod.so: $(GCCMELT_MODULE_DEPENDENCIES)
-	@echo @+@melt-module quicklybuilt.meltmod at= $@ left= $< question= $? caret= $^
-	$(GCCMELT_CC) -o $@ \
-          $(GCCMELT_QUICKLYBUILT_FLAGS) $(GCCMELT_CFLAGS) \
-          -shared $^ $(GCCMELT_PACKAGES_LIBES)
+## linking the module in various flavors
+$(GCCMELTGEN_BUILD)$(GCCMELT_BASE).meltmod-%.quicklybuilt.so: 
+	@echo @+@melt-module meltmod.quicklybuilt at= $@ left= $< question= $? caret= $^
+	$(GCCMELT_CC) $(GCCMELT_QUICKLYBUILT_FLAGS) $(GCCMELT_SHARED_FLAGS) -o $@ $^ $(GCCMELT_PACKAGES_LIBES)
 
-$(GCCMELTGEN_BUILD)%.optimized.meltmod.so: $(GCCMELT_MODULE_DEPENDENCIES)
-	@echo @+@melt-module optimized.meltmod at= $@ left= $< question= $? caret= $^
-	$(GCCMELT_CC) -o $@ \
-          $(GCCMELT_OPTIMIZED_FLAGS) $(GCCMELT_CFLAGS) \
-          -shared $^ $(GCCMELT_PACKAGES_LIBES)
+$(GCCMELTGEN_BUILD)$(GCCMELT_BASE).meltmod-%.optimized.so: 
+	@echo @+@melt-module meltmod.optimized at= $@ left= $< question= $? caret= $^
+	$(GCCMELT_CC) $(GCCMELT_OPTIMIZED_FLAGS) $(GCCMELT_SHARED_FLAGS) -o $@ $^ $(GCCMELT_PACKAGES_LIBES)
 
-$(GCCMELTGEN_BUILD)%.debugnoline.meltmod.so: $(GCCMELT_MODULE_DEPENDENCIES)
-	@echo @+@melt-module debugnoline.meltmod at= $@ left= $< question= $? caret= $^
-	$(GCCMELT_CC) -o $@ \
-          $(GCCMELT_DEBUGNOLINE_FLAGS) $(GCCMELT_CFLAGS) \
-          -shared $^ $(GCCMELT_PACKAGES_LIBES)
+$(GCCMELTGEN_BUILD)$(GCCMELT_BASE).meltmod-%.debugnoline.so: 
+	@echo @+@melt-module meltmod.debugnoline at= $@ left= $< question= $? caret= $^
+	$(GCCMELT_CC) $(GCCMELT_DEBUGNOLINE_FLAGS) $(GCCMELT_SHARED_FLAGS) -o $@ $^ $(GCCMELT_PACKAGES_LIBES)
 
-$(GCCMELTGEN_BUILD)%.dynamic.meltmod.so: $(GCCMELT_MODULE_DEPENDENCIES)
-	@echo @+@melt-module dynamic.meltmod at= $@ left= $< question= $? caret= $^
-	$(GCCMELT_CC) -o $@ \
-          $(GCCMELT_DYNAMIC_FLAGS) $(GCCMELT_CFLAGS) \
-          -shared $^ $(GCCMELT_PACKAGES_LIBES)
+$(GCCMELTGEN_BUILD)$(GCCMELT_BASE).meltmod-%.dynamic.so: 
+	@echo @+@melt-module meltmod.dynamic at= $@ left= $< question= $? caret= $^
+	$(GCCMELT_CC) $(GCCMELT_DYNAMIC_FLAGS) $(GCCMELT_SHARED_FLAGS) -o $@ $^ $(GCCMELT_PACKAGES_LIBES)
 
-
-#### old stuff, useful to compile the gcc/melt/generated/warmelt*.c
-$(GCCMELT_MODULE_WORKSPACE)/$(GCCMELT_BASE).$(GCCMELT_CUMULATED_MD5).dynamic.so: \
-  $(GCCMELT_MODULE_WORKSPACE)/$(GCCMELT_PRIMARY_MDSUMED_BASE).dynamic.pic.o \
-  $(addsuffix .dynamic.pic.o, $(GCCMELT_MODULE_WORKSPACE)/$(GCCMELT_PRIMARY_MDSUMED_BASE) $(patsubst %,$(GCCMELT_MODULE_WORKSPACE)/%,$(GCCMELT_SECONDARY_MDSUMED_BASES))) \
-  $(GCCMELT_MODULE_WORKSPACE)/$(basename $(notdir $(GCCMELT_DESC))).$(GCCMELT_CUMULATED_MD5).pic.o $(GCCMELT_MODULE_DEPENDENCIES)
-	@echo @+@melt-module dynamic.oldmod at= $@ left= $< question= $? caret= $^
-	$(MAKE) -f $(filter %melt-module.mk, $(MAKEFILE_LIST))  $^ \
-	   GCCMELT_MODULE_SOURCEBASE=$(GCCMELT_MODULE_SOURCEBASE) \
-	   GCCMELT_MODULE_BINARYBASE=$(GCCMELT_MODULE_BINARYBASE) \
-	   GCCMELT_MODULE_WORKSPACE=$(GCCMELT_MODULE_WORKSPACE) \
-	   GCCMELT_MODULE_FLAVOR=$(GCCMELT_MODULE_FLAVOR) \
-	   GCCMELT_CUMULATED_MD5=$(GCCMELT_CUMULATED_MD5)
-	$(GCCMELT_CC) $(GCCMELT_DYNAMIC_FLAGS) $(GCCMELT_CFLAGS) -fPIC $(SHARED_LIBRARY_FLAGS) -o $@  $^  $(GCCMELT_MODULE_EXTRALIBES)
-
-vpath %.dynamic.pic.o $(GCCMELT_MODULE_WORKSPACE)
-$(GCCMELT_MODULE_WORKSPACE)/%.dynamic.pic.o: 
-	@echo @+@melt-module dynamic.oldpic at= $@ left= $< question= $? caret= $^
-	$(GCCMELT_CC) -DMELTGCC_MODULE_DEBUGNOLINE  -DMELT_HAVE_DEBUG=1  -DMELTGCC_DYNAMIC_OBJSTRUCT $(GCCMELT_DYNAMIC_FLAGS) $(GCCMELT_CFLAGS) \
-	   -fPIC -c -o $@ $(patsubst %, $(GCCMELT_SOURCEDIR)%.c, $(basename $(basename $(basename $(basename $(notdir $@))))))
 
 ################
-$(GCCMELT_MODULE_WORKSPACE)/$(basename $(notdir $(GCCMELT_DESC))).$(GCCMELT_CUMULATED_MD5).pic.o: $(GCCMELT_DESC) $(GCCMELT_TIMEF) $(GCCMELT_MODULE_DEPENDENCIES)
-	[ -d $(GCCMELT_MODULE_WORKSPACE) ] || mkdir -p $(GCCMELT_MODULE_WORKSPACE)
-	@echo @+@melt-module descr.oldpic at= $@ left= $< question= $? caret= $^
-	$(GCCMELT_CC) -DMELTGCC_MODULE_DESCRFILE $(GCCMELT_CFLAGS) -fPIC -c -o $@ $<
-
-################################################################
-ifdef MELTGEN_MODULENAME
-$(GCCMELT_MODULE_BINARYBASE).$(GCCMELT_MODULE_FLAVOR).so: \
-  $(GCCMELTGEN_BUILD)$(notdir $(MELTGEN_MODULENAME)).$(GCCMELT_CUMULATED_MD5).$(GCCMELT_MODULE_FLAVOR).meltmod.so $(GCCMELT_MODULE_DEPENDENCIES)
-	@echo @-@melt-module with MELTGEN_MODULENAME= $(MELTGEN_MODULENAME) left= $< at= $@
-## the melt-runtime.c requires the link with the cumulated md5
-	$(LN_S) -v -f $(realpath $<) $(GCCMELT_MODULE_WORKSPACE)/$(GCCMELT_BASE).$(GCCMELT_CUMULATED_MD5).$(GCCMELT_MODULE_FLAVOR).so
-	$(LN_S) -v -f $(realpath $<) $@
-
+ifneq ($(realpath $(GCCMELTGEN_BUILD)),$(realpath $(dir $(GCCMELT_MODULE_BINARYBASE))))
+$(info hereGCCMELTGEN_BUILD=$(GCCMELTGEN_BUILD) real= $(realpath $(GCCMELTGEN_BUILD)) GCCMELT_MODULE_BINARYBASE=$(GCCMELT_MODULE_BINARYBASE) realdir= $(realpath $(dir $(GCCMELT_MODULE_BINARYBASE))) dir= $(dir $(GCCMELT_MODULE_BINARYBASE)))
+$(GCCMELT_MODULE_BINARYBASE).meltmod-$(GCCMELT_CUMULATED_MD5).$(GCCMELT_MODULE_FLAVOR).so: \
+  $(GCCMELTGEN_BUILD)$(notdir $(GCCMELT_MODULE_BINARYBASE).meltmod-$(GCCMELT_CUMULATED_MD5).$(GCCMELT_MODULE_FLAVOR).so)
+	@echo @+@melt-module symlinkmodule at= $@ circ= $^ left= $< monster= $(GCCMELTGEN_BUILD)$(notdir $(GCCMELT_MODULE_BINARYBASE).meltmod-$(GCCMELT_CUMULATED_MD5).$(GCCMELT_MODULE_FLAVOR).so)
+	$(LN_S) -v -f $(realpath $(GCCMELTGEN_BUILD)$(notdir $(GCCMELT_MODULE_BINARYBASE).meltmod-$(GCCMELT_CUMULATED_MD5).$(GCCMELT_MODULE_FLAVOR).so))  $@
 else
-$(GCCMELT_MODULE_BINARYBASE).$(GCCMELT_MODULE_FLAVOR).so: $(GCCMELT_MODULE_WORKSPACE)/$(GCCMELT_BASE).$(GCCMELT_CUMULATED_MD5).$(GCCMELT_MODULE_FLAVOR).so $(GCCMELT_MODULE_DEPENDENCIES)
-	echo @+@melt-module left=  without MELTGEN_MODULENAME $< at= $@
-	$(LN_S) -v -f $(realpath $<) $@
-
+$(info hereGCCMELTGEN_BUILD=$(GCCMELTGEN_BUILD) same as dir of GCCMELT_MODULE_BINARYBASE= $(GCCMELT_MODULE_BINARYBASE))
 endif
 
-melt_module: melt_workspace $(GCCMELT_MODULE_BINARYBASE).$(GCCMELT_MODULE_FLAVOR).so
+################################################################
+melt_module: melt_workspace $(GCCMELT_MODULE_BINARYBASE).meltmod-$(GCCMELT_CUMULATED_MD5).$(GCCMELT_MODULE_FLAVOR).so
 
 melt_workspace: 
-	@echo @+@melt-module workspace $(GCCMELT_MODULE_WORKSPACE)  GCCMELT_PRIMARY_MDSUMED_BASE= $(GCCMELT_PRIMARY_MDSUMED_BASE) GCCMELT_SECONDARY_MDSUMED_BASES= $(GCCMELT_SECONDARY_MDSUMED_BASES) GCCMELT_MODULE_SOURCEBASE= $(GCCMELT_MODULE_SOURCEBASE)
+	@echo @+@melt-module workspace $(GCCMELT_MODULE_WORKSPACE)  GCCMELT_PRIMARY_MDSUMED_BASE= $(GCCMELT_PRIMARY_MDSUMED_BASE) GCCMELT_SECONDARY_MDSUMED_BASES= $(GCCMELT_SECONDARY_MDSUMED_BASES) GCCMELT_MODULE_SOURCEBASE= $(GCCMELT_MODULE_SOURCEBASE) GCCMELTGEN_BUILD= $(GCCMELTGEN_BUILD)
 	[ -d $(GCCMELT_MODULE_WORKSPACE) ] || mkdir -p $(GCCMELT_MODULE_WORKSPACE)
 
 ## eof melt-module.mk

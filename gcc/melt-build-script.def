@@ -117,6 +117,6 @@ melt_application_file = {
 
 // the various MELT stages which should be melt-stage1 melt-stage2
 // etc...
-melt_stage = meltbuild-stage1;
-melt_stage = meltbuild-stage2;
-melt_stage = meltbuild-stage3;
+melt_stage = "meltbuild-stage1";
+melt_stage = "meltbuild-stage2";
+melt_stage = "meltbuild-stage3";

@@ -1,4 +1,21 @@
 
+2012-07-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{after svn rev 189788 switching to the new build system, still incomplete and instable}}
+	* melt-runtime.c (melt_load_module_index): Use BASE.meltmod-MDFIVESUM.FLAVOR.so naming scheme.
+
+	* melt-build-script.tpl: The stages are built using the new
+	melt-module.mk but not the xtramelt* modules! INCOMPLETE!!
+
+	* melt-build-script.def: Double-quote the stages.
+
+	* melt-build-script.sh: Regenerate.
+
+	* Makefile.in: Force MELT_NEWBUILDSCRIPT=1.
+
+2012-07-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (melt-build-param.sh): GCCMELT_MAKE gets also the
+	$(MAKEFLAGS).
+
 2012-07-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_load_module_index): Typo.
 

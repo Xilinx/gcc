@@ -5436,14 +5436,15 @@ $(srcdir)/melt-build-script.sh:  @MAINT@ $(srcdir)/melt-build-script.def $(srcdi
 
 .PHONY: melt.encap
 
+MELT_NEWBUILDSCRIPT=1
 melt.encap:  melt-build-param.mk  melt-build-param.sh $(srcdir)/melt-build-script.sh $(melt_make_cc1_dependency) $(MELTBUILD_MKFILE) warmelt-predef.melt melt-predef.h
 	@echo melt.encap making Makefile and $(MELTBUILD_MKFILE)
 	@echo melt.encap GCCMELT_COMPILER= $(GCCMELT_COMPILER) GCCMELT_COMPILER_FLAGS= $(GCCMELT_COMPILER_FLAGS)
 	$(MAKE) Makefile  melt-build-param.mk $(MELTBUILD_MKFILE)
-##### new build
-ifdef MELT_NEWBUILD
-	@echo melt.encap making new build $(realpath $(MELTBUILD_MKFILE)) MAKE= $(MAKE) MAKEFLAGS= $(MAKEFLAGS)
-	$(MAKE) -f $(realpath $(MELTBUILD_MKFILE)) GCCMELT_BUILD_MKFILE=$(realpath $(MELTBUILD_MKFILE)) 'MAKEFLAGS=$(MAKEFLAGS)' melt-build
+##### new build script
+ifdef MELT_NEWBUILDSCRIPT
+	@echo melt.encap making new build script $(realpath $(srcdir)/melt-build-script.sh) MAKE= $(MAKE) MAKEFLAGS= $(MAKEFLAGS)
+	$(SHELL) $(srcdir)/melt-build-script.sh
 #### old build
 else
 	@echo melt.encap making warmelt0 with melt_cflags= $(melt_cflags) MELTBUILD_MKFILE= $(realpath $(MELTBUILD_MKFILE))
