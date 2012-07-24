@@ -547,6 +547,10 @@ Wfatal-errors
 Common Var(flag_fatal_errors)
 Exit on the first error occurred
 
+Wforce-warnings
+Common Var(flag_force_warnings)
+Disable promoting warnings to errors
+
 Wframe-larger-than=
 Common RejectNegative Joined UInteger
 -Wframe-larger-than=<number>	Warn if a function's stack frame requires more than <number> bytes
@@ -1735,6 +1739,10 @@ Enable common options for generating profile info for profile feedback directed 
 fprofile-generate-sampling
 Common Var(flag_profile_generate_sampling)
 Turn on instrumentation sampling with -fprofile-generate with rate set by --param profile-generate-sampling-rate or environment variable GCOV_SAMPLING_RATE
+
+fprofile-strip=
+Common Joined RejectNegative Var(profile_base_name_suffix_to_strip)
+Specify a substring to be stripped from the profile base file name
 
 fprofile-use
 Common Var(flag_profile_use)

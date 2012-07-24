@@ -1945,6 +1945,17 @@ get_da_file_name (const char *base_file_name)
   else
     da_file_name[0] = 0;
   strcat (da_file_name, base_file_name);
+  if (profile_base_name_suffix_to_strip)
+    {
+      int base_name_len = strlen (da_file_name);
+      int suffix_to_strip_len = strlen (profile_base_name_suffix_to_strip);
+
+      if (base_name_len > suffix_to_strip_len
+          && !strcmp (da_file_name + (base_name_len - suffix_to_strip_len),
+                      profile_base_name_suffix_to_strip))
+        da_file_name[base_name_len - suffix_to_strip_len] = '\0';
+    }
+
   strcat (da_file_name, GCOV_DATA_SUFFIX);
   return da_file_name;
 }

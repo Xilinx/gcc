@@ -1,3 +1,14 @@
+2012-07-24  Xinliang David Li  <davidxl@google.com>
+
+	* diagnostic.c (diagnostic_initialize): Initialize
+	new field.
+	(diagnostic_report_diagnostic): Honor -Wforce-warnings.
+	* diagnostic.h: New field.
+	* opts.c (common_handle_option): Handle new option.
+	* coverage.c (get_da_file_name): Handle new option.
+	* common.opt: New options.
+
+
 2012-07-24  Cary Coutant  <ccoutant@google.com>
     
     Backport Fission patches from trunk at r188195, r188857, r189084,

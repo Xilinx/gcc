@@ -1473,6 +1473,10 @@ common_handle_option (struct gcc_options *opts,
 			       opts, opts_set, loc, dc);
       break;
 
+    case OPT_Wforce_warnings:
+      dc->force_warnings_requested = value;
+      break;
+
     case OPT_Wlarger_than_:
       opts->x_larger_than_size = value;
       opts->x_warn_larger_than = value != -1;

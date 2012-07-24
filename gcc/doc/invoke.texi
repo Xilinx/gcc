@@ -243,7 +243,7 @@ Objective-C and Objective-C++ Dialects}.
 -Wno-deprecated-declarations -Wdisabled-optimization  @gol
 -Wno-div-by-zero -Wdouble-promotion -Wempty-body  -Wenum-compare @gol
 -Wno-endif-labels -Werror  -Werror=* @gol
--Wfatal-errors  -Wfloat-equal  -Wformat  -Wformat=2 @gol
+-Wfatal-errors  -Wfloat-equal -Wforce-warnings -Wformat  -Wformat=2 @gol
 -Wno-format-contains-nul -Wno-format-extra-args -Wformat-nonliteral @gol
 -Wformat-security  -Wformat-y2k @gol
 -Wframe-larger-than=@var{len} -Wno-free-nonheap-object -Wjump-misses-init @gol
@@ -337,7 +337,7 @@ Objective-C and Objective-C++ Dialects}.
 -fenable-@var{kind}-@var{pass}=@var{range-list} @gol
 -fdebug-types-section @gol
 -fmem-report -fpre-ipa-mem-report -fpost-ipa-mem-report -fprofile-arcs @gol
--frandom-seed=@var{string} -fsched-verbose=@var{n} @gol
+-fprofile-strip=@var{suffix} -frandom-seed=@var{string} -fsched-verbose=@var{n} @gol
 -fsel-sched-verbose -fsel-sched-dump-cfg -fsel-sched-pipelining-verbose @gol
 -fstack-usage  -ftest-coverage  -ftime-report -fvar-tracking @gol
 -fvar-tracking-assignments  -fvar-tracking-assignments-toggle @gol
@@ -3001,6 +3001,11 @@ imply anything.
 This option causes the compiler to abort compilation on the first error
 occurred rather than trying to keep going and printing further error
 messages.
+
+@item -Wforce-warnings
+@opindex Wforce-warnings
+This option causes the compiler to ignore @option{-Werror} and
+@option{-Werror=} and suppress promotion of warnings to errors.
 
 @end table
 
@@ -8392,6 +8397,12 @@ to only this many addresses.
 Enable performance monitoring unit (PMU) profiling based
 optimizations.  Currently only @var{load-latency} and
 @var{branch-mispredict} are supported.
+
+@item -fprofile-strip=@var{base_suffix}
+@opindex fprofile-strip
+
+The option causes the compiler to strip @var{base_suffix} from the
+base file name and use that to find the gcda file.
 
 @item -fripa
 @opindex fripa
