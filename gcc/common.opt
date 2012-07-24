@@ -2408,6 +2408,14 @@ gmlt
 Common RejectNegative
 Generate debug information at level 1 with minimal line table
 
+gno-pubnames
+Common RejectNegative Var(debug_generate_pub_sections, 0) Init(-1)
+Don't generate DWARF pubnames and pubtypes sections.
+
+gpubnames
+Common RejectNegative Var(debug_generate_pub_sections, 1)
+Generate DWARF pubnames and pubtypes sections.
+
 gno-record-gcc-switches
 Common RejectNegative Var(dwarf_record_gcc_switches,0) Init(0)
 Don't record gcc command line switches in DWARF DW_AT_producer.

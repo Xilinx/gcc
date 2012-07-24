@@ -1,3 +1,14 @@
+2012-07-24  Cary Coutant  <ccoutant@google.com>
+    
+    Backport Fission patches from trunk at r188195, r188857, r189084,
+    r189094, and r189392.
+    
+    2012-06-04  Sterling Augustine  <saugustine@google.com>
+    
+    	* c-pretty-print.h (pp_c_flag_gnu_v3): New enumerator.
+    	* c-pretty-print.c (pp_c_specifier_qualifier_list): Check
+    	it at both the start and end of the function.
+
 2012-06-15   Cary Coutant  <ccoutant@google.com>
 
     Revert Fission patches r182490, r182891, r183042, and r183320.

@@ -1,3 +1,20 @@
+2012-07-24  Cary Coutant  <ccoutant@google.com>
+    
+    Backport Fission patches from trunk at r188195, r188857, r189084,
+    r189094, and r189392.
+    
+    2012-07-09  Sterling Augustine  <saugustine@google.com>
+    
+    	* error.c (lang_decl_name): Use TFF_UNQUALIFIED_NAME flag.
+    
+    2012-06-04  Sterling Augustine  <saugustine@google.com>
+    
+    	* error.c (dump_decl): Check pp_c_flag_gnu_v3.
+    	(decl_as_dwarf_string, lang_decl_dwarf_name): New functions.
+    	(lang_decl_name): Handle namespace decls.
+    	* cp-tree.h: Declare decl_as_dwarf_string, lang_decl_dwarf_name.
+    	* cp-lang.c: Call them.
+
 2012-06-15   Cary Coutant  <ccoutant@google.com>
 
     Revert Fission patches r182490, r182891, r183042, and r183320.
