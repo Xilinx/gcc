@@ -1,3 +1,8 @@
+2012-07-25  Cary Coutant  <ccoutant@google.com>
+
+    	* common.opt (-gfission): Alias for -gsplit-dwarf.
+    	(-gno-fission): Alias for -gno-split-dwarf.
+
 2012-07-25   Diego Novillo  <dnovillo@google.com>
 
 	Merge from gcc-4_7-branch rev 189718.

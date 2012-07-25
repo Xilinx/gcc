@@ -2440,6 +2440,12 @@ gsplit-dwarf
 Common Driver RejectNegative Var(dwarf_split_debug_info,1)
 Generate debug information in separate .dwo files
 
+gfission
+Common Driver Alias(gsplit-dwarf)
+
+gno-fission
+Common Driver Alias(gno-split-dwarf)
+
 gstabs
 Common JoinedOrMissing Negative(gstabs+)
 Generate debug information in STABS format
