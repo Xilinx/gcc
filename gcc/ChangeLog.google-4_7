@@ -1,3 +1,67 @@
+2012-07-25  Teresa Johnson  <tejohnson@google.com>
+
+	Backport the following patches from trunk to ensure that
+	"andw $0xff, $reg" is always converted to a zero extend
+	to avoid LCP stalls on core2/corei7 (b/6615073):
+	r184891, r186839, r186979, r186993, r188630, r188634, r188648
+
+	r184891:
+	2012-03-04  Uros Bizjak  <ubizjak@gmail.com>
+        * config/i386/constraints.md (Ya): New internal constraint.
+        * config/i386/i386.md (zero_extendsidi2): Remove expansion.
+        (*zero_extendsidi2_rex64): Add x,x alternative.
+        (*zero_extendsidi2): Ditto.  Add o,0 alternative.
+        Remove flags reg clobber.  Adjust corresponding splits.
+        (zero_extend<mode>si2): Macroize expander from zero_extendhisi2 and
+        zero_extendqisi2 expanders using SWI12 mode iterator.
+        (zero_extend<mode>si2_and): Macroize insn from
+        zero_extendhisi2_and and zero_extendqisi2_and.  Merge corresponding
+        splitters.
+        (*zero_extend<mode>si2):  Macroize insn from
+        *zero_extendhisi2_movzbl and *zero_extendqisi2_movzbl.
+        (*zero_extend*2_movzbl_and): Remove insn patterns.
+        (zero_extendqihi2_and): Merge corresponding splitter.
+        (*zero_extendqihi2): Rename from *zero_extendqihi2_movzbl.
+        (*zero_extend*2_movzbl_and): Remove insn patterns.
+        (*anddi_1): Split TYPE_IMOVX instructions.
+        (*andsi_1): Use Ya for alternative 2.  Split TYPE_IMOVX instructions.
+        (*andhi_1): Ditto.
+        (and->zext splitter): Add splitter pattern.
+        (zero extend with andsi3 splitter): Adjust zero_extend pattern.
+
+	r186839:
+	2012-04-25  Jakub Jelinek  <jakub@redhat.com>
+        PR target/53110
+        * config/i386/i386.md (and<mode>3): For andq $0xffffffff, reg
+        instead expand it as zero extension.
+
+	r186979:
+	2012-04-30  Uros Bizjak  <ubizjak@gmail.com>
+        * config/i386/i386.md (and<mode>3): Expand masking operations with
+        0xff, 0xffff or 0xffffffff immediates to corresponding zero_extend RTX.
+        (and splitter): Split to DImode zero_extend RTX for DImode operand[0].
+
+	r186993:
+	2012-04-30  Uros Bizjak  <ubizjak@gmail.com>
+	* config/i386/i386.md (and<mode>3): Change runtime operand mode checks
+        to compile-time "mode == <MODE>mode" checks.
+        (and splitter): Ditto.
+
+	r188630:
+	2012-06-14  Uros Bizjak  <ubizjak@gmail.com>
+        * config/i386/i386.md (*zero_extendsidi2): Remove x,x alternative.
+        (*zero_extendsidi2_rex64): Ditto.  Remove isa attribute.
+
+	r188634:
+	2012-06-14  Uros Bizjak  <ubizjak@gmail.com>
+	Fix my previous commit to:
+        * config/i386/i386.md (*zero_extendsidi2): Remove x,x alternative.
+        (*zero_extendsidi2_rex64): Ditto.  Remove isa attribute.
+
+	r188648:
+	2012-06-14  Uros Bizjak  <ubizjak@gmail.com>
+       (*zero_extendsidi2_rex64): Remove isa attribute.
+
 2012-07-25  Cary Coutant  <ccoutant@google.com>
 
     	* common.opt (-gfission): Alias for -gsplit-dwarf.
@@ -166,6 +230,7 @@
 	* gcc/gcov-io.h (GCOV_TAG_MODULE_INFO): tag needs to be
 	 an odd number in each active level.
 
+>>>>>>> .r189865
 2012-07-10  Xinliang David Li  <davidxl@google.com>
 
 	Backport r189413 from trunk
