@@ -5421,77 +5421,21 @@ $(srcdir)/melt-build-script.sh:  @MAINT@ $(srcdir)/melt-build-script.def $(srcdi
 
 .PHONY: melt.encap
 
-MELT_NEWBUILDSCRIPT=1
-melt.encap:  melt-build-param.mk  melt-build-param.sh $(srcdir)/melt-build-script.sh $(melt_make_cc1_dependency) $(MELTBUILD_MKFILE) warmelt-predef.melt melt-predef.h
-	@echo melt.encap making Makefile and $(MELTBUILD_MKFILE)
+melt.encap  meltgendoc.texi:  melt-build-settings.sh  melt-build-param.sh $(srcdir)/melt-build-script.sh $(melt_make_cc1_dependency) $(MELTBUILD_MKFILE) warmelt-predef.melt melt-predef.h $(wildcard $(srcdir)/melt/*.melt $(srcdir)/melt/generated/*.[ch])
+	@echo melt.encap making Makefile ...
 	@echo melt.encap GCCMELT_COMPILER= $(GCCMELT_COMPILER) GCCMELT_COMPILER_FLAGS= $(GCCMELT_COMPILER_FLAGS)
-	$(MAKE) Makefile  melt-build-param.mk $(MELTBUILD_MKFILE)
+	$(MAKE) Makefile  melt-build-param.sh
 ##### new build script
-ifdef MELT_NEWBUILDSCRIPT
-	@echo melt.encap making new build script $(realpath $(srcdir)/melt-build-script.sh) MAKE= $(MAKE) MAKEFLAGS= $(MAKEFLAGS)
-	$(SHELL) $(srcdir)/melt-build-script.sh
-#### old build
-else
-	@echo melt.encap making warmelt0 with melt_cflags= $(melt_cflags) MELTBUILD_MKFILE= $(realpath $(MELTBUILD_MKFILE))
-	$(MAKE) warmelt0
-## we probably better need warmelt1, because some make fragments are generated
-	@echo melt.encap making warmelt1 with melt_cflags= $(melt_cflags)
-	$(MAKE) warmelt1
-	@echo melt.encap making warmelt2
-	$(MAKE) warmelt2
-	@echo melt.encap making warmelt
-	$(MAKE) warmelt
-	@echo making $(melt_default_modules_list).modlis
-	$(MAKE) $(melt_default_modules_list).modlis
-	@echo melt.encap making all-melt
-	$(MAKE) all-melt
-	@echo melt.encap making check-melt-runtime
-	$(MAKE) check-melt-runtime
-	@echo melt.encap made check-melt-runtime
-endif
+	@echo melt.encap running new build script $(realpath $(srcdir)/melt-build-script.sh) MAKE= $(MAKE) MAKEFLAGS= $(MAKEFLAGS)
+	+env GCCMELT_MAKE="$(MAKE)" GCCMELT_MAKEFLAGS="$(MAKEFLAGS)" $(SHELL) $(srcdir)/melt-build-script.sh
 
-melt-build-param.mk:  Makefile
-	date "+#file $@ generated %c%n" > $@-tmp
-	echo '## compiler GCCMELT_COMPILER and flags GCCMELT_COMPILER_FLAGS to compile MELT generated code' >> $@-tmp
-	echo 'GCCMELT_COMPILER='  $(COMPILER) >> $@-tmp
-	echo 'GCCMELT_COMPILER_FLAGS=' $(filter-out -O% -g% -O -g, $(ALL_COMPILERFLAGS) $(INCLUDES)) >> $@-tmp
-	echo '## linker GCCMELT_LINKER and flags GCCMELT_LINKER_FLAGS to link MELT generated module' >> $@-tmp
-	echo 'GCCMELT_LINKER=' $(LINKER) >> $@-tmp
-	echo 'GCCMELT_LINKER_FLAGS='  $(filter-out -O% -g% -O -g, $(LINKER_FLAGS)) >> $@-tmp
-	echo '## source directory containing MELT code is GCCMELT_MELTSOURCEDIR' >> $@-tmp
-	echo 'GCCMELT_MELTSOURCEDIR=' $(srcdir)/melt/ >> $@-tmp
-	echo '## preprocessor definitions of the MELT runtime is GCCMELT_RUNTIME_CPPDEFS'  >> $@-tmp
-	echo 'GCCMELT_RUNTIME_CPPDEFS=' $(MELT_RUNTIME_CPPDEFS) >> $@-tmp
-	echo '## GCCMELT_VERSION_STRING is the string defining the version of MELT'   >> $@-tmp
-	echo 'GCCMELT_VERSION_STRING=' $(shell $(AWK) -F\" '/^.define +MELT_VERSION_STRING/{print $$2}' $(srcdir)/melt-runtime.h)  >> $@-tmp
-	echo '## GCCMELT_CC1 is the compiler to use MELT for its bootstrapping' >> $@-tmp
-	echo 'GCCMELT_CC1=' $(realpath ./cc1$(exeext))  >> $@-tmp
-	echo '## GCCMELT_CC1_PREFIX can be set to a prefix like "time" or "nice" to alter above' >> $@-tmp
-	$(if $(GCCMELT_CC1_PREFIX),echo GCCMELT_CC1_PREFIX='$(GCCMELT_CC1_PREFIX=)' >> $@-tmp)
-	echo '## GCCMELT_CC1_DEPENDENCIES is the dependencies, including MELT runtime, for GCCMELT_CC1' >> $@-tmp
-	echo 'GCCMELT_CC1_DEPENDENCIES=' $(realpath  ./cc1$(exeext) $(MELT_H) melt-runtime.o)  >> $@-tmp
-	echo '## GCCMELT_INCLUDES is the include flags for the MELT runtime' >> $@-tmp
-	echo 'GCCMELT_INCLUDES='  -I $(realpath .) -I $(realpath $(srcdir)/melt/generated) $(INCLUDES)  >> $@-tmp
-	echo '## GCCMELT_MODULE_MK is the source location of the makefile melt-module.mk invoked by MELT'   >> $@-tmp
-	echo 'GCCMELT_MODULE_MK=' $(realpath $(srcdir)/melt-module.mk)  >> $@-tmp
-	echo '## GCCMELT_INSTALL_SOURCEDIR is the installed MELT source directory' >> $@-tmp
-	echo 'GCCMELT_INSTALL_SOURCEDIR=' $(libexecsubdir)/melt-sources/$(melt_version_string)  >> $@-tmp
-	echo '## GCCMELT_INSTALL_HEADERDIR is the installed MELT headers directory' >> $@-tmp
-	echo 'GCCMELT_INSTALL_HEADERDIR=' $(plugin_includedir)/melt-headers-$(melt_version_string)  >> $@-tmp
-	echo '## GCCMELT_INSTALL_MODULEDIR is the installed MELT module directory' >> $@-tmp
-	echo 'GCCMELT_INSTALL_MODULEDIR=' $(libexecsubdir)/melt-modules/$(melt_version_string)  >> $@-tmp
-	echo '## GCCMELT_INSTALL_MODULEMK is the installed MELT module makefile' >> $@-tmp
-	echo 'GCCMELT_INSTALL_MODULEMK=' $(libexecsubdir)/melt-module-$(melt_version_string).mk  >> $@-tmp
-	echo '## GCCMELT_IS_PLUGIN is 1 when melt.so is a plugin' >> $@-tmp
-	echo 'GCCMELT_IS_PLUGIN='   >> $@-tmp
-	echo '## GCCMELT_STAGE_ZERO is usually melt-stage0-dynamic, could be melt-stage0-quicklybuilt' >> $@-tmp
-	echo 'GCCMELT_STAGE_ZERO?=' $(MELT_STAGE_ZERO)   >> $@-tmp
-	echo '## GCCMELT_DEFAULT_FLAVOR is the default flavor'
-	echo 'GCCMELT_DEFAULT_FLAVOR?=optimized' >> $@-tmp
-	echo '## utility to move file if content changed GCCMELT_MOVE_IF_CHANGE' >> $@-tmp
-	echo 'GCCMELT_MOVE_IF_CHANGE=' $(realpath $(srcdir)/../move-if-change) >> $@-tmp
-	echo "#eof generated $@" >> $@-tmp
-	mv $@-tmp $@
+
+melt-build-settings.sh:  ./cc1$(exeext) $(melt_make_cc1_dependency) Makefile | meltbuild-empty-file.c
+	env LANG=C LC_ALL=C ./cc1$(exeext) -fmelt-print-settings=melt-build-settings.sh-tmp meltbuild-empty-file.c -o /dev/null
+	$(srcdir)/../move-if-change melt-build-settings.sh-tmp $@
+
+meltbuild-empty-file.c:
+	date "+/* empty $@ generated %c */" > $@
 
 melt-build-param.sh:  Makefile
 	date "+#file $@ generated %c%n" > $@-tmp
@@ -5507,8 +5451,8 @@ melt-build-param.sh:  Makefile
 	printf "GCCMELT_RUNTIME_CPPDEFS='%s'\n" '$(MELT_RUNTIME_CPPDEFS)' >> $@-tmp
 	echo '## GCCMELT_VERSION_STRING is the string defining the version of MELT'   >> $@-tmp
 	echo 'GCCMELT_VERSION_STRING=$(shell $(AWK) -F\" '/^.define +MELT_VERSION_STRING/{print $$2}' $(srcdir)/melt-runtime.h)'  >> $@-tmp
-	echo '## GCCMELT_MAKE is the make utility and options' >> $@-tmp
-	echo 'GCCMELT_MAKE="$(MAKE)"' >> $@-tmp
+	echo '## GCCMELT_MAKE is the make utility' >> $@-tmp
+	+echo 'GCCMELT_MAKE="$(MAKE)"' >> $@-tmp
 	echo '## GCCMELT_CC1 is the compiler to use MELT for its bootstrapping' >> $@-tmp
 	echo GCCMELT_CC1=$(realpath ./cc1$(exeext))  >> $@-tmp
 	echo '## GCCMELT_CC1_PREFIX can be set to a prefix like "time" or "nice" to alter above' >> $@-tmp

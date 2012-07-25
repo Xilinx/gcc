@@ -24,6 +24,9 @@ sh
 	(sprintf "%s/%d" (tpl-file-line "%s:%d") comefromcount)
 	))+]
 
+## source the builtin settings  [+(.(fromline))+] generated from the MELT runtime
+. ./melt-build-settings.sh
+
 ## source the parameters  [+(.(fromline))+]
 . ./melt-build-param.sh
 
@@ -443,6 +446,77 @@ meltbuild_info [+(.(fromline))+] compiled appl [+base+] flavor [+flavor+] in mel
 #@ [+(.(fromline))+] end appl [+base+]
 [+ENDFOR melt_application_file+]
 
+
+
+################################################################
+################################################################
+### the modules lists, in various flavors
+#@ [+(.(fromline))+]
+
+## the warmelt.<FLAVOR>.modlis files
+
+[+FOR flavor IN quicklybuilt optimized debugnoline+]
+meltmodlist=meltbuild-sources/warmelt.[+flavor+].modlis-tmp$$
+echo "# generated module list warmelt.[+flavor+].modlis for MELT $MELTGCCBUILTIN_VERSION_STRING" > $meltmodlist
+[+FOR melt_translator_file+]
+#@ [+(.(fromline))+]
+echo "[+base+].[+flavor+]" >> $meltmodlist
+[+ENDFOR melt_translator_file+]
+echo "# end of module list warmelt.[+flavor+].modlis"  >> $meltmodlist
+$GCCMELT_MOVE_IF_CHANGE  $meltmodlist meltbuild-sources/warmelt.[+flavor+].modlis
+meltbuild_info [+(.(fromline))+] done  meltbuild-sources/warmelt.[+flavor+].modlis
+[+ENDFOR flavor+]
+
+## the <BUILTIN_DEFAULT_MODLIS>.<FLAVOR>.modlis files
+
+[+FOR flavor IN quicklybuilt optimized debugnoline+]
+meltmodlist=meltbuild-sources/$MELTGCCBUILTIN_DEFAULT_MODLIS.[+flavor+].modlis-tmp$$
+echo "# generated default module list $MELTGCCBUILTIN_DEFAULT_MODLIS.[+flavor+].modlis for MELT $MELTGCCBUILTIN_VERSION_STRING" > $meltmodlist
+
+## translator 
+echo "# the translator files:" >> $meltmodlist
+[+FOR melt_translator_file+]
+#@ [+(.(fromline))+]
+echo "[+base+].[+flavor+]" >> $meltmodlist
+[+ENDFOR melt_translator_file+]
+echo "# the application files:" >> $meltmodlist
+## applications
+[+FOR melt_application_file+]
+#@ [+(.(fromline))+]
+echo "[+base+].[+flavor+]" >> $meltmodlist
+[+ENDFOR melt_translator_file+]
+echo "# end of module list $MELTGCCBUILTIN_DEFAULT_MODLIS.[+flavor+].modlis"  >> $meltmodlist
+$GCCMELT_MOVE_IF_CHANGE  $meltmodlist meltbuild-sources/$MELTGCCBUILTIN_DEFAULT_MODLIS.[+flavor+].modlis
+
+meltbuild_info [+(.(fromline))+] done  meltbuild-sources/$MELTGCCBUILTIN_DEFAULT_MODLIS.[+flavor+].modlis
+[+ENDFOR flavor+]
+
+################################################################
+################################################################
+### the generated documentation meltgendoc.texi [+ (. (fromline))+]
+
+if [ ! -f meltgendoc.texi [+FOR melt_translator_file " \\\n"+] -o meltbuild-sources/[+base+].melt -nt meltgendoc.texi [+ENDFOR melt_translator_file+] \
+ [+FOR melt_application_file " \\\n"+] -o meltbuild-sources/[+base+].melt -nt meltgendoc.texi [+ENDFOR melt_application_file+] ]; then
+   meltbuild_info [+(.(fromline))+] generating meltgendoc.texi
+   meltgen_args=meltbuild-gendoc.args-tmp$$
+   echo ' -DGCCMELT_FROM_ARG="[+(.(fromline))+]"' > $meltgen_args
+   meltbuild_arg mode=makedoc >> $meltgen_args
+   meltbuild_arg output=meltgendoc.texi >> $meltgen_args
+   meltbuild_arg init=@$MELTGCCBUILTIN_DEFAULT_MODLIS.quicklybuilt >> $meltgen_args
+   meltbuild_arg workdir=meltbuild-workdir >>  $meltgen_args
+   meltbuild_arg tempdir=. >> $meltgen_args
+   meltbuild_arg source-path=meltbuild-sources >> $meltgen_args
+   meltbuild_arg module-path=meltbuild-modules >> $meltgen_args
+   meltbuild_arg bootstrapping  >> $meltgen_args
+   echo meltbuild-empty-file.c >> $meltgen_args
+   $GCCMELT_MOVE_IF_CHANGE  $meltgen_args meltbuild-gendoc.args
+   meltbuild_info [+(.(fromline))+]  meltbuild-gendoc.args is
+   cat meltbuild-gendoc.args > /dev/stderr
+   $GCCMELT_CC1_PREFIX $GCCMELT_CC1 @meltbuild-gendoc.args \
+     || meltbuild_error [+(.(fromline))+] failed with arguments @meltbuild-gendoc.args
+else
+   meltbuild_info [+(.(fromline))+] keeping meltgendoc.texi
+fi
 
 ################
 meltbuild_info [+(.(fromline))+] successfully done

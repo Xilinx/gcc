@@ -1,5 +1,17 @@
 
 2012-07-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Still buggy}}
+	* Makefile.in: Always use new build script.
+	(melt.encap): Add more dependencies.
+	(melt-built-param.mk): Remove target.
+	(melt-build-settings.sh, meltbuild-empty-file.c): New targets.
+
+	* melt-build-script.tpl:Add meltgendoc.texi generation which does
+	not work yet.
+
+	* melt-build-script.sh: Regenerate.
+
+2012-07-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt (superloop_tuple)
 	(dbgout_boxbasicblock_method, dbgout_boxedge_method)
 	(dbgout_boxloop_method, dbgout_mapedge_method): Move these
