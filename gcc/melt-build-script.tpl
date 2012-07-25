@@ -375,14 +375,11 @@ meltbuild_symlink $GCCMELT_MELTSOURCEDIR/[+base+].melt meltbuild-sources/
 [+FOR melt_translator_file+][+ 
   (define outbase (get "base")) (define outindex (for-index)) +]
 
-### the modules in all flavors in meltbuild-modules for [+base+] from [+ (. (fromline))+]
+### the translator modules in all flavors in meltbuild-modules for [+base+] from [+ (. (fromline))+]
 
 
 [+FOR flavor IN quicklybuilt optimized debugnoline+]
 
-## @ [+(.(fromline))+] something might be wrong, we get e.g. a
-## meltbuild-modules/warmelt-outobj.optimized.so symlink, which should
-## be something with a md5sum inside.
 
 #@ [+(.(fromline))+] flavor [+flavor+] base [+base+]
 $GCCMELT_MAKE -f $GCCMELT_MODULE_MK melt_module \
@@ -401,7 +398,52 @@ meltbuild_info [+(.(fromline))+] compiled [+base+] flavor [+flavor+] in meltbuil
 
 [+ENDFOR melt_translator_file+]
 
-#@ [+(.(fromline))+] 
+
+################
+#@ [+(.(fromline))+] before application xtramelt* modules
+################################################################
+meltbuild_info [+(.(fromline))+] before applications GCCMELT_SKIPEMITC=$GCCMELT_SKIPEMITC.
+
+
+[+FOR melt_application_file+]
+## application [+base+] [+(.(fromline))+]
+
+meltbuild_info [+(.(fromline))+] application [+base+] GCCMELT_SKIPEMITC=$GCCMELT_SKIPEMITC.
+[+
+  (define apbase (get "base")) (define apindex (for-index))
++]
+
+meltbuild_emit [+(.(fromline))+] \
+    translatefile \
+    [+base+] \
+    meltbuild-sources \
+    meltbuild-modules \
+    [+FOR melt_translator_file ":"+][+base+].optimized[+ENDFOR melt_translator_file+][+FOR melt_application_file+][+IF (< (for-index) apindex)+]:[+base+].quicklybuilt[+ENDIF+][+ENDFOR melt_application_file+] \
+    "[+FOR includeload " "+][+includeload+][+ENDFOR includeload+]" \
+  || meltbuild_error [+(.(fromline))+] failed to generate C code of application [+base+]
+
+
+### the application modules in all flavors in meltbuild-modules for [+base+] from [+ (. (fromline))+]
+
+[+FOR flavor IN quicklybuilt optimized debugnoline+]
+
+#@ [+(.(fromline))+] flavor [+flavor+] appl base [+base+]
+$GCCMELT_MAKE -f $GCCMELT_MODULE_MK melt_module \
+   GCCMELT_FROM=[+(.(fromline))+] \
+   GCCMELT_MODULE_WORKSPACE=meltbuild-workdir \
+   GCCMELT_MODULE_FLAVOR=[+flavor+] \
+   GCCMELT_CFLAGS="$GCCMELT_COMPILER_FLAGS" \
+   GCCMELT_MODULE_SOURCEBASE=meltbuild-sources/[+base+] \
+   GCCMELT_MODULE_BINARYBASE=meltbuild-modules/[+base+] \
+ || meltbuild_error  [+(.(fromline))+] in meltbuild-modules failed to make module appl [+base+] [+flavor+]
+
+meltbuild_info [+(.(fromline))+] compiled appl [+base+] flavor [+flavor+] in meltbuild-modules
+[+ENDFOR flavor+]
+
+#@ [+(.(fromline))+] end appl [+base+]
+[+ENDFOR melt_application_file+]
+
+
 ################
 meltbuild_info [+(.(fromline))+] successfully done
 #@ eof [+(.(fromline))+] end of generated melt-build-script.sh

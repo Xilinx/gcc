@@ -5415,21 +5415,6 @@ export GCCMELT_COMPILER_FLAGS= $(ALL_COMPILERFLAGS) $(INCLUDES)
 export GCCMELT_LINKER= $(LINKER)
 export GCCMELT_LINKER_FLAGS= $(LINKER_FLAGS)
 
-## we want to redesign the build system, so have a conditional
-## newbuild, because we might need to old build to improve and
-## regenerate MELT for the newbuild...
-ifdef MELT_NEWBUILD
-export MELT_NEWBUILD
-export MELTBUILD_MKFILE=$(srcdir)/melt-newbuild.mk
-$(srcdir)/melt-newbuild.mk: @MAINT@ $(srcdir)/melt-newbuild.def $(srcdir)/melt-newbuild.tpl
-	cd $(srcdir) && $(AUTOGEN) melt-newbuild.def
-else
-export MELTBUILD_MKFILE=$(srcdir)/melt-build.mk
-$(srcdir)/melt-build.mk: @MAINT@ $(srcdir)/melt-build.def $(srcdir)/melt-build.tpl
-	cd $(srcdir) && $(AUTOGEN) melt-build.def
-include  $(MELTBUILD_MKFILE)
-endif
-
 MELT_MAKE_MODULE_XTRAMAKEFLAGS ?= -j 2
 $(srcdir)/melt-build-script.sh:  @MAINT@ $(srcdir)/melt-build-script.def $(srcdir)/melt-build-script.tpl
 	cd $(srcdir) && $(AUTOGEN) melt-build-script.def

@@ -281,7 +281,7 @@
   (:loop curloop :long loopix)
   :doc #{Iterate of each superloop of given loop $LO, for each $CURLOOP of indec $LOOPIX.}#
   ;; before expansion
-  #{ /* $EACHSUPERLOOP */ unsigned $EACHSUPERLOOP#_ix = 0;
+  #{ /* foreach_superloop $EACHSUPERLOOP */ unsigned $EACHSUPERLOOP#_ix = 0;
    loop_p $EACHSUPERLOOP#_loop = NULL;
    if ($LO) { 
      FOR_EACH_VEC_ELT (loop_p, $LO->superloops, $EACHSUPERLOOP#_ix,  $EACHSUPERLOOP#_loop) {
@@ -291,25 +291,6 @@
   ;; after expansion
   #{ }} /* end $EACHSUPERLOOP */ }#
 )
-
-(defun superloop_tuple (loopv)
-  :doc #{Given a boxed loop $LOOPV, return the tuple of its boxed superloops.}#
-  (if (is_loop loopv)
-      (let ( (:loop lo (loop_content loopv))
-	     )
-	(if lo
-	    (let (
-		  (:long lodepth (loop_depth lo))
-		  (tup (make_multiple discr_multiple lodepth))
-		  )
-	      (foreach_superloop
-	       (lo)
-	       (:loop curloop :long loopix)
-		 (multiple_put_nth tup loopix (make_loop discr_loop curloop))		 
-	       )
-	      (return tup)
-	      )))))
-
 
 
 
@@ -944,129 +925,6 @@
   #{ melt_ppl_polyhedron_content((melt_ptr_t) $pplv) }#
 )
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DEBUG OUTPUT 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;;;; boxed basicblock debug
-(defun dbgout_boxbasicblock_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
-  (let ( (dis (discrim self)) 
-	 (out  (unsafe_get_field :dbgi_out dbgi)) ) 
-    (add2out_strconst out " ?/")
-    (if (is_a dis class_named) (add2out_string out (unsafe_get_field :named_name dis)))
-    (add2out_strconst out "/{")
-    (add2out_indentnl out (+i 1 depth))
-    (ppstrbuf_basicblock out (+i 1 depth) (basicblock_content self))
-    (add2out_strconst out "}/")
-    (add2out_indentnl out depth)
-    )
-  )
-(install_method discr_basic_block dbg_output dbgout_boxbasicblock_method)
-
-
-;;;; boxed edge debug
-(defun dbgout_boxedge_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
-  (assert_msg "check self" (is_edge self))
-  (let ( (dis (discrim self)) 
-	 (out  (unsafe_get_field :dbgi_out dbgi)) ) 
-    (add2out_strconst out " ?/")
-    (if (is_a dis class_named) (add2out_string out (unsafe_get_field :named_name dis)))
-    (add2out_strconst out "/[")
-    (output_edge out (edge_content self))
-    (add2out_strconst out "]/")
-    (add2out_indentnl out depth)
-    )
-  )
-(install_method discr_edge dbg_output dbgout_boxedge_method)
-
-
-;;; boxed loop debug
-(defun dbgout_boxloop_method (self dbgi :long depth)
-  (assert_msg "check self" (is_loop self))
-  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
-  (let ( (dis (discrim self)) 
-	 (out  (unsafe_get_field :dbgi_out dbgi)) ) 
-    (add2out_strconst out " ?/")
-    (if (is_a dis class_named) (add2out_string out (unsafe_get_field :named_name dis)))
-    (add2out_strconst out "/[")
-    (output_loop out (loop_content self))
-    (add2out_strconst out "]/")
-    (add2out_indentnl out depth)
-    )
-  )
-(install_method discr_loop dbg_output dbgout_boxloop_method)
-
-
-;;;; basicblockmap debug
-(defun dbgout_mapbasicblock_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
-  (assert_msg "check self" (is_mapbasicblock self))
-  (let ( (dis (discrim self)) 
-	 (:long mapcount (mapbasicblock_count self))
-	 (out  (unsafe_get_field :dbgi_out dbgi)) 
-	 (aux (mapbasicblock_aux self))
-	 ) 
-    (add2out_strconst out " !bbmap.")
-    (if (is_a dis class_named) (add2out_string out (unsafe_get_field :named_name dis)))
-    (add2out_strconst out "/")
-    (add2out_longdec out mapcount)
-    (add2out_strconst out "!{")
-    (if (and aux (<=i depth 1))
-	(progn
-	  (add2out out " aux:")
-	  (dbg_out aux dbgi (+i depth 3))))
-    (foreach_mapbasicblock
-     (self)
-     (:basic_block bbatt :value bbval)
-     (add2out_indentnl out (+i depth 1))
-     (add2out_strconst out "*")
-     (ppstrbuf_basicblock out (+i depth 1) bbatt)
-     (add2out_strconst out " == ")
-     (dbg_out bbval dbgi (+i depth 2))
-     )
-    (add2out_strconst out "}!")
-    (add2out_indentnl out depth)
-    ))
-(install_method discr_map_basic_blocks dbg_output dbgout_mapbasicblock_method)
-
-
-
-
-;;;; edgemap debug
-(defun dbgout_mapedge_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
-  (assert_msg "check self" (is_mapedge self))
-  (let ( (dis (discrim self)) 
-	 (:long mapcount (mapedge_count self))
-	 (out  (unsafe_get_field :dbgi_out dbgi)) 
-	 (aux (mapedge_aux self))
-	 ) 
-    (add2out_strconst out " !edgemap.")
-    (if (is_a dis class_named) (add2out_string out (unsafe_get_field :named_name dis)))
-    (add2out_strconst out "/")
-    (add2out_longdec out mapcount)
-    (add2out_strconst out "!{")
-    (if (and aux (<=i depth 1))
-	(progn
-	  (add2out out " aux:")
-	  (dbg_out aux dbgi (+i depth 3))))
-    (foreach_mapedge
-     (self)
-     (:edge edatt :value bbval)
-     (add2out_indentnl out (+i depth 1))
-     (add2out_strconst out "*")
-     (output_edge out edatt)
-     (add2out_strconst out " == ")
-     (dbg_out bbval dbgi (+i depth 2))
-     )
-    (add2out_strconst out "}!")
-    (add2out_indentnl out depth)
-    ))
-(install_method discr_map_edges dbg_output dbgout_mapedge_method)
-
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1622,6 +1480,27 @@ current function and gives its declaration in $CFUNDECL}#
       (return edgevec)))
   )
 
+;;;;;;;;;;;;;;;;
+(defun superloop_tuple (loopv)
+  :doc #{Given a boxed loop $LOOPV, return the tuple of its boxed superloops.}#
+  (if (is_loop loopv)
+      (let ( (:loop lo (loop_content loopv))
+	     )
+	(if lo
+	    (let (
+		  (:long lodepth (loop_depth lo))
+		  (tup (make_multiple discr_multiple lodepth))
+		  )
+	      (foreach_superloop
+	       (lo)
+	       (:loop curloop :long loopix)
+		 (multiple_put_nth tup loopix 
+				   (make_loop discr_loop curloop))
+	       )
+	      (return tup)
+	      )))))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; safe queries to the cfun (when cfun is null, return null or 0)
 (defprimitive has_cfun () :long #{ cfun != NULL }#)
@@ -1731,6 +1610,129 @@ current function and gives its declaration in $CFUNDECL}#
       (add2out_strconst out "*nullloop*")
       )))
 (register_loop_debug_fun debugfun_loop)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DEBUG OUTPUT 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;; boxed basicblock debug
+(defun dbgout_boxbasicblock_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (let ( (dis (discrim self)) 
+	 (out  (unsafe_get_field :dbgi_out dbgi)) ) 
+    (add2out_strconst out " ?/")
+    (if (is_a dis class_named) (add2out_string out (unsafe_get_field :named_name dis)))
+    (add2out_strconst out "/{")
+    (add2out_indentnl out (+i 1 depth))
+    (ppstrbuf_basicblock out (+i 1 depth) (basicblock_content self))
+    (add2out_strconst out "}/")
+    (add2out_indentnl out depth)
+    )
+  )
+(install_method discr_basic_block dbg_output dbgout_boxbasicblock_method)
+
+
+;;;; boxed edge debug
+(defun dbgout_boxedge_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (assert_msg "check self" (is_edge self))
+  (let ( (dis (discrim self)) 
+	 (out  (unsafe_get_field :dbgi_out dbgi)) ) 
+    (add2out_strconst out " ?/")
+    (if (is_a dis class_named) (add2out_string out (unsafe_get_field :named_name dis)))
+    (add2out_strconst out "/[")
+    (output_edge out (edge_content self))
+    (add2out_strconst out "]/")
+    (add2out_indentnl out depth)
+    )
+  )
+(install_method discr_edge dbg_output dbgout_boxedge_method)
+
+
+;;; boxed loop debug
+(defun dbgout_boxloop_method (self dbgi :long depth)
+  (assert_msg "check self" (is_loop self))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (let ( (dis (discrim self)) 
+	 (out  (unsafe_get_field :dbgi_out dbgi)) ) 
+    (add2out_strconst out " ?/")
+    (if (is_a dis class_named) (add2out_string out (unsafe_get_field :named_name dis)))
+    (add2out_strconst out "/[")
+    (output_loop out (loop_content self))
+    (add2out_strconst out "]/")
+    (add2out_indentnl out depth)
+    )
+  )
+(install_method discr_loop dbg_output dbgout_boxloop_method)
+
+
+;;;; basicblockmap debug
+(defun dbgout_mapbasicblock_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (assert_msg "check self" (is_mapbasicblock self))
+  (let ( (dis (discrim self)) 
+	 (:long mapcount (mapbasicblock_count self))
+	 (out  (unsafe_get_field :dbgi_out dbgi)) 
+	 (aux (mapbasicblock_aux self))
+	 ) 
+    (add2out_strconst out " !bbmap.")
+    (if (is_a dis class_named) (add2out_string out (unsafe_get_field :named_name dis)))
+    (add2out_strconst out "/")
+    (add2out_longdec out mapcount)
+    (add2out_strconst out "!{")
+    (if (and aux (<=i depth 1))
+	(progn
+	  (add2out out " aux:")
+	  (dbg_out aux dbgi (+i depth 3))))
+    (foreach_mapbasicblock
+     (self)
+     (:basic_block bbatt :value bbval)
+     (add2out_indentnl out (+i depth 1))
+     (add2out_strconst out "*")
+     (ppstrbuf_basicblock out (+i depth 1) bbatt)
+     (add2out_strconst out " == ")
+     (dbg_out bbval dbgi (+i depth 2))
+     )
+    (add2out_strconst out "}!")
+    (add2out_indentnl out depth)
+    ))
+(install_method discr_map_basic_blocks dbg_output dbgout_mapbasicblock_method)
+
+
+
+
+;;;; edgemap debug
+(defun dbgout_mapedge_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (assert_msg "check self" (is_mapedge self))
+  (let ( (dis (discrim self)) 
+	 (:long mapcount (mapedge_count self))
+	 (out  (unsafe_get_field :dbgi_out dbgi)) 
+	 (aux (mapedge_aux self))
+	 ) 
+    (add2out_strconst out " !edgemap.")
+    (if (is_a dis class_named) (add2out_string out (unsafe_get_field :named_name dis)))
+    (add2out_strconst out "/")
+    (add2out_longdec out mapcount)
+    (add2out_strconst out "!{")
+    (if (and aux (<=i depth 1))
+	(progn
+	  (add2out out " aux:")
+	  (dbg_out aux dbgi (+i depth 3))))
+    (foreach_mapedge
+     (self)
+     (:edge edatt :value bbval)
+     (add2out_indentnl out (+i depth 1))
+     (add2out_strconst out "*")
+     (output_edge out edatt)
+     (add2out_strconst out " == ")
+     (dbg_out bbval dbgi (+i depth 2))
+     )
+    (add2out_strconst out "}!")
+    (add2out_indentnl out depth)
+    ))
+(install_method discr_map_edges dbg_output dbgout_mapedge_method)
 
 
 

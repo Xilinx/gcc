@@ -1,4 +1,17 @@
 
+2012-07-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt (superloop_tuple)
+	(dbgout_boxbasicblock_method, dbgout_boxedge_method)
+	(dbgout_boxloop_method, dbgout_mapedge_method): Move these
+	functions after loop related primitives.
+
+	* Makefile.in: Remove MELT_NEWBUILD & melt-newbuild.{mk,tpl}...
+
+	* melt-build-script.tpl: Build the application xtramelt* modules,
+	but don't avoid useless recompilation yet.
+
+	* melt-build-script.sh: Regenerate.
+
 2012-07-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{after svn rev 189788 switching to the new build system, still incomplete and instable}}
 	* melt-runtime.c (melt_load_module_index): Use BASE.meltmod-MDFIVESUM.FLAVOR.so naming scheme.
