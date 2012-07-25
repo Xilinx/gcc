@@ -358,9 +358,9 @@ meltbuild_emit [+(.(fromline))+] \
     [+FOR melt_translator_file ":"+]$GCCMELT_LASTSTAGE/[+base+].quicklybuilt[+ENDFOR melt_translator_file+] \
     "[+FOR includeload " "+][+includeload+][+ENDFOR includeload+]"
 
-### symlinking the MELT code in meltbuild-sources for [+base+] from [+ (. (fromline))+]
+### symlinking the MELT translator code in meltbuild-sources for [+base+] from [+ (. (fromline))+]
 
-meltbuild_info [+(.(fromline))+] putting MELT code of [+base+] in meltbuild-sources
+meltbuild_info [+(.(fromline))+] putting MELT translator code of [+base+] in meltbuild-sources
 
 meltbuild_symlink $GCCMELT_MELTSOURCEDIR/[+base+].melt meltbuild-sources/
 [+FOR includeload "\n"+]meltbuild_symlink [+includeload+] meltbuild-sources/[+ENDFOR includeload+]
@@ -443,6 +443,11 @@ $GCCMELT_MAKE -f $GCCMELT_MODULE_MK melt_module \
 meltbuild_info [+(.(fromline))+] compiled appl [+base+] flavor [+flavor+] in meltbuild-modules
 [+ENDFOR flavor+]
 
+meltbuild_info [+(.(fromline))+] putting MELT application code of [+base+] in meltbuild-sources
+
+meltbuild_symlink $GCCMELT_MELTSOURCEDIR/[+base+].melt meltbuild-sources/
+[+FOR includeload "\n"+]meltbuild_symlink [+includeload+] meltbuild-sources/[+ENDFOR includeload+]
+
 #@ [+(.(fromline))+] end appl [+base+]
 [+ENDFOR melt_application_file+]
 
@@ -507,7 +512,8 @@ if [ ! -f meltgendoc.texi [+FOR melt_translator_file " \\\n"+] -o meltbuild-sour
    meltbuild_arg tempdir=. >> $meltgen_args
    meltbuild_arg source-path=meltbuild-sources >> $meltgen_args
    meltbuild_arg module-path=meltbuild-modules >> $meltgen_args
-   meltbuild_arg bootstrapping  >> $meltgen_args
+   meltbuild_arg bootstrapping  >> $meltgen_args 
+   meltbuild_arg arglist=[+FOR melt_translator_file ","+][+base+].melt[+ENDFOR melt_translator_file+],[+FOR melt_application_file ","+][+base+].melt[+ENDFOR melt_application_file+]  >> $meltgen_args 
    echo meltbuild-empty-file.c >> $meltgen_args
    $GCCMELT_MOVE_IF_CHANGE  $meltgen_args meltbuild-gendoc.args
    meltbuild_info [+(.(fromline))+]  meltbuild-gendoc.args is
