@@ -1,3 +1,7 @@
+2012-07-25  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c.opt (flag_enable_cilk): Added a case for LTO.
+
 2012-07-23  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-pretty-print.c (pp_c_postfix_expression): Renamed SYNC_STMT to

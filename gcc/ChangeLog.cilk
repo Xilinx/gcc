@@ -1,3 +1,7 @@
+2012-07-25  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cilk.c (is_cilk_must_expand_fn): Added BUILT_IN_CILK_DETACH case.
+
 2012-07-23  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cilk.c (cilk_declare_looper): Added comments to function header.  Also

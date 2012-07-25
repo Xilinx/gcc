@@ -1212,6 +1212,7 @@ is_cilk_must_expand_fn (enum built_in_function func_code)
   
   switch (func_code)
     {
+    case BUILT_IN_CILK_DETACH:
     case BUILT_IN_CILK_ENTER_FRAME:
     case BUILT_IN_CILK_ENTER_BEGIN:
     case BUILT_IN_CILK_ENTER_H_BEGIN:

@@ -769,7 +769,7 @@ fbuiltin-
 C ObjC C++ ObjC++ Joined
 
 fcilkplus
-C ObjC C++ ObjC++ Report Var(flag_enable_cilk) Init(0)
+C ObjC C++ ObjC++ LTO Report Var(flag_enable_cilk) Init(0)
 Enable Cilk
 
 fcilk-check-spawn-queue
