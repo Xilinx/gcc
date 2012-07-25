@@ -1,0 +1,26 @@
+2012-07-24  Cary Coutant  <ccoutant@google.com>
+
+    Backport Fission patches from trunk at r186934, r187061, and r188759.
+    Backport pending Fission patch at http://codereview.appspot.com/6305113.
+    
+    Patches for include/dwarf2.def have been backported to include/dwarf2.h.
+
+    2012-07-18  Sterling Augustine <saugustine@google.com>
+                Cary Coutant <ccoutant@google.com>
+    
+	* dwarf2.h (dwarf_location_list_entry_type): New enum with enumerators
+	DW_LLE_end_of_list_entry, DW_LLE_base_address_selection_entry,
+	DW_LLE_start_end_entry, DW_LLE_start_length_entry.
+    
+    2012-06-18  Doug Evans  <dje@google.com>
+    
+	* dwarf2.def (DW_OP): Add DW_OP_GNU_const_index.
+    
+    2012-05-02  Cary Coutant  <ccoutant@google.com>
+    
+	* dwarf2.def: Remove DW_FORM_GNU_ref_index,
+	replace DW_AT_GNU_ref_base with DW_AT_GNU_ranges_base.
+    
+    2012-04-28  Doug Evans  <dje@google.com>
+    
+	* dwarf2.def (DW_OP): Add DW_OP_GNU_addr_index.

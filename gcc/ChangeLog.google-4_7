@@ -1,3 +1,101 @@
+2012-07-24  Cary Coutant  <ccoutant@google.com>
+
+    Backport pending Fission patch at http://codereview.appspot.com/6305113.
+    
+    2012-07-18  Sterling Augustine <saugustine@google.com>
+                Cary Coutant <ccoutant@google.com>
+    
+    	* common.opt (gno-split-dwarf, gsplit-dwarf): New switches.
+    	* doc/invoke.texi (Debugging Options): Document them.
+    	* opts.c (finish_options): Make gsplit-dwarf imply -gpubnames.
+    	* dwarf2out.h (dw_val_struct): New field val_index.
+    	* dwarf2out.c (debug_skeleton_info_section,
+    	debug_skeleton_abbrev_section, debug_addr_section,
+    	debug_skeleton_line_section, debug_str_offsets_section): New sections.
+    	(indirect_string_node): Add index field.
+    	(dw_loc_list_node): Add begin_index field.
+    	(dw_addr_op, new_addr_loc_descr, AT_index, set_AT_index,
+    	add_addr_table_entry, remove_addr_table_entry, output_range_list_offset,
+    	output_loc_list_offset, output_attr_index_or_value,
+    	remove_loc_list_addr_table_entries, output_die_abbrevs,
+    	add_top_level_skeleton_die_attrs, get_skeleton_type_unit,
+    	output_skeleton_debug_sections, output_index_strings,
+    	output_addr_table, index_location_lists): New functions.
+    	(DEBUG_DWO_INFO_SECTION, DEBUG_DWO_ABBREV_SECTION, DEBUG_ADDR_SECTION,
+    	DEBUG_NORM_MACINFO_SECTION, DEBUG_DWO_MACINFO_SECTION,
+    	DEBUG_DWO_LINE_SECTION, DEBUG_DWO_LOC_SECTION,
+    	DEBUG_NORM_STR_OFFSETS_SECTION, DEBUG_DWO_STR_SECTION,
+    	DEBUG_MACRO_SECTION_FLAGS, DEBUG_SKELETON_LINE_SECTION_LABEL,
+    	DEBUG_SKELETON_INFO_SECTION_LABEL, DEBUG_SKELETON_ABBREV_SECTION_LABEL,
+    	DEBUG_ADDR_SECTIN_LABEL, SKELETON_COMP_DIE_ABBREV,
+    	SKELETON_TYPE_DIE_ABBREV): New defines.
+    	(DEBUG_MACINFO_SECTION, DEBUG_MACRO_SECTION, DEBUG_STR_SECTION
+    	DEBUG_STR_SECTION_FLAGS): Adjust definitions.
+    	(TEXT_SECTION_LABEL, COLD_TEXT_SECTION_LABEL, DEBUG_INFO_SECTION_LABEL,
+    	DEBUG_ABBREV_SECTION_LABEL, DEBUG_LOC_SECTION_LABEL,
+    	DEBUG_RANGES_SECTION_LABEL, DEBUG_MACINFO_SECTION_LABEL,
+    	DEBUG_MACRO_SECTION_LABEL): Adjust indentation.
+    	(debug_skeleton_info_section_label, debug_skeleton_abbrev_section_label,
+    	debug_addr_section_label, debug_skeleton_line_section_label,
+    	dw_id_placeholder): New	global variables.
+    	(add_AT_lbl_id): Add force_direct parameter.  Adjust calls throughout
+    	file.  Handle dwarf_split_debug_info.
+    	(add_AT_addr). Likewise.  Initialize val_index_field.
+    	(add_AT_range_list): Add force parameter.  Adjust calls throughout file.
+    	Initialize val_index field.
+    	(add_ranges_by_labels): Add and handle force_direct parameter.  Adjust
+    	calls throughout file.
+    	(size_of_die): New variable form.  Handle dwarf_split_debug_info and
+    	call AT_index.
+    	(value_format): Use AT_class instead of calling val_class directly.
+    	Handle DW_FORM_addr and dw_val_class_lbl_id appropriately for
+    	dwarf_split_debug_info and AT_index.
+    	(output_abbrev_section): Move most code to new function
+    	output_die_abbrevs.
+    	(output_loc_list): Handle dwarf_split_debug_info by using
+    	DW_LLE_start_length_entry and DW_LLE_end_of_list_entry.
+    	(output_die): Call output_attr_index_or_value, output_range_list_offset,
+    	Fix format string.  Check val_str->form directly to avoid side effect.
+    	(add_pubtype): Fix indention.
+    	(output_comdat_type_unit): Handle dwarf_split_debug_info.
+    	(output_pubnames): Likewise.
+    	(output_aranges): Likewise.
+    	(output_mac_info): Likewise.
+    	(output_line_info): New parameter prologue_only.  Adjust calls
+    	throughout file.
+    	(mem_loc_descriptor): Call new_addr_loc_descr.
+    	(loc_descriptor): Likewise.
+    	(add_const_value_attribute): Likewise.
+    	(loc_list_from_tree): Replace first_op and second_op with tls_op.
+    	Update associated logic.  Call new_addr_loc_descr.
+    	(dwarf2out_init): Handle dwarf_split_debug_info.  Initialize
+    	debug_skeleton_info_section, debug_skeleton_abbrev_section,
+    	debug_addr_section, debug_skeleton_line_section,
+    	debug_str_offsets_section, debug_skeleton_info_section_label,
+    	debug_skeleton_abbrev_section_label, debug_addr_section_label and
+    	debug_skeleton_line_section_label.  Use DEBUG_MACRO_SECTION_FLAGS.
+    	(new_loc_descr, build_cfa_loc, add_AT_flag, add_AT_int, add_AT_unsigned,
+    	add_AT_double, add_AT_vec, add_AT_data8, add_AT_string, add_AT_die_ref,
+    	add_AT_fde_ref, add_AT_loc, add_AT_loc_list, add_AT_file,
+    	add_AT_vms_delta, add_AT_lineptr, add_AT_macptr, add_AT_offset):
+    	Initialize val_index field.
+    	(size_of_loc_descr, output_loc_operands, output_loc_operands_raw,
+    	resolve_addr_in_expression, hash_loc_operands):	Handle
+    	DW_OP_GNU_addr_index and DW_OP_GNU_const_index.
+    	(compare_loc_operands):  Likewise.  Adjust assertion.
+    	(AT_string_form): Handle dwarf_split_debug_info.
+    	(resolve_addr): New local variable l.  Check val_index.  Call
+    	remove_addr_table_entry and remove_loc_list_addr_table_entries.
+    	(dwarf2out_finish): Handle dwarf_split_debug_info.  New variable
+    	main_comp_unit_die.  Call index_location_lists, add_AT_data8,
+    	add_AT_lineptr, output_skeleton_debug_sections, output_addr_table.  Move
+    	call to	ASM_GENERATE_INTERNAL_LABEL to dwarf2out_init.  Call
+    	ASM_OUTPUT_LABEL for debug_skeleton_line_section_label and
+    	debug_addr_section_label.  Adjust comment.
+    	* gcc.c (replace_extension_spec_func):  New function.
+    	(ASM_FINAL_SPEC): Adjust.  Fix related comments.
+    	(check_live_switch): Likewise.
+    
 2012-07-24  Xinliang David Li  <davidxl@google.com>
 
 	* diagnostic.c (diagnostic_initialize): Initialize
@@ -7,7 +105,6 @@
 	* opts.c (common_handle_option): Handle new option.
 	* coverage.c (get_da_file_name): Handle new option.
 	* common.opt: New options.
-
 
 2012-07-24  Cary Coutant  <ccoutant@google.com>
     

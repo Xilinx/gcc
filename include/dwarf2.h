@@ -190,7 +190,6 @@ enum dwarf_form
     DW_FORM_flag_present = 0x19,
     DW_FORM_ref_sig8 = 0x20,
     /* Extensions for Fission.  See http://gcc.gnu.org/wiki/DebugFission.  */
-    DW_FORM_GNU_ref_index = 0x1f00,
     DW_FORM_GNU_addr_index = 0x1f01,
     DW_FORM_GNU_str_index = 0x1f02
   };
@@ -375,7 +374,7 @@ enum dwarf_attribute
     /* Extensions for Fission.  See http://gcc.gnu.org/wiki/DebugFission.  */
     DW_AT_GNU_dwo_name = 0x2130,
     DW_AT_GNU_dwo_id = 0x2131,
-    DW_AT_GNU_ref_base = 0x2132,
+    DW_AT_GNU_ranges_base = 0x2132,
     DW_AT_GNU_addr_base = 0x2133,
     DW_AT_GNU_pubnames = 0x2134,
     DW_AT_GNU_pubtypes = 0x2135,
@@ -578,6 +577,9 @@ enum dwarf_location_atom
     DW_OP_GNU_reinterpret = 0xf9,
     /* The GNU parameter ref extension.  */
     DW_OP_GNU_parameter_ref = 0xfa,
+    /* Extensions for Fission.  See http://gcc.gnu.org/wiki/DebugFission.  */
+    DW_OP_GNU_addr_index = 0xfb,
+    DW_OP_GNU_const_index = 0xfc,
     /* HP extensions.  */
     DW_OP_HP_unknown     = 0xe0, /* Ouch, the same as GNU_push_tls_address.  */
     DW_OP_HP_is_value    = 0xe1,
@@ -827,6 +829,17 @@ enum dwarf_call_frame_info
     DW_CFA_GNU_window_save = 0x2d,
     DW_CFA_GNU_args_size = 0x2e,
     DW_CFA_GNU_negative_offset_extended = 0x2f
+  };
+
+/* Type codes for location list entries.
+   Extension for Fission.  See http://gcc.gnu.org/wiki/DebugFission.  */
+
+enum dwarf_location_list_entry_type
+  {
+    DW_LLE_end_of_list_entry = 0,
+    DW_LLE_base_address_selection_entry = 1,
+    DW_LLE_start_end_entry = 2,
+    DW_LLE_start_length_entry = 3
   };
 
 #define DW_CIE_ID	  0xffffffff

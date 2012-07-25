@@ -267,6 +267,7 @@ static const char *compare_debug_dump_opt_spec_function (int, const char **);
 static const char *compare_debug_self_opt_spec_function (int, const char **);
 static const char *compare_debug_auxbase_opt_spec_function (int, const char **);
 static const char *pass_through_libs_spec_func (int, const char **);
+static const char *replace_extension_spec_func (int, const char **);
 
 /* The Specs Language
 
@@ -446,7 +447,7 @@ ignored.  White space may also appear anywhere on the left side of the
 colon in these constructs, except between . or * and the corresponding
 word.
 
-The -O, -f, -m, and -W switches are handled specifically in these
+The -O, -f, -g, -m, and -W switches are handled specifically in these
 constructs.  If another value of -O or the negated form of a -f, -m, or
 -W switch is found later in the command line, the earlier switch
 value is ignored, except with {S*} where S is just one letter; this
@@ -479,7 +480,14 @@ proper position among the other output files.  */
 /* config.h can define ASM_FINAL_SPEC to run a post processor after
    the assembler has run.  */
 #ifndef ASM_FINAL_SPEC
-#define ASM_FINAL_SPEC ""
+#define ASM_FINAL_SPEC \
+  "%{gsplit-dwarf: \n\
+       objcopy --extract-dwo \
+	 %{c:%{o*:%*}%{!o*:%b%O}}%{!c:%U%O} \
+	 %{c:%{o*:%:replace-extension(%{o*:%*} .dwo)}%{!o*:%b.dwo}}%{!c:%b.dwo} \n\
+       objcopy --strip-dwo \
+	 %{c:%{o*:%*}%{!o*:%b%O}}%{!c:%U%O} \
+    }"
 #endif
 
 /* config.h can define CPP_SPEC to provide extra args to the C preprocessor
@@ -1276,6 +1284,7 @@ static const struct spec_function static_spec_functions[] =
   { "compare-debug-self-opt",	compare_debug_self_opt_spec_function },
   { "compare-debug-auxbase-opt", compare_debug_auxbase_opt_spec_function },
   { "pass-through-libs",	pass_through_libs_spec_func },
+  { "replace-extension",	replace_extension_spec_func },
 #ifdef EXTRA_SPEC_FUNCTIONS
   EXTRA_SPEC_FUNCTIONS
 #endif
@@ -5783,7 +5792,7 @@ process_brace_body (const char *p, const char *atom, const char *end_atom,
    on the command line.  PREFIX_LENGTH is the length of XXX in an {XXX*}
    spec, or -1 if either exact match or %* is used.
 
-   A -O switch is obsoleted by a later -O switch.  A -f, -m, or -W switch
+   A -O switch is obsoleted by a later -O switch.  A -f, -g, -m, or -W switch
    whose value does not begin with "no-" is obsoleted by the same value
    with the "no-", similarly for a switch with the "no-" prefix.  */
 
@@ -5820,7 +5829,7 @@ check_live_switch (int switchnum, int prefix_length)
 	  }
       break;
 
-    case 'W':  case 'f':  case 'm':
+    case 'W':  case 'f':  case 'm': case 'g':
       if (! strncmp (name + 1, "no-", 3))
 	{
 	  /* We have Xno-YYY, search for XYYY.  */
@@ -8393,4 +8402,28 @@ pass_through_libs_spec_func (int argc, const char **argv)
 	free (old);
     }
   return prepended;
+}
+
+/* %:replace-extension spec function.  Replaces the extension of the
+   first argument with the second argument.  */
+
+const char *
+replace_extension_spec_func (int argc, const char **argv)
+{
+  char *name;
+  char *p;
+  char *result;
+
+  if (argc != 2)
+    fatal_error ("too few arguments to %%:replace-extension");
+
+  name = xstrdup (argv[0]);
+  p = strrchr (name, '.');
+  if (p != NULL)
+      *p = '\0';
+
+  result = concat (name, argv[1], NULL);
+
+  free (name);
+  return result;
 }
