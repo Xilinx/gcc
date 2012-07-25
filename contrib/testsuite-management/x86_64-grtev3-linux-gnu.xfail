@@ -62,3 +62,4 @@ flaky | FAIL: libmudflap.cth/pass40-frag.c execution test
 flaky | FAIL: libmudflap.cth/pass40-frag.c output pattern test
 flaky | FAIL: libmudflap.cth/pass40-frag.c (-O2) execution test
 flaky | FAIL: libmudflap.cth/pass39-frag.c (-O3) (rerun 10) execution test
+flaky | FAIL: libgomp.graphite/force-parallel-6.c execution test

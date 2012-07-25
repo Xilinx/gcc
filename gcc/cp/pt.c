@@ -7608,7 +7608,7 @@ lookup_template_class_1 (tree d1, tree arglist, tree in_decl, tree context,
 
 	  /* A local class.  Make sure the decl gets registered properly.  */
 	  if (context == current_function_decl)
-	    pushtag (DECL_NAME (gen_tmpl), t, /*tag_scope=*/ts_current);
+	    pushtag (DECL_NAME (gen_tmpl), t, /*tag_scope=*/ts_global);
 
 	  if (comp_template_args (CLASSTYPE_TI_ARGS (template_type), arglist))
 	    /* This instantiation is another name for the primary
@@ -8812,6 +8812,7 @@ instantiate_class_template_1 (tree type)
   tree pbinfo;
   tree base_list;
   unsigned int saved_maximum_field_alignment;
+  tree fn_context;
 
   if (type == error_mark_node)
     return error_mark_node;
@@ -8870,7 +8871,9 @@ instantiate_class_template_1 (tree type)
      it now.  */
   push_deferring_access_checks (dk_no_deferred);
 
-  push_to_top_level ();
+  fn_context = decl_function_context (TYPE_MAIN_DECL (type));
+  if (!fn_context)
+    push_to_top_level ();
   /* Use #pragma pack from the template context.  */
   saved_maximum_field_alignment = maximum_field_alignment;
   maximum_field_alignment = TYPE_PRECISION (pattern);
@@ -9274,8 +9277,14 @@ instantiate_class_template_1 (tree type)
 	      apply_lambda_return_type (lambda, void_type_node);
 	      LAMBDA_EXPR_RETURN_TYPE (lambda) = NULL_TREE;
 	    }
+
+	  LAMBDA_EXPR_THIS_CAPTURE (lambda)
+	    = lookup_field_1 (type, get_identifier ("__this"), false);
+
 	  instantiate_decl (decl, false, false);
 	  maybe_add_lambda_conv_op (type);
+
+	  LAMBDA_EXPR_THIS_CAPTURE (lambda) = NULL_TREE;
 	}
       else
 	gcc_assert (errorcount);
@@ -9334,7 +9343,8 @@ instantiate_class_template_1 (tree type)
   perform_deferred_access_checks ();
   pop_nested_class ();
   maximum_field_alignment = saved_maximum_field_alignment;
-  pop_from_top_level ();
+  if (!fn_context)
+    pop_from_top_level ();
   pop_deferring_access_checks ();
   pop_tinst_level ();
 
@@ -9494,7 +9504,9 @@ tsubst_pack_expansion (tree t, tree args, tsubst_flags_t complain,
 		 late-specified return type).  Even if it exists, it might
 		 have the wrong value for a recursive call.  Just make a
 		 dummy decl, since it's only used for its type.  */
-	      arg_pack = tsubst_decl (parm_pack, args, complain);
+	      /* Copy before tsubsting so that we don't recurse into any
+		 later PARM_DECLs.  */
+	      arg_pack = tsubst_decl (copy_node (parm_pack), args, complain);
 	      if (arg_pack && FUNCTION_PARAMETER_PACK_P (arg_pack))
 		/* Partial instantiation of the parm_pack, we can't build
 		   up an argument pack yet.  */
@@ -10689,8 +10701,12 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
       break;
 
     case USING_DECL:
-      /* We reach here only for member using decls.  */
-      if (DECL_DEPENDENT_P (t))
+      /* We reach here only for member using decls.  We also need to check
+	 uses_template_parms because DECL_DEPENDENT_P is not set for a
+	 using-declaration that designates a member of the current
+	 instantiation (c++/53549).  */
+      if (DECL_DEPENDENT_P (t)
+	  || uses_template_parms (USING_DECL_SCOPE (t)))
 	{
 	  r = do_class_using_decl
 	    (tsubst_copy (USING_DECL_SCOPE (t), args, complain, in_decl),
@@ -18580,9 +18596,10 @@ instantiate_decl (tree d, int defer_ok,
   tree spec;
   tree gen_tmpl;
   bool pattern_defined;
-  int need_push;
   location_t saved_loc = input_location;
   bool external_p;
+  tree fn_context;
+  bool nested;
 
   /* This function should only be used to instantiate templates for
      functions and static member variables.  */
@@ -18823,9 +18840,12 @@ instantiate_decl (tree d, int defer_ok,
 	goto out;
     }
 
-  need_push = !cfun || !global_bindings_p ();
-  if (need_push)
+  fn_context = decl_function_context (d);
+  nested = (current_function_decl != NULL_TREE);
+  if (!fn_context)
     push_to_top_level ();
+  else if (nested)
+    push_function_context ();
 
   /* Mark D as instantiated so that recursive calls to
      instantiate_decl do not try to instantiate it again.  */
@@ -18938,8 +18958,10 @@ instantiate_decl (tree d, int defer_ok,
   /* We're not deferring instantiation any more.  */
   TI_PENDING_TEMPLATE_FLAG (DECL_TEMPLATE_INFO (d)) = 0;
 
-  if (need_push)
+  if (!fn_context)
     pop_from_top_level ();
+  else if (nested)
+    pop_function_context ();
 
 out:
   input_location = saved_loc;

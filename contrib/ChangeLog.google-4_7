@@ -1,3 +1,8 @@
+2012-07-23   Diego Novillo  <dnovillo@google.com>
+
+	* testsuite-management/validate_failures.py: Remove 'with
+	  ... as ...' patterns for compatibility with Python 2.4.
+
 2012-07-18   Diego Novillo  <dnovillo@google.com>
 
         * testsuite-management/validate_failures.py: Fix /usr/bin/python reference.

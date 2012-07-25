@@ -33,6 +33,10 @@ UNRESOLVED: gcc.target/i386/patch-functions-6.c scan-assembler ret(.*).byte\t0x9
 UNRESOLVED: gcc.target/i386/patch-functions-7.c scan-assembler-not ret(.*).byte\t0x90(.*).byte\t0x90
 UNRESOLVED: gcc.target/i386/patch-functions-7.c scan-assembler-not .byte\t0xeb,0x09(.*).byte\t0x90
 
+# Failure in Ubuntu Precise. Test harness problems. We don't realize that
+# the test is unsupported when not running gold.
+UNRESOLVED: g++.dg/tree-prof/callgraph-profiles.C scan-file Callgraph group : main _Z3barv _Z3foov\n
+UNRESOLVED: g++.dg/tree-prof/callgraph-profiles.C scan-file .text.*.main\n.text.*._Z3barv\n.text.*._Z3foov\n.text.*._Z9notcalledv
 
 # These tests fail in trunk in all configurations.
 FAIL: gcc.dg/cproj-fails-with-broken-glibc.c execution test
@@ -59,3 +63,4 @@ flaky | FAIL: libmudflap.cth/pass40-frag.c execution test
 flaky | FAIL: libmudflap.cth/pass40-frag.c output pattern test
 flaky | FAIL: libmudflap.cth/pass40-frag.c (-O2) execution test
 flaky | FAIL: libmudflap.cth/pass39-frag.c (-O3) (rerun 10) execution test
+flaky | FAIL: libgomp.graphite/force-parallel-6.c execution test

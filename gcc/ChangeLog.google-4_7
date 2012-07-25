@@ -1,3 +1,7 @@
+2012-07-25   Diego Novillo  <dnovillo@google.com>
+
+	Merge from gcc-4_7-branch rev 189718.
+
 2012-07-24  Cary Coutant  <ccoutant@google.com>
 
     Backport pending Fission patch at http://codereview.appspot.com/6305113.
