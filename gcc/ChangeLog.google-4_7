@@ -1,3 +1,26 @@
+2012-07-25  Cary Coutant  <ccoutant@google.com>
+
+    Backport pending upstream patch to output DW_AT_high_pc as a constant
+    instead of a relocated address.  This significantly reduces the number
+    of entries used in the .debug_addr table with -gfission.
+
+    2012-04-27  Mark Wielaard  <mjw@redhat.com>
+
+	* dwarf2out.h (enum dw_val_class): Add dw_val_class_high_pc.
+	* dwarf2out.c (dw_val_equal_p): Handle dw_val_class_high_pc.
+	(add_AT_low_high_pc): New function.
+	(AT_lbl): Handle dw_val_class_high_pc.
+	(print_die): Likewise.
+	(attr_checksum): Likewise.
+	(attr_checksum_ordered): Likewise.
+	(same_dw_val_p): Likewise.
+	(size_of_die): Likewise.
+	(value_format): Likewise.
+	(output_die): Likewise.
+	(gen_subprogram_die): Use add_AT_low_high_pc.
+	(add_high_low_attributes): Likewise.
+	(dwarf2out_finish): Likewise.
+
 2012-07-25  Teresa Johnson  <tejohnson@google.com>
 
 	Backport the following patches from trunk to ensure that
@@ -230,7 +253,6 @@
 	* gcc/gcov-io.h (GCOV_TAG_MODULE_INFO): tag needs to be
 	 an odd number in each active level.
 
->>>>>>> .r189865
 2012-07-10  Xinliang David Li  <davidxl@google.com>
 
 	Backport r189413 from trunk
