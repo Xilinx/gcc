@@ -9132,10 +9132,6 @@ get_skeleton_type_unit (void)
   return skeleton_type_unit;
 }
 
-/* The splitter will fill in this value.  */
-
-unsigned char dwo_id_placeholder[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-
 /* Output skeleton debug sections that point to the dwo file.  */
 
 static void
@@ -9147,9 +9143,6 @@ output_skeleton_debug_sections (dw_die_ref comp_unit)
 
   /* Add attributes common to skeleton compile_units and type_units.  */
   add_top_level_skeleton_die_attrs (comp_unit);
-
-  /* The dwo_id is only for compile_units.  */
-  add_AT_data8 (comp_unit, DW_AT_GNU_dwo_id, dwo_id_placeholder);
 
   switch_to_section (debug_skeleton_info_section);
   ASM_OUTPUT_LABEL (asm_out_file, debug_skeleton_info_section_label);
@@ -23684,8 +23677,24 @@ dwarf2out_finish (const char *filename)
 
   if (dwarf_split_debug_info)
     {
-      /* Add a place-holder for the dwo_id to the comp-unit die.  */
-      add_AT_data8 (comp_unit_die (), DW_AT_GNU_dwo_id, dwo_id_placeholder);
+      int mark;
+      unsigned char checksum[16];
+      struct md5_ctx ctx;
+
+      /* Compute a checksum of the comp_unit to use as the dwo_id.  */
+      md5_init_ctx (&ctx);
+      mark = 0;
+      die_checksum (comp_unit_die (), &ctx, &mark);
+      unmark_all_dies (comp_unit_die ());
+      md5_finish_ctx (&ctx, checksum);
+
+      /* Use the first 8 bytes of the checksum as the dwo_id,
+	 and add it to both comp-unit DIEs.  */
+      add_AT_data8 (main_comp_unit_die, DW_AT_GNU_dwo_id, checksum);
+      add_AT_data8 (comp_unit_die (), DW_AT_GNU_dwo_id, checksum);
+
+      /* Add the base offset of the ranges table to the skeleton
+	 comp-unit DIE.  */
       if (ranges_table_in_use)
 	add_AT_lineptr (main_comp_unit_die, DW_AT_GNU_ranges_base,
 			ranges_section_label);
