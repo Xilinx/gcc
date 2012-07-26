@@ -135,7 +135,8 @@ expr_t;
 /* Array types.  */
 typedef enum
 { AS_EXPLICIT = 1, AS_ASSUMED_SHAPE, AS_DEFERRED,
-  AS_ASSUMED_SIZE, AS_IMPLIED_SHAPE, AS_UNKNOWN
+  AS_ASSUMED_SIZE, AS_IMPLIED_SHAPE, AS_ASSUMED_RANK,
+  AS_UNKNOWN
 }
 array_type;
 
@@ -917,7 +918,7 @@ gfc_typespec;
 /* Array specification.  */
 typedef struct
 {
-  int rank;	/* A rank of zero means that a variable is a scalar.  */
+  int rank;	/* A scalar has a rank of 0, an assumed-rank array has -1.  */
   int corank;
   array_type type, cotype;
   struct gfc_expr *lower[GFC_MAX_DIMENSIONS], *upper[GFC_MAX_DIMENSIONS];
@@ -1694,7 +1695,7 @@ typedef struct gfc_expr
 
   gfc_typespec ts;	/* These two refer to the overall expression */
 
-  int rank;
+  int rank;		/* 0 indicates a scalar, -1 an assumed-rank array.  */
   mpz_t *shape;		/* Can be NULL if shape is unknown at compile time */
 
   /* Nonnull for functions and structure constructors, may also used to hold the
@@ -1709,7 +1710,7 @@ typedef struct gfc_expr
      is not a variable.  */
   struct gfc_expr *base_expr;
 
-  /* is_boz is true if the integer is regarded as BOZ bitpatten and is_snan
+  /* is_boz is true if the integer is regarded as BOZ bit pattern and is_snan
      denotes a signalling not-a-number.  */
   unsigned int is_boz : 1, is_snan : 1;
 

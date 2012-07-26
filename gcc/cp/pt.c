@@ -1719,19 +1719,21 @@ print_candidates_1 (tree fns, bool more, const char **str)
       }
     else
       {
+	tree cand = OVL_CURRENT (fn);
         if (!*str)
           {
             /* Pick the prefix string.  */
             if (!more && !OVL_NEXT (fns))
               {
-                error ("candidate is: %+#D", OVL_CURRENT (fn));
+                inform (DECL_SOURCE_LOCATION (cand),
+			"candidate is: %#D", cand);
                 continue;
               }
 
             *str = _("candidates are:");
             spaces = get_spaces (*str);
           }
-        error ("%s %+#D", *str, OVL_CURRENT (fn));
+        inform (DECL_SOURCE_LOCATION (cand), "%s %#D", *str, cand);
         *str = spaces ? spaces : *str;
       }
 
@@ -6140,7 +6142,7 @@ convert_template_argument (tree parm,
       orig_arg = make_typename_type (TREE_OPERAND (arg, 0),
 				     TREE_OPERAND (arg, 1),
 				     typename_type,
-				     complain & tf_error);
+				     complain);
       arg = orig_arg;
       is_type = 1;
     }
@@ -7763,9 +7765,8 @@ limit_bad_template_recursion (tree decl)
 
 static int tinst_depth;
 extern int max_tinst_depth;
-#ifdef GATHER_STATISTICS
 int depth_reached;
-#endif
+
 static GTY(()) struct tinst_level *last_error_tinst_level;
 
 /* We're starting to instantiate D; record the template instantiation context
@@ -7808,10 +7809,8 @@ push_tinst_level (tree d)
   current_tinst_level = new_level;
 
   ++tinst_depth;
-#ifdef GATHER_STATISTICS
-  if (tinst_depth > depth_reached)
+  if (GATHER_STATISTICS && (tinst_depth > depth_reached))
     depth_reached = tinst_depth;
-#endif
 
   return 1;
 }
@@ -8387,7 +8386,8 @@ perform_typedefs_access_check (tree tmpl, tree targs)
          of the use of the typedef.  */
       input_location = iter->locus;
       perform_or_defer_access_check (TYPE_BINFO (type_scope),
-				     type_decl, type_decl);
+				     type_decl, type_decl,
+				     tf_warning_or_error);
     }
     input_location = saved_location;
 }
@@ -8894,7 +8894,7 @@ instantiate_class_template_1 (tree type)
      added to the template at parsing time. Let's get those and perform
      the access checks then.  */
   perform_typedefs_access_check (pattern, args);
-  perform_deferred_access_checks ();
+  perform_deferred_access_checks (tf_warning_or_error);
   pop_nested_class ();
   maximum_field_alignment = saved_maximum_field_alignment;
   if (!fn_context)
@@ -10252,8 +10252,12 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
       break;
 
     case USING_DECL:
-      /* We reach here only for member using decls.  */
-      if (DECL_DEPENDENT_P (t))
+      /* We reach here only for member using decls.  We also need to check
+	 uses_template_parms because DECL_DEPENDENT_P is not set for a
+	 using-declaration that designates a member of the current
+	 instantiation (c++/53549).  */
+      if (DECL_DEPENDENT_P (t)
+	  || uses_template_parms (USING_DECL_SCOPE (t)))
 	{
 	  r = do_class_using_decl
 	    (tsubst_copy (USING_DECL_SCOPE (t), args, complain, in_decl),
@@ -11417,7 +11421,7 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	  }
 
 	f = make_typename_type (ctx, f, typename_type,
-				(complain & tf_error) | tf_keep_type_decl);
+				complain | tf_keep_type_decl);
 	if (f == error_mark_node)
 	  return f;
 	if (TREE_CODE (f) == TYPE_DECL)
@@ -14392,6 +14396,23 @@ deduction_tsubst_fntype (tree fn, tree targs, tsubst_flags_t complain)
   return r;
 }
 
+/* We're out of SFINAE context now, so generate diagnostics for the access
+   errors we saw earlier when instantiating D from TMPL and ARGS.  */
+
+static void
+recheck_decl_substitution (tree d, tree tmpl, tree args)
+{
+  tree pattern = DECL_TEMPLATE_RESULT (tmpl);
+  tree type = TREE_TYPE (pattern);
+  location_t loc = input_location;
+
+  push_access_scope (d);
+  input_location = DECL_SOURCE_LOCATION (pattern);
+  tsubst (type, args, tf_warning_or_error, d);
+  input_location = loc;
+  pop_access_scope (d);
+}
+
 /* Instantiate the indicated variable or function template TMPL with
    the template arguments in TARG_PTR.  */
 
@@ -14402,6 +14423,7 @@ instantiate_template_1 (tree tmpl, tree orig_args, tsubst_flags_t complain)
   tree fndecl;
   tree gen_tmpl;
   tree spec;
+  bool access_ok = true;
 
   if (tmpl == error_mark_node)
     return error_mark_node;
@@ -14449,7 +14471,11 @@ instantiate_template_1 (tree tmpl, tree orig_args, tsubst_flags_t complain)
 	      || fndecl == NULL_TREE);
 
   if (spec != NULL_TREE)
-    return spec;
+    {
+      if (FNDECL_RECHECK_ACCESS_P (spec) && (complain & tf_error))
+	recheck_decl_substitution (spec, gen_tmpl, targ_ptr);
+      return spec;
+    }
 
   if (check_instantiated_args (gen_tmpl, INNERMOST_TEMPLATE_ARGS (targ_ptr),
 			       complain))
@@ -14479,7 +14505,10 @@ instantiate_template_1 (tree tmpl, tree orig_args, tsubst_flags_t complain)
   pop_from_top_level ();
 
   if (fndecl == error_mark_node)
-    return error_mark_node;
+    {
+      pop_deferring_access_checks ();
+      return error_mark_node;
+    }
 
   /* The DECL_TI_TEMPLATE should always be the immediate parent
      template, not the most general template.  */
@@ -14488,7 +14517,8 @@ instantiate_template_1 (tree tmpl, tree orig_args, tsubst_flags_t complain)
   /* Now we know the specialization, compute access previously
      deferred.  */
   push_access_scope (fndecl);
-  perform_deferred_access_checks ();
+  if (!perform_deferred_access_checks (complain))
+    access_ok = false;
   pop_access_scope (fndecl);
   pop_deferring_access_checks ();
 
@@ -14499,6 +14529,16 @@ instantiate_template_1 (tree tmpl, tree orig_args, tsubst_flags_t complain)
   if (DECL_CHAIN (gen_tmpl) && DECL_CLONED_FUNCTION_P (DECL_CHAIN (gen_tmpl)))
     clone_function_decl (fndecl, /*update_method_vec_p=*/0);
 
+  if (!access_ok)
+    {
+      if (!(complain & tf_error))
+	{
+	  /* Remember to reinstantiate when we're out of SFINAE so the user
+	     can see the errors.  */
+	  FNDECL_RECHECK_ACCESS_P (fndecl) = true;
+	}
+      return error_mark_node;
+    }
   return fndecl;
 }
 
@@ -18317,35 +18357,6 @@ instantiate_decl (tree d, int defer_ok,
 
   if (TREE_CODE (d) == FUNCTION_DECL)
     maybe_instantiate_noexcept (d);
-
-  /* Recheck the substitutions to obtain any warning messages
-     about ignoring cv qualifiers.  Don't do this for artificial decls,
-     as it breaks the context-sensitive substitution for lambda op(). */
-  if (!defer_ok && !DECL_ARTIFICIAL (d))
-    {
-      tree gen = DECL_TEMPLATE_RESULT (gen_tmpl);
-      tree type = TREE_TYPE (gen);
-
-      /* Make sure that we can see identifiers, and compute access
-	 correctly.  D is already the target FUNCTION_DECL with the
-	 right context.  */
-      push_access_scope (d);
-
-      if (TREE_CODE (gen) == FUNCTION_DECL)
-	{
-	  tsubst (DECL_ARGUMENTS (gen), gen_args, tf_warning_or_error, d);
-          tsubst_exception_specification (type, gen_args, tf_warning_or_error,
-                                          d, /*defer_ok*/true);
-	  /* Don't simply tsubst the function type, as that will give
-	     duplicate warnings about poor parameter qualifications.
-	     The function arguments are the same as the decl_arguments
-	     without the top level cv qualifiers.  */
-	  type = TREE_TYPE (type);
-	}
-      tsubst (type, gen_args, tf_warning_or_error, d);
-
-      pop_access_scope (d);
-    }
 
   /* Defer all other templates, unless we have been explicitly
      forbidden from doing so.  */

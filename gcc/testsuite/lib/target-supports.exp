@@ -984,6 +984,14 @@ proc check_named_sections_available { } {
     }]
 }
 
+# Return true if the "naked" function attribute is supported on this target.
+
+proc check_effective_target_naked_functions { } {
+    return [check_no_compiler_messages naked_functions assembly {
+	void f() __attribute__((naked));
+    }]
+}
+
 # Return 1 if the target supports Fortran real kinds larger than real(8),
 # 0 otherwise.
 #
@@ -2335,6 +2343,19 @@ proc check_effective_target_arm_eabi { } {
     return [check_no_compiler_messages arm_eabi object {
 	#ifndef __ARM_EABI__
 	#error not EABI
+	#else
+	int dummy;
+	#endif
+    }]
+}
+
+# Return 1 if this is an ARM target that adheres to the hard-float variant of
+# the ABI for the ARM Architecture (e.g. -mfloat-abi=hard).
+
+proc check_effective_target_arm_hf_eabi { } {
+    return [check_no_compiler_messages arm_hf_eabi object {
+	#if !defined(__ARM_EABI__) || !defined(__ARM_PCS_VFP)
+	#error not hard-float EABI
 	#else
 	int dummy;
 	#endif

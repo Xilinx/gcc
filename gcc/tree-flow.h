@@ -414,7 +414,7 @@ extern bool is_ctrl_altering_stmt (gimple);
 extern bool simple_goto_p (gimple);
 extern bool stmt_can_make_abnormal_goto (gimple);
 extern basic_block single_noncomplex_succ (basic_block bb);
-extern void gimple_dump_bb (basic_block, FILE *, int, int);
+extern void gimple_dump_bb (FILE *, basic_block, int, int);
 extern void gimple_debug_bb (basic_block);
 extern basic_block gimple_debug_bb_n (int);
 extern void gimple_dump_cfg (FILE *, int);
@@ -511,9 +511,7 @@ extern void remove_phi_args (edge);
 extern void remove_phi_node (gimple_stmt_iterator *, bool);
 extern void remove_phi_nodes (basic_block);
 extern void release_phi_node (gimple);
-#ifdef GATHER_STATISTICS
 extern void phinodes_print_statistics (void);
-#endif
 
 /* In gimple-low.c  */
 extern void record_vars_into (tree, tree);
@@ -599,9 +597,7 @@ extern void set_ptr_info_alignment (struct ptr_info_def *, unsigned int,
 extern void adjust_ptr_info_misalignment (struct ptr_info_def *,
 					  unsigned int);
 
-#ifdef GATHER_STATISTICS
 extern void ssanames_print_statistics (void);
-#endif
 
 /* In tree-ssa-ccp.c  */
 tree fold_const_aggregate_ref (tree);

@@ -1,3 +1,41 @@
+2012-07-25  François Dumont  <fdumont@gcc.gnu.org>
+
+	PR libstdc++/54075
+	* include/bits/hashtable.h
+	(_Hashtable<>::_Hashtable(_InputIterator, _InputIterator,
+	size_type, ...): Remove std::max usage to guarantee that hashtable
+	state is consistent with hash policy state.
+	(_Hashtable<>::rehash): Likewise. Set _M_prev_resize to 0 to avoid
+	the hashtable to be shrinking on next insertion.
+	* testsuite/23_containers/unordered_set/modifiers/reserve.cc: New.
+	* testsuite/23_containers/unordered_multiset/modifiers/reserve.cc: New.
+	* testsuite/23_containers/unordered_map/modifiers/reserve.cc: New.
+	* testsuite/23_containers/unordered_multimap/modifiers/reserve.cc: New.
+
+2012-07-20  Chip Salzenberg  <chip@pobox.com>
+	    Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/54025
+	* include/std/chrono (duration<>::duration): Fix per C++11.
+	* testsuite/20_util/duration/cons/54025.cc: New.
+	* testsuite/20_util/duration/cons/constexpr.cc: Adjust.
+
+2012-07-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/30_threads/thread/adl.cc: Add missing dg-requires.
+
+2012-07-19  Tristan Gingold  <gingold@adacore.com>
+	    Richard Henderson  <rth@redhat.com>
+
+	* libsupc++/eh_personality.cc (__gxx_personality_seh0): New function.
+	Adjust for SEH.
+	* config/abi/pre/gnu.ver: Add __gxx_personality_seh0.
+
+2012-07-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51213
+	* testsuite/20_util/pair/noncopyable.cc: New.
+
 2012-07-16  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	PR libstdc++/53270

@@ -1799,7 +1799,7 @@ dump_basic_block_info (FILE *file, rtx insn, basic_block *start_to_bb,
       fprintf (file, "\n%s PRED:", ASM_COMMENT_START);
       FOR_EACH_EDGE (e, ei, bb->preds)
         {
-          dump_edge_info (file, e, 0);
+          dump_edge_info (file, e, TDF_DETAILS, 0);
         }
       fprintf (file, "\n");
     }
@@ -1812,7 +1812,7 @@ dump_basic_block_info (FILE *file, rtx insn, basic_block *start_to_bb,
       fprintf (asm_out_file, "%s SUCC:", ASM_COMMENT_START);
       FOR_EACH_EDGE (e, ei, bb->succs)
        {
-         dump_edge_info (asm_out_file, e, 1);
+         dump_edge_info (asm_out_file, e, TDF_DETAILS, 1);
        }
       fprintf (file, "\n");
     }
@@ -3341,6 +3341,72 @@ output_asm_operand_names (rtx *operands, int *oporder, int nops)
     }
 }
 
+#ifdef ASSEMBLER_DIALECT
+/* Helper function to parse assembler dialects in the asm string.
+   This is called from output_asm_insn and asm_fprintf.  */
+static const char *
+do_assembler_dialects (const char *p, int *dialect)
+{
+  char c = *(p - 1);
+
+  switch (c)
+    {
+    case '{':
+      {
+        int i;
+
+        if (*dialect)
+          output_operand_lossage ("nested assembly dialect alternatives");
+        else
+          *dialect = 1;
+
+        /* If we want the first dialect, do nothing.  Otherwise, skip
+           DIALECT_NUMBER of strings ending with '|'.  */
+        for (i = 0; i < dialect_number; i++)
+          {
+            while (*p && *p != '}' && *p++ != '|')
+	      ;
+            if (*p == '}')
+	      break;
+          }
+
+        if (*p == '\0')
+          output_operand_lossage ("unterminated assembly dialect alternative");
+      }
+      break;
+
+    case '|':
+      if (*dialect)
+        {
+          /* Skip to close brace.  */
+          do
+            {
+	      if (*p == '\0')
+		{
+		  output_operand_lossage ("unterminated assembly dialect alternative");
+		  break;
+		}
+            }
+          while (*p++ != '}');
+          *dialect = 0;
+        }
+      else
+        putc (c, asm_out_file);
+      break;
+
+    case '}':
+      if (! *dialect)
+        putc (c, asm_out_file);
+      *dialect = 0;
+      break;
+    default:
+      gcc_unreachable ();
+    }
+
+  return p;
+}
+#endif
+
 /* Output text from TEMPLATE to the assembler output file,
    obeying %-directions to substitute operands taken from
    the vector OPERANDS.
@@ -3407,54 +3473,9 @@ output_asm_insn (const char *templ, rtx *operands)
 
 #ifdef ASSEMBLER_DIALECT
       case '{':
-	{
-	  int i;
-
-	  if (dialect)
-	    output_operand_lossage ("nested assembly dialect alternatives");
-	  else
-	    dialect = 1;
-
-	  /* If we want the first dialect, do nothing.  Otherwise, skip
-	     DIALECT_NUMBER of strings ending with '|'.  */
-	  for (i = 0; i < dialect_number; i++)
-	    {
-	      while (*p && *p != '}' && *p++ != '|')
-		;
-	      if (*p == '}')
-		break;
-	      if (*p == '|')
-		p++;
-	    }
-
-	  if (*p == '\0')
-	    output_operand_lossage ("unterminated assembly dialect alternative");
-	}
-	break;
-
-      case '|':
-	if (dialect)
-	  {
-	    /* Skip to close brace.  */
-	    do
-	      {
-		if (*p == '\0')
-		  {
-		    output_operand_lossage ("unterminated assembly dialect alternative");
-		    break;
-		  }
-	      }
-	    while (*p++ != '}');
-	    dialect = 0;
-	  }
-	else
-	  putc (c, asm_out_file);
-	break;
-
       case '}':
-	if (! dialect)
-	  putc (c, asm_out_file);
-	dialect = 0;
+      case '|':
+	p = do_assembler_dialects (p, &dialect);
 	break;
 #endif
 
@@ -3913,6 +3934,9 @@ asm_fprintf (FILE *file, const char *p, ...)
 {
   char buf[10];
   char *q, c;
+#ifdef ASSEMBLER_DIALECT
+  int dialect = 0;
+#endif
   va_list argptr;
 
   va_start (argptr, p);
@@ -3924,29 +3948,9 @@ asm_fprintf (FILE *file, const char *p, ...)
       {
 #ifdef ASSEMBLER_DIALECT
       case '{':
-	{
-	  int i;
-
-	  /* If we want the first dialect, do nothing.  Otherwise, skip
-	     DIALECT_NUMBER of strings ending with '|'.  */
-	  for (i = 0; i < dialect_number; i++)
-	    {
-	      while (*p && *p++ != '|')
-		;
-
-	      if (*p == '|')
-		p++;
-	    }
-	}
-	break;
-
-      case '|':
-	/* Skip to close brace.  */
-	while (*p && *p++ != '}')
-	  ;
-	break;
-
       case '}':
+      case '|':
+	p = do_assembler_dialects (p, &dialect);
 	break;
 #endif
 

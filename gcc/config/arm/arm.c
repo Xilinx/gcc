@@ -236,6 +236,7 @@ static int arm_issue_rate (void);
 static void arm_output_dwarf_dtprel (FILE *, int, rtx) ATTRIBUTE_UNUSED;
 static bool arm_output_addr_const_extra (FILE *, rtx);
 static bool arm_allocate_stack_slots_for_args (void);
+static bool arm_warn_func_return (tree);
 static const char *arm_invalid_parameter_type (const_tree t);
 static const char *arm_invalid_return_type (const_tree t);
 static tree arm_promoted_type (const_tree t);
@@ -457,6 +458,9 @@ static const struct attribute_spec arm_attribute_table[] =
 #define TARGET_TRAMPOLINE_INIT arm_trampoline_init
 #undef TARGET_TRAMPOLINE_ADJUST_ADDRESS
 #define TARGET_TRAMPOLINE_ADJUST_ADDRESS arm_trampoline_adjust_address
+
+#undef TARGET_WARN_FUNC_RETURN
+#define TARGET_WARN_FUNC_RETURN arm_warn_func_return
 
 #undef TARGET_DEFAULT_SHORT_ENUMS
 #define TARGET_DEFAULT_SHORT_ENUMS arm_default_short_enums
@@ -875,7 +879,8 @@ const struct tune_params arm_slowmul_tune =
   5,						/* Max cond insns.  */
   ARM_PREFETCH_NOT_BENEFICIAL,
   true,						/* Prefer constant pool.  */
-  arm_default_branch_cost
+  arm_default_branch_cost,
+  false                                         /* Prefer LDRD/STRD.  */
 };
 
 const struct tune_params arm_fastmul_tune =
@@ -886,7 +891,8 @@ const struct tune_params arm_fastmul_tune =
   5,						/* Max cond insns.  */
   ARM_PREFETCH_NOT_BENEFICIAL,
   true,						/* Prefer constant pool.  */
-  arm_default_branch_cost
+  arm_default_branch_cost,
+  false                                         /* Prefer LDRD/STRD.  */
 };
 
 /* StrongARM has early execution of branches, so a sequence that is worth
@@ -900,7 +906,8 @@ const struct tune_params arm_strongarm_tune =
   3,						/* Max cond insns.  */
   ARM_PREFETCH_NOT_BENEFICIAL,
   true,						/* Prefer constant pool.  */
-  arm_default_branch_cost
+  arm_default_branch_cost,
+  false                                         /* Prefer LDRD/STRD.  */
 };
 
 const struct tune_params arm_xscale_tune =
@@ -911,7 +918,8 @@ const struct tune_params arm_xscale_tune =
   3,						/* Max cond insns.  */
   ARM_PREFETCH_NOT_BENEFICIAL,
   true,						/* Prefer constant pool.  */
-  arm_default_branch_cost
+  arm_default_branch_cost,
+  false                                         /* Prefer LDRD/STRD.  */
 };
 
 const struct tune_params arm_9e_tune =
@@ -922,7 +930,8 @@ const struct tune_params arm_9e_tune =
   5,						/* Max cond insns.  */
   ARM_PREFETCH_NOT_BENEFICIAL,
   true,						/* Prefer constant pool.  */
-  arm_default_branch_cost
+  arm_default_branch_cost,
+  false                                         /* Prefer LDRD/STRD.  */
 };
 
 const struct tune_params arm_v6t2_tune =
@@ -933,7 +942,8 @@ const struct tune_params arm_v6t2_tune =
   5,						/* Max cond insns.  */
   ARM_PREFETCH_NOT_BENEFICIAL,
   false,					/* Prefer constant pool.  */
-  arm_default_branch_cost
+  arm_default_branch_cost,
+  false                                         /* Prefer LDRD/STRD.  */
 };
 
 /* Generic Cortex tuning.  Use more specific tunings if appropriate.  */
@@ -945,7 +955,20 @@ const struct tune_params arm_cortex_tune =
   5,						/* Max cond insns.  */
   ARM_PREFETCH_NOT_BENEFICIAL,
   false,					/* Prefer constant pool.  */
-  arm_default_branch_cost
+  arm_default_branch_cost,
+  false                                         /* Prefer LDRD/STRD.  */
+};
+
+const struct tune_params arm_cortex_a15_tune =
+{
+  arm_9e_rtx_costs,
+  NULL,
+  1,						/* Constant limit.  */
+  5,						/* Max cond insns.  */
+  ARM_PREFETCH_NOT_BENEFICIAL,
+  false,					/* Prefer constant pool.  */
+  arm_default_branch_cost,
+  true                                          /* Prefer LDRD/STRD.  */
 };
 
 /* Branches can be dual-issued on Cortex-A5, so conditional execution is
@@ -959,7 +982,8 @@ const struct tune_params arm_cortex_a5_tune =
   1,						/* Max cond insns.  */
   ARM_PREFETCH_NOT_BENEFICIAL,
   false,					/* Prefer constant pool.  */
-  arm_cortex_a5_branch_cost
+  arm_cortex_a5_branch_cost,
+  false                                         /* Prefer LDRD/STRD.  */
 };
 
 const struct tune_params arm_cortex_a9_tune =
@@ -970,7 +994,8 @@ const struct tune_params arm_cortex_a9_tune =
   5,						/* Max cond insns.  */
   ARM_PREFETCH_BENEFICIAL(4,32,32),
   false,					/* Prefer constant pool.  */
-  arm_default_branch_cost
+  arm_default_branch_cost,
+  false                                         /* Prefer LDRD/STRD.  */
 };
 
 const struct tune_params arm_fa726te_tune =
@@ -981,7 +1006,8 @@ const struct tune_params arm_fa726te_tune =
   5,						/* Max cond insns.  */
   ARM_PREFETCH_NOT_BENEFICIAL,
   true,						/* Prefer constant pool.  */
-  arm_default_branch_cost
+  arm_default_branch_cost,
+  false                                         /* Prefer LDRD/STRD.  */
 };
 
 
@@ -2144,6 +2170,14 @@ arm_allocate_stack_slots_for_args (void)
 {
   /* Naked functions should not allocate stack slots for arguments.  */
   return !IS_NAKED (arm_current_func_type ());
+}
+
+static bool
+arm_warn_func_return (tree decl)
+{
+  /* Naked functions are implemented entirely in assembly, including the
+     return sequence, so suppress warnings about this.  */
+  return lookup_attribute ("naked", DECL_ATTRIBUTES (decl)) == NULL_TREE;
 }
 
 
@@ -7614,6 +7648,17 @@ arm_rtx_costs_1 (rtx x, enum rtx_code outer, int* total, bool speed)
 	}
       return true;
 
+    case CONST_VECTOR:
+      if (TARGET_NEON
+	  && TARGET_HARD_FLOAT
+	  && outer == SET
+	  && (VALID_NEON_DREG_MODE (mode) || VALID_NEON_QREG_MODE (mode))
+	  && neon_immediate_valid_for_move (x, mode, NULL, NULL))
+	*total = COSTS_N_INSNS (1);
+      else
+	*total = COSTS_N_INSNS (4);
+      return true;
+
     default:
       *total = COSTS_N_INSNS (4);
       return false;
@@ -7952,6 +7997,17 @@ arm_size_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer_code,
 
     case CONST_DOUBLE:
       *total = COSTS_N_INSNS (4);
+      return true;
+
+    case CONST_VECTOR:
+      if (TARGET_NEON
+	  && TARGET_HARD_FLOAT
+	  && outer_code == SET
+	  && (VALID_NEON_DREG_MODE (mode) || VALID_NEON_QREG_MODE (mode))
+	  && neon_immediate_valid_for_move (x, mode, NULL, NULL))
+	*total = COSTS_N_INSNS (1);
+      else
+	*total = COSTS_N_INSNS (4);
       return true;
 
     case HIGH:
@@ -8774,10 +8830,13 @@ vfp3_const_double_rtx (rtx x)
    vmov  i64    17    aaaaaaaa bbbbbbbb cccccccc dddddddd
                       eeeeeeee ffffffff gggggggg hhhhhhhh
    vmov  f32    18    aBbbbbbc defgh000 00000000 00000000
+   vmov  f32    19    00000000 00000000 00000000 00000000
 
    For case 18, B = !b. Representable values are exactly those accepted by
    vfp3_const_double_index, but are output as floating-point numbers rather
    than indices.
+
+   For case 19, we will change it to vmov.i32 when assembling.
 
    Variants 0-5 (inclusive) may also be used as immediates for the second
    operand of VORR/VBIC instructions.
@@ -8835,7 +8894,7 @@ neon_valid_immediate (rtx op, enum machine_mode mode, int inverse,
       rtx el0 = CONST_VECTOR_ELT (op, 0);
       REAL_VALUE_TYPE r0;
 
-      if (!vfp3_const_double_rtx (el0))
+      if (!vfp3_const_double_rtx (el0) && el0 != CONST0_RTX (GET_MODE (el0)))
         return -1;
 
       REAL_VALUE_FROM_CONST_DOUBLE (r0, el0);
@@ -8857,7 +8916,10 @@ neon_valid_immediate (rtx op, enum machine_mode mode, int inverse,
       if (elementwidth)
         *elementwidth = 0;
 
-      return 18;
+      if (el0 == CONST0_RTX (GET_MODE (el0)))
+	return 19;
+      else
+	return 18;
     }
 
   /* Splat vector constant out into a byte vector.  */
@@ -13365,6 +13427,13 @@ arm_reorg (void)
   if (TARGET_THUMB2)
     thumb2_reorg ();
 
+  /* Ensure all insns that must be split have been split at this point.
+     Otherwise, the pool placement code below may compute incorrect
+     insn lengths.  Note that when optimizing, all insns have already
+     been split at this point.  */
+  if (!optimize)
+    split_all_insns_noflow ();
+
   minipool_fix_head = minipool_fix_tail = NULL;
 
   /* The first insn must always be a note, or the code below won't
@@ -16121,7 +16190,11 @@ arm_get_frame_offsets (void)
 	  else
 	    for (i = 4; i <= (TARGET_THUMB1 ? LAST_LO_REGNUM : 11); i++)
 	      {
-		if ((offsets->saved_regs_mask & (1 << i)) == 0)
+		/* Avoid fixed registers; they may be changed at
+		   arbitrary times so it's unsafe to restore them
+		   during the epilogue.  */
+		if (!fixed_regs[i]
+		    && (offsets->saved_regs_mask & (1 << i)) == 0)
 		  {
 		    reg = i;
 		    break;
@@ -17359,7 +17432,7 @@ arm_print_operand_address (FILE *stream, rtx x)
       int is_minus = GET_CODE (x) == MINUS;
 
       if (GET_CODE (x) == REG)
-	asm_fprintf (stream, "[%r, #0]", REGNO (x));
+	asm_fprintf (stream, "[%r]", REGNO (x));
       else if (GET_CODE (x) == PLUS || is_minus)
 	{
 	  rtx base = XEXP (x, 0);

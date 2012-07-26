@@ -4918,6 +4918,8 @@ FRAME_POINTER_REGNUM, ARG_POINTER_REGNUM, and the PIC_OFFSET_TABLE_REGNUM.
 
 @hook TARGET_SET_UP_BY_PROLOGUE
 
+@hook TARGET_WARN_FUNC_RETURN
+
 @node Stack Smashing Protection
 @subsection Stack smashing protection
 @cindex stack smashing protection
@@ -9587,8 +9589,9 @@ return an integer value not larger than the corresponding element in
 be switched into prior to the execution of @var{insn}.
 @end defmac
 
-@defmac MODE_AFTER (@var{mode}, @var{insn})
-If this macro is defined, it is evaluated for every @var{insn} during
+@defmac MODE_AFTER (@var{entity}, @var{mode}, @var{insn})
+@var{entity} is an integer specifying a mode-switched entity.  If
+this macro is defined, it is evaluated for every @var{insn} during
 mode switching.  It determines the mode that an insn results in (if
 different from the incoming mode).
 @end defmac
@@ -10202,12 +10205,6 @@ is larger then @var{mem_mode} but still smaller than @code{word_mode}.
 @defmac SHORT_IMMEDIATES_SIGN_EXTEND
 Define this macro if loading short immediate values into registers sign
 extends.
-@end defmac
-
-@defmac FIXUNS_TRUNC_LIKE_FIX_TRUNC
-Define this macro if the same instructions that convert a floating
-point number to a signed fixed point number also convert validly to an
-unsigned one.
 @end defmac
 
 @hook TARGET_MIN_DIVISIONS_FOR_RECIP_MUL

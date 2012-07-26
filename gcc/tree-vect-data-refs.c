@@ -1131,6 +1131,18 @@ vect_verify_datarefs_alignment (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo)
   return true;
 }
 
+/* Given an memory reference EXP return whether its alignment is less
+   than its size.  */
+
+static bool
+not_size_aligned (tree exp)
+{
+  if (!host_integerp (TYPE_SIZE (TREE_TYPE (exp)), 1))
+    return true;
+
+  return (TREE_INT_CST_LOW (TYPE_SIZE (TREE_TYPE (exp)))
+	  > get_object_alignment (exp));
+}
 
 /* Function vector_alignment_reachable_p
 
@@ -1184,12 +1196,8 @@ vector_alignment_reachable_p (struct data_reference *dr)
 
   if (!known_alignment_for_access_p (dr))
     {
-      tree type = (TREE_TYPE (DR_REF (dr)));
-      bool is_packed = contains_packed_reference (DR_REF (dr));
-
-      if (compare_tree_int (TYPE_SIZE (type), TYPE_ALIGN (type)) > 0)
-	is_packed = true;
-
+      tree type = TREE_TYPE (DR_REF (dr));
+      bool is_packed = not_size_aligned (DR_REF (dr));
       if (vect_print_dump_info (REPORT_DETAILS))
 	fprintf (vect_dump, "Unknown misalignment, is_packed = %d",is_packed);
       if (targetm.vectorize.vector_alignment_reachable (type, is_packed))
@@ -1204,10 +1212,11 @@ vector_alignment_reachable_p (struct data_reference *dr)
 
 /* Calculate the cost of the memory access represented by DR.  */
 
-static stmt_vector_for_cost
+static void
 vect_get_data_access_cost (struct data_reference *dr,
                            unsigned int *inside_cost,
-                           unsigned int *outside_cost)
+                           unsigned int *outside_cost,
+			   stmt_vector_for_cost *body_cost_vec)
 {
   gimple stmt = DR_STMT (dr);
   stmt_vec_info stmt_info = vinfo_for_stmt (stmt);
@@ -1215,19 +1224,16 @@ vect_get_data_access_cost (struct data_reference *dr,
   loop_vec_info loop_vinfo = STMT_VINFO_LOOP_VINFO (stmt_info);
   int vf = LOOP_VINFO_VECT_FACTOR (loop_vinfo);
   int ncopies = vf / nunits;
-  stmt_vector_for_cost stmt_cost_vec = VEC_alloc (stmt_info_for_cost, heap, 2);
 
   if (DR_IS_READ (dr))
-    vect_get_load_cost (dr, ncopies, true, inside_cost,
-			outside_cost, &stmt_cost_vec);
+    vect_get_load_cost (dr, ncopies, true, inside_cost, outside_cost,
+			NULL, body_cost_vec, false);
   else
-    vect_get_store_cost (dr, ncopies, inside_cost, &stmt_cost_vec);
+    vect_get_store_cost (dr, ncopies, inside_cost, body_cost_vec);
 
   if (vect_print_dump_info (REPORT_COST))
     fprintf (vect_dump, "vect_get_data_access_cost: inside_cost = %d, "
              "outside_cost = %d.", *inside_cost, *outside_cost);
-
-  return stmt_cost_vec;
 }
 
 
@@ -1320,7 +1326,12 @@ vect_peeling_hash_get_lowest_cost (void **slot, void *data)
   loop_vec_info loop_vinfo = STMT_VINFO_LOOP_VINFO (stmt_info);
   VEC (data_reference_p, heap) *datarefs = LOOP_VINFO_DATAREFS (loop_vinfo);
   struct data_reference *dr;
-  stmt_vector_for_cost stmt_cost_vec = NULL;
+  stmt_vector_for_cost prologue_cost_vec, body_cost_vec, epilogue_cost_vec;
+  int single_iter_cost;
+
+  prologue_cost_vec = VEC_alloc (stmt_info_for_cost, heap, 2);
+  body_cost_vec     = VEC_alloc (stmt_info_for_cost, heap, 2);
+  epilogue_cost_vec = VEC_alloc (stmt_info_for_cost, heap, 2);
 
   FOR_EACH_VEC_ELT (data_reference_p, datarefs, i, dr)
     {
@@ -1334,23 +1345,35 @@ vect_peeling_hash_get_lowest_cost (void **slot, void *data)
 
       save_misalignment = DR_MISALIGNMENT (dr);
       vect_update_misalignment_for_peel (dr, elem->dr, elem->npeel);
-      stmt_cost_vec = vect_get_data_access_cost (dr, &inside_cost,
-						 &outside_cost);
+      vect_get_data_access_cost (dr, &inside_cost, &outside_cost,
+				 &body_cost_vec);
       SET_DR_MISALIGNMENT (dr, save_misalignment);
     }
 
-  outside_cost += vect_get_known_peeling_cost (loop_vinfo, elem->npeel, &dummy,
-                         vect_get_single_scalar_iteration_cost (loop_vinfo));
+  single_iter_cost = vect_get_single_scalar_iteration_cost (loop_vinfo);
+  outside_cost += vect_get_known_peeling_cost (loop_vinfo, elem->npeel,
+					       &dummy, single_iter_cost,
+					       &prologue_cost_vec,
+					       &epilogue_cost_vec);
+
+  /* Prologue and epilogue costs are added to the target model later.
+     These costs depend only on the scalar iteration cost, the
+     number of peeling iterations finally chosen, and the number of
+     misaligned statements.  So discard the information found here.  */
+  VEC_free (stmt_info_for_cost, heap, prologue_cost_vec);
+  VEC_free (stmt_info_for_cost, heap, epilogue_cost_vec);
 
   if (inside_cost < min->inside_cost
       || (inside_cost == min->inside_cost && outside_cost < min->outside_cost))
     {
       min->inside_cost = inside_cost;
       min->outside_cost = outside_cost;
-      min->stmt_cost_vec = stmt_cost_vec;
+      min->body_cost_vec = body_cost_vec;
       min->peel_info.dr = elem->dr;
       min->peel_info.npeel = elem->npeel;
     }
+  else
+    VEC_free (stmt_info_for_cost, heap, body_cost_vec);
 
   return 1;
 }
@@ -1363,12 +1386,12 @@ vect_peeling_hash_get_lowest_cost (void **slot, void *data)
 static struct data_reference *
 vect_peeling_hash_choose_best_peeling (loop_vec_info loop_vinfo,
                                        unsigned int *npeel,
-				       stmt_vector_for_cost *stmt_cost_vec)
+				       stmt_vector_for_cost *body_cost_vec)
 {
    struct _vect_peel_extended_info res;
 
    res.peel_info.dr = NULL;
-   res.stmt_cost_vec = NULL;
+   res.body_cost_vec = NULL;
 
    if (flag_vect_cost_model)
      {
@@ -1385,7 +1408,7 @@ vect_peeling_hash_choose_best_peeling (loop_vec_info loop_vinfo,
      }
 
    *npeel = res.peel_info.npeel;
-   *stmt_cost_vec = res.stmt_cost_vec;
+   *body_cost_vec = res.body_cost_vec;
    return res.peel_info.dr;
 }
 
@@ -1502,7 +1525,7 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
   unsigned possible_npeel_number = 1;
   tree vectype;
   unsigned int nelements, mis, same_align_drs_max = 0;
-  stmt_vector_for_cost stmt_cost_vec = NULL;
+  stmt_vector_for_cost body_cost_vec = NULL;
 
   if (vect_print_dump_info (REPORT_DETAILS))
     fprintf (vect_dump, "=== vect_enhance_data_refs_alignment ===");
@@ -1706,11 +1729,14 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
           unsigned int store_inside_cost = 0, store_outside_cost = 0;
           unsigned int load_inside_penalty = 0, load_outside_penalty = 0;
           unsigned int store_inside_penalty = 0, store_outside_penalty = 0;
+	  stmt_vector_for_cost dummy = VEC_alloc (stmt_info_for_cost, heap, 2);
 
-          (void) vect_get_data_access_cost (dr0, &load_inside_cost,
-					    &load_outside_cost);
-          (void) vect_get_data_access_cost (first_store, &store_inside_cost,
-					    &store_outside_cost);
+          vect_get_data_access_cost (dr0, &load_inside_cost, &load_outside_cost,
+				     &dummy);
+          vect_get_data_access_cost (first_store, &store_inside_cost,
+				     &store_outside_cost, &dummy);
+
+	  VEC_free (stmt_info_for_cost, heap, dummy);
 
           /* Calculate the penalty for leaving FIRST_STORE unaligned (by
              aligning the load DR0).  */
@@ -1775,7 +1801,7 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
 
       /* Choose the best peeling from the hash table.  */
       dr0 = vect_peeling_hash_choose_best_peeling (loop_vinfo, &npeel,
-						   &stmt_cost_vec);
+						   &body_cost_vec);
       if (!dr0 || !npeel)
         do_peeling = false;
     }
@@ -1860,6 +1886,7 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
       if (do_peeling)
         {
 	  stmt_info_for_cost *si;
+	  void *data = LOOP_VINFO_TARGET_COST_DATA (loop_vinfo);
 
           /* (1.2) Update the DR_MISALIGNMENT of each data reference DR_i.
              If the misalignment of DR_i is identical to that of dr0 then set
@@ -1887,13 +1914,16 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
 	  /* We've delayed passing the inside-loop peeling costs to the
 	     target cost model until we were sure peeling would happen.
 	     Do so now.  */
-	  if (stmt_cost_vec)
+	  if (body_cost_vec)
 	    {
-	      FOR_EACH_VEC_ELT (stmt_info_for_cost, stmt_cost_vec, i, si)
-		(void) add_stmt_cost (LOOP_VINFO_TARGET_COST_DATA (loop_vinfo),
-				      si->count, si->kind,
-				      vinfo_for_stmt (si->stmt), si->misalign);
-	      VEC_free (stmt_info_for_cost, heap, stmt_cost_vec);
+	      FOR_EACH_VEC_ELT (stmt_info_for_cost, body_cost_vec, i, si)
+		{
+		  struct _stmt_vec_info *stmt_info
+		    = si->stmt ? vinfo_for_stmt (si->stmt) : NULL;
+		  (void) add_stmt_cost (data, si->count, si->kind, stmt_info,
+					si->misalign, vect_body);
+		}
+	      VEC_free (stmt_info_for_cost, heap, body_cost_vec);
 	    }
 
 	  stat = vect_verify_datarefs_alignment (loop_vinfo, NULL);
@@ -3397,15 +3427,12 @@ vect_get_new_vect_var (tree type, enum vect_var_kind var_kind, const char *name)
   if (name)
     {
       char* tmp = concat (prefix, name, NULL);
-      new_vect_var = create_tmp_var (type, tmp);
+      new_vect_var = create_tmp_reg (type, tmp);
       free (tmp);
     }
   else
-    new_vect_var = create_tmp_var (type, prefix);
-
-  /* Mark vector typed variable as a gimple register variable.  */
-  if (TREE_CODE (type) == VECTOR_TYPE)
-    DECL_GIMPLE_REG_P (new_vect_var) = true;
+    new_vect_var = create_tmp_reg (type, prefix);
+  add_referenced_var (new_vect_var);
 
   return new_vect_var;
 }
@@ -3533,7 +3560,6 @@ vect_create_addr_base_for_vector_ref (gimple stmt,
   vec_stmt = fold_convert (vect_ptr_type, addr_base);
   addr_expr = vect_get_new_vect_var (vect_ptr_type, vect_pointer_var,
                                      get_name (base_name));
-  add_referenced_var (addr_expr);
   vec_stmt = force_gimple_operand (vec_stmt, &seq, false, addr_expr);
   gimple_seq_add_seq (new_stmt_list, seq);
 
@@ -3731,8 +3757,6 @@ vect_create_data_ref_ptr (gimple stmt, tree aggr_type, struct loop *at_loop,
 	}
       while (orig_stmt);
     }
-
-  add_referenced_var (aggr_ptr);
 
   /* Note: If the dataref is in an inner-loop nested in LOOP, and we are
      vectorizing LOOP (i.e., outer-loop vectorization), we need to create two
@@ -3983,7 +4007,6 @@ vect_create_destination_var (tree scalar_dest, tree vectype)
   if (!new_name)
     new_name = "var_";
   vec_dest = vect_get_new_vect_var (type, kind, new_name);
-  add_referenced_var (vec_dest);
 
   return vec_dest;
 }
@@ -4144,8 +4167,7 @@ vect_permute_store_chain (VEC(tree,heap) *dr_chain,
 
 	  /* Create interleaving stmt:
 	     high = VEC_PERM_EXPR <vect1, vect2, {0, nelt, 1, nelt+1, ...}>  */
-	  perm_dest = create_tmp_var (vectype, "vect_inter_high");
-	  DECL_GIMPLE_REG_P (perm_dest) = 1;
+	  perm_dest = create_tmp_reg (vectype, "vect_inter_high");
 	  add_referenced_var (perm_dest);
 	  high = make_ssa_name (perm_dest, NULL);
 	  perm_stmt
@@ -4157,8 +4179,7 @@ vect_permute_store_chain (VEC(tree,heap) *dr_chain,
 	  /* Create interleaving stmt:
 	     low = VEC_PERM_EXPR <vect1, vect2, {nelt/2, nelt*3/2, nelt/2+1,
 						 nelt*3/2+1, ...}>  */
-	  perm_dest = create_tmp_var (vectype, "vect_inter_low");
-	  DECL_GIMPLE_REG_P (perm_dest) = 1;
+	  perm_dest = create_tmp_reg (vectype, "vect_inter_low");
 	  add_referenced_var (perm_dest);
 	  low = make_ssa_name (perm_dest, NULL);
 	  perm_stmt
@@ -4601,8 +4622,7 @@ vect_permute_load_chain (VEC(tree,heap) *dr_chain,
 	  second_vect = VEC_index (tree, dr_chain, j+1);
 
 	  /* data_ref = permute_even (first_data_ref, second_data_ref);  */
-	  perm_dest = create_tmp_var (vectype, "vect_perm_even");
-	  DECL_GIMPLE_REG_P (perm_dest) = 1;
+	  perm_dest = create_tmp_reg (vectype, "vect_perm_even");
 	  add_referenced_var (perm_dest);
 
 	  perm_stmt = gimple_build_assign_with_ops3 (VEC_PERM_EXPR, perm_dest,
@@ -4616,8 +4636,7 @@ vect_permute_load_chain (VEC(tree,heap) *dr_chain,
 	  VEC_replace (tree, *result_chain, j/2, data_ref);
 
 	  /* data_ref = permute_odd (first_data_ref, second_data_ref);  */
-	  perm_dest = create_tmp_var (vectype, "vect_perm_odd");
-	  DECL_GIMPLE_REG_P (perm_dest) = 1;
+	  perm_dest = create_tmp_reg (vectype, "vect_perm_odd");
 	  add_referenced_var (perm_dest);
 
 	  perm_stmt = gimple_build_assign_with_ops3 (VEC_PERM_EXPR, perm_dest,
@@ -4874,7 +4893,7 @@ vect_supportable_dr_alignment (struct data_reference *dr,
 	    return dr_explicit_realign_optimized;
 	}
       if (!known_alignment_for_access_p (dr))
-	is_packed = contains_packed_reference (DR_REF (dr));
+	is_packed = not_size_aligned (DR_REF (dr));
 
       if (targetm.vectorize.
 	  support_vector_misalignment (mode, type,
@@ -4888,7 +4907,7 @@ vect_supportable_dr_alignment (struct data_reference *dr,
       tree type = (TREE_TYPE (DR_REF (dr)));
 
       if (!known_alignment_for_access_p (dr))
-	is_packed = contains_packed_reference (DR_REF (dr));
+	is_packed = not_size_aligned (DR_REF (dr));
 
      if (targetm.vectorize.
          support_vector_misalignment (mode, type,

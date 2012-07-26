@@ -225,6 +225,10 @@ mbranch-cost=
 Target RejectNegative Joined UInteger Var(sh_branch_cost) Init(-1)
 Cost to assume for a branch insn
 
+mzdcbranch
+Target Var(TARGET_ZDCBRANCH)
+Assume that zero displacement conditional branches are fast
+
 mcbranchdi
 Target Var(TARGET_CBRANCHDI4)
 Enable cbranchdi4 pattern
@@ -266,8 +270,8 @@ Target Report RejectNegative Mask(HITACHI)
 Follow Renesas (formerly Hitachi) / SuperH calling conventions
 
 mieee
-Target Report Mask(IEEE)
-Increase the IEEE compliance for floating-point code
+Target Var(TARGET_IEEE)
+Increase the IEEE compliance for floating-point comparisons
 
 mindexed-addressing
 Target Report Mask(ALLOW_INDEXED_ADDRESS) Condition(SUPPORT_ANY_SH5_32MEDIA)

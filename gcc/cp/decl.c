@@ -3412,9 +3412,9 @@ make_typename_type (tree context, tree name, enum tag_types tag_type,
 	       context, name, t);
       return error_mark_node;
     }
-  
-  if (complain & tf_error)
-    perform_or_defer_access_check (TYPE_BINFO (context), t, t);
+
+  if (!perform_or_defer_access_check (TYPE_BINFO (context), t, t, complain))
+    return error_mark_node;
 
   /* If we are currently parsing a template and if T is a typedef accessed
      through CONTEXT then we need to remember and check access of T at
@@ -3484,8 +3484,9 @@ make_unbound_class_template (tree context, tree name, tree parm_list,
 	  return error_mark_node;
 	}
 
-      if (complain & tf_error)
-	perform_or_defer_access_check (TYPE_BINFO (context), tmpl, tmpl);
+      if (!perform_or_defer_access_check (TYPE_BINFO (context), tmpl, tmpl,
+					  complain))
+	return error_mark_node;
 
       return tmpl;
     }
@@ -6754,7 +6755,8 @@ register_dtor_fn (tree decl)
       gcc_assert (idx >= 0);
       cleanup = VEC_index (tree, CLASSTYPE_METHOD_VEC (type), idx);
       /* Make sure it is accessible.  */
-      perform_or_defer_access_check (TYPE_BINFO (type), cleanup, cleanup);
+      perform_or_defer_access_check (TYPE_BINFO (type), cleanup, cleanup,
+				     tf_warning_or_error);
     }
   else
     {
@@ -9635,8 +9637,6 @@ grokdeclarator (const cp_declarator *declarator,
      the object as `const'.  */
   if (constexpr_p && innermost_code != cdk_function)
     {
-      if (type_quals & TYPE_QUAL_CONST)
-        error ("both %<const%> and %<constexpr%> cannot be used here");
       if (type_quals & TYPE_QUAL_VOLATILE)
         error ("both %<volatile%> and %<constexpr%> cannot be used here");
       if (TREE_CODE (type) != REFERENCE_TYPE)
@@ -10709,19 +10709,8 @@ check_default_argument (tree decl, tree arg)
 
      A default argument expression is implicitly converted to the
      parameter type.  */
-  if (!TREE_TYPE (arg)
-      || !can_convert_arg (decl_type, TREE_TYPE (arg), arg, LOOKUP_NORMAL,
-			   tf_warning_or_error))
-    {
-      if (decl)
-	error ("default argument for %q#D has type %qT",
-	       decl, TREE_TYPE (arg));
-      else
-	error ("default argument for parameter of type %qT has type %qT",
-	       decl_type, TREE_TYPE (arg));
-
-      return error_mark_node;
-    }
+  perform_implicit_conversion_flags (decl_type, arg, tf_warning_or_error,
+				     LOOKUP_NORMAL);
 
   if (warn_zero_as_null_pointer_constant
       && c_inhibit_evaluation_warnings == 0
@@ -11952,7 +11941,14 @@ xref_basetypes (tree ref, tree base_list)
     {
       tree basetype = TREE_VALUE (*basep);
 
-      if (!(processing_template_decl && uses_template_parms (basetype))
+      /* The dependent_type_p call below should really be dependent_scope_p
+	 so that we give a hard error about using an incomplete type as a
+	 base, but we allow it with a pedwarn for backward
+	 compatibility.  */
+      if (processing_template_decl
+	  && CLASS_TYPE_P (basetype) && TYPE_BEING_DEFINED (basetype))
+	cxx_incomplete_type_diagnostic (NULL_TREE, basetype, DK_PEDWARN);
+      if (!dependent_type_p (basetype)
 	  && !complete_type_or_else (basetype, NULL))
 	/* An incomplete type.  Remove it from the list.  */
 	*basep = TREE_CHAIN (*basep);
@@ -12494,7 +12490,7 @@ finish_enum_value_list (tree enumtype)
   for (t = TYPE_MAIN_VARIANT (enumtype); t; t = TYPE_NEXT_VARIANT (t))
     TYPE_VALUES (t) = TYPE_VALUES (enumtype);
 
-  if (current_class_type
+  if (at_class_scope_p ()
       && COMPLETE_TYPE_P (current_class_type)
       && UNSCOPED_ENUM_P (enumtype))
     insert_late_enum_def_into_classtype_sorted_fields (enumtype,
@@ -13700,7 +13696,8 @@ finish_function (int flags)
       && !TREE_NO_WARNING (fndecl)
       /* Structor return values (if any) are set by the compiler.  */
       && !DECL_CONSTRUCTOR_P (fndecl)
-      && !DECL_DESTRUCTOR_P (fndecl))
+      && !DECL_DESTRUCTOR_P (fndecl)
+      && targetm.warn_func_return (fndecl))
     {
       warning (OPT_Wreturn_type,
  	       "no return statement in function returning non-void");

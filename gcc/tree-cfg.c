@@ -40,6 +40,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "value-prof.h"
 #include "pointer-set.h"
 #include "tree-inline.h"
+#include "target.h"
 
 /* This file contains functions for building the Control Flow Graph (CFG)
    for a function tree.  */
@@ -1334,8 +1335,7 @@ group_case_labels_stmt (gimple stmt)
 {
   int old_size = gimple_switch_num_labels (stmt);
   int i, j, new_size = old_size;
-  tree default_case = NULL_TREE;
-  tree default_label = NULL_TREE;
+  basic_block default_bb = NULL;
   bool has_default;
 
   /* The default label is always the first case in a switch
@@ -1344,8 +1344,8 @@ group_case_labels_stmt (gimple stmt)
   if (!CASE_LOW (gimple_switch_default_label (stmt))
       && !CASE_HIGH (gimple_switch_default_label (stmt)))
     {
-      default_case = gimple_switch_default_label (stmt);
-      default_label = CASE_LABEL (default_case);
+      tree default_case = gimple_switch_default_label (stmt);
+      default_bb = label_to_block (CASE_LABEL (default_case));
       has_default = true;
     }
   else
@@ -1358,15 +1358,17 @@ group_case_labels_stmt (gimple stmt)
     i = 0;
   while (i < old_size)
     {
-      tree base_case, base_label, base_high;
+      tree base_case, base_high;
+      basic_block base_bb;
+
       base_case = gimple_switch_label (stmt, i);
 
       gcc_assert (base_case);
-      base_label = CASE_LABEL (base_case);
+      base_bb = label_to_block (CASE_LABEL (base_case));
 
       /* Discard cases that have the same destination as the
 	 default case.  */
-      if (base_label == default_label)
+      if (base_bb == default_bb)
 	{
 	  gimple_switch_set_label (stmt, i, NULL_TREE);
 	  i++;
@@ -1385,13 +1387,13 @@ group_case_labels_stmt (gimple stmt)
       while (i < old_size)
 	{
 	  tree merge_case = gimple_switch_label (stmt, i);
-	  tree merge_label = CASE_LABEL (merge_case);
+	  basic_block merge_bb = label_to_block (CASE_LABEL (merge_case));
 	  double_int bhp1 = double_int_add (tree_to_double_int (base_high),
 					    double_int_one);
 
 	  /* Merge the cases if they jump to the same place,
 	     and their ranges are consecutive.  */
-	  if (merge_label == base_label
+	  if (merge_bb == base_bb
 	      && double_int_equal_p (tree_to_double_int (CASE_LOW (merge_case)),
 				     bhp1))
 	    {
@@ -1450,7 +1452,7 @@ gimple_can_merge_blocks_p (basic_block a, basic_block b)
   if (!single_succ_p (a))
     return false;
 
-  if (single_succ_edge (a)->flags & (EDGE_ABNORMAL | EDGE_EH | EDGE_PRESERVE))
+  if (single_succ_edge (a)->flags & EDGE_COMPLEX)
     return false;
 
   if (single_succ (a) != b)
@@ -1851,7 +1853,7 @@ remove_bb (basic_block bb)
       fprintf (dump_file, "Removing basic block %d\n", bb->index);
       if (dump_flags & TDF_DETAILS)
 	{
-	  dump_bb (bb, dump_file, 0);
+	  dump_bb (dump_file, bb, 0, dump_flags);
 	  fprintf (dump_file, "\n");
 	}
     }
@@ -2071,7 +2073,7 @@ find_case_label_for_value (gimple switch_stmt, tree val)
 void
 gimple_debug_bb (basic_block bb)
 {
-  gimple_dump_bb (bb, stderr, 0, TDF_VOPS|TDF_MEMSYMS);
+  dump_bb (stderr, bb, 0, TDF_VOPS|TDF_MEMSYMS|TDF_BLOCKS);
 }
 
 
@@ -2111,7 +2113,7 @@ gimple_dump_cfg (FILE *file, int flags)
       fprintf (file, ";; \n%d basic blocks, %d edges, last basic block %d.\n\n",
 	       n_basic_blocks, n_edges, last_basic_block);
 
-      brief_dump_cfg (file);
+      brief_dump_cfg (file, flags | TDF_COMMENT);
       fprintf (file, "\n");
     }
 
@@ -6699,7 +6701,6 @@ dump_function_to_file (tree fn, FILE *file, int flags)
   if (cfun && cfun->decl == fn && cfun->cfg && basic_block_info)
     {
       /* If the CFG has been built, emit a CFG-based dump.  */
-      check_bb_profile (ENTRY_BLOCK_PTR, file);
       if (!ignore_topmost_bind)
 	fprintf (file, "{\n");
 
@@ -6707,10 +6708,9 @@ dump_function_to_file (tree fn, FILE *file, int flags)
 	fprintf (file, "\n");
 
       FOR_EACH_BB (bb)
-	gimple_dump_bb (bb, file, 2, flags);
+	dump_bb (file, bb, 2, flags | TDF_COMMENT);
 
       fprintf (file, "}\n");
-      check_bb_profile (EXIT_BLOCK_PTR, file);
     }
   else if (DECL_SAVED_TREE (fn) == NULL)
     {
@@ -6838,7 +6838,7 @@ print_loops_bb (FILE *file, basic_block bb, int indent, int verbosity)
   if (verbosity >= 3)
     {
       fprintf (file, "%s  {\n", s_indent);
-      gimple_dump_bb (bb, file, indent + 4, TDF_VOPS|TDF_MEMSYMS);
+      dump_bb (file, bb, indent + 4, TDF_VOPS|TDF_MEMSYMS);
       fprintf (file, "%s  }\n", s_indent);
     }
 }
@@ -7631,6 +7631,9 @@ execute_warn_function_return (void)
   gimple last;
   edge e;
   edge_iterator ei;
+
+  if (!targetm.warn_func_return (cfun->decl))
+    return 0;
 
   /* If we have a path to EXIT, then we do return.  */
   if (TREE_THIS_VOLATILE (cfun->decl)

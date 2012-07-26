@@ -454,6 +454,7 @@ static const struct default_options default_options_table[] =
     { OPT_LEVELS_1_PLUS, OPT_ftree_ch, NULL, 1 },
     { OPT_LEVELS_1_PLUS, OPT_fcombine_stack_adjustments, NULL, 1 },
     { OPT_LEVELS_1_PLUS, OPT_fcompare_elim, NULL, 1 },
+    { OPT_LEVELS_1_PLUS, OPT_ftree_slsr, NULL, 1 },
 
     /* -O2 optimizations.  */
     { OPT_LEVELS_2_PLUS, OPT_finline_small_functions, NULL, 1 },
@@ -718,7 +719,7 @@ finish_options (struct gcc_options *opts, struct gcc_options *opts_set,
 
   if (opts->x_flag_exceptions
       && opts->x_flag_reorder_blocks_and_partition
-      && (ui_except == UI_SJLJ || ui_except == UI_TARGET))
+      && (ui_except == UI_SJLJ || ui_except >= UI_TARGET))
     {
       inform (loc,
 	      "-freorder-blocks-and-partition does not work "
@@ -733,7 +734,7 @@ finish_options (struct gcc_options *opts, struct gcc_options *opts_set,
   if (opts->x_flag_unwind_tables
       && !targetm_common.unwind_tables_default
       && opts->x_flag_reorder_blocks_and_partition
-      && (ui_except == UI_SJLJ || ui_except == UI_TARGET))
+      && (ui_except == UI_SJLJ || ui_except >= UI_TARGET))
     {
       inform (loc,
 	      "-freorder-blocks-and-partition does not support "
@@ -750,7 +751,7 @@ finish_options (struct gcc_options *opts, struct gcc_options *opts_set,
       && (!targetm_common.have_named_sections
 	  || (opts->x_flag_unwind_tables
 	      && targetm_common.unwind_tables_default
-	      && (ui_except == UI_SJLJ || ui_except == UI_TARGET))))
+	      && (ui_except == UI_SJLJ || ui_except >= UI_TARGET))))
     {
       inform (loc,
 	      "-freorder-blocks-and-partition does not work "
@@ -1594,8 +1595,6 @@ common_handle_option (struct gcc_options *opts,
 	opts->x_profile_arc_flag = value;
       if (!opts_set->x_flag_profile_values)
 	opts->x_flag_profile_values = value;
-      if (!opts_set->x_flag_value_profile_transformations)
-	opts->x_flag_value_profile_transformations = value;
       if (!opts_set->x_flag_inline_functions)
 	opts->x_flag_inline_functions = value;
       /* FIXME: Instrumentation we insert makes ipa-reference bitmaps

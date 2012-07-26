@@ -5881,6 +5881,14 @@ spu_trampoline_init (rtx m_tramp, tree fndecl, rtx cxt)
   emit_insn (gen_sync ());
 }
 
+static bool
+spu_warn_func_return (tree decl)
+{
+  /* Naked functions are implemented entirely in assembly, including the
+     return sequence, so suppress warnings about this.  */
+  return !spu_naked_function_p (decl);
+}
+
 void
 spu_expand_sign_extend (rtx ops[])
 {
@@ -6623,8 +6631,8 @@ spu_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost,
 static void *
 spu_init_cost (struct loop *loop_info ATTRIBUTE_UNUSED)
 {
-  unsigned *cost = XNEW (unsigned);
-  *cost = 0;
+  unsigned *cost = XNEWVEC (unsigned, 3);
+  cost[vect_prologue] = cost[vect_body] = cost[vect_epilogue] = 0;
   return cost;
 }
 
@@ -6632,24 +6640,25 @@ spu_init_cost (struct loop *loop_info ATTRIBUTE_UNUSED)
 
 static unsigned
 spu_add_stmt_cost (void *data, int count, enum vect_cost_for_stmt kind,
-		   struct _stmt_vec_info *stmt_info, int misalign)
+		   struct _stmt_vec_info *stmt_info, int misalign,
+		   enum vect_cost_model_location where)
 {
   unsigned *cost = (unsigned *) data;
   unsigned retval = 0;
 
   if (flag_vect_cost_model)
     {
-      tree vectype = stmt_vectype (stmt_info);
+      tree vectype = stmt_info ? stmt_vectype (stmt_info) : NULL_TREE;
       int stmt_cost = spu_builtin_vectorization_cost (kind, vectype, misalign);
 
       /* Statements in an inner loop relative to the loop being
 	 vectorized are weighted more heavily.  The value here is
 	 arbitrary and could potentially be improved with analysis.  */
-      if (stmt_in_inner_loop_p (stmt_info))
+      if (where == vect_body && stmt_info && stmt_in_inner_loop_p (stmt_info))
 	count *= 50;  /* FIXME.  */
 
       retval = (unsigned) (count * stmt_cost);
-      *cost += retval;
+      cost[where] += retval;
     }
 
   return retval;
@@ -6657,10 +6666,14 @@ spu_add_stmt_cost (void *data, int count, enum vect_cost_for_stmt kind,
 
 /* Implement targetm.vectorize.finish_cost.  */
 
-static unsigned
-spu_finish_cost (void *data)
+static void
+spu_finish_cost (void *data, unsigned *prologue_cost,
+		 unsigned *body_cost, unsigned *epilogue_cost)
 {
-  return *((unsigned *) data);
+  unsigned *cost = (unsigned *) data;
+  *prologue_cost = cost[vect_prologue];
+  *body_cost     = cost[vect_body];
+  *epilogue_cost = cost[vect_epilogue];
 }
 
 /* Implement targetm.vectorize.destroy_cost_data.  */
@@ -7266,6 +7279,9 @@ static const struct attribute_spec spu_attribute_table[] =
 
 #undef TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT spu_trampoline_init
+
+#undef TARGET_WARN_FUNC_RETURN
+#define TARGET_WARN_FUNC_RETURN spu_warn_func_return
 
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE spu_option_override

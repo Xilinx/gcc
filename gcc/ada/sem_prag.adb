@@ -4941,6 +4941,15 @@ package body Sem_Prag is
                   then
                      Error_Msg_N
                        ("Inline cannot apply to a formal subprogram", N);
+
+                  --  If Subp is a renaming, it is the renamed entity that
+                  --  will appear in any call, and be inlined. However, for
+                  --  ASIS uses it is convenient to indicate that the renaming
+                  --  itself is an inlined subprogram, so that some gnatcheck
+                  --  rules can be applied in the absence of expansion.
+
+                  elsif Nkind (Decl) = N_Subprogram_Renaming_Declaration then
+                     Set_Inline_Flags (Subp);
                   end if;
                end if;
 
@@ -5620,9 +5629,7 @@ package body Sem_Prag is
             --  If this is a first subtype, and the base type is distinct,
             --  then also set the suppress flags on the base type.
 
-            if Is_First_Subtype (E)
-              and then Etype (E) /= E
-            then
+            if Is_First_Subtype (E) and then Etype (E) /= E then
                Suppress_Unsuppress_Echeck (Etype (E), C);
             end if;
          end Suppress_Unsuppress_Echeck;

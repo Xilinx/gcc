@@ -553,7 +553,7 @@ gfc_match_use (void)
     {
       if ((m = gfc_match (" %n ::", module_nature)) == MATCH_YES)
 	{
-	  if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: module "
+	  if (gfc_notify_std (GFC_STD_F2003, "module "
 			      "nature in USE statement at %C") == FAILURE)
 	    goto cleanup;
 
@@ -588,7 +588,7 @@ gfc_match_use (void)
     {
       m = gfc_match (" ::");
       if (m == MATCH_YES &&
-	  gfc_notify_std (GFC_STD_F2003, "Fortran 2003: "
+	  gfc_notify_std (GFC_STD_F2003,
 			  "\"USE :: module\" at %C") == FAILURE)
 	goto cleanup;
 
@@ -656,7 +656,7 @@ gfc_match_use (void)
 	  m = gfc_match (" =>");
 
 	  if (type == INTERFACE_USER_OP && m == MATCH_YES
-	      && (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: Renaming "
+	      && (gfc_notify_std (GFC_STD_F2003, "Renaming "
 				  "operators in USE statements at %C")
 		 == FAILURE))
 	    goto cleanup;
@@ -2341,6 +2341,7 @@ mio_typespec (gfc_typespec *ts)
 
 static const mstring array_spec_types[] = {
     minit ("EXPLICIT", AS_EXPLICIT),
+    minit ("ASSUMED_RANK", AS_ASSUMED_RANK),
     minit ("ASSUMED_SHAPE", AS_ASSUMED_SHAPE),
     minit ("DEFERRED", AS_DEFERRED),
     minit ("ASSUMED_SIZE", AS_ASSUMED_SIZE),
@@ -2358,9 +2359,15 @@ mio_array_spec (gfc_array_spec **asp)
 
   if (iomode == IO_OUTPUT)
     {
+      int rank;
+
       if (*asp == NULL)
 	goto done;
       as = *asp;
+
+      /* mio_integer expects nonnegative values.  */
+      rank = as->rank > 0 ? as->rank : 0;
+      mio_integer (&rank);
     }
   else
     {
@@ -2371,20 +2378,23 @@ mio_array_spec (gfc_array_spec **asp)
 	}
 
       *asp = as = gfc_get_array_spec ();
+      mio_integer (&as->rank);
     }
 
-  mio_integer (&as->rank);
   mio_integer (&as->corank);
   as->type = MIO_NAME (array_type) (as->type, array_spec_types);
 
+  if (iomode == IO_INPUT && as->type == AS_ASSUMED_RANK)
+    as->rank = -1;
   if (iomode == IO_INPUT && as->corank)
     as->cotype = (as->type == AS_DEFERRED) ? AS_DEFERRED : AS_EXPLICIT;
 
-  for (i = 0; i < as->rank + as->corank; i++)
-    {
-      mio_expr (&as->lower[i]);
-      mio_expr (&as->upper[i]);
-    }
+  if (as->rank > 0)
+    for (i = 0; i < as->rank + as->corank; i++)
+      {
+	mio_expr (&as->lower[i]);
+	mio_expr (&as->upper[i]);
+      }
 
 done:
   mio_rparen ();
@@ -6051,7 +6061,7 @@ gfc_use_module (gfc_use_list *module)
   if (module_fp == NULL && !module->non_intrinsic)
     {
       if (strcmp (module_name, "iso_fortran_env") == 0
-	  && gfc_notify_std (GFC_STD_F2003, "Fortran 2003: ISO_FORTRAN_ENV "
+	  && gfc_notify_std (GFC_STD_F2003, "ISO_FORTRAN_ENV "
 			     "intrinsic module at %C") != FAILURE)
        {
 	 use_iso_fortran_env_module ();
@@ -6061,7 +6071,7 @@ gfc_use_module (gfc_use_list *module)
        }
 
       if (strcmp (module_name, "iso_c_binding") == 0
-	  && gfc_notify_std (GFC_STD_F2003, "Fortran 2003: "
+	  && gfc_notify_std (GFC_STD_F2003,
 			     "ISO_C_BINDING module at %C") != FAILURE)
 	{
 	  import_iso_c_binding_module();

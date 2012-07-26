@@ -4590,7 +4590,7 @@ expand_assignment (tree to, tree from, bool nontemporal)
        || TREE_CODE (to) == TARGET_MEM_REF)
       && mode != BLKmode
       && !mem_ref_refers_to_non_mem_p (to)
-      && ((align = get_object_or_type_alignment (to))
+      && ((align = get_object_alignment (to))
 	  < GET_MODE_ALIGNMENT (mode))
       && (((icode = optab_handler (movmisalign_optab, mode))
 	   != CODE_FOR_nothing)
@@ -4652,7 +4652,7 @@ expand_assignment (tree to, tree from, bool nontemporal)
       mode = TYPE_MODE (TREE_TYPE (tem));
       if (TREE_CODE (tem) == MEM_REF
 	  && mode != BLKmode
-	  && ((align = get_object_or_type_alignment (tem))
+	  && ((align = get_object_alignment (tem))
 	      < GET_MODE_ALIGNMENT (mode))
 	  && ((icode = optab_handler (movmisalign_optab, mode))
 	      != CODE_FOR_nothing))
@@ -6130,7 +6130,7 @@ store_constructor (tree exp, rtx target, int cleared, HOST_WIDE_INT size)
 	constructor_elt *ce;
 	int i;
 	int need_to_clear;
-	int icode = 0;
+	int icode = CODE_FOR_nothing;
 	tree elttype = TREE_TYPE (type);
 	int elt_size = tree_low_cst (TYPE_SIZE (elttype), 1);
 	enum machine_mode eltmode = TYPE_MODE (elttype);
@@ -6707,47 +6707,6 @@ get_inner_reference (tree exp, HOST_WIDE_INT *pbitsize,
     *pmode = mode;
 
   return exp;
-}
-
-/* Given an expression EXP that may be a COMPONENT_REF, an ARRAY_REF or an
-   ARRAY_RANGE_REF, look for whether EXP or any nested component-refs within
-   EXP is marked as PACKED.  */
-
-bool
-contains_packed_reference (const_tree exp)
-{
-  bool packed_p = false;
-
-  while (1)
-    {
-      switch (TREE_CODE (exp))
-	{
-	case COMPONENT_REF:
-	  {
-	    tree field = TREE_OPERAND (exp, 1);
-	    packed_p = DECL_PACKED (field)
-		       || TYPE_PACKED (TREE_TYPE (field))
-		       || TYPE_PACKED (TREE_TYPE (exp));
-	    if (packed_p)
-	      goto done;
-	  }
-	  break;
-
-	case BIT_FIELD_REF:
-	case ARRAY_REF:
-	case ARRAY_RANGE_REF:
-	case REALPART_EXPR:
-	case IMAGPART_EXPR:
-	case VIEW_CONVERT_EXPR:
-	  break;
-
-	default:
-	  goto done;
-	}
-      exp = TREE_OPERAND (exp, 0);
-    }
- done:
-  return packed_p;
 }
 
 /* Return a tree of sizetype representing the size, in bytes, of the element
@@ -9162,7 +9121,9 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	}
 
       if (TREE_CODE_CLASS (code) == tcc_unary
-	  || code == COMPONENT_REF || code == INDIRECT_REF)
+	  || code == BIT_FIELD_REF
+	  || code == COMPONENT_REF
+	  || code == INDIRECT_REF)
 	return expand_expr (treeop0, const0_rtx, VOIDmode,
 			    modifier);
 
@@ -9172,13 +9133,6 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	{
 	  expand_expr (treeop0, const0_rtx, VOIDmode, modifier);
 	  expand_expr (treeop1, const0_rtx, VOIDmode, modifier);
-	  return const0_rtx;
-	}
-      else if (code == BIT_FIELD_REF)
-	{
-	  expand_expr (treeop0, const0_rtx, VOIDmode, modifier);
-	  expand_expr (treeop1, const0_rtx, VOIDmode, modifier);
-	  expand_expr (treeop2, const0_rtx, VOIDmode, modifier);
 	  return const0_rtx;
 	}
 
@@ -9540,7 +9494,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	temp = gen_rtx_MEM (mode, op0);
 	set_mem_attributes (temp, exp, 0);
 	set_mem_addr_space (temp, as);
-	align = get_object_or_type_alignment (exp);
+	align = get_object_alignment (exp);
 	if (modifier != EXPAND_WRITE
 	    && mode != BLKmode
 	    && align < GET_MODE_ALIGNMENT (mode)
@@ -9614,7 +9568,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 			   gimple_assign_rhs1 (def_stmt), mask);
 	    TREE_OPERAND (exp, 0) = base;
 	  }
-	align = get_object_or_type_alignment (exp);
+	align = get_object_alignment (exp);
 	op0 = expand_expr (base, NULL_RTX, VOIDmode, EXPAND_SUM);
 	op0 = memory_address_addr_space (address_mode, op0, as);
 	if (!integer_zerop (TREE_OPERAND (exp, 1)))
@@ -11095,6 +11049,9 @@ build_personality_function (const char *lang)
     case UI_DWARF2:
     case UI_TARGET:
       unwind_and_version = "_v0";
+      break;
+    case UI_SEH:
+      unwind_and_version = "_seh0";
       break;
     default:
       gcc_unreachable ();

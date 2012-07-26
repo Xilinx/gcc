@@ -206,7 +206,7 @@ type_conversion_p (tree name, gimple use_stmt, bool check_sign,
 static tree
 vect_recog_temp_ssa_var (tree type, gimple stmt)
 {
-  tree var = create_tmp_var (type, "patt");
+  tree var = create_tmp_reg (type, "patt");
 
   add_referenced_var (var);
   var = make_ssa_name (var, stmt);
@@ -501,7 +501,7 @@ vect_handle_widen_op_by_const (gimple stmt, enum tree_code code,
     {
       /* Create a_T = (NEW_TYPE) a_t;  */
       *oprnd = gimple_assign_rhs1 (def_stmt);
-      tmp = create_tmp_var (new_type, NULL);
+      tmp = create_tmp_reg (new_type, NULL);
       add_referenced_var (tmp);
       new_oprnd = make_ssa_name (tmp, NULL);
       new_stmt = gimple_build_assign_with_ops (NOP_EXPR, new_oprnd, *oprnd,
@@ -1675,12 +1675,11 @@ vect_recog_divmod_pattern (VEC (gimple, heap) **stmts,
   /* If the target can handle vectorized division or modulo natively,
      don't attempt to optimize this.  */
   optab = optab_for_tree_code (rhs_code, vectype, optab_default);
-  if (optab != NULL)
+  if (optab != unknown_optab)
     {
       enum machine_mode vec_mode = TYPE_MODE (vectype);
       int icode = (int) optab_handler (optab, vec_mode);
-      if (icode != CODE_FOR_nothing
-	  || GET_MODE_SIZE (vec_mode) == UNITS_PER_WORD)
+      if (icode != CODE_FOR_nothing)
 	return NULL;
     }
 
