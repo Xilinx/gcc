@@ -5459,6 +5459,8 @@ melt-build-param.sh:  Makefile
 	$(if $(GCCMELT_CC1_PREFIX),echo GCCMELT_CC1_PREFIX='$(GCCMELT_CC1_PREFIX)' >> $@-tmp)
 	echo '## GCCMELT_CC1_DEPENDENCIES is the dependencies, including MELT runtime, for GCCMELT_CC1' >> $@-tmp
 	echo 'GCCMELT_CC1_DEPENDENCIES="$(realpath  ./cc1$(exeext) $(MELT_H) melt-runtime.o)"'  >> $@-tmp
+	echo '## GCCMELT_RUNTIME_DEPENDENCY is the dependency for the MELT runtime, eg. melt.so or cc1 (for MELT branch)'  >> $@-tmp
+	echo 'GCCMELT_RUNTIME_DEPENDENCY="$(realpath  ./cc1$(exeext))"' >> $@-tmp
 	echo '## GCCMELT_INCLUDES is the include flags for the MELT runtime' >> $@-tmp
 	echo 'GCCMELT_INCLUDES="-I $(realpath .) -I $(realpath $(srcdir)/melt/generated) $(INCLUDES)"'  >> $@-tmp
 	echo '## GCCMELT_MODULE_MK is the source location of the makefile melt-module.mk invoked by MELT'   >> $@-tmp
@@ -5547,11 +5549,11 @@ install-melt-default-modules-list: $(melt_default_modules_list).modlis $(wildcar
 #### this phony target is given manually to copy the generated
 #### warmelt*.c into the source directory it should be only
 #### explicitly given
-.PHONY: upgrade-warmelt upgrade-bigmelt
+.PHONY: upgrade-warmelt
 
 
-upgrade-warmelt: $(WARMELT_LAST)
-	$(MAKE) Makefile $(melt_default_modules_list).modlis
+upgrade-warmelt: melt.encap
+	$(MAKE) Makefile
 #it is important to call the warmelt-upgrade-translator before the
 #meltrun-generate
 	$(MAKE) warmelt-upgrade-translator meltrun-generate
@@ -5569,9 +5571,6 @@ upgrade-warmelt: $(WARMELT_LAST)
 
 
 
-upgrade-bigmelt: warmeltallbig
-	$(MAKE) Makefile
-	$(MAKE) upgrade-warmelt
 
 
 ## end of MELT specific additions

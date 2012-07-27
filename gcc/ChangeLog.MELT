@@ -1,4 +1,19 @@
 
+2012-07-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_really_initialize): Better emitted comment
+	in list of generated C files, with -fmelt-generated-c-file-list=
+	option.
+	(melt_output_cfile_decl_impl_secondary_option): Emit changed files
+	with a + prefix and kept file with a = prefix.
+
+	* Makefile.in (melt-build-param.sh): Emit
+	GCCMELT_RUNTIME_DEPENDENCY.
+	(upgrade-bigmelt): Remove target.
+
+	* doc/melt.texi: Mention that MELT runs with GCC 4.6 or 4.7 or later.
+	(Invoking MELT): Explain format of list of generated files for
+	-fmelt-generated-c-file-list= option.
+
 2012-07-25  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-build-script.tpl: Add symlinking of all MELT

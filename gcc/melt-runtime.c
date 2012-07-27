@@ -10058,6 +10058,8 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
 		 "# MELT version %s run at %s", MELT_VERSION_STRING, 
 		 /* ctime adds the ending newline! */
 		 ctime (&now));
+	fprintf (melt_generated_c_files_list_fil,
+		 "# unchanged files are prefixed with =, new files are prefixed with +\n");
       }
   }
 
@@ -12162,9 +12164,9 @@ melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
       else
 	inform (UNKNOWN_LOCATION, "MELT generated same file %s in %s",
 		dotcnam, mycwd);
-      if (melt_generated_c_files_list_fil)
+      if (melt_generated_c_files_list_fil) 
 	fprintf (melt_generated_c_files_list_fil,
-		 "# same file %s\n", dotcnam);
+		 "= %s\n", dotcnam);
     } 
   else 
     {
@@ -12224,9 +12226,12 @@ melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
 	      else
 		inform (UNKNOWN_LOCATION, "MELT symlinked existing file %s to %s in %s",
 			md5nam, dotcnam, mycwd);
-	      if (melt_generated_c_files_list_fil)
-		fprintf (melt_generated_c_files_list_fil,
-			 "# same symlink %s -> %s\n", dotcnam, md5nam);
+	      if (melt_generated_c_files_list_fil) 
+		{
+		  fprintf (melt_generated_c_files_list_fil,
+			   "# same symlink -> %s:\n", md5nam);
+		  fprintf (melt_generated_c_files_list_fil, "= %s\n", dotcnam);
+		}
 	    }
 	  else 
 	    {
@@ -12248,7 +12253,8 @@ melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
 			md5nam, dotcnam, mycwd);
 	      if (melt_generated_c_files_list_fil)
 		fprintf (melt_generated_c_files_list_fil,
-			 "# symlink to %s is:\n%s\n", md5nam, dotcnam);
+			 "# symlink to new %s is:\n"
+			 "+ %s\n", md5nam, dotcnam);
 	    }
 	  free (md5nam), md5nam = NULL;
 	} 
@@ -12265,7 +12271,8 @@ melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
 		    dotcnam, mycwd);
 	  if (melt_generated_c_files_list_fil)
 		fprintf (melt_generated_c_files_list_fil,
-			 "#new file:\n%s\n",
+			 "#new file:\n"
+			 "+ %s\n",
 			 dotcnam);
 	}
     }
