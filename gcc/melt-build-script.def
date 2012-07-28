@@ -25,8 +25,9 @@ AutoGen definitions melt-build-script.tpl;
 // here.
 ////////////////////////////////////////////////////////////////
 
-// the MELT translator is described by several similar entries, one
-// for each source file. Entry order is important!
+////////////////////////////////////////////////////////////////
+// The MELT translator is described by several similar entries, one
+// for each source file. It is bootstrapped. Entry order is important!
 
 // field 'base' gives the base name of the  *.melt file
 // field 'varsuf' gives a suffix part of a generated shell variable name
@@ -78,12 +79,12 @@ melt_translator_file = {
 };
 
 
-////////////////
-// the additional MELT application files
-melt_application_file = {
-  base = "xtramelt-ana-base";
-  varsuf = ANA_BASE;
-};
+
+//////////////////////////////////////////////////////////////// 
+// The additional MELT application files, which are not useful to
+// translate MELT code to C, so are not bootstrapped.
+melt_application_file = { base = "xtramelt-ana-base"; varsuf =
+ANA_BASE; };
 
 melt_application_file = {
   base = "xtramelt-ana-tree";
@@ -115,8 +116,27 @@ melt_application_file = {
   varsuf = OPENGPU;
 };
 
-// the various MELT stages which should be melt-stage1 melt-stage2
-// etc...
-melt_stage = "meltbuild-stage1";
-melt_stage = "meltbuild-stage2";
-melt_stage = "meltbuild-stage3";
+// The various MELT stages: stagdir gives the directory name, stagsuf gives a
+// suffix for variable name, and stagprevdir gives the directory name for
+// the previous stage, and stagprevflavor gives its flavor.
+
+melt_build_stage = { 
+  stagdir = "meltbuild-stage1"; 
+  stagprevdir = "$GCCMELT_STAGE_ZERO";
+  stagprevflavor = "$GCCMELT_ZERO_FLAVOR";
+  stagsuf = STAGE1; 
+};
+
+melt_build_stage = {
+  stagdir = "meltbuild-stage2";
+  stagprevdir = "meltbuild-stage1";
+  stagprevflavor = "quicklybuilt";
+  stagsuf = STAGE2;
+};
+
+melt_build_stage = {
+  stagdir = "meltbuild-stage3";
+  stagprevdir = "meltbuild-stage2";
+  stagprevflavor = "quicklybuilt";
+  stagsuf = STAGE3;
+};

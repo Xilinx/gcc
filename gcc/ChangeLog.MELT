@@ -1,4 +1,13 @@
 
+2012-07-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{better but still a little buggy}}
+
+	* melt-build-script.def: The stages know their precedent.
+
+	* melt-build-script.tpl: Generate more stamp files.
+
+	* melt-build-script.sh: Regenerate.
+
 2012-07-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_really_initialize): Better emitted comment
 	in list of generated C files, with -fmelt-generated-c-file-list=

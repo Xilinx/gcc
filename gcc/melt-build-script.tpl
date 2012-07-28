@@ -74,8 +74,140 @@ function meltbuild_arg () {
 }
 
 
+if [ ! -f "$GCCMELT_RUNTIME_DEPENDENCY" ]; then
+    meltbuild_error  [+(.(fromline))+] missing MELT runtime dependency "$GCCMELT_RUNTIME_DEPENDENCY" 
+fi
+
+GCCMELT_RUNTIME_DEPENDENCY_MD5SUM=$($MD5SUM "$GCCMELT_RUNTIME_DEPENDENCY"  | cut -b 1-32)
+
 ################################################################
-## function to run MELT to emit C code
+################ stage zero
+
+GCCMELT_ZERO_FLAVOR=${GCCMELT_STAGE_ZERO#meltbuild-stage0-}
+
+## The base name of the MELT translator files [+ (. (fromline))+]
+GCCMELT_TRANSLATOR_BASE=([+FOR melt_translator_file " \\\n"+]  [+base+][+ENDFOR melt_translator_file+] )
+
+case $GCCMELT_ZERO_FLAVOR in
+    optimized) ;;
+    dynamic) ;;
+    debugnoline) ;;
+    quicklybuilt) ;;
+    *) meltbuild_error  [+(.(fromline))+] bad zero flavor $GCCMELT_ZERO_FLAVOR ;;
+esac
+
+
+## our stage0 [+(.(fromline))+]
+
+[ -d $GCCMELT_STAGE_ZERO ] || mkdir  $GCCMELT_STAGE_ZERO
+
+
+function meltbuild_do_stage_zero () {
+[+FOR melt_translator_file+]
+  meltbuild_info making stage0 [+base+]  [+(.(fromline))+]
+
+##  stage0 [+(.(fromline))+] symlink descriptor file [+base+]
+  if [ ! -f "$GCCMELT_STAGE_ZERO/[+base+]+meltdesc.c" ]; then
+      meltbuild_symlink $GCCMELT_MELTSOURCEDIR/generated/[+base+]+meltdesc.c $GCCMELT_STAGE_ZERO/ 
+  fi
+
+##  stage0 [+(.(fromline))+] symlink melt/generated source code [+base+]
+  if [ ! -f "$GCCMELT_STAGE_ZERO/[+base+].c" ]; then
+      meltbuild_symlink $GCCMELT_MELTSOURCEDIR/generated/[+base+].c $GCCMELT_STAGE_ZERO/ 
+      for f in $GCCMELT_MELTSOURCEDIR/generated/[+base+]+[0-9][0-9].c ; do
+	  meltbuild_symlink $f $GCCMELT_STAGE_ZERO/`basename $f`
+      done
+  fi
+
+##  stage0 [+(.(fromline))+] symlink stamp [+base+]
+  if  [ ! -f "$GCCMELT_STAGE_ZERO/[+base+]+melttime.h" ]; then
+      meltbuild_symlink $GCCMELT_MELTSOURCEDIR/generated/[+base+]+melttime.h $GCCMELT_STAGE_ZERO/[+base+]+melttime.h 
+  fi
+
+  MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5=$($GAWK -F\" '/extern/{next} /melt_cumulated_hexmd5/{print $2}' $GCCMELT_MELTSOURCEDIR/generated/[+base+]+meltdesc.c)
+
+
+## manually generate the stage0 [+base+]+meltbuild.mk file  [+(.(fromline))+]
+  MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK=$GCCMELT_STAGE_ZERO/[+base+]+meltbuild.mk
+
+  date +"# file $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK script-generated %c" > $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+  echo "# generated " [+(.(fromline))+] >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+  echo "MELTGEN_MODULENAME=$GCCMELT_STAGE_ZERO/[+base+]"  >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+  echo "MELTGEN_MODULEIDENT=melt_stage_zero_[+varsuf+]"  >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+
+  echo '# zerostage objects of [+base+] [+(.(fromline))+]' >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+  echo $GCCMELT_STAGE_ZERO/[+base+].$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5.descriptor.meltpic.o: $GCCMELT_STAGE_ZERO/[+base+]+meltdesc.c  >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+  for f in $GCCMELT_STAGE_ZERO/[+base+].c $GCCMELT_STAGE_ZERO/[+base+]+[0-9][0-9].c; do
+      echo >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+      echo $GCCMELT_STAGE_ZERO/`basename $f .c`._NOMDFIVESUM_.$GCCMELT_ZERO_FLAVOR.meltpic.o: $f >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+  done
+
+  echo >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+  echo '# zerostage module of [+base+] [+(.(fromline))+]'  >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+  echo $GCCMELT_STAGE_ZERO/[+base+].meltmod-$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5.$GCCMELT_ZERO_FLAVOR.so: \\  >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+  echo " " $GCCMELT_STAGE_ZERO/[+base+].$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5.descriptor.meltpic.o \\  >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+  for f in $GCCMELT_STAGE_ZERO/[+base+]+[0-9][0-9].c; do
+      echo " " $GCCMELT_STAGE_ZERO/`basename $f .c`._NOMDFIVESUM_.$GCCMELT_ZERO_FLAVOR.meltpic.o \\ >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+  done
+  echo " " $GCCMELT_STAGE_ZERO/[+base+]._NOMDFIVESUM_.$GCCMELT_ZERO_FLAVOR.meltpic.o >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+  echo >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+  echo MELTGENMOD_CUMULATED_MD5SUM_melt_stage_zero_[+varsuf+]=$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5 >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+  echo MELTGENMOD_NAKED_NAME_melt_stage_zero_[+varsuf+]=[+base+]  >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+  echo '#end of generated file ' $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
+##
+  mv $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$ $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK
+  meltbuild_info [+(.(fromline))+] generated stagezero makedep $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK
+  ls -l $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK > /dev/stderr
+
+  $GCCMELT_MAKE -f $GCCMELT_MODULE_MK melt_module \
+      GCCMELT_FROM=stagezero-[+(.(fromline))+] \
+      GCCMELT_CC="$GCCMELT_COMPILER" \
+      GCCMELTGEN_BUILD=$GCCMELT_STAGE_ZERO/ \
+      GCCMELT_MODULE_WORKSPACE=meltbuild-workdir \
+      GCCMELT_MODULE_FLAVOR=$GCCMELT_ZERO_FLAVOR \
+      GCCMELT_CFLAGS="$GCCMELT_COMPILER_FLAGS" \
+      GCCMELT_MODULE_SOURCEBASE=$GCCMELT_STAGE_ZERO/[+base+] \
+      GCCMELT_CUMULATED_MD5=$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5 \
+      GCCMELT_MODULE_BINARYBASE=$GCCMELT_STAGE_ZERO/[+base+] \
+      GCCMELT_MODULE_DEPENDENCIES="$GCCMELT_CC1_DEPENDENCIES" \
+      || meltbuild_error  [+(.(fromline))+] stage0 [+base+] did not build with $GCCMELT_MAKE 
+
+  meltbuild_info [+(.(fromline))+] stage0 [+base+] module 
+  ls -l "$GCCMELT_STAGE_ZERO/[+base+].meltmod-$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5.$GCCMELT_ZERO_FLAVOR.so" > /dev/stderr \
+      || meltbuild_error  [+(.(fromline))+] stage0 [+base+] fail to build \
+      "$GCCMELT_STAGE_ZERO/[+base+].meltmod-$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5.$GCCMELT_ZERO_FLAVOR.so"
+
+  meltbuild_info [+(.(fromline))+] successfully build stage0 [+base+]
+# end stage0  [+(.(fromline))+] base  [+base+]
+[+ENDFOR melt_translator_file+]
+} ################ end of function meltbuild_do_stage_zero [+(.(fromline))+]
+################################################################
+
+## stage0 stamp file [+(.(fromline))+]
+melt_stagezero_stamp=$GCCMELT_STAGE_ZERO/$GCCMELT_STAGE_ZERO.stamp
+
+## test if stage0 should be skipped then do it  [+(.(fromline))+]
+if [ ! -f "$melt_stagezero_stamp" -o "$melt_stagezero_stamp" -ot "$GCCMELT_RUNTIME_DEPENDENCY" ]; then
+   meltbuild_do_stage_zero
+    melt_stagezero_stamptemp=$melt_stagezero_stamp-tmp$$
+    echo MELT stagezero stampfile $GCCMELT_STAGE_ZERO.stamp for MELT $MELTGCCBUILTIN_VERSION_STRING from [+(.(fromline))+] >  $melt_stagezero_stamptemp
+    echo $GCCMELT_RUNTIME_DEPENDENCY_MD5SUM $GCCMELT_RUNTIME_DEPENDENCY >> $melt_stagezero_stamptemp
+[+FOR melt_translator_file+]
+#  stagezero stamp [+(.(fromline))+] base  [+base+]
+    $MD5SUM $GCCMELT_STAGE_ZERO/[+base+].c $GCCMELT_STAGE_ZERO/[+base+]+[0-9][0-9].c >> $melt_stagezero_stamptemp
+    $MD5SUM $GCCMELT_STAGE_ZERO/[+base+].meltmod-$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5.$GCCMELT_ZERO_FLAVOR.so  >> $melt_stagezero_stamptemp
+[+ENDFOR melt_translator_file+]
+    $GCCMELT_MOVE_IF_CHANGE $melt_stagezero_stamptemp $melt_stagezero_stamp
+else
+   meltbuild_info [+(.(fromline))+] skipped stage0 because of stamp file $melt_stagezero_stamp
+fi
+
+meltbuild_info [+(.(fromline))+] times after stagezero at `date '+%x %H:%M:%S'`: ;  times > /dev/stderr
+
+
+
+################################################################
+## function to run MELT to emit C code  [+(.(fromline))+]
 function meltbuild_emit () {
     local meltfrom=$1
     local meltmode=$2
@@ -124,11 +256,20 @@ function meltbuild_emit () {
     cat  $meltargs > /dev/stderr
     if [ -z "$GCCMELT_SKIPEMITC" ]; then
 	$GCCMELT_CC1_PREFIX $GCCMELT_CC1 @$meltargs || meltbuild_error $meltfrom failed with arguments @$meltargs
+        ## remove obsolete secondary C files left previously in $meltstage 
+	for meltcsecfil in $meltstage/$meltbase+[0-9][0-9].c ; do
+	    if grep -q `basename $meltcsecfil` "$meltstage/$meltbase.cfilist" ; then
+		: # at  [+(.(fromline))+]
+	    else
+		meltbuild_info $meltfrom removing obsolete $meltcsecfil
+		rm -f "$meltcsecfil"
+	    fi
+	done
     else
 	meltbuild_info $meltfrom skips emission of C code with  @$meltargs stage $meltstage prevstage $meltprevstage skipreason $GCCMELT_SKIPEMITC
 	ls -l $meltprevstage/$meltbase*
 	for meltprevf in $meltprevstage/$meltbase.c  $meltprevstage/$meltbase+[0-9][0-9].c  $meltprevstage/$meltbase+meltdesc.c  $meltprevstage/$meltbase+melttime.h   $meltprevstage/$meltbase+meltbuild.mk ; do
-	    meltbuild_symlink $meltprevf $meltstage
+	    meltbuild_symlink $meltprevf $meltstage/`basename $meltprevf`
 	done
 	meltbuild_info $meltfrom symlinked previous stage $meltprevstage/$meltbase
     fi
@@ -136,193 +277,118 @@ function meltbuild_emit () {
     GCCMELT_BASE=$meltbase
 } ################################ end function meltbuild_emit
 
-
-################ stage zero
-
-GCCMELT_ZERO_FLAVOR=${GCCMELT_STAGE_ZERO#meltbuild-stage0-}
-
-## The base name of the MELT translator files [+ (. (fromline))+]
-GCCMELT_TRANSLATOR_BASE=([+FOR melt_translator_file " \\\n"+]  [+base+][+ENDFOR melt_translator_file+] )
-
-case $GCCMELT_ZERO_FLAVOR in
-    optimized) ;;
-    dynamic) ;;
-    debugnoline) ;;
-    quicklybuilt) ;;
-    *) meltbuild_error  [+(.(fromline))+] bad zero flavor $GCCMELT_ZERO_FLAVOR ;;
-esac
-
-
-## our stage0 [+(.(fromline))+]
-
-[ -d $GCCMELT_STAGE_ZERO ] || mkdir  $GCCMELT_STAGE_ZERO
-
-
-[+FOR melt_translator_file+]
-meltbuild_info making stage0 [+base+]  [+(.(fromline))+]
-
-##  stage0 [+(.(fromline))+] symlink descriptor file [+base+]
-if [ ! -f "$GCCMELT_STAGE_ZERO/[+base+]+meltdesc.c" ]; then
-    meltbuild_symlink $GCCMELT_MELTSOURCEDIR/generated/[+base+]+meltdesc.c $GCCMELT_STAGE_ZERO/ 
-fi
-
-##  stage0 [+(.(fromline))+] symlink source code [+base+]
-if [ ! -f "$GCCMELT_STAGE_ZERO/[+base+].c" ]; then
-    meltbuild_symlink $GCCMELT_MELTSOURCEDIR/generated/[+base+].c $GCCMELT_STAGE_ZERO/ 
-    for f in $GCCMELT_MELTSOURCEDIR/generated/[+base+]+[0-9]*.c ; do
-	meltbuild_symlink $f $GCCMELT_STAGE_ZERO/ 
-    done
-fi
-
-##  stage0 [+(.(fromline))+] symlink stamp [+base+]
-if  [ ! -f "$GCCMELT_STAGE_ZERO/[+base+]+melttime.h" ]; then
-    meltbuild_symlink $GCCMELT_MELTSOURCEDIR/generated/[+base+]+melttime.h $GCCMELT_STAGE_ZERO/ 
-fi
-
-MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5=$($GAWK -F\" '/extern/{next} /melt_cumulated_hexmd5/{print $2}' $GCCMELT_MELTSOURCEDIR/generated/[+base+]+meltdesc.c)
-
-
-## manually generate the stage0 [+base+]+meltbuild.mk file  [+(.(fromline))+]
-MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK=$GCCMELT_STAGE_ZERO/[+base+]+meltbuild.mk
-
-date +"# file $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK script-generated %c" > $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
-echo "# generated " [+(.(fromline))+] >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
-echo "MELTGEN_MODULENAME=$GCCMELT_STAGE_ZERO/[+base+]"  >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
-echo "MELTGEN_MODULEIDENT=melt_stage_zero_[+varsuf+]"  >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
-
-echo '# zerostage objects of [+base+] [+(.(fromline))+]' >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
-echo $GCCMELT_STAGE_ZERO/[+base+].$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5.descriptor.meltpic.o: $GCCMELT_STAGE_ZERO/[+base+]+meltdesc.c  >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
-for f in $GCCMELT_STAGE_ZERO/[+base+].c $GCCMELT_STAGE_ZERO/[+base+]+[0-9]*.c; do
- echo >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
- echo $GCCMELT_STAGE_ZERO/`basename $f .c`._NOMDFIVESUM_.$GCCMELT_ZERO_FLAVOR.meltpic.o: $f >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
-done
-
-echo >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
-echo '# zerostage module of [+base+] [+(.(fromline))+]'  >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
-echo $GCCMELT_STAGE_ZERO/[+base+].meltmod-$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5.$GCCMELT_ZERO_FLAVOR.so: \\  >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
-echo " " $GCCMELT_STAGE_ZERO/[+base+].$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5.descriptor.meltpic.o \\  >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
-for f in $GCCMELT_STAGE_ZERO/[+base+]+[0-9]*.c; do
-    echo " " $GCCMELT_STAGE_ZERO/`basename $f .c`._NOMDFIVESUM_.$GCCMELT_ZERO_FLAVOR.meltpic.o \\ >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
-done
-echo " " $GCCMELT_STAGE_ZERO/[+base+]._NOMDFIVESUM_.$GCCMELT_ZERO_FLAVOR.meltpic.o >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
-echo >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
-echo MELTGENMOD_CUMULATED_MD5SUM_melt_stage_zero_[+varsuf+]=$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5 >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
-echo MELTGENMOD_NAKED_NAME_melt_stage_zero_[+varsuf+]=[+base+]  >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
-echo '#end of generated file ' $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK >> $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$
-##
-mv $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$ $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK
-meltbuild_info [+(.(fromline))+] generated stagezero makedep $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK
-ls -l $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK > /dev/stderr
-
-$GCCMELT_MAKE -f $GCCMELT_MODULE_MK melt_module \
-   GCCMELT_FROM=stagezero-[+(.(fromline))+] \
-   GCCMELTGEN_BUILD=$GCCMELT_STAGE_ZERO/ \
-   GCCMELT_MODULE_WORKSPACE=meltbuild-workdir \
-   GCCMELT_MODULE_FLAVOR=$GCCMELT_ZERO_FLAVOR \
-   GCCMELT_CFLAGS="$GCCMELT_COMPILER_FLAGS" \
-   GCCMELT_MODULE_SOURCEBASE=$GCCMELT_STAGE_ZERO/[+base+] \
-   GCCMELT_CUMULATED_MD5=$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5 \
-   GCCMELT_MODULE_BINARYBASE=$GCCMELT_STAGE_ZERO/[+base+] \
-   GCCMELT_MODULE_DEPENDENCIES="$GCCMELT_CC1_DEPENDENCIES" \
- || meltbuild_error  [+(.(fromline))+] stage0 [+base+] did not build with $GCCMELT_MAKE 
-
-meltbuild_info [+(.(fromline))+] stage0 [+base+] module 
-ls -l "$GCCMELT_STAGE_ZERO/[+base+].meltmod-$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5.$GCCMELT_ZERO_FLAVOR.so" > /dev/stderr \
-  || meltbuild_error  [+(.(fromline))+] stage0 [+base+] fail to build \
-    "$GCCMELT_STAGE_ZERO/[+base+].meltmod-$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5.$GCCMELT_ZERO_FLAVOR.so"
-
-meltbuild_info [+(.(fromline))+] successfully build stage0 [+base+]
-
-[+ENDFOR melt_translator_file+]
-
-
 ################################################################
 ################################################################
 #################@ before our stages [+(.(fromline))+] 
-### Our stages [+FOR melt_stage " "+][+melt_stage+][+ENDFOR meltstage+] 
+### Our stages [+FOR melt_stage " "+][+stagdir+][+ENDFOR meltstage+] 
 ### are incrementally built, with the former modules of
 ### the current stage and the later modules of the previous stages
 ### used to emit the source of the current module in the current stage.
 ### This is a kind of "diagonalization".
-GCCMELT_SKIPEMITC=
 
-[+FOR melt_stage+]
-#@  begin for stage "[+melt_stage+]" [+(.(fromline))+]
 
-[ -d [+melt_stage+] ] || mkdir [+melt_stage+]
+################################################################
+#### function to do a stage [+(.(fromline))+]
+function meltbuild_do_stage () {
+    local meltfrom=$1
+    local meltcurstagedir=$2
+    local meltcurflavor=$3
+    local meltprevstagedir=$4
+    local meltprevflavor=$5
+[+FOR melt_translator_file+]
+    local meltchecksum_[+varsuf+]
+[+ENDFOR melt_translator_file+]
+    local meltstamp
+    local meltstamptmp
 
-meltbuild_info [+(.(fromline))+] at start of [+melt_stage+] GCCMELT_SKIPEMITC=$GCCMELT_SKIPEMITC.
-
-#### rules for [+melt_stage+][+ 
-  (define stageindex (+ 1 (for-index)))
-  (define previndex (for-index))
-  (define prevstage (if (> stageindex 1) (sprintf "meltbuild-stage%d" previndex) "$GCCMELT_STAGE_ZERO"))
-  (define prevflavor (if (> stageindex 1) "quicklybuilt" "$GCCMELT_ZERO_FLAVOR"))
-+], previous [+ (. prevstage)+] [+(.(fromline))+]
+####  meltbuild_do_stage [+(.(fromline))+]
+    meltbuild_info $meltfrom starting stage $meltcurstagedir flavor $meltcurflavor previous $meltprevstagedir previous flavor $meltprevflavor
+    [ -d $meltcurstagedir ] || mkdir $meltcurstagedir
+    if [ ! -d "$meltprevstagedir" -o ! -f "$meltprevstagedir/$meltprevstagedir.stamp" ]; then
+	meltbuild_error $meltfrom previous stage "$meltprevstagedir/" without stamp file $meltprevstagedir/$meltprevstagedir.stamp
+    fi
 
 [+FOR melt_translator_file+][+ 
   (define outbase (get "base")) (define outindex (for-index)) +]
 
-### the C source of [+melt_stage+] for [+ (. outbase)+] [+ (. (fromline))+]
-#@ [+(.(fromline))+] base [+base+] stage [+melt_stage+] prevstage [+ (. prevstage)+] prevflavor  [+ (. prevflavor)+] 
+    #in meltbuild_do_stage [+(.(fromline))+] base [+base+]
+    meltbuild_info [+(.(fromline))+] from $meltfrom generating C code of [+base+] in $meltcurstagedir
 
-meltbuild_info [+(.(fromline))+] generating C code of [+base+] in [+melt_stage+]
-
-meltbuild_emit [+(.(fromline))+] \
-    [+IF (= outindex 0)+]translateinit[+ELSE+]translatefile[+ENDIF+] \
-    [+base+] \
-    "[+melt_stage+]" \
-    "[+(. prevstage)+]" \
-    [+FOR melt_translator_file ":"+][+
-  (define inbase (get "base")) (define inindex (for-index)) 
-  (define depstage (if (< inindex outindex) (get "melt_stage") prevstage))
-  (define depflavor (if (< inindex outindex) "quicklybuilt" prevflavor))
-  (define depindex (if (< inindex outindex) stageindex (- stageindex 1)))
-+][+(. depstage)+]/[+(. inbase)+].[+ (. depflavor)+][+ENDFOR melt_translator_file+] \
+    #in meltbuild_do_stage [+(.(fromline))+] emit C code for [+base+]
+    meltbuild_emit [+(.(fromline))+]-$meltfrom \
+	[+IF (= outindex 0)+]translateinit[+ELSE+]translatefile[+ENDIF+] \
+	[+base+] \
+	"$meltcurstagedir" \
+	"$meltprevstagedir" \
+	[+FOR melt_translator_file ":"+][+
+	(define inindex (for-index)) 
+	(define depstage (if (< inindex outindex) "$meltcurstagedir" "$meltprevstagedir"))
+	(define depflavor (if (< inindex outindex) "$meltcurflavor" "$meltprevflavor"))
++][+(. depstage)+]/[+base+].[+ (. depflavor)+][+ENDFOR melt_translator_file+] \
     "[+FOR includeload " "+][+includeload+][+ENDFOR includeload+]"
 
-meltbuild_info [+(.(fromline))+] before compilation of C generated at [+melt_stage+] GCCMELT_SKIPEMITC=$GCCMELT_SKIPEMITC.
+    #in meltbuild_do_stage [+(.(fromline))+] checksum C code for [+base+]
+    meltchecksum_cumul_[+varsuf+]=$(cat "$meltcurstagedir"/[+base+].c "$meltcurstagedir"/[+base+]+[0-9][0-9].c | $MD5SUM | cut -b 1-32)
 
-
-if [ -z "$GCCMELT_SKIPEMITC" ]; then
-    meltbuild_info [+(.(fromline))+] compiling module [+base+] in [+melt_stage+]
-    $GCCMELT_MAKE -f $GCCMELT_MODULE_MK melt_module \
-	GCCMELT_FROM=[+melt_stage+]-[+(.(fromline))+] \
-	GCCMELT_MODULE_WORKSPACE=meltbuild-workdir \
-	GCCMELT_MODULE_FLAVOR=quicklybuilt \
-	GCCMELT_CFLAGS="$GCCMELT_COMPILER_FLAGS" \
-	GCCMELT_MODULE_SOURCEBASE=[+melt_stage+]/[+base+] \
-	GCCMELT_MODULE_BINARYBASE=[+melt_stage+]/[+base+] \
-	|| meltbuild_error  [+(.(fromline))+] stage [+melt_stage+] failed to make module [+base+]
-
-else
-    MELT_COMPUTED_[+varsuf+]_CUMULMD5=$(cat [+melt_stage+]/[+base+].c [+melt_stage+]/[+base+]+[0-9]*.c | $MD5SUM | cut -b 1-32)
-    meltbuild_info [+(.(fromline))+] NOT compiling module [+base+] in [+melt_stage+] but symlinking previous [+ (. prevstage)+] module [+base+] checksum MELT_COMPUTED_[+varsuf+]_CUMULMD5=$MELT_COMPUTED_[+varsuf+]_CUMULMD5 skipemitc=$GCCMELT_SKIPEMITC.
-    meltbuild_symlink [+ (. prevstage)+]/[+base+].meltmod-$MELT_COMPUTED_[+varsuf+]_CUMULMD5.[+ (. prevflavor)+].so [+melt_stage+]/
-    
-fi
-#@ [+(.(fromline))+] end base [+base+] stage [+melt_stage+] 
-[+ENDFOR melt_translator_file+]
-
-########@  check that [+melt_stage+] did change something
-if grep -q -v '^#' [+melt_stage+]/*.cfilist ; then
-    meltbuild_info  [+(.(fromline))+] stage [+melt_stage+] did change some generated C files
-else
-    meltbuild_info  [+(.(fromline))+] stage [+melt_stage+] did not change any generated C files
-    GCCMELT_SKIPEMITC="[+melt_stage+] unchanged from [+(.(fromline))+]"
-[+FOR melt_translator_file+]
-    MELT_COMPUTED_[+varsuf+]_CUMULMD5=$(cat [+melt_stage+][+base+].c [+melt_stage+][+base+]+[0-9]*.c | cut -b 1-32)
-    meltbuild_info  [+(.(fromline))+] stage [+melt_stage+] for [+base+] cumulated checksum is MELT_COMPUTED_[+varsuf+]_CUMULMD5= $MELT_COMPUTED_[+varsuf+]_CUMULMD5
-    # testing [+(.(fromline))+] stage  [+melt_stage+] base [+base+] module older
-    if [ -f "[+melt_stage+]/[+base+].meltmod-$MELT_COMPUTED_[+varsuf+]_CUMULMD5.$quicklybuilt.so" -a "[+melt_stage+]/[+base+].meltmod-$MELT_COMPUTED_[+varsuf+]_CUMULMD5.$quicklybuilt.so" -nt "[+melt_stage+]/[+base+].cfilist" ]; then
-	meltbuild_info  [+(.(fromline))+] [+melt_stage+]/[+base+].meltmod-$MELT_COMPUTED_[+varsuf+]_CUMULMD5.quicklybuilt.so newer than  "[+melt_stage+]/[+base+].cfilist"
-	GCCMELT_SKIPEMITC=""
+    #in meltbuild_do_stage [+(.(fromline))+] perhaps compiling C code for [+base+]
+    if [ -z "$GCCMELT_SKIPEMITC" ]; then
+	meltbuild_info [+(.(fromline))+]-$meltfrom compiling module [+base+] in "$meltcurstagedir"
+	$GCCMELT_MAKE -f $GCCMELT_MODULE_MK melt_module \
+	    GCCMELT_FROM="[+(.(fromline))+]-$meltfrom" \
+	    GCCMELT_MODULE_WORKSPACE=meltbuild-workdir \
+	    GCCMELT_MODULE_FLAVOR="$meltcurflavor" \
+	    GCCMELT_CFLAGS="$GCCMELT_COMPILER_FLAGS" \
+	    GCCMELT_MODULE_SOURCEBASE="$meltcurstagedir/[+base+]" \
+	    GCCMELT_MODULE_BINARYBASE="$meltcurstagedir/[+base+]" \
+	|| meltbuild_error  [+(.(fromline))+]-$meltfrom in "$meltcurstagedir/" failed to make module [+base+]
+    else
+	meltbuild_info [+(.(fromline))+]-$meltfrom NOT compiling module [+base+] "in" \
+	    "$meltcurstagedir/" but symlinking previous "$meltprevstagedir/" module [+base+] \
+	    checksum $meltchecksum_cumul_[+varsuf+] skipemitc=$GCCMELT_SKIPEMITC.
+	meltbuild_symlink "$meltprevstagedir/[+base+].meltmod-$meltchecksum_cumul_[+varsuf+].$meltprevflavor.so" \
+	    "$meltcurstagedir/[+base+].meltmod-$meltchecksum_cumul_[+varsuf+].$meltcurflavor.so"
     fi
+    #in meltbuild_do_stage [+(.(fromline))+] done base [+base+]
 [+ENDFOR melt_translator_file+]
+
+    #in meltbuild_do_stage [+(.(fromline))+] generating the stampfile
+    meltstamp=$meltcurstagedir/$meltcurstagedir.stamp
+    meltstamptmp=$meltstamp-tmp$$
+    echo "///timestamp file $meltstamp" > $meltstamptmp
+    echo $GCCMELT_RUNTIME_DEPENDENCY_MD5SUM $GCCMELT_RUNTIME_DEPENDENCY >> $meltstamptmp
+[+FOR melt_translator_file+]
+    $MD5SUM $meltcurstagedir/[+base+].c $meltcurstagedir/[+base+]+[0-9][0-9].c  >> $meltstamptmp
+    $MD5SUM "$meltcurstagedir/[+base+].meltmod-$meltchecksum_cumul_[+varsuf+].$meltcurflavor.so"  >> $meltstamptmp
+[+ENDFOR melt_translator_file+]
+    echo "///end timestamp file $meltstamp"
+    $GCCMELT_MOVE_IF_CHANGE $meltstamptmp $meltstamp
+
+    #in meltbuild_do_stage [+(.(fromline))+] ending
+    meltbuild_info $meltfrom done stage $meltcurstagedir flavor $meltcurflavor previous $meltprevstagedir previous flavor $meltprevflavor timestamp $meltstamp
+
+}				#### end meltbuild_do_stage [+(.(fromline))+]
+################################################################
+
+##### possibly run all our stages  [+(.(fromline))+]
+[+FOR melt_build_stage+]
+#@  [+(.(fromline))+] stagedir [+stagdir+]
+GCCMELT_SKIPEMITC=
+if [ ! -f [+stagdir+]/[+stagdir+].stamp -o [+stagdir+]/[+stagdir+].stamp -ot $GCCMELT_RUNTIME_DEPENDENCY \
+[+FOR melt_translator_file+] -o [+stagdir+]/[+stagdir+].stamp -ot $GCCMELT_MELTSOURCEDIR/[+base+].melt \
+[+ENDFOR melt_translator_file+] ]; then
+    meltbuild_info  [+(.(fromline))+] building stage [+stagdir+]
+    ## building stage [+stagdir+] previous [+stagprevdir+]  [+(.(fromline))+]
+    meltbuild_do_stage  [+(.(fromline))+] [+stagdir+] quicklybuilt [+stagprevdir+] [+stagprevflavor+]
+else
+    meltbuild_info  [+(.(fromline))+] skipping stage [+stagdir+]
 fi
 
-########@  end for [+melt_stage+] [+ (. (fromline))+] ################
-[+ENDFOR melt_stage+]
+##  [+(.(fromline))+]
+GCCMELT_LASTSTAGE=[+stagdir+]
+
+[+ENDFOR melt_build_stage+]
+
+################################################################
 
 
 GCCMELT_LASTSTAGE=$GCCMELT_STAGE
@@ -340,66 +406,94 @@ meltbuild_info [+(.(fromline))+] last stage $GCCMELT_LASTSTAGE
 
 [ -d meltbuild-sources ] || mkdir meltbuild-sources
 
-GCCMELT_SKIPEMITC=""
-#@ [+(.(fromline))+] 
+#@ from  [+(.(fromline))+]  compiling the modules
+[ -d meltbuild-modules ] || mkdir meltbuild-modules
 
+################################################################
+function meltbuild_emit_translator_sources () {
+[+FOR melt_translator_file+]
+  ## meltbuild_emit_source  [+(.(fromline))+] base [+base+]
+  meltbuild_info [+(.(fromline))+] generating C code of [+base+] in meltbuild-sources
+  meltbuild_emit [+(.(fromline))+] \
+      [+IF (= outindex 0)+]translateinit[+ELSE+]translatefile[+ENDIF+] \
+      [+base+] \
+      meltbuild-sources \
+      "$GCCMELT_LASTSTAGE" \
+      [+FOR melt_translator_file ":"+]$GCCMELT_LASTSTAGE/[+base+].quicklybuilt[+ENDFOR melt_translator_file+] \
+      "[+FOR includeload " "+][+includeload+][+ENDFOR includeload+]"
+[+ENDFOR melt_translator_file+]
+}  # end of function meltbuild_emit_translator_sources
+
+
+################
+function meltbuild_compile_translator_modules () {
+[+FOR flavor IN quicklybuilt optimized debugnoline+]
+
+  # in meltbuild_compile_translator_sources [+flavor+] [+(.(fromline))+]
+  meltbuild_info [+(.(fromline))+] compiling translator [+flavor+]
+
+[+FOR melt_translator_file+]
+   #@ [+(.(fromline))+] flavor [+flavor+] base [+base+]
+   $GCCMELT_MAKE -f $GCCMELT_MODULE_MK melt_module \
+     GCCMELT_FROM=[+(.(fromline))+] \
+     GCCMELT_MODULE_WORKSPACE=meltbuild-workdir \
+     GCCMELT_MODULE_FLAVOR=[+flavor+] \
+     GCCMELT_CFLAGS="$GCCMELT_COMPILER_FLAGS" \
+     GCCMELT_MODULE_SOURCEBASE=meltbuild-sources/[+base+] \
+     GCCMELT_MODULE_BINARYBASE=meltbuild-modules/[+base+] \
+ || meltbuild_error  [+(.(fromline))+] in meltbuild-modules failed to compile translator [+base+] [+flavor+]
+[+ENDFOR melt_translator_file+]
+
+[+ENDFOR flavor+]
+}     # end of function meltbuild_compile_translator_modules
+################################################################
+
+
+#################@ [+(.(fromline))+] 
+function meltbuild_symlink_melt_translator_sources () {
 [+FOR melt_translator_file+][+ 
   (define outbase (get "base")) (define outindex (for-index)) +]
-
-### the C source of meltbuild-sources for [+base+] from [+ (. (fromline))+]
-
-meltbuild_info [+(.(fromline))+] generating C code of [+base+] in meltbuild-sources
-
-meltbuild_emit [+(.(fromline))+] \
-    [+IF (= outindex 0)+]translateinit[+ELSE+]translatefile[+ENDIF+] \
-    [+base+] \
-    meltbuild-sources \
-    "$GCCMELT_LASTSTAGE" \
-    [+FOR melt_translator_file ":"+]$GCCMELT_LASTSTAGE/[+base+].quicklybuilt[+ENDFOR melt_translator_file+] \
-    "[+FOR includeload " "+][+includeload+][+ENDFOR includeload+]"
 
 ### symlinking the MELT translator code in meltbuild-sources for [+base+] from [+ (. (fromline))+]
 
 meltbuild_info [+(.(fromline))+] putting MELT translator code of [+base+] in meltbuild-sources
 
-meltbuild_symlink $GCCMELT_MELTSOURCEDIR/[+base+].melt meltbuild-sources/
-[+FOR includeload "\n"+]meltbuild_symlink [+includeload+] meltbuild-sources/[+ENDFOR includeload+]
+meltbuild_symlink $GCCMELT_MELTSOURCEDIR/[+base+].melt meltbuild-sources/[+base+].melt
+[+FOR includeload "\n"+]meltbuild_symlink [+includeload+] meltbuild-sources/[+includeload+][+ENDFOR includeload+]
 
 [+ENDFOR melt_translator_file+]
+} 				# end of meltbuild_symlink_melt_translator_sources
 
+
+################@ [+(.(fromline))+] 
+melt_final_translator_stamp=meltbuild-final-translator.stamp
+
+if [ ! -f $melt_final_translator_stamp -o $melt_final_translator_stamp -ot $GCCMELT_RUNTIME_DEPENDENCY \
+[+FOR melt_translator_file+] -o $melt_final_translator_stamp -ot $GCCMELT_MELTSOURCEDIR/[+base+].melt \
+[+ENDFOR melt_translator_file+] -o $melt_final_translator_stamp -ot $GCCMELT_LASTSTAGE/$GCCMELT_LASTSTAGE.stamp ]; then
+    meltbuild_info [+(.(fromline))+] emit then translate the compile translator for  $melt_final_translator_stamp
+    meltbuild_emit_translator_sources
+    meltbuild_symlink_melt_translator_sources
+    meltbuild_compile_translator_modules
+    melt_final_translator_stamptemp=$melt_final_translator_stamp-tmp$$
+    echo "///MELT translator timestamp file $melt_final_translator_stamp" > $melt_final_translator_stamptemp
+    echo $GCCMELT_RUNTIME_DEPENDENCY_MD5SUM $GCCMELT_RUNTIME_DEPENDENCY >>  $melt_final_translator_stamptemp
+[+FOR melt_translator_file+]
+#@  [+(.(fromline))+] 
+    $MD5SUM meltbuild-sources/[+base+].melt  >>  $melt_final_translator_stamptemp
+  [+FOR includeload+]
+    $MD5SUM meltbuild-sources/[+includeload+].melt  >>  $melt_final_translator_stamptemp
+  [+ENDFOR includeload+]
+    $MD5SUM meltbuild-sources/[+base+].c meltbuild-sources/[+base+]+[0-9][0-9].c  >> $melt_final_translator_stamptemp
+    melt_translator_[+varsuf+]_cumulmd5=$(cat  meltbuild-sources/[+base+].c meltbuild-sources/[+base+]+[0-9][0-9].c  | $MD5SUM | cut -b 1-32)
+[+ENDFOR melt_translator_file+]
+    echo "///end timestamp file $melt_final_translator_stamp"
+    $GCCMELT_MOVE_IF_CHANGE $melt_final_translator_stamptemp $melt_final_translator_stamp
+else
+    meltbuild_info [+(.(fromline))+] skip final translation of translator stamp  $melt_final_translator_stamp
+fi
 
 ################################################################
-
-#@ from  [+(.(fromline))+]  compiling the modules
-[ -d meltbuild-modules ] || mkdir meltbuild-modules
-
-#@ [+(.(fromline))+] 
-
-[+FOR melt_translator_file+][+ 
-  (define outbase (get "base")) (define outindex (for-index)) +]
-
-### the translator modules in all flavors in meltbuild-modules for [+base+] from [+ (. (fromline))+]
-
-
-[+FOR flavor IN quicklybuilt optimized debugnoline+]
-
-
-#@ [+(.(fromline))+] flavor [+flavor+] base [+base+]
-$GCCMELT_MAKE -f $GCCMELT_MODULE_MK melt_module \
-   GCCMELT_FROM=[+(.(fromline))+] \
-   GCCMELT_MODULE_WORKSPACE=meltbuild-workdir \
-   GCCMELT_MODULE_FLAVOR=[+flavor+] \
-   GCCMELT_CFLAGS="$GCCMELT_COMPILER_FLAGS" \
-   GCCMELT_MODULE_SOURCEBASE=meltbuild-sources/[+base+] \
-   GCCMELT_MODULE_BINARYBASE=meltbuild-modules/[+base+] \
- || meltbuild_error  [+(.(fromline))+] in meltbuild-modules failed to make module [+base+] [+flavor+]
-
-meltbuild_info [+(.(fromline))+] compiled [+base+] flavor [+flavor+] in meltbuild-modules
-[+ENDFOR flavor+]
-
-#@ [+(.(fromline))+] base [+base+]
-
-[+ENDFOR melt_translator_file+]
 
 
 ################
@@ -407,94 +501,80 @@ meltbuild_info [+(.(fromline))+] compiled [+base+] flavor [+flavor+] in meltbuil
 ################################################################
 meltbuild_info [+(.(fromline))+] before applications GCCMELT_SKIPEMITC=$GCCMELT_SKIPEMITC.
 
+meltbuild_info [+(.(fromline))+] times before applications at `date '+%x %H:%M:%S'`: ;  times > /dev/stderr
 
+ 
+melt_final_application_stamp=meltbuild-final-application.stamp
+
+function meltbuild_do_applications () {
 [+FOR melt_application_file+]
-## application [+base+] [+(.(fromline))+]
-
-meltbuild_info [+(.(fromline))+] application [+base+] GCCMELT_SKIPEMITC=$GCCMELT_SKIPEMITC.
-[+
-  (define apbase (get "base")) (define apindex (for-index))
-+]
-
-meltbuild_emit [+(.(fromline))+] \
-    translatefile \
-    [+base+] \
-    meltbuild-sources \
-    meltbuild-modules \
-    [+FOR melt_translator_file ":"+][+base+].optimized[+ENDFOR melt_translator_file+][+FOR melt_application_file+][+IF (< (for-index) apindex)+]:[+base+].quicklybuilt[+ENDIF+][+ENDFOR melt_application_file+] \
+[+ (define apbase (get "base")) (define apindex (for-index)) +]
+  ## meltbuild_do_applications [+base+] [+(.(fromline))+]
+  if [ ! meltbuild-sources/[+base+].melt ]; then
+      meltbuild_symlink $GCCMELT_MELTSOURCEDIR/[+base+].melt meltbuild-sources/[+base+].melt
+  fi
+  if [ ! -f meltbuild-sources/[+base+].c -o -f ! meltbuild-sources/[+base+]+meltdesc.c \
+       -o meltbuild-sources/[+base+]+meltdesc.c -ot meltbuild-final-translator.stamp \
+       -o meltbuild-sources/[+base+]+meltdesc.c -ot  $GCCMELT_MELTSOURCEDIR/[+base+].melt \
+[+FOR melt_application_file+][+IF (< (for-index) apindex)+] -o meltbuild-sources/[+base+]+meltdesc.c -ot meltbuild-sources/[+(. apbase)+]+meltdesc.c \
+[+ENDIF+][+ENDFOR melt_application_file+] ]; then
+      meltbuild_info [+(.(fromline))+] emit application C code for [+base+]
+      meltbuild_emit [+(.(fromline))+] \
+	  translatefile \
+	  [+base+] \
+	  meltbuild-sources \
+	  meltbuild-modules \
+	  [+FOR melt_translator_file ":"+][+base+].optimized[+ENDFOR melt_translator_file+][+FOR melt_application_file+][+IF (< (for-index) apindex)+]:[+base+].quicklybuilt[+ENDIF+][+ENDFOR melt_application_file+] \
     "[+FOR includeload " "+][+includeload+][+ENDFOR includeload+]" \
-  || meltbuild_error [+(.(fromline))+] failed to generate C code of application [+base+]
-
-
-### the application modules in all flavors in meltbuild-modules for [+base+] from [+ (. (fromline))+]
-
-[+FOR flavor IN quicklybuilt optimized debugnoline+]
-
-#@ [+(.(fromline))+] flavor [+flavor+] appl base [+base+]
-$GCCMELT_MAKE -f $GCCMELT_MODULE_MK melt_module \
-   GCCMELT_FROM=[+(.(fromline))+] \
-   GCCMELT_MODULE_WORKSPACE=meltbuild-workdir \
-   GCCMELT_MODULE_FLAVOR=[+flavor+] \
-   GCCMELT_CFLAGS="$GCCMELT_COMPILER_FLAGS" \
-   GCCMELT_MODULE_SOURCEBASE=meltbuild-sources/[+base+] \
-   GCCMELT_MODULE_BINARYBASE=meltbuild-modules/[+base+] \
- || meltbuild_error  [+(.(fromline))+] in meltbuild-modules failed to make module appl [+base+] [+flavor+]
-
-meltbuild_info [+(.(fromline))+] compiled appl [+base+] flavor [+flavor+] in meltbuild-modules
-[+ENDFOR flavor+]
-
-meltbuild_info [+(.(fromline))+] putting MELT application code of [+base+] in meltbuild-sources
-
-meltbuild_symlink $GCCMELT_MELTSOURCEDIR/[+base+].melt meltbuild-sources/
-[+FOR includeload "\n"+]meltbuild_symlink [+includeload+] meltbuild-sources/[+ENDFOR includeload+]
-
-#@ [+(.(fromline))+] end appl [+base+]
+	  || meltbuild_error [+(.(fromline))+] failed to generate C code of application [+base+]
+  else
+      meltbuild_info [+(.(fromline))+] DONT emit application C code for [+base+]
+  fi
+  local meltapp_[+varsuf+]_cumulmd5=$(cat  meltbuild-sources/[+base+].c meltbuild-sources/[+base+]+[0-9][0-9].c  | $MD5SUM | cut -b 1-32)
+ [+FOR flavor IN quicklybuilt optimized debugnoline+]
+  if [ ! -f meltbuild-modules/[+base+].meltmod-$meltapp_[+varsuf+]_cumulmd5.[+flavor+].so \
+      -o meltbuild-modules/[+base+].meltmod-$meltapp_[+varsuf+]_cumulmd5.[+flavor+].so -ot  meltbuild-final-translator.stamp \
+      -o  meltbuild-modules/[+base+].meltmod-$meltapp_[+varsuf+]_cumulmd5.[+flavor+].so -ot  meltbuild-sources/[+base+].c \
+      -o  meltbuild-modules/[+base+].meltmod-$meltapp_[+varsuf+]_cumulmd5.[+flavor+].so -ot  meltbuild-sources/[+base+]+meltdesc.c ]; then
+      meltbuild_info [+(.(fromline))+] compiling application module for [+base+] [+flavor+]
+      $GCCMELT_MAKE -f $GCCMELT_MODULE_MK melt_module \
+	  GCCMELT_FROM=[+(.(fromline))+] \
+	  GCCMELT_MODULE_WORKSPACE=meltbuild-workdir \
+	  GCCMELT_MODULE_FLAVOR=[+flavor+] \
+	  GCCMELT_CFLAGS="$GCCMELT_COMPILER_FLAGS" \
+	  GCCMELT_MODULE_SOURCEBASE=meltbuild-sources/[+base+] \
+	  GCCMELT_MODULE_BINARYBASE=meltbuild-modules/[+base+] \
+	  || meltbuild_error  [+(.(fromline))+] in meltbuild-modules failed to compile application [+base+] [+flavor+]
+  else
+      meltbuild_info [+(.(fromline))+] not compiling application module for [+base+] [+flavor+]
+  fi
+ [+ENDFOR flavor+]
 [+ENDFOR melt_application_file+]
-
-
-
-################################################################
-################################################################
-### the modules lists, in various flavors
-#@ [+(.(fromline))+]
-
-## the warmelt.<FLAVOR>.modlis files
-
-[+FOR flavor IN quicklybuilt optimized debugnoline+]
-meltmodlist=meltbuild-sources/warmelt.[+flavor+].modlis-tmp$$
-echo "# generated module list warmelt.[+flavor+].modlis for MELT $MELTGCCBUILTIN_VERSION_STRING" > $meltmodlist
-[+FOR melt_translator_file+]
-#@ [+(.(fromline))+]
-echo "[+base+].[+flavor+]" >> $meltmodlist
-[+ENDFOR melt_translator_file+]
-echo "# end of module list warmelt.[+flavor+].modlis"  >> $meltmodlist
-$GCCMELT_MOVE_IF_CHANGE  $meltmodlist meltbuild-sources/warmelt.[+flavor+].modlis
-meltbuild_info [+(.(fromline))+] done  meltbuild-sources/warmelt.[+flavor+].modlis
-[+ENDFOR flavor+]
-
-## the <BUILTIN_DEFAULT_MODLIS>.<FLAVOR>.modlis files
-
-[+FOR flavor IN quicklybuilt optimized debugnoline+]
-meltmodlist=meltbuild-sources/$MELTGCCBUILTIN_DEFAULT_MODLIS.[+flavor+].modlis-tmp$$
-echo "# generated default module list $MELTGCCBUILTIN_DEFAULT_MODLIS.[+flavor+].modlis for MELT $MELTGCCBUILTIN_VERSION_STRING" > $meltmodlist
-
-## translator 
-echo "# the translator files:" >> $meltmodlist
-[+FOR melt_translator_file+]
-#@ [+(.(fromline))+]
-echo "[+base+].[+flavor+]" >> $meltmodlist
-[+ENDFOR melt_translator_file+]
-echo "# the application files:" >> $meltmodlist
-## applications
+  ## meltbuild_do_applications [+base+] [+(.(fromline))+]
+  local meltappstamptemp=$melt_final_application_stamp-tmp$$
+  echo "///MELT application time stamp $melt_final_application_stamp" > $meltappstamptemp
+  echo $GCCMELT_RUNTIME_DEPENDENCY_MD5SUM $GCCMELT_RUNTIME_DEPENDENCY >>  $meltappstamptemp
 [+FOR melt_application_file+]
-#@ [+(.(fromline))+]
-echo "[+base+].[+flavor+]" >> $meltmodlist
-[+ENDFOR melt_translator_file+]
-echo "# end of module list $MELTGCCBUILTIN_DEFAULT_MODLIS.[+flavor+].modlis"  >> $meltmodlist
-$GCCMELT_MOVE_IF_CHANGE  $meltmodlist meltbuild-sources/$MELTGCCBUILTIN_DEFAULT_MODLIS.[+flavor+].modlis
+  $MD5SUM meltbuild-sources/[+base+].melt >>  $meltappstamptemp
+  $MD5SUM meltbuild-sources/[+base+].c meltbuild-sources/[+base+]+[0-9][0-9].c  >> $meltappstamptemp
+ [+FOR flavor IN quicklybuilt optimized debugnoline+]
+  $MD5SUM meltbuild-modules/[+base+].meltmod-$meltapp_[+varsuf+]_cumulmd5.[+flavor+].so >> $meltappstamptemp
+ [+ENDFOR flavor+]
+[+ENDFOR melt_application_file+]
+  echo "///end stamp $melt_final_application_stamp"  >> $meltappstamptemp
+  $GCCMELT_MOVE_IF_CHANGE $meltappstamptemp  $melt_final_application_stamp
+meltbuild_info [+(.(fromline))+] times after applications at `date '+%x %H:%M:%S'`: ;  times > /dev/stderr
+} ## end meltbuild_do_applications
 
-meltbuild_info [+(.(fromline))+] done  meltbuild-sources/$MELTGCCBUILTIN_DEFAULT_MODLIS.[+flavor+].modlis
-[+ENDFOR flavor+]
+if [ ! -f  $melt_final_application_stamp \
+     -o $melt_final_application_stamp -ot $melt_final_translator_stamp \
+[+FOR melt_application_file+] -o $melt_final_application_stamp -ot $GCCMELT_MELTSOURCEDIR/[+base+].melt \[+ENDFOR melt_application_file+]
+   ]; then
+    meltbuild_info [+(.(fromline))+] building MELT applications
+    meltbuild_do_applications
+else
+    meltbuild_info [+(.(fromline))+] not building MELT applications because of applstamp  $melt_final_application_stamp
+fi
 
 ################################################################
 ################################################################
@@ -525,5 +605,6 @@ else
 fi
 
 ################
-meltbuild_info [+(.(fromline))+] successfully done
+meltbuild_info [+(.(fromline))+] successfully done with times at `date '+%x %H:%M:%S'`: ; times > /dev/stderr
+
 #@ eof [+(.(fromline))+] end of generated melt-build-script.sh
