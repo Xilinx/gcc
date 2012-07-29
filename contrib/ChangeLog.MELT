@@ -1,5 +1,8 @@
 
 2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* MELT-Plugin-Makefile: Improved but perhaps buggy.
+
+2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* MELT-Plugin-Makefile (melt-runtime-params-inc.c): With melt_default_probe.
 
 2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>

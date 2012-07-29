@@ -31,9 +31,9 @@ RM ?= rm -vf
 ## for symbolic links
 LN_S ?= ln -s
 
-## the compiler with which melt.so is used
+## the GCC compiler with which melt.so is used
 ifndef MELTGCC
-MELTGCC = $(or $(CC),gcc)
+MELTGCC = $(or $(GCC),gcc)
 endif
 
 ## gives yes if MELTGCC has been built with C++ or else the empty string
@@ -55,7 +55,7 @@ GCCMELT_CC = $(or $(CXX),g++)
 $(info GCCMELT_CC= $(GCCMELT_CC) is a C++ compiler)
 endif
 else
-$(info GCCMELT_CC= $(GCCMELT_CC) is explicitly given)
+$(info GCCMELT_CC= $(GCCMELT_CC) is explicitly given $(origin GCCMELT_CC))
 endif
 
 GCCMELT_CFLAGS ?= -g -O -Wall
