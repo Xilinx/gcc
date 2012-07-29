@@ -108,8 +108,8 @@ copymelt gcc/gimple-pretty-print.h gimple-pretty-print.h
 copymelt gcc/tree-pretty-print.h tree-pretty-print.h
 copymelt gcc/make-melt-predefh.awk make-melt-predefh.awk
 copymelt gcc/make-warmelt-predef.awk make-warmelt-predef.awk
-copymelt gcc/melt-build.tpl gcc/melt-build.def gcc/melt-build.mk
-copymelt gcc/melt-newbuild.tpl gcc/melt-newbuild.def gcc/melt-newbuild.mk
+copymelt gcc/melt-build-script.tpl gcc/melt-build-script.def gcc/melt-build-script.sh
+
 
 for mf in $gccmelt_source_tree/gcc/melt/*.melt ; do 
     cp -av $mf  $gccmelt_tarbase/melt/
