@@ -387,7 +387,7 @@ melt-gendoc: melt-build-settings.sh  melt-build-param.sh melt-build-script.sh $(
 
 
 melt-build-settings.sh:   $(melt_make_cc1_dependency) Makefile melt.so | meltbuild-empty-file.c
-	env LANG=C LC_ALL=C $(MELTGCC) -fplugin=./melt.so -fplugin-arg-melt-print-settings=melt-build-settings.sh-tmp meltbuild-empty-file.c -o /dev/null
+	env LANG=C LC_ALL=C $(MELTGCC) -fplugin=./melt.so -fplugin-arg-melt-print-settings=melt-build-settings.sh-tmp -c meltbuild-empty-file.c -o /dev/null
 	$(melt_move_if_change) melt-build-settings.sh-tmp $@
 
 meltbuild-empty-file.c:

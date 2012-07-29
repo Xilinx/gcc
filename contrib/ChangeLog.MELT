@@ -1,5 +1,9 @@
 
 2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* MELT-Plugin-Makefile (melt-build-sett ngs.sh): Pass -c to the
+	compiler.
+
+2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* MELT-Plugin-Makefile: Improved but perhaps buggy.
 
 2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
