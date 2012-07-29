@@ -2,6 +2,12 @@
 
 2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-build-script.tpl: The includeload thing contains the .melt
+	suffix.
+	* melt-build-script.sh: Regenerate.
+
+2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.
 	* melt/generated/warmelt-base+01.c: Regenerate.

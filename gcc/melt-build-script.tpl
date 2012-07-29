@@ -502,7 +502,7 @@ if [ ! -f $melt_final_translator_stamp -o $melt_final_translator_stamp -ot $GCCM
 #@  [+(.(fromline))+] 
     $MD5SUM meltbuild-sources/[+base+].melt  >>  $melt_final_translator_stamptemp
   [+FOR includeload+]
-    $MD5SUM meltbuild-sources/[+includeload+].melt  >>  $melt_final_translator_stamptemp
+    $MD5SUM meltbuild-sources/[+includeload+]  >>  $melt_final_translator_stamptemp
   [+ENDFOR includeload+]
     $MD5SUM meltbuild-sources/[+base+].c meltbuild-sources/[+base+]+[0-9][0-9].c  >> $melt_final_translator_stamptemp
     melt_translator_[+varsuf+]_cumulmd5=$(cat  meltbuild-sources/[+base+].c meltbuild-sources/[+base+]+[0-9][0-9].c  | $MD5SUM | cut -b 1-32)
