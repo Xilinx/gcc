@@ -5582,7 +5582,10 @@ upgrade-warmelt: melt-build-settings.sh  melt-build-param.sh $(srcdir)/melt-buil
 	for f in meltbuild-sources/warmelt*.[ch] ; do \
 	   bf=`basename $$f` ; \
 	   cp $(srcdir)/melt/generated/$$bf  $(srcdir)/melt/generated/$$bf~ ; \
-	   unifdef -UMELTGCC_NOLINENUMBERING $$f | indent -gnu > $(srcdir)/melt/generated/$$bf-tmp ; \
+           case $$bf in \
+             *+melt*) cp $$f  $(srcdir)/melt/generated/$$bf-tmp;; \
+	     *) unifdef -UMELTGCC_NOLINENUMBERING $$f | indent -gnu > $(srcdir)/melt/generated/$$bf-tmp ;; \
+	   esac; \
 	   mv $(srcdir)/melt/generated/$$bf-tmp  $(srcdir)/melt/generated/$$bf ; \
 	done
 	$(RM) melt-runtime.o melt-runtime.i s-gtype */warmelt*.o

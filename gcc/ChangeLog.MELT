@@ -1,5 +1,9 @@
 
 2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* Makefile.in (upgrade-warmelt): Dont indent *+melt* files.
+
+2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt: Improve.
 
 2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
