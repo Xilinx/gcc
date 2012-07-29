@@ -2,6 +2,10 @@
 
 2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.h: Use #elif not #elseif cpp directive.
+
+2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-build-script.tpl: The includeload thing contains the .melt
 	suffix.
 	* melt-build-script.sh: Regenerate.

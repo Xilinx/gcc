@@ -296,7 +296,7 @@ melt_need_debug_limit (int depth, int lim) {
 #if (defined(__STDC__) &&  __STDC__VERSION >= 199901L) || __cplusplus
 #define MELT_FLEXIBLE_DIM /*C99 or better or C++ flexible*/
 #define MELT_HAVE_FLEXIBLE_DIM 1
-#elsif __GNUC__>=4
+#elif __GNUC__>=4
 #define MELT_FLEXIBLE_DIM /*gcc flexible*/
 #define MELT_HAVE_FLEXIBLE_DIM 1
 #else
