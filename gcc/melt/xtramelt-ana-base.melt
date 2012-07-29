@@ -742,7 +742,7 @@
    }#
   ;;after expansion
    #{ }
-   } /*end foreach_mapbasicblock $EACHBBMAP*/
+   } /*end foreach_mapbasicblock $EACHMAPBB*/
    }#
   )
 
