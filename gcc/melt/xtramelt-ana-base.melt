@@ -200,9 +200,9 @@
   (:loop loatt :value val)	;local formals
   :doc #{Iterate inside map of loops $LOOMAP for each loop key $LOATT and value $VAL.}#
   ;; before expansion
-  #{ /* foreach_maploop $EACHLOOMAP*/ int $EACHLOOMAP#_rk=0;
+  #{ /* foreach_maploop $EACHLOOMAP*/ { int $EACHLOOMAP#_rk=0;
    for ($EACHLOOMAP#_rk=0;
-        $EACHLOOMAP#_rk < melt_size_maploops((struct meltmaploops_st*)($LOOMAP));
+        $EACHLOOMAP#_rk < (int) melt_size_maploops((struct meltmaploops_st*)($LOOMAP));
 	$EACHLOOMAP#_rk++) {
    $LOATT = NULL;
    $VAL = NULL;
@@ -216,10 +216,10 @@
      ((struct meltmaploops_st*)($LOOMAP))->entab[$EACHLOOMAP#_rk].e_va;
    }#
   ;;after expansion
-   #{
+   #{ 
    } /*end  foreach_maploop $EACHLOOMAP*/
    $LOATT = NULL;
-   $VAL = NULL;
+   $VAL = NULL; }
    }#
   )
 
@@ -231,13 +231,13 @@
   (:loop curloop :long loopix)
   :doc #{Iterate on all loops $CURLOOP of index $LOOPIX.}#
   ;; before expansion
-  #{ /* each_loop $EACHLOOP +*/ 
-   loop_iterator $EACHLOOP#_li = {};
+  #{ /* each_loop $EACHLOOP +*/ {
+   loop_iterator $EACHLOOP#_li;
    FOR_EACH_LOOP($EACHLOOP#_li, $CURLOOP, 0) {
      $LOOPIX = $CURLOOP->num;
   }#
   ;;after expansion
-   #{ } /*each_loop $EACHLOOP -*/
+   #{ } /*each_loop $EACHLOOP -*/ }
    }#
 )
 
@@ -824,7 +824,7 @@
 #{ 
    { if (($liex) && ($coef)) 
        ppl_Linear_Expression_add_to_coefficient(($liex), ($vardim), ($coef)); 
-     else debugeprintf("failed ppl_Linear_Expression_coefficient liex=%p", $liex);}
+     else debugeprintf("failed ppl_Linear_Expression_coefficient liex=%p",(void*) $liex);}
   }#)
 
 (defprimitive ppl_Linear_Expression_add_to_inhomogeneous
@@ -1164,7 +1164,7 @@
    :basic_block curbb 
    )	
   ;;before expansion
-  #{ /* start each_bb_current_fun $EACHBBCURFUN */ const int $EACHBBCURFUN#_line = __LINE__;
+  #{ /* start each_bb_current_fun $EACHBBCURFUN */ { const int $EACHBBCURFUN#_line = __LINE__;
    $CURBB = (basic_block) NULL;
    if (cfun && cfun->cfg) {
      basic_block  $EACHBBCURFUN#_bb = NULL;
@@ -1179,7 +1179,7 @@
        ($EACHBBCURFUN#_line,
 	"each_bb_current_fun used with invalid cfun=%p [$EACHBBCURFUN]", 
 	cfun);
-  /* end each_bb_current_fun $EACHBBCURFUN */  
+  /* end each_bb_current_fun $EACHBBCURFUN */  }
  }# )
 
 ;;; iterate on evey basicblock of the current cfun & its decl

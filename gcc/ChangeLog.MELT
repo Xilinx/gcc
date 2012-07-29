@@ -1,5 +1,8 @@
 
 2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt: Improve.
+
+2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt (foreach_mapbasicblock): Fix comment.
 
 2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
