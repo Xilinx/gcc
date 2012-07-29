@@ -127,9 +127,9 @@
   (:edge att :value val)	;local formals
   ;; before expansion
   #{
-   /* foreach_mapedge $EACHEDGEMAP*/ int $EACHEDGEMAP#_rk=0;
+   /* foreach_mapedge $EACHEDGEMAP*/ { int $EACHEDGEMAP#_rk=0;
    for ($EACHEDGEMAP#_rk=0;
-        $EACHEDGEMAP#_rk<melt_size_mapedges((struct meltmapedges_st*)($EDGMAP));
+        $EACHEDGEMAP#_rk< (int) melt_size_mapedges((struct meltmapedges_st*)($EDGMAP));
 	$EACHEDGEMAP#_rk++) {
    edge $EACHEDGEMAP#_ed = ((struct meltmapedges_st*)($EDGMAP))->entab[$EACHEDGEMAP#_rk].e_at;
    $ATT = NULL;
@@ -142,7 +142,7 @@
    }#
   ;;after expansion
    #{
-   } /*end foreach_mapedge $EACHEDGEMAP*/
+   } } /*end foreach_mapedge $EACHEDGEMAP*/
    $ATT = NULL;
    $VAL = NULL;
    }#
@@ -608,7 +608,7 @@
   ;; before expansion
   #{ /*  foreach_edge_bb_succs $EACHEDGEBBSUCC++ */		
   if ($BB) {
-    edge_iterator $EACHEDGEBBSUCC#_iter = {};
+    edge_iterator $EACHEDGEBBSUCC#_iter;
     edge $EACHEDGEBBSUCC#_edge = NULL;
     FOR_EACH_EDGE($EACHEDGEBBSUCC#_edge, $EACHEDGEBBSUCC#_iter, ($BB)->succs) 
       {
@@ -659,7 +659,7 @@
   ;; before expansion
   #{ /* $EACHEDGEBBPRED++ */		
   if ($BB) {
-    edge_iterator $EACHEDGEBBPRED#_iter = {};
+    edge_iterator $EACHEDGEBBPRED#_iter;
     edge $EACHEDGEBBPRED#_edge = NULL;
     FOR_EACH_EDGE($EACHEDGEBBPRED#_edge, $EACHEDGEBBPRED#_iter, ($BB)->preds) 
       {
@@ -729,19 +729,20 @@
   eachmapbb 				;state symbol
   (:basic_block bbatt :value bbval)	;local formals
   ;; before expansion
-  #{
-   /*eachbbmap*/ int  $eachmapbb#_rk=0;
-   for ( $eachmapbb#_rk=0;  
-	 $eachmapbb#_rk<melt_size_mapbasicblocks((struct meltmapbasicblocks_st*)($bbmap));  
-	 $eachmapbb#_rk++) {
-   basic_block $eachmapbb#_bb=melt_nthattr_mapbasicblocks((struct meltmapbasicblocks_st*)($bbmap), $eachmapbb#_rk);
-   if (!$eachmapbb#_bb) continue;
-   $bbatt = $eachmapbb#_bb;
-   $bbval = melt_nthval_mapbasicblocks((struct meltmapbasicblocks_st*)($bbmap ), $eachmapbb#_rk);
+  #{ /* foreach_mapbasicblock $EACHMAPBB */ {
+   int  $EACHMAPBB#_rk=0;
+   for ( $EACHMAPBB#_rk=0;  
+	 $EACHMAPBB#_rk< (int) melt_size_mapbasicblocks((struct meltmapbasicblocks_st*)($BBMAP));  
+	 $EACHMAPBB#_rk++) {
+   basic_block $EACHMAPBB#_bb =
+     melt_nthattr_mapbasicblocks((struct meltmapbasicblocks_st*)($BBMAP), $EACHMAPBB#_rk);
+   if (!$EACHMAPBB#_bb) continue;
+   $BBATT = $eachmapbb#_bb;
+   $BBVAL = melt_nthval_mapbasicblocks((struct meltmapbasicblocks_st*)($BBMAP), $EACHMAPBB#_rk);
    }#
   ;;after expansion
-   #{
-   } /*endeachbbmap*/
+   #{ }
+   } /*end foreach_mapbasicblock $EACHBBMAP*/
    }#
   )
 
@@ -823,7 +824,7 @@
 #{ 
    { if (($liex) && ($coef)) 
        ppl_Linear_Expression_add_to_coefficient(($liex), ($vardim), ($coef)); 
-     else debugeprintf("failed ppl_Linear_Expression_coefficient");}
+     else debugeprintf("failed ppl_Linear_Expression_coefficient liex=%p", $liex);}
   }#)
 
 (defprimitive ppl_Linear_Expression_add_to_inhomogeneous
@@ -882,7 +883,7 @@
 
 (defprimitive debug_ppl_polyhedron (:cstring msg :ppl_polyhedron poly) :void
 #{ if (melt_flag_debug) {  char*s = 0; 
-     debugeprintfnonl("debug_ppl_polyhedron %s @%p ", $msg, $poly);
+     debugeprintfnonl("debug_ppl_polyhedron %s @%p ", $msg, (void*) $poly);
      if ($poly) ppl_io_asprint_Polyhedron(&s, $poly);
      debugeprintf_raw("%s\n", s);
      free(s); } 
@@ -1119,7 +1120,7 @@
   (:tree decl)
   :doc #{$EACH_CGRAPH_DECL iterates on every cgraph_node which is a declaration $DECL; only for GCC 4.6 or 4.7}#
   ;;before expansion
-#{ /*  each_cgraph_decl $EACHCGRDCL */
+#{ /*  each_cgraph_decl $EACHCGRDCL */ {
    struct cgraph_node *$EACHCGRDCL#_nd = NULL; 
    /* each_cgraph_decl $EACHCGRDCL loop */
    for ($EACHCGRDCL#_nd = cgraph_nodes; 
@@ -1133,7 +1134,7 @@
      $DECL = $EACHCGRDCL#_dcl;
    }#
    ;; after expansion
-#{ /* end  each_cgraph_decl $EACHCGRDCL */ $DECL = (tree)NULL; 
+#{ /* end  each_cgraph_decl $EACHCGRDCL */ $DECL = (tree)NULL; }
  } }#
 )
 (export_values each_cgraph_decl)
@@ -1232,7 +1233,7 @@ current function and gives its declaration in $CFUNDECL}#
    if (!cfun)
      melt_fatal_error_at_line
       ($EACHLOCALCFUN#_line,
-       "each_local_decl_cfun [$EACHLOCALCFUN] called without cfun");
+       "each_local_decl_cfun [$EACHLOCALCFUN] called without cfun %p", (void*)cfun);
    if (cfun->local_decls) {
      unsigned $EACHLOCALCFUN#_ix = 0;
      tree $EACHLOCALCFUN#_tdcl = NULL_TREE;
