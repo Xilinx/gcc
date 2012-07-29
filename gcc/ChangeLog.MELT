@@ -1,5 +1,9 @@
 
 2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build-script.tpl: Accept an overall goal as first argument.
+
+	* melt-build-script.sh: Regenerate.
+2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build-script.tpl: Fix typos, add modlis generation.
 
 	* melt-build-script.sh: Regenerate.
