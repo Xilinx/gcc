@@ -1,5 +1,9 @@
 
 2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* Makefile.in (melt-clean): Typo.
+
+2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (melt-clean, melt-translator, melt-applications)
 	(melt-modlists, melt-gendoc): New phony targets.
 	(install-melt-sources, install-melt-modules)

@@ -5424,7 +5424,7 @@ $(srcdir)/melt-build-script.sh:  @MAINT@ $(srcdir)/melt-build-script.def $(srcdi
 melt.encap  meltgendoc.texi:  melt-build-settings.sh  melt-build-param.sh $(srcdir)/melt-build-script.sh $(melt_make_cc1_dependency) $(MELTBUILD_MKFILE) warmelt-predef.melt melt-predef.h $(wildcard $(srcdir)/melt/*.melt $(srcdir)/melt/generated/*.[ch]) melt-gendoc
 
 melt-clean:
-	$(RM) meltbuild*
+	$(RM) -rf meltbuild*
 
 melt-translator: melt-build-settings.sh  melt-build-param.sh $(srcdir)/melt-build-script.sh $(melt_make_cc1_dependency) $(MELTBUILD_MKFILE) warmelt-predef.melt melt-predef.h $(wildcard $(srcdir)/melt/*.melt $(srcdir)/melt/generated/*.[ch])
 	@echo melt-translator script $(realpath $(srcdir)/melt-build-script.sh) MAKE= $(MAKE) MAKEFLAGS= $(MAKEFLAGS)
