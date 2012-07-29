@@ -651,8 +651,9 @@ if [ "$melt_overall_goal" = "regenerate" ]; then
     meltbuild_info [+(.(fromline))+] regenerating runtime support
     [ -d meltbuild-sources/generated ] || mkdir meltbuild-sources/generated
     meltregen_args=meltbuild-regen.args
-    meltregen_argstemp=$meltregenargs-tmp$$
+    meltregen_argstemp="$meltregen_args-tmp$$"
     echo ' -DGCCMELT_FROM_ARG="[+(.(fromline))+]"' > $meltregen_argstemp
+   meltbuild_arg mode=runtypesupport >> $meltregen_argstemp
     meltbuild_arg output=meltbuild-sources/generated/meltrunsup >> $meltregen_argstemp
     meltbuild_arg workdir=meltbuild-workdir >>  $meltregen_argstemp
     meltbuild_arg tempdir=. >> $meltregen_argstemp

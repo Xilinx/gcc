@@ -1,5 +1,10 @@
 
 2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build-script.tpl: Correct regenerate overall goal.
+
+	* melt-build-script.sh: Regenerate.
+
+2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* Makefile.in (melt-clean): Typo.
 
