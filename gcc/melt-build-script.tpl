@@ -510,12 +510,13 @@ function meltbuild_do_applications () {
 [+FOR melt_application_file+]
 [+ (define apbase (get "base")) (define apindex (for-index)) +]
   ## meltbuild_do_applications [+base+] [+(.(fromline))+]
-  if [ ! meltbuild-sources/[+base+].melt ]; then
+  if [ ! -f meltbuild-sources/[+base+].melt ]; then
       meltbuild_symlink $GCCMELT_MELTSOURCEDIR/[+base+].melt meltbuild-sources/[+base+].melt
   fi
-  if [ ! -f meltbuild-sources/[+base+].c -o -f ! meltbuild-sources/[+base+]+meltdesc.c \
+  ## meltbuild_do_applications [+base+] [+(.(fromline))+]
+  if [ ! -f meltbuild-sources/[+base+].c -o  ! -f meltbuild-sources/[+base+]+meltdesc.c \
        -o meltbuild-sources/[+base+]+meltdesc.c -ot meltbuild-final-translator.stamp \
-       -o meltbuild-sources/[+base+]+meltdesc.c -ot  $GCCMELT_MELTSOURCEDIR/[+base+].melt \
+       -o meltbuild-sources/[+base+]+meltdesc.c -ot  meltbuild-sources/[+base+].melt \
 [+FOR melt_application_file+][+IF (< (for-index) apindex)+] -o meltbuild-sources/[+base+]+meltdesc.c -ot meltbuild-sources/[+(. apbase)+]+meltdesc.c \
 [+ENDIF+][+ENDFOR melt_application_file+] ]; then
       meltbuild_info [+(.(fromline))+] emit application C code for [+base+]
@@ -564,16 +565,47 @@ function meltbuild_do_applications () {
   echo "///end stamp $melt_final_application_stamp"  >> $meltappstamptemp
   $GCCMELT_MOVE_IF_CHANGE $meltappstamptemp  $melt_final_application_stamp
 meltbuild_info [+(.(fromline))+] times after applications at `date '+%x %H:%M:%S'`: ;  times > /dev/stderr
-} ## end meltbuild_do_applications
+} ## end meltbuild_do_applications  [+(.(fromline))+]
 
-if [ ! -f  $melt_final_application_stamp \
-     -o $melt_final_application_stamp -ot $melt_final_translator_stamp \
-[+FOR melt_application_file+] -o $melt_final_application_stamp -ot $GCCMELT_MELTSOURCEDIR/[+base+].melt \[+ENDFOR melt_application_file+]
-   ]; then
+if [ ! -f  "$melt_final_application_stamp" \
+     -o "$melt_final_application_stamp" -ot "$melt_final_translator_stamp" \
+[+FOR melt_application_file+] -o "$melt_final_application_stamp" -ot "$GCCMELT_MELTSOURCEDIR/[+base+].melt" \
+[+ENDFOR melt_application_file+] ]; then
     meltbuild_info [+(.(fromline))+] building MELT applications
     meltbuild_do_applications
 else
-    meltbuild_info [+(.(fromline))+] not building MELT applications because of applstamp  $melt_final_application_stamp
+    meltbuild_info [+(.(fromline))+] not building MELT applications because of applstamp  "$melt_final_application_stamp"
+fi
+
+################################################################
+################################################################
+### the modules lists [+ (. (fromline))+]
+[+FOR flavor in quicklybuilt optimized debugnoline+]
+if [ ! -f "meltbuild-sources/$MELTGCCBUILTIN_DEFAULT_MODLIS.[+flavor+].modlis" \
+    -o "meltbuild-sources/$MELTGCCBUILTIN_DEFAULT_MODLIS.[+flavor+].modlis" -ot $melt_final_translator_stamp \
+    -o "meltbuild-sources/$MELTGCCBUILTIN_DEFAULT_MODLIS.[+flavor+].modlis" -ot $melt_final_application_stamp ]; then
+  #  [+ (. (fromline))+] module list [+flavor+]
+  meltbuild_info  [+(.(fromline))+] generating module list  "meltbuild-sources/$MELTGCCBUILTIN_DEFAULT_MODLIS.[+flavor+].modlis"
+  melt_modlis_temp="meltbuild-sources/$MELTGCCBUILTIN_DEFAULT_MODLIS.[+flavor+].modlis-tmp$$"
+  echo "# MELT module list file $MELTGCCBUILTIN_DEFAULT_MODLIS.[+flavor+].modlis" >> $melt_modlis_temp
+  echo "# MELT translator modules:" >> $melt_modlis_temp
+ [+FOR melt_translator_file+] 
+  echo [+base+].[+flavor+] >> $melt_modlis_temp
+ [+ENDFOR melt_translator_file+]
+  #@  [+ (. (fromline))+]
+  echo "# MELT application modules:" >> $melt_modlis_temp
+ [+FOR melt_application_file+]
+  echo [+base+].[+flavor+] >> $melt_modlis_temp
+ [+ENDFOR melt_application_file+]
+  $GCCMELT_MOVE_IF_CHANGE $melt_modlis_temp  "meltbuild-sources/$MELTGCCBUILTIN_DEFAULT_MODLIS.[+flavor+].modlis"
+else
+  meltbuild_info  [+(.(fromline))+] keeping module list  "meltbuild-sources/$MELTGCCBUILTIN_DEFAULT_MODLIS.[+flavor+].modlis"  
+fi
+[+ENDFOR flavor+]
+
+#@ [+ (. (fromline))+]
+if [ ! -f "meltbuild-sources/$MELTGCCBUILTIN_DEFAULT_MODLIS.modlis" ]; then
+   meltbuild_symlink "meltbuild-sources/$MELTGCCBUILTIN_DEFAULT_MODLIS.optimized.modlis" "meltbuild-sources/$MELTGCCBUILTIN_DEFAULT_MODLIS.modlis"
 fi
 
 ################################################################
