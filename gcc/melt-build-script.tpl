@@ -95,8 +95,9 @@ case $melt_overall_goal in
     applications) ;;
     modlists) ;;
     gendoc) ;;
+    regenerate) ;;
     *) meltbuild_error  [+(.(fromline))+] bad MELT overall goal "$melt_overall_goal:" \
-        expecting translator, applications, modlists or gendoc
+        expecting translator, applications, modlists or gendoc or regenerate
 esac
 
 ################################################################
@@ -645,10 +646,34 @@ if [ "$melt_overall_goal" = "modlists" ]; then
 fi
 ################################################################
 ################################################################
+#@ [+(.(fromline))+]
+if [ "$melt_overall_goal" = "regenerate" ]; then
+    meltbuild_info [+(.(fromline))+] regenerating runtime support
+    [ -d meltbuild-sources/generated ] || mkdir meltbuild-sources/generated
+    meltregen_args=meltbuild-regen.args
+    meltregen_argstemp=$meltregenargs-tmp$$
+    echo ' -DGCCMELT_FROM_ARG="[+(.(fromline))+]"' > $meltregen_argstemp
+    meltbuild_arg output=meltbuild-sources/generated/meltrunsup >> $meltregen_argstemp
+    meltbuild_arg workdir=meltbuild-workdir >>  $meltregen_argstemp
+    meltbuild_arg tempdir=. >> $meltregen_argstemp
+    meltbuild_arg source-path=meltbuild-sources >> $meltregen_argstemp
+    meltbuild_arg module-path=meltbuild-modules >> $meltregen_argstemp
+    meltbuild_arg bootstrapping  >> $meltregen_argstemp
+    echo meltbuild-empty-file.c >> $meltregen_argstemp
+    $GCCMELT_MOVE_IF_CHANGE  $meltregen_argstemp $meltregen_args
+   meltbuild_info [+(.(fromline))+] $meltregen_args  is
+   cat $meltregen_args > /dev/stderr
+    $GCCMELT_CC1_PREFIX $GCCMELT_CC1 @$meltregen_args \
+	|| meltbuild_error [+(.(fromline))+] failed with arguments @$meltregen_args
+    meltbuild_info [+(.(fromline))+] done regeerate overall goal
+    exit 0
+fi
+
+################################################################
 ### the generated documentation meltgendoc.texi [+ (. (fromline))+]
 
-if [ ! -f meltgendoc.texi [+FOR melt_translator_file " \\\n"+] -o meltbuild-sources/[+base+].melt -nt meltgendoc.texi [+ENDFOR melt_translator_file+] \
- [+FOR melt_application_file " \\\n"+] -o meltbuild-sources/[+base+].melt -nt meltgendoc.texi [+ENDFOR melt_application_file+] ]; then
+if [   ! -f meltgendoc.texi [+FOR melt_translator_file " \\\n"+] -o meltbuild-sources/[+base+].melt -nt meltgendoc.texi [+ENDFOR melt_translator_file+] \
+ [+FOR melt_application_file " \\\n"+] -o meltbuild-sources/[+base+].melt -nt meltgendoc.texi [+ENDFOR melt_application_file+]  ]; then
    meltbuild_info [+(.(fromline))+] generating meltgendoc.texi
    meltgen_args=meltbuild-gendoc.args-tmp$$
    echo ' -DGCCMELT_FROM_ARG="[+(.(fromline))+]"' > $meltgen_args

@@ -1,8 +1,20 @@
 
 2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (melt-clean, melt-translator, melt-applications)
+	(melt-modlists, melt-gendoc): New phony targets.
+	(install-melt-sources, install-melt-modules)
+	(install-melt-default-modules-list): Use them.
+	(upgrade-warmelt): Rewritten, using regenerate overall goal.
+
+	* melt-build-script.tpl: Add regenerate overall goal.
+
+	* melt-build-script.sh: Regenerate.
+
+2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build-script.tpl: Accept an overall goal as first argument.
 
 	* melt-build-script.sh: Regenerate.
+
 2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build-script.tpl: Fix typos, add modlis generation.
 

@@ -5419,15 +5419,31 @@ MELT_MAKE_MODULE_XTRAMAKEFLAGS ?= -j 2
 $(srcdir)/melt-build-script.sh:  @MAINT@ $(srcdir)/melt-build-script.def $(srcdir)/melt-build-script.tpl
 	cd $(srcdir) && $(AUTOGEN) melt-build-script.def
 
-.PHONY: melt.encap
+.PHONY: melt.encap melt-clean melt-translator melt-applications melt-modlists melt-gendoc
 
-melt.encap  meltgendoc.texi:  melt-build-settings.sh  melt-build-param.sh $(srcdir)/melt-build-script.sh $(melt_make_cc1_dependency) $(MELTBUILD_MKFILE) warmelt-predef.melt melt-predef.h $(wildcard $(srcdir)/melt/*.melt $(srcdir)/melt/generated/*.[ch])
-	@echo melt.encap making Makefile ...
-	@echo melt.encap GCCMELT_COMPILER= $(GCCMELT_COMPILER) GCCMELT_COMPILER_FLAGS= $(GCCMELT_COMPILER_FLAGS)
-	$(MAKE) Makefile  melt-build-param.sh
-##### new build script
-	@echo melt.encap running new build script $(realpath $(srcdir)/melt-build-script.sh) MAKE= $(MAKE) MAKEFLAGS= $(MAKEFLAGS)
-	+env GCCMELT_MAKE="$(MAKE)" GCCMELT_MAKEFLAGS="$(MAKEFLAGS)" $(SHELL) $(srcdir)/melt-build-script.sh
+melt.encap  meltgendoc.texi:  melt-build-settings.sh  melt-build-param.sh $(srcdir)/melt-build-script.sh $(melt_make_cc1_dependency) $(MELTBUILD_MKFILE) warmelt-predef.melt melt-predef.h $(wildcard $(srcdir)/melt/*.melt $(srcdir)/melt/generated/*.[ch]) melt-gendoc
+
+melt-clean:
+	$(RM) meltbuild*
+
+melt-translator: melt-build-settings.sh  melt-build-param.sh $(srcdir)/melt-build-script.sh $(melt_make_cc1_dependency) $(MELTBUILD_MKFILE) warmelt-predef.melt melt-predef.h $(wildcard $(srcdir)/melt/*.melt $(srcdir)/melt/generated/*.[ch])
+	@echo melt-translator script $(realpath $(srcdir)/melt-build-script.sh) MAKE= $(MAKE) MAKEFLAGS= $(MAKEFLAGS)
+	+env GCCMELT_MAKE="$(MAKE)" GCCMELT_MAKEFLAGS="$(MAKEFLAGS)" $(SHELL) $(srcdir)/melt-build-script.sh translator
+
+
+melt-applications: melt-build-settings.sh  melt-build-param.sh $(srcdir)/melt-build-script.sh $(melt_make_cc1_dependency) $(MELTBUILD_MKFILE) warmelt-predef.melt melt-predef.h $(wildcard $(srcdir)/melt/*.melt $(srcdir)/melt/generated/*.[ch])
+	@echo melt-application script $(realpath $(srcdir)/melt-build-script.sh) MAKE= $(MAKE) MAKEFLAGS= $(MAKEFLAGS)
+	+env GCCMELT_MAKE="$(MAKE)" GCCMELT_MAKEFLAGS="$(MAKEFLAGS)" $(SHELL) $(srcdir)/melt-build-script.sh applications
+
+
+melt-modlists: melt-build-settings.sh  melt-build-param.sh $(srcdir)/melt-build-script.sh $(melt_make_cc1_dependency) $(MELTBUILD_MKFILE) warmelt-predef.melt melt-predef.h $(wildcard $(srcdir)/melt/*.melt $(srcdir)/melt/generated/*.[ch])
+	@echo melt-modlists script $(realpath $(srcdir)/melt-build-script.sh) MAKE= $(MAKE) MAKEFLAGS= $(MAKEFLAGS)
+	+env GCCMELT_MAKE="$(MAKE)" GCCMELT_MAKEFLAGS="$(MAKEFLAGS)" $(SHELL) $(srcdir)/melt-build-script.sh modlists
+
+
+melt-gendoc: melt-build-settings.sh  melt-build-param.sh $(srcdir)/melt-build-script.sh $(melt_make_cc1_dependency) $(MELTBUILD_MKFILE) warmelt-predef.melt melt-predef.h $(wildcard $(srcdir)/melt/*.melt $(srcdir)/melt/generated/*.[ch])
+	@echo melt-gendoc script $(realpath $(srcdir)/melt-build-script.sh) MAKE= $(MAKE) MAKEFLAGS= $(MAKEFLAGS)
+	+env GCCMELT_MAKE="$(MAKE)" GCCMELT_MAKEFLAGS="$(MAKEFLAGS)" $(SHELL) $(srcdir)/melt-build-script.sh gendoc
 
 
 melt-build-settings.sh:  ./cc1$(exeext) $(melt_make_cc1_dependency) Makefile | meltbuild-empty-file.c
@@ -5517,20 +5533,20 @@ check-melt-runtime: $(MELT_RUNTIME_C) xgcc$(exeext)		\
 	  -c $(MELT_RUNTIME_C) -o /dev/null
 
 
-### notice that melt-sources is a directory, but melt-all-sources is a
-### phony makefile target from melt-build.mk
-install-melt-sources: melt-sources  melt-all-sources
+### notice that meltbuild-sources is a directory, but melt-modlists is a
+### phony makefile target
+install-melt-sources: melt-modlists
 	$(mkinstalldirs) $(DESTDIR)/$(melt_source_dir)
-	for f in melt-sources/*.c melt-sources/*.melt ; do \
+	for f in meltbuild-sources/*.{c,mk,h,modlis} ; do \
 	   $(INSTALL_DATA) $$f $(DESTDIR)/$(melt_source_dir) ; \
 	done
 
-### notice that melt-modules is a directory, but melt-all-modules is a
-### phony makefile target from melt-build.mk
-install-melt-modules: melt-modules melt-all-modules
+### notice that meltbuild-modules is a directory, but melt-modlists is a
+### phony makefile target
+install-melt-modules: melt-modlists
 	$(mkinstalldirs) $(DESTDIR)/$(melt_module_dir)
-	for f in $</*.so ; do \
-	    $(INSTALL_PROGRAM)  -m 755 `readlink -f $$f` $(DESTDIR)/$(melt_module_dir)/ ; \
+	for f in meltbuild-modules/*.so ; do \
+	    $(INSTALL_PROGRAM)  -m 755 $$f $(DESTDIR)/$(melt_module_dir)/ ; \
 	done
 
 
@@ -5540,9 +5556,9 @@ install-melt-mk: melt-module.mk
 	$(INSTALL_DATA) $< $(DESTDIR)/$(melt_installed_module_makefile)
 
 ## install the default modules list
-install-melt-default-modules-list: $(melt_default_modules_list).modlis $(wildcard $(melt_default_modules_list)-*.modlis)
-	$(INSTALL_DATA) $(melt_default_modules_list).modlis $(DESTDIR)/$(melt_source_dir) 
-	for f in $(wildcard $(melt_default_modules_list)-*.modlis) ; do \
+install-melt-default-modules-list: melt-modlists
+	$(INSTALL_DATA) meltbuild-sources/$(melt_default_modules_list).modlis $(DESTDIR)/$(melt_source_dir) 
+	for f in $(wildcard meltbuild-sources/*.modlis) ; do \
 	  $(INSTALL_DATA) $$f $(DESTDIR)/$(melt_source_dir); \
 	done
 
@@ -5552,21 +5568,28 @@ install-melt-default-modules-list: $(melt_default_modules_list).modlis $(wildcar
 .PHONY: upgrade-warmelt
 
 
-upgrade-warmelt: melt.encap
-	$(MAKE) Makefile
-#it is important to call the warmelt-upgrade-translator before the
-#meltrun-generate
-	$(MAKE) warmelt-upgrade-translator meltrun-generate
-	for f in $(wildcard meltrunsup*.[ch]); do  \
-	  cp $$f $$f-tmp; \
-	  cp $(srcdir)/melt/generated/$$f $$f-old; \
-          $(SHELL) $(srcdir)/../move-if-change $$f-tmp $(srcdir)/melt/generated/$$f; \
-        done
+upgrade-warmelt: melt-build-settings.sh  melt-build-param.sh $(srcdir)/melt-build-script.sh $(melt_make_cc1_dependency) $(MELTBUILD_MKFILE) warmelt-predef.melt melt-predef.h $(wildcard $(srcdir)/melt/*.melt $(srcdir)/melt/generated/*.[ch]) 
+	@which indent > /dev/zero || (echo indent not found but needed to upgrade-warmelt ; exit 1)
+	@which unifdef > /dev/zero || (echo unifdef not found but needed to upgrade-warmelt ; exit 1)
+	@echo upgrade-warmelt script $(realpath $(srcdir)/melt-build-script.sh) MAKE= $(MAKE) MAKEFLAGS= $(MAKEFLAGS)
+	+env GCCMELT_MAKE="$(MAKE)" GCCMELT_MAKEFLAGS="$(MAKEFLAGS)" $(SHELL) $(srcdir)/melt-build-script.sh regenerate
+	for f in meltbuild-sources/generated/meltrunsup*.[ch] ; do \
+	   indent $$f ; \
+	   bf=`basename $$f` ; \
+	   cp $(srcdir)/melt/generated/$$bf  $(srcdir)/melt/generated/$$bf~ ; \
+	   cp $$f $(srcdir)/melt/generated/$$bf ; \
+	done 
+	for f in meltbuild-sources/warmelt*.[ch] ; do \
+	   bf=`basename $$f` ; \
+	   cp $(srcdir)/melt/generated/$$bf  $(srcdir)/melt/generated/$$bf~ ; \
+	   unifdef -UMELTGCC_NOLINENUMBERING $$f | indent -gnu > $(srcdir)/melt/generated/$$bf-tmp ; \
+	   mv $(srcdir)/melt/generated/$$bf-tmp  $(srcdir)/melt/generated/$$bf ; \
+	done
 	$(RM) melt-runtime.o melt-runtime.i s-gtype */warmelt*.o
 	$(MAKE) s-gtype
-## rebuild warmelt1 to be sure
-	@echo upgrade-warmelt rebuilding warmelt1
-	$(MAKE)  warmelt1
+## rebuild translator to be sure
+	@echo upgrade-warmelt rebuilding melt-translator
+	$(MAKE) melt-translator
 	@echo upgrade-warmelt complete
 
 
