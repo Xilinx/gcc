@@ -277,6 +277,7 @@ melt-runtime-params-inc.c: melt-make-string gfmeltgcc_revision
 	     melt_module_makefile '$(melt_installed_module_makefile)' \
 	     melt_module_cflags '$(melt_installed_cflags)' \
 	     melt_revision '$(shell head -1 gfmeltgcc_revision)' \
+             melt_default_probe '$(melt_default_probe)' \
 	     melt_default_modlis '$(melt_default_modules_list)' > $@-tmp
 	mv $@-tmp $@
 
