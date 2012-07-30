@@ -659,15 +659,15 @@ if [ ! -f $meltcheckruntime_stamp -o $meltcheckruntime_stamp -ot "$GCCMELT_RUNTI
     -o $meltcheckruntime_stamp -ot "$GCCMELT_RUNTIME_C" \
     -o $meltcheckruntime_stamp -ot $melt_final_application_stamp ]; then
     meltcheckruntime_arg=meltbuild-checkruntime.args 
-    meltcheckruntime_argtemp=$meltcheckruntime_arg-tmp$$
-    echo ' -DGCCMELT_FROM_ARG="[+(.(fromline))+]"' > $meltcheckruntime_argtemp
+    meltcheckruntime_argstemp=$meltcheckruntime_arg-tmp$$
+    echo ' -DGCCMELT_FROM_ARG="[+(.(fromline))+]"' > $meltcheckruntime_argstemp
     meltbuild_arg mode=meltframe >> $meltcheckruntime_argstemp
     meltbuild_arg workdir=meltbuild-workdir >>  $meltcheckruntime_argstemp
     meltbuild_arg tempdir=. >> $meltcheckruntime_argstemp
     meltbuild_arg source-path=meltbuild-sources >> $meltcheckruntime_argstemp
     meltbuild_arg module-path=meltbuild-modules >> $meltcheckruntime_argstemp
     meltbuild_arg bootstrapping  >> $meltcheckruntime_argstemp
-    cat $GCCMELT_RUNTIME_ARGS >>  $meltcheckruntime_argtemp
+    cat $GCCMELT_RUNTIME_ARGS >>  $meltcheckruntime_argstemp
     $GCCMELT_MOVE_IF_CHANGE  $meltcheckruntime_argstemp $meltcheckruntime_args
    meltbuild_info [+(.(fromline))+] $meltcheckruntime_args  is
    cat $meltcheckruntime_args > /dev/stderr

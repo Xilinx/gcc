@@ -220,6 +220,12 @@ NEWS for 0.9.6 MELT plugin for GCC 4.6 & 4.7
    "Interrupts" have been inproperly named, speak of "signals" (in the
    Posix/Unix sense, not the Gtk/Qt one!).
 
+   The build of the MELT runtime and of the MELT modules is done by an
+   autogen-erated shell script melt-build-script.sh generated from
+   melt-build-script.tpl & melt-build-script.def. It should be more
+   robust, and avoid doing useless things, so is faster when you
+   rebuild again MELT.
+
    Add support for timers & child processes...
 
    Library improvment

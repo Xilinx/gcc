@@ -1,6 +1,11 @@
 
 
 2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): Bumped to 0.9.6-rc2
+
+	* melt-build-script.tpl: Redirection typo in runtime step.
+
+2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (melt-build-param.sh): Emit GCCMELT_RUNTIME_C
 
 	* melt-build-script.tpl: Add check runtime step.
