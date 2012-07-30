@@ -2,6 +2,12 @@
 
 2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-build-script.tpl: Test that GCCMELT_CC1 exists.
+
+	* melt-build-script.sh: Regenerate.
+
+2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.h (melt_basename): Inline.
 
 2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>

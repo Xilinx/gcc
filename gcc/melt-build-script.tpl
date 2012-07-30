@@ -88,6 +88,10 @@ if [ ! -f "$GCCMELT_RUNTIME_DEPENDENCY" ]; then
     meltbuild_error  [+(.(fromline))+] missing MELT runtime dependency "$GCCMELT_RUNTIME_DEPENDENCY" 
 fi
 
+if [ -z "$GCCMELT_CC1" ]; then
+   meltbuild_error  [+(.(fromline))+] missing GCCMELT_CC1
+fi
+
 GCCMELT_RUNTIME_DEPENDENCY_MD5SUM=$($MD5SUM "$GCCMELT_RUNTIME_DEPENDENCY"  | cut -b 1-32)
 
 case $melt_overall_goal in
