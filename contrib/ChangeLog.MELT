@@ -1,5 +1,8 @@
 
 2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* MELT-Plugin-Makefile (melt-build-param.sh): Quote GCCMELT_CC1.
+
+2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-mv-if-changed.c (main): Unlink the srcpath if not moved.
 
 	* MELT-Plugin-Makefile (melt-build-param.sh): Use melt-mv-if-changed.
