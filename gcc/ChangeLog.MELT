@@ -1,6 +1,13 @@
 
 
 2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build-script.tpl: Set nullglob.
+
+	* melt-build-script.sh: Regenerate.
+
+	* melt-module.mk: Test that GCCMELT_CC is not empty.
+
+2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build-script.tpl: Typo in runtime step.
 
 2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>

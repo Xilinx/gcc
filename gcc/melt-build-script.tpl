@@ -22,6 +22,7 @@ sh
 ## melt-build-script.tpl generates melt-build-script.sh which may
 ## create meltbuild-* files and directories.  The invoking makefile
 ## may clean these meltbuild-* things.
+shopt -s nullglob
 
 [+(. (define comefromcount 0))+]
 [+(. (define (fromline) (set! comefromcount (+ comefromcount 1)) 

@@ -90,7 +90,7 @@ endif
 
 ## the compiler with which MELT, and the MELT modules, are used
 ifndef MELTGCC
-MELTGCC = $(or $(CC),gcc)
+MELTGCC = $(or $(strip $(CC)),gcc)
 endif
 
 ### the auto-host.h for the MELTGCC compiler
@@ -113,9 +113,9 @@ endif
 ## $(MELTGCC) was built with C++ or with C
 ifndef GCCMELT_CC
 ifeq ($(strip $(MELTGCC_BUILD_WITH_CXX)),)
-GCCMELT_CC = $(or $(CC),gcc) -Wc++-compat
+GCCMELT_CC = $(or $(strip $(CC)),gcc) -Wc++-compat
 else
-GCCMELT_CC = $(or $(CXX),g++)
+GCCMELT_CC = $(or $(strip $(CXX)),g++)
 endif
 endif
 
@@ -123,7 +123,7 @@ GCCMELT_BASE=$(notdir $(basename $(GCCMELT_MODULE_SOURCEBASE)))
 GCCMELT_SOURCEDIR=$(dir $(GCCMELT_MODULE_SOURCEBASE))
 
 ## FIXME: this probably should be autoconf-ed...
-ifeq ($(shell uname),Darwin)
+ifeq ($(strip $(shell uname)),Darwin)
 GCCMELT_SHARED_FLAGS=-bundle -undefined dynamic_lookup
 else
 GCCMELT_SHARED_FLAGS=-shared
@@ -179,6 +179,10 @@ GCCMELT_PRIMARY_MDSUMED_BASE:= $(basename $(notdir $(GCCMELT_PRIMARY))).$(GCCMEL
 ## the secondary objects basenames
 GCCMELT_SECONDARY_MDSUMED_BASES := $(join $(basename $(notdir $(GCCMELT_SECONDARY_CFILES))),$(addprefix .,$(GCCMELT_SECONDARY_MD5SUMS)))
 
+
+ifeq ($(strip $(GCCMELT_CC)),)
+$(error GCCMELT_CC should not be empty)
+endif
 
 ################################################################
 ## if available, include the melt generated make fragment
