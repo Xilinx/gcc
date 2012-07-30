@@ -1,6 +1,10 @@
 
 2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* MELT-Plugin-Makefile (melt-build-param.sh): For GCCMELT_CC1 pass
+	the -c flag correctly.
+
+2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* MELT-Plugin-Makefile (melt-build-param.sh): For GCCMELT_CC1 pass
 	the -c flag.
 
 2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>

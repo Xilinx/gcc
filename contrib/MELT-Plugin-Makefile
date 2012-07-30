@@ -328,7 +328,7 @@ melt-build-param.sh:  Makefile melt-mv-if-changed
 	+echo 'GCCMELT_MAKE="$(MAKE)"' >> $@-tmp
 	echo '## GCCMELT_CC1 is the compiler to use MELT for its bootstrapping' >> $@-tmp
 #we pass the melt.so plugin, and we need to pass -c to avoid any linking!
-	echo 'GCCMELT_CC1="$(MELTGCC) -fplugin=./melt.so" -c' >> $@-tmp
+	echo 'GCCMELT_CC1="$(MELTGCC) -fplugin=./melt.so -c"' >> $@-tmp
 	echo '## GCCMELT_CC1_PREFIX can be set to a prefix like "time" or "nice" to alter above' >> $@-tmp
 	$(if $(GCCMELT_CC1_PREFIX),echo GCCMELT_CC1_PREFIX='$(GCCMELT_CC1_PREFIX)' >> $@-tmp)
 	echo '## GCCMELT_CC1_DEPENDENCIES is the dependencies, including MELT runtime, for GCCMELT_CC1' >> $@-tmp
