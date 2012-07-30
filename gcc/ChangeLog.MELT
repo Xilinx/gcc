@@ -1,5 +1,10 @@
 
 
+2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h (melt_flag_debug, melt_flag_bootstrapping): For
+	MELT plugin compiled with C++, declare them extern "C" globals.
+
 2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.h: Use #elif not #elseif cpp directive.

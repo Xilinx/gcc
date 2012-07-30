@@ -201,8 +201,13 @@ void melt_set_real_timer_millisec (long millisec);
 int melt_debug_depth(void);
 
 #ifdef MELT_IS_PLUGIN
+#ifdef __cplusplus
+extern "C" int melt_flag_debug;
+extern "C" int melt_flag_bootstrapping;
+#else /* not C++ but plain C */
 extern int melt_flag_debug;
 extern int melt_flag_bootstrapping;
+#endif /*__cplusplus*/
 /* in the MELT branch melt_flag_debug is #define-d as
    global_options.x_melt_flag_debug in generated file options.h */
 #endif
