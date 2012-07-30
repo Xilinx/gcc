@@ -1,6 +1,10 @@
 
+2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* MELT-Plugin-Makefile (BASH): New variable. Use it for
+	melt-build-script.sh runs.
+
 2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
-	* MELT-Plugin-Makefile (melt-build-sett ngs.sh): Pass -c to the
+	* MELT-Plugin-Makefile (melt-build-settings.sh): Pass -c to the
 	compiler.
 
 2012-07-29  Basile Starynkevitch  <basile@starynkevitch.net>

@@ -31,6 +31,9 @@ RM ?= rm -vf
 ## for symbolic links
 LN_S ?= ln -s
 
+## we need bash to run melt-build-script.sh
+BASH ?= /bin/bash
+
 ## the GCC compiler with which melt.so is used
 ifndef MELTGCC
 MELTGCC = $(or $(GCC),gcc)
@@ -368,22 +371,22 @@ melt-clean:
 
 melt-translator: melt-build-settings.sh  melt-build-param.sh melt-build-script.sh $(melt_make_cc1_dependency)warmelt-predef.melt melt-predef.h $(wildcard melt/*.melt melt/generated/*.[ch])
 	@echo melt-translator script $(realpath melt-build-script.sh) MAKE= $(MAKE) MAKEFLAGS= $(MAKEFLAGS)
-	+env GCCMELT_MAKE="$(MAKE)" GCCMELT_MAKEFLAGS="$(MAKEFLAGS)" $(SHELL) melt-build-script.sh translator
+	+env GCCMELT_MAKE="$(MAKE)" GCCMELT_MAKEFLAGS="$(MAKEFLAGS)" $(BASH) ./melt-build-script.sh translator
 
 
 melt-applications: melt-build-settings.sh  melt-build-param.sh melt-build-script.sh $(melt_make_cc1_dependency) $(MELTBUILD_MKFILE) warmelt-predef.melt melt-predef.h $(wildcard melt/*.melt melt/generated/*.[ch])
 	@echo melt-application script $(realpath melt-build-script.sh) MAKE= $(MAKE) MAKEFLAGS= $(MAKEFLAGS)
-	+env GCCMELT_MAKE="$(MAKE)" GCCMELT_MAKEFLAGS="$(MAKEFLAGS)" $(SHELL) melt-build-script.sh applications
+	+env GCCMELT_MAKE="$(MAKE)" GCCMELT_MAKEFLAGS="$(MAKEFLAGS)" $(BASH) ./melt-build-script.sh applications
 
 
 melt-modlists: melt-build-settings.sh  melt-build-param.sh melt-build-script.sh $(melt_make_cc1_dependency) $(MELTBUILD_MKFILE) warmelt-predef.melt melt-predef.h $(wildcard melt/*.melt melt/generated/*.[ch])
 	@echo melt-modlists script $(realpath melt-build-script.sh) MAKE= $(MAKE) MAKEFLAGS= $(MAKEFLAGS)
-	+env GCCMELT_MAKE="$(MAKE)" GCCMELT_MAKEFLAGS="$(MAKEFLAGS)" $(SHELL) melt-build-script.sh modlists
+	+env GCCMELT_MAKE="$(MAKE)" GCCMELT_MAKEFLAGS="$(MAKEFLAGS)" $(BASH) ./melt-build-script.sh modlists
 
 
 melt-gendoc: melt-build-settings.sh  melt-build-param.sh melt-build-script.sh $(melt_make_cc1_dependency) $(MELTBUILD_MKFILE) warmelt-predef.melt melt-predef.h $(wildcard melt/*.melt melt/generated/*.[ch])
 	@echo melt-gendoc script $(realpath melt-build-script.sh) MAKE= $(MAKE) MAKEFLAGS= $(MAKEFLAGS)
-	+env GCCMELT_MAKE="$(MAKE)" GCCMELT_MAKEFLAGS="$(MAKEFLAGS)" $(SHELL) melt-build-script.sh gendoc
+	+env GCCMELT_MAKE="$(MAKE)" GCCMELT_MAKEFLAGS="$(MAKEFLAGS)" $(BASH) ./melt-build-script.sh gendoc
 
 
 melt-build-settings.sh:   $(melt_make_cc1_dependency) Makefile melt.so | meltbuild-empty-file.c
