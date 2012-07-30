@@ -84,6 +84,15 @@ main (int argc, char **argv)
 	  exit (EXIT_FAILURE);
 	}
     }
+  else 
+    {
+      if (unlink (srcpath))
+	{
+	  perror (srcpath);
+	  exit (EXIT_FAILURE);
+	}
+    }
+
   return EXIT_SUCCESS;
 usage:
   fprintf (stderr, "usage: %s source destination\n", argv[0]);
