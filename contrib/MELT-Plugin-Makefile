@@ -309,10 +309,10 @@ melt.so melt-runtime.args: melt-runtime.c $(MELTGCC_RUNTIME_INCLUDES) \
 melt-build-param.sh:  Makefile
 	date "+#file $@ generated %c%n" > $@-tmp
 	echo '## compiler GCCMELT_COMPILER and flags GCCMELT_COMPILER_FLAGS to compile MELT generated code' >> $@-tmp
-	echo GCCMELT_COMPILER=$(COMPILER) >> $@-tmp
-	echo 'GCCMELT_COMPILER_FLAGS="$(filter-out -O% -g% -O -g, $(ALL_COMPILERFLAGS) $(INCLUDES))"' >> $@-tmp
+	echo GCCMELT_COMPILER='$(GCCMELT_CC)' >> $@-tmp
+	echo 'GCCMELT_COMPILER_FLAGS="$(filter-out -O% -g% -O -g, $(MELTGCC_INCLUDEFLAGS) -I $(realpath melt/generated) -I $(realpath .))"' >> $@-tmp
 	echo '## linker GCCMELT_LINKER and flags GCCMELT_LINKER_FLAGS to link MELT generated module' >> $@-tmp
-	echo GCCMELT_LINKER=$(LINKER) >> $@-tmp
+	echo GCCMELT_LINKER='$(GCCMELT_CC)' >> $@-tmp
 	echo 'GCCMELT_LINKER_FLAGS="$(filter-out -O% -g% -O -g, $(LINKER_FLAGS))"' >> $@-tmp
 	echo '## source directory containing MELT code is GCCMELT_MELTSOURCEDIR' >> $@-tmp
 	echo GCCMELT_MELTSOURCEDIR=melt/ >> $@-tmp

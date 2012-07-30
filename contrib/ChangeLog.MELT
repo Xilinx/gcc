@@ -1,5 +1,9 @@
 
 2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* MELT-Plugin-Makefile (melt-build-param.sh): Set properly
+	GCCMELT_COMPILER & GCCMELT_LINKER.
+
+2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* MELT-Plugin-Makefile (GCCMELT_STAGE_ZERO): Typo.
 
 2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
