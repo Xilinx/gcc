@@ -1,5 +1,8 @@
 
 2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* MELT-Plugin-Makefile (GCCMELT_STAGE_ZERO): Typo.
+
+2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* MELT-Plugin-Makefile (BASH): New variable. Use it for
 	melt-build-script.sh runs.
 
