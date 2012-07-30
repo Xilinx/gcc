@@ -163,7 +163,7 @@ extern volatile sig_atomic_t melt_got_sigchld;
 
 extern long melt_blocklevel_signals;
 
-static const char* 
+static inline const char* 
 melt_basename(const char* path)
 {
   return (path && path[0])?(lbasename (path)):path;
