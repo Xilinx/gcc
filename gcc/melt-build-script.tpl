@@ -668,7 +668,7 @@ if [ ! -f $meltcheckruntime_stamp -o $meltcheckruntime_stamp -ot "$GCCMELT_RUNTI
     meltbuild_arg module-path=meltbuild-modules >> $meltcheckruntime_argstemp
     meltbuild_arg bootstrapping  >> $meltcheckruntime_argstemp
     cat $GCCMELT_RUNTIME_ARGS >>  $meltcheckruntime_argstemp
-    $GCCMELT_MOVE_IF_CHANGE  $meltcheckruntime_argstemp $meltcheckruntime_args
+    $GCCMELT_MOVE_IF_CHANGE  $meltcheckruntime_argstemp $meltcheckruntime_arg
    meltbuild_info [+(.(fromline))+] $meltcheckruntime_args  is
    cat $meltcheckruntime_args > /dev/stderr
     $GCCMELT_CC1_PREFIX $GCCMELT_CC1 @$meltcheckruntime_args \

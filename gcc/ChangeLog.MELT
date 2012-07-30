@@ -1,6 +1,9 @@
 
 
 2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build-script.tpl: Typo in runtime step.
+
+2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): Bumped to 0.9.6-rc2
 
 	* melt-build-script.tpl: Redirection typo in runtime step.
