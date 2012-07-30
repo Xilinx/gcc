@@ -1,6 +1,14 @@
 
 
 2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (melt-build-param.sh): Emit GCCMELT_RUNTIME_C
+
+	* melt-build-script.tpl: Add check runtime step.
+
+	* melt-build-script.sh: Regenerate.
+
+
+2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-module.mk (GCCMELT_HEADER_DIR, GCCMELT_PREPROFLAGS): New
 	variables.
 

@@ -98,10 +98,11 @@ case $melt_overall_goal in
     translator) ;;
     applications) ;;
     modlists) ;;
+    checkruntime) ;;
     gendoc) ;;
     regenerate) ;;
     *) meltbuild_error  [+(.(fromline))+] bad MELT overall goal "$melt_overall_goal:" \
-        expecting translator, applications, modlists or gendoc or regenerate
+        expecting translator, applications, modlists, checkruntime or gendoc or regenerate
 esac
 
 ################################################################
@@ -643,9 +644,49 @@ if [ ! -f "meltbuild-sources/$MELTGCCBUILTIN_DEFAULT_MODLIS.modlis" ]; then
 fi
 
 ################################################################
-#@ [+(.(fromline))+]
+#@ [+(.(fromline))+] module lists
 if [ "$melt_overall_goal" = "modlists" ]; then
-    meltbuild_info [+(.(fromline))+] done modlists overall goal with stamp  $melt_final_translator_stamp
+    meltbuild_info [+(.(fromline))+] done modlists overall goal with stamp  $melt_final_application_stamp
+    exit 0
+fi
+
+
+################################################################
+#@ [+(.(fromline))+] runtime self check
+
+meltcheckruntime_stamp=meltbuild-checkruntime.stamp
+if [ ! -f $meltcheckruntime_stamp -o $meltcheckruntime_stamp -ot "$GCCMELT_RUNTIME_ARGS" \
+    -o $meltcheckruntime_stamp -ot "$GCCMELT_RUNTIME_C" \
+    -o $meltcheckruntime_stamp -ot $melt_final_application_stamp ]; then
+    meltcheckruntime_arg=meltbuild-checkruntime.args 
+    meltcheckruntime_argtemp=$meltcheckruntime_arg-tmp$$
+    echo ' -DGCCMELT_FROM_ARG="[+(.(fromline))+]"' > $meltcheckruntime_argtemp
+    meltbuild_arg mode=meltframe >> $meltcheckruntime_argstemp
+    meltbuild_arg workdir=meltbuild-workdir >>  $meltcheckruntime_argstemp
+    meltbuild_arg tempdir=. >> $meltcheckruntime_argstemp
+    meltbuild_arg source-path=meltbuild-sources >> $meltcheckruntime_argstemp
+    meltbuild_arg module-path=meltbuild-modules >> $meltcheckruntime_argstemp
+    meltbuild_arg bootstrapping  >> $meltcheckruntime_argstemp
+    cat $GCCMELT_RUNTIME_ARGS >>  $meltcheckruntime_argtemp
+    $GCCMELT_MOVE_IF_CHANGE  $meltcheckruntime_argstemp $meltcheckruntime_args
+   meltbuild_info [+(.(fromline))+] $meltcheckruntime_args  is
+   cat $meltcheckruntime_args > /dev/stderr
+    $GCCMELT_CC1_PREFIX $GCCMELT_CC1 @$meltcheckruntime_args \
+	|| meltbuild_error [+(.(fromline))+] failed with arguments @$meltcheckruntime_args
+    meltcheckruntime_stamptemp=$meltcheckruntime_stamp-tmp$$
+    echo "/// MELT check runtime timestamp file $meltcheckruntime_stamp" > $meltcheckruntime_stamptemp
+    echo $GCCMELT_RUNTIME_DEPENDENCY_MD5SUM $GCCMELT_RUNTIME_DEPENDENCY >> $meltcheckruntime_stamptemp
+    $MD5SUM $GCCMELT_RUNTIME_C >>  $meltcheckruntime_stamptemp
+    grep meltbuild-modules/ $melt_final_translator_stamp $melt_final_application_stamp >>   $meltcheckruntime_stamptemp
+    echo "///end timestamp file $meltcheckruntime_stamp" >>   $meltcheckruntime_stamptemp
+    $GCCMELT_MOVE_IF_CHANGE  $meltcheckruntime_stamptemp $meltcheckruntime_stamp
+    meltbuild_info [+(.(fromline))+] done check runtime  $meltcheckruntime_stamp
+else
+    meltbuild_info [+(.(fromline))+] keeping runtime checks  $meltcheckruntime_stamp
+fi
+
+if [ "$melt_overall_goal" = "checkruntime" ]; then
+    meltbuild_info [+(.(fromline))+] done checkruntime overall goal with stamp  $melt_final_translator_stamp
     exit 0
 fi
 ################################################################
@@ -670,7 +711,7 @@ if [ "$melt_overall_goal" = "regenerate" ]; then
    cat $meltregen_args > /dev/stderr
     $GCCMELT_CC1_PREFIX $GCCMELT_CC1 @$meltregen_args \
 	|| meltbuild_error [+(.(fromline))+] failed with arguments @$meltregen_args
-    meltbuild_info [+(.(fromline))+] done regeerate overall goal
+    meltbuild_info [+(.(fromline))+] done regenerate overall goal
     exit 0
 fi
 
