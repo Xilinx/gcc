@@ -463,7 +463,7 @@ cp_dump_tree (void* dump_info, tree t)
       dump_child ("body", FOR_BODY (t));
       break;
    case CILK_FOR_STMT:
-      dump_stmt(di, t);
+      dump_stmt (di, t);
       dump_child ("init ", FOR_INIT_STMT (t));
       dump_child ("cond ", FOR_COND (t));
       dump_child ("expr ", FOR_EXPR (t));

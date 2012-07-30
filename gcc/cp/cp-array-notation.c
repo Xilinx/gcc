@@ -460,8 +460,8 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
    */
   body_label = (tree *) xmalloc (sizeof (tree) * max (lhs_rank, rhs_rank));
   body_label_expr = (tree *) xmalloc (sizeof (tree) * max (lhs_rank, rhs_rank));
-  exit_label = (tree *) xmalloc (sizeof (tree) * max(lhs_rank, rhs_rank));
-  exit_label_expr = (tree *) xmalloc (sizeof (tree) * max(lhs_rank, rhs_rank));
+  exit_label = (tree *) xmalloc (sizeof (tree) * max (lhs_rank, rhs_rank));
+  exit_label_expr = (tree *) xmalloc (sizeof (tree) * max (lhs_rank, rhs_rank));
   cond_expr = (tree *) xmalloc (sizeof (tree) * max (lhs_rank, rhs_rank));
   if_stmt_label = (tree *) xmalloc (sizeof (tree) * max (lhs_rank, rhs_rank));
 
@@ -659,27 +659,25 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
   for (ii = 0; ii < max (lhs_rank, rhs_rank); ii++)
     {
       array_notation_label_no++;
-      memset(label_name, 0, 50);
-      sprintf(label_name, "if_stmt_label_%05d",
-	      array_notation_label_no);
+      memset (label_name, 0, 50);
+      sprintf (label_name, "if_stmt_label_%05d", array_notation_label_no);
       
-      /* this will create the if statement label */
+      /* This will create the if statement label.  */
       if_stmt_label[ii] =
 	define_label (UNKNOWN_LOCATION, get_identifier (label_name));
       
-      memset(label_name, 0, 50);
-      sprintf(label_name, "body_label_%05d", array_notation_label_no);
-      /* this label statment will point to the loop body */
+      memset (label_name, 0, 50);
+      sprintf (label_name, "body_label_%05d", array_notation_label_no);
+      /* This label statment will point to the loop body.  */
       body_label[ii] = define_label (UNKNOWN_LOCATION,
 				     get_identifier (label_name));
       body_label_expr[ii] = build_stmt (UNKNOWN_LOCATION, LABEL_EXPR,
 					body_label[ii]);
       
-      /* this will create the exit label..i.e. where the while loop will branch
-	 out of
-      */
-      memset(label_name, 0, 50);
-      sprintf(label_name, "exit_label_%05d", array_notation_label_no);
+      /* this will create the exit label..i.e. where the while loop will branch 
+	 out of.  */
+      memset (label_name, 0, 50);
+      sprintf (label_name, "exit_label_%05d", array_notation_label_no);
       exit_label[ii] = define_label (UNKNOWN_LOCATION,
 				     get_identifier (label_name));
       exit_label_expr[ii] = build_stmt  (UNKNOWN_LOCATION, LABEL_EXPR,
@@ -944,7 +942,7 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
       finish_then_clause (comp_stmt);
       begin_else_clause (comp_stmt);
       add_stmt (build1 (GOTO_EXPR, void_type_node, exit_label[ii]));
-      finish_else_clause(comp_stmt);
+      finish_else_clause (comp_stmt);
       finish_if_stmt (comp_stmt);
       add_stmt (build_stmt (UNKNOWN_LOCATION, LABEL_EXPR, body_label[ii]));
     }
@@ -1085,7 +1083,7 @@ fix_conditional_array_notations_1 (tree stmt)
       array_start[ii]  = (tree *) xmalloc (sizeof (tree) * rank);
     }
 
-  body_label = (tree *) xmalloc(sizeof (tree) * rank);
+  body_label = (tree *) xmalloc (sizeof (tree) * rank);
   body_label_expr = (tree *) xmalloc (sizeof (tree) * rank);
   exit_label = (tree *) xmalloc (sizeof (tree) * rank);
   exit_label_expr = (tree *) xmalloc (sizeof (tree) * rank);
@@ -1150,7 +1148,7 @@ fix_conditional_array_notations_1 (tree stmt)
 	}
     }
 
-  loop = push_stmt_list();
+  loop = push_stmt_list ();
 
   for (ii = 0; ii < rank; ii++)
     {
@@ -1176,27 +1174,25 @@ fix_conditional_array_notations_1 (tree stmt)
   for (ii = 0; ii < rank; ii++)
     {
       array_notation_label_no++;
-      memset(label_name, 0, 50);
-      sprintf(label_name, "if_stmt_label_%05d",
-	      array_notation_label_no);
+      memset (label_name, 0, 50);
+      sprintf (label_name, "if_stmt_label_%05d", array_notation_label_no);
       
-      /* this will create the if statement label */
+      /* This will create the if statement label.  */
       if_stmt_label[ii] =
 	define_label (UNKNOWN_LOCATION, get_identifier (label_name));
       
-      memset(label_name, 0, 50);
-      sprintf(label_name, "body_label_%05d", array_notation_label_no);
-      /* this label statment will point to the loop body */
+      memset (label_name, 0, 50);
+      sprintf (label_name, "body_label_%05d", array_notation_label_no);
+      /* This label statment will point to the loop body.  */
       body_label[ii] = define_label (UNKNOWN_LOCATION,
 				     get_identifier (label_name));
       body_label_expr[ii] = build_stmt (UNKNOWN_LOCATION, LABEL_EXPR,
 					body_label[ii]);
       
-      /* this will create the exit label..i.e. where the while loop will branch
-	 out of
-      */
-      memset(label_name, 0, 50);
-      sprintf(label_name, "exit_label_%05d", array_notation_label_no);
+      /* This will create the exit label..i.e. where the while loop will branch
+	 out of.  */
+      memset (label_name, 0, 50);
+      sprintf (label_name, "exit_label_%05d", array_notation_label_no);
       exit_label[ii] = define_label (UNKNOWN_LOCATION,
 				     get_identifier (label_name));
       exit_label_expr[ii] = build_stmt  (UNKNOWN_LOCATION, LABEL_EXPR,
@@ -1673,7 +1669,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       array_start[ii]  = (tree *) xmalloc (sizeof (tree) * rank);
     }
 
-  body_label = (tree *) xmalloc(sizeof (tree) * rank);
+  body_label = (tree *) xmalloc (sizeof (tree) * rank);
   body_label_expr = (tree *) xmalloc (sizeof (tree) * rank);
   exit_label = (tree *) xmalloc (sizeof (tree) * rank);
   exit_label_expr = (tree *) xmalloc (sizeof (tree) * rank);
@@ -1751,31 +1747,29 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
   for (ii = 0; ii < rank ; ii++)
     {
       array_notation_label_no++;
-      memset(label_name, 0, 50);
-      sprintf(label_name, "if_stmt_label_%05d",
-	      array_notation_label_no);
+      memset (label_name, 0, 50);
+      sprintf (label_name, "if_stmt_label_%05d", array_notation_label_no);
       
-      /* this will create the if statement label */
+      /* This will create the if statement label.  */
       if_stmt_label[ii] =
 	define_label (UNKNOWN_LOCATION, get_identifier (label_name));
       
-      memset(label_name, 0, 50);
-      sprintf(label_name, "body_label_%05d", array_notation_label_no);
-      /* this label statment will point to the loop body */
+      memset (label_name, 0, 50);
+      sprintf (label_name, "body_label_%05d", array_notation_label_no);
+      /* This label statment will point to the loop body.  */
       body_label[ii] = define_label (UNKNOWN_LOCATION,
 				     get_identifier (label_name));
       body_label_expr[ii] = build_stmt (UNKNOWN_LOCATION, LABEL_EXPR,
 					body_label[ii]);
       
-      /* this will create the exit label..i.e. where the while loop will branch
-	 out of
-      */
-      memset(label_name, 0, 50);
-      sprintf(label_name, "exit_label_%05d", array_notation_label_no);
+      /* This will create the exit label..i.e. where the while loop will branch
+	 out of.  */
+      memset (label_name, 0, 50);
+      sprintf (label_name, "exit_label_%05d", array_notation_label_no);
       exit_label[ii] = define_label (UNKNOWN_LOCATION,
 				     get_identifier (label_name));
-      exit_label_expr[ii] = build_stmt  (UNKNOWN_LOCATION, LABEL_EXPR,
-					 exit_label[ii]);
+      exit_label_expr[ii] = build_stmt (UNKNOWN_LOCATION, LABEL_EXPR, 
+					exit_label[ii]);
     }
 
   for (ii = 0; ii < list_size; ii++)
@@ -2128,7 +2122,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       finish_then_clause (comp_stmt);
       begin_else_clause (comp_stmt);
       add_stmt (build1 (GOTO_EXPR, void_type_node, exit_label[ii]));
-      finish_else_clause(comp_stmt);
+      finish_else_clause (comp_stmt);
       finish_if_stmt (comp_stmt);
       add_stmt (build_stmt (UNKNOWN_LOCATION, LABEL_EXPR, body_label[ii]));
     }
@@ -2245,7 +2239,7 @@ fix_unary_array_notation_exprs (tree orig_stmt)
       array_start[ii]  = (tree *) xmalloc (sizeof (tree) * rank);
     }
 
-  body_label = (tree *) xmalloc(sizeof (tree) * rank);
+  body_label = (tree *) xmalloc (sizeof (tree) * rank);
   body_label_expr = (tree *) xmalloc (sizeof (tree) * rank);
   exit_label = (tree *) xmalloc (sizeof (tree) * rank);
   exit_label_expr = (tree *) xmalloc (sizeof (tree) * rank);
@@ -2330,30 +2324,28 @@ fix_unary_array_notation_exprs (tree orig_stmt)
   for (ii = 0; ii < rank ; ii++)
     {
       array_notation_label_no++;
-      memset(label_name, 0, 50);
-      sprintf(label_name, "if_stmt_label_%05d",
-	      array_notation_label_no);
+      memset (label_name, 0, 50);
+      sprintf (label_name, "if_stmt_label_%05d", array_notation_label_no);
       
-      /* this will create the if statement label */
+      /* This will create the if statement label.  */
       if_stmt_label[ii] =
 	define_label (UNKNOWN_LOCATION, get_identifier (label_name));
       
-      memset(label_name, 0, 50);
-      sprintf(label_name, "body_label_%05d", array_notation_label_no);
-      /* this label statment will point to the loop body */
+      memset (label_name, 0, 50);
+      sprintf (label_name, "body_label_%05d", array_notation_label_no);
+      /* This label statment will point to the loop body.  */
       body_label[ii] = define_label (UNKNOWN_LOCATION,
 				     get_identifier (label_name));
       body_label_expr[ii] = build_stmt (UNKNOWN_LOCATION, LABEL_EXPR,
 					body_label[ii]);
       
-      /* this will create the exit label..i.e. where the while loop will branch
-	 out of
-      */
-      memset(label_name, 0, 50);
-      sprintf(label_name, "exit_label_%05d", array_notation_label_no);
+      /* This will create the exit label..i.e. where the while loop will branch
+	 out of.  */
+      memset (label_name, 0, 50);
+      sprintf (label_name, "exit_label_%05d", array_notation_label_no);
       exit_label[ii] = define_label (UNKNOWN_LOCATION,
 				     get_identifier (label_name));
-      exit_label_expr[ii] = build_stmt  (UNKNOWN_LOCATION, LABEL_EXPR,
+      exit_label_expr[ii] = build_stmt (UNKNOWN_LOCATION, LABEL_EXPR,
 					 exit_label[ii]);
     }
 

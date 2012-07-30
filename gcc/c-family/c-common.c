@@ -47,12 +47,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "target-def.h"
 #include "cilk.h"
 
-extern void array_notation_init_builtins (void);
-enum expand_modifier {EXPAND_NORMAL = 0, EXPAND_STACK_PARM, EXPAND_SUM,
-                      EXPAND_CONST_ADDRESS, EXPAND_INITIALIZER, EXPAND_WRITE,
-                      EXPAND_MEMORY};
-
-
 cpp_reader *parse_in;		/* Declared in c-pragma.h.  */
 
 /* The following symbols are subsumed in the c_global_trees array, and
@@ -4887,14 +4881,12 @@ c_define_builtins (tree va_list_ref_type_node, tree va_list_arg_type_node)
 #include "builtins.def"
 #undef DEF_BUILTIN
 
-  /* this function will initialize all the builtin functions required by
-   * the cilkplus port */
+  /* Initialize all builtin functions and variables for the Cilk Plus port.  */
   if (flag_enable_cilk)
     {
       cilk_init_builtins ();
       array_notation_init_builtins ();
     }
-
   targetm.init_builtins ();
 
   build_common_builtin_nodes ();

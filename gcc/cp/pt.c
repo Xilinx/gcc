@@ -12671,26 +12671,24 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl,
       finish_cilk_for_init_stmt (stmt);
       tmp = RECUR (CILK_FOR_VAR (t));
       CILK_FOR_VAR (stmt) = tmp;
-      CILK_FOR_GRAIN (stmt) = CILK_FOR_GRAIN(t);
-      /* check to see if tmp is a declaration */
-      gcc_assert(DECL_P (tmp));
+      CILK_FOR_GRAIN (stmt) = CILK_FOR_GRAIN (t);
+      /* Check to see if tmp is a declaration.  */
+      gcc_assert (DECL_P (tmp));
 
-      if ((tmp != error_mark_node) &&
-          (TYPE_P (TREE_TYPE (tmp))) &&
-          (!DECL_NONTRIVIALLY_INITIALIZED_P (tmp)) &&
-          (DECL_INITIAL (tmp) == NULL_TREE) &&
-          (!TYPE_NEEDS_CONSTRUCTING (TREE_TYPE (tmp))))
-	{
-	  error ("Control variable of Cilk is not initialized.\n");
-	}
+      if ((tmp != error_mark_node) 
+	  && TYPE_P (TREE_TYPE (tmp)) 
+	  && !DECL_NONTRIVIALLY_INITIALIZED_P (tmp) 
+	  && !DECL_INITIAL (tmp)  
+	  && !TYPE_NEEDS_CONSTRUCTING (TREE_TYPE (tmp))) 
+	error ("Control variable of Cilk is not initialized.\n");
 
-      tmp = FOR_COND(t);
-      gcc_assert (COMPARISON_CLASS_P (tmp)); /* check to see if it compares */
+      tmp = FOR_COND (t);
+      gcc_assert (COMPARISON_CLASS_P (tmp)); /* Check to see if it compares.  */
 
       if (COMPARISON_CLASS_P (tmp))
 	{
-	  tree op0 = RECUR (TREE_OPERAND (tmp,0));
-	  tree op1 = RECUR (TREE_OPERAND (tmp,1));
+	  tree op0 = RECUR (TREE_OPERAND (tmp, 0));
+	  tree op1 = RECUR (TREE_OPERAND (tmp, 1));
 	  tmp = build2 (TREE_CODE (tmp), boolean_type_node, op0, op1);
 	}
       finish_cilk_for_cond (tmp, stmt);
@@ -12705,27 +12703,22 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl,
 	  tree rhs = TREE_OPERAND (tmp, 1);
 	  gcc_assert (BINARY_CLASS_P (rhs));
 	  lhs = RECUR (lhs);
-
 	  rhs = build2 (TREE_CODE (rhs), TREE_TYPE (lhs),
 			RECUR (TREE_OPERAND (rhs, 0)),
 		        RECUR (TREE_OPERAND (rhs, 1)));
 	  lhs = build2 (MODIFY_EXPR, void_type_node, lhs, rhs);
 	}
       else
-	{
-	  tmp = build2(TREE_CODE (tmp), void_type_node,
-		       RECUR (TREE_OPERAND (tmp, 0)),
-		       RECUR (TREE_OPERAND (tmp, 1)));
-	}
-
+	tmp = build2 (TREE_CODE (tmp), void_type_node, 
+		      RECUR (TREE_OPERAND (tmp, 0)),
+		      RECUR (TREE_OPERAND (tmp, 1)));
       finish_for_expr (tmp, stmt);
       RECUR (FOR_BODY (t));
       finish_cilk_for_stmt (stmt);
       CILK_FOR_GRAIN (stmt) = RECUR (CILK_FOR_GRAIN (t));
 
-      if(!cilk_validate_for (stmt))
-	cilk_erase_for(stmt);
-      
+      if (!cilk_validate_for (stmt)) 
+	cilk_erase_for (stmt);
       break;
 
     case RANGE_FOR_STMT:

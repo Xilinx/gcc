@@ -1,3 +1,136 @@
+2012-07-30  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cppbuiltin.c (define_builtin_macros_for_compilation_flags): Fixed
+	spacing and added a comment to clarify the code's indent.
+	* elem-function-common.c (find_processor_code): Fixed comments.
+	(find_vlength_code): Likewise.
+	(rename_elem_fn): Likewise.
+	(find_suffix): Likewise.
+	(find_elem_fn_parm_type_1): Likewise.
+	(find_elem_fn_parm_type): Likewise.
+	(find_elem_fn_name): Likewise.
+	(extract_elem_fn_values): Likewise.
+	(is_elem_fn): Likewise.
+	* elem-function.c (create_processor_attribute): Likewise.
+	* expr.c (expand_expr_real_1): Added clafifying comments.
+	* final.c (rest_of_handle_comments): Fixed comments.
+	* array-notation-common.c (mark_cold): Added comment on function header.
+	(array_notation_init_builtins): Likewise.
+	(is_sec_implicit_index_fn): Likewise.
+	(extract_sec_implicit_index_arg): Likewise.
+	* gimplify.c (gimplify_decl_expr): Added a check for cilkplus flag.
+	Also fixed spacing.
+	(gimplify_call_expr): Likewise.
+	(gimplify_expr): Fixed comments.
+	* ipa-inline-analysis.c (initialize_inline_failed): Likewise.
+	* ipa-inline.c (can_inline_edge_p): Likewise.
+	* langhook.c (lhd_hook_bool_false): Fixed spacing.
+	* pointer-set.c (pointer_map_traverse_ordered): Remove
+	(sort_decl): Remove.
+	* pragma-simd.c (clear_pragma_simd_list): New function.
+	(clause_resolved_p): Fixed comments.
+	(set_OK_for_certain_clause): Likewise.
+	(psv_head_insert): Likewise.
+	(all_reductions_satisfied_p): Likewise.
+	(pragma_simd_vectorize_loop_p): Likewise.
+	(same_var_in_multiple_lists_p): Likewise.
+	(pragma_simd_assert_requested_P): Fixed spacing and comments.
+	(find_var_decl): Likewise.
+	(change_var_decl): Likewise.
+	* attribs.c (is_elem_fn_attribute_p): Remove.
+	(decl_attributes): Added a cilkplus flag check.
+	* builtins.c (expand_builtin): Fixed code and comment spacing.
+	* builtins.def (): Removed all cilkplus specific functions to a seperate
+	file.
+	* c/c-array-notation.c (find_rank): Fixed spacing and wordings in
+	comments and removed unwanted curly braces and spaces.
+	(extract_array_notation_exprs): Likewise.
+	(replace_array_notations): Likewise.
+	(max): Likewise.
+	(build_array_notation_expr): Likewise.
+	(fix_conditional_array_notations_1): Likewise.
+	(fix_conditional_array_notations): Likewise.
+	(fix_array_notation_call_expr): Likewise.
+	(is_builtin_array_notation_fn): Added header comment.
+	(expand_array_notation_exprs): Likewise.
+	* c/c-parser.c (c_parser_declaration_or_fndef): Added a check for the
+	cilkplus flag.  Also, fixed spacing and wordings of some comments and
+	removed unwanted curly braces.
+	(c_parser_attributes): Likewise.
+	(c_parser_compound_statement): Likewise.
+	(c_parser_statement_after_labels): Likewise.
+	(c_parser_if_statement): Likewise.
+	(c_parser_switch_statement): Likewise.
+	(c_parser_while_statement): Likewise.
+	(c_parser_do_statement): Likewise.
+	(c_parser_postfix_expression): Likewise.
+	(c_parser_postfix_expression_after_primary): Likewise.
+	(c_parser_for_statement): Likewise.
+	(c_parser_array_notation): Added header comment.
+	(c_parser_elem_fn_processor_clause): Likewise.
+	(c_parser_elem_fn_uniform_clause): Likewise.
+	(c_parser_elem_fn_linear_clause): Likewise.
+	(c_parser_elem_fn_vlength_clause): Likewise.
+	(c_parser_elem_fn_expr_list): Likewise.
+	(c_parser_init): Fixed spacing and wordings in comments, and added
+	"cilkplus" to add cilkplus related variabled we defined.
+	(c_parser_for_statement): Likewise.
+	(c_parser_simd_assert): Likewise.
+	(c_parser_simd_linear): Likewise.
+	(c_parser_simd_private): Likewise.
+	(c_parser_simd_vectorlength): Likewise.
+	(c_parser_simd_reduction): Likewise.
+	(c_parser_cilk_grainsize): Likewise.
+	* c/c-typeck.c (c_finish_loop): Likewise.
+	(build_binary_op): Added c_save_expr call that was accidentally dropped.
+	* cfgloop.c (flow_loops_find): Fixed spacing.
+	* cgraphunit.c (cgraph_decide_if_function_is_needed): Likewise.
+	(cgraph_finalize_function): Remove unwanted check for cilk_flag.
+	* cilk-spawn.c (sort_decl): Remove.
+	(declare_one_free_variable): Fix comments - both spacing and wording.
+	Also replaced call for pointer_map_traverse_ordered with pointer_map
+	traverse.
+	(build_wrapper_type): Likewise.
+	(init_wd): Added header comment.
+	(free_wd): Likewise.
+	(race_warning): Likewise.
+	(dump_replacement_map): Likewise.
+	(debug_replacement_map): Likewise.
+	(check_outlined_calls): Likewise.
+	(install_body_with_frame_cleanup): Likewise.
+	(init_cfd): Likewise.
+	(compute_incr_direction): Likewise.
+	(tree_operand_nocov): Likewise.
+	(cilk_simplify_tree): Likewise.
+	(cilk_loop_convert): Likewise.
+	(block_for_loop): Likewise.
+	(build_cilk_wrapper): Fixed comments, removed unwanted curly braces.
+	(add_variable): Likewise.
+	(extract_free_variables): Likewise.
+	(build_cilk_helper_decl): Likewise.
+	(wrapper_parm_cb): Likewise.
+	(for_local_cb): Likewise.
+	(wrapper_local_cb): Likewise.
+	(copy_decl_for_cilk): Likewise.
+	(cilk_outline): Likewise.
+	(check_loop_difference_type): Likewise.
+	(extract_for_fields): Likewise.
+	(divide_count): Likewise.
+	(compute_loop_count): Likewise.
+	(build_cilk_for_body): Likewise.
+	(gimplify_cilk_for_2): Likewise.
+	(gimplify_cilk_for_1): Likewise.
+	(gimplify_cilk_for): Likewise.
+	(var_mentioned_p): Likewise.
+	(declare_cilk_for_parms): Likewise.
+	* cilk.c (is_elem_fn_attribute_p): Add.
+	(compare_fn): Likewise.
+	(is_cilk_function_decl): Likewise.
+	* config/i386/i386.c (type_natural_mode): Added some comments.
+	(ix86_function_arg_boundary): Likewise.
+	(ix86_frame_pointer_required): Removed unwanted curly braces and fixed
+	comments.
+
 2012-07-25  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cilk.c (is_cilk_must_expand_fn): Added BUILT_IN_CILK_DETACH case.

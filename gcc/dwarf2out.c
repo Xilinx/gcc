@@ -19679,7 +19679,7 @@ dwarf2out_function_decl (tree decl)
     {
       struct function *f = DECL_STRUCT_FUNCTION (decl);
       if (f && f->is_cilk_helper_function)
-	return; /* can't do debuging output for spawn helper */
+	return; /* We can't do debuging output for spawn helper.  */
       else if (!f && CILK_FN_P (decl))
 	return;
     }
@@ -20061,6 +20061,9 @@ dwarf2out_var_location (rtx loc_note)
       ca_loc->next = NULL;
       ca_loc->label = last_label;
 
+      /* A lot of variables are introduced by the compiler when Cilk Plus is
+         enabled. These variables are not understood by the -g flag, so we
+	 can't go forward if this flag is enabled.  */
       if (flag_enable_cilk)
 	return;
       gcc_assert (prev

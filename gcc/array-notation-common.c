@@ -42,12 +42,16 @@ int extract_sec_implicit_index_arg (tree);
 bool is_sec_implicit_index_fn (tree);
 void array_notation_init_builtins (void);
 
+/* This function indicates that certain functions are unlikely to run as is.  */
+
 static void
 mark_cold (tree fndecl)
 {
   DECL_ATTRIBUTES (fndecl) = tree_cons (get_identifier ("cold"), NULL_TREE,
 					DECL_ATTRIBUTES (fndecl));
 }
+
+/* This function inititializes array notation specific builtin information.  */
 
 void
 array_notation_init_builtins (void)
@@ -128,6 +132,8 @@ array_notation_init_builtins (void)
   return;
 }
 
+/* This function returns true if the function call is __sec_implicit_index.  */
+
 bool
 is_sec_implicit_index_fn (tree func_name)
 {
@@ -157,6 +163,8 @@ is_sec_implicit_index_fn (tree func_name)
     return false;
 }
 
+/* This function will extract arguments for sec_implicit index function.  */
+
 int
 extract_sec_implicit_index_arg (tree fn)
 {
@@ -169,7 +177,7 @@ extract_sec_implicit_index_arg (tree fn)
     {
       fn_arg = CALL_EXPR_ARG (fn, 0);
       if (really_constant_p (fn_arg))
-	return_int = (int)int_cst_value (fn_arg);
+	return_int = (int) int_cst_value (fn_arg);
       else
 	{
 	  error ("__sec_implicit_index parameter must be constant integer "

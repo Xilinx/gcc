@@ -1,7 +1,7 @@
 /* This file contains the definitions and documentation for the
    builtins used in the GNU compiler.
    Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
-   2010, 2011, 2012 Free Software Foundation, Inc.
+   2010, 2011, 2012 Free Software Foundation, Inc. 
 
 This file is part of GCC.
 
@@ -149,6 +149,8 @@ along with GCC; see the file COPYING3.  If not see
   DEF_BUILTIN (ENUM, "__builtin_" NAME, BUILT_IN_NORMAL, TYPE, TYPE,    \
 	       true, true, true, ATTRS, false, flag_tm)
 
+/* Builtin used by implementation of Cilk Plus. Most of these are decomposed
+   by the compiler but a few are implemented in libcilkrts.  */ 
 #undef DEF_CILK_BUILTIN_STUB
 #define DEF_CILK_BUILTIN_STUB(ENUM, NAME) \
   DEF_BUILTIN (ENUM, NAME, BUILT_IN_CILK, BT_LAST, BT_LAST, false, false, \
@@ -806,40 +808,9 @@ DEF_BUILTIN_STUB (BUILT_IN_EH_POINTER, "__builtin_eh_pointer")
 DEF_BUILTIN_STUB (BUILT_IN_EH_FILTER, "__builtin_eh_filter")
 DEF_BUILTIN_STUB (BUILT_IN_EH_COPY_VALUES, "__builtin_eh_copy_values")
 
-/* Cilk */
-DEF_CILK_BUILTIN_STUB(BUILT_IN_CILK_WORKER_ID, "__cilkrts_current_worker_id")
-DEF_CILK_BUILTIN_STUB(BUILT_IN_CILK_WORKER_PTR, "__cilkrts_current_worker")
-DEF_CILK_BUILTIN_STUB(BUILT_IN_CILK_DETACH, "__cilkrts_detach")
-DEF_CILK_BUILTIN_STUB(BUILT_IN_CILK_SYNCHED, "__cilkrts_synched")
-DEF_CILK_BUILTIN_STUB(BUILT_IN_CILK_STOLEN, "__cilkrts_was_stolen")
-DEF_CILK_BUILTIN_STUB(BUILT_IN_CILK_ENTER_FRAME, "__cilkrts_enter_frame")
-DEF_CILK_BUILTIN_STUB(BUILT_IN_CILK_LEAVE_FRAME, "__cilkrts_leave_frame")
-DEF_CILK_BUILTIN_STUB(BUILT_IN_CILK_POP_FRAME, "__cilkrts_pop_frame")
-DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_ENTER_BEGIN, "__cilk_enter_begin")
-DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_ENTER_H_BEGIN, "__cilk_enter_helper_begin")
-DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_ENTER_END, "__cilk_enter_end")
-DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_SPAWN_PREPARE, "__cilk_spawn_prepare")
-DEF_CILK_BUILTIN_STUB (BUILT_IN_SPAWN_OR_CONT, "__cilk_spawn_or_continue")
-DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_DETACH_BEGIN, "__cilk_detach_begin")
-DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_DETACH_END, "__cilk_detach_end")
-DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_SYNC_BEGIN, "__cilk_sync_begin")
-DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_SYNC_END, "__cilk_sync_end")
-DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_LEAVE_BEGIN, "__cilk_leave_begin")
-DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_LEAVE_END, "__cilk_leave_end")
-DEF_CILK_BUILTIN_STUB (BUILT_IN_CILKSCREEN_METACALL, "cilkscreen_metacall")
-DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_RESUME, "cilk_resume")
-DEF_CILK_BUILTIN_STUB (BUILT_IN_LEAVE_STOLEN, "cilk_leave_stolen")
-DEF_CILK_BUILTIN_STUB (BUILT_IN_SYNC_ABANDON, "cilk_sync_abandon")
-DEF_CILK_BUILTIN_STUB (BUILT_IN_CILKSCREEN_EN_INSTR, 
-"cilkscreen_enable_instrumentation")
-DEF_CILK_BUILTIN_STUB (BUILT_IN_CILKSCREEN_DS_INSTR,
-"cilkscreen_disable_instrumentation")
-DEF_CILK_BUILTIN_STUB (BUILT_IN_CILKSCREEN_DS_CHK, "cilkscreen_disable_checking")
-DEF_CILK_BUILTIN_STUB (BUILT_IN_CILKSCREEN_EN_CHK, "cilkscreen_enable_checking")
-DEF_CILK_BUILTIN_STUB (BUILT_IN_CILKSCREEN_AQUIRE_LOCK, "cilkscreen_aquire_lock")
-DEF_CILK_BUILTIN_STUB (BUILT_IN_CILKSCREEN_REL_LOCK, "cilkscreen_release_lock")
-DEF_CILK_BUILTIN_STUB (BUILT_IN_NOTIFY_ZC_INTRINSIC, "__notify_zc_intrinsic")
-DEF_CILK_BUILTIN_STUB (BUILT_IN_NOTIFY_INTRINSIC, "__notify_intrinsic")
+/* Cilk Plus builtins.  */
+#include "cilk-builtins.def"
+
 /* Synchronization Primitives.  */
 #include "sync-builtins.def"
 

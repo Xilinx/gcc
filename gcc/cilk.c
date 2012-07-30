@@ -624,7 +624,7 @@ build_cilk_function_exit (tree frame, bool detaches, bool needs_sync)
 
   if (needs_sync == true)
     {
-      sync_expr = build_cilk_sync();
+      sync_expr = build_cilk_sync ();
       /* For now always sync.  The optimizer can delete it later.  */
       append_to_statement_list (sync_expr, &epi);
     }
@@ -681,10 +681,10 @@ make_cilk_frame (tree fn)
     return f->cilk_frame_decl;
 
 
-  sprintf(frame_name, "sf_%02d",++cilk_frame_name_count);
+  sprintf (frame_name, "sf_%02d",++cilk_frame_name_count);
   
-  t = get_identifier(frame_name);
-  decl = build_decl (EXPR_LOCATION(t),VAR_DECL, t, cilk_frame_type_decl);
+  t = get_identifier (frame_name);
+  decl = build_decl (EXPR_LOCATION (t), VAR_DECL, t, cilk_frame_type_decl);
   DECL_CONTEXT (decl) = fn;
   /* Magic to prevent assert failure.  Easier than doing it right. */
   DECL_SEEN_IN_BIND_EXPR_P (decl) = 1;
@@ -916,7 +916,7 @@ output_string_table (section *s)
   for (ii = 0; ii < length; ii++)
     {
       zca_entry = find_zca_data (ii);
-      for (jj = 0; jj < (int)strlen (zca_entry->string); jj++)
+      for (jj = 0; jj < (int) strlen (zca_entry->string); jj++)
 	assemble_integer (gen_rtx_CONST_INT (BLKmode, zca_entry->string[jj]),
 			  1, 1, 1);
       assemble_integer (gen_rtx_CONST_INT (BLKmode, 0), 1, 1, 1);
@@ -985,7 +985,7 @@ cilk_output_metadata (void)
   
   
   /* Here we output the magic number. */
-  for (ii = 0; ii < (int)strlen (itt_string); ii++)
+  for (ii = 0; ii < (int) strlen (itt_string); ii++)
     assemble_integer (gen_rtx_CONST_INT (BLKmode, itt_string[ii]), 1, 1, 1);
   assemble_integer (gen_rtx_CONST_INT (BLKmode, 0), 1, 1, 1);
   /* here we output the major and minor version number */
@@ -1025,10 +1025,10 @@ cilk_output_metadata (void)
   output_string_table (s);
 
   output_asm_label (expr_label);
-  fputs(":\n", asm_out_file);
+  fputs (":\n", asm_out_file);
   output_expr_table (s);
 
-  delete_zca_list();
+  delete_zca_list ();
  
   return;
 }
@@ -1171,7 +1171,7 @@ cilk_remove_annotated_functions (rtx first)
 	{
 	  set_insn = XEXP (insn, 4);
 	  if ((set_insn && GET_CODE (set_insn) == SET)
-	      /* if there is no return then we will see a CALL */
+	      /* If there is no return then we will see a CALL.  */
 	      || (set_insn && GET_CODE (set_insn) == CALL))
 	    {
 	      if (set_insn && GET_CODE (set_insn) == SET)
@@ -1196,7 +1196,7 @@ cilk_remove_annotated_functions (rtx first)
 	    }
 	}
     }
-  for (ii = 0; ii < (int)VEC_length (rtx, rtx_delete_list); ii++)
+  for (ii = 0; ii < (int) VEC_length (rtx, rtx_delete_list); ii++)
     remove_insn (VEC_index (rtx, rtx_delete_list, ii));
   
   return;
@@ -1241,4 +1241,104 @@ is_cilk_must_expand_fn (enum built_in_function func_code)
     default:
       return false;
     }
+}
+
+/* This will return true when name matches an elemental function mask.  */
+
+bool
+is_elem_fn_attribute_p (tree name)
+{
+  if (flag_enable_cilk)
+    return false;
+  return is_attribute_p ("mask", name)
+    || is_attribute_p ("unmask", name)
+    || is_attribute_p ("vectorlength", name)
+    || is_attribute_p ("vector", name)
+    || is_attribute_p ("linear", name)
+    || is_attribute_p ("uniform", name);
+}
+
+/* This function will compare two function names and see if they are same.  */
+static bool
+compare_fn (const char *my_string, const char *search_str)
+{
+  const char *cc;
+  const char *dd;
+  int search_str_length = 0;
+  int str_length = 0;
+  
+  if ((my_string == NULL) &&
+      (search_str != NULL))
+    return false;
+
+  if ((my_string != NULL) &&
+      (search_str == NULL))
+    return false;
+
+  if ((my_string == NULL) &&
+      (search_str == NULL))
+    return true;
+
+  cc = my_string;
+  dd = search_str;
+
+  while (*cc != '\0')
+    {
+      str_length++;
+      cc++;
+    }
+
+  while (*dd != '\0')
+    {
+      search_str_length++;
+      dd++;
+    }
+
+  if (str_length != search_str_length)
+    return false;
+
+  /* now we see if the strings match */
+  cc = my_string;
+  dd = search_str;
+
+  while (*cc != '\0' &&
+	 *dd != '\0')
+    {
+      if (*cc != *dd)
+	return false;
+      cc++;
+      dd++;
+    }
+
+  return true;
+}
+
+bool
+is_cilk_function_decl (tree olddecl, tree newdecl)
+{
+  const char *cilkrts_enter_frame_array = "__cilkrts_enter_frame";
+  const char *cilkrts_leave_frame_array = "__cilkrts_leave_frame";
+  const char *cilkrts_sync_array = "__cilkrts_sync";
+  bool found_enter_frame = false;
+  bool found_leave_frame = false;
+  bool found_sync = false;
+  
+  if ((DECL_NAME (olddecl) == NULL_TREE) || (DECL_NAME (newdecl) == NULL_TREE))
+    return false;
+  if (TREE_CODE (DECL_NAME (olddecl)) != IDENTIFIER_NODE)
+    return false;
+  if (TREE_CODE (DECL_NAME (newdecl)) != IDENTIFIER_NODE)
+    return false;
+  if (DECL_NAME (newdecl) != DECL_NAME (olddecl))
+    return false;
+
+  found_enter_frame = compare_fn (IDENTIFIER_POINTER (DECL_NAME (newdecl)),
+				  cilkrts_enter_frame_array);
+  found_leave_frame = compare_fn (IDENTIFIER_POINTER (DECL_NAME (newdecl)),
+				  cilkrts_leave_frame_array);
+  found_sync = compare_fn (IDENTIFIER_POINTER (DECL_NAME (newdecl)),
+			   cilkrts_sync_array);
+  if (found_sync || found_leave_frame || found_enter_frame)
+    return true;
+  return false;
 }

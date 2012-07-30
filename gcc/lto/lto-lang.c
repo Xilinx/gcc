@@ -667,8 +667,8 @@ lto_define_builtins (tree va_list_ref_type_node ATTRIBUTE_UNUSED,
 
   lto_init_attributes ();
 
-  /* this function will initialize all the builtin functions required by
-   * the cilkplus port */
+  /* These functions will initialize all the builtin functions required by
+     the cilkplus port.  */
   if (flag_enable_cilk)
     {
       cilk_init_builtins ();

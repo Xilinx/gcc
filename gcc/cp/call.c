@@ -4821,7 +4821,7 @@ prep_operand (tree operand)
   tree opr_type = NULL_TREE;
   if (operand)
     {
-      if (TREE_CODE (operand) == ARRAY_NOTATION_REF)
+      if (flag_enable_cilk && TREE_CODE (operand) == ARRAY_NOTATION_REF)
 	return operand;
       else
 	opr_type = TREE_TYPE (operand);

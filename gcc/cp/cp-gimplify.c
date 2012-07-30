@@ -196,7 +196,7 @@ genericize_cp_loop (tree *stmt_p, location_t start_locus, tree cond, tree body,
   tree blab, clab;
   tree entry = NULL, exit = NULL, t;
   tree stmt_list = NULL;
-  struct pragma_simd_values *ps_value = NULL;
+  struct pragma_simd_values *cilkplus_ps_value = NULL;
   tree reset_stmt_list = NULL_TREE;
 
   blab = begin_bc_block (bc_break, start_locus);
@@ -230,12 +230,10 @@ genericize_cp_loop (tree *stmt_p, location_t start_locus, tree cond, tree body,
       /* Expand to gotos, just like c_finish_loop.  TODO: Use LOOP_EXPR.  */
       tree top = build1 (LABEL_EXPR, void_type_node, label);
       PRAGMA_SIMD_INDEX (label) = pragma_simd_index;
-      ps_value = psv_find_node (PRAGMA_SIMD_INDEX (label));
-      if (ps_value != NULL)
-	{
-	  body = pragma_simd_create_private_vars (body, &reset_stmt_list, 
-						  *ps_value);
-	}
+      cilkplus_ps_value = psv_find_node (PRAGMA_SIMD_INDEX (label));
+      if (cilkplus_ps_value) 
+	body = pragma_simd_create_private_vars (body, &reset_stmt_list, 
+						*cilkplus_ps_value);
 
       /* If we have an exit condition, then we build an IF with gotos either
 	 out of the loop, or to the top of it.  If there's no exit condition,
@@ -289,7 +287,7 @@ static void
 genericize_for_stmt (tree *stmt_p, int *walk_subtrees, void *data)
 {
   tree stmt = *stmt_p;
-  int ps_index = INVALID_PRAGMA_SIMD_SLOT;
+  int cilkplus_ps_index = INVALID_PRAGMA_SIMD_SLOT;
   tree expr = NULL;
   tree loop;
   tree init = FOR_INIT_STMT (stmt);
@@ -301,26 +299,26 @@ genericize_for_stmt (tree *stmt_p, int *walk_subtrees, void *data)
     }
 
   if (TREE_CODE (*stmt_p) == FOR_STMT)
-    ps_index = FOR_STMT_PRAGMA_SIMD_INDEX (*stmt_p);
+    cilkplus_ps_index = FOR_STMT_PRAGMA_SIMD_INDEX (*stmt_p);
   else
-    ps_index = INVALID_PRAGMA_SIMD_SLOT;
+    cilkplus_ps_index = INVALID_PRAGMA_SIMD_SLOT;
 
-  *stmt_p = NULL_TREE;
   genericize_cp_loop (&loop, EXPR_LOCATION (stmt), FOR_COND (stmt),
 		      FOR_BODY (stmt), FOR_EXPR (stmt), 1, walk_subtrees, data,
-		      ps_index);
+		      cilkplus_ps_index);
   append_to_statement_list (loop, &expr);
   *stmt_p = expr;
 }
 
-/* Genericize a Cilk_FOR node *STMT_P. */
+/* Genericize a Cilk_for node *STMT_P.  */
 
 static void
 genericize_cilk_for_stmt (tree *stmt_p ATTRIBUTE_UNUSED, int *walk_subtrees,
 			  void *data ATTRIBUTE_UNUSED)
 {
-  /* When we have a cilk for we resolve all the internal statements such as
-   * continue, while, for etc during gimplification */
+  /* When we have a cilk for we resolve all the internal statements such as  
+     continue, while, for etc. during gimplification inside
+     gimplify_cilk_for_stmt.  */
   *walk_subtrees = 0;
 }
 
@@ -735,11 +733,8 @@ cp_gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
       break;
 
     case CALL_EXPR:
-      if (SPAWN_CALL_P (*expr_p))
-	{
-	  if (cfun->cilk_frame_decl != NULL_TREE)
-	    TREE_USED (cfun->cilk_frame_decl) = 1;
-	}
+      if (flag_enable_cilk && SPAWN_CALL_P (*expr_p) && cfun->cilk_frame_decl) 
+	TREE_USED (cfun->cilk_frame_decl) = 1;
 
     default:
       ret = (enum gimplify_status) c_gimplify_expr (expr_p, pre_p, post_p);

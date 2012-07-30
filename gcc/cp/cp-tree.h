@@ -277,9 +277,11 @@ typedef struct ptrmem_cst * ptrmem_cst_t;
 /* Used to mark the block around the member initializers and cleanups.  */
 #define BIND_EXPR_BODY_BLOCK(NODE) \
   TREE_LANG_FLAG_3 (BIND_EXPR_CHECK (NODE))
+
+/* All Cilk Plus functions needs a body.  */
 #define FUNCTION_NEEDS_BODY_BLOCK(NODE) \
  (flag_enable_cilk || DECL_CONSTRUCTOR_P (NODE) || DECL_DESTRUCTOR_P (NODE) \
-   || LAMBDA_FUNCTION_P (NODE)) /* All Cilk functions needs a body.  */
+   || LAMBDA_FUNCTION_P (NODE))
 
 #define STATEMENT_LIST_NO_SCOPE(NODE) \
   TREE_LANG_FLAG_0 (STATEMENT_LIST_CHECK (NODE))
@@ -4008,10 +4010,8 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 #define DO_COND(NODE)		TREE_OPERAND (DO_STMT_CHECK (NODE), 0)
 #define DO_BODY(NODE)		TREE_OPERAND (DO_STMT_CHECK (NODE), 1)
 
-/* FOR_STMT accessors. These give access to the init statement,
-   condition, update expression, and body of the for statement,
-   respectively.  */
-/* bviyer: we need it in C, so I have defined them in tree.h */
+/* We need FOR_STMT accessors in C and C++ for Cilk_for and for, so I have
+   moved them to tree.h.  */
 #define FOR_SCOPE(NODE)		TREE_OPERAND (FOR_STMT_CHECK2 (NODE), 4)
 #define FOR_STMT_PRAGMA_SIMD_INDEX(NODE)               \
  (FOR_STMT_CHECK(NODE)->base.pragma_simd_index)
@@ -4535,8 +4535,6 @@ enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, TYPENAME_FLAG };
 				   already been parsed.  */
 #define SF_INCLASS_INLINE    2  /* The function is an inline, defined
 				   in the class body.  */
-#define SF_CILK_PROMOTE      4 /* Promote type of function to Cilk */
-#define SF_CILK_NESTED       8 /* This function is a cilk lambda */
 
 #define BUILT_IN_CILK_SYNC      1
 #define BUILT_IN_CILK_FRAME     2
@@ -4551,12 +4549,10 @@ enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, TYPENAME_FLAG };
 #define BUILT_IN_CILK_WORKER_ID 12
 #define BUILT_IN_CILK_WORKER    13
 
-enum call_context
-  {
-    CALL_NORMAL = -1,
-    CALL_SPAWN = 1,
-    CALL_CILK_RUN = 2
-  };
+enum call_context {
+  CALL_NORMAL = 0,
+  CALL_SPAWN = 1
+};
 
 
 /* Used with start_decl's initialized parameter.  */

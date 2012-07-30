@@ -125,8 +125,7 @@ typedef enum scope_kind {
   sk_omp,	     /* An OpenMP structured block.  */
   sk_cilk_for,       /* The scope of the variable declared in a
                         cilk-for-init-statement.  */
-  sk_cilk_block     /* The scope of a spawn or other Cilk block */
-
+  sk_cilk_block     /* The scope of a spawn or other Cilk block.  */
 } scope_kind;
 
 /* The scope where the class/struct/union/enum tag applies.  */

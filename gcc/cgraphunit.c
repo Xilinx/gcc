@@ -230,10 +230,10 @@ cgraph_decide_is_function_needed (struct cgraph_node *node, tree decl)
   if (node->symbol.force_output)
     return true;
 
-  /* When an elemental function is cloned, we set the elem_fn_already_cloned,
+  /* When an elemental function is cloned, variable elem_fn_already_cloned
      will be set to true, for all other functions, it is initalized to zero.
-     So, if it is an elemental function, we output it without questioning */
-  if (DECL_STRUCT_FUNCTION (decl))
+     So, if it is an elemental function, we output it without questioning.  */
+  if (flag_enable_cilk && DECL_STRUCT_FUNCTION (decl))
     is_cloned_elem_func = DECL_STRUCT_FUNCTION (decl)->elem_fn_already_cloned;
   
   /* Double check that no one output the function into assembly file
@@ -451,7 +451,8 @@ cgraph_finalize_function (tree decl, bool nested)
   if (warn_unused_parameter)
     do_warn_unused_parameter (decl);
 
-  if (!nested && !flag_enable_cilk)
+  /* bviyer: Check this without flag_enable_cilk. */
+  if (!nested)
     ggc_collect ();
 
   if (cgraph_state == CGRAPH_STATE_CONSTRUCTION
@@ -483,9 +484,12 @@ cgraph_add_new_function (tree fndecl, bool lowered)
 	break;
       case CGRAPH_STATE_CONSTRUCTION:
 	/* Just enqueue function to be processed at nearest occurrence.  */
-	/* bviyer: We need to use cgraph_get_create_node instead of 
-	   cgraph_create_node for Cilkplus */
-	node = cgraph_get_create_node (fndecl);
+	/* For Cilk Plus We need to use cgraph_get_create_node instead of 
+	   cgraph_create_node.  */
+	if (flag_enable_cilk) 
+	  node = cgraph_get_create_node (fndecl);
+	else
+	  node = cgraph_create_node (fndecl);
 	if (lowered)
 	  node->lowered = true;
 	if (!cgraph_new_nodes)
@@ -889,7 +893,8 @@ cgraph_analyze_functions (void)
 	   node != (symtab_node)first_analyzed
 	   && node != (symtab_node)first_analyzed_var; node = node->symbol.next)
 	{
-	  if ((TREE_CODE (node->symbol.decl) == FUNCTION_DECL 
+	  if ((TREE_CODE (node->symbol.decl) == FUNCTION_DECL  
+	       && flag_enable_cilk
 	       && DECL_ELEM_FN_ALREADY_CLONED (node->symbol.decl))
 	      || ((symtab_function_p (node)
 	       && cgraph (node)->local.finalized
@@ -999,14 +1004,20 @@ cgraph_analyze_functions (void)
        && node != (symtab_node)first_handled_var; node = next)
     {
       next = node->symbol.next;
-      if (!node->symbol.aux && !referred_to_p (node) 
-	  && (TREE_CODE (node->symbol.decl) == FUNCTION_DECL 
-	      && !DECL_ELEM_FN_ALREADY_CLONED (node->symbol.decl)))
+      if (!node->symbol.aux && !referred_to_p (node))
 	{
-	  if (cgraph_dump_file)
-	    fprintf (cgraph_dump_file, " %s", symtab_node_name (node));
-	  symtab_remove_node (node);
-	  continue;
+	  if (TREE_CODE (node->symbol.decl) == FUNCTION_DECL
+	      && flag_enable_cilk
+	      && DECL_ELEM_FN_ALREADY_CLONED (node->symbol.decl))
+	    /* We do not remove a Cloned elemental function.  */
+	    ;
+	  else
+	    {
+	      if (cgraph_dump_file)
+		fprintf (cgraph_dump_file, " %s", symtab_node_name (node));
+	      symtab_remove_node (node);
+	      continue;
+	    }
 	}
       if (symtab_function_p (node))
 	{

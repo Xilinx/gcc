@@ -1451,10 +1451,11 @@ gimplify_decl_expr (tree *stmt_p, gimple_seq *seq_p)
     {
       tree init = DECL_INITIAL (decl);
 
-      if (init && TREE_CODE (init) == CALL_EXPR && SPAWN_CALL_P (init))
+      if (flag_enable_cilk && init && TREE_CODE (init) == CALL_EXPR
+	  && SPAWN_CALL_P (init))
 	{
 	  SPAWN_CALL_P (init) = 0;
-	  warning (0, "Cilk spawn in initializer si nto implemented.");
+	  warning (0, "Cilk spawn in initializer is not implemented.");
 	}
       if (TREE_CODE (DECL_SIZE_UNIT (decl)) != INTEGER_CST
 	  || (!TREE_STATIC (decl)
@@ -2489,7 +2490,6 @@ gimplify_call_expr (tree *expr_p, gimple_seq *pre_p, bool want_value)
   bool is_detach = false;
   tree detach_begin = NULL_TREE, detach_end = NULL_TREE;
 
-
   gcc_assert (TREE_CODE (*expr_p) == CALL_EXPR);
 
   /* For reliable diagnostics during inlining, it is necessary that
@@ -2522,7 +2522,7 @@ gimplify_call_expr (tree *expr_p, gimple_seq *pre_p, bool want_value)
 	     same value, but in a more efficient way.  Return and try
 	     again.  */
 	  *expr_p = new_tree;
-	  if (is_detach)
+	  if (flag_enable_cilk && is_detach)
 	    {
 	      if (TREE_CODE (new_tree) == NOP_EXPR)
 		new_tree = TREE_OPERAND (new_tree, 0);
@@ -2544,7 +2544,7 @@ gimplify_call_expr (tree *expr_p, gimple_seq *pre_p, bool want_value)
 	      *expr_p = build_empty_stmt (EXPR_LOCATION (*expr_p));
 	      return GS_OK;
 	    }
-	  if (is_detach)
+	  if (flag_enable_cilk && is_detach)
 	    warning (0, "_Cilk_spawn of %<va_start%> is nonsensical");
 
 	  if (fold_builtin_next_arg (*expr_p, true))
@@ -2655,7 +2655,7 @@ gimplify_call_expr (tree *expr_p, gimple_seq *pre_p, bool want_value)
 			  frame);
 	else
 	  {
-	    warning(0, "spawning function lacks frame descriptor");
+	    warning (0, "spawning function lacks frame descriptor");
 	    frame = null_pointer_node;
 	  }
 	detach_begin = build_call_expr (cilk_detach_begin_fndecl, 1, frame);
@@ -7658,9 +7658,10 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	  break;
 
 	case ARRAY_NOTATION_REF:
-	  /* Nothing should happen here. Just return as OK */
+	  /* Nothing should happen here.  Just return as ALL_DONE.  */
 	  ret = GS_ALL_DONE;
 	  break;
+	  
 	case CILK_FOR_STMT:
 	  {
 	    if (flag_enable_cilk)
@@ -7668,6 +7669,7 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	    ret = GS_ALL_DONE;
 	    break;
 	  }
+	  
 	case CILK_SYNC_STMT:
 	  {
 	    if (flag_enable_cilk)
@@ -7685,6 +7687,7 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	      }
 	    break;
 	  }
+	  
 	case TRANSACTION_EXPR:
 	  ret = gimplify_transaction (expr_p, pre_p);
 	  break;

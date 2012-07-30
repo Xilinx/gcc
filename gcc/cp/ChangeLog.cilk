@@ -1,3 +1,39 @@
+2012-07-30  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* pt.c (tsubst_expr): Fixed comments and spacing.  Also removed unwanted
+	curly braces.
+	* semantics.c (build_constexpr_constructor_member_initializers): Added
+	clarifying comments.  Also fixed spacing.
+	(cxx_eval_call_expression): Likewise.
+	(cp_build_addr_expr_1): Added a check for cilkplus flag.
+	* dwarf2out.c (dwarf2out_function_decl): Fixed a comment.
+	(dwarf2out_var_location): Added a clarifying comment.
+	* parser.c (cp_lexer_new_main): Added cilkplus prefix for all the
+	cilkplus specific variables.  Also called the function
+	pragma_simd_list.
+	(cp_parser_nested_name_specifier_opt): Fixed comments and spacing.
+	(cp_parser_cilk_for): Likewise.
+	(cp_parser_cilk_grainsize): Likewise.
+	(cp_parser_cilk_for_expression_iterator): Likewise.
+	(cp_parser_simd_vectorlength): Added cilkplus prefix for all cilkplus
+	specific variables.  Also fixed spacing and comments.
+	(cp_parser_simd_private): Likewise.
+	(cp_parser_simd_reduction): Likewise.
+	(cp_parser_simd_linear): Likewise.
+	(cp_parser_simd_assert): Likewise.
+	* decl.c (pop_label): Removed unnecessary curly braces.
+	(my_strcmp): Remove.
+	(is_cilk_function_decl): Likewise.
+	(duplicate_decls): Removed unwanted parenthesis.
+	(store_parm_decl): Replaced static back to this function.
+	(finish_function): Fixed comments and removed unwanted curly braces.
+	* cp-gimplify.c (genericize_cp_loop): Added cilkplus for all variables
+	that directly impact cilkplus.  Also removed unwanted curly braces.
+	(genericize_for_stmt): Likewise.
+	(genericize_cilk_for_stmt): Fixed comments.
+	(cp_gimplify_expr): Fused two nested if-statements.
+	* call.c (prep_operand): Added a check if cilk plus flag is enabled.
+
 2012-07-23  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cilk.c (cilk_c_declare_looper): Added header comment and did some

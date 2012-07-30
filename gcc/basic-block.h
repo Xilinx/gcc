@@ -180,7 +180,7 @@ struct GTY((chain_next ("%h.next_bb"), chain_prev ("%h.prev_bb"))) basic_block_d
   /* Various flags.  See cfg-flags.def.  */
   int flags;
 
-  /* Index to the pragma simd data structure */
+  /* Index to the pragma simd data structure.  */
   int pragma_simd_index;
 
 };

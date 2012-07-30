@@ -559,6 +559,8 @@ struct GTY(()) function {
   /* In a Cilk function, the VAR_DECL for the frame descriptor. */
   tree cilk_frame_decl;
 
+  /* In an elemental function, if this is true, it means the function is already
+     cloned, and dont bother cloning it again.  */
   bool elem_fn_already_cloned;
   
   /* For md files.  */
@@ -616,18 +618,18 @@ struct GTY(()) function {
      either as a subroutine or builtin.  */
   unsigned int calls_alloca : 1;
 
-  /* this will indicate whether a function is a cilk function */
+  /* This will indicate whether a function is a cilk function */
   unsigned int is_cilk_function : 1;
 
   /* Indicates if this function calls notify intrinsic */
   unsigned int calls_notify_intrinsic : 1;
-  /* this variable will tell whether we are on a spawn helper or not */
+
+  /* This variable will tell whether we are on a spawn helper or not */
   unsigned int is_cilk_helper_function : 1;
   
-    /* this variable when set will tell whether the current function
-   * is nested inside a cilk_function. Pretty much this is set it 
-   * means we are using a cilk-for inside a cilk_for  
-   */
+  /* This variable when set will tell whether the current function is nested
+     inside a cilk_function. Pretty much this is set it  means we are using a
+     cilk-for inside a cilk_for  */
   unsigned int nested_inside_cilk_function : 1;
   
   /* Nonzero if this is a Cilk function that spawns. */

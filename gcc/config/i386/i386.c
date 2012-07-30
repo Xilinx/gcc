@@ -5924,6 +5924,10 @@ type_natural_mode (const_tree type, const CUMULATIVE_ARGS *cum)
 			&& !warnedavx
 			&& cum->warn_avx)
 		      {
+			/* For Cilk Plus with elemental functions, the user
+			   can generate code for a hardware that is not the
+			   target hardware.  So, this warning is not valid for
+			   us.  */
 			if (!flag_enable_cilk)
 			  {
 			    warnedavx = true;
@@ -7327,7 +7331,10 @@ ix86_function_arg_boundary (enum machine_mode mode, const_tree type)
 	  && !warned
 	  && align != ix86_compat_function_arg_boundary (mode, type,
 							 saved_align))
-	{
+	{ 
+	  /* For Cilk Plus with elemental functions, the user can generate 
+	     code for a hardware that is not the target hardware.  So, this 
+	     warning is not valid for Cilk Plus.  */
 	  if (!flag_enable_cilk)
 	    {
 	      warned = true;
@@ -8646,11 +8653,9 @@ ix86_can_use_return_insn_p (void)
 static bool
 ix86_frame_pointer_required (void)
 {
-  /* For all Cilk specific functions, we need the frame pointer */
-  if (cfun->is_cilk_function == 1)
-    {
-      return true;
-    }
+  /* For all Cilk specific functions, we frame pointer is required.  */
+  if (cfun->is_cilk_function == 1) 
+    return true;
 
   /* If we accessed previous frames, then the generated code expects
      to be able to access the saved ebp value in our frame.  */

@@ -431,7 +431,7 @@ gimplify_cilk_spawn (tree *spawn_p, gimple_seq *before ATTRIBUTE_UNUSED,
   call1 = cilk_call_setjmp (cfun->cilk_frame_decl);
   
   if (*arg_array == NULL_TREE)
-    call2 = build_call_expr (function,0);
+    call2 = build_call_expr (function, 0);
   else
     {
       call2 = build_call_expr_loc_array (UNKNOWN_LOCATION,
@@ -461,33 +461,6 @@ gimplify_cilk_spawn (tree *spawn_p, gimple_seq *before ATTRIBUTE_UNUSED,
   return;
 }
 
-/* **************************************************************** */
-/* Generating nested functions */
-
-/* The old version used a splay_tree with a deterministic comparator.
-   Pointer sets are not reproducible from run to run.  These functions
-   extract the contents into an array with predictable behavior. */
-
-static int
-sort_decl (const void *p1, const void *p2)
-{
-  const_tree t1 = (const_tree)p1;
-  const_tree t2 = (const_tree)p2;
-  if (t1 == t2)
-    return 0;
-  if (TREE_CODE (t1) != TREE_CODE (t2))
-    return t1 - t2;
-  if (DECL_P (t1))
-    return (int)DECL_UID (t1) - (int)DECL_UID (t2);
-  if (TYPE_P (t1))
-    return (int)TYPE_UID (t1) - (int)TYPE_UID (t2);
-  if (TREE_CODE (t1) == INTEGER_CST)
-    return tree_int_cst_compare (t1, t2);
-  return 0;
-}
-
-
-
 /* Given a variable in an expression to be extracted into
    a helper function, declare the helper function parameter
    to receive it.
@@ -507,11 +480,12 @@ sort_decl (const void *p1, const void *p2)
    
    (var, ???) -- Pure output argument, handled similarly to above.
 */
+
 static bool
 declare_one_free_variable (const void *var0, void **map0,
 			   void *data ATTRIBUTE_UNUSED)
 {
-  const_tree var = (const_tree)var0;
+  const_tree var = (const_tree) var0;
   tree map = (tree)*map0;
   tree var_type = TREE_TYPE (var), arg_type;
   bool by_reference;
@@ -519,10 +493,10 @@ declare_one_free_variable (const void *var0, void **map0,
 
   gcc_assert (DECL_P (var));
 
-  /* Ignore truly local variables. */
+  /* Ignore truly local variables.  */
   if (map == error_mark_node)
     return true;
-  /* Ignore references to the parent function */
+  /* Ignore references to the parent function.  */
   if (map == var)
     return true;
 
@@ -536,7 +510,7 @@ declare_one_free_variable (const void *var0, void **map0,
      a warning if the spawned statement is a loop body
      because an output argument would indicate a race.
      Note: Earlier passes must have marked the variable addressable.
-     3. It is expensive to copy. */
+     3. It is expensive to copy.  */
   by_reference =
     (TREE_ADDRESSABLE (var_type)
      /* Arrays must be passed by reference.  This is required for C
@@ -545,7 +519,7 @@ declare_one_free_variable (const void *var0, void **map0,
 	they are not passed to the spawned function.  We aren't yet
 	distinguishing safe uses in argument calculation from unsafe
 	uses as outgoing function arguments, so we make a copy to
-	stabilize the value. */
+	stabilize the value.  */
      || TREE_CODE (var_type) == ARRAY_TYPE
      || (tree) map == integer_one_node);
 
@@ -554,7 +528,7 @@ declare_one_free_variable (const void *var0, void **map0,
 				     TYPE_QUAL_RESTRICT);
   gcc_assert (!TREE_ADDRESSABLE (var_type));
 
-  /* Maybe promote to int */
+  /* Maybe promote to int.  */
   if (INTEGRAL_TYPE_P (var_type)
       && COMPLETE_TYPE_P (var_type)
       && targetm.calls.promote_prototypes (var_type)
@@ -564,7 +538,6 @@ declare_one_free_variable (const void *var0, void **map0,
   else
     arg_type = var_type;
 
-  /* See cp/decl.2.c: build_artificial_parm and cp_build_parm_decl. */
   parm = build_decl (UNKNOWN_LOCATION, PARM_DECL, NULL_TREE, var_type);
   DECL_ARG_TYPE (parm) = arg_type;
   DECL_ARTIFICIAL (parm) = 0;
@@ -582,14 +555,14 @@ declare_one_free_variable (const void *var0, void **map0,
 static void
 declare_free_variables (struct wrapper_data *wd)
 {
-  pointer_map_traverse_ordered (wd->decl_map, declare_one_free_variable,
-				sort_decl, wd);
+  pointer_map_traverse (wd->decl_map, declare_one_free_variable, wd);
 }
 
 /* Helper for wrapped_function_name.  Find a call embedded within an
    expression.  Hopefully it is the spawned call.  This function is
    allowed to be wrong.  It exists to make generated code slightly
-   more understandable on average. */
+   more understandable on average.  */
+
 static tree
 find_call (tree exp)
 {
@@ -611,6 +584,7 @@ find_call (tree exp)
 
 /* If a function is being called try to figure out which function.
    This is for the benefit of humans. */
+
 static const char *
 wrapped_function_name (tree exp)
 {
@@ -623,13 +597,15 @@ wrapped_function_name (tree exp)
 
   /* Spawn of an expression returning a struct by value
      can appear as a spawn of __builtin_memcpy.  Don't
-     confuse matters by putting that name in assembly. */
+     confuse matters by putting that name in assembly.  */
   if (DECL_BUILT_IN (fn))
     return NULL;
   if (DECL_NAME (fn))
     return IDENTIFIER_POINTER (DECL_NAME (fn));
   return NULL;
 }
+
+/* Initializes the wrapper data structure.  */
 
 static void
 init_wd (struct wrapper_data *wd, enum cilk_block_type type)
@@ -638,12 +614,14 @@ init_wd (struct wrapper_data *wd, enum cilk_block_type type)
   wd->fntype = NULL_TREE;
   wd->context = current_function_decl;
   wd->decl_map = pointer_map_create ();
-  /* For bodies are always nested.  Others start off as normal functions. */
+  /* For bodies are always nested.  Others start off as normal functions.  */
   wd->nested = (type == CILK_BLOCK_FOR);
   wd->arglist = NULL_TREE;
   wd->argtypes = NULL_TREE;
   wd->block = NULL_TREE;
 }
+
+/* Clears the wrapper data structure.  */
 
 static void
 free_wd (struct wrapper_data *wd)
@@ -655,6 +633,8 @@ free_wd (struct wrapper_data *wd)
   wd->parms = NULL_TREE;
 }
 
+/* Builds the wrapper function for a cilk_for or cilk_spawn.  */
+
 static tree
 build_cilk_wrapper (tree exp, tree *args_out)
 {
@@ -665,9 +645,7 @@ build_cilk_wrapper (tree exp, tree *args_out)
   init_wd (&wd, CILK_BLOCK_SPAWN);
 
   if (TREE_CODE (exp) == CONVERT_EXPR)
-    {
-      exp = TREE_OPERAND (exp,0);
-    }
+    exp = TREE_OPERAND (exp, 0);
   
   /* Special handling for top level INIT_EXPR.
      Usually INIT_EXPR means the variable is defined
@@ -679,36 +657,29 @@ build_cilk_wrapper (tree exp, tree *args_out)
     {
       extract_free_variables (TREE_OPERAND (exp, 0), &wd, ADD_WRITE);
       extract_free_variables (TREE_OPERAND (exp, 1), &wd, ADD_READ);
-      /* TREE_TYPE should be void.  Be defensive. */
+      /* TREE_TYPE should be void.  Be defensive.  */
       if (TREE_TYPE (exp) != void_type_node)
 	extract_free_variables (TREE_TYPE (exp), &wd, ADD_READ);
     }
   else
-    {
-      extract_free_variables (exp, &wd, ADD_READ);
-    }
+    extract_free_variables (exp, &wd, ADD_READ);
   declare_free_variables (&wd);
   wd.block = TREE_BLOCK (exp);
   if (!wd.block)
     wd.block = DECL_INITIAL (current_function_decl);
 
-  /* ??? add_decl_expr for scope? */
-
   /* Now fvars maps old variable to incoming variable.  Update
      the expression and arguments to refer to the new names. */
-
   fndecl = build_cilk_wrapper_body (exp, &wd, fname);
   *args_out = wd.arglist;
   
   free_wd (&wd);
 
-  /* XXX This now returns the function where Cilk++ 1.x returned a
-     pointer to the function. */
   return fndecl;
 }
 
-/* **************************************************************** */
-/* build variable map */
+
+/* Debug function to print nodes in as simple way.  */
 
 static void
 print_node_simple (FILE *fp, const_tree var)
@@ -757,7 +728,7 @@ static bool
 dump_replacement_map_1 (const void *k, void **vp, void *data)
 {
   FILE *fp = (FILE *)data;
-  const_tree var = (const_tree)k;
+  const_tree var = (const_tree) k;
   tree val = (tree)*vp;
 
   print_node_simple (fp, var);
@@ -782,17 +753,24 @@ dump_replacement_map_1 (const void *k, void **vp, void *data)
 void dump_replacement_map (FILE *fp, struct pointer_map_t *decl_map);
 void debug_replacement_map (struct pointer_map_t *decl_map);
 
+/* Function to dump the decl map.  */
+
 void
 dump_replacement_map (FILE *fp, struct pointer_map_t *decl_map)
 {
   pointer_map_traverse (decl_map, dump_replacement_map_1, fp);
 }
 
+/* Top level function to dump the replacement map (or decl map for new
+   function).  */
+
 void
 debug_replacement_map (struct pointer_map_t *decl_map)
 {
   dump_replacement_map (stderr, decl_map);
 }
+
+/* Add a new variable to a variable list.  */
 
 static void
 add_variable (struct wrapper_data *wd, tree var, enum add_variable_type how)
@@ -823,8 +801,7 @@ add_variable (struct wrapper_data *wd, tree var, enum add_variable_type how)
       gcc_assert (how != ADD_BIND);
       if (how != ADD_WRITE)
 	return;
-      /* This variable might have been entered as read
-	 but is now written. */
+      /* This variable might have been entered as read but is now written.  */
       *valp = (void *) var;
       wd->nested = true;
       return;
@@ -837,25 +814,23 @@ add_variable (struct wrapper_data *wd, tree var, enum add_variable_type how)
 	 assignments for function scope variables, and they wouldn't
 	 work anyway.  Warn here.  This misses one case: if the
 	 register variable is used as the loop bound or increment it
-	 has already been added to the map. */
-      if ((how != ADD_BIND)
-	  && (TREE_CODE (var) == VAR_DECL) && !DECL_EXTERNAL (var)
-	  && DECL_HARD_REGISTER (var))
-	warning (0,
-		 "register assignment ignored for %qD used in Cilk block",
+	 has already been added to the map.  */
+      if ((how != ADD_BIND) && (TREE_CODE (var) == VAR_DECL)
+	  && !DECL_EXTERNAL (var) && DECL_HARD_REGISTER (var))
+	warning (0, "register assignment ignored for %qD used in Cilk block",
 		 var);
 
       switch (how)
 	{
-	  /* ADD_BIND means always make a fresh new variable */
+	  /* ADD_BIND means always make a fresh new variable.  */
 	case ADD_BIND:
 	  val = error_mark_node;
 	  break;
 	  /* ADD_READ means
 	     1. For cilk_for, refer to the outer scope definition as-is
 	     2. For a spawned block, take a scalar in an argument
-	     and otherwise refer to the outer scope definition as-is
-	     3. For a spawned call, take a scalar in an argument */
+	     and otherwise refer to the outer scope definition as-is.
+	     3. For a spawned call, take a scalar in an argument.  */
 	case ADD_READ:
 	  switch (wd->type)
 	    {
@@ -906,6 +881,7 @@ add_variable (struct wrapper_data *wd, tree var, enum add_variable_type how)
 
    If NESTED is true a nested function is being generated and
    variables in the original context should not be remapped. */
+
 static void
 extract_free_variables (tree t, struct wrapper_data *wd,
 			enum add_variable_type how)
@@ -939,11 +915,11 @@ extract_free_variables (tree t, struct wrapper_data *wd,
     case FIELD_DECL:
     case VOID_TYPE:
     case REAL_TYPE:
-      /* These do not contain variable references. */
+      /* These do not contain variable references.  */
       return;
 
     case SSA_NAME:
-      /* Currently we don't see SSA_NAME. */
+      /* Currently we don't see SSA_NAME.  */
       extract_free_variables (SSA_NAME_VAR (t), wd, how);
       return;
 
@@ -951,7 +927,7 @@ extract_free_variables (tree t, struct wrapper_data *wd,
       /* This might be a reference to a label outside the Cilk block,
 	 which is an error, or a reference to a label in the Cilk block
 	 that we haven't seen yet.  We can't tell.  Ignore it.  An
-	 invalid use will cause an error later in copy_decl_for_cilk. */
+	 invalid use will cause an error later in copy_decl_for_cilk.  */
       return;
 
     case RESULT_DECL:
@@ -979,7 +955,7 @@ extract_free_variables (tree t, struct wrapper_data *wd,
     case PREINCREMENT_EXPR:
     case POSTDECREMENT_EXPR:
     case POSTINCREMENT_EXPR:
-      /* These write their result. */
+      /* These write their result.  */
       MODIFIED (TREE_OPERAND (t, 0));
       SUBTREE (TREE_OPERAND (t, 1));
       return;
@@ -990,13 +966,7 @@ extract_free_variables (tree t, struct wrapper_data *wd,
 	 type if is a promoting type.  In the case of a nested loop
 	 just notice that we touch the variable.  It will already
 	 be addressable, and marking it modified will cause a spurious
-	 warning about writing the control variable.
-
-	 XXX Conversion to a const pointer should not result in a
-	 modified warning.
-
-	 XXX If the variable is not the control variable, the warning
-	 should be printed. */
+	 warning about writing the control variable.  */
       if (wd->type != CILK_BLOCK_SPAWN)
 	SUBTREE (TREE_OPERAND (t, 0));
       else
@@ -1006,11 +976,11 @@ extract_free_variables (tree t, struct wrapper_data *wd,
     case ARRAY_REF:
       /* Treating ARRAY_REF and BIT_FIELD_REF identically may
 	 mark the array as written but the end result is correct
-	 because the array is passed by pointer anyway. */
+	 because the array is passed by pointer anyway.  */
     case BIT_FIELD_REF:
       /* Propagate the access type to the object part of which
 	 is being accessed here.  As for ADDR_EXPR, don't do this
-	 in a nested loop, unless the access is to a fixed index. */
+	 in a nested loop, unless the access is to a fixed index.  */
       if (wd->type != CILK_BLOCK_FOR || TREE_CONSTANT (TREE_OPERAND (t, 1)))
 	extract_free_variables (TREE_OPERAND (t, 0), wd, how);
       else
@@ -1066,7 +1036,7 @@ extract_free_variables (tree t, struct wrapper_data *wd,
 	  {
 	    add_variable (wd, decl, ADD_BIND);
 	    /* A self-referential initialization is no problem because
-	       we already entered the variable into the map as local. */
+	       we already entered the variable into the map as local.  */
 	    SUBTREE (DECL_INITIAL (decl));
 	    SUBTREE (DECL_SIZE (decl));
 	    SUBTREE (DECL_SIZE_UNIT (decl));
@@ -1156,9 +1126,7 @@ extract_free_variables (tree t, struct wrapper_data *wd,
 	    len = TREE_INT_CST_LOW (TREE_OPERAND (t, 0));
 
 	    for (ii = 0; ii < len; ii++)
-	      {
-		SUBTREE (TREE_OPERAND (t,ii));
-	      }
+	      SUBTREE (TREE_OPERAND (t, ii));
 	    SUBTREE (TREE_TYPE (t));
 	  }
 	break;
@@ -1179,9 +1147,9 @@ extract_free_variables (tree t, struct wrapper_data *wd,
 	}
       return;
     }
-
-  /* TREE_CHAIN? */
 }
+
+/* This function statically tries to point out some obvious race conditions.  */
 
 static void
 race_warning (tree var,
@@ -1210,10 +1178,10 @@ race_warning (tree var,
   return;
 }
 
-/* **************************************************************** */
-/* Make me a function */
 
 static int cilk_wrapper_cnt;
+
+/* This function will create a wrapper function.  */
 
 static tree
 build_cilk_helper_decl (struct wrapper_data *wd, const char *wrapped)
@@ -1222,11 +1190,12 @@ build_cilk_helper_decl (struct wrapper_data *wd, const char *wrapped)
   tree fndecl;
   tree block;
   tree t;
+  tree result_decl;
   char *cc = NULL, *dd = NULL;
   
   /* Make a name for this wrapper.
      12 characters plus <~6 wrapper counter plus up to 24 characters
-     called function name to aid human debugging. */
+     called function name to aid human debugging.  */
   if (wd->type == CILK_BLOCK_FOR)
     sprintf (name, "__cilk_for_%03d", ++cilk_wrapper_cnt);
   else if (wrapped && strlen (wrapped) < 24)
@@ -1235,8 +1204,7 @@ build_cilk_helper_decl (struct wrapper_data *wd, const char *wrapped)
     sprintf (name, "__cilk_spawn_%03d", ++cilk_wrapper_cnt);
 
 
-  /* this is here so that we can get rid of spaces in teh file name */
-
+  /* This is here so that we can get rid of spaces in the file name.  */
   cc = name;
   dd = name;
 
@@ -1253,8 +1221,6 @@ build_cilk_helper_decl (struct wrapper_data *wd, const char *wrapped)
 	*dd++ = *cc++;
     }
   
-
-  
   t = get_identifier (name);
   fndecl = build_decl (EXPR_LOCATION (t), FUNCTION_DECL, t, wd->fntype);
 
@@ -1262,7 +1228,7 @@ build_cilk_helper_decl (struct wrapper_data *wd, const char *wrapped)
   TREE_STATIC (fndecl) = 1;
   TREE_USED (fndecl) = 1;
   DECL_ARTIFICIAL (fndecl) = 0;
-  DECL_IGNORED_P (fndecl) = 0; /* ??? what OMP does */
+  DECL_IGNORED_P (fndecl) = 0; 
   DECL_EXTERNAL (fndecl) = 0;
 
   if (wd->nested)
@@ -1276,44 +1242,35 @@ build_cilk_helper_decl (struct wrapper_data *wd, const char *wrapped)
 	 function appear like a static member function.
 	 DECL_CONTEXT = 0 would work too.  */
       DECL_CONTEXT (fndecl) = DECL_CONTEXT (wd->context);
-      /* This is wrong because the block could be inside
-	 a cilk_for even if it isn't one.  However, the
-	 crash noted in call_graph_add_fn (or a similar one) will
-	 occur if NO_STATIC_CHAIN is cleared. */
       DECL_STATIC_CHAIN (fndecl) = DECL_STATIC_CHAIN (wd->context);
     }
 
-  /* This is what OMP does. */
   block = make_node (BLOCK);
   DECL_INITIAL (fndecl) = block;
   TREE_USED (block) = 1;
   gcc_assert (!DECL_SAVED_TREE (fndecl));
 
   if (wd->type == CILK_BLOCK_SPAWN)
-    /* A call to this function is a knot, and detaches. */
+    /* A call to this function is a knot, and detaches.  */
     DECL_SET_KNOT (fndecl, 1);
 
   /* Inlining would defeat the purpose of this wrapper.
      Either it secretly switches stack frames or it allocates
      a stable stack frame to hold function arguments even if
-     the parent stack frame is stolen. */
+     the parent stack frame is stolen.  */
   DECL_UNINLINABLE (fndecl) = 1;
 
-  /* OMP makes a result, so why don't we do the same?
-     Cilk++ 1.x did not need one. */
-  {
-    tree r = build_decl (UNKNOWN_LOCATION,RESULT_DECL, NULL_TREE,
-			 void_type_node);
-    DECL_ARTIFICIAL (r) = 0;
-    DECL_IGNORED_P (r) = 1;
-    DECL_CONTEXT (r) = fndecl;
-    DECL_RESULT (fndecl) = r;
-  }
-
-  /* XXX OMP beats on the struct function here */
+  result_decl = build_decl (UNKNOWN_LOCATION, RESULT_DECL, NULL_TREE,
+		       void_type_node);
+  DECL_ARTIFICIAL (result_decl) = 0;
+  DECL_IGNORED_P (result_decl) = 1;
+  DECL_CONTEXT (result_decl) = fndecl;
+  DECL_RESULT (fndecl) = result_decl;
   
   return fndecl;
 }
+
+/* A function used by walk tree to find wrapper parms.  */
 
 static bool
 wrapper_parm_cb (const void *key0, void **val0, void *data)
@@ -1324,9 +1281,7 @@ wrapper_parm_cb (const void *key0, void **val0, void *data)
   tree parm;
 
   if (val == error_mark_node || val == arg)
-    {
-      return true;
-    }
+    return true;
 
   if (TREE_CODE (val) == PAREN_EXPR)
     {
@@ -1342,13 +1297,12 @@ wrapper_parm_cb (const void *key0, void **val0, void *data)
 	  arg = null_pointer_node;
 	}
       else
-	{
 	  /* This assertion is commented out because it trips over
 	     the target of an assignment spawn.  But that target
 	     does need to live in memory, so there is a bug.
 	     gcc_assert (!DECL_P (arg) || TREE_ADDRESSABLE (arg));*/
-	  arg = build1 (ADDR_EXPR, build_pointer_type (TREE_TYPE (arg)), arg);
-	}
+	arg = build1 (ADDR_EXPR, build_pointer_type (TREE_TYPE (arg)), arg);
+	
       val = TREE_OPERAND (val, 0);
       *val0 = val;
       gcc_assert (TREE_CODE (val) == INDIRECT_REF);
@@ -1356,15 +1310,15 @@ wrapper_parm_cb (const void *key0, void **val0, void *data)
       STRIP_NOPS (parm);
     }
   else
-    {
-      parm = val;
-    }
+    parm = val;
   TREE_CHAIN (parm) = wd->parms;
   wd->parms = parm;
   wd->argtypes = tree_cons (NULL_TREE, TREE_TYPE (parm), wd->argtypes); 
   wd->arglist = tree_cons (NULL_TREE, arg, wd->arglist); 
   return true;
 }
+
+/* This function is used to build a wrapper of a certain type.  */
 
 static void
 build_wrapper_type (struct wrapper_data *wd)
@@ -1373,10 +1327,7 @@ build_wrapper_type (struct wrapper_data *wd)
   wd->parms = NULL_TREE;
   wd->argtypes = void_list_node;
 
-  /* Cilk++ 1.x code to put parent frame at end of list removed. */
-
-  pointer_map_traverse_ordered (wd->decl_map, wrapper_parm_cb, sort_decl, wd);
-
+  pointer_map_traverse (wd->decl_map, wrapper_parm_cb, wd);
   gcc_assert (wd->type != CILK_BLOCK_FOR);
 
   /* Now build a function.
@@ -1388,7 +1339,6 @@ build_wrapper_type (struct wrapper_data *wd)
      Actual arguments in the caller are WRAPPER_ARGS.
 
   */
-
   wd->fntype = build_function_type (void_type_node, wd->argtypes);
 }
 
@@ -1432,10 +1382,7 @@ build_cilk_wrapper_body (tree stmt,
 					 fndecl, integer_one_node);
     }
   else
-    {
-      DECL_EXPLICIT_STATIC_CHAIN (fndecl) = 0;
-    }
-
+    DECL_EXPLICIT_STATIC_CHAIN (fndecl) = 0;
   DECL_ARGUMENTS (fndecl) = wd->parms;
 
   for (p = wd->parms; p; p = TREE_CHAIN (p))
@@ -1471,10 +1418,10 @@ build_cilk_wrapper_body (tree stmt,
   /* Apparently we need to gimplify now because we can't leave
      non-GIMPLE functions lying around. */
   call_graph_add_fn (fndecl, wd);
-
   return fndecl;
 }
 
+/* Copy all local variables.  */
 
 static bool
 for_local_cb (const void *k_v, void **vp, void *p)
@@ -1486,6 +1433,8 @@ for_local_cb (const void *k_v, void **vp, void *p)
     *vp = copy_decl_no_change (k, (copy_body_data *)p);
   return true;
 }
+
+/* Copy all local declarations for Cilk.  */
 
 static bool
 wrapper_local_cb (const void *k_v, void **vp, void *data)
@@ -1508,7 +1457,8 @@ wrapper_local_cb (const void *k_v, void **vp, void *data)
    The parameters of the wrapper should have been
    entered into the map already.  This function
    only deals with variables with scope limited
-   to the spawned expression. */
+   to the spawned expression.  */
+
 static tree
 copy_decl_for_cilk (tree decl, copy_body_data *id)
 {
@@ -1522,23 +1472,23 @@ copy_decl_for_cilk (tree decl, copy_body_data *id)
       return error_mark_node;
 
     case RESULT_DECL:
-      /* PARM_DECL has already been entered into the map. */
+      /* PARM_DECL has already been entered into the map.  */
     case PARM_DECL:
-      /* PARM_DECL has already been entered into the map. */
+      /* PARM_DECL has already been entered into the map.  */
     default:
       gcc_unreachable ();
       return error_mark_node;
     }
 }
 
-/* Alter a tree STMT from OUTER_FN to form the body of INNER_FN. */
+/* Alter a tree STMT from OUTER_FN to form the body of INNER_FN.  */
+
 void
 cilk_outline (tree inner_fn,
 	      tree *stmt_p,
 	      struct wrapper_data *wd)
 {
   const tree outer_fn = wd->context;	      
-  /* XXX This may change */
   const bool nested = (wd->type == CILK_BLOCK_FOR);
   copy_body_data id;
   bool throws;
@@ -1547,17 +1497,16 @@ cilk_outline (tree inner_fn,
 
   memset (&id, 0, sizeof (id));
 
-  id.src_fn = outer_fn; /* Copy FROM the function containing the spawn... */
+  id.src_fn = outer_fn; /* Copy FROM the function containing the spawn...  */
   id.dst_fn = inner_fn; /* ...TO the wrapper */
   id.src_cfun = DECL_STRUCT_FUNCTION (outer_fn);
 
-  id.retvar = 0; /* should be no RETURN in spawn */
+  id.retvar = 0; /* There shall be no RETURN in spawn. */
   id.decl_map = wd->decl_map;
   id.copy_decl = nested ? copy_decl_no_change : copy_decl_for_cilk;
   id.block = DECL_INITIAL (inner_fn);
-  id.transform_lang_insert_block = NULL; /* ? */
+  id.transform_lang_insert_block = NULL;
 
-  /* This runs before EH. */ /* XXX maybe not any more? */
   id.eh_region = 0;
   id.eh_region_offset = 0;
   id.transform_new_cfg = true;
@@ -1567,23 +1516,21 @@ cilk_outline (tree inner_fn,
 
   insert_decl_map (&id, wd->block, DECL_INITIAL (inner_fn));
 
-  /* We don't want the private variables any more. */
-  pointer_map_traverse (wd->decl_map,
-			nested ? for_local_cb : wrapper_local_cb,
+  /* We don't want the private variables any more.  */
+  pointer_map_traverse (wd->decl_map, nested ? for_local_cb : wrapper_local_cb,
 			&id);
 
   walk_tree (stmt_p, copy_tree_body_r, &id, NULL);
 
   /* See if this function can throw or calls something that should
      not be spawned.  The exception part is only necessary if
-     flag_exceptions && !flag_non_call_exceptions. */
+     flag_exceptions && !flag_non_call_exceptions.  */
   throws = false ;
-  (void)walk_tree_without_duplicates (stmt_p, check_outlined_calls, &throws);
+  (void) walk_tree_without_duplicates (stmt_p, check_outlined_calls, &throws);
 
-  /* When a call is spawned gimplification will insert a detach at the
-     appropriate place.  When a statement is spawned,
-     build_cilk_wrapper_body inserts a detach at the start of the function. */
 }
+
+/* This function checks all the call exprs found by cilk_outline.  */
 
 static tree
 check_outlined_calls (tree *tp,
@@ -1604,6 +1551,8 @@ check_outlined_calls (tree *tp,
     error ("Can not spawn call to function that returns twice");
   return 0;
 }
+
+/* This function installs the internal functions of spawn helper and parent.  */
 
 static void
 install_body_with_frame_cleanup (tree fndecl, tree body)
@@ -1628,27 +1577,37 @@ install_body_with_frame_cleanup (tree fndecl, tree body)
 				  &list);
 }
 
+/* This structure holds all the important information necessary for decomposing
+   a cilk_for statement.  */
+
 struct cilk_for_desc
 {
   struct wrapper_data wd;
+  
   /* Does the loop body trigger undefined behavior at runtime? */
   bool invalid;
+  
   /* Is the loop control variable a RECORD_TYPE? */
-  bool iterator /* = false */;
+  bool iterator;
+  
   /* Does the loop range include its upper bound? */
   bool inclusive;
+  
   /* Does the loop control variable, after converting pointer to
      machine address and taking into account sizeof pointed to
      type, increment or decrement by (plus or minus) one? */
   bool exactly_one;
+  
   /* Is the increment stored in this structure to be added (+1)
      or subtracted (-1)? */
   signed char incr_sign;
+  
   /* Direction is +/-1 if the increment is known to be exactly one
      in the user-visible units, +/-2 if the sign is known but the
      value is not known to be one, and zero if the sign is not known
      at compile time. */
   signed char direction;
+  
   /* Loop upper bound.  END_EXPR is the tree for the loop bound.
      END_VAR is either END_EXPR or a VAR_DECL holding the stabilized
      value, if computation of the value has side effects. */
@@ -1682,29 +1641,37 @@ struct cilk_for_desc
      If integral, the type of the increment is known to be no wider
      than var_type otherwise the truncation in
      VAR = (shorter)((longer)VAR + INCR)
-     would have been rejected. */
+     would have been rejected.  */
   tree var_type, count_type, difference_type;
   tree incr;
   tree cond;
 
-  /* The originally-declared body of the loop */
+  /* The originally-declared body of the loop.  */
   tree body;
-  /* If the user thinks he is smart, this is how smart
-     the user thinks he is. */
-  tree grain /* = NULL_TREE */;
+
+  /* Grainsize set by the user.  */
+  tree grain;
+  
   /* Context argument to generated function, if not (fdesc fn 1).  */
   tree ctx_arg;
+  
   /* The number of loop iterations, in case the generated function
-     needs to know. */
+     needs to know.  */
   tree count;
-  /* Variables of the generated function */
+  
+  /* Variables of the generated function.  */
   tree ctx_parm, min_parm, max_parm;
+
+  /* Copy of the induction variable, but at different function context.  */
   tree var2;
 };
 
 static void declare_cilk_for_vars (struct cilk_for_desc *, tree);
 static void declare_cilk_for_parms (struct cilk_for_desc *);
 static tree compute_loop_var (struct cilk_for_desc *, tree, tree);
+
+/* Initializes the data structure that holds all the cilk_for specific
+   information.  */
 
 static void
 init_cfd (struct cilk_for_desc *cfd)
@@ -1714,12 +1681,14 @@ init_cfd (struct cilk_for_desc *cfd)
 }
 
 
-/* Return
+/* This function finds the direction of the loop:
+   Return
    0 if the sign of INCR_DIRECTION is unknown
    +1 if the value is exactly +1
    +2 if the value is known to be positive
    -2 if the value is known to be negative
 */
+
 static int
 compute_incr_direction (tree incr)
 {
@@ -1741,6 +1710,7 @@ compute_incr_direction (tree incr)
    The 1.0 runtime implements only unsigned long and unsigned
    long long because arithmetic on unsigned long is not expected
    to be significantly slower than arithmetic on unsigned int. */
+
 static tree
 check_loop_difference_type (tree type)
 {
@@ -1750,7 +1720,7 @@ check_loop_difference_type (tree type)
       return NULL_TREE;
     }
 
-  /* The new Cilk runtime ABI supports exactly 32 and exactly 64 bits. */
+  /* The new Cilk runtime ABI supports exactly 32 and exactly 64 bits.  */
   if (TYPE_PRECISION (type) > 64)
     {
       error ("loop variable difference type %qT is longer than 64 bits", type);
@@ -1765,6 +1735,8 @@ check_loop_difference_type (tree type)
   return long_unsigned_type_node;
 }
 
+/* Find the operand of a tree.  */
+
 static tree
 tree_operand_noconv (tree exp, int n)
 {
@@ -1775,6 +1747,8 @@ tree_operand_noconv (tree exp, int n)
 
   return op;
 }
+
+/* Removes unwanted wrappers from a tree.  */
 
 static tree
 cilk_simplify_tree (tree t)
@@ -1790,6 +1764,8 @@ cilk_simplify_tree (tree t)
 
   return t;
 }
+
+/* Extracts all the important components of a Cilk_for statement.  */
 
 static void
 extract_for_fields (struct cilk_for_desc *cfd, tree loop)
@@ -1830,7 +1806,7 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
       break;
     case EQ_EXPR:
       /* The front end rewrites (unsigned)var < 1 to var == 0.  This is a
-	 silly loop but not illegal. */
+	 silly loop but not illegal.  */
       inclusive = false;
       cond_direction = 2;
       break;
@@ -1840,9 +1816,7 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
     }
 
   if (tree_operand_noconv (cond, 0) == var)
-    {
-      limit = TREE_OPERAND (cond, 1);
-    }
+    limit = TREE_OPERAND (cond, 1);
   else if (tree_operand_noconv (cond, 1) == var)
     {
       limit = TREE_OPERAND (cond, 0);
@@ -1854,7 +1828,7 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
   gcc_assert (TREE_CODE (TREE_TYPE (limit)) != ARRAY_TYPE);
 
   /* Leave cond undigested for now in case the loop limit expression
-     has side effects. */
+     has side effects.  */
   var_type = TREE_TYPE (var);
   switch (TREE_CODE (var_type))
     {
@@ -1890,11 +1864,9 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
 
   /* Before the switch incr is an expression modifying VAR.
      After the switch incr is the modification to VAR with
-     the sign factored out. */
+     the sign factored out.  */
   if (TREE_CODE (incr) == CLEANUP_POINT_EXPR)
-    {
-      incr = TREE_OPERAND (incr, 0);
-    }
+    incr = TREE_OPERAND (incr, 0);
   
   incr_op = TREE_CODE (incr);
   switch (incr_op)
@@ -1994,7 +1966,8 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
 
   if (incr_direction == 0 && cond_direction == 0)
     warning (OPT_Wcilk_for_direction,
-	     "Cilk for loop using != comparison not determined by form of incrrement");
+	     "Cilk for loop using != comparison not determined by form of "
+	     "incrrement");
 
   direction = cond_direction;
 
@@ -2020,10 +1993,12 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
 
 static tree cilk_loop_convert (tree type, tree exp);
 
+/* Returns the number of times a loop is divided.  */
+
 static tree
 divide_count (tree count, enum tree_code op, tree incr, bool negate, tree type)
 {
-  tree ctype, itype, dtype; /* type of count, incr, division operation */
+  tree ctype, itype, dtype; /* type of count, incr, division operation.  */
 
   if (count == NULL_TREE)
     return NULL_TREE;
@@ -2034,7 +2009,7 @@ divide_count (tree count, enum tree_code op, tree incr, bool negate, tree type)
   if (op == NOP_EXPR && !negate)
     return cilk_loop_convert (type, count);
   /* Return -(unsigned)count instead of (unsigned)-count in case the
-     negate overflows. */     
+     negate overflows.  */     
   if (op == NOP_EXPR && negate)
     return fold_build1 (NEGATE_EXPR, type, cilk_loop_convert (type, count));
 
@@ -2054,9 +2029,7 @@ divide_count (tree count, enum tree_code op, tree incr, bool negate, tree type)
       dtype = type;
     }
   else
-    {
-      dtype = ctype;
-    }
+    dtype = ctype;
 
   if (negate)
     incr = fold_build1 (NEGATE_EXPR, TREE_TYPE (incr), incr);
@@ -2069,23 +2042,25 @@ divide_count (tree count, enum tree_code op, tree incr, bool negate, tree type)
   return count;
 }
 
+/* Computes the number of times the loop will run.  */
+
 static tree
 compute_loop_count (struct cilk_for_desc *cfd)
 {
   /* All arithmetic is done in the unsigned type.  As long as
      ptrdiff_t is no wider than count_type this works for
      pointers too.  (typeck.c:pointer_diff() has the same
-     possibility for overflow.) */
+     possibility for overflow.)  */
   const tree type = cfd->count_type;
   /* Use the initial value in the subtraction if it is
-     constant enough to be stored in the control structure. */
+     constant enough to be stored in the control structure.  */
   tree low = cfd->lower_bound ? cfd->lower_bound : cfd->var;
-  /* END_VAR is a stable (side-effect free) version of END_EXPR. */
+  /* END_VAR is a stable (side-effect free) version of END_EXPR.  */
   tree high = cfd->end_var;
   const int direction = cfd->direction;
   /* INCR is the expression written on the RHS of the loop increment
      (or a variable holding the result of evaluating that expression).
-     It is added or subtracted depending on the value of INCR_SIGN. */
+     It is added or subtracted depending on the value of INCR_SIGN.  */
   const int incr_sign = cfd->incr_sign;
   tree incr = cfd->incr;
   /* DIV_OP is one of
@@ -2134,24 +2109,17 @@ compute_loop_count (struct cilk_for_desc *cfd)
   if (cfd->exactly_one)
     div_op = NOP_EXPR;
 
-  /* XXX We may want to call stabilize_expr, but the limit
-     expression should not be complicated.  */
-
   count_up = NULL_TREE;
   count_down = NULL_TREE;
   if (cfd->iterator)
-    {
-      gcc_unreachable ();
-    }
+    gcc_unreachable ();
   else
     {
       tree low_type = TREE_TYPE (low), high_type = TREE_TYPE (high);
       tree sub_type;
 
       if (TREE_CODE (cfd->var_type) == POINTER_TYPE)
-	{
-	  sub_type = ptrdiff_type_node;
-	}
+	sub_type = ptrdiff_type_node;
       else
 	{
 	  /* We need to compute HIGH-LOW or LOW-HIGH without overflow.
@@ -2180,7 +2148,7 @@ compute_loop_count (struct cilk_for_desc *cfd)
   /* If the loop is not exact, add one before dividing.  Otherwise
      add one after dividing.  We assume this can't overflow.
      That would mean the loop range exceeds the range of the
-     loop variable or difference type. */
+     loop variable or difference type.  */
   if (cfd->inclusive && div_op == CEIL_DIV_EXPR)
     {
       if (count_up)
@@ -2191,36 +2159,17 @@ compute_loop_count (struct cilk_for_desc *cfd)
 				  build_int_cst (TREE_TYPE (count_down), 1));
     }
 
-  /* For unsigned loops we could truncate INCR to the precision
-     of the loop variable here to give more undefined loops
-     serial semantics.
-
-     cilk_for (unsigned short i = 0; i < 100; i += 65537) ;
-
-     This is wrong for signed loops because the loop increment
-     can legitimately exceed the range of the type, as in
-
-     cilk_for (unsigned short i = -32768; i < 1; i += 32769) ;
-
-     and signed loops which need this truncation have undefined
-     serial behavior. */
-  if (false && TYPE_UNSIGNED (cfd->var_type)
-      && TYPE_PRECISION (TREE_TYPE (incr)) > TYPE_PRECISION (cfd->var_type))
-    incr = fold_build1 (NOP_EXPR, cfd->var_type, incr);
-
   /* Serial semantics: INCR is converted to the common type
      of VAR and INCR then the result is converted to the type
      of VAR.  If the second conversion truncates Cilk says the
-     behavior is undefined.  Do the first conversion to spec. */
+     behavior is undefined.  Do the first conversion to spec.  */
 
   if (!cfd->iterator && TREE_CODE (TREE_TYPE (cfd->var)) != POINTER_TYPE)
-    incr = cilk_loop_convert
-      (common_type /*type_after_usual_arithmetic_conversions*/
-       (TREE_TYPE (cfd->var), TREE_TYPE (incr)),
-       incr);
+    incr = cilk_loop_convert (common_type (TREE_TYPE (cfd->var),
+					   TREE_TYPE (incr)), incr);
 
   /* Now separately divide each count by +/-INCR yielding
-     a value with type TYPE. */
+     a value with type TYPE.  */
   count_up = divide_count (count_up, div_op, incr, incr_sign < 0, type);
   count_down = divide_count (count_down, div_op, incr, incr_sign > 0, type);
 
@@ -2232,7 +2181,7 @@ compute_loop_count (struct cilk_for_desc *cfd)
   else
     count = fold_build3 (COND_EXPR, type, forward, count_up, count_down);
 
-  /* Add one, maybe */
+  /* Add one, maybe...  */
   if (cfd->inclusive && div_op != CEIL_DIV_EXPR)
     count = fold_build2 (PLUS_EXPR, type, count, build_int_cst (type, 1));
 
@@ -2295,9 +2244,7 @@ compute_loop_var (struct cilk_for_desc *cfd, tree loop_var, tree lower_bound)
      go to that trouble, but scalar loops can have range that can not
      be represented in the signed loop variable. */
   if (integer_onep (incr))
-    {
-      scaled = loop_var;
-    }
+    scaled = loop_var;
   else
     {
       tree incr = cilk_loop_convert (count_type, cfd->incr);
@@ -2342,6 +2289,8 @@ compute_loop_var (struct cilk_for_desc *cfd, tree loop_var, tree lower_bound)
 		 cfd->var2, cilk_loop_convert (cfd->var_type, adjusted));
 }
 
+/* Convert a loop to the way required by Cilk for.  */
+
 static tree
 cilk_loop_convert (tree type, tree exp)
 {
@@ -2358,6 +2307,8 @@ cilk_loop_convert (tree type, tree exp)
   return fold_build1 (code, type, exp);
 }
 
+/* Top level function to handle the body of the Cilk_for loop.  */
+
 static tree
 build_cilk_for_body (struct cilk_for_desc *cfd)
 {
@@ -2367,7 +2318,7 @@ build_cilk_for_body (struct cilk_for_desc *cfd)
   tree body, block;
   tree lower_bound;
   tree loop_var;
-  tree tempx,tempy;
+  tree tempx, tempy;
 
   declare_cilk_for_parms (cfd);
 
@@ -2380,12 +2331,9 @@ build_cilk_for_body (struct cilk_for_desc *cfd)
 
   declare_cilk_for_vars (cfd, fndecl);
 
-  /* XXX Can't make any gimplify calls here because the function
-     must be generated as pure tree code. */
-
   body = push_stmt_list ();
 
-  /* In Cilk++ 1.1 the loop bound was copied into a variable.
+  /* The loop bound was copied into a variable.
      The separation between TREE and GIMPLE makes that impossible.
      If the lower bound is constant, use it.  Otherwise make an
      uplevel reference to the parent function. */
@@ -2399,14 +2347,9 @@ build_cilk_for_body (struct cilk_for_desc *cfd)
 	 compute the local copy.  So make a fake variable
 	 and insert it in the decl map to remap to the
 	 original variable, and hope remapping only runs
-	 once.
-
-	 This is ugly.
-      */
+	 once.  */
       hack = build_decl (UNKNOWN_LOCATION, VAR_DECL, NULL_TREE,
-			 TREE_TYPE (lower_bound));
-      
-      /* Just in case somebody cares */
+			 TREE_TYPE (lower_bound));      
       DECL_CONTEXT (hack) = DECL_CONTEXT (lower_bound);
       DECL_NAME (hack) = DECL_NAME (lower_bound);
       *pointer_map_insert (cfd->wd.decl_map, hack) = lower_bound;
@@ -2437,8 +2380,8 @@ build_cilk_for_body (struct cilk_for_desc *cfd)
      these loops are always executed at least once.  */
   {
     tree loop = push_stmt_list ();
-    /* create_artificial_label would set wrong DECL_CONTEXT. */
-    tree lab = build_decl (UNKNOWN_LOCATION,LABEL_DECL, NULL_TREE,
+    /* create_artificial_label would set wrong DECL_CONTEXT.  */
+    tree lab = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
 			   void_type_node);
     tree top = build1 (LABEL_EXPR, void_type_node, lab);
     DECL_ARTIFICIAL (lab) = 0;
@@ -2483,10 +2426,12 @@ build_cilk_for_body (struct cilk_for_desc *cfd)
   else
     DECL_SAVED_TREE (fndecl) = body;
 
-  pop_cfun_to (outer); /* undo push_struct_function */
+  pop_cfun_to (outer); /* Undo push_struct_function.  */
 
   return fndecl;
 }
+
+/* Second helper for the top-level gimplify_cilk_for function.  */
 
 static tree
 gimplify_cilk_for_2 (struct cilk_for_desc *cfd,
@@ -2501,13 +2446,9 @@ gimplify_cilk_for_2 (struct cilk_for_desc *cfd,
  
 
   if (POINTER_TYPE_P (TREE_TYPE (var)))
-    {
-      extract_free_variables (cfd->lower_bound, &cfd->wd, ADD_WRITE);
-    }
+    extract_free_variables (cfd->lower_bound, &cfd->wd, ADD_WRITE);
   else
-    {
-      extract_free_variables (cfd->lower_bound, &cfd->wd, ADD_READ);
-    }
+    extract_free_variables (cfd->lower_bound, &cfd->wd, ADD_READ);
 
   
   /* The increment expression is read. */
@@ -2515,13 +2456,9 @@ gimplify_cilk_for_2 (struct cilk_for_desc *cfd,
 
 
   if (cfd->grain != NULL_TREE)
-    {
-      grain = get_formal_tmp_var (cfd->grain, pre_p);
-    }
+    grain = get_formal_tmp_var (cfd->grain, pre_p);
   else
-    {
-      grain = NULL_TREE;
-    }
+    grain = NULL_TREE;
   cfd->grain = grain;
   
   /* Map the loop variable to integer_minus_one_node if we won't really
@@ -2532,13 +2469,13 @@ gimplify_cilk_for_2 (struct cilk_for_desc *cfd,
      The correct map will be installed in declare_for_loop_variables. */
   *pointer_map_insert (cfd->wd.decl_map, var)
     = (void *) (cfd->lower_bound ? integer_minus_one_node : integer_zero_node);
-  extract_free_variables (cfd->body, &cfd->wd, ADD_READ);
-  /* Note that variables are not extracted from the loop condition
+
+   /* Note that variables are not extracted from the loop condition
      and increment.  They are evaluated, to the extent they are
      evaluated, in the context containing the for loop. */
+  extract_free_variables (cfd->body, &cfd->wd, ADD_READ);
 
   fn = build_cilk_for_body (cfd);
-
   DECL_UNINLINABLE (fn) = 1;
 
   current_function_decl = old_cfd;
@@ -2546,10 +2483,10 @@ gimplify_cilk_for_2 (struct cilk_for_desc *cfd,
 
   cfun->is_cilk_function = 1;
   CILK_FN_P (cfun->decl) = 1;
-  /* Apparently we need to gimplify now because we can't leave
+  
+  /* We need to gimplify now because we can't leave
      non-GIMPLE functions lying around. */
   call_graph_add_fn (fn, &cfd->wd); 
-
   return fn;
 }
 
@@ -2563,7 +2500,7 @@ gimplify_cilk_for_2 (struct cilk_for_desc *cfd,
    (target_expr limit (call constructor ...))
 
    the variable limit is not initialized until the target_expr is
-   evaluated. */
+   evaluated.  */
 
 static bool
 cilk_for_end (struct cilk_for_desc *cfd, gimple_seq *pre_p)
@@ -2582,11 +2519,11 @@ cilk_for_end (struct cilk_for_desc *cfd, gimple_seq *pre_p)
 	  /* Copy the result of evaluating the expression into a variable.
 	     The compiler will probably crash if there's anything
 	     complicated in it -- a complicated value needs to go through
-	     the other branch of this IF using an explicit temporary. */
+	     the other branch of this IF using an explicit temporary.  */
 
 	  /* This will crash if the type is addressable.  The front
 	     end should have generated one of the initialization trees
-	     handled above. */
+	     handled above.  */
 	  cfd->end_var = get_formal_tmp_var (end, pre_p);
 	  return true;
 	}
@@ -2594,6 +2531,8 @@ cilk_for_end (struct cilk_for_desc *cfd, gimple_seq *pre_p)
   cfd->end_var = end;
   return false;
 }
+
+/* This is the first helper function for gimplify_cilk_for.  */
 
 static void
 gimplify_cilk_for_1 (struct cilk_for_desc *cfd,
@@ -2610,11 +2549,8 @@ gimplify_cilk_for_1 (struct cilk_for_desc *cfd,
      increment and count.  These are evaluated inside the loop
      guard.  Due to a conflict between GIMPLE and TREE format
      these statements have to be saved then spliced in where
-     they belong. */
+     they belong.  */
   gimple_seq inner_seq = 0;
-
-  /* Control variable _initialization_ has been gimplified.
-     TODO: emit _assignment_ here if variable not declared in loop */
 
   end_expr_initializes = cilk_for_end (cfd, pre_p);
 
@@ -2628,19 +2564,19 @@ gimplify_cilk_for_1 (struct cilk_for_desc *cfd,
      and there seems no harm and some benefit in doing it.
 
      The evaluation is on the inner statement list.  The
-     increment can not be referenced prior to the loop test. */
+     increment can not be referenced prior to the loop test.  */
   if (TREE_SIDE_EFFECTS (cfd->incr))
     sorry ("cilk_for increment with side effects");
 
   /* Now that we have the final form of the loop limit, construct
-     the loop condition. */
+     the loop condition.  */
   cond = cfd->cond;
   op0 = TREE_OPERAND (cond, 0);
   op1 = TREE_OPERAND (cond, 1);
   /* If we created a temporary variable to hold the increment
      expression, use it here.  If we found a previously declared
      temporary variable do not use it here because evaluating the
-     expression initializes the variable. */
+     expression initializes the variable.  */
   if (!end_expr_initializes && cfd->end_var != cfd->end_expr)
     {
       if (op1 == cfd->end_expr)
@@ -2658,13 +2594,13 @@ gimplify_cilk_for_1 (struct cilk_for_desc *cfd,
 
   /* Compute the count here so the callback can see it, but save
      the initialization in the statement list that is conditional
-     on the loop. */
+     on the loop.  */
   count = compute_loop_count (cfd);
   if (!TREE_CONSTANT (count))
     {
       /* Note that this will cause double destruction if we
 	 accidentally let the TARGET_EXPR for END_EXPR leak
-	 out. */
+	 out.  */
       count = fold_build_cleanup_point_expr (TREE_TYPE (count), count);
       /* We can't call get_formal_tmp_var on count here because
 	 COUNT references END_VAR, and we may not have seen the
@@ -2674,7 +2610,7 @@ gimplify_cilk_for_1 (struct cilk_for_desc *cfd,
     }
 
   fn = gimplify_cilk_for_2 (cfd, pre_p, post_p);
-
+  
   switch (TYPE_PRECISION (cfd->count_type))
     {
     case 32:
@@ -2689,7 +2625,7 @@ gimplify_cilk_for_1 (struct cilk_for_desc *cfd,
 
   if (cfd->ctx_arg)
     {
-      /* "context" is an ordinary pointer */
+      /* "Context" is an ordinary pointer.  */
       ctx = cfd->ctx_arg;
       if (TREE_TYPE (ctx) != ptr_type_node)
 	ctx = build1 (NOP_EXPR, ptr_type_node, ctx);
@@ -2700,7 +2636,7 @@ gimplify_cilk_for_1 (struct cilk_for_desc *cfd,
   else
     {
       gcc_assert (fn);
-      ctx = build1 (ADDR_EXPR,  build_pointer_type (TREE_TYPE (fn)), fn);
+      ctx = build1 (ADDR_EXPR, build_pointer_type (TREE_TYPE (fn)), fn);
       /* CTX and FN must be copied to variables because the nested
 	 function module will not replace FDESC_EXPR inside a CALL_EXPR.  */
       ctx = get_formal_tmp_var (ctx, &inner_seq);
@@ -2710,17 +2646,13 @@ gimplify_cilk_for_1 (struct cilk_for_desc *cfd,
   TREE_CONSTANT (fn) = 1;
   fn = get_formal_tmp_var (fn, &inner_seq);
 
-
   if (cfd->grain == NULL_TREE)
-    {
-      grain = get_formal_tmp_var (build_int_cst (cfd->count_type, 0), pre_p);
-    }
+    grain = get_formal_tmp_var (build_int_cst (cfd->count_type, 0), pre_p);
+    
   else if (TYPE_MAIN_VARIANT (TREE_TYPE (cfd->grain)) !=
 	   TYPE_MAIN_VARIANT (cfd->count_type))
-    {
-      grain = convert (cfd->count_type, cfd->grain);
-    }
-
+    grain = convert (cfd->count_type, cfd->grain);
+    
   cfd->grain = grain;
 
 
@@ -2732,20 +2664,15 @@ gimplify_cilk_for_1 (struct cilk_for_desc *cfd,
      build3 (COND_EXPR, void_type_node, cond,
 	     build_call_expr (libfun, 4, fn, ctx, count, grain),
 	     build_empty_stmt (UNKNOWN_LOCATION)));
-  /* Cilk++ used fold_build_cleanup_point_expr to handle cleanups for
-     the loop setup.  Unfortunately that handling is impossible with
-     the new distinction between TREE and GIMPLE.  For now C++ cilk_for
-     will not work if any class objects with destructors are used to
-     compute the loop control variable, limit, or increment. */
+
   gimplify_and_add (libfun_expr, &inner_seq);
 
   gimple_seq_add_seq (pre_p, inner_seq);
 
-  /* XXX TODO: If loop variable is visible outside the loop, assign
-     its final value. */
-
-  /* XXX Add cgraph edge to libfun? */
+  return;
 }
+
+/* Get a block for the Cilk_for loop.  */
 
 static tree
 block_for_loop (tree loop)
@@ -2756,6 +2683,8 @@ block_for_loop (tree loop)
   return DECL_INITIAL (current_function_decl);
 }
 
+/* Main entry-point function to gimplify a cilk_for statement along with its
+   body.  */
 
 void
 gimplify_cilk_for (tree *expr_p,
@@ -2777,10 +2706,9 @@ gimplify_cilk_for (tree *expr_p,
   gcc_assert (cfd.wd.context == current_function_decl);
 
   extract_for_fields (&cfd, loop);
-
   
-  init_expr = build2(MODIFY_EXPR, void_type_node, CILK_FOR_VAR (loop),
-		     CILK_FOR_INIT (loop)); 
+  init_expr = build2 (MODIFY_EXPR, void_type_node, CILK_FOR_VAR (loop),
+		      CILK_FOR_INIT (loop));
   gimplify_and_add (init_expr, pre_p);
   
   if (!cfd.invalid)
@@ -2808,12 +2736,14 @@ var_mentioned_p_cb (tree *tp, int *walk_subtrees, void *var)
      that is not an lvalue of non-polymorphic type.  There is
      probably no way to use typeid expression in the increment of
      a legitimate cilk_for loop.  */
-  if (t == (tree)var)
+  if (t == (tree) var)
     return t;
   if (TREE_CODE_CLASS (TREE_CODE (t)) == tcc_type)
     *walk_subtrees = 0;
   return NULL_TREE;
 }
+
+/* Checks if a var is mentioned in a tree.  */
 
 static bool
 var_mentioned_p (tree exp, tree var)
@@ -2822,7 +2752,8 @@ var_mentioned_p (tree exp, tree var)
 }
 
 /* Set up the signature and parameters of the cilk_for body function
-   before declaring the function. */
+   before declaring the function.  */
+
 static void
 declare_cilk_for_parms (struct cilk_for_desc *cfd)
 {
@@ -2838,11 +2769,11 @@ declare_cilk_for_parms (struct cilk_for_desc *cfd)
   max_parm = build_decl (EXPR_LOCATION (t2), PARM_DECL, t2, ro_count);
 
   DECL_ARG_TYPE (max_parm) = count_type;
-  DECL_ARTIFICIAL (max_parm) = 1; /* "Yes, please optimize me." */
+  DECL_ARTIFICIAL (max_parm) = 1; 
   TREE_READONLY (max_parm) = 1;
 
   DECL_ARG_TYPE (min_parm) = count_type;
-  DECL_ARTIFICIAL (min_parm) = 1; /* "Yes, please optimize me." */
+  DECL_ARTIFICIAL (min_parm) = 1;
   TREE_READONLY (min_parm) = 1;
 
   DECL_ARG_TYPE (ctx) = ptr_type_node;
@@ -2859,13 +2790,14 @@ declare_cilk_for_parms (struct cilk_for_desc *cfd)
   cfd->min_parm = min_parm;
   cfd->max_parm = max_parm;
   cfd->wd.argtypes = types;
-  cfd->wd.arglist = NULL_TREE; /* not used -- not called directly */
+  cfd->wd.arglist = NULL_TREE; 
   cfd->wd.parms = ctx;
 }
 
 /* Set up the variable mapping for the cilk_for body function
    and install parameters after declaring the function and
-   scanning the loop body's variable use. */
+   scanning the loop body's variable use.  */
+
 static void
 declare_cilk_for_vars (struct cilk_for_desc *cfd, tree fndecl)
 {
@@ -2874,20 +2806,21 @@ declare_cilk_for_vars (struct cilk_for_desc *cfd, tree fndecl)
   tree p;
   tree var2;
 
-  var2 = build_decl (UNKNOWN_LOCATION, VAR_DECL, get_identifier ("Balaji"),
+  var2 = build_decl (UNKNOWN_LOCATION, VAR_DECL,
+		     get_identifier ("_cilk_for_loop_var"),
 		     cfd->var_type);
   
   DECL_CONTEXT (var2) = fndecl;
   cfd->var2 = var2;
 
   mapped = pointer_map_contains (cfd->wd.decl_map, cfd->var);
-  /* loop control variable must be mapped */
+  /* The loop control variable must be mapped. */
   gcc_assert (mapped);
-  t = (const_tree)*mapped;
+  t = (const_tree) *mapped;
 
   /* The loop control variable may appear as mapped to itself
      or mapped to integer_one_node depending on its type and
-     how it was modified. */
+     how it was modified.  */
   if ((TREE_CODE (t) != INTEGER_CST) || (t == integer_one_node))
     {
       tree save_function = current_function_decl;

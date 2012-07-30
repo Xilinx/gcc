@@ -1,3 +1,8 @@
+2012-07-30  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-common.c (c_define_builtins): Fixed comment spacing.
+	* c.opt (): Removed unwanted flags.
+
 2012-07-25  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c.opt (flag_enable_cilk): Added a case for LTO.

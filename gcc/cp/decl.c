@@ -53,6 +53,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "pointer-set.h"
 #include "splay-tree.h"
 #include "plugin.h"
+#include "cilk.h"
 
 /* Possible cases of bad specifiers type used by bad_specifiers. */
 enum bad_spec_place {
@@ -110,7 +111,7 @@ static tree check_special_function_return_type
 	(special_function_kind, tree, tree);
 static tree push_cp_library_fn (enum tree_code, tree);
 static tree build_cp_library_fn (tree, enum tree_code, tree);
-void store_parm_decls (tree);
+static void store_parm_decls (tree);
 static void initialize_local_var (tree, tree);
 static void expand_static_init (tree, tree);
 
@@ -375,12 +376,10 @@ pop_label (tree label, tree old_value)
 	  if (flag_enable_cilk)
 	    {
 	      error ("compliation terminated due to errors.\n");
-	      exit(ICE_EXIT_CODE);
+	      exit (ICE_EXIT_CODE);
 	    }
 	  else
-	    {
-	      define_label (location, DECL_NAME (label));
-	    }
+	    define_label (location, DECL_NAME (label));
 	}
       else 
 	warn_for_unused_label (label);
@@ -1185,97 +1184,6 @@ validate_constexpr_redeclaration (tree old_decl, tree new_decl)
   return false;
 }
 
-static bool
-my_strncmp (const char *my_string, const char *search_str)
-{
-  const char *cc;
-  const char *dd;
-  int search_str_length = 0;
-  int str_length = 0;
-  
-  if ((my_string == NULL) &&
-      (search_str != NULL))
-    return false;
-
-  if ((my_string != NULL) &&
-      (search_str == NULL))
-    return false;
-
-  if ((my_string == NULL) &&
-      (search_str == NULL))
-    return true;
-
-  cc = my_string;
-  dd = search_str;
-
-  while (*cc != '\0')
-    {
-      str_length++;
-      cc++;
-    }
-
-  while (*dd != '\0')
-    {
-      search_str_length++;
-      dd++;
-    }
-
-  if (str_length != search_str_length)
-    return false;
-
-  /* now we see if the strings match */
-  cc = my_string;
-  dd = search_str;
-
-  while (*cc != '\0' &&
-	 *dd != '\0')
-    {
-      if (*cc != *dd)
-	return false;
-      cc++;
-      dd++;
-    }
-
-  return true;
-}
-
-static  bool
-is_cilk_function_decl (tree olddecl, tree newdecl)
-{
- 
-  const char *cilkrts_enter_frame_array = "__cilkrts_enter_frame";
-  const char *cilkrts_leave_frame_array = "__cilkrts_leave_frame";
-  const char *cilkrts_sync_array = "__cilkrts_sync";
-  bool found_enter_frame = false;
-  bool found_leave_frame = false;
-  bool found_sync = false;
-  
-  /* char *cc = NULL;  */
-  /* int ii = 0; */
-  if ((DECL_NAME (olddecl) == NULL_TREE) || (DECL_NAME (newdecl) == NULL_TREE))
-    return false;
-  
-  if (TREE_CODE (DECL_NAME (olddecl)) != IDENTIFIER_NODE)
-    return false;
-
-  if (TREE_CODE (DECL_NAME (newdecl)) != IDENTIFIER_NODE)
-    return false;
-
-  if (DECL_NAME (newdecl) != DECL_NAME (olddecl))
-    return false;
-
-  found_enter_frame = my_strncmp (IDENTIFIER_POINTER (DECL_NAME (newdecl)),
-				  cilkrts_enter_frame_array);
-  found_leave_frame = my_strncmp (IDENTIFIER_POINTER (DECL_NAME (newdecl)),
-				  cilkrts_leave_frame_array);
-  found_sync = my_strncmp (IDENTIFIER_POINTER (DECL_NAME (newdecl)),
-			   cilkrts_sync_array);
-
-  if (found_sync || found_leave_frame || found_enter_frame)
-    return true;
-    
-  return false;
-}
 
 #define GNU_INLINE_P(fn) (DECL_DECLARED_INLINE_P (fn)			\
 			  && lookup_attribute ("gnu_inline",		\
@@ -1302,9 +1210,8 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
     return olddecl;
 
   /* this will make sure we do not have conflicts with internal builtin cilk
-     functions when we compile the cilk runtime
-  */
-  if (flag_enable_cilk && (is_cilk_function_decl (olddecl, newdecl)))
+     functions when we compile the cilk runtime.  */
+  if (flag_enable_cilk && is_cilk_function_decl (olddecl, newdecl))
     return newdecl;
 
   types_match = decls_match (newdecl, olddecl);
@@ -3935,7 +3842,7 @@ cp_make_fname_decl (location_t loc, tree id, int type_dep)
 
   if (current_function_decl)
     {
-      struct cp_binding_level *b = current_binding_level;
+      cp_binding_level *b = current_binding_level;
       if (b->kind == sk_function_parms)
 	return error_mark_node;
       while (b->level_chain->kind != sk_function_parms)
@@ -13214,7 +13121,7 @@ use_eh_spec_block (tree fn)
 
    Also install to binding contour return value identifier, if any.  */
 
-void
+static void
 store_parm_decls (tree current_function_parms)
 {
   tree fndecl = current_function_decl;
@@ -13460,6 +13367,7 @@ finish_function_body (tree compstmt)
   if (compstmt == NULL_TREE)
     return;
 
+  /* Here we insert Cilk specific functions when _Cilk_spawn is used.  */
   if (flag_enable_cilk && cfun->calls_spawn)
     {
       cfun->cilk_frame_decl = cp_make_cilk_frame ();
@@ -13576,12 +13484,11 @@ finish_function (int flags)
 			      current_eh_spec_block);
     }
 
-  /* Cilk needs this to insert the spawn information correctly */
+  /* Cilk needs this to insert the spawn information correctly.  */
   if (flag_enable_cilk && DECL_SAVED_TREE (current_function_decl))
-    {
-      VEC_safe_push (tree, gc, stmt_list_stack,
-		     DECL_SAVED_TREE (current_function_decl));
-    }
+    VEC_safe_push (tree, gc, stmt_list_stack,
+		   DECL_SAVED_TREE (current_function_decl));
+  
   /* If we're saving up tree structure, tie off the function now.  */
   DECL_SAVED_TREE (fndecl) = pop_stmt_list (DECL_SAVED_TREE (fndecl));
 

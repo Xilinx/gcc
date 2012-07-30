@@ -4897,11 +4897,11 @@ cp_build_addr_expr_1 (tree arg, bool strict_lvalue, tsubst_flags_t complain)
 
   arg = mark_lvalue_use (arg);
   argtype = lvalue_type (arg);
-  
+
   gcc_assert (TREE_CODE (arg) != IDENTIFIER_NODE
 	      || !IDENTIFIER_OPNAME_P (arg));
 
-  if (TREE_CODE (arg) == ARRAY_NOTATION_REF)
+  if (flag_enable_cilk && TREE_CODE (arg) == ARRAY_NOTATION_REF)
     {
       val = build_address (arg);
       if (TREE_CODE (arg) == OFFSET_REF)

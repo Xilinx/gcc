@@ -85,8 +85,6 @@ enum cilk_tree_index
     CILK_TI_WORKER,
     CILK_TI_C_STACK,
     CILK_TI_REPLACEMENTS,
-
-    
     
     /* Types */
     CILK_TI_FRAME,         /* __cilkrts_frame_t */
@@ -95,8 +93,6 @@ enum cilk_tree_index
     CILK_TI_METACALL_FRAME,
     CILK_TI_METACALL_FPTR,
 
-    
-    
     /* Fields of frame (layout must match runtime) */
     CILK_TI_FRAME_EXTENSION,
     CILK_TI_BUCKET,
@@ -300,7 +296,7 @@ extern tree make_cilk_frame (tree);
 extern tree build_cilk_function_exit (tree, bool, bool);
 
 extern tree build_cilk_sync (void);
-extern tree create_detach_expr(tree frame);
+extern tree create_detach_expr (tree frame);
 extern void cilk_output_metadata (void);
 extern void cilk_remove_annotated_functions (rtx first);
 extern bool cilk_annotated_function_p (char *); 	    
@@ -319,4 +315,9 @@ extern tree find_elem_fn_name (tree, tree, tree);
 elem_fn_info *extract_elem_fn_values (tree);
 extern void array_notation_init_builtins (void);
 extern bool is_cilk_must_expand_fn (enum built_in_function);
+extern bool is_elem_fn_attribute_p (tree);
+extern bool is_cilk_function_decl (tree, tree);
+
+extern void clear_pragma_simd_list (void);
+
 #endif /* GCC_CILK_H */

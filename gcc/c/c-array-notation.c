@@ -51,9 +51,9 @@ extern bool is_sec_implicit_index_fn (tree);
 extern int extract_sec_implicit_index_arg (tree fn);
 tree expand_array_notation_exprs (tree t);
 
-/* This function is to find the rank of an array notation expression.
- * For example, an array notation of A[:][:] has a rank of 2.
- */
+/* This function is to find the rank of an array notation expression.  
+   For example, an array notation of A[:][:] has a rank of 2.  */
+
 void
 find_rank (tree array, bool ignore_builtin_fn, int *rank)
 {
@@ -89,9 +89,8 @@ find_rank (tree array, bool ignore_builtin_fn, int *rank)
 	  if (TREE_CODE (func_name) == ADDR_EXPR)
 	    if (!ignore_builtin_fn)
 	      if (is_builtin_array_notation_fn (func_name, &dummy_type))
-		/* If it is a builtin function, then we know it returns a
-		 * scalar
-		 */
+		/* If it is a builtin function, then we know it returns a 
+		   scalar.  */
 		return;
 	  if (TREE_CODE (TREE_OPERAND (array, 0)) == INTEGER_CST)
 	    {
@@ -102,18 +101,16 @@ find_rank (tree array, bool ignore_builtin_fn, int *rank)
 	  else
 	    gcc_unreachable ();
 	}
-      else
-	{
-	  for (ii = 0; ii < TREE_CODE_LENGTH (TREE_CODE (array)); ii++)
-	    find_rank (TREE_OPERAND (array, ii), ignore_builtin_fn, rank);
-	}
+      else 
+	for (ii = 0; ii < TREE_CODE_LENGTH (TREE_CODE (array)); ii++) 
+	  find_rank (TREE_OPERAND (array, ii), ignore_builtin_fn, rank);
     }
   return;
 }
 
-/* this function will go through a tree and extract all the array notation
- * expressions inside the subtrees
- */
+/* This function will go through a tree and extract all the array notation 
+   expressions inside the subtrees.  */
+
 void
 extract_array_notation_exprs (tree node, bool ignore_builtin_fn,
 			      tree **array_list, int *list_size)
@@ -193,21 +190,19 @@ extract_array_notation_exprs (tree node, bool ignore_builtin_fn,
 	       list_size);
 	}
       else
-	gcc_unreachable  (); /* should not get here */
+	gcc_unreachable (); /* We should not get here.  */
 	  
     } 
-  else
-    {
-      for (ii = 0; ii < TREE_CODE_LENGTH (TREE_CODE (node)); ii++)
-	extract_array_notation_exprs (TREE_OPERAND (node, ii),
-				      ignore_builtin_fn, array_list, list_size);
-    }
+  else 
+    for (ii = 0; ii < TREE_CODE_LENGTH (TREE_CODE (node)); ii++) 
+      extract_array_notation_exprs (TREE_OPERAND (node, ii), 
+				    ignore_builtin_fn, array_list, list_size);
   return;
 }
 
-/* this function will replace a subtree that has array notation with the
- * appropriate scalar equivalent
- */
+/* This function will replace a subtree that has array notation with the 
+   appropriate scalar equivalent.  */
+
 void
 replace_array_notations (tree *orig, bool ignore_builtin_fn, tree *list,
 			 tree *array_operand, int array_size)
@@ -265,21 +260,19 @@ replace_array_notations (tree *orig, bool ignore_builtin_fn, tree *list,
 	       array_operand, array_size);
 	}
       else
-	gcc_unreachable (); /* should not get here! */
+	gcc_unreachable (); /* We should not get here!  */
     }
   else
     {
-      for (ii = 0; ii < TREE_CODE_LENGTH (TREE_CODE (*orig)); ii++)
-	{
-	  replace_array_notations
-	    (&TREE_OPERAND (*orig, ii), ignore_builtin_fn, list,
-	     array_operand, array_size);
-	}
+      for (ii = 0; ii < TREE_CODE_LENGTH (TREE_CODE (*orig)); ii++) 
+	replace_array_notations (&TREE_OPERAND (*orig, ii), ignore_builtin_fn, 
+				 list, array_operand, array_size);
     }
   return;
 }
 
-/* this is a small function that will give the max of 2 integers */
+/* This is a small function that will give the max of 2 integers.  */
+
 static int
 max (int x, int y)
 {
@@ -288,6 +281,8 @@ max (int x, int y)
   else
     return y;
 }
+
+/* This function will return an array notation expression.  */
 
 tree
 build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
@@ -316,9 +311,7 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
   int rhs_list_size = 0, lhs_list_size = 0;
 
   find_rank (rhs, false, &rhs_rank);
-
   extract_array_notation_exprs (rhs, false, &rhs_list, &rhs_list_size);
-
   loop = push_stmt_list ();
 
   for (ii = 0; ii < rhs_list_size; ii++)
@@ -415,7 +408,6 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
   for (ii = 0; ii < rhs_list_size; ii++)
     rhs_length[ii] = (tree *) xmalloc (sizeof (tree) * rhs_rank);
   
-
   lhs_start = (tree **) xmalloc (sizeof (tree *) * lhs_list_size);
   for (ii = 0; ii < lhs_list_size; ii++)
     lhs_start[ii] = (tree *) xmalloc (sizeof (tree) * lhs_rank);
@@ -429,12 +421,12 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
   
 
   /* The reason why we are just using lhs_rank for this is because we have the
-   * following scenarios:
-   * LHS_RANK == RHS_RANK
-   * LHS_RANK != RHS_RANK && RHS_RANK = 0
-   *
-   * In both the scenarios, just checking the LHS_RANK is OK
-   */
+    following scenarios: 
+    1. LHS_RANK == RHS_RANK
+    2. LHS_RANK != RHS_RANK && RHS_RANK = 0 
+    
+    In both the scenarios, just checking the LHS_RANK is OK */
+
   body_label = (tree *) xmalloc (sizeof (tree) * max (lhs_rank, rhs_rank));
   body_label_expr = (tree *) xmalloc (sizeof (tree) * max (lhs_rank, rhs_rank));
   exit_label = (tree *) xmalloc (sizeof (tree) * max (lhs_rank, rhs_rank));
@@ -509,9 +501,8 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
 		  lhs_stride[ii][jj] =
 		    ARRAY_NOTATION_STRIDE (lhs_array[ii][jj]);
 		  lhs_vector[ii][jj] = true;
-		  /* IF the stride value is variable (i.e. not constant) then
-		   * assume that the length is positive
-		   */
+		  /* IF the stride value is variable (i.e. not constant) then 
+		     assume that the length is positive.  */
 		  if (!TREE_CONSTANT (lhs_length[ii][jj]))
 		    lhs_count_down[ii][jj] = false;
 		  else if (tree_int_cst_lt
@@ -542,9 +533,8 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
 		  rhs_stride[ii][jj] =
 		    ARRAY_NOTATION_STRIDE (rhs_array[ii][jj]);
 		  rhs_vector[ii][jj] = true;
-		  /* If the stride value is variable (i.e. not constant) then
-		   * assume that the length is positive
-		   */
+		  /* If the stride value is variable (i.e. not constant) then 
+		     assume that the length is positive.  */
 		  if (!TREE_CONSTANT (rhs_length[ii][jj]))
 		    rhs_count_down[ii][jj] = false;
 		  else if (tree_int_cst_lt
@@ -579,9 +569,8 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
 
   for (ii = 0; ii < rhs_rank; ii++)
     {
-      /* When we have a polynomial, we assume that the indices are of type
-       * integer
-       */
+      /* When we have a polynomial, we assume that the indices are of type 
+	 integer.  */
       rhs_var[ii] = build_decl (UNKNOWN_LOCATION, VAR_DECL, NULL_TREE,
 				integer_type_node);
       rhs_ind_init[ii] = build_modify_expr
@@ -594,14 +583,14 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
 
   for (ii = 0; ii < max (lhs_rank, rhs_rank); ii++)
     {
-      /* this will create the if statement label */
+      /* This will create the if statement label.  */
       if_stmt_label[ii] = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
 				      void_type_node);
       DECL_CONTEXT (if_stmt_label[ii]) = current_function_decl;
       DECL_ARTIFICIAL (if_stmt_label[ii]) = 0;
       DECL_IGNORED_P (if_stmt_label[ii]) = 1;
   
-      /* this label statment will point to the loop body */
+      /* This label statement will point to the loop body.  */
       body_label[ii] = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
 				   void_type_node);
       DECL_CONTEXT (body_label[ii]) = current_function_decl;
@@ -609,9 +598,8 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
       DECL_IGNORED_P (body_label[ii]) = 1;
       body_label_expr[ii] = build1 (LABEL_EXPR, void_type_node, body_label[ii]);
 
-      /* this will create the exit label..i.e. where the while loop will branch
-	 out of
-      */
+      /* This will create the exit label..i.e. where the while loop will branch
+	 out of.  */
       exit_label[ii] = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
 				   void_type_node);
       DECL_CONTEXT (exit_label[ii]) = current_function_decl;
@@ -625,16 +613,15 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
       for (ii = 0; ii < lhs_list_size; ii++)
 	{
 	  if (lhs_vector[ii][0])
-	    {
-      /* The last ARRAY_NOTATION element's ARRAY component should be the array's
-       * base value
-       */
+	    { 
+	      /* The last ARRAY_NOTATION element's ARRAY component should be 
+		 the array's base value.  */
 	      lhs_array_operand[ii] = lhs_value[ii][lhs_rank - 1];
 	      gcc_assert (lhs_array_operand[ii]);
 	      for (jj = lhs_rank - 1; jj >= 0; jj--)
 		{
 		  if (lhs_count_down[ii][jj])
-		      /* Array[start_index + (induction_var * stride)] */
+		      /* Array[start_index + (induction_var * stride)].  */
 		      lhs_array_operand[ii] = build_array_ref
 			(UNKNOWN_LOCATION, lhs_array_operand[ii],
 			 build2 (MINUS_EXPR, TREE_TYPE (lhs_var[jj]),
@@ -716,7 +703,6 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
 		  }  
 	    }
 	}
-		  
       replace_array_notations (&rhs, true, rhs_list, rhs_array_operand,
 			       rhs_list_size);
       array_expr_rhs = rhs;
@@ -751,21 +737,18 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
       rhs_expr_incr[0] = NULL_TREE;
     }
 
-  for (ii = 0; ii < rhs_rank; ii++)
-    {
-      rhs_expr_incr[ii] = build2
-	(MODIFY_EXPR, void_type_node, rhs_var[ii],
-	 build2 (PLUS_EXPR, TREE_TYPE (rhs_var[ii]), rhs_var[ii],
-		 build_one_cst (TREE_TYPE (rhs_var[ii]))));
-    } 
+  for (ii = 0; ii < rhs_rank; ii++) 
+    rhs_expr_incr[ii] = build2 (MODIFY_EXPR, void_type_node, rhs_var[ii], 
+				build2 
+				(PLUS_EXPR, TREE_TYPE (rhs_var[ii]), 
+				 rhs_var[ii], 
+				 build_one_cst (TREE_TYPE (rhs_var[ii]))));
 
-  for (ii = 0; ii < lhs_rank; ii++)
-    {
-      lhs_expr_incr[ii] = build2
-	(MODIFY_EXPR, void_type_node, lhs_var[ii],
-	 build2 (PLUS_EXPR, TREE_TYPE (lhs_var[ii]), lhs_var[ii],
-		 build_one_cst (TREE_TYPE (lhs_var[ii]))));
-    }
+  for (ii = 0; ii < lhs_rank; ii++) 
+    lhs_expr_incr[ii] = build2 
+      (MODIFY_EXPR, void_type_node, lhs_var[ii], 
+       build2 (PLUS_EXPR, TREE_TYPE (lhs_var[ii]), lhs_var[ii], 
+	       build_one_cst (TREE_TYPE (lhs_var[ii]))));
   
   if (!array_expr_lhs)
     array_expr_lhs = lhs;
@@ -788,11 +771,11 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
 
 
 	  /* What we are doing here is this:
-	   * We always count up, so:
-	   *    if (length is negative ==> which means we count down)
-	   *       we multiply length by -1 and count up => ii < -LENGTH
-	   *    else
-	   *       we just count up, so we compare for  ii < LENGTH
+	     We always count up, so:
+	       if (length is negative ==> which means we count down)
+	          we multiply length by -1 and count up => ii < -LENGTH
+	       else
+	          we just count up, so we compare for  ii < LENGTH
 	   */
 	  if (rhs_count_down[0][jj])
 	      rhs_compare[jj] = build2
@@ -802,7 +785,6 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
 	  else
 	    rhs_compare[jj] = build2 (LT_EXPR, boolean_type_node, rhs_var[jj],
 				      rhs_length[0][jj]);
-      
 	  cond_expr[jj] = build2 (TRUTH_ANDIF_EXPR, void_type_node,
 				  lhs_compare[jj], rhs_compare[jj]);
 	}
@@ -842,7 +824,6 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
       add_stmt (build3 (COND_EXPR, void_type_node, cond_expr[ii],
 			build1 (GOTO_EXPR, void_type_node, body_label[ii]),
 			build1 (GOTO_EXPR, void_type_node, exit_label[ii])));
-
       add_stmt (body_label_expr[ii]);
     }
 
@@ -854,15 +835,14 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
       add_stmt (lhs_expr_incr[ii]);
       if (rhs_rank && rhs_expr_incr[ii])
 	add_stmt (rhs_expr_incr[ii]);
-  
       add_stmt (build1 (GOTO_EXPR, void_type_node, if_stmt_label[ii]));
       add_stmt (exit_label_expr[ii]);
     }
-   
   pop_stmt_list (loop);
-
   return loop;
 }
+
+/* This function will fix array notation exprs. in conditional statements.  */
 
 static tree
 fix_conditional_array_notations_1 (tree stmt)
@@ -884,7 +864,7 @@ fix_conditional_array_notations_1 (tree stmt)
   else if (TREE_CODE (stmt) == FOR_STMT || TREE_CODE (stmt) == CILK_FOR_STMT)
     cond = FOR_COND (stmt);
   else
-    /* otherwise dont even touch the statement */
+    /* Otherwise dont even touch the statement.  */
     return stmt;
 
   find_rank (cond, true, &rank);
@@ -917,7 +897,7 @@ fix_conditional_array_notations_1 (tree stmt)
       array_start[ii]  = (tree *) xmalloc (sizeof (tree) * rank);
     }
 
-  body_label = (tree *) xmalloc(sizeof (tree) * rank);
+  body_label = (tree *) xmalloc (sizeof (tree) * rank);
   body_label_expr = (tree *) xmalloc (sizeof (tree) * rank);
   exit_label = (tree *) xmalloc (sizeof (tree) * rank);
   exit_label_expr = (tree *) xmalloc (sizeof (tree) * rank);
@@ -935,7 +915,6 @@ fix_conditional_array_notations_1 (tree stmt)
   
   array_var = (tree *) xmalloc (sizeof (tree) * rank);
   
-
   for (ii = 0; ii < list_size; ii++)
     {
       jj = 0;
@@ -947,7 +926,6 @@ fix_conditional_array_notations_1 (tree stmt)
 	  jj++;
 	}
     }
-
   for (ii = 0; ii < list_size; ii++)
     {
       if (TREE_CODE (array_list[ii]) == ARRAY_NOTATION_REF)
@@ -986,7 +964,6 @@ fix_conditional_array_notations_1 (tree stmt)
 
   for (ii = 0; ii < rank; ii++)
     {
-  
       array_var[ii] = build_decl (UNKNOWN_LOCATION, VAR_DECL, NULL_TREE,
 				  integer_type_node);
       ind_init[ii] =
@@ -1000,14 +977,14 @@ fix_conditional_array_notations_1 (tree stmt)
 
   for (ii = 0; ii < rank ; ii++)
     {
-      /* this will create the if statement label */
+      /* This will create the if statement label.  */
       if_stmt_label[ii] = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
 				      void_type_node);
       DECL_CONTEXT (if_stmt_label[ii]) = current_function_decl;
       DECL_ARTIFICIAL (if_stmt_label[ii]) = 0;
       DECL_IGNORED_P (if_stmt_label[ii]) = 1;
   
-      /* this label statment will point to the loop body */
+      /* This label statment will point to the loop body.  */
       body_label[ii] = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
 				   void_type_node);
       DECL_CONTEXT (body_label[ii]) = current_function_decl;
@@ -1015,9 +992,8 @@ fix_conditional_array_notations_1 (tree stmt)
       DECL_IGNORED_P (body_label[ii]) = 1;
       body_label_expr[ii] = build1 (LABEL_EXPR, void_type_node, body_label[ii]);
 
-      /* this will create the exit label..i.e. where the while loop will branch
-	 out of
-      */
+      /* This will create the exit label..i.e. where the while loop will branch
+	 out of. */
       exit_label[ii] = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
 				   void_type_node);
       DECL_CONTEXT (exit_label[ii]) = current_function_decl;
@@ -1032,7 +1008,6 @@ fix_conditional_array_notations_1 (tree stmt)
 	{
 	  array_operand[ii] = array_value[ii][rank - 1];
 	  gcc_assert (array_operand[ii]);
-
 	  for (jj = rank - 1; jj >= 0; jj--)
 	    {
 	      if (count_down[ii][jj])
@@ -1060,14 +1035,12 @@ fix_conditional_array_notations_1 (tree stmt)
     }
   replace_array_notations (&stmt, true, array_list, array_operand, list_size);
 
-  for (ii = 0; ii < rank; ii++)
-    {
-      expr_incr[ii] =
-	build2 (MODIFY_EXPR, void_type_node, array_var[ii],
-		build2 (PLUS_EXPR, TREE_TYPE (array_var[ii]), array_var[ii],
-			build_int_cst (TREE_TYPE (array_var[ii]), 1)));
-    }
-  
+  for (ii = 0; ii < rank; ii++) 
+    expr_incr[ii] = build2 (MODIFY_EXPR, void_type_node, array_var[ii], 
+			    build2 (PLUS_EXPR, TREE_TYPE (array_var[ii]), 
+				    array_var[ii], 
+				    build_int_cst (TREE_TYPE (array_var[ii]), 
+						   1)));
   for (jj = 0; jj < rank; jj++)
     {
       if (rank && expr_incr[jj])
@@ -1087,7 +1060,6 @@ fix_conditional_array_notations_1 (tree stmt)
   for (ii = 0; ii < rank; ii++)
     {
       add_stmt (ind_init [ii]);
-
       add_stmt (build1 (LABEL_EXPR, void_type_node, if_stmt_label[ii]));
       add_stmt (build3 (COND_EXPR, void_type_node, compare_expr[ii],
 			build1 (GOTO_EXPR, void_type_node, body_label[ii]),
@@ -1139,6 +1111,8 @@ fix_conditional_array_notations_1 (tree stmt)
   return loop;
 }
 
+/* This function is entry function to fix conditional array notation exprs.  */
+
 tree
 fix_conditional_array_notations (tree stmt)
 {
@@ -1175,8 +1149,6 @@ fix_array_notation_expr (location_t location, enum tree_code code,
   if (rank == 0)
     return arg;
 
- 
-
   extract_array_notation_exprs (arg.value, true, &array_list, &list_size);
 
   if (list_size == 0 || *array_list == NULL_TREE)
@@ -1203,7 +1175,7 @@ fix_array_notation_expr (location_t location, enum tree_code code,
       array_start[ii]  = (tree *) xmalloc (sizeof (tree) * rank);
     }
 
-  body_label = (tree *) xmalloc(sizeof (tree) * rank);
+  body_label = (tree *) xmalloc (sizeof (tree) * rank);
   body_label_expr = (tree *) xmalloc (sizeof (tree) * rank);
   exit_label = (tree *) xmalloc (sizeof (tree) * rank);
   exit_label_expr = (tree *) xmalloc (sizeof (tree) * rank);
@@ -1218,9 +1190,7 @@ fix_array_notation_expr (location_t location, enum tree_code code,
     count_down[ii] = (bool *) xmalloc (sizeof (bool) * rank);
 
   array_operand = (tree *) xmalloc (sizeof (tree) * list_size);
-  
   array_var = (tree *) xmalloc (sizeof (tree) * rank);
-  
 
   for (ii = 0; ii < list_size; ii++)
     {
@@ -1272,7 +1242,6 @@ fix_array_notation_expr (location_t location, enum tree_code code,
 
   for (ii = 0; ii < rank; ii++)
     {
-  
       array_var[ii] = build_decl (UNKNOWN_LOCATION, VAR_DECL, NULL_TREE,
 				  integer_type_node);
       ind_init[ii] =
@@ -1286,14 +1255,14 @@ fix_array_notation_expr (location_t location, enum tree_code code,
 
   for (ii = 0; ii < rank ; ii++)
     {
-      /* this will create the if statement label */
+      /* This will create the if statement label.  */
       if_stmt_label[ii] = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
 				      void_type_node);
       DECL_CONTEXT (if_stmt_label[ii]) = current_function_decl;
       DECL_ARTIFICIAL (if_stmt_label[ii]) = 0;
       DECL_IGNORED_P (if_stmt_label[ii]) = 1;
   
-      /* this label statment will point to the loop body */
+      /* This label statment will point to the loop body.  */
       body_label[ii] = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
 				   void_type_node);
       DECL_CONTEXT (body_label[ii]) = current_function_decl;
@@ -1301,9 +1270,8 @@ fix_array_notation_expr (location_t location, enum tree_code code,
       DECL_IGNORED_P (body_label[ii]) = 1;
       body_label_expr[ii] = build1 (LABEL_EXPR, void_type_node, body_label[ii]);
 
-      /* this will create the exit label..i.e. where the while loop will branch
-	 out of
-      */
+      /* This will create the exit label, i.e. where the while loop will branch
+	 out of.  */
       exit_label[ii] = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
 				   void_type_node);
       DECL_CONTEXT (exit_label[ii]) = current_function_decl;
@@ -1318,7 +1286,6 @@ fix_array_notation_expr (location_t location, enum tree_code code,
 	{
 	  array_operand[ii] = array_value[ii][rank - 1];
 	  gcc_assert (array_operand[ii]);
-
 	  for (jj = rank - 1; jj >= 0; jj--)
 	    {
 	      if (count_down[ii][jj])
@@ -1375,7 +1342,6 @@ fix_array_notation_expr (location_t location, enum tree_code code,
   for (ii = 0; ii < rank; ii++)
     {
       add_stmt (ind_init [ii]);
-
       add_stmt (build1 (LABEL_EXPR, void_type_node, if_stmt_label[ii]));
       add_stmt (build3 (COND_EXPR, void_type_node, compare_expr[ii],
 			build1 (GOTO_EXPR, void_type_node, body_label[ii]),
@@ -1439,6 +1405,7 @@ fix_array_notation_expr (location_t location, enum tree_code code,
   return arg;
 }
 
+/* This function will fix array notations inside function parameters.  */
 
 static tree
 fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
@@ -1474,7 +1441,6 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       while (TREE_CODE (identity_value) == CONVERT_EXPR
 	     || TREE_CODE (identity_value) == NOP_EXPR)
 	identity_value = TREE_OPERAND (identity_value, 0);
-      
       func_parm = CALL_EXPR_ARG (an_builtin_fn, 2);
     }
   
@@ -1493,9 +1459,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       fnotice (stderr, "confused by earlier errors, bailing out\n"); 
       exit (ICE_EXIT_CODE);
     }
-  
   extract_array_notation_exprs (func_parm, true, &array_list, &list_size);
-
   switch (an_type)
     {
     case REDUCE_ADD:
@@ -1544,7 +1508,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       array_start[ii]  = (tree *) xmalloc (sizeof (tree) * rank);
     }
 
-  body_label = (tree *) xmalloc(sizeof (tree) * rank);
+  body_label = (tree *) xmalloc (sizeof (tree) * rank);
   body_label_expr = (tree *) xmalloc (sizeof (tree) * rank);
   exit_label = (tree *) xmalloc (sizeof (tree) * rank);
   exit_label_expr = (tree *) xmalloc (sizeof (tree) * rank);
@@ -1610,7 +1574,6 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 
   loop = alloc_stmt_list ();
 
-
   for (ii = 0; ii < rank; ii++)
     {
       array_var[ii] = build_decl (UNKNOWN_LOCATION, VAR_DECL, NULL_TREE,
@@ -1625,14 +1588,14 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 
   for (ii = 0; ii < rank ; ii++)
     {
-      /* this will create the if statement label */
+      /* This will create the if statement label.  */
       if_stmt_label[ii] = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
 				      void_type_node);
       DECL_CONTEXT (if_stmt_label[ii]) = current_function_decl;
       DECL_ARTIFICIAL (if_stmt_label[ii]) = 0;
       DECL_IGNORED_P (if_stmt_label[ii]) = 1;
   
-      /* this label statment will point to the loop body */
+      /* This label statment will point to the loop body.  */
       body_label[ii] = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
 				   void_type_node);
       DECL_CONTEXT (body_label[ii]) = current_function_decl;
@@ -1640,9 +1603,8 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       DECL_IGNORED_P (body_label[ii]) = 1;
       body_label_expr[ii] = build1 (LABEL_EXPR, void_type_node, body_label[ii]);
 
-      /* this will create the exit label..i.e. where the while loop will branch
-	 out of
-      */
+      /* This will create the exit label..i.e. where the while loop will branch
+	 out of.  */
       exit_label[ii] = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
 				   void_type_node);
       DECL_CONTEXT (exit_label[ii]) = current_function_decl;
@@ -1657,7 +1619,6 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	{
 	  array_operand[ii] = array_value[ii][rank - 1];
 	  gcc_assert (array_operand[ii]);
-
 	  for (jj = rank - 1; jj >= 0; jj--)
 	    {
 	      if (count_down[ii][jj])
@@ -1685,7 +1646,6 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
     }
   replace_array_notations (&func_parm, true, array_list, array_operand,
 			   list_size);
-
   for (ii = 0; ii < rank; ii++)
     {
       expr_incr[ii] =
@@ -1738,10 +1698,9 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       new_var_init = build_modify_expr
 	(UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 UNKNOWN_LOCATION, build_one_cst (new_var_type), new_var_type);
-      /* Initially you assume everything is zero, now if we find a case where
-       * it is NOT true, then we set the result to false. Otherwise
-       * we just keep the previous value
-       */
+      /* Initially you assume everything is zero, now if we find a case where 
+	 it is NOT true, then we set the result to false. Otherwise 
+	 we just keep the previous value.  */
       new_yes_expr = build_modify_expr
 	(UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 UNKNOWN_LOCATION, build_zero_cst (TREE_TYPE (*new_var)),
@@ -1760,9 +1719,8 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	(UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 UNKNOWN_LOCATION, build_one_cst (new_var_type), new_var_type);
       /* Initially you assume everything is non-zero, now if we find a case
-	 where it is NOT true, then we set the result to false. Otherwise
-	 * we just keep the previous value
-	 */
+	 where it is NOT true, then we set the result to false.  Otherwise
+	 we just keep the previous value.  */
       new_yes_expr = build_modify_expr
 	(UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 UNKNOWN_LOCATION, build_zero_cst (TREE_TYPE (*new_var)),
@@ -1780,10 +1738,9 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       new_var_init = build_modify_expr
 	(UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 UNKNOWN_LOCATION, build_zero_cst (new_var_type), new_var_type);
-      /* Initially we assume there are NO zeros in the list. When we find
-       * a non-zero, we keep the previous value. If we find a zero, we
-       * set the value to true
-       */
+      /* Initially we assume there are NO zeros in the list. When we find 
+	 a non-zero, we keep the previous value.  If we find a zero, we 
+	 set the value to true.  */
       new_yes_expr = build_modify_expr
 	(UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 UNKNOWN_LOCATION, build_one_cst (new_var_type), new_var_type);
@@ -1800,10 +1757,9 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       new_var_init = build_modify_expr
 	(UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 UNKNOWN_LOCATION, build_zero_cst (new_var_type), new_var_type);
-      /* Initially we assume there are NO non-zeros in the list. When we find
-       * a zero, we keep the previous value. If we find a non-zero, we
-       * set the value to true
-       */
+      /* Initially we assume there are NO non-zeros in the list. When we find 
+	 a zero, we keep the previous value.  If we find a non-zero, we set 
+	 the value to true.  */
       new_yes_expr = build_modify_expr
 	(UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 UNKNOWN_LOCATION, build_one_cst (new_var_type), new_var_type);
@@ -2029,10 +1985,11 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
   free (array_start);
   free (array_ops);
   free (array_vector);
-
   
   return loop;
 }
+
+/* This will check if function is a builtin array notation function.  */
 
 static bool
 is_builtin_array_notation_fn (tree func_name, an_reduce_type *type)
@@ -2117,6 +2074,8 @@ is_builtin_array_notation_fn (tree func_name, an_reduce_type *type)
   return false;
 }
 
+/* This function returns true if the tree/subtrees have array notations.  */
+
 bool
 contains_array_notation_expr (tree expr)
 {
@@ -2137,7 +2096,8 @@ contains_array_notation_expr (tree expr)
     return true;
 }
 
-/* this function will fix up array notation exprs inside void function calls.*/
+/* this function fixes up array notation exprs inside void function calls.  */
+
 static tree
 fix_array_notation_call_expr (tree arg)
 {
@@ -2180,7 +2140,7 @@ fix_array_notation_call_expr (tree arg)
       array_start[ii]  = (tree *) xmalloc (sizeof (tree) * rank);
     }
 
-  body_label = (tree *) xmalloc(sizeof (tree) * rank);
+  body_label = (tree *) xmalloc (sizeof (tree) * rank);
   body_label_expr = (tree *) xmalloc (sizeof (tree) * rank);
   exit_label = (tree *) xmalloc (sizeof (tree) * rank);
   exit_label_expr = (tree *) xmalloc (sizeof (tree) * rank);
@@ -2197,7 +2157,6 @@ fix_array_notation_call_expr (tree arg)
   array_operand = (tree *) xmalloc (sizeof (tree) * list_size);
   
   array_var = (tree *) xmalloc (sizeof (tree) * rank);
-  
 
   for (ii = 0; ii < list_size; ii++)
     {
@@ -2249,7 +2208,6 @@ fix_array_notation_call_expr (tree arg)
 
   for (ii = 0; ii < rank; ii++)
     {
-  
       array_var[ii] = build_decl (UNKNOWN_LOCATION, VAR_DECL, NULL_TREE,
 				  integer_type_node);
       ind_init[ii] =
@@ -2263,14 +2221,14 @@ fix_array_notation_call_expr (tree arg)
 
   for (ii = 0; ii < rank ; ii++)
     {
-      /* this will create the if statement label */
+      /* This will create the if statement label.  */
       if_stmt_label[ii] = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
 				      void_type_node);
       DECL_CONTEXT (if_stmt_label[ii]) = current_function_decl;
       DECL_ARTIFICIAL (if_stmt_label[ii]) = 0;
       DECL_IGNORED_P (if_stmt_label[ii]) = 1;
   
-      /* this label statment will point to the loop body */
+      /* This label statment will point to the loop body.  */
       body_label[ii] = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
 				   void_type_node);
       DECL_CONTEXT (body_label[ii]) = current_function_decl;
@@ -2278,9 +2236,8 @@ fix_array_notation_call_expr (tree arg)
       DECL_IGNORED_P (body_label[ii]) = 1;
       body_label_expr[ii] = build1 (LABEL_EXPR, void_type_node, body_label[ii]);
 
-      /* this will create the exit label..i.e. where the while loop will branch
-	 out of
-      */
+      /* This will create the exit label..i.e. where the while loop will branch
+	 out of.  */
       exit_label[ii] = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
 				   void_type_node);
       DECL_CONTEXT (exit_label[ii]) = current_function_decl;
@@ -2323,14 +2280,11 @@ fix_array_notation_call_expr (tree arg)
     }
   replace_array_notations (&arg, true, array_list, array_operand,
 			   list_size);
-
-  for (ii = 0; ii < rank; ii++)
-    {
-      expr_incr[ii] =
-	build2 (MODIFY_EXPR, void_type_node, array_var[ii],
-		build2 (PLUS_EXPR, TREE_TYPE (array_var[ii]), array_var[ii],
-			build_int_cst (TREE_TYPE (array_var[ii]), 1)));
-    }
+  for (ii = 0; ii < rank; ii++) 
+    expr_incr[ii] = 
+      build2 (MODIFY_EXPR, void_type_node, array_var[ii], 
+	      build2 (PLUS_EXPR, TREE_TYPE (array_var[ii]), array_var[ii], 
+		      build_int_cst (TREE_TYPE (array_var[ii]), 1)));
   
   for (jj = 0; jj < rank; jj++)
     {
@@ -2347,21 +2301,16 @@ fix_array_notation_call_expr (tree arg)
 				       array_var[jj], array_length[0][jj]);
 	}
     }
-
-  
   for (ii = 0; ii < rank; ii++)
     {
       add_stmt (ind_init [ii]);
-
       add_stmt (build1 (LABEL_EXPR, void_type_node, if_stmt_label[ii]));
       add_stmt (build3 (COND_EXPR, void_type_node, compare_expr[ii],
 			build1 (GOTO_EXPR, void_type_node, body_label[ii]),
 			build1 (GOTO_EXPR, void_type_node, exit_label[ii])));
       add_stmt (body_label_expr[ii]);
     }
-
   add_stmt (arg);
-  
   for (ii = rank - 1; ii >= 0; ii--)
     {
       add_stmt (expr_incr[ii]);
@@ -2405,8 +2354,9 @@ fix_array_notation_call_expr (tree arg)
   return arg;
 }
 
-/* this function will walk through a tree and find all call statements that
- * do not return anything and fix up any array notations they might carry */
+/* This function will walk through a tree and find all call statements that 
+   do not return anything and fix up any array notations they might carry.  */
+
 tree
 expand_array_notation_exprs (tree t)
 {
@@ -2422,7 +2372,7 @@ expand_array_notation_exprs (tree t)
       {
 	tree_stmt_iterator ii_tsi;
 	for (ii_tsi = tsi_start (t); !tsi_end_p (ii_tsi); tsi_next (&ii_tsi))
-	  *tsi_stmt_ptr (ii_tsi) =
+	  *tsi_stmt_ptr (ii_tsi) = 
 	    expand_array_notation_exprs (*tsi_stmt_ptr (ii_tsi));
       }
       return t;
@@ -2434,5 +2384,3 @@ expand_array_notation_exprs (tree t)
     }
   return t;
 }
-      
-      

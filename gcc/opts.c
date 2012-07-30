@@ -37,8 +37,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "insn-attr-common.h"
 #include "common/common-target.h"
 
-
-
 /* Indexed by enum debug_info_type.  */
 const char *const debug_type_names[] =
 {

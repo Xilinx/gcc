@@ -261,7 +261,7 @@ can_inline_edge_p (struct cgraph_edge *e, bool report)
     }
   else if (flag_enable_cilk && caller_cfun && caller_cfun->calls_spawn)
     {
-      /* we can't inline if the caller_cfun spawns a function */
+      /* We can't inline if the caller_cfun spawns a function.  */
       e->inline_failed = CIF_BODY_NOT_AVAILABLE;
       inlinable = false;
     }

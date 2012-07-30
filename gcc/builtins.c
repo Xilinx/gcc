@@ -6910,14 +6910,15 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
       break;
 
     case BUILT_IN_CILKSCREEN_DS_CHK:
-      target = expand_builtin_cilk_metadata
-	("cilkscreen_disable_checking", exp);
+      target = expand_builtin_cilk_metadata ("cilkscreen_disable_checking", 
+					     exp);
       if (target)
 	return target;
       break;
 
     case BUILT_IN_CILKSCREEN_EN_CHK:
-      target = expand_builtin_cilk_metadata ("cilkscreen_enable_checking", exp);
+      target = expand_builtin_cilk_metadata ("cilkscreen_enable_checking", 
+					     exp);
       if (target)
 	return target;
       break;
@@ -6940,8 +6941,8 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
 	return target;
 
     case BUILT_IN_CILK_DETACH:
-      /* return value is no interesting; It is used as success/failure 
-         indication */
+      /* Return value is not interesting; it is used as success/failure 
+         indication.  */
       target = expand_builtin_cilk_detach (exp);
       if (target)
         return target;
@@ -6949,9 +6950,10 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
       
     case BUILT_IN_NOTIFY_INTRINSIC:
     case BUILT_IN_NOTIFY_ZC_INTRINSIC:
-      CALL_EXPR_TAILCALL (exp) = 0; /* remove tail call optimization since
-				     * we are goign to get rid of it */
-      function_name = CALL_EXPR_ARG (exp, 0); /* this is the annotation name */
+      /* Remove tail call optimization since we are going to get rid of this
+	 region.  */
+      CALL_EXPR_TAILCALL (exp) = 0; 
+      function_name = CALL_EXPR_ARG (exp, 0); /* This is anotation name.  */
       function_name = TREE_OPERAND (function_name, 0);
       if (TREE_CODE (function_name) == STRING_CST)
 	func_name = TREE_STRING_POINTER (function_name);
@@ -6981,12 +6983,10 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
       break;
 
     case BUILT_IN_CILK_POP_FRAME:
-      /* return value is no interesting; used as success/failure indication */
       target = expand_builtin_cilk_pop_frame (exp);
       if (target)
         return target;
       break;
-
 
     default:	/* just do library call, if unknown builtin */
       break;

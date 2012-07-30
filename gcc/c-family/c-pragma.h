@@ -46,10 +46,10 @@ typedef enum pragma_kind {
   PRAGMA_OMP_TASKYIELD,
   PRAGMA_OMP_THREADPRIVATE,
 
-  /* this pragma allows you to get the grainsize of a Cilk for */
+  /* This pragma allows you to get the grainsize of a Cilk for.  */
   PRAGMA_CILK_GRAINSIZE,
 
-  /* Here are all the pragma simd values */
+  /* Here are all the pragma simd clauses.  */
   PRAGMA_SIMD_VECTORLENGTH,
   PRAGMA_SIMD_PRIVATE,
   PRAGMA_SIMD_LINEAR,

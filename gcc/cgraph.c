@@ -1358,12 +1358,6 @@ dump_cgraph_node (FILE *f, struct cgraph_node *node)
   struct cgraph_edge *edge;
   int indirect_calls_count = 0;
 
-  if (node == NULL)
-    {
-      fprintf(f, "NODE IS NULL!\n");
-      return;
-    }
-  
   dump_symtab_base (f, (symtab_node) node);
 
   if (node->global.inlined_to)

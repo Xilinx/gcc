@@ -1247,7 +1247,7 @@ initialize_inline_failed (struct cgraph_edge *e)
   else if (e->call_stmt_cannot_inline_p)
     e->inline_failed = CIF_MISMATCHED_ARGUMENTS;
   else if (flag_enable_cilk && cfun && cfun->calls_spawn)
-    /* can't inline if the function is spawing a function */
+    /* We can't inline if the function is spawing a function.  */
     e->inline_failed = CIF_BODY_NOT_AVAILABLE;
   else
     e->inline_failed = CIF_FUNCTION_NOT_CONSIDERED;

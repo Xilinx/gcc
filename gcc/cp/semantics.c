@@ -5922,8 +5922,8 @@ build_constexpr_constructor_member_initializers (tree type, tree body)
     body = STATEMENT_LIST_HEAD (body)->stmt;
   body = BIND_EXPR_BODY (body);
 
-  if (TREE_CODE(body) == BIND_EXPR)
-    body = BIND_EXPR_BODY (body); /* there maybe be another layer in Cilk */
+  if (TREE_CODE (body) == BIND_EXPR)
+    body = BIND_EXPR_BODY (body); /* There maybe another layer in Cilk.  */
   if (TREE_CODE (body) == CLEANUP_POINT_EXPR)
     {
       body = TREE_OPERAND (body, 0);
@@ -5959,6 +5959,9 @@ build_constexpr_constructor_member_initializers (tree type, tree body)
     ok = build_data_member_initialization (body, &vec);
   else
     if (!flag_enable_cilk)
+      /* There are some errors that are taken care of later, so the errorcount
+         number might not reflect all those errors yet.  This is why we ignore
+	 this assert here.  */
       gcc_assert (errorcount > 0);
   if (ok)
     {
@@ -6450,7 +6453,7 @@ cxx_bind_parameters_in_call (const constexpr_call *old_call, tree t,
 	/* Don't try to adjust the type of non-constant args.  */
 	goto next;
 
-      if (flag_enable_cilk && (arg == NULL_TREE))
+      if (flag_enable_cilk && !arg)
 	continue;
 
       /* Make sure the binding has the same type as the parm.  */
@@ -6550,7 +6553,7 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t,
     }
 
   /* Shortcut trivial copy constructor/op=.  */
-  /* We can't do this in Cilk Plus. */
+  /* We can't do this in Cilk Plus.  */
   if (!flag_enable_cilk && (call_expr_nargs (t) == 2 && trivial_fn_p (fun)))
     {
       tree arg = convert_from_reference (get_nth_callarg (t, 1));

@@ -772,17 +772,9 @@ fcilkplus
 C ObjC C++ ObjC++ LTO Report Var(flag_enable_cilk) Init(0)
 Enable Cilk
 
-fcilk-check-spawn-queue
-C++ Var(flag_check_spawn_queue) Init(0)
-Insert code to check for overflow of the Cilk spawn deque
-
 fcilkscreen
-C++ Var(flag_cilkscreen) Init(0)
+C ObjC C++ ObjC++ LTO Report Var(flag_cilkscreen) Init(0)
 Generate Cilkscreen metadata
-
-fcilk-optimize-sync
-C++ Var(flag_optimize_sync) Init(0)
-Eliminate redundant Cilk sync statements
 
 fcheck-new
 C++ ObjC++ Var(flag_check_new)

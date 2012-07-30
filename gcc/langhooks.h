@@ -225,6 +225,8 @@ struct lang_hooks_for_decls
   void (*omp_finish_clause) (tree clause);
 };
 
+/* Language hooks related to Cilk Plus, mainly Cilk keywords handling.  */
+
 struct lang_hooks_for_cilk
 {
   bool (*recognize_spawn) (tree);
@@ -234,8 +236,6 @@ struct lang_hooks_for_cilk
   void (*gimplify_cilk_for) (tree *, gimple_seq *, gimple_seq *);
   void (*gimplify_cilk_sync) (tree *, gimple_seq *);
 };
-
-
 
 /* Language hooks related to LTO serialization.  */
 

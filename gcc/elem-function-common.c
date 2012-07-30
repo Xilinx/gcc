@@ -63,8 +63,8 @@ tree find_elem_fn_name (tree old_fndecl, tree vectype_out, tree vectype_in);
 elem_fn_info *extract_elem_fn_values (tree decl);
 
 /* This function will find the appropriate processor code in the function
- * mangling vector function
- */
+   mangling vector function.  */
+
 char *
 find_processor_code (elem_fn_info *elem_fn_values)
 {
@@ -87,8 +87,9 @@ find_processor_code (elem_fn_info *elem_fn_values)
   return NULL; /* should never get here */
 }
 
-/* this function will return vectorlength, if specified, in string format -OR-
- * it will give the default vector length for the specified architecture. */
+/* This function will return vectorlength, if specified, in string format -OR-
+   it will give the default vector length for the specified architecture.  */
+
 char *
 find_vlength_code (elem_fn_info *elem_fn_values)
 {
@@ -124,7 +125,8 @@ find_vlength_code (elem_fn_info *elem_fn_values)
 }
 
 
-/* this function will concatinate the suffix to the existing function decl */
+/* This function will concatinate the suffix to the existing function decl.  */
+
 tree
 rename_elem_fn (tree decl, const char *suffix)
 {
@@ -148,8 +150,9 @@ rename_elem_fn (tree decl, const char *suffix)
 }
 
 
-/* this function will find the appropriate mangling suffix for the vector
- * function */
+/* This function will find the appropriate mangling suffix for the vector
+   function.  */
+
 char *
 find_suffix (elem_fn_info *elem_fn_values, bool masked)
 {
@@ -192,7 +195,8 @@ find_suffix (elem_fn_info *elem_fn_values, bool masked)
 }
 
 
-/* this is an helper function for find_elem_fn_param_type */
+/* This is an helper function for find_elem_fn_param_type.  */
+
 static enum elem_fn_parm_type
 find_elem_fn_parm_type_1 (tree fndecl, int parm_no, tree *step_size)
 {
@@ -220,8 +224,9 @@ find_elem_fn_parm_type_1 (tree fndecl, int parm_no, tree *step_size)
 }
   
   
-/* this function will return the type of a parameter in elemental function.
-   The choices are UNIFORM or LINEAR. */
+/* This function will return the type of a parameter in elemental function.
+   The choices are UNIFORM or LINEAR.  */
+
 enum elem_fn_parm_type
 find_elem_fn_parm_type (gimple stmt, tree op, tree *step_size)
 {
@@ -248,7 +253,9 @@ find_elem_fn_parm_type (gimple stmt, tree op, tree *step_size)
     }
   return return_type;
 }
-/* this function will return the appropriate cloned named for the function */
+
+/* This function will return the appropriate cloned named for the function.  */
+
 tree
 find_elem_fn_name (tree old_fndecl, tree vectype_out, 
 		   tree vectype_in ATTRIBUTE_UNUSED)
@@ -297,8 +304,9 @@ find_elem_fn_name (tree old_fndecl, tree vectype_out,
   return new_fndecl;
 }
 
-/* this function will extract the elem. function values from a vector and store
- * it in a data structure and return that */
+/* This function will extract the elem. function values from a vector and store
+   it in a data structure and return that.  */
+
 elem_fn_info *
 extract_elem_fn_values (tree decl)
 {
@@ -328,10 +336,10 @@ extract_elem_fn_values (tree decl)
       && !VOID_TYPE_P (decl_ret_type))
     switch (compare_tree_int (TYPE_SIZE (decl_ret_type), 64))
       {
-      case 0: /* means they are equal */
+      case 0: /* This means they are equal.  */
 	elem_fn_values->vectorlength[0] = 2;
 	break;
-      case -1: /* means it is less than 64 */
+      case -1: /* This means it is less than 64.  */
 	elem_fn_values->vectorlength[0] = 4;
 	break;
       default:
@@ -351,7 +359,7 @@ extract_elem_fn_values (tree decl)
 	    {
 	      tree jj_purpose = NULL_TREE, jj_value = TREE_VALUE (jj_tree);
 
-	      /* this means we have a mask/nomask */
+	      /* This means we have a mask/nomask.  */
 	      if (TREE_CODE (jj_value) == IDENTIFIER_NODE)
 		{ 
 		  if (!strcmp (IDENTIFIER_POINTER (jj_value), "mask"))
@@ -463,13 +471,14 @@ extract_elem_fn_values (tree decl)
 
   elem_fn_values->total_no_args = arg_number;
   if (elem_fn_values->no_vlengths == 0)
-    elem_fn_values->no_vlengths = 1; /* we have a default value if none is
-				      * given */
+    /* We have a default value if none is given.  */
+    elem_fn_values->no_vlengths = 1; 
   return elem_fn_values;
 }
 
-/* this function will check to see if the node is part of an function that
- * needs to be converted to its vector equivalent. */
+/* This function will check to see if the node is part of an function that
+   needs to be converted to its vector equivalent.  */
+
 bool
 is_elem_fn (tree fndecl)
 {
@@ -483,7 +492,6 @@ is_elem_fn (tree fndecl)
 	  && !strcmp (IDENTIFIER_POINTER (ii_value), "vector"))
 	return true;
     }
-
-  /* If we are here, then we didn't find a vector keyword, so it is false */
+  /* If we are here, then we didn't find a vector keyword, so it is false.  */
   return false;
 }

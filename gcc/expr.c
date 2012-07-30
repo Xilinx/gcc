@@ -9226,6 +9226,8 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       /* Show we haven't gotten RTL for this yet.  */
       temp = 0;
 
+      /* We get here before we handle the nested function of Cilk for.  So,
+	 we do not do this if flag_enable_cilk is turned on.  */
       if (!flag_enable_cilk) 
 	{
 	  /* Variables inherited from containing functions should have

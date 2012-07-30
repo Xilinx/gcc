@@ -373,7 +373,7 @@ cilk_outline (tree outer_fn, tree inner_fn, tree *stmt_p,
   id.transform_call_graph_edges = CB_CGE_DUPLICATE;
   id.remap_var_for_cilk = true;
 
-  insert_decl_map (&id, block,DECL_INITIAL (inner_fn));
+  insert_decl_map (&id, block, DECL_INITIAL (inner_fn));
   pointer_map_traverse (decl_map, nested ? for_local_cb : wrapper_local_cb, 
 			&id);
   walk_tree (stmt_p, copy_tree_body_r, &id, NULL);
@@ -400,7 +400,7 @@ declare_for_loop_variables (struct cilk_for_desc *cfd, tree fndecl)
   tree sc_parm, min_parm, max_parm;
   tree var2;
   void **mapped;
-  tree low_var,high_var,sc_var;
+  tree low_var, high_var, sc_var;
   tree p = NULL_TREE;
   tree t = NULL_TREE;
   
@@ -413,7 +413,7 @@ declare_for_loop_variables (struct cilk_for_desc *cfd, tree fndecl)
   TREE_READONLY (max_parm) = 1;
   cfd->max_parm = max_parm;
 
-  min_parm = build_decl (UNKNOWN_LOCATION,PARM_DECL, low_var, ro_count);
+  min_parm = build_decl (UNKNOWN_LOCATION, PARM_DECL, low_var, ro_count);
   DECL_ARG_TYPE (min_parm) = cfd->count_type;
   DECL_ARTIFICIAL (min_parm) = 1;
   TREE_READONLY (min_parm) = 1;
@@ -669,7 +669,7 @@ cp_build_cilk_for_body (struct cilk_for_desc *cfd)
   TREE_CHAIN (loop_var) = cfd->var2;
 
   DECL_STATIC_CHAIN (fndecl) = 1;
-  body = build3 (BIND_EXPR, void_type_node, loop_var,body,
+  body = build3 (BIND_EXPR, void_type_node, loop_var, body,
 		 DECL_INITIAL (fndecl));
   DECL_CONTEXT (cfd->var2) = fndecl;
   
@@ -835,7 +835,7 @@ cp_make_cilk_frame (void)
       addr = build1 (ADDR_EXPR, cilk_frame_ptr_type_decl, decl);
 
       ctor = build_call_expr (cilk_enter_fndecl, 1, addr);
-      dtor = build_cilk_function_exit (decl, false,true);
+      dtor = build_cilk_function_exit (decl, false, true);
 
       enter_begin = build_call_expr (cilk_enter_begin_fndecl, 1, addr);
       enter_end = build_call_expr (cilk_enter_end_fndecl, 1, addr);
@@ -888,18 +888,17 @@ cilk_erase_for (tree c_for_stmt)
 }
 
 
-/* This will call an overloaded function that does increment/decrement */
+/* This will call an overloaded function that does increment/decrement.  */
 
 static tree
 callable (enum tree_code code, tree op0, tree op1, const char *what, bool cry)
 {
   tree exp = NULL_TREE;
   int flags = 0;
-  const char *op = operator_name_info[(int)code].name;
+  const char *op = operator_name_info[(int) code].name;
 
   if (code == INIT_EXPR)
     {
-
       VEC(tree,gc) *op1_vec = make_tree_vector_single (op1);
       return build_special_member_call (NULL_TREE, complete_ctor_identifier, 
 					&op1_vec, 
@@ -909,7 +908,6 @@ callable (enum tree_code code, tree op0, tree op1, const char *what, bool cry)
 
   if (code == PSEUDO_DTOR_EXPR)
     {
-
       VEC(tree,gc) *op1_vec = make_tree_vector_single (op1);
       return build_special_member_call (NULL_TREE, complete_dtor_identifier, 
 					&op1_vec, 
@@ -975,7 +973,7 @@ check_limit_record (tree cond, tree var, int *direction)
 static tree
 var_mentioned_p_cb (tree *t, int *walk_subtrees, void *var)
 {
-  if (*t == (tree)var)
+  if (*t == (tree) var)
     return *t;
   else if (TREE_CODE_CLASS (TREE_CODE (*t)) == tcc_type)
     *walk_subtrees = 0;
@@ -1046,14 +1044,14 @@ check_incr (tree var, tree arith_type, tree incr)
 	}
       else if ((TREE_CODE (TREE_TYPE (incr)) == POINTER_TYPE))
 	{
-	  error ("invalid type %qT for loop increment",TREE_TYPE (incr));
+	  error ("invalid type %qT for loop increment", TREE_TYPE (incr));
 	  return false;
 	}
       else if ((TREE_CODE (TREE_TYPE (incr)) != INTEGER_TYPE)
 	       && (TREE_CODE (TREE_TYPE (incr)) != ENUMERAL_TYPE)
 	       && (TREE_CODE (TREE_TYPE (incr)) != BOOLEAN_TYPE))
 	{
-	  error ("invalid type %qT for loop increment",TREE_TYPE (incr));
+	  error ("invalid type %qT for loop increment", TREE_TYPE (incr));
 	  return false;
 	}
 
@@ -1201,7 +1199,7 @@ check_loop_difference_type (tree type)
 {
   if (TREE_CODE (type) != INTEGER_TYPE)
     {
-      error ("loop variable difference type %qT is not integral",type);
+      error ("loop variable difference type %qT is not integral", type);
       return NULL_TREE;
     }
   else if (TYPE_PRECISION (type) >
@@ -1878,7 +1876,7 @@ gimplify_cilk_for_stmt_1 (struct cilk_for_desc *cfd, gimple_seq *pre_p)
      variable and that's a user error.
      The correct map will be installed in declare_for_loop_variables. */
 
-  *pointer_map_insert (cfd->decl_map,var) = 
+  *pointer_map_insert (cfd->decl_map, var) = 
     (void *) (cfd->lower_bound ? integer_minus_one_node : integer_zero_node);
   extract_free_variables (cfd->body, cfd->decl_map, ADD_READ, CILK_BLOCK_FOR);
   /* Note that variables are not extracted from the loop condition
@@ -2510,7 +2508,7 @@ gimplify_cilk_for_stmt (tree *for_p, gimple_seq *pre_p)
 	  if (TREE_CODE (cfd.end_var) == AGGR_INIT_EXPR) 
 	    cfd.end_var = TARGET_EXPR_SLOT (cfd.end_expr);
 	  else 
-	    cfd.end_var = get_formal_tmp_var (cfd.end_var,pre_p);
+	    cfd.end_var = get_formal_tmp_var (cfd.end_var, pre_p);
 	}
       else if (ecode == CALL_EXPR) 
 	cfd.end_var = cfd.end_expr;
@@ -2548,7 +2546,7 @@ gimplify_cilk_for_stmt (tree *for_p, gimple_seq *pre_p)
 
   count = compute_loop_count (&cfd);
   if (!TREE_CONSTANT (count)) 
-    count = fold_build_cleanup_point_expr (TREE_TYPE (count),count);
+    count = fold_build_cleanup_point_expr (TREE_TYPE (count), count);
 
   fn = gimplify_cilk_for_stmt_1 (&cfd, pre_p);
 

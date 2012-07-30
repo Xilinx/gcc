@@ -39,12 +39,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "plugin.h"
 #include "tree-pretty-print.h"
 #include "parser.h"
+#include "cilk.h"
 
 extern int array_notation_label_no;
 extern void extract_array_notation_exprs (tree, bool, tree **, int *);
 extern tree fix_unary_array_notation_exprs (tree);
 extern bool contains_array_notation_expr (tree);
-struct pragma_simd_values local_simd_values;
+struct pragma_simd_values cilkplus_local_simd_values;
 
 /* The lexer.  */
 
@@ -237,11 +238,11 @@ static void cp_parser_initial_pragma
 static tree cp_literal_operator_id
   (const char *);
 
-
 static tree cp_parser_array_notation
   (cp_parser *, tree, tree);
+
 static VEC(tree,gc) *cp_parser_elem_fn_expression_list
-     (cp_parser *);
+  (cp_parser *);
 
 /* Manifest constants.  */
 #define CP_LEXER_BUFFER_SIZE ((256 * 1024) / sizeof (cp_token))
@@ -624,30 +625,29 @@ cp_lexer_new_main (void)
 
   gcc_assert (!lexer->next_token->purged_p);
 
-  /* bviyer: here we initialize the local_simd_values structure. We only need 
-   * it initialized the first time, after each consumptions, for-loop will
-   * automatically consume the values and delete the information.
-   */
-  local_simd_values.index              = 0;
-  local_simd_values.pragma_encountered = false;
-  local_simd_values.types              = P_SIMD_NOASSERT;
-  local_simd_values.vectorlength       = NULL_TREE;
-  local_simd_values.vec_length_list    = NULL;
-  local_simd_values.vec_length_size    = 0;
-  local_simd_values.private_vars       = NULL_TREE;
-  local_simd_values.priv_var_list      = NULL;
-  local_simd_values.priv_var_size      = 0;
+  /* Here we initialize the cilkplus_local_simd_values structure.  We only need
+     it initialized the first time, after each consumptions, for-loop will
+     automatically consume the values and delete the information.  */
+  cilkplus_local_simd_values.index              = 0;
+  cilkplus_local_simd_values.pragma_encountered = false;
+  cilkplus_local_simd_values.types              = P_SIMD_NOASSERT;
+  cilkplus_local_simd_values.vectorlength       = NULL_TREE;
+  cilkplus_local_simd_values.vec_length_list    = NULL;
+  cilkplus_local_simd_values.vec_length_size    = 0;
+  cilkplus_local_simd_values.private_vars       = NULL_TREE;
+  cilkplus_local_simd_values.priv_var_list      = NULL;
+  cilkplus_local_simd_values.priv_var_size      = 0;
  
-  local_simd_values.linear_vars        = NULL_TREE;
-  local_simd_values.linear_var_size    = 0;
-  local_simd_values.linear_var_list    = NULL;
-  local_simd_values.linear_steps       = NULL_TREE;
-  local_simd_values.linear_steps_list  = NULL;
-  local_simd_values.linear_steps_size  = 0;
-  local_simd_values.reduction_vals     = NULL;
-  local_simd_values.ptr_next           = NULL;
+  cilkplus_local_simd_values.linear_vars        = NULL_TREE;
+  cilkplus_local_simd_values.linear_var_size    = 0;
+  cilkplus_local_simd_values.linear_var_list    = NULL;
+  cilkplus_local_simd_values.linear_steps       = NULL_TREE;
+  cilkplus_local_simd_values.linear_steps_list  = NULL;
+  cilkplus_local_simd_values.linear_steps_size  = 0;
+  cilkplus_local_simd_values.reduction_vals     = NULL;
+  cilkplus_local_simd_values.ptr_next           = NULL;
 
-  psv_head = NULL;
+  clear_pragma_simd_list ();
 
   array_notation_label_no = 0;
   
@@ -4980,7 +4980,7 @@ cp_parser_nested_name_specifier_opt (cp_parser *parser,
 	      && parser->colon_corrects_to_scope_p
 	      && cp_lexer_peek_nth_token (parser->lexer, 3)->type == CPP_NAME)
 	    {
-	      if (!flag_enable_cilk) /* this is OK in Array Notation */
+	      if (!flag_enable_cilk) /* this is OK in Array Notation.  */
 		{
 		  error_at (token->location,
 			    "found %<:%> in nested-name-specifier, expected %<::%>");
@@ -5971,7 +5971,7 @@ cp_parser_postfix_expression (cp_parser *parser, bool address_p, bool cast_p,
 	  if (spawning == CALL_SPAWN)
 	    {
 	      if (postfix_expression != error_mark_node)
-		warning(0, "%<cilk_spawn%> ignored in non-call context");
+		warning (0, "%<cilk_spawn%> ignored in non-call context");
 	      finish_cilk_block ();
 	    }
 	  if (saved_in_statement >= 0)
@@ -9484,7 +9484,7 @@ cp_parser_condition (cp_parser* parser)
    not included. */
 
 static tree
-cp_parser_for (cp_parser *parser, struct pragma_simd_values *ps_values)
+cp_parser_for (cp_parser *parser, struct pragma_simd_values *cilkplus_ps_values)
 {
   tree init, scope, decl;
   bool is_range_for;
@@ -9521,20 +9521,21 @@ cp_parser_for (cp_parser *parser, struct pragma_simd_values *ps_values)
 
   if (!is_range_for)
     {
-      if (ps_values != NULL)
+      if (cilkplus_ps_values != NULL)
 	{
-	  FOR_STMT_PRAGMA_SIMD_INDEX(statement) = psv_head_insert (*ps_values);
-	  /* now we initialize them all to zeros */
-	  ps_values->pragma_encountered = false;
-	  ps_values->types              = P_SIMD_NOASSERT;
-	  ps_values->vectorlength       = NULL_TREE;
-	  ps_values->private_vars       = NULL_TREE;
-	  ps_values->linear_vars        = NULL_TREE;
-	  ps_values->linear_steps       = NULL_TREE;
-	  ps_values->reduction_vals     = NULL;
+	  FOR_STMT_PRAGMA_SIMD_INDEX (statement) = 
+	    psv_head_insert (*cilkplus_ps_values);
+	  /* Now we initialize them all to zeros.  */
+	  cilkplus_ps_values->pragma_encountered = false;
+	  cilkplus_ps_values->types              = P_SIMD_NOASSERT;
+	  cilkplus_ps_values->vectorlength       = NULL_TREE;
+	  cilkplus_ps_values->private_vars       = NULL_TREE;
+	  cilkplus_ps_values->linear_vars        = NULL_TREE;
+	  cilkplus_ps_values->linear_steps       = NULL_TREE;
+	  cilkplus_ps_values->reduction_vals     = NULL;
 	}
       else
-	FOR_STMT_PRAGMA_SIMD_INDEX(statement) = INVALID_PRAGMA_SIMD_SLOT;
+	FOR_STMT_PRAGMA_SIMD_INDEX (statement) = INVALID_PRAGMA_SIMD_SLOT;
     }
  
 
@@ -28359,7 +28360,7 @@ cp_parser_cilk_for (cp_parser *parser, tree grain, int in_statement)
     }
 
   /* The next token should be a semi colon. */
-  cp_parser_require(parser,CPP_SEMICOLON, /* "';'" */ RT_SEMICOLON);
+  cp_parser_require (parser, CPP_SEMICOLON, /* "';'" */ RT_SEMICOLON);
 
   if (cp_lexer_next_token_is (parser->lexer,CPP_SEMICOLON))
     {
@@ -28395,7 +28396,6 @@ cp_parser_cilk_for (cp_parser *parser, tree grain, int in_statement)
 	}
     }
 
-
   /* We just finish it like a normal for expr. */
   finish_for_expr (expression, statement);
 
@@ -28408,8 +28408,7 @@ cp_parser_cilk_for (cp_parser *parser, tree grain, int in_statement)
 
   finish_cilk_for_stmt (statement);
   
-  if ((valid == false) 
-      || (!processing_template_decl && !cilk_validate_for (statement)))
+  if (!valid || (!processing_template_decl && !cilk_validate_for (statement)))
     {
       cilk_erase_for (statement); 
       gcc_assert (errorcount || sorrycount);
@@ -28460,7 +28459,9 @@ cp_parser_cilk_for_condition (cp_parser *parser)
   parser->qualifying_scope = NULL_TREE;
   parser->object_scope = NULL_TREE;
 
-  if ((code == ERROR_MARK) || (lhs == error_mark_node) || (rhs == error_mark_node))
+  if ((code == ERROR_MARK)
+      || (lhs == error_mark_node)
+      || (rhs == error_mark_node))
     return error_mark_node;
 
   return build2 (code, boolean_type_node, lhs, rhs);
@@ -28473,11 +28474,8 @@ cp_parser_cilk_for_expression_iterator (cp_parser *parser)
 {
   cp_token *token = cp_lexer_peek_token (parser->lexer);
   tree name = NULL_TREE, expr = NULL_TREE;
-  enum tree_code t_code;
-
-
-  t_code = NOP_EXPR;
-
+  enum tree_code t_code = NOP_EXPR;
+  
   if (token->type == CPP_SEMICOLON)
     {
       error ("missing loop expression.\n");
@@ -28502,12 +28500,12 @@ cp_parser_cilk_for_expression_iterator (cp_parser *parser)
       return error_mark_node;
     }
 
-  name = cp_parser_lookup_name (parser, token->u.value, none_type, false, false, 
+  name = cp_parser_lookup_name (parser, token->u.value, none_type, false, false,
 				false, NULL, token->location);
   if (name == error_mark_node) 
     return error_mark_node;
 
-  /* Now we see if it is a decl, if not, then the loop is not valid. */
+  /* Now we see if it is a decl, if not, then the loop is not valid.  */
   if (!DECL_P (name))
     {
       error ("invalid loop increment expression.\n");
@@ -28521,7 +28519,7 @@ cp_parser_cilk_for_expression_iterator (cp_parser *parser)
     {
       if (token->type != CPP_CLOSE_PAREN)
 	{
-	  /* this means there are token after var. What we are trying to catch 
+	  /* This means there are token after var. What we are trying to catch 
 	     here is cases like the oen below:
 		    for (ii = 0; ii < 10; ii++, jj++)
 	   */
@@ -28533,7 +28531,7 @@ cp_parser_cilk_for_expression_iterator (cp_parser *parser)
 
   if (token->type == CPP_CLOSE_PAREN)
     {
-      /* this means the control variable is not changed. We are trying to catch 
+      /* This means the control variable is not changed. We are trying to catch 
 	 the following case:
 	      for (ii = 0; ii < 10; ii)
        */
@@ -28588,8 +28586,8 @@ cp_parser_simd_vectorlength (cp_parser *parser, cp_token *pragma_token)
   cp_token *token = NULL;
   tree vec_length_list = NULL_TREE, v_length_value = NULL_TREE;
   
-  local_simd_values.pragma_encountered = true;
-  local_simd_values.types |= P_SIMD_VECTORLENGTH;
+  cilkplus_local_simd_values.pragma_encountered = true;
+  cilkplus_local_simd_values.types |= P_SIMD_VECTORLENGTH;
 
   if (cp_parser_require (parser, CPP_OPEN_PAREN, RT_OPEN_PAREN))
     {
@@ -28623,8 +28621,8 @@ cp_parser_simd_vectorlength (cp_parser *parser, cp_token *pragma_token)
   else 
     cp_parser_error (parser, "expected %<(%>");
 
-  local_simd_values.vectorlength = vec_length_list;
-  local_simd_values.pragma_encountered = true;
+  cilkplus_local_simd_values.vectorlength = vec_length_list;
+  cilkplus_local_simd_values.pragma_encountered = true;
       
 	
   if (cp_lexer_next_token_is (parser->lexer, CPP_NAME)
@@ -28654,12 +28652,12 @@ cp_parser_simd_vectorlength (cp_parser *parser, cp_token *pragma_token)
       cp_parser_skip_to_pragma_eol (parser, pragma_token);
       if (cp_lexer_next_token_is_keyword (parser->lexer, RID_FOR))
 	{ 
-	  if (same_var_in_multiple_lists_p (&local_simd_values)) 
+	  if (same_var_in_multiple_lists_p (&cilkplus_local_simd_values)) 
 	    cp_parser_error (parser, 
 			     "ill-formed pragma: Same variable in multiple " 
 			     "clause");
 	  cp_lexer_consume_token (parser->lexer);
-	  cp_parser_for (parser, &local_simd_values);
+	  cp_parser_for (parser, &cilkplus_local_simd_values);
 	}
       else 
 	cp_parser_error (parser, "for statement expected");
@@ -28675,8 +28673,8 @@ cp_parser_simd_private (cp_parser *parser, cp_token *pragma_token)
   cp_token *token = NULL;
   tree private_var = NULL_TREE, private_var_list = NULL_TREE;
   
-  local_simd_values.types |= P_SIMD_PRIVATE;
-  local_simd_values.pragma_encountered = true;
+  cilkplus_local_simd_values.types |= P_SIMD_PRIVATE;
+  cilkplus_local_simd_values.pragma_encountered = true;
 
   if (cp_parser_require (parser, CPP_OPEN_PAREN, RT_OPEN_PAREN))
     {
@@ -28717,9 +28715,9 @@ cp_parser_simd_private (cp_parser *parser, cp_token *pragma_token)
   else 
     cp_parser_error (parser, "expected %<(%>");
 
-  local_simd_values.pragma_encountered = true;
-  local_simd_values.types |= P_SIMD_PRIVATE;
-  local_simd_values.private_vars = private_var_list;
+  cilkplus_local_simd_values.pragma_encountered = true;
+  cilkplus_local_simd_values.types |= P_SIMD_PRIVATE;
+  cilkplus_local_simd_values.private_vars = private_var_list;
 	    
   if (cp_lexer_next_token_is (parser->lexer, CPP_NAME)
       || cp_lexer_next_token_is (parser->lexer, CPP_KEYWORD))
@@ -28748,11 +28746,11 @@ cp_parser_simd_private (cp_parser *parser, cp_token *pragma_token)
       cp_parser_skip_to_pragma_eol (parser, pragma_token);
       if (cp_lexer_next_token_is_keyword (parser->lexer, RID_FOR))
 	{ 
-	  if (same_var_in_multiple_lists_p (&local_simd_values)) 
+	  if (same_var_in_multiple_lists_p (&cilkplus_local_simd_values)) 
 	    cp_parser_error (parser, "ill-formed pragma: Same variable in "
 				     "multiple clause");
 	  cp_lexer_consume_token (parser->lexer);
-	  cp_parser_for (parser, &local_simd_values);
+	  cp_parser_for (parser, &cilkplus_local_simd_values);
 	}
       else 
 	cp_parser_error (parser, "for statement expected");
@@ -28853,10 +28851,10 @@ cp_parser_simd_reduction (cp_parser *parser, cp_token *pragma_token)
   else 
     cp_parser_error (parser, "expected %<(%>");
 
-  insert_reduction_values (&local_simd_values.reduction_vals, op_code,
+  insert_reduction_values (&cilkplus_local_simd_values.reduction_vals, op_code,
 			   var_list);
-  local_simd_values.types |= P_SIMD_REDUCTION;
-  local_simd_values.pragma_encountered = true;
+  cilkplus_local_simd_values.types |= P_SIMD_REDUCTION;
+  cilkplus_local_simd_values.pragma_encountered = true;
 
   if (cp_lexer_next_token_is (parser->lexer, CPP_NAME)
       || cp_lexer_next_token_is (parser->lexer, CPP_KEYWORD))
@@ -28885,12 +28883,12 @@ cp_parser_simd_reduction (cp_parser *parser, cp_token *pragma_token)
       cp_parser_skip_to_pragma_eol (parser, pragma_token);
       if (cp_lexer_next_token_is_keyword (parser->lexer, RID_FOR))
 	{ 
-	  if (same_var_in_multiple_lists_p (&local_simd_values) == true) 
+	  if (same_var_in_multiple_lists_p (&cilkplus_local_simd_values)) 
 	    cp_parser_error (parser, 
 			     "ill-formed pragma: Same variable in multiple " 
 			     "clause");
 	  cp_lexer_consume_token (parser->lexer);
-	  cp_parser_for (parser, &local_simd_values);
+	  cp_parser_for (parser, &cilkplus_local_simd_values);
 	}
       else 
 	cp_parser_error (parser, "for statement expected");
@@ -28898,14 +28896,16 @@ cp_parser_simd_reduction (cp_parser *parser, cp_token *pragma_token)
   return;
 }
 
+/* This function handles the linear clause of pragma simd of Cilk Plus.  */
+
 static void
 cp_parser_simd_linear (cp_parser *parser, cp_token *pragma_token)
 {
   cp_token *token = NULL;
   tree linear_var  = NULL_TREE, linear_var_list  = NULL_TREE;
   tree linear_step = NULL_TREE, linear_steps_list = NULL_TREE;
-  local_simd_values.types |= P_SIMD_LINEAR;
-  local_simd_values.pragma_encountered = true;  
+  cilkplus_local_simd_values.types |= P_SIMD_LINEAR;
+  cilkplus_local_simd_values.pragma_encountered = true;  
   if (cp_parser_require (parser, CPP_OPEN_PAREN, RT_OPEN_PAREN))
     {
       while (true)
@@ -28976,10 +28976,11 @@ cp_parser_simd_linear (cp_parser *parser, cp_token *pragma_token)
   gcc_assert (list_length (linear_steps_list) ==
 	      list_length (linear_var_list));
 
-  local_simd_values.linear_vars = linear_var_list;
-  local_simd_values.linear_var_size = list_length (linear_var_list);
-  local_simd_values.linear_steps = linear_steps_list;
-  local_simd_values.linear_steps_size = list_length (linear_steps_list); 
+  cilkplus_local_simd_values.linear_vars = linear_var_list;
+  cilkplus_local_simd_values.linear_var_size = list_length (linear_var_list);
+  cilkplus_local_simd_values.linear_steps = linear_steps_list;
+  cilkplus_local_simd_values.linear_steps_size =
+    list_length (linear_steps_list); 
   
   if (cp_lexer_next_token_is (parser->lexer, CPP_NAME)
       || cp_lexer_next_token_is (parser->lexer, CPP_KEYWORD))
@@ -29008,11 +29009,11 @@ cp_parser_simd_linear (cp_parser *parser, cp_token *pragma_token)
       cp_parser_skip_to_pragma_eol (parser, pragma_token);
       if (cp_lexer_next_token_is_keyword (parser->lexer, RID_FOR))
 	{ 
-	  if (same_var_in_multiple_lists_p (&local_simd_values) == true) 
+	  if (same_var_in_multiple_lists_p (&cilkplus_local_simd_values)) 
 	    cp_parser_error (parser, "ill-formed pragma: Same variable in " 
 			     "multiple clause");
 	  cp_lexer_consume_token (parser->lexer);
-	  cp_parser_for (parser, &local_simd_values);
+	  cp_parser_for (parser, &cilkplus_local_simd_values);
 	}
       else 
 	cp_parser_error (parser, "for statement expected");
@@ -29028,7 +29029,7 @@ cp_parser_simd_assert (cp_parser *parser, cp_token *pragma_token,
 {
   cp_token *token;
 
-  if ((local_simd_values.types == P_SIMD_ASSERT) && is_assert)
+  if ((cilkplus_local_simd_values.types == P_SIMD_ASSERT) && is_assert)
     {
       cp_parser_error (parser, "multiple simd assert/noassert pragmas found");
       return;
@@ -29036,12 +29037,12 @@ cp_parser_simd_assert (cp_parser *parser, cp_token *pragma_token,
   else
     {
       if (is_assert)
-	local_simd_values.types |= P_SIMD_ASSERT;
+	cilkplus_local_simd_values.types |= P_SIMD_ASSERT;
       else
-	local_simd_values.types |= P_SIMD_NOASSERT;
+	cilkplus_local_simd_values.types |= P_SIMD_NOASSERT;
     }
     
-  local_simd_values.pragma_encountered = true;
+  cilkplus_local_simd_values.pragma_encountered = true;
 
   if (cp_lexer_next_token_is (parser->lexer, CPP_NAME)
       || cp_lexer_next_token_is (parser->lexer, CPP_KEYWORD))
@@ -29070,19 +29071,18 @@ cp_parser_simd_assert (cp_parser *parser, cp_token *pragma_token,
       cp_parser_skip_to_pragma_eol (parser, pragma_token);
       if (cp_lexer_next_token_is_keyword (parser->lexer, RID_FOR))
 	{ 
-	  if (same_var_in_multiple_lists_p (&local_simd_values)) 
+	  if (same_var_in_multiple_lists_p (&cilkplus_local_simd_values)) 
 	    cp_parser_error (parser, 
 			     "ill-formed pragma: Same variable in multiple "
 			     "clause");
 	  cp_lexer_consume_token (parser->lexer);
-	  cp_parser_for (parser, &local_simd_values);
+	  cp_parser_for (parser, &cilkplus_local_simd_values);
 	}
       else 
 	cp_parser_error (parser, "for statement expected");
     }	    
   return;
 }
-
 
 
 /* this function will handle the pragma cilk grainsize. The syntax is:
@@ -29105,7 +29105,6 @@ cp_parser_cilk_grainsize (cp_parser *parser, cp_token *pragma_token)
     {
       exp = cp_parser_binary_expression (parser, false, false,
 					 PREC_NOT_OPERATOR, NULL);
-
       if (exp && (exp != error_mark_node))
 	{
 	  cp_parser_skip_to_pragma_eol (parser, pragma_token);

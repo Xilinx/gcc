@@ -33,6 +33,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "hashtab.h"
 #include "plugin.h"
+#include "cilk.h"
 
 /* Table of the tables of attributes (common, language, format, machine)
    searched.  */
@@ -228,18 +229,6 @@ lookup_attribute_spec (const_tree name)
 			 substring_hash (attr.str, attr.length));
 }
 
-
-static bool
-is_elem_fn_attribute_p (tree name)
-{
-  return is_attribute_p ("mask", name)
-    || is_attribute_p ("unmask", name)
-    || is_attribute_p ("vectorlength", name)
-    || is_attribute_p ("vector", name)
-    || is_attribute_p ("linear", name)
-    || is_attribute_p ("uniform", name);
-}
-
 /* Process the attributes listed in ATTRIBUTES and install them in *NODE,
    which is either a DECL (including a TYPE_DECL) or a TYPE.  If a DECL,
    it should be modified in place; if a TYPE, a copy should be created
@@ -324,7 +313,7 @@ decl_attributes (tree *node, tree attributes, int flags)
 
       if (spec == NULL)
 	{
-	  if (is_elem_fn_attribute_p (name))
+	  if (flag_enable_cilk && is_elem_fn_attribute_p (name))
 	    {
 	      returned_attrs = tree_cons (name, args, returned_attrs);
 	      DECL_ATTRIBUTES (*anode) = tree_cons (name, args,

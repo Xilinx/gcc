@@ -669,8 +669,8 @@ lhd_end_section (void)
 }
 
 
-bool lhd_hook_bool_false(void);
-bool lhd_hook_bool_false(void)
+bool lhd_hook_bool_false (void);
+bool lhd_hook_bool_false (void)
 {
   return false;
 }

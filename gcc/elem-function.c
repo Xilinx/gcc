@@ -62,6 +62,7 @@ static tree elem_fn_build_array (tree base_var, tree index);
 
 /* This function will create the appropriate __target__ attribute for the 
    processor.  */
+
 static tree
 create_processor_attribute (elem_fn_info *elem_fn_values, tree *opposite_attr)
 {
@@ -165,7 +166,7 @@ create_processor_attribute (elem_fn_info *elem_fn_values, tree *opposite_attr)
   return proc_attr;
 }
 
-/* this will create an optimize attribute for the vector function, to make sure
+/* This will create an optimize attribute for the vector function, to make sure
    the vectorizer is turned on and has its full capabilities.  */
 
 static tree

@@ -8988,7 +8988,8 @@ c_finish_if_stmt (location_t if_locus, tree cond, tree then_block,
 
 void
 c_finish_loop (location_t start_locus, tree cond, tree incr, tree body,
-	       tree blab, tree clab, struct pragma_simd_values *ps_values,
+	       tree blab, tree clab,
+	       struct pragma_simd_values *cilkplus_ps_values,
 	       bool cond_is_first)
 {
   tree entry = NULL, exit = NULL, t;
@@ -9038,24 +9039,22 @@ c_finish_loop (location_t start_locus, tree cond, tree incr, tree body,
 	    exit = fold_build3_loc (input_location,
 				COND_EXPR, void_type_node, cond, exit, t);
 	}
-      if (ps_values != NULL)
+      if (cilkplus_ps_values)
 	{
-	  if  (ps_values->pragma_encountered == true)
-	    {
-	      LABEL_EXPR_PRAGMA_SIMD_INDEX(top) = psv_head_insert(*ps_values);
-	    }
+	  if  (cilkplus_ps_values->pragma_encountered == true)
+	    LABEL_EXPR_PRAGMA_SIMD_INDEX (top) =
+	      psv_head_insert (*cilkplus_ps_values);
 	  else
-	    {
-	      LABEL_EXPR_PRAGMA_SIMD_INDEX(top) = INVALID_PRAGMA_SIMD_SLOT;
-	    }
-	  /* now we initialize them all to zeros */
-	  ps_values->pragma_encountered = false;
-	  ps_values->types              = P_SIMD_NOASSERT;
-	  ps_values->vectorlength       = NULL_TREE;
-	  ps_values->private_vars       = NULL_TREE;
-	  ps_values->linear_vars        = NULL_TREE;
-	  ps_values->linear_steps       = NULL_TREE;
-	  ps_values->reduction_vals     = NULL;
+	    LABEL_EXPR_PRAGMA_SIMD_INDEX (top) = INVALID_PRAGMA_SIMD_SLOT;
+	    
+	  /* Now we initialize them all to zeros.  */
+	  cilkplus_ps_values->pragma_encountered = false;
+	  cilkplus_ps_values->types              = P_SIMD_NOASSERT;
+	  cilkplus_ps_values->vectorlength       = NULL_TREE;
+	  cilkplus_ps_values->private_vars       = NULL_TREE;
+	  cilkplus_ps_values->linear_vars        = NULL_TREE;
+	  cilkplus_ps_values->linear_steps       = NULL_TREE;
+	  cilkplus_ps_values->reduction_vals     = NULL;
 	}  
       
       add_stmt (top);
@@ -10301,6 +10300,7 @@ build_binary_op (location_t location, enum tree_code code,
 		{
 		case MULT_EXPR:
 		case TRUNC_DIV_EXPR:
+		  op1 = c_save_expr (op1);
 		  imag = build2 (resultcode, real_type, imag, op1);
 		  /* Fall through.  */
 		case PLUS_EXPR:
@@ -11034,7 +11034,7 @@ c_finish_cilk_loop (location_t start_locus ATTRIBUTE_UNUSED, tree cvar,
   FOR_COND (c_tree) = cond;
   CILK_FOR_INIT (c_tree) = init;
   FOR_EXPR (c_tree) = incr;
-  CILK_FOR_GRAIN(c_tree) = grain;
+  CILK_FOR_GRAIN (c_tree) = grain;
   FOR_BODY (c_tree) = body;
   add_stmt (c_tree);
 
