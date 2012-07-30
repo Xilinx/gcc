@@ -5393,7 +5393,7 @@ melt_source_dir=$(libexecsubdir)/melt-sources/$(melt_version_string)
 
 
 ## this is the installation directory of MELT header files
-melt_header_dir=$(plugin_includedir)/melt-headers-$(melt_version_string)
+melt_header_dir=$(plugin_includedir)/melt-headers/$(melt_version_string)
 
 ## this is the installation directory of melt dynamic modules (*.so) and module list
 melt_module_dir=$(libexecsubdir)/melt-modules/$(melt_version_string)
@@ -5484,7 +5484,7 @@ melt-build-param.sh:  Makefile
 	echo '## GCCMELT_INSTALL_SOURCEDIR is the installed MELT source directory' >> $@-tmp
 	echo 'GCCMELT_INSTALL_SOURCEDIR=$(libexecsubdir)/melt-sources/$(melt_version_string)'  >> $@-tmp
 	echo '## GCCMELT_INSTALL_HEADERDIR is the installed MELT headers directory' >> $@-tmp
-	echo 'GCCMELT_INSTALL_HEADERDIR=$(plugin_includedir)/melt-headers-$(melt_version_string)'  >> $@-tmp
+	echo 'GCCMELT_INSTALL_HEADERDIR=$(plugin_includedir)/melt-headers/$(melt_version_string)'  >> $@-tmp
 	echo '## GCCMELT_INSTALL_MODULEDIR is the installed MELT module directory' >> $@-tmp
 	echo 'GCCMELT_INSTALL_MODULEDIR=$(libexecsubdir)/melt-modules/$(melt_version_string)'  >> $@-tmp
 	echo '## GCCMELT_INSTALL_MODULEMK is the installed MELT module makefile' >> $@-tmp
@@ -5550,10 +5550,12 @@ install-melt-modules: melt-modlists
 	done
 
 
-## install the makefile for MELT modules
+## install the makefile for MELT modules, updating the GCCMELT_HEADER_DIR there
 install-melt-mk: melt-module.mk
+	sed -e 's/GCCMELT_HEADER_DIR=./GCCMELT_HEADER_DIR=$(melt_header_dir)' < $< > melt-module.mk-tmp
 	$(mkinstalldirs) $(DESTDIR)$(libexecsubdir)
-	$(INSTALL_DATA) $< $(DESTDIR)/$(melt_installed_module_makefile)
+	$(INSTALL_DATA) melt-module.mk-tmp $(DESTDIR)/$(melt_installed_module_makefile)
+	$(RM) melt-module.mk-tmp
 
 ## install the default modules list
 install-melt-default-modules-list: melt-modlists

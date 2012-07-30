@@ -1,5 +1,9 @@
 
 2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* MELT-Plugin-Makefile: the melt headers directory is melt-headers/$(melt_version_string).
+	(install-melt-mk): Change the GCCMELT_HEADER_DIR at installation.
+
+2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* MELT-Plugin-Makefile (melt-build-param.sh): For GCCMELT_CC1 pass
 	the -c flag correctly.
 

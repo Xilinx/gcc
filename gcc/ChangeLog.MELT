@@ -1,6 +1,13 @@
 
 
 2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-module.mk (GCCMELT_HEADER_DIR, GCCMELT_PREPROFLAGS): New
+	variables.
+
+	* Makefile.in: Use melt-headers/$(melt_version_string).
+	(install-melt-mk): Overwrite GCCMELT_HEADER_DIR at installation.
+
+2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-build-script.tpl: Test that GCCMELT_CC1 exists.
 

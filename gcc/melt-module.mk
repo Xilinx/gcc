@@ -129,6 +129,8 @@ else
 GCCMELT_SHARED_FLAGS=-shared
 endif
 
+## this may be overwritten at installation
+GCCMELT_HEADER_DIR=.
 
 ##### the lines below are extracted into file melt-module-fragmelt.mk for melt-build.mk or melt-newbuild.mk
 ## the double underscores lines are used by sed to extract
@@ -150,6 +152,8 @@ GCCMELT_DEBUGNOLINE_PREPROFLAGS= -DMELTGCC_MODULE_DEBUGNOLINE  -DMELTGCC_NOLINEN
 GCCMELT_DYNAMIC_PREPROFLAGS= -DMELTGCC_MODULE_DYNAMIC  -DMELTGCC_NOLINENUMBERING -DMELT_HAVE_DEBUG=1  -DMELTGCC_DYNAMIC_OBJSTRUCT
 GCCMELT_DESCRIPTOR_PREPROFLAGS= -DMELTGCC_MODULE_DESCRIPTOR 
 ##__ENDFRAGMELT
+
+GCCMELT_PREPROFLAGS= -I $(realpath $(GCCMELT_HEADER_DIR))
 
 ## the primary C file
 GCCMELT_PRIMARY := $(wildcard $(GCCMELT_MODULE_SOURCEBASE).c)
@@ -189,7 +193,7 @@ GCCMELT_PACKAGES_LIBES=$(if $(MELTGENMOD_PACKAGELIST),$(shell pkg-config --libs 
 $(GCCMELTGEN_BUILD)%.quicklybuilt.meltpic.o:
 	@echo @+@melt-module quicklybuilt.meltpic at= $@ left= $< question= $? caret= $^ realpathleft= $(realpath $<)
 	if [ -z "$(filter %.mdsumed.c, $(realpath $<))" ]; then \
-	   $(GCCMELT_CC) $(GCCMELT_QUICKLYBUILT_PREPROFLAGS) \
+	   $(GCCMELT_CC) $(GCCMELT_QUICKLYBUILT_PREPROFLAGS) $(GCCMELT_PREPROFLAGS) \
               $(GCCMELT_QUICKLYBUILT_FLAGS) $(GCCMELT_CFLAGS) $(GCCMELT_PACKAGES_CFLAGS) \
 	        -fPIC -c -o $@ $< ; \
 	else \
@@ -200,7 +204,7 @@ $(GCCMELTGEN_BUILD)%.quicklybuilt.meltpic.o:
 
 $(GCCMELTGEN_BUILD)%.quicklybuilt.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed.c | $(GCCMELT_MODULE_DEPENDENCIES)
 	@echo @+@melt-module quicklybuilt.meltmdsumedpic at= $@ left= $< question= $? caret= $^
-	$(GCCMELT_CC) $(GCCMELT_QUICKLYBUILT_PREPROFLAGS) \
+	$(GCCMELT_CC) $(GCCMELT_QUICKLYBUILT_PREPROFLAGS)  $(GCCMELT_PREPROFLAGS) \
            $(GCCMELT_QUICKLYBUILT_FLAGS) $(GCCMELT_CFLAGS)  $(GCCMELT_PACKAGES_CFLAGS) \
 	   -fPIC -c -o $@ $<
 
@@ -208,7 +212,7 @@ $(GCCMELTGEN_BUILD)%.quicklybuilt.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed
 $(GCCMELTGEN_BUILD)%.optimized.meltpic.o: | $(GCCMELT_MODULE_DEPENDENCIES)
 	@echo @+@melt-module optimized.meltpic at= $@ left= $< question= $? caret= $^ realpathleft= $(realpath $<)
 	if [ -z "$(filter %.mdsumed.c, $(realpath $<))" ]; then \
-	   $(GCCMELT_CC) $(GCCMELT_OPTIMIZED_PREPROFLAGS) \
+	   $(GCCMELT_CC) $(GCCMELT_OPTIMIZED_PREPROFLAGS)  $(GCCMELT_PREPROFLAGS) \
               $(GCCMELT_OPTIMIZED_FLAGS) $(GCCMELT_CFLAGS)  $(GCCMELT_PACKAGES_CFLAGS) \
 	        -fPIC -c -o $@ $< ; \
 	else \
@@ -219,7 +223,7 @@ $(GCCMELTGEN_BUILD)%.optimized.meltpic.o: | $(GCCMELT_MODULE_DEPENDENCIES)
 
 $(GCCMELTGEN_BUILD)%.optimized.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed.c | $(GCCMELT_MODULE_DEPENDENCIES)
 	@echo @+@melt-module optimized.meltmdsumedpic at= $@ left= $< question= $? caret= $^
-	$(GCCMELT_CC)  $(GCCMELT_OPTIMIZED_PREPROFLAGS) \
+	$(GCCMELT_CC)  $(GCCMELT_OPTIMIZED_PREPROFLAGS)  $(GCCMELT_PREPROFLAGS) \
            $(GCCMELT_OPTIMIZED_FLAGS) $(GCCMELT_CFLAGS)  $(GCCMELT_PACKAGES_CFLAGS) \
 	   -fPIC -c -o $@ $<
 
@@ -227,7 +231,7 @@ $(GCCMELTGEN_BUILD)%.optimized.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed.c 
 $(GCCMELTGEN_BUILD)%.debugnoline.meltpic.o: | $(GCCMELT_MODULE_DEPENDENCIES)
 	@echo @+@melt-module debugnoline.meltpic at= $@ left= $< question= $? caret= $^ realpathleft= $(realpath $<)
 	if [ -z "$(filter %.mdsumed.c, $(realpath $<))" ]; then \
-	   $(GCCMELT_CC) $(GCCMELT_DEBUGNOLINE_PREPROFLAGS) \
+	   $(GCCMELT_CC) $(GCCMELT_DEBUGNOLINE_PREPROFLAGS)  $(GCCMELT_PREPROFLAGS) \
               $(GCCMELT_DEBUGNOLINE_FLAGS) $(GCCMELT_CFLAGS)  $(GCCMELT_PACKAGES_CFLAGS) \
 	        -fPIC -c -o $@ $< ; \
 	else \
@@ -238,7 +242,7 @@ $(GCCMELTGEN_BUILD)%.debugnoline.meltpic.o: | $(GCCMELT_MODULE_DEPENDENCIES)
 
 $(GCCMELTGEN_BUILD)%.debugnoline.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed.c | $(GCCMELT_MODULE_DEPENDENCIES)
 	@echo @+@melt-module debugnoline.meltmdsumedpic at= $@ left= $< question= $? caret= $^
-	$(GCCMELT_CC)   $(GCCMELT_DEBUGNOLINE_PREPROFLAGS) \
+	$(GCCMELT_CC)   $(GCCMELT_DEBUGNOLINE_PREPROFLAGS)  $(GCCMELT_PREPROFLAGS) \
            $(GCCMELT_DEBUGNOLINE_FLAGS) $(GCCMELT_CFLAGS)  $(GCCMELT_PACKAGES_CFLAGS) \
 	   -fPIC -c -o $@ $<
 
@@ -247,7 +251,7 @@ $(GCCMELTGEN_BUILD)%.debugnoline.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed.
 $(GCCMELTGEN_BUILD)%.dynamic.meltpic.o: | $(GCCMELT_MODULE_DEPENDENCIES)
 	@echo @+@melt-module dynamic.meltpic at= $@ left= $< question= $? caret= $^ realpathleft= $(realpath $<)
 	if [ -z "$(filter %.mdsumed.c, $(realpath $<))" ]; then \
-	   $(GCCMELT_CC) $(GCCMELT_DYNAMIC_PREPROFLAGS) \
+	   $(GCCMELT_CC) $(GCCMELT_DYNAMIC_PREPROFLAGS)  $(GCCMELT_PREPROFLAGS) \
               $(GCCMELT_DYNAMIC_FLAGS) $(GCCMELT_CFLAGS)  $(GCCMELT_PACKAGES_CFLAGS) \
 	        -fPIC -c -o $@ $< ; \
 	else \
@@ -258,7 +262,7 @@ $(GCCMELTGEN_BUILD)%.dynamic.meltpic.o: | $(GCCMELT_MODULE_DEPENDENCIES)
 
 $(GCCMELTGEN_BUILD)%.dynamic.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed.c | $(GCCMELT_MODULE_DEPENDENCIES)
 	@echo @+@melt-module dynamic.meltmdsumedpic at= $@ left= $< question= $? caret= $^
-	$(GCCMELT_CC) $(GCCMELT_DYNAMIC_PREPROFLAGS) \
+	$(GCCMELT_CC) $(GCCMELT_DYNAMIC_PREPROFLAGS)  $(GCCMELT_PREPROFLAGS) \
            $(GCCMELT_DEBUGNOLINE_FLAGS) $(GCCMELT_CFLAGS)  $(GCCMELT_PACKAGES_CFLAGS) \
 	   -fPIC -c -o $@ $<
 
@@ -267,7 +271,7 @@ $(GCCMELTGEN_BUILD)%.dynamic.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed.c | 
 ## descriptor quasi-flavor, never symlinked!
 $(GCCMELTGEN_BUILD)%.descriptor.meltpic.o: | $(GCCMELT_MODULE_DEPENDENCIES)
 	@echo @+@melt-module descriptor.meltpic at= $@ left= $< question= $? caret= $^
-	$(GCCMELT_CC) $(GCCMELT_DESCRIPTOR_PREPROFLAGS) \
+	$(GCCMELT_CC) $(GCCMELT_DESCRIPTOR_PREPROFLAGS)  $(GCCMELT_PREPROFLAGS) \
           $(GCCMELT_DESCRIPTOR_FLAGS) $(GCCMELT_CFLAGS)  \
 	   -fPIC -c -o $@ $<
 
