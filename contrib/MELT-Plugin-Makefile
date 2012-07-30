@@ -255,8 +255,10 @@ gfmeltgcc_run_md5: $(MELTGCC_RUNTIME_INCLUDES) MELT-Plugin-Makefile  melt-run.pr
 
 melt-run.h: melt-run.proto.h gfmeltgcc_run_md5 gfmeltgcc_version_number
 	rm -f $@-tmp
-	$(SED) -e 's,#define *MELT_RUN_HASHMD5 *XX,#define MELT_RUN_HASHMD5 \"$(shell cat gfmeltgcc_run_md5)\",' \
-               -e 's,#define *MELT_GCC_VERSION *YY,#define MELT_GCC_VERSION $(shell cat gfmeltgcc_version_number),' <  $< > $@-tmp
+	$(SED) \
+            -e '/include.*melt-runtime.h/i #define MELT_IS_PLUGIN 1' \
+	    -e 's,#define *MELT_RUN_HASHMD5 *XX,#define MELT_RUN_HASHMD5 \"$(shell cat gfmeltgcc_run_md5)\",' \
+            -e 's,#define *MELT_GCC_VERSION *YY,#define MELT_GCC_VERSION $(shell cat gfmeltgcc_version_number),' <  $< > $@-tmp
 	mv $@-tmp $@
 
 melt-run-md5.h:  gfmeltgcc_run_md5

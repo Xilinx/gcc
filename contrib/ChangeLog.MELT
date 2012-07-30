@@ -1,5 +1,9 @@
 
 2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* MELT-Plugin-Makefile (melt-run.h): Emit #define of
+	MELT_IS_PLUGIN.
+
+2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* MELT-Plugin-Makefile (melt-build-param.sh): Set properly
 	GCCMELT_COMPILER & GCCMELT_LINKER.
 
