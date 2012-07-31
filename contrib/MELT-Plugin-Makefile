@@ -219,9 +219,11 @@ GCCMELT_STAGE_ZERO = meltbuild-stage0-quicklybuilt
 ## -j flag to make.
 
 all: melt-run.h melt.so melt-applications melt-gendoc doc
-	echo MELT plugin compilation completed.  You may want to	\
+	@echo '+++++++++++++++++++'
+	@echo MELT plugin compilation completed.  You may want to	\
 	     manually compile simplemelt-gtkmm-probe.cc if you have	\
 	     GTK3.4 and GTKmm.
+	@echo
 
 
 gt-melt-runtime.h:  $(MELTGCC_RUNTIME_INCLUDES) $(MELTGCC_GTYPESTATE) \
