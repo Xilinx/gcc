@@ -8685,14 +8685,10 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
     warning (0,
              "MELT descriptive file %s for MELT version %s, but this MELT runtime is version %s",
              srcpath, descversionmelt, melt_version_str ());
+  /* Take care that the same file name should be given below, as argument to melt_compile_source.  */
   sobase =
     concat (melt_basename(descmodulename), 
-#if 1
 	    ".meltmod-", 
-#else
-	    ".",
-#warning melt_load_module_index should have .meltmod somewhere in sobase
-#endif
 	    desccumulatedhexmd5, ".", flavor,
             MELT_DYNLOADED_SUFFIX, NULL);
   debugeprintf ("melt_load_module_index long sobase %s workdir %s",
@@ -8770,8 +8766,9 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
     if (!worktmpdir)
       worktmpdir = melt_tempdir_path (NULL, NULL);
     binbase = concat (worktmpdir, "/", melt_basename (srcbase), NULL);
+    /* The same file name should be given above. */
     sopath =
-      concat (binbase, ".", desccumulatedhexmd5, ".", flavor,
+      concat (binbase, ".meltmod-", desccumulatedhexmd5, ".", flavor,
               MELT_DYNLOADED_SUFFIX, NULL);
     debugeprintf ("sopath %s", sopath);
     (void) remove (sopath);
