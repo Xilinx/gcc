@@ -2262,8 +2262,17 @@ rtl_verify_flow_info_1 (void)
 
 	    if (control_flow_insn_p (x))
 	      {
-		error ("in basic block %d:", bb->index);
-		fatal_insn ("flow control insn inside a basic block", x);
+		if (flag_enable_cilk
+		    && (cfun->calls_spawn || IS_CILK_HELPER (cfun)
+			|| CALLS_NOTIFY_INTRINSIC (cfun)))
+		  /* For the Cilk Functions, we add some extra info, but those
+		     will be removed toward the end.  So don't flag those.  */
+		  ;
+		else
+		  {
+		    error ("in basic block %d:", bb->index);
+		    fatal_insn ("flow control insn inside a basic block", x);
+		  }
 	      }
 	  }
     }
