@@ -1,0 +1,59 @@
+/* This file contains the definitions and documentation for the
+   Cilk Plus builtins used in the GNU compiler.
+   Copyright (C) 2012 Free Software Foundation, Inc.
+
+   Contributed by Balaji V. Iyer <balaji.v.iyer@intel.com>
+   	          Intel Corporation.
+
+This file is part of GCC.
+
+GCC is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation; either version 3, or (at your option) any later
+version.
+
+GCC is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+You should have received a copy of the GNU General Public License
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
+
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_WORKER_ID, "__cilkrts_current_worker_id")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_WORKER_PTR, "__cilkrts_current_worker")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_DETACH, "__cilkrts_detach")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_SYNCHED, "__cilkrts_synched")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_STOLEN, "__cilkrts_was_stolen")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_ENTER_FRAME, "__cilkrts_enter_frame")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_LEAVE_FRAME, "__cilkrts_leave_frame")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_POP_FRAME, "__cilkrts_pop_frame")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_ENTER_BEGIN, "__cilk_enter_begin")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_ENTER_H_BEGIN, "__cilk_enter_helper_begin")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_ENTER_END, "__cilk_enter_end")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_SPAWN_PREPARE, "__cilk_spawn_prepare")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_SPAWN_OR_CONT, "__cilk_spawn_or_continue")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_DETACH_BEGIN, "__cilk_detach_begin")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_DETACH_END, "__cilk_detach_end")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_SYNC_BEGIN, "__cilk_sync_begin")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_SYNC_END, "__cilk_sync_end")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_LEAVE_BEGIN, "__cilk_leave_begin")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_LEAVE_END, "__cilk_leave_end")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILKSCREEN_METACALL, "cilkscreen_metacall")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_RESUME, "cilk_resume")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_LEAVE_STOLEN, "cilk_leave_stolen")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_SYNC_ABANDON, "cilk_sync_abandon")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILKSCREEN_EN_INSTR, 
+"cilkscreen_enable_instrumentation")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILKSCREEN_DS_INSTR,
+"cilkscreen_disable_instrumentation")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILKSCREEN_DS_CHK, 
+"cilkscreen_disable_checking")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILKSCREEN_EN_CHK, 
+"cilkscreen_enable_checking")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILKSCREEN_AQUIRE_LOCK, 
+"cilkscreen_aquire_lock")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILKSCREEN_REL_LOCK, "cilkscreen_release_lock")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_NOTIFY_ZC_INTRINSIC, "__notify_zc_intrinsic")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_NOTIFY_INTRINSIC, "__notify_intrinsic")
