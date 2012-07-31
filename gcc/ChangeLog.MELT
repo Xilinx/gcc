@@ -1,5 +1,17 @@
 
 
+2012-07-31  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* Makefile.in (melt-build-param.sh): Typo on emission
+	GCCMELT_RUNTIME_C. Emit quoted assignments for GCCMELT_COMPILER &
+	GCCMELT_LINKER.
+
+	* melt-build-script.tpl: Fixed typos. Add sanity checks
+
+	* melt-build-script.sh: Regenerate.
+
+	* melt-runtime.h (MELT_VERSION_STRING): Bump to 0.9.6-rc4
+
 2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build-script.tpl: Set nullglob.
 

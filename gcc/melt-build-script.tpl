@@ -279,7 +279,7 @@ function meltbuild_emit () {
     echo meltbuild-empty-file.c >>  $meltargs-$$-tmp
     mv $meltargs-$$-tmp $meltargs
     meltbuild_info $meltfrom argument file $meltargs is
-    cat  $meltargs > /dev/stderr
+    cat  $meltargs < /dev/null > /dev/stderr
     if [ -z "$GCCMELT_SKIPEMITC" ]; then
 	$GCCMELT_CC1_PREFIX $GCCMELT_CC1 @$meltargs || meltbuild_error $meltfrom failed with arguments @$meltargs
         ## remove obsolete secondary C files left previously in $meltstage 
@@ -659,8 +659,8 @@ meltcheckruntime_stamp=meltbuild-checkruntime.stamp
 if [ ! -f $meltcheckruntime_stamp -o $meltcheckruntime_stamp -ot "$GCCMELT_RUNTIME_ARGS" \
     -o $meltcheckruntime_stamp -ot "$GCCMELT_RUNTIME_C" \
     -o $meltcheckruntime_stamp -ot $melt_final_application_stamp ]; then
-    meltcheckruntime_arg=meltbuild-checkruntime.args 
-    meltcheckruntime_argstemp=$meltcheckruntime_arg-tmp$$
+    meltcheckruntime_args=meltbuild-checkruntime.args 
+    meltcheckruntime_argstemp=$meltcheckruntime_args-tmp$$
     echo ' -DGCCMELT_FROM_ARG="[+(.(fromline))+]"' > $meltcheckruntime_argstemp
     meltbuild_arg mode=meltframe >> $meltcheckruntime_argstemp
     meltbuild_arg workdir=meltbuild-workdir >>  $meltcheckruntime_argstemp
@@ -668,17 +668,23 @@ if [ ! -f $meltcheckruntime_stamp -o $meltcheckruntime_stamp -ot "$GCCMELT_RUNTI
     meltbuild_arg source-path=meltbuild-sources >> $meltcheckruntime_argstemp
     meltbuild_arg module-path=meltbuild-modules >> $meltcheckruntime_argstemp
     meltbuild_arg bootstrapping  >> $meltcheckruntime_argstemp
-    cat $GCCMELT_RUNTIME_ARGS >>  $meltcheckruntime_argstemp
-    $GCCMELT_MOVE_IF_CHANGE  $meltcheckruntime_argstemp $meltcheckruntime_arg
+    echo ' -o /dev/null' >> $meltcheckruntime_argstemp
+    cat $GCCMELT_RUNTIME_ARGS < /dev/null >>  $meltcheckruntime_argstemp
+    $GCCMELT_MOVE_IF_CHANGE  $meltcheckruntime_argstemp $meltcheckruntime_args
+    [ -f "$meltcheckruntime_args" ] || meltbuild_error  [+(.(fromline))+] missing check runtime args  "$meltcheckruntime_args"
    meltbuild_info [+(.(fromline))+] $meltcheckruntime_args  is
-   cat $meltcheckruntime_args > /dev/stderr
+   cat $meltcheckruntime_args < /dev/null > /dev/stderr
     $GCCMELT_CC1_PREFIX $GCCMELT_CC1 @$meltcheckruntime_args \
-	|| meltbuild_error [+(.(fromline))+] failed with arguments @$meltcheckruntime_args
+	|| meltbuild_error [+(.(fromline))+] failed with arguments @$meltcheckruntime_arg
+   meltbuild_info [+(.(fromline))+] done check runtime with $meltcheckruntime_args
     meltcheckruntime_stamptemp=$meltcheckruntime_stamp-tmp$$
+    [ -f "$GCCMELT_RUNTIME_C" ] || meltbuild_error [+(.(fromline))+] missing MELT runtime C file $GCCMELT_RUNTIME_C
     echo "/// MELT check runtime timestamp file $meltcheckruntime_stamp" > $meltcheckruntime_stamptemp
     echo $GCCMELT_RUNTIME_DEPENDENCY_MD5SUM $GCCMELT_RUNTIME_DEPENDENCY >> $meltcheckruntime_stamptemp
-    $MD5SUM $GCCMELT_RUNTIME_C >>  $meltcheckruntime_stamptemp
-    grep meltbuild-modules/ $melt_final_translator_stamp $melt_final_application_stamp >>   $meltcheckruntime_stamptemp
+    $MD5SUM $GCCMELT_RUNTIME_C < /dev/null >>  $meltcheckruntime_stamptemp
+    [ -f "$melt_final_translator_stamp" ] || meltbuild_error [+(.(fromline))+] missing final translator stamp "$melt_final_translator_stamp"
+    [ -f "$melt_final_application_stamp" ] || meltbuild_error [+(.(fromline))+] missing final application stamp "$melt_final_application_stamp"
+    grep meltbuild-modules/ "$melt_final_translator_stamp" "$melt_final_application_stamp" < /dev/null >>   $meltcheckruntime_stamptemp
     echo "///end timestamp file $meltcheckruntime_stamp" >>   $meltcheckruntime_stamptemp
     $GCCMELT_MOVE_IF_CHANGE  $meltcheckruntime_stamptemp $meltcheckruntime_stamp
     meltbuild_info [+(.(fromline))+] done check runtime  $meltcheckruntime_stamp
@@ -687,7 +693,7 @@ else
 fi
 
 if [ "$melt_overall_goal" = "checkruntime" ]; then
-    meltbuild_info [+(.(fromline))+] done checkruntime overall goal with stamp  $melt_final_translator_stamp
+    meltbuild_info [+(.(fromline))+] done checkruntime overall goal with stamp  $meltcheckruntime_stamp
     exit 0
 fi
 ################################################################
@@ -709,7 +715,7 @@ if [ "$melt_overall_goal" = "regenerate" ]; then
     echo meltbuild-empty-file.c >> $meltregen_argstemp
     $GCCMELT_MOVE_IF_CHANGE  $meltregen_argstemp $meltregen_args
    meltbuild_info [+(.(fromline))+] $meltregen_args  is
-   cat $meltregen_args > /dev/stderr
+   cat $meltregen_args < /dev/null > /dev/stderr
     $GCCMELT_CC1_PREFIX $GCCMELT_CC1 @$meltregen_args \
 	|| meltbuild_error [+(.(fromline))+] failed with arguments @$meltregen_args
     meltbuild_info [+(.(fromline))+] done regenerate overall goal
@@ -736,7 +742,7 @@ if [   ! -f meltgendoc.texi [+FOR melt_translator_file " \\\n"+] -o meltbuild-so
    echo meltbuild-empty-file.c >> $meltgen_args
    $GCCMELT_MOVE_IF_CHANGE  $meltgen_args meltbuild-gendoc.args
    meltbuild_info [+(.(fromline))+]  meltbuild-gendoc.args is
-   cat meltbuild-gendoc.args > /dev/stderr
+   cat meltbuild-gendoc.args < /dev/null > /dev/stderr
    $GCCMELT_CC1_PREFIX $GCCMELT_CC1 @meltbuild-gendoc.args \
      || meltbuild_error [+(.(fromline))+] failed with arguments @meltbuild-gendoc.args
 else

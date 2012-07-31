@@ -1,4 +1,11 @@
 
+2012-07-31  Basile Starynkevitch  <basile@starynkevitch.net>
+	* MELT-Plugin-Makefile (melt-build-param.sh): Typo on
+	GCCMELT_RUNTIME_C. Emit quoted assignments for GCCMELT_COMPILER &
+	GCCMELT_LINKER.
+	(all): Add echo message mentioning simplemelt-gtkmm-probe.cc
+	etc...
+
 2012-07-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* MELT-Plugin-Makefile (melt-build-param.sh): Emit
 	GCCMELT_RUNTIME_C.

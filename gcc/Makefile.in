@@ -5456,10 +5456,10 @@ meltbuild-empty-file.c:
 melt-build-param.sh:  Makefile ./cc1$(exeext)
 	date "+#file $@ generated %c%n" > $@-tmp
 	echo '## compiler GCCMELT_COMPILER and flags GCCMELT_COMPILER_FLAGS to compile MELT generated code' >> $@-tmp
-	echo GCCMELT_COMPILER=$(COMPILER) >> $@-tmp
+	echo "GCCMELT_COMPILER='$(GCCMELT_COMPILER)'" >> $@-tmp
 	echo 'GCCMELT_COMPILER_FLAGS="$(filter-out -O% -g% -O -g, $(ALL_COMPILERFLAGS) $(INCLUDES))"' >> $@-tmp
 	echo '## linker GCCMELT_LINKER and flags GCCMELT_LINKER_FLAGS to link MELT generated module' >> $@-tmp
-	echo GCCMELT_LINKER=$(LINKER) >> $@-tmp
+	echo "GCCMELT_LINKER='$(GCCMELT_LINKER)'" >> $@-tmp
 	echo 'GCCMELT_LINKER_FLAGS="$(filter-out -O% -g% -O -g, $(LINKER_FLAGS))"' >> $@-tmp
 	echo '## source directory containing MELT code is GCCMELT_MELTSOURCEDIR' >> $@-tmp
 	echo GCCMELT_MELTSOURCEDIR=$(srcdir)/melt/ >> $@-tmp
@@ -5480,7 +5480,7 @@ melt-build-param.sh:  Makefile ./cc1$(exeext)
 	echo '## GCCMELT_RUNTIME_ARGS is the argument file passed with @melt-runtime.arg to compile the MELT runtime'  >> $@-tmp
 	echo 'GCCMELT_RUNTIME_ARGS=$(realpath melt-runtime.args)' >> $@-tmp
 	echo '## GCCMELT_RUNTIME_C is the C source file of the runtime' >> $@-tmp
-	echo 'GCCMELT_RUNTIME_C="$(realpatch $(MELT_RUNTIME_C))"'   >> $@-tmp
+	echo 'GCCMELT_RUNTIME_C="$(realpath $(MELT_RUNTIME_C))"'   >> $@-tmp
 	echo '## GCCMELT_INCLUDES is the include flags for the MELT runtime' >> $@-tmp
 	echo 'GCCMELT_INCLUDES="-I $(realpath .) -I $(realpath $(srcdir)/melt/generated) $(INCLUDES)"'  >> $@-tmp
 	echo '## GCCMELT_MODULE_MK is the source location of the makefile melt-module.mk invoked by MELT'   >> $@-tmp
