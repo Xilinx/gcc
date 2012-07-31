@@ -106,8 +106,9 @@ extern struct plugin_gcc_version* melt_plugin_gcc_version;
 extern const int melt_gccplugin_version;
 
 /* The version string of MELT; this is parsed by make, so spaces are
-   important!  */
-#define MELT_VERSION_STRING "0.9.6-rc4"
+   important!  That version string is extracted by scripts or
+   makefiles... */
+#define MELT_VERSION_STRING "0.9.6"
 
 /* return a read only version string */
 extern const char* melt_version_str(void);

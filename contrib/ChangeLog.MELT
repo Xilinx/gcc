@@ -1,5 +1,9 @@
 
 2012-07-31  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* MELT-Plugin-Makefile: Fix various make install bugs.
+
+2012-07-31  Basile Starynkevitch  <basile@starynkevitch.net>
 	* MELT-Plugin-Makefile (all): More pretty message.
 
 2012-07-31  Basile Starynkevitch  <basile@starynkevitch.net>

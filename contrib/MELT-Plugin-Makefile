@@ -221,8 +221,9 @@ GCCMELT_STAGE_ZERO = meltbuild-stage0-quicklybuilt
 all: melt-run.h melt.so melt-applications melt-gendoc doc
 	@echo '+++++++++++++++++++'
 	@echo MELT plugin compilation completed.  You may want to	\
-	     manually compile simplemelt-gtkmm-probe.cc if you have	\
-	     GTK3.4 and GTKmm.
+	       manually compile simplemelt-gtkmm-probe.cc if you have	\
+	       GTK3.4 and GTKmm. See its last dozen of lines for	\
+	       building instructions.
 	@echo
 
 
@@ -374,10 +375,7 @@ GCCMELTGEN_BUILD=melt-workdir/
 
 .PHONY: melt-clean melt-translator melt-applications melt-modlists melt-gendoc
 
-## with MELTBUILD_MKFILE=melt-newbuild.mk we could run
-##	$(MAKE) -f $(realpath $(MELTBUILD_MKFILE)) GCCMELT_BUILD_MKFILE=$(realpath $(MELTBUILD_MKFILE)) 'MAKEFLAGS=$(MAKEFLAGS)' melt-build
-## but it is still so buggy, so I'm mentionning only in a comment...
- meltgendoc.texi:  melt-build-settings.sh  melt-build-param.sh melt-build-script.sh $(melt_make_cc1_dependency) $(MELTBUILD_MKFILE) warmelt-predef.melt melt-predef.h $(wildcard melt/*.melt melt/generated/*.[ch]) melt-gendoc
+meltgendoc.texi:  melt-build-settings.sh  melt-build-param.sh melt-build-script.sh $(melt_make_cc1_dependency) $(MELTBUILD_MKFILE) warmelt-predef.melt melt-predef.h $(wildcard melt/*.melt melt/generated/*.[ch]) melt-gendoc
 
 melt-clean:
 	$(RM) -rf meltbuild*
@@ -451,9 +449,9 @@ meltpluginapi.info: meltpluginapi.texi meltgendoc.texi
 
 
 ################# installation
-install: all melt.so warmelt  \
+install:   all melt-gendoc \
     install-melt-includes install-melt-sources install-melt-modules \
-    install-melt-mk install-melt-default-modules-list install-melt-so
+    install-melt-mk install-melt-so install-melt-doc
 
 install-melt-includes: melt-runtime.h melt-predef.h melt-run.h melt-run-md5.h melt/generated/meltrunsup.h
 	@echo installing MELT include directory $(melt_header_dir)
@@ -468,41 +466,39 @@ install-melt-so: melt.so
 
 
 
-### notice that melt-sources is a directory, but melt-all-sources is a
-### phony makefile target from melt-build.mk
-install-melt-sources: melt-sources  melt-all-sources
-	@echo installing MELT source directory $(melt_source_dir)
+### notice that meltbuild-sources is a directory filled by the all target
+### this also install the modules list files
+install-melt-sources: 
+	@echo installing MELT sources directory $(melt_source_dir)
+# we check that warmelt-normal.c exist in the build sources
+	@[ -f  meltbuild-sources/warmelt-normal.c ] \
+	   || (echo incomplete meltbuild-sources; exit 1)
 	$(mkinstalldirs) $(DESTDIR)$(melt_source_dir)
-	for f in melt-sources/*.c melt-sources/*.melt ; do \
-	   $(INSTALL_DATA) $$f $(DESTDIR)$(melt_source_dir) ; \
+	$(RM) meltbuild-sources/*~
+	for f in meltbuild-sources/*.[ch]  meltbuild-sources/*.mk meltbuild-sources/*.melt meltbuild-sources/*.modlis ; do \
+	   $(INSTALL_DATA) $$f $(DESTDIR)$(melt_source_dir)/ ; \
 	done
 
-### notice that melt-modules is a directory, but melt-all-modules is a
-### phony makefile target from melt-build.mk
-install-melt-modules: melt-modules melt-all-modules
-	@echo installing MELT module directory $(melt_module_dir)
+### notice that meltbuild-modules is  a directory filled by the all target
+install-melt-modules:
+	@echo installing MELT modules directory $(melt_module_dir)
+# we check that some xtramelt-ana-base module exist
+	@[ -f meltbuild-modules/xtramelt-ana-base.meltmod*.optimized.so ] \
+          || (echo incomplete meltbuild-modules; exit 1)
 	$(mkinstalldirs) $(DESTDIR)$(melt_module_dir)
-	for l in $(wildcard melt-modules/*) : ; do \
-	   if [ "$$l" != ":" ]; then \
-	      $(INSTALL_PROGRAM) `readlink $$l` $(DESTDIR)$(melt_module_dir)/$$(basename `readlink $$l`) ; \
-	   fi; \
+	for l in  meltbuild-modules/[a-z]*.meltmod*.so ; do \
+	  $(INSTALL_PROGRAM) $$l $(DESTDIR)$(melt_module_dir)/ ; \
 	done
 
 
 ## install the makefile for MELT modules
 install-melt-mk: melt-module.mk
-	@echo installing MELT plugin dir $(MELTGCC_PLUGIN_DIR)
-	$(SED) -e 's/GCCMELT_HEADER_DIR=./GCCMELT_HEADER_DIR=$(melt_header_dir)' < $< > melt-module.mk-tmp
+	@echo installing MELT maker into plugin dir $(MELTGCC_PLUGIN_DIR)
+	$(SED) -e 's:GCCMELT_HEADER_DIR=.:GCCMELT_HEADER_DIR=$(melt_header_dir):' < $< > melt-module.mk-tmp
 	$(mkinstalldirs) $(DESTDIR)$(MELTGCC_PLUGIN_DIR)
-	$(INSTALL_DATA) $melt-module.mk-tmp $(DESTDIR)$(melt_installed_module_makefile)
+	$(INSTALL_DATA) melt-module.mk-tmp $(DESTDIR)$(melt_installed_module_makefile)
 	$(RM) melt-module.mk-tmp
 
-## install the default modules list
-install-melt-default-modules-list: $(melt_default_modules_list).modlis \
-            $(melt_default_modules_list)-quicklybuilt.modlis \
-            $(melt_default_modules_list)-optimized.modlis \
-            $(melt_default_modules_list)-debugnoline.modlis
-	$(INSTALL_DATA) $^ $(DESTDIR)$(melt_source_dir) 
 
 ### install the MELT documentation files
 install-melt-doc: doc doc-info doc-pdf doc-html

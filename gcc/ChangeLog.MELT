@@ -1,4 +1,7 @@
 
+2012-07-31  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h (MELT_VERSION_STRING): Bump to 0.9.6
 
 2012-07-31  Basile Starynkevitch  <basile@starynkevitch.net>
 

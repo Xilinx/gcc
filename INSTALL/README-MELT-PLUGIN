@@ -187,7 +187,7 @@ the subject line] and to <gcc-melt@googlegroups.com>
 
 ################################################################
 NEWS for 0.9.6 MELT plugin for GCC 4.6 & 4.7
-[[july 2012]]
+[[july, 31st 2012]]
 
    Language improvements
    =====================
@@ -247,8 +247,8 @@ NEWS for 0.9.6 MELT plugin for GCC 4.6 & 4.7
      #! /bin/bash -x
      exec simplemelt-gtkmm-probe -T $*
 
-   The probe mode is expecting a shell script named melt-probe
-   somewhere in your path.
+   The probe mode is expecting a shell script or program named
+   melt-probe somewhere in your path.
 
    You can now compile some C or C++ ... file with GCC enhanced by MELT, e.g.
      gcc -fplugin=melt -fplugin-arg-melt-mode=probe -c some-file.cc
