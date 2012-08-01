@@ -57,6 +57,7 @@ export GCCMELT_SKIPEMITC=""
 date +"/*empty file for MELT build %c*/" > meltbuild-empty-file.c
 
 [ -d meltbuild-workdir ] || mkdir  meltbuild-workdir
+[ -d meltbuild-tempdir ] || mkdir  meltbuild-tempdir
 
 ## our error function  [+(.(fromline))+]
 function meltbuild_error () {
@@ -269,7 +270,7 @@ function meltbuild_emit () {
     meltbuild_arg "module-cflags='$GCCMELT_INCLUDES -I. -I$meltstage -I$meltprevstage $GCCMELT_COMPILER_FLAGS'" >>  $meltargs-$$-tmp
     meltbuild_arg init=$meltinit >> $meltargs-$$-tmp
     meltbuild_arg workdir=meltbuild-workdir >> $meltargs-$$-tmp
-    meltbuild_arg tempdir=. >> $meltargs-$$-tmp
+    meltbuild_arg tempdir=meltbuild-tempdir >> $meltargs-$$-tmp
     meltbuild_arg source-path=$meltstage:$meltprevstage:. >> $meltargs-$$-tmp
     meltbuild_arg module-path=$meltstage:$meltprevstage:. >> $meltargs-$$-tmp
     meltbuild_arg bootstrapping  >> $meltargs-$$-tmp
@@ -659,12 +660,13 @@ meltcheckruntime_stamp=meltbuild-checkruntime.stamp
 if [ ! -f $meltcheckruntime_stamp -o $meltcheckruntime_stamp -ot "$GCCMELT_RUNTIME_ARGS" \
     -o $meltcheckruntime_stamp -ot "$GCCMELT_RUNTIME_C" \
     -o $meltcheckruntime_stamp -ot $melt_final_application_stamp ]; then
+    #@ [+(.(fromline))+] checkruntime
     meltcheckruntime_args=meltbuild-checkruntime.args 
     meltcheckruntime_argstemp=$meltcheckruntime_args-tmp$$
     echo ' -DGCCMELT_FROM_ARG="[+(.(fromline))+]"' > $meltcheckruntime_argstemp
     meltbuild_arg mode=meltframe >> $meltcheckruntime_argstemp
     meltbuild_arg workdir=meltbuild-workdir >>  $meltcheckruntime_argstemp
-    meltbuild_arg tempdir=. >> $meltcheckruntime_argstemp
+    meltbuild_arg tempdir=meltbuild-tempdir >> $meltcheckruntime_argstemp
     meltbuild_arg source-path=meltbuild-sources >> $meltcheckruntime_argstemp
     meltbuild_arg module-path=meltbuild-modules >> $meltcheckruntime_argstemp
     meltbuild_arg bootstrapping  >> $meltcheckruntime_argstemp
@@ -677,11 +679,35 @@ if [ ! -f $meltcheckruntime_stamp -o $meltcheckruntime_stamp -ot "$GCCMELT_RUNTI
     $GCCMELT_CC1_PREFIX $GCCMELT_CC1 @$meltcheckruntime_args \
 	|| meltbuild_error [+(.(fromline))+] failed with arguments @$meltcheckruntime_arg
    meltbuild_info [+(.(fromline))+] done check runtime with $meltcheckruntime_args
+   #@ [+(.(fromline))+] checkhello
+    meltcheckhelloworld_args=meltbuild-checkhelloworld.args 
+    meltcheckhelloworld_argstemp=$meltcheckhelloworld_args-tmp$$
+    echo ' -DGCCMELT_FROM_ARG="[+(.(fromline))+]"' > $meltcheckhelloworld_argstemp
+    meltbuild_arg mode=runfile >> $meltcheckhelloworld_argstemp
+    meltbuild_arg workdir=meltbuild-workdir >>  $meltcheckhelloworld_argstemp
+    meltbuild_arg module-makefile=$GCCMELT_MODULE_MK >>  $meltcheckhelloworld_argstemp
+    meltbuild_arg tempdir=meltbuild-tempdir >> $meltcheckhelloworld_argstemp
+    meltbuild_arg source-path=meltbuild-sources >> $meltcheckhelloworld_argstemp
+    meltbuild_arg module-path=meltbuild-modules >> $meltcheckhelloworld_argstemp
+    date +'(code_chunk hello%j #{puts("hello world from MELT %F @" __TIME__"\n")}#)' > meltbuild-hello.melt-tmp$$
+    $GCCMELT_MOVE_IF_CHANGE meltbuild-hello.melt-tmp$$  meltbuild-hello.melt
+    meltbuild_arg arg=meltbuild-hello.melt >> $meltcheckhelloworld_argstemp
+    echo ' meltbuild-empty-file.c -o /dev/null' >> $meltcheckhelloworld_argstemp
+    cat $GCCMELT_HELLOWORLD_ARGS < /dev/null >>  $meltcheckhelloworld_argstemp
+    $GCCMELT_MOVE_IF_CHANGE  $meltcheckhelloworld_argstemp $meltcheckhelloworld_args
+    [ -f "$meltcheckhelloworld_args" ] || meltbuild_error  [+(.(fromline))+] missing check helloworld args  "$meltcheckhelloworld_args"
+   meltbuild_info [+(.(fromline))+] $meltcheckhelloworld_args  is
+   cat $meltcheckhelloworld_args < /dev/null > /dev/stderr
+    $GCCMELT_CC1_PREFIX $GCCMELT_CC1 @$meltcheckhelloworld_args \
+	|| meltbuild_error [+(.(fromline))+] running helloworld failed with arguments @$meltcheckhelloworld_arg
+   meltbuild_info [+(.(fromline))+] done check helloworld with $meltcheckruntime_args
+   #@ [+(.(fromline))+] runtime stamp
     meltcheckruntime_stamptemp=$meltcheckruntime_stamp-tmp$$
     [ -f "$GCCMELT_RUNTIME_C" ] || meltbuild_error [+(.(fromline))+] missing MELT runtime C file $GCCMELT_RUNTIME_C
     echo "/// MELT check runtime timestamp file $meltcheckruntime_stamp" > $meltcheckruntime_stamptemp
     echo $GCCMELT_RUNTIME_DEPENDENCY_MD5SUM $GCCMELT_RUNTIME_DEPENDENCY >> $meltcheckruntime_stamptemp
     $MD5SUM $GCCMELT_RUNTIME_C < /dev/null >>  $meltcheckruntime_stamptemp
+    $MD5SUM meltbuild-hello.melt < /dev/null >>  $meltcheckruntime_stamptemp
     [ -f "$melt_final_translator_stamp" ] || meltbuild_error [+(.(fromline))+] missing final translator stamp "$melt_final_translator_stamp"
     [ -f "$melt_final_application_stamp" ] || meltbuild_error [+(.(fromline))+] missing final application stamp "$melt_final_application_stamp"
     grep meltbuild-modules/ "$melt_final_translator_stamp" "$melt_final_application_stamp" < /dev/null >>   $meltcheckruntime_stamptemp
@@ -708,7 +734,7 @@ if [ "$melt_overall_goal" = "regenerate" ]; then
    meltbuild_arg mode=runtypesupport >> $meltregen_argstemp
     meltbuild_arg output=meltbuild-sources/generated/meltrunsup >> $meltregen_argstemp
     meltbuild_arg workdir=meltbuild-workdir >>  $meltregen_argstemp
-    meltbuild_arg tempdir=. >> $meltregen_argstemp
+    meltbuild_arg tempdir=meltbuild-tempdir >> $meltregen_argstemp
     meltbuild_arg source-path=meltbuild-sources >> $meltregen_argstemp
     meltbuild_arg module-path=meltbuild-modules >> $meltregen_argstemp
     meltbuild_arg bootstrapping  >> $meltregen_argstemp
@@ -734,7 +760,7 @@ if [   ! -f meltgendoc.texi [+FOR melt_translator_file " \\\n"+] -o meltbuild-so
    meltbuild_arg output=meltgendoc.texi >> $meltgen_args
    meltbuild_arg init=@$MELTGCCBUILTIN_DEFAULT_MODLIS.quicklybuilt >> $meltgen_args
    meltbuild_arg workdir=meltbuild-workdir >>  $meltgen_args
-   meltbuild_arg tempdir=. >> $meltgen_args
+   meltbuild_arg tempdir=meltbuild-tempdir >> $meltgen_args
    meltbuild_arg source-path=meltbuild-sources >> $meltgen_args
    meltbuild_arg module-path=meltbuild-modules >> $meltgen_args
    meltbuild_arg bootstrapping  >> $meltgen_args 

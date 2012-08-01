@@ -1,4 +1,16 @@
 
+2012-08-01  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-build.tpl: Remove file.
+
+	* melt-build.def: Remove file.
+
+	* melt-build.mk: Remove file.
+
+	* melt-build-script.tpl: Add hello world running in checkruntime step.
+
+	* melt-build-script.sh: Regenerate.
+
 2012-07-31  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.h (MELT_VERSION_STRING): Bump to 0.9.6.b
