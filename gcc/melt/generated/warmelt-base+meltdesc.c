@@ -19,7 +19,7 @@
 	     #endif /*__cplusplus */
 	     
 /* version of the GCC compiler & MELT runtime generating this */
-const char melt_genversionstr[]="4.8.0 20120702 (experimental) [melt-branch revision 189924] MELT_0.9.6-rc1"
+const char melt_genversionstr[]="4.8.0 20120702 (experimental) [melt-branch revision 190018] MELT_0.9.6.b"
 
 	     #ifdef __cplusplus
 	     " (in C++)"
@@ -28,17 +28,17 @@ const char melt_genversionstr[]="4.8.0 20120702 (experimental) [melt-branch revi
 	     #endif
 					;
 	     
-const char melt_versionmeltstr[]="0.9.6-rc1 [melt-branch_revision_189924]";
+const char melt_versionmeltstr[]="0.9.6.b [melt-branch_revision_190018]";
 
 /* source name & real path of the module */
 /*MELTMODULENAME meltbuild-sources/warmelt-base */
 const char melt_modulename[]="warmelt-base";
-const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown-linux-gnu/4.8.0/melt-modules/0.9.6-rc1/warmelt-base";
+const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown-linux-gnu/4.8.0/melt-modules/0.9.6/warmelt-base";
 
 /* hash of preprocessed melt-run.h generating this */
-const char melt_prepromd5meltrun[]="98bf2d9ce5af496d4244613fa373b2f6";
+const char melt_prepromd5meltrun[]="af771e0467d2a54036346896ec6aab0a";
 /* hexmd5checksum of primary C file */
-const char melt_primaryhexmd5[]="8ed4e283724bf77522a403c21dfc8de2";
+const char melt_primaryhexmd5[]="181011ea37ec2fcc6fa51bf9cfc678e2";
 
 /* hexmd5checksum of secondary C files */
 const char* const melt_secondaryhexmd5tab[]={
@@ -52,10 +52,10 @@ const char* const melt_secondaryhexmd5tab[]={
 const int melt_lastsecfileindex=3;
 
 /* cumulated checksum of primary & secondary files */
-const char melt_cumulated_hexmd5[]="9544aa5ba8798d2d5346896e32745de3" ;
+const char melt_cumulated_hexmd5[]="e1454d626f9ba5a3362145d848bf3baf" ;
 
 /* include the timestamp file */
-#define meltmod_warmelt_base_mds__9544aa5ba8798d2d5346896e32745de3 1
+#define meltmod_warmelt_base_mds__e1454d626f9ba5a3362145d848bf3baf 1
 #include "warmelt-base+melttime.h"
 	 
 
