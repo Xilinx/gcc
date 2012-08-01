@@ -3105,6 +3105,17 @@ if test x$enable_libgomp = x ; then
     esac
 fi
 
+# Disable libcilkrts on non x86 machines... for now.
+if test x$enable_libcilkrts = x ; then
+    # Enable libcilkrts by default on x86 machines.
+    case "${target}" in
+    i[3456789]86-*-* | x86_64-*-*)
+      ;;
+    *)
+      noconfigdirs="$noconfigdirs target-libcilkrts"
+    esac
+fi
+
 # Disable libatomic on unsupported systems.
 if test -d ${srcdir}/libatomic; then
     if test x$enable_libatomic = x; then
