@@ -28,13 +28,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "langhooks.h"
 #include "expr.h"
-#include "optabs.h" /* for sync_lock_release in detach */
+#include "optabs.h" /* For sync_lock_release in detach.  */
 #include "recog.h"
 #include "cilk.h"
 #include "gimple.h"
 #include "tree-iterator.h"
 #include "c-family/c-common.h"
-#include "toplev.h" /* only correct declaration of warning() */
+#include "toplev.h" /* Only correct declaration of warning().  */
 #include "output.h"
 #include "dwarf2out.h"
 

@@ -62,9 +62,9 @@ static bool has_call_expr_with_array_notation (tree expr);
 
 int array_notation_label_no;
 
-/* This function is to find the rank of an array notation expression.
- * For example, an array notation of A[:][:] has a rank of 2.
- */
+/* This function is to find the rank of an array notation expression.  
+   For example, an array notation of A[:][:] has a rank of 2.  */
+
 void
 find_rank (tree array, bool ignore_builtin_fn, int *rank)
 {
@@ -119,8 +119,7 @@ find_rank (tree array, bool ignore_builtin_fn, int *rank)
 	    if (ignore_builtin_fn)
 	      if (is_builtin_array_notation_fn (func_name, &dummy_type))
 		/* If it is a builtin function, then we know it returns a
-		 * scalar
-		 */
+		   scalar.  */
 		return;
 	  if (TREE_CODE (TREE_OPERAND (array, 0)) == INTEGER_CST)
 	    {
@@ -141,8 +140,8 @@ find_rank (tree array, bool ignore_builtin_fn, int *rank)
 }
 
 /* this function will go through a tree and extract all the array notation
- * expressions inside the subtrees
- */
+   expressions inside the subtrees.  */
+
 void
 extract_array_notation_exprs (tree node, bool ignore_builtin_fn,
 			      tree **array_list, int *list_size)
@@ -213,27 +212,25 @@ extract_array_notation_exprs (tree node, bool ignore_builtin_fn,
       if (is_sec_implicit_index_fn (CALL_EXPR_FN (node)))
 	{
 	  ii = *list_size;
-	  new_array_list = (tree *) xrealloc (*array_list, (ii + 1) *
-						  sizeof (tree));
-	      gcc_assert (new_array_list);
-	      new_array_list[ii] = node;
-	      ii++;
-	      *list_size = ii;
-	      *array_list = new_array_list;
-	      return;
+	  new_array_list = (tree *) xrealloc (*array_list, (ii + 1) * 
+					      sizeof (tree));
+	  gcc_assert (new_array_list);
+	  new_array_list[ii] = node;
+	  ii++;
+	  *list_size = ii;
+	  *array_list = new_array_list;
+	  return;
 	} 
       if (TREE_CODE (TREE_OPERAND (node, 0)) == INTEGER_CST)
 	{
 	  int length = TREE_INT_CST_LOW (TREE_OPERAND (node, 0));
-
 	  for (ii = 0; ii < length; ii++)
 	    extract_array_notation_exprs
 	      (TREE_OPERAND (node, ii), ignore_builtin_fn, array_list,
 	       list_size);
 	}
       else
-	gcc_unreachable  (); /* should not get here */
-	  
+	gcc_unreachable  (); /* We should not get here. */  
     } 
   else
     {
@@ -244,9 +241,9 @@ extract_array_notation_exprs (tree node, bool ignore_builtin_fn,
   return;
 }
 
-/* this function will replace a subtree that has array notation with the
- * appropriate scalar equivalent
- */
+/* This function will replace a subtree that has array notation with the
+   appropriate scalar equivalent.  */
+
 void
 replace_array_notations (tree *orig, bool ignore_builtin_fn, tree *list,
 			 tree *array_operand, int array_size)
@@ -343,7 +340,8 @@ replace_array_notations (tree *orig, bool ignore_builtin_fn, tree *list,
   return;
 }
 
-/* this is a small function that will give the max of 2 integers */
+/* This is a small function that will give the max of 2 integers.  */
+
 static int
 max (int x, int y)
 {
@@ -353,9 +351,9 @@ max (int x, int y)
     return y;
 }
 
-/* this function is synonymous to the build_x_modify_expr. This function
- * will build the equivalent array notation expression
- */
+/* This function is synonymous to the build_x_modify_expr. This function will
+   build the equivalent array notation expression.  */
+
 tree
 build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
 			     tsubst_flags_t complain)
@@ -388,8 +386,7 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
 
   
   /* If both are scalar, then no reason to do any of the components inside this
-   * function... a simple build_x_modify_expr would do.
-   */
+     function... a simple build_x_modify_expr would do.  */
   if (lhs_rank == 0 && rhs_rank == 0)
     return NULL_TREE;
 
@@ -420,7 +417,7 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
       return error_mark_node;
     }
 
-  /* We need this when we have a scatter issue */
+  /* We need this when we have a scatter issue.  */
   extract_array_notation_exprs (lhs, true, &lhs_list, &lhs_list_size);
 
   rhs_vector = (bool **) xmalloc (sizeof (bool *) * rhs_list_size);
@@ -451,13 +448,12 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
   rhs_var = (tree *) xmalloc (sizeof (tree) * rhs_rank);
   
 
-  /* The reason why we are just using lhs_rank for this is because we have the
-   * following scenarios:
-   * LHS_RANK == RHS_RANK
-   * LHS_RANK != RHS_RANK && RHS_RANK = 0
-   *
-   * In both the scenarios, just checking the LHS_RANK is OK
-   */
+  /* The reason why we are just using lhs_rank for this is because we have then
+     following scenarios:
+     1.  LHS_RANK == RHS_RANK
+     2.  LHS_RANK != RHS_RANK && RHS_RANK = 0
+
+     In both the scenarios, just checking the LHS_RANK is OK.  */
   body_label = (tree *) xmalloc (sizeof (tree) * max (lhs_rank, rhs_rank));
   body_label_expr = (tree *) xmalloc (sizeof (tree) * max (lhs_rank, rhs_rank));
   exit_label = (tree *) xmalloc (sizeof (tree) * max (lhs_rank, rhs_rank));
@@ -579,8 +575,8 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
 		    ARRAY_NOTATION_STRIDE (lhs_array[ii][jj]);
 		  lhs_vector[ii][jj] = true;
 		  
-		  /* IF the stride value is variable (i.e. not constant) then
-		   * assume that the length is positive  */
+		  /* If the stride value is variable (i.e. not constant) then
+		   * assume that the length is positive.  */
 		  if (!integer_zerop (lhs_length[ii][jj])
 		      && !integer_nonzerop (lhs_length[ii][jj]))
 		    lhs_count_down[ii][jj] = false;
@@ -613,8 +609,7 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
 		    ARRAY_NOTATION_STRIDE (rhs_array[ii][jj]);
 		  rhs_vector[ii][jj] = true;
 		  /* If the stride value is variable (i.e. not constant) then
-		   * assume that the length is positive
-		   */
+		     assume that the length is positive.  */
 		  if (!integer_zerop (rhs_length[ii][jj])
 		      && !integer_nonzerop (rhs_length[ii][jj]))
 		    rhs_count_down[ii][jj] = false;
@@ -648,7 +643,7 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
   for (ii = 0; ii < rhs_rank; ii++)
     {
       /* When we have a polynomial, we assume that the indices are of type
-       * integer */
+	 integer.  */
       rhs_var[ii] = create_tmp_var (integer_type_node, NULL);
       rhs_ind_init[ii] = build_x_modify_expr
 	(UNKNOWN_LOCATION, rhs_var[ii], NOP_EXPR, 
@@ -674,8 +669,8 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
       body_label_expr[ii] = build_stmt (UNKNOWN_LOCATION, LABEL_EXPR,
 					body_label[ii]);
       
-      /* this will create the exit label..i.e. where the while loop will branch 
-	 out of.  */
+      /* this will create the exit label..i.e. where the while loop will
+	 branch out of.  */
       memset (label_name, 0, 50);
       sprintf (label_name, "exit_label_%05d", array_notation_label_no);
       exit_label[ii] = define_label (UNKNOWN_LOCATION,
@@ -691,7 +686,7 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
 	  if (lhs_vector[ii][0])
 	    {
 	      /* The last ARRAY_NOTATION element's ARRAY component should be
-	       * the array's base value */
+		 the array's base value.  */
 	      lhs_array_operand[ii] = lhs_value[ii][lhs_rank - 1];
 	      gcc_assert (lhs_array_operand[ii]);
 		for (jj = lhs_rank - 1; jj >= 0; jj--)
@@ -810,13 +805,12 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
 		  }
 	    }
 	}
-	      
       replace_array_notations (&rhs, true, rhs_list, rhs_array_operand,
 				 rhs_list_size);
       array_expr_rhs = rhs;
       rhs_expr_incr[0] = NULL_TREE;
     }
-
+  
   for (ii = 0; ii < rhs_rank; ii++)
     if (rhs_count_down[0][ii])
       rhs_expr_incr[ii] = build_x_unary_op
@@ -834,8 +828,7 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
 	 tf_warning_or_error);
   else
     lhs_expr_incr[ii] = build_x_unary_op
-      (UNKNOWN_LOCATION, POSTINCREMENT_EXPR, lhs_var[ii],
-       tf_warning_or_error);
+      (UNKNOWN_LOCATION, POSTINCREMENT_EXPR, lhs_var[ii], tf_warning_or_error);
 	
   if (!array_expr_lhs)
     array_expr_lhs = lhs;
@@ -1021,6 +1014,8 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
   return loop;
 }
 
+/* This is the internal function to fix array notations inside conditions.  */
+
 static tree
 fix_conditional_array_notations_1 (tree stmt)
 {
@@ -1050,7 +1045,7 @@ fix_conditional_array_notations_1 (tree stmt)
   else if (TREE_CODE (stmt) == DO_STMT)
     cond = DO_COND (stmt);
   else
-    /* otherwise don't even touch the statement */
+    /* Otherwise don't even touch the statement.  */
     return stmt;
 
   find_rank (cond, true, &rank);
@@ -1320,9 +1315,9 @@ fix_conditional_array_notations_1 (tree stmt)
 }
 
 /* This function will recursively go through all the subtrees and find all
- * if, switch, for, while and do-while loops and fix up their conditions and
- * also walk through their subtrees.
- */
+   if, switch, for, while and do-while loops and fix up their conditions and
+   also walk through their subtrees.  */
+
 tree
 fix_array_notation_exprs (tree t)
 {
@@ -1460,10 +1455,10 @@ fix_array_notation_exprs (tree t)
     case FOR_STMT:
     case CILK_FOR_STMT:
       t = fix_conditional_array_notations_1 (t);
-
+      
       /* If the above function added some extra instructions above the original
-       * for statement, then we can't assume it is still FOR_STMT/CILK_FOR_STMT
-       * so we have to check again */
+	 for statement, then we can't assume it is still FOR_STMT/CILK_FOR_STMT
+	 so we have to check again.  */
       if (TREE_CODE (t) == CILK_FOR_STMT || TREE_CODE (t) == FOR_STMT)
 	FOR_BODY (t) = fix_array_notation_exprs (FOR_BODY (t));
       else
@@ -1473,8 +1468,8 @@ fix_array_notation_exprs (tree t)
     case IF_STMT:
       t = fix_conditional_array_notations_1 (t);
       /* If the above function added some extra instructions above the original
-       * if statement, then we can't assume it is still IF_STMT
-       * so we have to check again */
+	 if statement, then we can't assume it is still IF_STMT so we have to
+	 check again.  */
       if (TREE_CODE (t) == IF_STMT)
 	{
 	  if (THEN_CLAUSE (t))
@@ -1489,8 +1484,8 @@ fix_array_notation_exprs (tree t)
     case SWITCH_STMT:
       t = fix_conditional_array_notations_1 (t);
       /* If the above function added some extra instructions above the original
-       * switch statement, then we can't assume it is still SWITCH_STMT
-       * so we have to check again */
+	 switch statement, then we can't assume it is still SWITCH_STMT so we
+	 have to check again.  */
       if (TREE_CODE (t) == SWITCH_STMT)
 	{
 	  if (SWITCH_STMT_BODY (t))
@@ -1504,8 +1499,8 @@ fix_array_notation_exprs (tree t)
     case WHILE_STMT:
       t = fix_conditional_array_notations_1 (t);
       /* If the above function added some extra instructions above the original
-       * while statement, then we can't assume it is still WHILE_STMT
-       * so we have to check again */
+	 while statement, then we can't assume it is still WHILE_STMTso we
+	 have to check again.  */
       if (TREE_CODE (t) == WHILE_STMT)
 	{
 	  if (WHILE_BODY (t))
@@ -1518,8 +1513,8 @@ fix_array_notation_exprs (tree t)
     case DO_STMT:
       t = fix_conditional_array_notations_1 (t);
       /* If the above function added some extra instructions above the original
-       * do-while statement, then we can't assume it is still DO_STMT
-       * so we have to check again */
+	 do-while statement, then we can't assume it is still DO_STMT so we
+	 have to check again.  */
       if (TREE_CODE (t) == DO_STMT)
 	{      
 	  if (DO_BODY (t))
@@ -1548,6 +1543,8 @@ fix_array_notation_exprs (tree t)
   return t;
 }
 
+/* This function will break up the builtin array notation function.  */
+
 static tree
 fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 {
@@ -1575,9 +1572,9 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
     {
       call_fn = CALL_EXPR_ARG (an_builtin_fn, 2);
 
-      /* we need to do this because we are "faking" the builtin function types,
-       * so the compiler does a bunch of typecasts and this will get rid of
-       * all that! */
+      /* We need to do this because we are "faking" the builtin function types,
+	 so the compiler does a bunch of typecasts and this will get rid of
+	 all that!  */
       while (TREE_CODE (call_fn) == CONVERT_EXPR
 	     || TREE_CODE (call_fn) == NOP_EXPR)
 	call_fn = TREE_OPERAND (call_fn, 0);
@@ -1586,17 +1583,14 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       identity_value = CALL_EXPR_ARG (an_builtin_fn, 0);
       func_parm = CALL_EXPR_ARG (an_builtin_fn, 1);
 
-      /* we need to do this because we are "faking" the builtin function types,
-       * so the compiler does a bunch of typecasts and this will get rid of
-       * all that! */
+      /* We need to do this because we are "faking" the builtin function types
+	 so the compiler does a bunch of typecasts and this will get rid of
+	 all that!  */
       while (TREE_CODE (identity_value) == CONVERT_EXPR
 	     || TREE_CODE (identity_value) == NOP_EXPR)
 	identity_value = TREE_OPERAND (identity_value, 0);
     }
 
-  /* we need to do this because we are "faking" the builtin function types,
-   * so the compiler does a bunch of typecasts and this will get rid of
-   * all that! */
   while (TREE_CODE (func_parm) == CONVERT_EXPR
 	 || TREE_CODE (func_parm) == NOP_EXPR)
     func_parm = TREE_OPERAND (func_parm, 0);
@@ -1882,9 +1876,8 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       new_var_init = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, NOP_EXPR,
 					  build_one_cst (new_var_type), 1);
       /* Initially you assume everything is zero, now if we find a case where
-       * it is NOT true, then we set the result to false. Otherwise
-       * we just keep the previous value
-       */
+	 it is NOT true, then we set the result to false. Otherwise we just
+	 keep the previous value.  */
       new_yes_expr = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, NOP_EXPR,
 					  build_zero_cst (new_var_type), 1);
       new_no_expr = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, NOP_EXPR, 
@@ -1905,9 +1898,8 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       new_var_init = build_x_modify_expr
 	(UNKNOWN_LOCATION, *new_var, NOP_EXPR, build_one_cst (new_var_type), 1);
       /* Initially you assume everything is non-zero, now if we find a case
-       * where it is NOT true, then we set the result to false. Otherwise
-       * we just keep the previous value
-       */
+	 where it is NOT true, then we set the result to false. Otherwise we
+	 just keep the previous value.  */
       new_yes_expr = build_x_modify_expr
 	(UNKNOWN_LOCATION, *new_var, NOP_EXPR, 
 	 build_zero_cst (TREE_TYPE (*new_var)), 1);
@@ -1929,16 +1921,14 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       new_var_init = build_x_modify_expr
 	(UNKNOWN_LOCATION, *new_var, NOP_EXPR, 
 	 build_zero_cst (new_var_type), 1);
-      /* Initially we assume there are NO zeros in the list. When we find
-       * a non-zero, we keep the previous value. If we find a zero, we
-       * set the value to true
-       */
+      /* Initially we assume there are NO zeros in the list. When we find a
+	 non-zero, we keep the previous value. If we find a zero, we set the
+	 value to true.  */
       new_no_expr = build_x_modify_expr
 	(UNKNOWN_LOCATION, *new_var, NOP_EXPR, 
 	 build_one_cst (TREE_TYPE (*new_var)), 1);
       new_yes_expr = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, NOP_EXPR,
 					  *new_var, 1);
-
       if (ARITHMETIC_TYPE_P (TREE_TYPE (func_parm)))
 	comp_node = build_zero_cst (TREE_TYPE (func_parm));
       else
@@ -1955,10 +1945,9 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       new_var_init = build_x_modify_expr
 	(UNKNOWN_LOCATION, *new_var, NOP_EXPR, 
 	 build_zero_cst (new_var_type), 1);
-      /* Initially we assume there are NO non-zeros in the list. When we find
-       * a zero, we keep the previous value. If we find a zero, we
-       * set the value to true
-       */
+      /* Initially we assume there are NO non-zeros in the list. When we find a
+	 zero, we keep the previous value. If we find a zero, we set the value
+	 to true.  */
       new_no_expr = build_x_modify_expr
 	(UNKNOWN_LOCATION, *new_var, NOP_EXPR, 
 	 build_one_cst (TREE_TYPE (*new_var)), 1);
@@ -1977,7 +1966,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
     }
   else if (an_type == REDUCE_MAX)
     {
-      /* set initial value as the first element in the list */
+      /* Set initial value as the first element in the list.  */
       new_var_init = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, NOP_EXPR,
 					  func_parm, 1);
       new_no_expr  = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, NOP_EXPR,
@@ -2019,7 +2008,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       new_no_expr  = build_x_modify_expr (UNKNOWN_LOCATION, array_ind_value, 
 					  NOP_EXPR,
 					  array_ind_value, tf_warning_or_error);
-      if (list_size > 1) /* this means there is more than 1 */
+      if (list_size > 1) /* This means there is more than 1.  */
 	new_yes_ind  = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, 
 					    NOP_EXPR, array_var[0],
 					    tf_warning_or_error);
@@ -2056,7 +2045,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 					  *new_var, 1);
       new_no_expr  = build_x_modify_expr (UNKNOWN_LOCATION, array_ind_value, 
 					  NOP_EXPR, array_ind_value, 1);
-      if (list_size > 1) /* this means there is more than 1 */
+      if (list_size > 1)
 	new_yes_ind  = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, 
 					    NOP_EXPR, array_var[0], 1);
       else
@@ -2102,8 +2091,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       gcc_unreachable ();
 
   /* We do it twice here so that the new var initialization done below will be
-   * correct.
-   */
+     correct.  */
   for (ii = 0; ii < rank; ii++)
     add_stmt (build_stmt (UNKNOWN_LOCATION, EXPR_STMT, ind_init[ii]));
 
@@ -2172,6 +2160,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
   return loop;
 }
 
+/* This function will fix array notations inside unary expressions.  */
 
 tree
 fix_unary_array_notation_exprs (tree orig_stmt)
@@ -2271,9 +2260,7 @@ fix_unary_array_notation_exprs (tree orig_stmt)
 	      jj_tree = ARRAY_NOTATION_ARRAY (jj_tree);
 	    }
 	  else
-	    {
-	      jj_tree = TREE_OPERAND (jj_tree, 0);
-	    }
+	    jj_tree = TREE_OPERAND (jj_tree, 0);
 	}
     }
 
@@ -2318,7 +2305,7 @@ fix_unary_array_notation_exprs (tree orig_stmt)
       array_var[ii] =  create_tmp_var (integer_type_node, NULL);
       ind_init[ii] = build_x_modify_expr
 	(UNKNOWN_LOCATION, array_var[ii], NOP_EXPR, 
-	 build_zero_cst (TREE_TYPE (array_var[ii])), tf_warning_or_error);	
+	 build_zero_cst (TREE_TYPE (array_var[ii])), tf_warning_or_error);
     }
 
   for (ii = 0; ii < rank ; ii++)
@@ -2390,8 +2377,7 @@ fix_unary_array_notation_exprs (tree orig_stmt)
     else
       expr_incr[ii] = build_x_unary_op (UNKNOWN_LOCATION, POSTINCREMENT_EXPR,
 					array_var[ii], tf_warning_or_error);
-  
- 
+
   for (jj = 0; jj < rank; jj++)
     {
       if (rank && expr_incr[jj])
@@ -2415,7 +2401,6 @@ fix_unary_array_notation_exprs (tree orig_stmt)
     {
       add_stmt (build_stmt (UNKNOWN_LOCATION, EXPR_STMT, ind_init[ii]));
       add_stmt (build_stmt (UNKNOWN_LOCATION, LABEL_EXPR, if_stmt_label[ii]));
-
       comp_stmt = begin_if_stmt ();
       finish_if_stmt_cond (compare_expr[ii], comp_stmt);
       add_stmt (build1 (GOTO_EXPR, void_type_node, body_label[ii]));
@@ -2471,6 +2456,9 @@ fix_unary_array_notation_exprs (tree orig_stmt)
   stmt = loop;
   return stmt;
 }
+
+/* This function will check if the function call is a builtin array notation
+   function call.  */
 
 static bool
 is_builtin_array_notation_fn (tree func_name, an_reduce_type *type)
@@ -2555,6 +2543,7 @@ is_builtin_array_notation_fn (tree func_name, an_reduce_type *type)
   return false;
 }
     
+/* This function will just return a modify expression or null tree.  */
 
 static tree
 build_x_reduce_expr (tree lhs, enum tree_code modifycode, tree rhs,
@@ -2567,7 +2556,10 @@ build_x_reduce_expr (tree lhs, enum tree_code modifycode, tree rhs,
     }
   return NULL_TREE;
 }
-      
+
+
+/* This function will return true if there is array notations in tree.  */
+
 bool
 contains_array_notation_expr (tree expr)
 {
@@ -2584,7 +2576,10 @@ contains_array_notation_expr (tree expr)
   else
     return true;
 }
-    
+
+/* This function will return true if a function call param has array
+   notations.  */
+
 static bool
 has_call_expr_with_array_notation (tree node)
 {
@@ -2646,10 +2641,8 @@ has_call_expr_with_array_notation (tree node)
   else
     {
       bool x = false;
-      for (ii = 0; ii < TREE_CODE_LENGTH (TREE_CODE (node)); ii++)
-	{
-	  x |= has_call_expr_with_array_notation (TREE_OPERAND (node, ii));
-	}
+      for (ii = 0; ii < TREE_CODE_LENGTH (TREE_CODE (node)); ii++) 
+	x |= has_call_expr_with_array_notation (TREE_OPERAND (node, ii));
       return x;
     }
   return false;

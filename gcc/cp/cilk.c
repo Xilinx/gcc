@@ -31,7 +31,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "cp-tree.h"
 #include "output.h"
-/* #include "rtl.h" */
 #include "insn-flags.h"
 #include "cgraph.h"
 
@@ -43,9 +42,9 @@ HOST_WIDE_INT cilk_field_offsets[CILK_TI_MAX];
 tree cilk_wrappers;
 
 enum add_variable_type {
-  ADD_READ,	/* reference to previously-defined variable */
-  ADD_BIND,	/* definition of new variable in inner scope */
-  ADD_WRITE	/* write to possibly previously-defined variable */
+  ADD_READ,	/* Reference to previously-defined variable. */
+  ADD_BIND,	/* Definition of new variable in inner scope.  */
+  ADD_WRITE	/* Write to possibly previously-defined variable. */
 };
 enum add_variable_context {
   CILK_BLOCK_CALL = 30,
@@ -53,10 +52,6 @@ enum add_variable_context {
   CILK_BLOCK_RUN,
   CILK_BLOCK_FOR
 };
-
-/*****************************************************************
- * cilk_for
- *****************************************************************/
 
 /* This structure is not tagged for GC because it should not be
    hold values across a GC pass.  GC is disabled during generation
@@ -169,8 +164,8 @@ cilk_c_declare_looper (const char *name, tree type)
 
 
 
-/* this function will initialize the internal data structures needed to
- * store the information needed for Cilk_for.  */
+/* this function will initialize the internal data structures needed to 
+   store the information needed for Cilk_for.  */
 
 static void
 initialize_cilk_for_desc (struct cilk_for_desc *cfd)
@@ -328,6 +323,7 @@ check_outlined_calls (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED, void *data)
   return 0;
 }
 
+/* This function is a wrapper to copy local declarations.  */
 
 static bool
 wrapper_local_cb (const void *k_v, void **vp, void *data)
@@ -528,19 +524,15 @@ cp_build_cilk_for_body (struct cilk_for_desc *cfd)
 
   while (*cc)
     {
-      if (*cc == ' ')
-	{
-	  ++cc;
-	} 
+      if (*cc == ' ') 
+	++cc;
       else if (!ISIDNUM (*cc))
 	{
 	  *cc = '_';
 	  *dd++ = *cc++; 
 	}
-      else
-	{
-	  *dd++ = *cc++;
-	}
+      else 
+	*dd++ = *cc++;
     }
   *dd = 0;
   
@@ -689,7 +681,8 @@ cp_build_cilk_for_body (struct cilk_for_desc *cfd)
   return fndecl;
 }
 
-/* find the loop induction variable and do the appropriate modifications.  */
+/* Find the loop induction variable and do the appropriate modifications.  */
+
 static tree
 compute_loop_var (struct cilk_for_desc *cfd, tree loop_var, tree lower_bound)
 {
@@ -721,7 +714,8 @@ compute_loop_var (struct cilk_for_desc *cfd, tree loop_var, tree lower_bound)
     {
       tree low;
       tree exp;
-      /* convert LOOP_VAR to T3 (difference_type) so that
+
+      /* Convert LOOP_VAR to T3 (difference_type) so that
 	 operator+(T1, T3)
 	 is preferred over
 	 operator+(T1, count_type)
@@ -729,6 +723,7 @@ compute_loop_var (struct cilk_for_desc *cfd, tree loop_var, tree lower_bound)
 	 operator+ constructs the object if it returns by value.
 
 	 Use operator- if the user wrote -=. */
+
       if (count_type != cfd->difference_type)
 	loop_var = convert (cfd->difference_type, scaled);
       low = lower_bound ? lower_bound : cfd->var;
@@ -744,7 +739,6 @@ compute_loop_var (struct cilk_for_desc *cfd, tree loop_var, tree lower_bound)
 	  fnotice (stderr, "confused by earlier errors, bailing out\n");
 	  exit (ICE_EXIT_CODE);
 	}
-
       return exp;
     }
 
@@ -771,7 +765,7 @@ cp_spawnable_constructor (tree fn)
 }
 
 
-/* This function will check to see if a function is spawned. */
+/* This function will check to see if a function is spawned.  */
 
 bool
 cp_recognize_spawn (tree exp)
@@ -872,7 +866,7 @@ cp_make_cilk_frame (void)
   return decl;
 }
 
-/* This function will erase a cilk_for. */
+/* This function will erase a cilk_for.  */
 
 void
 cilk_erase_for (tree c_for_stmt)
@@ -1486,7 +1480,7 @@ add_variable (struct pointer_map_t *decl_map, tree var,
 	     1. For cilk_for, refer to the outer scope definition as-is
 	     2. For a spawned block, take a scalar in an argument
 	     and otherwise refer to the outer scope definition as-is
-	     3. For a spawned call, take a scalar in an argument */
+	     3. For a spawned call, take a scalar in an argument.  */
 	case ADD_READ:
 	  switch (ctx)
 	    {
@@ -1611,13 +1605,7 @@ extract_free_variables (tree t, struct pointer_map_t *decl_map,
 	 type if is a promoting type.  In the case of a nested loop
 	 just notice that we touch the variable.  It will already
 	 be addressable, and marking it modified will cause a spurious
-	 warning about writing the control variable.
-
-	 XXX Conversion to a const pointer should not result in a
-	 modified warning.
-
-	 XXX If the variable is not the control variable, the warning
-	 is should be printed. */
+	 warning about writing the control variable.  */
       if (ctx != CILK_BLOCK_CALL)
 	SUBTREE (TREE_OPERAND (t, 0));
       else
@@ -1808,7 +1796,7 @@ call_graph_add_fn (tree fndecl, bool is_nested)
 
   gcc_assert (TREE_CODE (fndecl) == FUNCTION_DECL);
 
-  /* gimplify_body may garbage collect.  Save a root. */
+  /* gimplify_body may garbage collect.  Save a root.  */
   cilk_trees[CILK_TI_PENDING_FUNCTIONS] =
     tree_cons (NULL_TREE, fndecl, cilk_trees[CILK_TI_PENDING_FUNCTIONS]);
 
@@ -1874,14 +1862,14 @@ gimplify_cilk_for_stmt_1 (struct cilk_for_desc *cfd, gimple_seq *pre_p)
 
      If the map ends up integer_one_node then somebody wrote to the loop
      variable and that's a user error.
-     The correct map will be installed in declare_for_loop_variables. */
+     The correct map will be installed in declare_for_loop_variables.  */
 
   *pointer_map_insert (cfd->decl_map, var) = 
     (void *) (cfd->lower_bound ? integer_minus_one_node : integer_zero_node);
   extract_free_variables (cfd->body, cfd->decl_map, ADD_READ, CILK_BLOCK_FOR);
   /* Note that variables are not extracted from the loop condition
      and increment.  They are evaluated, to the extent they are
-     evaluated, in the context containing the for loop. */
+     evaluated, in the context containing the for loop.  */
 
   fn = cp_build_cilk_for_body (cfd);
   
@@ -1950,26 +1938,25 @@ compute_loop_count (struct cilk_for_desc *cfd)
   /* All arithmetic is done in the unsigned type.  As long as
      ptrdiff_t is no wider than count_type this works for
      pointers too.  (typeck.c:pointer_diff() has the same
-     possibility for overflow.) */
+     possibility for overflow.)  */
   const tree type = cfd->count_type;
   /* Use the initial value in the subtraction if it is
      constant enough to be stored in the control structure. */
   tree low = cfd->lower_bound ? cfd->lower_bound : cfd->var;
   /* If END_EXPR has been evaluated into a variable, use the
      variable.  Otherwise use the expression, which should have
-     no interesting side effects. */
+     no interesting side effects.  */
   tree high = cfd->end_var ? cfd->end_var : cfd->end_expr ;
   const int direction = cfd->direction;
   /* INCR is the expression written on the RHS of the loop increment
      (or a variable holding the result of evaluating that expression).
-     It is added or subtracted depending on the value of INCR_SIGN. */
+     It is added or subtracted depending on the value of INCR_SIGN.  */
   const int incr_sign = cfd->incr_sign;
   tree incr = cfd->incr;
   /* DIV_OP is one of
      NOP_EXPR -- Dividing by +/- 1
      EXACT_DIV_EXPR -- Loop with exact bounds
-     CEIL_DIV_EXPR -- Loop that can overshoot bounds after last increment
-  */
+     CEIL_DIV_EXPR -- Loop that can overshoot bounds after last increment.  */
   enum tree_code div_op;
   tree count, count_up, count_down;
   tree forward = NULL_TREE;
@@ -1993,7 +1980,7 @@ compute_loop_count (struct cilk_for_desc *cfd)
     case 0:
       forward = build2 (incr_sign > 0 ? GE_EXPR : LT_EXPR,
 			boolean_type_node, incr, integer_zero_node);
-      /* Loops with indeterminate direction use != and are always exact. */
+      /* Loops with indeterminate direction use != and are always exact.  */
       div_op = EXACT_DIV_EXPR;
       break;
     case 1:
@@ -2010,9 +1997,6 @@ compute_loop_count (struct cilk_for_desc *cfd)
 
   if (cfd->exactly_one)
     div_op = NOP_EXPR;
-
-  /* XXX We may want to call stabilize_expr, but the limit
-     expression should not be complicated.  */
 
   count_up = NULL_TREE;
   count_down = NULL_TREE;
@@ -2031,12 +2015,11 @@ compute_loop_count (struct cilk_for_desc *cfd)
 	 or zero if the loop is inclusive of its upper bound. */
 
       /* The terms low and high can be deceptive.  Here is what I meant
-       * by these two vars:
-       * cilk_for (x = 5; x >= 2 ; x--)
-       *
-       * the value before the first semi colon (5) is the "low" and the value
-       * after the 2nd semi-colon (2), is the "high"
-       */
+        by these two vars:
+        cilk_for (x = 5; x >= 2 ; x--) 
+	
+	the value before the first semi colon (5) is the "low" and the value 
+	after the 2nd semi-colon (2), is the "high."  */
       if (direction >= 0)
 	{
 	  if (TREE_CODE (high) == TARGET_EXPR) 
@@ -2073,7 +2056,7 @@ compute_loop_count (struct cilk_for_desc *cfd)
       else
 	{
 	  /* We need to compute HIGH-LOW or LOW-HIGH without overflow.
-	     We will eventually convert the result to the count type. */
+	     We will eventually convert the result to the count type.  */
 	  sub_type = type_after_usual_arithmetic_conversions (low_type,
 							      high_type);
 
@@ -2099,7 +2082,7 @@ compute_loop_count (struct cilk_for_desc *cfd)
   /* If the loop is not exact, add one before dividing.  Otherwise
      add one after dividing.  We assume this can't overflow.
      That would mean the loop range exceeds the range of the
-     loop variable or difference type. */
+     loop variable or difference type.  */
   if (cfd->inclusive && div_op == CEIL_DIV_EXPR)
     {
       if (count_up)
@@ -2113,7 +2096,7 @@ compute_loop_count (struct cilk_for_desc *cfd)
   /* Serial semantics: INCR is converted to the common type
      of VAR and INCR then the result is converted to the type
      of VAR.  If the second conversion truncates Cilk says the
-     behavior is undefined.  Do the first conversion to spec. */
+     behavior is undefined.  Do the first conversion to spec.  */
 
   if (!cfd->iterator && TREE_CODE (TREE_TYPE (cfd->var)) != POINTER_TYPE)
     incr = cilk_loop_convert
@@ -2134,7 +2117,7 @@ compute_loop_count (struct cilk_for_desc *cfd)
   else
     count = fold_build3 (COND_EXPR, type, forward, count_up, count_down);
 
-  /* Add one, maybe */
+  /* Add one, maybe.  */
   if (cfd->inclusive && div_op != CEIL_DIV_EXPR)
     count = fold_build2 (PLUS_EXPR, type, count, build_int_cst (type, 1));
 
@@ -2197,7 +2180,7 @@ cp_extract_for_fields (struct cilk_for_desc *cfd, tree for_stmt)
   gcc_assert (var != NULL_TREE);
   
   /* The parser requires an explicit comparison operation,
-     not something like (bool)x. */
+     not something like (bool)x.  */
   switch (TREE_CODE (cond))
     {
     case NE_EXPR:
@@ -2318,7 +2301,7 @@ cp_extract_for_fields (struct cilk_for_desc *cfd, tree for_stmt)
       /* We don't get here unless the expression has the form
 	 (modify var (op var incr)).  */
       incr = TREE_OPERAND (incr, 1);
-      /* again, should have checked form of increment earlier */
+      /* Again, should have checked form of increment earlier.  */
       if (TREE_CODE (incr) == PLUS_EXPR)
 	{
 	  tree op0 = TREE_OPERAND (incr, 0);
@@ -2591,7 +2574,7 @@ gimplify_cilk_for_stmt (tree *for_p, gimple_seq *pre_p)
   TREE_CONSTANT (fn) = 1;
   fn = get_formal_tmp_var (fn, &inner_seq);
 
-  /* we have to restore the current function name */
+  /* We have to restore the current function name.  */
   current_function_decl = parent_function;
 
   if (!grain) 
@@ -2670,7 +2653,6 @@ uses_cilk_aux (tree *tp, int *walk_subtrees, void *data)
       if ((*u.bptr)(t))
 	return t;
     }
-
   switch (code)
     {
     case CILK_SPAWN_STMT:
@@ -2717,7 +2699,7 @@ cilkish_type (tree type)
 {
   enum tree_code code = TREE_CODE (type);
 
-  /* If the argument is not a type, it is not a Cilk++ type. */
+  /* If the argument is not a type, it is not a Cilk Plus type. */
   if (TREE_CODE_CLASS (code) != tcc_type)
     return false;
 
@@ -2745,18 +2727,18 @@ cilkish_type (tree type)
     case VECTOR_TYPE:
       return cilkish_type (TREE_TYPE (type));
 
-      /* scalar types are not Cilk types */
+    /* Scalar types are not Cilk types.  */
     case VOID_TYPE:
     case ENUMERAL_TYPE:
     case BOOLEAN_TYPE:
     case INTEGER_TYPE:
     case REAL_TYPE:
-      /* Cilk+ qualified union types are not supported */
+      /* Cilk+ qualified union types are not supported.  */
     case QUAL_UNION_TYPE:
-      /* These do not have a TREE_TYPE */
+      /* These do not have a TREE_TYPE.  */
     case TEMPLATE_TEMPLATE_PARM:
     case TYPENAME_TYPE:
-      /* I don't understand these */
+      /* I don't understand these below, so we just return false.  */
     case UNBOUND_CLASS_TEMPLATE:
     case BOUND_TEMPLATE_TEMPLATE_PARM:
       return false;
@@ -2764,7 +2746,7 @@ cilkish_type (tree type)
     case TEMPLATE_TYPE_PARM:
       return cilkish_type (TEMPLATE_TYPE_DECL (type));
 
-    case LANG_TYPE: /* should not appear */
+    case LANG_TYPE: /* We should not get here. */
     default:
       return false;
       gcc_unreachable ();

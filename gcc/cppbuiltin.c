@@ -104,7 +104,7 @@ define_builtin_macros_for_compilation_flags (cpp_reader *pfile)
   cpp_define_formatted (pfile, "__FINITE_MATH_ONLY__=%d",
 			flag_finite_math_only);
 
-  /* A Cilk Plus specific builtin #define. */
+  /* A Cilk Plus specific builtin #define.  */
   if (flag_enable_cilk)
     cpp_define_formatted (pfile, "__cilk=%d", 200);
 }

@@ -20062,7 +20062,7 @@ dwarf2out_var_location (rtx loc_note)
       ca_loc->label = last_label;
 
       /* A lot of variables are introduced by the compiler when Cilk Plus is
-         enabled. These variables are not understood by the -g flag, so we
+         enabled. These variables are not understood by the -g flag, so we 
 	 can't go forward if this flag is enabled.  */
       if (flag_enable_cilk)
 	return;

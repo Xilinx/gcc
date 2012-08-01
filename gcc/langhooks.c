@@ -670,37 +670,55 @@ lhd_end_section (void)
 
 
 bool lhd_hook_bool_false (void);
-bool lhd_hook_bool_false (void)
+
+/* Empty function that will always return false.  */
+
+bool 
+lhd_hook_bool_false (void)
 {
   return false;
 }
 
-bool lhd_recognize_spawn (tree x ATTRIBUTE_UNUSED)
+/* Empty function that will always return false for recognize spawn.  */
+
+bool 
+lhd_recognize_spawn (tree x ATTRIBUTE_UNUSED)
 {
   return false;
 }
 
-bool lhd_cilk_valid_spawn (tree x ATTRIBUTE_UNUSED)
+/* Empty function that will always return false for valid spawn.  */
+
+bool 
+lhd_cilk_valid_spawn (tree x ATTRIBUTE_UNUSED)
 {
   return false;
 }
 
-void lhd_gimplify_cilk_spawn (tree *x ATTRIBUTE_UNUSED,
-			      gimple_seq *y ATTRIBUTE_UNUSED,
-			      gimple_seq *z ATTRIBUTE_UNUSED)
+/* Empty function that will always return false for gimplify cilk spawn.  */
+void 
+lhd_gimplify_cilk_spawn (tree *x ATTRIBUTE_UNUSED, 
+			 gimple_seq *y ATTRIBUTE_UNUSED, 
+			 gimple_seq *z ATTRIBUTE_UNUSED)
 {
   return;
 }
 
-void lhd_gimplify_cilk_for (tree *x ATTRIBUTE_UNUSED,
-			    gimple_seq *y ATTRIBUTE_UNUSED,
-			    gimple_seq *z ATTRIBUTE_UNUSED)
+/* Empty function that will always return false for gimplify cilk for.  */
+
+void 
+lhd_gimplify_cilk_for (tree *x ATTRIBUTE_UNUSED, 
+		       gimple_seq *y ATTRIBUTE_UNUSED, 
+		       gimple_seq *z ATTRIBUTE_UNUSED)
 {
   return;
 }
 
-void lhd_gimplify_cilk_sync (tree *y ATTRIBUTE_UNUSED,
-			     gimple_seq *z ATTRIBUTE_UNUSED)
+/* Empty function that will always return false for gimplify cilk sync.  */
+
+void 
+lhd_gimplify_cilk_sync (tree *y ATTRIBUTE_UNUSED, 
+			gimple_seq *z ATTRIBUTE_UNUSED)
 {
   return;
 }

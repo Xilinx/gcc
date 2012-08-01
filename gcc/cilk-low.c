@@ -40,12 +40,12 @@ expand_cilk_pass1 (void)
   basic_block bb;
 
   int nblocks = n_basic_blocks_for_function (cfun);
-#define BB_SYNCS	1	/* block ends synched */
-#define BB_SPAWNS	2	/* block spawns */
-#define BB_SPAWNS_E	4	/* spawned function may throw */
-#define BB_UNSYNCHED	8	/* starts unsynched */
-#define BB_UNSYNCHED_E	16	/* starts with possible unsynched exception */
-#define BB_SYNC_TEST	32	/* contains call to unsynched() */
+#define BB_SYNCS	1	/* Block ends synched.  */
+#define BB_SPAWNS	2	/* Block spawns.  */
+#define BB_SPAWNS_E	4	/* Spawned function may throw.  */
+#define BB_UNSYNCHED	8	/* Starts unsynched. */
+#define BB_UNSYNCHED_E	16	/* Starts with possible unsynched exception.  */
+#define BB_SYNC_TEST	32	/* Contains call to unsynched().  */
   unsigned char *flags = (unsigned char *)alloca (nblocks);
 
   memset (flags, 0, nblocks);
@@ -87,53 +87,6 @@ expand_cilk_pass1 (void)
      function has nothing to do. */
   if (! has_syncs)
     return false;
-
-  /* If the user doesn't care about redundant syncs this function
-     has nothing more to do. */
-  if (/* !flag_optimize_sync  && !warn_redundant_sync */ 1)
-    return has_syncs;
-
-  /* Now every block starts synched unless it follows a block that
-     may be unsynched.
-     XXX Should this be a depth-first recursive traversal? */
-  while (1)
-    {
-      bool changed = false;
-      FOR_EACH_BB (bb)
-      {
-	edge e;
-	edge_iterator ei;
-	int this_flags = flags[bb->index];
-	int out_flags;
-
-	if (this_flags == 0)	/* No state to propagate. */
-	  continue;
-	if (this_flags & BB_SYNCS)
-	  continue;		/* does not make successors unsynched */
-	if (this_flags == 0)
-	  continue;		/* does not make successors unsynched */
-	/* Compute the flags to propagate */
-	out_flags = this_flags & (BB_UNSYNCHED|BB_UNSYNCHED_E);
-	if (this_flags & BB_SPAWNS)
-	  out_flags |= BB_UNSYNCHED;
-	if (this_flags & BB_SPAWNS_E)
-	  out_flags |= BB_UNSYNCHED_E;
-
-	FOR_EACH_EDGE (e, ei, bb->succs)
-	  {
-	    /* Ignore EH edges.  The runtime syncs the function. */
-	    if (e->flags & EDGE_EH)
-	      continue;
-	    if ((flags[e->dest->index] & out_flags) == out_flags)
-	      continue;
-	    flags[e->dest->index] |= out_flags;
-	    changed = true;
-	  }
-      }
-      if (!changed)
-	break;
-    }
-
 
   return has_syncs;
 }

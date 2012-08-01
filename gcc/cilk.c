@@ -500,9 +500,7 @@ expand_builtin_cilk_detach (tree exp)
   else
     emit_move_insn (tmem0, treg);
 
-  /* sf->flags |= CILK_FRAME_DETACHED
-
-     The memory barrier inserted above should not prevent
+  /* The memory barrier inserted above should not prevent
      the load of flags from being moved before the stores,
      but in practice it does because it is implemented with
      unspec_volatile.  In-order RISC machines should
@@ -693,10 +691,7 @@ make_cilk_frame (tree fn)
   return decl;
 }
 
-
-/*
- * This function will expand a cilk_sync call.
-*/
+/*This function will expand a cilk_sync call.  */
 
 tree
 build_cilk_sync (void)
@@ -882,7 +877,7 @@ output_zca_table (section *s)
     {
       zca_entry = find_zca_data (ii);
 
-      /* this outputs the IP  */
+      /* This outputs the IP.  */
       fputs (integer_asm_op (GET_MODE_SIZE (Pmode), 1), asm_out_file);
       output_asm_label (zca_entry->label);
       fputc ('\n', asm_out_file);
@@ -894,7 +889,7 @@ output_zca_table (section *s)
       assemble_integer (gen_rtx_CONST_INT (BLKmode, str_table_offset), 4, 1, 1);
       str_table_offset += strlen (zca_entry->string) + 1;
 
-      /* This outputs the offset to the annotation table. */
+      /* This outputs the offset to the annotation table.  */
       assemble_integer (gen_rtx_CONST_INT (BLKmode, annotation_table_offset),
 			4, 1, 1);
       annotation_table_offset += (int) sizeof (zca_entry->dwarf_expr);
@@ -966,7 +961,7 @@ cilk_output_metadata (void)
   int exprs_len = 0;
   rtx st_label = NULL_RTX, str_table_label = NULL_RTX, expr_label = NULL_RTX;
 
-  /* if there are no zca entries, then no reason to output this section */
+  /* If there are no zca entries, then no reason to output this section.  */
   if (get_zca_entry_count () == 0)
     return;
   
@@ -979,26 +974,25 @@ cilk_output_metadata (void)
   st_label = create_metadata_label ("ZCA_START");
   str_table_label = create_metadata_label ("STRING_TABLE_START");
   expr_label = create_metadata_label ("EXPR_TABLE_START");
-  /* Now we emit the start label */
+  /* Now we emit the start label.  */
   output_asm_label (st_label);
   fputs (":\n", asm_out_file);
   
   
-  /* Here we output the magic number. */
+  /* Here we output the magic number.  */
   for (ii = 0; ii < (int) strlen (itt_string); ii++)
     assemble_integer (gen_rtx_CONST_INT (BLKmode, itt_string[ii]), 1, 1, 1);
   assemble_integer (gen_rtx_CONST_INT (BLKmode, 0), 1, 1, 1);
-  /* here we output the major and minor version number */
+  /* Here we output the major and minor version number.  */
   assemble_integer (gen_rtx_CONST_INT (BLKmode, ZCA_MAJOR_VER_NUMBER), 1, 1, 1);
   assemble_integer (gen_rtx_CONST_INT (BLKmode, ZCA_MINOR_VER_NUMBER), 1, 1, 1);
 
   entry_count = get_zca_entry_count ();
   assemble_integer (gen_rtx_CONST_INT (BLKmode, entry_count), 2, 1, 1);
 
-  /* Now we output the offet to the string table.  This is done by printing out
-   * the label for string_table_start, then a '-' then start_label.  The linker
-   * should find out the correct absolute value.
-   */
+  /* Now we output the offet to the string table.  This is done by printing out 
+     the label for string_table_start, then a '-' then start_label.  The linker
+     should find out the correct absolute value.  */
   fputs (integer_asm_op (GET_MODE_SIZE (SImode), 1), asm_out_file);
   output_asm_label (str_table_label);
   fputc ('-', asm_out_file);
@@ -1034,14 +1028,14 @@ cilk_output_metadata (void)
 }
 
 /* This will replace pseudo registers with appropriate stack pointer.  */
+
 static rtx
 cilk_fix_stack_reg (rtx mem_rtx)
 {
-  /* This function will go through an RTL of type MEM and then check to see if
-   * the register is PSEUDO, if so then we replace it with stack_pointer_rtx.
-   * This is mainly used to find the DWARF codes for parameters that are pushed
-   * in the stack.
-   */
+  /* This function will go through an RTL of type MEM and then check to see if 
+     the register is PSEUDO, if so then we replace it with stack_pointer_rtx. 
+     This is mainly used to find the DWARF codes for parameters that are pushed 
+     in the stack.  */
   if (!mem_rtx || !MEM_P (mem_rtx))
     return mem_rtx;
 
@@ -1061,6 +1055,7 @@ cilk_fix_stack_reg (rtx mem_rtx)
 }
 
 /* This function will expand the cilk metadata.  */
+
 rtx
 expand_builtin_cilk_metadata (const char *annotation, tree exp)
 {
@@ -1084,7 +1079,7 @@ expand_builtin_cilk_metadata (const char *annotation, tree exp)
 	{
 	  /* We have 2 options, either functions with 1 parameter or functions 
 	     with 2 parameter.  Either case, you take the last parameter 
-	     (1st in the former and 2nd in the latter).  So we do this */
+	     (1st in the former and 2nd in the latter).  So we do this.  */
 	  reg_rtx = XEXP (ii_rtx, 0);
 	  if (reg_rtx)
 	    if (GET_CODE (reg_rtx) == USE)
@@ -1155,6 +1150,7 @@ cilk_annotated_function_p (char *name)
 }
 
 /* This function will remove the false annotation functions we inserted.  */
+
 void
 cilk_remove_annotated_functions (rtx first)
 {
@@ -1259,6 +1255,7 @@ is_elem_fn_attribute_p (tree name)
 }
 
 /* This function will compare two function names and see if they are same.  */
+
 static bool
 compare_fn (const char *my_string, const char *search_str)
 {
@@ -1267,16 +1264,13 @@ compare_fn (const char *my_string, const char *search_str)
   int search_str_length = 0;
   int str_length = 0;
   
-  if ((my_string == NULL) &&
-      (search_str != NULL))
+  if ((my_string == NULL) && (search_str != NULL))
     return false;
 
-  if ((my_string != NULL) &&
-      (search_str == NULL))
+  if ((my_string != NULL) && (search_str == NULL))
     return false;
 
-  if ((my_string == NULL) &&
-      (search_str == NULL))
+  if ((my_string == NULL) && (search_str == NULL))
     return true;
 
   cc = my_string;
@@ -1297,7 +1291,7 @@ compare_fn (const char *my_string, const char *search_str)
   if (str_length != search_str_length)
     return false;
 
-  /* now we see if the strings match */
+  /* Now we see if the strings match.  */
   cc = my_string;
   dd = search_str;
 

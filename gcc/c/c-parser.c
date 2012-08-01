@@ -8977,8 +8977,8 @@ c_parser_simd_private (c_parser *parser)
 	    c_parser_error (parser, "ill-formed pragma: Found same variable" 
 			    " in multiple clauses ");
       
-	  /* If the pragma simd found is true, it means that we should use the
-	   * values given in the local_pragma_simd variable.  */
+	  /* If the pragma simd found is true, it means that we should use the 
+	     values given in the local_pragma_simd variable.  */
 	  c_parser_for_statement (parser, true);
 	}
     }
@@ -11779,7 +11779,7 @@ c_parser_cilk_for_statement (c_parser *parser, tree grain)
       /* Parse the initialization declaration.  */
       if (c_parser_next_tokens_start_declaration (parser))
 	{
-	  c_parser_declaration_or_fndef (parser, true,false, true,
+	  c_parser_declaration_or_fndef (parser, true, false, true, 
 					 false, false, NULL);
 	  cvar = check_for_loop_decls (loc, flag_isoc99);
 	}
@@ -12050,7 +12050,7 @@ c_parser_elem_fn_uniform_clause (c_parser *parser)
       token = c_parser_peek_token (parser);
       if (token->value && token->type == CPP_NAME)
 	{
-	  /* convert the variable to a string */
+	  /* Convert the variable to a string.  */
 	  str_token = build_string (strlen (IDENTIFIER_POINTER (token->value)),
 				    IDENTIFIER_POINTER (token->value));
 	  VEC_safe_push (tree, gc, uniform_vec, str_token);
@@ -12158,7 +12158,7 @@ c_parser_elem_fn_linear_clause (c_parser *parser)
 	  return NULL_TREE;
 	}
     }
-  c_parser_consume_token (parser); /* consume the ')' */
+  c_parser_consume_token (parser); /* Consume the ')'.  */
   linear_tree = build_tree_list_vec (linear_vec);
   release_tree_vector (linear_vec);
   linear_tree = build_tree_list (get_identifier ("linear"), linear_tree);

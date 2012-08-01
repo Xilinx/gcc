@@ -559,8 +559,8 @@ struct GTY(()) function {
   /* In a Cilk function, the VAR_DECL for the frame descriptor. */
   tree cilk_frame_decl;
 
-  /* In an elemental function, if this is true, it means the function is already
-     cloned, and dont bother cloning it again.  */
+  /* In an elemental function, if this is true, it means the function is 
+     already cloned, and dont bother cloning it again.  */
   bool elem_fn_already_cloned;
   
   /* For md files.  */

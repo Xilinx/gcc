@@ -26,7 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "tree.h"
 
-/* Frame status bits known to compiler */
+/* Frame status bits known to compiler.  */
 #define CILK_FRAME_STOLEN    0x01
 #define CILK_FRAME_UNSYNCHED 0x02
 #define CILK_FRAME_DETACHED  0x04
@@ -39,8 +39,6 @@ along with GCC; see the file COPYING3.  If not see
 
 #define ZCA_MAJOR_VER_NUMBER (1)
 #define ZCA_MINOR_VER_NUMBER (1)
-
-/* metadata NYI */
 
 enum cilk_tree_index
 {
@@ -93,7 +91,7 @@ enum cilk_tree_index
     CILK_TI_METACALL_FRAME,
     CILK_TI_METACALL_FPTR,
 
-    /* Fields of frame (layout must match runtime) */
+    /* Fields of frame (layout must match runtime).  */
     CILK_TI_FRAME_EXTENSION,
     CILK_TI_BUCKET,
     CILK_TI_FRAME_FLAGS,
@@ -103,7 +101,7 @@ enum cilk_tree_index
     CILK_TI_FRAME_CONTEXT,
     CILK_TI_STACK_POINTER,
 
-    /* Fields of worker (layout must match runtime) */
+    /* Fields of worker (layout must match runtime).  */
     CILK_TI_WORKER_TAIL,
     CILK_TI_WORKER_HEAD,
     CILK_TI_WORKER_EXC,
@@ -118,12 +116,12 @@ enum cilk_tree_index
     CILK_TI_SAVEDREGS,
     CILK_TI_PENDING_FUNCTIONS,
 
-    /* layout of the fields in metacall struct */
+    /* Layout of the fields in metacall struct.  */
     CILK_TI_METACALL_TOOL_FLAGS,
     CILK_TI_METACALL_CODE_FLAGS,
     CILK_TI_METACALL_DATA_FLAGS,
 
-    /* Cilkscreen functions */
+    /* Cilkscreen functions.  */
     CILKSCREEN_TI_F_METACALL,
     CILKSCREEN_TI_F_DIS_INSTR,
     CILKSCREEN_TI_F_EN_INSTR,
@@ -196,22 +194,22 @@ extern GTY(()) tree cilk_trees[(int) CILK_TI_MAX];
 
 typedef struct zca_data_t
 {
-  rtx label; /* this is same as unsigned long ip */
+  rtx label; /* This is same as unsigned long ip.  */
   char *string;
   rtx reg_rtx;
   unsigned short dwarf_expr;
   struct zca_data_t *ptr_next;
 } zca_data;
 
-/* These are different mask options. I put 12345 so that we can defferenciate
- * the value during debugging */
+/* These are different mask options.  I put 12345 so that we can defferenciate 
+   the value during debugging.  */
 enum mask_options {
   USE_MASK = 12345,
   USE_NOMASK,
   USE_BOTH
 };
 
-/* this data structure will hold all the data from the vector attribute */
+/* This data structure will hold all the data from the vector attribute.  */
 typedef struct
 {
   char *proc_type;
@@ -231,7 +229,7 @@ typedef struct
   int total_no_args;
 } elem_fn_info;
 
-/* this data structure will hold all the arguments in the function */
+/* This data structure will hold all the arguments in the function.  */
 typedef struct 
 {
   tree induction_var;
@@ -242,7 +240,7 @@ typedef struct
 /* Offset of fields in the Cilk frame descriptor.
    Index is same as for cilk_trees.  If the index
    does not correspond to a field of the Cilk frame
-   the value is meaningless. */
+   the value is meaningless.  */
 extern HOST_WIDE_INT cilk_field_offsets[CILK_TI_MAX];
 
 /* Called once to initialize the Cilk language-independent data structures. */
@@ -252,24 +250,24 @@ extern void cilk_expand_set_flags (tree, enum tree_code, int);
 extern void cilk_expand_get_flags (tree, int);
 
 /* Return the offset of the specified Cilk frame field within
-   a block of size 64 x 2^BUCKET. */
+   a block of size 64 x 2^BUCKET.  */
 extern HOST_WIDE_INT cilk_field_offset (int bucket, enum cilk_tree_index);
 
 /* Return an address to FIELD in structure FRAME, marking the
-   reference volatile if VOLATILE_P. */
+   reference volatile if VOLATILE_P.  */
 extern tree cilk_frame_ref (tree frame, tree field, bool volatile_p);
 
 extern void cilk_init_frame (tree frame);
 
 /* Call the Cilk runtime to allocate a variable sized object in
-   the current frame. */
+   the current frame.  */
 extern rtx allocate_cilk_dynamic (rtx target, rtx size);
 
 /* Like build_stack_save_restore, but handles Cilk dynamic frame
-   extensions instead of updating the stack pointer. */
+   extensions instead of updating the stack pointer.  */
 extern void build_stack_save_restore_cilk (tree *save, tree *restore);
 
-/* Return an expression describing a detach operation. */
+/* Return an expression describing a detach operation.  */
 extern tree cilk_detach (tree worker);
 
 extern void cilk_init_builtins (void);
@@ -283,18 +281,13 @@ extern rtx expand_builtin_cilk_stolen (tree);
 extern rtx expand_builtin_cilk_synched (tree);
 extern rtx expand_builtin_cilk_enter (tree);
 extern rtx expand_builtin_cilk_metadata (const char *, tree);
-
 bool cilk_valid_spawn (tree);
 void gimplify_cilk_spawn (tree *, gimple_seq *, gimple_seq *);
 void gimplify_cilk_sync (tree *, gimple_seq *);
 void gimplify_cilk_for (tree *, gimple_seq *, gimple_seq *);
-
-
 extern tree cilk_call_setjmp (tree);
-
 extern tree make_cilk_frame (tree);
 extern tree build_cilk_function_exit (tree, bool, bool);
-
 extern tree build_cilk_sync (void);
 extern tree create_detach_expr (tree frame);
 extern void cilk_output_metadata (void);
@@ -317,7 +310,6 @@ extern void array_notation_init_builtins (void);
 extern bool is_cilk_must_expand_fn (enum built_in_function);
 extern bool is_elem_fn_attribute_p (tree);
 extern bool is_cilk_function_decl (tree, tree);
-
 extern void clear_pragma_simd_list (void);
 
 #endif /* GCC_CILK_H */

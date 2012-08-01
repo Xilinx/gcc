@@ -72,7 +72,6 @@ extern void gimple_check_failed (const_gimple, const char *, int,          \
 
 #define GIMPLE_PRAGMA_SIMD_INDEX(GS) (GS->gsbase.pragma_simd_index)
 
-
 /* Class of GIMPLE expressions suitable for the RHS of assignments.  See
    get_gimple_rhs_class.  */
 enum gimple_rhs_class

@@ -425,7 +425,7 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
     1. LHS_RANK == RHS_RANK
     2. LHS_RANK != RHS_RANK && RHS_RANK = 0 
     
-    In both the scenarios, just checking the LHS_RANK is OK */
+    In both the scenarios, just checking the LHS_RANK is OK.  */
 
   body_label = (tree *) xmalloc (sizeof (tree) * max (lhs_rank, rhs_rank));
   body_label_expr = (tree *) xmalloc (sizeof (tree) * max (lhs_rank, rhs_rank));
