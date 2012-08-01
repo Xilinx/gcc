@@ -1,5 +1,10 @@
 
 2012-08-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt (valdesc_strbuf, valdesc_mixint):
+	Removing GTY annotation on non-pointer data which makes recent
+	gengtype scream.
+
+2012-08-01  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-build.tpl: Remove file.
 

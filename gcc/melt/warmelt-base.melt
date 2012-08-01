@@ -3190,16 +3190,17 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_objmagic '"MELTOBMAG_STRBUF"
   :valdesc_struct '"meltstrbuf_st"
   :valdesc_unionmem '"u_strbuf"
-  :valdesc_membchunk #{$' /* from VALDESC_STRBUF in warmelt-base.melt */  
-  char *GTY ((length ("1+melt_primtab[%h.buflenix]"))) bufzn;
+  :valdesc_membchunk #{$' /* from VALDESC_STRBUF in warmelt-base.melt */
+  /* no GTY on bufzn, it a scalar data */  
+  char * bufzn;
   unsigned char buflenix;	/* allocated length index of
 				   buffer */
   unsigned bufstart;
   unsigned bufend;		/* start & end useful positions */
   /* the following field is usually the value of buf (for
      objects in the young zone), to allocate the object and its fields
-     at once; hence its GTY-ed length is zero */
-  char GTY ((length ("0"))) buf_space[MELT_FLEXIBLE_DIM];
+     at once; no GTY length on buf_space, since it is a non pointer data. */
+  char  buf_space[MELT_FLEXIBLE_DIM];
   }#
   :valdesc_copychunk #{$' /* copy chunk from VALDESC_STRBUF */
 /* ggc_alloc_meltstrbuf_st should be gengtype gengtype for VALDESC_STRBUF */
@@ -3424,7 +3425,8 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
     melt_ptr_t ptrval;
     bool negative;
     unsigned biglen;
-    long GTY ((length ("%h.biglen"))) tabig[MELT_FLEXIBLE_DIM];
+    /* no GTY on tabig, it is a array of non-pointer data */
+    long tabig[MELT_FLEXIBLE_DIM];
   }#
   :valdesc_copychunk #{$' /* from VALDESC_MIXBIGINT */
 /* ggc_alloc_meltmixbigint_st should be gengtype generated for VALDESC_MIXBIGINT */
