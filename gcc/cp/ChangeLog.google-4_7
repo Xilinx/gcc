@@ -1,3 +1,13 @@
+2012-08-01   Diego Novillo  <dnovillo@google.com>
+
+	Backport r189720 from gcc-4_7-branch
+
+	2012-07-20  Jason Merrill  <jason@redhat.com>
+
+		PR c++/54038
+		* tree.c (build_cplus_array_type): Use build_cplus_array_type to build
+		canonical array type rather than mess with its TYPE_*_VARIANT.
+
 2012-07-24  Cary Coutant  <ccoutant@google.com>
     
     Backport Fission patches from trunk at r188195, r188857, r189084,

@@ -1,3 +1,12 @@
+2012-08-01   Diego Novillo  <dnovillo@google.com>
+
+	Backport r189720 from gcc-4_7-branch
+
+	2012-07-20  Jason Merrill  <jason@redhat.com>
+
+		PR c++/54038
+		* g++.dg/other/array7.C: New.
+
 2012-08-01  Dehao Chen  <dehao@google.com>
 
 	Backport r190015 from trunk.
