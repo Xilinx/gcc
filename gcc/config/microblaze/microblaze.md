@@ -42,6 +42,7 @@
   (UNSPEC_CMPU		    105)    ;; unsigned compare
   (UNSPEC_TLS           106)    ;; jump table
   (UNSPEC_SYNC_CAS      107)    ;; Represent an atomic compare swap.
+  (UNSPEC_SYNC_XCHG     108)    ;; Represent an atomic exchange.
 ])
 
 

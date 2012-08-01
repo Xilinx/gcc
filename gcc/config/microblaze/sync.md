@@ -42,3 +42,24 @@
     return "";
   }
 )
+
+(define_insn "sync_lock_test_and_setsi"
+  [(set (match_operand:SI 0 "register_operand" "=&d")        	;; retval
+	(match_operand:SI 1 "nonimmediate_operand" "+Q"))	;; mem
+   (set (match_dup 1)
+	(unspec
+	  [(match_operand:SI 2 "register_operand" "d")]		;; value
+	  UNSPEC_SYNC_XCHG))
+   (clobber (match_scratch:SI 3 "=&d"))]			;; scratch
+  ""
+  {
+    output_asm_insn ("addc \tr0,r0,r0", operands);
+    output_asm_insn ("lwx  \t%0,%y1,r0", operands);
+    output_asm_insn ("addic\t%3,r0,0", operands);
+    output_asm_insn ("bnei \t%3,.-8", operands);
+    output_asm_insn ("swx  \t%2,%y1,r0", operands);
+    output_asm_insn ("addic\t%3,r0,0", operands);
+    output_asm_insn ("bnei \t%3,.-20", operands);
+    return "";
+  }
+)
