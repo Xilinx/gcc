@@ -1812,6 +1812,8 @@
   {
     if (GET_CODE (operands[0]) == REG)
         return "br%?\t%0";
+    else if (GET_CODE (operands[0]) == SYMBOL_REF)
+        return "bri%?\t%0";
     else	
         return "bri%?\t%l0";
   }
