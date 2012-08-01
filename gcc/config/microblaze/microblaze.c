@@ -3180,6 +3180,75 @@ microblaze_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
 }
 
 static void
+microblaze_asm_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
+				HOST_WIDE_INT delta, HOST_WIDE_INT vcall_offset,
+				tree function)
+{
+  rtx this_rtx, insn, funexp;
+
+  reload_completed = 1;
+  epilogue_completed = 1;
+
+  /* Mark the end of the (empty) prologue.  */
+  emit_note (NOTE_INSN_PROLOGUE_END);
+
+  /* Find the "this" pointer.  If the function returns a structure,
+     the structure return pointer is in MB_ABI_FIRST_ARG_REGNUM.  */
+  if (aggregate_value_p (TREE_TYPE (TREE_TYPE (function)), function))
+    this_rtx = gen_rtx_REG (Pmode, (MB_ABI_FIRST_ARG_REGNUM + 1));
+  else
+    this_rtx = gen_rtx_REG (Pmode, MB_ABI_FIRST_ARG_REGNUM);
+
+  /* Apply the constant offset, if required.  */
+  if (delta)
+    emit_insn (gen_addsi3 (this_rtx, this_rtx, GEN_INT (delta)));
+
+  /* Apply the offset from the vtable, if required.  */
+  if (vcall_offset)
+  {
+    rtx vcall_offset_rtx = GEN_INT (vcall_offset);
+    rtx tmp = gen_rtx_REG (Pmode, MB_ABI_TEMP1_REGNUM);
+
+    emit_move_insn (tmp, gen_rtx_MEM (Pmode, this_rtx));
+
+    rtx loc = gen_rtx_PLUS (Pmode, tmp, vcall_offset_rtx);
+    emit_move_insn (tmp, gen_rtx_MEM (Pmode, loc));
+
+    emit_insn (gen_addsi3 (this_rtx, this_rtx, tmp));
+  }
+
+  /* Generate a tail call to the target function.  */
+  if (!TREE_USED (function))
+  {
+    assemble_external (function);
+    TREE_USED (function) = 1;
+  }
+  funexp = XEXP (DECL_RTL (function), 0);
+
+  if (flag_pic)
+  {
+    rtx scratch = gen_rtx_REG (Pmode, MB_ABI_TEMP2_REGNUM);
+    rtx reg = microblaze_legitimize_address(funexp, scratch, FUNCTION_MODE);
+    emit_move_insn (scratch, reg);
+    funexp = scratch;
+  }
+
+  emit_insn (gen_jump (funexp));
+
+  /* Run just enough of rest_of_compilation.  This sequence was
+     "borrowed" from rs6000.c.  */
+  insn = get_insns ();
+  insn_locators_alloc ();
+  shorten_branches (insn);
+  final_start_function (insn, file, 1);
+  final (insn, file, 1);
+  final_end_function ();
+
+  reload_completed = 0;
+  epilogue_completed = 0;
+}
+
+static void
 microblaze_globalize_label (FILE * stream, const char *name)
 {
   fputs ("\t.globl\t", stream);
@@ -3681,6 +3750,12 @@ microblaze_adjust_cost (rtx insn ATTRIBUTE_UNUSED, rtx link,
 
 #undef TARGET_SECONDARY_RELOAD
 #define TARGET_SECONDARY_RELOAD		microblaze_secondary_reload
+
+#undef  TARGET_ASM_OUTPUT_MI_THUNK
+#define TARGET_ASM_OUTPUT_MI_THUNK      microblaze_asm_output_mi_thunk
+
+#undef  TARGET_ASM_CAN_OUTPUT_MI_THUNK
+#define TARGET_ASM_CAN_OUTPUT_MI_THUNK  hook_bool_const_tree_hwi_hwi_const_tree_true
 
 #undef TARGET_SCHED_ADJUST_COST
 #define TARGET_SCHED_ADJUST_COST	microblaze_adjust_cost
