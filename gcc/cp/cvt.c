@@ -561,7 +561,7 @@ force_rvalue (tree expr, tsubst_flags_t complain)
       VEC(tree,gc) *args = make_tree_vector_single (expr);
       expr = build_special_member_call (NULL_TREE, complete_ctor_identifier,
 					&args, type, LOOKUP_NORMAL,
-					CALL_NORMAL, complain);
+					CILK_CALL_NORMAL, complain);
       release_tree_vector (args);
       expr = build_cplus_new (type, expr, complain);
     }
@@ -857,7 +857,7 @@ ocp_convert (tree type, tree expr, int convtype, int flags,
 	  ctor = build_special_member_call (NULL_TREE,
 					    complete_ctor_identifier,
 					    &ctor_vec,
-					    type, flags, CALL_NORMAL,
+					    type, flags, CILK_CALL_NORMAL,
 					    complain);
 	  release_tree_vector (ctor_vec);
 	}

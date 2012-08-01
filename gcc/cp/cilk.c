@@ -897,7 +897,7 @@ callable (enum tree_code code, tree op0, tree op1, const char *what, bool cry)
       return build_special_member_call (NULL_TREE, complete_ctor_identifier, 
 					&op1_vec, 
 					TYPE_MAIN_VARIANT (TREE_TYPE (op1)), 0, 
-					CALL_NORMAL, tf_warning_or_error);
+					CILK_CALL_NORMAL, tf_warning_or_error);
     }
 
   if (code == PSEUDO_DTOR_EXPR)
@@ -906,7 +906,7 @@ callable (enum tree_code code, tree op0, tree op1, const char *what, bool cry)
       return build_special_member_call (NULL_TREE, complete_dtor_identifier, 
 					&op1_vec, 
 					TYPE_MAIN_VARIANT (TREE_TYPE (op1)), 0,
-				       	CALL_NORMAL, tf_warning_or_error);
+				       	CILK_CALL_NORMAL, tf_warning_or_error);
     }
 
   flags = LOOKUP_PROTECT | LOOKUP_CONSTRUCTOR_CALLABLE | LOOKUP_ONLYCONVERTING;

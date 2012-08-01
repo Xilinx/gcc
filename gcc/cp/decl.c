@@ -6734,7 +6734,7 @@ register_dtor_fn (tree decl)
     }
   else
     arg0 = cleanup;
-  return cp_build_function_call_nary (get_atexit_node (), CALL_NORMAL,
+  return cp_build_function_call_nary (get_atexit_node (), CILK_CALL_NORMAL,
 				      tf_warning_or_error,
 				      arg0, arg1, arg2, NULL_TREE);
 }
@@ -6836,7 +6836,7 @@ expand_static_init (tree decl, tree init)
 	    abort_fn = push_library_fn (abort_name, vfntype, NULL_TREE);
 
 	  inner_if_stmt = begin_if_stmt ();
-	  finish_if_stmt_cond (build_call_n (acquire_fn, CALL_NORMAL,
+	  finish_if_stmt_cond (build_call_n (acquire_fn, CILK_CALL_NORMAL,
 					     1, guard_addr),
 			       inner_if_stmt);
 
@@ -6847,7 +6847,7 @@ expand_static_init (tree decl, tree init)
 	  TARGET_EXPR_CLEANUP (begin)
 	    = build3 (COND_EXPR, void_type_node, flag,
 		      void_zero_node,
-		      build_call_n (abort_fn, CALL_NORMAL, 1, guard_addr));
+		      build_call_n (abort_fn, CILK_CALL_NORMAL, 1, guard_addr));
 	  CLEANUP_EH_ONLY (begin) = 1;
 
 	  /* Do the initialization itself.  */
@@ -6855,7 +6855,7 @@ expand_static_init (tree decl, tree init)
 	  init = add_stmt_to_compound
 	    (init, build2 (MODIFY_EXPR, void_type_node, flag, boolean_true_node));
 	  init = add_stmt_to_compound
-	    (init, build_call_n (release_fn, CALL_NORMAL, 1, guard_addr));
+	    (init, build_call_n (release_fn, CILK_CALL_NORMAL, 1, guard_addr));
 	}
       else
 	init = add_stmt_to_compound (init, set_guard (guard));
@@ -13883,7 +13883,7 @@ cxx_maybe_build_cleanup (tree decl, tsubst_flags_t complain)
       fn = lookup_name (id);
       arg = build_address (decl);
       mark_used (decl);
-      cleanup = cp_build_function_call_nary (fn, CALL_NORMAL,
+      cleanup = cp_build_function_call_nary (fn, CILK_CALL_NORMAL,
 					     complain, arg, NULL_TREE);
       if (cleanup == error_mark_node)
 	return error_mark_node;

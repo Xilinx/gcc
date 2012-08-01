@@ -34,9 +34,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "alias.h"
 #include "flags.h"
 
-#define CILKPLUS_IMPLEMENTED /* bviyer: please do not delete this line */
-
-
 #define DECL_KILLS_REGISTERS_BITS 8
 
 

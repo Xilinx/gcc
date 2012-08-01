@@ -144,7 +144,7 @@ genericize_eh_spec_block (tree *stmt_p)
 {
   tree body = EH_SPEC_STMTS (*stmt_p);
   tree allowed = EH_SPEC_RAISES (*stmt_p);
-  tree failure = build_call_n (call_unexpected_node, CALL_NORMAL,
+  tree failure = build_call_n (call_unexpected_node, CILK_CALL_NORMAL,
 			       1, build_exc_ptr ());
 
   *stmt_p = build_gimple_eh_filter_tree (body, allowed, failure);
@@ -1325,7 +1325,7 @@ cxx_omp_clause_apply_fn (tree fn, tree arg1, tree arg2)
 	argarray[i] = convert_default_arg (TREE_VALUE (parm),
 					   TREE_PURPOSE (parm), fn, i,
 					   tf_warning_or_error);
-      t = build_call_a (fn, CALL_NORMAL, i, argarray);
+      t = build_call_a (fn, CILK_CALL_NORMAL, i, argarray);
       t = fold_convert (void_type_node, t);
       t = fold_build_cleanup_point_expr (TREE_TYPE (t), t);
       append_to_statement_list (t, &ret);
@@ -1358,7 +1358,7 @@ cxx_omp_clause_apply_fn (tree fn, tree arg1, tree arg2)
 	argarray[i] = convert_default_arg (TREE_VALUE (parm),
 					   TREE_PURPOSE (parm),
 					   fn, i, tf_warning_or_error);
-      t = build_call_a (fn, CALL_NORMAL, i, argarray);
+      t = build_call_a (fn, CILK_CALL_NORMAL, i, argarray);
       t = fold_convert (void_type_node, t);
       return fold_build_cleanup_point_expr (TREE_TYPE (t), t);
     }

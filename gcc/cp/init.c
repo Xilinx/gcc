@@ -349,7 +349,7 @@ build_value_init (tree type, tsubst_flags_t complain)
 	return build_aggr_init_expr
 	  (type,
 	   build_special_member_call (NULL_TREE, complete_ctor_identifier,
-				      NULL, type, LOOKUP_NORMAL, CALL_NORMAL,
+				      NULL, type, LOOKUP_NORMAL, CILK_CALL_NORMAL,
 				      complain),
 	   complain);
       else if (TYPE_HAS_COMPLEX_DFLT (type))
@@ -360,7 +360,7 @@ build_value_init (tree type, tsubst_flags_t complain)
 	     This will be handled in simplify_aggr_init_expr.  */
 	  tree ctor = build_special_member_call
 	    (NULL_TREE, complete_ctor_identifier,
-	     NULL, type, LOOKUP_NORMAL, CALL_NORMAL, complain);
+	     NULL, type, LOOKUP_NORMAL, CILK_CALL_NORMAL, complain);
 	  ctor = build_aggr_init_expr (type, ctor, complain);
 	  if (ctor != error_mark_node)
 	    AGGR_INIT_ZERO_FIRST (ctor) = 1;
@@ -1205,7 +1205,7 @@ expand_cleanup_for_base (tree binfo, tree flag)
 				    NULL,
 				    binfo,
 				    LOOKUP_NORMAL | LOOKUP_NONVIRTUAL,
-                                    CALL_NORMAL,
+                                    CILK_CALL_NORMAL,
                                     tf_warning_or_error);
   if (flag)
     expr = fold_build3_loc (input_location,
@@ -1646,13 +1646,14 @@ expand_default_init (tree binfo, tree true_exp, tree exp, tree init, int flags,
 	  VEC_safe_push (tree, gc, parms2, elt);
 	}
       complete = build_special_member_call (exp, complete_ctor_identifier,
-					    &parms2, binfo, flags, CALL_NORMAL,
+					    &parms2, binfo, flags,
+					    CILK_CALL_NORMAL,
 					    complain);
       complete = fold_build_cleanup_point_expr (void_type_node, complete);
       release_tree_vector (parms2);
 
       base = build_special_member_call (exp, base_ctor_identifier,
-					&parms, binfo, flags, CALL_NORMAL,
+					&parms, binfo, flags, CILK_CALL_NORMAL,
 					complain);
       base = fold_build_cleanup_point_expr (void_type_node, base);
       rval = build3 (COND_EXPR, void_type_node,
@@ -1668,7 +1669,7 @@ expand_default_init (tree binfo, tree true_exp, tree exp, tree init, int flags,
       else
 	ctor_name = base_ctor_identifier;
       rval = build_special_member_call (exp, ctor_name, &parms, binfo, flags,
-					CALL_NORMAL, complain);
+					CILK_CALL_NORMAL, complain);
   }
 
   if (parms != NULL)
@@ -2046,7 +2047,7 @@ static tree
 build_builtin_delete_call (tree addr)
 {
   mark_used (global_delete_fndecl);
-  return build_call_n (global_delete_fndecl, CALL_NORMAL, 1, addr);
+  return build_call_n (global_delete_fndecl, CILK_CALL_NORMAL, 1, addr);
 }
 
 /* Build and return a NEW_EXPR.  If NELTS is non-NULL, TYPE[NELTS] is
@@ -2361,7 +2362,7 @@ build_new_1 (VEC(tree,gc) **placement, tree type, tree nelts,
 	}
       alloc_fn = OVL_CURRENT (alloc_fn);
       class_addr = build1 (ADDR_EXPR, jclass_node, class_decl);
-      alloc_call = cp_build_function_call_nary (alloc_fn, CALL_NORMAL, complain,
+      alloc_call = cp_build_function_call_nary (alloc_fn, CILK_CALL_NORMAL, complain,
 						class_addr, NULL_TREE);
     }
   else if (TYPE_FOR_JAVA (elt_type) && MAYBE_CLASS_TYPE_P (elt_type))
@@ -2412,7 +2413,7 @@ build_new_1 (VEC(tree,gc) **placement, tree type, tree nelts,
 					      fns, placement,
 					      /*conversion_path=*/NULL_TREE,
 					      LOOKUP_NORMAL, &alloc_fn,
-					      CALL_NORMAL, complain);
+					      CILK_CALL_NORMAL, complain);
 	}
       else
 	{
@@ -2586,7 +2587,7 @@ build_new_1 (VEC(tree,gc) **placement, tree type, tree nelts,
 	    init_expr = build_special_member_call (init_expr,
 						   complete_ctor_identifier,
 						   init, elt_type,
-						   LOOKUP_NORMAL, CALL_NORMAL,
+						   LOOKUP_NORMAL, CILK_CALL_NORMAL,
 						   complain);
 	  stable = stabilize_init (init_expr, &init_preeval_expr);
 	}
@@ -2651,7 +2652,8 @@ build_new_1 (VEC(tree,gc) **placement, tree type, tree nelts,
 	      init_expr = build_special_member_call (init_expr,
 						     complete_ctor_identifier,
 						     init, elt_type,
-						     LOOKUP_NORMAL, CALL_NORMAL,
+						     LOOKUP_NORMAL,
+						     CILK_CALL_NORMAL,
                                                      complain);
 	    }
 	  else if (explicit_value_init_p)
@@ -3623,7 +3625,7 @@ build_dtor_call (tree exp, special_function_kind dtor_kind, int flags,
 				/*args=*/NULL,
 				/*conversion_path=*/NULL_TREE,
 				flags,
-				/*fn_p=*/NULL, CALL_NORMAL,
+				/*fn_p=*/NULL, CILK_CALL_NORMAL,
 				complain);
 }
 
@@ -3876,7 +3878,7 @@ push_base_cleanups (void)
 						base_binfo,
 						(LOOKUP_NORMAL
 						 | LOOKUP_NONVIRTUAL),
-                                                CALL_NORMAL,
+                                                CILK_CALL_NORMAL,
                                                 tf_warning_or_error);
 	      expr = build3 (COND_EXPR, void_type_node, cond,
 			     expr, void_zero_node);
@@ -3897,7 +3899,7 @@ push_base_cleanups (void)
 					base_dtor_identifier,
 					NULL, base_binfo,
 					LOOKUP_NORMAL | LOOKUP_NONVIRTUAL,
-                                                CALL_NORMAL,
+					CILK_CALL_NORMAL,
                                         tf_warning_or_error);
       finish_decl_cleanup (NULL_TREE, expr);
     }

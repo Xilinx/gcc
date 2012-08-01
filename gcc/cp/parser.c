@@ -3644,7 +3644,7 @@ cp_parser_userdef_char_literal (cp_parser *parser)
       release_tree_vector (args);
       return error_mark_node;
     }
-  result = finish_call_expr (decl, &args, false, true, CALL_NORMAL,
+  result = finish_call_expr (decl, &args, false, true, CILK_CALL_NORMAL,
 			     tf_warning_or_error);
   release_tree_vector (args);
   if (result != error_mark_node)
@@ -3703,7 +3703,7 @@ cp_parser_userdef_numeric_literal (cp_parser *parser)
   decl = lookup_literal_operator (name, args);
   if (decl && decl != error_mark_node)
     {
-      result = finish_call_expr (decl, &args, false, true, CALL_NORMAL,
+      result = finish_call_expr (decl, &args, false, true, CILK_CALL_NORMAL,
 				 tf_none);
       if (result != error_mark_node)
 	{
@@ -3721,7 +3721,7 @@ cp_parser_userdef_numeric_literal (cp_parser *parser)
   decl = lookup_literal_operator (name, args);
   if (decl && decl != error_mark_node)
     {
-      result = finish_call_expr (decl, &args, false, true, CALL_NORMAL,
+      result = finish_call_expr (decl, &args, false, true, CILK_CALL_NORMAL,
 				 tf_none);
       if (result != error_mark_node)
 	{
@@ -3740,7 +3740,7 @@ cp_parser_userdef_numeric_literal (cp_parser *parser)
     {
       tree tmpl_args = make_char_string_pack (num_string);
       decl = lookup_template_function (decl, tmpl_args);
-      result = finish_call_expr (decl, &args, false, true, CALL_NORMAL,
+      result = finish_call_expr (decl, &args, false, true, CILK_CALL_NORMAL,
 				 tf_none);
       if (result != error_mark_node)
 	{
@@ -3781,7 +3781,7 @@ cp_parser_userdef_string_literal (cp_token *token)
       release_tree_vector (args);
       return error_mark_node;
     }
-  result = finish_call_expr (decl, &args, false, true, CALL_NORMAL, tf_none);
+  result = finish_call_expr (decl, &args, false, true, CILK_CALL_NORMAL, tf_none);
   release_tree_vector (args);
   if (result != error_mark_node)
     return result;
@@ -5396,7 +5396,7 @@ cp_parser_postfix_expression (cp_parser *parser, bool address_p, bool cast_p,
   cp_id_kind idk = CP_ID_KIND_NONE;
   tree postfix_expression = NULL_TREE;
   bool is_member_access = false;
-  enum call_context spawning = CALL_NORMAL;
+  enum call_context spawning = CILK_CALL_NORMAL;
   int saved_in_statement = -1;
 
   /* Peek at the next token.  */
@@ -5564,8 +5564,8 @@ cp_parser_postfix_expression (cp_parser *parser, bool address_p, bool cast_p,
 	    SPAWN_CALL_P (current_function_decl) = 1;
 	    DECL_STATIC_CHAIN (current_function_decl) = 1; 
 	    begin_cilk_block ();
-	    gcc_assert (spawning == CALL_NORMAL);
-	    spawning = CALL_SPAWN;
+	    gcc_assert (spawning == CILK_CALL_NORMAL);
+	    spawning = CILK_CALL_SPAWN;
     
 	  }
 	postfix_expression
@@ -5705,7 +5705,7 @@ cp_parser_postfix_expression (cp_parser *parser, bool address_p, bool cast_p,
 	postfix_expression
 	  = cp_parser_primary_expression (parser, address_p, cast_p,
 					  /*template_arg_p=*/false, 
-					  CALL_NORMAL,
+					  CILK_CALL_NORMAL,
 					  &idk);
       }
       break;
@@ -5845,16 +5845,16 @@ cp_parser_postfix_expression (cp_parser *parser, bool address_p, bool cast_p,
 		  {
 		    postfix_expression
 		      = build_nt_call_vec (postfix_expression, args);
-		    if (spawning == CALL_SPAWN)
+		    if (spawning == CILK_CALL_SPAWN)
 		      {
 			SPAWN_CALL_P (postfix_expression) = 1;
 			finish_cilk_block ();
 			/* The spawn or run token has been exhausted. */
-			spawning = CALL_NORMAL;
+			spawning = CILK_CALL_NORMAL;
 		      }
 		    else
 		      /* short term sanity check */
-		      gcc_assert (spawning == CALL_NORMAL);
+		      gcc_assert (spawning == CILK_CALL_NORMAL);
 
 		    release_tree_vector (args);
 		    break;
@@ -5904,11 +5904,11 @@ cp_parser_postfix_expression (cp_parser *parser, bool address_p, bool cast_p,
 				    tf_warning_or_error);
 
 	    /* The spawn token has been exhausted. */
-	    if (spawning != CALL_NORMAL)
+	    if (spawning != CILK_CALL_NORMAL)
 	      {
 		finish_cilk_block ();
 		SPAWN_CALL_P (postfix_expression) = 1;
-		spawning = CALL_NORMAL;
+		spawning = CILK_CALL_NORMAL;
 	      }
 
 	    /* The POSTFIX_EXPRESSION is certainly no longer an id.  */
@@ -5968,7 +5968,7 @@ cp_parser_postfix_expression (cp_parser *parser, bool address_p, bool cast_p,
 	  break;
 
 	default:
-	  if (spawning == CALL_SPAWN)
+	  if (spawning == CILK_CALL_SPAWN)
 	    {
 	      if (postfix_expression != error_mark_node)
 		warning (0, "%<cilk_spawn%> ignored in non-call context");
@@ -8500,7 +8500,7 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
                  /*template_p=*/false,
                  /*done=*/true,
                  /*address_p=*/false,
-                 /*template_arg_p=*/false, CALL_NORMAL,
+                 /*template_arg_p=*/false, CILK_CALL_NORMAL,
                  &error_msg,
                  capture_token->location);
 	}
@@ -9837,12 +9837,12 @@ cp_parser_perform_range_for_lookup (tree range, tree *begin, tree *end)
 						/*include_std=*/true,
 						tf_warning_or_error);
 	  *begin = finish_call_expr (member_begin, &vec, false, true, 
-				     CALL_NORMAL, tf_warning_or_error);
+				     CILK_CALL_NORMAL, tf_warning_or_error);
 	  member_end = perform_koenig_lookup (id_end, vec,
 					      /*include_std=*/true,
 					      tf_warning_or_error);
 	  *end = finish_call_expr (member_end, &vec, false, true,
-				   CALL_NORMAL, tf_warning_or_error);
+				   CILK_CALL_NORMAL, tf_warning_or_error);
 
 	  release_tree_vector (vec);
 	}
@@ -9886,7 +9886,7 @@ cp_parser_range_for_member_function (tree range, tree identifier)
   res = finish_call_expr (member, &vec,
 			  /*disallow_virtual=*/false,
 			  /*koenig_p=*/false,
-			  CALL_NORMAL,
+			  CILK_CALL_NORMAL,
 			  tf_warning_or_error);
   release_tree_vector (vec);
   return res;
@@ -11354,7 +11354,7 @@ cp_parser_decltype (cp_parser *parser)
                    /*done=*/true,
                    /*address_p=*/false,
                    /*template_arg_p=*/false, 
-		   CALL_NORMAL,
+		   CILK_CALL_NORMAL,
                    &error_msg,
 		   id_expr_start_token->location));
 
@@ -13240,7 +13240,7 @@ cp_parser_template_argument (cp_parser* parser)
 					       /*address_p=*/false,
 					       /*cast_p=*/false,
 					       /*template_arg_p=*/true,
-					       CALL_NORMAL,
+					       CILK_CALL_NORMAL,
 					       &idk);
       if (TREE_CODE (argument) != TEMPLATE_PARM_INDEX
 	  || !cp_parser_next_token_ends_template_argument_p (parser))
@@ -13270,7 +13270,7 @@ cp_parser_template_argument (cp_parser* parser)
 					       address_p,
 					       /*cast_p=*/false,
 					       /*template_arg_p=*/true,
-					       CALL_NORMAL,
+					       CILK_CALL_NORMAL,
 					       &idk);
       if (cp_parser_error_occurred (parser)
 	  || !cp_parser_next_token_ends_template_argument_p (parser))
@@ -26877,8 +26877,8 @@ cp_parser_omp_for_incr (cp_parser *parser, tree decl)
       return build2 (op, TREE_TYPE (decl), decl, NULL_TREE);
     }
 
-  lhs = cp_parser_primary_expression (parser, false, false, false, CALL_NORMAL,
-				      &idk);
+  lhs = cp_parser_primary_expression (parser, false, false, false,
+				      CILK_CALL_NORMAL, &idk);
   if (lhs != decl)
     return error_mark_node;
 
@@ -27112,7 +27112,7 @@ cp_parser_omp_for_loop (cp_parser *parser, tree clauses, tree *par_clauses)
 		 this MUST be a simple expression.  */
 	      cp_parser_parse_tentatively (parser);
 	      decl = cp_parser_primary_expression (parser, false, false, 
-						   false, CALL_NORMAL, &idk);
+						   false, CILK_CALL_NORMAL, &idk);
 	      if (!cp_parser_error_occurred (parser)
 		  && decl
 		  && DECL_P (decl)

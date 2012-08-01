@@ -1,3 +1,57 @@
+2012-08-01  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* parser.c (cp_parser_userdef_char_literal): Replaced CALL_SPAWN and
+	CALL_NORMAL with CILK_CALL_SPAWN and CILK_CALL_NORMAL.
+	(cp_parser_userdef_numeric_literal): Likewise.
+	(cp_parser_userdef_string_literal): Likewise.
+	(cp_parser_postfix_expression): Likewise.
+	(cp_parser_lambda_introducer): Likewise.
+	(cp_parser_perform_range_for_lookup): Likewise.
+	(cp_parser_range_for_member_function): Likewise.
+	(cp_parser_decltype): Likewise.
+	(cp_parser_template_argument): Likewise.
+	(cp_parser_omp_for_incr): Likewise.
+	(cp_parser_omp_for_loop): Likewise.
+	(cp_parser_userdef_char_literal): Likewise.
+	* decl2.c (generate_ctor_or_dtor_function): Likewise.
+	(build_offset_ref_call_from_tree): Likewise.
+	* semantics.c (finish_call_expr): Likewise.
+	(finish_id_expression): Likewise.
+	(finish_omp_flush): Likewise.
+	(finish_omp_taskwait): Likewise.
+	(cxx_eval_vec_init_1): Likewise.
+	(maybe_add_lambda_conv_op): Likewise.
+	* pt.c (tsubst_copy_and_build): Likewise.
+	* typeck2.c (split_nonconstant_init_1): Likewise.
+	(build_functional_cast): Likewise.
+	* cp-gimplify.c (genericize_eh_spec_block): Likewise.
+	(cxx_omp_clause_apply_fn): Likewise.
+	* tree.c (build_vec_init_elt): Likewise.
+	* except.c (build_exc_ptr): Likewise.
+	(do_get_exception_ptr): Likewise.
+	(do_end_catch): Likewise.
+	(do_free_exception): Likewise.
+	(build_throw): Likewise.
+	* rtti.c (throw_bad_cast): Likewise.
+	(throw_bad_typeid): Likewise.
+	(build_dynamic_cast_1): Likewise.
+	* cilk.c (callable): Likewise.
+	* method.c (do_build_copy_assign): Likewise.
+	(locate_fn_flags): Likewise.
+	* decl.c (register_dtor_fn): Likewise.
+	(expand_static_init): Likewise.
+	(cxx_maybe_build_cleanup): Likewise.
+	* init.c (build_value_init): Likewise.
+	(expand_cleanup_for_base): Likewise.
+	(expand_default_init): Likewise.
+	(build_builtin_delete_call): Likewise.
+	(build_new_1): Likewise.
+	(push_base_cleanups): Likewise.
+	* optimize.c (build_delete_destructor_body): Likewise.
+	* typeck.c (build_function_call): Likewise.
+	(build_function_call_vec): Likewise.
+	(cp_build_modify_expr): Likewise.
+
 2012-07-30  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* pt.c (tsubst_expr): Fixed comments and spacing.  Also removed unwanted

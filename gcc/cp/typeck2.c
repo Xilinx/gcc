@@ -584,7 +584,7 @@ split_nonconstant_init_1 (tree dest, tree init)
 		{
 		  code = (build_special_member_call
 			  (sub, complete_dtor_identifier, NULL, inner_type,
-			   LOOKUP_NORMAL, CALL_NORMAL, tf_warning_or_error));
+			   LOOKUP_NORMAL, CILK_CALL_NORMAL, tf_warning_or_error));
 		  finish_eh_cleanup (code);
 		}
 
@@ -1763,7 +1763,8 @@ build_functional_cast (tree exp, tree parms, tsubst_flags_t complain)
   for (; parms != NULL_TREE; parms = TREE_CHAIN (parms))
     VEC_safe_push (tree, gc, parmvec, TREE_VALUE (parms));
   exp = build_special_member_call (NULL_TREE, complete_ctor_identifier,
-				   &parmvec, type, LOOKUP_NORMAL, CALL_NORMAL,
+				   &parmvec, type, LOOKUP_NORMAL,
+				   CILK_CALL_NORMAL,
 				   complain);
   release_tree_vector (parmvec);
 

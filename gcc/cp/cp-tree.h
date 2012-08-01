@@ -4550,8 +4550,8 @@ enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, TYPENAME_FLAG };
 #define BUILT_IN_CILK_WORKER    13
 
 enum call_context {
-  CALL_NORMAL = 0,
-  CALL_SPAWN = 1
+  CILK_CALL_NORMAL = 0,
+  CILK_CALL_SPAWN = 1
 };
 
 

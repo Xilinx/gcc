@@ -13208,7 +13208,7 @@ tsubst_copy_and_build (tree t,
 				     /*done=*/true,
 				     /*address_p=*/false,
 				     /*template_arg_p=*/false, 
-				     CALL_NORMAL,
+				     CILK_CALL_NORMAL,
 				     &error_msg,
 				     input_location);
 	if (error_msg)
@@ -13597,13 +13597,13 @@ tsubst_copy_and_build (tree t,
 	bool qualified_p;
 	bool koenig_p;
 	tree ret;
-	enum call_context spawning = CALL_NORMAL;
+	enum call_context spawning = CILK_CALL_NORMAL;
 
 	function = CALL_EXPR_FN (t);
 	/* When we parsed the expression,  we determined whether or
 	   not Koenig lookup should be performed.  */
 	koenig_p = KOENIG_LOOKUP_P (t);
-	spawning = SPAWN_CALL_P (t) ? CALL_SPAWN : CALL_NORMAL;
+	spawning = SPAWN_CALL_P (t) ? CILK_CALL_SPAWN : CILK_CALL_NORMAL;
 	if (TREE_CODE (function) == SCOPE_REF)
 	  {
 	    qualified_p = true;

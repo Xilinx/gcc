@@ -3210,7 +3210,7 @@ tree
 build_function_call (location_t loc ATTRIBUTE_UNUSED, 
 		     tree function, tree params)
 {
-  return cp_build_function_call (function, params, CALL_NORMAL,
+  return cp_build_function_call (function, params, CILK_CALL_NORMAL,
 				 tf_warning_or_error);
 }
 
@@ -3221,7 +3221,7 @@ build_function_call_vec (location_t loc ATTRIBUTE_UNUSED,
 			 VEC(tree,gc) *origtypes ATTRIBUTE_UNUSED)
 {
   VEC(tree,gc) *orig_params = params;
-  tree ret = cp_build_function_call_vec (function, &params, CALL_NORMAL,
+  tree ret = cp_build_function_call_vec (function, &params, CILK_CALL_NORMAL,
 					 tf_warning_or_error);
 
   /* cp_build_function_call_vec can reallocate PARAMS by adding
@@ -6945,7 +6945,7 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
 	  VEC(tree,gc) *rhs_vec = make_tree_vector_single (rhs);
 	  result = build_special_member_call (lhs, complete_ctor_identifier,
 					      &rhs_vec, lhstype, LOOKUP_NORMAL,
-                                              CALL_NORMAL,
+                                              CILK_CALL_NORMAL,
                                               complain);
 	  release_tree_vector (rhs_vec);
 	  if (result == NULL_TREE)

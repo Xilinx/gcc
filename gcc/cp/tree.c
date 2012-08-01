@@ -530,7 +530,7 @@ build_vec_init_elt (tree type, tree init, tsubst_flags_t complain)
     }
   init = build_special_member_call (NULL_TREE, complete_ctor_identifier,
 				    &argvec, inner_type, LOOKUP_NORMAL,
-				    CALL_NORMAL, complain);
+				    CILK_CALL_NORMAL, complain);
   release_tree_vector (argvec);
 
   /* For a trivial constructor, build_over_call creates a TARGET_EXPR.  But

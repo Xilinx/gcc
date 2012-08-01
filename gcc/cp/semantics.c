@@ -2202,7 +2202,7 @@ finish_call_expr (tree fn, VEC(tree,gc) **args, bool disallow_virtual,
       result = build_call_vec (TREE_TYPE (result), orig_fn, orig_args);
       SET_EXPR_LOCATION (result, input_location);
       KOENIG_LOOKUP_P (result) = koenig_p;
-      SPAWN_CALL_P (result) = (spawning == CALL_SPAWN);
+      SPAWN_CALL_P (result) = (spawning == CILK_CALL_SPAWN);
       release_tree_vector (orig_args);
       result = convert_from_reference (result);
     }
@@ -3043,7 +3043,7 @@ finish_id_expression (tree id_expression,
   else if (TREE_CODE (decl) == TYPE_DECL
 	   || TREE_CODE (decl) == NAMESPACE_DECL)
     {
-      if (spawning == CALL_SPAWN)
+      if (spawning == CILK_CALL_SPAWN)
 	*error_msg = "expected function";
       else
 	*error_msg = "expected primary-expression";
@@ -4988,7 +4988,7 @@ finish_omp_barrier (void)
 {
   tree fn = builtin_decl_explicit (BUILT_IN_GOMP_BARRIER);
   VEC(tree,gc) *vec = make_tree_vector ();
-  tree stmt = finish_call_expr (fn, &vec, false, false, CALL_NORMAL,
+  tree stmt = finish_call_expr (fn, &vec, false, false, CILK_CALL_NORMAL,
 				tf_warning_or_error);
   release_tree_vector (vec);
   finish_expr_stmt (stmt);
@@ -4999,7 +4999,7 @@ finish_omp_flush (void)
 {
   tree fn = builtin_decl_explicit (BUILT_IN_SYNC_SYNCHRONIZE);
   VEC(tree,gc) *vec = make_tree_vector ();
-  tree stmt = finish_call_expr (fn, &vec, false, false, CALL_NORMAL,
+  tree stmt = finish_call_expr (fn, &vec, false, false, CILK_CALL_NORMAL,
 				tf_warning_or_error);
   release_tree_vector (vec);
   finish_expr_stmt (stmt);
@@ -5010,7 +5010,7 @@ finish_omp_taskwait (void)
 {
   tree fn = builtin_decl_explicit (BUILT_IN_GOMP_TASKWAIT);
   VEC(tree,gc) *vec = make_tree_vector ();
-  tree stmt = finish_call_expr (fn, &vec, false, false, CALL_NORMAL,
+  tree stmt = finish_call_expr (fn, &vec, false, false, CILK_CALL_NORMAL,
 				tf_warning_or_error);
   release_tree_vector (vec);
   finish_expr_stmt (stmt);
@@ -5021,7 +5021,7 @@ finish_omp_taskyield (void)
 {
   tree fn = builtin_decl_explicit (BUILT_IN_GOMP_TASKYIELD);
   VEC(tree,gc) *vec = make_tree_vector ();
-  tree stmt = finish_call_expr (fn, &vec, false, false, CALL_NORMAL,
+  tree stmt = finish_call_expr (fn, &vec, false, false, CILK_CALL_NORMAL,
 				tf_warning_or_error);
   release_tree_vector (vec);
   finish_expr_stmt (stmt);
@@ -7147,7 +7147,7 @@ cxx_eval_vec_init_1 (const constexpr_call *call, tree atype, tree init,
       VEC(tree,gc) *argvec = make_tree_vector ();
       init = build_special_member_call (NULL_TREE, complete_ctor_identifier,
 					&argvec, elttype, LOOKUP_NORMAL,
-					CALL_NORMAL,
+					CILK_CALL_NORMAL,
 					tf_warning_or_error);
       release_tree_vector (argvec);
       init = cxx_eval_constant_expression (call, init, allow_non_constant,
@@ -7197,7 +7197,7 @@ cxx_eval_vec_init_1 (const constexpr_call *call, tree atype, tree init,
 	  VEC_quick_push (tree, argvec, eltinit);
 	  eltinit = (build_special_member_call
 		     (NULL_TREE, complete_ctor_identifier, &argvec,
-		      elttype, LOOKUP_NORMAL, CALL_NORMAL, 
+		      elttype, LOOKUP_NORMAL, CILK_CALL_NORMAL, 
 		      tf_warning_or_error));
 	  release_tree_vector (argvec);
 	  eltinit = cxx_eval_constant_expression
@@ -9440,7 +9440,7 @@ maybe_add_lambda_conv_op (tree type)
       mark_exp_read (arg);
       VEC_safe_push (tree, gc, argvec, arg);
     }
-  call = build_call_a (callop, CALL_NORMAL, VEC_length (tree, argvec),
+  call = build_call_a (callop, CILK_CALL_NORMAL, VEC_length (tree, argvec),
 		       VEC_address (tree, argvec));
   CALL_FROM_THUNK_P (call) = 1;
   if (MAYBE_CLASS_TYPE_P (TREE_TYPE (call)))

@@ -399,7 +399,7 @@ build_call_a (tree function, enum call_context spawning, int n, tree *argarray)
 	    CALL_EXPR_ARG (function, i) = arg;
 	  }
       }
-  SPAWN_CALL_P (function) = (spawning == CALL_SPAWN);
+  SPAWN_CALL_P (function) = (spawning == CILK_CALL_SPAWN);
 
   return function;
 }
@@ -4038,7 +4038,7 @@ build_operator_new_call (tree fnname, VEC(tree,gc) **args,
      *fn = cand->fn;
 
   /* Build the CALL_EXPR.  */
-  return build_over_call (cand, LOOKUP_NORMAL, CALL_NORMAL, complain);
+  return build_over_call (cand, LOOKUP_NORMAL, CILK_CALL_NORMAL, complain);
 }
 
 /* Build a new call to operator().  This may change ARGS.  */
@@ -5193,7 +5193,7 @@ build_new_op_1 (location_t loc, enum tree_code code, int flags, tree arg1,
 	    result = error_mark_node;
 	  else
 	    result = build_over_call (cand, LOOKUP_NORMAL, 
-				      CALL_NORMAL, complain);
+				      CILK_CALL_NORMAL, complain);
 	}
       else
 	{
@@ -5544,7 +5544,7 @@ build_op_delete_call (enum tree_code code, tree addr, tree size,
 	  for (i = 1; i < nargs; i++)
 	    argarray[i] = CALL_EXPR_ARG (placement, i);
 	  mark_used (fn);
-	  return build_cxx_call (fn, CALL_NORMAL, nargs, argarray);
+	  return build_cxx_call (fn, CILK_CALL_NORMAL, nargs, argarray);
 	}
       else
 	{
@@ -5553,7 +5553,7 @@ build_op_delete_call (enum tree_code code, tree addr, tree size,
 	  VEC_quick_push (tree, args, addr);
 	  if (FUNCTION_ARG_CHAIN (fn) != void_list_node)
 	    VEC_quick_push (tree, args, size);
-	  ret = cp_build_function_call_vec (fn, &args, CALL_NORMAL,
+	  ret = cp_build_function_call_vec (fn, &args, CILK_CALL_NORMAL,
                                             complain);
 	  VEC_free (tree, gc, args);
 	  return ret;
@@ -5625,7 +5625,7 @@ build_temp (tree expr, tree type, int flags,
   savew = warningcount, savee = errorcount;
   args = make_tree_vector_single (expr);
   expr = build_special_member_call (NULL_TREE, complete_ctor_identifier,
-				    &args, type, flags, CALL_NORMAL, complain);
+				    &args, type, flags, CILK_CALL_NORMAL, complain);
   release_tree_vector (args);
   if (warningcount > savew)
     *diagnostic_kind = DK_WARNING;
@@ -5811,7 +5811,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	for (i = 0; i < cand->num_convs; ++i)
 	  cand->convs[i]->user_conv_p = true;
 
-	expr = build_over_call (cand, LOOKUP_NORMAL, CALL_NORMAL, complain);
+	expr = build_over_call (cand, LOOKUP_NORMAL, CILK_CALL_NORMAL, complain);
 
 	/* If this is a constructor or a function returning an aggr type,
 	   we need to build up a TARGET_EXPR.  */
@@ -8681,7 +8681,7 @@ perform_direct_initialization_if_possible (tree type,
     {
       VEC(tree,gc) *args = make_tree_vector_single (expr);
       expr = build_special_member_call (NULL_TREE, complete_ctor_identifier,
-					&args, type, LOOKUP_NORMAL, CALL_NORMAL,
+					&args, type, LOOKUP_NORMAL, CILK_CALL_NORMAL,
                                         complain);
       release_tree_vector (args);
       return build_cplus_new (type, expr, complain);
