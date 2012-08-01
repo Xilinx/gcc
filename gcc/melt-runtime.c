@@ -11312,7 +11312,11 @@ meltgc_out_edge (melt_ptr_t out_p, edge edg)
   switch (outmagic) {
   case MELTOBMAG_STRBUF: {
     FILE* oldfil= melt_open_ppfile ();
-    dump_edge_info (meltppfile, edg, /*do_succ=*/ 1);
+    dump_edge_info (meltppfile, edg,
+#if MELT_GCC_VERSION >= 4008
+		    TDF_DETAILS, /* argument appearing in GCC 4.8 */
+#endif
+ /*do_succ=*/ 1);
     melt_close_ppfile (oldfil);
     meltgc_add_out_raw_len ((melt_ptr_t) outv, meltppbuffer, (int) meltppbufsiz);
     free(meltppbuffer);
@@ -11325,7 +11329,11 @@ meltgc_out_edge (melt_ptr_t out_p, edge edg)
     FILE* f = ((struct meltspecial_st*)outv)->val.sp_file;
     if (!f)
       goto end;
-    dump_edge_info (f, edg, /*do_succ=*/ 1);
+    dump_edge_info (f, edg,
+#if MELT_GCC_VERSION >= 4008
+		    TDF_DETAILS, /* argument appearing in GCC 4.8 */
+#endif
+ /*do_succ=*/ 1);
     fflush (f);
   }
   break;
