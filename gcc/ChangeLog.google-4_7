@@ -1,3 +1,11 @@
+2012-08-01  Dehao Chen  <dehao@google.com>
+
+	Backport r190015 from trunk:
+
+	2012-07-31  Dehao Chen  <dehao@google.com>
+	* predict.c (tree_estimate_probability_driver): Normalize the
+	loop when initializing the loop optimizer.
+
 2012-07-26   Cary Coutant  <ccoutant@google.com>
 
 	* dwarf2out.c (dwo_id_placeholder): Delete.
