@@ -6724,10 +6724,10 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-genobj.melt:792:/ getslot");
 #line 792   "warmelt-genobj.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.DISCR__V9*/ meltfptr[5]), 1, "NAMED_NAME");
-											 /*_.DISCRNAME__V10*/
-      meltfptr[9] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.DISCR__V9*/ meltfptr[5]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+  /*_.DISCRNAME__V10*/ meltfptr[9] = slot;
     };
     ;
 
@@ -7127,10 +7127,10 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-genobj.melt:802:/ getslot");
 #line 802   "warmelt-genobj.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.DISCR__V9*/ meltfptr[5]), 1, "NAMED_NAME");
-											 /*_.DISCRNAME__V10*/
-      meltfptr[9] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.DISCR__V9*/ meltfptr[5]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+  /*_.DISCRNAME__V10*/ meltfptr[9] = slot;
     };
     ;
 
@@ -33071,10 +33071,12 @@ melt_start_this_module (void *modargp_)
 	/*^getslot */
 
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 3, "SYSDATA_CONT_FRESH_ENV");
-															    /*_.FRESHENV___V3*/
-	  meltfptr[2] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj =
+	    (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	    /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 3, "SYSDATA_CONT_FRESH_ENV");
+    /*_.FRESHENV___V3*/ meltfptr[2] = slot;
 	};
 	;
 	/*^compute */
@@ -37335,10 +37337,12 @@ melt_start_this_module (void *modargp_)
   /*^getslot */
 
   {
-    melt_ptr_t slot = 0;
-    melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 12, "SYSDATA_VALUE_IMPORTER");
-															   /*_.VALIMPORT___V6*/
-    meltfptr[5] = slot;
+    melt_ptr_t slot = NULL, obj = NULL;
+    obj =
+      (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+      /*=obj*/ ;
+    melt_object_get_field (slot, obj, 12, "SYSDATA_VALUE_IMPORTER");
+  /*_.VALIMPORT___V6*/ meltfptr[5] = slot;
   };
 
   /*^comment */
@@ -97521,10 +97525,12 @@ meltmod__warmelt_genobj__initialmeltchunk_33 (struct
 	  /*^getslot */
 #line 3
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 3, "SYSDATA_CONT_FRESH_ENV");
-															     /*_.SYSDATA_CONT_FRESH_ENV__V1896*/
-	    meltfptr[1895] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj =
+	      (melt_ptr_t) (((melt_ptr_t)
+			     (MELT_PREDEF (INITIAL_SYSTEM_DATA)))) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 3, "SYSDATA_CONT_FRESH_ENV");
+     /*_.SYSDATA_CONT_FRESH_ENV__V1896*/ meltfptr[1895] = slot;
 	  };
 	  ;
 	  /*^checksignal */
@@ -97585,10 +97591,12 @@ meltmod__warmelt_genobj__initialmeltchunk_33 (struct
     /*^getslot */
 #line 558
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 4, "SYSDATA_VALUE_EXPORTER");
-															   /*_.VALUEXPORTER___V1898*/
-      meltfptr[1895] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 4, "SYSDATA_VALUE_EXPORTER");
+   /*_.VALUEXPORTER___V1898*/ meltfptr[1895] = slot;
     };
     ;
     /*^apply */
@@ -101863,10 +101871,12 @@ meltmod__warmelt_genobj__initialmeltchunk_33 (struct
     /*^getslot */
 #line 633
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 4, "SYSDATA_VALUE_EXPORTER");
-															   /*_.VALUEXPORTER___V1899*/
-      meltfptr[1896] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 4, "SYSDATA_VALUE_EXPORTER");
+   /*_.VALUEXPORTER___V1899*/ meltfptr[1896] = slot;
     };
     ;
     /*^apply */
@@ -101909,10 +101919,12 @@ meltmod__warmelt_genobj__initialmeltchunk_33 (struct
     /*^getslot */
 #line 634
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 4, "SYSDATA_VALUE_EXPORTER");
-															   /*_.VALUEXPORTER___V1900*/
-      meltfptr[1894] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 4, "SYSDATA_VALUE_EXPORTER");
+   /*_.VALUEXPORTER___V1900*/ meltfptr[1894] = slot;
     };
     ;
     /*^apply */
@@ -101955,10 +101967,12 @@ meltmod__warmelt_genobj__initialmeltchunk_33 (struct
     /*^getslot */
 #line 778
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 4, "SYSDATA_VALUE_EXPORTER");
-															   /*_.VALUEXPORTER___V1901*/
-      meltfptr[1895] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 4, "SYSDATA_VALUE_EXPORTER");
+   /*_.VALUEXPORTER___V1901*/ meltfptr[1895] = slot;
     };
     ;
     /*^apply */
@@ -102455,10 +102469,12 @@ meltmod__warmelt_genobj__initialmeltchunk_33 (struct
     /*^getslot */
 #line 1414
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 4, "SYSDATA_VALUE_EXPORTER");
-															   /*_.VALUEXPORTER___V1911*/
-      meltfptr[1896] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 4, "SYSDATA_VALUE_EXPORTER");
+   /*_.VALUEXPORTER___V1911*/ meltfptr[1896] = slot;
     };
     ;
     /*^apply */
@@ -103218,10 +103234,12 @@ meltmod__warmelt_genobj__initialmeltchunk_33 (struct
     /*^getslot */
 #line 2165
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 4, "SYSDATA_VALUE_EXPORTER");
-															   /*_.VALUEXPORTER___V1928*/
-      meltfptr[1895] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 4, "SYSDATA_VALUE_EXPORTER");
+   /*_.VALUEXPORTER___V1928*/ meltfptr[1895] = slot;
     };
     ;
     /*^apply */
@@ -105866,10 +105884,12 @@ meltmod__warmelt_genobj__initialmeltchunk_34 (struct
     /*^getslot */
 #line 5092
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 4, "SYSDATA_VALUE_EXPORTER");
-															   /*_.VALUEXPORTER___V1995*/
-      meltfptr[1895] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 4, "SYSDATA_VALUE_EXPORTER");
+   /*_.VALUEXPORTER___V1995*/ meltfptr[1895] = slot;
     };
     ;
     /*^apply */
@@ -105912,10 +105932,12 @@ meltmod__warmelt_genobj__initialmeltchunk_34 (struct
     /*^getslot */
 #line 5103
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 4, "SYSDATA_VALUE_EXPORTER");
-															   /*_.VALUEXPORTER___V1996*/
-      meltfptr[1896] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 4, "SYSDATA_VALUE_EXPORTER");
+   /*_.VALUEXPORTER___V1996*/ meltfptr[1896] = slot;
     };
     ;
     /*^apply */
@@ -106119,10 +106141,12 @@ meltmod__warmelt_genobj__initialmeltchunk_34 (struct
     /*^getslot */
 #line 5117
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 4, "SYSDATA_VALUE_EXPORTER");
-															   /*_.VALUEXPORTER___V1997*/
-      meltfptr[1895] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 4, "SYSDATA_VALUE_EXPORTER");
+   /*_.VALUEXPORTER___V1997*/ meltfptr[1895] = slot;
     };
     ;
     /*^apply */
@@ -106165,10 +106189,12 @@ meltmod__warmelt_genobj__initialmeltchunk_34 (struct
     /*^getslot */
 #line 5124
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 4, "SYSDATA_VALUE_EXPORTER");
-															   /*_.VALUEXPORTER___V1998*/
-      meltfptr[1896] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 4, "SYSDATA_VALUE_EXPORTER");
+   /*_.VALUEXPORTER___V1998*/ meltfptr[1896] = slot;
     };
     ;
     /*^apply */
@@ -106362,10 +106388,12 @@ meltmod__warmelt_genobj__initialmeltchunk_34 (struct
     /*^getslot */
 #line 5348
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 4, "SYSDATA_VALUE_EXPORTER");
-															   /*_.VALUEXPORTER___V2001*/
-      meltfptr[1895] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 4, "SYSDATA_VALUE_EXPORTER");
+   /*_.VALUEXPORTER___V2001*/ meltfptr[1895] = slot;
     };
     ;
     /*^apply */
@@ -107206,10 +107234,12 @@ meltmod__warmelt_genobj__initialmeltchunk_34 (struct
 	/*^getslot */
 
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 3, "SYSDATA_CONT_FRESH_ENV");
-															    /*_.FRESHENV___V3*/
-	  meltfptr[2] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj =
+	    (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	    /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 3, "SYSDATA_CONT_FRESH_ENV");
+    /*_.FRESHENV___V3*/ meltfptr[2] = slot;
 	};
 	;
 	/*^compute */

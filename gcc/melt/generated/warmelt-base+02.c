@@ -1305,10 +1305,12 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 1834
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHTYPE_DELAYED_QUEUE */ meltfrout->tabval[0])), 2, "DELQU_FIRST");
-														      /*_.FIRSTLIST__V3*/
-		meltfptr[2] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) (( /*!FINISHTYPE_DELAYED_QUEUE */ meltfrout->
+				 tabval[0])) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
+     /*_.FIRSTLIST__V3*/ meltfptr[2] = slot;
 	      };
 	      ;
 	    }
@@ -1676,10 +1678,12 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 1860
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHTYPE_DELAYED_QUEUE */ meltfrout->tabval[0])), 3, "DELQU_LAST");
-														     /*_.LASTLIST__V3*/
-		meltfptr[2] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) (( /*!FINISHTYPE_DELAYED_QUEUE */ meltfrout->
+				 tabval[0])) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 3, "DELQU_LAST");
+     /*_.LASTLIST__V3*/ meltfptr[2] = slot;
 	      };
 	      ;
 	    }
@@ -2024,10 +2028,12 @@ lab_endgetargs:;
 	/*^getslot */
 #line 1897
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 2, "DELQU_FIRST");
-														    /*_.FIRSTLIST__V3*/
-	  meltfptr[2] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj =
+	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+			   tabval[0])) /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
+   /*_.FIRSTLIST__V3*/ meltfptr[2] = slot;
 	};
 	;
       }
@@ -2054,10 +2060,12 @@ lab_endgetargs:;
 	/*^getslot */
 #line 1898
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 3, "DELQU_LAST");
-														   /*_.LASTLIST__V4*/
-	  meltfptr[3] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj =
+	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+			   tabval[0])) /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 3, "DELQU_LAST");
+   /*_.LASTLIST__V4*/ meltfptr[3] = slot;
 	};
 	;
       }
@@ -2430,10 +2438,12 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 1926
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 2, "DELQU_FIRST");
-														      /*_.FIRSTLIST__V3*/
-		meltfptr[2] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+				 tabval[0])) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
+     /*_.FIRSTLIST__V3*/ meltfptr[2] = slot;
 	      };
 	      ;
 	    }
@@ -2801,10 +2811,12 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 1953
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 3, "DELQU_LAST");
-														     /*_.LASTLIST__V3*/
-		meltfptr[2] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+				 tabval[0])) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 3, "DELQU_LAST");
+     /*_.LASTLIST__V3*/ meltfptr[2] = slot;
 	      };
 	      ;
 	    }
@@ -3147,10 +3159,12 @@ lab_endgetargs:;
 	/*^getslot */
 #line 1989
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 2, "DELQU_FIRST");
-														    /*_.FIRSTLIST__V2*/
-	  meltfptr[1] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj =
+	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+			   tabval[0])) /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
+   /*_.FIRSTLIST__V2*/ meltfptr[1] = slot;
 	};
 	;
       }
@@ -3177,10 +3191,12 @@ lab_endgetargs:;
 	/*^getslot */
 #line 1990
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 3, "DELQU_LAST");
-														   /*_.LASTLIST__V3*/
-	  meltfptr[2] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj =
+	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+			   tabval[0])) /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 3, "DELQU_LAST");
+   /*_.LASTLIST__V3*/ meltfptr[2] = slot;
 	};
 	;
       }
@@ -3533,10 +3549,12 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 2017
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 2, "DELQU_FIRST");
-														      /*_.FIRSTLIST__V3*/
-		meltfptr[2] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+				 tabval[0])) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
+     /*_.FIRSTLIST__V3*/ meltfptr[2] = slot;
 	      };
 	      ;
 	    }
@@ -3886,10 +3904,12 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 2042
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 3, "DELQU_LAST");
-														     /*_.LASTLIST__V3*/
-		meltfptr[2] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+				 tabval[0])) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 3, "DELQU_LAST");
+     /*_.LASTLIST__V3*/ meltfptr[2] = slot;
 	      };
 	      ;
 	    }
@@ -4222,10 +4242,12 @@ lab_endgetargs:;
 	/*^getslot */
 #line 2075
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 2, "DELQU_FIRST");
-														    /*_.FIRSTLIST__V2*/
-	  meltfptr[1] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj =
+	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+			   tabval[0])) /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
+   /*_.FIRSTLIST__V2*/ meltfptr[1] = slot;
 	};
 	;
       }
@@ -4252,10 +4274,12 @@ lab_endgetargs:;
 	/*^getslot */
 #line 2076
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 3, "DELQU_LAST");
-														   /*_.LASTLIST__V3*/
-	  meltfptr[2] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj =
+	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+			   tabval[0])) /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 3, "DELQU_LAST");
+   /*_.LASTLIST__V3*/ meltfptr[2] = slot;
 	};
 	;
       }
@@ -4618,10 +4642,12 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 2103
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 2, "DELQU_FIRST");
-														      /*_.FIRSTLIST__V3*/
-		meltfptr[2] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+				 tabval[0])) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
+     /*_.FIRSTLIST__V3*/ meltfptr[2] = slot;
 	      };
 	      ;
 	    }
@@ -4979,10 +5005,12 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 2128
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 3, "DELQU_LAST");
-														     /*_.LASTLIST__V3*/
-		meltfptr[2] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+				 tabval[0])) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 3, "DELQU_LAST");
+     /*_.LASTLIST__V3*/ meltfptr[2] = slot;
 	      };
 	      ;
 	    }
@@ -5316,10 +5344,12 @@ lab_endgetargs:;
 	/*^getslot */
 #line 2161
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 2, "DELQU_FIRST");
-														    /*_.FIRSTLIST__V2*/
-	  meltfptr[1] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj =
+	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+			   tabval[0])) /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
+   /*_.FIRSTLIST__V2*/ meltfptr[1] = slot;
 	};
 	;
       }
@@ -5346,10 +5376,12 @@ lab_endgetargs:;
 	/*^getslot */
 #line 2162
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 3, "DELQU_LAST");
-														   /*_.LASTLIST__V3*/
-	  meltfptr[2] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj =
+	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+			   tabval[0])) /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 3, "DELQU_LAST");
+   /*_.LASTLIST__V3*/ meltfptr[2] = slot;
 	};
 	;
       }
@@ -5703,10 +5735,12 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 2189
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 2, "DELQU_FIRST");
-														      /*_.FIRSTLIST__V3*/
-		meltfptr[2] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+				 tabval[0])) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
+     /*_.FIRSTLIST__V3*/ meltfptr[2] = slot;
 	      };
 	      ;
 	    }
@@ -6056,10 +6090,12 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 2214
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 3, "DELQU_LAST");
-														     /*_.LASTLIST__V3*/
-		meltfptr[2] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+				 tabval[0])) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 3, "DELQU_LAST");
+     /*_.LASTLIST__V3*/ meltfptr[2] = slot;
 	      };
 	      ;
 	    }
@@ -6393,10 +6429,12 @@ lab_endgetargs:;
 	/*^getslot */
 #line 2247
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 2, "DELQU_FIRST");
-														    /*_.FIRSTLIST__V2*/
-	  meltfptr[1] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj =
+	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+			   tabval[0])) /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
+   /*_.FIRSTLIST__V2*/ meltfptr[1] = slot;
 	};
 	;
       }
@@ -6423,10 +6461,12 @@ lab_endgetargs:;
 	/*^getslot */
 #line 2248
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 3, "DELQU_LAST");
-														   /*_.LASTLIST__V3*/
-	  meltfptr[2] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj =
+	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+			   tabval[0])) /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 3, "DELQU_LAST");
+   /*_.LASTLIST__V3*/ meltfptr[2] = slot;
 	};
 	;
       }
@@ -6779,10 +6819,12 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 2275
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 2, "DELQU_FIRST");
-														      /*_.FIRSTLIST__V3*/
-		meltfptr[2] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+				 tabval[0])) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
+     /*_.FIRSTLIST__V3*/ meltfptr[2] = slot;
 	      };
 	      ;
 	    }
@@ -7132,10 +7174,12 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 2300
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 3, "DELQU_LAST");
-														     /*_.LASTLIST__V3*/
-		meltfptr[2] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+				 tabval[0])) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 3, "DELQU_LAST");
+     /*_.LASTLIST__V3*/ meltfptr[2] = slot;
 	      };
 	      ;
 	    }
@@ -7461,10 +7505,12 @@ lab_endgetargs:;
 	/*^getslot */
 #line 2336
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 2, "DELQU_FIRST");
-														    /*_.FIRSTLIST__V2*/
-	  meltfptr[1] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj =
+	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+			   tabval[0])) /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
+   /*_.FIRSTLIST__V2*/ meltfptr[1] = slot;
 	};
 	;
       }
@@ -7491,10 +7537,12 @@ lab_endgetargs:;
 	/*^getslot */
 #line 2337
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 3, "DELQU_LAST");
-														   /*_.LASTLIST__V3*/
-	  meltfptr[2] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj =
+	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+			   tabval[0])) /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 3, "DELQU_LAST");
+   /*_.LASTLIST__V3*/ meltfptr[2] = slot;
 	};
 	;
       }
@@ -7848,10 +7896,12 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 2364
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 2, "DELQU_FIRST");
-														      /*_.FIRSTLIST__V3*/
-		meltfptr[2] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+				 tabval[0])) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
+     /*_.FIRSTLIST__V3*/ meltfptr[2] = slot;
 	      };
 	      ;
 	    }
@@ -8203,10 +8253,12 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 2389
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 3, "DELQU_LAST");
-														     /*_.LASTLIST__V3*/
-		meltfptr[2] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+				 tabval[0])) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 3, "DELQU_LAST");
+     /*_.LASTLIST__V3*/ meltfptr[2] = slot;
 	      };
 	      ;
 	    }
@@ -8533,10 +8585,12 @@ lab_endgetargs:;
 	/*^getslot */
 #line 2422
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 2, "DELQU_FIRST");
-														    /*_.FIRSTLIST__V2*/
-	  meltfptr[1] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj =
+	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+			   tabval[0])) /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
+   /*_.FIRSTLIST__V2*/ meltfptr[1] = slot;
 	};
 	;
       }
@@ -8563,10 +8617,12 @@ lab_endgetargs:;
 	/*^getslot */
 #line 2423
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 3, "DELQU_LAST");
-														   /*_.LASTLIST__V3*/
-	  meltfptr[2] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj =
+	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+			   tabval[0])) /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 3, "DELQU_LAST");
+   /*_.LASTLIST__V3*/ meltfptr[2] = slot;
 	};
 	;
       }
@@ -8920,10 +8976,12 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 2450
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 2, "DELQU_FIRST");
-														      /*_.FIRSTLIST__V3*/
-		meltfptr[2] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+				 tabval[0])) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
+     /*_.FIRSTLIST__V3*/ meltfptr[2] = slot;
 	      };
 	      ;
 	    }
@@ -9275,10 +9333,12 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 2475
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), 3, "DELQU_LAST");
-														     /*_.LASTLIST__V3*/
-		meltfptr[2] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+				 tabval[0])) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 3, "DELQU_LAST");
+     /*_.LASTLIST__V3*/ meltfptr[2] = slot;
 	      };
 	      ;
 	    }
@@ -9842,10 +9902,12 @@ lab_endgetargs:;
 	/*^getslot */
 #line 2553
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) (( /*!VALUE_DESCRIPTOR_LIST_REFERENCE */ meltfrout->tabval[1])), 0, "REFERENCED_VALUE");
-																/*_.REFERENCED_VALUE__V5*/
-	  meltfptr[3] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj =
+	    (melt_ptr_t) (( /*!VALUE_DESCRIPTOR_LIST_REFERENCE */ meltfrout->
+			   tabval[1])) /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 0, "REFERENCED_VALUE");
+   /*_.REFERENCED_VALUE__V5*/ meltfptr[3] = slot;
 	};
 	;
       }

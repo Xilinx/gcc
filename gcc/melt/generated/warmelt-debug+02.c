@@ -1143,10 +1143,10 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-debug.melt:1205:/ getslot");
 #line 1205   "warmelt-debug.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]), 0, "DBGI_OUT");
-										      /*_.SBUF__V7*/
-      meltfptr[6] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 0, "DBGI_OUT");
+  /*_.SBUF__V7*/ meltfptr[6] = slot;
     };
     ;
  /*_#ONUM__L3*/ meltfnum[1] =
@@ -1164,10 +1164,10 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-debug.melt:1209:/ getslot");
 #line 1209   "warmelt-debug.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.DIS__V6*/ meltfptr[4]), 1, "NAMED_NAME");
-										       /*_.NAMED_NAME__V8*/
-      meltfptr[7] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.DIS__V6*/ meltfptr[4]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+  /*_.NAMED_NAME__V8*/ meltfptr[7] = slot;
     };
     ;
 
@@ -1481,28 +1481,28 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-debug.melt:1223:/ getslot");
 #line 1223   "warmelt-debug.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]), 0, "DBGI_OUT");
-										      /*_.OUT__V7*/
-      meltfptr[6] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 0, "DBGI_OUT");
+  /*_.OUT__V7*/ meltfptr[6] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-debug.melt:1224:/ getslot");
 #line 1224   "warmelt-debug.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1]), 1, "NAMED_NAME");
-											/*_.ONAM__V8*/
-      meltfptr[7] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+  /*_.ONAM__V8*/ meltfptr[7] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-debug.melt:1225:/ getslot");
 #line 1225   "warmelt-debug.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1]), 0, "PROP_TABLE");
-											/*_.OPROP__V9*/
-      meltfptr[8] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 0, "PROP_TABLE");
+  /*_.OPROP__V9*/ meltfptr[8] = slot;
     };
     ;
 
@@ -1604,10 +1604,10 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-debug.melt:1231:/ getslot");
 #line 1231   "warmelt-debug.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.DIS__V6*/ meltfptr[4]), 1, "NAMED_NAME");
-										       /*_.NAMED_NAME__V12*/
-      meltfptr[10] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.DIS__V6*/ meltfptr[4]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+  /*_.NAMED_NAME__V12*/ meltfptr[10] = slot;
     };
     ;
 
@@ -1645,10 +1645,10 @@ lab_endgetargs:;
     /*^getslot */
 #line 1234
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]), 2, "DBGI_MAXDEPTH");
-											   /*_.DBGI_MAXDEPTH__V13*/
-      meltfptr[12] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "DBGI_MAXDEPTH");
+  /*_.DBGI_MAXDEPTH__V13*/ meltfptr[12] = slot;
     };
     ;
  /*_#GET_INT__L5*/ meltfnum[4] =
@@ -2126,19 +2126,19 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-debug.melt:1257:/ getslot");
 #line 1257   "warmelt-debug.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]), 0, "DBGI_OUT");
-										      /*_.OUT__V7*/
-      meltfptr[6] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 0, "DBGI_OUT");
+  /*_.OUT__V7*/ meltfptr[6] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-debug.melt:1258:/ getslot");
 #line 1258   "warmelt-debug.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1]), 1, "NAMED_NAME");
-											/*_.ONAM__V8*/
-      meltfptr[7] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+  /*_.ONAM__V8*/ meltfptr[7] = slot;
     };
     ;
 
@@ -2167,10 +2167,10 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-debug.melt:1263:/ getslot");
 #line 1263   "warmelt-debug.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.DIS__V6*/ meltfptr[4]), 1, "NAMED_NAME");
-										       /*_.NAMED_NAME__V9*/
-      meltfptr[8] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.DIS__V6*/ meltfptr[4]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+  /*_.NAMED_NAME__V9*/ meltfptr[8] = slot;
     };
     ;
 
@@ -2511,19 +2511,19 @@ lab_endgetargs:;
     /*^getslot */
 #line 1274
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]), 0, "DBGI_OUT");
-										      /*_.OUT__V8*/
-      meltfptr[6] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 0, "DBGI_OUT");
+  /*_.OUT__V8*/ meltfptr[6] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-debug.melt:1275:/ getslot");
 #line 1275   "warmelt-debug.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1]), 1, "NAMED_NAME");
-											/*_.ONAM__V9*/
-      meltfptr[8] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+  /*_.ONAM__V9*/ meltfptr[8] = slot;
     };
     ;
  /*_#SNUM__L4*/ meltfnum[1] =
@@ -3743,19 +3743,19 @@ lab_endgetargs:;
     /*^getslot */
 #line 1312
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]), 0, "DBGI_OUT");
-										      /*_.OUT__V8*/
-      meltfptr[6] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 0, "DBGI_OUT");
+  /*_.OUT__V8*/ meltfptr[6] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-debug.melt:1313:/ getslot");
 #line 1313   "warmelt-debug.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1]), 1, "NAMED_NAME");
-											/*_.ONAM__V9*/
-      meltfptr[8] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+  /*_.ONAM__V9*/ meltfptr[8] = slot;
     };
     ;
 
@@ -4370,19 +4370,19 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-debug.melt:1334:/ getslot");
 #line 1334   "warmelt-debug.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]), 0, "DBGI_OUT");
-										      /*_.OUT__V5*/
-      meltfptr[4] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 0, "DBGI_OUT");
+  /*_.OUT__V5*/ meltfptr[4] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-debug.melt:1335:/ getslot");
 #line 1335   "warmelt-debug.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1]), 3, "CSYM_URANK");
-											/*_.OURANK__V6*/
-      meltfptr[5] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 3, "CSYM_URANK");
+  /*_.OURANK__V6*/ meltfptr[5] = slot;
     };
     ;
  /*_#LRK__L2*/ meltfnum[1] =
@@ -4391,10 +4391,10 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-debug.melt:1337:/ getslot");
 #line 1337   "warmelt-debug.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1]), 1, "NAMED_NAME");
-											/*_.ONAM__V7*/
-      meltfptr[6] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+  /*_.ONAM__V7*/ meltfptr[6] = slot;
     };
     ;
 
@@ -5176,10 +5176,10 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-debug.melt:1362:/ getslot");
 #line 1362   "warmelt-debug.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]), 0, "DBGI_OUT");
-										      /*_.OUT__V9*/
-      meltfptr[8] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 0, "DBGI_OUT");
+  /*_.OUT__V9*/ meltfptr[8] = slot;
     };
     ;
  /*_#ONUM__L4*/ meltfnum[1] =
@@ -5236,10 +5236,10 @@ lab_endgetargs:;
 	  MELT_LOCATION ("warmelt-debug.melt:1369:/ getslot");
 #line 1369   "warmelt-debug.melt" /**::getslot::**/
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) ( /*_.DIS__V8*/ meltfptr[6]), 1, "NAMED_NAME");
-											 /*_.NAMED_NAME__V10*/
-	    meltfptr[9] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj = (melt_ptr_t) ( /*_.DIS__V8*/ meltfptr[6]) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+    /*_.NAMED_NAME__V10*/ meltfptr[9] = slot;
 	  };
 	  ;
 
@@ -5339,10 +5339,10 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-debug.melt:1379:/ getslot");
 #line 1379   "warmelt-debug.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]), 2, "DBGI_MAXDEPTH");
-											   /*_.DBGI_MAXDEPTH__V11*/
-      meltfptr[9] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "DBGI_MAXDEPTH");
+  /*_.DBGI_MAXDEPTH__V11*/ meltfptr[9] = slot;
     };
     ;
  /*_#OLDMAXDEPTH__L8*/ meltfnum[7] =
@@ -5455,10 +5455,12 @@ lab_endgetargs:;
 		      MELT_LOCATION ("warmelt-debug.melt:1386:/ getslot");
 #line 1386   "warmelt-debug.melt" /**::getslot::**/
 		      {
-			melt_ptr_t slot = 0;
-			melt_object_get_field (slot, (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]), 2, "DBGI_MAXDEPTH");
-												 /*_.DBGI_MAXDEPTH__V12*/
-			meltfptr[11] = slot;
+			melt_ptr_t slot = NULL, obj = NULL;
+			obj =
+			  (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]) /*=obj*/
+			  ;
+			melt_object_get_field (slot, obj, 2, "DBGI_MAXDEPTH");
+	/*_.DBGI_MAXDEPTH__V12*/ meltfptr[11] = slot;
 		      };
 		      ;
 
@@ -5627,10 +5629,10 @@ lab_endgetargs:;
 	  MELT_LOCATION ("warmelt-debug.melt:1391:/ getslot");
 #line 1391   "warmelt-debug.melt" /**::getslot::**/
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]), 2, "DBGI_MAXDEPTH");
-											     /*_.DBGI_MAXDEPTH__V16*/
-	    meltfptr[14] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj = (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 2, "DBGI_MAXDEPTH");
+    /*_.DBGI_MAXDEPTH__V16*/ meltfptr[14] = slot;
 	  };
 	  ;
 
@@ -5870,19 +5872,19 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-debug.melt:1401:/ getslot");
 #line 1401   "warmelt-debug.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]), 0, "DBGI_OUT");
-										      /*_.OUT__V5*/
-      meltfptr[4] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 0, "DBGI_OUT");
+  /*_.OUT__V5*/ meltfptr[4] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-debug.melt:1402:/ getslot");
 #line 1402   "warmelt-debug.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1]), 1, "NAMED_NAME");
-											/*_.ONAM__V6*/
-      meltfptr[5] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+  /*_.ONAM__V6*/ meltfptr[5] = slot;
     };
     ;
 
@@ -6635,19 +6637,19 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-debug.melt:1425:/ getslot");
 #line 1425   "warmelt-debug.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]), 0, "DBGI_OUT");
-										      /*_.OUT__V9*/
-      meltfptr[8] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 0, "DBGI_OUT");
+  /*_.OUT__V9*/ meltfptr[8] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-debug.melt:1426:/ getslot");
 #line 1426   "warmelt-debug.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1]), 0, "BINDER");
-										    /*_.BINDERV__V10*/
-      meltfptr[9] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 0, "BINDER");
+  /*_.BINDERV__V10*/ meltfptr[9] = slot;
     };
     ;
  /*_#BINDNUM__L4*/ meltfnum[1] =
@@ -6671,10 +6673,10 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-debug.melt:1431:/ getslot");
 #line 1431   "warmelt-debug.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.DIS__V8*/ meltfptr[6]), 1, "NAMED_NAME");
-										       /*_.NAMED_NAME__V11*/
-      meltfptr[10] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.DIS__V8*/ meltfptr[6]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+  /*_.NAMED_NAME__V11*/ meltfptr[10] = slot;
     };
     ;
 
@@ -6785,10 +6787,10 @@ lab_endgetargs:;
     /*^getslot */
 #line 1440
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]), 2, "DBGI_MAXDEPTH");
-											   /*_.DBGI_MAXDEPTH__V13*/
-      meltfptr[12] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.DBGI__V3*/ meltfptr[2]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "DBGI_MAXDEPTH");
+  /*_.DBGI_MAXDEPTH__V13*/ meltfptr[12] = slot;
     };
     ;
  /*_#GET_INT__L7*/ meltfnum[6] =

@@ -3008,28 +3008,28 @@ lab_endgetargs:;
     /*^getslot */
 #line 1940
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											   /*_.SLOC__V13*/
-      meltfptr[12] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.SLOC__V13*/ meltfptr[12] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:1941:/ getslot");
 #line 1941   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 3, "SAPP_FUN");
-										      /*_.SFUN__V14*/
-      meltfptr[13] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 3, "SAPP_FUN");
+  /*_.SFUN__V14*/ meltfptr[13] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:1942:/ getslot");
 #line 1942   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 2, "SARGOP_ARGS");
-											 /*_.SARGS__V15*/
-      meltfptr[14] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SARGOP_ARGS");
+  /*_.SARGS__V15*/ meltfptr[14] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:1943:/ checksignal");
@@ -3667,10 +3667,11 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 1957
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) ( /*_.NFUNCTYP__V27*/ meltfptr[23]), 1, "NAMED_NAME");
-												 /*_.NAMED_NAME__V37*/
-		meltfptr[33] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) ( /*_.NFUNCTYP__V27*/ meltfptr[23]) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+     /*_.NAMED_NAME__V37*/ meltfptr[33] = slot;
 	      };
 	      ;
 	    }
@@ -3776,10 +3777,13 @@ lab_endgetargs:;
 			  /*^getslot */
 #line 1963
 			  {
-			    melt_ptr_t slot = 0;
-			    melt_object_get_field (slot, (melt_ptr_t) ( /*_.SFUN__V14*/ meltfptr[13]), 1, "NAMED_NAME");
-												 /*_.NAMED_NAME__V40*/
-			    meltfptr[39] = slot;
+			    melt_ptr_t slot = NULL, obj = NULL;
+			    obj =
+			      (melt_ptr_t) ( /*_.SFUN__V14*/ meltfptr[13])
+			      /*=obj*/ ;
+			    melt_object_get_field (slot, obj, 1,
+						   "NAMED_NAME");
+	 /*_.NAMED_NAME__V40*/ meltfptr[39] = slot;
 			  };
 			  ;
 			}
@@ -3857,10 +3861,14 @@ lab_endgetargs:;
 				/*^getslot */
 #line 1965
 				{
-				  melt_ptr_t slot = 0;
-				  melt_object_get_field (slot, (melt_ptr_t) ( /*_.SFUN__V14*/ meltfptr[13]), 1, "LOCA_LOCATION");
-												      /*_.LOCA_LOCATION__V42*/
-				  meltfptr[41] = slot;
+				  melt_ptr_t slot = NULL, obj = NULL;
+				  obj =
+				    (melt_ptr_t) ( /*_.SFUN__V14*/
+						  meltfptr[13]) /*=obj*/ ;
+				  melt_object_get_field (slot, obj, 1,
+							 "LOCA_LOCATION");
+	   /*_.LOCA_LOCATION__V42*/ meltfptr[41] =
+				    slot;
 				};
 				;
 			      }
@@ -5753,46 +5761,46 @@ lab_endgetargs:;
     /*^getslot */
 #line 2035
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.MSND__V2*/ meltfptr[1]), 4, "MSEND_RECV");
-											/*_.MSRECV__V17*/
-      meltfptr[13] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.MSND__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 4, "MSEND_RECV");
+  /*_.MSRECV__V17*/ meltfptr[13] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2036:/ getslot");
 #line 2036   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.MSND__V2*/ meltfptr[1]), 2, "SARGOP_ARGS");
-											 /*_.MSARGS__V18*/
-      meltfptr[17] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.MSND__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SARGOP_ARGS");
+  /*_.MSARGS__V18*/ meltfptr[17] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2037:/ getslot");
 #line 2037   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.MSND__V2*/ meltfptr[1]), 3, "MSEND_SELSYMB");
-											   /*_.SELNAM__V19*/
-      meltfptr[18] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.MSND__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 3, "MSEND_SELSYMB");
+  /*_.SELNAM__V19*/ meltfptr[18] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2038:/ getslot");
 #line 2038   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3]), 10, "NCTX_CURPROC");
-											  /*_.CURPROC__V20*/
-      meltfptr[19] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 10, "NCTX_CURPROC");
+  /*_.CURPROC__V20*/ meltfptr[19] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2039:/ getslot");
 #line 2039   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.MSND__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											   /*_.SLOC__V21*/
-      meltfptr[20] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.MSND__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.SLOC__V21*/ meltfptr[20] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2040:/ checksignal");
@@ -6224,10 +6232,10 @@ lab_endgetargs:;
 	  MELT_LOCATION ("warmelt-normal.melt:2054:/ getslot");
 #line 2054   "warmelt-normal.melt" /**::getslot::**/
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) ( /*_.SELNAM__V19*/ meltfptr[18]), 1, "NAMED_NAME");
-											      /*_.NAMED_NAME__V36*/
-	    meltfptr[34] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj = (melt_ptr_t) ( /*_.SELNAM__V19*/ meltfptr[18]) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+    /*_.NAMED_NAME__V36*/ meltfptr[34] = slot;
 	  };
 	  ;
 
@@ -6740,10 +6748,11 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 2080
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) ( /*_.SELBIND__V23*/ meltfptr[22]), 2, "SBIND_SELECTORDEF");
-												       /*_.SBIND_SELECTORDEF__V58*/
-		meltfptr[45] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) ( /*_.SELBIND__V23*/ meltfptr[22]) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 2, "SBIND_SELECTORDEF");
+     /*_.SBIND_SELECTORDEF__V58*/ meltfptr[45] = slot;
 	      };
 	      ;
 	    }
@@ -6770,10 +6779,12 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 2080
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) ( /*_.SBIND_SELECTORDEF__V58*/ meltfptr[45]), 9, "SDEFSEL_FORMALS");
-													       /*_.SDEFSEL_FORMALS__V59*/
-		meltfptr[47] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) ( /*_.SBIND_SELECTORDEF__V58*/ meltfptr[45])
+		  /*=obj*/ ;
+		melt_object_get_field (slot, obj, 9, "SDEFSEL_FORMALS");
+     /*_.SDEFSEL_FORMALS__V59*/ meltfptr[47] = slot;
 	      };
 	      ;
 	    }
@@ -6849,10 +6860,12 @@ lab_endgetargs:;
 		    /*^getslot */
 #line 2084
 		    {
-		      melt_ptr_t slot = 0;
-		      melt_object_get_field (slot, (melt_ptr_t) ( /*_.SELBIND__V23*/ meltfptr[22]), 1, "VBIND_VALUE");
-												   /*_.VALSEL__V62*/
-		      meltfptr[61] = slot;
+		      melt_ptr_t slot = NULL, obj = NULL;
+		      obj =
+			(melt_ptr_t) ( /*_.SELBIND__V23*/ meltfptr[22])
+			/*=obj*/ ;
+		      melt_object_get_field (slot, obj, 1, "VBIND_VALUE");
+       /*_.VALSEL__V62*/ meltfptr[61] = slot;
 		    };
 		    ;
 		  }
@@ -6959,10 +6972,12 @@ lab_endgetargs:;
 		    /*^getslot */
 #line 2086
 		    {
-		      melt_ptr_t slot = 0;
-		      melt_object_get_field (slot, (melt_ptr_t) ( /*_.VALSEL__V62*/ meltfptr[61]), 2, "SEL_SIGNATURE");
-												    /*_.SEL_SIGNATURE__V65*/
-		      meltfptr[63] = slot;
+		      melt_ptr_t slot = NULL, obj = NULL;
+		      obj =
+			(melt_ptr_t) ( /*_.VALSEL__V62*/ meltfptr[61])
+			/*=obj*/ ;
+		      melt_object_get_field (slot, obj, 2, "SEL_SIGNATURE");
+       /*_.SEL_SIGNATURE__V65*/ meltfptr[63] = slot;
 		    };
 		    ;
 		  }
@@ -7737,10 +7752,12 @@ lab_endgetargs:;
 		/*^getslot */
 #line 2117
 		{
-		  melt_ptr_t slot = 0;
-		  melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECVFORMAL__V82*/ meltfptr[77]), 1, "FBIND_TYPE");
-												     /*_.FBIND_TYPE__V88*/
-		  meltfptr[84] = slot;
+		  melt_ptr_t slot = NULL, obj = NULL;
+		  obj =
+		    (melt_ptr_t) ( /*_.RECVFORMAL__V82*/ meltfptr[77])
+		    /*=obj*/ ;
+		  melt_object_get_field (slot, obj, 1, "FBIND_TYPE");
+       /*_.FBIND_TYPE__V88*/ meltfptr[84] = slot;
 		};
 		;
 	      }
@@ -7863,10 +7880,12 @@ lab_endgetargs:;
 		    /*^getslot */
 #line 2120
 		    {
-		      melt_ptr_t slot = 0;
-		      melt_object_get_field (slot, (melt_ptr_t) ( /*_.SELNAM__V19*/ meltfptr[18]), 1, "NAMED_NAME");
-												 /*_.NAMED_NAME__V90*/
-		      meltfptr[84] = slot;
+		      melt_ptr_t slot = NULL, obj = NULL;
+		      obj =
+			(melt_ptr_t) ( /*_.SELNAM__V19*/ meltfptr[18])
+			/*=obj*/ ;
+		      melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+       /*_.NAMED_NAME__V90*/ meltfptr[84] = slot;
 		    };
 		    ;
 		  }
@@ -7968,10 +7987,12 @@ lab_endgetargs:;
 		    /*^getslot */
 #line 2127
 		    {
-		      melt_ptr_t slot = 0;
-		      melt_object_get_field (slot, (melt_ptr_t) ( /*_.CURFORMAL__V92*/ meltfptr[84]), 1, "FBIND_TYPE");
-												   /*_.FORMCTYP__V94*/
-		      meltfptr[93] = slot;
+		      melt_ptr_t slot = NULL, obj = NULL;
+		      obj =
+			(melt_ptr_t) ( /*_.CURFORMAL__V92*/ meltfptr[84])
+			/*=obj*/ ;
+		      melt_object_get_field (slot, obj, 1, "FBIND_TYPE");
+      /*_.FORMCTYP__V94*/ meltfptr[93] = slot;
 		    };
 		    ;
 		  }
@@ -7998,10 +8019,12 @@ lab_endgetargs:;
 		    /*^getslot */
 #line 2128
 		    {
-		      melt_ptr_t slot = 0;
-		      melt_object_get_field (slot, (melt_ptr_t) ( /*_.CURFORMAL__V92*/ meltfptr[84]), 0, "BINDER");
-											       /*_.FORMBINDER__V95*/
-		      meltfptr[94] = slot;
+		      melt_ptr_t slot = NULL, obj = NULL;
+		      obj =
+			(melt_ptr_t) ( /*_.CURFORMAL__V92*/ meltfptr[84])
+			/*=obj*/ ;
+		      melt_object_get_field (slot, obj, 0, "BINDER");
+      /*_.FORMBINDER__V95*/ meltfptr[94] = slot;
 		    };
 		    ;
 		  }
@@ -8125,10 +8148,13 @@ lab_endgetargs:;
 			  /*^getslot */
 #line 2135
 			  {
-			    melt_ptr_t slot = 0;
-			    melt_object_get_field (slot, (melt_ptr_t) ( /*_.SELNAM__V19*/ meltfptr[18]), 1, "NAMED_NAME");
-												  /*_.NAMED_NAME__V98*/
-			    meltfptr[96] = slot;
+			    melt_ptr_t slot = NULL, obj = NULL;
+			    obj =
+			      (melt_ptr_t) ( /*_.SELNAM__V19*/ meltfptr[18])
+			      /*=obj*/ ;
+			    melt_object_get_field (slot, obj, 1,
+						   "NAMED_NAME");
+	/*_.NAMED_NAME__V98*/ meltfptr[96] = slot;
 			  };
 			  ;
 			}
@@ -8166,10 +8192,13 @@ lab_endgetargs:;
 			  /*^getslot */
 #line 2137
 			  {
-			    melt_ptr_t slot = 0;
-			    melt_object_get_field (slot, (melt_ptr_t) ( /*_.FORMBINDER__V95*/ meltfptr[94]), 1, "NAMED_NAME");
-												      /*_.NAMED_NAME__V99*/
-			    meltfptr[98] = slot;
+			    melt_ptr_t slot = NULL, obj = NULL;
+			    obj =
+			      (melt_ptr_t) ( /*_.FORMBINDER__V95*/
+					    meltfptr[94]) /*=obj*/ ;
+			    melt_object_get_field (slot, obj, 1,
+						   "NAMED_NAME");
+	/*_.NAMED_NAME__V99*/ meltfptr[98] = slot;
 			  };
 			  ;
 			}
@@ -8207,10 +8236,13 @@ lab_endgetargs:;
 			  /*^getslot */
 #line 2139
 			  {
-			    melt_ptr_t slot = 0;
-			    melt_object_get_field (slot, (melt_ptr_t) ( /*_.CURCTYP__V93*/ meltfptr[92]), 1, "NAMED_NAME");
-												   /*_.NAMED_NAME__V100*/
-			    meltfptr[99] = slot;
+			    melt_ptr_t slot = NULL, obj = NULL;
+			    obj =
+			      (melt_ptr_t) ( /*_.CURCTYP__V93*/ meltfptr[92])
+			      /*=obj*/ ;
+			    melt_object_get_field (slot, obj, 1,
+						   "NAMED_NAME");
+	/*_.NAMED_NAME__V100*/ meltfptr[99] = slot;
 			  };
 			  ;
 			}
@@ -8247,10 +8279,13 @@ lab_endgetargs:;
 			  /*^getslot */
 #line 2141
 			  {
-			    melt_ptr_t slot = 0;
-			    melt_object_get_field (slot, (melt_ptr_t) ( /*_.FORMCTYP__V94*/ meltfptr[93]), 1, "NAMED_NAME");
-												    /*_.NAMED_NAME__V101*/
-			    meltfptr[100] = slot;
+			    melt_ptr_t slot = NULL, obj = NULL;
+			    obj =
+			      (melt_ptr_t) ( /*_.FORMCTYP__V94*/ meltfptr[93])
+			      /*=obj*/ ;
+			    melt_object_get_field (slot, obj, 1,
+						   "NAMED_NAME");
+	/*_.NAMED_NAME__V101*/ meltfptr[100] = slot;
 			  };
 			  ;
 			}
@@ -9271,19 +9306,19 @@ lab_endgetargs:;
     /*^getslot */
 #line 2161
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											   /*_.SLOC__V17*/
-      meltfptr[16] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.SLOC__V17*/ meltfptr[16] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2162:/ getslot");
 #line 2162   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 2, "SARGOP_ARGS");
-											 /*_.SRETS__V18*/
-      meltfptr[17] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SARGOP_ARGS");
+  /*_.SRETS__V18*/ meltfptr[17] = slot;
     };
     ;
  /*_#NBRETS__L6*/ meltfnum[0] =
@@ -10172,10 +10207,12 @@ lab_endgetargs:;
 		    /*^getslot */
 #line 2224
 		    {
-		      melt_ptr_t slot = 0;
-		      melt_object_get_field (slot, (melt_ptr_t) ( /*_.NCTYP__V51*/ meltfptr[46]), 4, "CTYPE_PARCHAR");
-												  /*_.CTYPE_PARCHAR__V54*/
-		      meltfptr[52] = slot;
+		      melt_ptr_t slot = NULL, obj = NULL;
+		      obj =
+			(melt_ptr_t) ( /*_.NCTYP__V51*/ meltfptr[46]) /*=obj*/
+			;
+		      melt_object_get_field (slot, obj, 4, "CTYPE_PARCHAR");
+      /*_.CTYPE_PARCHAR__V54*/ meltfptr[52] = slot;
 		    };
 		    ;
 		  }
@@ -10220,10 +10257,13 @@ lab_endgetargs:;
 			  /*^getslot */
 #line 2225
 			  {
-			    melt_ptr_t slot = 0;
-			    melt_object_get_field (slot, (melt_ptr_t) ( /*_.NCTYP__V51*/ meltfptr[46]), 1, "NAMED_NAME");
-												 /*_.NAMED_NAME__V56*/
-			    meltfptr[55] = slot;
+			    melt_ptr_t slot = NULL, obj = NULL;
+			    obj =
+			      (melt_ptr_t) ( /*_.NCTYP__V51*/ meltfptr[46])
+			      /*=obj*/ ;
+			    melt_object_get_field (slot, obj, 1,
+						   "NAMED_NAME");
+	/*_.NAMED_NAME__V56*/ meltfptr[55] = slot;
 			  };
 			  ;
 			}
@@ -11251,19 +11291,19 @@ lab_endgetargs:;
     /*^getslot */
 #line 2249
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											   /*_.SLOC__V17*/
-      meltfptr[13] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.SLOC__V17*/ meltfptr[13] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2250:/ getslot");
 #line 2250   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 2, "SIF_TEST");
-										      /*_.STEST__V18*/
-      meltfptr[17] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SIF_TEST");
+  /*_.STEST__V18*/ meltfptr[17] = slot;
     };
     ;
     /*_.CTYPIF__V19*/ meltfptr[18] =
@@ -11271,10 +11311,10 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-normal.melt:2252:/ getslot");
 #line 2252   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 3, "SIF_THEN");
-										      /*_.STHEN__V20*/
-      meltfptr[19] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 3, "SIF_THEN");
+  /*_.STHEN__V20*/ meltfptr[19] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2253:/ checksignal");
@@ -13428,19 +13468,19 @@ lab_endgetargs:;
     /*^getslot */
 #line 2324
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											   /*_.SLOC__V17*/
-      meltfptr[13] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.SLOC__V17*/ meltfptr[13] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2325:/ getslot");
 #line 2325   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 2, "SIF_TEST");
-										      /*_.STEST__V18*/
-      meltfptr[17] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SIF_TEST");
+  /*_.STEST__V18*/ meltfptr[17] = slot;
     };
     ;
     /*_.CTYPIF__V19*/ meltfptr[18] =
@@ -13448,19 +13488,19 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-normal.melt:2327:/ getslot");
 #line 2327   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 3, "SIF_THEN");
-										      /*_.STHEN__V20*/
-      meltfptr[19] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 3, "SIF_THEN");
+  /*_.STHEN__V20*/ meltfptr[19] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2328:/ getslot");
 #line 2328   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 4, "SIF_ELSE");
-										      /*_.SELSE__V21*/
-      meltfptr[20] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 4, "SIF_ELSE");
+  /*_.SELSE__V21*/ meltfptr[20] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2332:/ checksignal");
@@ -15017,10 +15057,12 @@ lab_endgetargs:;
 		      MELT_LOCATION ("warmelt-normal.melt:2392:/ getslot");
 #line 2392   "warmelt-normal.melt" /**::getslot::**/
 		      {
-			melt_ptr_t slot = 0;
-			melt_object_get_field (slot, (melt_ptr_t) ( /*_.CTYPIF__V19*/ meltfptr[18]), 1, "NAMED_NAME");
-												  /*_.NAMED_NAME__V83*/
-			meltfptr[81] = slot;
+			melt_ptr_t slot = NULL, obj = NULL;
+			obj =
+			  (melt_ptr_t) ( /*_.CTYPIF__V19*/ meltfptr[18])
+			  /*=obj*/ ;
+			melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+	/*_.NAMED_NAME__V83*/ meltfptr[81] = slot;
 		      };
 		      ;
 
@@ -15038,10 +15080,12 @@ lab_endgetargs:;
 		      MELT_LOCATION ("warmelt-normal.melt:2394:/ getslot");
 #line 2394   "warmelt-normal.melt" /**::getslot::**/
 		      {
-			melt_ptr_t slot = 0;
-			melt_object_get_field (slot, (melt_ptr_t) ( /*_.CTYPELSE__V74*/ meltfptr[69]), 1, "NAMED_NAME");
-												    /*_.NAMED_NAME__V84*/
-			meltfptr[83] = slot;
+			melt_ptr_t slot = NULL, obj = NULL;
+			obj =
+			  (melt_ptr_t) ( /*_.CTYPELSE__V74*/ meltfptr[69])
+			  /*=obj*/ ;
+			melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+	/*_.NAMED_NAME__V84*/ meltfptr[83] = slot;
 		      };
 		      ;
 
@@ -16643,19 +16687,19 @@ lab_endgetargs:;
     /*^getslot */
 #line 2435
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											   /*_.SLOC__V17*/
-      meltfptr[13] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.SLOC__V17*/ meltfptr[13] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2436:/ getslot");
 #line 2436   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 2, "SIFP_COND");
-										       /*_.SCOND__V18*/
-      meltfptr[17] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SIFP_COND");
+  /*_.SCOND__V18*/ meltfptr[17] = slot;
     };
     ;
     /*_.CTYPIF__V19*/ meltfptr[18] =
@@ -16663,19 +16707,19 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-normal.melt:2438:/ getslot");
 #line 2438   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 3, "SIFP_THEN");
-										       /*_.STHEN__V20*/
-      meltfptr[19] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 3, "SIFP_THEN");
+  /*_.STHEN__V20*/ meltfptr[19] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2439:/ getslot");
 #line 2439   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 4, "SIFP_ELSE");
-										       /*_.SELSE__V21*/
-      meltfptr[20] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 4, "SIFP_ELSE");
+  /*_.SELSE__V21*/ meltfptr[20] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2444:/ checksignal");
@@ -17555,10 +17599,10 @@ lab_endgetargs:;
 	  MELT_LOCATION ("warmelt-normal.melt:2469:/ getslot");
 #line 2469   "warmelt-normal.melt" /**::getslot::**/
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) ( /*_.CTYPIF__V19*/ meltfptr[18]), 1, "NAMED_NAME");
-											      /*_.NAMED_NAME__V56*/
-	    meltfptr[55] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj = (melt_ptr_t) ( /*_.CTYPIF__V19*/ meltfptr[18]) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+    /*_.NAMED_NAME__V56*/ meltfptr[55] = slot;
 	  };
 	  ;
 
@@ -17574,10 +17618,10 @@ lab_endgetargs:;
 	  MELT_LOCATION ("warmelt-normal.melt:2471:/ getslot");
 #line 2471   "warmelt-normal.melt" /**::getslot::**/
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) ( /*_.CTYPELSE__V55*/ meltfptr[54]), 1, "NAMED_NAME");
-												/*_.NAMED_NAME__V57*/
-	    meltfptr[56] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj = (melt_ptr_t) ( /*_.CTYPELSE__V55*/ meltfptr[54]) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+    /*_.NAMED_NAME__V57*/ meltfptr[56] = slot;
 	  };
 	  ;
 
@@ -19072,19 +19116,19 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-normal.melt:2511:/ getslot");
 #line 2511   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											   /*_.SLOC__V18*/
-      meltfptr[17] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.SLOC__V18*/ meltfptr[17] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2512:/ getslot");
 #line 2512   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 2, "SOR_DISJ");
-										      /*_.SDISJ__V19*/
-      meltfptr[18] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SOR_DISJ");
+  /*_.SDISJ__V19*/ meltfptr[18] = slot;
     };
     ;
  /*_#NBDISJ__L7*/ meltfnum[0] =
@@ -19429,10 +19473,11 @@ lab_endgetargs:;
 		/*^getslot */
 #line 2578
 		{
-		  melt_ptr_t slot = 0;
-		  melt_object_get_field (slot, (melt_ptr_t) ( /*_.NORCONT__V20*/ meltfptr[19]), 0, "REFERENCED_VALUE");
-													/*_.REFERENCED_VALUE__V33*/
-		  meltfptr[32] = slot;
+		  melt_ptr_t slot = NULL, obj = NULL;
+		  obj =
+		    (melt_ptr_t) ( /*_.NORCONT__V20*/ meltfptr[19]) /*=obj*/ ;
+		  melt_object_get_field (slot, obj, 0, "REFERENCED_VALUE");
+       /*_.REFERENCED_VALUE__V33*/ meltfptr[32] = slot;
 		};
 		;
 	      }
@@ -19459,10 +19504,12 @@ lab_endgetargs:;
 		/*^getslot */
 #line 2578
 		{
-		  melt_ptr_t slot = 0;
-		  melt_object_get_field (slot, (melt_ptr_t) ( /*_.NBINDORCONT__V23*/ meltfptr[22]), 0, "REFERENCED_VALUE");
-													    /*_.REFERENCED_VALUE__V34*/
-		  meltfptr[33] = slot;
+		  melt_ptr_t slot = NULL, obj = NULL;
+		  obj =
+		    (melt_ptr_t) ( /*_.NBINDORCONT__V23*/ meltfptr[22])
+		    /*=obj*/ ;
+		  melt_object_get_field (slot, obj, 0, "REFERENCED_VALUE");
+       /*_.REFERENCED_VALUE__V34*/ meltfptr[33] = slot;
 		};
 		;
 	      }
@@ -19587,10 +19634,10 @@ lab_endgetargs:;
 	/*^getslot */
 #line 2579
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) ( /*_.NORCONT__V20*/ meltfptr[19]), 0, "REFERENCED_VALUE");
-												    /*_.REFERENCED_VALUE__V37*/
-	  meltfptr[33] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj = (melt_ptr_t) ( /*_.NORCONT__V20*/ meltfptr[19]) /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 0, "REFERENCED_VALUE");
+   /*_.REFERENCED_VALUE__V37*/ meltfptr[33] = slot;
 	};
 	;
       }
@@ -19618,10 +19665,10 @@ lab_endgetargs:;
 	/*^getslot */
 #line 2579
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) ( /*_.NBINDORCONT__V23*/ meltfptr[22]), 0, "REFERENCED_VALUE");
-													/*_.REFERENCED_VALUE__V38*/
-	  meltfptr[34] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj = (melt_ptr_t) ( /*_.NBINDORCONT__V23*/ meltfptr[22]) /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 0, "REFERENCED_VALUE");
+   /*_.REFERENCED_VALUE__V38*/ meltfptr[34] = slot;
 	};
 	;
       }
@@ -20285,10 +20332,11 @@ lab_endgetargs:;
 	/*^getslot */
 #line 2530
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) (( /*~NORCONT */ meltfclos->tabval[5])), 0, "REFERENCED_VALUE");
-													/*_.REFERENCED_VALUE__V17*/
-	  meltfptr[16] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj =
+	    (melt_ptr_t) (( /*~NORCONT */ meltfclos->tabval[5])) /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 0, "REFERENCED_VALUE");
+   /*_.REFERENCED_VALUE__V17*/ meltfptr[16] = slot;
 	};
 	;
       }
@@ -20617,10 +20665,12 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 2540
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) (( /*~CTYPORCONT */ meltfclos->tabval[7])), 0, "REFERENCED_VALUE");
-													     /*_.REFERENCED_VALUE__V25*/
-		meltfptr[23] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) (( /*~CTYPORCONT */ meltfclos->
+				 tabval[7])) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 0, "REFERENCED_VALUE");
+     /*_.REFERENCED_VALUE__V25*/ meltfptr[23] = slot;
 	      };
 	      ;
 	    }
@@ -20688,10 +20738,12 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 2549
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) (( /*~NORCONT */ meltfclos->tabval[5])), 0, "REFERENCED_VALUE");
-													  /*_.REFERENCED_VALUE__V27*/
-		meltfptr[26] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) (( /*~NORCONT */ meltfclos->
+				 tabval[5])) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 0, "REFERENCED_VALUE");
+     /*_.REFERENCED_VALUE__V27*/ meltfptr[26] = slot;
 	      };
 	      ;
 	    }
@@ -20718,10 +20770,12 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 2549
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) (( /*~NBINDORCONT */ meltfclos->tabval[6])), 0, "REFERENCED_VALUE");
-													      /*_.REFERENCED_VALUE__V28*/
-		meltfptr[27] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) (( /*~NBINDORCONT */ meltfclos->
+				 tabval[6])) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 0, "REFERENCED_VALUE");
+     /*_.REFERENCED_VALUE__V28*/ meltfptr[27] = slot;
 	      };
 	      ;
 	    }
@@ -21041,10 +21095,12 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 2568
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) (( /*~NBINDORCONT */ meltfclos->tabval[6])), 0, "REFERENCED_VALUE");
-													      /*_.REFERENCED_VALUE__V38*/
-		meltfptr[37] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) (( /*~NBINDORCONT */ meltfclos->
+				 tabval[6])) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 0, "REFERENCED_VALUE");
+     /*_.REFERENCED_VALUE__V38*/ meltfptr[37] = slot;
 	      };
 	      ;
 	    }
@@ -21093,10 +21149,12 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 2569
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) (( /*~NBINDORCONT */ meltfclos->tabval[6])), 0, "REFERENCED_VALUE");
-													      /*_.REFERENCED_VALUE__V40*/
-		meltfptr[39] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) (( /*~NBINDORCONT */ meltfclos->
+				 tabval[6])) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 0, "REFERENCED_VALUE");
+     /*_.REFERENCED_VALUE__V40*/ meltfptr[39] = slot;
 	      };
 	      ;
 	    }
@@ -21941,19 +21999,19 @@ lab_endgetargs:;
     /*^getslot */
 #line 2592
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											   /*_.SLOC__V17*/
-      meltfptr[13] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.SLOC__V17*/ meltfptr[13] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2593:/ getslot");
 #line 2593   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 2, "SPROGN_BODY");
-											 /*_.SBODY__V18*/
-      meltfptr[17] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SPROGN_BODY");
+  /*_.SBODY__V18*/ meltfptr[17] = slot;
     };
     ;
  /*_#LNBODY__L6*/ meltfnum[4] =
@@ -23422,10 +23480,10 @@ lab_endgetargs:;
     /*^getslot */
 #line 2641
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 2, "NPROGN_LAST");
-											 /*_.NPROGN_LAST__V4*/
-      meltfptr[3] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "NPROGN_LAST");
+  /*_.NPROGN_LAST__V4*/ meltfptr[3] = slot;
     };
     ;
     /*^checksignal */
@@ -23981,28 +24039,28 @@ lab_endgetargs:;
     /*^getslot */
 #line 2651
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											   /*_.SLOC__V17*/
-      meltfptr[13] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.SLOC__V17*/ meltfptr[13] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2652:/ getslot");
 #line 2652   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 2, "SLET_BINDINGS");
-											   /*_.SBINDINGS__V18*/
-      meltfptr[17] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SLET_BINDINGS");
+  /*_.SBINDINGS__V18*/ meltfptr[17] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2653:/ getslot");
 #line 2653   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 3, "SLET_BODY");
-										       /*_.SBODY__V19*/
-      meltfptr[18] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 3, "SLET_BODY");
+  /*_.SBODY__V19*/ meltfptr[18] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2654:/ checksignal");
@@ -24372,10 +24430,10 @@ lab_endgetargs:;
     /*^getslot */
 #line 2750
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3]), 6, "NCTX_SYMBCACHEMAP");
-											      /*_.SYCMAP__V36*/
-      meltfptr[35] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 6, "NCTX_SYMBCACHEMAP");
+  /*_.SYCMAP__V36*/ meltfptr[35] = slot;
     };
     ;
     /*citerblock FOREACH_IN_LIST */
@@ -24395,10 +24453,10 @@ lab_endgetargs:;
 	  MELT_LOCATION ("warmelt-normal.melt:2754:/ getslot");
 #line 2754   "warmelt-normal.melt" /**::getslot::**/
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) ( /*_.BND__V38*/ meltfptr[37]), 0, "BINDER");
-										      /*_.BINDER__V39*/
-	    meltfptr[38] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj = (melt_ptr_t) ( /*_.BND__V38*/ meltfptr[37]) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 0, "BINDER");
+   /*_.BINDER__V39*/ meltfptr[38] = slot;
 	  };
 	  ;
 
@@ -25328,37 +25386,37 @@ lab_endgetargs:;
     /*^getslot */
 #line 2661
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.SB__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											 /*_.SBLOC__V6*/
-      meltfptr[5] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.SB__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.SBLOC__V6*/ meltfptr[5] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2662:/ getslot");
 #line 2662   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.SB__V2*/ meltfptr[1]), 2, "SLETB_TYPE");
-										      /*_.SBTYP__V7*/
-      meltfptr[6] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.SB__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SLETB_TYPE");
+  /*_.SBTYP__V7*/ meltfptr[6] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2663:/ getslot");
 #line 2663   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.SB__V2*/ meltfptr[1]), 3, "SLETB_BINDER");
-											/*_.SBINDER__V8*/
-      meltfptr[7] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.SB__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 3, "SLETB_BINDER");
+  /*_.SBINDER__V8*/ meltfptr[7] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2664:/ getslot");
 #line 2664   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.SB__V2*/ meltfptr[1]), 4, "SLETB_EXPR");
-										      /*_.SBEXPR__V9*/
-      meltfptr[8] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.SB__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 4, "SLETB_EXPR");
+  /*_.SBEXPR__V9*/ meltfptr[8] = slot;
     };
     ;
 
@@ -25507,10 +25565,12 @@ lab_endgetargs:;
 		    /*^getslot */
 #line 2672
 		    {
-		      melt_ptr_t slot = 0;
-		      melt_object_get_field (slot, (melt_ptr_t) ( /*_.SBINDER__V8*/ meltfptr[7]), 1, "NAMED_NAME");
-												/*_.NAMED_NAME__V13*/
-		      meltfptr[12] = slot;
+		      melt_ptr_t slot = NULL, obj = NULL;
+		      obj =
+			(melt_ptr_t) ( /*_.SBINDER__V8*/ meltfptr[7]) /*=obj*/
+			;
+		      melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+       /*_.NAMED_NAME__V13*/ meltfptr[12] = slot;
 		    };
 		    ;
 		  }
@@ -25723,10 +25783,10 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 2688
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) ( /*_.SBINDER__V8*/ meltfptr[7]), 1, "NAMED_NAME");
-											      /*_.NAMED_NAME__V20*/
-		meltfptr[18] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj = (melt_ptr_t) ( /*_.SBINDER__V8*/ meltfptr[7]) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+     /*_.NAMED_NAME__V20*/ meltfptr[18] = slot;
 	      };
 	      ;
 	    }
@@ -25762,10 +25822,10 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 2692
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) ( /*_.SBTYP__V7*/ meltfptr[6]), 1, "NAMED_NAME");
-											    /*_.NAMED_NAME__V21*/
-		meltfptr[20] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj = (melt_ptr_t) ( /*_.SBTYP__V7*/ meltfptr[6]) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+     /*_.NAMED_NAME__V21*/ meltfptr[20] = slot;
 	      };
 	      ;
 	    }
@@ -25802,10 +25862,11 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 2696
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) ( /*_.NBCTYPE__V17*/ meltfptr[16]), 1, "NAMED_NAME");
-												/*_.NAMED_NAME__V22*/
-		meltfptr[21] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) ( /*_.NBCTYPE__V17*/ meltfptr[16]) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+     /*_.NAMED_NAME__V22*/ meltfptr[21] = slot;
 	      };
 	      ;
 	    }
@@ -25916,19 +25977,22 @@ lab_endgetargs:;
 		MELT_LOCATION ("warmelt-normal.melt:2705:/ getslot");
 #line 2705   "warmelt-normal.melt" /**::getslot::**/
 		{
-		  melt_ptr_t slot = 0;
-		  melt_object_get_field (slot, (melt_ptr_t) ( /*_.LASTNBINDING__V25*/ meltfptr[21]), 0, "BINDER");
-												  /*_.BINDER__V26*/
-		  meltfptr[16] = slot;
+		  melt_ptr_t slot = NULL, obj = NULL;
+		  obj =
+		    (melt_ptr_t) ( /*_.LASTNBINDING__V25*/ meltfptr[21])
+		    /*=obj*/ ;
+		  melt_object_get_field (slot, obj, 0, "BINDER");
+      /*_.BINDER__V26*/ meltfptr[16] = slot;
 		};
 		;
 		MELT_LOCATION ("warmelt-normal.melt:2706:/ getslot");
 #line 2706   "warmelt-normal.melt" /**::getslot::**/
 		{
-		  melt_ptr_t slot = 0;
-		  melt_object_get_field (slot, (melt_ptr_t) ( /*_.NBDEXPR__V15*/ meltfptr[10]), 1, "NOCC_SYMB");
-												/*_.NOCC_SYMB__V27*/
-		  meltfptr[17] = slot;
+		  melt_ptr_t slot = NULL, obj = NULL;
+		  obj =
+		    (melt_ptr_t) ( /*_.NBDEXPR__V15*/ meltfptr[10]) /*=obj*/ ;
+		  melt_object_get_field (slot, obj, 1, "NOCC_SYMB");
+      /*_.NOCC_SYMB__V27*/ meltfptr[17] = slot;
 		};
 		;
      /*_#__L11*/ meltfnum[10] =
@@ -25998,10 +26062,10 @@ lab_endgetargs:;
 	  /*^getslot */
 #line 2708
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) ( /*_.NBDEXPR__V15*/ meltfptr[10]), 2, "LETBIND_EXPR");
-												 /*_.LASTNORMEXP__V30*/
-	    meltfptr[29] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj = (melt_ptr_t) ( /*_.NBDEXPR__V15*/ meltfptr[10]) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 2, "LETBIND_EXPR");
+    /*_.LASTNORMEXP__V30*/ meltfptr[29] = slot;
 	  };
 	  ;
 	  MELT_LOCATION ("warmelt-normal.melt:2711:/ quasiblock");
@@ -26085,28 +26149,31 @@ lab_endgetargs:;
 	  MELT_LOCATION ("warmelt-normal.melt:2717:/ getslot");
 #line 2717   "warmelt-normal.melt" /**::getslot::**/
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) ( /*_.LASTNBINDING__V25*/ meltfptr[21]), 1, "LETBIND_TYPE");
-												      /*_.LETBIND_TYPE__V35*/
-	    meltfptr[34] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj =
+	      (melt_ptr_t) ( /*_.LASTNBINDING__V25*/ meltfptr[21]) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 1, "LETBIND_TYPE");
+    /*_.LETBIND_TYPE__V35*/ meltfptr[34] = slot;
 	  };
 	  ;
 	  MELT_LOCATION ("warmelt-normal.melt:2718:/ getslot");
 #line 2718   "warmelt-normal.melt" /**::getslot::**/
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) ( /*_.LASTNBINDING__V25*/ meltfptr[21]), 2, "LETBIND_EXPR");
-												      /*_.LETBIND_EXPR__V36*/
-	    meltfptr[35] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj =
+	      (melt_ptr_t) ( /*_.LASTNBINDING__V25*/ meltfptr[21]) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 2, "LETBIND_EXPR");
+    /*_.LETBIND_EXPR__V36*/ meltfptr[35] = slot;
 	  };
 	  ;
 	  MELT_LOCATION ("warmelt-normal.melt:2719:/ getslot");
 #line 2719   "warmelt-normal.melt" /**::getslot::**/
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) ( /*_.LASTNBINDING__V25*/ meltfptr[21]), 3, "LETBIND_LOC");
-												     /*_.LETBIND_LOC__V37*/
-	    meltfptr[36] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj =
+	      (melt_ptr_t) ( /*_.LASTNBINDING__V25*/ meltfptr[21]) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 3, "LETBIND_LOC");
+    /*_.LETBIND_LOC__V37*/ meltfptr[36] = slot;
 	  };
 	  ;
 	  MELT_LOCATION ("warmelt-normal.melt:2715:/ quasiblock");
@@ -26753,10 +26820,10 @@ lab_endgetargs:;
     /*^getslot */
 #line 2788
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 2, "NLET_BODY");
-										       /*_.LBOD__V5*/
-      meltfptr[4] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "NLET_BODY");
+  /*_.LBOD__V5*/ meltfptr[4] = slot;
     };
     ;
  /*_#LENB__L1*/ meltfnum[0] =
@@ -27385,28 +27452,28 @@ lab_endgetargs:;
     /*^getslot */
 #line 2801
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											   /*_.SLOC__V17*/
-      meltfptr[13] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.SLOC__V17*/ meltfptr[13] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2802:/ getslot");
 #line 2802   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 2, "SUGET_OBJ");
-										       /*_.SOBJ__V18*/
-      meltfptr[17] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SUGET_OBJ");
+  /*_.SOBJ__V18*/ meltfptr[17] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2803:/ getslot");
 #line 2803   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 3, "SUGET_FIELD");
-											 /*_.SFLD__V19*/
-      meltfptr[18] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 3, "SUGET_FIELD");
+  /*_.SFLD__V19*/ meltfptr[18] = slot;
     };
     ;
 
@@ -27576,10 +27643,10 @@ lab_endgetargs:;
     /*^getslot */
 #line 2810
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.SFLD__V19*/ meltfptr[18]), 1, "NAMED_NAME");
-											  /*_.NAMED_NAME__V29*/
-      meltfptr[26] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.SFLD__V19*/ meltfptr[18]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+  /*_.NAMED_NAME__V29*/ meltfptr[26] = slot;
     };
     ;
     /*^checksignal */
@@ -28556,28 +28623,28 @@ lab_endgetargs:;
     /*^getslot */
 #line 2838
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											   /*_.SLOC__V17*/
-      meltfptr[13] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.SLOC__V17*/ meltfptr[13] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2839:/ getslot");
 #line 2839   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 2, "SUGET_OBJ");
-										       /*_.SOBJ__V18*/
-      meltfptr[17] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SUGET_OBJ");
+  /*_.SOBJ__V18*/ meltfptr[17] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2840:/ getslot");
 #line 2840   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 3, "SUGET_FIELD");
-											 /*_.SFLD__V19*/
-      meltfptr[18] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 3, "SUGET_FIELD");
+  /*_.SFLD__V19*/ meltfptr[18] = slot;
     };
     ;
 
@@ -28883,10 +28950,10 @@ lab_endgetargs:;
     /*^getslot */
 #line 2848
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.SFLD__V19*/ meltfptr[18]), 1, "NAMED_NAME");
-											  /*_.NAMED_NAME__V33*/
-      meltfptr[29] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.SFLD__V19*/ meltfptr[18]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+  /*_.NAMED_NAME__V33*/ meltfptr[29] = slot;
     };
     ;
     /*^checksignal */
@@ -28907,10 +28974,10 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-normal.melt:2849:/ getslot");
 #line 2849   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.SFLD__V19*/ meltfptr[18]), 2, "FLD_OWNCLASS");
-											    /*_.FCLA__V35*/
-      meltfptr[34] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.SFLD__V19*/ meltfptr[18]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "FLD_OWNCLASS");
+  /*_.FCLA__V35*/ meltfptr[34] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2850:/ quasiblock");
@@ -30142,28 +30209,28 @@ lab_endgetargs:;
     /*^getslot */
 #line 2888
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											   /*_.SLOC__V17*/
-      meltfptr[13] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.SLOC__V17*/ meltfptr[13] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2889:/ getslot");
 #line 2889   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 2, "SUPUT_OBJ");
-										       /*_.SOBJ__V18*/
-      meltfptr[17] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SUPUT_OBJ");
+  /*_.SOBJ__V18*/ meltfptr[17] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2890:/ getslot");
 #line 2890   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 3, "SUPUT_FIELDS");
-											  /*_.SFIELDS__V19*/
-      meltfptr[18] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 3, "SUPUT_FIELDS");
+  /*_.SFIELDS__V19*/ meltfptr[18] = slot;
     };
     ;
  /*_#NBFIELDS__L6*/ meltfnum[4] =
@@ -31227,28 +31294,28 @@ lab_endgetargs:;
     /*^getslot */
 #line 2922
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.FLA__V2*/ meltfptr[1]), 2, "SFLA_FIELD");
-										       /*_.FLD__V5*/
-      meltfptr[3] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.FLA__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SFLA_FIELD");
+  /*_.FLD__V5*/ meltfptr[3] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2923:/ getslot");
 #line 2923   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.FLA__V2*/ meltfptr[1]), 3, "SFLA_EXPR");
-										      /*_.EXP__V6*/
-      meltfptr[5] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.FLA__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 3, "SFLA_EXPR");
+  /*_.EXP__V6*/ meltfptr[5] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2924:/ getslot");
 #line 2924   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.FLA__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											  /*_.LOCA_LOCATION__V7*/
-      meltfptr[6] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.FLA__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.LOCA_LOCATION__V7*/ meltfptr[6] = slot;
     };
     ;
     /*^cond */
@@ -31665,10 +31732,10 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 2942
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) ( /*_.FLD__V5*/ meltfptr[3]), 1, "NAMED_NAME");
-											  /*_.NAMED_NAME__V21*/
-		meltfptr[17] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj = (melt_ptr_t) ( /*_.FLD__V5*/ meltfptr[3]) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+     /*_.NAMED_NAME__V21*/ meltfptr[17] = slot;
 	      };
 	      ;
 	    }
@@ -32388,28 +32455,28 @@ lab_endgetargs:;
     /*^getslot */
 #line 2964
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											   /*_.SLOC__V17*/
-      meltfptr[13] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.SLOC__V17*/ meltfptr[13] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2965:/ getslot");
 #line 2965   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 2, "SUPUT_OBJ");
-										       /*_.SOBJ__V18*/
-      meltfptr[17] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SUPUT_OBJ");
+  /*_.SOBJ__V18*/ meltfptr[17] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:2966:/ getslot");
 #line 2966   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 3, "SUPUT_FIELDS");
-											  /*_.SFIELDS__V19*/
-      meltfptr[18] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 3, "SUPUT_FIELDS");
+  /*_.SFIELDS__V19*/ meltfptr[18] = slot;
     };
     ;
  /*_#NBFIELDS__L6*/ meltfnum[4] =
@@ -33081,28 +33148,28 @@ lab_endgetargs:;
 	  /*^getslot */
 #line 3000
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) ( /*_.FLA__V40*/ meltfptr[39]), 2, "SFLA_FIELD");
-											  /*_.FLD__V47*/
-	    meltfptr[42] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj = (melt_ptr_t) ( /*_.FLA__V40*/ meltfptr[39]) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 2, "SFLA_FIELD");
+   /*_.FLD__V47*/ meltfptr[42] = slot;
 	  };
 	  ;
 	  MELT_LOCATION ("warmelt-normal.melt:3001:/ getslot");
 #line 3001   "warmelt-normal.melt" /**::getslot::**/
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) ( /*_.FLA__V40*/ meltfptr[39]), 3, "SFLA_EXPR");
-											 /*_.EXP__V48*/
-	    meltfptr[47] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj = (melt_ptr_t) ( /*_.FLA__V40*/ meltfptr[39]) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 3, "SFLA_EXPR");
+   /*_.EXP__V48*/ meltfptr[47] = slot;
 	  };
 	  ;
 	  MELT_LOCATION ("warmelt-normal.melt:3002:/ getslot");
 #line 3002   "warmelt-normal.melt" /**::getslot::**/
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) ( /*_.FLA__V40*/ meltfptr[39]), 1, "LOCA_LOCATION");
-											     /*_.LOCA_LOCATION__V49*/
-	    meltfptr[48] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj = (melt_ptr_t) ( /*_.FLA__V40*/ meltfptr[39]) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+   /*_.LOCA_LOCATION__V49*/ meltfptr[48] = slot;
 	  };
 	  ;
 	  /*^cond */
@@ -33206,10 +33273,10 @@ lab_endgetargs:;
 	  /*^getslot */
 #line 3005
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) ( /*_.FLD__V47*/ meltfptr[42]), 2, "FLD_OWNCLASS");
-											    /*_.FCLA__V54*/
-	    meltfptr[53] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj = (melt_ptr_t) ( /*_.FLD__V47*/ meltfptr[42]) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 2, "FLD_OWNCLASS");
+   /*_.FCLA__V54*/ meltfptr[53] = slot;
 	  };
 	  ;
 	  MELT_LOCATION ("warmelt-normal.melt:3006:/ cond");
@@ -33228,10 +33295,11 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 3006
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) ( /*_.CLACONT__V34*/ meltfptr[33]), 0, "REFERENCED_VALUE");
-												     /*_.PRECLA__V55*/
-		meltfptr[54] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) ( /*_.CLACONT__V34*/ meltfptr[33]) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 0, "REFERENCED_VALUE");
+    /*_.PRECLA__V55*/ meltfptr[54] = slot;
 	      };
 	      ;
 	    }
@@ -33646,10 +33714,13 @@ lab_endgetargs:;
 				    ("warmelt-normal.melt:3023:/ getslot");
 #line 3023   "warmelt-normal.melt" /**::getslot::**/
 				  {
-				    melt_ptr_t slot = 0;
-				    melt_object_get_field (slot, (melt_ptr_t) ( /*_.FLD__V47*/ meltfptr[42]), 1, "NAMED_NAME");
-												  /*_.NAMED_NAME__V63*/
-				    meltfptr[59] = slot;
+				    melt_ptr_t slot = NULL, obj = NULL;
+				    obj =
+				      (melt_ptr_t) ( /*_.FLD__V47*/
+						    meltfptr[42]) /*=obj*/ ;
+				    melt_object_get_field (slot, obj, 1,
+							   "NAMED_NAME");
+	   /*_.NAMED_NAME__V63*/ meltfptr[59] = slot;
 				  };
 				  ;
 
@@ -33667,10 +33738,13 @@ lab_endgetargs:;
 				    ("warmelt-normal.melt:3024:/ getslot");
 #line 3024   "warmelt-normal.melt" /**::getslot::**/
 				  {
-				    melt_ptr_t slot = 0;
-				    melt_object_get_field (slot, (melt_ptr_t) ( /*_.PRECLA__V55*/ meltfptr[54]), 1, "NAMED_NAME");
-												     /*_.NAMED_NAME__V64*/
-				    meltfptr[60] = slot;
+				    melt_ptr_t slot = NULL, obj = NULL;
+				    obj =
+				      (melt_ptr_t) ( /*_.PRECLA__V55*/
+						    meltfptr[54]) /*=obj*/ ;
+				    melt_object_get_field (slot, obj, 1,
+							   "NAMED_NAME");
+	   /*_.NAMED_NAME__V64*/ meltfptr[60] = slot;
 				  };
 				  ;
 
@@ -33699,10 +33773,15 @@ lab_endgetargs:;
 				      /*^getslot */
 #line 3025
 				      {
-					melt_ptr_t slot = 0;
-					melt_object_get_field (slot, (melt_ptr_t) ( /*_.FCLA__V54*/ meltfptr[53]), 1, "NAMED_NAME");
-												    /*_.NAMED_NAME__V65*/
-					meltfptr[64] = slot;
+					melt_ptr_t slot = NULL, obj = NULL;
+					obj =
+					  (melt_ptr_t) ( /*_.FCLA__V54*/
+							meltfptr[53]) /*=obj*/
+					  ;
+					melt_object_get_field (slot, obj, 1,
+							       "NAMED_NAME");
+	    /*_.NAMED_NAME__V65*/ meltfptr[64] =
+					  slot;
 				      };
 				      ;
 				    }
@@ -33982,10 +34061,11 @@ lab_endgetargs:;
 		    /*^getslot */
 #line 3043
 		    {
-		      melt_ptr_t slot = 0;
-		      melt_object_get_field (slot, (melt_ptr_t) ( /*_.FLD__V47*/ meltfptr[42]), 1, "NAMED_NAME");
-											     /*_.NAMED_NAME__V72*/
-		      meltfptr[53] = slot;
+		      melt_ptr_t slot = NULL, obj = NULL;
+		      obj =
+			(melt_ptr_t) ( /*_.FLD__V47*/ meltfptr[42]) /*=obj*/ ;
+		      melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+      /*_.NAMED_NAME__V72*/ meltfptr[53] = slot;
 		    };
 		    ;
 		  }
@@ -34110,10 +34190,10 @@ lab_endgetargs:;
 	/*^getslot */
 #line 3049
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) ( /*_.CLACONT__V34*/ meltfptr[33]), 0, "REFERENCED_VALUE");
-												    /*_.REFERENCED_VALUE__V74*/
-	  meltfptr[55] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj = (melt_ptr_t) ( /*_.CLACONT__V34*/ meltfptr[33]) /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 0, "REFERENCED_VALUE");
+   /*_.REFERENCED_VALUE__V74*/ meltfptr[55] = slot;
 	};
 	;
       }
@@ -35098,28 +35178,28 @@ lab_endgetargs:;
     /*^getslot */
 #line 3075
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											   /*_.SLOC__V17*/
-      meltfptr[13] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.SLOC__V17*/ meltfptr[13] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3076:/ getslot");
 #line 3076   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 2, "SSTQ_VAR");
-										      /*_.SVAR__V18*/
-      meltfptr[17] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SSTQ_VAR");
+  /*_.SVAR__V18*/ meltfptr[17] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3077:/ getslot");
 #line 3077   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 3, "SSTQ_EXPR");
-										       /*_.SEXP__V19*/
-      meltfptr[18] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 3, "SSTQ_EXPR");
+  /*_.SEXP__V19*/ meltfptr[18] = slot;
     };
     ;
 
@@ -35802,10 +35882,10 @@ lab_endgetargs:;
 	  MELT_LOCATION ("warmelt-normal.melt:3095:/ getslot");
 #line 3095   "warmelt-normal.melt" /**::getslot::**/
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) ( /*_.SVAR__V18*/ meltfptr[17]), 1, "NAMED_NAME");
-											    /*_.NAMED_NAME__V44*/
-	    meltfptr[39] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj = (melt_ptr_t) ( /*_.SVAR__V18*/ meltfptr[17]) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+    /*_.NAMED_NAME__V44*/ meltfptr[39] = slot;
 	  };
 	  ;
 
@@ -35821,10 +35901,10 @@ lab_endgetargs:;
 	  MELT_LOCATION ("warmelt-normal.melt:3097:/ getslot");
 #line 3097   "warmelt-normal.melt" /**::getslot::**/
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) ( /*_.VARCTYP__V24*/ meltfptr[23]), 1, "NAMED_NAME");
-											       /*_.NAMED_NAME__V45*/
-	    meltfptr[44] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj = (melt_ptr_t) ( /*_.VARCTYP__V24*/ meltfptr[23]) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+    /*_.NAMED_NAME__V45*/ meltfptr[44] = slot;
 	  };
 	  ;
 
@@ -35840,10 +35920,10 @@ lab_endgetargs:;
 	  MELT_LOCATION ("warmelt-normal.melt:3099:/ getslot");
 #line 3099   "warmelt-normal.melt" /**::getslot::**/
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) ( /*_.EXPCTYP__V37*/ meltfptr[34]), 1, "NAMED_NAME");
-											       /*_.NAMED_NAME__V46*/
-	    meltfptr[45] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj = (melt_ptr_t) ( /*_.EXPCTYP__V37*/ meltfptr[34]) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+    /*_.NAMED_NAME__V46*/ meltfptr[45] = slot;
 	  };
 	  ;
 
@@ -36346,10 +36426,10 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-normal.melt:3123:/ getslot");
 #line 3123   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 1, "NSTQ_VAR");
-										      /*_.NSTQ_VAR__V4*/
-      meltfptr[3] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "NSTQ_VAR");
+  /*_.NSTQ_VAR__V4*/ meltfptr[3] = slot;
     };
     ;
     /*^checksignal */
@@ -36908,37 +36988,37 @@ lab_endgetargs:;
     /*^getslot */
 #line 3134
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											   /*_.SLOC__V17*/
-      meltfptr[13] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.SLOC__V17*/ meltfptr[13] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3135:/ getslot");
 #line 3135   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 2, "SMINS_CLASS");
-											 /*_.SCLASS__V18*/
-      meltfptr[17] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SMINS_CLASS");
+  /*_.SCLASS__V18*/ meltfptr[17] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3136:/ getslot");
 #line 3136   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 3, "SMINS_CLABIND");
-											   /*_.SCLABIND__V19*/
-      meltfptr[18] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 3, "SMINS_CLABIND");
+  /*_.SCLABIND__V19*/ meltfptr[18] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3137:/ getslot");
 #line 3137   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 4, "SMINS_FIELDS");
-											  /*_.SFIELDS__V20*/
-      meltfptr[19] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 4, "SMINS_FIELDS");
+  /*_.SFIELDS__V20*/ meltfptr[19] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3138:/ checksignal");
@@ -36964,10 +37044,10 @@ lab_endgetargs:;
 	  /*^getslot */
 #line 3138
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) ( /*_.SCLABIND__V19*/ meltfptr[18]), 0, "BINDER");
-											    /*_.BINDER__V22*/
-	    meltfptr[21] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj = (melt_ptr_t) ( /*_.SCLABIND__V19*/ meltfptr[18]) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 0, "BINDER");
+    /*_.BINDER__V22*/ meltfptr[21] = slot;
 	  };
 	  ;
 	  /*_.SCLASYM__V21*/ meltfptr[20] = /*_.BINDER__V22*/ meltfptr[21];;
@@ -37635,10 +37715,12 @@ lab_endgetargs:;
 		    /*^getslot */
 #line 3160
 		    {
-		      melt_ptr_t slot = 0;
-		      melt_object_get_field (slot, (melt_ptr_t) ( /*_.SCLASS__V18*/ meltfptr[17]), 1, "NAMED_NAME");
-												 /*_.NAMED_NAME__V45*/
-		      meltfptr[35] = slot;
+		      melt_ptr_t slot = NULL, obj = NULL;
+		      obj =
+			(melt_ptr_t) ( /*_.SCLASS__V18*/ meltfptr[17])
+			/*=obj*/ ;
+		      melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+       /*_.NAMED_NAME__V45*/ meltfptr[35] = slot;
 		    };
 		    ;
 		  }
@@ -38671,28 +38753,28 @@ lab_endgetargs:;
     /*^getslot */
 #line 3170
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.CURFLDA__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											      /*_.CURFLOC__V10*/
-      meltfptr[9] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.CURFLDA__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.CURFLOC__V10*/ meltfptr[9] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3171:/ getslot");
 #line 3171   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.CURFLDA__V2*/ meltfptr[1]), 2, "SFLA_FIELD");
-											   /*_.CURFIELD__V11*/
-      meltfptr[10] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.CURFLDA__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SFLA_FIELD");
+  /*_.CURFIELD__V11*/ meltfptr[10] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3172:/ getslot");
 #line 3172   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.CURFLDA__V2*/ meltfptr[1]), 3, "SFLA_EXPR");
-											  /*_.CUREXP__V12*/
-      meltfptr[11] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.CURFLDA__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 3, "SFLA_EXPR");
+  /*_.CUREXP__V12*/ meltfptr[11] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3173:/ checksignal");
@@ -38916,10 +38998,12 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 3181
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) (( /*~SCLASS */ meltfclos->tabval[1])), 1, "NAMED_NAME");
-												   /*_.NAMED_NAME__V20*/
-		meltfptr[16] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) (( /*~SCLASS */ meltfclos->
+				 tabval[1])) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+     /*_.NAMED_NAME__V20*/ meltfptr[16] = slot;
 	      };
 	      ;
 	    }
@@ -39003,10 +39087,10 @@ lab_endgetargs:;
 	  /*^getslot */
 #line 3183
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) ( /*_.CURFIELD__V11*/ meltfptr[10]), 2, "FLD_OWNCLASS");
-												  /*_.FLD_OWNCLASS__V23*/
-	    meltfptr[15] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj = (melt_ptr_t) ( /*_.CURFIELD__V11*/ meltfptr[10]) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 2, "FLD_OWNCLASS");
+    /*_.FLD_OWNCLASS__V23*/ meltfptr[15] = slot;
 	  };
 	  ;
    /*_#SUBCLASS_OR_EQ__L9*/ meltfnum[7] =
@@ -39201,10 +39285,12 @@ lab_endgetargs:;
 		    /*^getslot */
 #line 3188
 		    {
-		      melt_ptr_t slot = 0;
-		      melt_object_get_field (slot, (melt_ptr_t) ( /*_.CURFIELD__V11*/ meltfptr[10]), 1, "NAMED_NAME");
-												   /*_.NAMED_NAME__V29*/
-		      meltfptr[21] = slot;
+		      melt_ptr_t slot = NULL, obj = NULL;
+		      obj =
+			(melt_ptr_t) ( /*_.CURFIELD__V11*/ meltfptr[10])
+			/*=obj*/ ;
+		      melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+       /*_.NAMED_NAME__V29*/ meltfptr[21] = slot;
 		    };
 		    ;
 		  }
@@ -39229,10 +39315,12 @@ lab_endgetargs:;
 		MELT_LOCATION ("warmelt-normal.melt:3191:/ getslot");
 #line 3191   "warmelt-normal.melt" /**::getslot::**/
 		{
-		  melt_ptr_t slot = 0;
-		  melt_object_get_field (slot, (melt_ptr_t) ( /*_.CURFIELD__V11*/ meltfptr[10]), 2, "FLD_OWNCLASS");
-												    /*_.FLD_OWNCLASS__V30*/
-		  meltfptr[26] = slot;
+		  melt_ptr_t slot = NULL, obj = NULL;
+		  obj =
+		    (melt_ptr_t) ( /*_.CURFIELD__V11*/ meltfptr[10]) /*=obj*/
+		    ;
+		  melt_object_get_field (slot, obj, 2, "FLD_OWNCLASS");
+      /*_.FLD_OWNCLASS__V30*/ meltfptr[26] = slot;
 		};
 		;
 		/*^cond */
@@ -39251,10 +39339,12 @@ lab_endgetargs:;
 		    /*^getslot */
 #line 3191
 		    {
-		      melt_ptr_t slot = 0;
-		      melt_object_get_field (slot, (melt_ptr_t) ( /*_.FLD_OWNCLASS__V30*/ meltfptr[26]), 1, "NAMED_NAME");
-												       /*_.NAMED_NAME__V31*/
-		      meltfptr[30] = slot;
+		      melt_ptr_t slot = NULL, obj = NULL;
+		      obj =
+			(melt_ptr_t) ( /*_.FLD_OWNCLASS__V30*/ meltfptr[26])
+			/*=obj*/ ;
+		      melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+       /*_.NAMED_NAME__V31*/ meltfptr[30] = slot;
 		    };
 		    ;
 		  }
@@ -39292,10 +39382,12 @@ lab_endgetargs:;
 		    /*^getslot */
 #line 3194
 		    {
-		      melt_ptr_t slot = 0;
-		      melt_object_get_field (slot, (melt_ptr_t) (( /*~SCLASS */ meltfclos->tabval[1])), 1, "NAMED_NAME");
-												     /*_.NAMED_NAME__V32*/
-		      meltfptr[31] = slot;
+		      melt_ptr_t slot = NULL, obj = NULL;
+		      obj =
+			(melt_ptr_t) (( /*~SCLASS */ meltfclos->
+				       tabval[1])) /*=obj*/ ;
+		      melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+       /*_.NAMED_NAME__V32*/ meltfptr[31] = slot;
 		    };
 		    ;
 		  }
@@ -39716,10 +39808,11 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 3208
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) ( /*_.CURFIELD__V11*/ meltfptr[10]), 1, "NAMED_NAME");
-												 /*_.NAMED_NAME__V45*/
-		meltfptr[16] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj =
+		  (melt_ptr_t) ( /*_.CURFIELD__V11*/ meltfptr[10]) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+     /*_.NAMED_NAME__V45*/ meltfptr[16] = slot;
 	      };
 	      ;
 	    }
@@ -40552,28 +40645,28 @@ lab_endgetargs:;
     /*^getslot */
 #line 3251
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											   /*_.SLOC__V17*/
-      meltfptr[13] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.SLOC__V17*/ meltfptr[13] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3252:/ getslot");
 #line 3252   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 2, "SLABEL_BIND");
-											 /*_.SLBIND__V18*/
-      meltfptr[17] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SLABEL_BIND");
+  /*_.SLBIND__V18*/ meltfptr[17] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3253:/ getslot");
 #line 3253   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 3, "SFRV_BODY");
-										       /*_.SBODY__V19*/
-      meltfptr[18] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 3, "SFRV_BODY");
+  /*_.SBODY__V19*/ meltfptr[18] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3254:/ checksignal");
@@ -40694,10 +40787,10 @@ lab_endgetargs:;
     /*^getslot */
 #line 3258
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.SLBIND__V18*/ meltfptr[17]), 0, "BINDER");
-											/*_.BINDER__V25*/
-      meltfptr[24] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.SLBIND__V18*/ meltfptr[17]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 0, "BINDER");
+  /*_.BINDER__V25*/ meltfptr[24] = slot;
     };
     ;
     /*^checksignal */
@@ -41224,10 +41317,10 @@ lab_endgetargs:;
 	    MELT_LOCATION ("warmelt-normal.melt:3264:/ getslot");
 #line 3264   "warmelt-normal.melt" /**::getslot::**/
 	    {
-	      melt_ptr_t slot = 0;
-	      melt_object_get_field (slot, (melt_ptr_t) ( /*_.SLBIND__V18*/ meltfptr[17]), 2, "LABIND_CLONSY");
-												   /*_.LABIND_CLONSY__V41*/
-	      meltfptr[40] = slot;
+	      melt_ptr_t slot = NULL, obj = NULL;
+	      obj = (melt_ptr_t) ( /*_.SLBIND__V18*/ meltfptr[17]) /*=obj*/ ;
+	      melt_object_get_field (slot, obj, 2, "LABIND_CLONSY");
+      /*_.LABIND_CLONSY__V41*/ meltfptr[40] = slot;
 	    };
 	    ;
 	    /*^checksignal */
@@ -41334,10 +41427,10 @@ lab_endgetargs:;
       /*^getslot */
 #line 3265
       {
-	melt_ptr_t slot = 0;
-	melt_object_get_field (slot, (melt_ptr_t) ( /*_.SLBIND__V18*/ meltfptr[17]), 2, "LABIND_CLONSY");
-												 /*_.LABIND_CLONSY__V45*/
-	meltfptr[39] = slot;
+	melt_ptr_t slot = NULL, obj = NULL;
+	obj = (melt_ptr_t) ( /*_.SLBIND__V18*/ meltfptr[17]) /*=obj*/ ;
+	melt_object_get_field (slot, obj, 2, "LABIND_CLONSY");
+    /*_.LABIND_CLONSY__V45*/ meltfptr[39] = slot;
       };
       ;
    /*_#__L15*/ meltfnum[4] =
@@ -41952,10 +42045,10 @@ lab_endgetargs:;
       /*^getslot */
 #line 3284
       {
-	melt_ptr_t slot = 0;
-	melt_object_get_field (slot, (melt_ptr_t) ( /*_.SLBIND__V18*/ meltfptr[17]), 2, "LABIND_CLONSY");
-												 /*_.LABIND_CLONSY__V68*/
-	meltfptr[62] = slot;
+	melt_ptr_t slot = NULL, obj = NULL;
+	obj = (melt_ptr_t) ( /*_.SLBIND__V18*/ meltfptr[17]) /*=obj*/ ;
+	melt_object_get_field (slot, obj, 2, "LABIND_CLONSY");
+    /*_.LABIND_CLONSY__V68*/ meltfptr[62] = slot;
       };
       ;
    /*_#__L20*/ meltfnum[4] =
@@ -43240,28 +43333,28 @@ lab_endgetargs:;
     /*^getslot */
 #line 3325
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											   /*_.SLOC__V17*/
-      meltfptr[13] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.SLOC__V17*/ meltfptr[13] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3326:/ getslot");
 #line 3326   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 2, "SLABEL_BIND");
-											 /*_.SLBIND__V18*/
-      meltfptr[17] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SLABEL_BIND");
+  /*_.SLBIND__V18*/ meltfptr[17] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3327:/ getslot");
 #line 3327   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 3, "SEXI_BODY");
-										       /*_.SBODY__V19*/
-      meltfptr[18] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 3, "SEXI_BODY");
+  /*_.SBODY__V19*/ meltfptr[18] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3328:/ checksignal");
@@ -44473,19 +44566,19 @@ lab_endgetargs:;
     /*^getslot */
 #line 3367
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											   /*_.SLOC__V17*/
-      meltfptr[13] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.SLOC__V17*/ meltfptr[13] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3368:/ getslot");
 #line 3368   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 2, "SLABEL_BIND");
-											 /*_.SLBIND__V18*/
-      meltfptr[17] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SLABEL_BIND");
+  /*_.SLBIND__V18*/ meltfptr[17] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3369:/ checksignal");
@@ -45571,19 +45664,19 @@ lab_endgetargs:;
     /*^getslot */
 #line 3399
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											   /*_.LOC__V17*/
-      meltfptr[13] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.LOC__V17*/ meltfptr[13] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3400:/ getslot");
 #line 3400   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 2, "SIFVARIADIC_ARGBIND");
-												 /*_.SARGS__V18*/
-      meltfptr[17] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SIFVARIADIC_ARGBIND");
+  /*_.SARGS__V18*/ meltfptr[17] = slot;
     };
     ;
  /*_#NBARGS__L6*/ meltfnum[4] =
@@ -45592,28 +45685,28 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-normal.melt:3402:/ getslot");
 #line 3402   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 3, "SIFVARIADIC_THEN");
-											      /*_.STHEN__V19*/
-      meltfptr[18] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 3, "SIFVARIADIC_THEN");
+  /*_.STHEN__V19*/ meltfptr[18] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3403:/ getslot");
 #line 3403   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 4, "SIFVARIADIC_ELSE");
-											      /*_.SELSE__V20*/
-      meltfptr[19] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 4, "SIFVARIADIC_ELSE");
+  /*_.SELSE__V20*/ meltfptr[19] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3404:/ getslot");
 #line 3404   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3]), 10, "NCTX_CURPROC");
-											  /*_.CURPRO__V21*/
-      meltfptr[20] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 10, "NCTX_CURPROC");
+  /*_.CURPRO__V21*/ meltfptr[20] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3405:/ cond");
@@ -45631,10 +45724,10 @@ lab_endgetargs:;
 	/*^getslot */
 #line 3405
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) ( /*_.CURPRO__V21*/ meltfptr[20]), 3, "NRPRO_ARGB");
-											     /*_.CURPROCARGS__V22*/
-	  meltfptr[21] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj = (melt_ptr_t) ( /*_.CURPRO__V21*/ meltfptr[20]) /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 3, "NRPRO_ARGB");
+   /*_.CURPROCARGS__V22*/ meltfptr[21] = slot;
 	};
 	;
       }
@@ -45660,10 +45753,10 @@ lab_endgetargs:;
 	/*^getslot */
 #line 3406
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) ( /*_.CURPRO__V21*/ meltfptr[20]), 9, "NRPRO_VARIADIC");
-												 /*_.NPROVARIADIC__V23*/
-	  meltfptr[22] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj = (melt_ptr_t) ( /*_.CURPRO__V21*/ meltfptr[20]) /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 9, "NRPRO_VARIADIC");
+   /*_.NPROVARIADIC__V23*/ meltfptr[22] = slot;
 	};
 	;
       }
@@ -46670,19 +46763,19 @@ lab_endgetargs:;
 	  /*^getslot */
 #line 3431
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) ( /*_.FBI__V51*/ meltfptr[50]), 0, "BINDER");
-										      /*_.CURBINDER__V59*/
-	    meltfptr[58] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj = (melt_ptr_t) ( /*_.FBI__V51*/ meltfptr[50]) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 0, "BINDER");
+   /*_.CURBINDER__V59*/ meltfptr[58] = slot;
 	  };
 	  ;
 	  MELT_LOCATION ("warmelt-normal.melt:3432:/ getslot");
 #line 3432   "warmelt-normal.melt" /**::getslot::**/
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) ( /*_.FBI__V51*/ meltfptr[50]), 1, "FBIND_TYPE");
-											  /*_.CURCTYPE__V60*/
-	    meltfptr[59] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj = (melt_ptr_t) ( /*_.FBI__V51*/ meltfptr[50]) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 1, "FBIND_TYPE");
+   /*_.CURCTYPE__V60*/ meltfptr[59] = slot;
 	  };
 	  ;
 	  MELT_LOCATION ("warmelt-normal.melt:3433:/ checksignal");
@@ -50189,28 +50282,28 @@ lab_endgetargs:;
     /*^getslot */
 #line 3537
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											   /*_.SLOC__V17*/
-      meltfptr[13] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.SLOC__V17*/ meltfptr[13] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3538:/ getslot");
 #line 3538   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 2, "SCWARN_MSG");
-											/*_.SWMSG__V18*/
-      meltfptr[17] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SCWARN_MSG");
+  /*_.SWMSG__V18*/ meltfptr[17] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3539:/ getslot");
 #line 3539   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 3, "SCWARN_EXPR");
-											 /*_.SWEXP__V19*/
-      meltfptr[18] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 3, "SCWARN_EXPR");
+  /*_.SWEXP__V19*/ meltfptr[18] = slot;
     };
     ;
 
@@ -50620,10 +50713,10 @@ lab_endgetargs:;
     /*^getslot */
 #line 3551
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 3, "SCWARN_EXPR");
-											 /*_.SCWARN_EXPR__V4*/
-      meltfptr[3] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 3, "SCWARN_EXPR");
+  /*_.SCWARN_EXPR__V4*/ meltfptr[3] = slot;
     };
     ;
     /*^checksignal */
@@ -51103,10 +51196,11 @@ lab_endgetargs:;
 		/*^getslot */
 #line 3567
 		{
-		  melt_ptr_t slot = 0;
-		  melt_object_get_field (slot, (melt_ptr_t) ( /*_.LASTCOMP__V10*/ meltfptr[9]), 2, "NOCC_CTYP");
-												/*_.NOCC_CTYP__V15*/
-		  meltfptr[14] = slot;
+		  melt_ptr_t slot = NULL, obj = NULL;
+		  obj =
+		    (melt_ptr_t) ( /*_.LASTCOMP__V10*/ meltfptr[9]) /*=obj*/ ;
+		  melt_object_get_field (slot, obj, 2, "NOCC_CTYP");
+      /*_.NOCC_CTYP__V15*/ meltfptr[14] = slot;
 		};
 		;
      /*_#__L8*/ meltfnum[7] =
@@ -51505,30 +51599,39 @@ lab_endgetargs:;
 				  /*^getslot */
 #line 3590
 				  {
-				    melt_ptr_t slot = 0;
-				    melt_object_get_field (slot, (melt_ptr_t) ( /*_.LASTCOMP__V10*/ meltfptr[9]), 2, "NLET_BODY");
-												      /*_.LBODY__V29*/
-				    meltfptr[28] = slot;
+				    melt_ptr_t slot = NULL, obj = NULL;
+				    obj =
+				      (melt_ptr_t) ( /*_.LASTCOMP__V10*/
+						    meltfptr[9]) /*=obj*/ ;
+				    melt_object_get_field (slot, obj, 2,
+							   "NLET_BODY");
+	    /*_.LBODY__V29*/ meltfptr[28] = slot;
 				  };
 				  ;
 				  MELT_LOCATION
 				    ("warmelt-normal.melt:3591:/ getslot");
 #line 3591   "warmelt-normal.melt" /**::getslot::**/
 				  {
-				    melt_ptr_t slot = 0;
-				    melt_object_get_field (slot, (melt_ptr_t) ( /*_.LASTCOMP__V10*/ meltfptr[9]), 1, "NLET_BINDINGS");
-													  /*_.LBINDING__V30*/
-				    meltfptr[29] = slot;
+				    melt_ptr_t slot = NULL, obj = NULL;
+				    obj =
+				      (melt_ptr_t) ( /*_.LASTCOMP__V10*/
+						    meltfptr[9]) /*=obj*/ ;
+				    melt_object_get_field (slot, obj, 1,
+							   "NLET_BINDINGS");
+	    /*_.LBINDING__V30*/ meltfptr[29] = slot;
 				  };
 				  ;
 				  MELT_LOCATION
 				    ("warmelt-normal.melt:3592:/ getslot");
 #line 3592   "warmelt-normal.melt" /**::getslot::**/
 				  {
-				    melt_ptr_t slot = 0;
-				    melt_object_get_field (slot, (melt_ptr_t) ( /*_.LASTCOMP__V10*/ meltfptr[9]), 0, "NREP_LOC");
-												     /*_.LLOC__V31*/
-				    meltfptr[30] = slot;
+				    melt_ptr_t slot = NULL, obj = NULL;
+				    obj =
+				      (melt_ptr_t) ( /*_.LASTCOMP__V10*/
+						    meltfptr[9]) /*=obj*/ ;
+				    melt_object_get_field (slot, obj, 0,
+							   "NREP_LOC");
+	    /*_.LLOC__V31*/ meltfptr[30] = slot;
 				  };
 				  ;
 				  MELT_LOCATION
@@ -51819,10 +51922,14 @@ lab_endgetargs:;
 					  ("warmelt-normal.melt:3608:/ getslot");
 #line 3608   "warmelt-normal.melt" /**::getslot::**/
 					{
-					  melt_ptr_t slot = 0;
-					  melt_object_get_field (slot, (melt_ptr_t) ( /*_.LASTCOMP__V10*/ meltfptr[9]), 0, "NREP_LOC");
-												       /*_.LOC__V42*/
-					  meltfptr[31] = slot;
+					  melt_ptr_t slot = NULL, obj = NULL;
+					  obj =
+					    (melt_ptr_t) ( /*_.LASTCOMP__V10*/
+							  meltfptr[9])
+					    /*=obj*/ ;
+					  melt_object_get_field (slot, obj, 0,
+								 "NREP_LOC");
+	      /*_.LOC__V42*/ meltfptr[31] = slot;
 					};
 					;
 					MELT_LOCATION
@@ -53193,37 +53300,37 @@ lab_endgetargs:;
     /*^getslot */
 #line 3651
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											   /*_.SLOC__V17*/
-      meltfptr[13] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.SLOC__V17*/ meltfptr[13] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3652:/ getslot");
 #line 3652   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 2, "SDEF_NAME");
-										       /*_.SNAM__V18*/
-      meltfptr[17] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SDEF_NAME");
+  /*_.SNAM__V18*/ meltfptr[17] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3653:/ getslot");
 #line 3653   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 4, "SFORMAL_ARGS");
-											  /*_.SFORMALS__V19*/
-      meltfptr[18] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 4, "SFORMAL_ARGS");
+  /*_.SFORMALS__V19*/ meltfptr[18] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3654:/ getslot");
 #line 3654   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 5, "SFUN_BODY");
-										       /*_.SBODY__V20*/
-      meltfptr[19] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SFUN_BODY");
+  /*_.SBODY__V20*/ meltfptr[19] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3655:/ checksignal");
@@ -53265,19 +53372,19 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-normal.melt:3657:/ getslot");
 #line 3657   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3]), 10, "NCTX_CURPROC");
-											  /*_.OLDPROC__V23*/
-      meltfptr[22] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 10, "NCTX_CURPROC");
+  /*_.OLDPROC__V23*/ meltfptr[22] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3658:/ getslot");
 #line 3658   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3]), 6, "NCTX_SYMBCACHEMAP");
-											      /*_.OLDSYMBCACHE__V24*/
-      meltfptr[23] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 6, "NCTX_SYMBCACHEMAP");
+  /*_.OLDSYMBCACHE__V24*/ meltfptr[23] = slot;
     };
     ;
  /*_.CLOSBLIS__V25*/ meltfptr[24] =
@@ -53709,10 +53816,10 @@ lab_endgetargs:;
 	      /*^getslot */
 #line 3694
 	      {
-		melt_ptr_t slot = 0;
-		melt_object_get_field (slot, (melt_ptr_t) ( /*_.SNAM__V18*/ meltfptr[17]), 1, "NAMED_NAME");
-											     /*_.NAMED_NAME__V40*/
-		meltfptr[39] = slot;
+		melt_ptr_t slot = NULL, obj = NULL;
+		obj = (melt_ptr_t) ( /*_.SNAM__V18*/ meltfptr[17]) /*=obj*/ ;
+		melt_object_get_field (slot, obj, 1, "NAMED_NAME");
+     /*_.NAMED_NAME__V40*/ meltfptr[39] = slot;
 	      };
 	      ;
 	    }
@@ -54186,10 +54293,10 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-normal.melt:3707:/ getslot");
 #line 3707   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3]), 1, "NCTX_PROCLIST");
-											  /*_.NCTX_PROCLIST__V51*/
-      meltfptr[47] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "NCTX_PROCLIST");
+  /*_.NCTX_PROCLIST__V51*/ meltfptr[47] = slot;
     };
     ;
 
@@ -55504,10 +55611,10 @@ lab_endgetargs:;
     /*^getslot */
 #line 3729
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.BND__V2*/ meltfptr[1]), 0, "BINDER");
-										   /*_.SY__V6*/
-      meltfptr[5] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.BND__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 0, "BINDER");
+  /*_.SY__V6*/ meltfptr[5] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3732:/ checksignal");
@@ -56189,28 +56296,28 @@ lab_endgetargs:;
     /*^getslot */
 #line 3758
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											   /*_.SLOC__V20*/
-      meltfptr[16] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.SLOC__V20*/ meltfptr[16] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3759:/ getslot");
 #line 3759   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 2, "SLAM_ARGBIND");
-											  /*_.SFORMALARGS__V21*/
-      meltfptr[20] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SLAM_ARGBIND");
+  /*_.SFORMALARGS__V21*/ meltfptr[20] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3760:/ getslot");
 #line 3760   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 3, "SLAM_BODY");
-										       /*_.SBODY__V22*/
-      meltfptr[21] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 3, "SLAM_BODY");
+  /*_.SBODY__V22*/ meltfptr[21] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3761:/ checksignal");
@@ -56285,19 +56392,19 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-normal.melt:3766:/ getslot");
 #line 3766   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.NCX__V5*/ meltfptr[4]), 10, "NCTX_CURPROC");
-											  /*_.OLDPROC__V26*/
-      meltfptr[25] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.NCX__V5*/ meltfptr[4]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 10, "NCTX_CURPROC");
+  /*_.OLDPROC__V26*/ meltfptr[25] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3767:/ getslot");
 #line 3767   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.NCX__V5*/ meltfptr[4]), 6, "NCTX_SYMBCACHEMAP");
-											      /*_.SAVEDCACHEMAP__V27*/
-      meltfptr[26] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.NCX__V5*/ meltfptr[4]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 6, "NCTX_SYMBCACHEMAP");
+  /*_.SAVEDCACHEMAP__V27*/ meltfptr[26] = slot;
     };
     ;
  /*_.CLOSEDBLIST__V28*/ meltfptr[27] =
@@ -56987,10 +57094,10 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-normal.melt:3804:/ getslot");
 #line 3804   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.NCX__V5*/ meltfptr[4]), 1, "NCTX_PROCLIST");
-											  /*_.NCTX_PROCLIST__V46*/
-      meltfptr[42] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.NCX__V5*/ meltfptr[4]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "NCTX_PROCLIST");
+  /*_.NCTX_PROCLIST__V46*/ meltfptr[42] = slot;
     };
     ;
 
@@ -57841,10 +57948,10 @@ lab_endgetargs:;
     /*^getslot */
 #line 3835
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.BND__V2*/ meltfptr[1]), 0, "BINDER");
-										   /*_.SY__V6*/
-      meltfptr[5] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.BND__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 0, "BINDER");
+  /*_.SY__V6*/ meltfptr[5] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3838:/ checksignal");
@@ -58828,10 +58935,10 @@ lab_endgetargs:;
 	  MELT_LOCATION ("warmelt-normal.melt:3876:/ getslot");
 #line 3876   "warmelt-normal.melt" /**::getslot::**/
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) ( /*_.OLDPROC__V25*/ meltfptr[24]), 5, "NRPRO_CONST");
-												/*_.NRPRO_CONST__V37*/
-	    meltfptr[36] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj = (melt_ptr_t) ( /*_.OLDPROC__V25*/ meltfptr[24]) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 5, "NRPRO_CONST");
+    /*_.NRPRO_CONST__V37*/ meltfptr[36] = slot;
 	  };
 	  ;
 
@@ -59632,37 +59739,37 @@ lab_endgetargs:;
     /*^getslot */
 #line 3888
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 1, "LOCA_LOCATION");
-											   /*_.SLOC__V17*/
-      meltfptr[13] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "LOCA_LOCATION");
+  /*_.SLOC__V17*/ meltfptr[13] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3889:/ getslot");
 #line 3889   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 2, "SMULC_RESBIND");
-											   /*_.SRESBIND__V18*/
-      meltfptr[17] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 2, "SMULC_RESBIND");
+  /*_.SRESBIND__V18*/ meltfptr[17] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3890:/ getslot");
 #line 3890   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 3, "SMULC_CALL");
-											/*_.SCALL__V19*/
-      meltfptr[18] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 3, "SMULC_CALL");
+  /*_.SCALL__V19*/ meltfptr[18] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3891:/ getslot");
 #line 3891   "warmelt-normal.melt" /**::getslot::**/
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]), 4, "SMULC_BODY");
-											/*_.SBODY__V20*/
-      meltfptr[19] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 4, "SMULC_BODY");
+  /*_.SBODY__V20*/ meltfptr[19] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3892:/ checksignal");
@@ -60081,10 +60188,10 @@ lab_endgetargs:;
     /*^getslot */
 #line 3903
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.NCALL__V27*/ meltfptr[23]), 1, "NOCC_SYMB");
-											  /*_.NCALLSYM__V36*/
-      meltfptr[35] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.NCALL__V27*/ meltfptr[23]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 1, "NOCC_SYMB");
+  /*_.NCALLSYM__V36*/ meltfptr[35] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3904:/ checksignal");
@@ -60222,10 +60329,10 @@ lab_endgetargs:;
 	/*^getslot */
 #line 3919
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) ( /*_.NCONTCALL__V37*/ meltfptr[36]), 0, "REFERENCED_VALUE");
-												      /*_.REFERENCED_VALUE__V44*/
-	  meltfptr[43] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj = (melt_ptr_t) ( /*_.NCONTCALL__V37*/ meltfptr[36]) /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 0, "REFERENCED_VALUE");
+   /*_.REFERENCED_VALUE__V44*/ meltfptr[43] = slot;
 	};
 	;
       }
@@ -60650,10 +60757,10 @@ lab_endgetargs:;
     /*^getslot */
 #line 3931
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3]), 6, "NCTX_SYMBCACHEMAP");
-											      /*_.SYCMAP__V63*/
-      meltfptr[62] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj = (melt_ptr_t) ( /*_.NCX__V4*/ meltfptr[3]) /*=obj*/ ;
+      melt_object_get_field (slot, obj, 6, "NCTX_SYMBCACHEMAP");
+  /*_.SYCMAP__V63*/ meltfptr[62] = slot;
     };
     ;
     MELT_LOCATION ("warmelt-normal.melt:3933:/ quasiblock");
@@ -61014,19 +61121,19 @@ lab_endgetargs:;
 	  MELT_LOCATION ("warmelt-normal.melt:3958:/ getslot");
 #line 3958   "warmelt-normal.melt" /**::getslot::**/
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) ( /*_.NREALCALL__V39*/ meltfptr[38]), 3, "NAPP_FUN");
-											       /*_.NAPP_FUN__V80*/
-	    meltfptr[79] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj = (melt_ptr_t) ( /*_.NREALCALL__V39*/ meltfptr[38]) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 3, "NAPP_FUN");
+    /*_.NAPP_FUN__V80*/ meltfptr[79] = slot;
 	  };
 	  ;
 	  MELT_LOCATION ("warmelt-normal.melt:3959:/ getslot");
 #line 3959   "warmelt-normal.melt" /**::getslot::**/
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) ( /*_.NREALCALL__V39*/ meltfptr[38]), 2, "NEXPR_ARGS");
-												 /*_.NEXPR_ARGS__V81*/
-	    meltfptr[80] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj = (melt_ptr_t) ( /*_.NREALCALL__V39*/ meltfptr[38]) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 2, "NEXPR_ARGS");
+    /*_.NEXPR_ARGS__V81*/ meltfptr[80] = slot;
 	  };
 	  ;
 	  MELT_LOCATION ("warmelt-normal.melt:3956:/ quasiblock");
@@ -61621,10 +61728,12 @@ lab_endgetargs:;
 		    /*^getslot */
 #line 3974
 		    {
-		      melt_ptr_t slot = 0;
-		      melt_object_get_field (slot, (melt_ptr_t) ( /*_.NREALCALL__V39*/ meltfptr[38]), 4, "NSEND_RECV");
-												    /*_.NRECV__V98*/
-		      meltfptr[83] = slot;
+		      melt_ptr_t slot = NULL, obj = NULL;
+		      obj =
+			(melt_ptr_t) ( /*_.NREALCALL__V39*/ meltfptr[38])
+			/*=obj*/ ;
+		      melt_object_get_field (slot, obj, 4, "NSEND_RECV");
+       /*_.NRECV__V98*/ meltfptr[83] = slot;
 		    };
 		    ;
 		  }
@@ -61642,19 +61751,23 @@ lab_endgetargs:;
 		MELT_LOCATION ("warmelt-normal.melt:3978:/ getslot");
 #line 3978   "warmelt-normal.melt" /**::getslot::**/
 		{
-		  melt_ptr_t slot = 0;
-		  melt_object_get_field (slot, (melt_ptr_t) ( /*_.NREALCALL__V39*/ meltfptr[38]), 3, "NSEND_SEL");
-												  /*_.NSEND_SEL__V99*/
-		  meltfptr[81] = slot;
+		  melt_ptr_t slot = NULL, obj = NULL;
+		  obj =
+		    (melt_ptr_t) ( /*_.NREALCALL__V39*/ meltfptr[38]) /*=obj*/
+		    ;
+		  melt_object_get_field (slot, obj, 3, "NSEND_SEL");
+      /*_.NSEND_SEL__V99*/ meltfptr[81] = slot;
 		};
 		;
 		MELT_LOCATION ("warmelt-normal.melt:3980:/ getslot");
 #line 3980   "warmelt-normal.melt" /**::getslot::**/
 		{
-		  melt_ptr_t slot = 0;
-		  melt_object_get_field (slot, (melt_ptr_t) ( /*_.NREALCALL__V39*/ meltfptr[38]), 2, "NEXPR_ARGS");
-												   /*_.NEXPR_ARGS__V100*/
-		  meltfptr[84] = slot;
+		  melt_ptr_t slot = NULL, obj = NULL;
+		  obj =
+		    (melt_ptr_t) ( /*_.NREALCALL__V39*/ meltfptr[38]) /*=obj*/
+		    ;
+		  melt_object_get_field (slot, obj, 2, "NEXPR_ARGS");
+      /*_.NEXPR_ARGS__V100*/ meltfptr[84] = slot;
 		};
 		;
 		MELT_LOCATION ("warmelt-normal.melt:3975:/ quasiblock");

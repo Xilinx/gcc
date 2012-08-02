@@ -28954,10 +28954,12 @@ melt_start_this_module (void *modargp_)
 	/*^getslot */
 
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 3, "SYSDATA_CONT_FRESH_ENV");
-															    /*_.FRESHENV___V3*/
-	  meltfptr[2] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj =
+	    (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	    /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 3, "SYSDATA_CONT_FRESH_ENV");
+    /*_.FRESHENV___V3*/ meltfptr[2] = slot;
 	};
 	;
 	/*^compute */
@@ -32890,10 +32892,12 @@ melt_start_this_module (void *modargp_)
   /*^getslot */
 
   {
-    melt_ptr_t slot = 0;
-    melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 12, "SYSDATA_VALUE_IMPORTER");
-															   /*_.VALIMPORT___V6*/
-    meltfptr[5] = slot;
+    melt_ptr_t slot = NULL, obj = NULL;
+    obj =
+      (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+      /*=obj*/ ;
+    melt_object_get_field (slot, obj, 12, "SYSDATA_VALUE_IMPORTER");
+  /*_.VALIMPORT___V6*/ meltfptr[5] = slot;
   };
 
   /*^comment */
@@ -87394,10 +87398,12 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
 	  /*^getslot */
 #line 3
 	  {
-	    melt_ptr_t slot = 0;
-	    melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 3, "SYSDATA_CONT_FRESH_ENV");
-															     /*_.SYSDATA_CONT_FRESH_ENV__V1690*/
-	    meltfptr[1689] = slot;
+	    melt_ptr_t slot = NULL, obj = NULL;
+	    obj =
+	      (melt_ptr_t) (((melt_ptr_t)
+			     (MELT_PREDEF (INITIAL_SYSTEM_DATA)))) /*=obj*/ ;
+	    melt_object_get_field (slot, obj, 3, "SYSDATA_CONT_FRESH_ENV");
+     /*_.SYSDATA_CONT_FRESH_ENV__V1690*/ meltfptr[1689] = slot;
 	  };
 	  ;
 	  /*^checksignal */
@@ -87458,10 +87464,12 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
     /*^getslot */
 #line 742
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 4, "SYSDATA_VALUE_EXPORTER");
-															   /*_.VALUEXPORTER___V1692*/
-      meltfptr[1689] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 4, "SYSDATA_VALUE_EXPORTER");
+   /*_.VALUEXPORTER___V1692*/ meltfptr[1689] = slot;
     };
     ;
     /*^apply */
@@ -87540,10 +87548,12 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
     /*^getslot */
 #line 2213
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1694*/
-      meltfptr[1688] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1694*/ meltfptr[1688] = slot;
     };
     ;
     /*^apply */
@@ -87622,10 +87632,12 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
     /*^getslot */
 #line 2367
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1696*/
-      meltfptr[1690] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1696*/ meltfptr[1690] = slot;
     };
     ;
     /*^apply */
@@ -87704,10 +87716,12 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
     /*^getslot */
 #line 2568
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1698*/
-      meltfptr[1689] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1698*/ meltfptr[1689] = slot;
     };
     ;
     /*^apply */
@@ -87786,10 +87800,12 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
     /*^getslot */
 #line 2717
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1700*/
-      meltfptr[1688] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1700*/ meltfptr[1688] = slot;
     };
     ;
     /*^apply */
@@ -87868,10 +87884,12 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
     /*^getslot */
 #line 2790
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1702*/
-      meltfptr[1690] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1702*/ meltfptr[1690] = slot;
     };
     ;
     /*^apply */
@@ -87950,10 +87968,12 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
     /*^getslot */
 #line 2920
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1704*/
-      meltfptr[1689] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1704*/ meltfptr[1689] = slot;
     };
     ;
     /*^apply */
@@ -88045,10 +88065,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 3188
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1706*/
-      meltfptr[1688] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1706*/ meltfptr[1688] = slot;
     };
     ;
     /*^apply */
@@ -88127,10 +88149,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 3399
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1708*/
-      meltfptr[1690] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1708*/ meltfptr[1690] = slot;
     };
     ;
     /*^apply */
@@ -88209,10 +88233,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 3548
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1710*/
-      meltfptr[1689] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1710*/ meltfptr[1689] = slot;
     };
     ;
     /*^apply */
@@ -88291,10 +88317,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 3618
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1712*/
-      meltfptr[1688] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1712*/ meltfptr[1688] = slot;
     };
     ;
     /*^apply */
@@ -88373,10 +88401,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 3660
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1714*/
-      meltfptr[1690] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1714*/ meltfptr[1690] = slot;
     };
     ;
     /*^apply */
@@ -88459,10 +88489,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 3789
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 16, "SYSDATA_PATMACRO_EXPORTER");
-															       /*_.PATMACROXPORTER___V1716*/
-      meltfptr[1689] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 16, "SYSDATA_PATMACRO_EXPORTER");
+   /*_.PATMACROXPORTER___V1716*/ meltfptr[1689] = slot;
     };
     ;
     /*^apply */
@@ -88549,10 +88581,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 3894
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 16, "SYSDATA_PATMACRO_EXPORTER");
-															       /*_.PATMACROXPORTER___V1718*/
-      meltfptr[1688] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 16, "SYSDATA_PATMACRO_EXPORTER");
+   /*_.PATMACROXPORTER___V1718*/ meltfptr[1688] = slot;
     };
     ;
     /*^apply */
@@ -88635,10 +88669,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 3950
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1720*/
-      meltfptr[1690] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1720*/ meltfptr[1690] = slot;
     };
     ;
     /*^apply */
@@ -88717,10 +88753,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 3996
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1722*/
-      meltfptr[1689] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1722*/ meltfptr[1689] = slot;
     };
     ;
     /*^apply */
@@ -88799,10 +88837,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 4043
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1724*/
-      meltfptr[1688] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1724*/ meltfptr[1688] = slot;
     };
     ;
     /*^apply */
@@ -88881,10 +88921,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 4084
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1726*/
-      meltfptr[1690] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1726*/ meltfptr[1690] = slot;
     };
     ;
     /*^apply */
@@ -88963,10 +89005,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 4125
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1728*/
-      meltfptr[1689] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1728*/ meltfptr[1689] = slot;
     };
     ;
     /*^apply */
@@ -89045,10 +89089,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 4177
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1730*/
-      meltfptr[1688] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1730*/ meltfptr[1688] = slot;
     };
     ;
     /*^apply */
@@ -89127,10 +89173,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 4230
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1732*/
-      meltfptr[1690] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1732*/ meltfptr[1690] = slot;
     };
     ;
     /*^apply */
@@ -89209,10 +89257,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 4266
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1734*/
-      meltfptr[1689] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1734*/ meltfptr[1689] = slot;
     };
     ;
     /*^apply */
@@ -89291,10 +89341,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 4303
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1736*/
-      meltfptr[1688] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1736*/ meltfptr[1688] = slot;
     };
     ;
     /*^apply */
@@ -89373,10 +89425,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 4359
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1738*/
-      meltfptr[1690] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1738*/ meltfptr[1690] = slot;
     };
     ;
     /*^apply */
@@ -89455,10 +89509,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 4436
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1740*/
-      meltfptr[1689] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1740*/ meltfptr[1689] = slot;
     };
     ;
     /*^apply */
@@ -89537,10 +89593,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 4536
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1742*/
-      meltfptr[1688] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1742*/ meltfptr[1688] = slot;
     };
     ;
     /*^apply */
@@ -89623,10 +89681,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 4639
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 16, "SYSDATA_PATMACRO_EXPORTER");
-															       /*_.PATMACROXPORTER___V1744*/
-      meltfptr[1690] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 16, "SYSDATA_PATMACRO_EXPORTER");
+   /*_.PATMACROXPORTER___V1744*/ meltfptr[1690] = slot;
     };
     ;
     /*^apply */
@@ -89713,10 +89773,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 4668
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 16, "SYSDATA_PATMACRO_EXPORTER");
-															       /*_.PATMACROXPORTER___V1746*/
-      meltfptr[1689] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 16, "SYSDATA_PATMACRO_EXPORTER");
+   /*_.PATMACROXPORTER___V1746*/ meltfptr[1689] = slot;
     };
     ;
     /*^apply */
@@ -89803,10 +89865,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 4697
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 16, "SYSDATA_PATMACRO_EXPORTER");
-															       /*_.PATMACROXPORTER___V1748*/
-      meltfptr[1688] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 16, "SYSDATA_PATMACRO_EXPORTER");
+   /*_.PATMACROXPORTER___V1748*/ meltfptr[1688] = slot;
     };
     ;
     /*^apply */
@@ -89893,10 +89957,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 4763
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 16, "SYSDATA_PATMACRO_EXPORTER");
-															       /*_.PATMACROXPORTER___V1750*/
-      meltfptr[1690] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 16, "SYSDATA_PATMACRO_EXPORTER");
+   /*_.PATMACROXPORTER___V1750*/ meltfptr[1690] = slot;
     };
     ;
     /*^apply */
@@ -89983,10 +90049,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 4845
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 16, "SYSDATA_PATMACRO_EXPORTER");
-															       /*_.PATMACROXPORTER___V1752*/
-      meltfptr[1689] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 16, "SYSDATA_PATMACRO_EXPORTER");
+   /*_.PATMACROXPORTER___V1752*/ meltfptr[1689] = slot;
     };
     ;
     /*^apply */
@@ -90073,10 +90141,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 4873
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 16, "SYSDATA_PATMACRO_EXPORTER");
-															       /*_.PATMACROXPORTER___V1754*/
-      meltfptr[1688] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 16, "SYSDATA_PATMACRO_EXPORTER");
+   /*_.PATMACROXPORTER___V1754*/ meltfptr[1688] = slot;
     };
     ;
     /*^apply */
@@ -90159,10 +90229,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 4917
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1756*/
-      meltfptr[1690] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1756*/ meltfptr[1690] = slot;
     };
     ;
     /*^apply */
@@ -90241,10 +90313,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 4931
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1758*/
-      meltfptr[1689] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1758*/ meltfptr[1689] = slot;
     };
     ;
     /*^apply */
@@ -90323,10 +90397,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 4937
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1760*/
-      meltfptr[1688] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1760*/ meltfptr[1688] = slot;
     };
     ;
     /*^apply */
@@ -90405,10 +90481,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 4990
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1762*/
-      meltfptr[1690] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1762*/ meltfptr[1690] = slot;
     };
     ;
     /*^apply */
@@ -90491,10 +90569,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 5033
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 16, "SYSDATA_PATMACRO_EXPORTER");
-															       /*_.PATMACROXPORTER___V1764*/
-      meltfptr[1689] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 16, "SYSDATA_PATMACRO_EXPORTER");
+   /*_.PATMACROXPORTER___V1764*/ meltfptr[1689] = slot;
     };
     ;
     /*^apply */
@@ -90581,10 +90661,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 5080
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 16, "SYSDATA_PATMACRO_EXPORTER");
-															       /*_.PATMACROXPORTER___V1766*/
-      meltfptr[1688] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 16, "SYSDATA_PATMACRO_EXPORTER");
+   /*_.PATMACROXPORTER___V1766*/ meltfptr[1688] = slot;
     };
     ;
     /*^apply */
@@ -90667,10 +90749,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 5176
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1768*/
-      meltfptr[1690] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1768*/ meltfptr[1690] = slot;
     };
     ;
     /*^apply */
@@ -90749,10 +90833,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 5321
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1770*/
-      meltfptr[1689] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1770*/ meltfptr[1689] = slot;
     };
     ;
     /*^apply */
@@ -90991,10 +91077,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 5494
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1776*/
-      meltfptr[1689] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1776*/ meltfptr[1689] = slot;
     };
     ;
     /*^apply */
@@ -91073,10 +91161,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 5537
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1778*/
-      meltfptr[1688] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1778*/ meltfptr[1688] = slot;
     };
     ;
     /*^apply */
@@ -91155,10 +91245,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 5661
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1780*/
-      meltfptr[1690] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1780*/ meltfptr[1690] = slot;
     };
     ;
     /*^apply */
@@ -91237,10 +91329,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 5727
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1782*/
-      meltfptr[1689] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1782*/ meltfptr[1689] = slot;
     };
     ;
     /*^apply */
@@ -91319,10 +91413,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 5770
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1784*/
-      meltfptr[1688] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1784*/ meltfptr[1688] = slot;
     };
     ;
     /*^apply */
@@ -91401,10 +91497,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 5801
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1786*/
-      meltfptr[1690] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1786*/ meltfptr[1690] = slot;
     };
     ;
     /*^apply */
@@ -91483,10 +91581,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 5850
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1788*/
-      meltfptr[1689] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1788*/ meltfptr[1689] = slot;
     };
     ;
     /*^apply */
@@ -91565,10 +91665,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 5930
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1790*/
-      meltfptr[1688] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1790*/ meltfptr[1688] = slot;
     };
     ;
     /*^apply */
@@ -91611,10 +91713,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 5936
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1791*/
-      meltfptr[1689] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1791*/ meltfptr[1689] = slot;
     };
     ;
     /*^apply */
@@ -91693,10 +91797,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 5982
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1793*/
-      meltfptr[1688] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1793*/ meltfptr[1688] = slot;
     };
     ;
     /*^apply */
@@ -91775,10 +91881,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 6003
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1795*/
-      meltfptr[1690] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1795*/ meltfptr[1690] = slot;
     };
     ;
     /*^apply */
@@ -91857,10 +91965,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 6045
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1797*/
-      meltfptr[1689] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1797*/ meltfptr[1689] = slot;
     };
     ;
     /*^apply */
@@ -91939,10 +92049,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 6090
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1799*/
-      meltfptr[1688] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1799*/ meltfptr[1688] = slot;
     };
     ;
     /*^apply */
@@ -92021,10 +92133,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 6133
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1801*/
-      meltfptr[1690] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1801*/ meltfptr[1690] = slot;
     };
     ;
     /*^apply */
@@ -92103,10 +92217,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 6173
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1803*/
-      meltfptr[1689] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1803*/ meltfptr[1689] = slot;
     };
     ;
     /*^apply */
@@ -92185,10 +92301,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 6260
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1805*/
-      meltfptr[1688] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1805*/ meltfptr[1688] = slot;
     };
     ;
     /*^apply */
@@ -92267,10 +92385,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 6333
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1807*/
-      meltfptr[1690] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1807*/ meltfptr[1690] = slot;
     };
     ;
     /*^apply */
@@ -92349,10 +92469,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 6452
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1809*/
-      meltfptr[1689] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1809*/ meltfptr[1689] = slot;
     };
     ;
     /*^apply */
@@ -92431,10 +92553,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 6495
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1811*/
-      meltfptr[1688] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1811*/ meltfptr[1688] = slot;
     };
     ;
     /*^apply */
@@ -92513,10 +92637,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 6541
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1813*/
-      meltfptr[1690] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1813*/ meltfptr[1690] = slot;
     };
     ;
     /*^apply */
@@ -92595,10 +92721,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 6593
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1815*/
-      meltfptr[1689] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1815*/ meltfptr[1689] = slot;
     };
     ;
     /*^apply */
@@ -92677,10 +92805,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 6625
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1817*/
-      meltfptr[1688] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1817*/ meltfptr[1688] = slot;
     };
     ;
     /*^apply */
@@ -92759,10 +92889,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 6674
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1819*/
-      meltfptr[1690] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1819*/ meltfptr[1690] = slot;
     };
     ;
     /*^apply */
@@ -92841,10 +92973,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 6702
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1821*/
-      meltfptr[1689] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1821*/ meltfptr[1689] = slot;
     };
     ;
     /*^apply */
@@ -92923,10 +93057,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 6729
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1823*/
-      meltfptr[1688] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1823*/ meltfptr[1688] = slot;
     };
     ;
     /*^apply */
@@ -93005,10 +93141,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 6758
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1825*/
-      meltfptr[1690] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1825*/ meltfptr[1690] = slot;
     };
     ;
     /*^apply */
@@ -93087,10 +93225,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 6794
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1827*/
-      meltfptr[1689] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1827*/ meltfptr[1689] = slot;
     };
     ;
     /*^apply */
@@ -93169,10 +93309,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 6830
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 5, "SYSDATA_MACRO_EXPORTER");
-															   /*_.MACROXPORTER___V1829*/
-      meltfptr[1688] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 5, "SYSDATA_MACRO_EXPORTER");
+   /*_.MACROXPORTER___V1829*/ meltfptr[1688] = slot;
     };
     ;
     /*^apply */
@@ -93215,10 +93357,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 6835
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 4, "SYSDATA_VALUE_EXPORTER");
-															   /*_.VALUEXPORTER___V1830*/
-      meltfptr[1689] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 4, "SYSDATA_VALUE_EXPORTER");
+   /*_.VALUEXPORTER___V1830*/ meltfptr[1689] = slot;
     };
     ;
     /*^apply */
@@ -97953,10 +98097,12 @@ meltmod__warmelt_macro__initialmeltchunk_31 (struct frame_start_module_melt_st
     /*^getslot */
 #line 6920
     {
-      melt_ptr_t slot = 0;
-      melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 4, "SYSDATA_VALUE_EXPORTER");
-															   /*_.VALUEXPORTER___V1831*/
-      meltfptr[1690] = slot;
+      melt_ptr_t slot = NULL, obj = NULL;
+      obj =
+	(melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	/*=obj*/ ;
+      melt_object_get_field (slot, obj, 4, "SYSDATA_VALUE_EXPORTER");
+   /*_.VALUEXPORTER___V1831*/ meltfptr[1690] = slot;
     };
     ;
     /*^apply */
@@ -98324,10 +98470,12 @@ meltmod__warmelt_macro__initialmeltchunk_32 (struct frame_start_module_melt_st
 	/*^getslot */
 
 	{
-	  melt_ptr_t slot = 0;
-	  melt_object_get_field (slot, (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA)))), 3, "SYSDATA_CONT_FRESH_ENV");
-															    /*_.FRESHENV___V3*/
-	  meltfptr[2] = slot;
+	  melt_ptr_t slot = NULL, obj = NULL;
+	  obj =
+	    (melt_ptr_t) (((melt_ptr_t) (MELT_PREDEF (INITIAL_SYSTEM_DATA))))
+	    /*=obj*/ ;
+	  melt_object_get_field (slot, obj, 3, "SYSDATA_CONT_FRESH_ENV");
+    /*_.FRESHENV___V3*/ meltfptr[2] = slot;
 	};
 	;
 	/*^compute */
