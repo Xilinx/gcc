@@ -1,3 +1,57 @@
+2012-08-01  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2012-03-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/52530
+	* gcc.dg/torture/pr52530.c: New test.
+
+2012-07-27  Anna Tikhonova  <anna.tikhonova@intel.com>
+
+	* gcc.dg/20020201-1.c: Remove declarations for exit, abort,
+	rand, srand. Include <stdlib.h>.
+
+2012-07-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/54038
+	* g++.dg/other/array7.C: New.
+
+2012-07-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/54026
+	* g++.dg/init/mutable1.C: New.
+
+2012-07-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/opt25.adb: New test.
+	* gnat.dg/opt25_pkg1.ad[sb]: New helper.
+	* gnat.dg/opt25_pkg2.ad[sb]: Likewise.
+
+2012-07-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/aggr20.ad[sb]: New test.
+	* gnat.dg/aggr20_pkg.ads: New helper.
+
+2012-07-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/derived_type3.adb: New test.
+	* gnat.dg/derived_type3_pkg.ad[sb]: New helper.
+
+2012-07-19  Richard Guenther  <rguenther@suse.de>
+	    Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/loop_optimization11.adb: New testcase.
+	* gnat.dg/loop_optimization11_pkg.ads: Likewise.
+
+2012-07-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/discr38.adb: New test.
+
+2012-07-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/54017
+	* c-c++-common/gomp/pr54017.c: New test.
+
 2012-07-18  Richard Guenther  <rguenther@suse.de>
 
 	Backport from mainline

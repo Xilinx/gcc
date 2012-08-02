@@ -1,8 +1,135 @@
+2012-08-02  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2012-07-24  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/53961
+	* config/i386/i386.c (ix86_legitimate_address_p): Move check for
+	negative constant address for TARGET_X32 ...
+	(ix86_decompose_address): ... here.  Reject constant addresses
+	that don't satisfy x86_64_immediate_operand predicate.
+
+	2012-07-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/53961
+	* config/i386/i386.md (*lea): Add asserts to detect invalid addresses.
+	* config/i386/i386.c (ix86_print_operand_address): Ditto.
+	(ix86_decompose_address): Allow (zero_extend:DI (subreg:SI (...)))
+	addresses.  Prevent zero extensions of CONST_INT operands.
+
+	2012-07-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/53961
+	* config/i386/i386.md (*lea): New insn pattern.
+	(*lea_1): Remove.
+	(*lea<mode>_2): Ditto.
+	(*lea_{3,4,5,6}_zext): Ditto.
+	* config/i386/predicates.md (lea_address_operand): Do not reject
+	zero-extended address operands.
+	* config/i386/constraints.md (j): Remove address constraint.
+	* config/i386/i386.c (ix86_decompose_address): Allow SImode subreg
+	of an address.
+	(ix86_print_operand_address): Handle SImode subreg of an address.
+	(ix86_avoid_lea_for_addr): Reject zero-extended addresses for now.
+
+2012-08-01  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2012-03-09  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/52530
+	* config/i386/i386.c (ix86_print_operand): Handle 'E' operand modifier.
+	(ix86_print_operand_address): Handle UNSPEC_LEA_ADDR. Do not fallback
+	to set code to 'q'.
+	* config/i386/i386.md (UNSPEC_LEA_ADDR): New unspec.
+	(*movdi_internal_rex64): Use %E operand modifier for lea.
+	(*movsi_internal): Ditto.
+	(*lea_1): Ditto.
+	(*lea<mode>_2): Ditto.
+	(*lea_{3,4,5,6}_zext): Ditto.
+	(*tls_global_dynamic_32_gnu): Ditto.
+	(*tls_global_dynamic_64): Ditto.
+	(*tls_dynamic_gnu2_lea_32): Ditto.
+	(*tls_dynamic_gnu2_lea_64): Ditto.
+	(pro_epilogue_adjust_stack_<mode>_add): Ditto.
+
+2012-08-01  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2012-08-01  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_address_subreg_operand): Reject
+	stack pointer.
+	(ix86_print_operand_address): Assert that parts.base and parts.index
+	are non-NULL after call to simplify_subreg.
+
+2012-07-22  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/33135
+	* config/sh/sh.opt (mieee): Use Var instead of Mask.  Correct
+	description.
+	* config/sh/sh.c (sh_option_override): Do not change
+	flag_finite_math_only.  Set TARGET_IEEE to complement of
+	flag_finite_math_only.
+	* doc/invoke.texi (SH options): Add mno-ieee.  Correct
+	description of mieee and mno-ieee behavior.
+
+2012-07-20  Kirill Yukhin  <kirill.yukhin@intel.com>
+
+	PR target/53877
+	* config/i386/lzcntintrin.h (_lzcnt_u32): New.
+	(_lzcnt_u64): Ditto.
+
+2012-07-20  Andrey Belevantsev  <abel@ispras.ru>
+
+	Backport from mainline
+	2012-03-06  Andrey Belevantsev  <abel@ispras.ru>
+
+	PR rtl-optimization/52250
+	* sel-sched-ir.c (maybe_tidy_empty_bb): Try harder to find a bb
+	to put note list into.  Unconditionally call move_bb_info.
+	(move_bb_info): Do not assert the blocks being in the same region,
+	just drop the note list if they are not.
+
+2012-07-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/sparc.md (adddi3_insn_sp32): Add earlyclobber.
+
+2012-07-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-ssa-forwprop.c (combine_conversions): Punt if the RHS of the
+	defining statement is a SSA name that occurs in abnormal PHIs.
+
+2012-07-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gimple-fold.c (canonicalize_constructor_val): Strip only useless type
+	conversions.
+
+2012-07-19  Richard Guenther  <rguenther@suse.de>
+	    Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-ssa-ccp.c (valid_lattice_transition): Clarify comment
+	about transition from invariant to known bits.
+	(likely_value): Addresses with UNDEFINED components are UNDEFINED.
+
+2012-07-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/54017
+	* tree-cfgcleanup.c (cleanup_omp_return): Remove.
+	(cleanup_tree_cfg_bb): Don't call it.
+	* omp-low.c (expand_omp_sections): Fix up the !exit_reachable case
+	handling.
+
+2012-07-19  Christian Bruel  <christian.bruel@st.com>
+
+	PR target/54029
+	* config/sh/sh.c (gen_far_branch): Set JUMP_LABEL for return jumps.
+
 2012-07-18  Ralf Corsépius  <ralf.corsepius@rtems.org>
 
-       * config.gcc (v850-*-rtems*): New target.
-       * config/v850/rtems.h: New.
-       * config/v850/t-rtems: New.
+	* config.gcc (v850-*-rtems*): New target.
+	* config/v850/rtems.h: New.
+	* config/v850/t-rtems: New.
 
 2012-07-18  Nick Clifton  <nickc@redhat.com>
 

@@ -1,8 +1,3 @@
-// { dg-do compile }
-// { dg-options "-std=gnu++11" }
-// { dg-require-cstdint "" }
-// { dg-require-gthreads "" }
-
 // Copyright (C) 2012 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -20,20 +15,28 @@
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-#include <thread>
-#include <memory>
-#include <functional>
+// { dg-options "-std=c++11" }
 
-template<typename, typename...P>
-void make_shared(P&&...)
-{}
+#include <unordered_set>
+#include <testsuite_performance.h>
 
-struct C {};
-
-void f(C){}
-
-// PR libstdc++/53872
 int main()
 {
-  std::thread t(std::bind(&::f, C()));
+  using namespace __gnu_test;
+
+  time_counter time;
+  resource_counter resource;
+
+  const int sz = 10000000;
+
+  std::unordered_set<int> s;
+  start_counters(time, resource);
+
+  for (int i = 0; i != sz ; ++i)
+    s.insert(i);
+
+  stop_counters(time, resource);
+  report_performance(__FILE__, "unordered_set 10000000 insertions",
+		     time, resource);
+  return 0;
 }
