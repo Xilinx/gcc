@@ -3574,7 +3574,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
 
 ;;;;;;;;;;;;;;;; special PPL coefficient value
 (definstance valdesc_special_ppl_coefficient class_value_descriptor
-  :doc #{$VALDESC_SPECIAL_PPL_COEFFICIENT describes special PPL coefficient values.}#
+  :doc #{$VALDESC_SPECIAL_PPL_COEFFICIENT describes obsolete special PPL coefficient values.}#
   :named_name '"VALDESC_SPECIAL_PPL_COEFFICIENT"
   :valdesc_objmagic '"MELTOBMAG_SPECPPL_COEFFICIENT"
   :valdesc_struct '"meltspecialpplcoefficient_st"
@@ -3606,7 +3606,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
 
 ;;;;;;;;;;;;;;;; special PPL linear expression value
 (definstance valdesc_special_ppl_linear_expression class_value_descriptor
-  :doc #{$VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION describes special PPL 
+  :doc #{$VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION describes  obsolete special PPL 
 linear expression values.}#
   :named_name '"VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION"
   :valdesc_objmagic '"MELTOBMAG_SPECPPL_LINEAR_EXPRESSION"
@@ -3639,7 +3639,7 @@ linear expression values.}#
 
 ;;;;;;;;;;;;;;;; special PPL constraint value
 (definstance valdesc_special_ppl_constraint class_value_descriptor
-  :doc #{$VALDESC_SPECIAL_PPL_CONSTRAINT describes special PPL 
+  :doc #{$VALDESC_SPECIAL_PPL_CONSTRAINT describes  obsolete special PPL 
 constraints values.}#
   :named_name '"VALDESC_SPECIAL_PPL_CONSTRAINT"
   :valdesc_objmagic '"MELTOBMAG_SPECPPL_CONSTRAINT"
@@ -3672,7 +3672,7 @@ constraints values.}#
 
 ;;;;;;;;;;;;;;;; special PPL constraint system value
 (definstance valdesc_special_ppl_constraint_system class_value_descriptor
-  :doc #{$VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM describes special PPL 
+  :doc #{$VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM describes  obsolete special PPL 
 constraint systems values.}#
   :named_name '"VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM"
   :valdesc_objmagic '"MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM"
@@ -3705,7 +3705,7 @@ constraint systems values.}#
 
 ;;;;;;;;;;;;;;;; special PPL generator value
 (definstance valdesc_special_ppl_generator class_value_descriptor
-  :doc #{$VALDESC_SPECIAL_PPL_GENERATOR describes special PPL 
+  :doc #{$VALDESC_SPECIAL_PPL_GENERATOR describes  obsolete special PPL 
 generators values.}#
   :named_name '"VALDESC_SPECIAL_PPL_GENERATOR"
   :valdesc_objmagic '"MELTOBMAG_SPECPPL_GENERATOR"
@@ -3738,7 +3738,7 @@ generators values.}#
 
 ;;;;;;;;;;;;;;;; special PPL generator system value
 (definstance valdesc_special_ppl_generator_system class_value_descriptor
-  :doc #{$VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM describes special PPL 
+  :doc #{$VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM describes  obsolete special PPL 
 generator systems values.}#
   :named_name '"VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM"
   :valdesc_objmagic '"MELTOBMAG_SPECPPL_GENERATOR_SYSTEM"
@@ -3771,7 +3771,7 @@ generator systems values.}#
 
 ;;;;;;;;;;;;;;;; special PPL polyhedron value
 (definstance valdesc_special_ppl_polyhedron class_value_descriptor
-  :doc #{$VALDESC_SPECIAL_PPL_POLYHEDRON describes special PPL 
+  :doc #{$VALDESC_SPECIAL_PPL_POLYHEDRON describes  obsolete special PPL 
 polyhedron values.}#
   :named_name '"VALDESC_SPECIAL_PPL_POLYHEDRON"
   :valdesc_objmagic '"MELTOBMAG_SPECPPL_POLYHEDRON"

@@ -2087,7 +2087,7 @@ to non-nil values. See also $CTYPE_RTVEC.}#
 ;;; the discriminant for PPL constraint system (not predefined)
 (definstance discr_ppl_constraint_system class_discriminant
   :obj_num MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM
-  :doc #{The $DISCR_PPL_CONSTRAINT_SYSTEM is the discriminant of boxed PPL constraint systems.}#
+  :doc #{The $DISCR_PPL_CONSTRAINT_SYSTEM is the obsolete discriminant of boxed PPL constraint systems.}#
   :disc_super discr_any_receiver
   :named_name '"DISCR_PPL_CONSTRAINT_SYSTEM"
   )
@@ -2095,7 +2095,7 @@ to non-nil values. See also $CTYPE_RTVEC.}#
 ;;; the discriminant for PPL polyhedron
 (definstance discr_ppl_polyhedron class_discriminant
   :obj_num MELTOBMAG_SPECPPL_POLYHEDRON
-  :doc #{The $DISCR_PPL_POLYHEDRON is the discriminant of boxed PPL polyhedra.}#
+  :doc #{The $DISCR_PPL_POLYHEDRON is the  obsolete discriminant of boxed PPL polyhedra.}#
   :disc_super discr_any_receiver
   :named_name '"DISCR_PPL_POLYHEDRON"
   )
@@ -2672,7 +2672,7 @@ Keyword is :rtvec.}#
 ;;; the ctype for PPL coefficients
 (definstance ctype_ppl_coefficient class_ctype
   :predef CTYPE_PPL_COEFFICIENT
-  :doc #{The $CTYPE_PPL_COEFFICIENT is the c-type of raw PPL coefficient stuff. See also $DISCR_PPL_POLYHEDRON.
+  :doc #{The $CTYPE_PPL_COEFFICIENT is the  obsolete c-type of raw PPL coefficient stuff. See also $DISCR_PPL_POLYHEDRON.
 Keyword is :ppl_coefficient.}#
   :named_name '"CTYPE_PPL_COEFFICIENT"
   :ctype_keyword ':ppl_coefficient
@@ -2687,7 +2687,7 @@ Keyword is :ppl_coefficient.}#
 ;;;; PPL linear expressions
 (definstance ctype_ppl_linear_expression class_ctype
   :predef CTYPE_PPL_LINEAR_EXPRESSION
-  :doc #{The $CTYPE_PPL_LINEAR_EXPRESSION is the c-type of raw PPL linear expression stuff.
+  :doc #{The $CTYPE_PPL_LINEAR_EXPRESSION is the obsolete c-type of raw PPL linear expression stuff.
 Keyword is :ppl_linear_expression.}#
   :named_name '"CTYPE_PPL_LINEAR_EXPRESSION"
   :ctype_keyword ':ppl_linear_expression
@@ -2702,7 +2702,7 @@ Keyword is :ppl_linear_expression.}#
 ;;; the ctype for PPL constraints
 (definstance ctype_ppl_constraint class_ctype
   :predef CTYPE_PPL_CONSTRAINT
-  :doc #{The $CTYPE_PPL_CONSTRAINT is the c-type of raw PPL constraint stuff.
+  :doc #{The $CTYPE_PPL_CONSTRAINT is the  obsolete c-type of raw PPL constraint stuff.
 Keyword is :ppl_constraint.}#
   :named_name '"CTYPE_PPL_CONSTRAINT"
   :ctype_keyword ':ppl_constraint
@@ -2717,7 +2717,7 @@ Keyword is :ppl_constraint.}#
 ;;; the ctype for PPL constraint_systems
 (definstance ctype_ppl_constraint_system class_ctype
   :predef CTYPE_PPL_CONSTRAINT_SYSTEM
-  :doc #{The $CTYPE_PPL_CONSTRAINT_SYSTEM is the c-type of raw PPL constraint system stuff.
+  :doc #{The $CTYPE_PPL_CONSTRAINT_SYSTEM is the  obsolete c-type of raw PPL constraint system stuff.
 Keyword is :ppl_constraint_system.}#
   :named_name '"CTYPE_PPL_CONSTRAINT_SYSTEM"
   :ctype_keyword ':ppl_constraint_system
@@ -2733,7 +2733,7 @@ Keyword is :ppl_constraint_system.}#
 (definstance ctype_ppl_polyhedron class_ctype
   :predef CTYPE_PPL_POLYHEDRON
   :named_name '"CTYPE_PPL_POLYHEDRON"
-  :doc #{The $CTYPE_PPL_POLYHEDRON is the c-type of raw PPL polyhedron stuff.
+  :doc #{The $CTYPE_PPL_POLYHEDRON is the  obsolete c-type of raw PPL polyhedron stuff.
 Keyword is :ppl_polyhedron.}#
   :ctype_keyword ':ppl_polyhedron
   :ctype_cname  '"ppl_Polyhedron_t"

@@ -1,5 +1,9 @@
 
 2012-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt: Mention that PPL binding is obsolete.
+	* melt/warmelt-base.melt: Ditto.
+
+2012-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): Bump to 0.9.6.c version.
 
 2012-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
