@@ -2191,7 +2191,7 @@ SmeltCommandSymbol smeltsymb_tracemsg_cmd("TRACEMSG_PCD",&SmeltApplication::trac
 void
 SmeltApplication::tracemsg_cmd(SmeltVector&v)
 {
-  const std::string& msg = v[1].to_string();
+  std::string msg = v[1].to_string();
   SMELT_DEBUG("msg:" << msg);
   if (_app_traced && _app_tracewin)
     _app_tracewin->add_title(msg);
@@ -2241,7 +2241,7 @@ SmeltCommandSymbol smeltsymb_showfile_cmd("SHOWFILE_PCD",&SmeltApplication::show
 void
 SmeltApplication::showfile_cmd(SmeltVector&v)
 {
-  const std::string& filnam = v.at(1).to_string();
+  std::string filnam = v.at(1).to_string();
   long num = v.at(2).to_long();
   SMELT_DEBUG("filnam=" << filnam << " num=" << num);
   _app_mainwinp->show_file(filnam,num);
@@ -2309,7 +2309,7 @@ SmeltCommandSymbol smeltsymb_pushstatus_cmd("PUSHSTATUS_PCD",&SmeltApplication::
 void
 SmeltApplication::pushstatus_cmd(SmeltVector&v)
 {
-  const std::string& str = v.at(1).to_string();
+  std::string str = v.at(1).to_string();
   SMELT_DEBUG("PUSHSTATUS " << str);
   _app_mainwinp->push_status (str);
 }
@@ -2334,7 +2334,7 @@ SmeltCommandSymbol smeltsymb_setstatus_cmd("SETSTATUS_PCD",&SmeltApplication::se
 void
 SmeltApplication::setstatus_cmd(SmeltVector&v)
 {
-  const std::string& str = v.at(1).to_string();
+  std::string str = v.at(1).to_string();
   SMELT_DEBUG("SETSTATUS " << str);
   _app_mainwinp->pop_status (); // pop is valid on empty status
   _app_mainwinp->push_status (str);

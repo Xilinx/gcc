@@ -14058,8 +14058,8 @@ melt_ptr_t
 meltgc_longsbucket_put (melt_ptr_t bucket_p, long key, melt_ptr_t val_p)
 {
   struct meltbucketlongs_st*buck = NULL;
-  unsigned len = 0;
-  unsigned lo=0, hi=0, md=0, ucnt=0;
+  int len = 0;
+  int lo=0, hi=0, md=0, ucnt=0;
   MELT_ENTERFRAME (3, NULL);
 #define buckv        meltfram__.mcfr_varptr[0]
 #define valv         meltfram__.mcfr_varptr[1]
@@ -14078,7 +14078,7 @@ meltgc_longsbucket_put (melt_ptr_t bucket_p, long key, melt_ptr_t val_p)
     /*  buck is nearly full, allocate a bigger one. */
     struct meltbucketlongs_st*oldbuck = NULL;
     unsigned newcnt = 0;
-    unsigned ix = 0;
+    int ix = 0;
     bool need_insert = true;
     MELT_LOCATION_HERE ("meltgc_longsbucket_put growing");
     resv = meltgc_new_longsbucket (buck->discr, ucnt + ucnt/5 + 8);
@@ -14150,8 +14150,8 @@ meltgc_longsbucket_put (melt_ptr_t bucket_p, long key, melt_ptr_t val_p)
       } else {
         /* curk > key, so insert here by moving
                  further slots downwards. */
-        unsigned ix;
-        for (ix = ucnt; ix >= md; ix--)
+        int ix;
+        for (ix = (int)ucnt; ix >= (int)md; ix--)
           buck->buckl_entab[ix+1] = buck->buckl_entab[ix];
         buck->buckl_entab[md].ebl_at = key;
         buck->buckl_entab[md].ebl_va = (melt_ptr_t) valv;
@@ -14184,8 +14184,8 @@ melt_ptr_t
 meltgc_longsbucket_remove (melt_ptr_t bucket_p, long key)
 {
   struct meltbucketlongs_st*buck = NULL;
-  unsigned len = 0;
-  unsigned lo=0, hi=0, md=0, ucnt=0;
+  int len = 0;
+  int lo=0, hi=0, md=0, ucnt=0;
   MELT_ENTERFRAME (2, NULL);
 #define buckv        meltfram__.mcfr_varptr[0]
 #define resv         meltfram__.mcfr_varptr[1]
@@ -14196,7 +14196,7 @@ meltgc_longsbucket_remove (melt_ptr_t bucket_p, long key)
     goto end;
   buck = (struct meltbucketlongs_st*)(buckv);
   len = melt_primtab[buck->buckl_lenix];
-  ucnt = buck->buckl_ucount;
+  ucnt = (int) buck->buckl_ucount;
   gcc_assert (ucnt <= len && len > 0);
   if (len > 10 && 2*ucnt + 3<len) { /* shrink the bucket */
     struct meltbucketlongs_st*oldbuck = NULL;

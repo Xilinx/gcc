@@ -1,5 +1,10 @@
 
 2012-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_longsbucket_put)
+	(meltgc_longsbucket_remove): Use signed indexes to avoid buffer
+	underflow.
+
+2012-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_out_edge): Put a warning on below patch,
 	because it will be needed only on next trunk to MELT branch merge.
 
