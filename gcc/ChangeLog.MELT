@@ -1,5 +1,18 @@
 
 2012-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt: Improve comment about translateinit.
+
+	* melt/warmelt-normatch.melt (mg_draw_match_graphviz_file): Avoid
+	mixing declaration and code in chunk.
+
+	* melt/warmelt-outobj.melt (compile_list_sexpr): Handle specially
+	the case when inienv is null, emitting a 0 for
+	MELT_HAS_INITIAL_ENVIRONMENT.
+
+	* melt/warmelt-modes.melt (translateinit_mode): Pass a null
+	initial environment to trigger the magic above.
+
+2012-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_longsbucket_put)
 	(meltgc_longsbucket_remove): Use signed indexes to avoid buffer
 	underflow.

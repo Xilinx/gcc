@@ -3714,15 +3714,18 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	 )
     (assert_msg "check ofield" (is_a ofield class_field))
     (output_location oloc implbuf depth "getslot")
-    (add2sbuf_strconst implbuf "{ melt_ptr_t slot=0;")
+    (add2sbuf_strconst implbuf "{ melt_ptr_t slot=NULL, obj=NULL;")
     (add2sbuf_indentnl implbuf (+i 1 depth))
-    (add2sbuf_strconst implbuf "melt_object_get_field(slot,(melt_ptr_t)(")
+    (add2sbuf_strconst implbuf "obj = (melt_ptr_t)(");
     (output_c_code oobj declbuf implbuf depth)
-    (add2sbuf_strconst implbuf "), ")
+    (add2sbuf_strconst implbuf ") /*=obj*/;");
+    (add2sbuf_indentnl implbuf (+i 1 depth))
+    (add2sbuf_strconst implbuf "melt_object_get_field(slot,obj, ")
     (add2sbuf_longdec implbuf (get_int ofield))
     (add2sbuf_strconst implbuf ", \"")
     (add2sbuf_string implbuf (unsafe_get_field :named_name ofield))
     (add2sbuf_strconst implbuf "\");")
+    (add2sbuf_indentnl implbuf (+i 1 depth))
     (list_every
      destlist
      (lambda (dst)    
@@ -5103,10 +5106,12 @@ if (1) return;
 			 "MELT generating C code of module %s", 
 			 melt_string_str ((melt_ptr_t) $MODNAMSTR)) ;
 		}#)
-    (if (== inienv initial_environment)
+    (if inienv	
+	(add2sbuf_strconst declbuf "#define MELT_HAS_INITIAL_ENVIRONMENT 1")
+      (progn
+	;; lack of initial environment happens only in translateinit mode for warmelt-first.melt
 	(add2sbuf_strconst declbuf "#define MELT_HAS_INITIAL_ENVIRONMENT 0")
-      (add2sbuf_strconst declbuf "#define MELT_HAS_INITIAL_ENVIRONMENT 1")
-      )
+	(setq inienv initial_environment)))
     (add2sbuf_indentnl declbuf 0)
     (add2sbuf_indentnl declbuf 0)
     (add2sbuf_strconst declbuf "struct melt_callframe_st; /*defined in melt-runtime.h*/")
@@ -5376,7 +5381,7 @@ if (1) return;
   (debug "@*@@@@ compile_list_sexpr lsexp=" lsexp " inienv=" inienv " modnamstr=" modnamstr) 
   (assert_msg "check lsexp" (is_list lsexp))
   (assert_msg "check modnamstr" (is_string modnamstr))
-  (assert_msg "check inienv" (is_a inienv class_environment))
+  (assert_msg "check inienv" (or (null inienv) (is_a inienv class_environment)))
   (assert_msg "compile_list_sexpr modulename not ended with MELT_DYNLOADED_SUFFIX."
 	      (not (string_dynloaded_suffixed modnamstr)))
   (assert_msg "compile_list_sexpr modulename not ended with .melt"
@@ -5384,8 +5389,9 @@ if (1) return;
   (assert_msg "compile_list_sexpr modulename not ended with .c"
 	      (not (string_suffixed modnamstr ".c")))
   (let (
+	(modnakedname (make_string_nakedbasename discr_string modnamstr))
 	(modctx (instance class_module_context
-			  :mocx_modulename  (make_string_nakedbasename discr_string modnamstr)
+			  :mocx_modulename  modnakedname
 			  :mocx_expfieldict (make_mapstring discr_map_strings 390)
 			  :mocx_expclassdict (make_mapstring discr_map_strings 140)
 			  :mocx_initialenv inienv
@@ -5399,6 +5405,17 @@ if (1) return;
 			  ))
 	(ncx (create_normcontext modctx)) 
 	)
+    ;; is it very unusual that inienv is null, only happenning in
+    ;; translateinit mode, when bootstrapping warmelt-first.melt
+    (when (null inienv)
+      (code_chunk checkbootstrapping_chk
+		  #{ /* $CHECKBOOTSTRAPPING_CHK */
+		  if (!melt_flag_bootstrapping)
+		     melt_fatal_error ("no initial environment can only happen during MELT bootstrapping in module %s",
+				       melt_string_str ((melt_ptr_t) $MODNAKEDNAME));
+		  }#)
+      ;; we set inienv to be able to macroexpand and translate the rest. However, mocx_initialenv is null.
+      (setq inienv initial_environment))
     (debug "compile_list_sexpr initial ncx=" ncx)
     (assert_msg "check ncx" (is_a ncx class_normalization_context))
     (let ( (xlist (macroexpand_toplevel_list lsexp inienv macroexpand_1 modctx)) 

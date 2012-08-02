@@ -2243,9 +2243,8 @@ scanning variables.}#
     (matchgraphic_tests teststupl mg)
     (debug "mg_draw_match_graphviz_file final mg" mg)
     (assert_msg "check dotfilename" (is_string dotfilename))
-    (code_chunk 
-     outputmg
-     #{ /* mg_draw_match_graphviz_file $OUTPUTMG */
+    (code_chunk  outputmg
+     #{ /* mg_draw_match_graphviz_file $OUTPUTMG */ {
      time_t nowt = 0;
      char nowbuf[60];
      FILE* dotfil = 
@@ -2271,7 +2270,7 @@ scanning variables.}#
      fprintf (dotfil, "\n /// edges\n");
      melt_putstrbuf (dotfil, (melt_ptr_t) $EDGBUF);
      fprintf (dotfil, "\n} // eof %s\n", melt_string_str ((melt_ptr_t) $DOTFILENAME));
-     fclose (dotfil);
+     fclose (dotfil); } /* end mg_draw_match_graphviz_file $OUTPUTMG */
      }#)
     ))
 

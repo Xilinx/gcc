@@ -33,6 +33,10 @@
 ;;    compile itself (into generated C file[s])
 ;;    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; This warmelt-first.melt file is translated in translateinit mode
+;; when bootstrapping, so thet MELT_HAS_INITIAL_ENVIRONMENT is 0 in
+;; that particular case. 
+
 ;;; Avoid using debug_msg or debug here.  See comments around
 ;;; debug_msg_fun private function near end of this file.
 

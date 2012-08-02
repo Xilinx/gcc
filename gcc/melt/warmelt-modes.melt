@@ -3830,7 +3830,12 @@ ASSERT_MSG) is enabled"
 		      (list_append2list rlist curead)))))
      )
     (debug "after read translateinit_mode rlist=" rlist)
-    (compile_list_sexpr rlist initial_environment basnam)
+    ;; we pass a null initial environment, so that
+    ;; MELT_HAS_INITIAL_ENVIRONMENT is emitted as 0, to avoid spurious
+    ;; warnings about unexistent EXPORT_VALUE routine in early
+    ;; initialization of warmelt-first.melt.  This is crazy magic
+    ;; which happens to work.
+    (compile_list_sexpr rlist () basnam)
     ;; we trigger explicitly a full GC to stress the runtime. The
     ;; translateinit mode is not useful to the casual user.
     (full_garbcoll 10000)
