@@ -1,3 +1,14 @@
+2012-08-02  Simon Baldwin  <simonb@google.com>
+
+    Port r190071 from google/main.
+
+    2012-08-01  Simon Baldwin  <simonb@google.com>
+
+	* gcc.dg/tree-prof/lipo/lipo.exp: Add -fno-section-anchors to
+	profile_option and feedback_option for powerpc targets.  Workround
+	for Google ref b/6663281.
+	* g++.dg/tree-prof/lipo/lipo.exp: Likewise.
+
 2012-08-01   Diego Novillo  <dnovillo@google.com>
 
 	Backport r189720 from gcc-4_7-branch
