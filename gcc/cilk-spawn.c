@@ -147,17 +147,15 @@ call_graph_add_fn (tree fndecl, struct wrapper_data *wd)
   /* If this is a genuine nested function, the nested function
      handling will deal with it.  If this is not a nested function
      it must be handled now or the compiler will crash in a
-     mysterious way later. */
-  if ((!DECL_STATIC_CHAIN (fndecl) || !wd->nested))
-    {
-      gimplify_function_tree (fndecl); 
-    }
+     mysterious way later.  */
+  if (!DECL_STATIC_CHAIN (fndecl) || !wd->nested) 
+    gimplify_function_tree (fndecl); 
   
   cgraph_add_new_function (fndecl, false);
   
   /* Calling cgraph_finalize_function now seems to be the only way to
      prevent a crash due to cgraph becoming confused over whether the
-     function is needed. */
+     function is needed.  */
   cgraph_finalize_function (fndecl, true); 
 
   pop_cfun_to (outer);
