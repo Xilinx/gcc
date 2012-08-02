@@ -1,5 +1,9 @@
 
 2012-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_out_edge): Put a warning on below patch,
+	because it will be needed only on next trunk to MELT branch merge.
+
+2012-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_out_edge): Add TDF_DETAILS to
 	dump_edge_info calls for GCC 4.8.
 

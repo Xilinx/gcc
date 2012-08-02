@@ -11314,7 +11314,10 @@ meltgc_out_edge (melt_ptr_t out_p, edge edg)
     FILE* oldfil= melt_open_ppfile ();
     dump_edge_info (meltppfile, edg,
 #if MELT_GCC_VERSION >= 4008
-		    TDF_DETAILS, /* argument appearing in GCC 4.8 */
+#warning GCC4.8 soon wants TDF_DETAILS for dump_edge_info
+		    /*
+		    TDF_DETAILS, // argument appearing in GCC 4.8 august 2012 trunk
+		    */
 #endif
  /*do_succ=*/ 1);
     melt_close_ppfile (oldfil);
@@ -11331,7 +11334,10 @@ meltgc_out_edge (melt_ptr_t out_p, edge edg)
       goto end;
     dump_edge_info (f, edg,
 #if MELT_GCC_VERSION >= 4008
-		    TDF_DETAILS, /* argument appearing in GCC 4.8 */
+#warning GCC4.8 soon wants TDF_DETAILS for dump_edge_info
+		    /*
+		    TDF_DETAILS, // argument appearing in GCC 4.8 august 2012 trunk
+		    */
 #endif
  /*do_succ=*/ 1);
     fflush (f);
