@@ -14115,7 +14115,7 @@ meltgc_longsbucket_put (melt_ptr_t bucket_p, long key, melt_ptr_t val_p)
       newcnt ++;
     };
     buck->buckl_ucount = newcnt;
-    gcc_assert (newcnt >= ucnt && newcnt < melt_primtab[buck->buckl_lenix]);
+    gcc_assert (newcnt >= (unsigned) ucnt && newcnt < melt_primtab[buck->buckl_lenix]);
     meltgc_touch_dest ((melt_ptr_t) buck, (melt_ptr_t) valv);
   } else if (ucnt == 0) {
     /* buck is empty, add first slot & keep it. */
@@ -14200,7 +14200,7 @@ meltgc_longsbucket_remove (melt_ptr_t bucket_p, long key)
   gcc_assert (ucnt <= len && len > 0);
   if (len > 10 && 2*ucnt + 3<len) { /* shrink the bucket */
     struct meltbucketlongs_st*oldbuck = NULL;
-    unsigned ix = 0, newcnt = 0;
+    int ix = 0, newcnt = 0;
     MELT_LOCATION_HERE ("meltgc_longsbucket_remove shrinking");
     resv = meltgc_new_longsbucket (buck->discr, ucnt + 1);
     /* set again buck, because a GC could have occurred */
@@ -14233,7 +14233,7 @@ meltgc_longsbucket_remove (melt_ptr_t bucket_p, long key)
     };
     for (md = lo; md <= hi; md++) {
       long curk = 0;
-      unsigned ix = 0;
+      int ix = 0;
       curk = buck->buckl_entab[md].ebl_at;
       if (curk != key)
         continue;

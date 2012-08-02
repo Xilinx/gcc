@@ -1,5 +1,10 @@
 
 2012-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_longsbucket_put)
+	(meltgc_longsbucket_remove): Add casts or signed integers to avoid
+	warnings about signed vs unsigned compare.
+
+2012-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{Regenerate all}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
