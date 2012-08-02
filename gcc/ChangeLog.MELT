@@ -1,5 +1,8 @@
 
 2012-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): Bump to 0.9.6.c version.
+
+2012-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt: Improve comment about translateinit.
 
 	* melt/warmelt-normatch.melt (mg_draw_match_graphviz_file): Avoid
