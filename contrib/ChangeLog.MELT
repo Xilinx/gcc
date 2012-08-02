@@ -1,4 +1,7 @@
 
+2012-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.c: Backport to C++1998, not C++2011!
+
 2012-07-31  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* MELT-Plugin-Makefile: Fix various make install bugs.

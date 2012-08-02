@@ -81,6 +81,9 @@ then type (assuming you have simplemelt-gtkmm-probe.cc, replace it appropriately
    MARKLOCATION_PCD 2 1 1023 4
 syntax is MARKLOCATION_PCD <marknum> <filenum> <line> <col>
 
+Note to the reader; this C++ code used to be coded for C++2011 (up to
+svn rev 188620) but has been backported to C++1998 in august 2012.
+
 ****/
 
 
@@ -200,6 +203,8 @@ bool smelt_debugging;
       << "@" << __func__ << " " << C << std::endl; } while(0)
 
 
+#define SMELT_NULLPTR ((void*)0)
+
 std::string smelt_long_to_string(long l)
 {
   char buf[32];
@@ -292,22 +297,20 @@ public:
     return _sfilview;
   };
   SmeltFile(SmeltMainWindow*,const std::string&filepath,long num);
-  SmeltFile() =delete;
-  SmeltFile(const SmeltFile&) =delete;
   ~SmeltFile();
   Glib::RefPtr<Gsv::Gutter> left_gutter() {
     return _sfilview.get_gutter(Gtk::TEXT_WINDOW_LEFT);
   }
   static SmeltFile* by_path(const std::string& filepath) {
-    if (filepath.empty()) return nullptr;
-    auto itsfil = mainsfiledict_.find(filepath);
-    if (itsfil == mainsfiledict_.end()) return nullptr;
+    if (filepath.empty()) return (SmeltFile*)SMELT_NULLPTR;
+    std::map<std::string,SmeltFile*>::iterator itsfil = mainsfiledict_.find(filepath);
+    if (itsfil == mainsfiledict_.end()) return (SmeltFile*)SMELT_NULLPTR;
     return itsfil->second;
   }
   static SmeltFile* by_number (long l) {
-    if (l == 0) return nullptr;
-    auto itsfil = mainsfilemapnum_.find(l);
-    if (itsfil == mainsfilemapnum_.end()) return nullptr;
+    if (l == 0) return (SmeltFile*)SMELT_NULLPTR;
+    std::map<long,SmeltFile*>::iterator itsfil = mainsfilemapnum_.find(l);
+    if (itsfil == mainsfilemapnum_.end()) return (SmeltFile*)SMELT_NULLPTR;
     return itsfil->second;
   }
 };        // end class SmeltFile
@@ -320,7 +323,7 @@ class SmeltLocationDialog : public Gtk::MessageDialog {
   SmeltLocationInfo *_sld_info;
   Gtk::TextView _sld_view;
   Gtk::ScrolledWindow _sld_swin;
-  std::vector<Glib::RefPtr<Gtk::TextTag>> _sld_tagvect;
+  std::vector<Glib::RefPtr<Gtk::TextTag> > _sld_tagvect;
 public:
   SmeltLocationDialog(SmeltLocationInfo*sli);
   virtual ~SmeltLocationDialog();
@@ -362,7 +365,7 @@ public:
     _sld_tagvect.pop_back ();
   }
   void append_buffer (const Glib::ustring &str) {
-    auto tb = tbuf();
+    Glib::RefPtr<Gtk::TextBuffer> tb = tbuf();
     g_assert (tb);
     tb->insert_with_tags(tb->end(),str,_sld_tagvect);
   }
@@ -384,7 +387,8 @@ public:
     return (void*) this;
   }; // for debugging
   SmeltLocationInfo(long num, SmeltFile* fil, int lineno, int col)
-    : _sli_fil(fil), _sli_num(num), _sli_lineno(lineno), _sli_col(col), _sli_dial(nullptr) {
+    : _sli_fil(fil), _sli_num(num), _sli_lineno(lineno), _sli_col(col),
+      _sli_dial((SmeltLocationDialog*)SMELT_NULLPTR) {
     SMELT_DEBUG("num=" << num << " this@" << (void*)this);
   }
   ~SmeltLocationInfo() {
@@ -392,8 +396,8 @@ public:
                 << " with _sli_dial@" << (void*) _sli_dial);
     if (_sli_dial)
       delete _sli_dial;
-    _sli_dial = nullptr;
-    _sli_fil = nullptr;
+    _sli_dial = (SmeltLocationDialog*)SMELT_NULLPTR;
+    _sli_fil = (SmeltFile*)SMELT_NULLPTR;
     _sli_num = 0;
     _sli_lineno = 0, _sli_col = 0;
   }
@@ -423,7 +427,7 @@ public:
     if (!_sli_dial) return;
     {
       SmeltLocationDialog* dial = _sli_dial;
-      _sli_dial = nullptr;
+      _sli_dial = (SmeltLocationDialog*)SMELT_NULLPTR;
       delete dial;
     }
     SMELT_DEBUG("destroyed dialog this locationinfo @" <<  (void*)this);
@@ -441,9 +445,9 @@ class SmeltMainWindow : public Gtk::ApplicationWindow {
   Glib::RefPtr<Gtk::ActionGroup> _mainactgroup;
   static std::map<long,SmeltLocationInfo*> mainlocinfmapnum_;
   static SmeltLocationInfo* shown_location_by_number (long l) {
-    if (l == 0) return nullptr;
-    auto itsloc = mainlocinfmapnum_.find(l);
-    if (itsloc == mainlocinfmapnum_.end()) return nullptr;
+    if (l == 0) return (SmeltLocationInfo*)SMELT_NULLPTR;
+    std::map<long,SmeltLocationInfo*>::iterator itsloc = mainlocinfmapnum_.find(l);
+    if (itsloc == mainlocinfmapnum_.end()) return (SmeltLocationInfo*)SMELT_NULLPTR;
     return itsloc->second;
   }
   ////
@@ -471,21 +475,20 @@ public:
                          sigc::ptr_fun(&smelt_quit));
       _mainactgroup->add(Gtk::Action::create("MainShowVersion", "Version"),
                          sigc::mem_fun(*this,&SmeltMainWindow::on_version_show));
-      auto uimgr = Gtk::UIManager::create();
+      Glib::RefPtr<Gtk::UIManager>  uimgr = Gtk::UIManager::create();
       uimgr->insert_action_group(_mainactgroup);
-      Glib::ustring ui_info= R"*(
-                             <ui>
-                             <menubar name='MainMenuBar'>
-                             <menu action='MainMenuFile'>
-                             <menuitem action='MainShowVersion'/>
-                             <menuitem action='MainQuit'/>
-                             </menu>
-                             </menubar>
-                             </ui>
-                             )*";
+      Glib::ustring ui_info=
+        "<ui>"
+        "<menubar name='MainMenuBar'>"
+        "<menu action='MainMenuFile'>"
+        "<menuitem action='MainShowVersion'/>"
+        "<menuitem action='MainQuit'/>"
+        "</menu>"
+        "</menubar>"
+        "</ui>";
       try {
         uimgr->add_ui_from_string(ui_info);
-        auto menubar = uimgr->get_widget("/MainMenuBar");
+        Gtk::Widget* menubar = uimgr->get_widget("/MainMenuBar");
         _mainvbox.pack_start(*menubar,Gtk::PACK_SHRINK);
       } catch (const Glib::Error& ex) {
         SMELT_FATAL("failed to build mainwin UI " << ex.what());
@@ -624,12 +627,12 @@ public:
   void* thisptr() const {
     return (void*) this;
   }; // for debugging
-  SmeltSymbol(const std::string& name, void* data=nullptr)
+  SmeltSymbol(const std::string& name, void* data=SMELT_NULLPTR)
     : _symname(name), _symdata(data) {
     SMELT_DEBUG("constructing SmeltSymbol name=" << name << " this@" << (void*)this);
     assert (!name.empty());
     {
-      auto symit = dictsym_.find(_symname);
+      std::map<std::string,SmeltSymbol*>::iterator symit = dictsym_.find(_symname);
       if (symit == dictsym_.end())
         SMELT_DEBUG("symit at end");
       else
@@ -639,11 +642,9 @@ public:
     assert(dictsym_.find(_symname) == dictsym_.end());
     dictsym_[_symname] = this;
   };
-  SmeltSymbol(const SmeltSymbol&) = delete;
-  SmeltSymbol(SmeltSymbol&&) = delete;
   virtual ~SmeltSymbol() {
     dictsym_.erase(_symname);
-    _symdata = nullptr;
+    _symdata = SMELT_NULLPTR;
   }
   const std::string& name() const {
     return _symname;
@@ -652,14 +653,14 @@ public:
     return _symdata;
   };
   static SmeltSymbol* find(const std::string& name) {
-    if (name.empty()) return nullptr;
-    auto symit = dictsym_.find (name);
+    if (name.empty()) return (SmeltSymbol*)SMELT_NULLPTR;
+    std::map<std::string,SmeltSymbol*>::iterator symit = dictsym_.find (name);
     if (symit != dictsym_.end())
       return symit->second;
-    return nullptr;
+    return (SmeltSymbol*)SMELT_NULLPTR;
   };
   static SmeltSymbol* find(const char* s) {
-    if (!s) return nullptr;
+    if (!s) return (SmeltSymbol*)SMELT_NULLPTR;
     std::string str(s);
     return find(str);
   }
@@ -731,10 +732,10 @@ public:
     return (_argkind==SmeltArg_Double)?_argdouble:0.0;
   };
   SmeltSymbol* symbol_ptr() const {
-    return (_argkind==SmeltArg_Symbol)?_argsymbol:nullptr;
+    return (_argkind==SmeltArg_Symbol)?_argsymbol:(SmeltSymbol*)SMELT_NULLPTR;
   };
   SmeltVector* vector_ptr() const {
-    return  (_argkind==SmeltArg_Vector)?_argvector:nullptr;
+    return  (_argkind==SmeltArg_Vector)?_argvector:(SmeltVector*)SMELT_NULLPTR;
   };
   const std::string& as_string() const {
     static const std::string emptystr;
@@ -772,9 +773,9 @@ public:
     return *_argvector;
   };
   /// constructors
-  SmeltArg() : _argkind(SmeltArg_None), _argptr(nullptr) {};
+  SmeltArg() : _argkind(SmeltArg_None), _argptr(SMELT_NULLPTR) {};
   SmeltArg(const SmeltArg& a)
-    : _argkind(a._argkind), _argptr(nullptr) {
+    : _argkind(a._argkind), _argptr(SMELT_NULLPTR) {
     switch (a._argkind) {
     case SmeltArg_None:
       break;
@@ -789,14 +790,14 @@ public:
       break;
     case SmeltArg_Symbol:
       _argsymbol = a._argsymbol;
-      assert (_argsymbol != nullptr);
+      assert (_argsymbol != SMELT_NULLPTR);
       break;
     case SmeltArg_Vector:
       _argvector = new SmeltVector(*a._argvector);
       break;
     }
   };
-  SmeltArg(SmeltArg&& a) : _argkind(a._argkind) {
+  SmeltArg(SmeltArg& a) : _argkind(a._argkind) {
     switch (a._argkind) {
     case SmeltArg_None:
       break;
@@ -811,14 +812,14 @@ public:
       break;
     case SmeltArg_Symbol:
       _argsymbol = a._argsymbol;
-      assert (_argsymbol != nullptr);
+      assert (_argsymbol != SMELT_NULLPTR);
       break;
     case SmeltArg_Vector:
       _argvector = a._argvector;
       break;
     }
     const_cast<SmeltArgKind&>(a._argkind) = SmeltArg_None;
-    a._argptr = nullptr;
+    a._argptr = SMELT_NULLPTR;
   };
   void clear() {
     switch (_argkind) {
@@ -834,13 +835,13 @@ public:
       delete _argstring;
       break;
     case SmeltArg_Symbol:
-      _argsymbol = nullptr;
+      _argsymbol = (SmeltSymbol*)SMELT_NULLPTR;
       break;
     case SmeltArg_Vector:
       delete _argvector;
       break;
     }
-    _argptr = nullptr;
+    _argptr = SMELT_NULLPTR;
   }
   ~SmeltArg() {
     clear();
@@ -861,7 +862,7 @@ public:
       break;
     case SmeltArg_Symbol:
       _argsymbol = a._argsymbol;
-      assert (_argsymbol != nullptr);
+      assert (_argsymbol != SMELT_NULLPTR);
       break;
     case SmeltArg_Vector:
       _argvector = new SmeltVector(*a._argvector);
@@ -870,15 +871,15 @@ public:
     const_cast<SmeltArgKind&>(_argkind) = a._argkind;
     return *this;
   }
-  explicit SmeltArg(std::nullptr_t) : _argkind(SmeltArg_None), _argptr(nullptr) {};
+  explicit SmeltArg(void*) : _argkind(SmeltArg_None), _argptr(SMELT_NULLPTR) {};
   explicit SmeltArg(long l) : _argkind(SmeltArg_Long), _arglong(l) {};
   explicit SmeltArg(double d) : _argkind(SmeltArg_Double), _argdouble(d) {};
   explicit SmeltArg(const std::string& s)
-    : _argkind(SmeltArg_String), _argptr(nullptr) {
+    : _argkind(SmeltArg_String), _argptr(SMELT_NULLPTR) {
     _argstring = new std::string(s);
   }
   explicit SmeltArg(SmeltSymbol* s): _argkind(SmeltArg_Symbol), _argsymbol(s) {
-    assert(s!=nullptr);
+    assert(s!=SMELT_NULLPTR);
   };
   explicit SmeltArg(const SmeltSymbol& s)
     : _argkind(SmeltArg_Symbol), _argsymbol(const_cast<SmeltSymbol*>(&s)) {};
@@ -908,8 +909,10 @@ std::ostringstream& operator << (std::ostringstream& os, const SmeltArg&a)
 std::ostream& operator << (std::ostream& os, const SmeltVector& v)
 {
   os << "(";
-  for (auto& arg: v) {
-    os << " " << arg;
+  size_t ln = v.size();
+  for (size_t ix=0; ix<ln; ix++) {
+    if (ix>0) os << " ";
+    os << v[ix];
   }
   os << ")";
   return os;
@@ -931,65 +934,70 @@ SmeltArg::out(std::ostream& os) const
     break;
   case SmeltArg_String:
     os << "\"";
-    for (char c : *_argstring) {
-      switch (c) {
-      case '0' ... '9':
-      case 'a' ... 'z':
-      case 'A' ... 'Z':
-        os << c;
-        break;
-      case '\'':
-        os << "\\\'";
-        break;
-      case '\"':
-        os << "\\\"";
-        break;
-      case '\\':
-        os << "\\\\";
-        break;
-      case '\n':
-        os << "\\n";
-        break;
-      case '\r':
-        os << "\\r";
-        break;
-      case '\t':
-        os << "\\t";
-        break;
-      case '\v':
-        os << "\\v";
-        break;
-      case '\f':
-        os << "\\f";
-        break;
-      case '\e':
-        os << "\\e";
-        break;
-      default:
-        if (std::isprint(c)) {
+    {
+      size_t sln = _argstring->size();
+      for (size_t six=0; six<sln; six++) {
+        char c = _argstring->at(six);
+        switch (c) {
+        case '0' ... '9':
+        case 'a' ... 'z':
+        case 'A' ... 'Z':
           os << c;
-        }  else {
-          char cbuf[8];
-          memset (cbuf, 0, sizeof(cbuf));
-          snprintf(cbuf, sizeof(cbuf), "\\x%02x", ((int)c & 0xff));
-          os << cbuf;
+          break;
+        case '\'':
+          os << "\\\'";
+          break;
+        case '\"':
+          os << "\\\"";
+          break;
+        case '\\':
+          os << "\\\\";
+          break;
+        case '\n':
+          os << "\\n";
+          break;
+        case '\r':
+          os << "\\r";
+          break;
+        case '\t':
+          os << "\\t";
+          break;
+        case '\v':
+          os << "\\v";
+          break;
+        case '\f':
+          os << "\\f";
+          break;
+        case '\e':
+          os << "\\e";
+          break;
+        default:
+          if (std::isprint(c)) {
+            os << c;
+          }  else {
+            char cbuf[8];
+            memset (cbuf, 0, sizeof(cbuf));
+            snprintf(cbuf, sizeof(cbuf), "\\x%02x", ((int)c & 0xff));
+            os << cbuf;
+          }
         }
       }
     }
     os << "\"";
     break;
   case SmeltArg_Symbol:
-    assert (_argsymbol != nullptr);
+    assert (_argsymbol != SMELT_NULLPTR);
     os << (_argsymbol->name());
     break;
   case SmeltArg_Vector: {
-    int nb=0;
-    assert (_argvector != nullptr);
+    size_t nb=0;
+    assert (_argvector != SMELT_NULLPTR);
+    size_t ln=_argvector->size();
     os << "(";
-    for (auto v : *_argvector) {
+    for (nb=0; nb<ln; nb++) {
       if (nb>0)
         os << " ";
-      v.out(os);
+      _argvector->at(nb).out(os);
       nb++;
     }
     os << ")";
@@ -1012,7 +1020,7 @@ public:
     : SmeltSymbol(name), _cmdfun(fun) {
   };
   ~SmeltCommandSymbol() {
-    _cmdfun = nullptr;
+    _cmdfun = 0;
   };
   cmdfun_t fun() {
     return _cmdfun;
@@ -1026,17 +1034,17 @@ class SmeltTagSymbol : public SmeltSymbol {
   virtual ~SmeltTagSymbol() {};
 public:
   static SmeltTagSymbol* create(const std::string&name) {
-    g_assert (SmeltSymbol::find(name) == nullptr);
+    g_assert (SmeltSymbol::find(name) == SMELT_NULLPTR);
     SmeltTagSymbol *tgsym = new SmeltTagSymbol(name);
     return tgsym;
   };
   static SmeltTagSymbol* register_tag(Glib::RefPtr<Gtk::TextTag>tgref) {
-    if (!tgref) return nullptr;
-    auto tgname = tgref->property_name().get_value();
+    if (!tgref) return (SmeltTagSymbol*)SMELT_NULLPTR;
+    const Glib::ustring& tgname = tgref->property_name().get_value();
     SMELT_DEBUG("tgname=" << tgname);
     if (!tgname.empty())
       return SmeltTagSymbol::create(tgname);
-    return nullptr;
+    return (SmeltTagSymbol*)SMELT_NULLPTR;
   }
 };
 
@@ -1129,13 +1137,13 @@ public:
     _application = this;
   };
   static Glib::RefPtr<SmeltApplication> create() {
-    g_assert (_application == nullptr);
+    g_assert (_application == SMELT_NULLPTR);
     return Glib::RefPtr<SmeltApplication> (new SmeltApplication());
   }
   void set_reqchan_to_melt(const std::string &reqname) {
     const char* reqcstr = reqname.c_str();
     SMELT_DEBUG("reqname=" << reqname);
-    char* endstr = nullptr;
+    char* endstr = (char*)SMELT_NULLPTR;
     long reqfd = strtol(reqcstr, &endstr, 10);
     struct stat reqstat = {};
     if (reqfd > 0 && reqfd < sysconf(_SC_OPEN_MAX)
@@ -1154,7 +1162,7 @@ public:
   void set_cmdchan_from_melt(const std::string &cmdname) {
     const char* cmdcstr = cmdname.c_str();
     SMELT_DEBUG("cmdname=" << cmdname);
-    char* endstr = nullptr;
+    char* endstr = 0;
     long cmdfd = strtol(cmdcstr, &endstr, 10);
     struct stat cmdstat = {};
     if (cmdfd >= 0 && cmdfd < sysconf(_SC_OPEN_MAX)
@@ -1260,11 +1268,11 @@ SmeltArg SmeltArg::parse_string_arg(const std::string& s, int& pos) throw (std::
   if (std::isdigit(c) ||
       (pos<(int)siz-1 && (c=='+' || c=='-') && std::isdigit(s[pos+1]))) {
     // parse a number, choose between the double and the long the longest one
-    char* endlng = nullptr;
-    char* enddbl = nullptr;
+    char* endlng = 0;
+    char* enddbl = 0;
     const char* cstr = s.c_str() + pos;
     long l = strtol(cstr, &endlng, 0);
-    assert(endlng != nullptr);
+    assert(endlng != SMELT_NULLPTR);
     double d = strtod(cstr, &enddbl);
     if (enddbl && enddbl > endlng) {
       pos += endlng - cstr;
@@ -1336,9 +1344,9 @@ SmeltArg SmeltArg::parse_string_arg(const std::string& s, int& pos) throw (std::
           break;
         case '0' ... '7' : {
           const char *ds = s.c_str()+pos+1;
-          char* end = nullptr;
+          char* end = 0;
           long l = strtol(ds, &end, 8);
-          assert (end != nullptr);
+          assert (end != 0);
           pos += 2 + end - ds;
           str += (char) l;
           break;
@@ -1348,7 +1356,7 @@ SmeltArg SmeltArg::parse_string_arg(const std::string& s, int& pos) throw (std::
           pos += 2;
           if (std::isxdigit(s[pos])) xs += s[pos++];
           if (std::isxdigit(s[pos])) xs += s[pos++];
-          long l = strtol(xs.c_str(), nullptr, 16);
+          long l = strtol(xs.c_str(), 0, 16);
           str += (char) l;
           break;
         }
@@ -1375,7 +1383,7 @@ SmeltArg SmeltArg::parse_string_arg(const std::string& s, int& pos) throw (std::
       throw smelt_parse_error("unbalanced paren for nil", "", pos);
     if (s[pos] == ')') {
       pos++;
-      return SmeltArg(nullptr);
+      return SmeltArg(SMELT_NULLPTR);
     } else {
       SmeltVector vect = parse_string_vector(s, pos);
       while (pos < (int) siz && std::isspace(s[pos])) pos++;
@@ -1395,7 +1403,7 @@ SmeltFile::SmeltFile(SmeltMainWindow*mwin,const std::string&filepath,long num)
   : _sfilnum(num), _sfilnblines(0), _sfilname(filepath), _sfilview()
 {
   SMELT_DEBUG("constructing filepath=" << filepath << " num=" << num << " this@" << (void*)this);
-  assert(mwin != nullptr);
+  assert(mwin != SMELT_NULLPTR);
   if (access(filepath.c_str(), R_OK))
     SMELT_FATAL("invalid filepath " << filepath);
   if (num == 0 || mainsfilemapnum_.find(num) != mainsfilemapnum_.end())
@@ -1403,24 +1411,24 @@ SmeltFile::SmeltFile(SmeltMainWindow*mwin,const std::string&filepath,long num)
   if (filepath.empty() || mainsfiledict_.find(filepath) != mainsfiledict_.end())
     throw smelt_domain_error("SmeltFile: invalid shown file name",filepath);
   SMELT_DEBUG("guessing language for filepath=" << filepath);
-  auto langman = SmeltApplication::instance()->langman();
-  auto lang = langman->guess_language(filepath,std::string());
+  Glib::RefPtr<Gsv::LanguageManager> langman = SmeltApplication::instance()->langman();
+  Glib::RefPtr<Gsv::Language> lang = langman->guess_language(filepath,std::string());
   assert (lang);
   SMELT_DEBUG("guessed lang id=" << (lang->get_id().c_str()) <<
               " name=" << (lang->get_name().c_str()));
-  auto sbuf = _sfilview.get_source_buffer();
+  Glib::RefPtr<Gsv::Buffer> sbuf = _sfilview.get_source_buffer();
   sbuf->set_language(lang);
   _sfilview.set_editable(false);
   _sfilview.set_show_line_numbers(true);
   _sfilview.set_show_line_marks(true);
   {
     int markprio=1;
-    auto markattrs = Gsv::MarkAttributes::create();
+    Glib::RefPtr<Gsv::MarkAttributes> markattrs = Gsv::MarkAttributes::create();
     markattrs->set_stock_id(SMELT_MARKLOC_STOCKID);
     _sfilview.set_mark_attributes(SMELT_MARKLOC_CATEGORY,markattrs,markprio);
   }
   {
-    std::ifstream infil(filepath);
+    std::ifstream infil(filepath.c_str());
     int nblines = 0;
     while (!infil.eof()) {
       std::string linestr;
@@ -1434,21 +1442,21 @@ SmeltFile::SmeltFile(SmeltMainWindow*mwin,const std::string&filepath,long num)
     infil.close();
   }
   {
-    auto scrowin = new Gtk::ScrolledWindow;
+    Gtk::ScrolledWindow* scrowin = new Gtk::ScrolledWindow;
     scrowin->add (_sfilview);
     scrowin->set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
-    auto labstr = Glib::ustring::compose("<span color='darkblue'>#%1</span>\n"
-                                         "<tt>%2</tt>", num, Glib::path_get_basename(filepath));
-    auto labtit = new Gtk::Label;
+    const Glib::ustring& labstr = Glib::ustring::compose("<span color='darkblue'>#%1</span>\n"
+                                  "<tt>%2</tt>", num, Glib::path_get_basename(filepath));
+    Gtk::Label* labtit = new Gtk::Label;
     {
-      char* realfilpath = realpath(filepath.c_str(),nullptr);
+      char* realfilpath = realpath(filepath.c_str(),0);
       labtit->set_markup(Glib::ustring::compose("<span color='blue'>#%1</span>\n"
                          "<span size='small'><tt>%2</tt></span>",
                          num, realfilpath));
       labtit->set_justify(Gtk::JUSTIFY_CENTER);
       free(realfilpath);
     }
-    auto vbox = new Gtk::VBox(false,2);
+    Gtk::VBox* vbox = new Gtk::VBox(false,2);
     vbox->pack_start(*Gtk::manage(labtit),Gtk::PACK_SHRINK);
     vbox->pack_start(*Gtk::manage(new Gtk::Separator(Gtk::ORIENTATION_HORIZONTAL)),Gtk::PACK_SHRINK);
     vbox->pack_start(*Gtk::manage(scrowin),Gtk::PACK_EXPAND_WIDGET);
@@ -1494,9 +1502,9 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
   if (shown_location_by_number(marknum))
     throw smelt_domain_error("mark_location duplicate number",
                              smelt_long_to_string(marknum));
-  auto tbuf = sfil->view().get_source_buffer();
-  auto itlin = tbuf->get_iter_at_line (lineno-1);
-  auto itendlin = itlin;
+  Glib::RefPtr<Gsv::Buffer> tbuf = sfil->view().get_source_buffer();
+  Gtk::TextIter itlin = tbuf->get_iter_at_line (lineno-1);
+  Gtk::TextIter itendlin = itlin;
   itendlin.forward_line();
   itendlin.backward_char();
   int linwidth = itendlin.get_line_offset();
@@ -1507,17 +1515,17 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
   SMELT_DEBUG ("linwidth=" << linwidth << " normalized col=" << col);
 
   /* create_source_mark works only at the start of the line */
-  auto linemark = tbuf->create_source_mark(SMELT_MARKLOC_CATEGORY,itlin);
+  Glib::RefPtr<Gsv::Mark> linemark = tbuf->create_source_mark(SMELT_MARKLOC_CATEGORY,itlin);
   /* add the button inside the line */
   itlin = tbuf->get_iter_at_line (lineno-1);
-  auto itcur = itlin;
+  Gtk::TextIter itcur = itlin;
   if (col>1)
     itcur.forward_chars(col-1);
   SMELT_DEBUG("itcur=" << itcur);
   SmeltLocationInfo* inf = new SmeltLocationInfo(marknum,sfil,lineno,col);
   mainlocinfmapnum_[marknum] = inf;
 
-  auto but = new Gtk::Button("*");
+  Gtk::Button* but = new Gtk::Button("*");
   Glib::RefPtr<Gtk::TextChildAnchor> chanch = Gtk::TextChildAnchor::create ();
   tbuf->insert_child_anchor(itcur,chanch);
   sfil->view().add_child_at_anchor(*but,chanch);
@@ -1534,11 +1542,12 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
 void
 SmeltLocationInfo::initialize (void)
 {
+  typedef Glib::RefPtr<Gtk::TextTag> tagref_t;
   g_assert (!sli_tagtbl_);
   sli_tagtbl_ = Gtk::TextTagTable::create();
   SMELT_DEBUG("created tagtbl gobj@" << (void*)sli_tagtbl_->gobj());
   {
-    auto tagtitle = Gtk::TextTag::create ("title");
+    tagref_t tagtitle = Gtk::TextTag::create ("title");
     tagtitle->property_weight() = Pango::WEIGHT_BOLD;
     tagtitle->property_scale() = Pango::SCALE_X_LARGE;
     tagtitle->property_foreground() = "FireBrick";
@@ -1546,7 +1555,7 @@ SmeltLocationInfo::initialize (void)
     sli_tagtbl_->add(tagtitle);
   }
   {
-    auto tagsubtitle = Gtk::TextTag::create ("subtitle");
+    tagref_t tagsubtitle = Gtk::TextTag::create ("subtitle");
     tagsubtitle->property_weight() = Pango::WEIGHT_BOLD;
     tagsubtitle->property_scale() = Pango::SCALE_LARGE;
     tagsubtitle->property_foreground() = "Navy";
@@ -1554,13 +1563,13 @@ SmeltLocationInfo::initialize (void)
     sli_tagtbl_->add(tagsubtitle);
   }
   {
-    auto tagbold = Gtk::TextTag::create ("bold");
+    tagref_t tagbold = Gtk::TextTag::create ("bold");
     tagbold->property_weight() = Pango::WEIGHT_BOLD;
     SmeltTagSymbol::register_tag(tagbold);
     sli_tagtbl_->add(tagbold);
   }
   {
-    auto tagitalic = Gtk::TextTag::create ("italic");
+    tagref_t tagitalic = Gtk::TextTag::create ("italic");
     tagitalic->property_style() = Pango::STYLE_OBLIQUE;
     SmeltTagSymbol::register_tag(tagitalic);
     sli_tagtbl_->add(tagitalic);
@@ -1620,7 +1629,7 @@ SmeltLocationDialog::SmeltLocationDialog(SmeltLocationInfo*info)
   _sld_swin()
 {
   SMELT_DEBUG("constructing this@" << (void*)this);
-  auto tbuf = Gtk::TextBuffer::create (SmeltLocationInfo::the_tag_table());
+  Glib::RefPtr<Gtk::TextBuffer> tbuf = Gtk::TextBuffer::create (SmeltLocationInfo::the_tag_table());
   _sld_view.set_buffer (tbuf);
   _sld_view.set_editable (false);
   _sld_swin.set_policy (Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
@@ -1644,14 +1653,14 @@ SmeltLocationDialog::SmeltLocationDialog(SmeltLocationInfo*info)
 SmeltLocationDialog::~SmeltLocationDialog()
 {
   SMELT_DEBUG("destructing this@" << (void*)this << " for info #" << _sld_info->num());
-  _sld_info = nullptr;
+  _sld_info = 0;
 }
 
 
 void
 SmeltLocationDialog::append_buffer(const std::string& s, const std::string &tagname)
 {
-  auto tb = tbuf();
+  Glib::RefPtr<Gtk::TextBuffer> tb = tbuf();
   SMELT_DEBUG ("s=" << s << " tagname=" << tagname << " this@" << (void*)this);
   if (!tb) return;
   bool withtag = !tagname.empty();
@@ -1666,7 +1675,7 @@ SmeltLocationDialog::append_buffer(const std::string& s, const std::string &tagn
 void
 SmeltLocationDialog::append_buffer(const SmeltArg&a, const std::string &tagname)
 {
-  auto tb = tbuf();
+  Glib::RefPtr<Gtk::TextBuffer> tb = tbuf();
   SMELT_DEBUG ("a=" << a << " tagname=" << tagname << " this@" << (void*)this);
   if (!tb) return;
   bool withtag = !tagname.empty();
@@ -1729,7 +1738,7 @@ SmeltMainWindow::showinfo_location(long marknum)
 {
   SMELT_DEBUG("start marknum=" << marknum << " this@" << (void*)this);
   SmeltLocationInfo* inf = shown_location_by_number(marknum);
-  if (inf == nullptr) {
+  if (inf == SMELT_NULLPTR) {
     SMELT_DEBUG("invalid marknum=" << marknum);
     throw smelt_domain_error("showinfo_location invalid mark number",
                              smelt_long_to_string(marknum));
@@ -1746,13 +1755,13 @@ SmeltMainWindow::addinfo_location(long marknum, const std::string& title, const 
 {
   SMELT_DEBUG("start marknum=" << marknum << " this@" << (void*)this);
   SmeltLocationInfo* inf = shown_location_by_number(marknum);
-  if (inf == nullptr) {
+  if (inf == SMELT_NULLPTR) {
     SMELT_DEBUG("invalid marknum=" << marknum);
     throw smelt_domain_error("addinfo_location invalid mark number",
                              smelt_long_to_string(marknum));
   }
   SmeltLocationDialog* dial = inf->dialog();
-  g_assert (dial != nullptr);
+  g_assert (dial != SMELT_NULLPTR);
   if (!title.empty()) {
     dial->append_buffer(title,"title");
     dial->append_buffer(Glib::ustring("\n"));
@@ -1825,7 +1834,7 @@ SmeltMainWindow::on_version_show(void)
 void
 SmeltTraceWindow::add_title(const std::string &str)
 {
-  auto tbuf =  _tracetextview.get_buffer();
+  Glib::RefPtr<Gtk::TextBuffer> tbuf =  _tracetextview.get_buffer();
   tbuf->insert_with_tag(tbuf->end(), str, "title");
   if (str.empty() || str[str.size()-1] != '\n')
     tbuf->insert(tbuf->end(), "\n");
@@ -1840,7 +1849,7 @@ SmeltTraceWindow::on_trace_clear(void)
 {
   static long nbclear;
   nbclear++;
-  auto tbuf =  _tracetextview.get_buffer();
+  Glib::RefPtr<Gtk::TextBuffer>  tbuf =  _tracetextview.get_buffer();
   tbuf->erase(tbuf->begin(), tbuf->end());
   std::ostringstream out;
   out << "Trace Erased (" << nbclear << "th time)";
@@ -1852,10 +1861,10 @@ void
 SmeltTraceWindow::add_date(const std::string &s)
 {
   struct timeval tv= {0,0};
-  gettimeofday (&tv,nullptr);
+  gettimeofday (&tv,0);
   time_t now = tv.tv_sec;
   char timbuf[64];
-  auto tbuf =  _tracetextview.get_buffer();
+  Glib::RefPtr<Gtk::TextBuffer>  tbuf =  _tracetextview.get_buffer();
   strftime(timbuf, sizeof(timbuf), "%b %d %H:%M:%S", localtime(&now));
   tbuf->insert_with_tag(tbuf->end(), timbuf, "date");
   snprintf(timbuf, sizeof(timbuf), ".%02d", (int)(tv.tv_usec / 10000));
@@ -1888,18 +1897,17 @@ SmeltTraceWindow::SmeltTraceWindow()
                         sigc::mem_fun(*SmeltApplication::instance(), &SmeltApplication::on_trace_toggled));
     _traceactgroup->add(Gtk::Action::create("TraceMenuClear", "Clear"),
                         sigc::mem_fun(*this,&SmeltTraceWindow::on_trace_clear));
-    auto uimgr = Gtk::UIManager::create();
+    Glib::RefPtr<Gtk::UIManager> uimgr  = Gtk::UIManager::create();
     uimgr->insert_action_group(_traceactgroup);
-    Glib::ustring ui_info= R"*(
-                           <ui>
-                           <menubar name='TraceMenuBar'>
-                           <menu action='TraceMenuFile'>
-                           <menuitem action='TraceMenuTrace'/>
-                           <menuitem action='TraceMenuClear'/>
-                           </menu>
-                           </menubar>
-                           </ui>
-                           )*";
+    Glib::ustring ui_info=
+      "<ui>"
+      "<menubar name='TraceMenuBar'>"
+      "<menu action='TraceMenuFile'>"
+      "<menuitem action='TraceMenuTrace'/>"
+      "<menuitem action='TraceMenuClear'/>"
+      "</menu>"
+      "</menubar>"
+      "</ui>";
     try {
       uimgr->add_ui_from_string(ui_info);
     } catch (const Glib::Error& ex) {
@@ -1907,7 +1915,7 @@ SmeltTraceWindow::SmeltTraceWindow()
     }
     _tracevbox.pack_start(_tracelabel,Gtk::PACK_SHRINK);
     {
-      auto menubarp = uimgr->get_widget("/TraceMenuBar");
+      Gtk::Widget* menubarp = uimgr->get_widget("/TraceMenuBar");
       if (menubarp)
         _tracevbox.pack_start(*menubarp,Gtk::PACK_SHRINK);
     }
@@ -1918,7 +1926,7 @@ SmeltTraceWindow::SmeltTraceWindow()
   _tracescrollw.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
   _tracetextview.set_editable(false);
   {
-    auto tbuf =  _tracetextview.get_buffer();
+    Glib::RefPtr<Gtk::TextBuffer> tbuf =  _tracetextview.get_buffer();
     _tracetitletag = tbuf->create_tag("title");
     _tracetitletag->property_foreground() = "darkred";
     _tracetitletag->property_scale() = 1.1;
@@ -1973,7 +1981,7 @@ SmeltCommandSymbol::call(SmeltApplication* app, SmeltVector&v)
 void
 SmeltTraceWindow::add_command_from_melt(const std::string& str)
 {
-  auto tbuf =  _tracetextview.get_buffer();
+  Glib::RefPtr<Gtk::TextBuffer>  tbuf =  _tracetextview.get_buffer();
   add_date();
   tbuf->insert_with_tag(tbuf->end(), str, "command");
   if (str.empty() || str[str.size()-1] != '\n')
@@ -1984,7 +1992,7 @@ SmeltTraceWindow::add_command_from_melt(const std::string& str)
 void
 SmeltTraceWindow::add_reply_to_melt(const std::string& str)
 {
-  auto tbuf =  _tracetextview.get_buffer();
+  Glib::RefPtr<Gtk::TextBuffer> tbuf =  _tracetextview.get_buffer();
   add_date();
   tbuf->insert_with_tag(tbuf->end(), str, "reply");
   if (str.empty() || str[str.size()-1] != '\n')
@@ -2147,7 +2155,7 @@ SmeltApplication::process_command_from_melt(std::string& str)
 int
 main (int argc, char** argv)
 {
-  auto progname = (argc>0)?(argv[0]):"*Simple-Melt-Probe*";
+  const char* progname = (argc>0)?(argv[0]):"*Simple-Melt-Probe*";
   if (argc>1 && !strcmp(argv[1],"-D"))
     smelt_debugging = true;
   SMELT_DEBUG("start " << progname << " pid#" << (int)getpid());
@@ -2183,7 +2191,7 @@ SmeltCommandSymbol smeltsymb_tracemsg_cmd("TRACEMSG_PCD",&SmeltApplication::trac
 void
 SmeltApplication::tracemsg_cmd(SmeltVector&v)
 {
-  auto& msg = v[1].to_string();
+  const std::string& msg = v[1].to_string();
   SMELT_DEBUG("msg:" << msg);
   if (_app_traced && _app_tracewin)
     _app_tracewin->add_title(msg);
@@ -2233,8 +2241,8 @@ SmeltCommandSymbol smeltsymb_showfile_cmd("SHOWFILE_PCD",&SmeltApplication::show
 void
 SmeltApplication::showfile_cmd(SmeltVector&v)
 {
-  auto filnam = v.at(1).to_string();
-  auto num = v.at(2).to_long();
+  const std::string& filnam = v.at(1).to_string();
+  long num = v.at(2).to_long();
   SMELT_DEBUG("filnam=" << filnam << " num=" << num);
   _app_mainwinp->show_file(filnam,num);
 }
@@ -2246,10 +2254,10 @@ SmeltCommandSymbol smeltsymb_marklocation_cmd("MARKLOCATION_PCD",&SmeltApplicati
 void
 SmeltApplication::marklocation_cmd(SmeltVector&v)
 {
-  auto marknum = v.at(1).to_long();
-  auto filnum = v.at(2).to_long();
-  auto lineno = v.at(3).to_long();
-  auto col = v.at(4).to_long();
+  long marknum = v.at(1).to_long();
+  long filnum = v.at(2).to_long();
+  long lineno = v.at(3).to_long();
+  long col = v.at(4).to_long();
   SMELT_DEBUG("filnum=" << filnum << " lineno=" << lineno << " col=" << col);
   _app_mainwinp->mark_location(marknum,filnum,lineno,col);
 }
@@ -2263,7 +2271,7 @@ SmeltCommandSymbol smeltsymb_startinfoloc_cmd("STARTINFOLOC_PCD",&SmeltApplicati
 void
 SmeltApplication::startinfoloc_cmd(SmeltVector&v)
 {
-  auto marknum = v.at(1).to_long();
+  long marknum = v.at(1).to_long();
   SMELT_DEBUG("STARTINFOLOC marknum=" << marknum);
   _app_mainwinp->showinfo_location(marknum);
 }
@@ -2275,8 +2283,8 @@ SmeltCommandSymbol smeltsymb_addinfoloc_cmd("ADDINFOLOC_PCD",&SmeltApplication::
 void
 SmeltApplication::addinfoloc_cmd(SmeltVector&v)
 {
-  auto marknum = v.at(1).to_long();
-  auto title = v.at(2).as_string();
+  long marknum = v.at(1).to_long();
+  const std::string& title = v.at(2).as_string();
   SMELT_DEBUG("ADDINFOLOC marknum=" << marknum << " title=" << title);
   _app_mainwinp->addinfo_location(marknum, title, v.at(3));
 }
@@ -2301,7 +2309,7 @@ SmeltCommandSymbol smeltsymb_pushstatus_cmd("PUSHSTATUS_PCD",&SmeltApplication::
 void
 SmeltApplication::pushstatus_cmd(SmeltVector&v)
 {
-  auto str = v.at(1).to_string();
+  const std::string& str = v.at(1).to_string();
   SMELT_DEBUG("PUSHSTATUS " << str);
   _app_mainwinp->push_status (str);
 }
@@ -2326,7 +2334,7 @@ SmeltCommandSymbol smeltsymb_setstatus_cmd("SETSTATUS_PCD",&SmeltApplication::se
 void
 SmeltApplication::setstatus_cmd(SmeltVector&v)
 {
-  auto str = v.at(1).to_string();
+  const std::string& str = v.at(1).to_string();
   SMELT_DEBUG("SETSTATUS " << str);
   _app_mainwinp->pop_status (); // pop is valid on empty status
   _app_mainwinp->push_status (str);
@@ -2338,7 +2346,7 @@ SmeltApplication::setstatus_cmd(SmeltVector&v)
 ////////////////////////////////////////////////////////////////
 /**** for emacs
   ++ Local Variables: ++
-  ++ compile-command: "g++ -std=gnu++0x -Wall -O -g $(pkg-config --cflags --libs gtksourceviewmm-3.0  gtkmm-3.0  gtk+-3.0) -o $HOME/bin/simplemelt-gtkmm-probe simplemelt-gtkmm-probe.cc" ++
+  ++ compile-command: "g++ -Wall -O -g $(pkg-config --cflags --libs gtksourceviewmm-3.0  gtkmm-3.0  gtk+-3.0) -o $HOME/bin/simplemelt-gtkmm-probe simplemelt-gtkmm-probe.cc" ++
   ++ End: ++
   Not needed compilation-directory: "."
  ****/
