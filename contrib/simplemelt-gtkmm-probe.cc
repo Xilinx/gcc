@@ -2348,5 +2348,7 @@ SmeltApplication::setstatus_cmd(SmeltVector&v)
   ++ Local Variables: ++
   ++ compile-command: "g++ -Wall -O -g $(pkg-config --cflags --libs gtksourceviewmm-3.0  gtkmm-3.0  gtk+-3.0) -o $HOME/bin/simplemelt-gtkmm-probe simplemelt-gtkmm-probe.cc" ++
   ++ End: ++
-  Not needed compilation-directory: "."
+
+  To install, add a script or symlink called melt-probe somewhere in
+  your $PATH to get that program started from MELT probe mode.
  ****/

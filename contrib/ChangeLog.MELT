@@ -1,5 +1,9 @@
 
 2012-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.c: Improve trail comment about
+	installation.
+
+2012-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.c (SmeltApplication::tracemsg_cmd)
 	(SmeltApplication::showfile_cmd, SmeltApplication::pushstatus_cmd)
 	(SmeltApplication::setstatus_cmd): Copy the string argument.

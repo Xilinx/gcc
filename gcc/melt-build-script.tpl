@@ -94,6 +94,11 @@ if [ -z "$GCCMELT_CC1" ]; then
    meltbuild_error  [+(.(fromline))+] missing GCCMELT_CC1
 fi
 
+if [ ! -f meltrunsup.h ]; then 
+    meltbuild_symlink $GCCMELT_MELTSOURCEDIR/generated/meltrunsup.h meltrunsup.h 
+    meltbuild_info  [+(.(fromline))+] symlinking meltrunsup.h header
+fi
+
 GCCMELT_RUNTIME_DEPENDENCY_MD5SUM=$($MD5SUM "$GCCMELT_RUNTIME_DEPENDENCY"  | cut -b 1-32)
 
 case $melt_overall_goal in

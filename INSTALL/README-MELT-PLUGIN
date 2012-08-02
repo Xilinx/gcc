@@ -263,9 +263,15 @@ NEWS for 0.9.6 MELT plugin for GCC 4.6 & 4.7
 
    Much more interfaces to Gimple & Trees...
 
-################################################################
-NEWS for 0.9.5 MELT plugin for GCC 4.6 & 4.7
-[[April 12th 2012]] 
+   The PPL (Parma Polyhedra Library) MELT binding is obsolete and will
+be soon removed (see http://bugseng.com/products/ppl/ for more about
+PPL, which is used in GCC-4.6 & GCC-4.7 for Graphite & Cloog, but won't
+be used in GCC 4.8). Hence, avoid e.g. having values of
+DISCR_PPL_CONSTRAINT_SYSTEM or using primitives or stuff of c-types
+like :ppl_coefficient etc...
+
+################################################################ NEWS
+for 0.9.5 MELT plugin for GCC 4.6 & 4.7 [[April 12th 2012]]
 
    Language improvements
    =====================
