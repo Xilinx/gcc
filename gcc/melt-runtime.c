@@ -9979,7 +9979,7 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
 		"MELT plugin will give debugging messages after mode processing"
 		" with obsolete -fplugin-arg-melt-debug. Use -fplugin-arg-melt-debugging=mode instead.");
       }
-    if (debuggingstr && *debuggingstr &&  !strchr("Nn0", debuggingstr) && strcmp(debuggingstr, "no"))
+    if (debuggingstr && *debuggingstr &&  !strrchr("Nn0", debuggingstr[0]))
       {
 	if (!strcmp (debuggingstr, "all")) 
 	  {
