@@ -1,5 +1,5 @@
 Short installation instructions for MELT as a plugin to an installed
-gcc-4.6 enabled for plugins.
+gcc-4.7 enabled for plugins.
 
 See also http://gcc.gnu.org/wiki/MELT and http://gcc-melt.org/
 
@@ -10,16 +10,16 @@ matching and enabling functional/applicative/reflective programming
 styles, to ease development of GCC extensions.  MELT is translated to
 C code (and the MELT translator is implemented in MELT).
 
-If installing MELT as plugin to some existing gcc-4.6 installation
+If installing MELT as plugin to some existing gcc-4.7 installation
 tree, with the support of plugins enabled.
 
 
 ################ quick steps for Debian/Unstable or Ubuntu or derived distributions ####
 
 ## Run as root (e.g. with sudo):
-  apt-get install gcc-4.6 g++-4.6 make texinfo texi2html autogen gawk
-  apt-get build-dep gcc-4.6
-  apt-get install libppl-dev libppl-c-dev gcc-4.6-plugin-dev 
+  apt-get install gcc-4.7 g++-4.7 make texinfo texi2html autogen gawk
+  apt-get build-dep gcc-4.7
+  apt-get install libppl-dev libppl-c-dev gcc-4.7-plugin-dev 
 
 ## then retrieve the MELT plugin release, and cd into it, then
   make all
@@ -47,9 +47,8 @@ tree, with the support of plugins enabled.
 
 ################ step 1
 
-First, ensure that GCC 4.6 is correctly installed and has been built
-with plugins enabled, for example (on a Debian Unstable or
-Experimental, package gcc-4.6):
+First, ensure that GCC 4.6 or 4.7 is correctly installed and has been built
+with plugins enabled, for example (on a Debian Unstable, package gcc-4.6):
 
  % gcc-4.6 -v
 Using built-in specs.
@@ -227,6 +226,9 @@ NEWS for 0.9.6 MELT plugin for GCC 4.6 & 4.7
    rebuild again MELT.
 
    Add support for timers & child processes...
+
+   Debugging run works well with plugin using
+   -fplugin-arg-melt-debugging=all (or =mode).
 
    Library improvment
    ==================
