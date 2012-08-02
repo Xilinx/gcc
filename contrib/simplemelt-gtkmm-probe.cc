@@ -463,6 +463,7 @@ public:
     add(_mainvbox);
     Glib::ustring labmarkstr = Glib::ustring::compose
                                ("<big><span color='darkred'>Simple Gcc Melt gtkmm-probe</span></big>\n"
+				"<span color='blue'>See <span color='darkgreen'>gcc-melt.org</span></span>\n"
                                 "<small>pid %1 on <tt>%2</tt></small>",
                                 (int)(getpid()), g_get_host_name());
     _mainlabel.set_markup(labmarkstr);

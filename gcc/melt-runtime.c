@@ -9969,14 +9969,40 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
     const char *dbgstr = melt_argument ("debug");
     const char *debuggingstr = melt_argument ("debugging");
     /* debug=n or debug=0 is handled as no debug */
-    if (dbgstr && (!dbgstr[0] || !strchr("Nn0", dbgstr[0]))) {
-      inform (UNKNOWN_LOCATION,
-              "MELT option -fplugin-arg-melt-debug will become obsolete, same as -fplugin-arg-melt-debugging=mode");
-      melt_flag_debug = 0;
-      melt_debugging_after_mode = 1;
-    }
-    if (debuggingstr && *debuggingstr && strncasecmp(debuggingstr, "no", 2))
-      melt_flag_debug = 1;
+    if (dbgstr && (!dbgstr[0] || !strchr("Nn0", dbgstr[0]))) 
+      {
+	inform (UNKNOWN_LOCATION,
+		"MELT plugin option -fplugin-arg-melt-debug is obsolete, same as -fplugin-arg-melt-debugging=mode");
+	melt_flag_debug = 0;
+	melt_debugging_after_mode = 1;
+	inform (UNKNOWN_LOCATION, 
+		"MELT plugin will give debugging messages after mode processing"
+		" with obsolete -fplugin-arg-melt-debug. Use -fplugin-arg-melt-debugging=mode instead.");
+      }
+    if (debuggingstr && *debuggingstr &&  !strchr("Nn0", debuggingstr) && strcmp(debuggingstr, "no"))
+      {
+	if (!strcmp (debuggingstr, "all")) 
+	  {
+	    inform (UNKNOWN_LOCATION,
+		    "MELT plugin is giving all debugging messages.");
+	    melt_flag_debug = 1;
+	    
+	  }
+	else if (!strcmp (debuggingstr, "mode"))
+	  {
+	    melt_flag_debug = 0;
+	    melt_debugging_after_mode = 1;
+	    inform (UNKNOWN_LOCATION, 
+		    "MELT plugin will give debugging messages after mode processing.");
+	  }
+	else
+	  {
+	    warning (0,
+		     "MELT plugin gets unrecognized -fmelt-arg-plugin-debugging=%s option, "
+		     "expects 'mode','all', or 'no'",
+		     debuggingstr);
+	  }
+      }
   }
   /* When MELT is a plugin, we need to process the bootstrapping
      argument. When MELT is a branch, the melt_argument function is
@@ -9993,18 +10019,19 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
       melt_flag_generate_work_link = 1;
   }
 #else /*!MELT_IS_PLUGIN*/
-  if (melt_flag_debug) {
+  if (melt_flag_debug) {	/* for the MELT branch */
     const char* debuggingstr = melt_argument ("debugging");
-    if (debuggingstr && !strcasecmp(debuggingstr, "mode")) {
-      /* We forcibly clear the melt_flag_debug, which will be set
-         in meltgc_do_initial_mode. */
-      melt_flag_debug = 0;
-      melt_debugging_after_mode = 1;
-      inform (UNKNOWN_LOCATION, "MELT will give debugging messages after mode processing");
-    }
+    if (debuggingstr && !strcasecmp(debuggingstr, "mode")) 
+      {
+	/* We forcibly clear the melt_flag_debug, which will be set
+	   in meltgc_do_initial_mode. */
+	melt_flag_debug = 0;
+	melt_debugging_after_mode = 1;
+	inform (UNKNOWN_LOCATION, "MELT branch will give debugging messages after mode processing");
+      }
     if (!debuggingstr) {
       inform (UNKNOWN_LOCATION,
-              "MELT option -fmelt-debug will become obsolete, same as -fmelt-debugging=mode");
+              "MELT branch option -fmelt-debug will become obsolete, same as -fmelt-debugging=mode");
       melt_flag_debug = 0;
       melt_debugging_after_mode = 1;
     }

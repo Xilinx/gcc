@@ -1,5 +1,9 @@
 
 2012-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.c (SmeltMainWindow): Mention gcc-melt.org
+	in title message.
+
+2012-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.c: Improve trail comment about
 	installation.
 

@@ -1,5 +1,9 @@
 
 2012-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_really_initialize): Plugin can run with
+	debugging.
+
+2012-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build-script.tpl: Symlink meltrunsup.h
 
 	* melt-build-script.sh: Regenerate.
