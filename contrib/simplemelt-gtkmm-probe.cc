@@ -1420,14 +1420,16 @@ SmeltFile::SmeltFile(SmeltMainWindow*mwin,const std::string&filepath,long num)
     throw smelt_domain_error("SmeltFile: invalid shown file number",smelt_long_to_string(num));
   if (filepath.empty() || mainsfiledict_.find(filepath) != mainsfiledict_.end())
     throw smelt_domain_error("SmeltFile: invalid shown file name",filepath);
+  Glib::RefPtr<Gsv::Buffer> sbuf = _sfilview.get_source_buffer();
   SMELT_DEBUG("guessing language for filepath=" << filepath);
+  // sometimes no language is guessed, i.e. when #include-ing foo.def
   Glib::RefPtr<Gsv::LanguageManager> langman = SmeltApplication::instance()->langman();
   Glib::RefPtr<Gsv::Language> lang = langman->guess_language(filepath,std::string());
-  assert (lang);
-  SMELT_DEBUG("guessed lang id=" << (lang->get_id().c_str()) <<
-              " name=" << (lang->get_name().c_str()));
-  Glib::RefPtr<Gsv::Buffer> sbuf = _sfilview.get_source_buffer();
-  sbuf->set_language(lang);
+  if (lang) {
+    SMELT_DEBUG("guessed lang id=" << (lang->get_id().c_str()) <<
+		" name=" << (lang->get_name().c_str()));
+    sbuf->set_language(lang);
+  }
   _sfilview.set_editable(false);
   _sfilview.set_show_line_numbers(true);
   _sfilview.set_show_line_marks(true);
