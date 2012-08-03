@@ -1,27 +1,30 @@
 
 2012-08-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.cc: More meaning window titles.
+
+2012-08-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.c (notebook_append_page): Make it
 	scrollable when more than 8 pages...
 
 2012-08-03  Basile Starynkevitch  <basile@starynkevitch.net>
-	* simplemelt-gtkmm-probe.c: Add pseudo file handling, for location
+	* simplemelt-gtkmm-probe.cc: Add pseudo file handling, for location
 	from <built-in> etc...
 
 2012-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
-	* simplemelt-gtkmm-probe.c (SmeltMainWindow): Mention gcc-melt.org
+	* simplemelt-gtkmm-probe.cc (SmeltMainWindow): Mention gcc-melt.org
 	in title message.
 
 2012-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
-	* simplemelt-gtkmm-probe.c: Improve trail comment about
+	* simplemelt-gtkmm-probe.cc: Improve trail comment about
 	installation.
 
 2012-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
-	* simplemelt-gtkmm-probe.c (SmeltApplication::tracemsg_cmd)
+	* simplemelt-gtkmm-probe.cc (SmeltApplication::tracemsg_cmd)
 	(SmeltApplication::showfile_cmd, SmeltApplication::pushstatus_cmd)
 	(SmeltApplication::setstatus_cmd): Copy the string argument.
 
 2012-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
-	* simplemelt-gtkmm-probe.c: Backport to C++1998, not C++2011!
+	* simplemelt-gtkmm-probe.cc: Backport to C++1998, not C++2011!
 
 2012-07-31  Basile Starynkevitch  <basile@starynkevitch.net>
 

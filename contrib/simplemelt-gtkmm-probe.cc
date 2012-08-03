@@ -464,8 +464,9 @@ public:
   SmeltMainWindow() :
     Gtk::ApplicationWindow() {
     SMELT_DEBUG ("constructing main window " << (void*)this);
-    set_border_width(6);
-    set_default_size(480,380);
+    set_border_width (5);
+    set_default_size (520,400);
+    set_title (Glib::ustring::compose("MELT probe pid %1 main window", (int)getpid()));
     add(_mainvbox);
     Glib::ustring labmarkstr = Glib::ustring::compose
                                ("<big><span color='darkred'>Simple Gcc Melt gtkmm-probe</span></big>\n"
@@ -1718,7 +1719,7 @@ SmeltLocationDialog::SmeltLocationDialog(SmeltLocationInfo*info)
   _sld_swin.set_policy (Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
   _sld_swin.add(_sld_view);
   _sld_swin.set_min_content_height(200);
-  set_title(Glib::ustring::compose("MELT info #%1", info->num()));
+  set_title(Glib::ustring::compose("MELT probe info #%1", info->num()));
   set_secondary_text
   (Glib::ustring::compose
    ("<i>MELT</i> about <tt>%1</tt> [#%2]\n"
@@ -1965,6 +1966,7 @@ SmeltTraceWindow::SmeltTraceWindow()
 {
   set_border_width(5);
   set_default_size(380,280);
+  set_title (Glib::ustring::compose("MELT probe pid %1 trace", (int)(getpid())));
   add(_tracevbox);
   Glib::ustring labmarkstr = Glib::ustring::compose
                              ("<big><span color='darkred'>Trace Gcc MELT gtkmm-probe</span></big>\n"
