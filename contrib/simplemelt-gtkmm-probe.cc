@@ -515,6 +515,8 @@ public:
   }
   void notebook_append_page(Gtk::Widget&child,const Glib::ustring&markup) {
     Gtk::Label lab;
+    if (_mainnotebook.get_n_pages() == 8)
+      _mainnotebook.set_scrollable(true);
     lab.set_markup(markup);
     _mainnotebook.append_page(child,lab);
     _mainnotebook.show_all();

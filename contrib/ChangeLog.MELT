@@ -1,5 +1,9 @@
 
 2012-08-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.c (notebook_append_page): Make it
+	scrollable when more than 8 pages...
+
+2012-08-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.c: Add pseudo file handling, for location
 	from <built-in> etc...
 
