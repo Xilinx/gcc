@@ -1,5 +1,10 @@
 
 2012-08-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.cc (SmeltMainWindow::postpone_show_all_from): New function.
+	(SmeltMainWindow::postpone_show_all_cb): New callback.
+	Add postponed show at various places.
+
+2012-08-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.cc (SmeltFile::SmeltFile): Handle when no language is guessed.
 
 2012-08-03  Basile Starynkevitch  <basile@starynkevitch.net>

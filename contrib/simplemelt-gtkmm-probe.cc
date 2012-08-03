@@ -450,6 +450,8 @@ class SmeltMainWindow : public Gtk::ApplicationWindow {
   Gtk::Statusbar _mainstatusbar;
   Glib::RefPtr<Gtk::ActionGroup> _mainactgroup;
   static std::map<long,SmeltLocationInfo*> mainlocinfmapnum_;
+  sigc::connection _mainshowconn;		// connection to show later all the main window
+  int _mainshowfromline;
   static SmeltLocationInfo* shown_location_by_number (long l) {
     if (l == 0) return (SmeltLocationInfo*)SMELT_NULLPTR;
     std::map<long,SmeltLocationInfo*>::iterator itsloc = mainlocinfmapnum_.find(l);
@@ -457,15 +459,18 @@ class SmeltMainWindow : public Gtk::ApplicationWindow {
     return itsloc->second;
   }
   ////
+  bool postpone_show_all_cb (void);
 public:
   void* thisptr() const {
     return (void*) this;
   }; // for debugging
   SmeltMainWindow() :
-    Gtk::ApplicationWindow() {
+    Gtk::ApplicationWindow(),
+    _mainshowfromline(0) {
     SMELT_DEBUG ("constructing main window " << (void*)this);
     set_border_width (5);
-    set_default_size (520,400);
+    set_default_size (620,440);
+    set_resizable (true);
     set_title (Glib::ustring::compose("MELT probe pid %1 main window", (int)getpid()));
     add(_mainvbox);
     Glib::ustring labmarkstr = Glib::ustring::compose
@@ -520,7 +525,7 @@ public:
       _mainnotebook.set_scrollable(true);
     lab.set_markup(markup);
     _mainnotebook.append_page(child,lab);
-    _mainnotebook.show_all();
+    postpone_show_all_from(__LINE__);
   }
   void on_version_show(void);
   void show_file(const std::string&path, long num);
@@ -531,6 +536,7 @@ public:
   void pop_status(void);
   void remove_status(guint msgid);
   void remove_all_status(void);
+  void postpone_show_all_from (int lin);
 };        // end SmeltMainWindow
 
 
@@ -1472,9 +1478,9 @@ SmeltFile::SmeltFile(SmeltMainWindow*mwin,const std::string&filepath,long num)
     vbox->pack_start(*Gtk::manage(labtit),Gtk::PACK_SHRINK);
     vbox->pack_start(*Gtk::manage(new Gtk::Separator(Gtk::ORIENTATION_HORIZONTAL)),Gtk::PACK_SHRINK);
     vbox->pack_start(*Gtk::manage(scrowin),Gtk::PACK_EXPAND_WIDGET);
-    scrowin->show_all();
     mwin->notebook_append_page(*Gtk::manage(vbox),labstr);
   }
+  mwin->postpone_show_all_from(__LINE__);
   mainsfilemapnum_[num] = this;
   mainsfiledict_[filepath] = this;
 }
@@ -1539,6 +1545,7 @@ SmeltFile::SmeltFile(SmeltMainWindow*mwin,SmeltFile::pseudofile_en pseudokind,lo
   }
   mainsfilemapnum_[num] = this;
   mainsfiledict_[pseudopath] = this;
+  mwin->postpone_show_all_from(__LINE__);
   SMELT_DEBUG("done num=" << num << " for pseudopath" << pseudopath);
 }
 
@@ -1554,6 +1561,32 @@ SmeltFile::~SmeltFile()
   mainsfiledict_.erase (_sfilname);
 }
 
+
+
+void
+SmeltMainWindow::postpone_show_all_from(int lin)
+{
+  if (_mainshowconn) 
+    return;
+  SMELT_DEBUG("postponed show all from line " << lin);
+  _mainshowconn = 
+    Glib::signal_timeout().connect(sigc::mem_fun(*this,&SmeltMainWindow::postpone_show_all_cb),
+				   200);
+  _mainshowfromline = lin;
+}
+
+// callback for timeout...
+bool 
+SmeltMainWindow::postpone_show_all_cb (void)
+{
+  int fromlin =  _mainshowfromline;
+  _mainshowfromline = 0;
+  _mainshowconn.disconnect();
+  SMELT_DEBUG("postponed show all from line " << fromlin);
+  show_all();
+  return false;
+}
+
 void
 SmeltMainWindow::show_file(const std::string&path, long num)
 {
@@ -1566,6 +1599,7 @@ SmeltMainWindow::show_file(const std::string&path, long num)
       throw smelt_domain_error("invalid pseudo file to show", path);
   } else
     new SmeltFile(this,path,num);
+  postpone_show_all_from(__LINE__);
 }
 
 
@@ -1617,8 +1651,8 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
   but->signal_clicked().connect(sigc::mem_fun(*inf,
                                 &SmeltLocationInfo::on_update));
   but->show();
-  sfil->view().show_all ();
   sfil->view().queue_draw();
+  postpone_show_all_from(__LINE__);
   SMELT_DEBUG("added mark but@" << (void*) but);
 }
 
@@ -1860,6 +1894,7 @@ SmeltMainWindow::addinfo_location(long marknum, const std::string& title, const 
 guint
 SmeltMainWindow::push_status(const std::string&msg)
 {
+  postpone_show_all_from(__LINE__);
   return _mainstatusbar.push(msg);
 }
 
@@ -1867,6 +1902,7 @@ SmeltMainWindow::push_status(const std::string&msg)
 void
 SmeltMainWindow::pop_status(void)
 {
+  postpone_show_all_from(__LINE__);
   _mainstatusbar.pop();
 }
 
@@ -1874,6 +1910,7 @@ SmeltMainWindow::pop_status(void)
 void
 SmeltMainWindow::remove_status(guint msgid)
 {
+  postpone_show_all_from(__LINE__);
   _mainstatusbar.remove_message(msgid);
 }
 
@@ -1881,6 +1918,7 @@ SmeltMainWindow::remove_status(guint msgid)
 void
 SmeltMainWindow::remove_all_status(void)
 {
+  postpone_show_all_from(__LINE__);
   _mainstatusbar.remove_all_messages();
 }
 
@@ -1914,6 +1952,7 @@ SmeltMainWindow::on_version_show(void)
   SmeltApplication::instance()->sendreq(SmeltApplication::instance()->outreq() << "VERSION_prq");
   int res = dial.run();
   SMELT_DEBUG("got res=" << res);
+  postpone_show_all_from(__LINE__);
 }
 
 ////////////////////////////////////////////////////////////////
