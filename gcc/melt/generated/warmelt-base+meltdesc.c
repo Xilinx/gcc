@@ -19,7 +19,7 @@
 	     #endif /*__cplusplus */
 	     
 /* version of the GCC compiler & MELT runtime generating this */
-const char melt_genversionstr[]="4.8.0 20120702 (experimental) [melt-branch revision 190077] MELT_0.9.6.c"
+const char melt_genversionstr[]="4.8.0 20120702 (experimental) [melt-branch revision 190114] MELT_0.9.6-d"
 
 	     #ifdef __cplusplus
 	     " (in C++)"
@@ -28,17 +28,17 @@ const char melt_genversionstr[]="4.8.0 20120702 (experimental) [melt-branch revi
 	     #endif
 					;
 	     
-const char melt_versionmeltstr[]="0.9.6.c [melt-branch_revision_190066]";
+const char melt_versionmeltstr[]="0.9.6-d [melt-branch_revision_190114]";
 
 /* source name & real path of the module */
 /*MELTMODULENAME meltbuild-sources/warmelt-base */
 const char melt_modulename[]="warmelt-base";
-const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown-linux-gnu/4.8.0/melt-modules/0.9.6.b/warmelt-base";
+const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown-linux-gnu/4.8.0/melt-modules/0.9.6.c/warmelt-base";
 
 /* hash of preprocessed melt-run.h generating this */
-const char melt_prepromd5meltrun[]="bafd42c7aca2cb9476468fe400c5e0d7";
+const char melt_prepromd5meltrun[]="7f6f3e92882fd89c25cccfc53f731aca";
 /* hexmd5checksum of primary C file */
-const char melt_primaryhexmd5[]="ebeae2fa47c293b7bd719fae5fd53068";
+const char melt_primaryhexmd5[]="4d4693ddd261d2989cf4323a53307511";
 
 /* hexmd5checksum of secondary C files */
 const char* const melt_secondaryhexmd5tab[]={
@@ -52,10 +52,10 @@ const char* const melt_secondaryhexmd5tab[]={
 const int melt_lastsecfileindex=3;
 
 /* cumulated checksum of primary & secondary files */
-const char melt_cumulated_hexmd5[]="5e25242b84777bdce70416baf14e0567" ;
+const char melt_cumulated_hexmd5[]="cb4efbf1e894144ef7215f032071e678" ;
 
 /* include the timestamp file */
-#define meltmod_warmelt_base_mds__5e25242b84777bdce70416baf14e0567 1
+#define meltmod_warmelt_base_mds__cb4efbf1e894144ef7215f032071e678 1
 #include "warmelt-base+melttime.h"
 	 
 

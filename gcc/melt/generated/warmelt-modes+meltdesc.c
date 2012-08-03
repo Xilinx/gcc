@@ -19,7 +19,7 @@
 	     #endif /*__cplusplus */
 	     
 /* version of the GCC compiler & MELT runtime generating this */
-const char melt_genversionstr[]="4.8.0 20120702 (experimental) [melt-branch revision 190077] MELT_0.9.6.c"
+const char melt_genversionstr[]="4.8.0 20120702 (experimental) [melt-branch revision 190114] MELT_0.9.6-d"
 
 	     #ifdef __cplusplus
 	     " (in C++)"
@@ -28,17 +28,17 @@ const char melt_genversionstr[]="4.8.0 20120702 (experimental) [melt-branch revi
 	     #endif
 					;
 	     
-const char melt_versionmeltstr[]="0.9.6.c [melt-branch_revision_190066]";
+const char melt_versionmeltstr[]="0.9.6-d [melt-branch_revision_190114]";
 
 /* source name & real path of the module */
 /*MELTMODULENAME meltbuild-sources/warmelt-modes */
 const char melt_modulename[]="warmelt-modes";
-const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown-linux-gnu/4.8.0/melt-modules/0.9.6.b/warmelt-modes";
+const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown-linux-gnu/4.8.0/melt-modules/0.9.6.c/warmelt-modes";
 
 /* hash of preprocessed melt-run.h generating this */
-const char melt_prepromd5meltrun[]="bafd42c7aca2cb9476468fe400c5e0d7";
+const char melt_prepromd5meltrun[]="7f6f3e92882fd89c25cccfc53f731aca";
 /* hexmd5checksum of primary C file */
-const char melt_primaryhexmd5[]="18bcdf9790d76a8e96f131a81ccee315";
+const char melt_primaryhexmd5[]="c842f591bd6e6e530114e8647d92059f";
 
 /* hexmd5checksum of secondary C files */
 const char* const melt_secondaryhexmd5tab[]={
@@ -52,10 +52,10 @@ const char* const melt_secondaryhexmd5tab[]={
 const int melt_lastsecfileindex=2;
 
 /* cumulated checksum of primary & secondary files */
-const char melt_cumulated_hexmd5[]="87345ecc77745ed9bc1576c0c121c06a" ;
+const char melt_cumulated_hexmd5[]="636ae3c8a0f0368a92ba1d9419e4bad7" ;
 
 /* include the timestamp file */
-#define meltmod_warmelt_modes_mds__87345ecc77745ed9bc1576c0c121c06a 1
+#define meltmod_warmelt_modes_mds__636ae3c8a0f0368a92ba1d9419e4bad7 1
 #include "warmelt-modes+melttime.h"
 	 
 

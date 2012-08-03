@@ -64879,10 +64879,11 @@ meltmod__warmelt_macro__initialmeltchunk_16 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 855
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1072*/ meltfptr[1071]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1072*/ meltfptr[1071]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_997__EXPAND_RESTLIST_AS_LIST#0",
@@ -64936,10 +64937,11 @@ meltmod__warmelt_macro__initialmeltchunk_16 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 899
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1076*/ meltfptr[1075]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1076*/ meltfptr[1075]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1001__EXPAND_RESTLIST_AS_TUPLE#0",
@@ -64966,10 +64968,11 @@ meltmod__warmelt_macro__initialmeltchunk_16 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 899
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1076*/ meltfptr[1075]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1076*/ meltfptr[1075]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1001__EXPAND_RESTLIST_AS_TUPLE#2",
@@ -64982,10 +64985,11 @@ meltmod__warmelt_macro__initialmeltchunk_16 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 899
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1076*/ meltfptr[1075]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1076*/ meltfptr[1075]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1001__EXPAND_RESTLIST_AS_TUPLE#3",
@@ -65071,10 +65075,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 911
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1082*/ meltfptr[1081]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1082*/ meltfptr[1081]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1007__EXPAND_PAIRLIST_AS_LIST#0",
@@ -65109,10 +65114,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 950
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1084*/ meltfptr[1083]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1084*/ meltfptr[1083]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1009__EXPAND_PAIRLIST_AS_TUPLE#0",
@@ -65139,10 +65145,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 950
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1084*/ meltfptr[1083]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1084*/ meltfptr[1083]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1009__EXPAND_PAIRLIST_AS_TUPLE#2",
@@ -65155,10 +65162,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 950
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1084*/ meltfptr[1083]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1084*/ meltfptr[1083]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1009__EXPAND_PAIRLIST_AS_TUPLE#3",
@@ -65193,10 +65201,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 961
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1086*/ meltfptr[1085]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1086*/ meltfptr[1085]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1011__REGISTER_GENERATOR_DEVICE#0",
@@ -65223,10 +65232,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 961
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1086*/ meltfptr[1085]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1086*/ meltfptr[1085]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1011__REGISTER_GENERATOR_DEVICE#2",
@@ -65239,10 +65249,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 961
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1086*/ meltfptr[1085]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1086*/ meltfptr[1085]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1011__REGISTER_GENERATOR_DEVICE#3",
@@ -65348,10 +65359,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 986
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1094*/ meltfptr[1093]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1094*/ meltfptr[1093]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1019__EXPAND_APPLY#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -65363,10 +65375,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 986
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1094*/ meltfptr[1093]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1094*/ meltfptr[1093]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1019__EXPAND_APPLY#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -65447,10 +65460,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1006
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1098*/ meltfptr[1097]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1098*/ meltfptr[1097]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1023__EXPAND_MSEND#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -65462,10 +65476,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1006
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1098*/ meltfptr[1097]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1098*/ meltfptr[1097]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1023__EXPAND_MSEND#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -65477,10 +65492,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1006
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1098*/ meltfptr[1097]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1098*/ meltfptr[1097]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1023__EXPAND_MSEND#2",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -65506,10 +65522,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1252
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1100*/ meltfptr[1099]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1100*/ meltfptr[1099]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1056__MACROEXPAND_1#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -65521,10 +65538,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1252
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1100*/ meltfptr[1099]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1100*/ meltfptr[1099]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1056__MACROEXPAND_1#2",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -65536,10 +65554,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1252
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1100*/ meltfptr[1099]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1100*/ meltfptr[1099]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1056__MACROEXPAND_1#3",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -65551,10 +65570,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1252
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1100*/ meltfptr[1099]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1100*/ meltfptr[1099]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1056__MACROEXPAND_1#4",
 		   NULL != ( /*_.CLASS_KEYWORD__V18*/ meltfptr[17]));
@@ -65566,10 +65586,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1234
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1102*/ meltfptr[1101]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1102*/ meltfptr[1101]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1054__EXPAND_KEYWORDFUN#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -65581,10 +65602,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1234
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1102*/ meltfptr[1101]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1102*/ meltfptr[1101]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1054__EXPAND_KEYWORDFUN#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -65596,10 +65618,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1234
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1102*/ meltfptr[1101]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1102*/ meltfptr[1101]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1054__EXPAND_KEYWORDFUN#2",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -65611,10 +65634,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1234
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1102*/ meltfptr[1101]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1102*/ meltfptr[1101]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1054__EXPAND_KEYWORDFUN#3",
 		   NULL != ( /*_.LIST_TO_MULTIPLE__V10*/ meltfptr[9]));
@@ -65626,10 +65650,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1234
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1102*/ meltfptr[1101]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1102*/ meltfptr[1101]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1054__EXPAND_KEYWORDFUN#4",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -65677,10 +65702,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1252
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1100*/ meltfptr[1099]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1100*/ meltfptr[1099]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1056__MACROEXPAND_1#6",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -65692,10 +65718,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1252
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1100*/ meltfptr[1099]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1100*/ meltfptr[1099]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1056__MACROEXPAND_1#7",
 		   NULL != ( /*_.FIND_ENV__V26*/ meltfptr[25]));
@@ -65707,10 +65734,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1252
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1100*/ meltfptr[1099]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1100*/ meltfptr[1099]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1056__MACROEXPAND_1#8",
 		   NULL != ( /*_.CLASS_MACRO_BINDING__V27*/ meltfptr[26]));
@@ -65722,10 +65750,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1252
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1100*/ meltfptr[1099]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1100*/ meltfptr[1099]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1056__MACROEXPAND_1#9",
 		   NULL != ( /*_.CLASS_SELECTOR_BINDING__V28*/ meltfptr[27]));
@@ -65766,10 +65795,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1252
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1100*/ meltfptr[1099]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1100*/ meltfptr[1099]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1056__MACROEXPAND_1#11",
 		   NULL !=
@@ -65782,10 +65812,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1412
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1105*/ meltfptr[1104]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1105*/ meltfptr[1104]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1083__EXPAND_PRIMITIVE#0",
 		   NULL != ( /*_.CLASS_PRIMITIVE__V37*/ meltfptr[36]));
@@ -65797,10 +65828,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1412
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1105*/ meltfptr[1104]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1105*/ meltfptr[1104]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1083__EXPAND_PRIMITIVE#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -65812,10 +65844,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1412
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1105*/ meltfptr[1104]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1105*/ meltfptr[1104]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1083__EXPAND_PRIMITIVE#2",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -65891,10 +65924,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1252
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1100*/ meltfptr[1099]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1100*/ meltfptr[1099]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1056__MACROEXPAND_1#13",
 		   NULL !=
@@ -65907,10 +65941,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1096
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1107*/ meltfptr[1106]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1107*/ meltfptr[1106]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1035__EXPAND_CITERATION#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -65922,10 +65957,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1096
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1107*/ meltfptr[1106]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1107*/ meltfptr[1106]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1035__EXPAND_CITERATION#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -65937,10 +65973,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1096
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1107*/ meltfptr[1106]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1107*/ meltfptr[1106]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1035__EXPAND_CITERATION#2",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -65952,10 +65989,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1096
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1107*/ meltfptr[1106]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1107*/ meltfptr[1106]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1035__EXPAND_CITERATION#3",
 		   NULL != ( /*_.CLASS_CITERATOR__V20*/ meltfptr[19]));
@@ -65967,10 +66005,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1096
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1107*/ meltfptr[1106]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1107*/ meltfptr[1106]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1035__EXPAND_CITERATION#4",
 		   NULL != ( /*_.FRESH_ENV__V21*/ meltfptr[20]));
@@ -65996,10 +66035,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1852
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1109*/ meltfptr[1108]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1109*/ meltfptr[1108]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1149__LAMBDA_ARG_BINDINGS#0",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -66011,10 +66051,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1852
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1109*/ meltfptr[1108]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1109*/ meltfptr[1108]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1149__LAMBDA_ARG_BINDINGS#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -66026,10 +66067,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1852
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1109*/ meltfptr[1108]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1109*/ meltfptr[1108]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1149__LAMBDA_ARG_BINDINGS#2",
 		   NULL != ( /*_.CTYPE_VALUE__V47*/ meltfptr[46]));
@@ -66041,10 +66083,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1852
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1109*/ meltfptr[1108]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1109*/ meltfptr[1108]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1149__LAMBDA_ARG_BINDINGS#3",
 		   NULL != ( /*_.DISCR_MAP_OBJECTS__V48*/ meltfptr[47]));
@@ -66056,10 +66099,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1852
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1109*/ meltfptr[1108]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1109*/ meltfptr[1108]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1149__LAMBDA_ARG_BINDINGS#4",
 		   NULL != ( /*_.DISCR_LIST__V46*/ meltfptr[45]));
@@ -66071,10 +66115,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1852
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1109*/ meltfptr[1108]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1109*/ meltfptr[1108]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1149__LAMBDA_ARG_BINDINGS#5",
 		   NULL != ( /*_.DISCR_FORMAL_SEQUENCE__V49*/ meltfptr[48]));
@@ -66105,10 +66150,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1852
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1109*/ meltfptr[1108]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1109*/ meltfptr[1108]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1149__LAMBDA_ARG_BINDINGS#6",
 		   NULL != ( /*_.VALDATA___V1110*/ meltfptr[1109]));
@@ -66120,10 +66166,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1852
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1109*/ meltfptr[1108]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1109*/ meltfptr[1108]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1149__LAMBDA_ARG_BINDINGS#7",
 		   NULL !=
@@ -66136,10 +66183,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1852
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1109*/ meltfptr[1108]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1109*/ meltfptr[1108]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1149__LAMBDA_ARG_BINDINGS#8",
 		   NULL != ( /*_.CLASS_KEYWORD__V18*/ meltfptr[17]));
@@ -66151,10 +66199,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1852
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1109*/ meltfptr[1108]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1109*/ meltfptr[1108]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1149__LAMBDA_ARG_BINDINGS#9",
 		   NULL != ( /*_.CLASS_CTYPE__V51*/ meltfptr[50]));
@@ -66166,10 +66215,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1852
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1109*/ meltfptr[1108]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1109*/ meltfptr[1108]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1149__LAMBDA_ARG_BINDINGS#10",
@@ -66182,10 +66232,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1852
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1109*/ meltfptr[1108]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1109*/ meltfptr[1108]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1149__LAMBDA_ARG_BINDINGS#11",
@@ -66198,10 +66249,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1852
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1109*/ meltfptr[1108]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1109*/ meltfptr[1108]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1149__LAMBDA_ARG_BINDINGS#12",
@@ -66214,10 +66266,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1852
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1109*/ meltfptr[1108]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1109*/ meltfptr[1108]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1149__LAMBDA_ARG_BINDINGS#13",
@@ -66230,10 +66283,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1852
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1109*/ meltfptr[1108]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1109*/ meltfptr[1108]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1149__LAMBDA_ARG_BINDINGS#14",
@@ -66282,10 +66336,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1096
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1107*/ meltfptr[1106]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1107*/ meltfptr[1106]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1035__EXPAND_CITERATION#7",
 		   NULL != ( /*_.MULTIPLE_EVERY__V22*/ meltfptr[21]));
@@ -66297,10 +66352,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1096
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1107*/ meltfptr[1106]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1107*/ meltfptr[1106]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1035__EXPAND_CITERATION#8",
 		   NULL != ( /*_.PUT_ENV__V23*/ meltfptr[22]));
@@ -66312,10 +66368,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1141
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1112*/ meltfptr[1111]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1112*/ meltfptr[1111]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1043__LAMBDA_#0",
 		   NULL != ( /*_.PUT_ENV__V23*/ meltfptr[22]));
@@ -66334,10 +66391,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1096
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1107*/ meltfptr[1106]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1107*/ meltfptr[1106]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1035__EXPAND_CITERATION#9",
 		   NULL != ( /*_.VALROUT___V1112*/ meltfptr[1111]));
@@ -66399,10 +66457,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1252
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1100*/ meltfptr[1099]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1100*/ meltfptr[1099]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1056__MACROEXPAND_1#15",
 		   NULL != ( /*_.CLASS_CMATCHER_BINDING__V31*/ meltfptr[30]));
@@ -66414,10 +66473,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1159
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1114*/ meltfptr[1113]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1114*/ meltfptr[1113]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1046__EXPAND_CMATCHEXPR#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -66429,10 +66489,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1159
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1114*/ meltfptr[1113]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1114*/ meltfptr[1113]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1046__EXPAND_CMATCHEXPR#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -66444,10 +66505,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1159
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1114*/ meltfptr[1113]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1114*/ meltfptr[1113]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1046__EXPAND_CMATCHEXPR#2",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -66459,10 +66521,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1159
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1114*/ meltfptr[1113]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1114*/ meltfptr[1113]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1046__EXPAND_CMATCHEXPR#3",
 		   NULL != ( /*_.CLASS_CMATCHER__V24*/ meltfptr[23]));
@@ -66538,10 +66601,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1252
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1100*/ meltfptr[1099]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1100*/ meltfptr[1099]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1056__MACROEXPAND_1#17",
 		   NULL !=
@@ -66554,10 +66618,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1202
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1116*/ meltfptr[1115]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1116*/ meltfptr[1115]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1050__EXPAND_FUNMATCHEXPR#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -66569,10 +66634,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1202
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1116*/ meltfptr[1115]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1116*/ meltfptr[1115]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1050__EXPAND_FUNMATCHEXPR#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -66584,10 +66650,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1202
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1116*/ meltfptr[1115]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1116*/ meltfptr[1115]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1050__EXPAND_FUNMATCHEXPR#2",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -66599,10 +66666,11 @@ meltmod__warmelt_macro__initialmeltchunk_17 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1202
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1116*/ meltfptr[1115]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1116*/ meltfptr[1115]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1050__EXPAND_FUNMATCHEXPR#3",
 		   NULL != ( /*_.CLASS_FUNMATCHER__V25*/ meltfptr[24]));
@@ -66691,10 +66759,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1252
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1100*/ meltfptr[1099]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1100*/ meltfptr[1099]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1056__MACROEXPAND_1#19",
 		   NULL != ( /*_.CLASS_FIELD_BINDING__V33*/ meltfptr[32]));
@@ -66706,10 +66775,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1038
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1118*/ meltfptr[1117]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1118*/ meltfptr[1117]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1027__EXPAND_FIELDEXPR#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -66721,10 +66791,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1038
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1118*/ meltfptr[1117]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1118*/ meltfptr[1117]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1027__EXPAND_FIELDEXPR#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -66736,10 +66807,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1038
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1118*/ meltfptr[1117]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1118*/ meltfptr[1117]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1027__EXPAND_FIELDEXPR#2",
 		   NULL != ( /*_.CLASS_FIELD__V17*/ meltfptr[16]));
@@ -66751,10 +66823,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1038
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1118*/ meltfptr[1117]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1118*/ meltfptr[1117]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1027__EXPAND_FIELDEXPR#3",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -66766,10 +66839,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1038
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1118*/ meltfptr[1117]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1118*/ meltfptr[1117]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1027__EXPAND_FIELDEXPR#4",
 		   NULL != ( /*_.LIST_TO_MULTIPLE__V10*/ meltfptr[9]));
@@ -66781,10 +66855,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1038
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1118*/ meltfptr[1117]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1118*/ meltfptr[1117]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1027__EXPAND_FIELDEXPR#5",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -66796,10 +66871,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1038
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1118*/ meltfptr[1117]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1118*/ meltfptr[1117]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1027__EXPAND_FIELDEXPR#6",
 		   NULL != ( /*_.CLASS_KEYWORD__V18*/ meltfptr[17]));
@@ -66811,10 +66887,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1038
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1118*/ meltfptr[1117]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1118*/ meltfptr[1117]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1027__EXPAND_FIELDEXPR#7",
 		   NULL != ( /*_.CLASS_NAMED__V19*/ meltfptr[18]));
@@ -66876,10 +66953,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1252
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1100*/ meltfptr[1099]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1100*/ meltfptr[1099]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1056__MACROEXPAND_1#21",
 		   NULL != ( /*_.CLASS_FORMAL_BINDING__V34*/ meltfptr[33]));
@@ -66905,10 +66983,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1252
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1100*/ meltfptr[1099]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1100*/ meltfptr[1099]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1056__MACROEXPAND_1#23",
 		   NULL != ( /*_.CLASS_LET_BINDING__V35*/ meltfptr[34]));
@@ -66920,10 +66999,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1252
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1100*/ meltfptr[1099]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1100*/ meltfptr[1099]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1056__MACROEXPAND_1#24",
 		   NULL != ( /*_.CLASS_VALUE_BINDING__V36*/ meltfptr[35]));
@@ -66935,10 +67015,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1252
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1100*/ meltfptr[1099]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1100*/ meltfptr[1099]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1056__MACROEXPAND_1#25",
 		   NULL != ( /*_.CLASS_PRIMITIVE__V37*/ meltfptr[36]));
@@ -66950,10 +67031,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1252
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1100*/ meltfptr[1099]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1100*/ meltfptr[1099]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1056__MACROEXPAND_1#26",
 		   NULL != ( /*_.CLASS_SELECTOR__V7*/ meltfptr[6]));
@@ -66965,10 +67047,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1252
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1100*/ meltfptr[1099]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1100*/ meltfptr[1099]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1056__MACROEXPAND_1#27",
 		   NULL != ( /*_.CLASS_CITERATOR__V20*/ meltfptr[19]));
@@ -66980,10 +67063,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1252
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1100*/ meltfptr[1099]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1100*/ meltfptr[1099]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1056__MACROEXPAND_1#28",
 		   NULL != ( /*_.CLASS_CMATCHER__V24*/ meltfptr[23]));
@@ -66995,10 +67079,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1252
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1100*/ meltfptr[1099]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1100*/ meltfptr[1099]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1056__MACROEXPAND_1#29",
 		   NULL != ( /*_.CLASS_FUNMATCHER__V25*/ meltfptr[24]));
@@ -67010,10 +67095,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1252
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1100*/ meltfptr[1099]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1100*/ meltfptr[1099]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1056__MACROEXPAND_1#30",
 		   NULL != ( /*_.CLASS_FIELD__V17*/ meltfptr[16]));
@@ -67025,10 +67111,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1252
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1100*/ meltfptr[1099]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1100*/ meltfptr[1099]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1056__MACROEXPAND_1#31",
 		   NULL != ( /*_.VALROUT___V1119*/ meltfptr[1118]));
@@ -67054,10 +67141,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1252
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1100*/ meltfptr[1099]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1100*/ meltfptr[1099]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1056__MACROEXPAND_1#33",
 		   NULL != ( /*_.CLASS_NAMED__V19*/ meltfptr[18]));
@@ -67105,10 +67193,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1006
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1098*/ meltfptr[1097]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1098*/ meltfptr[1097]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1023__EXPAND_MSEND#4",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -68038,10 +68127,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1443
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1188*/ meltfptr[1187]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1188*/ meltfptr[1187]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1109__PATTERNEXPAND_PAIRLIST_AS_TUPLE#0",
@@ -68054,10 +68144,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1443
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1188*/ meltfptr[1187]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1188*/ meltfptr[1187]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1109__PATTERNEXPAND_PAIRLIST_AS_TUPLE#1",
@@ -68070,10 +68161,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1443
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1188*/ meltfptr[1187]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1188*/ meltfptr[1187]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1109__PATTERNEXPAND_PAIRLIST_AS_TUPLE#2",
@@ -68086,10 +68178,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1688
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1190*/ meltfptr[1189]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1190*/ meltfptr[1189]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1135__PATTERNEXPAND_1#0",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -68115,10 +68208,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1688
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1190*/ meltfptr[1189]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1190*/ meltfptr[1189]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1135__PATTERNEXPAND_1#2",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -68130,10 +68224,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1688
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1190*/ meltfptr[1189]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1190*/ meltfptr[1189]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1135__PATTERNEXPAND_1#3",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -68164,10 +68259,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1688
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1190*/ meltfptr[1189]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1190*/ meltfptr[1189]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1135__PATTERNEXPAND_1#4",
 		   NULL != ( /*_.VALDATA___V1191*/ meltfptr[1190]));
@@ -68193,10 +68289,11 @@ meltmod__warmelt_macro__initialmeltchunk_18 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1688
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1190*/ meltfptr[1189]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1190*/ meltfptr[1189]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1135__PATTERNEXPAND_1#6",
 		   NULL != ( /*_.VALBXINT___V1193*/ meltfptr[1192]));
@@ -68240,10 +68337,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1688
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1190*/ meltfptr[1189]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1190*/ meltfptr[1189]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1135__PATTERNEXPAND_1#7",
 		   NULL != ( /*_.VALDATA___V1194*/ meltfptr[1193]));
@@ -68269,10 +68367,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1688
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1190*/ meltfptr[1189]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1190*/ meltfptr[1189]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1135__PATTERNEXPAND_1#9",
 		   NULL != ( /*_.VALBXINT___V1196*/ meltfptr[1195]));
@@ -68284,10 +68383,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1688
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1190*/ meltfptr[1189]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1190*/ meltfptr[1189]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1135__PATTERNEXPAND_1#10",
 		   NULL != ( /*_.DISCR_INTEGER__V43*/ meltfptr[42]));
@@ -68299,10 +68399,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1688
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1190*/ meltfptr[1189]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1190*/ meltfptr[1189]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1135__PATTERNEXPAND_1#11",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -68328,10 +68429,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1688
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1190*/ meltfptr[1189]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1190*/ meltfptr[1189]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1135__PATTERNEXPAND_1#13",
 		   NULL != ( /*_.VALBXINT___V1197*/ meltfptr[1196]));
@@ -68343,10 +68445,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1535
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1199*/ meltfptr[1198]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1199*/ meltfptr[1198]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1131__PATTERNEXPAND_EXPR#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -68358,10 +68461,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1535
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1199*/ meltfptr[1198]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1199*/ meltfptr[1198]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1131__PATTERNEXPAND_EXPR#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -68387,10 +68491,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1535
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1199*/ meltfptr[1198]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1199*/ meltfptr[1198]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1131__PATTERNEXPAND_EXPR#3",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -68402,10 +68507,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1535
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1199*/ meltfptr[1198]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1199*/ meltfptr[1198]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1131__PATTERNEXPAND_EXPR#4",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -68417,10 +68523,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1535
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1199*/ meltfptr[1198]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1199*/ meltfptr[1198]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1131__PATTERNEXPAND_EXPR#5",
 		   NULL != ( /*_.FIND_ENV__V26*/ meltfptr[25]));
@@ -68432,10 +68539,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1535
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1199*/ meltfptr[1198]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1199*/ meltfptr[1198]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1131__PATTERNEXPAND_EXPR#6",
 		   NULL != ( /*_.CLASS_PATMACRO_BINDING__V45*/ meltfptr[44]));
@@ -68447,10 +68555,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1535
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1199*/ meltfptr[1198]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1199*/ meltfptr[1198]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1131__PATTERNEXPAND_EXPR#7",
 		   NULL != ( /*_.CLASS_CMATCHER_BINDING__V31*/ meltfptr[30]));
@@ -68462,10 +68571,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1535
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1199*/ meltfptr[1198]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1199*/ meltfptr[1198]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1131__PATTERNEXPAND_EXPR#8",
 		   NULL != ( /*_.CLASS_CMATCHER__V24*/ meltfptr[23]));
@@ -68477,10 +68587,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1457
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1201*/ meltfptr[1200]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1201*/ meltfptr[1200]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1114__PATMACEXPAND_FOR_MATCHER#0",
@@ -68493,10 +68604,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1457
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1201*/ meltfptr[1200]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1201*/ meltfptr[1200]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1114__PATMACEXPAND_FOR_MATCHER#1",
@@ -68523,10 +68635,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1457
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1201*/ meltfptr[1200]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1201*/ meltfptr[1200]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1114__PATMACEXPAND_FOR_MATCHER#3",
@@ -68539,10 +68652,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1457
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1201*/ meltfptr[1200]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1201*/ meltfptr[1200]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1114__PATMACEXPAND_FOR_MATCHER#4",
@@ -68555,10 +68669,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1457
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1201*/ meltfptr[1200]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1201*/ meltfptr[1200]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1114__PATMACEXPAND_FOR_MATCHER#5",
@@ -68571,10 +68686,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1457
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1201*/ meltfptr[1200]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1201*/ meltfptr[1200]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1114__PATMACEXPAND_FOR_MATCHER#6",
@@ -68587,10 +68703,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1457
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1201*/ meltfptr[1200]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1201*/ meltfptr[1200]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1114__PATMACEXPAND_FOR_MATCHER#7",
@@ -68603,10 +68720,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1470
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1202*/ meltfptr[1201]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1202*/ meltfptr[1201]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1122__LAMBDA_#0",
 		   NULL != ( /*_.CLASS_FORMAL_BINDING__V34*/ meltfptr[33]));
@@ -68618,10 +68736,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1470
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1202*/ meltfptr[1201]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1202*/ meltfptr[1201]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1122__LAMBDA_#1",
 		   NULL != ( /*_.CLASS_REFERENCE__V41*/ meltfptr[40]));
@@ -68633,10 +68752,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1470
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1202*/ meltfptr[1201]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1202*/ meltfptr[1201]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1122__LAMBDA_#2",
 		   NULL != ( /*_.CLASS_NAMED__V19*/ meltfptr[18]));
@@ -68655,10 +68775,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1457
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1201*/ meltfptr[1200]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1201*/ meltfptr[1200]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1114__PATMACEXPAND_FOR_MATCHER#8",
@@ -68671,10 +68792,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1457
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1201*/ meltfptr[1200]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1201*/ meltfptr[1200]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1114__PATMACEXPAND_FOR_MATCHER#9",
@@ -68701,10 +68823,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1457
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1201*/ meltfptr[1200]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1201*/ meltfptr[1200]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1114__PATMACEXPAND_FOR_MATCHER#11",
@@ -68717,10 +68840,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1482
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1203*/ meltfptr[1202]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1203*/ meltfptr[1202]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1123__LAMBDA_#0",
 		   NULL != ( /*_.CLASS_REFERENCE__V41*/ meltfptr[40]));
@@ -68746,10 +68870,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1482
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1203*/ meltfptr[1202]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1203*/ meltfptr[1202]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1123__LAMBDA_#2",
 		   NULL != ( /*_.CLASS_NAMED__V19*/ meltfptr[18]));
@@ -68768,10 +68893,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1457
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1201*/ meltfptr[1200]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1201*/ meltfptr[1200]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1114__PATMACEXPAND_FOR_MATCHER#12",
@@ -68784,10 +68910,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1457
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1201*/ meltfptr[1200]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1201*/ meltfptr[1200]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1114__PATMACEXPAND_FOR_MATCHER#13",
@@ -68800,10 +68927,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1457
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1201*/ meltfptr[1200]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1201*/ meltfptr[1200]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1114__PATMACEXPAND_FOR_MATCHER#14",
@@ -68852,10 +68980,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1501
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1205*/ meltfptr[1204]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1205*/ meltfptr[1204]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1124__PATTERN_WEIGHT_TUPLE#0",
@@ -68868,10 +68997,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1501
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1205*/ meltfptr[1204]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1205*/ meltfptr[1204]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1124__PATTERN_WEIGHT_TUPLE#1",
@@ -68898,10 +69028,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1501
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1205*/ meltfptr[1204]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1205*/ meltfptr[1204]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1124__PATTERN_WEIGHT_TUPLE#3",
@@ -68928,10 +69059,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1514
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1206*/ meltfptr[1205]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1206*/ meltfptr[1205]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1128__LAMBDA_#1",
 		   NULL != ( /*_.DISCR_CONSTANT_INTEGER__V44*/ meltfptr[43]));
@@ -68950,10 +69082,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1501
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1205*/ meltfptr[1204]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1205*/ meltfptr[1204]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1124__PATTERN_WEIGHT_TUPLE#4",
@@ -69016,10 +69149,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1535
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1199*/ meltfptr[1198]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1199*/ meltfptr[1198]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1131__PATTERNEXPAND_EXPR#12",
 		   NULL != ( /*_.DISCR_CONSTANT_INTEGER__V44*/ meltfptr[43]));
@@ -69031,10 +69165,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1535
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1199*/ meltfptr[1198]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1199*/ meltfptr[1198]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1131__PATTERNEXPAND_EXPR#13",
 		   NULL !=
@@ -69047,10 +69182,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1535
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1199*/ meltfptr[1198]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1199*/ meltfptr[1198]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1131__PATTERNEXPAND_EXPR#14",
 		   NULL != ( /*_.CLASS_FUNMATCHER__V25*/ meltfptr[24]));
@@ -69076,10 +69212,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1535
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1199*/ meltfptr[1198]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1199*/ meltfptr[1198]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1131__PATTERNEXPAND_EXPR#16",
 		   NULL != ( /*_.CLASS_VALUE_BINDING__V36*/ meltfptr[35]));
@@ -69091,10 +69228,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1535
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1199*/ meltfptr[1198]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1199*/ meltfptr[1198]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1131__PATTERNEXPAND_EXPR#17",
 		   NULL != ( /*_.CLASS_ANY_MATCHER__V40*/ meltfptr[39]));
@@ -69106,10 +69244,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1535
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1199*/ meltfptr[1198]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1199*/ meltfptr[1198]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1131__PATTERNEXPAND_EXPR#18",
 		   NULL != ( /*_.CLASS_NAMED__V19*/ meltfptr[18]));
@@ -69157,10 +69296,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1688
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1190*/ meltfptr[1189]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1190*/ meltfptr[1189]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1135__PATTERNEXPAND_1#15",
 		   NULL != ( /*_.VALBXINT___V1207*/ meltfptr[1206]));
@@ -69229,10 +69369,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1443
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1188*/ meltfptr[1187]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1188*/ meltfptr[1187]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1109__PATTERNEXPAND_PAIRLIST_AS_TUPLE#4",
@@ -69400,10 +69541,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1779
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1224*/ meltfptr[1223]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1224*/ meltfptr[1223]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1145__MACROEXPAND_TOPLEVEL_LIST#0",
@@ -69430,10 +69572,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1779
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1224*/ meltfptr[1223]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1224*/ meltfptr[1223]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1145__MACROEXPAND_TOPLEVEL_LIST#2",
@@ -69446,10 +69589,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1779
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1224*/ meltfptr[1223]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1224*/ meltfptr[1223]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1145__MACROEXPAND_TOPLEVEL_LIST#3",
@@ -69462,10 +69606,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1779
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1224*/ meltfptr[1223]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1224*/ meltfptr[1223]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1145__MACROEXPAND_TOPLEVEL_LIST#4",
@@ -69633,10 +69778,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1956
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1240*/ meltfptr[1239]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1240*/ meltfptr[1239]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1165__INSTALL_INITIAL_MACRO#0",
@@ -69649,10 +69795,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1956
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1240*/ meltfptr[1239]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1240*/ meltfptr[1239]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1165__INSTALL_INITIAL_MACRO#1",
@@ -69665,10 +69812,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1956
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1240*/ meltfptr[1239]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1240*/ meltfptr[1239]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1165__INSTALL_INITIAL_MACRO#2",
@@ -69681,10 +69829,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1956
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1240*/ meltfptr[1239]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1240*/ meltfptr[1239]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1165__INSTALL_INITIAL_MACRO#3",
@@ -69697,10 +69846,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1956
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1240*/ meltfptr[1239]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1240*/ meltfptr[1239]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1165__INSTALL_INITIAL_MACRO#4",
@@ -69754,10 +69904,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1969
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1244*/ meltfptr[1243]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1244*/ meltfptr[1243]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1169__INSTALL_INITIAL_PATMACRO#0",
@@ -69770,10 +69921,11 @@ meltmod__warmelt_macro__initialmeltchunk_19 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1969
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1244*/ meltfptr[1243]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1244*/ meltfptr[1243]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1169__INSTALL_INITIAL_PATMACRO#1",
@@ -69799,10 +69951,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1969
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1244*/ meltfptr[1243]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1244*/ meltfptr[1243]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1169__INSTALL_INITIAL_PATMACRO#2",
@@ -69815,10 +69968,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1969
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1244*/ meltfptr[1243]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1244*/ meltfptr[1243]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1169__INSTALL_INITIAL_PATMACRO#3",
@@ -69831,10 +69985,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1969
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1244*/ meltfptr[1243]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1244*/ meltfptr[1243]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1169__INSTALL_INITIAL_PATMACRO#4",
@@ -69996,10 +70151,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1991
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1253*/ meltfptr[1252]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1253*/ meltfptr[1252]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1178__WARN_IF_REDEFINED#0",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -70011,10 +70167,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1991
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1253*/ meltfptr[1252]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1253*/ meltfptr[1252]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1178__WARN_IF_REDEFINED#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -70026,10 +70183,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 1991
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1253*/ meltfptr[1252]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1253*/ meltfptr[1252]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1178__WARN_IF_REDEFINED#2",
 		   NULL != ( /*_.FIND_ENV__V26*/ meltfptr[25]));
@@ -70063,10 +70221,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2004
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1255*/ meltfptr[1254]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1255*/ meltfptr[1254]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1180__FLATTEN_FOR_C_CODE_EXPANSION#0",
@@ -70079,10 +70238,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2004
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1255*/ meltfptr[1254]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1255*/ meltfptr[1254]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1180__FLATTEN_FOR_C_CODE_EXPANSION#1",
@@ -70124,10 +70284,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2004
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1255*/ meltfptr[1254]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1255*/ meltfptr[1254]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1180__FLATTEN_FOR_C_CODE_EXPANSION#3",
@@ -70140,10 +70301,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2004
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1255*/ meltfptr[1254]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1255*/ meltfptr[1254]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1180__FLATTEN_FOR_C_CODE_EXPANSION#4",
@@ -70156,10 +70318,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2004
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1255*/ meltfptr[1254]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1255*/ meltfptr[1254]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1180__FLATTEN_FOR_C_CODE_EXPANSION#5",
@@ -70198,10 +70361,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1259*/ meltfptr[1258]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1259*/ meltfptr[1258]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1184__PARSE_PAIRLIST_C_CODE_EXPANSION#0",
@@ -70214,10 +70378,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1259*/ meltfptr[1258]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1259*/ meltfptr[1258]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1184__PARSE_PAIRLIST_C_CODE_EXPANSION#1",
@@ -70244,10 +70409,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1259*/ meltfptr[1258]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1259*/ meltfptr[1258]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1184__PARSE_PAIRLIST_C_CODE_EXPANSION#3",
@@ -70260,10 +70426,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1259*/ meltfptr[1258]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1259*/ meltfptr[1258]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1184__PARSE_PAIRLIST_C_CODE_EXPANSION#4",
@@ -70298,10 +70465,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2071
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1261*/ meltfptr[1260]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1261*/ meltfptr[1260]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1186__CHECK_C_EXPANSION#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -70313,10 +70481,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2071
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1261*/ meltfptr[1260]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1261*/ meltfptr[1260]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1186__CHECK_C_EXPANSION#1",
 		   NULL != ( /*_.CLASS_KEYWORD__V18*/ meltfptr[17]));
@@ -70328,10 +70497,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2071
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1261*/ meltfptr[1260]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1261*/ meltfptr[1260]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1186__CHECK_C_EXPANSION#2",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -70343,10 +70513,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2071
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1261*/ meltfptr[1260]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1261*/ meltfptr[1260]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1186__CHECK_C_EXPANSION#3",
 		   NULL != ( /*_.CLASS_NAMED__V19*/ meltfptr[18]));
@@ -70380,10 +70551,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2106
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1263*/ meltfptr[1262]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1263*/ meltfptr[1262]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1188__MEXPAND_DEFPRIMITIVE#0",
@@ -70396,10 +70568,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2106
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1263*/ meltfptr[1262]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1263*/ meltfptr[1262]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1188__MEXPAND_DEFPRIMITIVE#1",
@@ -70412,10 +70585,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2106
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1263*/ meltfptr[1262]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1263*/ meltfptr[1262]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1188__MEXPAND_DEFPRIMITIVE#2",
@@ -70428,10 +70602,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2106
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1263*/ meltfptr[1262]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1263*/ meltfptr[1262]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1188__MEXPAND_DEFPRIMITIVE#3",
@@ -70458,10 +70633,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2106
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1263*/ meltfptr[1262]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1263*/ meltfptr[1262]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1188__MEXPAND_DEFPRIMITIVE#5",
@@ -70474,10 +70650,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2106
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1263*/ meltfptr[1262]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1263*/ meltfptr[1262]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1188__MEXPAND_DEFPRIMITIVE#6",
@@ -70490,10 +70667,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2106
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1263*/ meltfptr[1262]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1263*/ meltfptr[1262]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1188__MEXPAND_DEFPRIMITIVE#7",
@@ -70506,10 +70684,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2106
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1263*/ meltfptr[1262]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1263*/ meltfptr[1262]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1188__MEXPAND_DEFPRIMITIVE#8",
@@ -70541,10 +70720,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2106
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1263*/ meltfptr[1262]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1263*/ meltfptr[1262]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1188__MEXPAND_DEFPRIMITIVE#9",
@@ -70557,10 +70737,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2106
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1263*/ meltfptr[1262]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1263*/ meltfptr[1262]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1188__MEXPAND_DEFPRIMITIVE#10",
@@ -70587,10 +70768,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2106
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1263*/ meltfptr[1262]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1263*/ meltfptr[1262]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1188__MEXPAND_DEFPRIMITIVE#12",
@@ -70617,10 +70799,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2106
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1263*/ meltfptr[1262]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1263*/ meltfptr[1262]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1188__MEXPAND_DEFPRIMITIVE#14",
@@ -70633,10 +70816,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2106
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1263*/ meltfptr[1262]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1263*/ meltfptr[1262]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1188__MEXPAND_DEFPRIMITIVE#15",
@@ -70649,10 +70833,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2106
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1263*/ meltfptr[1262]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1263*/ meltfptr[1262]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1188__MEXPAND_DEFPRIMITIVE#16",
@@ -70665,10 +70850,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2106
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1263*/ meltfptr[1262]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1263*/ meltfptr[1262]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1188__MEXPAND_DEFPRIMITIVE#17",
@@ -70709,10 +70895,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2106
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1263*/ meltfptr[1262]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1263*/ meltfptr[1262]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1188__MEXPAND_DEFPRIMITIVE#20",
@@ -70780,10 +70967,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2229
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1269*/ meltfptr[1268]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1269*/ meltfptr[1268]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1194__MEXPAND_DEFCITERATOR#0",
@@ -70796,10 +70984,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2229
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1269*/ meltfptr[1268]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1269*/ meltfptr[1268]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1194__MEXPAND_DEFCITERATOR#1",
@@ -70812,10 +71001,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2229
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1269*/ meltfptr[1268]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1269*/ meltfptr[1268]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1194__MEXPAND_DEFCITERATOR#2",
@@ -70828,10 +71018,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2229
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1269*/ meltfptr[1268]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1269*/ meltfptr[1268]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1194__MEXPAND_DEFCITERATOR#3",
@@ -70858,10 +71049,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2229
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1269*/ meltfptr[1268]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1269*/ meltfptr[1268]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1194__MEXPAND_DEFCITERATOR#5",
@@ -70874,10 +71066,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2229
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1269*/ meltfptr[1268]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1269*/ meltfptr[1268]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1194__MEXPAND_DEFCITERATOR#6",
@@ -70890,10 +71083,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2229
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1269*/ meltfptr[1268]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1269*/ meltfptr[1268]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1194__MEXPAND_DEFCITERATOR#7",
@@ -70920,10 +71114,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2229
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1269*/ meltfptr[1268]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1269*/ meltfptr[1268]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1194__MEXPAND_DEFCITERATOR#9",
@@ -70936,10 +71131,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2229
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1269*/ meltfptr[1268]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1269*/ meltfptr[1268]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1194__MEXPAND_DEFCITERATOR#10",
@@ -70952,10 +71148,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2229
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1269*/ meltfptr[1268]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1269*/ meltfptr[1268]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1194__MEXPAND_DEFCITERATOR#11",
@@ -70982,10 +71179,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2229
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1269*/ meltfptr[1268]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1269*/ meltfptr[1268]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1194__MEXPAND_DEFCITERATOR#13",
@@ -70998,10 +71196,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2229
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1269*/ meltfptr[1268]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1269*/ meltfptr[1268]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1194__MEXPAND_DEFCITERATOR#14",
@@ -71014,10 +71213,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2229
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1269*/ meltfptr[1268]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1269*/ meltfptr[1268]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1194__MEXPAND_DEFCITERATOR#15",
@@ -71044,10 +71244,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2229
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1269*/ meltfptr[1268]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1269*/ meltfptr[1268]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1194__MEXPAND_DEFCITERATOR#17",
@@ -71115,10 +71316,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2382
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1273*/ meltfptr[1272]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1273*/ meltfptr[1272]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1198__MEXPAND_DEFCMATCHER#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -71130,10 +71332,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2382
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1273*/ meltfptr[1272]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1273*/ meltfptr[1272]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1198__MEXPAND_DEFCMATCHER#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -71145,10 +71348,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2382
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1273*/ meltfptr[1272]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1273*/ meltfptr[1272]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1198__MEXPAND_DEFCMATCHER#2",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -71160,10 +71364,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2382
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1273*/ meltfptr[1272]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1273*/ meltfptr[1272]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1198__MEXPAND_DEFCMATCHER#3",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -71189,10 +71394,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2382
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1273*/ meltfptr[1272]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1273*/ meltfptr[1272]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1198__MEXPAND_DEFCMATCHER#5",
 		   NULL !=
@@ -71205,10 +71411,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2382
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1273*/ meltfptr[1272]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1273*/ meltfptr[1272]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1198__MEXPAND_DEFCMATCHER#6",
 		   NULL != ( /*_.CLASS_FORMAL_BINDING__V34*/ meltfptr[33]));
@@ -71220,10 +71427,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2382
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1273*/ meltfptr[1272]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1273*/ meltfptr[1272]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1198__MEXPAND_DEFCMATCHER#7",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -71235,10 +71443,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2382
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1273*/ meltfptr[1272]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1273*/ meltfptr[1272]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1198__MEXPAND_DEFCMATCHER#8",
 		   NULL != ( /*_.MULTIPLE_EVERY__V22*/ meltfptr[21]));
@@ -71250,10 +71459,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2382
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1273*/ meltfptr[1272]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1273*/ meltfptr[1272]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1198__MEXPAND_DEFCMATCHER#9",
 		   NULL != ( /*_.VALROUT___V1274*/ meltfptr[1273]));
@@ -71265,10 +71475,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2382
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1273*/ meltfptr[1272]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1273*/ meltfptr[1272]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1198__MEXPAND_DEFCMATCHER#10",
@@ -71281,10 +71492,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2382
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1273*/ meltfptr[1272]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1273*/ meltfptr[1272]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1198__MEXPAND_DEFCMATCHER#11",
@@ -71311,10 +71523,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2382
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1273*/ meltfptr[1272]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1273*/ meltfptr[1272]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1198__MEXPAND_DEFCMATCHER#13",
@@ -71341,10 +71554,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2382
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1273*/ meltfptr[1272]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1273*/ meltfptr[1272]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1198__MEXPAND_DEFCMATCHER#15",
@@ -71357,10 +71571,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2382
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1273*/ meltfptr[1272]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1273*/ meltfptr[1272]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1198__MEXPAND_DEFCMATCHER#16",
@@ -71373,10 +71588,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2382
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1273*/ meltfptr[1272]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1273*/ meltfptr[1272]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1198__MEXPAND_DEFCMATCHER#17",
@@ -71403,10 +71619,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2382
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1273*/ meltfptr[1272]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1273*/ meltfptr[1272]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1198__MEXPAND_DEFCMATCHER#19",
@@ -71474,10 +71691,11 @@ meltmod__warmelt_macro__initialmeltchunk_20 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2578
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1278*/ meltfptr[1277]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1278*/ meltfptr[1277]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1203__MEXPAND_DEFUNMATCHER#0",
@@ -71503,10 +71721,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2578
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1278*/ meltfptr[1277]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1278*/ meltfptr[1277]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1203__MEXPAND_DEFUNMATCHER#1",
@@ -71519,10 +71738,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2578
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1278*/ meltfptr[1277]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1278*/ meltfptr[1277]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1203__MEXPAND_DEFUNMATCHER#2",
@@ -71535,10 +71755,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2578
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1278*/ meltfptr[1277]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1278*/ meltfptr[1277]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1203__MEXPAND_DEFUNMATCHER#3",
@@ -71565,10 +71786,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2578
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1278*/ meltfptr[1277]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1278*/ meltfptr[1277]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1203__MEXPAND_DEFUNMATCHER#5",
@@ -71581,10 +71803,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2578
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1278*/ meltfptr[1277]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1278*/ meltfptr[1277]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1203__MEXPAND_DEFUNMATCHER#6",
@@ -71597,10 +71820,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2578
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1278*/ meltfptr[1277]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1278*/ meltfptr[1277]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1203__MEXPAND_DEFUNMATCHER#7",
@@ -71613,10 +71837,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2578
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1278*/ meltfptr[1277]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1278*/ meltfptr[1277]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1203__MEXPAND_DEFUNMATCHER#8",
@@ -71629,10 +71854,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2578
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1278*/ meltfptr[1277]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1278*/ meltfptr[1277]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1203__MEXPAND_DEFUNMATCHER#9",
@@ -71645,10 +71871,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2578
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1278*/ meltfptr[1277]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1278*/ meltfptr[1277]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1203__MEXPAND_DEFUNMATCHER#10",
@@ -71675,10 +71902,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2578
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1278*/ meltfptr[1277]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1278*/ meltfptr[1277]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1203__MEXPAND_DEFUNMATCHER#12",
@@ -71691,10 +71919,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2578
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1278*/ meltfptr[1277]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1278*/ meltfptr[1277]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1203__MEXPAND_DEFUNMATCHER#13",
@@ -71707,10 +71936,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2578
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1278*/ meltfptr[1277]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1278*/ meltfptr[1277]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1203__MEXPAND_DEFUNMATCHER#14",
@@ -71764,10 +71994,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2724
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1283*/ meltfptr[1282]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1283*/ meltfptr[1282]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1208__MEXPAND_DEFUN#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -71779,10 +72010,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2724
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1283*/ meltfptr[1282]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1283*/ meltfptr[1282]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1208__MEXPAND_DEFUN#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -71794,10 +72026,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2724
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1283*/ meltfptr[1282]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1283*/ meltfptr[1282]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1208__MEXPAND_DEFUN#2",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -71809,10 +72042,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2724
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1283*/ meltfptr[1282]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1283*/ meltfptr[1282]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1208__MEXPAND_DEFUN#3",
 		   NULL != ( /*_.FRESH_ENV__V21*/ meltfptr[20]));
@@ -71824,10 +72058,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2724
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1283*/ meltfptr[1282]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1283*/ meltfptr[1282]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1208__MEXPAND_DEFUN#4",
 		   NULL != ( /*_.CLASS_FUNCTION_BINDING__V55*/ meltfptr[54]));
@@ -71839,10 +72074,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2724
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1283*/ meltfptr[1282]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1283*/ meltfptr[1282]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1208__MEXPAND_DEFUN#5",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -71868,10 +72104,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2724
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1283*/ meltfptr[1282]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1283*/ meltfptr[1282]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1208__MEXPAND_DEFUN#7",
 		   NULL != ( /*_.PUT_ENV__V23*/ meltfptr[22]));
@@ -71883,10 +72120,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2724
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1283*/ meltfptr[1282]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1283*/ meltfptr[1282]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1208__MEXPAND_DEFUN#8",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -71912,10 +72150,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2724
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1283*/ meltfptr[1282]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1283*/ meltfptr[1282]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1208__MEXPAND_DEFUN#10",
 		   NULL != ( /*_.MULTIPLE_EVERY__V22*/ meltfptr[21]));
@@ -71927,10 +72166,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2724
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1283*/ meltfptr[1282]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1283*/ meltfptr[1282]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1208__MEXPAND_DEFUN#11",
 		   NULL != ( /*_.PUT_ENV__V23*/ meltfptr[22]));
@@ -71942,10 +72182,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2763
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1284*/ meltfptr[1283]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1284*/ meltfptr[1283]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1212__LAMBDA_#0",
 		   NULL != ( /*_.PUT_ENV__V23*/ meltfptr[22]));
@@ -71964,10 +72205,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2724
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1283*/ meltfptr[1282]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1283*/ meltfptr[1282]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1208__MEXPAND_DEFUN#12",
 		   NULL != ( /*_.VALROUT___V1284*/ meltfptr[1283]));
@@ -71979,10 +72221,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2724
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1283*/ meltfptr[1282]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1283*/ meltfptr[1282]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1208__MEXPAND_DEFUN#13",
 		   NULL != ( /*_.VALDATA___V1264*/ meltfptr[1263]));
@@ -72082,10 +72325,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2809
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1290*/ meltfptr[1289]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1290*/ meltfptr[1289]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1215__MEXPAND_DEFINE#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -72097,10 +72341,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2809
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1290*/ meltfptr[1289]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1290*/ meltfptr[1289]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1215__MEXPAND_DEFINE#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -72112,10 +72357,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2809
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1290*/ meltfptr[1289]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1290*/ meltfptr[1289]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1215__MEXPAND_DEFINE#2",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -72127,10 +72373,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2809
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1290*/ meltfptr[1289]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1290*/ meltfptr[1289]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1215__MEXPAND_DEFINE#3",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -72142,10 +72389,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2809
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1290*/ meltfptr[1289]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1290*/ meltfptr[1289]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1215__MEXPAND_DEFINE#4",
 		   NULL !=
@@ -72172,10 +72420,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2809
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1290*/ meltfptr[1289]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1290*/ meltfptr[1289]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1215__MEXPAND_DEFINE#6",
 		   NULL != ( /*_.PUT_ENV__V23*/ meltfptr[22]));
@@ -72187,10 +72436,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2809
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1290*/ meltfptr[1289]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1290*/ meltfptr[1289]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1215__MEXPAND_DEFINE#7",
 		   NULL != ( /*_.VALDATA___V1264*/ meltfptr[1263]));
@@ -72263,10 +72513,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2809
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1290*/ meltfptr[1289]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1290*/ meltfptr[1289]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1215__MEXPAND_DEFINE#11",
 		   NULL != ( /*_.VALDATA___V1291*/ meltfptr[1290]));
@@ -72278,10 +72529,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2809
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1290*/ meltfptr[1289]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1290*/ meltfptr[1289]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1215__MEXPAND_DEFINE#12",
 		   NULL != ( /*_.CLASS_FUNCTION_BINDING__V55*/ meltfptr[54]));
@@ -72293,10 +72545,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2809
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1290*/ meltfptr[1289]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1290*/ meltfptr[1289]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1215__MEXPAND_DEFINE#13",
 		   NULL != ( /*_.VALDATA___V1264*/ meltfptr[1263]));
@@ -72308,10 +72561,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2809
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1290*/ meltfptr[1289]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1290*/ meltfptr[1289]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1215__MEXPAND_DEFINE#14",
 		   NULL != ( /*_.FRESH_ENV__V21*/ meltfptr[20]));
@@ -72337,10 +72591,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2809
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1290*/ meltfptr[1289]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1290*/ meltfptr[1289]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1215__MEXPAND_DEFINE#16",
 		   NULL != ( /*_.CLASS_FORMAL_BINDING__V34*/ meltfptr[33]));
@@ -72352,10 +72607,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2809
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1290*/ meltfptr[1289]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1290*/ meltfptr[1289]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1215__MEXPAND_DEFINE#17",
 		   NULL != ( /*_.CTYPE_VALUE__V47*/ meltfptr[46]));
@@ -72367,10 +72623,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2809
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1290*/ meltfptr[1289]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1290*/ meltfptr[1289]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1215__MEXPAND_DEFINE#18",
 		   NULL != ( /*_.CLASS_NAMED__V19*/ meltfptr[18]));
@@ -72382,10 +72639,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2809
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1290*/ meltfptr[1289]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1290*/ meltfptr[1289]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1215__MEXPAND_DEFINE#19",
 		   NULL != ( /*_.MULTIPLE_EVERY__V22*/ meltfptr[21]));
@@ -72397,10 +72655,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2809
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1290*/ meltfptr[1289]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1290*/ meltfptr[1289]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1215__MEXPAND_DEFINE#20",
 		   NULL != ( /*_.PUT_ENV__V23*/ meltfptr[22]));
@@ -72412,10 +72671,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2904
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1293*/ meltfptr[1292]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1293*/ meltfptr[1292]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1221__LAMBDA_#0",
 		   NULL != ( /*_.PUT_ENV__V23*/ meltfptr[22]));
@@ -72434,10 +72694,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2809
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1290*/ meltfptr[1289]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1290*/ meltfptr[1289]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1215__MEXPAND_DEFINE#21",
 		   NULL != ( /*_.VALROUT___V1293*/ meltfptr[1292]));
@@ -72509,10 +72770,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2930
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1299*/ meltfptr[1298]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1299*/ meltfptr[1298]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1224__SCAN_DEFCLASS#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -72524,10 +72786,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2930
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1299*/ meltfptr[1298]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1299*/ meltfptr[1298]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1224__SCAN_DEFCLASS#1",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -72539,10 +72802,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2930
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1299*/ meltfptr[1298]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1299*/ meltfptr[1298]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1224__SCAN_DEFCLASS#2",
 		   NULL != ( /*_.CLASS_KEYWORD__V18*/ meltfptr[17]));
@@ -72573,10 +72837,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2930
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1299*/ meltfptr[1298]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1299*/ meltfptr[1298]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1224__SCAN_DEFCLASS#3",
 		   NULL != ( /*_.VALDATA___V1300*/ meltfptr[1299]));
@@ -72588,10 +72853,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2930
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1299*/ meltfptr[1298]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1299*/ meltfptr[1298]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1224__SCAN_DEFCLASS#4",
 		   NULL != ( /*_.FIND_ENV__V26*/ meltfptr[25]));
@@ -72603,10 +72869,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2930
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1299*/ meltfptr[1298]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1299*/ meltfptr[1298]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1224__SCAN_DEFCLASS#5",
 		   NULL != ( /*_.CLASS_CLASS_BINDING__V57*/ meltfptr[56]));
@@ -72618,10 +72885,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2930
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1299*/ meltfptr[1298]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1299*/ meltfptr[1298]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1224__SCAN_DEFCLASS#6",
 		   NULL != ( /*_.CLASS_VALUE_BINDING__V36*/ meltfptr[35]));
@@ -72633,10 +72901,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2930
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1299*/ meltfptr[1298]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1299*/ meltfptr[1298]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1224__SCAN_DEFCLASS#7",
 		   NULL != ( /*_.CLASS_CLASS__V58*/ meltfptr[57]));
@@ -72667,10 +72936,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2930
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1299*/ meltfptr[1298]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1299*/ meltfptr[1298]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1224__SCAN_DEFCLASS#8",
 		   NULL != ( /*_.VALDATA___V1302*/ meltfptr[1301]));
@@ -72682,10 +72952,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2930
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1299*/ meltfptr[1298]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1299*/ meltfptr[1298]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1224__SCAN_DEFCLASS#9",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -72697,10 +72968,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2930
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1299*/ meltfptr[1298]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1299*/ meltfptr[1298]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1224__SCAN_DEFCLASS#10",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -72731,10 +73003,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2930
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1299*/ meltfptr[1298]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1299*/ meltfptr[1298]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1224__SCAN_DEFCLASS#11",
 		   NULL != ( /*_.VALDATA___V1304*/ meltfptr[1303]));
@@ -72746,10 +73019,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 2930
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1299*/ meltfptr[1298]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1299*/ meltfptr[1298]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1224__SCAN_DEFCLASS#12",
 		   NULL != ( /*_.VALDATA___V1264*/ meltfptr[1263]));
@@ -72835,10 +73109,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1311*/ meltfptr[1310]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1311*/ meltfptr[1310]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1236__MEXPAND_DEFCLASS#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -72850,10 +73125,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1311*/ meltfptr[1310]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1311*/ meltfptr[1310]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1236__MEXPAND_DEFCLASS#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -72865,10 +73141,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1311*/ meltfptr[1310]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1311*/ meltfptr[1310]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1236__MEXPAND_DEFCLASS#2",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -72894,10 +73171,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1311*/ meltfptr[1310]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1311*/ meltfptr[1310]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1236__MEXPAND_DEFCLASS#4",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -72909,10 +73187,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1311*/ meltfptr[1310]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1311*/ meltfptr[1310]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1236__MEXPAND_DEFCLASS#5",
 		   NULL != ( /*_.DISCR_CLASS_SEQUENCE__V59*/ meltfptr[58]));
@@ -72924,10 +73203,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1311*/ meltfptr[1310]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1311*/ meltfptr[1310]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1236__MEXPAND_DEFCLASS#6",
 		   NULL != ( /*_.CLASS_CLASS__V58*/ meltfptr[57]));
@@ -72939,10 +73219,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1311*/ meltfptr[1310]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1311*/ meltfptr[1310]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1236__MEXPAND_DEFCLASS#7",
 		   NULL != ( /*_.DISCR_INTEGER__V43*/ meltfptr[42]));
@@ -72954,10 +73235,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1311*/ meltfptr[1310]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1311*/ meltfptr[1310]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1236__MEXPAND_DEFCLASS#8",
 		   NULL != ( /*_.DISCR_MAP_STRINGS__V60*/ meltfptr[59]));
@@ -72969,10 +73251,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1311*/ meltfptr[1310]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1311*/ meltfptr[1310]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1236__MEXPAND_DEFCLASS#9",
 		   NULL != ( /*_.DISCR_FIELD_SEQUENCE__V61*/ meltfptr[60]));
@@ -72984,10 +73267,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1311*/ meltfptr[1310]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1311*/ meltfptr[1310]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1236__MEXPAND_DEFCLASS#10",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -72999,10 +73283,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1311*/ meltfptr[1310]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1311*/ meltfptr[1310]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1236__MEXPAND_DEFCLASS#11",
 		   NULL != ( /*_.CLASS_CLASS_BINDING__V57*/ meltfptr[56]));
@@ -73014,10 +73299,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1311*/ meltfptr[1310]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1311*/ meltfptr[1310]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1236__MEXPAND_DEFCLASS#12",
 		   NULL != ( /*_.PUT_ENV__V23*/ meltfptr[22]));
@@ -73029,10 +73315,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1311*/ meltfptr[1310]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1311*/ meltfptr[1310]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1236__MEXPAND_DEFCLASS#13",
 		   NULL != ( /*_.MULTIPLE_EVERY__V22*/ meltfptr[21]));
@@ -73044,10 +73331,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1311*/ meltfptr[1310]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1311*/ meltfptr[1310]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1236__MEXPAND_DEFCLASS#14",
 		   NULL != ( /*_.CLASS_FIELD__V17*/ meltfptr[16]));
@@ -73059,10 +73347,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3112
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1312*/ meltfptr[1311]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1312*/ meltfptr[1311]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1244__LAMBDA_#0",
 		   NULL != ( /*_.CLASS_FIELD__V17*/ meltfptr[16]));
@@ -73081,10 +73370,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1311*/ meltfptr[1310]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1311*/ meltfptr[1310]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1236__MEXPAND_DEFCLASS#15",
 		   NULL != ( /*_.VALROUT___V1312*/ meltfptr[1311]));
@@ -73096,10 +73386,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1311*/ meltfptr[1310]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1311*/ meltfptr[1310]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1236__MEXPAND_DEFCLASS#16",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -73111,10 +73402,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1311*/ meltfptr[1310]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1311*/ meltfptr[1310]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1236__MEXPAND_DEFCLASS#17",
 		   NULL != ( /*_.FIND_ENV__V26*/ meltfptr[25]));
@@ -73126,10 +73418,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1311*/ meltfptr[1310]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1311*/ meltfptr[1310]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1236__MEXPAND_DEFCLASS#18",
 		   NULL != ( /*_.CLASS_FIELD_BINDING__V33*/ meltfptr[32]));
@@ -73141,10 +73434,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1311*/ meltfptr[1310]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1311*/ meltfptr[1310]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1236__MEXPAND_DEFCLASS#19",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -73156,10 +73450,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1311*/ meltfptr[1310]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1311*/ meltfptr[1310]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1236__MEXPAND_DEFCLASS#20",
 		   NULL != ( /*_.CLASS_VALUE_BINDING__V36*/ meltfptr[35]));
@@ -73171,10 +73466,11 @@ meltmod__warmelt_macro__initialmeltchunk_21 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1311*/ meltfptr[1310]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1311*/ meltfptr[1310]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1236__MEXPAND_DEFCLASS#21",
 		   NULL != ( /*_.CLASS_FIELD__V17*/ meltfptr[16]));
@@ -73199,10 +73495,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1311*/ meltfptr[1310]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1311*/ meltfptr[1310]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1236__MEXPAND_DEFCLASS#22",
 		   NULL != ( /*_.CLASS_NAMED__V19*/ meltfptr[18]));
@@ -73228,10 +73525,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1311*/ meltfptr[1310]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1311*/ meltfptr[1310]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1236__MEXPAND_DEFCLASS#24",
 		   NULL != ( /*_.PUT_ENV__V23*/ meltfptr[22]));
@@ -73243,10 +73541,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3121
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1313*/ meltfptr[1312]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1313*/ meltfptr[1312]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1245__LAMBDA_#0",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -73258,10 +73557,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3121
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1313*/ meltfptr[1312]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1313*/ meltfptr[1312]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1245__LAMBDA_#1",
 		   NULL != ( /*_.FIND_ENV__V26*/ meltfptr[25]));
@@ -73273,10 +73573,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3121
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1313*/ meltfptr[1312]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1313*/ meltfptr[1312]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1245__LAMBDA_#2",
 		   NULL != ( /*_.CLASS_FIELD_BINDING__V33*/ meltfptr[32]));
@@ -73288,10 +73589,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3121
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1313*/ meltfptr[1312]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1313*/ meltfptr[1312]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1245__LAMBDA_#3",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -73303,10 +73605,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3121
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1313*/ meltfptr[1312]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1313*/ meltfptr[1312]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1245__LAMBDA_#4",
 		   NULL != ( /*_.CLASS_VALUE_BINDING__V36*/ meltfptr[35]));
@@ -73318,10 +73621,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3121
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1313*/ meltfptr[1312]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1313*/ meltfptr[1312]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1245__LAMBDA_#5",
 		   NULL != ( /*_.CLASS_FIELD__V17*/ meltfptr[16]));
@@ -73333,10 +73637,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3121
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1313*/ meltfptr[1312]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1313*/ meltfptr[1312]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1245__LAMBDA_#6",
 		   NULL != ( /*_.CLASS_NAMED__V19*/ meltfptr[18]));
@@ -73362,10 +73667,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3121
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1313*/ meltfptr[1312]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1313*/ meltfptr[1312]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1245__LAMBDA_#8",
 		   NULL != ( /*_.PUT_ENV__V23*/ meltfptr[22]));
@@ -73384,10 +73690,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3050
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1311*/ meltfptr[1310]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1311*/ meltfptr[1310]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1236__MEXPAND_DEFCLASS#25",
 		   NULL != ( /*_.VALROUT___V1313*/ meltfptr[1312]));
@@ -73511,10 +73818,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3199
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1323*/ meltfptr[1322]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1323*/ meltfptr[1322]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1248__PARSE_FIELD_ASSIGNMENT#0",
@@ -73527,10 +73835,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3199
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1323*/ meltfptr[1322]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1323*/ meltfptr[1322]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1248__PARSE_FIELD_ASSIGNMENT#1",
@@ -73543,10 +73852,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3199
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1323*/ meltfptr[1322]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1323*/ meltfptr[1322]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1248__PARSE_FIELD_ASSIGNMENT#2",
@@ -73559,10 +73869,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3199
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1323*/ meltfptr[1322]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1323*/ meltfptr[1322]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1248__PARSE_FIELD_ASSIGNMENT#3",
@@ -73575,10 +73886,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3199
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1323*/ meltfptr[1322]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1323*/ meltfptr[1322]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1248__PARSE_FIELD_ASSIGNMENT#4",
@@ -73591,10 +73903,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3199
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1323*/ meltfptr[1322]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1323*/ meltfptr[1322]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1248__PARSE_FIELD_ASSIGNMENT#5",
@@ -73607,10 +73920,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3199
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1323*/ meltfptr[1322]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1323*/ meltfptr[1322]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1248__PARSE_FIELD_ASSIGNMENT#6",
@@ -73623,10 +73937,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3223
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1324*/ meltfptr[1323]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1324*/ meltfptr[1323]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1252__LAMBDA_#0",
 		   NULL != ( /*_.CLASS_FIELD__V17*/ meltfptr[16]));
@@ -73638,10 +73953,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3223
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1324*/ meltfptr[1323]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1324*/ meltfptr[1323]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1252__LAMBDA_#1",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -73653,10 +73969,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3223
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1324*/ meltfptr[1323]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1324*/ meltfptr[1323]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1252__LAMBDA_#2",
 		   NULL != ( /*_.VALDATA___V1291*/ meltfptr[1290]));
@@ -73675,10 +73992,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3199
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1323*/ meltfptr[1322]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1323*/ meltfptr[1322]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1248__PARSE_FIELD_ASSIGNMENT#7",
@@ -73691,10 +74009,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3199
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1323*/ meltfptr[1322]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1323*/ meltfptr[1322]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1248__PARSE_FIELD_ASSIGNMENT#8",
@@ -73707,10 +74026,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3199
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1323*/ meltfptr[1322]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1323*/ meltfptr[1322]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1248__PARSE_FIELD_ASSIGNMENT#9",
@@ -73723,10 +74043,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3199
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1323*/ meltfptr[1322]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1323*/ meltfptr[1322]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1248__PARSE_FIELD_ASSIGNMENT#10",
@@ -73739,10 +74060,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3199
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1323*/ meltfptr[1322]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1323*/ meltfptr[1322]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1248__PARSE_FIELD_ASSIGNMENT#11",
@@ -73755,10 +74077,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3199
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1323*/ meltfptr[1322]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1323*/ meltfptr[1322]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1248__PARSE_FIELD_ASSIGNMENT#12",
@@ -73826,10 +74149,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3296
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1328*/ meltfptr[1327]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1328*/ meltfptr[1327]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1253__MEXPAND_DEFINSTANCE#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -73841,10 +74165,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3296
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1328*/ meltfptr[1327]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1328*/ meltfptr[1327]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1253__MEXPAND_DEFINSTANCE#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -73856,10 +74181,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3296
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1328*/ meltfptr[1327]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1328*/ meltfptr[1327]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1253__MEXPAND_DEFINSTANCE#2",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -73871,10 +74197,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3296
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1328*/ meltfptr[1327]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1328*/ meltfptr[1327]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1253__MEXPAND_DEFINSTANCE#3",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -73886,10 +74213,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3296
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1328*/ meltfptr[1327]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1328*/ meltfptr[1327]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1253__MEXPAND_DEFINSTANCE#4",
 		   NULL != ( /*_.CLASS_INSTANCE_BINDING__V63*/ meltfptr[62]));
@@ -73915,10 +74243,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3296
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1328*/ meltfptr[1327]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1328*/ meltfptr[1327]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1253__MEXPAND_DEFINSTANCE#6",
 		   NULL != ( /*_.PUT_ENV__V23*/ meltfptr[22]));
@@ -73930,10 +74259,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3296
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1328*/ meltfptr[1327]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1328*/ meltfptr[1327]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1253__MEXPAND_DEFINSTANCE#7",
 		   NULL != ( /*_.FIND_ENV__V26*/ meltfptr[25]));
@@ -73945,10 +74275,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3296
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1328*/ meltfptr[1327]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1328*/ meltfptr[1327]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1253__MEXPAND_DEFINSTANCE#8",
 		   NULL != ( /*_.DISCR_LIST__V46*/ meltfptr[45]));
@@ -73960,10 +74291,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3296
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1328*/ meltfptr[1327]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1328*/ meltfptr[1327]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1253__MEXPAND_DEFINSTANCE#9",
 		   NULL != ( /*_.CLASS_CLASS_BINDING__V57*/ meltfptr[56]));
@@ -73975,10 +74307,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3296
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1328*/ meltfptr[1327]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1328*/ meltfptr[1327]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1253__MEXPAND_DEFINSTANCE#10",
@@ -73991,10 +74324,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3296
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1328*/ meltfptr[1327]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1328*/ meltfptr[1327]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1253__MEXPAND_DEFINSTANCE#11",
@@ -74007,10 +74341,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3296
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1328*/ meltfptr[1327]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1328*/ meltfptr[1327]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1253__MEXPAND_DEFINSTANCE#12",
@@ -74042,10 +74377,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3296
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1328*/ meltfptr[1327]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1328*/ meltfptr[1327]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1253__MEXPAND_DEFINSTANCE#13",
@@ -74058,10 +74394,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3296
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1328*/ meltfptr[1327]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1328*/ meltfptr[1327]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1253__MEXPAND_DEFINSTANCE#14",
@@ -74074,10 +74411,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3296
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1328*/ meltfptr[1327]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1328*/ meltfptr[1327]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1253__MEXPAND_DEFINSTANCE#15",
@@ -74104,10 +74442,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3296
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1328*/ meltfptr[1327]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1328*/ meltfptr[1327]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1253__MEXPAND_DEFINSTANCE#17",
@@ -74120,10 +74459,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3296
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1328*/ meltfptr[1327]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1328*/ meltfptr[1327]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1253__MEXPAND_DEFINSTANCE#18",
@@ -74210,10 +74550,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3410
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1336*/ meltfptr[1335]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1336*/ meltfptr[1335]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1261__MEXPAND_DEFSELECTOR#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -74225,10 +74566,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3410
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1336*/ meltfptr[1335]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1336*/ meltfptr[1335]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1261__MEXPAND_DEFSELECTOR#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -74254,10 +74596,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3410
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1336*/ meltfptr[1335]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1336*/ meltfptr[1335]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1261__MEXPAND_DEFSELECTOR#3",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -74269,10 +74612,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3410
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1336*/ meltfptr[1335]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1336*/ meltfptr[1335]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1261__MEXPAND_DEFSELECTOR#4",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -74284,10 +74628,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3410
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1336*/ meltfptr[1335]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1336*/ meltfptr[1335]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1261__MEXPAND_DEFSELECTOR#5",
 		   NULL != ( /*_.CLASS_SELECTOR_BINDING__V28*/ meltfptr[27]));
@@ -74313,10 +74658,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3410
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1336*/ meltfptr[1335]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1336*/ meltfptr[1335]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1261__MEXPAND_DEFSELECTOR#7",
 		   NULL != ( /*_.PUT_ENV__V23*/ meltfptr[22]));
@@ -74328,10 +74674,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3410
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1336*/ meltfptr[1335]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1336*/ meltfptr[1335]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1261__MEXPAND_DEFSELECTOR#8",
 		   NULL != ( /*_.FIND_ENV__V26*/ meltfptr[25]));
@@ -74343,10 +74690,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3410
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1336*/ meltfptr[1335]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1336*/ meltfptr[1335]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1261__MEXPAND_DEFSELECTOR#9",
 		   NULL != ( /*_.DISCR_LIST__V46*/ meltfptr[45]));
@@ -74358,10 +74706,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3410
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1336*/ meltfptr[1335]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1336*/ meltfptr[1335]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1261__MEXPAND_DEFSELECTOR#10",
@@ -74374,10 +74723,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3410
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1336*/ meltfptr[1335]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1336*/ meltfptr[1335]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1261__MEXPAND_DEFSELECTOR#11",
@@ -74390,10 +74740,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3410
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1336*/ meltfptr[1335]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1336*/ meltfptr[1335]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1261__MEXPAND_DEFSELECTOR#12",
@@ -74406,10 +74757,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3410
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1336*/ meltfptr[1335]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1336*/ meltfptr[1335]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1261__MEXPAND_DEFSELECTOR#13",
@@ -74422,10 +74774,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3410
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1336*/ meltfptr[1335]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1336*/ meltfptr[1335]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1261__MEXPAND_DEFSELECTOR#14",
@@ -74438,10 +74791,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3410
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1336*/ meltfptr[1335]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1336*/ meltfptr[1335]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1261__MEXPAND_DEFSELECTOR#15",
@@ -74454,10 +74808,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3410
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1336*/ meltfptr[1335]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1336*/ meltfptr[1335]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1261__MEXPAND_DEFSELECTOR#16",
@@ -74470,10 +74825,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3410
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1336*/ meltfptr[1335]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1336*/ meltfptr[1335]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1261__MEXPAND_DEFSELECTOR#17",
@@ -74486,10 +74842,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3410
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1336*/ meltfptr[1335]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1336*/ meltfptr[1335]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1261__MEXPAND_DEFSELECTOR#18",
@@ -74502,10 +74859,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3410
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1336*/ meltfptr[1335]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1336*/ meltfptr[1335]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1261__MEXPAND_DEFSELECTOR#19",
@@ -74537,10 +74895,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3410
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1336*/ meltfptr[1335]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1336*/ meltfptr[1335]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1261__MEXPAND_DEFSELECTOR#20",
@@ -74567,10 +74926,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3410
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1336*/ meltfptr[1335]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1336*/ meltfptr[1335]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1261__MEXPAND_DEFSELECTOR#22",
@@ -74583,10 +74943,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3410
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1336*/ meltfptr[1335]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1336*/ meltfptr[1335]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1261__MEXPAND_DEFSELECTOR#23",
@@ -74613,10 +74974,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3410
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1336*/ meltfptr[1335]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1336*/ meltfptr[1335]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1261__MEXPAND_DEFSELECTOR#25",
@@ -74629,10 +74991,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3410
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1336*/ meltfptr[1335]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1336*/ meltfptr[1335]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1261__MEXPAND_DEFSELECTOR#26",
@@ -74719,10 +75082,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3557
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1344*/ meltfptr[1343]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1344*/ meltfptr[1343]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1269__MEXPAND_INSTANCE#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -74734,10 +75098,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3557
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1344*/ meltfptr[1343]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1344*/ meltfptr[1343]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1269__MEXPAND_INSTANCE#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -74749,10 +75114,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3557
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1344*/ meltfptr[1343]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1344*/ meltfptr[1343]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1269__MEXPAND_INSTANCE#2",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -74764,10 +75130,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3557
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1344*/ meltfptr[1343]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1344*/ meltfptr[1343]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1269__MEXPAND_INSTANCE#3",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -74779,10 +75146,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3557
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1344*/ meltfptr[1343]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1344*/ meltfptr[1343]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1269__MEXPAND_INSTANCE#4",
 		   NULL != ( /*_.FIND_ENV__V26*/ meltfptr[25]));
@@ -74794,10 +75162,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3557
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1344*/ meltfptr[1343]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1344*/ meltfptr[1343]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1269__MEXPAND_INSTANCE#5",
 		   NULL != ( /*_.DISCR_LIST__V46*/ meltfptr[45]));
@@ -74809,10 +75178,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3557
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1344*/ meltfptr[1343]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1344*/ meltfptr[1343]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1269__MEXPAND_INSTANCE#6",
 		   NULL != ( /*_.CLASS_CLASS_BINDING__V57*/ meltfptr[56]));
@@ -74824,10 +75194,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3557
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1344*/ meltfptr[1343]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1344*/ meltfptr[1343]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1269__MEXPAND_INSTANCE#7",
 		   NULL != ( /*_.CLASS_VALUE_BINDING__V36*/ meltfptr[35]));
@@ -74839,10 +75210,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3557
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1344*/ meltfptr[1343]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1344*/ meltfptr[1343]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1269__MEXPAND_INSTANCE#8",
 		   NULL != ( /*_.CLASS_CLASS__V58*/ meltfptr[57]));
@@ -74854,10 +75226,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3557
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1344*/ meltfptr[1343]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1344*/ meltfptr[1343]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1269__MEXPAND_INSTANCE#9",
 		   NULL != ( /*_.CLASS_KEYWORD__V18*/ meltfptr[17]));
@@ -74883,10 +75256,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3557
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1344*/ meltfptr[1343]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1344*/ meltfptr[1343]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1269__MEXPAND_INSTANCE#11",
 		   NULL != ( /*_.LIST_TO_MULTIPLE__V10*/ meltfptr[9]));
@@ -74898,10 +75272,11 @@ meltmod__warmelt_macro__initialmeltchunk_22 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3557
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1344*/ meltfptr[1343]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1344*/ meltfptr[1343]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1269__MEXPAND_INSTANCE#12",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -74981,10 +75356,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3625
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1348*/ meltfptr[1347]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1348*/ meltfptr[1347]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1273__MEXPAND_LOAD#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -74996,10 +75372,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3625
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1348*/ meltfptr[1347]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1348*/ meltfptr[1347]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1273__MEXPAND_LOAD#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -75011,10 +75388,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3625
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1348*/ meltfptr[1347]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1348*/ meltfptr[1347]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1273__MEXPAND_LOAD#2",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -75040,10 +75418,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3625
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1348*/ meltfptr[1347]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1348*/ meltfptr[1347]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1273__MEXPAND_LOAD#4",
 		   NULL != ( /*_.CLASS_NAMED__V19*/ meltfptr[18]));
@@ -75069,10 +75448,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3625
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1348*/ meltfptr[1347]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1348*/ meltfptr[1347]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1273__MEXPAND_LOAD#6",
 		   NULL != ( /*_.LIST_TO_MULTIPLE__V10*/ meltfptr[9]));
@@ -75084,10 +75464,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3625
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1348*/ meltfptr[1347]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1348*/ meltfptr[1347]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1273__MEXPAND_LOAD#7",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -75140,10 +75521,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3666
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1352*/ meltfptr[1351]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1352*/ meltfptr[1351]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1277__PARSE_FIELD_PATTERN#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -75155,10 +75537,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3666
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1352*/ meltfptr[1351]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1352*/ meltfptr[1351]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1277__PARSE_FIELD_PATTERN#1",
 		   NULL != ( /*_.CLASS_KEYWORD__V18*/ meltfptr[17]));
@@ -75170,10 +75553,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3666
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1352*/ meltfptr[1351]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1352*/ meltfptr[1351]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1277__PARSE_FIELD_PATTERN#2",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -75199,10 +75583,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3666
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1352*/ meltfptr[1351]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1352*/ meltfptr[1351]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1277__PARSE_FIELD_PATTERN#4",
 		   NULL != ( /*_.CLASS_CLASS__V58*/ meltfptr[57]));
@@ -75214,10 +75599,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3666
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1352*/ meltfptr[1351]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1352*/ meltfptr[1351]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1277__PARSE_FIELD_PATTERN#5",
 		   NULL != ( /*_.CLASS_REFERENCE__V41*/ meltfptr[40]));
@@ -75243,10 +75629,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3666
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1352*/ meltfptr[1351]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1352*/ meltfptr[1351]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1277__PARSE_FIELD_PATTERN#7",
 		   NULL != ( /*_.MULTIPLE_ITERATE_TEST__V62*/ meltfptr[61]));
@@ -75258,10 +75645,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3666
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1352*/ meltfptr[1351]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1352*/ meltfptr[1351]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1277__PARSE_FIELD_PATTERN#8",
 		   NULL != ( /*_.CLASS_FIELD__V17*/ meltfptr[16]));
@@ -75273,10 +75661,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3666
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1352*/ meltfptr[1351]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1352*/ meltfptr[1351]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1277__PARSE_FIELD_PATTERN#9",
 		   NULL != ( /*_.CLASS_REFERENCE__V41*/ meltfptr[40]));
@@ -75288,10 +75677,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3681
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1353*/ meltfptr[1352]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1353*/ meltfptr[1352]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1279__LAMBDA_#0",
 		   NULL != ( /*_.CLASS_FIELD__V17*/ meltfptr[16]));
@@ -75303,10 +75693,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3681
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1353*/ meltfptr[1352]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1353*/ meltfptr[1352]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1279__LAMBDA_#1",
 		   NULL != ( /*_.CLASS_REFERENCE__V41*/ meltfptr[40]));
@@ -75325,10 +75716,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3666
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1352*/ meltfptr[1351]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1352*/ meltfptr[1351]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1277__PARSE_FIELD_PATTERN#10",
@@ -75341,10 +75733,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3666
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1352*/ meltfptr[1351]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1352*/ meltfptr[1351]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1277__PARSE_FIELD_PATTERN#11",
@@ -75393,10 +75786,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3710
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1355*/ meltfptr[1354]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1355*/ meltfptr[1354]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1280__PATEXPAND_INSTANCE#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -75408,10 +75802,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3710
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1355*/ meltfptr[1354]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1355*/ meltfptr[1354]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1280__PATEXPAND_INSTANCE#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -75437,10 +75832,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3710
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1355*/ meltfptr[1354]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1355*/ meltfptr[1354]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1280__PATEXPAND_INSTANCE#3",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -75452,10 +75848,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3710
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1355*/ meltfptr[1354]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1355*/ meltfptr[1354]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1280__PATEXPAND_INSTANCE#4",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -75467,10 +75864,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3710
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1355*/ meltfptr[1354]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1355*/ meltfptr[1354]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1280__PATEXPAND_INSTANCE#5",
 		   NULL != ( /*_.FIND_ENV__V26*/ meltfptr[25]));
@@ -75482,10 +75880,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3710
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1355*/ meltfptr[1354]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1355*/ meltfptr[1354]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1280__PATEXPAND_INSTANCE#6",
 		   NULL != ( /*_.DISCR_LIST__V46*/ meltfptr[45]));
@@ -75497,10 +75896,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3710
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1355*/ meltfptr[1354]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1355*/ meltfptr[1354]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1280__PATEXPAND_INSTANCE#7",
 		   NULL != ( /*_.CLASS_CLASS_BINDING__V57*/ meltfptr[56]));
@@ -75512,10 +75912,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3710
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1355*/ meltfptr[1354]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1355*/ meltfptr[1354]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1280__PATEXPAND_INSTANCE#8",
 		   NULL != ( /*_.CLASS_VALUE_BINDING__V36*/ meltfptr[35]));
@@ -75527,10 +75928,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3710
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1355*/ meltfptr[1354]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1355*/ meltfptr[1354]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1280__PATEXPAND_INSTANCE#9",
 		   NULL != ( /*_.CLASS_CLASS__V58*/ meltfptr[57]));
@@ -75542,10 +75944,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3710
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1355*/ meltfptr[1354]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1355*/ meltfptr[1354]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1280__PATEXPAND_INSTANCE#10",
 		   NULL != ( /*_.CLASS_KEYWORD__V18*/ meltfptr[17]));
@@ -75571,10 +75974,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3710
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1355*/ meltfptr[1354]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1355*/ meltfptr[1354]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1280__PATEXPAND_INSTANCE#12",
 		   NULL != ( /*_.LIST_TO_MULTIPLE__V10*/ meltfptr[9]));
@@ -75586,10 +75990,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3710
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1355*/ meltfptr[1354]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1355*/ meltfptr[1354]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1280__PATEXPAND_INSTANCE#13",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -75601,10 +76006,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3710
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1355*/ meltfptr[1354]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1355*/ meltfptr[1354]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1280__PATEXPAND_INSTANCE#14",
 		   NULL != ( /*_.MULTIPLE_MAP__V42*/ meltfptr[41]));
@@ -75651,10 +76057,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3710
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1355*/ meltfptr[1354]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1355*/ meltfptr[1354]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1280__PATEXPAND_INSTANCE#16",
 		   NULL != ( /*_.VALROUT___V1356*/ meltfptr[1355]));
@@ -75694,10 +76101,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3710
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1355*/ meltfptr[1354]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1355*/ meltfptr[1354]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1280__PATEXPAND_INSTANCE#19",
 		   NULL != ( /*_.DISCR_CONSTANT_INTEGER__V44*/ meltfptr[43]));
@@ -75731,10 +76139,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3805
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1358*/ meltfptr[1357]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1358*/ meltfptr[1357]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1283__PATEXPAND_OBJECT#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -75746,10 +76155,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3805
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1358*/ meltfptr[1357]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1358*/ meltfptr[1357]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1283__PATEXPAND_OBJECT#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -75775,10 +76185,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3805
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1358*/ meltfptr[1357]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1358*/ meltfptr[1357]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1283__PATEXPAND_OBJECT#3",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -75790,10 +76201,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3805
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1358*/ meltfptr[1357]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1358*/ meltfptr[1357]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1283__PATEXPAND_OBJECT#4",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -75805,10 +76217,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3805
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1358*/ meltfptr[1357]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1358*/ meltfptr[1357]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1283__PATEXPAND_OBJECT#5",
 		   NULL != ( /*_.FIND_ENV__V26*/ meltfptr[25]));
@@ -75820,10 +76233,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3805
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1358*/ meltfptr[1357]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1358*/ meltfptr[1357]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1283__PATEXPAND_OBJECT#6",
 		   NULL != ( /*_.DISCR_LIST__V46*/ meltfptr[45]));
@@ -75835,10 +76249,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3805
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1358*/ meltfptr[1357]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1358*/ meltfptr[1357]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1283__PATEXPAND_OBJECT#7",
 		   NULL != ( /*_.CLASS_CLASS_BINDING__V57*/ meltfptr[56]));
@@ -75850,10 +76265,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3805
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1358*/ meltfptr[1357]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1358*/ meltfptr[1357]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1283__PATEXPAND_OBJECT#8",
 		   NULL != ( /*_.CLASS_VALUE_BINDING__V36*/ meltfptr[35]));
@@ -75865,10 +76281,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3805
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1358*/ meltfptr[1357]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1358*/ meltfptr[1357]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1283__PATEXPAND_OBJECT#9",
 		   NULL != ( /*_.CLASS_CLASS__V58*/ meltfptr[57]));
@@ -75880,10 +76297,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3805
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1358*/ meltfptr[1357]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1358*/ meltfptr[1357]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1283__PATEXPAND_OBJECT#10",
 		   NULL != ( /*_.CLASS_KEYWORD__V18*/ meltfptr[17]));
@@ -75909,10 +76327,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3805
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1358*/ meltfptr[1357]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1358*/ meltfptr[1357]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1283__PATEXPAND_OBJECT#12",
 		   NULL != ( /*_.LIST_TO_MULTIPLE__V10*/ meltfptr[9]));
@@ -75924,10 +76343,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3805
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1358*/ meltfptr[1357]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1358*/ meltfptr[1357]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1283__PATEXPAND_OBJECT#13",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -75939,10 +76359,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3805
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1358*/ meltfptr[1357]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1358*/ meltfptr[1357]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1283__PATEXPAND_OBJECT#14",
 		   NULL != ( /*_.MULTIPLE_MAP__V42*/ meltfptr[41]));
@@ -75989,10 +76410,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3805
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1358*/ meltfptr[1357]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1358*/ meltfptr[1357]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1283__PATEXPAND_OBJECT#16",
 		   NULL != ( /*_.VALROUT___V1359*/ meltfptr[1358]));
@@ -76032,10 +76454,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3805
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1358*/ meltfptr[1357]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1358*/ meltfptr[1357]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1283__PATEXPAND_OBJECT#19",
 		   NULL != ( /*_.DISCR_CONSTANT_INTEGER__V44*/ meltfptr[43]));
@@ -76069,10 +76492,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3882
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1361*/ meltfptr[1360]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1361*/ meltfptr[1360]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1286__MEXPAND_OBJECT#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -76084,10 +76508,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3882
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1361*/ meltfptr[1360]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1361*/ meltfptr[1360]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1286__MEXPAND_OBJECT#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -76099,10 +76524,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3882
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1361*/ meltfptr[1360]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1361*/ meltfptr[1360]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1286__MEXPAND_OBJECT#2",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -76155,10 +76581,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3905
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1365*/ meltfptr[1364]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1365*/ meltfptr[1364]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1290__MEXPAND_CODE_CHUNK#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -76170,10 +76597,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3905
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1365*/ meltfptr[1364]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1365*/ meltfptr[1364]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1290__MEXPAND_CODE_CHUNK#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -76185,10 +76613,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3905
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1365*/ meltfptr[1364]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1365*/ meltfptr[1364]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1290__MEXPAND_CODE_CHUNK#2",
 		   NULL != ( /*_.DISCR_LIST__V46*/ meltfptr[45]));
@@ -76200,10 +76629,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3905
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1365*/ meltfptr[1364]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1365*/ meltfptr[1364]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1290__MEXPAND_CODE_CHUNK#3",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -76215,10 +76645,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3905
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1365*/ meltfptr[1364]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1365*/ meltfptr[1364]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1290__MEXPAND_CODE_CHUNK#4",
 		   NULL != ( /*_.CLASS_LOCATED__V14*/ meltfptr[13]));
@@ -76230,10 +76661,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3905
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1365*/ meltfptr[1364]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1365*/ meltfptr[1364]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1290__MEXPAND_CODE_CHUNK#5",
 		   NULL != ( /*_.DISCR_VERBATIM_STRING__V54*/ meltfptr[53]));
@@ -76259,10 +76691,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3905
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1365*/ meltfptr[1364]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1365*/ meltfptr[1364]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1290__MEXPAND_CODE_CHUNK#7",
 		   NULL != ( /*_.LIST_TO_MULTIPLE__V10*/ meltfptr[9]));
@@ -76274,10 +76707,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3905
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1365*/ meltfptr[1364]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1365*/ meltfptr[1364]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1290__MEXPAND_CODE_CHUNK#8",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -76289,10 +76723,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3905
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1365*/ meltfptr[1364]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1365*/ meltfptr[1364]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1290__MEXPAND_CODE_CHUNK#9",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -76345,10 +76780,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3956
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1369*/ meltfptr[1368]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1369*/ meltfptr[1368]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1294__MEXPAND_UNSAFE_PUT_FIELDS#0",
@@ -76361,10 +76797,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3956
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1369*/ meltfptr[1368]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1369*/ meltfptr[1368]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1294__MEXPAND_UNSAFE_PUT_FIELDS#1",
@@ -76391,10 +76828,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3956
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1369*/ meltfptr[1368]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1369*/ meltfptr[1368]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1294__MEXPAND_UNSAFE_PUT_FIELDS#3",
@@ -76407,10 +76845,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3956
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1369*/ meltfptr[1368]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1369*/ meltfptr[1368]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1294__MEXPAND_UNSAFE_PUT_FIELDS#4",
@@ -76437,10 +76876,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3956
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1369*/ meltfptr[1368]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1369*/ meltfptr[1368]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1294__MEXPAND_UNSAFE_PUT_FIELDS#6",
@@ -76453,10 +76893,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 3956
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1369*/ meltfptr[1368]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1369*/ meltfptr[1368]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1294__MEXPAND_UNSAFE_PUT_FIELDS#7",
@@ -76524,10 +76965,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4004
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1373*/ meltfptr[1372]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1373*/ meltfptr[1372]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1298__MEXPAND_PUT_FIELDS#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -76539,10 +76981,11 @@ meltmod__warmelt_macro__initialmeltchunk_23 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4004
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1373*/ meltfptr[1372]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1373*/ meltfptr[1372]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1298__MEXPAND_PUT_FIELDS#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -76581,10 +77024,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4004
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1373*/ meltfptr[1372]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1373*/ meltfptr[1372]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1298__MEXPAND_PUT_FIELDS#3",
 		   NULL != ( /*_.DISCR_LIST__V46*/ meltfptr[45]));
@@ -76596,10 +77040,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4004
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1373*/ meltfptr[1372]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1373*/ meltfptr[1372]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1298__MEXPAND_PUT_FIELDS#4",
 		   NULL != ( /*_.CLASS_KEYWORD__V18*/ meltfptr[17]));
@@ -76625,10 +77070,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4004
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1373*/ meltfptr[1372]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1373*/ meltfptr[1372]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1298__MEXPAND_PUT_FIELDS#6",
 		   NULL != ( /*_.LIST_TO_MULTIPLE__V10*/ meltfptr[9]));
@@ -76640,10 +77086,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4004
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1373*/ meltfptr[1372]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1373*/ meltfptr[1372]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1298__MEXPAND_PUT_FIELDS#7",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -76710,10 +77157,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4051
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1377*/ meltfptr[1376]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1377*/ meltfptr[1376]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1302__MEXPAND_UNSAFE_GET_FIELD#0",
@@ -76726,10 +77174,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4051
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1377*/ meltfptr[1376]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1377*/ meltfptr[1376]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1302__MEXPAND_UNSAFE_GET_FIELD#1",
@@ -76742,10 +77191,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4051
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1377*/ meltfptr[1376]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1377*/ meltfptr[1376]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1302__MEXPAND_UNSAFE_GET_FIELD#2",
@@ -76841,10 +77291,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4092
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1381*/ meltfptr[1380]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1381*/ meltfptr[1380]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1306__MEXPAND_GET_FIELD#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -76856,10 +77307,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4092
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1381*/ meltfptr[1380]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1381*/ meltfptr[1380]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1306__MEXPAND_GET_FIELD#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -76871,10 +77323,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4092
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1381*/ meltfptr[1380]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1381*/ meltfptr[1380]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1306__MEXPAND_GET_FIELD#2",
 		   NULL != ( /*_.CLASS_KEYWORD__V18*/ meltfptr[17]));
@@ -76969,10 +77422,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4133
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1385*/ meltfptr[1384]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1385*/ meltfptr[1384]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1310__PAIRLIST_TO_PROGN#0",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -76984,10 +77438,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4133
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1385*/ meltfptr[1384]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1385*/ meltfptr[1384]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1310__PAIRLIST_TO_PROGN#1",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -76999,10 +77454,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4133
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1385*/ meltfptr[1384]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1385*/ meltfptr[1384]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1310__PAIRLIST_TO_PROGN#2",
 		   NULL != ( /*_.PAIRLIST_TO_MULTIPLE__V39*/ meltfptr[38]));
@@ -77014,10 +77470,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4133
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1385*/ meltfptr[1384]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1385*/ meltfptr[1384]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1310__PAIRLIST_TO_PROGN#3",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -77029,10 +77486,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4133
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1385*/ meltfptr[1384]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1385*/ meltfptr[1384]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1310__PAIRLIST_TO_PROGN#4",
 		   NULL != ( /*_.VALROUT___V1386*/ meltfptr[1385]));
@@ -77080,10 +77538,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4152
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1388*/ meltfptr[1387]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1388*/ meltfptr[1387]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1313__MEXPAND_SETQ#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -77095,10 +77554,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4152
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1388*/ meltfptr[1387]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1388*/ meltfptr[1387]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1313__MEXPAND_SETQ#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -77124,10 +77584,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4152
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1388*/ meltfptr[1387]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1388*/ meltfptr[1387]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1313__MEXPAND_SETQ#3",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -77194,10 +77655,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4183
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1392*/ meltfptr[1391]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1392*/ meltfptr[1391]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1317__MEXPAND_IF#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -77209,10 +77671,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4183
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1392*/ meltfptr[1391]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1392*/ meltfptr[1391]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1317__MEXPAND_IF#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -77224,10 +77687,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4183
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1392*/ meltfptr[1391]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1392*/ meltfptr[1391]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1317__MEXPAND_IF#2",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -77322,10 +77786,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4237
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1396*/ meltfptr[1395]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1396*/ meltfptr[1395]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1321__MEXPAND_WHEN#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -77337,10 +77802,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4237
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1396*/ meltfptr[1395]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1396*/ meltfptr[1395]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1321__MEXPAND_WHEN#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -77352,10 +77818,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4237
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1396*/ meltfptr[1395]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1396*/ meltfptr[1395]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1321__MEXPAND_WHEN#2",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -77450,10 +77917,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4273
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1400*/ meltfptr[1399]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1400*/ meltfptr[1399]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1325__MEXPAND_UNLESS#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -77465,10 +77933,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4273
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1400*/ meltfptr[1399]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1400*/ meltfptr[1399]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1325__MEXPAND_UNLESS#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -77480,10 +77949,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4273
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1400*/ meltfptr[1399]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1400*/ meltfptr[1399]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1325__MEXPAND_UNLESS#2",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -77578,10 +78048,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4309
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1404*/ meltfptr[1403]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1404*/ meltfptr[1403]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1329__MEXPAND_CPPIF#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -77593,10 +78064,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4309
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1404*/ meltfptr[1403]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1404*/ meltfptr[1403]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1329__MEXPAND_CPPIF#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -77622,10 +78094,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4309
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1404*/ meltfptr[1403]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1404*/ meltfptr[1403]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1329__MEXPAND_CPPIF#3",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -77637,10 +78110,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4309
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1404*/ meltfptr[1403]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1404*/ meltfptr[1403]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1329__MEXPAND_CPPIF#4",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -77722,10 +78196,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4381
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1410*/ meltfptr[1409]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1410*/ meltfptr[1409]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1335__MEXPAND_GCCIF#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -77737,10 +78212,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4381
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1410*/ meltfptr[1409]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1410*/ meltfptr[1409]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1335__MEXPAND_GCCIF#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -77752,10 +78228,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4381
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1410*/ meltfptr[1409]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1410*/ meltfptr[1409]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1335__MEXPAND_GCCIF#2",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -77795,10 +78272,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4381
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1410*/ meltfptr[1409]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1410*/ meltfptr[1409]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1335__MEXPAND_GCCIF#5",
 		   NULL != ( /*_.VALDATA___V1291*/ meltfptr[1290]));
@@ -77851,10 +78329,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4444
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1414*/ meltfptr[1413]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1414*/ meltfptr[1413]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1339__MEXPAND_COND#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -77866,10 +78345,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4444
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1414*/ meltfptr[1413]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1414*/ meltfptr[1413]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1339__MEXPAND_COND#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -77881,10 +78361,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4444
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1414*/ meltfptr[1413]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1414*/ meltfptr[1413]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1339__MEXPAND_COND#2",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -77896,10 +78377,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4444
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1414*/ meltfptr[1413]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1414*/ meltfptr[1413]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1339__MEXPAND_COND#3",
 		   NULL != ( /*_.PAIRLIST_TO_MULTIPLE__V39*/ meltfptr[38]));
@@ -77911,10 +78393,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4444
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1414*/ meltfptr[1413]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1414*/ meltfptr[1413]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1339__MEXPAND_COND#4",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -77926,10 +78409,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4444
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1414*/ meltfptr[1413]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1414*/ meltfptr[1413]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1339__MEXPAND_COND#5",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -77941,10 +78425,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4454
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1415*/ meltfptr[1414]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1415*/ meltfptr[1414]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1341__LAMBDA_#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -77963,10 +78448,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4444
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1414*/ meltfptr[1413]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1414*/ meltfptr[1413]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1339__MEXPAND_COND#6",
 		   NULL != ( /*_.VALROUT___V1415*/ meltfptr[1414]));
@@ -77997,10 +78483,11 @@ meltmod__warmelt_macro__initialmeltchunk_24 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4444
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1414*/ meltfptr[1413]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1414*/ meltfptr[1413]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1339__MEXPAND_COND#7",
 		   NULL != ( /*_.VALDATA___V1416*/ meltfptr[1415]));
@@ -78108,10 +78595,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4549
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1421*/ meltfptr[1420]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1421*/ meltfptr[1420]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1346__MEXPAND_AND#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -78123,10 +78611,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4549
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1421*/ meltfptr[1420]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1421*/ meltfptr[1420]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1346__MEXPAND_AND#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -78138,10 +78627,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4549
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1421*/ meltfptr[1420]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1421*/ meltfptr[1420]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1346__MEXPAND_AND#2",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -78167,10 +78657,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4549
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1421*/ meltfptr[1420]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1421*/ meltfptr[1420]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1346__MEXPAND_AND#4",
 		   NULL != ( /*_.PAIRLIST_TO_MULTIPLE__V39*/ meltfptr[38]));
@@ -78182,10 +78673,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4549
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1421*/ meltfptr[1420]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1421*/ meltfptr[1420]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1346__MEXPAND_AND#5",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -78197,10 +78689,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4549
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1421*/ meltfptr[1420]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1421*/ meltfptr[1420]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1346__MEXPAND_AND#6",
 		   NULL != ( /*_.VALROUT___V1422*/ meltfptr[1421]));
@@ -78248,10 +78741,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4590
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1424*/ meltfptr[1423]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1424*/ meltfptr[1423]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1349__PATEXPAND_AS#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -78263,10 +78757,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4590
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1424*/ meltfptr[1423]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1424*/ meltfptr[1423]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1349__PATEXPAND_AS#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -78292,10 +78787,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4590
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1424*/ meltfptr[1423]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1424*/ meltfptr[1423]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1349__PATEXPAND_AS#3",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -78377,10 +78873,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4590
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1424*/ meltfptr[1423]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1424*/ meltfptr[1423]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1349__PATEXPAND_AS#9",
 		   NULL != ( /*_.DISCR_CONSTANT_INTEGER__V44*/ meltfptr[43]));
@@ -78414,10 +78911,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4628
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1426*/ meltfptr[1425]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1426*/ meltfptr[1425]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1351__MEXPAND_AS#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -78429,10 +78927,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4628
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1426*/ meltfptr[1425]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1426*/ meltfptr[1425]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1351__MEXPAND_AS#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -78444,10 +78943,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4628
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1426*/ meltfptr[1425]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1426*/ meltfptr[1425]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1351__MEXPAND_AS#2",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -78500,10 +79000,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4642
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1430*/ meltfptr[1429]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1430*/ meltfptr[1429]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1355__PATEXPAND_WHEN#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -78515,10 +79016,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4642
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1430*/ meltfptr[1429]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1430*/ meltfptr[1429]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1355__PATEXPAND_WHEN#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -78544,10 +79046,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4642
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1430*/ meltfptr[1429]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1430*/ meltfptr[1429]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1355__PATEXPAND_WHEN#3",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -78581,10 +79084,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4657
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1432*/ meltfptr[1431]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1432*/ meltfptr[1431]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1357__MEXPAND_WHEN#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -78596,10 +79100,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4657
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1432*/ meltfptr[1431]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1432*/ meltfptr[1431]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1357__MEXPAND_WHEN#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -78611,10 +79116,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4657
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1432*/ meltfptr[1431]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1432*/ meltfptr[1431]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1357__MEXPAND_WHEN#2",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -78648,10 +79154,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4672
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1434*/ meltfptr[1433]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1434*/ meltfptr[1433]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1359__PATEXPAND_AND#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -78663,10 +79170,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4672
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1434*/ meltfptr[1433]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1434*/ meltfptr[1433]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1359__PATEXPAND_AND#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -78692,10 +79200,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4672
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1434*/ meltfptr[1433]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1434*/ meltfptr[1433]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1359__PATEXPAND_AND#3",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -78749,10 +79258,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4672
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1434*/ meltfptr[1433]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1434*/ meltfptr[1433]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1359__PATEXPAND_AND#7",
 		   NULL != ( /*_.DISCR_CONSTANT_INTEGER__V44*/ meltfptr[43]));
@@ -78805,10 +79315,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4709
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1438*/ meltfptr[1437]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1438*/ meltfptr[1437]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1363__MEXPAND_OR#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -78820,10 +79331,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4709
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1438*/ meltfptr[1437]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1438*/ meltfptr[1437]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1363__MEXPAND_OR#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -78835,10 +79347,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4709
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1438*/ meltfptr[1437]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1438*/ meltfptr[1437]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1363__MEXPAND_OR#2",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -78864,10 +79377,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4709
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1438*/ meltfptr[1437]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1438*/ meltfptr[1437]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1363__MEXPAND_OR#4",
 		   NULL != ( /*_.PAIRLIST_TO_MULTIPLE__V39*/ meltfptr[38]));
@@ -78879,10 +79393,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4709
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1438*/ meltfptr[1437]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1438*/ meltfptr[1437]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1363__MEXPAND_OR#5",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -78894,10 +79409,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4709
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1438*/ meltfptr[1437]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1438*/ meltfptr[1437]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1363__MEXPAND_OR#6",
 		   NULL != ( /*_.VALROUT___V1439*/ meltfptr[1438]));
@@ -78945,10 +79461,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4739
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1441*/ meltfptr[1440]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1441*/ meltfptr[1440]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1366__PATEXPAND_OR#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -78960,10 +79477,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4739
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1441*/ meltfptr[1440]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1441*/ meltfptr[1440]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1366__PATEXPAND_OR#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -78989,10 +79507,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4739
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1441*/ meltfptr[1440]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1441*/ meltfptr[1440]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1366__PATEXPAND_OR#3",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -79046,10 +79565,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4739
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1441*/ meltfptr[1440]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1441*/ meltfptr[1440]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1366__PATEXPAND_OR#7",
 		   NULL != ( /*_.DISCR_CONSTANT_INTEGER__V44*/ meltfptr[43]));
@@ -79102,10 +79622,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4777
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1445*/ meltfptr[1444]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1445*/ meltfptr[1444]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1370__MEXPAND_REFERENCE#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -79117,10 +79638,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4777
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1445*/ meltfptr[1444]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1445*/ meltfptr[1444]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1370__MEXPAND_REFERENCE#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -79132,10 +79654,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4777
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1445*/ meltfptr[1444]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1445*/ meltfptr[1444]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1370__MEXPAND_REFERENCE#2",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -79161,10 +79684,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4777
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1445*/ meltfptr[1444]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1445*/ meltfptr[1444]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1370__MEXPAND_REFERENCE#4",
 		   NULL != ( /*_.CLASS_REFERENCE__V41*/ meltfptr[40]));
@@ -79176,10 +79700,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4777
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1445*/ meltfptr[1444]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1445*/ meltfptr[1444]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1370__MEXPAND_REFERENCE#5",
 		   NULL != ( /*_.CLASS_CLASS__V58*/ meltfptr[57]));
@@ -79219,10 +79744,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4777
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1445*/ meltfptr[1444]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1445*/ meltfptr[1444]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1370__MEXPAND_REFERENCE#8",
 		   NULL != ( /*_.VALDATA___V1214*/ meltfptr[1213]));
@@ -79234,10 +79760,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4777
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1445*/ meltfptr[1444]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1445*/ meltfptr[1444]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1370__MEXPAND_REFERENCE#9",
 		   NULL != ( /*_.FIND_ENV__V26*/ meltfptr[25]));
@@ -79249,10 +79776,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4777
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1445*/ meltfptr[1444]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1445*/ meltfptr[1444]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1370__MEXPAND_REFERENCE#10",
 		   NULL != ( /*_.VALDATA___V1214*/ meltfptr[1213]));
@@ -79297,10 +79825,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4777
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1445*/ meltfptr[1444]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1445*/ meltfptr[1444]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1370__MEXPAND_REFERENCE#12",
 		   NULL != ( /*_.VALDATA___V1446*/ meltfptr[1445]));
@@ -79348,10 +79877,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4819
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1449*/ meltfptr[1448]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1449*/ meltfptr[1448]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1374__PATEXPAND_REFERENCE#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -79363,10 +79893,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4819
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1449*/ meltfptr[1448]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1449*/ meltfptr[1448]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1374__PATEXPAND_REFERENCE#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -79392,10 +79923,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4819
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1449*/ meltfptr[1448]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1449*/ meltfptr[1448]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1374__PATEXPAND_REFERENCE#3",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -79435,10 +79967,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4819
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1449*/ meltfptr[1448]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1449*/ meltfptr[1448]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1374__PATEXPAND_REFERENCE#6",
 		   NULL != ( /*_.VALDATA___V1446*/ meltfptr[1445]));
@@ -79450,10 +79983,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4819
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1449*/ meltfptr[1448]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1449*/ meltfptr[1448]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1374__PATEXPAND_REFERENCE#7",
 		   NULL != ( /*_.CLASS_REFERENCE__V41*/ meltfptr[40]));
@@ -79479,10 +80013,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4819
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1449*/ meltfptr[1448]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1449*/ meltfptr[1448]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1374__PATEXPAND_REFERENCE#9",
 		   NULL != ( /*_.VALBXINT___V1450*/ meltfptr[1449]));
@@ -79535,10 +80070,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4859
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1454*/ meltfptr[1453]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1454*/ meltfptr[1453]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1379__MEXPANDOBSOLETE_CONTAINER#0",
@@ -79551,10 +80087,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4859
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1454*/ meltfptr[1453]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1454*/ meltfptr[1453]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1379__MEXPANDOBSOLETE_CONTAINER#1",
@@ -79567,10 +80104,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4859
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1454*/ meltfptr[1453]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1454*/ meltfptr[1453]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1379__MEXPANDOBSOLETE_CONTAINER#2",
@@ -79619,10 +80157,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4866
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1456*/ meltfptr[1455]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1456*/ meltfptr[1455]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1381__PATEXPANDOBSOLETE_CONTAINER#0",
@@ -79635,10 +80174,11 @@ meltmod__warmelt_macro__initialmeltchunk_25 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4866
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1456*/ meltfptr[1455]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1456*/ meltfptr[1455]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1381__PATEXPANDOBSOLETE_CONTAINER#1",
@@ -79719,10 +80259,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4880
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1460*/ meltfptr[1459]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1460*/ meltfptr[1459]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1385__MEXPAND_DEREF#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -79734,10 +80275,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4880
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1460*/ meltfptr[1459]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1460*/ meltfptr[1459]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1385__MEXPAND_DEREF#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -79749,10 +80291,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4880
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1460*/ meltfptr[1459]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1460*/ meltfptr[1459]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1385__MEXPAND_DEREF#2",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -79764,10 +80307,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4880
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1460*/ meltfptr[1459]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1460*/ meltfptr[1459]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1385__MEXPAND_DEREF#3",
 		   NULL != ( /*_.CLASS_REFERENCE__V41*/ meltfptr[40]));
@@ -79779,10 +80323,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4880
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1460*/ meltfptr[1459]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1460*/ meltfptr[1459]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1385__MEXPAND_DEREF#4",
 		   NULL != ( /*_.CLASS_CLASS__V58*/ meltfptr[57]));
@@ -79822,10 +80367,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4880
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1460*/ meltfptr[1459]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1460*/ meltfptr[1459]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1385__MEXPAND_DEREF#7",
 		   NULL != ( /*_.VALDATA___V1214*/ meltfptr[1213]));
@@ -79837,10 +80383,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4880
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1460*/ meltfptr[1459]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1460*/ meltfptr[1459]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1385__MEXPAND_DEREF#8",
 		   NULL != ( /*_.FIND_ENV__V26*/ meltfptr[25]));
@@ -79852,10 +80399,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4880
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1460*/ meltfptr[1459]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1460*/ meltfptr[1459]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1385__MEXPAND_DEREF#9",
 		   NULL != ( /*_.VALDATA___V1214*/ meltfptr[1213]));
@@ -79881,10 +80429,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4880
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1460*/ meltfptr[1459]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1460*/ meltfptr[1459]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1385__MEXPAND_DEREF#11",
 		   NULL != ( /*_.REFERENCED_VALUE__V65*/ meltfptr[64]));
@@ -79896,10 +80445,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4880
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1460*/ meltfptr[1459]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1460*/ meltfptr[1459]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1385__MEXPAND_DEREF#12",
 		   NULL != ( /*_.CLASS_FIELD__V17*/ meltfptr[16]));
@@ -79971,10 +80521,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4924
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1466*/ meltfptr[1465]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1466*/ meltfptr[1465]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1391__MEXPANDOBSOLETE_CONTENT#0",
@@ -79987,10 +80538,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4924
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1466*/ meltfptr[1465]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1466*/ meltfptr[1465]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1391__MEXPANDOBSOLETE_CONTENT#1",
@@ -80003,10 +80555,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4924
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1466*/ meltfptr[1465]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1466*/ meltfptr[1465]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1391__MEXPANDOBSOLETE_CONTENT#2",
@@ -80093,10 +80646,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4946
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1472*/ meltfptr[1471]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1472*/ meltfptr[1471]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1397__MEXPAND_SET_REF#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -80108,10 +80662,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4946
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1472*/ meltfptr[1471]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1472*/ meltfptr[1471]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1397__MEXPAND_SET_REF#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -80123,10 +80678,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4946
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1472*/ meltfptr[1471]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1472*/ meltfptr[1471]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1397__MEXPAND_SET_REF#2",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -80138,10 +80694,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4946
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1472*/ meltfptr[1471]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1472*/ meltfptr[1471]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1397__MEXPAND_SET_REF#3",
 		   NULL != ( /*_.CLASS_REFERENCE__V41*/ meltfptr[40]));
@@ -80153,10 +80710,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4946
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1472*/ meltfptr[1471]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1472*/ meltfptr[1471]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1397__MEXPAND_SET_REF#4",
 		   NULL != ( /*_.CLASS_CLASS__V58*/ meltfptr[57]));
@@ -80196,10 +80754,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4946
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1472*/ meltfptr[1471]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1472*/ meltfptr[1471]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1397__MEXPAND_SET_REF#7",
 		   NULL != ( /*_.VALDATA___V1214*/ meltfptr[1213]));
@@ -80211,10 +80770,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4946
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1472*/ meltfptr[1471]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1472*/ meltfptr[1471]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1397__MEXPAND_SET_REF#8",
 		   NULL != ( /*_.FIND_ENV__V26*/ meltfptr[25]));
@@ -80226,10 +80786,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4946
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1472*/ meltfptr[1471]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1472*/ meltfptr[1471]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1397__MEXPAND_SET_REF#9",
 		   NULL != ( /*_.VALDATA___V1214*/ meltfptr[1213]));
@@ -80255,10 +80816,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4946
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1472*/ meltfptr[1471]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1472*/ meltfptr[1471]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1397__MEXPAND_SET_REF#11",
 		   NULL != ( /*_.REFERENCED_VALUE__V65*/ meltfptr[64]));
@@ -80284,10 +80846,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4946
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1472*/ meltfptr[1471]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1472*/ meltfptr[1471]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1397__MEXPAND_SET_REF#13",
 		   NULL != ( /*_.CLASS_FIELD__V17*/ meltfptr[16]));
@@ -80340,10 +80903,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4998
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1476*/ meltfptr[1475]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1476*/ meltfptr[1475]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1401__MEXPAND_TUPLE#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -80355,10 +80919,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4998
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1476*/ meltfptr[1475]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1476*/ meltfptr[1475]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1401__MEXPAND_TUPLE#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -80370,10 +80935,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 4998
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1476*/ meltfptr[1475]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1476*/ meltfptr[1475]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1401__MEXPAND_TUPLE#2",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -80435,10 +81001,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5015
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1478*/ meltfptr[1477]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1478*/ meltfptr[1477]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1403__PATEXPAND_TUPLE#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -80450,10 +81017,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5015
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1478*/ meltfptr[1477]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1478*/ meltfptr[1477]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1403__PATEXPAND_TUPLE#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -80479,10 +81047,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5015
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1478*/ meltfptr[1477]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1478*/ meltfptr[1477]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1403__PATEXPAND_TUPLE#3",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -80563,10 +81132,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5045
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1482*/ meltfptr[1481]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1482*/ meltfptr[1481]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1407__MEXPAND_LIST#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -80578,10 +81148,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5045
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1482*/ meltfptr[1481]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1482*/ meltfptr[1481]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1407__MEXPAND_LIST#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -80593,10 +81164,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5045
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1482*/ meltfptr[1481]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1482*/ meltfptr[1481]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1407__MEXPAND_LIST#2",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -80658,10 +81230,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5062
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1484*/ meltfptr[1483]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1484*/ meltfptr[1483]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1409__PATEXPAND_LIST#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -80673,10 +81246,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5062
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1484*/ meltfptr[1483]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1484*/ meltfptr[1483]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1409__PATEXPAND_LIST#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -80702,10 +81276,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5062
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1484*/ meltfptr[1483]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1484*/ meltfptr[1483]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1409__PATEXPAND_LIST#3",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -80786,10 +81361,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5093
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1488*/ meltfptr[1487]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1488*/ meltfptr[1487]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1413__MEXPAND_MATCH#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -80801,10 +81377,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5093
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1488*/ meltfptr[1487]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1488*/ meltfptr[1487]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1413__MEXPAND_MATCH#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -80830,10 +81407,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5093
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1488*/ meltfptr[1487]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1488*/ meltfptr[1487]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1413__MEXPAND_MATCH#3",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -80845,10 +81423,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5093
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1488*/ meltfptr[1487]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1488*/ meltfptr[1487]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1413__MEXPAND_MATCH#4",
 		   NULL != ( /*_.PAIRLIST_TO_MULTIPLE__V39*/ meltfptr[38]));
@@ -80860,10 +81439,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5093
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1488*/ meltfptr[1487]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1488*/ meltfptr[1487]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1413__MEXPAND_MATCH#5",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -80875,10 +81455,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5093
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1488*/ meltfptr[1487]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1488*/ meltfptr[1487]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1413__MEXPAND_MATCH#6",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -80890,10 +81471,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5107
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1489*/ meltfptr[1488]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1489*/ meltfptr[1488]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1415__LAMBDA_#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -80912,10 +81494,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5093
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1488*/ meltfptr[1487]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1488*/ meltfptr[1487]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1413__MEXPAND_MATCH#7",
 		   NULL != ( /*_.VALROUT___V1489*/ meltfptr[1488]));
@@ -80927,10 +81510,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5093
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1488*/ meltfptr[1487]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1488*/ meltfptr[1487]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1413__MEXPAND_MATCH#8",
 		   NULL != ( /*_.DISCR_LIST__V46*/ meltfptr[45]));
@@ -80970,10 +81554,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5093
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1488*/ meltfptr[1487]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1488*/ meltfptr[1487]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1413__MEXPAND_MATCH#11",
 		   NULL != ( /*_.DISCR_MAP_OBJECTS__V48*/ meltfptr[47]));
@@ -81013,10 +81598,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5093
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1488*/ meltfptr[1487]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1488*/ meltfptr[1487]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1413__MEXPAND_MATCH#14",
 		   NULL != ( /*_.LIST_TO_MULTIPLE__V10*/ meltfptr[9]));
@@ -81097,10 +81683,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5185
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1493*/ meltfptr[1492]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1493*/ meltfptr[1492]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1418__MEXPAND_LETBINDING#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -81112,10 +81699,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5185
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1493*/ meltfptr[1492]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1493*/ meltfptr[1492]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1418__MEXPAND_LETBINDING#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -81127,10 +81715,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5185
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1493*/ meltfptr[1492]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1493*/ meltfptr[1492]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1418__MEXPAND_LETBINDING#2",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -81156,10 +81745,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5185
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1493*/ meltfptr[1492]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1493*/ meltfptr[1492]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1418__MEXPAND_LETBINDING#4",
 		   NULL != ( /*_.CTYPE_VALUE__V47*/ meltfptr[46]));
@@ -81171,10 +81761,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5185
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1493*/ meltfptr[1492]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1493*/ meltfptr[1492]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1418__MEXPAND_LETBINDING#5",
 		   NULL != ( /*_.CLASS_KEYWORD__V18*/ meltfptr[17]));
@@ -81186,10 +81777,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5185
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1493*/ meltfptr[1492]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1493*/ meltfptr[1492]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1418__MEXPAND_LETBINDING#6",
 		   NULL != ( /*_.CLASS_CTYPE__V51*/ meltfptr[50]));
@@ -81201,10 +81793,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5185
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1493*/ meltfptr[1492]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1493*/ meltfptr[1492]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1418__MEXPAND_LETBINDING#7",
 		   NULL != ( /*_.CLASS_NAMED__V19*/ meltfptr[18]));
@@ -81216,10 +81809,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5185
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1493*/ meltfptr[1492]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1493*/ meltfptr[1492]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1418__MEXPAND_LETBINDING#8",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -81231,10 +81825,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5185
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1493*/ meltfptr[1492]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1493*/ meltfptr[1492]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1418__MEXPAND_LETBINDING#9",
 		   NULL != ( /*_.FIND_ENV__V26*/ meltfptr[25]));
@@ -81246,10 +81841,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5185
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1493*/ meltfptr[1492]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1493*/ meltfptr[1492]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1418__MEXPAND_LETBINDING#10",
 		   NULL != ( /*_.CLASS_LET_BINDING__V35*/ meltfptr[34]));
@@ -81261,10 +81857,11 @@ meltmod__warmelt_macro__initialmeltchunk_26 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5185
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1493*/ meltfptr[1492]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1493*/ meltfptr[1492]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1418__MEXPAND_LETBINDING#11",
 		   NULL != ( /*_.CLASS_FIXED_BINDING__V66*/ meltfptr[65]));
@@ -81344,10 +81941,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5269
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1497*/ meltfptr[1496]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1497*/ meltfptr[1496]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1422__MEXPAND_LET#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -81359,10 +81957,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5269
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1497*/ meltfptr[1496]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1497*/ meltfptr[1496]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1422__MEXPAND_LET#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -81374,10 +81973,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5269
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1497*/ meltfptr[1496]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1497*/ meltfptr[1496]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1422__MEXPAND_LET#2",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -81403,10 +82003,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5269
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1497*/ meltfptr[1496]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1497*/ meltfptr[1496]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1422__MEXPAND_LET#4",
 		   NULL != ( /*_.FRESH_ENV__V21*/ meltfptr[20]));
@@ -81418,10 +82019,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5269
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1497*/ meltfptr[1496]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1497*/ meltfptr[1496]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1422__MEXPAND_LET#5",
 		   NULL != ( /*_.PAIRLIST_TO_MULTIPLE__V39*/ meltfptr[38]));
@@ -81433,10 +82035,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5269
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1497*/ meltfptr[1496]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1497*/ meltfptr[1496]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1422__MEXPAND_LET#6",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -81448,10 +82051,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5269
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1497*/ meltfptr[1496]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1497*/ meltfptr[1496]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1422__MEXPAND_LET#7",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -81477,10 +82081,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5291
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1498*/ meltfptr[1497]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1498*/ meltfptr[1497]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1424__LAMBDA_#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -81513,10 +82118,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5269
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1497*/ meltfptr[1496]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1497*/ meltfptr[1496]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1422__MEXPAND_LET#9",
 		   NULL != ( /*_.VALROUT___V1498*/ meltfptr[1497]));
@@ -81528,10 +82134,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5269
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1497*/ meltfptr[1496]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1497*/ meltfptr[1496]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1422__MEXPAND_LET#10",
 		   NULL != ( /*_.MULTIPLE_EVERY__V22*/ meltfptr[21]));
@@ -81557,10 +82164,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5269
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1497*/ meltfptr[1496]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1497*/ meltfptr[1496]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1422__MEXPAND_LET#12",
 		   NULL != ( /*_.CLASS_LET_BINDING__V35*/ meltfptr[34]));
@@ -81572,10 +82180,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5269
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1497*/ meltfptr[1496]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1497*/ meltfptr[1496]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1422__MEXPAND_LET#13",
 		   NULL != ( /*_.PUT_ENV__V23*/ meltfptr[22]));
@@ -81601,10 +82210,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5299
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1499*/ meltfptr[1498]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1499*/ meltfptr[1498]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1425__LAMBDA_#1",
 		   NULL != ( /*_.CLASS_LET_BINDING__V35*/ meltfptr[34]));
@@ -81616,10 +82226,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5299
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1499*/ meltfptr[1498]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1499*/ meltfptr[1498]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1425__LAMBDA_#2",
 		   NULL != ( /*_.PUT_ENV__V23*/ meltfptr[22]));
@@ -81638,10 +82249,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5269
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1497*/ meltfptr[1496]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1497*/ meltfptr[1496]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1422__MEXPAND_LET#14",
 		   NULL != ( /*_.VALROUT___V1499*/ meltfptr[1498]));
@@ -81653,10 +82265,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5269
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1497*/ meltfptr[1496]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1497*/ meltfptr[1496]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1422__MEXPAND_LET#15",
 		   NULL != ( /*_.VALROUT___V1500*/ meltfptr[1499]));
@@ -81723,10 +82336,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5336
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1504*/ meltfptr[1503]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1504*/ meltfptr[1503]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1429__YES_RECURSIVELY_CONSTRUCTIBLE#0",
@@ -81780,10 +82394,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5349
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1508*/ meltfptr[1507]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1508*/ meltfptr[1507]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1433__MEXPAND_LETREC#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -81795,10 +82410,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5349
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1508*/ meltfptr[1507]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1508*/ meltfptr[1507]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1433__MEXPAND_LETREC#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -81810,10 +82426,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5349
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1508*/ meltfptr[1507]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1508*/ meltfptr[1507]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1433__MEXPAND_LETREC#2",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -81825,10 +82442,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5349
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1508*/ meltfptr[1507]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1508*/ meltfptr[1507]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1433__MEXPAND_LETREC#3",
 		   NULL != ( /*_.FRESH_ENV__V21*/ meltfptr[20]));
@@ -81840,10 +82458,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5349
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1508*/ meltfptr[1507]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1508*/ meltfptr[1507]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1433__MEXPAND_LETREC#4",
 		   NULL != ( /*_.PAIRLIST_TO_MULTIPLE__V39*/ meltfptr[38]));
@@ -81855,10 +82474,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5349
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1508*/ meltfptr[1507]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1508*/ meltfptr[1507]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1433__MEXPAND_LETREC#5",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -81870,10 +82490,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5349
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1508*/ meltfptr[1507]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1508*/ meltfptr[1507]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1433__MEXPAND_LETREC#6",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -81885,10 +82506,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5376
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1509*/ meltfptr[1508]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1509*/ meltfptr[1508]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1435__LAMBDA_#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -81907,10 +82529,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5349
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1508*/ meltfptr[1507]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1508*/ meltfptr[1507]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1433__MEXPAND_LETREC#7",
 		   NULL != ( /*_.VALROUT___V1509*/ meltfptr[1508]));
@@ -81922,10 +82545,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5349
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1508*/ meltfptr[1507]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1508*/ meltfptr[1507]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1433__MEXPAND_LETREC#8",
 		   NULL != ( /*_.CLASS_LOCATED__V14*/ meltfptr[13]));
@@ -81937,10 +82561,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5349
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1508*/ meltfptr[1507]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1508*/ meltfptr[1507]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1433__MEXPAND_LETREC#9",
 		   NULL != ( /*_.CLASS_KEYWORD__V18*/ meltfptr[17]));
@@ -81952,10 +82577,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5349
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1508*/ meltfptr[1507]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1508*/ meltfptr[1507]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1433__MEXPAND_LETREC#10",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -81967,10 +82593,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5349
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1508*/ meltfptr[1507]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1508*/ meltfptr[1507]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1433__MEXPAND_LETREC#11",
 		   NULL != ( /*_.CLASS_NAMED__V19*/ meltfptr[18]));
@@ -81982,10 +82609,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5349
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1508*/ meltfptr[1507]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1508*/ meltfptr[1507]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1433__MEXPAND_LETREC#12",
 		   NULL != ( /*_.CLASS_LETREC_BINDING__V68*/ meltfptr[67]));
@@ -81997,10 +82625,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5349
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1508*/ meltfptr[1507]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1508*/ meltfptr[1507]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1433__MEXPAND_LETREC#13",
 		   NULL != ( /*_.CTYPE_VALUE__V47*/ meltfptr[46]));
@@ -82012,10 +82641,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5349
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1508*/ meltfptr[1507]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1508*/ meltfptr[1507]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1433__MEXPAND_LETREC#14",
 		   NULL != ( /*_.PUT_ENV__V23*/ meltfptr[22]));
@@ -82041,10 +82671,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5349
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1508*/ meltfptr[1507]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1508*/ meltfptr[1507]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1433__MEXPAND_LETREC#16",
 		   NULL != ( /*_.CLASS_LET_BINDING__V35*/ meltfptr[34]));
@@ -82070,10 +82701,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5349
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1508*/ meltfptr[1507]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1508*/ meltfptr[1507]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1433__MEXPAND_LETREC#18",
 		   NULL != ( /*_.VALROUT___V1510*/ meltfptr[1509]));
@@ -82159,10 +82791,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5504
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1516*/ meltfptr[1515]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1516*/ meltfptr[1515]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1441__MEXPAND_LAMBDA#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -82174,10 +82807,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5504
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1516*/ meltfptr[1515]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1516*/ meltfptr[1515]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1441__MEXPAND_LAMBDA#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -82189,10 +82823,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5504
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1516*/ meltfptr[1515]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1516*/ meltfptr[1515]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1441__MEXPAND_LAMBDA#2",
 		   NULL != ( /*_.FRESH_ENV__V21*/ meltfptr[20]));
@@ -82218,10 +82853,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5504
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1516*/ meltfptr[1515]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1516*/ meltfptr[1515]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1441__MEXPAND_LAMBDA#4",
 		   NULL != ( /*_.CLASS_FORMAL_BINDING__V34*/ meltfptr[33]));
@@ -82233,10 +82869,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5504
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1516*/ meltfptr[1515]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1516*/ meltfptr[1515]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1441__MEXPAND_LAMBDA#5",
 		   NULL != ( /*_.PUT_ENV__V23*/ meltfptr[22]));
@@ -82248,10 +82885,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5504
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1516*/ meltfptr[1515]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1516*/ meltfptr[1515]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1441__MEXPAND_LAMBDA#6",
 		   NULL != ( /*_.PAIRLIST_TO_MULTIPLE__V39*/ meltfptr[38]));
@@ -82263,10 +82901,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5504
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1516*/ meltfptr[1515]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1516*/ meltfptr[1515]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1441__MEXPAND_LAMBDA#7",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -82278,10 +82917,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5504
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1516*/ meltfptr[1515]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1516*/ meltfptr[1515]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1441__MEXPAND_LAMBDA#8",
 		   NULL != ( /*_.VALROUT___V1517*/ meltfptr[1516]));
@@ -82348,10 +82988,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5555
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1521*/ meltfptr[1520]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1521*/ meltfptr[1520]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1446__MEXPAND_VARIADIC#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -82363,10 +83004,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5555
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1521*/ meltfptr[1520]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1521*/ meltfptr[1520]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1446__MEXPAND_VARIADIC#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -82378,10 +83020,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5555
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1521*/ meltfptr[1520]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1521*/ meltfptr[1520]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1446__MEXPAND_VARIADIC#2",
 		   NULL != ( /*_.CLASS_REFERENCE__V41*/ meltfptr[40]));
@@ -82393,10 +83036,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5555
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1521*/ meltfptr[1520]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1521*/ meltfptr[1520]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1446__MEXPAND_VARIADIC#3",
 		   NULL != ( /*_.DISCR_MAP_OBJECTS__V48*/ meltfptr[47]));
@@ -82408,10 +83052,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5555
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1521*/ meltfptr[1520]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1521*/ meltfptr[1520]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1446__MEXPAND_VARIADIC#4",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -82423,10 +83068,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5555
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1521*/ meltfptr[1520]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1521*/ meltfptr[1520]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1446__MEXPAND_VARIADIC#5",
 		   NULL != ( /*_.CLASS_REFERENCE__V41*/ meltfptr[40]));
@@ -82438,10 +83084,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5564
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1522*/ meltfptr[1521]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1522*/ meltfptr[1521]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1448__LAMBDA_#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -82453,10 +83100,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5564
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1522*/ meltfptr[1521]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1522*/ meltfptr[1521]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1448__LAMBDA_#1",
 		   NULL != ( /*_.CLASS_REFERENCE__V41*/ meltfptr[40]));
@@ -82475,10 +83123,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5555
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1521*/ meltfptr[1520]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1521*/ meltfptr[1520]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1446__MEXPAND_VARIADIC#6",
 		   NULL != ( /*_.VALROUT___V1522*/ meltfptr[1521]));
@@ -82490,10 +83139,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5555
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1521*/ meltfptr[1520]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1521*/ meltfptr[1520]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1446__MEXPAND_VARIADIC#7",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -82505,10 +83155,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5555
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1521*/ meltfptr[1520]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1521*/ meltfptr[1520]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1446__MEXPAND_VARIADIC#8",
 		   NULL != ( /*_.VALDATA___V1416*/ meltfptr[1415]));
@@ -82520,10 +83171,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5555
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1521*/ meltfptr[1520]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1521*/ meltfptr[1520]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1446__MEXPAND_VARIADIC#9",
 		   NULL != ( /*_.PAIRLIST_TO_MULTIPLE__V39*/ meltfptr[38]));
@@ -82535,10 +83187,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5555
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1521*/ meltfptr[1520]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1521*/ meltfptr[1520]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1446__MEXPAND_VARIADIC#10",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -82550,10 +83203,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5555
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1521*/ meltfptr[1520]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1521*/ meltfptr[1520]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1446__MEXPAND_VARIADIC#11",
 		   NULL != ( /*_.VALROUT___V1523*/ meltfptr[1522]));
@@ -82579,10 +83233,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5555
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1521*/ meltfptr[1520]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1521*/ meltfptr[1520]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1446__MEXPAND_VARIADIC#13",
 		   NULL != ( /*_.VALDATA___V1291*/ meltfptr[1290]));
@@ -82594,10 +83249,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5555
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1521*/ meltfptr[1520]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1521*/ meltfptr[1520]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1446__MEXPAND_VARIADIC#14",
 		   NULL != ( /*_.FRESH_ENV__V21*/ meltfptr[20]));
@@ -82609,10 +83265,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5555
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1521*/ meltfptr[1520]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1521*/ meltfptr[1520]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1446__MEXPAND_VARIADIC#15",
 		   NULL != ( /*_.CLASS_FORMAL_BINDING__V34*/ meltfptr[33]));
@@ -82624,10 +83281,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5555
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1521*/ meltfptr[1520]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1521*/ meltfptr[1520]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1446__MEXPAND_VARIADIC#16",
 		   NULL != ( /*_.CLASS_ANY_BINDING__V52*/ meltfptr[51]));
@@ -82653,10 +83311,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5555
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1521*/ meltfptr[1520]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1521*/ meltfptr[1520]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1446__MEXPAND_VARIADIC#18",
 		   NULL != ( /*_.CLASS_NAMED__V19*/ meltfptr[18]));
@@ -82668,10 +83327,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5555
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1521*/ meltfptr[1520]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1521*/ meltfptr[1520]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1446__MEXPAND_VARIADIC#19",
 		   NULL != ( /*_.PUT_ENV__V23*/ meltfptr[22]));
@@ -82683,10 +83343,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5555
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1521*/ meltfptr[1520]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1521*/ meltfptr[1520]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1446__MEXPAND_VARIADIC#20",
 		   NULL != ( /*_.VALROUT___V1524*/ meltfptr[1523]));
@@ -82712,10 +83373,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5555
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1521*/ meltfptr[1520]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1521*/ meltfptr[1520]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1446__MEXPAND_VARIADIC#22",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -82741,10 +83403,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5636
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1525*/ meltfptr[1524]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1525*/ meltfptr[1524]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1451__LAMBDA_#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -82777,10 +83440,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5555
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1521*/ meltfptr[1520]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1521*/ meltfptr[1520]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1446__MEXPAND_VARIADIC#24",
 		   NULL != ( /*_.VALROUT___V1525*/ meltfptr[1524]));
@@ -82833,10 +83497,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5678
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1529*/ meltfptr[1528]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1529*/ meltfptr[1528]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1454__MEXPAND_MULTICALL#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -82848,10 +83513,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5678
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1529*/ meltfptr[1528]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1529*/ meltfptr[1528]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1454__MEXPAND_MULTICALL#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -82863,10 +83529,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5678
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1529*/ meltfptr[1528]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1529*/ meltfptr[1528]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1454__MEXPAND_MULTICALL#2",
 		   NULL != ( /*_.FRESH_ENV__V21*/ meltfptr[20]));
@@ -82892,10 +83559,11 @@ meltmod__warmelt_macro__initialmeltchunk_27 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5678
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1529*/ meltfptr[1528]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1529*/ meltfptr[1528]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1454__MEXPAND_MULTICALL#4",
 		   NULL !=
@@ -82949,10 +83617,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5678
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1529*/ meltfptr[1528]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1529*/ meltfptr[1528]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1454__MEXPAND_MULTICALL#7",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -82964,10 +83633,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5678
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1529*/ meltfptr[1528]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1529*/ meltfptr[1528]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1454__MEXPAND_MULTICALL#8",
 		   NULL != ( /*_.MULTIPLE_EVERY__V22*/ meltfptr[21]));
@@ -82979,10 +83649,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5678
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1529*/ meltfptr[1528]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1529*/ meltfptr[1528]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1454__MEXPAND_MULTICALL#9",
 		   NULL != ( /*_.PUT_ENV__V23*/ meltfptr[22]));
@@ -82994,10 +83665,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5711
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1530*/ meltfptr[1529]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1530*/ meltfptr[1529]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1456__LAMBDA_#0",
 		   NULL != ( /*_.PUT_ENV__V23*/ meltfptr[22]));
@@ -83016,10 +83688,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5678
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1529*/ meltfptr[1528]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1529*/ meltfptr[1528]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1454__MEXPAND_MULTICALL#10",
 		   NULL != ( /*_.VALROUT___V1530*/ meltfptr[1529]));
@@ -83031,10 +83704,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5678
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1529*/ meltfptr[1528]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1529*/ meltfptr[1528]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1454__MEXPAND_MULTICALL#11",
 		   NULL != ( /*_.PAIRLIST_TO_MULTIPLE__V39*/ meltfptr[38]));
@@ -83046,10 +83720,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5678
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1529*/ meltfptr[1528]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1529*/ meltfptr[1528]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1454__MEXPAND_MULTICALL#12",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -83061,10 +83736,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5678
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1529*/ meltfptr[1528]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1529*/ meltfptr[1528]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1454__MEXPAND_MULTICALL#13",
 		   NULL != ( /*_.VALROUT___V1531*/ meltfptr[1530]));
@@ -83131,10 +83807,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5739
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1535*/ meltfptr[1534]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1535*/ meltfptr[1534]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1460__MEXPAND_QUOTE#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -83146,10 +83823,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5739
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1535*/ meltfptr[1534]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1535*/ meltfptr[1534]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1460__MEXPAND_QUOTE#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -83161,10 +83839,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5739
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1535*/ meltfptr[1534]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1535*/ meltfptr[1534]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1460__MEXPAND_QUOTE#2",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -83176,10 +83855,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5739
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1535*/ meltfptr[1534]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1535*/ meltfptr[1534]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1460__MEXPAND_QUOTE#3",
 		   NULL != ( /*_.CLASS_KEYWORD__V18*/ meltfptr[17]));
@@ -83246,10 +83926,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5778
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1539*/ meltfptr[1538]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1539*/ meltfptr[1538]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1464__MEXPAND_COMMENT#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -83261,10 +83942,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5778
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1539*/ meltfptr[1538]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1539*/ meltfptr[1538]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1464__MEXPAND_COMMENT#1",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -83331,10 +84013,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5808
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1543*/ meltfptr[1542]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1543*/ meltfptr[1542]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1468__MEXPAND_CHEADER#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -83346,10 +84029,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5808
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1543*/ meltfptr[1542]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1543*/ meltfptr[1542]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1468__MEXPAND_CHEADER#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -83361,10 +84045,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5808
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1543*/ meltfptr[1542]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1543*/ meltfptr[1542]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1468__MEXPAND_CHEADER#2",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -83376,10 +84061,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5808
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1543*/ meltfptr[1542]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1543*/ meltfptr[1542]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1468__MEXPAND_CHEADER#3",
 		   NULL !=
@@ -83392,10 +84078,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5808
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1543*/ meltfptr[1542]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1543*/ meltfptr[1542]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1468__MEXPAND_CHEADER#4",
 		   NULL != ( /*_.DISCR_STRBUF__V70*/ meltfptr[69]));
@@ -83407,10 +84094,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5808
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1543*/ meltfptr[1542]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1543*/ meltfptr[1542]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1468__MEXPAND_CHEADER#5",
 		   NULL != ( /*_.CLASS_LOCATED__V14*/ meltfptr[13]));
@@ -83422,10 +84110,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5808
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1543*/ meltfptr[1542]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1543*/ meltfptr[1542]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1468__MEXPAND_CHEADER#6",
 		   NULL != ( /*_.ADD2OUT__V71*/ meltfptr[70]));
@@ -83437,10 +84126,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5808
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1543*/ meltfptr[1542]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1543*/ meltfptr[1542]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1468__MEXPAND_CHEADER#7",
 		   NULL != ( /*_.DISCR_VERBATIM_STRING__V54*/ meltfptr[53]));
@@ -83564,10 +84254,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5857
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1553*/ meltfptr[1552]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1553*/ meltfptr[1552]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1478__MEXPAND_USE_PACKAGE_FROM_PKG_CONFIG#0",
@@ -83580,10 +84271,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5857
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1553*/ meltfptr[1552]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1553*/ meltfptr[1552]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1478__MEXPAND_USE_PACKAGE_FROM_PKG_CONFIG#1",
@@ -83596,10 +84288,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5857
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1553*/ meltfptr[1552]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1553*/ meltfptr[1552]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1478__MEXPAND_USE_PACKAGE_FROM_PKG_CONFIG#2",
@@ -83626,10 +84319,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5857
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1553*/ meltfptr[1552]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1553*/ meltfptr[1552]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1478__MEXPAND_USE_PACKAGE_FROM_PKG_CONFIG#4",
@@ -83642,10 +84336,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5857
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1553*/ meltfptr[1552]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1553*/ meltfptr[1552]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1478__MEXPAND_USE_PACKAGE_FROM_PKG_CONFIG#5",
@@ -83658,10 +84353,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5857
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1553*/ meltfptr[1552]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1553*/ meltfptr[1552]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1478__MEXPAND_USE_PACKAGE_FROM_PKG_CONFIG#6",
@@ -83767,10 +84463,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5947
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1561*/ meltfptr[1560]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1561*/ meltfptr[1560]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1486__PAIRLIST_TO_RETURN#0",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -83782,10 +84479,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5947
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1561*/ meltfptr[1560]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1561*/ meltfptr[1560]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1486__PAIRLIST_TO_RETURN#1",
 		   NULL != ( /*_.PAIRLIST_TO_MULTIPLE__V39*/ meltfptr[38]));
@@ -83797,10 +84495,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5947
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1561*/ meltfptr[1560]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1561*/ meltfptr[1560]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1486__PAIRLIST_TO_RETURN#2",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -83812,10 +84511,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5947
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1561*/ meltfptr[1560]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1561*/ meltfptr[1560]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1486__PAIRLIST_TO_RETURN#3",
 		   NULL != ( /*_.VALROUT___V1562*/ meltfptr[1561]));
@@ -83863,10 +84563,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5963
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1564*/ meltfptr[1563]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1564*/ meltfptr[1563]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1489__MEXPAND_PROGN#0",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -83933,10 +84634,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5988
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1568*/ meltfptr[1567]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1568*/ meltfptr[1567]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1493__MEXPAND_RETURN#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -83948,10 +84650,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 5988
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1568*/ meltfptr[1567]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1568*/ meltfptr[1567]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1493__MEXPAND_RETURN#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -84018,10 +84721,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6011
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1572*/ meltfptr[1571]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1572*/ meltfptr[1571]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1497__MEXPAND_FOREVER#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -84033,10 +84737,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6011
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1572*/ meltfptr[1571]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1572*/ meltfptr[1571]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1497__MEXPAND_FOREVER#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -84048,10 +84753,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6011
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1572*/ meltfptr[1571]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1572*/ meltfptr[1571]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1497__MEXPAND_FOREVER#2",
 		   NULL != ( /*_.FRESH_ENV__V21*/ meltfptr[20]));
@@ -84063,10 +84769,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6011
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1572*/ meltfptr[1571]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1572*/ meltfptr[1571]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1497__MEXPAND_FOREVER#3",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -84078,10 +84785,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6011
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1572*/ meltfptr[1571]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1572*/ meltfptr[1571]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1497__MEXPAND_FOREVER#4",
 		   NULL != ( /*_.CLASS_LABEL_BINDING__V73*/ meltfptr[72]));
@@ -84093,10 +84801,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6011
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1572*/ meltfptr[1571]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1572*/ meltfptr[1571]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1497__MEXPAND_FOREVER#5",
 		   NULL != ( /*_.PUT_ENV__V23*/ meltfptr[22]));
@@ -84108,10 +84817,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6011
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1572*/ meltfptr[1571]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1572*/ meltfptr[1571]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1497__MEXPAND_FOREVER#6",
 		   NULL != ( /*_.PAIRLIST_TO_MULTIPLE__V39*/ meltfptr[38]));
@@ -84123,10 +84833,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6011
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1572*/ meltfptr[1571]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1572*/ meltfptr[1571]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1497__MEXPAND_FOREVER#7",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -84138,10 +84849,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6011
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1572*/ meltfptr[1571]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1572*/ meltfptr[1571]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1497__MEXPAND_FOREVER#8",
 		   NULL != ( /*_.VALROUT___V1573*/ meltfptr[1572]));
@@ -84227,10 +84939,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6054
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1579*/ meltfptr[1578]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1579*/ meltfptr[1578]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1504__MEXPAND_EXIT#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -84242,10 +84955,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6054
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1579*/ meltfptr[1578]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1579*/ meltfptr[1578]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1504__MEXPAND_EXIT#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -84257,10 +84971,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6054
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1579*/ meltfptr[1578]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1579*/ meltfptr[1578]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1504__MEXPAND_EXIT#2",
 		   NULL != ( /*_.FRESH_ENV__V21*/ meltfptr[20]));
@@ -84272,10 +84987,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6054
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1579*/ meltfptr[1578]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1579*/ meltfptr[1578]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1504__MEXPAND_EXIT#3",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -84287,10 +85003,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6054
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1579*/ meltfptr[1578]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1579*/ meltfptr[1578]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1504__MEXPAND_EXIT#4",
 		   NULL != ( /*_.FIND_ENV__V26*/ meltfptr[25]));
@@ -84302,10 +85019,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6054
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1579*/ meltfptr[1578]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1579*/ meltfptr[1578]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1504__MEXPAND_EXIT#5",
 		   NULL != ( /*_.CLASS_LABEL_BINDING__V73*/ meltfptr[72]));
@@ -84317,10 +85035,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6054
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1579*/ meltfptr[1578]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1579*/ meltfptr[1578]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1504__MEXPAND_EXIT#6",
 		   NULL != ( /*_.PAIRLIST_TO_MULTIPLE__V39*/ meltfptr[38]));
@@ -84332,10 +85051,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6054
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1579*/ meltfptr[1578]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1579*/ meltfptr[1578]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1504__MEXPAND_EXIT#7",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -84347,10 +85067,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6054
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1579*/ meltfptr[1578]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1579*/ meltfptr[1578]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1504__MEXPAND_EXIT#8",
 		   NULL != ( /*_.VALROUT___V1580*/ meltfptr[1579]));
@@ -84417,10 +85138,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6097
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1584*/ meltfptr[1583]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1584*/ meltfptr[1583]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1509__MEXPAND_AGAIN#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -84432,10 +85154,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6097
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1584*/ meltfptr[1583]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1584*/ meltfptr[1583]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1509__MEXPAND_AGAIN#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -84447,10 +85170,11 @@ meltmod__warmelt_macro__initialmeltchunk_28 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6097
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1584*/ meltfptr[1583]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1584*/ meltfptr[1583]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1509__MEXPAND_AGAIN#2",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -84475,10 +85199,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6097
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1584*/ meltfptr[1583]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1584*/ meltfptr[1583]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1509__MEXPAND_AGAIN#3",
 		   NULL != ( /*_.FIND_ENV__V26*/ meltfptr[25]));
@@ -84490,10 +85215,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6097
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1584*/ meltfptr[1583]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1584*/ meltfptr[1583]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1509__MEXPAND_AGAIN#4",
 		   NULL != ( /*_.CLASS_LABEL_BINDING__V73*/ meltfptr[72]));
@@ -84560,10 +85286,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6141
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1588*/ meltfptr[1587]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1588*/ meltfptr[1587]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1513__MEXPAND_COMPILE_WARNING#0",
@@ -84576,10 +85303,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6141
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1588*/ meltfptr[1587]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1588*/ meltfptr[1587]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1513__MEXPAND_COMPILE_WARNING#1",
@@ -84661,10 +85389,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6184
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1592*/ meltfptr[1591]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1592*/ meltfptr[1591]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1517__MEXPAND_ASSERT_MSG#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -84676,10 +85405,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6184
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1592*/ meltfptr[1591]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1592*/ meltfptr[1591]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1517__MEXPAND_ASSERT_MSG#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -84691,10 +85421,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6184
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1592*/ meltfptr[1591]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1592*/ meltfptr[1591]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1517__MEXPAND_ASSERT_MSG#2",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -84739,10 +85470,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6184
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1592*/ meltfptr[1591]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1592*/ meltfptr[1591]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1517__MEXPAND_ASSERT_MSG#4",
 		   NULL != ( /*_.VALDATA___V1593*/ meltfptr[1592]));
@@ -84754,10 +85486,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6184
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1592*/ meltfptr[1591]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1592*/ meltfptr[1591]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1517__MEXPAND_ASSERT_MSG#5",
 		   NULL != ( /*_.FIND_ENV__V26*/ meltfptr[25]));
@@ -84769,10 +85502,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6184
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1592*/ meltfptr[1591]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1592*/ meltfptr[1591]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1517__MEXPAND_ASSERT_MSG#6",
 		   NULL != ( /*_.FIND_ENV_DEBUG__V74*/ meltfptr[73]));
@@ -84784,10 +85518,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6184
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1592*/ meltfptr[1591]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1592*/ meltfptr[1591]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1517__MEXPAND_ASSERT_MSG#7",
 		   NULL !=
@@ -84800,10 +85535,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6184
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1592*/ meltfptr[1591]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1592*/ meltfptr[1591]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1517__MEXPAND_ASSERT_MSG#8",
 		   NULL != ( /*_.CLASS_VALUE_BINDING__V36*/ meltfptr[35]));
@@ -84815,10 +85551,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6184
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1592*/ meltfptr[1591]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1592*/ meltfptr[1591]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1517__MEXPAND_ASSERT_MSG#9",
 		   NULL != ( /*_.CLASS_PRIMITIVE__V37*/ meltfptr[36]));
@@ -84844,10 +85581,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6184
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1592*/ meltfptr[1591]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1592*/ meltfptr[1591]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1517__MEXPAND_ASSERT_MSG#11",
 		   NULL != ( /*_.DISCR_INTEGER__V43*/ meltfptr[42]));
@@ -84906,10 +85644,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6184
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1592*/ meltfptr[1591]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1592*/ meltfptr[1591]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1517__MEXPAND_ASSERT_MSG#14",
 		   NULL != ( /*_.VALDATA___V1595*/ meltfptr[1594]));
@@ -84981,10 +85720,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6273
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1602*/ meltfptr[1601]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1602*/ meltfptr[1601]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1527__MEXPAND_DEBUG_MSG#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -84996,10 +85736,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6273
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1602*/ meltfptr[1601]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1602*/ meltfptr[1601]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1527__MEXPAND_DEBUG_MSG#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -85011,10 +85752,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6273
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1602*/ meltfptr[1601]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1602*/ meltfptr[1601]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1527__MEXPAND_DEBUG_MSG#2",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -85026,10 +85768,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6273
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1602*/ meltfptr[1601]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1602*/ meltfptr[1601]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1527__MEXPAND_DEBUG_MSG#3",
 		   NULL != ( /*_.DISCR_LIST__V46*/ meltfptr[45]));
@@ -85060,10 +85803,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6273
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1602*/ meltfptr[1601]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1602*/ meltfptr[1601]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1527__MEXPAND_DEBUG_MSG#4",
 		   NULL != ( /*_.VALDATA___V1603*/ meltfptr[1602]));
@@ -85122,10 +85866,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6273
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1602*/ meltfptr[1601]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1602*/ meltfptr[1601]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1527__MEXPAND_DEBUG_MSG#7",
 		   NULL != ( /*_.VALDATA___V1605*/ meltfptr[1604]));
@@ -85137,10 +85882,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6273
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1602*/ meltfptr[1601]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1602*/ meltfptr[1601]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1527__MEXPAND_DEBUG_MSG#8",
 		   NULL != ( /*_.DISCR_INTEGER__V43*/ meltfptr[42]));
@@ -85166,10 +85912,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6273
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1602*/ meltfptr[1601]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1602*/ meltfptr[1601]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1527__MEXPAND_DEBUG_MSG#10",
 		   NULL != ( /*_.VALDATA___V1595*/ meltfptr[1594]));
@@ -85222,10 +85969,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6346
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1610*/ meltfptr[1609]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1610*/ meltfptr[1609]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1535__MEXPAND_DEBUG#0",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -85237,10 +85985,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6346
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1610*/ meltfptr[1609]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1610*/ meltfptr[1609]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1535__MEXPAND_DEBUG#1",
 		   NULL != ( /*_.CLASS_SEXPR__V15*/ meltfptr[14]));
@@ -85252,10 +86001,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6346
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1610*/ meltfptr[1609]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1610*/ meltfptr[1609]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1535__MEXPAND_DEBUG#2",
 		   NULL != ( /*_.CLASS_ENVIRONMENT__V9*/ meltfptr[8]));
@@ -85267,10 +86017,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6346
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1610*/ meltfptr[1609]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1610*/ meltfptr[1609]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1535__MEXPAND_DEBUG#3",
 		   NULL != ( /*_.FIND_ENV__V26*/ meltfptr[25]));
@@ -85282,10 +86033,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6346
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1610*/ meltfptr[1609]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1610*/ meltfptr[1609]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1535__MEXPAND_DEBUG#4",
 		   NULL != ( /*_.VALDATA___V1088*/ meltfptr[1087]));
@@ -85297,10 +86049,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6346
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1610*/ meltfptr[1609]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1610*/ meltfptr[1609]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1535__MEXPAND_DEBUG#5",
 		   NULL != ( /*_.VALDATA___V1603*/ meltfptr[1602]));
@@ -85331,10 +86084,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6346
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1610*/ meltfptr[1609]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1610*/ meltfptr[1609]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1535__MEXPAND_DEBUG#6",
 		   NULL != ( /*_.VALDATA___V1611*/ meltfptr[1610]));
@@ -85365,10 +86119,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6346
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1610*/ meltfptr[1609]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1610*/ meltfptr[1609]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1535__MEXPAND_DEBUG#7",
 		   NULL != ( /*_.VALDATA___V1613*/ meltfptr[1612]));
@@ -85394,10 +86149,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6346
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1610*/ meltfptr[1609]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1610*/ meltfptr[1609]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1535__MEXPAND_DEBUG#9",
 		   NULL != ( /*_.CLASS_VALUE_BINDING__V36*/ meltfptr[35]));
@@ -85409,10 +86165,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6346
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1610*/ meltfptr[1609]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1610*/ meltfptr[1609]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1535__MEXPAND_DEBUG#10",
 		   NULL != ( /*_.CLASS_FUNCTION_BINDING__V55*/ meltfptr[54]));
@@ -85424,10 +86181,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6346
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1610*/ meltfptr[1609]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1610*/ meltfptr[1609]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1535__MEXPAND_DEBUG#11",
 		   NULL !=
@@ -85454,10 +86212,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6346
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1610*/ meltfptr[1609]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1610*/ meltfptr[1609]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1535__MEXPAND_DEBUG#13",
 		   NULL != ( /*_.DISCR_CONSTANT_INTEGER__V44*/ meltfptr[43]));
@@ -85469,10 +86228,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6346
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1610*/ meltfptr[1609]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1610*/ meltfptr[1609]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1535__MEXPAND_DEBUG#14",
 		   NULL != ( /*_.LIST_APPEND2LIST__V75*/ meltfptr[74]));
@@ -85484,10 +86244,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6346
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1610*/ meltfptr[1609]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1610*/ meltfptr[1609]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1535__MEXPAND_DEBUG#15",
 		   NULL != ( /*_.VALBXINT___V1615*/ meltfptr[1614]));
@@ -85513,10 +86274,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6346
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1610*/ meltfptr[1609]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1610*/ meltfptr[1609]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1535__MEXPAND_DEBUG#17",
 		   NULL != ( /*_.VALDATA___V1088*/ meltfptr[1087]));
@@ -85528,10 +86290,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6346
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1610*/ meltfptr[1609]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1610*/ meltfptr[1609]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1535__MEXPAND_DEBUG#18",
 		   NULL != ( /*_.LIST_TO_MULTIPLE__V10*/ meltfptr[9]));
@@ -85543,10 +86306,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6346
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1610*/ meltfptr[1609]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1610*/ meltfptr[1609]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1535__MEXPAND_DEBUG#19",
 		   NULL != ( /*_.DISCR_MULTIPLE__V11*/ meltfptr[10]));
@@ -85600,10 +86364,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6346
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1610*/ meltfptr[1609]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1610*/ meltfptr[1609]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1535__MEXPAND_DEBUG#23",
 		   NULL != ( /*_.VALDATA___V1595*/ meltfptr[1594]));
@@ -85675,10 +86440,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6467
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1621*/ meltfptr[1620]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1621*/ meltfptr[1620]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1546__MEXPAND_EXPORT_VALUES#0",
@@ -85691,10 +86457,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6467
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1621*/ meltfptr[1620]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1621*/ meltfptr[1620]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1546__MEXPAND_EXPORT_VALUES#1",
@@ -85707,10 +86474,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6467
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1621*/ meltfptr[1620]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1621*/ meltfptr[1620]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1546__MEXPAND_EXPORT_VALUES#2",
@@ -85723,10 +86491,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6467
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1621*/ meltfptr[1620]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1621*/ meltfptr[1620]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1546__MEXPAND_EXPORT_VALUES#3",
@@ -85739,10 +86508,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6467
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1621*/ meltfptr[1620]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1621*/ meltfptr[1620]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1546__MEXPAND_EXPORT_VALUES#4",
@@ -85755,10 +86525,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6467
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1621*/ meltfptr[1620]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1621*/ meltfptr[1620]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1546__MEXPAND_EXPORT_VALUES#5",
@@ -85771,10 +86542,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6467
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1621*/ meltfptr[1620]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1621*/ meltfptr[1620]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1546__MEXPAND_EXPORT_VALUES#6",
@@ -85787,10 +86559,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6479
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1622*/ meltfptr[1621]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1622*/ meltfptr[1621]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1548__LAMBDA_#0",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -85802,10 +86575,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6479
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1622*/ meltfptr[1621]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1622*/ meltfptr[1621]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1548__LAMBDA_#1",
 		   NULL != ( /*_.MELT_DEBUG_FUN__V12*/ meltfptr[11]));
@@ -85824,10 +86598,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6467
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1621*/ meltfptr[1620]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1621*/ meltfptr[1620]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1546__MEXPAND_EXPORT_VALUES#7",
@@ -85895,10 +86670,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6505
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1626*/ meltfptr[1625]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1626*/ meltfptr[1625]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1551__MEXPAND_EXPORT_MACRO#0",
@@ -85911,10 +86687,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6505
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1626*/ meltfptr[1625]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1626*/ meltfptr[1625]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1551__MEXPAND_EXPORT_MACRO#1",
@@ -85927,10 +86704,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6505
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1626*/ meltfptr[1625]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1626*/ meltfptr[1625]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1551__MEXPAND_EXPORT_MACRO#2",
@@ -85943,10 +86721,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6505
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1626*/ meltfptr[1625]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1626*/ meltfptr[1625]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1551__MEXPAND_EXPORT_MACRO#3",
@@ -85959,10 +86738,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6505
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1626*/ meltfptr[1625]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1626*/ meltfptr[1625]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1551__MEXPAND_EXPORT_MACRO#4",
@@ -86030,10 +86810,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6549
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1630*/ meltfptr[1629]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1630*/ meltfptr[1629]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1555__MEXPAND_EXPORT_PATMACRO#0",
@@ -86046,10 +86827,11 @@ meltmod__warmelt_macro__initialmeltchunk_29 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6549
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1630*/ meltfptr[1629]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1630*/ meltfptr[1629]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1555__MEXPAND_EXPORT_PATMACRO#1",
@@ -86075,10 +86857,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6549
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1630*/ meltfptr[1629]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1630*/ meltfptr[1629]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1555__MEXPAND_EXPORT_PATMACRO#2",
@@ -86091,10 +86874,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6549
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1630*/ meltfptr[1629]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1630*/ meltfptr[1629]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1555__MEXPAND_EXPORT_PATMACRO#3",
@@ -86107,10 +86891,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6549
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1630*/ meltfptr[1629]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1630*/ meltfptr[1629]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1555__MEXPAND_EXPORT_PATMACRO#4",
@@ -86178,10 +86963,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6599
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1634*/ meltfptr[1633]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1634*/ meltfptr[1633]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1559__MEXPAND_EXPORT_CLASS#0",
@@ -86194,10 +86980,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6599
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1634*/ meltfptr[1633]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1634*/ meltfptr[1633]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1559__MEXPAND_EXPORT_CLASS#1",
@@ -86224,10 +87011,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6599
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1634*/ meltfptr[1633]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1634*/ meltfptr[1633]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1559__MEXPAND_EXPORT_CLASS#3",
@@ -86240,10 +87028,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6599
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1634*/ meltfptr[1633]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1634*/ meltfptr[1633]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1559__MEXPAND_EXPORT_CLASS#4",
@@ -86256,10 +87045,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6599
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1634*/ meltfptr[1633]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1634*/ meltfptr[1633]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1559__MEXPAND_EXPORT_CLASS#5",
@@ -86272,10 +87062,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6599
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1634*/ meltfptr[1633]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1634*/ meltfptr[1633]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1559__MEXPAND_EXPORT_CLASS#6",
@@ -86288,10 +87079,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6611
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1635*/ meltfptr[1634]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1635*/ meltfptr[1634]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg ("putroutconst constnull.drout_1561__LAMBDA_#0",
 		   NULL != ( /*_.CLASS_SYMBOL__V16*/ meltfptr[15]));
@@ -86310,10 +87102,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6599
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1634*/ meltfptr[1633]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1634*/ meltfptr[1633]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1559__MEXPAND_EXPORT_CLASS#7",
@@ -86381,10 +87174,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6631
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1639*/ meltfptr[1638]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1639*/ meltfptr[1638]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1564__MEXPAND_EXPORT_SYNONYM#0",
@@ -86397,10 +87191,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6631
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1639*/ meltfptr[1638]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1639*/ meltfptr[1638]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1564__MEXPAND_EXPORT_SYNONYM#1",
@@ -86413,10 +87208,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6631
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1639*/ meltfptr[1638]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1639*/ meltfptr[1638]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1564__MEXPAND_EXPORT_SYNONYM#2",
@@ -86443,10 +87239,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6631
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1639*/ meltfptr[1638]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1639*/ meltfptr[1638]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1564__MEXPAND_EXPORT_SYNONYM#4",
@@ -86459,10 +87256,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6631
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1639*/ meltfptr[1638]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1639*/ meltfptr[1638]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1564__MEXPAND_EXPORT_SYNONYM#5",
@@ -86530,10 +87328,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6683
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1643*/ meltfptr[1642]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1643*/ meltfptr[1642]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1568__MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER#0",
@@ -86546,10 +87345,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6683
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1643*/ meltfptr[1642]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1643*/ meltfptr[1642]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1568__MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER#1",
@@ -86562,10 +87362,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6683
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1643*/ meltfptr[1642]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1643*/ meltfptr[1642]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1568__MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER#2",
@@ -86633,10 +87434,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6710
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1647*/ meltfptr[1646]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1647*/ meltfptr[1646]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1572__MEXPAND_PARENT_MODULE_ENVIRONMENT#0",
@@ -86649,10 +87451,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6710
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1647*/ meltfptr[1646]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1647*/ meltfptr[1646]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1572__MEXPAND_PARENT_MODULE_ENVIRONMENT#1",
@@ -86679,10 +87482,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6710
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1647*/ meltfptr[1646]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1647*/ meltfptr[1646]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1572__MEXPAND_PARENT_MODULE_ENVIRONMENT#3",
@@ -86750,10 +87554,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6739
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1651*/ meltfptr[1650]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1651*/ meltfptr[1650]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1576__MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER#0",
@@ -86766,10 +87571,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6739
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1651*/ meltfptr[1650]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1651*/ meltfptr[1650]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1576__MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER#1",
@@ -86782,10 +87588,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6739
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1651*/ meltfptr[1650]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1651*/ meltfptr[1650]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1576__MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER#2",
@@ -86853,10 +87660,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6769
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1655*/ meltfptr[1654]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1655*/ meltfptr[1654]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1580__MEXPAND_FETCH_PREDEFINED#0",
@@ -86869,10 +87677,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6769
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1655*/ meltfptr[1654]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1655*/ meltfptr[1654]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1580__MEXPAND_FETCH_PREDEFINED#1",
@@ -86885,10 +87694,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6769
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1655*/ meltfptr[1654]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1655*/ meltfptr[1654]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1580__MEXPAND_FETCH_PREDEFINED#2",
@@ -86915,10 +87725,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6769
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1655*/ meltfptr[1654]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1655*/ meltfptr[1654]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1580__MEXPAND_FETCH_PREDEFINED#4",
@@ -86986,10 +87797,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6798
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1659*/ meltfptr[1658]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1659*/ meltfptr[1658]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1584__MEXPAND_STORE_PREDEFINED#0",
@@ -87002,10 +87814,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6798
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1659*/ meltfptr[1658]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1659*/ meltfptr[1658]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1584__MEXPAND_STORE_PREDEFINED#1",
@@ -87018,10 +87831,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6798
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1659*/ meltfptr[1658]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1659*/ meltfptr[1658]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1584__MEXPAND_STORE_PREDEFINED#2",
@@ -87048,10 +87862,11 @@ meltmod__warmelt_macro__initialmeltchunk_30 (struct frame_start_module_melt_st
   /*^putroutconst */
 #line 6798
   /*putroutconst */
-  melt_assertmsg ("putroutconst checkrout",
-		  melt_magic_discr ((melt_ptr_t)
-				    ( /*_.VALROUT___V1659*/ meltfptr[1658]))
-		  == MELTOBMAG_ROUTINE);
+  if (MELT_HAS_INITIAL_ENVIRONMENT)
+    melt_assertmsg ("putroutconst checkrout",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.VALROUT___V1659*/ meltfptr[1658]))
+		    == MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
       ("putroutconst constnull.drout_1584__MEXPAND_STORE_PREDEFINED#4",

@@ -1,6 +1,6 @@
 
 2012-08-03  Basile Starynkevitch  <basile@starynkevitch.net>
-	* simplemelt-gtkmm-probe.cc: More meaning window titles.
+	* simplemelt-gtkmm-probe.cc: More meaningful window titles.
 
 2012-08-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.c (notebook_append_page): Make it
