@@ -3948,7 +3948,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (output_location oloc implbuf depth "putroutconst")
     (add2sbuf_strconst implbuf "/*putroutconst*/")
     (add2sbuf_indentnl implbuf depth)
-    (add2sbuf_strconst implbuf "melt_assertmsg(\"putroutconst checkrout\", melt_magic_discr((melt_ptr_t)(")
+    (add2sbuf_strconst implbuf "if (MELT_HAS_INITIAL_ENVIRONMENT) melt_assertmsg(\"putroutconst checkrout\", melt_magic_discr((melt_ptr_t)(")
     (output_c_code orout declbuf implbuf depth)
     (add2sbuf_strconst implbuf ")) == MELTOBMAG_ROUTINE);")
     (add2sbuf_indentnl implbuf depth)
@@ -5068,12 +5068,13 @@ if (1) return;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; utility function to translate a macroexpanded list
-(defun translate_macroexpanded_list (xlist modnamstr modctx ncx)
-  (debug "translate_macroexpanded_list modnamstr=" modnamstr "\n* modctx=" modctx)
+(defun translate_macroexpanded_list (xlist modnamstr modctx ncx inienv)
+  (debug "translate_macroexpanded_list modnamstr=" modnamstr "\n* modctx=" modctx "\n* inienv=" inienv)
   (assert_msg "check xlist" (is_list xlist))
   (assert_msg "check modnamstr" (is_string modnamstr))
   (assert_msg "check modctx" (is_a modctx class_module_context))
   (assert_msg "check ncx" (is_a ncx class_normalization_context))
+  (assert_msg "check inienv" (is_a inienv class_environment))
   (assert_msg "translate_macroexpanded_list modulename not ended with MELT_DYNLOADED_SUFFIX."
 	      (not (string_dynloaded_suffixed modnamstr)))
   (assert_msg "translate_macroexpanded_list modulename not ended with .melt"
@@ -5083,9 +5084,9 @@ if (1) return;
   (let (
 	(:long startclock 0)
 	(:long endclock 0)
-	(inienv (unsafe_get_field :mocx_initialenv modctx))
 	(cheadlist (unsafe_get_field :mocx_cheaderlist modctx))
 	(gendevlist (get_field :mocx_gendevlist modctx))
+	(modinienv (get_field :mocx_initialenv modctx))
 	(firstx (pair_head (list_first xlist)))
 	(firstloc (if (is_a firstx class_source) (unsafe_get_field :loca_location firstx)))
 	(iniproc (unsafe_get_field :nctx_initproc ncx))
@@ -5097,6 +5098,7 @@ if (1) return;
 			  :sucme_comment '"at very start"
 			  ))
 	)
+    (debug "translate_macroexpanded_list modinienv=" modinienv " modnamstr=" modnamstr)
     (code_chunk startmodnam
 		#{ /* translate_macroexpanded_list $STARTMODNAM */
 		#if HAVE_CLOCK
@@ -5106,12 +5108,11 @@ if (1) return;
 			 "MELT generating C code of module %s", 
 			 melt_string_str ((melt_ptr_t) $MODNAMSTR)) ;
 		}#)
-    (if inienv	
+    (if modinienv	
 	(add2sbuf_strconst declbuf "#define MELT_HAS_INITIAL_ENVIRONMENT 1")
       (progn
 	;; lack of initial environment happens only in translateinit mode for warmelt-first.melt
-	(add2sbuf_strconst declbuf "#define MELT_HAS_INITIAL_ENVIRONMENT 0")
-	(setq inienv initial_environment)))
+	(add2sbuf_strconst declbuf "#define MELT_HAS_INITIAL_ENVIRONMENT 0")))
     (add2sbuf_indentnl declbuf 0)
     (add2sbuf_indentnl declbuf 0)
     (add2sbuf_strconst declbuf "struct melt_callframe_st; /*defined in melt-runtime.h*/")
@@ -5426,7 +5427,7 @@ if (1) return;
 		      #{/* compile_list_sexpr $WARNSHORTCHK*/
 		      warning (0, "MELT expanded few (%d) expresssions", (int) $LENXLIST);
 		      }#))
-      (translate_macroexpanded_list xlist modnamstr modctx ncx)
+      (translate_macroexpanded_list xlist modnamstr modctx ncx inienv)
    ))
 	;;
       (code_chunk 

@@ -5387,6 +5387,10 @@ melt_probe_start (const char* probecmd, int*toprobefdptr, int *fromprobefdptr)
     respid = (long) pid;
     melt_probe_cmdto_fd = cmdwrittenbymeltfd;
     melt_probe_reqfrom_fd = reqreadbymeltfd;
+    inform (UNKNOWN_LOCATION, 
+	    "MELT probe started: pid %d, command fd to probe %d, request fd from probe %d",
+	    (int) melt_probe_pid, melt_probe_cmdto_fd, melt_probe_reqfrom_fd);
+
   }
   /**
    * Set at exit handler and release resources.
@@ -8228,16 +8232,24 @@ meltgc_passexec_callback (void *gcc_data,
   passxhv = melt_get_inisysdata (MELTFIELD_SYSDATA_PASSEXEC_HOOK);
   MELT_LOCATION_HERE ("meltgc_passexec_callback");
   MELT_CHECK_SIGNAL ();
-  debugeprintf ("meltgc_passexec_callback pass %p passxhv %p",
-                (void*) pass, passxhv);
+  if (!passxhv) 
+    goto end;
+  debugeprintf ("meltgc_passexec_callback pass %p named %s passxhv %p",
+                (void*) pass, pass?pass->name:"_none_", passxhv);
   gcc_assert (pass != NULL);
   if (melt_magic_discr((melt_ptr_t) passxhv) == MELTOBMAG_CLOSURE) {
+    char curlocbuf[96];
     union meltparam_un pararg[1];
     memset (&pararg, 0, sizeof (pararg));
     pararg[0].meltbp_long = pass->static_pass_number;
+    MELT_LOCATION_HERE_PRINTF (curlocbuf,
+			       "meltgc_passexec_callback pass %p named %s #%d",
+			       (void*) pass, 
+			       pass->name,
+			       pass->static_pass_number);
     if (pass->name)
       passnamev = meltgc_new_stringdup
-                  ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING), pass->name);
+	((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING), pass->name);
 #if MELT_HAVE_DEBUG
     {
       static char locbuf[110];
@@ -8258,6 +8270,7 @@ meltgc_passexec_callback (void *gcc_data,
   }
 #undef passxhv
 #undef passnamev
+ end:
   MELT_EXITFRAME ();
 }
 
@@ -10204,6 +10217,9 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
                envpath);
 
   }
+
+  fflush (stderr);
+  fflush (stdout);
 
   /* Return immediately if no mode is given.  */
   if (!modstr || *modstr=='\0') {
