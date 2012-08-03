@@ -1,6 +1,6 @@
 
 2012-08-03  Basile Starynkevitch  <basile@starynkevitch.net>
-	{{MELT plugin 0.9.6.c release}}
+	{{real MELT plugin 0.9.6.c release}}
 	* INSTALL/README-MELT-PLUGIN: Comment about probe.
 
 2012-08-02  Basile Starynkevitch  <basile@starynkevitch.net>

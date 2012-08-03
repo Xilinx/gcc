@@ -370,6 +370,10 @@ public:
   void pop_tag (void) {
     _sld_tagvect.pop_back ();
   }
+  void clear_buffer (void) {
+    Glib::RefPtr<Gtk::TextBuffer> tb = tbuf();
+    tb->erase(tb->begin(), tb->end());
+  }
   void append_buffer (const Glib::ustring &str) {
     Glib::RefPtr<Gtk::TextBuffer> tb = tbuf();
     g_assert (tb);
@@ -1866,6 +1870,7 @@ SmeltMainWindow::showinfo_location(long marknum)
   SMELT_DEBUG ("inf @" << ((void*)inf)
                << " with dialog@" << (void*) (inf->dialog()));
   g_assert (inf->dialog());
+  inf->dialog()->clear_buffer();
   inf->dialog()->show_all();
   SMELT_DEBUG ("inf did show all dialog@" << (void*) (inf->dialog()));
 }
