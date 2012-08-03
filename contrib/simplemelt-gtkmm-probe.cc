@@ -281,6 +281,11 @@ class SmeltFile {
   static std::map<long,SmeltFile*> mainsfilemapnum_;
   static std::map<std::string,SmeltFile*> mainsfiledict_;
 public:
+  enum pseudofile_en {
+    PseudoFile_None,
+    PseudoFileBuiltin,
+    PseudoFileCommand,
+  };
   void* thisptr() const {
     return (void*) this;
   }; // for debugging
@@ -297,6 +302,7 @@ public:
     return _sfilview;
   };
   SmeltFile(SmeltMainWindow*,const std::string&filepath,long num);
+  SmeltFile(SmeltMainWindow*,const enum pseudofile_en pseudo,long num);
   ~SmeltFile();
   Glib::RefPtr<Gsv::Gutter> left_gutter() {
     return _sfilview.get_gutter(Gtk::TEXT_WINDOW_LEFT);
@@ -463,7 +469,7 @@ public:
     add(_mainvbox);
     Glib::ustring labmarkstr = Glib::ustring::compose
                                ("<big><span color='darkred'>Simple Gcc Melt gtkmm-probe</span></big>\n"
-				"<span color='blue'>See <span color='darkgreen'>gcc-melt.org</span></span>\n"
+                                "<span color='blue'>See <span color='darkgreen'>gcc-melt.org</span></span>\n"
                                 "<small>pid %1 on <tt>%2</tt></small>",
                                 (int)(getpid()), g_get_host_name());
     _mainlabel.set_markup(labmarkstr);
@@ -1108,8 +1114,8 @@ public:
       if (!_app_connreq_to_melt) {
         SMELT_DEBUG("connecting requests");
         _app_connreq_to_melt
-          = Glib::signal_io().connect(sigc::mem_fun(*this, &SmeltApplication::reqbuf_to_melt_cb),
-                                      _app_reqchan_to_melt, Glib::IO_OUT);
+        = Glib::signal_io().connect(sigc::mem_fun(*this, &SmeltApplication::reqbuf_to_melt_cb),
+                                    _app_reqchan_to_melt, Glib::IO_OUT);
       }
     }
   }
@@ -1468,6 +1474,72 @@ SmeltFile::SmeltFile(SmeltMainWindow*mwin,const std::string&filepath,long num)
   mainsfiledict_[filepath] = this;
 }
 
+
+////////////////////////////////////////////////////////////////
+SmeltFile::SmeltFile(SmeltMainWindow*mwin,SmeltFile::pseudofile_en pseudokind,long num)
+  : _sfilnum(num), _sfilnblines(0), _sfilname(), _sfilview()
+{
+  SMELT_DEBUG("constructing pseudokind#" << (int)pseudokind << " num=" << num << " this@" << (void*)this);
+  assert(mwin != SMELT_NULLPTR);
+  std::string pseudopath; // no < inside, because it goes into some Pango Markup
+  switch (pseudokind) {
+  case PseudoFile_None:
+    SMELT_FATAL("invalid pseudo file ");
+    break;
+  case PseudoFileBuiltin:
+    pseudopath="**built-in**";
+    break;
+  case PseudoFileCommand:
+    pseudopath="**command**";
+    break;
+  }
+  _sfilname = pseudopath;
+  if (num == 0 || mainsfilemapnum_.find(num) != mainsfilemapnum_.end())
+    throw smelt_domain_error("SmeltFile: invalid shown file number",smelt_long_to_string(num));
+  if (pseudopath.empty() || mainsfiledict_.find(pseudopath) != mainsfiledict_.end())
+    throw smelt_domain_error("SmeltFile: invalid shown pseudo file",pseudopath);
+  Glib::RefPtr<Gsv::Buffer> sbuf = _sfilview.get_source_buffer();
+  sbuf->insert(sbuf->end(),"pseudo file ");
+  sbuf->insert(sbuf->end(),pseudopath);
+  sbuf->insert(sbuf->end(),"\n");
+  SMELT_DEBUG("filled for " << pseudopath);
+  _sfilview.set_editable(false);
+  _sfilview.set_show_line_numbers(true);
+  _sfilview.set_show_line_marks(true);
+  {
+    int markprio=1;
+    Glib::RefPtr<Gsv::MarkAttributes> markattrs = Gsv::MarkAttributes::create();
+    markattrs->set_stock_id(SMELT_MARKLOC_STOCKID);
+    _sfilview.set_mark_attributes(SMELT_MARKLOC_CATEGORY,markattrs,markprio);
+  }
+  {
+    Gtk::ScrolledWindow* scrowin = new Gtk::ScrolledWindow;
+    scrowin->add (_sfilview);
+    scrowin->set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
+    const Glib::ustring& labstr = Glib::ustring::compose("<span color='darkblue'>#%1</span>\n"
+                                  "<b>%2</b>", num, pseudopath);
+    Gtk::Label* labtit = new Gtk::Label;
+    {
+      labtit->set_markup(Glib::ustring::compose("<span color='blue'>#%1</span>\n"
+                         "<span size='small' color='brown'><b>Pseudo File</b> <tt>%2</tt></span>",
+                         num, pseudopath));
+      labtit->set_justify(Gtk::JUSTIFY_CENTER);
+    }
+    Gtk::VBox* vbox = new Gtk::VBox(false,2);
+    vbox->pack_start(*Gtk::manage(labtit),Gtk::PACK_SHRINK);
+    vbox->pack_start(*Gtk::manage(new Gtk::Separator(Gtk::ORIENTATION_HORIZONTAL)),Gtk::PACK_SHRINK);
+    vbox->pack_start(*Gtk::manage(scrowin),Gtk::PACK_EXPAND_WIDGET);
+    scrowin->show_all();
+    mwin->notebook_append_page(*Gtk::manage(vbox),labstr);
+  }
+  mainsfilemapnum_[num] = this;
+  mainsfiledict_[pseudopath] = this;
+  SMELT_DEBUG("done num=" << num << " for pseudopath" << pseudopath);
+}
+
+
+
+
 SmeltFile::~SmeltFile()
 {
   SMELT_DEBUG("destructing this@" << (void*)this);
@@ -1481,7 +1553,14 @@ void
 SmeltMainWindow::show_file(const std::string&path, long num)
 {
   SMELT_DEBUG("show_file path:" << path << " num:" << num);
-  new SmeltFile(this,path,num);
+  if (path.at(0)=='<') {
+    // handle specially pseudo file names like <built-in>
+    if (!path.compare("<built-in>"))
+      new SmeltFile(this,SmeltFile::PseudoFileBuiltin,num);
+    else
+      throw smelt_domain_error("invalid pseudo file to show", path);
+  } else
+    new SmeltFile(this,path,num);
 }
 
 
@@ -1494,7 +1573,7 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
   if (!sfil)
     throw smelt_domain_error("mark_location invalid file number",
                              smelt_long_to_string(filenum));
-  if (lineno<=0 || lineno>sfil->nblines())
+  if (lineno<0 || lineno>sfil->nblines())
     throw smelt_domain_error("mark_location invalid line number",
                              smelt_long_to_string(lineno));
   if (marknum==0)
@@ -1504,7 +1583,7 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
     throw smelt_domain_error("mark_location duplicate number",
                              smelt_long_to_string(marknum));
   Glib::RefPtr<Gsv::Buffer> tbuf = sfil->view().get_source_buffer();
-  Gtk::TextIter itlin = tbuf->get_iter_at_line (lineno-1);
+  Gtk::TextIter itlin = (lineno>0)?(tbuf->get_iter_at_line (lineno-1)):(tbuf->begin());
   Gtk::TextIter itendlin = itlin;
   itendlin.forward_line();
   itendlin.backward_char();
@@ -1630,6 +1709,7 @@ SmeltLocationDialog::SmeltLocationDialog(SmeltLocationInfo*info)
   _sld_swin()
 {
   SMELT_DEBUG("constructing this@" << (void*)this);
+  this->set_resizable (true);
   Glib::RefPtr<Gtk::TextBuffer> tbuf = Gtk::TextBuffer::create (SmeltLocationInfo::the_tag_table());
   _sld_view.set_buffer (tbuf);
   _sld_view.set_editable (false);
