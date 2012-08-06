@@ -723,3 +723,10 @@ lhd_gimplify_cilk_sync (tree *y ATTRIBUTE_UNUSED,
   return;
 }
 
+/* Empty function that will always just return for elem fn create fn.  */
+
+void 
+lhd_elem_fn_create_fn (tree x ATTRIBUTE_UNUSED)
+{
+  return;
+}

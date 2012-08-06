@@ -227,7 +227,7 @@ struct lang_hooks_for_decls
 
 /* Language hooks related to Cilk Plus, mainly Cilk keywords handling.  */
 
-struct lang_hooks_for_cilk
+struct lang_hooks_for_cilkplus
 {
   bool (*recognize_spawn) (tree);
   bool (*spawnable_constructor) (tree);
@@ -235,6 +235,7 @@ struct lang_hooks_for_cilk
   void (*gimplify_cilk_spawn) (tree *, gimple_seq *, gimple_seq *);
   void (*gimplify_cilk_for) (tree *, gimple_seq *, gimple_seq *);
   void (*gimplify_cilk_sync) (tree *, gimple_seq *);
+  void (*elem_fn_create_fn) (tree);
 };
 
 /* Language hooks related to LTO serialization.  */
@@ -418,7 +419,7 @@ struct lang_hooks
 
   struct lang_hooks_for_types types;
 
-  struct lang_hooks_for_cilk cilk;
+  struct lang_hooks_for_cilkplus cilkplus;
   
   struct lang_hooks_for_lto lto;
 

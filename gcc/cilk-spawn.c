@@ -66,9 +66,6 @@ struct superset_decl_maps
 };
 
 
-  
-
-
 struct wrapper_data
 {
   /* Kind of function to be created. */
@@ -199,6 +196,8 @@ cilk_ignorable_spawn_rhs_op (tree exp)
     }
 }
 
+/* This function checks to see if the constructor can be spawnable.  */
+
 static bool
 cilk_spawnable_constructor (tree exp)
 {
@@ -209,20 +208,24 @@ cilk_spawnable_constructor (tree exp)
     return false;
   if (DECL_BUILT_IN_CLASS (exp) == BUILT_IN_NORMAL)
     return DECL_FUNCTION_CODE (exp) == BUILT_IN_MEMCPY;
-  return lang_hooks.cilk.spawnable_constructor (exp);
+  return lang_hooks.cilkplus.spawnable_constructor (exp);
 }
+
+/* This function will recognize spawn.  */
 
 static bool
 recognize_spawn (tree exp)
 {
   if (TREE_CODE (exp) != CALL_EXPR)
-    return lang_hooks.cilk.recognize_spawn (exp);
+    return lang_hooks.cilkplus.recognize_spawn (exp);
   if (!SPAWN_CALL_P (exp))
     return false;
   SPAWN_CALL_P (exp) = 0;
   SPAWN_DETACH_POINT (exp) = 1;
   return true;
 }
+
+/* This function checks to see if there is spawned function in (sub)tree.  */
 
 static tree
 is_spawn (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
@@ -240,6 +243,8 @@ is_spawn (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 
   return 0;
 }
+
+/* Top Level function that uses is-spawn to check spawn inside subtree.  */
 
 static bool
 contains_spawn (tree exp)
@@ -265,6 +270,7 @@ contains_spawn (tree exp)
    set the SPAWN_DETACH_POINT or AGGR_INIT_DETACH
    flag instead.
 */
+
 bool
 cilk_valid_spawn (tree exp0)
 {

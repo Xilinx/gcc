@@ -1,3 +1,13 @@
+2012-08-03  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* gimplify.c (gimplify_expr): Renamed cilk field in langhooks struct to
+	cilkplus.
+	(gimplify_function_tree): Make elem_fn_create_fn part of langhooks.
+	* cilk-spawn.c (cilk_spawnable_constructor): Renamed cilk field in
+	langhooks struct to cilkplus.
+	(recognize_spawn): Likewise.
+	* langhooks.c (lhd_elem_fn_create_fn): Added new function.
+
 2012-07-31  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cfgrtl.c (rtl_verify_flow_info_1): Added a check for Cilk Plus

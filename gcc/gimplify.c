@@ -7111,11 +7111,11 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	break;
 
       ret = GS_OK;
-      if (flag_enable_cilk && lang_hooks.cilk.cilk_valid_spawn (*expr_p))
+      if (flag_enable_cilk && lang_hooks.cilkplus.cilk_valid_spawn (*expr_p))
 	{
 	  if (is_statement)
 	    {
-	      lang_hooks.cilk.gimplify_cilk_spawn (expr_p, pre_p, post_p);
+	      lang_hooks.cilkplus.gimplify_cilk_spawn (expr_p, pre_p, post_p);
 	      continue;
 	    }
 	  else
@@ -7665,7 +7665,7 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	case CILK_FOR_STMT:
 	  {
 	    if (flag_enable_cilk)
-	      lang_hooks.cilk.gimplify_cilk_for (expr_p, pre_p, post_p);
+	      lang_hooks.cilkplus.gimplify_cilk_for (expr_p, pre_p, post_p);
 	    ret = GS_ALL_DONE;
 	    break;
 	  }
@@ -7681,7 +7681,7 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 		  }
 		else
 		  {
-		    lang_hooks.cilk.gimplify_cilk_sync (expr_p, pre_p);
+		    lang_hooks.cilkplus.gimplify_cilk_sync (expr_p, pre_p);
 		    ret = GS_ALL_DONE;
 		  }
 	      }
@@ -8366,7 +8366,7 @@ gimplify_function_tree (tree fndecl)
   /* Here we check to see if we have a function with the attribute "vector."  
      If so, then we must clone it to masked/unmasked when apropriate.  */
   if (flag_enable_cilk && is_elem_fn (fndecl))
-    elem_fn_create_fn (fndecl);
+    lang_hooks.cilkplus.elem_fn_create_fn (fndecl);
   
   if (DECL_STRUCT_FUNCTION (fndecl))
     push_cfun (DECL_STRUCT_FUNCTION (fndecl));

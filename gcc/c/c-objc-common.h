@@ -118,4 +118,6 @@ along with GCC; see the file COPYING3.  If not see
 #undef  LANG_HOOKS_GIMPLIFY_CILK_SYNC
 #define LANG_HOOKS_GIMPLIFY_CILK_SYNC gimplify_cilk_sync
 
+#undef LANG_HOOKS_ELEM_FN_CREATE_FN
+#define LANG_HOOKS_ELEM_FN_CREATE_FN elem_fn_create_fn
 #endif /* GCC_C_OBJC_COMMON */

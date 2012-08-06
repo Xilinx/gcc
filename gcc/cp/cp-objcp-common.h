@@ -163,4 +163,6 @@ extern void cp_common_init_ts (void);
 #undef LANG_HOOKS_GIMPLIFY_CILK_SYNC
 #define LANG_HOOKS_GIMPLIFY_CILK_SYNC gimplify_cilk_sync
 
+#undef LANG_HOOKS_ELEM_FN_CREATE_FN
+#define LANG_HOOKS_ELEM_FN_CREATE_FN elem_fn_create_fn
 #endif /* GCC_CP_OBJCP_COMMON */
