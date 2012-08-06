@@ -1,0 +1,172 @@
+# Temporarily ignore gcc pr54127.
+expire=20121031 | FAIL: gcc.dg/torture/pr53589.c -O3 -g  (test for excess errors)
+expire=20121031 | FAIL: gcc.dg/torture/pr53589.c  -O3 -g  (internal compiler error)
+
+FAIL: gfortran.dg/bessel_6.f90  -O0  execution test
+FAIL: gfortran.dg/bessel_6.f90  -O1  execution test
+FAIL: gfortran.dg/bessel_6.f90  -O2  execution test
+FAIL: gfortran.dg/bessel_6.f90  -O3 -fomit-frame-pointer  execution test
+FAIL: gfortran.dg/bessel_6.f90  -O3 -fomit-frame-pointer -funroll-loops  execution test
+FAIL: gfortran.dg/bessel_6.f90  -O3 -fomit-frame-pointer -funroll-all-loops -finline-functions  execution test
+FAIL: gfortran.dg/bessel_6.f90  -O3 -g  execution test
+FAIL: gfortran.dg/bessel_6.f90  -Os  execution test
+XPASS: gfortran.dg/nint_2.f90  -O0  execution test
+FAIL: gfortran.dg/unf_io_convert_3.f90  -O0  execution test
+FAIL: gfortran.dg/unf_io_convert_3.f90  -O1  execution test
+FAIL: gfortran.dg/unf_io_convert_3.f90  -O2  execution test
+FAIL: gfortran.dg/unf_io_convert_3.f90  -O3 -fomit-frame-pointer  execution test
+FAIL: gfortran.dg/unf_io_convert_3.f90  -O3 -fomit-frame-pointer -funroll-loops  execution test
+FAIL: gfortran.dg/unf_io_convert_3.f90  -O3 -fomit-frame-pointer -funroll-all-loops -finline-functions  execution test
+FAIL: gfortran.dg/unf_io_convert_3.f90  -O3 -g  execution test
+FAIL: gfortran.dg/unf_io_convert_3.f90  -Os  execution test
+FAIL: gfortran.dg/x_slash_2.f  -O0  execution test
+FAIL: g++.dg/abi/forced.C -std=gnu++98 execution test
+FAIL: g++.dg/abi/forced.C -std=gnu++11 execution test
+FAIL: g++.dg/ext/cleanup-10.C -std=gnu++98 execution test
+FAIL: g++.dg/ext/cleanup-10.C -std=gnu++11 execution test
+FAIL: g++.dg/ext/cleanup-11.C -std=gnu++98 execution test
+FAIL: g++.dg/ext/cleanup-11.C -std=gnu++11 execution test
+FAIL: g++.dg/ext/cleanup-8.C -std=gnu++98 execution test
+FAIL: g++.dg/ext/cleanup-8.C -std=gnu++11 execution test
+FAIL: g++.dg/ext/cleanup-9.C -std=gnu++98 execution test
+FAIL: g++.dg/ext/cleanup-9.C -std=gnu++11 execution test
+FAIL: g++.dg/warn/Wself-assign-2.C -std=gnu++11  (test for warnings, line 12)
+FAIL: g++.dg/tree-prof/lipo/vcall1_0.C scan-ipa-dump-times profile "Indirect call -> direct call" 2
+FAIL: g++.dg/tree-prof/lipo/vcall1_0.C scan-ipa-dump-times profile "Indirect call -> direct call" 2
+FAIL: g++.dg/tree-prof/lipo/vcall1_0.C scan-ipa-dump-times profile "Indirect call -> direct call" 2
+FAIL: g++.dg/tree-prof/lipo/vcall1_0.C scan-ipa-dump-times profile "Indirect call -> direct call" 2
+FAIL: g++.dg/tree-prof/lipo/vcall1_0.C scan-ipa-dump-times profile "Indirect call -> direct call" 2
+FAIL: g++.dg/tree-prof/lipo/vcall1_0.C scan-ipa-dump-times profile "Indirect call -> direct call" 2
+FAIL: g++.dg/tree-prof/lipo/vcall1_0.C scan-ipa-dump-times profile "Indirect call -> direct call" 2
+UNRESOLVED: g++.dg/tree-prof/callgraph-profiles.C scan-file Callgraph group : main _Z3barv _Z3foov\n
+UNRESOLVED: g++.dg/tree-prof/callgraph-profiles.C scan-file .text.*.main\n.text.*._Z3barv\n.text.*._Z3foov\n.text.*._Z9notcalledv
+UNRESOLVED: g++.dg/tree-prof/callgraph-profiles.C scan-file Callgraph group : main _Z3barv _Z3foov\n
+UNRESOLVED: g++.dg/tree-prof/callgraph-profiles.C scan-file .text.*.main\n.text.*._Z3barv\n.text.*._Z3foov\n.text.*._Z9notcalledv
+UNRESOLVED: g++.dg/tree-prof/callgraph-profiles.C scan-file Callgraph group : main _Z3barv _Z3foov\n
+UNRESOLVED: g++.dg/tree-prof/callgraph-profiles.C scan-file .text.*.main\n.text.*._Z3barv\n.text.*._Z3foov\n.text.*._Z9notcalledv
+UNRESOLVED: g++.dg/tree-prof/callgraph-profiles.C scan-file Callgraph group : main _Z3barv _Z3foov\n
+UNRESOLVED: g++.dg/tree-prof/callgraph-profiles.C scan-file .text.*.main\n.text.*._Z3barv\n.text.*._Z3foov\n.text.*._Z9notcalledv
+UNRESOLVED: g++.dg/tree-prof/callgraph-profiles.C scan-file Callgraph group : main _Z3barv _Z3foov\n
+UNRESOLVED: g++.dg/tree-prof/callgraph-profiles.C scan-file .text.*.main\n.text.*._Z3barv\n.text.*._Z3foov\n.text.*._Z9notcalledv
+UNRESOLVED: g++.dg/tree-prof/callgraph-profiles.C scan-file Callgraph group : main _Z3barv _Z3foov\n
+UNRESOLVED: g++.dg/tree-prof/callgraph-profiles.C scan-file .text.*.main\n.text.*._Z3barv\n.text.*._Z3foov\n.text.*._Z9notcalledv
+UNRESOLVED: g++.dg/tree-prof/callgraph-profiles.C scan-file Callgraph group : main _Z3barv _Z3foov\n
+UNRESOLVED: g++.dg/tree-prof/callgraph-profiles.C scan-file .text.*.main\n.text.*._Z3barv\n.text.*._Z3foov\n.text.*._Z9notcalledv
+FAIL: g++.dg/tree-prof/mversn15.C execution,    -g  -fprofile-generate
+UNRESOLVED: g++.dg/tree-prof/mversn15.C compilation,  -g  -fprofile-use
+UNRESOLVED: g++.dg/tree-prof/mversn15.C execution,    -g  -fprofile-use
+FAIL: g++.dg/tree-prof/mversn15.C execution,    -O0  -fprofile-generate
+UNRESOLVED: g++.dg/tree-prof/mversn15.C compilation,  -O0  -fprofile-use
+UNRESOLVED: g++.dg/tree-prof/mversn15.C execution,    -O0  -fprofile-use
+FAIL: g++.dg/tree-prof/mversn15.C execution,    -O1  -fprofile-generate
+UNRESOLVED: g++.dg/tree-prof/mversn15.C compilation,  -O1  -fprofile-use
+UNRESOLVED: g++.dg/tree-prof/mversn15.C execution,    -O1  -fprofile-use
+FAIL: g++.dg/tree-prof/mversn15.C execution,    -O2  -fprofile-generate
+UNRESOLVED: g++.dg/tree-prof/mversn15.C compilation,  -O2  -fprofile-use
+UNRESOLVED: g++.dg/tree-prof/mversn15.C execution,    -O2  -fprofile-use
+FAIL: g++.dg/tree-prof/mversn15.C execution,    -O3  -fprofile-generate
+UNRESOLVED: g++.dg/tree-prof/mversn15.C compilation,  -O3  -fprofile-use
+UNRESOLVED: g++.dg/tree-prof/mversn15.C execution,    -O3  -fprofile-use
+FAIL: g++.dg/tree-prof/mversn15.C execution,    -O3 -g  -fprofile-generate
+UNRESOLVED: g++.dg/tree-prof/mversn15.C compilation,  -O3 -g  -fprofile-use
+UNRESOLVED: g++.dg/tree-prof/mversn15.C execution,    -O3 -g  -fprofile-use
+FAIL: g++.dg/tree-prof/mversn15.C execution,    -Os  -fprofile-generate
+UNRESOLVED: g++.dg/tree-prof/mversn15.C compilation,  -Os  -fprofile-use
+UNRESOLVED: g++.dg/tree-prof/mversn15.C execution,    -Os  -fprofile-use
+FAIL: g++.dg/tree-prof/mversn15a.C execution,    -g  -fprofile-generate
+UNRESOLVED: g++.dg/tree-prof/mversn15a.C compilation,  -g  -fprofile-use
+UNRESOLVED: g++.dg/tree-prof/mversn15a.C execution,    -g  -fprofile-use
+FAIL: g++.dg/tree-prof/mversn15a.C execution,    -O0  -fprofile-generate
+UNRESOLVED: g++.dg/tree-prof/mversn15a.C compilation,  -O0  -fprofile-use
+UNRESOLVED: g++.dg/tree-prof/mversn15a.C execution,    -O0  -fprofile-use
+FAIL: g++.dg/tree-prof/mversn15a.C execution,    -O1  -fprofile-generate
+UNRESOLVED: g++.dg/tree-prof/mversn15a.C compilation,  -O1  -fprofile-use
+UNRESOLVED: g++.dg/tree-prof/mversn15a.C execution,    -O1  -fprofile-use
+FAIL: g++.dg/tree-prof/mversn15a.C execution,    -O2  -fprofile-generate
+UNRESOLVED: g++.dg/tree-prof/mversn15a.C compilation,  -O2  -fprofile-use
+UNRESOLVED: g++.dg/tree-prof/mversn15a.C execution,    -O2  -fprofile-use
+FAIL: g++.dg/tree-prof/mversn15a.C execution,    -O3  -fprofile-generate
+UNRESOLVED: g++.dg/tree-prof/mversn15a.C compilation,  -O3  -fprofile-use
+UNRESOLVED: g++.dg/tree-prof/mversn15a.C execution,    -O3  -fprofile-use
+FAIL: g++.dg/tree-prof/mversn15a.C execution,    -O3 -g  -fprofile-generate
+UNRESOLVED: g++.dg/tree-prof/mversn15a.C compilation,  -O3 -g  -fprofile-use
+UNRESOLVED: g++.dg/tree-prof/mversn15a.C execution,    -O3 -g  -fprofile-use
+FAIL: g++.dg/tree-prof/mversn15a.C execution,    -Os  -fprofile-generate
+UNRESOLVED: g++.dg/tree-prof/mversn15a.C compilation,  -Os  -fprofile-use
+UNRESOLVED: g++.dg/tree-prof/mversn15a.C execution,    -Os  -fprofile-use
+FAIL: gcc.dg/and-1.c scan-assembler-not nand
+FAIL: gcc.dg/cleanup-10.c execution test
+FAIL: gcc.dg/cleanup-11.c execution test
+FAIL: gcc.dg/cleanup-8.c execution test
+FAIL: gcc.dg/cleanup-9.c execution test
+FAIL: gcc.dg/pr46728-6.c scan-assembler-not pow
+FAIL: gcc.dg/pr53060.c (test for excess errors)
+FAIL: gcc.dg/thread_annot_lock-23.c  (test for warnings, line 10)
+FAIL: gcc.dg/thread_annot_lock-23.c  (test for warnings, line 13)
+FAIL: gcc.dg/thread_annot_lock-23.c  (test for warnings, line 15)
+FAIL: gcc.dg/thread_annot_lock-23.c  (test for warnings, line 18)
+FAIL: gcc.dg/thread_annot_lock-23.c  (test for warnings, line 19)
+FAIL: gcc.dg/thread_annot_lock-24.c  (test for warnings, line 8)
+FAIL: gcc.dg/thread_annot_lock-24.c  (test for warnings, line 9)
+FAIL: gcc.dg/thread_annot_lock-24.c  (test for warnings, line 10)
+FAIL: gcc.dg/thread_annot_lock-25.c  (test for warnings, line 8)
+FAIL: gcc.dg/thread_annot_lock-25.c  (test for warnings, line 9)
+FAIL: gcc.dg/thread_annot_lock-25.c  (test for warnings, line 10)
+FAIL: gcc.dg/thread_annot_lock-25.c  (test for warnings, line 22)
+FAIL: gcc.dg/thread_annot_lock-25.c  (test for warnings, line 30)
+FAIL: gcc.dg/thread_annot_lock-42.c  (test for warnings, line 9)
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O0  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O0  -fpic  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O0  -fPIC  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O0  -pie -fpie  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O0  -pie -fPIE  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O1  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O1  -fpic  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O1  -fPIC  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O1  -pie -fpie  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O1  -pie -fPIE  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O2  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O2 -flto -fno-use-linker-plugin -flto-partition=none  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O2 -flto -fuse-linker-plugin -fno-fat-lto-objects  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O2  -fpic  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O2  -fPIC  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O2  -pie -fpie  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O2  -pie -fPIE  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O3 -fomit-frame-pointer  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O3 -fomit-frame-pointer  -fpic  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O3 -fomit-frame-pointer  -fPIC  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O3 -fomit-frame-pointer  -pie -fpie  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O3 -fomit-frame-pointer  -pie -fPIE  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O3 -g  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O3 -g  -fpic  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O3 -g  -fPIC  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O3 -g  -pie -fpie  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O3 -g  -pie -fPIE  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -Os  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -Os  -fpic  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -Os  -fPIC  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -Os  -pie -fpie  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -Os  -pie -fPIE  execution test
+FAIL: gcc.dg/tree-prof/lipo/ic-misattribution-1_0.c scan-ipa-dump-times profile "Indirect call -> direct call" 2
+FAIL: gcc.dg/tree-prof/lipo/indir-call-prof_0.c scan-ipa-dump profile "Indirect call -> direct call.* a1"
+FAIL: gcc.dg/tree-prof/lipo/lipo_inline1_0.c scan-tree-dump-not optimized "foo"
+FAIL: gcc.dg/tree-prof/lipo/lipo_inline1_0.c scan-tree-dump-not optimized "goo"
+FAIL: gcc.dg/tree-ssa/sra-12.c scan-tree-dump-times release_ssa "l;" 0
+FAIL: gcc.dg/tree-ssa/ssa-dom-thread-4.c scan-tree-dump-times dom1 "Threaded" 3
+FAIL: gcc.dg/tree-ssa/vrp47.c scan-tree-dump-times vrp1 "[xy][^ ]* !=" 0
+FAIL: gcc.dg/tree-ssa/vrp47.c scan-tree-dump-times dom2 "x[^ ]* & y" 1
+FAIL: gcc.dg/vect/pr48765.c (test for excess errors)
+FAIL: gcc.dg/vect/pr48765.c -flto (test for excess errors)
+FAIL: gcc.target/powerpc/405-dlmzb-strlen-1.c scan-assembler dlmzb\\. 
+FAIL: gcc.target/powerpc/440-dlmzb-strlen-1.c scan-assembler dlmzb\\. 
+FAIL: gcc.target/powerpc/ppc-vector-memcpy.c scan-assembler lvx
+FAIL: gcc.target/powerpc/pr46728-1.c scan-assembler-not pow
+FAIL: gcc.target/powerpc/pr46728-10.c execution test
+FAIL: gcc.target/powerpc/pr46728-11.c execution test
+FAIL: gcc.target/powerpc/pr46728-13.c execution test
+FAIL: gcc.target/powerpc/pr46728-14.c execution test
+FAIL: gcc.target/powerpc/pr46728-2.c scan-assembler-not pow
+FAIL: gcc.target/powerpc/pr46728-3.c scan-assembler-not pow
+FAIL: gcc.target/powerpc/pr46728-4.c scan-assembler-not pow
+FAIL: gcc.target/powerpc/pr46728-7.c scan-assembler-not pow
+FAIL: gcc.target/powerpc/pr46728-8.c scan-assembler-not pow
