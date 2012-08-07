@@ -1,3 +1,193 @@
+2012-08-06   Lawrence Crowl  <crowl@google.com>
+
+	* hash-table.h
+	(typedef double_int): Change to struct (POD).
+	(double_int::make): New overloads for int to double-int conversion.
+	(double_int::mask): New.
+	(double_int::max_value): New.
+	(double_int::min_value): New.
+	(double_int::operator ++): New.
+	(double_int::operator --): New.
+	(double_int::operator *=): New.
+	(double_int::operator +=): New.
+	(double_int::operator -=): New.
+	(double_int::to_signed): New.
+	(double_int::to_unsigned): New.
+	(double_int::fits_unsigned): New.
+	(double_int::fits_signed): New.
+	(double_int::fits): New.
+	(double_int::trailing_zeros): New.
+	(double_int::popcount): New.
+	(double_int::multiple_of): New.
+	(double_int::set_bit): New.
+	(double_int::mul_with_sign): New.
+	(double_int::operator * (binary)): New.
+	(double_int::operator + (binary)): New.
+	(double_int::operator - (binary)): New.
+	(double_int::operator - (unary)): New.
+	(double_int::operator ~ (unary)): New.
+	(double_int::operator & (binary)): New.
+	(double_int::operator | (binary)): New.
+	(double_int::operator ^ (binary)): New.
+	(double_int::and_not): New.
+	(double_int::lshift): New.
+	(double_int::rshift): New.
+	(double_int::alshift): New.
+	(double_int::arshift): New.
+	(double_int::llshift): New.
+	(double_int::lrshift): New.
+	(double_int::lrotate): New.
+	(double_int::rrotate): New.
+	(double_int::div): New.
+	(double_int::sdiv): New.
+	(double_int::udiv): New.
+	(double_int::mod): New.
+	(double_int::smod): New.
+	(double_int::umod): New.
+	(double_int::divmod): New.
+	(double_int::sdivmod): New.
+	(double_int::udivmod): New.
+	(double_int::ext): New.
+	(double_int::zext): New.
+	(double_int::sext): New.
+	(double_int::is_zero): New.
+	(double_int::is_one): New.
+	(double_int::is_minus_one): New.
+	(double_int::is_negative): New.
+	(double_int::cmp): New.
+	(double_int::ucmp): New.
+	(double_int::scmp): New.
+	(double_int::ult): New.
+	(double_int::ugt): New.
+	(double_int::slt): New.
+	(double_int::sgt): New.
+	(double_int::max): New.
+	(double_int::smax): New.
+	(double_int::umax): New.
+	(double_int::min): New.
+	(double_int::smin): New.
+	(double_int::umin): New.
+	(double_int::operator ==): New.
+	(double_int::operator !=): New.
+	(shwi_to_double_int): Change implementation to use member function.
+	(double_int_minus_one): Likewise.
+	(double_int_zero): Likewise.
+	(double_int_one): Likewise.
+	(double_int_two): Likewise.
+	(double_int_ten): Likewise.
+	(uhwi_to_double_int): Likewise.
+	(double_int_to_shwi): Likewise.
+	(double_int_to_uhwi): Likewise.
+	(double_int_fits_in_uhwi_p): Likewise.
+	(double_int_fits_in_shwi_p): Likewise.
+	(double_int_fits_in_hwi_p): Likewise.
+	(double_int_mul): Likewise.
+	(double_int_mul_with_sign): Likewise.
+	(double_int_add): Likewise.
+	(double_int_sub): Likewise.
+	(double_int_neg): Likewise.
+	(double_int_div): Likewise.
+	(double_int_sdiv): Likewise.
+	(double_int_udiv): Likewise.
+	(double_int_mod): Likewise.
+	(double_int_smod): Likewise.
+	(double_int_umod): Likewise.
+	(double_int_divmod): Likewise.
+	(double_int_sdivmod): Likewise.
+	(double_int_udivmod): Likewise.
+	(double_int_multiple_of): Likewise.
+	(double_int_setbit): Likewise.
+	(double_int_ctz): Likewise.
+	(double_int_not): Likewise.
+	(double_int_ior): Likewise.
+	(double_int_and): Likewise.
+	(double_int_and_not): Likewise.
+	(double_int_xor): Likewise.
+	(double_int_lshift): Likewise.
+	(double_int_rshift): Likewise.
+	(double_int_lrotate): Likewise.
+	(double_int_rrotate): Likewise.
+	(double_int_cmp): Likewise.
+	(double_int_scmp): Likewise.
+	(double_int_ucmp): Likewise.
+	(double_int_max): Likewise.
+	(double_int_smax): Likewise.
+	(double_int_umax): Likewise.
+	(double_int_min): Likewise.
+	(double_int_smin): Likewise.
+	(double_int_umin): Likewise.
+	(double_int_ext): Likewise.
+	(double_int_sext): Likewise.
+	(double_int_zext): Likewise.
+	(double_int_mask): Likewise.
+	(double_int_max_value): Likewise.
+	(double_int_min_value): Likewise.
+	(double_int_zero_p): Likewise.
+	(double_int_one_p): Likewise.
+	(double_int_minus_one_p): Likewise.
+	(double_int_equal_p): Likewise.
+	(double_int_popcount): Likewise.
+	* hash-table.c
+	(double_int_mask): Reuse implementation for double_int::mask.
+	(double_int_max_value): Likewise.
+	(double_int_min_value): Likewise.
+	(double_int_ext): Likewise.
+	(double_int_zext): Likewise.
+	(double_int_sext): Likewise.
+	(double_int_mul_with_sign): Likewise.
+	(double_int_divmod): Likewise.
+	(double_int_sdivmod): Likewise.
+	(double_int_udivmod): Likewise.
+	(double_int_div): Likewise.
+	(double_int_sdiv): Likewise.
+	(double_int_udiv): Likewise.
+	(double_int_mod): Likewise.
+	(double_int_smod): Likewise.
+	(double_int_umod): Likewise.
+	(double_int_multiple_of): Likewise.
+	(double_int_lshift): Likewise.
+	(double_int_rshift): Likewise.
+	(double_int_lrotate): Likewise.
+	(double_int_rrotate): Likewise.
+	(double_int_cmp): Likewise.
+	(double_int_ucmp): Likewise.
+	(double_int_scmp): Likewise.
+	(double_int_max): Likewise.
+	(double_int_smax): Likewise.
+	(double_int_umax): Likewise.
+	(double_int_min): Likewise.
+	(double_int_smin): Likewise.
+	(double_int_umin): Likewise.
+	(double_int_min): Likewise.
+	(double_int_min): Likewise.
+	(double_int_min): Likewise.
+	(double_int_min): Likewise.
+	(double_int_min): Likewise.
+	(double_int_min): Likewise.
+	(double_int::alshift): New.
+	(double_int::arshift): New.
+	(double_int::llshift): New.
+	(double_int::lrshift): New.
+	(double_int::ult): New.
+	(double_int::ugt): New.
+	(double_int::slt): New.
+	(double_int::sgt): New.
+	(double_int_setbit): Reuse implementation for double_int::set_bit,
+	which avoids a name conflict with a macro.
+	(double_int_double_int_ctz): Reuse implementation for
+	double_int::trailing_zeros.
+	(double_int_fits_in_shwi_p): Reuse implementation for
+	double_int::fits_signed.
+	(double_int_fits_in_hwi_p): Reuse implementation for double_int::fits.
+	(double_int_mul): Reuse implementation for binary
+	double_int::operator *.
+	(double_int_add): Likewise.
+	(double_int_sub): Likewise.
+	(double_int_neg): Reuse implementation for unary
+	double_int::operator -.
+	(double_int_max_value): Likewise.
+	* fixed-value.c: Change to use member functions introduced above.
+
 2012-07-23   Lawrence Crowl  <crowl@google.com>
 
 	* hash-table.h (xcallocator::control_alloc): Adjust spacing.
