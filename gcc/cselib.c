@@ -39,6 +39,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "hashtab.h"
 #include "dumpfile.h"
 #include "cselib.h"
+#include "valtrack.h"
 #include "params.h"
 #include "alloc-pool.h"
 #include "target.h"
@@ -1008,8 +1009,9 @@ rtx_equal_for_cselib_1 (rtx x, rtx y, enum machine_mode memmode)
 static rtx
 wrap_constant (enum machine_mode mode, rtx x)
 {
-  if (!CONST_INT_P (x) && GET_CODE (x) != CONST_FIXED
-      && (GET_CODE (x) != CONST_DOUBLE || GET_MODE (x) != VOIDmode))
+  if (!CONST_INT_P (x) 
+      && GET_CODE (x) != CONST_FIXED
+      && !CONST_DOUBLE_AS_INT_P (x))
     return x;
   gcc_assert (mode != VOIDmode);
   return gen_rtx_CONST (mode, x);

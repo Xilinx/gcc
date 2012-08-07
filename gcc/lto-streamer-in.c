@@ -709,7 +709,7 @@ input_ssa_names (struct lto_input_block *ib, struct data_in *data_in,
       ssa_name = make_ssa_name_fn (fn, name, gimple_build_nop ());
 
       if (is_default_def)
-	set_default_def (SSA_NAME_VAR (ssa_name), ssa_name);
+	set_ssa_default_def (cfun, SSA_NAME_VAR (ssa_name), ssa_name);
 
       i = streamer_read_uhwi (ib);
     }
@@ -979,6 +979,9 @@ lto_read_body (struct lto_file_decl_data *file_data, tree fn_decl,
       push_cfun (fn);
       init_tree_ssa (fn);
 
+      /* We input IL in SSA form.  */
+      cfun->gimple_df->in_ssa_p = true;
+
       /* Use the function's decl state. */
       decl_state = lto_get_function_in_decl_state (file_data, fn_decl);
       gcc_assert (decl_state);
@@ -1014,9 +1017,6 @@ lto_read_body (struct lto_file_decl_data *file_data, tree fn_decl,
 		}
 	    }
 	}
-
-      /* We should now be in SSA.  */
-      cfun->gimple_df->in_ssa_p = true;
 
       /* Restore decl state */
       file_data->current_decl_state = file_data->global_decl_state;

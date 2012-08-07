@@ -1584,15 +1584,6 @@
   "subc	%2,%0"
   [(set_attr "type" "arith")])
 
-;; life_analysis thinks rn is live before subc rn,rn, so make a special
-;; pattern for this case.  This helps multimedia applications that compute
-;; the sum of absolute differences.
-(define_insn "mov_neg_si_t"
-  [(set (match_operand:SI 0 "arith_reg_dest" "=r") (neg:SI (reg:SI T_REG)))]
-  "TARGET_SH1"
-  "subc	%0,%0"
-  [(set_attr "type" "arith")])
-
 (define_insn "*subsi3_internal"
   [(set (match_operand:SI 0 "arith_reg_dest" "=r")
 	(minus:SI (match_operand:SI 1 "arith_reg_operand" "0")
@@ -3533,7 +3524,12 @@ label:
     }
   else if (!satisfies_constraint_P27 (operands[2]))
     {
-      emit_insn (gen_ashlsi3_n (operands[0], operands[1], operands[2]));
+      /* This must happen before reload, otherwise the constant will be moved
+	 into a register due to the "r" constraint, after which this split
+	 cannot be done anymore.
+	 Unfortunately the move insn will not always be eliminated.  */
+      emit_move_insn (operands[0], operands[1]);
+      gen_shifty_op (ASHIFT, operands);
       DONE;
     }
 
@@ -3797,7 +3793,7 @@ label:
   [(const_int 0)]
 {
   emit_insn (gen_ashlsi_c (operands[0], operands[1]));
-  emit_insn (gen_mov_neg_si_t (copy_rtx (operands[0])));
+  emit_insn (gen_mov_neg_si_t (operands[0], get_t_reg_rtx ()));
   DONE;
 })
 
@@ -5106,6 +5102,132 @@ label:
   [(set (reg:SI T_REG) (const_int 1))]
   "TARGET_SH1"
   "sett")
+
+
+;; Use the combine pass to transform sequences such as
+;;	mov	r5,r0
+;;	add	#1,r0
+;;	shll2	r0
+;;	mov.l	@(r0,r4),r0
+;; into
+;;	shll2	r5
+;;	add	r4,r5
+;;	mov.l	@(4,r5),r0
+;;
+;; See also PR 39423.
+;; FIXME: Fold copy pasted patterns somehow.
+;; FIXME: Combine never tries this kind of patterns for DImode.
+(define_insn_and_split "*movsi_index_disp"
+  [(set (match_operand:SI 0 "arith_reg_dest" "=r")
+	(mem:SI
+	  (plus:SI
+	    (plus:SI (mult:SI (match_operand:SI 1 "arith_reg_operand" "r")
+			      (match_operand:SI 2 "const_int_operand"))
+		     (match_operand:SI 3 "arith_reg_operand" "r"))
+	    (match_operand:SI 4 "const_int_operand"))))]
+  "TARGET_SH1 && sh_legitimate_index_p (SImode, operands[4], TARGET_SH2A, true)
+   && exact_log2 (INTVAL (operands[2])) > 0"
+  "#"
+  "&& can_create_pseudo_p ()"
+  [(set (match_dup 5) (ashift:SI (match_dup 1) (match_dup 2)))
+   (set (match_dup 6) (plus:SI (match_dup 5) (match_dup 3)))
+   (set (match_dup 0) (mem:SI (plus:SI (match_dup 6) (match_dup 4))))]
+{
+  operands[5] = gen_reg_rtx (SImode);
+  operands[6] = gen_reg_rtx (SImode);
+  operands[2] = GEN_INT (exact_log2 (INTVAL (operands[2])));
+})
+
+(define_insn_and_split "*movhi_index_disp"
+  [(set (match_operand:SI 0 "arith_reg_dest" "=r")
+	(sign_extend:SI
+	  (mem:HI
+	    (plus:SI
+	      (plus:SI (mult:SI (match_operand:SI 1 "arith_reg_operand" "r")
+				(match_operand:SI 2 "const_int_operand"))
+		       (match_operand:SI 3 "arith_reg_operand" "r"))
+	      (match_operand:SI 4 "const_int_operand")))))]
+  "TARGET_SH1 && sh_legitimate_index_p (HImode, operands[4], TARGET_SH2A, true)
+   && exact_log2 (INTVAL (operands[2])) > 0"
+  "#"
+  "&& can_create_pseudo_p ()"
+  [(set (match_dup 5) (ashift:SI (match_dup 1) (match_dup 2)))
+   (set (match_dup 6) (plus:SI (match_dup 5) (match_dup 3)))
+   (set (match_dup 0)
+	(sign_extend:SI (mem:HI (plus:SI (match_dup 6) (match_dup 4)))))]
+{
+  operands[5] = gen_reg_rtx (SImode);
+  operands[6] = gen_reg_rtx (SImode);
+  operands[2] = GEN_INT (exact_log2 (INTVAL (operands[2])));
+})
+
+(define_insn_and_split "*movhi_index_disp"
+  [(set (match_operand:SI 0 "arith_reg_dest" "=r")
+	(zero_extend:SI
+	  (mem:HI
+	    (plus:SI
+	      (plus:SI (mult:SI (match_operand:SI 1 "arith_reg_operand" "r")
+				(match_operand:SI 2 "const_int_operand"))
+		       (match_operand:SI 3 "arith_reg_operand" "r"))
+	      (match_operand:SI 4 "const_int_operand")))))]
+  "TARGET_SH1 && sh_legitimate_index_p (HImode, operands[4], TARGET_SH2A, true)
+   && exact_log2 (INTVAL (operands[2])) > 0"
+  "#"
+  "&& can_create_pseudo_p ()"
+  [(set (match_dup 5) (ashift:SI (match_dup 1) (match_dup 2)))
+   (set (match_dup 6) (plus:SI (match_dup 5) (match_dup 3)))
+   (set (match_dup 7)
+	(sign_extend:SI (mem:HI (plus:SI (match_dup 6) (match_dup 4)))))
+   (set (match_dup 0) (zero_extend:SI (match_dup 8)))]
+{
+  operands[5] = gen_reg_rtx (SImode);
+  operands[6] = gen_reg_rtx (SImode);
+  operands[7] = gen_reg_rtx (SImode);
+  operands[8] = gen_lowpart (HImode, operands[7]);
+  operands[2] = GEN_INT (exact_log2 (INTVAL (operands[2])));
+})
+
+(define_insn_and_split "*movsi_index_disp"
+  [(set (mem:SI
+	  (plus:SI
+	    (plus:SI (mult:SI (match_operand:SI 1 "arith_reg_operand" "r")
+			      (match_operand:SI 2 "const_int_operand"))
+		     (match_operand:SI 3 "arith_reg_operand" "r"))
+	  (match_operand:SI 4 "const_int_operand")))
+	(match_operand:SI 0 "arith_reg_operand" "r"))]
+  "TARGET_SH1 && sh_legitimate_index_p (SImode, operands[4], TARGET_SH2A, true)
+   && exact_log2 (INTVAL (operands[2])) > 0"
+  "#"
+  "&& can_create_pseudo_p ()"
+  [(set (match_dup 5) (ashift:SI (match_dup 1) (match_dup 2)))
+   (set (match_dup 6) (plus:SI (match_dup 5) (match_dup 3)))
+   (set (mem:SI (plus:SI (match_dup 6) (match_dup 4))) (match_dup 0))]
+{
+  operands[5] = gen_reg_rtx (SImode);
+  operands[6] = gen_reg_rtx (SImode);
+  operands[2] = GEN_INT (exact_log2 (INTVAL (operands[2])));
+})
+
+(define_insn_and_split "*movhi_index_disp"
+  [(set (mem:HI
+	  (plus:SI
+	    (plus:SI (mult:SI (match_operand:SI 1 "arith_reg_operand" "r")
+			      (match_operand:SI 2 "const_int_operand"))
+		     (match_operand:SI 3 "arith_reg_operand" "r"))
+	  (match_operand:SI 4 "const_int_operand")))
+	(match_operand:HI 0 "arith_reg_operand" "r"))]
+  "TARGET_SH1 && sh_legitimate_index_p (HImode, operands[4], TARGET_SH2A, true)
+   && exact_log2 (INTVAL (operands[2])) > 0"
+  "#"
+  "&& can_create_pseudo_p ()"
+  [(set (match_dup 5) (ashift:SI (match_dup 1) (match_dup 2)))
+   (set (match_dup 6) (plus:SI (match_dup 5) (match_dup 3)))
+   (set (mem:HI (plus:SI (match_dup 6) (match_dup 4))) (match_dup 0))]
+{
+  operands[5] = gen_reg_rtx (SImode);
+  operands[6] = gen_reg_rtx (SImode);
+  operands[2] = GEN_INT (exact_log2 (INTVAL (operands[2])));
+})
 
 ;; Define additional pop for SH1 and SH2 so it does not get 
 ;; placed in the delay slot.
@@ -9703,6 +9825,25 @@ label:
   "#"
   ""
   [(const_int 0)])
+
+;; Store T bit as all zeros or ones in a reg.
+(define_insn "mov_neg_si_t"
+  [(set (match_operand:SI 0 "arith_reg_dest" "=r")
+	(neg:SI (match_operand 1 "t_reg_operand" "")))]
+  "TARGET_SH1"
+  "subc	%0,%0"
+  [(set_attr "type" "arith")])
+
+;; Store negated T bit as all zeros or ones in a reg.
+;; Use the following sequence:
+;; 	subc	Rn,Rn	! Rn = Rn - Rn - T; T = T
+;;	not	Rn,Rn	! Rn = 0 - Rn
+(define_split
+  [(set (match_operand:SI 0 "arith_reg_dest" "")
+	(neg:SI (match_operand 1 "negt_reg_operand" "")))]
+  "TARGET_SH1"
+  [(set (match_dup 0) (neg:SI (reg:SI T_REG)))
+   (set (match_dup 0) (not:SI (match_dup 0)))])
 
 ;; The *movtt pattern eliminates redundant T bit to T bit moves / tests.
 (define_insn_and_split "*movtt"

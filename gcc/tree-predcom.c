@@ -1308,15 +1308,7 @@ replace_ref_with (gimple stmt, tree new_tree, bool set, bool in_lhs)
 	  val = gimple_assign_rhs1 (stmt);
 	  gcc_assert (gimple_assign_single_p (stmt));
 	  if (TREE_CLOBBER_P (val))
-	    {
-	      val = gimple_default_def (cfun, SSA_NAME_VAR (new_tree));
-	      if (val == NULL_TREE)
-		{
-		  val = make_ssa_name (SSA_NAME_VAR (new_tree),
-				       gimple_build_nop ());
-		  set_default_def (SSA_NAME_VAR (new_tree), val);
-		}
-	    }
+	    val = get_or_create_ssa_default_def (cfun, SSA_NAME_VAR (new_tree));
 	  else
 	    gcc_assert (gimple_assign_copy_p (stmt));
 	}
@@ -1440,30 +1432,6 @@ get_init_expr (chain_p chain, unsigned index)
     return VEC_index (tree, chain->inits, index);
 }
 
-/* Marks all virtual operands of statement STMT for renaming.  */
-
-void
-mark_virtual_ops_for_renaming (gimple stmt)
-{
-  tree var;
-
-  if (gimple_code (stmt) == GIMPLE_PHI)
-    {
-      var = PHI_RESULT (stmt);
-      if (is_gimple_reg (var))
-	return;
-
-      if (TREE_CODE (var) == SSA_NAME)
-	var = SSA_NAME_VAR (var);
-      mark_sym_for_renaming (var);
-      return;
-    }
-
-  update_stmt (stmt);
-  if (gimple_vuse (stmt))
-    mark_sym_for_renaming (gimple_vop (cfun));
-}
-
 /* Returns a new temporary variable used for the I-th variable carrying
    value of REF.  The variable's uid is marked in TMP_VARS.  */
 
@@ -1474,8 +1442,6 @@ predcom_tmp_var (tree ref, unsigned i, bitmap tmp_vars)
   /* We never access the components of the temporary variable in predictive
      commoning.  */
   tree var = create_tmp_reg (type, get_lsm_tmp_name (ref, i));
-
-  add_referenced_var (var);
   bitmap_set_bit (tmp_vars, DECL_UID (var));
   return var;
 }
@@ -1600,7 +1566,6 @@ initialize_root_vars_lm (struct loop *loop, dref root, bool written,
   else
     {
       gimple init_stmt = gimple_build_assign (var, init);
-      mark_virtual_ops_for_renaming (init_stmt);
       gsi_insert_on_edge_immediate (entry, init_stmt);
     }
 }
@@ -1634,7 +1599,6 @@ execute_load_motion (struct loop *loop, chain_p chain, bitmap tmp_vars)
   FOR_EACH_VEC_ELT (dref, chain->refs, i, a)
     {
       bool is_read = DR_IS_READ (a->ref);
-      mark_virtual_ops_for_renaming (a->stmt);
 
       if (DR_IS_WRITE (a->ref))
 	{
@@ -1730,7 +1694,7 @@ remove_stmt (gimple stmt)
       next = single_nonlooparound_use (name);
       reset_debug_uses (stmt);
 
-      mark_virtual_ops_for_renaming (stmt);
+      unlink_stmt_vdef (stmt);
       gsi_remove (&bsi, true);
       release_defs (stmt);
 
@@ -1751,7 +1715,7 @@ execute_pred_commoning_chain (struct loop *loop, chain_p chain,
 			     bitmap tmp_vars)
 {
   unsigned i;
-  dref a, root;
+  dref a;
   tree var;
 
   if (chain->combined)
@@ -1766,13 +1730,9 @@ execute_pred_commoning_chain (struct loop *loop, chain_p chain,
       /* For non-combined chains, set up the variables that hold its value,
 	 and replace the uses of the original references by these
 	 variables.  */
-      root = get_chain_root (chain);
-      mark_virtual_ops_for_renaming (root->stmt);
-
       initialize_root (loop, chain, tmp_vars);
       for (i = 1; VEC_iterate (dref, chain->refs, i, a); i++)
 	{
-	  mark_virtual_ops_for_renaming (a->stmt);
 	  var = VEC_index (tree, chain->vars, chain->length - a->distance);
 	  replace_ref_with (a->stmt, var, false, false);
 	}
@@ -1902,7 +1862,7 @@ base_names_in_chain_on (struct loop *loop, tree name, tree var)
   gimple stmt, phi;
   imm_use_iterator iter;
 
-  SSA_NAME_VAR (name) = var;
+  replace_ssa_name_symbol (name, var);
 
   while (1)
     {
@@ -1920,7 +1880,7 @@ base_names_in_chain_on (struct loop *loop, tree name, tree var)
 	return;
 
       name = PHI_RESULT (phi);
-      SSA_NAME_VAR (name) = var;
+      replace_ssa_name_symbol (name, var);
     }
 }
 
@@ -2221,12 +2181,10 @@ reassociate_to_the_same_stmt (tree name1, tree name2)
   /* Insert the new statement combining NAME1 and NAME2 before S1, and
      combine it with the rhs of S1.  */
   var = create_tmp_reg (type, "predreastmp");
-  add_referenced_var (var);
   new_name = make_ssa_name (var, NULL);
   new_stmt = gimple_build_assign_with_ops (code, new_name, name1, name2);
 
   var = create_tmp_reg (type, "predreastmp");
-  add_referenced_var (var);
   tmp_name = make_ssa_name (var, NULL);
 
   /* Rhs of S1 may now be either a binary expression with operation

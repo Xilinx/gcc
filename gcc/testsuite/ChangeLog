@@ -1,3 +1,211 @@
+2012-08-06  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/sfinae38.C: New.
+
+2012-08-06  Marc Glisse  <marc.glisse@inria.fr>
+	    Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/54165
+	* g++.dg/conversion/void2.C: New.
+
+2012-08-06  Tom de Vries  <tom@codesourcery.com>
+
+	* gcc.dg/tree-ssa/vrp78.c: New test.
+
+2012-08-04  Sandra Loosemore  <sandra@codesourcery.com>
+	    Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* g++.dg/opt/enum2.C: Require fpic target.
+	* g++.dg/lto/20090303_0.C: Likewise.
+
+2012-08-04  Sandra Loosemore  <sandra@codesourcery.com>
+	    Catherine Moore  <clm@codesourcery.com>
+
+	* gcc.target/mips/clear-cache-1.c: Test for alternate cache
+	flush function names too.
+	* gcc.target/mips/clear-cache-1.c: Likewise.
+
+2012-08-03  Bill Schmidt  <wschmidt@linux.ibm.com>
+
+	PR target/54156
+	* testsuite/gcc.dg/vect/pr53773.c: Change to use optimized dump.
+
+2012-08-03  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/54166
+	* gfortran.dg/array_5.f90: New test.
+
+2012-08-03 Marc Glisse <marc.glisse@inria.fr>
+
+	PR tree-optimization/30318
+	* gcc.dg/tree-ssa/vrp77.c: New testcase.
+
+2012-08-03  Marc Glisse  <marc.glisse@inria.fr>
+
+	* g++.dg/ext/vector17.C: New testcase.
+
+2012-08-02  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR target/51931
+	* gcc.c-torture/compile/20001226-1.c: Remove nomips16 attribute.
+	* g++.dg/opt/longbranch1.C: Likewise.
+
+2012-08-02  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR tree-optimization/53805
+	* gcc.dg/fold-notunord.c: New testcase.
+
+2012-08-02  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/48820
+	* gfortran.dg/assumed_rank_bounds_1.f90:  New test.
+	* gfortran.dg/assumed_rank_bounds_2.f90:  New test.
+
+2012-08-02  Jason Merrill  <jason@redhat.com>
+	    Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51213 (again)
+	* g++.dg/cpp0x/sfinae37.C: Extend.
+
+2012-08-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/50672
+	* g++.dg/torture/pr50672.C: New testcase.
+
+2012-08-02  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/54147
+	* gfortran.dg/abstract_type_6.f03: Modified.
+	* gfortran.dg/proc_ptr_comp_3.f90: Modified.
+	* gfortran.dg/proc_ptr_comp_35.f90: New.
+	* gfortran.dg/typebound_proc_9.f03: Modified.
+	* gfortran.dg/typebound_proc_26.f90: New.
+
+2012-08-02  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/torture/pta-callused-1.c: Adjust.
+	* gcc.dg/torture/pta-ptrarith-3.c: Likewise.
+	* gcc.dg/torture/ssa-pta-fn-1.c: Likewise.
+	* gcc.dg/tree-ssa/alias-19.c: Likewise.
+	* gcc.dg/tree-ssa/pta-escape-1.c: Likewise.
+	* gcc.dg/tree-ssa/pta-escape-2.c: Likewise.
+	* gcc.dg/tree-ssa/pta-escape-3.c: Likewise.
+	* gcc.dg/tree-ssa/pta-ptrarith-1.c: Likewise.
+	* gcc.dg/tree-ssa/pta-ptrarith-2.c: Likewise.
+
+2012-08-01  Thomas König  <tkoenig@gcc.gnu.org>
+
+	PR fortran/54033
+	* gfortran.dg/include_6.f90:  New test case.
+	* gfortran.dg/include_7.f90:  New test case.
+	* gfortran.dg/include_3.f90:  Add dg-warning for missing directory.
+
+2012-08-01  Tom de Vries  <tom@codesourcery.com>
+
+	* gcc.dg/tree-ssa/vrp76.c: New test.
+
+2012-08-01  Bill Schmidt  <wschmidt@linux.ibm.com>
+
+	PR tree-optimization/46556
+	* testsuite/gcc.dg/tree-ssa/slsr-27.c: New.
+	* testsuite/gcc.dg/tree-ssa/slsr-28.c: New.
+	* testsuite/gcc.dg/tree-ssa/slsr-29.c: New.
+
+2012-07-31  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42418
+	* gfortran.dg/proc_decl_29.f90: New.
+
+2012-07-31  Dehao Chen  <dehao@google.com>
+
+	* gcc.dg/predict-7.c: New test.
+
+2012-07-31  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/54134
+	* gfortran.dg/typebound_override_3.f90: New.
+
+2012-07-31  Bill Schmidt  <wschmidt@linux.ibm.com>
+
+	PR tree-optimization/53773
+	* testsuite/gcc.dg/vect/pr53773.c: New test.
+
+2012-07-31  Nick Clifton  <nickc@redhat.com>
+
+	* gcc.dg/stack-usage-1.c (SIZE): Define for FRV,
+	and for XStormy16.
+
+2012-07-31  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/c_funloc_tests_6.f90: New.
+	* gfortran.dg/c_funloc_tests_7.f90: New.
+	* gfortran.dg/c_funloc_tests_5.f03: Compile with -std=f2003.
+
+2012-07-31  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/53624
+	* g++.dg/cpp0x/temp_default5.C: New.
+
+2012-07-30  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/51081
+	* gfortran.dg/proc_ptr_37.f90: New.
+
+2012-07-30  Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	* lib/target-supports.exp
+	(check_effective_target_vect_natural_alignment): New function.
+	* gcc.dg/align-2.c: Only run on targets with natural alignment
+	of vector types.
+	* gcc.dg/vect/slp-25.c: Adjust tests for targets without natural
+	alignment of vector types.
+
+2012-07-30  Kirill Yukhin  <kirill.yukhin@intel.com>
+	    Michael Zolotukhin  <michael.v.zolotukhin@intel.com>
+
+	* gcc.target/i386/rdseed16-1.c: New.
+	* gcc.target/i386/rdseed32-1.c: Ditto
+	* gcc.target/i386/rdseed64-1.c: Ditto
+	* gcc.target/i386/sse-12.c: Add -mrdseed.
+	* gcc.target/i386/sse-13.c: Ditto.
+	* gcc.target/i386/sse-14.c: Ditto.
+	* g++.dg/other/i386-2.C: Ditto.
+	* g++.dg/other/i386-3.C: Ditto.
+
+2012-07-30  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/51244
+	* gcc.target/sh/pr51244-4.c: New.
+
+2012-07-27  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gfortran.dg/bind_c_array_params_2.f90: Add "-mno-explicit-relocs"
+	for alpha*-*-* targets.  Cleanup original tree dump.
+
+2012-07-27  Segher Boessenkool  <segher@kernel.crashing.org>
+
+	* gcc.target/powerpc/rs6000-power2-1.c: Delete.
+	* gcc.target/powerpc/rs6000-power2-2.c: Delete.
+
+2012-07-27  Anna Tikhonova  <anna.tikhonova@intel.com>
+
+	* gcc.dg/20020201-1.c: Remove declarations for exit, abort,
+	rand, srand. Include <stdlib.h>.
+
+2012-07-26  Janis Johnson  <janisjo@codesourcery.com>
+
+	* gcc.dg/pr45259.c: Only -fpic depends on fpic support.
+
+2012-07-26  Richard Henderson  <rth@redhat.com>
+
+	* gcc.dg/attr-hotcold-1.c: New.
+	* gcc.dg/tree-ssa/attr-hotcold-2.c: New.
+
+2012-07-26  Andrew Jenner  <andrew@codesourcery.com>
+	    Sandra Loosemore  <sandra@codesourcery.com>
+
+	* gcc.c-torture/compile/pr50380.c: Add code to cause cycle of length 2.
+
 2012-07-26  Tobias Burnus  <burnus@net-b.de>
 
 	* gfortran.dg/contiguous_1.f90: Update dg-error.
@@ -36,8 +244,7 @@
 
 	PR target/53633
 
-	* lib/target-suports.exp (check_effective_target_naked_functions):
-	New.
+	* lib/target-suports.exp (check_effective_target_naked_functions): New.
 	* c-c++-common/pr53633.c: New test.
 
 2012-07-25  Siddhesh Poyarekar  <siddhesh@redhat.com>
@@ -47,7 +254,7 @@
 2012-07-25  Kirill Yukhin  <kirill.yukhin@intel.com>
 	    Michael Zolotukhin  <michael.v.zolotukhin@intel.com>
 
-        * gcc.target/i386/prefetchw-1.c: New.
+	* gcc.target/i386/prefetchw-1.c: New.
 	* gcc.target/i386/sse-12.c: Add -mprfchw.
 	* gcc.target/i386/sse-13.c: Ditto.
 	* gcc.target/i386/sse-14.c: Ditto.
@@ -527,14 +734,14 @@
 
 2012-07-05  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
 
-        PR target/48941
-        PR target/51980
-        * gcc/testsuite/gcc.target/arm/neon/vtrnf32.c: Update.
-        * gcc/testsuite/gcc.target/arm/neon/vtrns32.c: Update.
-        * gcc/testsuite/gcc.target/arm/neon/vtrnu32.c: Update.
-        * gcc/testsuite/gcc.target/arm/neon/vzipf32.c: Update.
-        * gcc/testsuite/gcc.target/arm/neon/vzips32.c: Update.
-        * gcc/testsuite/gcc.target/arm/neon/vzipu32.c: Update.
+	PR target/48941
+	PR target/51980
+	* gcc/testsuite/gcc.target/arm/neon/vtrnf32.c: Update.
+	* gcc/testsuite/gcc.target/arm/neon/vtrns32.c: Update.
+	* gcc/testsuite/gcc.target/arm/neon/vtrnu32.c: Update.
+	* gcc/testsuite/gcc.target/arm/neon/vzipf32.c: Update.
+	* gcc/testsuite/gcc.target/arm/neon/vzips32.c: Update.
+	* gcc/testsuite/gcc.target/arm/neon/vzipu32.c: Update.
 
 2012-07-05  Mikael Morin  <mikael@gcc.gnu.org>
 

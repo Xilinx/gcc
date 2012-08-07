@@ -3029,7 +3029,7 @@ package body Freeze is
 
                --  Pre/post conditions are implemented through a subprogram in
                --  the corresponding body, and therefore are not checked on an
-               --  imported subprogram, for which the body is not available.
+               --  imported subprogram for which the body is not available.
 
                --  Could consider generating a wrapper to take care of this???
 
@@ -3434,11 +3434,22 @@ package body Freeze is
                end if;
             end if;
 
+            --  A subtype inherits all the type-related representation aspects
+            --  from its parents (RM 13.1(8)).
+
+            Inherit_Aspects_At_Freeze_Point (E);
+
          --  For a derived type, freeze its parent type first (RM 13.14(15))
 
          elsif Is_Derived_Type (E) then
             Freeze_And_Append (Etype (E), N, Result);
             Freeze_And_Append (First_Subtype (Etype (E)), N, Result);
+
+            --  A derived type inherits each type-related representation aspect
+            --  of its parent type that was directly specified before the
+            --  declaration of the derived type (RM 13.1(15)).
+
+            Inherit_Aspects_At_Freeze_Point (E);
          end if;
 
          --  For array type, freeze index types and component type first
@@ -4201,12 +4212,16 @@ package body Freeze is
                Check_Suspicious_Modulus (E);
             end if;
 
-         elsif Is_Access_Type (E) then
-
+         elsif Is_Access_Type (E)
+           and then not Is_Access_Subprogram_Type (E)
+         then
             --  If a pragma Default_Storage_Pool applies, and this type has no
             --  Storage_Pool or Storage_Size clause (which must have occurred
             --  before the freezing point), then use the default. This applies
             --  only to base types.
+
+            --  None of this applies to access to subprograms, for which there
+            --  are clearly no pools.
 
             if Present (Default_Pool)
               and then Is_Base_Type (E)

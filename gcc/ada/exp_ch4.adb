@@ -699,14 +699,13 @@ package body Exp_Ch4 is
       begin
          if Ada_Version >= Ada_2005
            and then Is_Class_Wide_Type (DesigT)
-           and then not Scope_Suppress (Accessibility_Check)
+           and then not Scope_Suppress.Suppress (Accessibility_Check)
            and then
              (Type_Access_Level (Etype (Exp)) > Type_Access_Level (PtrT)
                or else
                  (Is_Class_Wide_Type (Etype (Exp))
                    and then Scope (PtrT) /= Current_Scope))
-           and then
-             (Tagged_Type_Expansion or else VM_Target /= No_VM)
+           and then (Tagged_Type_Expansion or else VM_Target /= No_VM)
          then
             --  If the allocator was built in place, Ref is already a reference
             --  to the access object initialized to the result of the allocator

@@ -4211,10 +4211,9 @@ process_partial_specialization (tree decl)
 
 /* Check that a template declaration's use of default arguments and
    parameter packs is not invalid.  Here, PARMS are the template
-   parameters.  IS_PRIMARY is nonzero if DECL is the thing declared by
-   a primary template.  IS_PARTIAL is nonzero if DECL is a partial
+   parameters.  IS_PRIMARY is true if DECL is the thing declared by
+   a primary template.  IS_PARTIAL is true if DECL is a partial
    specialization.
-   
 
    IS_FRIEND_DECL is nonzero if DECL is a friend function template
    declaration (but not a definition); 1 indicates a declaration, 2
@@ -4224,8 +4223,8 @@ process_partial_specialization (tree decl)
    Returns TRUE if there were no errors found, FALSE otherwise. */
 
 bool
-check_default_tmpl_args (tree decl, tree parms, int is_primary, 
-                         int is_partial, int is_friend_decl)
+check_default_tmpl_args (tree decl, tree parms, bool is_primary,
+                         bool is_partial, int is_friend_decl)
 {
   const char *msg;
   int last_level_to_check;
@@ -4268,7 +4267,8 @@ check_default_tmpl_args (tree decl, tree parms, int is_primary,
 
   /* Core issue 226 (C++0x only): the following only applies to class
      templates.  */
-  if ((cxx_dialect == cxx98) || TREE_CODE (decl) != FUNCTION_DECL)
+  if (is_primary
+      && ((cxx_dialect == cxx98) || TREE_CODE (decl) != FUNCTION_DECL))
     {
       /* [temp.param]
 
@@ -4300,8 +4300,7 @@ check_default_tmpl_args (tree decl, tree parms, int is_primary,
                   TREE_PURPOSE (parm) = error_mark_node;
                   no_errors = false;
                 }
-	      else if (is_primary
-		       && !is_partial
+	      else if (!is_partial
 		       && !is_friend_decl
 		       /* Don't complain about an enclosing partial
 			  specialization.  */
@@ -4457,8 +4456,8 @@ push_template_decl_real (tree decl, bool is_friend)
   tree args;
   tree info;
   tree ctx;
-  int primary;
-  int is_partial;
+  bool is_primary;
+  bool is_partial;
   int new_template_p = 0;
   /* True if the template is a member template, in the sense of
      [temp.mem].  */
@@ -4500,11 +4499,11 @@ push_template_decl_real (tree decl, bool is_friend)
     /* A friend template that specifies a class context, i.e.
          template <typename T> friend void A<T>::f();
        is not primary.  */
-    primary = 0;
+    is_primary = false;
   else
-    primary = template_parm_scope_p ();
+    is_primary = template_parm_scope_p ();
 
-  if (primary)
+  if (is_primary)
     {
       if (DECL_CLASS_SCOPE_P (decl))
 	member_template_p = true;
@@ -4557,7 +4556,7 @@ push_template_decl_real (tree decl, bool is_friend)
   /* Check to see that the rules regarding the use of default
      arguments are not being violated.  */
   check_default_tmpl_args (decl, current_template_parms,
-			   primary, is_partial, /*is_friend_decl=*/0);
+			   is_primary, is_partial, /*is_friend_decl=*/0);
 
   /* Ensure that there are no parameter packs in the type of this
      declaration that have not been expanded.  */
@@ -4774,7 +4773,7 @@ template arguments to %qD do not match original template %qD",
 	}
     }
 
-  if (primary)
+  if (is_primary)
     {
       tree parms = DECL_TEMPLATE_PARMS (tmpl);
       int i;
@@ -4816,7 +4815,7 @@ template arguments to %qD do not match original template %qD",
     SET_TYPE_TEMPLATE_INFO (TREE_TYPE (tmpl), info);
   else
     {
-      if (primary && !DECL_LANG_SPECIFIC (decl))
+      if (is_primary && !DECL_LANG_SPECIFIC (decl))
 	retrofit_lang_decl (decl);
       if (DECL_LANG_SPECIFIC (decl))
 	DECL_TEMPLATE_INFO (decl) = info;
@@ -13953,7 +13952,7 @@ tsubst_copy_and_build (tree t,
 	  /* We can't do much here.  */;
 	else if (!CLASS_TYPE_P (object_type))
 	  {
-	    if (SCALAR_TYPE_P (object_type))
+	    if (scalarish_type_p (object_type))
 	      {
 		tree s = NULL_TREE;
 		tree dtor = member;
@@ -14465,8 +14464,12 @@ instantiate_template_1 (tree tmpl, tree orig_args, tsubst_flags_t complain)
 
   if (spec != NULL_TREE)
     {
-      if (FNDECL_RECHECK_ACCESS_P (spec) && (complain & tf_error))
-	recheck_decl_substitution (spec, gen_tmpl, targ_ptr);
+      if (FNDECL_HAS_ACCESS_ERRORS (spec))
+	{
+	  if (complain & tf_error)
+	    recheck_decl_substitution (spec, gen_tmpl, targ_ptr);
+	  return error_mark_node;
+	}
       return spec;
     }
 
@@ -14528,7 +14531,7 @@ instantiate_template_1 (tree tmpl, tree orig_args, tsubst_flags_t complain)
 	{
 	  /* Remember to reinstantiate when we're out of SFINAE so the user
 	     can see the errors.  */
-	  FNDECL_RECHECK_ACCESS_P (fndecl) = true;
+	  FNDECL_HAS_ACCESS_ERRORS (fndecl) = true;
 	}
       return error_mark_node;
     }
@@ -15227,9 +15230,11 @@ type_unification_real (tree tparms,
 	      location_t save_loc = input_location;
 	      if (DECL_P (parm))
 		input_location = DECL_SOURCE_LOCATION (parm);
+	      push_deferring_access_checks (dk_no_deferred);
 	      arg = tsubst_template_arg (arg, targs, complain, NULL_TREE);
 	      arg = convert_template_argument (parm, arg, targs, complain,
 					       i, NULL_TREE);
+	      pop_deferring_access_checks ();
 	      input_location = save_loc;
 	      if (arg == error_mark_node)
 		return 1;

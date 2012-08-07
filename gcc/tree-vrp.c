@@ -2188,6 +2188,28 @@ extract_range_from_multiplicative_op_1 (value_range_t *vr,
     set_value_range (vr, type, min, max, NULL);
 }
 
+/* Some quadruple precision helpers.  */
+static int
+quad_int_cmp (double_int l0, double_int h0,
+	      double_int l1, double_int h1, bool uns)
+{
+  int c = double_int_cmp (h0, h1, uns);
+  if (c != 0) return c;
+  return double_int_ucmp (l0, l1);
+}
+
+static void
+quad_int_pair_sort (double_int *l0, double_int *h0,
+		    double_int *l1, double_int *h1, bool uns)
+{
+  if (quad_int_cmp (*l0, *h0, *l1, *h1, uns) > 0)
+    {
+      double_int tmp;
+      tmp = *l0; *l0 = *l1; *l1 = tmp;
+      tmp = *h0; *h0 = *h1; *h1 = tmp;
+    }
+}
+
 /* Extract range information from a binary operation CODE based on
    the ranges of each of its operands, *VR0 and *VR1 with resulting
    type EXPR_TYPE.  The resulting range is stored in *VR.  */
@@ -2569,6 +2591,123 @@ extract_range_from_binary_expr_1 (value_range_t *vr,
     }
   else if (code == MULT_EXPR)
     {
+      /* Fancy code so that with unsigned, [-3,-1]*[-3,-1] does not
+	 drop to varying.  */
+      if (range_int_cst_p (&vr0)
+	  && range_int_cst_p (&vr1)
+	  && TYPE_OVERFLOW_WRAPS (expr_type))
+	{
+	  double_int min0, max0, min1, max1, sizem1, size;
+	  double_int prod0l, prod0h, prod1l, prod1h,
+		     prod2l, prod2h, prod3l, prod3h;
+	  bool uns0, uns1, uns;
+
+	  sizem1 = double_int_max_value (TYPE_PRECISION (expr_type), true);
+	  size = double_int_add (sizem1, double_int_one);
+
+	  min0 = tree_to_double_int (vr0.min);
+	  max0 = tree_to_double_int (vr0.max);
+	  min1 = tree_to_double_int (vr1.min);
+	  max1 = tree_to_double_int (vr1.max);
+
+	  uns0 = TYPE_UNSIGNED (expr_type);
+	  uns1 = uns0;
+
+	  /* Canonicalize the intervals.  */
+	  if (TYPE_UNSIGNED (expr_type))
+	    {
+	      double_int min2 = double_int_sub (size, min0);
+	      if (double_int_cmp (min2, max0, true) < 0)
+		{
+		  min0 = double_int_neg (min2);
+		  max0 = double_int_sub (max0, size);
+		  uns0 = false;
+		}
+
+	      min2 = double_int_sub (size, min1);
+	      if (double_int_cmp (min2, max1, true) < 0)
+		{
+		  min1 = double_int_neg (min2);
+		  max1 = double_int_sub (max1, size);
+		  uns1 = false;
+		}
+	    }
+	  uns = uns0 & uns1;
+
+	  mul_double_wide_with_sign (min0.low, min0.high,
+				     min1.low, min1.high,
+				     &prod0l.low, &prod0l.high,
+				     &prod0h.low, &prod0h.high, true);
+	  if (!uns0 && double_int_negative_p (min0))
+	    prod0h = double_int_sub (prod0h, min1);
+	  if (!uns1 && double_int_negative_p (min1))
+	    prod0h = double_int_sub (prod0h, min0);
+
+	  mul_double_wide_with_sign (min0.low, min0.high,
+				     max1.low, max1.high,
+				     &prod1l.low, &prod1l.high,
+				     &prod1h.low, &prod1h.high, true);
+	  if (!uns0 && double_int_negative_p (min0))
+	    prod1h = double_int_sub (prod1h, max1);
+	  if (!uns1 && double_int_negative_p (max1))
+	    prod1h = double_int_sub (prod1h, min0);
+
+	  mul_double_wide_with_sign (max0.low, max0.high,
+				     min1.low, min1.high,
+				     &prod2l.low, &prod2l.high,
+				     &prod2h.low, &prod2h.high, true);
+	  if (!uns0 && double_int_negative_p (max0))
+	    prod2h = double_int_sub (prod2h, min1);
+	  if (!uns1 && double_int_negative_p (min1))
+	    prod2h = double_int_sub (prod2h, max0);
+
+	  mul_double_wide_with_sign (max0.low, max0.high,
+				     max1.low, max1.high,
+				     &prod3l.low, &prod3l.high,
+				     &prod3h.low, &prod3h.high, true);
+	  if (!uns0 && double_int_negative_p (max0))
+	    prod3h = double_int_sub (prod3h, max1);
+	  if (!uns1 && double_int_negative_p (max1))
+	    prod3h = double_int_sub (prod3h, max0);
+
+	  /* Sort the 4 products.  */
+	  quad_int_pair_sort (&prod0l, &prod0h, &prod3l, &prod3h, uns);
+	  quad_int_pair_sort (&prod1l, &prod1h, &prod2l, &prod2h, uns);
+	  quad_int_pair_sort (&prod0l, &prod0h, &prod1l, &prod1h, uns);
+	  quad_int_pair_sort (&prod2l, &prod2h, &prod3l, &prod3h, uns);
+
+	  /* Max - min.  */
+	  if (double_int_zero_p (prod0l))
+	    {
+	      prod1l = double_int_zero;
+	      prod1h = double_int_neg (prod0h);
+	    }
+	  else
+	    {
+	      prod1l = double_int_neg (prod0l);
+	      prod1h = double_int_not (prod0h);
+	    }
+	  prod2l = double_int_add (prod3l, prod1l);
+	  prod2h = double_int_add (prod3h, prod1h);
+	  if (double_int_ucmp (prod2l, prod3l) < 0)
+	    prod2h = double_int_add (prod2h, double_int_one); /* carry */
+
+	  if (!double_int_zero_p (prod2h)
+	      || double_int_cmp (prod2l, sizem1, true) >= 0)
+	    {
+	      /* the range covers all values.  */
+	      set_value_range_to_varying (vr);
+	      return;
+	    }
+
+	  /* The following should handle the wrapping and selecting
+	     VR_ANTI_RANGE for us.  */
+	  min = double_int_to_tree (expr_type, prod0l);
+	  max = double_int_to_tree (expr_type, prod3l);
+	  set_and_canonicalize_value_range (vr, VR_RANGE, min, max, NULL);
+	  return;
+	}
+
       /* If we have an unsigned MULT_EXPR with two VR_ANTI_RANGEs,
 	 drop to VR_VARYING.  It would take more effort to compute a
 	 precise range for such a case.  For example, if we have
@@ -6754,6 +6893,84 @@ find_case_label_range (gimple stmt, tree min, tree max, size_t *min_idx,
     }
 }
 
+/* Searches the case label vector VEC for the ranges of CASE_LABELs that are
+   used in range VR.  The indices are placed in MIN_IDX1, MAX_IDX, MIN_IDX2 and
+   MAX_IDX2.  If the ranges of CASE_LABELs are empty then MAX_IDX1 < MIN_IDX1.
+   Returns true if the default label is not needed.  */
+
+static bool
+find_case_label_ranges (gimple stmt, value_range_t *vr, size_t *min_idx1,
+			size_t *max_idx1, size_t *min_idx2,
+			size_t *max_idx2)
+{
+  size_t i, j, k, l;
+  unsigned int n = gimple_switch_num_labels (stmt);
+  bool take_default;
+  tree case_low, case_high;
+  tree min = vr->min, max = vr->max;
+
+  gcc_checking_assert (vr->type == VR_RANGE || vr->type == VR_ANTI_RANGE);
+
+  take_default = !find_case_label_range (stmt, min, max, &i, &j);
+
+  /* Set second range to emtpy.  */
+  *min_idx2 = 1;
+  *max_idx2 = 0;
+
+  if (vr->type == VR_RANGE)
+    {
+      *min_idx1 = i;
+      *max_idx1 = j;
+      return !take_default;
+    }
+
+  /* Set first range to all case labels.  */
+  *min_idx1 = 1;
+  *max_idx1 = n - 1;
+
+  if (i > j)
+    return false;
+
+  /* Make sure all the values of case labels [i , j] are contained in
+     range [MIN, MAX].  */
+  case_low = CASE_LOW (gimple_switch_label (stmt, i));
+  case_high = CASE_HIGH (gimple_switch_label (stmt, j));
+  if (tree_int_cst_compare (case_low, min) < 0)
+    i += 1;
+  if (case_high != NULL_TREE
+      && tree_int_cst_compare (max, case_high) < 0)
+    j -= 1;
+
+  if (i > j)
+    return false;
+
+  /* If the range spans case labels [i, j], the corresponding anti-range spans
+     the labels [1, i - 1] and [j + 1, n -  1].  */
+  k = j + 1;
+  l = n - 1;
+  if (k > l)
+    {
+      k = 1;
+      l = 0;
+    }
+
+  j = i - 1;
+  i = 1;
+  if (i > j)
+    {
+      i = k;
+      j = l;
+      k = 1;
+      l = 0;
+    }
+
+  *min_idx1 = i;
+  *max_idx1 = j;
+  *min_idx2 = k;
+  *max_idx2 = l;
+  return false;
+}
+
 /* Visit switch statement STMT.  If we can determine which edge
    will be taken out of STMT's basic block, record it in
    *TAKEN_EDGE_P and return SSA_PROP_INTERESTING.  Otherwise, return
@@ -6764,7 +6981,7 @@ vrp_visit_switch_stmt (gimple stmt, edge *taken_edge_p)
 {
   tree op, val;
   value_range_t *vr;
-  size_t i = 0, j = 0;
+  size_t i = 0, j = 0, k, l;
   bool take_default;
 
   *taken_edge_p = NULL;
@@ -6782,12 +6999,13 @@ vrp_visit_switch_stmt (gimple stmt, edge *taken_edge_p)
       fprintf (dump_file, "\n");
     }
 
-  if (vr->type != VR_RANGE
+  if ((vr->type != VR_RANGE
+       && vr->type != VR_ANTI_RANGE)
       || symbolic_range_p (vr))
     return SSA_PROP_VARYING;
 
   /* Find the single edge that is taken from the switch expression.  */
-  take_default = !find_case_label_range (stmt, vr->min, vr->max, &i, &j);
+  take_default = !find_case_label_ranges (stmt, vr, &i, &j, &k, &l);
 
   /* Check if the range spans no CASE_LABEL. If so, we only reach the default
      label */
@@ -6814,6 +7032,16 @@ vrp_visit_switch_stmt (gimple stmt, edge *taken_edge_p)
       for (++i; i <= j; ++i)
         {
           if (CASE_LABEL (gimple_switch_label (stmt, i)) != CASE_LABEL (val))
+	    {
+	      if (dump_file && (dump_flags & TDF_DETAILS))
+		fprintf (dump_file, "  not a single destination for this "
+			 "range\n");
+	      return SSA_PROP_VARYING;
+	    }
+        }
+      for (; k <= l; ++k)
+        {
+          if (CASE_LABEL (gimple_switch_label (stmt, k)) != CASE_LABEL (val))
 	    {
 	      if (dump_file && (dump_flags & TDF_DETAILS))
 		fprintf (dump_file, "  not a single destination for this "
@@ -8215,18 +8443,20 @@ simplify_switch_using_ranges (gimple stmt)
   size_t i = 0, j = 0, n, n2;
   tree vec2;
   switch_update su;
+  size_t k = 1, l = 0;
 
   if (TREE_CODE (op) == SSA_NAME)
     {
       vr = get_value_range (op);
 
       /* We can only handle integer ranges.  */
-      if (vr->type != VR_RANGE
+      if ((vr->type != VR_RANGE
+	   && vr->type != VR_ANTI_RANGE)
 	  || symbolic_range_p (vr))
 	return false;
 
       /* Find case label for min/max of the value range.  */
-      take_default = !find_case_label_range (stmt, vr->min, vr->max, &i, &j);
+      take_default = !find_case_label_ranges (stmt, vr, &i, &j, &k, &l);
     }
   else if (TREE_CODE (op) == INTEGER_CST)
     {
@@ -8253,7 +8483,7 @@ simplify_switch_using_ranges (gimple stmt)
     return false;
 
   /* Build a new vector of taken case labels.  */
-  vec2 = make_tree_vec (j - i + 1 + (int)take_default);
+  vec2 = make_tree_vec (j - i + 1 + l - k + 1 + (int)take_default);
   n2 = 0;
 
   /* Add the default edge, if necessary.  */
@@ -8262,6 +8492,9 @@ simplify_switch_using_ranges (gimple stmt)
 
   for (; i <= j; ++i, ++n2)
     TREE_VEC_ELT (vec2, n2) = gimple_switch_label (stmt, i);
+
+  for (; k <= l; ++k, ++n2)
+    TREE_VEC_ELT (vec2, n2) = gimple_switch_label (stmt, k);
 
   /* Mark needed edges.  */
   for (i = 0; i < n2; ++i)

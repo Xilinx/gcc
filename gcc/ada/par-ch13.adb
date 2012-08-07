@@ -187,7 +187,7 @@ package body Ch13 is
 
             --  Check bad spelling
 
-            for J in Aspect_Id loop
+            for J in Aspect_Id_Exclude_No_Aspect loop
                if Is_Bad_Spelling_Of (Token_Name, Aspect_Names (J)) then
                   Error_Msg_Name_1 := Aspect_Names (J);
                   Error_Msg_SC -- CODEFIX
@@ -467,7 +467,7 @@ package body Ch13 is
                Attr_Name := Token_Name;
 
                --  Note that the parser must complain in case of an internal
-               --  attribute names that comes from source since internal names
+               --  attribute name that comes from source since internal names
                --  are meant to be used only by the compiler.
 
                if not Is_Attribute_Name (Attr_Name)
@@ -645,7 +645,6 @@ package body Ch13 is
       Ptr     : Source_Ptr;
 
    begin
-
       --  Aspect Specification is present
 
       Ptr := Token_Ptr;
@@ -834,11 +833,10 @@ package body Ch13 is
       --  Otherwise we have an illegal range attribute. Note that P_Name
       --  ensures that Token = Tok_Range is the only possibility left here.
 
-      else -- Token = Tok_Range
+      else
          Error_Msg_SC ("RANGE attribute illegal here!");
          raise Error_Resync;
       end if;
-
    end P_Code_Statement;
 
 end Ch13;

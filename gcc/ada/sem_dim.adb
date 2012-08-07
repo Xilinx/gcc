@@ -1322,9 +1322,12 @@ package body Sem_Dim is
                --  value of the exponent must be known compile time. Otherwise,
                --  the exponentiation evaluation will return an error message.
 
-               if L_Has_Dimensions
-                 and then Compile_Time_Known_Value (R)
-               then
+               if L_Has_Dimensions then
+                  if not Compile_Time_Known_Value (R) then
+                     Error_Msg_N ("exponent of dimensioned operand must be " &
+                                  "known at compile-time", N);
+                  end if;
+
                   declare
                      Exponent_Value : Rational := Zero;
 
@@ -1712,9 +1715,7 @@ package body Sem_Dim is
             --  entity when the object is a constant whose type is a
             --  dimensioned type.
 
-            if Constant_Present (N)
-              and then not Exists (Dim_Of_Etyp)
-            then
+            if Constant_Present (N) and then not Exists (Dim_Of_Etyp) then
                Set_Dimensions (Id, Dim_Of_Expr);
 
             --  Otherwise, issue an error message

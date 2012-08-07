@@ -1273,7 +1273,6 @@ vect_init_vector (gimple stmt, tree val, tree type, gimple_stmt_iterator *gsi)
 	  else
 	    {
 	      new_var = create_tmp_reg (TREE_TYPE (type), NULL);
-	      add_referenced_var (new_var);
 	      init_stmt = gimple_build_assign_with_ops (NOP_EXPR,
 							new_var, val,
 							NULL_TREE);
@@ -6664,7 +6663,6 @@ elem_fn_linear_init_vector (gimple stmt, tree val, tree type, tree step_size,
 	  else
 	    {
 	      new_var = create_tmp_reg (TREE_TYPE (type), NULL);
-	      add_referenced_var (new_var);
 	      init_stmt = gimple_build_assign_with_ops (NOP_EXPR,
 							new_var, val,
 							NULL_TREE);
@@ -6678,7 +6676,6 @@ elem_fn_linear_init_vector (gimple stmt, tree val, tree type, tree step_size,
     }
 
   new_var = vect_get_new_vect_var (type, vect_simple_var, "cst_");
-  add_referenced_var (new_var);
   init_stmt = gimple_build_assign  (new_var, val);
   new_temp = make_ssa_name (new_var, init_stmt);
   gimple_assign_set_lhs (init_stmt, new_temp);

@@ -68,7 +68,7 @@ package body Sem_Ch9 is
    -----------------------
 
    function Allows_Lock_Free_Implementation
-     (N        : Node_Id;
+     (N               : Node_Id;
       Lock_Free_Given : Boolean := False) return Boolean;
    --  This routine returns True iff N satisfies the following list of lock-
    --  free restrictions for protected type declaration and protected body:
@@ -130,9 +130,8 @@ package body Sem_Ch9 is
       --  when Lock_Free_Given is True.
 
    begin
-      pragma Assert (Nkind_In (N,
-                               N_Protected_Type_Declaration,
-                               N_Protected_Body));
+      pragma Assert (Nkind_In (N, N_Protected_Type_Declaration,
+                                  N_Protected_Body));
 
       --  The lock-free implementation is currently enabled through a debug
       --  flag. When Lock_Free_Given is True, an aspect Lock_Free forces the
@@ -351,9 +350,9 @@ package body Sem_Ch9 is
                                         Get_Aspect_Id (Asp_Name);
 
                         begin
-                           if Asp_Id = Aspect_Address
-                             or else Asp_Id = Aspect_Export
-                             or else Asp_Id = Aspect_Import
+                           if Asp_Id = Aspect_Address or else
+                              Asp_Id = Aspect_Export  or else
+                              Asp_Id = Aspect_Import
                            then
                               Error_Msg_Name_1 := Asp_Name;
 
@@ -411,12 +410,15 @@ package body Sem_Ch9 is
 
                         return Abandon;
 
-                     --  Explicit dereferences restricted (i.e. dereferences of
-                     --  access values).
+                     --  Dereferences of access values restricted
 
-                     elsif Kind = N_Explicit_Dereference then
+                     elsif Kind = N_Explicit_Dereference
+                       or else (Kind = N_Selected_Component
+                                 and then Is_Access_Type (Etype (Prefix (N))))
+                     then
                         if Lock_Free_Given then
-                           Error_Msg_N ("explicit dereference not allowed", N);
+                           Error_Msg_N
+                             ("dereference of access value not allowed", N);
                            return Skip;
                         end if;
 
@@ -428,8 +430,8 @@ package body Sem_Ch9 is
                        and then not Is_Static_Expression (N)
                      then
                         if Lock_Free_Given then
-                           Error_Msg_N ("non-static function call not allowed",
-                                        N);
+                           Error_Msg_N
+                             ("non-static function call not allowed", N);
                            return Skip;
                         end if;
 
@@ -460,10 +462,12 @@ package body Sem_Ch9 is
                            --  outside the protected subprogram scope.
 
                            if Ekind (Id) in Assignable_Kind
-                             and then not Scope_Within_Or_Same (Scope (Id),
-                                            Sub_Id)
-                             and then not Scope_Within_Or_Same (Scope (Id),
-                                            Protected_Body_Subprogram (Sub_Id))
+                             and then not
+                               Scope_Within_Or_Same (Scope (Id), Sub_Id)
+                             and then not
+                               Scope_Within_Or_Same
+                                 (Scope (Id),
+                                  Protected_Body_Subprogram (Sub_Id))
                            then
                               if Lock_Free_Given then
                                  Error_Msg_NE
@@ -524,12 +528,17 @@ package body Sem_Ch9 is
 
                         return Abandon;
 
-                     --  Quantified expression restricted
+                     --  Quantified expression restricted. Note that we have
+                     --  to check the original node as well, since at this
+                     --  stage, it may have been rewritten.
 
-                     elsif Kind = N_Quantified_Expression then
+                     elsif Kind = N_Quantified_Expression
+                       or else
+                         Nkind (Original_Node (N)) = N_Quantified_Expression
+                     then
                         if Lock_Free_Given then
-                           Error_Msg_N ("quantified expression not allowed",
-                                        N);
+                           Error_Msg_N
+                             ("quantified expression not allowed", N);
                            return Skip;
                         end if;
 
@@ -548,7 +557,6 @@ package body Sem_Ch9 is
                         Id        : constant Entity_Id := Entity (N);
                         Comp_Decl : Node_Id;
                         Comp_Id   : Entity_Id := Empty;
-                        Comp_Size : Int;
                         Comp_Type : Entity_Id;
 
                      begin
@@ -569,31 +577,22 @@ package body Sem_Ch9 is
                              and then Is_List_Member (Comp_Decl)
                              and then List_Containing (Comp_Decl) = Priv_Decls
                            then
-                              --  Make sure the protected component type has
-                              --  size and alignment fields set at this point
-                              --  whenever this is possible.
+                              --  Skip generic types since, in that case, we
+                              --  will not build a body anyway (in the generic
+                              --  template), and the size in the template may
+                              --  have a fake value.
 
-                              Layout_Type (Comp_Type);
+                              if not Is_Generic_Type (Comp_Type) then
 
-                              if Known_Esize (Comp_Type) then
-                                 Comp_Size := UI_To_Int (Esize (Comp_Type));
+                                 --  Make sure the protected component type has
+                                 --  size and alignment fields set at this
+                                 --  point whenever this is possible.
 
-                              --  If the Esize (Object_Size) is unknown at
-                              --  compile-time, look at the RM_Size
-                              --  (Value_Size) since it may have been set by an
-                              --  explicit representation clause.
+                                 Layout_Type (Comp_Type);
 
-                              else
-                                 Comp_Size := UI_To_Int (RM_Size (Comp_Type));
-                              end if;
-
-                              --  Check that the size of the component is 8,
-                              --  16, 32 or 64 bits.
-
-                              case Comp_Size is
-                                 when 8 | 16 | 32 | 64 =>
-                                    null;
-                                 when others           =>
+                                 if not
+                                   Support_Atomic_Primitives (Comp_Type)
+                                 then
                                     if Lock_Free_Given then
                                        Error_Msg_NE
                                          ("type of& must support atomic " &
@@ -603,7 +602,8 @@ package body Sem_Ch9 is
                                     end if;
 
                                     return Abandon;
-                              end case;
+                                 end if;
+                              end if;
 
                               --  Check if another protected component has
                               --  already been accessed by the subprogram body.
@@ -644,7 +644,6 @@ package body Sem_Ch9 is
                  and then (not Lock_Free_Given
                             or else Errors_Count = Serious_Errors_Detected)
                then
-
                   --  Establish a relation between the subprogram body and the
                   --  unique protected component it references.
 

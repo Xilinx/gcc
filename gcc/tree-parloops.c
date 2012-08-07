@@ -482,7 +482,6 @@ take_address_of (tree obj, tree type, edge entry, htab_t decl_address,
       bvar = create_tmp_var (TREE_TYPE (addr),
 			     get_name (TREE_OPERAND
 				         (TREE_OPERAND (*var_p, 0), 0)));
-      add_referenced_var (bvar);
       stmt = gimple_build_assign (bvar, addr);
       name = make_ssa_name (bvar, stmt);
       gimple_assign_set_lhs (stmt, name);
@@ -540,7 +539,6 @@ initialize_reductions (void **slot, void *data)
   /* Create a new variable to initialize the reduction.  */
   type = TREE_TYPE (PHI_RESULT (reduc->reduc_phi));
   bvar = create_tmp_var (type, "reduction");
-  add_referenced_var (bvar);
 
   c = build_omp_clause (gimple_location (reduc->reduc_stmt),
 			OMP_CLAUSE_REDUCTION);
@@ -805,7 +803,6 @@ separate_decls_in_region_name (tree name,
     {
       var_copy = create_tmp_var (TREE_TYPE (var), get_name (var));
       DECL_GIMPLE_REG_P (var_copy) = DECL_GIMPLE_REG_P (var);
-      add_referenced_var (var_copy);
       nielt = XNEW (struct int_tree_map);
       nielt->uid = uid;
       nielt->to = var_copy;
@@ -840,7 +837,7 @@ separate_decls_in_region_name (tree name,
       copy = name;
     }
 
-  SSA_NAME_VAR (copy) = var_copy;
+  replace_ssa_name_symbol (copy, var_copy);
   return copy;
 }
 
@@ -860,8 +857,6 @@ separate_decls_in_region_stmt (edge entry, edge exit, gimple stmt,
   ssa_op_iter oi;
   tree name, copy;
   bool copy_name_p;
-
-  mark_virtual_ops_for_renaming (stmt);
 
   FOR_EACH_PHI_OR_STMT_DEF (def, stmt, oi, SSA_OP_DEF)
   {
@@ -1068,7 +1063,6 @@ create_call_for_reduction_1 (void **slot, void *data)
   new_bb = e->dest;
 
   tmp_load = create_tmp_var (TREE_TYPE (TREE_TYPE (addr)), NULL);
-  add_referenced_var (tmp_load);
   tmp_load = make_ssa_name (tmp_load, NULL);
   load = gimple_build_omp_atomic_load (tmp_load, addr);
   SSA_NAME_DEF_STMT (tmp_load) = load;
@@ -1182,7 +1176,6 @@ create_stores_for_reduction (void **slot, void *data)
   gsi = gsi_last_bb (clsn_data->store_bb);
   t = build3 (COMPONENT_REF, type, clsn_data->store, red->field, NULL_TREE);
   stmt = gimple_build_assign (t, red->initial_value);
-  mark_virtual_ops_for_renaming (stmt);
   gsi_insert_after (&gsi, stmt, GSI_NEW_STMT);
 
   return 1;
@@ -1206,7 +1199,6 @@ create_loads_and_stores_for_name (void **slot, void *data)
   gsi = gsi_last_bb (clsn_data->store_bb);
   t = build3 (COMPONENT_REF, type, clsn_data->store, elt->field, NULL_TREE);
   stmt = gimple_build_assign (t, ssa_name (elt->version));
-  mark_virtual_ops_for_renaming (stmt);
   gsi_insert_after (&gsi, stmt, GSI_NEW_STMT);
 
   gsi = gsi_last_bb (clsn_data->load_bb);
@@ -1356,9 +1348,7 @@ separate_decls_in_region (edge entry, edge exit, htab_t reduction_list,
 
       /* Create the loads and stores.  */
       *arg_struct = create_tmp_var (type, ".paral_data_store");
-      add_referenced_var (*arg_struct);
       nvar = create_tmp_var (build_pointer_type (type), ".paral_data_load");
-      add_referenced_var (nvar);
       *new_arg_struct = make_ssa_name (nvar, NULL);
 
       ld_st_data->store = *arg_struct;

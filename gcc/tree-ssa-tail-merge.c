@@ -1654,7 +1654,7 @@ tail_merge_optimize (unsigned int todo)
 	}
 
       todo |= (TODO_verify_ssa | TODO_verify_stmts | TODO_verify_flow);
-      mark_sym_for_renaming (gimple_vop (cfun));
+      mark_virtual_operands_for_renaming (cfun);
     }
 
   delete_worklist ();

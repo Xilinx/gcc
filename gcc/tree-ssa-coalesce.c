@@ -983,14 +983,6 @@ create_outofssa_var_map (coalesce_list_p cl, bitmap used_in_copy)
   int v1, v2, cost;
   unsigned i;
 
-#ifdef ENABLE_CHECKING
-  bitmap used_in_real_ops;
-  bitmap used_in_virtual_ops;
-
-  used_in_real_ops = BITMAP_ALLOC (NULL);
-  used_in_virtual_ops = BITMAP_ALLOC (NULL);
-#endif
-
   map = init_var_map (num_ssa_names);
 
   FOR_EACH_BB (bb)
@@ -1126,17 +1118,6 @@ create_outofssa_var_map (coalesce_list_p cl, bitmap used_in_copy)
 	    default:
 	      break;
 	    }
-
-#ifdef ENABLE_CHECKING
-	  /* Mark real uses and defs.  */
-	  FOR_EACH_SSA_TREE_OPERAND (var, stmt, iter, (SSA_OP_DEF|SSA_OP_USE))
-	    bitmap_set_bit (used_in_real_ops, DECL_UID (SSA_NAME_VAR (var)));
-
-	  /* Validate that virtual ops don't get used in funny ways.  */
-	  if (gimple_vuse (stmt))
-	    bitmap_set_bit (used_in_virtual_ops,
-			    DECL_UID (SSA_NAME_VAR (gimple_vuse (stmt))));
-#endif /* ENABLE_CHECKING */
 	}
     }
 
@@ -1167,32 +1148,11 @@ create_outofssa_var_map (coalesce_list_p cl, bitmap used_in_copy)
 	  /* Mark any default_def variables as being in the coalesce list
 	     since they will have to be coalesced with the base variable.  If
 	     not marked as present, they won't be in the coalesce view. */
-	  if (gimple_default_def (cfun, SSA_NAME_VAR (var)) == var
+	  if (SSA_NAME_IS_DEFAULT_DEF (var)
 	      && !has_zero_uses (var))
 	    bitmap_set_bit (used_in_copy, SSA_NAME_VERSION (var));
 	}
     }
-
-#if defined ENABLE_CHECKING
-  {
-    unsigned i;
-    bitmap both = BITMAP_ALLOC (NULL);
-    bitmap_and (both, used_in_real_ops, used_in_virtual_ops);
-    if (!bitmap_empty_p (both))
-      {
-	bitmap_iterator bi;
-
-	EXECUTE_IF_SET_IN_BITMAP (both, 0, i, bi)
-	  fprintf (stderr, "Variable %s used in real and virtual operands\n",
-		   get_name (referenced_var (i)));
-	internal_error ("SSA corruption");
-      }
-
-    BITMAP_FREE (used_in_real_ops);
-    BITMAP_FREE (used_in_virtual_ops);
-    BITMAP_FREE (both);
-  }
-#endif
 
   return map;
 }
