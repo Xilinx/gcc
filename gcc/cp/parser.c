@@ -28351,6 +28351,13 @@ cp_parser_cilk_for (cp_parser *parser, tree grain, int in_statement)
   FOR_EXPR (statement) = decl;
   CILK_FOR_GRAIN (statement) = grain; 
 
+  /*  If an initial value is available, and it is of type integer, then we
+      save it in CILK_FOR_INIT.  */
+  if (init && TREE_TYPE (init) && INTEGRAL_TYPE_P (TREE_TYPE (init))) 
+    CILK_FOR_INIT (statement) = init;
+  else
+    CILK_FOR_INIT (statement) = NULL_TREE;
+
   finish_cilk_for_init_stmt (statement);
 
   if (cp_lexer_next_token_is (parser->lexer, CPP_COMMA))

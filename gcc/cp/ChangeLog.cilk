@@ -1,3 +1,7 @@
+2012-08-07  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* parser.c (cp_parser_cilk_for): Stored the initial value in cilk_for tree.
+
 2012-08-01  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* parser.c (cp_parser_userdef_char_literal): Replaced CALL_SPAWN and
