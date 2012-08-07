@@ -1,3 +1,9 @@
+2012-08-07  Cary Coutant  <ccoutant@google.com>
+
+    Backport r190190 from trunk.
+
+	* g++.dg/debug/dwarf2/non-virtual-thunk.C: New test case.
+
 2012-08-02  Simon Baldwin  <simonb@google.com>
 
     Port r190071 from google/main.
