@@ -3137,11 +3137,60 @@ compound statement), the intermediate representation will sometimes use
 several statements chained together.
 
 @table @code
+@item ARRAY_NOTATION_REF
+
+Used to represent an Array notation expression that is part of Intel(R) 
+Cilk (TM) Plus. There are 5 fields in this expression.  The expression holds 
+the following fields: base array name, starting index, ending index, stride, 
+element-size measured in the units of alignment of element type.  For further
+details about array notations, please refer to http://www.cilkplus.org.
+
 @item BREAK_STMT
 
 Used to represent a @code{break} statement.  There are no additional
 fields.
 
+@item CILK_FOR_STMT
+Used to respresent a _Cilk_for in the Cilk Plus language extension.  _Cilk_for
+can be written in C and C++ in the following way:
+
+@smallexample
+_Cilk_for (int ii = 0; ii < 10; ii++) 
+  <statement>
+@end smallexample
+
+There are five fields in this tree structure: initializer statement, 
+the induction variable, the condition, the body of the _Cilk_for, the grainsize
+that can be set using a pragma.  For more details about _Cilk_for, please refer
+to http://www.cilkplus.org.
+
+@item CILK_SPAWN_STMT
+
+Used to represent a spawning function in the Cilk Plus language extension. This
+tree has one field that holds the name of the spawning function.
+_Cilk_spawn can be written in C and C++ in the following way:
+
+@smallexample
+_Cilk_spawn <function_name> (<parameters>);
+@end smallexample
+
+Detailed description for usage and functionality of _Cilk_spawn can be found at
+http://www.cilkplus.org
+
+@item CILK_SYNC_STMT
+
+This statement is part of the Cilk Plus language extension.  It indicates that
+the current function cannot continue in parallel with its spawned children.
+_Cilk_sync can be written in C and C++ in the following way:
+
+@smallexample
+_Cilk_sync;
+@end smallexample
+
+Detailed description of usage and functionality of _Cilk_sync can be found at
+http://www.cilkplus.org
+
+@item 
 @item CLEANUP_STMT
 
 Used to represent an action that should take place upon exit from the

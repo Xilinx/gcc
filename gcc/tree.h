@@ -51,7 +51,7 @@ MAX_TREE_CODES
 
 typedef enum pragma_simd_kind
 {
-  P_SIMD_NOASSERT = 0, /* default is just to noassert */
+  P_SIMD_NOASSERT = 0, /* Default is just to noassert.  */
   P_SIMD_ASSERT = 1,
   P_SIMD_VECTORLENGTH = 2,
   P_SIMD_PRIVATE = 4,
@@ -62,17 +62,15 @@ typedef enum pragma_simd_kind
 struct reduction_values
 {
   enum tree_code reduction_operator;
-/*   tree tree_reduction_operator; */
   char **reduction_var_list;
   tree tree_reduction_var_list;
   int not_reduced;
   struct reduction_values *ptr_next;
 };
 
-/* bviyer: Since we can have multiple pragma simd, this will hold the values of
- * each of the pragma simd and then as soon as it finds a for loop
- * it will transfer those values into the loop tree structure
- */
+/* Since we can have multiple pragma simd, this will hold the values of 
+   each of the pragma simd and then as soon as it finds a for loop 
+   it will transfer those values into the loop tree structure.  */
 struct pragma_simd_values
 {
   int index;
@@ -1907,14 +1905,13 @@ extern void protected_set_expr_location (tree, location_t);
   (&(TREE_OPERAND (CALL_EXPR_CHECK (NODE), 0)) + 3)
 
 /* True if this call is a Cilk spawn.
-   This should not be set after gimplification. */
-/* #define SPAWN_CALL_P(NODE) (CALL_EXPR_CHECK (NODE)->base.saturating_flag) */
+   This should not be set after gimplification.  */
 #define FUNCTION_DECL_CALL_CHECK(N) \
 	(TREE_CODE(N) == CALL_EXPR || TREE_CODE(N) == FUNCTION_DECL)
-#define SPAWN_CALL_P(N) (/* FUNCTION_DECL_CALL_CHECK */(N)->base.is_cilk_spawn)
+#define SPAWN_CALL_P(N) ((N)->base.is_cilk_spawn)
 
 /* True if the function is a cilk helper function or something that cilk
-   touches */
+   touches.  */
 #define CILK_FN_P(N) (N->base.is_cilk_helper_fn)
 
 /* True if this call is the point at which a wrapper should detach. */
@@ -3563,14 +3560,14 @@ struct GTY(())
 #define CILK_KNOT_FLUSH 3
 
 /* In a FUNCTION_DECL for a Cilk function, indicates that the
-   function may detach. */
+   function may detach.  */
 #define DECL_DETACHES_P(NODE)						\
   (FUNCTION_DECL_CHECK (NODE)->function_decl.cilk_knot_type == CILK_KNOT_SPAWN)
 
 #define DECL_SET_KNOT(NODE, K)						\
   (FUNCTION_DECL_CHECK (NODE)->function_decl.cilk_knot_type = (K))
 
-/* In a FUNCTION_DECL, indicates that calling the function is a Cilk knot. */
+/* In a FUNCTION_DECL, indicates that calling the function is a Cilk knot.  */
 #define DECL_KNOT_P(NODE)					\
   (FUNCTION_DECL_CHECK (NODE)->function_decl.cilk_knot_type)
 

@@ -229,6 +229,34 @@ parallel regions into their own functions to be invoked by the thread
 library.  The pass is located in @file{omp-low.c} and is described by
 @code{pass_expand_omp}.
 
+@item Cilk Plus expansion and decomposition.
+
+If Cilk Plus generation (@option{-fcilkplus}) is enabled, this pass will 
+expand (or transform) all the Cilk Plus code into equivalent C and C++
+functions.  In addition, all the necessary function calls to the Cilk runtime
+library (located in libcilkrts directory) are inserted.  The main areas touched
+by the Cilk Plus extension are the vectorizer and the front-end  
+(mainly the parser).
+
+There are four parts to the Cilk Plus language extension:
+@itemize bullet
+@item Cilk 
+All the necessary functions are located in @file{cilk.c}, @file{cilk-spawn.c} 
+and @file{cp/cilk.c}.
+@item Pragma SIMD (or SIMD annotation)
+All the necessary files are located in @file{pragma_simd.c}
+@item Array Notations
+The C language-specific files are located in @file{c/c-array-notation.c} and the
+equivalent C++ file is called @file{cp/cp-array-notation.c}.
+@item Elemental functions
+The language specific routines are located in @file{elem-function.c}. The
+language independent functions are located in @file{elem-function-common.c}.
+@end itemize
+
+All the necessary data-structures and function declarations are located in
+@file{cilk.h}. The functions that are required in all the functions above are
+located at @file{cilk.c}.
+
 @item Lower control flow
 
 This pass flattens @code{if} statements (@code{COND_EXPR})

@@ -70,6 +70,10 @@ The Ada runtime library.
 The runtime support library for atomic operations (e.g. for @code{__sync}
 and @code{__atomic}).
 
+@item libcilkrts
+The runtime support library for Cilk keywords that is part of the Intel(R) 
+Cilk (TM) Plus C and C++ language extension.
+
 @item libcpp
 The C preprocessor library.
 
@@ -487,6 +491,9 @@ versions, the information is on the GCC web site.)
 @item README.Portability
 Information about portability issues when writing code in GCC@.  FIXME:
 why isn't this part of this manual or of the GCC Coding Conventions?
+@item Cilk_Plus_release_notes.txt
+Information about implemented Cilk Plus features and known issues.
+@item 
 @end table
 
 FIXME: document such files in subdirectories, at least @file{config},
@@ -1759,6 +1766,9 @@ Target uses @code{__cxa_atexit}.
 @item default_packed
 Target has packed layout of structure members by default.
 
+@item fcilkplus
+Target supports Cilk Plus C and C++ language extension via @option{-fcilkplus}.
+
 @item fgraphite
 Target supports Graphite optimizations.
 
@@ -2241,6 +2251,8 @@ This subdirectory contains tests for binary compatibility using
 (@pxref{compat Testing, , Support for testing binary compatibility}).
 @item gcc.dg/cpp
 This subdirectory contains tests of the preprocessor.
+@item gcc.dg/cilk-plus
+This subdirectory contains all the tests for Cilk Plus language extension.
 @item gcc.dg/debug
 This subdirectory contains tests for debug formats.  Tests in this
 subdirectory are run for each debug format that the compiler supports.
