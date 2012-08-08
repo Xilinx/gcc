@@ -837,6 +837,12 @@ extern int mul_double_with_sign (unsigned HOST_WIDE_INT, HOST_WIDE_INT,
 				 unsigned HOST_WIDE_INT *, HOST_WIDE_INT *,
 				 bool);
 /* FIXME(crowl): Remove after converting callers.  */
+extern int mul_double_wide_with_sign (unsigned HOST_WIDE_INT, HOST_WIDE_INT,
+				      unsigned HOST_WIDE_INT, HOST_WIDE_INT,
+				      unsigned HOST_WIDE_INT *, HOST_WIDE_INT *,
+				      unsigned HOST_WIDE_INT *, HOST_WIDE_INT *,
+				      bool);
+/* FIXME(crowl): Remove after converting callers.  */
 #define mul_double(l1,h1,l2,h2,lv,hv) \
   mul_double_with_sign (l1, h1, l2, h2, lv, hv, false)
 /* FIXME(crowl): Remove after converting callers.  */
