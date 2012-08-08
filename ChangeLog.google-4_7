@@ -1,3 +1,13 @@
+2012-08-08  Simon Baldwin  <simonb@google.com>
+
+    Cherry pick revision 190232.
+
+    2012-08-08  Simon Baldwin  <simonb@google.com>
+
+	* Makefile.tpl: Omit another TARGET_LIB_PATH from RPATH_ENVVAR set
+	on bootstrap builds.
+	* Makefile.in: Regenerate.
+
 2012-08-07  Simon Baldwin  <simonb@google.com>
 
     Cherry pick r190203.
