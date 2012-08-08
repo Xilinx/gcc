@@ -156,7 +156,7 @@ extern void vec_assert_fail (const char *, const char * VEC_CHECK_DECL)
 
 enum vec_allocation_t { heap, gc, stack };
 
-struct GTY(()) vec_prefix
+struct vec_prefix
 {
   unsigned num;
   unsigned alloc;
@@ -167,8 +167,49 @@ template<typename T>
 struct GTY(()) vec_t
 {
   vec_prefix prefix;
-  T GTY((length ("%h.prefix.num"))) vec[1];
+  T vec[1];
 };
+
+/* Garbage collection support for vec_t.  */
+
+template<typename T>
+void
+gt_ggc_mx (vec_t<T> *v)
+{
+  extern void gt_ggc_mx (T&);
+  for (unsigned i = 0; i < v->prefix.num; i++)
+    gt_ggc_mx (v->vec[i]);
+}
+
+
+/* PCH support for vec_t.  */
+
+template<typename T>
+void
+gt_pch_nx (vec_t<T> *v)
+{
+  extern void gt_pch_nx (T&);
+  for (unsigned i = 0; i < v->prefix.num; i++)
+    gt_pch_nx (v->vec[i]);
+}
+
+template<typename T>
+void
+gt_pch_nx (vec_t<T *> *v, gt_pointer_operator op, void *cookie)
+{
+  for (unsigned i = 0; i < v->prefix.num; i++)
+    op (&(v->vec[i]), cookie);
+}
+
+template<typename T>
+void
+gt_pch_nx (vec_t<T> *v, gt_pointer_operator op, void *cookie)
+{
+  extern void gt_pch_nx (T *, gt_pointer_operator, void *);
+  for (unsigned i = 0; i < v->prefix.num; i++)
+    gt_pch_nx (&(v->vec[i]), op, cookie);
+}
+
 
 /* FIXME cxx-conversion.  Remove these definitions and update all
    calling sites.  */

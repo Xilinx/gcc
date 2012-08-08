@@ -1,6 +1,6 @@
 /* -*- indented-text -*- */
 /* Process source files and output type information.
-   Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
+   Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2012
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -90,15 +90,6 @@ EOID	[^[:alnum:]_]
 ^{HWS}static/{EOID} {
   BEGIN(in_struct);
   return STATIC;
-}
-
-^{HWS}DEF_VEC_[OP]/{EOID} {
-  BEGIN(in_struct);
-  return DEFVEC_OP;
-}
-^{HWS}DEF_VEC_I/{EOID} {
-  BEGIN(in_struct);
-  return DEFVEC_I;
 }
 }
 

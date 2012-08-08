@@ -1,3 +1,96 @@
+2012-08-08  Diego Novillo  <dnovillo@google.com>
+
+	* coretypes.h (gt_pointer_operator): Move from ...
+	* ggc.h: ... here.
+	* doc/gty.texi: Document support for C++ templates and
+	user-provided markers.
+	* gcc/gengtype-lex.l: Update copyright year.
+	Remove support for recognizing DEF_VEC_O, DEF_VEC_P and
+	DEFVEC_I.
+	* gengtype-parse.c: Update copyright year.
+	(token_names): Remove DEF_VEC_O, DEF_VEC_P and DEF_VEC_I.
+	(require_template_declaration): New.
+	(typedef_name): Call it.
+	(type): Replace IS_UNION with KIND. Replace all users.
+	(def_vec): Remove.  Update all users.
+	* gengtype-state.c (type_lineloc): Handle TYPE_USER_STRUCT.
+	(write_state_user_struct_type): New.
+	(write_state_type): Call it.
+	(read_state_user_struct_type): New.
+	(read_state_type): Call it.
+	* gengtype.c: Update copyright year.
+	(dump_pair): Move declaration to the top.
+	(dump_type): Likewise.
+	(dump_type_list): Likewise.
+	(dbgprint_count_type_at): Handle TYPE_USER_STRUCT.
+	(create_user_defined_type): New.
+	(resolve_typedef): Call it.
+	(new_structure): Replace argument ISUNION with KIND.
+	Change users to refer to KIND directly.
+	Update all callers.
+	(find_structure): Likewise.
+	(set_gc_used_type): Handle TYPE_USER_STRUCT.
+	(create_file): Update HDR to include new copyright year.
+	(struct walk_type_data): Add field IN_PTR_FIELD.
+	(output_mangled_typename): Handle TYPE_USER_STRUCT.
+	(walk_type): Set D->IN_PTR_FILED when walking a TYPE_POINTER.
+	Clear it afterwards.
+	Handle TYPE_USER_STRUCT.
+	(write_types_process_field): Handle TYPE_USER_STRUCT.
+	(get_type_specifier): Move earlier in the file.
+	(write_type_decl): New.
+	(write_marker_function_name): New.
+	(write_user_func_for_structure_ptr): New.
+	(write_user_func_for_structure_body): New.
+	(write_user_marking_functions): New.
+	(write_func_for_structure): Call write_marker_function_name
+	and write_type_decl.
+	Do not call walk_type for TYPE_USER_STRUCT. Emit a call to the user
+	function directly.
+	Call write_user_marking_functions on TYPE_USER_STRUCTs.
+	(write_types_local_user_process_field): New.
+	(write_pch_user_walking_for_structure_body): New.
+	(write_pch_user_walking_functions): New.
+	(write_types_local_process_field): Handle TYPE_USER_STRUCT.
+	(write_local_func_for_structure): Do not call walk_type for
+	TYPE_USER_STRUCT. Instead, emit the call to gt_pch_nx directly.
+	Call write_pch_user_walking_functions for TYPE_USER_STRUCTs.
+	(write_root): Handle TYPE_USER_STRUCT.
+	(vec_prefix_type): Remove.  Update all users.
+	(note_def_vec): Remove.  Update all users.
+	(dump_typekind): Handle TYPE_USER_STRUCT.
+	(dump_type): Initialize SEEN_TYPES, if needed.
+	Handle TYPE_USER_STRUCT.
+	(dump_everything): Do not initialize SEEN_TYPES.
+	* gengtype.h: Update copyright year.
+	(enum typekind): Add TYPE_USER_STRUCT.
+	(union_or_struct_p): Rename from UNION_OR_STRUCT_P.
+	Convert into function.
+	Add an overload taking const_type_p.
+	Update all callers.
+	(new_structure): Change second field to type enum typekind.
+	Update all users.
+	(find_structure): Likewise.
+	(note_def_vec): Remove.
+	(DEFVEC_OP): Remove.
+	(DEFVEC_I): Remove.
+	* ggc-page.c (gt_ggc_mx): Add entry points for marking
+	'const char *&', 'unsigned char *&' and 'unsigned char&'.
+	* ggc-zone.c (gt_ggc_mx): Add entry points for marking
+	'const char *&' and 'unsigned char *&'.
+	* stringpool.c (gt_pch_nx): Add entry points for marking
+	'const char *&', 'unsigned char *&' and 'unsigned char&'.
+	Add an entry point for the overload taking arguments 'unsigned char
+	*', 'gt_pointer_operator' and 'void *'.
+	* vec.h (struct vec_prefix): Remove GTY marker.
+	(struct vec_t): Remove GTY((length)) attribute from field 'vec'.
+	(gt_ggc_mx (vec_t<T> *)): New template function.
+	(gt_pch_nx (vec_t<T> *)): New template function.
+	(gt_pch_nx (vec_t<T *> *, gt_pointer_operator, void *)): New template
+	function.
+	(gt_pch_nx (vec_t<T> *, gt_pointer_operator, void *)): New template
+	function.
+
 2012-08-06   Lawrence Crowl  <crowl@google.com>
 
 	* hash-table.h

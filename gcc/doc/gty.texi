@@ -437,6 +437,82 @@ special case.  See @file{gengtype.c} for further details.  Avoid
 adding new special cases unless there is no other alternative.
 @end table
 
+@section Support for user-provided GC marking routines
+The garbage collector supports types for which no automatic marking
+code is generated.  For these types, the user is required to provide
+four functions: one to act as a marker for garbage collection, and
+three functions to act as marker and pointer walking for pre-compiled
+headers.
+
+User-provided types are currently supported for C++ template
+structures. When a template type @code{TP} is marked with @code{GTY},
+all instances of that type are considered user-provided types.  As
+such, the user needs to provide template functions to mark all the
+fields of the type.
+
+The following code snippets represent all the functions that need to
+be provided. Note that type @code{TP} may reference to more than one
+type. In these snippets, there is only one type @code{T}, but there
+could be more.
+
+@smallexample
+template<typename T>
+void gt_ggc_mx (TP<T> *tp)
+@{
+  extern void gt_ggc_mx (T&);
+
+  /* This marks field 'fld' of type 'T'.  */
+  gt_ggc_mx (tp->fld);
+@}
+
+template<typename T>
+void gt_pch_nx (TP<T> *tp)
+@{
+  extern void gt_pch_nx (T&);
+
+  /* This marks field 'fld' of type 'T'.  */
+  gt_pch_nx (tp->fld);
+@}
+
+template<typename T>
+void gt_pch_nx (TP<T *> *tp, gt_pointer_operator op, void *cookie)
+@{
+  /* For every field 'fld' of 'tp' with type 'T *', call the given
+     pointer operator.  */
+  op (&(tp->fld), cookie);
+@}
+
+template<typename T>
+void gt_pch_nx (TP<T> *tp, gt_pointer_operator, void *cookie)
+@{
+  extern void gt_pch_nx (T *, gt_pointer_operator, void *);
+
+  /* For every field 'fld' of 'tp' with type 'T', call the pointer
+     walker for all the fields of T.  */
+  gt_pch_nx (&(tp->fld), op, cookie);
+@}
+@end smallexample
+
+Support for user-defined types is currently limited. The following
+restrictions apply:
+
+@enumerate
+@item Type @code{TP} and all the argument types @code{T} must be
+marked with @code{GTY}.
+
+@item Type @code{TP} can only have type names in its argument list.
+
+@item The pointer walker functions are different for @code{TP<T>} and
+@code{TP<T *>}. In the case of @code{TP<T>}, references to
+@code{T} must be handled by calling @code{gt_pch_nx} (which
+will, in turn, walk all the pointers inside fields of @code{T}).
+In the case of @code{TP<T *>}, references to @code{T *} must be
+handled by calling the @code{op} function on the address of the
+pointer (see the code snippets above).
+
+@item Only template structures are supported at this time.
+@end enumerate
+
 @node GGC Roots
 @section Marking Roots for the Garbage Collector
 @cindex roots, marking

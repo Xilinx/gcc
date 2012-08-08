@@ -210,6 +210,32 @@ gt_pch_n_S (const void *x)
   gt_pch_note_object (CONST_CAST (void *, x), CONST_CAST (void *, x),
 		      &gt_pch_p_S, gt_types_enum_last);
 }
+
+
+/* User-callable entry point for marking string X.  */
+
+void
+gt_pch_nx (const char *& x)
+{
+  gt_pch_n_S (x);
+}
+
+void
+gt_pch_nx (unsigned char *& x)
+{
+  gt_pch_n_S (x);
+}
+
+void
+gt_pch_nx (unsigned char& x ATTRIBUTE_UNUSED)
+{
+}
+
+void
+gt_pch_nx (unsigned char *x, gt_pointer_operator op, void *cookie)
+{
+  op (x, cookie);
+}
 
 /* Handle saving and restoring the string pool for PCH.  */
 
