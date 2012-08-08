@@ -170,3 +170,8 @@ FAIL: gcc.target/powerpc/pr46728-3.c scan-assembler-not pow
 FAIL: gcc.target/powerpc/pr46728-4.c scan-assembler-not pow
 FAIL: gcc.target/powerpc/pr46728-7.c scan-assembler-not pow
 FAIL: gcc.target/powerpc/pr46728-8.c scan-assembler-not pow
+
+# See http://gcc.gnu.org/ml/gcc-patches/2012-08/msg00141.html.  Revert once
+# that is resolved.
+UNRESOLVED: 23_containers/map/element_access/2.cc compilation failed to produce executable
+FAIL: 23_containers/map/element_access/2.cc (test for excess errors)

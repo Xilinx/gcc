@@ -1,3 +1,9 @@
+2012-08-08  Ollie Wild  <aaw@google.com>
+
+	* testsuite-management/powerpc-grtev3-linux-gnu.xfail: xfail
+	23_containers/map/element_access/2.cc from libstdc++.
+	* testsuite-management/x86_64-grtev3-linux-gnu.xfail: Ditto.
+
 2012-08-06  Simon Baldwin  <simonb@google.com>
 
     Cherry pick r190180 from google/main.
