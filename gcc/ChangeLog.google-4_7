@@ -1,5 +1,11 @@
 2012-08-09   Cary Coutant  <ccoutant@google.com>
 
+	* tree-diagnostic.c (maybe_unwind_expanded_macro_loc): Check for
+	discriminator.
+	* diagnostic.c (diagnostic_report_current_module): Likewise.
+
+2012-08-09   Cary Coutant  <ccoutant@google.com>
+
     Backport of pending upstream patch.
 
 	* dwarf2out.c (clone_as_declaration): Copy DW_AT_abstract_origin
