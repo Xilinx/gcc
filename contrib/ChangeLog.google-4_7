@@ -1,3 +1,8 @@
+2012-08-09  Ollie Wild  <aaw@google.com>
+
+	* testsuite-management/x86_64-grtev3-linux-gnu.xfail: XFAIL libitm
+	failuires.
+
 2012-08-08  Ollie Wild  <aaw@google.com>
 
 	* testsuite-management/powerpc-grtev3-linux-gnu.xfail: xfail
