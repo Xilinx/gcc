@@ -60,10 +60,8 @@ public:
      Second, the GCC conding conventions prefer explicit conversion,
      and explicit conversion operators are not available until C++11.  */
 
-  static double_int make (unsigned HOST_WIDE_INT cst);
-  static double_int make (HOST_WIDE_INT cst);
-  static double_int make (unsigned int cst);
-  static double_int make (int cst);
+  static double_int from_unsigned (unsigned HOST_WIDE_INT cst);
+  static double_int from_signed (HOST_WIDE_INT cst);
 
   /* No copy assignment operator or destructor to keep the type a POD.  */
 
@@ -188,7 +186,7 @@ public:
    HOST_WIDE_INT are filled with the sign bit.  */
 
 inline
-double_int double_int::make (HOST_WIDE_INT cst)
+double_int double_int::from_signed (HOST_WIDE_INT cst)
 {
   double_int r;
   r.low = (unsigned HOST_WIDE_INT) cst;
@@ -196,17 +194,11 @@ double_int double_int::make (HOST_WIDE_INT cst)
   return r;
 }
 
-inline
-double_int double_int::make (int cst)
-{
-  return double_int::make (static_cast <HOST_WIDE_INT> (cst));
-}
-
 /* FIXME(crowl): Remove after converting callers.  */
 static inline double_int
 shwi_to_double_int (HOST_WIDE_INT cst)
 {
-  return double_int::make (cst);
+  return double_int::from_signed (cst);
 }
 
 /* Some useful constants.  */
@@ -214,17 +206,17 @@ shwi_to_double_int (HOST_WIDE_INT cst)
    The problem is that a named constant would not be as optimizable,
    while the functional syntax is more verbose.  */
 
-#define double_int_minus_one (double_int::make (-1))
-#define double_int_zero (double_int::make (0))
-#define double_int_one (double_int::make (1))
-#define double_int_two (double_int::make (2))
-#define double_int_ten (double_int::make (10))
+#define double_int_minus_one (double_int::from_signed (-1))
+#define double_int_zero (double_int::from_signed (0))
+#define double_int_one (double_int::from_signed (1))
+#define double_int_two (double_int::from_signed (2))
+#define double_int_ten (double_int::from_signed (10))
 
 /* Constructs double_int from unsigned integer CST.  The bits over the
    precision of HOST_WIDE_INT are filled with zeros.  */
 
 inline
-double_int double_int::make (unsigned HOST_WIDE_INT cst)
+double_int double_int::from_unsigned (unsigned HOST_WIDE_INT cst)
 {
   double_int r;
   r.low = cst;
@@ -232,17 +224,11 @@ double_int double_int::make (unsigned HOST_WIDE_INT cst)
   return r;
 }
 
-inline
-double_int double_int::make (unsigned int cst)
-{
-  return double_int::make (static_cast <unsigned HOST_WIDE_INT> (cst));
-}
-
 /* FIXME(crowl): Remove after converting callers.  */
 static inline double_int
 uhwi_to_double_int (unsigned HOST_WIDE_INT cst)
 {
-  return double_int::make (cst);
+  return double_int::from_unsigned (cst);
 }
 
 inline double_int &
