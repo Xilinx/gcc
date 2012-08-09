@@ -1,3 +1,11 @@
+2012-08-09   Cary Coutant  <ccoutant@google.com>
+
+    Backport of pending upstream patch.
+
+	* g++.dg/debug/dwarf2/dwarf4-nested.C: New test case.
+	* g++.dg/debug/dwarf2/dwarf4-typedef.C: Add
+	-fdebug-types-section flag.
+
 2012-08-07  Cary Coutant  <ccoutant@google.com>
 
     Backport r190190 from trunk.
