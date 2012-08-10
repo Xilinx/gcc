@@ -805,11 +805,34 @@ in_cilk_block (void)
   return 0;
 }
 
+/* This function will insert a _Cilk_sync right before a try block.  */
+
+static tree
+insert_sync_stmt (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
+{
+  tree new_sync_stmt = NULL_TREE, synced_stmt_list = NULL_TREE;
+  if (TREE_CODE (*tp) == TRY_BLOCK)
+    {
+      new_sync_stmt = build_stmt (UNKNOWN_LOCATION, CILK_SYNC_STMT);
+      gcc_assert (new_sync_stmt && (new_sync_stmt != error_mark_node));
+      append_to_statement_list_force (new_sync_stmt, &synced_stmt_list);
+      append_to_statement_list_force (*tp, &synced_stmt_list);
+      *tp = synced_stmt_list;
+      
+      /* We don't need to go any deeper.  */
+      *walk_subtrees = 0;
+      
+      /* We are finished here.  We only need to find the first try block.  */
+      return *tp;
+    }
+  
+  return NULL;
+}
 
 /* This function will make the frame for C++ function that uses Cilk_spawn.  */
 
 tree
-cp_make_cilk_frame (void)
+cp_make_cilk_frame (tree compstmt)
 {
   tree decl = cfun->cilk_frame_decl;
 
@@ -861,6 +884,10 @@ cp_make_cilk_frame (void)
 				      &body);
 
       *saved_tree = body;
+
+      /* Here we talk through all the subtrees of compstmt and as soon as
+	 we find a try block, we insert a _Cilk_sync right before it.  */
+      cp_walk_tree (&compstmt, insert_sync_stmt, NULL, NULL);
     }
 
   return decl;

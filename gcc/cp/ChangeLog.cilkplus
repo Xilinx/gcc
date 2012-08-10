@@ -1,3 +1,10 @@
+2012-08-10  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* decl.c (finish_function_body): Added compstmt as a new parameter.
+	(cp_make_cilk_frame): Added compstmt as a parameter and called
+	insert_sync_stmt inside cp_walk_tree.
+	(insert_sync_stmt): New function.
+
 2012-08-07  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* parser.c (cp_parser_cilk_for): Stored the initial value in cilk_for tree.

@@ -1,3 +1,8 @@
+2012-08-10  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* g++.dg/cilk-plus/test-try.cc: New test file.
+	* g++.dg/cilk-plus/test-try-cond.cc: Likewise.
+
 2012-07-16  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* gcc.dg/cilk-plus/cilk_plus.exp: Added flag_enable_cilk flag.

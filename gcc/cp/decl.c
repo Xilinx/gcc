@@ -13371,7 +13371,7 @@ finish_function_body (tree compstmt)
   /* Here we insert Cilk specific functions when _Cilk_spawn is used.  */
   if (flag_enable_cilk && cfun->calls_spawn)
     {
-      cfun->cilk_frame_decl = cp_make_cilk_frame ();
+      cfun->cilk_frame_decl = cp_make_cilk_frame (compstmt);
       DECL_HAS_SPAWN_P (cfun->decl) = 1;
     }
 

@@ -1,0 +1,41 @@
+/* Please run this in the following way:
+
+   time ./a.out
+
+   The output should be something like this:
+
+   real    0m5.002s     <=== This is the main thing that should match.
+   user    0m6.200s
+   sys     0m28.670s
+
+   When you run it with any number of arguments > 1 then you should get
+   something like this: 
+   
+   time ./a.out  1 2 3 
+   real    0m10.003s   <=== This is the main thing that should match.
+   user    0m11.401s
+   sys     0m53.387s
+
+*/
+
+
+#include <unistd.h>
+void mysleep(int a) {
+  sleep(5);
+}
+
+int main(int argc, char ** argv) {
+  _Cilk_spawn mysleep(5);
+  if (argc > 1) {
+    try {
+      _Cilk_spawn mysleep(5);
+      mysleep(5);
+    }
+		            
+    catch(int err) {
+    }
+  }
+  else {
+    mysleep(5);
+  }
+}

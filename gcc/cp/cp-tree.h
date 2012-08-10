@@ -6051,7 +6051,7 @@ extern tree cilk_block_local_label              (tree);
 struct cp_binding_level *in_cilk_block          (void);
 bool cp_spawnable_constructor                   (tree);
 bool cp_recognize_spawn                         (tree);
-tree cp_make_cilk_frame                         (void);
+tree cp_make_cilk_frame                         (tree);
 
 extern tree cilk_for_var_decl                   (tree, bool);
 extern void finish_cilk_for_stmt                (tree);
