@@ -499,6 +499,10 @@ option (options_p prev)
       advance ();
       return nestedptr_optvalue (prev);
 
+    case USER_GTY:
+      advance ();
+      return create_string_option (prev, "user", "");
+
     default:
       parse_error ("expected an option keyword, have %s", print_cur_token ());
       advance ();
@@ -733,6 +737,18 @@ struct_field_seq (void)
   return nreverse_pairs (f);
 }
 
+/* Return true if OPTS contain the option named STR.  */
+
+static bool
+opts_have (options_p opts, const char *str)
+{
+  for (options_p opt = opts; opt; opt = opt->next)
+    if (strcmp (opt->name, str) == 0)
+      return true;
+  return false;
+}
+
+
 /* This is called type(), but what it parses (sort of) is what C calls
    declaration-specifiers and specifier-qualifier-list:
 
@@ -805,6 +821,7 @@ type (options_p *optsp, bool nested)
 
 	if (is_gty)
 	  {
+	    bool is_user_gty = opts_have (opts, "user");
 	    if (token () == '{')
 	      {
 		pair_p fields;
@@ -812,9 +829,20 @@ type (options_p *optsp, bool nested)
 		if (is_gty == GTY_AFTER_ID)
 		  parse_error ("GTY must be specified before identifier");
 
-		advance ();
-		fields = struct_field_seq ();
-		require ('}');
+		if (!is_user_gty)
+		  {
+		    advance ();
+		    fields = struct_field_seq ();
+		    require ('}');
+		  }
+		else
+		  {
+		    /* Do not look inside user defined structures.  */
+		    fields = NULL;
+		    kind = TYPE_USER_STRUCT;
+		    consume_balanced ('{', '}');
+		  }
+
 		return new_structure (s, kind, &lexer_line, fields, opts);
 	      }
 	  }

@@ -463,6 +463,7 @@ enum
     ELLIPSIS,
     PTR_ALIAS,
     NESTED_PTR,
+    USER_GTY,
     PARAM_IS,
     NUM,
     SCALAR,

@@ -1,3 +1,21 @@
+2012-08-10  Diego Novillo  <dnovillo@google.com>
+
+	* basic-block.h (struct edge_def): Mark GTY((user)).
+	Remove all GTY markers from fields.
+	(gt_ggc_mx): Declare.
+	(gt_pch_nx): Declare.
+	* tree-cfg.c (gt_ggc_mx): New.
+	(gt_pch_nx): New.
+
+	* gengtype-lex.l (USER_GTY): Add pattern for "user".
+	* gengtype-parse.c (option): Handle USER_GTY.
+	(opts_have): New.
+	(type): Call it.
+	If the keyword 'user' is used, do not walk the fields
+	of the structure.
+	* gengtype.h (USER_GTY): Add.
+	* doc/gty.texi: Update.
+
 2012-08-08  Diego Novillo  <dnovillo@google.com>
 
 	* coretypes.h (gt_pointer_operator): Move from ...

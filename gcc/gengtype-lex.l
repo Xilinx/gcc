@@ -108,6 +108,7 @@ EOID	[^[:alnum:]_]
 "enum"/{EOID}			{ return ENUM; }
 "ptr_alias"/{EOID}	  	{ return PTR_ALIAS; }
 "nested_ptr"/{EOID}		{ return NESTED_PTR; }
+"user"/{EOID}			{ return USER_GTY; }
 [0-9]+				{ return NUM; }
 "param"[0-9]*"_is"/{EOID}		{
   *yylval = XDUPVAR (const char, yytext, yyleng, yyleng+1);
