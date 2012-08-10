@@ -1,3 +1,7 @@
+2012-08-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/pr54157.c (dg-options): Add -maddress-mode=long.
+
 2012-04-11  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR rtl-optimization/52876
