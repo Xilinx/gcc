@@ -3737,39 +3737,6 @@ add_local_variables (struct function *callee, struct function *caller,
       }
 }
 
-/* Add local variables from CALLEE to CALLER.  */
-
-static inline void
-elem_fn_add_local_variables (struct function *callee, struct function *caller,
-			     copy_body_data *id,
-			     int vlength ATTRIBUTE_UNUSED)
-{
-  tree var;
-  unsigned ix;
-
-  FOR_EACH_LOCAL_DECL (callee, ix, var)
-    if (!can_be_nonlocal (var, id))
-      {
-        tree new_var = remap_decl (var, id);
-
-        /* Remap debug-expressions.  */
-	if (TREE_CODE (new_var) == VAR_DECL
-	    && DECL_DEBUG_EXPR_IS_FROM (new_var)
-	    && new_var != var)
-	  {
-	    tree tem = DECL_DEBUG_EXPR (var);
-	    bool old_regimplify = id->regimplify;
-	    id->remapping_type_depth++;
-	    walk_tree (&tem, copy_tree_body_r, id, NULL);
-	    id->remapping_type_depth--;
-	    id->regimplify = old_regimplify;
-	    SET_DECL_DEBUG_EXPR (new_var, tem);
-	  }
-	TREE_TYPE (new_var) = copy_node (TREE_TYPE (new_var));
- 	add_local_decl (caller, new_var);
-      }
-}
-
 /* If STMT is a GIMPLE_CALL, replace it with its inline expansion.  */
 
 static bool
@@ -5545,8 +5512,7 @@ tree_elem_fn_versioning (tree old_decl, tree new_decl,
 
   if (!VEC_empty (tree, DECL_STRUCT_FUNCTION (old_decl)->local_decls))
     /* Add local vars.  */
-    elem_fn_add_local_variables (DECL_STRUCT_FUNCTION (old_decl), cfun, &id,
-				 vlength);
+    add_local_variables (DECL_STRUCT_FUNCTION (old_decl), cfun, &id);
 
   if (DECL_RESULT (old_decl) == NULL_TREE)
     ;

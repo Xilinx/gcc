@@ -1,3 +1,9 @@
+2012-08-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* tree-inline.c (tree_elem_fn_versioning): Changed the call from
+	elem_fn_add_local_variables to the add_local_variables function.
+	(elem_fn_add_local_variables): Remove.
+
 2012-08-03  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* gimplify.c (gimplify_expr): Renamed cilk field in langhooks struct to
