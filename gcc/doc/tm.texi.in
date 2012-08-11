@@ -1091,6 +1091,8 @@ make it all fit in fewer cache lines.
 If the value of this macro has a type, it should be an unsigned type.
 @end defmac
 
+@hook TARGET_VECTOR_ALIGNMENT
+
 @defmac STACK_SLOT_ALIGNMENT (@var{type}, @var{mode}, @var{basic-align})
 If defined, a C expression to compute the alignment for stack slot.
 @var{type} is the data type, @var{mode} is the widest mode available,
@@ -4918,6 +4920,8 @@ FRAME_POINTER_REGNUM, ARG_POINTER_REGNUM, and the PIC_OFFSET_TABLE_REGNUM.
 
 @hook TARGET_SET_UP_BY_PROLOGUE
 
+@hook TARGET_WARN_FUNC_RETURN
+
 @node Stack Smashing Protection
 @subsection Stack smashing protection
 @cindex stack smashing protection
@@ -5542,24 +5546,6 @@ You may assume that @var{addr} is a valid address for the machine.
 
 The default version of this hook returns @code{false}.
 @end deftypefn
-
-@defmac GO_IF_MODE_DEPENDENT_ADDRESS (@var{addr}, @var{label})
-A C statement or compound statement with a conditional @code{goto
-@var{label};} executed if memory address @var{x} (an RTX) can have
-different meanings depending on the machine mode of the memory
-reference it is used for or if the address is valid for some modes
-but not others.
-
-Autoincrement and autodecrement addresses typically have mode-dependent
-effects because the amount of the increment or decrement is the size
-of the operand being addressed.  Some machines have other mode-dependent
-addresses.  Many RISC machines have no mode-dependent addresses.
-
-You may assume that @var{addr} is a valid address for the machine.
-
-These are obsolete macros, replaced by the
-@code{TARGET_MODE_DEPENDENT_ADDRESS_P} target hook.
-@end defmac
 
 @hook TARGET_LEGITIMATE_CONSTANT_P
 This hook returns true if @var{x} is a legitimate constant for a
@@ -9587,8 +9573,9 @@ return an integer value not larger than the corresponding element in
 be switched into prior to the execution of @var{insn}.
 @end defmac
 
-@defmac MODE_AFTER (@var{mode}, @var{insn})
-If this macro is defined, it is evaluated for every @var{insn} during
+@defmac MODE_AFTER (@var{entity}, @var{mode}, @var{insn})
+@var{entity} is an integer specifying a mode-switched entity.  If
+this macro is defined, it is evaluated for every @var{insn} during
 mode switching.  It determines the mode that an insn results in (if
 different from the incoming mode).
 @end defmac
@@ -10202,12 +10189,6 @@ is larger then @var{mem_mode} but still smaller than @code{word_mode}.
 @defmac SHORT_IMMEDIATES_SIGN_EXTEND
 Define this macro if loading short immediate values into registers sign
 extends.
-@end defmac
-
-@defmac FIXUNS_TRUNC_LIKE_FIX_TRUNC
-Define this macro if the same instructions that convert a floating
-point number to a signed fixed point number also convert validly to an
-unsigned one.
 @end defmac
 
 @hook TARGET_MIN_DIVISIONS_FOR_RECIP_MUL

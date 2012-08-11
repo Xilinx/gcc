@@ -382,6 +382,9 @@
 (define_predicate "general_movsrc_operand"
   (match_code "subreg,reg,const_int,const_double,mem,symbol_ref,label_ref,const,const_vector")
 {
+  if (t_reg_operand (op, mode))
+    return 0;
+
   if (MEM_P (op))
     {
       rtx inside = XEXP (op, 0);
@@ -425,28 +428,12 @@
   return general_operand (op, mode);
 })
 
-;; Same as movsrc_operand, but rejects displacement addressing.
+;; Returns 1 if OP is a MEM that does not use displacement addressing.
 
 (define_predicate "movsrc_no_disp_mem_operand"
-  (match_code "subreg,reg,const_int,const_double,mem,symbol_ref,label_ref,const,const_vector")
+  (match_code "mem")
 {
-  if (!general_movsrc_operand (op, mode))
-    return 0;
-
-  if ((mode == QImode || mode == HImode)
-      && mode == GET_MODE (op)
-      && (MEM_P (op)
-	  || (GET_CODE (op) == SUBREG && MEM_P (SUBREG_REG (op)))))
-    {
-      rtx x = XEXP ((MEM_P (op) ? op : SUBREG_REG (op)), 0);
-
-      if (GET_CODE (x) == PLUS
-	  && REG_P (XEXP (x, 0))
-	  && CONST_INT_P (XEXP (x, 1)))
-	return 0;
-    }
-
-  return 1;
+  return general_movsrc_operand (op, mode) && satisfies_constraint_Snd (op);
 })
 
 ;; Returns 1 if OP can be a destination of a move. Same as
@@ -455,6 +442,9 @@
 (define_predicate "general_movdst_operand"
   (match_code "subreg,reg,mem")
 {
+  if (t_reg_operand (op, mode))
+    return 0;
+
   /* Only pre dec allowed.  */
   if (MEM_P (op) && GET_CODE (XEXP (op, 0)) == POST_INC)
     return 0;
@@ -515,6 +505,31 @@
     return 1;
 
   return 0;
+})
+
+;; Returns 1 if OP is a MEM that can be used in "index_disp" combiner
+;; patterns.
+(define_predicate "mem_index_disp_operand"
+  (match_code "mem")
+{
+  rtx plus0_rtx, plus1_rtx, mult_rtx;
+
+  plus0_rtx = XEXP (op, 0);
+  if (GET_CODE (plus0_rtx) != PLUS)
+    return 0;
+
+  plus1_rtx = XEXP (plus0_rtx, 0);
+  if (GET_CODE (plus1_rtx) != PLUS)
+    return 0;
+
+  mult_rtx = XEXP (plus1_rtx, 0);
+  if (GET_CODE (mult_rtx) != MULT)
+    return 0;
+ 
+  return REG_P (XEXP (mult_rtx, 0)) && CONST_INT_P (XEXP (mult_rtx, 1))
+	 && exact_log2 (INTVAL (XEXP (mult_rtx, 1))) > 0
+	 && REG_P (XEXP (plus1_rtx, 1))
+	 && sh_legitimate_index_p (mode, XEXP (plus0_rtx, 1), TARGET_SH2A, true);
 })
 
 ;; TODO: Add a comment here.
@@ -749,6 +764,13 @@
 (define_predicate "shift_count_operand"
   (match_code "const_int,const_double,const,symbol_ref,label_ref,subreg,reg,zero_extend,sign_extend")
 {
+  /* Allow T_REG as shift count for dynamic shifts, although it is not
+     really possible.  It will then be copied to a general purpose reg.  */
+  if (! TARGET_SHMEDIA)
+    return const_int_operand (op, mode)
+	   || (TARGET_DYNSHIFT && (arith_reg_operand (op, mode)
+				   || t_reg_operand (op, mode)));
+
   return (CONSTANT_P (op)
 	  ? (CONST_INT_P (op)
 	     ? (unsigned) INTVAL (op) < GET_MODE_BITSIZE (mode)
@@ -778,6 +800,14 @@
     }
   return arith_reg_operand (op, mode);
 })
+
+(define_predicate "p27_shift_count_operand"
+  (and (match_code "const_int")
+       (match_test "satisfies_constraint_P27 (op)")))
+
+(define_predicate "not_p27_shift_count_operand"
+  (and (match_code "const_int")
+       (match_test "! satisfies_constraint_P27 (op)")))
 
 ;; TODO: Add a comment here.
 

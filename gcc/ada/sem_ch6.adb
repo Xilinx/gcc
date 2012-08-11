@@ -1804,7 +1804,6 @@ package body Sem_Ch6 is
 
    procedure Analyze_Subprogram_Body_Helper (N : Node_Id) is
       Loc          : constant Source_Ptr := Sloc (N);
-      Body_Deleted : constant Boolean    := False;
       Body_Spec    : constant Node_Id    := Specification (N);
       Body_Id      : Entity_Id           := Defining_Entity (Body_Spec);
       Prev_Id      : constant Entity_Id  := Current_Entity_In_Scope (Body_Id);
@@ -2076,9 +2075,8 @@ package body Sem_Ch6 is
                   Set_Has_Missing_Return (Id);
                end if;
 
-            elsif (Is_Generic_Subprogram (Id)
-                     or else not Is_Machine_Code_Subprogram (Id))
-              and then not Body_Deleted
+            elsif Is_Generic_Subprogram (Id)
+              or else not Is_Machine_Code_Subprogram (Id)
             then
                Error_Msg_N ("missing RETURN statement in function body", N);
             end if;
@@ -2501,6 +2499,19 @@ package body Sem_Ch6 is
 
          else
             Spec_Id := Corresponding_Spec (N);
+         end if;
+      end if;
+
+      --  Ada 2012 aspects may appear in a subprogram body, but only if there
+      --  is no previous spec.
+
+      if Has_Aspects (N) then
+         if Present (Corresponding_Spec (N)) then
+            Error_Msg_N
+              ("aspect specifications must appear in subprogram declaration",
+                N);
+         else
+            Analyze_Aspect_Specifications (N, Body_Id);
          end if;
       end if;
 
@@ -3120,13 +3131,9 @@ package body Sem_Ch6 is
             end loop;
          end if;
 
-         --  Check references in body unless it was deleted. Note that the
-         --  check of Body_Deleted here is not just for efficiency, it is
-         --  necessary to avoid junk warnings on formal parameters.
+         --  Check references in body
 
-         if not Body_Deleted then
-            Check_References (Body_Id);
-         end if;
+         Check_References (Body_Id);
       end;
    end Analyze_Subprogram_Body_Helper;
 

@@ -1,3 +1,126 @@
+2012-08-09  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* acinclude.m4: Update references to final C++11 standard.
+	* include/bits/shared_ptr.h: Likewise.
+	* include/bits/shared_ptr_base.h: Likewise.
+	* include/bits/unique_ptr.h: Likewise.
+	* include/std/chrono: Likewise.
+	* include/std/thread: Likewise.
+
+2012-08-07  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/54005
+	* include/std/atomic: Use __atomic_always_lock_free.
+	* include/bits/atomic_base.h: Same.
+
+2012-08-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/decimal/mixed-mode-cmp_neg.cc: Add test variable; minor
+	tweaks.
+	* testsuite/decimal/unary-arith.cc: Likewise.
+	* testsuite/decimal/ctor.cc: Likewise.
+	* testsuite/decimal/conversion-to-integral.cc: Likewise.
+	* testsuite/decimal/make-decimal.cc: Likewise.
+	* testsuite/decimal/comparison.cc: Likewise.
+	* testsuite/decimal/incdec-memfunc.cc: Likewise.
+	* testsuite/decimal/conversion-to-generic-float.cc: Likewise.
+	* testsuite/decimal/compound-assignment-memfunc.cc: Likewise.
+	* testsuite/decimal/cast_neg.cc: Likewise.
+	* testsuite/decimal/incdec.cc: Likewise.
+	* testsuite/decimal/mixed-mode-arith_neg.cc: Likewise.
+	* testsuite/decimal/binary-arith.cc: Likewise.
+	* testsuite/decimal/conversion-from-float.cc: Likewise.
+	* testsuite/decimal/conversion-from-integral.cc: Likewise.
+	* testsuite/decimal/compound-assignment.cc: Likewise.
+
+2012-08-06  Peter Bergner  <bergner@vnet.ibm.com>
+
+	PR libstdc++/54036
+	* include/decimal/decimal.h (_DEFINE_DECIMAL_UNARY_OP): Use _Op as
+	a unary operator.
+	* testsuite/decimal/pr54036-1.cc: New test.
+	* testsuite/decimal/pr54036-2.cc: Likewise.
+	* testsuite/decimal/pr54036-3.cc: Likewise.
+
+2012-08-04  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	Revert:
+	2012-08-03  Ollie Wild  <aaw@google.com>
+		    Richard Smith  <richardsmith@google.com>
+
+	* include/bits/stl_map.h (operator[](key_type&&)): Replace
+	std::make_pair with value_type.
+	* testsuite/23_containers/map/operators/2.cc: New test.
+
+2012-08-03  François Dumont  <fdumont@gcc.gnu.org>
+
+	* include/debug/functions.h (__check_partition_lower_aux): Remove
+	redundant comparison with pivot value.
+	(__check_partition_upper_aux): Likewise.
+
+2012-08-03  Ollie Wild  <aaw@google.com>
+	    Richard Smith  <richardsmith@google.com>
+
+	* include/bits/stl_map.h (operator[](key_type&&)): Replace
+	std::make_pair with value_type.
+	* testsuite/23_containers/map/operators/2.cc: New test.
+
+2012-08-03  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/memory: Include auto_ptr.h later.
+	* include/bits/shared_ptr.h (shared_ptr(auto_ptr<_Up>&&): Remove
+	definition.
+	* include/bits/shared_ptr_base.h (__shared_ptr(auto_ptr<_Up>&&):
+	Likewise.
+	* include/bits/unique_ptr.h (unique_ptr(auto_ptr<_Up>&&): Likewise.
+	* include/backward/auto_ptr.h (unique_ptr(auto_ptr<_Up>&&): Define.
+	(shared_ptr(auto_ptr<_Up>&&, __shared_ptr(auto_ptr<_Up>&&): Likewise.
+	* include/std/future: Reduce header dependencies.
+	* testsuite/20_util/default_delete/48631_neg.cc: Adjust dg-error line
+	numbers.
+	* testsuite/20_util/shared_ptr/cons/43820_neg.cc: Likewise.
+	* testsuite/20_util/unique_ptr/assign/48635_neg.cc: Likewise.
+
+2012-07-30  François Dumont  <fdumont@gcc.gnu.org>
+
+	* include/bits/c++config (_GLIBCXX_END_NAMESPACE_CONTAINER): Fix
+	order of closures.
+	(_GLIBCXX_END_NAMESPACE_ALGO): Likewise.
+
+2012-07-29  François Dumont  <fdumont@gcc.gnu.org>
+
+	PR libstdc++/54075
+	* include/bits/hashtable_policy.h
+	(_Prime_rehash_policy::_M_next_bkt): Add a growth factor set to 2
+	to boost growth in the number of buckets.
+	* testsuite/performance/23_containers/insert/unordered_set.cc: New.
+
+2012-07-25  François Dumont  <fdumont@gcc.gnu.org>
+
+	PR libstdc++/54075
+	* include/bits/hashtable.h
+	(_Hashtable<>::_Hashtable(_InputIterator, _InputIterator,
+	size_type, ...): Remove std::max usage to guarantee that hashtable
+	state is consistent with hash policy state.
+	(_Hashtable<>::rehash): Likewise. Set _M_prev_resize to 0 to avoid
+	the hashtable shrinking on next insertion.
+	* testsuite/23_containers/unordered_set/modifiers/reserve.cc: New.
+	* testsuite/23_containers/unordered_multiset/modifiers/reserve.cc: New.
+	* testsuite/23_containers/unordered_map/modifiers/reserve.cc: New.
+	* testsuite/23_containers/unordered_multimap/modifiers/reserve.cc: New.
+
+2012-07-20  Chip Salzenberg  <chip@pobox.com>
+	    Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/54025
+	* include/std/chrono (duration<>::duration): Fix per C++11.
+	* testsuite/20_util/duration/cons/54025.cc: New.
+	* testsuite/20_util/duration/cons/constexpr.cc: Adjust.
+
+2012-07-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/30_threads/thread/adl.cc: Add missing dg-requires.
+
 2012-07-19  Tristan Gingold  <gingold@adacore.com>
 	    Richard Henderson  <rth@redhat.com>
 

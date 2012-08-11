@@ -934,7 +934,7 @@ static gimple
 rewrite_reciprocal (gimple_stmt_iterator *bsi)
 {
   gimple stmt, stmt1, stmt2;
-  tree var, name, lhs, type;
+  tree name, lhs, type;
   tree real_one;
   gimple_stmt_iterator gsi;
 
@@ -942,16 +942,11 @@ rewrite_reciprocal (gimple_stmt_iterator *bsi)
   lhs = gimple_assign_lhs (stmt);
   type = TREE_TYPE (lhs);
 
-  var = create_tmp_var (type, "reciptmp");
-  add_referenced_var (var);
-  DECL_GIMPLE_REG_P (var) = 1;
-
   real_one = build_one_cst (type);
 
-  stmt1 = gimple_build_assign_with_ops (RDIV_EXPR,
-		var, real_one, gimple_assign_rhs2 (stmt));
-  name = make_ssa_name (var, stmt1);
-  gimple_assign_set_lhs (stmt1, name);
+  name = make_temp_ssa_name (type, NULL, "reciptmp");
+  stmt1 = gimple_build_assign_with_ops (RDIV_EXPR, name, real_one,
+					gimple_assign_rhs2 (stmt));
 
   stmt2 = gimple_build_assign_with_ops (MULT_EXPR, lhs, name,
 					gimple_assign_rhs1 (stmt));
@@ -974,7 +969,7 @@ static gimple
 rewrite_bittest (gimple_stmt_iterator *bsi)
 {
   gimple stmt, use_stmt, stmt1, stmt2;
-  tree lhs, var, name, t, a, b;
+  tree lhs, name, t, a, b;
   use_operand_p use;
 
   stmt = gsi_stmt (*bsi);
@@ -1023,19 +1018,15 @@ rewrite_bittest (gimple_stmt_iterator *bsi)
       gimple_stmt_iterator rsi;
 
       /* 1 << B */
-      var = create_tmp_var (TREE_TYPE (a), "shifttmp");
-      add_referenced_var (var);
       t = fold_build2 (LSHIFT_EXPR, TREE_TYPE (a),
 		       build_int_cst (TREE_TYPE (a), 1), b);
-      stmt1 = gimple_build_assign (var, t);
-      name = make_ssa_name (var, stmt1);
-      gimple_assign_set_lhs (stmt1, name);
+      name = make_temp_ssa_name (TREE_TYPE (a), NULL, "shifttmp");
+      stmt1 = gimple_build_assign (name, t);
 
       /* A & (1 << B) */
       t = fold_build2 (BIT_AND_EXPR, TREE_TYPE (a), a, name);
-      stmt2 = gimple_build_assign (var, t);
-      name = make_ssa_name (var, stmt2);
-      gimple_assign_set_lhs (stmt2, name);
+      name = make_temp_ssa_name (TREE_TYPE (a), NULL, "shifttmp");
+      stmt2 = gimple_build_assign (name, t);
 
       /* Replace the SSA_NAME we compare against zero.  Adjust
 	 the type of zero accordingly.  */
@@ -1291,6 +1282,8 @@ move_computations_stmt (struct dom_walk_data *dw_data,
 
   for (bsi = gsi_start_bb (bb); !gsi_end_p (bsi); )
     {
+      edge e;
+
       stmt = gsi_stmt (bsi);
 
       lim_data = get_lim_data (stmt);
@@ -1323,9 +1316,26 @@ move_computations_stmt (struct dom_walk_data *dw_data,
 		   cost, level->num);
 	}
 
-      mark_virtual_ops_for_renaming (stmt);
+      e = loop_preheader_edge (level);
+      gcc_assert (!gimple_vdef (stmt));
+      if (gimple_vuse (stmt))
+	{
+	  /* The new VUSE is the one from the virtual PHI in the loop
+	     header or the one already present.  */
+	  gimple_stmt_iterator gsi2;
+	  for (gsi2 = gsi_start_phis (e->dest);
+	       !gsi_end_p (gsi2); gsi_next (&gsi2))
+	    {
+	      gimple phi = gsi_stmt (gsi2);
+	      if (!is_gimple_reg (gimple_phi_result (phi)))
+		{
+		  gimple_set_vuse (stmt, PHI_ARG_DEF_FROM_EDGE (phi, e));
+		  break;
+		}
+	    }
+	}
       gsi_remove (&bsi, false);
-      gsi_insert_on_edge (loop_preheader_edge (level), stmt);
+      gsi_insert_on_edge (e, stmt);
     }
 }
 
@@ -1783,7 +1793,6 @@ mem_refs_may_alias_p (tree mem1, tree mem2, struct pointer_map_t **ttae_cache)
 static void
 rewrite_mem_ref_loc (mem_ref_loc_p loc, tree tmp_var)
 {
-  mark_virtual_ops_for_renaming (loc->stmt);
   *loc->ref = tmp_var;
   update_stmt (loc->stmt);
 }
@@ -1904,9 +1913,6 @@ gen_lsm_tmp_name (tree ref)
       break;
 
     case SSA_NAME:
-      ref = SSA_NAME_VAR (ref);
-      /* Fallthru.  */
-
     case VAR_DECL:
     case PARM_DECL:
       name = get_name (ref);
@@ -2105,7 +2111,7 @@ execute_sm_if_changed_flag_set (struct loop *loop, mem_ref_p ref)
   char *str = get_lsm_tmp_name (ref->mem, ~0);
 
   lsm_tmp_name_add ("_flag");
-  flag = make_rename_temp (boolean_type_node, str);
+  flag = create_tmp_reg (boolean_type_node, str);
   get_all_locs_in_loop (loop, ref, &locs);
   FOR_EACH_VEC_ELT (mem_ref_loc_p, locs, i, loc)
     {
@@ -2143,7 +2149,7 @@ execute_sm (struct loop *loop, VEC (edge, heap) *exits, mem_ref_p ref)
       fprintf (dump_file, " from loop %d\n", loop->num);
     }
 
-  tmp_var = make_rename_temp (TREE_TYPE (ref->mem),
+  tmp_var = create_tmp_reg (TREE_TYPE (ref->mem),
 			      get_lsm_tmp_name (ref->mem, ~0));
 
   fmt_data.loop = loop;

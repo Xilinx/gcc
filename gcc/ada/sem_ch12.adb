@@ -7068,6 +7068,8 @@ package body Sem_Ch12 is
       D2 : Integer := 0;
       P1 : Node_Id := N1;
       P2 : Node_Id := N2;
+      T1 : Source_Ptr;
+      T2 : Source_Ptr;
 
    --  Start of processing for Earlier
 
@@ -7208,19 +7210,21 @@ package body Sem_Ch12 is
       --  At this point either both nodes came from source or we approximated
       --  their source locations through neighbouring source statements.
 
+      T1 := Top_Level_Location (Sloc (P1));
+      T2 := Top_Level_Location (Sloc (P2));
+
       --  When two nodes come from the same instance, they have identical top
       --  level locations. To determine proper relation within the tree, check
       --  their locations within the template.
 
-      if Top_Level_Location (Sloc (P1)) = Top_Level_Location (Sloc (P2)) then
+      if T1 = T2 then
          return Sloc (P1) < Sloc (P2);
 
       --  The two nodes either come from unrelated instances or do not come
       --  from instantiated code at all.
 
       else
-         return Top_Level_Location (Sloc (P1))
-              < Top_Level_Location (Sloc (P2));
+         return T1 < T2;
       end if;
    end Earlier;
 
@@ -7852,9 +7856,9 @@ package body Sem_Ch12 is
      (N      : Node_Id;
       F_Node : Node_Id)
    is
-      Inst  : constant Entity_Id := Entity (F_Node);
       Decl  : Node_Id;
       Decls : List_Id;
+      Inst  : Entity_Id;
       Par_N : Node_Id;
 
       function Enclosing_Body (N : Node_Id) return Node_Id;
@@ -7921,9 +7925,18 @@ package body Sem_Ch12 is
 
    begin
       if not Is_List_Member (F_Node) then
-         Decls := List_Containing (N);
-         Par_N := Parent (Decls);
          Decl  := N;
+         Decls := List_Containing (N);
+         Inst  := Entity (F_Node);
+         Par_N := Parent (Decls);
+
+         --  When processing a subprogram instantiation, utilize the actual
+         --  subprogram instantiation rather than its package wrapper as it
+         --  carries all the context information.
+
+         if Is_Wrapper_Package (Inst) then
+            Inst := Related_Instance (Inst);
+         end if;
 
          --  If this is a package instance, check whether the generic is
          --  declared in a previous instance and the current instance is

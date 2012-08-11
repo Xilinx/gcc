@@ -2746,7 +2746,8 @@ visit_reference_op_load (tree lhs, tree op, gimple stmt)
 	 a new SSA_NAME we create.  */
       if (!result)
         {
-	  result = make_ssa_name (SSA_NAME_VAR (lhs), gimple_build_nop ());
+	  result = make_temp_ssa_name (TREE_TYPE (lhs), gimple_build_nop (),
+				       "vntemp");
 	  /* Initialize value-number information properly.  */
 	  VN_INFO_GET (result)->valnum = result;
 	  VN_INFO (result)->value_id = get_next_value_id ();
@@ -3963,11 +3964,9 @@ run_scc_vn (vn_lookup_kind default_vn_walk_kind_)
        param;
        param = DECL_CHAIN (param))
     {
-      if (gimple_default_def (cfun, param) != NULL)
-	{
-	  tree def = gimple_default_def (cfun, param);
-	  VN_INFO (def)->valnum = def;
-	}
+      tree def = ssa_default_def (cfun, param);
+      if (def)
+	VN_INFO (def)->valnum = def;
     }
 
   for (i = 1; i < num_ssa_names; ++i)

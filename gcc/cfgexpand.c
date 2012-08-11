@@ -429,10 +429,10 @@ add_scope_conflicts_1 (basic_block bb, bitmap work, bool for_conflict)
 	      unsigned i;
 	      EXECUTE_IF_SET_IN_BITMAP (work, 0, i, bi)
 		{
-		  unsigned j;
-		  bitmap_iterator bj;
-		  EXECUTE_IF_SET_IN_BITMAP (work, i + 1, j, bj)
-		    add_stack_var_conflict (i, j);
+		  struct stack_var *a = &stack_vars[i];
+		  if (!a->conflicts)
+		    a->conflicts = BITMAP_ALLOC (NULL);
+		  bitmap_ior_into (a->conflicts, work);
 		}
 	      visit = visit_conflict;
 	    }
@@ -450,6 +450,8 @@ add_scope_conflicts (void)
   basic_block bb;
   bool changed;
   bitmap work = BITMAP_ALLOC (NULL);
+  int *rpo;
+  int n_bbs;
 
   /* We approximate the live range of a stack variable by taking the first
      mention of its name as starting point(s), and by the end-of-scope
@@ -464,13 +466,19 @@ add_scope_conflicts (void)
   FOR_ALL_BB (bb)
     bb->aux = BITMAP_ALLOC (NULL);
 
+  rpo = XNEWVEC (int, last_basic_block);
+  n_bbs = pre_and_rev_post_order_compute (NULL, rpo, false);
+
   changed = true;
   while (changed)
     {
+      int i;
       changed = false;
-      FOR_EACH_BB (bb)
+      for (i = 0; i < n_bbs; i++)
 	{
-	  bitmap active = (bitmap)bb->aux;
+	  bitmap active;
+	  bb = BASIC_BLOCK (rpo[i]);
+	  active = (bitmap)bb->aux;
 	  add_scope_conflicts_1 (bb, work, false);
 	  if (bitmap_ior_into (active, work))
 	    changed = true;
@@ -480,6 +488,7 @@ add_scope_conflicts (void)
   FOR_EACH_BB (bb)
     add_scope_conflicts_1 (bb, work, true);
 
+  free (rpo);
   BITMAP_FREE (work);
   FOR_ALL_BB (bb)
     BITMAP_FREE (bb->aux);
@@ -620,13 +629,6 @@ update_alias_info_with_stack_vars (void)
 	{
 	  tree decl = stack_vars[j].decl;
 	  unsigned int uid = DECL_PT_UID (decl);
-	  /* We should never end up partitioning SSA names (though they
-	     may end up on the stack).  Neither should we allocate stack
-	     space to something that is unused and thus unreferenced, except
-	     for -O0 where we are preserving even unreferenced variables.  */
-	  gcc_assert (DECL_P (decl)
-		      && (!optimize
-			  || referenced_var_lookup (cfun, DECL_UID (decl))));
 	  bitmap_set_bit (part, uid);
 	  *((bitmap *) pointer_map_insert (decls_to_partitions,
 					   (void *)(size_t) uid)) = part;
@@ -1351,7 +1353,7 @@ add_stack_protection_conflicts (void)
   for (i = 0; i < n; ++i)
     {
       unsigned char ph_i = phase[i];
-      for (j = 0; j < i; ++j)
+      for (j = i + 1; j < n; ++j)
 	if (ph_i != phase[j])
 	  add_stack_var_conflict (i, j);
     }
@@ -1400,6 +1402,7 @@ fini_vars_expansion (void)
   XDELETEVEC (stack_vars);
   XDELETEVEC (stack_vars_sorted);
   stack_vars = NULL;
+  stack_vars_sorted = NULL;
   stack_vars_alloc = stack_vars_num = 0;
   pointer_map_destroy (decl_to_stack_part);
   decl_to_stack_part = NULL;
@@ -1420,15 +1423,14 @@ estimated_stack_frame_size (struct cgraph_node *node)
   size_t i;
   tree var;
   tree old_cur_fun_decl = current_function_decl;
-  referenced_var_iterator rvi;
   struct function *fn = DECL_STRUCT_FUNCTION (node->symbol.decl);
 
   current_function_decl = node->symbol.decl;
   push_cfun (fn);
 
-  gcc_checking_assert (gimple_referenced_vars (fn));
-  FOR_EACH_REFERENCED_VAR (fn, var, rvi)
-    size += expand_one_var (var, true, false);
+  FOR_EACH_LOCAL_DECL (fn, i, var)
+    if (auto_var_in_fn_p (var, fn->decl))
+      size += expand_one_var (var, true, false);
 
   if (stack_vars_num > 0)
     {
@@ -1451,6 +1453,7 @@ expand_used_vars (void)
 {
   tree var, outer_block = DECL_INITIAL (current_function_decl);
   VEC(tree,heap) *maybe_local_decls = NULL;
+  struct pointer_map_t *ssa_name_decls;
   unsigned i;
   unsigned len;
 
@@ -1463,11 +1466,23 @@ expand_used_vars (void)
 
   init_vars_expansion ();
 
+  ssa_name_decls = pointer_map_create ();
   for (i = 0; i < SA.map->num_partitions; i++)
     {
       tree var = partition_to_var (SA.map, i);
 
       gcc_assert (is_gimple_reg (var));
+
+      /* Assign decls to each SSA name partition, share decls for partitions
+         we could have coalesced (those with the same type).  */
+      if (SSA_NAME_VAR (var) == NULL_TREE)
+	{
+	  void **slot = pointer_map_insert (ssa_name_decls, TREE_TYPE (var));
+	  if (!*slot)
+	    *slot = (void *) create_tmp_reg (TREE_TYPE (var), NULL);
+	  replace_ssa_name_symbol (var, (tree) *slot);
+	}
+
       if (TREE_CODE (SSA_NAME_VAR (var)) == VAR_DECL)
 	expand_one_var (var, true, true);
       else
@@ -1484,6 +1499,7 @@ expand_used_vars (void)
 	    }
 	}
     }
+  pointer_map_destroy (ssa_name_decls);
 
   /* At this point all variables on the local_decls with TREE_USED
      set are not associated with any block scope.  Lay them out.  */
@@ -3635,7 +3651,7 @@ expand_debug_locations (void)
 			|| (GET_MODE (val) == VOIDmode
 			    && (CONST_INT_P (val)
 				|| GET_CODE (val) == CONST_FIXED
-				|| GET_CODE (val) == CONST_DOUBLE
+				|| CONST_DOUBLE_AS_INT_P (val) 
 				|| GET_CODE (val) == LABEL_REF)));
 	  }
 
@@ -4448,7 +4464,6 @@ gimple_expand_cfg (void)
       rtx r;
 
       if (!name
-	  || !POINTER_TYPE_P (TREE_TYPE (name))
 	  /* We might have generated new SSA names in
 	     update_alias_info_with_stack_vars.  They will have a NULL
 	     defining statements, and won't be part of the partitioning,
@@ -4458,6 +4473,18 @@ gimple_expand_cfg (void)
       part = var_to_partition (SA.map, name);
       if (part == NO_PARTITION)
 	continue;
+
+      /* Adjust all partition members to get the underlying decl of
+	 the representative which we might have created in expand_one_var.  */
+      if (SSA_NAME_VAR (name) == NULL_TREE)
+	{
+	  tree leader = partition_to_var (SA.map, part);
+	  gcc_assert (SSA_NAME_VAR (leader) != NULL_TREE);
+	  replace_ssa_name_symbol (name, SSA_NAME_VAR (leader));
+	}
+      if (!POINTER_TYPE_P (TREE_TYPE (name)))
+	continue;
+
       r = SA.partition_to_pseudo[part];
       if (REG_P (r))
 	mark_reg_pointer (r, get_pointer_alignment (name));

@@ -2659,37 +2659,48 @@ lookup_vi_for_tree (tree t)
 static const char *
 alias_get_name (tree decl)
 {
-  const char *res;
+  const char *res = NULL;
   char *temp;
   int num_printed = 0;
 
-  if (DECL_ASSEMBLER_NAME_SET_P (decl))
-    res = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
-  else
-    res= get_name (decl);
-  if (res != NULL)
-    return res;
-
-  res = "NULL";
   if (!dump_file)
-    return res;
+    return "NULL";
 
   if (TREE_CODE (decl) == SSA_NAME)
     {
-      num_printed = asprintf (&temp, "%s_%u",
-			      alias_get_name (SSA_NAME_VAR (decl)),
-			      SSA_NAME_VERSION (decl));
+      res = get_name (decl);
+      if (res)
+	num_printed = asprintf (&temp, "%s_%u", res, SSA_NAME_VERSION (decl));
+      else
+	num_printed = asprintf (&temp, "_%u", SSA_NAME_VERSION (decl));
+      if (num_printed > 0)
+	{
+	  res = ggc_strdup (temp);
+	  free (temp);
+	}
     }
   else if (DECL_P (decl))
     {
-      num_printed = asprintf (&temp, "D.%u", DECL_UID (decl));
+      if (DECL_ASSEMBLER_NAME_SET_P (decl))
+	res = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
+      else
+	{
+	  res = get_name (decl);
+	  if (!res)
+	    {
+	      num_printed = asprintf (&temp, "D.%u", DECL_UID (decl));
+	      if (num_printed > 0)
+		{
+		  res = ggc_strdup (temp);
+		  free (temp);
+		}
+	    }
+	}
     }
-  if (num_printed > 0)
-    {
-      res = ggc_strdup (temp);
-      free (temp);
-    }
-  return res;
+  if (res != NULL)
+    return res;
+
+  return "NULL";
 }
 
 /* Find the variable id for tree T in the map.
@@ -2736,14 +2747,14 @@ get_constraint_for_ssa_var (tree t, VEC(ce_s, heap) **results, bool address_p)
   varinfo_t vi;
 
   /* We allow FUNCTION_DECLs here even though it doesn't make much sense.  */
-  gcc_assert (SSA_VAR_P (t) || DECL_P (t));
+  gcc_assert (TREE_CODE (t) == SSA_NAME || DECL_P (t));
 
   /* For parameters, get at the points-to set for the actual parm
      decl.  */
   if (TREE_CODE (t) == SSA_NAME
+      && SSA_NAME_IS_DEFAULT_DEF (t)
       && (TREE_CODE (SSA_NAME_VAR (t)) == PARM_DECL
-	  || TREE_CODE (SSA_NAME_VAR (t)) == RESULT_DECL)
-      && SSA_NAME_IS_DEFAULT_DEF (t))
+	  || TREE_CODE (SSA_NAME_VAR (t)) == RESULT_DECL))
     {
       get_constraint_for_ssa_var (SSA_NAME_VAR (t), results, address_p);
       return;
@@ -3976,9 +3987,9 @@ get_fi_for_callee (gimple call)
   if (!fn || TREE_CODE (fn) != SSA_NAME)
     return get_varinfo (anything_id);
 
-  if ((TREE_CODE (SSA_NAME_VAR (fn)) == PARM_DECL
-       || TREE_CODE (SSA_NAME_VAR (fn)) == RESULT_DECL)
-      && SSA_NAME_IS_DEFAULT_DEF (fn))
+  if (SSA_NAME_IS_DEFAULT_DEF (fn)
+      && (TREE_CODE (SSA_NAME_VAR (fn)) == PARM_DECL
+	  || TREE_CODE (SSA_NAME_VAR (fn)) == RESULT_DECL))
     fn = SSA_NAME_VAR (fn);
 
   return get_vi_for_tree (fn);
@@ -5915,9 +5926,9 @@ find_what_p_points_to (tree p)
   /* For parameters, get at the points-to set for the actual parm
      decl.  */
   if (TREE_CODE (p) == SSA_NAME
+      && SSA_NAME_IS_DEFAULT_DEF (p)
       && (TREE_CODE (SSA_NAME_VAR (p)) == PARM_DECL
-	  || TREE_CODE (SSA_NAME_VAR (p)) == RESULT_DECL)
-      && SSA_NAME_IS_DEFAULT_DEF (p))
+	  || TREE_CODE (SSA_NAME_VAR (p)) == RESULT_DECL))
     lookup_p = SSA_NAME_VAR (p);
 
   vi = lookup_vi_for_tree (lookup_p);
@@ -6736,9 +6747,6 @@ compute_may_aliases (void)
 
 	  /* But still dump what we have remaining it.  */
 	  dump_alias_info (dump_file);
-
-	  if (dump_flags & TDF_DETAILS)
-	    dump_referenced_vars (dump_file);
 	}
 
       return 0;
@@ -6751,12 +6759,7 @@ compute_may_aliases (void)
 
   /* Debugging dumps.  */
   if (dump_file)
-    {
-      dump_alias_info (dump_file);
-
-      if (dump_flags & TDF_DETAILS)
-	dump_referenced_vars (dump_file);
-    }
+    dump_alias_info (dump_file);
 
   /* Deallocate memory used by aliasing data structures and the internal
      points-to solution.  */

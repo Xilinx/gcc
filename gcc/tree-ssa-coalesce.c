@@ -924,34 +924,6 @@ print_exprs (FILE *f, const char *str1, tree expr1, const char *str2,
 }
 
 
-/* Called if a coalesce across and abnormal edge cannot be performed.  PHI is
-   the phi node at fault, I is the argument index at fault.  A message is
-   printed and compilation is then terminated.  */
-
-static inline void
-abnormal_corrupt (gimple phi, int i)
-{
-  edge e = gimple_phi_arg_edge (phi, i);
-  tree res = gimple_phi_result (phi);
-  tree arg = gimple_phi_arg_def (phi, i);
-
-  fprintf (stderr, " Corrupt SSA across abnormal edge BB%d->BB%d\n",
-	   e->src->index, e->dest->index);
-  fprintf (stderr, "Argument %d (", i);
-  print_generic_expr (stderr, arg, TDF_SLIM);
-  if (TREE_CODE (arg) != SSA_NAME)
-    fprintf (stderr, ") is not an SSA_NAME.\n");
-  else
-    {
-      gcc_assert (SSA_NAME_VAR (res) != SSA_NAME_VAR (arg));
-      fprintf (stderr, ") does not have the same base variable as the result ");
-      print_generic_stmt (stderr, res, TDF_SLIM);
-    }
-
-  internal_error ("SSA corruption");
-}
-
-
 /* Print a failure to coalesce a MUST_COALESCE pair X and Y.  */
 
 static inline void
@@ -983,14 +955,6 @@ create_outofssa_var_map (coalesce_list_p cl, bitmap used_in_copy)
   int v1, v2, cost;
   unsigned i;
 
-#ifdef ENABLE_CHECKING
-  bitmap used_in_real_ops;
-  bitmap used_in_virtual_ops;
-
-  used_in_real_ops = BITMAP_ALLOC (NULL);
-  used_in_virtual_ops = BITMAP_ALLOC (NULL);
-#endif
-
   map = init_var_map (num_ssa_names);
 
   FOR_EACH_BB (bb)
@@ -1015,25 +979,25 @@ create_outofssa_var_map (coalesce_list_p cl, bitmap used_in_copy)
 	    {
 	      edge e = gimple_phi_arg_edge (phi, i);
 	      arg = PHI_ARG_DEF (phi, i);
-	      if (TREE_CODE (arg) == SSA_NAME)
-		register_ssa_partition (map, arg);
-	      if (TREE_CODE (arg) == SSA_NAME
-		  && SSA_NAME_VAR (arg) == SSA_NAME_VAR (res))
-	        {
+	      if (TREE_CODE (arg) != SSA_NAME)
+		continue;
+
+	      register_ssa_partition (map, arg);
+	      if ((SSA_NAME_VAR (arg) == SSA_NAME_VAR (res)
+		   && TREE_TYPE (arg) == TREE_TYPE (res))
+		  || (e->flags & EDGE_ABNORMAL))
+		{
 		  saw_copy = true;
 		  bitmap_set_bit (used_in_copy, SSA_NAME_VERSION (arg));
 		  if ((e->flags & EDGE_ABNORMAL) == 0)
 		    {
 		      int cost = coalesce_cost_edge (e);
 		      if (cost == 1 && has_single_use (arg))
-		        add_cost_one_coalesce (cl, ver, SSA_NAME_VERSION (arg));
+			add_cost_one_coalesce (cl, ver, SSA_NAME_VERSION (arg));
 		      else
 			add_coalesce (cl, ver, SSA_NAME_VERSION (arg), cost);
 		    }
 		}
-	      else
-	        if (e->flags & EDGE_ABNORMAL)
-		  abnormal_corrupt (phi, i);
 	    }
 	  if (saw_copy)
 	    bitmap_set_bit (used_in_copy, ver);
@@ -1061,7 +1025,8 @@ create_outofssa_var_map (coalesce_list_p cl, bitmap used_in_copy)
 		if (gimple_assign_copy_p (stmt)
                     && TREE_CODE (lhs) == SSA_NAME
 		    && TREE_CODE (rhs1) == SSA_NAME
-		    && SSA_NAME_VAR (lhs) == SSA_NAME_VAR (rhs1))
+		    && SSA_NAME_VAR (lhs) == SSA_NAME_VAR (rhs1)
+		    && TREE_TYPE (lhs) == TREE_TYPE (rhs1))
 		  {
 		    v1 = SSA_NAME_VERSION (lhs);
 		    v2 = SSA_NAME_VERSION (rhs1);
@@ -1111,7 +1076,8 @@ create_outofssa_var_map (coalesce_list_p cl, bitmap used_in_copy)
 		    v1 = SSA_NAME_VERSION (outputs[match]);
 		    v2 = SSA_NAME_VERSION (input);
 
-		    if (SSA_NAME_VAR (outputs[match]) == SSA_NAME_VAR (input))
+		    if (SSA_NAME_VAR (outputs[match]) == SSA_NAME_VAR (input)
+			&& TREE_TYPE (outputs[match]) == TREE_TYPE (input))
 		      {
 			cost = coalesce_cost (REG_BR_PROB_BASE,
 					      optimize_bb_for_size_p (bb));
@@ -1126,17 +1092,6 @@ create_outofssa_var_map (coalesce_list_p cl, bitmap used_in_copy)
 	    default:
 	      break;
 	    }
-
-#ifdef ENABLE_CHECKING
-	  /* Mark real uses and defs.  */
-	  FOR_EACH_SSA_TREE_OPERAND (var, stmt, iter, (SSA_OP_DEF|SSA_OP_USE))
-	    bitmap_set_bit (used_in_real_ops, DECL_UID (SSA_NAME_VAR (var)));
-
-	  /* Validate that virtual ops don't get used in funny ways.  */
-	  if (gimple_vuse (stmt))
-	    bitmap_set_bit (used_in_virtual_ops,
-			    DECL_UID (SSA_NAME_VAR (gimple_vuse (stmt))));
-#endif /* ENABLE_CHECKING */
 	}
     }
 
@@ -1149,13 +1104,15 @@ create_outofssa_var_map (coalesce_list_p cl, bitmap used_in_copy)
       if (var != NULL_TREE && is_gimple_reg (var))
         {
 	  /* Add coalesces between all the result decls.  */
-	  if (TREE_CODE (SSA_NAME_VAR (var)) == RESULT_DECL)
+	  if (SSA_NAME_VAR (var)
+	      && TREE_CODE (SSA_NAME_VAR (var)) == RESULT_DECL)
 	    {
 	      if (first == NULL_TREE)
 		first = var;
 	      else
 		{
-		  gcc_assert (SSA_NAME_VAR (var) == SSA_NAME_VAR (first));
+		  gcc_assert (SSA_NAME_VAR (var) == SSA_NAME_VAR (first)
+			      && TREE_TYPE (var) == TREE_TYPE (first));
 		  v1 = SSA_NAME_VERSION (first);
 		  v2 = SSA_NAME_VERSION (var);
 		  bitmap_set_bit (used_in_copy, v1);
@@ -1167,32 +1124,11 @@ create_outofssa_var_map (coalesce_list_p cl, bitmap used_in_copy)
 	  /* Mark any default_def variables as being in the coalesce list
 	     since they will have to be coalesced with the base variable.  If
 	     not marked as present, they won't be in the coalesce view. */
-	  if (gimple_default_def (cfun, SSA_NAME_VAR (var)) == var
+	  if (SSA_NAME_IS_DEFAULT_DEF (var)
 	      && !has_zero_uses (var))
 	    bitmap_set_bit (used_in_copy, SSA_NAME_VERSION (var));
 	}
     }
-
-#if defined ENABLE_CHECKING
-  {
-    unsigned i;
-    bitmap both = BITMAP_ALLOC (NULL);
-    bitmap_and (both, used_in_real_ops, used_in_virtual_ops);
-    if (!bitmap_empty_p (both))
-      {
-	bitmap_iterator bi;
-
-	EXECUTE_IF_SET_IN_BITMAP (both, 0, i, bi)
-	  fprintf (stderr, "Variable %s used in real and virtual operands\n",
-		   get_name (referenced_var (i)));
-	internal_error ("SSA corruption");
-      }
-
-    BITMAP_FREE (used_in_real_ops);
-    BITMAP_FREE (used_in_virtual_ops);
-    BITMAP_FREE (both);
-  }
-#endif
 
   return map;
 }
@@ -1296,9 +1232,6 @@ coalesce_partitions (var_map map, ssa_conflicts_p graph, coalesce_list_p cl,
 		int v1 = SSA_NAME_VERSION (res);
 		int v2 = SSA_NAME_VERSION (arg);
 
-		if (SSA_NAME_VAR (arg) != SSA_NAME_VAR (res))
-		  abnormal_corrupt (phi, e->dest_idx);
-
 		if (debug)
 		  fprintf (debug, "Abnormal coalesce: ");
 
@@ -1316,7 +1249,8 @@ coalesce_partitions (var_map map, ssa_conflicts_p graph, coalesce_list_p cl,
       var2 = ssa_name (y);
 
       /* Assert the coalesces have the same base variable.  */
-      gcc_assert (SSA_NAME_VAR (var1) == SSA_NAME_VAR (var2));
+      gcc_assert (SSA_NAME_VAR (var1) == SSA_NAME_VAR (var2)
+		  && TREE_TYPE (var1) == TREE_TYPE (var2));
 
       if (debug)
 	fprintf (debug, "Coalesce list: ");

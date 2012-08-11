@@ -126,17 +126,6 @@ static void get_expr_operands (gimple, tree *, int);
 /* Number of functions with initialized ssa_operands.  */
 static int n_initialized = 0;
 
-/* Return the DECL_UID of the base variable of T.  */
-
-static inline unsigned
-get_name_decl (const_tree t)
-{
-  if (TREE_CODE (t) != SSA_NAME)
-    return DECL_UID (t);
-  else
-    return DECL_UID (SSA_NAME_VAR (t));
-}
-
 
 /*  Return true if the SSA operands cache is active.  */
 
@@ -177,7 +166,6 @@ create_vop_var (struct function *fn)
   TREE_ADDRESSABLE (global_var) = 0;
   VAR_DECL_IS_VIRTUAL_OPERAND (global_var) = 1;
 
-  add_referenced_var_1 (global_var, fn);
   fn->gimple_df->vop = global_var;
 }
 
@@ -416,7 +404,10 @@ finalize_ssa_defs (gimple stmt)
   /* If we have a non-SSA_NAME VDEF, mark it for renaming.  */
   if (gimple_vdef (stmt)
       && TREE_CODE (gimple_vdef (stmt)) != SSA_NAME)
-    mark_sym_for_renaming (gimple_vdef (stmt));
+    {
+      cfun->gimple_df->rename_vops = 1;
+      cfun->gimple_df->ssa_renaming_needed = 1;
+    }
 
   /* Check for the common case of 1 def that hasn't changed.  */
   if (old_ops && old_ops->next == NULL && num == 1
@@ -432,7 +423,12 @@ finalize_ssa_defs (gimple stmt)
 
   /* If there is anything remaining in the build_defs list, simply emit it.  */
   for ( ; new_i < num; new_i++)
-    last = add_def_op ((tree *) VEC_index (tree, build_defs, new_i), last);
+    {
+      tree *op = (tree *) VEC_index (tree, build_defs, new_i);
+      if (DECL_P (*op))
+	cfun->gimple_df->ssa_renaming_needed = 1;
+      last = add_def_op (op, last);
+    }
 
   /* Now set the stmt's operands.  */
   gimple_set_def_ops (stmt, new_list.next);
@@ -487,14 +483,18 @@ finalize_ssa_uses (gimple stmt)
       && gimple_vuse (stmt) == NULL_TREE)
     {
       gimple_set_vuse (stmt, gimple_vop (cfun));
-      mark_sym_for_renaming (gimple_vop (cfun));
+      cfun->gimple_df->rename_vops = 1;
+      cfun->gimple_df->ssa_renaming_needed = 1;
     }
 
   /* Now create nodes for all the new nodes.  */
   for (new_i = 0; new_i < VEC_length (tree, build_uses); new_i++)
-    last = add_use_op (stmt,
-		       (tree *) VEC_index (tree, build_uses, new_i),
-		       last);
+    {
+      tree *op = (tree *) VEC_index (tree, build_uses, new_i);
+      if (DECL_P (*op))
+	cfun->gimple_df->ssa_renaming_needed = 1;
+      last = add_use_op (stmt, op, last);
+    }
 
   /* Now set the stmt's operands.  */
   gimple_set_use_ops (stmt, new_list.next);
@@ -615,19 +615,11 @@ add_virtual_operand (gimple stmt ATTRIBUTE_UNUSED, int flags)
 static void
 add_stmt_operand (tree *var_p, gimple stmt, int flags)
 {
-  tree var, sym;
+  tree var = *var_p;
 
   gcc_assert (SSA_VAR_P (*var_p));
 
-  var = *var_p;
-  sym = (TREE_CODE (var) == SSA_NAME ? SSA_NAME_VAR (var) : var);
-
-  /* Mark statements with volatile operands.  */
-  if (!(flags & opf_no_vops)
-      && TREE_THIS_VOLATILE (sym))
-    gimple_set_has_volatile_ops (stmt, true);
-
-  if (is_gimple_reg (sym))
+  if (is_gimple_reg (var))
     {
       /* The variable is a GIMPLE register.  Add it to real operands.  */
       if (flags & opf_def)
@@ -636,7 +628,15 @@ add_stmt_operand (tree *var_p, gimple stmt, int flags)
 	append_use (var_p);
     }
   else
-    add_virtual_operand (stmt, flags);
+    {
+      /* Mark statements with volatile operands.  */
+      if (!(flags & opf_no_vops)
+	  && TREE_THIS_VOLATILE (var))
+	gimple_set_has_volatile_ops (stmt, true);
+
+      /* The variable is a memory access.  Add virtual operands.  */
+      add_virtual_operand (stmt, flags);
+    }
 }
 
 /* Mark the base address of REF as having its address taken.
@@ -1420,6 +1420,24 @@ debug_immediate_uses_for (tree var)
   dump_immediate_uses_for (stderr, var);
 }
 
+
+/* Return true if OP, an SSA name or a DECL is a virtual operand.  */
+
+bool
+virtual_operand_p (tree op)
+{
+  if (TREE_CODE (op) == SSA_NAME)
+    {
+      op = SSA_NAME_VAR (op);
+      if (!op)
+	return false;
+    }
+
+  if (TREE_CODE (op) == VAR_DECL)
+    return VAR_DECL_IS_VIRTUAL_OPERAND (op);
+
+  return false;
+}
 
 /* Unlink STMTs virtual definition from the IL by propagating its use.  */
 

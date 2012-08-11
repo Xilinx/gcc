@@ -856,10 +856,9 @@ package body Sem_Ch13 is
    --  Start of processing for Analyze_Aspects_At_Freeze_Point
 
    begin
-      --  Must be declared in current scope. This is need for a generic
-      --  context.
+      --  Must be visible in current scope.
 
-      if Scope (E) /= Current_Scope then
+      if not Scope_Within_Or_Same (Current_Scope, Scope (E)) then
          return;
       end if;
 
@@ -1150,17 +1149,14 @@ package body Sem_Ch13 is
                     Aspect_Bit_Order            |
                     Aspect_Component_Size       |
                     Aspect_Constant_Indexing    |
-                    Aspect_CPU                  |
                     Aspect_Default_Iterator     |
                     Aspect_Dispatching_Domain   |
                     Aspect_External_Tag         |
                     Aspect_Input                |
-                    Aspect_Interrupt_Priority   |
                     Aspect_Iterator_Element     |
                     Aspect_Machine_Radix        |
                     Aspect_Object_Size          |
                     Aspect_Output               |
-                    Aspect_Priority             |
                     Aspect_Read                 |
                     Aspect_Scalar_Storage_Order |
                     Aspect_Size                 |
@@ -1340,6 +1336,29 @@ package body Sem_Ch13 is
                          Pragma_Identifier            =>
                             Make_Identifier (Loc, P_Name));
                   end;
+
+               --  The following three aspects can be specified for a
+               --  subprogram body, in which case we generate pragmas for them
+               --  and insert them ahead of local declarations, rather than
+               --  after the body.
+
+               when Aspect_CPU                |
+                    Aspect_Interrupt_Priority |
+                    Aspect_Priority           =>
+                  if Nkind (N) = N_Subprogram_Body then
+                     Aitem :=
+                       Make_Pragma (Loc,
+                         Pragma_Argument_Associations =>
+                           New_List (Relocate_Node (Expr)),
+                         Pragma_Identifier            =>
+                           Make_Identifier (Sloc (Id), Chars (Id)));
+                  else
+                     Aitem :=
+                       Make_Attribute_Definition_Clause (Loc,
+                         Name       => Ent,
+                         Chars      => Chars (Id),
+                         Expression => Relocate_Node (Expr));
+                  end if;
 
                when Aspect_Warnings =>
 
@@ -1629,6 +1648,7 @@ package body Sem_Ch13 is
 
                   if A_Id = Aspect_Lock_Free then
                      if Ekind (E) /= E_Protected_Type then
+                        Error_Msg_Name_1 := Nam;
                         Error_Msg_N
                           ("aspect % only applies to a protected object",
                            Aspect);
@@ -1725,7 +1745,8 @@ package body Sem_Ch13 is
 
             --  In the context of a compilation unit, we directly put the
             --  pragma in the Pragmas_After list of the
-            --  N_Compilation_Unit_Aux node. No delay is required here.
+            --  N_Compilation_Unit_Aux node (No delay is required here)
+            --  except for aspects on a subprogram body (see below).
 
             if Nkind (Parent (N)) = N_Compilation_Unit
               and then (Present (Aitem) or else Is_Boolean_Aspect (Aspect))
@@ -1757,11 +1778,25 @@ package body Sem_Ch13 is
                      end if;
                   end if;
 
-                  if No (Pragmas_After (Aux)) then
-                     Set_Pragmas_After (Aux, Empty_List);
+                  --  If the aspect is on a subprogram body (relevant aspects
+                  --  are Inline and Priority), add the pragma in front of
+                  --  the declarations.
+
+                  if Nkind (N) = N_Subprogram_Body then
+                     if No (Declarations (N)) then
+                        Set_Declarations (N, New_List);
+                     end if;
+
+                     Prepend (Aitem, Declarations (N));
+
+                  else
+                     if No (Pragmas_After (Aux)) then
+                        Set_Pragmas_After (Aux, Empty_List);
+                     end if;
+
+                     Append (Aitem, Pragmas_After (Aux));
                   end if;
 
-                  Append (Aitem, Pragmas_After (Aux));
                   goto Continue;
                end;
             end if;
@@ -1831,8 +1866,8 @@ package body Sem_Ch13 is
           Chars => Name_Address,
           Expression => Expression (N)));
 
-      --  We preserve Comes_From_Source, since logically the clause still
-      --  comes from the source program even though it is changed in form.
+      --  We preserve Comes_From_Source, since logically the clause still comes
+      --  from the source program even though it is changed in form.
 
       Set_Comes_From_Source (N, CS);
 
@@ -2399,11 +2434,12 @@ package body Sem_Ch13 is
          return;
 
       --  Must be declared in current scope or in case of an aspect
-      --  specification, must be the current scope.
+      --  specification, must be visible in current scope.
 
       elsif Scope (Ent) /= Current_Scope
-        and then (not From_Aspect_Specification (N)
-                   or else Ent /= Current_Scope)
+        and then
+          not (From_Aspect_Specification (N)
+                and then Scope_Within_Or_Same (Current_Scope, Scope (Ent)))
       then
          Error_Msg_N ("entity must be declared in this scope", Nam);
          return;
@@ -2650,8 +2686,8 @@ package body Sem_Ch13 is
 
                   --  Legality checks on the address clause for initialized
                   --  objects is deferred until the freeze point, because
-                  --  a subsequent pragma might indicate that the object is
-                  --  imported and thus not initialized.
+                  --  a subsequent pragma might indicate that the object
+                  --  is imported and thus not initialized.
 
                   Set_Has_Delayed_Freeze (U_Ent);
 
@@ -3085,8 +3121,8 @@ package body Sem_Ch13 is
 
          when Attribute_Implicit_Dereference =>
 
-            --  Legality checks already performed at the point of
-            --  the type declaration, aspect is not delayed.
+            --  Legality checks already performed at the point of the type
+            --  declaration, aspect is not delayed.
 
             null;
 
@@ -3243,10 +3279,11 @@ package body Sem_Ch13 is
 
             if From_Aspect_Specification (N) then
                if not (Is_Protected_Type (U_Ent)
-                        or else Is_Task_Type (U_Ent))
+                        or else Is_Task_Type (U_Ent)
+                        or else Ekind (U_Ent) = E_Procedure)
                then
                   Error_Msg_N
-                    ("Priority can only be defined for task and protected" &
+                    ("Priority can only be defined for task and protected " &
                      "object",
                      Nam);
 
@@ -7904,6 +7941,223 @@ package body Sem_Ch13 is
          return Align;
       end if;
    end Get_Alignment_Value;
+
+   -------------------------------------
+   -- Inherit_Aspects_At_Freeze_Point --
+   -------------------------------------
+
+   procedure Inherit_Aspects_At_Freeze_Point (Typ : Entity_Id) is
+      function Is_Pragma_Or_Corr_Pragma_Present_In_Rep_Item
+        (Rep_Item : Node_Id) return Boolean;
+      --  This routine checks if Rep_Item is either a pragma or an aspect
+      --  specification node whose correponding pragma (if any) is present in
+      --  the Rep Item chain of the entity it has been specified to.
+
+      --------------------------------------------------
+      -- Is_Pragma_Or_Corr_Pragma_Present_In_Rep_Item --
+      --------------------------------------------------
+
+      function Is_Pragma_Or_Corr_Pragma_Present_In_Rep_Item
+        (Rep_Item : Node_Id) return Boolean
+      is
+      begin
+         return Nkind (Rep_Item) = N_Pragma
+           or else Present_In_Rep_Item
+                     (Entity (Rep_Item), Aspect_Rep_Item (Rep_Item));
+      end Is_Pragma_Or_Corr_Pragma_Present_In_Rep_Item;
+
+   begin
+      --  A representation item is either subtype-specific (Size and Alignment
+      --  clauses) or type-related (all others).  Subtype-specific aspects may
+      --  differ for different subtypes of the same type.(RM 13.1.8)
+
+      --  A derived type inherits each type-related representation aspect of
+      --  its parent type that was directly specified before the declaration of
+      --  the derived type. (RM 13.1.15)
+
+      --  A derived subtype inherits each subtype-specific representation
+      --  aspect of its parent subtype that was directly specified before the
+      --  declaration of the derived type .(RM 13.1.15)
+
+      --  The general processing involves inheriting a representation aspect
+      --  from a parent type whenever the first rep item (aspect specification,
+      --  attribute definition clause, pragma) corresponding to the given
+      --  representation aspect in the rep item chain of Typ, if any, isn't
+      --  directly specified to Typ but to one of its parents.
+
+      --  ??? Note that, for now, just a limited number of representation
+      --  aspects have been inherited here so far. Many of them are still
+      --  inherited in Sem_Ch3. This will be fixed soon. Here is a
+      --  non-exhaustive list of aspects that likely also need to be moved to
+      --  this routine: Alignment, Component_Alignment, Component_Size,
+      --  Machine_Radix, Object_Size, Pack, Predicates,
+      --  Preelaborable_Initialization, RM_Size and Small.
+
+      if Nkind (Parent (Typ)) = N_Private_Extension_Declaration then
+         return;
+      end if;
+
+      --  Ada_05/Ada_2005
+
+      if not Has_Rep_Item (Typ, Name_Ada_05, Name_Ada_2005, False)
+        and then Has_Rep_Item (Typ, Name_Ada_05, Name_Ada_2005)
+        and then Is_Pragma_Or_Corr_Pragma_Present_In_Rep_Item
+                   (Get_Rep_Item (Typ, Name_Ada_05, Name_Ada_2005))
+      then
+         Set_Is_Ada_2005_Only (Typ);
+      end if;
+
+      --  Ada_12/Ada_2012
+
+      if not Has_Rep_Item (Typ, Name_Ada_12, Name_Ada_2012, False)
+        and then Has_Rep_Item (Typ, Name_Ada_12, Name_Ada_2012)
+        and then Is_Pragma_Or_Corr_Pragma_Present_In_Rep_Item
+                   (Get_Rep_Item (Typ, Name_Ada_12, Name_Ada_2012))
+      then
+         Set_Is_Ada_2012_Only (Typ);
+      end if;
+
+      --  Atomic/Shared
+
+      if not Has_Rep_Item (Typ, Name_Atomic, Name_Shared, False)
+        and then Has_Rep_Pragma (Typ, Name_Atomic, Name_Shared)
+        and then Is_Pragma_Or_Corr_Pragma_Present_In_Rep_Item
+                   (Get_Rep_Item (Typ, Name_Atomic, Name_Shared))
+      then
+         Set_Is_Atomic (Typ);
+         Set_Treat_As_Volatile (Typ);
+         Set_Is_Volatile (Typ);
+      end if;
+
+      --  Default_Component_Value.
+
+      if Is_Array_Type (Typ)
+        and then Has_Rep_Item (Typ, Name_Default_Component_Value, False)
+        and then Has_Rep_Item (Typ, Name_Default_Component_Value)
+      then
+         Set_Default_Aspect_Component_Value (Typ,
+           Default_Aspect_Component_Value
+             (Entity (Get_Rep_Item (Typ, Name_Default_Component_Value))));
+      end if;
+
+      --  Default_Value.
+
+      if Is_Scalar_Type (Typ)
+        and then Has_Rep_Item (Typ, Name_Default_Value, False)
+        and then Has_Rep_Item (Typ, Name_Default_Value)
+      then
+         Set_Default_Aspect_Value (Typ,
+           Default_Aspect_Value
+             (Entity (Get_Rep_Item (Typ, Name_Default_Value))));
+      end if;
+
+      --  Discard_Names
+
+      if not Has_Rep_Item (Typ, Name_Discard_Names, False)
+        and then Has_Rep_Item (Typ, Name_Discard_Names)
+        and then Is_Pragma_Or_Corr_Pragma_Present_In_Rep_Item
+                   (Get_Rep_Item (Typ, Name_Discard_Names))
+      then
+         Set_Discard_Names (Typ);
+      end if;
+
+      --  Invariants
+
+      if not Has_Rep_Item (Typ, Name_Invariant, False)
+        and then Has_Rep_Item (Typ, Name_Invariant)
+        and then Is_Pragma_Or_Corr_Pragma_Present_In_Rep_Item
+                   (Get_Rep_Item (Typ, Name_Invariant))
+      then
+         Set_Has_Invariants (Typ);
+
+         if Class_Present (Get_Rep_Item (Typ, Name_Invariant)) then
+            Set_Has_Inheritable_Invariants (Typ);
+         end if;
+      end if;
+
+      --  Volatile
+
+      if not Has_Rep_Item (Typ, Name_Volatile, False)
+        and then Has_Rep_Item (Typ, Name_Volatile)
+        and then Is_Pragma_Or_Corr_Pragma_Present_In_Rep_Item
+                   (Get_Rep_Item (Typ, Name_Volatile))
+      then
+         Set_Treat_As_Volatile (Typ);
+         Set_Is_Volatile (Typ);
+      end if;
+
+      --  Inheritance for derived types only
+
+      if Is_Derived_Type (Typ) then
+         declare
+            Bas_Typ     : constant Entity_Id := Base_Type (Typ);
+            Imp_Bas_Typ : constant Entity_Id := Implementation_Base_Type (Typ);
+
+         begin
+            --  Atomic_Components
+
+            if not Has_Rep_Item (Typ, Name_Atomic_Components, False)
+              and then Has_Rep_Item (Typ, Name_Atomic_Components)
+              and then Is_Pragma_Or_Corr_Pragma_Present_In_Rep_Item
+                   (Get_Rep_Item (Typ, Name_Atomic_Components))
+            then
+               Set_Has_Atomic_Components (Imp_Bas_Typ);
+            end if;
+
+            --  Volatile_Components
+
+            if not Has_Rep_Item (Typ, Name_Volatile_Components, False)
+              and then Has_Rep_Item (Typ, Name_Volatile_Components)
+              and then Is_Pragma_Or_Corr_Pragma_Present_In_Rep_Item
+                   (Get_Rep_Item (Typ, Name_Volatile_Components))
+            then
+               Set_Has_Volatile_Components (Imp_Bas_Typ);
+            end if;
+
+            --  Finalize_Storage_Only.
+
+            if not Has_Rep_Pragma (Typ, Name_Finalize_Storage_Only, False)
+              and then Has_Rep_Pragma (Typ, Name_Finalize_Storage_Only)
+            then
+               Set_Finalize_Storage_Only (Bas_Typ);
+            end if;
+
+            --  Universal_Aliasing
+
+            if not Has_Rep_Item (Typ, Name_Universal_Aliasing, False)
+              and then Has_Rep_Item (Typ, Name_Universal_Aliasing)
+              and then Is_Pragma_Or_Corr_Pragma_Present_In_Rep_Item
+                   (Get_Rep_Item (Typ, Name_Universal_Aliasing))
+            then
+               Set_Universal_Aliasing (Imp_Bas_Typ);
+            end if;
+
+            --  Record type specific aspects
+
+            if Is_Record_Type (Typ) then
+               --  Bit_Order
+
+               if not Has_Rep_Item (Typ, Name_Bit_Order, False)
+                 and then Has_Rep_Item (Typ, Name_Bit_Order)
+               then
+                  Set_Reverse_Bit_Order (Bas_Typ,
+                    Reverse_Bit_Order (Entity (Name
+                      (Get_Rep_Item (Typ, Name_Bit_Order)))));
+               end if;
+
+               --  Scalar_Storage_Order
+
+               if not Has_Rep_Item (Typ, Name_Scalar_Storage_Order, False)
+                 and then Has_Rep_Item (Typ, Name_Scalar_Storage_Order)
+               then
+                  Set_Reverse_Storage_Order (Bas_Typ,
+                    Reverse_Storage_Order (Entity (Name
+                      (Get_Rep_Item (Typ, Name_Scalar_Storage_Order)))));
+               end if;
+            end if;
+         end;
+      end if;
+   end Inherit_Aspects_At_Freeze_Point;
 
    ----------------
    -- Initialize --

@@ -2790,7 +2790,7 @@ compute_code_hoist_vbeinout (void)
 	  if (bb->next_bb != EXIT_BLOCK_PTR)
 	    {
 	      sbitmap_intersection_of_succs (hoist_vbeout[bb->index],
-					     hoist_vbein, bb->index);
+					     hoist_vbein, bb);
 
 	      /* Include expressions in VBEout that are calculated
 		 in BB and available at its end.  */
@@ -2982,7 +2982,7 @@ hoist_code (void)
 
       /* Examine each expression that is very busy at the exit of this
 	 block.  These are the potentially hoistable expressions.  */
-      for (i = 0; i < hoist_vbeout[bb->index]->n_bits; i++)
+      for (i = 0; i < SBITMAP_SIZE (hoist_vbeout[bb->index]); i++)
 	{
 	  if (TEST_BIT (hoist_vbeout[bb->index], i))
 	    {

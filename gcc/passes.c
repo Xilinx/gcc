@@ -1285,7 +1285,6 @@ init_optimization_passes (void)
       NEXT_PASS (pass_init_datastructures);
       NEXT_PASS (pass_expand_omp);
 
-      NEXT_PASS (pass_referenced_vars);
       NEXT_PASS (pass_build_ssa);
       NEXT_PASS (pass_lower_vector);
       NEXT_PASS (pass_early_warn_uninitialized);
@@ -1324,13 +1323,13 @@ init_optimization_passes (void)
       NEXT_PASS (pass_rebuild_cgraph_edges);
       NEXT_PASS (pass_inline_parameters);
     }
+  NEXT_PASS (pass_ipa_free_inline_summary);
   NEXT_PASS (pass_ipa_tree_profile);
     {
       struct opt_pass **p = &pass_ipa_tree_profile.pass.sub;
       NEXT_PASS (pass_feedback_split_functions);
     }
   NEXT_PASS (pass_ipa_increase_alignment);
-  NEXT_PASS (pass_ipa_matrix_reorg);
   NEXT_PASS (pass_ipa_tm);
   NEXT_PASS (pass_ipa_lower_emutls);
   *p = NULL;
@@ -1725,11 +1724,7 @@ execute_function_dump (void *data ATTRIBUTE_UNUSED)
         dump_function_to_file (current_function_decl, dump_file, dump_flags);
       else
 	{
-	  if ((cfun->curr_properties & PROP_cfg)
-	      && (dump_flags & TDF_BLOCKS))
-	    print_rtl_with_bb (dump_file, get_insns (), dump_flags);
-          else
-	    print_rtl (dump_file, get_insns ());
+	  print_rtl_with_bb (dump_file, get_insns (), dump_flags);
 
 	  if ((cfun->curr_properties & PROP_cfg)
 	      && graph_dump_format != no_graph
@@ -2607,8 +2602,6 @@ dump_properties (FILE *dump, unsigned int props)
     fprintf (dump, "PROP_gimple_leh\n");
   if (props & PROP_cfg)
     fprintf (dump, "PROP_cfg\n");
-  if (props & PROP_referenced_vars)
-    fprintf (dump, "PROP_referenced_vars\n");
   if (props & PROP_ssa)
     fprintf (dump, "PROP_ssa\n");
   if (props & PROP_no_crit_edges)

@@ -391,8 +391,7 @@ generate_memset_builtin (struct loop *loop, partition_t partition)
       else if (!useless_type_conversion_p (integer_type_node, TREE_TYPE (val)))
 	{
 	  gimple cstmt;
-	  tree tem = create_tmp_reg (integer_type_node, NULL);
-	  tem = make_ssa_name (tem, NULL);
+	  tree tem = make_ssa_name (integer_type_node, NULL);
 	  cstmt = gimple_build_assign_with_ops (NOP_EXPR, tem, val, NULL_TREE);
 	  gsi_insert_after (&gsi, cstmt, GSI_CONTINUE_LINKING);
 	  val = tem;
@@ -1289,16 +1288,25 @@ ldist_gen (struct loop *loop, struct graph *rdg,
 	  nbp = 0;
 	  goto ldist_done;
 	}
-      for (i = 0; VEC_iterate (partition_t, partitions, i, into); ++i)
-	if (!partition_builtin_p (into))
-	  break;
-      for (++i; VEC_iterate (partition_t, partitions, i, partition); ++i)
-	if (!partition_builtin_p (partition))
-	  {
-	    bitmap_ior_into (into->stmts, partition->stmts);
-	    VEC_ordered_remove (partition_t, partitions, i);
-	    i--;
-	  }
+      /* Only fuse adjacent non-builtin partitions, see PR53616.
+         ???  Use dependence information to improve partition ordering.  */
+      i = 0;
+      do
+	{
+	  for (; VEC_iterate (partition_t, partitions, i, into); ++i)
+	    if (!partition_builtin_p (into))
+	      break;
+	  for (++i; VEC_iterate (partition_t, partitions, i, partition); ++i)
+	    if (!partition_builtin_p (partition))
+	      {
+		bitmap_ior_into (into->stmts, partition->stmts);
+		VEC_ordered_remove (partition_t, partitions, i);
+		i--;
+	      }
+	    else
+	      break;
+	}
+      while ((unsigned) i < VEC_length (partition_t, partitions));
     }
   else
     {
@@ -1506,7 +1514,7 @@ tree_loop_distribution (void)
 
   if (changed)
     {
-      mark_sym_for_renaming (gimple_vop (cfun));
+      mark_virtual_operands_for_renaming (cfun);
       rewrite_into_loop_closed_ssa (NULL, TODO_update_ssa);
     }
 

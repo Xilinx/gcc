@@ -249,7 +249,15 @@ target_for_debug_bind (tree var)
   if (!MAY_HAVE_DEBUG_STMTS)
     return NULL_TREE;
 
-  if (TREE_CODE (var) != VAR_DECL
+  if (TREE_CODE (var) == SSA_NAME)
+    {
+      var = SSA_NAME_VAR (var);
+      if (var == NULL_TREE)
+	return NULL_TREE;
+    }
+
+  if ((TREE_CODE (var) != VAR_DECL
+       || VAR_DECL_IS_VIRTUAL_OPERAND (var))
       && TREE_CODE (var) != PARM_DECL)
     return NULL_TREE;
 
@@ -259,13 +267,9 @@ target_for_debug_bind (tree var)
   if (DECL_IGNORED_P (var))
     return NULL_TREE;
 
-  if (!is_gimple_reg (var))
-    {
-      if (is_gimple_reg_type (TREE_TYPE (var))
-	  && referenced_var_lookup (cfun, DECL_UID (var)) == NULL_TREE)
-	return var;
-      return NULL_TREE;
-    }
+  /* var-tracking only tracks registers.  */
+  if (!is_gimple_reg_type (TREE_TYPE (var)))
+    return NULL_TREE;
 
   return var;
 }
@@ -625,7 +629,8 @@ verify_ssa_name (tree ssa_name, bool is_virtual)
       return true;
     }
 
-  if (TREE_TYPE (ssa_name) != TREE_TYPE (SSA_NAME_VAR (ssa_name)))
+  if (SSA_NAME_VAR (ssa_name) != NULL_TREE
+      && TREE_TYPE (ssa_name) != TREE_TYPE (ssa_name))
     {
       error ("type mismatch between an SSA_NAME and its symbol");
       return true;
@@ -684,7 +689,8 @@ verify_def (basic_block bb, basic_block *definition_block, tree ssa_name,
   if (verify_ssa_name (ssa_name, is_virtual))
     goto err;
 
-  if (TREE_CODE (SSA_NAME_VAR (ssa_name)) == RESULT_DECL
+  if (SSA_NAME_VAR (ssa_name)
+      && TREE_CODE (SSA_NAME_VAR (ssa_name)) == RESULT_DECL
       && DECL_BY_REFERENCE (SSA_NAME_VAR (ssa_name)))
     {
       error ("RESULT_DECL should be read only when DECL_BY_REFERENCE is set");
@@ -1107,8 +1113,6 @@ void
 init_tree_ssa (struct function *fn)
 {
   fn->gimple_df = ggc_alloc_cleared_gimple_df ();
-  fn->gimple_df->referenced_vars = htab_create_ggc (20, uid_decl_map_hash,
-				     		    uid_decl_map_eq, NULL);
   fn->gimple_df->default_defs = htab_create_ggc (20, uid_ssaname_map_hash,
 				                 uid_ssaname_map_eq, NULL);
   pt_solution_reset (&fn->gimple_df->escaped);
@@ -1150,23 +1154,6 @@ struct gimple_opt_pass pass_init_datastructures =
 void
 delete_tree_ssa (void)
 {
-  referenced_var_iterator rvi;
-  tree var;
-
-  /* Remove annotations from every referenced local variable.  */
-  FOR_EACH_REFERENCED_VAR (cfun, var, rvi)
-    {
-      if (is_global_var (var))
-	continue;
-      if (var_ann (var))
-	{
-	  ggc_free (var_ann (var));
-	  *DECL_VAR_ANN_PTR (var) = NULL;
-	}
-    }
-  htab_delete (gimple_referenced_vars (cfun));
-  cfun->gimple_df->referenced_vars = NULL;
-
   fini_ssanames ();
 
   /* We no longer maintain the SSA operand cache at this point.  */
@@ -1776,7 +1763,7 @@ struct gimple_opt_pass pass_early_warn_uninitialized =
    a MEM_REF to a plain or converted symbol.  */
 
 static void
-maybe_rewrite_mem_ref_base (tree *tp)
+maybe_rewrite_mem_ref_base (tree *tp, bitmap suitable_for_renaming)
 {
   tree sym;
 
@@ -1787,7 +1774,7 @@ maybe_rewrite_mem_ref_base (tree *tp)
       && (sym = TREE_OPERAND (TREE_OPERAND (*tp, 0), 0))
       && DECL_P (sym)
       && !TREE_ADDRESSABLE (sym)
-      && symbol_marked_for_renaming (sym))
+      && bitmap_bit_p (suitable_for_renaming, DECL_UID (sym)))
     {
       if (TREE_CODE (TREE_TYPE (sym)) == VECTOR_TYPE
 	  && useless_type_conversion_p (TREE_TYPE (*tp),
@@ -1896,21 +1883,15 @@ non_rewritable_lvalue_p (tree lhs)
    mark the variable VAR for conversion into SSA.  Return true when updating
    stmts is required.  */
 
-static bool
-maybe_optimize_var (tree var, bitmap addresses_taken, bitmap not_reg_needs)
+static void
+maybe_optimize_var (tree var, bitmap addresses_taken, bitmap not_reg_needs,
+		    bitmap suitable_for_renaming)
 {
-  bool update_vops = false;
-
   /* Global Variables, result decls cannot be changed.  */
   if (is_global_var (var)
       || TREE_CODE (var) == RESULT_DECL
       || bitmap_bit_p (addresses_taken, DECL_UID (var)))
-    return false;
-
-  /* If the variable is not in the list of referenced vars then we
-     do not need to touch it nor can we rename it.  */
-  if (!referenced_var_lookup (cfun, DECL_UID (var)))
-    return false;
+    return;
 
   if (TREE_ADDRESSABLE (var)
       /* Do not change TREE_ADDRESSABLE if we need to preserve var as
@@ -1923,8 +1904,7 @@ maybe_optimize_var (tree var, bitmap addresses_taken, bitmap not_reg_needs)
     {
       TREE_ADDRESSABLE (var) = 0;
       if (is_gimple_reg (var))
-	mark_sym_for_renaming (var);
-      update_vops = true;
+	bitmap_set_bit (suitable_for_renaming, DECL_UID (var));
       if (dump_file)
 	{
 	  fprintf (dump_file, "No longer having address taken: ");
@@ -1941,8 +1921,7 @@ maybe_optimize_var (tree var, bitmap addresses_taken, bitmap not_reg_needs)
       && (TREE_CODE (var) != VAR_DECL || !DECL_HARD_REGISTER (var)))
     {
       DECL_GIMPLE_REG_P (var) = 1;
-      mark_sym_for_renaming (var);
-      update_vops = true;
+      bitmap_set_bit (suitable_for_renaming, DECL_UID (var));
       if (dump_file)
 	{
 	  fprintf (dump_file, "Now a gimple register: ");
@@ -1950,8 +1929,6 @@ maybe_optimize_var (tree var, bitmap addresses_taken, bitmap not_reg_needs)
 	  fprintf (dump_file, "\n");
 	}
     }
-
-  return update_vops;
 }
 
 /* Compute TREE_ADDRESSABLE and DECL_GIMPLE_REG_P for local variables.  */
@@ -1963,7 +1940,7 @@ execute_update_addresses_taken (void)
   basic_block bb;
   bitmap addresses_taken = BITMAP_ALLOC (NULL);
   bitmap not_reg_needs = BITMAP_ALLOC (NULL);
-  bool update_vops = false;
+  bitmap suitable_for_renaming = BITMAP_ALLOC (NULL);
   tree var;
   unsigned i;
 
@@ -2062,14 +2039,16 @@ execute_update_addresses_taken (void)
      unused vars from BLOCK trees, which causes code generation differences
      for -g vs. -g0.  */
   for (var = DECL_ARGUMENTS (cfun->decl); var; var = DECL_CHAIN (var))
-    update_vops |= maybe_optimize_var (var, addresses_taken, not_reg_needs);
+    maybe_optimize_var (var, addresses_taken, not_reg_needs,
+			suitable_for_renaming);
 
   FOR_EACH_VEC_ELT (tree, cfun->local_decls, i, var)
-    update_vops |= maybe_optimize_var (var, addresses_taken, not_reg_needs);
+    maybe_optimize_var (var, addresses_taken, not_reg_needs,
+			suitable_for_renaming);
 
   /* Operand caches need to be recomputed for operands referencing the updated
-     variables.  */
-  if (update_vops)
+     variables and operands need to be rewritten to expose bare symbols.  */
+  if (!bitmap_empty_p (suitable_for_renaming))
     {
       FOR_EACH_BB (bb)
 	for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi);)
@@ -2095,14 +2074,14 @@ execute_update_addresses_taken (void)
 		    && (sym = TREE_OPERAND (TREE_OPERAND (lhs, 0), 0))
 		    && DECL_P (sym)
 		    && !TREE_ADDRESSABLE (sym)
-		    && symbol_marked_for_renaming (sym))
+		    && bitmap_bit_p (suitable_for_renaming, DECL_UID (sym)))
 		  lhs = sym;
 		else
 		  lhs = gimple_assign_lhs (stmt);
 
 		/* Rewrite the RHS and make sure the resulting assignment
 		   is validly typed.  */
-		maybe_rewrite_mem_ref_base (rhsp);
+		maybe_rewrite_mem_ref_base (rhsp, suitable_for_renaming);
 		rhs = gimple_assign_rhs1 (stmt);
 		if (gimple_assign_lhs (stmt) != lhs
 		    && !useless_type_conversion_p (TREE_TYPE (lhs),
@@ -2117,7 +2096,7 @@ execute_update_addresses_taken (void)
 		   TREE_ADDRESSABLE just remove the stmt.  */
 		if (DECL_P (lhs)
 		    && TREE_CLOBBER_P (rhs)
-		    && symbol_marked_for_renaming (lhs))
+		    && bitmap_bit_p (suitable_for_renaming, DECL_UID (lhs)))
 		  {
 		    unlink_stmt_vdef (stmt);
       		    gsi_remove (&gsi, true);
@@ -2138,7 +2117,7 @@ execute_update_addresses_taken (void)
 		for (i = 0; i < gimple_call_num_args (stmt); ++i)
 		  {
 		    tree *argp = gimple_call_arg_ptr (stmt, i);
-		    maybe_rewrite_mem_ref_base (argp);
+		    maybe_rewrite_mem_ref_base (argp, suitable_for_renaming);
 		  }
 	      }
 
@@ -2148,12 +2127,14 @@ execute_update_addresses_taken (void)
 		for (i = 0; i < gimple_asm_noutputs (stmt); ++i)
 		  {
 		    tree link = gimple_asm_output_op (stmt, i);
-		    maybe_rewrite_mem_ref_base (&TREE_VALUE (link));
+		    maybe_rewrite_mem_ref_base (&TREE_VALUE (link),
+						suitable_for_renaming);
 		  }
 		for (i = 0; i < gimple_asm_ninputs (stmt); ++i)
 		  {
 		    tree link = gimple_asm_input_op (stmt, i);
-		    maybe_rewrite_mem_ref_base (&TREE_VALUE (link));
+		    maybe_rewrite_mem_ref_base (&TREE_VALUE (link),
+						suitable_for_renaming);
 		  }
 	      }
 
@@ -2162,9 +2143,10 @@ execute_update_addresses_taken (void)
 	      {
 		tree *valuep = gimple_debug_bind_get_value_ptr (stmt);
 		tree decl;
-		maybe_rewrite_mem_ref_base (valuep);
+		maybe_rewrite_mem_ref_base (valuep, suitable_for_renaming);
 		decl = non_rewritable_mem_ref_base (*valuep);
-		if (decl && symbol_marked_for_renaming (decl))
+		if (decl
+		    && bitmap_bit_p (suitable_for_renaming, DECL_UID (decl)))
 		  gimple_debug_bind_reset_value (stmt);
 	      }
 
@@ -2184,6 +2166,7 @@ execute_update_addresses_taken (void)
 
   BITMAP_FREE (not_reg_needs);
   BITMAP_FREE (addresses_taken);
+  BITMAP_FREE (suitable_for_renaming);
   timevar_pop (TV_ADDRESS_TAKEN);
 }
 

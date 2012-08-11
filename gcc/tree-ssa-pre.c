@@ -250,7 +250,8 @@ alloc_expression_id (pre_expr expr)
       /* VEC_safe_grow_cleared allocates no headroom.  Avoid frequent
 	 re-allocations by using VEC_reserve upfront.  There is no
 	 VEC_quick_grow_cleared unfortunately.  */
-      VEC_reserve (unsigned, heap, name_to_id, num_ssa_names);
+      unsigned old_len = VEC_length (unsigned, name_to_id);
+      VEC_reserve (unsigned, heap, name_to_id, num_ssa_names - old_len);
       VEC_safe_grow_cleared (unsigned, heap, name_to_id, num_ssa_names);
       gcc_assert (VEC_index (unsigned, name_to_id, version) == 0);
       VEC_replace (unsigned, name_to_id, version, expr->id);
@@ -472,14 +473,6 @@ static unsigned int get_expr_value_id (pre_expr);
 
 static alloc_pool bitmap_set_pool;
 static bitmap_obstack grand_bitmap_obstack;
-
-/* To avoid adding 300 temporary variables when we only need one, we
-   only create one temporary variable, on demand, and build ssa names
-   off that.  We do have to change the variable if the types don't
-   match the current variable's type.  */
-static tree pretemp;
-static tree storetemp;
-static tree prephitemp;
 
 /* Set of blocks with statements that have had their EH properties changed.  */
 static bitmap need_eh_cleanup;
@@ -1368,7 +1361,6 @@ get_expr_type (const pre_expr e)
 static tree
 get_representative_for (const pre_expr e)
 {
-  tree exprtype;
   tree name;
   unsigned int value_id = get_expr_value_id (e);
 
@@ -1408,17 +1400,9 @@ get_representative_for (const pre_expr e)
       fprintf (dump_file, "\n");
     }
 
-  exprtype = get_expr_type (e);
-
   /* Build and insert the assignment of the end result to the temporary
      that we will return.  */
-  if (!pretemp || exprtype != TREE_TYPE (pretemp))
-    {
-      pretemp = create_tmp_reg (exprtype, "pretmp");
-      add_referenced_var (pretemp);
-    }
-
-  name = make_ssa_name (pretemp, gimple_build_nop ());
+  name = make_temp_ssa_name (get_expr_type (e), gimple_build_nop (), "pretmp");
   VN_INFO_GET (name)->value_id = value_id;
   if (e->kind == CONSTANT)
     VN_INFO (name)->valnum = PRE_EXPR_CONSTANT (e);
@@ -2607,11 +2591,6 @@ can_PRE_operation (tree op)
    that didn't turn out to be necessary.   */
 static bitmap inserted_exprs;
 
-/* Pool allocated fake store expressions are placed onto this
-   worklist, which, after performing dead code elimination, is walked
-   to see which expressions need to be put into GC'able memory  */
-static VEC(gimple, heap) *need_creation;
-
 /* The actual worker for create_component_ref_by_pieces.  */
 
 static tree
@@ -2669,7 +2648,7 @@ create_component_ref_by_pieces_1 (basic_block block, vn_reference_t ref,
 	  CALL_EXPR_STATIC_CHAIN (folded) = sc;
 	return folded;
       }
-      break;
+
     case MEM_REF:
       {
 	tree baseop = create_component_ref_by_pieces_1 (block, ref, operand,
@@ -2692,7 +2671,7 @@ create_component_ref_by_pieces_1 (basic_block block, vn_reference_t ref,
 	  }
 	return fold_build2 (MEM_REF, currop->type, baseop, offset);
       }
-      break;
+
     case TARGET_MEM_REF:
       {
 	pre_expr op0expr, op1expr;
@@ -2722,7 +2701,7 @@ create_component_ref_by_pieces_1 (basic_block block, vn_reference_t ref,
 	return build5 (TARGET_MEM_REF, currop->type,
 		       baseop, currop->op2, genop0, currop->op1, genop1);
       }
-      break;
+
     case ADDR_EXPR:
       if (currop->op0)
 	{
@@ -2734,17 +2713,15 @@ create_component_ref_by_pieces_1 (basic_block block, vn_reference_t ref,
     case IMAGPART_EXPR:
     case VIEW_CONVERT_EXPR:
       {
-	tree folded;
 	tree genop0 = create_component_ref_by_pieces_1 (block, ref,
 							operand,
 							stmts, domstmt);
 	if (!genop0)
 	  return NULL_TREE;
-	folded = fold_build1 (currop->opcode, currop->type,
-			      genop0);
-	return folded;
+
+	return fold_build1 (currop->opcode, currop->type, genop0);
       }
-      break;
+
     case WITH_SIZE_EXPR:
       {
 	tree genop0 = create_component_ref_by_pieces_1 (block, ref, operand,
@@ -2761,28 +2738,18 @@ create_component_ref_by_pieces_1 (basic_block block, vn_reference_t ref,
 
 	return fold_build2 (currop->opcode, currop->type, genop0, genop1);
       }
-      break;
+
     case BIT_FIELD_REF:
       {
-	tree folded;
 	tree genop0 = create_component_ref_by_pieces_1 (block, ref, operand,
 							stmts, domstmt);
-	pre_expr op1expr = get_or_alloc_expr_for (currop->op0);
-	pre_expr op2expr = get_or_alloc_expr_for (currop->op1);
-	tree genop1;
-	tree genop2;
+	tree op1 = currop->op0;
+	tree op2 = currop->op1;
 
 	if (!genop0)
 	  return NULL_TREE;
-	genop1 = find_or_generate_expression (block, op1expr, stmts, domstmt);
-	if (!genop1)
-	  return NULL_TREE;
-	genop2 = find_or_generate_expression (block, op2expr, stmts, domstmt);
-	if (!genop2)
-	  return NULL_TREE;
-	folded = fold_build3 (BIT_FIELD_REF, currop->type, genop0, genop1,
-			      genop2);
-	return folded;
+
+	return fold_build3 (BIT_FIELD_REF, currop->type, genop0, op1, op2);
       }
 
       /* For array ref vn_reference_op's, operand 1 of the array ref
@@ -2868,10 +2835,9 @@ create_component_ref_by_pieces_1 (basic_block block, vn_reference_t ref,
 	      return NULL_TREE;
 	  }
 
-	return fold_build3 (COMPONENT_REF, TREE_TYPE (op1), op0, op1,
-			    genop2);
+	return fold_build3 (COMPONENT_REF, TREE_TYPE (op1), op0, op1, genop2);
       }
-      break;
+
     case SSA_NAME:
       {
 	pre_expr op0expr = get_or_alloc_expr_for (currop->op0);
@@ -3001,7 +2967,7 @@ static tree
 create_expression_by_pieces (basic_block block, pre_expr expr,
 			     gimple_seq *stmts, gimple domstmt, tree type)
 {
-  tree temp, name;
+  tree name;
   tree folded;
   gimple_seq forced_stmts = NULL;
   unsigned int value_id;
@@ -3119,17 +3085,8 @@ create_expression_by_pieces (basic_block block, pre_expr expr,
       gimple_seq_add_seq (stmts, forced_stmts);
     }
 
-  /* Build and insert the assignment of the end result to the temporary
-     that we will return.  */
-  if (!pretemp || exprtype != TREE_TYPE (pretemp))
-    pretemp = create_tmp_reg (exprtype, "pretmp");
-
-  temp = pretemp;
-  add_referenced_var (temp);
-
-  newstmt = gimple_build_assign (temp, folded);
-  name = make_ssa_name (temp, newstmt);
-  gimple_assign_set_lhs (newstmt, name);
+  name = make_temp_ssa_name (exprtype, NULL, "pretmp");
+  newstmt = gimple_build_assign (name, folded);
   gimple_set_plf (newstmt, NECESSARY, false);
 
   gimple_seq_add_stmt (stmts, newstmt);
@@ -3380,15 +3337,7 @@ insert_into_preds_of_block (basic_block block, unsigned int exprnum,
     return false;
 
   /* Now build a phi for the new variable.  */
-  if (!prephitemp || TREE_TYPE (prephitemp) != type)
-    prephitemp = create_tmp_var (type, "prephitmp");
-
-  temp = prephitemp;
-  add_referenced_var (temp);
-
-  if (TREE_CODE (type) == COMPLEX_TYPE
-      || TREE_CODE (type) == VECTOR_TYPE)
-    DECL_GIMPLE_REG_P (temp) = 1;
+  temp = make_temp_ssa_name (type, NULL, "prephitmp");
   phi = create_phi_node (temp, block);
 
   gimple_set_plf (phi, NECESSARY, false);
@@ -4829,10 +4778,6 @@ init_pre (bool do_fre)
   in_fre = do_fre;
 
   inserted_exprs = BITMAP_ALLOC (NULL);
-  need_creation = NULL;
-  pretemp = NULL_TREE;
-  storetemp = NULL_TREE;
-  prephitemp = NULL_TREE;
 
   connect_infinite_loops_to_exit ();
   memset (&pre_stats, 0, sizeof (pre_stats));
@@ -4877,7 +4822,6 @@ fini_pre (bool do_fre)
   free (postorder);
   VEC_free (bitmap_set_t, heap, value_expressions);
   BITMAP_FREE (inserted_exprs);
-  VEC_free (gimple, heap, need_creation);
   bitmap_obstack_release (&grand_bitmap_obstack);
   free_alloc_pool (bitmap_set_pool);
   free_alloc_pool (pre_expr_pool);

@@ -97,14 +97,16 @@ static GTY(()) tree gcov_info_var;
 static GTY(()) tree gcov_fn_info_type;
 static GTY(()) tree gcov_fn_info_ptr_type;
 
-/* Name of the output file for coverage output file.  If this is NULL
-   we're not writing to the notes file.  */
+/* Name of the notes (gcno) output file.  The "bbg" prefix is for
+   historical reasons, when the notes file contained only the
+   basic block graph notes.
+   If this is NULL we're not writing to the notes file.  */
 static char *bbg_file_name;
 
-/* File stamp for graph file.  */
+/* File stamp for notes file.  */
 static unsigned bbg_file_stamp;
 
-/* Name of the count data file.  */
+/* Name of the count data (gcda) file.  */
 static char *da_file_name;
 
 /* The names of merge functions for counters.  */
@@ -556,7 +558,7 @@ coverage_compute_cfg_checksum (void)
   return chksum;
 }
 
-/* Begin output to the graph file for the current function.
+/* Begin output to the notes file for the current function.
    Writes the function header. Returns nonzero if data should be output.  */
 
 int
@@ -1069,7 +1071,7 @@ coverage_obj_finish (VEC(constructor_elt,gc) *ctor)
 }
 
 /* Perform file-level initialization. Read in data file, generate name
-   of graph file.  */
+   of notes file.  */
 
 void
 coverage_init (const char *filename)
@@ -1121,7 +1123,7 @@ coverage_init (const char *filename)
     }
 }
 
-/* Performs file-level cleanup.  Close graph file, generate coverage
+/* Performs file-level cleanup.  Close notes file, generate coverage
    variables and constructor.  */
 
 void

@@ -224,6 +224,57 @@
 	 (const_string "yes")]
 	(const_string "no")))
 
+;; Attributes describing a sync loop.  These loops have the form:
+;;
+;;       if (RELEASE_BARRIER == YES) sync
+;;    1: OLDVAL = *MEM
+;;       if ((OLDVAL & INCLUSIVE_MASK) != REQUIRED_OLDVAL) goto 2
+;;         CMP  = 0 [delay slot]
+;;       $TMP1 = OLDVAL & EXCLUSIVE_MASK
+;;       $TMP2 = INSN1 (OLDVAL, INSN1_OP2)
+;;       $TMP3 = INSN2 ($TMP2, INCLUSIVE_MASK)
+;;       $AT |= $TMP1 | $TMP3
+;;       if (!commit (*MEM = $AT)) goto 1.
+;;         if (INSN1 != MOVE && INSN1 != LI) NEWVAL = $TMP3 [delay slot]
+;;       CMP  = 1
+;;       if (ACQUIRE_BARRIER == YES) sync
+;;    2:
+;;
+;; where "$" values are temporaries and where the other values are
+;; specified by the attributes below.  Values are specified as operand
+;; numbers and insns are specified as enums.  If no operand number is
+;; specified, the following values are used instead:
+;;
+;;    - OLDVAL: $AT
+;;    - CMP: NONE
+;;    - NEWVAL: $AT
+;;    - INCLUSIVE_MASK: -1
+;;    - REQUIRED_OLDVAL: OLDVAL & INCLUSIVE_MASK
+;;    - EXCLUSIVE_MASK: 0
+;;
+;; MEM and INSN1_OP2 are required.
+;;
+;; Ideally, the operand attributes would be integers, with -1 meaning "none",
+;; but the gen* programs don't yet support that.
+(define_attr "sync_mem" "none,0,1,2,3,4,5" (const_string "none"))
+(define_attr "sync_oldval" "none,0,1,2,3,4,5" (const_string "none"))
+(define_attr "sync_cmp" "none,0,1,2,3,4,5" (const_string "none"))
+(define_attr "sync_newval" "none,0,1,2,3,4,5" (const_string "none"))
+(define_attr "sync_inclusive_mask" "none,0,1,2,3,4,5" (const_string "none"))
+(define_attr "sync_exclusive_mask" "none,0,1,2,3,4,5" (const_string "none"))
+(define_attr "sync_required_oldval" "none,0,1,2,3,4,5" (const_string "none"))
+(define_attr "sync_insn1_op2" "none,0,1,2,3,4,5" (const_string "none"))
+(define_attr "sync_insn1" "move,li,addu,addiu,subu,and,andi,or,ori,xor,xori"
+  (const_string "move"))
+(define_attr "sync_insn2" "nop,and,xor,not"
+  (const_string "nop"))
+;; Memory model specifier.
+;; "0"-"9" values specify the operand that stores the memory model value.
+;; "10" specifies MEMMODEL_ACQ_REL,
+;; "11" specifies MEMMODEL_ACQUIRE.
+(define_attr "sync_memmodel" "" (const_int 10))
+
+
 ;; Classification of each insn.
 ;; branch	conditional branch
 ;; jump		unconditional jump
@@ -276,6 +327,8 @@
 ;; frsqrt1      floating point reciprocal square root step1
 ;; frsqrt2      floating point reciprocal square root step2
 ;; multi	multiword sequence (or user asm statements)
+;; atomic	atomic memory update instruction
+;; syncloop	memory atomic operation implemented as a sync loop
 ;; nop		no operation
 ;; ghost	an instruction that produces no real code
 (define_attr "type"
@@ -283,7 +336,7 @@
    prefetch,prefetchx,condmove,mtc,mfc,mthi,mtlo,mfhi,mflo,const,arith,logical,
    shift,slt,signext,clz,pop,trap,imul,imul3,imul3nc,imadd,idiv,idiv3,move,
    fmove,fadd,fmul,fmadd,fdiv,frdiv,frdiv1,frdiv2,fabs,fneg,fcmp,fcvt,fsqrt,
-   frsqrt,frsqrt1,frsqrt2,multi,nop,ghost"
+   frsqrt,frsqrt1,frsqrt2,multi,atomic,syncloop,nop,ghost"
   (cond [(eq_attr "jal" "!unset") (const_string "call")
 	 (eq_attr "got" "load") (const_string "load")
 
@@ -322,7 +375,8 @@
 	      (eq_attr "dword_mode" "yes"))
 	   (const_string "multi")
 	 (eq_attr "move_type" "move") (const_string "move")
-	 (eq_attr "move_type" "const") (const_string "const")]
+	 (eq_attr "move_type" "const") (const_string "const")
+	 (eq_attr "sync_mem" "!none") (const_string "syncloop")]
 	;; We classify "lui_movf" as "unknown" rather than "multi"
 	;; because we don't split it.  FIXME: we should split instead.
 	(const_string "unknown")))
@@ -346,63 +400,9 @@
 		(const_string "yes")
 		(const_string "no")))
 
-;; Attributes describing a sync loop.  These loops have the form:
-;;
-;;       if (RELEASE_BARRIER == YES) sync
-;;    1: OLDVAL = *MEM
-;;       if ((OLDVAL & INCLUSIVE_MASK) != REQUIRED_OLDVAL) goto 2
-;;         CMP  = 0 [delay slot]
-;;       $TMP1 = OLDVAL & EXCLUSIVE_MASK
-;;       $TMP2 = INSN1 (OLDVAL, INSN1_OP2)
-;;       $TMP3 = INSN2 ($TMP2, INCLUSIVE_MASK)
-;;       $AT |= $TMP1 | $TMP3
-;;       if (!commit (*MEM = $AT)) goto 1.
-;;         if (INSN1 != MOVE && INSN1 != LI) NEWVAL = $TMP3 [delay slot]
-;;       CMP  = 1
-;;       if (ACQUIRE_BARRIER == YES) sync
-;;    2:
-;;
-;; where "$" values are temporaries and where the other values are
-;; specified by the attributes below.  Values are specified as operand
-;; numbers and insns are specified as enums.  If no operand number is
-;; specified, the following values are used instead:
-;;
-;;    - OLDVAL: $AT
-;;    - CMP: NONE
-;;    - NEWVAL: $AT
-;;    - INCLUSIVE_MASK: -1
-;;    - REQUIRED_OLDVAL: OLDVAL & INCLUSIVE_MASK
-;;    - EXCLUSIVE_MASK: 0
-;;
-;; MEM and INSN1_OP2 are required.
-;;
-;; Ideally, the operand attributes would be integers, with -1 meaning "none",
-;; but the gen* programs don't yet support that.
-(define_attr "sync_mem" "none,0,1,2,3,4,5" (const_string "none"))
-(define_attr "sync_oldval" "none,0,1,2,3,4,5" (const_string "none"))
-(define_attr "sync_cmp" "none,0,1,2,3,4,5" (const_string "none"))
-(define_attr "sync_newval" "none,0,1,2,3,4,5" (const_string "none"))
-(define_attr "sync_inclusive_mask" "none,0,1,2,3,4,5" (const_string "none"))
-(define_attr "sync_exclusive_mask" "none,0,1,2,3,4,5" (const_string "none"))
-(define_attr "sync_required_oldval" "none,0,1,2,3,4,5" (const_string "none"))
-(define_attr "sync_insn1_op2" "none,0,1,2,3,4,5" (const_string "none"))
-(define_attr "sync_insn1" "move,li,addu,addiu,subu,and,andi,or,ori,xor,xori"
-  (const_string "move"))
-(define_attr "sync_insn2" "nop,and,xor,not"
-  (const_string "nop"))
-;; Memory model specifier.
-;; "0"-"9" values specify the operand that stores the memory model value.
-;; "10" specifies MEMMODEL_ACQ_REL,
-;; "11" specifies MEMMODEL_ACQUIRE.
-(define_attr "sync_memmodel" "" (const_int 10))
-
 ;; Length of instruction in bytes.
 (define_attr "length" ""
-   (cond [(and (eq_attr "extended_mips16" "yes")
-	       (match_test "TARGET_MIPS16"))
-	  (const_int 8)
-
-	  ;; Direct branch instructions have a range of [-0x20000,0x1fffc],
+   (cond [;; Direct branch instructions have a range of [-0x20000,0x1fffc],
 	  ;; relative to the address of the delay slot.  If a branch is
 	  ;; outside this range, we have a choice of two sequences.
 	  ;; For PIC, an out-of-range branch like:
@@ -427,14 +427,21 @@
 	  ;; using la/jr in this case too, but we do not do so at
 	  ;; present.
 	  ;;
-	  ;; Note that this value does not account for the delay slot
+	  ;; The value we specify here does not account for the delay slot
 	  ;; instruction, whose length is added separately.  If the RTL
 	  ;; pattern has no explicit delay slot, mips_adjust_insn_length
-	  ;; will add the length of the implicit nop.  The values for
-	  ;; forward and backward branches will be different as well.
-	  (eq_attr "type" "branch")
+	  ;; will add the length of the implicit nop.  The range of
+	  ;; [-0x20000, 0x1fffc] from the address of the delay slot
+	  ;; therefore translates to a range of:
+	  ;;
+	  ;;    [-(0x20000 - sizeof (branch)), 0x1fffc - sizeof (slot)]
+	  ;; == [-0x1fffc, 0x1fff8]
+	  ;;
+	  ;; from the shorten_branches reference address.
+	  (and (eq_attr "type" "branch")
+	       (not (match_test "TARGET_MIPS16")))
 	  (cond [(and (le (minus (match_dup 0) (pc)) (const_int 131064))
-			  (le (minus (pc) (match_dup 0)) (const_int 131068)))
+		      (le (minus (pc) (match_dup 0)) (const_int 131068)))
 		   (const_int 4)
 
 		 ;; The non-PIC case: branch, first delay slot, and J.
@@ -448,6 +455,100 @@
 		 ;; because genattrtab needs to know the maximum length
 		 ;; of an insn.
 		 (const_int MAX_PIC_BRANCH_LENGTH))
+
+	  ;; An unextended MIPS16 branch has a range of [-0x100, 0xfe]
+	  ;; from the address of the following instruction, which leads
+	  ;; to a range of:
+	  ;;
+	  ;;    [-(0x100 - sizeof (branch)), 0xfe]
+	  ;; == [-0xfe, 0xfe]
+	  ;;
+	  ;; from the shorten_branches reference address.  Extended branches
+	  ;; likewise have a range of [-0x10000, 0xfffe] from the address
+	  ;; of the following instruction, which leads to a range of:
+	  ;;
+	  ;;    [-(0x10000 - sizeof (branch)), 0xfffe]
+	  ;; == [-0xfffc, 0xfffe]
+	  ;;
+	  ;; from the reference address.
+	  ;;
+	  ;; When a branch is out of range, mips_reorg splits it into a form
+	  ;; that uses in-range branches.  There are four basic sequences:
+	  ;;
+	  ;; (1) Absolute addressing with a readable text segment
+	  ;;     (32-bit addresses):
+	  ;;
+	  ;;	 b... foo		2 bytes
+	  ;;	 move $1,$2		2 bytes
+	  ;;     lw $2,label		2 bytes
+	  ;;	 jr $2			2 bytes
+	  ;;	 move $2,$1		2 bytes
+	  ;;	 .align 2		0 or 2 bytes
+	  ;; label:
+	  ;;	 .word target		4 bytes
+	  ;; foo:
+	  ;;				(16 bytes in the worst case)
+	  ;;
+	  ;; (2) Absolute addressing with a readable text segment
+	  ;;     (64-bit addresses):
+	  ;;
+	  ;;	 b... foo		2 bytes
+	  ;;	 move $1,$2		2 bytes
+	  ;;     ld $2,label		2 bytes
+	  ;;	 jr $2			2 bytes
+	  ;;	 move $2,$1		2 bytes
+	  ;;	 .align 3		0 to 6 bytes
+	  ;; label:
+	  ;;	 .dword target		8 bytes
+	  ;; foo:
+	  ;;				(24 bytes in the worst case)
+	  ;;
+	  ;; (3) Absolute addressing without a readable text segment
+	  ;;     (which requires 32-bit addresses at present):
+	  ;;
+	  ;;	 b... foo		2 bytes
+	  ;;	 move $1,$2		2 bytes
+	  ;;     lui $2,%hi(target)	4 bytes
+	  ;;	 sll $2,8		2 bytes
+	  ;;	 sll $2,8		2 bytes
+	  ;;     addiu $2,%lo(target)	4 bytes
+	  ;;	 jr $2			2 bytes
+	  ;;	 move $2,$1		2 bytes
+	  ;; foo:
+	  ;;				(20 bytes)
+	  ;;
+	  ;; (4) PIC addressing (which requires 32-bit addresses at present):
+	  ;;
+	  ;;	 b... foo		2 bytes
+	  ;;	 move $1,$2		2 bytes
+	  ;;     lw $2,cprestore	0, 2 or 4 bytes
+	  ;;	 lw $2,%got(target)($2)	4 bytes
+	  ;;     addiu $2,%lo(target)	4 bytes
+	  ;;	 jr $2			2 bytes
+	  ;;	 move $2,$1		2 bytes
+	  ;; foo:
+	  ;;				(20 bytes in the worst case)
+	  ;;
+	  ;; Note that the conditions test adjusted lengths, whereas the
+	  ;; result is an unadjusted length, and is thus twice the true value.
+	  (and (eq_attr "type" "branch")
+	       (match_test "TARGET_MIPS16"))
+	  (cond [(and (le (minus (match_dup 0) (pc)) (const_int 254))
+		      (le (minus (pc) (match_dup 0)) (const_int 254)))
+		 (const_int 4)
+		 (and (le (minus (match_dup 0) (pc)) (const_int 65534))
+		      (le (minus (pc) (match_dup 0)) (const_int 65532)))
+		 (const_int 8)
+		 (and (match_test "TARGET_ABICALLS")
+		      (not (match_test "TARGET_ABSOLUTE_ABICALLS")))
+		 (const_int 40)
+		 (match_test "Pmode == SImode")
+		 (const_int 32)
+		 ] (const_int 48))
+
+	  (and (eq_attr "extended_mips16" "yes")
+	       (match_test "TARGET_MIPS16"))
+	  (const_int 8)
 
 	  ;; "Ghost" instructions occupy no space.
 	  (eq_attr "type" "ghost")
@@ -938,6 +1039,7 @@
 (include "sb1.md")
 (include "sr71k.md")
 (include "xlr.md")
+(include "xlp.md")
 (include "generic.md")
 
 ;;
@@ -2639,6 +2741,16 @@
   "<d>pop\t%0,%1"
   [(set_attr "type" "pop")
    (set_attr "mode" "<MODE>")])
+
+;; The POP instruction is special as it does not take into account the upper
+;; 32bits and is documented that way.
+(define_insn "*popcountdi2_trunc"
+  [(set (match_operand:SI 0 "register_operand" "=d")
+       (popcount:SI (truncate:SI (match_operand:DI 1 "register_operand" "d"))))]
+  "ISA_HAS_POP && TARGET_64BIT"
+  "pop\t%0,%1"
+  [(set_attr "type" "pop")
+   (set_attr "mode" "SI")])
 
 ;;
 ;;  ....................
@@ -3653,7 +3765,8 @@
 {
   if (mips_expand_ext_as_unaligned_load (operands[0], operands[1],
 					 INTVAL (operands[2]),
-					 INTVAL (operands[3])))
+					 INTVAL (operands[3]),
+					 /*unsigned=*/ false))
     DONE;
   else if (register_operand (operands[1], GET_MODE (operands[0]))
 	   && ISA_HAS_EXTS && UINTVAL (operands[2]) <= 32)
@@ -3690,7 +3803,8 @@
 {
   if (mips_expand_ext_as_unaligned_load (operands[0], operands[1],
 					 INTVAL (operands[2]),
-					 INTVAL (operands[3])))
+					 INTVAL (operands[3]),
+					 /*unsigned=*/true))
     DONE;
   else if (mips_use_ins_ext_p (operands[1], INTVAL (operands[2]),
 			       INTVAL (operands[3])))
@@ -5383,28 +5497,29 @@
 (define_insn "*branch_equality<mode>_mips16"
   [(set (pc)
 	(if_then_else
-	 (match_operator 0 "equality_operator"
-			 [(match_operand:GPR 1 "register_operand" "d,t")
+	 (match_operator 1 "equality_operator"
+			 [(match_operand:GPR 2 "register_operand" "d,t")
 			  (const_int 0)])
-	 (match_operand 2 "pc_or_label_operand" "")
-	 (match_operand 3 "pc_or_label_operand" "")))]
+	 (label_ref (match_operand 0 "" ""))
+	 (pc)))]
   "TARGET_MIPS16"
-{
-  if (operands[2] != pc_rtx)
-    {
-      if (which_alternative == 0)
-	return "b%C0z\t%1,%2";
-      else
-	return "bt%C0z\t%2";
-    }
-  else
-    {
-      if (which_alternative == 0)
-	return "b%N0z\t%1,%3";
-      else
-	return "bt%N0z\t%3";
-    }
-}
+  "@
+   b%C1z\t%2,%0
+   bt%C1z\t%0"
+  [(set_attr "type" "branch")])
+
+(define_insn "*branch_equality<mode>_mips16_inverted"
+  [(set (pc)
+	(if_then_else
+	 (match_operator 1 "equality_operator"
+			 [(match_operand:GPR 2 "register_operand" "d,t")
+			  (const_int 0)])
+	 (pc)
+	 (label_ref (match_operand 0 "" ""))))]
+  "TARGET_MIPS16"
+  "@
+   b%N1z\t%2,%0
+   bt%N1z\t%0"
   [(set_attr "type" "branch")])
 
 (define_expand "cbranch<mode>4"
@@ -5700,7 +5815,30 @@
 	(label_ref (match_operand 0 "" "")))]
   "TARGET_MIPS16"
   "b\t%l0"
-  [(set_attr "type" "branch")])
+  [(set_attr "type" "branch")
+   (set (attr "length")
+	;; This calculation is like the normal branch one, but the
+	;; range of the unextended instruction is [-0x800, 0x7fe] rather
+	;; than [-0x100, 0xfe].  This translates to a range of:
+	;;
+	;;    [-(0x800 - sizeof (branch)), 0x7fe]
+	;; == [-0x7fe, 0x7fe]
+	;;
+	;; from the shorten_branches reference address.  Long-branch
+	;; sequences will replace this one, so the minimum length
+	;; is one instruction shorter than for conditional branches.
+	(cond [(and (le (minus (match_dup 0) (pc)) (const_int 2046))
+		    (le (minus (pc) (match_dup 0)) (const_int 2046)))
+	       (const_int 4)
+	       (and (le (minus (match_dup 0) (pc)) (const_int 65534))
+		    (le (minus (pc) (match_dup 0)) (const_int 65532)))
+	       (const_int 8)
+	       (and (match_test "TARGET_ABICALLS")
+		    (not (match_test "TARGET_ABSOLUTE_ABICALLS")))
+	       (const_int 36)
+	       (match_test "Pmode == SImode")
+	       (const_int 28)
+	       ] (const_int 44)))])
 
 (define_expand "indirect_jump"
   [(set (pc) (match_operand 0 "register_operand"))]
@@ -5717,6 +5855,18 @@
   "%*j\t%0%/"
   [(set_attr "type" "jump")
    (set_attr "mode" "none")])
+
+;; A combined jump-and-move instruction, used for MIPS16 long-branch
+;; sequences.  Having a dedicated pattern is more convenient than
+;; creating a SEQUENCE for this special case.
+(define_insn "indirect_jump_and_restore_<mode>"
+  [(set (pc) (match_operand:P 1 "register_operand" "d"))
+   (set (match_operand:P 0 "register_operand" "=d")
+   	(match_operand:P 2 "register_operand" "y"))]
+  ""
+  "%(%<jr\t%1\;move\t%0,%2%>%)"
+  [(set_attr "type" "multi")
+   (set_attr "extended_mips16" "yes")])
 
 (define_expand "tablejump"
   [(set (pc)
@@ -6532,7 +6682,8 @@
 		    UNSPEC_CONSTTABLE_INT)]
   "TARGET_MIPS16"
 {
-  assemble_integer (operands[0], INTVAL (operands[1]),
+  assemble_integer (mips_strip_unspec_address (operands[0]),
+		    INTVAL (operands[1]),
 		    BITS_PER_UNIT * INTVAL (operands[1]), 1);
   return "";
 }

@@ -1490,13 +1490,10 @@ find_array_section (gfc_expr *expr, gfc_ref *ref)
 
   /* Now clock through the array reference, calculating the index in
      the source constructor and transferring the elements to the new
-     constructor.  */  
+     constructor.  */
   for (idx = 0; idx < (int) mpz_get_si (nelts); idx++)
     {
-      if (ref->u.ar.offset)
-	mpz_set (ptr, ref->u.ar.offset->value.integer);
-      else
-	mpz_init_set_ui (ptr, 0);
+      mpz_init_set_ui (ptr, 0);
 
       incr_ctr = true;
       for (d = 0; d < rank; d++)
@@ -3421,6 +3418,19 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
 		     &rvalue->where);
 	  return FAILURE;
 	}
+      if (rvalue->expr_type == EXPR_VARIABLE && !attr.proc_pointer)
+	{
+      	  /* Check for intrinsics.  */
+	  gfc_symbol *sym = rvalue->symtree->n.sym;
+	  if (!sym->attr.intrinsic
+	      && (gfc_is_intrinsic (sym, 0, sym->declared_at)
+		  || gfc_is_intrinsic (sym, 1, sym->declared_at)))
+	    {
+	      sym->attr.intrinsic = 1;
+	      gfc_resolve_intrinsic (sym, &rvalue->where);
+	      attr = gfc_expr_attr (rvalue);
+	    }
+	}
       if (attr.abstract)
 	{
 	  gfc_error ("Abstract interface '%s' is invalid "
@@ -3444,12 +3454,19 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
 			      "at %L", rvalue->symtree->name, &rvalue->where)
 			      == FAILURE)
 	    return FAILURE;
+	  if (attr.intrinsic && gfc_intrinsic_actual_ok (rvalue->symtree->name,
+							 attr.subroutine) == 0)
+	    {
+	      gfc_error ("Intrinsic '%s' at %L is invalid in procedure pointer "
+			 "assignment", rvalue->symtree->name, &rvalue->where);
+	      return FAILURE;
+	    }
 	}
       /* Check for F08:C730.  */
       if (attr.elemental && !attr.intrinsic)
 	{
 	  gfc_error ("Nonintrinsic elemental procedure '%s' is invalid "
-		     "in procedure pointer assigment at %L",
+		     "in procedure pointer assignment at %L",
 		     rvalue->symtree->name, &rvalue->where);
 	  return FAILURE;
 	}
@@ -4443,7 +4460,8 @@ gfc_is_simply_contiguous (gfc_expr *expr, bool strict)
 	    || (!part_ref
 		&& !sym->attr.contiguous
 		&& (sym->attr.pointer
-		      || sym->as->type == AS_ASSUMED_SHAPE))))
+		    || sym->as->type == AS_ASSUMED_RANK
+		    || sym->as->type == AS_ASSUMED_SHAPE))))
     return false;
 
   if (!ar || ar->type == AR_FULL)

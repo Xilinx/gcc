@@ -3188,7 +3188,7 @@ package body Exp_Ch9 is
 
                   Rewrite (Stmt,
                     Make_Implicit_If_Statement (N,
-                      Condition =>
+                      Condition       =>
                         Make_Function_Call (Loc,
                           Name                   =>
                             New_Reference_To (Try_Write, Loc),
@@ -3260,20 +3260,21 @@ package body Exp_Ch9 is
          begin
             --  Get the type size
 
-            --  Surely this should be Known_Static_Esize if you are about
-            --  to assume you can do UI_To_Int on it! ???
-
-            if Known_Esize (Comp_Type) then
+            if Known_Static_Esize (Comp_Type) then
                Typ_Size := UI_To_Int (Esize (Comp_Type));
 
             --  If the Esize (Object_Size) is unknown at compile-time, look at
             --  the RM_Size (Value_Size) since it may have been set by an
             --  explicit representation clause.
 
-            --  And how do we know this is statically known???
+            elsif Known_Static_RM_Size (Comp_Type) then
+               Typ_Size := UI_To_Int (RM_Size (Comp_Type));
+
+            --  Should not happen since this has already been checked in
+            --  Allows_Lock_Free_Implementation (see Sem_Ch9).
 
             else
-               Typ_Size := UI_To_Int (RM_Size (Comp_Type));
+               raise Program_Error;
             end if;
 
             --  Retrieve all relevant atomic routines and types
@@ -3379,9 +3380,9 @@ package body Exp_Ch9 is
               Make_Object_Renaming_Declaration (Loc,
                 Defining_Identifier =>
                   Defining_Identifier (Comp_Decl),
-                Subtype_Mark      =>
+                Subtype_Mark        =>
                   New_Occurrence_Of (Comp_Type, Loc),
-                Name              =>
+                Name                =>
                   New_Reference_To (Desired_Comp, Loc)));
 
             --  Wrap any return or raise statements in Stmts in same the manner
@@ -5484,11 +5485,23 @@ package body Exp_Ch9 is
    ------------------------------
 
    procedure Ensure_Statement_Present (Loc : Source_Ptr; Alt : Node_Id) is
+      Stmt : Node_Id;
+
    begin
       if Opt.Suppress_Control_Flow_Optimizations
         and then Is_Empty_List (Statements (Alt))
       then
-         Set_Statements (Alt, New_List (Make_Null_Statement (Loc)));
+         Stmt := Make_Null_Statement (Loc);
+
+         --  Mark NULL statement as coming from source so that it is not
+         --  eliminated by GIGI.
+
+         --  Another covert channel! If this is a requirement, it must be
+         --  documented in sinfo/einfo ???
+
+         Set_Comes_From_Source (Stmt, True);
+
+         Set_Statements (Alt, New_List (Stmt));
       end if;
    end Ensure_Statement_Present;
 
@@ -10299,12 +10312,10 @@ package body Exp_Ch9 is
          Proc  : Node_Id)
       is
          Astmt     : constant Node_Id := Accept_Statement (Alt);
-         Choices   : List_Id;
          Alt_Stats : List_Id;
 
       begin
          Adjust_Condition (Condition (Alt));
-         Choices := New_List (Make_Integer_Literal (Loc, Index));
 
          --  Accept with body
 
@@ -10346,7 +10357,7 @@ package body Exp_Ch9 is
 
          Append_To (Alt_List,
            Make_Case_Statement_Alternative (Loc,
-             Discrete_Choices => Choices,
+             Discrete_Choices => New_List (Make_Integer_Literal (Loc, Index)),
              Statements       => Alt_Stats));
       end Process_Accept_Alternative;
 
@@ -10356,7 +10367,6 @@ package body Exp_Ch9 is
 
       procedure Process_Delay_Alternative (Alt : Node_Id; Index : Int) is
          Dloc      : constant Source_Ptr := Sloc (Delay_Statement (Alt));
-         Choices   : List_Id;
          Cond      : Node_Id;
          Delay_Alt : List_Id;
 
@@ -10470,11 +10480,10 @@ package body Exp_Ch9 is
                Append_List (Statements (Alt), Delay_Alt_List);
 
             else
-               Choices := New_List (Make_Integer_Literal (Loc, Index));
-
                Append_To (Delay_Alt_List,
                  Make_Case_Statement_Alternative (Loc,
-                   Discrete_Choices => Choices,
+                   Discrete_Choices => New_List (
+                                         Make_Integer_Literal (Loc, Index)),
                    Statements       => Statements (Alt)));
             end if;
 

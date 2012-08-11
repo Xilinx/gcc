@@ -452,7 +452,7 @@ take_address_of (tree obj, tree type, edge entry, htab_t decl_address,
   int uid;
   void **dslot;
   struct int_tree_map ielt, *nielt;
-  tree *var_p, name, bvar, addr;
+  tree *var_p, name, addr;
   gimple stmt;
   gimple_seq stmts;
 
@@ -479,13 +479,10 @@ take_address_of (tree obj, tree type, edge entry, htab_t decl_address,
       if (gsi == NULL)
 	return NULL;
       addr = TREE_OPERAND (*var_p, 0);
-      bvar = create_tmp_var (TREE_TYPE (addr),
-			     get_name (TREE_OPERAND
-				         (TREE_OPERAND (*var_p, 0), 0)));
-      add_referenced_var (bvar);
-      stmt = gimple_build_assign (bvar, addr);
-      name = make_ssa_name (bvar, stmt);
-      gimple_assign_set_lhs (stmt, name);
+      name = make_temp_ssa_name (TREE_TYPE (addr), NULL,
+				 get_name (TREE_OPERAND
+					   (TREE_OPERAND (*var_p, 0), 0)));
+      stmt = gimple_build_assign (name, addr);
       gsi_insert_on_edge_immediate (entry, stmt);
 
       nielt = XNEW (struct int_tree_map);
@@ -540,7 +537,6 @@ initialize_reductions (void **slot, void *data)
   /* Create a new variable to initialize the reduction.  */
   type = TREE_TYPE (PHI_RESULT (reduc->reduc_phi));
   bvar = create_tmp_var (type, "reduction");
-  add_referenced_var (bvar);
 
   c = build_omp_clause (gimple_location (reduc->reduc_stmt),
 			OMP_CLAUSE_REDUCTION);
@@ -797,7 +793,25 @@ separate_decls_in_region_name (tree name,
   if (slot && *slot)
     return ((struct name_to_copy_elt *) *slot)->new_name;
 
+  if (copy_name_p)
+    {
+      copy = duplicate_ssa_name (name, NULL);
+      nelt = XNEW (struct name_to_copy_elt);
+      nelt->version = idx;
+      nelt->new_name = copy;
+      nelt->field = NULL_TREE;
+      *slot = nelt;
+    }
+  else
+    {
+      gcc_assert (!slot);
+      copy = name;
+    }
+
   var = SSA_NAME_VAR (name);
+  if (!var)
+    return copy;
+
   uid = DECL_UID (var);
   ielt.uid = uid;
   dslot = htab_find_slot_with_hash (decl_copies, &ielt, uid, INSERT);
@@ -805,7 +819,6 @@ separate_decls_in_region_name (tree name,
     {
       var_copy = create_tmp_var (TREE_TYPE (var), get_name (var));
       DECL_GIMPLE_REG_P (var_copy) = DECL_GIMPLE_REG_P (var);
-      add_referenced_var (var_copy);
       nielt = XNEW (struct int_tree_map);
       nielt->uid = uid;
       nielt->to = var_copy;
@@ -825,22 +838,7 @@ separate_decls_in_region_name (tree name,
   else
     var_copy = ((struct int_tree_map *) *dslot)->to;
 
-  if (copy_name_p)
-    {
-      copy = duplicate_ssa_name (name, NULL);
-      nelt = XNEW (struct name_to_copy_elt);
-      nelt->version = idx;
-      nelt->new_name = copy;
-      nelt->field = NULL_TREE;
-      *slot = nelt;
-    }
-  else
-    {
-      gcc_assert (!slot);
-      copy = name;
-    }
-
-  SSA_NAME_VAR (copy) = var_copy;
+  replace_ssa_name_symbol (copy, var_copy);
   return copy;
 }
 
@@ -860,8 +858,6 @@ separate_decls_in_region_stmt (edge entry, edge exit, gimple stmt,
   ssa_op_iter oi;
   tree name, copy;
   bool copy_name_p;
-
-  mark_virtual_ops_for_renaming (stmt);
 
   FOR_EACH_PHI_OR_STMT_DEF (def, stmt, oi, SSA_OP_DEF)
   {
@@ -971,9 +967,9 @@ add_field_for_name (void **slot, void *data)
   struct name_to_copy_elt *const elt = (struct name_to_copy_elt *) *slot;
   tree type = (tree) data;
   tree name = ssa_name (elt->version);
-  tree var = SSA_NAME_VAR (name);
-  tree field = build_decl (DECL_SOURCE_LOCATION (var),
-			   FIELD_DECL, DECL_NAME (var), TREE_TYPE (var));
+  tree field = build_decl (UNKNOWN_LOCATION,
+			   FIELD_DECL, SSA_NAME_IDENTIFIER (name),
+			   TREE_TYPE (name));
 
   insert_field_into_struct (type, field);
   elt->field = field;
@@ -1013,12 +1009,9 @@ create_phi_for_local_result (void **slot, void *data)
     e = EDGE_PRED (store_bb, 1);
   else
     e = EDGE_PRED (store_bb, 0);
-  local_res
-    = make_ssa_name (SSA_NAME_VAR (gimple_assign_lhs (reduc->reduc_stmt)),
-		     NULL);
+  local_res = copy_ssa_name (gimple_assign_lhs (reduc->reduc_stmt), NULL);
   locus = gimple_location (reduc->reduc_stmt);
   new_phi = create_phi_node (local_res, store_bb);
-  SSA_NAME_DEF_STMT (local_res) = new_phi;
   add_phi_arg (new_phi, reduc->init, e, locus);
   add_phi_arg (new_phi, gimple_assign_lhs (reduc->reduc_stmt),
 	       FALLTHRU_EDGE (loop->latch), locus);
@@ -1068,7 +1061,6 @@ create_call_for_reduction_1 (void **slot, void *data)
   new_bb = e->dest;
 
   tmp_load = create_tmp_var (TREE_TYPE (TREE_TYPE (addr)), NULL);
-  add_referenced_var (tmp_load);
   tmp_load = make_ssa_name (tmp_load, NULL);
   load = gimple_build_omp_atomic_load (tmp_load, addr);
   SSA_NAME_DEF_STMT (tmp_load) = load;
@@ -1182,7 +1174,6 @@ create_stores_for_reduction (void **slot, void *data)
   gsi = gsi_last_bb (clsn_data->store_bb);
   t = build3 (COMPONENT_REF, type, clsn_data->store, red->field, NULL_TREE);
   stmt = gimple_build_assign (t, red->initial_value);
-  mark_virtual_ops_for_renaming (stmt);
   gsi_insert_after (&gsi, stmt, GSI_NEW_STMT);
 
   return 1;
@@ -1206,7 +1197,6 @@ create_loads_and_stores_for_name (void **slot, void *data)
   gsi = gsi_last_bb (clsn_data->store_bb);
   t = build3 (COMPONENT_REF, type, clsn_data->store, elt->field, NULL_TREE);
   stmt = gimple_build_assign (t, ssa_name (elt->version));
-  mark_virtual_ops_for_renaming (stmt);
   gsi_insert_after (&gsi, stmt, GSI_NEW_STMT);
 
   gsi = gsi_last_bb (clsn_data->load_bb);
@@ -1356,9 +1346,7 @@ separate_decls_in_region (edge entry, edge exit, htab_t reduction_list,
 
       /* Create the loads and stores.  */
       *arg_struct = create_tmp_var (type, ".paral_data_store");
-      add_referenced_var (*arg_struct);
       nvar = create_tmp_var (build_pointer_type (type), ".paral_data_load");
-      add_referenced_var (nvar);
       *new_arg_struct = make_ssa_name (nvar, NULL);
 
       ld_st_data->store = *arg_struct;
@@ -1496,10 +1484,9 @@ transform_to_exit_first_loop (struct loop *loop, htab_t reduction_list, tree nit
     {
       phi = gsi_stmt (gsi);
       res = PHI_RESULT (phi);
-      t = make_ssa_name (SSA_NAME_VAR (res), phi);
+      t = copy_ssa_name (res, phi);
       SET_PHI_RESULT (phi, t);
       nphi = create_phi_node (res, orig_header);
-      SSA_NAME_DEF_STMT (res) = nphi;
       add_phi_arg (nphi, t, hpred, UNKNOWN_LOCATION);
 
       if (res == control)
@@ -1635,7 +1622,7 @@ create_parallel_loop (struct loop *loop, tree loop_fn, tree data,
   cvar_base = SSA_NAME_VAR (cvar);
   phi = SSA_NAME_DEF_STMT (cvar);
   cvar_init = PHI_ARG_DEF_FROM_EDGE (phi, loop_preheader_edge (loop));
-  initvar = make_ssa_name (cvar_base, NULL);
+  initvar = copy_ssa_name (cvar, NULL);
   SET_USE (PHI_ARG_DEF_PTR_FROM_EDGE (phi, loop_preheader_edge (loop)),
 	   initvar);
   cvar_next = PHI_ARG_DEF_FROM_EDGE (phi, loop_latch_edge (loop));

@@ -2257,7 +2257,7 @@ gimplify_compound_lval (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 			fallback | fb_lvalue);
   ret = MIN (ret, tret);
 
-  /* And finally, the indices and operands to BIT_FIELD_REF.  During this
+  /* And finally, the indices and operands of ARRAY_REF.  During this
      loop we also remove any useless conversions.  */
   for (; VEC_length (tree, expr_stack) > 0; )
     {
@@ -2272,15 +2272,6 @@ gimplify_compound_lval (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 				    is_gimple_val, fb_rvalue);
 	      ret = MIN (ret, tret);
 	    }
-	}
-      else if (TREE_CODE (t) == BIT_FIELD_REF)
-	{
-	  tret = gimplify_expr (&TREE_OPERAND (t, 1), pre_p, post_p,
-				is_gimple_val, fb_rvalue);
-	  ret = MIN (ret, tret);
-	  tret = gimplify_expr (&TREE_OPERAND (t, 2), pre_p, post_p,
-				is_gimple_val, fb_rvalue);
-	  ret = MIN (ret, tret);
 	}
 
       STRIP_USELESS_TYPE_CONVERSION (TREE_OPERAND (t, 0));
@@ -7406,19 +7397,9 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	  break;
 
 	case BIT_FIELD_REF:
-	  {
-	    enum gimplify_status r0, r1, r2;
-
-	    r0 = gimplify_expr (&TREE_OPERAND (*expr_p, 0), pre_p,
-				post_p, is_gimple_lvalue, fb_either);
-	    r1 = gimplify_expr (&TREE_OPERAND (*expr_p, 1), pre_p,
-				post_p, is_gimple_val, fb_rvalue);
-	    r2 = gimplify_expr (&TREE_OPERAND (*expr_p, 2), pre_p,
-				post_p, is_gimple_val, fb_rvalue);
-	    recalculate_side_effects (*expr_p);
-
-	    ret = MIN (r0, MIN (r1, r2));
-	  }
+	  ret = gimplify_expr (&TREE_OPERAND (*expr_p, 0), pre_p,
+			       post_p, is_gimple_lvalue, fb_either);
+	  recalculate_side_effects (*expr_p);
 	  break;
 
 	case TARGET_MEM_REF:
@@ -8219,8 +8200,10 @@ gimplify_body (tree fndecl, bool do_parms)
   pop_gimplify_context (outer_bind);
   gcc_assert (gimplify_ctxp == NULL);
 
+#ifdef ENABLE_CHECKING
   if (!seen_error ())
     verify_gimple_in_seq (gimple_bind_body (outer_bind));
+#endif
 
   timevar_pop (TV_TREE_GIMPLIFY);
   input_location = saved_location;
@@ -8382,7 +8365,7 @@ void
 gimple_regimplify_operands (gimple stmt, gimple_stmt_iterator *gsi_p)
 {
   size_t i, num_ops;
-  tree orig_lhs = NULL_TREE, lhs, t;
+  tree lhs;
   gimple_seq pre = NULL;
   gimple post_stmt = NULL;
   struct gimplify_ctx gctx;
@@ -8448,7 +8431,6 @@ gimple_regimplify_operands (gimple stmt, gimple_stmt_iterator *gsi_p)
 	 and ASMs are executed before the LHS.  The ordering is not
 	 important for other statements.  */
       num_ops = gimple_num_ops (stmt);
-      orig_lhs = gimple_get_lhs (stmt);
       for (i = num_ops; i > 0; i--)
 	{
 	  tree op = gimple_op (stmt, i - 1);
@@ -8526,10 +8508,6 @@ gimple_regimplify_operands (gimple stmt, gimple_stmt_iterator *gsi_p)
 	  if (need_temp)
 	    {
 	      tree temp = create_tmp_reg (TREE_TYPE (lhs), NULL);
-
-	      if (TREE_CODE (orig_lhs) == SSA_NAME)
-		orig_lhs = SSA_NAME_VAR (orig_lhs);
-
 	      if (gimple_in_ssa_p (cfun))
 		temp = make_ssa_name (temp, NULL);
 	      gimple_set_lhs (stmt, temp);
@@ -8541,27 +8519,8 @@ gimple_regimplify_operands (gimple stmt, gimple_stmt_iterator *gsi_p)
       break;
     }
 
-  if (gimple_referenced_vars (cfun))
-    for (t = gimplify_ctxp->temps; t ; t = TREE_CHAIN (t))
-      add_referenced_var (t);
-
   if (!gimple_seq_empty_p (pre))
-    {
-      if (gimple_in_ssa_p (cfun))
-	{
-	  gimple_stmt_iterator i;
-
-	  for (i = gsi_start (pre); !gsi_end_p (i); gsi_next (&i))
-	    {
-	      tree lhs = gimple_get_lhs (gsi_stmt (i));
-	      if (lhs
-		  && TREE_CODE (lhs) != SSA_NAME
-		  && is_gimple_reg (lhs))
-		mark_sym_for_renaming (lhs);
-	    }
-	}
-      gsi_insert_seq_before (gsi_p, pre, GSI_SAME_STMT);
-    }
+    gsi_insert_seq_before (gsi_p, pre, GSI_SAME_STMT);
   if (post_stmt)
     gsi_insert_after (gsi_p, post_stmt, GSI_NEW_STMT);
 
@@ -8576,7 +8535,6 @@ tree
 force_gimple_operand_1 (tree expr, gimple_seq *stmts,
 			gimple_predicate gimple_test_f, tree var)
 {
-  tree t;
   enum gimplify_status ret;
   struct gimplify_ctx gctx;
 
@@ -8606,25 +8564,6 @@ force_gimple_operand_1 (tree expr, gimple_seq *stmts,
     {
       ret = gimplify_expr (&expr, stmts, NULL, gimple_test_f, fb_rvalue);
       gcc_assert (ret != GS_ERROR);
-    }
-
-  if (gimple_referenced_vars (cfun))
-    for (t = gimplify_ctxp->temps; t ; t = DECL_CHAIN (t))
-      add_referenced_var (t);
-
-  if (!gimple_seq_empty_p (*stmts)
-      && gimplify_ctxp->into_ssa)
-    {
-      gimple_stmt_iterator i;
-
-      for (i = gsi_start (*stmts); !gsi_end_p (i); gsi_next (&i))
-	{
-	  tree lhs = gimple_get_lhs (gsi_stmt (i));
-	  if (lhs
-	      && TREE_CODE (lhs) != SSA_NAME
-	      && is_gimple_reg (lhs))
-	    mark_sym_for_renaming (lhs);
-	}
     }
 
   pop_gimplify_context (NULL);

@@ -38,7 +38,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "function.h"
 #include "ggc.h"
 #include "diagnostic.h"
-#include "libfuncs.h"
 #include "except.h"
 #include "debug.h"
 #include "vec.h"
@@ -710,7 +709,7 @@ input_ssa_names (struct lto_input_block *ib, struct data_in *data_in,
       ssa_name = make_ssa_name_fn (fn, name, gimple_build_nop ());
 
       if (is_default_def)
-	set_default_def (SSA_NAME_VAR (ssa_name), ssa_name);
+	set_ssa_default_def (cfun, SSA_NAME_VAR (ssa_name), ssa_name);
 
       i = streamer_read_uhwi (ib);
     }
@@ -798,7 +797,6 @@ input_struct_function_base (struct function *fn, struct data_in *data_in,
   bp = streamer_read_bitpack (ib);
   fn->is_thunk = bp_unpack_value (&bp, 1);
   fn->has_local_explicit_reg_vars = bp_unpack_value (&bp, 1);
-  fn->after_tree_profile = bp_unpack_value (&bp, 1);
   fn->returns_pcc_struct = bp_unpack_value (&bp, 1);
   fn->returns_struct = bp_unpack_value (&bp, 1);
   fn->can_throw_non_call_exceptions = bp_unpack_value (&bp, 1);
@@ -981,6 +979,9 @@ lto_read_body (struct lto_file_decl_data *file_data, tree fn_decl,
       push_cfun (fn);
       init_tree_ssa (fn);
 
+      /* We input IL in SSA form.  */
+      cfun->gimple_df->in_ssa_p = true;
+
       /* Use the function's decl state. */
       decl_state = lto_get_function_in_decl_state (file_data, fn_decl);
       gcc_assert (decl_state);
@@ -1016,9 +1017,6 @@ lto_read_body (struct lto_file_decl_data *file_data, tree fn_decl,
 		}
 	    }
 	}
-
-      /* We should now be in SSA.  */
-      cfun->gimple_df->in_ssa_p = true;
 
       /* Restore decl state */
       file_data->current_decl_state = file_data->global_decl_state;

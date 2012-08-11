@@ -25,6 +25,7 @@
 
 with Atree;    use Atree;
 with Debug;    use Debug;
+with Errout;   use Errout;
 with Lib;      use Lib;
 with Lib.Util; use Lib.Util;
 with Namet;    use Namet;
@@ -491,17 +492,22 @@ package body Par_SCO is
 
                --  For entry guard, the token sloc is from the N_Entry_Body.
                --  For PRAGMA, we must get the location from the pragma node.
-               --  Argument N is the pragma argument, and we have to go up two
-               --  levels (through the pragma argument association) to get to
-               --  the pragma node itself. For the guard on a select
-               --  alternative, we do not have access to the token location
-               --  for the WHEN, so we use the sloc of the condition itself.
+               --  Argument N is the pragma argument, and we have to go up
+               --  two levels (through the pragma argument association) to
+               --  get to the pragma node itself. For the guard on a select
+               --  alternative, we do not have access to the token location for
+               --  the WHEN, so we use the first sloc of the condition itself
+               --  (note: we use First_Sloc, not Sloc, because this is what is
+               --  referenced by dominance markers).
+
+               --  Doesn't this requirement of using First_Sloc need to be
+               --  documented in the spec ???
 
                if Nkind_In (Parent (N), N_Accept_Alternative,
                                         N_Delay_Alternative,
                                         N_Terminate_Alternative)
                then
-                  Loc := Sloc (N);
+                  Loc := First_Sloc (N);
                else
                   Loc := Sloc (Parent (Parent (N)));
                end if;
@@ -1550,6 +1556,12 @@ package body Par_SCO is
                   P => Triggering_Statement (N));
 
             when N_Terminate_Alternative =>
+
+               --  It is dubious to emit a statement SCO for a TERMINATE
+               --  alternative, since no code is actually executed if the
+               --  alternative is selected -- the tasking runtime call just
+               --  never returns???
+
                Extend_Statement_Sequence (N, ' ');
                Set_Statement_Entry;
 

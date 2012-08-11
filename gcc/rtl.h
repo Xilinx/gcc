@@ -55,8 +55,13 @@ enum rtx_code  {
 				   NUM_RTX_CODE.
 				   Assumes default enum value assignment.  */
 
+/* The cast here, saves many elsewhere.  */
 #define NUM_RTX_CODE ((int) LAST_AND_UNUSED_RTX_CODE)
-				/* The cast here, saves many elsewhere.  */
+
+/* Similar, but since generator files get more entries... */
+#ifdef GENERATOR_FILE
+# define NON_GENERATOR_NUM_RTX_CODE ((int) MATCH_OPERAND)
+#endif
 
 /* Register Transfer Language EXPRESSIONS CODE CLASSES */
 
@@ -404,6 +409,14 @@ struct GTY((variable_size)) rtvec_def {
 /* Predicate yielding true iff X is an rtx for a double-int
    or floating point constant.  */
 #define CONST_DOUBLE_P(X) (GET_CODE (X) == CONST_DOUBLE)
+
+/* Predicate yielding true iff X is an rtx for a double-int.  */
+#define CONST_DOUBLE_AS_INT_P(X) \
+  (GET_CODE (X) == CONST_DOUBLE && GET_MODE (X) == VOIDmode)
+
+/* Predicate yielding true iff X is an rtx for a double-int.  */
+#define CONST_DOUBLE_AS_FLOAT_P(X) \
+  (GET_CODE (X) == CONST_DOUBLE && GET_MODE (X) != VOIDmode)
 
 /* Predicate yielding nonzero iff X is a label insn.  */
 #define LABEL_P(X) (GET_CODE (X) == CODE_LABEL)
@@ -2455,6 +2468,7 @@ extern unsigned int extended_count (const_rtx, enum machine_mode, int);
 extern rtx remove_death (unsigned int, rtx);
 extern void dump_combine_stats (FILE *);
 extern void dump_combine_total_stats (FILE *);
+extern rtx make_compound_operation (rtx, enum rtx_code);
 
 /* In cfgcleanup.c  */
 extern void delete_dead_jumptables (void);
@@ -2615,7 +2629,7 @@ extern rtx compare_and_jump_seq (rtx, rtx, enum rtx_code, rtx, int, rtx);
 
 /* In loop-iv.c  */
 extern rtx canon_condition (rtx);
-extern void simplify_using_condition (rtx, rtx *, struct bitmap_head_def *);
+extern void simplify_using_condition (rtx, rtx *, bitmap);
 
 /* In final.c  */
 extern unsigned int compute_alignments (void);

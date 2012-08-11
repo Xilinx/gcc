@@ -1394,9 +1394,9 @@ eliminated_by_inlining_prob (gimple stmt)
 	        || (TREE_CODE(inner_lhs) == MEM_REF
 		     && (unmodified_parm (stmt, TREE_OPERAND (inner_lhs, 0))
 			 || (TREE_CODE (TREE_OPERAND (inner_lhs, 0)) == SSA_NAME
-			     && TREE_CODE (SSA_NAME_VAR
-					    (TREE_OPERAND (inner_lhs, 0)))
-			     == RESULT_DECL))))
+			     && SSA_NAME_VAR (TREE_OPERAND (inner_lhs, 0))
+			     && TREE_CODE (SSA_NAME_VAR (TREE_OPERAND
+				  (inner_lhs, 0))) == RESULT_DECL))))
 	      lhs_free = true;
 	    if (lhs_free
 		&& (is_gimple_reg (rhs) || is_gimple_min_invariant (rhs)))
@@ -2680,13 +2680,6 @@ inline_merge_summary (struct cgraph_edge *edge)
     }
   remap_edge_summaries (edge, edge->callee, info, callee_info, operand_map,
 			clause, &toplev_predicate);
-  info->size = 0;
-  info->time = 0;
-  for (i = 0; VEC_iterate (size_time_entry, info->entry, i, e); i++)
-    info->size += e->size, info->time += e->time;
-  estimate_calls_size_and_time (to, &info->size, &info->time,
-				~(clause_t)(1 << predicate_false_condition),
-				NULL, NULL);
 
   inline_update_callee_summaries (edge->callee,
 				  inline_edge_summary (edge)->loop_depth);
@@ -2696,11 +2689,28 @@ inline_merge_summary (struct cgraph_edge *edge)
   /* Similarly remove param summaries.  */
   VEC_free (inline_param_summary_t, heap, es->param);
   VEC_free (int, heap, operand_map);
+}
 
+/* For performance reasons inline_merge_summary is not updating overall size
+   and time.  Recompute it.  */
+
+void
+inline_update_overall_summary (struct cgraph_node *node)
+{
+  struct inline_summary *info = inline_summary (node);
+  size_time_entry *e;
+  int i;
+
+  info->size = 0;
+  info->time = 0;
+  for (i = 0; VEC_iterate (size_time_entry, info->entry, i, e); i++)
+    info->size += e->size, info->time += e->time;
+  estimate_calls_size_and_time (node, &info->size, &info->time,
+				~(clause_t)(1 << predicate_false_condition),
+				NULL, NULL);
   info->time = (info->time + INLINE_TIME_SCALE / 2) / INLINE_TIME_SCALE;
   info->size = (info->size + INLINE_SIZE_SCALE / 2) / INLINE_SIZE_SCALE;
 }
-
 
 /* Estimate the time cost for the caller when inlining EDGE.
    Only to be called via estimate_edge_time, that handles the
@@ -3242,6 +3252,8 @@ void
 inline_free_summary (void)
 {
   struct cgraph_node *node;
+  if (inline_edge_summary_vec == NULL)
+    return;
   FOR_EACH_DEFINED_FUNCTION (node)
     reset_inline_summary (node);
   if (function_insertion_hook_holder)

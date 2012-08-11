@@ -224,9 +224,7 @@ struct access
      BIT_FIELD_REF?  */
   unsigned grp_partial_lhs : 1;
 
-  /* Set when a scalar replacement should be created for this variable.  We do
-     the decision and creation at different places because create_tmp_var
-     cannot be called from within FOR_EACH_REFERENCED_VAR. */
+  /* Set when a scalar replacement should be created for this variable.  */
   unsigned grp_to_be_replaced : 1;
 
   /* Should TREE_NO_WARNING of a replacement be set?  */
@@ -269,8 +267,19 @@ static alloc_pool link_pool;
 /* Base (tree) -> Vector (VEC(access_p,heap) *) map.  */
 static struct pointer_map_t *base_access_vec;
 
-/* Bitmap of candidates.  */
+/* Set of candidates.  */
 static bitmap candidate_bitmap;
+static htab_t candidates;
+
+/* For a candidate UID return the candidates decl.  */
+
+static inline tree
+candidate (unsigned uid)
+{
+ struct tree_decl_minimal t;
+ t.uid = uid;
+ return (tree) htab_find_with_hash (candidates, &t, uid);
+}
 
 /* Bitmap of candidates which we should try to entirely scalarize away and
    those which cannot be (because they are and need be used as a whole).  */
@@ -600,6 +609,8 @@ static void
 sra_initialize (void)
 {
   candidate_bitmap = BITMAP_ALLOC (NULL);
+  candidates = htab_create (VEC_length (tree, cfun->local_decls) / 2,
+			    uid_decl_map_hash, uid_decl_map_eq, NULL);
   should_scalarize_away_bitmap = BITMAP_ALLOC (NULL);
   cannot_scalarize_away_bitmap = BITMAP_ALLOC (NULL);
   gcc_obstack_init (&name_obstack);
@@ -631,6 +642,7 @@ static void
 sra_deinitialize (void)
 {
   BITMAP_FREE (candidate_bitmap);
+  htab_delete (candidates);
   BITMAP_FREE (should_scalarize_away_bitmap);
   BITMAP_FREE (cannot_scalarize_away_bitmap);
   free_alloc_pool (access_pool);
@@ -646,7 +658,10 @@ sra_deinitialize (void)
 static void
 disqualify_candidate (tree decl, const char *reason)
 {
-  bitmap_clear_bit (candidate_bitmap, DECL_UID (decl));
+  if (bitmap_clear_bit (candidate_bitmap, DECL_UID (decl)))
+    htab_clear_slot (candidates,
+		     htab_find_slot_with_hash (candidates, decl,
+					       DECL_UID (decl), NO_INSERT));
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
@@ -1433,19 +1448,15 @@ build_ref_for_offset (location_t loc, tree base, HOST_WIDE_INT offset,
       tree tmp, addr;
 
       gcc_checking_assert (gsi);
-      tmp = create_tmp_reg (build_pointer_type (TREE_TYPE (prev_base)), NULL);
-      add_referenced_var (tmp);
-      tmp = make_ssa_name (tmp, NULL);
+      tmp = make_ssa_name (build_pointer_type (TREE_TYPE (prev_base)), NULL);
       addr = build_fold_addr_expr (unshare_expr (prev_base));
       STRIP_USELESS_TYPE_CONVERSION (addr);
       stmt = gimple_build_assign (tmp, addr);
       gimple_set_location (stmt, loc);
-      SSA_NAME_DEF_STMT (tmp) = stmt;
       if (insert_after)
 	gsi_insert_after (gsi, stmt, GSI_NEW_STMT);
       else
 	gsi_insert_before (gsi, stmt, GSI_SAME_STMT);
-      update_stmt (stmt);
 
       off = build_int_cst (reference_alias_ptr_type (prev_base),
 			   offset / BITS_PER_UNIT);
@@ -1632,77 +1643,95 @@ reject (tree var, const char *msg)
     }
 }
 
+/* Return true if VAR is a candidate for SRA.  */
+
+static bool
+maybe_add_sra_candidate (tree var)
+{
+  tree type = TREE_TYPE (var);
+  const char *msg;
+  void **slot;
+
+  if (!AGGREGATE_TYPE_P (type)) 
+    {
+      reject (var, "not aggregate");
+      return false;
+    }
+  if (needs_to_live_in_memory (var))
+    {
+      reject (var, "needs to live in memory");
+      return false;
+    }
+  if (TREE_THIS_VOLATILE (var))
+    {
+      reject (var, "is volatile");
+      return false;
+    }
+  if (!COMPLETE_TYPE_P (type))
+    {
+      reject (var, "has incomplete type");
+      return false;
+    }
+  if (!host_integerp (TYPE_SIZE (type), 1))
+    {
+      reject (var, "type size not fixed");
+      return false;
+    }
+  if (tree_low_cst (TYPE_SIZE (type), 1) == 0)
+    {
+      reject (var, "type size is zero");
+      return false;
+    }
+  if (type_internals_preclude_sra_p (type, &msg))
+    {
+      reject (var, msg);
+      return false;
+    }
+  if (/* Fix for PR 41089.  tree-stdarg.c needs to have va_lists intact but
+	 we also want to schedule it rather late.  Thus we ignore it in
+	 the early pass. */
+      (sra_mode == SRA_MODE_EARLY_INTRA
+       && is_va_list_type (type)))
+    {
+      reject (var, "is va_list");
+      return false;
+    }
+
+  bitmap_set_bit (candidate_bitmap, DECL_UID (var));
+  slot = htab_find_slot_with_hash (candidates, var, DECL_UID (var), INSERT);
+  *slot = (void *) var;
+
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    {
+      fprintf (dump_file, "Candidate (%d): ", DECL_UID (var));
+      print_generic_expr (dump_file, var, 0);
+      fprintf (dump_file, "\n");
+    }
+
+  return true;
+}
+
 /* The very first phase of intraprocedural SRA.  It marks in candidate_bitmap
    those with type which is suitable for scalarization.  */
 
 static bool
 find_var_candidates (void)
 {
-  tree var, type;
-  referenced_var_iterator rvi;
+  tree var, parm;
+  unsigned int i;
   bool ret = false;
-  const char *msg;
 
-  FOR_EACH_REFERENCED_VAR (cfun, var, rvi)
+  for (parm = DECL_ARGUMENTS (current_function_decl);
+       parm;
+       parm = DECL_CHAIN (parm))
+    ret |= maybe_add_sra_candidate (parm);
+
+  FOR_EACH_LOCAL_DECL (cfun, i, var)
     {
-      if (TREE_CODE (var) != VAR_DECL && TREE_CODE (var) != PARM_DECL)
+      if (TREE_CODE (var) != VAR_DECL)
         continue;
-      type = TREE_TYPE (var);
 
-      if (!AGGREGATE_TYPE_P (type)) 
-        {
-          reject (var, "not aggregate");
-          continue;
-	}
-      if (needs_to_live_in_memory (var))
-        {
-          reject (var, "needs to live in memory");
-          continue;
-        }
-      if (TREE_THIS_VOLATILE (var))
-        {
-          reject (var, "is volatile");
-	  continue;
-        }
-      if (!COMPLETE_TYPE_P (type))
-        {
-          reject (var, "has incomplete type");
-	  continue;
-        }
-      if (!host_integerp (TYPE_SIZE (type), 1))
-        {
-          reject (var, "type size not fixed");
-	  continue;
-        }
-      if (tree_low_cst (TYPE_SIZE (type), 1) == 0)
-        {
-          reject (var, "type size is zero");
-          continue;
-        }
-      if (type_internals_preclude_sra_p (type, &msg))
-	{
-	  reject (var, msg);
-	  continue;
-	}
-      if (/* Fix for PR 41089.  tree-stdarg.c needs to have va_lists intact but
-	      we also want to schedule it rather late.  Thus we ignore it in
-	      the early pass. */
-	  (sra_mode == SRA_MODE_EARLY_INTRA
-	      && is_va_list_type (type)))
-        {
-	  reject (var, "is va_list");
-	  continue;
-	}
-
-      bitmap_set_bit (candidate_bitmap, DECL_UID (var));
-
-      if (dump_file && (dump_flags & TDF_DETAILS))
-	{
-	  fprintf (dump_file, "Candidate (%d): ", DECL_UID (var));
-	  print_generic_expr (dump_file, var, 0);
-	  fprintf (dump_file, "\n");
-	}
-      ret = true;
+      ret |= maybe_add_sra_candidate (var);
     }
 
   return ret;
@@ -1828,16 +1857,11 @@ sort_and_splice_var_accesses (tree var)
    ACCESS->replacement.  */
 
 static tree
-create_access_replacement (struct access *access, bool rename)
+create_access_replacement (struct access *access)
 {
   tree repl;
 
   repl = create_tmp_var (access->type, "SR");
-  add_referenced_var (repl);
-  if (!access->grp_partial_lhs
-      && rename)
-    mark_sym_for_renaming (repl);
-
   if (TREE_CODE (access->type) == COMPLEX_TYPE
       || TREE_CODE (access->type) == VECTOR_TYPE)
     {
@@ -1858,6 +1882,7 @@ create_access_replacement (struct access *access, bool rename)
     {
       char *pretty_name = make_fancy_name (access->expr);
       tree debug_expr = unshare_expr (access->expr), d;
+      bool fail = false;
 
       DECL_NAME (repl) = get_identifier (pretty_name);
       obstack_free (&name_obstack, pretty_name);
@@ -1867,29 +1892,34 @@ create_access_replacement (struct access *access, bool rename)
 	 used SSA_NAMEs and thus they could be freed.  All debug info
 	 generation cares is whether something is constant or variable
 	 and that get_ref_base_and_extent works properly on the
-	 expression.  */
-      for (d = debug_expr; handled_component_p (d); d = TREE_OPERAND (d, 0))
+	 expression.  It cannot handle accesses at a non-constant offset
+	 though, so just give up in those cases.  */
+      for (d = debug_expr; !fail && handled_component_p (d);
+	   d = TREE_OPERAND (d, 0))
 	switch (TREE_CODE (d))
 	  {
 	  case ARRAY_REF:
 	  case ARRAY_RANGE_REF:
 	    if (TREE_OPERAND (d, 1)
-		&& TREE_CODE (TREE_OPERAND (d, 1)) == SSA_NAME)
-	      TREE_OPERAND (d, 1) = SSA_NAME_VAR (TREE_OPERAND (d, 1));
+		&& TREE_CODE (TREE_OPERAND (d, 1)) != INTEGER_CST)
+	      fail = true;
 	    if (TREE_OPERAND (d, 3)
-		&& TREE_CODE (TREE_OPERAND (d, 3)) == SSA_NAME)
-	      TREE_OPERAND (d, 3) = SSA_NAME_VAR (TREE_OPERAND (d, 3));
+		&& TREE_CODE (TREE_OPERAND (d, 3)) != INTEGER_CST)
+	      fail = true;
 	    /* FALLTHRU */
 	  case COMPONENT_REF:
 	    if (TREE_OPERAND (d, 2)
-		&& TREE_CODE (TREE_OPERAND (d, 2)) == SSA_NAME)
-	      TREE_OPERAND (d, 2) = SSA_NAME_VAR (TREE_OPERAND (d, 2));
+		&& TREE_CODE (TREE_OPERAND (d, 2)) != INTEGER_CST)
+	      fail = true;
 	    break;
 	  default:
 	    break;
 	  }
-      SET_DECL_DEBUG_EXPR (repl, debug_expr);
-      DECL_DEBUG_EXPR_IS_FROM (repl) = 1;
+      if (!fail)
+	{
+	  SET_DECL_DEBUG_EXPR (repl, debug_expr);
+	  DECL_DEBUG_EXPR_IS_FROM (repl) = 1;
+	}
       if (access->grp_no_warning)
 	TREE_NO_WARNING (repl) = 1;
       else
@@ -1917,23 +1947,8 @@ create_access_replacement (struct access *access, bool rename)
 static inline tree
 get_access_replacement (struct access *access)
 {
-  gcc_assert (access->grp_to_be_replaced);
-
   if (!access->replacement_decl)
-    access->replacement_decl = create_access_replacement (access, true);
-  return access->replacement_decl;
-}
-
-/* Return ACCESS scalar replacement, create it if it does not exist yet but do
-   not mark it for renaming.  */
-
-static inline tree
-get_unrenamed_access_replacement (struct access *access)
-{
-  gcc_assert (!access->grp_to_be_replaced);
-
-  if (!access->replacement_decl)
-    access->replacement_decl = create_access_replacement (access, false);
+    access->replacement_decl = create_access_replacement (access);
   return access->replacement_decl;
 }
 
@@ -2353,7 +2368,7 @@ analyze_all_variable_accesses (void)
     if (bitmap_bit_p (should_scalarize_away_bitmap, i)
 	&& !bitmap_bit_p (cannot_scalarize_away_bitmap, i))
       {
-	tree var = referenced_var (i);
+	tree var = candidate (i);
 
 	if (TREE_CODE (var) == VAR_DECL
 	    && type_consists_of_records_p (TREE_TYPE (var)))
@@ -2381,7 +2396,7 @@ analyze_all_variable_accesses (void)
   bitmap_copy (tmp, candidate_bitmap);
   EXECUTE_IF_SET_IN_BITMAP (tmp, 0, i, bi)
     {
-      tree var = referenced_var (i);
+      tree var = candidate (i);
       struct access *access;
 
       access = sort_and_splice_var_accesses (var);
@@ -2395,7 +2410,7 @@ analyze_all_variable_accesses (void)
   bitmap_copy (tmp, candidate_bitmap);
   EXECUTE_IF_SET_IN_BITMAP (tmp, 0, i, bi)
     {
-      tree var = referenced_var (i);
+      tree var = candidate (i);
       struct access *access = get_first_repr_for_decl (var);
 
       if (analyze_access_trees (access))
@@ -2830,18 +2845,7 @@ sra_modify_constructor_assign (gimple *stmt, gimple_stmt_iterator *gsi)
 static tree
 get_repl_default_def_ssa_name (struct access *racc)
 {
-  tree repl, decl;
-
-  decl = get_unrenamed_access_replacement (racc);
-
-  repl = gimple_default_def (cfun, decl);
-  if (!repl)
-    {
-      repl = make_ssa_name (decl, gimple_build_nop ());
-      set_default_def (decl, repl);
-    }
-
-  return repl;
+  return get_or_create_ssa_default_def (cfun, get_access_replacement (racc));
 }
 
 /* Return true if REF has a COMPONENT_REF with a bit-field field declaration
@@ -3339,7 +3343,7 @@ is_unused_scalar_param (tree parm)
 {
   tree name;
   return (is_gimple_reg (parm)
-	  && (!(name = gimple_default_def (cfun, parm))
+	  && (!(name = ssa_default_def (cfun, parm))
 	      || has_zero_uses (name)));
 }
 
@@ -3353,7 +3357,7 @@ ptr_parm_has_direct_uses (tree parm)
 {
   imm_use_iterator ui;
   gimple stmt;
-  tree name = gimple_default_def (cfun, parm);
+  tree name = ssa_default_def (cfun, parm);
   bool ret = false;
 
   FOR_EACH_IMM_USE_STMT (stmt, ui, name)
@@ -3442,6 +3446,7 @@ find_param_candidates (void)
        parm = DECL_CHAIN (parm))
     {
       tree type = TREE_TYPE (parm);
+      void **slot;
 
       count++;
 
@@ -3480,6 +3485,10 @@ find_param_candidates (void)
 	continue;
 
       bitmap_set_bit (candidate_bitmap, DECL_UID (parm));
+      slot = htab_find_slot_with_hash (candidates, parm,
+				       DECL_UID (parm), INSERT);
+      *slot = (void *) parm;
+
       ret = true;
       if (dump_file && (dump_flags & TDF_DETAILS))
 	{
@@ -4178,7 +4187,6 @@ get_replaced_param_substitute (struct ipa_parm_adjustment *adj)
       DECL_NAME (repl) = get_identifier (pretty_name);
       obstack_free (&name_obstack, pretty_name);
 
-      add_referenced_var (repl);
       adj->new_ssa_base = repl;
     }
   else
@@ -4231,8 +4239,10 @@ replace_removed_params_ssa_names (gimple stmt,
 
   if (TREE_CODE (lhs) != SSA_NAME)
     return false;
+
   decl = SSA_NAME_VAR (lhs);
-  if (TREE_CODE (decl) != PARM_DECL)
+  if (decl == NULL_TREE
+      || TREE_CODE (decl) != PARM_DECL)
     return false;
 
   adj = get_adjustment_for_base (adjustments, decl);
@@ -4515,7 +4525,7 @@ sra_ipa_reset_debug_stmts (ipa_parm_adjustment_vec adjustments)
       adj = &VEC_index (ipa_parm_adjustment_t, adjustments, i);
       if (adj->copy_param || !is_gimple_reg (adj->base))
 	continue;
-      name = gimple_default_def (cfun, adj->base);
+      name = ssa_default_def (cfun, adj->base);
       vexpr = NULL;
       if (name)
 	FOR_EACH_IMM_USE_STMT (stmt, ui, name)
@@ -4562,7 +4572,6 @@ sra_ipa_reset_debug_stmts (ipa_parm_adjustment_vec adjustments)
 	  SET_DECL_RTL (copy, 0);
 	  TREE_USED (copy) = 1;
 	  DECL_CONTEXT (copy) = current_function_decl;
-	  add_referenced_var (copy);
 	  add_local_decl (cfun, copy);
 	  DECL_CHAIN (copy) =
 	    BLOCK_VARS (DECL_INITIAL (current_function_decl));

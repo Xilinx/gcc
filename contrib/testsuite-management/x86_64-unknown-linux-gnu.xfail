@@ -13,8 +13,6 @@ FAIL: gcc.dg/torture/pr51106-2.c -O3 -g  (internal compiler error)
 FAIL: gcc.dg/torture/pr51106-2.c -O3 -g  (test for excess errors)
 FAIL: gcc.dg/torture/pr51106-2.c -Os  (internal compiler error)
 FAIL: gcc.dg/torture/pr51106-2.c -Os  (test for excess errors)
-FAIL: gcc.dg/tree-prof/update-loopch.c scan-tree-dump optimized "count:33332"
-FAIL: gcc.dg/tree-ssa/pr18133-1.c scan-tree-dump-times optimized "fallthru" 3
 FAIL: gfortran.dg/lto/pr45586 f_lto_pr45586_0.o-f_lto_pr45586_0.o link, -O0 -flto -flto-partition=1to1 -fno-use-linker-plugin  (internal compiler error)
 FAIL: gfortran.dg/lto/pr45586 f_lto_pr45586_0.o-f_lto_pr45586_0.o link, -O0 -flto -flto-partition=none -fuse-linker-plugin (internal compiler error)
 FAIL: gfortran.dg/lto/pr45586 f_lto_pr45586_0.o-f_lto_pr45586_0.o link, -O0 -flto -fuse-linker-plugin -fno-fat-lto-objects  (internal compiler error)
@@ -73,3 +71,7 @@ XPASS: gcc.dg/inline_4.c (test for excess errors)
 XPASS: gcc.dg/unroll_2.c (test for excess errors)
 XPASS: gcc.dg/unroll_3.c (test for excess errors)
 XPASS: gcc.dg/unroll_4.c (test for excess errors)
+FAIL: gcc.dg/pr52558-1.c scan-tree-dump-times lim1 "MEM count_lsm.. count_lsm_flag" 1
+FAIL: gcc.dg/pr52558-2.c scan-tree-dump-times lim1 "MEM.*g_2_lsm_flag" 1
+FAIL: gcc.dg/tm/reg-promotion.c scan-tree-dump-times lim1 "MEM count_lsm.. count_lsm_flag" 1
+FAIL: go.test/test/stack.go execution,  -O2 -g

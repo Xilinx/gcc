@@ -949,8 +949,6 @@ graphite_create_new_loop (edge entry_edge, struct clast_for *stmt,
     (entry_edge, lb, stride, ub, ivvar, &iv, &iv_after_increment,
      outer ? outer : entry_edge->src->loop_father);
 
-  add_referenced_var (ivvar);
-
   mpz_init (low);
   mpz_init (up);
   compute_bounds_for_loop (stmt, low, up);
@@ -1099,6 +1097,7 @@ translate_clast_user (struct clast_user_stmt *stmt, edge next_e,
 
   new_bb = next_e->src;
   mark_bb_with_pbb (pbb, new_bb, bb_pbb_mapping);
+  mark_virtual_operands_for_renaming (cfun);
   update_ssa (TODO_update_ssa);
 
   return next_e;
@@ -1220,7 +1219,6 @@ translate_clast_assignment (struct clast_assignment *stmt, edge next_e,
   var = create_tmp_var (type, "graphite_var");
   new_name = force_gimple_operand (clast_to_gcc_expression (type, expr, ip),
 				   &stmts, true, var);
-  add_referenced_var (var);
   if (stmts)
     {
       gsi_insert_seq_on_edge (next_e, stmts);

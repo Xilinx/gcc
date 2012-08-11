@@ -589,10 +589,17 @@ cleanup:
 
 /* Auxiliary function to merge DIMENSION and CODIMENSION array specs.  */
 
-static void
+static gfc_try
 merge_array_spec (gfc_array_spec *from, gfc_array_spec *to, bool copy)
 {
   int i;
+
+  if ((from->type == AS_ASSUMED_RANK && to->corank)
+      || (to->type == AS_ASSUMED_RANK && from->corank))
+    {
+      gfc_error ("The assumed-rank array at %C shall not have a codimension");
+      return FAILURE;
+    }
 
   if (to->rank == 0 && from->rank > 0)
     {
@@ -639,6 +646,8 @@ merge_array_spec (gfc_array_spec *from, gfc_array_spec *to, bool copy)
 	    }
 	}
     }
+
+  return SUCCESS;
 }
 
 
@@ -723,7 +732,7 @@ syntax:
    char_len_param_value in parenthesis.  */
 
 static match
-match_char_length (gfc_expr **expr, bool *deferred, bool obsolenscent_check)
+match_char_length (gfc_expr **expr, bool *deferred, bool obsolescent_check)
 {
   int length;
   match m;
@@ -739,7 +748,7 @@ match_char_length (gfc_expr **expr, bool *deferred, bool obsolenscent_check)
 
   if (m == MATCH_YES)
     {
-      if (obsolenscent_check
+      if (obsolescent_check
 	  && gfc_notify_std (GFC_STD_F95_OBS,
 			     "Old-style character length at %C") == FAILURE)
 	return MATCH_ERROR;
@@ -1092,29 +1101,15 @@ gfc_verify_c_interop_param (gfc_symbol *sym)
 	    retval = FAILURE;
 
           /* Make sure that if it has the dimension attribute, that it is
-	     either assumed size or explicit shape.  */
-	  if (sym->as != NULL)
-	    {
-	      if (sym->as->type == AS_ASSUMED_SHAPE)
-		{
-		  gfc_error ("Assumed-shape array '%s' at %L cannot be an "
-			     "argument to the procedure '%s' at %L because "
-			     "the procedure is BIND(C)", sym->name,
-			     &(sym->declared_at), sym->ns->proc_name->name,
-			     &(sym->ns->proc_name->declared_at));
-		  retval = FAILURE;
-		}
-
-	      if (sym->as->type == AS_DEFERRED)
-		{
-		  gfc_error ("Deferred-shape array '%s' at %L cannot be an "
-			     "argument to the procedure '%s' at %L because "
-			     "the procedure is BIND(C)", sym->name,
-			     &(sym->declared_at), sym->ns->proc_name->name,
- 			     &(sym->ns->proc_name->declared_at));
-		  retval = FAILURE;
-		}
-	  }
+	     either assumed size or explicit shape. Deferred shape is already
+	     covered by the pointer/allocatable attribute.  */
+	  if (sym->as != NULL && sym->as->type == AS_ASSUMED_SHAPE
+	      && gfc_notify_std (GFC_STD_F2008_TS, "Assumed-shape array '%s' "
+			      "at %L as dummy argument to the BIND(C) "
+			      "procedure '%s' at %L", sym->name,
+			      &(sym->declared_at), sym->ns->proc_name->name,
+			      &(sym->ns->proc_name->declared_at)) == FAILURE)
+	    retval = FAILURE;
 	}
     }
 
@@ -1810,8 +1805,12 @@ variable_decl (int elem)
 
   if (m == MATCH_NO)
     as = gfc_copy_array_spec (current_as);
-  else if (current_as)
-    merge_array_spec (current_as, as, true);
+  else if (current_as
+	   && merge_array_spec (current_as, as, true) == FAILURE)
+    {
+      m = MATCH_ERROR;
+      goto cleanup;
+    }
 
   if (gfc_option.flag_cray_pointer)
     cp_as = gfc_copy_array_spec (as);
@@ -3523,7 +3522,8 @@ match_attr_spec (void)
 	    current_as = as;
 	  else if (m == MATCH_YES)
 	    {
-	      merge_array_spec (as, current_as, false);
+	      if (merge_array_spec (as, current_as, false) == FAILURE)
+		m = MATCH_ERROR;
 	      free (as);
 	    }
 
@@ -4792,41 +4792,20 @@ match_procedure_interface (gfc_symbol **proc_if)
   gfc_current_ns = old_ns;
   *proc_if = st->n.sym;
 
-  /* Various interface checks.  */
   if (*proc_if)
     {
       (*proc_if)->refs++;
       /* Resolve interface if possible. That way, attr.procedure is only set
 	 if it is declared by a later procedure-declaration-stmt, which is
-	 invalid per C1212.  */
+	 invalid per F08:C1216 (cf. resolve_procedure_interface).  */
       while ((*proc_if)->ts.interface)
 	*proc_if = (*proc_if)->ts.interface;
 
-      if ((*proc_if)->generic)
-	{
-	  gfc_error ("Interface '%s' at %C may not be generic",
-		     (*proc_if)->name);
-	  return MATCH_ERROR;
-	}
-      if ((*proc_if)->attr.proc == PROC_ST_FUNCTION)
-	{
-	  gfc_error ("Interface '%s' at %C may not be a statement function",
-		     (*proc_if)->name);
-	  return MATCH_ERROR;
-	}
-      /* Handle intrinsic procedures.  */
-      if (!((*proc_if)->attr.external || (*proc_if)->attr.use_assoc
-	    || (*proc_if)->attr.if_source == IFSRC_IFBODY)
-	  && (gfc_is_intrinsic ((*proc_if), 0, gfc_current_locus)
-	      || gfc_is_intrinsic ((*proc_if), 1, gfc_current_locus)))
-	(*proc_if)->attr.intrinsic = 1;
-      if ((*proc_if)->attr.intrinsic
-	  && !gfc_intrinsic_actual_ok ((*proc_if)->name, 0))
-	{
-	  gfc_error ("Intrinsic procedure '%s' not allowed "
-		    "in PROCEDURE statement at %C", (*proc_if)->name);
-	  return MATCH_ERROR;
-	}
+      if ((*proc_if)->attr.flavor == FL_UNKNOWN
+	  && (*proc_if)->ts.type == BT_UNKNOWN
+	  && gfc_add_flavor (&(*proc_if)->attr, FL_PROCEDURE,
+			      (*proc_if)->name, NULL) == FAILURE)
+	return MATCH_ERROR;
     }
 
 got_ts:

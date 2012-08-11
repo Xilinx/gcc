@@ -4941,6 +4941,15 @@ package body Sem_Prag is
                   then
                      Error_Msg_N
                        ("Inline cannot apply to a formal subprogram", N);
+
+                  --  If Subp is a renaming, it is the renamed entity that
+                  --  will appear in any call, and be inlined. However, for
+                  --  ASIS uses it is convenient to indicate that the renaming
+                  --  itself is an inlined subprogram, so that some gnatcheck
+                  --  rules can be applied in the absence of expansion.
+
+                  elsif Nkind (Decl) = N_Subprogram_Renaming_Declaration then
+                     Set_Inline_Flags (Subp);
                   end if;
                end if;
 
@@ -5476,9 +5485,9 @@ package body Sem_Prag is
                --  affected by this processing).
 
                if R_Id = No_Exceptions and then not Warn then
-                  for J in Scope_Suppress'Range loop
+                  for J in Scope_Suppress.Suppress'Range loop
                      if J /= Atomic_Synchronization then
-                        Scope_Suppress (J) := True;
+                        Scope_Suppress.Suppress (J) := True;
                      end if;
                   end loop;
                end if;
@@ -5620,9 +5629,7 @@ package body Sem_Prag is
             --  If this is a first subtype, and the base type is distinct,
             --  then also set the suppress flags on the base type.
 
-            if Is_First_Subtype (E)
-              and then Etype (E) /= E
-            then
+            if Is_First_Subtype (E) and then Etype (E) /= E then
                Suppress_Unsuppress_Echeck (Etype (E), C);
             end if;
          end Suppress_Unsuppress_Echeck;
@@ -5634,9 +5641,7 @@ package body Sem_Prag is
          --  user code: we want to generate checks for analysis purposes, as
          --  set respectively by -gnatC and -gnatd.F
 
-         if (CodePeer_Mode or Alfa_Mode)
-           and then Comes_From_Source (N)
-         then
+         if (CodePeer_Mode or Alfa_Mode) and then Comes_From_Source (N) then
             return;
          end if;
 
@@ -5659,10 +5664,17 @@ package body Sem_Prag is
               ("argument of pragma% is not valid check name", Arg1);
          end if;
 
-         if not Suppress_Case
-           and then (C = All_Checks or else C = Overflow_Check)
-         then
-            Opt.Overflow_Checks_Unsuppressed := True;
+         --  Special processing for overflow check case
+
+         if C = All_Checks or else C = Overflow_Check then
+            if Suppress_Case then
+               Scope_Suppress.Overflow_Checks_General    := Suppress;
+               Scope_Suppress.Overflow_Checks_Assertions := Suppress;
+            else
+               Scope_Suppress.Overflow_Checks_General    := Check_All;
+               Scope_Suppress.Overflow_Checks_Assertions := Check_All;
+               Opt.Overflow_Checks_Unsuppressed := True;
+            end if;
          end if;
 
          if Arg_Count = 1 then
@@ -5680,11 +5692,12 @@ package body Sem_Prag is
                --  Atomic_Synchronization is also not affected, since this is
                --  not a real check.
 
-               for J in Scope_Suppress'Range loop
+               for J in Scope_Suppress.Suppress'Range loop
                   if J /= Elaboration_Check
-                    and then J /= Atomic_Synchronization
+                       and then
+                     J /= Atomic_Synchronization
                   then
-                     Scope_Suppress (J) := Suppress_Case;
+                     Scope_Suppress.Suppress (J) := Suppress_Case;
                   end if;
                end loop;
 
@@ -5697,7 +5710,7 @@ package body Sem_Prag is
               and then (not Comes_From_Source (N)
                          or else C /= Atomic_Synchronization)
             then
-               Scope_Suppress (C) := Suppress_Case;
+               Scope_Suppress.Suppress (C) := Suppress_Case;
             end if;
 
             --  Also make an entry in the Local_Entity_Suppress table

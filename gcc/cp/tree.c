@@ -795,7 +795,18 @@ build_cplus_array_type (tree elt_type, tree index_type)
 	}
     }
   else
-    t = build_array_type (elt_type, index_type);
+    {
+      if (!TYPE_STRUCTURAL_EQUALITY_P (elt_type)
+	  && !(index_type && TYPE_STRUCTURAL_EQUALITY_P (index_type))
+	  && (TYPE_CANONICAL (elt_type) != elt_type
+	      || (index_type && TYPE_CANONICAL (index_type) != index_type)))
+	/* Make sure that the canonical type is on the appropriate
+	   variants list.  */
+	build_cplus_array_type
+	  (TYPE_CANONICAL (elt_type),
+	   index_type ? TYPE_CANONICAL (index_type) : index_type);
+      t = build_array_type (elt_type, index_type);
+    }
 
   /* We want TYPE_MAIN_VARIANT of an array to strip cv-quals from the
      element type as well, so fix it up if needed.  */
@@ -803,22 +814,12 @@ build_cplus_array_type (tree elt_type, tree index_type)
     {
       tree m = build_cplus_array_type (TYPE_MAIN_VARIANT (elt_type),
 				       index_type);
-      tree c = TYPE_CANONICAL (t);
 
       if (TYPE_MAIN_VARIANT (t) != m)
 	{
 	  TYPE_MAIN_VARIANT (t) = m;
 	  TYPE_NEXT_VARIANT (t) = TYPE_NEXT_VARIANT (m);
 	  TYPE_NEXT_VARIANT (m) = t;
-	}
-
-      /* If we built a new array type for TYPE_CANONICAL, add
-	 that to the list of variants as well.  */
-      if (c && c != t && TYPE_MAIN_VARIANT (c) != m)
-	{
-	  TYPE_MAIN_VARIANT (c) = m;
-	  TYPE_NEXT_VARIANT (c) = t;
-	  TYPE_NEXT_VARIANT (m) = c;
 	}
     }
 
@@ -2043,9 +2044,7 @@ no_linkage_check (tree t, bool relaxed_p)
     }
 }
 
-#ifdef GATHER_STATISTICS
 extern int depth_reached;
-#endif
 
 void
 cxx_print_statistics (void)
@@ -2053,10 +2052,9 @@ cxx_print_statistics (void)
   print_search_statistics ();
   print_class_statistics ();
   print_template_statistics ();
-#ifdef GATHER_STATISTICS
-  fprintf (stderr, "maximum template instantiation depth reached: %d\n",
-	   depth_reached);
-#endif
+  if (GATHER_STATISTICS)
+    fprintf (stderr, "maximum template instantiation depth reached: %d\n",
+	     depth_reached);
 }
 
 /* Return, as an INTEGER_CST node, the number of elements for TYPE
@@ -2820,7 +2818,7 @@ is_dummy_object (const_tree ob)
 /* Returns 1 iff type T is something we want to treat as a scalar type for
    the purpose of deciding whether it is trivial/POD/standard-layout.  */
 
-static bool
+bool
 scalarish_type_p (const_tree t)
 {
   if (t == error_mark_node)

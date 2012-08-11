@@ -835,6 +835,11 @@ package body Exp_Attr is
 
       --  Remaining processing depends on specific attribute
 
+      --  Note: individual sections of the following case statement are
+      --  allowed to assume there is no code after the case statement, and
+      --  are legitimately allowed to execute return statements if they have
+      --  nothing more to do.
+
       case Id is
 
       --  Attributes related to Ada 2012 iterators (placeholder ???)
@@ -3100,19 +3105,6 @@ package body Exp_Attr is
          end if;
       end;
 
-      ---------------
-      -- Lock_Free --
-      ---------------
-
-      --  Rewrite the attribute reference with the value of Uses_Lock_Free
-
-      when Attribute_Lock_Free => Lock_Free : declare
-         V : constant Entity_Id := Boolean_Literals (Uses_Lock_Free (Ptyp));
-      begin
-         Rewrite (N, New_Occurrence_Of (V, Loc));
-         Analyze_And_Resolve (N, Standard_Boolean);
-      end Lock_Free;
-
       -------------
       -- Machine --
       -------------
@@ -3392,6 +3384,13 @@ package body Exp_Attr is
          Asn_Stm : Node_Id;
 
       begin
+         --  If assertions are disabled, no need to create the declaration
+         --  that preserves the value.
+
+         if not Assertions_Enabled then
+            return;
+         end if;
+
          --  Find the nearest subprogram body, ignoring _Preconditions
 
          Subp := N;
@@ -5372,6 +5371,13 @@ package body Exp_Attr is
 
          Validity_Checks_On := False;
 
+         --  Retrieve the base type. Handle the case where the base type is a
+         --  private enumeration type.
+
+         if Is_Private_Type (Btyp) and then Present (Full_View (Btyp)) then
+            Btyp := Full_View (Btyp);
+         end if;
+
          --  Floating-point case. This case is handled by the Valid attribute
          --  code in the floating-point attribute run-time library.
 
@@ -5472,15 +5478,14 @@ package body Exp_Attr is
          --       (X >= type(X)'First and then type(X)'Last <= X)
 
          elsif Is_Enumeration_Type (Ptyp)
-           and then Present (Enum_Pos_To_Rep (Base_Type (Ptyp)))
+           and then Present (Enum_Pos_To_Rep (Btyp))
          then
             Tst :=
               Make_Op_Ge (Loc,
                 Left_Opnd =>
                   Make_Function_Call (Loc,
                     Name =>
-                      New_Reference_To
-                        (TSS (Base_Type (Ptyp), TSS_Rep_To_Pos), Loc),
+                      New_Reference_To (TSS (Btyp, TSS_Rep_To_Pos), Loc),
                     Parameter_Associations => New_List (
                       Pref,
                       New_Occurrence_Of (Standard_False, Loc))),
@@ -6012,6 +6017,7 @@ package body Exp_Attr is
 
       when Attribute_Abort_Signal                 |
            Attribute_Address_Size                 |
+           Attribute_Atomic_Always_Lock_Free      |
            Attribute_Base                         |
            Attribute_Class                        |
            Attribute_Compiler_Version             |
@@ -6029,6 +6035,7 @@ package body Exp_Attr is
            Attribute_Has_Tagged_Values            |
            Attribute_Large                        |
            Attribute_Last_Valid                   |
+           Attribute_Lock_Free                    |
            Attribute_Machine_Emax                 |
            Attribute_Machine_Emin                 |
            Attribute_Machine_Mantissa             |
@@ -6071,6 +6078,11 @@ package body Exp_Attr is
            Attribute_Asm_Output                   =>
          null;
       end case;
+
+   --  Note: as mentioned earlier, individual sections of the above case
+   --  statement assume there is no code after the case statement, and are
+   --  legitimately allowed to execute return statements if they have nothing
+   --  more to do, so DO NOT add code at this point.
 
    exception
       when RE_Not_Available =>

@@ -619,7 +619,11 @@ output_ssa_names (struct output_block *ob, struct function *fn)
       streamer_write_uhwi (ob, i);
       streamer_write_char_stream (ob->main_stream,
 				  SSA_NAME_IS_DEFAULT_DEF (ptr));
-      stream_write_tree (ob, SSA_NAME_VAR (ptr), true);
+      if (SSA_NAME_VAR (ptr))
+	stream_write_tree (ob, SSA_NAME_VAR (ptr), true);
+      else
+	/* ???  This drops SSA_NAME_IDENTIFIER on the floor.  */
+	stream_write_tree (ob, TREE_TYPE (ptr), true);
     }
 
   streamer_write_zero (ob);
@@ -757,7 +761,6 @@ output_struct_function_base (struct output_block *ob, struct function *fn)
   bp = bitpack_create (ob->main_stream);
   bp_pack_value (&bp, fn->is_thunk, 1);
   bp_pack_value (&bp, fn->has_local_explicit_reg_vars, 1);
-  bp_pack_value (&bp, fn->after_tree_profile, 1);
   bp_pack_value (&bp, fn->returns_pcc_struct, 1);
   bp_pack_value (&bp, fn->returns_struct, 1);
   bp_pack_value (&bp, fn->can_throw_non_call_exceptions, 1);

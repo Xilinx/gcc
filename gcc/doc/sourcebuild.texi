@@ -176,6 +176,12 @@ those for other languages are not.  @xref{Front End, ,
 Anatomy of a Language Front End}, for details of the files in these
 directories.
 
+@item common
+Source files shared between the compiler drivers (such as
+@command{gcc}) and the compilers proper (such as @file{cc1}).  If an
+architecture defines target hooks shared between those places, it also
+has a subdirectory in @file{common/config}.  @xref{Target Structure}.
+
 @item config
 Configuration files for supported architectures and operating
 systems.  @xref{Back End, , Anatomy of a Target Back End}, for
@@ -1297,6 +1303,9 @@ Target has @code{int} that is at 32 bits or longer.
 @item int16
 Target has @code{int} that is 16 bits or shorter.
 
+@item long_neq_int
+Target has @code{int} and @code{long} with different sizes.
+
 @item large_double
 Target supports @code{double} that is longer than @code{float}.
 
@@ -1496,6 +1505,11 @@ ARM target generates 32-bit code.
 
 @item arm_eabi
 ARM target adheres to the ABI for the ARM Architecture.
+
+@item arm_hf_eabi
+ARM target adheres to the VFP and Advanced SIMD Register Arguments
+variant of the ABI for the ARM Architecture (as selected with
+@code{-mfloat-abi=hard}).
 
 @item arm_hard_vfp_ok
 ARM target supports @code{-mfpu=vfp -mfloat-abi=hard}.
@@ -1781,6 +1795,9 @@ Target keeps null pointer checks, either due to the use of
 
 @item lto
 Compiler has been configured to support link-time optimization (LTO).
+
+@item naked_functions
+Target supports the @code{naked} function attribute.
 
 @item named_sections
 Target supports named sections.

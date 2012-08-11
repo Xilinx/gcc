@@ -397,7 +397,7 @@ debug_region (int rgn)
   for (bb = 0; bb < rgn_table[rgn].rgn_nr_blocks; bb++)
     {
       dump_bb (stderr, BASIC_BLOCK (rgn_bb_table[current_blocks + bb]),
-	       0, TDF_SLIM);
+	       0, TDF_SLIM | TDF_BLOCKS);
       fprintf (stderr, "\n");
     }
 
@@ -1455,7 +1455,7 @@ compute_dom_prob_ps (int bb)
 static void
 split_edges (int bb_src, int bb_trg, edgelst *bl)
 {
-  sbitmap src = sbitmap_alloc (pot_split[bb_src]->n_bits);
+  sbitmap src = sbitmap_alloc (SBITMAP_SIZE (pot_split[bb_src]));
   sbitmap_copy (src, pot_split[bb_src]);
 
   sbitmap_difference (src, src, pot_split[bb_trg]);

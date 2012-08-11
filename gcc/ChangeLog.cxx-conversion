@@ -1,3 +1,12 @@
+2012-08-11   Diego Novillo  <dnovillo@google.com>
+
+	Merge from trunk rev 190300.
+
+2012-08-11  Diego Novillo  <dnovillo@google.com>
+
+	* vec.h (DEF_VEC_A): Provide template instantiations for
+	GC/PCH markers that do not traverse the vector.
+
 2012-08-10  Diego Novillo  <dnovillo@google.com>
 
 	* basic-block.h (struct edge_def): Mark GTY((user)).
@@ -15,6 +24,21 @@
 	of the structure.
 	* gengtype.h (USER_GTY): Add.
 	* doc/gty.texi: Update.
+
+2012-08-09  Lawrence Crowl <crowl@google.com>
+
+	* double-int.h (double_int::make): Remove.
+	(double_int::from_signed): New.
+	(double_int::from_unsigned): New.
+	(shwi_to_double_int): Use double_int::from_signed instead of
+	double_int::make.
+	(double_int_minus_one): Likewise.
+	(double_int_zero): Likewise.
+	(double_int_one): Likewise.
+	(double_int_two): Likewise.
+	(double_int_ten): Likewise.
+	(uhwi_to_double_int): Use double_int::from_unsigned instead of
+	double_int::make.
 
 2012-08-08  Diego Novillo  <dnovillo@google.com>
 

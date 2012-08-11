@@ -96,24 +96,25 @@ along with GCC; see the file COPYING3.  If not see
    the 'space' predicate will tell you whether there is spare capacity
    in the vector.  You will not normally need to use these two functions.
 
-   Vector types are defined using a DEF_VEC_{O,P,I}(TYPEDEF) macro, to
+   Vector types are defined using a DEF_VEC_{O,A,P,I}(TYPEDEF) macro, to
    get the non-memory allocation version, and then a
-   DEF_VEC_ALLOC_{O,P,I}(TYPEDEF,ALLOC) macro to get memory managed
+   DEF_VEC_ALLOC_{O,A,P,I}(TYPEDEF,ALLOC) macro to get memory managed
    vectors.  Variables of vector type are declared using a
    VEC(TYPEDEF,ALLOC) macro.  The ALLOC argument specifies the
    allocation strategy, and can be either 'gc' or 'heap' for garbage
    collected and heap allocated respectively.  It can be 'none' to get
    a vector that must be explicitly allocated (for instance as a
-   trailing array of another structure).  The characters O, P and I
-   indicate whether TYPEDEF is a pointer (P), object (O) or integral
-   (I) type.  Be careful to pick the correct one, as you'll get an
-   awkward and inefficient API if you use the wrong one.  There is a
-   check, which results in a compile-time warning, for the P and I
-   versions, but there is no check for the O versions, as that is not
-   possible in plain C.  Due to the way GTY works, you must annotate
-   any structures you wish to insert or reference from a vector with a
-   GTY(()) tag.  You need to do this even if you never declare the GC
-   allocated variants.
+   trailing array of another structure).  The characters O, A, P and I
+   indicate whether TYPEDEF is a pointer (P), object (O), atomic object
+   (A) or integral (I) type.  Be careful to pick the correct one, as
+   you'll get an awkward and inefficient API if you use the wrong one or
+   a even a crash if you pick the atomic object version when the object
+   version should have been chosen instead.  There is a check, which
+   results in a compile-time warning, for the P and I versions, but there
+   is no check for the O versions, as that is not possible in plain C.
+   Due to the way GTY works, you must annotate any structures you wish to
+   insert or reference from a vector with a GTY(()) tag.  You need to do
+   this even if you never declare the GC allocated variants.
 
    An example of their use would be,
 
@@ -230,6 +231,37 @@ gt_pch_nx (vec_t<T> *v, gt_pointer_operator op, void *cookie)
 #define DEF_VEC_ALLOC_O_STACK(T)	struct vec_swallow_trailing_semi
 #define DEF_VEC_ALLOC_I_STACK(T)	struct vec_swallow_trailing_semi
 
+/* Vectors of atomic types.  Atomic types do not need to have its
+   elements marked for GC and PCH.  To avoid unnecessary traversals,
+   we provide template instantiations for the GC/PCH functions that
+   do not traverse the vector.
+
+   FIXME cxx-conversion - Once vec_t users are converted this can
+   be provided in some other way (e.g., adding an additional template
+   parameter to the vec_t class).  */
+#define DEF_VEC_A(TYPE)						\
+template<typename T>						\
+void								\
+gt_ggc_mx (vec_t<TYPE> *v ATTRIBUTE_UNUSED)			\
+{								\
+}								\
+								\
+template<typename T>						\
+void								\
+gt_pch_nx (vec_t<TYPE> *v ATTRIBUTE_UNUSED)			\
+{								\
+}								\
+								\
+template<typename T>						\
+void								\
+gt_pch_nx (vec_t<TYPE> *v ATTRIBUTE_UNUSED,			\
+	   gt_pointer_operator op ATTRIBUTE_UNUSED,		\
+	   void *cookie ATTRIBUTE_UNUSED)			\
+{								\
+}								\
+struct vec_swallow_trailing_semi
+
+#define DEF_VEC_ALLOC_A(T,A)		struct vec_swallow_trailing_semi
 
 /* Support functions for stack vectors.  */
 extern void *vec_stack_p_reserve_exact_1 (int, void *);
@@ -247,12 +279,7 @@ extern vec_t<T> *vec_reserve_exact (vec_t<T> *, int MEM_STAT_DECL);
 
 extern void dump_vec_loc_statistics (void);
 extern void ggc_free (void *);
-#ifdef GATHER_STATISTICS
-void vec_heap_free (void *);
-#else
-/* Avoid problems with frontends that #define free(x).  */
-#define vec_heap_free(V) (free) (V)
-#endif
+extern void vec_heap_free (void *);
 
 
 /* Macros to invoke API calls.  A single macro works for both pointer

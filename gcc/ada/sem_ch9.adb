@@ -23,6 +23,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with Aspects;  use Aspects;
 with Atree;    use Atree;
 with Checks;   use Checks;
 with Debug;    use Debug;
@@ -67,25 +68,31 @@ package body Sem_Ch9 is
    -----------------------
 
    function Allows_Lock_Free_Implementation
-     (N        : Node_Id;
-      Complain : Boolean := False) return Boolean;
+     (N               : Node_Id;
+      Lock_Free_Given : Boolean := False) return Boolean;
    --  This routine returns True iff N satisfies the following list of lock-
    --  free restrictions for protected type declaration and protected body:
    --
    --    1) Protected type declaration
    --         May not contain entries
-   --         Component types must support atomic compare and exchange
+   --         Protected subprogram declarations may not have non-elementary
+   --           parameters.
    --
    --    2) Protected Body
    --         Each protected subprogram body within N must satisfy:
    --            May reference only one protected component
    --            May not reference non-constant entities outside the protected
    --              subprogram scope.
-   --            May not reference non-elementary out parameters
-   --            May not contain loop statements or procedure calls
+   --            May not contain address representation items, allocators and
+   --              quantified expressions.
+   --            May not contain delay, goto, loop and procedure call
+   --              statements.
+   --            May not contain exported and imported entities
+   --            May not dereference access values
    --            Function calls and attribute references must be static
    --
-   --  If Complain is True, an error message is issued when False is returned
+   --  If Lock_Free_Given is True, an error message is issued when False is
+   --  returned.
 
    procedure Check_Max_Entries (D : Node_Id; R : All_Parameter_Restrictions);
    --  Given either a protected definition or a task definition in D, check
@@ -115,20 +122,29 @@ package body Sem_Ch9 is
    -------------------------------------
 
    function Allows_Lock_Free_Implementation
-     (N        : Node_Id;
-      Complain : Boolean := False) return Boolean
+     (N               : Node_Id;
+      Lock_Free_Given : Boolean := False) return Boolean
    is
+      Errors_Count : Nat;
+      --  Errors_Count is a count of errors detected by the compiler so far
+      --  when Lock_Free_Given is True.
+
    begin
-      pragma Assert (Nkind_In (N,
-                               N_Protected_Type_Declaration,
-                               N_Protected_Body));
+      pragma Assert (Nkind_In (N, N_Protected_Type_Declaration,
+                                  N_Protected_Body));
 
       --  The lock-free implementation is currently enabled through a debug
-      --  flag. When Complain is True, an aspect Lock_Free forces the lock-free
-      --  implementation. In that case, the debug flag is not needed.
+      --  flag. When Lock_Free_Given is True, an aspect Lock_Free forces the
+      --  lock-free implementation. In that case, the debug flag is not needed.
 
-      if not Complain and then not Debug_Flag_9 then
+      if not Lock_Free_Given and then not Debug_Flag_9 then
          return False;
+      end if;
+
+      --  Get the number of errors detected by the compiler so far
+
+      if Lock_Free_Given then
+         Errors_Count := Serious_Errors_Detected;
       end if;
 
       --  Protected type declaration case
@@ -150,14 +166,14 @@ package body Sem_Ch9 is
                --  restrictions.
 
                if Nkind (Decl) = N_Entry_Declaration then
-                  if Complain then
+                  if Lock_Free_Given then
                      Error_Msg_N
                        ("entry not allowed when Lock_Free given", Decl);
+                  else
+                     return False;
                   end if;
 
-                  return False;
-
-               --  Non-elementary out parameters in protected procedure are not
+               --  Non-elementary parameters in protected procedure are not
                --  allowed by the lock-free restrictions.
 
                elsif Nkind (Decl) = N_Subprogram_Declaration
@@ -176,18 +192,17 @@ package body Sem_Ch9 is
                   begin
                      Par := First (Par_Specs);
                      while Present (Par) loop
-                        if Out_Present (Par)
-                          and then not Is_Elementary_Type
-                                         (Etype (Parameter_Type (Par)))
+                        if not Is_Elementary_Type
+                                 (Etype (Defining_Identifier (Par)))
                         then
-                           if Complain then
+                           if Lock_Free_Given then
                               Error_Msg_NE
-                                ("non-elementary out parameter& not allowed "
+                                ("non-elementary parameter& not allowed "
                                  & "when Lock_Free given",
                                  Par, Defining_Identifier (Par));
+                           else
+                              return False;
                            end if;
-
-                           return False;
                         end if;
 
                         Next (Par);
@@ -240,6 +255,10 @@ package body Sem_Ch9 is
                Comp : Entity_Id := Empty;
                --  Track the current component which the body references
 
+               Errors_Count : Nat;
+               --  Errors_Count is a count of errors detected by the compiler
+               --  so far when Lock_Free_Given is True.
+
                function Check_Node (N : Node_Id) return Traverse_Result;
                --  Check that node N meets the lock free restrictions
 
@@ -248,6 +267,7 @@ package body Sem_Ch9 is
                ----------------
 
                function Check_Node (N : Node_Id) return Traverse_Result is
+                  Kind : constant Node_Kind := Nkind (N);
 
                   --  The following function belongs in sem_eval ???
 
@@ -310,51 +330,126 @@ package body Sem_Ch9 is
 
                begin
                   if Is_Procedure then
-                     --  Attribute references must be static or denote a static
-                     --  function.
+                     --  Allocators restricted
 
-                     if Nkind (N) = N_Attribute_Reference
+                     if Kind = N_Allocator then
+                        if Lock_Free_Given then
+                           Error_Msg_N ("allocator not allowed", N);
+                           return Skip;
+                        end if;
+
+                        return Abandon;
+
+                     --  Aspects Address, Export and Import restricted
+
+                     elsif Kind = N_Aspect_Specification then
+                        declare
+                           Asp_Name : constant Name_Id   :=
+                                        Chars (Identifier (N));
+                           Asp_Id   : constant Aspect_Id :=
+                                        Get_Aspect_Id (Asp_Name);
+
+                        begin
+                           if Asp_Id = Aspect_Address or else
+                              Asp_Id = Aspect_Export  or else
+                              Asp_Id = Aspect_Import
+                           then
+                              Error_Msg_Name_1 := Asp_Name;
+
+                              if Lock_Free_Given then
+                                 Error_Msg_N ("aspect% not allowed", N);
+                                 return Skip;
+                              end if;
+
+                              return Abandon;
+                           end if;
+                        end;
+
+                     --  Address attribute definition clause restricted
+
+                     elsif Kind = N_Attribute_Definition_Clause
+                       and then Get_Attribute_Id (Chars (N)) =
+                                  Attribute_Address
+                     then
+                        Error_Msg_Name_1 := Chars (N);
+
+                        if Lock_Free_Given then
+                           if From_Aspect_Specification (N) then
+                              Error_Msg_N ("aspect% not allowed", N);
+                           else
+                              Error_Msg_N ("% clause not allowed", N);
+                           end if;
+
+                           return Skip;
+                        end if;
+
+                        return Abandon;
+
+                     --  Non-static Attribute references that don't denote a
+                     --  static function restricted.
+
+                     elsif Kind = N_Attribute_Reference
                        and then not Is_Static_Expression (N)
                        and then not Is_Static_Function (N)
                      then
-                        if Complain then
+                        if Lock_Free_Given then
                            Error_Msg_N
                              ("non-static attribute reference not allowed", N);
+                           return Skip;
                         end if;
 
                         return Abandon;
 
-                     --  Function calls must be static
+                     --  Delay statements restricted
 
-                     elsif Nkind (N) = N_Function_Call
+                     elsif Kind in N_Delay_Statement then
+                        if Lock_Free_Given then
+                           Error_Msg_N ("delay not allowed", N);
+                           return Skip;
+                        end if;
+
+                        return Abandon;
+
+                     --  Dereferences of access values restricted
+
+                     elsif Kind = N_Explicit_Dereference
+                       or else (Kind = N_Selected_Component
+                                 and then Is_Access_Type (Etype (Prefix (N))))
+                     then
+                        if Lock_Free_Given then
+                           Error_Msg_N
+                             ("dereference of access value not allowed", N);
+                           return Skip;
+                        end if;
+
+                        return Abandon;
+
+                     --  Non-static function calls restricted
+
+                     elsif Kind = N_Function_Call
                        and then not Is_Static_Expression (N)
                      then
-                        if Complain then
-                           Error_Msg_N ("non-static function call not allowed",
-                                        N);
+                        if Lock_Free_Given then
+                           Error_Msg_N
+                             ("non-static function call not allowed", N);
+                           return Skip;
                         end if;
 
                         return Abandon;
 
-                     --  Loop statements and procedure calls are prohibited
+                     --  Goto statements restricted
 
-                     elsif Nkind (N) = N_Loop_Statement then
-                        if Complain then
-                           Error_Msg_N ("loop not allowed", N);
-                        end if;
-
-                        return Abandon;
-
-                     elsif Nkind (N) = N_Procedure_Call_Statement then
-                        if Complain then
-                           Error_Msg_N ("procedure call not allowed", N);
+                     elsif Kind = N_Goto_Statement then
+                        if Lock_Free_Given then
+                           Error_Msg_N ("goto statement not allowed", N);
+                           return Skip;
                         end if;
 
                         return Abandon;
 
                      --  References
 
-                     elsif Nkind (N) = N_Identifier
+                     elsif Kind = N_Identifier
                        and then Present (Entity (N))
                      then
                         declare
@@ -367,20 +462,87 @@ package body Sem_Ch9 is
                            --  outside the protected subprogram scope.
 
                            if Ekind (Id) in Assignable_Kind
-                             and then not Scope_Within_Or_Same (Scope (Id),
-                                            Sub_Id)
-                             and then not Scope_Within_Or_Same (Scope (Id),
-                                            Protected_Body_Subprogram (Sub_Id))
+                             and then not
+                               Scope_Within_Or_Same (Scope (Id), Sub_Id)
+                             and then not
+                               Scope_Within_Or_Same
+                                 (Scope (Id),
+                                  Protected_Body_Subprogram (Sub_Id))
                            then
-                              if Complain then
+                              if Lock_Free_Given then
                                  Error_Msg_NE
                                    ("reference to global variable& not " &
                                     "allowed", N, Id);
+                                 return Skip;
                               end if;
 
                               return Abandon;
                            end if;
                         end;
+
+                     --  Loop statements restricted
+
+                     elsif Kind = N_Loop_Statement then
+                        if Lock_Free_Given then
+                           Error_Msg_N ("loop not allowed", N);
+                           return Skip;
+                        end if;
+
+                        return Abandon;
+
+                     --  Pragmas Export and Import restricted
+
+                     elsif Kind = N_Pragma then
+                        declare
+                           Prag_Name : constant Name_Id   := Pragma_Name (N);
+                           Prag_Id   : constant Pragma_Id :=
+                                         Get_Pragma_Id (Prag_Name);
+
+                        begin
+                           if Prag_Id = Pragma_Export
+                             or else Prag_Id = Pragma_Import
+                           then
+                              Error_Msg_Name_1 := Prag_Name;
+
+                              if Lock_Free_Given then
+                                 if From_Aspect_Specification (N) then
+                                    Error_Msg_N ("aspect% not allowed", N);
+                                 else
+                                    Error_Msg_N ("pragma% not allowed", N);
+                                 end if;
+
+                                 return Skip;
+                              end if;
+
+                              return Abandon;
+                           end if;
+                        end;
+
+                     --  Procedure call statements restricted
+
+                     elsif Kind = N_Procedure_Call_Statement then
+                        if Lock_Free_Given then
+                           Error_Msg_N ("procedure call not allowed", N);
+                           return Skip;
+                        end if;
+
+                        return Abandon;
+
+                     --  Quantified expression restricted. Note that we have
+                     --  to check the original node as well, since at this
+                     --  stage, it may have been rewritten.
+
+                     elsif Kind = N_Quantified_Expression
+                       or else
+                         Nkind (Original_Node (N)) = N_Quantified_Expression
+                     then
+                        if Lock_Free_Given then
+                           Error_Msg_N
+                             ("quantified expression not allowed", N);
+                           return Skip;
+                        end if;
+
+                        return Abandon;
                      end if;
                   end if;
 
@@ -388,14 +550,13 @@ package body Sem_Ch9 is
                   --  reference only one component of the protected type, plus
                   --  the type of the component must support atomic operation.
 
-                  if Nkind (N) = N_Identifier
+                  if Kind = N_Identifier
                     and then Present (Entity (N))
                   then
                      declare
                         Id        : constant Entity_Id := Entity (N);
                         Comp_Decl : Node_Id;
                         Comp_Id   : Entity_Id := Empty;
-                        Comp_Size : Int;
                         Comp_Type : Entity_Id;
 
                      begin
@@ -416,40 +577,33 @@ package body Sem_Ch9 is
                              and then Is_List_Member (Comp_Decl)
                              and then List_Containing (Comp_Decl) = Priv_Decls
                            then
-                              --  Make sure the protected component type has
-                              --  size and alignment fields set at this point
-                              --  whenever this is possible.
+                              --  Skip generic types since, in that case, we
+                              --  will not build a body anyway (in the generic
+                              --  template), and the size in the template may
+                              --  have a fake value.
 
-                              Layout_Type (Comp_Type);
+                              if not Is_Generic_Type (Comp_Type) then
 
-                              if Known_Esize (Comp_Type) then
-                                 Comp_Size := UI_To_Int (Esize (Comp_Type));
+                                 --  Make sure the protected component type has
+                                 --  size and alignment fields set at this
+                                 --  point whenever this is possible.
 
-                              --  If the Esize (Object_Size) is unknown at
-                              --  compile-time, look at the RM_Size
-                              --  (Value_Size) since it may have been set by an
-                              --  explicit representation clause.
+                                 Layout_Type (Comp_Type);
 
-                              else
-                                 Comp_Size := UI_To_Int (RM_Size (Comp_Type));
-                              end if;
-
-                              --  Check that the size of the component is 8,
-                              --  16, 32 or 64 bits.
-
-                              case Comp_Size is
-                                 when 8 | 16 | 32 | 64 =>
-                                    null;
-                                 when others           =>
-                                    if Complain then
+                                 if not
+                                   Support_Atomic_Primitives (Comp_Type)
+                                 then
+                                    if Lock_Free_Given then
                                        Error_Msg_NE
                                          ("type of& must support atomic " &
                                           "operations",
                                           N, Comp_Id);
+                                       return Skip;
                                     end if;
 
                                     return Abandon;
-                              end case;
+                                 end if;
+                              end if;
 
                               --  Check if another protected component has
                               --  already been accessed by the subprogram body.
@@ -458,10 +612,11 @@ package body Sem_Ch9 is
                                  Comp := Comp_Id;
 
                               elsif Comp /= Comp_Id then
-                                 if Complain then
+                                 if Lock_Free_Given then
                                     Error_Msg_N
                                       ("only one protected component allowed",
                                        N);
+                                    return Skip;
                                  end if;
 
                                  return Abandon;
@@ -479,8 +634,16 @@ package body Sem_Ch9 is
             --  Start of processing for Satisfies_Lock_Free_Requirements
 
             begin
-               if Check_All_Nodes (Sub_Body) = OK then
+               --  Get the number of errors detected by the compiler so far
 
+               if Lock_Free_Given then
+                  Errors_Count := Serious_Errors_Detected;
+               end if;
+
+               if Check_All_Nodes (Sub_Body) = OK
+                 and then (not Lock_Free_Given
+                            or else Errors_Count = Serious_Errors_Detected)
+               then
                   --  Establish a relation between the subprogram body and the
                   --  unique protected component it references.
 
@@ -503,17 +666,26 @@ package body Sem_Ch9 is
                if Nkind (Decl) = N_Subprogram_Body
                  and then not Satisfies_Lock_Free_Requirements (Decl)
                then
-                  if Complain then
+                  if Lock_Free_Given then
                      Error_Msg_N
-                       ("body not allowed when Lock_Free given", Decl);
+                       ("illegal body when Lock_Free given", Decl);
+                  else
+                     return False;
                   end if;
-
-                  return False;
                end if;
 
                Next (Decl);
             end loop;
          end Protected_Body_Case;
+      end if;
+
+      --  When Lock_Free is given, check if no error has been detected during
+      --  the process.
+
+      if Lock_Free_Given
+        and then Errors_Count /= Serious_Errors_Detected
+      then
+         return False;
       end if;
 
       return True;
@@ -1611,7 +1783,7 @@ package body Sem_Ch9 is
       --  otherwise Allows_Lock_Free_Implementation issues an error message.
 
       if Uses_Lock_Free (Spec_Id) then
-         if not Allows_Lock_Free_Implementation (N, Complain => True) then
+         if not Allows_Lock_Free_Implementation (N, True) then
             return;
          end if;
 
@@ -1886,7 +2058,7 @@ package body Sem_Ch9 is
             end if;
          end;
 
-         if not Allows_Lock_Free_Implementation (N, Complain => True) then
+         if not Allows_Lock_Free_Implementation (N, True) then
             return;
          end if;
       end if;
