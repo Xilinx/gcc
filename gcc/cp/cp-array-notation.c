@@ -50,15 +50,13 @@ void find_rank (tree, bool, int *);
 static tree fix_conditional_array_notations_1 (tree stmt);
 tree fix_unary_array_notation_exprs (tree stmt);
 static bool is_builtin_array_notation_fn (tree, an_reduce_type *);
-static tree build_x_reduce_expr (tree, enum tree_code, tree, tsubst_flags_t,
-				 an_reduce_type);
 bool contains_array_notation_expr (tree);
 extern bool is_sec_implicit_index_fn (tree);
 extern int extract_sec_implicit_index_arg (tree fn);
 void extract_array_notation_exprs (tree node, bool ignore_builtin_fn,
 				   tree **array_list, int *list_size);
-    
 static bool has_call_expr_with_array_notation (tree expr);
+static tree fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var);
 
 int array_notation_label_no;
 
@@ -378,27 +376,64 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
   tree ii_tree = NULL_TREE, comp_stmt;
   tree *rhs_list = NULL, *lhs_list = NULL;
   int rhs_list_size = 0, lhs_list_size = 0;
-  an_reduce_type type = REDUCE_UNKNOWN;
+  tree new_modify_expr, new_var, builtin_loop;
+  bool found_builtin_fn = false;
   char label_name[50];
-  
-  find_rank (lhs, true, &lhs_rank);
-  find_rank (rhs, true, &rhs_rank);
 
-  
-  /* If both are scalar, then no reason to do any of the components inside this
-     function... a simple build_x_modify_expr would do.  */
-  if (lhs_rank == 0 && rhs_rank == 0)
-    return NULL_TREE;
 
-  if (TREE_CODE (rhs) == CALL_EXPR)
+  /* In thie first part, we try to break up the builtin functions for array
+     notations.  */
+  find_rank (rhs, false, &rhs_rank);
+  extract_array_notation_exprs (rhs, false, &rhs_list, &rhs_list_size);
+  loop = push_stmt_list ();
+
+  for (ii = 0; ii < rhs_list_size; ii++)
     {
-      if (is_builtin_array_notation_fn (CALL_EXPR_FN (rhs), &type))
+      if (TREE_CODE (rhs_list[ii]) == CALL_EXPR)
 	{
-	  loop = build_x_reduce_expr (lhs, modifycode, rhs, complain, type);
-	  return loop;
+	  builtin_loop = fix_builtin_array_notation_fn (rhs_list[ii],
+							&new_var);
+	  if (builtin_loop)
+	    {
+	      add_stmt (builtin_loop);
+	      found_builtin_fn = true;
+	      replace_array_notations (&rhs, false, &rhs_list[ii], &new_var,
+				       1);
+	    }
 	}
     }
   
+  lhs_rank = 0;
+  rhs_rank = 0;
+  find_rank (lhs, true, &lhs_rank);
+  find_rank (rhs, true, &rhs_rank);
+
+  /* If both are scalar, then the only reason why we will get this far is if
+     there is some array notations inside it and was using a builtin array
+     notation functions.  If so, we have already broken those guys up and now 
+     a simple build_x_modify_expr would do.  */
+  if (lhs_rank == 0 && rhs_rank == 0)
+    {
+      if (found_builtin_fn)
+	{
+	  new_modify_expr = build_x_modify_expr (UNKNOWN_LOCATION, lhs,
+						 modifycode, rhs, complain);
+	  add_stmt (new_modify_expr);
+	  pop_stmt_list (loop);
+	  return loop;
+	}
+      else
+	{
+	  /* Generally, we should not get here at all.  */
+	  pop_stmt_list (loop);
+	  return NULL_TREE;
+	}
+    }
+
+  /* We need this when we have a scatter issue.  */
+  extract_array_notation_exprs (lhs, true, &lhs_list, &lhs_list_size);
+  rhs_list_size = 0;
+  rhs_list = NULL;
   extract_array_notation_exprs (rhs, true, &rhs_list, &rhs_list_size);
 
   if (lhs_rank == 0 && rhs_rank != 0)
@@ -416,9 +451,6 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
       error ("Rank-mismatch");
       return error_mark_node;
     }
-
-  /* We need this when we have a scatter issue.  */
-  extract_array_notation_exprs (lhs, true, &lhs_list, &lhs_list_size);
 
   rhs_vector = (bool **) xmalloc (sizeof (bool *) * rhs_list_size);
   for (ii = 0; ii < rhs_list_size; ii++)
@@ -627,9 +659,7 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
       else
 	rhs_vector[ii][0] = false;
     }
-
-  loop = push_stmt_list ();
-
+  
   for (ii = 0; ii < lhs_rank; ii++)
     {
       if (lhs_vector[0][ii])
@@ -1358,7 +1388,6 @@ fix_array_notation_exprs (tree t)
     case VECTOR_CST:
     case COMPLEX_CST:
       return t;
-
     case MODIFY_EXPR:
       if (contains_array_notation_expr (t))
 	t = build_x_array_notation_expr
@@ -1801,8 +1830,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
   replace_array_notations (&func_parm, true, array_list, array_operand,
 			   list_size);
   
-  if (!TREE_TYPE (func_parm))
-      
+  if (!TREE_TYPE (func_parm))      
     TREE_TYPE (func_parm) = ARRAY_NOTATION_TYPE (array_list[0]);
   
   for (ii = 0; ii < rank; ii++)
@@ -1832,19 +1860,15 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	} 
     }
 
-  *new_var = build_decl (UNKNOWN_LOCATION, VAR_DECL, NULL_TREE, new_var_type);
-  DECL_CONTEXT (*new_var) = current_function_decl;
-  gcc_assert (*new_var);
+  *new_var = create_tmp_var (new_var_type, NULL);
+  gcc_assert (*new_var && (*new_var != error_mark_node));
   if (an_type == REDUCE_MAX_INDEX || an_type == REDUCE_MIN_INDEX)
     {
-      array_ind_value = build_decl
-	(UNKNOWN_LOCATION, VAR_DECL, NULL_TREE, TREE_TYPE (func_parm));
-      DECL_CONTEXT (array_ind_value) = current_function_decl;
+      array_ind_value = create_tmp_var (TREE_TYPE (func_parm), NULL);
+      gcc_assert (array_ind_value && (array_ind_value != error_mark_node));
       DECL_INITIAL (array_ind_value) = NULL_TREE;
       pushdecl (array_ind_value);
     }
-  
- 
   if (an_type == REDUCE_ADD)
     {
       if (ARITHMETIC_TYPE_P (new_var_type))
@@ -2543,20 +2567,6 @@ is_builtin_array_notation_fn (tree func_name, an_reduce_type *type)
   return false;
 }
     
-/* This function will just return a modify expression or null tree.  */
-
-static tree
-build_x_reduce_expr (tree lhs, enum tree_code modifycode, tree rhs,
-		     tsubst_flags_t complain, an_reduce_type type)
-{
-  if (!type)
-    {
-      return build_x_modify_expr (UNKNOWN_LOCATION, lhs, modifycode, rhs, 
-				  complain);
-    }
-  return NULL_TREE;
-}
-
 
 /* This function will return true if there is array notations in tree.  */
 

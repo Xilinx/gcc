@@ -1,3 +1,12 @@
+2012-08-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cp-array-notation.c (build_x_array_notation_expr): Added a check for
+	call exprs that are builtin array notation functions.  Also moved
+	around code to handle builtin array notation functions.
+	(build_x_reduce_expr): Remove.
+	(fix_builtin_array_notation_fn): Replaced build_decl with
+	create_tmp_var in a couple places.
+
 2012-08-10  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* decl.c (finish_function_body): Added compstmt as a new parameter.
