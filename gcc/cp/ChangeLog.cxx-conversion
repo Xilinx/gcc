@@ -1,0 +1,4 @@
+2012-05-23   Diego Novillo  <dnovillo@google.com>
+
+	* call.c (add_function_candidate): Remove const qualifier
+	from call to VEC_index.
