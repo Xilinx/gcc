@@ -1,37 +1,0 @@
-10
-
-dir
-190324
-svn+ssh://gcc.gnu.org/svn/gcc/trunk/gcc/testsuite/go.test/test/bench
-svn+ssh://gcc.gnu.org/svn/gcc
-
-
-
-2012-01-27T14:36:20.555915Z
-183628
-ian
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-138bc75d-0d04-0410-961f-82ee72b054a4
-
-go1
-dir
-
-garbage
-dir
-
-shootout
-dir
-

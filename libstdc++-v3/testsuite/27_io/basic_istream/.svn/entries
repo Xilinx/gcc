@@ -1,79 +1,0 @@
-10
-
-dir
-190324
-svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/27_io/basic_istream
-svn+ssh://gcc.gnu.org/svn/gcc
-
-
-
-2012-03-14T17:08:03.950143Z
-185392
-ro
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-138bc75d-0d04-0410-961f-82ee72b054a4
-
-read
-dir
-
-get
-dir
-
-exceptions
-dir
-
-ignore
-dir
-
-requirements
-dir
-
-peek
-dir
-
-sentry
-dir
-
-getline
-dir
-
-ws
-dir
-
-putback
-dir
-
-seekg
-dir
-
-readsome
-dir
-
-extractors_other
-dir
-
-cons
-dir
-
-extractors_arithmetic
-dir
-
-tellg
-dir
-
-extractors_character
-dir
-

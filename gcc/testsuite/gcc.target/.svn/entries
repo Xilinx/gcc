@@ -1,91 +1,0 @@
-10
-
-dir
-190324
-svn+ssh://gcc.gnu.org/svn/gcc/trunk/gcc/testsuite/gcc.target
-svn+ssh://gcc.gnu.org/svn/gcc
-
-
-
-2012-08-09T15:58:04.263538Z
-190259
-olegendo
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-138bc75d-0d04-0410-961f-82ee72b054a4
-
-ia64
-dir
-
-spu
-dir
-
-sparc
-dir
-
-mips
-dir
-
-sh
-dir
-
-epiphany
-dir
-
-bfin
-dir
-
-arm
-dir
-
-powerpc
-dir
-
-alpha
-dir
-
-m68k
-dir
-
-microblaze
-dir
-
-avr
-dir
-
-i386
-dir
-
-rx
-dir
-
-xstormy16
-dir
-
-frv
-dir
-
-tic6x
-dir
-
-s390
-dir
-
-x86_64
-dir
-
-cris
-dir
-

@@ -1,34 +1,0 @@
-10
-
-dir
-190324
-svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/22_locale/time_get/get_weekday
-svn+ssh://gcc.gnu.org/svn/gcc
-
-
-
-2011-06-07T08:50:04.047960Z
-174737
-paolo
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-138bc75d-0d04-0410-961f-82ee72b054a4
-
-char
-dir
-
-wchar_t
-dir
-

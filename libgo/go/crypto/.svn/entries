@@ -1,113 +1,0 @@
-10
-
-dir
-190324
-svn+ssh://gcc.gnu.org/svn/gcc/trunk/libgo/go/crypto
-svn+ssh://gcc.gnu.org/svn/gcc
-
-
-
-2012-06-25T16:20:03.277386Z
-188943
-ian
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-138bc75d-0d04-0410-961f-82ee72b054a4
-
-subtle
-dir
-
-tls
-dir
-
-sha512
-dir
-
-x509
-dir
-
-elliptic
-dir
-
-dsa
-dir
-
-aes
-dir
-
-hmac
-dir
-
-sha256
-dir
-
-cipher
-dir
-
-des
-dir
-
-ecdsa
-dir
-
-crypto.go
-file
-
-
-
-
-2012-08-11T23:45:07.604467Z
-0d8777bec55c3a16754a51e6fe3c93ba
-2012-02-09T08:19:58.360889Z
-184034
-ian
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-2342
-
-rand
-dir
-
-md5
-dir
-
-rsa
-dir
-
-rc4
-dir
-
-sha1
-dir
-

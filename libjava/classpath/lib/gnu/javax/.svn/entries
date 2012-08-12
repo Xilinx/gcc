@@ -1,61 +1,0 @@
-10
-
-dir
-190324
-svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/classpath/lib/gnu/javax
-svn+ssh://gcc.gnu.org/svn/gcc
-
-
-
-2012-03-23T15:19:26.333085Z
-185741
-gandalf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-138bc75d-0d04-0410-961f-82ee72b054a4
-
-net
-dir
-
-rmi
-dir
-
-security
-dir
-
-swing
-dir
-
-sound
-dir
-
-naming
-dir
-
-imageio
-dir
-
-management
-dir
-
-print
-dir
-
-crypto
-dir
-
-activation
-dir
-

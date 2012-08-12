@@ -1,37 +1,0 @@
-10
-
-dir
-190324
-svn+ssh://gcc.gnu.org/svn/gcc/trunk/libgo/go/text
-svn+ssh://gcc.gnu.org/svn/gcc
-
-
-
-2012-06-25T16:20:03.277386Z
-188943
-ian
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-138bc75d-0d04-0410-961f-82ee72b054a4
-
-tabwriter
-dir
-
-scanner
-dir
-
-template
-dir
-

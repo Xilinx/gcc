@@ -1,132 +1,0 @@
-10
-
-dir
-190324
-svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/sysdep
-svn+ssh://gcc.gnu.org/svn/gcc
-
-
-
-2012-06-20T13:48:40.929692Z
-188833
-dje
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-138bc75d-0d04-0410-961f-82ee72b054a4
-
-pa
-dir
-
-ia64
-dir
-
-alpha
-dir
-
-m68k
-dir
-
-mips
-dir
-
-sparc
-dir
-
-i386
-dir
-
-sh
-dir
-
-descriptor-y.h
-file
-
-
-
-
-2012-08-11T23:37:23.129668Z
-91690f00407b09a38d13eb69091bc2d0
-2005-05-25T23:24:07.000000Z
-100173
-rth
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-219
-
-generic
-dir
-
-s390
-dir
-
-arm
-dir
-
-powerpc
-dir
-
-descriptor-n.h
-file
-
-
-
-
-2012-08-11T23:37:23.129668Z
-433e10e115547d819ac98359574aee0f
-2005-05-25T23:24:07.000000Z
-100173
-rth
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-98
-

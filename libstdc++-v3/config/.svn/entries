@@ -1,46 +1,0 @@
-10
-
-dir
-190324
-svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/config
-svn+ssh://gcc.gnu.org/svn/gcc
-
-
-
-2012-07-19T07:29:24.862455Z
-189644
-gingold
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-138bc75d-0d04-0410-961f-82ee72b054a4
-
-abi
-dir
-
-locale
-dir
-
-allocator
-dir
-
-os
-dir
-
-cpu
-dir
-
-io
-dir
-

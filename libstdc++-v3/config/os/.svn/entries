@@ -1,73 +1,0 @@
-10
-
-dir
-190324
-svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/config/os
-svn+ssh://gcc.gnu.org/svn/gcc
-
-
-
-2012-06-18T21:43:58.727088Z
-188755
-redi
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-138bc75d-0d04-0410-961f-82ee72b054a4
-
-tpf
-dir
-
-uclibc
-dir
-
-bionic
-dir
-
-djgpp
-dir
-
-mingw32-w64
-dir
-
-qnx
-dir
-
-bsd
-dir
-
-generic
-dir
-
-solaris
-dir
-
-newlib
-dir
-
-aix
-dir
-
-vxworks
-dir
-
-hpux
-dir
-
-gnu-linux
-dir
-
-mingw32
-dir
-
