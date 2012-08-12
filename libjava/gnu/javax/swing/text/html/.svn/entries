@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/gnu/javax/swing/text/html
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,80 +25,6 @@ gandalf
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-css
-dir
-
-CombinedAttributes$CombinedEnumeration.h
-file
-
-
-
-
-2012-08-11T23:37:46.779404Z
-bb76868e6ece63531df510f129087164
-2006-10-13T22:10:15.089349Z
-117714
-tromey
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1323
-
-parser
-dir
-
-CombinedAttributes.h
-file
-
-
-
-
-2012-08-11T23:37:46.779404Z
-9931453a17818677947946d06dd6e005
-2006-10-13T22:10:15.089349Z
-117714
-tromey
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1812
 
 CharacterAttributeTranslator.h
 file
@@ -235,4 +161,78 @@ tromey
 
 
 1002
+
+css
+dir
+
+CombinedAttributes$CombinedEnumeration.h
+file
+
+
+
+
+2012-08-11T23:37:46.779404Z
+bb76868e6ece63531df510f129087164
+2006-10-13T22:10:15.089349Z
+117714
+tromey
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1323
+
+parser
+dir
+
+CombinedAttributes.h
+file
+
+
+
+
+2012-08-11T23:37:46.779404Z
+9931453a17818677947946d06dd6e005
+2006-10-13T22:10:15.089349Z
+117714
+tromey
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1812
 

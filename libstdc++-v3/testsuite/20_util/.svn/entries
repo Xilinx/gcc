@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/20_util
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -35,28 +35,136 @@ redi
 
 ()
 
-is_nothrow_default_constructible
+is_nothrow_move_assignable
+dir
+
+declval
+dir
+
+scoped_allocator
+dir
+
+is_nothrow_copy_assignable
+dir
+
+has_trivial_default_constructor
+dir
+
+owner_less
+dir
+
+is_function
+dir
+
+allocator
+dir
+
+time_point_cast
+dir
+
+hash
+dir
+
+is_trivially_destructible
+dir
+
+function
+dir
+
+raw_storage_iterator
+dir
+
+is_nothrow_constructible
+dir
+
+function_objects
+dir
+
+is_scalar
+dir
+
+is_move_constructible
+dir
+
+is_member_pointer
+dir
+
+is_assignable
+dir
+
+conditional
+dir
+
+is_copy_constructible
+dir
+
+is_unsigned
+dir
+
+remove_reference
+dir
+
+bind
+dir
+
+is_pod
+dir
+
+add_lvalue_reference
+dir
+
+uses_allocator
+dir
+
+underlying_type
+dir
+
+is_destructible
+dir
+
+is_member_object_pointer
+dir
+
+tuple
+dir
+
+is_move_assignable
+dir
+
+shared_ptr
+dir
+
+is_copy_assignable
+dir
+
+reference_wrapper
+dir
+
+duration_cast
 dir
 
 system_clock
 dir
 
-is_object
+is_nothrow_default_constructible
+dir
+
+is_integral
+dir
+
+is_lvalue_reference
+dir
+
+enable_if
 dir
 
 steady_clock
 dir
 
-is_nothrow_destructible
+is_floating_point
 dir
 
-make_signed
-dir
-
-is_rvalue_reference
-dir
-
-declval
+make_unsigned
 dir
 
 is_constructible
@@ -65,22 +173,16 @@ dir
 weak_ptr
 dir
 
-has_trivial_default_constructor
+ratio
 dir
 
-allocator
-dir
-
-is_function
-dir
-
-time_point_cast
-dir
-
-is_trivially_destructible
+is_compound
 dir
 
 duration
+dir
+
+bad_function_call
 dir
 
 rel_ops.cc
@@ -117,144 +219,6 @@ jakub
 
 1160
 
-pair
-dir
-
-unique_ptr
-dir
-
-is_scalar
-dir
-
-is_move_constructible
-dir
-
-is_member_pointer
-dir
-
-is_assignable
-dir
-
-conditional
-dir
-
-is_copy_constructible
-dir
-
-is_trivial
-dir
-
-move
-dir
-
-allocator_traits
-dir
-
-default_delete
-dir
-
-is_unsigned
-dir
-
-time_point
-dir
-
-is_convertible
-dir
-
-is_default_constructible
-dir
-
-underlying_type
-dir
-
-add_rvalue_reference
-dir
-
-is_destructible
-dir
-
-specialized_algorithms
-dir
-
-is_standard_layout
-dir
-
-is_reference
-dir
-
-move_if_noexcept
-dir
-
-is_fundamental
-dir
-
-tuple
-dir
-
-auto_ptr
-dir
-
-reference_wrapper
-dir
-
-duration_cast
-dir
-
-is_integral
-dir
-
-is_lvalue_reference
-dir
-
-has_trivial_copy_constructor
-dir
-
-enable_if
-dir
-
-pointer_traits
-dir
-
-is_member_function_pointer
-dir
-
-is_floating_point
-dir
-
-is_nothrow_move_assignable
-dir
-
-make_unsigned
-dir
-
-is_nothrow_copy_assignable
-dir
-
-scoped_allocator
-dir
-
-ratio
-dir
-
-is_compound
-dir
-
-owner_less
-dir
-
-hash
-dir
-
-function
-dir
-
-bad_function_call
-dir
-
-raw_storage_iterator
-dir
-
 aligned_storage
 dir
 
@@ -264,10 +228,10 @@ dir
 common_type
 dir
 
-is_nothrow_constructible
+pair
 dir
 
-function_objects
+unique_ptr
 dir
 
 temporary_buffer.cc
@@ -316,6 +280,24 @@ dir
 is_signed
 dir
 
+is_trivial
+dir
+
+move
+dir
+
+allocator_traits
+dir
+
+default_delete
+dir
+
+is_convertible
+dir
+
+time_point
+dir
+
 typeindex
 dir
 
@@ -325,25 +307,19 @@ dir
 headers
 dir
 
-remove_reference
-dir
-
-bind
-dir
-
-is_pod
-dir
-
-add_lvalue_reference
-dir
-
-uses_allocator
+is_default_constructible
 dir
 
 is_nothrow_move_constructible
 dir
 
 is_nothrow_assignable
+dir
+
+add_rvalue_reference
+dir
+
+specialized_algorithms
 dir
 
 decay
@@ -355,15 +331,39 @@ dir
 enable_shared_from_this
 dir
 
-is_member_object_pointer
+is_standard_layout
 dir
 
-is_move_assignable
+is_fundamental
 dir
 
-shared_ptr
+move_if_noexcept
 dir
 
-is_copy_assignable
+is_reference
+dir
+
+auto_ptr
+dir
+
+is_object
+dir
+
+has_trivial_copy_constructor
+dir
+
+is_nothrow_destructible
+dir
+
+pointer_traits
+dir
+
+make_signed
+dir
+
+is_member_function_pointer
+dir
+
+is_rvalue_reference
 dir
 

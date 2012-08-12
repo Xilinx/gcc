@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/contrib/regression/GCC_Regression_Tester.wdgt
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,74 +25,6 @@ jakub
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-Info.plist
-file
-
-
-
-
-2012-08-11T23:36:23.440336Z
-777bd286c147cc02861811f66b9a4440
-2007-12-23T00:57:19.765577Z
-131145
-geoffk
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-950
-
-widget.html
-file
-
-
-
-
-2012-08-11T23:36:23.440336Z
-d69ae50099e99b3a9e34fb57aa21c067
-2009-04-09T15:00:19.611803Z
-145841
-jakub
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-4103
 
 en.lproj
 dir
@@ -170,4 +102,72 @@ dir
 
 ja.lproj
 dir
+
+Info.plist
+file
+
+
+
+
+2012-08-11T23:36:23.440336Z
+777bd286c147cc02861811f66b9a4440
+2007-12-23T00:57:19.765577Z
+131145
+geoffk
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+950
+
+widget.html
+file
+
+
+
+
+2012-08-11T23:36:23.440336Z
+d69ae50099e99b3a9e34fb57aa21c067
+2009-04-09T15:00:19.611803Z
+145841
+jakub
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+4103
 

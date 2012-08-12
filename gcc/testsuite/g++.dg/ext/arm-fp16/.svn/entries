@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/gcc/testsuite/g++.dg/ext/arm-fp16
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,40 +25,6 @@ janis
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-fp16-overload-1.C
-file
-
-
-
-
-2012-08-11T23:41:43.396755Z
-aa12e114942ce574df5e9e8b8591c014
-2009-06-18T12:30:19.753475Z
-148656
-sandra
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-439
 
 arm-fp16-ops-1.C
 file
@@ -467,4 +433,38 @@ sandra
 
 
 2739
+
+fp16-overload-1.C
+file
+
+
+
+
+2012-08-11T23:41:43.396755Z
+aa12e114942ce574df5e9e8b8591c014
+2009-06-18T12:30:19.753475Z
+148656
+sandra
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+439
 

@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libgo/go/errors
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,40 +25,6 @@ ian
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-errors.go
-file
-
-
-
-
-2012-08-11T23:45:12.454413Z
-12c6fc81238b7cfa482f7548bd274890
-2011-12-03T02:17:34.136338Z
-181964
-ian
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-499
 
 errors_test.go
 file
@@ -93,4 +59,38 @@ ian
 
 
 1271
+
+errors.go
+file
+
+
+
+
+2012-08-11T23:45:12.454413Z
+12c6fc81238b7cfa482f7548bd274890
+2011-12-03T02:17:34.136338Z
+181964
+ian
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+499
 

@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/27_io/basic_fstream/cons
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,9 +25,6 @@ bonzini
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-char
-dir
 
 1.cc
 file
@@ -62,4 +59,7 @@ bonzini
 
 
 1481
+
+char
+dir
 

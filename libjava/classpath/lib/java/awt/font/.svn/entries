@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/classpath/lib/java/awt/font
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,16 +26,50 @@ doko
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
-ShapeGraphicAttribute.class
+TextLayout$Run.class
 file
 
 
 
 
 2012-08-11T23:36:59.849928Z
-74b6b5aa54d3162ce347e2ec646b7524
-2007-07-27T21:14:19.002073Z
-126998
+5df4d850993cd2fe10e96499abf79c16
+2008-10-21T17:55:01.166395Z
+141271
+doko
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+946
+
+FontRenderContext.class
+file
+
+
+
+
+2012-08-11T23:36:59.849928Z
+e401f539d6aac2bd1f96cb33b9658462
+2006-12-12T18:41:51.528840Z
+119793
 tromey
 has-props
 
@@ -58,7 +92,41 @@ has-props
 
 
 
-2426
+1637
+
+LineMetrics.class
+file
+
+
+
+
+2012-08-11T23:36:59.849928Z
+9e021e331aeb1057a7f7f0ced3915da1
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+595
 
 TextLayout.class
 file
@@ -93,6 +161,40 @@ has-props
 
 
 23699
+
+ShapeGraphicAttribute.class
+file
+
+
+
+
+2012-08-11T23:36:59.849928Z
+74b6b5aa54d3162ce347e2ec646b7524
+2007-07-27T21:14:19.002073Z
+126998
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2426
 
 TextLayout$CaretPolicy.class
 file
@@ -366,40 +468,6 @@ has-props
 
 2263
 
-TextHitInfo.class
-file
-
-
-
-
-2012-08-11T23:36:59.849928Z
-0e9f7a5fbfcee8d35262775a61ae1550
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-2065
-
 NumericShaper.class
 file
 
@@ -433,6 +501,40 @@ has-props
 
 
 4709
+
+TextHitInfo.class
+file
+
+
+
+
+2012-08-11T23:36:59.849928Z
+0e9f7a5fbfcee8d35262775a61ae1550
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2065
 
 GlyphVector.class
 file
@@ -569,106 +671,4 @@ has-props
 
 
 2130
-
-TextLayout$Run.class
-file
-
-
-
-
-2012-08-11T23:36:59.849928Z
-5df4d850993cd2fe10e96499abf79c16
-2008-10-21T17:55:01.166395Z
-141271
-doko
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-946
-
-FontRenderContext.class
-file
-
-
-
-
-2012-08-11T23:36:59.849928Z
-e401f539d6aac2bd1f96cb33b9658462
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1637
-
-LineMetrics.class
-file
-
-
-
-
-2012-08-11T23:36:59.849928Z
-9e021e331aeb1057a7f7f0ced3915da1
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-595
 

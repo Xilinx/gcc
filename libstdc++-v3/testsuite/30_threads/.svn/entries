@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/30_threads
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,36 +25,6 @@ paolo
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-thread
-dir
-
-lock_guard
-dir
-
-future
-dir
-
-headers
-dir
-
-recursive_timed_mutex
-dir
-
-once_flag
-dir
-
-async
-dir
-
-promise
-dir
-
-unique_lock
-dir
-
-call_once
-dir
 
 packaged_task
 dir
@@ -84,5 +54,35 @@ mutex
 dir
 
 condition_variable_any
+dir
+
+thread
+dir
+
+future
+dir
+
+lock_guard
+dir
+
+recursive_timed_mutex
+dir
+
+headers
+dir
+
+async
+dir
+
+once_flag
+dir
+
+unique_lock
+dir
+
+promise
+dir
+
+call_once
 dir
 

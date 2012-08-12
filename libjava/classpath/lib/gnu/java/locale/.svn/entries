@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/classpath/lib/gnu/java/locale
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,40 +25,6 @@ gandalf
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-LocaleData.class
-file
-
-
-
-
-2012-08-11T23:37:02.749896Z
-76cef58cad1a3556e75ccbb5f48a9515
-2010-10-12T15:55:12.882649Z
-165383
-gandalf
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-7402
 
 LocaleHelper.class
 file
@@ -93,4 +59,38 @@ has-props
 
 
 1798
+
+LocaleData.class
+file
+
+
+
+
+2012-08-11T23:37:02.749896Z
+76cef58cad1a3556e75ccbb5f48a9515
+2010-10-12T15:55:12.882649Z
+165383
+gandalf
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+7402
 

@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/27_io/basic_istream
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,18 +26,6 @@ ro
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
-cons
-dir
-
-tellg
-dir
-
-extractors_arithmetic
-dir
-
-extractors_character
-dir
-
 read
 dir
 
@@ -47,25 +35,25 @@ dir
 exceptions
 dir
 
-requirements
-dir
-
 ignore
 dir
 
-sentry
+requirements
 dir
 
 peek
 dir
 
+sentry
+dir
+
 getline
 dir
 
-putback
+ws
 dir
 
-ws
+putback
 dir
 
 seekg
@@ -75,5 +63,17 @@ readsome
 dir
 
 extractors_other
+dir
+
+cons
+dir
+
+extractors_arithmetic
+dir
+
+tellg
+dir
+
+extractors_character
 dir
 

@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/config/abi/post/powerpc-linux-gnu
 svn+ssh://gcc.gnu.org/svn/gcc
 

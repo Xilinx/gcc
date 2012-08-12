@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/25_algorithms
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,46 +26,175 @@ fdumont
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
-count_if
+merge
+dir
+
+set_symmetric_difference
+dir
+
+prev_permutation
+dir
+
+lexicographical_compare
+dir
+
+for_each
+dir
+
+equal
+dir
+
+partition
+dir
+
+replace
+dir
+
+transform
+dir
+
+heap
+dir
+
+is_partitioned
+dir
+
+is_heap_until
+dir
+
+min
+dir
+
+max
+dir
+
+minmax
+dir
+
+is_sorted
+dir
+
+min_element
+dir
+
+random_shuffle
+dir
+
+max_element
+dir
+
+minmax_element
+dir
+
+stable_partition
+dir
+
+set_union
+dir
+
+replace_copy
+dir
+
+mismatch
+dir
+
+move
+dir
+
+find_end
+dir
+
+includes
+dir
+
+is_sorted_until
+dir
+
+generate_n
+dir
+
+adjacent_find
+dir
+
+copy
+dir
+
+remove_if
+dir
+
+upper_bound
+dir
+
+none_of
+dir
+
+fill
+dir
+
+copy_if
+dir
+
+inplace_merge
+dir
+
+find_if
+dir
+
+unique_copy
+dir
+
+nth_element
+dir
+
+move_backward
+dir
+
+remove_copy_if
+dir
+
+set_difference
 dir
 
 unique
 dir
 
-is_heap
+count_if
 dir
 
 copy_backward
 dir
 
-swap_ranges
+is_heap
 dir
 
 binary_search
 dir
 
-swap
+swap_ranges
 dir
 
-reverse
+swap
 dir
 
 find_first_of
 dir
 
-lower_bound
+reverse
 dir
 
-set_intersection
+lower_bound
 dir
 
 stable_sort
 dir
 
-search_n
+set_intersection
 dir
 
 partition_point
+dir
+
+search_n
 dir
 
 equal_range
@@ -149,141 +278,12 @@ dir
 all_of
 dir
 
-partial_sort_copy
+remove
 dir
 
 iter_swap
 dir
 
-remove
-dir
-
-merge
-dir
-
-set_symmetric_difference
-dir
-
-prev_permutation
-dir
-
-lexicographical_compare
-dir
-
-for_each
-dir
-
-equal
-dir
-
-partition
-dir
-
-transform
-dir
-
-replace
-dir
-
-is_partitioned
-dir
-
-heap
-dir
-
-min
-dir
-
-is_heap_until
-dir
-
-max
-dir
-
-minmax
-dir
-
-is_sorted
-dir
-
-random_shuffle
-dir
-
-min_element
-dir
-
-max_element
-dir
-
-minmax_element
-dir
-
-stable_partition
-dir
-
-set_union
-dir
-
-replace_copy
-dir
-
-mismatch
-dir
-
-move
-dir
-
-find_end
-dir
-
-includes
-dir
-
-is_sorted_until
-dir
-
-generate_n
-dir
-
-adjacent_find
-dir
-
-copy
-dir
-
-remove_if
-dir
-
-upper_bound
-dir
-
-none_of
-dir
-
-fill
-dir
-
-copy_if
-dir
-
-inplace_merge
-dir
-
-find_if
-dir
-
-unique_copy
-dir
-
-nth_element
-dir
-
-move_backward
-dir
-
-remove_copy_if
-dir
-
-set_difference
+partial_sort_copy
 dir
 

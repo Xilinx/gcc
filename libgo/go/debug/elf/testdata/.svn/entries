@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libgo/go/debug/elf/testdata
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,6 +25,40 @@ ian
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
+
+go-relocation-test-gcc424-x86-64.obj
+file
+
+
+
+
+2012-08-11T23:45:02.514524Z
+f9b39f27c4ef117ee0c35c439ecb0f46
+2011-09-16T15:47:21.046418Z
+178910
+ian
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3088
 
 go-relocation-test-gcc441-x86.obj
 file
@@ -161,38 +195,4 @@ has-props
 
 
 2936
-
-go-relocation-test-gcc424-x86-64.obj
-file
-
-
-
-
-2012-08-11T23:45:02.514524Z
-f9b39f27c4ef117ee0c35c439ecb0f46
-2011-09-16T15:47:21.046418Z
-178910
-ian
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-3088
 

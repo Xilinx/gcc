@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libgo/go/exp/gotype/testdata
 svn+ssh://gcc.gnu.org/svn/gcc
 

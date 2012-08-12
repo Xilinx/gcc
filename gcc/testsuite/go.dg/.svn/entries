@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/gcc/testsuite/go.dg
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,6 +25,40 @@ ian
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
+
+dg.exp
+file
+
+
+
+
+2012-08-11T23:41:43.126758Z
+20db7ad5bfda833fc9df175b9114b1b0
+2010-11-03T20:04:23.773671Z
+166271
+ian
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1123
 
 err-1.go
 file
@@ -127,38 +161,4 @@ ian
 
 
 95
-
-dg.exp
-file
-
-
-
-
-2012-08-11T23:41:43.126758Z
-20db7ad5bfda833fc9df175b9114b1b0
-2010-11-03T20:04:23.773671Z
-166271
-ian
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1123
 

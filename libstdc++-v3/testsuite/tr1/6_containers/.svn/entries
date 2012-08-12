@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/tr1/6_containers
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,15 +26,6 @@ redi
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
-tuple
-dir
-
-headers
-dir
-
-unordered_multiset
-dir
-
 array
 dir
 
@@ -51,5 +42,14 @@ utility
 dir
 
 unordered_map
+dir
+
+tuple
+dir
+
+headers
+dir
+
+unordered_multiset
 dir
 

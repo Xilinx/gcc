@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/gnu/awt
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,6 +25,12 @@ doko
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
+
+xlib
+dir
+
+j2d
+dir
 
 LightweightRedirector.java
 file
@@ -93,10 +99,4 @@ tromey
 
 
 1153
-
-xlib
-dir
-
-j2d
-dir
 

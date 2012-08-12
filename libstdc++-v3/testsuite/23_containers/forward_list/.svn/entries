@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/23_containers/forward_list
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,43 +25,6 @@ redi
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-comparable.cc
-file
-
-
-
-
-2012-08-11T23:36:12.480458Z
-8915c5677590f1ba3493f7d75e71bfb8
-2009-04-09T15:00:19.611803Z
-145841
-jakub
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1555
-
-capacity
-dir
 
 modifiers
 dir
@@ -110,5 +73,42 @@ requirements
 dir
 
 debug
+dir
+
+comparable.cc
+file
+
+
+
+
+2012-08-11T23:36:12.480458Z
+8915c5677590f1ba3493f7d75e71bfb8
+2009-04-09T15:00:19.611803Z
+145841
+jakub
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1555
+
+capacity
 dir
 

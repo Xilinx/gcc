@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/23_containers/set/debug
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,43 +25,6 @@ paolo
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-self_move_assign_neg.cc
-file
-
-
-
-
-2012-08-11T23:36:06.380526Z
-77e96f7e62ee4d48577b014d2438b55b
-2012-03-09T10:37:34.065869Z
-185134
-paolo
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-980
-
-invalidation
-dir
 
 construct1_neg.cc
 file
@@ -368,4 +331,41 @@ paolo
 
 
 1007
+
+self_move_assign_neg.cc
+file
+
+
+
+
+2012-08-11T23:36:06.380526Z
+77e96f7e62ee4d48577b014d2438b55b
+2012-03-09T10:37:34.065869Z
+185134
+paolo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+980
+
+invalidation
+dir
 

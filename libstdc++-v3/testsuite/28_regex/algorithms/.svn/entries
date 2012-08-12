@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/28_regex/algorithms
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -35,9 +35,9 @@ doko
 
 ()
 
-match
+regex_replace
 dir
 
-regex_replace
+match
 dir
 

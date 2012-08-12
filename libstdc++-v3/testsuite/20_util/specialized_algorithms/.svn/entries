@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/20_util/specialized_algorithms
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,6 +26,9 @@ bkoz
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
+uninitialized_fill_n
+dir
+
 uninitialized_fill
 dir
 
@@ -33,8 +36,5 @@ uninitialized_copy_n
 dir
 
 uninitialized_copy
-dir
-
-uninitialized_fill_n
 dir
 

@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/tr1/8_c_compatibility
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,18 +26,6 @@ redi
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
-cmath
-dir
-
-cwctype
-dir
-
-cfenv
-dir
-
-cinttypes
-dir
-
 cstdlib
 dir
 
@@ -54,5 +42,17 @@ cwchar
 dir
 
 cstdint
+dir
+
+cmath
+dir
+
+cwctype
+dir
+
+cfenv
+dir
+
+cinttypes
 dir
 

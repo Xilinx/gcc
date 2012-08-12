@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libgo/go/hash
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,6 +25,18 @@ ian
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
+
+fnv
+dir
+
+adler32
+dir
+
+crc32
+dir
+
+crc64
+dir
 
 hash.go
 file
@@ -59,16 +71,4 @@ ian
 
 
 1181
-
-fnv
-dir
-
-adler32
-dir
-
-crc32
-dir
-
-crc64
-dir
 

@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/classpath/tools/classes/gnu/classpath/tools/doclets
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,178 +26,8 @@ gandalf
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
-debugdoclet
+xmldoclet
 dir
-
-DocletConfigurationException.class
-file
-
-
-
-
-2012-08-11T23:36:38.360169Z
-993b975ebfcf48a77c3ae28228a99333
-2010-10-12T15:55:12.882649Z
-165383
-gandalf
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-432
-
-AbstractDoclet$InterfaceRelation.class
-file
-
-
-
-
-2012-08-11T23:36:38.360169Z
-bdf2387f1cfb930fa9617ba1be17675b
-2010-10-12T15:55:12.882649Z
-165383
-gandalf
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-663
-
-AbstractDoclet$DocletOptionTag.class
-file
-
-
-
-
-2012-08-11T23:36:38.360169Z
-82fd4775a5cf35f11bcc4f4d226f5d1c
-2010-10-12T15:55:12.882649Z
-165383
-gandalf
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-3296
-
-TagletPrinter.class
-file
-
-
-
-
-2012-08-11T23:36:38.360169Z
-04c5c5a2086b9dfbf2755b6e5bde1d4e
-2008-08-15T20:31:42.599946Z
-139136
-doko
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-187
-
-DocletOptionColonSeparated.class
-file
-
-
-
-
-2012-08-11T23:36:38.360169Z
-71d9293db5b722c744c4775dae10438c
-2010-10-12T15:55:12.882649Z
-165383
-gandalf
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1139
 
 AbstractDoclet$DocletOptionTaglet.class
 file
@@ -233,17 +63,14 @@ has-props
 
 4359
 
-xmldoclet
-dir
-
-DocletOptionPackageWildcard.class
+DocletOptionColonSeparated.class
 file
 
 
 
 
 2012-08-11T23:36:38.360169Z
-c608d523ca816831292f92a65fe0c5fb
+71d9293db5b722c744c4775dae10438c
 2010-10-12T15:55:12.882649Z
 165383
 gandalf
@@ -268,7 +95,7 @@ has-props
 
 
 
-2108
+1139
 
 AbstractDoclet$UsageType.class
 file
@@ -304,6 +131,40 @@ has-props
 
 1848
 
+DocletOptionPackageWildcard.class
+file
+
+
+
+
+2012-08-11T23:36:38.360169Z
+c608d523ca816831292f92a65fe0c5fb
+2010-10-12T15:55:12.882649Z
+165383
+gandalf
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2108
+
 DocletOptionString.class
 file
 
@@ -338,6 +199,9 @@ has-props
 
 776
 
+htmldoclet
+dir
+
 InvalidPackageWildcardException.class
 file
 
@@ -371,9 +235,6 @@ has-props
 
 
 437
-
-htmldoclet
-dir
 
 DocletOptionFlag.class
 file
@@ -748,4 +609,143 @@ has-props
 
 
 698
+
+debugdoclet
+dir
+
+AbstractDoclet$InterfaceRelation.class
+file
+
+
+
+
+2012-08-11T23:36:38.360169Z
+bdf2387f1cfb930fa9617ba1be17675b
+2010-10-12T15:55:12.882649Z
+165383
+gandalf
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+663
+
+DocletConfigurationException.class
+file
+
+
+
+
+2012-08-11T23:36:38.360169Z
+993b975ebfcf48a77c3ae28228a99333
+2010-10-12T15:55:12.882649Z
+165383
+gandalf
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+432
+
+AbstractDoclet$DocletOptionTag.class
+file
+
+
+
+
+2012-08-11T23:36:38.360169Z
+82fd4775a5cf35f11bcc4f4d226f5d1c
+2010-10-12T15:55:12.882649Z
+165383
+gandalf
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3296
+
+TagletPrinter.class
+file
+
+
+
+
+2012-08-11T23:36:38.360169Z
+04c5c5a2086b9dfbf2755b6e5bde1d4e
+2008-08-15T20:31:42.599946Z
+139136
+doko
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+187
 

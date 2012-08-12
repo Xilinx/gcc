@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/classpath/lib/java/beans/beancontext
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,142 +25,6 @@ doko
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-BeanContextServicesListener.class
-file
-
-
-
-
-2012-08-11T23:36:59.589931Z
-fa81cddb1b6bc641c21a4e4955879acc
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-312
-
-BeanContextServicesSupport$BCSSServiceProvider.class
-file
-
-
-
-
-2012-08-11T23:36:59.589931Z
-fb0151f09e4760abebbb9092bbf8e868
-2008-10-21T17:55:01.166395Z
-141271
-doko
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1471
-
-BeanContextMembershipEvent.class
-file
-
-
-
-
-2012-08-11T23:36:59.589931Z
-7016ee6d03c2dc14404967e796216c24
-2010-01-06T17:46:48.717189Z
-155678
-doko
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1423
-
-BeanContextServicesSupport$BCSSProxyServiceProvider.class
-file
-
-
-
-
-2012-08-11T23:36:59.589931Z
-4763ee20488b443be5b4d30018b621a8
-2008-10-21T17:55:01.166395Z
-141271
-doko
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-2093
 
 BeanContextServicesSupport$Request.class
 file
@@ -196,6 +60,74 @@ has-props
 
 837
 
+BeanContextServicesSupport$BCSSProxyServiceProvider.class
+file
+
+
+
+
+2012-08-11T23:36:59.589931Z
+4763ee20488b443be5b4d30018b621a8
+2008-10-21T17:55:01.166395Z
+141271
+doko
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2093
+
+BeanContextMembershipEvent.class
+file
+
+
+
+
+2012-08-11T23:36:59.589931Z
+7016ee6d03c2dc14404967e796216c24
+2010-01-06T17:46:48.717189Z
+155678
+doko
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1423
+
 BeanContextMembershipListener.class
 file
 
@@ -230,40 +162,6 @@ has-props
 
 300
 
-BeanContextServiceAvailableEvent.class
-file
-
-
-
-
-2012-08-11T23:36:59.589931Z
-ff70cc5cf3b794bd6ef7af6a435ccd10
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1228
-
 BeanContextServicesSupport$BCSSChild.class
 file
 
@@ -297,6 +195,40 @@ has-props
 
 
 958
+
+BeanContextServiceAvailableEvent.class
+file
+
+
+
+
+2012-08-11T23:36:59.589931Z
+ff70cc5cf3b794bd6ef7af6a435ccd10
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1228
 
 BeanContextChildComponentProxy.class
 file
@@ -366,40 +298,6 @@ has-props
 
 531
 
-BeanContextSupport$BCSChild.class
-file
-
-
-
-
-2012-08-11T23:36:59.589931Z
-03031c2d6c461abbb561e13e597b4edd
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1055
-
 BeanContextSupport.class
 file
 
@@ -433,6 +331,40 @@ has-props
 
 
 15564
+
+BeanContextSupport$BCSChild.class
+file
+
+
+
+
+2012-08-11T23:36:59.589931Z
+03031c2d6c461abbb561e13e597b4edd
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1055
 
 BeanContextServiceProviderBeanInfo.class
 file
@@ -909,4 +841,72 @@ has-props
 
 
 287
+
+BeanContextServicesListener.class
+file
+
+
+
+
+2012-08-11T23:36:59.589931Z
+fa81cddb1b6bc641c21a4e4955879acc
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+312
+
+BeanContextServicesSupport$BCSSServiceProvider.class
+file
+
+
+
+
+2012-08-11T23:36:59.589931Z
+fb0151f09e4760abebbb9092bbf8e868
+2008-10-21T17:55:01.166395Z
+141271
+doko
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1471
 

@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/gnu
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,9 +26,6 @@ ro
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
-awt
-dir
-
 xml
 dir
 
@@ -45,5 +42,8 @@ CORBA
 dir
 
 javax
+dir
+
+awt
 dir
 

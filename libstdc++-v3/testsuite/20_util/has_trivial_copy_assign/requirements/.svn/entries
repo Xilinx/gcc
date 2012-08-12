@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/20_util/has_trivial_copy_assign/requirements
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,40 +25,6 @@ paolo
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-typedefs.cc
-file
-
-
-
-
-2012-08-11T23:36:14.570435Z
-4659da15a0bad4c2cc12f457757c21d4
-2010-06-08T17:50:54.599170Z
-160443
-paolo
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1313
 
 explicit_instantiation.cc
 file
@@ -93,4 +59,38 @@ paolo
 
 
 1063
+
+typedefs.cc
+file
+
+
+
+
+2012-08-11T23:36:14.570435Z
+4659da15a0bad4c2cc12f457757c21d4
+2010-06-08T17:50:54.599170Z
+160443
+paolo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1313
 

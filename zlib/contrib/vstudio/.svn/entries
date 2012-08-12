@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/zlib/contrib/vstudio
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,6 +25,9 @@ doko
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
+
+vc10
+dir
 
 readme.txt
 file
@@ -61,8 +64,5 @@ doko
 2231
 
 vc9
-dir
-
-vc10
 dir
 

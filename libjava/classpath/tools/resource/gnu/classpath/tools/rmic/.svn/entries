@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/classpath/tools/resource/gnu/classpath/tools/rmic
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,6 +25,9 @@ doko
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
+
+templates
+dir
 
 messages.properties
 file
@@ -59,7 +62,4 @@ doko
 
 
 2908
-
-templates
-dir
 

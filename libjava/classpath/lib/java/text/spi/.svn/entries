@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/classpath/lib/java/text/spi
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,74 +25,6 @@ doko
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-NumberFormatProvider.class
-file
-
-
-
-
-2012-08-11T23:36:58.829940Z
-8ec070dd692f0da194e6858e29d023fb
-2007-06-03T23:18:43.019099Z
-125302
-doko
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-499
-
-DateFormatProvider.class
-file
-
-
-
-
-2012-08-11T23:36:58.839940Z
-cf18a791fa15b75f34c4591e866836ef
-2007-06-03T23:18:43.019099Z
-125302
-doko
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-505
 
 BreakIteratorProvider.class
 file
@@ -229,4 +161,72 @@ has-props
 
 
 437
+
+NumberFormatProvider.class
+file
+
+
+
+
+2012-08-11T23:36:58.829940Z
+8ec070dd692f0da194e6858e29d023fb
+2007-06-03T23:18:43.019099Z
+125302
+doko
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+499
+
+DateFormatProvider.class
+file
+
+
+
+
+2012-08-11T23:36:58.839940Z
+cf18a791fa15b75f34c4591e866836ef
+2007-06-03T23:18:43.019099Z
+125302
+doko
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+505
 

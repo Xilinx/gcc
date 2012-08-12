@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libgo/testsuite
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,6 +25,40 @@ ian
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
+
+Makefile.am
+file
+
+
+
+
+2012-08-11T23:45:00.524546Z
+3a8ddeaf36a9f143f9124fe1aada456a
+2010-08-26T00:01:23.984584Z
+163556
+ian
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+772
 
 libgo.testmain
 dir
@@ -102,38 +136,4 @@ has-props
 
 lib
 dir
-
-Makefile.am
-file
-
-
-
-
-2012-08-11T23:45:00.524546Z
-3a8ddeaf36a9f143f9124fe1aada456a
-2010-08-26T00:01:23.984584Z
-163556
-ian
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-772
 

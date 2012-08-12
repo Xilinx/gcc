@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/gcc/testsuite/go.test/test/fixedbugs/bug324.dir
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,40 +25,6 @@ ian
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-main.go
-file
-
-
-
-
-2012-08-11T23:38:35.518858Z
-2314291c8f0aa3a514402f381b871375
-2011-09-21T23:05:39.964752Z
-179063
-ian
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1219
 
 p.go
 file
@@ -93,4 +59,38 @@ ian
 
 
 347
+
+main.go
+file
+
+
+
+
+2012-08-11T23:38:35.518858Z
+2314291c8f0aa3a514402f381b871375
+2011-09-21T23:05:39.964752Z
+179063
+ian
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1219
 

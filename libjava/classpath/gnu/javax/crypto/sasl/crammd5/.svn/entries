@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/classpath/gnu/javax/crypto/sasl/crammd5
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,6 +25,74 @@ gandalf
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
+
+CramMD5Util.java
+file
+
+
+
+
+2012-08-11T23:36:56.959961Z
+65b5fdf54ba0337e297505736378896f
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3893
+
+CramMD5Client.java
+file
+
+
+
+
+2012-08-11T23:36:56.959961Z
+c16cb6d7facdf248cba5c5dea83c3927
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5947
 
 CramMD5Server.java
 file
@@ -161,72 +229,4 @@ gandalf
 
 
 7486
-
-CramMD5Util.java
-file
-
-
-
-
-2012-08-11T23:36:56.959961Z
-65b5fdf54ba0337e297505736378896f
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-3893
-
-CramMD5Client.java
-file
-
-
-
-
-2012-08-11T23:36:56.959961Z
-c16cb6d7facdf248cba5c5dea83c3927
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-5947
 

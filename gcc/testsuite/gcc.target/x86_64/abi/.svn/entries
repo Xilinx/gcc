@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/gcc/testsuite/gcc.target/x86_64/abi
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,210 +25,6 @@ uros
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-defines.h
-file
-
-
-
-
-2012-08-11T23:38:29.708923Z
-002286d968abb2e5012ebb83dd44784d
-2009-02-18T02:16:03.892107Z
-144257
-hjl
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-3880
-
-macros.h
-file
-
-
-
-
-2012-08-11T23:38:29.708923Z
-ced3e7fc25757fe027f4eacc904e6881
-2005-06-22T14:51:07.000000Z
-101249
-matz
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1624
-
-test_passing_structs.c
-file
-
-
-
-
-2012-08-11T23:38:29.708923Z
-2f42d5fcdd9cd57122f1f8229c7b39fb
-2012-04-18T08:32:32.137144Z
-186561
-rguenth
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-5227
-
-test_3_element_struct_and_unions.c
-file
-
-
-
-
-2012-08-11T23:38:29.708923Z
-df350cc8fc42fcbfb44edc088765d60a
-2005-06-22T14:51:07.000000Z
-101249
-matz
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-29845
-
-asm-support-darwin.s
-file
-
-
-
-
-2012-08-11T23:38:29.708923Z
-00a7756c300412476dc7df5636d760dd
-2010-07-09T11:13:30.339443Z
-161991
-ro
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1680
-
-test_basic_sizes.c
-file
-
-
-
-
-2012-08-11T23:38:29.708923Z
-7e1ddc49c842e2c92c18b50766e1c949
-2005-06-22T14:51:07.000000Z
-101249
-matz
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1089
 
 test_passing_unions.c
 file
@@ -264,14 +60,14 @@ rguenth
 
 4685
 
-args.h
+test_passing_m64m128.c
 file
 
 
 
 
 2012-08-11T23:38:29.698924Z
-4599244d74ba4aabbd69240d86d2fe79
+14969537ec7e25d4df580bcf42b2def2
 2009-02-18T02:16:03.892107Z
 144257
 hjl
@@ -296,7 +92,7 @@ hjl
 
 
 
-5802
+9899
 
 abi-x86_64.exp
 file
@@ -332,14 +128,14 @@ jakub
 
 1547
 
-test_passing_m64m128.c
+args.h
 file
 
 
 
 
 2012-08-11T23:38:29.698924Z
-14969537ec7e25d4df580bcf42b2def2
+4599244d74ba4aabbd69240d86d2fe79
 2009-02-18T02:16:03.892107Z
 144257
 hjl
@@ -364,41 +160,7 @@ hjl
 
 
 
-9899
-
-test_complex_returning.c
-file
-
-
-
-
-2012-08-11T23:38:29.698924Z
-c48c02707eed4c21b1fea0eb0be3e02a
-2005-06-22T14:51:07.000000Z
-101249
-matz
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1659
+5802
 
 test_passing_integers.c
 file
@@ -434,14 +196,14 @@ matz
 
 6613
 
-test_basic_array_size_and_align.c
+test_complex_returning.c
 file
 
 
 
 
 2012-08-11T23:38:29.698924Z
-21f9b335d755c74bdef8998aeac98585
+c48c02707eed4c21b1fea0eb0be3e02a
 2005-06-22T14:51:07.000000Z
 101249
 matz
@@ -466,7 +228,41 @@ matz
 
 
 
-1568
+1659
+
+test_varargs.c
+file
+
+
+
+
+2012-08-11T23:38:29.698924Z
+77a2aaa1772edf65040dc6929b494d8f
+2005-06-22T14:51:07.000000Z
+101249
+matz
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2051
 
 test_bitfields.c
 file
@@ -502,14 +298,14 @@ matz
 
 2871
 
-test_varargs.c
+test_basic_array_size_and_align.c
 file
 
 
 
 
 2012-08-11T23:38:29.698924Z
-77a2aaa1772edf65040dc6929b494d8f
+21f9b335d755c74bdef8998aeac98585
 2005-06-22T14:51:07.000000Z
 101249
 matz
@@ -534,7 +330,7 @@ matz
 
 
 
-2051
+1568
 
 callabi
 dir
@@ -881,4 +677,208 @@ matz
 
 
 7015
+
+defines.h
+file
+
+
+
+
+2012-08-11T23:38:29.708923Z
+002286d968abb2e5012ebb83dd44784d
+2009-02-18T02:16:03.892107Z
+144257
+hjl
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3880
+
+macros.h
+file
+
+
+
+
+2012-08-11T23:38:29.708923Z
+ced3e7fc25757fe027f4eacc904e6881
+2005-06-22T14:51:07.000000Z
+101249
+matz
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1624
+
+test_passing_structs.c
+file
+
+
+
+
+2012-08-11T23:38:29.708923Z
+2f42d5fcdd9cd57122f1f8229c7b39fb
+2012-04-18T08:32:32.137144Z
+186561
+rguenth
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5227
+
+test_3_element_struct_and_unions.c
+file
+
+
+
+
+2012-08-11T23:38:29.708923Z
+df350cc8fc42fcbfb44edc088765d60a
+2005-06-22T14:51:07.000000Z
+101249
+matz
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+29845
+
+asm-support-darwin.s
+file
+
+
+
+
+2012-08-11T23:38:29.708923Z
+00a7756c300412476dc7df5636d760dd
+2010-07-09T11:13:30.339443Z
+161991
+ro
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1680
+
+test_basic_sizes.c
+file
+
+
+
+
+2012-08-11T23:38:29.708923Z
+7e1ddc49c842e2c92c18b50766e1c949
+2005-06-22T14:51:07.000000Z
+101249
+matz
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1089
 

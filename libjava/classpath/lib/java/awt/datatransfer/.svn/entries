@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/classpath/lib/java/awt/datatransfer
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,6 +25,74 @@ doko
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
+
+StringSelection.class
+file
+
+
+
+
+2012-08-11T23:36:59.739930Z
+a952b7733f6f4c43050590d562b068fe
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1799
+
+SystemFlavorMap.class
+file
+
+
+
+
+2012-08-11T23:36:59.739930Z
+46f3510cfeab4b6cbf2be36148948ef8
+2007-07-27T21:14:19.002073Z
+126998
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+7485
 
 Clipboard.class
 file
@@ -433,72 +501,4 @@ has-props
 
 
 423
-
-StringSelection.class
-file
-
-
-
-
-2012-08-11T23:36:59.739930Z
-a952b7733f6f4c43050590d562b068fe
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1799
-
-SystemFlavorMap.class
-file
-
-
-
-
-2012-08-11T23:36:59.739930Z
-46f3510cfeab4b6cbf2be36148948ef8
-2007-07-27T21:14:19.002073Z
-126998
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-7485
 

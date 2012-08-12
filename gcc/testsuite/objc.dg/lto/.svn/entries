@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/gcc/testsuite/objc.dg/lto
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,40 +25,6 @@ hubicka
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-lto.exp
-file
-
-
-
-
-2012-08-11T23:43:16.955707Z
-dcd07bdd75ab9ef64e493afd0ae6aff6
-2010-11-11T22:54:53.609894Z
-166625
-hubicka
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-2462
 
 trivial-1_0.m
 file
@@ -93,4 +59,38 @@ iains
 
 
 506
+
+lto.exp
+file
+
+
+
+
+2012-08-11T23:43:16.955707Z
+dcd07bdd75ab9ef64e493afd0ae6aff6
+2010-11-11T22:54:53.609894Z
+166625
+hubicka
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2462
 

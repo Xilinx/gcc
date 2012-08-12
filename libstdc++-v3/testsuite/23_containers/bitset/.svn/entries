@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/23_containers/bitset
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,19 +26,22 @@ paolo
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
-requirements
-dir
-
-operations
+test
 dir
 
 hash
 dir
 
-to_ulong
+operations
+dir
+
+requirements
 dir
 
 debug
+dir
+
+to_ulong
 dir
 
 count
@@ -50,10 +53,10 @@ dir
 ext
 dir
 
-to_ullong
+cons
 dir
 
-cons
+to_ullong
 dir
 
 18604.cc
@@ -124,12 +127,9 @@ paolo
 
 910
 
-to_string
-dir
-
 all
 dir
 
-test
+to_string
 dir
 

@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/tr1/6_containers/tuple
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,9 +25,6 @@ redi
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-element_access
-dir
 
 creation_functions
 dir
@@ -107,5 +104,8 @@ jakub
 1279
 
 comparison_operators
+dir
+
+element_access
 dir
 

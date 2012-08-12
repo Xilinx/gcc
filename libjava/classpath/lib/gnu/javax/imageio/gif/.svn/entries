@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/classpath/lib/gnu/javax/imageio/gif
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,40 +25,6 @@ tromey
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-GIFImageReader.class
-file
-
-
-
-
-2012-08-11T23:37:07.669841Z
-46db5fc4a447b16683db9154072ee4dd
-2007-07-27T21:14:19.002073Z
-126998
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-5114
 
 GIFFile$GIFException.class
 file
@@ -161,4 +127,38 @@ has-props
 
 
 3106
+
+GIFImageReader.class
+file
+
+
+
+
+2012-08-11T23:37:07.669841Z
+46db5fc4a447b16683db9154072ee4dd
+2007-07-27T21:14:19.002073Z
+126998
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5114
 

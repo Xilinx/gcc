@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/gcc/testsuite/g++.dg/ext/interface3
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,40 +25,6 @@ jason
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-interface3a.C
-file
-
-
-
-
-2012-08-11T23:41:47.456710Z
-eb64fad1b252e9235c6b09d561b8ef2c
-2006-09-07T06:53:21.083351Z
-116740
-jason
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-191
 
 interface3b.C
 file
@@ -167,4 +133,38 @@ dir
 
 dir2
 dir
+
+interface3a.C
+file
+
+
+
+
+2012-08-11T23:41:47.456710Z
+eb64fad1b252e9235c6b09d561b8ef2c
+2006-09-07T06:53:21.083351Z
+116740
+jason
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+191
 

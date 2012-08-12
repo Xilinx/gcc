@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/testsuite/libjava.loader
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,108 +25,6 @@ ro
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-TestParent.java
-file
-
-
-
-
-2012-08-11T23:37:22.409676Z
-85c924d4e1521a36a723388ebd47499c
-2002-11-04T14:00:15.000000Z
-58793
-green
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-523
-
-TestMultiple.java
-file
-
-
-
-
-2012-08-11T23:37:22.409676Z
-280e9fa7e0cd3944554a04e15658b904
-2002-11-04T01:31:12.000000Z
-58778
-green
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-463
-
-dummy.java
-file
-
-
-
-
-2012-08-11T23:37:22.409676Z
-a9fbdc2cf5fddb18c1a49ed5750a240e
-2002-11-04T01:31:12.000000Z
-58778
-green
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-42
 
 TestLeak.out
 file
@@ -196,17 +94,17 @@ has-props
 
 1571
 
-TestLeak.java
+MyLoader.java
 file
 
 
 
 
 2012-08-11T23:37:22.409676Z
-792b7188f5cf525c5f5db1f46557cfab
-2007-01-09T19:58:05.773323Z
-120621
-tromey
+af7de4bf25be605f48cd26c138c55941
+2002-11-04T14:00:15.000000Z
+58793
+green
 
 
 
@@ -228,7 +126,7 @@ tromey
 
 
 
-618
+212
 
 TestEarlyGC.out
 file
@@ -264,14 +162,48 @@ green
 
 0
 
-MyLoader.java
+TestLeak.java
 file
 
 
 
 
 2012-08-11T23:37:22.409676Z
-af7de4bf25be605f48cd26c138c55941
+792b7188f5cf525c5f5db1f46557cfab
+2007-01-09T19:58:05.773323Z
+120621
+tromey
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+618
+
+TestParent.out
+file
+
+
+
+
+2012-08-11T23:37:22.409676Z
+d41d8cd98f00b204e9800998ecf8427e
 2002-11-04T14:00:15.000000Z
 58793
 green
@@ -296,7 +228,7 @@ green
 
 
 
-212
+0
 
 dummy.class
 file
@@ -332,7 +264,41 @@ has-props
 
 184
 
-TestParent.out
+TestEarlyGC.jar
+file
+
+
+
+
+2012-08-11T23:37:22.409676Z
+43b0f04bcb07bda3b8b0138ab7e7826b
+2007-01-09T19:58:05.773323Z
+120621
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2452
+
+TestMultiple.out
 file
 
 
@@ -340,8 +306,8 @@ file
 
 2012-08-11T23:37:22.409676Z
 d41d8cd98f00b204e9800998ecf8427e
-2002-11-04T14:00:15.000000Z
-58793
+2002-11-04T01:31:12.000000Z
+58778
 green
 
 
@@ -399,74 +365,6 @@ ro
 
 
 2207
-
-TestMultiple.out
-file
-
-
-
-
-2012-08-11T23:37:22.409676Z
-d41d8cd98f00b204e9800998ecf8427e
-2002-11-04T01:31:12.000000Z
-58778
-green
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-0
-
-TestEarlyGC.jar
-file
-
-
-
-
-2012-08-11T23:37:22.409676Z
-43b0f04bcb07bda3b8b0138ab7e7826b
-2007-01-09T19:58:05.773323Z
-120621
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-2452
 
 TestParent.jar
 file
@@ -569,4 +467,106 @@ tromey
 
 
 2139
+
+TestParent.java
+file
+
+
+
+
+2012-08-11T23:37:22.409676Z
+85c924d4e1521a36a723388ebd47499c
+2002-11-04T14:00:15.000000Z
+58793
+green
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+523
+
+dummy.java
+file
+
+
+
+
+2012-08-11T23:37:22.409676Z
+a9fbdc2cf5fddb18c1a49ed5750a240e
+2002-11-04T01:31:12.000000Z
+58778
+green
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+42
+
+TestMultiple.java
+file
+
+
+
+
+2012-08-11T23:37:22.409676Z
+280e9fa7e0cd3944554a04e15658b904
+2002-11-04T01:31:12.000000Z
+58778
+green
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+463
 

@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libgo/go/archive/zip
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,9 +25,6 @@ ian
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-testdata
-dir
 
 writer_test.go
 file
@@ -232,4 +229,7 @@ ian
 
 
 6690
+
+testdata
+dir
 

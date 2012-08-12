@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/gcc/testsuite/g++.old-deja
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,6 +25,54 @@ jason
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
+
+g++.warn
+dir
+
+g++.robertl
+dir
+
+g++.brendan
+dir
+
+g++.jason
+dir
+
+g++.oliva
+dir
+
+g++.rfg
+dir
+
+g++.ns
+dir
+
+g++.niklas
+dir
+
+g++.other
+dir
+
+g++.law
+dir
+
+g++.benjamin
+dir
+
+g++.pt
+dir
+
+g++.mike
+dir
+
+g++.gb
+dir
+
+g++.martin
+dir
+
+g++.abi
+dir
 
 g++.eh
 dir
@@ -63,60 +111,12 @@ jason
 
 1231
 
-g++.ext
-dir
-
 g++.bugs
 dir
 
+g++.ext
+dir
+
 g++.bob
-dir
-
-g++.warn
-dir
-
-g++.brendan
-dir
-
-g++.robertl
-dir
-
-g++.oliva
-dir
-
-g++.jason
-dir
-
-g++.rfg
-dir
-
-g++.ns
-dir
-
-g++.other
-dir
-
-g++.niklas
-dir
-
-g++.law
-dir
-
-g++.benjamin
-dir
-
-g++.pt
-dir
-
-g++.mike
-dir
-
-g++.gb
-dir
-
-g++.martin
-dir
-
-g++.abi
 dir
 

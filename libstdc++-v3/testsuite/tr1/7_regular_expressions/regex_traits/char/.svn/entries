@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/tr1/7_regular_expressions/regex_traits/char
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,6 +25,40 @@ jakub
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
+
+translate_nocase.cc
+file
+
+
+
+
+2012-08-11T23:36:05.030541Z
+73a4e078de8ee6b65fcd6ff81e86afec
+2009-04-09T15:00:19.611803Z
+145841
+jakub
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1243
 
 ctor.cc
 file
@@ -93,38 +127,4 @@ jakub
 
 
 1478
-
-translate_nocase.cc
-file
-
-
-
-
-2012-08-11T23:36:05.030541Z
-73a4e078de8ee6b65fcd6ff81e86afec
-2009-04-09T15:00:19.611803Z
-145841
-jakub
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1243
 

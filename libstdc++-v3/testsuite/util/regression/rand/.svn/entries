@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/util/regression/rand
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,12 +25,6 @@ bkoz
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-priority_queue
-dir
-
-assoc
-dir
 
 xml_formatter.hpp
 file
@@ -65,4 +59,10 @@ jakub
 
 
 3621
+
+priority_queue
+dir
+
+assoc
+dir
 

@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/classpath/javax
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,18 +26,6 @@ gandalf
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
-sql
-dir
-
-tools
-dir
-
-xml
-dir
-
-activation
-dir
-
 security
 dir
 
@@ -59,13 +47,13 @@ dir
 net
 dir
 
-swing
+accessibility
 dir
 
 rmi
 dir
 
-accessibility
+swing
 dir
 
 sound
@@ -75,5 +63,17 @@ print
 dir
 
 activity
+dir
+
+sql
+dir
+
+xml
+dir
+
+tools
+dir
+
+activation
 dir
 

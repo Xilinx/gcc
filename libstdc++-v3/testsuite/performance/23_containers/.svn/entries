@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/performance/23_containers
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,6 +25,15 @@ fdumont
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
+
+index
+dir
+
+insert_from_sorted
+dir
+
+create_sort
+dir
 
 sort_search
 dir
@@ -54,14 +63,5 @@ insert
 dir
 
 create_from_sorted
-dir
-
-index
-dir
-
-insert_from_sorted
-dir
-
-create_sort
 dir
 

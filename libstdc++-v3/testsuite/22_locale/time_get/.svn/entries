@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/22_locale/time_get
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,6 +26,12 @@ paolo
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
+date_order
+dir
+
+get_weekday
+dir
+
 get_date
 dir
 
@@ -39,11 +45,5 @@ requirements
 dir
 
 get_monthname
-dir
-
-date_order
-dir
-
-get_weekday
 dir
 

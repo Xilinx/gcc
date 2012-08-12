@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/30_threads/thread
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -34,6 +34,9 @@ paolo
 
 
 ()
+
+id
+dir
 
 native_handle
 dir
@@ -79,8 +82,5 @@ members
 dir
 
 swap
-dir
-
-id
 dir
 

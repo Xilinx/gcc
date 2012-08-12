@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/tr2
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,12 +26,12 @@ bkoz
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
-direct_bases
-dir
-
 headers
 dir
 
 bases
+dir
+
+direct_bases
 dir
 

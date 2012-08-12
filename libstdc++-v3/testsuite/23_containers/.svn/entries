@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/23_containers
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,10 +26,10 @@ paolo
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
-unordered_set
+vector
 dir
 
-vector
+unordered_set
 dir
 
 deque
@@ -41,25 +41,25 @@ dir
 multiset
 dir
 
-list
-dir
-
 headers
 dir
 
-unordered_multiset
+list
 dir
 
 map
 dir
 
+unordered_multiset
+dir
+
 array
 dir
 
-unordered_map
+queue
 dir
 
-queue
+unordered_map
 dir
 
 priority_queue

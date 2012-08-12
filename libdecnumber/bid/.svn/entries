@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libdecnumber/bid
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,6 +25,40 @@ jakub
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
+
+decimal32Symbols.h
+file
+
+
+
+
+2012-08-11T23:37:56.799292Z
+c5864ab84549ca0f34188ce5b057bbee
+2007-09-10T20:44:08.038077Z
+128350
+janis
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+34
 
 decimal64Symbols.h
 file
@@ -332,14 +366,14 @@ janis
 
 35
 
-decimal64.c
+bid-dpd.h
 file
 
 
 
 
 2012-08-11T23:37:56.789292Z
-25796740f9dfb97b176bebb684e2e7ea
+a0ecbc50fa8e505f88a951c3c294ecbc
 2009-04-09T15:00:19.611803Z
 145841
 jakub
@@ -364,7 +398,7 @@ jakub
 
 
 
-4118
+1473
 
 decimal32.h
 file
@@ -400,14 +434,14 @@ meissner
 
 27
 
-bid-dpd.h
+decimal64.c
 file
 
 
 
 
 2012-08-11T23:37:56.789292Z
-a0ecbc50fa8e505f88a951c3c294ecbc
+25796740f9dfb97b176bebb684e2e7ea
 2009-04-09T15:00:19.611803Z
 145841
 jakub
@@ -432,7 +466,7 @@ jakub
 
 
 
-1473
+4118
 
 decimal128Local.h
 file
@@ -468,40 +502,6 @@ janis
 
 33
 
-host-ieee128.c
-file
-
-
-
-
-2012-08-11T23:37:56.789292Z
-4ac9ef07efc66f7bf42688152dfdaab1
-2009-04-09T15:00:19.611803Z
-145841
-jakub
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1877
-
 decimal64.h
 file
 
@@ -536,17 +536,17 @@ meissner
 
 27
 
-decimal32Symbols.h
+host-ieee128.c
 file
 
 
 
 
-2012-08-11T23:37:56.799292Z
-c5864ab84549ca0f34188ce5b057bbee
-2007-09-10T20:44:08.038077Z
-128350
-janis
+2012-08-11T23:37:56.789292Z
+4ac9ef07efc66f7bf42688152dfdaab1
+2009-04-09T15:00:19.611803Z
+145841
+jakub
 
 
 
@@ -568,5 +568,5 @@ janis
 
 
 
-34
+1877
 

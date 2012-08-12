@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libgo/go/crypto
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,7 +26,40 @@ ian
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
-rand
+subtle
+dir
+
+tls
+dir
+
+sha512
+dir
+
+x509
+dir
+
+elliptic
+dir
+
+dsa
+dir
+
+aes
+dir
+
+hmac
+dir
+
+sha256
+dir
+
+cipher
+dir
+
+des
+dir
+
+ecdsa
 dir
 
 crypto.go
@@ -63,51 +96,18 @@ ian
 
 2342
 
-rsa
+rand
 dir
 
 md5
+dir
+
+rsa
 dir
 
 rc4
 dir
 
 sha1
-dir
-
-subtle
-dir
-
-tls
-dir
-
-sha512
-dir
-
-elliptic
-dir
-
-x509
-dir
-
-dsa
-dir
-
-sha256
-dir
-
-hmac
-dir
-
-aes
-dir
-
-cipher
-dir
-
-des
-dir
-
-ecdsa
 dir
 

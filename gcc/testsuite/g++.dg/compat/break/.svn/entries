@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/gcc/testsuite/g++.dg/compat/break
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,40 +25,6 @@ jsm28
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-empty6_x.C
-file
-
-
-
-
-2012-08-11T23:42:21.326330Z
-a96ff5f09f7c6b413988f5b356a1022c
-2002-10-18T00:22:58.000000Z
-58266
-janis
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-106
 
 bitfield5_main.C
 file
@@ -94,14 +60,14 @@ janis
 
 300
 
-empty6_y.C
+empty6_x.C
 file
 
 
 
 
 2012-08-11T23:42:21.326330Z
-9139a94c7c61f08caac60d3e5373225c
+a96ff5f09f7c6b413988f5b356a1022c
 2002-10-18T00:22:58.000000Z
 58266
 janis
@@ -126,7 +92,41 @@ janis
 
 
 
-107
+106
+
+README
+file
+
+
+
+
+2012-08-11T23:42:21.326330Z
+f69ad7610cec870d147a3fed2ef331fe
+2009-04-21T19:03:23.876795Z
+146533
+jsm28
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+756
 
 bitfield5.h
 file
@@ -162,17 +162,17 @@ janis
 
 127
 
-README
+empty6_y.C
 file
 
 
 
 
 2012-08-11T23:42:21.326330Z
-f69ad7610cec870d147a3fed2ef331fe
-2009-04-21T19:03:23.876795Z
-146533
-jsm28
+9139a94c7c61f08caac60d3e5373225c
+2002-10-18T00:22:58.000000Z
+58266
+janis
 
 
 
@@ -194,7 +194,7 @@ jsm28
 
 
 
-756
+107
 
 bitfield7_main.C
 file
@@ -264,40 +264,6 @@ janis
 
 28
 
-vbase10_x.C
-file
-
-
-
-
-2012-08-11T23:42:21.326330Z
-993931cd04d51720241622319a10d2d3
-2002-10-18T00:22:58.000000Z
-58266
-janis
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-123
-
 empty6_main.C
 file
 
@@ -332,14 +298,14 @@ janis
 
 325
 
-empty6.h
+vbase10_x.C
 file
 
 
 
 
 2012-08-11T23:42:21.326330Z
-6d55724d63304e73c3fa999ba15cc30f
+993931cd04d51720241622319a10d2d3
 2002-10-18T00:22:58.000000Z
 58266
 janis
@@ -364,7 +330,41 @@ janis
 
 
 
-67
+123
+
+vbase11_x.C
+file
+
+
+
+
+2012-08-11T23:42:21.326330Z
+cc9fd160c8ac0d554f08ed78757c1ad7
+2002-10-18T00:22:58.000000Z
+58266
+janis
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+207
 
 vbase10_y.C
 file
@@ -400,14 +400,14 @@ janis
 
 168
 
-vbase11_x.C
+empty6.h
 file
 
 
 
 
 2012-08-11T23:42:21.326330Z
-cc9fd160c8ac0d554f08ed78757c1ad7
+6d55724d63304e73c3fa999ba15cc30f
 2002-10-18T00:22:58.000000Z
 58266
 janis
@@ -432,7 +432,7 @@ janis
 
 
 
-207
+67
 
 vbase11_y.C
 file

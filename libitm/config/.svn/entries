@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libitm/config
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,6 +26,12 @@ uros
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
+sh
+dir
+
+generic
+dir
+
 arm
 dir
 
@@ -45,11 +51,5 @@ x86
 dir
 
 sparc
-dir
-
-sh
-dir
-
-generic
 dir
 

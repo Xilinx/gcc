@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/27_io/basic_stringbuf
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -44,22 +44,22 @@ dir
 sgetc
 dir
 
-str
-dir
-
 sungetc
 dir
 
-sputn
+str
 dir
 
 seekpos
 dir
 
-pbackfail
+sputn
 dir
 
 sync
+dir
+
+pbackfail
 dir
 
 sputbackc

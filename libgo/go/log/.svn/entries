@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libgo/go/log
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,6 +25,9 @@ ian
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
+
+syslog
+dir
 
 log_test.go
 file
@@ -93,7 +96,4 @@ ian
 
 
 9348
-
-syslog
-dir
 

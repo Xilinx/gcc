@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/classpath/lib/javax/print/attribute
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,14 +26,14 @@ aph
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
-AttributeSetUtilities$UnmodifiableDocAttributeSet.class
+AttributeSetUtilities.class
 file
 
 
 
 
 2012-08-11T23:37:11.559798Z
-5a2e27d85d14c98383baf4f5eef80f59
+d764a5b68aa188935a42a576f5bec3dd
 2007-07-27T21:14:19.002073Z
 126998
 tromey
@@ -58,7 +58,143 @@ has-props
 
 
 
-811
+4904
+
+PrintJobAttribute.class
+file
+
+
+
+
+2012-08-11T23:37:11.559798Z
+2556afb4c8b598e50a27908088e3c363
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+176
+
+EnumSyntax.class
+file
+
+
+
+
+2012-08-11T23:37:11.559798Z
+97829ca1904dbb0c7ce6e7009548b075
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1919
+
+HashPrintServiceAttributeSet.class
+file
+
+
+
+
+2012-08-11T23:37:11.559798Z
+7dbbbee3c1cefcfc00d5919d8d3abeec
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1365
+
+HashAttributeSet.class
+file
+
+
+
+
+2012-08-11T23:37:11.559798Z
+89f7b5714f03c42cf6bd3b41c81c2e13
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+6236
 
 AttributeSetUtilities$UnmodifiablePrintRequestAttributeSet.class
 file
@@ -161,6 +297,40 @@ has-props
 
 
 841
+
+PrintRequestAttribute.class
+file
+
+
+
+
+2012-08-11T23:37:11.559798Z
+5bee964db4ba12b128e3286bdcad1b61
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+184
 
 DocAttribute.class
 file
@@ -369,6 +539,74 @@ has-props
 
 2385
 
+PrintServiceAttribute.class
+file
+
+
+
+
+2012-08-11T23:37:11.559798Z
+0e9d090111c37e005ae49c43d61afd74
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+184
+
+Attribute.class
+file
+
+
+
+
+2012-08-11T23:37:11.559798Z
+bd4a4d4871fb6404cd405bd791e53a2a
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+312
+
 DateTimeSyntax.class
 file
 
@@ -403,14 +641,14 @@ has-props
 
 1129
 
-IntegerSyntax.class
+DocAttributeSet.class
 file
 
 
 
 
 2012-08-11T23:37:11.559798Z
-a4a6db87306fd25506762e2e0ae35b7e
+5d90b478228b99f2d5905275373ceef7
 2006-12-12T18:41:51.528840Z
 119793
 tromey
@@ -435,7 +673,41 @@ has-props
 
 
 
-1215
+287
+
+AttributeSetUtilities$SynchronizedDocAttributeSet.class
+file
+
+
+
+
+2012-08-11T23:37:11.559798Z
+cafac6d844b678590afac14586c8ae7a
+2007-07-27T21:14:19.002073Z
+126998
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+811
 
 PrintRequestAttributeSet.class
 file
@@ -505,6 +777,40 @@ has-props
 
 865
 
+URISyntax.class
+file
+
+
+
+
+2012-08-11T23:37:11.559798Z
+26366b79a1a95b7fd8e25b04fce0d9ea
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1100
+
 Size2DSyntax.class
 file
 
@@ -538,40 +844,6 @@ has-props
 
 
 2497
-
-HashDocAttributeSet.class
-file
-
-
-
-
-2012-08-11T23:37:11.559798Z
-a4f4edc2134953552f25b520dc2e1b0d
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1266
 
 ResolutionSyntax.class
 file
@@ -607,48 +879,14 @@ has-props
 
 2590
 
-PrintJobAttribute.class
+AttributeSetUtilities$SynchronizedPrintServiceAttributeSet.class
 file
 
 
 
 
 2012-08-11T23:37:11.559798Z
-2556afb4c8b598e50a27908088e3c363
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-176
-
-AttributeSetUtilities.class
-file
-
-
-
-
-2012-08-11T23:37:11.559798Z
-d764a5b68aa188935a42a576f5bec3dd
+a2c37e19736c1f35114c67968a6f3cf4
 2007-07-27T21:14:19.002073Z
 126998
 tromey
@@ -673,7 +911,7 @@ has-props
 
 
 
-4904
+865
 
 PrintServiceAttributeSet.class
 file
@@ -709,16 +947,16 @@ has-props
 
 305
 
-AttributeSetUtilities$SynchronizedPrintServiceAttributeSet.class
+AttributeSetUtilities$SynchronizedAttributeSet.class
 file
 
 
 
 
 2012-08-11T23:37:11.559798Z
-a2c37e19736c1f35114c67968a6f3cf4
-2007-07-27T21:14:19.002073Z
-126998
+00d6dfe7ec4ff682267861d7704616c9
+2006-12-12T18:41:51.528840Z
+119793
 tromey
 has-props
 
@@ -741,7 +979,7 @@ has-props
 
 
 
-865
+2396
 
 AttributeSet.class
 file
@@ -777,16 +1015,16 @@ has-props
 
 706
 
-AttributeSetUtilities$SynchronizedAttributeSet.class
+AttributeSetUtilities$UnmodifiableDocAttributeSet.class
 file
 
 
 
 
 2012-08-11T23:37:11.559798Z
-00d6dfe7ec4ff682267861d7704616c9
-2006-12-12T18:41:51.528840Z
-119793
+5a2e27d85d14c98383baf4f5eef80f59
+2007-07-27T21:14:19.002073Z
+126998
 tromey
 has-props
 
@@ -809,41 +1047,7 @@ has-props
 
 
 
-2396
-
-PrintRequestAttribute.class
-file
-
-
-
-
-2012-08-11T23:37:11.559798Z
-5bee964db4ba12b128e3286bdcad1b61
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-184
+811
 
 SupportedValuesAttribute.class
 file
@@ -913,14 +1117,14 @@ has-props
 
 1321
 
-PrintServiceAttribute.class
+IntegerSyntax.class
 file
 
 
 
 
 2012-08-11T23:37:11.559798Z
-0e9d090111c37e005ae49c43d61afd74
+a4a6db87306fd25506762e2e0ae35b7e
 2006-12-12T18:41:51.528840Z
 119793
 tromey
@@ -945,109 +1149,7 @@ has-props
 
 
 
-184
-
-Attribute.class
-file
-
-
-
-
-2012-08-11T23:37:11.559798Z
-bd4a4d4871fb6404cd405bd791e53a2a
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-312
-
-AttributeSetUtilities$SynchronizedDocAttributeSet.class
-file
-
-
-
-
-2012-08-11T23:37:11.559798Z
-cafac6d844b678590afac14586c8ae7a
-2007-07-27T21:14:19.002073Z
-126998
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-811
-
-DocAttributeSet.class
-file
-
-
-
-
-2012-08-11T23:37:11.559798Z
-5d90b478228b99f2d5905275373ceef7
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-287
+1215
 
 SetOfIntegerSyntax.class
 file
@@ -1083,40 +1185,6 @@ has-props
 
 5008
 
-URISyntax.class
-file
-
-
-
-
-2012-08-11T23:37:11.559798Z
-26366b79a1a95b7fd8e25b04fce0d9ea
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1100
-
 AttributeSetUtilities$UnmodifiablePrintJobAttributeSet.class
 file
 
@@ -1151,6 +1219,40 @@ has-props
 
 841
 
+HashDocAttributeSet.class
+file
+
+
+
+
+2012-08-11T23:37:11.559798Z
+a4f4edc2134953552f25b520dc2e1b0d
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1266
+
 HashPrintRequestAttributeSet.class
 file
 
@@ -1184,106 +1286,4 @@ has-props
 
 
 1365
-
-EnumSyntax.class
-file
-
-
-
-
-2012-08-11T23:37:11.559798Z
-97829ca1904dbb0c7ce6e7009548b075
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1919
-
-HashPrintServiceAttributeSet.class
-file
-
-
-
-
-2012-08-11T23:37:11.559798Z
-7dbbbee3c1cefcfc00d5919d8d3abeec
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1365
-
-HashAttributeSet.class
-file
-
-
-
-
-2012-08-11T23:37:11.559798Z
-89f7b5714f03c42cf6bd3b41c81c2e13
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-6236
 

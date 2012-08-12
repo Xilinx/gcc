@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/gcc/testsuite/gfortran.dg/coarray
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -137,40 +137,6 @@ burnus
 
 1620
 
-poly_run_1.f90
-file
-
-
-
-
-2012-08-11T23:39:25.248302Z
-59f02bd49733e4af041192ce996bcd86
-2011-12-19T08:15:47.199934Z
-182471
-burnus
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1342
-
 caf.exp
 file
 
@@ -205,16 +171,16 @@ aldot
 
 2432
 
-poly_run_2.f90
+poly_run_1.f90
 file
 
 
 
 
 2012-08-11T23:39:25.248302Z
-77a5dc6dd1d1855e3dc4674effe8b6ee
-2011-12-15T14:53:55.736069Z
-182371
+59f02bd49733e4af041192ce996bcd86
+2011-12-19T08:15:47.199934Z
+182471
 burnus
 
 
@@ -237,7 +203,7 @@ burnus
 
 
 
-887
+1342
 
 alloc_comp_1.f90
 file
@@ -273,14 +239,14 @@ burnus
 
 327
 
-poly_run_3.f90
+poly_run_2.f90
 file
 
 
 
 
 2012-08-11T23:39:25.248302Z
-bd8c8adb2c44a03f20cb480af18ed04a
+77a5dc6dd1d1855e3dc4674effe8b6ee
 2011-12-15T14:53:55.736069Z
 182371
 burnus
@@ -305,41 +271,7 @@ burnus
 
 
 
-1030
-
-image_index_1.f90
-file
-
-
-
-
-2012-08-11T23:39:25.248302Z
-6cb57e0edb7420fbfa56608c6eaa63df
-2011-05-03T21:35:44.903347Z
-173341
-burnus
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-2745
+887
 
 this_image_1.f90
 file
@@ -375,16 +307,16 @@ burnus
 
 5796
 
-image_index_2.f90
+image_index_1.f90
 file
 
 
 
 
 2012-08-11T23:39:25.248302Z
-c9182edacbb3ad98cf9b81ced7356078
-2011-05-15T16:20:18.465001Z
-173772
+6cb57e0edb7420fbfa56608c6eaa63df
+2011-05-03T21:35:44.903347Z
+173341
 burnus
 
 
@@ -407,7 +339,41 @@ burnus
 
 
 
-2047
+2745
+
+poly_run_3.f90
+file
+
+
+
+
+2012-08-11T23:39:25.248302Z
+bd8c8adb2c44a03f20cb480af18ed04a
+2011-12-15T14:53:55.736069Z
+182371
+burnus
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1030
 
 this_image_2.f90
 file
@@ -443,6 +409,40 @@ burnus
 
 3269
 
+image_index_2.f90
+file
+
+
+
+
+2012-08-11T23:39:25.248302Z
+c9182edacbb3ad98cf9b81ced7356078
+2011-05-15T16:20:18.465001Z
+173772
+burnus
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2047
+
 image_index_3.f90
 file
 
@@ -477,40 +477,6 @@ burnus
 
 2857
 
-atomic_1.f90
-file
-
-
-
-
-2012-08-11T23:39:25.248302Z
-77a59a37262e649592960648d8f49884
-2011-05-31T20:04:09.739006Z
-174510
-burnus
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-595
-
 sync_1.f90
 file
 
@@ -544,6 +510,40 @@ burnus
 
 
 812
+
+atomic_1.f90
+file
+
+
+
+
+2012-08-11T23:39:25.248302Z
+77a59a37262e649592960648d8f49884
+2011-05-31T20:04:09.739006Z
+174510
+burnus
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+595
 
 scalar_alloc_1.f90
 file

@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/classpath/gnu/java/beans/encoder
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,176 +25,6 @@ gandalf
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-Writer.java
-file
-
-
-
-
-2012-08-11T23:36:55.219980Z
-1ba396cde43f4795903b9ec97c9c4c40
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-6351
-
-StAXWriter.java
-file
-
-
-
-
-2012-08-11T23:36:55.219980Z
-157e141c1011332bc60a3cab10ecb3cd
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-5576
-
-MapPersistenceDelegate.java
-file
-
-
-
-
-2012-08-11T23:36:55.219980Z
-b2f9974ee7959c3af76a6b76d9b1340f
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-2837
-
-ArrayPersistenceDelegate.java
-file
-
-
-
-
-2012-08-11T23:36:55.219980Z
-0d75bc79da0f36d421519ca5f6ba3831
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-6053
-
-Root.java
-file
-
-
-
-
-2012-08-11T23:36:55.219980Z
-3bd34332b7170b353b5c73679faa054d
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-5606
 
 ObjectId.java
 file
@@ -230,14 +60,14 @@ gandalf
 
 4173
 
-ReportingScannerState.java
+Root.java
 file
 
 
 
 
 2012-08-11T23:36:55.219980Z
-22f4f727f4571211744536e75f9d3141
+3bd34332b7170b353b5c73679faa054d
 2011-01-11T19:46:05.727579Z
 168680
 gandalf
@@ -262,7 +92,7 @@ gandalf
 
 
 
-4121
+5606
 
 Context.java
 file
@@ -298,14 +128,14 @@ gandalf
 
 2792
 
-IgnoringScannerState.java
+ReportingScannerState.java
 file
 
 
 
 
 2012-08-11T23:36:55.219980Z
-24f5da91fccb3a4f104bb572c1c50e29
+22f4f727f4571211744536e75f9d3141
 2011-01-11T19:46:05.727579Z
 168680
 gandalf
@@ -330,7 +160,7 @@ gandalf
 
 
 
-3615
+4121
 
 GenericScannerState.java
 file
@@ -365,6 +195,40 @@ gandalf
 
 
 6961
+
+IgnoringScannerState.java
+file
+
+
+
+
+2012-08-11T23:36:55.219980Z
+24f5da91fccb3a4f104bb572c1c50e29
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3615
 
 ScannerState.java
 file
@@ -538,4 +402,140 @@ gandalf
 
 
 30182
+
+StAXWriter.java
+file
+
+
+
+
+2012-08-11T23:36:55.219980Z
+157e141c1011332bc60a3cab10ecb3cd
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5576
+
+Writer.java
+file
+
+
+
+
+2012-08-11T23:36:55.219980Z
+1ba396cde43f4795903b9ec97c9c4c40
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+6351
+
+MapPersistenceDelegate.java
+file
+
+
+
+
+2012-08-11T23:36:55.219980Z
+b2f9974ee7959c3af76a6b76d9b1340f
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2837
+
+ArrayPersistenceDelegate.java
+file
+
+
+
+
+2012-08-11T23:36:55.219980Z
+0d75bc79da0f36d421519ca5f6ba3831
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+6053
 

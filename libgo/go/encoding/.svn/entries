@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libgo/go/encoding
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,6 +26,18 @@ ian
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
+base32
+dir
+
+xml
+dir
+
+pem
+dir
+
+asn1
+dir
+
 base64
 dir
 
@@ -45,17 +57,5 @@ json
 dir
 
 csv
-dir
-
-base32
-dir
-
-xml
-dir
-
-pem
-dir
-
-asn1
 dir
 

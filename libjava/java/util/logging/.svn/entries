@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/java/util/logging
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,6 +25,74 @@ doko
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
+
+ErrorManager.h
+file
+
+
+
+
+2012-08-11T23:37:48.149388Z
+347e8fe1e17723257366fb1c2ebe710b
+2007-03-05T14:29:47.086374Z
+122550
+tromey
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+810
+
+XMLFormatter.h
+file
+
+
+
+
+2012-08-11T23:37:48.149388Z
+ad2ae09fc346fb8d429aa1de620f30c3
+2008-10-21T17:55:01.166395Z
+141271
+doko
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1279
 
 Filter.h
 file
@@ -94,40 +162,6 @@ tromey
 
 658
 
-FileHandler$ostr.h
-file
-
-
-
-
-2012-08-11T23:37:48.139388Z
-a073ced9971387b8a30816f0c4b59dc2
-2007-01-09T19:58:05.773323Z
-120621
-tromey
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-904
-
 StreamHandler.h
 file
 
@@ -161,6 +195,40 @@ tromey
 
 
 1433
+
+FileHandler$ostr.h
+file
+
+
+
+
+2012-08-11T23:37:48.139388Z
+a073ced9971387b8a30816f0c4b59dc2
+2007-01-09T19:58:05.773323Z
+120621
+tromey
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+904
 
 LoggingPermission.h
 file
@@ -332,40 +400,6 @@ doko
 
 443
 
-LogManager.java
-file
-
-
-
-
-2012-08-11T23:37:48.139388Z
-19e9d37c53baef10a9d2ad79720951cf
-2007-03-30T04:09:35.365735Z
-123356
-tromey
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-31195
-
 MemoryHandler.h
 file
 
@@ -399,6 +433,40 @@ tromey
 
 
 1043
+
+LogManager.java
+file
+
+
+
+
+2012-08-11T23:37:48.139388Z
+19e9d37c53baef10a9d2ad79720951cf
+2007-03-30T04:09:35.365735Z
+123356
+tromey
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+31195
 
 Level.h
 file
@@ -739,72 +807,4 @@ tromey
 
 
 701
-
-ErrorManager.h
-file
-
-
-
-
-2012-08-11T23:37:48.149388Z
-347e8fe1e17723257366fb1c2ebe710b
-2007-03-05T14:29:47.086374Z
-122550
-tromey
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-810
-
-XMLFormatter.h
-file
-
-
-
-
-2012-08-11T23:37:48.149388Z
-ad2ae09fc346fb8d429aa1de620f30c3
-2008-10-21T17:55:01.166395Z
-141271
-doko
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1279
 

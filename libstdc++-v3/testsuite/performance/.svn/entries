@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/performance
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,18 +26,6 @@ fdumont
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
-ext
-dir
-
-22_locale
-dir
-
-23_containers
-dir
-
-21_strings
-dir
-
 26_numerics
 dir
 
@@ -48,5 +36,17 @@ dir
 dir
 
 27_io
+dir
+
+ext
+dir
+
+22_locale
+dir
+
+23_containers
+dir
+
+21_strings
 dir
 

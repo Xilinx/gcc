@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libgo/go/net/rpc
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,6 +25,43 @@ ian
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
+
+jsonrpc
+dir
+
+client.go
+file
+
+
+
+
+2012-08-11T23:45:09.714443Z
+e6b9a9d32f737b4d9829f791c1ab7613
+2012-03-30T21:27:11.804322Z
+186023
+ian
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+8109
 
 server_test.go
 file
@@ -127,41 +164,4 @@ ian
 
 
 19764
-
-jsonrpc
-dir
-
-client.go
-file
-
-
-
-
-2012-08-11T23:45:09.714443Z
-e6b9a9d32f737b4d9829f791c1ab7613
-2012-03-30T21:27:11.804322Z
-186023
-ian
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-8109
 

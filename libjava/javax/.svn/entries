@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/javax
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,37 +26,40 @@ gandalf
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
+crypto
+dir
+
 transaction
 dir
 
 net
 dir
 
-swing
+accessibility
 dir
 
 rmi
 dir
 
-accessibility
+swing
 dir
 
 sound
 dir
 
-print
+activity
 dir
 
-activity
+print
 dir
 
 sql
 dir
 
-tools
+xml
 dir
 
-xml
+tools
 dir
 
 activation
@@ -72,8 +75,5 @@ imageio
 dir
 
 management
-dir
-
-crypto
 dir
 

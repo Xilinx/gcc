@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/22_locale
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,34 +26,10 @@ redi
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
-messages
-dir
-
-numpunct
-dir
-
-headers
-dir
-
-global_templates
-dir
-
-ctype_base
-dir
-
-collate_byname
-dir
-
-money_put
-dir
-
-ctype_byname
+codecvt_byname
 dir
 
 facet
-dir
-
-codecvt_byname
 dir
 
 collate
@@ -62,10 +38,10 @@ dir
 ctype
 dir
 
-money_get
+time_put
 dir
 
-time_put
+money_get
 dir
 
 codecvt
@@ -93,5 +69,29 @@ messages_byname
 dir
 
 numpunct_byname
+dir
+
+messages
+dir
+
+numpunct
+dir
+
+headers
+dir
+
+collate_byname
+dir
+
+ctype_base
+dir
+
+global_templates
+dir
+
+ctype_byname
+dir
+
+money_put
 dir
 

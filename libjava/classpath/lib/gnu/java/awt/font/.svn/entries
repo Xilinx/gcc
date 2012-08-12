@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/classpath/lib/gnu/java/awt/font
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,6 +25,40 @@ doko
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
+
+FontFactory.class
+file
+
+
+
+
+2012-08-11T23:37:05.809862Z
+8d8e623dac81ccc96dfbdd6860d6c689
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+581
 
 opentype
 dir
@@ -201,38 +235,4 @@ has-props
 
 autofit
 dir
-
-FontFactory.class
-file
-
-
-
-
-2012-08-11T23:37:05.809862Z
-8d8e623dac81ccc96dfbdd6860d6c689
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-581
 

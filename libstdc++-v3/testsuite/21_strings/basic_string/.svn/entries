@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/21_strings/basic_string
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,67 +25,6 @@ ro
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-range_access
-dir
-
-operators
-dir
-
-find
-dir
-
-modifiers
-dir
-
-substr
-dir
-
-pthread18185.cc
-file
-
-
-
-
-2012-08-11T23:35:58.960609Z
-8f9b361c5e4e5f3b1d102c3da72f7506
-2012-03-14T16:33:37.926982Z
-185390
-ro
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1559
-
-operations
-dir
-
-requirements
-dir
-
-assign
-dir
-
-compare
-dir
 
 numeric_conversions
 dir
@@ -217,5 +156,66 @@ element_access
 dir
 
 replace
+dir
+
+range_access
+dir
+
+operators
+dir
+
+find
+dir
+
+modifiers
+dir
+
+pthread18185.cc
+file
+
+
+
+
+2012-08-11T23:35:58.960609Z
+8f9b361c5e4e5f3b1d102c3da72f7506
+2012-03-14T16:33:37.926982Z
+185390
+ro
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1559
+
+substr
+dir
+
+requirements
+dir
+
+operations
+dir
+
+assign
+dir
+
+compare
 dir
 

@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/ext/vstring/requirements/exception
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,6 +25,40 @@ paolo
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
+
+propagation_consistent.cc
+file
+
+
+
+
+2012-08-11T23:36:00.960587Z
+2a899a2e31a4f7c15f38b1b3fb8fda92
+2011-05-21T00:30:57.842293Z
+173992
+paolo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1679
 
 basic.cc
 file
@@ -93,38 +127,4 @@ paolo
 
 
 1694
-
-propagation_consistent.cc
-file
-
-
-
-
-2012-08-11T23:36:00.960587Z
-2a899a2e31a4f7c15f38b1b3fb8fda92
-2011-05-21T00:30:57.842293Z
-173992
-paolo
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1679
 

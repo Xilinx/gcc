@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/testsuite
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,12 +25,6 @@ gandalf
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-libjava.cni
-dir
-
-libjava.jvmti
-dir
 
 Makefile.in
 file
@@ -159,5 +153,11 @@ libjava.verify
 dir
 
 libjava.loader
+dir
+
+libjava.cni
+dir
+
+libjava.jvmti
 dir
 

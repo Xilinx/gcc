@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/22_locale/money_get/get/wchar_t
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -60,40 +60,6 @@ paolo
 
 1805
 
-11528.cc
-file
-
-
-
-
-2012-08-11T23:36:02.560569Z
-89b717d31001989d75ad97cb501052eb
-2010-09-15T10:46:39.518825Z
-164300
-paolo
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1531
-
 10.cc
 file
 
@@ -128,14 +94,14 @@ paolo
 
 1825
 
-wrapped_locale.cc
+11528.cc
 file
 
 
 
 
 2012-08-11T23:36:02.560569Z
-ff063e7b798b544c12d25b8bc1a3e9f5
+89b717d31001989d75ad97cb501052eb
 2010-09-15T10:46:39.518825Z
 164300
 paolo
@@ -160,7 +126,7 @@ paolo
 
 
 
-1812
+1531
 
 11.cc
 file
@@ -195,6 +161,40 @@ paolo
 
 
 1775
+
+wrapped_locale.cc
+file
+
+
+
+
+2012-08-11T23:36:02.560569Z
+ff063e7b798b544c12d25b8bc1a3e9f5
+2010-09-15T10:46:39.518825Z
+164300
+paolo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1812
 
 12.cc
 file

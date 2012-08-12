@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/22_locale/moneypunct
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,6 +25,9 @@ paolo
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
+
+members
+dir
 
 40712.cc
 file
@@ -61,8 +64,5 @@ paolo
 1159
 
 requirements
-dir
-
-members
 dir
 

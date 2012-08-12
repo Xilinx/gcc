@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libgo/go
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,6 +25,9 @@ ian
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
+
+expvar
+dir
 
 sync
 dir
@@ -77,10 +80,10 @@ dir
 builtin
 dir
 
-io
+index
 dir
 
-index
+io
 dir
 
 flag
@@ -101,22 +104,22 @@ dir
 image
 dir
 
-runtime
+hash
 dir
 
-hash
+runtime
 dir
 
 text
 dir
 
-debug
+unicode
 dir
 
 encoding
 dir
 
-unicode
+debug
 dir
 
 math
@@ -141,8 +144,5 @@ html
 dir
 
 bufio
-dir
-
-expvar
 dir
 

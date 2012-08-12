@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/classpath/lib/gnu/javax/print/ipp/attribute/supported
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,14 +26,14 @@ gandalf
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
-PrinterResolutionSupported.class
+FinishingsSupported.class
 file
 
 
 
 
 2012-08-11T23:37:07.769840Z
-123f092e83461172a113a80243ce73e1
+647f6952ee64e829ab9d827ede721ba7
 2010-10-12T15:55:12.882649Z
 165383
 gandalf
@@ -58,7 +58,109 @@ has-props
 
 
 
-2139
+4204
+
+CompressionSupported.class
+file
+
+
+
+
+2012-08-11T23:37:07.769840Z
+319ac47dbf1d44278863fa82bba169f9
+2010-10-12T15:55:12.882649Z
+165383
+gandalf
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2755
+
+PrinterUriSupported.class
+file
+
+
+
+
+2012-08-11T23:37:07.769840Z
+c423864b966acddadd27f31bb4f3df5a
+2010-10-12T15:55:12.882649Z
+165383
+gandalf
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+775
+
+PrintQualitySupported.class
+file
+
+
+
+
+2012-08-11T23:37:07.769840Z
+d0356de1a12642447db616568f2eea46
+2010-10-12T15:55:12.882649Z
+165383
+gandalf
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2773
 
 SidesSupported.class
 file
@@ -93,6 +195,40 @@ has-props
 
 
 1589
+
+PrinterResolutionSupported.class
+file
+
+
+
+
+2012-08-11T23:37:07.769840Z
+123f092e83461172a113a80243ce73e1
+2010-10-12T15:55:12.882649Z
+165383
+gandalf
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2139
 
 MultipleDocumentJobsSupported.class
 file
@@ -332,40 +468,6 @@ has-props
 
 2644
 
-DocumentFormatSupported.class
-file
-
-
-
-
-2012-08-11T23:37:07.769840Z
-9b84bc67127a08f12a334ded893580e1
-2010-10-12T15:55:12.882649Z
-165383
-gandalf
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-861
-
 UriSecuritySupported.class
 file
 
@@ -400,14 +502,14 @@ has-props
 
 1450
 
-GeneratedNaturalLanguageSupported.class
+DocumentFormatSupported.class
 file
 
 
 
 
 2012-08-11T23:37:07.769840Z
-1c18c10fbb8aa081c4ed155926121de6
+9b84bc67127a08f12a334ded893580e1
 2010-10-12T15:55:12.882649Z
 165383
 gandalf
@@ -432,7 +534,7 @@ has-props
 
 
 
-862
+861
 
 CharsetSupported.class
 file
@@ -467,6 +569,40 @@ has-props
 
 
 784
+
+GeneratedNaturalLanguageSupported.class
+file
+
+
+
+
+2012-08-11T23:37:07.769840Z
+1c18c10fbb8aa081c4ed155926121de6
+2010-10-12T15:55:12.882649Z
+165383
+gandalf
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+862
 
 JobHoldUntilSupported.class
 file
@@ -569,140 +705,4 @@ has-props
 
 
 1676
-
-FinishingsSupported.class
-file
-
-
-
-
-2012-08-11T23:37:07.769840Z
-647f6952ee64e829ab9d827ede721ba7
-2010-10-12T15:55:12.882649Z
-165383
-gandalf
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-4204
-
-CompressionSupported.class
-file
-
-
-
-
-2012-08-11T23:37:07.769840Z
-319ac47dbf1d44278863fa82bba169f9
-2010-10-12T15:55:12.882649Z
-165383
-gandalf
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-2755
-
-PrinterUriSupported.class
-file
-
-
-
-
-2012-08-11T23:37:07.769840Z
-c423864b966acddadd27f31bb4f3df5a
-2010-10-12T15:55:12.882649Z
-165383
-gandalf
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-775
-
-PrintQualitySupported.class
-file
-
-
-
-
-2012-08-11T23:37:07.769840Z
-d0356de1a12642447db616568f2eea46
-2010-10-12T15:55:12.882649Z
-165383
-gandalf
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-2773
 

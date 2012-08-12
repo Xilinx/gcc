@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/gcc/testsuite/ada/acats/tests
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -47,22 +47,22 @@ dir
 c8
 dir
 
-cxa
-dir
-
 c9
 dir
 
-cxb
+cxa
 dir
 
 cz
 dir
 
-a
+cxb
 dir
 
 cxf
+dir
+
+a
 dir
 
 cxg

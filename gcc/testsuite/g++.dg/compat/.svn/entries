@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/gcc/testsuite/g++.dg/compat
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,46 +25,6 @@ ro
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-init
-dir
-
-struct-layout-1.h
-file
-
-
-
-
-2012-08-11T23:42:21.456329Z
-b3150d6e06b56824040f5b2dadcf18ce
-2008-02-23T15:24:02.003570Z
-132572
-uros
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-16034
-
-break
-dir
 
 struct-layout-1.exp
 file
@@ -312,4 +272,44 @@ rsandifo
 
 
 4059
+
+init
+dir
+
+struct-layout-1.h
+file
+
+
+
+
+2012-08-11T23:42:21.456329Z
+b3150d6e06b56824040f5b2dadcf18ce
+2008-02-23T15:24:02.003570Z
+132572
+uros
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+16034
+
+break
+dir
 

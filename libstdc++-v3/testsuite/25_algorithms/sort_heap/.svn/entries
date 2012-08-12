@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/25_algorithms/sort_heap
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,9 +25,6 @@ paolo
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-requirements
-dir
 
 check_compare_by_value.cc
 file
@@ -62,4 +59,7 @@ paolo
 
 
 2309
+
+requirements
+dir
 

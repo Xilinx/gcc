@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/gcc/testsuite/gcc.target
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -32,10 +32,10 @@ dir
 spu
 dir
 
-mips
+sparc
 dir
 
-sparc
+mips
 dir
 
 sh
@@ -47,16 +47,16 @@ dir
 bfin
 dir
 
-powerpc
-dir
-
 arm
 dir
 
-m68k
+powerpc
 dir
 
 alpha
+dir
+
+m68k
 dir
 
 microblaze
@@ -65,10 +65,10 @@ dir
 avr
 dir
 
-rx
+i386
 dir
 
-i386
+rx
 dir
 
 xstormy16

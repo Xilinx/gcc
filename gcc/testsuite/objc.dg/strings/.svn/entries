@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/gcc/testsuite/objc.dg/strings
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,6 +25,40 @@ nicola
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
+
+const-str-12.m
+file
+
+
+
+
+2012-08-11T23:43:16.375714Z
+24ad853ec86d75ab828e6fc36156ce31
+2010-10-22T10:30:29.164979Z
+165821
+iains
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+462
 
 const-str-12b.m
 file
@@ -365,38 +399,4 @@ iains
 
 
 331
-
-const-str-12.m
-file
-
-
-
-
-2012-08-11T23:43:16.375714Z
-24ad853ec86d75ab828e6fc36156ce31
-2010-10-22T10:30:29.164979Z
-165821
-iains
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-462
 

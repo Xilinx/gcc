@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libgo/go/image/png/testdata/pngsuite
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -536,40 +536,6 @@ ian
 
 1907
 
-basn3p08.png
-file
-
-
-
-
-2012-08-11T23:45:01.424536Z
-7bfc33449ad211e678daa185e61ac9b0
-2009-11-10T23:10:04.178483Z
-154084
-ian
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1286
-
 basn0g01-30.sng
 file
 
@@ -603,6 +569,40 @@ ian
 
 
 1966
+
+basn3p08.png
+file
+
+
+
+
+2012-08-11T23:45:01.424536Z
+7bfc33449ad211e678daa185e61ac9b0
+2009-11-10T23:10:04.178483Z
+154084
+ian
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1286
 
 basn3p08.sng
 file
@@ -842,40 +842,6 @@ ian
 
 2784
 
-basn0g01.sng
-file
-
-
-
-
-2012-08-11T23:45:01.424536Z
-a1cb51f4c5ad29c90e9ca46a8947737c
-2011-03-16T23:05:44.767009Z
-171076
-ian
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-2213
-
 basn0g04.png
 file
 
@@ -909,6 +875,40 @@ has-props
 
 
 145
+
+basn0g01.sng
+file
+
+
+
+
+2012-08-11T23:45:01.424536Z
+a1cb51f4c5ad29c90e9ca46a8947737c
+2011-03-16T23:05:44.767009Z
+171076
+ian
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2213
 
 basn0g02.sng
 file
@@ -944,40 +944,6 @@ ian
 
 2213
 
-basn2c08.png
-file
-
-
-
-
-2012-08-11T23:45:01.424536Z
-ccb55f531fa2ee55e3631222864fd3a0
-2009-11-10T23:10:04.178483Z
-154084
-ian
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-145
-
 basn4a08.png
 file
 
@@ -1011,6 +977,40 @@ has-props
 
 
 126
+
+basn2c08.png
+file
+
+
+
+
+2012-08-11T23:45:01.424536Z
+ccb55f531fa2ee55e3631222864fd3a0
+2009-11-10T23:10:04.178483Z
+154084
+ian
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+145
 
 basn0g04.sng
 file

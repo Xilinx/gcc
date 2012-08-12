@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/25_algorithms/partial_sort
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,74 +25,6 @@ paolo
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-check_compare_by_value.cc
-file
-
-
-
-
-2012-08-11T23:35:54.140663Z
-84a6db5b8e077994eb6dfb1986800ab8
-2011-03-09T18:30:11.537623Z
-170827
-paolo
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-2584
-
-moveable.cc
-file
-
-
-
-
-2012-08-11T23:35:54.140663Z
-efbef45fd07793388db3fc8ca5a0fbe2
-2010-01-12T17:16:25.493050Z
-155841
-paolo
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-2706
 
 check_type.cc
 file
@@ -198,4 +130,72 @@ jakub
 
 
 2216
+
+check_compare_by_value.cc
+file
+
+
+
+
+2012-08-11T23:35:54.140663Z
+84a6db5b8e077994eb6dfb1986800ab8
+2011-03-09T18:30:11.537623Z
+170827
+paolo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2584
+
+moveable.cc
+file
+
+
+
+
+2012-08-11T23:35:54.140663Z
+efbef45fd07793388db3fc8ca5a0fbe2
+2010-01-12T17:16:25.493050Z
+155841
+paolo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2706
 

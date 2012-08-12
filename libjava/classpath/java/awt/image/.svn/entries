@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/classpath/java/awt/image
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,14 +26,14 @@ gandalf
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
-SinglePixelPackedSampleModel.java
+AreaAveragingScaleFilter.java
 file
 
 
 
 
 2012-08-11T23:37:14.499765Z
-978818c0829d9113285bfab52d59c539
+577b3a7517d87143f4e1be451698619e
 2011-01-11T19:46:05.727579Z
 168680
 gandalf
@@ -58,7 +58,109 @@ gandalf
 
 
 
-18637
+10040
+
+CropImageFilter.java
+file
+
+
+
+
+2012-08-11T23:37:14.499765Z
+f480083acea4ae43639416f4cff6677c
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+7143
+
+RescaleOp.java
+file
+
+
+
+
+2012-08-11T23:37:14.499765Z
+ba4fbe66aa24c71036d2b7f245b75ad0
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+14098
+
+ColorConvertOp.java
+file
+
+
+
+
+2012-08-11T23:37:14.499765Z
+18f85074b46ff7bbbd053417e44f220d
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+20789
 
 package.html
 file
@@ -94,40 +196,6 @@ tromey
 
 1970
 
-Kernel.java
-file
-
-
-
-
-2012-08-11T23:37:14.499765Z
-503246c3ab9b3c3245a8d6508e56fc5c
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-5476
-
 FilteredImageSource.java
 file
 
@@ -161,40 +229,6 @@ gandalf
 
 
 4317
-
-RGBImageFilter.java
-file
-
-
-
-
-2012-08-11T23:37:14.499765Z
-c2213a722014e8ffdc56e661af97273d
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-9016
 
 AffineTransformOp.java
 file
@@ -264,40 +298,6 @@ gandalf
 
 3958
 
-ComponentSampleModel.java
-file
-
-
-
-
-2012-08-11T23:37:14.499765Z
-b8b902b4e317d583115f6c1c7799f187
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-26287
-
 BufferedImage.java
 file
 
@@ -366,14 +366,14 @@ gandalf
 
 3215
 
-DataBufferByte.java
+ReplicateScaleFilter.java
 file
 
 
 
 
 2012-08-11T23:37:14.499765Z
-bbbd625e185d6befec4a978c5f51e03b
+997f630f0b14e09630bfa1d64668b85e
 2011-01-11T19:46:05.727579Z
 168680
 gandalf
@@ -398,7 +398,7 @@ gandalf
 
 
 
-7528
+8451
 
 IndexColorModel.java
 file
@@ -434,17 +434,17 @@ gandalf
 
 26522
 
-ConvolveOp.java
+ImagingOpException.java
 file
 
 
 
 
 2012-08-11T23:37:14.499765Z
-cffd7c49c10b24629843507534252d1f
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
+55fa73258864d85e05208acf2d8809be
+2005-09-23T17:31:48.000000Z
+104575
+tromey
 
 
 
@@ -466,7 +466,7 @@ gandalf
 
 
 
-13126
+2461
 
 ImageObserver.java
 file
@@ -502,14 +502,14 @@ gandalf
 
 4045
 
-BufferedImageFilter.java
+DirectColorModel.java
 file
 
 
 
 
 2012-08-11T23:37:14.499765Z
-134327ead49d7e61c509783a1f476661
+80382909cb3d2d2c8dce9fb690fe2c2e
 2011-01-11T19:46:05.727579Z
 168680
 gandalf
@@ -534,7 +534,41 @@ gandalf
 
 
 
-4392
+13674
+
+WritableRaster.java
+file
+
+
+
+
+2012-08-11T23:37:14.499765Z
+b3fdf275b8880a60859d2573dde30387
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+15925
 
 RenderedImage.java
 file
@@ -570,6 +604,40 @@ gandalf
 
 2464
 
+BufferedImageFilter.java
+file
+
+
+
+
+2012-08-11T23:37:14.499765Z
+134327ead49d7e61c509783a1f476661
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+4392
+
 MemoryImageSource.java
 file
 
@@ -604,17 +672,17 @@ gandalf
 
 13806
 
-DataBufferDouble.java
+BufferStrategy.java
 file
 
 
 
 
 2012-08-11T23:37:14.499765Z
-53ffb354a6fda8bc6859e3714d1ccf63
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
+7fd2b66aba851b8fd7432073148bee15
+2005-09-23T17:31:48.000000Z
+104575
+tromey
 
 
 
@@ -636,7 +704,7 @@ gandalf
 
 
 
-8321
+4809
 
 ImageConsumer.java
 file
@@ -672,108 +740,6 @@ gandalf
 
 7550
 
-ColorModel.java
-file
-
-
-
-
-2012-08-11T23:37:14.499765Z
-39598256e22409b72e64aee7c2d907e3
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-24351
-
-RasterOp.java
-file
-
-
-
-
-2012-08-11T23:37:14.499765Z
-6b0e678f9e80b63baf88a6398514fdb1
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-3827
-
-Raster.java
-file
-
-
-
-
-2012-08-11T23:37:14.499765Z
-0e010c89d2bb6bdaee2a05a6c8a309b4
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-30991
-
 BandCombineOp.java
 file
 
@@ -807,40 +773,6 @@ gandalf
 
 
 8178
-
-ShortLookupTable.java
-file
-
-
-
-
-2012-08-11T23:37:14.499765Z
-d44f663fc76953731f3b8eb414426039
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-6308
 
 SampleModel.java
 file
@@ -876,14 +808,14 @@ gandalf
 
 34661
 
-PackedColorModel.java
+DataBuffer.java
 file
 
 
 
 
 2012-08-11T23:37:14.499765Z
-b78226d1d0f51e2ab2622eae028ef73d
+eaa8ac17d1a5e3c97597b68a470f5fd7
 2011-01-11T19:46:05.727579Z
 168680
 gandalf
@@ -908,16 +840,16 @@ gandalf
 
 
 
-6268
+13074
 
-DataBufferUShort.java
+TileObserver.java
 file
 
 
 
 
 2012-08-11T23:37:14.499765Z
-4fb3ba3dfdcee67ada3c7cec65f152a6
+a891ff83aa36214e790c43a28b48c80e
 2011-01-11T19:46:05.727579Z
 168680
 gandalf
@@ -942,16 +874,16 @@ gandalf
 
 
 
-7482
+1929
 
-AreaAveragingScaleFilter.java
+PixelGrabber.java
 file
 
 
 
 
 2012-08-11T23:37:14.499765Z
-577b3a7517d87143f4e1be451698619e
+cb9bad8b10e76f1f549406d03a2c9022
 2011-01-11T19:46:05.727579Z
 168680
 gandalf
@@ -976,7 +908,41 @@ gandalf
 
 
 
-10040
+20908
+
+LookupOp.java
+file
+
+
+
+
+2012-08-11T23:37:14.499765Z
+362707b6f268e312d6ba3b38e13202bf
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+11178
 
 DataBufferInt.java
 file
@@ -1012,14 +978,14 @@ gandalf
 
 7416
 
-ColorConvertOp.java
+SinglePixelPackedSampleModel.java
 file
 
 
 
 
 2012-08-11T23:37:14.499765Z
-18f85074b46ff7bbbd053417e44f220d
+978818c0829d9113285bfab52d59c539
 2011-01-11T19:46:05.727579Z
 168680
 gandalf
@@ -1044,7 +1010,41 @@ gandalf
 
 
 
-20789
+18637
+
+Kernel.java
+file
+
+
+
+
+2012-08-11T23:37:14.499765Z
+503246c3ab9b3c3245a8d6508e56fc5c
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5476
 
 LookupTable.java
 file
@@ -1148,6 +1148,40 @@ tromey
 
 9308
 
+RGBImageFilter.java
+file
+
+
+
+
+2012-08-11T23:37:14.499765Z
+c2213a722014e8ffdc56e661af97273d
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+9016
+
 renderable
 dir
 
@@ -1185,6 +1219,40 @@ gandalf
 
 7513
 
+ComponentSampleModel.java
+file
+
+
+
+
+2012-08-11T23:37:14.499765Z
+b8b902b4e317d583115f6c1c7799f187
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+26287
+
 WritableRenderedImage.java
 file
 
@@ -1219,14 +1287,14 @@ gandalf
 
 2229
 
-ReplicateScaleFilter.java
+DataBufferByte.java
 file
 
 
 
 
 2012-08-11T23:37:14.499765Z
-997f630f0b14e09630bfa1d64668b85e
+bbbd625e185d6befec4a978c5f51e03b
 2011-01-11T19:46:05.727579Z
 168680
 gandalf
@@ -1251,7 +1319,7 @@ gandalf
 
 
 
-8451
+7528
 
 MultiPixelPackedSampleModel.java
 file
@@ -1423,48 +1491,14 @@ gandalf
 
 8246
 
-ImagingOpException.java
+ConvolveOp.java
 file
 
 
 
 
 2012-08-11T23:37:14.499765Z
-55fa73258864d85e05208acf2d8809be
-2005-09-23T17:31:48.000000Z
-104575
-tromey
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-2461
-
-DirectColorModel.java
-file
-
-
-
-
-2012-08-11T23:37:14.499765Z
-80382909cb3d2d2c8dce9fb690fe2c2e
+cffd7c49c10b24629843507534252d1f
 2011-01-11T19:46:05.727579Z
 168680
 gandalf
@@ -1489,16 +1523,16 @@ gandalf
 
 
 
-13674
+13126
 
-WritableRaster.java
+DataBufferDouble.java
 file
 
 
 
 
 2012-08-11T23:37:14.499765Z
-b3fdf275b8880a60859d2573dde30387
+53ffb354a6fda8bc6859e3714d1ccf63
 2011-01-11T19:46:05.727579Z
 168680
 gandalf
@@ -1523,19 +1557,19 @@ gandalf
 
 
 
-15925
+8321
 
-BufferStrategy.java
+RasterOp.java
 file
 
 
 
 
 2012-08-11T23:37:14.499765Z
-7fd2b66aba851b8fd7432073148bee15
-2005-09-23T17:31:48.000000Z
-104575
-tromey
+6b0e678f9e80b63baf88a6398514fdb1
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
 
 
 
@@ -1557,7 +1591,75 @@ tromey
 
 
 
-4809
+3827
+
+ColorModel.java
+file
+
+
+
+
+2012-08-11T23:37:14.499765Z
+39598256e22409b72e64aee7c2d907e3
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+24351
+
+Raster.java
+file
+
+
+
+
+2012-08-11T23:37:14.499765Z
+0e010c89d2bb6bdaee2a05a6c8a309b4
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+30991
 
 BandedSampleModel.java
 file
@@ -1593,14 +1695,14 @@ gandalf
 
 26246
 
-DataBuffer.java
+ShortLookupTable.java
 file
 
 
 
 
 2012-08-11T23:37:14.499765Z
-eaa8ac17d1a5e3c97597b68a470f5fd7
+d44f663fc76953731f3b8eb414426039
 2011-01-11T19:46:05.727579Z
 168680
 gandalf
@@ -1625,7 +1727,7 @@ gandalf
 
 
 
-13074
+6308
 
 ByteLookupTable.java
 file
@@ -1661,14 +1763,14 @@ gandalf
 
 6178
 
-TileObserver.java
+PackedColorModel.java
 file
 
 
 
 
 2012-08-11T23:37:14.499765Z
-a891ff83aa36214e790c43a28b48c80e
+b78226d1d0f51e2ab2622eae028ef73d
 2011-01-11T19:46:05.727579Z
 168680
 gandalf
@@ -1693,16 +1795,16 @@ gandalf
 
 
 
-1929
+6268
 
-PixelGrabber.java
+DataBufferUShort.java
 file
 
 
 
 
 2012-08-11T23:37:14.499765Z
-cb9bad8b10e76f1f549406d03a2c9022
+4fb3ba3dfdcee67ada3c7cec65f152a6
 2011-01-11T19:46:05.727579Z
 168680
 gandalf
@@ -1727,107 +1829,5 @@ gandalf
 
 
 
-20908
-
-LookupOp.java
-file
-
-
-
-
-2012-08-11T23:37:14.499765Z
-362707b6f268e312d6ba3b38e13202bf
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-11178
-
-CropImageFilter.java
-file
-
-
-
-
-2012-08-11T23:37:14.499765Z
-f480083acea4ae43639416f4cff6677c
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-7143
-
-RescaleOp.java
-file
-
-
-
-
-2012-08-11T23:37:14.499765Z
-ba4fbe66aa24c71036d2b7f245b75ad0
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-14098
+7482
 

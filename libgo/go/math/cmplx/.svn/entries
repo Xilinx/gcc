@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libgo/go/math/cmplx
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,14 +26,14 @@ ian
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
-sqrt.go
+conj.go
 file
 
 
 
 
 2012-08-11T23:45:03.904509Z
-bb2fcd25250ffff7150f49f8185f959d
+1928eb52ae51818eb4897ba32fde3792
 2011-12-07T01:11:29.367758Z
 182073
 ian
@@ -58,7 +58,7 @@ ian
 
 
 
-2794
+292
 
 sin.go
 file
@@ -94,14 +94,14 @@ ian
 
 3389
 
-conj.go
+sqrt.go
 file
 
 
 
 
 2012-08-11T23:45:03.904509Z
-1928eb52ae51818eb4897ba32fde3792
+bb2fcd25250ffff7150f49f8185f959d
 2011-12-07T01:11:29.367758Z
 182073
 ian
@@ -126,7 +126,7 @@ ian
 
 
 
-292
+2794
 
 asin.go
 file
@@ -298,40 +298,6 @@ ian
 
 372
 
-pow.go
-file
-
-
-
-
-2012-08-11T23:45:03.904509Z
-3241e1c24352ae3c71dfc4a940885b47
-2011-12-07T01:11:29.367758Z
-182073
-ian
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1876
-
 abs.go
 file
 
@@ -366,14 +332,14 @@ ian
 
 420
 
-isnan.go
+pow.go
 file
 
 
 
 
 2012-08-11T23:45:03.904509Z
-f9346b6a4049ec3a7eef5821cfa211d5
+3241e1c24352ae3c71dfc4a940885b47
 2011-12-07T01:11:29.367758Z
 182073
 ian
@@ -398,7 +364,7 @@ ian
 
 
 
-596
+1876
 
 isinf.go
 file
@@ -433,6 +399,40 @@ ian
 
 
 506
+
+isnan.go
+file
+
+
+
+
+2012-08-11T23:45:03.904509Z
+f9346b6a4049ec3a7eef5821cfa211d5
+2011-12-07T01:11:29.367758Z
+182073
+ian
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+596
 
 polar.go
 file

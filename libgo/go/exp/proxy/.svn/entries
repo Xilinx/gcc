@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libgo/go/exp/proxy
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,40 +25,6 @@ ian
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-direct.go
-file
-
-
-
-
-2012-08-11T23:45:05.324493Z
-a73827f69c118add0c8490dbdac4351e
-2012-01-25T20:56:26.098721Z
-183539
-ian
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-408
 
 proxy_test.go
 file
@@ -229,4 +195,38 @@ ian
 
 
 5516
+
+direct.go
+file
+
+
+
+
+2012-08-11T23:45:05.324493Z
+a73827f69c118add0c8490dbdac4351e
+2012-01-25T20:56:26.098721Z
+183539
+ian
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+408
 

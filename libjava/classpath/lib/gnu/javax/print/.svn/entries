@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/classpath/lib/gnu/javax/print
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,14 +26,48 @@ gandalf
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
-PrinterDialog$GeneralPanel$PrintRange.class
+PrinterDialog$AppearancePanel.class
 file
 
 
 
 
 2012-08-11T23:37:07.839839Z
-fb8f83cb27f408458a580b52cb1c5de4
+7318c9ac1c6617b6095cb55d9c347be0
+2007-07-27T21:14:19.002073Z
+126998
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2445
+
+CupsPrintService.class
+file
+
+
+
+
+2012-08-11T23:37:07.839839Z
+327ada0e9c633e1a8cf0b1fdf7f0a96a
 2006-12-12T18:41:51.528840Z
 119793
 tromey
@@ -58,7 +92,109 @@ has-props
 
 
 
-4723
+1287
+
+PrinterDialog$GeneralPanel$PrintServices.class
+file
+
+
+
+
+2012-08-11T23:37:07.839839Z
+c6175e73d8a673bfdaf398d13c3a0189
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5188
+
+PrinterDialog$AppearancePanel$Color.class
+file
+
+
+
+
+2012-08-11T23:37:07.839839Z
+56d37b1abdeab585d7d6aac15db4aecc
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3306
+
+PrinterDialog$AppearancePanel$JobAttributes.class
+file
+
+
+
+
+2012-08-11T23:37:07.839839Z
+0b554d02c2941b5f5b2aa5f3e5255902
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5932
 
 PrinterDialog$AppearancePanel$SidesPanel.class
 file
@@ -94,6 +230,43 @@ has-props
 
 3599
 
+PrinterDialog$GeneralPanel$PrintRange.class
+file
+
+
+
+
+2012-08-11T23:37:07.839839Z
+fb8f83cb27f408458a580b52cb1c5de4
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+4723
+
+ipp
+dir
+
 PrinterDialog$AppearancePanel$Quality.class
 file
 
@@ -128,17 +301,14 @@ has-props
 
 3566
 
-ipp
-dir
-
-PrintFlavorException.class
+PrinterDialog$PageSetupPanel$Orientation.class
 file
 
 
 
 
 2012-08-11T23:37:07.839839Z
-fce224d9c911d588bc96d57366b353d8
+3c16b6cb590ca5b375d9685e755bacd1
 2006-12-12T18:41:51.528840Z
 119793
 tromey
@@ -163,7 +333,7 @@ has-props
 
 
 
-1248
+3923
 
 PrinterDialog$GeneralPanel.class
 file
@@ -199,14 +369,14 @@ has-props
 
 2133
 
-PrinterDialog$PageSetupPanel$Orientation.class
+PrintFlavorException.class
 file
 
 
 
 
 2012-08-11T23:37:07.839839Z
-3c16b6cb590ca5b375d9685e755bacd1
+fce224d9c911d588bc96d57366b353d8
 2006-12-12T18:41:51.528840Z
 119793
 tromey
@@ -231,7 +401,7 @@ has-props
 
 
 
-3923
+1248
 
 CupsMediaMapping.class
 file
@@ -606,174 +776,4 @@ has-props
 
 
 2129
-
-PrinterDialog$AppearancePanel.class
-file
-
-
-
-
-2012-08-11T23:37:07.839839Z
-7318c9ac1c6617b6095cb55d9c347be0
-2007-07-27T21:14:19.002073Z
-126998
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-2445
-
-CupsPrintService.class
-file
-
-
-
-
-2012-08-11T23:37:07.839839Z
-327ada0e9c633e1a8cf0b1fdf7f0a96a
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1287
-
-PrinterDialog$GeneralPanel$PrintServices.class
-file
-
-
-
-
-2012-08-11T23:37:07.839839Z
-c6175e73d8a673bfdaf398d13c3a0189
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-5188
-
-PrinterDialog$AppearancePanel$Color.class
-file
-
-
-
-
-2012-08-11T23:37:07.839839Z
-56d37b1abdeab585d7d6aac15db4aecc
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-3306
-
-PrinterDialog$AppearancePanel$JobAttributes.class
-file
-
-
-
-
-2012-08-11T23:37:07.839839Z
-0b554d02c2941b5f5b2aa5f3e5255902
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-5932
 

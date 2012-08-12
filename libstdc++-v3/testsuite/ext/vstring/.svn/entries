@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/ext/vstring
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,6 +25,18 @@ paolo
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
+
+element_access
+dir
+
+inserters_extractors
+dir
+
+capacity
+dir
+
+operators
+dir
 
 init-list.cc
 file
@@ -110,17 +122,5 @@ assign
 dir
 
 types
-dir
-
-element_access
-dir
-
-inserters_extractors
-dir
-
-capacity
-dir
-
-operators
 dir
 

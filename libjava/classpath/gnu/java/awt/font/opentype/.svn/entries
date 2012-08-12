@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/classpath/gnu/java/awt/font/opentype
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,77 +25,6 @@ gandalf
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-CharGlyphMap.java
-file
-
-
-
-
-2012-08-11T23:36:55.809974Z
-bd27000c8f0b0e5f26b1b35db831c682
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-38154
-
-truetype
-dir
-
-OpenTypeFontFactory.java
-file
-
-
-
-
-2012-08-11T23:36:55.809974Z
-f899e50417a1848284463e85a92bb60b
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-4869
 
 GlyphNamer.java
 file
@@ -300,4 +229,75 @@ gandalf
 
 
 28625
+
+CharGlyphMap.java
+file
+
+
+
+
+2012-08-11T23:36:55.809974Z
+bd27000c8f0b0e5f26b1b35db831c682
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+38154
+
+truetype
+dir
+
+OpenTypeFontFactory.java
+file
+
+
+
+
+2012-08-11T23:36:55.809974Z
+f899e50417a1848284463e85a92bb60b
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+4869
 

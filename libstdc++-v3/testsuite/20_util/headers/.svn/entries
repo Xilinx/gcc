@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/20_util/headers
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,15 +26,6 @@ jason
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
-type_traits
-dir
-
-memory
-dir
-
-cstring
-dir
-
 ctime
 dir
 
@@ -45,5 +36,14 @@ utility
 dir
 
 cstdlib
+dir
+
+type_traits
+dir
+
+memory
+dir
+
+cstring
 dir
 

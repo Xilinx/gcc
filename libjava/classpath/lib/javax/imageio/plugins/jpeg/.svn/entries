@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/classpath/lib/javax/imageio/plugins/jpeg
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,6 +25,40 @@ doko
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
+
+JPEGQTable.class
+file
+
+
+
+
+2012-08-11T23:37:11.989793Z
+f96cfa13e787ab5105076e06c6c4757b
+2008-10-21T17:55:01.166395Z
+141271
+doko
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3046
 
 JPEGHuffmanTable.class
 file
@@ -127,38 +161,4 @@ has-props
 
 
 1750
-
-JPEGQTable.class
-file
-
-
-
-
-2012-08-11T23:37:11.989793Z
-f96cfa13e787ab5105076e06c6c4757b
-2008-10-21T17:55:01.166395Z
-141271
-doko
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-3046
 

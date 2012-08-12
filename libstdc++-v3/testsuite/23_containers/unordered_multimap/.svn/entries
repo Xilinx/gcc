@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/23_containers/unordered_multimap
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,18 +25,6 @@ fdumont
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-operations
-dir
-
-requirements
-dir
-
-insert
-dir
-
-debug
-dir
 
 operators
 dir
@@ -187,5 +175,17 @@ cons
 dir
 
 hash_policy
+dir
+
+operations
+dir
+
+requirements
+dir
+
+insert
+dir
+
+debug
 dir
 

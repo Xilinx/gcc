@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/classpath/lib/org/w3c/dom/css
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,108 +25,6 @@ tromey
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-CSSPageRule.class
-file
-
-
-
-
-2012-08-11T23:37:01.979905Z
-3b536e3f2a73e4269aac0d4b6cd30e75
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-363
-
-CSSPrimitiveValue.class
-file
-
-
-
-
-2012-08-11T23:37:01.979905Z
-3cf6659a0b56076fb4cb4c112dcf14cf
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1487
-
-Counter.class
-file
-
-
-
-
-2012-08-11T23:37:01.979905Z
-7cc348df1ea895465c6c1557aae6d4d9
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-204
 
 CSSStyleDeclaration.class
 file
@@ -162,14 +60,14 @@ has-props
 
 700
 
-CSSRule.class
+Counter.class
 file
 
 
 
 
 2012-08-11T23:37:01.979905Z
-7a7dfa5ebc9e31b3063bbbb67a76d30b
+7cc348df1ea895465c6c1557aae6d4d9
 2006-12-12T18:41:51.528840Z
 119793
 tromey
@@ -194,7 +92,7 @@ has-props
 
 
 
-663
+204
 
 CSSMediaRule.class
 file
@@ -229,6 +127,40 @@ has-props
 
 
 404
+
+CSSRule.class
+file
+
+
+
+
+2012-08-11T23:37:01.979905Z
+7a7dfa5ebc9e31b3063bbbb67a76d30b
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+663
 
 CSSValueList.class
 file
@@ -400,40 +332,6 @@ has-props
 
 219
 
-CSS2Properties.class
-file
-
-
-
-
-2012-08-11T23:37:01.979905Z
-26e2cd238071b500fcfe765e8ed02754
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-7355
-
 DocumentCSS.class
 file
 
@@ -467,6 +365,40 @@ has-props
 
 
 272
+
+CSS2Properties.class
+file
+
+
+
+
+2012-08-11T23:37:01.979905Z
+26e2cd238071b500fcfe765e8ed02754
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+7355
 
 CSSCharsetRule.class
 file
@@ -773,4 +705,72 @@ has-props
 
 
 191
+
+CSSPageRule.class
+file
+
+
+
+
+2012-08-11T23:37:01.979905Z
+3b536e3f2a73e4269aac0d4b6cd30e75
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+363
+
+CSSPrimitiveValue.class
+file
+
+
+
+
+2012-08-11T23:37:01.979905Z
+3cf6659a0b56076fb4cb4c112dcf14cf
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1487
 

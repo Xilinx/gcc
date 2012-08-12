@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/gcc/testsuite/go.test/test/fixedbugs/bug106.dir
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,40 +25,6 @@ ian
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-bug1.go
-file
-
-
-
-
-2012-08-11T23:38:35.558858Z
-320f3120c4f3eddd4ca60b25656e76b8
-2009-11-10T23:10:04.178483Z
-154084
-ian
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-194
 
 bug0.go
 file
@@ -93,4 +59,38 @@ ian
 
 
 188
+
+bug1.go
+file
+
+
+
+
+2012-08-11T23:38:35.558858Z
+320f3120c4f3eddd4ca60b25656e76b8
+2009-11-10T23:10:04.178483Z
+154084
+ian
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+194
 

@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/classpath/javax/swing/text/rtf
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,40 +25,6 @@ gandalf
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
-
-RTFEditorKit.java
-file
-
-
-
-
-2012-08-11T23:36:38.940162Z
-056cb19937b530f4847130e50dcb4a22
-2005-09-23T17:31:48.000000Z
-104575
-tromey
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-3731
 
 ControlWordToken.java
 file
@@ -297,4 +263,38 @@ gandalf
 
 
 5292
+
+RTFEditorKit.java
+file
+
+
+
+
+2012-08-11T23:36:38.940162Z
+056cb19937b530f4847130e50dcb4a22
+2005-09-23T17:31:48.000000Z
+104575
+tromey
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3731
 

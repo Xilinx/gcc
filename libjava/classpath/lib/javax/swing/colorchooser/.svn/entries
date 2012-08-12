@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/classpath/lib/javax/swing/colorchooser
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -25,6 +25,40 @@ doko
 
 
 138bc75d-0d04-0410-961f-82ee72b054a4
+
+DefaultHSBChooserPanel$SliderChangeListener.class
+file
+
+
+
+
+2012-08-11T23:37:11.249801Z
+ebd08d69ca33089fd1a8f9e8dc5eac1a
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1353
 
 DefaultHSBChooserPanel$1.class
 file
@@ -60,14 +94,14 @@ has-props
 
 1434
 
-DefaultPreviewPanel$PreviewBorder.class
+DefaultColorSelectionModel.class
 file
 
 
 
 
 2012-08-11T23:37:11.249801Z
-234b5c91536d00328f8c8c6d2d350f8b
+0b03c1ad4011caf77d4bd8024c2567b5
 2006-12-12T18:41:51.528840Z
 119793
 tromey
@@ -92,7 +126,7 @@ has-props
 
 
 
-2020
+2281
 
 DefaultHSBChooserPanel$2.class
 file
@@ -128,14 +162,14 @@ has-props
 
 1077
 
-DefaultColorSelectionModel.class
+DefaultPreviewPanel$PreviewBorder.class
 file
 
 
 
 
 2012-08-11T23:37:11.249801Z
-0b03c1ad4011caf77d4bd8024c2567b5
+234b5c91536d00328f8c8c6d2d350f8b
 2006-12-12T18:41:51.528840Z
 119793
 tromey
@@ -160,41 +194,7 @@ has-props
 
 
 
-2281
-
-ColorChooserComponentFactory.class
-file
-
-
-
-
-2012-08-11T23:37:11.239801Z
-8090ab5ca8187812473feaf8312883f9
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1014
+2020
 
 DefaultSwatchChooserPanel$MouseHandler.class
 file
@@ -229,6 +229,40 @@ has-props
 
 
 1670
+
+ColorChooserComponentFactory.class
+file
+
+
+
+
+2012-08-11T23:37:11.239801Z
+8090ab5ca8187812473feaf8312883f9
+2006-12-12T18:41:51.528840Z
+119793
+tromey
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1014
 
 DefaultHSBChooserPanel$RadioStateListener.class
 file
@@ -366,40 +400,6 @@ has-props
 
 1517
 
-DefaultHSBChooserPanel.class
-file
-
-
-
-
-2012-08-11T23:37:11.239801Z
-1a29d48e945a5ef6b5ac4df2b4451474
-2010-01-06T17:46:48.717189Z
-155678
-doko
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-9964
-
 DefaultSwatchChooserPanel$RecentPanelLayout.class
 file
 
@@ -433,6 +433,40 @@ has-props
 
 
 2178
+
+DefaultHSBChooserPanel.class
+file
+
+
+
+
+2012-08-11T23:37:11.239801Z
+1a29d48e945a5ef6b5ac4df2b4451474
+2010-01-06T17:46:48.717189Z
+155678
+doko
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+9964
 
 DefaultRGBChooserPanel$SliderHandler.class
 file
@@ -773,38 +807,4 @@ has-props
 
 
 4044
-
-DefaultHSBChooserPanel$SliderChangeListener.class
-file
-
-
-
-
-2012-08-11T23:37:11.249801Z
-ebd08d69ca33089fd1a8f9e8dc5eac1a
-2006-12-12T18:41:51.528840Z
-119793
-tromey
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1353
 

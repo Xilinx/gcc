@@ -1,7 +1,7 @@
 10
 
 dir
-190300
+190324
 svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/classpath/javax/print/attribute
 svn+ssh://gcc.gnu.org/svn/gcc
 
@@ -26,14 +26,14 @@ gandalf
 
 138bc75d-0d04-0410-961f-82ee72b054a4
 
-PrintServiceAttribute.java
+SetOfIntegerSyntax.java
 file
 
 
 
 
 2012-08-11T23:36:41.420135Z
-1151058b3001542e4b810d2d1df13558
+5b528ca28bc8b03a060995d5dae67107
 2011-01-11T19:46:05.727579Z
 168680
 gandalf
@@ -58,143 +58,7 @@ gandalf
 
 
 
-2524
-
-DateTimeSyntax.java
-file
-
-
-
-
-2012-08-11T23:36:41.420135Z
-7a069b4eb7a6fa8cc116b1a905379235
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-3353
-
-Attribute.java
-file
-
-
-
-
-2012-08-11T23:36:41.420135Z
-b6974faa9a6d83334132082eca85efa1
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-2529
-
-IntegerSyntax.java
-file
-
-
-
-
-2012-08-11T23:36:41.420135Z
-81e240a134ad94b7148d2bf9faa63217
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-3688
-
-DocAttributeSet.java
-file
-
-
-
-
-2012-08-11T23:36:41.420135Z
-dd32ca1b0bfc2b82eda292156dc21682
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-3356
+13731
 
 PrintRequestAttributeSet.java
 file
@@ -230,14 +94,14 @@ gandalf
 
 3419
 
-SetOfIntegerSyntax.java
+DocAttributeSet.java
 file
 
 
 
 
 2012-08-11T23:36:41.420135Z
-5b528ca28bc8b03a060995d5dae67107
+dd32ca1b0bfc2b82eda292156dc21682
 2011-01-11T19:46:05.727579Z
 168680
 gandalf
@@ -262,7 +126,7 @@ gandalf
 
 
 
-13731
+3356
 
 URISyntax.java
 file
@@ -332,40 +196,6 @@ gandalf
 
 8695
 
-HashPrintRequestAttributeSet.java
-file
-
-
-
-
-2012-08-11T23:36:41.420135Z
-1cfe3a9b99145e33db9792d9fa201067
-2011-01-11T19:46:05.727579Z
-168680
-gandalf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-3693
-
 HashDocAttributeSet.java
 file
 
@@ -399,6 +229,40 @@ gandalf
 
 
 3505
+
+HashPrintRequestAttributeSet.java
+file
+
+
+
+
+2012-08-11T23:36:41.420135Z
+1cfe3a9b99145e33db9792d9fa201067
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3693
 
 ResolutionSyntax.java
 file
@@ -434,14 +298,14 @@ gandalf
 
 8799
 
-EnumSyntax.java
+PrintJobAttribute.java
 file
 
 
 
 
 2012-08-11T23:36:41.420135Z
-f7dd68e871fb7cb0ac4fbea45bda112e
+d0ab69a02ed23651cc5b28c6144aee01
 2011-01-11T19:46:05.727579Z
 168680
 gandalf
@@ -466,7 +330,7 @@ gandalf
 
 
 
-6953
+2488
 
 AttributeSetUtilities.java
 file
@@ -502,14 +366,14 @@ gandalf
 
 14120
 
-PrintJobAttribute.java
+EnumSyntax.java
 file
 
 
 
 
 2012-08-11T23:36:41.420135Z
-d0ab69a02ed23651cc5b28c6144aee01
+f7dd68e871fb7cb0ac4fbea45bda112e
 2011-01-11T19:46:05.727579Z
 168680
 gandalf
@@ -534,7 +398,7 @@ gandalf
 
 
 
-2488
+6953
 
 PrintServiceAttributeSet.java
 file
@@ -946,4 +810,140 @@ gandalf
 
 
 4013
+
+PrintServiceAttribute.java
+file
+
+
+
+
+2012-08-11T23:36:41.420135Z
+1151058b3001542e4b810d2d1df13558
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2524
+
+Attribute.java
+file
+
+
+
+
+2012-08-11T23:36:41.420135Z
+b6974faa9a6d83334132082eca85efa1
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2529
+
+DateTimeSyntax.java
+file
+
+
+
+
+2012-08-11T23:36:41.420135Z
+7a069b4eb7a6fa8cc116b1a905379235
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3353
+
+IntegerSyntax.java
+file
+
+
+
+
+2012-08-11T23:36:41.420135Z
+81e240a134ad94b7148d2bf9faa63217
+2011-01-11T19:46:05.727579Z
+168680
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3688
 
