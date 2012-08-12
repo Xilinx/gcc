@@ -1,0 +1,34 @@
+10
+
+dir
+190300
+svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/22_locale/num_put/put
+svn+ssh://gcc.gnu.org/svn/gcc
+
+
+
+2012-05-21T23:40:55.778187Z
+187751
+paolo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+138bc75d-0d04-0410-961f-82ee72b054a4
+
+char
+dir
+
+wchar_t
+dir
+

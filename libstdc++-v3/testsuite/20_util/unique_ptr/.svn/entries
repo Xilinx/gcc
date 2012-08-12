@@ -1,0 +1,49 @@
+10
+
+dir
+190300
+svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/20_util/unique_ptr
+svn+ssh://gcc.gnu.org/svn/gcc
+
+
+
+2012-08-03T00:27:48.879848Z
+190109
+redi
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+138bc75d-0d04-0410-961f-82ee72b054a4
+
+modifiers
+dir
+
+cons
+dir
+
+hash
+dir
+
+requirements
+dir
+
+assign
+dir
+
+specialized_algorithms
+dir
+
+comparison
+dir
+

@@ -1,0 +1,85 @@
+10
+
+dir
+190300
+svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/27_io/basic_stringbuf
+svn+ssh://gcc.gnu.org/svn/gcc
+
+
+
+2010-09-15T10:46:39.518825Z
+164300
+paolo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+138bc75d-0d04-0410-961f-82ee72b054a4
+
+sputc
+dir
+
+imbue
+dir
+
+cons
+dir
+
+overflow
+dir
+
+snextc
+dir
+
+sgetc
+dir
+
+str
+dir
+
+sungetc
+dir
+
+sputn
+dir
+
+seekpos
+dir
+
+pbackfail
+dir
+
+sync
+dir
+
+sputbackc
+dir
+
+sgetn
+dir
+
+seekoff
+dir
+
+in_avail
+dir
+
+requirements
+dir
+
+setbuf
+dir
+
+sbumpc
+dir
+

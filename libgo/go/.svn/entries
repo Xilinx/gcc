@@ -1,0 +1,148 @@
+10
+
+dir
+190300
+svn+ssh://gcc.gnu.org/svn/gcc/trunk/libgo/go
+svn+ssh://gcc.gnu.org/svn/gcc
+
+
+
+2012-07-26T01:57:04.898606Z
+189878
+ian
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+138bc75d-0d04-0410-961f-82ee72b054a4
+
+sync
+dir
+
+testing
+dir
+
+crypto
+dir
+
+log
+dir
+
+archive
+dir
+
+container
+dir
+
+reflect
+dir
+
+net
+dir
+
+bytes
+dir
+
+fmt
+dir
+
+sort
+dir
+
+mime
+dir
+
+regexp
+dir
+
+path
+dir
+
+strconv
+dir
+
+go
+dir
+
+builtin
+dir
+
+io
+dir
+
+index
+dir
+
+flag
+dir
+
+syscall
+dir
+
+errors
+dir
+
+old
+dir
+
+os
+dir
+
+image
+dir
+
+runtime
+dir
+
+hash
+dir
+
+text
+dir
+
+debug
+dir
+
+encoding
+dir
+
+unicode
+dir
+
+math
+dir
+
+strings
+dir
+
+compress
+dir
+
+exp
+dir
+
+time
+dir
+
+database
+dir
+
+html
+dir
+
+bufio
+dir
+
+expvar
+dir
+

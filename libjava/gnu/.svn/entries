@@ -1,0 +1,49 @@
+10
+
+dir
+190300
+svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/gnu
+svn+ssh://gcc.gnu.org/svn/gcc
+
+
+
+2012-04-05T10:04:40.058561Z
+186161
+ro
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+138bc75d-0d04-0410-961f-82ee72b054a4
+
+awt
+dir
+
+xml
+dir
+
+java
+dir
+
+classpath
+dir
+
+gcj
+dir
+
+CORBA
+dir
+
+javax
+dir
+

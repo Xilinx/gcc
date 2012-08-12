@@ -1,0 +1,91 @@
+10
+
+dir
+190300
+svn+ssh://gcc.gnu.org/svn/gcc/trunk/gcc/testsuite/gcc.target
+svn+ssh://gcc.gnu.org/svn/gcc
+
+
+
+2012-08-09T15:58:04.263538Z
+190259
+olegendo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+138bc75d-0d04-0410-961f-82ee72b054a4
+
+ia64
+dir
+
+spu
+dir
+
+mips
+dir
+
+sparc
+dir
+
+sh
+dir
+
+epiphany
+dir
+
+bfin
+dir
+
+powerpc
+dir
+
+arm
+dir
+
+m68k
+dir
+
+alpha
+dir
+
+microblaze
+dir
+
+avr
+dir
+
+rx
+dir
+
+i386
+dir
+
+xstormy16
+dir
+
+frv
+dir
+
+tic6x
+dir
+
+s390
+dir
+
+x86_64
+dir
+
+cris
+dir
+

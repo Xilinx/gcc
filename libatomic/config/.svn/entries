@@ -1,0 +1,46 @@
+10
+
+dir
+190300
+svn+ssh://gcc.gnu.org/svn/gcc/trunk/libatomic/config
+svn+ssh://gcc.gnu.org/svn/gcc
+
+
+
+2012-05-01T15:48:28.561703Z
+187018
+rth
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+138bc75d-0d04-0410-961f-82ee72b054a4
+
+arm
+dir
+
+linux
+dir
+
+powerpc
+dir
+
+posix
+dir
+
+ia64
+dir
+
+x86
+dir
+

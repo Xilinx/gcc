@@ -1,0 +1,73 @@
+10
+
+dir
+190300
+svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/config/os
+svn+ssh://gcc.gnu.org/svn/gcc
+
+
+
+2012-06-18T21:43:58.727088Z
+188755
+redi
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+138bc75d-0d04-0410-961f-82ee72b054a4
+
+uclibc
+dir
+
+bionic
+dir
+
+mingw32-w64
+dir
+
+djgpp
+dir
+
+qnx
+dir
+
+bsd
+dir
+
+solaris
+dir
+
+generic
+dir
+
+newlib
+dir
+
+aix
+dir
+
+vxworks
+dir
+
+hpux
+dir
+
+mingw32
+dir
+
+gnu-linux
+dir
+
+tpf
+dir
+

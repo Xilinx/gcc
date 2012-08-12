@@ -1,0 +1,179 @@
+10
+
+dir
+190300
+svn+ssh://gcc.gnu.org/svn/gcc/trunk/gcc/common/config
+svn+ssh://gcc.gnu.org/svn/gcc
+
+
+
+2012-08-08T13:25:58.834286Z
+190227
+kyukhin
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+138bc75d-0d04-0410-961f-82ee72b054a4
+
+bfin
+dir
+
+mep
+dir
+
+microblaze
+dir
+
+vax
+dir
+
+s390
+dir
+
+pa
+dir
+
+h8300
+dir
+
+xtensa
+dir
+
+ia64
+dir
+
+mcore
+dir
+
+mips
+dir
+
+fr30
+dir
+
+score
+dir
+
+epiphany
+dir
+
+lm32
+dir
+
+tilepro
+dir
+
+arm
+dir
+
+m32r
+dir
+
+m68k
+dir
+
+pdp11
+dir
+
+alpha
+dir
+
+avr
+dir
+
+rx
+dir
+
+i386
+dir
+
+rs6000
+dir
+
+default-common.c
+file
+
+
+
+
+2012-08-11T23:44:15.935046Z
+cddfec91014b8500299ab21080930f24
+2011-07-07T13:22:44.444993Z
+175969
+jsm28
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1299
+
+tilegx
+dir
+
+xstormy16
+dir
+
+frv
+dir
+
+picochip
+dir
+
+mn10300
+dir
+
+cris
+dir
+
+c6x
+dir
+
+v850
+dir
+
+spu
+dir
+
+sparc
+dir
+
+sh
+dir
+
+mmix
+dir
+
+cr16
+dir
+
+iq2000
+dir
+

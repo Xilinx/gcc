@@ -1,0 +1,119 @@
+10
+
+dir
+190300
+svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/27_io
+svn+ssh://gcc.gnu.org/svn/gcc
+
+
+
+2012-03-14T17:08:03.950143Z
+185392
+ro
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+138bc75d-0d04-0410-961f-82ee72b054a4
+
+basic_ostringstream
+dir
+
+basic_fstream
+dir
+
+basic_stringbuf
+dir
+
+types
+dir
+
+basic_istream
+dir
+
+fpos
+dir
+
+headers
+dir
+
+basic_ostream
+dir
+
+basic_ifstream
+dir
+
+basic_filebuf
+dir
+
+manipulators
+dir
+
+rvalue_streams.cc
+file
+
+
+
+
+2012-08-11T23:35:57.690623Z
+886c09e2fec1d2004722aab30544a301
+2009-08-01T03:56:47.146447Z
+150328
+jason
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1165
+
+basic_ofstream
+dir
+
+basic_stringstream
+dir
+
+ios_base
+dir
+
+basic_iostream
+dir
+
+basic_streambuf
+dir
+
+objects
+dir
+
+basic_ios
+dir
+
+basic_istringstream
+dir
+

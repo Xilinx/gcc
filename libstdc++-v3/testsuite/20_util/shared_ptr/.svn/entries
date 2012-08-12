@@ -1,0 +1,64 @@
+10
+
+dir
+190300
+svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/20_util/shared_ptr
+svn+ssh://gcc.gnu.org/svn/gcc
+
+
+
+2012-08-03T00:27:48.879848Z
+190109
+redi
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+138bc75d-0d04-0410-961f-82ee72b054a4
+
+hash
+dir
+
+requirements
+dir
+
+assign
+dir
+
+creation
+dir
+
+thread
+dir
+
+comparison
+dir
+
+observers
+dir
+
+misc
+dir
+
+casts
+dir
+
+dest
+dir
+
+modifiers
+dir
+
+cons
+dir
+

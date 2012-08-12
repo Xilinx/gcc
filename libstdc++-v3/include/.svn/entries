@@ -1,0 +1,141 @@
+10
+
+dir
+190300
+svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/include
+svn+ssh://gcc.gnu.org/svn/gcc
+
+
+
+2012-08-09T22:45:20.070315Z
+190271
+redi
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+138bc75d-0d04-0410-961f-82ee72b054a4
+
+debug
+dir
+
+std
+dir
+
+parallel
+dir
+
+c_std
+dir
+
+decimal
+dir
+
+profile
+dir
+
+ext
+dir
+
+bits
+dir
+
+c_global
+dir
+
+precompiled
+dir
+
+tr1
+dir
+
+tr2
+dir
+
+Makefile.am
+file
+
+
+
+
+2012-08-11T23:35:53.010676Z
+7ac6150c70649c33fada68a9af0a9d59
+2012-03-19T23:48:16.315073Z
+185548
+paolo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+51848
+
+c_compatibility
+dir
+
+backward
+dir
+
+c
+dir
+
+Makefile.in
+file
+
+
+
+
+2012-08-11T23:35:53.010676Z
+17eff0bb824d9035890ec502875b976d
+2012-03-19T23:48:16.315073Z
+185548
+paolo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+65001
+

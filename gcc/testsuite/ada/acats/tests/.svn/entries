@@ -1,0 +1,100 @@
+10
+
+dir
+190300
+svn+ssh://gcc.gnu.org/svn/gcc/trunk/gcc/testsuite/ada/acats/tests
+svn+ssh://gcc.gnu.org/svn/gcc
+
+
+
+2012-03-13T10:22:56.464395Z
+185325
+ro
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+138bc75d-0d04-0410-961f-82ee72b054a4
+
+c2
+dir
+
+c3
+dir
+
+c4
+dir
+
+c5
+dir
+
+c6
+dir
+
+c7
+dir
+
+c8
+dir
+
+cxa
+dir
+
+c9
+dir
+
+cxb
+dir
+
+cz
+dir
+
+a
+dir
+
+cxf
+dir
+
+cxg
+dir
+
+cxh
+dir
+
+ca
+dir
+
+d
+dir
+
+cb
+dir
+
+e
+dir
+
+cc
+dir
+
+cd
+dir
+
+ce
+dir
+
+l
+dir
+
+gcc
+dir
+

@@ -1,0 +1,64 @@
+10
+
+dir
+190300
+svn+ssh://gcc.gnu.org/svn/gcc/trunk/libjava/classpath/gnu/java
+svn+ssh://gcc.gnu.org/svn/gcc
+
+
+
+2012-03-23T15:19:26.333085Z
+185741
+gandalf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+138bc75d-0d04-0410-961f-82ee72b054a4
+
+lang
+dir
+
+text
+dir
+
+nio
+dir
+
+net
+dir
+
+io
+dir
+
+rmi
+dir
+
+security
+dir
+
+beans
+dir
+
+math
+dir
+
+awt
+dir
+
+util
+dir
+
+locale
+dir
+

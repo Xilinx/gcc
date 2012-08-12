@@ -1,0 +1,37 @@
+10
+
+dir
+190300
+svn+ssh://gcc.gnu.org/svn/gcc/trunk/libstdc++-v3/testsuite/25_algorithms/copy_backward
+svn+ssh://gcc.gnu.org/svn/gcc
+
+
+
+2009-12-24T12:47:37.576930Z
+155455
+paolo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+138bc75d-0d04-0410-961f-82ee72b054a4
+
+move_iterators
+dir
+
+requirements
+dir
+
+deque_iterators
+dir
+

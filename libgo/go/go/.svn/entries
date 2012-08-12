@@ -1,0 +1,49 @@
+10
+
+dir
+190300
+svn+ssh://gcc.gnu.org/svn/gcc/trunk/libgo/go/go
+svn+ssh://gcc.gnu.org/svn/gcc
+
+
+
+2012-06-25T16:20:03.277386Z
+188943
+ian
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+138bc75d-0d04-0410-961f-82ee72b054a4
+
+printer
+dir
+
+doc
+dir
+
+ast
+dir
+
+scanner
+dir
+
+parser
+dir
+
+build
+dir
+
+token
+dir
+
