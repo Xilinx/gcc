@@ -463,37 +463,6 @@ gcov_alloc_filename (void)
   gi_filename_up = gi_filename + prefix_length;
 }
 
-/* Stop the pmu profiler and dump pmu profile info into the global file.  */
-
-static void
-pmu_profile_stop (void)
-{
-  const char *pmu_profile_filename =  __gcov_pmu_profile_filename;
-  const char *pmu_options = __gcov_pmu_profile_options;
-  size_t filename_length;
-  int gcda_error;
-
-  if (!pmu_profile_filename || !pmu_options)
-    return;
-
-  __gcov_stop_pmu_profiler ();
-
-  filename_length = strlen (pmu_profile_filename);
-  if (filename_length > gcov_max_filename)
-    gcov_max_filename = filename_length;
-  /* Allocate and initialize the filename scratch space.  */
-  gcov_alloc_filename ();
-  GCOV_GET_FILENAME (prefix_length, gcov_prefix_strip, pmu_profile_filename,
-                     gi_filename_up);
-  /* Open the gcda file for writing. We don't support merge yet.  */
-  gcda_error = gcov_open_by_filename (gi_filename);
-  __gcov_end_pmu_profiler (gcda_error);
-  if ((gcda_error = gcov_close ()))
-    gcov_error (gcda_error  < 0 ?  "pmu_profile_stop:%s:Overflow writing\n" :
-                "pmu_profile_stop:%s:Error writing\n",
-                gi_filename);
-}
-
 /* Sort N entries in VALUE_ARRAY in descending order.
    Each entry in VALUE_ARRAY has two values. The sorting
    is based on the second value.  */
@@ -634,9 +603,6 @@ gcov_exit (void)
   if (gcov_dump_complete)
     return;
 
-  /* Stop and write the PMU profile data into the global file.  */
-  pmu_profile_stop ();
-
   dump_module_info = gcov_exit_init ();
 
   for (gi_ptr = __gcov_list; gi_ptr; gi_ptr = gi_ptr->next)
@@ -701,24 +667,10 @@ __gcov_init (struct gcov_info *info)
     {
       const char *ptr = info->filename;
       size_t filename_length = strlen (info->filename);
-      struct gcov_pmu_info pmu_info;
 
       /* Refresh the longest file name information.  */
       if (filename_length > gcov_max_filename)
         gcov_max_filename = filename_length;
-
-      /* Initialize the pmu profiler.  */
-      pmu_info.pmu_profile_filename = __gcov_pmu_profile_filename;
-      pmu_info.pmu_tool = __gcov_pmu_profile_options;
-      pmu_info.pmu_top_n_address = __gcov_pmu_top_n_address;
-      __gcov_init_pmu_profiler (&pmu_info);
-      if (pmu_info.pmu_profile_filename)
-        {
-          /* Refresh the longest file name information.  */
-          filename_length = strlen (pmu_info.pmu_profile_filename);
-          if (filename_length > gcov_max_filename)
-            gcov_max_filename = filename_length;
-        }
 
       /* Assign the module ID (starting at 1).  */
       info->mod_info->ident = (++gcov_cur_module_id);
@@ -729,8 +681,6 @@ __gcov_init (struct gcov_info *info)
       if (!__gcov_list)
         {
           atexit (gcov_exit);
-          /* Start pmu profiler. */
-          __gcov_start_pmu_profiler ();
         }
 
       info->next = __gcov_list;
@@ -746,10 +696,8 @@ __gcov_init (struct gcov_info *info)
 void
 __gcov_flush (void)
 {
-  __gcov_stop_pmu_profiler ();
   gcov_exit ();
   gcov_clear ();
-  __gcov_start_pmu_profiler ();
 }
 
 #else /* __GCOV_KERNEL__ */

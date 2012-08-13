@@ -1,3 +1,48 @@
+2012-08-13  Chris Manghane  <cmang@google.com>
+
+	Backport r190247 from google/main
+	2012-08-08  Chris Manghane  <cmang@google.com>
+
+	* libgcc/pmu-profile.c
+	(enum pmu_tool_type): Remove pfmon-specific functions/structs.
+	(enum pmu_event_type): Ditto.
+	(enum pmu_state): Ditto.
+	(enum cpu_vendor_signature): Ditto.
+	(struct pmu_tool_info): Ditto.
+	(void gcov_write_branch_mispredict_infos): Ditto.
+	(get_x86cpu_vendor): Ditto.
+	(parse_pmu_profile_options): Ditto.
+	(start_addr2line_symbolizer): Ditto.
+	(reset_symbolizer_parent_pipes): Ditto.
+	(reset_symbolizer_child_pipes): Ditto.
+	(end_addr2line_symbolizer): Ditto.
+	(symbolize_addr2line): Ditto.
+	(start_pfmon_module): Ditto.
+	(convert_pct_to_unsigned): Ditto.
+	(parse_load_latency_line): Ditto.
+	(parse_branch_mispredict_line): Ditto.
+	(parse_pfmon_load_latency): Ditto.
+	(parse_pfmon_tool_header): Ditto.
+	(parse_pfmon_branch_mispredicts): Ditto.
+	(pmu_start): Ditto.
+	(init_pmu_branch_mispredict): Ditto.
+	(init_pmu_tool): Ditto.
+	(__gcov_init_pmu_profiler): Ditto.
+	(__gcov_start_pmu_profiler): Ditto.
+	(__gcov_stop_pmu_profiler): Ditto.
+	(gcov_write_branch_mispredict_line): Ditto.
+	(gcov_write_load_latency_infos): Ditto.
+	(gcov_write_branch_mispredict_infos): Ditto.
+	(gcov_write_tool_header): Ditto.
+	(__gcov_end_pmu_profiler): Ditto.
+	* libgcc/libgcov.c
+	(gcov_alloc_filename): Remove references to pfmon specific 
+	functions/structs.
+	(pmu_profile_stop): Ditto.
+	(gcov_exit): Ditto.
+	(__gcov_init): Ditto.
+	(__gcov_flush): Ditto.
+
 2012-06-29  Xinliang David Li  <davidxl@google.com>
 
 	* dyn-ipa.c (gcov_compute_cutoff_count): Use
