@@ -1,3 +1,17 @@
+2012-08-13  Diego Novillo  <dnovillo@google.com>
+
+	Merge rev 190351 from trunk.
+
+	2012-08-13   Diego Novillo  <dnovillo@google.com>
+
+		* testsuite-management/validate_failures.py: Import datetime.
+		(TestResult.ExpirationDate): New.
+		(TestResult.HasExpired): New.
+		(ParseSummary): Call it.  If it returns True, warn that the
+		expected failure has expired and do not add it to the set of
+		expected results.
+		(GetResults): Clarify documentation.
+
 2012-08-09  Ollie Wild  <aaw@google.com>
 
 	* testsuite-management/x86_64-grtev3-linux-gnu.xfail: XFAIL libitm
