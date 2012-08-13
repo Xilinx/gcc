@@ -1,5 +1,5 @@
 /* Induction variable optimizations.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -2819,6 +2819,9 @@ prepare_decl_rtl (tree *expr_p, int *ws, void *data)
     case SSA_NAME:
       *ws = 0;
       obj = SSA_NAME_VAR (*expr_p);
+      /* Defer handling of anonymous SSA_NAMEs to the expander.  */
+      if (!obj)
+	return NULL_TREE;
       if (!DECL_RTL_SET_P (obj))
 	x = gen_raw_REG (DECL_MODE (obj), (*regno)++);
       break;
@@ -3170,7 +3173,7 @@ get_address_cost (bool symbol_present, bool var_present,
 
       for (i = width; i >= 0; i--)
 	{
-	  off = -((HOST_WIDE_INT) 1 << i);
+	  off = -((unsigned HOST_WIDE_INT) 1 << i);
 	  XEXP (addr, 1) = gen_int_mode (off, address_mode);
 	  if (memory_address_addr_space_p (mem_mode, addr, as))
 	    break;
@@ -3179,7 +3182,7 @@ get_address_cost (bool symbol_present, bool var_present,
 
       for (i = width; i >= 0; i--)
 	{
-	  off = ((HOST_WIDE_INT) 1 << i) - 1;
+	  off = ((unsigned HOST_WIDE_INT) 1 << i) - 1;
 	  XEXP (addr, 1) = gen_int_mode (off, address_mode);
 	  if (memory_address_addr_space_p (mem_mode, addr, as))
 	    break;
@@ -4642,8 +4645,8 @@ parm_decl_cost (struct ivopts_data *data, tree bound)
   STRIP_NOPS (sbound);
 
   if (TREE_CODE (sbound) == SSA_NAME
+      && SSA_NAME_IS_DEFAULT_DEF (sbound)
       && TREE_CODE (SSA_NAME_VAR (sbound)) == PARM_DECL
-      && gimple_nop_p (SSA_NAME_DEF_STMT (sbound))
       && data->body_includes_call)
     return COSTS_N_INSNS (1);
 
@@ -4966,6 +4969,7 @@ determine_iv_cost (struct ivopts_data *data, struct iv_cand *cand)
      The reason is to make debugging simpler; so this is not relevant for
      artificial ivs created by other optimization passes.  */
   if (cand->pos != IP_ORIGINAL
+      || !SSA_NAME_VAR (cand->var_before)
       || DECL_ARTIFICIAL (SSA_NAME_VAR (cand->var_before)))
     cost++;
 

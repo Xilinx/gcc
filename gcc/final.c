@@ -739,7 +739,8 @@ compute_alignments (void)
 	{
 	  if (dump_file)
 	    fprintf(dump_file, "BB %4i freq %4i loop %2i loop_depth %2i skipped.\n",
-		    bb->index, bb->frequency, bb->loop_father->num, bb->loop_depth);
+		    bb->index, bb->frequency, bb->loop_father->num,
+		    bb_loop_depth (bb));
 	  continue;
 	}
       max_log = LABEL_ALIGN (label);
@@ -756,7 +757,7 @@ compute_alignments (void)
 	{
 	  fprintf(dump_file, "BB %4i freq %4i loop %2i loop_depth %2i fall %4i branch %4i",
 		  bb->index, bb->frequency, bb->loop_father->num,
-		  bb->loop_depth,
+		  bb_loop_depth (bb),
 		  fallthru_frequency, branch_frequency);
 	  if (!bb->loop_father->inner && bb->loop_father->num)
 	    fprintf (dump_file, " inner_loop");
@@ -1866,11 +1867,13 @@ final (rtx first, FILE *file, int optimize_p)
       start_to_bb = XCNEWVEC (basic_block, bb_map_size);
       end_to_bb = XCNEWVEC (basic_block, bb_map_size);
 
-      FOR_EACH_BB_REVERSE (bb)
-	{
-	  start_to_bb[INSN_UID (BB_HEAD (bb))] = bb;
-	  end_to_bb[INSN_UID (BB_END (bb))] = bb;
-	}
+      /* There is no cfg for a thunk.  */
+      if (!cfun->is_thunk)
+	FOR_EACH_BB_REVERSE (bb)
+	  {
+	    start_to_bb[INSN_UID (BB_HEAD (bb))] = bb;
+	    end_to_bb[INSN_UID (BB_END (bb))] = bb;
+	  }
     }
 
   /* Output the insns.  */

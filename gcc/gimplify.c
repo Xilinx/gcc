@@ -8292,13 +8292,14 @@ gimplify_body (tree fndecl, bool do_parms)
 
   pop_gimplify_context (outer_bind);
 
-  if (!flag_enable_cilk)
-    {
-      gcc_assert (gimplify_ctxp == NULL);
+  if (!flag_enable_cilk) 
+    gcc_assert (gimplify_ctxp == NULL);
 
-      if (!seen_error ())
-	verify_gimple_in_seq (gimple_bind_body (outer_bind));
-    } 
+#ifdef ENABLE_CHECKING
+  if (!seen_error ())
+    verify_gimple_in_seq (gimple_bind_body (outer_bind));
+#endif
+
   timevar_pop (TV_TREE_GIMPLIFY);
   input_location = saved_location;
 
@@ -8465,7 +8466,7 @@ void
 gimple_regimplify_operands (gimple stmt, gimple_stmt_iterator *gsi_p)
 {
   size_t i, num_ops;
-  tree orig_lhs = NULL_TREE, lhs;
+  tree lhs;
   gimple_seq pre = NULL;
   gimple post_stmt = NULL;
   struct gimplify_ctx gctx;
@@ -8531,7 +8532,6 @@ gimple_regimplify_operands (gimple stmt, gimple_stmt_iterator *gsi_p)
 	 and ASMs are executed before the LHS.  The ordering is not
 	 important for other statements.  */
       num_ops = gimple_num_ops (stmt);
-      orig_lhs = gimple_get_lhs (stmt);
       for (i = num_ops; i > 0; i--)
 	{
 	  tree op = gimple_op (stmt, i - 1);
@@ -8609,10 +8609,6 @@ gimple_regimplify_operands (gimple stmt, gimple_stmt_iterator *gsi_p)
 	  if (need_temp)
 	    {
 	      tree temp = create_tmp_reg (TREE_TYPE (lhs), NULL);
-
-	      if (TREE_CODE (orig_lhs) == SSA_NAME)
-		orig_lhs = SSA_NAME_VAR (orig_lhs);
-
 	      if (gimple_in_ssa_p (cfun))
 		temp = make_ssa_name (temp, NULL);
 	      gimple_set_lhs (stmt, temp);

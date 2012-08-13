@@ -137,12 +137,9 @@ may_propagate_copy_into_stmt (gimple dest, tree orig)
 /* Similarly, but we know that we're propagating into an ASM_EXPR.  */
 
 bool
-may_propagate_copy_into_asm (tree dest)
+may_propagate_copy_into_asm (tree dest ATTRIBUTE_UNUSED)
 {
-  /* Hard register operands of asms are special.  Do not bypass.  */
-  return !(TREE_CODE (dest) == SSA_NAME
-	   && TREE_CODE (SSA_NAME_VAR (dest)) == VAR_DECL
-	   && DECL_HARD_REGISTER (SSA_NAME_VAR (dest)));
+  return true;
 }
 
 
@@ -673,7 +670,7 @@ init_copy_prop (void)
   FOR_EACH_BB (bb)
     {
       gimple_stmt_iterator si;
-      int depth = bb->loop_depth;
+      int depth = bb_loop_depth (bb);
 
       for (si = gsi_start_bb (bb); !gsi_end_p (si); gsi_next (&si))
 	{

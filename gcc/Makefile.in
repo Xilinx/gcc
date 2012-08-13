@@ -1302,7 +1302,6 @@ OBJS = \
 	lto-symtab.o \
 	lto-opts.o \
 	lto-compress.o \
-	matrix-reorg.o \
 	mcf.o \
 	mode-switching.o \
 	modulo-sched.o \
@@ -2278,7 +2277,7 @@ tree-ssa-dse.o : tree-ssa-dse.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
    $(TREE_FLOW_H) $(TREE_PASS_H) domwalk.h $(FLAGS_H) \
    $(GIMPLE_PRETTY_PRINT_H) langhooks.h
 tree-ssa-forwprop.o : tree-ssa-forwprop.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
-   $(TM_H) $(TREE_H) $(TM_P_H) $(BASIC_BLOCK_H) \
+   $(TM_H) $(TREE_H) $(TM_P_H) $(BASIC_BLOCK_H) $(CFGLOOP_H) \
    $(TREE_FLOW_H) $(TREE_PASS_H) $(DIAGNOSTIC_H) \
    langhooks.h $(FLAGS_H) $(GIMPLE_H) $(GIMPLE_PRETTY_PRINT_H) $(EXPR_H)
 tree-ssa-phiprop.o : tree-ssa-phiprop.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
@@ -2899,13 +2898,6 @@ ipa-split.o : ipa-split.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
    $(TREE_H) $(TARGET_H) $(CGRAPH_H) $(IPA_PROP_H) $(TREE_FLOW_H) \
    $(TREE_PASS_H) $(FLAGS_H) $(DIAGNOSTIC_H) $(TREE_DUMP_H) \
    $(TREE_INLINE_H) $(PARAMS_H) $(GIMPLE_PRETTY_PRINT_H) ipa-inline.h
-matrix-reorg.o : matrix-reorg.c $(CONFIG_H) $(SYSTEM_H) coretypes.h  \
-   $(TM_H) $(TREE_H) $(RTL_H) $(TREE_INLINE_H) $(TREE_FLOW_H) \
-   tree-flow-inline.h langhooks.h $(HASHTAB_H) $(DIAGNOSTIC_CORE_H) $(FLAGS_H) $(GGC_H) \
-   debug.h $(TARGET_H) $(CGRAPH_H) $(DIAGNOSTIC_CORE_H) \
-   $(PARAMS_H) intl.h $(FUNCTION_H) $(BASIC_BLOCK_H) \
-   $(CFGLOOP_H) tree-iterator.h $(TREE_PASS_H) $(OPTS_H) $(TREE_DATA_REF_H) \
-   tree-ssa-sccvn.h
 ipa-inline.o : ipa-inline.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(TREE_H) langhooks.h $(TREE_INLINE_H) $(FLAGS_H) $(CGRAPH_H) intl.h \
    $(DIAGNOSTIC_H) $(FIBHEAP_H) $(PARAMS_H) $(TREE_PASS_H) \
@@ -2913,7 +2905,7 @@ ipa-inline.o : ipa-inline.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(EXCEPT_H) $(GIMPLE_PRETTY_PRINT_H) ipa-inline.h $(TARGET_H) $(IPA_UTILS_H)
 ipa-inline-analysis.o : ipa-inline-analysis.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(TREE_H) langhooks.h $(TREE_INLINE_H) $(FLAGS_H) $(CGRAPH_H) intl.h \
-   $(DIAGNOSTIC_H) $(PARAMS_H) $(TREE_PASS_H) \
+   $(DIAGNOSTIC_H) $(PARAMS_H) $(TREE_PASS_H) $(CFGLOOP_H) \
    $(HASHTAB_H) $(COVERAGE_H) $(GGC_H) $(TREE_FLOW_H) $(IPA_PROP_H) \
    $(GIMPLE_PRETTY_PRINT_H) ipa-inline.h $(LTO_STREAMER_H) $(DATA_STREAMER_H) \
    $(TREE_STREAMER_H)
@@ -3197,7 +3189,7 @@ caller-save.o : caller-save.c $(CONFIG_H) $(SYSTEM_H) coretypes.h dumpfile.h \
 bt-load.o : bt-load.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(EXCEPT_H) \
    $(RTL_H) hard-reg-set.h $(REGS_H) $(TM_P_H) $(FIBHEAP_H) $(EXPR_H) \
    $(TARGET_H) $(FLAGS_H) $(INSN_ATTR_H) $(FUNCTION_H) $(TREE_PASS_H) \
-   $(DIAGNOSTIC_CORE_H) $(DF_H) vecprim.h $(RECOG_H)
+   $(DIAGNOSTIC_CORE_H) $(DF_H) vecprim.h $(RECOG_H) $(CFGLOOP_H)
 reorg.o : reorg.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    conditions.h hard-reg-set.h $(BASIC_BLOCK_H) $(REGS_H) insn-config.h \
    $(INSN_ATTR_H) $(EXCEPT_H) $(RECOG_H) $(FUNCTION_H) $(FLAGS_H) output.h \
@@ -3356,7 +3348,7 @@ regrename.o : regrename.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
 ifcvt.o : ifcvt.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    $(REGS_H) $(DIAGNOSTIC_CORE_H) $(FLAGS_H) insn-config.h $(FUNCTION_H) $(RECOG_H) \
    $(TARGET_H) $(BASIC_BLOCK_H) $(EXPR_H) output.h $(EXCEPT_H) $(TM_P_H) \
-   $(OPTABS_H) $(CFGLOOP_H) hard-reg-set.h \
+   $(OPTABS_H) $(CFGLOOP_H) hard-reg-set.h pointer-set.h \
    $(TREE_PASS_H) $(DF_H) $(DBGCNT_H)
 params.o : params.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(COMMON_TARGET_H) \
    $(PARAMS_H) $(DIAGNOSTIC_CORE_H)
@@ -3686,7 +3678,7 @@ GTFILES = $(CPP_ID_DATA_H) $(srcdir)/input.h $(srcdir)/coretypes.h \
   $(srcdir)/cselib.h $(srcdir)/basic-block.h  $(srcdir)/ipa-ref.h $(srcdir)/cgraph.h \
   $(srcdir)/reload.h $(srcdir)/caller-save.c $(srcdir)/symtab.c \
   $(srcdir)/alias.c $(srcdir)/bitmap.c $(srcdir)/cselib.c $(srcdir)/cgraph.c \
-  $(srcdir)/ipa-prop.c $(srcdir)/ipa-cp.c $(srcdir)/matrix-reorg.c \
+  $(srcdir)/ipa-prop.c $(srcdir)/ipa-cp.c \
   $(srcdir)/dbxout.c \
   $(srcdir)/dwarf2out.h \
   $(srcdir)/dwarf2asm.c \

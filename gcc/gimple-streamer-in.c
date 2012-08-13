@@ -45,7 +45,6 @@ input_phi (struct lto_input_block *ib, basic_block bb, struct data_in *data_in,
   phi_result = VEC_index (tree, SSANAMES (fn), ix);
   len = EDGE_COUNT (bb->preds);
   result = create_phi_node (phi_result, bb);
-  SSA_NAME_DEF_STMT (phi_result) = result;
 
   /* We have to go through a lookup process here because the preds in the
      reconstructed graph are generally in a different order than they
@@ -297,7 +296,6 @@ input_bb (struct lto_input_block *ib, enum LTO_tags tag,
 
   bb->count = (streamer_read_hwi (ib) * count_materialization_scale
 	       + REG_BR_PROB_BASE / 2) / REG_BR_PROB_BASE;
-  bb->loop_depth = streamer_read_hwi (ib);
   bb->frequency = streamer_read_hwi (ib);
   bb->flags = streamer_read_hwi (ib);
 

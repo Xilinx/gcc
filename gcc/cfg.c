@@ -652,7 +652,7 @@ free_aux_for_edges (void)
 DEBUG_FUNCTION void
 debug_bb (basic_block bb)
 {
-  dump_bb (stderr, bb, 0, dump_flags | TDF_BLOCKS);
+  dump_bb (stderr, bb, 0, dump_flags);
 }
 
 DEBUG_FUNCTION basic_block
@@ -698,7 +698,7 @@ dump_bb_info (FILE *outf, basic_block bb, int indent, int flags,
       if (flags & TDF_COMMENT)
 	fputs (";; ", outf);
       fprintf (outf, "%sbasic block %d, loop depth %d",
-	       s_indent, bb->index, bb->loop_depth);
+	       s_indent, bb->index, bb_loop_depth (bb));
       if (flags & TDF_DETAILS)
 	{
 	  fprintf (outf, ", count " HOST_WIDEST_INT_PRINT_DEC,

@@ -728,7 +728,7 @@ change_var_decl (tree *t, tree new_var, tree var)
     case SSA_NAME:
       nt = SSA_NAME_VAR (*t);
       change_var_decl (&nt, new_var, var);
-      SSA_NAME_VAR (*t) = nt;
+      SET_SSA_NAME_VAR_OR_IDENTIFIER (*t, nt);
       return;
 
     case LABEL_DECL:

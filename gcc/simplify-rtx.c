@@ -66,7 +66,7 @@ static rtx simplify_binary_operation_1 (enum rtx_code, enum machine_mode,
 static rtx
 neg_const_int (enum machine_mode mode, const_rtx i)
 {
-  return gen_int_mode (- INTVAL (i), mode);
+  return gen_int_mode (-(unsigned HOST_WIDE_INT) INTVAL (i), mode);
 }
 
 /* Test whether expression, X, is an immediate constant that represents
@@ -2420,7 +2420,9 @@ simplify_binary_operation_1 (enum rtx_code code, enum machine_mode mode,
     case IOR:
       if (trueop1 == CONST0_RTX (mode))
 	return op0;
-      if (INTEGRAL_MODE_P (mode) && trueop1 == CONSTM1_RTX (mode))
+      if (INTEGRAL_MODE_P (mode)
+	  && trueop1 == CONSTM1_RTX (mode)
+	  && !side_effects_p (op0))
 	return op1;
       if (rtx_equal_p (trueop0, trueop1) && ! side_effects_p (op0))
 	return op0;
@@ -2434,7 +2436,8 @@ simplify_binary_operation_1 (enum rtx_code code, enum machine_mode mode,
       /* (ior A C) is C if all bits of A that might be nonzero are on in C.  */
       if (CONST_INT_P (op1)
 	  && HWI_COMPUTABLE_MODE_P (mode)
-	  && (nonzero_bits (op0, mode) & ~UINTVAL (op1)) == 0)
+	  && (nonzero_bits (op0, mode) & ~UINTVAL (op1)) == 0
+	  && !side_effects_p (op0))
 	return op1;
 
       /* Canonicalize (X & C1) | C2.  */
