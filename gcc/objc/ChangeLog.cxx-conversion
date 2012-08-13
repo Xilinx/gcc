@@ -1,0 +1,4 @@
+2012-08-12   H.J. Lu  <hongjiu.lu@intel.com>
+
+	* objc-act.c (objc_build_constructor): Replace "->" with "."
+	for VEC_index.
