@@ -1,3 +1,271 @@
+2012-08-12  Jan Hubicka  <jh@suse.cz>
+
+	* tree-pass.h (write_summary, write_optimization_summary): Remove
+	set and vset arguments.
+	* ipa-cp.c (ipcp_write_summary): Remove set and vset arugments.
+	(write_node_summary_p): Likewise; use the encoder.
+	(ipa_reference_write_optimization_summary): Likewise.
+	* lto-cgraph.c (output_cgraph_opt_summary): Use encoder.
+	(lto_symtab_encoder_new): Initialize in_partition field.
+	(lto_symtab_encoder_delete): Destroy in_partition field.
+	(LCC_NOT_FOUND): Move to lto-streamer.h
+	(lto_symtab_encoder_deref): Likewise.
+	(lto_symtab_encoder_in_partition_p,
+	lto_set_symtab_encoder_in_partition): New functions.
+	(referenced_from_other_partition_p): Rewrite to use encoder.
+	(reachable_from_other_partition_p): Likewise.
+	(referenced_from_this_partition_p): Likewise.
+	(reachable_from_this_partition_p): Likewise.
+	(lto_output_node): Likewise.
+	(lto_output_varpool_node): Likewise.
+	(output_refs): Likewise.
+	(compute_ltrans_boundary): Initialize in_partition fileds of
+	the encoder.
+	(output_symtab): Likewise.
+	(input_refs): Match the changes in output_refs.
+	(output_cgraph_opt_summary_p): Remove set argument.
+	(output_node_opt_summary): Replace set by encoder.
+	(output_cgraph_opt_summary): Remove set argument; use
+	the encoder.
+	* ipa-pure-const.c (pure_const_write_summary): Remove set and vset
+	arguments; use the encoder.
+	* lto-streamer-out.c (lto_output): Remove set and vset argument; use
+	the encoder.
+	(produce_symtab): Likewise.
+	* ipa-inline.h (inline_write_summary): Remove set and vset arguments.
+	* ipa-inline-analysis.c (inline_write_summary): Likewise.
+	* ipa-prop.c (ipa_prop_write_jump_functions): Remove set argument;
+	use encoder.
+	* ipa-prop.h (ipa_prop_write_jump_functions): Likewise.
+	* passes.c (ipa_write_summaries_2): Remove set and vset arguments.
+	(ipa_write_summaries_1): Update.
+	(ipa_write_optimization_summaries_1): Likewise.
+	(ipa_write_optimization_summaries): Likewise.
+	* lto-streamer.h (lto_symtab_encoder_t): Add in_partition.
+	(lto_symtab_encoder_iterator): New type.
+	(lto_symtab_encoder_deref): Make inline.
+	(output_symtab, referenced_from_other_partition_p,
+	reachable_from_other_partition_p, referenced_from_this_partition_p,
+	reachable_from_this_partition_p): Update.
+	(lsei_end_p, lsei_next, lsei_node, lsei_cgraph_node, lsei_varpool_node): New
+	inline functions.
+	(LCC_NOT_FOUND): New macro.
+	(lto_symtab_encoder_deref, lsei_start, lsei_next_in_partition,
+	lsei_start_in_partition, lsei_next_function_in_partition,
+	lsei_start_function_in_partition, lsei_next_variable_in_partition,
+	lsei_start_variable_in_partition): New inline functions.
+
+2012-08-12  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/sh.md (prefetch): Simplify expander.  Fix condition to
+	allow SH3.
+	(*prefetch_media): Move insn below expander.
+	(*prefetch): Fix condition to allow SH3.
+
+2012-08-12  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/51244
+	* config/sh/sh.md: Add splits for inverted compare and branch
+	opportunities.
+	(*cmpeqsi_t): New insn.
+	(cmpgtsi_t, cmpgesi_t): Swap r and N alternatives.
+	(cmpgeusi_t): Use satisfies_constraint_Z.  Emit sett insn in
+	replacement insn list and not in the preparation statements.
+	(clrt, sett): Add mt_group attribute.
+
+2012-08-12 Marc Glisse <marc.glisse@inria.fr>
+
+	PR middle-end/54193
+	* gimple-pretty-print.c (dump_ternary_rhs): Handle 4 arguments.
+
+2012-08-12  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/39423
+	* config/sh/predicates.md (mem_index_disp_operand): Check for
+	arith_reg_operand instead of REG_P.
+
+2012-08-11  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* reload1.c (replaced_subreg, gen_reload): Add
+	SECONDARY_MEMORY_NEEDED ifdefs as necessary.
+
+2012-08-11  Jan Hubicka  <jh@suse.cz>
+
+	* lto-section-in.c (lto_section_name): Do not use "symtab" as part of
+	symtab_node sectoin name; it confuses plugin.
+
+2012-08-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/alpha/alpha.c (alpha_stdarg_optimize_hook): Shift DECL_UID
+	in the va_list_vars bitmap by num_ssa_names.
+
+2012-08-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (xop integer multiply/add insns): Use
+	register_operand for operand 3 predicate.
+	(xop_phadd<u>bq):  Fix vec_select selectors.
+
+2012-08-11  Martin Jambor  <mjambor@suse.cz>
+
+	PR fortran/48636
+	* ipa-inline.h (condition): New fields offset, agg_contents and by_ref.
+	* ipa-inline-analysis.c (agg_position_info): New type.
+	(add_condition): New parameter aggpos, also store agg_contents, by_ref
+	and offset.
+	(dump_condition): Also dump aggregate conditions.
+	(evaluate_conditions_for_known_args): Also handle aggregate
+	conditions.  New parameter known_aggs.
+	(evaluate_properties_for_edge): Gather known aggregate contents.
+	(inline_node_duplication_hook): Pass NULL known_aggs to
+	evaluate_conditions_for_known_args.
+	(unmodified_parm): Split into unmodified_parm and unmodified_parm_1.
+	(unmodified_parm_or_parm_agg_item): New function.
+	(set_cond_stmt_execution_predicate): Handle values passed in
+	aggregates.
+	(set_switch_stmt_execution_predicate): Likewise.
+	(will_be_nonconstant_predicate): Likewise.
+	(estimate_edge_devirt_benefit): Pass new parameter known_aggs to
+	ipa_get_indirect_edge_target.
+	(estimate_calls_size_and_time): New parameter known_aggs, pass it
+	recrsively to itself and to estimate_edge_devirt_benefit.
+	(estimate_node_size_and_time): New vector known_aggs, pass it o
+	functions which need it.
+	(remap_predicate): New parameter offset_map, use it to remap aggregate
+	conditions.
+	(remap_edge_summaries): New parameter offset_map, pass it recursively
+	to itself and to remap_predicate.
+	(inline_merge_summary): Also create and populate vector offset_map.
+	(do_estimate_edge_time): New vector of known aggregate contents,
+	passed to functions which need it.
+	(inline_read_section): Stream new fields of condition.
+	(inline_write_summary): Likewise.
+	* ipa-cp.c (ipa_get_indirect_edge_target): Also examine the aggregate
+	contents.  Let all local callers pass NULL for known_aggs.
+
+2012-08-11  Jan Hubicka  <jh@suse.cz>
+
+	* lto-cgraph.c (output_cgraph): Rename to ...
+	(output_symtab): ... this one. Update for LTO_section_symtab_nodes.
+	(input_cgraph): Rename to ...
+	(input_symtab): ... this one. Update for LTO_section_symtab_nodes.
+	* lto-streamer-out.c (create_output_block): Do not set
+	section_type.
+	(produce_asm): Likewise.
+	(lto_output_toplevel_asms): Likewise.
+	(produce_asm_for_decls): Likewise.
+	(lto_output): Use output_symtab.
+	* lto-section-in.c (lto_section_name): Update.
+	* lto-section-out.c (lto_destroy_simple_output_block): Remove
+	section_type.
+	* lto-streamer.h (enum lto_section_type): Remove LTO_section_varpool;
+	rename LTO_section_cgraph to LTO_section_symtab_nodes.
+	(struct lto_header): Remove section_type.
+
+2012-08-11  Jan Hubicka  <jh@suse.cz>
+
+	* cgraph.h (vector types for symtab_node): Add.
+	* ipa-reference.c (ipa_reference_write_optimization_summary): Update
+	for new symtab encoder.
+	(ipa_reference_read_optimization_summary): Likewise.
+	* lto-cgraph.c (output_varpool): Remove.
+	(input_cgraph_opt_summary): Take symtab nodes vector as argument.
+	(LTO_cgraph_tags): Rename to ...
+	(LTO_symtab_tags): ... this one; add LTO_symtab_variable.
+	(lto_cgraph_encoder_new): Rename to ...
+	(lto_symtab_encoder_new): ... this on.
+	(lto_cgraph_encoder_encode): Rename to ...
+	(lto_symtab_encoder_encode): ... this one.
+	(lto_cgraph_encoder_delete): Rename to ...
+	(lto_symtab_encoder_delete): ... this one.
+	(lto_cgraph_encoder_deref): Rename to ...
+	(lto_symtab_encoder_deref): ... this one.
+	(lto_cgraph_encoder_encode_body_p): Rename to ...
+	(lto_symtab_encoder_encode_body_p): ... this one.
+	(lto_varpool_encoder_new, lto_varpool_encoder_delete,
+	lto_varpool_encoder_encode, lto_varpool_encoder_lookup,
+	lto_varpool_encoder_deref): Remove.
+	(lto_varpool_encoder_encode_initializer_p): Rename to ...
+	(lto_symtab_encoder_encode_initializer_p): ... this one.
+	(lto_set_varpool_encoder_encode_initializer): Rename to ...
+	(lto_set_symtab_encoder_encode_initializer): ... this one.
+	(lto_output_edge): Update.
+	(lto_output_node): Update.
+	(lto_output_varpool_node): Update; stream out LTO_symtab_variable tag.
+	(lto_output_ref): Drop varpool_encoder; update.
+	(add_node_to): Update.
+	(add_references): Update.
+	(output_outgoing_cgraph_edges): Update.
+	(output_refs): Update.
+	(compute_ltrans_boundary): Update.
+	(output_cgraph): Update; output varpools too.
+	(input_overwrite_node): Update.
+	(output_varpool): Remove.
+	(input_node): Update.
+	(input_ref): Update.
+	(input_edge): Update.
+	(input_cgraph_1): Update; input varpool too; unify fixup code.
+	(input_varpool_1): Remove.
+	(input_refs): Update.
+	(input_cgraph): Update.
+	(output_node_opt_summary): Update.
+	(input_cgraph_opt_section): Update.
+	(input_cgraph_opt_summary): Update.
+	* ipa-pure-const.c (pure_const_write_summary): Update.
+	(pure_const_read_summary): Update.
+	* lto-streamer-out.c (lto_write_tree): Update.
+	(lto_output): Likewise.
+	(produce_symtab): Update.
+	(produce_asm_for_decls): Update.
+	* ipa-inline-analysis.c (inline_read_section): Update.
+	(inline_write_summary): Update.
+	* ipa-prop.c (ipa_write_node_info): Update.
+	(ipa_prop_read_section): Update.
+	* lto-streamer.h (lto_cgraph_encoder_d): Rename to ...
+	(lto_symtab_encoder_d): ... this one;  add initializer.
+	(lto_cgraph_encoder_t): Rename to ...
+	(lto_symtab_encoder_t): ... this one.
+	(lto_cgraph_encoder_size): Rename to ...
+	(lto_symtab_encoder_size): ... this one.
+	(lto_varpool_encoder_d): ... remove.
+	(lto_varpool_encoder_t): Remove.
+	(lto_out_decl_state): Remove cgraph_node_encoder, varpool_node_encoder
+	add symtab_node_encoder.
+	(lto_file_decl_data): Likewise.
+	(lto_cgraph_encoder_deref, lto_cgraph_encoder_lookup,
+	lto_cgraph_encoder_new, lto_cgraph_encoder_encode,
+	lto_cgraph_encoder_delete, lto_cgraph_encoder_encode_body_p,
+	lto_varpool_encoder_encode_body_p, lto_varpool_encoder_deref,
+	lto_varpool_encoder_lookup, lto_varpool_encoder_new,
+	lto_varpool_encoder_encode, lto_varpool_encoder_delete,
+	lto_varpool_encoder_encode_initializer_p): Remove.
+	(lto_symtab_encoder_deref, lto_symtab_encoder_lookup,
+	lto_symtab_encoder_t, lto_symtab_encoder_encode,
+	lto_symtab_encoder_delete, lto_symtab_encoder_encode_body_p,
+	lto_symtab_encoder_encode_initializer_p): New.
+
+2012-08-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (isa): Add fma and fma4.
+	(enabled): Handle fma and fma4.
+	* config/i386/sse.md (*fma_fmadd_<mode>): Merge *fma4_fmadd_<mode>.
+	(*fma_fmsub_<mode>): Merge *fma4_fmsub_<mode>.
+	(*fma_fnmadd_<mode>): Merge *fma4_fnmadd_<mode>.
+	(*fma_fnmsub_<mode>): Merge *fma4_fnmsub_<mode>.
+	(*fma_fmaddsub_<mode>): Merge *fma4_fmaddsub_<mode>.
+	(*fma_fmsubadd_<mode>): Merge *fma4_fmsubadd_<mode>.
+
+2012-08-10  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (*fma_fmadd_<mode>, *fma_fmsub_<mode>,
+	*fma_fnmadd_<mode>, *fma_fnmsub_<mode>, *fma_fmaddsub_<mode>,
+	*fma_fmsubadd_<mode>): Move FMA3 insn patterns before FMA4 patterns.
+
+2012-08-10  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (simple LEA peephole2s): Add zero-extend
+	variants of PLUS and MULT simple LEA patterns.  Disable PLUS
+	patterns for TARGET_OPT_AGU.
+
 2012-08-10  Richard Guenther  <rguenther@suse.de>
 
 	* Makefile.in (OBJS): Remove matrix-reorg.o.
@@ -124,8 +392,8 @@
 
 2012-08-10  Michael Zolotukhin  <michael.v.zolotukhin@intel.com>
 
-	* config/i386/i386.c (ix86_init_mmx_sse_builtins): Fix builtin
-	target mask of __builtin_ia32_rdseed_di_step.
+	* config/i386/i386.c (ix86_init_mmx_sse_builtins): Fix
+	target mask of __builtin_ia32_rdseed_di_step builtin.
 
 2012-08-10  Richard Guenther  <rguenther@suse.de>
 
@@ -377,10 +645,10 @@
 
 2012-08-09  Uros Bizjak  <ubizjak@gmail.com>
 
-        * config/alpha/alpha.c (alpha_pad_noreturn): Rename to ...
-        (alpha_pad_function_end): ... this.  Also insert NOP between
-        sibling call and GP load.
-        (alpha_reorg): Update call to alpha_pad_function_end.  Expand comment.
+	* config/alpha/alpha.c (alpha_pad_noreturn): Rename to ...
+	(alpha_pad_function_end): ... this.  Also insert NOP between
+	sibling call and GP load.
+	(alpha_reorg): Update call to alpha_pad_function_end.  Expand comment.
 
 2012-08-09  Michael Zolotukhin  <michael.v.zolotukhin@intel.com>
 
@@ -1843,25 +2111,25 @@
 
 2012-07-27  Segher Boessenkool  <segher@kernel.crashing.org>
 
-        * config/rs6000/constraints.md: Delete "q" constraint.
-        * config/rs6000/dfp.md (movsd_hardfloat, movsd_softfloat):
-        Delete the "q" alternative.
-        * config/rs6000/predicates.md (gpc_reg_operand): Adjust.
-        * config/rs6000/rs6000.c (rs6000_debug_reg_global,
-        rs6000_init_hard_regno_mode_ok, rs6000_dbx_register_number):
-        Adjust to MQ_REGNO removal.
-        * config/rs6000/rs6000.h (FIRST_PSEUDO_REGISTER): Adjust
-        comment.
-        (REG_ALLOC_ORDER): Adjust comment.  Remove MQ from alloc order.
-        (enum reg_class): Adjust comment.  Delete MQ_REGS.
-        (REG_CLASS_CONTENTS): Adjust.
-        (REGISTER_NAMES, ADDITIONAL_REGISTER_NAMES): Adjust comment.
-        * config/rs6000/rs6000.md: Delete MQ_REGNO.
-        (movsi_internal1, movsi_internal1_single, movhi_internal,
-        movqi_internal, movcc_internal1, movsf_hardfloat,
-        movsf_softfloat): Delete the "q" alternative.
-        (ctr<mode>_internal1, ctr<mode>_internal2, ctr<mode>_internal5,
-        ctr<mode>_internal6): Delete "q" constraint.
+	* config/rs6000/constraints.md: Delete "q" constraint.
+	* config/rs6000/dfp.md (movsd_hardfloat, movsd_softfloat):
+	Delete the "q" alternative.
+	* config/rs6000/predicates.md (gpc_reg_operand): Adjust.
+	* config/rs6000/rs6000.c (rs6000_debug_reg_global)
+	(rs6000_init_hard_regno_mode_ok, rs6000_dbx_register_number):
+	adjust to MQ_REGNO removal.
+	* config/rs6000/rs6000.h (FIRST_PSEUDO_REGISTER): Adjust
+	comment.
+	(REG_ALLOC_ORDER): Adjust comment.  Remove MQ from alloc order.
+	(enum reg_class): Adjust comment.  Delete MQ_REGS.
+	(REG_CLASS_CONTENTS): Adjust.
+	(REGISTER_NAMES, ADDITIONAL_REGISTER_NAMES): Adjust comment.
+	* config/rs6000/rs6000.md: Delete MQ_REGNO.
+	(movsi_internal1, movsi_internal1_single, movhi_internal,
+	movqi_internal, movcc_internal1, movsf_hardfloat,
+	movsf_softfloat): Delete the "q" alternative.
+	(ctr<mode>_internal1, ctr<mode>_internal2, ctr<mode>_internal5,
+	ctr<mode>_internal6): Delete "q" constraint.
 
 2012-07-27  Richard Guenther  <rguenther@suse.de>
 

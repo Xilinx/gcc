@@ -742,12 +742,6 @@
 }
   [(set_attr "type" "mt_group")])
 
-;; ??? Perhaps should only accept reg/constant if the register is reg 0.
-;; That would still allow reload to create cmpi instructions, but would
-;; perhaps allow forcing the constant into a register when that is better.
-;; Probably should use r0 for mem/imm compares, but force constant into a
-;; register for pseudo/imm compares.
-
 (define_insn "cmpeqsi_t"
   [(set (reg:SI T_REG)
 	(eq:SI (match_operand:SI 0 "arith_reg_operand" "r,z,r")
@@ -759,24 +753,40 @@
 	cmp/eq	%1,%0"
    [(set_attr "type" "mt_group")])
 
+;; FIXME: For some reason, on SH4A and SH2A combine fails to simplify this
+;; pattern by itself.  What this actually does is:
+;;	x == 0: (1 >> 0-0) & 1 = 1
+;;	x != 0: (1 >> 0-x) & 1 = 0
+;; Without this the test pr51244-8.c fails on SH2A and SH4A.
+(define_insn_and_split "*cmpeqsi_t"
+  [(set (reg:SI T_REG)
+	(and:SI (lshiftrt:SI
+		  (const_int 1)
+		  (neg:SI (match_operand:SI 0 "arith_reg_operand" "r")))
+		(const_int 1)))]
+  "TARGET_SH1"
+  "#"
+  "&& 1"
+  [(set (reg:SI T_REG) (eq:SI (match_dup 0) (const_int 0)))])
+
 (define_insn "cmpgtsi_t"
   [(set (reg:SI T_REG)
 	(gt:SI (match_operand:SI 0 "arith_reg_operand" "r,r")
-	       (match_operand:SI 1 "arith_reg_or_0_operand" "r,N")))]
+	       (match_operand:SI 1 "arith_reg_or_0_operand" "N,r")))]
   "TARGET_SH1"
   "@
-	cmp/gt	%1,%0
-	cmp/pl	%0"
+	cmp/pl	%0
+	cmp/gt	%1,%0"
    [(set_attr "type" "mt_group")])
 
 (define_insn "cmpgesi_t"
   [(set (reg:SI T_REG)
 	(ge:SI (match_operand:SI 0 "arith_reg_operand" "r,r")
-	       (match_operand:SI 1 "arith_reg_or_0_operand" "r,N")))]
+	       (match_operand:SI 1 "arith_reg_or_0_operand" "N,r")))]
   "TARGET_SH1"
   "@
-	cmp/ge	%1,%0
-	cmp/pz	%0"
+	cmp/pz	%0
+	cmp/ge	%1,%0"
    [(set_attr "type" "mt_group")])
 
 ;; FIXME: This is actually wrong.  There is no way to literally move a
@@ -815,6 +825,99 @@
   DONE;
 })
 
+;; Combine patterns to invert compare and branch operations for which we
+;; don't have actual comparison insns.  These patterns are used in cases
+;; which appear after the initial cbranchsi expansion, which also does
+;; some condition inversion.
+
+(define_split
+  [(set (pc)
+	(if_then_else (ne (match_operand:SI 0 "arith_reg_operand" "")
+			  (match_operand:SI 1 "arith_reg_or_0_operand" ""))
+		      (label_ref (match_operand 2))
+		      (pc)))
+   (clobber (reg:SI T_REG))]
+  "TARGET_SH1"
+  [(set (reg:SI T_REG) (eq:SI (match_dup 0) (match_dup 1)))
+   (set (pc) (if_then_else (eq (reg:SI T_REG) (const_int 0))
+			   (label_ref (match_dup 2))
+			   (pc)))])
+
+;; FIXME: Similar to the *cmpeqsi_t pattern above, for some reason, on SH4A
+;; and SH2A combine fails to simplify this pattern by itself.
+;; What this actually does is:
+;;	x == 0: (1 >> 0-0) & 1 = 1
+;;	x != 0: (1 >> 0-x) & 1 = 0
+;; Without this the test pr51244-8.c fails on SH2A and SH4A.
+(define_split
+  [(set (pc)
+	(if_then_else
+	  (eq (and:SI (lshiftrt:SI
+			(const_int 1)
+			(neg:SI (match_operand:SI 0 "arith_reg_operand" "")))
+		      (const_int 1))
+	      (const_int 0))
+	  (label_ref (match_operand 2))
+	  (pc)))
+   (clobber (reg:SI T_REG))]
+  "TARGET_SH1"
+  [(set (reg:SI T_REG) (eq:SI (match_dup 0) (const_int 0)))
+   (set (pc) (if_then_else (eq (reg:SI T_REG) (const_int 0))
+			   (label_ref (match_dup 2))
+			   (pc)))])
+
+(define_split
+  [(set (pc)
+	(if_then_else (le (match_operand:SI 0 "arith_reg_operand" "")
+			  (match_operand:SI 1 "arith_reg_or_0_operand" ""))
+		      (label_ref (match_operand 2))
+		      (pc)))
+   (clobber (reg:SI T_REG))]
+  "TARGET_SH1"
+  [(set (reg:SI T_REG) (gt:SI (match_dup 0) (match_dup 1)))
+   (set (pc) (if_then_else (eq (reg:SI T_REG) (const_int 0))
+			   (label_ref (match_dup 2))
+			   (pc)))])
+
+(define_split
+  [(set (pc)
+	(if_then_else (lt (match_operand:SI 0 "arith_reg_operand" "")
+			  (match_operand:SI 1 "arith_reg_or_0_operand" ""))
+		      (label_ref (match_operand 2))
+		      (pc)))
+   (clobber (reg:SI T_REG))]
+  "TARGET_SH1"
+  [(set (reg:SI T_REG) (ge:SI (match_dup 0) (match_dup 1)))
+   (set (pc) (if_then_else (eq (reg:SI T_REG) (const_int 0))
+			   (label_ref (match_dup 2))
+			   (pc)))])
+
+(define_split
+  [(set (pc)
+	(if_then_else (leu (match_operand:SI 0 "arith_reg_operand" "")
+			   (match_operand:SI 1 "arith_reg_operand" ""))
+		      (label_ref (match_operand 2))
+		      (pc)))
+   (clobber (reg:SI T_REG))]
+  "TARGET_SH1"
+  [(set (reg:SI T_REG) (gtu:SI (match_dup 0) (match_dup 1)))
+   (set (pc) (if_then_else (eq (reg:SI T_REG) (const_int 0))
+			   (label_ref (match_dup 2))
+			   (pc)))])
+
+(define_split
+  [(set (pc)
+	(if_then_else (ltu (match_operand:SI 0 "arith_reg_operand" "")
+			   (match_operand:SI 1 "arith_reg_operand" ""))
+		      (label_ref (match_operand 2))
+		      (pc)))
+   (clobber (reg:SI T_REG))]
+  "TARGET_SH1"
+  [(set (reg:SI T_REG) (geu:SI (match_dup 0) (match_dup 1)))
+   (set (pc) (if_then_else (eq (reg:SI T_REG) (const_int 0))
+			   (label_ref (match_dup 2))
+			   (pc)))])
+
 ;; -------------------------------------------------------------------------
 ;; SImode unsigned integer comparisons
 ;; -------------------------------------------------------------------------
@@ -825,13 +928,10 @@
 		(match_operand:SI 1 "arith_reg_or_0_operand" "rN")))]
   "TARGET_SH1"
   "cmp/hs	%1,%0"
-  "&& operands[1] == CONST0_RTX (SImode)"
-  [(pc)]
-{
-  emit_insn (gen_sett ());
-  DONE;
-}
-   [(set_attr "type" "mt_group")])
+  "&& satisfies_constraint_Z (operands[0])"
+  [(set (reg:SI T_REG) (const_int 1))]
+  ""
+  [(set_attr "type" "mt_group")])
 
 (define_insn "cmpgtusi_t"
   [(set (reg:SI T_REG)
@@ -839,7 +939,7 @@
 		(match_operand:SI 1 "arith_reg_operand" "r")))]
   "TARGET_SH1"
   "cmp/hi	%1,%0"
-   [(set_attr "type" "mt_group")])
+  [(set_attr "type" "mt_group")])
 
 
 ;; -------------------------------------------------------------------------
@@ -5132,13 +5232,14 @@ label:
 (define_insn "clrt"
   [(set (reg:SI T_REG) (const_int 0))]
   "TARGET_SH1"
-  "clrt")
+  "clrt"
+  [(set_attr "type" "mt_group")])
 
 (define_insn "sett"
   [(set (reg:SI T_REG) (const_int 1))]
   "TARGET_SH1"
-  "sett")
-
+  "sett"
+  [(set_attr "type" "mt_group")])
 
 ;; Use the combine pass to transform sequences such as
 ;;	mov	r5,r0
@@ -13767,6 +13868,24 @@ label:
   "byterev	%1, %0"
   [(set_attr "type" "arith_media")])
 
+;; In user mode, the "pref" instruction will raise a RADDERR exception
+;; for accesses to [0x80000000,0xffffffff].  This makes it an unsuitable
+;; implementation of __builtin_prefetch for VxWorks RTPs.
+(define_expand "prefetch"
+  [(prefetch (match_operand 0 "address_operand" "")
+             (match_operand:SI 1 "const_int_operand" "")
+             (match_operand:SI 2 "const_int_operand" ""))]
+  "(TARGET_SH2A || TARGET_SH3 || TARGET_SH5)
+   && (TARGET_SHMEDIA || ! TARGET_VXWORKS_RTP)")
+
+(define_insn "*prefetch"
+  [(prefetch (match_operand:SI 0 "register_operand" "r")
+	     (match_operand:SI 1 "const_int_operand" "n")
+	     (match_operand:SI 2 "const_int_operand" "n"))]
+  "(TARGET_SH2A || TARGET_SH3 || TARGET_SHCOMPACT) && ! TARGET_VXWORKS_RTP"
+  "pref	@%0"
+  [(set_attr "type" "other")])
+
 (define_insn "*prefetch_media"
   [(prefetch (match_operand:QI 0 "address_operand" "p")
              (match_operand:SI 1 "const_int_operand" "n")
@@ -13777,32 +13896,6 @@ label:
   output_asm_insn ("ld%M0.b    %m0,r63", operands);
   return "";
 }
-  [(set_attr "type" "other")])
-
-;; In user mode, the "pref" instruction will raise a RADDERR exception
-;; for accesses to [0x80000000,0xffffffff].  This makes it an unsuitable
-;; implementation of __builtin_prefetch for VxWorks RTPs.
-(define_expand "prefetch"
-  [(prefetch (match_operand 0 "address_operand" "p")
-             (match_operand:SI 1 "const_int_operand" "n")
-             (match_operand:SI 2 "const_int_operand" "n"))]
-  "TARGET_SH2A || ((TARGET_HARD_SH4 || TARGET_SH5)
-   && (TARGET_SHMEDIA || !TARGET_VXWORKS_RTP))"
-{
-  if (GET_MODE (operands[0]) != Pmode
-      || !CONST_INT_P (operands[1])
-      || !CONST_INT_P (operands[2]))
-    FAIL;
-  if (! TARGET_SHMEDIA)
-    operands[0] = force_reg (Pmode, operands[0]);
-})
-
-(define_insn "*prefetch"
-  [(prefetch (match_operand:SI 0 "register_operand" "r")
-	     (match_operand:SI 1 "const_int_operand" "n")
-	     (match_operand:SI 2 "const_int_operand" "n"))]
-  "(TARGET_SH2A || TARGET_HARD_SH4 || TARGET_SHCOMPACT) && !TARGET_VXWORKS_RTP"
-  "pref	@%0"
   [(set_attr "type" "other")])
 
 (define_insn "alloco_i"

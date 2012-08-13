@@ -28,9 +28,18 @@ along with GCC; see the file COPYING3.  If not see
 
 typedef struct GTY(()) condition
   {
+    /* If agg_contents is set, this is the offset from which the used data was
+       loaded.  */
+    HOST_WIDE_INT offset;
     tree val;
     int operand_num;
-    enum tree_code code;
+    ENUM_BITFIELD(tree_code) code : 16;
+    /* Set if the used data were loaded from an aggregate parameter or from
+       data received by reference.  */
+    unsigned agg_contents : 1;
+    /* If agg_contents is set, this differentiates between loads from data
+       passed by reference and by value.  */
+    unsigned by_ref : 1;
   } condition;
 
 DEF_VEC_O (condition);
@@ -162,7 +171,7 @@ void dump_inline_summaries (FILE *f);
 void dump_inline_summary (FILE * f, struct cgraph_node *node);
 void inline_generate_summary (void);
 void inline_read_summary (void);
-void inline_write_summary (cgraph_node_set, varpool_node_set);
+void inline_write_summary (void);
 void inline_free_summary (void);
 void initialize_inline_failed (struct cgraph_edge *);
 int estimate_time_after_inlining (struct cgraph_node *, struct cgraph_edge *);

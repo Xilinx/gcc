@@ -3303,14 +3303,14 @@ static void
 ipa_write_node_info (struct output_block *ob, struct cgraph_node *node)
 {
   int node_ref;
-  lto_cgraph_encoder_t encoder;
+  lto_symtab_encoder_t encoder;
   struct ipa_node_params *info = IPA_NODE_REF (node);
   int j;
   struct cgraph_edge *e;
   struct bitpack_d bp;
 
-  encoder = ob->decl_state->cgraph_node_encoder;
-  node_ref = lto_cgraph_encoder_encode (encoder, node);
+  encoder = ob->decl_state->symtab_node_encoder;
+  node_ref = lto_symtab_encoder_encode (encoder, (symtab_node) node);
   streamer_write_uhwi (ob, node_ref);
 
   bp = bitpack_create (ob->main_stream);
@@ -3391,21 +3391,25 @@ ipa_read_node_info (struct lto_input_block *ib, struct cgraph_node *node,
 /* Write jump functions for nodes in SET.  */
 
 void
-ipa_prop_write_jump_functions (cgraph_node_set set)
+ipa_prop_write_jump_functions (void)
 {
   struct cgraph_node *node;
   struct output_block *ob;
   unsigned int count = 0;
-  cgraph_node_set_iterator csi;
+  lto_symtab_encoder_iterator lsei;
+  lto_symtab_encoder_t encoder;
+
 
   if (!ipa_node_params_vector)
     return;
 
   ob = create_output_block (LTO_section_jump_functions);
+  encoder = ob->decl_state->symtab_node_encoder;
   ob->cgraph_node = NULL;
-  for (csi = csi_start (set); !csi_end_p (csi); csi_next (&csi))
+  for (lsei = lsei_start_function_in_partition (encoder); !lsei_end_p (lsei);
+       lsei_next_function_in_partition (&lsei))
     {
-      node = csi_node (csi);
+      node = lsei_cgraph_node (lsei);
       if (cgraph_function_with_gimple_body_p (node)
 	  && IPA_NODE_REF (node) != NULL)
 	count++;
@@ -3414,9 +3418,10 @@ ipa_prop_write_jump_functions (cgraph_node_set set)
   streamer_write_uhwi (ob, count);
 
   /* Process all of the functions.  */
-  for (csi = csi_start (set); !csi_end_p (csi); csi_next (&csi))
+  for (lsei = lsei_start_function_in_partition (encoder); !lsei_end_p (lsei);
+       lsei_next_function_in_partition (&lsei))
     {
-      node = csi_node (csi);
+      node = lsei_cgraph_node (lsei);
       if (cgraph_function_with_gimple_body_p (node)
 	  && IPA_NODE_REF (node) != NULL)
         ipa_write_node_info (ob, node);
@@ -3454,11 +3459,11 @@ ipa_prop_read_section (struct lto_file_decl_data *file_data, const char *data,
     {
       unsigned int index;
       struct cgraph_node *node;
-      lto_cgraph_encoder_t encoder;
+      lto_symtab_encoder_t encoder;
 
       index = streamer_read_uhwi (&ib_main);
-      encoder = file_data->cgraph_node_encoder;
-      node = lto_cgraph_encoder_deref (encoder, index);
+      encoder = file_data->symtab_node_encoder;
+      node = cgraph (lto_symtab_encoder_deref (encoder, index));
       gcc_assert (node->analyzed);
       ipa_read_node_info (&ib_main, node, data_in);
     }

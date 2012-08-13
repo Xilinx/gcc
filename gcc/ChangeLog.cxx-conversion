@@ -1,3 +1,7 @@
+2012-08-13   Diego Novillo  <dnovillo@google.com>
+
+	Merge from trunk rev 190337.
+
 2012-08-12  Diego Novillo  <dnovillo@google.com>
 
 	* config/bfin/bfin.c (hwloop_optimize): Update some calls to 

@@ -1,3 +1,51 @@
+2012-08-12  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* gcc.target/sh/prefetch.c: Add -m3* to inclusion list.
+
+2012-08-12  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/51244
+	* gcc.target/sh/pr51244-7.c: New.
+	* gcc.target/sh/pr51244-8.c: New.
+	* gcc.target/sh/pr51244-9.c: New.
+	* gcc.target/sh/pr51244-10.c: New.
+
+2012-08-12  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* gcc.target/sh/pr50749-sf-postinc-1.c: Skip for -m3.  Don't skip for
+	-m2e or -m2a.
+	* gcc.target/sh/pr50749-sf-postinc-3.c: Likewise.
+	* gcc.target/sh/pr53511-1.c: Likewise.
+	* gcc.target/sh/pr50749-sf-predec-1.c: Likewise.
+	* gcc.target/sh/pr50749-sf-predec-3.c: Likewise.
+	* gcc.target/sh/pr53512-1.c: Skip for -m3*.
+	* gcc.target/sh/pr53512-3.c: Likewise.
+	* gcc.target/sh/pr21255-3.c: Skip for single precision FPU targets.
+
+2012-08-12  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/39423
+	* gcc.c-torture/compile/pr39423-1.c: New.
+	* gcc.c-torture/compile/pr39423-2.c: New.
+
+2012-08-12  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/54221
+	* vect/vect-gems.f90: Don't mark module vars as PRIVATE as
+	they appear uninitialized on the RHS.
+	* gfortran.dg/public_private_module_6.f90: New.
+
+2012-08-11  Martin Jambor  <mjambor@suse.cz>
+
+	PR fortran/48636
+	* gfortran.dg/pr48636.f90: New test.
+
+2012-08-10  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/torture/vector-shuffle1.c (f): Pass vectors indirectly
+	to avoid warnings.
+	(main): Adjust caller.
+
 2012-08-10  Richard Guenther  <rguenther@suse.de>
 
 	* gcc.dg/matrix/*.c: Adjust and move ...
