@@ -13,17 +13,17 @@ involve determining information about GCC's data structures from GCC's
 source code and using this information to perform garbage collection and
 implement precompiled headers.
 
-A full C parser would be too complicated for this task, so a limited
-subset of C is interpreted and special markers are used to determine
-what parts of the source to look at.  All @code{struct} and
-@code{union} declarations that define data structures that are
-allocated under control of the garbage collector must be marked.  All
-global variables that hold pointers to garbage-collected memory must
-also be marked.  Finally, all global variables that need to be saved
-and restored by a precompiled header must be marked.  (The precompiled
-header mechanism can only save static variables if they're scalar.
-Complex data structures must be allocated in garbage-collected memory
-to be saved in a precompiled header.)
+A full C++ parser would be too complicated for this task, so a limited
+subset of C++ is interpreted and special markers are used to determine
+what parts of the source to look at.  All @code{struct}, @code{union}
+and @code{template} structure declarations that define data structures
+that are allocated under control of the garbage collector must be
+marked.  All global variables that hold pointers to garbage-collected
+memory must also be marked.  Finally, all global variables that need
+to be saved and restored by a precompiled header must be marked.  (The
+precompiled header mechanism can only save static variables if they're
+scalar. Complex data structures must be allocated in garbage-collected
+memory to be saved in a precompiled header.)
 
 The full format of a marker is
 @smallexample
