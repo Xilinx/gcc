@@ -1,3 +1,8 @@
+2012-08-14  Simon Baldwin  <simonb@google.com>
+
+	* testsuite-management/powerpc-grtev3-linux-gnu.xfail: Add new entries
+	for soft-float.
+
 2012-08-13  Diego Novillo  <dnovillo@google.com>
 
 	Merge rev 190351 from trunk.
