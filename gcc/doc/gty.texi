@@ -446,7 +446,7 @@ adding new special cases unless there is no other alternative.
 @item user
 
 The @code{user} option indicates that the code to mark structure
-fields is completely handled by user-provided routines.  Section
+fields is completely handled by user-provided routines.  See section
 @ref{User GC} for details on what functions need to be provided.
 @end table
 
@@ -456,7 +456,7 @@ fields is completely handled by user-provided routines.  Section
 The garbage collector supports types for which no automatic marking
 code is generated.  For these types, the user is required to provide
 three functions: one to act as a marker for garbage collection, and
-two functions to act as marker and pointer walking for pre-compiled
+two functions to act as marker and pointer walker for pre-compiled
 headers.
 
 Given a structure @code{struct GTY((user)) my_struct}, the following functions
@@ -484,7 +484,7 @@ void gt_pch_nx (my_struct *p, gt_pointer_operator op, void *cookie)
 
 In general, each marker @code{M} should call @code{M} for every
 pointer field in the structure.  Fields that are not allocated in GC
-or are not pointers can be ignored.
+or are not pointers must be ignored.
 
 For embedded lists (e.g., structures with a @code{next} or @code{prev}
 pointer), the marker must follow the chain and mark every element in
@@ -498,9 +498,9 @@ every pointer field.
 @section User-provided marking routines for template types
 When a template type @code{TP} is marked with @code{GTY}, all
 instances of that type are considered user-provided types.  This means
-that the individual instances of @code{TP} do not need to marked with
-@code{GTY}.  The user needs to provide template functions to mark all
-the fields of the type.
+that the individual instances of @code{TP} do not need to be marked
+with @code{GTY}.  The user needs to provide template functions to mark
+all the fields of the type.
 
 The following code snippets represent all the functions that need to
 be provided. Note that type @code{TP} may reference to more than one

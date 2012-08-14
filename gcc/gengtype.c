@@ -561,9 +561,10 @@ create_user_defined_type (const char *type_name, struct fileloc *pos)
   ty->u.s.bitmap = get_lang_bitmap (pos->file);
   do_typedef (type_name, ty, pos);
 
-  /* If TYPE_NAME specifies a template, create references to the types in the
-     template by preteding that each type is a field of TY.  This is needed to
-     make sure that the types referenced by the template are marked as used.  */
+  /* If TYPE_NAME specifies a template, create references to the types
+     in the template by pretending that each type is a field of TY.
+     This is needed to make sure that the types referenced by the
+     template are marked as used.  */
   char *str = xstrdup (type_name);
   char *open_bracket = strchr (str, '<');
   if (open_bracket)
@@ -606,10 +607,7 @@ resolve_typedef (const char *s, struct fileloc *pos)
 
   /* If we did not find a typedef registered, assume this is a name
      for a user-defined type which will need to provide its own
-     marking functions.
-
-     FIXME cxx-conversion. Emit an error once explicit annotations
-     for marking user types are implemented.  */
+     marking functions.  */
   return create_user_defined_type (s, pos);
 }
 
@@ -2390,7 +2388,7 @@ struct walk_type_data
    characters replaced with '_'.  In this case, the caller is
    responsible for freeing the allocated string.  */
 
-static const char *
+static char *
 filter_type_name (const char *type_name)
 {
   if (strchr (type_name, '<') || strchr (type_name, ':'))
@@ -2435,11 +2433,11 @@ output_mangled_typename (outf_p of, const_type_p t)
       case TYPE_LANG_STRUCT:
       case TYPE_USER_STRUCT:
 	{
-	  const char *id_for_tag = filter_type_name (t->u.s.tag);
+	  char *id_for_tag = filter_type_name (t->u.s.tag);
 	  oprintf (of, "%lu%s", (unsigned long) strlen (id_for_tag),
 		   id_for_tag);
 	  if (id_for_tag != t->u.s.tag)
-	    free (CONST_CAST(char *, id_for_tag));
+	    free (id_for_tag);
 	}
 	break;
       case TYPE_PARAM_STRUCT:
@@ -3244,10 +3242,10 @@ write_marker_function_name (outf_p of, type_p s, const char *prefix)
 {
   if (union_or_struct_p (s))
     {
-      const char *id_for_tag = filter_type_name (s->u.s.tag);
+      char *id_for_tag = filter_type_name (s->u.s.tag);
       oprintf (of, "gt_%sx_%s", prefix, id_for_tag);
       if (id_for_tag != s->u.s.tag)
-	free (CONST_CAST(char *, id_for_tag));
+	free (id_for_tag);
     }
   else if (s->kind == TYPE_PARAM_STRUCT)
     {
@@ -3555,12 +3553,11 @@ write_types (outf_p output_header, type_p structures, type_p param_structs,
     if (s->gc_used == GC_POINTED_TO || s->gc_used == GC_MAYBE_POINTED_TO)
       {
 	options_p opt;
-	const char *s_id_for_tag;
 
 	if (s->gc_used == GC_MAYBE_POINTED_TO && s->u.s.line.file == NULL)
 	  continue;
 
-	s_id_for_tag = filter_type_name (s->u.s.tag);
+	char *s_id_for_tag = filter_type_name (s->u.s.tag);
 
 	oprintf (output_header, "#define gt_%s_", wtd->prefix);
 	output_mangled_typename (output_header, s);
@@ -3599,7 +3596,7 @@ write_types (outf_p output_header, type_p structures, type_p param_structs,
 		 wtd->prefix, s_id_for_tag);
 
 	if (s_id_for_tag != s->u.s.tag)
-	  free (CONST_CAST(char *, s_id_for_tag));
+	  free (s_id_for_tag);
 
 	if (s->u.s.line.file == NULL)
 	  {
@@ -4322,14 +4319,14 @@ write_root (outf_p f, pair_p v, type_p type, const char *name, int has_length,
 
 	if (!has_length && union_or_struct_p (tp))
 	  {
-	    const char *id_for_tag = filter_type_name (tp->u.s.tag);
+	    char *id_for_tag = filter_type_name (tp->u.s.tag);
 	    oprintf (f, "    &gt_ggc_mx_%s,\n", id_for_tag);
 	    if (emit_pch)
 	      oprintf (f, "    &gt_pch_nx_%s", id_for_tag);
 	    else
 	      oprintf (f, "    NULL");
 	    if (id_for_tag != tp->u.s.tag)
-	      free (CONST_CAST(char *, id_for_tag));
+	      free (id_for_tag);
 	  }
 	else if (!has_length && tp->kind == TYPE_PARAM_STRUCT)
 	  {
@@ -4726,9 +4723,8 @@ write_typed_alloc_def (outf_p f,
   bool two_args = variable_size && (quantity == vector);
   bool third_arg = ((zone == specific_zone)
 		    && (variable_size || (quantity == vector)));
-  const char *type_name_as_id;
   gcc_assert (f != NULL);
-  type_name_as_id = filter_type_name (type_name);
+  char *type_name_as_id = filter_type_name (type_name);
   oprintf (f, "#define ggc_alloc_%s%s", allocator_type, type_name_as_id);
   oprintf (f, "(%s%s%s%s%s) ",
 	   (variable_size ? "SIZE" : ""),
@@ -4747,7 +4743,7 @@ write_typed_alloc_def (outf_p f,
     oprintf (f, ", n");
   oprintf (f, " MEM_STAT_INFO)))\n");
   if (type_name_as_id != type_name)
-    free (CONST_CAST(char *, type_name_as_id));
+    free (type_name_as_id);
 }
 
 /* Writes a typed allocator definition into output F for a struct or

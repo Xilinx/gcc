@@ -1442,7 +1442,7 @@ gt_ggc_m_S (const void *p)
 }
 
 
-/* User-callable entry point for marking string X.  */
+/* User-callable entry points for marking string X.  */
 
 void
 gt_ggc_mx (const char *& x)
