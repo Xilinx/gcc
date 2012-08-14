@@ -2679,6 +2679,7 @@ ix86_target_string (HOST_WIDE_INT isa, int flags, const char *arch,
     { "-mbmi",		OPTION_MASK_ISA_BMI },
     { "-mbmi2", 	OPTION_MASK_ISA_BMI2 },
     { "-mlzcnt",	OPTION_MASK_ISA_LZCNT },
+    { "-mhle",		OPTION_MASK_ISA_HLE },
     { "-mtbm",		OPTION_MASK_ISA_TBM },
     { "-mpopcnt",	OPTION_MASK_ISA_POPCNT },
     { "-mmovbe",	OPTION_MASK_ISA_MOVBE },
@@ -2688,6 +2689,7 @@ ix86_target_string (HOST_WIDE_INT isa, int flags, const char *arch,
     { "-mfsgsbase",	OPTION_MASK_ISA_FSGSBASE },
     { "-mrdrnd",	OPTION_MASK_ISA_RDRND },
     { "-mf16c",		OPTION_MASK_ISA_F16C },
+    { "-mrtm",		OPTION_MASK_ISA_RTM },
   };
 
   /* Flag options.  */
@@ -2936,6 +2938,8 @@ ix86_option_override_internal (bool main_args_p)
 #define PTA_XOP		 	(HOST_WIDE_INT_1 << 29)
 #define PTA_AVX2		(HOST_WIDE_INT_1 << 30)
 #define PTA_BMI2	 	(HOST_WIDE_INT_1 << 31)
+#define PTA_RTM		 	(HOST_WIDE_INT_1 << 32)
+#define PTA_HLE	 		(HOST_WIDE_INT_1 << 33)
 /* if this reaches 64, need to widen struct pta flags below */
 
   static struct pta
@@ -2994,7 +2998,7 @@ ix86_option_override_internal (bool main_args_p)
 	| PTA_SSSE3 | PTA_SSE4_1 | PTA_SSE4_2 | PTA_AVX | PTA_AVX2
 	| PTA_CX16 | PTA_POPCNT | PTA_AES | PTA_PCLMUL | PTA_FSGSBASE
 	| PTA_RDRND | PTA_F16C | PTA_BMI | PTA_BMI2 | PTA_LZCNT
-        | PTA_FMA | PTA_MOVBE},
+       | PTA_FMA | PTA_MOVBE | PTA_RTM | PTA_HLE},
       {"atom", PROCESSOR_ATOM, CPU_ATOM,
 	PTA_64BIT | PTA_MMX | PTA_SSE | PTA_SSE2 | PTA_SSE3
 	| PTA_SSSE3 | PTA_CX16 | PTA_MOVBE},
@@ -3057,9 +3061,10 @@ ix86_option_override_internal (bool main_args_p)
         PTA_64BIT | PTA_MMX |  PTA_SSE  | PTA_SSE2 | PTA_SSE3
         | PTA_SSSE3 | PTA_SSE4A |PTA_ABM | PTA_CX16},
       {"generic32", PROCESSOR_GENERIC32, CPU_PENTIUMPRO,
-	0 /* flags are only used for -march switch.  */ },
+	PTA_HLE /* flags are only used for -march switch.  */ },
       {"generic64", PROCESSOR_GENERIC64, CPU_GENERIC64,
-	PTA_64BIT /* flags are only used for -march switch.  */ },
+	PTA_64BIT
+        | PTA_HLE /* flags are only used for -march switch.  */ },
     };
 
   /* -mrecip options.  */
@@ -3361,6 +3366,12 @@ ix86_option_override_internal (bool main_args_p)
 	if (processor_alias_table[i].flags & PTA_F16C
 	    && !(ix86_isa_flags_explicit & OPTION_MASK_ISA_F16C))
 	  ix86_isa_flags |= OPTION_MASK_ISA_F16C;
+	if (processor_alias_table[i].flags & PTA_RTM
+	    && !(ix86_isa_flags_explicit & OPTION_MASK_ISA_RTM))
+	  ix86_isa_flags |= OPTION_MASK_ISA_RTM;
+	if (processor_alias_table[i].flags & PTA_HLE
+	    && !(ix86_isa_flags_explicit & OPTION_MASK_ISA_HLE))
+	  ix86_isa_flags |= OPTION_MASK_ISA_HLE;
 	if (processor_alias_table[i].flags & (PTA_PREFETCH_SSE | PTA_SSE))
 	  x86_prefetch_sse = true;
 
@@ -4155,6 +4166,8 @@ ix86_valid_target_attribute_inner_p (tree args, char *p_strings[],
     IX86_ATTR_ISA ("fsgsbase",	OPT_mfsgsbase),
     IX86_ATTR_ISA ("rdrnd",	OPT_mrdrnd),
     IX86_ATTR_ISA ("f16c",	OPT_mf16c),
+    IX86_ATTR_ISA ("rtm",	OPT_mrtm),
+    IX86_ATTR_ISA ("hle",	OPT_mhle),
 
     /* enum options */
     IX86_ATTR_ENUM ("fpmath=",	OPT_mfpmath_),
@@ -14432,6 +14445,24 @@ ix86_print_operand (FILE *file, rtx x, int code)
 	     only going to use this for printing.  */
 	  x = adjust_address_nv (x, DImode, 8);
 	  break;
+
+	case 'K':
+	  gcc_assert (CONST_INT_P (x));
+
+	  if (INTVAL (x) & IX86_HLE_ACQUIRE)
+#ifdef HAVE_AS_IX86_HLE
+	    fputs ("xacquire ", file);
+#else
+	    fputs ("\n" ASM_BYTE "0xf2\n\t", file);
+#endif
+	  else if (INTVAL (x) & IX86_HLE_RELEASE)
+#ifdef HAVE_AS_IX86_HLE
+	    fputs ("xrelease ", file);
+#else
+	    fputs ("\n" ASM_BYTE "0xf3\n\t", file);
+#endif
+	  /* We do not want to print value of the operand.  */
+	  return;
 
 	case '+':
 	  {
@@ -25900,6 +25931,12 @@ enum ix86_builtins
 
   IX86_BUILTIN_CLZS,
 
+  /* RTM */
+  IX86_BUILTIN_XBEGIN,
+  IX86_BUILTIN_XEND,
+  IX86_BUILTIN_XABORT,
+  IX86_BUILTIN_XTEST,
+
   /* BMI instructions.  */
   IX86_BUILTIN_BEXTR32,
   IX86_BUILTIN_BEXTR64,
@@ -26265,6 +26302,11 @@ static const struct builtin_description bdesc_special_args[] =
   { OPTION_MASK_ISA_FSGSBASE | OPTION_MASK_ISA_64BIT, CODE_FOR_wrfsbasedi, "__builtin_ia32_wrfsbase64", IX86_BUILTIN_WRFSBASE64, UNKNOWN, (int) VOID_FTYPE_UINT64 },
   { OPTION_MASK_ISA_FSGSBASE | OPTION_MASK_ISA_64BIT, CODE_FOR_wrgsbasesi, "__builtin_ia32_wrgsbase32", IX86_BUILTIN_WRGSBASE32, UNKNOWN, (int) VOID_FTYPE_UNSIGNED },
   { OPTION_MASK_ISA_FSGSBASE | OPTION_MASK_ISA_64BIT, CODE_FOR_wrgsbasedi, "__builtin_ia32_wrgsbase64", IX86_BUILTIN_WRGSBASE64, UNKNOWN, (int) VOID_FTYPE_UINT64 },
+
+  /* RTM */
+  { OPTION_MASK_ISA_RTM, CODE_FOR_xbegin, "__builtin_ia32_xbegin", IX86_BUILTIN_XBEGIN, UNKNOWN, (int) UNSIGNED_FTYPE_VOID },
+  { OPTION_MASK_ISA_RTM, CODE_FOR_xend, "__builtin_ia32_xend", IX86_BUILTIN_XEND, UNKNOWN, (int) VOID_FTYPE_VOID },
+  { OPTION_MASK_ISA_RTM, CODE_FOR_xtest, "__builtin_ia32_xtest", IX86_BUILTIN_XTEST, UNKNOWN, (int) INT_FTYPE_VOID },
 };
 
 /* Builtins with variable number of arguments.  */
@@ -27710,6 +27752,10 @@ ix86_init_mmx_sse_builtins (void)
   def_builtin (OPTION_MASK_ISA_AVX2, "__builtin_ia32_gatheraltdiv4si256 ",
 	       V8SI_FTYPE_V8SI_PCINT_V4DI_V8SI_INT,
 	       IX86_BUILTIN_GATHERALTDIV8SI);
+
+  /* RTM.  */
+  def_builtin (OPTION_MASK_ISA_RTM, "__builtin_ia32_xabort",
+	       VOID_FTYPE_UNSIGNED, IX86_BUILTIN_XABORT);
 
   /* MMX access to the vec_init patterns.  */
   def_builtin_const (OPTION_MASK_ISA_MMX, "__builtin_ia32_vec_init_v2si",
@@ -29512,6 +29558,8 @@ ix86_expand_special_args_builtin (const struct builtin_description *d,
       klass = store;
       memory = 0;
       break;
+
+    case INT_FTYPE_VOID:
     case UINT64_FTYPE_VOID:
     case UNSIGNED_FTYPE_VOID:
       nargs = 0;
@@ -30350,6 +30398,19 @@ rdrand_step:
 	target = subtarget;
 
       return target;
+
+    case IX86_BUILTIN_XABORT:
+      icode = CODE_FOR_xabort;
+      arg0 = CALL_EXPR_ARG (exp, 0);
+      op0 = expand_normal (arg0);
+      mode0 = insn_data[icode].operand[0].mode;
+      if (!insn_data[icode].operand[0].predicate (op0, mode0))
+	{
+	  error ("the xabort's argument must be an 8-bit immediate");
+	  return const0_rtx;
+	}
+      emit_insn (gen_xabort (op0));
+      return 0;
 
     default:
       break;
@@ -39201,6 +39262,38 @@ ix86_autovectorize_vector_sizes (void)
   return (TARGET_AVX && !TARGET_PREFER_AVX128) ? 32 | 16 : 0;
 }
 
+/* Validate target specific memory model bits in VAL. */
+
+static unsigned HOST_WIDE_INT
+ix86_memmodel_check (unsigned HOST_WIDE_INT val)
+{
+  unsigned HOST_WIDE_INT model = val & MEMMODEL_MASK;
+  unsigned HOST_WIDE_INT strong;
+
+  if (val & ~(unsigned HOST_WIDE_INT)(IX86_HLE_ACQUIRE|IX86_HLE_RELEASE
+				      |MEMMODEL_MASK)
+      || ((val & IX86_HLE_ACQUIRE) && (val & IX86_HLE_RELEASE)))
+    {
+      warning (OPT_Winvalid_memory_model,
+	       "Unknown architecture specific memory model");
+      return MEMMODEL_SEQ_CST;
+    }
+  strong = (model == MEMMODEL_ACQ_REL || model == MEMMODEL_SEQ_CST);
+  if (val & IX86_HLE_ACQUIRE && !(model == MEMMODEL_ACQUIRE || strong))
+    {
+      warning (OPT_Winvalid_memory_model,
+              "HLE_ACQUIRE not used with ACQUIRE or stronger memory model");
+      return MEMMODEL_SEQ_CST | IX86_HLE_ACQUIRE;
+    }
+   if (val & IX86_HLE_RELEASE && !(model == MEMMODEL_RELEASE || strong))
+    {
+      warning (OPT_Winvalid_memory_model,
+              "HLE_RELEASE not used with RELEASE or stronger memory model");
+      return MEMMODEL_SEQ_CST | IX86_HLE_RELEASE;
+    }
+  return val;
+}
+
 /* Initialize the GCC target structure.  */
 #undef TARGET_RETURN_IN_MEMORY
 #define TARGET_RETURN_IN_MEMORY ix86_return_in_memory
@@ -39305,6 +39398,9 @@ ix86_autovectorize_vector_sizes (void)
 
 #undef TARGET_FUNCTION_OK_FOR_SIBCALL
 #define TARGET_FUNCTION_OK_FOR_SIBCALL ix86_function_ok_for_sibcall
+
+#undef TARGET_MEMMODEL_CHECK
+#define TARGET_MEMMODEL_CHECK ix86_memmodel_check
 
 #ifdef HAVE_AS_TLS
 #undef TARGET_HAVE_TLS
