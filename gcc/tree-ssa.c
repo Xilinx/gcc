@@ -1688,7 +1688,7 @@ warn_uninitialized_vars (bool warn_possibly_uninitialized)
 			     "%qE is used uninitialized in this function",
 			     stmt);
 	      else if (warn_possibly_uninitialized)
-		warn_uninit (OPT_Wuninitialized, use, gimple_assign_rhs1 (stmt),
+		warn_uninit (OPT_Wmaybe_uninitialized, use, gimple_assign_rhs1 (stmt),
 			     base,
 			     "%qE may be used uninitialized in this function",
 			     stmt);
