@@ -73,8 +73,8 @@ public:
 
   /* The following functions are mutating operations.  */
 
-  double_int &operator ++(); // prefix
-  double_int &operator --(); // prefix
+  double_int &operator ++ (); // prefix
+  double_int &operator -- (); // prefix
   double_int &operator *= (double_int);
   double_int &operator += (double_int);
   double_int &operator -= (double_int);
@@ -88,8 +88,8 @@ public:
 
   /* Conversion query functions.  */
 
-  bool fits_unsigned() const;
-  bool fits_signed() const;
+  bool fits_unsigned () const;
+  bool fits_signed () const;
   bool fits (bool uns) const;
 
   /* Attribute query functions.  */
@@ -234,14 +234,14 @@ uhwi_to_double_int (unsigned HOST_WIDE_INT cst)
 inline double_int &
 double_int::operator ++ ()
 {
-  *this + double_int_one;
+  *this += double_int_one;
   return *this;
 }
 
 inline double_int &
 double_int::operator -- ()
 {
-  *this - double_int_one;
+  *this -= double_int_one;
   return *this;
 }
 
