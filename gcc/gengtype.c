@@ -2388,7 +2388,7 @@ struct walk_type_data
    characters replaced with '_'.  In this case, the caller is
    responsible for freeing the allocated string.  */
 
-static char *
+static const char *
 filter_type_name (const char *type_name)
 {
   if (strchr (type_name, '<') || strchr (type_name, ':'))
@@ -2433,11 +2433,11 @@ output_mangled_typename (outf_p of, const_type_p t)
       case TYPE_LANG_STRUCT:
       case TYPE_USER_STRUCT:
 	{
-	  char *id_for_tag = filter_type_name (t->u.s.tag);
+	  const char *id_for_tag = filter_type_name (t->u.s.tag);
 	  oprintf (of, "%lu%s", (unsigned long) strlen (id_for_tag),
 		   id_for_tag);
 	  if (id_for_tag != t->u.s.tag)
-	    free (id_for_tag);
+	    free (CONST_CAST(char *, id_for_tag));
 	}
 	break;
       case TYPE_PARAM_STRUCT:
@@ -3242,10 +3242,10 @@ write_marker_function_name (outf_p of, type_p s, const char *prefix)
 {
   if (union_or_struct_p (s))
     {
-      char *id_for_tag = filter_type_name (s->u.s.tag);
+      const char *id_for_tag = filter_type_name (s->u.s.tag);
       oprintf (of, "gt_%sx_%s", prefix, id_for_tag);
       if (id_for_tag != s->u.s.tag)
-	free (id_for_tag);
+	free (CONST_CAST(char *, id_for_tag));
     }
   else if (s->kind == TYPE_PARAM_STRUCT)
     {
@@ -3557,7 +3557,7 @@ write_types (outf_p output_header, type_p structures, type_p param_structs,
 	if (s->gc_used == GC_MAYBE_POINTED_TO && s->u.s.line.file == NULL)
 	  continue;
 
-	char *s_id_for_tag = filter_type_name (s->u.s.tag);
+	const char *s_id_for_tag = filter_type_name (s->u.s.tag);
 
 	oprintf (output_header, "#define gt_%s_", wtd->prefix);
 	output_mangled_typename (output_header, s);
@@ -3596,7 +3596,7 @@ write_types (outf_p output_header, type_p structures, type_p param_structs,
 		 wtd->prefix, s_id_for_tag);
 
 	if (s_id_for_tag != s->u.s.tag)
-	  free (s_id_for_tag);
+	  free (CONST_CAST(char *, s_id_for_tag));
 
 	if (s->u.s.line.file == NULL)
 	  {
@@ -4319,14 +4319,14 @@ write_root (outf_p f, pair_p v, type_p type, const char *name, int has_length,
 
 	if (!has_length && union_or_struct_p (tp))
 	  {
-	    char *id_for_tag = filter_type_name (tp->u.s.tag);
+	    const char *id_for_tag = filter_type_name (tp->u.s.tag);
 	    oprintf (f, "    &gt_ggc_mx_%s,\n", id_for_tag);
 	    if (emit_pch)
 	      oprintf (f, "    &gt_pch_nx_%s", id_for_tag);
 	    else
 	      oprintf (f, "    NULL");
 	    if (id_for_tag != tp->u.s.tag)
-	      free (id_for_tag);
+	      free (CONST_CAST(char *, id_for_tag));
 	  }
 	else if (!has_length && tp->kind == TYPE_PARAM_STRUCT)
 	  {
@@ -4724,7 +4724,7 @@ write_typed_alloc_def (outf_p f,
   bool third_arg = ((zone == specific_zone)
 		    && (variable_size || (quantity == vector)));
   gcc_assert (f != NULL);
-  char *type_name_as_id = filter_type_name (type_name);
+  const char *type_name_as_id = filter_type_name (type_name);
   oprintf (f, "#define ggc_alloc_%s%s", allocator_type, type_name_as_id);
   oprintf (f, "(%s%s%s%s%s) ",
 	   (variable_size ? "SIZE" : ""),
@@ -4743,7 +4743,7 @@ write_typed_alloc_def (outf_p f,
     oprintf (f, ", n");
   oprintf (f, " MEM_STAT_INFO)))\n");
   if (type_name_as_id != type_name)
-    free (type_name_as_id);
+    free (CONST_CAST(char *, type_name_as_id));
 }
 
 /* Writes a typed allocator definition into output F for a struct or
