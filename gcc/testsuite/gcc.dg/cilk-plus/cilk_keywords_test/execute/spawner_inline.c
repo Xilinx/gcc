@@ -1,4 +1,3 @@
-#include <stdlib.h>
 void exit (int);
 void abort(void);
 #define DEFAULT_VALUE 30
@@ -20,7 +19,6 @@ int fib (int n)
 int main_parallel (int argc, char *argv[])
 {
   int n, result;
-  
   if (argc == 2)
     n = atoi(argv[1]);
   else

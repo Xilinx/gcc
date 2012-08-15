@@ -1,5 +1,3 @@
-#include<stdlib.h>
-#include<stdio.h>
 #define DEFAULT_VALUE "30"
 
 void exit (int);

@@ -34,8 +34,14 @@ set CILK_TORTURE_OPTIONS [list \
 			   { -O3 -fcilkplus -lcilkrts -fomit-frame-pointer -funroll-loops -std=c99} \
 			   { -O3 -fcilkplus -lcilkrts -fomit-frame-pointer -funroll-all-loops -finline-functions -std=c99 } \
 			   { -O3 -g -fcilkplus -lcilkrts -std=c99} \
-			   { -Os -fcilkplus -lcilkrts -std=c99} ]
-
+			   { -Os -fcilkplus -lcilkrts -std=c99} \
+			   { -O0 -fcilkplus -lcilkrts -std=c99 -flto} \
+			   { -O1 -fcilkplus -lcilkrts -std=c99 -flto} \
+			   { -O2 -fcilkplus -lcilkrts -std=c99 -flto} \
+			   { -O3 -fcilkplus -lcilkrts -fomit-frame-pointer -funroll-loops -std=c99 -flto } \
+			   { -O3 -fcilkplus -lcilkrts -fomit-frame-pointer -funroll-all-loops -finline-functions -std=c99 -flto} \
+			   { -O3 -g -fcilkplus -lcilkrts -std=c99 -flto} \
+			   { -Os -fcilkplus -lcilkrts -std=c99 -flto} ]
 
 
 if $tracelevel then {
