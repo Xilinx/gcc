@@ -1,3 +1,39 @@
+2012-08-15  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* gcc.dg/cilk-plus/cilk_plus.exp: Reorganized all the tests along with
+	adding execution based tests.
+	* gcc.dg/cilk-plus/label_test.c: Moved to ./cilk_keywords_test/compile.
+	* gcc.dg/cilk-plus/fib.c: Likewise.
+	* gcc.dg/cilk-plus/spawnee_inline.c: Likewise.
+	* gcc.dg/cilk-plus/test__cilk.c: Likewise.
+	* gcc.dg/cilk-plus/spawner_inline.c: Likewise.
+	* gcc.dg/cilk-plus/pragma_simd_for: Moved to ./pragma_simd_tests/.
+	* gcc.dg/cilk-plus/cilk_keywords_test/execute/execute.exp: New script.
+	* gcc.dg/cilk-plus/cilk_keywords_test/compile/compile.exe: Likewise.
+	* gcc.dg/cilk-plus/cilk_keywords_test/execute/spawnee_inline.c: New.
+	* gcc.dg/cilk-plus/cilk_keywords_test/execute/label_test.c: Likewise.
+	* gcc.dg/cilk-plus/cilk_keywords_test/execute/fib.c: Likewise.
+	* gcc.dg/cilk-plus/cilk_keywords_test/execute/test__cilk.c: Likewise.
+	* gcc.dg/cilk-plus/cilk_keywords_test/execute/steal_check.c: Likewise.
+	* gcc.dg/cilk-plus/cilk_keywords_test/execute/cilk-for.c: Likewise.
+	* gcc.dg/cilk-plus/cilk_keywords_test/execute/spawner_inline.c: 
+	Likewise.
+	* gcc.dg/cilk-plus/cilk_keywords_test/compile/label_test.c: Likewise.
+	* gcc.dg/cilk-plus/cilk_keywords_test/compile/fib.c: Likewise.
+	* gcc.dg/cilk-plus/cilk_keywords_test/compile/spawnee_inline.c: 
+	Likewise.
+	* gcc.dg/cilk-plus/cilk_keywords_test/compile/test__cilk.c: Likewise.
+	* gcc.dg/cilk-plus/cilk_keywords_test/compile/steal_check.c: Likewise.
+	* gcc.dg/cilk-plus/cilk_keywords_test/compile/cilk-for.c: Likewise.
+	* gcc.dg/cilk-plus/cilk_keywords_test/compile/nested-cilk-for.c: New.
+	* gcc.dg/cilk-plus/cilk_keywords_test/compile/spawner_inline.c: New.
+	* gcc.dg/cilk-plus/array_notation_tests: Removed all .c files and 
+	moved into compile and execute directories with appropriate
+	modifications.
+	* gcc.dg/cilk-plus/array_notation_tests/compile/compile.exp: New script.
+	* gcc.dg/cilk-plus/array_notation_test/execute/execute.exp: New script.
+	
+
 2012-08-10  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* g++.dg/cilk-plus/test-try.cc: New test file.

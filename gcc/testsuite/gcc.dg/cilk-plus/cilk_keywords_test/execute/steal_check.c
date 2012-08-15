@@ -1,8 +1,8 @@
 //***************************************************************************
 //                                                                           
-// File: fib.c                                                               
+// File: steal_check.c                                                       
 //                                                                           
-// Created: Tue Oct 26 16:24:01 2010                                         
+// Created: Tue Mar 29 16:09:27 2011                                         
 //                                                                           
 // Author: Balaji V. Iyer                                                    
 //                                                                           
@@ -16,36 +16,41 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <cilk/cilk.h>
+extern void __cilkrts_set_param (char *x, char *y);
 
+void foo(volatile int *);
 
-int fib(int );
+void main2(void);
 
-int main(int argc, char **argv)
+int main(void)
 {
-  int x = 0,ii;
-  for (ii = 0; ii <= 40; ii++)
-  {
-    printf("Fib(%d) = %d\n", ii, fib(ii)); 
-   x += fib(ii);
-  }
-
-  return x;
+  __cilkrts_set_param ("nworkers", "2");
+  main2();
+  return 0;
 }
 
 
-int fib(int n)
+void main2(void)
 {
-  int x = 0, y = 0;
-  if (n < 2)
+  int sundari = 0;
+
+  _Cilk_spawn foo(&sundari);
+
+  sundari=1;
+  sundari=5;
+  sundari=3;
+  sundari=4;
+
+  _Cilk_sync; 
+  return;
+}
+
+void foo(volatile int *Gayathri)
+{
+  while (*Gayathri == 0)
   {
-    return n;
-  }
-  else
-  {
-    x = cilk_spawn fib(n-1);
-    y = fib(n-2);
-    cilk_sync;
-    return (x+y);
+   ;
   }
 }
+
+

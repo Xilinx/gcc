@@ -14,6 +14,8 @@
 # along with GCC; see the file COPYING3.  If not see
 # <http://www.gnu.org/licenses/>.
 
+# Written by Balaji V. Iyer <balaji.v.iyer@intel.com>
+
 if { ![istarget i?86*-*-*] && ![istarget x86_64-*-*] } then {
       return
 }
@@ -21,11 +23,11 @@ if { ![istarget i?86*-*-*] && ![istarget x86_64-*-*] } then {
 
 load_lib gcc-dg.exp
 
-
 dg-init
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/simd_loops_test/*.\[cS\]]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 -fcilkplus " " "
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/array_notation_tests/*.c]] " -O3 -ftree-vectorize -fcilkplus" " "
 dg-finish
 
 dg-init
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/elem_fn_tests/*.c]] " -O3 -ftree-vectorize -fcilkplus" " "
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/array_notation_tests/*.c]] " -O3 -ftree-vectorize -fcilkplus -g" " "
 dg-finish
+

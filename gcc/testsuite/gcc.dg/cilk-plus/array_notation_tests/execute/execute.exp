@@ -1,0 +1,65 @@
+# Copyright (C) 2012
+# Free Software Foundation, Inc.
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with GCC; see the file COPYING3.  If not see
+# <http://www.gnu.org/licenses/>.
+
+# This file was written by Balaji V. Iyer <balaji.v.iyer@intel.com>
+# Many thanks to the GCC C-torture contributors.
+
+if { ![istarget i?86*-*-*] && ![istarget x86_64-*-*] } then {
+      return
+}
+
+verbose "$tool $libdir" 1
+
+set library_var [get_multilibs]
+dg-init
+set ld_library_path "${library_var}/libcilkrts/.libs"
+set CILK_TORTURE_OPTIONS [list \
+			   { -O0 -fcilkplus -lcilkrts -std=c99} \
+			   { -O1 -fcilkplus -lcilkrts -std=c99} \
+			   { -O2 -fcilkplus -lcilkrts -std=c99} \
+			   { -O3 -fcilkplus -lcilkrts -fomit-frame-pointer -funroll-loops -std=c99} \
+			   { -O3 -fcilkplus -lcilkrts -fomit-frame-pointer -funroll-all-loops -finline-functions -std=c99 } \
+			   { -O3 -g -fcilkplus -lcilkrts -std=c99} \
+			   { -Os -fcilkplus -lcilkrts -std=c99} ]
+
+
+
+if $tracelevel then {
+    strace $tracelevel
+}
+
+# load support procs
+load_lib torture-options.exp
+load_lib c-torture.exp
+
+torture-init
+set-torture-options $CILK_TORTURE_OPTIONS {{}} $CILK_TORTURE_OPTIONS
+
+#
+# main test loop
+#
+
+foreach src [lsort [glob -nocomplain $srcdir/$subdir/*.c]]  {
+    # If we're only testing specific files and this isn't one of them, skip it.
+    if ![runtest_file_p $runtests $src] then {
+	continue
+    }
+
+    c-torture-execute $src
+}
+
+torture-finish
