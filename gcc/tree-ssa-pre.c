@@ -3190,7 +3190,7 @@ inhibit_phi_insertion (basic_block bb, pre_expr expr)
 
 static bool
 insert_into_preds_of_block (basic_block block, unsigned int exprnum,
-			    pre_expr *avail)
+			    VEC(pre_expr, heap) *avail)
 {
   pre_expr expr = expression_for_id (exprnum);
   pre_expr newphi;
@@ -3206,7 +3206,7 @@ insert_into_preds_of_block (basic_block block, unsigned int exprnum,
   gimple phi;
 
   /* Make sure we aren't creating an induction variable.  */
-  if (block->loop_depth > 0 && EDGE_COUNT (block->preds) == 2)
+  if (bb_loop_depth (block) > 0 && EDGE_COUNT (block->preds) == 2)
     {
       bool firstinsideloop = false;
       bool secondinsideloop = false;
@@ -3231,7 +3231,7 @@ insert_into_preds_of_block (basic_block block, unsigned int exprnum,
       gimple_seq stmts = NULL;
       tree builtexpr;
       bprime = pred->src;
-      eprime = avail[bprime->index];
+      eprime = VEC_index (pre_expr, avail, pred->dest_idx);
 
       if (eprime->kind != NAME && eprime->kind != CONSTANT)
 	{
@@ -3241,14 +3241,14 @@ insert_into_preds_of_block (basic_block block, unsigned int exprnum,
 						   type);
 	  gcc_assert (!(pred->flags & EDGE_ABNORMAL));
 	  gsi_insert_seq_on_edge (pred, stmts);
-	  avail[bprime->index] = get_or_alloc_expr_for_name (builtexpr);
+	  VEC_replace (pre_expr, avail, pred->dest_idx,
+		       get_or_alloc_expr_for_name (builtexpr));
 	  insertions = true;
 	}
       else if (eprime->kind == CONSTANT)
 	{
 	  /* Constants may not have the right type, fold_convert
-	     should give us back a constant with the right type.
-	  */
+	     should give us back a constant with the right type.  */
 	  tree constant = PRE_EXPR_CONSTANT (eprime);
 	  if (!useless_type_conversion_p (type, TREE_TYPE (constant)))
 	    {
@@ -3280,11 +3280,13 @@ insert_into_preds_of_block (basic_block block, unsigned int exprnum,
 			    }
 			  gsi_insert_seq_on_edge (pred, stmts);
 			}
-		      avail[bprime->index] = get_or_alloc_expr_for_name (forcedexpr);
+		      VEC_replace (pre_expr, avail, pred->dest_idx,
+				   get_or_alloc_expr_for_name (forcedexpr));
 		    }
 		}
 	      else
-		avail[bprime->index] = get_or_alloc_expr_for_constant (builtexpr);
+		VEC_replace (pre_expr, avail, pred->dest_idx,
+			     get_or_alloc_expr_for_constant (builtexpr));
 	    }
 	}
       else if (eprime->kind == NAME)
@@ -3323,7 +3325,8 @@ insert_into_preds_of_block (basic_block block, unsigned int exprnum,
 		    }
 		  gsi_insert_seq_on_edge (pred, stmts);
 		}
-	      avail[bprime->index] = get_or_alloc_expr_for_name (forcedexpr);
+	      VEC_replace (pre_expr, avail, pred->dest_idx,
+			   get_or_alloc_expr_for_name (forcedexpr));
 	    }
 	}
     }
@@ -3346,14 +3349,13 @@ insert_into_preds_of_block (basic_block block, unsigned int exprnum,
   bitmap_set_bit (inserted_exprs, SSA_NAME_VERSION (gimple_phi_result (phi)));
   FOR_EACH_EDGE (pred, ei, block->preds)
     {
-      pre_expr ae = avail[pred->src->index];
+      pre_expr ae = VEC_index (pre_expr, avail, pred->dest_idx);
       gcc_assert (get_expr_type (ae) == type
 		  || useless_type_conversion_p (type, get_expr_type (ae)));
       if (ae->kind == CONSTANT)
 	add_phi_arg (phi, PRE_EXPR_CONSTANT (ae), pred, UNKNOWN_LOCATION);
       else
-	add_phi_arg (phi, PRE_EXPR_NAME (avail[pred->src->index]), pred,
-		     UNKNOWN_LOCATION);
+	add_phi_arg (phi, PRE_EXPR_NAME (ae), pred, UNKNOWN_LOCATION);
     }
 
   newphi = get_or_alloc_expr_for_name (gimple_phi_result (phi));
@@ -3413,15 +3415,18 @@ static bool
 do_regular_insertion (basic_block block, basic_block dom)
 {
   bool new_stuff = false;
-  VEC (pre_expr, heap) *exprs = sorted_array_from_bitmap_set (ANTIC_IN (block));
+  VEC (pre_expr, heap) *exprs;
   pre_expr expr;
+  VEC (pre_expr, heap) *avail = NULL;
   int i;
+
+  exprs = sorted_array_from_bitmap_set (ANTIC_IN (block));
+  VEC_safe_grow (pre_expr, heap, avail, EDGE_COUNT (block->preds));
 
   FOR_EACH_VEC_ELT (pre_expr, exprs, i, expr)
     {
       if (expr->kind != NAME)
 	{
-	  pre_expr *avail;
 	  unsigned int val;
 	  bool by_some = false;
 	  bool cant_insert = false;
@@ -3444,7 +3449,6 @@ do_regular_insertion (basic_block block, basic_block dom)
 	      continue;
 	    }
 
-	  avail = XCNEWVEC (pre_expr, last_basic_block);
 	  FOR_EACH_EDGE (pred, ei, block->preds)
 	    {
 	      unsigned int vprime;
@@ -3467,6 +3471,7 @@ do_regular_insertion (basic_block block, basic_block dom)
 		 rest of the results are.  */
 	      if (eprime == NULL)
 		{
+		  VEC_replace (pre_expr, avail, pred->dest_idx, NULL);
 		  cant_insert = true;
 		  break;
 		}
@@ -3477,12 +3482,12 @@ do_regular_insertion (basic_block block, basic_block dom)
 						 vprime, NULL);
 	      if (edoubleprime == NULL)
 		{
-		  avail[bprime->index] = eprime;
+		  VEC_replace (pre_expr, avail, pred->dest_idx, eprime);
 		  all_same = false;
 		}
 	      else
 		{
-		  avail[bprime->index] = edoubleprime;
+		  VEC_replace (pre_expr, avail, pred->dest_idx, edoubleprime);
 		  by_some = true;
 		  /* We want to perform insertions to remove a redundancy on
 		     a path in the CFG we want to optimize for speed.  */
@@ -3561,11 +3566,11 @@ do_regular_insertion (basic_block block, basic_block dom)
 		    }
 		}
 	    }
-	  free (avail);
 	}
     }
 
   VEC_free (pre_expr, heap, exprs);
+  VEC_free (pre_expr, heap, avail);
   return new_stuff;
 }
 
@@ -3581,15 +3586,18 @@ static bool
 do_partial_partial_insertion (basic_block block, basic_block dom)
 {
   bool new_stuff = false;
-  VEC (pre_expr, heap) *exprs = sorted_array_from_bitmap_set (PA_IN (block));
+  VEC (pre_expr, heap) *exprs;
   pre_expr expr;
+  VEC (pre_expr, heap) *avail = NULL;
   int i;
+
+  exprs = sorted_array_from_bitmap_set (PA_IN (block));
+  VEC_safe_grow (pre_expr, heap, avail, EDGE_COUNT (block->preds));
 
   FOR_EACH_VEC_ELT (pre_expr, exprs, i, expr)
     {
       if (expr->kind != NAME)
 	{
-	  pre_expr *avail;
 	  unsigned int val;
 	  bool by_all = true;
 	  bool cant_insert = false;
@@ -3604,7 +3612,6 @@ do_partial_partial_insertion (basic_block block, basic_block dom)
 	  if (bitmap_set_contains_value (AVAIL_OUT (dom), val))
 	    continue;
 
-	  avail = XCNEWVEC (pre_expr, last_basic_block);
 	  FOR_EACH_EDGE (pred, ei, block->preds)
 	    {
 	      unsigned int vprime;
@@ -3629,6 +3636,7 @@ do_partial_partial_insertion (basic_block block, basic_block dom)
 		 rest of the results are.  */
 	      if (eprime == NULL)
 		{
+		  VEC_replace (pre_expr, avail, pred->dest_idx, NULL);
 		  cant_insert = true;
 		  break;
 		}
@@ -3637,13 +3645,12 @@ do_partial_partial_insertion (basic_block block, basic_block dom)
 	      vprime = get_expr_value_id (eprime);
 	      edoubleprime = bitmap_find_leader (AVAIL_OUT (bprime),
 						 vprime, NULL);
+	      VEC_replace (pre_expr, avail, pred->dest_idx, edoubleprime);
 	      if (edoubleprime == NULL)
 		{
 		  by_all = false;
 		  break;
 		}
-	      else
-		avail[bprime->index] = edoubleprime;
 	    }
 
 	  /* If we can insert it, it's not the same value
@@ -3697,11 +3704,11 @@ do_partial_partial_insertion (basic_block block, basic_block dom)
 		    new_stuff = true;
 		}	   
 	    } 
-	  free (avail);
 	}
     }
 
   VEC_free (pre_expr, heap, exprs);
+  VEC_free (pre_expr, heap, avail);
   return new_stuff;
 }
 
@@ -3798,7 +3805,7 @@ make_values_for_phi (gimple phi, basic_block block)
 
   /* We have no need for virtual phis, as they don't represent
      actual computations.  */
-  if (is_gimple_reg (result))
+  if (!virtual_operand_p (result))
     {
       pre_expr e = get_or_alloc_expr_for_name (result);
       add_to_value (get_expr_value_id (e), e);
@@ -3848,7 +3855,7 @@ compute_avail (void)
       if (!name
 	  || !SSA_NAME_IS_DEFAULT_DEF (name)
 	  || has_zero_uses (name)
-	  || !is_gimple_reg (name))
+	  || virtual_operand_p (name))
 	continue;
 
       e = get_or_alloc_expr_for_name (name);
@@ -4451,7 +4458,7 @@ eliminate (void)
 	     replacing the PHI with a single copy if possible.
 	     Do not touch inserted, single-argument or virtual PHIs.  */
 	  if (gimple_phi_num_args (phi) == 1
-	      || !is_gimple_reg (res))
+	      || virtual_operand_p (res))
 	    {
 	      gsi_next (&gsi);
 	      continue;

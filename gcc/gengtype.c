@@ -561,9 +561,10 @@ create_user_defined_type (const char *type_name, struct fileloc *pos)
   ty->u.s.bitmap = get_lang_bitmap (pos->file);
   do_typedef (type_name, ty, pos);
 
-  /* If TYPE_NAME specifies a template, create references to the types in the
-     template by preteding that each type is a field of TY.  This is needed to
-     make sure that the types referenced by the template are marked as used.  */
+  /* If TYPE_NAME specifies a template, create references to the types
+     in the template by pretending that each type is a field of TY.
+     This is needed to make sure that the types referenced by the
+     template are marked as used.  */
   char *str = xstrdup (type_name);
   char *open_bracket = strchr (str, '<');
   if (open_bracket)
@@ -606,10 +607,7 @@ resolve_typedef (const char *s, struct fileloc *pos)
 
   /* If we did not find a typedef registered, assume this is a name
      for a user-defined type which will need to provide its own
-     marking functions.
-
-     FIXME cxx-conversion. Emit an error once explicit annotations
-     for marking user types are implemented.  */
+     marking functions.  */
   return create_user_defined_type (s, pos);
 }
 
@@ -3555,12 +3553,11 @@ write_types (outf_p output_header, type_p structures, type_p param_structs,
     if (s->gc_used == GC_POINTED_TO || s->gc_used == GC_MAYBE_POINTED_TO)
       {
 	options_p opt;
-	const char *s_id_for_tag;
 
 	if (s->gc_used == GC_MAYBE_POINTED_TO && s->u.s.line.file == NULL)
 	  continue;
 
-	s_id_for_tag = filter_type_name (s->u.s.tag);
+	const char *s_id_for_tag = filter_type_name (s->u.s.tag);
 
 	oprintf (output_header, "#define gt_%s_", wtd->prefix);
 	output_mangled_typename (output_header, s);
@@ -4726,9 +4723,8 @@ write_typed_alloc_def (outf_p f,
   bool two_args = variable_size && (quantity == vector);
   bool third_arg = ((zone == specific_zone)
 		    && (variable_size || (quantity == vector)));
-  const char *type_name_as_id;
   gcc_assert (f != NULL);
-  type_name_as_id = filter_type_name (type_name);
+  const char *type_name_as_id = filter_type_name (type_name);
   oprintf (f, "#define ggc_alloc_%s%s", allocator_type, type_name_as_id);
   oprintf (f, "(%s%s%s%s%s) ",
 	   (variable_size ? "SIZE" : ""),
