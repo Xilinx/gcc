@@ -1,3 +1,8 @@
+2012-08-16  Ollie Wild  <aaw@google.com>
+
+	PR c++/54197
+	* call.c (extend_ref_init_temps_1): Handle COMPOUND_EXPR trees.
+
 2012-08-01   Diego Novillo  <dnovillo@google.com>
 
 	Backport r189720 from gcc-4_7-branch

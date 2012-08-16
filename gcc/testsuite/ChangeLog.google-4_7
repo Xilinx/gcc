@@ -1,3 +1,8 @@
+2012-08-16  Ollie Wild  <aaw@google.com>
+
+	PR c++/54197
+	* g++.dg/init/lifetime3.C: New test.
+
 2012-08-13   Easwaran Raman  <eraman@google.com>
 	Backport the following patches from trunk to add support for Intel
 	Transactional Memory Instructions support (Google ref b/6496405):
