@@ -1,3 +1,8 @@
+2012-08-17   Cary Coutant  <ccoutant@google.com>
+
+	* dwarf2out.c (is_class_die): Remove function.
+	(add_pubname): Call class_scope_p instead.
+
 2012-08-17   Xinliang David Li  <davidxl@google.com>
 
 	cgraphunit.c (is_backend_entered_p): New function.

@@ -7035,15 +7035,6 @@ is_namespace_die (dw_die_ref c)
   return c && c->die_tag == DW_TAG_namespace;
 }
 
-/* Returns true iff C is a class or structure DIE.  */
-
-static inline bool
-is_class_die (dw_die_ref c)
-{
-  return c && (c->die_tag == DW_TAG_class_type
-               || c->die_tag == DW_TAG_structure_type);
-}
-
 static char *
 gen_internal_sym (const char *prefix)
 {
@@ -9314,7 +9305,7 @@ add_pubname (tree decl, dw_die_ref die)
      class_member, it will either be inside the class already, or will have just
      looked up the class to find the member.  Either way, searching the class is
      faster than searching the index.  */
-  if ((TREE_PUBLIC (decl) && !is_class_die (die->die_parent))
+  if ((TREE_PUBLIC (decl) && !class_scope_p (die->die_parent))
       || is_cu_die (die->die_parent) || is_namespace_die (die->die_parent))
     {
       const char *name = dwarf2_name (decl, 1);
