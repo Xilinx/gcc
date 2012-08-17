@@ -1324,12 +1324,27 @@ handle_alias_pairs (void)
 }
 
 
+static bool backend_entered_p = false;
+extern bool is_backend_entered_p (void);
+
+/* Returns true if FE parsing is completely
+  done (including pending decl processing) and backend
+  takes over the control.  */
+
+bool
+is_backend_entered_p (void)
+{
+  return backend_entered_p;
+}
+
 /* Analyze the whole compilation unit once it is parsed completely.  */
 
 void
 cgraph_finalize_compilation_unit (void)
 {
   timevar_push (TV_CGRAPH);
+
+  backend_entered_p = true;
 
   /* If LTO is enabled, initialize the streamer hooks needed by GIMPLE.  */
   if (flag_lto)

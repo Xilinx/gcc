@@ -1,3 +1,7 @@
+2012-08-17   Xinliang David Li  <davidxl@google.com>
+
+	cgraphunit.c (is_backend_entered_p): New function.
+
 2012-08-14  Han Shen  <shenhan@google.com>
 	Backport from mainline.
 

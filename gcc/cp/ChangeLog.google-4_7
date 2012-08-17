@@ -1,3 +1,8 @@
+2012-08-17   Xinliang David Li  <davidxl@google.com>
+
+	error.c (dump_template_bindings): Avoid template
+	instantiation of typenames when backend is entered.
+
 2012-08-16  Ollie Wild  <aaw@google.com>
 
 	PR c++/54197

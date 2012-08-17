@@ -35,6 +35,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "pointer-set.h"
 #include "c-family/c-objc.h"
 
+extern bool is_backend_entered_p (void);
+
 #define pp_separate_with_comma(PP) pp_cxx_separate_with (PP, ',')
 #define pp_separate_with_semicolon(PP) pp_cxx_separate_with (PP, ';')
 
@@ -310,7 +312,10 @@ dump_template_bindings (tree parms, tree args, VEC(tree,gc)* typenames)
     }
 
   /* Don't bother with typenames for a partial instantiation.  */
-  if (VEC_empty (tree, typenames) || uses_template_parms (args))
+  if (VEC_empty (tree, typenames) || uses_template_parms (args)
+      /* Template instantation in backend phase can cause problems.
+         Skip the rest when backend is entered.  */
+      || is_backend_entered_p ())
     return;
 
   FOR_EACH_VEC_ELT (tree, typenames, i, t)
