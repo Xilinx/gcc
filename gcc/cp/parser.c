@@ -5546,7 +5546,9 @@ cp_parser_postfix_expression (cp_parser *parser, bool address_p, bool cast_p,
 	    break;
 	  }
 	if (!flag_enable_cilk) 
-	  error ("-fcilkplus must be enabled to use %<cilk_spawn%>");
+	  error ("-fcilkplus must be enabled to use %<cilk_spawn%>"); 
+	else if (!current_function_decl) 
+	  fatal_error ("%<_Cilk_spawn%> may only be used inside a function");
 	else 
 	  { 
 	    /* Do not allow break and continue within statement expressions

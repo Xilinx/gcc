@@ -9,14 +9,14 @@ int main() {
 
   for (int *p = array; p < array + SIZE; ++p) {
     *p = 2;
-    printf("(p = %08x\t*p = %08x)\n", p, *p);
+    printf("(p = %08x\t*p = %08x) (Should be 0x2)\n", p, *p);
     fflush(stdout); 
   }
   fprintf(stdout, "cilk_for increment by 2\n");
   fflush(stdout);
   cilk_for (int *p = array ; p < array + SIZE; p += 2) {
     *p = 16;
-    printf("(p = %08x\t*p = %08x)\n", p, *p);
+    printf("(p = %08x\t*p = %08x) (Should be 0x10) \n", p, *p);
     fflush(stdout);
   }
 
@@ -24,7 +24,7 @@ int main() {
   fflush(stdout);
   cilk_for (int *p = array+SIZE-1 ; p >= array;  p -= 2) {
     *p = 9;
-     printf("(p = %08x\t*p = %08x)\n", p, *p);
+     printf("(p = %08x\t*p = %08x)(Should be 0x9)\n", p, *p);
     fflush(stdout);
   }
 

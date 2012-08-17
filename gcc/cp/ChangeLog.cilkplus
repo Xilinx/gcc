@@ -1,3 +1,12 @@
+2012-08-17  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* parser.c (cp_parser_postfix_expression): Added a check for empty
+	current function decl.
+	* cilk.c (cp_build_cilk_for_body): Added a check if loop variable type
+	is of integer.  If so, then we remove an cast which helps vectorize the
+	body.
+	(compute_loop_var): Likewise.
+
 2012-08-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cp-array-notation.c (build_x_array_notation_expr): Added a check for

@@ -477,13 +477,12 @@ cp_build_cilk_for_body (struct cilk_for_desc *cfd)
   tree cleanup;
   tree count_type;
   tree pre, hack = NULL_TREE;
-  gimple_seq pre_seq = NULL;
   struct gimplify_ctx gctx;
   expanded_location file_location;
   char *function_name;
   char *cc = NULL;
   char *dd = NULL;
-  tree loop_end_comp = NULL_TREE;
+  tree loop_end_comp = NULL_TREE, cast_max_expr;
   tree c_for_loop, top_label, slab, cond_expr, mod_expr, cont_lab;
   tree continue_label;
   
@@ -577,22 +576,27 @@ cp_build_cilk_for_body (struct cilk_for_desc *cfd)
       *pointer_map_insert (cfd->decl_map, hack) = lower_bound;
       lower_bound = hack;
     }
-  
-  loop_var = build_decl (UNKNOWN_LOCATION, VAR_DECL, NULL_TREE,
-			 TREE_TYPE (cfd->min_parm));
 
-  
-  DECL_CONTEXT (loop_var) = fndecl;
-  
-  loop_var = get_initialized_tmp_var (cfd->min_parm, &pre_seq, 0);
-  
-  pre = build2 (INIT_EXPR, void_type_node, loop_var, cfd->min_parm);
+  if (INTEGRAL_TYPE_P (cfd->var_type))
+    {
+      loop_var = create_tmp_var (cfd->var_type, NULL);
+      count_type = cfd->var_type;
+      pre = build_x_modify_expr (UNKNOWN_LOCATION, loop_var, NOP_EXPR,
+				 build_c_cast (UNKNOWN_LOCATION,
+					       cfd->var_type,
+					       cfd->min_parm),
+				 tf_warning_or_error);
+      cast_max_expr = build_c_cast (UNKNOWN_LOCATION, count_type,
+				    cfd->max_parm);
+    }
+  else
+    {
+      loop_var = create_tmp_var (TREE_TYPE (cfd->min_parm), NULL);
+      count_type = cfd->count_type;
+      pre = build2 (INIT_EXPR, void_type_node, loop_var, cfd->min_parm);
+      cast_max_expr = cfd->max_parm; /* Cast is not necessary.  */
+    }
   add_stmt (pre); 
-
-  count_type = cfd->count_type;
-  
-  gcc_assert (TYPE_MAIN_VARIANT (TREE_TYPE (loop_var)) ==
-	      TYPE_MAIN_VARIANT (count_type)); 
 
   /* The new loop body is
      var2 = (T)((control variable) * INCR + (lower bound)); 
@@ -637,11 +641,11 @@ cp_build_cilk_for_body (struct cilk_for_desc *cfd)
   continue_label = build1 (LABEL_EXPR, void_type_node, cont_lab);
   
   mod_expr = build2 (MODIFY_EXPR, void_type_node, loop_var,
-		     build2 (PLUS_EXPR, count_type, loop_var,
-			     build_int_cst (count_type, 1)));
+		     build2 (PLUS_EXPR, count_type, loop_var, 
+			     build_one_cst (count_type)));
   cond_expr = build3 (COND_EXPR, void_type_node,
 		      build2 (LT_EXPR, boolean_type_node, loop_var,
-			      cfd->max_parm),
+			      cast_max_expr),
 		      build1 (GOTO_EXPR, void_type_node, slab),
 		      build_empty_stmt (UNKNOWN_LOCATION));
 
@@ -687,14 +691,16 @@ static tree
 compute_loop_var (struct cilk_for_desc *cfd, tree loop_var, tree lower_bound)
 {
   tree incr = cfd->incr;
-  tree count_type = cfd->count_type;
+  tree count_type;
   tree scaled, adjusted;
   int incr_sign = cfd->incr_sign;
   enum tree_code add_op = (incr_sign >= 0) ? PLUS_EXPR : MINUS_EXPR;
 
-  gcc_assert (TYPE_MAIN_VARIANT (TREE_TYPE (loop_var)) ==
-	      TYPE_MAIN_VARIANT (count_type)); 
-
+  if (INTEGRAL_TYPE_P (TREE_TYPE (loop_var)))
+    count_type = TREE_TYPE (loop_var);
+  else
+    count_type = cfd->count_type;
+  
   /* Compute an expression to be added or subtracted.
 
      We want to add or subtract LOOP_VAR * INCR.  INCR may be negative.
