@@ -1,3 +1,8 @@
+2012-08-17  Ollie Wild  <aaw@google.com>
+
+	* testsuite-management/x86_64-unknown-linux-gnu.xfail: xfail
+	23_containers/map/element_access/2.cc from libstdc++.
+
 2012-08-14  Simon Baldwin  <simonb@google.com>
 
 	* testsuite-management/powerpc-grtev3-linux-gnu.xfail: Add new entries

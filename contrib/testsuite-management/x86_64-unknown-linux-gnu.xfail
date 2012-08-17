@@ -64,3 +64,8 @@ flaky | FAIL: libmudflap.cth/pass40-frag.c output pattern test
 flaky | FAIL: libmudflap.cth/pass40-frag.c (-O2) execution test
 flaky | FAIL: libmudflap.cth/pass39-frag.c (-O3) (rerun 10) execution test
 flaky | FAIL: libgomp.graphite/force-parallel-6.c execution test
+
+# See http://gcc.gnu.org/ml/gcc-patches/2012-08/msg00141.html.  Revert once
+# that is resolved.
+UNRESOLVED: 23_containers/map/element_access/2.cc compilation failed to produce executable
+FAIL: 23_containers/map/element_access/2.cc (test for excess errors)
