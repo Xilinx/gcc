@@ -1,3 +1,18 @@
+2012-08-20  Sterling Augustine  <saugustine@google.com>
+
+	* dwarf2out.c (DEBUG_PUBNAMES_SECTION, DEBUG_PUBTYPES_SECTION): Adjust
+	macros.
+	(is_java, include_pubname_in_output): New functions.
+	(size_of_pubnames): Call include_pubname_in_output.  New variable
+	space_for_flags.
+	(output_pubnames): Refactor, moving most of the logic to...
+	(output_pubname): ... here.  New function.
+	(dwarf2out_finish): Move output pubtable logic to...
+	(output_pubtables): ... here.  New function.
+	* common.opt (ggnu-pubnames):  New option.
+	(gpubnames, gno-pubnames): Adjust.
+	* doc/invoke.texi: Document -ggnu-pubnames.
+
 2012-08-17   Cary Coutant  <ccoutant@google.com>
 
 	* dwarf2out.c (is_class_die): Remove function.

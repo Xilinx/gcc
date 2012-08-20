@@ -96,6 +96,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cfglayout.h"
 #include "opts.h"
 #include "l-ipo.h"
+#include "gdb/gdb-index.h"
 
 static void dwarf2out_source_line (unsigned int, const char *, int, bool);
 static rtx last_var_location_insn;
@@ -3634,10 +3635,14 @@ new_addr_loc_descr (rtx addr, int dtprel)
 #define DEBUG_DWO_LOC_SECTION	".debug_loc.dwo"
 #endif
 #ifndef DEBUG_PUBNAMES_SECTION
-#define DEBUG_PUBNAMES_SECTION	".debug_pubnames"
+#define DEBUG_PUBNAMES_SECTION	\
+  ((debug_generate_pub_sections == 2) \
+   ? ".debug_gnu_pubnames" : ".debug_pubnames")
 #endif
 #ifndef DEBUG_PUBTYPES_SECTION
-#define DEBUG_PUBTYPES_SECTION	".debug_pubtypes"
+#define DEBUG_PUBTYPES_SECTION	\
+  ((debug_generate_pub_sections == 2) \
+   ? ".debug_gnu_pubtypes" : ".debug_pubtypes")
 #endif
 #define DEBUG_NORM_STR_OFFSETS_SECTION ".debug_str_offsets"
 #define DEBUG_DWO_STR_OFFSETS_SECTION ".debug_str_offsets.dwo"
@@ -5146,6 +5151,16 @@ is_cxx (void)
   unsigned int lang = get_AT_unsigned (comp_unit_die (), DW_AT_language);
 
   return lang == DW_LANG_C_plus_plus || lang == DW_LANG_ObjC_plus_plus;
+}
+
+/* Return TRUE if the language is Java.  */
+
+static inline bool
+is_java (void)
+{
+  unsigned int lang = get_AT_unsigned (comp_unit_die (), DW_AT_language);
+
+  return lang == DW_LANG_Java;
 }
 
 /* Return TRUE if the language is Fortran.  */
@@ -8248,22 +8263,32 @@ unmark_all_dies (dw_die_ref die)
       unmark_all_dies (AT_ref (a));
 }
 
+/* Calculate if the entry should appear in the final output file.  It may be
+   from a pruned a type.  */
+
+static bool
+include_pubname_in_output (VEC (pubname_entry, gc) *table, pubname_entry *p)
+{
+  return (table != pubtype_table
+          || p->die->die_offset != 0
+          || !flag_eliminate_unused_debug_types);
+}
+
 /* Return the size of the .debug_pubnames or .debug_pubtypes table
    generated for the compilation unit.  */
 
 static unsigned long
-size_of_pubnames (VEC (pubname_entry, gc) * names)
+size_of_pubnames (VEC (pubname_entry, gc) *names)
 {
   unsigned long size;
   unsigned i;
   pubname_ref p;
+  int space_for_flags = (debug_generate_pub_sections == 2) ? 1 : 0;
 
   size = DWARF_PUBNAMES_HEADER_SIZE;
   FOR_EACH_VEC_ELT (pubname_entry, names, i, p)
-    if (names != pubtype_table
-	|| p->die->die_offset != 0
-	|| !flag_eliminate_unused_debug_types)
-      size += strlen (p->name) + DWARF_OFFSET_SIZE + 1;
+    if (include_pubname_in_output (names, p))
+      size += strlen (p->name) + DWARF_OFFSET_SIZE + 1 + space_for_flags;
 
   size += DWARF_OFFSET_SIZE;
   return size;
@@ -9386,6 +9411,73 @@ add_pubtype (tree decl, dw_die_ref die)
     }
 }
 
+/* Output a single entry in the pubnames table.  */
+
+static void
+output_pubname (dw_offset die_offset, pubname_entry *entry)
+{
+  dw_die_ref die = entry->die;
+  int is_static = get_AT_flag (die, DW_AT_external) ? 1 : 0;
+
+  dw2_asm_output_data (DWARF_OFFSET_SIZE, die_offset, "DIE offset");
+
+  if (debug_generate_pub_sections == 2)
+    {
+      /* This logic follows gdb's method for determining the value of the flag
+         byte.  */
+      uint32_t flags = GDB_INDEX_SYMBOL_KIND_NONE;
+      switch (die->die_tag)
+      {
+        case DW_TAG_typedef:
+        case DW_TAG_base_type:
+        case DW_TAG_subrange_type:
+          GDB_INDEX_SYMBOL_KIND_SET_VALUE(flags, GDB_INDEX_SYMBOL_KIND_TYPE);
+          GDB_INDEX_SYMBOL_STATIC_SET_VALUE(flags, 1);
+          break;
+        case DW_TAG_enumerator:
+          GDB_INDEX_SYMBOL_KIND_SET_VALUE(flags,
+                                          GDB_INDEX_SYMBOL_KIND_VARIABLE);
+          if (!is_cxx () && !is_java ())
+            GDB_INDEX_SYMBOL_STATIC_SET_VALUE(flags, 1);
+          break;
+        case DW_TAG_subprogram:
+          GDB_INDEX_SYMBOL_KIND_SET_VALUE(flags,
+                                          GDB_INDEX_SYMBOL_KIND_FUNCTION);
+          if (!is_ada ())
+            GDB_INDEX_SYMBOL_STATIC_SET_VALUE(flags, is_static);
+          break;
+        case DW_TAG_constant:
+          GDB_INDEX_SYMBOL_KIND_SET_VALUE(flags,
+                                          GDB_INDEX_SYMBOL_KIND_VARIABLE);
+          GDB_INDEX_SYMBOL_STATIC_SET_VALUE(flags, is_static);
+          break;
+        case DW_TAG_variable:
+          GDB_INDEX_SYMBOL_KIND_SET_VALUE(flags,
+                                          GDB_INDEX_SYMBOL_KIND_VARIABLE);
+          GDB_INDEX_SYMBOL_STATIC_SET_VALUE(flags, is_static);
+          break;
+        case DW_TAG_namespace:
+          GDB_INDEX_SYMBOL_KIND_SET_VALUE(flags, GDB_INDEX_SYMBOL_KIND_TYPE);
+          break;
+        case DW_TAG_class_type:
+        case DW_TAG_interface_type:
+        case DW_TAG_structure_type:
+        case DW_TAG_union_type:
+        case DW_TAG_enumeration_type:
+          GDB_INDEX_SYMBOL_KIND_SET_VALUE(flags, GDB_INDEX_SYMBOL_KIND_TYPE);
+          GDB_INDEX_SYMBOL_STATIC_SET_VALUE(flags, 1);
+          break;
+        default:
+          gcc_unreachable ();
+      }
+      dw2_asm_output_data (1, flags >> GDB_INDEX_CU_BITSIZE,
+                           "GDB-index flags");
+    }
+
+  dw2_asm_output_nstring (entry->name, -1, "external name");
+}
+
+
 /* Output the public names table used to speed up access to externally
    visible names; or the public types table used to find type definitions.  */
 
@@ -9396,29 +9488,14 @@ output_pubnames (VEC (pubname_entry, gc) * names)
   unsigned long pubnames_length = size_of_pubnames (names);
   pubname_ref pub;
 
-  if (!want_pubnames () || !info_section_emitted)
-    return;
-  if (names == pubname_table)
-    {
-      switch_to_section (debug_pubnames_section);
-      ASM_OUTPUT_LABEL (asm_out_file, debug_pubnames_section_label);
-    }
-  else
-    {
-      switch_to_section (debug_pubtypes_section);
-      ASM_OUTPUT_LABEL (asm_out_file, debug_pubtypes_section_label);
-    }
   if (DWARF_INITIAL_LENGTH_SIZE - DWARF_OFFSET_SIZE == 4)
     dw2_asm_output_data (4, 0xffffffff,
       "Initial length escape value indicating 64-bit DWARF extension");
-  if (names == pubname_table)
-    dw2_asm_output_data (DWARF_OFFSET_SIZE, pubnames_length,
-			 "Length of Public Names Info");
-  else
-    dw2_asm_output_data (DWARF_OFFSET_SIZE, pubnames_length,
-			 "Length of Public Type Names Info");
-  /* Version number for pubnames/pubtypes is still 2, even in DWARF3.  */
+  dw2_asm_output_data (DWARF_OFFSET_SIZE, pubnames_length, "Pub Info Length");
+
+  /* Version number for pubnames/pubtypes is independent of dwarf version.  */
   dw2_asm_output_data (2, 2, "DWARF Version");
+
   if (dwarf_split_debug_info)
     dw2_asm_output_offset (DWARF_OFFSET_SIZE, debug_skeleton_info_section_label,
                            debug_skeleton_info_section,
@@ -9436,9 +9513,7 @@ output_pubnames (VEC (pubname_entry, gc) * names)
       if (names == pubname_table)
 	gcc_assert (pub->die->die_mark);
 
-      if (names != pubtype_table
-	  || pub->die->die_offset != 0
-	  || !flag_eliminate_unused_debug_types)
+      if (include_pubname_in_output (names, pub))
 	{
 	  dw_offset die_offset = pub->die->die_offset;
 
@@ -9456,14 +9531,32 @@ output_pubnames (VEC (pubname_entry, gc) * names)
 			      : 0);
 	    }
 
-	  dw2_asm_output_data (DWARF_OFFSET_SIZE, die_offset, "DIE offset");
-
-	  dw2_asm_output_nstring (pub->name, -1, "external name");
+          output_pubname (die_offset, pub);
 	}
     }
 
   dw2_asm_output_data (DWARF_OFFSET_SIZE, 0, NULL);
 }
+
+/* Output public names and types tables if necessary.  */
+
+static void
+output_pubtables (void)
+{
+  if (!want_pubnames () || !info_section_emitted)
+    return;
+
+  switch_to_section (debug_pubnames_section);
+  ASM_OUTPUT_LABEL (asm_out_file, debug_pubnames_section_label);
+  output_pubnames (pubname_table);
+  /* ??? Only defined by DWARF3, but emitted by Darwin for DWARF2.
+     It shouldn't hurt to emit it always, since pure DWARF2 consumers
+     simply won't look for the section.  */
+  switch_to_section (debug_pubtypes_section);
+  ASM_OUTPUT_LABEL (asm_out_file, debug_pubtypes_section_label);
+  output_pubnames (pubtype_table);
+}
+
 
 /* Output the information that goes into the .debug_aranges table.
    Namely, define the beginning and ending address range of the
@@ -23731,12 +23824,7 @@ dwarf2out_finish (const char *filename)
       output_location_lists (comp_unit_die ());
     }
 
-  /* Output public names and types tables if necessary.  */
-  output_pubnames (pubname_table);
-  /* ??? Only defined by DWARF3, but emitted by Darwin for DWARF2.
-     It shouldn't hurt to emit it always, since pure DWARF2 consumers
-     simply won't look for the section.  */
-  output_pubnames (pubtype_table);
+  output_pubtables ();
 
   /* Output the address range information if a CU (.debug_info section)
      was emitted.  We output an empty table even if we had no functions

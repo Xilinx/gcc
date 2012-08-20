@@ -1,3 +1,7 @@
+2012-08-20  Sterling Augustine  <saugustine@google.com>
+
+	* gdb/gdb-index.h: Check in from src.
+
 2012-07-24  Cary Coutant  <ccoutant@google.com>
 
     Backport Fission patches from trunk at r186934, r187061, and r188759.
