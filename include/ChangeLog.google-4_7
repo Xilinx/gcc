@@ -1,5 +1,9 @@
 2012-08-20  Sterling Augustine  <saugustine@google.com>
 
+        * gdb/gdb-index.h: Remove comma from last enum.
+
+2012-08-20  Sterling Augustine  <saugustine@google.com>
+
 	* gdb/gdb-index.h: Check in from src.
 
 2012-07-24  Cary Coutant  <ccoutant@google.com>
