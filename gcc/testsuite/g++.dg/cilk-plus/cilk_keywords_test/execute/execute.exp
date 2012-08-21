@@ -1,0 +1,61 @@
+#   Copyright (C) 2012 Free Software Foundation, Inc.
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with GCC; see the file COPYING3.  If not see
+# <http://www.gnu.org/licenses/>.
+
+# Written by Balaji V. Iyer <balaji.v.iyer@intel.com>, Intel Corporation.
+
+set library_var [get_multilibs]
+set ld_library_path "${library_var}/libcilkrts/.libs"
+
+
+if { ![istarget i?86*-*-*] && ![istarget x86_64-*-*] } then {
+      return
+}
+
+
+load_lib g++-dg.exp
+
+dg-init
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.cc]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include  -fcilkplus -O0" " "
+dg-finish
+
+dg-init
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.cc]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include  -fcilkplus -O1" " "
+dg-finish
+
+dg-init
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.cc]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include  -fcilkplus -O2" " "
+dg-finish
+
+dg-init
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.cc]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include  -fcilkplus -O3" " "
+dg-finish
+
+dg-init
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.cc]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include  -fcilkplus -O0 -g" " "
+dg-finish
+
+dg-init
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.cc]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include  -fcilkplus -O1 -g" " "
+dg-finish
+
+dg-init
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.cc]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include  -fcilkplus -O2 -g" " "
+dg-finish
+
+dg-init
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.cc]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include  -fcilkplus -O3 -g" " "
+dg-finish
+

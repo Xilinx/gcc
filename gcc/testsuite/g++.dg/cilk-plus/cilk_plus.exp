@@ -14,20 +14,11 @@
 # along with GCC; see the file COPYING3.  If not see
 # <http://www.gnu.org/licenses/>.
 
+# This script is written by Balaji V. Iyer <balaji.v.iyer@intel.com>
+#                           Intel Corporation.
 
 load_lib g++-dg.exp
 
 dg-init
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.cc]] "-fcilkplus -w -lcilkrts -ldl -I  $srcdir/../../libcilkrts/include " " "
-
-dg-finish
-
-dg-init
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/array_notation_tests/*.cc]] " -fcilkplus -DHAVE_IO=0 -O3 -ftree-vectorize" " "
-
-dg-finish
-
-dg-init
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/elem_fn_tests/*.cc]] "-fcilkplus -O3 -ftree-vectorize" " "
-
 dg-finish

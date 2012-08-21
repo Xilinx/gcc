@@ -1,3 +1,79 @@
+2012-08-21  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* g++.dg/cilk-plus/cilk_plus.exp: Reorganized all tests into compile
+	and execute.  Also added some execution based tests along with scripts.
+	* g++.dg/cilk-plus/cilk_plus/func.cc: Remove.
+	* g++.dg/cilk-plus/cilk_plus/func_call.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/Clock.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/array_notation_tests/switch_test.cc:
+	Likewise.
+	* g++.dg/cilk-plus/cilk_plus/fib.cc: Moved to cilk_keywords_test/compile
+	and cilk_keywords_test/execute.
+	* g++.dg/cilk-plus/cilk_plus/cilk_for_cond_with_while.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/spawnee_inline.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/stl_rev_iter.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/c++-n-fib.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/cilk_for_cont2_inside_for_tplt.cc: 
+	Likewise.
+	* g++.dg/cilk-plus/cilk_plus/stl_test.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/varargs_test.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/explicit_ctor.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/c++-cilk-for.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/spawner_inline.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/cilk_for_cont_with_if.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/test_rts_foo.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/spawn_ctor_dtor.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/stl_iter.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/cast.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/test-try.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/cilk-for-not-1.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/cilk-for.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/test_goto.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/plus-equal-one.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/cilk_for_cont_inside_for.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/test-try-cond.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/tplt_plus_equal.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/label_test.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/fib-tplt.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/fib-struct.cc: Likewise.
+	* g++g++.dg/cilk-plus/cilk_plus/nested-cilk-for.cc: Moved to
+	cilk_keywords-test/compile.
+	* g++.dg/cilk-plus/cilk_plus/pragma_simd_for.cc: Moved to
+	pragma_simd_tests/
+	* g++.dg/cilk-plus/cilk_plus/array_notation_tests/array_test1.cc: Moved
+	to compile/ and execute/
+	* g++.dg/cilk-plus/cilk_plus/array_notation_tests/array_test2.cc: 
+	Likewise.
+	* g++.dg/cilk-plus/cilk_plus/array_notation_tests/if_test1.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/array_notation_tests/builtin_func_double.cc
+	: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/array_notation_tests/gather_scatter.cc:
+	Likewise.
+	* g++.dg/cilk-plus/cilk_plus/array_notation_tests/if_test2.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/array_notation_tests/postincr_test.cc:
+	Likewise.
+	* g++.dg/cilk-plus/cilk_plus/array_notation_tests/postdecr_test.cc:
+	Likewise.
+	* g++.dg/cilk-plus/cilk_plus/array_notation_tests/preincr_test.cc:
+	Likewise.
+	* g++.dg/cilk-plus/cilk_plus/array_notation_tests/predecr_test.cc: 
+	Likewise.
+	* g++.dg/cilk-plus/cilk_plus/array_notation_tests/sec_implicit_ex.cc:
+	Likewise.
+	* g++.dg/cilk-plus/cilk_plus/array_notation_tests/builtin_funcs.cc: 
+	Likewise.
+	* g++.dg/cilk-plus/cilk_plus/array_notation_tests/if_test.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_plus/array_notation_tests/array_test_ND.cc:
+	Likewise.
+	* g++.dg/cilk-plus/cilk_plus/array_notation_tests/compile/compile.exp:
+	New script.
+	* g++.dg/cilk-plus/cilk_plus/array_notation_tests/execute/execute.exp:
+	Likewise.
+	* g++.dg/cilk-plus/cilk_plus/cilk_keywords_tests/compile/compile.exp:
+	Likewise.
+	* g++.dg/cilk-plus/cilk_plus/array_notation_tests/execute/execute.exp:
+	Likewise.
+
 2012-08-15  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* gcc.dg/cilk-plus/cilk_plus.exp: Reorganized all the tests along with
