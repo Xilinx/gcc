@@ -812,7 +812,7 @@ get_loop_body (const struct loop *loop)
 
   gcc_assert (loop->num_nodes);
 
-  body = XCNEWVEC (basic_block, loop->num_nodes);
+  body = XNEWVEC (basic_block, loop->num_nodes);
 
   if (loop->latch == EXIT_BLOCK_PTR)
     {
@@ -872,7 +872,7 @@ get_loop_body_in_dom_order (const struct loop *loop)
 
   gcc_assert (loop->num_nodes);
 
-  tovisit = XCNEWVEC (basic_block, loop->num_nodes);
+  tovisit = XNEWVEC (basic_block, loop->num_nodes);
 
   gcc_assert (loop->latch != EXIT_BLOCK_PTR);
 
@@ -911,7 +911,7 @@ get_loop_body_in_bfs_order (const struct loop *loop)
   gcc_assert (loop->num_nodes);
   gcc_assert (loop->latch != EXIT_BLOCK_PTR);
 
-  blocks = XCNEWVEC (basic_block, loop->num_nodes);
+  blocks = XNEWVEC (basic_block, loop->num_nodes);
   visited = BITMAP_ALLOC (NULL);
 
   bb = loop->header;
@@ -1301,6 +1301,7 @@ cancel_loop_tree (struct loop *loop)
      -- loop header have just single entry edge and single latch edge
      -- loop latches have only single successor that is header of their loop
      -- irreducible loops are correctly marked
+     -- the cached loop depth and loop father of each bb is correct
   */
 DEBUG_FUNCTION void
 verify_loop_structure (void)
@@ -1315,6 +1316,7 @@ verify_loop_structure (void)
   loop_iterator li;
   struct loop_exit *exit, *mexit;
   bool dom_available = dom_info_available_p (CDI_DOMINATORS);
+  sbitmap visited = sbitmap_alloc (last_basic_block);
 
   /* We need up-to-date dominators, compute or verify them.  */
   if (!dom_available)
@@ -1351,9 +1353,32 @@ verify_loop_structure (void)
 	if (!flow_bb_inside_loop_p (loop, bbs[j]))
 	  {
 	    error ("bb %d do not belong to loop %d",
-		    bbs[j]->index, loop->num);
+		   bbs[j]->index, loop->num);
 	    err = 1;
 	  }
+      free (bbs);
+    }
+  sbitmap_zero (visited);
+  FOR_EACH_LOOP (li, loop, LI_FROM_INNERMOST)
+    {
+      bbs = get_loop_body (loop);
+
+      for (j = 0; j < loop->num_nodes; j++)
+	{
+	  bb = bbs[j];
+
+	  /* Ignore this block if it is in an inner loop.  */
+	  if (TEST_BIT (visited, bb->index))
+	    continue;
+	  SET_BIT (visited, bb->index);
+
+	  if (bb->loop_father != loop)
+	    {
+	      error ("bb %d has father loop %d, should be loop %d",
+		     bb->index, bb->loop_father->num, loop->num);
+	      err = 1;
+	    }
+	}
       free (bbs);
     }
 
@@ -1563,6 +1588,7 @@ verify_loop_structure (void)
 
   gcc_assert (!err);
 
+  sbitmap_free (visited);
   free (sizes);
   if (!dom_available)
     free_dominance_info (CDI_DOMINATORS);

@@ -2845,7 +2845,8 @@ cilk_block_local_label (tree id)
     {
       if (!VEC_empty (cp_label_binding, b->shadowed_labels))
 	{
-	  cp_label_binding *s_label = VEC_index (cp_label_binding, 
+	  cp_label_binding *s_label = NULL;
+	  *s_label = VEC_index (cp_label_binding, 
 						 b->shadowed_labels, 0); 
 	  /* Use the innermost definition of an already-defined label.  */
 	  if (label && value_member (label, s_label->label))

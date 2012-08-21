@@ -94,6 +94,7 @@ vect_free_slp_instance (slp_instance instance)
   VEC_free (int, heap, SLP_INSTANCE_LOAD_PERMUTATION (instance));
   VEC_free (slp_tree, heap, SLP_INSTANCE_LOADS (instance));
   VEC_free (stmt_info_for_cost, heap, SLP_INSTANCE_BODY_COST_VEC (instance));
+  free (instance);
 }
 
 
@@ -1098,7 +1099,7 @@ vect_slp_rearrange_stmts (slp_tree node, unsigned int group_size,
   tmp_stmts = VEC_alloc (gimple, heap, group_size);
 
   for (i = 0; i < group_size; i++)
-    VEC_safe_push (gimple, heap, tmp_stmts, NULL);
+    VEC_safe_push (gimple, heap, tmp_stmts, (gimple)NULL);
 
   FOR_EACH_VEC_ELT (gimple, SLP_TREE_SCALAR_STMTS (node), i, stmt)
     {
@@ -1581,8 +1582,11 @@ vect_analyze_slp_instance (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo,
           if (vect_print_dump_info (REPORT_SLP))
             fprintf (vect_dump, "Build SLP failed: unrolling required in basic"
                                " block SLP");
+	  vect_free_slp_tree (node);
 	  VEC_free (stmt_info_for_cost, heap, body_cost_vec);
 	  VEC_free (stmt_info_for_cost, heap, prologue_cost_vec);
+	  VEC_free (int, heap, load_permutation);
+	  VEC_free (slp_tree, heap, loads);
           return false;
         }
 
@@ -1858,8 +1862,11 @@ new_bb_vec_info (basic_block bb)
 static void
 destroy_bb_vec_info (bb_vec_info bb_vinfo)
 {
+  VEC (slp_instance, heap) *slp_instances;
+  slp_instance instance;
   basic_block bb;
   gimple_stmt_iterator si;
+  unsigned i;
 
   if (!bb_vinfo)
     return;
@@ -1879,6 +1886,9 @@ destroy_bb_vec_info (bb_vec_info bb_vinfo)
   free_data_refs (BB_VINFO_DATAREFS (bb_vinfo));
   free_dependence_relations (BB_VINFO_DDRS (bb_vinfo));
   VEC_free (gimple, heap, BB_VINFO_GROUPED_STORES (bb_vinfo));
+  slp_instances = BB_VINFO_SLP_INSTANCES (bb_vinfo);
+  FOR_EACH_VEC_ELT (slp_instance, slp_instances, i, instance)
+    vect_free_slp_instance (instance);
   VEC_free (slp_instance, heap, BB_VINFO_SLP_INSTANCES (bb_vinfo));
   destroy_cost_data (BB_VINFO_TARGET_COST_DATA (bb_vinfo));
   free (bb_vinfo);
@@ -2653,7 +2663,7 @@ vect_create_mask_and_perm (gimple stmt, gimple next_scalar_stmt,
      stmts later.  */
   for (i = VEC_length (gimple, SLP_TREE_VEC_STMTS (node));
        i < (int) SLP_TREE_NUMBER_OF_VEC_STMTS (node); i++)
-    VEC_quick_push (gimple, SLP_TREE_VEC_STMTS (node), NULL);
+    VEC_quick_push (gimple, SLP_TREE_VEC_STMTS (node), (gimple)NULL);
 
   perm_dest = vect_create_destination_var (gimple_assign_lhs (stmt), vectype);
   for (i = 0; i < ncopies; i++)

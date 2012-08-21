@@ -559,7 +559,7 @@ poplevel (int keep, int reverse, int functionbody)
   unsigned ix;
   cp_label_binding *label_bind;
 
-  timevar_start (TV_NAME_LOOKUP);
+  bool subtime = timevar_cond_start (TV_NAME_LOOKUP);
  restart:
 
   block = NULL_TREE;
@@ -825,7 +825,7 @@ poplevel (int keep, int reverse, int functionbody)
   if (kind == sk_cleanup)
     goto restart;
 
-  timevar_stop (TV_NAME_LOOKUP);
+  timevar_cond_stop (TV_NAME_LOOKUP, subtime);
   return block;
 }
 
@@ -5296,7 +5296,7 @@ reshape_init_r (tree type, reshape_iter *d, bool first_initializer_p,
 	  && VEC_length (constructor_elt, CONSTRUCTOR_ELTS (str_init)) == 1)
 	{
 	  str_init = VEC_index (constructor_elt,
-				CONSTRUCTOR_ELTS (str_init), 0)->value;
+				CONSTRUCTOR_ELTS (str_init), 0).value;
 	}
 
       /* If it's a string literal, then it's the initializer for the array
@@ -5386,7 +5386,7 @@ reshape_init (tree type, tree init, tsubst_flags_t complain)
     return init;
 
   /* Recurse on this CONSTRUCTOR.  */
-  d.cur = VEC_index (constructor_elt, v, 0);
+  d.cur = &VEC_index (constructor_elt, v, 0);
   d.end = d.cur + VEC_length (constructor_elt, v);
 
   new_init = reshape_init_r (type, &d, true, complain);
@@ -5931,7 +5931,7 @@ type_dependent_init_p (tree init)
       nelts = VEC_length (constructor_elt, elts);
       for (i = 0; i < nelts; ++i)
 	if (type_dependent_init_p (VEC_index (constructor_elt,
-					      elts, i)->value))
+					      elts, i).value))
 	  return true;
     }
   else
@@ -5961,7 +5961,7 @@ value_dependent_init_p (tree init)
       nelts = VEC_length (constructor_elt, elts);
       for (i = 0; i < nelts; ++i)
 	if (value_dependent_init_p (VEC_index (constructor_elt,
-					       elts, i)->value))
+					       elts, i).value))
 	  return true;
     }
   else
@@ -6912,7 +6912,7 @@ cp_complete_array_type (tree *ptype, tree initial_value, bool do_default)
 	  && !VEC_empty (constructor_elt, CONSTRUCTOR_ELTS (initial_value)))
 	{
 	  VEC(constructor_elt,gc) *v = CONSTRUCTOR_ELTS (initial_value);
-	  tree value = VEC_index (constructor_elt, v, 0)->value;
+	  tree value = VEC_index (constructor_elt, v, 0).value;
 
 	  if (TREE_CODE (value) == STRING_CST
 	      && VEC_length (constructor_elt, v) == 1)

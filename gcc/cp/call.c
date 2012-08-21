@@ -1928,7 +1928,8 @@ add_function_candidate (struct z_candidate **candidates,
 
   for (i = 0; i < len; ++i)
     {
-      tree arg, argtype, to_type;
+      tree argtype, to_type;
+      tree arg;
       conversion *t;
       int is_this;
 
@@ -1938,8 +1939,9 @@ add_function_candidate (struct z_candidate **candidates,
       if (i == 0 && first_arg != NULL_TREE)
 	arg = first_arg;
       else
-	arg = VEC_index (tree, args,
-			 i + skip - (first_arg != NULL_TREE ? 1 : 0));
+	arg = CONST_CAST_TREE (
+		VEC_index (tree, args,
+			   i + skip - (first_arg != NULL_TREE ? 1 : 0)));
       argtype = lvalue_type (arg);
 
       is_this = (i == 0 && DECL_NONSTATIC_MEMBER_FUNCTION_P (fn)

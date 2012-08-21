@@ -40,6 +40,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "domwalk.h"
 #include "params.h"
 #include "vecprim.h"
+#include "diagnostic-core.h"
 
 
 /* This file builds the SSA form for a function as described in:
@@ -110,15 +111,15 @@ static VEC(gimple_vec, heap) *phis_to_rewrite;
 static bitmap blocks_with_phis_to_rewrite;
 
 /* Growth factor for NEW_SSA_NAMES and OLD_SSA_NAMES.  These sets need
-   to grow as the callers to register_new_name_mapping will typically
-   create new names on the fly.  FIXME.  Currently set to 1/3 to avoid
-   frequent reallocations but still need to find a reasonable growth
-   strategy.  */
+   to grow as the callers to create_new_def_for will create new names on
+   the fly.
+   FIXME.  Currently set to 1/3 to avoid frequent reallocations but still
+   need to find a reasonable growth strategy.  */
 #define NAME_SETS_GROWTH_FACTOR	(MAX (3, num_ssa_names / 3))
 
 
 /* The function the SSA updating data structures have been initialized for.
-   NULL if they need to be initialized by register_new_name_mapping.  */
+   NULL if they need to be initialized by create_new_def_for.  */
 static struct function *update_ssa_initialized_fn = NULL;
 
 /* Global data to attach to the main dominator walk structure.  */
@@ -311,22 +312,21 @@ get_ssa_name_ann (tree name)
   unsigned len = VEC_length (ssa_name_info_p, info_for_ssa_name);
   struct ssa_name_info *info;
 
+  /* Re-allocate the vector at most once per update/into-SSA.  */
   if (ver >= len)
-    {
-      unsigned old_len = VEC_length (ssa_name_info_p, info_for_ssa_name);
-      unsigned new_len = num_ssa_names;
+    VEC_safe_grow_cleared (ssa_name_info_p, heap,
+			   info_for_ssa_name, num_ssa_names);
 
-      VEC_reserve (ssa_name_info_p, heap, info_for_ssa_name,
-		   new_len - old_len);
-      while (len++ < new_len)
-	{
-	  struct ssa_name_info *info = XCNEW (struct ssa_name_info);
-	  info->age = current_info_for_ssa_name_age;
-	  VEC_quick_push (ssa_name_info_p, info_for_ssa_name, info);
-	}
+  /* But allocate infos lazily.  */
+  info = VEC_index (ssa_name_info_p, info_for_ssa_name, ver);
+  if (!info)
+    {
+      info = XCNEW (struct ssa_name_info);
+      info->age = current_info_for_ssa_name_age;
+      info->info.need_phi_state = NEED_PHI_STATE_UNKNOWN;
+      VEC_replace (ssa_name_info_p, info_for_ssa_name, ver, info);
     }
 
-  info = VEC_index (ssa_name_info_p, info_for_ssa_name, ver);
   if (info->age < current_info_for_ssa_name_age)
     {
       info->age = current_info_for_ssa_name_age;
@@ -402,63 +402,6 @@ set_current_def (tree var, tree def)
 {
   get_common_info (var)->current_def = def;
 }
-
-
-/* Compute global livein information given the set of blocks where
-   an object is locally live at the start of the block (LIVEIN)
-   and the set of blocks where the object is defined (DEF_BLOCKS).
-
-   Note: This routine augments the existing local livein information
-   to include global livein (i.e., it modifies the underlying bitmap
-   for LIVEIN).  */
-
-void
-compute_global_livein (bitmap livein, bitmap def_blocks)
-{
-  unsigned i;
-  bitmap_iterator bi;
-  VEC (basic_block, heap) *worklist;
-
-  /* Normally the work list size is bounded by the number of basic
-     blocks in the largest loop.  We don't know this number, but we
-     can be fairly sure that it will be relatively small.  */
-  worklist = VEC_alloc (basic_block, heap, MAX (8, n_basic_blocks / 128));
-
-  EXECUTE_IF_SET_IN_BITMAP (livein, 0, i, bi)
-    VEC_safe_push (basic_block, heap, worklist, BASIC_BLOCK (i));
-
-  /* Iterate until the worklist is empty.  */
-  while (! VEC_empty (basic_block, worklist))
-    {
-      edge e;
-      edge_iterator ei;
-
-      /* Pull a block off the worklist.  */
-      basic_block bb = VEC_pop (basic_block, worklist);
-
-      /* Make sure we have at least enough room in the work list
-	 for all predecessors of this block.  */
-      VEC_reserve (basic_block, heap, worklist, EDGE_COUNT (bb->preds));
-
-      /* For each predecessor block.  */
-      FOR_EACH_EDGE (e, ei, bb->preds)
-	{
-	  basic_block pred = e->src;
-	  int pred_index = pred->index;
-
-	  /* None of this is necessary for the entry block.  */
-	  if (pred != ENTRY_BLOCK_PTR
-	      && ! bitmap_bit_p (def_blocks, pred_index)
-	      && bitmap_set_bit (livein, pred_index))
-	    {
-	      VEC_quick_push (basic_block, worklist, pred);
-	    }
-	}
-    }
-
-  VEC_free (basic_block, heap, worklist);
-}
-
 
 /* Cleans up the REWRITE_THIS_STMT and REGISTER_DEFS_IN_THIS_STMT flags for
    all statements in basic block BB.  */
@@ -644,8 +587,6 @@ add_to_repl_tbl (tree new_tree, tree old)
 static void
 add_new_name_mapping (tree new_tree, tree old)
 {
-  timevar_push (TV_TREE_SSA_INCREMENTAL);
-
   /* OLD and NEW_TREE must be different SSA names for the same symbol.  */
   gcc_assert (new_tree != old && SSA_NAME_VAR (new_tree) == SSA_NAME_VAR (old));
 
@@ -670,8 +611,6 @@ add_new_name_mapping (tree new_tree, tree old)
      respectively.  */
   SET_BIT (new_ssa_names, SSA_NAME_VERSION (new_tree));
   SET_BIT (old_ssa_names, SSA_NAME_VERSION (old));
-
-  timevar_pop (TV_TREE_SSA_INCREMENTAL);
 }
 
 
@@ -2899,16 +2838,28 @@ delete_update_ssa (void)
 
 
 /* Create a new name for OLD_NAME in statement STMT and replace the
-   operand pointed to by DEF_P with the newly created name.  Return
-   the new name and register the replacement mapping <NEW, OLD> in
+   operand pointed to by DEF_P with the newly created name.  If DEF_P
+   is NULL then STMT should be a GIMPLE assignment.
+   Return the new name and register the replacement mapping <NEW, OLD> in
    update_ssa's tables.  */
 
 tree
 create_new_def_for (tree old_name, gimple stmt, def_operand_p def)
 {
-  tree new_name = duplicate_ssa_name (old_name, stmt);
+  tree new_name;
 
-  SET_DEF (def, new_name);
+  timevar_push (TV_TREE_SSA_INCREMENTAL);
+
+  if (!update_ssa_initialized_fn)
+    init_update_ssa (cfun);
+
+  gcc_assert (update_ssa_initialized_fn == cfun);
+
+  new_name = duplicate_ssa_name (old_name, stmt);
+  if (def)
+    SET_DEF (def, new_name);
+  else
+    gimple_assign_set_lhs (stmt, new_name);
 
   if (gimple_code (stmt) == GIMPLE_PHI)
     {
@@ -2918,30 +2869,16 @@ create_new_def_for (tree old_name, gimple stmt, def_operand_p def)
       SSA_NAME_OCCURS_IN_ABNORMAL_PHI (new_name) = bb_has_abnormal_pred (bb);
     }
 
-  register_new_name_mapping (new_name, old_name);
+  add_new_name_mapping (new_name, old_name);
 
   /* For the benefit of passes that will be updating the SSA form on
      their own, set the current reaching definition of OLD_NAME to be
      NEW_NAME.  */
   get_ssa_name_ann (old_name)->info.current_def = new_name;
 
+  timevar_pop (TV_TREE_SSA_INCREMENTAL);
+
   return new_name;
-}
-
-
-/* Register name NEW to be a replacement for name OLD.  This function
-   must be called for every replacement that should be performed by
-   update_ssa.  */
-
-void
-register_new_name_mapping (tree new_tree, tree old)
-{
-  if (!update_ssa_initialized_fn)
-    init_update_ssa (cfun);
-
-  gcc_assert (update_ssa_initialized_fn == cfun);
-
-  add_new_name_mapping (new_tree, old);
 }
 
 
@@ -3113,13 +3050,13 @@ insert_updated_phi_nodes_for (tree var, bitmap_head *dfs, bitmap blocks,
       frontier of the blocks where each of NEW_SSA_NAMES are defined.
 
    The mapping between OLD_SSA_NAMES and NEW_SSA_NAMES is setup by
-   calling register_new_name_mapping for every pair of names that the
+   calling create_new_def_for to create new defs for names that the
    caller wants to replace.
 
-   The caller identifies the new names that have been inserted and the
-   names that need to be replaced by calling register_new_name_mapping
-   for every pair <NEW, OLD>.  Note that the function assumes that the
-   new names have already been inserted in the IL.
+   The caller cretaes the new names to be inserted and the names that need
+   to be replaced by calling create_new_def_for for each old definition
+   to be replaced.  Note that the function assumes that the
+   new defining statement has already been inserted in the IL.
 
    For instance, given the following code:
 
@@ -3247,6 +3184,30 @@ update_ssa (unsigned update_flags)
 	 statements and set local live-in information for the PHI
 	 placement heuristics.  */
       prepare_block_for_update (start_bb, insert_phi_p);
+
+#ifdef ENABLE_CHECKING
+      for (i = 1; i < num_ssa_names; ++i)
+	{
+	  tree name = ssa_name (i);
+	  if (!name
+	      || virtual_operand_p (name))
+	    continue;
+
+	  /* For all but virtual operands, which do not have SSA names
+	     with overlapping life ranges, ensure that symbols marked
+	     for renaming do not have existing SSA names associated with
+	     them as we do not re-write them out-of-SSA before going
+	     into SSA for the remaining symbol uses.  */
+	  if (marked_for_renaming (SSA_NAME_VAR (name)))
+	    {
+	      fprintf (stderr, "Existing SSA name for symbol marked for "
+		       "renaming: ");
+	      print_generic_expr (stderr, name, TDF_SLIM);
+	      fprintf (stderr, "\n");
+	      internal_error ("SSA corruption");
+	    }
+	}
+#endif
     }
   else
     {

@@ -331,9 +331,9 @@ add_clause (conditions conditions, struct predicate *p, clause_t clause)
       condition *cc1;
       if (!(clause & (1 << c1)))
 	continue;
-      cc1 = VEC_index (condition,
-		       conditions,
-		       c1 - predicate_first_dynamic_condition);
+      cc1 = &VEC_index (condition,
+		        conditions,
+		        c1 - predicate_first_dynamic_condition);
       /* We have no way to represent !CHANGED and !IS_NOT_CONSTANT
 	 and thus there is no point for looking for them.  */
       if (cc1->code == CHANGED
@@ -342,12 +342,12 @@ add_clause (conditions conditions, struct predicate *p, clause_t clause)
       for (c2 = c1 + 1; c2 <= NUM_CONDITIONS; c2++)
 	if (clause & (1 << c2))
 	  {
-	    condition *cc1 = VEC_index (condition,
-					conditions,
-					c1 - predicate_first_dynamic_condition);
-	    condition *cc2 = VEC_index (condition,
-					conditions,
-					c2 - predicate_first_dynamic_condition);
+	    condition *cc1 = &VEC_index (condition,
+					 conditions,
+					 c1 - predicate_first_dynamic_condition);
+	    condition *cc2 = &VEC_index (condition,
+					 conditions,
+					 c2 - predicate_first_dynamic_condition);
 	    if (cc1->operand_num == cc2->operand_num
 		&& cc1->val == cc2->val
 		&& cc2->code != IS_NOT_CONSTANT
@@ -512,7 +512,7 @@ predicate_probability (conditions conds,
 	      {
 		if (i2 >= predicate_first_dynamic_condition)
 		  {
-		    condition *c = VEC_index
+		    condition *c = &VEC_index
 				    (condition, conds,
 				     i2 - predicate_first_dynamic_condition);
 		    if (c->code == CHANGED
@@ -522,7 +522,7 @@ predicate_probability (conditions conds,
 		      {
 			int iprob = VEC_index (inline_param_summary_t,
 					       inline_param_summary,
-					       c->operand_num)->change_prob;
+					       c->operand_num).change_prob;
 			this_prob = MAX (this_prob, iprob);
 		      }
 		    else
@@ -552,8 +552,8 @@ dump_condition (FILE *f, conditions conditions, int cond)
     fprintf (f, "not inlined");
   else
     {
-      c = VEC_index (condition, conditions,
-		     cond - predicate_first_dynamic_condition);
+      c = &VEC_index (condition, conditions,
+		      cond - predicate_first_dynamic_condition);
       fprintf (f, "op%i", c->operand_num);
       if (c->agg_contents)
 	fprintf (f, "[%soffset: " HOST_WIDE_INT_PRINT_DEC "]",
@@ -615,6 +615,22 @@ dump_predicate (FILE *f, conditions conds, struct predicate *pred)
 }
 
 
+/* Dump inline hints.  */
+void
+dump_inline_hints (FILE *f, inline_hints hints)
+{
+  if (!hints)
+    return;
+  fprintf (f, "inline hints:");
+  if (hints & INLINE_HINT_indirect_call)
+    {
+      hints &= ~INLINE_HINT_indirect_call;
+      fprintf (f, " indirect_call");
+    }
+  gcc_assert (!hints);
+}
+
+
 /* Record SIZE and TIME under condition PRED into the inline summary.  */
 
 static void
@@ -648,7 +664,7 @@ account_size_time (struct inline_summary *summary, int size, int time,
     {
       i = 0;
       found = true;
-      e = VEC_index (size_time_entry, summary->entry, 0);
+      e = &VEC_index (size_time_entry, summary->entry, 0);
       gcc_assert (!e->predicate.clause[0]);
     }
   if (dump_file && (dump_flags & TDF_DETAILS) && (time || size))
@@ -834,7 +850,7 @@ evaluate_properties_for_edge (struct cgraph_edge *e, bool inline_p,
 	  else if (inline_p
 		   && !VEC_index (inline_param_summary_t,
 				  es->param,
-				  i)->change_prob)
+				  i).change_prob)
 	    VEC_replace (tree, known_vals, i, error_mark_node);
 	  /* TODO: When IPA-CP starts propagating and merging aggregate jump
 	     functions, use its knowledge of the caller too, just like the
@@ -1218,7 +1234,7 @@ dump_inline_edge_summary (FILE * f, int indent, struct cgraph_node *node,
 	     i++)
 	  {
 	    int prob = VEC_index (inline_param_summary_t,
-				  es->param, i)->change_prob;
+				  es->param, i).change_prob;
 
 	    if (!prob)
 	      fprintf (f, "%*s op%i is compile time invariant\n",
@@ -1825,8 +1841,8 @@ will_be_nonconstant_predicate (struct ipa_node_params *info,
 	return p;
       /* If we know when operand is constant,
 	 we still can say something useful.  */
-      if (!true_predicate_p (VEC_index (predicate_t, nonconstant_names,
-					SSA_NAME_VERSION (use))))
+      if (!true_predicate_p (&VEC_index (predicate_t, nonconstant_names,
+					 SSA_NAME_VERSION (use))))
 	continue;
       return p;
     }
@@ -1849,14 +1865,14 @@ will_be_nonconstant_predicate (struct ipa_node_params *info,
 	    continue;
 	}
       else
-	p = *VEC_index (predicate_t, nonconstant_names,
-			SSA_NAME_VERSION (use));
+	p = VEC_index (predicate_t, nonconstant_names,
+		       SSA_NAME_VERSION (use));
       op_non_const = or_predicates (summary->conds, &p, &op_non_const);
     }
   if (gimple_code (stmt) == GIMPLE_ASSIGN
       && TREE_CODE (gimple_assign_lhs (stmt)) == SSA_NAME)
     VEC_replace (predicate_t, nonconstant_names,
-		 SSA_NAME_VERSION (gimple_assign_lhs (stmt)), &op_non_const);
+		 SSA_NAME_VERSION (gimple_assign_lhs (stmt)), op_non_const);
   return op_non_const;
 }
 
@@ -2071,7 +2087,7 @@ estimate_function_body_sizes (struct cgraph_node *node, bool early)
 		  struct predicate false_p = false_predicate ();
 		  VEC_replace (predicate_t, nonconstant_names,
 			       SSA_NAME_VERSION (gimple_call_lhs (stmt)),
-			       &false_p);
+			       false_p);
 		}
 	      if (ipa_node_params_vector)
 		{
@@ -2086,7 +2102,7 @@ estimate_function_body_sizes (struct cgraph_node *node, bool early)
 		      int prob = param_change_prob (stmt, i);
 		      gcc_assert (prob >= 0 && prob <= REG_BR_PROB_BASE);
 		      VEC_index (inline_param_summary_t,
-				 es->param, i)->change_prob = prob;
+				 es->param, i).change_prob = prob;
 		    }
 		}
 
@@ -2277,7 +2293,7 @@ struct gimple_opt_pass pass_inline_parameters =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  TV_INLINE_HEURISTICS,			/* tv_id */
+  TV_INLINE_PARAMETERS,			/* tv_id */
   0,	                                /* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
@@ -2305,7 +2321,7 @@ estimate_edge_size_and_time (struct cgraph_edge *e, int *size, int *time,
 /* Estimate benefit devirtualizing indirect edge IE, provided KNOWN_VALS and
    KNOWN_BINFOS.  */
 
-static void
+static bool
 estimate_edge_devirt_benefit (struct cgraph_edge *ie,
 			      int *size, int *time, int prob,
 			      VEC (tree, heap) *known_vals,
@@ -2314,14 +2330,16 @@ estimate_edge_devirt_benefit (struct cgraph_edge *ie,
 {
   tree target;
   int time_diff, size_diff;
+  struct cgraph_node *callee;
+  struct inline_summary *isummary;
 
   if (!known_vals && !known_binfos)
-    return;
+    return false;
 
   target = ipa_get_indirect_edge_target (ie, known_vals, known_binfos,
 					 known_aggs);
   if (!target)
-    return;
+    return false;
 
   /* Account for difference in cost between indirect and direct calls.  */
   size_diff = ((eni_size_weights.indirect_call_cost - eni_size_weights.call_cost)
@@ -2331,40 +2349,11 @@ estimate_edge_devirt_benefit (struct cgraph_edge *ie,
 	       * INLINE_TIME_SCALE * prob / REG_BR_PROB_BASE);
   *time -= time_diff;
 
-  /* TODO: This code is trying to benefit indirect calls that will be inlined later.
-     The logic however do not belong into local size/time estimates and can not be
-     done here, or the accounting of changes will get wrong and we result with 
-     negative function body sizes.  We need to introduce infrastructure for independent
-     benefits to the inliner.  */
-#if 0
-  struct cgraph_node *callee;
-  struct inline_summary *isummary;
-  int edge_size, edge_time, time_diff, size_diff;
-
   callee = cgraph_get_node (target);
   if (!callee || !callee->analyzed)
-    return;
+    return false;
   isummary = inline_summary (callee);
-  if (!isummary->inlinable)
-    return;
-
-  estimate_edge_size_and_time (ie, &edge_size, &edge_time, prob);
-
-  /* Count benefit only from functions that definitely will be inlined
-     if additional context from NODE's caller were available. 
-
-     We just account overall size change by inlining.  TODO:
-     we really need to add sort of benefit metrics for these kind of
-     cases. */
-  if (edge_size - size_diff >= isummary->size * INLINE_SIZE_SCALE)
-    {
-      /* Subtract size and time that we added for edge IE.  */
-      *size -= edge_size - size_diff;
-
-      /* Account inlined call.  */
-      *size += isummary->size * INLINE_SIZE_SCALE;
-    }
-#endif
+  return isummary->inlinable;
 }
 
 
@@ -2374,6 +2363,7 @@ estimate_edge_devirt_benefit (struct cgraph_edge *ie,
 
 static void
 estimate_calls_size_and_time (struct cgraph_node *node, int *size, int *time,
+			      inline_hints *hints,
 			      clause_t possible_truths,
 			      VEC (tree, heap) *known_vals,
 			      VEC (tree, heap) *known_binfos,
@@ -2392,7 +2382,7 @@ estimate_calls_size_and_time (struct cgraph_node *node, int *size, int *time,
 	      estimate_edge_size_and_time (e, size, time, REG_BR_PROB_BASE);
 	    }
 	  else
-	    estimate_calls_size_and_time (e->callee, size, time,
+	    estimate_calls_size_and_time (e->callee, size, time, hints,
 					  possible_truths,
 					  known_vals, known_binfos, known_aggs);
 	}
@@ -2403,8 +2393,11 @@ estimate_calls_size_and_time (struct cgraph_node *node, int *size, int *time,
       if (!es->predicate || evaluate_predicate (es->predicate, possible_truths))
 	{
 	  estimate_edge_size_and_time (e, size, time, REG_BR_PROB_BASE);
-	  estimate_edge_devirt_benefit (e, size, time, REG_BR_PROB_BASE,
-					known_vals, known_binfos, known_aggs);
+	  if (estimate_edge_devirt_benefit (e, size, time, REG_BR_PROB_BASE,
+					    known_vals, known_binfos, known_aggs)
+	      && hints
+	      && cgraph_maybe_hot_edge_p (e))
+	    *hints |= INLINE_HINT_indirect_call;
 	}
     }
 }
@@ -2421,12 +2414,14 @@ estimate_node_size_and_time (struct cgraph_node *node,
 			     VEC (tree, heap) *known_binfos,
 			     VEC (ipa_agg_jump_function_p, heap) *known_aggs,
 		       	     int *ret_size, int *ret_time,
+			     inline_hints *ret_hints,
 			     VEC (inline_param_summary_t, heap)
 			       *inline_param_summary)
 {
   struct inline_summary *info = inline_summary (node);
   size_time_entry *e;
   int size = 0, time = 0;
+  inline_hints hints = 0;
   int i;
 
   if (dump_file
@@ -2470,7 +2465,7 @@ estimate_node_size_and_time (struct cgraph_node *node,
   if (time > MAX_TIME * INLINE_TIME_SCALE)
     time = MAX_TIME * INLINE_TIME_SCALE;
 
-  estimate_calls_size_and_time (node, &size, &time, possible_truths,
+  estimate_calls_size_and_time (node, &size, &time, &hints, possible_truths,
 				known_vals, known_binfos, known_aggs);
   time = (time + INLINE_TIME_SCALE / 2) / INLINE_TIME_SCALE;
   size = (size + INLINE_SIZE_SCALE / 2) / INLINE_SIZE_SCALE;
@@ -2483,6 +2478,8 @@ estimate_node_size_and_time (struct cgraph_node *node,
     *ret_time = time;
   if (ret_size)
     *ret_size = size;
+  if (ret_hints)
+    *ret_hints = hints;
   return;
 }
 
@@ -2502,7 +2499,7 @@ estimate_ipcp_clone_size_and_time (struct cgraph_node *node,
 
   clause = evaluate_conditions_for_known_args (node, false, known_vals, NULL);
   estimate_node_size_and_time (node, clause, known_vals, known_binfos, NULL,
-			       ret_size, ret_time,
+			       ret_size, ret_time, NULL,
 			       NULL);
 }
 
@@ -2553,8 +2550,8 @@ remap_predicate (struct inline_summary *info,
 	      {
 		 struct condition *c;
 
-		 c = VEC_index (condition, callee_info->conds,
-				cond - predicate_first_dynamic_condition);
+		 c = &VEC_index (condition, callee_info->conds,
+				 cond - predicate_first_dynamic_condition);
 		 /* See if we can remap condition operand to caller's operand.
 		    Otherwise give up.  */
 		 if (!operand_map
@@ -2663,10 +2660,10 @@ remap_edge_change_prob (struct cgraph_edge *inlined_edge,
 	    {
 	      int jf_formal_id = ipa_get_jf_pass_through_formal_id (jfunc);
 	      int prob1 = VEC_index (inline_param_summary_t,
-				     es->param, i)->change_prob;
+				     es->param, i).change_prob;
 	      int prob2 = VEC_index
 			     (inline_param_summary_t,
-			     inlined_es->param, jf_formal_id)->change_prob;
+			     inlined_es->param, jf_formal_id).change_prob;
 	      int prob = ((prob1 * prob2 + REG_BR_PROB_BASE / 2)
 			  / REG_BR_PROB_BASE);
 
@@ -2674,7 +2671,7 @@ remap_edge_change_prob (struct cgraph_edge *inlined_edge,
 		prob = 1;
 
 	      VEC_index (inline_param_summary_t,
-			 es->param, i)->change_prob = prob;
+			 es->param, i).change_prob = prob;
 	    }
 	}
   }
@@ -2874,7 +2871,7 @@ inline_update_overall_summary (struct cgraph_node *node)
   info->time = 0;
   for (i = 0; VEC_iterate (size_time_entry, info->entry, i, e); i++)
     info->size += e->size, info->time += e->time;
-  estimate_calls_size_and_time (node, &info->size, &info->time,
+  estimate_calls_size_and_time (node, &info->size, &info->time, NULL,
 				~(clause_t)(1 << predicate_false_condition),
 				NULL, NULL, NULL);
   info->time = (info->time + INLINE_TIME_SCALE / 2) / INLINE_TIME_SCALE;
@@ -2893,6 +2890,7 @@ do_estimate_edge_time (struct cgraph_edge *edge)
 {
   int time;
   int size;
+  inline_hints hints;
   gcov_type ret;
   struct cgraph_node *callee;
   clause_t clause;
@@ -2908,7 +2906,7 @@ do_estimate_edge_time (struct cgraph_edge *edge)
 				&clause, &known_vals, &known_binfos,
 				&known_aggs);
   estimate_node_size_and_time (callee, clause, known_vals, known_binfos,
-			       known_aggs, &size, &time, es->param);
+			       known_aggs, &size, &time, &hints, es->param);
   VEC_free (tree, heap, known_vals);
   VEC_free (tree, heap, known_binfos);
   VEC_free (ipa_agg_jump_function_p, heap, known_aggs);
@@ -2925,13 +2923,15 @@ do_estimate_edge_time (struct cgraph_edge *edge)
 	  <= edge->uid)
 	VEC_safe_grow_cleared (edge_growth_cache_entry, heap, edge_growth_cache,
 			       cgraph_edge_max_uid);
-      VEC_index (edge_growth_cache_entry, edge_growth_cache, edge->uid)->time
+      VEC_index (edge_growth_cache_entry, edge_growth_cache, edge->uid).time
 	= ret + (ret >= 0);
 
       ret_size = size - es->call_stmt_size;
       gcc_checking_assert (es->call_stmt_size);
-      VEC_index (edge_growth_cache_entry, edge_growth_cache, edge->uid)->size
+      VEC_index (edge_growth_cache_entry, edge_growth_cache, edge->uid).size
 	= ret_size + (ret_size >= 0);
+      VEC_index (edge_growth_cache_entry, edge_growth_cache, edge->uid).hints
+	= hints + 1;
     }
   return ret;
 }
@@ -2957,7 +2957,7 @@ do_estimate_edge_growth (struct cgraph_edge *edge)
       do_estimate_edge_time (edge);
       size = VEC_index (edge_growth_cache_entry,
 			edge_growth_cache,
-			edge->uid)->size;
+			edge->uid).size;
       gcc_checking_assert (size);
       return size - (size > 0);
     }
@@ -2970,12 +2970,53 @@ do_estimate_edge_growth (struct cgraph_edge *edge)
 				&clause, &known_vals, &known_binfos,
 				&known_aggs);
   estimate_node_size_and_time (callee, clause, known_vals, known_binfos,
-			       known_aggs, &size, NULL, NULL);
+			       known_aggs, &size, NULL, NULL, NULL);
   VEC_free (tree, heap, known_vals);
   VEC_free (tree, heap, known_binfos);
   VEC_free (ipa_agg_jump_function_p, heap, known_aggs);
   gcc_checking_assert (inline_edge_summary (edge)->call_stmt_size);
   return size - inline_edge_summary (edge)->call_stmt_size;
+}
+
+
+/* Estimate the growth of the caller when inlining EDGE.
+   Only to be called via estimate_edge_size.  */
+
+inline_hints
+do_estimate_edge_hints (struct cgraph_edge *edge)
+{
+  inline_hints hints;
+  struct cgraph_node *callee;
+  clause_t clause;
+  VEC (tree, heap) *known_vals;
+  VEC (tree, heap) *known_binfos;
+  VEC (ipa_agg_jump_function_p, heap) *known_aggs;
+
+  /* When we do caching, use do_estimate_edge_time to populate the entry.  */
+
+  if (edge_growth_cache)
+    {
+      do_estimate_edge_time (edge);
+      hints = VEC_index (edge_growth_cache_entry,
+			edge_growth_cache,
+			edge->uid).hints;
+      gcc_checking_assert (hints);
+      return hints - 1;
+    }
+
+  callee = cgraph_function_or_thunk_node (edge->callee, NULL);
+
+  /* Early inliner runs without caching, go ahead and do the dirty work.  */
+  gcc_checking_assert (edge->inline_failed);
+  evaluate_properties_for_edge (edge, true,
+				&clause, &known_vals, &known_binfos,
+				&known_aggs);
+  estimate_node_size_and_time (callee, clause, known_vals, known_binfos,
+			       known_aggs, NULL, NULL, &hints, NULL);
+  VEC_free (tree, heap, known_vals);
+  VEC_free (tree, heap, known_binfos);
+  VEC_free (ipa_agg_jump_function_p, heap, known_aggs);
+  return hints;
 }
 
 
@@ -3194,7 +3235,7 @@ read_inline_edge_summary (struct lto_input_block *ib, struct cgraph_edge *e)
     {
       VEC_safe_grow_cleared (inline_param_summary_t, heap, es->param, length);
       for (i = 0; i < length; i++)
-	VEC_index (inline_param_summary_t, es->param, i)->change_prob
+	VEC_index (inline_param_summary_t, es->param, i).change_prob
 	  = streamer_read_uhwi (ib);
     }
 }
@@ -3353,7 +3394,7 @@ write_inline_edge_summary (struct output_block *ob, struct cgraph_edge *e)
   streamer_write_uhwi (ob, VEC_length (inline_param_summary_t, es->param));
   for (i = 0; i < (int)VEC_length (inline_param_summary_t, es->param); i++)
     streamer_write_uhwi (ob, VEC_index (inline_param_summary_t,
-				        es->param, i)->change_prob);
+				        es->param, i).change_prob);
 }
 
 

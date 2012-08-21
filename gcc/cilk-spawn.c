@@ -2866,7 +2866,6 @@ c_make_cilk_frame (void)
                                                   TRY_FINALLY_EXPR,
                                                   orig_body, dtor),
                                       &body);
-      TREE_CHAIN (orig_body) = body;
       *saved_tree = body;
     }
   return decl;

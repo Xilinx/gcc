@@ -596,18 +596,6 @@ AC_DEFINE_UNQUOTED(GATHER_STATISTICS, $gather_stats,
 # Miscenalleous configure options
 # -------------------------------
 
-# See if we are building gcc with C++.
-AC_ARG_ENABLE(build-with-cxx,
-[AS_HELP_STRING([--enable-build-with-cxx],
-		[build with C++ compiler instead of C compiler])],
-ENABLE_BUILD_WITH_CXX=$enableval,
-ENABLE_BUILD_WITH_CXX=no)
-AC_SUBST(ENABLE_BUILD_WITH_CXX)
-if test "$ENABLE_BUILD_WITH_CXX" = "yes"; then
-  AC_DEFINE(ENABLE_BUILD_WITH_CXX, 1,
-	    [Define if building with C++.])
-fi
-
 # With stabs
 AC_ARG_WITH(stabs,
 [AS_HELP_STRING([--with-stabs],
@@ -924,7 +912,7 @@ AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS(limits.h stddef.h string.h strings.h stdlib.h time.h iconv.h \
 		 fcntl.h unistd.h sys/file.h sys/time.h sys/mman.h \
 		 sys/resource.h sys/param.h sys/times.h sys/stat.h \
-		 direct.h malloc.h langinfo.h ldfcn.h locale.h wchar.h)
+		 direct.h malloc.h langinfo.h ldfcn.h locale.h wchar.h libintl.h)
 
 # Check for thread headers.
 AC_CHECK_HEADER(thread.h, [have_thread_h=yes], [have_thread_h=])
@@ -1067,11 +1055,9 @@ AC_FUNC_FORK
 
 # g++ on Solaris 10+ defines _XOPEN_SOURCE=600, which exposes a different
 # iconv() prototype.
-AS_IF([test "$ENABLE_BUILD_WITH_CXX" = "yes"],
-  [AC_LANG_PUSH([C++])
-   AM_ICONV
-   AC_LANG_POP([C++])],
-  [AM_ICONV])
+AC_LANG_PUSH([C++])
+AM_ICONV
+AC_LANG_POP([C++])
 
 # Until we have in-tree GNU iconv:
 LIBICONV_DEP=
@@ -1089,7 +1075,7 @@ CXXFLAGS="$CXXFLAGS -I${srcdir} -I${srcdir}/../include"
 gcc_AC_CHECK_DECLS(getenv atol asprintf sbrk abort atof getcwd getwd \
 	strsignal strstr stpcpy strverscmp \
 	errno snprintf vsnprintf vasprintf malloc realloc calloc \
-	free basename getopt clock getpagesize gcc_UNLOCKED_FUNCS, , ,[
+	free basename getopt clock getpagesize ffs gcc_UNLOCKED_FUNCS, , ,[
 #include "ansidecl.h"
 #include "system.h"])
 
@@ -1140,18 +1126,12 @@ gcc_AC_CHECK_DECLS(sigaltstack, , ,[
 
 # g++ on Solaris 10+ defines _XOPEN_SOURCE=600, which hides the madvise()
 # prototype.
-AS_IF([test "$ENABLE_BUILD_WITH_CXX" = "yes"],
-  [AC_LANG_PUSH([C++])
-   gcc_AC_CHECK_DECLS(madvise, , ,[
-     #include "ansidecl.h"
-     #include "system.h"
-   ])
-   AC_LANG_POP([C++])],
-  [gcc_AC_CHECK_DECLS(madvise, , ,[
-     #include "ansidecl.h"
-     #include "system.h"
-   ])
+AC_LANG_PUSH([C++])
+gcc_AC_CHECK_DECLS(madvise, , ,[
+  #include "ansidecl.h"
+  #include "system.h"
 ])
+AC_LANG_POP([C++])
 
 # More time-related stuff.
 AC_CACHE_CHECK(for struct tms, ac_cv_struct_tms, [

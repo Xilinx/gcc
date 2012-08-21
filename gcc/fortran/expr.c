@@ -2962,12 +2962,12 @@ gfc_specification_expr (gfc_expr *e)
       return FAILURE;
     }
 
+  comp = gfc_get_proc_ptr_comp (e);
   if (e->expr_type == EXPR_FUNCTION
-	  && !e->value.function.isym
-	  && !e->value.function.esym
-	  && !gfc_pure (e->symtree->n.sym)
-	  && (!gfc_is_proc_ptr_comp (e, &comp)
-	      || !comp->attr.pure))
+      && !e->value.function.isym
+      && !e->value.function.esym
+      && !gfc_pure (e->symtree->n.sym)
+      && (!comp || !comp->attr.pure))
     {
       gfc_error ("Function '%s' at %L must be PURE",
 		 e->symtree->n.sym->name, &e->where);
@@ -3495,12 +3495,14 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
 	    }
 	}
 
-      if (gfc_is_proc_ptr_comp (lvalue, &comp))
+      comp = gfc_get_proc_ptr_comp (lvalue);
+      if (comp)
 	s1 = comp->ts.interface;
       else
 	s1 = lvalue->symtree->n.sym;
 
-      if (gfc_is_proc_ptr_comp (rvalue, &comp))
+      comp = gfc_get_proc_ptr_comp (rvalue);
+      if (comp)
 	{
 	  s2 = comp->ts.interface;
 	  name = comp->name;
@@ -3655,6 +3657,38 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
 		       &rvalue->where);
 	    return FAILURE;
 	  }
+    }
+
+  /* Warn if it is the LHS pointer may lives longer than the RHS target.  */
+  if (gfc_option.warn_target_lifetime
+      && rvalue->expr_type == EXPR_VARIABLE
+      && !rvalue->symtree->n.sym->attr.save
+      && !attr.pointer && !rvalue->symtree->n.sym->attr.host_assoc
+      && !rvalue->symtree->n.sym->attr.in_common
+      && !rvalue->symtree->n.sym->attr.use_assoc
+      && !rvalue->symtree->n.sym->attr.dummy)
+    {
+      bool warn;
+      gfc_namespace *ns;
+
+      warn = lvalue->symtree->n.sym->attr.dummy
+	     || lvalue->symtree->n.sym->attr.result
+	     || lvalue->symtree->n.sym->attr.host_assoc
+	     || lvalue->symtree->n.sym->attr.use_assoc
+	     || lvalue->symtree->n.sym->attr.in_common;
+
+      if (rvalue->symtree->n.sym->ns->proc_name
+	  && rvalue->symtree->n.sym->ns->proc_name->attr.flavor != FL_PROCEDURE
+	  && rvalue->symtree->n.sym->ns->proc_name->attr.flavor != FL_PROGRAM)
+       for (ns = rvalue->symtree->n.sym->ns;
+	    ns->proc_name && ns->proc_name->attr.flavor != FL_PROCEDURE;
+	    ns = ns->parent)
+	if (ns->parent == lvalue->symtree->n.sym->ns)
+	  warn = true;
+
+      if (warn)
+	gfc_warning ("Pointer at %L in pointer assignment might outlive the "
+		     "pointer target", &lvalue->where);
     }
 
   return SUCCESS;
@@ -4075,31 +4109,35 @@ gfc_expr_set_symbols_referenced (gfc_expr *expr)
 }
 
 
-/* Determine if an expression is a procedure pointer component. If yes, the
-   argument 'comp' will point to the component (provided that 'comp' was
-   provided).  */
+/* Determine if an expression is a procedure pointer component and return
+   the component in that case.  Otherwise return NULL.  */
 
-bool
-gfc_is_proc_ptr_comp (gfc_expr *expr, gfc_component **comp)
+gfc_component *
+gfc_get_proc_ptr_comp (gfc_expr *expr)
 {
   gfc_ref *ref;
-  bool ppc = false;
 
   if (!expr || !expr->ref)
-    return false;
+    return NULL;
 
   ref = expr->ref;
   while (ref->next)
     ref = ref->next;
 
-  if (ref->type == REF_COMPONENT)
-    {
-      ppc = ref->u.c.component->attr.proc_pointer;
-      if (ppc && comp)
-	*comp = ref->u.c.component;
-    }
+  if (ref->type == REF_COMPONENT
+      && ref->u.c.component->attr.proc_pointer)
+    return ref->u.c.component;
 
-  return ppc;
+  return NULL;
+}
+
+
+/* Determine if an expression is a procedure pointer component.  */
+
+bool
+gfc_is_proc_ptr_comp (gfc_expr *expr)
+{
+  return (gfc_get_proc_ptr_comp (expr) != NULL);
 }
 
 

@@ -1369,7 +1369,8 @@ void
 finish_fat_pointer_type (tree record_type, tree field_list)
 {
   /* Make sure we can put it into a register.  */
-  TYPE_ALIGN (record_type) = MIN (BIGGEST_ALIGNMENT, 2 * POINTER_SIZE);
+  if (STRICT_ALIGNMENT)
+    TYPE_ALIGN (record_type) = MIN (BIGGEST_ALIGNMENT, 2 * POINTER_SIZE);
 
   /* Show what it really is.  */
   TYPE_FAT_POINTER_P (record_type) = 1;
@@ -4491,10 +4492,10 @@ convert (tree type, tree expr)
 	 inner expression.  */
       if (TREE_CODE (expr) == CONSTRUCTOR
 	  && !VEC_empty (constructor_elt, CONSTRUCTOR_ELTS (expr))
-	  && VEC_index (constructor_elt, CONSTRUCTOR_ELTS (expr), 0)->index
+	  && VEC_index (constructor_elt, CONSTRUCTOR_ELTS (expr), 0).index
 	     == TYPE_FIELDS (etype))
 	unpadded
-	  = VEC_index (constructor_elt, CONSTRUCTOR_ELTS (expr), 0)->value;
+	  = VEC_index (constructor_elt, CONSTRUCTOR_ELTS (expr), 0).value;
 
       /* Otherwise, build an explicit component reference.  */
       else
@@ -5047,7 +5048,7 @@ remove_conversions (tree exp, bool true_address)
 	  && TYPE_JUSTIFIED_MODULAR_P (TREE_TYPE (exp)))
 	return
 	  remove_conversions (VEC_index (constructor_elt,
-					 CONSTRUCTOR_ELTS (exp), 0)->value,
+					 CONSTRUCTOR_ELTS (exp), 0).value,
 			      true);
       break;
 

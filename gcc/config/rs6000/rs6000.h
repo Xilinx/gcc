@@ -102,10 +102,8 @@
 #define ASM_CPU_SPEC \
 "%{!mcpu*: \
   %{mpowerpc64*: -mppc64} \
-  %{!mpowerpc64*: %{mpowerpc*: -mppc}} \
-  %{!mpowerpc*: -mcom}} \
+  %{!mpowerpc64*: %(asm_default)}} \
 %{mcpu=native: %(asm_cpu_native)} \
-%{mcpu=common: -mcom} \
 %{mcpu=cell: -mcell} \
 %{mcpu=power3: -mppc64} \
 %{mcpu=power4: -mpower4} \
@@ -349,10 +347,6 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 /* Define the default processor.  This is overridden by other tm.h files.  */
 #define PROCESSOR_DEFAULT   PROCESSOR_PPC603
 #define PROCESSOR_DEFAULT64 PROCESSOR_RS64A
-
-/* Specify the dialect of assembler to use.  New mnemonics is dialect one
-   and the old mnemonics are dialect zero.  */
-#define ASSEMBLER_DIALECT (TARGET_NEW_MNEMONICS ? 1 : 0)
 
 /* Debug support */
 #define MASK_DEBUG_STACK	0x01	/* debug stack applications */
@@ -700,22 +694,6 @@ extern unsigned rs6000_pointer_size;
 
 /* Every structure's size must be a multiple of this.  */
 #define STRUCTURE_SIZE_BOUNDARY 8
-
-/* Return 1 if a structure or array containing FIELD should be
-   accessed using `BLKMODE'.
-
-   For the SPE, simd types are V2SI, and gcc can be tempted to put the
-   entire thing in a DI and use subregs to access the internals.
-   store_bit_field() will force (subreg:DI (reg:V2SI x))'s to the
-   back-end.  Because a single GPR can hold a V2SI, but not a DI, the
-   best thing to do is set structs to BLKmode and avoid Severe Tire
-   Damage.
-
-   On e500 v2, DF and DI modes suffer from the same anomaly.  DF can
-   fit into 1, whereas DI still needs two.  */
-#define MEMBER_TYPE_FORCES_BLK(FIELD, MODE) \
-  ((TARGET_SPE && TREE_CODE (TREE_TYPE (FIELD)) == VECTOR_TYPE) \
-   || (TARGET_E500_DOUBLE && (MODE) == DFmode))
 
 /* A bit-field declared as `int' forces `int' alignment for the struct.  */
 #define PCC_BITFIELD_TYPE_MATTERS 1
@@ -2302,6 +2280,7 @@ extern int frame_pointer_needed;
 /* Builtin targets.  For now, we reuse the masks for those options that are in
    target flags, and pick two random bits for SPE and paired which aren't in
    target_flags.  */
+#define RS6000_BTM_ALWAYS	0		/* Always enabled.  */
 #define RS6000_BTM_ALTIVEC	MASK_ALTIVEC	/* VMX/altivec vectors.  */
 #define RS6000_BTM_VSX		MASK_VSX	/* VSX (vector/scalar).  */
 #define RS6000_BTM_SPE		MASK_STRING	/* E500 */
@@ -2311,7 +2290,6 @@ extern int frame_pointer_needed;
 #define RS6000_BTM_FRSQRTE	MASK_PPC_GFXOPT	/* FRSQRTE instruction.  */
 #define RS6000_BTM_FRSQRTES	MASK_POPCNTB	/* FRSQRTES instruction.  */
 #define RS6000_BTM_POPCNTD	MASK_POPCNTD	/* Target supports ISA 2.06.  */
-#define RS6000_BTM_POWERPC	MASK_POWERPC	/* Target is powerpc.  */
 #define RS6000_BTM_CELL		MASK_FPRND	/* Target is cell powerpc.  */
 
 #define RS6000_BTM_COMMON	(RS6000_BTM_ALTIVEC			\
@@ -2321,7 +2299,6 @@ extern int frame_pointer_needed;
 				 | RS6000_BTM_FRSQRTE			\
 				 | RS6000_BTM_FRSQRTES			\
 				 | RS6000_BTM_POPCNTD			\
-				 | RS6000_BTM_POWERPC			\
 				 | RS6000_BTM_CELL)
 
 /* Define builtin enum index.  */

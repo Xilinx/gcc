@@ -3999,7 +3999,7 @@ splice_all_param_accesses (VEC (access_p, heap) **representatives)
 	    result = UNUSED_PARAMS;
 	}
       else
-	VEC_quick_push (access_p, *representatives, NULL);
+	VEC_quick_push (access_p, *representatives, (access_p) NULL);
     }
 
   if (result == NO_GOOD_ACCESS)
@@ -4208,7 +4208,7 @@ get_adjustment_for_base (ipa_parm_adjustment_vec adjustments, tree base)
     {
       struct ipa_parm_adjustment *adj;
 
-      adj = VEC_index (ipa_parm_adjustment_t, adjustments, i);
+      adj = &VEC_index (ipa_parm_adjustment_t, adjustments, i);
       if (!adj->copy_param && adj->base == base)
 	return adj;
     }
@@ -4315,7 +4315,7 @@ sra_ipa_modify_expr (tree *expr, bool convert,
 
   for (i = 0; i < len; i++)
     {
-      adj = VEC_index (ipa_parm_adjustment_t, adjustments, i);
+      adj = &VEC_index (ipa_parm_adjustment_t, adjustments, i);
 
       if (adj->base == base &&
 	  (adj->offset == offset || adj->remove_param))
@@ -4522,7 +4522,7 @@ sra_ipa_reset_debug_stmts (ipa_parm_adjustment_vec adjustments)
       tree name, vexpr, copy = NULL_TREE;
       use_operand_p use_p;
 
-      adj = VEC_index (ipa_parm_adjustment_t, adjustments, i);
+      adj = &VEC_index (ipa_parm_adjustment_t, adjustments, i);
       if (adj->copy_param || !is_gimple_reg (adj->base))
 	continue;
       name = ssa_default_def (cfun, adj->base);
@@ -4698,6 +4698,8 @@ modify_function (struct cgraph_node *node, ipa_parm_adjustment_vec adjustments)
 
   new_node = cgraph_function_versioning (node, redirect_callers, NULL, NULL,
 					 false, NULL, NULL, "isra");
+  VEC_free (cgraph_edge_p, heap, redirect_callers);
+
   current_function_decl = new_node->symbol.decl;
   push_cfun (DECL_STRUCT_FUNCTION (new_node->symbol.decl));
 
