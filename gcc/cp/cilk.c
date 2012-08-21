@@ -1874,6 +1874,12 @@ gimplify_cilk_for_stmt_1 (struct cilk_for_desc *cfd, gimple_seq *pre_p)
   var = cfd->var;
   DECL_CONTEXT (var) = current_function_decl;
   
+  if (POINTER_TYPE_P (TREE_TYPE (var))) 
+    extract_free_variables (cfd->lower_bound, cfd->decl_map, ADD_WRITE, 
+			    CILK_BLOCK_FOR);
+  else
+    extract_free_variables (cfd->lower_bound, cfd->decl_map, ADD_READ,
+			    CILK_BLOCK_FOR);
 
   /* If the loop increment is not an integer constant and is not
      a DECL (e.g. it is a type conversion of a variable), copy it
@@ -1900,6 +1906,7 @@ gimplify_cilk_for_stmt_1 (struct cilk_for_desc *cfd, gimple_seq *pre_p)
   *pointer_map_insert (cfd->decl_map, var) = 
     (void *) (cfd->lower_bound ? integer_minus_one_node : integer_zero_node);
   extract_free_variables (cfd->body, cfd->decl_map, ADD_READ, CILK_BLOCK_FOR);
+
   /* Note that variables are not extracted from the loop condition
      and increment.  They are evaluated, to the extent they are
      evaluated, in the context containing the for loop.  */

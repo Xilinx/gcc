@@ -1,3 +1,8 @@
+2012-08-21  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cilk.c (gimplify_cilk_for_stmt_1): Extracted variables and added them
+	to decl map.
+
 2012-08-17  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* parser.c (cp_parser_postfix_expression): Added a check for empty

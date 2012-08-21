@@ -73,6 +73,12 @@
 	Likewise.
 	* g++.dg/cilk-plus/cilk_plus/array_notation_tests/execute/execute.exp:
 	Likewise.
+	* g++.dg/cilk-plus/cilk_keywords_test/execute/parm_decr.cc: Newly added.
+	* g++.dg/cilk-plus/cilk_keywords_test/execute/parm_decr_and.cc:
+	Likewise.
+	* g++.dg/cilk-plus/cilk_keywords_test/execute/parm_incr.cc: Likewise.
+	* g++.dg/cilk-plus/cilk_keywords_test/execute/parm_incr_and.cc: 
+	Likewise.
 
 2012-08-15  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
