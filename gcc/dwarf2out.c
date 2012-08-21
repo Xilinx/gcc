@@ -4858,13 +4858,9 @@ remove_addr_table_entry (unsigned int i)
    address_table.  */
 
 static void
-remove_loc_list_addr_table_entries (dw_loc_list_ref loc)
+remove_loc_list_addr_table_entries (dw_loc_descr_ref descr)
 {
-  dw_loc_descr_ref descr;
-
-  gcc_assert (loc->replaced);
-
-  for (descr = loc->expr; descr; descr = descr->dw_loc_next)
+  for (; descr; descr = descr->dw_loc_next)
     if (descr->dw_loc_oprnd1.val_index != -1U)
       remove_addr_table_entry (descr->dw_loc_oprnd1.val_index);
 }
@@ -9468,7 +9464,8 @@ output_pubname (dw_offset die_offset, pubname_entry *entry)
           GDB_INDEX_SYMBOL_STATIC_SET_VALUE(flags, 1);
           break;
         default:
-          gcc_unreachable ();
+	  /* For unrecognized TAGs, don't set the flags.  */
+          break;
       }
       dw2_asm_output_data (1, flags >> GDB_INDEX_CU_BITSIZE,
                            "GDB-index flags");
@@ -22875,8 +22872,8 @@ resolve_addr (dw_die_ref die)
 			gcc_assert (!next->ll_symbol);
 			next->ll_symbol = (*curr)->ll_symbol;
 		      }
-		    if (l->dw_loc_oprnd1.val_index != -1U)
-		      remove_addr_table_entry (l->dw_loc_oprnd1.val_index);
+		    if (dwarf_split_debug_info)
+		      remove_loc_list_addr_table_entries (l);
 		    *curr = next;
 		  }
 		else
@@ -22891,7 +22888,7 @@ resolve_addr (dw_die_ref die)
 	      {
 		loc->replaced = 1;
                 if (dwarf_split_debug_info)
-                  remove_loc_list_addr_table_entries (loc);
+                  remove_loc_list_addr_table_entries (loc->expr);
 		loc->dw_loc_next = *start;
 	      }
 	  }
@@ -22916,8 +22913,8 @@ resolve_addr (dw_die_ref die)
 	       || l->dw_loc_next != NULL)
 	      && !resolve_addr_in_expr (l))
 	    {
-	      if (l->dw_loc_oprnd1.val_index != -1U)
-		remove_addr_table_entry (l->dw_loc_oprnd1.val_index);
+	      if (dwarf_split_debug_info)
+		remove_loc_list_addr_table_entries (l);
 	      remove_AT (die, a->dw_attr);
 	      ix--;
 	    }

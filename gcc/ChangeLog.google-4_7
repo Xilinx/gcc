@@ -1,3 +1,11 @@
+2012-08-20   Cary Coutant  <ccoutant@google.com>
+
+	* dwarf2out.c (remove_loc_list_addr_table_entries): Change
+	parameter; update all calls.
+	(output_pubname): Don't assert on unknown TAGs.
+	(resolve_addr): Call remove_loc_list_addr_table_entries for all
+	location expressions.
+
 2012-08-20  Sterling Augustine  <saugustine@google.com>
 
 	* dwarf2out.c (DEBUG_PUBNAMES_SECTION, DEBUG_PUBTYPES_SECTION): Adjust
