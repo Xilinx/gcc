@@ -1,3 +1,17 @@
+2012-08-22  Han Shen  <shenhan@google.com>
+
+	Fixed the problem that LINUX_GRTE_EXTRA_SPECS overrides
+	SUBTARGET_EXTRA_SPECS by prepending LINUX_GRTE_EXTRA_SPECS to
+	SUBTARGET_EXTRA_SPECS.
+
+	* gcc/config/i386/gnu-user.h (SUBTARGET_EXTRA_SPECS_STR): Add
+	new MACRO to hold value of SUBTARET_EXTRA_SPECS so that
+	SUBTARET_EXTRA_SPECS could be replaced later in gnu-user.h
+
+	* gcc/config/i386/linux.h (SUBTARGET_EXTRA_SPECS): Compute new value
+	of LINUX_GRTE_EXTRA_SPECS by pre-pending LINUX_GRTE_EXTRA_SPECS to its
+	origin value.
+
 2012-08-22  Sriraman Tallam  <tmsriram@google.com>
 
 	Revert old implementation of CPU runtime detection to allow

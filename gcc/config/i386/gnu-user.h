@@ -92,10 +92,13 @@ along with GCC; see the file COPYING3.  If not see
 #define ASM_SPEC \
   "--32 %{!mno-sse2avx:%{mavx:-msse2avx}} %{msse2avx:%{!mavx:-msse2avx}}"
 
-#undef  SUBTARGET_EXTRA_SPECS
-#define SUBTARGET_EXTRA_SPECS \
+#undef  SUBTARGET_EXTRA_SPECS_STR
+#define SUBTARGET_EXTRA_SPECS_STR \
   { "link_emulation", GNU_USER_LINK_EMULATION },\
   { "dynamic_linker", GNU_USER_DYNAMIC_LINKER }
+
+#undef  SUBTARGET_EXTRA_SPECS
+#define  SUBTARGET_EXTRA_SPECS SUBTARGET_EXTRA_SPECS_STR
 
 #undef	LINK_SPEC
 #define LINK_SPEC "-m %(link_emulation) %{shared:-shared} \
