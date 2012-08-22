@@ -1,3 +1,101 @@
+2012-08-22  Sriraman Tallam  <tmsriram@google.com>
+
+	Revert old implementation of CPU runtime detection to allow
+	the new implementation checked in to trunk at rev. 188417 to
+	be merged.
+	Revert rev 185093
+		
+		Backport rev 185083 from google/main
+
+		Patch to add builtins to detect CPU type:
+		========================================
+
+		I have ported the patch from google/gcc-4_6 to google/main.  I also want this
+		patch to be considered for trunk.  Please see this discussion:
+		http://gcc.gnu.org/ml/gcc-patches/2011-08/msg01355.html
+		when this patch for reviewed the last time.
+
+		One of the main concerns was about making CPU detection initialization a
+		constructor. The main point raised was about constructor ordering. I have now
+		added a priority value to the CPU detection constructor to make it very high
+		priority so that it is guaranteed to fire before every constructor without
+		an explicitly marked priority value of 101.  However, IFUNC initializers
+		will still fire before this constructor, so the cpu initialization routine
+		has to be explicitly called in such initializers for which I have added a
+		builtin: __builtin_cpu_init (). 
+
+		I would like to reopen discussions on this to make it suitable for trunk
+		this time around. 
+
+		This patch adds the following new builtins:
+
+		__builtin_cpu_init
+		__builtin_cpu_supports_cmov
+		__builtin_cpu_supports_mmx
+		__builtin_cpu_supports_popcount
+		__builtin_cpu_supports_sse
+		__builtin_cpu_supports_sse2
+		__builtin_cpu_supports_sse3
+		__builtin_cpu_supports_ssse3
+		__builtin_cpu_supports_sse4_1
+		__builtin_cpu_supports_sse4_2
+		__builtin_cpu_is_amd
+		__builtin_cpu_is_intel_atom
+		__builtin_cpu_is_intel_core2
+		__builtin_cpu_is_intel
+		__builtin_cpu_is_intel_corei7
+		__builtin_cpu_is_intel_corei7_nehalem
+		__builtin_cpu_is_intel_corei7_westmere
+		__builtin_cpu_is_intel_corei7_sandybridge
+		__builtin_cpu_is_amdfam10
+		__builtin_cpu_is_amdfam10_barcelona
+		__builtin_cpu_is_amdfam10_shanghai
+		__builtin_cpu_is_amdfam10_istanbul
+		__builtin_cpu_is_amdfam15_bdver1
+		__builtin_cpu_is_amdfam15_bdver2
+
+
+	        * gcc/config/i386/i386.c (build_struct_with_one_bit_fields): New function.
+	        (make_var_decl): New function.
+	        (get_field_from_struct): New function.
+	        (fold_builtin_target): New function.
+	        (ix86_fold_builtin): New function.
+	        (ix86_expand_builtin): Expand new builtins by folding them.
+	        (make_platform_builtin): New functions.
+	        (ix86_init_platform_type_builtins): Make the new builtins.
+	        (ix86_init_builtins): Make new builtins to detect CPU type.
+	        (TARGET_FOLD_BUILTIN): New macro.
+	        (IX86_BUILTIN_CPU_SUPPORTS_CMOV): New enum value.
+	        (IX86_BUILTIN_CPU_SUPPORTS_MMX): New enum value.
+	        (IX86_BUILTIN_CPU_SUPPORTS_POPCOUNT): New enum value.
+	        (IX86_BUILTIN_CPU_SUPPORTS_SSE): New enum value.
+	        (IX86_BUILTIN_CPU_SUPPORTS_SSE2): New enum value.
+	        (IX86_BUILTIN_CPU_SUPPORTS_SSE3): New enum value.
+	        (IX86_BUILTIN_CPU_SUPPORTS_SSSE3): New enum value.
+	        (IX86_BUILTIN_CPU_SUPPORTS_SSE4_1): New enum value.
+	        (IX86_BUILTIN_CPU_SUPPORTS_SSE4_2): New enum value.
+	        (IX86_BUILTIN_CPU_INIT): New enum value.
+	        (IX86_BUILTIN_CPU_IS_AMD): New enum value.
+	        (IX86_BUILTIN_CPU_IS_INTEL): New enum value.
+	        (IX86_BUILTIN_CPU_IS_INTEL_ATOM): New enum value.
+	        (IX86_BUILTIN_CPU_IS_INTEL_CORE2): New enum value.
+	        (IX86_BUILTIN_CPU_IS_INTEL_COREI7_NEHALEM): New enum value.
+	        (IX86_BUILTIN_CPU_IS_INTEL_COREI7_WESTMERE): New enum value.
+	        (IX86_BUILTIN_CPU_IS_INTEL_COREI7_SANDYBRIDGE): New enum value.
+	        (IX86_BUILTIN_CPU_IS_AMDFAM10_BARCELONA): New enum value.
+	        (IX86_BUILTIN_CPU_IS_AMDFAM10_SHANGHAI): New enum value.
+	        (IX86_BUILTIN_CPU_IS_AMDFAM10_ISTANBUL): New enum value.
+	        (IX86_BUILTIN_CPU_IS_AMDFAM15H_BDVER1): New enum value.
+	        (IX86_BUILTIN_CPU_IS_AMDFAM15H_BDVER2): New enum value.
+	        * gcc/config/i386/i386-builtin-types.def: New function type.
+	        * gcc/testsuite/gcc.target/builtin_target.c: New testcase.
+	
+	        * libgcc/config/i386/i386-cpuinfo.c: New file.
+	        * libgcc/config/i386/t-cpuinfo: New file.
+	        * libgcc/config.host: Include t-cpuinfo.
+	        * libgcc/config/i386/libgcc-glibc.ver: Version symbols __cpu_model
+	        and __cpu_features.
+
 2012-08-08  Simon Baldwin  <simonb@google.com>
 
     Cherry pick revision 190232.
