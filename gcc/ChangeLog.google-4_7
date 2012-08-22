@@ -1,3 +1,28 @@
+2012-08-22   Easwaran Raman  <eraman@google.com>
+	Backport r187387 and r187477 from trunk.
+
+	r187387:
+	2012-05-11  Uros Bizjak  <ubizjak@gmail.com>
+		PR target/53291
+		* config/i386/i386.md (xtest): Use NE condition in ix86_expand_setcc.
+
+	r187477:
+	2012-05-14  Andrew Pinski  <apinski@cavium.com>
+	    H.J. Lu  <hongjiu.lu@intel.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+		PR target/53315
+		* config/i386/i386.md (xbegin_1): Use + in constraint and
+		match_dup.
+		(xbegin): Updated.
+
+2012-05-14  Andi Kleen <ak@linux.intel.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/53315
+	* gcc.target/i386/i386.exp (check_effective_target_rtm): New.
+	* gcc.target/i386/rtm-check.h: New file.
+	* gcc.target/i386/pr53315.c: New test.
+
 2012-08-20   Cary Coutant  <ccoutant@google.com>
 
 	* dwarf2out.c (remove_loc_list_addr_table_entries): Change
