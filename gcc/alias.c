@@ -940,6 +940,13 @@ record_component_aliases (tree type)
   switch (TREE_CODE (type))
     {
     case RECORD_TYPE:
+      /* In Cilk Plus the static chain causes a false aliasing issue.  The 
+	 change below is done to make sure we remove a false aliasing issue 
+	 that prevents vectorization.
+	 Many thanks to Vladimir Y. for the suggestion.  */
+      if (flag_enable_cilk
+	  && (TYPE_NAME (type) == get_identifier ("__builtin_trampoline")))
+	break;
     case UNION_TYPE:
     case QUAL_UNION_TYPE:
       /* Recursively record aliases for the base classes, if there are any.  */

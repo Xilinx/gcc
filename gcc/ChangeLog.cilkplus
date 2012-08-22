@@ -1,3 +1,8 @@
+2012-08-22  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* alias.c (record_component_aliases): Added a check for builtin
+	trampoline record.
+
 2012-08-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* tree-inline.c (tree_elem_fn_versioning): Changed the call from
