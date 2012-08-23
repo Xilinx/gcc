@@ -1,3 +1,57 @@
+2012-08-23  Sriraman Tallam  <tmsriram@google.com>
+
+	Backport r186789,r186795,r186855,r187365,r188417
+
+	r186789:
+	2012-04-24  Sriraman Tallam  <tmsriram@google.com>
+
+		* config/i386/i386.c (build_processor_model_struct): New function.
+		(make_var_decl): New function.
+		(fold_builtin_cpu): New function.
+		(ix86_fold_builtin): New function.
+		(make_cpu_type_builtin): New function.
+		(ix86_init_platform_type_builtins): New function.
+		(ix86_expand_builtin): Expand new builtins by folding them.
+		(ix86_init_builtins): Make new builtins to detect CPU type.
+		(TARGET_FOLD_BUILTIN): New macro.
+		(IX86_BUILTIN_CPU_INIT): New enum value.
+		(IX86_BUILTIN_CPU_IS): New enum value.
+		(IX86_BUILTIN_CPU_SUPPORTS): New enum value.
+		* config/i386/i386-builtin-types.def: New function type.
+		* testsuite/gcc.target/builtin_target.c: New testcase.
+		* doc/extend.texi: Document builtins.
+
+	r186795:
+	No changes.
+
+	r186855:
+	2012-04-25  Sriraman Tallam  <tmsriram@google.com>
+
+		* doc/extend.texi: Document avx2 support.
+		* config/i386/i386.c (fold_builtin_cpu): Add avx2.
+		* testsuite/gcc.target/i386/builtin_target.c: Check avx2.
+
+	r187365:
+	2012-05-10  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+		* doc/extend.texi (X86 Built-in Functions, __builtin_cpu_init):
+		Document requirement to call in constructors.
+
+		* config/i386/i386.c: Update comments for i386-cpuinfo.c name
+		change.
+
+	r188417:
+	2012-06-11  Sriraman Tallam  <tmsriram@google.com>
+
+		* testsuite/gcc.target/i386/builtin_target.c (vendor_signatures): New enum.
+		(check_intel_cpu_model): New function.
+		(check_amd_cpu_model): New function.
+		(check_features): New function.
+		(__get_cpuid_output): New function.
+		(check_detailed): New function.
+		(fn1): Rename to quick_check.
+		(main): Update to call quick_check and call check_detailed.
+
 2012-08-22   Cary Coutant  <ccoutant@google.com>
 
 	* dwarf2out.c (should_move_die_to_comdat): A type definition

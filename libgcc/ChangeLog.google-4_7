@@ -1,3 +1,62 @@
+2012-08-23  Sriraman Tallam  <tmsriram@google.com>
+
+	Backport r186789,r186795,r186855,r187365,r188417
+
+	r186789:
+	2012-04-24  Sriraman Tallam  <tmsriram@google.com>
+
+		* libgcc/config/i386/i386-cpuinfo.c: New file.
+		* libgcc/config/i386/t-cpuinfo: New file.
+		* libgcc/config.host: Include t-cpuinfo.
+		* libgcc/config/i386/libgcc-glibc.ver: Version symbol __cpu_model.
+
+	r186795:
+	2012-04-24  Sriraman Tallam  <tmsriram@google.com>
+		* libgcc/config/i386/i386-cpuinfo.c: Set __cpu_vendor always.
+
+	r186855:
+	2012-04-25  Sriraman Tallam  <tmsriram@google.com>
+
+		* config/i386/i386-cpuinfo.c (FEATURE_AVX2): New enum value.
+		(get_available_features): New argument. Check for AVX2.
+		(__cpu_indicator_init): Modify call to get_available_features.
+
+	r187365:
+	2012-05-10  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+		* config.host (i[34567]86-*-linux*, x86_64-*-linux*)
+		(i[34567]86-*-kfreebsd*-gnu, x86_64-*-kfreebsd*-gnu)
+		(i[34567]86-*-knetbsd*-gnu, i[34567]86-*-gnu*): Move
+		i386/t-cpuinfo ...
+		(i[34567]86-*-*, x86_64-*-*): ... here.
+
+		* config/i386/libgcc-bsd.ver (GCC_4.8.0): New version.
+		* config/i386/libgcc-sol2.ver (GCC_4.8.0): New version.
+
+		* config/i386/i386-cpuinfo.c: Rename to ...
+		* config/i386/cpuinfo.c: ... this.
+		* config/i386/t-cpuinfo (LIB2ADD): Reflect this.
+
+		* configure.ac (AC_CONFIG_HEADER): Call for auto-target.h.
+		(libgcc_cv_init_priority): New test.
+		* configure: Regenerate.
+		* config.in: New file.
+		* Makefile.in (clean): Rename config.h to auto-target.h.
+		(config.h): Likewise.
+		(stamp-h): Likewise.
+
+		* config/i386/cpuinfo.c (auto-target.h): Include.
+		(CONSTRUCTOR_PRIORITY): Define.
+		(__cpu_indicator_init): Use it.
+
+	r188417:
+	2012-06-11  Sriraman Tallam  <tmsriram@google.com>
+
+		* config/i386/libgcc-bsd.ver: Version symbol __cpu_indicator_init.
+		* config/i386/libgcc-sol2.ver: Ditto.
+		* config/i386/libgcc-glibc.ver: Ditto.
+	
+
 2012-08-13  Chris Manghane  <cmang@google.com>
 
 	Backport r190247 from google/main

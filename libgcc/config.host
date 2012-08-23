@@ -1142,6 +1142,12 @@ mep*-*-*)
 esac
 
 case ${host} in
+i[34567]86-*-* | x86_64-*-*)
+	tmake_file="${tmake_file} i386/t-cpuinfo"
+	;;
+esac
+
+case ${host} in
 i[34567]86-*-linux* | x86_64-*-linux* | \
   i[34567]86-*-kfreebsd*-gnu | x86_64-*-kfreebsd*-gnu | \
   i[34567]86-*-knetbsd*-gnu | \
