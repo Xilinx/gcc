@@ -1,3 +1,7 @@
+2012-08-23  Teresa Johnson  <tejohnson@google.com>
+
+	* Revert r189866
+
 2012-08-23   Xinliang David Li  <davidxl@google.com>
 
 	*coverage.c (check_cg_opts): New function.
