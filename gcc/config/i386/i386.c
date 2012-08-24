@@ -16414,7 +16414,7 @@ ix86_binary_operator_ok (enum rtx_code code, enum machine_mode mode,
 	    && (mode == HImode
 		|| mode == SImode
 		|| (TARGET_64BIT && mode == DImode))
-	    && satisfies_constraint_L (src2));
+	    && satisfies_constraint_La (src2));
 
   return true;
 }

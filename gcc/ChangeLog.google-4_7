@@ -1,5 +1,17 @@
 2012-08-23  Teresa Johnson  <tejohnson@google.com>
 
+	* config/i386/i386.md (anddi_1): Add new r,qm,Lh pattern
+	first to catch an and with 0xff that would be turned into
+	an andw on machines with length-changing prefix stalls,
+	and instead convert it into a zero-extending move.
+	(andsi_1, andhi_1): Ditto.
+	* config/i386/constraints.md (La): Rename from "L".
+	(Lh): New constraint to match possible LCP stalling ands.
+	* config/i386/i386.c (ix86_binary_operator_ok): Update
+	for rename of "L" constraint.
+
+2012-08-23  Teresa Johnson  <tejohnson@google.com>
+
 	* Revert r189866
 
 2012-08-23   Xinliang David Li  <davidxl@google.com>
