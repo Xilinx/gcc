@@ -1,3 +1,10 @@
+2012-08-23   Xinliang David Li  <davidxl@google.com>
+
+	*coverage.c (check_cg_opts): New function.
+	(has_incompatible_cg_opts): Ditto.
+	(incompatible_cl_args): Handle incompatible cg
+	options more generally, and added -fsized-delete.
+
 2012-08-23  Sriraman Tallam  <tmsriram@google.com>
 
 	Backport r186789,r186795,r186855,r187365,r188417

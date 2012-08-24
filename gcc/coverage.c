@@ -261,6 +261,56 @@ str_eq (const void *p1, const void *p2)
   return !strcmp (s1, s2);
 }
 
+/* Command line option descriptor.  */
+
+struct opt_desc
+{
+  const char *opt_str;
+  const char *opt_neg_str;
+  bool default_val;  /* TODO better handling of default  */
+};
+
+static struct opt_desc force_matching_cg_opts[] =
+  {
+    { "-fexceptions", "-fno-exceptions", true },
+    { "-fsized-delete", "-fno-sized-delete", false },
+    { NULL, NULL, false }
+  };
+
+/* A helper function to check if OPTION_STRING is one of the codegen
+   options specified in FORCE_MATCHING_CG_ARGS. If yes, set the
+   corresponding entry in CG_ARG_VAL to the value of the option specified
+   in OPTION_STRING.  */
+
+static void
+check_cg_opts (bool *cg_opt_val, const char *option_str)
+{
+  unsigned int i;
+  for (i = 0; force_matching_cg_opts[i].opt_str; i++)
+    {
+      if (!strcmp (force_matching_cg_opts[i].opt_str, option_str))
+        cg_opt_val[i] = true;
+      else if (!strcmp (force_matching_cg_opts[i].opt_neg_str, option_str))
+        cg_opt_val[i] = false;
+    }
+}
+
+/* A helper function to check if CG_OPTS1 and CG_OPTS are identical. It returns
+   true if yes, false otherwise.  */
+
+static bool
+has_incompatible_cg_opts (bool *cg_opts1, bool *cg_opts2, unsigned num_cg_opts)
+{
+  unsigned i;
+
+  for (i = 0; i < num_cg_opts; i++)
+    {
+      if (cg_opts1[i] != cg_opts2[i])
+        return true;
+    }
+
+  return false;
+}
 
 /* Returns true if the command-line arguments stored in the given module-infos
    are incompatible.  */
@@ -276,8 +326,6 @@ incompatible_cl_args (struct gcov_module_info* mod_info1,
   unsigned int num_non_warning_opts1 = 0, num_non_warning_opts2 = 0;
   bool warning_mismatch = false;
   bool non_warning_mismatch = false;
-  bool with_fexceptions1 = true;
-  bool with_fexceptions2 = true;
   htab_t option_tab1, option_tab2;
   unsigned int start_index1 = mod_info1->num_quote_paths +
     mod_info1->num_bracket_paths + mod_info1->num_cpp_defines +
@@ -285,6 +333,22 @@ incompatible_cl_args (struct gcov_module_info* mod_info1,
   unsigned int start_index2 = mod_info2->num_quote_paths +
     mod_info2->num_bracket_paths + mod_info2->num_cpp_defines +
     mod_info2->num_cpp_includes;
+
+  bool *cg_opts1, *cg_opts2, has_any_incompatible_cg_opts;
+  unsigned int num_cg_opts = 0;
+
+  for (i = 0; force_matching_cg_opts[i].opt_str; i++)
+    num_cg_opts++;
+
+  cg_opts1 = XCNEWVEC (bool, num_cg_opts);
+  cg_opts2 = XCNEWVEC (bool, num_cg_opts);
+
+  /* Initialize the array to default value  */
+  for (i = 0; force_matching_cg_opts[i].opt_str; i++)
+    {
+      cg_opts1[i] = force_matching_cg_opts[i].default_val;
+      cg_opts2[i] = force_matching_cg_opts[i].default_val;
+    }
 
   option_tab1 = htab_create (10, str_hash, str_eq, NULL);
   option_tab2 = htab_create (10, str_hash, str_eq, NULL);
@@ -297,12 +361,9 @@ incompatible_cl_args (struct gcov_module_info* mod_info1,
     else
       {
         void **slot;
-        char* option_string = mod_info1->string_array[start_index1 + i];
+        char *option_string = mod_info1->string_array[start_index1 + i];
 
-        if (!strcmp ("-fexceptions", option_string))
-          with_fexceptions1 = true;
-        else if (!strcmp ("-fno-exceptions", option_string))
-          with_fexceptions1 = false;
+        check_cg_opts (cg_opts1, option_string);
 
         slot = htab_find_slot (option_tab1, option_string, INSERT);
         if (!*slot)
@@ -319,12 +380,10 @@ incompatible_cl_args (struct gcov_module_info* mod_info1,
     else
       {
         void **slot;
-        char* option_string = mod_info2->string_array[start_index2 + i];
+        char *option_string = mod_info2->string_array[start_index2 + i];
 
-        if (!strcmp ("-fexceptions", option_string))
-          with_fexceptions2 = true;
-        else if (!strcmp ("-fno-exceptions", option_string))
-          with_fexceptions2 = false;
+        check_cg_opts (cg_opts2, option_string);
+
         slot = htab_find_slot (option_tab2, option_string, INSERT);
         if (!*slot)
           {
@@ -354,7 +413,7 @@ incompatible_cl_args (struct gcov_module_info* mod_info1,
     warning (OPT_Wripa_opt_mismatch, "command line arguments mismatch for %s "
 	     "and %s", mod_info1->source_filename, mod_info2->source_filename);
 
-   if (warn_ripa_opt_mismatch && non_warning_mismatch 
+   if (warn_ripa_opt_mismatch && non_warning_mismatch
        && (flag_opt_info >= OPT_INFO_MED))
      {
        inform (UNKNOWN_LOCATION, "Options for %s", mod_info1->source_filename);
@@ -365,14 +424,19 @@ incompatible_cl_args (struct gcov_module_info* mod_info1,
          inform (UNKNOWN_LOCATION, non_warning_opts2[i]);
      }
 
-  XDELETEVEC (warning_opts1);
-  XDELETEVEC (warning_opts2);
-  XDELETEVEC (non_warning_opts1);
-  XDELETEVEC (non_warning_opts2);
-  htab_delete (option_tab1);
-  htab_delete (option_tab2);
-  return ((flag_ripa_disallow_opt_mismatch && non_warning_mismatch)
-          || (with_fexceptions1 != with_fexceptions2));
+   has_any_incompatible_cg_opts
+       = has_incompatible_cg_opts (cg_opts1, cg_opts2, num_cg_opts);
+
+   XDELETEVEC (warning_opts1);
+   XDELETEVEC (warning_opts2);
+   XDELETEVEC (non_warning_opts1);
+   XDELETEVEC (non_warning_opts2);
+   XDELETEVEC (cg_opts1);
+   XDELETEVEC (cg_opts2);
+   htab_delete (option_tab1);
+   htab_delete (option_tab2);
+   return ((flag_ripa_disallow_opt_mismatch && non_warning_mismatch)
+           || has_any_incompatible_cg_opts);
 }
 
 /* Read in the counts file, if available. DA_FILE_NAME is the
