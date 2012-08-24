@@ -1,3 +1,130 @@
+2012-08-21  Richard Guenther  <rguenther@suse.de>
+
+	Backport from mainline
+	2012-08-16  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/54146
+	* tree-ssa-loop-niter.c (find_loop_niter_by_eval): Free the
+	exit vector.
+	* ipa-pure-const.c (analyze_function): Use FOR_EACH_LOOP_BREAK.
+	* cfgloop.h (FOR_EACH_LOOP_BREAK): Fix.
+	* tree-ssa-structalias.c (handle_lhs_call): Properly free rhsc.
+	* tree-ssa-loop-im.c (analyze_memory_references): Adjust.
+	(tree_ssa_lim_finalize): Free all mem_refs.
+	* tree-ssa-sccvn.c (extract_and_process_scc_for_name): Free
+	scc when bailing out.
+	* modulo-sched.c (sms_schedule): Use FOR_EACH_LOOP_BREAK.
+	* ira-build.c (loop_with_complex_edge_p): Free loop exit vector.
+	* graphite-sese-to-poly.c (scop_ivs_can_be_represented): Use
+	FOR_EACH_LOOP_BREAK.
+
+	2012-08-17  Richard Guenther  <rguenther@suse.de>
+
+	* tree-sra.c (modify_function): Free redirect_callers vector.
+	* ipa-split.c (split_function): Free args_to_pass vector.
+	* tree-vect-stmts.c (vectorizable_operation): Do not pre-allocate
+	vec_oprnds.
+	(new_stmt_vec_info): Do not pre-allocate STMT_VINFO_SAME_ALIGN_REFS.
+	* tree-vect-slp.c (vect_free_slp_instance): Free the instance.
+	(vect_analyze_slp_instance): Free everything.
+	(destroy_bb_vec_info): Free the SLP instances.
+
+	2012-08-17  Richard Guenther  <rguenther@suse.de>
+ 
+	* params.def (integer-share-limit): Decrease from 256 to 251,
+	add rationale.
+
+	2012-08-21  Richard Guenther  <rguenther@suse.de>
+ 
+	* tree-ssa-loop-im.c (tree_ssa_lim_finalize): Properly free
+	the affine expansion cache.
+
+2012-08-20  Patrick Marlier  <patrick.marlier@gmail.com>
+
+	Backported from trunk
+	2012-08-20  Patrick Marlier  <patrick.marlier@gmail.com>
+
+	PR middle-end/53992
+	* omp-low.c (lower_omp_1): Handle GIMPLE_TRANSACTION.
+
+2012-08-20  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	Backport from mainline.
+	2012-08-15  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	PR target/54212
+	* config/arm/neon.md (vec_set<mode>_internal VD,VQ): Do not
+	mark as predicable. Adjust asm template.
+	(vec_setv2di_internal): Likewise.
+	(vec_extract<mode> VD, VQ): Likewise.
+	(vec_extractv2di): Likewise.
+	(neon_vget_lane<mode>_sext_internal VD, VQ): Likewise.
+	(neon_vset_lane<mode>_sext_internal VD, VQ): Likewise.
+	(neon_vdup_n<mode> VX, V32): Likewise.
+	(neon_vdup_nv2di): Likewise.
+
+2012-08-17  Walter Lee  <walt@tilera.com>
+
+	Backport from mainline
+	2012-08-17  Walter Lee  <walt@tilera.com>
+
+	* config/tilegx/feedback.h (FEEDBACK_ENTER_EXPLICIT): Define.
+	(FEEDBACK_ENTER): Define.
+	(FEEDBACK_REENTER): Define.
+	(FEEDBACK_ENTRY): Define.
+	* config/tilepro/feedback.h: (FEEDBACK_ENTER_EXPLICIT): Define.
+	(FEEDBACK_ENTER): Define.
+	(FEEDBACK_REENTER): Define.
+	(FEEDBACK_ENTRY): Define.
+
+2012-08-16  Walter Lee  <walt@tilera.com>
+
+	Backport from mainline
+	2012-08-16  Walter Lee  <walt@tilera.com>
+
+	* config.gcc (tilegx-*-linux*): Add feedback.h.
+	(tilepro-*-linux*): Likewise.
+	* config/tilegx/feedback.h: New file.
+	* config/tilepro/feedback.h: New file.
+
+2012-08-08 Pavel Chupin <pavel.v.chupin@intel.com>
+
+	Backport from mainline r189840 and r187586:
+	2012-07-25 Sergey Melnikov <sergey.melnikov@intel.com>
+
+	* config/i386/i386.md (stack_protect_set): Disable the pattern
+	for Android since Android libc (bionic) does not provide random
+	value for stack protection guard at gs:0x14. Guard value
+	will be provided from external symbol (default implementation).
+	(stack_protect_set_<mode>): Likewise.
+	(stack_protect_test): Likewise.
+	(stack_protect_test_<mode>): Likewise.
+	* gcc/defaults.h: Define macro TARGET_HAS_BIONIC to 0 - target does
+	not have Bionic by default
+	* config/linux.h: Redefine macro TARGET_HAS_BIONIC to (OPTION_BIONIC)
+	Macro OPTION_BIONIC is defined in this file and provides Bionic
+	accessibility status
+
+	2012-05-16  Igor Zamyatin  <igor.zamyatin@intel.com>
+
+	* configure.ac: Stack protector enabling for Android targets.
+	* configure: Regenerate.
+
+2012-08-13  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from trunk
+	2012-07-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/53942
+	* function.c (assign_parm_setup_reg): Avoid zero/sign extension
+	directly from likely spilled non-fixed hard registers, move them
+	to pseudo first.
+
+2012-08-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (xop_phaddbq):  Fix vec_select selectors.
+	(xop_phaddubq): Ditto.
+
 2012-08-10  Ulrich Weigand  <ulrich.weigand@linaro.org>
 
 	Backport from mainline
