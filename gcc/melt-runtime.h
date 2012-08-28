@@ -2320,9 +2320,7 @@ meltgc_ppstrbuf_ppl_varnamvect (melt_ptr_t sbuf_p, int indentsp, melt_ptr_t ppl_
 static inline ppl_Constraint_System_t 
 melt_raw_new_ppl_empty_constraint_system (void) {
   ppl_Constraint_System_t consys= NULL;
-  int err=0;
-  if ((err=ppl_new_Constraint_System(&consys))!=0)
-    melt_fatal_error("melt_raw_new_ppl_empty_constraint_system failed (%d)", err);
+  melt_fatal_error("melt_raw_new_ppl_empty_constraint_system removed");
   return consys;
 }
 
@@ -2330,9 +2328,7 @@ melt_raw_new_ppl_empty_constraint_system (void) {
 static inline ppl_Constraint_System_t 
 melt_raw_new_ppl_unsatisfiable_constraint_system (void) {
   ppl_Constraint_System_t consys= NULL;
-  int err=0;
-  if ((err=ppl_new_Constraint_System_zero_dim_empty(&consys))!=0)
-    melt_fatal_error("melt_raw_new_ppl_unsatisfiable_constraint_system failed (%d)", err);
+  melt_fatal_error("melt_raw_new_ppl_unsatisfiable_constraint_system removed");
   return consys;
 }
 
@@ -2340,9 +2336,7 @@ melt_raw_new_ppl_unsatisfiable_constraint_system (void) {
 static inline ppl_Constraint_System_t 
 melt_raw_clone_ppl_consstraint_system (ppl_Constraint_System_t oldconsys) {
   ppl_Constraint_System_t consys= NULL;
-  int err=0;
-  if ((err=ppl_new_Constraint_System_from_Constraint_System(&consys, oldconsys))!=0)
-    melt_fatal_error("melt_raw_clone_ppl_consstraint_system failed (%d)", err);
+  melt_fatal_error("melt_raw_clone_ppl_consstraint_system removed");
   return consys;
 }
 
@@ -2378,72 +2372,60 @@ enum { SAME_PPL_POLHYEDRON=0, CLONED_PPL_POLHYEDRON=1 };
 static inline ppl_Coefficient_t 
 melt_ppl_coefficient_content (melt_ptr_t ppl_p)
 {
-  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_COEFFICIENT) 
-    return NULL;
-  return ((struct meltspecialpplcoefficient_st *)ppl_p)->val.sp_coefficient;
+  melt_fatal_error("melt_ppl_coefficient_content removed");
+  return NULL;
 }
 
 /* put the content of a boxed PPL coefficient */
 static inline void
 melt_ppl_coefficient_put_content(melt_ptr_t ppl_p, ppl_Coefficient_t coef)
 {
-  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_COEFFICIENT) 
-    return;
-  ((struct meltspecialpplcoefficient_st *)ppl_p)->val.sp_coefficient = coef;
+  melt_fatal_error("melt_ppl_coefficient_put_content removed");
 }
 
 /* get the content of a boxed PPL linear expression */
 static inline ppl_Linear_Expression_t 
 melt_ppl_linear_expression_content(melt_ptr_t ppl_p)
 {
-  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_LINEAR_EXPRESSION) 
+  melt_fatal_error("melt_ppl_linear_expression_content removed");
     return NULL;
-  return ((struct meltspecialppllinearexpression_st *)ppl_p)->val.sp_linear_expression;
 }
 
 /* put the content of a boxed PPL linear expression */
 static inline void 
 melt_ppl_linear_expression_put_content(melt_ptr_t ppl_p, ppl_Linear_Expression_t liex)
 {
-  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_LINEAR_EXPRESSION) 
-    return;
-  ((struct meltspecialppllinearexpression_st *)ppl_p)->val.sp_linear_expression = liex;
+  melt_fatal_error("melt_ppl_linear_expression_put_content removed");
 }
 
 /* get the content of a boxed PPL constraint */
 static inline ppl_Constraint_t 
 melt_ppl_constraint_content(melt_ptr_t ppl_p)
 {
-  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_CONSTRAINT) 
-    return NULL;
-  return ((struct meltspecialpplconstraint_st *)ppl_p)->val.sp_constraint;
+  melt_fatal_error("melt_ppl_constraint_content removed");
+  return NULL;
 }
 
 /* putt the content of a boxed PPL constraint */
 static inline void
 melt_ppl_constraint_put_content(melt_ptr_t ppl_p, ppl_Constraint_t cons)
 {
-  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_CONSTRAINT) 
-    return;
-  ((struct meltspecialpplconstraint_st *)ppl_p)->val.sp_constraint = cons;
+  melt_fatal_error("melt_ppl_constraint_put_content removed");
 }
 
 /* get the content of a boxed PPL constraint system */
 static inline ppl_Constraint_System_t 
 melt_ppl_constraint_system_content(melt_ptr_t ppl_p)
 {
-  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM) 
-    return NULL;
-  return ((struct meltspecialpplconstraintsystem_st *)ppl_p)->val.sp_constraint_system;
+  melt_fatal_error("melt_ppl_constraint_system_content removed");
+  return NULL;
 }
 
 /* put the content of a boxed PPL constraint system */
 static inline void
 melt_ppl_constraint_system_put_content(melt_ptr_t ppl_p, ppl_Constraint_System_t consys)
 {
-  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM) 
-    return;
-  ((struct meltspecialpplconstraintsystem_st *)ppl_p)->val.sp_constraint_system = consys;
+  melt_fatal_error("melt_ppl_constraint_system_put_content removed");
 }
 
 
@@ -2451,9 +2433,8 @@ melt_ppl_constraint_system_put_content(melt_ptr_t ppl_p, ppl_Constraint_System_t
 static inline ppl_Generator_t 
 melt_ppl_generator_content(melt_ptr_t ppl_p)
 {
-  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_GENERATOR) 
-    return NULL;
-  return ((struct meltspecialpplgenerator_st *)ppl_p)->val.sp_generator;
+  melt_fatal_error("melt_ppl_generator_content removed");
+  return NULL;
 }
 
 
@@ -2461,9 +2442,7 @@ melt_ppl_generator_content(melt_ptr_t ppl_p)
 static inline void 
 melt_ppl_generator_put_content(melt_ptr_t ppl_p,  ppl_Generator_t gen)
 {
-  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_GENERATOR) 
-    return;
-  ((struct meltspecialpplgenerator_st *)ppl_p)->val.sp_generator = gen;
+  melt_fatal_error("melt_ppl_generator_put_content removed");
 }
 
 
@@ -2471,18 +2450,15 @@ melt_ppl_generator_put_content(melt_ptr_t ppl_p,  ppl_Generator_t gen)
 static inline ppl_Generator_System_t 
 melt_ppl_generator_system_content(melt_ptr_t ppl_p)
 {
-  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_GENERATOR_SYSTEM) 
+  melt_fatal_error("melt_ppl_generator_system_content removed");
     return NULL;
-  return ((struct meltspecialpplgeneratorsystem_st *)ppl_p)->val.sp_generator_system;
 }
 
 /* put the content of a boxed PPL generator system */
 static inline void
 melt_ppl_generator_system_put_content(melt_ptr_t ppl_p, ppl_Generator_System_t gensys)
 {
-  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_GENERATOR_SYSTEM) 
-    return;
-  ((struct meltspecialpplgeneratorsystem_st *)ppl_p)->val.sp_generator_system = gensys;
+  melt_fatal_error("melt_ppl_generator_system_put_content removed");
 }
 
 
@@ -2490,18 +2466,15 @@ melt_ppl_generator_system_put_content(melt_ptr_t ppl_p, ppl_Generator_System_t g
 static inline ppl_Polyhedron_t
 melt_ppl_polyhedron_content(melt_ptr_t ppl_p)
 {
-  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_POLYHEDRON) 
-    return NULL;
-  return ((struct meltspecialpplpolyhedron_st *)ppl_p)->val.sp_polyhedron;
+  melt_fatal_error("melt_ppl_polyhedron_content removed");    
+  return NULL;
 }
 
 /* put the content of a boxed PPL polyhedron */
 static inline void
 melt_ppl_polyhedron_put_content(melt_ptr_t ppl_p, ppl_Polyhedron_t poly)
 {
-  if (melt_magic_discr(ppl_p) != MELTOBMAG_SPECPPL_POLYHEDRON) 
-    return;
-  ((struct meltspecialpplpolyhedron_st *)ppl_p)->val.sp_polyhedron = poly;
+  melt_fatal_error("melt_ppl_polyhedron_put_content removed"); 
 }
 
 

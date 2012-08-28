@@ -333,13 +333,6 @@ static VEC (meltchar_p, heap)* parsedmeltfilevect;
 #define ALL_MELTOBMAG_SPECIAL_CASES             \
          MELTOBMAG_SPEC_FILE:                   \
     case MELTOBMAG_SPEC_RAWFILE:                \
-    case MELTOBMAG_SPECPPL_COEFFICIENT:         \
-    case MELTOBMAG_SPECPPL_LINEAR_EXPRESSION:   \
-    case MELTOBMAG_SPECPPL_CONSTRAINT:          \
-    case MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM:   \
-    case MELTOBMAG_SPECPPL_GENERATOR:           \
-    case MELTOBMAG_SPECPPL_GENERATOR_SYSTEM:    \
-    case MELTOBMAG_SPECPPL_POLYHEDRON:          \
     case MELTOBMAG_SPEC_MPFR
 
 /* Obstack used for reading names */
@@ -736,41 +729,6 @@ delete_special (struct meltspecial_st *sp)
       free (sp->val.sp_mpfr);
       sp->val.sp_mpfr = NULL;
     };
-    break;
-  case MELTOBMAG_SPECPPL_COEFFICIENT:
-    if (sp->val.sp_coefficient)
-      ppl_delete_Coefficient (sp->val.sp_coefficient);
-    sp->val.sp_coefficient = NULL;
-    break;
-  case MELTOBMAG_SPECPPL_LINEAR_EXPRESSION:
-    if (sp->val.sp_linear_expression)
-      ppl_delete_Linear_Expression (sp->val.sp_linear_expression);
-    sp->val.sp_linear_expression = NULL;
-    break;
-  case MELTOBMAG_SPECPPL_CONSTRAINT:
-    if (sp->val.sp_constraint)
-      ppl_delete_Constraint (sp->val.sp_constraint);
-    sp->val.sp_constraint = NULL;
-    break;
-  case MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM:
-    if (sp->val.sp_constraint_system)
-      ppl_delete_Constraint_System (sp->val.sp_constraint_system);
-    sp->val.sp_constraint_system = NULL;
-    break;
-  case MELTOBMAG_SPECPPL_GENERATOR:
-    if (sp->val.sp_generator)
-      ppl_delete_Generator (sp->val.sp_generator);
-    sp->val.sp_generator = NULL;
-    break;
-  case MELTOBMAG_SPECPPL_GENERATOR_SYSTEM:
-    if (sp->val.sp_generator_system)
-      ppl_delete_Generator_System (sp->val.sp_generator_system);
-    sp->val.sp_generator_system = NULL;
-    break;
-  case MELTOBMAG_SPECPPL_POLYHEDRON:
-    if (sp->val.sp_polyhedron)
-      ppl_delete_Polyhedron (sp->val.sp_polyhedron);
-    sp->val.sp_polyhedron = NULL;
     break;
   default:
     break;
@@ -6198,13 +6156,6 @@ melt_readsimplelong (struct reading_st *rd)
     NUMNAM (MELTOBMAG_SPEC_FILE);
     NUMNAM (MELTOBMAG_SPEC_RAWFILE);
     NUMNAM (MELTOBMAG_SPEC_MPFR);
-    NUMNAM (MELTOBMAG_SPECPPL_COEFFICIENT);
-    NUMNAM (MELTOBMAG_SPECPPL_LINEAR_EXPRESSION);
-    NUMNAM (MELTOBMAG_SPECPPL_CONSTRAINT);
-    NUMNAM (MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM);
-    NUMNAM (MELTOBMAG_SPECPPL_GENERATOR);
-    NUMNAM (MELTOBMAG_SPECPPL_GENERATOR_SYSTEM);
-    NUMNAM (MELTOBMAG_SPECPPL_POLYHEDRON);
     /** the fields' ranks of melt.h have been removed in rev126278 */
 #undef NUMNAM
     if (r < 0)
@@ -7786,8 +7737,6 @@ end:
 
 
 
-
-static void melt_ppl_error_handler(enum ppl_enum_error_code err, const char* descr);
 
 
 
@@ -10385,9 +10334,6 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   debugeprintf ("melt_really_initialize melt_source_dir=%s", melt_source_dir);
   debugeprintf ("melt_really_initialize melt_module_dir=%s", melt_module_dir);
   debugeprintf ("melt_really_initialize inistr=%s", inistr);
-  if (ppl_set_error_handler(melt_ppl_error_handler))
-    /* don't call melt_fatal_error since initializing! */
-    fatal_error ("MELT failed to set PPL handler");
   /* I really want meltgc_make_special to be linked in, even in plugin
      mode... So I test that the routine exists! */
   debugeprintf ("melt_really_initialize meltgc_make_special=%#lx",
@@ -11532,35 +11478,7 @@ end:
 ppl_Coefficient_t
 melt_make_ppl_coefficient_from_tree(tree tr)
 {
-  HOST_WIDE_INT lo=0, hi=0;
-  ppl_Coefficient_t coef=NULL;
-  mpz_t mp;
-  int err=0;
-  if (!tr) return NULL;
-  switch (TREE_CODE(tr)) {
-  case INTEGER_CST:
-    mpz_init(mp);
-    lo = TREE_INT_CST_LOW(tr);
-    hi = TREE_INT_CST_HIGH(tr);
-    if (hi==0 && lo>=0)
-      mpz_set_ui(mp, lo);
-    else if (hi== -1 && lo<0)
-      mpz_set_si(mp, lo);
-    else {
-      mpz_t mp2;
-      mpz_init_set_ui (mp2, lo);
-      mpz_set_si(mp, hi);
-      mpz_mul_2exp(mp, mp, HOST_BITS_PER_WIDE_INT);
-      mpz_add(mp, mp, mp2);
-      mpz_clear(mp2);
-    };
-    if ((err=ppl_new_Coefficient_from_mpz_t (&coef, mp))!=0)
-      melt_fatal_error("ppl_new_Coefficient_from_mpz_t failed (%d)", err);
-    mpz_clear(mp);
-    return coef;
-  default:
-    break;
-  }
+  melt_fatal_error("melt_make_ppl_coefficient_from_tree removed");
   return NULL;
 }
 
@@ -11568,102 +11486,31 @@ melt_make_ppl_coefficient_from_tree(tree tr)
 ppl_Coefficient_t
 melt_make_ppl_coefficient_from_long(long l)
 {
-  ppl_Coefficient_t coef=NULL;
-  int err=0;
-  mpz_t mp;
-  mpz_init_set_si (mp, l);
-  if ((err=ppl_new_Coefficient_from_mpz_t (&coef, mp))!=0)
-    melt_fatal_error("ppl_new_Coefficient_from_mpz_t failed (%d)", err);
-  mpz_clear(mp);
-  return coef;
+  melt_fatal_error("melt_make_ppl_coefficient_from_long removed");
+  return NULL;
 }
 
 /* make a new boxed PPL empty or unsatisfiable constraint system */
 melt_ptr_t
 meltgc_new_ppl_constraint_system(melt_ptr_t discr_p, bool unsatisfiable)
 {
-  int err = 0;
-  MELT_ENTERFRAME(2, NULL);
-#define discrv meltfram__.mcfr_varptr[0]
-#define object_discrv ((meltobject_ptr_t)(discrv))
-#define resv   meltfram__.mcfr_varptr[1]
-#define spec_resv ((struct meltspecial_st*)(resv))
-  discrv = (void *) discr_p;
-  if (melt_magic_discr ((melt_ptr_t) (discrv)) != MELTOBMAG_OBJECT)
-    goto end;
-  if (object_discrv->meltobj_magic != MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM)
-    goto end;
-  resv = meltgc_make_special ((melt_ptr_t) discrv);
-  spec_resv->val.sp_pointer = NULL;
-  if (!unsatisfiable)
-    err = ppl_new_Constraint_System(&spec_resv->val.sp_constraint_system);
-  else
-    err = ppl_new_Constraint_System_zero_dim_empty(&spec_resv->val.sp_constraint_system);
-  if (err)
-    melt_fatal_error("PPL new Constraint System failed in Melt (%d)", err);
-end:
-  MELT_EXITFRAME();
-  return (melt_ptr_t)resv;
-#undef discrv
-#undef object_discrv
-#undef resv
-#undef spec_resv
+  melt_fatal_error("meltgc_new_ppl_constraint_system removed");
+  return NULL;
 }
 
 /* box clone a PPL constraint system */
 melt_ptr_t
 meltgc_clone_ppl_constraint_system (melt_ptr_t ppl_p)
 {
-  int err = 0;
-  ppl_Constraint_System_t oldconsys = NULL, newconsys = NULL;
-  MELT_ENTERFRAME(3, NULL);
-#define pplv     meltfram__.mcfr_varptr[0]
-#define resv     meltfram__.mcfr_varptr[1]
-#define discrv   meltfram__.mcfr_varptr[2]
-#define spec_pplv ((struct meltspecial_st*)(pplv))
-#define spec_resv ((struct meltspecial_st*)(resv))
-  pplv = ppl_p;
-  resv = NULL;
-  if (melt_magic_discr ((melt_ptr_t) (pplv)) != MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM)
-    goto end;
-  discrv = spec_pplv->discr;
-  oldconsys =  spec_pplv->val.sp_constraint_system;
-  resv = meltgc_make_special ((melt_ptr_t) discrv);
-  if (oldconsys)
-    err = ppl_new_Constraint_System_from_Constraint_System(&newconsys, oldconsys);
-  if (err)
-    melt_fatal_error("PPL clone Constraint System failed in Melt (%d)", err);
-  spec_resv->val.sp_constraint_system = newconsys;
-end:
-  MELT_EXITFRAME();
-  return (melt_ptr_t)resv;
-#undef resv
-#undef spec_resv
-#undef pplv
-#undef spec_pplv
-#undef discrv
+  melt_fatal_error("meltgc_clone_ppl_constraint_system removed");
+  return NULL;
 }
 
 /* insert a raw PPL constraint into a boxed constraint system */
 void
 melt_insert_ppl_constraint_in_boxed_system(ppl_Constraint_t cons, melt_ptr_t ppl_p)
 {
-  int err=0;
-  MELT_ENTERFRAME(3, NULL);
-#define pplv   meltfram__.mcfr_varptr[0]
-#define spec_pplv ((struct meltspecial_st*)(pplv))
-  pplv = ppl_p;
-  if (!pplv || !cons
-      || melt_magic_discr((melt_ptr_t)pplv) != MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM)
-    goto end;
-  if (spec_pplv->val.sp_constraint_system
-      && (err=ppl_Constraint_System_insert_Constraint (spec_pplv->val.sp_constraint_system,
-              cons))!=0)
-    melt_fatal_error("failed to ppl_Constraint_System_insert_Constraint (%d)", err);
-end:
-  MELT_EXITFRAME();
-#undef pplv
-#undef spec_pplv
+  melt_fatal_error("melt_insert_ppl_constraint_in_boxed_system removed");
 }
 
 /* utility to make a NNC [=not necessarily closed] ppl_Polyhedron_t
@@ -11671,11 +11518,8 @@ end:
 ppl_Polyhedron_t
 melt_make_ppl_NNC_Polyhedron_from_Constraint_System(ppl_Constraint_System_t consys)
 {
-  ppl_Polyhedron_t poly = NULL;
-  int err=0;
-  if ((err=ppl_new_NNC_Polyhedron_from_Constraint_System(&poly, consys))!=0)
-    melt_fatal_error("melt_make_ppl_NNC_Polyhedron_from_Constraint_System failed (%d)", err);
-  return poly;
+  melt_fatal_error("melt_make_ppl_NNC_Polyhedron_from_Constraint_System removed");
+  return NULL;
 }
 
 /* make a new boxed PPL polyhedron; if cloned is true, the poly is
@@ -11683,43 +11527,16 @@ melt_make_ppl_NNC_Polyhedron_from_Constraint_System(ppl_Constraint_System_t cons
 melt_ptr_t
 meltgc_new_ppl_polyhedron(melt_ptr_t discr_p, ppl_Polyhedron_t poly, bool cloned)
 {
-  MELT_ENTERFRAME(2, NULL);
-#define discrv meltfram__.mcfr_varptr[0]
-#define object_discrv ((meltobject_ptr_t)(discrv))
-#define resv   meltfram__.mcfr_varptr[1]
-#define spec_resv ((struct meltspecial_st*)(resv))
-  discrv = (void *) discr_p;
-  if (melt_magic_discr ((melt_ptr_t) (discrv)) != MELTOBMAG_OBJECT)
-    goto end;
-  if (object_discrv->meltobj_magic != MELTOBMAG_SPECPPL_POLYHEDRON)
-    goto end;
-  resv = meltgc_make_special ((melt_ptr_t) discrv);
-  spec_resv->val.sp_pointer = NULL;
-  if (cloned && poly) {
-    int err=0;
-    if ((err=ppl_new_NNC_Polyhedron_from_NNC_Polyhedron(&spec_resv->val.sp_polyhedron, poly))
-        !=0)
-      melt_fatal_error("failed to ppl_new_NNC_Polyhedron_from_NNC_Polyhedron (%d)", err);
-  } else
-    spec_resv->val.sp_polyhedron = poly;
-end:
-  MELT_EXITFRAME();
-  return (melt_ptr_t)resv;
-#undef discrv
-#undef object_discrv
-#undef resv
-#undef spec_resv
+  melt_fatal_error("meltgc_new_ppl_polyhedron removed");
+  return NULL;
 }
 
 /* utility to make a ppl_Linear_Expression_t */
 ppl_Linear_Expression_t
 melt_make_ppl_linear_expression(void)
 {
-  ppl_Linear_Expression_t liex = NULL;
-  int err=0;
-  if ((err=ppl_new_Linear_Expression(&liex))!=0)
-    melt_fatal_error("melt_make_ppl_linear_expression failed (%d)", err);
-  return liex;
+  melt_fatal_error("melt_make_ppl_linear_expression removed");
+  return NULL;
 }
 
 /* utility to make a ppl_Constraint ; the constraint type is a string
@@ -11728,28 +11545,7 @@ melt_make_ppl_linear_expression(void)
 ppl_Constraint_t
 melt_make_ppl_constraint_cstrtype(ppl_Linear_Expression_t liex, const char*constyp)
 {
-  ppl_Constraint_t cons = NULL;
-  if (!liex || !constyp) return NULL;
-  if (!strcmp(constyp, "==")
-      && !ppl_new_Constraint(&cons, liex,
-                             PPL_CONSTRAINT_TYPE_EQUAL))
-    return cons;
-  else if (!strcmp(constyp, ">")
-           && !ppl_new_Constraint(&cons, liex,
-                                  PPL_CONSTRAINT_TYPE_GREATER_THAN))
-    return cons;
-  else if (!strcmp(constyp, "<")
-           && !ppl_new_Constraint(&cons, liex,
-                                  PPL_CONSTRAINT_TYPE_LESS_THAN))
-    return cons;
-  else if (!strcmp(constyp, ">=")
-           && !ppl_new_Constraint(&cons, liex,
-                                  PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL))
-    return cons;
-  else if (!strcmp(constyp, "<=")
-           && !ppl_new_Constraint(&cons, liex,
-                                  PPL_CONSTRAINT_TYPE_LESS_OR_EQUAL))
-    return cons;
+  melt_fatal_error("melt_make_ppl_constraint_cstrtype removed");
   return NULL;
 }
 
@@ -11757,29 +11553,7 @@ melt_make_ppl_constraint_cstrtype(ppl_Linear_Expression_t liex, const char*const
 melt_ptr_t
 meltgc_new_ppl_linear_expression(melt_ptr_t discr_p)
 {
-  int err = 0;
-  MELT_ENTERFRAME(2, NULL);
-#define discrv meltfram__.mcfr_varptr[0]
-#define object_discrv ((meltobject_ptr_t)(discrv))
-#define resv   meltfram__.mcfr_varptr[1]
-#define spec_resv ((struct meltspecial_st*)(resv))
-  discrv = (void *) discr_p;
-  if (melt_magic_discr ((melt_ptr_t) (discrv)) != MELTOBMAG_OBJECT)
-    goto end;
-  if (object_discrv->meltobj_magic != MELTOBMAG_SPECPPL_LINEAR_EXPRESSION)
-    goto end;
-  resv = meltgc_make_special ((melt_ptr_t) discrv);
-  spec_resv->val.sp_pointer = NULL;
-  err = ppl_new_Linear_Expression(&spec_resv->val.sp_linear_expression);
-  if (err)
-    melt_fatal_error("PPL new Linear Expression failed in Melt (%d)", err);
-end:
-  MELT_EXITFRAME();
-  return (melt_ptr_t)resv;
-#undef discrv
-#undef object_discrv
-#undef resv
-#undef spec_resv
+  melt_fatal_error("meltgc_new_ppl_linear_expression removed");
 }
 
 
@@ -11804,71 +11578,11 @@ end:
 }
 
 
-/***
-  pretty print into an sbuf a PPL related value;
-
-recent PPL (ie 0.10.1) has a ppl_io_asprint_##Type (char** strp,
-  ppl_const_##Type##_t x); which mallocs a string buffer, print x
-  inside it, and return it in *STRP but this is supposed to
-  change. Seee
-  http://www.cs.unipr.it/pipermail/ppl-devel/2009-March/014162.html
-***/
-
-static melt_ptr_t* melt_pplcoefvectp;
 
 static const char*
 ppl_melt_variable_output_function(ppl_dimension_type var)
 {
-  static char buf[80];
-  const char *s = 0;
-  MELT_ENTERFRAME(2, NULL);
-#define vectv  meltfram__.mcfr_varptr[0]
-#define namv   meltfram__.mcfr_varptr[1]
-  if (melt_pplcoefvectp)
-    vectv =  *melt_pplcoefvectp;
-  memset(buf, 0, sizeof(buf));
-  if (vectv)
-    namv = melt_multiple_nth((melt_ptr_t) vectv, (int)var);
-  if (melt_is_instance_of((melt_ptr_t) namv,
-                          (melt_ptr_t) MELT_PREDEF (CLASS_NAMED)))
-    namv = melt_object_nth_field((melt_ptr_t) namv, MELTFIELD_NAMED_NAME);
-  if (namv)
-    s = melt_string_str((melt_ptr_t) namv);
-  if (!s && melt_magic_discr((melt_ptr_t) namv) == MELTOBMAG_TREE) {
-    tree trnam = melt_tree_content((melt_ptr_t) namv);
-    if (trnam) {
-      switch (TREE_CODE(trnam)) {
-      case IDENTIFIER_NODE:
-        s = IDENTIFIER_POINTER(trnam);
-        break;
-      case VAR_DECL:
-      case PARM_DECL:
-      case TYPE_DECL:
-      case FIELD_DECL:
-      case LABEL_DECL:
-      case CONST_DECL:
-      case RESULT_DECL:
-        if (DECL_NAME(trnam))
-          s = IDENTIFIER_POINTER(DECL_NAME(trnam));
-        break;
-      case SSA_NAME:
-        snprintf (buf, sizeof(buf)-1, "%s.%d",
-                  get_name(trnam), SSA_NAME_VERSION(trnam));
-        goto end;
-      default:
-        snprintf (buf, sizeof(buf)-1, "@%p!%s",
-                  (void*)trnam, tree_code_name[TREE_CODE(trnam)]);
-        goto end;
-      }
-    }
-  }
-  if (s)
-    strncpy(buf, s, sizeof(buf)-1);
-  else if (!buf[0])
-    snprintf (buf, sizeof(buf)-1, "_$_%d", (int)var);
-end:
-  MELT_EXITFRAME();
-  return buf;
+  melt_fatal_error("ppl_melt_variable_output_function removed");
 }
 
 
@@ -11877,128 +11591,11 @@ end:
 void
 meltgc_ppstrbuf_ppl_varnamvect (melt_ptr_t sbuf_p, int indentsp, melt_ptr_t ppl_p, melt_ptr_t varnamvect_p)
 {
-  int mag = 0;
-  char *ppstr = NULL;
-  MELT_ENTERFRAME(4, NULL);
-#define sbufv    meltfram__.mcfr_varptr[0]
-#define pplv     meltfram__.mcfr_varptr[1]
-#define varvectv meltfram__.mcfr_varptr[2]
-#define spec_pplv ((struct meltspecial_st*)(pplv))
-  sbufv = sbuf_p;
-  pplv = ppl_p;
-  varvectv = varnamvect_p;
-  if (!pplv)
-    goto end;
-  ppl_io_set_variable_output_function (ppl_melt_variable_output_function);
-  mag = melt_magic_discr((melt_ptr_t) pplv);
-  if (varvectv)
-    melt_pplcoefvectp = (melt_ptr_t*)&varvectv;
-  else
-    melt_pplcoefvectp = NULL;
-  switch (mag) {
-  case MELTOBMAG_SPECPPL_COEFFICIENT:
-    if (ppl_io_asprint_Coefficient(&ppstr,
-                                   spec_pplv->val.sp_coefficient))
-      melt_fatal_error("failed to ppl_io_asprint_Coefficient %s", ppstr?ppstr:"?");
-    break;
-  case MELTOBMAG_SPECPPL_LINEAR_EXPRESSION:
-    if (ppl_io_asprint_Linear_Expression(&ppstr,
-                                         spec_pplv->val.sp_linear_expression))
-      melt_fatal_error("failed to ppl_io_asprint_Linear_Expression %s", ppstr?ppstr:"?");
-    break;
-  case MELTOBMAG_SPECPPL_CONSTRAINT:
-    if (ppl_io_asprint_Constraint(&ppstr,
-                                  spec_pplv->val.sp_constraint))
-      melt_fatal_error("failed to ppl_io_asprint_Constraint %s", ppstr?ppstr:"?");
-    break;
-  case MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM:
-    if (ppl_io_asprint_Constraint_System(&ppstr,
-                                         spec_pplv->val.sp_constraint_system))
-      melt_fatal_error("failed to ppl_io_asprint_Constraint_System %s", ppstr?ppstr:"?");
-    break;
-  case MELTOBMAG_SPECPPL_GENERATOR:
-    if (ppl_io_asprint_Generator(&ppstr, spec_pplv->val.sp_generator))
-      melt_fatal_error("failed to ppl_io_asprint_Generator %s", ppstr?ppstr:"?");
-    break;
-  case MELTOBMAG_SPECPPL_GENERATOR_SYSTEM:
-    if (ppl_io_asprint_Generator_System(&ppstr,
-                                        spec_pplv->val.sp_generator_system))
-      melt_fatal_error("failed to ppl_io_asprint_Generator_System %s", ppstr?ppstr:"?");
-    break;
-  case MELTOBMAG_SPECPPL_POLYHEDRON:
-    if (ppl_io_asprint_Polyhedron(&ppstr,
-                                  spec_pplv->val.sp_polyhedron))
-      melt_fatal_error("failed to ppl_io_asprint_Polyhedron %s", ppstr?ppstr:"?");
-    break;
-  default: {
-    char errmsg[64];
-    memset(errmsg, 0, sizeof(errmsg));
-    snprintf (errmsg, sizeof(errmsg)-1, "{{unknown PPL magic %d}}", mag);
-    ppstr = xstrdup(errmsg);
-  }
-  break;
-  }
-  if (!ppstr)
-    melt_fatal_error("ppl_io_asprint_* gives a null string pointer mag=%d", mag);
-  /* in the resulting ppstr, replace each newline with appropriate
-     indentation */
-  {
-    char*bl = NULL;   /* current begin of line */
-    char*nl = NULL;   /* current newline = end of line */
-    for (bl = ppstr; (nl = bl?strchr(bl, '\n'):NULL), bl; bl = nl?(nl+1):NULL) {
-      if (nl)
-        *nl = (char)0;
-      meltgc_add_strbuf_raw((melt_ptr_t) sbufv, bl);
-      if (nl)
-        meltgc_strbuf_add_indent((melt_ptr_t) sbufv, indentsp, 0);
-    }
-  }
-  free(ppstr);
-end:
-  melt_pplcoefvectp = (melt_ptr_t*)0;
-  MELT_EXITFRAME();
-#undef sbufv
-#undef pplv
-#undef varvectv
-#undef spec_pplv
+  melt_fatal_error("meltgc_ppstrbuf_ppl_varnamvect removed");
 }
 
 
 
-static void melt_ppl_error_handler(enum ppl_enum_error_code err, const char* descr)
-{
-  switch(err) {
-  case PPL_ERROR_OUT_OF_MEMORY:
-    error("Melt PPL out of memory: %s", descr);
-    return;
-  case PPL_ERROR_INVALID_ARGUMENT:
-    error("Melt PPL invalid argument: %s", descr);
-    return;
-  case PPL_ERROR_DOMAIN_ERROR:
-    error("Melt PPL domain error: %s", descr);
-    return;
-  case PPL_ERROR_LENGTH_ERROR:
-    error("Melt PPL length error: %s", descr);
-    return;
-  case PPL_ARITHMETIC_OVERFLOW:
-    error("Melt PPL arithmetic overflow: %s", descr);
-    return;
-  case PPL_STDIO_ERROR:
-    error("Melt PPL stdio error: %s", descr);
-    return;
-  case PPL_ERROR_INTERNAL_ERROR:
-    error("Melt PPL internal error: %s", descr);
-    return;
-  case PPL_ERROR_UNKNOWN_STANDARD_EXCEPTION:
-    error("Melt PPL unknown exception: %s", descr);
-    return;
-  case PPL_ERROR_UNEXPECTED_ERROR:
-    error("Melt PPL unexpected error: %s", descr);
-    return;
-  default:
-    melt_fatal_error("Melt unexpected PPL error #%d - %s", err, descr);
-  }
-}
 
 /* Write a buffer to a file, but take care to not overwrite the file
    if it does not change. */
