@@ -43,6 +43,11 @@ extern void fatal_error (const char *, ...);
 #define MELT_PUBLIC_VISIBILITY
 #endif
 
+#ifdef __cplusplus
+#define MELT_EXTERN extern "C"
+#else
+#define MELT_EXTERN extern
+#endif
 
 /* MELTGCC_DYNAMIC_OBJSTRUCT is a cute hack to "dynamically" compute field
    positions; this is only used to compile warmelt-*-0.c files notably
