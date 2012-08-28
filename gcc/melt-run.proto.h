@@ -90,8 +90,6 @@ along with GCC; see the file COPYING3.   If not see
 
 /* MELT specific includes */
 
-/* PPL is used by MELT */
-#include "ppl_c.h"
 
 /* the melt-runtime.h header includes itself generated meltrunsup.h
    header! */
