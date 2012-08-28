@@ -61,7 +61,6 @@ const int melt_gcc_version = MELT_GCC_VERSION;
 #include <dirent.h>
 #include <dlfcn.h>
 #include <poll.h>
-#include <ppl_c.h>
 /* meltgc_sort_multiple needs setjmp */
 #include <setjmp.h>
 /* melt_start_probe needs wordexp */
@@ -11470,92 +11469,6 @@ end:
   return (melt_ptr_t) resv;
 }
 
-/***********************************************************************
- *   P A R M A     P O L Y H E D R A     L I B R A R Y     S T U F F   *
- ***********************************************************************/
-
-/* utility to make a ppl_Coefficient_t out of a constant tree */
-ppl_Coefficient_t
-melt_make_ppl_coefficient_from_tree(tree tr)
-{
-  melt_fatal_error("melt_make_ppl_coefficient_from_tree removed");
-  return NULL;
-}
-
-/* utility to make a ppl_Coefficient_t from a long number */
-ppl_Coefficient_t
-melt_make_ppl_coefficient_from_long(long l)
-{
-  melt_fatal_error("melt_make_ppl_coefficient_from_long removed");
-  return NULL;
-}
-
-/* make a new boxed PPL empty or unsatisfiable constraint system */
-melt_ptr_t
-meltgc_new_ppl_constraint_system(melt_ptr_t discr_p, bool unsatisfiable)
-{
-  melt_fatal_error("meltgc_new_ppl_constraint_system removed");
-  return NULL;
-}
-
-/* box clone a PPL constraint system */
-melt_ptr_t
-meltgc_clone_ppl_constraint_system (melt_ptr_t ppl_p)
-{
-  melt_fatal_error("meltgc_clone_ppl_constraint_system removed");
-  return NULL;
-}
-
-/* insert a raw PPL constraint into a boxed constraint system */
-void
-melt_insert_ppl_constraint_in_boxed_system(ppl_Constraint_t cons, melt_ptr_t ppl_p)
-{
-  melt_fatal_error("melt_insert_ppl_constraint_in_boxed_system removed");
-}
-
-/* utility to make a NNC [=not necessarily closed] ppl_Polyhedron_t
-   out of a constraint system */
-ppl_Polyhedron_t
-melt_make_ppl_NNC_Polyhedron_from_Constraint_System(ppl_Constraint_System_t consys)
-{
-  melt_fatal_error("melt_make_ppl_NNC_Polyhedron_from_Constraint_System removed");
-  return NULL;
-}
-
-/* make a new boxed PPL polyhedron; if cloned is true, the poly is
-   copied otherwise taken as is */
-melt_ptr_t
-meltgc_new_ppl_polyhedron(melt_ptr_t discr_p, ppl_Polyhedron_t poly, bool cloned)
-{
-  melt_fatal_error("meltgc_new_ppl_polyhedron removed");
-  return NULL;
-}
-
-/* utility to make a ppl_Linear_Expression_t */
-ppl_Linear_Expression_t
-melt_make_ppl_linear_expression(void)
-{
-  melt_fatal_error("melt_make_ppl_linear_expression removed");
-  return NULL;
-}
-
-/* utility to make a ppl_Constraint ; the constraint type is a string
-   "==" or "!=" ">" "<" ">=" "<=" because we don't want enums in
-   MELT... */
-ppl_Constraint_t
-melt_make_ppl_constraint_cstrtype(ppl_Linear_Expression_t liex, const char*constyp)
-{
-  melt_fatal_error("melt_make_ppl_constraint_cstrtype removed");
-  return NULL;
-}
-
-/* make a new boxed PPL linear expression  */
-melt_ptr_t
-meltgc_new_ppl_linear_expression(melt_ptr_t discr_p)
-{
-  melt_fatal_error("meltgc_new_ppl_linear_expression removed");
-}
-
 
 void melt_clear_special(melt_ptr_t val_p)
 {
@@ -11575,23 +11488,6 @@ end:
   MELT_EXITFRAME();
 #undef valv
 #undef spec_valv
-}
-
-
-
-static const char*
-ppl_melt_variable_output_function(ppl_dimension_type var)
-{
-  melt_fatal_error("ppl_melt_variable_output_function removed");
-}
-
-
-/* call the ppl_io_asprint_##Type (char** strp, ppl_const_##Type##_t
-   x); these functions are now stable in PPL */
-void
-meltgc_ppstrbuf_ppl_varnamvect (melt_ptr_t sbuf_p, int indentsp, melt_ptr_t ppl_p, melt_ptr_t varnamvect_p)
-{
-  melt_fatal_error("meltgc_ppstrbuf_ppl_varnamvect removed");
 }
 
 

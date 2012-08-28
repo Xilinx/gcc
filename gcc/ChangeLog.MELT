@@ -1,6 +1,38 @@
 
 
 2012-08-28  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h: Remove inclusion of "ppl_c.h"
+	(union melt_special_un): Remove ppl members.
+	(meltgc_ppstrbuf_ppl_varnamvect)
+	(melt_raw_new_ppl_empty_constraint_system)
+	(melt_raw_new_ppl_unsatisfiable_constraint_system)
+	(melt_ppl_coefficient_content, melt_ppl_coefficient_put_content)
+	(melt_ppl_linear_expression_content)
+	(melt_ppl_linear_expression_put_content)
+	(melt_ppl_constraint_content, melt_ppl_constraint_put_content)
+	(melt_ppl_constraint_system_content)
+	(melt_ppl_constraint_system_put_content)
+	(melt_ppl_generator_content, melt_ppl_generator_put_content)
+	(melt_ppl_generator_system_content)
+	(melt_ppl_generator_system_put_content)
+	(melt_ppl_polyhedron_content, melt_ppl_polyhedron_put_content):
+	Remove.
+
+	* melt-runtime.c
+	(melt_make_ppl_coefficient_from_tree)
+	(melt_make_ppl_coefficient_from_tree)
+	(meltgc_new_ppl_constraint_system)
+	(meltgc_clone_ppl_constraint_system)
+	(melt_insert_ppl_constraint_in_boxed_system)
+	(melt_make_ppl_NNC_Polyhedron_from_Constraint_System)
+	(meltgc_new_ppl_polyhedron, melt_make_ppl_linear_expression)
+	(melt_make_ppl_constraint_cstrtype)
+	(meltgc_new_ppl_linear_expression)
+	(ppl_melt_variable_output_function)
+	(meltgc_ppstrbuf_ppl_varnamvect): Remove.
+
+2012-08-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 
 	* melt/generated/meltrunsup-inc.c: Regenerate.
