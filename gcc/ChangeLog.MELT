@@ -1,6 +1,45 @@
 
 
 2012-08-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{removing PPL}}
+
+	* melt/warmelt-first.melt (ctype_ppl_coefficient)
+	(ctype_ppl_constraint, ctype_ppl_constraint_system)
+	(ctype_ppl_linear_expression, discr_ppl_constraint_system)
+	(discr_ppl_polyhedron): Remove.
+
+	* melt/warmelt-base.melt (valdesc_special_ppl_coefficient)
+	(valdesc_special_ppl_constraint)
+	(valdesc_special_ppl_constraint_system)
+	(valdesc_special_ppl_generator)
+	(valdesc_special_ppl_generator_system)
+	(valdesc_special_ppl_linear_expression)
+	(valdesc_special_ppl_polyhedron): Remove.
+
+	* melt/xtramelt-ana-base.melt (debug_ppl_coefficient)
+	(debug_ppl_constraint, debug_ppl_linear_expression)
+	(debug_ppl_polyhedron, insert_ppl_constraint_in_boxed_system)
+	(make_ppl_constraint, make_ppl_linear_expression)
+	(make_ppl_polyhedron_cloned, make_ppl_polyhedron_same)
+	(ppl_Constraint_System_insert_Constraint)
+	(ppl_Linear_Expression_add_to_coefficient)
+	(ppl_Linear_Expression_add_to_inhomogeneous)
+	(ppl_NNC_Polyhedron_from_Constraint_System)
+	(ppl_Polyhedron_add_constraint, ppl_Polyhedron_is_empty)
+	(ppl_clone_constraint_system, ppl_coefficient_content)
+	(ppl_coefficient_from_long, ppl_coefficient_from_tree)
+	(ppl_constraint_content, ppl_constraint_system_content)
+	(ppl_delete_Coefficient, ppl_delete_Constraint)
+	(ppl_delete_Linear_Expression, ppl_delete_Polyhedron)
+	(ppl_new_empty_constraint_system)
+	(ppl_new_unsatisfiable_constraint_system, ppl_polyhedron_content)
+	(ppl_ppstrbuf, raw_new_ppl_empty_constraint_system)
+	(raw_new_ppl_unsatisfiable_constraint_system): Remove.
+
+	* melt/xtramelt-ana-simple.melt: Remove the smallana_mode which
+	used PPL.
+
+2012-08-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): Bump to 0.9.7-pre
 
 2012-08-03  Basile Starynkevitch  <basile@starynkevitch.net>

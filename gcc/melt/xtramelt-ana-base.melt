@@ -768,164 +768,9 @@
 
 ;;;;;;;;;;;;;;;;
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Parma Polyhedra Library stuff (aka PPL)
-(defprimitive ppl_new_empty_constraint_system (discr) :value
- #{ meltgc_new_ppl_constraint_system(($discr), 
-					MELT_PPL_EMPTY_CONSTRAINT_SYSTEM)}# )
-
-(defprimitive ppl_clone_constraint_system (pplv) :value
- #{ meltgc_clone_ppl_constraint_system($pplv) }#)
-
-(defprimitive ppl_new_unsatisfiable_constraint_system (discr) :value
-  #{ meltgc_new_ppl_constraint_system(($discr), 
-					 MELT_PPL_UNSATISFIABLE_CONSTRAINT_SYSTEM) }#)
-
-(defprimitive raw_new_ppl_empty_constraint_system () :ppl_constraint_system
-  #{ melt_raw_new_ppl_empty_constraint_system() }#)
-
-(defprimitive raw_new_ppl_unsatisfiable_constraint_system () :ppl_constraint_system
-  #{ melt_raw_new_ppl_unsatisfiable_constraint_system() }#)
-
-(defprimitive ppl_ppstrbuf (sbuf ppl :long indent :value varvect) :void
-  #{ /* ppl_ppstrbuf: */ meltgc_ppstrbuf_ppl_varnamvect ((melt_ptr_t)($SBUF), ($INDENT), 
-				     (melt_ptr_t) ($PPL), (melt_ptr_t) ($VARVECT))}#)
-
-(defprimitive ppl_coefficient_from_tree (:tree tr) :ppl_coefficient
-  #{ (melt_make_ppl_coefficient_from_tree($tr)) }#)
-
-(defprimitive ppl_coefficient_from_long (:long l) :ppl_coefficient
-   #{(melt_make_ppl_coefficient_from_long($l))}#)
-
-(defprimitive ppl_delete_Coefficient (:ppl_coefficient coef) :void
-  #{ { if ($coef) ppl_delete_Coefficient($coef); 
-       $coef =NULL;} 
-       }#)
-
-(defprimitive make_ppl_linear_expression () :ppl_linear_expression
-  #{ melt_make_ppl_linear_expression() }#)
-
-(defprimitive ppl_delete_Linear_Expression (:ppl_linear_expression liex) :void
-#{ { if ($liex) 
-     ppl_delete_Linear_Expression($liex); 
-   $liex =NULL;} 
- }#)
-
-(defprimitive ppl_delete_Constraint (:ppl_constraint cons) :void
-  #{ { if ($cons) 
-      ppl_delete_Constraint($cons); 
-    $cons =NULL;}
-    }#)
-
-(defprimitive ppl_Linear_Expression_add_to_coefficient 
-  (:ppl_linear_expression liex 
-   :long vardim
-   :ppl_coefficient coef) :void
-#{ 
-   { if (($liex) && ($coef)) 
-       ppl_Linear_Expression_add_to_coefficient(($liex), ($vardim), ($coef)); 
-     else debugeprintf("failed ppl_Linear_Expression_coefficient liex=%p",(void*) $liex);}
-  }#)
-
-(defprimitive ppl_Linear_Expression_add_to_inhomogeneous
-  (:ppl_linear_expression liex :ppl_coefficient coef) :void
-#{ { if (($liex) && ($coef)) 
-       ppl_Linear_Expression_add_to_inhomogeneous(($liex), ($coef)); }
-}#)
-
-(defprimitive make_ppl_constraint 
-  (:ppl_linear_expression liex
-   :cstring constyp) :ppl_constraint
-#{ melt_make_ppl_constraint_cstrtype(($liex), ($constyp)) }#)
-
 (defprimitive clear_special (v) :void
  #{ melt_clear_special($v); 
  }#)
-
-(defprimitive insert_ppl_constraint_in_boxed_system 
-  (:ppl_constraint cons :value sysv) :void
- #{melt_insert_ppl_constraint_in_boxed_system(($cons), ($sysv))}#)
-
-(defprimitive ppl_Constraint_System_insert_Constraint
- (:ppl_constraint_system consys :ppl_constraint cons) :void
-#{ if (ppl_Constraint_System_insert_Constraint ($consys, $cons)) 
-     melt_fatal_error("ppl_Constraint_System_insert_Constraint failed"); }#
-)
-
-(defprimitive ppl_Polyhedron_add_constraint 
-(:ppl_polyhedron poly :ppl_constraint cons) :void
-#{ if (ppl_Polyhedron_add_constraint(($poly), ($cons))) 
-     melt_fatal_error("ppl_Polyhedron_add_constraint failed"); }#
-)
-
-(defprimitive debug_ppl_coefficient
-  (:cstring msg :ppl_coefficient coef) :void
-#{  if (melt_flag_debug)  {char*s=0; 
-     if ($coef) ppl_io_asprint_Coefficient(&s, $coef); 
-     debugeprintf("debug_ppl_coefficient %s @%p %s", $msg, (void*)$coef, s); 
-     free(s);}
-}#)
-
-(defprimitive debug_ppl_linear_expression
-  (:cstring msg :ppl_linear_expression liex) :void
- #{ if (melt_flag_debug)   {char*s=0; 
-    if ($liex) ppl_io_asprint_Linear_Expression(&s, $liex); 
-    debugeprintf("debug_ppl_linear_expression %s @%p %s", 
-		 $msg, (void*)$liex, s); free(s);}
- }#)
-
-(defprimitive debug_ppl_constraint (:cstring msg :ppl_constraint cons) :void
- #{if (melt_flag_debug) { char*s=0; 
-  if ($cons) ppl_io_asprint_Constraint(&s, $cons); 
-  debugeprintf("debug_ppl_constraint %s @%p %s", $msg, (void*)$cons, s); 
-  free(s);}
- }#)
-
-(defprimitive debug_ppl_polyhedron (:cstring msg :ppl_polyhedron poly) :void
-#{ if (melt_flag_debug) {  char*s = 0; 
-     debugeprintfnonl("debug_ppl_polyhedron %s @%p ", $msg, (void*) $poly);
-     if ($poly) ppl_io_asprint_Polyhedron(&s, $poly);
-     debugeprintf_raw("%s\n", s);
-     free(s); } 
-}#)
-
-(defprimitive ppl_NNC_Polyhedron_from_Constraint_System
-  (:ppl_constraint_system consys) :ppl_polyhedron
-#{ melt_make_ppl_NNC_Polyhedron_from_Constraint_System($consys) }#
-)
-
-(defprimitive make_ppl_polyhedron_same(discr :ppl_polyhedron poly) :value
-#{ meltgc_new_ppl_polyhedron((melt_ptr_t) $discr, $poly, SAME_PPL_POLHYEDRON) }#
-)
-
-(defprimitive make_ppl_polyhedron_cloned(discr :ppl_polyhedron poly) :value
-#{ meltgc_new_ppl_polyhedron((melt_ptr_t) $discr, $poly, CLONED_PPL_POLHYEDRON) }#
-)
-
-(defprimitive ppl_delete_Polyhedron (:ppl_polyhedron poly) :void
- #{ { if ($poly) ppl_delete_Polyhedron($poly); $poly=NULL;} }#
-)
-
-(defprimitive ppl_Polyhedron_is_empty (:ppl_polyhedron poly) :long
- #{ $poly && ppl_Polyhedron_is_empty($poly) }#
-)
-
-(defprimitive ppl_coefficient_content (pplv) :ppl_coefficient
-  #{ melt_ppl_coefficient_content((melt_ptr_t) $pplv) }#
-)
-
-(defprimitive ppl_constraint_content (pplv) :ppl_constraint
-  #{ melt_ppl_constraint_content((melt_ptr_t) $pplv) }#
-)
-
-(defprimitive ppl_constraint_system_content (pplv) :ppl_constraint_system
-  #{ melt_ppl_constraint_system_content((melt_ptr_t) $pplv) }#
-)
-
-(defprimitive ppl_polyhedron_content (pplv) :ppl_polyhedron
-  #{ melt_ppl_polyhedron_content((melt_ptr_t) $pplv) }#
-)
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1763,10 +1608,6 @@ current function and gives its declaration in $CFUNDECL}#
  dbg_tree_briefly
  debug_dominance_info
  debug_post_dominance_info
- debug_ppl_coefficient
- debug_ppl_constraint
- debug_ppl_linear_expression
- debug_ppl_polyhedron 
  dominated_by_bb_iterator
  dominated_by_other
  dominated_by_other
@@ -1797,7 +1638,6 @@ current function and gives its declaration in $CFUNDECL}#
  get_immediate_dominator
  get_immediate_post_dominator
  has_cfun
- insert_ppl_constraint_in_boxed_system 
  install_melt_gcc_pass
  is_basicblock
  is_edge
@@ -1822,10 +1662,6 @@ current function and gives its declaration in $CFUNDECL}#
  make_mapbasicblock
  make_mapedge
  make_maploop
- make_ppl_constraint 
- make_ppl_linear_expression  
- make_ppl_polyhedron_cloned
- make_ppl_polyhedron_same 
  mapbasicblock_aux
  mapbasicblock_auxput
  mapbasicblock_count
@@ -1861,32 +1697,10 @@ current function and gives its declaration in $CFUNDECL}#
  output_tree_briefly
  post_dominated_by_other
  post_dominated_by_other
- ppl_Constraint_System_insert_Constraint
- ppl_Linear_Expression_add_to_coefficient
- ppl_Linear_Expression_add_to_inhomogeneous
- ppl_NNC_Polyhedron_from_Constraint_System  
- ppl_Polyhedron_add_constraint
- ppl_Polyhedron_is_empty 
- ppl_clone_constraint_system
- ppl_coefficient_content 
- ppl_coefficient_from_long
- ppl_coefficient_from_tree 
- ppl_constraint_content 
- ppl_constraint_system_content 
- ppl_delete_Coefficient  
- ppl_delete_Constraint  
- ppl_delete_Linear_Expression 
- ppl_delete_Polyhedron  
- ppl_new_empty_constraint_system
- ppl_new_unsatisfiable_constraint_system 
- ppl_polyhedron_content
- ppl_ppstrbuf  
  ppstrbuf_basicblock 
  ppstrbuf_gimple
  ppstrbuf_gimple_seq
  ppstrbuf_tree
- raw_new_ppl_empty_constraint_system
- raw_new_ppl_unsatisfiable_constraint_system
  superloop_at_depth
  superloop_tuple
  with_cfun_decl

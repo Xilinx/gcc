@@ -2084,21 +2084,7 @@ to non-nil values. See also $CTYPE_RTVEC.}#
   :named_name '"DISCR_MAP_RTVECS")
 
 
-;;; the discriminant for PPL constraint system (not predefined)
-(definstance discr_ppl_constraint_system class_discriminant
-  :obj_num MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM
-  :doc #{The $DISCR_PPL_CONSTRAINT_SYSTEM is the obsolete discriminant of boxed PPL constraint systems.}#
-  :disc_super discr_any_receiver
-  :named_name '"DISCR_PPL_CONSTRAINT_SYSTEM"
-  )
 
-;;; the discriminant for PPL polyhedron
-(definstance discr_ppl_polyhedron class_discriminant
-  :obj_num MELTOBMAG_SPECPPL_POLYHEDRON
-  :doc #{The $DISCR_PPL_POLYHEDRON is the  obsolete discriminant of boxed PPL polyhedra.}#
-  :disc_super discr_any_receiver
-  :named_name '"DISCR_PPL_POLYHEDRON"
-  )
 
 ;;; the discriminant for files [closed by the garbage collector] (not
 ;;; predefined)
@@ -2668,81 +2654,6 @@ Keyword is :rtvec.}#
   :ctypg_mapauxputfun      '"melt_auxput_maprtvecs"
   )
 (install_ctype_descr ctype_rtvec "GCC rtvec")
-
-;;; the ctype for PPL coefficients
-(definstance ctype_ppl_coefficient class_ctype
-  :predef CTYPE_PPL_COEFFICIENT
-  :doc #{The $CTYPE_PPL_COEFFICIENT is the  obsolete c-type of raw PPL coefficient stuff. See also $DISCR_PPL_POLYHEDRON.
-Keyword is :ppl_coefficient.}#
-  :named_name '"CTYPE_PPL_COEFFICIENT"
-  :ctype_keyword ':ppl_coefficient
-  :ctype_cname  '"ppl_Coefficient_t"
-  :ctype_parchar '"MELTBPAR_PPL_COEFFICIENT"
-  :ctype_parstring '"MELTBPARSTR_PPL_COEFFICIENT"
-  :ctype_argfield '"meltbp_ppl_coefficient"
-  :ctype_resfield '"meltbp_ppl_coefficientptr"
-)
-(install_ctype_descr ctype_ppl_coefficient "PPL coefficient")
-
-;;;; PPL linear expressions
-(definstance ctype_ppl_linear_expression class_ctype
-  :predef CTYPE_PPL_LINEAR_EXPRESSION
-  :doc #{The $CTYPE_PPL_LINEAR_EXPRESSION is the obsolete c-type of raw PPL linear expression stuff.
-Keyword is :ppl_linear_expression.}#
-  :named_name '"CTYPE_PPL_LINEAR_EXPRESSION"
-  :ctype_keyword ':ppl_linear_expression
-  :ctype_cname  '"ppl_Linear_Expression_t"
-  :ctype_parchar '"MELTBPAR_PPL_LINEAR_EXPRESSION"
-  :ctype_parstring '"MELTBPARSTR_PPL_LINEAR_EXPRESSION"
-  :ctype_argfield '"meltbp_ppl_linear_expression"
-  :ctype_resfield '"meltbp_ppl_linear_expressionptr"
-)
-(install_ctype_descr ctype_ppl_linear_expression "PPL linear expression")
-
-;;; the ctype for PPL constraints
-(definstance ctype_ppl_constraint class_ctype
-  :predef CTYPE_PPL_CONSTRAINT
-  :doc #{The $CTYPE_PPL_CONSTRAINT is the  obsolete c-type of raw PPL constraint stuff.
-Keyword is :ppl_constraint.}#
-  :named_name '"CTYPE_PPL_CONSTRAINT"
-  :ctype_keyword ':ppl_constraint
-  :ctype_cname  '"ppl_Constraint_t"
-  :ctype_parchar '"MELTBPAR_PPL_CONSTRAINT"
-  :ctype_parstring '"MELTBPARSTR_PPL_CONSTRAINT"
-  :ctype_argfield '"meltbp_ppl_constraint"
-  :ctype_resfield '"meltbp_ppl_constraintptr"
-)
-(install_ctype_descr ctype_ppl_constraint "PPL constraint")
-
-;;; the ctype for PPL constraint_systems
-(definstance ctype_ppl_constraint_system class_ctype
-  :predef CTYPE_PPL_CONSTRAINT_SYSTEM
-  :doc #{The $CTYPE_PPL_CONSTRAINT_SYSTEM is the  obsolete c-type of raw PPL constraint system stuff.
-Keyword is :ppl_constraint_system.}#
-  :named_name '"CTYPE_PPL_CONSTRAINT_SYSTEM"
-  :ctype_keyword ':ppl_constraint_system
-  :ctype_cname  '"ppl_Constraint_System_t"
-  :ctype_parchar '"MELTBPAR_PPL_CONSTRAINT_SYSTEM"
-  :ctype_parstring '"MELTBPARSTR_PPL_CONSTRAINT_SYSTEM"
-  :ctype_argfield '"meltbp_ppl_constraint_system"
-  :ctype_resfield '"meltbp_ppl_constraint_systemptr"
-)
-(install_ctype_descr ctype_ppl_constraint_system "PPL constraint_system")
-
-;;; the ctype for PPL polyhedra (=polyhedrons)
-(definstance ctype_ppl_polyhedron class_ctype
-  :predef CTYPE_PPL_POLYHEDRON
-  :named_name '"CTYPE_PPL_POLYHEDRON"
-  :doc #{The $CTYPE_PPL_POLYHEDRON is the  obsolete c-type of raw PPL polyhedron stuff.
-Keyword is :ppl_polyhedron.}#
-  :ctype_keyword ':ppl_polyhedron
-  :ctype_cname  '"ppl_Polyhedron_t"
-  :ctype_parchar '"MELTBPAR_PPL_POLYHEDRON"
-  :ctype_parstring '"MELTBPARSTR_PPL_POLYHEDRON"
-  :ctype_argfield '"meltbp_ppl_polyhedron"
-  :ctype_resfield '"meltbp_ppl_polyhedronptr"
-)
-(install_ctype_descr ctype_ppl_polyhedron "PPL polyhedron")
 
 ;;;;;;;;;;;;;;;;
 ;; the C type for void
@@ -4418,10 +4329,6 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  ctype_gimple_seq
  ctype_long 
  ctype_loop
- ctype_ppl_coefficient
- ctype_ppl_constraint
- ctype_ppl_constraint_system
- ctype_ppl_linear_expression
  ctype_rtvec
  ctype_rtx
  ctype_tree                           
@@ -4462,8 +4369,6 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  discr_name_string                     
  discr_null_receiver                       
  discr_pair  
- discr_ppl_constraint_system 
- discr_ppl_polyhedron 
  discr_rawfile
  discr_real
  discr_routine                        
