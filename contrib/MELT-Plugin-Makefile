@@ -82,10 +82,8 @@ MELTGCC_GENGTYPEFLAGS = -v
 ## its state file
 MELTGCC_GTYPESTATE  := $(shell $(MELTGCC) -print-file-name=gtype.state)
 
-## MELT plugin extra libraries and flags for melt.so; We really need
-## the C interface to the Parma Polyhedra Library, even if cc1 don't
-## always link it.
-MELTGCC_LIBES ?= -lppl_c
+## MELT plugin extra libraries and flags for melt.so
+MELTGCC_LIBES = 
 
 ### Our awk (GNU awk is prefered)
 AWK?= gawk

@@ -1,4 +1,7 @@
 
+2012-08-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	* MELT-Plugin-Makefile (MELTGCC_LIBES): Remove PPL.
+
 2012-08-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{for 0.9.6-d release}}
 	* simplemelt-gtkmm-probe.cc (SmeltLocationDialog::clear_buffer):
