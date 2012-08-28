@@ -674,6 +674,7 @@ if [ ! -f $meltcheckruntime_stamp -o $meltcheckruntime_stamp -ot "$GCCMELT_RUNTI
     meltbuild_arg tempdir=meltbuild-tempdir >> $meltcheckruntime_argstemp
     meltbuild_arg source-path=meltbuild-sources >> $meltcheckruntime_argstemp
     meltbuild_arg module-path=meltbuild-modules >> $meltcheckruntime_argstemp
+    meltbuild_arg "module-cflags=\"$GCCMELT_COMPILER_FLAGS\"" >> $meltcheckruntime_argstemp
     meltbuild_arg bootstrapping  >> $meltcheckruntime_argstemp
     echo ' -o /dev/null' >> $meltcheckruntime_argstemp
     cat $GCCMELT_RUNTIME_ARGS < /dev/null >>  $meltcheckruntime_argstemp
@@ -694,6 +695,7 @@ if [ ! -f $meltcheckruntime_stamp -o $meltcheckruntime_stamp -ot "$GCCMELT_RUNTI
     meltbuild_arg tempdir=meltbuild-tempdir >> $meltcheckhelloworld_argstemp
     meltbuild_arg source-path=meltbuild-sources >> $meltcheckhelloworld_argstemp
     meltbuild_arg module-path=meltbuild-modules >> $meltcheckhelloworld_argstemp
+    meltbuild_arg "module-cflags=\"$GCCMELT_COMPILER_FLAGS\"" >> $meltcheckhelloworld_argstemp
     date +'(code_chunk hello%j #{puts("hello world from MELT %F @" __TIME__"\n")}#)' > meltbuild-hello.melt-tmp$$
     $GCCMELT_MOVE_IF_CHANGE meltbuild-hello.melt-tmp$$  meltbuild-hello.melt
     meltbuild_arg arg=meltbuild-hello.melt >> $meltcheckhelloworld_argstemp
@@ -704,8 +706,8 @@ if [ ! -f $meltcheckruntime_stamp -o $meltcheckruntime_stamp -ot "$GCCMELT_RUNTI
    meltbuild_info [+(.(fromline))+] $meltcheckhelloworld_args  is
    cat $meltcheckhelloworld_args < /dev/null > /dev/stderr
     $GCCMELT_CC1_PREFIX $GCCMELT_CC1 @$meltcheckhelloworld_args \
-	|| meltbuild_error [+(.(fromline))+] running helloworld failed with arguments @$meltcheckhelloworld_arg
-   meltbuild_info [+(.(fromline))+] done check helloworld with $meltcheckruntime_args
+	|| meltbuild_error [+(.(fromline))+] running helloworld failed with arguments @$meltcheckhelloworld_args
+   meltbuild_info [+(.(fromline))+] done check helloworld with $meltcheckhelloworld_args
    #@ [+(.(fromline))+] runtime stamp
     meltcheckruntime_stamptemp=$meltcheckruntime_stamp-tmp$$
     [ -f "$GCCMELT_RUNTIME_C" ] || meltbuild_error [+(.(fromline))+] missing MELT runtime C file $GCCMELT_RUNTIME_C

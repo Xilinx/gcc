@@ -1,5 +1,12 @@
 
 2012-08-28  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-build-script.tpl: Pass module-cflags argument for check
+	runtime & helloworld tests.
+
+	* melt-build-script.sh: Regenerate.
+
+2012-08-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-run.proto.h: Don't include "ppl_c.h" anymore.
 
 2012-08-28  Basile Starynkevitch  <basile@starynkevitch.net>
