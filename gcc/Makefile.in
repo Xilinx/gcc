@@ -2731,11 +2731,11 @@ melt-runtime.o:  $(MELT_RUNTIME_C) melt-run-md5.h melt-runtime-params-inc.c  $(C
     gt-melt-runtime.h $(PLUGIN_H) $(TOPLEV_H) $(VERSION_H) \
 	| melt-runtime.args
 	ls -l melt-runtime.args
-	$(CC) -c $(shell cat melt-runtime.args)  $(OUTPUT_OPTION)
+	$(COMPILER) -c $(shell cat melt-runtime.args)  $(OUTPUT_OPTION)
 
 ## to debug the macros, we may need this.
 melt-runtime.i: melt-runtime.args
-	$(CC) -C -E  $(shell cat melt-runtime.args) $(MELT_RUNTIME_C) | grep -v '^#' > $@-tmp
+	$(COMPILER) -C -E  $(shell cat melt-runtime.args) $(MELT_RUNTIME_C) | grep -v '^#' > $@-tmp
 	mv $@-tmp $@
 
 

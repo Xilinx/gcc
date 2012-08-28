@@ -1,4 +1,8 @@
 
+2012-08-28  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* Makefile.in (melt-runtime.o, melt-runtime.i): Use $(COMPILER)
+	not $(CC).
 
 2012-08-28  Basile Starynkevitch  <basile@starynkevitch.net>
 
