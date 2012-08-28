@@ -1151,26 +1151,15 @@ meltrout_72_warmelt_modes_UNREGISTER_CHILD_PROCESS_HANDLER (meltclosure_ptr_t
 
 
 
-#ifdef __cplusplus
-extern "C"
-#endif
-void *melt_start_this_module (void *);
+MELT_EXTERN void *melt_start_this_module (void *);
 
 
 /* define different names when debugging or not */
 #if MELT_HAVE_DEBUG
-extern
-#ifdef __cplusplus
-  "C"
-#endif	/*__cplusplus*/
-const char meltmodule_warmelt_modes__melt_have_debug_enabled[];
+MELT_EXTERN const char meltmodule_warmelt_modes__melt_have_debug_enabled[];
 #define melt_have_debug_string meltmodule_warmelt_modes__melt_have_debug_enabled
 #else /*!MELT_HAVE_DEBUG */
-extern
-#ifdef __cplusplus
-  "C"
-#endif	/*__cplusplus*/
-const char meltmodule_warmelt_modes__melt_have_debug_disabled[];
+MELT_EXTERN const char meltmodule_warmelt_modes__melt_have_debug_disabled[];
 #define melt_have_debug_string meltmodule_warmelt_modes__melt_have_debug_disabled
 #endif /*!MELT_HAVE_DEBUG */
 

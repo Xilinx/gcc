@@ -792,7 +792,7 @@ meltrout_43_warmelt_outobj_OUTPUCOD_INITIALROUTINE (meltclosure_ptr_t
 
 
 
-#line 1814   "warmelt-outobj.melt" /**::procdecl::**/
+#line 1798   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_44_warmelt_outobj_LAMBDA___4__ (meltclosure_ptr_t meltclosp_,
 					 melt_ptr_t meltfirstargp_,
@@ -806,7 +806,7 @@ meltrout_44_warmelt_outobj_LAMBDA___4__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 1835   "warmelt-outobj.melt" /**::procdecl::**/
+#line 1819   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_45_warmelt_outobj_LAMBDA___5__ (meltclosure_ptr_t meltclosp_,
 					 melt_ptr_t meltfirstargp_,
@@ -820,7 +820,7 @@ meltrout_45_warmelt_outobj_LAMBDA___5__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2055   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2039   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_46_warmelt_outobj_OUTPUCOD_GETARG (meltclosure_ptr_t meltclosp_,
 					    melt_ptr_t meltfirstargp_,
@@ -834,7 +834,7 @@ meltrout_46_warmelt_outobj_OUTPUCOD_GETARG (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2120   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2104   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_47_warmelt_outobj_OUTPUCOD_GETARGREST (meltclosure_ptr_t meltclosp_,
 						melt_ptr_t meltfirstargp_,
@@ -850,7 +850,7 @@ meltrout_47_warmelt_outobj_OUTPUCOD_GETARGREST (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2203   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2187   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_48_warmelt_outobj_OUTPUCOD_OBJLOCV (meltclosure_ptr_t meltclosp_,
 					     melt_ptr_t meltfirstargp_,
@@ -865,7 +865,7 @@ meltrout_48_warmelt_outobj_OUTPUCOD_OBJLOCV (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2234   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2218   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_49_warmelt_outobj_OUTPUCOD_OBJCLOCCV (meltclosure_ptr_t meltclosp_,
 					       melt_ptr_t meltfirstargp_,
@@ -881,7 +881,7 @@ meltrout_49_warmelt_outobj_OUTPUCOD_OBJCLOCCV (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2253   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2237   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_50_warmelt_outobj_OUTPUCOD_OBJCONSTV (meltclosure_ptr_t meltclosp_,
 					       melt_ptr_t meltfirstargp_,
@@ -897,7 +897,7 @@ meltrout_50_warmelt_outobj_OUTPUCOD_OBJCONSTV (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2272   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2256   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_51_warmelt_outobj_OUTPUT_CODE_INSTRUCTIONS_LIST (meltclosure_ptr_t
 							  meltclosp_,
@@ -917,7 +917,7 @@ meltrout_51_warmelt_outobj_OUTPUT_CODE_INSTRUCTIONS_LIST (meltclosure_ptr_t
 
 
 
-#line 2306   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2290   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_52_warmelt_outobj_OUTPUCOD_OBJCHECKSIGNAL (meltclosure_ptr_t
 						    meltclosp_,
@@ -934,7 +934,7 @@ meltrout_52_warmelt_outobj_OUTPUCOD_OBJCHECKSIGNAL (meltclosure_ptr_t
 
 
 
-#line 2317   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2301   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_53_warmelt_outobj_OUTPUCOD_OBJANYBLOCK (meltclosure_ptr_t meltclosp_,
 						 melt_ptr_t meltfirstargp_,
@@ -950,7 +950,7 @@ meltrout_53_warmelt_outobj_OUTPUCOD_OBJANYBLOCK (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2341   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2325   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_54_warmelt_outobj_OUTPUCOD_OBJMULTIALLOCBLOCK (meltclosure_ptr_t
 							meltclosp_,
@@ -970,7 +970,7 @@ meltrout_54_warmelt_outobj_OUTPUCOD_OBJMULTIALLOCBLOCK (meltclosure_ptr_t
 
 
 
-#line 2413   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2397   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_55_warmelt_outobj_OUTPUCOD_OBJCITERBLOCK (meltclosure_ptr_t
 						   meltclosp_,
@@ -987,7 +987,7 @@ meltrout_55_warmelt_outobj_OUTPUCOD_OBJCITERBLOCK (meltclosure_ptr_t
 
 
 
-#line 2468   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2452   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_56_warmelt_outobj_OUTPUCOD_OBJCOMMENTINSTR (meltclosure_ptr_t
 						     meltclosp_,
@@ -1007,7 +1007,7 @@ meltrout_56_warmelt_outobj_OUTPUCOD_OBJCOMMENTINSTR (meltclosure_ptr_t
 
 
 
-#line 2489   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2473   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_57_warmelt_outobj_OUTPUCOD_OBJCOMMENTEDBLOCK (meltclosure_ptr_t
 						       meltclosp_,
@@ -1027,7 +1027,7 @@ meltrout_57_warmelt_outobj_OUTPUCOD_OBJCOMMENTEDBLOCK (meltclosure_ptr_t
 
 
 
-#line 2527   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2511   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_58_warmelt_outobj_OUTPUCOD_OBJLABELINSTR (meltclosure_ptr_t
 						   meltclosp_,
@@ -1044,7 +1044,7 @@ meltrout_58_warmelt_outobj_OUTPUCOD_OBJLABELINSTR (meltclosure_ptr_t
 
 
 
-#line 2546   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2530   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_59_warmelt_outobj_OUTPUCOD_OBJGOTOINSTR (meltclosure_ptr_t
 						  meltclosp_,
@@ -1061,7 +1061,7 @@ meltrout_59_warmelt_outobj_OUTPUCOD_OBJGOTOINSTR (meltclosure_ptr_t
 
 
 
-#line 2563   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2547   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_60_warmelt_outobj_ADD2SBUF_CLONSYM (meltclosure_ptr_t meltclosp_,
 					     melt_ptr_t meltfirstargp_,
@@ -1076,7 +1076,7 @@ meltrout_60_warmelt_outobj_ADD2SBUF_CLONSYM (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2576   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2560   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_61_warmelt_outobj_OUTPUCOD_OBJLOOP (meltclosure_ptr_t meltclosp_,
 					     melt_ptr_t meltfirstargp_,
@@ -1091,7 +1091,7 @@ meltrout_61_warmelt_outobj_OUTPUCOD_OBJLOOP (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2595   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2579   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_62_warmelt_outobj_LAMBDA___6__ (meltclosure_ptr_t meltclosp_,
 					 melt_ptr_t meltfirstargp_,
@@ -1105,7 +1105,7 @@ meltrout_62_warmelt_outobj_LAMBDA___6__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2617   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2601   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_63_warmelt_outobj_LAMBDA___7__ (meltclosure_ptr_t meltclosp_,
 					 melt_ptr_t meltfirstargp_,
@@ -1119,7 +1119,7 @@ meltrout_63_warmelt_outobj_LAMBDA___7__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2635   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2619   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_64_warmelt_outobj_OUTPUCOD_OBJEXIT (meltclosure_ptr_t meltclosp_,
 					     melt_ptr_t meltfirstargp_,
@@ -1134,7 +1134,7 @@ meltrout_64_warmelt_outobj_OUTPUCOD_OBJEXIT (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2655   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2639   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_65_warmelt_outobj_OUTPUCOD_OBJAGAIN (meltclosure_ptr_t meltclosp_,
 					      melt_ptr_t meltfirstargp_,
@@ -1150,7 +1150,7 @@ meltrout_65_warmelt_outobj_OUTPUCOD_OBJAGAIN (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2674   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2658   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_66_warmelt_outobj_OUTPUCOD_OBJCOMPUTE (meltclosure_ptr_t meltclosp_,
 						melt_ptr_t meltfirstargp_,
@@ -1166,7 +1166,7 @@ meltrout_66_warmelt_outobj_OUTPUCOD_OBJCOMPUTE (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2685   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2669   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_67_warmelt_outobj_LAMBDA___8__ (meltclosure_ptr_t meltclosp_,
 					 melt_ptr_t meltfirstargp_,
@@ -1180,7 +1180,7 @@ meltrout_67_warmelt_outobj_LAMBDA___8__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2694   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2678   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_68_warmelt_outobj_LAMBDA___9__ (meltclosure_ptr_t meltclosp_,
 					 melt_ptr_t meltfirstargp_,
@@ -1194,7 +1194,7 @@ meltrout_68_warmelt_outobj_LAMBDA___9__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2704   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2688   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_69_warmelt_outobj_LAMBDA___10__ (meltclosure_ptr_t meltclosp_,
 					  melt_ptr_t meltfirstargp_,
@@ -1208,7 +1208,7 @@ meltrout_69_warmelt_outobj_LAMBDA___10__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2720   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2704   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_70_warmelt_outobj_OUTPUCOD_OBJCOND (meltclosure_ptr_t meltclosp_,
 					     melt_ptr_t meltfirstargp_,
@@ -1223,7 +1223,7 @@ meltrout_70_warmelt_outobj_OUTPUCOD_OBJCOND (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2762   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2746   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_71_warmelt_outobj_OUTPUCOD_OBJCPPIF (meltclosure_ptr_t meltclosp_,
 					      melt_ptr_t meltfirstargp_,
@@ -1239,7 +1239,7 @@ meltrout_71_warmelt_outobj_OUTPUCOD_OBJCPPIF (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2795   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2779   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_72_warmelt_outobj_OUTPUCOD_OBJINTERNSYMBOL (meltclosure_ptr_t
 						     meltclosp_,
@@ -1259,7 +1259,7 @@ meltrout_72_warmelt_outobj_OUTPUCOD_OBJINTERNSYMBOL (meltclosure_ptr_t
 
 
 
-#line 2820   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2804   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_73_warmelt_outobj_OUTPUCOD_OBJINTERNKEYWORD (meltclosure_ptr_t
 						      meltclosp_,
@@ -1279,7 +1279,7 @@ meltrout_73_warmelt_outobj_OUTPUCOD_OBJINTERNKEYWORD (meltclosure_ptr_t
 
 
 
-#line 2844   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2828   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_74_warmelt_outobj_OUTPUCOD_OBJGETNAMEDSYMBOL (meltclosure_ptr_t
 						       meltclosp_,
@@ -1299,7 +1299,7 @@ meltrout_74_warmelt_outobj_OUTPUCOD_OBJGETNAMEDSYMBOL (meltclosure_ptr_t
 
 
 
-#line 2883   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2867   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_75_warmelt_outobj_OUTPUCOD_OBJGETNAMEDKEYWORD (meltclosure_ptr_t
 							meltclosp_,
@@ -1319,7 +1319,7 @@ meltrout_75_warmelt_outobj_OUTPUCOD_OBJGETNAMEDKEYWORD (meltclosure_ptr_t
 
 
 
-#line 2919   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2903   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_76_warmelt_outobj_OUTPUCOD_OBJAPPLY (meltclosure_ptr_t meltclosp_,
 					      melt_ptr_t meltfirstargp_,
@@ -1335,7 +1335,7 @@ meltrout_76_warmelt_outobj_OUTPUCOD_OBJAPPLY (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2977   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2961   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_77_warmelt_outobj_LAMBDA___11__ (meltclosure_ptr_t meltclosp_,
 					  melt_ptr_t meltfirstargp_,
@@ -1349,7 +1349,7 @@ meltrout_77_warmelt_outobj_LAMBDA___11__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2994   "warmelt-outobj.melt" /**::procdecl::**/
+#line 2978   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_78_warmelt_outobj_LAMBDA___12__ (meltclosure_ptr_t meltclosp_,
 					  melt_ptr_t meltfirstargp_,
@@ -1363,7 +1363,7 @@ meltrout_78_warmelt_outobj_LAMBDA___12__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3016   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3000   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_79_warmelt_outobj_OUTPUCOD_OBJMSEND (meltclosure_ptr_t meltclosp_,
 					      melt_ptr_t meltfirstargp_,
@@ -1379,7 +1379,7 @@ meltrout_79_warmelt_outobj_OUTPUCOD_OBJMSEND (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3093   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3077   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_80_warmelt_outobj_LAMBDA___13__ (meltclosure_ptr_t meltclosp_,
 					  melt_ptr_t meltfirstargp_,
@@ -1393,7 +1393,7 @@ meltrout_80_warmelt_outobj_LAMBDA___13__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3114   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3098   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_81_warmelt_outobj_OUTPUCOD_OBJMULTIAPPLY (meltclosure_ptr_t
 						   meltclosp_,
@@ -1410,7 +1410,7 @@ meltrout_81_warmelt_outobj_OUTPUCOD_OBJMULTIAPPLY (meltclosure_ptr_t
 
 
 
-#line 3160   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3144   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_82_warmelt_outobj_LAMBDA___14__ (meltclosure_ptr_t meltclosp_,
 					  melt_ptr_t meltfirstargp_,
@@ -1424,7 +1424,7 @@ meltrout_82_warmelt_outobj_LAMBDA___14__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3203   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3187   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_83_warmelt_outobj_LAMBDA___15__ (meltclosure_ptr_t meltclosp_,
 					  melt_ptr_t meltfirstargp_,
@@ -1438,7 +1438,7 @@ meltrout_83_warmelt_outobj_LAMBDA___15__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3231   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3215   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_84_warmelt_outobj_LAMBDA___16__ (meltclosure_ptr_t meltclosp_,
 					  melt_ptr_t meltfirstargp_,
@@ -1452,7 +1452,7 @@ meltrout_84_warmelt_outobj_LAMBDA___16__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3246   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3230   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_85_warmelt_outobj_LAMBDA___17__ (meltclosure_ptr_t meltclosp_,
 					  melt_ptr_t meltfirstargp_,
@@ -1466,7 +1466,7 @@ meltrout_85_warmelt_outobj_LAMBDA___17__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3257   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3241   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_86_warmelt_outobj_LAMBDA___18__ (meltclosure_ptr_t meltclosp_,
 					  melt_ptr_t meltfirstargp_,
@@ -1480,7 +1480,7 @@ meltrout_86_warmelt_outobj_LAMBDA___18__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3279   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3263   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_87_warmelt_outobj_OUTPUCOD_OBJMULTIMSEND (meltclosure_ptr_t
 						   meltclosp_,
@@ -1497,7 +1497,7 @@ meltrout_87_warmelt_outobj_OUTPUCOD_OBJMULTIMSEND (meltclosure_ptr_t
 
 
 
-#line 3312   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3296   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_88_warmelt_outobj_LAMBDA___19__ (meltclosure_ptr_t meltclosp_,
 					  melt_ptr_t meltfirstargp_,
@@ -1511,7 +1511,7 @@ meltrout_88_warmelt_outobj_LAMBDA___19__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3362   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3346   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_89_warmelt_outobj_LAMBDA___20__ (meltclosure_ptr_t meltclosp_,
 					  melt_ptr_t meltfirstargp_,
@@ -1525,7 +1525,7 @@ meltrout_89_warmelt_outobj_LAMBDA___20__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3390   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3374   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_90_warmelt_outobj_LAMBDA___21__ (meltclosure_ptr_t meltclosp_,
 					  melt_ptr_t meltfirstargp_,
@@ -1539,7 +1539,7 @@ meltrout_90_warmelt_outobj_LAMBDA___21__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3403   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3387   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_91_warmelt_outobj_LAMBDA___22__ (meltclosure_ptr_t meltclosp_,
 					  melt_ptr_t meltfirstargp_,
@@ -1553,7 +1553,7 @@ meltrout_91_warmelt_outobj_LAMBDA___22__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3414   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3398   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_92_warmelt_outobj_LAMBDA___23__ (meltclosure_ptr_t meltclosp_,
 					  melt_ptr_t meltfirstargp_,
@@ -1567,7 +1567,7 @@ meltrout_92_warmelt_outobj_LAMBDA___23__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3434   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3418   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_93_warmelt_outobj_OUTPUCOD_OBJCLEAR (meltclosure_ptr_t meltclosp_,
 					      melt_ptr_t meltfirstargp_,
@@ -1583,7 +1583,7 @@ meltrout_93_warmelt_outobj_OUTPUCOD_OBJCLEAR (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3450   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3434   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_94_warmelt_outobj_OUTPUCOD_OBJRAWALLOCOBJ (meltclosure_ptr_t
 						    meltclosp_,
@@ -1600,7 +1600,7 @@ meltrout_94_warmelt_outobj_OUTPUCOD_OBJRAWALLOCOBJ (meltclosure_ptr_t
 
 
 
-#line 3488   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3472   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_95_warmelt_outobj_OUTPUCOD_OBJNEWCLOSURE (meltclosure_ptr_t
 						   meltclosp_,
@@ -1617,7 +1617,7 @@ meltrout_95_warmelt_outobj_OUTPUCOD_OBJNEWCLOSURE (meltclosure_ptr_t
 
 
 
-#line 3501   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3485   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_96_warmelt_outobj_LAMBDA___24__ (meltclosure_ptr_t meltclosp_,
 					  melt_ptr_t meltfirstargp_,
@@ -1631,7 +1631,7 @@ meltrout_96_warmelt_outobj_LAMBDA___24__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3521   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3505   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_97_warmelt_outobj_OUTPUCOD_OBJTOUCH (meltclosure_ptr_t meltclosp_,
 					      melt_ptr_t meltfirstargp_,
@@ -1647,7 +1647,7 @@ meltrout_97_warmelt_outobj_OUTPUCOD_OBJTOUCH (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3546   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3530   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_98_warmelt_outobj_OUTPUCOD_OBJPUTUPLE (meltclosure_ptr_t meltclosp_,
 						melt_ptr_t meltfirstargp_,
@@ -1663,7 +1663,7 @@ meltrout_98_warmelt_outobj_OUTPUCOD_OBJPUTUPLE (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3621   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3605   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_99_warmelt_outobj_OUTPUCOD_OBJPUTPAIRHEAD (meltclosure_ptr_t
 						    meltclosp_,
@@ -1680,7 +1680,7 @@ meltrout_99_warmelt_outobj_OUTPUCOD_OBJPUTPAIRHEAD (meltclosure_ptr_t
 
 
 
-#line 3650   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3634   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_100_warmelt_outobj_OUTPUCOD_OBJPUTPAIRTAIL (meltclosure_ptr_t
 						     meltclosp_,
@@ -1700,7 +1700,7 @@ meltrout_100_warmelt_outobj_OUTPUCOD_OBJPUTPAIRTAIL (meltclosure_ptr_t
 
 
 
-#line 3676   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3660   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_101_warmelt_outobj_OUTPUCOD_OBJPUTLIST (meltclosure_ptr_t meltclosp_,
 						 melt_ptr_t meltfirstargp_,
@@ -1716,7 +1716,7 @@ meltrout_101_warmelt_outobj_OUTPUCOD_OBJPUTLIST (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3707   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3691   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_102_warmelt_outobj_OUTPUCOD_OBJGETSLOT (meltclosure_ptr_t meltclosp_,
 						 melt_ptr_t meltfirstargp_,
@@ -1732,7 +1732,7 @@ meltrout_102_warmelt_outobj_OUTPUCOD_OBJGETSLOT (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3731   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3715   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_103_warmelt_outobj_LAMBDA___25__ (meltclosure_ptr_t meltclosp_,
 					   melt_ptr_t meltfirstargp_,
@@ -1746,7 +1746,7 @@ meltrout_103_warmelt_outobj_LAMBDA___25__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3746   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3730   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_104_warmelt_outobj_OUTPUCOD_OBJPUTSLOT (meltclosure_ptr_t meltclosp_,
 						 melt_ptr_t meltfirstargp_,
@@ -1762,7 +1762,7 @@ meltrout_104_warmelt_outobj_OUTPUCOD_OBJPUTSLOT (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3821   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3805   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_105_warmelt_outobj_OUTPUCOD_OBJPUTCLOSUROUT (meltclosure_ptr_t
 						      meltclosp_,
@@ -1782,7 +1782,7 @@ meltrout_105_warmelt_outobj_OUTPUCOD_OBJPUTCLOSUROUT (meltclosure_ptr_t
 
 
 
-#line 3865   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3849   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_106_warmelt_outobj_OUTPUCOD_OBJPUTCLOSEDV (meltclosure_ptr_t
 						    meltclosp_,
@@ -1799,7 +1799,7 @@ meltrout_106_warmelt_outobj_OUTPUCOD_OBJPUTCLOSEDV (meltclosure_ptr_t
 
 
 
-#line 3901   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3885   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_107_warmelt_outobj_OUTPUCOD_OBJPUTCLOSEDNOTNULLV (meltclosure_ptr_t
 							   meltclosp_,
@@ -1819,7 +1819,7 @@ meltrout_107_warmelt_outobj_OUTPUCOD_OBJPUTCLOSEDNOTNULLV (meltclosure_ptr_t
 
 
 
-#line 3941   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3925   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_108_warmelt_outobj_OUTPUCOD_OBJPUTROUTCONST (meltclosure_ptr_t
 						      meltclosp_,
@@ -1839,7 +1839,7 @@ meltrout_108_warmelt_outobj_OUTPUCOD_OBJPUTROUTCONST (meltclosure_ptr_t
 
 
 
-#line 3980   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3964   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_109_warmelt_outobj_OUTPUCOD_OBJPUTROUTCONSTNOTNULL (meltclosure_ptr_t
 							     meltclosp_,
@@ -1861,7 +1861,7 @@ meltrout_109_warmelt_outobj_OUTPUCOD_OBJPUTROUTCONSTNOTNULL (meltclosure_ptr_t
 
 
 
-#line 4015   "warmelt-outobj.melt" /**::procdecl::**/
+#line 3999   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_110_warmelt_outobj_OUTPUCOD_OBJPUTXTRARESULT (meltclosure_ptr_t
 						       meltclosp_,
@@ -1881,7 +1881,7 @@ meltrout_110_warmelt_outobj_OUTPUCOD_OBJPUTXTRARESULT (meltclosure_ptr_t
 
 
 
-#line 4056   "warmelt-outobj.melt" /**::procdecl::**/
+#line 4040   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_111_warmelt_outobj_OUTPUCOD_OBJEXPV (meltclosure_ptr_t meltclosp_,
 					      melt_ptr_t meltfirstargp_,
@@ -1897,7 +1897,7 @@ meltrout_111_warmelt_outobj_OUTPUCOD_OBJEXPV (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 4072   "warmelt-outobj.melt" /**::procdecl::**/
+#line 4056   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_112_warmelt_outobj_OUTPUCOD_OBJLOCATEDEXPV (meltclosure_ptr_t
 						     meltclosp_,
@@ -1917,7 +1917,7 @@ meltrout_112_warmelt_outobj_OUTPUCOD_OBJLOCATEDEXPV (meltclosure_ptr_t
 
 
 
-#line 4111   "warmelt-outobj.melt" /**::procdecl::**/
+#line 4095   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_113_warmelt_outobj_OUTPUCOD_VERBATIMSTRING (meltclosure_ptr_t
 						     meltclosp_,
@@ -1937,7 +1937,7 @@ meltrout_113_warmelt_outobj_OUTPUCOD_VERBATIMSTRING (meltclosure_ptr_t
 
 
 
-#line 4124   "warmelt-outobj.melt" /**::procdecl::**/
+#line 4108   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_114_warmelt_outobj_OUTPUCOD_STRING (meltclosure_ptr_t meltclosp_,
 					     melt_ptr_t meltfirstargp_,
@@ -1952,7 +1952,7 @@ meltrout_114_warmelt_outobj_OUTPUCOD_STRING (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 4137   "warmelt-outobj.melt" /**::procdecl::**/
+#line 4121   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_115_warmelt_outobj_OUTPUCOD_INTEGER (meltclosure_ptr_t meltclosp_,
 					      melt_ptr_t meltfirstargp_,
@@ -1968,7 +1968,7 @@ meltrout_115_warmelt_outobj_OUTPUCOD_INTEGER (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 4144   "warmelt-outobj.melt" /**::procdecl::**/
+#line 4128   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_116_warmelt_outobj_OUTPUCOD_FINALRETURN (meltclosure_ptr_t
 						  meltclosp_,
@@ -1985,7 +1985,7 @@ meltrout_116_warmelt_outobj_OUTPUCOD_FINALRETURN (meltclosure_ptr_t
 
 
 
-#line 4157   "warmelt-outobj.melt" /**::procdecl::**/
+#line 4141   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_117_warmelt_outobj_SORTED_NAMED_DICT_TUPLE (meltclosure_ptr_t
 						     meltclosp_,
@@ -2005,7 +2005,7 @@ meltrout_117_warmelt_outobj_SORTED_NAMED_DICT_TUPLE (meltclosure_ptr_t
 
 
 
-#line 4174   "warmelt-outobj.melt" /**::procdecl::**/
+#line 4158   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_118_warmelt_outobj_OUTPUT_EXPORTED_OFFSETS (meltclosure_ptr_t
 						     meltclosp_,
@@ -2025,7 +2025,7 @@ meltrout_118_warmelt_outobj_OUTPUT_EXPORTED_OFFSETS (meltclosure_ptr_t
 
 
 
-#line 4255   "warmelt-outobj.melt" /**::procdecl::**/
+#line 4237   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_119_warmelt_outobj_NTH_SECUNDARY_FILE (meltclosure_ptr_t meltclosp_,
 						melt_ptr_t meltfirstargp_,
@@ -2041,7 +2041,7 @@ meltrout_119_warmelt_outobj_NTH_SECUNDARY_FILE (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 4289   "warmelt-outobj.melt" /**::procdecl::**/
+#line 4271   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_120_warmelt_outobj_OUTPUT_MELT_DESCRIPTOR (meltclosure_ptr_t
 						    meltclosp_,
@@ -2058,7 +2058,7 @@ meltrout_120_warmelt_outobj_OUTPUT_MELT_DESCRIPTOR (meltclosure_ptr_t
 
 
 
-#line 4724   "warmelt-outobj.melt" /**::procdecl::**/
+#line 4706   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_121_warmelt_outobj_SYNTESTGEN_ANY (meltclosure_ptr_t meltclosp_,
 					    melt_ptr_t meltfirstargp_,
@@ -2072,7 +2072,7 @@ meltrout_121_warmelt_outobj_SYNTESTGEN_ANY (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 4744   "warmelt-outobj.melt" /**::procdecl::**/
+#line 4726   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_122_warmelt_outobj_SUBSTITUTE_FORMALS_FOR_SYNTEST (meltclosure_ptr_t
 							    meltclosp_,
@@ -2092,7 +2092,7 @@ meltrout_122_warmelt_outobj_SUBSTITUTE_FORMALS_FOR_SYNTEST (meltclosure_ptr_t
 
 
 
-#line 4770   "warmelt-outobj.melt" /**::procdecl::**/
+#line 4752   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_123_warmelt_outobj_EXPAND_TUPLE_FOR_SYNTEST (meltclosure_ptr_t
 						      meltclosp_,
@@ -2112,7 +2112,7 @@ meltrout_123_warmelt_outobj_EXPAND_TUPLE_FOR_SYNTEST (meltclosure_ptr_t
 
 
 
-#line 4794   "warmelt-outobj.melt" /**::procdecl::**/
+#line 4776   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_124_warmelt_outobj_SYNTESTGEN_PRIMITIVE (meltclosure_ptr_t
 						  meltclosp_,
@@ -2129,7 +2129,7 @@ meltrout_124_warmelt_outobj_SYNTESTGEN_PRIMITIVE (meltclosure_ptr_t
 
 
 
-#line 4854   "warmelt-outobj.melt" /**::procdecl::**/
+#line 4836   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_125_warmelt_outobj_SYNTESTGEN_CITERATOR (meltclosure_ptr_t
 						  meltclosp_,
@@ -2146,7 +2146,7 @@ meltrout_125_warmelt_outobj_SYNTESTGEN_CITERATOR (meltclosure_ptr_t
 
 
 
-#line 4922   "warmelt-outobj.melt" /**::procdecl::**/
+#line 4904   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_126_warmelt_outobj_SYNTESTGEN_CMATCHER (meltclosure_ptr_t meltclosp_,
 						 melt_ptr_t meltfirstargp_,
@@ -2162,7 +2162,7 @@ meltrout_126_warmelt_outobj_SYNTESTGEN_CMATCHER (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 5007   "warmelt-outobj.melt" /**::procdecl::**/
+#line 4989   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_127_warmelt_outobj_EMIT_SYNTAX_TESTING_ROUTINE (meltclosure_ptr_t
 							 meltclosp_,
@@ -2182,7 +2182,7 @@ meltrout_127_warmelt_outobj_EMIT_SYNTAX_TESTING_ROUTINE (meltclosure_ptr_t
 
 
 
-#line 5071   "warmelt-outobj.melt" /**::procdecl::**/
+#line 5053   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_128_warmelt_outobj_TRANSLATE_MACROEXPANDED_LIST (meltclosure_ptr_t
 							  meltclosp_,
@@ -2202,7 +2202,7 @@ meltrout_128_warmelt_outobj_TRANSLATE_MACROEXPANDED_LIST (meltclosure_ptr_t
 
 
 
-#line 5128   "warmelt-outobj.melt" /**::procdecl::**/
+#line 5110   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_129_warmelt_outobj_LAMBDA___26__ (meltclosure_ptr_t meltclosp_,
 					   melt_ptr_t meltfirstargp_,
@@ -2216,7 +2216,7 @@ meltrout_129_warmelt_outobj_LAMBDA___26__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 5209   "warmelt-outobj.melt" /**::procdecl::**/
+#line 5191   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_130_warmelt_outobj_LAMBDA___27__ (meltclosure_ptr_t meltclosp_,
 					   melt_ptr_t meltfirstargp_,
@@ -2230,7 +2230,7 @@ meltrout_130_warmelt_outobj_LAMBDA___27__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 5380   "warmelt-outobj.melt" /**::procdecl::**/
+#line 5362   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_131_warmelt_outobj_COMPILE_LIST_SEXPR (meltclosure_ptr_t meltclosp_,
 						melt_ptr_t meltfirstargp_,
@@ -2246,7 +2246,7 @@ meltrout_131_warmelt_outobj_COMPILE_LIST_SEXPR (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 5455   "warmelt-outobj.melt" /**::procdecl::**/
+#line 5437   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_132_warmelt_outobj_TRANSLATE_TO_C_ONE_OR_MORE_MELT_FILES
 (meltclosure_ptr_t meltclosp_, melt_ptr_t meltfirstargp_, const melt_argdescr_cell_t meltxargdescr_[],
@@ -2256,7 +2256,7 @@ union meltparam_un *meltxrestab_);
 
 
 
-#line 5522   "warmelt-outobj.melt" /**::procdecl::**/
+#line 5504   "warmelt-outobj.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_133_warmelt_outobj_GENERATE_GPLV3PLUS_COPYRIGHT_NOTICE_C_COMMENT
 (meltclosure_ptr_t meltclosp_, melt_ptr_t meltfirstargp_, const melt_argdescr_cell_t meltxargdescr_[],
@@ -2265,26 +2265,15 @@ union meltparam_un *meltxrestab_);
 
 
 
-#ifdef __cplusplus
-extern "C"
-#endif
-void *melt_start_this_module (void *);
+MELT_EXTERN void *melt_start_this_module (void *);
 
 
 /* define different names when debugging or not */
 #if MELT_HAVE_DEBUG
-extern
-#ifdef __cplusplus
-  "C"
-#endif	/*__cplusplus*/
-const char meltmodule_warmelt_outobj__melt_have_debug_enabled[];
+MELT_EXTERN const char meltmodule_warmelt_outobj__melt_have_debug_enabled[];
 #define melt_have_debug_string meltmodule_warmelt_outobj__melt_have_debug_enabled
 #else /*!MELT_HAVE_DEBUG */
-extern
-#ifdef __cplusplus
-  "C"
-#endif	/*__cplusplus*/
-const char meltmodule_warmelt_outobj__melt_have_debug_disabled[];
+MELT_EXTERN const char meltmodule_warmelt_outobj__melt_have_debug_disabled[];
 #define melt_have_debug_string meltmodule_warmelt_outobj__melt_have_debug_disabled
 #endif /*!MELT_HAVE_DEBUG */
 

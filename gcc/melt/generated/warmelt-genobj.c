@@ -3020,26 +3020,15 @@ meltrout_185_warmelt_genobj_LAMBDA___57__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#ifdef __cplusplus
-extern "C"
-#endif
-void *melt_start_this_module (void *);
+MELT_EXTERN void *melt_start_this_module (void *);
 
 
 /* define different names when debugging or not */
 #if MELT_HAVE_DEBUG
-extern
-#ifdef __cplusplus
-  "C"
-#endif	/*__cplusplus*/
-const char meltmodule_warmelt_genobj__melt_have_debug_enabled[];
+MELT_EXTERN const char meltmodule_warmelt_genobj__melt_have_debug_enabled[];
 #define melt_have_debug_string meltmodule_warmelt_genobj__melt_have_debug_enabled
 #else /*!MELT_HAVE_DEBUG */
-extern
-#ifdef __cplusplus
-  "C"
-#endif	/*__cplusplus*/
-const char meltmodule_warmelt_genobj__melt_have_debug_disabled[];
+MELT_EXTERN const char meltmodule_warmelt_genobj__melt_have_debug_disabled[];
 #define melt_have_debug_string meltmodule_warmelt_genobj__melt_have_debug_disabled
 #endif /*!MELT_HAVE_DEBUG */
 
@@ -110229,220 +110218,413 @@ meltmod__warmelt_genobj__forward_or_mark_module_start_frame (struct
 
 
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif /*__cplusplus*/
-
 /* exported 127 field offsets */
-  const int meltfieldoff__ALTMATCHN_DATAMAP = 3;	/* in CLASS_ALTERNATE_MATCH_NREP_DATA */
-  const int meltfieldoff__ALTMATCHN_FLAGMAP = 2;	/* in CLASS_ALTERNATE_MATCH_NREP_DATA */
-  const int meltfieldoff__ALTMATCHN_NREP = 1;	/* in CLASS_ALTERNATE_MATCH_NREP_DATA */
-  const int meltfieldoff__ALTMATCHN_PREV = 0;	/* in CLASS_ALTERNATE_MATCH_NREP_DATA */
-  const int meltfieldoff__MCX_GOTOELSE = 4;	/* in CLASS_MATCHCOMPILCONTEXT */
-  const int meltfieldoff__MCX_GOTOTHEN = 3;	/* in CLASS_MATCHCOMPILCONTEXT */
-  const int meltfieldoff__MCX_LOC = 1;	/* in CLASS_MATCHCOMPILCONTEXT */
-  const int meltfieldoff__MCX_NORMTESTER = 2;	/* in CLASS_MATCHCOMPILCONTEXT */
-  const int meltfieldoff__MCX_OLIST = 5;	/* in CLASS_MATCHCOMPILCONTEXT */
-  const int meltfieldoff__MCX_STATECOUNTER = 7;	/* in CLASS_MATCHCOMPILCONTEXT */
-  const int meltfieldoff__MCX_SUFFIX = 6;	/* in CLASS_MATCHCOMPILCONTEXT */
-  const int meltfieldoff__OBAGAIN_LABEL = 1;	/* in CLASS_OBJAGAIN */
-  const int meltfieldoff__OBAPP_ARGS = 3;	/* in CLASS_OBJAPPLY */
-  const int meltfieldoff__OBAPP_CLOS = 2;	/* in CLASS_OBJAPPLY */
-  const int meltfieldoff__OBARG_BIND = 2;	/* in CLASS_OBJGETARG */
-  const int meltfieldoff__OBARG_OBLOC = 1;	/* in CLASS_OBJGETARG */
-  const int meltfieldoff__OBARG_REST = 3;	/* in CLASS_OBJGETARGREST */
-  const int meltfieldoff__OBCITER_AFTER = 5;	/* in CLASS_OBJCITERBLOCK */
-  const int meltfieldoff__OBCITER_BEFORE = 4;	/* in CLASS_OBJCITERBLOCK */
-  const int meltfieldoff__OBCITER_CITER = 3;	/* in CLASS_OBJCITERBLOCK */
-  const int meltfieldoff__OBCI_COMMENT = 1;	/* in CLASS_OBJCOMMENTINSTR */
-  const int meltfieldoff__OBCOND_ELSE = 3;	/* in CLASS_OBJCOND */
-  const int meltfieldoff__OBCOND_TEST = 1;	/* in CLASS_OBJCOND */
-  const int meltfieldoff__OBCOND_THEN = 2;	/* in CLASS_OBJCOND */
-  const int meltfieldoff__OBCPT_EXPR = 2;	/* in CLASS_OBJCOMPUTE */
-  const int meltfieldoff__OBCPT_TYPE = 3;	/* in CLASS_OBJCOMPUTE */
-  const int meltfieldoff__OBCX_LOC = 2;	/* in CLASS_OBJLOCATEDEXPV */
-  const int meltfieldoff__OBC_NAME = 3;	/* in CLASS_OBJCLOCCV */
-  const int meltfieldoff__OBC_OFF = 1;	/* in CLASS_OBJCLOCCV */
-  const int meltfieldoff__OBC_PROC = 2;	/* in CLASS_OBJCLOCCV */
-  const int meltfieldoff__OBDI_DESTLIST = 1;	/* in CLASS_OBJDESTINSTR */
-  const int meltfieldoff__OBEXIT_LABEL = 1;	/* in CLASS_OBJEXIT */
-  const int meltfieldoff__OBGNAMED_IOBJ = 1;	/* in CLASS_OBJGETNAMEDCOMMON */
-  const int meltfieldoff__OBGOTO_PREFIX = 1;	/* in CLASS_OBJGOTOINSTR */
-  const int meltfieldoff__OBGOTO_RANK = 2;	/* in CLASS_OBJGOTOINSTR */
-  const int meltfieldoff__OBIFP_COND = 1;	/* in CLASS_OBJCPPIF */
-  const int meltfieldoff__OBIFP_ELSE = 3;	/* in CLASS_OBJCPPIF */
-  const int meltfieldoff__OBIFP_THEN = 2;	/* in CLASS_OBJCPPIF */
-  const int meltfieldoff__OBINTERN_IOBJ = 1;	/* in CLASS_OBJINTERNCOMMON */
-  const int meltfieldoff__OBI_LOC = 0;	/* in CLASS_OBJINSTR */
-  const int meltfieldoff__OBLAB_PREFIX = 1;	/* in CLASS_OBJLABELINSTR */
-  const int meltfieldoff__OBLAB_RANK = 2;	/* in CLASS_OBJLABELINSTR */
-  const int meltfieldoff__OBLOOP_LABEL = 3;	/* in CLASS_OBJLOOP */
-  const int meltfieldoff__OBLOOP_RESV = 4;	/* in CLASS_OBJLOOP */
-  const int meltfieldoff__OBLO_BODYL = 1;	/* in CLASS_OBJANYBLOCK */
-  const int meltfieldoff__OBLO_EPIL = 2;	/* in CLASS_OBJANYBLOCK */
-  const int meltfieldoff__OBL_CNAME = 3;	/* in CLASS_OBJLOCV */
-  const int meltfieldoff__OBL_OFF = 1;	/* in CLASS_OBJLOCV */
-  const int meltfieldoff__OBL_PROC = 2;	/* in CLASS_OBJLOCV */
-  const int meltfieldoff__OBMSND_ARGS = 4;	/* in CLASS_OBJMSEND */
-  const int meltfieldoff__OBMSND_RECV = 3;	/* in CLASS_OBJMSEND */
-  const int meltfieldoff__OBMSND_SEL = 2;	/* in CLASS_OBJMSEND */
-  const int meltfieldoff__OBMULTAPP_XRES = 4;	/* in CLASS_OBJMULTIAPPLY */
-  const int meltfieldoff__OBMULTSND_XRES = 5;	/* in CLASS_OBJMULTIMSEND */
-  const int meltfieldoff__OBNCLO_DISCR = 2;	/* in CLASS_OBJNEWCLOSURE */
-  const int meltfieldoff__OBNCLO_LEN = 4;	/* in CLASS_OBJNEWCLOSURE */
-  const int meltfieldoff__OBNCLO_ROUT = 3;	/* in CLASS_OBJNEWCLOSURE */
-  const int meltfieldoff__OBPREDEF = 1;	/* in CLASS_OBJPREDEF */
-  const int meltfieldoff__OBRALLOBJ_CLASS = 2;	/* in CLASS_OBJRAWALLOCOBJ */
-  const int meltfieldoff__OBRALLOBJ_CLASSNAME = 4;	/* in CLASS_OBJRAWALLOCOBJ */
-  const int meltfieldoff__OBRALLOBJ_LEN = 3;	/* in CLASS_OBJRAWALLOCOBJ */
-  const int meltfieldoff__OBROUT_BODY = 3;	/* in CLASS_ROUTINEOBJ */
-  const int meltfieldoff__OBROUT_CNTCITER = 8;	/* in CLASS_ROUTINEOBJ */
-  const int meltfieldoff__OBROUT_CNTLETREC = 9;	/* in CLASS_ROUTINEOBJ */
-  const int meltfieldoff__OBROUT_NBLONG = 5;	/* in CLASS_ROUTINEOBJ */
-  const int meltfieldoff__OBROUT_NBVAL = 4;	/* in CLASS_ROUTINEOBJ */
-  const int meltfieldoff__OBROUT_OTHERS = 6;	/* in CLASS_ROUTINEOBJ */
-  const int meltfieldoff__OBROUT_PROC = 2;	/* in CLASS_ROUTINEOBJ */
-  const int meltfieldoff__OBROUT_RETVAL = 7;	/* in CLASS_ROUTINEOBJ */
-  const int meltfieldoff__OBV_TYPE = 0;	/* in CLASS_OBJVALUE */
-  const int meltfieldoff__OBXRES_OBLOC = 2;	/* in CLASS_OBJPUTXTRARESULT */
-  const int meltfieldoff__OBXRES_RANK = 1;	/* in CLASS_OBJPUTXTRARESULT */
-  const int meltfieldoff__OBX_CONT = 1;	/* in CLASS_OBJEXPV */
-  const int meltfieldoff__OCLR_VLOC = 1;	/* in CLASS_OBJCLEAR */
-  const int meltfieldoff__OCOMBLO_COMMENT = 3;	/* in CLASS_OBJCOMMENTEDBLOCK */
-  const int meltfieldoff__OGETSL_FIELD = 3;	/* in CLASS_OBJGETSLOT */
-  const int meltfieldoff__OGETSL_OBJ = 2;	/* in CLASS_OBJGETSLOT */
-  const int meltfieldoff__OICLO_ROUT = 5;	/* in CLASS_OBJINITCLOSURE */
-  const int meltfieldoff__OIE_CNAME = 1;	/* in CLASS_OBJINITELEM */
-  const int meltfieldoff__OIE_DATA = 2;	/* in CLASS_OBJINITELEM */
-  const int meltfieldoff__OIE_DISCR = 3;	/* in CLASS_OBJINITELEM */
-  const int meltfieldoff__OIE_LOCVAR = 4;	/* in CLASS_OBJINITELEM */
-  const int meltfieldoff__OIM_TUPVAL = 5;	/* in CLASS_OBJINITMULTIPLE */
-  const int meltfieldoff__OIO_CLASS = 6;	/* in CLASS_OBJINITOBJECT */
-  const int meltfieldoff__OIO_PREDEF = 5;	/* in CLASS_OBJINITOBJECT */
-  const int meltfieldoff__OIROUT_DATA = 10;	/* in CLASS_INITIALROUTINEOBJ */
-  const int meltfieldoff__OIROUT_FILL = 12;	/* in CLASS_INITIALROUTINEOBJ */
-  const int meltfieldoff__OIROUT_MODULENAME = 13;	/* in CLASS_INITIALROUTINEOBJ */
-  const int meltfieldoff__OIROUT_PROLOG = 11;	/* in CLASS_INITIALROUTINEOBJ */
-  const int meltfieldoff__OIR_PROCROUTINE = 5;	/* in CLASS_OBJINITROUTINE */
-  const int meltfieldoff__OMALBLO_ALLSTRUCT = 3;	/* in CLASS_OBJMULTIALLOCBLOCK */
-  const int meltfieldoff__OMALBLO_NAME = 4;	/* in CLASS_OBJMULTIALLOCBLOCK */
-  const int meltfieldoff__OMCHFLGBLO_FLAGS = 3;	/* in CLASS_OBJMATCHFLAGBLOCK */
-  const int meltfieldoff__OMULBLO_SUBCOMP = 3;	/* in CLASS_OBJMULTIBLOCK */
-  const int meltfieldoff__OPCLOR_CLOS = 1;	/* in CLASS_OBJPUTCLOSUROUT */
-  const int meltfieldoff__OPCLOR_ROUT = 2;	/* in CLASS_OBJPUTCLOSUROUT */
-  const int meltfieldoff__OPCLOV_CLOS = 1;	/* in CLASS_OBJPUTCLOSEDV */
-  const int meltfieldoff__OPCLOV_CVAL = 3;	/* in CLASS_OBJPUTCLOSEDV */
-  const int meltfieldoff__OPCLOV_OFF = 2;	/* in CLASS_OBJPUTCLOSEDV */
-  const int meltfieldoff__OPRCONST_CVAL = 3;	/* in CLASS_OBJPUTROUTCONST */
-  const int meltfieldoff__OPRCONST_OFF = 2;	/* in CLASS_OBJPUTROUTCONST */
-  const int meltfieldoff__OPRCONST_ROUT = 1;	/* in CLASS_OBJPUTROUTCONST */
-  const int meltfieldoff__OPROUT_FILENUM = 14;	/* in CLASS_PROCROUTINEOBJ */
-  const int meltfieldoff__OPROUT_FUNAM = 12;	/* in CLASS_PROCROUTINEOBJ */
-  const int meltfieldoff__OPROUT_GETARGS = 10;	/* in CLASS_PROCROUTINEOBJ */
-  const int meltfieldoff__OPROUT_LOC = 11;	/* in CLASS_PROCROUTINEOBJ */
-  const int meltfieldoff__OPROUT_RESTNAM = 13;	/* in CLASS_PROCROUTINEOBJ */
-  const int meltfieldoff__OPUTL_FIRST = 2;	/* in CLASS_OBJPUTLIST */
-  const int meltfieldoff__OPUTL_LAST = 3;	/* in CLASS_OBJPUTLIST */
-  const int meltfieldoff__OPUTL_LIST = 1;	/* in CLASS_OBJPUTLIST */
-  const int meltfieldoff__OPUTP_HEAD = 2;	/* in CLASS_OBJPUTPAIRHEAD */
-  const int meltfieldoff__OPUTP_PAIR = 1;	/* in CLASS_OBJPUTPAIR */
-  const int meltfieldoff__OPUTP_TAIL = 2;	/* in CLASS_OBJPUTPAIRTAIL */
-  const int meltfieldoff__OPUTU_OFFSET = 2;	/* in CLASS_OBJPUTUPLE */
-  const int meltfieldoff__OPUTU_TUPLED = 1;	/* in CLASS_OBJPUTUPLE */
-  const int meltfieldoff__OPUTU_VALUE = 3;	/* in CLASS_OBJPUTUPLE */
-  const int meltfieldoff__OSLOT_FIELD = 3;	/* in CLASS_OBJPUTSLOT */
-  const int meltfieldoff__OSLOT_ODATA = 1;	/* in CLASS_OBJPUTSLOT */
-  const int meltfieldoff__OSLOT_OFFSET = 2;	/* in CLASS_OBJPUTSLOT */
-  const int meltfieldoff__OSLOT_VALUE = 4;	/* in CLASS_OBJPUTSLOT */
-  const int meltfieldoff__OSPR_OBJECT = 1;	/* in CLASS_OBJSETPREDEF */
-  const int meltfieldoff__OSPR_PREDEF = 2;	/* in CLASS_OBJSETPREDEF */
-  const int meltfieldoff__OTOUCH_COMMENT = 2;	/* in CLASS_OBJTOUCH */
-  const int meltfieldoff__OTOUCH_VAL = 1;	/* in CLASS_OBJTOUCH */
-  const int meltfieldoff__TCX_FREELIST = 2;	/* in CLASS_TESTERCOMPILCONTEXT */
-  const int meltfieldoff__TCX_NEXTEST = 3;	/* in CLASS_TESTERCOMPILCONTEXT */
-  const int meltfieldoff__TCX_NRMATCH = 1;	/* in CLASS_TESTERCOMPILCONTEXT */
+MELT_EXTERN const int meltfieldoff__ALTMATCHN_DATAMAP;
+const int meltfieldoff__ALTMATCHN_DATAMAP = 3;	/* in CLASS_ALTERNATE_MATCH_NREP_DATA */
+MELT_EXTERN const int meltfieldoff__ALTMATCHN_FLAGMAP;
+const int meltfieldoff__ALTMATCHN_FLAGMAP = 2;	/* in CLASS_ALTERNATE_MATCH_NREP_DATA */
+MELT_EXTERN const int meltfieldoff__ALTMATCHN_NREP;
+const int meltfieldoff__ALTMATCHN_NREP = 1;	/* in CLASS_ALTERNATE_MATCH_NREP_DATA */
+MELT_EXTERN const int meltfieldoff__ALTMATCHN_PREV;
+const int meltfieldoff__ALTMATCHN_PREV = 0;	/* in CLASS_ALTERNATE_MATCH_NREP_DATA */
+MELT_EXTERN const int meltfieldoff__MCX_GOTOELSE;
+const int meltfieldoff__MCX_GOTOELSE = 4;	/* in CLASS_MATCHCOMPILCONTEXT */
+MELT_EXTERN const int meltfieldoff__MCX_GOTOTHEN;
+const int meltfieldoff__MCX_GOTOTHEN = 3;	/* in CLASS_MATCHCOMPILCONTEXT */
+MELT_EXTERN const int meltfieldoff__MCX_LOC;
+const int meltfieldoff__MCX_LOC = 1;	/* in CLASS_MATCHCOMPILCONTEXT */
+MELT_EXTERN const int meltfieldoff__MCX_NORMTESTER;
+const int meltfieldoff__MCX_NORMTESTER = 2;	/* in CLASS_MATCHCOMPILCONTEXT */
+MELT_EXTERN const int meltfieldoff__MCX_OLIST;
+const int meltfieldoff__MCX_OLIST = 5;	/* in CLASS_MATCHCOMPILCONTEXT */
+MELT_EXTERN const int meltfieldoff__MCX_STATECOUNTER;
+const int meltfieldoff__MCX_STATECOUNTER = 7;	/* in CLASS_MATCHCOMPILCONTEXT */
+MELT_EXTERN const int meltfieldoff__MCX_SUFFIX;
+const int meltfieldoff__MCX_SUFFIX = 6;	/* in CLASS_MATCHCOMPILCONTEXT */
+MELT_EXTERN const int meltfieldoff__OBAGAIN_LABEL;
+const int meltfieldoff__OBAGAIN_LABEL = 1;	/* in CLASS_OBJAGAIN */
+MELT_EXTERN const int meltfieldoff__OBAPP_ARGS;
+const int meltfieldoff__OBAPP_ARGS = 3;	/* in CLASS_OBJAPPLY */
+MELT_EXTERN const int meltfieldoff__OBAPP_CLOS;
+const int meltfieldoff__OBAPP_CLOS = 2;	/* in CLASS_OBJAPPLY */
+MELT_EXTERN const int meltfieldoff__OBARG_BIND;
+const int meltfieldoff__OBARG_BIND = 2;	/* in CLASS_OBJGETARG */
+MELT_EXTERN const int meltfieldoff__OBARG_OBLOC;
+const int meltfieldoff__OBARG_OBLOC = 1;	/* in CLASS_OBJGETARG */
+MELT_EXTERN const int meltfieldoff__OBARG_REST;
+const int meltfieldoff__OBARG_REST = 3;	/* in CLASS_OBJGETARGREST */
+MELT_EXTERN const int meltfieldoff__OBCITER_AFTER;
+const int meltfieldoff__OBCITER_AFTER = 5;	/* in CLASS_OBJCITERBLOCK */
+MELT_EXTERN const int meltfieldoff__OBCITER_BEFORE;
+const int meltfieldoff__OBCITER_BEFORE = 4;	/* in CLASS_OBJCITERBLOCK */
+MELT_EXTERN const int meltfieldoff__OBCITER_CITER;
+const int meltfieldoff__OBCITER_CITER = 3;	/* in CLASS_OBJCITERBLOCK */
+MELT_EXTERN const int meltfieldoff__OBCI_COMMENT;
+const int meltfieldoff__OBCI_COMMENT = 1;	/* in CLASS_OBJCOMMENTINSTR */
+MELT_EXTERN const int meltfieldoff__OBCOND_ELSE;
+const int meltfieldoff__OBCOND_ELSE = 3;	/* in CLASS_OBJCOND */
+MELT_EXTERN const int meltfieldoff__OBCOND_TEST;
+const int meltfieldoff__OBCOND_TEST = 1;	/* in CLASS_OBJCOND */
+MELT_EXTERN const int meltfieldoff__OBCOND_THEN;
+const int meltfieldoff__OBCOND_THEN = 2;	/* in CLASS_OBJCOND */
+MELT_EXTERN const int meltfieldoff__OBCPT_EXPR;
+const int meltfieldoff__OBCPT_EXPR = 2;	/* in CLASS_OBJCOMPUTE */
+MELT_EXTERN const int meltfieldoff__OBCPT_TYPE;
+const int meltfieldoff__OBCPT_TYPE = 3;	/* in CLASS_OBJCOMPUTE */
+MELT_EXTERN const int meltfieldoff__OBCX_LOC;
+const int meltfieldoff__OBCX_LOC = 2;	/* in CLASS_OBJLOCATEDEXPV */
+MELT_EXTERN const int meltfieldoff__OBC_NAME;
+const int meltfieldoff__OBC_NAME = 3;	/* in CLASS_OBJCLOCCV */
+MELT_EXTERN const int meltfieldoff__OBC_OFF;
+const int meltfieldoff__OBC_OFF = 1;	/* in CLASS_OBJCLOCCV */
+MELT_EXTERN const int meltfieldoff__OBC_PROC;
+const int meltfieldoff__OBC_PROC = 2;	/* in CLASS_OBJCLOCCV */
+MELT_EXTERN const int meltfieldoff__OBDI_DESTLIST;
+const int meltfieldoff__OBDI_DESTLIST = 1;	/* in CLASS_OBJDESTINSTR */
+MELT_EXTERN const int meltfieldoff__OBEXIT_LABEL;
+const int meltfieldoff__OBEXIT_LABEL = 1;	/* in CLASS_OBJEXIT */
+MELT_EXTERN const int meltfieldoff__OBGNAMED_IOBJ;
+const int meltfieldoff__OBGNAMED_IOBJ = 1;	/* in CLASS_OBJGETNAMEDCOMMON */
+MELT_EXTERN const int meltfieldoff__OBGOTO_PREFIX;
+const int meltfieldoff__OBGOTO_PREFIX = 1;	/* in CLASS_OBJGOTOINSTR */
+MELT_EXTERN const int meltfieldoff__OBGOTO_RANK;
+const int meltfieldoff__OBGOTO_RANK = 2;	/* in CLASS_OBJGOTOINSTR */
+MELT_EXTERN const int meltfieldoff__OBIFP_COND;
+const int meltfieldoff__OBIFP_COND = 1;	/* in CLASS_OBJCPPIF */
+MELT_EXTERN const int meltfieldoff__OBIFP_ELSE;
+const int meltfieldoff__OBIFP_ELSE = 3;	/* in CLASS_OBJCPPIF */
+MELT_EXTERN const int meltfieldoff__OBIFP_THEN;
+const int meltfieldoff__OBIFP_THEN = 2;	/* in CLASS_OBJCPPIF */
+MELT_EXTERN const int meltfieldoff__OBINTERN_IOBJ;
+const int meltfieldoff__OBINTERN_IOBJ = 1;	/* in CLASS_OBJINTERNCOMMON */
+MELT_EXTERN const int meltfieldoff__OBI_LOC;
+const int meltfieldoff__OBI_LOC = 0;	/* in CLASS_OBJINSTR */
+MELT_EXTERN const int meltfieldoff__OBLAB_PREFIX;
+const int meltfieldoff__OBLAB_PREFIX = 1;	/* in CLASS_OBJLABELINSTR */
+MELT_EXTERN const int meltfieldoff__OBLAB_RANK;
+const int meltfieldoff__OBLAB_RANK = 2;	/* in CLASS_OBJLABELINSTR */
+MELT_EXTERN const int meltfieldoff__OBLOOP_LABEL;
+const int meltfieldoff__OBLOOP_LABEL = 3;	/* in CLASS_OBJLOOP */
+MELT_EXTERN const int meltfieldoff__OBLOOP_RESV;
+const int meltfieldoff__OBLOOP_RESV = 4;	/* in CLASS_OBJLOOP */
+MELT_EXTERN const int meltfieldoff__OBLO_BODYL;
+const int meltfieldoff__OBLO_BODYL = 1;	/* in CLASS_OBJANYBLOCK */
+MELT_EXTERN const int meltfieldoff__OBLO_EPIL;
+const int meltfieldoff__OBLO_EPIL = 2;	/* in CLASS_OBJANYBLOCK */
+MELT_EXTERN const int meltfieldoff__OBL_CNAME;
+const int meltfieldoff__OBL_CNAME = 3;	/* in CLASS_OBJLOCV */
+MELT_EXTERN const int meltfieldoff__OBL_OFF;
+const int meltfieldoff__OBL_OFF = 1;	/* in CLASS_OBJLOCV */
+MELT_EXTERN const int meltfieldoff__OBL_PROC;
+const int meltfieldoff__OBL_PROC = 2;	/* in CLASS_OBJLOCV */
+MELT_EXTERN const int meltfieldoff__OBMSND_ARGS;
+const int meltfieldoff__OBMSND_ARGS = 4;	/* in CLASS_OBJMSEND */
+MELT_EXTERN const int meltfieldoff__OBMSND_RECV;
+const int meltfieldoff__OBMSND_RECV = 3;	/* in CLASS_OBJMSEND */
+MELT_EXTERN const int meltfieldoff__OBMSND_SEL;
+const int meltfieldoff__OBMSND_SEL = 2;	/* in CLASS_OBJMSEND */
+MELT_EXTERN const int meltfieldoff__OBMULTAPP_XRES;
+const int meltfieldoff__OBMULTAPP_XRES = 4;	/* in CLASS_OBJMULTIAPPLY */
+MELT_EXTERN const int meltfieldoff__OBMULTSND_XRES;
+const int meltfieldoff__OBMULTSND_XRES = 5;	/* in CLASS_OBJMULTIMSEND */
+MELT_EXTERN const int meltfieldoff__OBNCLO_DISCR;
+const int meltfieldoff__OBNCLO_DISCR = 2;	/* in CLASS_OBJNEWCLOSURE */
+MELT_EXTERN const int meltfieldoff__OBNCLO_LEN;
+const int meltfieldoff__OBNCLO_LEN = 4;	/* in CLASS_OBJNEWCLOSURE */
+MELT_EXTERN const int meltfieldoff__OBNCLO_ROUT;
+const int meltfieldoff__OBNCLO_ROUT = 3;	/* in CLASS_OBJNEWCLOSURE */
+MELT_EXTERN const int meltfieldoff__OBPREDEF;
+const int meltfieldoff__OBPREDEF = 1;	/* in CLASS_OBJPREDEF */
+MELT_EXTERN const int meltfieldoff__OBRALLOBJ_CLASS;
+const int meltfieldoff__OBRALLOBJ_CLASS = 2;	/* in CLASS_OBJRAWALLOCOBJ */
+MELT_EXTERN const int meltfieldoff__OBRALLOBJ_CLASSNAME;
+const int meltfieldoff__OBRALLOBJ_CLASSNAME = 4;	/* in CLASS_OBJRAWALLOCOBJ */
+MELT_EXTERN const int meltfieldoff__OBRALLOBJ_LEN;
+const int meltfieldoff__OBRALLOBJ_LEN = 3;	/* in CLASS_OBJRAWALLOCOBJ */
+MELT_EXTERN const int meltfieldoff__OBROUT_BODY;
+const int meltfieldoff__OBROUT_BODY = 3;	/* in CLASS_ROUTINEOBJ */
+MELT_EXTERN const int meltfieldoff__OBROUT_CNTCITER;
+const int meltfieldoff__OBROUT_CNTCITER = 8;	/* in CLASS_ROUTINEOBJ */
+MELT_EXTERN const int meltfieldoff__OBROUT_CNTLETREC;
+const int meltfieldoff__OBROUT_CNTLETREC = 9;	/* in CLASS_ROUTINEOBJ */
+MELT_EXTERN const int meltfieldoff__OBROUT_NBLONG;
+const int meltfieldoff__OBROUT_NBLONG = 5;	/* in CLASS_ROUTINEOBJ */
+MELT_EXTERN const int meltfieldoff__OBROUT_NBVAL;
+const int meltfieldoff__OBROUT_NBVAL = 4;	/* in CLASS_ROUTINEOBJ */
+MELT_EXTERN const int meltfieldoff__OBROUT_OTHERS;
+const int meltfieldoff__OBROUT_OTHERS = 6;	/* in CLASS_ROUTINEOBJ */
+MELT_EXTERN const int meltfieldoff__OBROUT_PROC;
+const int meltfieldoff__OBROUT_PROC = 2;	/* in CLASS_ROUTINEOBJ */
+MELT_EXTERN const int meltfieldoff__OBROUT_RETVAL;
+const int meltfieldoff__OBROUT_RETVAL = 7;	/* in CLASS_ROUTINEOBJ */
+MELT_EXTERN const int meltfieldoff__OBV_TYPE;
+const int meltfieldoff__OBV_TYPE = 0;	/* in CLASS_OBJVALUE */
+MELT_EXTERN const int meltfieldoff__OBXRES_OBLOC;
+const int meltfieldoff__OBXRES_OBLOC = 2;	/* in CLASS_OBJPUTXTRARESULT */
+MELT_EXTERN const int meltfieldoff__OBXRES_RANK;
+const int meltfieldoff__OBXRES_RANK = 1;	/* in CLASS_OBJPUTXTRARESULT */
+MELT_EXTERN const int meltfieldoff__OBX_CONT;
+const int meltfieldoff__OBX_CONT = 1;	/* in CLASS_OBJEXPV */
+MELT_EXTERN const int meltfieldoff__OCLR_VLOC;
+const int meltfieldoff__OCLR_VLOC = 1;	/* in CLASS_OBJCLEAR */
+MELT_EXTERN const int meltfieldoff__OCOMBLO_COMMENT;
+const int meltfieldoff__OCOMBLO_COMMENT = 3;	/* in CLASS_OBJCOMMENTEDBLOCK */
+MELT_EXTERN const int meltfieldoff__OGETSL_FIELD;
+const int meltfieldoff__OGETSL_FIELD = 3;	/* in CLASS_OBJGETSLOT */
+MELT_EXTERN const int meltfieldoff__OGETSL_OBJ;
+const int meltfieldoff__OGETSL_OBJ = 2;	/* in CLASS_OBJGETSLOT */
+MELT_EXTERN const int meltfieldoff__OICLO_ROUT;
+const int meltfieldoff__OICLO_ROUT = 5;	/* in CLASS_OBJINITCLOSURE */
+MELT_EXTERN const int meltfieldoff__OIE_CNAME;
+const int meltfieldoff__OIE_CNAME = 1;	/* in CLASS_OBJINITELEM */
+MELT_EXTERN const int meltfieldoff__OIE_DATA;
+const int meltfieldoff__OIE_DATA = 2;	/* in CLASS_OBJINITELEM */
+MELT_EXTERN const int meltfieldoff__OIE_DISCR;
+const int meltfieldoff__OIE_DISCR = 3;	/* in CLASS_OBJINITELEM */
+MELT_EXTERN const int meltfieldoff__OIE_LOCVAR;
+const int meltfieldoff__OIE_LOCVAR = 4;	/* in CLASS_OBJINITELEM */
+MELT_EXTERN const int meltfieldoff__OIM_TUPVAL;
+const int meltfieldoff__OIM_TUPVAL = 5;	/* in CLASS_OBJINITMULTIPLE */
+MELT_EXTERN const int meltfieldoff__OIO_CLASS;
+const int meltfieldoff__OIO_CLASS = 6;	/* in CLASS_OBJINITOBJECT */
+MELT_EXTERN const int meltfieldoff__OIO_PREDEF;
+const int meltfieldoff__OIO_PREDEF = 5;	/* in CLASS_OBJINITOBJECT */
+MELT_EXTERN const int meltfieldoff__OIROUT_DATA;
+const int meltfieldoff__OIROUT_DATA = 10;	/* in CLASS_INITIALROUTINEOBJ */
+MELT_EXTERN const int meltfieldoff__OIROUT_FILL;
+const int meltfieldoff__OIROUT_FILL = 12;	/* in CLASS_INITIALROUTINEOBJ */
+MELT_EXTERN const int meltfieldoff__OIROUT_MODULENAME;
+const int meltfieldoff__OIROUT_MODULENAME = 13;	/* in CLASS_INITIALROUTINEOBJ */
+MELT_EXTERN const int meltfieldoff__OIROUT_PROLOG;
+const int meltfieldoff__OIROUT_PROLOG = 11;	/* in CLASS_INITIALROUTINEOBJ */
+MELT_EXTERN const int meltfieldoff__OIR_PROCROUTINE;
+const int meltfieldoff__OIR_PROCROUTINE = 5;	/* in CLASS_OBJINITROUTINE */
+MELT_EXTERN const int meltfieldoff__OMALBLO_ALLSTRUCT;
+const int meltfieldoff__OMALBLO_ALLSTRUCT = 3;	/* in CLASS_OBJMULTIALLOCBLOCK */
+MELT_EXTERN const int meltfieldoff__OMALBLO_NAME;
+const int meltfieldoff__OMALBLO_NAME = 4;	/* in CLASS_OBJMULTIALLOCBLOCK */
+MELT_EXTERN const int meltfieldoff__OMCHFLGBLO_FLAGS;
+const int meltfieldoff__OMCHFLGBLO_FLAGS = 3;	/* in CLASS_OBJMATCHFLAGBLOCK */
+MELT_EXTERN const int meltfieldoff__OMULBLO_SUBCOMP;
+const int meltfieldoff__OMULBLO_SUBCOMP = 3;	/* in CLASS_OBJMULTIBLOCK */
+MELT_EXTERN const int meltfieldoff__OPCLOR_CLOS;
+const int meltfieldoff__OPCLOR_CLOS = 1;	/* in CLASS_OBJPUTCLOSUROUT */
+MELT_EXTERN const int meltfieldoff__OPCLOR_ROUT;
+const int meltfieldoff__OPCLOR_ROUT = 2;	/* in CLASS_OBJPUTCLOSUROUT */
+MELT_EXTERN const int meltfieldoff__OPCLOV_CLOS;
+const int meltfieldoff__OPCLOV_CLOS = 1;	/* in CLASS_OBJPUTCLOSEDV */
+MELT_EXTERN const int meltfieldoff__OPCLOV_CVAL;
+const int meltfieldoff__OPCLOV_CVAL = 3;	/* in CLASS_OBJPUTCLOSEDV */
+MELT_EXTERN const int meltfieldoff__OPCLOV_OFF;
+const int meltfieldoff__OPCLOV_OFF = 2;	/* in CLASS_OBJPUTCLOSEDV */
+MELT_EXTERN const int meltfieldoff__OPRCONST_CVAL;
+const int meltfieldoff__OPRCONST_CVAL = 3;	/* in CLASS_OBJPUTROUTCONST */
+MELT_EXTERN const int meltfieldoff__OPRCONST_OFF;
+const int meltfieldoff__OPRCONST_OFF = 2;	/* in CLASS_OBJPUTROUTCONST */
+MELT_EXTERN const int meltfieldoff__OPRCONST_ROUT;
+const int meltfieldoff__OPRCONST_ROUT = 1;	/* in CLASS_OBJPUTROUTCONST */
+MELT_EXTERN const int meltfieldoff__OPROUT_FILENUM;
+const int meltfieldoff__OPROUT_FILENUM = 14;	/* in CLASS_PROCROUTINEOBJ */
+MELT_EXTERN const int meltfieldoff__OPROUT_FUNAM;
+const int meltfieldoff__OPROUT_FUNAM = 12;	/* in CLASS_PROCROUTINEOBJ */
+MELT_EXTERN const int meltfieldoff__OPROUT_GETARGS;
+const int meltfieldoff__OPROUT_GETARGS = 10;	/* in CLASS_PROCROUTINEOBJ */
+MELT_EXTERN const int meltfieldoff__OPROUT_LOC;
+const int meltfieldoff__OPROUT_LOC = 11;	/* in CLASS_PROCROUTINEOBJ */
+MELT_EXTERN const int meltfieldoff__OPROUT_RESTNAM;
+const int meltfieldoff__OPROUT_RESTNAM = 13;	/* in CLASS_PROCROUTINEOBJ */
+MELT_EXTERN const int meltfieldoff__OPUTL_FIRST;
+const int meltfieldoff__OPUTL_FIRST = 2;	/* in CLASS_OBJPUTLIST */
+MELT_EXTERN const int meltfieldoff__OPUTL_LAST;
+const int meltfieldoff__OPUTL_LAST = 3;	/* in CLASS_OBJPUTLIST */
+MELT_EXTERN const int meltfieldoff__OPUTL_LIST;
+const int meltfieldoff__OPUTL_LIST = 1;	/* in CLASS_OBJPUTLIST */
+MELT_EXTERN const int meltfieldoff__OPUTP_HEAD;
+const int meltfieldoff__OPUTP_HEAD = 2;	/* in CLASS_OBJPUTPAIRHEAD */
+MELT_EXTERN const int meltfieldoff__OPUTP_PAIR;
+const int meltfieldoff__OPUTP_PAIR = 1;	/* in CLASS_OBJPUTPAIR */
+MELT_EXTERN const int meltfieldoff__OPUTP_TAIL;
+const int meltfieldoff__OPUTP_TAIL = 2;	/* in CLASS_OBJPUTPAIRTAIL */
+MELT_EXTERN const int meltfieldoff__OPUTU_OFFSET;
+const int meltfieldoff__OPUTU_OFFSET = 2;	/* in CLASS_OBJPUTUPLE */
+MELT_EXTERN const int meltfieldoff__OPUTU_TUPLED;
+const int meltfieldoff__OPUTU_TUPLED = 1;	/* in CLASS_OBJPUTUPLE */
+MELT_EXTERN const int meltfieldoff__OPUTU_VALUE;
+const int meltfieldoff__OPUTU_VALUE = 3;	/* in CLASS_OBJPUTUPLE */
+MELT_EXTERN const int meltfieldoff__OSLOT_FIELD;
+const int meltfieldoff__OSLOT_FIELD = 3;	/* in CLASS_OBJPUTSLOT */
+MELT_EXTERN const int meltfieldoff__OSLOT_ODATA;
+const int meltfieldoff__OSLOT_ODATA = 1;	/* in CLASS_OBJPUTSLOT */
+MELT_EXTERN const int meltfieldoff__OSLOT_OFFSET;
+const int meltfieldoff__OSLOT_OFFSET = 2;	/* in CLASS_OBJPUTSLOT */
+MELT_EXTERN const int meltfieldoff__OSLOT_VALUE;
+const int meltfieldoff__OSLOT_VALUE = 4;	/* in CLASS_OBJPUTSLOT */
+MELT_EXTERN const int meltfieldoff__OSPR_OBJECT;
+const int meltfieldoff__OSPR_OBJECT = 1;	/* in CLASS_OBJSETPREDEF */
+MELT_EXTERN const int meltfieldoff__OSPR_PREDEF;
+const int meltfieldoff__OSPR_PREDEF = 2;	/* in CLASS_OBJSETPREDEF */
+MELT_EXTERN const int meltfieldoff__OTOUCH_COMMENT;
+const int meltfieldoff__OTOUCH_COMMENT = 2;	/* in CLASS_OBJTOUCH */
+MELT_EXTERN const int meltfieldoff__OTOUCH_VAL;
+const int meltfieldoff__OTOUCH_VAL = 1;	/* in CLASS_OBJTOUCH */
+MELT_EXTERN const int meltfieldoff__TCX_FREELIST;
+const int meltfieldoff__TCX_FREELIST = 2;	/* in CLASS_TESTERCOMPILCONTEXT */
+MELT_EXTERN const int meltfieldoff__TCX_NEXTEST;
+const int meltfieldoff__TCX_NEXTEST = 3;	/* in CLASS_TESTERCOMPILCONTEXT */
+MELT_EXTERN const int meltfieldoff__TCX_NRMATCH;
+const int meltfieldoff__TCX_NRMATCH = 1;	/* in CLASS_TESTERCOMPILCONTEXT */
 
 /* exported 75 class lengths */
-  const int meltclasslen__CLASS_ALTERNATE_MATCH_NREP_DATA = 4;
-  const int meltclasslen__CLASS_INITIALROUTINEOBJ = 14;
-  const int meltclasslen__CLASS_MATCHCOMPILCONTEXT = 8;
-  const int meltclasslen__CLASS_OBJAGAIN = 2;
-  const int meltclasslen__CLASS_OBJANYBLOCK = 3;
-  const int meltclasslen__CLASS_OBJAPPLY = 4;
-  const int meltclasslen__CLASS_OBJCHECKSIGNAL = 1;
-  const int meltclasslen__CLASS_OBJCITERBLOCK = 6;
-  const int meltclasslen__CLASS_OBJCLEAR = 2;
-  const int meltclasslen__CLASS_OBJCLOCCV = 4;
-  const int meltclasslen__CLASS_OBJCOMMENTEDBLOCK = 4;
-  const int meltclasslen__CLASS_OBJCOMMENTINSTR = 2;
-  const int meltclasslen__CLASS_OBJCOMPUTE = 4;
-  const int meltclasslen__CLASS_OBJCOND = 4;
-  const int meltclasslen__CLASS_OBJCONSTV = 4;
-  const int meltclasslen__CLASS_OBJCPPIF = 4;
-  const int meltclasslen__CLASS_OBJDESTINSTR = 2;
-  const int meltclasslen__CLASS_OBJEXIT = 2;
-  const int meltclasslen__CLASS_OBJEXPV = 2;
-  const int meltclasslen__CLASS_OBJFINALRETURN = 1;
-  const int meltclasslen__CLASS_OBJGETARG = 3;
-  const int meltclasslen__CLASS_OBJGETARGREST = 4;
-  const int meltclasslen__CLASS_OBJGETNAMEDCOMMON = 2;
-  const int meltclasslen__CLASS_OBJGETNAMEDKEYWORD = 2;
-  const int meltclasslen__CLASS_OBJGETNAMEDSYMBOL = 2;
-  const int meltclasslen__CLASS_OBJGETSLOT = 4;
-  const int meltclasslen__CLASS_OBJGOTOINSTR = 3;
-  const int meltclasslen__CLASS_OBJINITBOXINTEGER = 5;
-  const int meltclasslen__CLASS_OBJINITCLOSURE = 6;
-  const int meltclasslen__CLASS_OBJINITELEM = 5;
-  const int meltclasslen__CLASS_OBJINITLIST = 5;
-  const int meltclasslen__CLASS_OBJINITMULTIPLE = 6;
-  const int meltclasslen__CLASS_OBJINITOBJECT = 7;
-  const int meltclasslen__CLASS_OBJINITPAIR = 5;
-  const int meltclasslen__CLASS_OBJINITROUTINE = 6;
-  const int meltclasslen__CLASS_OBJINITSTRING = 5;
-  const int meltclasslen__CLASS_OBJINITUNIQUEOBJECT = 7;
-  const int meltclasslen__CLASS_OBJINSTR = 1;
-  const int meltclasslen__CLASS_OBJINTERNCOMMON = 2;
-  const int meltclasslen__CLASS_OBJINTERNKEYWORD = 2;
-  const int meltclasslen__CLASS_OBJINTERNSYMBOL = 2;
-  const int meltclasslen__CLASS_OBJLABELINSTR = 3;
-  const int meltclasslen__CLASS_OBJLOCATEDEXPV = 3;
-  const int meltclasslen__CLASS_OBJLOCV = 4;
-  const int meltclasslen__CLASS_OBJLOOP = 5;
-  const int meltclasslen__CLASS_OBJMATCHFLAGBLOCK = 4;
-  const int meltclasslen__CLASS_OBJMSEND = 5;
-  const int meltclasslen__CLASS_OBJMULTIALLOCBLOCK = 5;
-  const int meltclasslen__CLASS_OBJMULTIAPPLY = 5;
-  const int meltclasslen__CLASS_OBJMULTIBLOCK = 4;
-  const int meltclasslen__CLASS_OBJMULTIMSEND = 6;
-  const int meltclasslen__CLASS_OBJNEWCLOSURE = 5;
-  const int meltclasslen__CLASS_OBJNIL = 1;
-  const int meltclasslen__CLASS_OBJPLAINBLOCK = 3;
-  const int meltclasslen__CLASS_OBJPREDEF = 2;
-  const int meltclasslen__CLASS_OBJPUREVALUE = 1;
-  const int meltclasslen__CLASS_OBJPUTCLOSEDNOTNULLV = 4;
-  const int meltclasslen__CLASS_OBJPUTCLOSEDV = 4;
-  const int meltclasslen__CLASS_OBJPUTCLOSUROUT = 3;
-  const int meltclasslen__CLASS_OBJPUTLIST = 4;
-  const int meltclasslen__CLASS_OBJPUTPAIR = 2;
-  const int meltclasslen__CLASS_OBJPUTPAIRHEAD = 3;
-  const int meltclasslen__CLASS_OBJPUTPAIRTAIL = 3;
-  const int meltclasslen__CLASS_OBJPUTROUTCONST = 4;
-  const int meltclasslen__CLASS_OBJPUTROUTCONSTNOTNULL = 4;
-  const int meltclasslen__CLASS_OBJPUTSLOT = 5;
-  const int meltclasslen__CLASS_OBJPUTUPLE = 4;
-  const int meltclasslen__CLASS_OBJPUTXTRARESULT = 3;
-  const int meltclasslen__CLASS_OBJRAWALLOCOBJ = 5;
-  const int meltclasslen__CLASS_OBJSETPREDEF = 3;
-  const int meltclasslen__CLASS_OBJTOUCH = 3;
-  const int meltclasslen__CLASS_OBJVALUE = 1;
-  const int meltclasslen__CLASS_PROCROUTINEOBJ = 15;
-  const int meltclasslen__CLASS_ROUTINEOBJ = 10;
-  const int meltclasslen__CLASS_TESTERCOMPILCONTEXT = 4;
-
-#ifdef __cplusplus
-};				/* end extern "C" */
-#endif /*__cplusplus*/
+MELT_EXTERN const int meltclasslen__CLASS_ALTERNATE_MATCH_NREP_DATA;
+const int meltclasslen__CLASS_ALTERNATE_MATCH_NREP_DATA = 4;
+MELT_EXTERN const int meltclasslen__CLASS_INITIALROUTINEOBJ;
+const int meltclasslen__CLASS_INITIALROUTINEOBJ = 14;
+MELT_EXTERN const int meltclasslen__CLASS_MATCHCOMPILCONTEXT;
+const int meltclasslen__CLASS_MATCHCOMPILCONTEXT = 8;
+MELT_EXTERN const int meltclasslen__CLASS_OBJAGAIN;
+const int meltclasslen__CLASS_OBJAGAIN = 2;
+MELT_EXTERN const int meltclasslen__CLASS_OBJANYBLOCK;
+const int meltclasslen__CLASS_OBJANYBLOCK = 3;
+MELT_EXTERN const int meltclasslen__CLASS_OBJAPPLY;
+const int meltclasslen__CLASS_OBJAPPLY = 4;
+MELT_EXTERN const int meltclasslen__CLASS_OBJCHECKSIGNAL;
+const int meltclasslen__CLASS_OBJCHECKSIGNAL = 1;
+MELT_EXTERN const int meltclasslen__CLASS_OBJCITERBLOCK;
+const int meltclasslen__CLASS_OBJCITERBLOCK = 6;
+MELT_EXTERN const int meltclasslen__CLASS_OBJCLEAR;
+const int meltclasslen__CLASS_OBJCLEAR = 2;
+MELT_EXTERN const int meltclasslen__CLASS_OBJCLOCCV;
+const int meltclasslen__CLASS_OBJCLOCCV = 4;
+MELT_EXTERN const int meltclasslen__CLASS_OBJCOMMENTEDBLOCK;
+const int meltclasslen__CLASS_OBJCOMMENTEDBLOCK = 4;
+MELT_EXTERN const int meltclasslen__CLASS_OBJCOMMENTINSTR;
+const int meltclasslen__CLASS_OBJCOMMENTINSTR = 2;
+MELT_EXTERN const int meltclasslen__CLASS_OBJCOMPUTE;
+const int meltclasslen__CLASS_OBJCOMPUTE = 4;
+MELT_EXTERN const int meltclasslen__CLASS_OBJCOND;
+const int meltclasslen__CLASS_OBJCOND = 4;
+MELT_EXTERN const int meltclasslen__CLASS_OBJCONSTV;
+const int meltclasslen__CLASS_OBJCONSTV = 4;
+MELT_EXTERN const int meltclasslen__CLASS_OBJCPPIF;
+const int meltclasslen__CLASS_OBJCPPIF = 4;
+MELT_EXTERN const int meltclasslen__CLASS_OBJDESTINSTR;
+const int meltclasslen__CLASS_OBJDESTINSTR = 2;
+MELT_EXTERN const int meltclasslen__CLASS_OBJEXIT;
+const int meltclasslen__CLASS_OBJEXIT = 2;
+MELT_EXTERN const int meltclasslen__CLASS_OBJEXPV;
+const int meltclasslen__CLASS_OBJEXPV = 2;
+MELT_EXTERN const int meltclasslen__CLASS_OBJFINALRETURN;
+const int meltclasslen__CLASS_OBJFINALRETURN = 1;
+MELT_EXTERN const int meltclasslen__CLASS_OBJGETARG;
+const int meltclasslen__CLASS_OBJGETARG = 3;
+MELT_EXTERN const int meltclasslen__CLASS_OBJGETARGREST;
+const int meltclasslen__CLASS_OBJGETARGREST = 4;
+MELT_EXTERN const int meltclasslen__CLASS_OBJGETNAMEDCOMMON;
+const int meltclasslen__CLASS_OBJGETNAMEDCOMMON = 2;
+MELT_EXTERN const int meltclasslen__CLASS_OBJGETNAMEDKEYWORD;
+const int meltclasslen__CLASS_OBJGETNAMEDKEYWORD = 2;
+MELT_EXTERN const int meltclasslen__CLASS_OBJGETNAMEDSYMBOL;
+const int meltclasslen__CLASS_OBJGETNAMEDSYMBOL = 2;
+MELT_EXTERN const int meltclasslen__CLASS_OBJGETSLOT;
+const int meltclasslen__CLASS_OBJGETSLOT = 4;
+MELT_EXTERN const int meltclasslen__CLASS_OBJGOTOINSTR;
+const int meltclasslen__CLASS_OBJGOTOINSTR = 3;
+MELT_EXTERN const int meltclasslen__CLASS_OBJINITBOXINTEGER;
+const int meltclasslen__CLASS_OBJINITBOXINTEGER = 5;
+MELT_EXTERN const int meltclasslen__CLASS_OBJINITCLOSURE;
+const int meltclasslen__CLASS_OBJINITCLOSURE = 6;
+MELT_EXTERN const int meltclasslen__CLASS_OBJINITELEM;
+const int meltclasslen__CLASS_OBJINITELEM = 5;
+MELT_EXTERN const int meltclasslen__CLASS_OBJINITLIST;
+const int meltclasslen__CLASS_OBJINITLIST = 5;
+MELT_EXTERN const int meltclasslen__CLASS_OBJINITMULTIPLE;
+const int meltclasslen__CLASS_OBJINITMULTIPLE = 6;
+MELT_EXTERN const int meltclasslen__CLASS_OBJINITOBJECT;
+const int meltclasslen__CLASS_OBJINITOBJECT = 7;
+MELT_EXTERN const int meltclasslen__CLASS_OBJINITPAIR;
+const int meltclasslen__CLASS_OBJINITPAIR = 5;
+MELT_EXTERN const int meltclasslen__CLASS_OBJINITROUTINE;
+const int meltclasslen__CLASS_OBJINITROUTINE = 6;
+MELT_EXTERN const int meltclasslen__CLASS_OBJINITSTRING;
+const int meltclasslen__CLASS_OBJINITSTRING = 5;
+MELT_EXTERN const int meltclasslen__CLASS_OBJINITUNIQUEOBJECT;
+const int meltclasslen__CLASS_OBJINITUNIQUEOBJECT = 7;
+MELT_EXTERN const int meltclasslen__CLASS_OBJINSTR;
+const int meltclasslen__CLASS_OBJINSTR = 1;
+MELT_EXTERN const int meltclasslen__CLASS_OBJINTERNCOMMON;
+const int meltclasslen__CLASS_OBJINTERNCOMMON = 2;
+MELT_EXTERN const int meltclasslen__CLASS_OBJINTERNKEYWORD;
+const int meltclasslen__CLASS_OBJINTERNKEYWORD = 2;
+MELT_EXTERN const int meltclasslen__CLASS_OBJINTERNSYMBOL;
+const int meltclasslen__CLASS_OBJINTERNSYMBOL = 2;
+MELT_EXTERN const int meltclasslen__CLASS_OBJLABELINSTR;
+const int meltclasslen__CLASS_OBJLABELINSTR = 3;
+MELT_EXTERN const int meltclasslen__CLASS_OBJLOCATEDEXPV;
+const int meltclasslen__CLASS_OBJLOCATEDEXPV = 3;
+MELT_EXTERN const int meltclasslen__CLASS_OBJLOCV;
+const int meltclasslen__CLASS_OBJLOCV = 4;
+MELT_EXTERN const int meltclasslen__CLASS_OBJLOOP;
+const int meltclasslen__CLASS_OBJLOOP = 5;
+MELT_EXTERN const int meltclasslen__CLASS_OBJMATCHFLAGBLOCK;
+const int meltclasslen__CLASS_OBJMATCHFLAGBLOCK = 4;
+MELT_EXTERN const int meltclasslen__CLASS_OBJMSEND;
+const int meltclasslen__CLASS_OBJMSEND = 5;
+MELT_EXTERN const int meltclasslen__CLASS_OBJMULTIALLOCBLOCK;
+const int meltclasslen__CLASS_OBJMULTIALLOCBLOCK = 5;
+MELT_EXTERN const int meltclasslen__CLASS_OBJMULTIAPPLY;
+const int meltclasslen__CLASS_OBJMULTIAPPLY = 5;
+MELT_EXTERN const int meltclasslen__CLASS_OBJMULTIBLOCK;
+const int meltclasslen__CLASS_OBJMULTIBLOCK = 4;
+MELT_EXTERN const int meltclasslen__CLASS_OBJMULTIMSEND;
+const int meltclasslen__CLASS_OBJMULTIMSEND = 6;
+MELT_EXTERN const int meltclasslen__CLASS_OBJNEWCLOSURE;
+const int meltclasslen__CLASS_OBJNEWCLOSURE = 5;
+MELT_EXTERN const int meltclasslen__CLASS_OBJNIL;
+const int meltclasslen__CLASS_OBJNIL = 1;
+MELT_EXTERN const int meltclasslen__CLASS_OBJPLAINBLOCK;
+const int meltclasslen__CLASS_OBJPLAINBLOCK = 3;
+MELT_EXTERN const int meltclasslen__CLASS_OBJPREDEF;
+const int meltclasslen__CLASS_OBJPREDEF = 2;
+MELT_EXTERN const int meltclasslen__CLASS_OBJPUREVALUE;
+const int meltclasslen__CLASS_OBJPUREVALUE = 1;
+MELT_EXTERN const int meltclasslen__CLASS_OBJPUTCLOSEDNOTNULLV;
+const int meltclasslen__CLASS_OBJPUTCLOSEDNOTNULLV = 4;
+MELT_EXTERN const int meltclasslen__CLASS_OBJPUTCLOSEDV;
+const int meltclasslen__CLASS_OBJPUTCLOSEDV = 4;
+MELT_EXTERN const int meltclasslen__CLASS_OBJPUTCLOSUROUT;
+const int meltclasslen__CLASS_OBJPUTCLOSUROUT = 3;
+MELT_EXTERN const int meltclasslen__CLASS_OBJPUTLIST;
+const int meltclasslen__CLASS_OBJPUTLIST = 4;
+MELT_EXTERN const int meltclasslen__CLASS_OBJPUTPAIR;
+const int meltclasslen__CLASS_OBJPUTPAIR = 2;
+MELT_EXTERN const int meltclasslen__CLASS_OBJPUTPAIRHEAD;
+const int meltclasslen__CLASS_OBJPUTPAIRHEAD = 3;
+MELT_EXTERN const int meltclasslen__CLASS_OBJPUTPAIRTAIL;
+const int meltclasslen__CLASS_OBJPUTPAIRTAIL = 3;
+MELT_EXTERN const int meltclasslen__CLASS_OBJPUTROUTCONST;
+const int meltclasslen__CLASS_OBJPUTROUTCONST = 4;
+MELT_EXTERN const int meltclasslen__CLASS_OBJPUTROUTCONSTNOTNULL;
+const int meltclasslen__CLASS_OBJPUTROUTCONSTNOTNULL = 4;
+MELT_EXTERN const int meltclasslen__CLASS_OBJPUTSLOT;
+const int meltclasslen__CLASS_OBJPUTSLOT = 5;
+MELT_EXTERN const int meltclasslen__CLASS_OBJPUTUPLE;
+const int meltclasslen__CLASS_OBJPUTUPLE = 4;
+MELT_EXTERN const int meltclasslen__CLASS_OBJPUTXTRARESULT;
+const int meltclasslen__CLASS_OBJPUTXTRARESULT = 3;
+MELT_EXTERN const int meltclasslen__CLASS_OBJRAWALLOCOBJ;
+const int meltclasslen__CLASS_OBJRAWALLOCOBJ = 5;
+MELT_EXTERN const int meltclasslen__CLASS_OBJSETPREDEF;
+const int meltclasslen__CLASS_OBJSETPREDEF = 3;
+MELT_EXTERN const int meltclasslen__CLASS_OBJTOUCH;
+const int meltclasslen__CLASS_OBJTOUCH = 3;
+MELT_EXTERN const int meltclasslen__CLASS_OBJVALUE;
+const int meltclasslen__CLASS_OBJVALUE = 1;
+MELT_EXTERN const int meltclasslen__CLASS_PROCROUTINEOBJ;
+const int meltclasslen__CLASS_PROCROUTINEOBJ = 15;
+MELT_EXTERN const int meltclasslen__CLASS_ROUTINEOBJ;
+const int meltclasslen__CLASS_ROUTINEOBJ = 10;
+MELT_EXTERN const int meltclasslen__CLASS_TESTERCOMPILCONTEXT;
+const int meltclasslen__CLASS_TESTERCOMPILCONTEXT = 4;
 
 
 

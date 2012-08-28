@@ -881,26 +881,15 @@ meltrout_51_warmelt_debug_DISPLAY_DEBUG_MESSAGE (meltclosure_ptr_t meltclosp_,
 
 
 
-#ifdef __cplusplus
-extern "C"
-#endif
-void *melt_start_this_module (void *);
+MELT_EXTERN void *melt_start_this_module (void *);
 
 
 /* define different names when debugging or not */
 #if MELT_HAVE_DEBUG
-extern
-#ifdef __cplusplus
-  "C"
-#endif	/*__cplusplus*/
-const char meltmodule_warmelt_debug__melt_have_debug_enabled[];
+MELT_EXTERN const char meltmodule_warmelt_debug__melt_have_debug_enabled[];
 #define melt_have_debug_string meltmodule_warmelt_debug__melt_have_debug_enabled
 #else /*!MELT_HAVE_DEBUG */
-extern
-#ifdef __cplusplus
-  "C"
-#endif	/*__cplusplus*/
-const char meltmodule_warmelt_debug__melt_have_debug_disabled[];
+MELT_EXTERN const char meltmodule_warmelt_debug__melt_have_debug_disabled[];
 #define melt_have_debug_string meltmodule_warmelt_debug__melt_have_debug_disabled
 #endif /*!MELT_HAVE_DEBUG */
 
@@ -2772,7 +2761,8 @@ labend_rout:
 #if MELT_HAVE_DEBUG
 
 /* generated syntax checking routine for 4 C generating devices */
-extern void MELT_MODULE_VISIBILITY melt_syntax_tester_warmelt_debug (void);
+MELT_EXTERN void MELT_MODULE_VISIBILITY
+melt_syntax_tester_warmelt_debug (void);
 
 void
 melt_syntax_tester_warmelt_debug (void)
@@ -18232,22 +18222,17 @@ meltmod__warmelt_debug__forward_or_mark_module_start_frame (struct
 
 
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif /*__cplusplus*/
-
 /* exported 3 field offsets */
-  const int meltfieldoff__DBGI_MAXDEPTH = 2;	/* in CLASS_DEBUG_INFORMATION */
-  const int meltfieldoff__DBGI_OCCMAP = 1;	/* in CLASS_DEBUG_INFORMATION */
-  const int meltfieldoff__DBGI_OUT = 0;	/* in CLASS_DEBUG_INFORMATION */
+MELT_EXTERN const int meltfieldoff__DBGI_MAXDEPTH;
+const int meltfieldoff__DBGI_MAXDEPTH = 2;	/* in CLASS_DEBUG_INFORMATION */
+MELT_EXTERN const int meltfieldoff__DBGI_OCCMAP;
+const int meltfieldoff__DBGI_OCCMAP = 1;	/* in CLASS_DEBUG_INFORMATION */
+MELT_EXTERN const int meltfieldoff__DBGI_OUT;
+const int meltfieldoff__DBGI_OUT = 0;	/* in CLASS_DEBUG_INFORMATION */
 
 /* exported 1 class lengths */
-  const int meltclasslen__CLASS_DEBUG_INFORMATION = 3;
-
-#ifdef __cplusplus
-};				/* end extern "C" */
-#endif /*__cplusplus*/
+MELT_EXTERN const int meltclasslen__CLASS_DEBUG_INFORMATION;
+const int meltclasslen__CLASS_DEBUG_INFORMATION = 3;
 
 
 

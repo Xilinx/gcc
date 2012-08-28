@@ -1151,26 +1151,15 @@ meltrout_72_warmelt_modes_UNREGISTER_CHILD_PROCESS_HANDLER (meltclosure_ptr_t
 
 
 
-#ifdef __cplusplus
-extern "C"
-#endif
-void *melt_start_this_module (void *);
+MELT_EXTERN void *melt_start_this_module (void *);
 
 
 /* define different names when debugging or not */
 #if MELT_HAVE_DEBUG
-extern
-#ifdef __cplusplus
-  "C"
-#endif	/*__cplusplus*/
-const char meltmodule_warmelt_modes__melt_have_debug_enabled[];
+MELT_EXTERN const char meltmodule_warmelt_modes__melt_have_debug_enabled[];
 #define melt_have_debug_string meltmodule_warmelt_modes__melt_have_debug_enabled
 #else /*!MELT_HAVE_DEBUG */
-extern
-#ifdef __cplusplus
-  "C"
-#endif	/*__cplusplus*/
-const char meltmodule_warmelt_modes__melt_have_debug_disabled[];
+MELT_EXTERN const char meltmodule_warmelt_modes__melt_have_debug_disabled[];
 #define melt_have_debug_string meltmodule_warmelt_modes__melt_have_debug_disabled
 #endif /*!MELT_HAVE_DEBUG */
 
@@ -30473,34 +30462,41 @@ meltmod__warmelt_modes__forward_or_mark_module_start_frame (struct
 
 
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif /*__cplusplus*/
-
 /* exported 15 field offsets */
-  const int meltfieldoff__MKDOC_BOXCOUNTER = 15;	/* in CLASS_MAKEDOC_INFO */
-  const int meltfieldoff__MKDOC_CITERATORS = 3;	/* in CLASS_MAKEDOC_INFO */
-  const int meltfieldoff__MKDOC_CLASSES = 7;	/* in CLASS_MAKEDOC_INFO */
-  const int meltfieldoff__MKDOC_CMATCHERS = 4;	/* in CLASS_MAKEDOC_INFO */
-  const int meltfieldoff__MKDOC_DOCSYMAP = 13;	/* in CLASS_MAKEDOC_INFO */
-  const int meltfieldoff__MKDOC_FIELDS = 6;	/* in CLASS_MAKEDOC_INFO */
-  const int meltfieldoff__MKDOC_FORMALOCCMAP = 11;	/* in CLASS_MAKEDOC_INFO */
-  const int meltfieldoff__MKDOC_FUNCTIONS = 2;	/* in CLASS_MAKEDOC_INFO */
-  const int meltfieldoff__MKDOC_INSTANCES = 8;	/* in CLASS_MAKEDOC_INFO */
-  const int meltfieldoff__MKDOC_MACROS = 9;	/* in CLASS_MAKEDOC_INFO */
-  const int meltfieldoff__MKDOC_PATMACROS = 10;	/* in CLASS_MAKEDOC_INFO */
-  const int meltfieldoff__MKDOC_PREDEFMAP = 12;	/* in CLASS_MAKEDOC_INFO */
-  const int meltfieldoff__MKDOC_PRIMITIVES = 1;	/* in CLASS_MAKEDOC_INFO */
-  const int meltfieldoff__MKDOC_SELECTORS = 5;	/* in CLASS_MAKEDOC_INFO */
-  const int meltfieldoff__MKDOC_SUBCLASSMAP = 14;	/* in CLASS_MAKEDOC_INFO */
+MELT_EXTERN const int meltfieldoff__MKDOC_BOXCOUNTER;
+const int meltfieldoff__MKDOC_BOXCOUNTER = 15;	/* in CLASS_MAKEDOC_INFO */
+MELT_EXTERN const int meltfieldoff__MKDOC_CITERATORS;
+const int meltfieldoff__MKDOC_CITERATORS = 3;	/* in CLASS_MAKEDOC_INFO */
+MELT_EXTERN const int meltfieldoff__MKDOC_CLASSES;
+const int meltfieldoff__MKDOC_CLASSES = 7;	/* in CLASS_MAKEDOC_INFO */
+MELT_EXTERN const int meltfieldoff__MKDOC_CMATCHERS;
+const int meltfieldoff__MKDOC_CMATCHERS = 4;	/* in CLASS_MAKEDOC_INFO */
+MELT_EXTERN const int meltfieldoff__MKDOC_DOCSYMAP;
+const int meltfieldoff__MKDOC_DOCSYMAP = 13;	/* in CLASS_MAKEDOC_INFO */
+MELT_EXTERN const int meltfieldoff__MKDOC_FIELDS;
+const int meltfieldoff__MKDOC_FIELDS = 6;	/* in CLASS_MAKEDOC_INFO */
+MELT_EXTERN const int meltfieldoff__MKDOC_FORMALOCCMAP;
+const int meltfieldoff__MKDOC_FORMALOCCMAP = 11;	/* in CLASS_MAKEDOC_INFO */
+MELT_EXTERN const int meltfieldoff__MKDOC_FUNCTIONS;
+const int meltfieldoff__MKDOC_FUNCTIONS = 2;	/* in CLASS_MAKEDOC_INFO */
+MELT_EXTERN const int meltfieldoff__MKDOC_INSTANCES;
+const int meltfieldoff__MKDOC_INSTANCES = 8;	/* in CLASS_MAKEDOC_INFO */
+MELT_EXTERN const int meltfieldoff__MKDOC_MACROS;
+const int meltfieldoff__MKDOC_MACROS = 9;	/* in CLASS_MAKEDOC_INFO */
+MELT_EXTERN const int meltfieldoff__MKDOC_PATMACROS;
+const int meltfieldoff__MKDOC_PATMACROS = 10;	/* in CLASS_MAKEDOC_INFO */
+MELT_EXTERN const int meltfieldoff__MKDOC_PREDEFMAP;
+const int meltfieldoff__MKDOC_PREDEFMAP = 12;	/* in CLASS_MAKEDOC_INFO */
+MELT_EXTERN const int meltfieldoff__MKDOC_PRIMITIVES;
+const int meltfieldoff__MKDOC_PRIMITIVES = 1;	/* in CLASS_MAKEDOC_INFO */
+MELT_EXTERN const int meltfieldoff__MKDOC_SELECTORS;
+const int meltfieldoff__MKDOC_SELECTORS = 5;	/* in CLASS_MAKEDOC_INFO */
+MELT_EXTERN const int meltfieldoff__MKDOC_SUBCLASSMAP;
+const int meltfieldoff__MKDOC_SUBCLASSMAP = 14;	/* in CLASS_MAKEDOC_INFO */
 
 /* exported 1 class lengths */
-  const int meltclasslen__CLASS_MAKEDOC_INFO = 16;
-
-#ifdef __cplusplus
-};				/* end extern "C" */
-#endif /*__cplusplus*/
+MELT_EXTERN const int meltclasslen__CLASS_MAKEDOC_INFO;
+const int meltclasslen__CLASS_MAKEDOC_INFO = 16;
 
 
 
