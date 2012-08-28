@@ -37,6 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic-core.h"
 #include "tree-vectorizer.h"
 #include "dumpfile.h"
+#include "cilk.h"
 
 /* For lang_hooks.types.type_for_mode.  */
 #include "langhooks.h"
@@ -1350,7 +1351,7 @@ vect_get_vec_def_for_operand (tree op, gimple stmt, tree *scalar_def)
     {
       parm_type = find_elem_fn_parm_type (stmt, op, &step_size);
       if (parm_type == TYPE_UNIFORM || parm_type == TYPE_LINEAR)
-	dt = vect_constant_def;
+	dt = vect_external_def;
     }
   else
     parm_type = TYPE_NONE;
@@ -1391,8 +1392,186 @@ vect_get_vec_def_for_operand (tree op, gimple stmt, tree *scalar_def)
         /* Create 'vec_inv = {inv,inv,..,inv}'  */
         if (vect_print_dump_info (REPORT_DETAILS))
           fprintf (vect_dump, "Create vector_inv.");
+	if (!flag_enable_cilk
+	    || (parm_type == TYPE_UNIFORM || parm_type == TYPE_NONE))
+	  return vect_init_vector (stmt, def, vector_type, NULL);
+	else
+	  return elem_fn_linear_init_vector (stmt, op, vector_type,
+					     step_size, NULL);
+      }
 
-        return vect_init_vector (stmt, def, vector_type, NULL);
+    /* Case 3: operand is defined inside the loop.  */
+    case vect_internal_def:
+      {
+	if (scalar_def)
+	  *scalar_def = NULL/* FIXME tuples: def_stmt*/;
+
+        /* Get the def from the vectorized stmt.  */
+        def_stmt_info = vinfo_for_stmt (def_stmt);
+
+        vec_stmt = STMT_VINFO_VEC_STMT (def_stmt_info);
+        /* Get vectorized pattern statement.  */
+        if (!vec_stmt
+            && STMT_VINFO_IN_PATTERN_P (def_stmt_info)
+            && !STMT_VINFO_RELEVANT (def_stmt_info))
+          vec_stmt = STMT_VINFO_VEC_STMT (vinfo_for_stmt (
+                       STMT_VINFO_RELATED_STMT (def_stmt_info)));
+        gcc_assert (vec_stmt);
+	if (gimple_code (vec_stmt) == GIMPLE_PHI)
+	  vec_oprnd = PHI_RESULT (vec_stmt);
+	else if (is_gimple_call (vec_stmt))
+	  vec_oprnd = gimple_call_lhs (vec_stmt);
+	else
+	  vec_oprnd = gimple_assign_lhs (vec_stmt);
+        return vec_oprnd;
+      }
+
+    /* Case 4: operand is defined by a loop header phi - reduction  */
+    case vect_reduction_def:
+    case vect_double_reduction_def:
+    case vect_nested_cycle:
+      {
+	struct loop *loop;
+
+	gcc_assert (gimple_code (def_stmt) == GIMPLE_PHI);
+	loop = (gimple_bb (def_stmt))->loop_father;
+
+        /* Get the def before the loop  */
+        op = PHI_ARG_DEF_FROM_EDGE (def_stmt, loop_preheader_edge (loop));
+        return get_initial_def_for_reduction (stmt, op, scalar_def);
+     }
+
+    /* Case 5: operand is defined by loop-header phi - induction.  */
+    case vect_induction_def:
+      {
+	gcc_assert (gimple_code (def_stmt) == GIMPLE_PHI);
+
+        /* Get the def from the vectorized stmt.  */
+        def_stmt_info = vinfo_for_stmt (def_stmt);
+        vec_stmt = STMT_VINFO_VEC_STMT (def_stmt_info);
+	if (gimple_code (vec_stmt) == GIMPLE_PHI)
+	  vec_oprnd = PHI_RESULT (vec_stmt);
+	else
+	  vec_oprnd = gimple_get_lhs (vec_stmt);
+        return vec_oprnd;
+      }
+
+    default:
+      gcc_unreachable ();
+    }
+}
+
+/* Function vect_get_vec_def_for_operand.
+
+   OP is an operand in STMT.  This function returns a (vector) def that will be
+   used in the vectorized stmt for STMT.
+
+   In the case that OP is an SSA_NAME which is defined in the loop, then
+   STMT_VINFO_VEC_STMT of the defining stmt holds the relevant def.
+
+   In case OP is an invariant or constant, a new stmt that creates a vector def
+   needs to be introduced.  */
+
+/* This function is modified to process elemental functions, which is part of
+   Cilk Plus.  This function along with the features of the existing function
+   vect_get_vec_def_for_operand, it will also insert the fixed assignment
+   operator in the appropriate gimple sequence location, thus taking the
+   extra parameter.  */
+
+tree
+elem_fn_vect_get_vec_def_for_operand (tree op, gimple stmt, tree *scalar_def,
+				      gimple_stmt_iterator *gsi)
+{
+  tree vec_oprnd;
+  gimple vec_stmt;
+  gimple def_stmt;
+  stmt_vec_info def_stmt_info = NULL;
+  stmt_vec_info stmt_vinfo = vinfo_for_stmt (stmt);
+  unsigned int nunits;
+  loop_vec_info loop_vinfo = STMT_VINFO_LOOP_VINFO (stmt_vinfo);
+  tree def;
+  enum vect_def_type dt;
+  bool is_simple_use;
+  tree vector_type;
+  enum elem_fn_parm_type parm_type;
+  tree step_size = NULL_TREE;
+
+  if (vect_print_dump_info (REPORT_DETAILS))
+    {
+      fprintf (vect_dump, "vect_get_vec_def_for_operand: ");
+      print_generic_expr (vect_dump, op, TDF_SLIM);
+    }
+
+  is_simple_use = vect_is_simple_use (op, stmt, loop_vinfo, NULL,
+				      &def_stmt, &def, &dt);
+  gcc_assert (is_simple_use);
+  if (vect_print_dump_info (REPORT_DETAILS))
+    {
+      if (def)
+        {
+          fprintf (vect_dump, "def =  ");
+          print_generic_expr (vect_dump, def, TDF_SLIM);
+        }
+      if (def_stmt)
+        {
+          fprintf (vect_dump, "  def_stmt =  ");
+	  print_gimple_stmt (vect_dump, def_stmt, 0, TDF_SLIM);
+        }
+    }
+
+  if (flag_enable_cilk
+      && gimple_code (stmt) == GIMPLE_CALL
+      && is_elem_fn (gimple_call_fndecl (stmt)))
+    {
+      parm_type = find_elem_fn_parm_type (stmt, op, &step_size);
+      if (parm_type == TYPE_UNIFORM || parm_type == TYPE_LINEAR)
+	dt = vect_external_def;
+    }
+  else
+    parm_type = TYPE_NONE;
+      
+  switch (dt)
+    {
+    /* Case 1: operand is a constant.  */
+    case vect_constant_def:
+      {
+	vector_type = get_vectype_for_scalar_type (TREE_TYPE (op));
+	gcc_assert (vector_type);  
+	nunits = TYPE_VECTOR_SUBPARTS (vector_type);
+
+	if (scalar_def)
+	  *scalar_def = op;
+
+        /* Create 'vect_cst_ = {cst,cst,...,cst}'  */
+        if (vect_print_dump_info (REPORT_DETAILS))
+          fprintf (vect_dump, "Create vector_cst. nunits = %d", nunits);
+	if (!flag_enable_cilk 
+	    || (parm_type == TYPE_NONE || parm_type == TYPE_UNIFORM))
+	  return vect_init_vector (stmt, op, vector_type, gsi);
+	else if (flag_enable_cilk && parm_type == TYPE_LINEAR)
+	  return elem_fn_linear_init_vector (stmt, op, vector_type,
+					     step_size, gsi);
+					     
+      }
+
+    /* Case 2: operand is defined outside the loop - loop invariant.  */
+    case vect_external_def:
+      {
+	vector_type = get_vectype_for_scalar_type (TREE_TYPE (def));
+	gcc_assert (vector_type);
+
+	if (scalar_def)
+	  *scalar_def = def;
+
+        /* Create 'vec_inv = {inv,inv,..,inv}'  */
+        if (vect_print_dump_info (REPORT_DETAILS))
+          fprintf (vect_dump, "Create vector_inv.");
+	if (!flag_enable_cilk
+	    || (parm_type == TYPE_UNIFORM || parm_type == TYPE_NONE))
+	  return vect_init_vector (stmt, def, vector_type, gsi);
+	else
+	  return elem_fn_linear_init_vector (stmt, op, vector_type,
+					     step_size, gsi);
       }
 
     /* Case 3: operand is defined inside the loop.  */
@@ -1620,6 +1799,40 @@ vect_finish_stmt_generation (gimple stmt, gimple vec_stmt,
 
   gcc_assert (gimple_code (stmt) != GIMPLE_LABEL);
 
+  if (!gsi_end_p (*gsi)
+      && gimple_has_mem_ops (vec_stmt))
+    {
+      gimple at_stmt = gsi_stmt (*gsi);
+      tree vuse = gimple_vuse (at_stmt);
+      if (vuse && TREE_CODE (vuse) == SSA_NAME)
+	{
+	  tree vdef = gimple_vdef (at_stmt);
+	  gimple_set_vuse (vec_stmt, gimple_vuse (at_stmt));
+	  /* If we have an SSA vuse and insert a store, update virtual
+	     SSA form to avoid triggering the renamer.  Do so only
+	     if we can easily see all uses - which is what almost always
+	     happens with the way vectorized stmts are inserted.  */
+	  if ((vdef && TREE_CODE (vdef) == SSA_NAME)
+	      && ((is_gimple_assign (vec_stmt)
+		   && !is_gimple_reg (gimple_assign_lhs (vec_stmt)))
+		  || (is_gimple_call (vec_stmt)
+		      && !(gimple_call_flags (vec_stmt)
+			   & (ECF_CONST|ECF_PURE|ECF_NOVOPS)))))
+	    {
+	      /* Elemental functions are removed and inserted seperately.  So,
+		 we do not add any use information for them at this point.  */
+	      if (flag_enable_cilk && is_gimple_call (stmt)
+		  && is_elem_fn (gimple_call_fndecl (stmt)))
+		;
+	      else
+		{
+		  tree new_vdef = copy_ssa_name (vuse, vec_stmt);
+		  gimple_set_vdef (vec_stmt, new_vdef);
+		  SET_USE (gimple_vuse_op (at_stmt), new_vdef);
+		}
+	    }
+	}
+    }
   gsi_insert_before (gsi, vec_stmt, GSI_SAME_STMT);
 
   set_vinfo_for_stmt (vec_stmt, new_stmt_vec_info (vec_stmt, loop_vinfo,
@@ -1897,8 +2110,15 @@ vectorizable_call (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 	    {
 	      op = gimple_call_arg (stmt, i);
 	      if (j == 0)
-		vec_oprnd0
-		  = vect_get_vec_def_for_operand (op, stmt, NULL);
+		{
+		  if (flag_enable_cilk)
+		    vec_oprnd0
+		      = elem_fn_vect_get_vec_def_for_operand (op, stmt, NULL,
+							      gsi);
+		  else
+		    vec_oprnd0
+		      = vect_get_vec_def_for_operand (op, stmt, NULL);
+		}
 	      else
 		{
 		  vec_oprnd0 = gimple_call_arg (new_stmt, i);

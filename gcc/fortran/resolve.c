@@ -5593,7 +5593,12 @@ gfc_resolve_character_operator (gfc_expr *e)
   e->ts.u.cl = gfc_new_charlen (gfc_current_ns, NULL);
 
   if (!e1 || !e2)
-    return;
+    {
+      gfc_free_expr (e1);
+      gfc_free_expr (e2);
+      
+      return;
+    }
 
   e->ts.u.cl->length = gfc_add (e1, e2);
   e->ts.u.cl->length->ts.type = BT_INTEGER;
@@ -13086,7 +13091,8 @@ resolve_symbol (gfc_symbol *sym)
       if (formal)
 	{
 	  sym->formal_ns = formal->sym->ns;
-	  sym->formal_ns->refs++;
+          if (sym->ns != formal->sym->ns)
+	    sym->formal_ns->refs++;
 	}
     }
 

@@ -26,7 +26,7 @@
 ;; Return true if OP is an i387 fp register.
 (define_predicate "fp_register_operand"
   (and (match_code "reg")
-       (match_test "FP_REGNO_P (REGNO (op))")))
+       (match_test "STACK_REGNO_P (REGNO (op))")))
 
 ;; Return true if OP is a non-fp register_operand.
 (define_predicate "register_and_not_any_fp_reg_operand"
@@ -36,7 +36,7 @@
 ;; Return true if OP is a register operand other than an i387 fp register.
 (define_predicate "register_and_not_fp_reg_operand"
   (and (match_code "reg")
-       (not (match_test "FP_REGNO_P (REGNO (op))"))))
+       (not (match_test "STACK_REGNO_P (REGNO (op))"))))
 
 ;; True if the operand is an MMX register.
 (define_predicate "mmx_reg_operand"
@@ -970,6 +970,9 @@
 {
   struct ix86_address parts;
   int ok;
+
+  if (TARGET_64BIT || !flag_pic)
+    return true;
 
   ok = ix86_decompose_address (XEXP (op, 0), &parts);
   gcc_assert (ok);

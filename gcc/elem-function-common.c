@@ -436,7 +436,6 @@ extract_elem_fn_values (tree decl)
        ii_tree = DECL_CHAIN (ii_tree))
     {
       bool already_found = false;
-      arg_number++;
       for (ii = 0; ii < elem_fn_values->no_uvars; ii++)
 	{
 	  if (DECL_NAME (ii_tree)
@@ -467,6 +466,7 @@ extract_elem_fn_values (tree decl)
       if (!already_found) /* this means this variable is a private */
 	elem_fn_values->private_location[elem_fn_values->no_pvars++] =
 	  arg_number;
+      arg_number++;
     }
 
   elem_fn_values->total_no_args = arg_number;
