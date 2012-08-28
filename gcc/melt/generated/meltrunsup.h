@@ -78,67 +78,46 @@ enum meltobmag_en /*generated */
   /*valdesc #17 VALDESC_SPECIAL_MPFR */
   MELTOBMAG_SPEC_MPFR /*valmagic */  = 20016,
 
-  /*valdesc #18 VALDESC_SPECIAL_PPL_COEFFICIENT */
-  MELTOBMAG_SPECPPL_COEFFICIENT /*valmagic */  = 20017,
+  /*valdesc #18 VALDESC_SPECIAL_RAW_FILE */
+  MELTOBMAG_SPEC_RAWFILE /*valmagic */  = 20017,
 
-  /*valdesc #19 VALDESC_SPECIAL_PPL_CONSTRAINT */
-  MELTOBMAG_SPECPPL_CONSTRAINT /*valmagic */  = 20018,
+  /*valdesc #19 VALDESC_STRBUF */
+  MELTOBMAG_STRBUF /*valmagic */  = 20018,
 
-  /*valdesc #20 VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM */
-  MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM /*valmagic */  = 20019,
-
-  /*valdesc #21 VALDESC_SPECIAL_PPL_GENERATOR */
-  MELTOBMAG_SPECPPL_GENERATOR /*valmagic */  = 20020,
-
-  /*valdesc #22 VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM */
-  MELTOBMAG_SPECPPL_GENERATOR_SYSTEM /*valmagic */  = 20021,
-
-  /*valdesc #23 VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION */
-  MELTOBMAG_SPECPPL_LINEAR_EXPRESSION /*valmagic */  = 20022,
-
-  /*valdesc #24 VALDESC_SPECIAL_PPL_POLYHEDRON */
-  MELTOBMAG_SPECPPL_POLYHEDRON /*valmagic */  = 20023,
-
-  /*valdesc #25 VALDESC_SPECIAL_RAW_FILE */
-  MELTOBMAG_SPEC_RAWFILE /*valmagic */  = 20024,
-
-  /*valdesc #26 VALDESC_STRBUF */
-  MELTOBMAG_STRBUF /*valmagic */  = 20025,
-
-  /*valdesc #27 VALDESC_STRING */
-  MELTOBMAG_STRING /*valmagic */  = 20026,
+  /*valdesc #20 VALDESC_STRING */
+  MELTOBMAG_STRING /*valmagic */  = 20019,
 
 /* ctype gty object magic */
   /*gtyctype #1 CTYPE_BASIC_BLOCK */
-  MELTOBMAG_BASICBLOCK /*boxedmagic */  = 20027,
-  MELTOBMAG_MAPBASICBLOCKS /*mapmagic */  = 20028,
+  MELTOBMAG_BASICBLOCK /*boxedmagic */  = 20020,
+  MELTOBMAG_MAPBASICBLOCKS /*mapmagic */  = 20021,
   /*gtyctype #2 CTYPE_BITMAP */
-  MELTOBMAG_BITMAP /*boxedmagic */  = 20029,
-  MELTOBMAG_MAPBITMAPS /*mapmagic */  = 20030,
+  MELTOBMAG_BITMAP /*boxedmagic */  = 20022,
+  MELTOBMAG_MAPBITMAPS /*mapmagic */  = 20023,
   /*gtyctype #3 CTYPE_EDGE */
-  MELTOBMAG_EDGE /*boxedmagic */  = 20031,
-  MELTOBMAG_MAPEDGES /*mapmagic */  = 20032,
+  MELTOBMAG_EDGE /*boxedmagic */  = 20024,
+  MELTOBMAG_MAPEDGES /*mapmagic */  = 20025,
   /*gtyctype #4 CTYPE_GIMPLE */
-  MELTOBMAG_GIMPLE /*boxedmagic */  = 20033,
-  MELTOBMAG_MAPGIMPLES /*mapmagic */  = 20034,
+  MELTOBMAG_GIMPLE /*boxedmagic */  = 20026,
+  MELTOBMAG_MAPGIMPLES /*mapmagic */  = 20027,
   /*gtyctype #5 CTYPE_GIMPLE_SEQ */
-  MELTOBMAG_GIMPLESEQ /*boxedmagic */  = 20035,
-  MELTOBMAG_MAPGIMPLESEQS /*mapmagic */  = 20036,
+  MELTOBMAG_GIMPLESEQ /*boxedmagic */  = 20028,
+  MELTOBMAG_MAPGIMPLESEQS /*mapmagic */  = 20029,
   /*gtyctype #6 CTYPE_LOOP */
-  MELTOBMAG_LOOP /*boxedmagic */  = 20037,
-  MELTOBMAG_MAPLOOPS /*mapmagic */  = 20038,
+  MELTOBMAG_LOOP /*boxedmagic */  = 20030,
+  MELTOBMAG_MAPLOOPS /*mapmagic */  = 20031,
   /*gtyctype #7 CTYPE_RTVEC */
-  MELTOBMAG_RTVEC /*boxedmagic */  = 20039,
-  MELTOBMAG_MAPRTVECS /*mapmagic */  = 20040,
+  MELTOBMAG_RTVEC /*boxedmagic */  = 20032,
+  MELTOBMAG_MAPRTVECS /*mapmagic */  = 20033,
   /*gtyctype #8 CTYPE_RTX */
-  MELTOBMAG_RTX /*boxedmagic */  = 20041,
-  MELTOBMAG_MAPRTXS /*mapmagic */  = 20042,
+  MELTOBMAG_RTX /*boxedmagic */  = 20034,
+  MELTOBMAG_MAPRTXS /*mapmagic */  = 20035,
   /*gtyctype #9 CTYPE_TREE */
-  MELTOBMAG_TREE /*boxedmagic */  = 20043,
-  MELTOBMAG_MAPTREES /*mapmagic */  = 20044,
+  MELTOBMAG_TREE /*boxedmagic */  = 20036,
+  MELTOBMAG_MAPTREES /*mapmagic */  = 20037,
   MELTOBMAG__LAST
 };				/* end generated enum meltobmag_en */
-#define MELT_COUNT_GENERATED_OBJMAGIC 36
+#define MELT_COUNT_GENERATED_OBJMAGIC 29
 /*** end from generate_runtypesupport_enum_objmagic **/
 
 
@@ -728,111 +707,7 @@ struct GTY ((mark_hook ("melt_mark_special"))) meltspecialmpfr_st /* when MELTOB
 /* no decl. chunk */
 
 
-/*gtyvaldesc #18 VALDESC_SPECIAL_PPL_COEFFICIENT*/
-struct GTY ((mark_hook ("melt_mark_special"))) meltspecialpplcoefficient_st /* when MELTOBMAG_SPECPPL_COEFFICIENT */
-{
-  meltobject_ptr_t discr;
-  /* from VALDESC_SPECIAL_PPL_COEFFICIENT in warmelt-base.melt */
-  int mark;
-  struct meltspecial_st *GTY ((skip)) nextspec;
-  union melt_special_un GTY ((skip)) val;
-
-};				/* end meltspecialpplcoefficient_st */
-
-/* no decl. chunk */
-
-
-/*gtyvaldesc #19 VALDESC_SPECIAL_PPL_CONSTRAINT*/
-struct GTY ((mark_hook ("melt_mark_special"))) meltspecialpplconstraint_st /* when MELTOBMAG_SPECPPL_CONSTRAINT */
-{
-  meltobject_ptr_t discr;
-  /* from VALDESC_SPECIAL_PPL_CONSTRAINT in warmelt-base.melt */
-  int mark;
-  struct meltspecial_st *GTY ((skip)) nextspec;
-  union melt_special_un GTY ((skip)) val;
-
-};				/* end meltspecialpplconstraint_st */
-
-/* no decl. chunk */
-
-
-/*gtyvaldesc #20 VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM*/
-struct GTY ((mark_hook ("melt_mark_special")))
-  meltspecialpplconstraintsystem_st
-/* when MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM */
-{
-  meltobject_ptr_t discr;
-  /* from VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM in warmelt-base.melt */
-  int mark;
-  struct meltspecial_st *GTY ((skip)) nextspec;
-  union melt_special_un GTY ((skip)) val;
-
-};				/* end meltspecialpplconstraintsystem_st */
-
-/* no decl. chunk */
-
-
-/*gtyvaldesc #21 VALDESC_SPECIAL_PPL_GENERATOR*/
-struct GTY ((mark_hook ("melt_mark_special"))) meltspecialpplgenerator_st /* when MELTOBMAG_SPECPPL_GENERATOR */
-{
-  meltobject_ptr_t discr;
-  /* from VALDESC_SPECIAL_PPL_GENERATOR in warmelt-base.melt */
-  int mark;
-  struct meltspecial_st *GTY ((skip)) nextspec;
-  union melt_special_un GTY ((skip)) val;
-
-};				/* end meltspecialpplgenerator_st */
-
-/* no decl. chunk */
-
-
-/*gtyvaldesc #22 VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM*/
-struct GTY ((mark_hook ("melt_mark_special")))
-  meltspecialpplgeneratorsystem_st
-/* when MELTOBMAG_SPECPPL_GENERATOR_SYSTEM */
-{
-  meltobject_ptr_t discr;
-  /* from VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM in warmelt-base.melt */
-  int mark;
-  struct meltspecial_st *GTY ((skip)) nextspec;
-  union melt_special_un GTY ((skip)) val;
-
-};				/* end meltspecialpplgeneratorsystem_st */
-
-/* no decl. chunk */
-
-
-/*gtyvaldesc #23 VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION*/
-struct GTY ((mark_hook ("melt_mark_special")))
-  meltspecialppllinearexpression_st
-/* when MELTOBMAG_SPECPPL_LINEAR_EXPRESSION */
-{
-  meltobject_ptr_t discr;
-  /* from VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION in warmelt-base.melt */
-  int mark;
-  struct meltspecial_st *GTY ((skip)) nextspec;
-  union melt_special_un GTY ((skip)) val;
-
-};				/* end meltspecialppllinearexpression_st */
-
-/* no decl. chunk */
-
-
-/*gtyvaldesc #24 VALDESC_SPECIAL_PPL_POLYHEDRON*/
-struct GTY ((mark_hook ("melt_mark_special"))) meltspecialpplpolyhedron_st /* when MELTOBMAG_SPECPPL_POLYHEDRON */
-{
-  meltobject_ptr_t discr;
-  /* from VALDESC_SPECIAL_PPL_POLYHEDRON in warmelt-base.melt */
-  int mark;
-  struct meltspecial_st *GTY ((skip)) nextspec;
-  union melt_special_un GTY ((skip)) val;
-
-};				/* end meltspecialpplpolyhedron_st */
-
-/* no decl. chunk */
-
-
-/*gtyvaldesc #25 VALDESC_SPECIAL_RAW_FILE*/
+/*gtyvaldesc #18 VALDESC_SPECIAL_RAW_FILE*/
 struct GTY ((mark_hook ("melt_mark_special"))) meltspecialrawfile_st /* when MELTOBMAG_SPEC_RAWFILE */
 {
   meltobject_ptr_t discr;
@@ -846,7 +721,7 @@ struct GTY ((mark_hook ("melt_mark_special"))) meltspecialrawfile_st /* when MEL
 /* no decl. chunk */
 
 
-/*gtyvaldesc #26 VALDESC_STRBUF*/
+/*gtyvaldesc #19 VALDESC_STRBUF*/
 struct GTY (()) meltstrbuf_st /* when MELTOBMAG_STRBUF */
 {
   meltobject_ptr_t discr;
@@ -867,7 +742,7 @@ struct GTY (()) meltstrbuf_st /* when MELTOBMAG_STRBUF */
 /* no decl. chunk */
 
 
-/*gtyvaldesc #27 VALDESC_STRING*/
+/*gtyvaldesc #20 VALDESC_STRING*/
 struct GTY ((variable_size)) meltstring_st /* when MELTOBMAG_STRING */
 {
   meltobject_ptr_t discr;
@@ -979,34 +854,13 @@ typedef union GTY ((desc ("%0.u_discr->meltobj_magic"))) melt_un
   /*union.valdesc #17 VALDESC_SPECIAL_MPFR */
   struct meltspecialmpfr_st GTY ((tag ("MELTOBMAG_SPEC_MPFR"))) u_special_mpfr;	/* generated value union member */
 
-  /*union.valdesc #18 VALDESC_SPECIAL_PPL_COEFFICIENT */
-  struct meltspecialpplcoefficient_st GTY ((tag ("MELTOBMAG_SPECPPL_COEFFICIENT"))) u_special_ppl_coefficient;	/* generated value union member */
-
-  /*union.valdesc #19 VALDESC_SPECIAL_PPL_CONSTRAINT */
-  struct meltspecialpplconstraint_st GTY ((tag ("MELTOBMAG_SPECPPL_CONSTRAINT"))) u_special_ppl_constraint;	/* generated value union member */
-
-  /*union.valdesc #20 VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM */
-  struct meltspecialpplconstraintsystem_st GTY ((tag ("MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM"))) u_special_ppl_constraint_system;	/* generated value union member */
-
-  /*union.valdesc #21 VALDESC_SPECIAL_PPL_GENERATOR */
-  struct meltspecialpplgenerator_st GTY ((tag ("MELTOBMAG_SPECPPL_GENERATOR"))) u_special_ppl_generator;	/* generated value union member */
-
-  /*union.valdesc #22 VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM */
-  struct meltspecialpplgeneratorsystem_st GTY ((tag ("MELTOBMAG_SPECPPL_GENERATOR_SYSTEM"))) u_special_ppl_generator_system;	/* generated value union member */
-
-  /*union.valdesc #23 VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION */
-  struct meltspecialppllinearexpression_st GTY ((tag ("MELTOBMAG_SPECPPL_LINEAR_EXPRESSION"))) u_special_ppl_linear_expression;	/* generated value union member */
-
-  /*union.valdesc #24 VALDESC_SPECIAL_PPL_POLYHEDRON */
-  struct meltspecialpplpolyhedron_st GTY ((tag ("MELTOBMAG_SPECPPL_POLYHEDRON"))) u_special_ppl_polyhedron;	/* generated value union member */
-
-  /*union.valdesc #25 VALDESC_SPECIAL_RAW_FILE */
+  /*union.valdesc #18 VALDESC_SPECIAL_RAW_FILE */
   struct meltspecialrawfile_st GTY ((tag ("MELTOBMAG_SPEC_RAWFILE"))) u_special_rawfile;	/* generated value union member */
 
-  /*union.valdesc #26 VALDESC_STRBUF */
+  /*union.valdesc #19 VALDESC_STRBUF */
   struct meltstrbuf_st GTY ((tag ("MELTOBMAG_STRBUF"))) u_strbuf;	/* generated value union member */
 
-  /*union.valdesc #27 VALDESC_STRING */
+  /*union.valdesc #20 VALDESC_STRING */
   struct meltstring_st GTY ((tag ("MELTOBMAG_STRING"))) u_string;	/* generated value union member */
 
 } melt_un_t /*end generated melt_un */ ;
@@ -1052,43 +906,23 @@ enum /* generated enumeration for MELT parameters */
   MELTBPAR_LOOP /*=8*/ ,
 #define MELTBPARSTR_LOOP  "\x8"
 
-  /*gtyctype #9 CTYPE_PPL_COEFFICIENT */
-  MELTBPAR_PPL_COEFFICIENT /*=9*/ ,
-#define MELTBPARSTR_PPL_COEFFICIENT  "\x9"
+  /*gtyctype #9 CTYPE_RTVEC */
+  MELTBPAR_RTVEC /*=9*/ ,
+#define MELTBPARSTR_RTVEC  "\x9"
 
-  /*gtyctype #10 CTYPE_PPL_CONSTRAINT */
-  MELTBPAR_PPL_CONSTRAINT /*=10*/ ,
-#define MELTBPARSTR_PPL_CONSTRAINT  "\xa"
+  /*gtyctype #10 CTYPE_RTX */
+  MELTBPAR_RTX /*=10*/ ,
+#define MELTBPARSTR_RTX  "\xa"
 
-  /*gtyctype #11 CTYPE_PPL_CONSTRAINT_SYSTEM */
-  MELTBPAR_PPL_CONSTRAINT_SYSTEM /*=11*/ ,
-#define MELTBPARSTR_PPL_CONSTRAINT_SYSTEM  "\xb"
+  /*gtyctype #11 CTYPE_TREE */
+  MELTBPAR_TREE /*=11*/ ,
+#define MELTBPARSTR_TREE  "\xb"
 
-  /*gtyctype #12 CTYPE_PPL_LINEAR_EXPRESSION */
-  MELTBPAR_PPL_LINEAR_EXPRESSION /*=12*/ ,
-#define MELTBPARSTR_PPL_LINEAR_EXPRESSION  "\xc"
+  /*gtyctype #12 CTYPE_VALUE */
+  MELTBPAR_PTR /*=12*/ ,
+#define MELTBPARSTR_PTR  "\xc"
 
-  /*gtyctype #13 CTYPE_PPL_POLYHEDRON */
-  MELTBPAR_PPL_POLYHEDRON /*=13*/ ,
-#define MELTBPARSTR_PPL_POLYHEDRON  "\xd"
-
-  /*gtyctype #14 CTYPE_RTVEC */
-  MELTBPAR_RTVEC /*=14*/ ,
-#define MELTBPARSTR_RTVEC  "\xe"
-
-  /*gtyctype #15 CTYPE_RTX */
-  MELTBPAR_RTX /*=15*/ ,
-#define MELTBPARSTR_RTX  "\xf"
-
-  /*gtyctype #16 CTYPE_TREE */
-  MELTBPAR_TREE /*=16*/ ,
-#define MELTBPARSTR_TREE  "\x10"
-
-  /*gtyctype #17 CTYPE_VALUE */
-  MELTBPAR_PTR /*=17*/ ,
-#define MELTBPARSTR_PTR  "\x11"
-
-  /*gtyctype #18 CTYPE_VOID */
+  /*gtyctype #13 CTYPE_VOID */
     /*-- non parameter --*/
    /*-- non paramstr --*/
 
@@ -1131,43 +965,23 @@ union meltparam_un /* generated union for MELT parameters */
   loop_p meltbp_loop;		/*argument param. */
 
   loop_p *meltbp_loopptr;	/*result param. */
-  /*ctype #9 CTYPE_PPL_COEFFICIENT */
-  ppl_Coefficient_t meltbp_ppl_coefficient;	/*argument param. */
-
-  ppl_Coefficient_t *meltbp_ppl_coefficientptr;	/*result param. */
-  /*ctype #10 CTYPE_PPL_CONSTRAINT */
-  ppl_Constraint_t meltbp_ppl_constraint;	/*argument param. */
-
-  ppl_Constraint_t *meltbp_ppl_constraintptr;	/*result param. */
-  /*ctype #11 CTYPE_PPL_CONSTRAINT_SYSTEM */
-  ppl_Constraint_System_t meltbp_ppl_constraint_system;	/*argument param. */
-
-  ppl_Constraint_System_t *meltbp_ppl_constraint_systemptr;	/*result param. */
-  /*ctype #12 CTYPE_PPL_LINEAR_EXPRESSION */
-  ppl_Linear_Expression_t meltbp_ppl_linear_expression;	/*argument param. */
-
-  ppl_Linear_Expression_t *meltbp_ppl_linear_expressionptr;	/*result param. */
-  /*ctype #13 CTYPE_PPL_POLYHEDRON */
-  ppl_Polyhedron_t meltbp_ppl_polyhedron;	/*argument param. */
-
-  ppl_Polyhedron_t *meltbp_ppl_polyhedronptr;	/*result param. */
-  /*ctype #14 CTYPE_RTVEC */
+  /*ctype #9 CTYPE_RTVEC */
   rtvec meltbp_rtvec;		/*argument param. */
 
   rtvec *meltbp_rtvecptr;	/*result param. */
-  /*ctype #15 CTYPE_RTX */
+  /*ctype #10 CTYPE_RTX */
   rtx meltbp_rtx;		/*argument param. */
 
   rtx *meltbp_rtxptr;		/*result param. */
-  /*ctype #16 CTYPE_TREE */
+  /*ctype #11 CTYPE_TREE */
   tree meltbp_tree;		/*argument param. */
 
   tree *meltbp_treeptr;		/*result param. */
-  /*ctype #17 CTYPE_VALUE */
+  /*ctype #12 CTYPE_VALUE */
   melt_ptr_t meltbp_vptr;	/*argument param. */
 
   melt_ptr_t *meltbp_aptr;	/*result param. */
-  /*ctype #18 CTYPE_VOID */
+  /*ctype #13 CTYPE_VOID */
   /* no argument */
 
   /*no result */
@@ -2550,5 +2364,5 @@ melt_auxput_maptrees (melt_ptr_t map_p, melt_ptr_t val_p)
 /** end of code generated by generate_runtypesupport_predef_fields **/
 
 
-/*** End of declaration file meltbuild-sources/generated/meltrunsup.h generated on 2012 Aug 03
- * by GCC MELT 4.8.0 20120702 (experimental) [melt-branch revision 190114] MELT_0.9.6-d . ***/
+/*** End of declaration file meltbuild-sources/generated/meltrunsup.h generated on 2012 Aug 28
+ * by GCC MELT 4.8.0 20120702 (experimental) [melt-branch revision 190742] MELT_0.9.7-pre . ***/
