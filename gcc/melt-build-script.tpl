@@ -661,6 +661,8 @@ fi
 ################################################################
 #@ [+(.(fromline))+] runtime self check
 
+##  [+(.(fromline))+] FIXME: should skip that when cross-compiler MELT plugin..
+
 meltcheckruntime_stamp=meltbuild-checkruntime.stamp
 if [ ! -f $meltcheckruntime_stamp -o $meltcheckruntime_stamp -ot "$GCCMELT_RUNTIME_ARGS" \
     -o $meltcheckruntime_stamp -ot "$GCCMELT_RUNTIME_C" \
@@ -682,8 +684,13 @@ if [ ! -f $meltcheckruntime_stamp -o $meltcheckruntime_stamp -ot "$GCCMELT_RUNTI
     [ -f "$meltcheckruntime_args" ] || meltbuild_error  [+(.(fromline))+] missing check runtime args  "$meltcheckruntime_args"
    meltbuild_info [+(.(fromline))+] $meltcheckruntime_args  is
    cat $meltcheckruntime_args < /dev/null > /dev/stderr
-    $GCCMELT_CC1_PREFIX $GCCMELT_CC1 @$meltcheckruntime_args \
-	|| meltbuild_error [+(.(fromline))+] failed with arguments @$meltcheckruntime_arg
+   if [ -n "$MELTGCCBUILTIN_BUILD_WITH_CXX" ]; then
+       $GCCMELT_CC1_PREFIX $GCCMELT_CC1PLUS @$meltcheckruntime_args \
+	   || meltbuild_error [+(.(fromline))+] failed  $GCCMELT_CC1PLUS with arguments @$meltcheckruntime_args
+   else
+       $GCCMELT_CC1_PREFIX $GCCMELT_CC1 @$meltcheckruntime_args \
+	   || meltbuild_error [+(.(fromline))+] failed  $GCCMELT_CC1 with arguments @$meltcheckruntime_args
+   fi
    meltbuild_info [+(.(fromline))+] done check runtime with $meltcheckruntime_args
    #@ [+(.(fromline))+] checkhello
     meltcheckhelloworld_args=meltbuild-checkhelloworld.args 

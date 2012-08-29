@@ -1,4 +1,20 @@
 
+2012-08-29  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* Makefile.in (melt-runtime.args): Add -I include and -I include-fixed.
+	(melt-build-param.sh): Emit GCCMELT_CC1PLUS.
+
+	* melt-build-script.tpl: Check runtime step should use
+	GCCMELT_CC1PLUS when GCC is compiled in C++.
+
+	* melt-build-script.sh: Regenerate.
+
+	* melt-newbuild.tpl: Remove file.
+
+	* melt-newbuild.def: Remove file.
+
+	* melt-newbuild.mk: Remove generated file.
+
 2012-08-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 

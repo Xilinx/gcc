@@ -2718,7 +2718,11 @@ melt-runtime.args:  $(MELT_RUNTIME_C) melt-run-md5.h melt-runtime-params-inc.c $
      Makefile
 	@echo '@@**@@' building melt-runtime.args
 	@echo $(ALL_CFLAGS) $(ALL_CPPFLAGS) -I $(srcdir)/melt/generated/ \
-	  $(MELT_RUNTIME_CPPDEFS) $(MELT_RUNTIME_C)  > melt-runtime.args-tmp
+	  $(MELT_RUNTIME_CPPDEFS) > melt-runtime.args-tmp
+	@echo " -I" $(realpath .) >> melt-runtime.args-tmp
+	@echo " -I" $(realpath include) >> melt-runtime.args-tmp
+	@echo " -I" $(realpath include-fixed) >> melt-runtime.args-tmp
+	@echo $(realpath $(MELT_RUNTIME_C))  >> melt-runtime.args-tmp
 	$(melt_move_if_change) melt-runtime.args-tmp melt-runtime.args
 	@echo -n '@@**@@' melt-runtime.args: ; cat melt-runtime.args ; echo
 
@@ -5469,8 +5473,10 @@ melt-build-param.sh:  Makefile ./cc1$(exeext)
 	echo 'GCCMELT_VERSION_STRING=$(shell $(AWK) -F\" '/^.define +MELT_VERSION_STRING/{print $$2}' $(srcdir)/melt-runtime.h)'  >> $@-tmp
 	echo '## GCCMELT_MAKE is the make utility' >> $@-tmp
 	+echo 'GCCMELT_MAKE="$(MAKE)"' >> $@-tmp
-	echo '## GCCMELT_CC1 is the compiler to use MELT for its bootstrapping' >> $@-tmp
+	echo '## GCCMELT_CC1 is the C compiler to use MELT for its bootstrapping' >> $@-tmp
 	echo GCCMELT_CC1=$(realpath ./cc1$(exeext))  >> $@-tmp
+	echo '## GCCMELT_CC1PLUS is the C++ compiler to use MELT for its bootstrapping' >> $@-tmp
+	echo GCCMELT_CC1PLUS=$(realpath ./cc1plus$(exeext))  >> $@-tmp
 	echo '## GCCMELT_CC1_PREFIX can be set to a prefix like "time" or "nice" to alter above' >> $@-tmp
 	$(if $(GCCMELT_CC1_PREFIX),echo GCCMELT_CC1_PREFIX='$(GCCMELT_CC1_PREFIX)' >> $@-tmp)
 	echo '## GCCMELT_CC1_DEPENDENCIES is the dependencies, including MELT runtime, for GCCMELT_CC1' >> $@-tmp

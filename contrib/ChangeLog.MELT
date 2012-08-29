@@ -1,4 +1,8 @@
 
+2012-08-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* MELT-Plugin-Makefile (MELTGXX): New variable.
+	(melt-build-param.sh): Emit GCCMELT_CC1PLUS.
+	
 2012-08-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	* MELT-Plugin-Makefile (MELTGCC_LIBES): Remove PPL.
 
