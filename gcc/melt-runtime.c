@@ -8986,7 +8986,13 @@ meltgc_start_module_by_index (melt_ptr_t env_p, int modix)
     debugeprintf ("meltgc_start_module_by_index bad index modix %d", modix);
     goto end;
   }
+#if MELT_GCC_VERSION >= 4008
+  // GCC 4.8 vector is C++ template so requires the "&" address-of.
   mi = &VEC_index (melt_module_info_t, melt_modinfvec, modix);
+#else
+  /* GCC 4.7 or earlier vector is a C macro which don't want the "&" address-of. */
+  mi = VEC_index (melt_module_info_t, melt_modinfvec, modix);
+#endif /* GCC 4.8 */
   if (!mi) {
     debugeprintf ("meltgc_start_module_by_index empty index modix %d", modix);
     goto end;
