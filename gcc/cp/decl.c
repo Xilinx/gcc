@@ -552,7 +552,7 @@ poplevel (int keep, int reverse, int functionbody)
   unsigned ix;
   cp_label_binding *label_bind;
 
-  timevar_start (TV_NAME_LOOKUP);
+  bool subtime = timevar_cond_start (TV_NAME_LOOKUP);
  restart:
 
   block = NULL_TREE;
@@ -621,16 +621,16 @@ poplevel (int keep, int reverse, int functionbody)
       if (TREE_CODE (decl) == VAR_DECL
 	  && (! TREE_USED (decl) || !DECL_READ_P (decl))
 	  && ! DECL_IN_SYSTEM_HEADER (decl)
-	  && DECL_NAME (decl) && ! DECL_ARTIFICIAL (decl))
+	  && DECL_NAME (decl) && ! DECL_ARTIFICIAL (decl)
+	  && TREE_TYPE (decl) != error_mark_node
+	  && (!CLASS_TYPE_P (TREE_TYPE (decl))
+	      || !TYPE_HAS_NONTRIVIAL_DESTRUCTOR (TREE_TYPE (decl))))
 	{
 	  if (! TREE_USED (decl))
 	    warning (OPT_Wunused_variable, "unused variable %q+D", decl);
 	  else if (DECL_CONTEXT (decl) == current_function_decl
-		   && TREE_TYPE (decl) != error_mark_node
 		   && TREE_CODE (TREE_TYPE (decl)) != REFERENCE_TYPE
-		   && errorcount == unused_but_set_errorcount
-		   && (!CLASS_TYPE_P (TREE_TYPE (decl))
-		       || !TYPE_HAS_NONTRIVIAL_DESTRUCTOR (TREE_TYPE (decl))))
+		   && errorcount == unused_but_set_errorcount)
 	    {
 	      warning (OPT_Wunused_but_set_variable,
 		       "variable %q+D set but not used", decl); 
@@ -818,7 +818,7 @@ poplevel (int keep, int reverse, int functionbody)
   if (kind == sk_cleanup)
     goto restart;
 
-  timevar_stop (TV_NAME_LOOKUP);
+  timevar_cond_stop (TV_NAME_LOOKUP, subtime);
   return block;
 }
 
@@ -2480,7 +2480,8 @@ redeclaration_error_message (tree newdecl, tree olddecl)
       if ((cxx_dialect != cxx98) 
           && TREE_CODE (ot) == FUNCTION_DECL && DECL_FRIEND_P (ot)
           && !check_default_tmpl_args (nt, DECL_TEMPLATE_PARMS (newdecl), 
-                                       /*is_primary=*/1, /*is_partial=*/0,
+                                       /*is_primary=*/true,
+				       /*is_partial=*/false,
                                        /*is_friend_decl=*/2))
         return G_("redeclaration of friend %q#D "
 	 	  "may not have default template arguments");
@@ -3306,9 +3307,9 @@ make_typename_type (tree context, tree name, enum tag_types tag_type,
 	       context, name, t);
       return error_mark_node;
     }
-  
-  if (complain & tf_error)
-    perform_or_defer_access_check (TYPE_BINFO (context), t, t);
+
+  if (!perform_or_defer_access_check (TYPE_BINFO (context), t, t, complain))
+    return error_mark_node;
 
   /* If we are currently parsing a template and if T is a typedef accessed
      through CONTEXT then we need to remember and check access of T at
@@ -3378,8 +3379,9 @@ make_unbound_class_template (tree context, tree name, tree parm_list,
 	  return error_mark_node;
 	}
 
-      if (complain & tf_error)
-	perform_or_defer_access_check (TYPE_BINFO (context), tmpl, tmpl);
+      if (!perform_or_defer_access_check (TYPE_BINFO (context), tmpl, tmpl,
+					  complain))
+	return error_mark_node;
 
       return tmpl;
     }
@@ -5280,7 +5282,7 @@ reshape_init_r (tree type, reshape_iter *d, bool first_initializer_p,
 	  && VEC_length (constructor_elt, CONSTRUCTOR_ELTS (str_init)) == 1)
 	{
 	  str_init = VEC_index (constructor_elt,
-				CONSTRUCTOR_ELTS (str_init), 0)->value;
+				CONSTRUCTOR_ELTS (str_init), 0).value;
 	}
 
       /* If it's a string literal, then it's the initializer for the array
@@ -5370,7 +5372,7 @@ reshape_init (tree type, tree init, tsubst_flags_t complain)
     return init;
 
   /* Recurse on this CONSTRUCTOR.  */
-  d.cur = VEC_index (constructor_elt, v, 0);
+  d.cur = &VEC_index (constructor_elt, v, 0);
   d.end = d.cur + VEC_length (constructor_elt, v);
 
   new_init = reshape_init_r (type, &d, true, complain);
@@ -5915,7 +5917,7 @@ type_dependent_init_p (tree init)
       nelts = VEC_length (constructor_elt, elts);
       for (i = 0; i < nelts; ++i)
 	if (type_dependent_init_p (VEC_index (constructor_elt,
-					      elts, i)->value))
+					      elts, i).value))
 	  return true;
     }
   else
@@ -5945,7 +5947,7 @@ value_dependent_init_p (tree init)
       nelts = VEC_length (constructor_elt, elts);
       for (i = 0; i < nelts; ++i)
 	if (value_dependent_init_p (VEC_index (constructor_elt,
-					       elts, i)->value))
+					       elts, i).value))
 	  return true;
     }
   else
@@ -6190,7 +6192,7 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	    /* Normally local_decls is populated during GIMPLE lowering,
 	       but [cd]tors are never actually compiled directly.  We need
 	       to put statics on the list so we can deal with the label
-	       address extension.  */
+	       address extension.  FIXME.  */
 	    add_local_decl (cfun, decl);
 	}
 
@@ -6647,7 +6649,8 @@ register_dtor_fn (tree decl)
       gcc_assert (idx >= 0);
       cleanup = VEC_index (tree, CLASSTYPE_METHOD_VEC (type), idx);
       /* Make sure it is accessible.  */
-      perform_or_defer_access_check (TYPE_BINFO (type), cleanup, cleanup);
+      perform_or_defer_access_check (TYPE_BINFO (type), cleanup, cleanup,
+				     tf_warning_or_error);
     }
   else
     {
@@ -6893,7 +6896,7 @@ cp_complete_array_type (tree *ptype, tree initial_value, bool do_default)
 	  && !VEC_empty (constructor_elt, CONSTRUCTOR_ELTS (initial_value)))
 	{
 	  VEC(constructor_elt,gc) *v = CONSTRUCTOR_ELTS (initial_value);
-	  tree value = VEC_index (constructor_elt, v, 0)->value;
+	  tree value = VEC_index (constructor_elt, v, 0).value;
 
 	  if (TREE_CODE (value) == STRING_CST
 	      && VEC_length (constructor_elt, v) == 1)
@@ -7913,7 +7916,6 @@ stabilize_vla_size (tree size)
 tree
 compute_array_index_type (tree name, tree size, tsubst_flags_t complain)
 {
-  tree type;
   tree itype;
   tree osize = size;
   tree abi_1_itype = NULL_TREE;
@@ -7921,10 +7923,10 @@ compute_array_index_type (tree name, tree size, tsubst_flags_t complain)
   if (error_operand_p (size))
     return error_mark_node;
 
-  type = TREE_TYPE (size);
-  /* type_dependent_expression_p? */
-  if (!dependent_type_p (type))
+  if (!type_dependent_expression_p (size))
     {
+      tree type = TREE_TYPE (size);
+
       mark_rvalue_use (size);
 
       if (cxx_dialect < cxx0x && TREE_CODE (size) == NOP_EXPR
@@ -7986,7 +7988,7 @@ compute_array_index_type (tree name, tree size, tsubst_flags_t complain)
   /* We can only call value_dependent_expression_p on integral constant
      expressions; treat non-constant expressions as dependent, too.  */
   if (processing_template_decl
-      && (dependent_type_p (type)
+      && (type_dependent_expression_p (size)
 	  || !TREE_CONSTANT (size) || value_dependent_expression_p (size)))
     {
       /* We cannot do any checking for a SIZE that isn't known to be
@@ -9526,8 +9528,6 @@ grokdeclarator (const cp_declarator *declarator,
      the object as `const'.  */
   if (constexpr_p && innermost_code != cdk_function)
     {
-      if (type_quals & TYPE_QUAL_CONST)
-        error ("both %<const%> and %<constexpr%> cannot be used here");
       if (type_quals & TYPE_QUAL_VOLATILE)
         error ("both %<volatile%> and %<constexpr%> cannot be used here");
       if (TREE_CODE (type) != REFERENCE_TYPE)
@@ -10600,19 +10600,8 @@ check_default_argument (tree decl, tree arg)
 
      A default argument expression is implicitly converted to the
      parameter type.  */
-  if (!TREE_TYPE (arg)
-      || !can_convert_arg (decl_type, TREE_TYPE (arg), arg, LOOKUP_NORMAL,
-			   tf_warning_or_error))
-    {
-      if (decl)
-	error ("default argument for %q#D has type %qT",
-	       decl, TREE_TYPE (arg));
-      else
-	error ("default argument for parameter of type %qT has type %qT",
-	       decl_type, TREE_TYPE (arg));
-
-      return error_mark_node;
-    }
+  perform_implicit_conversion_flags (decl_type, arg, tf_warning_or_error,
+				     LOOKUP_NORMAL);
 
   if (warn_zero_as_null_pointer_constant
       && c_inhibit_evaluation_warnings == 0
@@ -11843,7 +11832,14 @@ xref_basetypes (tree ref, tree base_list)
     {
       tree basetype = TREE_VALUE (*basep);
 
-      if (!(processing_template_decl && uses_template_parms (basetype))
+      /* The dependent_type_p call below should really be dependent_scope_p
+	 so that we give a hard error about using an incomplete type as a
+	 base, but we allow it with a pedwarn for backward
+	 compatibility.  */
+      if (processing_template_decl
+	  && CLASS_TYPE_P (basetype) && TYPE_BEING_DEFINED (basetype))
+	cxx_incomplete_type_diagnostic (NULL_TREE, basetype, DK_PEDWARN);
+      if (!dependent_type_p (basetype)
 	  && !complete_type_or_else (basetype, NULL))
 	/* An incomplete type.  Remove it from the list.  */
 	*basep = TREE_CHAIN (*basep);
@@ -12385,7 +12381,7 @@ finish_enum_value_list (tree enumtype)
   for (t = TYPE_MAIN_VARIANT (enumtype); t; t = TYPE_NEXT_VARIANT (t))
     TYPE_VALUES (t) = TYPE_VALUES (enumtype);
 
-  if (current_class_type
+  if (at_class_scope_p ()
       && COMPLETE_TYPE_P (current_class_type)
       && UNSCOPED_ENUM_P (enumtype))
     insert_late_enum_def_into_classtype_sorted_fields (enumtype,
@@ -12561,16 +12557,9 @@ incremented enumerator value is too large for %<long%>");
     course, if we're processing a template, there may be no value.  */
   type = value ? TREE_TYPE (value) : NULL_TREE;
 
-  if (context && context == current_class_type)
-    /* This enum declaration is local to the class.  We need the full
-       lang_decl so that we can record DECL_CLASS_CONTEXT, for example.  */
-    decl = build_lang_decl_loc (loc, CONST_DECL, name, type);
-  else
-    /* It's a global enum, or it's local to a function.  (Note local to
-       a function could mean local to a class method.  */
-    decl = build_decl (loc, CONST_DECL, name, type);
+  decl = build_decl (loc, CONST_DECL, name, type);
   
-  DECL_CONTEXT (decl) = FROB_CONTEXT (context);
+  DECL_CONTEXT (decl) = enumtype;
   TREE_CONSTANT (decl) = 1;
   TREE_READONLY (decl) = 1;
   DECL_INITIAL (decl) = value;
@@ -13586,7 +13575,8 @@ finish_function (int flags)
       && !TREE_NO_WARNING (fndecl)
       /* Structor return values (if any) are set by the compiler.  */
       && !DECL_CONSTRUCTOR_P (fndecl)
-      && !DECL_DESTRUCTOR_P (fndecl))
+      && !DECL_DESTRUCTOR_P (fndecl)
+      && targetm.warn_func_return (fndecl))
     {
       warning (OPT_Wreturn_type,
  	       "no return statement in function returning non-void");

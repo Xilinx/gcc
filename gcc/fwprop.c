@@ -1,5 +1,5 @@
 /* RTL-based forward propagation pass for GNU compiler.
-   Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
    Contributed by Paolo Bonzini and Steven Bosscher.
 
@@ -26,7 +26,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic-core.h"
 
 #include "sparseset.h"
-#include "timevar.h"
 #include "rtl.h"
 #include "tm_p.h"
 #include "insn-config.h"
@@ -224,7 +223,7 @@ single_def_use_enter_block (struct dom_walk_data *walk_data ATTRIBUTE_UNUSED,
   bitmap_copy (local_lr, &lr_bb_info->in);
 
   /* Push a marker for the leave_block callback.  */
-  VEC_safe_push (df_ref, heap, reg_defs_stack, NULL);
+  VEC_safe_push (df_ref, heap, reg_defs_stack, (df_ref) NULL);
 
   process_uses (df_get_artificial_uses (bb_index), DF_REF_AT_TOP);
   process_defs (df_get_artificial_defs (bb_index), DF_REF_AT_TOP);
@@ -800,13 +799,17 @@ all_uses_available_at (rtx def_insn, rtx target_insn)
   df_ref *use_rec;
   struct df_insn_info *insn_info = DF_INSN_INFO_GET (def_insn);
   rtx def_set = single_set (def_insn);
+  rtx next;
 
   gcc_assert (def_set);
 
   /* If target_insn comes right after def_insn, which is very common
-     for addresses, we can use a quicker test.  */
-  if (NEXT_INSN (def_insn) == target_insn
-      && REG_P (SET_DEST (def_set)))
+     for addresses, we can use a quicker test.  Ignore debug insns
+     other than target insns for this.  */
+  next = NEXT_INSN (def_insn);
+  while (next && next != target_insn && DEBUG_INSN_P (next))
+    next = NEXT_INSN (next);
+  if (next == target_insn && REG_P (SET_DEST (def_set)))
     {
       rtx def_reg = SET_DEST (def_set);
 

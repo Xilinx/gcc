@@ -27,18 +27,16 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm_p.h"
 #include "target.h"
 #include "basic-block.h"
-#include "timevar.h"
+#include "timevar.h"	/* for TV_ALIAS_STMT_WALK */
 #include "ggc.h"
 #include "langhooks.h"
 #include "flags.h"
 #include "function.h"
 #include "tree-pretty-print.h"
-#include "tree-dump.h"
+#include "dumpfile.h"
 #include "gimple.h"
 #include "tree-flow.h"
 #include "tree-inline.h"
-#include "tree-pass.h"
-#include "convert.h"
 #include "params.h"
 #include "vec.h"
 #include "bitmap.h"
@@ -380,17 +378,16 @@ stmt_may_clobber_global_p (gimple stmt)
 void
 dump_alias_info (FILE *file)
 {
-  size_t i;
+  unsigned i;
   const char *funcname
     = lang_hooks.decl_printable_name (current_function_decl, 2);
-  referenced_var_iterator rvi;
   tree var;
 
   fprintf (file, "\n\nAlias information for %s\n\n", funcname);
 
   fprintf (file, "Aliased symbols\n\n");
 
-  FOR_EACH_REFERENCED_VAR (cfun, var, rvi)
+  FOR_EACH_LOCAL_DECL (cfun, i, var)
     {
       if (may_be_aliased (var))
 	dump_variable (file, var);
@@ -1932,7 +1929,7 @@ stmt_kills_ref_p (gimple stmt, tree ref)
 
 static bool
 maybe_skip_until (gimple phi, tree target, ao_ref *ref,
-		  tree vuse, bitmap *visited)
+		  tree vuse, unsigned int *cnt, bitmap *visited)
 {
   basic_block bb = gimple_bb (phi);
 
@@ -1951,15 +1948,20 @@ maybe_skip_until (gimple phi, tree target, ao_ref *ref,
 	  /* An already visited PHI node ends the walk successfully.  */
 	  if (bitmap_bit_p (*visited, SSA_NAME_VERSION (PHI_RESULT (def_stmt))))
 	    return true;
-	  vuse = get_continuation_for_phi (def_stmt, ref, visited);
+	  vuse = get_continuation_for_phi (def_stmt, ref, cnt, visited);
 	  if (!vuse)
 	    return false;
 	  continue;
 	}
-      /* A clobbering statement or the end of the IL ends it failing.  */
-      else if (gimple_nop_p (def_stmt)
-	       || stmt_may_clobber_ref_p_1 (def_stmt, ref))
+      else if (gimple_nop_p (def_stmt))
 	return false;
+      else
+	{
+	  /* A clobbering statement or the end of the IL ends it failing.  */
+	  ++*cnt;
+	  if (stmt_may_clobber_ref_p_1 (def_stmt, ref))
+	    return false;
+	}
       /* If we reach a new basic-block see if we already skipped it
          in a previous walk that ended successfully.  */
       if (gimple_bb (def_stmt) != bb)
@@ -1979,7 +1981,7 @@ maybe_skip_until (gimple phi, tree target, ao_ref *ref,
 
 static tree
 get_continuation_for_phi_1 (gimple phi, tree arg0, tree arg1,
-			    ao_ref *ref, bitmap *visited)
+			    ao_ref *ref, unsigned int *cnt, bitmap *visited)
 {
   gimple def0 = SSA_NAME_DEF_STMT (arg0);
   gimple def1 = SSA_NAME_DEF_STMT (arg1);
@@ -1992,14 +1994,14 @@ get_continuation_for_phi_1 (gimple phi, tree arg0, tree arg1,
 	       && dominated_by_p (CDI_DOMINATORS,
 				  gimple_bb (def1), gimple_bb (def0))))
     {
-      if (maybe_skip_until (phi, arg0, ref, arg1, visited))
+      if (maybe_skip_until (phi, arg0, ref, arg1, cnt, visited))
 	return arg0;
     }
   else if (gimple_nop_p (def1)
 	   || dominated_by_p (CDI_DOMINATORS,
 			      gimple_bb (def0), gimple_bb (def1)))
     {
-      if (maybe_skip_until (phi, arg1, ref, arg0, visited))
+      if (maybe_skip_until (phi, arg1, ref, arg0, cnt, visited))
 	return arg1;
     }
   /* Special case of a diamond:
@@ -2018,6 +2020,7 @@ get_continuation_for_phi_1 (gimple phi, tree arg0, tree arg1,
   else if ((common_vuse = gimple_vuse (def0))
 	   && common_vuse == gimple_vuse (def1))
     {
+      *cnt += 2;
       if (!stmt_may_clobber_ref_p_1 (def0, ref)
 	  && !stmt_may_clobber_ref_p_1 (def1, ref))
 	return common_vuse;
@@ -2030,11 +2033,12 @@ get_continuation_for_phi_1 (gimple phi, tree arg0, tree arg1,
 /* Starting from a PHI node for the virtual operand of the memory reference
    REF find a continuation virtual operand that allows to continue walking
    statements dominating PHI skipping only statements that cannot possibly
-   clobber REF.  Returns NULL_TREE if no suitable virtual operand can
-   be found.  */
+   clobber REF.  Increments *CNT for each alias disambiguation done.
+   Returns NULL_TREE if no suitable virtual operand can be found.  */
 
 tree
-get_continuation_for_phi (gimple phi, ao_ref *ref, bitmap *visited)
+get_continuation_for_phi (gimple phi, ao_ref *ref,
+			  unsigned int *cnt, bitmap *visited)
 {
   unsigned nargs = gimple_phi_num_args (phi);
 
@@ -2071,7 +2075,8 @@ get_continuation_for_phi (gimple phi, ao_ref *ref, bitmap *visited)
       for (i = 0; i < nargs; ++i)
 	{
 	  arg1 = PHI_ARG_DEF (phi, i);
-	  arg0 = get_continuation_for_phi_1 (phi, arg0, arg1, ref, visited);
+	  arg0 = get_continuation_for_phi_1 (phi, arg0, arg1, ref,
+					     cnt, visited);
 	  if (!arg0)
 	    return NULL_TREE;
 	}
@@ -2102,11 +2107,12 @@ get_continuation_for_phi (gimple phi, ao_ref *ref, bitmap *visited)
 
 void *
 walk_non_aliased_vuses (ao_ref *ref, tree vuse,
-			void *(*walker)(ao_ref *, tree, void *),
+			void *(*walker)(ao_ref *, tree, unsigned int, void *),
 			void *(*translate)(ao_ref *, tree, void *), void *data)
 {
   bitmap visited = NULL;
   void *res;
+  unsigned int cnt = 0;
 
   timevar_push (TV_ALIAS_STMT_WALK);
 
@@ -2115,17 +2121,25 @@ walk_non_aliased_vuses (ao_ref *ref, tree vuse,
       gimple def_stmt;
 
       /* ???  Do we want to account this to TV_ALIAS_STMT_WALK?  */
-      res = (*walker) (ref, vuse, data);
-      if (res)
+      res = (*walker) (ref, vuse, cnt, data);
+      /* Abort walk.  */
+      if (res == (void *)-1)
+	{
+	  res = NULL;
+	  break;
+	}
+      /* Lookup succeeded.  */
+      else if (res != NULL)
 	break;
 
       def_stmt = SSA_NAME_DEF_STMT (vuse);
       if (gimple_nop_p (def_stmt))
 	break;
       else if (gimple_code (def_stmt) == GIMPLE_PHI)
-	vuse = get_continuation_for_phi (def_stmt, ref, &visited);
+	vuse = get_continuation_for_phi (def_stmt, ref, &cnt, &visited);
       else
 	{
+	  cnt++;
 	  if (stmt_may_clobber_ref_p_1 (def_stmt, ref))
 	    {
 	      if (!translate)

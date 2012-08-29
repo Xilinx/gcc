@@ -487,7 +487,9 @@ Creating Unit Tests Using gnattest
 * Tagged Types Substitutability Testing::
 * Testing with Contracts::
 * Additional Tests::
+@ifclear vms
 * Support for other platforms/run-times::
+@end ifclear
 * Current Limitations::
 
 Other Utility Programs
@@ -4306,10 +4308,8 @@ means that no limit applies.
 @cindex @option{-gnatn} (@command{gcc})
 Activate inlining for subprograms for which pragma @code{Inline} is
 specified. This inlining is performed by the GCC back-end. An optional
-digit sets the inlining level: 1 for moderate inlining across modules,
-which is a good compromise between compilation times and performances
-at run time, and 2 for full inlining across modules, which may bring
-about longer compilation times. If no inlining level is specified,
+digit sets the inlining level: 1 for moderate inlining across modules
+or 2 for full inlining across modules. If no inlining level is specified,
 the compiler will pick it based on the optimization level.
 
 @item -gnatN
@@ -7335,20 +7335,27 @@ For the source file naming rules, @xref{File Naming Rules}.
 
 @table @option
 @c !sort!
-@item -gnatn
+@item -gnatn[12]
 @cindex @option{-gnatn} (@command{gcc})
 @ifclear vms
 The @code{n} here is intended to suggest the first syllable of the
 word ``inline''.
 @end ifclear
 GNAT recognizes and processes @code{Inline} pragmas. However, for the
-inlining to actually occur, optimization must be enabled. To enable
-inlining of subprograms specified by pragma @code{Inline},
+inlining to actually occur, optimization must be enabled and, in order
+to enable inlining of subprograms specified by pragma @code{Inline},
 you must also specify this switch.
 In the absence of this switch, GNAT does not attempt
 inlining and does not need to access the bodies of
 subprograms for which @code{pragma Inline} is specified if they are not
 in the current unit.
+
+You can optionally specify the inlining level: 1 for moderate inlining across
+modules, which is a good compromise between compilation times and performances
+at run time, or 2 for full inlining across modules, which may bring about
+longer compilation times. If no inlining level is specified, the compiler will
+pick it based on the optimization level: 1 for @option{-O1}, @option{-O2} or
+@option{-Os} and 2 for @option{-O3}.
 
 If you specify this switch the compiler will access these bodies,
 creating an extra source dependency for the resulting object file, and
@@ -10733,19 +10740,22 @@ Note: The @option{-fno-inline-functions-called-once} switch
 can be used to prevent inlining of subprograms local to the unit
 and called once from within it if @option{-O1} is used.
 
-Note regarding the use of @option{-O3}: There is no difference in inlining
-behavior between @option{-O2} and @option{-O3} for subprograms with an explicit
-pragma @code{Inline} assuming the use of @option{-gnatn}
-or @option{-gnatN} (the switches that activate inlining). If you have used
-pragma @code{Inline} in appropriate cases, then it is usually much better
-to use @option{-O2} and @option{-gnatn} and avoid the use of @option{-O3} which
-in this case only has the effect of inlining subprograms you did not
-think should be inlined. We often find that the use of @option{-O3} slows
-down code by performing excessive inlining, leading to increased instruction
-cache pressure from the increased code size. So the bottom line here is
-that you should not automatically assume that @option{-O3} is better than
-@option{-O2}, and indeed you should use @option{-O3} only if tests show that
-it actually improves performance.
+Note regarding the use of @option{-O3}: @option{-gnatn} is made up of two
+sub-switches @option{-gnatn1} and @option{-gnatn2} that can be directly
+specified in lieu of it, @option{-gnatn} being translated into one of them
+based on the optimization level. With @option{-O2} or below, @option{-gnatn}
+is equivalent to @option{-gnatn1} which activates pragma @code{Inline} with
+moderate inlining across modules. With @option{-O3}, @option{-gnatn} is
+equivalent to @option{-gnatn2} which activates pragma @code{Inline} with
+full inlining across modules. If you have used pragma @code{Inline} in appropriate cases, then it is usually much better to use @option{-O2} and @option{-gnatn} and avoid the use of @option{-O3} which has the additional
+effect of inlining subprograms you did not think should be inlined. We have
+found that the use of @option{-O3} may slow down the compilation and increase
+the code size by performing excessive inlining, leading to increased
+instruction cache pressure from the increased code size and thus minor
+performance improvements. So the bottom line here is that you should not
+automatically assume that @option{-O3} is better than @option{-O2}, and
+indeed you should use @option{-O3} only if tests show that it actually
+improves performance for your program.
 
 @node Vectorization of loops
 @subsection Vectorization of loops
@@ -18099,7 +18109,9 @@ is installed at its default location.
 * Tagged Types Substitutability Testing::
 * Testing with Contracts::
 * Additional Tests::
+@ifclear vms
 * Support for other platforms/run-times::
+@end ifclear
 * Current Limitations::
 @end menu
 
@@ -18408,7 +18420,7 @@ as passed to gnattest when generating the test driver.
 Passing it to the driver generated on the first example:
 
 @smallexample
-test_runner --stub-default=pass
+test_runner --skeleton-default=pass
 @end smallexample
 
 makes both tests pass, even the unimplemented one.
@@ -18613,6 +18625,7 @@ gnatmake -Pmixing/test_driver.gpr
 mixing/test_runner
 @end smallexample
 
+@ifclear vms
 @node Support for other platforms/run-times
 @section Support for other platforms/run-times
 
@@ -18625,12 +18638,15 @@ such as Zero FootPrint (ZFP), a simplified harness is generated.
 Two variables are used to tell the underlying AUnit framework how to generate
 the test harness: @code{PLATFORM}, which identifies the target, and
 @code{RUNTIME}, used to determine the run-time library for which the harness
-is generated. For example, the following options are used to generate the
-AUnit test harness for a PowerPC ELF target using the ZFP run-time library:
+is generated. Corresponding prefix should also be used when calling
+@command{gnattest} for non-native targets. For example, the following options
+are used to generate the AUnit test harness for a PowerPC ELF target using
+the ZFP run-time library:
 
 @smallexample
-gnattest -Psimple.gpr -XPLATFORM=powerpc-elf -XRUNTIME=zfp
+powerpc-elf-gnattest -Psimple.gpr -XPLATFORM=powerpc-elf -XRUNTIME=zfp
 @end smallexample
+@end ifclear
 
 @node Current Limitations
 @section Current Limitations
@@ -18642,7 +18658,6 @@ The tool currently does not support following features:
 @itemize @bullet
 @item generic tests for generic packages and package instantiations
 @item tests for protected subprograms and entries
-@item generating test packages for code that is not conformant with ada 2005
 
 @end itemize
 
@@ -18676,13 +18691,13 @@ package, in file s-dimmks.ads.
    type Mks_Type is new Long_Long_Float
      with
       Dimension_System => (
-        (Meter,    'm'),
-        (Kilogram, "kg"),
-        (Second,   's'),
-        (Ampere,   'A'),
-        (Kelvin,   'K'),
-        (Mole,     "mol"),
-        (Candela,  "cd"));
+        (Unit_Name => Meter,    Unit_Symbol => 'm',   Dim_Symbol => 'L'),
+        (Unit_Name => Kilogram, Unit_Symbol => "kg",  Dim_Symbol => 'M'),
+        (Unit_Name => Second,   Unit_Symbol => 's',   Dim_Symbol => 'T'),
+        (Unit_Name => Ampere,   Unit_Symbol => 'A',   Dim_Symbol => 'I'),
+        (Unit_Name => Kelvin,   Unit_Symbol => 'K',   Dim_Symbol => "Theta"),
+        (Unit_Name => Mole,     Unit_Symbol => "mol", Dim_Symbol => 'N'),
+        (Unit_Name => Candela,  Unit_Symbol => "cd",  Dim_Symbol => 'J'));
 @end smallexample
 
 @noindent
@@ -18691,8 +18706,8 @@ conventional units. For example:
 @smallexample @c ada
    subtype Length is Mks_Type
      with
-      Dimension => ('m',
-        Meter =>  1,
+      Dimension => (Symbol => 'm',
+        Meter  => 1,
         others => 0);
 @end smallexample
 @noindent
@@ -18704,10 +18719,10 @@ The package also defines conventional names for values of each unit, for
 example:
 
 @smallexample @c ada
-   m   : constant Length                    := 1.0;
-   kg  : constant Mass                      := 1.0;
-   s   : constant Time                      := 1.0;
-   A   : constant Electric_Current          := 1.0;
+   m   : constant Length           := 1.0;
+   kg  : constant Mass             := 1.0;
+   s   : constant Time             := 1.0;
+   A   : constant Electric_Current := 1.0;
 @end smallexample
 
 @noindent
@@ -18775,13 +18790,13 @@ are rejected with the following diagnoses:
 @smallexample
    Distance := 5.0;
       >>> dimensions mismatch in assignment
-      >>> left-hand side has dimensions (1, 0, 0, 0, 0, 0, 0)
+      >>> left-hand side has dimension [L]
       >>> right-hand side is dimensionless
 
    Distance := 5.0 * kg:
       >>> dimensions mismatch in assignment
-      >>> left-hand side has dimensions  (1, 0, 0, 0, 0, 0, 0)
-      >>> right-hand side has dimensions (0, 1, 0, 0, 0, 0, 0)
+      >>> left-hand side has dimension [L]
+      >>> right-hand side has dimension [M]
 @end smallexample
 
 @noindent

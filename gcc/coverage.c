@@ -43,10 +43,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "ggc.h"
 #include "coverage.h"
 #include "langhooks.h"
-#include "hashtab.h"
+#include "hash-table.h"
 #include "tree-iterator.h"
 #include "cgraph.h"
-#include "tree-pass.h"
+#include "dumpfile.h"
 #include "diagnostic-core.h"
 #include "intl.h"
 #include "filenames.h"
@@ -77,6 +77,12 @@ typedef struct counts_entry
   unsigned cfg_checksum;
   gcov_type *counts;
   struct gcov_ctr_summary summary;
+
+  /* hash_table support.  */
+  typedef counts_entry T;
+  static inline hashval_t hash (const counts_entry *);
+  static int equal (const counts_entry *, const counts_entry *);
+  static void remove (counts_entry *);
 } counts_entry_t;
 
 static GTY(()) struct coverage_data *functions_head = 0;
@@ -97,27 +103,23 @@ static GTY(()) tree gcov_info_var;
 static GTY(()) tree gcov_fn_info_type;
 static GTY(()) tree gcov_fn_info_ptr_type;
 
-/* Name of the output file for coverage output file.  If this is NULL
-   we're not writing to the notes file.  */
+/* Name of the notes (gcno) output file.  The "bbg" prefix is for
+   historical reasons, when the notes file contained only the
+   basic block graph notes.
+   If this is NULL we're not writing to the notes file.  */
 static char *bbg_file_name;
 
-/* File stamp for graph file.  */
+/* File stamp for notes file.  */
 static unsigned bbg_file_stamp;
 
-/* Name of the count data file.  */
+/* Name of the count data (gcda) file.  */
 static char *da_file_name;
-
-/* Hash table of count data.  */
-static htab_t counts_hash = NULL;
 
 /* The names of merge functions for counters.  */
 static const char *const ctr_merge_functions[GCOV_COUNTERS] = GCOV_MERGE_FUNCTIONS;
 static const char *const ctr_names[GCOV_COUNTERS] = GCOV_COUNTER_NAMES;
 
 /* Forward declarations.  */
-static hashval_t htab_counts_entry_hash (const void *);
-static int htab_counts_entry_eq (const void *, const void *);
-static void htab_counts_entry_del (void *);
 static void read_counts_file (void);
 static tree build_var (tree, tree, int);
 static void build_fn_info_type (tree, unsigned, tree);
@@ -147,31 +149,28 @@ get_gcov_unsigned_t (void)
   return lang_hooks.types.type_for_mode (mode, true);
 }
 
-static hashval_t
-htab_counts_entry_hash (const void *of)
+inline hashval_t
+counts_entry::hash (const counts_entry_t *entry)
 {
-  const counts_entry_t *const entry = (const counts_entry_t *) of;
-
   return entry->ident * GCOV_COUNTERS + entry->ctr;
 }
 
-static int
-htab_counts_entry_eq (const void *of1, const void *of2)
+inline int
+counts_entry::equal (const counts_entry_t *entry1,
+		     const counts_entry_t *entry2)
 {
-  const counts_entry_t *const entry1 = (const counts_entry_t *) of1;
-  const counts_entry_t *const entry2 = (const counts_entry_t *) of2;
-
   return entry1->ident == entry2->ident && entry1->ctr == entry2->ctr;
 }
 
-static void
-htab_counts_entry_del (void *of)
+inline void
+counts_entry::remove (counts_entry_t *entry)
 {
-  counts_entry_t *const entry = (counts_entry_t *) of;
-
   free (entry->counts);
   free (entry);
 }
+
+/* Hash table of count data.  */
+static hash_table <counts_entry> counts_hash;
 
 /* Read in the counts file, if available.  */
 
@@ -212,9 +211,7 @@ read_counts_file (void)
   tag = gcov_read_unsigned ();
   bbg_file_stamp = crc32_unsigned (bbg_file_stamp, tag);
 
-  counts_hash = htab_create (10,
-			     htab_counts_entry_hash, htab_counts_entry_eq,
-			     htab_counts_entry_del);
+  counts_hash.create (10);
   while ((tag = gcov_read_unsigned ()))
     {
       gcov_unsigned_t length;
@@ -262,8 +259,7 @@ read_counts_file (void)
 	  elt.ident = fn_ident;
 	  elt.ctr = GCOV_COUNTER_FOR_TAG (tag);
 
-	  slot = (counts_entry_t **) htab_find_slot
-	    (counts_hash, &elt, INSERT);
+	  slot = counts_hash.find_slot (&elt, INSERT);
 	  entry = *slot;
 	  if (!entry)
 	    {
@@ -283,14 +279,14 @@ read_counts_file (void)
 	      error ("checksum is (%x,%x) instead of (%x,%x)",
 		     entry->lineno_checksum, entry->cfg_checksum,
 		     lineno_checksum, cfg_checksum);
-	      htab_delete (counts_hash);
+	      counts_hash.dispose ();
 	      break;
 	    }
 	  else if (entry->summary.num != n_counts)
 	    {
 	      error ("Profile data for function %u is corrupted", fn_ident);
 	      error ("number of counters is %d instead of %d", entry->summary.num, n_counts);
-	      htab_delete (counts_hash);
+	      counts_hash.dispose ();
 	      break;
 	    }
 	  else if (elt.ctr >= GCOV_COUNTERS_SUMMABLE)
@@ -316,7 +312,7 @@ read_counts_file (void)
 	{
 	  error (is_error < 0 ? "%qs has overflowed" : "%qs is corrupted",
 		 da_file_name);
-	  htab_delete (counts_hash);
+	  counts_hash.dispose ();
 	  break;
 	}
     }
@@ -334,7 +330,7 @@ get_coverage_counts (unsigned counter, unsigned expected,
   counts_entry_t *entry, elt;
 
   /* No hash table, no counts.  */
-  if (!counts_hash)
+  if (!counts_hash.is_created ())
     {
       static int warned = 0;
 
@@ -348,7 +344,7 @@ get_coverage_counts (unsigned counter, unsigned expected,
 
   elt.ident = current_function_funcdef_no + 1;
   elt.ctr = counter;
-  entry = (counts_entry_t *) htab_find (counts_hash, &elt);
+  entry = counts_hash.find (&elt);
   if (!entry || !entry->summary.num)
     /* The function was not emitted, or is weak and not chosen in the
        final executable.  Silently fail, because there's nothing we
@@ -566,7 +562,7 @@ coverage_compute_cfg_checksum (void)
   return chksum;
 }
 
-/* Begin output to the graph file for the current function.
+/* Begin output to the notes file for the current function.
    Writes the function header. Returns nonzero if data should be output.  */
 
 int
@@ -1079,7 +1075,7 @@ coverage_obj_finish (VEC(constructor_elt,gc) *ctor)
 }
 
 /* Perform file-level initialization. Read in data file, generate name
-   of graph file.  */
+   of notes file.  */
 
 void
 coverage_init (const char *filename)
@@ -1131,7 +1127,7 @@ coverage_init (const char *filename)
     }
 }
 
-/* Performs file-level cleanup.  Close graph file, generate coverage
+/* Performs file-level cleanup.  Close notes file, generate coverage
    variables and constructor.  */
 
 void

@@ -21,6 +21,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "config.h"
 #include "system.h"
+#include "coretypes.h"
 #include "flags.h"
 #include "gfortran.h"
 #include "arith.h"
@@ -418,7 +419,7 @@ typedef gfc_expr* (*transformational_op)(gfc_expr*, gfc_expr*);
 /* Wrapper function, implements 'op1 += 1'. Only called if MASK
    of COUNT intrinsic is .TRUE..
 
-   Interface and implimentation mimics arith functions as
+   Interface and implementation mimics arith functions as
    gfc_add, gfc_multiply, etc.  */
 
 static gfc_expr* gfc_count (gfc_expr *op1, gfc_expr *op2)
@@ -2934,7 +2935,6 @@ gfc_simplify_iparity (gfc_expr *array, gfc_expr *dim, gfc_expr *mask)
 }
 
 
-
 gfc_expr *
 gfc_simplify_is_iostat_end (gfc_expr *x)
 {
@@ -3380,7 +3380,8 @@ simplify_bound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind, int upper)
 
  done:
 
-  if (as && (as->type == AS_DEFERRED || as->type == AS_ASSUMED_SHAPE))
+  if (as && (as->type == AS_DEFERRED || as->type == AS_ASSUMED_SHAPE
+	     || as->type == AS_ASSUMED_RANK))
     return NULL;
 
   if (dim == NULL)
@@ -3442,12 +3443,15 @@ simplify_bound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind, int upper)
 
       d = mpz_get_si (dim->value.integer);
 
-      if (d < 1 || d > array->rank
+      if ((d < 1 || d > array->rank)
 	  || (d == array->rank && as && as->type == AS_ASSUMED_SIZE && upper))
 	{
 	  gfc_error ("DIM argument at %L is out of bounds", &dim->where);
 	  return &gfc_bad_expr;
 	}
+
+      if (as && as->type == AS_ASSUMED_RANK)
+	return NULL;
 
       return simplify_bound_dim (array, kind, d, upper, as, ref, false);
     }
@@ -4779,6 +4783,10 @@ gfc_simplify_range (gfc_expr *e)
 gfc_expr *
 gfc_simplify_rank (gfc_expr *e)
 {
+  /* Assumed rank.  */
+  if (e->rank == -1)
+    return NULL;
+
   return gfc_get_int_expr (gfc_default_integer_kind, &e->where, e->rank);
 }
 
@@ -5461,6 +5469,9 @@ gfc_simplify_shape (gfc_expr *source, gfc_expr *kind)
   int n;
   gfc_try t;
   int k = get_kind (BT_INTEGER, kind, "SHAPE", gfc_default_integer_kind);
+
+  if (source->rank == -1)
+    return NULL;
 
   result = gfc_get_array_expr (BT_INTEGER, k, &source->where);
 

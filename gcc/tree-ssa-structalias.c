@@ -37,7 +37,6 @@
 #include "function.h"
 #include "cgraph.h"
 #include "tree-pass.h"
-#include "timevar.h"
 #include "alloc-pool.h"
 #include "splay-tree.h"
 #include "params.h"
@@ -2660,37 +2659,48 @@ lookup_vi_for_tree (tree t)
 static const char *
 alias_get_name (tree decl)
 {
-  const char *res;
+  const char *res = NULL;
   char *temp;
   int num_printed = 0;
 
-  if (DECL_ASSEMBLER_NAME_SET_P (decl))
-    res = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
-  else
-    res= get_name (decl);
-  if (res != NULL)
-    return res;
-
-  res = "NULL";
   if (!dump_file)
-    return res;
+    return "NULL";
 
   if (TREE_CODE (decl) == SSA_NAME)
     {
-      num_printed = asprintf (&temp, "%s_%u",
-			      alias_get_name (SSA_NAME_VAR (decl)),
-			      SSA_NAME_VERSION (decl));
+      res = get_name (decl);
+      if (res)
+	num_printed = asprintf (&temp, "%s_%u", res, SSA_NAME_VERSION (decl));
+      else
+	num_printed = asprintf (&temp, "_%u", SSA_NAME_VERSION (decl));
+      if (num_printed > 0)
+	{
+	  res = ggc_strdup (temp);
+	  free (temp);
+	}
     }
   else if (DECL_P (decl))
     {
-      num_printed = asprintf (&temp, "D.%u", DECL_UID (decl));
+      if (DECL_ASSEMBLER_NAME_SET_P (decl))
+	res = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
+      else
+	{
+	  res = get_name (decl);
+	  if (!res)
+	    {
+	      num_printed = asprintf (&temp, "D.%u", DECL_UID (decl));
+	      if (num_printed > 0)
+		{
+		  res = ggc_strdup (temp);
+		  free (temp);
+		}
+	    }
+	}
     }
-  if (num_printed > 0)
-    {
-      res = ggc_strdup (temp);
-      free (temp);
-    }
-  return res;
+  if (res != NULL)
+    return res;
+
+  return "NULL";
 }
 
 /* Find the variable id for tree T in the map.
@@ -2737,14 +2747,14 @@ get_constraint_for_ssa_var (tree t, VEC(ce_s, heap) **results, bool address_p)
   varinfo_t vi;
 
   /* We allow FUNCTION_DECLs here even though it doesn't make much sense.  */
-  gcc_assert (SSA_VAR_P (t) || DECL_P (t));
+  gcc_assert (TREE_CODE (t) == SSA_NAME || DECL_P (t));
 
   /* For parameters, get at the points-to set for the actual parm
      decl.  */
   if (TREE_CODE (t) == SSA_NAME
+      && SSA_NAME_IS_DEFAULT_DEF (t)
       && (TREE_CODE (SSA_NAME_VAR (t)) == PARM_DECL
-	  || TREE_CODE (SSA_NAME_VAR (t)) == RESULT_DECL)
-      && SSA_NAME_IS_DEFAULT_DEF (t))
+	  || TREE_CODE (SSA_NAME_VAR (t)) == RESULT_DECL))
     {
       get_constraint_for_ssa_var (SSA_NAME_VAR (t), results, address_p);
       return;
@@ -2917,7 +2927,7 @@ get_constraint_for_ptr_offset (tree ptr, tree offset,
   for (j = 0; j < n; j++)
     {
       varinfo_t curr;
-      c = *VEC_index (ce_s, *results, j);
+      c = VEC_index (ce_s, *results, j);
       curr = get_varinfo (c.var);
 
       if (c.type == ADDRESSOF
@@ -2979,7 +2989,7 @@ get_constraint_for_ptr_offset (tree ptr, tree offset,
       else
 	c.offset = rhsoffset;
 
-      VEC_replace (ce_s, *results, j, &c);
+      VEC_replace (ce_s, *results, j, c);
     }
 }
 
@@ -3048,7 +3058,7 @@ get_constraint_for_component_ref (tree t, VEC(ce_s, heap) **results,
      adding the required subset of sub-fields below.  */
   get_constraint_for_1 (t, results, true, lhs_p);
   gcc_assert (VEC_length (ce_s, *results) == 1);
-  result = VEC_last (ce_s, *results);
+  result = &VEC_last (ce_s, *results);
 
   if (result->type == SCALAR
       && get_varinfo (result->var)->is_full_var)
@@ -3274,13 +3284,13 @@ get_constraint_for_1 (tree t, VEC (ce_s, heap) **results, bool address_p,
 	      if (address_p)
 		return;
 
-	      cs = *VEC_last (ce_s, *results);
+	      cs = VEC_last (ce_s, *results);
 	      if (cs.type == DEREF
 		  && type_can_have_subvars (TREE_TYPE (t)))
 		{
 		  /* For dereferences this means we have to defer it
 		     to solving time.  */
-		  VEC_last (ce_s, *results)->offset = UNKNOWN_OFFSET;
+		  VEC_last (ce_s, *results).offset = UNKNOWN_OFFSET;
 		  return;
 		}
 	      if (cs.type != SCALAR)
@@ -3441,8 +3451,8 @@ do_structure_copy (tree lhsop, tree rhsop)
 
   get_constraint_for (lhsop, &lhsc);
   get_constraint_for_rhs (rhsop, &rhsc);
-  lhsp = VEC_index (ce_s, lhsc, 0);
-  rhsp = VEC_index (ce_s, rhsc, 0);
+  lhsp = &VEC_index (ce_s, lhsc, 0);
+  rhsp = &VEC_index (ce_s, rhsc, 0);
   if (lhsp->type == DEREF
       || (lhsp->type == ADDRESSOF && lhsp->var == anything_id)
       || rhsp->type == DEREF)
@@ -3471,7 +3481,7 @@ do_structure_copy (tree lhsop, tree rhsop)
       for (j = 0; VEC_iterate (ce_s, lhsc, j, lhsp);)
 	{
 	  varinfo_t lhsv, rhsv;
-	  rhsp = VEC_index (ce_s, rhsc, k);
+	  rhsp = &VEC_index (ce_s, rhsc, k);
 	  lhsv = get_varinfo (lhsp->var);
 	  rhsv = get_varinfo (rhsp->var);
 	  if (lhsv->may_have_pointers
@@ -3858,9 +3868,11 @@ handle_lhs_call (gimple stmt, tree lhs, int flags, VEC(ce_s, heap) *rhsc,
       tmpc.offset = 0;
       tmpc.type = ADDRESSOF;
       VEC_safe_push (ce_s, heap, rhsc, &tmpc);
+      process_all_all_constraints (lhsc, rhsc);
+      VEC_free (ce_s, heap, rhsc);
     }
-
-  process_all_all_constraints (lhsc, rhsc);
+  else
+    process_all_all_constraints (lhsc, rhsc);
 
   VEC_free (ce_s, heap, lhsc);
 }
@@ -3977,9 +3989,9 @@ get_fi_for_callee (gimple call)
   if (!fn || TREE_CODE (fn) != SSA_NAME)
     return get_varinfo (anything_id);
 
-  if ((TREE_CODE (SSA_NAME_VAR (fn)) == PARM_DECL
-       || TREE_CODE (SSA_NAME_VAR (fn)) == RESULT_DECL)
-      && SSA_NAME_IS_DEFAULT_DEF (fn))
+  if (SSA_NAME_IS_DEFAULT_DEF (fn)
+      && (TREE_CODE (SSA_NAME_VAR (fn)) == PARM_DECL
+	  || TREE_CODE (SSA_NAME_VAR (fn)) == RESULT_DECL))
     fn = SSA_NAME_VAR (fn);
 
   return get_vi_for_tree (fn);
@@ -4367,7 +4379,7 @@ find_func_aliases_for_call (gimple t)
 	  lhs = get_function_part_constraint (fi, fi_parm_base + j);
 	  while (VEC_length (ce_s, rhsc) != 0)
 	    {
-	      rhsp = VEC_last (ce_s, rhsc);
+	      rhsp = &VEC_last (ce_s, rhsc);
 	      process_constraint (new_constraint (lhs, *rhsp));
 	      VEC_pop (ce_s, rhsc);
 	    }
@@ -4389,7 +4401,7 @@ find_func_aliases_for_call (gimple t)
 	      VEC(ce_s, heap) *tem = NULL;
 	      VEC_safe_push (ce_s, heap, tem, &rhs);
 	      do_deref (&tem);
-	      rhs = *VEC_index (ce_s, tem, 0);
+	      rhs = VEC_index (ce_s, tem, 0);
 	      VEC_free(ce_s, heap, tem);
 	    }
 	  FOR_EACH_VEC_ELT (ce_s, lhsc, j, lhsp)
@@ -4461,7 +4473,7 @@ find_func_aliases (gimple origt)
 	      struct constraint_expr *c2;
 	      while (VEC_length (ce_s, rhsc) > 0)
 		{
-		  c2 = VEC_last (ce_s, rhsc);
+		  c2 = &VEC_last (ce_s, rhsc);
 		  process_constraint (new_constraint (*c, *c2));
 		  VEC_pop (ce_s, rhsc);
 		}
@@ -5148,7 +5160,7 @@ push_fields_onto_fieldstack (tree type, VEC(fieldoff_s,heap) **fieldstack,
 	    bool must_have_pointers_p;
 
 	    if (!VEC_empty (fieldoff_s, *fieldstack))
-	      pair = VEC_last (fieldoff_s, *fieldstack);
+	      pair = &VEC_last (fieldoff_s, *fieldstack);
 
 	    /* If there isn't anything at offset zero, create sth.  */
 	    if (!pair
@@ -5916,9 +5928,9 @@ find_what_p_points_to (tree p)
   /* For parameters, get at the points-to set for the actual parm
      decl.  */
   if (TREE_CODE (p) == SSA_NAME
+      && SSA_NAME_IS_DEFAULT_DEF (p)
       && (TREE_CODE (SSA_NAME_VAR (p)) == PARM_DECL
-	  || TREE_CODE (SSA_NAME_VAR (p)) == RESULT_DECL)
-      && SSA_NAME_IS_DEFAULT_DEF (p))
+	  || TREE_CODE (SSA_NAME_VAR (p)) == RESULT_DECL))
     lookup_p = SSA_NAME_VAR (p);
 
   vi = lookup_vi_for_tree (lookup_p);
@@ -6579,7 +6591,7 @@ compute_points_to_sets (void)
 	{
 	  gimple phi = gsi_stmt (gsi);
 
-	  if (is_gimple_reg (gimple_phi_result (phi)))
+	  if (! virtual_operand_p (gimple_phi_result (phi)))
 	    find_func_aliases (phi);
 	}
 
@@ -6737,9 +6749,6 @@ compute_may_aliases (void)
 
 	  /* But still dump what we have remaining it.  */
 	  dump_alias_info (dump_file);
-
-	  if (dump_flags & TDF_DETAILS)
-	    dump_referenced_vars (dump_file);
 	}
 
       return 0;
@@ -6752,12 +6761,7 @@ compute_may_aliases (void)
 
   /* Debugging dumps.  */
   if (dump_file)
-    {
-      dump_alias_info (dump_file);
-
-      if (dump_flags & TDF_DETAILS)
-	dump_referenced_vars (dump_file);
-    }
+    dump_alias_info (dump_file);
 
   /* Deallocate memory used by aliasing data structures and the internal
      points-to solution.  */
@@ -6964,7 +6968,7 @@ ipa_pta_execute (void)
 	    {
 	      gimple phi = gsi_stmt (gsi);
 
-	      if (is_gimple_reg (gimple_phi_result (phi)))
+	      if (! virtual_operand_p (gimple_phi_result (phi)))
 		find_func_aliases (phi);
 	    }
 

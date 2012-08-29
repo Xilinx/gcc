@@ -2871,8 +2871,8 @@ compare_constant (const tree t1, const tree t2)
 
 	for (idx = 0; idx < VEC_length (constructor_elt, v1); ++idx)
 	  {
-	    constructor_elt *c1 = VEC_index (constructor_elt, v1, idx);
-	    constructor_elt *c2 = VEC_index (constructor_elt, v2, idx);
+	    constructor_elt *c1 = &VEC_index (constructor_elt, v1, idx);
+	    constructor_elt *c2 = &VEC_index (constructor_elt, v2, idx);
 
 	    /* Check that each value is the same...  */
 	    if (!compare_constant (c1->value, c2->value))
@@ -3626,7 +3626,7 @@ output_constant_pool_2 (enum machine_mode mode, rtx x, unsigned int align)
       {
 	REAL_VALUE_TYPE r;
 
-	gcc_assert (GET_CODE (x) == CONST_DOUBLE);
+	gcc_assert (CONST_DOUBLE_AS_FLOAT_P (x));
 	REAL_VALUE_FROM_CONST_DOUBLE (r, x);
 	assemble_real (r, mode, align);
 	break;

@@ -88,7 +88,7 @@ static void rtl_delete_block (basic_block);
 static basic_block rtl_redirect_edge_and_branch_force (edge, basic_block);
 static edge rtl_redirect_edge_and_branch (edge, basic_block);
 static basic_block rtl_split_block (basic_block, void *);
-static void rtl_dump_bb (basic_block, FILE *, int, int);
+static void rtl_dump_bb (FILE *, basic_block, int, int);
 static int rtl_verify_flow_info_1 (void);
 static void rtl_make_forwarder_block (edge);
 
@@ -516,6 +516,107 @@ update_bb_for_insn (basic_block bb)
   update_bb_for_insn_chain (BB_HEAD (bb), BB_END (bb), bb);
 }
 
+
+/* Like active_insn_p, except keep the return value clobber around
+   even after reload.  */
+
+static bool
+flow_active_insn_p (const_rtx insn)
+{
+  if (active_insn_p (insn))
+    return true;
+
+  /* A clobber of the function return value exists for buggy
+     programs that fail to return a value.  Its effect is to
+     keep the return value from being live across the entire
+     function.  If we allow it to be skipped, we introduce the
+     possibility for register lifetime confusion.  */
+  if (GET_CODE (PATTERN (insn)) == CLOBBER
+      && REG_P (XEXP (PATTERN (insn), 0))
+      && REG_FUNCTION_VALUE_P (XEXP (PATTERN (insn), 0)))
+    return true;
+
+  return false;
+}
+
+/* Return true if the block has no effect and only forwards control flow to
+   its single destination.  */
+/* FIXME: Make this a cfg hook.  */
+
+bool
+forwarder_block_p (const_basic_block bb)
+{
+  rtx insn;
+
+  if (bb == EXIT_BLOCK_PTR || bb == ENTRY_BLOCK_PTR
+      || !single_succ_p (bb))
+    return false;
+
+  /* Protect loop latches, headers and preheaders.  */
+  if (current_loops)
+    {
+      basic_block dest;
+      if (bb->loop_father->header == bb)
+	return false;
+      dest = EDGE_SUCC (bb, 0)->dest;
+      if (dest->loop_father->header == dest)
+	return false;
+    }
+
+  for (insn = BB_HEAD (bb); insn != BB_END (bb); insn = NEXT_INSN (insn))
+    if (INSN_P (insn) && flow_active_insn_p (insn))
+      return false;
+
+  return (!INSN_P (insn)
+	  || (JUMP_P (insn) && simplejump_p (insn))
+	  || !flow_active_insn_p (insn));
+}
+
+/* Return nonzero if we can reach target from src by falling through.  */
+/* FIXME: Make this a cfg hook.  */
+
+bool
+can_fallthru (basic_block src, basic_block target)
+{
+  rtx insn = BB_END (src);
+  rtx insn2;
+  edge e;
+  edge_iterator ei;
+
+  if (target == EXIT_BLOCK_PTR)
+    return true;
+  if (src->next_bb != target)
+    return 0;
+  FOR_EACH_EDGE (e, ei, src->succs)
+    if (e->dest == EXIT_BLOCK_PTR
+	&& e->flags & EDGE_FALLTHRU)
+      return 0;
+
+  insn2 = BB_HEAD (target);
+  if (insn2 && !active_insn_p (insn2))
+    insn2 = next_active_insn (insn2);
+
+  /* ??? Later we may add code to move jump tables offline.  */
+  return next_active_insn (insn) == insn2;
+}
+
+/* Return nonzero if we could reach target from src by falling through,
+   if the target was made adjacent.  If we already have a fall-through
+   edge to the exit block, we can't do that.  */
+static bool
+could_fall_through (basic_block src, basic_block target)
+{
+  edge e;
+  edge_iterator ei;
+
+  if (target == EXIT_BLOCK_PTR)
+    return true;
+  FOR_EACH_EDGE (e, ei, src->succs)
+    if (e->dest == EXIT_BLOCK_PTR
+	&& e->flags & EDGE_FALLTHRU)
+      return 0;
+  return true;
+}
 
 /* Return the NOTE_INSN_BASIC_BLOCK of BB.  */
 rtx
@@ -1264,8 +1365,8 @@ force_nonfallthru_and_redirect (edge e, basic_block target, rtx jump_label)
 	 one and create separate abnormal edge to original destination.
 	 This allows bb-reorder to make such edge non-fallthru.  */
       gcc_assert (e->dest == target);
-      abnormal_edge_flags = e->flags & ~(EDGE_FALLTHRU | EDGE_CAN_FALLTHRU);
-      e->flags &= EDGE_FALLTHRU | EDGE_CAN_FALLTHRU;
+      abnormal_edge_flags = e->flags & ~EDGE_FALLTHRU;
+      e->flags &= EDGE_FALLTHRU;
     }
   else
     {
@@ -1337,7 +1438,6 @@ force_nonfallthru_and_redirect (edge e, basic_block target, rtx jump_label)
       jump_block = create_basic_block (note, NULL, e->src);
       jump_block->count = count;
       jump_block->frequency = EDGE_FREQUENCY (e);
-      jump_block->loop_depth = target->loop_depth;
 
       /* Make sure new block ends up in correct hot/cold section.  */
 
@@ -1735,10 +1835,11 @@ commit_edge_insertions (void)
 
 
 /* Print out RTL-specific basic block information (live information
-   at start and end).  */
+   at start and end with TDF_DETAILS).  FLAGS are the TDF_* masks
+   documented in dumpfile.h.  */
 
 static void
-rtl_dump_bb (basic_block bb, FILE *outf, int indent, int flags ATTRIBUTE_UNUSED)
+rtl_dump_bb (FILE *outf, basic_block bb, int indent, int flags)
 {
   rtx insn;
   rtx last;
@@ -1748,7 +1849,7 @@ rtl_dump_bb (basic_block bb, FILE *outf, int indent, int flags ATTRIBUTE_UNUSED)
   memset (s_indent, ' ', (size_t) indent);
   s_indent[indent] = '\0';
 
-  if (df)
+  if (df && (flags & TDF_DETAILS))
     {
       df_dump_top (bb, outf);
       putc ('\n', outf);
@@ -1757,9 +1858,15 @@ rtl_dump_bb (basic_block bb, FILE *outf, int indent, int flags ATTRIBUTE_UNUSED)
   if (bb->index != ENTRY_BLOCK && bb->index != EXIT_BLOCK)
     for (insn = BB_HEAD (bb), last = NEXT_INSN (BB_END (bb)); insn != last;
 	 insn = NEXT_INSN (insn))
-      print_rtl_single (outf, insn);
+      {
+	if (! (flags & TDF_SLIM))
+	  print_rtl_single (outf, insn);
+	else
+	  dump_insn_slim (outf, insn);
 
-  if (df)
+      }
+
+  if (df && (flags & TDF_DETAILS))
     {
       df_dump_bottom (bb, outf);
       putc ('\n', outf);
@@ -1767,11 +1874,12 @@ rtl_dump_bb (basic_block bb, FILE *outf, int indent, int flags ATTRIBUTE_UNUSED)
 
 }
 
-/* Like print_rtl, but also print out live information for the start of each
-   basic block.  */
+/* Like dump_function_to_file, but for RTL.  Print out dataflow information
+   for the start of each basic block.  FLAGS are the TDF_* masks documented
+   in dumpfile.h.  */
 
 void
-print_rtl_with_bb (FILE *outf, const_rtx rtx_first)
+print_rtl_with_bb (FILE *outf, const_rtx rtx_first, int flags)
 {
   const_rtx tmp_rtx;
   if (rtx_first == 0)
@@ -1783,53 +1891,75 @@ print_rtl_with_bb (FILE *outf, const_rtx rtx_first)
       basic_block *start = XCNEWVEC (basic_block, max_uid);
       basic_block *end = XCNEWVEC (basic_block, max_uid);
       enum bb_state *in_bb_p = XCNEWVEC (enum bb_state, max_uid);
-
       basic_block bb;
+
+      /* After freeing the CFG, we still have BLOCK_FOR_INSN set on most
+	 insns, but the CFG is not maintained so the basic block info
+	 is not reliable.  Therefore it's omitted from the dumps.  */
+      if (! (cfun->curr_properties & PROP_cfg))
+        flags &= ~TDF_BLOCKS;
 
       if (df)
 	df_dump_start (outf);
 
-      FOR_EACH_BB_REVERSE (bb)
+      if (flags & TDF_BLOCKS)
 	{
-	  rtx x;
-
-	  start[INSN_UID (BB_HEAD (bb))] = bb;
-	  end[INSN_UID (BB_END (bb))] = bb;
-	  for (x = BB_HEAD (bb); x != NULL_RTX; x = NEXT_INSN (x))
+	  FOR_EACH_BB_REVERSE (bb)
 	    {
-	      enum bb_state state = IN_MULTIPLE_BB;
+	      rtx x;
 
-	      if (in_bb_p[INSN_UID (x)] == NOT_IN_BB)
-		state = IN_ONE_BB;
-	      in_bb_p[INSN_UID (x)] = state;
+	      start[INSN_UID (BB_HEAD (bb))] = bb;
+	      end[INSN_UID (BB_END (bb))] = bb;
+	      for (x = BB_HEAD (bb); x != NULL_RTX; x = NEXT_INSN (x))
+		{
+		  enum bb_state state = IN_MULTIPLE_BB;
 
-	      if (x == BB_END (bb))
-		break;
+		  if (in_bb_p[INSN_UID (x)] == NOT_IN_BB)
+		    state = IN_ONE_BB;
+		  in_bb_p[INSN_UID (x)] = state;
+
+		  if (x == BB_END (bb))
+		    break;
+		}
 	    }
 	}
 
       for (tmp_rtx = rtx_first; NULL != tmp_rtx; tmp_rtx = NEXT_INSN (tmp_rtx))
 	{
-	  int did_output;
+	  if (flags & TDF_BLOCKS)
+	    {
+	      bb = start[INSN_UID (tmp_rtx)];
+	      if (bb != NULL)
+		{
+		  dump_bb_info (outf, bb, 0, dump_flags | TDF_COMMENT, true, false);
+		  if (df && (flags & TDF_DETAILS))
+		    df_dump_top (bb, outf);
+		}
 
-	  bb = start[INSN_UID (tmp_rtx)];
-	  if (bb != NULL)
-	    dump_bb_info (bb, true, false, dump_flags, ";; ", outf);
+	      if (in_bb_p[INSN_UID (tmp_rtx)] == NOT_IN_BB
+		  && !NOTE_P (tmp_rtx)
+		  && !BARRIER_P (tmp_rtx))
+		fprintf (outf, ";; Insn is not within a basic block\n");
+	      else if (in_bb_p[INSN_UID (tmp_rtx)] == IN_MULTIPLE_BB)
+		fprintf (outf, ";; Insn is in multiple basic blocks\n");
+	    }
 
-	  if (in_bb_p[INSN_UID (tmp_rtx)] == NOT_IN_BB
-	      && !NOTE_P (tmp_rtx)
-	      && !BARRIER_P (tmp_rtx))
-	    fprintf (outf, ";; Insn is not within a basic block\n");
-	  else if (in_bb_p[INSN_UID (tmp_rtx)] == IN_MULTIPLE_BB)
-	    fprintf (outf, ";; Insn is in multiple basic blocks\n");
+	  if (! (flags & TDF_SLIM))
+	    print_rtl_single (outf, tmp_rtx);
+	  else
+	    dump_insn_slim (outf, tmp_rtx);
 
-	  did_output = print_rtl_single (outf, tmp_rtx);
-
-	  bb = end[INSN_UID (tmp_rtx)];
-	  if (bb != NULL)
-	    dump_bb_info (bb, false, true, dump_flags, ";; ", outf);
-	  if (did_output)
-	    putc ('\n', outf);
+	  if (flags & TDF_BLOCKS)
+	    {
+	      bb = end[INSN_UID (tmp_rtx)];
+	      if (bb != NULL)
+		{
+		  dump_bb_info (outf, bb, 0, dump_flags | TDF_COMMENT, false, true);
+		  if (df && (flags & TDF_DETAILS))
+		    df_dump_bottom (bb, outf);
+		  putc ('\n', outf);
+		}
+	    }
 	}
 
       free (start);
@@ -1846,6 +1976,8 @@ print_rtl_with_bb (FILE *outf, const_rtx rtx_first)
     }
 }
 
+/* Update the branch probability of BB if a REG_BR_PROB is present.  */
+
 void
 update_br_prob_note (basic_block bb)
 {
@@ -2893,7 +3025,13 @@ struct rtl_opt_pass pass_outof_cfg_layout_mode =
    some transformations while in cfglayout mode.  The required sequence
    of the basic blocks is in a linked list along the bb->aux field.
    This functions re-links the basic block prev_bb and next_bb pointers
-   accordingly, and it compacts and renumbers the blocks.  */
+   accordingly, and it compacts and renumbers the blocks.
+
+   FIXME: This currently works only for RTL, but the only RTL-specific
+   bits are the STAY_IN_CFGLAYOUT_MODE bits.  The tracer pass was moved
+   to GIMPLE a long time ago, but it doesn't relink the basic block
+   chain.  It could do that (to give better initial RTL) if this function
+   is made IR-agnostic (and moved to cfganal.c or cfg.c while at it).  */
 
 void
 relink_block_chain (bool stay_in_cfglayout_mode)

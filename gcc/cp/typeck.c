@@ -1140,12 +1140,6 @@ comp_template_parms_position (tree t1, tree t2)
   index1 = TEMPLATE_TYPE_PARM_INDEX (TYPE_MAIN_VARIANT (t1));
   index2 = TEMPLATE_TYPE_PARM_INDEX (TYPE_MAIN_VARIANT (t2));
 
-  /* If T1 and T2 belong to template parm lists of different size,
-     let's assume they are different.  */
-  if (TEMPLATE_PARM_NUM_SIBLINGS (index1)
-      != TEMPLATE_PARM_NUM_SIBLINGS (index2))
-    return false;
-
   /* Then compare their relative position.  */
   if (TEMPLATE_PARM_IDX (index1) != TEMPLATE_PARM_IDX (index2)
       || TEMPLATE_PARM_LEVEL (index1) != TEMPLATE_PARM_LEVEL (index2)
@@ -2199,7 +2193,7 @@ build_class_member_access_expr (tree object, tree member,
   /* If MEMBER is from an anonymous aggregate, MEMBER_SCOPE will
      presently be the anonymous union.  Go outwards until we find a
      type related to OBJECT_TYPE.  */
-  while (ANON_AGGR_TYPE_P (member_scope)
+  while ((ANON_AGGR_TYPE_P (member_scope) || UNSCOPED_ENUM_P (member_scope))
 	 && !same_type_ignoring_top_level_qualifiers_p (member_scope,
 							object_type))
     member_scope = TYPE_CONTEXT (member_scope);
@@ -6059,6 +6053,12 @@ build_static_cast_1 (tree type, tree expr, bool c_cast_p,
 
   /* [expr.static.cast]
 
+     Any expression can be explicitly converted to type cv void.  */
+  if (TREE_CODE (type) == VOID_TYPE)
+    return convert_to_void (expr, ICV_CAST, complain);
+
+  /* [expr.static.cast]
+
      An expression e can be explicitly converted to a type T using a
      static_cast of the form static_cast<T>(e) if the declaration T
      t(e);" is well-formed, for some invented temporary variable
@@ -6077,12 +6077,6 @@ build_static_cast_1 (tree type, tree expr, bool c_cast_p,
 	result = rvalue (result);
       return result;
     }
-
-  /* [expr.static.cast]
-
-     Any expression can be explicitly converted to type cv void.  */
-  if (TREE_CODE (type) == VOID_TYPE)
-    return convert_to_void (expr, ICV_CAST, complain);
 
   /* [expr.static.cast]
 
@@ -7582,10 +7576,6 @@ convert_for_assignment (tree type, tree rhs,
       return error_mark_node;
     }
 
-  /* Simplify the RHS if possible.  */
-  if (TREE_CODE (rhs) == CONST_DECL)
-    rhs = DECL_INITIAL (rhs);
-
   if (c_dialect_objc ())
     {
       int parmno;
@@ -8463,9 +8453,9 @@ cp_apply_type_quals_to_decl (int type_quals, tree decl)
      constructor can produce constant init, so rely on cp_finish_decl to
      clear TREE_READONLY if the variable has non-constant init.  */
 
-  /* If the type has a mutable component, that component might be
-     modified.  */
-  if (TYPE_HAS_MUTABLE_P (type))
+  /* If the type has (or might have) a mutable component, that component
+     might be modified.  */
+  if (TYPE_HAS_MUTABLE_P (type) || !COMPLETE_TYPE_P (type))
     type_quals &= ~TYPE_QUAL_CONST;
 
   c_apply_type_quals_to_decl (type_quals, decl);

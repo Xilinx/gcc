@@ -50,19 +50,23 @@
 #include "ada-tree.h"
 #include "gigi.h"
 
-/* Convention_Stdcall should be processed in a specific way on 32 bits
-   Windows targets only.  The macro below is a helper to avoid having to
-   check for a Windows specific attribute throughout this unit.  */
+/* "stdcall" and "thiscall" conventions should be processed in a specific way
+   on 32-bit x86/Windows only.  The macros below are helpers to avoid having
+   to check for a Windows specific attribute throughout this unit.  */
 
 #if TARGET_DLLIMPORT_DECL_ATTRIBUTES
 #ifdef TARGET_64BIT
 #define Has_Stdcall_Convention(E) \
   (!TARGET_64BIT && Convention (E) == Convention_Stdcall)
+#define Has_Thiscall_Convention(E) \
+  (!TARGET_64BIT && is_cplusplus_method (E))
 #else
 #define Has_Stdcall_Convention(E) (Convention (E) == Convention_Stdcall)
+#define Has_Thiscall_Convention(E) (is_cplusplus_method (E))
 #endif
 #else
 #define Has_Stdcall_Convention(E) 0
+#define Has_Thiscall_Convention(E) 0
 #endif
 
 /* Stack realignment is necessary for functions with foreign conventions when
@@ -891,6 +895,16 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 						debug_info_p);
 	  }
 
+	/* ??? If this is an object of CW type initialized to a value, try to
+	   ensure that the object is sufficient aligned for this value, but
+	   without pessimizing the allocation.  This is a kludge necessary
+	   because we don't support dynamic alignment.  */
+	if (align == 0
+	    && Ekind (Etype (gnat_entity)) == E_Class_Wide_Subtype
+	    && No (Renamed_Object (gnat_entity))
+	    && No (Address_Clause (gnat_entity)))
+	  align = get_target_system_allocator_alignment () * BITS_PER_UNIT;
+
 #ifdef MINIMUM_ATOMIC_ALIGNMENT
 	/* If the size is a constant and no alignment is specified, force
 	   the alignment to be the minimum valid atomic alignment.  The
@@ -900,7 +914,8 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	   necessary and can interfere with constant replacement.  Finally,
 	   do not do it for Out parameters since that creates an
 	   size inconsistency with In parameters.  */
-	if (align == 0 && MINIMUM_ATOMIC_ALIGNMENT > TYPE_ALIGN (gnu_type)
+	if (align == 0
+	    && MINIMUM_ATOMIC_ALIGNMENT > TYPE_ALIGN (gnu_type)
 	    && !FLOAT_TYPE_P (gnu_type)
 	    && !const_flag && No (Renamed_Object (gnat_entity))
 	    && !imported_p && No (Address_Clause (gnat_entity))
@@ -2973,6 +2988,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	if (Present (Parent_Subtype (gnat_entity)))
 	  {
 	    Entity_Id gnat_parent = Parent_Subtype (gnat_entity);
+	    tree gnu_dummy_parent_type = make_node (RECORD_TYPE);
 	    tree gnu_parent;
 
 	    /* A major complexity here is that the parent subtype will
@@ -2984,11 +3000,11 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	       each of those discriminants to a COMPONENT_REF of the above
 	       dummy parent referencing the corresponding discriminant of the
 	       base type of the parent subtype.  */
-	    gnu_get_parent = build3 (COMPONENT_REF, void_type_node,
+	    gnu_get_parent = build3 (COMPONENT_REF, gnu_dummy_parent_type,
 				     build0 (PLACEHOLDER_EXPR, gnu_type),
 				     build_decl (input_location,
 						 FIELD_DECL, NULL_TREE,
-						 void_type_node),
+						 gnu_dummy_parent_type),
 				     NULL_TREE);
 
 	    if (has_discr)
@@ -3283,9 +3299,6 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	      else
 		gnu_unpad_base_type = gnu_base_type;
 
-	      /* Look for a REP part in the base type.  */
-	      gnu_rep_part = get_rep_part (gnu_unpad_base_type);
-
 	      /* Look for a variant part in the base type.  */
 	      gnu_variant_part = get_variant_part (gnu_unpad_base_type);
 
@@ -3411,7 +3424,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		       and put the field either in the new type if there is a
 		       selected variant or in one of the new variants.  */
 		    if (gnu_context == gnu_unpad_base_type
-		        || (gnu_rep_part
+		        || ((gnu_rep_part = get_rep_part (gnu_unpad_base_type))
 			    && gnu_context == TREE_TYPE (gnu_rep_part)))
 		      gnu_cont_type = gnu_type;
 		    else
@@ -3421,7 +3434,9 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 
 			t = NULL_TREE;
 			FOR_EACH_VEC_ELT (variant_desc, gnu_variant_list, i, v)
-			  if (v->type == gnu_context)
+			  if (gnu_context == v->type
+			      || ((gnu_rep_part = get_rep_part (v->type))
+				  && gnu_context == TREE_TYPE (gnu_rep_part)))
 			    {
 			      t = v->type;
 			      break;
@@ -4413,6 +4428,11 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    (&attr_list, ATTR_MACHINE_ATTRIBUTE,
 	     get_identifier ("stdcall"), NULL_TREE,
 	     gnat_entity);
+	else if (Has_Thiscall_Convention (gnat_entity))
+	  prepend_one_attribute_to
+	    (&attr_list, ATTR_MACHINE_ATTRIBUTE,
+	     get_identifier ("thiscall"), NULL_TREE,
+	     gnat_entity);
 
 	/* If we should request stack realignment for a foreign convention
 	   subprogram, do so.  Note that this applies to task entry points in
@@ -5276,6 +5296,10 @@ get_minimal_subprog_decl (Entity_Id gnat_entity)
     prepend_one_attribute_to (&attr_list, ATTR_MACHINE_ATTRIBUTE,
 			      get_identifier ("stdcall"), NULL_TREE,
 			      gnat_entity);
+  else if (Has_Thiscall_Convention (gnat_entity))
+    prepend_one_attribute_to (&attr_list, ATTR_MACHINE_ATTRIBUTE,
+			      get_identifier ("thiscall"), NULL_TREE,
+			      gnat_entity);
 
   if (No (Interface_Name (gnat_entity)) && gnu_ext_name == gnu_entity_name)
     gnu_ext_name = NULL_TREE;
@@ -5283,6 +5307,39 @@ get_minimal_subprog_decl (Entity_Id gnat_entity)
   return
     create_subprog_decl (gnu_entity_name, gnu_ext_name, void_ftype, NULL_TREE,
 			 false, true, true, true, attr_list, gnat_entity);
+}
+
+/* Return whether the E_Subprogram_Type/E_Function/E_Procedure GNAT_ENTITY is
+   a C++ imported method or equivalent.
+
+   We use the predicate on 32-bit x86/Windows to find out whether we need to
+   use the "thiscall" calling convention for GNAT_ENTITY.  This convention is
+   used for C++ methods (functions with METHOD_TYPE) by the back-end.  */
+
+bool
+is_cplusplus_method (Entity_Id gnat_entity)
+{
+  if (Convention (gnat_entity) != Convention_CPP)
+    return False;
+
+  /* This is the main case: C++ method imported as a primitive operation.  */
+  if (Is_Dispatching_Operation (gnat_entity))
+    return True;
+
+  /* A thunk needs to be handled like its associated primitive operation.  */
+  if (Is_Subprogram (gnat_entity) && Is_Thunk (gnat_entity))
+    return True;
+
+  /* C++ classes with no virtual functions can be imported as limited
+     record types, but we need to return true for the constructors.  */
+  if (Is_Constructor (gnat_entity))
+    return True;
+
+  /* This is set on the E_Subprogram_Type built for a dispatching call.  */
+  if (Is_Dispatch_Table_Entity (gnat_entity))
+    return True;
+
+  return False;
 }
 
 /* Finalize the processing of From_With_Type incomplete types.  */
@@ -8000,6 +8057,10 @@ intrin_return_compatible_p (intrin_binding_t * inb)
       && !VOID_TYPE_P (btin_return_type))
     return true;
 
+  /* If return type is Address (integer type), map it to void *.  */
+  if (Is_Descendent_Of_Address (Etype (inb->gnat_entity)))
+    ada_return_type = ptr_void_type_node;
+
   /* Check return types compatibility otherwise.  Note that this
      handles void/void as well.  */
   if (intrin_types_incompatible_p (btin_return_type, ada_return_type))
@@ -8122,7 +8183,8 @@ get_rep_part (tree record_type)
 
   /* The REP part is the first field, internal, another record, and its name
      starts with an 'R'.  */
-  if (DECL_INTERNAL_P (field)
+  if (field
+      && DECL_INTERNAL_P (field)
       && TREE_CODE (TREE_TYPE (field)) == RECORD_TYPE
       && IDENTIFIER_POINTER (DECL_NAME (field)) [0] == 'R')
     return field;

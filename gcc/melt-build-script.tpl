@@ -193,7 +193,7 @@ function meltbuild_do_stage_zero () {
 
   $GCCMELT_MAKE -f $GCCMELT_MODULE_MK melt_module \
       GCCMELT_FROM=stagezero-[+(.(fromline))+] \
-      GCCMELT_CC="$GCCMELT_COMPILER" \
+      GCCMELT_COMPILER="$GCCMELT_COMPILER" \
       GCCMELTGEN_BUILD=$GCCMELT_STAGE_ZERO/ \
       GCCMELT_MODULE_WORKSPACE=meltbuild-workdir \
       GCCMELT_MODULE_FLAVOR=$GCCMELT_ZERO_FLAVOR \
@@ -202,7 +202,7 @@ function meltbuild_do_stage_zero () {
       GCCMELT_CUMULATED_MD5=$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5 \
       GCCMELT_MODULE_BINARYBASE=$GCCMELT_STAGE_ZERO/[+base+] \
       GCCMELT_MODULE_DEPENDENCIES="$GCCMELT_CC1_DEPENDENCIES" \
-      || meltbuild_error  [+(.(fromline))+] stage0 [+base+] did not build with $GCCMELT_MAKE 
+      || meltbuild_error  [+(.(fromline))+] stage0 [+base+] did not build "(with $GCCMELT_MAKE  -f $GCCMELT_MODULE_MK)" compiler $GCCMELT_COMPILER cflags $GCCMELT_COMPILER_FLAGS
 
   meltbuild_info [+(.(fromline))+] stage0 [+base+] module 
   ls -l "$GCCMELT_STAGE_ZERO/[+base+].meltmod-$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5.$GCCMELT_ZERO_FLAVOR.so" > /dev/stderr \
@@ -369,10 +369,11 @@ function meltbuild_do_stage () {
 	    GCCMELT_FROM="[+(.(fromline))+]-$meltfrom" \
 	    GCCMELT_MODULE_WORKSPACE=meltbuild-workdir \
 	    GCCMELT_MODULE_FLAVOR="$meltcurflavor" \
+	    GCCMELT_COMPILER="$GCCMELT_COMPILER" \
 	    GCCMELT_CFLAGS="$GCCMELT_COMPILER_FLAGS" \
 	    GCCMELT_MODULE_SOURCEBASE="$meltcurstagedir/[+base+]" \
 	    GCCMELT_MODULE_BINARYBASE="$meltcurstagedir/[+base+]" \
-	|| meltbuild_error  [+(.(fromline))+]-$meltfrom in "$meltcurstagedir/" failed to make module [+base+]
+	|| meltbuild_error  [+(.(fromline))+]-$meltfrom in "$meltcurstagedir/" failed to make "($GCCMELT_MAKE -f $GCCMELT_MODULE_MK)" module [+base+] compiler "$GCCMELT_COMPILER" cflags "$GCCMELT_COMPILER_FLAGS"
     else
 	meltbuild_info [+(.(fromline))+]-$meltfrom NOT compiling module [+base+] "in" \
 	    "$meltcurstagedir/" but symlinking previous "$meltprevstagedir/" module [+base+] \
@@ -470,10 +471,11 @@ function meltbuild_compile_translator_modules () {
      GCCMELT_FROM=[+(.(fromline))+] \
      GCCMELT_MODULE_WORKSPACE=meltbuild-workdir \
      GCCMELT_MODULE_FLAVOR=[+flavor+] \
+     GCCMELT_COMPILER="$GCCMELT_COMPILER" \
      GCCMELT_CFLAGS="$GCCMELT_COMPILER_FLAGS" \
      GCCMELT_MODULE_SOURCEBASE=meltbuild-sources/[+base+] \
      GCCMELT_MODULE_BINARYBASE=meltbuild-modules/[+base+] \
- || meltbuild_error  [+(.(fromline))+] in meltbuild-modules failed to compile translator [+base+] [+flavor+]
+ || meltbuild_error  [+(.(fromline))+] in meltbuild-modules failed to compile translator [+base+] [+flavor+] make "($GCCMELT_MAKE -f $GCCMELT_MODULE_MK)" compiler "$GCCMELT_COMPILER" cflags $GCCMELT_COMPILER_FLAGS
 [+ENDFOR melt_translator_file+]
 
 [+ENDFOR flavor+]
@@ -578,10 +580,11 @@ function meltbuild_do_applications () {
 	  GCCMELT_FROM=[+(.(fromline))+] \
 	  GCCMELT_MODULE_WORKSPACE=meltbuild-workdir \
 	  GCCMELT_MODULE_FLAVOR=[+flavor+] \
+	  GCCMELT_COMPILER="$GCCMELT_COMPILER" \
 	  GCCMELT_CFLAGS="$GCCMELT_COMPILER_FLAGS" \
 	  GCCMELT_MODULE_SOURCEBASE=meltbuild-sources/[+base+] \
 	  GCCMELT_MODULE_BINARYBASE=meltbuild-modules/[+base+] \
-	  || meltbuild_error  [+(.(fromline))+] in meltbuild-modules failed to compile application [+base+] [+flavor+]
+	  || meltbuild_error  [+(.(fromline))+] in meltbuild-modules failed to compile application [+base+] [+flavor+] "($GCCMELT_MAKE -f $GCCMELT_MODULE_MK)" compiler $GCCMELT_COMPILER_FLAGS cflags $GCCMELT_COMPILER_FLAGS
   else
       meltbuild_info [+(.(fromline))+] not compiling application module for [+base+] [+flavor+]
   fi

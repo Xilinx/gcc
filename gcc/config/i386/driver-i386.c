@@ -1,5 +1,6 @@
 /* Subroutines for the gcc driver.
-   Copyright (C) 2006, 2007, 2008, 2010 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007, 2008, 2010, 2011, 2012
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -399,6 +400,7 @@ const char *host_detect_local_cpu (int argc, const char **argv)
   unsigned int has_bmi = 0, has_bmi2 = 0, has_tbm = 0, has_lzcnt = 0;
   unsigned int has_hle = 0, has_rtm = 0;
   unsigned int has_rdrnd = 0, has_f16c = 0, has_fsgsbase = 0;
+  unsigned int has_rdseed = 0, has_prfchw = 0, has_adx = 0;
 
   bool arch;
 
@@ -465,6 +467,8 @@ const char *host_detect_local_cpu (int argc, const char **argv)
       has_avx2 = ebx & bit_AVX2;
       has_bmi2 = ebx & bit_BMI2;
       has_fsgsbase = ebx & bit_FSGSBASE;
+      has_rdseed = ebx & bit_RDSEED;
+      has_adx = ebx & bit_ADX;
     }
 
   /* Check cpuid level of extended features.  */
@@ -484,6 +488,7 @@ const char *host_detect_local_cpu (int argc, const char **argv)
       has_xop = ecx & bit_XOP;
       has_tbm = ecx & bit_TBM;
       has_lzcnt = ecx & bit_LZCNT;
+      has_prfchw = ecx & bit_PRFCHW;
 
       has_longmode = edx & bit_LM;
       has_3dnowp = edx & bit_3DNOWP;
@@ -514,6 +519,8 @@ const char *host_detect_local_cpu (int argc, const char **argv)
 
       if (name == SIG_GEODE)
 	processor = PROCESSOR_GEODE;
+      else if (has_movbe)
+	processor = PROCESSOR_BTVER2;
       else if (has_bmi)
         processor = PROCESSOR_BDVER2;
       else if (has_xop)
@@ -687,6 +694,9 @@ const char *host_detect_local_cpu (int argc, const char **argv)
     case PROCESSOR_BTVER1:
       cpu = "btver1";
       break;
+    case PROCESSOR_BTVER2:
+      cpu = "btver2";
+      break;
 
     default:
       /* Use something reasonable.  */
@@ -740,11 +750,14 @@ const char *host_detect_local_cpu (int argc, const char **argv)
       const char *rdrnd = has_rdrnd ? " -mrdrnd" : " -mno-rdrnd";
       const char *f16c = has_f16c ? " -mf16c" : " -mno-f16c";
       const char *fsgsbase = has_fsgsbase ? " -mfsgsbase" : " -mno-fsgsbase";
+      const char *rdseed = has_rdseed ? " -mrdseed" : " -mno-rdseed";
+      const char *prfchw = has_prfchw ? " -mprfchw" : " -mno-prfchw";
+      const char *adx = has_adx ? " -madx" : " -mno-adx";
 
       options = concat (options, cx16, sahf, movbe, ase, pclmul,
 			popcnt, abm, lwp, fma, fma4, xop, bmi, bmi2,
 			tbm, avx, avx2, sse4_2, sse4_1, lzcnt, rtm,
-			hle, rdrnd, f16c, fsgsbase, NULL);
+			hle, rdrnd, f16c, fsgsbase, rdseed, prfchw, adx, NULL);
     }
 
 done:

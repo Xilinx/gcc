@@ -390,6 +390,32 @@ else
 runtime_lock_files = runtime/lock_sema.c runtime/thread-sema.c
 endif
 
+if LIBGO_IS_LINUX
+runtime_getncpu_file = runtime/getncpu-linux.c
+else
+if LIBGO_IS_DARWIN
+runtime_getncpu_file = runtime/getncpu-bsd.c
+else
+if LIBGO_IS_IRIX
+runtime_getncpu_file = runtime/getncpu-irix.c
+else
+if LIBGO_IS_SOLARIS
+runtime_getncpu_file = runtime/getncpu-solaris.c
+else
+if LIBGO_IS_FREEBSD
+runtime_getncpu_file = runtime/getncpu-bsd.c
+else
+if LIBGO_IS_NETBSD
+runtime_getncpu_file = runtime/getncpu-bsd.c
+else
+runtime_getncpu_file = runtime/getncpu-none.c
+endif
+endif
+endif
+endif
+endif
+endif
+
 runtime_files = \
 	runtime/go-append.c \
 	runtime/go-assert.c \
@@ -481,7 +507,8 @@ runtime_files = \
 	sema.c \
 	sigqueue.c \
 	string.c \
-	time.c
+	time.c \
+	$(runtime_getncpu_file)
 
 goc2c.$(OBJEXT): runtime/goc2c.c
 	$(CC_FOR_BUILD) -c $(CFLAGS_FOR_BUILD) $<
@@ -1794,7 +1821,7 @@ GOTESTFLAGS =
 
 # Check a package.
 CHECK = \
-	GC="$(GOC) $(GOCFLAGS) -L `${PWD_COMMAND}` -L `${PWD_COMMAND}`/.libs"; \
+	GC="$(GOC) $(GOCFLAGS) $($(subst /,_,$@)_GOCFLAGS) -L `${PWD_COMMAND}` -L `${PWD_COMMAND}`/.libs"; \
 	export GC; \
 	GOLIBS="$(MATH_LIBS) $(NET_LIBS)"; \
 	export GOLIBS; \
@@ -3012,6 +3039,9 @@ runtime/pprof.lo: $(go_runtime_pprof_files)
 runtime/pprof/check: $(CHECK_DEPS)
 	@$(CHECK)
 .PHONY: runtime/pprof/check
+# At least for now, we need -static-libgo for this test, because
+# otherwise we can't get the line numbers.
+runtime_pprof_check_GOCFLAGS = -static-libgo
 
 @go_include@ sync/atomic.lo.dep
 sync/atomic.lo.dep: $(go_sync_atomic_files)
@@ -3548,6 +3578,7 @@ TEST_PACKAGES = \
 	os/user/check \
 	path/filepath/check \
 	regexp/syntax/check \
+	runtime/pprof/check \
 	sync/atomic/check \
 	text/scanner/check \
 	text/tabwriter/check \

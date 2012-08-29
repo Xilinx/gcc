@@ -79,7 +79,6 @@ EXPORTED_CONST enum gimple_statement_structure_enum gss_for_code_[] = {
 };
 #undef DEFGSCODE
 
-#ifdef GATHER_STATISTICS
 /* Gimple stats.  */
 
 int gimple_alloc_counts[(int) gimple_alloc_kind_all];
@@ -92,8 +91,6 @@ static const char * const gimple_alloc_kind_names[] = {
     "conditionals",
     "everything else"
 };
-
-#endif /* GATHER_STATISTICS */
 
 /* Private API manipulation functions shared only with some
    other files.  */
@@ -134,13 +131,12 @@ gimple_alloc_stat (enum gimple_code code, unsigned num_ops MEM_STAT_DECL)
   if (num_ops > 0)
     size += sizeof (tree) * (num_ops - 1);
 
-#ifdef GATHER_STATISTICS
-  {
-    enum gimple_alloc_kind kind = gimple_alloc_kind (code);
-    gimple_alloc_counts[(int) kind]++;
-    gimple_alloc_sizes[(int) kind] += size;
-  }
-#endif
+  if (GATHER_STATISTICS)
+    {
+      enum gimple_alloc_kind kind = gimple_alloc_kind (code);
+      gimple_alloc_counts[(int) kind]++;
+      gimple_alloc_sizes[(int) kind] += size;
+    }
 
   stmt = ggc_alloc_cleared_gimple_statement_d_stat (size PASS_MEM_STAT);
   gimple_set_code (stmt, code);
@@ -645,9 +641,8 @@ gimple_build_asm_1 (const char *string, unsigned ninputs, unsigned noutputs,
   p->gimple_asm.nl = nlabels;
   p->gimple_asm.string = ggc_alloc_string (string, size);
 
-#ifdef GATHER_STATISTICS
-  gimple_alloc_sizes[(int) gimple_alloc_kind (GIMPLE_ASM)] += size;
-#endif
+  if (GATHER_STATISTICS)
+    gimple_alloc_sizes[(int) gimple_alloc_kind (GIMPLE_ASM)] += size;
 
   return p;
 }
@@ -2503,8 +2498,13 @@ gimple_assign_rhs_could_trap_p (gimple s)
 void
 dump_gimple_statistics (void)
 {
-#ifdef GATHER_STATISTICS
   int i, total_tuples = 0, total_bytes = 0;
+
+  if (! GATHER_STATISTICS)
+    {
+      fprintf (stderr, "No gimple statistics\n");
+      return;
+    }
 
   fprintf (stderr, "\nGIMPLE statements\n");
   fprintf (stderr, "Kind                   Stmts      Bytes\n");
@@ -2519,9 +2519,6 @@ dump_gimple_statistics (void)
   fprintf (stderr, "---------------------------------------\n");
   fprintf (stderr, "%-20s %7d %10d\n", "Total", total_tuples, total_bytes);
   fprintf (stderr, "---------------------------------------\n");
-#else
-  fprintf (stderr, "No gimple statistics\n");
-#endif
 }
 
 
@@ -2785,18 +2782,11 @@ is_gimple_id (tree t)
 bool
 is_gimple_reg (tree t)
 {
-  if (TREE_CODE (t) == SSA_NAME)
-    {
-      t = SSA_NAME_VAR (t);
-      if (TREE_CODE (t) == VAR_DECL
-	  && VAR_DECL_IS_VIRTUAL_OPERAND (t))
-	return false;
-      return true;
-    }
-
-  if (TREE_CODE (t) == VAR_DECL
-      && VAR_DECL_IS_VIRTUAL_OPERAND (t))
+  if (virtual_operand_p (t))
     return false;
+
+  if (TREE_CODE (t) == SSA_NAME)
+    return true;
 
   if (!is_gimple_variable (t))
     return false;
@@ -4449,10 +4439,6 @@ gimple_canonical_types_compatible_p (tree t1, tree t2)
       return true;
     }
 
-  /* If their attributes are not the same they can't be the same type.  */
-  if (!attribute_list_equal (TYPE_ATTRIBUTES (t1), TYPE_ATTRIBUTES (t2)))
-    return false;
-
   /* Do type-specific comparisons.  */
   switch (TREE_CODE (t1))
     {
@@ -4499,13 +4485,6 @@ gimple_canonical_types_compatible_p (tree t1, tree t2)
 	}
 
     case METHOD_TYPE:
-      /* Method types should belong to the same class.  */
-      if (!gimple_canonical_types_compatible_p
-	     (TYPE_METHOD_BASETYPE (t1), TYPE_METHOD_BASETYPE (t2)))
-	return false;
-
-      /* Fallthru  */
-
     case FUNCTION_TYPE:
       /* Function types are the same if the return type and arguments types
 	 are the same.  */

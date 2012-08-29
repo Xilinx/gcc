@@ -30,9 +30,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "cfgloop.h"
 #include "function.h"
 #include "timevar.h"
-#include "tree-dump.h"
+#include "dumpfile.h"
 #include "tree-flow.h"
-#include "tree-pass.h"
 #include "tree-ssa-propagate.h"
 #include "langhooks.h"
 #include "params.h"
@@ -205,7 +204,7 @@ record_temporary_equivalences_from_phis (edge e, VEC(tree, heap) **stack)
 
       /* We consider any non-virtual PHI as a statement since it
 	 count result in a constant assignment or copy operation.  */
-      if (is_gimple_reg (dst))
+      if (!virtual_operand_p (dst))
 	stmt_count++;
 
       record_temporary_equivalence (dst, src, stack);

@@ -1013,13 +1013,6 @@ convert_nonlocal_reference_op (tree *tp, int *walk_subtrees, void *data)
 	      walk_tree (&TREE_OPERAND (t, 3), convert_nonlocal_reference_op,
 			 wi, NULL);
 	    }
-	  else if (TREE_CODE (t) == BIT_FIELD_REF)
-	    {
-	      walk_tree (&TREE_OPERAND (t, 1), convert_nonlocal_reference_op,
-			 wi, NULL);
-	      walk_tree (&TREE_OPERAND (t, 2), convert_nonlocal_reference_op,
-			 wi, NULL);
-	    }
 	}
       wi->val_only = false;
       walk_tree (tp, convert_nonlocal_reference_op, wi, NULL);
@@ -1491,13 +1484,6 @@ convert_local_reference_op (tree *tp, int *walk_subtrees, void *data)
 	      walk_tree (&TREE_OPERAND (t, 3), convert_local_reference_op, wi,
 			 NULL);
 	    }
-	  else if (TREE_CODE (t) == BIT_FIELD_REF)
-	    {
-	      walk_tree (&TREE_OPERAND (t, 1), convert_local_reference_op, wi,
-			 NULL);
-	      walk_tree (&TREE_OPERAND (t, 2), convert_local_reference_op, wi,
-			 NULL);
-	    }
 	}
       wi->val_only = false;
       walk_tree (tp, convert_local_reference_op, wi, NULL);
@@ -1738,6 +1724,20 @@ convert_local_reference_stmt (gimple_stmt_iterator *gsi, bool *handled_ops_p,
     case GIMPLE_COND:
       wi->val_only = true;
       wi->is_lhs = false;
+      *handled_ops_p = false;
+      return NULL_TREE;
+
+    case GIMPLE_ASSIGN:
+      if (gimple_clobber_p (stmt))
+	{
+	  tree lhs = gimple_assign_lhs (stmt);
+	  if (!use_pointer_in_frame (lhs)
+	      && lookup_field_for_decl (info, lhs, NO_INSERT))
+	    {
+	      gsi_replace (gsi, gimple_build_nop (), true);
+	      break;
+	    }
+	}
       *handled_ops_p = false;
       return NULL_TREE;
 

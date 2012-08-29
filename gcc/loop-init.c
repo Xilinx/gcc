@@ -23,12 +23,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "rtl.h"
-#include "hard-reg-set.h"
+#include "regs.h"
 #include "obstack.h"
 #include "basic-block.h"
 #include "cfgloop.h"
 #include "tree-pass.h"
-#include "timevar.h"
 #include "flags.h"
 #include "df.h"
 #include "ggc.h"
@@ -41,6 +40,7 @@ along with GCC; see the file COPYING3.  If not see
 void
 loop_optimizer_init (unsigned flags)
 {
+  timevar_push (TV_LOOP_INIT);
   if (!current_loops)
     {
       struct loops *loops = ggc_alloc_cleared_loops ();
@@ -105,6 +105,8 @@ loop_optimizer_init (unsigned flags)
 #ifdef ENABLE_CHECKING
   verify_loop_structure ();
 #endif
+
+  timevar_pop (TV_LOOP_INIT);
 }
 
 /* Finalize loop structures.  */
@@ -115,6 +117,8 @@ loop_optimizer_finalize (void)
   loop_iterator li;
   struct loop *loop;
   basic_block bb;
+
+  timevar_push (TV_LOOP_FINI);
 
   if (loops_state_satisfies_p (LOOPS_HAVE_RECORDED_EXITS))
     release_recorded_exits ();
@@ -129,7 +133,7 @@ loop_optimizer_finalize (void)
 			 | LOOPS_HAVE_PREHEADERS
 			 | LOOPS_HAVE_SIMPLE_LATCHES
 			 | LOOPS_HAVE_FALLTHRU_PREHEADERS);
-      return;
+      goto loop_fini_done;
     }
 
   gcc_assert (current_loops != NULL);
@@ -148,6 +152,9 @@ loop_optimizer_finalize (void)
     {
       bb->loop_father = NULL;
     }
+
+loop_fini_done:
+  timevar_pop (TV_LOOP_FINI);
 }
 
 
@@ -204,7 +211,10 @@ rtl_loop_init (void)
   gcc_assert (current_ir_type () == IR_RTL_CFGLAYOUT);
 
   if (dump_file)
-    dump_flow_info (dump_file, dump_flags);
+    {
+      dump_reg_info (dump_file);
+      dump_flow_info (dump_file, dump_flags);
+    }
 
   loop_optimizer_init (LOOPS_NORMAL);
   return 0;
@@ -242,7 +252,10 @@ rtl_loop_done (void)
 
   cleanup_cfg (0);
   if (dump_file)
-    dump_flow_info (dump_file, dump_flags);
+    {
+      dump_reg_info (dump_file);
+      dump_flow_info (dump_file, dump_flags);
+    }
 
   return 0;
 }

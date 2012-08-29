@@ -35,7 +35,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "convert.h"
 #include "cgraph.h"
-#include "tree-dump.h"
+#include "dumpfile.h"
 #include "splay-tree.h"
 #include "pointer-set.h"
 
@@ -212,7 +212,6 @@ static tree get_vcall_index (tree, tree);
 
 /* Variables shared between class.c and call.c.  */
 
-#ifdef GATHER_STATISTICS
 int n_vtables = 0;
 int n_vtable_entries = 0;
 int n_vtable_searches = 0;
@@ -220,7 +219,6 @@ int n_vtable_elems = 0;
 int n_convert_harshness = 0;
 int n_compute_conversion_costs = 0;
 int n_inner_fields_searched = 0;
-#endif
 
 /* Convert to or from a base subobject.  EXPR is an expression of type
    `A' or `A*', an expression of type `B' or `B*' is returned.  To
@@ -325,8 +323,7 @@ build_base_path (enum tree_code code,
      up properly yet, and the value doesn't matter there either; we're just
      interested in the result of overload resolution.  */
   if (cp_unevaluated_operand != 0
-      || (current_function_decl
-	  && uses_template_parms (current_function_decl)))
+      || in_template_function ())
     {
       expr = build_nop (ptr_target_type, expr);
       if (!want_pointer)
@@ -837,10 +834,11 @@ build_primary_vtable (tree binfo, tree type)
       virtuals = NULL_TREE;
     }
 
-#ifdef GATHER_STATISTICS
-  n_vtables += 1;
-  n_vtable_elems += list_length (virtuals);
-#endif
+  if (GATHER_STATISTICS)
+    {
+      n_vtables += 1;
+      n_vtable_elems += list_length (virtuals);
+    }
 
   /* Initialize the association list for this type, based
      on our first approximation.  */
@@ -1190,7 +1188,8 @@ alter_access (tree t, tree fdecl, tree access)
     }
   else
     {
-      perform_or_defer_access_check (TYPE_BINFO (t), fdecl, fdecl);
+      perform_or_defer_access_check (TYPE_BINFO (t), fdecl, fdecl,
+				     tf_warning_or_error);
       DECL_ACCESS (fdecl) = tree_cons (t, access, DECL_ACCESS (fdecl));
       return 1;
     }
@@ -3114,7 +3113,8 @@ check_field_decls (tree t, tree *access_decls,
 
       /* If we've gotten this far, it's a data member, possibly static,
 	 or an enumerator.  */
-      DECL_CONTEXT (x) = t;
+      if (TREE_CODE (x) != CONST_DECL)
+	DECL_CONTEXT (x) = t;
 
       /* When this goes into scope, it will be a non-local reference.  */
       DECL_NONLOCAL (x) = 1;
@@ -6325,6 +6325,15 @@ finish_struct (tree t, tree attributes)
 
       /* Remember current #pragma pack value.  */
       TYPE_PRECISION (t) = maximum_field_alignment;
+
+      /* Fix up any variants we've already built.  */
+      for (x = TYPE_NEXT_VARIANT (t); x; x = TYPE_NEXT_VARIANT (x))
+	{
+	  TYPE_SIZE (x) = TYPE_SIZE (t);
+	  TYPE_SIZE_UNIT (x) = TYPE_SIZE_UNIT (t);
+	  TYPE_FIELDS (x) = TYPE_FIELDS (t);
+	  TYPE_METHODS (x) = TYPE_METHODS (t);
+	}
     }
   else
     finish_struct_1 (t);
@@ -6520,7 +6529,9 @@ resolves_to_fixed_type_p (tree instance, int* nonnull)
   int cdtorp = 0;
   tree fixed;
 
-  if (processing_template_decl)
+  /* processing_template_decl can be false in a template if we're in
+     fold_non_dependent_expr, but we still want to suppress this check.  */
+  if (in_template_function ())
     {
       /* In a template we only care about the type of the result.  */
       if (nonnull)
@@ -6867,9 +6878,8 @@ pop_lang_context (void)
 
    If OVERLOAD is for one or more member functions, then ACCESS_PATH
    is the base path used to reference those member functions.  If
-   TF_NO_ACCESS_CONTROL is not set in FLAGS, and the address is
-   resolved to a member function, access checks will be performed and
-   errors issued if appropriate.  */
+   the address is resolved to a member function, access checks will be
+   performed and errors issued if appropriate.  */
 
 static tree
 resolve_address_of_overloaded_function (tree target_type,
@@ -7023,14 +7033,10 @@ resolve_address_of_overloaded_function (tree target_type,
 
 	  /* Try to do argument deduction.  */
 	  targs = make_tree_vec (DECL_NTPARMS (fn));
-	  if (fn_type_unification (fn, explicit_targs, targs, args, nargs,
-				   target_ret_type, DEDUCE_EXACT,
-				   LOOKUP_NORMAL, false))
-	    /* Argument deduction failed.  */
-	    continue;
-
-	  /* Instantiate the template.  */
-	  instantiation = instantiate_template (fn, targs, flags);
+	  instantiation = fn_type_unification (fn, explicit_targs, targs, args,
+					      nargs, target_ret_type,
+					      DEDUCE_EXACT, LOOKUP_NORMAL,
+					       false);
 	  if (instantiation == error_mark_node)
 	    /* Instantiation failed.  */
 	    continue;
@@ -7132,11 +7138,10 @@ resolve_address_of_overloaded_function (tree target_type,
   /* We could not check access to member functions when this
      expression was originally created since we did not know at that
      time to which function the expression referred.  */
-  if (!(flags & tf_no_access_control) 
-      && DECL_FUNCTION_MEMBER_P (fn))
+  if (DECL_FUNCTION_MEMBER_P (fn))
     {
       gcc_assert (access_path);
-      perform_or_defer_access_check (access_path, fn, fn);
+      perform_or_defer_access_check (access_path, fn, fn, flags);
     }
 
   if (TYPE_PTRFN_P (target_type) || TYPE_PTRMEMFUNC_P (target_type))
@@ -7319,7 +7324,9 @@ get_vfield_name (tree type)
 void
 print_class_statistics (void)
 {
-#ifdef GATHER_STATISTICS
+  if (! GATHER_STATISTICS)
+    return;
+
   fprintf (stderr, "convert_harshness = %d\n", n_convert_harshness);
   fprintf (stderr, "compute_conversion_costs = %d\n", n_compute_conversion_costs);
   if (n_vtables)
@@ -7329,7 +7336,6 @@ print_class_statistics (void)
       fprintf (stderr, "vtable entries = %d; vtable elems = %d\n",
 	       n_vtable_entries, n_vtable_elems);
     }
-#endif
 }
 
 /* Build a dummy reference to ourselves so Derived::Base (and A::A) works,
@@ -8393,12 +8399,12 @@ build_vtbl_initializer (tree binfo,
 	  int new_position = (TARGET_VTABLE_DATA_ENTRY_DISTANCE * ix
 			      + (TARGET_VTABLE_DATA_ENTRY_DISTANCE - 1));
 
-	  VEC_replace (constructor_elt, vid.inits, new_position, e);
+	  VEC_replace (constructor_elt, vid.inits, new_position, *e);
 
 	  for (j = 1; j < TARGET_VTABLE_DATA_ENTRY_DISTANCE; ++j)
 	    {
-	      constructor_elt *f = VEC_index (constructor_elt, vid.inits,
-					      new_position - j);
+	      constructor_elt *f = &VEC_index (constructor_elt, vid.inits,
+					       new_position - j);
 	      f->index = NULL_TREE;
 	      f->value = build1 (NOP_EXPR, vtable_entry_type,
 				 null_pointer_node);
@@ -8419,7 +8425,7 @@ build_vtbl_initializer (tree binfo,
   for (ix = VEC_length (constructor_elt, vid.inits) - 1;
        VEC_iterate (constructor_elt, vid.inits, ix, e);
        ix--, jx++)
-    VEC_replace (constructor_elt, *inits, jx, e);
+    VEC_replace (constructor_elt, *inits, jx, *e);
 
   /* Go through all the ordinary virtual functions, building up
      initializers.  */

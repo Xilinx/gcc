@@ -28,6 +28,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "vecir.h"
 #include "ggc.h"
 #include "basic-block.h"
+#include "tree.h"
 #include "tree-ssa-operands.h"
 #include "tree-ssa-alias.h"
 #include "internal-fn.h"
@@ -150,7 +151,7 @@ typedef struct
 /* Data structure definitions for GIMPLE tuples.  NOTE: word markers
    are for 64 bit hosts.  */
 
-struct GTY(()) gimple_statement_base {
+struct GTY((chain_next ("%h.next"))) gimple_statement_base {
   /* [ WORD 1 ]
      Main identifying code for a tuple.  */
   ENUM_BITFIELD(gimple_code) code : 8;
@@ -199,7 +200,7 @@ struct GTY(()) gimple_statement_base {
 
   /* [ WORD 3 ]
      Basic block holding this statement.  */
-  struct basic_block_def *bb;
+  basic_block bb;
 
   /* [ WORD 4-5 ]
      Linked lists of gimple statements.  The next pointers form
@@ -817,7 +818,7 @@ void gimple_call_reset_alias_info (gimple);
 bool gimple_assign_copy_p (gimple);
 bool gimple_assign_ssa_name_copy_p (gimple);
 bool gimple_assign_unary_nop_p (gimple);
-void gimple_set_bb (gimple, struct basic_block_def *);
+void gimple_set_bb (gimple, basic_block);
 void gimple_assign_set_rhs_from_tree (gimple_stmt_iterator *, tree);
 void gimple_assign_set_rhs_with_ops_1 (gimple_stmt_iterator *, enum tree_code,
 				       tree, tree, tree);
@@ -1185,7 +1186,7 @@ gimple_has_substatements (gimple g)
 
 /* Return the basic block holding statement G.  */
 
-static inline struct basic_block_def *
+static inline basic_block
 gimple_bb (const_gimple g)
 {
   return g->gsbase.bb;
@@ -3493,6 +3494,8 @@ gimple_phi_set_result (gimple gs, tree result)
 {
   GIMPLE_CHECK (gs, GIMPLE_PHI);
   gs->gimple_phi.result = result;
+  if (result && TREE_CODE (result) == SSA_NAME)
+    SSA_NAME_DEF_STMT (result) = gs;
 }
 
 
@@ -5189,7 +5192,7 @@ bool gsi_remove (gimple_stmt_iterator *, bool);
 gimple_stmt_iterator gsi_for_stmt (gimple);
 void gsi_move_after (gimple_stmt_iterator *, gimple_stmt_iterator *);
 void gsi_move_before (gimple_stmt_iterator *, gimple_stmt_iterator *);
-void gsi_move_to_bb_end (gimple_stmt_iterator *, struct basic_block_def *);
+void gsi_move_to_bb_end (gimple_stmt_iterator *, basic_block);
 void gsi_insert_on_edge (edge, gimple);
 void gsi_insert_seq_on_edge (edge, gimple_seq);
 basic_block gsi_insert_on_edge_immediate (edge, gimple);
@@ -5269,7 +5272,6 @@ tree walk_gimple_stmt (gimple_stmt_iterator *, walk_stmt_fn, walk_tree_fn,
 		       struct walk_stmt_info *);
 tree walk_gimple_op (gimple, walk_tree_fn, struct walk_stmt_info *);
 
-#ifdef GATHER_STATISTICS
 /* Enum and arrays used for allocation stats.  Keep in sync with
    gimple.c:gimple_alloc_kind_names.  */
 enum gimple_alloc_kind
@@ -5300,7 +5302,6 @@ gimple_alloc_kind (enum gimple_code code)
 	return gimple_alloc_kind_rest;
     }
 }
-#endif /* GATHER_STATISTICS */
 
 extern void dump_gimple_statistics (void);
 

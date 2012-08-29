@@ -451,7 +451,6 @@ enum rejection_reason_code {
   rr_arg_conversion,
   rr_bad_arg_conversion,
   rr_template_unification,
-  rr_template_instantiation,
   rr_invalid_copy
 };
 
@@ -485,7 +484,7 @@ struct rejection_reason {
     struct {
       tree tmpl;
       tree explicit_targs;
-      tree targs;
+      int num_targs;
       const tree *args;
       unsigned int nargs;
       tree return_type;
@@ -688,7 +687,7 @@ template_unification_rejection (tree tmpl, tree explicit_targs, tree targs,
   struct rejection_reason *r = alloc_rejection (rr_template_unification);
   r->u.template_unification.tmpl = tmpl;
   r->u.template_unification.explicit_targs = explicit_targs;
-  r->u.template_unification.targs = targs;
+  r->u.template_unification.num_targs = TREE_VEC_LENGTH (targs);
   /* Copy args to our own storage.  */
   memcpy (args1, args, args_n_bytes);
   r->u.template_unification.args = args1;
@@ -703,15 +702,6 @@ static struct rejection_reason *
 template_unification_error_rejection (void)
 {
   return alloc_rejection (rr_template_unification);
-}
-
-static struct rejection_reason *
-template_instantiation_rejection (tree tmpl, tree targs)
-{
-  struct rejection_reason *r = alloc_rejection (rr_template_instantiation);
-  r->u.template_instantiation.tmpl = tmpl;
-  r->u.template_instantiation.targs = targs;
-  return r;
 }
 
 static struct rejection_reason *
@@ -1095,8 +1085,6 @@ standard_conversion (tree to, tree from, tree expr, bool c_cast_p,
       && expr && type_unknown_p (expr))
     {
       tsubst_flags_t tflags = tf_conv;
-      if (!(flags & LOOKUP_PROTECT))
-	tflags |= tf_no_access_control;
       expr = instantiate_type (to, expr, tflags);
       if (expr == error_mark_node)
 	return NULL;
@@ -1926,7 +1914,8 @@ add_function_candidate (struct z_candidate **candidates,
 
   for (i = 0; i < len; ++i)
     {
-      tree arg, argtype, to_type;
+      tree argtype, to_type;
+      tree arg;
       conversion *t;
       int is_this;
 
@@ -1936,8 +1925,9 @@ add_function_candidate (struct z_candidate **candidates,
       if (i == 0 && first_arg != NULL_TREE)
 	arg = first_arg;
       else
-	arg = VEC_index (tree, args,
-			 i + skip - (first_arg != NULL_TREE ? 1 : 0));
+	arg = CONST_CAST_TREE (
+		VEC_index (tree, args,
+			   i + skip - (first_arg != NULL_TREE ? 1 : 0)));
       argtype = lvalue_type (arg);
 
       is_this = (i == 0 && DECL_NONSTATIC_MEMBER_FUNCTION_P (fn)
@@ -2873,7 +2863,6 @@ add_template_candidate_real (struct z_candidate **candidates, tree tmpl,
   unsigned int ia, ix;
   tree arg;
   struct z_candidate *cand;
-  int i;
   tree fn;
   struct rejection_reason *reason = NULL;
   int errs;
@@ -2920,12 +2909,12 @@ add_template_candidate_real (struct z_candidate **candidates, tree tmpl,
   gcc_assert (ia == nargs_without_in_chrg);
 
   errs = errorcount+sorrycount;
-  i = fn_type_unification (tmpl, explicit_targs, targs,
-			   args_without_in_chrg,
-			   nargs_without_in_chrg,
-			   return_type, strict, flags, false);
+  fn = fn_type_unification (tmpl, explicit_targs, targs,
+			    args_without_in_chrg,
+			    nargs_without_in_chrg,
+			    return_type, strict, flags, false);
 
-  if (i != 0)
+  if (fn == error_mark_node)
     {
       /* Don't repeat unification later if it already resulted in errors.  */
       if (errorcount+sorrycount == errs)
@@ -2935,13 +2924,6 @@ add_template_candidate_real (struct z_candidate **candidates, tree tmpl,
 						 return_type, strict, flags);
       else
 	reason = template_unification_error_rejection ();
-      goto fail;
-    }
-
-  fn = instantiate_template (tmpl, targs, tf_none);
-  if (fn == error_mark_node)
-    {
-      reason = template_instantiation_rejection (tmpl, targs);
       goto fail;
     }
 
@@ -3239,19 +3221,14 @@ print_z_candidate (location_t loc, const char *msgstr,
 	  inform (cloc, "  template argument deduction/substitution failed:");
 	  fn_type_unification (r->u.template_unification.tmpl,
 			       r->u.template_unification.explicit_targs,
-			       r->u.template_unification.targs,
+			       (make_tree_vec
+				(r->u.template_unification.num_targs)),
 			       r->u.template_unification.args,
 			       r->u.template_unification.nargs,
 			       r->u.template_unification.return_type,
 			       r->u.template_unification.strict,
 			       r->u.template_unification.flags,
 			       true);
-	  break;
-	case rr_template_instantiation:
-	  /* Re-run template instantiation with diagnostics.  */
-	  instantiate_template (r->u.template_instantiation.tmpl,
-				r->u.template_instantiation.targs,
-				tf_warning_or_error);
 	  break;
 	case rr_invalid_copy:
 	  inform (cloc,
@@ -3943,15 +3920,19 @@ build_new_function_call (tree fn, VEC(tree,gc) **args, bool koenig_p,
    total number of bytes required by the allocation, and is updated if
    that is changed here.  *COOKIE_SIZE is non-NULL if a cookie should
    be used.  If this function determines that no cookie should be
-   used, after all, *COOKIE_SIZE is set to NULL_TREE.  If FN is
-   non-NULL, it will be set, upon return, to the allocation function
-   called.  */
+   used, after all, *COOKIE_SIZE is set to NULL_TREE.  If SIZE_CHECK
+   is not NULL_TREE, it is evaluated before calculating the final
+   array size, and if it fails, the array size is replaced with
+   (size_t)-1 (usually triggering a std::bad_alloc exception).  If FN
+   is non-NULL, it will be set, upon return, to the allocation
+   function called.  */
 
 tree
 build_operator_new_call (tree fnname, VEC(tree,gc) **args,
-			 tree *size, tree *cookie_size,
+			 tree *size, tree *cookie_size, tree size_check,
 			 tree *fn, tsubst_flags_t complain)
 {
+  tree original_size = *size;
   tree fns;
   struct z_candidate *candidates;
   struct z_candidate *cand;
@@ -3959,6 +3940,10 @@ build_operator_new_call (tree fnname, VEC(tree,gc) **args,
 
   if (fn)
     *fn = NULL_TREE;
+  /* Set to (size_t)-1 if the size check fails.  */
+  if (size_check != NULL_TREE)
+    *size = fold_build3 (COND_EXPR, sizetype, size_check,
+			 original_size, TYPE_MAX_VALUE (sizetype));
   VEC_safe_insert (tree, gc, *args, 0, *size);
   *args = resolve_args (*args, complain);
   if (*args == NULL)
@@ -4022,7 +4007,11 @@ build_operator_new_call (tree fnname, VEC(tree,gc) **args,
        if (use_cookie)
 	 {
 	   /* Update the total size.  */
-	   *size = size_binop (PLUS_EXPR, *size, *cookie_size);
+	   *size = size_binop (PLUS_EXPR, original_size, *cookie_size);
+	   /* Set to (size_t)-1 if the size check fails.  */
+	   gcc_assert (size_check != NULL_TREE);
+	   *size = fold_build3 (COND_EXPR, sizetype, size_check,
+				*size, TYPE_MAX_VALUE (sizetype));
 	   /* Update the argument list to reflect the adjusted size.  */
 	   VEC_replace (tree, *args, 0, *size);
 	 }
@@ -4365,6 +4354,7 @@ build_conditional_expr_1 (tree arg1, tree arg2, tree arg3,
   struct z_candidate *candidates = 0;
   struct z_candidate *cand;
   void *p;
+  tree orig_arg2, orig_arg3;
 
   /* As a G++ extension, the second argument to the conditional can be
      omitted.  (So that `a ? : c' is roughly equivalent to `a ? a :
@@ -4404,6 +4394,8 @@ build_conditional_expr_1 (tree arg1, tree arg2, tree arg3,
      array-to-pointer (_conv.array_), and function-to-pointer
      (_conv.func_) standard conversions are performed on the second
      and third operands.  */
+  orig_arg2 = arg2;
+  orig_arg3 = arg3;
   arg2_type = unlowered_expr_type (arg2);
   arg3_type = unlowered_expr_type (arg3);
   if (VOID_TYPE_P (arg2_type) || VOID_TYPE_P (arg3_type))
@@ -4701,7 +4693,12 @@ build_conditional_expr_1 (tree arg1, tree arg2, tree arg3,
       if (TREE_CODE (arg2_type) == ENUMERAL_TYPE
 	  && TREE_CODE (arg3_type) == ENUMERAL_TYPE)
         {
-          if (complain & tf_warning)
+	  if (TREE_CODE (orig_arg2) == CONST_DECL
+	      && TREE_CODE (orig_arg3) == CONST_DECL
+	      && DECL_CONTEXT (orig_arg2) == DECL_CONTEXT (orig_arg3))
+	    /* Two enumerators from the same enumeration can have different
+	       types when the enumeration is still being defined.  */;
+          else if (complain & tf_warning)
             warning (OPT_Wenum_compare, 
                      "enumeral mismatch in conditional expression: %qT vs %qT",
                      arg2_type, arg3_type);
@@ -5221,16 +5218,20 @@ build_new_op_1 (location_t loc, enum tree_code code, int flags, tree arg1,
 
 	  if (arg2)
 	    {
+	      conv = cand->convs[1];
+	      if (conv->kind == ck_ref_bind)
+		conv = next_conversion (conv);
+	      else
+		arg2 = decay_conversion (arg2, complain);
+
 	      /* We need to call warn_logical_operator before
-		 converting arg2 to a boolean_type.  */
+		 converting arg2 to a boolean_type, but after
+		 decaying an enumerator to its value.  */
 	      if (complain & tf_warning)
 		warn_logical_operator (loc, code, boolean_type_node,
 				       code_orig_arg1, arg1,
 				       code_orig_arg2, arg2);
 
-	      conv = cand->convs[1];
-	      if (conv->kind == ck_ref_bind)
-		conv = next_conversion (conv);
 	      arg2 = convert_like (conv, arg2, complain);
 	    }
 	  if (arg3)
@@ -5503,7 +5504,8 @@ build_op_delete_call (enum tree_code code, tree addr, tree size,
       /* If the FN is a member function, make sure that it is
 	 accessible.  */
       if (BASELINK_P (fns))
-	perform_or_defer_access_check (BASELINK_BINFO (fns), fn, fn);
+	perform_or_defer_access_check (BASELINK_BINFO (fns), fn, fn,
+				       complain);
 
       /* Core issue 901: It's ok to new a type with deleted delete.  */
       if (DECL_DELETED_FN (fn) && alloc_fn)
@@ -5561,19 +5563,23 @@ build_op_delete_call (enum tree_code code, tree addr, tree size,
    the declaration to use in the error diagnostic.  */
 
 bool
-enforce_access (tree basetype_path, tree decl, tree diag_decl)
+enforce_access (tree basetype_path, tree decl, tree diag_decl,
+		tsubst_flags_t complain)
 {
   gcc_assert (TREE_CODE (basetype_path) == TREE_BINFO);
 
   if (!accessible_p (basetype_path, decl, true))
     {
-      if (TREE_PRIVATE (decl))
-	error ("%q+#D is private", diag_decl);
-      else if (TREE_PROTECTED (decl))
-	error ("%q+#D is protected", diag_decl);
-      else
-	error ("%q+#D is inaccessible", diag_decl);
-      error ("within this context");
+      if (complain & tf_error)
+	{
+	  if (TREE_PRIVATE (decl))
+	    error ("%q+#D is private", diag_decl);
+	  else if (TREE_PROTECTED (decl))
+	    error ("%q+#D is protected", diag_decl);
+	  else
+	    error ("%q+#D is inaccessible", diag_decl);
+	  error ("within this context");
+	}
       return false;
     }
 
@@ -6498,14 +6504,9 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	access_fn = DECL_TI_TEMPLATE (fn);
       else
 	access_fn = fn;
-      if (flags & LOOKUP_SPECULATIVE)
-	{
-	  if (!speculative_access_check (cand->access_path, access_fn, fn,
-					 complain & tf_error))
-	    return error_mark_node;
-	}
-      else
-	perform_or_defer_access_check (cand->access_path, access_fn, fn);
+      if (!perform_or_defer_access_check (cand->access_path, access_fn,
+					  fn, complain))
+	return error_mark_node;
     }
 
   /* If we're checking for implicit delete, don't bother with argument
@@ -6888,6 +6889,7 @@ tree
 build_cxx_call (tree fn, int nargs, tree *argarray)
 {
   tree fndecl;
+  int optimize_sav;
 
   /* Remember roughly where this call is.  */
   location_t loc = EXPR_LOC_OR_HERE (fn);
@@ -6904,8 +6906,15 @@ build_cxx_call (tree fn, int nargs, tree *argarray)
     return error_mark_node;
 
   /* Some built-in function calls will be evaluated at compile-time in
-     fold ().  */
+     fold ().  Set optimize to 1 when folding __builtin_constant_p inside
+     a constexpr function so that fold_builtin_1 doesn't fold it to 0.  */
+  optimize_sav = optimize;
+  if (!optimize && fndecl && DECL_IS_BUILTIN_CONSTANT_P (fndecl)
+      && current_function_decl
+      && DECL_DECLARED_CONSTEXPR_P (current_function_decl))
+    optimize = 1;
   fn = fold_if_not_in_template (fn);
+  optimize = optimize_sav;
 
   if (VOID_TYPE_P (TREE_TYPE (fn)))
     return fn;
@@ -7505,6 +7514,7 @@ build_new_method_call_1 (tree instance, tree fns, VEC(tree,gc) **args,
 	       build_min (COMPONENT_REF, TREE_TYPE (CALL_EXPR_FN (call)),
 			  orig_instance, orig_fns, NULL_TREE),
 	       orig_args));
+      SET_EXPR_LOCATION (call, input_location);
       call = convert_from_reference (call);
       if (cast_to_void)
 	call = build_nop (void_type_node, call);

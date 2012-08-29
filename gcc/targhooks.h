@@ -83,6 +83,8 @@ extern int default_builtin_vectorization_cost (enum vect_cost_for_stmt, tree, in
 
 extern tree default_builtin_reciprocal (unsigned int, bool, bool);
 
+extern HOST_WIDE_INT default_vector_alignment (const_tree);
+
 extern bool default_builtin_vector_alignment_reachable (const_tree, bool);
 extern bool
 default_builtin_support_vector_misalignment (enum machine_mode mode,
@@ -90,6 +92,12 @@ default_builtin_support_vector_misalignment (enum machine_mode mode,
 					     int, bool);
 extern enum machine_mode default_preferred_simd_mode (enum machine_mode mode);
 extern unsigned int default_autovectorize_vector_sizes (void);
+extern void *default_init_cost (struct loop *);
+extern unsigned default_add_stmt_cost (void *, int, enum vect_cost_for_stmt,
+				       struct _stmt_vec_info *, int,
+				       enum vect_cost_model_location);
+extern void default_finish_cost (void *, unsigned *, unsigned *, unsigned *);
+extern void default_destroy_cost_data (void *);
 
 /* These are here, and not in hooks.[ch], because not all users of
    hooks.h include tm.h, and thus we don't have CUMULATIVE_ARGS.  */
@@ -181,3 +189,4 @@ extern const char *default_pch_valid_p (const void *, size_t);
 
 extern void default_asm_output_ident_directive (const char*);
 
+extern bool default_member_type_forces_blk (const_tree, enum machine_mode);

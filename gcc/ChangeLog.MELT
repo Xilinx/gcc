@@ -1,5 +1,25 @@
 
 2012-08-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{merging with trunk, converted to C++}}
+
+	* melt-runtime.h (MELT_FLEXIBLE_DIM): Set when C++.
+
+	* melt-runtime.c (melt_tempdir_path): Don't use choose_tmpdir from
+	libiberty.
+	(meltgc_start_module_by_index): Use address-of & on VEC_index.
+	(melt_really_initialize): When printing builtin settings, handle
+	GCC 4.8 as with implicit ENABLE_BUILD_WITH_CXX.
+	(meltgc_out_edge): Provide additional flag TDF_DETAILS for dump_edge_info.
+	(melt_val2passflag): Handle PROP_referenced_vars only when defined.
+
+	* melt-module.mk: Use GCCMELT_COMPILER instead of GCCMELT_CC.
+
+	* melt-build-script.tpl: Transmit GCCMELT_COMPILER on every make
+	using melt-module.mk and improve the error message.
+
+	* melt-build-script.sh: Regenerate.
+
+2012-08-29  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* Makefile.in (melt-runtime.args): Add -I include and -I include-fixed.
 	(melt-build-param.sh): Emit GCCMELT_CC1PLUS.

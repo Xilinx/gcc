@@ -60,8 +60,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm-constrs.h"
 #include "sel-sched.h"
 #include "reload.h"
-#include "dwarf2out.h"
 #include "opts.h"
+#include "dumpfile.h"
 
 /* This is used for communication between ASM_OUTPUT_LABEL and
    ASM_OUTPUT_LABELREF.  */
@@ -319,6 +319,7 @@ static const char *ia64_invalid_binary_op (int, const_tree, const_tree);
 static enum machine_mode ia64_c_mode_for_suffix (char);
 static void ia64_trampoline_init (rtx, tree, rtx);
 static void ia64_override_options_after_change (void);
+static bool ia64_member_type_forces_blk (const_tree, enum machine_mode);
 
 static tree ia64_builtin_decl (unsigned, bool);
 
@@ -569,6 +570,9 @@ static const struct attribute_spec ia64_attribute_table[] =
 #define TARGET_GET_RAW_RESULT_MODE ia64_get_reg_raw_mode
 #undef TARGET_GET_RAW_ARG_MODE
 #define TARGET_GET_RAW_ARG_MODE ia64_get_reg_raw_mode
+
+#undef TARGET_MEMBER_TYPE_FORCES_BLK
+#define TARGET_MEMBER_TYPE_FORCES_BLK ia64_member_type_forces_blk
 
 #undef TARGET_GIMPLIFY_VA_ARG_EXPR
 #define TARGET_GIMPLIFY_VA_ARG_EXPR ia64_gimplify_va_arg
@@ -2094,46 +2098,6 @@ ia64_expand_widen_sum (rtx operands[3], bool unsignedp)
   t = expand_binop (wmode, add_optab, h, t, operands[0], 0, OPTAB_DIRECT);
   if (t != operands[0])
     emit_move_insn (operands[0], t);
-}
-
-/* Emit a signed or unsigned V8QI dot product operation.  */
-
-void
-ia64_expand_dot_prod_v8qi (rtx operands[4], bool unsignedp)
-{
-  rtx op1, op2, sn1, sn2, l1, l2, h1, h2;
-  rtx p1, p2, p3, p4, s1, s2, s3;
-
-  op1 = operands[1];
-  op2 = operands[2];
-  sn1 = ia64_unpack_sign (op1, unsignedp);
-  sn2 = ia64_unpack_sign (op2, unsignedp);
-
-  l1 = gen_reg_rtx (V4HImode);
-  l2 = gen_reg_rtx (V4HImode);
-  h1 = gen_reg_rtx (V4HImode);
-  h2 = gen_reg_rtx (V4HImode);
-  ia64_unpack_assemble (l1, op1, sn1, false);
-  ia64_unpack_assemble (l2, op2, sn2, false);
-  ia64_unpack_assemble (h1, op1, sn1, true);
-  ia64_unpack_assemble (h2, op2, sn2, true);
-
-  p1 = gen_reg_rtx (V2SImode);
-  p2 = gen_reg_rtx (V2SImode);
-  p3 = gen_reg_rtx (V2SImode);
-  p4 = gen_reg_rtx (V2SImode);
-  emit_insn (gen_pmpy2_even (p1, l1, l2));
-  emit_insn (gen_pmpy2_even (p2, h1, h2));
-  emit_insn (gen_pmpy2_odd (p3, l1, l2));
-  emit_insn (gen_pmpy2_odd (p4, h1, h2));
-
-  s1 = gen_reg_rtx (V2SImode);
-  s2 = gen_reg_rtx (V2SImode);
-  s3 = gen_reg_rtx (V2SImode);
-  emit_insn (gen_addv2si3 (s1, p1, p2));
-  emit_insn (gen_addv2si3 (s2, p3, p4));
-  emit_insn (gen_addv2si3 (s3, s1, operands[3]));
-  emit_insn (gen_addv2si3 (operands[0], s2, s3));
 }
 
 /* Emit the appropriate sequence for a call.  */
@@ -11191,6 +11155,15 @@ ia64_get_reg_raw_mode (int regno)
   if (FR_REGNO_P (regno))
     return XFmode;
   return default_get_reg_raw_mode(regno);
+}
+
+/* Implement TARGET_MEMBER_TYPE_FORCES_BLK.  ??? Might not be needed
+   anymore.  */
+
+bool
+ia64_member_type_forces_blk (const_tree, enum machine_mode mode)
+{
+  return TARGET_HPUX && mode == TFmode;
 }
 
 /* Always default to .text section until HP-UX linker is fixed.  */

@@ -58,7 +58,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-diagnostic.h"
 #include "tree-pretty-print.h"
 #include "cgraph.h"
-#include "timevar.h"
 #include "except.h"
 #include "debug.h"
 #include "intl.h"
@@ -122,7 +121,6 @@ const char *const tree_code_class_strings[] =
 /* obstack.[ch] explicitly declined to prototype this.  */
 extern int _obstack_allocated_p (struct obstack *h, void *obj);
 
-#ifdef GATHER_STATISTICS
 /* Statistics-gathering stuff.  */
 
 static int tree_code_counts[MAX_TREE_CODES];
@@ -148,7 +146,6 @@ static const char * const tree_node_kind_names[] = {
   "lang_type kinds",
   "omp clauses",
 };
-#endif /* GATHER_STATISTICS */
 
 /* Unique id for next decl created.  */
 static GTY(()) int next_decl_uid;
@@ -752,9 +749,11 @@ static void
 record_node_allocation_statistics (enum tree_code code ATTRIBUTE_UNUSED,
 				   size_t length ATTRIBUTE_UNUSED)
 {
-#ifdef GATHER_STATISTICS
   enum tree_code_class type = TREE_CODE_CLASS (code);
   tree_node_kind kind;
+
+  if (!GATHER_STATISTICS)
+    return;
 
   switch (type)
     {
@@ -833,7 +832,6 @@ record_node_allocation_statistics (enum tree_code code ATTRIBUTE_UNUSED,
   tree_code_counts[(int) code]++;
   tree_node_counts[(int) kind]++;
   tree_node_sizes[(int) kind] += length;
-#endif
 }
 
 /* Allocate and return a new UID from the DECL_UID namespace.  */
@@ -963,8 +961,6 @@ copy_node_stat (tree node MEM_STAT_DECL)
     TREE_CHAIN (t) = 0;
   TREE_ASM_WRITTEN (t) = 0;
   TREE_VISITED (t) = 0;
-  if (code == VAR_DECL || code == PARM_DECL || code == RESULT_DECL)
-    *DECL_VAR_ANN_PTR (t) = 0;
 
   if (TREE_CODE_CLASS (code) == tcc_declaration)
     {
@@ -987,6 +983,8 @@ copy_node_stat (tree node MEM_STAT_DECL)
 	  SET_DECL_INIT_PRIORITY (t, DECL_INIT_PRIORITY (node));
 	  DECL_HAS_INIT_PRIORITY_P (t) = 1;
 	}
+      if (TREE_CODE (node) == FUNCTION_DECL)
+	DECL_STRUCT_FUNCTION (t) = NULL;
     }
   else if (TREE_CODE_CLASS (code) == tcc_type)
     {
@@ -1640,7 +1638,7 @@ build_zero_cst (tree type)
     {
     case INTEGER_TYPE: case ENUMERAL_TYPE: case BOOLEAN_TYPE:
     case POINTER_TYPE: case REFERENCE_TYPE:
-    case OFFSET_TYPE:
+    case OFFSET_TYPE: case NULLPTR_TYPE:
       return build_int_cst (type, 0);
 
     case REAL_TYPE:
@@ -1853,7 +1851,7 @@ int
 integer_pow2p (const_tree expr)
 {
   int prec;
-  HOST_WIDE_INT high, low;
+  unsigned HOST_WIDE_INT high, low;
 
   STRIP_NOPS (expr);
 
@@ -2980,6 +2978,7 @@ type_contains_placeholder_1 (const_tree type)
     case METHOD_TYPE:
     case FUNCTION_TYPE:
     case VECTOR_TYPE:
+    case NULLPTR_TYPE:
       return false;
 
     case INTEGER_TYPE:
@@ -3526,8 +3525,7 @@ stabilize_reference (tree ref)
     case BIT_FIELD_REF:
       result = build_nt (BIT_FIELD_REF,
 			 stabilize_reference (TREE_OPERAND (ref, 0)),
-			 stabilize_reference_1 (TREE_OPERAND (ref, 1)),
-			 stabilize_reference_1 (TREE_OPERAND (ref, 2)));
+			 TREE_OPERAND (ref, 1), TREE_OPERAND (ref, 2));
       break;
 
     case ARRAY_REF:
@@ -3697,8 +3695,6 @@ do { tree _node = (NODE); \
 	  if (TREE_OPERAND (node, 2))
 	    UPDATE_FLAGS (TREE_OPERAND (node, 2));
 	}
-      else if (TREE_CODE (node) == BIT_FIELD_REF)
-	UPDATE_FLAGS (TREE_OPERAND (node, 2));
     }
 
   node = lang_hooks.expr_to_decl (node, &tc, &se);
@@ -3966,37 +3962,6 @@ build5_stat (enum tree_code code, tree tt, tree arg0, tree arg1,
   TREE_THIS_VOLATILE (t)
     = (TREE_CODE_CLASS (code) == tcc_reference
        && arg0 && TREE_THIS_VOLATILE (arg0));
-
-  return t;
-}
-
-tree
-build6_stat (enum tree_code code, tree tt, tree arg0, tree arg1,
-	     tree arg2, tree arg3, tree arg4, tree arg5 MEM_STAT_DECL)
-{
-  bool constant, read_only, side_effects;
-  tree t;
-
-  gcc_assert (code == TARGET_MEM_REF);
-
-  t = make_node_stat (code PASS_MEM_STAT);
-  TREE_TYPE (t) = tt;
-
-  side_effects = TREE_SIDE_EFFECTS (t);
-
-  PROCESS_ARG(0);
-  PROCESS_ARG(1);
-  PROCESS_ARG(2);
-  PROCESS_ARG(3);
-  PROCESS_ARG(4);
-  if (code == TARGET_MEM_REF)
-    side_effects = 0;
-  PROCESS_ARG(5);
-
-  TREE_SIDE_EFFECTS (t) = side_effects;
-  TREE_THIS_VOLATILE (t)
-    = (code == TARGET_MEM_REF
-       && arg5 && TREE_THIS_VOLATILE (arg5));
 
   return t;
 }
@@ -4910,7 +4875,15 @@ find_decls_types_r (tree *tp, int *ws, void *data)
       fld_worklist_push (TYPE_MAIN_VARIANT (t), fld);
       /* Do not walk TYPE_NEXT_VARIANT.  We do not stream it and thus
          do not and want not to reach unused variants this way.  */
-      fld_worklist_push (TYPE_CONTEXT (t), fld);
+      if (TYPE_CONTEXT (t))
+	{
+	  tree ctx = TYPE_CONTEXT (t);
+	  /* We adjust BLOCK TYPE_CONTEXTs to the innermost non-BLOCK one.
+	     So push that instead.  */
+	  while (ctx && TREE_CODE (ctx) == BLOCK)
+	    ctx = BLOCK_SUPERCONTEXT (ctx);
+	  fld_worklist_push (ctx, fld);
+	}
       /* Do not walk TYPE_CANONICAL.  We do not stream it and thus do not
 	 and want not to reach unused types this way.  */
 
@@ -6180,6 +6153,7 @@ type_hash_eq (const void *va, const void *vb)
     case COMPLEX_TYPE:
     case POINTER_TYPE:
     case REFERENCE_TYPE:
+    case NULLPTR_TYPE:
       return 1;
 
     case VECTOR_TYPE:
@@ -6328,11 +6302,12 @@ type_hash_canon (unsigned int hashcode, tree type)
   t1 = type_hash_lookup (hashcode, type);
   if (t1 != 0)
     {
-#ifdef GATHER_STATISTICS
-      tree_code_counts[(int) TREE_CODE (type)]--;
-      tree_node_counts[(int) t_kind]--;
-      tree_node_sizes[(int) t_kind] -= sizeof (struct tree_type_non_common);
-#endif
+      if (GATHER_STATISTICS)
+	{
+	  tree_code_counts[(int) TREE_CODE (type)]--;
+	  tree_node_counts[(int) t_kind]--;
+	  tree_node_sizes[(int) t_kind] -= sizeof (struct tree_type_non_common);
+	}
       return t1;
     }
   else
@@ -6731,8 +6706,8 @@ simple_cst_equal (const_tree t1, const_tree t2)
 
         for (idx = 0; idx < VEC_length (constructor_elt, v1); ++idx)
 	  /* ??? Should we handle also fields here? */
-	  if (!simple_cst_equal (VEC_index (constructor_elt, v1, idx)->value,
-				 VEC_index (constructor_elt, v2, idx)->value))
+	  if (!simple_cst_equal (VEC_index (constructor_elt, v1, idx).value,
+				 VEC_index (constructor_elt, v2, idx).value))
 	    return false;
 	return true;
       }
@@ -6917,6 +6892,8 @@ commutative_tree_code (enum tree_code code)
     case WIDEN_MULT_EXPR:
     case VEC_WIDEN_MULT_HI_EXPR:
     case VEC_WIDEN_MULT_LO_EXPR:
+    case VEC_WIDEN_MULT_EVEN_EXPR:
+    case VEC_WIDEN_MULT_ODD_EXPR:
       return true;
 
     default:
@@ -8698,36 +8675,34 @@ get_callee_fndecl (const_tree call)
 void
 dump_tree_statistics (void)
 {
-#ifdef GATHER_STATISTICS
-  int i;
-  int total_nodes, total_bytes;
-#endif
-
-  fprintf (stderr, "\n??? tree nodes created\n\n");
-#ifdef GATHER_STATISTICS
-  fprintf (stderr, "Kind                   Nodes      Bytes\n");
-  fprintf (stderr, "---------------------------------------\n");
-  total_nodes = total_bytes = 0;
-  for (i = 0; i < (int) all_kinds; i++)
+  if (GATHER_STATISTICS)
     {
-      fprintf (stderr, "%-20s %7d %10d\n", tree_node_kind_names[i],
-	       tree_node_counts[i], tree_node_sizes[i]);
-      total_nodes += tree_node_counts[i];
-      total_bytes += tree_node_sizes[i];
+      int i;
+      int total_nodes, total_bytes;
+      fprintf (stderr, "Kind                   Nodes      Bytes\n");
+      fprintf (stderr, "---------------------------------------\n");
+      total_nodes = total_bytes = 0;
+      for (i = 0; i < (int) all_kinds; i++)
+	{
+	  fprintf (stderr, "%-20s %7d %10d\n", tree_node_kind_names[i],
+		   tree_node_counts[i], tree_node_sizes[i]);
+	  total_nodes += tree_node_counts[i];
+	  total_bytes += tree_node_sizes[i];
+	}
+      fprintf (stderr, "---------------------------------------\n");
+      fprintf (stderr, "%-20s %7d %10d\n", "Total", total_nodes, total_bytes);
+      fprintf (stderr, "---------------------------------------\n");
+      fprintf (stderr, "Code                   Nodes\n");
+      fprintf (stderr, "----------------------------\n");
+      for (i = 0; i < (int) MAX_TREE_CODES; i++)
+	fprintf (stderr, "%-20s %7d\n", tree_code_name[i], tree_code_counts[i]);
+      fprintf (stderr, "----------------------------\n");
+      ssanames_print_statistics ();
+      phinodes_print_statistics ();
     }
-  fprintf (stderr, "---------------------------------------\n");
-  fprintf (stderr, "%-20s %7d %10d\n", "Total", total_nodes, total_bytes);
-  fprintf (stderr, "---------------------------------------\n");
-  fprintf (stderr, "Code                   Nodes\n");
-  fprintf (stderr, "----------------------------\n");
-  for (i = 0; i < (int) MAX_TREE_CODES; i++)
-    fprintf (stderr, "%-20s %7d\n", tree_code_name[i], tree_code_counts[i]);
-  fprintf (stderr, "----------------------------\n");
-  ssanames_print_statistics ();
-  phinodes_print_statistics ();
-#else
-  fprintf (stderr, "(No per-node statistics)\n");
-#endif
+  else
+    fprintf (stderr, "(No per-node statistics)\n");
+
   print_type_hash_statistics ();
   print_debug_expr_statistics ();
   print_value_expr_statistics ();
@@ -10182,9 +10157,6 @@ range_in_array_bounds_p (tree ref)
 bool
 needs_to_live_in_memory (const_tree t)
 {
-  if (TREE_CODE (t) == SSA_NAME)
-    t = SSA_NAME_VAR (t);
-
   return (TREE_ADDRESSABLE (t)
 	  || is_global_var (t)
 	  || (TREE_CODE (t) == RESULT_DECL
@@ -10898,6 +10870,13 @@ get_name (tree t)
   STRIP_NOPS (stripped_decl);
   if (DECL_P (stripped_decl) && DECL_NAME (stripped_decl))
     return IDENTIFIER_POINTER (DECL_NAME (stripped_decl));
+  else if (TREE_CODE (stripped_decl) == SSA_NAME)
+    {
+      tree name = SSA_NAME_IDENTIFIER (stripped_decl);
+      if (!name)
+	return NULL;
+      return IDENTIFIER_POINTER (name);
+    }
   else
     {
       switch (TREE_CODE (stripped_decl))

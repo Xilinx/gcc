@@ -149,13 +149,15 @@ Free Documentation License}''.
 
 The latest version of this document is always available at
 @uref{http://gcc.gnu.org/install/,,http://gcc.gnu.org/install/}.
+It refers to the current development sources, instructions for
+specific released versions are included with the sources.
 
 This document describes the generic installation procedure for GCC as well
 as detailing some target specific installation instructions.
 
 GCC includes several components that previously were separate distributions
 with their own installation instructions.  This document supersedes all
-package specific installation instructions.
+package-specific installation instructions.
 
 @emph{Before} starting the build/install procedure please check the
 @ifnothtml
@@ -362,31 +364,24 @@ installed but it is not in your default library search path, the
 @option{--with-mpc} configure option should be used.  See also
 @option{--with-mpc-lib} and @option{--with-mpc-include}.
 
-@item Parma Polyhedra Library (PPL) version 0.11
+@item ISL Library version 0.10
 
 Necessary to build GCC with the Graphite loop optimizations.
-It can be downloaded from @uref{http://www.cs.unipr.it/ppl/Download/}.
+It can be downloaded from @uref{ftp://gcc.gnu.org/pub/gcc/infrastructure/}.
 
-The @option{--with-ppl} configure option should be used if PPL is not
+The @option{--with-isl} configure option should be used if ISL is not
 installed in your default library search path.
 
-@item CLooG-PPL version 0.15 or CLooG 0.16
+@item CLooG 0.17.0
 
-Necessary to build GCC with the Graphite loop optimizations.  There
-are two versions available.  CLooG-PPL 0.15 as well as CLooG 0.16.
-The former is the default right now.  It can be downloaded from
-@uref{ftp://gcc.gnu.org/pub/gcc/infrastructure/} as
-@file{cloog-ppl-0.15.tar.gz}.
-
-CLooG 0.16 support is still in testing stage, but will be the
-default in future GCC releases.  It is also available at
-@uref{ftp://gcc.gnu.org/pub/gcc/infrastructure/} as
-@file{cloog-0.16.1.tar.gz}.  To use it add the additional configure
-option @option{--enable-cloog-backend=isl}.  Even if CLooG 0.16
-does not use PPL, PPL is still required for Graphite.
-
-In both cases @option{--with-cloog} configure option should be used
-if CLooG is not installed in your default library search path.
+Necessary to build GCC with the Graphite loop optimizations.  It can be
+downloaded from @uref{ftp://gcc.gnu.org/pub/gcc/infrastructure/} as
+@file{cloog-0.17.0.tar.gz}.  The @option{--with-cloog} configure option should
+be used if CLooG is not installed in your default library search path.
+CLooG needs to be built against ISL 0.10, not its included copy of ISL
+which is too old.  Use @option{--with-isl=system} to direct CLooG to pick
+up an already installed ISL.  CLooG needs to be configured to use GMP
+internally, use @option{--with-bits=gmp} to direct it to do that.
 
 @end table
 
@@ -1293,16 +1288,6 @@ opposite effect.  If neither option is specified, the configure script
 will try to guess whether the @code{.init_array} and
 @code{.fini_array} sections are supported and, if they are, use them.
 
-@item --enable-build-with-cxx
-Build GCC using a C++ compiler rather than a C compiler.  This is an
-experimental option which may become the default in a later release.
-
-@item --enable-build-poststage1-with-cxx
-When bootstrapping, build stages 2 and 3 of GCC using a C++ compiler
-rather than a C compiler.  Stage 1 is still built with a C compiler.
-This is enabled by default and may be disabled using
-@option{--disable-build-poststage1-with-cxx}.
-
 @item --enable-maintainer-mode
 The build rules that regenerate the Autoconf and Automake output files as
 well as the GCC master message catalog @file{gcc.pot} are normally
@@ -1641,14 +1626,14 @@ a cross compiler, they will not be used to configure target libraries.
 @itemx --with-cloog=@var{pathname}
 @itemx --with-cloog-include=@var{pathname}
 @itemx --with-cloog-lib=@var{pathname}
-If you do not have PPL (the Parma Polyhedra Library) and the CLooG
+If you do not have ISL and the CLooG
 libraries installed in a standard location and you want to build GCC,
 you can explicitly specify the directory where they are installed
-(@samp{--with-ppl=@/@var{pplinstalldir}},
+(@samp{--with-isl=@/@var{islinstalldir}},
 @samp{--with-cloog=@/@var{clooginstalldir}}). The
-@option{--with-ppl=@/@var{pplinstalldir}} option is shorthand for
-@option{--with-ppl-lib=@/@var{pplinstalldir}/lib} and
-@option{--with-ppl-include=@/@var{pplinstalldir}/include}.  Likewise the
+@option{--with-isl=@/@var{islinstalldir}} option is shorthand for
+@option{--with-isl-lib=@/@var{islinstalldir}/lib} and
+@option{--with-isl-include=@/@var{islinstalldir}/include}.  Likewise the
 @option{--with-cloog=@/@var{clooginstalldir}} option is shorthand for
 @option{--with-cloog-lib=@/@var{clooginstalldir}/lib} and
 @option{--with-cloog-include=@/@var{clooginstalldir}/include}.  If these
@@ -2981,7 +2966,7 @@ GNU Compiler Collection on your machine.
 Note that this list of install notes is @emph{not} a list of supported
 hosts or targets.  Not all supported hosts and targets are listed
 here, only the ones that require host-specific or target-specific
-information are.
+information have to. 
 
 @ifhtml
 @itemize

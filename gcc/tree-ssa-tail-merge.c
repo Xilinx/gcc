@@ -190,15 +190,17 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "function.h"
 #include "tree-flow.h"
-#include "timevar.h"
 #include "bitmap.h"
 #include "tree-ssa-alias.h"
 #include "params.h"
-#include "tree-pretty-print.h"
-#include "hashtab.h"
+#include "hash-table.h"
 #include "gimple-pretty-print.h"
 #include "tree-ssa-sccvn.h"
 #include "tree-dump.h"
+
+/* ??? This currently runs as part of tree-ssa-pre.  Why is this not
+   a stand-alone GIMPLE pass?  */
+#include "tree-pass.h"
 
 /* Describes a group of bbs with the same successors.  The successor bbs are
    cached in succs, and the successor edge flags are cached in succ_flags.
@@ -222,9 +224,23 @@ struct same_succ_def
   bool in_worklist;
   /* The hash value of the struct.  */
   hashval_t hashval;
+
+  /* hash_table support.  */
+  typedef same_succ_def T;
+  static inline hashval_t hash (const same_succ_def *);
+  static int equal (const same_succ_def *, const same_succ_def *);
+  static void remove (same_succ_def *);
 };
 typedef struct same_succ_def *same_succ;
 typedef const struct same_succ_def *const_same_succ;
+
+/* hash routine for hash_table support, returns hashval of E.  */
+
+inline hashval_t
+same_succ_def::hash (const same_succ_def *e)
+{
+  return e->hashval;
+}
 
 /* A group of bbs where 1 bb from bbs can replace the other bbs.  */
 
@@ -366,11 +382,10 @@ same_succ_print (FILE *file, const same_succ e)
 
 /* Prints same_succ VE to VFILE.  */
 
-static int
-same_succ_print_traverse (void **ve, void *vfile)
+inline int
+ssa_same_succ_print_traverse (same_succ *pe, FILE *file)
 {
-  const same_succ e = *((const same_succ *)ve);
-  FILE *file = ((FILE*)vfile);
+  const same_succ e = *pe;
   same_succ_print (file, e);
   return 1;
 }
@@ -415,9 +430,8 @@ stmt_update_dep_bb (gimple stmt)
 /* Calculates hash value for same_succ VE.  */
 
 static hashval_t
-same_succ_hash (const void *ve)
+same_succ_hash (const_same_succ e)
 {
-  const_same_succ e = (const_same_succ)ve;
   hashval_t hashval = bitmap_hash (e->succs);
   int flags;
   unsigned int i;
@@ -478,7 +492,7 @@ same_succ_hash (const void *ve)
 	  tree lhs = gimple_phi_result (phi);
 	  tree val = gimple_phi_arg_def (phi, n);
 
-	  if (!is_gimple_reg (lhs))
+	  if (virtual_operand_p (lhs))
 	    continue;
 	  update_dep_bb (bb, val);
 	}
@@ -511,13 +525,11 @@ inverse_flags (const_same_succ e1, const_same_succ e2)
   return (f1a & mask) == (f2a & mask) && (f1b & mask) == (f2b & mask);
 }
 
-/* Compares SAME_SUCCs VE1 and VE2.  */
+/* Compares SAME_SUCCs E1 and E2.  */
 
-static int
-same_succ_equal (const void *ve1, const void *ve2)
+int
+same_succ_def::equal (const_same_succ e1, const_same_succ e2)
 {
-  const_same_succ e1 = (const_same_succ)ve1;
-  const_same_succ e2 = (const_same_succ)ve2;
   unsigned int i, first1, first2;
   gimple_stmt_iterator gsi1, gsi2;
   gimple s1, s2;
@@ -586,19 +598,17 @@ same_succ_alloc (void)
   return same;
 }
 
-/* Delete same_succ VE.  */
+/* Delete same_succ E.  */
 
-static void
-same_succ_delete (void *ve)
+void
+same_succ_def::remove (same_succ e)
 {
-  same_succ e = (same_succ)ve;
-
   BITMAP_FREE (e->bbs);
   BITMAP_FREE (e->succs);
   BITMAP_FREE (e->inverse);
   VEC_free (int, heap, e->succ_flags);
 
-  XDELETE (ve);
+  XDELETE (e);
 }
 
 /* Reset same_succ SAME.  */
@@ -612,9 +622,7 @@ same_succ_reset (same_succ same)
   VEC_truncate (int, same->succ_flags, 0);
 }
 
-/* Hash table with all same_succ entries.  */
-
-static htab_t same_succ_htab;
+static hash_table <same_succ_def> same_succ_htab;
 
 /* Array that is used to store the edge flags for a successor.  */
 
@@ -635,7 +643,7 @@ extern void debug_same_succ (void);
 DEBUG_FUNCTION void
 debug_same_succ ( void)
 {
-  htab_traverse (same_succ_htab, same_succ_print_traverse, stderr);
+  same_succ_htab.traverse <FILE *, ssa_same_succ_print_traverse> (stderr);
 }
 
 DEF_VEC_P (same_succ);
@@ -696,8 +704,7 @@ find_same_succ_bb (basic_block bb, same_succ *same_p)
 
   same->hashval = same_succ_hash (same);
 
-  slot = (same_succ *) htab_find_slot_with_hash (same_succ_htab, same,
-						   same->hashval, INSERT);
+  slot = same_succ_htab.find_slot_with_hash (same, same->hashval, INSERT);
   if (*slot == NULL)
     {
       *slot = same;
@@ -731,7 +738,7 @@ find_same_succ (void)
 	same = same_succ_alloc ();
     }
 
-  same_succ_delete (same);
+  same_succ_def::remove (same);
 }
 
 /* Initializes worklist administration.  */
@@ -740,9 +747,7 @@ static void
 init_worklist (void)
 {
   alloc_aux_for_blocks (sizeof (struct aux_bb_info));
-  same_succ_htab
-    = htab_create (n_basic_blocks, same_succ_hash, same_succ_equal,
-		   same_succ_delete);
+  same_succ_htab.create (n_basic_blocks);
   same_succ_edge_flags = XCNEWVEC (int, last_basic_block);
   deleted_bbs = BITMAP_ALLOC (NULL);
   deleted_bb_preds = BITMAP_ALLOC (NULL);
@@ -762,8 +767,7 @@ static void
 delete_worklist (void)
 {
   free_aux_for_blocks ();
-  htab_delete (same_succ_htab);
-  same_succ_htab = NULL;
+  same_succ_htab.dispose ();
   XDELETEVEC (same_succ_edge_flags);
   same_succ_edge_flags = NULL;
   BITMAP_FREE (deleted_bbs);
@@ -793,7 +797,7 @@ same_succ_flush_bb (basic_block bb)
   same_succ same = BB_SAME_SUCC (bb);
   BB_SAME_SUCC (bb) = NULL;
   if (bitmap_single_bit_set_p (same->bbs))
-    htab_remove_elt_with_hash (same_succ_htab, same, same->hashval);
+    same_succ_htab.remove_elt_with_hash (same, same->hashval);
   else
     bitmap_clear_bit (same->bbs, bb->index);
 }
@@ -832,7 +836,7 @@ release_last_vdef (basic_block bb)
       gimple phi = gsi_stmt (i);
       tree res = gimple_phi_result (phi);
 
-      if (is_gimple_reg (res))
+      if (!virtual_operand_p (res))
 	continue;
 
       mark_virtual_phi_result_for_renaming (phi);
@@ -866,7 +870,7 @@ update_worklist (void)
       if (same == NULL)
 	same = same_succ_alloc ();
     }
-  same_succ_delete (same);
+  same_succ_def::remove (same);
   bitmap_clear (deleted_bb_preds);
 }
 
@@ -1119,6 +1123,14 @@ gimple_equal_p (same_succ same_succ, gimple s1, gimple s2)
     case GIMPLE_ASSIGN:
       lhs1 = gimple_get_lhs (s1);
       lhs2 = gimple_get_lhs (s2);
+      if (gimple_vdef (s1))
+	{
+	  if (vn_valueize (gimple_vdef (s1)) != vn_valueize (gimple_vdef (s2)))
+	    return false;
+	  if (TREE_CODE (lhs1) != SSA_NAME
+	      && TREE_CODE (lhs2) != SSA_NAME)
+	    return true;
+	}
       return (TREE_CODE (lhs1) == SSA_NAME
 	      && TREE_CODE (lhs2) == SSA_NAME
 	      && vn_valueize (lhs1) == vn_valueize (lhs2));
@@ -1242,7 +1254,7 @@ same_phi_alternatives_1 (basic_block dest, edge e1, edge e2)
       tree val1 = gimple_phi_arg_def (phi, n1);
       tree val2 = gimple_phi_arg_def (phi, n2);
 
-      if (!is_gimple_reg (lhs))
+      if (virtual_operand_p (lhs))
 	continue;
 
       if (operand_equal_for_phi_arg_p (val1, val2))
@@ -1300,7 +1312,7 @@ bb_has_non_vop_phi (basic_block bb)
     return true;
 
   phi = gimple_seq_first_stmt (phis);
-  return is_gimple_reg (gimple_phi_result (phi));
+  return !virtual_operand_p (gimple_phi_result (phi));
 }
 
 /* Returns true if redirecting the incoming edges of FROM to TO maintains the
@@ -1422,7 +1434,7 @@ vop_phi (basic_block bb)
   for (gsi = gsi_start_phis (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     {
       stmt = gsi_stmt (gsi);
-      if (is_gimple_reg (gimple_phi_result (stmt)))
+      if (! virtual_operand_p (gimple_phi_result (stmt)))
 	continue;
       return stmt;
     }
@@ -1627,7 +1639,7 @@ tail_merge_optimize (unsigned int todo)
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, "htab collision / search: %f\n",
-	     htab_collisions (same_succ_htab));
+	     same_succ_htab.collisions ());
 
   if (nr_bbs_removed_total > 0)
     {
@@ -1644,7 +1656,7 @@ tail_merge_optimize (unsigned int todo)
 	}
 
       todo |= (TODO_verify_ssa | TODO_verify_stmts | TODO_verify_flow);
-      mark_sym_for_renaming (gimple_vop (cfun));
+      mark_virtual_operands_for_renaming (cfun);
     }
 
   delete_worklist ();

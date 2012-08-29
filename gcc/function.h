@@ -22,11 +22,14 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef GCC_FUNCTION_H
 #define GCC_FUNCTION_H
 
-#include "tree.h"
 #include "hashtab.h"
+#include "vec.h"
 #include "vecprim.h"
-#include "tm.h"		/* For CUMULATIVE_ARGS.  */
-#include "hard-reg-set.h"
+#include "vecir.h"
+#include "machmode.h"
+#include "tm.h"			/* For CUMULATIVE_ARGS.  */
+#include "hard-reg-set.h"	/* For HARD_REG_SET in struct rtl_data. */
+#include "input.h"		/* For location_t.  */
 
 /* Stack of pending (incomplete) sequences saved by `start_sequence'.
    Each element describes one pending sequence.
@@ -154,7 +157,7 @@ struct GTY(()) rtl_eh {
 
   VEC(uchar,gc) *action_record_data;
 
-  VEC(call_site_record,gc) *call_site_record[2];
+  VEC(call_site_record,gc) *call_site_record_v[2];
 };
 
 #define pending_stack_adjust (crtl->expr.x_pending_stack_adjust)
@@ -642,9 +645,6 @@ struct GTY(()) function {
      return the address of where it has put a structure value.  */
   unsigned int returns_pcc_struct : 1;
 
-  /* Nonzero if pass_tree_profile was run on this function.  */
-  unsigned int after_tree_profile : 1;
-
   /* Nonzero if this function has local DECL_HARD_REGISTER variables.
      In this case code motion has to be done more carefully.  */
   unsigned int has_local_explicit_reg_vars : 1;
@@ -760,6 +760,7 @@ extern void clobber_return_register (void);
 extern rtx get_arg_pointer_save_area (void);
 
 /* Returns the name of the current function.  */
+extern const char *function_name (struct function *);
 extern const char *current_function_name (void);
 
 extern void do_warn_unused_parameter (tree);

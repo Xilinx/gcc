@@ -663,14 +663,6 @@ extern int vsnprintf(char *, size_t, const char *, va_list);
 #define __builtin_expect(a, b) (a)
 #endif
 
-/* Default file in which to dump debug output.  Here for lack of a better
-   place to put it.  This used to be defined in output.h, but that results
-   in almost all files including output.h, even if they don't output anything
-   except, maybe, something to the dump file.  */
-#ifdef BUFSIZ
-extern FILE *dump_file;
-#endif
-
 /* Redefine abort to report an internal error w/o coredump, and
    reporting the location of the error in the source file.  */
 extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
@@ -816,7 +808,7 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 	CAN_DEBUG_WITHOUT_FP UNLIKELY_EXECUTED_TEXT_SECTION_NAME	\
 	HOT_TEXT_SECTION_NAME LEGITIMATE_CONSTANT_P ALWAYS_STRIP_DOTDOT	\
 	OUTPUT_ADDR_CONST_EXTRA SMALL_REGISTER_CLASSES ASM_OUTPUT_IDENT	\
-	ASM_BYTE_OP
+	ASM_BYTE_OP MEMBER_TYPE_FORCES_BLK
 
 /* Target macros only used for code built for the target, that have
    moved to libgcc-tm.h or have never been present elsewhere.  */
@@ -896,7 +888,8 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 	IDENT_ASM_OP UNALIGNED_SHORT_ASM_OP UNALIGNED_INT_ASM_OP	   \
 	UNALIGNED_LONG_ASM_OP UNALIGNED_DOUBLE_INT_ASM_OP		   \
 	USE_COMMON_FOR_ONE_ONLY IFCVT_EXTRA_FIELDS IFCVT_INIT_EXTRA_FIELDS \
-	CASE_USE_BIT_TESTS
+	CASE_USE_BIT_TESTS FIXUNS_TRUNC_LIKE_FIX_TRUNC                     \
+        GO_IF_MODE_DEPENDENT_ADDRESS
 
 /* Hooks that are no longer used.  */
  #pragma GCC poison LANG_HOOKS_FUNCTION_MARK LANG_HOOKS_FUNCTION_FREE	\
@@ -909,7 +902,9 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 	LANG_HOOKS_MISSING_ARGUMENT LANG_HOOKS_HASH_TYPES \
 	TARGET_HANDLE_OFAST TARGET_OPTION_OPTIMIZATION \
 	TARGET_IRA_COVER_CLASSES TARGET_HELP \
-	TARGET_HANDLE_PRAGMA_EXTERN_PREFIX
+	TARGET_HANDLE_PRAGMA_EXTERN_PREFIX \
+	TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_EVEN \
+	TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_ODD \
 
 /* Arrays that were deleted in favor of a functional interface.  */
  #pragma GCC poison built_in_decls implicit_built_in_decls

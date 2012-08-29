@@ -26,9 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm_p.h"
 #include "basic-block.h"
 #include "tree-flow.h"
-#include "tree-dump.h"
 #include "tree-pass.h"
-#include "timevar.h"
 #include "cfgloop.h"
 #include "tree-inline.h"
 #include "flags.h"
@@ -144,10 +142,6 @@ copy_loop_headers (void)
       loop_optimizer_finalize ();
       return 0;
     }
-
-#ifdef ENABLE_CHECKING
-  verify_loop_structure ();
-#endif
 
   bbs = XNEWVEC (basic_block, n_basic_blocks);
   copied_bbs = XNEWVEC (basic_block, n_basic_blocks);

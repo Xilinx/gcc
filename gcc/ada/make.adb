@@ -2366,7 +2366,7 @@ package body Make is
                                  Last_New := Last_New + 1;
                                  New_Args (Last_New) :=
                                    new String'(Name_Buffer (1 .. Name_Len));
-                                 Test_If_Relative_Path
+                                 Ensure_Absolute_Path
                                    (New_Args (Last_New),
                                     Do_Fail              => Make_Failed'Access,
                                     Parent               => Dir_Path,
@@ -2399,7 +2399,7 @@ package body Make is
                                         Directory.Display_Name);
 
                      begin
-                        Test_If_Relative_Path
+                        Ensure_Absolute_Path
                           (New_Args (1),
                            Do_Fail              => Make_Failed'Access,
                            Parent               => Dir_Path,
@@ -4435,6 +4435,13 @@ package body Make is
          declare
             Success : Boolean := False;
          begin
+            --  If gnatmake was invoked with --subdirs and no project file,
+            --  put the executable in the subdirectory specified.
+
+            if Prj.Subdirs /= null and then Main_Project = No_Project then
+               Change_Dir (Object_Directory_Path.all);
+            end if;
+
             Link (Main_ALI_File,
                   Link_With_Shared_Libgcc.all &
                   Args (Args'First .. Last_Arg),
@@ -4569,6 +4576,13 @@ package body Make is
                  new String'("-F=" & Get_Name_String (Mapping_Path));
             end if;
          end if;
+      end if;
+
+      --  If gnatmake was invoked with --subdirs and no project file, put the
+      --  binder generated files in the subdirectory specified.
+
+      if Main_Project = No_Project and then Prj.Subdirs /= null then
+         Change_Dir (Object_Directory_Path.all);
       end if;
 
       begin
@@ -4807,10 +4821,13 @@ package body Make is
          return;
       end if;
 
-      --  Regenerate libraries, if there are any and if object files
-      --  have been regenerated.
+      --  Regenerate libraries, if there are any and if object files have been
+      --  regenerated. Note that we skip this in CodePeer mode because we don't
+      --  need libraries in this case, and more importantly, the object files
+      --  may not be present.
 
       if Main_Project /= No_Project
+        and then not CodePeer_Mode
         and then MLib.Tgt.Support_For_Libraries /= Prj.None
         and then (Do_Bind_Step
                    or Unique_Compile_All_Projects
@@ -5011,36 +5028,36 @@ package body Make is
                       Get_Name_String (Main_Project.Directory.Display_Name);
       begin
          for J in 1 .. Binder_Switches.Last loop
-            Test_If_Relative_Path
+            Ensure_Absolute_Path
               (Binder_Switches.Table (J),
                Do_Fail => Make_Failed'Access,
-               Parent => Dir_Path, Including_L_Switch => False);
+               Parent => Dir_Path, For_Gnatbind => True);
          end loop;
 
          for J in 1 .. Saved_Binder_Switches.Last loop
-            Test_If_Relative_Path
+            Ensure_Absolute_Path
               (Saved_Binder_Switches.Table (J),
-               Do_Fail            => Make_Failed'Access,
-               Parent             => Current_Work_Dir,
-               Including_L_Switch => False);
+               Do_Fail             => Make_Failed'Access,
+               Parent              => Current_Work_Dir,
+               For_Gnatbind        => True);
          end loop;
 
          for J in 1 .. Linker_Switches.Last loop
-            Test_If_Relative_Path
+            Ensure_Absolute_Path
               (Linker_Switches.Table (J),
                Parent  => Dir_Path,
                Do_Fail => Make_Failed'Access);
          end loop;
 
          for J in 1 .. Saved_Linker_Switches.Last loop
-            Test_If_Relative_Path
+            Ensure_Absolute_Path
               (Saved_Linker_Switches.Table (J),
                Do_Fail => Make_Failed'Access,
                Parent  => Current_Work_Dir);
          end loop;
 
          for J in 1 .. Gcc_Switches.Last loop
-            Test_If_Relative_Path
+            Ensure_Absolute_Path
               (Gcc_Switches.Table (J),
                Do_Fail              => Make_Failed'Access,
                Parent               => Dir_Path,
@@ -5048,7 +5065,7 @@ package body Make is
          end loop;
 
          for J in 1 .. Saved_Gcc_Switches.Last loop
-            Test_If_Relative_Path
+            Ensure_Absolute_Path
               (Saved_Gcc_Switches.Table (J),
                Parent               => Current_Work_Dir,
                Do_Fail              => Make_Failed'Access,
@@ -5370,14 +5387,14 @@ package body Make is
                  Get_Name_String (Main_Project.Directory.Display_Name);
             begin
                for J in Last_Binder_Switch + 1 .. Binder_Switches.Last loop
-                  Test_If_Relative_Path
+                  Ensure_Absolute_Path
                     (Binder_Switches.Table (J),
                      Do_Fail => Make_Failed'Access,
-                     Parent  => Dir_Path, Including_L_Switch => False);
+                     Parent  => Dir_Path, For_Gnatbind => True);
                end loop;
 
                for J in Last_Linker_Switch + 1 .. Linker_Switches.Last loop
-                  Test_If_Relative_Path
+                  Ensure_Absolute_Path
                     (Linker_Switches.Table (J),
                      Parent  => Dir_Path,
                      Do_Fail => Make_Failed'Access);

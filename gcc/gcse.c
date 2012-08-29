@@ -158,7 +158,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "cselib.h"
 #include "intl.h"
 #include "obstack.h"
-#include "timevar.h"
 #include "tree-pass.h"
 #include "hashtab.h"
 #include "df.h"
@@ -743,10 +742,7 @@ want_to_gcse_p (rtx x, int *max_distance_ptr)
     case CALL:
       return 0;
 
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
       if (!doing_code_hoisting_p)
 	/* Do not PRE constants.  */
 	return 0;
@@ -888,10 +884,7 @@ oprs_unchanged_p (const_rtx x, const_rtx insn, int avail_p)
     case PC:
     case CC0: /*FIXME*/
     case CONST:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case LABEL_REF:
     case ADDR_VEC:
@@ -1694,10 +1687,7 @@ compute_transp (const_rtx x, int indx, sbitmap *bmap)
     case PC:
     case CC0: /*FIXME*/
     case CONST:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case LABEL_REF:
     case ADDR_VEC:
@@ -2791,7 +2781,7 @@ compute_code_hoist_vbeinout (void)
 	  if (bb->next_bb != EXIT_BLOCK_PTR)
 	    {
 	      sbitmap_intersection_of_succs (hoist_vbeout[bb->index],
-					     hoist_vbein, bb->index);
+					     hoist_vbein, bb);
 
 	      /* Include expressions in VBEout that are calculated
 		 in BB and available at its end.  */
@@ -2983,7 +2973,7 @@ hoist_code (void)
 
       /* Examine each expression that is very busy at the exit of this
 	 block.  These are the potentially hoistable expressions.  */
-      for (i = 0; i < hoist_vbeout[bb->index]->n_bits; i++)
+      for (i = 0; i < SBITMAP_SIZE (hoist_vbeout[bb->index]); i++)
 	{
 	  if (TEST_BIT (hoist_vbeout[bb->index], i))
 	    {

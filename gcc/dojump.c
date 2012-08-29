@@ -1028,19 +1028,16 @@ do_compare_rtx_and_jump (rtx op0, rtx op1, enum rtx_code code, int unsignedp,
 	  op0 = op1;
 	  op1 = tmp;
 	}
-
       else if (SCALAR_FLOAT_MODE_P (mode)
 	       && ! can_compare_p (code, mode, ccp_jump)
-
-	       /* Never split ORDERED and UNORDERED.  These must be implemented.  */
+	       /* Never split ORDERED and UNORDERED.
+		  These must be implemented.  */
 	       && (code != ORDERED && code != UNORDERED)
-
-               /* Split a floating-point comparison if we can jump on other
-	          conditions...  */
+               /* Split a floating-point comparison if
+		  we can jump on other conditions...  */
 	       && (have_insn_for (COMPARE, mode)
-
 	           /* ... or if there is no libcall for it.  */
-	           || code_to_optab[code] == NULL))
+	           || code_to_optab (code) == unknown_optab))
         {
 	  enum rtx_code first_code;
 	  bool and_them = split_comparison (code, mode, &first_code, &code);
@@ -1083,15 +1080,10 @@ do_compare_rtx_and_jump (rtx op0, rtx op1, enum rtx_code code, int unsignedp,
 	       last = NEXT_INSN (last))
 	    if (JUMP_P (last))
 	      break;
-	  if (!last
-	      || !JUMP_P (last)
-	      || NEXT_INSN (last)
-	      || !any_condjump_p (last))
-	    {
-	      if (dump_file)
-		fprintf (dump_file, "Failed to add probability note\n");
-	    }
-	  else
+	  if (last
+	      && JUMP_P (last)
+	      && ! NEXT_INSN (last)
+	      && any_condjump_p (last))
 	    {
 	      gcc_assert (!find_reg_note (last, REG_BR_PROB, 0));
 	      add_reg_note (last, REG_BR_PROB, GEN_INT (prob));

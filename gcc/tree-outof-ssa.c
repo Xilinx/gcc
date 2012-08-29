@@ -26,13 +26,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "ggc.h"
 #include "basic-block.h"
-#include "tree-pretty-print.h"
 #include "gimple-pretty-print.h"
 #include "bitmap.h"
 #include "tree-flow.h"
-#include "timevar.h"
-#include "tree-dump.h"
-#include "tree-pass.h"
+#include "dumpfile.h"
 #include "diagnostic-core.h"
 #include "ssaexpand.h"
 
@@ -765,7 +762,7 @@ eliminate_useless_phis (void)
         {
 	  gimple phi = gsi_stmt (gsi);
 	  result = gimple_phi_result (phi);
-	  if (!is_gimple_reg (SSA_NAME_VAR (result)))
+	  if (virtual_operand_p (result))
 	    {
 #ifdef ENABLE_CHECKING
 	      size_t i;
@@ -775,7 +772,7 @@ eliminate_useless_phis (void)
 	        {
 		  tree arg = PHI_ARG_DEF (phi, i);
 		  if (TREE_CODE (arg) == SSA_NAME
-		      && is_gimple_reg (SSA_NAME_VAR (arg)))
+		      && !virtual_operand_p (arg))
 		    {
 		      fprintf (stderr, "Argument of PHI is not virtual (");
 		      print_generic_expr (stderr, arg, TDF_SLIM);
@@ -1033,13 +1030,11 @@ insert_backedge_copies (void)
 	{
 	  gimple phi = gsi_stmt (gsi);
 	  tree result = gimple_phi_result (phi);
-	  tree result_var;
 	  size_t i;
 
-	  if (!is_gimple_reg (result))
+	  if (virtual_operand_p (result))
 	    continue;
 
-	  result_var = SSA_NAME_VAR (result);
 	  for (i = 0; i < gimple_phi_num_args (phi); i++)
 	    {
 	      tree arg = gimple_phi_arg_def (phi, i);
@@ -1051,7 +1046,7 @@ insert_backedge_copies (void)
 		 needed.  */
 	      if ((e->flags & EDGE_DFS_BACK)
 		  && (TREE_CODE (arg) != SSA_NAME
-		      || SSA_NAME_VAR (arg) != result_var
+		      || SSA_NAME_VAR (arg) != SSA_NAME_VAR (result)
 		      || trivially_conflicts_p (bb, result, arg)))
 		{
 		  tree name;
@@ -1081,10 +1076,9 @@ insert_backedge_copies (void)
 
 		  /* Create a new instance of the underlying variable of the
 		     PHI result.  */
-		  stmt = gimple_build_assign (result_var,
+		  name = copy_ssa_name (result, NULL);
+		  stmt = gimple_build_assign (name,
 					      gimple_phi_arg_def (phi, i));
-		  name = make_ssa_name (result_var, stmt);
-		  gimple_assign_set_lhs (stmt, name);
 
 		  /* copy location if present.  */
 		  if (gimple_phi_arg_has_location (phi, i))

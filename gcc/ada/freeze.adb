@@ -42,7 +42,7 @@ with Nmake;    use Nmake;
 with Opt;      use Opt;
 with Restrict; use Restrict;
 with Rident;   use Rident;
-with Rtsfind; use Rtsfind;
+with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
 with Sem_Aux;  use Sem_Aux;
 with Sem_Cat;  use Sem_Cat;
@@ -87,6 +87,14 @@ package body Freeze is
    procedure Check_Address_Clause (E : Entity_Id);
    --  Apply legality checks to address clauses for object declarations,
    --  at the point the object is frozen.
+
+   procedure Check_Component_Storage_Order
+     (Encl_Type : Entity_Id;
+      Comp      : Entity_Id);
+   --  For an Encl_Type that has a Scalar_Storage_Order attribute definition
+   --  clause, verify that the component type is compatible. For arrays,
+   --  Comp is Empty; for records, it is the entity of the component under
+   --  consideration.
 
    procedure Check_Strict_Alignment (E : Entity_Id);
    --  E is a base type. If E is tagged or has a component that is aliased
@@ -1008,6 +1016,76 @@ package body Freeze is
       Set_Size_Known_At_Compile_Time (T, Size_Known (T));
    end Check_Compile_Time_Size;
 
+   -----------------------------------
+   -- Check_Component_Storage_Order --
+   -----------------------------------
+
+   procedure Check_Component_Storage_Order
+     (Encl_Type : Entity_Id;
+      Comp      : Entity_Id)
+   is
+      Comp_Type : Entity_Id;
+      Comp_Def  : Node_Id;
+      Err_Node  : Node_Id;
+      ADC       : Node_Id;
+
+      Comp_Byte_Aligned : Boolean;
+      --  Set True for the record case, when Comp starts on a byte boundary
+      --  (in which case it is allowed to have different storage order).
+
+   begin
+      --  Record case
+
+      if Present (Comp) then
+         Err_Node  := Comp;
+         Comp_Type := Etype (Comp);
+         Comp_Def  := Component_Definition (Parent (Comp));
+
+         Comp_Byte_Aligned :=
+           Present (Component_Clause (Comp))
+             and then Normalized_First_Bit (Comp) mod System_Storage_Unit = 0;
+
+      --  Array case
+
+      else
+         Err_Node  := Encl_Type;
+         Comp_Type := Component_Type (Encl_Type);
+         Comp_Def  := Component_Definition
+                        (Type_Definition (Declaration_Node (Encl_Type)));
+
+         Comp_Byte_Aligned := False;
+      end if;
+
+      --  Note: the Reverse_Storage_Order flag is set on the base type, but
+      --  the attribute definition clause is attached to the first subtype.
+
+      Comp_Type := Base_Type (Comp_Type);
+      ADC := Get_Attribute_Definition_Clause
+               (First_Subtype (Comp_Type),
+                Attribute_Scalar_Storage_Order);
+
+      if Is_Record_Type (Comp_Type) or else Is_Array_Type (Comp_Type) then
+         if No (ADC) then
+            Error_Msg_N ("nested composite must have explicit scalar "
+                         & "storage order", Err_Node);
+
+         elsif (Reverse_Storage_Order (Encl_Type)
+                  /=
+                Reverse_Storage_Order (Etype (Comp_Type)))
+           and then not Comp_Byte_Aligned
+         then
+            Error_Msg_N
+              ("type of non-byte-aligned component must have same scalar "
+               & "storage order as enclosing composite", Err_Node);
+         end if;
+
+      elsif Aliased_Present (Comp_Def) then
+         Error_Msg_N
+           ("aliased component not permitted for type with "
+            & "explicit Scalar_Storage_Order", Err_Node);
+      end if;
+   end Check_Component_Storage_Order;
+
    -----------------------------
    -- Check_Debug_Info_Needed --
    -----------------------------
@@ -1814,6 +1892,11 @@ package body Freeze is
          Junk : Boolean;
          pragma Warnings (Off, Junk);
 
+         Rec_Pushed : Boolean := False;
+         --  Set True if the record type scope Rec has been pushed on the scope
+         --  stack. Needed for the analysis of delayed aspects specified to the
+         --  components of Rec.
+
          Unplaced_Component : Boolean := False;
          --  Set True if we find at least one component with no component
          --  clause (used to warn about useless Pack pragmas).
@@ -1901,17 +1984,56 @@ package body Freeze is
       --  Start of processing for Freeze_Record_Type
 
       begin
+         --  Deal with delayed aspect specifications for components. The
+         --  analysis of the aspect is required to be delayed to the freeze
+         --  point, thus we analyze the pragma or attribute definition
+         --  clause in the tree at this point. We also analyze the aspect
+         --  specification node at the freeze point when the aspect doesn't
+         --  correspond to pragma/attribute definition clause.
+
+         Comp := First_Entity (Rec);
+         while Present (Comp) loop
+            if Ekind (Comp) = E_Component
+              and then Has_Delayed_Aspects (Comp)
+            then
+               if not Rec_Pushed then
+                  Push_Scope (Rec);
+                  Rec_Pushed := True;
+
+                  --  The visibility to the discriminants must be restored in
+                  --  order to properly analyze the aspects.
+
+                  if Has_Discriminants (Rec) then
+                     Install_Discriminants (Rec);
+                  end if;
+               end if;
+
+               Analyze_Aspects_At_Freeze_Point (Comp);
+            end if;
+
+            Next_Entity (Comp);
+         end loop;
+
+         --  Pop the scope if Rec scope has been pushed on the scope stack
+         --  during the delayed aspect analysis process.
+
+         if Rec_Pushed then
+            if Has_Discriminants (Rec) then
+               Uninstall_Discriminants (Rec);
+            end if;
+
+            Pop_Scope;
+         end if;
+
          --  Freeze components and embedded subtypes
 
          Comp := First_Entity (Rec);
          Prev := Empty;
          while Present (Comp) loop
 
-            --  First handle the component case
+            --  Handle the component and discriminant case
 
-            if Ekind (Comp) = E_Component
-              or else Ekind (Comp) = E_Discriminant
-            then
+            if Ekind_In (Comp, E_Component, E_Discriminant) then
                declare
                   CC : constant Node_Id := Component_Clause (Comp);
 
@@ -2158,12 +2280,21 @@ package body Freeze is
             end if;
 
             --  Warn if there is a Scalar_Storage_Order but no component clause
+            --  (or pragma Pack).
 
-            if not Placed_Component then
+            if not (Placed_Component or else Is_Packed (Rec)) then
                Error_Msg_N
                  ("?scalar storage order specified but no component clause",
                   ADC);
             end if;
+
+            --  Check attribute on component types
+
+            Comp := First_Component (Rec);
+            while Present (Comp) loop
+               Check_Component_Storage_Order (Rec, Comp);
+               Next_Component (Comp);
+            end loop;
          end if;
 
          --  Deal with Bit_Order aspect specifying a non-default bit order
@@ -2171,7 +2302,7 @@ package body Freeze is
          ADC := Get_Attribute_Definition_Clause (Rec, Attribute_Bit_Order);
 
          if Present (ADC) and then Base_Type (Rec) = Rec then
-            if not Placed_Component then
+            if not (Placed_Component or else Is_Packed (Rec)) then
                Error_Msg_N ("?bit order specification has no effect", ADC);
                Error_Msg_N
                  ("\?since no component clauses were specified", ADC);
@@ -2895,6 +3026,23 @@ package body Freeze is
                      end if;
                   end if;
                end;
+
+               --  Pre/post conditions are implemented through a subprogram in
+               --  the corresponding body, and therefore are not checked on an
+               --  imported subprogram for which the body is not available.
+
+               --  Could consider generating a wrapper to take care of this???
+
+               if Is_Subprogram (E)
+                 and then Is_Imported (E)
+                 and then Present (Contract (E))
+                 and then Present (Spec_PPC_List (Contract (E)))
+               then
+                  Error_Msg_NE ("pre/post conditions on imported subprogram "
+                     & "are not enforced?",
+                     E, Spec_PPC_List (Contract (E)));
+               end if;
+
             end if;
 
             --  Must freeze its parent first if it is a derived subprogram
@@ -3286,11 +3434,22 @@ package body Freeze is
                end if;
             end if;
 
+            --  A subtype inherits all the type-related representation aspects
+            --  from its parents (RM 13.1(8)).
+
+            Inherit_Aspects_At_Freeze_Point (E);
+
          --  For a derived type, freeze its parent type first (RM 13.14(15))
 
          elsif Is_Derived_Type (E) then
             Freeze_And_Append (Etype (E), N, Result);
             Freeze_And_Append (First_Subtype (Etype (E)), N, Result);
+
+            --  A derived type inherits each type-related representation aspect
+            --  of its parent type that was directly specified before the
+            --  declaration of the derived type (RM 13.1(15)).
+
+            Inherit_Aspects_At_Freeze_Point (E);
          end if;
 
          --  For array type, freeze index types and component type first
@@ -3628,6 +3787,14 @@ package body Freeze is
                      end if;
                   end if;
 
+                  --  Check for scalar storage order
+
+                  if Present (Get_Attribute_Definition_Clause
+                                (E, Attribute_Scalar_Storage_Order))
+                  then
+                     Check_Component_Storage_Order (E, Empty);
+                  end if;
+
                --  Processing that is done only for subtypes
 
                else
@@ -3737,24 +3904,6 @@ package body Freeze is
                return Result;
             end if;
 
-            --  If the Class_Wide_Type is an Itype (when type is the anonymous
-            --  parent of a derived type) and it is a library-level entity,
-            --  generate an itype reference for it. Otherwise, its first
-            --  explicit reference may be in an inner scope, which will be
-            --  rejected by the back-end.
-
-            if Is_Itype (E)
-              and then Is_Compilation_Unit (Scope (E))
-            then
-               declare
-                  Ref : constant Node_Id := Make_Itype_Reference (Loc);
-
-               begin
-                  Set_Itype (Ref, E);
-                  Add_To_Result (Ref);
-               end;
-            end if;
-
             --  The equivalent type associated with a class-wide subtype needs
             --  to be frozen to ensure that its layout is done.
 
@@ -3764,15 +3913,42 @@ package body Freeze is
                Freeze_And_Append (Equivalent_Type (E), N, Result);
             end if;
 
-         --  For a record (sub)type, freeze all the component types (RM
-         --  13.14(15). We test for E_Record_(sub)Type here, rather than using
-         --  Is_Record_Type, because we don't want to attempt the freeze for
-         --  the case of a private type with record extension (we will do that
-         --  later when the full type is frozen).
+            --  Generate an itype reference for a library-level class-wide type
+            --  at the freeze point. Otherwise the first explicit reference to
+            --  the type may appear in an inner scope which will be rejected by
+            --  the back-end.
 
-         elsif Ekind (E) = E_Record_Type
-           or else Ekind (E) = E_Record_Subtype
-         then
+            if Is_Itype (E)
+              and then Is_Compilation_Unit (Scope (E))
+            then
+               declare
+                  Ref : constant Node_Id := Make_Itype_Reference (Loc);
+
+               begin
+                  Set_Itype (Ref, E);
+
+                  --  From a gigi point of view, a class-wide subtype derives
+                  --  from its record equivalent type. As a result, the itype
+                  --  reference must appear after the freeze node of the
+                  --  equivalent type or gigi will reject the reference.
+
+                  if Ekind (E) = E_Class_Wide_Subtype
+                    and then Present (Equivalent_Type (E))
+                  then
+                     Insert_After (Freeze_Node (Equivalent_Type (E)), Ref);
+                  else
+                     Add_To_Result (Ref);
+                  end if;
+               end;
+            end if;
+
+         --  For a record type or record subtype, freeze all component types
+         --  (RM 13.14(15)). We test for E_Record_(sub)Type here, rather than
+         --  using Is_Record_Type, because we don't want to attempt the freeze
+         --  for the case of a private type with record extension (we will do
+         --  that later when the full type is frozen).
+
+         elsif Ekind_In (E, E_Record_Type, E_Record_Subtype) then
             Freeze_Record_Type (E);
 
          --  For a concurrent type, freeze corresponding record type. This
@@ -4036,12 +4212,16 @@ package body Freeze is
                Check_Suspicious_Modulus (E);
             end if;
 
-         elsif Is_Access_Type (E) then
-
+         elsif Is_Access_Type (E)
+           and then not Is_Access_Subprogram_Type (E)
+         then
             --  If a pragma Default_Storage_Pool applies, and this type has no
             --  Storage_Pool or Storage_Size clause (which must have occurred
             --  before the freezing point), then use the default. This applies
             --  only to base types.
+
+            --  None of this applies to access to subprograms, for which there
+            --  are clearly no pools.
 
             if Present (Default_Pool)
               and then Is_Base_Type (E)
@@ -4697,16 +4877,17 @@ package body Freeze is
          else
             Id := Defining_Unit_Name (Specification (P));
 
+            --  Following complex conditional could use comments ???
+
             if Nkind (Id) = N_Defining_Identifier
-              and then (Is_Init_Proc (Id)                    or else
-                        Is_TSS (Id, TSS_Stream_Input)        or else
-                        Is_TSS (Id, TSS_Stream_Output)       or else
-                        Is_TSS (Id, TSS_Stream_Read)         or else
-                        Is_TSS (Id, TSS_Stream_Write)        or else
-                        Nkind (Original_Node (P)) =
-                          N_Subprogram_Renaming_Declaration  or else
-                        Nkind (Original_Node (P)) =
-                          N_Expression_Function)
+              and then (Is_Init_Proc (Id)
+                         or else Is_TSS (Id, TSS_Stream_Input)
+                         or else Is_TSS (Id, TSS_Stream_Output)
+                         or else Is_TSS (Id, TSS_Stream_Read)
+                         or else Is_TSS (Id, TSS_Stream_Write)
+                         or else Nkind_In (Original_Node (P),
+                                           N_Subprogram_Renaming_Declaration,
+                                           N_Expression_Function))
             then
                return True;
             else
@@ -5122,7 +5303,7 @@ package body Freeze is
             if not Is_Compilation_Unit (Current_Scope)
               and then (Is_Record_Type (Scope (Current_Scope))
                          or else Nkind (Parent (Current_Scope)) =
-                                   N_Quantified_Expression)
+                                                     N_Quantified_Expression)
             then
                Pos := Pos - 1;
             end if;

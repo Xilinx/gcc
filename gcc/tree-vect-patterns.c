@@ -29,15 +29,15 @@ along with GCC; see the file COPYING3.  If not see
 #include "basic-block.h"
 #include "gimple-pretty-print.h"
 #include "tree-flow.h"
-#include "tree-dump.h"
 #include "cfgloop.h"
 #include "expr.h"
 #include "optabs.h"
 #include "params.h"
 #include "tree-data-ref.h"
 #include "tree-vectorizer.h"
-#include "recog.h"
+#include "recog.h"		/* FIXME: for insn_data */
 #include "diagnostic-core.h"
+#include "dumpfile.h"
 
 /* Pattern recognition functions  */
 static gimple vect_recog_widen_sum_pattern (VEC (gimple, heap) **, tree *,
@@ -206,11 +206,7 @@ type_conversion_p (tree name, gimple use_stmt, bool check_sign,
 static tree
 vect_recog_temp_ssa_var (tree type, gimple stmt)
 {
-  tree var = create_tmp_var (type, "patt");
-
-  add_referenced_var (var);
-  var = make_ssa_name (var, stmt);
-  return var;
+  return make_temp_ssa_name (type, stmt, "patt");
 }
 
 /* Function vect_recog_dot_prod_pattern
@@ -452,7 +448,7 @@ vect_handle_widen_op_by_const (gimple stmt, enum tree_code code,
    		               VEC (gimple, heap) **stmts, tree type,
 			       tree *half_type, gimple def_stmt)
 {
-  tree new_type, new_oprnd, tmp;
+  tree new_type, new_oprnd;
   gimple new_stmt;
 
   if (code != MULT_EXPR && code != LSHIFT_EXPR)
@@ -501,9 +497,7 @@ vect_handle_widen_op_by_const (gimple stmt, enum tree_code code,
     {
       /* Create a_T = (NEW_TYPE) a_t;  */
       *oprnd = gimple_assign_rhs1 (def_stmt);
-      tmp = create_tmp_var (new_type, NULL);
-      add_referenced_var (tmp);
-      new_oprnd = make_ssa_name (tmp, NULL);
+      new_oprnd = make_ssa_name (new_type, NULL);
       new_stmt = gimple_build_assign_with_ops (NOP_EXPR, new_oprnd, *oprnd,
 					       NULL_TREE);
       STMT_VINFO_RELATED_STMT (vinfo_for_stmt (def_stmt)) = new_stmt;
@@ -599,7 +593,6 @@ vect_recog_widen_mult_pattern (VEC (gimple, heap) **stmts,
   tree type, half_type0, half_type1;
   gimple pattern_stmt;
   tree vectype, vectype_out = NULL_TREE;
-  tree dummy;
   tree var;
   enum tree_code dummy_code;
   int dummy_int;
@@ -692,8 +685,8 @@ vect_recog_widen_mult_pattern (VEC (gimple, heap) **stmts,
       || !vectype_out
       || !supportable_widening_operation (WIDEN_MULT_EXPR, last_stmt,
 					  vectype_out, vectype,
-					  &dummy, &dummy, &dummy_code,
-					  &dummy_code, &dummy_int, &dummy_vec))
+					  &dummy_code, &dummy_code,
+					  &dummy_int, &dummy_vec))
     return NULL;
 
   *type_in = vectype;
@@ -966,7 +959,7 @@ vect_operation_fits_smaller_type (gimple stmt, tree def, tree *new_type,
 {
   enum tree_code code;
   tree const_oprnd, oprnd;
-  tree interm_type = NULL_TREE, half_type, tmp, new_oprnd, type;
+  tree interm_type = NULL_TREE, half_type, new_oprnd, type;
   gimple def_stmt, new_stmt;
   bool first = false;
   bool promotion;
@@ -1107,9 +1100,7 @@ vect_operation_fits_smaller_type (gimple stmt, tree def, tree *new_type,
             {
               /* Create NEW_OPRND = (INTERM_TYPE) OPRND.  */
               oprnd = gimple_assign_rhs1 (def_stmt);
-              tmp = create_tmp_reg (interm_type, NULL);
-              add_referenced_var (tmp);
-              new_oprnd = make_ssa_name (tmp, NULL);
+              new_oprnd = make_ssa_name (interm_type, NULL);
               new_stmt = gimple_build_assign_with_ops (NOP_EXPR, new_oprnd,
                                                        oprnd, NULL_TREE);
               STMT_VINFO_RELATED_STMT (vinfo_for_stmt (def_stmt)) = new_stmt;
@@ -1128,9 +1119,7 @@ vect_operation_fits_smaller_type (gimple stmt, tree def, tree *new_type,
       if (interm_type)
         {
           /* Create a type conversion HALF_TYPE->INTERM_TYPE.  */
-          tmp = create_tmp_reg (interm_type, NULL);
-          add_referenced_var (tmp);
-          new_oprnd = make_ssa_name (tmp, NULL);
+          new_oprnd = make_ssa_name (interm_type, NULL);
           new_stmt = gimple_build_assign_with_ops (NOP_EXPR, new_oprnd,
                                                    oprnd, NULL_TREE);
           oprnd = new_oprnd;
@@ -1177,7 +1166,7 @@ vect_recog_over_widening_pattern (VEC (gimple, heap) **stmts,
   gimple stmt = VEC_pop (gimple, *stmts);
   gimple pattern_stmt = NULL, new_def_stmt, prev_stmt = NULL, use_stmt = NULL;
   tree op0, op1, vectype = NULL_TREE, use_lhs, use_type;
-  tree var = NULL_TREE, new_type = NULL_TREE, tmp, new_oprnd;
+  tree var = NULL_TREE, new_type = NULL_TREE, new_oprnd;
   bool first;
   tree type = NULL;
 
@@ -1260,9 +1249,7 @@ vect_recog_over_widening_pattern (VEC (gimple, heap) **stmts,
           || TYPE_PRECISION (new_type) != TYPE_PRECISION (use_type))
         {
           /* Create NEW_TYPE->USE_TYPE conversion.  */
-          tmp = create_tmp_reg (use_type, NULL);
-          add_referenced_var (tmp);
-          new_oprnd = make_ssa_name (tmp, NULL);
+          new_oprnd = make_ssa_name (use_type, NULL);
           pattern_stmt = gimple_build_assign_with_ops (NOP_EXPR, new_oprnd,
                                                        var, NULL_TREE);
           STMT_VINFO_RELATED_STMT (vinfo_for_stmt (use_stmt)) = pattern_stmt;
@@ -1370,7 +1357,6 @@ vect_recog_widen_shift_pattern (VEC (gimple, heap) **stmts,
   tree type, half_type0;
   gimple pattern_stmt;
   tree vectype, vectype_out = NULL_TREE;
-  tree dummy;
   tree var;
   enum tree_code dummy_code;
   int dummy_int;
@@ -1441,9 +1427,8 @@ vect_recog_widen_shift_pattern (VEC (gimple, heap) **stmts,
       || !vectype_out
       || !supportable_widening_operation (WIDEN_LSHIFT_EXPR, last_stmt,
 					  vectype_out, vectype,
-					  &dummy, &dummy, &dummy_code,
-					  &dummy_code, &dummy_int,
-					  &dummy_vec))
+					  &dummy_code, &dummy_code,
+					  &dummy_int, &dummy_vec))
     return NULL;
 
   *type_in = vectype;
@@ -1642,10 +1627,8 @@ vect_recog_divmod_pattern (VEC (gimple, heap) **stmts,
   loop_vec_info loop_vinfo = STMT_VINFO_LOOP_VINFO (stmt_vinfo);
   bb_vec_info bb_vinfo = STMT_VINFO_BB_VINFO (stmt_vinfo);
   optab optab;
-  tree dummy, q;
-  enum tree_code dummy_code;
+  tree q;
   int dummy_int, prec;
-  VEC (tree, heap) *dummy_vec;
   stmt_vec_info def_stmt_vinfo;
 
   if (!is_gimple_assign (last_stmt))
@@ -1680,12 +1663,11 @@ vect_recog_divmod_pattern (VEC (gimple, heap) **stmts,
   /* If the target can handle vectorized division or modulo natively,
      don't attempt to optimize this.  */
   optab = optab_for_tree_code (rhs_code, vectype, optab_default);
-  if (optab != NULL)
+  if (optab != unknown_optab)
     {
       enum machine_mode vec_mode = TYPE_MODE (vectype);
       int icode = (int) optab_handler (optab, vec_mode);
-      if (icode != CODE_FOR_nothing
-	  || GET_MODE_SIZE (vec_mode) == UNITS_PER_WORD)
+      if (icode != CODE_FOR_nothing)
 	return NULL;
     }
 
@@ -1814,23 +1796,8 @@ vect_recog_divmod_pattern (VEC (gimple, heap) **stmts,
       || prec > HOST_BITS_PER_WIDE_INT)
     return NULL;
 
-  optab = optab_for_tree_code (MULT_HIGHPART_EXPR, vectype, optab_default);
-  if (optab == NULL
-      || optab_handler (optab, TYPE_MODE (vectype)) == CODE_FOR_nothing)
-    {
-      tree witype = build_nonstandard_integer_type (prec * 2,
-						    TYPE_UNSIGNED (itype));
-      tree vecwtype = get_vectype_for_scalar_type (witype);
-
-      if (vecwtype == NULL_TREE)
-	return NULL;
-      if (!supportable_widening_operation (WIDEN_MULT_EXPR, last_stmt,
-					   vecwtype, vectype,
-					   &dummy, &dummy, &dummy_code,
-					   &dummy_code, &dummy_int,
-					   &dummy_vec))
-	return NULL;
-    }
+  if (!can_mult_highpart_p (TYPE_MODE (vectype), TYPE_UNSIGNED (itype)))
+    return NULL;
 
   STMT_VINFO_PATTERN_DEF_SEQ (stmt_vinfo) = NULL;
 

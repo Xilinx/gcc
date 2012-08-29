@@ -104,7 +104,6 @@
 #include "hashtab.h"
 #include "regs.h"
 #include "expr.h"
-#include "timevar.h"
 #include "tree-pass.h"
 #include "tree-flow.h"
 #include "cselib.h"
@@ -5087,11 +5086,11 @@ var_lowpart (enum machine_mode mode, rtx loc)
 {
   unsigned int offset, reg_offset, regno;
 
-  if (!REG_P (loc) && !MEM_P (loc))
-    return NULL;
-
   if (GET_MODE (loc) == mode)
     return loc;
+
+  if (!REG_P (loc) && !MEM_P (loc))
+    return NULL;
 
   offset = byte_lowpart_offset (mode, GET_MODE (loc));
 
@@ -7822,7 +7821,7 @@ loc_exp_dep_clear (variable var)
 {
   while (!VEC_empty (loc_exp_dep, VAR_LOC_DEP_VEC (var)))
     {
-      loc_exp_dep *led = VEC_last (loc_exp_dep, VAR_LOC_DEP_VEC (var));
+      loc_exp_dep *led = &VEC_last (loc_exp_dep, VAR_LOC_DEP_VEC (var));
       if (led->next)
 	led->next->pprev = led->pprev;
       if (led->pprev)
@@ -7866,7 +7865,7 @@ loc_exp_insert_dep (variable var, rtx x, htab_t vars)
   else
     {
       VEC_quick_push (loc_exp_dep, VAR_LOC_DEP_VEC (var), NULL);
-      led = VEC_last (loc_exp_dep, VAR_LOC_DEP_VEC (var));
+      led = &VEC_last (loc_exp_dep, VAR_LOC_DEP_VEC (var));
     }
   led->dv = var->dv;
   led->value = x;
@@ -9327,14 +9326,11 @@ vt_add_function_parameter (tree parm)
   if (GET_MODE (decl_rtl) == BLKmode || GET_MODE (incoming) == BLKmode)
     return;
 
-  /* If there is a DRAP register, rewrite the incoming location of parameters
-     passed on the stack into MEMs based on the argument pointer, as the DRAP
-     register can be reused for other purposes and we do not track locations
-     based on generic registers.  But the prerequisite is that this argument
-     pointer be also the virtual CFA pointer, see vt_initialize.  */
+  /* If there is a DRAP register or a pseudo in internal_arg_pointer,
+     rewrite the incoming location of parameters passed on the stack
+     into MEMs based on the argument pointer, so that incoming doesn't
+     depend on a pseudo.  */
   if (MEM_P (incoming)
-      && stack_realign_drap
-      && arg_pointer_rtx == cfa_base_rtx
       && (XEXP (incoming, 0) == crtl->args.internal_arg_pointer
 	  || (GET_CODE (XEXP (incoming, 0)) == PLUS
 	      && XEXP (XEXP (incoming, 0), 0)
@@ -10044,6 +10040,7 @@ variable_tracking_main_1 (void)
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
       dump_dataflow_sets ();
+      dump_reg_info (dump_file);
       dump_flow_info (dump_file, dump_flags);
     }
 

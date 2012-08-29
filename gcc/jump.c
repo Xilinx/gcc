@@ -54,7 +54,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic-core.h"
 #include "reload.h"
 #include "predict.h"
-#include "timevar.h"
 #include "tree-pass.h"
 #include "target.h"
 
@@ -1079,8 +1078,6 @@ mark_jump_label_1 (rtx x, rtx insn, bool in_mem, bool is_target)
     case PC:
     case CC0:
     case REG:
-    case CONST_INT:
-    case CONST_DOUBLE:
     case CLOBBER:
     case CALL:
       return;
@@ -1260,9 +1257,9 @@ delete_related_insns (rtx insn)
 	  && GET_CODE (PATTERN (insn)) == SEQUENCE
 	  && CALL_P (XVECEXP (PATTERN (insn), 0, 0))))
     {
-      rtx p = insn;
+      rtx p;
 
-      for (p = NEXT_INSN (p);
+      for (p = next && INSN_DELETED_P (next) ? NEXT_INSN (next) : next;
 	   p && NOTE_P (p);
 	   p = NEXT_INSN (p))
 	if (NOTE_KIND (p) == NOTE_INSN_CALL_ARG_LOCATION)
@@ -1754,8 +1751,7 @@ rtx_renumbered_equal_p (const_rtx x, const_rtx y)
     case CC0:
     case ADDR_VEC:
     case ADDR_DIFF_VEC:
-    case CONST_INT:
-    case CONST_DOUBLE:
+    CASE_CONST_UNIQUE:
       return 0;
 
     case LABEL_REF:

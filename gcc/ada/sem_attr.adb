@@ -2215,13 +2215,11 @@ package body Sem_Attr is
            Attribute_Variable_Indexing    =>
          Error_Msg_N ("illegal attribute", N);
 
-      --  Attributes related to Ada 2012 aspects. Attribute definition clause
-      --  exists for these, but they cannot be queried.
+      --  Internal attributes used to deal with Ada 2012 delayed aspects. These
+      --  were already rejected by the parser. Thus they shouldn't appear here.
 
-      when Attribute_CPU                |
-           Attribute_Dispatching_Domain |
-           Attribute_Interrupt_Priority =>
-         Error_Msg_N ("illegal attribute", N);
+      when Internal_Attribute_Id =>
+         raise Program_Error;
 
       ------------------
       -- Abort_Signal --
@@ -2574,6 +2572,15 @@ package body Sem_Attr is
 
          Set_Etype (N, RTE (RE_AST_Handler));
       end AST_Entry;
+
+      -----------------------------
+      -- Atomic_Always_Lock_Free --
+      -----------------------------
+
+      when Attribute_Atomic_Always_Lock_Free =>
+         Check_E0;
+         Check_Type;
+         Set_Etype (N, Standard_Boolean);
 
       ----------
       -- Base --
@@ -3296,12 +3303,7 @@ package body Sem_Attr is
 
       when Attribute_Fast_Math =>
          Check_Standard_Prefix;
-
-         if Opt.Fast_Math then
-            Rewrite (N, New_Occurrence_Of (Standard_True, Loc));
-         else
-            Rewrite (N, New_Occurrence_Of (Standard_False, Loc));
-         end if;
+         Rewrite (N, New_Occurrence_Of (Boolean_Literals (Fast_Math), Loc));
 
       -----------
       -- First --
@@ -4033,14 +4035,21 @@ package body Sem_Attr is
          --  an entity in the enclosing subprogram. If it is a component of
          --  a formal its expansion might generate actual subtypes that may
          --  be referenced in an inner context, and which must be elaborated
-         --  within the subprogram itself. As a result we create a
-         --  declaration for it and insert it at the start of the enclosing
-         --  subprogram. This is properly an expansion activity but it has
-         --  to be performed now to prevent out-of-order issues.
+         --  within the subprogram itself. If the prefix includes a function
+         --  call it may involve finalization actions that should only be
+         --  inserted when the attribute has been rewritten as a declarations.
+         --  As a result, if the prefix is not a simple name we create
+         --  a declaration for it now, and insert it at the start of the
+         --  enclosing subprogram. This is properly an expansion activity
+         --  but it has to be performed now to prevent out-of-order issues.
 
-         if Nkind (P) = N_Selected_Component
-           and then Has_Discriminants (Etype (Prefix (P)))
-         then
+         --  This expansion is both harmful and not needed in Alfa mode, since
+         --  the formal verification backend relies on the types of nodes
+         --  (hence is not robust w.r.t. a change to base type here), and does
+         --  not suffer from the out-of-order issue described above. Thus, this
+         --  expansion is skipped in Alfa mode.
+
+         if not Is_Entity_Name (P) and then not Alfa_Mode then
             P_Type := Base_Type (P_Type);
             Set_Etype (N, P_Type);
             Set_Etype (P, P_Type);
@@ -4480,9 +4489,9 @@ package body Sem_Attr is
          Check_Decimal_Fixed_Point_Type;
          Set_Etype (N, P_Base_Type);
 
-         --  Because the context is universal_real (3.5.10(12)) it is a legal
-         --  context for a universal fixed expression. This is the only
-         --  attribute whose functional description involves U_R.
+         --  Because the context is universal_real (3.5.10(12)) it is a
+         --  legal context for a universal fixed expression. This is the
+         --  only attribute whose functional description involves U_R.
 
          if Etype (E1) = Universal_Fixed then
             declare
@@ -4574,8 +4583,9 @@ package body Sem_Attr is
          Check_E0;
          Check_Type;
 
-         if not Is_Record_Type (P_Type) then
-            Error_Attr_P ("prefix of % attribute must be record type");
+         if not Is_Record_Type (P_Type) or else Is_Array_Type (P_Type) then
+            Error_Attr_P
+              ("prefix of % attribute must be record or array type");
          end if;
 
          if Bytes_Big_Endian xor Reverse_Storage_Order (P_Type) then
@@ -4776,8 +4786,8 @@ package body Sem_Attr is
 
                Validate_Remote_Access_To_Class_Wide_Type (N);
 
-            --  The prefix is allowed to be an implicit dereference
-            --  of an access value designating a task.
+            --  The prefix is allowed to be an implicit dereference of an
+            --  access value designating a task.
 
             else
                Check_Task_Prefix;
@@ -5870,7 +5880,7 @@ package body Sem_Attr is
             begin
                if No (E1) then
                   if C in Predefined_Check_Id then
-                     R := Scope_Suppress (C);
+                     R := Scope_Suppress.Suppress (C);
                   else
                      R := Is_Check_Suppressed (Empty, C);
                   end if;
@@ -5879,11 +5889,7 @@ package body Sem_Attr is
                   R := Is_Check_Suppressed (Entity (E1), C);
                end if;
 
-               if R then
-                  Rewrite (N, New_Occurrence_Of (Standard_False, Loc));
-               else
-                  Rewrite (N, New_Occurrence_Of (Standard_True, Loc));
-               end if;
+               Rewrite (N, New_Occurrence_Of (Boolean_Literals (not R), Loc));
             end;
          end if;
 
@@ -5959,6 +5965,13 @@ package body Sem_Attr is
                return;
             end if;
 
+         --  For Lock_Free, we apply the attribute to the type of the object.
+         --  This is allowed since we have already verified that the type is a
+         --  protected type.
+
+         elsif Id = Attribute_Lock_Free then
+            P_Entity := Etype (P);
+
          --  No other attributes for objects are folded
 
          else
@@ -6024,16 +6037,21 @@ package body Sem_Attr is
 
       --  Definite must be folded if the prefix is not a generic type,
       --  that is to say if we are within an instantiation. Same processing
-      --  applies to the GNAT attributes Has_Discriminants, Type_Class,
-      --  Has_Tagged_Value, and Unconstrained_Array.
+      --  applies to the GNAT attributes Atomic_Always_Lock_Free,
+      --  Has_Discriminants, Lock_Free, Type_Class, Has_Tagged_Value, and
+      --  Unconstrained_Array.
 
-      elsif (Id = Attribute_Definite
+      elsif (Id = Attribute_Atomic_Always_Lock_Free
+               or else
+             Id = Attribute_Definite
                or else
              Id = Attribute_Has_Access_Values
                or else
              Id = Attribute_Has_Discriminants
                or else
              Id = Attribute_Has_Tagged_Values
+               or else
+             Id = Attribute_Lock_Free
                or else
              Id = Attribute_Type_Class
                or else
@@ -6139,22 +6157,27 @@ package body Sem_Attr is
       --  since we can't do anything with unconstrained arrays. In addition,
       --  only the First, Last and Length attributes are possibly static.
 
-      --  Definite, Has_Access_Values, Has_Discriminants, Has_Tagged_Values,
-      --  Type_Class, and Unconstrained_Array are again exceptions, because
-      --  they apply as well to unconstrained types.
+      --  Atomic_Always_Lock_Free, Definite, Has_Access_Values,
+      --  Has_Discriminants, Has_Tagged_Values, Lock_Free, Type_Class, and
+      --  Unconstrained_Array are again exceptions, because they apply as well
+      --  to unconstrained types.
 
       --  In addition Component_Size is an exception since it is possibly
       --  foldable, even though it is never static, and it does apply to
       --  unconstrained arrays. Furthermore, it is essential to fold this
       --  in the packed case, since otherwise the value will be incorrect.
 
-      elsif Id = Attribute_Definite
+      elsif Id = Attribute_Atomic_Always_Lock_Free
+              or else
+            Id = Attribute_Definite
               or else
             Id = Attribute_Has_Access_Values
               or else
             Id = Attribute_Has_Discriminants
               or else
             Id = Attribute_Has_Tagged_Values
+              or else
+            Id = Attribute_Lock_Free
               or else
             Id = Attribute_Type_Class
               or else
@@ -6332,11 +6355,12 @@ package body Sem_Attr is
               Attribute_Iterator_Element     |
               Attribute_Variable_Indexing    => null;
 
-         --  Atributes related to Ada 2012 aspects
+         --  Internal attributes used to deal with Ada 2012 delayed aspects.
+         --  These were already rejected by the parser. Thus they shouldn't
+         --  appear here.
 
-         when Attribute_CPU                |
-              Attribute_Dispatching_Domain |
-              Attribute_Interrupt_Priority => null;
+         when Internal_Attribute_Id =>
+            raise Program_Error;
 
       --------------
       -- Adjacent --
@@ -6382,6 +6406,30 @@ package body Sem_Attr is
          else
             null;
          end if;
+
+      -----------------------------
+      -- Atomic_Always_Lock_Free --
+      -----------------------------
+
+      --  Atomic_Always_Lock_Free attribute is a Boolean, thus no need to fold
+      --  here.
+
+      when Attribute_Atomic_Always_Lock_Free => Atomic_Always_Lock_Free :
+      declare
+         V : constant Entity_Id :=
+               Boolean_Literals
+                 (Support_Atomic_Primitives_On_Target
+                   and then Support_Atomic_Primitives (P_Type));
+
+      begin
+         Rewrite (N, New_Occurrence_Of (V, Loc));
+
+         --  Analyze and resolve as boolean. Note that this attribute is a
+         --  static attribute in GNAT.
+
+         Analyze_And_Resolve (N, Standard_Boolean);
+         Static := True;
+      end Atomic_Always_Lock_Free;
 
       ---------
       -- Bit --
@@ -6803,10 +6851,18 @@ package body Sem_Attr is
       -- Lock_Free --
       ---------------
 
-      --  Lock_Free attribute is a Boolean, thus no need to fold here.
+      when Attribute_Lock_Free => Lock_Free : declare
+         V : constant Entity_Id := Boolean_Literals (Uses_Lock_Free (P_Type));
 
-      when Attribute_Lock_Free =>
-         null;
+      begin
+         Rewrite (N, New_Occurrence_Of (V, Loc));
+
+         --  Analyze and resolve as boolean. Note that this attribute is a
+         --  static attribute in GNAT.
+
+         Analyze_And_Resolve (N, Standard_Boolean);
+         Static := True;
+      end Lock_Free;
 
       ----------
       -- Last --

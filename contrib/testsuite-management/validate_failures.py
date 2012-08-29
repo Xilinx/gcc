@@ -1,4 +1,4 @@
-#!/usr/bin/python2.6
+#!/usr/bin/python
 
 # Script to compare testsuite failures against a list of known-to-fail
 # tests.
@@ -46,6 +46,7 @@ executed it will:
    with exit code 0.  Otherwise, it exits with error code 1.
 """
 
+import datetime
 import optparse
 import os
 import re
@@ -135,15 +136,37 @@ class TestResult(object):
       attrs = '%s | ' % self.attrs
     return '%s%s: %s %s' % (attrs, self.state, self.name, self.description)
 
+  def ExpirationDate(self):
+    # Return a datetime.date object with the expiration date for this
+    # test result.  Return None, if no expiration has been set.
+    if re.search(r'expire=', self.attrs):
+      expiration = re.search(r'expire=(\d\d\d\d)(\d\d)(\d\d)', self.attrs)
+      if not expiration:
+        Error('Invalid expire= format in "%s".  Must be of the form '
+              '"expire=YYYYMMDD"' % self)
+      return datetime.date(int(expiration.group(1)),
+                           int(expiration.group(2)),
+                           int(expiration.group(3)))
+    return None
+
+  def HasExpired(self):
+    # Return True if the expiration date of this result has passed.
+    expiration_date = self.ExpirationDate()
+    if expiration_date:
+      now = datetime.date.today()
+      return now > expiration_date
+
 
 def GetMakefileValue(makefile_name, value_name):
   if os.path.exists(makefile_name):
-    with open(makefile_name) as makefile:
-      for line in makefile:
-        if line.startswith(value_name):
-          (_, value) = line.split('=', 1)
-          value = value.strip()
-          return value
+    makefile = open(makefile_name)
+    for line in makefile:
+      if line.startswith(value_name):
+        (_, value) = line.split('=', 1)
+        value = value.strip()
+        makefile.close()
+        return value
+    makefile.close()
   return None
 
 
@@ -173,10 +196,18 @@ def IsInterestingResult(line):
 def ParseSummary(sum_fname):
   """Create a set of TestResult instances from the given summary file."""
   result_set = set()
-  with open(sum_fname) as sum_file:
-    for line in sum_file:
-      if IsInterestingResult(line):
-        result_set.add(TestResult(line))
+  sum_file = open(sum_fname)
+  for line in sum_file:
+    if IsInterestingResult(line):
+      result = TestResult(line)
+      if result.HasExpired():
+        # Tests that have expired are not added to the set of expected
+        # results. If they are still present in the set of actual results,
+        # they will cause an error to be reported.
+        print 'WARNING: Expected failure "%s" has expired.' % line.strip()
+        continue
+      result_set.add(result)
+  sum_file.close()
   return result_set
 
 
@@ -195,7 +226,7 @@ def GetManifest(manifest_name):
     return set()
 
 
-def GetSumFiles(builddir):
+def CollectSumFiles(builddir):
   sum_files = []
   for root, dirs, files in os.walk(builddir):
     if '.svn' in dirs:
@@ -217,16 +248,20 @@ def GetResults(sum_files):
 
 def CompareResults(manifest, actual):
   """Compare sets of results and return two lists:
-     - List of results present in MANIFEST but missing from ACTUAL.
      - List of results present in ACTUAL but missing from MANIFEST.
+     - List of results present in MANIFEST but missing from ACTUAL.
   """
-  # Report all the actual results not present in the manifest.
+  # Collect all the actual results not present in the manifest.
+  # Results in this set will be reported as errors.
   actual_vs_manifest = set()
   for actual_result in actual:
     if actual_result not in manifest:
       actual_vs_manifest.add(actual_result)
 
-  # Simlarly for all the tests in the manifest.
+  # Collect all the tests in the manifest that were not found
+  # in the actual results.
+  # Results in this set will be reported as warnings (since
+  # they are expected failures that are not failing anymore).
   manifest_vs_actual = set()
   for expected_result in manifest:
     # Ignore tests marked flaky.
@@ -255,6 +290,16 @@ def PrintSummary(msg, summary):
     print result
 
 
+def GetSumFiles(results, build_dir):
+  if not results:
+    print 'Getting actual results from build'
+    sum_files = CollectSumFiles(build_dir)
+  else:
+    print 'Getting actual results from user-provided results'
+    sum_files = results.split()
+  return sum_files
+
+
 def CheckExpectedResults(options):
   if not options.manifest:
     (srcdir, target, valid_build) = GetBuildData(options)
@@ -268,13 +313,7 @@ def CheckExpectedResults(options):
 
   print 'Manifest:         %s' % manifest_name
   manifest = GetManifest(manifest_name)
-
-  if not options.results:
-    print 'Getting actual results from build'
-    sum_files = GetSumFiles(options.build_dir)
-  else:
-    print 'Getting actual results from user-provided results'
-    sum_files = options.results.split()
+  sum_files = GetSumFiles(options.results, options.build_dir)
   actual = GetResults(sum_files)
 
   if options.verbosity >= 1:
@@ -311,11 +350,13 @@ def ProduceManifest(options):
     Error('Manifest file %s already exists.\nUse --force to overwrite.' %
           manifest_name)
 
-  actual = GetResults(options.build_dir)
-  with open(manifest_name, 'w') as manifest_file:
-    for result in sorted(actual):
-      print result
-      manifest_file.write('%s\n' % result)
+  sum_files = GetSumFiles(options.results, options.build_dir)
+  actual = GetResults(sum_files)
+  manifest_file = open(manifest_name, 'w')
+  for result in sorted(actual):
+    print result
+    manifest_file.write('%s\n' % result)
+  manifest_file.close()
 
   return True
 

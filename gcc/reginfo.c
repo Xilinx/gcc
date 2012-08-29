@@ -45,7 +45,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "reload.h"
 #include "diagnostic-core.h"
 #include "output.h"
-#include "timevar.h"
 #include "hashtab.h"
 #include "target.h"
 #include "tree-pass.h"
@@ -936,7 +935,7 @@ reginfo_init (void)
   if (df)
     df_compute_regs_ever_live (true);
 
-  /* This prevents dump_flow_info from losing if called
+  /* This prevents dump_reg_info from losing if called
      before reginfo is run.  */
   reg_pref = NULL;
   /* No more global register variables may be declared.  */
@@ -1023,10 +1022,7 @@ reg_scan_mark_refs (rtx x, rtx insn)
   switch (code)
     {
     case CONST:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case CC0:
     case PC:
     case SYMBOL_REF:

@@ -97,10 +97,7 @@ rtx_unstable_p (const_rtx x)
       return !MEM_READONLY_P (x) || rtx_unstable_p (XEXP (x, 0));
 
     case CONST:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case LABEL_REF:
       return 0;
@@ -170,10 +167,7 @@ rtx_varies_p (const_rtx x, bool for_alias)
       return !MEM_READONLY_P (x) || rtx_varies_p (XEXP (x, 0), for_alias);
 
     case CONST:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case LABEL_REF:
       return 0;
@@ -585,10 +579,7 @@ count_occurrences (const_rtx x, const_rtx find, int count_dest)
   switch (code)
     {
     case REG:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case CODE_LABEL:
     case PC:
@@ -690,10 +681,7 @@ reg_mentioned_p (const_rtx reg, const_rtx in)
     case PC:
       return 0;
 
-    case CONST_INT:
-    case CONST_VECTOR:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
+    CASE_CONST_ANY:
       /* These are kept unique for a given value.  */
       return 0;
 
@@ -887,10 +875,7 @@ modified_between_p (const_rtx x, const_rtx start, const_rtx end)
 
   switch (code)
     {
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case CONST:
     case SYMBOL_REF:
     case LABEL_REF:
@@ -946,10 +931,7 @@ modified_in_p (const_rtx x, const_rtx insn)
 
   switch (code)
     {
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case CONST:
     case SYMBOL_REF:
     case LABEL_REF:
@@ -2095,11 +2077,8 @@ volatile_insn_p (const_rtx x)
     {
     case LABEL_REF:
     case SYMBOL_REF:
-    case CONST_INT:
     case CONST:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case CC0:
     case PC:
     case REG:
@@ -2160,11 +2139,8 @@ volatile_refs_p (const_rtx x)
     {
     case LABEL_REF:
     case SYMBOL_REF:
-    case CONST_INT:
     case CONST:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case CC0:
     case PC:
     case REG:
@@ -2223,11 +2199,8 @@ side_effects_p (const_rtx x)
     {
     case LABEL_REF:
     case SYMBOL_REF:
-    case CONST_INT:
     case CONST:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case CC0:
     case PC:
     case REG:
@@ -2312,10 +2285,7 @@ may_trap_p_1 (const_rtx x, unsigned flags)
   switch (code)
     {
       /* Handle these cases quickly.  */
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case LABEL_REF:
     case CONST:
@@ -2514,10 +2484,7 @@ inequality_comparisons_p (const_rtx x)
     case SCRATCH:
     case PC:
     case CC0:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case CONST:
     case LABEL_REF:
     case SYMBOL_REF:
@@ -2570,11 +2537,6 @@ replace_rtx (rtx x, rtx from, rtx to)
 {
   int i, j;
   const char *fmt;
-
-  /* The following prevents loops occurrence when we change MEM in
-     CONST_DOUBLE onto the same CONST_DOUBLE.  */
-  if (x != 0 && GET_CODE (x) == CONST_DOUBLE)
-    return x;
 
   if (x == from)
     return to;
@@ -2765,10 +2727,7 @@ computed_jump_p_1 (const_rtx x)
       return 0;
 
     case CONST:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case REG:
       return 1;
@@ -3755,9 +3714,16 @@ rtx_cost (rtx x, enum rtx_code outer_code, int opno, bool speed)
   enum rtx_code code;
   const char *fmt;
   int total;
+  int factor;
 
   if (x == 0)
     return 0;
+
+  /* A size N times larger than UNITS_PER_WORD likely needs N times as
+     many insns, taking N times as long.  */
+  factor = GET_MODE_SIZE (GET_MODE (x)) / UNITS_PER_WORD;
+  if (factor == 0)
+    factor = 1;
 
   /* Compute the default costs of certain things.
      Note that targetm.rtx_costs can override the defaults.  */
@@ -3766,20 +3732,31 @@ rtx_cost (rtx x, enum rtx_code outer_code, int opno, bool speed)
   switch (code)
     {
     case MULT:
-      total = COSTS_N_INSNS (5);
+      /* Multiplication has time-complexity O(N*N), where N is the
+	 number of units (translated from digits) when using
+	 schoolbook long multiplication.  */
+      total = factor * factor * COSTS_N_INSNS (5);
       break;
     case DIV:
     case UDIV:
     case MOD:
     case UMOD:
-      total = COSTS_N_INSNS (7);
+      /* Similarly, complexity for schoolbook long division.  */
+      total = factor * factor * COSTS_N_INSNS (7);
       break;
     case USE:
       /* Used in combine.c as a marker.  */
       total = 0;
       break;
+    case SET:
+      /* A SET doesn't have a mode, so let's look at the SET_DEST to get
+	 the mode for the factor.  */
+      factor = GET_MODE_SIZE (GET_MODE (SET_DEST (x))) / UNITS_PER_WORD;
+      if (factor == 0)
+	factor = 1;
+      /* Pass through.  */
     default:
-      total = COSTS_N_INSNS (1);
+      total = factor * COSTS_N_INSNS (1);
     }
 
   switch (code)
@@ -3792,8 +3769,7 @@ rtx_cost (rtx x, enum rtx_code outer_code, int opno, bool speed)
       /* If we can't tie these modes, make this expensive.  The larger
 	 the mode, the more expensive it is.  */
       if (! MODES_TIEABLE_P (GET_MODE (x), GET_MODE (SUBREG_REG (x))))
-	return COSTS_N_INSNS (2
-			      + GET_MODE_SIZE (GET_MODE (x)) / UNITS_PER_WORD);
+	return COSTS_N_INSNS (2 + factor);
       break;
 
     default:
@@ -5260,7 +5236,7 @@ bool
 constant_pool_constant_p (rtx x)
 {
   x = avoid_constant_pool_reference (x);
-  return GET_CODE (x) == CONST_DOUBLE;
+  return CONST_DOUBLE_P (x);
 }
 
 /* If M is a bitmask that selects a field of low-order bits within an item but
@@ -5374,7 +5350,7 @@ split_double (rtx value, rtx *first, rtx *second)
 	    }
 	}
     }
-  else if (GET_CODE (value) != CONST_DOUBLE)
+  else if (!CONST_DOUBLE_P (value))
     {
       if (WORDS_BIG_ENDIAN)
 	{

@@ -34,7 +34,7 @@ along with GCC; see the file COPYING3.  If not see
       (There is one exception needed for implementing GCC extern inline
 	function.)
 
-    - varpool_finalize_variable
+    - varpool_finalize_decl
 
       This function has same behavior as the above but is used for static
       variables.
@@ -176,7 +176,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "cgraph.h"
 #include "diagnostic.h"
-#include "timevar.h"
 #include "params.h"
 #include "fibheap.h"
 #include "intl.h"
@@ -1229,8 +1228,7 @@ init_lowered_empty_function (tree decl)
 
   DECL_SAVED_TREE (decl) = error_mark_node;
   cfun->curr_properties |=
-    (PROP_gimple_lcf | PROP_gimple_leh | PROP_cfg | PROP_referenced_vars |
-     PROP_ssa | PROP_gimple_any);
+    (PROP_gimple_lcf | PROP_gimple_leh | PROP_cfg | PROP_ssa | PROP_gimple_any);
 
   /* Create BB for body of the function and connect it properly.  */
   bb = create_basic_block (NULL, (void *) 0, ENTRY_BLOCK_PTR);
@@ -1282,7 +1280,7 @@ thunk_adjust (gimple_stmt_iterator * bsi,
 	}
 
       vtabletmp =
-	make_rename_temp (build_pointer_type
+	create_tmp_reg (build_pointer_type
 			  (build_pointer_type (vtable_entry_type)), "vptr");
 
       /* The vptr is always at offset zero in the object.  */
@@ -1292,7 +1290,7 @@ thunk_adjust (gimple_stmt_iterator * bsi,
       gsi_insert_after (bsi, stmt, GSI_NEW_STMT);
 
       /* Form the vtable address.  */
-      vtabletmp2 = make_rename_temp (TREE_TYPE (TREE_TYPE (vtabletmp)),
+      vtabletmp2 = create_tmp_reg (TREE_TYPE (TREE_TYPE (vtabletmp)),
 				     "vtableaddr");
       stmt = gimple_build_assign (vtabletmp2,
 				  build_simple_mem_ref (vtabletmp));
@@ -1306,7 +1304,7 @@ thunk_adjust (gimple_stmt_iterator * bsi,
       gsi_insert_after (bsi, stmt, GSI_NEW_STMT);
 
       /* Get the offset itself.  */
-      vtabletmp3 = make_rename_temp (TREE_TYPE (TREE_TYPE (vtabletmp2)),
+      vtabletmp3 = create_tmp_reg (TREE_TYPE (TREE_TYPE (vtabletmp2)),
 				     "vcalloffset");
       stmt = gimple_build_assign (vtabletmp3,
 				  build_simple_mem_ref (vtabletmp2));
@@ -1328,7 +1326,7 @@ thunk_adjust (gimple_stmt_iterator * bsi,
         ptrtmp = ptr;
       else
         {
-          ptrtmp = make_rename_temp (TREE_TYPE (ptr), "ptr");
+          ptrtmp = create_tmp_reg (TREE_TYPE (ptr), "ptr");
           stmt = gimple_build_assign (ptrtmp, ptr);
 	  gsi_insert_after (bsi, stmt, GSI_NEW_STMT);
 	}
@@ -1337,7 +1335,7 @@ thunk_adjust (gimple_stmt_iterator * bsi,
     }
 
   /* Emit the statement and gimplify the adjustment expression.  */
-  ret = make_rename_temp (TREE_TYPE (ptr), "adjusted_this");
+  ret = create_tmp_reg (TREE_TYPE (ptr), "adjusted_this");
   stmt = gimple_build_assign (ret, ptr);
   gsi_insert_after (bsi, stmt, GSI_NEW_STMT);
 
@@ -1383,6 +1381,10 @@ assemble_thunk (struct cgraph_node *node)
       init_function_start (thunk_fndecl);
       cfun->is_thunk = 1;
       assemble_start_function (thunk_fndecl, fnname);
+      (*debug_hooks->source_line) (DECL_SOURCE_LINE (thunk_fndecl),
+				   DECL_SOURCE_FILE (thunk_fndecl),
+				   /* discriminator */ 0,
+				   /* is_stmt */ 1);
 
       targetm.asm_out.output_mi_thunk (asm_out_file, thunk_fndecl,
 				       fixed_offset, virtual_value, alias);
@@ -1442,7 +1444,7 @@ assemble_thunk (struct cgraph_node *node)
 	      BLOCK_VARS (DECL_INITIAL (current_function_decl)) = restmp;
 	    }
 	  else
-            restmp = make_rename_temp (restype, "retval");
+	    restmp = create_tmp_reg (restype, "retval");
 	}
 
       for (arg = a; arg; arg = DECL_CHAIN (arg))
@@ -1455,16 +1457,8 @@ assemble_thunk (struct cgraph_node *node)
 				      virtual_offset));
       else
         VEC_quick_push (tree, vargs, a);
-      add_referenced_var (a);
-      if (is_gimple_reg (a))
-	mark_sym_for_renaming (a);
       for (i = 1, arg = DECL_CHAIN (a); i < nargs; i++, arg = DECL_CHAIN (arg))
-	{
-	  add_referenced_var (arg);
-	  if (is_gimple_reg (arg))
-	    mark_sym_for_renaming (arg);
-	  VEC_quick_push (tree, vargs, arg);
-	}
+	VEC_quick_push (tree, vargs, arg);
       call = gimple_build_call_vec (build_fold_addr_expr_loc (0, alias), vargs);
       VEC_free (tree, heap, vargs);
       gimple_call_set_from_thunk (call, true);

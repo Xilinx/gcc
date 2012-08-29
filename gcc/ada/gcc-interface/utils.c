@@ -40,6 +40,7 @@
 #include "langhooks.h"
 #include "cgraph.h"
 #include "diagnostic.h"
+#include "timevar.h"
 #include "tree-dump.h"
 #include "tree-inline.h"
 #include "tree-iterator.h"
@@ -612,6 +613,7 @@ gnat_pushdecl (tree decl, Node_Id gnat_node)
 	      if (TREE_CODE (t) == POINTER_TYPE)
 		TYPE_NEXT_PTR_TO (t) = tt;
 	      TYPE_NAME (tt) = DECL_NAME (decl);
+	      TYPE_CONTEXT (tt) = DECL_CONTEXT (decl);
 	      TYPE_STUB_DECL (tt) = TYPE_STUB_DECL (t);
 	      DECL_ORIGINAL_TYPE (decl) = tt;
 	    }
@@ -621,6 +623,7 @@ gnat_pushdecl (tree decl, Node_Id gnat_node)
 	  /* We need a variant for the placeholder machinery to work.  */
 	  tree tt = build_variant_type_copy (t);
 	  TYPE_NAME (tt) = decl;
+	  TYPE_CONTEXT (tt) = DECL_CONTEXT (decl);
 	  TREE_USED (tt) = TREE_USED (t);
 	  TREE_TYPE (decl) = tt;
 	  if (DECL_ORIGINAL_TYPE (TYPE_NAME (t)))
@@ -640,7 +643,10 @@ gnat_pushdecl (tree decl, Node_Id gnat_node)
       if (t)
 	for (t = TYPE_MAIN_VARIANT (t); t; t = TYPE_NEXT_VARIANT (t))
 	  if (!(TYPE_NAME (t) && TREE_CODE (TYPE_NAME (t)) == TYPE_DECL))
-	    TYPE_NAME (t) = decl;
+	    {
+	      TYPE_NAME (t) = decl;
+	      TYPE_CONTEXT (t) = DECL_CONTEXT (decl);
+	    }
     }
 }
 
@@ -1363,7 +1369,8 @@ void
 finish_fat_pointer_type (tree record_type, tree field_list)
 {
   /* Make sure we can put it into a register.  */
-  TYPE_ALIGN (record_type) = MIN (BIGGEST_ALIGNMENT, 2 * POINTER_SIZE);
+  if (STRICT_ALIGNMENT)
+    TYPE_ALIGN (record_type) = MIN (BIGGEST_ALIGNMENT, 2 * POINTER_SIZE);
 
   /* Show what it really is.  */
   TYPE_FAT_POINTER_P (record_type) = 1;
@@ -4485,10 +4492,10 @@ convert (tree type, tree expr)
 	 inner expression.  */
       if (TREE_CODE (expr) == CONSTRUCTOR
 	  && !VEC_empty (constructor_elt, CONSTRUCTOR_ELTS (expr))
-	  && VEC_index (constructor_elt, CONSTRUCTOR_ELTS (expr), 0)->index
+	  && VEC_index (constructor_elt, CONSTRUCTOR_ELTS (expr), 0).index
 	     == TYPE_FIELDS (etype))
 	unpadded
-	  = VEC_index (constructor_elt, CONSTRUCTOR_ELTS (expr), 0)->value;
+	  = VEC_index (constructor_elt, CONSTRUCTOR_ELTS (expr), 0).value;
 
       /* Otherwise, build an explicit component reference.  */
       else
@@ -5041,7 +5048,7 @@ remove_conversions (tree exp, bool true_address)
 	  && TYPE_JUSTIFIED_MODULAR_P (TREE_TYPE (exp)))
 	return
 	  remove_conversions (VEC_index (constructor_elt,
-					 CONSTRUCTOR_ELTS (exp), 0)->value,
+					 CONSTRUCTOR_ELTS (exp), 0).value,
 			      true);
       break;
 

@@ -95,7 +95,7 @@ struct mcu_type_s {
   const char *const name;
   
   /* Index in avr_arch_types[].  */
-  int arch; 
+  enum avr_arch arch; 
   
   /* Must lie outside user's namespace.  NULL == no macro.  */
   const char *const macro;
@@ -261,6 +261,7 @@ enum
 #define FLOAT_TYPE_SIZE 32
 #define DOUBLE_TYPE_SIZE 32
 #define LONG_DOUBLE_TYPE_SIZE 32
+#define LONG_LONG_ACCUM_TYPE_SIZE 64
 
 #define DEFAULT_SIGNED_CHAR 1
 

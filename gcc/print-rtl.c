@@ -42,7 +42,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic.h"
 #include "tree-pretty-print.h"
 #include "cselib.h"
-#include "tree-pass.h"
+#include "dumpfile.h"	/* for dump_flags */
 #include "dwarf2out.h"
 #endif
 
@@ -195,7 +195,7 @@ print_rtx (const_rtx in_rtx)
     }
 
 #ifndef GENERATOR_FILE
-  if (GET_CODE (in_rtx) == CONST_DOUBLE && FLOAT_MODE_P (GET_MODE (in_rtx)))
+  if (CONST_DOUBLE_AS_FLOAT_P (in_rtx))
     i = 5;
 #endif
 

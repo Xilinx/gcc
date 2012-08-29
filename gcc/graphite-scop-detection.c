@@ -1,5 +1,5 @@
 /* Detection of Static Control Parts (SCoP) for Graphite.
-   Copyright (C) 2009, 2010 Free Software Foundation, Inc.
+   Copyright (C) 2009, 2010, 2011 Free Software Foundation, Inc.
    Contributed by Sebastian Pop <sebastian.pop@amd.com> and
    Tobias Grosser <grosser@fim.uni-passau.de>.
 
@@ -20,6 +20,15 @@ along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
+
+#ifdef HAVE_cloog
+#include <isl/set.h>
+#include <isl/map.h>
+#include <isl/union_map.h>
+#include <cloog/cloog.h>
+#include <cloog/isl/domain.h>
+#endif
+
 #include "system.h"
 #include "coretypes.h"
 #include "tree-flow.h"
@@ -31,8 +40,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "sese.h"
 
 #ifdef HAVE_cloog
-#include "ppl_c.h"
-#include "graphite-ppl.h"
 #include "graphite-poly.h"
 #include "graphite-scop-detection.h"
 
@@ -1022,6 +1029,7 @@ create_sese_edges (VEC (sd_region, heap) *regions)
 
   unmark_exit_edges (regions);
 
+  calculate_dominance_info (CDI_DOMINATORS);
   fix_loop_structure (NULL);
 
 #ifdef ENABLE_CHECKING
@@ -1318,9 +1326,8 @@ canonicalize_loop_closed_ssa (loop_p loop)
 		if (TREE_CODE (arg) != SSA_NAME)
 		  continue;
 
-		close_phi = create_phi_node (arg, close);
-		res = create_new_def_for (gimple_phi_result (close_phi),
-					  close_phi,
+		close_phi = create_phi_node (NULL_TREE, close);
+		res = create_new_def_for (arg, close_phi,
 					  gimple_phi_result_ptr (close_phi));
 		add_phi_arg (close_phi, arg,
 			     gimple_phi_arg_edge (close_phi, 0),

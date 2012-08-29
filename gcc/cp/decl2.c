@@ -45,7 +45,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cgraph.h"
 #include "tree-inline.h"
 #include "c-family/c-pragma.h"
-#include "tree-dump.h"
+#include "dumpfile.h"
 #include "intl.h"
 #include "gimple.h"
 #include "pointer-set.h"
@@ -4205,6 +4205,10 @@ mark_used (tree decl)
   if (DECL_CLONED_FUNCTION_P (decl))
     TREE_USED (DECL_CLONED_FUNCTION (decl)) = 1;
 
+  /* Mark enumeration types as used.  */
+  if (TREE_CODE (decl) == CONST_DECL)
+    used_types_insert (DECL_CONTEXT (decl));
+
   if (TREE_CODE (decl) == FUNCTION_DECL
       && DECL_DELETED_FN (decl))
     {
@@ -4234,7 +4238,10 @@ mark_used (tree decl)
       || DECL_THUNK_P (decl))
     {
       if (!processing_template_decl && type_uses_auto (TREE_TYPE (decl)))
-	error ("use of %qD before deduction of %<auto%>", decl);
+	{
+	  error ("use of %qD before deduction of %<auto%>", decl);
+	  return false;
+	}
       return true;
     }
 
@@ -4280,7 +4287,10 @@ mark_used (tree decl)
     }
 
   if (type_uses_auto (TREE_TYPE (decl)))
-    error ("use of %qD before deduction of %<auto%>", decl);
+    {
+      error ("use of %qD before deduction of %<auto%>", decl);
+      return false;
+    }
 
   /* If we don't need a value, then we don't need to synthesize DECL.  */
   if (cp_unevaluated_operand != 0)

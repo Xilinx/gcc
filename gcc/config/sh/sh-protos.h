@@ -73,9 +73,8 @@ extern void sh_emit_scc_to_t (enum rtx_code, rtx, rtx);
 extern rtx sh_emit_cheap_store_flag (enum machine_mode, enum rtx_code, rtx, rtx);
 extern void sh_emit_compare_and_branch (rtx *, enum machine_mode);
 extern void sh_emit_compare_and_set (rtx *, enum machine_mode);
-extern int shift_insns_rtx (rtx);
-extern void gen_ashift (int, int, rtx);
-extern void gen_ashift_hi (int, int, rtx);
+extern bool sh_ashlsi_clobbers_t_reg_p (rtx);
+extern bool sh_lshrsi_clobbers_t_reg_p (rtx);
 extern void gen_shifty_op (int, rtx *);
 extern void gen_shifty_hi_op (int, rtx *);
 extern bool expand_ashiftrt (rtx *);
@@ -106,9 +105,11 @@ extern void sh_expand_binop_v2sf (enum rtx_code, rtx, rtx, rtx);
 extern bool sh_expand_t_scc (rtx *);
 extern rtx sh_gen_truncate (enum machine_mode, rtx, int);
 extern bool sh_vector_mode_supported_p (enum machine_mode);
+extern bool sh_cfun_trap_exit_p (void);
 #endif /* RTX_CODE */
 
 extern const char *output_jump_label_table (void);
+extern rtx get_t_reg_rtx (void);
 extern rtx get_fpscr_rtx (void);
 extern int sh_media_register_for_return (void);
 extern void sh_expand_prologue (void);

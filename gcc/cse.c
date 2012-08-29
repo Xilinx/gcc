@@ -36,7 +36,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic-core.h"
 #include "toplev.h"
 #include "ggc.h"
-#include "timevar.h"
 #include "except.h"
 #include "target.h"
 #include "params.h"
@@ -44,6 +43,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "df.h"
 #include "dbgcnt.h"
+#include "pointer-set.h"
 
 /* The basic idea of common subexpression elimination is to go
    through the code, keeping a record of expressions that would
@@ -2623,9 +2623,7 @@ exp_equiv_p (const_rtx x, const_rtx y, int validate, bool for_gcse)
     {
     case PC:
     case CC0:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
+    CASE_CONST_UNIQUE:
       return x == y;
 
     case LABEL_REF:
@@ -2829,10 +2827,7 @@ canon_reg (rtx x, rtx insn)
     case PC:
     case CC0:
     case CONST:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case LABEL_REF:
     case ADDR_VEC:
@@ -2898,6 +2893,9 @@ find_comparison_args (enum rtx_code code, rtx *parg1, rtx *parg2,
 		      enum machine_mode *pmode1, enum machine_mode *pmode2)
 {
   rtx arg1, arg2;
+  struct pointer_set_t *visited = NULL;
+  /* Set nonzero when we find something of interest.  */
+  rtx x = NULL;
 
   arg1 = *parg1, arg2 = *parg2;
 
@@ -2905,10 +2903,17 @@ find_comparison_args (enum rtx_code code, rtx *parg1, rtx *parg2,
 
   while (arg2 == CONST0_RTX (GET_MODE (arg1)))
     {
-      /* Set nonzero when we find something of interest.  */
-      rtx x = 0;
       int reverse_code = 0;
       struct table_elt *p = 0;
+
+      /* Remember state from previous iteration.  */
+      if (x)
+	{
+	  if (!visited)
+	    visited = pointer_set_create ();
+	  pointer_set_insert (visited, x);
+	  x = 0;
+	}
 
       /* If arg1 is a COMPARE, extract the comparison arguments from it.
 	 On machines with CC0, this is the only case that can occur, since
@@ -2986,10 +2991,8 @@ find_comparison_args (enum rtx_code code, rtx *parg1, rtx *parg2,
 	  if (! exp_equiv_p (p->exp, p->exp, 1, false))
 	    continue;
 
-	  /* If it's the same comparison we're already looking at, skip it.  */
-	  if (COMPARISON_P (p->exp)
-	      && XEXP (p->exp, 0) == arg1
-	      && XEXP (p->exp, 1) == arg2)
+	  /* If it's a comparison we've used before, skip it.  */
+	  if (visited && pointer_set_contains (visited, p->exp))
 	    continue;
 
 	  if (GET_CODE (p->exp) == COMPARE
@@ -3070,6 +3073,8 @@ find_comparison_args (enum rtx_code code, rtx *parg1, rtx *parg2,
   *pmode1 = GET_MODE (arg1), *pmode2 = GET_MODE (arg2);
   *parg1 = fold_rtx (arg1, 0), *parg2 = fold_rtx (arg2, 0);
 
+  if (visited)
+    pointer_set_destroy (visited);
   return code;
 }
 
@@ -3123,10 +3128,7 @@ fold_rtx (rtx x, rtx insn)
       return x;
 
     case CONST:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case LABEL_REF:
     case REG:
@@ -3188,12 +3190,9 @@ fold_rtx (rtx x, rtx insn)
 	    break;
 
 	  case CONST:
-	  case CONST_INT:
+	  CASE_CONST_ANY:
 	  case SYMBOL_REF:
 	  case LABEL_REF:
-	  case CONST_DOUBLE:
-	  case CONST_FIXED:
-	  case CONST_VECTOR:
 	    const_arg = folded_arg;
 	    break;
 
@@ -6053,13 +6052,10 @@ cse_process_notes_1 (rtx x, rtx object, bool *changed)
 
   switch (code)
     {
-    case CONST_INT:
     case CONST:
     case SYMBOL_REF:
     case LABEL_REF:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case PC:
     case CC0:
     case LO_SUM:
@@ -6661,10 +6657,7 @@ count_reg_usage (rtx x, int *counts, rtx dest, int incr)
     case PC:
     case CC0:
     case CONST:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case LABEL_REF:
       return;

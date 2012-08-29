@@ -24,7 +24,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "cgraph.h"
 #include "tree-pass.h"
-#include "timevar.h"
 #include "gimple.h"
 #include "ggc.h"
 #include "flags.h"
@@ -963,6 +962,34 @@ struct simple_ipa_opt_pass pass_ipa_function_and_variable_visibility =
   0,					/* todo_flags_start */
   TODO_remove_functions | TODO_dump_symtab
   | TODO_ggc_collect			/* todo_flags_finish */
+ }
+};
+
+/* Free inline summary.  */
+
+static unsigned
+free_inline_summary (void)
+{
+  inline_free_summary ();
+  return 0;
+}
+
+struct simple_ipa_opt_pass pass_ipa_free_inline_summary =
+{
+ {
+  SIMPLE_IPA_PASS,
+  "*free_inline_summary",		/* name */
+  NULL,					/* gate */
+  free_inline_summary,			/* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
+  0,					/* static_pass_number */
+  TV_IPA_FREE_INLINE_SUMMARY,		/* tv_id */
+  0,	                                /* properties_required */
+  0,					/* properties_provided */
+  0,					/* properties_destroyed */
+  0,					/* todo_flags_start */
+  TODO_ggc_collect			/* todo_flags_finish */
  }
 };
 

@@ -316,6 +316,11 @@ extern int cris_cpu_version;
 #define TARGET_TRAP_USING_BREAK8 \
  (cris_trap_using_break8 == 2 ? TARGET_HAS_BREAK : cris_trap_using_break8)
 
+/* Call library functions by default for GNU/Linux.  */
+#define TARGET_ATOMICS_MAY_CALL_LIBFUNCS		\
+ (cris_atomics_calling_libfunc == 2			\
+  ? TARGET_LINUX : cris_atomics_calling_libfunc)
+
 /* The < v10 atomics turn off interrupts, so they don't need alignment.
    Incidentally, by default alignment is off there causing variables to
    be default unaligned all over, so we'd have to make support
@@ -773,6 +778,9 @@ struct cum_args {int regs;};
 
 #define HAVE_POST_INCREMENT 1
 
+#define CONSTANT_ADDRESS_P(X) \
+  (CONSTANT_P (X) && cris_legitimate_address_p (QImode, X, false))
+
 /* Must be a compile-time constant, so we go with the highest value
    among all CRIS variants.  */
 #define MAX_REGS_PER_ADDRESS 2
@@ -1046,8 +1054,6 @@ enum cris_pic_symbol_type
 
 /* FIXME: Investigate CASE_VECTOR_SHORTEN_MODE to make sure HImode is not
    used when broken-.word could possibly fail (plus testcase).  */
-
-#define FIXUNS_TRUNC_LIKE_FIX_TRUNC
 
 /* This is the number of bytes that can be moved in one
    reasonably fast instruction sequence.  For CRIS, this is two

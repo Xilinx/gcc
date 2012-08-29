@@ -290,10 +290,8 @@ typedef struct page_entry
   /* The zone that this page entry belongs to.  */
   struct alloc_zone *zone;
 
-#ifdef GATHER_STATISTICS
   /* How many collections we've survived.  */
   size_t survived;
-#endif
 
   /* What kind of page is this.  Never zero! */
   enum page_kind_en page_kind;
@@ -492,7 +490,6 @@ struct alloc_zone
   /* True if this zone should be destroyed after the next collection.  */
   bool dead;
 
-#ifdef GATHER_STATISTICS
   struct
   {
     /* Total GC-allocated memory.  */
@@ -513,7 +510,6 @@ struct alloc_zone
     unsigned long long total_allocated_under128;
     unsigned long long total_overhead_under128;
   } stats;
-#endif
 } main_zone;
 
 /* Some default zones.  */
@@ -1085,9 +1081,7 @@ alloc_large_page (size_t size, struct alloc_zone *zone)
   entry->common.page = page + sizeof (struct large_page_entry);
   entry->common.page_kind = GGCZON_LARGE_PAGE;
   entry->common.zone = zone;
-#ifdef GATHER_STATISTICS
   entry->common.survived = 0;
-#endif
   entry->mark_p = false;
   entry->bytes = size;
   entry->prev = NULL;
@@ -1405,9 +1399,7 @@ ggc_internal_alloc_zone_stat (size_t orig_size, struct alloc_zone *zone
     {
       struct large_page_entry *entry = alloc_large_page (size, zone);
 
-#ifdef GATHER_STATISTICS
       entry->common.survived = 0;
-#endif
 
       entry->common.next_page = (struct page_entry*) (zone->large_pages);
       if (zone->large_pages)
@@ -1470,8 +1462,8 @@ ggc_internal_alloc_zone_stat (size_t orig_size, struct alloc_zone *zone
 
   timevar_ggc_mem_total += size;
 
-#ifdef GATHER_STATISTICS
-  ggc_record_overhead (orig_size, size - orig_size, result PASS_MEM_STAT);
+  if (GATHER_STATISTICS)
+    ggc_record_overhead (orig_size, size - orig_size, result FINAL_PASS_MEM_STAT);
 
   {
     size_t object_size = size;
@@ -1578,9 +1570,8 @@ ggc_free (void *p)
   struct page_entry *page;
   size_t size;
 
-#ifdef GATHER_STATISTICS
-  ggc_free_overhead (p);
-#endif
+  if (GATHER_STATISTICS)
+    ggc_free_overhead (p);
 
   page = zone_get_object_page (p);
   size = ggc_get_size (p);
@@ -1705,6 +1696,26 @@ gt_ggc_m_S (const void *p)
 
   /* Inefficient, but also unlikely to matter.  */
   ggc_set_mark (p);
+}
+
+
+/* User-callable entry points for marking string X.  */
+
+void
+gt_ggc_mx (const char *& x)
+{
+  gt_ggc_m_S (x);
+}
+
+void
+gt_ggc_mx (unsigned char *& x)
+{
+  gt_ggc_m_S (x);
+}
+
+void
+gt_ggc_mx (unsigned char& x ATTRIBUTE_UNUSED)
+{
 }
 
 /* If P is not marked, mark it and return false.  Otherwise return true.
@@ -1968,10 +1979,8 @@ sweep_pages (struct alloc_zone *zone)
 
       lnext = lp->common.next_page;
 
-#ifdef GATHER_STATISTICS
       /* This page has now survived another collection.  */
       lp->common.survived++;
-#endif
 
       if (lp->mark_p)
 	{
@@ -2013,10 +2022,8 @@ sweep_pages (struct alloc_zone *zone)
 
       snext = sp->common.next_page;
 
-#ifdef GATHER_STATISTICS
       /* This page has now survived another collection.  */
       sp->common.survived++;
-#endif
 
       /* Step through all chunks, consolidate those that are free and
 	 insert them into the free lists.  Note that consolidation
@@ -2170,9 +2177,8 @@ ggc_collect_1 (struct alloc_zone *zone, bool need_marking)
     {
       zone_allocate_marks ();
       ggc_mark_roots ();
-#ifdef GATHER_STATISTICS
-      ggc_prune_overhead_list ();
-#endif
+      if (GATHER_STATISTICS)
+	ggc_prune_overhead_list ();
     }
 
   sweep_pages (zone);
@@ -2184,7 +2190,6 @@ ggc_collect_1 (struct alloc_zone *zone, bool need_marking)
   return true;
 }
 
-#ifdef GATHER_STATISTICS
 /* Calculate the average page survival rate in terms of number of
    collections.  */
 
@@ -2207,7 +2212,6 @@ calculate_average_page_survival (struct alloc_zone *zone)
     }
   return survival/count;
 }
-#endif
 
 /* Top level collection routine.  */
 
@@ -2269,9 +2273,8 @@ ggc_collect (void)
 	}
     }
 
-#ifdef GATHER_STATISTICS
   /* Print page survival stats, if someone wants them.  */
-  if (GGC_DEBUG_LEVEL >= 2)
+  if (GATHER_STATISTICS && GGC_DEBUG_LEVEL >= 2)
     {
       for (zone = G.zones; zone; zone = zone->next_zone)
 	{
@@ -2283,7 +2286,6 @@ ggc_collect (void)
 	    }
 	}
     }
-#endif
 
   if (marked)
     zone_free_marks ();
@@ -2432,54 +2434,53 @@ ggc_print_statistics (void)
 	   SCALE (total_allocated), LABEL(total_allocated),
 	   SCALE (total_overhead), LABEL (total_overhead));
 
-#ifdef GATHER_STATISTICS
-  {
-    unsigned long long all_overhead = 0, all_allocated = 0;
-    unsigned long long all_overhead_under32 = 0, all_allocated_under32 = 0;
-    unsigned long long all_overhead_under64 = 0, all_allocated_under64 = 0;
-    unsigned long long all_overhead_under128 = 0, all_allocated_under128 = 0;
+  if (GATHER_STATISTICS)
+    {
+      unsigned long long all_overhead = 0, all_allocated = 0;
+      unsigned long long all_overhead_under32 = 0, all_allocated_under32 = 0;
+      unsigned long long all_overhead_under64 = 0, all_allocated_under64 = 0;
+      unsigned long long all_overhead_under128 = 0, all_allocated_under128 = 0;
 
-    fprintf (stderr, "\nTotal allocations and overheads during the compilation process\n");
+      fprintf (stderr, "\nTotal allocations and overheads during the compilation process\n");
 
-    for (zone = G.zones; zone; zone = zone->next_zone)
-      {
-	all_overhead += zone->stats.total_overhead;
-	all_allocated += zone->stats.total_allocated;
+      for (zone = G.zones; zone; zone = zone->next_zone)
+	{
+	  all_overhead += zone->stats.total_overhead;
+	  all_allocated += zone->stats.total_allocated;
 
-	all_allocated_under32 += zone->stats.total_allocated_under32;
-	all_overhead_under32 += zone->stats.total_overhead_under32;
+	  all_allocated_under32 += zone->stats.total_allocated_under32;
+	  all_overhead_under32 += zone->stats.total_overhead_under32;
 
-	all_allocated_under64 += zone->stats.total_allocated_under64;
-	all_overhead_under64 += zone->stats.total_overhead_under64;
+	  all_allocated_under64 += zone->stats.total_allocated_under64;
+	  all_overhead_under64 += zone->stats.total_overhead_under64;
 
-	all_allocated_under128 += zone->stats.total_allocated_under128;
-	all_overhead_under128 += zone->stats.total_overhead_under128;
+	  all_allocated_under128 += zone->stats.total_allocated_under128;
+	  all_overhead_under128 += zone->stats.total_overhead_under128;
 
-	fprintf (stderr, "%20s:                  %10lld\n",
-		 zone->name, zone->stats.total_allocated);
-      }
+	  fprintf (stderr, "%20s:                  %10lld\n",
+		   zone->name, zone->stats.total_allocated);
+	}
 
-    fprintf (stderr, "\n");
+      fprintf (stderr, "\n");
 
-    fprintf (stderr, "Total Overhead:                        %10lld\n",
-             all_overhead);
-    fprintf (stderr, "Total Allocated:                       %10lld\n",
-             all_allocated);
+      fprintf (stderr, "Total Overhead:                        %10lld\n",
+	       all_overhead);
+      fprintf (stderr, "Total Allocated:                       %10lld\n",
+	       all_allocated);
 
-    fprintf (stderr, "Total Overhead  under  32B:            %10lld\n",
-             all_overhead_under32);
-    fprintf (stderr, "Total Allocated under  32B:            %10lld\n",
-             all_allocated_under32);
-    fprintf (stderr, "Total Overhead  under  64B:            %10lld\n",
-             all_overhead_under64);
-    fprintf (stderr, "Total Allocated under  64B:            %10lld\n",
-             all_allocated_under64);
-    fprintf (stderr, "Total Overhead  under 128B:            %10lld\n",
-             all_overhead_under128);
-    fprintf (stderr, "Total Allocated under 128B:            %10lld\n",
-             all_allocated_under128);
-  }
-#endif
+      fprintf (stderr, "Total Overhead  under  32B:            %10lld\n",
+	       all_overhead_under32);
+      fprintf (stderr, "Total Allocated under  32B:            %10lld\n",
+	       all_allocated_under32);
+      fprintf (stderr, "Total Overhead  under  64B:            %10lld\n",
+	       all_overhead_under64);
+      fprintf (stderr, "Total Allocated under  64B:            %10lld\n",
+	       all_allocated_under64);
+      fprintf (stderr, "Total Overhead  under 128B:            %10lld\n",
+	       all_overhead_under128);
+      fprintf (stderr, "Total Allocated under 128B:            %10lld\n",
+	       all_allocated_under128);
+    }
 }
 
 /* Precompiled header support.  */
@@ -2694,13 +2695,14 @@ ggc_pch_read (FILE *f, void *addr)
   pch_zone.page = (char *) addr;
   pch_zone.end = (char *) pch_zone.alloc_bits;
 
-  /* We've just read in a PCH file.  So, every object that used to be
-     allocated is now free.  */
-#ifdef GATHER_STATISTICS
-  zone_allocate_marks ();
-  ggc_prune_overhead_list ();
-  zone_free_marks ();
-#endif
+  if (GATHER_STATISTICS)
+    {
+      /* We've just read in a PCH file.  So, every object that used to be
+	 allocated is now free.  */
+      zone_allocate_marks ();
+      ggc_prune_overhead_list ();
+      zone_free_marks ();
+    }
 
   for (zone = G.zones; zone; zone = zone->next_zone)
     {

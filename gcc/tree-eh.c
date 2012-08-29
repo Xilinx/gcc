@@ -28,11 +28,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "except.h"
 #include "pointer-set.h"
 #include "tree-flow.h"
-#include "tree-dump.h"
 #include "tree-inline.h"
-#include "tree-iterator.h"
 #include "tree-pass.h"
-#include "timevar.h"
 #include "langhooks.h"
 #include "ggc.h"
 #include "diagnostic-core.h"
@@ -3253,22 +3250,18 @@ sink_clobbers (basic_block bb)
   for (gsi_prev (&gsi); !gsi_end_p (gsi); gsi_prev (&gsi))
     {
       gimple stmt = gsi_stmt (gsi);
-      tree vdef;
       if (is_gimple_debug (stmt))
 	continue;
       if (gimple_code (stmt) == GIMPLE_LABEL)
 	break;
       unlink_stmt_vdef (stmt);
       gsi_remove (&gsi, false);
-      vdef = gimple_vdef (stmt);
-      if (vdef && TREE_CODE (vdef) == SSA_NAME)
-	{
-	  release_ssa_name (vdef);
-	  vdef = SSA_NAME_VAR (vdef);
-	  mark_sym_for_renaming (vdef);
-	  gimple_set_vdef (stmt, vdef);
-	  gimple_set_vuse (stmt, vdef);
-	}
+      /* Trigger the operand scanner to cause renaming for virtual
+         operands for this statement.
+	 ???  Given the simple structure of this code manually
+	 figuring out the reaching definition should not be too hard.  */
+      if (gimple_vuse (stmt))
+	gimple_set_vuse (stmt, NULL_TREE);
       gsi_insert_before (&dgsi, stmt, GSI_SAME_STMT);
     }
 
@@ -3864,7 +3857,7 @@ cleanup_empty_eh_merge_phis (basic_block new_bb, basic_block old_bb,
 	}
       /* If we didn't find the PHI, but it's a VOP, remember to rename
 	 it later, assuming all other tests succeed.  */
-      else if (!is_gimple_reg (nresult))
+      else if (virtual_operand_p (nresult))
 	bitmap_set_bit (rename_virts, SSA_NAME_VERSION (nresult));
       /* If we didn't find the PHI, and it's a real variable, we know
 	 from the fact that OLD_BB is tree_empty_eh_handler_p that the

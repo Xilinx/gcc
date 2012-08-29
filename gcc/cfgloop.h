@@ -80,7 +80,7 @@ struct GTY ((chain_next ("%h.next"))) nb_iter_bound {
 
 struct GTY (()) loop_exit {
   /* The exit edge.  */
-  struct edge_def *e;
+  edge e;
 
   /* Previous and next exit in the list of the exits of the loop.  */
   struct loop_exit *prev;
@@ -114,10 +114,10 @@ struct GTY ((chain_next ("%h.next"))) loop {
   unsigned ninsns;
 
   /* Basic block of loop header.  */
-  struct basic_block_def *header;
+  basic_block header;
 
   /* Basic block of loop latch.  */
-  struct basic_block_def *latch;
+  basic_block latch;
 
   /* For loop unrolling/peeling decision.  */
   struct lpt_decision lpt_decision;
@@ -445,6 +445,14 @@ loop_depth (const struct loop *loop)
   return VEC_length (loop_p, loop->superloops);
 }
 
+/* Returns the loop depth of the loop BB belongs to.  */
+
+static inline int
+bb_loop_depth (const_basic_block bb)
+{
+  return bb->loop_father ? loop_depth (bb->loop_father) : 0;
+}
+
 /* Returns the immediate superloop of LOOP, or NULL if LOOP is the outermost
    loop.  */
 
@@ -641,7 +649,7 @@ fel_init (loop_iterator *li, loop_p *loop, unsigned flags)
 
 #define FOR_EACH_LOOP_BREAK(LI) \
   { \
-    VEC_free (int, heap, (LI)->to_visit); \
+    VEC_free (int, heap, (LI).to_visit); \
     break; \
   }
 

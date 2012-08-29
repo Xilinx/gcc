@@ -72,7 +72,6 @@
 #include "rtl.h"
 #include "regs.h"
 #include "flags.h"
-#include "timevar.h"
 #include "output.h"
 #include "fibheap.h"
 #include "target.h"
@@ -227,7 +226,7 @@ push_to_next_round_p (const_basic_block bb, int round, int number_of_rounds,
 
   block_not_hot_enough = (bb->frequency < exec_th
 			  || bb->count < count_th
-			  || probably_never_executed_bb_p (bb));
+			  || probably_never_executed_bb_p (cfun, bb));
 
   if (there_exists_another_round
       && block_not_hot_enough)
@@ -824,7 +823,7 @@ bb_to_key (basic_block bb)
   /* Do not start in probably never executed blocks.  */
 
   if (BB_PARTITION (bb) == BB_COLD_PARTITION
-      || probably_never_executed_bb_p (bb))
+      || probably_never_executed_bb_p (cfun, bb))
     return BB_FREQ_MAX;
 
   /* Prefer blocks whose predecessor is an end of some trace
@@ -1309,7 +1308,7 @@ find_rarely_executed_basic_blocks_and_crossing_edges (void)
   /* Mark which partition (hot/cold) each basic block belongs in.  */
   FOR_EACH_BB (bb)
     {
-      if (probably_never_executed_bb_p (bb))
+      if (probably_never_executed_bb_p (cfun, bb))
 	BB_SET_PARTITION (bb, BB_COLD_PARTITION);
       else
 	BB_SET_PARTITION (bb, BB_HOT_PARTITION);
@@ -1382,6 +1381,41 @@ find_rarely_executed_basic_blocks_and_crossing_edges (void)
       }
 
   return crossing_edges;
+}
+
+/* Set the flag EDGE_CAN_FALLTHRU for edges that can be fallthru.  */
+
+static void
+set_edge_can_fallthru_flag (void)
+{
+  basic_block bb;
+
+  FOR_EACH_BB (bb)
+    {
+      edge e;
+      edge_iterator ei;
+
+      FOR_EACH_EDGE (e, ei, bb->succs)
+	{
+	  e->flags &= ~EDGE_CAN_FALLTHRU;
+
+	  /* The FALLTHRU edge is also CAN_FALLTHRU edge.  */
+	  if (e->flags & EDGE_FALLTHRU)
+	    e->flags |= EDGE_CAN_FALLTHRU;
+	}
+
+      /* If the BB ends with an invertible condjump all (2) edges are
+	 CAN_FALLTHRU edges.  */
+      if (EDGE_COUNT (bb->succs) != 2)
+	continue;
+      if (!any_condjump_p (BB_END (bb)))
+	continue;
+      if (!invert_jump (BB_END (bb), JUMP_LABEL (BB_END (bb)), 0))
+	continue;
+      invert_jump (BB_END (bb), JUMP_LABEL (BB_END (bb)), 0);
+      EDGE_SUCC (bb, 0)->flags |= EDGE_CAN_FALLTHRU;
+      EDGE_SUCC (bb, 1)->flags |= EDGE_CAN_FALLTHRU;
+    }
 }
 
 /* If any destination of a crossing edge does not have a label, add label;
@@ -1959,7 +1993,11 @@ reorder_basic_blocks (void)
   relink_block_chain (/*stay_in_cfglayout_mode=*/true);
 
   if (dump_file)
-    dump_flow_info (dump_file, dump_flags);
+    {
+      if (dump_flags & TDF_DETAILS)
+	dump_reg_info (dump_file);
+      dump_flow_info (dump_file, dump_flags);
+    }
 
   if (flag_reorder_blocks_and_partition)
     verify_hot_cold_block_grouping ();

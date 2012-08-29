@@ -29,6 +29,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "diagnostic-core.h"
 #include "rtl.h"
+#include "tree.h"		/* FIXME: Used by call_may_noreturn_p.  */
 #include "tm_p.h"
 #include "hard-reg-set.h"
 #include "regs.h"
@@ -1563,24 +1564,15 @@ static void
 add_dependence_list_and_free (struct deps_desc *deps, rtx insn, rtx *listp,
                               int uncond, enum reg_note dep_type)
 {
-  rtx list, next;
+  add_dependence_list (insn, *listp, uncond, dep_type);
 
   /* We don't want to short-circuit dependencies involving debug
      insns, because they may cause actual dependencies to be
      disregarded.  */
   if (deps->readonly || DEBUG_INSN_P (insn))
-    {
-      add_dependence_list (insn, *listp, uncond, dep_type);
-      return;
-    }
+    return;
 
-  for (list = *listp, *listp = NULL; list ; list = next)
-    {
-      next = XEXP (list, 1);
-      if (uncond || ! sched_insns_conditions_mutex_p (insn, XEXP (list, 0)))
-	add_dependence (insn, XEXP (list, 0), dep_type);
-      free_INSN_LIST_node (list);
-    }
+  free_INSN_LIST_list (listp);
 }
 
 /* Remove all occurrences of INSN from LIST.  Return the number of
@@ -1763,6 +1755,15 @@ flush_pending_lists (struct deps_desc *deps, rtx insn, int for_read,
 
   add_dependence_list_and_free (deps, insn, &deps->pending_jump_insns, 1,
 				REG_DEP_ANTI);
+
+  if (DEBUG_INSN_P (insn))
+    {
+      if (for_write)
+	free_INSN_LIST_list (&deps->pending_read_insns);
+      free_INSN_LIST_list (&deps->pending_write_insns);
+      free_INSN_LIST_list (&deps->last_pending_memory_flush);
+      free_INSN_LIST_list (&deps->pending_jump_insns);
+    }
 
   if (!deps->readonly)
     {
@@ -2546,10 +2547,7 @@ sched_analyze_2 (struct deps_desc *deps, rtx x, rtx insn)
 
   switch (code)
     {
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case CONST:
     case LABEL_REF:
@@ -3374,6 +3372,8 @@ sched_analyze_insn (struct deps_desc *deps, rtx x, rtx insn)
 
 /* Return TRUE if INSN might not always return normally (e.g. call exit,
    longjmp, loop forever, ...).  */
+/* FIXME: Why can't this function just use flags_from_decl_or_type and
+   test for ECF_NORETURN?  */
 static bool
 call_may_noreturn_p (rtx insn)
 {

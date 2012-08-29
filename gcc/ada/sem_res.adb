@@ -334,21 +334,20 @@ package body Sem_Res is
    begin
       if Suppress = All_Checks then
          declare
-            Svg : constant Suppress_Array := Scope_Suppress;
+            Svg : constant Suppress_Record := Scope_Suppress;
          begin
-            Scope_Suppress := (others => True);
+            Scope_Suppress := Suppress_All;
             Analyze_And_Resolve (N, Typ);
             Scope_Suppress := Svg;
          end;
 
       else
          declare
-            Svg : constant Boolean := Scope_Suppress (Suppress);
-
+            Svg : constant Boolean := Scope_Suppress.Suppress (Suppress);
          begin
-            Scope_Suppress (Suppress) := True;
+            Scope_Suppress.Suppress (Suppress) := True;
             Analyze_And_Resolve (N, Typ);
-            Scope_Suppress (Suppress) := Svg;
+            Scope_Suppress.Suppress (Suppress) := Svg;
          end;
       end if;
 
@@ -375,27 +374,24 @@ package body Sem_Res is
    begin
       if Suppress = All_Checks then
          declare
-            Svg : constant Suppress_Array := Scope_Suppress;
+            Svg : constant Suppress_Record := Scope_Suppress;
          begin
-            Scope_Suppress := (others => True);
+            Scope_Suppress := Suppress_All;
             Analyze_And_Resolve (N);
             Scope_Suppress := Svg;
          end;
 
       else
          declare
-            Svg : constant Boolean := Scope_Suppress (Suppress);
-
+            Svg : constant Boolean := Scope_Suppress.Suppress (Suppress);
          begin
-            Scope_Suppress (Suppress) := True;
+            Scope_Suppress.Suppress (Suppress) := True;
             Analyze_And_Resolve (N);
-            Scope_Suppress (Suppress) := Svg;
+            Scope_Suppress.Suppress (Suppress) := Svg;
          end;
       end if;
 
-      if Current_Scope /= Scop
-        and then Scope_Is_Transient
-      then
+      if Current_Scope /= Scop and then Scope_Is_Transient then
          Scope_Stack.Table (Scope_Stack.Last).Save_Scope_Suppress :=
            Scope_Suppress;
       end if;
@@ -2904,20 +2900,20 @@ package body Sem_Res is
    begin
       if Suppress = All_Checks then
          declare
-            Svg : constant Suppress_Array := Scope_Suppress;
+            Svg : constant Suppress_Record := Scope_Suppress;
          begin
-            Scope_Suppress := (others => True);
+            Scope_Suppress := Suppress_All;
             Resolve (N, Typ);
             Scope_Suppress := Svg;
          end;
 
       else
          declare
-            Svg : constant Boolean := Scope_Suppress (Suppress);
+            Svg : constant Boolean := Scope_Suppress.Suppress (Suppress);
          begin
-            Scope_Suppress (Suppress) := True;
+            Scope_Suppress.Suppress (Suppress) := True;
             Resolve (N, Typ);
-            Scope_Suppress (Suppress) := Svg;
+            Scope_Suppress.Suppress (Suppress) := Svg;
          end;
       end if;
    end Resolve;
@@ -5839,9 +5835,9 @@ package body Sem_Res is
          Check_Restriction (No_Relative_Delay, N);
       end if;
 
-      --  Issue an error for a call to an eliminated subprogram.
-      --  The routine will not perform the check if the call appears within
-      --  a default expression.
+      --  Issue an error for a call to an eliminated subprogram. This routine
+      --  will not perform the check if the call appears within a default
+      --  expression.
 
       Check_For_Eliminated_Subprogram (Subp, Nam);
 
@@ -7057,26 +7053,48 @@ package body Sem_Res is
       Loc   : constant Source_Ptr := Sloc (N);
       New_N : Node_Id;
       P     : constant Node_Id := Prefix (N);
+
+      P_Typ : Entity_Id;
+      --  The candidate prefix type, if overloaded
+
       I     : Interp_Index;
       It    : Interp;
 
    begin
       Check_Fully_Declared_Prefix (Typ, P);
+      P_Typ := Empty;
 
       if Is_Overloaded (P) then
 
          --  Use the context type to select the prefix that has the correct
-         --  designated type.
+         --  designated type. Keep the first match, which will be the inner-
+         --  most.
 
          Get_First_Interp (P, I, It);
+
          while Present (It.Typ) loop
-            exit when Is_Access_Type (It.Typ)
-              and then Covers (Typ, Designated_Type (It.Typ));
+            if Is_Access_Type (It.Typ)
+              and then Covers (Typ, Designated_Type (It.Typ))
+            then
+               if No (P_Typ) then
+                  P_Typ := It.Typ;
+               end if;
+
+            --  Remove access types that do not match, but preserve access
+            --  to subprogram interpretations, in case a further dereference
+            --  is needed (see below).
+
+            elsif Ekind (It.Typ) /= E_Access_Subprogram_Type then
+               Remove_Interp (I);
+            end if;
+
             Get_Next_Interp (I, It);
          end loop;
 
-         if Present (It.Typ) then
-            Resolve (P, It.Typ);
+         if Present (P_Typ) then
+            Resolve (P, P_Typ);
+            Set_Etype (N, Designated_Type (P_Typ));
+
          else
             --  If no interpretation covers the designated type of the prefix,
             --  this is the pathological case where not all implementations of
@@ -7107,7 +7125,7 @@ package body Sem_Res is
             return;
          end if;
 
-         Set_Etype (N, Designated_Type (It.Typ));
+      --  If not overloaded, resolve P with its own type
 
       else
          Resolve (P);

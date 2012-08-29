@@ -1803,7 +1803,8 @@ dump_expr (tree t, int flags)
       break;
 
     case SSA_NAME:
-      if (!DECL_ARTIFICIAL (SSA_NAME_VAR (t)))
+      if (SSA_NAME_VAR (t)
+	  && !DECL_ARTIFICIAL (SSA_NAME_VAR (t)))
 	dump_expr (SSA_NAME_VAR (t), flags);
       else
 	pp_cxx_ws_string (cxx_pp, M_("<unknown>"));
@@ -2633,7 +2634,7 @@ lang_decl_name (tree decl, int v, bool translate)
     dump_function_name (decl, TFF_PLAIN_IDENTIFIER);
   else if ((DECL_NAME (decl) == NULL_TREE)
            && TREE_CODE (decl) == NAMESPACE_DECL)
-    dump_decl (decl, TFF_PLAIN_IDENTIFIER);
+    dump_decl (decl, TFF_PLAIN_IDENTIFIER | TFF_UNQUALIFIED_NAME);
   else
     dump_decl (DECL_NAME (decl), TFF_PLAIN_IDENTIFIER);
 
@@ -3194,6 +3195,7 @@ print_instantiation_context (void)
 {
   print_instantiation_partial_context
     (global_dc, current_instantiation (), input_location);
+  pp_base_newline (global_dc->printer);
   diagnostic_flush_buffer (global_dc);
 }
 

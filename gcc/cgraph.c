@@ -41,7 +41,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "cgraph.h"
 #include "intl.h"
 #include "gimple.h"
-#include "tree-dump.h"
+#include "timevar.h"
+#include "dumpfile.h"
 #include "tree-flow.h"
 #include "value-prof.h"
 #include "except.h"
@@ -52,6 +53,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "ipa-inline.h"
 #include "cfgloop.h"
 #include "gimple-pretty-print.h"
+
+/* FIXME: Only for PROP_loops, but cgraph shouldn't have to know about this.  */
+#include "tree-pass.h"
 
 static void cgraph_node_remove_callers (struct cgraph_node *node);
 static inline void cgraph_edge_remove_caller (struct cgraph_edge *e);
@@ -509,7 +513,7 @@ cgraph_node_for_asm (tree asmname)
   return NULL;
 }
 
-/* Returns a hash value for X (which really is a die_struct).  */
+/* Returns a hash value for X (which really is a cgraph_edge).  */
 
 static hashval_t
 edge_hash (const void *x)
@@ -517,7 +521,7 @@ edge_hash (const void *x)
   return htab_hash_pointer (((const struct cgraph_edge *) x)->call_stmt);
 }
 
-/* Return nonzero if decl_id of die_struct X is the same as UID of decl *Y.  */
+/* Return nonzero if the call_stmt of of cgraph_edge X is stmt *Y.  */
 
 static int
 edge_eq (const void *x, const void *y)

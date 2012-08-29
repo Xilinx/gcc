@@ -92,12 +92,10 @@ extern void ix86_fixup_binary_operands_no_copy (enum rtx_code,
 extern void ix86_expand_binary_operator (enum rtx_code,
 					 enum machine_mode, rtx[]);
 extern bool ix86_binary_operator_ok (enum rtx_code, enum machine_mode, rtx[]);
-extern bool ix86_lea_outperforms (rtx, unsigned int, unsigned int,
-				  unsigned int, unsigned int);
 extern bool ix86_avoid_lea_for_add (rtx, rtx[]);
 extern bool ix86_use_lea_for_mov (rtx, rtx[]);
 extern bool ix86_avoid_lea_for_addr (rtx, rtx[]);
-extern void ix86_split_lea_for_addr (rtx[], enum machine_mode);
+extern void ix86_split_lea_for_addr (rtx, rtx[], enum machine_mode);
 extern bool ix86_lea_for_add_ok (rtx, rtx[]);
 extern bool ix86_vec_interleave_v2df_operator_ok (rtx operands[3], bool high);
 extern bool ix86_dep_by_shift_count (const_rtx set_insn, const_rtx use_insn);
@@ -258,11 +256,15 @@ extern tree i386_pe_mangle_assembler_name (const char *);
 extern void i386_pe_seh_init (FILE *);
 extern void i386_pe_seh_end_prologue (FILE *);
 extern void i386_pe_seh_unwind_emit (FILE *, rtx);
+extern void i386_pe_seh_emit_except_personality (rtx);
+extern void i386_pe_seh_init_sections (void);
 
 /* In winnt-cxx.c and winnt-stubs.c  */
 extern void i386_pe_adjust_class_at_definition (tree);
 extern bool i386_pe_type_dllimport_p (tree);
 extern bool i386_pe_type_dllexport_p (tree);
+
+extern int i386_pe_reloc_rw_mask (void);
 
 extern rtx maybe_get_pool_constant (rtx);
 
@@ -288,7 +290,6 @@ extern void x86_elf_aligned_common (FILE *, const char *,
 extern void ix86_fp_comparison_codes (enum rtx_code code, enum rtx_code *,
 				      enum rtx_code *, enum rtx_code *);
 extern enum rtx_code ix86_fp_compare_code_to_integer (enum rtx_code);
-extern rtx construct_plt_address (rtx);
 #endif
 extern int asm_preferred_eh_data_format (int, int);
 

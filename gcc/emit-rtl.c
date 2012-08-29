@@ -56,7 +56,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "ggc.h"
 #include "debug.h"
 #include "langhooks.h"
-#include "tree-pass.h"
 #include "df.h"
 #include "params.h"
 #include "target.h"
@@ -149,7 +148,6 @@ static GTY ((if_marked ("ggc_marked_p"), param_is (struct rtx_def)))
 #define cur_debug_insn_uid (crtl->emit.x_cur_debug_insn_uid)
 #define first_label_num (crtl->emit.x_first_label_num)
 
-static rtx make_call_insn_raw (rtx);
 static rtx change_address_1 (rtx, enum machine_mode, rtx, int);
 static void set_used_decls (tree);
 static void mark_label_nuses (rtx);
@@ -493,7 +491,7 @@ rtx_to_double_int (const_rtx cst)
 
   if (CONST_INT_P (cst))
       r = shwi_to_double_int (INTVAL (cst));
-  else if (CONST_DOUBLE_P (cst) && GET_MODE (cst) == VOIDmode)
+  else if (CONST_DOUBLE_AS_INT_P (cst))
     {
       r.low = CONST_DOUBLE_LOW (cst);
       r.high = CONST_DOUBLE_HIGH (cst);
@@ -1246,7 +1244,7 @@ gen_lowpart_common (enum machine_mode mode, rtx x)
     }
   else if (GET_CODE (x) == SUBREG || REG_P (x)
 	   || GET_CODE (x) == CONCAT || GET_CODE (x) == CONST_VECTOR
-	   || GET_CODE (x) == CONST_DOUBLE || CONST_INT_P (x))
+	   || CONST_DOUBLE_P (x) || CONST_INT_P (x))
     return simplify_gen_subreg (mode, x, innermode, offset);
 
   /* Otherwise, we can't do this.  */
@@ -2506,10 +2504,7 @@ verify_rtx_sharing (rtx orig, rtx insn)
     case REG:
     case DEBUG_EXPR:
     case VALUE:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case LABEL_REF:
     case CODE_LABEL:
@@ -2723,10 +2718,7 @@ repeat:
     case REG:
     case DEBUG_EXPR:
     case VALUE:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case LABEL_REF:
     case CODE_LABEL:
@@ -2845,10 +2837,7 @@ repeat:
     case REG:
     case DEBUG_EXPR:
     case VALUE:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case CODE_LABEL:
     case PC:
@@ -3692,7 +3681,7 @@ make_insn_raw (rtx pattern)
 
 /* Like `make_insn_raw' but make a DEBUG_INSN instead of an insn.  */
 
-rtx
+static rtx
 make_debug_insn_raw (rtx pattern)
 {
   rtx insn;
@@ -3713,7 +3702,7 @@ make_debug_insn_raw (rtx pattern)
 
 /* Like `make_insn_raw' but make a JUMP_INSN instead of an insn.  */
 
-rtx
+static rtx
 make_jump_insn_raw (rtx pattern)
 {
   rtx insn;
@@ -4222,14 +4211,9 @@ emit_barrier_before (rtx before)
 rtx
 emit_label_before (rtx label, rtx before)
 {
-  /* This can be called twice for the same label as a result of the
-     confusion that follows a syntax error!  So make it harmless.  */
-  if (INSN_UID (label) == 0)
-    {
-      INSN_UID (label) = cur_insn_uid++;
-      add_insn_before (label, before, NULL);
-    }
-
+  gcc_checking_assert (INSN_UID (label) == 0);
+  INSN_UID (label) = cur_insn_uid++;
+  add_insn_before (label, before, NULL);
   return label;
 }
 
@@ -4388,15 +4372,9 @@ emit_barrier_after (rtx after)
 rtx
 emit_label_after (rtx label, rtx after)
 {
-  /* This can be called twice for the same label
-     as a result of the confusion that follows a syntax error!
-     So make it harmless.  */
-  if (INSN_UID (label) == 0)
-    {
-      INSN_UID (label) = cur_insn_uid++;
-      add_insn_after (label, after, NULL);
-    }
-
+  gcc_checking_assert (INSN_UID (label) == 0);
+  INSN_UID (label) = cur_insn_uid++;
+  add_insn_after (label, after, NULL);
   return label;
 }
 
@@ -4812,14 +4790,9 @@ emit_call_insn (rtx x)
 rtx
 emit_label (rtx label)
 {
-  /* This can be called twice for the same label
-     as a result of the confusion that follows a syntax error!
-     So make it harmless.  */
-  if (INSN_UID (label) == 0)
-    {
-      INSN_UID (label) = cur_insn_uid++;
-      add_insn (label);
-    }
+  gcc_checking_assert (INSN_UID (label) == 0);
+  INSN_UID (label) = cur_insn_uid++;
+  add_insn (label);
   return label;
 }
 
@@ -5254,10 +5227,7 @@ copy_insn_1 (rtx orig)
     {
     case REG:
     case DEBUG_EXPR:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case CODE_LABEL:
     case PC:
@@ -5928,8 +5898,8 @@ gen_hard_reg_clobber (enum machine_mode mode, unsigned int regno)
 static VEC(int,heap) *block_locators_locs;
 static GTY(()) VEC(tree,gc) *block_locators_blocks;
 static VEC(int,heap) *locations_locators_locs;
-DEF_VEC_O(location_t);
-DEF_VEC_ALLOC_O(location_t,heap);
+DEF_VEC_A(location_t);
+DEF_VEC_ALLOC_A(location_t,heap);
 static VEC(location_t,heap) *locations_locators_vals;
 int prologue_locator;
 int epilogue_locator;
@@ -6109,7 +6079,7 @@ locator_location (int loc)
 	  break;
 	}
     }
-  return *VEC_index (location_t, locations_locators_vals, min);
+  return VEC_index (location_t, locations_locators_vals, min);
 }
 
 /* Return source line of the statement that produced this insn.  */

@@ -113,6 +113,8 @@ gfc_init_options (unsigned int decoded_options_count,
   gfc_option.warn_unused_dummy_argument = 0;
   gfc_option.warn_realloc_lhs = 0;
   gfc_option.warn_realloc_lhs_all = 0;
+  gfc_option.warn_compare_reals = 0;
+  gfc_option.warn_target_lifetime = 0;
   gfc_option.max_errors = 25;
 
   gfc_option.flag_all_intrinsics = 0;
@@ -473,6 +475,7 @@ set_Wall (int setting)
   gfc_option.warn_character_truncation = setting;
   gfc_option.warn_real_q_constant = setting;
   gfc_option.warn_unused_dummy_argument = setting;
+  gfc_option.warn_target_lifetime = setting;
 
   warn_return_type = setting;
   warn_switch = setting;
@@ -638,6 +641,10 @@ gfc_handle_option (size_t scode, const char *arg, int value,
       gfc_option.warn_character_truncation = value;
       break;
 
+    case OPT_Wcompare_reals:
+      gfc_option.warn_compare_reals = value;
+      break;
+
     case OPT_Wconversion:
       gfc_option.gfc_warn_conversion = value;
       break;
@@ -680,6 +687,10 @@ gfc_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_Wtabs:
       gfc_option.warn_tabs = value;
+      break;
+
+    case OPT_Wtarget_lifetime:
+      gfc_option.warn_target_lifetime = value;
       break;
 
     case OPT_Wunderflow:
@@ -819,7 +830,6 @@ gfc_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_fintrinsic_modules_path:
-      gfc_add_include_path (arg, false, false);
       gfc_add_intrinsic_modules_path (arg);
       break;
 

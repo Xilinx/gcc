@@ -55,6 +55,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "params.h"
 #include "regs.h"
 #include "ira.h"
+#include "dumpfile.h"
 
 /* The data stored for the loop.  */
 
@@ -202,9 +203,7 @@ check_maybe_invariant (rtx x)
 
   switch (code)
     {
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case CONST:
     case LABEL_REF:
@@ -301,9 +300,7 @@ hash_invariant_expr_1 (rtx insn, rtx x)
 
   switch (code)
     {
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case CONST:
     case LABEL_REF:
@@ -362,9 +359,7 @@ invariant_expr_equal_p (rtx insn1, rtx e1, rtx insn2, rtx e2)
 
   switch (code)
     {
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case CONST:
     case LABEL_REF:
@@ -674,7 +669,7 @@ find_defs (struct loop *loop, basic_block *body)
     {
       df_dump_region (dump_file);
       fprintf (dump_file, "*****starting processing of loop  ******\n");
-      print_rtl_with_bb (dump_file, get_insns ());
+      print_rtl_with_bb (dump_file, get_insns (), dump_flags);
       fprintf (dump_file, "*****ending processing of loop  ******\n");
     }
   check_invariant_table_size ();

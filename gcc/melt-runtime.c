@@ -4723,26 +4723,9 @@ melt_tempdir_path (const char *srcnam, const char* suffix)
       int n = (melt_lrand () & 0x1fffffff) ^ (nowt & 0xffffff);
       n += (int)getpid ();
       memset(tempdir_melt, 0, sizeof(tempdir_melt));
-#ifdef MELT_IS_PLUGIN
-      /* we don't have choose_tmpdir in plugin mode because it is
-         in libiberty */
       snprintf (tempdir_melt, sizeof(tempdir_melt)-1,
                 "%s-GccMeltTmp-%x",
                 tmpnam(NULL),  n);
-#else /* !MELT_IS_PLUGIN */
-      {
-        /* from libiberty/choose-temp.c */
-        extern char *choose_tmpdir (void);
-        char*chtmpdir = choose_tmpdir ();
-        gcc_assert (chtmpdir != NULL);
-        if (chtmpdir[0] && chtmpdir[strlen(chtmpdir)-1]!='/')
-          snprintf (tempdir_melt, sizeof(tempdir_melt)-1,
-                    "%s/GccMeltTmpdir-%x", chtmpdir, n);
-        else
-          snprintf (tempdir_melt, sizeof(tempdir_melt)-1,
-                    "%sGCCMeltTmpdir-%x", chtmpdir,  n);
-      }
-#endif  /* MELT_IS_PLUGIN */
       if (!mkdir (tempdir_melt, 0700)) {
         made_tempdir_melt = true;
         mkdirdone = 1;
@@ -9003,7 +8986,7 @@ meltgc_start_module_by_index (melt_ptr_t env_p, int modix)
     debugeprintf ("meltgc_start_module_by_index bad index modix %d", modix);
     goto end;
   }
-  mi = VEC_index (melt_module_info_t, melt_modinfvec, modix);
+  mi = &VEC_index (melt_module_info_t, melt_modinfvec, modix);
   if (!mi) {
     debugeprintf ("meltgc_start_module_by_index empty index modix %d", modix);
     goto end;
@@ -10119,7 +10102,7 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
                gcc_exec_prefix);
     else
       fprintf (setfil, "# MELTGCCBUILTIN_GCC_EXEC_PREFIX is not set\n");
-#if ENABLE_BUILD_WITH_CXX
+#if defined(ENABLE_BUILD_WITH_CXX) || MELT_GCC_VERSION >= 4008
 #ifdef __cplusplus
     fprintf (setfil, "MELTGCCBUILTIN_BUILD_WITH_CXX=1\n");
 #else
@@ -11302,10 +11285,7 @@ meltgc_out_edge (melt_ptr_t out_p, edge edg)
     FILE* oldfil= melt_open_ppfile ();
     dump_edge_info (meltppfile, edg,
 #if MELT_GCC_VERSION >= 4008
-#warning GCC4.8 soon wants TDF_DETAILS for dump_edge_info
-		    /*
-		    TDF_DETAILS, // argument appearing in GCC 4.8 august 2012 trunk
-		    */
+		    TDF_DETAILS,
 #endif
  /*do_succ=*/ 1);
     melt_close_ppfile (oldfil);
@@ -11322,10 +11302,7 @@ meltgc_out_edge (melt_ptr_t out_p, edge edg)
       goto end;
     dump_edge_info (f, edg,
 #if MELT_GCC_VERSION >= 4008
-#warning GCC4.8 soon wants TDF_DETAILS for dump_edge_info
-		    /*
 		    TDF_DETAILS, // argument appearing in GCC 4.8 august 2012 trunk
-		    */
 #endif
  /*do_succ=*/ 1);
     fflush (f);
@@ -11467,6 +11444,7 @@ meltgc_new_file (melt_ptr_t discr_p, FILE* fil)
 end:
   MELT_EXITFRAME ();
   return (melt_ptr_t) resv;
+#undef resv
 }
 
 
@@ -12055,7 +12033,9 @@ melt_val2passflag(melt_ptr_t val_p)
     WHENFLAG(PROP_gimple_lcf);
     WHENFLAG(PROP_gimple_leh);
     WHENFLAG(PROP_cfg);
-    WHENFLAG(PROP_referenced_vars);
+#ifdef PROP_referenced_vars
+    WHENFLAG(PROP_referenced_vars); /* not defined in GCC 4.8 */
+#endif
     WHENFLAG(PROP_ssa);
     WHENFLAG(PROP_no_crit_edges);
     WHENFLAG(PROP_rtl);

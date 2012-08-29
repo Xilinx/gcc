@@ -1,7 +1,7 @@
 /* Build expressions with type checking for C compiler.
    Copyright (C) 1987, 1988, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
-   Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+   2011, 2012 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -66,6 +66,10 @@ int in_sizeof;
 
 /* The level of nesting inside "typeof".  */
 int in_typeof;
+
+/* The argument of last parsed sizeof expression, only to be tested
+   if expr.original_code == SIZEOF_EXPR.  */
+tree c_last_sizeof_arg;
 
 /* Nonzero if we've already printed a "missing braces around initializer"
    message within this initializer.  */
@@ -2603,7 +2607,8 @@ c_expr_sizeof_expr (location_t loc, struct c_expr expr)
       tree folded_expr = c_fully_fold (expr.value, require_constant_value,
 				       &expr_const_operands);
       ret.value = c_sizeof (loc, TREE_TYPE (folded_expr));
-      ret.original_code = ERROR_MARK;
+      c_last_sizeof_arg = expr.value;
+      ret.original_code = SIZEOF_EXPR;
       ret.original_type = NULL;
       if (c_vla_type_p (TREE_TYPE (folded_expr)))
 	{
@@ -2631,7 +2636,8 @@ c_expr_sizeof_type (location_t loc, struct c_type_name *t)
   bool type_expr_const = true;
   type = groktypename (t, &type_expr, &type_expr_const);
   ret.value = c_sizeof (loc, type);
-  ret.original_code = ERROR_MARK;
+  c_last_sizeof_arg = type;
+  ret.original_code = SIZEOF_EXPR;
   ret.original_type = NULL;
   if ((type_expr || TREE_CODE (ret.value) == INTEGER_CST)
       && c_vla_type_p (type))
@@ -6950,7 +6956,7 @@ pop_init_level (int implicit, struct obstack * braced_init_obstack)
 	bool constructor_zeroinit =
 	 (VEC_length (constructor_elt, constructor_elements) == 1
 	  && integer_zerop
-	      (VEC_index (constructor_elt, constructor_elements, 0)->value));
+	      (VEC_index (constructor_elt, constructor_elements, 0).value));
 
 	/* Do not warn for flexible array members or zero-length arrays.  */
 	while (constructor_unfilled_fields
@@ -6997,10 +7003,10 @@ pop_init_level (int implicit, struct obstack * braced_init_obstack)
       else if (VEC_length (constructor_elt,constructor_elements) != 1)
 	{
 	  error_init ("extra elements in scalar initializer");
-	  ret.value = VEC_index (constructor_elt,constructor_elements,0)->value;
+	  ret.value = VEC_index (constructor_elt,constructor_elements,0).value;
 	}
       else
-	ret.value = VEC_index (constructor_elt,constructor_elements,0)->value;
+	ret.value = VEC_index (constructor_elt,constructor_elements,0).value;
     }
   else
     {
@@ -7671,9 +7677,9 @@ find_init_member (tree field, struct obstack * braced_init_obstack)
   else if (TREE_CODE (constructor_type) == UNION_TYPE)
     {
       if (!VEC_empty (constructor_elt, constructor_elements)
-	  && (VEC_last (constructor_elt, constructor_elements)->index
+	  && (VEC_last (constructor_elt, constructor_elements).index
 	      == field))
-	return VEC_last (constructor_elt, constructor_elements)->value;
+	return VEC_last (constructor_elt, constructor_elements).value;
     }
   return 0;
 }
@@ -7856,7 +7862,7 @@ output_init_element (tree value, tree origtype, bool strict_string, tree type,
       if (!implicit)
 	{
 	  if (TREE_SIDE_EFFECTS (VEC_last (constructor_elt,
-					   constructor_elements)->value))
+					   constructor_elements).value))
 	    warning_init (0,
 			  "initialized field with side-effects overwritten");
 	  else if (warn_override_init)

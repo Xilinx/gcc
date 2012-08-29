@@ -63,6 +63,9 @@ int code_for_indirect_jump_scratch = CODE_FOR_indirect_jump_scratch;
 #define LSW (TARGET_LITTLE_ENDIAN ? 0 : 1)
 
 /* These are some macros to abstract register modes.  */
+#define CONST_OK_FOR_I10(VALUE) (((HOST_WIDE_INT)(VALUE)) >= -512 \
+				 && ((HOST_WIDE_INT)(VALUE)) <= 511)
+
 #define CONST_OK_FOR_ADD(size) \
   (TARGET_SHMEDIA ? CONST_OK_FOR_I10 (size) : CONST_OK_FOR_I08 (size))
 #define GEN_MOV (*(TARGET_SHMEDIA64 ? gen_movdi : gen_movsi))
@@ -303,6 +306,7 @@ static int mov_insn_size (enum machine_mode, bool);
 static int max_mov_insn_displacement (enum machine_mode, bool);
 static int mov_insn_alignment_mask (enum machine_mode, bool);
 static HOST_WIDE_INT disp_addr_displacement (rtx);
+static bool sequence_insn_p (rtx);
 
 static void sh_init_sync_libfuncs (void) ATTRIBUTE_UNUSED;
 
@@ -595,11 +599,6 @@ sh_option_override (void)
   SUBTARGET_OVERRIDE_OPTIONS;
   if (optimize > 1 && !optimize_size)
     target_flags |= MASK_SAVE_ALL_TARGET_REGS;
-  if (flag_finite_math_only == 2)
-    flag_finite_math_only
-      = !flag_signaling_nans && TARGET_SH2E && ! TARGET_IEEE;
-  if (TARGET_SH2E && !flag_finite_math_only)
-    target_flags |= MASK_IEEE;
   sh_cpu = PROCESSOR_SH1;
   assembler_dialect = 0;
   if (TARGET_SH2)
@@ -741,6 +740,10 @@ sh_option_override (void)
       if (! TARGET_SH2 || TARGET_HARD_SH4)
 	sh_branch_cost = 2;
     }
+
+  /* Set -mzdcbranch for SH4 / SH4A if not otherwise specified by the user.  */
+  if (! global_options_set.x_TARGET_ZDCBRANCH && TARGET_HARD_SH4)
+    TARGET_ZDCBRANCH = 1;
 
   for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
     if (! VALID_REGISTER_P (regno))
@@ -884,6 +887,11 @@ sh_option_override (void)
   TARGET_FSRRA = TARGET_FSRRA
 		 && flag_unsafe_math_optimizations
 		 && flag_finite_math_only;
+
+  /* If the -mieee option was not explicitly set by the user, turn it on
+     unless -ffinite-math-only was specified.  See also PR 33135.  */
+  if (! global_options_set.x_TARGET_IEEE)
+    TARGET_IEEE = ! flag_finite_math_only;
 
   if (sh_fixed_range_str)
     sh_fix_range (sh_fixed_range_str);
@@ -1874,7 +1882,7 @@ prepare_cbranch_operands (rtx *operands, enum machine_mode mode,
 void
 expand_cbranchsi4 (rtx *operands, enum rtx_code comparison, int probability)
 {
-  rtx (*branch_expander) (rtx) = gen_branch_true;
+  rtx (*branch_expander) (rtx, rtx) = gen_branch_true;
   rtx jump;
 
   comparison = prepare_cbranch_operands (operands, SImode, comparison);
@@ -1885,10 +1893,10 @@ expand_cbranchsi4 (rtx *operands, enum rtx_code comparison, int probability)
       branch_expander = gen_branch_false;
     default: ;
     }
-  emit_insn (gen_rtx_SET (VOIDmode, gen_rtx_REG (SImode, T_REG),
+  emit_insn (gen_rtx_SET (VOIDmode, get_t_reg_rtx (),
                           gen_rtx_fmt_ee (comparison, SImode,
                                           operands[1], operands[2])));
-  jump = emit_jump_insn (branch_expander (operands[3]));
+  jump = emit_jump_insn (branch_expander (operands[3], get_t_reg_rtx ()));
   if (probability >= 0)
     add_reg_note (jump, REG_BR_PROB, GEN_INT (probability));
 
@@ -1941,7 +1949,7 @@ expand_cbranchdi4 (rtx *operands, enum rtx_code comparison)
       if (TARGET_CMPEQDI_T)
 	{
 	  emit_insn (gen_cmpeqdi_t (operands[1], operands[2]));
-	  emit_jump_insn (gen_branch_true (operands[3]));
+	  emit_jump_insn (gen_branch_true (operands[3], get_t_reg_rtx ()));
 	  return true;
 	}
       msw_skip = NE;
@@ -1969,7 +1977,7 @@ expand_cbranchdi4 (rtx *operands, enum rtx_code comparison)
       if (TARGET_CMPEQDI_T)
 	{
 	  emit_insn (gen_cmpeqdi_t (operands[1], operands[2]));
-	  emit_jump_insn (gen_branch_false (operands[3]));
+	  emit_jump_insn (gen_branch_false (operands[3], get_t_reg_rtx ()));
 	  return true;
 	}
       msw_taken = NE;
@@ -2121,7 +2129,7 @@ sh_emit_set_t_insn (rtx insn, enum machine_mode mode)
 void
 sh_emit_scc_to_t (enum rtx_code code, rtx op0, rtx op1)
 {
-  rtx t_reg = gen_rtx_REG (SImode, T_REG);
+  rtx t_reg = get_t_reg_rtx ();
   enum rtx_code oldcode = code;
   enum machine_mode mode;
 
@@ -2296,7 +2304,7 @@ sh_emit_compare_and_branch (rtx *operands, enum machine_mode mode)
     }
 
   insn = gen_rtx_SET (VOIDmode,
-		      gen_rtx_REG (SImode, T_REG),
+		      get_t_reg_rtx (),
 		      gen_rtx_fmt_ee (branch_code, SImode, op0, op1));
 
   sh_emit_set_t_insn (insn, mode);
@@ -2304,9 +2312,9 @@ sh_emit_compare_and_branch (rtx *operands, enum machine_mode mode)
     sh_emit_set_t_insn (gen_ieee_ccmpeqsf_t (op0, op1), mode);
 
   if (branch_code == code)
-    emit_jump_insn (gen_branch_true (operands[3]));
+    emit_jump_insn (gen_branch_true (operands[3], get_t_reg_rtx ()));
   else
-    emit_jump_insn (gen_branch_false (operands[3]));
+    emit_jump_insn (gen_branch_false (operands[3], get_t_reg_rtx ()));
 }
 
 void
@@ -2340,7 +2348,7 @@ sh_emit_compare_and_set (rtx *operands, enum machine_mode mode)
             {
               lab = gen_label_rtx ();
               sh_emit_scc_to_t (EQ, op0, op1);
-              emit_jump_insn (gen_branch_true (lab));
+              emit_jump_insn (gen_branch_true (lab, get_t_reg_rtx ()));
               code = GT;
            }
           else
@@ -2361,9 +2369,9 @@ sh_emit_compare_and_set (rtx *operands, enum machine_mode mode)
   if (lab)
     emit_label (lab);
   if (invert)
-    emit_insn (gen_movnegt (operands[0]));
+    emit_insn (gen_movnegt (operands[0], get_t_reg_rtx ()));
   else
-    emit_move_insn (operands[0], gen_rtx_REG (SImode, T_REG));
+    emit_move_insn (operands[0], get_t_reg_rtx ());
 }
 
 /* Functions to output assembly code.  */
@@ -2778,71 +2786,165 @@ sh_cannot_copy_insn_p (rtx insn)
   return false;
 }
 
-/* Actual number of instructions used to make a shift by N.  */
+/* Number of instructions used to make an arithmetic right shift by N.  */
 static const char ashiftrt_insns[] =
   { 0,1,2,3,4,5,8,8,8,8,8,8,8,8,8,8,2,3,4,5,8,8,8,8,8,8,8,8,8,8,8,2};
 
-/* Left shift and logical right shift are the same.  */
-static const char shift_insns[]    =
-  { 0,1,1,2,2,3,3,4,1,2,2,3,3,4,3,3,1,2,2,3,3,4,3,3,2,3,3,4,4,4,3,3};
+/* Description of a logical left or right shift, when expanded to a sequence
+   of 1/2/8/16 shifts.
+   Notice that one bit right shifts clobber the T bit.  One bit left shifts
+   are done with an 'add Rn,Rm' insn and thus do not clobber the T bit.  */
+enum
+{
+  ASHL_CLOBBERS_T = 1 << 0,
+  LSHR_CLOBBERS_T = 1 << 1
+};
 
-/* Individual shift amounts needed to get the above length sequences.
-   One bit right shifts clobber the T bit, so when possible, put one bit
-   shifts in the middle of the sequence, so the ends are eligible for
-   branch delay slots.  */
-static const short shift_amounts[32][5] = {
-  {0}, {1}, {2}, {2, 1},
-  {2, 2}, {2, 1, 2}, {2, 2, 2}, {2, 2, 1, 2},
-  {8}, {8, 1}, {8, 2}, {8, 1, 2},
-  {8, 2, 2}, {8, 2, 1, 2}, {8, -2, 8}, {8, -1, 8},
-  {16}, {16, 1}, {16, 2}, {16, 1, 2},
-  {16, 2, 2}, {16, 2, 1, 2}, {16, -2, 8}, {16, -1, 8},
-  {16, 8}, {16, 1, 8}, {16, 8, 2}, {16, 8, 1, 2},
-  {16, 8, 2, 2}, {16, -1, -2, 16}, {16, -2, 16}, {16, -1, 16}};
+struct ashl_lshr_sequence
+{
+  char insn_count;
+  char amount[6];
+  char clobbers_t;
+};
 
-/* Likewise, but for shift amounts < 16, up to three highmost bits
-   might be clobbered.  This is typically used when combined with some
+static const struct ashl_lshr_sequence ashl_lshr_seq[32] =
+{
+  { 0, { 0 },		    0 },
+  { 1, { 1 },		    LSHR_CLOBBERS_T },
+  { 1, { 2 },		    0 },
+  { 2, { 2, 1 },	    LSHR_CLOBBERS_T },
+  { 2, { 2, 2 },	    0 },
+  { 3, { 2, 1, 2 },	    LSHR_CLOBBERS_T },
+  { 3, { 2, 2, 2 },	    0 },
+  { 4, { 2, 2, 1, 2 },	    LSHR_CLOBBERS_T },
+  { 1, { 8 },		    0 },
+  { 2, { 8, 1 },	    LSHR_CLOBBERS_T },
+  { 2, { 8, 2 },	    0 },
+  { 3, { 8, 1, 2 },	    LSHR_CLOBBERS_T },
+  { 3, { 8, 2, 2 },	    0 },
+  { 4, { 8, 2, 1, 2 },	    LSHR_CLOBBERS_T },
+  { 3, { 8, -2, 8 },	    0 },
+  { 3, { 8, -1, 8 },	    ASHL_CLOBBERS_T },
+  { 1, { 16 },		    0 },
+  { 2, { 16, 1 },	    LSHR_CLOBBERS_T },
+  { 2, { 16, 2 },	    0 },
+  { 3, { 16, 1, 2 },	    LSHR_CLOBBERS_T },
+  { 3, { 16, 2, 2 },	    0 },
+  { 4, { 16, 2, 1, 2 },	    LSHR_CLOBBERS_T },
+  { 3, { 16, -2, 8 },	    0 },
+  { 3, { 16, -1, 8 },	    ASHL_CLOBBERS_T },
+  { 2, { 16, 8 },	    0 },
+  { 3, { 16, 1, 8 },	    LSHR_CLOBBERS_T },
+  { 3, { 16, 8, 2 },	    0 },
+  { 4, { 16, 8, 1, 2 },     LSHR_CLOBBERS_T },
+  { 4, { 16, 8, 2, 2 },	    0 },
+  { 4, { 16, -1, -2, 16 },  ASHL_CLOBBERS_T },
+  { 3, { 16, -2, 16 },	    0 },
+
+  /* For a right shift by 31 a 2 insn shll-movt sequence can be used.
+     For a left shift by 31 a 2 insn and-rotl sequences can be used.
+     However, the shift-and combiner code needs this entry here to be in
+     terms of real shift insns.  */
+  { 3, { 16, -1, 16 },	    ASHL_CLOBBERS_T }
+};
+
+/* Individual shift amounts for shift amounts < 16, up to three highmost
+   bits might be clobbered.  This is typically used when combined with some
    kind of sign or zero extension.  */
+static const struct ashl_lshr_sequence ext_ashl_lshr_seq[32] =
+{
+  { 0, { 0 },		    0 },
+  { 1, { 1 },		    LSHR_CLOBBERS_T },
+  { 1, { 2 },		    0 },
+  { 2, { 2, 1 },	    LSHR_CLOBBERS_T },
+  { 2, { 2, 2 },	    0 },
+  { 3, { 2, 1, 2 },	    LSHR_CLOBBERS_T },
+  { 2, { 8, -2 },	    0 },
+  { 2, { 8, -1 },	    ASHL_CLOBBERS_T },
+  { 1, { 8 },		    0 },
+  { 2, { 8, 1 },	    LSHR_CLOBBERS_T },
+  { 2, { 8, 2 },	    0 },
+  { 3, { 8, 1, 2 },	    LSHR_CLOBBERS_T },
+  { 3, { 8, 2, 2 },	    0 },
+  { 3, { 16, -2, -1 },	    ASHL_CLOBBERS_T },
+  { 2, { 16, -2 },	    0 },
+  { 2, { 16, -1 },	    ASHL_CLOBBERS_T },
+  { 1, { 16 },		    0 },
+  { 2, { 16, 1 },	    LSHR_CLOBBERS_T },
+  { 2, { 16, 2 },	    0 },
+  { 3, { 16, 1, 2 },	    LSHR_CLOBBERS_T },
+  { 3, { 16, 2, 2 },	    0 },
+  { 4, { 16, 2, 1, 2 },	    LSHR_CLOBBERS_T },
+  { 3, { 16, -2, 8 },	    0 },
+  { 3, { 16, -1, 8 },	    ASHL_CLOBBERS_T },
+  { 2, { 16, 8 },	    0 },
+  { 3, { 16, 1, 8 },	    LSHR_CLOBBERS_T },
+  { 3, { 16, 8, 2 },	    0 },
+  { 4, { 16, 8, 1, 2 },	    LSHR_CLOBBERS_T },
+  { 4, { 16, 8, 2, 2 },	    0 },
+  { 4, { 16, -1, -2, 16 },  ASHL_CLOBBERS_T },
+  { 3, { 16, -2, 16 },	    0 },
+  { 3, { 16, -1, 16 },	    ASHL_CLOBBERS_T }
+};
 
-static const char ext_shift_insns[]    =
-  { 0,1,1,2,2,3,2,2,1,2,2,3,3,3,2,2,1,2,2,3,3,4,3,3,2,3,3,4,4,4,3,3};
+/* Return true if a shift left consisting of 1/2/8/16 shift instructions
+   will clobber the T bit.  */
+bool
+sh_ashlsi_clobbers_t_reg_p (rtx shift_amount)
+{
+  gcc_assert (CONST_INT_P (shift_amount));
+  
+  const int shift_amount_i = INTVAL (shift_amount) & 31;
 
-static const short ext_shift_amounts[32][4] = {
-  {0}, {1}, {2}, {2, 1},
-  {2, 2}, {2, 1, 2}, {8, -2}, {8, -1},
-  {8}, {8, 1}, {8, 2}, {8, 1, 2},
-  {8, 2, 2}, {16, -2, -1}, {16, -2}, {16, -1},
-  {16}, {16, 1}, {16, 2}, {16, 1, 2},
-  {16, 2, 2}, {16, 2, 1, 2}, {16, -2, 8}, {16, -1, 8},
-  {16, 8}, {16, 1, 8}, {16, 8, 2}, {16, 8, 1, 2},
-  {16, 8, 2, 2}, {16, -1, -2, 16}, {16, -2, 16}, {16, -1, 16}};
+  /* Special case for shift count of 31: use and-rotl sequence.  */
+  if (shift_amount_i == 31)
+    return true;
+
+  return (ashl_lshr_seq[shift_amount_i].clobbers_t
+	  & ASHL_CLOBBERS_T) != 0;
+}
+
+bool
+sh_lshrsi_clobbers_t_reg_p (rtx shift_amount)
+{
+  gcc_assert (CONST_INT_P (shift_amount));
+
+  const int shift_amount_i = INTVAL (shift_amount) & 31;
+ 
+  /* Special case for shift count of 31: use shll-movt sequence.  */
+  if (shift_amount_i == 31)
+    return true;
+
+  return (ashl_lshr_seq[shift_amount_i].clobbers_t
+	  & LSHR_CLOBBERS_T) != 0;
+}
+
+/* Return true if it is potentially beneficial to use a dynamic shift
+   instruction (shad / shar) instead of a combination of 1/2/8/16 
+   shift instructions for the specified shift count.
+   If dynamic shifts are not available, always return false.  */
+bool
+sh_dynamicalize_shift_p (rtx count)
+{
+  gcc_assert (CONST_INT_P (count));
+
+  const int shift_amount_i = INTVAL (count) & 31;
+  int insn_count;
+
+  /* For left and right shifts, there are shorter 2 insn sequences for
+     shift amounts of 31.  */
+  if (shift_amount_i == 31)
+    insn_count = 2;
+  else
+    insn_count = ashl_lshr_seq[shift_amount_i].insn_count;
+
+  return TARGET_DYNSHIFT && (insn_count > 1 + SH_DYNAMIC_SHIFT_COST);
+}
 
 /* Assuming we have a value that has been sign-extended by at least one bit,
    can we use the ext_shift_amounts with the last shift turned to an arithmetic shift
    to shift it by N without data loss, and quicker than by other means?  */
 #define EXT_SHIFT_SIGNED(n) (((n) | 8) == 15)
-
-/* This is used in length attributes in sh.md to help compute the length
-   of arbitrary constant shift instructions.  */
-
-int
-shift_insns_rtx (rtx insn)
-{
-  rtx set_src = SET_SRC (XVECEXP (PATTERN (insn), 0, 0));
-  int shift_count = INTVAL (XEXP (set_src, 1)) & 31;
-  enum rtx_code shift_code = GET_CODE (set_src);
-
-  switch (shift_code)
-    {
-    case ASHIFTRT:
-      return ashiftrt_insns[shift_count];
-    case LSHIFTRT:
-    case ASHIFT:
-      return shift_insns[shift_count];
-    default:
-      gcc_unreachable ();
-    }
-}
 
 /* Return the cost of a shift.  */
 
@@ -2851,26 +2953,22 @@ shiftcosts (rtx x)
 {
   int value;
 
-  /* There is no pattern for constant first operand.  */
-  if (CONST_INT_P (XEXP (x, 0)))
-    return MAX_COST;
-
   if (TARGET_SHMEDIA)
-    return COSTS_N_INSNS (1);
+    return 1;
 
   if (GET_MODE_SIZE (GET_MODE (x)) > UNITS_PER_WORD)
     {
       if (GET_MODE (x) == DImode
 	  && CONST_INT_P (XEXP (x, 1))
 	  && INTVAL (XEXP (x, 1)) == 1)
-	return COSTS_N_INSNS (2);
+	return 2;
 
       /* Everything else is invalid, because there is no pattern for it.  */
-      return MAX_COST;
+      return -1;
     }
   /* If shift by a non constant, then this will be expensive.  */
   if (!CONST_INT_P (XEXP (x, 1)))
-    return COSTS_N_INSNS (SH_DYNAMIC_SHIFT_COST);
+    return SH_DYNAMIC_SHIFT_COST;
 
   /* Otherwise, return the true cost in instructions.  Cope with out of range
      shift counts more or less arbitrarily.  */
@@ -2879,13 +2977,14 @@ shiftcosts (rtx x)
   if (GET_CODE (x) == ASHIFTRT)
     {
       int cost = ashiftrt_insns[value];
-      /* If SH3, then we put the constant in a reg and use shad.  */
+      /* If dynamic shifts are available and profitable in this case, then we
+	 put the constant in a reg and use shad.  */
       if (cost > 1 + SH_DYNAMIC_SHIFT_COST)
 	cost = 1 + SH_DYNAMIC_SHIFT_COST;
-      return COSTS_N_INSNS (cost);
+      return cost;
     }
   else
-    return COSTS_N_INSNS (shift_insns[value]);
+    return ashl_lshr_seq[value].insn_count;
 }
 
 /* Return the cost of an AND/XOR/IOR operation.  */
@@ -3136,11 +3235,40 @@ sh_rtx_costs (rtx x, int code, int outer_code, int opno ATTRIBUTE_UNUSED,
       *total = COSTS_N_INSNS (multcosts (x));
       return true;
 
+    case LT:
+    case GE:
+      /* div0s sign comparison.  */
+      if (GET_CODE (XEXP (x, 0)) == XOR
+	  && REG_P ((XEXP (XEXP (x, 0), 0)))
+	  && REG_P ((XEXP (XEXP (x, 0), 1)))
+	  && satisfies_constraint_Z (XEXP (x, 1)))
+	{
+	  *total = COSTS_N_INSNS (1);
+	  return true;
+	}
+      else
+	return false;
+
+    case LSHIFTRT:
+      /* div0s sign comparison.  */
+      if (GET_CODE (XEXP (x, 0)) == XOR
+	  && REG_P ((XEXP (XEXP (x, 0), 0)))
+	  && REG_P ((XEXP (XEXP (x, 0), 1)))
+	  && CONST_INT_P (XEXP (x, 1)) && INTVAL (XEXP (x, 1)) == 31)
+	{
+	  *total = COSTS_N_INSNS (1);
+	  return true;
+	}
+      /* Fall through to shiftcosts.  */
     case ASHIFT:
     case ASHIFTRT:
-    case LSHIFTRT:
-      *total = shiftcosts (x);
-      return true;
+      {
+	int cost = shiftcosts (x);
+	if (cost < 0)
+	  return false;
+	*total = COSTS_N_INSNS (cost);
+	return true;
+      }
 
     case DIV:
     case UDIV:
@@ -3273,9 +3401,11 @@ sh_address_cost (rtx x, bool speed ATTRIBUTE_UNUSED)
 
 /* Code to expand a shift.  */
 
-void
+static void
 gen_ashift (int type, int n, rtx reg)
 {
+  rtx n_rtx;
+
   /* Negative values here come from the shift_amounts array.  */
   if (n < 0)
     {
@@ -3286,26 +3416,30 @@ gen_ashift (int type, int n, rtx reg)
       n = -n;
     }
 
+  n_rtx = GEN_INT (n);
+  gcc_assert (satisfies_constraint_P27 (n_rtx));
+
   switch (type)
     {
     case ASHIFTRT:
-      emit_insn (gen_ashrsi3_k (reg, reg, GEN_INT (n)));
+      emit_insn (gen_ashrsi3_k (reg, reg, n_rtx));
       break;
     case LSHIFTRT:
       if (n == 1)
-	emit_insn (gen_lshrsi3_m (reg, reg, GEN_INT (n)));
+        emit_insn (gen_shlr (reg, reg));
       else
-	emit_insn (gen_lshrsi3_k (reg, reg, GEN_INT (n)));
+	emit_insn (gen_lshrsi3_k (reg, reg, n_rtx));
       break;
     case ASHIFT:
-      emit_insn (gen_ashlsi3_std (reg, reg, GEN_INT (n)));
+      emit_insn (gen_ashlsi3_k (reg, reg, n_rtx));
       break;
+    default:
+      gcc_unreachable ();
     }
 }
 
 /* Same for HImode */
-
-void
+static void
 gen_ashift_hi (int type, int n, rtx reg)
 {
   /* Negative values here come from the shift_amounts array.  */
@@ -3360,7 +3494,7 @@ gen_shifty_op (int code, rtx *operands)
       if (code == LSHIFTRT)
 	{
 	  emit_insn (gen_rotlsi3_1 (operands[0], operands[0]));
-	  emit_insn (gen_movt (operands[0]));
+	  emit_insn (gen_movt (operands[0], get_t_reg_rtx ()));
 	  return;
 	}
       else if (code == ASHIFT)
@@ -3384,9 +3518,9 @@ gen_shifty_op (int code, rtx *operands)
       return;
     }
 
-  max = shift_insns[value];
+  max = ashl_lshr_seq[value].insn_count;
   for (i = 0; i < max; i++)
-    gen_ashift (code, shift_amounts[value][i], operands[0]);
+    gen_ashift (code, ashl_lshr_seq[value].amount[i], operands[0]);
 }
 
 /* Same as above, but optimized for values where the topmost bits don't
@@ -3411,15 +3545,15 @@ gen_shifty_hi_op (int code, rtx *operands)
   gen_fun = GET_MODE (operands[0]) == HImode ? gen_ashift_hi : gen_ashift;
   if (code == ASHIFT)
     {
-      max = ext_shift_insns[value];
+      max = ext_ashl_lshr_seq[value].insn_count;
       for (i = 0; i < max; i++)
-	gen_fun (code, ext_shift_amounts[value][i], operands[0]);
+	gen_fun (code, ext_ashl_lshr_seq[value].amount[i], operands[0]);
     }
   else
     /* When shifting right, emit the shifts in reverse order, so that
        solitary negative values come first.  */
-    for (i = ext_shift_insns[value] - 1; i >= 0; i--)
-      gen_fun (code, ext_shift_amounts[value][i], operands[0]);
+    for (i = ext_ashl_lshr_seq[value].insn_count - 1; i >= 0; i--)
+      gen_fun (code, ext_ashl_lshr_seq[value].amount[i], operands[0]);
 }
 
 /* Output RTL for an arithmetic right shift.  */
@@ -3433,7 +3567,7 @@ expand_ashiftrt (rtx *operands)
   char func[18];
   int value;
 
-  if (TARGET_SH3 || TARGET_SH2A)
+  if (TARGET_DYNSHIFT)
     {
       if (!CONST_INT_P (operands[2]))
 	{
@@ -3465,7 +3599,7 @@ expand_ashiftrt (rtx *operands)
 	{
 	  emit_insn (gen_cmpgtsi_t (force_reg (SImode, CONST0_RTX (SImode)),
 				    operands[1]));
-	  emit_insn (gen_mov_neg_si_t (operands[0]));
+	  emit_insn (gen_mov_neg_si_t (operands[0], get_t_reg_rtx ()));
 	  return true;
 	}
       emit_insn (gen_ashrsi2_31 (operands[0], operands[1]));
@@ -3501,12 +3635,6 @@ expand_ashiftrt (rtx *operands)
   emit_insn (gen_ashrsi3_n (GEN_INT (value), wrk));
   emit_move_insn (operands[0], gen_rtx_REG (SImode, 4));
   return true;
-}
-
-bool
-sh_dynamicalize_shift_p (rtx count)
-{
-  return shift_insns[INTVAL (count) & 31] > 1 + SH_DYNAMIC_SHIFT_COST;
 }
 
 /* Try to find a good way to implement the combiner pattern
@@ -3553,12 +3681,14 @@ shl_and_kind (rtx left_rtx, rtx mask_rtx, int *attrp)
   lsb2 = ((mask2 ^ (mask2 - 1)) >> 1) + 1;
   /* mask has no zeroes but trailing zeroes <==> ! mask2 */
   if (! mask2)
-    best_cost = shift_insns[right] + shift_insns[right + left];
+    best_cost = ashl_lshr_seq[right].insn_count
+		+ ashl_lshr_seq[right + left].insn_count;
   /* mask has no trailing zeroes <==> ! right */
   else if (! right && mask2 == ~(lsb2 - 1))
     {
       int late_right = exact_log2 (lsb2);
-      best_cost = shift_insns[left + late_right] + shift_insns[late_right];
+      best_cost = ashl_lshr_seq[left + late_right].insn_count
+		  + ashl_lshr_seq[late_right].insn_count;
     }
   /* Try to use zero extend.  */
   if (mask2 == ~(lsb2 - 1))
@@ -3570,8 +3700,8 @@ shl_and_kind (rtx left_rtx, rtx mask_rtx, int *attrp)
 	  /* Can we zero-extend right away?  */
 	  if (lsb2 == (unsigned HOST_WIDE_INT) 1 << width)
 	    {
-	      cost
-		= 1 + ext_shift_insns[right] + ext_shift_insns[left + right];
+	      cost = 1 + ext_ashl_lshr_seq[right].insn_count
+		       + ext_ashl_lshr_seq[left + right].insn_count;
 	      if (cost < best_cost)
 		{
 		  best = 1;
@@ -3590,8 +3720,10 @@ shl_and_kind (rtx left_rtx, rtx mask_rtx, int *attrp)
 	  first = width - exact_log2 (lsb2) + right;
 	  if (first >= 0 && right + left - first >= 0)
 	    {
-	      cost = ext_shift_insns[right] + ext_shift_insns[first] + 1
-		+ ext_shift_insns[right + left - first];
+	      cost = ext_ashl_lshr_seq[right].insn_count
+		     + ext_ashl_lshr_seq[first].insn_count + 1
+		     + ext_ashl_lshr_seq[right + left - first].insn_count;
+
 	      if (cost < best_cost)
 		{
 		  best = 1;
@@ -3611,7 +3743,7 @@ shl_and_kind (rtx left_rtx, rtx mask_rtx, int *attrp)
 	break;
       if (! CONST_OK_FOR_K08 (mask >> i))
 	continue;
-      cost = (i != 0) + 2 + ext_shift_insns[left + i];
+      cost = (i != 0) + 2 + ext_ashl_lshr_seq[left + i].insn_count;
       if (cost < best_cost)
 	{
 	  best = 2;
@@ -3627,7 +3759,9 @@ shl_and_kind (rtx left_rtx, rtx mask_rtx, int *attrp)
       if (i > right)
 	break;
       cost = (i != 0) + (CONST_OK_FOR_I08 (mask >> i) ? 2 : 3)
-	+ (can_ext ? ext_shift_insns : shift_insns)[left + i];
+	     + (can_ext
+		? ext_ashl_lshr_seq
+		: ashl_lshr_seq)[left + i].insn_count;
       if (cost < best_cost)
 	{
 	  best = 4 - can_ext;
@@ -3666,11 +3800,11 @@ int
 shl_and_scr_length (rtx insn)
 {
   rtx set_src = SET_SRC (XVECEXP (PATTERN (insn), 0, 0));
-  int len = shift_insns[INTVAL (XEXP (set_src, 1)) & 31];
+  int len = ashl_lshr_seq[INTVAL (XEXP (set_src, 1)) & 31].insn_count;
   rtx op = XEXP (set_src, 0);
-  len += shift_insns[INTVAL (XEXP (op, 1)) & 31] + 1;
+  len += ashl_lshr_seq[INTVAL (XEXP (op, 1)) & 31].insn_count + 1;
   op = XEXP (XEXP (op, 0), 0);
-  return len + shift_insns[INTVAL (XEXP (op, 1)) & 31];
+  return len + ashl_lshr_seq[INTVAL (XEXP (op, 1)) & 31].insn_count;
 }
 
 /* Generate rtl for instructions for which shl_and_kind advised a particular
@@ -3771,9 +3905,9 @@ gen_shl_and (rtx dest, rtx left_rtx, rtx mask_rtx, rtx source)
 	  int neg = 0;
 	  if (kind != 4 && total_shift < 16)
 	    {
-	      neg = -ext_shift_amounts[total_shift][1];
+	      neg = -ext_ashl_lshr_seq[total_shift].amount[1];
 	      if (neg > 0)
-		neg -= ext_shift_amounts[total_shift][2];
+		neg -= ext_ashl_lshr_seq[total_shift].amount[2];
 	      else
 		neg = 0;
 	    }
@@ -3820,11 +3954,13 @@ shl_sext_kind (rtx left_rtx, rtx size_rtx, int *costp)
   gcc_assert (insize > 0);
   /* Default to left / right shift.  */
   kind = 0;
-  best_cost = shift_insns[32 - insize] + ashiftrt_insns[32 - size];
+  best_cost = ashl_lshr_seq[32 - insize].insn_count
+	      + ashl_lshr_seq[32 - size].insn_count;
   if (size <= 16)
     {
       /* 16 bit shift / sign extend / 16 bit shift */
-      cost = shift_insns[16 - insize] + 1 + ashiftrt_insns[16 - size];
+      cost = ashl_lshr_seq[16 - insize].insn_count + 1
+	     + ashl_lshr_seq[16 - size].insn_count;
       /* If ashiftrt_insns[16 - size] is 8, this choice will be overridden
 	 below, by alternative 3 or something even better.  */
       if (cost < best_cost)
@@ -3838,7 +3974,8 @@ shl_sext_kind (rtx left_rtx, rtx size_rtx, int *costp)
     {
       if (ext <= size)
 	{
-	  cost = ext_shift_insns[ext - insize] + 1 + shift_insns[size - ext];
+	  cost = ext_ashl_lshr_seq[ext - insize].insn_count + 1
+		 + ashl_lshr_seq[size - ext].insn_count;
 	  if (cost < best_cost)
 	    {
 	      kind = ext / (unsigned) 8;
@@ -3848,12 +3985,14 @@ shl_sext_kind (rtx left_rtx, rtx size_rtx, int *costp)
       /* Check if we can do a sloppy shift with a final signed shift
 	 restoring the sign.  */
       if (EXT_SHIFT_SIGNED (size - ext))
-	cost = ext_shift_insns[ext - insize] + ext_shift_insns[size - ext] + 1;
+	cost = ext_ashl_lshr_seq[ext - insize].insn_count
+	       + ext_ashl_lshr_seq[size - ext].insn_count + 1;
       /* If not, maybe it's still cheaper to do the second shift sloppy,
 	 and do a final sign extend?  */
       else if (size <= 16)
-	cost = ext_shift_insns[ext - insize] + 1
-	  + ext_shift_insns[size > ext ? size - ext : ext - size] + 1;
+	cost = ext_ashl_lshr_seq[ext - insize].insn_count + 1
+	  + ext_ashl_lshr_seq[size > ext ? size - ext : ext - size].insn_count
+	  + 1;
       else
 	continue;
       if (cost < best_cost)
@@ -3865,7 +4004,7 @@ shl_sext_kind (rtx left_rtx, rtx size_rtx, int *costp)
   /* Check if we can sign extend in r0 */
   if (insize < 8)
     {
-      cost = 3 + shift_insns[left];
+      cost = 3 + ashl_lshr_seq[left].insn_count;
       if (cost < best_cost)
 	{
 	  kind = 6;
@@ -3874,7 +4013,7 @@ shl_sext_kind (rtx left_rtx, rtx size_rtx, int *costp)
       /* Try the same with a final signed shift.  */
       if (left < 31)
 	{
-	  cost = 3 + ext_shift_insns[left + 1] + 1;
+	  cost = 3 + ext_ashl_lshr_seq[left + 1].insn_count + 1;
 	  if (cost < best_cost)
 	    {
 	      kind = 7;
@@ -3882,10 +4021,10 @@ shl_sext_kind (rtx left_rtx, rtx size_rtx, int *costp)
 	    }
 	}
     }
-  if (TARGET_SH3 || TARGET_SH2A)
+  if (TARGET_DYNSHIFT)
     {
       /* Try to use a dynamic shift.  */
-      cost = shift_insns[32 - insize] + 1 + SH_DYNAMIC_SHIFT_COST;
+      cost = ashl_lshr_seq[32 - insize].insn_count + 1 + SH_DYNAMIC_SHIFT_COST;
       if (cost < best_cost)
 	{
 	  kind = 0;
@@ -4794,7 +4933,7 @@ find_barrier (int num_mova, rtx mova, rtx from)
 	 delay slot scheduler.  */
       if (JUMP_P (from) && !JUMP_TABLE_DATA_P (from) 
 	  && get_attr_type (from) == TYPE_CBRANCH
-	  && GET_CODE (PATTERN (NEXT_INSN (PREV_INSN (from)))) != SEQUENCE)
+	  && ! sequence_insn_p (from))
 	inc += 2;
 
       if (found_si)
@@ -5300,6 +5439,7 @@ gen_far_branch (struct far_branch *bp)
     }
   else
     jump = emit_jump_insn_after (gen_return (), insn);
+
   /* Emit a barrier so that reorg knows that any following instructions
      are not reachable via a fall-through path.
      But don't do this when not optimizing, since we wouldn't suppress the
@@ -5308,10 +5448,19 @@ gen_far_branch (struct far_branch *bp)
   if (optimize)
     emit_barrier_after (jump);
   emit_label_after (bp->near_label, insn);
-  JUMP_LABEL (jump) = bp->far_label;
+
+  if (bp->far_label)
+    JUMP_LABEL (jump) = bp->far_label;
+  else
+    {
+      rtx pat = PATTERN (jump);
+      gcc_assert (ANY_RETURN_P (pat));
+      JUMP_LABEL (jump) = pat;
+    }
+
   ok = invert_jump (insn, label, 1);
   gcc_assert (ok);
-  
+
   /* If we are branching around a jump (rather than a return), prevent
      reorg from using an insn from the jump target as the delay slot insn -
      when reorg did this, it pessimized code (we rather hide the delay slot)
@@ -9309,6 +9458,15 @@ sh_cfun_resbank_handler_p (void)
               != NULL_TREE) && TARGET_SH2A);
 }
 
+/* Returns true if the current function has a "trap_exit" attribute set.  */
+
+bool
+sh_cfun_trap_exit_p (void)
+{
+  return lookup_attribute ("trap_exit", DECL_ATTRIBUTES (current_function_decl))
+	 != NULL_TREE;
+}
+
 /* Implement TARGET_CHECK_PCH_TARGET_FLAGS.  */
 
 static const char *
@@ -9504,6 +9662,15 @@ reg_unused_after (rtx reg, rtx insn)
 
 #include "ggc.h"
 
+static GTY(()) rtx t_reg_rtx;
+rtx
+get_t_reg_rtx (void)
+{
+  if (! t_reg_rtx)
+    t_reg_rtx = gen_rtx_REG (SImode, T_REG);
+  return t_reg_rtx;
+}
+
 static GTY(()) rtx fpscr_rtx;
 rtx
 get_fpscr_rtx (void)
@@ -9643,6 +9810,26 @@ fpscr_set_from_mem (int mode, HARD_REG_SET regs_live)
 #define IS_ASM_LOGICAL_LINE_SEPARATOR(C, STR) ((C) == ';')
 #endif
 
+static bool
+sequence_insn_p (rtx insn)
+{
+  rtx prev, next, pat;
+
+  prev = PREV_INSN (insn);
+  if (prev == NULL)
+    return false;
+
+  next = NEXT_INSN (prev);
+  if (next == NULL)
+    return false;
+
+  pat = PATTERN (next);
+  if (pat == NULL)
+    return false;
+
+  return GET_CODE (pat) == SEQUENCE;
+}
+
 int
 sh_insn_length_adjustment (rtx insn)
 {
@@ -9653,7 +9840,7 @@ sh_insn_length_adjustment (rtx insn)
 	&& GET_CODE (PATTERN (insn)) != CLOBBER)
        || CALL_P (insn)
        || (JUMP_P (insn) && !JUMP_TABLE_DATA_P (insn)))
-      && GET_CODE (PATTERN (NEXT_INSN (PREV_INSN (insn)))) != SEQUENCE
+      && ! sequence_insn_p (insn)
       && get_attr_needs_delay_slot (insn) == NEEDS_DELAY_SLOT_YES)
     return 2;
 
@@ -9662,7 +9849,7 @@ sh_insn_length_adjustment (rtx insn)
   if (sh_cpu_attr == CPU_SH2E
       && JUMP_P (insn) && !JUMP_TABLE_DATA_P (insn)
       && get_attr_type (insn) == TYPE_CBRANCH
-      && GET_CODE (PATTERN (NEXT_INSN (PREV_INSN (insn)))) != SEQUENCE)
+      && ! sequence_insn_p (insn))
     return 2;
 
   /* sh-dsp parallel processing insn take four bytes instead of two.  */
@@ -9737,7 +9924,7 @@ sh_legitimate_index_p (enum machine_mode mode, rtx op, bool consider_sh2a,
 
       /* Check if this is the address of an unaligned load / store.  */
       if (mode == VOIDmode)
-	return CONST_OK_FOR_I06 (INTVAL (op));
+	return satisfies_constraint_I06 (op);
 
       size = GET_MODE_SIZE (mode);
       return (!(INTVAL (op) & (size - 1))
@@ -12049,9 +12236,9 @@ sh_expand_t_scc (rtx operands[])
     result = gen_reg_rtx (SImode);
   val = INTVAL (op1);
   if ((code == EQ && val == 1) || (code == NE && val == 0))
-    emit_insn (gen_movt (result));
+    emit_insn (gen_movt (result, get_t_reg_rtx ()));
   else if ((code == EQ && val == 0) || (code == NE && val == 1))
-    emit_insn (gen_movnegt (result));
+    emit_insn (gen_movnegt (result, get_t_reg_rtx ()));
   else if (code == EQ || code == NE)
     emit_insn (gen_move_insn (result, GEN_INT (code == NE)));
   else

@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
+ * Copyright (C) 2007, 2008, 2009, 2010, 2011, 2012
+ * Free Software Foundation, Inc.
  *
  * This file is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -52,6 +53,7 @@
 #define bit_LAHF_LM	(1 << 0)
 #define bit_ABM		(1 << 5)
 #define bit_SSE4a	(1 << 6)
+#define bit_PRFCHW	(1 << 8)
 #define bit_XOP         (1 << 11)
 #define bit_LWP 	(1 << 15)
 #define bit_FMA4        (1 << 16)
@@ -65,11 +67,13 @@
 
 /* Extended Features (%eax == 7) */
 #define bit_FSGSBASE	(1 << 0)
-#define bit_BMI		(1 << 3)
-#define bit_HLE		(1 << 4)
+#define bit_BMI	(1 << 3)
+#define bit_HLE	(1 << 4)
 #define bit_AVX2	(1 << 5)
 #define bit_BMI2	(1 << 8)
-#define bit_RTM		(1 << 11)
+#define bit_RTM	(1 << 11)
+#define bit_RDSEED	(1 << 18)
+#define bit_ADX	(1 << 19)
 
 #if defined(__i386__) && defined(__PIC__)
 /* %ebx may be the PIC register.  */

@@ -1,4 +1,8 @@
 
+2012-08-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk rev 190745 using svnmerge, notably
+	C++ conversion.
+
 2012-08-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{real MELT plugin 0.9.6.c release}}
 	* INSTALL/README-MELT-PLUGIN: Comment about probe.

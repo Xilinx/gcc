@@ -2520,7 +2520,7 @@ execute (void)
      and record info about each one.
      Also search for the programs that are to be run.  */
 
-  VEC_safe_push (const_char_p, heap, argbuf, 0);
+  VEC_safe_push (const_char_p, heap, argbuf, (const_char_p)0);
 
   commands[0].prog = VEC_index (const_char_p, argbuf, 0); /* first command.  */
   commands[0].argv = VEC_address (const_char_p, argbuf);
@@ -6189,17 +6189,18 @@ main (int argc, char **argv)
 				   CL_DRIVER,
 				   &decoded_options, &decoded_options_count);
 
-#ifdef GCC_DRIVER_HOST_INITIALIZATION
-  /* Perform host dependent initialization when needed.  */
-  GCC_DRIVER_HOST_INITIALIZATION;
-#endif
-
   /* Unlock the stdio streams.  */
   unlock_std_streams ();
 
   gcc_init_libintl ();
 
   diagnostic_initialize (global_dc, 0);
+
+#ifdef GCC_DRIVER_HOST_INITIALIZATION
+  /* Perform host dependent initialization when needed.  */
+  GCC_DRIVER_HOST_INITIALIZATION;
+#endif
+
   if (atexit (delete_temp_files) != 0)
     fatal_error ("atexit failed");
 

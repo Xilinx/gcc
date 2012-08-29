@@ -45,7 +45,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "intl.h"
 #include "tm_p.h"
 #include "tree-iterator.h"
-#include "tree-pass.h"
 #include "tree-flow.h"
 #include "target.h"
 #include "common/common-target.h"
@@ -746,7 +745,7 @@ convert_modes (enum machine_mode mode, enum machine_mode oldmode, rtx x, int uns
        && GET_MODE_PRECISION (mode) <= HOST_BITS_PER_WIDE_INT)
       || (GET_MODE_CLASS (mode) == MODE_INT
 	  && GET_MODE_CLASS (oldmode) == MODE_INT
-	  && (GET_CODE (x) == CONST_DOUBLE
+	  && (CONST_DOUBLE_AS_INT_P (x) 
 	      || (GET_MODE_PRECISION (mode) <= GET_MODE_PRECISION (oldmode)
 		  && ((MEM_P (x) && ! MEM_VOLATILE_P (x)
 		       && direct_load[(int) mode])
@@ -3829,7 +3828,7 @@ fixup_args_size_notes (rtx prev, rtx last, int end_args_size)
 
       add_reg_note (insn, REG_ARGS_SIZE, GEN_INT (args_size));
 #ifdef STACK_GROWS_DOWNWARD
-      this_delta = -this_delta;
+      this_delta = -(unsigned HOST_WIDE_INT) this_delta;
 #endif
       args_size -= this_delta;
     }
@@ -4591,7 +4590,7 @@ expand_assignment (tree to, tree from, bool nontemporal)
        || TREE_CODE (to) == TARGET_MEM_REF)
       && mode != BLKmode
       && !mem_ref_refers_to_non_mem_p (to)
-      && ((align = get_object_or_type_alignment (to))
+      && ((align = get_object_alignment (to))
 	  < GET_MODE_ALIGNMENT (mode))
       && (((icode = optab_handler (movmisalign_optab, mode))
 	   != CODE_FOR_nothing)
@@ -4653,7 +4652,7 @@ expand_assignment (tree to, tree from, bool nontemporal)
       mode = TYPE_MODE (TREE_TYPE (tem));
       if (TREE_CODE (tem) == MEM_REF
 	  && mode != BLKmode
-	  && ((align = get_object_or_type_alignment (tem))
+	  && ((align = get_object_alignment (tem))
 	      < GET_MODE_ALIGNMENT (mode))
 	  && ((icode = optab_handler (movmisalign_optab, mode))
 	      != CODE_FOR_nothing))
@@ -6131,7 +6130,7 @@ store_constructor (tree exp, rtx target, int cleared, HOST_WIDE_INT size)
 	constructor_elt *ce;
 	int i;
 	int need_to_clear;
-	int icode = 0;
+	int icode = CODE_FOR_nothing;
 	tree elttype = TREE_TYPE (type);
 	int elt_size = tree_low_cst (TYPE_SIZE (elttype), 1);
 	enum machine_mode eltmode = TYPE_MODE (elttype);
@@ -6708,47 +6707,6 @@ get_inner_reference (tree exp, HOST_WIDE_INT *pbitsize,
     *pmode = mode;
 
   return exp;
-}
-
-/* Given an expression EXP that may be a COMPONENT_REF, an ARRAY_REF or an
-   ARRAY_RANGE_REF, look for whether EXP or any nested component-refs within
-   EXP is marked as PACKED.  */
-
-bool
-contains_packed_reference (const_tree exp)
-{
-  bool packed_p = false;
-
-  while (1)
-    {
-      switch (TREE_CODE (exp))
-	{
-	case COMPONENT_REF:
-	  {
-	    tree field = TREE_OPERAND (exp, 1);
-	    packed_p = DECL_PACKED (field)
-		       || TYPE_PACKED (TREE_TYPE (field))
-		       || TYPE_PACKED (TREE_TYPE (exp));
-	    if (packed_p)
-	      goto done;
-	  }
-	  break;
-
-	case BIT_FIELD_REF:
-	case ARRAY_REF:
-	case ARRAY_RANGE_REF:
-	case REALPART_EXPR:
-	case IMAGPART_EXPR:
-	case VIEW_CONVERT_EXPR:
-	  break;
-
-	default:
-	  goto done;
-	}
-      exp = TREE_OPERAND (exp, 0);
-    }
- done:
-  return packed_p;
 }
 
 /* Return a tree of sizetype representing the size, in bytes, of the element
@@ -8554,8 +8512,13 @@ expand_expr_real_2 (sepops ops, rtx target, enum machine_mode tmode,
       return expand_divmod (0, code, mode, op0, op1, target, unsignedp);
 
     case RDIV_EXPR:
-    case MULT_HIGHPART_EXPR:
       goto binop;
+
+    case MULT_HIGHPART_EXPR:
+      expand_operands (treeop0, treeop1, subtarget, &op0, &op1, EXPAND_NORMAL);
+      temp = expand_mult_highpart (mode, op0, op1, target, unsignedp);
+      gcc_assert (temp);
+      return temp;
 
     case TRUNC_MOD_EXPR:
     case FLOOR_MOD_EXPR:
@@ -8917,29 +8880,15 @@ expand_expr_real_2 (sepops ops, rtx target, enum machine_mode tmode,
 
     case VEC_WIDEN_MULT_HI_EXPR:
     case VEC_WIDEN_MULT_LO_EXPR:
-      {
-	tree oprnd0 = treeop0;
-	tree oprnd1 = treeop1;
-
-	expand_operands (oprnd0, oprnd1, NULL_RTX, &op0, &op1, EXPAND_NORMAL);
-	target = expand_widen_pattern_expr (ops, op0, op1, NULL_RTX,
-					    target, unsignedp);
-	gcc_assert (target);
-	return target;
-      }
-
+    case VEC_WIDEN_MULT_EVEN_EXPR:
+    case VEC_WIDEN_MULT_ODD_EXPR:
     case VEC_WIDEN_LSHIFT_HI_EXPR:
     case VEC_WIDEN_LSHIFT_LO_EXPR:
-      {
-        tree oprnd0 = treeop0;
-        tree oprnd1 = treeop1;
-
-        expand_operands (oprnd0, oprnd1, NULL_RTX, &op0, &op1, EXPAND_NORMAL);
-        target = expand_widen_pattern_expr (ops, op0, op1, NULL_RTX,
-                                            target, unsignedp);
-        gcc_assert (target);
-        return target;
-      }
+      expand_operands (treeop0, treeop1, NULL_RTX, &op0, &op1, EXPAND_NORMAL);
+      target = expand_widen_pattern_expr (ops, op0, op1, NULL_RTX,
+					  target, unsignedp);
+      gcc_assert (target);
+      return target;
 
     case VEC_PACK_TRUNC_EXPR:
     case VEC_PACK_SAT_EXPR:
@@ -9162,7 +9111,9 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	}
 
       if (TREE_CODE_CLASS (code) == tcc_unary
-	  || code == COMPONENT_REF || code == INDIRECT_REF)
+	  || code == BIT_FIELD_REF
+	  || code == COMPONENT_REF
+	  || code == INDIRECT_REF)
 	return expand_expr (treeop0, const0_rtx, VOIDmode,
 			    modifier);
 
@@ -9172,13 +9123,6 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	{
 	  expand_expr (treeop0, const0_rtx, VOIDmode, modifier);
 	  expand_expr (treeop1, const0_rtx, VOIDmode, modifier);
-	  return const0_rtx;
-	}
-      else if (code == BIT_FIELD_REF)
-	{
-	  expand_expr (treeop0, const0_rtx, VOIDmode, modifier);
-	  expand_expr (treeop1, const0_rtx, VOIDmode, modifier);
-	  expand_expr (treeop2, const0_rtx, VOIDmode, modifier);
 	  return const0_rtx;
 	}
 
@@ -9215,8 +9159,13 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	 base variable.  This unnecessarily allocates a pseudo, see how we can
 	 reuse it, if partition base vars have it set already.  */
       if (!currently_expanding_to_rtl)
-	return expand_expr_real_1 (SSA_NAME_VAR (exp), target, tmode, modifier,
-				   NULL);
+	{
+	  tree var = SSA_NAME_VAR (exp);
+	  if (var && DECL_RTL_SET_P (var))
+	    return DECL_RTL (var);
+	  return gen_raw_REG (TYPE_MODE (TREE_TYPE (exp)),
+			      LAST_VIRTUAL_REGISTER + 1);
+	}
 
       g = get_gimple_for_ssa_name (exp);
       /* For EXPAND_INITIALIZER try harder to get something simpler.  */
@@ -9506,7 +9455,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	temp = gen_rtx_MEM (mode, op0);
 	set_mem_attributes (temp, exp, 0);
 	set_mem_addr_space (temp, as);
-	align = get_object_or_type_alignment (exp);
+	align = get_object_alignment (exp);
 	if (modifier != EXPAND_WRITE
 	    && mode != BLKmode
 	    && align < GET_MODE_ALIGNMENT (mode)
@@ -9580,7 +9529,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 			   gimple_assign_rhs1 (def_stmt), mask);
 	    TREE_OPERAND (exp, 0) = base;
 	  }
-	align = get_object_or_type_alignment (exp);
+	align = get_object_alignment (exp);
 	op0 = expand_expr (base, NULL_RTX, VOIDmode, EXPAND_SUM);
 	op0 = memory_address_addr_space (address_mode, op0, as);
 	if (!integer_zerop (TREE_OPERAND (exp, 1)))
@@ -10850,8 +10799,7 @@ do_store_flag (sepops ops, rtx target, enum machine_mode mode)
    0 otherwise (i.e. if there is no casesi instruction).  */
 int
 try_casesi (tree index_type, tree index_expr, tree minval, tree range,
-	    rtx table_label ATTRIBUTE_UNUSED, rtx default_label,
-	    rtx fallback_label ATTRIBUTE_UNUSED)
+	    rtx table_label, rtx default_label, rtx fallback_label)
 {
   struct expand_operand ops[5];
   enum machine_mode index_mode = SImode;
@@ -11062,6 +11010,9 @@ build_personality_function (const char *lang)
     case UI_DWARF2:
     case UI_TARGET:
       unwind_and_version = "_v0";
+      break;
+    case UI_SEH:
+      unwind_and_version = "_seh0";
       break;
     default:
       gcc_unreachable ();

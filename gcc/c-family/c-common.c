@@ -45,7 +45,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "opts.h"
 #include "cgraph.h"
 #include "target-def.h"
-#include "libfuncs.h"
 
 cpp_reader *parse_in;		/* Declared in c-pragma.h.  */
 
@@ -1840,6 +1839,149 @@ strict_aliasing_warning (tree otype, tree type, tree expr)
       }
 
   return false;
+}
+
+/* Warn about memset (&a, 0, sizeof (&a)); and similar mistakes with
+   sizeof as last operand of certain builtins.  */
+
+void
+sizeof_pointer_memaccess_warning (location_t loc, tree callee,
+				  VEC(tree, gc) *params, tree sizeof_arg,
+				  bool (*comp_types) (tree, tree))
+{
+  tree type, dest = NULL_TREE, src = NULL_TREE, tem;
+  bool strop = false;
+
+  if (TREE_CODE (callee) != FUNCTION_DECL
+      || DECL_BUILT_IN_CLASS (callee) != BUILT_IN_NORMAL
+      || sizeof_arg == error_mark_node
+      || VEC_length (tree, params) <= 1)
+    return;
+
+  type = TYPE_P (sizeof_arg) ? sizeof_arg : TREE_TYPE (sizeof_arg);
+  if (!POINTER_TYPE_P (type))
+    return;
+
+  switch (DECL_FUNCTION_CODE (callee))
+    {
+    case BUILT_IN_STRNCMP:
+    case BUILT_IN_STRNCASECMP:
+    case BUILT_IN_STRNCPY:
+    case BUILT_IN_STRNCAT:
+      strop = true;
+      /* FALLTHRU */
+    case BUILT_IN_MEMCPY:
+    case BUILT_IN_MEMMOVE:
+    case BUILT_IN_MEMCMP:
+      if (VEC_length (tree, params) < 3)
+	return;
+      src = VEC_index (tree, params, 1);
+      dest = VEC_index (tree, params, 0);
+      break;
+    case BUILT_IN_MEMSET:
+      if (VEC_length (tree, params) < 3)
+	return;
+      dest = VEC_index (tree, params, 0);
+      break;
+    case BUILT_IN_STRNDUP:
+      src = VEC_index (tree, params, 0);
+      strop = true;
+      break;
+    default:
+      break;
+    }
+
+  if (dest
+      && (tem = tree_strip_nop_conversions (dest))
+      && POINTER_TYPE_P (TREE_TYPE (tem))
+      && comp_types (TREE_TYPE (TREE_TYPE (tem)), type))
+    return;
+
+  if (src
+      && (tem = tree_strip_nop_conversions (src))
+      && POINTER_TYPE_P (TREE_TYPE (tem))
+      && comp_types (TREE_TYPE (TREE_TYPE (tem)), type))
+    return;
+
+  if (dest)
+    {
+      if (!TYPE_P (sizeof_arg)
+	  && operand_equal_p (dest, sizeof_arg, 0)
+	  && comp_types (TREE_TYPE (dest), type))
+	{
+	  if (TREE_CODE (sizeof_arg) == ADDR_EXPR && !strop)
+	    warning_at (loc, OPT_Wsizeof_pointer_memaccess,
+			"argument to %<sizeof%> in %qD call is the same "
+			"expression as the destination; did you mean to "
+			"remove the addressof?", callee);
+	  else if ((TYPE_PRECISION (TREE_TYPE (type))
+		    == TYPE_PRECISION (char_type_node))
+		   || strop)
+	    warning_at (loc, OPT_Wsizeof_pointer_memaccess,
+			"argument to %<sizeof%> in %qD call is the same "
+			"expression as the destination; did you mean to "
+			"provide an explicit length?", callee);
+	  else
+	    warning_at (loc, OPT_Wsizeof_pointer_memaccess,
+			"argument to %<sizeof%> in %qD call is the same "
+			"expression as the destination; did you mean to "
+			"dereference it?", callee);
+	  return;
+	}
+
+      if (POINTER_TYPE_P (TREE_TYPE (dest))
+	  && !strop
+	  && comp_types (TREE_TYPE (dest), type)
+	  && !VOID_TYPE_P (TREE_TYPE (type)))
+	{
+	  warning_at (loc, OPT_Wsizeof_pointer_memaccess,
+		      "argument to %<sizeof%> in %qD call is the same "
+		      "pointer type %qT as the destination; expected %qT "
+		      "or an explicit length", callee, TREE_TYPE (dest),
+		      TREE_TYPE (TREE_TYPE (dest)));
+	  return;
+	}
+    }
+
+  if (src)
+    {
+      if (!TYPE_P (sizeof_arg)
+	  && operand_equal_p (src, sizeof_arg, 0)
+	  && comp_types (TREE_TYPE (src), type))
+	{
+	  if (TREE_CODE (sizeof_arg) == ADDR_EXPR && !strop)
+	    warning_at (loc, OPT_Wsizeof_pointer_memaccess,
+			"argument to %<sizeof%> in %qD call is the same "
+			"expression as the source; did you mean to "
+			"remove the addressof?", callee);
+	  else if ((TYPE_PRECISION (TREE_TYPE (type))
+		    == TYPE_PRECISION (char_type_node))
+		   || strop)
+	    warning_at (loc, OPT_Wsizeof_pointer_memaccess,
+			"argument to %<sizeof%> in %qD call is the same "
+			"expression as the source; did you mean to "
+			"provide an explicit length?", callee);
+	  else
+	    warning_at (loc, OPT_Wsizeof_pointer_memaccess,
+			"argument to %<sizeof%> in %qD call is the same "
+			"expression as the source; did you mean to "
+			"dereference it?", callee);
+	  return;
+	}
+
+      if (POINTER_TYPE_P (TREE_TYPE (src))
+	  && !strop
+	  && comp_types (TREE_TYPE (src), type)
+	  && !VOID_TYPE_P (TREE_TYPE (type)))
+	{
+	  warning_at (loc, OPT_Wsizeof_pointer_memaccess,
+		      "argument to %<sizeof%> in %qD call is the same "
+		      "pointer type %qT as the source; expected %qT "
+		      "or an explicit length", callee, TREE_TYPE (src),
+		      TREE_TYPE (TREE_TYPE (src)));
+	  return;
+	}
+    }
 }
 
 /* Warn for unlikely, improbable, or stupid DECL declarations
@@ -6170,7 +6312,8 @@ static tree
 handle_hot_attribute (tree *node, tree name, tree ARG_UNUSED (args),
 		      int ARG_UNUSED (flags), bool *no_add_attrs)
 {
-  if (TREE_CODE (*node) == FUNCTION_DECL)
+  if (TREE_CODE (*node) == FUNCTION_DECL
+      || TREE_CODE (*node) == LABEL_DECL)
     {
       if (lookup_attribute ("cold", DECL_ATTRIBUTES (*node)) != NULL)
 	{
@@ -6189,6 +6332,7 @@ handle_hot_attribute (tree *node, tree name, tree ARG_UNUSED (args),
 
   return NULL_TREE;
 }
+
 /* Handle a "cold" and attribute; arguments as in
    struct attribute_spec.handler.  */
 
@@ -6196,7 +6340,8 @@ static tree
 handle_cold_attribute (tree *node, tree name, tree ARG_UNUSED (args),
 		       int ARG_UNUSED (flags), bool *no_add_attrs)
 {
-  if (TREE_CODE (*node) == FUNCTION_DECL)
+  if (TREE_CODE (*node) == FUNCTION_DECL
+      || TREE_CODE (*node) == LABEL_DECL)
     {
       if (lookup_attribute ("hot", DECL_ATTRIBUTES (*node)) != NULL)
 	{
@@ -6587,11 +6732,12 @@ get_priority (tree args, bool is_destructor)
     }
 
   arg = TREE_VALUE (args);
+  arg = default_conversion (arg);
   if (!host_integerp (arg, /*pos=*/0)
       || !INTEGRAL_TYPE_P (TREE_TYPE (arg)))
     goto invalid;
 
-  pri = tree_low_cst (TREE_VALUE (args), /*pos=*/0);
+  pri = tree_low_cst (arg, /*pos=*/0);
   if (pri < 0 || pri > MAX_INIT_PRIORITY)
     goto invalid;
 
@@ -8051,26 +8197,42 @@ handle_nonnull_attribute (tree *node, tree ARG_UNUSED (name),
 static void
 check_function_nonnull (tree attrs, int nargs, tree *argarray)
 {
-  tree a, args;
+  tree a;
   int i;
 
-  for (a = attrs; a; a = TREE_CHAIN (a))
-    {
-      if (is_attribute_p ("nonnull", TREE_PURPOSE (a)))
-	{
-	  args = TREE_VALUE (a);
+  attrs = lookup_attribute ("nonnull", attrs);
+  if (attrs == NULL_TREE)
+    return;
 
-	  /* Walk the argument list.  If we encounter an argument number we
-	     should check for non-null, do it.  If the attribute has no args,
-	     then every pointer argument is checked (in which case the check
-	     for pointer type is done in check_nonnull_arg).  */
-	  for (i = 0; i < nargs; i++)
+  a = attrs;
+  /* See if any of the nonnull attributes has no arguments.  If so,
+     then every pointer argument is checked (in which case the check
+     for pointer type is done in check_nonnull_arg).  */
+  if (TREE_VALUE (a) != NULL_TREE)
+    do
+      a = lookup_attribute ("nonnull", TREE_CHAIN (a));
+    while (a != NULL_TREE && TREE_VALUE (a) != NULL_TREE);
+
+  if (a != NULL_TREE)
+    for (i = 0; i < nargs; i++)
+      check_function_arguments_recurse (check_nonnull_arg, NULL, argarray[i],
+					i + 1);
+  else
+    {
+      /* Walk the argument list.  If we encounter an argument number we
+	 should check for non-null, do it.  */
+      for (i = 0; i < nargs; i++)
+	{
+	  for (a = attrs; ; a = TREE_CHAIN (a))
 	    {
-	      if (!args || nonnull_check_p (args, i + 1))
-		check_function_arguments_recurse (check_nonnull_arg, NULL,
-						  argarray[i],
-						  i + 1);
+	      a = lookup_attribute ("nonnull", a);
+	      if (a == NULL_TREE || nonnull_check_p (TREE_VALUE (a), i + 1))
+		break;
 	    }
+
+	  if (a != NULL_TREE)
+	    check_function_arguments_recurse (check_nonnull_arg, NULL,
+					      argarray[i], i + 1);
 	}
     }
 }
@@ -8373,7 +8535,7 @@ parse_optimize_options (tree args, bool attr_p)
   /* Build up argv vector.  Just in case the string is stored away, use garbage
      collected strings.  */
   VEC_truncate (const_char_p, optimize_args, 0);
-  VEC_safe_push (const_char_p, gc, optimize_args, NULL);
+  VEC_safe_push (const_char_p, gc, optimize_args, (const_char_p)NULL);
 
   for (ap = args; ap != NULL_TREE; ap = TREE_CHAIN (ap))
     {
@@ -9371,10 +9533,10 @@ complete_array_type (tree *ptype, tree initial_value, bool do_default)
 	      constructor_elt *ce;
 	      bool fold_p = false;
 
-	      if (VEC_index (constructor_elt, v, 0)->index)
+	      if (VEC_index (constructor_elt, v, 0).index)
 		maxindex = fold_convert_loc (input_location, sizetype,
 					     VEC_index (constructor_elt,
-							v, 0)->index);
+							v, 0).index);
 	      curindex = maxindex;
 
 	      for (cnt = 1;

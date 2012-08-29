@@ -361,7 +361,7 @@ i[34567]86-*-*)
 		       ia32intrin.h cross-stdarg.h lwpintrin.h popcntintrin.h
 		       lzcntintrin.h bmiintrin.h bmi2intrin.h tbmintrin.h
 		       avx2intrin.h fmaintrin.h f16cintrin.h rtmintrin.h
-		       xtestintrin.h"
+		       xtestintrin.h rdseedintrin.h prfchwintrin.h adxintrin.h"
 	;;
 x86_64-*-*)
 	cpu_type=i386
@@ -375,7 +375,7 @@ x86_64-*-*)
 		       ia32intrin.h cross-stdarg.h lwpintrin.h popcntintrin.h
 		       lzcntintrin.h bmiintrin.h tbmintrin.h bmi2intrin.h
 		       avx2intrin.h fmaintrin.h f16cintrin.h rtmintrin.h
-		       xtestintrin.h"
+		       xtestintrin.h rdseedintrin.h prfchwintrin.h adxintrin.h"
 	need_64bit_hwint=yes
 	;;
 ia64-*-*)
@@ -1214,7 +1214,7 @@ i[34567]86-*-linux* | i[34567]86-*-kfreebsd*-gnu | i[34567]86-*-knetbsd*-gnu | i
 			TM_MULTILIB_CONFIG=`echo $TM_MULTILIB_CONFIG | sed 's/^,//'`
 			need_64bit_isa=yes
 			case X"${with_cpu}" in
-			Xgeneric|Xatom|Xcore2|Xcorei7|Xcorei7-avx|Xnocona|Xx86-64|Xbdver2|Xbdver1|Xbtver1|Xamdfam10|Xbarcelona|Xk8|Xopteron|Xathlon64|Xathlon-fx|Xathlon64-sse3|Xk8-sse3|Xopteron-sse3)
+			Xgeneric|Xatom|Xcore2|Xcorei7|Xcorei7-avx|Xnocona|Xx86-64|Xbdver2|Xbdver1|Xbtver2|Xbtver1|Xamdfam10|Xbarcelona|Xk8|Xopteron|Xathlon64|Xathlon-fx|Xathlon64-sse3|Xk8-sse3|Xopteron-sse3)
 				;;
 			X)
 				if test x$with_cpu_64 = x; then
@@ -1223,7 +1223,7 @@ i[34567]86-*-linux* | i[34567]86-*-kfreebsd*-gnu | i[34567]86-*-knetbsd*-gnu | i
 				;;
 			*)
 				echo "Unsupported CPU used in --with-cpu=$with_cpu, supported values:" 1>&2
-				echo "generic atom core2 corei7 corei7-avx nocona x86-64 bdver2 bdver1 btver1 amdfam10 barcelona k8 opteron athlon64 athlon-fx athlon64-sse3 k8-sse3 opteron-sse3" 1>&2
+				echo "generic atom core2 corei7 corei7-avx nocona x86-64 bdver2 bdver1 btver2 btver1 amdfam10 barcelona k8 opteron athlon64 athlon-fx athlon64-sse3 k8-sse3 opteron-sse3" 1>&2
 				exit 1
 				;;
 			esac
@@ -1335,7 +1335,7 @@ i[34567]86-*-solaris2* | x86_64-*-solaris2.1[0-9]*)
 		tmake_file="$tmake_file i386/t-sol2-64"
 		need_64bit_isa=yes
 		case X"${with_cpu}" in
-		Xgeneric|Xatom|Xcore2|Xcorei7|Xcorei7-avx|Xnocona|Xx86-64|Xbdver2|Xbdver1|Xbtver1|Xamdfam10|Xbarcelona|Xk8|Xopteron|Xathlon64|Xathlon-fx|Xathlon64-sse3|Xk8-sse3|Xopteron-sse3)
+		Xgeneric|Xatom|Xcore2|Xcorei7|Xcorei7-avx|Xnocona|Xx86-64|Xbdver2|Xbdver1|Xbtver2|Xbtver1|Xamdfam10|Xbarcelona|Xk8|Xopteron|Xathlon64|Xathlon-fx|Xathlon64-sse3|Xk8-sse3|Xopteron-sse3)
 			;;
 		X)
 			if test x$with_cpu_64 = x; then
@@ -1344,7 +1344,7 @@ i[34567]86-*-solaris2* | x86_64-*-solaris2.1[0-9]*)
 			;;
 		*)
 			echo "Unsupported CPU used in --with-cpu=$with_cpu, supported values:" 1>&2
-			echo "generic atom core2 corei7 corei7-avx nocona x86-64 bdver2 bdver1 btver1 amdfam10 barcelona k8 opteron athlon64 athlon-fx athlon64-sse3 k8-sse3 opteron-sse3" 1>&2
+			echo "generic atom core2 corei7 corei7-avx nocona x86-64 bdver2 bdver1 btver2 btver1 amdfam10 barcelona k8 opteron athlon64 athlon-fx athlon64-sse3 k8-sse3 opteron-sse3" 1>&2
 			exit 1
 			;;
 		esac
@@ -1401,7 +1401,7 @@ i[34567]86-*-mingw* | x86_64-*-mingw*)
 			if test x$enable_targets = xall; then
 				tm_defines="${tm_defines} TARGET_BI_ARCH=1"
 				case X"${with_cpu}" in
-				Xgeneric|Xatom|Xcore2|Xcorei7|Xcorei7-avx|Xnocona|Xx86-64|Xbdver2|Xbdver1|Xbtver1|Xamdfam10|Xbarcelona|Xk8|Xopteron|Xathlon64|Xathlon-fx|Xathlon64-sse3|Xk8-sse3|Xopteron-sse3)
+				Xgeneric|Xatom|Xcore2|Xcorei7|Xcorei7-avx|Xnocona|Xx86-64|Xbdver2|Xbdver1|Xbtver2|Xbtver1|Xamdfam10|Xbarcelona|Xk8|Xopteron|Xathlon64|Xathlon-fx|Xathlon64-sse3|Xk8-sse3|Xopteron-sse3)
 					;;
 				X)
 					if test x$with_cpu_64 = x; then
@@ -1410,7 +1410,7 @@ i[34567]86-*-mingw* | x86_64-*-mingw*)
 					;;
 				*)
 					echo "Unsupported CPU used in --with-cpu=$with_cpu, supported values:" 1>&2
-					echo "generic atom core2 corei7 Xcorei7-avx nocona x86-64 bdver2 bdver1 btver1 amdfam10 barcelona k8 opteron athlon64 athlon-fx athlon64-sse3 k8-sse3 opteron-sse3" 1>&2
+					echo "generic atom core2 corei7 Xcorei7-avx nocona x86-64 bdver2 bdver1 btver2 btver1 amdfam10 barcelona k8 opteron athlon64 athlon-fx athlon64-sse3 k8-sse3 opteron-sse3" 1>&2
 					exit 1
 					;;
 				esac
@@ -2096,12 +2096,14 @@ rx-*-elf*)
 	tmake_file="${tmake_file} rx/t-rx"
 	;;
 s390-*-linux*)
+	default_gnu_indirect_function=yes
 	tm_file="s390/s390.h dbxelf.h elfos.h gnu-user.h linux.h glibc-stdint.h s390/linux.h"
 	if test x$enable_targets = xall; then
 		tmake_file="${tmake_file} s390/t-linux64"
 	fi
 	;;
 s390x-*-linux*)
+	default_gnu_indirect_function=yes
 	tm_file="s390/s390x.h s390/s390.h dbxelf.h elfos.h gnu-user.h linux.h glibc-stdint.h s390/linux.h"
 	tm_p_file=s390/s390-protos.h
 	md_file=s390/s390.md
@@ -2438,6 +2440,7 @@ tilegx-*-linux*)
 	extra_objs="mul-tables.o"
 	c_target_objs="tilegx-c.o"
 	cxx_target_objs="tilegx-c.o"
+	extra_headers="feedback.h"
 	;;
 tilepro-*-linux*)
 	tm_file="elfos.h gnu-user.h linux.h glibc-stdint.h tilepro/linux.h ${tm_file}"
@@ -2445,6 +2448,17 @@ tilepro-*-linux*)
 	extra_objs="mul-tables.o"
 	c_target_objs="tilepro-c.o"
 	cxx_target_objs="tilepro-c.o"
+	extra_headers="feedback.h"
+	;;
+v850-*-rtems*)
+	target_cpu_default="TARGET_CPU_generic"
+	tm_file="dbxelf.h elfos.h v850/v850.h"
+	tm_file="${tm_file} rtems.h v850/rtems.h newlib-stdint.h"
+	tmake_file="${tmake_file} v850/t-v850"
+	tmake_file="${tmake_file} t-rtems v850/t-rtems"
+	use_collect2=no
+	c_target_objs="v850-c.o"
+	cxx_target_objs="v850-c.o"
 	;;
 v850*-*-*)
 	case ${target} in
@@ -2628,6 +2642,10 @@ case ${target} in
 	arch=btver1
 	cpu=btver1
 	;;
+      btver2-*)
+	arch=btver2
+	cpu=btver2
+	;;
       amdfam10-*|barcelona-*)
 	arch=amdfam10
 	cpu=amdfam10
@@ -2724,6 +2742,10 @@ case ${target} in
       btver1-*)
 	arch=btver1
 	cpu=btver1
+	;;
+      btver2-*)
+	arch=btver2
+	cpu=btver2
 	;;
       amdfam10-*|barcelona-*)
 	arch=amdfam10
@@ -3159,7 +3181,7 @@ case "${target}" in
 				;;
 			"" | x86-64 | generic | native \
 			| k8 | k8-sse3 | athlon64 | athlon64-sse3 | opteron \
-			| opteron-sse3 | athlon-fx | bdver2 | bdver1 | btver1 \
+			| opteron-sse3 | athlon-fx | bdver2 | bdver1 | btver2 | btver1 \
 			| amdfam10 | barcelona | nocona | core2 | corei7 \
 			| corei7-avx | core-avx-i | core-avx2 | atom)
 				# OK

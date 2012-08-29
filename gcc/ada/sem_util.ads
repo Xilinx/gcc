@@ -742,9 +742,9 @@ package Sem_Util is
    function In_Parameter_Specification (N : Node_Id) return Boolean;
    --  Returns True if node N belongs to a parameter specification
 
-   function In_Reverse_Storage_Order_Record (N : Node_Id) return Boolean;
-   --  Returns True if N denotes a component or subcomponent in a record object
-   --  that has Reverse_Storage_Order.
+   function In_Reverse_Storage_Order_Object (N : Node_Id) return Boolean;
+   --  Returns True if N denotes a component or subcomponent in a record or
+   --  array that has Reverse_Storage_Order.
 
    function In_Subprogram_Or_Concurrent_Unit return Boolean;
    --  Determines if the current scope is within a subprogram compilation unit
@@ -1476,6 +1476,10 @@ package Sem_Util is
 
    function Subprogram_Access_Level (Subp : Entity_Id) return Uint;
    --  Return the accessibility level of the view denoted by Subp
+
+   function Support_Atomic_Primitives (Typ : Entity_Id) return Boolean;
+   --  Return True if Typ supports the GCC built-in atomic operations (i.e. if
+   --  Typ is properly sized and aligned).
 
    procedure Trace_Scope (N : Node_Id; E : Entity_Id; Msg : String);
    --  Print debugging information on entry to each unit being analyzed

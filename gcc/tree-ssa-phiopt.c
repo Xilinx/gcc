@@ -27,16 +27,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "tm_p.h"
 #include "basic-block.h"
-#include "timevar.h"
 #include "tree-flow.h"
 #include "tree-pass.h"
-#include "tree-dump.h"
 #include "langhooks.h"
 #include "pointer-set.h"
 #include "domwalk.h"
 #include "cfgloop.h"
 #include "tree-data-ref.h"
-#include "tree-pretty-print.h"
 #include "gimple-pretty-print.h"
 #include "insn-config.h"
 #include "expr.h"
@@ -275,10 +272,6 @@ single_non_singleton_phi_for_edges (gimple_seq seq, edge e0, edge e1)
   return phi;
 }
 
-/* For conditional store replacement we need a temporary to
-   put the old contents of the memory in.  */
-static tree condstoretemp;
-
 /* The core routine of conditional store replacement and normal
    phi optimizations.  Both share much of the infrastructure in how
    to match applicable basic block patterns.  DO_STORE_ELIM is true
@@ -295,11 +288,8 @@ tree_ssa_phiopt_worker (bool do_store_elim, bool do_hoist_loads)
   struct pointer_set_t *nontrap = 0;
 
   if (do_store_elim)
-    {
-      condstoretemp = NULL_TREE;
-      /* Calculate the set of non-trapping memory accesses.  */
-      nontrap = get_non_trapping ();
-    }
+    /* Calculate the set of non-trapping memory accesses.  */
+    nontrap = get_non_trapping ();
 
   /* Search every basic block for COND_EXPR we may be able to optimize.
 
@@ -693,12 +683,9 @@ conditional_replacement (basic_block cond_bb, basic_block middle_bb,
     {
       source_location locus_0, locus_1;
 
-      new_var2 = create_tmp_var (TREE_TYPE (result), NULL);
-      add_referenced_var (new_var2);
+      new_var2 = make_ssa_name (TREE_TYPE (result), NULL);
       new_stmt = gimple_build_assign_with_ops (CONVERT_EXPR, new_var2,
 					       new_var, NULL);
-      new_var2 = make_ssa_name (new_var2, new_stmt);
-      gimple_assign_set_lhs (new_stmt, new_var2);
       gsi_insert_before (&gsi, new_stmt, GSI_SAME_STMT);
       new_var = new_var2;
 
@@ -1216,11 +1203,7 @@ abs_replacement (basic_block cond_bb, basic_block middle_bb,
   result = duplicate_ssa_name (result, NULL);
 
   if (negate)
-    {
-      tree tmp = create_tmp_var (TREE_TYPE (result), NULL);
-      add_referenced_var (tmp);
-      lhs = make_ssa_name (tmp, NULL);
-    }
+    lhs = make_ssa_name (TREE_TYPE (result), NULL);
   else
     lhs = result;
 
@@ -1450,7 +1433,7 @@ cond_store_replacement (basic_block middle_bb, basic_block join_bb,
 			edge e0, edge e1, struct pointer_set_t *nontrap)
 {
   gimple assign = last_and_only_stmt (middle_bb);
-  tree lhs, rhs, name;
+  tree lhs, rhs, name, name2;
   gimple newphi, new_stmt;
   gimple_stmt_iterator gsi;
   source_location locus;
@@ -1481,32 +1464,26 @@ cond_store_replacement (basic_block middle_bb, basic_block join_bb,
   gsi_remove (&gsi, true);
   release_defs (assign);
 
-  /* 2) Create a temporary where we can store the old content
-        of the memory touched by the store, if we need to.  */
-  if (!condstoretemp || TREE_TYPE (lhs) != TREE_TYPE (condstoretemp))
-    condstoretemp = create_tmp_reg (TREE_TYPE (lhs), "cstore");
-  add_referenced_var (condstoretemp);
-
-  /* 3) Insert a load from the memory of the store to the temporary
+  /* 2) Insert a load from the memory of the store to the temporary
         on the edge which did not contain the store.  */
   lhs = unshare_expr (lhs);
-  new_stmt = gimple_build_assign (condstoretemp, lhs);
-  name = make_ssa_name (condstoretemp, new_stmt);
-  gimple_assign_set_lhs (new_stmt, name);
+  name = make_temp_ssa_name (TREE_TYPE (lhs), NULL, "cstore");
+  new_stmt = gimple_build_assign (name, lhs);
   gimple_set_location (new_stmt, locus);
   gsi_insert_on_edge (e1, new_stmt);
 
-  /* 4) Create a PHI node at the join block, with one argument
+  /* 3) Create a PHI node at the join block, with one argument
         holding the old RHS, and the other holding the temporary
         where we stored the old memory contents.  */
-  newphi = create_phi_node (condstoretemp, join_bb);
+  name2 = make_temp_ssa_name (TREE_TYPE (lhs), NULL, "cstore");
+  newphi = create_phi_node (name2, join_bb);
   add_phi_arg (newphi, rhs, e0, locus);
   add_phi_arg (newphi, name, e1, locus);
 
   lhs = unshare_expr (lhs);
   new_stmt = gimple_build_assign (lhs, PHI_RESULT (newphi));
 
-  /* 5) Insert that PHI node.  */
+  /* 4) Insert that PHI node.  */
   gsi = gsi_after_labels (join_bb);
   if (gsi_end_p (gsi))
     {
@@ -1526,7 +1503,7 @@ cond_if_else_store_replacement_1 (basic_block then_bb, basic_block else_bb,
 				  basic_block join_bb, gimple then_assign,
 				  gimple else_assign)
 {
-  tree lhs_base, lhs, then_rhs, else_rhs;
+  tree lhs_base, lhs, then_rhs, else_rhs, name;
   source_location then_locus, else_locus;
   gimple_stmt_iterator gsi;
   gimple newphi, new_stmt;
@@ -1566,22 +1543,17 @@ cond_if_else_store_replacement_1 (basic_block then_bb, basic_block else_bb,
   gsi_remove (&gsi, true);
   release_defs (else_assign);
 
-  /* 2) Create a temporary where we can store the old content
-	of the memory touched by the store, if we need to.  */
-  if (!condstoretemp || TREE_TYPE (lhs) != TREE_TYPE (condstoretemp))
-    condstoretemp = create_tmp_reg (TREE_TYPE (lhs), "cstore");
-  add_referenced_var (condstoretemp);
-
-  /* 3) Create a PHI node at the join block, with one argument
+  /* 2) Create a PHI node at the join block, with one argument
 	holding the old RHS, and the other holding the temporary
 	where we stored the old memory contents.  */
-  newphi = create_phi_node (condstoretemp, join_bb);
+  name = make_temp_ssa_name (TREE_TYPE (lhs), NULL, "cstore");
+  newphi = create_phi_node (name, join_bb);
   add_phi_arg (newphi, then_rhs, EDGE_SUCC (then_bb, 0), then_locus);
   add_phi_arg (newphi, else_rhs, EDGE_SUCC (else_bb, 0), else_locus);
 
   new_stmt = gimple_build_assign (lhs, PHI_RESULT (newphi));
 
-  /* 4) Insert that PHI node.  */
+  /* 3) Insert that PHI node.  */
   gsi = gsi_after_labels (join_bb);
   if (gsi_end_p (gsi))
     {
@@ -1848,7 +1820,8 @@ hoist_adjacent_loads (basic_block bb0, basic_block bb1,
       gimple_stmt_iterator gsi2;
       basic_block bb_for_def1, bb_for_def2;
 
-      if (gimple_phi_num_args (phi_stmt) != 2)
+      if (gimple_phi_num_args (phi_stmt) != 2
+	  || virtual_operand_p (gimple_phi_result (phi_stmt)))
 	continue;
 
       arg1 = gimple_phi_arg_def (phi_stmt, 0);
@@ -1857,9 +1830,7 @@ hoist_adjacent_loads (basic_block bb0, basic_block bb1,
       if (TREE_CODE (arg1) != SSA_NAME
 	  || TREE_CODE (arg2) != SSA_NAME
 	  || SSA_NAME_IS_DEFAULT_DEF (arg1)
-	  || SSA_NAME_IS_DEFAULT_DEF (arg2)
-	  || !is_gimple_reg (arg1)
-	  || !is_gimple_reg (arg2))
+	  || SSA_NAME_IS_DEFAULT_DEF (arg2))
 	continue;
 
       def1 = SSA_NAME_DEF_STMT (arg1);
@@ -1871,7 +1842,8 @@ hoist_adjacent_loads (basic_block bb0, basic_block bb1,
 
       /* Check the mode of the arguments to be sure a conditional move
 	 can be generated for it.  */
-      if (!optab_handler (cmov_optab, TYPE_MODE (TREE_TYPE (arg1))))
+      if (optab_handler (movcc_optab, TYPE_MODE (TREE_TYPE (arg1)))
+	  == CODE_FOR_nothing)
 	continue;
 
       /* Both statements must be assignments whose RHS is a COMPONENT_REF.  */

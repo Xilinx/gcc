@@ -44,13 +44,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "except.h"
 #include "dce.h"
 #include "vecprim.h"
+#include "valtrack.h"
+#include "dumpfile.h"
 
 /* Note that turning REG_DEAD_DEBUGGING on will cause
    gcc.c-torture/unsorted/dump-noaddr.c to fail because it prints
    addresses in the dumps.  */
-#if 0
-#define REG_DEAD_DEBUGGING
-#endif
+#define REG_DEAD_DEBUGGING 0
 
 #define DF_SPARSE_THRESHOLD 32
 
@@ -1228,7 +1228,7 @@ df_lr_add_problem (void)
   df_add_problem (&problem_LR);
   /* These will be initialized when df_scan_blocks processes each
      block.  */
-  df_lr->out_of_date_transfer_functions = BITMAP_ALLOC (NULL);
+  df_lr->out_of_date_transfer_functions = BITMAP_ALLOC (&df_bitmap_obstack);
 }
 
 
@@ -1757,7 +1757,7 @@ df_live_add_problem (void)
   df_add_problem (&problem_LIVE);
   /* These will be initialized when df_scan_blocks processes each
      block.  */
-  df_live->out_of_date_transfer_functions = BITMAP_ALLOC (NULL);
+  df_live->out_of_date_transfer_functions = BITMAP_ALLOC (&df_bitmap_obstack);
 }
 
 
@@ -2283,7 +2283,7 @@ df_chain_add_problem (unsigned int chain_flags)
 {
   df_add_problem (&problem_CHAIN);
   df_chain->local_flags = chain_flags;
-  df_chain->out_of_date_transfer_functions = BITMAP_ALLOC (NULL);
+  df_chain->out_of_date_transfer_functions = BITMAP_ALLOC (&df_bitmap_obstack);
 }
 
 #undef df_chain_problem_p
@@ -2662,7 +2662,7 @@ df_word_lr_add_problem (void)
   df_add_problem (&problem_WORD_LR);
   /* These will be initialized when df_scan_blocks processes each
      block.  */
-  df_word_lr->out_of_date_transfer_functions = BITMAP_ALLOC (NULL);
+  df_word_lr->out_of_date_transfer_functions = BITMAP_ALLOC (&df_bitmap_obstack);
 }
 
 
@@ -2712,7 +2712,7 @@ df_note_alloc (bitmap all_blocks ATTRIBUTE_UNUSED)
   df_note->optional_p = true;
 }
 
-#ifdef REG_DEAD_DEBUGGING
+/* This is only used if REG_DEAD_DEBUGGING is in effect.  */
 static void
 df_print_note (const char *prefix, rtx insn, rtx note)
 {
@@ -2723,7 +2723,6 @@ df_print_note (const char *prefix, rtx insn, rtx note)
       fprintf (dump_file, "\n");
     }
 }
-#endif
 
 
 /* After reg-stack, the x86 floating point stack regs are difficult to
@@ -2772,9 +2771,8 @@ df_kill_notes (rtx insn, bitmap live)
 	  else
 	    {
 	      rtx next = XEXP (link, 1);
-#ifdef REG_DEAD_DEBUGGING
-	      df_print_note ("deleting: ", insn, link);
-#endif
+	      if (REG_DEAD_DEBUGGING)
+		df_print_note ("deleting: ", insn, link);
 	      free_EXPR_LIST_node (link);
 	      *pprev = link = next;
 	    }
@@ -2791,9 +2789,8 @@ df_kill_notes (rtx insn, bitmap live)
 	  else
 	    {
 	      rtx next = XEXP (link, 1);
-#ifdef REG_DEAD_DEBUGGING
-	      df_print_note ("deleting: ", insn, link);
-#endif
+	      if (REG_DEAD_DEBUGGING)
+		df_print_note ("deleting: ", insn, link);
 	      free_EXPR_LIST_node (link);
 	      *pprev = link = next;
 	    }
@@ -2825,9 +2822,8 @@ df_kill_notes (rtx insn, bitmap live)
 	    if (deleted)
 	      {
 		rtx next;
-#ifdef REG_DEAD_DEBUGGING
-		df_print_note ("deleting: ", insn, link);
-#endif
+		if (REG_DEAD_DEBUGGING)
+		  df_print_note ("deleting: ", insn, link);
 		next = XEXP (link, 1);
 		free_EXPR_LIST_node (link);
 		*pprev = link = next;
@@ -2900,11 +2896,9 @@ df_set_unused_notes_for_mw (rtx insn, struct df_mw_hardreg *mws,
 {
   unsigned int r;
 
-#ifdef REG_DEAD_DEBUGGING
-  if (dump_file)
+  if (REG_DEAD_DEBUGGING && dump_file)
     fprintf (dump_file, "mw_set_unused looking at mws[%d..%d]\n",
 	     mws->start_regno, mws->end_regno);
-#endif
 
   if (df_whole_mw_reg_unused_p (mws, live, artificial_uses))
     {
@@ -2912,9 +2906,9 @@ df_set_unused_notes_for_mw (rtx insn, struct df_mw_hardreg *mws,
       df_set_note (REG_UNUSED, insn, mws->mw_reg);
       dead_debug_insert_temp (debug, regno, insn, DEBUG_TEMP_AFTER_WITH_REG);
 
-#ifdef REG_DEAD_DEBUGGING
-      df_print_note ("adding 1: ", insn, REG_NOTES (insn));
-#endif
+      if (REG_DEAD_DEBUGGING)
+	df_print_note ("adding 1: ", insn, REG_NOTES (insn));
+
       bitmap_set_bit (do_not_gen, regno);
       /* Only do this if the value is totally dead.  */
     }
@@ -2926,9 +2920,8 @@ df_set_unused_notes_for_mw (rtx insn, struct df_mw_hardreg *mws,
 	  {
 	    df_set_note (REG_UNUSED, insn, regno_reg_rtx[r]);
 	    dead_debug_insert_temp (debug, r, insn, DEBUG_TEMP_AFTER_WITH_REG);
-#ifdef REG_DEAD_DEBUGGING
-	    df_print_note ("adding 2: ", insn, REG_NOTES (insn));
-#endif
+	    if (REG_DEAD_DEBUGGING)
+	      df_print_note ("adding 2: ", insn, REG_NOTES (insn));
 	  }
 	bitmap_set_bit (do_not_gen, r);
       }
@@ -2978,8 +2971,7 @@ df_set_dead_notes_for_mw (rtx insn, struct df_mw_hardreg *mws,
 
   *added_notes_p = false;
 
-#ifdef REG_DEAD_DEBUGGING
-  if (dump_file)
+  if (REG_DEAD_DEBUGGING && dump_file)
     {
       fprintf (dump_file, "mw_set_dead looking at mws[%d..%d]\n  do_not_gen =",
 	       mws->start_regno, mws->end_regno);
@@ -2989,7 +2981,6 @@ df_set_dead_notes_for_mw (rtx insn, struct df_mw_hardreg *mws,
       fprintf (dump_file, "  artificial uses =");
       df_print_regset (dump_file, artificial_uses);
     }
-#endif
 
   if (df_whole_mw_reg_dead_p (mws, live, artificial_uses, do_not_gen))
     {
@@ -3000,9 +2991,8 @@ df_set_dead_notes_for_mw (rtx insn, struct df_mw_hardreg *mws,
 	}
       /* Add a dead note for the entire multi word register.  */
       df_set_note (REG_DEAD, insn, mws->mw_reg);
-#ifdef REG_DEAD_DEBUGGING
-      df_print_note ("adding 1: ", insn, REG_NOTES (insn));
-#endif
+      if (REG_DEAD_DEBUGGING)
+	df_print_note ("adding 1: ", insn, REG_NOTES (insn));
     }
   else
     {
@@ -3017,9 +3007,8 @@ df_set_dead_notes_for_mw (rtx insn, struct df_mw_hardreg *mws,
 		return;
 	      }
 	    df_set_note (REG_DEAD, insn, regno_reg_rtx[r]);
-#ifdef REG_DEAD_DEBUGGING
-	    df_print_note ("adding 2: ", insn, REG_NOTES (insn));
-#endif
+	    if (REG_DEAD_DEBUGGING)
+	      df_print_note ("adding 2: ", insn, REG_NOTES (insn));
 	  }
     }
   return;
@@ -3036,13 +3025,11 @@ df_create_unused_note (rtx insn, df_ref def,
 {
   unsigned int dregno = DF_REF_REGNO (def);
 
-#ifdef REG_DEAD_DEBUGGING
-  if (dump_file)
+  if (REG_DEAD_DEBUGGING && dump_file)
     {
       fprintf (dump_file, "  regular looking at def ");
       df_ref_debug (def, dump_file);
     }
-#endif
 
   if (!((DF_REF_FLAGS (def) & DF_REF_MW_HARDREG)
 	|| bitmap_bit_p (live, dregno)
@@ -3053,320 +3040,13 @@ df_create_unused_note (rtx insn, df_ref def,
                 ? *DF_REF_REAL_LOC (def): DF_REF_REG (def);
       df_set_note (REG_UNUSED, insn, reg);
       dead_debug_insert_temp (debug, dregno, insn, DEBUG_TEMP_AFTER_WITH_REG);
-#ifdef REG_DEAD_DEBUGGING
-      df_print_note ("adding 3: ", insn, REG_NOTES (insn));
-#endif
+      if (REG_DEAD_DEBUGGING)
+	df_print_note ("adding 3: ", insn, REG_NOTES (insn));
     }
 
   return;
 }
 
-
-/* Initialize DEBUG to an empty list, and clear USED, if given.  */
-void
-dead_debug_init (struct dead_debug *debug, bitmap used)
-{
-  debug->head = NULL;
-  debug->used = used;
-  debug->to_rescan = NULL;
-  if (used)
-    bitmap_clear (used);
-}
-
-/* Reset all debug uses in HEAD, and clear DEBUG->to_rescan bits of
-   each reset insn.  DEBUG is not otherwise modified.  If HEAD is
-   DEBUG->head, DEBUG->head will be set to NULL at the end.
-   Otherwise, entries from DEBUG->head that pertain to reset insns
-   will be removed, and only then rescanned.  */
-
-static void
-dead_debug_reset_uses (struct dead_debug *debug, struct dead_debug_use *head)
-{
-  bool got_head = (debug->head == head);
-  bitmap rescan;
-  struct dead_debug_use **tailp = &debug->head;
-  struct dead_debug_use *cur;
-  bitmap_iterator bi;
-  unsigned int uid;
-
-  if (got_head)
-    rescan = NULL;
-  else
-    rescan = BITMAP_ALLOC (NULL);
-
-  while (head)
-    {
-      struct dead_debug_use *next = head->next;
-      rtx insn;
-
-      insn = DF_REF_INSN (head->use);
-      if (!next || DF_REF_INSN (next->use) != insn)
-	{
-	  INSN_VAR_LOCATION_LOC (insn) = gen_rtx_UNKNOWN_VAR_LOC ();
-	  if (got_head)
-	    df_insn_rescan_debug_internal (insn);
-	  else
-	    bitmap_set_bit (rescan, INSN_UID (insn));
-	  if (debug->to_rescan)
-	    bitmap_clear_bit (debug->to_rescan, INSN_UID (insn));
-	}
-      XDELETE (head);
-      head = next;
-    }
-
-  if (got_head)
-    {
-      debug->head = NULL;
-      return;
-    }
-
-  while ((cur = *tailp))
-    if (bitmap_bit_p (rescan, INSN_UID (DF_REF_INSN (cur->use))))
-      {
-	*tailp = cur->next;
-	XDELETE (cur);
-      }
-    else
-      tailp = &cur->next;
-
-  EXECUTE_IF_SET_IN_BITMAP (rescan, 0, uid, bi)
-    {
-      struct df_insn_info *insn_info = DF_INSN_UID_SAFE_GET (uid);
-      if (insn_info)
-	df_insn_rescan_debug_internal (insn_info->insn);
-    }
-
-  BITMAP_FREE (rescan);
-}
-
-/* Reset all debug insns with pending uses.  Release the bitmap in it,
-   unless it is USED.  USED must be the same bitmap passed to
-   dead_debug_init.  */
-void
-dead_debug_finish (struct dead_debug *debug, bitmap used)
-{
-  if (debug->used != used)
-    BITMAP_FREE (debug->used);
-
-  dead_debug_reset_uses (debug, debug->head);
-
-  if (debug->to_rescan)
-    {
-      bitmap_iterator bi;
-      unsigned int uid;
-
-      EXECUTE_IF_SET_IN_BITMAP (debug->to_rescan, 0, uid, bi)
-	{
-	  struct df_insn_info *insn_info = DF_INSN_UID_SAFE_GET (uid);
-	  if (insn_info)
-	    df_insn_rescan (insn_info->insn);
-	}
-      BITMAP_FREE (debug->to_rescan);
-    }
-}
-
-/* Add USE to DEBUG.  It must be a dead reference to UREGNO in a debug
-   insn.  Create a bitmap for DEBUG as needed.  */
-void
-dead_debug_add (struct dead_debug *debug, df_ref use, unsigned int uregno)
-{
-  struct dead_debug_use *newddu = XNEW (struct dead_debug_use);
-
-  newddu->use = use;
-  newddu->next = debug->head;
-  debug->head = newddu;
-
-  if (!debug->used)
-    debug->used = BITMAP_ALLOC (NULL);
-
-  /* ??? If we dealt with split multi-registers below, we should set
-     all registers for the used mode in case of hardware
-     registers.  */
-  bitmap_set_bit (debug->used, uregno);
-}
-
-/* If UREGNO is referenced by any entry in DEBUG, emit a debug insn
-   before or after INSN (depending on WHERE), that binds a debug temp
-   to the widest-mode use of UREGNO, if WHERE is *_WITH_REG, or the
-   value stored in UREGNO by INSN otherwise, and replace all uses of
-   UREGNO in DEBUG with uses of the debug temp.  INSN must be where
-   UREGNO dies, if WHERE is *_BEFORE_*, or where it is set otherwise.
-   Return the number of debug insns emitted.  */
-int
-dead_debug_insert_temp (struct dead_debug *debug, unsigned int uregno,
-			rtx insn, enum debug_temp_where where)
-{
-  struct dead_debug_use **tailp = &debug->head;
-  struct dead_debug_use *cur;
-  struct dead_debug_use *uses = NULL;
-  struct dead_debug_use **usesp = &uses;
-  rtx reg = NULL;
-  rtx breg;
-  rtx dval;
-  rtx bind;
-
-  if (!debug->used || !bitmap_clear_bit (debug->used, uregno))
-    return 0;
-
-  /* Move all uses of uregno from debug->head to uses, setting mode to
-     the widest referenced mode.  */
-  while ((cur = *tailp))
-    {
-      if (DF_REF_REGNO (cur->use) == uregno)
-	{
-	  *usesp = cur;
-	  usesp = &cur->next;
-	  *tailp = cur->next;
-	  cur->next = NULL;
-	  if (!reg
-	      || (GET_MODE_BITSIZE (GET_MODE (reg))
-		  < GET_MODE_BITSIZE (GET_MODE (*DF_REF_REAL_LOC (cur->use)))))
-	    reg = *DF_REF_REAL_LOC (cur->use);
-	}
-      else
-	tailp = &(*tailp)->next;
-    }
-
-  /* We may have dangling bits in debug->used for registers that were part
-     of a multi-register use, one component of which has been reset.  */
-  if (reg == NULL)
-    {
-      gcc_checking_assert (!uses);
-      return 0;
-    }
-
-  gcc_checking_assert (uses);
-
-  breg = reg;
-  /* Recover the expression INSN stores in REG.  */
-  if (where == DEBUG_TEMP_BEFORE_WITH_VALUE)
-    {
-      rtx set = single_set (insn);
-      rtx dest, src;
-
-      if (set)
-	{
-	  dest = SET_DEST (set);
-	  src = SET_SRC (set);
-	  /* Lose if the REG-setting insn is a CALL.  */
-	  if (GET_CODE (src) == CALL)
-	    {
-	      while (uses)
-		{
-		  cur = uses->next;
-		  XDELETE (uses);
-		  uses = cur;
-		}
-	      return 0;
-	    }
-	}
-
-      /* ??? Should we try to extract it from a PARALLEL?  */
-      if (!set)
-	breg = NULL;
-      /* Cool, it's the same REG, we can use SRC.  */
-      else if (dest == reg)
-	breg = copy_rtx (src);
-      else if (REG_P (dest))
-	{
-	  /* Hmm...  Something's fishy, we should be setting REG here.  */
-	  if (REGNO (dest) != REGNO (reg))
-	    breg = NULL;
-	  /* If we're not overwriting all the hardware registers that
-	     setting REG in its mode would, we won't know what to bind
-	     the debug temp to.  ??? We could bind the debug_expr to a
-	     CONCAT or PARALLEL with the split multi-registers, and
-	     replace them as we found the corresponding sets.  */
-	  else if (REGNO (reg) < FIRST_PSEUDO_REGISTER
-		   && (hard_regno_nregs[REGNO (reg)][GET_MODE (reg)]
-		       != hard_regno_nregs[REGNO (reg)][GET_MODE (dest)]))
-	    breg = NULL;
-	  /* Ok, it's the same (hardware) REG, but with a different
-	     mode, so SUBREG it.  */
-	  else
-	    breg = lowpart_subreg (GET_MODE (reg), copy_rtx (src),
-				   GET_MODE (dest));
-	}
-      else if (GET_CODE (dest) == SUBREG)
-	{
-	  /* We should be setting REG here.  Lose.  */
-	  if (REGNO (SUBREG_REG (dest)) != REGNO (reg))
-	    breg = NULL;
-	  /* Lose if we're setting something other than the lowpart of
-	     REG.  */
-	  else if (!subreg_lowpart_p (dest))
-	    breg = NULL;
-	  /* If we're not overwriting all the hardware registers that
-	     setting REG in its mode would, we won't know what to bind
-	     the debug temp to.  */
-	  else if (REGNO (reg) < FIRST_PSEUDO_REGISTER
-		   && (hard_regno_nregs[REGNO (reg)][GET_MODE (reg)]
-		       != hard_regno_nregs[REGNO (reg)][GET_MODE (dest)]))
-	    breg = NULL;
-	  /* Yay, we can use SRC, just adjust its mode.  */
-	  else
-	    breg = lowpart_subreg (GET_MODE (reg), copy_rtx (src),
-				   GET_MODE (dest));
-	}
-      /* Oh well, we're out of luck.  */
-      else
-	breg = NULL;
-
-      /* We couldn't figure out the value stored in REG, so reset all
-	 of its pending debug uses.  */
-      if (!breg)
-	{
-	  dead_debug_reset_uses (debug, uses);
-	  return 0;
-	}
-    }
-
-  /* If there's a single (debug) use of an otherwise unused REG, and
-     the debug use is not part of a larger expression, then it
-     probably doesn't make sense to introduce a new debug temp.  */
-  if (where == DEBUG_TEMP_AFTER_WITH_REG && !uses->next)
-    {
-      rtx next = DF_REF_INSN (uses->use);
-
-      if (DEBUG_INSN_P (next) && reg == INSN_VAR_LOCATION_LOC (next))
-	{
-	  XDELETE (uses);
-	  return 0;
-	}
-    }
-
-  /* Create DEBUG_EXPR (and DEBUG_EXPR_DECL).  */
-  dval = make_debug_expr_from_rtl (reg);
-
-  /* Emit a debug bind insn before the insn in which reg dies.  */
-  bind = gen_rtx_VAR_LOCATION (GET_MODE (reg),
-			       DEBUG_EXPR_TREE_DECL (dval), breg,
-			       VAR_INIT_STATUS_INITIALIZED);
-
-  if (where == DEBUG_TEMP_AFTER_WITH_REG)
-    bind = emit_debug_insn_after (bind, insn);
-  else
-    bind = emit_debug_insn_before (bind, insn);
-  df_insn_rescan (bind);
-
-  /* Adjust all uses.  */
-  while ((cur = uses))
-    {
-      if (GET_MODE (*DF_REF_REAL_LOC (cur->use)) == GET_MODE (reg))
-	*DF_REF_REAL_LOC (cur->use) = dval;
-      else
-	*DF_REF_REAL_LOC (cur->use)
-	  = gen_lowpart_SUBREG (GET_MODE (*DF_REF_REAL_LOC (cur->use)), dval);
-      /* ??? Should we simplify subreg of subreg?  */
-      if (debug->to_rescan == NULL)
-	debug->to_rescan = BITMAP_ALLOC (NULL);
-      bitmap_set_bit (debug->to_rescan, INSN_UID (DF_REF_INSN (cur->use)));
-      uses = cur->next;
-      XDELETE (cur);
-    }
-
-  return 1;
-}
 
 /* Recompute the REG_DEAD and REG_UNUSED notes and compute register
    info: lifetime, bb, and number of defs and uses for basic block
@@ -3387,23 +3067,20 @@ df_note_bb_compute (unsigned int bb_index,
   bitmap_copy (live, df_get_live_out (bb));
   bitmap_clear (artificial_uses);
 
-#ifdef REG_DEAD_DEBUGGING
-  if (dump_file)
+  if (REG_DEAD_DEBUGGING && dump_file)
     {
       fprintf (dump_file, "live at bottom ");
       df_print_regset (dump_file, live);
     }
-#endif
 
   /* Process the artificial defs and uses at the bottom of the block
      to begin processing.  */
   for (def_rec = df_get_artificial_defs (bb_index); *def_rec; def_rec++)
     {
       df_ref def = *def_rec;
-#ifdef REG_DEAD_DEBUGGING
-      if (dump_file)
+
+      if (REG_DEAD_DEBUGGING && dump_file)
 	fprintf (dump_file, "artificial def %d\n", DF_REF_REGNO (def));
-#endif
 
       if ((DF_REF_FLAGS (def) & DF_REF_AT_TOP) == 0)
 	bitmap_clear_bit (live, DF_REF_REGNO (def));
@@ -3423,13 +3100,11 @@ df_note_bb_compute (unsigned int bb_index,
 	}
     }
 
-#ifdef REG_DEAD_DEBUGGING
-  if (dump_file)
+  if (REG_DEAD_DEBUGGING && dump_file)
     {
       fprintf (dump_file, "live before artificials out ");
       df_print_regset (dump_file, live);
     }
-#endif
 
   FOR_BB_INSNS_REVERSE (bb, insn)
     {
@@ -3448,13 +3123,12 @@ df_note_bb_compute (unsigned int bb_index,
       /* Process the defs.  */
       if (CALL_P (insn))
 	{
-#ifdef REG_DEAD_DEBUGGING
-	  if (dump_file)
+	  if (REG_DEAD_DEBUGGING && dump_file)
 	    {
 	      fprintf (dump_file, "processing call %d\n  live =", INSN_UID (insn));
 	      df_print_regset (dump_file, live);
 	    }
-#endif
+
 	  /* We only care about real sets for calls.  Clobbers cannot
 	     be depended on to really die.  */
 	  mws_rec = DF_INSN_UID_MWS (uid);
@@ -3541,13 +3215,12 @@ df_note_bb_compute (unsigned int bb_index,
 	  df_ref use = *use_rec;
 	  unsigned int uregno = DF_REF_REGNO (use);
 
-#ifdef REG_DEAD_DEBUGGING
-	  if (dump_file && !debug_insn)
+	  if (REG_DEAD_DEBUGGING && dump_file && !debug_insn)
 	    {
 	      fprintf (dump_file, "  regular looking at use ");
 	      df_ref_debug (use, dump_file);
 	    }
-#endif
+
 	  if (!bitmap_bit_p (live, uregno))
 	    {
 	      if (debug_insn)
@@ -3578,9 +3251,8 @@ df_note_bb_compute (unsigned int bb_index,
                             ? *DF_REF_REAL_LOC (use) : DF_REF_REG (use);
 		  df_set_note (REG_DEAD, insn, reg);
 
-#ifdef REG_DEAD_DEBUGGING
-		  df_print_note ("adding 4: ", insn, REG_NOTES (insn));
-#endif
+		  if (REG_DEAD_DEBUGGING)
+		    df_print_note ("adding 4: ", insn, REG_NOTES (insn));
 		}
 	      /* This register is now live.  */
 	      bitmap_set_bit (live, uregno);
@@ -3611,11 +3283,6 @@ df_note_compute (bitmap all_blocks)
   bitmap_initialize (&live, &df_bitmap_obstack);
   bitmap_initialize (&do_not_gen, &df_bitmap_obstack);
   bitmap_initialize (&artificial_uses, &df_bitmap_obstack);
-
-#ifdef REG_DEAD_DEBUGGING
-  if (dump_file)
-    print_rtl_with_bb (dump_file, get_insns());
-#endif
 
   EXECUTE_IF_SET_IN_BITMAP (all_blocks, 0, bb_index, bi)
   {
@@ -4068,6 +3735,19 @@ can_move_insns_across (rtx from, rtx to, rtx across_from, rtx across_to,
 
   for (insn = across_to; ; insn = next)
     {
+      if (CALL_P (insn))
+	{
+	  if (RTL_CONST_OR_PURE_CALL_P (insn))
+	    /* Pure functions can read from memory.  Const functions can
+	       read from arguments that the ABI has forced onto the stack.
+	       Neither sort of read can be volatile.  */
+	    memrefs_in_across |= MEMREF_NORMAL;
+	  else
+	    {
+	      memrefs_in_across |= MEMREF_VOLATILE;
+	      mem_sets_in_across |= MEMREF_VOLATILE;
+	    }
+	}
       if (NONDEBUG_INSN_P (insn))
 	{
 	  memrefs_in_across |= for_each_rtx (&PATTERN (insn), find_memory,

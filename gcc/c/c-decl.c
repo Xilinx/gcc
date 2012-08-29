@@ -51,7 +51,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "tree-iterator.h"
 #include "diagnostic-core.h"
-#include "tree-dump.h"
+#include "dumpfile.h"
 #include "cgraph.h"
 #include "hashtab.h"
 #include "langhooks-def.h"
@@ -3932,7 +3932,7 @@ add_flexible_array_elts_to_size (tree decl, tree init)
   if (VEC_empty (constructor_elt, CONSTRUCTOR_ELTS (init)))
     return;
 
-  elt = VEC_last (constructor_elt, CONSTRUCTOR_ELTS (init))->value;
+  elt = VEC_last (constructor_elt, CONSTRUCTOR_ELTS (init)).value;
   type = TREE_TYPE (elt);
   if (TREE_CODE (type) == ARRAY_TYPE
       && TYPE_SIZE (type) == NULL_TREE

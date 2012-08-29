@@ -1054,6 +1054,11 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define TARGET_HAS_SINCOS 0
 #endif
 
+/* Determin whether the target runtime library is Bionic */
+#ifndef TARGET_HAS_BIONIC
+#define TARGET_HAS_BIONIC 0
+#endif
+
 /* Indicate that CLZ and CTZ are undefined at zero.  */
 #ifndef CLZ_DEFINED_VALUE_AT_ZERO
 #define CLZ_DEFINED_VALUE_AT_ZERO(MODE, VALUE)  0
@@ -1211,13 +1216,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 /* Alignment value for attribute ((aligned)).  */
 #ifndef ATTRIBUTE_ALIGNED_VALUE
 #define ATTRIBUTE_ALIGNED_VALUE BIGGEST_ALIGNMENT
-#endif
-
-/* Many ports have no mode-dependent addresses (except possibly autoincrement
-   and autodecrement addresses, which are handled by target-independent code
-   in recog.c).  */
-#ifndef GO_IF_MODE_DEPENDENT_ADDRESS
-#define GO_IF_MODE_DEPENDENT_ADDRESS(X, WIN)
 #endif
 
 /* For most ports anything that evaluates to a constant symbolic

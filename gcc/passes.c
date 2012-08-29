@@ -49,7 +49,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "ggc.h"
 #include "graph.h"
 #include "regs.h"
-#include "timevar.h"
 #include "diagnostic-core.h"
 #include "params.h"
 #include "reload.h"
@@ -1286,7 +1285,6 @@ init_optimization_passes (void)
       NEXT_PASS (pass_init_datastructures);
       NEXT_PASS (pass_expand_omp);
 
-      NEXT_PASS (pass_referenced_vars);
       NEXT_PASS (pass_build_ssa);
       NEXT_PASS (pass_lower_vector);
       NEXT_PASS (pass_early_warn_uninitialized);
@@ -1325,13 +1323,13 @@ init_optimization_passes (void)
       NEXT_PASS (pass_rebuild_cgraph_edges);
       NEXT_PASS (pass_inline_parameters);
     }
+  NEXT_PASS (pass_ipa_free_inline_summary);
   NEXT_PASS (pass_ipa_tree_profile);
     {
       struct opt_pass **p = &pass_ipa_tree_profile.pass.sub;
       NEXT_PASS (pass_feedback_split_functions);
     }
   NEXT_PASS (pass_ipa_increase_alignment);
-  NEXT_PASS (pass_ipa_matrix_reorg);
   NEXT_PASS (pass_ipa_tm);
   NEXT_PASS (pass_ipa_lower_emutls);
   *p = NULL;
@@ -1726,13 +1724,7 @@ execute_function_dump (void *data ATTRIBUTE_UNUSED)
         dump_function_to_file (current_function_decl, dump_file, dump_flags);
       else
 	{
-	  if (dump_flags & TDF_SLIM)
-	    print_rtl_slim_with_bb (dump_file, get_insns (), dump_flags);
-	  else if ((cfun->curr_properties & PROP_cfg)
-		   && (dump_flags & TDF_BLOCKS))
-	    print_rtl_with_bb (dump_file, get_insns ());
-          else
-	    print_rtl (dump_file, get_insns ());
+	  print_rtl_with_bb (dump_file, get_insns (), dump_flags);
 
 	  if ((cfun->curr_properties & PROP_cfg)
 	      && graph_dump_format != no_graph
@@ -2233,9 +2225,7 @@ execute_pass_list (struct opt_pass *pass)
    those node in SET. */
 
 static void
-ipa_write_summaries_2 (struct opt_pass *pass, cgraph_node_set set,
-		       varpool_node_set vset,
-		       struct lto_out_decl_state *state)
+ipa_write_summaries_2 (struct opt_pass *pass, struct lto_out_decl_state *state)
 {
   while (pass)
     {
@@ -2253,7 +2243,7 @@ ipa_write_summaries_2 (struct opt_pass *pass, cgraph_node_set set,
 
           pass_init_dump_file (pass);
 
-	  ipa_pass->write_summary (set,vset);
+	  ipa_pass->write_summary ();
 
           pass_fini_dump_file (pass);
 
@@ -2263,7 +2253,7 @@ ipa_write_summaries_2 (struct opt_pass *pass, cgraph_node_set set,
 	}
 
       if (pass->sub && pass->sub->type != GIMPLE_PASS)
-	ipa_write_summaries_2 (pass->sub, set, vset, state);
+	ipa_write_summaries_2 (pass->sub, state);
 
       pass = pass->next;
     }
@@ -2282,8 +2272,8 @@ ipa_write_summaries_1 (cgraph_node_set set, varpool_node_set vset)
   lto_push_out_decl_state (state);
 
   gcc_assert (!flag_wpa);
-  ipa_write_summaries_2 (all_regular_ipa_passes, set, vset, state);
-  ipa_write_summaries_2 (all_lto_gen_passes, set, vset, state);
+  ipa_write_summaries_2 (all_regular_ipa_passes, state);
+  ipa_write_summaries_2 (all_lto_gen_passes, state);
 
   gcc_assert (lto_get_out_decl_state () == state);
   lto_pop_out_decl_state ();
@@ -2351,9 +2341,7 @@ ipa_write_summaries (void)
    only those node in SET. */
 
 static void
-ipa_write_optimization_summaries_1 (struct opt_pass *pass, cgraph_node_set set,
-		       varpool_node_set vset,
-		       struct lto_out_decl_state *state)
+ipa_write_optimization_summaries_1 (struct opt_pass *pass, struct lto_out_decl_state *state)
 {
   while (pass)
     {
@@ -2371,7 +2359,7 @@ ipa_write_optimization_summaries_1 (struct opt_pass *pass, cgraph_node_set set,
 
           pass_init_dump_file (pass);
 
-	  ipa_pass->write_optimization_summary (set, vset);
+	  ipa_pass->write_optimization_summary ();
 
           pass_fini_dump_file (pass);
 
@@ -2381,7 +2369,7 @@ ipa_write_optimization_summaries_1 (struct opt_pass *pass, cgraph_node_set set,
 	}
 
       if (pass->sub && pass->sub->type != GIMPLE_PASS)
-	ipa_write_optimization_summaries_1 (pass->sub, set, vset, state);
+	ipa_write_optimization_summaries_1 (pass->sub, state);
 
       pass = pass->next;
     }
@@ -2416,8 +2404,8 @@ ipa_write_optimization_summaries (cgraph_node_set set, varpool_node_set vset)
     }
 
   gcc_assert (flag_wpa);
-  ipa_write_optimization_summaries_1 (all_regular_ipa_passes, set, vset, state);
-  ipa_write_optimization_summaries_1 (all_lto_gen_passes, set, vset, state);
+  ipa_write_optimization_summaries_1 (all_regular_ipa_passes, state);
+  ipa_write_optimization_summaries_1 (all_lto_gen_passes, state);
 
   gcc_assert (lto_get_out_decl_state () == state);
   lto_pop_out_decl_state ();
@@ -2614,8 +2602,6 @@ dump_properties (FILE *dump, unsigned int props)
     fprintf (dump, "PROP_gimple_leh\n");
   if (props & PROP_cfg)
     fprintf (dump, "PROP_cfg\n");
-  if (props & PROP_referenced_vars)
-    fprintf (dump, "PROP_referenced_vars\n");
   if (props & PROP_ssa)
     fprintf (dump, "PROP_ssa\n");
   if (props & PROP_no_crit_edges)

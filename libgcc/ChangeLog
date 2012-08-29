@@ -1,3 +1,127 @@
+2012-08-24  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/54222
+	* config/avr/t-avr (conv_X): Rename to func_X.
+
+2012-08-24  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/54222
+	* config/avr/lib1funcs-fixed.S: New file.
+	* config/avr/lib1funcs.S: Include it.  Undefine some divmodsi
+	after they are used.
+	(neg2, neg4): New macros.
+	(__mulqihi3,__umulqihi3,__mulhi3): Rewrite non-MUL variants.
+	(__mulhisi3,__umulhisi3,__mulsi3): Rewrite non-MUL variants.
+	(__umulhisi3): Speed up MUL variant if there is enough flash.
+	* config/avr/avr-lib.h (TA, UTA): Adjust according to gcc's
+	avr-modes.def.
+	* config/avr/t-avr (LIB1ASMFUNCS): Add: _fractqqsf, _fractuqqsf,
+	_fracthqsf, _fractuhqsf, _fracthasf, _fractuhasf, _fractsasf,
+	_fractusasf, _fractsfqq, _fractsfuqq, _fractsfhq, _fractsfuhq,
+	_fractsfha, _fractsfsa, _mulqq3, _muluqq3, _mulhq3, _muluhq3,
+	_mulha3, _muluha3, _mulsa3, _mulusa3, _divqq3, _udivuqq3, _divhq3,
+	_udivuhq3, _divha3, _udivuha3, _divsa3, _udivusa3.
+	(LIB2FUNCS_EXCLUDE): Add supported functions.
+
+2012-08-22  Georg-Johann Lay  <avr@gjlay.de>
+
+	* Makefile.in (fixed-funcs,fixed-conv-funcs): filter-out
+	LIB2FUNCS_EXCLUDE before adding them to libgcc-objects,
+	libgcc-s-objects.
+	* fixed-obj.mk: Only expand dependency if $o is not in
+	LIB2FUNCS_EXCLUDE.
+
+2012-08-22  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/t-linux (HOST_LIBGCC2_CFLAGS): New.
+
+2012-08-22  Joseph Myers  <joseph@codesourcery.com>
+
+	* Makefile.in (vis_hide, gen-hide-list): Do not make definitions
+	depend on --enable-shared.
+	($(lib1asmfuncs-o)): Use %.vis files independent of
+	--enable-shared.
+	* static-object.mk ($(base)$(objext), $(base).vis)
+	($(base)_s$(objext)): Use same rules for visibility handling as in
+	shared-object.mk.
+
+2012-08-21  Ian Lance Taylor  <iant@google.com>
+
+	* config/i386/morestack.S (__morestack_non_split): Increase amount
+	of space allocated for non-split code stack.
+
+2012-08-19  Joseph Myers  <joseph@codesourcery.com>
+
+	* crtstuff.c (USE_PT_GNU_EH_FRAME): Define for systems using glibc
+	even if inhibit_libc.
+
+2012-08-17  Julian Brown  <julian@codesourcery.com>
+
+	* Makefile.in (LIB2_DIVMOD_EXCEPTION_FLAGS): Default to
+	-fexceptions -fnon-call-exceptions if not defined.
+	($(lib2-divmod-o), $(lib2-divmod-s-o)): Use above.
+	* config/arm/t-bpabi (LIB2_DIVMOD_EXCEPTION_FLAGS): Define.
+
+2012-08-17  Andreas Schwab  <schwab@linux-m68k.org>
+
+	* config/m68k/linux-atomic.c (__sync_lock_test_and_set_1): Fix
+	type.
+
+2012-08-16  David Edelsohn  <dje.gcc@gmail.com>
+
+	* config.host (*-*-aix*): Move rs6000/t-ibm-ldouble after
+	rs6000/t-slibgcc-aix.
+
+2012-08-15  Segher Boessenkool  <segher@kernel.crashing.org>
+
+	* longlong.h: (powerpc): Delete _ARCH_PWR and _ARCH_COM handling.
+
+2012-08-15  Segher Boessenkool  <segher@kernel.crashing.org>
+
+	* longlong.h: (whole file, powerpc): Adjust to single assembler syntax.
+
+2012-08-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR driver/54171
+	* Makefile.in (version): Replace top_srcdir with srcdir.
+
+2012-08-03  Jonathan Yong  <jon_y@users.sourceforge.net>
+
+	* Makefile.in (version): set to BASE-VER file from gcc directory.
+
+2012-08-01  Nick Clifton  <nickc@redhat.com>
+
+	* config/m32c/lib2funcs.c (__clrsbhi2): New function.
+	Implements __clrsb for an HImode argument.
+
+2012-07-31  Nick Clifton  <nickc@redhat.com>
+
+	* config/stormy16/lib2funcs.c (__clrsbhi2): New function.
+	Implements __clrsb for an HImode argument.
+	* config/stormy16/clrsbhi2.c: New file:
+	* config/stormy16/t-stormy16 (LIB2ADD): Add clrsbhi2.c.
+
+2012-07-22  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* libgcov.c (__gcov_ior_profiler): Benign comment fix.
+
+2012-07-19  Tristan Gingold  <gingold@adacore.com>
+	    Richard Henderson  <rth@redhat.com>
+
+	* unwind-seh.c: New file.
+	* unwind-generic.h: Include windows.h for SEH.
+	(_Unwind_Exception): Use 6 private fields for SEH.
+	(_GCC_specific_handler): Declare.
+	* unwind-c.c (__gcc_personality_seh0): New function.
+	Adjust for SEH.
+	* config/i386/libgcc-cygming.ver: New file.
+	* config/i386/t-seh-eh: New file.
+	* config.host (x86_64-*-mingw*): Default to seh.
+
+2012-07-14  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* config/t-darwin (crt3.0): Remove work-around for fixed PR26840.
+
 2012-06-17  Uros Bizjak  <ubizjak@gmail.com>
 
 	* config/i386/sfp-machine.h (FP_HANDLE_EXCEPTIONS): Use

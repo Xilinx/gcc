@@ -104,11 +104,6 @@ procedure Gnat1drv is
    --  Called when we are not generating code, to check if -gnatR was requested
    --  and if so, explain that we will not be honoring the request.
 
-   procedure Check_Library_Items;
-   --  For debugging -- checks the behavior of Walk_Library_Items
-   pragma Warnings (Off, Check_Library_Items);
-   --  In case the call below is commented out
-
    ----------------------------
    -- Adjust_Global_Switches --
    ----------------------------
@@ -198,13 +193,16 @@ procedure Gnat1drv is
          --  Enable all other language checks
 
          Suppress_Options :=
-           (Access_Check      => True,
-            Alignment_Check   => True,
-            Division_Check    => True,
-            Elaboration_Check => True,
-            Overflow_Check    => True,
-            others            => False);
-         Enable_Overflow_Checks := False;
+           (Suppress                   => (Access_Check      => True,
+                                           Alignment_Check   => True,
+                                           Division_Check    => True,
+                                           Elaboration_Check => True,
+                                           Overflow_Check    => True,
+                                           others            => False),
+            Overflow_Checks_General    => Suppress,
+            Overflow_Checks_Assertions => Suppress);
+
+         Enable_Overflow_Checks     := False;
          Dynamic_Elaboration_Checks := False;
 
          --  Kill debug of generated code, since it messes up sloc values
@@ -344,9 +342,11 @@ procedure Gnat1drv is
                         and
                        Targparm.Backend_Overflow_Checks_On_Target))
       then
-         Suppress_Options (Overflow_Check) := False;
+         Suppress_Options.Suppress (Overflow_Check) := False;
       else
-         Suppress_Options (Overflow_Check) := True;
+         Suppress_Options.Suppress (Overflow_Check)  := True;
+         Suppress_Options.Overflow_Checks_General    := Check_All;
+         Suppress_Options.Overflow_Checks_Assertions := Check_All;
       end if;
 
       --  Set default for atomic synchronization. As this synchronization
@@ -354,7 +354,8 @@ procedure Gnat1drv is
       --  on some targets, an optional target parameter can turn the option
       --  off. Note Atomic Synchronization is implemented as check.
 
-      Suppress_Options (Atomic_Synchronization) := not Atomic_Sync_Default;
+      Suppress_Options.Suppress (Atomic_Synchronization) :=
+        not Atomic_Sync_Default;
 
       --  Set switch indicating if we can use N_Expression_With_Actions
 
@@ -431,12 +432,12 @@ procedure Gnat1drv is
          Restrict.Restrictions.Set (No_Initialize_Scalars) := True;
 
          --  Suppress all language checks since they are handled implicitly by
-         --  the formal verification backend.
+         --    the formal verification backend.
          --  Turn off dynamic elaboration checks.
          --  Turn off alignment checks.
          --  Turn off validity checking.
 
-         Suppress_Options := (others => True);
+         Suppress_Options := Suppress_All;
          Enable_Overflow_Checks := False;
          Dynamic_Elaboration_Checks := False;
          Reset_Validity_Check_Options;
@@ -658,35 +659,6 @@ procedure Gnat1drv is
          end if;
       end if;
    end Check_Bad_Body;
-
-   -------------------------
-   -- Check_Library_Items --
-   -------------------------
-
-   --  Walk_Library_Items has plenty of assertions, so all we need to do is
-   --  call it, just for these assertions, not actually doing anything else.
-
-   procedure Check_Library_Items is
-
-      procedure Action (Item : Node_Id);
-      --  Action passed to Walk_Library_Items to do nothing
-
-      ------------
-      -- Action --
-      ------------
-
-      procedure Action (Item : Node_Id) is
-      begin
-         null;
-      end Action;
-
-      procedure Walk is new Sem.Walk_Library_Items (Action);
-
-   --  Start of processing for Check_Library_Items
-
-   begin
-      Walk;
-   end Check_Library_Items;
 
    --------------------
    -- Check_Rep_Info --
@@ -1135,14 +1107,6 @@ begin
       Sinput.Lock;
       Namet.Lock;
       Stringt.Lock;
-
-      --  ???Check_Library_Items under control of a debug flag, because it
-      --  currently does not work if the -gnatn switch (back end inlining) is
-      --  used.
-
-      if Debug_Flag_Dot_WW then
-         Check_Library_Items;
-      end if;
 
       --  Here we call the back end to generate the output code
 

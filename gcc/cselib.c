@@ -25,6 +25,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 
 #include "rtl.h"
+#include "tree.h"/* FIXME: For hashing DEBUG_EXPR & friends.  */
 #include "tm_p.h"
 #include "regs.h"
 #include "hard-reg-set.h"
@@ -36,8 +37,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic-core.h"
 #include "ggc.h"
 #include "hashtab.h"
-#include "tree-pass.h"
+#include "dumpfile.h"
 #include "cselib.h"
+#include "valtrack.h"
 #include "params.h"
 #include "alloc-pool.h"
 #include "target.h"
@@ -1007,8 +1009,9 @@ rtx_equal_for_cselib_1 (rtx x, rtx y, enum machine_mode memmode)
 static rtx
 wrap_constant (enum machine_mode mode, rtx x)
 {
-  if (!CONST_INT_P (x) && GET_CODE (x) != CONST_FIXED
-      && (GET_CODE (x) != CONST_DOUBLE || GET_MODE (x) != VOIDmode))
+  if (!CONST_INT_P (x) 
+      && GET_CODE (x) != CONST_FIXED
+      && !CONST_DOUBLE_AS_INT_P (x))
     return x;
   gcc_assert (mode != VOIDmode);
   return gen_rtx_CONST (mode, x);
@@ -1600,9 +1603,7 @@ cselib_expand_value_rtx_1 (rtx orig, struct expand_value_data *evd,
 	    }
       }
 
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case CODE_LABEL:
     case PC:
@@ -1853,10 +1854,7 @@ cselib_subst_to_values (rtx x, enum machine_mode memmode)
 	break;
       return e->val_rtx;
 
-    case CONST_DOUBLE:
-    case CONST_VECTOR:
-    case CONST_INT:
-    case CONST_FIXED:
+    CASE_CONST_ANY:
       return x;
 
     case PRE_DEC:

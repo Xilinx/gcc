@@ -1,6 +1,6 @@
 // <future> -*- C++ -*-
 
-// Copyright (C) 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
+// Copyright (C) 2009-2012 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -36,14 +36,16 @@
 #else
 
 #include <functional>
-#include <memory>
 #include <mutex>
 #include <thread>
 #include <condition_variable>
 #include <system_error>
-#include <exception>
 #include <atomic>
 #include <bits/functexcept.h>
+#include <bits/unique_ptr.h>
+#include <bits/shared_ptr.h>
+#include <bits/uses_allocator.h>
+#include <bits/alloc_traits.h>
 
 namespace std _GLIBCXX_VISIBILITY(default)
 {
@@ -1425,10 +1427,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   class __future_base::_Async_state_common : public __future_base::_State_base
   {
   protected:
-#ifdef _GLIBCXX_HAVE_TLS
+#ifdef _GLIBCXX_ASYNC_ABI_COMPAT
     ~_Async_state_common();
 #else
-    ~_Async_state_common() { _M_join(); }
+    ~_Async_state_common() = default;
 #endif
 
     // Allow non-timed waiting functions to block until the thread completes,
@@ -1454,6 +1456,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	  _M_set_result(_S_task_setter(_M_result, _M_fn));
         } };
       }
+
+      ~_Async_state_impl() { _M_join(); }
 
     private:
       typedef __future_base::_Ptr<_Result<_Res>> _Ptr_type;

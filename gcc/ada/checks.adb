@@ -322,7 +322,7 @@ package body Checks is
       if Present (E) and then Checks_May_Be_Suppressed (E) then
          return Is_Check_Suppressed (E, Access_Check);
       else
-         return Scope_Suppress (Access_Check);
+         return Scope_Suppress.Suppress (Access_Check);
       end if;
    end Access_Checks_Suppressed;
 
@@ -335,7 +335,7 @@ package body Checks is
       if Present (E) and then Checks_May_Be_Suppressed (E) then
          return Is_Check_Suppressed (E, Accessibility_Check);
       else
-         return Scope_Suppress (Accessibility_Check);
+         return Scope_Suppress.Suppress (Accessibility_Check);
       end if;
    end Accessibility_Checks_Suppressed;
 
@@ -378,7 +378,7 @@ package body Checks is
       if Present (E) and then Checks_May_Be_Suppressed (E) then
          return Is_Check_Suppressed (E, Alignment_Check);
       else
-         return Scope_Suppress (Alignment_Check);
+         return Scope_Suppress.Suppress (Alignment_Check);
       end if;
    end Alignment_Checks_Suppressed;
 
@@ -2616,7 +2616,7 @@ package body Checks is
       --  Otherwise result depends on current scope setting
 
       else
-         return Scope_Suppress (Atomic_Synchronization);
+         return Scope_Suppress.Suppress (Atomic_Synchronization);
       end if;
    end Atomic_Synchronization_Disabled;
 
@@ -3151,6 +3151,9 @@ package body Checks is
       Cindex : Cache_Index;
       --  Used to search cache
 
+      Btyp : Entity_Id;
+      --  Base type
+
       function OK_Operands return Boolean;
       --  Used for binary operators. Determines the ranges of the left and
       --  right operands, and if they are both OK, returns True, and puts
@@ -3267,6 +3270,15 @@ package body Checks is
          Typ := Underlying_Type (Base_Type (Typ));
       end if;
 
+      --  Retrieve the base type. Handle the case where the base type is a
+      --  private enumeration type.
+
+      Btyp := Base_Type (Typ);
+
+      if Is_Private_Type (Btyp) and then Present (Full_View (Btyp)) then
+         Btyp := Full_View (Btyp);
+      end if;
+
       --  We use the actual bound unless it is dynamic, in which case use the
       --  corresponding base type bound if possible. If we can't get a bound
       --  then we figure we can't determine the range (a peculiar case, that
@@ -3280,8 +3292,8 @@ package body Checks is
       if Compile_Time_Known_Value (Bound) then
          Lo := Expr_Value (Bound);
 
-      elsif Compile_Time_Known_Value (Type_Low_Bound (Base_Type (Typ))) then
-         Lo := Expr_Value (Type_Low_Bound (Base_Type (Typ)));
+      elsif Compile_Time_Known_Value (Type_Low_Bound (Btyp)) then
+         Lo := Expr_Value (Type_Low_Bound (Btyp));
 
       else
          OK := False;
@@ -3296,8 +3308,8 @@ package body Checks is
       --  always be compile time known. Again, it is not clear that this
       --  can ever be false, but no point in bombing.
 
-      if Compile_Time_Known_Value (Type_High_Bound (Base_Type (Typ))) then
-         Hbound := Expr_Value (Type_High_Bound (Base_Type (Typ)));
+      if Compile_Time_Known_Value (Type_High_Bound (Btyp)) then
+         Hbound := Expr_Value (Type_High_Bound (Btyp));
          Hi := Hbound;
 
       else
@@ -3629,7 +3641,7 @@ package body Checks is
          end if;
       end if;
 
-      return Scope_Suppress (Discriminant_Check);
+      return Scope_Suppress.Suppress (Discriminant_Check);
    end Discriminant_Checks_Suppressed;
 
    --------------------------------
@@ -3641,7 +3653,7 @@ package body Checks is
       if Present (E) and then Checks_May_Be_Suppressed (E) then
          return Is_Check_Suppressed (E, Division_Check);
       else
-         return Scope_Suppress (Division_Check);
+         return Scope_Suppress.Suppress (Division_Check);
       end if;
    end Division_Checks_Suppressed;
 
@@ -3670,10 +3682,10 @@ package body Checks is
          end if;
       end if;
 
-      if Scope_Suppress (Elaboration_Check) then
+      if Scope_Suppress.Suppress (Elaboration_Check) then
          return True;
       elsif Dynamic_Elaboration_Checks then
-         return Scope_Suppress (All_Checks);
+         return Scope_Suppress.Suppress (All_Checks);
       else
          return False;
       end if;
@@ -4744,17 +4756,17 @@ package body Checks is
             --  associated subtype.
 
             Insert_Action (N,
-               Make_Raise_Constraint_Error (Loc,
-                 Condition =>
-                    Make_Not_In (Loc,
-                      Left_Opnd  =>
-                        Convert_To (Base_Type (Etype (Sub)),
-                          Duplicate_Subexpr_Move_Checks (Sub)),
-                      Right_Opnd =>
-                        Make_Attribute_Reference (Loc,
-                          Prefix         => New_Reference_To (Etype (A), Loc),
-                          Attribute_Name => Name_Range)),
-                 Reason => CE_Index_Check_Failed));
+              Make_Raise_Constraint_Error (Loc,
+                Condition =>
+                   Make_Not_In (Loc,
+                     Left_Opnd  =>
+                       Convert_To (Base_Type (Etype (Sub)),
+                         Duplicate_Subexpr_Move_Checks (Sub)),
+                     Right_Opnd =>
+                       Make_Attribute_Reference (Loc,
+                         Prefix         => New_Reference_To (Etype (A), Loc),
+                         Attribute_Name => Name_Range)),
+                Reason => CE_Index_Check_Failed));
          end if;
 
       --  General case
@@ -4831,14 +4843,14 @@ package body Checks is
                   end if;
 
                   Insert_Action (N,
-                     Make_Raise_Constraint_Error (Loc,
-                       Condition =>
-                          Make_Not_In (Loc,
-                            Left_Opnd  =>
-                              Convert_To (Base_Type (Etype (Sub)),
-                                Duplicate_Subexpr_Move_Checks (Sub)),
-                            Right_Opnd => Range_N),
-                       Reason => CE_Index_Check_Failed));
+                    Make_Raise_Constraint_Error (Loc,
+                      Condition =>
+                         Make_Not_In (Loc,
+                           Left_Opnd  =>
+                             Convert_To (Base_Type (Etype (Sub)),
+                               Duplicate_Subexpr_Move_Checks (Sub)),
+                           Right_Opnd => Range_N),
+                      Reason => CE_Index_Check_Failed));
                end if;
 
                A_Idx := Next_Index (A_Idx);
@@ -5293,7 +5305,7 @@ package body Checks is
       if Present (E) and then Checks_May_Be_Suppressed (E) then
          return Is_Check_Suppressed (E, Index_Check);
       else
-         return Scope_Suppress (Index_Check);
+         return Scope_Suppress.Suppress (Index_Check);
       end if;
    end Index_Checks_Suppressed;
 
@@ -5809,7 +5821,7 @@ package body Checks is
       if Present (E) and then Checks_May_Be_Suppressed (E) then
          return Is_Check_Suppressed (E, Length_Check);
       else
-         return Scope_Suppress (Length_Check);
+         return Scope_Suppress.Suppress (Length_Check);
       end if;
    end Length_Checks_Suppressed;
 
@@ -5822,7 +5834,7 @@ package body Checks is
       if Present (E) and then Checks_May_Be_Suppressed (E) then
          return Is_Check_Suppressed (E, Overflow_Check);
       else
-         return Scope_Suppress (Overflow_Check);
+         return Scope_Suppress.Suppress (Overflow_Check);
       end if;
    end Overflow_Checks_Suppressed;
 
@@ -5846,7 +5858,7 @@ package body Checks is
          end if;
       end if;
 
-      return Scope_Suppress (Range_Check);
+      return Scope_Suppress.Suppress (Range_Check);
    end Range_Checks_Suppressed;
 
    -----------------------------------------
@@ -5863,7 +5875,10 @@ package body Checks is
    begin
       --  Immediate return if scope checks suppressed for either check
 
-      if Scope_Suppress (Range_Check) or Scope_Suppress (Validity_Check) then
+      if Scope_Suppress.Suppress (Range_Check)
+           or
+         Scope_Suppress.Suppress (Validity_Check)
+      then
          return True;
       end if;
 
@@ -6648,12 +6663,6 @@ package body Checks is
             LB := New_Occurrence_Of (Discriminal (Entity (LB)), Loc);
          end if;
 
-         if Nkind (HB) = N_Identifier
-           and then Ekind (Entity (HB)) = E_Discriminant
-         then
-            HB := New_Occurrence_Of (Discriminal (Entity (HB)), Loc);
-         end if;
-
          Left_Opnd :=
            Make_Op_Lt (Loc,
              Left_Opnd  =>
@@ -6665,28 +6674,10 @@ package body Checks is
                  (Base_Type (Typ),
                   Get_E_First_Or_Last (Loc, Typ, 0, Name_First)));
 
-         if Base_Type (Typ) = Typ then
-            return Left_Opnd;
-
-         elsif Compile_Time_Known_Value (High_Bound (Scalar_Range (Typ)))
-            and then
-               Compile_Time_Known_Value (High_Bound (Scalar_Range
-                                                     (Base_Type (Typ))))
+         if Nkind (HB) = N_Identifier
+           and then Ekind (Entity (HB)) = E_Discriminant
          then
-            if Is_Floating_Point_Type (Typ) then
-               if Expr_Value_R (High_Bound (Scalar_Range (Typ))) =
-                  Expr_Value_R (High_Bound (Scalar_Range (Base_Type (Typ))))
-               then
-                  return Left_Opnd;
-               end if;
-
-            else
-               if Expr_Value (High_Bound (Scalar_Range (Typ))) =
-                  Expr_Value (High_Bound (Scalar_Range (Base_Type (Typ))))
-               then
-                  return Left_Opnd;
-               end if;
-            end if;
+            HB := New_Occurrence_Of (Discriminal (Entity (HB)), Loc);
          end if;
 
          Right_Opnd :=
@@ -7368,7 +7359,7 @@ package body Checks is
       if Present (E) and then Checks_May_Be_Suppressed (E) then
          return Is_Check_Suppressed (E, Storage_Check);
       else
-         return Scope_Suppress (Storage_Check);
+         return Scope_Suppress.Suppress (Storage_Check);
       end if;
    end Storage_Checks_Suppressed;
 
@@ -7384,7 +7375,7 @@ package body Checks is
          return Is_Check_Suppressed (E, Tag_Check);
       end if;
 
-      return Scope_Suppress (Tag_Check);
+      return Scope_Suppress.Suppress (Tag_Check);
    end Tag_Checks_Suppressed;
 
    --------------------------
@@ -7410,7 +7401,7 @@ package body Checks is
       if Present (E) and then Checks_May_Be_Suppressed (E) then
          return Is_Check_Suppressed (E, Validity_Check);
       else
-         return Scope_Suppress (Validity_Check);
+         return Scope_Suppress.Suppress (Validity_Check);
       end if;
    end Validity_Checks_Suppressed;
 

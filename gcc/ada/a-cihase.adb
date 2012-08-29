@@ -185,6 +185,13 @@ package body Ada.Containers.Indefinite_Hashed_Sets is
 
    procedure Assign (Node : Node_Access; Item : Element_Type) is
       X : Element_Access := Node.Element;
+
+      --  The element allocator may need an accessibility check in the case the
+      --  actual type is class-wide or has access discriminants (RM 4.8(10.1)
+      --  and AI12-0035).
+
+      pragma Unsuppress (Accessibility_Check);
+
    begin
       Node.Element := new Element_Type'(Item);
       Free_Element (X);
@@ -194,10 +201,10 @@ package body Ada.Containers.Indefinite_Hashed_Sets is
    begin
       if Target'Address = Source'Address then
          return;
+      else
+         Target.Clear;
+         Target.Union (Source);
       end if;
-
-      Target.Clear;
-      Target.Union (Source);
    end Assign;
 
    --------------
@@ -807,7 +814,16 @@ package body Ada.Containers.Indefinite_Hashed_Sets is
 
          X := Position.Node.Element;
 
-         Position.Node.Element := new Element_Type'(New_Item);
+         declare
+            --  The element allocator may need an accessibility check in the
+            --  case the actual type is class-wide or has access discriminants
+            --  (see RM 4.8(10.1) and AI12-0035).
+
+            pragma Unsuppress (Accessibility_Check);
+
+         begin
+            Position.Node.Element := new Element_Type'(New_Item);
+         end;
 
          Free_Element (X);
       end if;
@@ -863,9 +879,18 @@ package body Ada.Containers.Indefinite_Hashed_Sets is
       --------------
 
       function New_Node (Next : Node_Access) return Node_Access is
+
+         --  The element allocator may need an accessibility check in the case
+         --  the actual type is class-wide or has access discriminants (see
+         --  RM 4.8(10.1) and AI12-0035).
+
+         pragma Unsuppress (Accessibility_Check);
+
          Element : Element_Access := new Element_Type'(New_Item);
+
       begin
          return new Node_Type'(Element, Next);
+
       exception
          when others =>
             Free_Element (Element);
@@ -881,9 +906,7 @@ package body Ada.Containers.Indefinite_Hashed_Sets is
 
       Local_Insert (HT, New_Item, Node, Inserted);
 
-      if Inserted
-        and then HT.Length > HT_Ops.Capacity (HT)
-      then
+      if Inserted and then HT.Length > HT_Ops.Capacity (HT) then
          HT_Ops.Reserve_Capacity (HT, HT.Length);
       end if;
    end Insert;
@@ -1317,7 +1340,16 @@ package body Ada.Containers.Indefinite_Hashed_Sets is
 
       X := Node.Element;
 
-      Node.Element := new Element_Type'(New_Item);
+      declare
+         --  The element allocator may need an accessibility check in the case
+         --  the actual type is class-wide or has access discriminants (see
+         --  RM 4.8(10.1) and AI12-0035).
+
+         pragma Unsuppress (Accessibility_Check);
+
+      begin
+         Node.Element := new Element_Type'(New_Item);
+      end;
 
       Free_Element (X);
    end Replace;

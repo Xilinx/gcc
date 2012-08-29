@@ -28,13 +28,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "tm_p.h"
 #include "basic-block.h"
-#include "timevar.h"
 #include "ggc.h"
 #include "langhooks.h"
 #include "flags.h"
 #include "function.h"
 #include "tree-pretty-print.h"
-#include "tree-dump.h"
 #include "gimple.h"
 #include "tree-flow.h"
 #include "tree-inline.h"
@@ -48,7 +46,6 @@ along with GCC; see the file COPYING3.  If not see
 /* Counters used to display DFA and SSA statistics.  */
 struct dfa_stats_d
 {
-  long num_var_anns;
   long num_defs;
   long num_uses;
   long num_phis;
@@ -66,56 +63,6 @@ static void collect_dfa_stats (struct dfa_stats_d *);
 /*---------------------------------------------------------------------------
 			Dataflow analysis (DFA) routines
 ---------------------------------------------------------------------------*/
-/* Find all the variables referenced in the function.  This function
-   builds the global arrays REFERENCED_VARS and CALL_CLOBBERED_VARS.
-
-   Note that this function does not look for statement operands, it simply
-   determines what variables are referenced in the program and detects
-   various attributes for each variable used by alias analysis and the
-   optimizer.  */
-
-static unsigned int
-find_referenced_vars (void)
-{
-  basic_block bb;
-  gimple_stmt_iterator si;
-
-  FOR_EACH_BB (bb)
-    {
-      for (si = gsi_start_bb (bb); !gsi_end_p (si); gsi_next (&si))
-	{
-	  gimple stmt = gsi_stmt (si);
-	  if (is_gimple_debug (stmt))
-	    continue;
-	  find_referenced_vars_in (gsi_stmt (si));
-	}
-
-      for (si = gsi_start_phis (bb); !gsi_end_p (si); gsi_next (&si))
-	find_referenced_vars_in (gsi_stmt (si));
-    }
-
-  return 0;
-}
-
-struct gimple_opt_pass pass_referenced_vars =
-{
- {
-  GIMPLE_PASS,
-  "*referenced_vars",			/* name */
-  NULL,					/* gate */
-  find_referenced_vars,			/* execute */
-  NULL,					/* sub */
-  NULL,					/* next */
-  0,					/* static_pass_number */
-  TV_FIND_REFERENCED_VARS,		/* tv_id */
-  PROP_gimple_leh | PROP_cfg,		/* properties_required */
-  PROP_referenced_vars,			/* properties_provided */
-  0,					/* properties_destroyed */
-  0,                     		/* todo_flags_start */
-  0                                     /* todo_flags_finish */
- }
-};
-
 
 /* Renumber all of the gimple stmt uids.  */
 
@@ -167,56 +114,11 @@ renumber_gimple_stmt_uids_in_blocks (basic_block *blocks, int n_blocks)
     }
 }
 
-/* Build a temporary.  Make sure and register it to be renamed.  */
-
-tree
-make_rename_temp (tree type, const char *prefix)
-{
-  tree t = create_tmp_reg (type, prefix);
-
-  if (gimple_referenced_vars (cfun))
-    add_referenced_var (t);
-  if (gimple_in_ssa_p (cfun))
-    mark_sym_for_renaming (t);
-
-  return t;
-}
-
 
 
 /*---------------------------------------------------------------------------
 			      Debugging functions
 ---------------------------------------------------------------------------*/
-/* Dump the list of all the referenced variables in the current function to
-   FILE.  */
-
-void
-dump_referenced_vars (FILE *file)
-{
-  tree var;
-  referenced_var_iterator rvi;
-
-  fprintf (file, "\nReferenced variables in %s: %u\n\n",
-	   get_name (current_function_decl), (unsigned) num_referenced_vars);
-
-  FOR_EACH_REFERENCED_VAR (cfun, var, rvi)
-    {
-      fprintf (file, "Variable: ");
-      dump_variable (file, var);
-    }
-
-  fprintf (file, "\n");
-}
-
-
-/* Dump the list of all the referenced variables to stderr.  */
-
-DEBUG_FUNCTION void
-debug_referenced_vars (void)
-{
-  dump_referenced_vars (stderr);
-}
-
 
 /* Dump variable VAR and its may-aliases to FILE.  */
 
@@ -254,10 +156,10 @@ dump_variable (FILE *file, tree var)
   if (TREE_THIS_VOLATILE (var))
     fprintf (file, ", is volatile");
 
-  if (cfun && gimple_default_def (cfun, var))
+  if (cfun && ssa_default_def (cfun, var))
     {
       fprintf (file, ", default def: ");
-      print_generic_expr (file, gimple_default_def (cfun, var), dump_flags);
+      print_generic_expr (file, ssa_default_def (cfun, var), dump_flags);
     }
 
   if (DECL_INITIAL (var))
@@ -301,16 +203,6 @@ dump_dfa_stats (FILE *file)
   fprintf (file, fmt_str, "", "  Number of  ", "Memory");
   fprintf (file, fmt_str, "", "  instances  ", "used ");
   fprintf (file, "---------------------------------------------------------\n");
-
-  size = num_referenced_vars * sizeof (tree);
-  total += size;
-  fprintf (file, fmt_str_1, "Referenced variables", (unsigned long)num_referenced_vars,
-	   SCALE (size), LABEL (size));
-
-  size = dfa_stats.num_var_anns * sizeof (struct var_ann_d);
-  total += size;
-  fprintf (file, fmt_str_1, "Variables annotated", dfa_stats.num_var_anns,
-	   SCALE (size), LABEL (size));
 
   size = dfa_stats.num_uses * sizeof (tree *);
   total += size;
@@ -373,17 +265,10 @@ static void
 collect_dfa_stats (struct dfa_stats_d *dfa_stats_p ATTRIBUTE_UNUSED)
 {
   basic_block bb;
-  referenced_var_iterator vi;
-  tree var;
 
   gcc_assert (dfa_stats_p);
 
   memset ((void *)dfa_stats_p, 0, sizeof (struct dfa_stats_d));
-
-  /* Count all the variable annotations.  */
-  FOR_EACH_REFERENCED_VAR (cfun, var, vi)
-    if (var_ann (var))
-      dfa_stats_p->num_var_anns++;
 
   /* Walk all the statements in the function counting references.  */
   FOR_EACH_BB (bb)
@@ -414,195 +299,74 @@ collect_dfa_stats (struct dfa_stats_d *dfa_stats_p ATTRIBUTE_UNUSED)
 /*---------------------------------------------------------------------------
 			     Miscellaneous helpers
 ---------------------------------------------------------------------------*/
-/* Callback for walk_tree.  Used to collect variables referenced in
-   the function.  */
-
-static tree
-find_vars_r (tree *tp, int *walk_subtrees, void *data)
-{
-  struct function *fn = (struct function *) data;
-
-  /* If we are reading the lto info back in, we need to rescan the
-     referenced vars.  */
-  if (TREE_CODE (*tp) == SSA_NAME)
-    add_referenced_var_1 (SSA_NAME_VAR (*tp), fn);
-
-  /* If T is a regular variable that the optimizers are interested
-     in, add it to the list of variables.  */
-  else if ((TREE_CODE (*tp) == VAR_DECL
-	    && !is_global_var (*tp))
-	   || TREE_CODE (*tp) == PARM_DECL
-	   || TREE_CODE (*tp) == RESULT_DECL)
-    add_referenced_var_1 (*tp, fn);
-
-  /* Type, _DECL and constant nodes have no interesting children.
-     Ignore them.  */
-  else if (IS_TYPE_OR_DECL_P (*tp) || CONSTANT_CLASS_P (*tp))
-    *walk_subtrees = 0;
-
-  return NULL_TREE;
-}
-
-/* Find referenced variables in STMT.  */
-
-void
-find_referenced_vars_in (gimple stmt)
-{
-  size_t i;
-
-  if (gimple_code (stmt) != GIMPLE_PHI)
-    {
-      for (i = 0; i < gimple_num_ops (stmt); i++)
-	walk_tree (gimple_op_ptr (stmt, i), find_vars_r, cfun, NULL);
-    }
-  else
-    {
-      walk_tree (gimple_phi_result_ptr (stmt), find_vars_r, cfun, NULL);
-
-      for (i = 0; i < gimple_phi_num_args (stmt); i++)
-	{
-	  tree arg = gimple_phi_arg_def (stmt, i);
-	  walk_tree (&arg, find_vars_r, cfun, NULL);
-	}
-    }
-}
-
-
-/* Lookup UID in the referenced_vars hashtable and return the associated
-   variable.  */
-
-tree
-referenced_var_lookup (struct function *fn, unsigned int uid)
-{
-  tree h;
-  struct tree_decl_minimal in;
-  in.uid = uid;
-  h = (tree) htab_find_with_hash (gimple_referenced_vars (fn), &in, uid);
-  return h;
-}
-
-/* Check if TO is in the referenced_vars hash table and insert it if not.
-   Return true if it required insertion.  */
-
-static bool
-referenced_var_check_and_insert (tree to, struct function *fn)
-{
-  tree *loc;
-  struct tree_decl_minimal in;
-  unsigned int uid = DECL_UID (to);
-
-  in.uid = uid;
-  loc = (tree *) htab_find_slot_with_hash (gimple_referenced_vars (fn),
-					   &in, uid, INSERT);
-  if (*loc)
-    {
-      /* DECL_UID has already been entered in the table.  Verify that it is
-	 the same entry as TO.  See PR 27793.  */
-      gcc_assert (*loc == to);
-      return false;
-    }
-
-  *loc = to;
-  return true;
-}
 
 /* Lookup VAR UID in the default_defs hashtable and return the associated
    variable.  */
 
 tree
-gimple_default_def (struct function *fn, tree var)
+ssa_default_def (struct function *fn, tree var)
 {
   struct tree_decl_minimal ind;
   struct tree_ssa_name in;
-  gcc_assert (SSA_VAR_P (var));
+  gcc_assert (TREE_CODE (var) == VAR_DECL
+	      || TREE_CODE (var) == PARM_DECL
+	      || TREE_CODE (var) == RESULT_DECL);
   in.var = (tree)&ind;
   ind.uid = DECL_UID (var);
   return (tree) htab_find_with_hash (DEFAULT_DEFS (fn), &in, DECL_UID (var));
 }
 
-/* Insert the pair VAR's UID, DEF into the default_defs hashtable.  */
+/* Insert the pair VAR's UID, DEF into the default_defs hashtable
+   of function FN.  */
 
 void
-set_default_def (tree var, tree def)
+set_ssa_default_def (struct function *fn, tree var, tree def)
 {
   struct tree_decl_minimal ind;
   struct tree_ssa_name in;
   void **loc;
 
-  gcc_assert (SSA_VAR_P (var));
+  gcc_assert (TREE_CODE (var) == VAR_DECL
+	      || TREE_CODE (var) == PARM_DECL
+	      || TREE_CODE (var) == RESULT_DECL);
   in.var = (tree)&ind;
   ind.uid = DECL_UID (var);
   if (!def)
     {
-      loc = htab_find_slot_with_hash (DEFAULT_DEFS (cfun), &in,
-            DECL_UID (var), INSERT);
-      gcc_assert (*loc);
-      htab_remove_elt (DEFAULT_DEFS (cfun), *loc);
+      loc = htab_find_slot_with_hash (DEFAULT_DEFS (fn), &in,
+				      DECL_UID (var), NO_INSERT);
+      if (*loc)
+	{
+	  SSA_NAME_IS_DEFAULT_DEF (*(tree *)loc) = false;
+	  htab_clear_slot (DEFAULT_DEFS (fn), loc);
+	}
       return;
     }
   gcc_assert (TREE_CODE (def) == SSA_NAME && SSA_NAME_VAR (def) == var);
-  loc = htab_find_slot_with_hash (DEFAULT_DEFS (cfun), &in,
+  loc = htab_find_slot_with_hash (DEFAULT_DEFS (fn), &in,
                                   DECL_UID (var), INSERT);
 
   /* Default definition might be changed by tail call optimization.  */
   if (*loc)
     SSA_NAME_IS_DEFAULT_DEF (*(tree *) loc) = false;
-  *(tree *) loc = def;
 
    /* Mark DEF as the default definition for VAR.  */
-   SSA_NAME_IS_DEFAULT_DEF (def) = true;
+  *(tree *) loc = def;
+  SSA_NAME_IS_DEFAULT_DEF (def) = true;
 }
 
-/* Add VAR to the list of referenced variables if it isn't already there.  */
+/* Retrieve or create a default definition for VAR.  */
 
-bool
-add_referenced_var_1 (tree var, struct function *fn)
+tree
+get_or_create_ssa_default_def (struct function *fn, tree var)
 {
-  gcc_checking_assert (TREE_CODE (var) == VAR_DECL
-		       || TREE_CODE (var) == PARM_DECL
-		       || TREE_CODE (var) == RESULT_DECL);
-
-  gcc_checking_assert ((TREE_CODE (var) == VAR_DECL
-			&& VAR_DECL_IS_VIRTUAL_OPERAND (var))
-		       || !is_global_var (var));
-
-  /* Insert VAR into the referenced_vars hash table if it isn't present
-     and allocate its var-annotation.  */
-  if (referenced_var_check_and_insert (var, fn))
+  tree ddef = ssa_default_def (fn, var);
+  if (ddef == NULL_TREE)
     {
-      gcc_checking_assert (!*DECL_VAR_ANN_PTR (var));
-      *DECL_VAR_ANN_PTR (var) = ggc_alloc_cleared_var_ann_d ();
-      return true;
+      ddef = make_ssa_name (var, gimple_build_nop ());
+      set_ssa_default_def (cfun, var, ddef);
     }
-
-  return false;
-}
-
-/* Remove VAR from the list of referenced variables and clear its
-   var-annotation.  */
-
-void
-remove_referenced_var (tree var)
-{
-  var_ann_t v_ann;
-  struct tree_decl_minimal in;
-  void **loc;
-  unsigned int uid = DECL_UID (var);
-
-  gcc_checking_assert (TREE_CODE (var) == VAR_DECL
-		       || TREE_CODE (var) == PARM_DECL
-		       || TREE_CODE (var) == RESULT_DECL);
-
-  gcc_checking_assert (!is_global_var (var));
-
-  v_ann = var_ann (var);
-  ggc_free (v_ann);
-  *DECL_VAR_ANN_PTR (var) = NULL;
-
-  in.uid = uid;
-  loc = htab_find_slot_with_hash (gimple_referenced_vars (cfun), &in, uid,
-				  NO_INSERT);
-  htab_clear_slot (gimple_referenced_vars (cfun), loc);
+  return ddef;
 }
 
 
@@ -939,3 +703,94 @@ stmt_references_abnormal_ssa_name (gimple stmt)
 
   return false;
 }
+
+/* Pair of tree and a sorting index, for dump_enumerated_decls.  */
+struct GTY(()) numbered_tree_d
+{
+  tree t;
+  int num;
+};
+typedef struct numbered_tree_d numbered_tree;
+
+DEF_VEC_O (numbered_tree);
+DEF_VEC_ALLOC_O (numbered_tree, heap);
+
+/* Compare two declarations references by their DECL_UID / sequence number.
+   Called via qsort.  */
+
+static int
+compare_decls_by_uid (const void *pa, const void *pb)
+{
+  const numbered_tree *nt_a = ((const numbered_tree *)pa);
+  const numbered_tree *nt_b = ((const numbered_tree *)pb);
+
+  if (DECL_UID (nt_a->t) != DECL_UID (nt_b->t))
+    return  DECL_UID (nt_a->t) - DECL_UID (nt_b->t);
+  return nt_a->num - nt_b->num;
+}
+
+/* Called via walk_gimple_stmt / walk_gimple_op by dump_enumerated_decls.  */
+static tree
+dump_enumerated_decls_push (tree *tp, int *walk_subtrees, void *data)
+{
+  struct walk_stmt_info *wi = (struct walk_stmt_info *) data;
+  VEC (numbered_tree, heap) **list = (VEC (numbered_tree, heap) **) &wi->info;
+  numbered_tree nt;
+
+  if (!DECL_P (*tp))
+    return NULL_TREE;
+  nt.t = *tp;
+  nt.num = VEC_length (numbered_tree, *list);
+  VEC_safe_push (numbered_tree, heap, *list, &nt);
+  *walk_subtrees = 0;
+  return NULL_TREE;
+}
+
+/* Find all the declarations used by the current function, sort them by uid,
+   and emit the sorted list.  Each declaration is tagged with a sequence
+   number indicating when it was found during statement / tree walking,
+   so that TDF_NOUID comparisons of anonymous declarations are still
+   meaningful.  Where a declaration was encountered more than once, we
+   emit only the sequence number of the first encounter.
+   FILE is the dump file where to output the list and FLAGS is as in
+   print_generic_expr.  */
+void
+dump_enumerated_decls (FILE *file, int flags)
+{
+  basic_block bb;
+  struct walk_stmt_info wi;
+  VEC (numbered_tree, heap) *decl_list = VEC_alloc (numbered_tree, heap, 40);
+
+  memset (&wi, '\0', sizeof (wi));
+  wi.info = (void*) decl_list;
+  FOR_EACH_BB (bb)
+    {
+      gimple_stmt_iterator gsi;
+
+      for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+	if (!is_gimple_debug (gsi_stmt (gsi)))
+	  walk_gimple_stmt (&gsi, NULL, dump_enumerated_decls_push, &wi);
+    }
+  decl_list = (VEC (numbered_tree, heap) *) wi.info;
+  VEC_qsort (numbered_tree, decl_list, compare_decls_by_uid);
+  if (VEC_length (numbered_tree, decl_list))
+    {
+      unsigned ix;
+      numbered_tree *ntp;
+      tree last = NULL_TREE;
+
+      fprintf (file, "Declarations used by %s, sorted by DECL_UID:\n",
+	       current_function_name ());
+      FOR_EACH_VEC_ELT (numbered_tree, decl_list, ix, ntp)
+	{
+	  if (ntp->t == last)
+	    continue;
+	  fprintf (file, "%d: ", ntp->num);
+	  print_generic_decl (file, ntp->t, flags);
+	  fprintf (file, "\n");
+	  last = ntp->t;
+	}
+    }
+  VEC_free (numbered_tree, heap, decl_list);
+}
+

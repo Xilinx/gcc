@@ -299,7 +299,7 @@ melt_need_debug_limit (int depth, int lim) {
 }
 
 /* unspecified flexible dimension in structure */
-#if (defined(__STDC__) &&  __STDC__VERSION >= 199901L) || __cplusplus
+#if (defined(__STDC__) &&  __STDC__VERSION >= 199901L) || defined(__cplusplus)
 #define MELT_FLEXIBLE_DIM /*C99 or better or C++ flexible*/
 #define MELT_HAVE_FLEXIBLE_DIM 1
 #elif __GNUC__>=4

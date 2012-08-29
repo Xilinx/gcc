@@ -1,7 +1,7 @@
 /* C-compiler utilities for types and variables storage layout
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1996, 1998,
    1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-   2011 Free Software Foundation, Inc.
+   2011, 2012 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -1627,13 +1627,10 @@ compute_record_mode (tree type)
       if (simple_cst_equal (TYPE_SIZE (type), DECL_SIZE (field)))
 	mode = DECL_MODE (field);
 
-#ifdef MEMBER_TYPE_FORCES_BLK
-      /* With some targets, eg. c4x, it is sub-optimal
-	 to access an aligned BLKmode structure as a scalar.  */
-
-      if (MEMBER_TYPE_FORCES_BLK (field, mode))
+      /* With some targets, it is sub-optimal to access an aligned
+	 BLKmode structure as a scalar.  */
+      if (targetm.member_type_forces_blk (field, mode))
 	return;
-#endif /* MEMBER_TYPE_FORCES_BLK  */
     }
 
   /* If we only have one real field; use its mode if that mode's size
@@ -2131,9 +2128,17 @@ layout_type (tree type)
 	TYPE_SIZE (type) = int_const_binop (MULT_EXPR, TYPE_SIZE (innertype),
 					    bitsize_int (nunits));
 
-	/* Always naturally align vectors.  This prevents ABI changes
-	   depending on whether or not native vector modes are supported.  */
-	TYPE_ALIGN (type) = tree_low_cst (TYPE_SIZE (type), 0);
+	/* For vector types, we do not default to the mode's alignment.
+	   Instead, query a target hook, defaulting to natural alignment.
+	   This prevents ABI changes depending on whether or not native
+	   vector modes are supported.  */
+	TYPE_ALIGN (type) = targetm.vector_alignment (type);
+
+	/* However, if the underlying mode requires a bigger alignment than
+	   what the target hook provides, we cannot use the mode.  For now,
+	   simply reject that case.  */
+	gcc_assert (TYPE_ALIGN (type)
+		    >= GET_MODE_ALIGNMENT (TYPE_MODE (type)));
         break;
       }
 
@@ -2262,9 +2267,7 @@ layout_type (tree type)
 	TYPE_USER_ALIGN (type) = TYPE_USER_ALIGN (element);
 	SET_TYPE_MODE (type, BLKmode);
 	if (TYPE_SIZE (type) != 0
-#ifdef MEMBER_TYPE_FORCES_BLK
-	    && ! MEMBER_TYPE_FORCES_BLK (type, VOIDmode)
-#endif
+	    && ! targetm.member_type_forces_blk (type, VOIDmode)
 	    /* BLKmode elements force BLKmode aggregate;
 	       else extract/store fields may lose.  */
 	    && (TYPE_MODE (TREE_TYPE (type)) != BLKmode
@@ -2560,10 +2563,14 @@ set_min_and_max_values_for_integral_type (tree type,
 	= build_int_cst_wide (type,
 			      (precision - HOST_BITS_PER_WIDE_INT > 0
 			       ? -1
-			       : ((HOST_WIDE_INT) 1 << (precision - 1)) - 1),
+			       : (HOST_WIDE_INT)
+				 (((unsigned HOST_WIDE_INT) 1
+				   << (precision - 1)) - 1)),
 			      (precision - HOST_BITS_PER_WIDE_INT - 1 > 0
-			       ? (((HOST_WIDE_INT) 1
-				   << (precision - HOST_BITS_PER_WIDE_INT - 1))) - 1
+			       ? (HOST_WIDE_INT)
+				 ((((unsigned HOST_WIDE_INT) 1
+				    << (precision - HOST_BITS_PER_WIDE_INT
+					- 1))) - 1)
 			       : 0));
     }
 

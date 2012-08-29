@@ -30,7 +30,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "tree-iterator.h"
 #include "tree-chrec.h"
-#include "tree-pass.h"
+#include "dumpfile.h"
 #include "value-prof.h"
 #include "predict.h"
 
@@ -126,18 +126,18 @@ print_generic_decl (FILE *file, tree decl, int flags)
 }
 
 /* Print tree T, and its successors, on file FILE.  FLAGS specifies details
-   to show in the dump.  See TDF_* in tree-pass.h.  */
+   to show in the dump.  See TDF_* in dumpfile.h.  */
 
 void
 print_generic_stmt (FILE *file, tree t, int flags)
 {
   maybe_init_pretty_print (file);
   dump_generic_node (&buffer, t, 0, flags, true);
-  pp_flush (&buffer);
+  pp_newline_and_flush (&buffer);
 }
 
 /* Print tree T, and its successors, on file FILE.  FLAGS specifies details
-   to show in the dump.  See TDF_* in tree-pass.h.  The output is indented by
+   to show in the dump.  See TDF_* in dumpfile.h.  The output is indented by
    INDENT spaces.  */
 
 void
@@ -150,11 +150,11 @@ print_generic_stmt_indented (FILE *file, tree t, int flags, int indent)
   for (i = 0; i < indent; i++)
     pp_space (&buffer);
   dump_generic_node (&buffer, t, indent, flags, true);
-  pp_flush (&buffer);
+  pp_newline_and_flush (&buffer);
 }
 
 /* Print a single expression T on file FILE.  FLAGS specifies details to show
-   in the dump.  See TDF_* in tree-pass.h.  */
+   in the dump.  See TDF_* in dumpfile.h.  */
 
 void
 print_generic_expr (FILE *file, tree t, int flags)
@@ -591,7 +591,7 @@ dump_block_node (pretty_printer *buffer, tree block, int spc, int flags)
 
 /* Dump the node NODE on the pretty_printer BUFFER, SPC spaces of
    indent.  FLAGS specifies details to show in the dump (see TDF_* in
-   tree-pass.h).  If IS_STMT is true, the object printed is considered
+   dumpfile.h).  If IS_STMT is true, the object printed is considered
    to be a statement and it is terminated by ';' if appropriate.  */
 
 int
@@ -602,6 +602,7 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
   tree op0, op1;
   const char *str;
   bool is_expr;
+  enum tree_code code;
 
   if (node == NULL_TREE)
     return spc;
@@ -614,7 +615,8 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
   if ((flags & TDF_LINENO) && EXPR_HAS_LOCATION (node))
     dump_location (buffer, EXPR_LOCATION (node));
 
-  switch (TREE_CODE (node))
+  code = TREE_CODE (node);
+  switch (code)
     {
     case ERROR_MARK:
       pp_string (buffer, "<<< error >>>");
@@ -743,7 +745,7 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 				      ? "unsigned long long"
 				      : "signed long long"));
 		else if (TYPE_PRECISION (node) >= CHAR_TYPE_SIZE
-			 && exact_log2 (TYPE_PRECISION (node)))
+			 && exact_log2 (TYPE_PRECISION (node)) != -1)
 		  {
 		    pp_string (buffer, (TYPE_UNSIGNED (node) ? "uint" : "int"));
 		    pp_decimal_int (buffer, TYPE_PRECISION (node));
@@ -2041,7 +2043,9 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
       break;
 
     case SSA_NAME:
-      dump_generic_node (buffer, SSA_NAME_VAR (node), spc, flags, false);
+      if (SSA_NAME_IDENTIFIER (node))
+	dump_generic_node (buffer, SSA_NAME_IDENTIFIER (node),
+			   spc, flags, false);
       pp_string (buffer, "_");
       pp_decimal_int (buffer, SSA_NAME_VERSION (node));
       if (SSA_NAME_OCCURS_IN_ABNORMAL_PHI (node))
@@ -2336,31 +2340,15 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
       break;
 
     case VEC_WIDEN_MULT_HI_EXPR:
-      pp_string (buffer, " VEC_WIDEN_MULT_HI_EXPR < ");
-      dump_generic_node (buffer, TREE_OPERAND (node, 0), spc, flags, false);
-      pp_string (buffer, ", ");
-      dump_generic_node (buffer, TREE_OPERAND (node, 1), spc, flags, false);
-      pp_string (buffer, " > ");
-      break;
-
     case VEC_WIDEN_MULT_LO_EXPR:
-      pp_string (buffer, " VEC_WIDEN_MULT_LO_EXPR < ");
-      dump_generic_node (buffer, TREE_OPERAND (node, 0), spc, flags, false);
-      pp_string (buffer, ", ");
-      dump_generic_node (buffer, TREE_OPERAND (node, 1), spc, flags, false);
-      pp_string (buffer, " > ");
-      break;
-
+    case VEC_WIDEN_MULT_EVEN_EXPR:
+    case VEC_WIDEN_MULT_ODD_EXPR:
     case VEC_WIDEN_LSHIFT_HI_EXPR:
-      pp_string (buffer, " VEC_WIDEN_LSHIFT_HI_EXPR < ");
-      dump_generic_node (buffer, TREE_OPERAND (node, 0), spc, flags, false);
-      pp_string (buffer, ", ");
-      dump_generic_node (buffer, TREE_OPERAND (node, 1), spc, flags, false);
-      pp_string (buffer, " > ");
-      break;
-
     case VEC_WIDEN_LSHIFT_LO_EXPR:
-      pp_string (buffer, " VEC_WIDEN_LSHIFT_HI_EXPR < ");
+      pp_character (buffer, ' ');
+      for (str = tree_code_name [code]; *str; str++)
+	pp_character (buffer, TOUPPER (*str));
+      pp_string (buffer, " < ");
       dump_generic_node (buffer, TREE_OPERAND (node, 0), spc, flags, false);
       pp_string (buffer, ", ");
       dump_generic_node (buffer, TREE_OPERAND (node, 1), spc, flags, false);

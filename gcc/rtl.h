@@ -31,6 +31,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "fixed-value.h"
 #include "alias.h"
 #include "hashtab.h"
+#include "flags.h"
 
 #undef FFS  /* Some systems predefine this symbol; don't let it interfere.  */
 #undef FLOAT /* Likewise.  */
@@ -54,8 +55,13 @@ enum rtx_code  {
 				   NUM_RTX_CODE.
 				   Assumes default enum value assignment.  */
 
+/* The cast here, saves many elsewhere.  */
 #define NUM_RTX_CODE ((int) LAST_AND_UNUSED_RTX_CODE)
-				/* The cast here, saves many elsewhere.  */
+
+/* Similar, but since generator files get more entries... */
+#ifdef GENERATOR_FILE
+# define NON_GENERATOR_NUM_RTX_CODE ((int) MATCH_OPERAND)
+#endif
 
 /* Register Transfer Language EXPRESSIONS CODE CLASSES */
 
@@ -195,7 +201,7 @@ union rtunion_def
   addr_diff_vec_flags rt_addr_diff_vec_flags;
   struct cselib_val_struct *rt_cselib;
   tree rt_tree;
-  struct basic_block_def *rt_bb;
+  basic_block rt_bb;
   mem_attrs *rt_mem;
   reg_attrs *rt_reg;
   struct constant_descriptor_rtx *rt_constant;
@@ -397,12 +403,38 @@ struct GTY((variable_size)) rtvec_def {
 /* Predicate yielding nonzero iff X is an rtx for a memory location.  */
 #define MEM_P(X) (GET_CODE (X) == MEM)
 
+/* Match CONST_*s that can represent compile-time constant integers.  */
+#define CASE_CONST_SCALAR_INT \
+   case CONST_INT: \
+   case CONST_DOUBLE
+
+/* Match CONST_*s for which pointer equality corresponds to value equality.  */
+#define CASE_CONST_UNIQUE \
+   case CONST_INT: \
+   case CONST_DOUBLE: \
+   case CONST_FIXED
+
+/* Match all CONST_* rtxes.  */
+#define CASE_CONST_ANY \
+   case CONST_INT: \
+   case CONST_DOUBLE: \
+   case CONST_FIXED: \
+   case CONST_VECTOR
+
 /* Predicate yielding nonzero iff X is an rtx for a constant integer.  */
 #define CONST_INT_P(X) (GET_CODE (X) == CONST_INT)
 
 /* Predicate yielding true iff X is an rtx for a double-int
    or floating point constant.  */
 #define CONST_DOUBLE_P(X) (GET_CODE (X) == CONST_DOUBLE)
+
+/* Predicate yielding true iff X is an rtx for a double-int.  */
+#define CONST_DOUBLE_AS_INT_P(X) \
+  (GET_CODE (X) == CONST_DOUBLE && GET_MODE (X) == VOIDmode)
+
+/* Predicate yielding true iff X is an rtx for a double-int.  */
+#define CONST_DOUBLE_AS_FLOAT_P(X) \
+  (GET_CODE (X) == CONST_DOUBLE && GET_MODE (X) != VOIDmode)
 
 /* Predicate yielding nonzero iff X is a label insn.  */
 #define LABEL_P(X) (GET_CODE (X) == CODE_LABEL)
@@ -423,7 +455,7 @@ struct GTY((variable_size)) rtvec_def {
 #define NONDEBUG_INSN_P(X) (INSN_P (X) && !DEBUG_INSN_P (X))
 
 /* Nonzero if DEBUG_INSN_P may possibly hold.  */
-#define MAY_HAVE_DEBUG_INSNS MAY_HAVE_DEBUG_STMTS
+#define MAY_HAVE_DEBUG_INSNS (flag_var_tracking_assignments)
 
 /* Predicate yielding nonzero iff X is a real insn.  */
 #define INSN_P(X) \
@@ -1734,7 +1766,7 @@ extern rtx assign_temp (tree, int, int);
 
 /* In emit-rtl.c */
 extern rtx emit_insn_before (rtx, rtx);
-extern rtx emit_insn_before_noloc (rtx, rtx, struct basic_block_def *);
+extern rtx emit_insn_before_noloc (rtx, rtx, basic_block);
 extern rtx emit_insn_before_setloc (rtx, rtx, int);
 extern rtx emit_jump_insn_before (rtx, rtx);
 extern rtx emit_jump_insn_before_noloc (rtx, rtx);
@@ -1749,7 +1781,7 @@ extern rtx emit_barrier_before (rtx);
 extern rtx emit_label_before (rtx, rtx);
 extern rtx emit_note_before (enum insn_note, rtx);
 extern rtx emit_insn_after (rtx, rtx);
-extern rtx emit_insn_after_noloc (rtx, rtx, struct basic_block_def *);
+extern rtx emit_insn_after_noloc (rtx, rtx, basic_block);
 extern rtx emit_insn_after_setloc (rtx, rtx, int);
 extern rtx emit_jump_insn_after (rtx, rtx);
 extern rtx emit_jump_insn_after_noloc (rtx, rtx);
@@ -1776,8 +1808,6 @@ extern rtx emit_clobber (rtx);
 extern rtx gen_use (rtx);
 extern rtx emit_use (rtx);
 extern rtx make_insn_raw (rtx);
-extern rtx make_debug_insn_raw (rtx);
-extern rtx make_jump_insn_raw (rtx);
 extern void add_function_usage_to (rtx, rtx);
 extern rtx last_call_insn (void);
 extern rtx previous_insn (rtx);
@@ -2434,8 +2464,8 @@ extern void unshare_all_rtl_in_chain (rtx);
 extern void verify_rtl_sharing (void);
 extern void link_cc0_insns (rtx);
 extern void add_insn (rtx);
-extern void add_insn_before (rtx, rtx, struct basic_block_def *);
-extern void add_insn_after (rtx, rtx, struct basic_block_def *);
+extern void add_insn_before (rtx, rtx, basic_block);
+extern void add_insn_after (rtx, rtx, basic_block);
 extern void remove_insn (rtx);
 extern rtx emit (rtx);
 extern void delete_insn (rtx);
@@ -2456,17 +2486,13 @@ extern unsigned int extended_count (const_rtx, enum machine_mode, int);
 extern rtx remove_death (unsigned int, rtx);
 extern void dump_combine_stats (FILE *);
 extern void dump_combine_total_stats (FILE *);
+extern rtx make_compound_operation (rtx, enum rtx_code);
 
 /* In cfgcleanup.c  */
 extern void delete_dead_jumptables (void);
 
 /* In sched-vis.c.  */
-extern void debug_bb_n_slim (int);
-extern void debug_bb_slim (struct basic_block_def *);
-extern void print_rtl_slim (FILE *, rtx, rtx, int, int);
-extern void print_rtl_slim_with_bb (FILE *, rtx, int);
-extern void dump_insn_slim (FILE *f, rtx x);
-extern void debug_insn_slim (rtx x);
+extern void dump_insn_slim (FILE *, const_rtx x);
 
 /* In sched-rgn.c.  */
 extern void schedule_insns (void);
@@ -2509,12 +2535,8 @@ extern HOST_WIDE_INT find_args_size_adjust (rtx);
 extern int fixup_args_size_notes (rtx, rtx, int);
 
 /* In cfgrtl.c */
-extern void print_rtl_with_bb (FILE *, const_rtx);
+extern void print_rtl_with_bb (FILE *, const_rtx, int);
 extern rtx duplicate_insn_chain (rtx, rtx);
-
-/* In cfg.c.  */
-extern void dump_reg_info (FILE *);
-extern void dump_flow_info (FILE *, int);
 
 /* In expmed.c */
 extern void init_expmed (void);
@@ -2625,7 +2647,7 @@ extern rtx compare_and_jump_seq (rtx, rtx, enum rtx_code, rtx, int, rtx);
 
 /* In loop-iv.c  */
 extern rtx canon_condition (rtx);
-extern void simplify_using_condition (rtx, rtx *, struct bitmap_head_def *);
+extern void simplify_using_condition (rtx, rtx *, bitmap);
 
 /* In final.c  */
 extern unsigned int compute_alignments (void);

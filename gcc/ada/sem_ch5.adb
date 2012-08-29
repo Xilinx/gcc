@@ -1665,16 +1665,21 @@ package body Sem_Ch5 is
       --  If the domain of iteration is an expression, create a declaration for
       --  it, so that finalization actions are introduced outside of the loop.
       --  The declaration must be a renaming because the body of the loop may
-      --  assign to elements. When the context is a quantified expression, the
-      --  renaming declaration is delayed until the expansion phase.
+      --  assign to elements.
 
       if not Is_Entity_Name (Iter_Name)
+
+        --  When the context is a quantified expression, the renaming
+        --  declaration is delayed until the expansion phase if we are
+        --  doing expansion.
+
         and then (Nkind (Parent (N)) /= N_Quantified_Expression
+                   or else Operating_Mode = Check_Semantics)
 
-                   --  The following two tests need comments ???
+        --  Do not perform this expansion in Alfa mode, since the formal
+        --  verification directly deals with the source form of the iterator.
 
-                   or else Operating_Mode = Check_Semantics
-                   or else Alfa_Mode)
+        and then not Alfa_Mode
       then
          declare
             Id   : constant Entity_Id := Make_Temporary (Loc, 'R', Iter_Name);
@@ -1711,7 +1716,7 @@ package body Sem_Ch5 is
       --  Container is an entity or an array with uncontrolled components, or
       --  else it is a container iterator given by a function call, typically
       --  called Iterate in the case of predefined containers, even though
-      --  Iterate is not a reserved name. What matter is that the return type
+      --  Iterate is not a reserved name. What matters is that the return type
       --  of the function is an iterator type.
 
       elsif Is_Entity_Name (Iter_Name) then
@@ -2226,17 +2231,7 @@ package body Sem_Ch5 is
          --  Ada 2012: If the domain of iteration is a function call, it is the
          --  new iterator form.
 
-         --  We have also implemented the shorter form : for X in S for Alfa
-         --  use. In this case, 'Old and 'Result must be treated as entity
-         --  names over which iterators are legal.
-
          if Nkind (DS_Copy) = N_Function_Call
-           or else
-             (Alfa_Mode
-               and then (Nkind (DS_Copy) = N_Attribute_Reference
-               and then
-                 (Attribute_Name (DS_Copy) = Name_Result
-                   or else Attribute_Name (DS_Copy) = Name_Old)))
            or else
              (Is_Entity_Name (DS_Copy)
                and then not Is_Type (Entity (DS_Copy)))
@@ -2633,14 +2628,14 @@ package body Sem_Ch5 is
       --  types the actual subtype of the components will only be determined
       --  when the cursor declaration is analyzed.
 
-      --  If the expander is not active, then we want to analyze the loop body
-      --  now even in the Ada 2012 iterator case, since the rewriting will not
-      --  be done. Insert the loop variable in the current scope, if not done
-      --  when analysing the iteration scheme.
+      --  If the expander is not active, or in Alfa mode, then we want to
+      --  analyze the loop body now even in the Ada 2012 iterator case, since
+      --  the rewriting will not be done. Insert the loop variable in the
+      --  current scope, if not done when analysing the iteration scheme.
 
       if No (Iter)
         or else No (Iterator_Specification (Iter))
-        or else not Expander_Active
+        or else not Full_Expander_Active
       then
          if Present (Iter)
            and then Present (Iterator_Specification (Iter))
