@@ -217,16 +217,19 @@ melt_is_plugin=1
 # we force the stage0 to be "quicklybuilt" i.e. with constant field offsets.
 GCCMELT_STAGE_ZERO = meltbuild-stage0-quicklybuilt
 
-## Tell GNU make to not build goals in parallel, that is to ignore any
-## -j flag to make.
 
 all: melt-run.h melt.so melt-applications melt-gendoc doc
 	@echo '+++++++++++++++++++'
-	@echo MELT plugin compilation completed.  You may want to	\
-	       manually compile simplemelt-gtkmm-probe.cc if you have	\
-	       GTK3.4 and GTKmm. See its last dozen of lines for	\
-	       building instructions.
+	@echo MELT plugin compilation completed.
+	@echo 
+	@echo You may want to manually compile			\
+	       simplemelt-gtkmm-probe.cc if you have GTK3.4 and	\
+	       GTKmm. See its last dozen of lines for building	\
+	       instructions.
 	@echo
+	@echo you may want to install with e.g. \
+	  make install DESTDIR=/tmp/meltinstall \
+	  then copy your '$DESTDIR' appropriately to the installation tree.
 
 
 gt-melt-runtime.h:  $(MELTGCC_RUNTIME_INCLUDES) $(MELTGCC_GTYPESTATE) \
