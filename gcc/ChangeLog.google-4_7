@@ -1,3 +1,9 @@
+2012-08-29   Cary Coutant  <ccoutant@google.com>
+
+	* dwarf2out.c (clone_tree_partial): Remove.
+	(copy_decls_walk): Don't copy children of a declaration
+	into a type unit.
+
 2012-08-23  Teresa Johnson  <tejohnson@google.com>
 
 	* config/i386/i386.md (anddi_1): Add new r,qm,Lh pattern
