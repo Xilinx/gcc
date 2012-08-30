@@ -1514,6 +1514,11 @@ static inline bool melt_wants_single_c_file (void) { return false; }
 melt_ptr_t meltgc_new_split_string (const char*str, int sep, melt_ptr_t discr);
 
 
+/* Return as a cached MELT string, using the
+   :sysdata_src_loc_file_dict dictonnary for memoization, the file
+   path of a location, or else NULL. */
+melt_ptr_t meltgc_cached_string_path_of_source_location (source_location loc);
+
 static inline const char *
 melt_string_str (melt_ptr_t v)
 {

@@ -677,6 +677,54 @@ current :tree and :gimple. Stop walking if the closure gives null.}#
    $UID = DECL_UID($tr);
    }# )
 
+;; pattern tree_decl_at_source_location matches a declaration tree with a
+;; known location
+(defcmatcher tree_decl_at_source_location 
+  (:tree tr)
+  (:value filepathv
+   :long line
+   :long col)
+  treedeclatloc				;statesym
+  :doc #{$TREE_DECL_AT_SOURCE_LOCATION match any declaration with some
+  known source location, extracting the cached $FILEPATHV string value and the
+  $LINE and $COL info.}#
+   ;; test expander
+  #{/* tree_decl_at_source_location $TREEDECLATLOC ? */ (($TR)
+      && DECL_P($TR) && DECL_SOURCE_LOCATION($TR) != UNKNOWN_LOCATION)}#
+   ;; test filler
+  #{/* tree_decl_at_source_location $TREEDECLATLOC ! */ {
+     source_location $TREEDECLATLOC#_sloc = DECL_SOURCE_LOCATION($tr);
+     $FILEPATHV =
+         meltgc_cached_string_path_of_source_location ($TREEDECLATLOC#_sloc);
+     $LINE = LOCATION_LINE ($TREEDECLATLOC#_sloc);
+     $COL = LOCATION_COLUMN ($TREEDECLATLOC#_sloc);
+   } /* end tree_decl_at_source_location $TREEDECLATLOC */ }#)
+
+
+;; pattern tree_decl_at_source_location matches a declaration tree with a
+;; known location
+(defcmatcher tree_expr_at_source_location 
+  (:tree tr)
+  (:value filepathv
+   :long line
+   :long col)
+  treeexpratloc				;statesym
+  :doc #{$TREE_EXPR_AT_SOURCE_LOCATION match any expression with some
+  known source location, extracting the cached $FILEPATHV string value and the
+  $LINE and $COL info.}#
+   ;; test expander
+  #{/* tree_expr_at_source_location $TREEEXPRATLOC ? */ (($TR)
+      && EXPR_P($TR) && EXPR_LOCATION($TR) != UNKNOWN_LOCATION)}#
+   ;; test filler
+  #{/* tree_expr_at_source_location $TREEEXPRATLOC ! */ {
+     source_location $TREEEXPRATLOC#_sloc = EXPR_LOCATION($tr);
+     $FILEPATHV =
+         meltgc_cached_string_path_of_source_location ($TREEEXPRATLOC#_sloc);
+     $LINE = LOCATION_LINE ($TREEEXPRATLOC#_sloc);
+     $COL = LOCATION_COLUMN ($TREEEXPRATLOC#_sloc);
+   } /* end tree_expr_at_source_location $TREEEXPRATLOC */ }#)
+
+
 
 ;; pattern tree_void_type
 (defcmatcher tree_void_type
@@ -1312,7 +1360,9 @@ current :tree and :gimple. Stop walking if the closure gives null.}#
  tree_const_decl_of_name
  tree_content 
  tree_decl
+ tree_decl_at_source_location
  tree_enumeral_type
+ tree_expr_at_source_location
  tree_field_decl
  tree_fixed_point_type
  tree_function_decl 

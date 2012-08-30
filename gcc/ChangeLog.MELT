@@ -1,5 +1,19 @@
 
 2012-08-30  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h (meltgc_cached_string_path_of_source_location):
+	New declaration.
+
+	* melt-runtime.c (meltgc_cached_string_path_of_source_location):
+	New function.
+
+	* melt/xtramelt-ana-tree.melt (tree_decl_at_source_location)
+	(tree_expr_at_source_location): New cmatchers.
+
+	* melt/xtramelt-ana-gimple.melt (gimple_at_source_location):
+	New cmatcher.
+
+2012-08-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate all}}
 
 	* melt/generated/meltrunsup-inc.c: Regenerate.

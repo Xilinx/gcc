@@ -4382,6 +4382,46 @@ end:
 #undef str_strv
 }
 
+
+
+/* Return as a cached MELT string, using the
+   :sysdata_src_loc_file_dict dictonnary for memoization, the file
+   path of a location, or else NULL. */
+melt_ptr_t 
+meltgc_cached_string_path_of_source_location (source_location loc)
+{
+  const char* filepath = NULL;
+  MELT_ENTERFRAME (2, NULL);
+#define dictv     meltfram__.mcfr_varptr[0]
+#define strv      meltfram__.mcfr_varptr[1]
+  strv = NULL;
+  if (loc == UNKNOWN_LOCATION) 
+    goto end;
+  filepath = LOCATION_FILE (loc);
+  if (!filepath) 
+    goto end;
+    dictv = melt_get_inisysdata (MELTFIELD_SYSDATA_SRC_LOC_FILE_DICT);
+    if (melt_magic_discr ((melt_ptr_t) dictv) == MELTOBMAG_MAPSTRINGS) 
+      {
+	strv = melt_get_mapstrings ((struct meltmapstrings_st *) dictv,
+				    filepath);
+	if (!strv) 
+	  {
+	    strv = meltgc_new_stringdup ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING),
+					 filepath);
+	    meltgc_put_mapstrings ((struct meltmapstrings_st*) dictv,
+				   filepath,
+				   (melt_ptr_t) strv);
+	  }
+      }
+ end:
+  MELT_EXITFRAME ();
+  return (melt_ptr_t) strv;
+#undef dictv
+#undef strv
+}
+
+
 /* Split a string into a list of string value using sep as separating character.
 */
 melt_ptr_t

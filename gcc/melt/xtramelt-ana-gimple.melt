@@ -165,6 +165,30 @@
   #{ (meltgc_new_gimple((meltobject_ptr_t)NULL, ($g))) }#
 )
 
+;; match a gimple at a known location and extract its location 
+(defcmatcher gimple_at_source_location 
+  (:gimple g)
+  (:value filepathv
+   :long line
+   :long col)
+  gimpleatloc
+  :doc #{$GIMPLE_AT_SOURCE_LOCATION match a gimple with a known source
+  location, extracting the cached $FILEPATHV string value and the
+  $LINE and $COL info.}#
+  ;; test expander
+  #{/* gimple_at_source_location $GIMPLEATLOC ? */ (($G) 
+    && gimple_has_location(($G))) }#
+  ;; test filler 
+  #{/* gimple_at_source_location $GIMPLEATLOC ! */ {
+    source_location $GIMPLEATLOC#_sloc = gimple_location ($G);
+     $FILEPATHV =
+         meltgc_cached_string_path_of_source_location ($GIMPLEATLOC#_sloc);
+     $LINE = LOCATION_LINE ($GIMPLEATLOC#_sloc);
+     $COL = LOCATION_COLUMN ($GIMPLEATLOC#_sloc);
+  } /* end gimple_at_source_location $GIMPLEATLOC ! */}#)
+
+  
+
 
 ;; match a gimple assign to something
 (defcmatcher gimple_assign_to 
@@ -2270,6 +2294,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  gimple_assign_trunc_mod
  gimple_assign_unary_minus
  gimple_assign_unary_nop
+ gimple_at_source_location 
  gimple_bind
  gimple_build_assign_convert 
  gimple_build_assign_fix_trunc 
