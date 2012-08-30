@@ -1,6 +1,13 @@
 
 2012-08-30  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.h (meltgc_walk_gimple_seq): Improve comment.
+
+	* melt/xtramelt-ana-gimple.melt (walk_gimple_seq)
+	(walk_gimple_seq_unique_tree): Add doc string.
+
+2012-08-30  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.h (meltgc_cached_string_path_of_source_location):
 	New declaration.
 

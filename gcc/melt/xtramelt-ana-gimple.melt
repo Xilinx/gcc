@@ -2129,14 +2129,27 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
 
 ;;;;;;;;;;;;;;;; walk recursively inside a gimple
 (defprimitive walk_gimple_seq (:value data :gimple_seq gseq :value stmtclos treeclos) :gimple
+  :doc #{$WALK_GIMPLE_SEQ Recursively walks inside all the gimples of
+the given $GSEQ applying to $DATA and each gimple the $STMTCLOS and to
+each tree the $TREECLOS functions. The $STMTCLOS function, if given,
+gets the $DATA and the raw current :gimple as argument, and return a
+boolean value as primary result to continue, and the replacing :gimple, if any, as
+secondary result.  The $TREECLOS function, if given, gets the $DATA and
+the ran :tree as arguments, and return a boolean value, with a subtree
+walking :long flag and the replacing :tree, if any, as secondary results }#
+  ;;
  #{ /* walk_gimple_seq */ meltgc_walk_gimple_seq ((melt_ptr_t)$DATA, ($GSEQ),
                                                   $STMTCLOS, $TREECLOS, FALSE) 
 }#)
 
 (defprimitive walk_gimple_seq_unique_tree  (:value data :gimple_seq gseq :value stmtclos treeclos) :gimple
- #{ /* walk_gimple_seq_unique_tree */ meltgc_walk_gimple_seq ((melt_ptr_t)$DATA, ($GSEQ),
-                                                              $STMTCLOS, $TREECLOS, TRUE) 
-}#)
+  :doc #{$WALK_GIMPLE_SEQ_UNIQUE_TREE recursively walks inside all the gimples of
+the given $GSEQ like $WALK_GIMPLE_SEQ, applying $STMTCLOS to gimples
+and $TREECLOS to trees, but avoid walking more than once inside
+trees.}# 
+#{ /* walk_gimple_seq_unique_tree */
+meltgc_walk_gimple_seq ((melt_ptr_t)$DATA, ($GSEQ), $STMTCLOS,
+$TREECLOS, TRUE) }#)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; gimpleseq iteration
 ;;;; iterate on a gimpleseq
