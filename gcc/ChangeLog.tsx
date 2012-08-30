@@ -1,6 +1,16 @@
 2012-08-30  H.J. Lu  <hongjiu.lu@intel.com>
 
 	Backport from mainline
+	2012-05-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/53194
+	* config/i386/i386-c.c (ix86_target_macros_internal): Don't
+	define __ATOMIC_HLE_* macros here.
+	(ix86_target_macros): But here, using cpp_define_formatted.
+
+2012-08-30  H.J. Lu  <hongjiu.lu@intel.com>
+
+	Backport from mainline
 	2012-05-03  Kirill Yukhin  <kirill.yukhin@intel.com>
 
 	PR target/53201
