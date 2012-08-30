@@ -1,3 +1,56 @@
+2012-08-29  Ulrich Drepper  <drepper@gmail.com>
+
+	* include/bits/random.h (random_device): Move implementation to...
+	* src/c++11/random.cc: ...here.  New file.
+	* config/abi/pre/gnu.ver: Add new version GLIBCXX_3.4.18.  Export
+	std::random_device::* symbols.
+	* config/abi/post/x86_64-linux-gnu/baseline_symbols.txt: Generated.
+	* src/c++11/Makefile.am (sources): Add random.cc.
+	* src/c++11/Makefile.in: Regenerated.
+
+	Add simd_fast_mersenne_twister_engine class.
+	* include/ext/random: New file.
+	* include/ext/random.tcc: New file.
+	* include/Makefile.am (ext_headers): Add random and random.tcc.
+	* testsuite/26_numerics/random/simd_fast_mersenne_twister_engine/
+	operators/inequal.cc: New file.
+	* testsuite/26_numerics/random/simd_fast_mersenne_twister_engine/
+	operators/equal.cc: New file.
+	* testsuite/26_numerics/random/simd_fast_mersenne_twister_engine/
+	operators/serialize.cc: New file.
+	* testsuite/26_numerics/random/simd_fast_mersenne_twister_engine/
+	cons/seed2.cc: New file.
+	* testsuite/26_numerics/random/simd_fast_mersenne_twister_engine/
+	cons/default.cc: New file.
+	* testsuite/26_numerics/random/simd_fast_mersenne_twister_engine/
+	cons/seed_seq.cc: New file.
+	* testsuite/26_numerics/random/simd_fast_mersenne_twister_engine/
+	cons/copy.cc: New file.
+	* testsuite/26_numerics/random/simd_fast_mersenne_twister_engine/
+	cons/seed1.cc: New file.
+
+2012-08-28  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/54102, part 2
+	* doc/Makefile.am (XSL_HTML_STYLE): use xhtml, not html.
+	* doc/Makefile.in: Regenerate.
+	* doc/html/*: Same.
+
+2012-08-28  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/html/*: Regenerate.
+
+2012-08-28  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/54102
+	* doc/xsl/customization.xsl.in: New.
+	* configure.ac: Output local copy of customization xsl.
+	* doc/Makefile.am (stamp-html-single-docbook): Use XSL_LOCAL_STYLE.
+	(stamp-html-docbook): Set stringparam to UTF-8.
+	* Makefile.in: Regenerated.
+	* configure: Same.
+	* doc/Makefile.in: Same.
+
 2012-08-27  Ulrich Drepper  <drepper@gmail.com>
 
 	Add interfaces to retrieve random numbers in bulk.

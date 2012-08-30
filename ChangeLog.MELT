@@ -1,4 +1,7 @@
 
+2012-08-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk rev 190796 using svnmerge.
+
 2012-08-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk rev 190745 using svnmerge, notably
 	C++ conversion.
