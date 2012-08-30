@@ -403,6 +403,9 @@ don't instanciate this class!}#
 	   sysdata_alarm_hook		;closure for handling SIGALRM 
 	   sysdata_child_hook		;closure for handling SIGCHILD
 	   ;;
+	   ;; dictionnary to associate to location an interned file path string
+	   sysdata_src_loc_file_dict
+	   ;;
 	   ;;;keep these spare slots to ease the addition of other slots
 	   sysdata___spare1
 	   sysdata___spare2
@@ -3373,7 +3376,7 @@ function $OPTFUN.}#
 (definstance initial_system_data class_system_data
   :doc #{The $INITIAL_SYSTEM_DATA is the unique instance of
 $CLASS_SYSTEM_DATA. Only for gurus. It normally should not be
-accessed or updated but is intenally useful to many MELT mechanisms.}#
+accessed or updated but is internally useful to many MELT mechanisms.}#
   :predef INITIAL_SYSTEM_DATA
   :named_name '"INITIAL_SYSTEM_DATA"
   :sysdata_mode_dict  (make_mapstring discr_map_strings 40) ;stringmap for modes
@@ -3400,6 +3403,7 @@ accessed or updated but is intenally useful to many MELT mechanisms.}#
   :sysdata_passexec_hook ()		;initialized later, lazily
   :sysdata_meltpass_after_hook () 	;initialized lazily
   :sysdata_meltpragmas ()
+  :sysdata_src_loc_file_dict (make_mapstring discr_map_strings 200)
   )
 
 
