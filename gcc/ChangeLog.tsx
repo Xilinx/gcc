@@ -1,6 +1,15 @@
 2012-08-30  H.J. Lu  <hongjiu.lu@intel.com>
 
 	Backport from mainline
+	2012-05-03  Kirill Yukhin  <kirill.yukhin@intel.com>
+
+	PR target/53201
+	* config/i386/driver-i386.c (host_detect_local_cpu): Add space to
+	"-mno-hle".
+
+2012-08-30  H.J. Lu  <hongjiu.lu@intel.com>
+
+	Backport from mainline
 	2012-05-02  Kirill Yukhin  <kirill.yukhin@intel.com>
 		    Andi Kleen <ak@linux.intel.com>
 

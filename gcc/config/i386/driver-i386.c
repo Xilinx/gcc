@@ -737,7 +737,7 @@ const char *host_detect_local_cpu (int argc, const char **argv)
       const char *rdrnd = has_rdrnd ? " -mrdrnd" : " -mno-rdrnd";
       const char *f16c = has_f16c ? " -mf16c" : " -mno-f16c";
       const char *fsgsbase = has_fsgsbase ? " -mfsgsbase" : " -mno-fsgsbase";
-      const char *hle = has_hle ? " -mhle" : "-mno-hle";
+      const char *hle = has_hle ? " -mhle" : " -mno-hle";
 
       options = concat (options, cx16, sahf, movbe, ase, pclmul,
 			popcnt, abm, lwp, fma, fma4, xop, bmi, bmi2,
