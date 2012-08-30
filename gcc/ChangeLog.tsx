@@ -1,6 +1,18 @@
 2012-08-30  H.J. Lu  <hongjiu.lu@intel.com>
 
 	Backport from mainline
+	2012-05-14  Andrew Pinski  <apinski@cavium.com>
+		    H.J. Lu  <hongjiu.lu@intel.com>
+		    Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/53315
+	* config/i386/i386.md (xbegin_1): Use + in constraint and
+	match_dup.
+	(xbegin): Updated.
+
+2012-08-30  H.J. Lu  <hongjiu.lu@intel.com>
+
+	Backport from mainline
 	2012-05-11  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR target/53291

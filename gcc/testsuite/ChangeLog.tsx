@@ -1,6 +1,17 @@
 2012-08-30  H.J. Lu  <hongjiu.lu@intel.com>
 
 	Backport from mainline
+	2012-05-14  Andi Kleen <ak@linux.intel.com>
+		    Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/53315
+	* gcc.target/i386/i386.exp (check_effective_target_rtm): New.
+	* gcc.target/i386/rtm-check.h: New file.
+	* gcc.target/i386/pr53315.c: New test.
+
+2012-08-30  H.J. Lu  <hongjiu.lu@intel.com>
+
+	Backport from mainline
 	2012-05-02  Kirill Yukhin  <kirill.yukhin@intel.com>
 
 	* gcc.target/i386/hle-cmpxchg-acq-1.c: New.
