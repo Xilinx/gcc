@@ -38,7 +38,7 @@ struct melt_callframe_st;	/*defined in melt-runtime.h */
 
 
 
-#line 1177   "warmelt-first.melt" /**::procdecl::**/
+#line 1180   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_1_warmelt_first_IS_EMPTY_STRING (meltclosure_ptr_t meltclosp_,
 					  melt_ptr_t meltfirstargp_,
@@ -52,7 +52,7 @@ meltrout_1_warmelt_first_IS_EMPTY_STRING (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 1182   "warmelt-first.melt" /**::procdecl::**/
+#line 1185   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_2_warmelt_first_IS_NON_EMPTY_STRING (meltclosure_ptr_t meltclosp_,
 					      melt_ptr_t meltfirstargp_,
@@ -68,7 +68,7 @@ meltrout_2_warmelt_first_IS_NON_EMPTY_STRING (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2202   "warmelt-first.melt" /**::procdecl::**/
+#line 2205   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_3_warmelt_first_INSTALL_CTYPE_DESCR (meltclosure_ptr_t meltclosp_,
 					      melt_ptr_t meltfirstargp_,
@@ -84,7 +84,7 @@ meltrout_3_warmelt_first_INSTALL_CTYPE_DESCR (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2688   "warmelt-first.melt" /**::procdecl::**/
+#line 2691   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_4_warmelt_first_ADD_NEW_SYMBOL_TOKEN (meltclosure_ptr_t meltclosp_,
 					       melt_ptr_t meltfirstargp_,
@@ -100,7 +100,7 @@ meltrout_4_warmelt_first_ADD_NEW_SYMBOL_TOKEN (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2697   "warmelt-first.melt" /**::procdecl::**/
+#line 2700   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_5_warmelt_first_ADD_NEW_KEYWORD_TOKEN (meltclosure_ptr_t meltclosp_,
 						melt_ptr_t meltfirstargp_,
@@ -116,7 +116,7 @@ meltrout_5_warmelt_first_ADD_NEW_KEYWORD_TOKEN (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2706   "warmelt-first.melt" /**::procdecl::**/
+#line 2709   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_6_warmelt_first_INTERN_SYMBOL (meltclosure_ptr_t meltclosp_,
 					melt_ptr_t meltfirstargp_,
@@ -130,7 +130,7 @@ meltrout_6_warmelt_first_INTERN_SYMBOL (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2721   "warmelt-first.melt" /**::procdecl::**/
+#line 2724   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_7_warmelt_first_INTERN_KEYWORD (meltclosure_ptr_t meltclosp_,
 					 melt_ptr_t meltfirstargp_,
@@ -144,7 +144,7 @@ meltrout_7_warmelt_first_INTERN_KEYWORD (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2737   "warmelt-first.melt" /**::procdecl::**/
+#line 2740   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_8_warmelt_first_CLONE_SYMBOL (meltclosure_ptr_t meltclosp_,
 				       melt_ptr_t meltfirstargp_,
@@ -158,7 +158,7 @@ meltrout_8_warmelt_first_CLONE_SYMBOL (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2788   "warmelt-first.melt" /**::procdecl::**/
+#line 2791   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_9_warmelt_first_INITFRESH_CONTENVMAKER (meltclosure_ptr_t meltclosp_,
 						 melt_ptr_t meltfirstargp_,
@@ -174,7 +174,7 @@ meltrout_9_warmelt_first_INITFRESH_CONTENVMAKER (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2801   "warmelt-first.melt" /**::procdecl::**/
+#line 2804   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_10_warmelt_first_INITVALUE_EXPORTER (meltclosure_ptr_t meltclosp_,
 					      melt_ptr_t meltfirstargp_,
@@ -190,7 +190,7 @@ meltrout_10_warmelt_first_INITVALUE_EXPORTER (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2886   "warmelt-first.melt" /**::procdecl::**/
+#line 2889   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_11_warmelt_first_INITVALUE_IMPORTER (meltclosure_ptr_t meltclosp_,
 					      melt_ptr_t meltfirstargp_,
@@ -206,7 +206,7 @@ meltrout_11_warmelt_first_INITVALUE_IMPORTER (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2926   "warmelt-first.melt" /**::procdecl::**/
+#line 2929   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_12_warmelt_first_INITMACRO_EXPORTER (meltclosure_ptr_t meltclosp_,
 					      melt_ptr_t meltfirstargp_,
@@ -222,7 +222,7 @@ meltrout_12_warmelt_first_INITMACRO_EXPORTER (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 2955   "warmelt-first.melt" /**::procdecl::**/
+#line 2958   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_13_warmelt_first_INITPATMACRO_EXPORTER (meltclosure_ptr_t meltclosp_,
 						 melt_ptr_t meltfirstargp_,
@@ -238,7 +238,7 @@ meltrout_13_warmelt_first_INITPATMACRO_EXPORTER (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3005   "warmelt-first.melt" /**::procdecl::**/
+#line 3008   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_14_warmelt_first_INIT_EXITFINALIZER (meltclosure_ptr_t meltclosp_,
 					      melt_ptr_t meltfirstargp_,
@@ -254,7 +254,7 @@ meltrout_14_warmelt_first_INIT_EXITFINALIZER (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3049   "warmelt-first.melt" /**::procdecl::**/
+#line 3052   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_15_warmelt_first_AT_EXIT_FIRST (meltclosure_ptr_t meltclosp_,
 					 melt_ptr_t meltfirstargp_,
@@ -268,7 +268,7 @@ meltrout_15_warmelt_first_AT_EXIT_FIRST (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3057   "warmelt-first.melt" /**::procdecl::**/
+#line 3060   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_16_warmelt_first_AT_EXIT_LAST (meltclosure_ptr_t meltclosp_,
 					melt_ptr_t meltfirstargp_,
@@ -282,7 +282,7 @@ meltrout_16_warmelt_first_AT_EXIT_LAST (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3074   "warmelt-first.melt" /**::procdecl::**/
+#line 3077   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_17_warmelt_first_END_MELT_PASS_RUNNER (meltclosure_ptr_t meltclosp_,
 						melt_ptr_t meltfirstargp_,
@@ -298,7 +298,7 @@ meltrout_17_warmelt_first_END_MELT_PASS_RUNNER (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3091   "warmelt-first.melt" /**::procdecl::**/
+#line 3094   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_18_warmelt_first_LAMBDA___1__ (meltclosure_ptr_t meltclosp_,
 					melt_ptr_t meltfirstargp_,
@@ -312,7 +312,7 @@ meltrout_18_warmelt_first_LAMBDA___1__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3100   "warmelt-first.melt" /**::procdecl::**/
+#line 3103   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_19_warmelt_first_LAMBDA___2__ (meltclosure_ptr_t meltclosp_,
 					melt_ptr_t meltfirstargp_,
@@ -326,7 +326,7 @@ meltrout_19_warmelt_first_LAMBDA___2__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3105   "warmelt-first.melt" /**::procdecl::**/
+#line 3108   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_20_warmelt_first_LAMBDA___3__ (meltclosure_ptr_t meltclosp_,
 					melt_ptr_t meltfirstargp_,
@@ -340,7 +340,7 @@ meltrout_20_warmelt_first_LAMBDA___3__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3114   "warmelt-first.melt" /**::procdecl::**/
+#line 3117   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_21_warmelt_first_AT_END_MELT_PASS_FIRST (meltclosure_ptr_t
 						  meltclosp_,
@@ -357,7 +357,7 @@ meltrout_21_warmelt_first_AT_END_MELT_PASS_FIRST (meltclosure_ptr_t
 
 
 
-#line 3135   "warmelt-first.melt" /**::procdecl::**/
+#line 3138   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_22_warmelt_first_AT_END_MELT_PASS_LAST (meltclosure_ptr_t meltclosp_,
 						 melt_ptr_t meltfirstargp_,
@@ -373,7 +373,7 @@ meltrout_22_warmelt_first_AT_END_MELT_PASS_LAST (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3162   "warmelt-first.melt" /**::procdecl::**/
+#line 3165   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_23_warmelt_first_INIT_UNITSTARTER (meltclosure_ptr_t meltclosp_,
 					    melt_ptr_t meltfirstargp_,
@@ -387,7 +387,7 @@ meltrout_23_warmelt_first_INIT_UNITSTARTER (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3171   "warmelt-first.melt" /**::procdecl::**/
+#line 3174   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_24_warmelt_first_LAMBDA___4__ (meltclosure_ptr_t meltclosp_,
 					melt_ptr_t meltfirstargp_,
@@ -401,7 +401,7 @@ meltrout_24_warmelt_first_LAMBDA___4__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3180   "warmelt-first.melt" /**::procdecl::**/
+#line 3183   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_25_warmelt_first_LAMBDA___5__ (meltclosure_ptr_t meltclosp_,
 					melt_ptr_t meltfirstargp_,
@@ -415,7 +415,7 @@ meltrout_25_warmelt_first_LAMBDA___5__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3185   "warmelt-first.melt" /**::procdecl::**/
+#line 3188   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_26_warmelt_first_LAMBDA___6__ (meltclosure_ptr_t meltclosp_,
 					melt_ptr_t meltfirstargp_,
@@ -429,7 +429,7 @@ meltrout_26_warmelt_first_LAMBDA___6__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3194   "warmelt-first.melt" /**::procdecl::**/
+#line 3197   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_27_warmelt_first_AT_START_UNIT_FIRST (meltclosure_ptr_t meltclosp_,
 					       melt_ptr_t meltfirstargp_,
@@ -445,7 +445,7 @@ meltrout_27_warmelt_first_AT_START_UNIT_FIRST (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3201   "warmelt-first.melt" /**::procdecl::**/
+#line 3204   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_28_warmelt_first_AT_START_UNIT_LAST (meltclosure_ptr_t meltclosp_,
 					      melt_ptr_t meltfirstargp_,
@@ -461,7 +461,7 @@ meltrout_28_warmelt_first_AT_START_UNIT_LAST (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3216   "warmelt-first.melt" /**::procdecl::**/
+#line 3219   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_29_warmelt_first_INIT_UNITFINISHER (meltclosure_ptr_t meltclosp_,
 					     melt_ptr_t meltfirstargp_,
@@ -476,7 +476,7 @@ meltrout_29_warmelt_first_INIT_UNITFINISHER (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3225   "warmelt-first.melt" /**::procdecl::**/
+#line 3228   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_30_warmelt_first_LAMBDA___7__ (meltclosure_ptr_t meltclosp_,
 					melt_ptr_t meltfirstargp_,
@@ -490,7 +490,7 @@ meltrout_30_warmelt_first_LAMBDA___7__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3234   "warmelt-first.melt" /**::procdecl::**/
+#line 3237   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_31_warmelt_first_LAMBDA___8__ (meltclosure_ptr_t meltclosp_,
 					melt_ptr_t meltfirstargp_,
@@ -504,7 +504,7 @@ meltrout_31_warmelt_first_LAMBDA___8__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3239   "warmelt-first.melt" /**::procdecl::**/
+#line 3242   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_32_warmelt_first_LAMBDA___9__ (meltclosure_ptr_t meltclosp_,
 					melt_ptr_t meltfirstargp_,
@@ -518,7 +518,7 @@ meltrout_32_warmelt_first_LAMBDA___9__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3248   "warmelt-first.melt" /**::procdecl::**/
+#line 3251   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_33_warmelt_first_AT_FINISH_UNIT_FIRST (meltclosure_ptr_t meltclosp_,
 						melt_ptr_t meltfirstargp_,
@@ -534,7 +534,7 @@ meltrout_33_warmelt_first_AT_FINISH_UNIT_FIRST (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3256   "warmelt-first.melt" /**::procdecl::**/
+#line 3259   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_34_warmelt_first_AT_FINISH_UNIT_LAST (meltclosure_ptr_t meltclosp_,
 					       melt_ptr_t meltfirstargp_,
@@ -550,7 +550,7 @@ meltrout_34_warmelt_first_AT_FINISH_UNIT_LAST (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3278   "warmelt-first.melt" /**::procdecl::**/
+#line 3281   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_35_warmelt_first_INIT_OPTIONSETTER (meltclosure_ptr_t meltclosp_,
 					     melt_ptr_t meltfirstargp_,
@@ -565,7 +565,7 @@ meltrout_35_warmelt_first_INIT_OPTIONSETTER (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3298   "warmelt-first.melt" /**::procdecl::**/
+#line 3301   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_36_warmelt_first_REGISTER_OPTION (meltclosure_ptr_t meltclosp_,
 					   melt_ptr_t meltfirstargp_,
@@ -579,7 +579,7 @@ meltrout_36_warmelt_first_REGISTER_OPTION (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3313   "warmelt-first.melt" /**::procdecl::**/
+#line 3316   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_37_warmelt_first_OPTION_HELPER_FUN (meltclosure_ptr_t meltclosp_,
 					     melt_ptr_t meltfirstargp_,
@@ -594,7 +594,7 @@ meltrout_37_warmelt_first_OPTION_HELPER_FUN (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3331   "warmelt-first.melt" /**::procdecl::**/
+#line 3334   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_38_warmelt_first_LAMBDA___10__ (meltclosure_ptr_t meltclosp_,
 					 melt_ptr_t meltfirstargp_,
@@ -608,7 +608,7 @@ meltrout_38_warmelt_first_LAMBDA___10__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3412   "warmelt-first.melt" /**::procdecl::**/
+#line 3416   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_39_warmelt_first_MAPOBJECT_EVERY (meltclosure_ptr_t meltclosp_,
 					   melt_ptr_t meltfirstargp_,
@@ -622,7 +622,7 @@ meltrout_39_warmelt_first_MAPOBJECT_EVERY (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3427   "warmelt-first.melt" /**::procdecl::**/
+#line 3431   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_40_warmelt_first_MAPOBJECT_ITERATE_TEST (meltclosure_ptr_t
 						  meltclosp_,
@@ -639,7 +639,7 @@ meltrout_40_warmelt_first_MAPOBJECT_ITERATE_TEST (meltclosure_ptr_t
 
 
 
-#line 3474   "warmelt-first.melt" /**::procdecl::**/
+#line 3478   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_41_warmelt_first_LIST_EVERY (meltclosure_ptr_t meltclosp_,
 				      melt_ptr_t meltfirstargp_,
@@ -653,7 +653,7 @@ meltrout_41_warmelt_first_LIST_EVERY (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3485   "warmelt-first.melt" /**::procdecl::**/
+#line 3489   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_42_warmelt_first_LIST_ITERATE_TEST (meltclosure_ptr_t meltclosp_,
 					     melt_ptr_t meltfirstargp_,
@@ -668,7 +668,7 @@ meltrout_42_warmelt_first_LIST_ITERATE_TEST (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3501   "warmelt-first.melt" /**::procdecl::**/
+#line 3505   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_43_warmelt_first_LIST_APPEND2LIST (meltclosure_ptr_t meltclosp_,
 					    melt_ptr_t meltfirstargp_,
@@ -682,7 +682,7 @@ meltrout_43_warmelt_first_LIST_APPEND2LIST (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3516   "warmelt-first.melt" /**::procdecl::**/
+#line 3520   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_44_warmelt_first_LIST_MAP (meltclosure_ptr_t meltclosp_,
 				    melt_ptr_t meltfirstargp_,
@@ -696,7 +696,7 @@ meltrout_44_warmelt_first_LIST_MAP (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3533   "warmelt-first.melt" /**::procdecl::**/
+#line 3537   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_45_warmelt_first_LIST_FIND (meltclosure_ptr_t meltclosp_,
 				     melt_ptr_t meltfirstargp_,
@@ -710,7 +710,7 @@ meltrout_45_warmelt_first_LIST_FIND (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3556   "warmelt-first.melt" /**::procdecl::**/
+#line 3560   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_46_warmelt_first_LIST_TO_MULTIPLE (meltclosure_ptr_t meltclosp_,
 					    melt_ptr_t meltfirstargp_,
@@ -724,7 +724,7 @@ meltrout_46_warmelt_first_LIST_TO_MULTIPLE (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3565   "warmelt-first.melt" /**::procdecl::**/
+#line 3569   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_47_warmelt_first_LAMBDA___11__ (meltclosure_ptr_t meltclosp_,
 					 melt_ptr_t meltfirstargp_,
@@ -738,7 +738,7 @@ meltrout_47_warmelt_first_LAMBDA___11__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3576   "warmelt-first.melt" /**::procdecl::**/
+#line 3580   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_48_warmelt_first_PAIRLIST_TO_MULTIPLE (meltclosure_ptr_t meltclosp_,
 						melt_ptr_t meltfirstargp_,
@@ -754,7 +754,7 @@ meltrout_48_warmelt_first_PAIRLIST_TO_MULTIPLE (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3641   "warmelt-first.melt" /**::procdecl::**/
+#line 3645   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_49_warmelt_first_MULTIPLE_ITERATE_TEST (meltclosure_ptr_t meltclosp_,
 						 melt_ptr_t meltfirstargp_,
@@ -770,7 +770,7 @@ meltrout_49_warmelt_first_MULTIPLE_ITERATE_TEST (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3658   "warmelt-first.melt" /**::procdecl::**/
+#line 3662   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_50_warmelt_first_MULTIPLE_MAP (meltclosure_ptr_t meltclosp_,
 					melt_ptr_t meltfirstargp_,
@@ -784,7 +784,7 @@ meltrout_50_warmelt_first_MULTIPLE_MAP (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3675   "warmelt-first.melt" /**::procdecl::**/
+#line 3679   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_51_warmelt_first_MULTIPLE_TO_LIST (meltclosure_ptr_t meltclosp_,
 					    melt_ptr_t meltfirstargp_,
@@ -798,7 +798,7 @@ meltrout_51_warmelt_first_MULTIPLE_TO_LIST (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3693   "warmelt-first.melt" /**::procdecl::**/
+#line 3697   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_52_warmelt_first_CLOSURE_EVERY (meltclosure_ptr_t meltclosp_,
 					 melt_ptr_t meltfirstargp_,
@@ -812,7 +812,7 @@ meltrout_52_warmelt_first_CLOSURE_EVERY (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3706   "warmelt-first.melt" /**::procdecl::**/
+#line 3710   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_53_warmelt_first_ROUTINE_EVERY (meltclosure_ptr_t meltclosp_,
 					 melt_ptr_t meltfirstargp_,
@@ -826,7 +826,7 @@ meltrout_53_warmelt_first_ROUTINE_EVERY (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3720   "warmelt-first.melt" /**::procdecl::**/
+#line 3724   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_54_warmelt_first_INSTALL_METHOD (meltclosure_ptr_t meltclosp_,
 					  melt_ptr_t meltfirstargp_,
@@ -840,7 +840,7 @@ meltrout_54_warmelt_first_INSTALL_METHOD (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3804   "warmelt-first.melt" /**::procdecl::**/
+#line 3808   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_55_warmelt_first_COMPARE_OBJ_RANKED (meltclosure_ptr_t meltclosp_,
 					      melt_ptr_t meltfirstargp_,
@@ -856,7 +856,7 @@ meltrout_55_warmelt_first_COMPARE_OBJ_RANKED (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3886   "warmelt-first.melt" /**::procdecl::**/
+#line 3890   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_56_warmelt_first_MAPOBJECT_SORTED_ATTRIBUTE_TUPLE (meltclosure_ptr_t
 							    meltclosp_,
@@ -876,7 +876,7 @@ meltrout_56_warmelt_first_MAPOBJECT_SORTED_ATTRIBUTE_TUPLE (meltclosure_ptr_t
 
 
 
-#line 3900   "warmelt-first.melt" /**::procdecl::**/
+#line 3904   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_57_warmelt_first_LAMBDA___12__ (meltclosure_ptr_t meltclosp_,
 					 melt_ptr_t meltfirstargp_,
@@ -890,7 +890,7 @@ meltrout_57_warmelt_first_LAMBDA___12__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3912   "warmelt-first.melt" /**::procdecl::**/
+#line 3916   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_58_warmelt_first_LAMBDA___13__ (meltclosure_ptr_t meltclosp_,
 					 melt_ptr_t meltfirstargp_,
@@ -904,7 +904,7 @@ meltrout_58_warmelt_first_LAMBDA___13__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3926   "warmelt-first.melt" /**::procdecl::**/
+#line 3930   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_59_warmelt_first_LAMBDA___14__ (meltclosure_ptr_t meltclosp_,
 					 melt_ptr_t meltfirstargp_,
@@ -918,7 +918,7 @@ meltrout_59_warmelt_first_LAMBDA___14__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3940   "warmelt-first.melt" /**::procdecl::**/
+#line 3944   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_60_warmelt_first_FRESH_ENV (meltclosure_ptr_t meltclosp_,
 				     melt_ptr_t meltfirstargp_,
@@ -932,7 +932,7 @@ meltrout_60_warmelt_first_FRESH_ENV (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3962   "warmelt-first.melt" /**::procdecl::**/
+#line 3966   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_61_warmelt_first_FIND_ENV (meltclosure_ptr_t meltclosp_,
 				    melt_ptr_t meltfirstargp_,
@@ -946,7 +946,7 @@ meltrout_61_warmelt_first_FIND_ENV (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3985   "warmelt-first.melt" /**::procdecl::**/
+#line 3989   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_62_warmelt_first_FIND_ENV_DEBUG (meltclosure_ptr_t meltclosp_,
 					  melt_ptr_t meltfirstargp_,
@@ -960,7 +960,7 @@ meltrout_62_warmelt_first_FIND_ENV_DEBUG (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 4007   "warmelt-first.melt" /**::procdecl::**/
+#line 4011   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_63_warmelt_first_FIND_ENCLOSING_ENV (meltclosure_ptr_t meltclosp_,
 					      melt_ptr_t meltfirstargp_,
@@ -976,7 +976,7 @@ meltrout_63_warmelt_first_FIND_ENCLOSING_ENV (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 4026   "warmelt-first.melt" /**::procdecl::**/
+#line 4030   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_64_warmelt_first_PUT_ENV (meltclosure_ptr_t meltclosp_,
 				   melt_ptr_t meltfirstargp_,
@@ -990,7 +990,7 @@ meltrout_64_warmelt_first_PUT_ENV (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 4048   "warmelt-first.melt" /**::procdecl::**/
+#line 4052   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_65_warmelt_first_OVERWRITE_ENV (meltclosure_ptr_t meltclosp_,
 					 melt_ptr_t meltfirstargp_,
@@ -1004,7 +1004,7 @@ meltrout_65_warmelt_first_OVERWRITE_ENV (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 4081   "warmelt-first.melt" /**::procdecl::**/
+#line 4085   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_66_warmelt_first_POST_INITIALIZATION (meltclosure_ptr_t meltclosp_,
 					       melt_ptr_t meltfirstargp_,
@@ -1020,7 +1020,7 @@ meltrout_66_warmelt_first_POST_INITIALIZATION (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 4130   "warmelt-first.melt" /**::procdecl::**/
+#line 4134   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_67_warmelt_first_RETRIEVE_DICTIONNARY_CTYPE_GTY (meltclosure_ptr_t
 							  meltclosp_,
@@ -1040,7 +1040,7 @@ meltrout_67_warmelt_first_RETRIEVE_DICTIONNARY_CTYPE_GTY (meltclosure_ptr_t
 
 
 
-#line 4135   "warmelt-first.melt" /**::procdecl::**/
+#line 4139   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_68_warmelt_first_RETRIEVE_DICTIONNARY_CTYPE (meltclosure_ptr_t
 						      meltclosp_,
@@ -1060,7 +1060,7 @@ meltrout_68_warmelt_first_RETRIEVE_DICTIONNARY_CTYPE (meltclosure_ptr_t
 
 
 
-#line 4465   "warmelt-first.melt" /**::procdecl::**/
+#line 4469   "warmelt-first.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_69_warmelt_first_DEBUG_MSG_FUN (meltclosure_ptr_t meltclosp_,
 					 melt_ptr_t meltfirstargp_,
@@ -1265,7 +1265,7 @@ meltmod__warmelt_first__forward_or_mark_module_start_frame (struct
 
 /**** warmelt-first+03.c implementations ****/
 
-#line 4465   "warmelt-first.melt" /**::proc::**/
+#line 4469   "warmelt-first.melt" /**::proc::**/
 
 
 
@@ -1342,34 +1342,34 @@ meltrout_69_warmelt_first_DEBUG_MSG_FUN (meltclosure_ptr_t meltclosp_,
 /*getargs*/
 
   /*getarg#0 */
-  MELT_LOCATION ("warmelt-first.melt:4465:/ getarg");
-#line 4465   "warmelt-first.melt" /**::getarg::**/
+  MELT_LOCATION ("warmelt-first.melt:4469:/ getarg");
+#line 4469   "warmelt-first.melt" /**::getarg::**/
  /*_.VAL__V2*/ meltfptr[1] = (melt_ptr_t) meltfirstargp_;
 
   /*getarg#1 */
   /*^getarg */
-#line 4465
+#line 4469
   if (meltxargdescr_[0] != MELTBPAR_CSTRING)
     goto lab_endgetargs;
  /*_?*/ meltfram__.loc_CSTRING__o0 = meltxargtab_[0].meltbp_cstring;
 
   /*getarg#2 */
   /*^getarg */
-#line 4465
+#line 4469
   if (meltxargdescr_[1] != MELTBPAR_LONG)
     goto lab_endgetargs;
  /*_#COUNT__L1*/ meltfnum[0] = meltxargtab_[1].meltbp_long;
 
   /*getarg#3 */
   /*^getarg */
-#line 4465
+#line 4469
   if (meltxargdescr_[2] != MELTBPAR_CSTRING)
     goto lab_endgetargs;
  /*_?*/ meltfram__.loc_CSTRING__o1 = meltxargtab_[2].meltbp_cstring;
 
   /*getarg#4 */
   /*^getarg */
-#line 4465
+#line 4469
   if (meltxargdescr_[3] != MELTBPAR_LONG)
     goto lab_endgetargs;
  /*_#LINENO__L2*/ meltfnum[1] = meltxargtab_[3].meltbp_long;
@@ -1378,16 +1378,16 @@ meltrout_69_warmelt_first_DEBUG_MSG_FUN (meltclosure_ptr_t meltclosp_,
 lab_endgetargs:;
 /*body*/
 /*^block*/
-#line 4465
+#line 4469
 /*anyblock*/
   {
 
-    MELT_LOCATION ("warmelt-first.melt:4466:/ quasiblock");
-#line 4466   "warmelt-first.melt" /**::quasiblock::**/
+    MELT_LOCATION ("warmelt-first.melt:4470:/ quasiblock");
+#line 4470   "warmelt-first.melt" /**::quasiblock::**/
 
 
     /*^getslot */
-#line 4466
+#line 4470
     {
       melt_ptr_t slot = NULL, obj = NULL;
       obj =
@@ -1397,46 +1397,46 @@ lab_endgetargs:;
   /*_.DBGMSGFUN__V4*/ meltfptr[3] = slot;
     };
     ;
-    MELT_LOCATION ("warmelt-first.melt:4467:/ checksignal");
-#line 4467   "warmelt-first.melt" /**::checksignal::**/
+    MELT_LOCATION ("warmelt-first.melt:4471:/ checksignal");
+#line 4471   "warmelt-first.melt" /**::checksignal::**/
     MELT_CHECK_SIGNAL ();
     ;
  /*_#IS_CLOSURE__L3*/ meltfnum[2] =
-#line 4467   "warmelt-first.melt" /**::expr::**/
+#line 4471   "warmelt-first.melt" /**::expr::**/
       (melt_magic_discr ((melt_ptr_t) ( /*_.DBGMSGFUN__V4*/ meltfptr[3])) ==
        MELTOBMAG_CLOSURE);;
-    MELT_LOCATION ("warmelt-first.melt:4467:/ cond");
-#line 4467   "warmelt-first.melt" /**::cond::**/
+    MELT_LOCATION ("warmelt-first.melt:4471:/ cond");
+#line 4471   "warmelt-first.melt" /**::cond::**/
     /*cond */ if ( /*_#IS_CLOSURE__L3*/ meltfnum[2])	/*then */
       {
 	/*^cond.then */
-#line 4467
+#line 4471
 	/*^block */
-#line 4467
+#line 4471
 	/*anyblock */
 	{
 
-	  MELT_LOCATION ("warmelt-first.melt:4468:/ checksignal");
-#line 4468   "warmelt-first.melt" /**::checksignal::**/
+	  MELT_LOCATION ("warmelt-first.melt:4472:/ checksignal");
+#line 4472   "warmelt-first.melt" /**::checksignal::**/
 	  MELT_CHECK_SIGNAL ();
 	  ;
 	  /*^apply */
-#line 4468
+#line 4472
 	  /*apply */
 	  {
 	    union meltparam_un argtab[4];
 	    memset (&argtab, 0, sizeof (argtab));
 	    /*^apply.arg */
-#line 4468
+#line 4472
 	    argtab[0].meltbp_cstring = /*_?*/ meltfram__.loc_CSTRING__o0;
 	    /*^apply.arg */
-#line 4468
+#line 4472
 	    argtab[1].meltbp_long = /*_#COUNT__L1*/ meltfnum[0];
 	    /*^apply.arg */
-#line 4468
+#line 4472
 	    argtab[2].meltbp_cstring = /*_?*/ meltfram__.loc_CSTRING__o1;
 	    /*^apply.arg */
-#line 4468
+#line 4472
 	    argtab[3].meltbp_long = /*_#LINENO__L2*/ meltfnum[1];
 	    /*_.DBGMSGFUN__V6*/ meltfptr[5] =
 	      melt_apply ((meltclosure_ptr_t)
@@ -1450,15 +1450,15 @@ lab_endgetargs:;
 	  /*_.IF___V5*/ meltfptr[4] = /*_.DBGMSGFUN__V6*/ meltfptr[5];;
 	  /*epilog */
 
-	  MELT_LOCATION ("warmelt-first.melt:4467:/ clear");
-#line 4467   "warmelt-first.melt" /**::clear::**/
+	  MELT_LOCATION ("warmelt-first.melt:4471:/ clear");
+#line 4471   "warmelt-first.melt" /**::clear::**/
 	     /*clear *//*_.DBGMSGFUN__V6*/ meltfptr[5] = 0;
 	}
 	;
       }
     else
       {				/*^cond.else */
-#line 4467
+#line 4471
 
   /*_.IF___V5*/ meltfptr[4] = NULL;;
       }
@@ -1467,24 +1467,24 @@ lab_endgetargs:;
 
     /*_.LET___V3*/ meltfptr[2] = /*_.IF___V5*/ meltfptr[4];;
 
-    MELT_LOCATION ("warmelt-first.melt:4466:/ clear");
-#line 4466   "warmelt-first.melt" /**::clear::**/
+    MELT_LOCATION ("warmelt-first.melt:4470:/ clear");
+#line 4470   "warmelt-first.melt" /**::clear::**/
 	   /*clear *//*_.DBGMSGFUN__V4*/ meltfptr[3] = 0;
     /*^clear */
-#line 4466
+#line 4470
 	   /*clear *//*_#IS_CLOSURE__L3*/ meltfnum[2] = 0;
     /*^clear */
-#line 4466
+#line 4470
 	   /*clear *//*_.IF___V5*/ meltfptr[4] = 0;
-    MELT_LOCATION ("warmelt-first.melt:4465:/ quasiblock");
-#line 4465   "warmelt-first.melt" /**::quasiblock::**/
+    MELT_LOCATION ("warmelt-first.melt:4469:/ quasiblock");
+#line 4469   "warmelt-first.melt" /**::quasiblock::**/
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V3*/ meltfptr[2];;
 
     {
-      MELT_LOCATION ("warmelt-first.melt:4465:/ locexp");
-#line 4465   "warmelt-first.melt" /**::locexp::**/
+      MELT_LOCATION ("warmelt-first.melt:4469:/ locexp");
+#line 4469   "warmelt-first.melt" /**::locexp::**/
       /*ochecknores compilobj_nrep_return */
 #if MELT_HAVE_DEBUG
       if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
@@ -1495,13 +1495,13 @@ lab_endgetargs:;
     }
     ;
     /*^finalreturn */
-#line 4465
+#line 4469
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
 
     /*^clear */
-#line 4465
+#line 4469
 	   /*clear *//*_.LET___V3*/ meltfptr[2] = 0;
   }
 
