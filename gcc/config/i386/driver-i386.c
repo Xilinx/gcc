@@ -398,6 +398,7 @@ const char *host_detect_local_cpu (int argc, const char **argv)
   unsigned int has_fma = 0, has_fma4 = 0, has_xop = 0;
   unsigned int has_bmi = 0, has_bmi2 = 0, has_tbm = 0, has_lzcnt = 0;
   unsigned int has_rdrnd = 0, has_f16c = 0, has_fsgsbase = 0;
+  unsigned int has_hle = 0;
 
   bool arch;
 
@@ -459,6 +460,7 @@ const char *host_detect_local_cpu (int argc, const char **argv)
       __cpuid_count (7, 0, eax, ebx, ecx, edx);
 
       has_bmi = ebx & bit_BMI;
+      has_hle = ebx & bit_HLE;
       has_avx2 = ebx & bit_AVX2;
       has_bmi2 = ebx & bit_BMI2;
       has_fsgsbase = ebx & bit_FSGSBASE;
@@ -735,11 +737,12 @@ const char *host_detect_local_cpu (int argc, const char **argv)
       const char *rdrnd = has_rdrnd ? " -mrdrnd" : " -mno-rdrnd";
       const char *f16c = has_f16c ? " -mf16c" : " -mno-f16c";
       const char *fsgsbase = has_fsgsbase ? " -mfsgsbase" : " -mno-fsgsbase";
+      const char *hle = has_hle ? " -mhle" : "-mno-hle";
 
       options = concat (options, cx16, sahf, movbe, ase, pclmul,
 			popcnt, abm, lwp, fma, fma4, xop, bmi, bmi2,
 			tbm, avx, avx2, sse4_2, sse4_1, lzcnt, rdrnd,
-			f16c, fsgsbase, NULL);
+			f16c, fsgsbase, hle, NULL);
     }
 
 done:
