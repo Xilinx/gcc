@@ -1,3 +1,38 @@
+2012-08-29  Chris Manghane  <cmang@google.com>
+
+	Backport r190762 from google/main.
+
+	2012-08-28  Chris Manghane  <cmang@google.com>
+
+	* gcc/gcov.c
+	(release_structures): Removed filename field from PMU structures.
+	(filter_pmu_data_lines): Added PMU string table support.
+	(process_pmu_profile): Ditto.
+	* gcc/gcov-io.c
+	(gcov_read_pmu_load_latency_info): Replaced filename field with filetag.
+	(gcov_read_pmu_branch_mispredict_info): Ditto.
+	(gcov_read_pmu_string_table_entry): New Function.
+	(print_load_latency_line): Replaced filename field with filetag.
+	(print_branch_mispredict_line): Ditto.
+	(print_string_table_entry): New function.
+	* gcc/gcov-io.h
+	(GCOV_TAG_PMU_LOAD_LATENCY_LENGTH): Replaced filename field with filetag
+	(GCOV_TAG_PMU_BRANCH_MISPREDICT_LENGTH): Ditto.
+	(GCOV_TAG_PMU_STRING_TABLE_ENTRY): Added new tag.
+	(GCOV_TAG_PMU_STRING_TABLE_ENTRY_LENGTH): Ditto.
+	(gcov_pmu_load_latency_info): Replaced filename field with filetag.
+	(gcov_pmu_branch_mispredict_info): Ditto.
+	(gcov_pmu_string_table_entry): New struct.
+	(gcov_pmu_string_table): New struct.
+	(gcov_write_ll_line): Moved pmu writing utilities to global header.
+	(gcov_write_branch_mispredict_line): Ditto.
+	(gcov_write_string_table_entry): Ditto.
+	(gcov_write_tool_header): Ditto.
+	* gcc/gcov-dump.c
+	(tag_pmu_load_latency_info): Removed PMU filename field.
+	(tag_pmu_branch_mispredict_info): Ditto.
+	(tag_pmu_string_table_entry): New function.
+
 2012-08-29   Cary Coutant  <ccoutant@google.com>
 
 	* dwarf2out.c (clone_tree_partial): Remove.

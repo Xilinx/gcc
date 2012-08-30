@@ -222,6 +222,7 @@ typedef struct pmu_data
 {
   ll_infos_t ll_infos;
   brm_infos_t brm_infos;
+  string_table_t string_table;
 } pmu_data_t;
 
 /* Describes a single line of source. Contains a chain of basic blocks
@@ -975,6 +976,7 @@ release_structures (void)
   function_t *fn;
   ll_infos_t *ll_infos = &pmu_global_info.ll_infos;
   brm_infos_t *brm_infos = &pmu_global_info.brm_infos;
+  string_table_t *string_table = &pmu_global_info.string_table;
 
   for (ix = n_sources; ix--;)
     {
@@ -1008,8 +1010,6 @@ release_structures (void)
       /* delete each element */
       for (i = 0; i < ll_infos->ll_count; ++i)
         {
-          if (ll_infos->ll_array[i]->filename)
-            XDELETE (ll_infos->ll_array[i]->filename);
           XDELETE (ll_infos->ll_array[i]);
         }
       /* delete the array itself */
@@ -1026,14 +1026,28 @@ release_structures (void)
       /* delete each element */
       for (i = 0; i < brm_infos->brm_count; ++i)
         {
-          if (brm_infos->brm_array[i]->filename)
-            XDELETE (brm_infos->brm_array[i]->filename);
           XDELETE (brm_infos->brm_array[i]);
         }
       /* delete the array itself */
       XDELETE (brm_infos->brm_array);
       brm_infos->brm_array = NULL;
       brm_infos->brm_count = 0;
+    }
+
+  /* Cleanup PMU string table entries. */
+  if (string_table->st_count)
+    {
+      unsigned i;
+
+      /* delete each element */
+      for (i = 0; i < string_table->st_count; ++i)
+        {
+          XDELETE (string_table->st_array[i]);
+        }
+      /* delete the array itself */
+      XDELETE (string_table->st_array);
+      string_table->st_array = NULL;
+      string_table->st_count = 0;
     }
 }
 
@@ -2263,17 +2277,21 @@ filter_pmu_data_lines (source_t *src)
   int changed;
   ll_infos_t *ll_infos;         /* load latency information for this source */
   brm_infos_t *brm_infos;  /* branch mispredict information for this source */
+  string_table_t *string_table; /* string table information for this source */
 
   if (pmu_global_info.ll_infos.ll_count == 0 &&
-      pmu_global_info.brm_infos.brm_count == 0)
+      pmu_global_info.brm_infos.brm_count == 0 &&
+      pmu_global_info.string_table.st_count == 0)
     /* If there are no global entries, there is nothing to filter.  */
     return;
 
   src->pmu_data = XCNEW (pmu_data_t);
   ll_infos = &src->pmu_data->ll_infos;
   brm_infos = &src->pmu_data->brm_infos;
+  string_table = &src->pmu_data->string_table;
   ll_infos->pmu_tool_header = pmu_global_info.ll_infos.pmu_tool_header;
   brm_infos->pmu_tool_header = pmu_global_info.brm_infos.pmu_tool_header;
+  string_table->pmu_tool_header = pmu_global_info.string_table.pmu_tool_header;
   ll_infos->ll_array = 0;
   brm_infos->brm_array = 0;
 
@@ -2282,7 +2300,8 @@ filter_pmu_data_lines (source_t *src)
   for (i = 0; i < pmu_global_info.ll_infos.ll_count; ++i)
     {
       gcov_pmu_ll_info_t *ll_info = pmu_global_info.ll_infos.ll_array[i];
-      if (0 == strcmp (src->name, ll_info->filename))
+      if (0 == strcmp (src->name,
+                       string_table->st_array[ll_info->filetag - 1]->str))
         {
           if (!ll_infos->ll_array)
             {
@@ -2295,9 +2314,9 @@ filter_pmu_data_lines (source_t *src)
           ll_infos->ll_count++;
           if (ll_infos->ll_count >= ll_infos->alloc_ll_count)
             {
-              /* need to realloc */
+            /* need to realloc */
               ll_infos->ll_array = (gcov_pmu_ll_info_t **)
-                xrealloc (ll_infos->ll_array, 2 * ll_infos->alloc_ll_count);
+                  xrealloc (ll_infos->ll_array, 2 * ll_infos->alloc_ll_count);
             }
           ll_infos->ll_array[ll_infos->ll_count - 1] = ll_info;
         }
@@ -2308,7 +2327,8 @@ filter_pmu_data_lines (source_t *src)
   for (i = 0; i < pmu_global_info.brm_infos.brm_count; ++i)
     {
       gcov_pmu_brm_info_t *brm_info = pmu_global_info.brm_infos.brm_array[i];
-      if (0 == strcmp (src->name, brm_info->filename))
+      if (0 == strcmp (src->name,
+                       string_table->st_array[brm_info->filetag - 1]->str))
         {
           if (!brm_infos->brm_array)
             {
@@ -2323,7 +2343,8 @@ filter_pmu_data_lines (source_t *src)
             {
               /* need to realloc */
               brm_infos->brm_array = (gcov_pmu_brm_info_t **)
-                xrealloc (brm_infos->brm_array, 2 * brm_infos->alloc_brm_count);
+                  xrealloc (brm_infos->brm_array,
+                            2 * brm_infos->alloc_brm_count);
             }
           brm_infos->brm_array[brm_infos->brm_count - 1] = brm_info;
         }
@@ -2914,6 +2935,7 @@ static void process_pmu_profile (void)
   int error = 0;
   ll_infos_t *ll_infos = &pmu_global_info.ll_infos;
   brm_infos_t *brm_infos = &pmu_global_info.brm_infos;
+  string_table_t *string_table = &pmu_global_info.string_table;
 
   /* Construct path for pmuprofile.gcda filename. */
   create_file_names (pmu_profile_filename);
@@ -2953,6 +2975,11 @@ static void process_pmu_profile (void)
   brm_infos->brm_array = XCNEWVEC (gcov_pmu_brm_info_t *,
                                    brm_infos->alloc_brm_count);
 
+  string_table->st_count = 0;
+  string_table->alloc_st_count = 64;
+  string_table->st_array = XCNEWVEC (gcov_pmu_st_entry_t *,
+                                     string_table->alloc_st_count);
+
   while ((tag = gcov_read_unsigned ()))
     {
       unsigned length = gcov_read_unsigned ();
@@ -2990,6 +3017,22 @@ static void process_pmu_profile (void)
           gcov_read_pmu_tool_header (tool_header, length);
           ll_infos->pmu_tool_header = tool_header;
           brm_infos->pmu_tool_header = tool_header;
+        }
+      else if (tag == GCOV_TAG_PMU_STRING_TABLE_ENTRY)
+        {
+          gcov_pmu_st_entry_t *st_entry = XCNEW (gcov_pmu_st_entry_t);
+          gcov_read_pmu_string_table_entry (st_entry, length);
+          /* Verify that we read string table entries in the right order */
+          gcc_assert (st_entry->index == string_table->st_count);
+          string_table->st_count++;
+          if (string_table->st_count >= string_table->alloc_st_count)
+            {
+              string_table->alloc_st_count *= 2;
+              string_table->st_array = (gcov_pmu_st_entry_t **)
+                  xrealloc (string_table->st_array,
+                            string_table->alloc_st_count);
+            }
+          string_table->st_array[string_table->st_count - 1] = st_entry;
         }
 
       gcov_sync (base, length);

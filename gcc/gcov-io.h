@@ -442,13 +442,14 @@ typedef HOST_WIDEST_INT gcov_type;
 #define GCOV_TAG_SUMMARY_LENGTH  \
 	(1 + GCOV_COUNTERS_SUMMABLE * (3 + 3 * 2))
 #define GCOV_TAG_PMU_LOAD_LATENCY_INFO ((gcov_unsigned_t)0xa5000000)
-#define GCOV_TAG_PMU_LOAD_LATENCY_LENGTH(filename)  \
-  (gcov_string_length (filename) + 12 + 2)
+#define GCOV_TAG_PMU_LOAD_LATENCY_LENGTH (15)
 #define GCOV_TAG_PMU_BRANCH_MISPREDICT_INFO ((gcov_unsigned_t)0xa7000000)
-#define GCOV_TAG_PMU_BRANCH_MISPREDICT_LENGTH(filename)  \
-  (gcov_string_length (filename) + 5 + 2)
+#define GCOV_TAG_PMU_BRANCH_MISPREDICT_LENGTH (8)
 #define GCOV_TAG_PMU_TOOL_HEADER ((gcov_unsigned_t)0xa9000000)
 #define GCOV_TAG_MODULE_INFO ((gcov_unsigned_t)0xab000000)
+#define GCOV_TAG_PMU_STRING_TABLE_ENTRY ((gcov_unsigned_t)0xad000000)
+#define GCOV_TAG_PMU_STRING_TABLE_ENTRY_LENGTH(filename) \
+  (gcov_string_length (filename) + 1)
 
 /* Counters that are collected.  */
 #define GCOV_COUNTER_ARCS 	0  /* Arc transitions.  */
@@ -635,7 +636,7 @@ typedef struct gcov_pmu_load_latency_info
   gcov_type code_addr;        /* the actual miss address (pc+1 for Intel) */
   gcov_unsigned_t line;       /* line number corresponding to this miss */
   gcov_unsigned_t discriminator;   /* discriminator information for this miss */
-  char *filename;       /* filename corresponding to this miss */
+  gcov_unsigned_t filetag;    /* location in string table of filename */
 } gcov_pmu_ll_info_t;
 
 /* This structure is used during runtime as well as in gcov.  */
@@ -665,7 +666,7 @@ typedef struct gcov_pmu_branch_mispredict_info
   gcov_type code_addr;        /* the actual mispredict address */
   gcov_unsigned_t line;       /* line number corresponding to this event */
   gcov_unsigned_t discriminator;   /* discriminator for this event */
-  char *filename;       /* filename corresponding to this event */
+  gcov_unsigned_t filetag;    /* location in string table of filename */
 } gcov_pmu_brm_info_t;
 
 /* This structure is used during runtime as well as in gcov.  */
@@ -681,6 +682,25 @@ typedef struct branch_mispredict_infos
   /* PMU tool header */
   gcov_pmu_tool_header_t *pmu_tool_header;
 } brm_infos_t;
+
+typedef struct gcov_pmu_string_table_entry
+{
+  gcov_unsigned_t index;   /* The corresponding string table index */
+  char* str;          /* The string that belongs at this index */
+} gcov_pmu_st_entry_t;
+
+typedef struct string_table
+{
+  /* An array describing the total number of string table entries.  */
+  gcov_pmu_st_entry_t **st_array;
+  /* The total number of entries in the above array.  */
+  unsigned st_count;
+  /* The total number of entries currently allocated in the array.
+     Used for bookkeeping.  */
+  unsigned alloc_st_count;
+  /* PMU tool header */
+  gcov_pmu_tool_header_t *pmu_tool_header;
+} string_table_t;
 
 /* Structures embedded in coveraged program.  The structures generated
    by write_profile must match these.  */
@@ -871,8 +891,13 @@ GCOV_LINKAGE void
 gcov_read_pmu_branch_mispredict_info (gcov_pmu_brm_info_t *brm_info,
                                       gcov_unsigned_t len) ATTRIBUTE_HIDDEN;
 GCOV_LINKAGE void
+gcov_read_pmu_string_table_entry (gcov_pmu_st_entry_t *entry,
+                                  gcov_unsigned_t len) ATTRIBUTE_HIDDEN;
+
+GCOV_LINKAGE void
 gcov_read_pmu_tool_header (gcov_pmu_tool_header_t *tool_header,
                            gcov_unsigned_t len) ATTRIBUTE_HIDDEN;
+
 #ifndef __GCOV_KERNEL__
 GCOV_LINKAGE float convert_unsigned_to_pct (
     const unsigned number) ATTRIBUTE_HIDDEN;
@@ -886,6 +911,9 @@ GCOV_LINKAGE void print_load_latency_line (FILE *fp,
                                            const enum print_newline);
 GCOV_LINKAGE void
 print_branch_mispredict_line (FILE *fp, const gcov_pmu_brm_info_t *brm_info,
+                              const enum print_newline);
+GCOV_LINKAGE void
+print_pmu_string_table_entry (FILE* fp, const gcov_pmu_st_entry_t *entry,
                               const enum print_newline);
 GCOV_LINKAGE void print_pmu_tool_header (FILE *fp,
                                          gcov_pmu_tool_header_t *tool_header,
@@ -905,7 +933,16 @@ GCOV_LINKAGE void gcov_write_tag_length (gcov_unsigned_t, gcov_unsigned_t)
 GCOV_LINKAGE void gcov_write_summary (gcov_unsigned_t /*tag*/,
 				      const struct gcov_summary *)
     ATTRIBUTE_HIDDEN;
-
+GCOV_LINKAGE void
+gcov_write_tool_header (gcov_pmu_tool_header_t *header) ATTRIBUTE_HIDDEN;
+GCOV_LINKAGE void
+gcov_write_ll_line (const gcov_pmu_ll_info_t *ll_info) ATTRIBUTE_HIDDEN;
+GCOV_LINKAGE void
+gcov_write_branch_mispredict_line (const gcov_pmu_brm_info_t
+                                   *brm_info) ATTRIBUTE_HIDDEN;
+GCOV_LINKAGE void
+gcov_write_string_table_entry (const gcov_pmu_st_entry_t
+                               *st_entry) ATTRIBUTE_HIDDEN;
 GCOV_LINKAGE void gcov_write_module_infos (struct gcov_info *mod_info)
     ATTRIBUTE_HIDDEN;
 GCOV_LINKAGE const struct dyn_imp_mod **

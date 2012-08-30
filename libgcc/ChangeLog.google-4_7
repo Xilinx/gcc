@@ -1,3 +1,19 @@
+2012-08-29  Chris Manghane  <cmang@google.com>
+
+	Backport r190762 from google/main.
+
+	2012-08-28  Chris Manghane  <cmang@google.com>
+
+	* libgcc/pmu-profile.c
+	(gcov_write_load_latency_infos): Removed unused function.
+	(gcov_write_branch_mispredict_infos): Ditto.
+	(destroy_load_latency_infos): Removed static keyword.
+	(init_pmu_branch_mispredict): Ditto.
+	(gcov_write_ll_line): Ditto, plus replaced filename field with filetag.
+	(gcov_write_branch_mispredict_line): Ditto.
+	(gcov_write_string_table_entry): New function.
+	(gcov_write_tool_header): Removed static keyword.
+
 2012-08-23  Sriraman Tallam  <tmsriram@google.com>
 
 	Backport r186789,r186795,r186855,r187365,r188417

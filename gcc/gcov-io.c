@@ -242,7 +242,6 @@ GCOV_LINKAGE void
 gcov_read_pmu_load_latency_info (gcov_pmu_ll_info_t *ll_info,
                                  gcov_unsigned_t len ATTRIBUTE_UNUSED)
 {
-  const char *filename;
   ll_info->counts = gcov_read_unsigned ();
   ll_info->self = gcov_read_unsigned ();
   ll_info->cum = gcov_read_unsigned ();
@@ -256,11 +255,7 @@ gcov_read_pmu_load_latency_info (gcov_pmu_ll_info_t *ll_info,
   ll_info->code_addr = gcov_read_counter ();
   ll_info->line = gcov_read_unsigned ();
   ll_info->discriminator = gcov_read_unsigned ();
-  filename = gcov_read_string ();
-  if (filename)
-    ll_info->filename = gcov_canonical_filename (xstrdup (filename));
-  else
-    ll_info->filename = 0;
+  ll_info->filetag = gcov_read_unsigned ();
 }
 
 /* Read LEN words and construct branch mispredict info BRM_INFO.  */
@@ -269,18 +264,27 @@ GCOV_LINKAGE void
 gcov_read_pmu_branch_mispredict_info (gcov_pmu_brm_info_t *brm_info,
                                       gcov_unsigned_t len ATTRIBUTE_UNUSED)
 {
-  const char *filename;
   brm_info->counts = gcov_read_unsigned ();
   brm_info->self = gcov_read_unsigned ();
   brm_info->cum = gcov_read_unsigned ();
   brm_info->code_addr = gcov_read_counter ();
   brm_info->line = gcov_read_unsigned ();
   brm_info->discriminator = gcov_read_unsigned ();
-  filename = gcov_read_string ();
-  if (filename)
-    brm_info->filename = gcov_canonical_filename (xstrdup (filename));
-  else
-    brm_info->filename = 0;
+  brm_info->filetag = gcov_read_unsigned ();
+}
+
+/* Read LEN words from an open gcov file and construct data into a
+   string table entry */
+
+GCOV_LINKAGE void
+gcov_read_pmu_string_table_entry (gcov_pmu_st_entry_t *st_entry,
+                                  gcov_unsigned_t len ATTRIBUTE_UNUSED)
+{
+  const char *str;
+
+  st_entry->index = gcov_read_unsigned ();
+  str = gcov_read_string ();
+  st_entry->str = str ? gcov_canonical_filename (xstrdup(str)) : 0;
 }
 
 /* Read LEN words from an open gcov file and construct data into pmu
@@ -779,7 +783,7 @@ print_load_latency_line (FILE *fp, const gcov_pmu_ll_info_t *ll_info,
   if (!ll_info)
     return;
   fprintf (fp, " %u %.2f%% %.2f%% %.2f%% %.2f%% %.2f%% %.2f%% %.2f%% "
-           "%.2f%% %.2f%% " HOST_WIDEST_INT_PRINT_HEX " %s %d %d",
+           "%.2f%% %.2f%% " HOST_WIDEST_INT_PRINT_HEX " %d %d %d",
            ll_info->counts,
            convert_unsigned_to_pct (ll_info->self),
            convert_unsigned_to_pct (ll_info->cum),
@@ -791,7 +795,7 @@ print_load_latency_line (FILE *fp, const gcov_pmu_ll_info_t *ll_info,
            convert_unsigned_to_pct (ll_info->gt_1024),
            convert_unsigned_to_pct (ll_info->wself),
            ll_info->code_addr,
-           ll_info->filename,
+           ll_info->filetag,
            ll_info->line,
            ll_info->discriminator);
   if (newline == add_newline)
@@ -807,14 +811,28 @@ print_branch_mispredict_line (FILE *fp, const gcov_pmu_brm_info_t *brm_info,
 {
   if (!brm_info)
     return;
-  fprintf (fp, " %u %.2f%% %.2f%% " HOST_WIDEST_INT_PRINT_HEX " %s %d %d",
+  fprintf (fp, " %u %.2f%% %.2f%% " HOST_WIDEST_INT_PRINT_HEX " %d %d %d",
            brm_info->counts,
            convert_unsigned_to_pct (brm_info->self),
            convert_unsigned_to_pct (brm_info->cum),
            brm_info->code_addr,
-           brm_info->filename,
+           brm_info->filetag,
            brm_info->line,
            brm_info->discriminator);
+  if (newline == add_newline)
+    fprintf (fp, "\n");
+}
+
+/* Print STRING_TABLE_ENTRY into the file pointed by FP. NEWLINE specifies
+   whether or not to print a trailing newline. */
+
+GCOV_LINKAGE void
+print_pmu_string_table_entry (FILE *fp, const gcov_pmu_st_entry_t *st_entry,
+                              const enum print_newline newline)
+{
+  if (!st_entry)
+      return;
+  fprintf (fp, " %d %s", st_entry->index, st_entry->str);
   if (newline == add_newline)
     fprintf (fp, "\n");
 }

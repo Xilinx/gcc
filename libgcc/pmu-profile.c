@@ -74,12 +74,6 @@ static void destroy_load_latency_infos (void *info);
 static void destroy_branch_mispredict_infos (void *info);
 static gcov_unsigned_t gcov_tag_pmu_tool_header_length (gcov_pmu_tool_header_t
                                                         *header);
-static void gcov_write_tool_header (gcov_pmu_tool_header_t *header);
-static void gcov_write_load_latency_infos (void *info);
-static void gcov_write_branch_mispredict_infos (void *info);
-static void gcov_write_ll_line (const gcov_pmu_ll_info_t *ll_info);
-static void gcov_write_branch_mispredict_line (const gcov_pmu_brm_info_t
-                                               *brm_info);
 
 /* Convert a fractional PCT to an unsigned integer after
    muliplying by 100.  */
@@ -156,11 +150,11 @@ init_pmu_branch_mispredict (void)
 
 /* Write the load latency information LL_INFO into the gcda file.  */
 
-static void
+void
 gcov_write_ll_line (const gcov_pmu_ll_info_t *ll_info)
 {
-  gcov_unsigned_t len = GCOV_TAG_PMU_LOAD_LATENCY_LENGTH (ll_info->filename);
-  gcov_write_tag_length (GCOV_TAG_PMU_LOAD_LATENCY_INFO, len);
+  gcov_write_tag_length (GCOV_TAG_PMU_LOAD_LATENCY_INFO,
+                         GCOV_TAG_PMU_LOAD_LATENCY_LENGTH);
   gcov_write_unsigned (ll_info->counts);
   gcov_write_unsigned (ll_info->self);
   gcov_write_unsigned (ll_info->cum);
@@ -174,25 +168,36 @@ gcov_write_ll_line (const gcov_pmu_ll_info_t *ll_info)
   gcov_write_counter (ll_info->code_addr);
   gcov_write_unsigned (ll_info->line);
   gcov_write_unsigned (ll_info->discriminator);
-  gcov_write_string (ll_info->filename);
+  gcov_write_unsigned (ll_info->filetag);
 }
 
 
 /* Write the branch mispredict information BRM_INFO into the gcda file.  */
 
-static void
+void
 gcov_write_branch_mispredict_line (const gcov_pmu_brm_info_t *brm_info)
 {
-  gcov_unsigned_t len = GCOV_TAG_PMU_BRANCH_MISPREDICT_LENGTH (
-      brm_info->filename);
-  gcov_write_tag_length (GCOV_TAG_PMU_BRANCH_MISPREDICT_INFO, len);
+  gcov_write_tag_length (GCOV_TAG_PMU_BRANCH_MISPREDICT_INFO,
+                         GCOV_TAG_PMU_BRANCH_MISPREDICT_LENGTH);
   gcov_write_unsigned (brm_info->counts);
   gcov_write_unsigned (brm_info->self);
   gcov_write_unsigned (brm_info->cum);
   gcov_write_counter (brm_info->code_addr);
   gcov_write_unsigned (brm_info->line);
   gcov_write_unsigned (brm_info->discriminator);
-  gcov_write_string (brm_info->filename);
+  gcov_write_unsigned (brm_info->filetag);
+}
+
+/* Write the string table entry ST_ENTRY into the gcda file.  */
+
+void
+gcov_write_string_table_entry (const gcov_pmu_st_entry_t *st_entry)
+{
+  gcov_write_tag_length (GCOV_TAG_PMU_STRING_TABLE_ENTRY,
+                         GCOV_TAG_PMU_STRING_TABLE_ENTRY_LENGTH(
+                             st_entry->str));
+  gcov_write_unsigned(st_entry->index);
+  gcov_write_string(st_entry->str);
 }
 
 /* Compute TOOL_HEADER length for writing into the gcov file.  */
@@ -216,7 +221,7 @@ gcov_tag_pmu_tool_header_length (gcov_pmu_tool_header_t *header)
 /* Write tool header into the gcda file. It assumes that the gcda file
    has already been opened and is available for writing.  */
 
-static void
+void
 gcov_write_tool_header (gcov_pmu_tool_header_t *header)
 {
   gcov_unsigned_t len = gcov_tag_pmu_tool_header_length (header);
