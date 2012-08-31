@@ -1183,6 +1183,249 @@ current :tree and :gimple. Stop walking if the closure gives null.}#
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; constant c-matchers for predefined tree nodes
+
+;;; "char"
+(defcmatcher tree_char_type_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_CHAR_TYPE_NODE matches or gives the constant char integer 
+type node.}#
+ #{ /* tree_char_type_node $NODETR ? */ $TR == char_type_node }#
+ ()
+ #{ /* tree_char_type_node : */ char_type_node }#)
+
+;;; "signed char"
+(defcmatcher tree_signed_char_type_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_SIGNED_CHAR_TYPE_NODE matches or gives the constant signed 
+char integer type node.}#
+ #{ /* tree_signed_char_type_node $NODETR ? */ $TR == signed_char_type_node }#
+ ()
+ #{ /* tree_signed_char_type_node : */ signed_char_type_node }#)
+
+;;; "unsigned char"
+(defcmatcher tree_unsigned_char_type_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_UNSIGNED_CHAR_TYPE_NODE matches or gives the constant unsigned 
+char integer type node.}#
+ #{ /* tree_unsigned_char_type_node $NODETR ? */ $TR == unsigned_char_type_node }#
+ ()
+ #{ /* tree_unsigned_char_type_node : */ unsigned_char_type_node }#)
+
+;;; "short"
+(defcmatcher tree_short_integer_type_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_SHORT_INTEGER_TYPE_NODE matches or gives the constant short integer 
+type node.}#
+ #{ /* tree_short_integer_type_node $NODETR ? */ $TR == short_integer_type_node }#
+ ()
+ #{ /* tree_short_integer_type_node : */ short_integer_type_node }#)
+
+;;; "unsigned short"
+(defcmatcher tree_short_unsigned_type_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_SHORT_UNSIGNED_TYPE_NODE matches or gives the constant short integer 
+type node.}#
+ #{ /* tree_short_unsigned_type_node $NODETR ? */ $TR == short_unsigned_type_node }#
+ ()
+ #{ /* tree_short_unsigned_type_node : */ short_unsigned_type_node }#)
+
+;;; "int"
+(defcmatcher tree_integer_type_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_INTEGER_TYPE_NODE matches or gives the constant  integer 
+type node.}#
+ #{ /* tree_integer_type_node $NODETR ? */ $TR == integer_type_node }#
+ ()
+ #{ /* tree_integer_type_node : */ integer_type_node }#)
+
+;;; "unsigned"
+(defcmatcher tree_unsigned_type_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_UNSIGNED_TYPE_NODE matches or gives the constant unsigned integer 
+type node.}#
+ #{ /* tree_unsigned_type_node $NODETR ? */ $TR == unsigned_type_node }#
+ ()
+ #{ /* tree_unsigned_type_node : */ unsigned_type_node }#)
+
+;;; "long"
+(defcmatcher tree_long_integer_type_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_LONG_INTEGER_TYPE_NODE matches or gives the constant long integer 
+type node.}#
+ #{ /* tree_long_integer_type_node $NODETR ? */ $TR == long_integer_type_node }#
+ ()
+ #{ /* tree_long_integer_type_node : */ long_integer_type_node }#)
+
+;;; "size_t"
+(defcmatcher tree_size_type_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_SIZE_TYPE_NODE matches or gives the constant size_t integer 
+type node.}#
+ #{ /* tree_size_type_node $NODETR ? */ $TR == size_type_node }#
+ ()
+ #{ /* tree_size_type_node : */ size_type_node }#)
+
+;;; "unsigned long"
+(defcmatcher tree_long_unsigned_type_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_LONG_UNSIGNED_TYPE_NODE matches or gives the constant unsigned long integer 
+type node.}#
+ #{ /* tree_long_unsigned_type_node $NODETR ? */ $TR == long_unsigned_type_node }#
+ ()
+ #{ /* tree_long_unsigned_type_node : */ long_unsigned_type_node }#)
+
+;;; "long long"
+(defcmatcher tree_long_long_integer_type_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_LONG_LONG_INTEGER_TYPE_NODE matches or gives the constant long long integer 
+type node.}#
+ #{ /* tree_long_long_integer_type_node $NODETR ? */ $TR == long_long_integer_type_node }#
+ ()
+ #{ /* tree_long_long_integer_type_node : */ long_long_integer_type_node }#)
+
+;;; "unsigned long long"
+(defcmatcher tree_long_long_unsigned_type_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_LONG_LONG_UNSIGNED_TYPE_NODE matches or gives the constant unsigned long long integer 
+type node.}#
+ #{ /* tree_long_long_unsigned_type_node $NODETR ? */ $TR == long_long_unsigned_type_node }#
+ ()
+ #{ /* tree_long_long_unsigned_type_node : */ long_long_unsigned_type_node }#)
+
+;;; "int128"
+(defcmatcher tree_int128_integer_type_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_INT128_INTEGER_TYPE_NODE matches or gives the constant 128 bits integer 
+type node.}#
+ #{ /* tree_int128_integer_type_node $NODETR ? */ $TR == int128_integer_type_node }#
+ ()
+ #{ /* tree_int128_integer_type_node : */ int128_integer_type_node }#)
+
+;;; "unsigned int128"
+(defcmatcher tree_int128_unsigned_type_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_INT128_UNSIGNED_TYPE_NODE matches or gives the constant 128 bits unsigned integer 
+type node.}#
+ #{ /* tree_int128_unsigned_type_node $NODETR ? */ $TR == int128_unsigned_type_node }#
+ ()
+ #{ /* tree_int128_unsigned_type_node : */ int128_unsigned_type_node }#)
+
+;;; "float"
+(defcmatcher tree_float_type_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_FLOAT_TYPE_NODE matches or gives the constant float
+type node.}#
+ #{ /* tree_float_type_node $NODETR ? */ $TR == float_type_node }#
+ ()
+ #{ /* tree_float_type_node : */ float_type_node }#)
+
+;;; "double"
+(defcmatcher tree_double_type_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_DOUBLE_TYPE_NODE matches or gives the constant double
+type node.}#
+ #{ /* tree_double_type_node $NODETR ? */ $TR == double_type_node }#
+ ()
+ #{ /* tree_double_type_node : */ double_type_node }#)
+
+;;; "long double"
+(defcmatcher tree_long_double_type_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_LONG_DOUBLE_TYPE_NODE matches or gives the constant long double
+type node.}#
+ #{ /* tree_long_double_type_node $NODETR ? */ $TR == long_double_type_node }#
+ ()
+ #{ /* tree_long_double_type_node : */ long_double_type_node }#)
+
+;;; "void"
+(defcmatcher tree_void_type_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_VOID_TYPE_NODE matches or gives the constant void
+type node.}#
+ #{ /* tree_void_type_node $NODETR ? */ $TR == void_type_node }#
+ ()
+ #{ /* tree_void_type_node : */ void_type_node }#)
+
+;;; "void*"
+(defcmatcher tree_ptr_type_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_PTR_TYPE_NODE matches or gives the constant void*
+pointer type node.}#
+ #{ /* tree_ptr_type_node $NODETR ? */ $TR == ptr_type_node }#
+ ()
+ #{ /* tree_ptr_type_node : */ ptr_type_node }#)
+
+;;; "const void*"
+(defcmatcher tree_const_ptr_type_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_CONST_PTR_TYPE_NODE matches or gives the constant const void*
+pointer type node.}#
+ #{ /* tree_const_ptr_type_node $NODETR ? */ $TR == const_ptr_type_node }#
+ ()
+ #{ /* tree_const_ptr_type_node : */ const_ptr_type_node }#)
+
+;;; "bool"
+(defcmatcher tree_boolean_type_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_BOOLEAN_TYPE_NODE matches or gives the constant bool
+ type node.}#
+ #{ /* tree_boolean_type_node $NODETR ? */ $TR == boolean_type_node }#
+ ()
+ #{ /* tree_boolean_type_node : */ boolean_type_node }#)
+
+;;; "true"
+(defcmatcher tree_boolean_true_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_BOOLEAN_TRUE_NODE matches or gives the constant true node.}#
+ #{ /* tree_boolean_true_node $NODETR ? */ $TR == boolean_true_node }#
+ ()
+ #{ /* tree_boolean_true_node : */ boolean_true_node }#)
+
+;;; "false"
+(defcmatcher tree_boolean_false_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_BOOLEAN_FALSE_NODE matches or gives the constant false node.}#
+ #{ /* tree_boolean_false_node $NODETR ? */ $TR == boolean_false_node }#
+ ()
+ #{ /* tree_boolean_false_node : */ boolean_false_node }#)
+
+
+;;; "0"
+(defcmatcher tree_integer_zero_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_INTEGER_ZERO_NODE matches or gives the constant integer 0 node.}#
+ #{ /* tree_integer_zero_node $NODETR ? */ $TR == integer_zero_node }#
+ ()
+ #{ /* tree_integer_zero_node : */ integer_zero_node }#)
+
+;;; "NULL"
+(defcmatcher tree_null_pointer_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_NULL_POINTER_NODE matches or gives the constant NULL pointer node.}#
+ #{ /* tree_null_pointer_node $NODETR ? */ $TR == null_pointer_node }#
+ ()
+ #{ /* tree_null_pointer_node : */ null_pointer_node }#)
+
+
+;;; "1"
+(defcmatcher tree_integer_one_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_INTEGER_ONE_NODE matches or gives the constant integer 1 node.}#
+ #{ /* tree_integer_one_node $NODETR ? */ $TR == integer_one_node }#
+ ()
+ #{ /* tree_integer_one_node : */ integer_one_node }#)
+
+;;; "-1"
+(defcmatcher tree_integer_minus_one_node (:tree tr) ()
+ nodetr
+ :doc #{$TREE_INTEGER_MINUS_ONE_NODE matches or gives the constant integer -1 node.}#
+ #{ /* tree_integer_minus_one_node $NODETR ? */ $TR == integer_minus_one_node }#
+ ()
+ #{ /* tree_integer_minus_one_node : */ integer_minus_one_node }#)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;; map keyed by raw trees
 (defprimitive is_maptree (map) :long
   :doc #{Test if $MAP is a map of trees.}#
@@ -1347,10 +1590,14 @@ current :tree and :gimple. Stop walking if the closure gives null.}#
  tree_array_ref_full
  tree_array_type
  tree_block
+ tree_boolean_false_node 
+ tree_boolean_true_node 
  tree_boolean_type
+ tree_boolean_type_node 
  tree_chain_append
  tree_chain_join
  tree_chain_prepend
+ tree_char_type_node 
  tree_complex_type
  tree_component_ref
  tree_component_ref_full
@@ -1358,24 +1605,39 @@ current :tree and :gimple. Stop walking if the closure gives null.}#
  tree_const_decl
  tree_const_decl_named
  tree_const_decl_of_name
+ tree_const_ptr_type_node 
  tree_content 
  tree_decl
  tree_decl_at_source_location
+ tree_double_type_node 
  tree_enumeral_type
  tree_expr_at_source_location
  tree_field_decl
  tree_fixed_point_type
+ tree_float_type_node 
  tree_function_decl 
  tree_function_decl_named
  tree_function_decl_of_name
  tree_function_type
  tree_identifier
  tree_indirect_reference
+ tree_int128_integer_type_node 
+ tree_int128_unsigned_type_node 
  tree_integer_cst
+ tree_integer_minus_one_node 
+ tree_integer_one_node 
  tree_integer_type
  tree_integer_type_bounded
+ tree_integer_type_node 
+ tree_integer_zero_node 
  tree_list
+ tree_long_double_type_node 
+ tree_long_integer_type_node 
+ tree_long_long_integer_type_node 
+ tree_long_long_unsigned_type_node 
+ tree_long_unsigned_type_node 
  tree_mem_ref
+ tree_null_pointer_node 
  tree_nullptr_type
  tree_of_type
  tree_offset_type
@@ -1384,6 +1646,7 @@ current :tree and :gimple. Stop walking if the closure gives null.}#
  tree_parm_decl_of_name
  tree_pointer_type
  tree_pointer_type_p
+ tree_ptr_type_node 
  tree_real_cst
  tree_real_type
  tree_record_type
@@ -1392,7 +1655,11 @@ current :tree and :gimple. Stop walking if the closure gives null.}#
  tree_result_decl
  tree_result_decl_named
  tree_result_decl_of_name
+ tree_short_integer_type_node 
+ tree_short_unsigned_type_node 
+ tree_signed_char_type_node 
  tree_simple_ssa_name 
+ tree_size_type_node 
  tree_ssa_name 
  tree_string_cst
  tree_type
@@ -1400,13 +1667,16 @@ current :tree and :gimple. Stop walking if the closure gives null.}#
  tree_type_decl_named
  tree_type_declaration
  tree_uid
+ tree_unsigned_char_type_node 
+ tree_unsigned_type_node 
  tree_var_decl
  tree_var_decl_named
  tree_var_decl_of_name
  tree_vec
  tree_void_type
- walk_use_def_chain_depth_first 
+ tree_void_type_node 
  walk_use_def_chain_breadth_first 
+ walk_use_def_chain_depth_first 
  warning_at_tree
  warning_at_tree_decl_with_number
 )
