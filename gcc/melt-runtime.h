@@ -1548,7 +1548,8 @@ melt_string_nth (melt_ptr_t v, int rk)
       unsigned slen = ((struct meltstring_st *) v)->slen;
       if (rk < 0) 
 	rk += (int) slen;
-      if (rk >= 0 && rk < slen) return ((struct meltstring_st *) v)->val[rk];
+      if (rk >= 0 && rk < (int)slen) 
+	return ((struct meltstring_st *) v)->val[rk];
     };
   return 0;
 }
