@@ -9,7 +9,9 @@ const char used_meltrun_md5_melt_f1[] =
 
 
 /**** warmelt-modes+01.c declarations ****/
-#define MELT_HAS_INITIAL_ENVIRONMENT 1
+
+/* ordinary MELT module */
+#define MELT_HAS_INITIAL_ENVIRONMENT 1	/*usual */
 
 struct melt_callframe_st;	/*defined in melt-runtime.h */
 
@@ -959,7 +961,7 @@ meltrout_60_warmelt_modes_LAMBDA___17__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 3946   "warmelt-modes.melt" /**::procdecl::**/
+#line 3948   "warmelt-modes.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_61_warmelt_modes_TRANSLATEINITMODULE_DOCMD (meltclosure_ptr_t
 						     meltclosp_,
@@ -979,7 +981,7 @@ meltrout_61_warmelt_modes_TRANSLATEINITMODULE_DOCMD (meltclosure_ptr_t
 
 
 
-#line 3966   "warmelt-modes.melt" /**::procdecl::**/
+#line 3968   "warmelt-modes.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_62_warmelt_modes_TRANSLATEINITMODULEQUICKLYBUILT_DOCMD
 (meltclosure_ptr_t meltclosp_, melt_ptr_t meltfirstargp_, const melt_argdescr_cell_t meltxargdescr_[],
@@ -989,7 +991,7 @@ union meltparam_un *meltxrestab_);
 
 
 
-#line 3984   "warmelt-modes.melt" /**::procdecl::**/
+#line 3986   "warmelt-modes.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_63_warmelt_modes_TRANSLATEINITMODULEDEBUGNOLINE_DOCMD
 (meltclosure_ptr_t meltclosp_, melt_ptr_t meltfirstargp_, const melt_argdescr_cell_t meltxargdescr_[],
@@ -999,7 +1001,7 @@ union meltparam_un *meltxrestab_);
 
 
 
-#line 4002   "warmelt-modes.melt" /**::procdecl::**/
+#line 4004   "warmelt-modes.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_64_warmelt_modes_TRANSLATEINITMODULEOPTIMIZED_DOCMD
 (meltclosure_ptr_t meltclosp_, melt_ptr_t meltfirstargp_, const melt_argdescr_cell_t meltxargdescr_[],
@@ -1009,7 +1011,7 @@ union meltparam_un *meltxrestab_);
 
 
 
-#line 4021   "warmelt-modes.melt" /**::procdecl::**/
+#line 4023   "warmelt-modes.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_65_warmelt_modes_REGISTER_INPUT_CHANNEL_HANDLER (meltclosure_ptr_t
 							  meltclosp_,
@@ -1029,7 +1031,7 @@ meltrout_65_warmelt_modes_REGISTER_INPUT_CHANNEL_HANDLER (meltclosure_ptr_t
 
 
 
-#line 4079   "warmelt-modes.melt" /**::procdecl::**/
+#line 4081   "warmelt-modes.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_66_warmelt_modes_HANDLE_ALARM_SIGNAL (meltclosure_ptr_t meltclosp_,
 					       melt_ptr_t meltfirstargp_,
@@ -1045,7 +1047,7 @@ meltrout_66_warmelt_modes_HANDLE_ALARM_SIGNAL (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 4091   "warmelt-modes.melt" /**::procdecl::**/
+#line 4093   "warmelt-modes.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_67_warmelt_modes_LAMBDA___18__ (meltclosure_ptr_t meltclosp_,
 					 melt_ptr_t meltfirstargp_,
@@ -1059,7 +1061,7 @@ meltrout_67_warmelt_modes_LAMBDA___18__ (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 4136   "warmelt-modes.melt" /**::procdecl::**/
+#line 4138   "warmelt-modes.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_68_warmelt_modes_REGISTER_ALARM_TIMER (meltclosure_ptr_t meltclosp_,
 						melt_ptr_t meltfirstargp_,
@@ -1075,7 +1077,7 @@ meltrout_68_warmelt_modes_REGISTER_ALARM_TIMER (meltclosure_ptr_t meltclosp_,
 
 
 
-#line 4169   "warmelt-modes.melt" /**::procdecl::**/
+#line 4171   "warmelt-modes.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_69_warmelt_modes_UNREGISTER_ALARM_TIMER (meltclosure_ptr_t
 						  meltclosp_,
@@ -1092,7 +1094,7 @@ meltrout_69_warmelt_modes_UNREGISTER_ALARM_TIMER (meltclosure_ptr_t
 
 
 
-#line 4204   "warmelt-modes.melt" /**::procdecl::**/
+#line 4206   "warmelt-modes.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_70_warmelt_modes_CHILD_PROCESS_SIGCHLD_HANDLER (meltclosure_ptr_t
 							 meltclosp_,
@@ -1112,7 +1114,7 @@ meltrout_70_warmelt_modes_CHILD_PROCESS_SIGCHLD_HANDLER (meltclosure_ptr_t
 
 
 
-#line 4312   "warmelt-modes.melt" /**::procdecl::**/
+#line 4314   "warmelt-modes.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_71_warmelt_modes_REGISTER_CHILD_PROCESS_HANDLER (meltclosure_ptr_t
 							  meltclosp_,
@@ -1132,7 +1134,7 @@ meltrout_71_warmelt_modes_REGISTER_CHILD_PROCESS_HANDLER (meltclosure_ptr_t
 
 
 
-#line 4356   "warmelt-modes.melt" /**::procdecl::**/
+#line 4358   "warmelt-modes.melt" /**::procdecl::**/
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_72_warmelt_modes_UNREGISTER_CHILD_PROCESS_HANDLER (meltclosure_ptr_t
 							    meltclosp_,

@@ -9,7 +9,9 @@ const char used_meltrun_md5_melt_f5[] =
 
 
 /**** warmelt-genobj+05.c declarations ****/
-#define MELT_HAS_INITIAL_ENVIRONMENT 1
+
+/* ordinary MELT module */
+#define MELT_HAS_INITIAL_ENVIRONMENT 1	/*usual */
 
 struct melt_callframe_st;	/*defined in melt-runtime.h */
 
@@ -36769,7 +36771,7 @@ lab_endgetargs:;
 	    /*^putpairtail */
 #line 6105
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /a845bb5 checkpair",
+	    melt_assertmsg ("putpairtail /141fc4b6 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.OSUCC__V37*/
 					       meltfptr[33])) ==

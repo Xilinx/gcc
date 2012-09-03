@@ -9,7 +9,9 @@ const char used_meltrun_md5_melt_f4[] =
 
 
 /**** warmelt-normatch+04.c declarations ****/
-#define MELT_HAS_INITIAL_ENVIRONMENT 1
+
+/* ordinary MELT module */
+#define MELT_HAS_INITIAL_ENVIRONMENT 1	/*usual */
 
 struct melt_callframe_st;	/*defined in melt-runtime.h */
 
@@ -18832,7 +18834,7 @@ lab_endgetargs:;
       /*^putpairtail */
 #line 5365
       /*putpairtail */
-      melt_assertmsg ("putpairtail /38b812dd checkpair",
+      melt_assertmsg ("putpairtail /3332ecc6 checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.NSETFLAG__V25*/ meltfptr[24]))
 		      == MELTOBMAG_PAIR);
@@ -19957,7 +19959,7 @@ lab_endgetargs:;
       /*^putpairtail */
 #line 5391
       /*putpairtail */
-      melt_assertmsg ("putpairtail /1059ebef checkpair",
+      melt_assertmsg ("putpairtail /378a38e2 checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.NSETFLAG__V26*/ meltfptr[25]))
 		      == MELTOBMAG_PAIR);
