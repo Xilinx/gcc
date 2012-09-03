@@ -1,6 +1,10 @@
 
 2012-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-base (string_nth): New primitive.
+
+2012-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.h (melt_string_length): Remove dirty hack.
 
 2012-09-03  Basile Starynkevitch  <basile@starynkevitch.net>

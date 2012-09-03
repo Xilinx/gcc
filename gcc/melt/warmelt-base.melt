@@ -742,6 +742,12 @@ an integer $I if $I is lower than $N.}#
   :doc #{Give the length of string value $STR.}#
   #{melt_string_length((melt_ptr_t)($str))}#)
 
+(defprimitive string_nth (str :long rk) :long
+  :doc #{Give the bytecode in string $STR of byte at rank $RK or else
+  0. If $RK is negative, consider it as an offset from the end, so -1
+  is the last byte.}#
+  #{melt_string_nth((melt_ptr_t)($STR),(int)$RK)}#)
+
 (defprimitive string_suffixed (sv :cstring cs) :long
   :doc #{Test that the string value $SV ends with the suffix $CS.}#
   #{/*string_suffixed:*/(melt_string_is_ending ((melt_ptr_t)$SV, $CS))}#)
@@ -3951,6 +3957,7 @@ which signals are not handled. It could be dynamically nested.}#
  string_hex_md5sum_path_sequence
  string_hex_md5sum_pathstrv
  string_length
+ string_nth
  string_prefixed
  string_starts
  string_suffixed
