@@ -1,4 +1,8 @@
 
+2012-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-base.melt (foreach_in_string): New iterator.
+
 2012-08-31  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/xtramelt-ana-tree.melt

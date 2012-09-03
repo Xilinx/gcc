@@ -554,17 +554,17 @@ integer, and $IMAX, le maximal ending integer. Local formal is $IX,
 the current index. The body is executed for each integer value $IX
 from $IMIN to $IMAX included.}#
   					;before expansion
-#{/*start $eachlong */
-    long $eachlong#_min =  $imin;
-    long $eachlong#_max = $imax;
-    long $eachlong#_cur = 0;
-    for ($eachlong#_cur = $eachlong#_min;
-         $eachlong#_cur <= $eachlong#_max;
-	 $eachlong#_cur ++) {
-	    $ix = $eachlong#_cur;	    
+#{/* foreach_long_upto start $EACHLONG */
+    long $EACHLONG#_min =  $imin;
+    long $EACHLONG#_max = $imax;
+    long $EACHLONG#_cur = 0;
+    for ($EACHLONG#_cur = $EACHLONG#_min;
+         $EACHLONG#_cur <= $EACHLONG#_max;
+	 $EACHLONG#_cur ++) {
+	    $IX = $EACHLONG#_cur;	    
 }#
  					;after expansion
-   #{ } /*end eachlong */}#
+   #{ } /*end foreach_long_upto $eachlong */}#
 )
    
 ;;; match an integer i mutiple of a given number n and submatch the quotient
@@ -797,6 +797,33 @@ discriminant $DIS.}#
   :doc #{Split a string value $S into a list of equal separated strings of
 discriminant $DIS.}#
 #{meltgc_new_split_string (melt_string_str ((melt_ptr_t) $S), '=', (melt_ptr_t) $DIS)}#)
+
+
+;; iterate on a string
+(defciterator foreach_in_string 
+  (:value vstr)
+  eachstr
+  (:long curch ix)
+  :doc #{The $FOREACH_IN_STRING c-iterator iterates on the given string
+  value $VSTR. $CURCH is the current char, and $IX its index, starting
+  from 0.  Don't change $VSTR in the body!}#
+  ;; before expansion
+  #{ /* foreach_in_string $EACHSTR start */ int $EACHSTR#_len 
+         =  melt_string_length ((melt_ptr_t) $VSTR);
+     for ($IX = 0L; 
+	  $IX >= 0 && $IX < (long) $EACHSTR#_len;
+	  $IX++) {
+          $CURCH = 0;
+	  { const char* $EACHSTR#_str = melt_string_str ((melt_ptr_t) $VSTR);
+	    if (!$EACHSTR#_str) break;
+	    $CURCH = (long) ($EACHSTR#_str[$IX]);
+	  }
+          if (!$CURCH) break;
+ }#
+ ;; after expansion
+ #{ $CURCH = 0L; } /* foreach_in_string $EACHSTR end */ 
+ }#
+)
 
 ;;; convert a strbuf into a string
 (defprimitive strbuf2string (dis sbuf) :value
@@ -3780,6 +3807,7 @@ which signals are not handled. It could be dynamically nested.}#
  errormsg_plain
  errormsg_strv
  foreach_long_upto
+ foreach_in_string
  full_garbcoll
  generate_flavored_melt_module
  get_globpredef
