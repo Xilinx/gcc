@@ -10,8 +10,8 @@ const char used_meltrun_md5_melt_f3[] =
 
 /**** warmelt-first+03.c declarations ****/
 
-/* ordinary MELT module */
-#define MELT_HAS_INITIAL_ENVIRONMENT 1	/*usual */
+/* initial MELT module */
+#define MELT_HAS_INITIAL_ENVIRONMENT 0	/*initial */
 
 struct melt_callframe_st;	/*defined in melt-runtime.h */
 
