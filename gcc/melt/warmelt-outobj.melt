@@ -5086,18 +5086,26 @@ if (1) return;
 		#if HAVE_CLOCK
 		$STARTCLOCK = (long) clock () ;
 		#endif /*HAVE_CLOCK */
+#if MELT_HAVE_DEBUG
+		inform  (UNKNOWN_LOCATION, 
+			 "MELT [#%ld] generating C code of module %s", 
+			 melt_dbgcounter, melt_string_str ((melt_ptr_t) $MODNAMSTR)) ;
+#else
 		inform  (UNKNOWN_LOCATION, 
 			 "MELT generating C code of module %s", 
 			 melt_string_str ((melt_ptr_t) $MODNAMSTR)) ;
+#endif /* MELT_HAVE_DEBUG */
 		}#)
     (add2sbuf_indentnl declbuf 0)
     ;; only warmelt-first.melt gets a zeroed MELT_HAS_INITIAL_ENVIRONMENT
     (if modinienv
 	(progn
+	  (debug "translate_macroexpanded_list usual modinienv=" modinienv)
 	  (add2sbuf_strconst declbuf "/* ordinary MELT module */")
 	  (add2sbuf_indentnl declbuf 0)
 	  (add2sbuf_strconst declbuf "#define MELT_HAS_INITIAL_ENVIRONMENT 1 /*usual*/"))
       (progn
+	(debug "translate_macroexpanded_list initial modinienv=" modinienv)
 	(add2sbuf_strconst declbuf "/* initial MELT module */")
 	(add2sbuf_indentnl declbuf 0)
 	(code_chunk check_warmelt_first_bootstrapping_chunk #{ 

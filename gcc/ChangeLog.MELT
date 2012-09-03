@@ -1,6 +1,14 @@
 
 2012-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-first.melt: Better warning message for
+	warmelt-first with MELT_HAS_INITIAL_ENVIRONMENT.
+
+	* melt/warmelt-outobj.melt (translate_macroexpanded_list): Should
+	dbgcounter in message about generating C code... Add debug.
+
+2012-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.
