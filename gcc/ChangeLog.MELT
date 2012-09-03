@@ -1,5 +1,20 @@
 
 2012-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Unstable!!!}}
+	* melt-runtime.h (melt_string_length, melt_string_is_ending): Use
+	the slen field.
+	(melt_string_nth): New function.
+
+	* melt-runtime.c (meltgc_new_string_raw_len, meltgc_new_stringdup)
+	(meltgc_new_string_generated_c_filename)
+	(meltgc_new_string_nakedbasename): Set the slen field.
+
+	* melt-run.proto.h (melt_string_knows_length): Temporarily defined.
+
+	* melt/warmelt-outobj.melt (outcinitfill_objinitstring): Emit
+	assignment of slen unconditionally.
+
+2012-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{Regenerate}}
 

@@ -1530,8 +1530,26 @@ melt_string_str (melt_ptr_t v)
 static inline int
 melt_string_length (melt_ptr_t v)
 {
-  if (melt_magic_discr (v) == MELTOBMAG_STRING)
-    return strlen(((struct meltstring_st *) v)->val);
+  if (melt_magic_discr (v) == MELTOBMAG_STRING) 
+    {
+      unsigned slen = ((struct meltstring_st *) v)->slen;
+      gcc_assert (((struct meltstring_st *) v)->val[slen] == 0);
+      return slen;
+    }
+  return 0;
+}
+
+static inline int
+melt_string_nth (melt_ptr_t v, int rk)
+{
+  
+  if (melt_magic_discr (v) == MELTOBMAG_STRING) 
+    {
+      unsigned slen = ((struct meltstring_st *) v)->slen;
+      if (rk < 0) 
+	rk += (int) slen;
+      if (rk >= 0 && rk < slen) return ((struct meltstring_st *) v)->val[rk];
+    };
   return 0;
 }
 
@@ -1540,7 +1558,7 @@ melt_string_is_ending (melt_ptr_t v, const char *s)
 {
   if (s && melt_magic_discr (v) == MELTOBMAG_STRING) {
     const char* str = ((struct meltstring_st *) v)->val;
-    int lenstr = strlen (str);
+    int lenstr = ((struct meltstring_st *) v)->slen;
     int lens = strlen (s);
     return (lens <= lenstr && !strncmp(str+lenstr-lens, s, lens));
   }

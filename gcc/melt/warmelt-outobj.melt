@@ -844,9 +844,11 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	 )
 	;;
 	(add2sbuf_indentnl sbuf 1)
-	(add2out sbuf ##{#if melt_string_knows_length
-		 $PTRSTR->$CNAM.slen = $DATALEN;
-		 #endif /* melt_string_knows_length */}#)
+	(add2out sbuf ##{$PTRSTR->$CNAM.val[$DATALEN] = (char)0; }#
+		 )
+	(add2sbuf_indentnl sbuf 1)
+	(add2out sbuf ##{$PTRSTR->$CNAM.slen = $DATALEN; }#
+		 )
 	(add2sbuf_indentnl sbuf 1)
 	;;
 	;;
