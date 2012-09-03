@@ -771,6 +771,7 @@ melt_forwarded_copy (melt_ptr_t p)
 	dst->discr = src->discr;
 	memcpy (dst->val, src->val, srclen);
 	dst->val[srclen] = (char) 0;
+	dst->slen = (unsigned) srclen;
 	/* end copy from VALDESC_STRING */
 
 	n = (melt_ptr_t) dst;

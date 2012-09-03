@@ -9961,6 +9961,9 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
 				  sizeof (cdat->dstr_269__ifndef_meltrou.
 					  val) - 513);
 
+#if melt_string_knows_length
+  cdat->dstr_269__ifndef_meltrou.slen = 532;
+#endif /* melt_string_knows_length */
 
 
 /*iniobj dsym_270__CLASS_VARISIZED_VALUE_DESCRIPTOR*/
@@ -10039,6 +10042,9 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
 				  sizeof (cdat->dstr_274__cheney_like_.val) -
 				  513);
 
+#if melt_string_knows_length
+  cdat->dstr_274__cheney_like_.slen = 579;
+#endif /* melt_string_knows_length */
 
 
 /*inistring dstr_275__trailer_gene*/
@@ -10091,6 +10097,9 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
 				  sizeof (cdat->dstr_275__trailer_gene.val) -
 				  1345);
 
+#if melt_string_knows_length
+  cdat->dstr_275__trailer_gene.slen = 1398;
+#endif /* melt_string_knows_length */
 
   /*inirout drout_276__GENERATE_RUNTYPESUPPORT_CLONING_FUN */
  /*_.VALROUT___V344*/ meltfptr[343] =
@@ -10191,6 +10200,9 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
 				  sizeof (cdat->dstr_282__header_from_.val) -
 				  641);
 
+#if melt_string_knows_length
+  cdat->dstr_282__header_from_.slen = 689;
+#endif /* melt_string_knows_length */
 
 
 /*inistring dstr_283__trailer_gene*/
@@ -10211,6 +10223,9 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
 				  sizeof (cdat->dstr_283__trailer_gene.val) -
 				  257);
 
+#if melt_string_knows_length
+  cdat->dstr_283__trailer_gene.slen = 300;
+#endif /* melt_string_knows_length */
 
   /*inirout drout_284__GENERATE_RUNTYPESUPPORT_PARAM */
  /*_.VALROUT___V352*/ meltfptr[351] =
@@ -10903,6 +10918,9 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
 				  sizeof (cdat->dstr_339__translate_a_mel.
 					  val) - 257);
 
+#if melt_string_knows_length
+  cdat->dstr_339__translate_a_mel.slen = 321;
+#endif /* melt_string_knows_length */
 
   /*inirout drout_340__TRANSLATEQUICKLY_DOCMD */
  /*_.VALROUT___V408*/ meltfptr[407] =

@@ -747,6 +747,7 @@ struct GTY ((variable_size)) meltstring_st /* when MELTOBMAG_STRING */
 {
   meltobject_ptr_t discr;
   /* from VALDESC_STRING in warmelt-base.melt */
+  unsigned slen;
   char val[MELT_FLEXIBLE_DIM];	/* null terminated */
 
 };				/* end meltstring_st */
@@ -755,6 +756,7 @@ struct GTY ((variable_size)) meltstring_st /* when MELTOBMAG_STRING */
  /* decl VALDESC_STRING from warmelt-base.melt */
 #define MELT_STRING_STRUCT(N) {			\
   meltobject_ptr_t discr;			\
+  unsigned slen;                                \
   char val[(N)+1];	/* null terminated */	\
   long _gap; }
 

@@ -38,16 +38,16 @@ const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown
 /* hash of preprocessed melt-run.h generating this */
 const char melt_prepromd5meltrun[]="440db0a91efbb3ead83e6cc842a70b24";
 /* hexmd5checksum of primary C file */
-const char melt_primaryhexmd5[]="16f6ca3084047f1e8485f471d7b94fc3";
+const char melt_primaryhexmd5[]="cca13da30fc9376df4f663cfdd89bd63";
 
 /* hexmd5checksum of secondary C files */
 const char* const melt_secondaryhexmd5tab[]={
  /*nosecfile*/ (const char*)0,
- /*sechexmd5checksum meltbuild-sources/warmelt-outobj+01.c #1 */ "d8b64139ae8af408d4a34f7539ef546b",
- /*sechexmd5checksum meltbuild-sources/warmelt-outobj+02.c #2 */ "cf71dd986152667eb455d18e3c51c96b",
- /*sechexmd5checksum meltbuild-sources/warmelt-outobj+03.c #3 */ "34c08e9f77af6a34f567c7d6c89a77cb",
- /*sechexmd5checksum meltbuild-sources/warmelt-outobj+04.c #4 */ "096cba466e2e0436198af5660849c94b",
- /*sechexmd5checksum meltbuild-sources/warmelt-outobj+05.c #5 */ "3b2129a4e4f23965b7640ea35c0b1177",
+ /*sechexmd5checksum meltbuild-sources/warmelt-outobj+01.c #1 */ "16b0845c42b9ccd82ccaaa87e1d32560",
+ /*sechexmd5checksum meltbuild-sources/warmelt-outobj+02.c #2 */ "72f47a94b1a781eabcb1c5dc618043bb",
+ /*sechexmd5checksum meltbuild-sources/warmelt-outobj+03.c #3 */ "eaccf3c1bca1c3d329a742b311325f4e",
+ /*sechexmd5checksum meltbuild-sources/warmelt-outobj+04.c #4 */ "a9fe469d63cafdfc448f2374149ae922",
+ /*sechexmd5checksum meltbuild-sources/warmelt-outobj+05.c #5 */ "ee12323e0a6f2fd0f73c68f8025d5d81",
  /*nosecfile*/ (const char*)0,
  (const char*)0 };
 
@@ -55,10 +55,10 @@ const char* const melt_secondaryhexmd5tab[]={
 const int melt_lastsecfileindex=5;
 
 /* cumulated checksum of primary & secondary files */
-const char melt_cumulated_hexmd5[]="dec4c6f951100b140aef8add1873cbc9" ;
+const char melt_cumulated_hexmd5[]="f0562053dd5646600b35d3b920850b4d" ;
 
 /* include the timestamp file */
-#define meltmod_warmelt_outobj_mds__dec4c6f951100b140aef8add1873cbc9 1
+#define meltmod_warmelt_outobj_mds__f0562053dd5646600b35d3b920850b4d 1
 #include "warmelt-outobj+melttime.h"
 	 
 
