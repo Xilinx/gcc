@@ -842,7 +842,13 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	  )
 	 (void)
 	 )
+	;;
 	(add2sbuf_indentnl sbuf 1)
+	(add2out sbuf ##{#if melt_string_knows_length
+		 $PTRSTR->$CNAM.slen = $DATALEN;
+		 #endif /* melt_string_knows_length */}#)
+	(add2sbuf_indentnl sbuf 1)
+	;;
 	;;
 	(cond ( (>i (strbuf_usedlength sbuf) (/iraw (get_int !buffer_limit_cont) 2))
 		(shortbacktrace_dbg "outcinitfill_objinitstring huge sbuf" 10)

@@ -3177,12 +3177,14 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_objmagic '"MELTOBMAG_STRING"
   :valdesc_struct '"meltstring_st"
   :valdesc_unionmem '"u_string"
-  :valdesc_membchunk #{$' /* from VALDESC_STRING in warmelt-base.melt */  
+  :valdesc_membchunk #{$' /* from VALDESC_STRING in warmelt-base.melt */ 
+    unsigned slen;                               
     char val[MELT_FLEXIBLE_DIM];	/* null terminated */
   }#
   :valdesc_declchunk #{$' /* decl VALDESC_STRING from warmelt-base.melt */
 #define MELT_STRING_STRUCT(N) {			\
   meltobject_ptr_t discr;			\
+  unsigned slen;                                \
   char val[(N)+1];	/* null terminated */	\
   long _gap; }
   }#
@@ -3199,6 +3201,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
      dst->discr = src->discr;
      memcpy (dst->val, src->val, srclen);
      dst->val[srclen] = (char)0;
+     dst->slen = (unsigned) srclen;
       /* end copy from VALDESC_STRING */
   }#
   :valdesc_clonechunk #{$' /* clone from VALDESC_STRING  */

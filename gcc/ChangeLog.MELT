@@ -1,6 +1,14 @@
 
 2012-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-base.melt (valdesc_string): Add an slen field in
+	string for memoizing the length.
+
+	* melt/warmelt-outobj.melt (outcinitfill_objinitstring): Emit code
+	#if melt_string_knows_length to fill that slen field.
+
+2012-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{Regenerate}}
 
 	* melt/generated/warmelt-base+melttime.h: Regenerate.
