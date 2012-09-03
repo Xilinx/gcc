@@ -1,3 +1,26 @@
+2012-09-03  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from mainline
+	2012-09-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/54436
+	* gcc.dg/torture/pr54436.c: New test.
+
+	2012-08-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/54428
+	* gcc.c-torture/compile/pr54428.c: New test.
+
+	2012-08-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/54363
+	* gcc.dg/pr54363.c: New test.
+
+2012-08-31  Ollie Wild  <aaw@google.com>
+
+	PR c++/54197
+	* g++.dg/init/lifetime3.C: New test.
+
 2012-08-28  Uros Bizjak  <ubizjak@gmail.com>
 
 	Backport from mainline
