@@ -39,7 +39,7 @@
 
 (code_chunk warn_hasinit_chk #{
 #if MELT_HAS_INITIAL_ENVIRONMENT
-#warning warmelt-first with MELT_HAS_INITIAL_ENVIRONMENT but should not
+#error warmelt-first with MELT_HAS_INITIAL_ENVIRONMENT but should not
 #endif
 }#)
 

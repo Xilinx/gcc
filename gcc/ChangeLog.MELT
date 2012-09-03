@@ -1,5 +1,14 @@
 
 2012-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build-script.tpl: When emitting generation of
+	meltbuild-sources use (for-index) to choose translateinit.
+
+	* melt-build-script.sh: Regenerate.
+
+	* gcc/melt/warmelt-first.melt: Use #error in chunk testing that
+	MELT_HAS_INITIAL_ENVIRONMENT is cleared.
+
+2012-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{Regenerate}}
 

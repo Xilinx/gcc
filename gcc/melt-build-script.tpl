@@ -448,7 +448,7 @@ function meltbuild_emit_translator_sources () {
   ## meltbuild_emit_source  [+(.(fromline))+] base [+base+]
   meltbuild_info [+(.(fromline))+] generating C code of [+base+] in meltbuild-sources
   meltbuild_emit [+(.(fromline))+] \
-      [+IF (= outindex 0)+]translateinit[+ELSE+]translatefile[+ENDIF+] \
+      [+IF (= (for-index) 0)+]translateinit[+ELSE+]translatefile[+ENDIF+] \
       [+base+] \
       meltbuild-sources \
       "$GCCMELT_LASTSTAGE" \
