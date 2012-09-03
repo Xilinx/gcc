@@ -36,7 +36,7 @@ const char melt_modulename[]="warmelt-genobj";
 const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown-linux-gnu/4.8.0/melt-modules/0.9.7-pre/warmelt-genobj";
 
 /* hash of preprocessed melt-run.h generating this */
-const char melt_prepromd5meltrun[]="65bc6f546467f3515d0b83fec89d0dd9";
+const char melt_prepromd5meltrun[]="440db0a91efbb3ead83e6cc842a70b24";
 /* hexmd5checksum of primary C file */
 const char melt_primaryhexmd5[]="36c34ffd6daa45c3889ecd4ec8a24f12";
 
