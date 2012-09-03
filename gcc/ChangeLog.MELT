@@ -1,7 +1,12 @@
 
 2012-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
 
-	* melt-runtime.h (melt_string_length): Temporary dirty hack.
+	* melt-runtime.h (melt_string_length): Remove dirty hack.
+
+2012-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h (melt_string_length): Temporary dirty hack to
+	bootstrap.
 
 	* melt-runtime.c (meltgc_new_stringdup)
 	(meltgc_new_string_without_suffix)
