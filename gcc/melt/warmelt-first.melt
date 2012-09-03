@@ -37,6 +37,12 @@
 ;; when bootstrapping, so thet MELT_HAS_INITIAL_ENVIRONMENT is 0 in
 ;; that particular case. 
 
+(code_chunk warn_hasinit_chk #{
+#if MELT_HAS_INITIAL_ENVIRONMENT
+#warning warmelt-first with MELT_HAS_INITIAL_ENVIRONMENT
+#endif
+}#)
+
 ;;; Avoid using debug_msg or debug here.  See comments around
 ;;; debug_msg_fun private function near end of this file.
 

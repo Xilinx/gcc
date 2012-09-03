@@ -1,6 +1,20 @@
 
 2012-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-first.melt: Add chunk to emit test of #if
+	MELT_HAS_INITIAL_ENVIRONMENT.
+
+	* melt/warmelt-outobj.melt (output_melt_descriptor) Improve
+	descriptor file by removing spurious semi-colon emission.
+	(translate_macroexpanded_list): Emit MELT_HAS_INITIAL_ENVIRONMENT
+	appropriately.
+	(compile_list_sexpr): More debug messages.
+
+	* melt/warmelt-modes.melt (translateinitmodule_flavored): Pass a
+	null initial environment.
+
+2012-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-base.melt (foreach_in_string): New iterator.
 
 2012-08-31  Basile Starynkevitch  <basile@starynkevitch.net>

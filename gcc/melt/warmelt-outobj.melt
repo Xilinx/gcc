@@ -4653,7 +4653,7 @@ extern "C" {
 	(add2sbuf_indentnl tibuf 0)
 	(add2out tibuf ##{
 		 #ifdef __cplusplus
-		 }			; /* end extern C */
+		 }  /* end extern C timestamp */
 		 #endif /*__cplusplus */
 
 		 #else /* ! $MODIDNAM */
@@ -4665,7 +4665,7 @@ extern "C" {
 	(add2sbuf_indentnl debuf 0)
 	(add2out debuf ##{
 		 #ifdef __cplusplus
-		 }			; /* end extern C */
+		 }	  /* end extern C descriptor */
 		 #endif /*__cplusplus */
 		 }#)
 	(add2sbuf_indentnl debuf 0)
@@ -5090,11 +5090,25 @@ if (1) return;
 			 "MELT generating C code of module %s", 
 			 melt_string_str ((melt_ptr_t) $MODNAMSTR)) ;
 		}#)
-    (if modinienv	
-	(add2sbuf_strconst declbuf "#define MELT_HAS_INITIAL_ENVIRONMENT 1")
+    (add2sbuf_indentnl declbuf 0)
+    ;; only warmelt-first.melt gets a zeroed MELT_HAS_INITIAL_ENVIRONMENT
+    (if modinienv
+	(progn
+	  (add2sbuf_strconst declbuf "/* ordinary MELT module */")
+	  (add2sbuf_indentnl declbuf 0)
+	  (add2sbuf_strconst declbuf "#define MELT_HAS_INITIAL_ENVIRONMENT 1 /*usual*/"))
       (progn
+	(add2sbuf_strconst declbuf "/* initial MELT module */")
+	(add2sbuf_indentnl declbuf 0)
+	(code_chunk check_warmelt_first_bootstrapping_chunk #{ 
+		    /* $CHECK_WARMELT_FIRST_BOOTSTRAPPING_CHUNK */ 
+		    melt_checkmsg ("bootstrapping first file",
+				   melt_flag_bootstrapping 
+				   && melt_string_str((melt_ptr_t) $MODNAMSTR)
+				   && strstr(melt_string_str((melt_ptr_t) $MODNAMSTR), "first")) ;
+		    }#)
 	;; lack of initial environment happens only in translateinit mode for warmelt-first.melt
-	(add2sbuf_strconst declbuf "#define MELT_HAS_INITIAL_ENVIRONMENT 0")))
+	(add2sbuf_strconst declbuf "#define MELT_HAS_INITIAL_ENVIRONMENT 0 /*initial*/")))
     (add2sbuf_indentnl declbuf 0)
     (add2sbuf_indentnl declbuf 0)
     (add2sbuf_strconst declbuf "struct melt_callframe_st; /*defined in melt-runtime.h*/")
@@ -5170,7 +5184,7 @@ if (1) return;
 	     (add2sbuf_indentnl declbuf 0)
 	     (let ( (hloc (get_field :loca_location curchead))
 		    (chstr (get_field :scheader_codestring curchead))
-		   )
+		    )
 	       (if hloc
 		   (output_raw_location hloc declbuf 0 "cheader"))
 	       (add2out declbuf chstr)
@@ -5183,7 +5197,7 @@ if (1) return;
 	    (add2sbuf_indentnl declbuf 0)
 	    (add2sbuf_indentnl declbuf 0)
 	    ))
-      ;;;
+;;;
       ;;
       (assert_msg "check prolist" (is_list prolist))
       (list_every
@@ -5204,7 +5218,7 @@ if (1) return;
 			 melt_string_str((melt_ptr_t) $MODNAMSTR), melt_error_counter) ;
        }#)
       ;;
-      ;;;;; compile each procedure
+;;;;; compile each procedure
       (assert_msg "check objlist" (is_list objlist))
       (let ( (inipro (unsafe_get_field :nctx_initproc ncx)) 
 	     (inidata (unsafe_get_field :nctx_datalist ncx))
@@ -5232,7 +5246,7 @@ if (1) return;
 	  (debug "compile_list_sexpr final modnamstr=" modnamstr " iniobj=" iniobj) 
 	  (add2sbuf_indentnl implbuf 0)
 	  (add2sbuf_indentnl implbuf 0)
-          ;;;;; emit the syntax generator
+;;;;; emit the syntax generator
 	  (let ( (gendevtup (list_to_multiple  gendevlist discr_multiple))
 		 (:long nbgendev (multiple_length gendevtup))
 		 )
@@ -5243,7 +5257,7 @@ if (1) return;
 	      ))
 	  ;;
 	  (add2sbuf_indentnl implbuf 0)
-	  ;;;; emit the initial routine
+;;;; emit the initial routine
 	  (output_c_code iniobj declbuf implbuf 0)
 	  (output_exported_offsets modctx declbuf implbuf)
 	  ;; output warnings if the buffer are half the limit
@@ -5282,12 +5296,12 @@ if (1) return;
 			  (secdeclbuf (get_field :secfil_declbuf curfil))
 			  (secimplbuf (get_field :secfil_implbuf curfil))
 			  )
-	  ;; output warnings if the buffer are half the limit
-	  (if (>i (strbuf_usedlength secdeclbuf) (/iraw (get_int !buffer_limit_cont) 2))
-	      (warningmsg_strv "very large declaration string buffer for secondary file " secfilpath))
-	  (if (>i (strbuf_usedlength secimplbuf) (/iraw (get_int !buffer_limit_cont) 2))
-	      (warningmsg_strv "very large implementation string buffer for secondary file " secfilpath))
-	  ;;
+		     ;; output warnings if the buffer are half the limit
+		     (if (>i (strbuf_usedlength secdeclbuf) (/iraw (get_int !buffer_limit_cont) 2))
+			 (warningmsg_strv "very large declaration string buffer for secondary file " secfilpath))
+		     (if (>i (strbuf_usedlength secimplbuf) (/iraw (get_int !buffer_limit_cont) 2))
+			 (warningmsg_strv "very large implementation string buffer for secondary file " secfilpath))
+		     ;;
 		     (code_chunk 
 		      secfilout 
 		      #{ /* translate_macroexpanded_list $SECFILOUT: */
@@ -5318,14 +5332,14 @@ if (1) return;
 		      backupchk
 		      #{ /*translate_macroexpanded_list $BACKUPCHK*/ {
 		      const char* $BACKUPCHK#_delfilnamstr =
-		          melt_string_str ((melt_ptr_t) $DELFILNAM) ;
+		      melt_string_str ((melt_ptr_t) $DELFILNAM) ;
 		      const char* $BACKUPCHK#_bakfilnamstr = 
-		          melt_string_str ((melt_ptr_t) $BAKFILNAM) ;
+		      melt_string_str ((melt_ptr_t) $BAKFILNAM) ;
 		      if ($BACKUPCHK#_delfilnamstr && $BACKUPCHK#_bakfilnamstr
-			  && !access ($BACKUPCHK#_delfilnamstr, F_OK)) {
-		        if (!rename ($BACKUPCHK#_delfilnamstr, $BACKUPCHK#_bakfilnamstr)) 
-		           inform (UNKNOWN_LOCATION, "MELT backing up previous generated file %s as %s", 
-		  				  $BACKUPCHK#_delfilnamstr, $BACKUPCHK#_bakfilnamstr) ;
+						   && !access ($BACKUPCHK#_delfilnamstr, F_OK)) {
+		      if (!rename ($BACKUPCHK#_delfilnamstr, $BACKUPCHK#_bakfilnamstr)) 
+		      inform (UNKNOWN_LOCATION, "MELT backing up previous generated file %s as %s", 
+						$BACKUPCHK#_delfilnamstr, $BACKUPCHK#_bakfilnamstr) ;
 		      }
 		      $BACKUPCHK#_delfilnamstr = NULL ;
 		      $BACKUPCHK#_bakfilnamstr = NULL ;
@@ -5336,21 +5350,21 @@ if (1) return;
 	     endmodnam
 	     #{ /* translate_macroexpanded_list $ENDMODNAM */
 	     #if HAVE_CLOCK && defined (CLOCKS_PER_SEC)
-	       $ENDCLOCK = (long) clock () ;
-	       if (melt_flag_bootstrapping)
-	         inform (UNKNOWN_LOCATION, 
-			 "MELT generated C code of module %s with %ld secondary files in %ld CPU millisec [#%ld].", 
-			 melt_string_str ((melt_ptr_t) $MODNAMSTR), $NBSECFILES,
-			 ($ENDCLOCK - $STARTCLOCK) / (CLOCKS_PER_SEC/1000), melt_dbgcounter) ;
-	       else
-	         inform (UNKNOWN_LOCATION, 
-			 "MELT generated C code of module %s with %ld secondary files in %ld CPU millisec.", 
-			 melt_string_str ((melt_ptr_t) $MODNAMSTR), $NBSECFILES,
-			 ($ENDCLOCK - $STARTCLOCK) / (CLOCKS_PER_SEC/1000)) ;
+	     $ENDCLOCK = (long) clock () ;
+	     if (melt_flag_bootstrapping)
+	     inform (UNKNOWN_LOCATION, 
+		     "MELT generated C code of module %s with %ld secondary files in %ld CPU millisec [#%ld].", 
+		     melt_string_str ((melt_ptr_t) $MODNAMSTR), $NBSECFILES,
+		     ($ENDCLOCK - $STARTCLOCK) / (CLOCKS_PER_SEC/1000), melt_dbgcounter) ;
+	     else
+	     inform (UNKNOWN_LOCATION, 
+		     "MELT generated C code of module %s with %ld secondary files in %ld CPU millisec.", 
+		     melt_string_str ((melt_ptr_t) $MODNAMSTR), $NBSECFILES,
+		     ($ENDCLOCK - $STARTCLOCK) / (CLOCKS_PER_SEC/1000)) ;
 	     #else /* no clock */
-	       inform (UNKNOWN_LOCATION, 
-		       "MELT generated C code of module %s with %ld secondary files", 
-		       melt_string_str ((melt_ptr_t) $MODNAMSTR), $NBSECFILES) ;
+	     inform (UNKNOWN_LOCATION, 
+		     "MELT generated C code of module %s with %ld secondary files", 
+		     melt_string_str ((melt_ptr_t) $MODNAMSTR), $NBSECFILES) ;
 	     #endif /* HAVE_CLOCK && CLOCKS_PER_SEC */
 	     /* end translate_macroexpanded_list $ENDMODNAM */ }#)
 	    (shortbacktrace_dbg "translate_macroexpanded_list ended" 25)
@@ -5361,7 +5375,8 @@ if (1) return;
 ;; compile a list of sexpressions as a module starting from a given environment
 (defun compile_list_sexpr (lsexp inienv modnamstr)
   (message_dbg "starting  compile_list_sexpr")
-  (debug "@*@@@@ compile_list_sexpr lsexp=" lsexp " inienv=" inienv " modnamstr=" modnamstr) 
+  (debug "@*@@@@ compile_list_sexpr lsexp=" lsexp "\n@ compile_list_sexpr  inienv=" inienv
+	 "\n@ compile_list_sexpr  modnamstr=" modnamstr) 
   (assert_msg "check lsexp" (is_list lsexp))
   (assert_msg "check modnamstr" (is_string modnamstr))
   (assert_msg "check inienv" (or (null inienv) (is_a inienv class_environment)))
