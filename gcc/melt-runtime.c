@@ -4111,10 +4111,7 @@ meltgc_new_stringdup (meltobject_ptr_t discr_p, const char *str)
     strcop = strcpy (tinybuf, str);
   } else
     strcop = strcpy ((char *) xcalloc (1, slen + 1), str);
-  strv = meltgc_allocate (sizeof (struct meltstring_st), slen + 1);
-  str_strv->discr = obj_discrv;
-  strcpy (str_strv->val, strcop);
-  str_strv->slen = slen;
+  strv = meltgc_new_string_raw_len (obj_discrv, strcop, slen);
 end:
   if (strcop && strcop != tinybuf)
     free (strcop);
@@ -4168,12 +4165,8 @@ meltgc_new_string_without_suffix (meltobject_ptr_t discr_p,
   if (suflen <= slen && !strcmp (buf + slen - suflen, suffix)) {
     buf[slen-suflen] = (char)0;
     strv = meltgc_new_string_raw_len (obj_discrv, buf, slen - suflen);
-    debugeprintf ("meltgc_new_string_without_suffix strv %p truncate to '%s'",
-                  strv, buf);
   } else {
     strv = meltgc_new_string_raw_len (obj_discrv, buf, slen);
-    debugeprintf ("meltgc_new_string_without_suffix strv %p copy '%s'",
-                  strv, buf);
   }
 end:
   if (buf && buf != tinybuf)
@@ -4261,12 +4254,7 @@ meltgc_new_string_generated_c_filename  (meltobject_ptr_t discr_p,
   strcat (strcop + spos, ".c");
   spos = strlen (strcop);
   gcc_assert (spos < slen-1);
-  strv = meltgc_allocate (sizeof (struct meltstring_st), spos + 1);
-  str_strv->discr = obj_discrv;
-  strncpy (str_strv->val, strcop, spos);
-  str_strv->slen = spos;
-  debugeprintf ("meltgc_new_string_generated_c_filename returns %s with basepath %s dirpath %s num %d",
-                strcop, basepath, dirpath, num);
+  strv = meltgc_new_string_raw_len (obj_discrv, strcop, spos);
 end:
   if (strcop && strcop != tinybuf)
     free (strcop);
@@ -4316,13 +4304,7 @@ meltgc_new_string_nakedbasename (meltobject_ptr_t discr_p,
   if (dot)
     *dot = 0;
   slen = strlen (basestr);
-  strv =
-    meltgc_allocate (sizeof (struct meltstring_st),
-                     slen + 1);
-  str_strv->discr = obj_discrv;
-  strcpy (str_strv->val, basestr);
-  str_strv->slen = slen;
-  debugeprintf ("meltgc_new_string_nakedbasename gives basestr '%s'", basestr);
+  strv = meltgc_new_string_raw_len (obj_discrv, basestr, slen);
 end:
   if (strcop && strcop != tinybuf)
     free (strcop);
@@ -4371,12 +4353,7 @@ meltgc_new_string_tempname_suffixed (meltobject_ptr_t
   if (obj_discrv->meltobj_magic != MELTOBMAG_STRING)
     goto end;
   slen = strlen (tempnampath);
-  strv =
-    meltgc_allocate (sizeof (struct meltstring_st),
-                     slen + 1);
-  str_strv->discr = obj_discrv;
-  strcpy (str_strv->val, tempnampath);
-  str_strv->slen = slen;
+  strv = meltgc_new_string_raw_len (obj_discrv, tempnampath, slen);
 end:
   if (tempnampath)
     free (CONST_CAST (char*,tempnampath));

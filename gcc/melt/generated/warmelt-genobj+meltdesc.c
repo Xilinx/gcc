@@ -36,9 +36,9 @@ const char melt_modulename[]="warmelt-genobj";
 const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown-linux-gnu/4.8.0/melt-modules/0.9.7-pre/warmelt-genobj";
 
 /* hash of preprocessed melt-run.h generating this */
-const char melt_prepromd5meltrun[]="440db0a91efbb3ead83e6cc842a70b24";
+const char melt_prepromd5meltrun[]="da36d71fadf8cc7ca3f101bb9686ada4";
 /* hexmd5checksum of primary C file */
-const char melt_primaryhexmd5[]="36c34ffd6daa45c3889ecd4ec8a24f12";
+const char melt_primaryhexmd5[]="68453664de2b6d79741df61471128736";
 
 /* hexmd5checksum of secondary C files */
 const char* const melt_secondaryhexmd5tab[]={
@@ -55,10 +55,10 @@ const char* const melt_secondaryhexmd5tab[]={
 const int melt_lastsecfileindex=5;
 
 /* cumulated checksum of primary & secondary files */
-const char melt_cumulated_hexmd5[]="44900e2b81ec4b59f92bc560ed19c580" ;
+const char melt_cumulated_hexmd5[]="2bfd09785d53697db103cfbc74220547" ;
 
 /* include the timestamp file */
-#define meltmod_warmelt_genobj_mds__44900e2b81ec4b59f92bc560ed19c580 1
+#define meltmod_warmelt_genobj_mds__2bfd09785d53697db103cfbc74220547 1
 #include "warmelt-genobj+melttime.h"
 	 
 

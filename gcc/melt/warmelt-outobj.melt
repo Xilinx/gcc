@@ -843,13 +843,6 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	 (void)
 	 )
 	;;
-	(add2sbuf_indentnl sbuf 1)
-	(add2out sbuf ##{$PTRSTR->$CNAM.val[$DATALEN] = (char)0; }#
-		 )
-	(add2sbuf_indentnl sbuf 1)
-	(add2out sbuf ##{$PTRSTR->$CNAM.slen = $DATALEN; }#
-		 )
-	(add2sbuf_indentnl sbuf 1)
 	;;
 	;;
 	(cond ( (>i (strbuf_usedlength sbuf) (/iraw (get_int !buffer_limit_cont) 2))
@@ -857,7 +850,15 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 		(debug "outcinitfill_objinitstring huge declbuf=" sbuf)
 		(assert_msg "check limited sbuf" 
 			    (<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))))
-	))))
+	))
+	(add2sbuf_indentnl sbuf 1)
+	(add2out sbuf ##{$PTRSTR->$CNAM.val[$DATALEN] = (char)0; }#
+		 )
+	(add2sbuf_indentnl sbuf 1)
+	(add2out sbuf ##{$PTRSTR->$CNAM.slen = $DATALEN; }#
+		 )
+	(add2sbuf_indentnl sbuf 1)
+    ))
 (install_method class_objinitstring output_c_initial_fill outcinitfill_objinitstring)
 
 

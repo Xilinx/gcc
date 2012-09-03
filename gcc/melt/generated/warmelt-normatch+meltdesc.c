@@ -36,9 +36,9 @@ const char melt_modulename[]="warmelt-normatch";
 const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown-linux-gnu/4.8.0/melt-modules/0.9.7-pre/warmelt-normatch";
 
 /* hash of preprocessed melt-run.h generating this */
-const char melt_prepromd5meltrun[]="440db0a91efbb3ead83e6cc842a70b24";
+const char melt_prepromd5meltrun[]="da36d71fadf8cc7ca3f101bb9686ada4";
 /* hexmd5checksum of primary C file */
-const char melt_primaryhexmd5[]="c85a0a3be2bff181e41e1779d8b95fde";
+const char melt_primaryhexmd5[]="df581e932174c91e4d6ccb7338db8899";
 
 /* hexmd5checksum of secondary C files */
 const char* const melt_secondaryhexmd5tab[]={
@@ -55,10 +55,10 @@ const char* const melt_secondaryhexmd5tab[]={
 const int melt_lastsecfileindex=5;
 
 /* cumulated checksum of primary & secondary files */
-const char melt_cumulated_hexmd5[]="f0e905557b071b3caf2f82a176e01509" ;
+const char melt_cumulated_hexmd5[]="96bc0a3acc0a6e20297291bbc83e2998" ;
 
 /* include the timestamp file */
-#define meltmod_warmelt_normatch_mds__f0e905557b071b3caf2f82a176e01509 1
+#define meltmod_warmelt_normatch_mds__96bc0a3acc0a6e20297291bbc83e2998 1
 #include "warmelt-normatch+melttime.h"
 	 
 

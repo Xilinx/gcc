@@ -1533,6 +1533,9 @@ melt_string_length (melt_ptr_t v)
   if (melt_magic_discr (v) == MELTOBMAG_STRING) 
     {
       unsigned slen = ((struct meltstring_st *) v)->slen;
+#warning dirty hack
+      if (slen < 1024 && ((struct meltstring_st *) v)->val[slen] != 0)
+	slen = strlen (((struct meltstring_st *) v)->val);
       gcc_assert (((struct meltstring_st *) v)->val[slen] == 0);
       return slen;
     }
