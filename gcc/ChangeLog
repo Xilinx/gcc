@@ -1,3 +1,116 @@
+2012-09-02  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/33135
+	* common/config/sh/sh-common.c: Update copyright years.
+	(sh_option_init_struct): Delete.
+	(TARGET_OPTION_INIT_STRUCT): Likewise.
+
+2012-09-02  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/54418
+	* config/sh/sh.md (cmpgeusi_t): Remove N alternative.
+	Check operands[1] in split condition instead of operands[0].
+	Add comments.
+
+2012-09-02  Mark Kettenis  <kettenis@openbsd.org>
+
+	* config.gcc (x86_64-*-openbsd*): New target.
+	* config.host (*-*-openbsd*): New target.
+	* config/openbsd.h (TARGET_C99_FUNCTIONS): Define.
+	* config/i386/openbsdelf.h: Remove some superfluous defines and
+	group things together in a more logical fashion.
+	(DBX_REGISTER_NUMBER): Provide a
+	definition that works on both 32-bit and 64-bit targets.
+	(WCHAR_TYPE_SIZE): Hardcode as 32.
+	(NO_DOLLAR_IN_LABEL): Remove undef.
+	(TARGET_DEFAULT): Remove.
+	(SET_ASM_OP): Remove.
+	(DEFAULT_PCC_STRUCT_RETURN): Undef first to prevent warning.
+	(ASM_OUTPUT_MAX_SKIP_ALIGN): Synch with x86-64.h
+	(DWARF2_UNWIND_INFO): Remove define.
+	(HAVE_ENABLE_EXECUTE_STACK): Define.
+	* config/host-openbsd.c: New file.
+	* config/t-openbsd (USER_H): Add EXTRA_HEADERS.
+	* config/x-openbsd: New file.
+
+2012-09-02  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/sh.md (*extend<mode>si2_compact_mem_disp): Pass iterated
+	mode to sh_legitimate_index_p instead of QImode.
+
+2012-09-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR rtl-optimization/54369
+	* config/mips/mips.c (mips_reorg): Invoke cleanup_barriers before
+	calling dbr_schedule.
+	* config/sparc/sparc.c (sparc_reorg): Likewise.
+
+2012-09-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/54436
+	* config/i386/i386.md (*mov<mode>_insv_1_rex64, *movsi_insv_1): If
+	operands[1] is CONST_INT_P, convert it to QImode before printing.
+
+2012-09-01  Andrew Pinski  <apinski@cavium.com>
+
+	* simplify-rtx.c (simplify_unary_operation_1 <case TRUNCATE>):
+	A truncate of a memory is just loading the low part of the memory.
+
+2012-09-01  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/46829
+	PR target/46843
+	* config/i386/i386.c (ix86_legitimate_combined_insn): New function.
+	(TARGET_LEGITIMATE_COMBINED_INSN): New macro.
+
+2012-09-01  Uros Bizjak  <ubizjak@gmail.com>
+
+	* target.def (legitimate_combined_insn): New target hook.
+	* doc/tm.texi.in (TARGET_LEGITIMATE_COMBINED_INSN): New hook.
+	* doc/tm.texi: Regenerated.
+	* combine.c (recog_for_combine): Call targetm.legitimate_combined_insn
+	to allow targets to reject combined insn.
+	* hooks.h (hook_bool_rtx_true): New.
+	* hooks.c (hook_bool_rtx_true): Ditto.
+
+2012-08-31  Martin Jambor  <mjambor@suse.cz>
+
+	* ipa-inline-analysis.c (estimate_function_body_sizes): Allocate
+	nonconstant_names after calculate_dominance_info and
+	loop_optimizer_init.
+
+2012-08-31  Greta Yorsh  <Greta.Yorsh@arm.com>
+
+	* config/arm/arm.c (arm_expand_epilogue): Remove unused variable
+        floats_from_frame.
+
+2012-08-31  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/54409
+	* ipa-inline-analysis.c (remap_predicate): Fix the offset_map
+	checking condition.
+
+2012-08-31  Martin Jambor  <mjambor@suse.cz>
+
+	* ipa-inline-analysis.c (phi_result_unknown_predicate): New function.
+	(predicate_for_phi_result): Likewise.
+	(estimate_function_body_sizes): Use the above two functions.
+
+2012-08-31  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/54394
+	* ipa-inline-analysis.c (estimate_function_body_sizes): Compute
+	dominance info and loops whenever optimizing.
+
+2012-08-29  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+	    Richard Earnshaw  <richard.earnshaw@arm.com>
+
+	PR target/54252
+	* config/arm/arm.c (neon_dereference_pointer): Adjust nelems by
+	element size. Use elem_type from the formal parameter. New parameter
+	fcode.
+	(neon_expand_args): Adjust call to neon_dereference_pointer.
+
 2012-08-29  Steven Bosscher  <steven@gcc.gnu.org>
 
 	* cfg.c (dump_bb_info): Print a newline if there were no edges to dump.
@@ -24,8 +137,9 @@
 2012-08-29  Oleg Endo  <olegendo@gcc.gnu.org>
 
 	* config/sh/iterators.md: New file.
-	* config/sh/sync.md (I124, I12, i124suffix): Delete.  Replace usage with
-	new iterators QIHISI, QIHI, bw, bwl respectively throughout the file.
+	* config/sh/sync.md (I124, I12, i124suffix): Delete.  Replace usage
+	with new iterators QIHISI, QIHI, bw, bwl respectively throughout
+	the file.
 	* config/sh/sh.md: Include new file iterators.md.
 	(zero_extendhisi2, zero_extendqisi2): Fold into zero_extend<mode>si2.
 	(*zero_extendhisi2_compact, *zero_extendqisi2_compact): Fold into

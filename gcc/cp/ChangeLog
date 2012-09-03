@@ -1,3 +1,52 @@
+2012-08-31  Paolo Carlini  <paolo.carlini@oracle.com>
+	    Jason Merrill  <jason@redhat.com>
+
+	PR c++/18747
+	* pt.c (check_template_variable): New.
+	(num_template_headers_for_class): Split out...
+	* decl.c (grokdeclarator): ...from here.
+	(start_decl): Remove redundant diagnostic.
+	* cp-tree.h: Declare them
+	* parser.c (cp_parser_single_declaration): Call check_template_variable.
+
+2012-08-31  Ollie Wild  <aaw@google.com>
+
+	PR c++/54197
+	* call.c (extend_ref_init_temps_1): Handle COMPOUND_EXPR trees.
+
+2012-08-30  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50545
+	PR c++/51222
+	* pt.c (instantiation_dependent_r): New.
+	(instantiation_dependent_expression_p): New.
+	(value_dependent_expression_p): Use it.  SCOPE_REF is always dependent.
+	* semantics.c (finish_decltype_type): Use it.
+	* cp-tree.h: Declare it.
+
+	* semantics.c (finish_qualified_id_expr): Handle building up a
+	non-dependent SCOPE_REF here.
+	(finish_id_expression): Not here.
+	* error.c (dump_decl) [SCOPE_REF]: Only pass TFF_UNQUALIFIED_NAME.
+
+	* friend.c (make_friend_class): Handle template template parameters.
+	* parser.c (cp_parser_template_declaration_after_export): Likewise.
+	* pt.c (tsubst_friend_class): Likewise.
+	(instantiate_class_template_1): Likewise
+	* decl.c (check_elaborated_type_specifier): Likewise.
+	(lookup_and_check_tag): Likewise.
+
+	* pt.c (get_class_bindings): Call coerce_template_parms.  Add
+	main_tmpl parameter.
+	(more_specialized_class): Add main_tmpl parameter.
+	(most_specialized_class): Adjust calls.
+
+	* decl.c (cp_finish_decl): Check for invalid multiple initializers
+	even if the initializer is dependent.
+
+	* pt.c (instantiate_template_1): Keep processing_template_decl set
+	if there are dependent args.
+
 2012-08-25  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/51421

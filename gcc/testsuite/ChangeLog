@@ -1,3 +1,65 @@
+2012-09-03  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51632
+	* gfortran.dg/coarray_class_1.f90: New.
+
+2012-09-02  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/49206
+	* gcc.c-torture/compile/pr49206.c: New test.
+
+2012-09-02  Dominique Dhumieres  <dominiq@lps.ens.fr>
+	    Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/36680
+	* gfortran.dg/pr36680.f90: New test.
+
+2012-09-02  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/42295
+	* g++.dg/opt/pr42295.C: New test.
+
+2012-09-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/54436
+	* gcc.dg/torture/pr54436.c: New test.
+
+2012-09-01  Andrew Pinski  <apinski@cavium.com>
+
+	* gcc.target/mips/truncate-8.c: New testcase.
+
+2012-09-01  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/46829
+	PR target/46843
+	* gcc.target/i386/pr46829.c: New test.
+	* gcc.target/i386/pr46843.c: Ditto.
+
+2012-08-31  Paolo Carlini  <paolo.carlini@oracle.com>
+	    Jason Merrill  <jason@redhat.com>
+
+	PR c++/18747
+	* g++.dg/parse/error50.C: New.
+
+2012-08-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/54428
+	* gcc.c-torture/compile/pr54428.c: New test.
+
+2012-08-31  Ollie Wild  <aaw@google.com>
+
+	PR c++/54197
+	* g++.dg/init/lifetime3.C: New test.
+
+2012-08-31  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/54409
+	* gcc.dg/torture/pr54409.c: New test.
+
+2012-08-31  Martin Jambor  <mjambor@suse.cz>
+
+	* gfortran.dg/pr48636.f90: Add dump scan checks.
+
 2012-08-29  Richard Sandiford  <rdsandiford@googlemail.com>
 
 	* gcc.target/mips/mips.exp: Work out default -msynci setting.

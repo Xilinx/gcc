@@ -128,7 +128,7 @@ static int unify (tree, tree, tree, tree, int, bool);
 static void add_pending_template (tree);
 static tree reopen_tinst_level (struct tinst_level *);
 static tree tsubst_initializer_list (tree, tree);
-static tree get_class_bindings (tree, tree, tree);
+static tree get_class_bindings (tree, tree, tree, tree);
 static tree coerce_template_parms (tree, tree, tree, tsubst_flags_t,
 				   bool, bool);
 static void tsubst_enum	(tree, tree, tree);
@@ -2206,6 +2206,66 @@ copy_default_args_to_explicit_spec (tree decl)
   new_type = build_exception_variant (new_type,
 				      TYPE_RAISES_EXCEPTIONS (old_type));
   TREE_TYPE (decl) = new_type;
+}
+
+/* Return the number of template headers we expect to see for a definition
+   or specialization of CTYPE or one of its non-template members.  */
+
+int
+num_template_headers_for_class (tree ctype)
+{
+  int template_count = 0;
+  tree t = ctype;
+  while (t != NULL_TREE && CLASS_TYPE_P (t))
+    {
+      /* You're supposed to have one `template <...>' for every
+	 template class, but you don't need one for a full
+	 specialization.  For example:
+
+	 template <class T> struct S{};
+	 template <> struct S<int> { void f(); };
+	 void S<int>::f () {}
+
+	 is correct; there shouldn't be a `template <>' for the
+	 definition of `S<int>::f'.  */
+      if (CLASSTYPE_TEMPLATE_SPECIALIZATION (t)
+	  && !any_dependent_template_arguments_p (CLASSTYPE_TI_ARGS (t)))
+	/* T is an explicit (not partial) specialization.  All
+	   containing classes must therefore also be explicitly
+	   specialized.  */
+	break;
+      if ((CLASSTYPE_USE_TEMPLATE (t) || CLASSTYPE_IS_TEMPLATE (t))
+	  && PRIMARY_TEMPLATE_P (CLASSTYPE_TI_TEMPLATE (t)))
+	template_count += 1;
+
+      t = TYPE_MAIN_DECL (t);
+      t = DECL_CONTEXT (t);
+    }
+
+  return template_count;
+}
+
+/* Do a simple sanity check on the template headers that precede the
+   variable declaration DECL.  */
+
+void
+check_template_variable (tree decl)
+{
+  tree ctx = CP_DECL_CONTEXT (decl);
+  int wanted = num_template_headers_for_class (ctx);
+  if (!TYPE_P (ctx) || !CLASSTYPE_TEMPLATE_INFO (ctx))
+    permerror (DECL_SOURCE_LOCATION (decl),
+	       "%qD is not a static data member of a class template", decl);
+  else if (template_header_count > wanted)
+    {
+      pedwarn (DECL_SOURCE_LOCATION (decl), 0,
+	       "too many template headers for %D (should be %d)",
+	       decl, wanted);
+      if (CLASSTYPE_TEMPLATE_SPECIALIZATION (ctx))
+	inform (DECL_SOURCE_LOCATION (decl),
+		"members of an explicitly specialized class are defined "
+		"without a template header");
+    }
 }
 
 /* Check to see if the function just declared, as indicated in
@@ -8152,6 +8212,12 @@ tsubst_friend_class (tree friend_tmpl, tree args)
   tree tmpl;
   tree context;
 
+  if (DECL_TEMPLATE_TEMPLATE_PARM_P (friend_tmpl))
+    {
+      tree t = tsubst (TREE_TYPE (friend_tmpl), args, tf_none, NULL_TREE);
+      return TREE_TYPE (t);
+    }
+
   context = CP_DECL_CONTEXT (friend_tmpl);
 
   if (context != global_namespace)
@@ -8736,7 +8802,8 @@ instantiate_class_template_1 (tree type)
 	}
       else
 	{
-	  if (TYPE_P (t) || DECL_CLASS_TEMPLATE_P (t))
+	  if (TYPE_P (t) || DECL_CLASS_TEMPLATE_P (t)
+	      || DECL_TEMPLATE_TEMPLATE_PARM_P (t))
 	    {
 	      /* Build new CLASSTYPE_FRIEND_CLASSES.  */
 
@@ -14373,6 +14440,10 @@ instantiate_template_1 (tree tmpl, tree orig_args, tsubst_flags_t complain)
   /* Instantiation of the function happens in the context of the function
      template, not the context of the overload resolution we're doing.  */
   push_to_top_level ();
+  /* If there are dependent arguments, e.g. because we're doing partial
+     ordering, make sure processing_template_decl stays set.  */
+  if (uses_template_parms (targ_ptr))
+    ++processing_template_decl;
   if (DECL_CLASS_SCOPE_P (gen_tmpl))
     {
       tree ctx = tsubst (DECL_CONTEXT (gen_tmpl), targ_ptr,
@@ -17083,7 +17154,8 @@ more_specialized_fn (tree pat1, tree pat2, int len)
     return -1;
 }
 
-/* Determine which of two partial specializations is more specialized.
+/* Determine which of two partial specializations of MAIN_TMPL is more
+   specialized.
 
    PAT1 is a TREE_LIST whose TREE_TYPE is the _TYPE node corresponding
    to the first partial specialization.  The TREE_VALUE is the
@@ -17098,7 +17170,7 @@ more_specialized_fn (tree pat1, tree pat2, int len)
    two templates is more specialized.  */
 
 static int
-more_specialized_class (tree pat1, tree pat2)
+more_specialized_class (tree main_tmpl, tree pat1, tree pat2)
 {
   tree targs;
   tree tmpl1, tmpl2;
@@ -17113,7 +17185,7 @@ more_specialized_class (tree pat1, tree pat2)
      types in the arguments, and we need our dependency check functions
      to behave correctly.  */
   ++processing_template_decl;
-  targs = get_class_bindings (TREE_VALUE (pat1),
+  targs = get_class_bindings (main_tmpl, TREE_VALUE (pat1),
 			      CLASSTYPE_TI_ARGS (tmpl1),
 			      CLASSTYPE_TI_ARGS (tmpl2));
   if (targs)
@@ -17122,7 +17194,7 @@ more_specialized_class (tree pat1, tree pat2)
       any_deductions = true;
     }
 
-  targs = get_class_bindings (TREE_VALUE (pat2),
+  targs = get_class_bindings (main_tmpl, TREE_VALUE (pat2),
 			      CLASSTYPE_TI_ARGS (tmpl2),
 			      CLASSTYPE_TI_ARGS (tmpl1));
   if (targs)
@@ -17201,8 +17273,8 @@ get_bindings (tree fn, tree decl, tree explicit_args, bool check_rettype)
   return targs;
 }
 
-/* Return the innermost template arguments that, when applied to a
-   template specialization whose innermost template parameters are
+/* Return the innermost template arguments that, when applied to a partial
+   specialization of MAIN_TMPL whose innermost template parameters are
    TPARMS, and whose specialization arguments are SPEC_ARGS, yield the
    ARGS.
 
@@ -17217,7 +17289,7 @@ get_bindings (tree fn, tree decl, tree explicit_args, bool check_rettype)
    is bound to `double'.  */
 
 static tree
-get_class_bindings (tree tparms, tree spec_args, tree args)
+get_class_bindings (tree main_tmpl, tree tparms, tree spec_args, tree args)
 {
   int i, ntparms = TREE_VEC_LENGTH (tparms);
   tree deduced_args;
@@ -17257,6 +17329,9 @@ get_class_bindings (tree tparms, tree spec_args, tree args)
      `T' is `A' but unify () does not check whether `typename T::X'
      is `int'.  */
   spec_args = tsubst (spec_args, deduced_args, tf_none, NULL_TREE);
+  spec_args = coerce_template_parms (DECL_INNERMOST_TEMPLATE_PARMS (main_tmpl),
+				     spec_args, main_tmpl,
+				     tf_none, false, false);
   if (spec_args == error_mark_node
       /* We only need to check the innermost arguments; the other
 	 arguments will always agree.  */
@@ -17481,7 +17556,7 @@ most_specialized_class (tree type, tree tmpl, tsubst_flags_t complain)
       if (partial_spec_args == error_mark_node)
 	return error_mark_node;
 
-      spec_args = get_class_bindings (parms,
+      spec_args = get_class_bindings (tmpl, parms,
 				      partial_spec_args,
 				      args);
       if (spec_args)
@@ -17502,7 +17577,7 @@ most_specialized_class (tree type, tree tmpl, tsubst_flags_t complain)
   t = TREE_CHAIN (t);
   for (; t; t = TREE_CHAIN (t))
     {
-      fate = more_specialized_class (champ, t);
+      fate = more_specialized_class (tmpl, champ, t);
       if (fate == 1)
 	;
       else
@@ -17523,7 +17598,7 @@ most_specialized_class (tree type, tree tmpl, tsubst_flags_t complain)
   if (!ambiguous_p)
     for (t = list; t && t != champ; t = TREE_CHAIN (t))
       {
-	fate = more_specialized_class (champ, t);
+	fate = more_specialized_class (tmpl, champ, t);
 	if (fate != 1)
 	  {
 	    ambiguous_p = true;
@@ -19085,20 +19160,7 @@ dependent_scope_p (tree scope)
 
 /* Note that this predicate is not appropriate for general expressions;
    only constant expressions (that satisfy potential_constant_expression)
-   can be tested for value dependence.
-
-   We should really also have a predicate for "instantiation-dependent".
-
-   fold_non_dependent_expr: fold if constant and not type-dependent and not value-dependent.
-     (what about instantiation-dependent constant-expressions?)
-   is_late_template_attribute: defer if instantiation-dependent.
-   compute_array_index_type: proceed if constant and not t- or v-dependent
-     if instantiation-dependent, need to remember full expression
-   uses_template_parms: FIXME - need to audit callers
-   tsubst_decl [function_decl]: Why is this using value_dependent_expression_p?
-   dependent_type_p [array_type]: dependent if index type is dependent
-     (or non-constant?)
-   static_assert - instantiation-dependent */
+   can be tested for value dependence.  */
 
 bool
 value_dependent_expression_p (tree expression)
@@ -19178,7 +19240,7 @@ value_dependent_expression_p (tree expression)
         return true;
       else if (TYPE_P (expression))
 	return dependent_type_p (expression);
-      return type_dependent_expression_p (expression);
+      return instantiation_dependent_expression_p (expression);
 
     case AT_ENCODE_EXPR:
       /* An 'encode' expression is value-dependent if the operand is
@@ -19188,13 +19250,13 @@ value_dependent_expression_p (tree expression)
 
     case NOEXCEPT_EXPR:
       expression = TREE_OPERAND (expression, 0);
-      return type_dependent_expression_p (expression);
+      return instantiation_dependent_expression_p (expression);
 
     case SCOPE_REF:
-      {
-	tree name = TREE_OPERAND (expression, 1);
-	return value_dependent_expression_p (name);
-      }
+      /* instantiation_dependent_r treats this as dependent so that we
+	 check access at instantiation time, and all instantiation-dependent
+	 expressions should also be considered value-dependent.  */
+      return true;
 
     case COMPONENT_REF:
       return (value_dependent_expression_p (TREE_OPERAND (expression, 0))
@@ -19471,6 +19533,104 @@ type_dependent_expression_p (tree expression)
   gcc_assert (TREE_CODE (expression) != TYPE_DECL);
 
   return (dependent_type_p (TREE_TYPE (expression)));
+}
+
+/* walk_tree callback function for instantiation_dependent_expression_p,
+   below.  Returns non-zero if a dependent subexpression is found.  */
+
+static tree
+instantiation_dependent_r (tree *tp, int *walk_subtrees,
+			   void *data ATTRIBUTE_UNUSED)
+{
+  if (TYPE_P (*tp))
+    {
+      /* We don't have to worry about decltype currently because decltype
+	 of an instantiation-dependent expr is a dependent type.  This
+	 might change depending on the resolution of DR 1172.  */
+      *walk_subtrees = false;
+      return NULL_TREE;
+    }
+  enum tree_code code = TREE_CODE (*tp);
+  switch (code)
+    {
+      /* Don't treat an argument list as dependent just because it has no
+	 TREE_TYPE.  */
+    case TREE_LIST:
+    case TREE_VEC:
+      return NULL_TREE;
+
+    case TEMPLATE_PARM_INDEX:
+      return *tp;
+
+      /* Handle expressions with type operands.  */
+    case SIZEOF_EXPR:
+    case ALIGNOF_EXPR:
+    case TYPEID_EXPR:
+    case AT_ENCODE_EXPR:
+    case TRAIT_EXPR:
+      {
+	tree op = TREE_OPERAND (*tp, 0);
+	if (TYPE_P (op))
+	  {
+	    if (dependent_type_p (op)
+		|| (code == TRAIT_EXPR
+		    && dependent_type_p (TREE_OPERAND (*tp, 1))))
+	      return *tp;
+	    else
+	      {
+		*walk_subtrees = false;
+		return NULL_TREE;
+	      }
+	  }
+	break;
+      }
+
+    case COMPONENT_REF:
+      if (TREE_CODE (TREE_OPERAND (*tp, 1)) == IDENTIFIER_NODE)
+	/* In a template, finish_class_member_access_expr creates a
+	   COMPONENT_REF with an IDENTIFIER_NODE for op1 even if it isn't
+	   type-dependent, so that we can check access control at
+	   instantiation time (PR 42277).  See also Core issue 1273.  */
+	return *tp;
+      break;
+
+    case SCOPE_REF:
+      /* Similarly, finish_qualified_id_expr builds up a SCOPE_REF in a
+	 template so that we can check access at instantiation time even
+	 though we know which member it resolves to.  */
+      return *tp;
+
+    default:
+      break;
+    }
+
+  if (type_dependent_expression_p (*tp))
+    return *tp;
+  else
+    return NULL_TREE;
+}
+
+/* Returns TRUE if the EXPRESSION is instantiation-dependent, in the
+   sense defined by the ABI:
+
+   "An expression is instantiation-dependent if it is type-dependent
+   or value-dependent, or it has a subexpression that is type-dependent
+   or value-dependent."  */
+
+bool
+instantiation_dependent_expression_p (tree expression)
+{
+  tree result;
+
+  if (!processing_template_decl)
+    return false;
+
+  if (expression == error_mark_node)
+    return false;
+
+  result = cp_walk_tree_without_duplicates (&expression,
+					    instantiation_dependent_r, NULL);
+  return result != NULL_TREE;
 }
 
 /* Like type_dependent_expression_p, but it also works while not processing
