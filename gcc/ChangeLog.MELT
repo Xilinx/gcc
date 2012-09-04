@@ -1,6 +1,13 @@
 
 
 2012-09-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (translate_macroexpanded_list): Got a
+	new formal for the translation if the initial procedure.
+	(fatal_compile_error): New internal utility function.
+	(compile_list_sexpr): Use fatal_compile_error and pass
+	compile2obj_initproc to translate_macroexpanded_list.
+
+2012-09-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt (normadeclb_macroexpanded_list): New
 	internal function.
 	(translate_macroexpanded_list): Move some code in above function,

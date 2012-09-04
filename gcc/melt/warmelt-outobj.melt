@@ -5234,9 +5234,10 @@ if (1) return;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; utility function to translate a macroexpanded list
-(defun translate_macroexpanded_list (xlist modnamstr modctx ncx inienv)
+(defun translate_macroexpanded_list (xlist modnamstr modctx ncx inienv iniproctransl)
   (debug "translate_macroexpanded_list modnamstr=" modnamstr "\n* modctx=" modctx
-	 "\n* inienv=" inienv)
+	 "\n* inienv=" inienv
+	 "\n* iniproctransl=" iniproctransl)
   (assert_msg "check xlist" (is_list xlist))
   (assert_msg "check modnamstr" (is_string modnamstr))
   (assert_msg "check modctx" (is_a modctx class_module_context))
@@ -5273,7 +5274,7 @@ if (1) return;
 			       melt_string_str((melt_ptr_t) $MODNAMSTR), melt_error_counter) ;
 		   }#)
        (return))
-;;;;;
+     ;;
      ;;
      (let ( (prolist (unsafe_get_field :nctx_proclist ncx)) 
 	    (objlist (make_list discr_list))
@@ -5282,6 +5283,7 @@ if (1) return;
 	    ) 
        (debug "translate_macroexpanded_list prolist=" prolist) 
        ;;
+       ;; compile each procedure and check for errors
        (assert_msg "check prolist" (is_list prolist))
        (list_every
 	prolist
@@ -5292,7 +5294,6 @@ if (1) return;
 	    (debug "translate_macroexpanded_list objpro=" objpro " pro=" pro)
 	    (list_append objlist objpro)
 	    )))
-       ;;
        (when (melt_error_counter)
 	 (if (is_closure errorhdlr) 
 	     (errorhdlr '"MELT translation failed after generation"))
@@ -5302,17 +5303,22 @@ if (1) return;
 				 melt_string_str((melt_ptr_t) $MODNAMSTR), melt_error_counter) ;
 		     }#)
 	 (return))
-;;;;; compile each procedure
+       ;;
+       ;; compile the initial procedure
        (assert_msg "check objlist" (is_list objlist))
        (let ( (inipro (unsafe_get_field :nctx_initproc ncx)) 
 	      (inidata (unsafe_get_field :nctx_datalist ncx))
 	      (importvalues (unsafe_get_field :nctx_valuelist ncx))
 	      (procurmodenvlist (unsafe_get_field :nctx_procurmodenvlist ncx))
 	      )
+	 (debug "translate_macroexpanded_list before compiling initproc inipro=" inipro
+		"\n iniproctransl=" iniproctransl)
 	 (assert_msg "check inipro" (is_a inipro class_nrep_initproc))
-	 (debug "translate_macroexpanded_list before compiling initproc inipro=" inipro)
-	 (let ( (iniobj (compile2obj_initproc inipro modctx inidata compicache procurmodenvlist importvalues)) )
-;;;
+	 (assert_msg "check iniproctransl" (is_closure iniproctransl))
+	 (let ( (iniobj
+		 (iniproctransl inipro modctx inidata compicache procurmodenvlist importvalues)) 
+		)
+	   ;;
 	   (foreach_in_list
 	    (objlist)
 	    (pairel obel)
@@ -5454,10 +5460,39 @@ if (1) return;
 	      #endif /* HAVE_CLOCK && CLOCKS_PER_SEC */
 	      /* end translate_macroexpanded_list $ENDMODNAM */ }#)
 	     (shortbacktrace_dbg "translate_macroexpanded_list ended" 25)
+	     (when (melt_error_counter)
+	       (if (is_closure errorhdlr) 
+		   (errorhdlr '"MELT translation failed after C code emission"))
+	       (code_chunk errorednormal_warnchk 
+			   #{ /* translate_macroexpanded_list $ERROREDNORMAL_WARNCHK */
+			   warning (0, "MELT translation of %s got after emission %ld MELT errors",
+				       melt_string_str((melt_ptr_t) $MODNAMSTR), melt_error_counter) ;
+			   }#)
+	       (return))
 	     )))))))
   
 
 
+
+;; utility to handle compilation errors as fatal ones
+(defun fatal_compile_error (modnamstr v)
+  (if (is_string v)
+      (code_chunk
+       fatalerrormsg_chk 
+       #{ /* compile_list_sexpr $FATALERRORMSG_CHK */
+       melt_fatal_error ("MELT failed to compile module %s (%ld errors): %s",
+			 melt_string_str ((melt_ptr_t) $MODNAMSTR),
+			 melt_error_counter,
+			 melt_string_str ((melt_ptr_t) $V)) ;
+       }#)
+    (code_chunk 
+     fatalerror_chk 
+     #{ /* compile_list_sexpr $FATALERROR_CHK */
+     melt_fatal_error ("MELT failed to compile module %s (%ld errors)",
+		       melt_string_str ((melt_ptr_t) $MODNAMSTR),
+		       melt_error_counter) ;
+     }#))
+  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; compile a list of sexpressions as a module starting from a given environment
@@ -5488,23 +5523,7 @@ if (1) return;
 			  ;; :mocx_linkflags (make_list discr_list)
 			  :mocx_packagepclist (make_list discr_list)
 			  :mocx_gendevlist (make_list discr_list)
-			  :mocx_errorhandler (lambda (v) 
-					       (if (is_string v)
-						   (code_chunk
-						    fatalerrormsg_chk 
-						    #{ /* compile_list_sexpr $FATALERRORMSG_CHK */
-						    melt_fatal_error ("MELT failed to compile module %s (%ld errors): %s",
-								      melt_string_str ((melt_ptr_t) $MODNAMSTR),
-								      melt_error_counter,
-								      melt_string_str ((melt_ptr_t) $V)) ;
-						    }#)
-						 (code_chunk 
-						  fatalerror_chk 
-						  #{ /* compile_list_sexpr $FATALERROR_CHK */
-						  melt_fatal_error ("MELT failed to compile module %s (%ld errors)",
-								    melt_string_str ((melt_ptr_t) $MODNAMSTR),
-								    melt_error_counter) ;
-						  }#)))
+			  :mocx_errorhandler (lambda (v) (fatal_compile_error modnamstr v))
 			  ))
 	(ncx (create_normcontext modctx)) 
 	)
@@ -5530,16 +5549,9 @@ if (1) return;
 		      warning (0, "MELT expanded few (%d) expressions", (int) $LENXLIST) ;
 		      }#))
       ;;
-      (translate_macroexpanded_list xlist modnamstr modctx ncx inienv)
+      (translate_macroexpanded_list xlist modnamstr modctx ncx inienv compile2obj_initproc)
       ))
   ;;
-  (code_chunk 
-   check_errors_after_generation
-   #{ /* compile_list_sexpr $CHECK_ERRORS_AFTER_GENERATION*/
-   if (melt_error_counter>0) 
-   melt_fatal_error ("MELT translation of %s halted after generation: got %ld MELT errors",  
-		     melt_string_str((melt_ptr_t) $MODNAMSTR), melt_error_counter) ;
-   }#)
   (message_dbg "ended compile_list_sexpr")
   )
 
