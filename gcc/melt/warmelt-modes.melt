@@ -86,7 +86,7 @@
       (debug "runfile_docmd before translation inarg=" inarg " modulnam=" modulnam
 	     " modsrcname=" modsrcname
 	     " modsrcbase=" modsrcbase)
-      (translate_to_c_one_or_more_melt_files inarg modsrcbase curenv)
+      (translate_to_c_module_melt_sources inarg modsrcbase curenv)
       (debug "runfile_docmd after translation modsrcname=" modsrcname
 	     " modulnam=" modulnam)
       (generate_flavored_melt_module modsrcbase modulnam '"quicklybuilt")
@@ -148,7 +148,7 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
       (debug "rundebug_docmd before translation inarg=" inarg " modulnam=" modulnam
 	     " modsrcname=" modsrcname
 	     " modsrcbase=" modsrcbase)
-      (translate_to_c_one_or_more_melt_files inarg modsrcbase curenv)
+      (translate_to_c_module_melt_sources inarg modsrcbase curenv)
       (debug "rundebug_docmd after translation modsrcname=" modsrcname
 	     " modulnam=" modulnam)
       (generate_flavored_melt_module modsrcbase modulnam '"debugnoline")
@@ -3582,7 +3582,7 @@ melt_scanning (melt_ptr_t p)
     (assert_msg "check curenv" (is_a curenv class_environment))
     (debug "translate_to_flavored_module basnam=" basnam 
 	   " rawsrcnam=" rawsrcnam " outbase=" outbase)
-    (translate_to_c_one_or_more_melt_files inarg outbase curenv)
+    (translate_to_c_module_melt_sources inarg outbase curenv)
     (cond 
      ( (is_string flavors)
        (debug "before generate_flavored_melt_module rawsrcnam=" rawsrcnam " outnam=" outnam
@@ -3760,7 +3760,7 @@ ASSERT_MSG) is enabled"
 		       basnam)
 	  (return)			;fail the mode
 	  ))
-      (translate_to_c_one_or_more_melt_files inarg basnam curenv)
+      (translate_to_c_module_melt_sources inarg basnam curenv)
       (return :true)			;succeed the mode
       )))
 

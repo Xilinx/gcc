@@ -1,6 +1,12 @@
 
 
 2012-09-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-modes.melt (runfile_docmd)
+	(translate_to_flavored_module): Call
+	translate_to_c_module_melt_sources instead of
+	translate_to_c_one_or_more_melt_files.
+
+2012-09-04  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-outobj.melt (compile_list_sexpr): Improve error
 	message when inienv is null but not bootstrapping.
