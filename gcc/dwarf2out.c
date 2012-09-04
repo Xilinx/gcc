@@ -7745,6 +7745,40 @@ copy_ancestor_tree (dw_die_ref unit, dw_die_ref die, htab_t decl_table)
   return copy;
 }
 
+/* Like clone_tree, but copy DW_TAG_subprogram DIEs as declarations.
+   Enter all the cloned children into the hash table decl_table.  */
+
+static dw_die_ref
+clone_tree_partial (dw_die_ref die, htab_t decl_table)
+{
+  dw_die_ref c;
+  dw_die_ref clone;
+  struct decl_table_entry *entry;
+  void **slot;
+
+  if (die->die_tag == DW_TAG_subprogram)
+    clone = clone_as_declaration (die);
+  else
+    clone = clone_die (die);
+
+  slot = htab_find_slot_with_hash (decl_table, die,
+				   htab_hash_pointer (die), INSERT);
+  /* Assert that DIE isn't in the hash table yet.  If it would be there
+     before, the ancestors would be necessarily there as well, therefore
+     clone_tree_partial wouldn't be called.  */
+  gcc_assert (*slot == HTAB_EMPTY_ENTRY);
+  entry = XCNEW (struct decl_table_entry);
+  entry->orig = die;
+  entry->copy = clone;
+  *slot = entry;
+
+  if (die->die_tag != DW_TAG_subprogram)
+    FOR_EACH_CHILD (die, c,
+		    add_child_die (clone, clone_tree_partial (c, decl_table)));
+
+  return clone;
+}
+
 /* Walk the DIE and its children, looking for references to incomplete
    or trivial types that are unmarked (i.e., that are not in the current
    type_unit).  */
@@ -7791,6 +7825,16 @@ copy_decls_walk (dw_die_ref unit, dw_die_ref die, htab_t decl_table)
               entry->orig = targ;
               entry->copy = copy;
               *slot = entry;
+
+	      /* If TARG is not a declaration DIE, we need to copy its
+		 children.  */
+	      if (!is_declaration_die (targ))
+	        {
+		  FOR_EACH_CHILD (
+		      targ, c,
+		      add_child_die (copy,
+				     clone_tree_partial (c, decl_table)));
+		}
 
               /* Make sure the cloned tree is marked as part of the
                  type unit.  */

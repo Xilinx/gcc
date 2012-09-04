@@ -1,3 +1,9 @@
+2012-08-31   Cary Coutant  <ccoutant@google.com>
+
+	* dwarf2out.c (clone_tree_partial): Restore.
+	(copy_decls_walk): Call clone_tree_partial to copy children
+	of non-declaration DIEs.
+
 2012-08-29  Chris Manghane  <cmang@google.com>
 
 	Backport r190762 from google/main.
