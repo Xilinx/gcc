@@ -5711,7 +5711,6 @@ notice for file named $NAME.}#
 (export_class class_secondary_c_file)
 
 
-(export_synonym translate_to_c_one_or_more_melt_files translate_to_c_module_melt_sources)
 
 ;;;;;;;;;;;;;;;;
 

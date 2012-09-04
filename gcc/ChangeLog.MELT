@@ -1,6 +1,11 @@
 
 2012-09-04  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-outobj.melt
+	(translate_to_c_one_or_more_melt_files): Remove old synonym.
+
+2012-09-04  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{Regenerate}}
 	* melt/generated/warmelt-base+01.c: Regenerate.
 	* melt/generated/warmelt-base+02.c: Regenerate.
