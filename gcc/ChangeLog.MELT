@@ -1,9 +1,20 @@
 
 2012-09-04  Basile Starynkevitch  <basile@starynkevitch.net>
 
-	* melt/warmelt-normal.melt (create_normal_extending_context): New function.
+	* melt/warmelt-first.melt (class_module_context): Add
+	mocx_errorhandler field.
 
-	* melt/warmelt-outobj.melt (translate_macroexpanded_list): Minor improvements.
+	* melt/warmelt-outobj.melt (translate_macroexpanded_list): Use it,
+	removeing the errorsarefatal flag argument.
+	(compile_list_sexpr): Fill :mocx_errorhandler field.
+
+2012-09-04  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-normal.melt (create_normal_extending_context): New
+	function.
+
+	* melt/warmelt-outobj.melt (translate_macroexpanded_list): Minor
+	improvements.
 
 2012-09-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{split this ChangeLog.MELT file so older entries are in ChangeLog.MELT-2008-2011}}

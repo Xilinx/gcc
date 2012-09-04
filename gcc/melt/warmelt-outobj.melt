@@ -5059,9 +5059,9 @@ if (1) return;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; utility function to translate a macroexpanded list
-(defun translate_macroexpanded_list (xlist modnamstr modctx ncx inienv :long errorsarefatal)
+(defun translate_macroexpanded_list (xlist modnamstr modctx ncx inienv)
   (debug "translate_macroexpanded_list modnamstr=" modnamstr "\n* modctx=" modctx
-	 "\n* inienv=" inienv "\n* errorsarefatal=" errorsarefatal)
+	 "\n* inienv=" inienv)
   (assert_msg "check xlist" (is_list xlist))
   (assert_msg "check modnamstr" (is_string modnamstr))
   (assert_msg "check modctx" (is_a modctx class_module_context))
@@ -5077,6 +5077,7 @@ if (1) return;
 	(:long startclock 0)
 	(:long endclock 0)
 	(cheadlist (unsafe_get_field :mocx_cheaderlist modctx))
+	(errorhdlr (unsafe_get_field :mocx_errorhandler modctx))
 	(gendevlist (get_field :mocx_gendevlist modctx))
 	(modinienv (get_field :mocx_initialenv modctx))
 	(firstx (pair_head (list_first xlist)))
@@ -5091,22 +5092,22 @@ if (1) return;
 			  ))
 	)
     (debug "translate_macroexpanded_list modinienv=" modinienv " modnamstr=" modnamstr)
-      ;;
-      (code_chunk startmodnam
-		  #{ /* translate_macroexpanded_list $STARTMODNAM */
-		  #if HAVE_CLOCK
-		  $STARTCLOCK = (long) clock () ;
-		  #endif /*HAVE_CLOCK */
-		  #if MELT_HAVE_DEBUG
-		  inform  (UNKNOWN_LOCATION, 
-			   "MELT [#%ld] generating C code of module %s", 
-			   melt_dbgcounter, melt_string_str ((melt_ptr_t) $MODNAMSTR)) ;
-		  #else
-		  inform  (UNKNOWN_LOCATION, 
-			   "MELT generating C code of module %s", 
-			   melt_string_str ((melt_ptr_t) $MODNAMSTR)) ;
-		  #endif /* MELT_HAVE_DEBUG */
-		  }#)
+    ;;
+    (code_chunk startmodnam
+		#{ /* translate_macroexpanded_list $STARTMODNAM */
+		#if HAVE_CLOCK
+		$STARTCLOCK = (long) clock () ;
+		#endif /*HAVE_CLOCK */
+		#if MELT_HAVE_DEBUG
+		inform  (UNKNOWN_LOCATION, 
+			 "MELT [#%ld] generating C code of module %s", 
+			 melt_dbgcounter, melt_string_str ((melt_ptr_t) $MODNAMSTR)) ;
+		#else
+		inform  (UNKNOWN_LOCATION, 
+			 "MELT generating C code of module %s", 
+			 melt_string_str ((melt_ptr_t) $MODNAMSTR)) ;
+		#endif /* MELT_HAVE_DEBUG */
+		}#)
     (add2sbuf_indentnl declbuf 0)
     ;; only warmelt-first.melt gets a zeroed MELT_HAS_INITIAL_ENVIRONMENT
     (if modinienv
@@ -5171,20 +5172,15 @@ if (1) return;
 			       wnexp)
 		  )))))))
     ;;
-    (if (melt_error_counter)
-	(if errorsarefatal
-	    (code_chunk errorednormal_fatalchk 
-			#{ /* translate_macroexpanded_list $ERROREDNORMAL_FATALCHK */
-			melt_fatal_error ("MELT translation of %s halted after normalization: got %ld MELT errors", 
-					  melt_string_str((melt_ptr_t) $MODNAMSTR), melt_error_counter) ;
-			}#)
-	  (progn
-	    (code_chunk errorednormal_warnchk 
-			#{ /* translate_macroexpanded_list $ERROREDNORMAL_WARNCHK */
-			warning (0, "MELT translation of %s got after normalization %ld MELT errors",
-				    melt_string_str((melt_ptr_t) $MODNAMSTR), melt_error_counter) ;
-			}#)
-	    (return))))
+    (when (melt_error_counter)
+      (if (is_closure errorhdlr) 
+	  (errorhdlr '"MELT translation failed after normalization"))
+      (code_chunk errorednormal_warnchk 
+		  #{ /* translate_macroexpanded_list $ERROREDNORMAL_WARNCHK */
+		  warning (0, "MELT translation of %s got after normalization %ld MELT errors",
+			      melt_string_str((melt_ptr_t) $MODNAMSTR), melt_error_counter) ;
+		  }#)
+      (return))
     ;;
     (let ( (prolist (unsafe_get_field :nctx_proclist ncx)) 
 	   (objlist (make_list discr_list))
@@ -5238,22 +5234,15 @@ if (1) return;
 	   (list_append objlist objpro)
 	   )))
       ;;
-      (if (melt_error_counter)
-	  (if errorsarefatal
-	      (code_chunk erroredgener_fatalchk 
-			  #{ /* translate_macroexpanded_list $ERROREDGENER_FATALCHK */
-			  melt_fatal_error ("MELT translation of %s halted after generation: got %ld MELT errors", 
-					    melt_string_str((melt_ptr_t) $MODNAMSTR), melt_error_counter) ;
-			  }#)
-	    (progn
-	      (code_chunk erroredgener_warnchk 
-			  #{ /* translate_macroexpanded_list $ERROREDGENER_WARNCHK */
-			  warning (0, "MELT translation of %s got after generation %ld MELT errors",
-				      melt_string_str((melt_ptr_t) $MODNAMSTR), melt_error_counter) ;
-			  }#)
-	      (return))))
-      ;;
-      ;;
+      (when (melt_error_counter)
+	(if (is_closure errorhdlr) 
+	    (errorhdlr '"MELT translation failed after generation"))
+	(code_chunk erroredgener_warnchk 
+		    #{ /* translate_macroexpanded_list $ERROREDGENER_WARNCHK */
+		    warning (0, "MELT translation of %s got after generation %ld MELT errors",
+				melt_string_str((melt_ptr_t) $MODNAMSTR), melt_error_counter) ;
+		    }#)
+	(return))
 ;;;;; compile each procedure
       (assert_msg "check objlist" (is_list objlist))
       (let ( (inipro (unsafe_get_field :nctx_initproc ncx)) 
@@ -5440,6 +5429,23 @@ if (1) return;
 			  ;; :mocx_linkflags (make_list discr_list)
 			  :mocx_packagepclist (make_list discr_list)
 			  :mocx_gendevlist (make_list discr_list)
+			  :mocx_errorhandler (lambda (v) 
+					       (if (is_string v)
+						   (code_chunk
+						    fatalerrormsg_chk 
+						    #{ /* compile_list_sexpr $FATALERRORMSG_CHK */
+						    melt_fatal_error ("MELT failed to compile module %s (%ld errors): %s",
+								      melt_string_str ((melt_ptr_t) $MODNAMSTR),
+								      melt_error_counter,
+								      melt_string_str ((melt_ptr_t) $V)) ;
+						    }#)
+						 (code_chunk 
+						  fatalerror_chk 
+						  #{ /* compile_list_sexpr $FATALERROR_CHK */
+						  melt_fatal_error ("MELT failed to compile module %s (%ld errors)",
+								    melt_string_str ((melt_ptr_t) $MODNAMSTR),
+								    melt_error_counter) ;
+						  }#)))
 			  ))
 	(ncx (create_normcontext modctx)) 
 	)
@@ -5465,7 +5471,7 @@ if (1) return;
 		      warning (0, "MELT expanded few (%d) expressions", (int) $LENXLIST) ;
 		      }#))
       ;;
-      (translate_macroexpanded_list xlist modnamstr modctx ncx inienv 1)
+      (translate_macroexpanded_list xlist modnamstr modctx ncx inienv)
       ))
   ;;
   (code_chunk 

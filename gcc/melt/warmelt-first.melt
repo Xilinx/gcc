@@ -832,6 +832,7 @@ subclasses are produced by macro expanders.}# )
 	   mocx_cheaderlist		;list of cheaders
 	   mocx_gendevlist		;list of generator devices
 	   mocx_packagepclist		;list of pkg-config package string names
+	   mocx_errorhandler		;closure to be called on errors
 	   )
   :doc #{The internal $CLASS_MODULE_CONTEXT describes the whole module
 context of a translation. $MOCX_MODULENAME gives the module name,
@@ -843,7 +844,8 @@ only $DEFUN), used to help generate C code in several files, described
 in $MOCX_FILETUPLE. $MOCX_CFLAGS is for the C compilation flags of the
 module. $MOCX_LINKFLAGS is for the linking flags. $MOCX_CHEADERLIST is
 the list of cheader. $MOCX_GENDEVLIST is the list of instances of
-$CLASS_SOURCE_GENERATOR_DEVICE. For gurus!}# )
+$CLASS_SOURCE_GENERATOR_DEVICE. $MOCX_ERRORHANDLER is the closure, if
+any, to call on errors. For gurus!}# )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalization context
