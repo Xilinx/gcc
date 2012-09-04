@@ -1,5 +1,11 @@
 
 2012-09-04  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-normal.melt (create_normal_extending_context): New function.
+
+	* melt/warmelt-outobj.melt (translate_macroexpanded_list): Minor improvements.
+
+2012-09-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{split this ChangeLog.MELT file so older entries are in ChangeLog.MELT-2008-2011}}
 
 2012-09-04  Basile Starynkevitch  <basile@starynkevitch.net>

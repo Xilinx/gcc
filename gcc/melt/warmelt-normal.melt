@@ -449,6 +449,15 @@ normalized expressions. Field $NINIT_DEFBINDS is the list of $DEFINE-d bindings.
 	   ninit_defbinds		;list of define-d bindings
 	   ))
 
+;; the class of the initial procedure when extending a module
+(defclass class_nrep_initextendproc
+  :super class_nrep_initproc
+  :doc #{The $CLASS_NREP_INITEXTENDPROC is the class for the initial
+extending procedure for an existing module. Field ninitextend_modenv
+is the extended environment.}#
+  :fields (ninitextend_modenv
+	   ))
+
 ;; normal routine procedure
 (defclass class_nrep_routproc
   :super class_nrep_anyproc
@@ -747,6 +756,7 @@ routine procedures.}#
  class_nrep_iftuplesized
  class_nrep_ifvariadic
  class_nrep_importedval
+ class_nrep_initextendproc
  class_nrep_initproc
  class_nrep_instance
  class_nrep_lambda
@@ -824,6 +834,8 @@ routine procedures.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; create a normalization context
 (defun create_normcontext (modctx)
+  :doc #{Internal routine to reate a normalization context for module
+  context $MODCTX, used to compile modules.}#
   (let ( (:long maxpredefix (last_globpredef_index))
 	 (:long ix 1)
 	 (predefmap (make_mapobject discr_map_objects (+i 19 (*i 2 maxpredefix))))
@@ -866,6 +878,58 @@ routine procedures.}#
 		 ))
 	   )
       (debug "create_normcontext return ncx" ncx)
+      (return ncx)
+      )))
+
+
+(defun create_normal_extending_context (modctx modenv)
+  :doc #{Internal routine to reate a normalization context for module
+  context $MODCTX, used to compile the extension of a module environment $MODENV.}#
+  (debug "create_normal_extending_context start modctx=" modctx "\n* modenv=" modenv "\n")
+  (let ( (:long maxpredefix (last_globpredef_index))
+	 (:long ix 1)
+	 (predefmap (make_mapobject discr_map_objects (+i 19 (*i 2 maxpredefix))))
+	 (valmap (make_mapobject discr_map_objects 350))
+	 )
+    (assert_msg "check modctx" (is_a modctx class_module_context))
+    (assert_msg "check modenv" (is_a modenv class_environment))
+    (forever predefloop
+	     (if (>=i ix maxpredefix) (exit predefloop))
+	     (let ( (curpredef (get_globpredef ix)) )
+	       (if (is_object curpredef)
+		   (mapobject_put predefmap curpredef (make_integerbox discr_integer ix)))
+	       )
+	     (setq ix (+i ix 1)))
+    (fill_initial_predefmap predefmap)
+    (let ( (inipro  (instance class_nrep_initextendproc
+			      :ninit_topl (make_list discr_list)
+			      :ninit_defbinds (make_list discr_list)
+			      :nrep_loc ()
+			      :ninitextend_modenv modenv
+			      )) 
+	   (ncx (instance 
+		 class_normalization_context
+		 :nctx_initproc inipro
+		 :nctx_proclist (make_list discr_list)
+		 :nctx_datalist (make_list discr_list)
+		 :nctx_valuelist (make_list discr_list)
+		 :nctx_symbmap  (make_mapstring discr_map_strings 50)
+		 :nctx_keywmap  (make_mapstring discr_map_strings 40)
+		 :nctx_predefmap predefmap
+		 :nctx_valmap valmap
+		 :nctx_valbindmap (make_mapobject discr_map_objects 20)
+		 ;; we need a symbcachemap for the toplevel expressions
+		 :nctx_symbcachemap (make_mapobject discr_map_objects 30)
+		 :nctx_curproc inipro
+		 :nctx_modulcontext modctx
+		 :nctx_qdatcurmodenvbox (instance class_nrep_quasidata_current_module_environment_container
+						  )
+		 :nctx_qdatparmodenv (instance class_nrep_quasidata_parent_module_environment
+					       )
+		 :nctx_procurmodenvlist (make_list discr_list)
+		 ))
+	   )
+      (debug "create_normal_extending_context return ncx" ncx)
       (return ncx)
       )))
 
@@ -7035,6 +7099,7 @@ source location.}#
  check_ctype_nargs
  compile_obj
  create_normcontext
+ create_normal_extending_context
  get_ctype
  normal_exp
  normal_letrec_constructive

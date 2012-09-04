@@ -5080,7 +5080,7 @@ if (1) return;
 	(gendevlist (get_field :mocx_gendevlist modctx))
 	(modinienv (get_field :mocx_initialenv modctx))
 	(firstx (pair_head (list_first xlist)))
-	(firstloc (if (is_a firstx class_source) (unsafe_get_field :loca_location firstx)))
+	(firstloc (if (is_a firstx class_source) (get_field :loca_location firstx)))
 	(iniproc (unsafe_get_field :nctx_initproc ncx))
 	(declbuf (make_strbuf discr_strbuf))
 	(implbuf (make_strbuf discr_strbuf)) 
@@ -5091,21 +5091,22 @@ if (1) return;
 			  ))
 	)
     (debug "translate_macroexpanded_list modinienv=" modinienv " modnamstr=" modnamstr)
-    (code_chunk startmodnam
-		#{ /* translate_macroexpanded_list $STARTMODNAM */
-		#if HAVE_CLOCK
-		$STARTCLOCK = (long) clock () ;
-		#endif /*HAVE_CLOCK */
-		#if MELT_HAVE_DEBUG
-		inform  (UNKNOWN_LOCATION, 
-			 "MELT [#%ld] generating C code of module %s", 
-			 melt_dbgcounter, melt_string_str ((melt_ptr_t) $MODNAMSTR)) ;
-		#else
-		inform  (UNKNOWN_LOCATION, 
-			 "MELT generating C code of module %s", 
-			 melt_string_str ((melt_ptr_t) $MODNAMSTR)) ;
-		#endif /* MELT_HAVE_DEBUG */
-		}#)
+      ;;
+      (code_chunk startmodnam
+		  #{ /* translate_macroexpanded_list $STARTMODNAM */
+		  #if HAVE_CLOCK
+		  $STARTCLOCK = (long) clock () ;
+		  #endif /*HAVE_CLOCK */
+		  #if MELT_HAVE_DEBUG
+		  inform  (UNKNOWN_LOCATION, 
+			   "MELT [#%ld] generating C code of module %s", 
+			   melt_dbgcounter, melt_string_str ((melt_ptr_t) $MODNAMSTR)) ;
+		  #else
+		  inform  (UNKNOWN_LOCATION, 
+			   "MELT generating C code of module %s", 
+			   melt_string_str ((melt_ptr_t) $MODNAMSTR)) ;
+		  #endif /* MELT_HAVE_DEBUG */
+		  }#)
     (add2sbuf_indentnl declbuf 0)
     ;; only warmelt-first.melt gets a zeroed MELT_HAS_INITIAL_ENVIRONMENT
     (if modinienv
@@ -5261,6 +5262,7 @@ if (1) return;
 	     (procurmodenvlist (unsafe_get_field :nctx_procurmodenvlist ncx))
 	     )
 	(assert_msg "check inipro" (is_a inipro class_nrep_initproc))
+	(debug "translate_macroexpanded_list before compiling initproc inipro=" inipro)
 	(let ( (iniobj (compile2obj_initproc inipro modctx inidata compicache procurmodenvlist importvalues)) )
 ;;;
 	  (foreach_in_list
@@ -5447,8 +5449,8 @@ if (1) return;
       (code_chunk checkbootstrapping_chk
 		  #{ /* $CHECKBOOTSTRAPPING_CHK */
 		  if (!melt_flag_bootstrapping)
-		     melt_fatal_error ("no initial environment can only happen during MELT bootstrapping in module %s",
-				       melt_string_str ((melt_ptr_t) $MODNAKEDNAME));
+		  melt_fatal_error ("no initial environment can only happen during MELT bootstrapping in module %s",
+				    melt_string_str ((melt_ptr_t) $MODNAKEDNAME)) ;
 		  }#)
       ;; we set inienv to be able to macroexpand and translate the rest. However, mocx_initialenv is null.
       (setq inienv initial_environment))
@@ -5460,18 +5462,19 @@ if (1) return;
       (if (<=i lenxlist 3)
 	  (code_chunk warnshortchk
 		      #{/* compile_list_sexpr $WARNSHORTCHK*/
-		      warning (0, "MELT expanded few (%d) expresssions", (int) $LENXLIST);
+		      warning (0, "MELT expanded few (%d) expressions", (int) $LENXLIST) ;
 		      }#))
+      ;;
       (translate_macroexpanded_list xlist modnamstr modctx ncx inienv 1)
-   ))
-	;;
-      (code_chunk 
-         check_errors_after_generation
-	 #{ /* compile_list_sexpr $CHECK_ERRORS_AFTER_GENERATION*/
-	 if (melt_error_counter>0) 
-	    melt_fatal_error ("MELT translation of %s halted after generation: got %ld MELT errors",  
-			      melt_string_str((melt_ptr_t) $MODNAMSTR), melt_error_counter);
-	 }#)
+      ))
+  ;;
+  (code_chunk 
+   check_errors_after_generation
+   #{ /* compile_list_sexpr $CHECK_ERRORS_AFTER_GENERATION*/
+   if (melt_error_counter>0) 
+   melt_fatal_error ("MELT translation of %s halted after generation: got %ld MELT errors",  
+		     melt_string_str((melt_ptr_t) $MODNAMSTR), melt_error_counter) ;
+   }#)
   (message_dbg "ended compile_list_sexpr")
   )
 
