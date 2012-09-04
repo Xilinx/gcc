@@ -5558,13 +5558,12 @@ if (1) return;
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun translate_run_melt_expressions (exprtup env)
-  :doc #{Translate and run the MELT s-expressions from $EXPRTUP in the $ENV environment, which can be modified.}#
-  (debug "translate_run_melt_expressions start exprtup=" exprtup "\n*env=" env)
-  (when (null exprtup) 
+(defun translate_run_melt_expressions (exprs env)
+  :doc #{Translate and run the MELT s-expressions from $EXPRS in the $ENV environment, which can be modified.}#
+  (debug "translate_run_melt_expressions start exprs=" exprs "\n*env=" env)
+  (when (null exprs) 
     (debug "translate_run_melt_expressions gets and gives null")
     (return ()))
-  (assert_msg "check exprs" (is_multiple exprtup))
   (assert_msg "check env" (is_a env class_environment))
   (let ( (:long num 0)
 	 (:long starterrcount (melt_error_counter))
@@ -5597,7 +5596,7 @@ if (1) return;
 			    (code_chunk warnrun_chk
 					#{ /* translate_run_melt_expressions $WARNRUN_chk */
 					warning (0, "MELT running expression {%s} errored", 
-						    melt_string_str ((melt_ptr_t) $NAKEDBASNAM)); }#
+						    melt_string_str ((melt_ptr_t) $NAKEDBASNAM)) ; }#
 					))
 			   )
 			  (set_ref referr (or v :true))))
@@ -5617,40 +5616,61 @@ if (1) return;
 			    ))
 	  (ncx (create_normal_extending_context modctx env))
 	  (lsexp
-	   (let ( (ls (make_list discr_list))
-			)
-	     (foreach_in_multiple
-	      (exprtup)
-	      (curexp :long ix)
-	      (cond
-	       ((null curexp)
-		(void))
-	       ((is_a curexp class_sexpr)
-		(list_append ls curexp))
-	       ((is_a curexp class_symbol)
-		(list_append ls curexp))
-	       ((is_string curexp)
-		(list_append ls curexp))
-	       ((is_integerbox curexp)
-		(list_append ls curexp))
-	       ((is_closure curexp)
-		(debug "translate_run_melt_expressions closure curexp=" curexp " ix=" ix)
-		(curexp ls))
-	       (:else
-		(debug "translate_run_melt_expressions bad curexp=" curexp " ix=" ix)
-		(let ( (curdis (discrim curexp))
-		       (curdisname (get_field :named_name curdis))
-		      )
-		  (code_chunk badexp_chk
-			      #{ /* translate_run_melt_expressions $BADEXP_CHK */
-			      warning (0, "MELT run %s expression #%d has bad disciminant %s",
-					  melt_string_str ((melt_ptr_t) $NAKEDBASNAM),
-					  1+(int) $IX, 
-					  melt_string_str ((melt_ptr_t) $CURDISNAME));
-			      }#)
-		  (runerrorhdlr '"Bad expression")))
-	       ))
-	     ls))
+	   (let
+	       ( (ls (make_list discr_list))
+		 (addexp 
+		  (lambda (curexp :long ix)
+		    (cond
+		     ((null curexp)
+		      (void))
+		     ((is_a curexp class_sexpr)
+		      (list_append ls curexp))
+		     ((is_a curexp class_symbol)
+		      (list_append ls curexp))
+		     ((is_string curexp)
+		      (list_append ls curexp))
+		     ((is_integerbox curexp)
+		      (list_append ls curexp))
+		     ((is_closure curexp)
+		      (debug "translate_run_melt_expressions closure curexp=" curexp " ix=" ix)
+		      (curexp ls))
+		     (:else
+		      (debug "translate_run_melt_expressions bad curexp=" curexp " ix=" ix)
+		      (let ( (curdis (discrim curexp))
+			     (curdisname (get_field :named_name curdis))
+			     )
+			(code_chunk badexp_chk
+				    #{ /* translate_run_melt_expressions $BADEXP_CHK */
+				    warning (0, "MELT run %s expression #%d has bad disciminant %s",
+						melt_string_str ((melt_ptr_t) $NAKEDBASNAM),
+						1+(int) $IX, 
+						melt_string_str ((melt_ptr_t) $CURDISNAME)) ;
+				    }#)
+			(runerrorhdlr '"Bad expression")))
+		     )
+		    ))
+		 )
+	     (cond
+	      ((null exprs)
+	       (void))
+	      ((is_multiple exprs)
+	       (foreach_in_multiple
+		(exprs)
+		(curexp :long ix)
+		(addexp curexp ix)
+		))
+	      ((is_list exprs)
+	       (let ((:long ix 0))
+		 (foreach_in_list
+		  (exprs)
+		  (curpair curexp)
+		  (setq ix (-i ix 1))
+		  (addexp curexp ix))))
+	      ((is_a exprs class_sexpr)
+	       (addexp exprs -999999))
+	      (:else
+	       (runerrorhdlr '"No expressions")))
+	   ls))
 	  )
       ;;macro expand
       (debug "translate_run_melt_expressions modctx=" modctx "\n ncx=" ncx "\n lsexp=" lsexp)
@@ -5661,12 +5681,12 @@ if (1) return;
 	     (:long lenxlist (list_length xlist))
 	     )
 	(debug "translate_run_melt_expressions xlist=" xlist)
-	(when (>i (melt_error_counter) starterrcount)
+	(when (or (notnull !referr) (>i (melt_error_counter) starterrcount))
 	  (runerrorhdlr '"runtime macroexpansion failed")
 	  (return () ()))
 	;; translate to C code
 	(translate_macroexpanded_list xlist nakedbasnam modctx ncx env compile2obj_initrunproc)
-	(when (>i (melt_error_counter) starterrcount)
+	(when  (or (notnull !referr) (>i (melt_error_counter) starterrcount))
 	  (runerrorhdlr '"runtime translation to code failed")
 	  (return () ()))
 	;; should now compile the generated C code
@@ -5824,6 +5844,7 @@ notice for file named $NAME.}#
  get_code_buffer_limit
  put_code_buffer_limit
  translate_to_c_module_melt_sources
+ translate_run_melt_expressions
  )
 
 (export_class class_secondary_c_file)

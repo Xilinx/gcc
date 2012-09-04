@@ -112,7 +112,8 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 ;;;;;;;;;;;;;;;;
 ;;;;;
 (defun rundebug_docmd (cmd moduldata)
-  (debug "start rundebug_docmd cmd=" cmd " moduldata=" moduldata)  (let ( 
+  (debug "start rundebug_docmd cmd=" cmd " moduldata=" moduldata)  
+  (let ( 
 	(parmodenv (parent_module_environment))
 	(curenv (if moduldata moduldata initial_environment))
 	(inarg (make_stringconst discr_string (melt_argument "arg")))
@@ -173,6 +174,36 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 (install_melt_mode rundebug_mode)
 
 
+;;;;;;;;;;;;;; evaluate a sequence of expressions
+(defun eval_docmd  (cmd moduldata)
+  (debug "start eval_docmd cmd=" cmd " moduldata=" moduldata)  
+  (let ( 
+	(parmodenv (parent_module_environment))
+	(curenv moduldata)
+	(inarg (make_stringconst discr_string (melt_argument "arg")))
+	(inexprs (read_strv inarg))
+	)
+    (debug "eval_docmd start parmodenv=" parmodenv 
+	   "\n curenv=" curenv
+	   " inarg=" inarg
+	   "\n inexprs=" inexprs)
+    (assert_msg "check curenv" (is_a curenv class_environment))
+    (multicall
+     (res other)
+     (translate_run_melt_expressions inexprs curenv)
+     (debug "eval_docmd run res=" res " other=" other)
+    )))
+
+(definstance eval_mode
+  class_melt_mode
+  :named_name '"eval"
+  :meltmode_help '"translate and run, i.e. evaluate, a MELT expression;\n
+\t ARGUMENT= input file"
+  :meltmode_fun eval_docmd
+)
+(install_melt_mode eval_mode)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defclass class_makedoc_info
   :doc #{The $CLASS_MAKEDOC_INFO aggregates data for generating documentation.}#
@@ -4356,7 +4387,7 @@ ASSERT_MSG) is enabled"
 	    :sysdata_child_hook child_process_sigchld_handler)
 
 (defun unregister_child_process_handler (chd)
-  :doc #{Unregister a child process handler obtained by $REGISTER_CHILD_PROCESS_HANDLER}#
+  :doc #{Unregister a child process handler obtained by $REGISTER_CHILD_PROCESS_HANDLER @b{**unimplemented**}}#
   (debug "unregister_child_process_handler chd=" chd)
   (assert_msg "@$@unimplemented unregister_child_process_handler")
 )

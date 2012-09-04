@@ -1,6 +1,14 @@
 
 2012-09-04  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.c (meltgc_run_c_extension): New incomplete function.
+
+	* melt/warmelt-outobj.melt (translate_run_melt_expressions): New incomplete function.
+
+	* melt/warmelt-modes.melt (eval_docmd, eval_mode): New function and mode.
+
+2012-09-04  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-genobj.melt (create_normal_extending_context):
 	Lower initial sizes of maps, etc...
 

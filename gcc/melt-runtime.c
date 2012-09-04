@@ -8547,7 +8547,7 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
   MELTDESCR_OPTIONAL_SYMBOL (melt_versionstr, char);	\
   MELTDESCR_OPTIONAL_SYMBOL (melt_modulerealpath, char)
 
-  /* declare our dymamic symbols */
+  /* declare our dynamic symbols */
 #define MELTDESCR_REQUIRED_SYMBOL(Sym,Typ) Typ* dynr_##Sym = NULL
   MELTDESCR_REQUIRED_LIST;
 #undef MELTDESCR_REQUIRED_SYMBOL
@@ -8992,6 +8992,125 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
   return ix;
 }
 
+
+melt_ptr_t
+meltgc_run_c_extension (melt_ptr_t basename_p, melt_ptr_t env_p)
+{
+  /* list of required dynamic symbols (dlsymed in the FOO module,
+     provided in the FOO+meltdesc.c or FOO+melttime.h or FOO.c
+     file) */
+#define MELTRUNDESCR_REQUIRED_LIST					\
+  MELTRUNDESCR_REQUIRED_SYMBOL (melt_build_timestamp, char);		\
+  MELTRUNDESCR_REQUIRED_SYMBOL (melt_cumulated_hexmd5, char);		\
+  MELTRUNDESCR_REQUIRED_SYMBOL (melt_gen_timenum, long long);		\
+  MELTRUNDESCR_REQUIRED_SYMBOL (melt_gen_timestamp, char);		\
+  MELTRUNDESCR_REQUIRED_SYMBOL (melt_lastsecfileindex, int);		\
+  MELTRUNDESCR_REQUIRED_SYMBOL (melt_modulename, char);			\
+  MELTRUNDESCR_REQUIRED_SYMBOL (melt_prepromd5meltrun, char);		\
+  MELTRUNDESCR_REQUIRED_SYMBOL (melt_primaryhexmd5, char);		\
+  MELTRUNDESCR_REQUIRED_SYMBOL (melt_secondaryhexmd5tab, char*);	\
+  MELTRUNDESCR_REQUIRED_SYMBOL (melt_versionmeltstr, char);		\
+  MELTRUNDESCR_REQUIRED_SYMBOL (melt_run_extension, melt_start_rout_t)
+  /* list of optional dynamic symbols (dlsymed in the module, provided
+     in the FOO+meltdesc.c or FOO+melttime.h file). */
+#define MELTRUNDESCR_OPTIONAL_LIST				\
+  MELTRUNDESCR_OPTIONAL_SYMBOL (melt_versionstr, char);		\
+  MELTRUNDESCR_OPTIONAL_SYMBOL (melt_modulerealpath, char)
+  /* declare our dynamic symbols */
+#define MELTRUNDESCR_REQUIRED_SYMBOL(Sym,Typ) Typ* dynr_##Sym = NULL
+  MELTRUNDESCR_REQUIRED_LIST;
+#undef MELTRUNDESCR_REQUIRED_SYMBOL
+#define MELTRUNDESCR_OPTIONAL_SYMBOL(Sym,Typ) Typ* dyno_##Sym = NULL
+  MELTRUNDESCR_OPTIONAL_LIST;
+#undef MELTRUNDESCR_OPTIONAL_SYMBOL
+#define MELTRUNDESCR_OPTIONAL(Sym) dyno_##Sym
+#define MELTRUNDESCR_REQUIRED(Sym) dynr_##Sym
+  char basenamebuf[64];
+  char* descversionmelt = NULL;
+  char* descpath = NULL;
+  FILE *descfile = NULL;
+  char *descline = NULL;
+  size_t descsize = 0;
+  ssize_t desclinlen = 0;
+  int desclinenum = 0;
+  MELT_ENTERFRAME (4, NULL);
+#define basenamev     meltfram__.mcfr_varptr[0]
+#define environv      meltfram__.mcfr_varptr[1]
+#define resv          meltfram__.mcfr_varptr[2]
+  basenamev = basename_p;
+  environv = env_p;
+  if (!basenamev || !environv)
+    goto end;
+  {
+    const char* basestr = melt_string_str ((melt_ptr_t) basenamev);
+    if (!basestr)
+      goto end;
+    memset (basenamebuf, 0, sizeof(basenamebuf));
+    strncpy (basenamebuf, basestr, sizeof(basenamebuf)-1);
+    if (strcmp(basestr, basenamebuf))
+      goto end;
+  }
+  debugeprintf ("meltgc_run_c_extension basenamebuf=%s", basenamebuf);
+  descpath = melt_tempdir_path (basenamebuf, "+meltdesc.c");
+  debugeprintf ("meltgc_run_c_extension descpath=%s", descpath);
+  descfile = fopen (descpath, "r");
+  if (!descfile)
+    {
+      warning (0,
+	       "MELT running extension descriptor file %s not found - %s",
+	       descpath, xstrerror (errno));
+      goto end;
+    }
+  while (!feof (descfile)) 
+    {
+      char *pc = NULL;
+      char *pqu1 = NULL;
+      char *pqu2 = NULL;
+      desclinlen = getline (&descline, &descsize, descfile);
+      desclinenum ++;
+      if (desclinlen>0 && descline && descline[desclinlen-1] == '\n')
+	descline[--desclinlen] = (char)0;
+      if (desclinlen < 0)
+	break;
+      /* ignore comments and short lines */
+      if (desclinlen < 4) continue;
+      if (descline[0] == '/' && descline[1] == '*')
+	continue;
+      if (descline[0] == '/' && descline[1] == '/')
+	continue;
+      /* ignore lines with extern "C" */
+      if (strstr(descline, "extern") && strstr(descline, "\"C\""))
+	continue;
+      debugeprintf ("meltgc_run_c_extension (%s) #%d,len%d: %s",
+		    basenamebuf, desclinenum, (int) desclinlen, descline);
+      /* parse the melt_versionmeltstr */
+      if (descversionmelt == NULL
+	  && (pc = strstr(descline, "melt_versionmeltstr[]")) != NULL
+	  && (pqu1 = strchr (pc, '"')) != NULL
+	  && (pqu2 = strchr (pqu1+1, '"')) != NULL
+	  && pqu2 > pqu1 + 10 /*actually should be more than 10*/) 
+	{
+	  descversionmelt = melt_c_string_in_descr (pqu1);
+	  debugeprintf ("meltgc_run_c_extension found descversionmelt %s", descversionmelt);
+	}
+#warning meltgc_run_c_extension very incomplete
+    };				/* end loop reading descfile */
+  melt_fatal_error ("meltgc_run_c_extension %s incomplete", basenamebuf);
+ end:
+  if (descpath)
+    free (descpath), descpath = NULL;
+  if (descfile)
+    fclose (descfile), descfile = NULL;
+  MELT_EXITFRAME ();
+  return (melt_ptr_t) resv;
+#undef MELTRUNDESCR_REQUIRED_LIST
+#undef MELTRUNDESCR_OPTIONAL_LIST
+#undef MELTRUNDESCR_OPTIONAL
+#undef MELTRUNDESCR_REQUIRED
+#undef basenamev
+#undef environv
+#undef resv
+}
 
 
 melt_ptr_t
