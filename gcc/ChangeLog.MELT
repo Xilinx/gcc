@@ -1,6 +1,17 @@
 
 2012-09-04  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-genobj.melt (create_normal_extending_context):
+	Lower initial sizes of maps, etc...
+
+	* melt/warmelt-genobj.melt (compile2obj_initrunproc): New
+	incomplete function stub.
+
+	* melt/warmelt-outobj.melt (translate_run_melt_expressions): New
+	incomplete function stub.
+
+2012-09-04  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-outobj.melt
 	(translate_to_c_one_or_more_melt_files): Remove old synonym.
 

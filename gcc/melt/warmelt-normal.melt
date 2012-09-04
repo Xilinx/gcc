@@ -883,13 +883,13 @@ routine procedures.}#
 
 
 (defun create_normal_extending_context (modctx modenv)
-  :doc #{Internal routine to reate a normalization context for module
-  context $MODCTX, used to compile the extension of a module environment $MODENV.}#
+  :doc #{Internal routine to create a normalization context for module
+  context $MODCTX, used to compile, e.g. for running, the extension of a module environment $MODENV.}#
   (debug "create_normal_extending_context start modctx=" modctx "\n* modenv=" modenv "\n")
   (let ( (:long maxpredefix (last_globpredef_index))
 	 (:long ix 1)
-	 (predefmap (make_mapobject discr_map_objects (+i 19 (*i 2 maxpredefix))))
-	 (valmap (make_mapobject discr_map_objects 350))
+	 (predefmap (make_mapobject discr_map_objects (+i 11 (*i 2 maxpredefix))))
+	 (valmap (make_mapobject discr_map_objects 91))
 	 )
     (assert_msg "check modctx" (is_a modctx class_module_context))
     (assert_msg "check modenv" (is_a modenv class_environment))
@@ -913,13 +913,13 @@ routine procedures.}#
 		 :nctx_proclist (make_list discr_list)
 		 :nctx_datalist (make_list discr_list)
 		 :nctx_valuelist (make_list discr_list)
-		 :nctx_symbmap  (make_mapstring discr_map_strings 50)
-		 :nctx_keywmap  (make_mapstring discr_map_strings 40)
+		 :nctx_symbmap  (make_mapstring discr_map_strings 30)
+		 :nctx_keywmap  (make_mapstring discr_map_strings 20)
 		 :nctx_predefmap predefmap
 		 :nctx_valmap valmap
 		 :nctx_valbindmap (make_mapobject discr_map_objects 20)
 		 ;; we need a symbcachemap for the toplevel expressions
-		 :nctx_symbcachemap (make_mapobject discr_map_objects 30)
+		 :nctx_symbcachemap (make_mapobject discr_map_objects 10)
 		 :nctx_curproc inipro
 		 :nctx_modulcontext modctx
 		 :nctx_qdatcurmodenvbox (instance class_nrep_quasidata_current_module_environment_container

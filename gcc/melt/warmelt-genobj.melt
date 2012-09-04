@@ -1411,8 +1411,28 @@ $SBUF.}#
 	))))
 
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun compile2obj_initrunproc (ipro modctx idata compicache procurmodenvlist importvalues)
+  (debug "compile2obj_initrunproc ipro=" ipro 
+	 "\n* modctx=" modctx "\n* compicache=" compicache
+	 "\n* procurmodenvlist=" procurmodenvlist 
+	 "\n* importvalues=" importvalues
+	 "\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n"
+	 )
+  (assert_msg "check ipro" (is_a ipro class_nrep_initproc))
+  (assert_msg "check idata" (is_list idata))
+  (assert_msg "check modctx" (is_a modctx class_module_context))
+  (assert_msg "check compicache" (is_mapobject compicache))
+  (assert_msg "check importvalues" (is_list importvalues))
+  (assert_msg "@$@compile2obj_initrunproc unimplemented")
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values 
  compile2obj_initproc
+ compile2obj_initrunproc
  compile2obj_procedure
  variadic_index_idstr
  variadic_length_idstr
