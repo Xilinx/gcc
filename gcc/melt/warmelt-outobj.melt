@@ -5059,8 +5059,9 @@ if (1) return;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; utility function to translate a macroexpanded list
-(defun translate_macroexpanded_list (xlist modnamstr modctx ncx inienv)
-  (debug "translate_macroexpanded_list modnamstr=" modnamstr "\n* modctx=" modctx "\n* inienv=" inienv)
+(defun translate_macroexpanded_list (xlist modnamstr modctx ncx inienv :long errorsarefatal)
+  (debug "translate_macroexpanded_list modnamstr=" modnamstr "\n* modctx=" modctx
+	 "\n* inienv=" inienv "\n* errorsarefatal=" errorsarefatal)
   (assert_msg "check xlist" (is_list xlist))
   (assert_msg "check modnamstr" (is_string modnamstr))
   (assert_msg "check modctx" (is_a modctx class_module_context))
@@ -5095,15 +5096,15 @@ if (1) return;
 		#if HAVE_CLOCK
 		$STARTCLOCK = (long) clock () ;
 		#endif /*HAVE_CLOCK */
-#if MELT_HAVE_DEBUG
+		#if MELT_HAVE_DEBUG
 		inform  (UNKNOWN_LOCATION, 
 			 "MELT [#%ld] generating C code of module %s", 
 			 melt_dbgcounter, melt_string_str ((melt_ptr_t) $MODNAMSTR)) ;
-#else
+		#else
 		inform  (UNKNOWN_LOCATION, 
 			 "MELT generating C code of module %s", 
 			 melt_string_str ((melt_ptr_t) $MODNAMSTR)) ;
-#endif /* MELT_HAVE_DEBUG */
+		#endif /* MELT_HAVE_DEBUG */
 		}#)
     (add2sbuf_indentnl declbuf 0)
     ;; only warmelt-first.melt gets a zeroed MELT_HAS_INITIAL_ENVIRONMENT
@@ -5126,20 +5127,21 @@ if (1) return;
 		    }#)
 	;; lack of initial environment happens only in translateinit mode for warmelt-first.melt
 	(add2sbuf_strconst declbuf "#define MELT_HAS_INITIAL_ENVIRONMENT 0 /*initial*/")))
+    ;;
     (add2sbuf_indentnl declbuf 0)
     (add2sbuf_indentnl declbuf 0)
     (add2sbuf_strconst declbuf "struct melt_callframe_st; /*defined in melt-runtime.h*/")
     (add2sbuf_indentnl declbuf 0)
     (add2sbuf_indentnl declbuf 0)
     (list_prepend xlist ucmeb1)
-    (debug "after macroexpansion compile_list_sexpr xlist=" xlist " inienv=" inienv)
+    (debug "after macroexpansion translate_macroexpanded_list xlist=" xlist " inienv=" inienv)
     (assert_msg "check iniproc" (is_a iniproc class_nrep_initproc))
     (assert_msg "check xlist" (is_list xlist))
     ;;
     (list_every
      xlist
      (lambda (sexp :long ix)
-       (debug sexp "compile_list_sexpr sexp=" sexp " ix=" ix)
+       (debug sexp "translate_macroexpanded_list sexp=" sexp " ix=" ix)
        (let (
 	     (psloc (if (is_a sexp class_located) (unsafe_get_field :loca_location sexp)))
 	     )
@@ -5159,22 +5161,30 @@ if (1) return;
 	   (multicall 
 	    (nexp nbind)
 	    (normal_exp sexp inienv ncx psloc)	    
-	    (debug "compile_list_sexpr nexp=" nexp " nbind=" nbind)    
+	    (debug "translate_macroexpanded_list nexp=" nexp " nbind=" nbind)    
 	    (if (and (is_a nexp class_nrep)
 		     (not (is_a nexp class_nrep_anyproc)))
 		(let ( (wnexp (wrap_normal_let1 nexp nbind psloc)) )
-		  (debug "compile_list_sexpr wnexp=" wnexp)
+		  (debug "translate_macroexpanded_list wnexp=" wnexp)
 		  (list_append (unsafe_get_field :ninit_topl iniproc) 
 			       wnexp)
 		  )))))))
     ;;
-    (code_chunk 
-     check_errors_after_normalization
-     #{ /* translate_macroexpanded_list $CHECK_ERRORS_AFTER_NORMALIZATION */
-     if (melt_error_counter>0) 
-     melt_fatal_error ("MELT translation of %s halted after normalization: got %ld MELT errors", 
-		       melt_string_str((melt_ptr_t) $MODNAMSTR), melt_error_counter) ;
-     }#)
+    (if (melt_error_counter)
+	(if errorsarefatal
+	    (code_chunk errorednormal_fatalchk 
+			#{ /* translate_macroexpanded_list $ERROREDNORMAL_FATALCHK */
+			melt_fatal_error ("MELT translation of %s halted after normalization: got %ld MELT errors", 
+					  melt_string_str((melt_ptr_t) $MODNAMSTR), melt_error_counter) ;
+			}#)
+	  (progn
+	    (code_chunk errorednormal_warnchk 
+			#{ /* translate_macroexpanded_list $ERROREDNORMAL_WARNCHK */
+			warning (0, "MELT translation of %s got after normalization %ld MELT errors",
+				    melt_string_str((melt_ptr_t) $MODNAMSTR), melt_error_counter) ;
+			}#)
+	    (return))))
+    ;;
     (let ( (prolist (unsafe_get_field :nctx_proclist ncx)) 
 	   (objlist (make_list discr_list))
 	   (compicache (make_mapobject discr_map_objects (+i 10 (*i 20 (list_length xlist)))))
@@ -5182,7 +5192,7 @@ if (1) return;
 	   (cheadtup (list_to_multiple cheadlist discr_multiple))
 	   (:long nbchead (multiple_length cheadtup))
 	   ) 
-      (debug "compile_list_sexpr prolist=" prolist 
+      (debug "translate_macroexpanded_list prolist=" prolist 
 	     "\n* cheadtup=" cheadtup)  
       (if (>i nbchead 0)
 	  (progn
@@ -5194,7 +5204,7 @@ if (1) return;
 	    (foreach_in_multiple
 	     (cheadtup)
 	     (curchead :long hix)
-	     (debug "compile_list_sexpr curchead=" curchead " hix=" hix)
+	     (debug "translate_macroexpanded_list curchead=" curchead " hix=" hix)
 	     (assert_msg "check curchead" (is_a curchead class_source_cheader))
 	     (add2sbuf_indentnl declbuf 0)
 	     (add2out declbuf ##{/** header #$HIX: **/}#)
@@ -5223,17 +5233,25 @@ if (1) return;
 	 (assert_msg "check pro" (is_a pro class_nrep_anyproc))
 	 (put_int countbox (+i (get_int countbox) 1))
 	 (let ( (objpro (compile2obj_procedure pro modctx compicache (get_int countbox))) )
-	   (debug "compile_list_sexpr objpro=" objpro " pro=" pro)
+	   (debug "translate_macroexpanded_list objpro=" objpro " pro=" pro)
 	   (list_append objlist objpro)
 	   )))
       ;;
-      (code_chunk 
-       check_errors_after_compilation
-       #{ /*translate_macroexpanded_list $CHECK_ERRORS_AFTER_COMPILATION*/
-       if (melt_error_counter>0) 
-       melt_fatal_error ("MELT translation of %s halted after MELT compilation: got %ld MELT errors",
-			 melt_string_str((melt_ptr_t) $MODNAMSTR), melt_error_counter) ;
-       }#)
+      (if (melt_error_counter)
+	  (if errorsarefatal
+	      (code_chunk erroredgener_fatalchk 
+			  #{ /* translate_macroexpanded_list $ERROREDGENER_FATALCHK */
+			  melt_fatal_error ("MELT translation of %s halted after generation: got %ld MELT errors", 
+					    melt_string_str((melt_ptr_t) $MODNAMSTR), melt_error_counter) ;
+			  }#)
+	    (progn
+	      (code_chunk erroredgener_warnchk 
+			  #{ /* translate_macroexpanded_list $ERROREDGENER_WARNCHK */
+			  warning (0, "MELT translation of %s got after generation %ld MELT errors",
+				      melt_string_str((melt_ptr_t) $MODNAMSTR), melt_error_counter) ;
+			  }#)
+	      (return))))
+      ;;
       ;;
 ;;;;; compile each procedure
       (assert_msg "check objlist" (is_list objlist))
@@ -5248,7 +5266,7 @@ if (1) return;
 	  (foreach_in_list
 	   (objlist)
 	   (pairel obel)
-	   (debug "compile_list_sexpr obel=" obel)
+	   (debug "translate_macroexpanded_list obel=" obel)
 	   ;; we do want to generate several C files...
 	   (let ( (:long filnum
 			 (if (is_a obel class_procroutineobj)
@@ -5260,14 +5278,15 @@ if (1) return;
 		  )
 	     (output_c_code obel declbuf outimplbuf 0)))
 ;;;
-	  (debug "compile_list_sexpr final modnamstr=" modnamstr " iniobj=" iniobj) 
+	  (debug "translate_macroexpanded_list final modnamstr=" modnamstr " iniobj=" iniobj) 
 	  (add2sbuf_indentnl implbuf 0)
 	  (add2sbuf_indentnl implbuf 0)
 ;;;;; emit the syntax generator
 	  (let ( (gendevtup (list_to_multiple  gendevlist discr_multiple))
 		 (:long nbgendev (multiple_length gendevtup))
 		 )
-	    (debug "compile_list_sexpr before emit_syntax_testing_routine gendevtup=" gendevtup " gendevlist=" gendevlist)
+	    (debug "translate_macroexpanded_list before emit_syntax_testing_routine gendevtup=" gendevtup
+		   " gendevlist=" gendevlist)
 	    (if nbgendev
 		(emit_syntax_testing_routine gendevtup modctx implbuf)
 	      (add2sbuf_strconst implbuf "/*no syntax testing generated*/")
@@ -5296,7 +5315,7 @@ if (1) return;
 		 (:long lgsecfiles (multiple_length secfiles))
 		 (:long hisecfilerk 0)
 		 )
-	    (debug "compile_list_sexpr secfiles=" secfiles)
+	    (debug "translate_macroexpanded_list secfiles=" secfiles)
 	    (foreach_in_multiple
 	     (secfiles)
 	     (curfil :long filix)
@@ -5388,6 +5407,8 @@ if (1) return;
 	    ))))))
   
 
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; compile a list of sexpressions as a module starting from a given environment
 (defun compile_list_sexpr (lsexp inienv modnamstr)
@@ -5441,7 +5462,7 @@ if (1) return;
 		      #{/* compile_list_sexpr $WARNSHORTCHK*/
 		      warning (0, "MELT expanded few (%d) expresssions", (int) $LENXLIST);
 		      }#))
-      (translate_macroexpanded_list xlist modnamstr modctx ncx inienv)
+      (translate_macroexpanded_list xlist modnamstr modctx ncx inienv 1)
    ))
 	;;
       (code_chunk 
@@ -5453,12 +5474,6 @@ if (1) return;
 	 }#)
   (message_dbg "ended compile_list_sexpr")
   )
-
-
-(defprimitive melt_argument (:cstring nam) :cstring
-  :doc #{Retrieve a MELT program argument as a string}#
-  #{melt_argument($NAM)}#)
-
 
 
 ;;;;;;;;;;;;;;;;
@@ -5596,7 +5611,6 @@ notice for file named $NAME.}#
  compile_list_sexpr
  generate_gplv3plus_copyright_notice_c_comment 
  get_code_buffer_limit
- melt_argument
  put_code_buffer_limit
  translate_to_c_one_or_more_melt_files
  )

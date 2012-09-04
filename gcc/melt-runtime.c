@@ -802,7 +802,7 @@ melt_check_call_frames_at (int noyoungflag, const char *msg,
     if (cfram->mcfr_closp != NULL && cfram->mcfr_nbvar >= 0) {
       if (noyoungflag && melt_is_young (cfram->mcfr_closp))
         fatal_error
-        ("bad frame <%s#%ld> unexpected young closure %p in frame %p at %s:%d",
+        ("bad MELT frame <%s#%ld> unexpected young closure %p in frame %p at %s:%d",
          msg, meltnbcheckcallframes,
          (void *) cfram->mcfr_closp, (void *) cfram, melt_basename (filenam),
          lineno);
@@ -812,7 +812,7 @@ melt_check_call_frames_at (int noyoungflag, const char *msg,
                         lineno);
       if (cfram->mcfr_closp->discr->meltobj_magic != MELTOBMAG_CLOSURE)
         fatal_error
-        ("bad frame <%s#%ld> invalid closure %p in frame %p at %s:%d",
+        ("bad MELT frame <%s#%ld> invalid closure %p in frame %p at %s:%d",
          msg, meltnbcheckcallframes,
          (void *) cfram->mcfr_closp, (void *) cfram, melt_basename (filenam),
          lineno);
@@ -822,7 +822,7 @@ melt_check_call_frames_at (int noyoungflag, const char *msg,
       if (noyoungflag && cfram->mcfr_varptr[varix] != NULL
           && melt_is_young (cfram->mcfr_varptr[varix]))
         fatal_error
-        ("bad frame <%s#%ld> unexpected young pointer %p in frame %p at %s:%d",
+        ("bad MELT frame <%s#%ld> unexpected young pointer %p in frame %p at %s:%d",
          msg, meltnbcheckcallframes, (void *) cfram->mcfr_varptr[varix],
          (void *) cfram, melt_basename (filenam), lineno);
 
@@ -1132,7 +1132,7 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
   struct meltspecial_st *specp = NULL;
   struct meltspecial_st *nextspecp = NULL;
   if (melt_prohibit_garbcoll)
-    fatal_error ("melt garbage collection prohibited");
+    fatal_error ("MELT garbage collection prohibited");
   melt_nb_garbcoll++;
   if (gckd == MELT_NEED_FULL) {
     melt_debuggc_eprintf ("melt_garbcoll explicitly needs full gckd#%d",
@@ -11932,16 +11932,26 @@ melt_fatal_info (const char*filename, int lineno)
   const char* workdir = NULL;
   int workdirlen = 0;
   melt_module_info_t* mi=0;
-  if (filename != NULL && lineno>0)
-    error ("MELT fatal failure from %s:%d [MELT built %s]", filename, lineno, melt_runtime_build_date);
+  if (filename != NULL && lineno>0) 
+    {
+      error ("MELT fatal failure from %s:%d [MELT built %s, version %s]", 
+	     filename, lineno, melt_runtime_build_date, melt_version_str ());
+      inform (UNKNOWN_LOCATION, 
+	      "MELT failed at %s:%d in directory %s", filename, lineno, 
+	      getpwd ());
+    }
   else
-    error ("MELT fatal failure without location [MELT built %s]",
-           melt_runtime_build_date);
-  error ("MELT failed at %s:%d in directory %s", filename, lineno, getpwd());
+    {
+      error ("MELT fatal failure without location [MELT built %s, version %s]",
+	     melt_runtime_build_date, melt_version_str ());
+      inform (UNKNOWN_LOCATION, 
+	      "MELT failed in directory %s", getpwd ());
+    }
   workdir = melt_argument("workdir");
   if (workdir && workdir[0]) {
     workdirlen = (int) strlen(workdir);
-    error ("MELT failed with work directory %s", workdir);
+    inform (UNKNOWN_LOCATION,
+	    "MELT failed with work directory %s", workdir);
   }
   fflush (NULL);
 #if MELT_HAVE_DEBUG
@@ -11955,21 +11965,26 @@ melt_fatal_info (const char*filename, int lineno)
           || mi->mmi_magic != MELT_MODULE_MAGIC)
         continue;
       if (workdirlen>0 && !strncmp (workdir, curmodpath, workdirlen))
-        error ("MELT failure with loaded work module #%d: %s",
-               ix, curmodpath+workdirlen);
+        inform (UNKNOWN_LOCATION,
+		"MELT failure with loaded work module #%d: %s",
+		ix, curmodpath+workdirlen);
       else
-        error ("MELT failure with loaded module #%d: %s",
-               ix, melt_basename (curmodpath));
+        inform (UNKNOWN_LOCATION,
+		"MELT failure with loaded module #%d: %s",
+		ix, melt_basename (curmodpath));
     };
   if (filename != NULL && lineno>0)
-    error ("MELT got fatal failure from %s:%d", filename, lineno);
+    inform (UNKNOWN_LOCATION,
+	    "MELT got fatal failure from %s:%d", filename, lineno);
   if (cfun && cfun->decl)
-    error ("MELT got fatal failure with current function (cfun %p) as %q+D",
-           (void*) cfun, cfun->decl);
+    inform (UNKNOWN_LOCATION,
+	    "MELT got fatal failure with current function (cfun %p) as %q+D",
+	    (void*) cfun, cfun->decl);
   if (current_pass)
-    error ("MELT got fatal failure from current_pass %p #%d named %s",
-           (void*) current_pass,
-           current_pass->static_pass_number, current_pass->name);
+    inform (UNKNOWN_LOCATION,
+	    "MELT got fatal failure from current_pass %p #%d named %s",
+	    (void*) current_pass,
+	    current_pass->static_pass_number, current_pass->name);
   fflush (NULL);
 }
 

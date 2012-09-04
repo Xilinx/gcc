@@ -36,8 +36,10 @@
 
 ;; primitive to ignore a value
 (defprimitive ignore (v) :void
-  :doc #{Ignore the value passed as argument. Useful to avoid translation warnings, or to force the type of a conditional. See $CTYPE_VOID.}#
-  #{/*ignore*/(void)($v)}#)  
+  :doc #{Ignore the value passed as argument.  Useful to avoid
+  translation warnings, or to force the type of a conditional. See
+  $CTYPE_VOID.}# 
+#{/*ignore*/(void)($V)}#)
 
 
 ;; primitive to return a void
@@ -3705,6 +3707,14 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
 
 
 
+(defprimitive melt_argument (:cstring nam) :cstring
+  :doc #{Retrieve a MELT program argument as a raw :cstring}#
+  #{melt_argument($NAM)}#)
+
+(defprimitive melt_error_counter () :long 
+  :doc #{Count the number of MELT errors.}#
+  #{melt_error_counter}#)
+
 ;;;;
 (defciterator block_signals
   ()
@@ -3860,6 +3870,8 @@ which signals are not handled. It could be dynamically nested.}#
  melt_application_count
  melt_application_depth
  melt_application_shallower
+ melt_argument
+ melt_error_counter
  melt_increment_dbgcounter
  melt_is_bootstrapping
  melt_mode_reference

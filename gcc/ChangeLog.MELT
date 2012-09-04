@@ -1,4 +1,21 @@
 
+2012-09-04  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-run.proto.h (melt_string_knows_length): Remove temporary
+	macro.
+
+	* melt-runtime.c (melt_check_call_frames_at, melt_garbcoll):
+	Improve error messages.
+	(melt_fatal_info): Informative messages are not errors but
+	notices.
+
+	* melt/warmelt-base.melt (melt_argument, melt_error_counter): Add
+	primitives.
+
+	* melt/warmelt-outobj.melt (melt_argument): Move above.
+	(translate_macroexpanded_list): Add errorsarefatal parameter flag.
+	(compile_list_sexpr): Give it.
+
 2012-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_string_length): Add cast.
 
