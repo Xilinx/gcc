@@ -1,6 +1,15 @@
 
 
 2012-09-04  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-outobj.melt (compile_list_sexpr): Improve error
+	message when inienv is null but not bootstrapping.
+	(read_melt_expressions): New internal function.
+	(translate_to_c_one_or_more_melt_files): Renamed as, and synonym
+	of ...
+	(translate_to_c_module_melt_sources): Use read_melt_expressions.
+
+2012-09-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt (translate_macroexpanded_list): Got a
 	new formal for the translation if the initial procedure.
 	(fatal_compile_error): New internal utility function.
