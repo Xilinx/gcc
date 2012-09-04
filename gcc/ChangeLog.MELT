@@ -1,6 +1,16 @@
 
 
 2012-09-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (normadeclb_macroexpanded_list): New
+	internal function.
+	(translate_macroexpanded_list): Move some code in above function,
+	and call that.
+
+	* Makefile.in (upgrade-warmelt): Use unifdef with
+	-DMELTGCC_NOLINENUMBERING so to remove #line directives in
+	melt/generated/ files.
+
+2012-09-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.
