@@ -1,4 +1,9 @@
 
+2012-09-05  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h (MELT_FLEXIBLE_DIM): ISO C++ dont have flexible
+	dimensions.
+
 2012-09-04  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.c (meltgc_run_c_extension): New incomplete function.
