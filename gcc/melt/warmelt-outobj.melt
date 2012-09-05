@@ -5110,6 +5110,7 @@ if (1) return;
 			  :sucme_comment '"at very start"
 			  ))
 	)
+    (debug "normadeclb_macroexpanded_list cheadlist=" cheadlist)
     (code_chunk startmodnam
 		#{ /* normadeclb_macroexpanded_list $STARTMODNAM */
 		#if HAVE_CLOCK
@@ -5181,6 +5182,7 @@ if (1) return;
 	  (cheadtup (list_to_multiple cheadlist discr_multiple))
 	  (:long nbchead (multiple_length cheadtup))
 	  )
+      (debug "normadeclb_macroexpanded_list cheadtup=" cheadtup "\n nbchead=" nbchead)
       (if (>i nbchead 0)
 	  (progn
 	    (add2sbuf_indentnl declbuf 0)
@@ -5219,7 +5221,7 @@ if (1) return;
     (list_every
      xlist
      (lambda (sexp :long ix)
-       (debug sexp "normadeclb_macroexpanded_list sexp=" sexp " ix=" ix)
+       (debug "normadeclb_macroexpanded_list sexp=" sexp " ix=" ix)
        (let (
 	     (psloc (if (is_a sexp class_located) (unsafe_get_field :loca_location sexp)))
 	     )

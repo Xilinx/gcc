@@ -2,6 +2,14 @@
 
 2012-09-05  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-normal.melt (normexp_cheader): More debug.
+
+	* melt/warmelt-outobj.melt (normadeclb_macroexpanded_list): More
+	debug.
+
+
+2012-09-05  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* testsuite/melt/tcheader.melt: Improve test, failing on svn rev
 	190968.
 
