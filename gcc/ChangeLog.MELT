@@ -1,6 +1,37 @@
 
 2012-09-05  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-run.proto.h (frame_start_this_module_melt_st): Temporary
+	disgusting hack.
+
+	* melt-runtime.c (melt_really_initialize): Deal correctly with
+	-fmelt-debugging=all on the MELT branch.
+
+	* melt/warmelt-macro.melt
+	(class_source_current_module_environment_container): Improve
+	comment.
+
+	* melt/warmelt-genobj.melt (class_initial_module_routineobj): New
+	class, field oirout_modulename moved inside.
+	(class_initial_extension_routineobj): New class.
+	(compile2obj_initproc): Make an instance of
+	class_initial_module_routineobj named melt_start_this_module, not
+	start_module_melt.
+	(compile2obj_initrunproc): Rename, so remove, as...
+	(compile2obj_initextendproc): Renamed incomplete function...
+
+	* melt/warmelt-outobj.melt: Add cheader, which probably don't work.
+	(outpucod_initialroutine):Rename as...
+	(outpucod_initialmoduleroutine): Install as method for
+	class_initial_module_routineobj.
+	(outpucod_initialextensionroutine): New unimplemented method for
+	class_initial_extension_routineobj.
+
+	* melt/xtramelt-ana-simple.melt (meltframe_gate): Look for
+	function named melt_start_this_module, not start_module_melt.
+
+2012-09-05  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.h (MELT_FLEXIBLE_DIM): ISO C++ dont have flexible
 	dimensions.
 

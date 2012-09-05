@@ -271,7 +271,7 @@
 	  ;; MELT generated routines start with meltrout_
 	  ( ?(tree_function_decl_named ?(cstring_prefixed "meltrout_") ?_)
 	     )
-	  ( ?(tree_function_decl_named ?(cstring_same "start_module_melt") ?_)
+	  ( ?(tree_function_decl_named ?(cstring_same "melt_start_this_module") ?_)
 	     )
 	  (?_
 	   (return)

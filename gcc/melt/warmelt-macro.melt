@@ -644,7 +644,7 @@ $EXIT loops. The field $SEXI_BODY is the body sequence.}#
 	   scwarn_expr))
 
 ;; the fresh current module environment box, returning the newly build
-;; module environment result of the generated start_module_melt
+;; module environment result of the generated initial routine
 (defclass class_source_current_module_environment_container
   :super class_source
   :fields (

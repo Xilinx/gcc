@@ -543,19 +543,33 @@
 	   oprout_filenum		;boxed C file number
 	   ))
 
-;; initial routine
+;; initial routine common super-class
 (defclass class_initialroutineobj
   :super class_routineobj
   :fields (
 	   oirout_data			;the tuple of initial data
 	   oirout_prolog       ;the prologue (list of instr) before filling the data. Imports should go here!
 	   oirout_fill			;the fill of the data (a list of instr)
+	   ))
+
+;; initial routine in modules
+(defclass class_initial_module_routineobj
+  :super class_initialroutineobj
+  :fields (
 	   oirout_modulename		;the module name
+	   ))
+
+;; initial routine in extensions
+(defclass class_initial_extension_routineobj
+  :super class_initialroutineobj
+  :fields (
 	   ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; export the above classes
 (export_class				;alphabetical order
+ class_initial_extension_routineobj
+ class_initial_module_routineobj
  class_initialroutineobj
  class_objagain
  class_objapply
@@ -1117,8 +1131,8 @@ $SBUF.}#
 	(oiniprolog (make_list discr_list))
 	(oinibody (make_list discr_list))
 	(oinitrout
-	 (instance class_initialroutineobj
-		   :named_name '"start_module_melt"
+	 (instance class_initial_module_routineobj
+		   :named_name '"melt_start_this_module"
 		   :obrout_proc ipro
 		   :obrout_body oinibody
 		   :obrout_nbval (make_integerbox discr_integer 0)
@@ -1414,25 +1428,25 @@ $SBUF.}#
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun compile2obj_initrunproc (ipro modctx idata compicache procurmodenvlist importvalues)
-  (debug "compile2obj_initrunproc ipro=" ipro 
+(defun compile2obj_initextendproc (ipro modctx idata compicache procurmodenvlist importvalues)
+  (debug "compile2obj_initextendproc ipro=" ipro 
 	 "\n* modctx=" modctx "\n* compicache=" compicache
 	 "\n* procurmodenvlist=" procurmodenvlist 
 	 "\n* importvalues=" importvalues
 	 "\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n"
 	 )
-  (assert_msg "check ipro" (is_a ipro class_nrep_initproc))
+  (assert_msg "check ipro" (is_a ipro class_nrep_initextendproc))
   (assert_msg "check idata" (is_list idata))
   (assert_msg "check modctx" (is_a modctx class_module_context))
   (assert_msg "check compicache" (is_mapobject compicache))
   (assert_msg "check importvalues" (is_list importvalues))
-  (assert_msg "@$@compile2obj_initrunproc unimplemented")
+  (assert_msg "@$@compile2obj_initextendproc unimplemented")
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values 
  compile2obj_initproc
- compile2obj_initrunproc
+ compile2obj_initextendproc
  compile2obj_procedure
  variadic_index_idstr
  variadic_length_idstr

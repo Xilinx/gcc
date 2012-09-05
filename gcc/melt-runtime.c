@@ -10051,7 +10051,8 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   errno = 0;
   if (gettimeofday (&melt_start_time, NULL))
     melt_fatal_error ("MELT cannot call gettimeofday for melt_start_time (%s)", xstrerror(errno));
-  debugeprintf ("melt_really_initialize melt_start_time=%ld", (long) melt_start_time.tv_sec);
+  debugeprintf ("melt_really_initialize melt_start_time=%ld",
+		(long) melt_start_time.tv_sec);
  
 #ifdef MELT_IS_PLUGIN
   /* when MELT is a plugin, we need to process the debug
@@ -10111,22 +10112,23 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
       melt_flag_generate_work_link = 1;
   }
 #else /*!MELT_IS_PLUGIN*/
-  if (melt_flag_debug) {	/* for the MELT branch */
+  {	/* for the MELT branch */
     const char* debuggingstr = melt_argument ("debugging");
     if (debuggingstr && !strcasecmp(debuggingstr, "mode")) 
       {
 	/* We forcibly clear the melt_flag_debug, which will be set
 	   in meltgc_do_initial_mode. */
+	inform (UNKNOWN_LOCATION, 
+		"MELT branch will give debugging messages after mode processing");
 	melt_flag_debug = 0;
 	melt_debugging_after_mode = 1;
-	inform (UNKNOWN_LOCATION, "MELT branch will give debugging messages after mode processing");
       }
-    if (!debuggingstr) {
-      inform (UNKNOWN_LOCATION,
-              "MELT branch option -fmelt-debug will become obsolete, same as -fmelt-debugging=mode");
-      melt_flag_debug = 0;
-      melt_debugging_after_mode = 1;
-    }
+    else if (debuggingstr && !strcasecmp(debuggingstr, "all"))
+      {
+	melt_flag_debug = 1;
+	inform (UNKNOWN_LOCATION, 
+		"MELT branch giving all debugging messages");
+      }
   }
 #endif  /* MELT_IS_PLUGIN */
 

@@ -31,6 +31,15 @@
 ;;    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+;; temporary disgusting hack, because the :named_name of the module
+;; init routine has changed
+
+(cheader #{
+#define frame_start_module_melt_st frame_melt_start_this_module_st
+#define frame_start_this_module_melt_st frame_melt_start_this_module_st
+#warning shameful disgusting hack to remove in warmelt-outobj
+}#)
+
 ;; the limit for our [generated C code] implementation and declaration
 ;; buffer length. The biggest file is often one of
 ;; melt-stage2/warmelt*c or one of melt-sources/xtramelt*c. 9Mbytes is
@@ -1684,9 +1693,10 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; output code for the initial routine
-(defun outpucod_initialroutine (pini declbuf implbuf :long depth)
-  (assert_msg "check pini" (is_a pini class_initialroutineobj))
+;; output code for the initial module routine
+(defun outpucod_initialmoduleroutine (pini declbuf implbuf :long depth)
+  (debug "outpucod_initialmoduleroutine start pini=" pini)
+  (assert_msg "check pini" (is_a pini class_initial_module_routineobj))
   (let ( 
 	(idatup (unsafe_get_field :oirout_data pini)) 
 	(irfill (unsafe_get_field :oirout_fill pini))
@@ -1896,7 +1906,7 @@ MELT_EXTERN  void* melt_start_this_module (void*);
 	     )
 	;; declare each chunk and call it
 	(add2sbuf_indentnl declbuf 0)
-	(add2sbuf_strconst declbuf "struct frame_start_module_melt_st;")
+	(add2sbuf_strconst declbuf "struct frame_start_this_module_melt_st;")
 	(foreach_in_multiple
 	 (chunktup)
 	 (curchunk :long chunkix)
@@ -1905,7 +1915,7 @@ MELT_EXTERN  void* melt_start_this_module (void*);
 	 (add2sbuf_cident declbuf omodnam)
 	 (add2sbuf_strconst declbuf "__initialmeltchunk_")
 	 (add2sbuf_longdec declbuf chunkix)
-	 (add2sbuf_strconst declbuf " (struct frame_start_module_melt_st*, char*);")
+	 (add2sbuf_strconst declbuf " (struct frame_start_this_module_melt_st*, char*);")
 	 (add2sbuf_indentnl implbuf 1)
 	 (add2sbuf_strconst implbuf "meltmod__")
 	 (add2sbuf_cident implbuf omodnam)
@@ -1946,7 +1956,7 @@ MELT_EXTERN  void* melt_start_this_module (void*);
 	(add2sbuf_strconst implbuf "#undef MELTFRAM_NBVARPTR")
 	(add2sbuf_indentnl implbuf 0)
 	(add2sbuf_indentnl implbuf 0)
-	(add2sbuf_strconst implbuf "} /* end start_module_melt */")
+	(add2sbuf_strconst implbuf "} /* end  */")
 	(add2sbuf_indentnl implbuf 0)
 	;; output the implementation of each chunk
 	(foreach_in_multiple
@@ -1957,7 +1967,7 @@ MELT_EXTERN  void* melt_start_this_module (void*);
 	 (add2sbuf_cident implbuf omodnam)
 	 (add2sbuf_strconst implbuf "__initialmeltchunk_")
 	 (add2sbuf_longdec implbuf chunkix)
-	 (add2sbuf_strconst implbuf " (struct frame_start_module_melt_st* meltmeltframptr__, char meltpredefinited[]) {")
+	 (add2sbuf_strconst implbuf " (struct frame_start_this_module_melt_st* meltmeltframptr__, char meltpredefinited[]) {")
 	 (add2sbuf_indentnl implbuf 0)
 	 (add2sbuf_strconst implbuf "#define meltfram__ (*meltmeltframptr__)")
 	 (add2sbuf_indentnl implbuf 0)
@@ -2040,9 +2050,19 @@ MELT_EXTERN  void* melt_start_this_module (void*);
     (assert_msg "check limited declbuf" 
 		(<i (strbuf_usedlength declbuf) (get_int !buffer_limit_cont)))
     ))
-(install_method class_initialroutineobj output_c_code outpucod_initialroutine)
+(install_method class_initial_module_routineobj output_c_code outpucod_initialmoduleroutine)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
+;;; output extension initial routine
+(defun outpucod_initialextensionroutine  (pini declbuf implbuf :long depth)
+  (assert_msg "check pini" (is_a pini class_initial_extension_routineobj))
+  (debug "outpucod_initialextensionroutine start pini=" pini)
+  (assert_msg "@$@unimplemented outpucod_initialextensionroutine")
+)
+(install_method class_initial_extension_routineobj output_c_code outpucod_initialextensionroutine)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; output code for argument getter
 (defun outpucod_getarg (garg declbuf implbuf :long depth)
@@ -5685,7 +5705,7 @@ if (1) return;
 	  (runerrorhdlr '"runtime macroexpansion failed")
 	  (return () ()))
 	;; translate to C code
-	(translate_macroexpanded_list xlist nakedbasnam modctx ncx env compile2obj_initrunproc)
+	(translate_macroexpanded_list xlist nakedbasnam modctx ncx env compile2obj_initextendproc)
 	(when  (or (notnull !referr) (>i (melt_error_counter) starterrcount))
 	  (runerrorhdlr '"runtime translation to code failed")
 	  (return () ()))
