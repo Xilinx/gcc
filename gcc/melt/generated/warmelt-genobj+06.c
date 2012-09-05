@@ -4,7 +4,7 @@
 
 
 /* used hash from melt-run.h when compiling this file: */
-const char used_meltrun_md5_melt_f6[] =
+MELT_EXTERN const char meltrun_used_md5_melt_f6[] =
   MELT_RUN_HASHMD5 /* from melt-run.h */ ;
 
 
@@ -2872,162 +2872,162 @@ MELT_EXTERN const char meltmodule_warmelt_genobj__melt_have_debug_disabled[];
 #endif /*!MELT_HAVE_DEBUG */
 
 
-struct frame_start_this_module_melt_st;
+struct frame_melt_start_this_module_st;
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_0 (struct
-					     frame_start_this_module_melt_st
+					     frame_melt_start_this_module_st
 					     *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_1 (struct
-					     frame_start_this_module_melt_st
+					     frame_melt_start_this_module_st
 					     *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_2 (struct
-					     frame_start_this_module_melt_st
+					     frame_melt_start_this_module_st
 					     *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_3 (struct
-					     frame_start_this_module_melt_st
+					     frame_melt_start_this_module_st
 					     *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_4 (struct
-					     frame_start_this_module_melt_st
+					     frame_melt_start_this_module_st
 					     *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_5 (struct
-					     frame_start_this_module_melt_st
+					     frame_melt_start_this_module_st
 					     *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_6 (struct
-					     frame_start_this_module_melt_st
+					     frame_melt_start_this_module_st
 					     *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_7 (struct
-					     frame_start_this_module_melt_st
+					     frame_melt_start_this_module_st
 					     *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_8 (struct
-					     frame_start_this_module_melt_st
+					     frame_melt_start_this_module_st
 					     *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_9 (struct
-					     frame_start_this_module_melt_st
+					     frame_melt_start_this_module_st
 					     *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_10 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_11 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_12 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_13 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_14 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_15 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_16 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_17 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_18 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_19 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_20 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_21 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_22 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_23 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_24 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_25 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_26 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_27 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_28 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_29 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_30 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_31 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_32 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_33 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_34 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_35 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_36 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_37 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__initialmeltchunk_38 (struct
-					      frame_start_this_module_melt_st
+					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_genobj__forward_or_mark_module_start_frame (struct
@@ -3113,7 +3113,7 @@ meltrout_185_warmelt_genobj_LAMBDA___56__ (meltclosure_ptr_t meltclosp_,
 /*getargs*/
 
   /*getarg#0 */
-  MELT_LOCATION ("warmelt-genobj.melt:6471:/ getarg");
+  MELT_LOCATION ("warmelt-genobj.melt:6476:/ getarg");
  /*_.THEIN__V2*/ meltfptr[1] = (melt_ptr_t) meltfirstargp_;
   ;
   goto lab_endgetargs;
@@ -3123,7 +3123,7 @@ lab_endgetargs:;
 /*anyblock*/
   {
 
-    MELT_LOCATION ("warmelt-genobj.melt:6472:/ checksignal");
+    MELT_LOCATION ("warmelt-genobj.melt:6477:/ checksignal");
     MELT_CHECK_SIGNAL ();
     ;
     /*^msend */
@@ -3141,13 +3141,13 @@ lab_endgetargs:;
 		     (union meltparam_un *) 0);
     }
     ;
-    MELT_LOCATION ("warmelt-genobj.melt:6471:/ quasiblock");
+    MELT_LOCATION ("warmelt-genobj.melt:6476:/ quasiblock");
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.COMPILE_OBJ__V3*/ meltfptr[2];;
 
     {
-      MELT_LOCATION ("warmelt-genobj.melt:6471:/ locexp");
+      MELT_LOCATION ("warmelt-genobj.melt:6476:/ locexp");
       /*ochecknores compilobj_nrep_return */
 #if MELT_HAVE_DEBUG
       if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)
@@ -3256,7 +3256,7 @@ meltrout_186_warmelt_genobj_LAMBDA___57__ (meltclosure_ptr_t meltclosp_,
 /*getargs*/
 
   /*getarg#0 */
-  MELT_LOCATION ("warmelt-genobj.melt:6476:/ getarg");
+  MELT_LOCATION ("warmelt-genobj.melt:6481:/ getarg");
  /*_.THEOUT__V2*/ meltfptr[1] = (melt_ptr_t) meltfirstargp_;
   ;
   goto lab_endgetargs;
@@ -3266,7 +3266,7 @@ lab_endgetargs:;
 /*anyblock*/
   {
 
-    MELT_LOCATION ("warmelt-genobj.melt:6477:/ checksignal");
+    MELT_LOCATION ("warmelt-genobj.melt:6482:/ checksignal");
     MELT_CHECK_SIGNAL ();
     ;
     /*^msend */
@@ -3284,13 +3284,13 @@ lab_endgetargs:;
 		     (union meltparam_un *) 0);
     }
     ;
-    MELT_LOCATION ("warmelt-genobj.melt:6476:/ quasiblock");
+    MELT_LOCATION ("warmelt-genobj.melt:6481:/ quasiblock");
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.COMPILE_OBJ__V3*/ meltfptr[2];;
 
     {
-      MELT_LOCATION ("warmelt-genobj.melt:6476:/ locexp");
+      MELT_LOCATION ("warmelt-genobj.melt:6481:/ locexp");
       /*ochecknores compilobj_nrep_return */
 #if MELT_HAVE_DEBUG
       if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)

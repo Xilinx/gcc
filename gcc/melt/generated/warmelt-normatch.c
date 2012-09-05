@@ -5,7 +5,8 @@
 
 
 /* used hash from melt-run.h when compiling this file: */
-const char used_meltrun_md5_melt[] = MELT_RUN_HASHMD5 /* from melt-run.h */ ;
+MELT_EXTERN const char meltrun_used_md5_melt[] =
+  MELT_RUN_HASHMD5 /* from melt-run.h */ ;
 
 
 /**** warmelt-normatch declarations ****/
@@ -2206,126 +2207,126 @@ MELT_EXTERN const char
 #endif /*!MELT_HAVE_DEBUG */
 
 
-struct frame_start_this_module_melt_st;
+struct frame_melt_start_this_module_st;
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_0 (struct
-					       frame_start_this_module_melt_st
+					       frame_melt_start_this_module_st
 					       *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_1 (struct
-					       frame_start_this_module_melt_st
+					       frame_melt_start_this_module_st
 					       *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_2 (struct
-					       frame_start_this_module_melt_st
+					       frame_melt_start_this_module_st
 					       *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_3 (struct
-					       frame_start_this_module_melt_st
+					       frame_melt_start_this_module_st
 					       *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_4 (struct
-					       frame_start_this_module_melt_st
+					       frame_melt_start_this_module_st
 					       *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_5 (struct
-					       frame_start_this_module_melt_st
+					       frame_melt_start_this_module_st
 					       *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_6 (struct
-					       frame_start_this_module_melt_st
+					       frame_melt_start_this_module_st
 					       *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_7 (struct
-					       frame_start_this_module_melt_st
+					       frame_melt_start_this_module_st
 					       *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_8 (struct
-					       frame_start_this_module_melt_st
+					       frame_melt_start_this_module_st
 					       *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_9 (struct
-					       frame_start_this_module_melt_st
+					       frame_melt_start_this_module_st
 					       *, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_10 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_11 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_12 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_13 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_14 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_15 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_16 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_17 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_18 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_19 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_20 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_21 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_22 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_23 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_24 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_25 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_26 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_27 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_28 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__initialmeltchunk_29 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*, char *);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__forward_or_mark_module_start_frame (struct
@@ -30862,7 +30863,7 @@ labend_rout:;
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_0 (struct
-					       frame_start_this_module_melt_st
+					       frame_melt_start_this_module_st
 					       *meltmeltframptr__,
 					       char meltpredefinited[])
 {
@@ -32328,7 +32329,7 @@ meltmod__warmelt_normatch__initialmeltchunk_0 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_1 (struct
-					       frame_start_this_module_melt_st
+					       frame_melt_start_this_module_st
 					       *meltmeltframptr__,
 					       char meltpredefinited[])
 {
@@ -33788,7 +33789,7 @@ meltmod__warmelt_normatch__initialmeltchunk_1 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_2 (struct
-					       frame_start_this_module_melt_st
+					       frame_melt_start_this_module_st
 					       *meltmeltframptr__,
 					       char meltpredefinited[])
 {
@@ -35433,7 +35434,7 @@ meltmod__warmelt_normatch__initialmeltchunk_2 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_3 (struct
-					       frame_start_this_module_melt_st
+					       frame_melt_start_this_module_st
 					       *meltmeltframptr__,
 					       char meltpredefinited[])
 {
@@ -37129,7 +37130,7 @@ meltmod__warmelt_normatch__initialmeltchunk_3 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_4 (struct
-					       frame_start_this_module_melt_st
+					       frame_melt_start_this_module_st
 					       *meltmeltframptr__,
 					       char meltpredefinited[])
 {
@@ -38841,7 +38842,7 @@ meltmod__warmelt_normatch__initialmeltchunk_4 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_5 (struct
-					       frame_start_this_module_melt_st
+					       frame_melt_start_this_module_st
 					       *meltmeltframptr__,
 					       char meltpredefinited[])
 {
@@ -40306,7 +40307,7 @@ meltmod__warmelt_normatch__initialmeltchunk_5 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_6 (struct
-					       frame_start_this_module_melt_st
+					       frame_melt_start_this_module_st
 					       *meltmeltframptr__,
 					       char meltpredefinited[])
 {
@@ -41855,7 +41856,7 @@ meltmod__warmelt_normatch__initialmeltchunk_6 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_7 (struct
-					       frame_start_this_module_melt_st
+					       frame_melt_start_this_module_st
 					       *meltmeltframptr__,
 					       char meltpredefinited[])
 {
@@ -43482,7 +43483,7 @@ meltmod__warmelt_normatch__initialmeltchunk_7 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_8 (struct
-					       frame_start_this_module_melt_st
+					       frame_melt_start_this_module_st
 					       *meltmeltframptr__,
 					       char meltpredefinited[])
 {
@@ -44916,7 +44917,7 @@ meltmod__warmelt_normatch__initialmeltchunk_8 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_9 (struct
-					       frame_start_this_module_melt_st
+					       frame_melt_start_this_module_st
 					       *meltmeltframptr__,
 					       char meltpredefinited[])
 {
@@ -46472,7 +46473,7 @@ meltmod__warmelt_normatch__initialmeltchunk_9 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_10 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*meltmeltframptr__,
 						char meltpredefinited[])
 {
@@ -48040,7 +48041,7 @@ meltmod__warmelt_normatch__initialmeltchunk_10 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_11 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*meltmeltframptr__,
 						char meltpredefinited[])
 {
@@ -49693,7 +49694,7 @@ meltmod__warmelt_normatch__initialmeltchunk_11 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_12 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*meltmeltframptr__,
 						char meltpredefinited[])
 {
@@ -51417,7 +51418,7 @@ meltmod__warmelt_normatch__initialmeltchunk_12 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_13 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*meltmeltframptr__,
 						char meltpredefinited[])
 {
@@ -53140,7 +53141,7 @@ meltmod__warmelt_normatch__initialmeltchunk_13 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_14 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*meltmeltframptr__,
 						char meltpredefinited[])
 {
@@ -54831,7 +54832,7 @@ meltmod__warmelt_normatch__initialmeltchunk_14 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_15 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*meltmeltframptr__,
 						char meltpredefinited[])
 {
@@ -56410,7 +56411,7 @@ meltmod__warmelt_normatch__initialmeltchunk_15 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_16 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*meltmeltframptr__,
 						char meltpredefinited[])
 {
@@ -57813,7 +57814,7 @@ meltmod__warmelt_normatch__initialmeltchunk_16 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_17 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*meltmeltframptr__,
 						char meltpredefinited[])
 {
@@ -59176,7 +59177,7 @@ meltmod__warmelt_normatch__initialmeltchunk_17 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_18 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*meltmeltframptr__,
 						char meltpredefinited[])
 {
@@ -60745,7 +60746,7 @@ meltmod__warmelt_normatch__initialmeltchunk_18 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_19 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*meltmeltframptr__,
 						char meltpredefinited[])
 {
@@ -62233,7 +62234,7 @@ meltmod__warmelt_normatch__initialmeltchunk_19 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_20 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*meltmeltframptr__,
 						char meltpredefinited[])
 {
@@ -63898,7 +63899,7 @@ meltmod__warmelt_normatch__initialmeltchunk_20 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_21 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*meltmeltframptr__,
 						char meltpredefinited[])
 {
@@ -65585,7 +65586,7 @@ meltmod__warmelt_normatch__initialmeltchunk_21 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_22 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*meltmeltframptr__,
 						char meltpredefinited[])
 {
@@ -67069,7 +67070,7 @@ meltmod__warmelt_normatch__initialmeltchunk_22 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_23 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*meltmeltframptr__,
 						char meltpredefinited[])
 {
@@ -68571,7 +68572,7 @@ meltmod__warmelt_normatch__initialmeltchunk_23 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_24 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*meltmeltframptr__,
 						char meltpredefinited[])
 {
@@ -70152,7 +70153,7 @@ meltmod__warmelt_normatch__initialmeltchunk_24 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_25 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*meltmeltframptr__,
 						char meltpredefinited[])
 {
@@ -71770,7 +71771,7 @@ meltmod__warmelt_normatch__initialmeltchunk_25 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_26 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*meltmeltframptr__,
 						char meltpredefinited[])
 {
@@ -73852,7 +73853,7 @@ meltmod__warmelt_normatch__initialmeltchunk_26 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_27 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*meltmeltframptr__,
 						char meltpredefinited[])
 {
@@ -79244,7 +79245,7 @@ meltmod__warmelt_normatch__initialmeltchunk_27 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_28 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*meltmeltframptr__,
 						char meltpredefinited[])
 {
@@ -79770,7 +79771,7 @@ meltmod__warmelt_normatch__initialmeltchunk_28 (struct
 
 void
 meltmod__warmelt_normatch__initialmeltchunk_29 (struct
-						frame_start_this_module_melt_st
+						frame_melt_start_this_module_st
 						*meltmeltframptr__,
 						char meltpredefinited[])
 {
