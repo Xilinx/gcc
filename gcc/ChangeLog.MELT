@@ -2,6 +2,11 @@
 
 2012-09-05  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* testsuite/melt/tcheader.melt: Improve test, failing on svn rev
+	190968.
+
+2012-09-05  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-run.proto.h (frame_start_this_module_melt_st): Remove
 	temporary disgusting hack.
 

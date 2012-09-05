@@ -4,11 +4,31 @@
 
 #| run in buildir/gcc
  ln -s $GCCMELT_SOURCE/gcc/testsuite/melt/tcheader.melt 
- ./cc1 -fmelt-mode=runfile  -fmelt-module-path=melt-stage3:melt-modules \
-    -fmelt-source-path=melt-stage3:melt-sources \
-    -fmelt-tempdir=/tmp -fmelt-init=@warmelt -fmelt-workdir=melt-workdir \
+ ./cc1 -fmelt-mode=runfile  -fmelt-module-path=meltbuild-stage3:meltbuild-modules \
+    -fmelt-source-path=meltbuild-stage3:meltbuild-sources \
+    -fmelt-module-makefile=$GCCMELT_SOURCE/gcc/melt-module.mk \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt -fmelt-workdir=meltbuild-workdir \
     -fmelt-arg=tcheader.melt \
     -fmelt-debug empty-file-for-melt.c
 |#
-(cheader #{#warning we have a cheader.here}#)
+(cheader #{
+#warning we have a cheader.here
+#define BASILE_EMAIL "basile@starynkevitch.net"
+}#)
+
+(defun basile_email_str (void) 
+  (let ( (res ())
+	 )
+    (code_chunk chunk #{
+#ifdef BASILE_EMAIL
+      $RES = meltgc_new_string ((meltobject_ptr_t) $DISCR_STRING, 
+				BASILE_EMAIL);
+#else
+#error BASILE_EMAIL undefined
+#endif
+   }#)
+   res))
+
+(debug "Basile's email=" (basile_email_str))
+
 ;;eof tcheader.melt
