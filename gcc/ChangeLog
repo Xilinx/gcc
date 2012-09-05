@@ -1,3 +1,287 @@
+2012-09-04  Teresa Johnson  <tejohnson@google.com>
+
+	* gcov-io.c (gcov_write_summary): Write out non-zero histogram
+	entries to function summary along with an occupancy bit vector.
+	(gcov_read_summary): Read in the histogram entries.
+	(gcov_histo_index): New function.
+	(void gcov_histogram_merge): Ditto.
+	* gcov-io.h (gcov_type_unsigned): New type.
+	(struct gcov_bucket_type): Ditto.
+	(struct gcov_ctr_summary): Include histogram.
+	(GCOV_TAG_SUMMARY_LENGTH): Update to include histogram entries.
+	(GCOV_HISTOGRAM_SIZE): New macro.
+	(GCOV_HISTOGRAM_BITVECTOR_SIZE): Ditto.
+	* profile.c (NUM_GCOV_WORKING_SETS): Ditto.
+	(gcov_working_sets): New global variable.
+	(compute_working_sets): New function.
+	(find_working_set): Ditto.
+	(get_exec_counts): Invoke compute_working_sets.
+	* coverage.c (read_counts_file): Merge histograms, and
+	fix bug with accessing summary info for non-summable counters.
+	* basic-block.h (gcov_type_unsigned): New type.
+	(struct gcov_working_set_info): Ditto.
+	(find_working_set): Declare.
+	* gcov-dump.c (tag_summary): Dump out histogram.
+
+2012-09-04  Diego Novillo  <dnovillo@google.com>
+
+	PR bootstrap/54484
+	* vec.h (vec_t::embedded_init): Move default argument value
+	to function declaration.
+
+2012-09-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* bb-reorder.c (gate_handle_reorder_blocks): Move around.
+	(rest_of_handle_reorder_blocks): Likewise.
+	(pass_reorder_blocks): Likewise.
+	(gate_handle_partition_blocks): Likewise.
+
+2012-09-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR rtl-optimization/54456
+	* sched-rgn.c (gate_handle_sched): Return 1 only if optimize > 0.
+
+2012-09-04  Diego Novillo  <dnovillo@google.com>
+
+	PR bootstrap/54478
+	* vec.h (vec_t::alloc): Remove explicit type specification
+	in call to reserve.
+	(vec_t::copy): Likewise.
+	(vec_t::reserve): Likewise.
+	(vec_t::reserve_exact): Likewise.
+	(vec_t::safe_splice): Likewise.
+	(vec_t::safe_push): Likewise.
+	(vec_t::safe_grow): Likewise.
+	(vec_t::safe_grow_cleared): Likewise.
+	(vec_t::safe_insert): Likewise.
+
+2012-09-04  Richard Henderson  <rth@redhat.com>
+
+	* alias.c (read_dependence): Return true for ALIAS_SET_MEMORY_BARRIER.
+
+2012-09-04  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-pre.c (value_expressions): Make it a vector of
+	bitmaps containing expression IDs.
+	(add_to_value): Adjust.
+	(sorted_array_from_bitmap_set): Likewise.
+	(bitmap_set_replace_value): Likewise.
+	(print_value_expressions): Likewise.
+	(get_constant_for_value_id): Likewise.
+	(get_representative_for): Likewise.
+	(phi_translate_1): Likewise.
+	(bitmap_find_leader): Likewise.
+	(find_or_generate_expression): Likewise.
+	(do_regular_insertion): Likewise.
+	(init_pre): Likewise.
+	(fini_pre): Likewise.
+
+2012-09-04   Diego Novillo  <dnovillo@google.com>
+
+	PR bootstrap/54479
+	* vec.h (vec_t::copy): Add cast in call to reserve_exact.
+
+2012-09-04  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-pre.c (add_to_exp_gen): Adjust.
+	(make_values_for_phi): Do not add to PHI_GEN for FRE.
+	(compute_avail): Stop processing after adding all defs to
+	AVAIL_OUT for FRE.
+	(init_pre): Do not allocate not needed bitmap sets for FRE.
+
+2012-09-04   Diego Novillo  <dnovillo@google.com>
+
+	Rewrite VEC_* functions as member functions of vec_t.
+
+	* vec.h: Update documentation.
+	(ALONE_VEC_CHECK_INFO): Define.
+	(ALONE_VEC_CHECK_DECL): Define.
+	(ALONE_VEC_CHECK_PASS): Define.
+	(struct vec_prefix): Rename field NUM to NUM_.
+	Rename field ALLOC to ALLOC_.
+	Update all users.
+	(struct vec_t): Rename field PREFIX to PREFIX_.
+	Rename field VEC to VEC_.
+	Update all users.
+	(vec_t::length): Rename from VEC_length_1.  Update all users.
+	(vec_t::empty): Rename from VEC_empty_1.  Update all users.
+	(vec_t::address): Rename from VEC_address_1.  Update all users.
+	(vec_address): New.
+	(vec_t::last): Rename from VEC_last_1.  Update all users.
+	(vec_t::operator[]): Rename from VEC_index_1.  Update all users.
+	(vec_t::iterate): Rename from VEC_iterate_1.  Update all users.
+	(vec_t::embedded_size): Rename from VEC_embedded_size_1.
+	Update all users.
+	(vec_t::embedded_init): Rename from VEC_embedded_init_1.
+	Update all users.
+	(vec_t::alloc): Rename from VEC_alloc_1.  Update all users.
+	(vec_t::free): Rename from VEC_free_1.  Update all users.
+	(vec_t::copy): Rename from VEC_copy_1.  Update all users.
+	(vec_t::space): Rename from VEC_space_1.  Update all users.
+	(vec_t::reserve): Rename from VEC_reserve_1.  Update all users.
+	(vec_t::reserve_exact): Rename from VEC_reserve_exact_1.
+	Update all users.
+	(vec_t::splice): Rename from VEC_splice_1.  Update all users.
+	(vec_t::safe_splice): Rename from VEC_safe_splice_1.  Update all users.
+	(vec_t::quick_push): Rename from VEC_quick_push_1.  Update all users.
+	(vec_t::safe_push): Rename from VEC_safe_push_1.  Update all users.
+	(vec_t::pop): Rename from VEC_pop_1.  Update all users.
+	(vec_t::truncate): Rename from VEC_truncate_1.  Update all users.
+	(vec_t::safe_grow): Rename from VEC_safe_grow_1.  Update all users.
+	(vec_t::safe_grow_cleared): Rename from VEC_safe_grow_cleared_1.
+	Update all users.
+	(vec_t::replace): Rename from VEC_replace_1.  Update all users.
+	(vec_t::quick_insert): Rename from VEC_quick_insert_1.
+	Update all users.
+	(vec_t::safe_insert): Rename from VEC_safe_insert_1.  Update all users.
+	(vec_t::ordered_remove): Rename from VEC_ordered_remove_1.
+	Update all users.
+	(vec_t::unordered_remove): Rename from VEC_unordered_remove_1.
+	Update all users.
+	(vec_t::block_remove): Rename from VEC_block_remove_1. Update all users.
+	(vec_t::lower_bound): Rename from VEC_lower_bound_1. Update all users.
+
+2012-09-04  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* gimple.h (gimple_build_switch): Remove.
+	(gimple_build_switch_vec): Promote to the new gimple_build_switch.
+	(gimple_switch_default_label): Assert the default case label is
+	really a default case label.
+	(gimple_switch_set_default_label): Likewise.
+	* gimple.c (gimple_build_switch_nlabels): Make sure a default label
+	is passed in, and simplify accordingly.
+	(gimple_build_switch): Removed.
+	(gimple_build_switch_vec): Rename to gimple_build_switch.
+	* gimplify.c (gimplify_switch_expr): Update gimple_build_switch use.
+	* gimple-pretty-print.c (dump_gimple_switch): Do not accept a NULL
+	case label.
+	* stmt.c (expand_case): Simplify using the fact that every GIMPLE
+	switch must have a default case.
+	* tree-cfg.c (group_case_labels_stmt): Likewise.
+	(verify_gimple_switch): Use gimple_switch_label in verifier to get
+	the label at index 0, and verify that it is a valid default case.
+	* except.c (sjlj_emit_dispatch_table): Rewrite construction of the
+	switch for dispatching.
+	* tree-eh.c (lower_try_finally_switch): Update gimple_build_switch use.
+	(lower_eh_dispatch): Likewise.
+	* tree-vrp.c (execute_vrp): Use gimple_switch_label to get the case
+	label at index 0 before turning it into a default case label.
+	* omp-low.c (expand_omp_sections): Update gimple_build_switch use.
+	* tree-switch-conversion.c (emit_case_bit_tests): Get the default case
+	label using gimple_switch_default_label.
+	(collect_switch_conv_info): Likewise.
+	(process_switch): Likewise.
+	* doc/gimple.texi: Update documentation of gimple_build_switch.
+
+2012-09-04  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/54476
+	* config/avr/avr.c (avr_expand_delay_cycles): Mask operand with
+	SImode.
+
+2012-09-04  Bin Cheng  <bin.cheng@arm.com>
+
+	PR target/45070
+	* config/arm/arm.c (thumb1_extra_regs_pushed): Handle return value of size
+	less than 4 bytes by using macro ARM_NUM_INTS.
+	(thumb1_unexpanded_epilogue): Use macro ARM_NUM_INTS.
+
+2012-09-04  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/54458
+	* tree-ssa-threadupdate.c (thread_through_loop_header): If we
+	turn the loop into one with multiple latches mark it so.
+
+2012-09-04  Senthil Kumar Selvaraj  <senthil_kumar.selvaraj@atmel.com>
+
+	PR target/54220
+	* config/avr/avr.c (TARGET_ALLOCATE_STACK_SLOTS_FOR_ARGS): New
+	define to...
+	(avr_allocate_stack_slots_for_args): ...this new static function.
+
+2012-09-04  Christophe Lyon  <christophe.lyon@linaro.org>
+
+	* config/arm/arm.c (arm_expand_builtin): Replace gen_rtx_CONST_INT
+	by GEN_INT.
+	(arm_emit_coreregs_64bit_shift): Likewise.
+
+2012-09-04  Christophe Lyon  <christophe.lyon@linaro.org>
+
+	* config/arm/arm.c (arm_evpc_neon_vext): New
+	function.
+	(arm_expand_vec_perm_const_1): Add call to
+	arm_evpc_neon_vext.
+
+2012-09-04  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/51244
+	* config/sh/sh.c (prepare_cbranch_operands): Pull out comparison
+	canonicalization code into...
+	* (sh_canonicalize_comparison): This new function.
+	* config/sh/sh-protos.h: Declare it.
+	* config/sh/sh.h: Use it in new macro CANONICALIZE_COMPARISON.
+	* config/sh/sh.md (cbranchsi4): Remove TARGET_CBRANCHDI4 check and
+	always invoke expand_cbranchsi4.
+
+2012-09-03  Andi Kleen <ak@linux.intel.com>
+
+	* tree-ssa-sccvn.c (vn_reference_fold_indirect): Initialize
+	addr_offset always.
+
+2012-09-03  Andrew Pinski  <apinski@cavium.com>
+
+	PR tree-opt/53395
+	* tree-if-conv.c (constant_or_ssa_name): New function.
+	(fold_build_cond_expr): New function.
+	(predicate_scalar_phi): Use fold_build_cond_expr instead of build3.
+	(predicate_mem_writes): Likewise.
+
+2012-09-03  Marc Glisse  <marc.glisse@inria.fr>
+
+	* fold-const.c (fold_ternary_loc): Constant-propagate after
+	removing dead operands.
+
+2012-09-03  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/46590
+	* tree-cfg.c (gimple_duplicate_sese_region): Don't update
+	SSA web here ...
+	* tree-ssa-loop-ch.c (copy_loop_headers): ... but here.
+
+2012-09-03  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* doc/invoke.texi: Fix numerous typos and punctuation/grammatical
+	errors throughout the file.  Re-word some awkward sentences and
+	paragraphs.
+
+2012-09-03  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/54362
+	* tree-ssa-structalias.c (find_func_aliases): Handle COND_EXPR.
+
+2012-09-03  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/s390/s390.c (s390_loadrelative_operand_p): New function.
+	(s390_check_qrst_address, print_operand_address): Use
+	s390_loadrelative_operand_p instead of s390_symref_operand_p.
+	(s390_check_symref_alignment): Accept pointer size alignment for
+	GOT slots.
+	(legitimize_pic_address): Use load relative on z10 or later.
+
+2012-09-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/53923
+	* valtrack.c (dead_debug_insert_temp): Drop non-reg uses
+	from the chain.
+
+2012-09-03  Joseph Myers  <joseph@codesourcery.com>
+
+	* common.opt (--no-sysroot-suffix): New driver option.
+	* doc/invoke.texi (--no-sysroot-suffix): Document.
+	* gcc.c (driver_handle_option): Handle --no-sysroot-suffix as not
+	needing spec processing.
+	(main): Do not process sysroot suffixes if no_sysroot_suffix.
+
 2012-09-02  Oleg Endo  <olegendo@gcc.gnu.org>
 
 	PR target/33135

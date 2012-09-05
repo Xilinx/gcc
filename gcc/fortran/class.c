@@ -720,8 +720,8 @@ has_finalizer_component (gfc_symbol *derived)
 
 /* Call DEALLOCATE for the passed component if it is allocatable, if it is
    neither allocatable nor a pointer but has a finalizer, call it. If it
-   is a nonpointer component with allocatable or finalizes components, walk
-   them. Either of the is required; other nonallocatables and pointers aren't
+   is a nonpointer component with allocatable components or has finalizers, walk
+   them. Either of them is required; other nonallocatables and pointers aren't
    handled gracefully.
    Note: If the component is allocatable, the DEALLOCATE handling takes care
    of calling the appropriate finalizers, coarray deregistering, and
@@ -1624,7 +1624,9 @@ gfc_find_derived_vtab (gfc_symbol *derived)
 		 components and the calls to finalization subroutines.
 		 Note: The actual wrapper function can only be generated
 		 at resolution time.  */
-
+	    /* FIXME: Enable ABI-breaking "_final" generation.  */
+	    if (0) 
+	    {
 	      if (gfc_add_component (vtype, "_final", &c) == FAILURE)
 		goto cleanup;
 	      c->attr.proc_pointer = 1;
@@ -1632,10 +1634,11 @@ gfc_find_derived_vtab (gfc_symbol *derived)
 	      c->tb = XCNEW (gfc_typebound_proc);
 	      c->tb->ppc = 1;
 	      generate_finalization_wrapper (derived, ns, tname, c);
+	    }
 
 	      /* Add procedure pointers for type-bound procedures.  */
 	      add_procs_to_declared_vtab (derived, vtype);
-	    }
+	  }
 
 have_vtype:
 	  vtab->ts.u.derived = vtype;

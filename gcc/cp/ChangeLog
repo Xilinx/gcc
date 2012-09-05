@@ -1,3 +1,27 @@
+2012-09-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/54441
+	* decl.c (reshape_init_class): Handle invalid initializer for
+	0-length array member.
+
+	* error.c (dump_type_suffix): Correct handling of 0-length arrays.
+
+	PR c++/54420
+	* cp-tree.h (LAMBDANAME_P): Remove.
+	(LAMBDA_TYPE_P): Check CLASSTYPE_LAMBDA_EXPR instead.
+	* cp-lang.c (cxx_dwarf_name): Likewise.
+	* error.c (dump_aggr_type): Likewise.
+	* semantics.c (begin_lambda_type): Set CLASSTYPE_LAMBDA_EXPR sooner.
+
+	PR c++/54198
+	* decl.c (check_default_argument): Set cp_unevaluated_operand
+	around call to perform_implicit_conversion_flags.
+
+	PR c++/54437
+	PR c++/51213
+	* pt.c (fn_type_unification): Call coerce_template_parms before
+	entering substitution context.
+
 2012-08-31  Paolo Carlini  <paolo.carlini@oracle.com>
 	    Jason Merrill  <jason@redhat.com>
 

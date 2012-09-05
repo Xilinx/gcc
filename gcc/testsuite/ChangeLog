@@ -1,3 +1,37 @@
+2012-09-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/54441
+	* g++.dg/ext/flexary3.C: New.
+
+	PR c++/54420
+	* g++.dg/cpp0x/lambda/lambda-intname.C: New.
+
+	PR c++/54198
+	* g++.dg/template/defarg15.C: New.
+
+	PR c++/54437
+	* g++.dg/template/access24.C: New.
+
+2012-09-04  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/54458
+	* gcc.dg/torture/pr54458.c: New testcase.
+
+2012-09-04  Christophe Lyon  <christophe.lyon@linaro.org>
+
+	* gcc.target/arm/neon-vext.c: New test.
+	* gcc.target/arm/neon-vext-execute.c: Ditto.
+
+2012-09-04  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/54243
+	PR fortran/54244
+	* gfortran.dg/select_type_29.f03: New.
+
+2012-09-03  Marc Glisse  <marc.glisse@inria.fr>
+
+	* gcc.dg/fold-perm.c: Improve test.
+
 2012-09-03  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/51632
