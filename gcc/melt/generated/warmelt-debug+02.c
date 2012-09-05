@@ -848,34 +848,34 @@ MELT_EXTERN const char meltmodule_warmelt_debug__melt_have_debug_disabled[];
 #endif /*!MELT_HAVE_DEBUG */
 
 
-struct frame_start_module_melt_st;
+struct frame_start_this_module_melt_st;
 void MELT_MODULE_VISIBILITY meltmod__warmelt_debug__initialmeltchunk_0 (struct
-									frame_start_module_melt_st
+									frame_start_this_module_melt_st
 									*,
 									char
 									*);
 void MELT_MODULE_VISIBILITY meltmod__warmelt_debug__initialmeltchunk_1 (struct
-									frame_start_module_melt_st
+									frame_start_this_module_melt_st
 									*,
 									char
 									*);
 void MELT_MODULE_VISIBILITY meltmod__warmelt_debug__initialmeltchunk_2 (struct
-									frame_start_module_melt_st
+									frame_start_this_module_melt_st
 									*,
 									char
 									*);
 void MELT_MODULE_VISIBILITY meltmod__warmelt_debug__initialmeltchunk_3 (struct
-									frame_start_module_melt_st
+									frame_start_this_module_melt_st
 									*,
 									char
 									*);
 void MELT_MODULE_VISIBILITY meltmod__warmelt_debug__initialmeltchunk_4 (struct
-									frame_start_module_melt_st
+									frame_start_this_module_melt_st
 									*,
 									char
 									*);
 void MELT_MODULE_VISIBILITY meltmod__warmelt_debug__initialmeltchunk_5 (struct
-									frame_start_module_melt_st
+									frame_start_this_module_melt_st
 									*,
 									char
 									*);
