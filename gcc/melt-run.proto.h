@@ -112,11 +112,6 @@ extern void gt_ggc_mx_melt_un (void*);
 
 
 
-// temporary disgusting hack, because the :named_name of the module
-// init routine has changed
-#define frame_start_module_melt_st frame_melt_start_this_module_st
-#define frame_start_this_module_melt_st frame_melt_start_this_module_st
-#warning shameful disgusting hack to remove in melt-run
 
 /* actually, the generated melt-run.h contains a MD5 string hash, same
    as melt_run_preprocessed_md5 */

@@ -2,6 +2,11 @@
 
 2012-09-05  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-run.proto.h (frame_start_this_module_melt_st): Remove
+	temporary disgusting hack.
+
+2012-09-05  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{Regenerate}}
 	* melt/generated/warmelt-base+01.c: Regenerate.
 	* melt/generated/warmelt-base+02.c: Regenerate.
