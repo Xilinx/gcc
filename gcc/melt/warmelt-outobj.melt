@@ -1904,9 +1904,12 @@ MELT_EXTERN  void* melt_start_this_module (void*);
       (unsafe_put_fields previmplbuf_container :referenced_value ())
       (let ( (chunktup (list_to_multiple chunkbuflist discr_multiple)) 
 	     )
-	;; declare each chunk and call it
+	;; declare each chunk and call it notice that the name
+	;; frame_melt_start_this_module_st is constructed from name
+	;; melt_start_this_module which is built inside our MELT function
+	;; compile2obj_initproc.
 	(add2sbuf_indentnl declbuf 0)
-	(add2sbuf_strconst declbuf "struct frame_start_this_module_melt_st;")
+	(add2sbuf_strconst declbuf "struct frame_melt_start_this_module_st;")
 	(foreach_in_multiple
 	 (chunktup)
 	 (curchunk :long chunkix)
@@ -1915,7 +1918,7 @@ MELT_EXTERN  void* melt_start_this_module (void*);
 	 (add2sbuf_cident declbuf omodnam)
 	 (add2sbuf_strconst declbuf "__initialmeltchunk_")
 	 (add2sbuf_longdec declbuf chunkix)
-	 (add2sbuf_strconst declbuf " (struct frame_start_this_module_melt_st*, char*);")
+	 (add2sbuf_strconst declbuf " (struct frame_melt_start_this_module_st*, char*);")
 	 (add2sbuf_indentnl implbuf 1)
 	 (add2sbuf_strconst implbuf "meltmod__")
 	 (add2sbuf_cident implbuf omodnam)
@@ -1967,7 +1970,7 @@ MELT_EXTERN  void* melt_start_this_module (void*);
 	 (add2sbuf_cident implbuf omodnam)
 	 (add2sbuf_strconst implbuf "__initialmeltchunk_")
 	 (add2sbuf_longdec implbuf chunkix)
-	 (add2sbuf_strconst implbuf " (struct frame_start_this_module_melt_st* meltmeltframptr__, char meltpredefinited[]) {")
+	 (add2sbuf_strconst implbuf " (struct frame_melt_start_this_module_st* meltmeltframptr__, char meltpredefinited[]) {")
 	 (add2sbuf_indentnl implbuf 0)
 	 (add2sbuf_strconst implbuf "#define meltfram__ (*meltmeltframptr__)")
 	 (add2sbuf_indentnl implbuf 0)

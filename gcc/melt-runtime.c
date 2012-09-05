@@ -11777,10 +11777,10 @@ melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
   fprintf (cfil, "#include \"melt-run.h\"\n\n");;
   if (filrank <= 0)
     fprintf (cfil, "\n/* used hash from melt-run.h when compiling this file: */\n"
-             "const char used_meltrun_md5_melt[] = MELT_RUN_HASHMD5 /* from melt-run.h */;\n\n");
+             "MELT_EXTERN const char meltrun_used_md5_melt[] = MELT_RUN_HASHMD5 /* from melt-run.h */;\n\n");
   else
     fprintf (cfil, "\n/* used hash from melt-run.h when compiling this file: */\n"
-             "const char used_meltrun_md5_melt_f%d[] = MELT_RUN_HASHMD5 /* from melt-run.h */;\n\n", filrank);
+             "MELT_EXTERN const char meltrun_used_md5_melt_f%d[] = MELT_RUN_HASHMD5 /* from melt-run.h */;\n\n", filrank);
 
   fprintf (cfil, "\n/**** %s declarations ****/\n",
            melt_basename (melt_string_str (unitnam)));

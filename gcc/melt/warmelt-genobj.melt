@@ -1132,6 +1132,11 @@ $SBUF.}#
 	(oinibody (make_list discr_list))
 	(oinitrout
 	 (instance class_initial_module_routineobj
+		   ;; Change the "melt_start_this_module" name with
+		   ;; great care, it is known by the MELT runtime, and
+		   ;; some functions of warmelt-outobj.melt are
+		   ;; hardwiring it, e.g. thru emission of struct
+		   ;; frame_melt_start_this_module_st or elsewhere.
 		   :named_name '"melt_start_this_module"
 		   :obrout_proc ipro
 		   :obrout_body oinibody
