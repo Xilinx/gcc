@@ -3558,28 +3558,24 @@ MELT_EXTERN  void* melt_start_this_module (void*);
 
 
 
-;; output a touched object
-(defun outpucod_objtouchedobj (otch declbuf implbuf :long depth)
-  (assert_msg "check otch" (is_a otch class_objtouchedobj))
-  (let ( (iloc (unsafe_get_field :obi_loc otch)) 
-	 (touched (unsafe_get_field :obto_touchedobj otch)) 
-	 (msg (unsafe_get_field :obto_message otch))
+;; output a debug tracing of written object
+(defun outpucod_dbgtracewriteobj (otwro declbuf implbuf :long depth)
+  (assert_msg "check otwro" (is_a otwro class_objdbgtracewriteobj))
+  (let ( (iloc (unsafe_get_field :obi_loc otwro)) 
+	 (owritten (unsafe_get_field :obdtw_writtenobj otwro)) 
+	 (msg (unsafe_get_field :obdtw_message otwro))
 	 )
     (output_location iloc implbuf depth "touchobj")
     (add2sbuf_indentnl implbuf depth)
-    (add2sbuf_strconst implbuf "meltgc_touch (")
-    (output_c_code touched declbuf implbuf depth)
-    (add2sbuf_strconst implbuf ");")
-    (add2sbuf_indentnl implbuf depth)
-    (add2sbuf_strconst implbuf "melt_dbgtrace_touched_object (")
-    (output_c_code touched declbuf implbuf depth)
+    (add2sbuf_strconst implbuf "melt_dbgtrace_written_object (")
+    (output_c_code owritten declbuf implbuf depth)
     (add2sbuf_strconst implbuf ", \"")
     (if (is_string msg) 
 	(add2sbuf_cencstring implbuf msg)
-      (add2sbuf_strconst implbuf "*touched*"))
+      (add2sbuf_strconst implbuf "*written object*"))
     (add2sbuf_strconst implbuf ");")
     (add2sbuf_indentnl implbuf depth)))
-(install_method class_objtouchedobj output_c_code outpucod_objtouchedobj)
+(install_method class_objdbgtracewriteobj output_c_code outpucod_dbgtracewriteobj)
 	     
   
 ;;; output a put tuple (mostly used in initial data content filling)

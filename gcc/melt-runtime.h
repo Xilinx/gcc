@@ -922,7 +922,7 @@ void melt_break_objhash_2_at (const char *msg, const char *fil, int line);
 #define melt_break_objhash_2(Msg) melt_break_objhash_2_at((Msg),__FILE__,__LINE__)
 
 static void inline 
-melt_dbgtrace_touched_object_at(meltobject_ptr_t ob, const char*msg, const char*fil, int lin)
+melt_dbgtrace_written_object_at(meltobject_ptr_t ob, const char*msg, const char*fil, int lin)
 {
   unsigned obh = 0;
   if (!ob || !msg) 
@@ -939,11 +939,11 @@ melt_dbgtrace_touched_object_at(meltobject_ptr_t ob, const char*msg, const char*
   if (obh == melt_objhash_1)
     melt_break_objhash_2_at(msg, fil, lin);    
 }
-#define melt_dbgtrace_touched_object(Obj,Msg) do { \
-  melt_dbgtrace_touched_object_at ((meltobject_ptr_t)(Obj),(Msg),\
+#define melt_dbgtrace_written_object(Obj,Msg) do { \
+  melt_dbgtrace_written_object_at ((meltobject_ptr_t)(Obj),(Msg),\
 				  __FILE__,__LINE__); }while(0)
 #else
-#define melt_dbgtrace_touched_object(Obj,Msg) do{}while(0)
+#define melt_dbgtrace_written_object(Obj,Msg) do{}while(0)
 #endif
 
 /* the allocator routine allocates a zone of BASESZ with extra GAP */

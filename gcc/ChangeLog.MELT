@@ -1,6 +1,20 @@
 
 2012-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.h (melt_dbgtrace_touched_object_at)
+	(melt_dbgtrace_touched_object): Rename, since badly named, as...
+	(melt_dbgtrace_written_object_at, melt_dbgtrace_written_object):
+	new function & macro.
+
+	* melt/warmelt-genobj.melt (class_objtouchedobj): Obsolete since
+	badly named.
+	(class_objdbgtracewriteobj): New class, superseding previous one.
+
+	* melt/warmelt-outobj.melt (outpucod_objtouchedobj): Rename as ...
+	(outpucod_dbgtracewriteobj): Method for class_objdbgtracewriteobj.
+
+2012-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.
 	* melt/generated/warmelt-base+meltdesc.c: Regenerate.

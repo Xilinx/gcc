@@ -408,14 +408,21 @@
 	   obrallobj_classname		;the class name
 	   ))
 
-;; instruction for touched objects, for the GC and for low level debug
-;; purposes see melt_dbgtrace_touched_object macro in runtime.
-(defclass class_objtouchedobj
+;; instruction for debugtracing of written or created objects, for low
+;; level debug purposes using GDB, see melt_dbgtrace_write_object in
+;; runtime.
+(defclass class_objdbgtracewriteobj
   :super  class_objinstr
+  :fields (obdtw_writtenobj		;the changed object
+	   obdtw_message			;the message
+	   ))
+
+(compile_warning "class_objtouchedobj is obsolete")
+(defclass class_objtouchedobj
+  :super class_objdbgtracewriteobj  
   :fields (obto_touchedobj		;the touched object
 	   obto_message			;the message
 	   ))
-
 
 ;; new closure allocation
 (defclass class_objnewclosure
@@ -593,6 +600,7 @@
  class_objcond
  class_objconstv
  class_objcppif
+ class_objdbgtracewriteobj
  class_objdestinstr
  class_objexit
  class_objexpv
@@ -647,10 +655,11 @@
  class_objrawallocobj
  class_objsetpredef
  class_objtouch
- class_objtouchedobj
  class_objvalue
  class_procroutineobj
  class_routineobj
+
+ class_objtouchedobj
  )					;end export_class
 
 (export_synonym class_objblock class_objplainblock)
@@ -4304,7 +4313,17 @@ $SBUF.}#
 			:oslot_offset (make_integerbox discr_integer (get_int cfield))
 			:oslot_value oval)
 	      )))))
-      ;; we don't need to add any objtouch because the nmki was normalized!
+      ;; since nmki was normalized, the new object was allocated in
+      ;; the birth zone so don't need to be touched.  
+      ;; temporary, add a touch for measures
+      (let ( (otouch (instance class_objtouch
+			       :obi_loc nloc
+			       :otouch_val locv))
+		     )
+	(list_append olis otouch)
+	)
+      ;; we don't need to add any objtouch because the nmki was
+      ;; normalized!
       (list_append olis locv) ;;; last instruction is just the value, which can be set to some dest
       (debug "compilobj_nrep_makeinst result oblock=" oblock)
       oblock
