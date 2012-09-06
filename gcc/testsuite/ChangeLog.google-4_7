@@ -1,3 +1,12 @@
+2012-09-05  Cary Coutant  <ccoutant@gmail.com>
+
+	Backport trunk patch to fix a problem where type signature does
+	not include the type's context.
+
+	2012-07-19  Jason Merrill  <jason@redhat.com>
+
+	    * g++.dg/debug/dwarf2/nested-4.C: New.
+
 2012-08-22   Easwaran Raman  <eraman@google.com>
 	Backport r187477 from trunk:
 

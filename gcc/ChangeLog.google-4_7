@@ -1,3 +1,14 @@
+2012-09-05  Cary Coutant  <ccoutant@gmail.com>
+
+	Backport trunk patch to fix a problem where type signature does
+	not include the type's context.
+
+	2012-07-19  Jason Merrill  <jason@redhat.com>
+
+	    PR debug/53235
+	    * dwarf2out.c (get_die_parent): New.
+	    (generate_type_signature): Use it.
+
 2012-08-31   Cary Coutant  <ccoutant@google.com>
 
 	* dwarf2out.c (clone_tree_partial): Restore.
