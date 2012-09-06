@@ -578,6 +578,17 @@ melt_forwarded_copy (melt_ptr_t p)
 	dst->obj_len = oblen;
 	for (ix = 0; ix < oblen; ix++)
 	  dst->obj_vartab[ix] = src->obj_vartab[ix];
+#if ENABLE_CHECKING
+	/* for low level debugging with gdb, we may want to catch some copy operations */
+	if (melt_alptr_1 && (void *) src == melt_alptr_1)
+	  melt_break_alptr_1 ("copyobj src=alptr1");
+	if (melt_alptr_2 && (void *) src == melt_alptr_2)
+	  melt_break_alptr_2 ("copyobj src=alptr2");
+	if (src->obj_hash == melt_objhash_1)
+	  melt_break_objhash_1 ("copyobj src with objhash1");
+	if (src->obj_hash == melt_objhash_2)
+	  melt_break_objhash_2 ("copyobj src with objhash2");
+#endif /* ENABLE_CHECKING */
 
 	n = (melt_ptr_t) dst;
 	break;
@@ -1394,6 +1405,17 @@ melt_scanning (melt_ptr_t p)
 	int oblen = (int) (src->obj_len);
 	for (ix = 0; ix < oblen; ix++)
 	  MELT_FORWARDED (src->obj_vartab[ix]);
+#if ENABLE_CHECKING
+	/* for low level debugging with gdb, we may want to catch some forwarding operations */
+	if (melt_alptr_1 && (void *) src == melt_alptr_1)
+	  melt_break_alptr_1 ("forwardobj src=alptr1");
+	if (melt_alptr_2 && (void *) src == melt_alptr_2)
+	  melt_break_alptr_2 ("forwardobj src=alptr2");
+	if (src->obj_hash == melt_objhash_1)
+	  melt_break_objhash_1 ("forwardobj src with objhash1");
+	if (src->obj_hash == melt_objhash_2)
+	  melt_break_objhash_2 ("forwardobj src with objhash2");
+#endif /* ENABLE_CHECKING */
 
 	break;
       }
@@ -2763,6 +2785,17 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
 	      dst->obj_vartab[slotix] = src->obj_vartab[slotix];
 	    dst->obj_num = src->obj_num;
 	  }
+#if ENABLE_CHECKING
+	/* for low level debugging with gdb, we may want to catch some clone operations */
+	if (melt_alptr_1 && (void *) src == melt_alptr_1)
+	  melt_break_alptr_1 ("cloneobj src=alptr1");
+	if (melt_alptr_2 && (void *) src == melt_alptr_2)
+	  melt_break_alptr_2 ("cloneobj src=alptr2");
+	if (src->obj_hash == melt_objhash_1)
+	  melt_break_objhash_1 ("cloneobj src with objhash1");
+	if (src->obj_hash == melt_objhash_2)
+	  melt_break_objhash_2 ("cloneobj src with objhash2");
+#endif /* ENABLE_CHECKING */
 	;
 	if (dst)
 	  resv = (melt_ptr_t) dst;
@@ -2861,5 +2894,5 @@ end:
 #undef compv
 
 
-/*** End of code file meltbuild-sources/generated/meltrunsup-inc.c generated on 2012 Sep 05
- * by GCC MELT 4.8.0 20120905 (experimental) [melt-branch revision 190966] MELT_0.9.7-pre . ***/
+/*** End of code file meltbuild-sources/generated/meltrunsup-inc.c generated on 2012 Sep 06
+ * by GCC MELT 4.8.0 20120905 (experimental) [melt-branch revision 191007] MELT_0.9.7-pre . ***/
