@@ -13470,9 +13470,6 @@ lab_endgetargs:;
 			  ( /*_.IMPLBUF__V22*/ meltfptr[21]),
 			  "SECFIL_IMPLBUF");
     ;
-    /*^touch */
-    meltgc_touch ( /*_.INST__V24*/ meltfptr[23]);
-    ;
     /*_.NEWFILE__V23*/ meltfptr[22] = /*_.INST__V24*/ meltfptr[23];;
 
     {

@@ -38,16 +38,16 @@ const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown
 /* hash of preprocessed melt-run.h generating this */
 const char melt_prepromd5meltrun[]="1d8f463ab0874461f8a7293728bddb67";
 /* hexmd5checksum of primary C file */
-const char melt_primaryhexmd5[]="66b4f43b6c70d7bb14c577e38ddcb601";
+const char melt_primaryhexmd5[]="eaf6b23ef8b9d85e7c9e03f126a6b24e";
 
 /* hexmd5checksum of secondary C files */
 const char* const melt_secondaryhexmd5tab[]={
  /*nosecfile*/ (const char*)0,
- /*sechexmd5checksum meltbuild-sources/warmelt-macro+01.c #1 */ "9c3d3d2243f1b0c5c1a73c0a68d7e26d",
- /*sechexmd5checksum meltbuild-sources/warmelt-macro+02.c #2 */ "485a630529d2fc46abb03a55302a8a15",
- /*sechexmd5checksum meltbuild-sources/warmelt-macro+03.c #3 */ "9d09a1c66727dfb803fe12fc69fce890",
- /*sechexmd5checksum meltbuild-sources/warmelt-macro+04.c #4 */ "5e8b891e65319ff04f4e1c44065c7abb",
- /*sechexmd5checksum meltbuild-sources/warmelt-macro+05.c #5 */ "b06886174569b148c560c454bf66716c",
+ /*sechexmd5checksum meltbuild-sources/warmelt-macro+01.c #1 */ "f5aa6bce4cd28a1ea1eeaf61f14e291d",
+ /*sechexmd5checksum meltbuild-sources/warmelt-macro+02.c #2 */ "37172a11147e5dcad78c63708cfc4e68",
+ /*sechexmd5checksum meltbuild-sources/warmelt-macro+03.c #3 */ "dc583fcf5e1fa0307613d5766d541971",
+ /*sechexmd5checksum meltbuild-sources/warmelt-macro+04.c #4 */ "a444fc4c06df207cc6114a96adb317bf",
+ /*sechexmd5checksum meltbuild-sources/warmelt-macro+05.c #5 */ "4b16afb36dbcf8f95cd38128663db20b",
  /*nosecfile*/ (const char*)0,
  (const char*)0 };
 
@@ -55,10 +55,10 @@ const char* const melt_secondaryhexmd5tab[]={
 const int melt_lastsecfileindex=5;
 
 /* cumulated checksum of primary & secondary files */
-const char melt_cumulated_hexmd5[]="f333bb1ca519a7b7671e463fb7eb28a9" ;
+const char melt_cumulated_hexmd5[]="0dbe9f1591dedcc5af5a5de2874cddeb" ;
 
 /* include the timestamp file */
-#define meltmod_warmelt_macro_mds__f333bb1ca519a7b7671e463fb7eb28a9 1
+#define meltmod_warmelt_macro_mds__0dbe9f1591dedcc5af5a5de2874cddeb 1
 #include "warmelt-macro+melttime.h"
 	 
 

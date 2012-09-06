@@ -24105,7 +24105,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-outobj.melt:3576:/ locexp");
       /*add2sbuf_strconst */
 	meltgc_add_strbuf ((melt_ptr_t) ( /*_.IMPLBUF__V4*/ meltfptr[3]),
-			   (");"));
+			   ("\");"));
     }
     ;
 

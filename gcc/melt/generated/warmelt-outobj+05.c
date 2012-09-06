@@ -3175,9 +3175,6 @@ lab_endgetargs:;
 			  (( /*!konst_8 */ meltfrout->tabval[8])),
 			  "SUCME_COMMENT");
     ;
-    /*^touch */
-    meltgc_touch ( /*_.INST__V34*/ meltfptr[33]);
-    ;
     /*_.UCMEB1__V33*/ meltfptr[32] = /*_.INST__V34*/ meltfptr[33];;
 
 #if MELT_HAVE_DEBUG
@@ -11137,9 +11134,6 @@ lab_endgetargs:;
 			  ( /*_.LAMBDA___V29*/ meltfptr[28]),
 			  "MOCX_ERRORHANDLER");
     ;
-    /*^touch */
-    meltgc_touch ( /*_.INST__V32*/ meltfptr[31]);
-    ;
     /*_.MODCTX__V31*/ meltfptr[30] = /*_.INST__V32*/ meltfptr[31];;
     MELT_LOCATION ("warmelt-outobj.melt:5573:/ checksignal");
     MELT_CHECK_SIGNAL ();
@@ -12164,9 +12158,6 @@ lab_endgetargs:;
 	newobj;
     };
     ;
-    /*^touch */
-    meltgc_touch ( /*_.INST__V20*/ meltfptr[19]);
-    ;
     /*_.REFERR__V19*/ meltfptr[18] = /*_.INST__V20*/ meltfptr[19];;
 
     {
@@ -12490,9 +12481,6 @@ lab_endgetargs:;
     melt_putfield_object (( /*_.INST__V35*/ meltfptr[34]), (11),
 			  ( /*_.RUNERRORHDLR__V26*/ meltfptr[22]),
 			  "MOCX_ERRORHANDLER");
-    ;
-    /*^touch */
-    meltgc_touch ( /*_.INST__V35*/ meltfptr[34]);
     ;
     /*_.MODCTX__V34*/ meltfptr[33] = /*_.INST__V35*/ meltfptr[34];;
     MELT_LOCATION ("warmelt-outobj.melt:5662:/ checksignal");
