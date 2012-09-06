@@ -879,6 +879,11 @@ void MELT_MODULE_VISIBILITY meltmod__warmelt_debug__initialmeltchunk_5 (struct
 									*,
 									char
 									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_debug__initialmeltchunk_6 (struct
+									frame_melt_start_this_module_st
+									*,
+									char
+									*);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_debug__forward_or_mark_module_start_frame (struct
 							    melt_callframe_st
@@ -6202,6 +6207,11 @@ lab_endgetargs:;
     melt_putfield_object (( /*_.INST__V7*/ meltfptr[6]), (2),
 			  ( /*_.BOXEDMAXDEPTH__V5*/ meltfptr[4]),
 			  "DBGI_MAXDEPTH");
+    ;
+    /*^touchobj */
+
+    melt_dbgtrace_written_object ( /*_.INST__V7*/ meltfptr[6],
+				  "newly made instance");
     ;
     /*_.DBGI__V6*/ meltfptr[5] = /*_.INST__V7*/ meltfptr[6];;
 

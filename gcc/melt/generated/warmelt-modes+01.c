@@ -1162,6 +1162,10 @@ void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_9 (struct
 									char
 									*);
 void MELT_MODULE_VISIBILITY
+meltmod__warmelt_modes__initialmeltchunk_10 (struct
+					     frame_melt_start_this_module_st
+					     *, char *);
+void MELT_MODULE_VISIBILITY
 meltmod__warmelt_modes__forward_or_mark_module_start_frame (struct
 							    melt_callframe_st
 							    *fp, int marking);
@@ -23117,6 +23121,11 @@ lab_endgetargs:;
 			  ( /*_.MAKE_INTEGERBOX__V30*/ meltfptr[29]),
 			  "MKDOC_BOXCOUNTER");
     ;
+    /*^touchobj */
+
+    melt_dbgtrace_written_object ( /*_.INST__V32*/ meltfptr[31],
+				  "newly made instance");
+    ;
     /*_.MDINFO__V31*/ meltfptr[30] = /*_.INST__V32*/ meltfptr[31];;
 
 #if MELT_HAVE_DEBUG
@@ -23324,6 +23333,11 @@ lab_endgetargs:;
 	  ;
 	  /*^touch */
 	  meltgc_touch (( /*!MELT_MODE_REFERENCE */ meltfrout->tabval[9]));
+	  ;
+	  /*^touchobj */
+
+	  melt_dbgtrace_written_object (( /*!MELT_MODE_REFERENCE */
+					 meltfrout->tabval[9]), "put-fields");
 	  ;
 	  /*epilog */
 	}

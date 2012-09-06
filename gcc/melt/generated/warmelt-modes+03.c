@@ -1162,6 +1162,10 @@ void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_9 (struct
 									char
 									*);
 void MELT_MODULE_VISIBILITY
+meltmod__warmelt_modes__initialmeltchunk_10 (struct
+					     frame_melt_start_this_module_st
+					     *, char *);
+void MELT_MODULE_VISIBILITY
 meltmod__warmelt_modes__forward_or_mark_module_start_frame (struct
 							    melt_callframe_st
 							    *fp, int marking);

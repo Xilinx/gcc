@@ -1106,6 +1106,46 @@ void MELT_MODULE_VISIBILITY meltmod__warmelt_base__initialmeltchunk_47 (struct
 									*,
 									char
 									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_base__initialmeltchunk_48 (struct
+									frame_melt_start_this_module_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_base__initialmeltchunk_49 (struct
+									frame_melt_start_this_module_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_base__initialmeltchunk_50 (struct
+									frame_melt_start_this_module_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_base__initialmeltchunk_51 (struct
+									frame_melt_start_this_module_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_base__initialmeltchunk_52 (struct
+									frame_melt_start_this_module_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_base__initialmeltchunk_53 (struct
+									frame_melt_start_this_module_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_base__initialmeltchunk_54 (struct
+									frame_melt_start_this_module_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_base__initialmeltchunk_55 (struct
+									frame_melt_start_this_module_st
+									*,
+									char
+									*);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_base__forward_or_mark_module_start_frame (struct
 							   melt_callframe_st
@@ -1314,6 +1354,10 @@ lab_endgetargs:;
 		      meltgc_touch (( /*!FINISHTYPE_DELAYED_QUEUE */
 				     meltfrout->tabval[0]));
 		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!FINISHTYPE_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      ;
 		      /*epilog */
 		    }
 		    ;
@@ -1352,6 +1396,10 @@ lab_endgetargs:;
 		      /*^touch */
 		      meltgc_touch (( /*!INITIAL_SYSTEM_DATA */ meltfrout->
 				     tabval[3]));
+		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -1637,6 +1685,10 @@ lab_endgetargs:;
 		      meltgc_touch (( /*!FINISHTYPE_DELAYED_QUEUE */
 				     meltfrout->tabval[0]));
 		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!FINISHTYPE_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      ;
 		      /*epilog */
 		    }
 		    ;
@@ -1675,6 +1727,10 @@ lab_endgetargs:;
 		      /*^touch */
 		      meltgc_touch (( /*!INITIAL_SYSTEM_DATA */ meltfrout->
 				     tabval[3]));
+		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -2303,6 +2359,10 @@ lab_endgetargs:;
 		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
 				     meltfrout->tabval[0]));
 		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      ;
 		      /*epilog */
 		    }
 		    ;
@@ -2341,6 +2401,10 @@ lab_endgetargs:;
 		      /*^touch */
 		      meltgc_touch (( /*!INITIAL_SYSTEM_DATA */ meltfrout->
 				     tabval[3]));
+		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -2626,6 +2690,10 @@ lab_endgetargs:;
 		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
 				     meltfrout->tabval[0]));
 		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      ;
 		      /*epilog */
 		    }
 		    ;
@@ -2664,6 +2732,10 @@ lab_endgetargs:;
 		      /*^touch */
 		      meltgc_touch (( /*!INITIAL_SYSTEM_DATA */ meltfrout->
 				     tabval[3]));
+		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -3273,6 +3345,10 @@ lab_endgetargs:;
 		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
 				     meltfrout->tabval[0]));
 		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      ;
 		      /*epilog */
 		    }
 		    ;
@@ -3309,6 +3385,10 @@ lab_endgetargs:;
 		      /*^touch */
 		      meltgc_touch (( /*!INITIAL_SYSTEM_DATA */ meltfrout->
 				     tabval[3]));
+		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -3579,6 +3659,10 @@ lab_endgetargs:;
 		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
 				     meltfrout->tabval[0]));
 		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      ;
 		      /*epilog */
 		    }
 		    ;
@@ -3615,6 +3699,10 @@ lab_endgetargs:;
 		      /*^touch */
 		      meltgc_touch (( /*!INITIAL_SYSTEM_DATA */ meltfrout->
 				     tabval[3]));
+		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -4227,6 +4315,10 @@ lab_endgetargs:;
 		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
 				     meltfrout->tabval[0]));
 		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      ;
 		      /*epilog */
 		    }
 		    ;
@@ -4263,6 +4355,10 @@ lab_endgetargs:;
 		      /*^touch */
 		      meltgc_touch (( /*!INITIAL_SYSTEM_DATA */ meltfrout->
 				     tabval[3]));
+		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -4541,6 +4637,10 @@ lab_endgetargs:;
 		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
 				     meltfrout->tabval[0]));
 		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      ;
 		      /*epilog */
 		    }
 		    ;
@@ -4577,6 +4677,10 @@ lab_endgetargs:;
 		      /*^touch */
 		      meltgc_touch (( /*!INITIAL_SYSTEM_DATA */ meltfrout->
 				     tabval[3]));
+		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -5181,6 +5285,10 @@ lab_endgetargs:;
 		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
 				     meltfrout->tabval[0]));
 		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      ;
 		      /*epilog */
 		    }
 		    ;
@@ -5217,6 +5325,10 @@ lab_endgetargs:;
 		      /*^touch */
 		      meltgc_touch (( /*!INITIAL_SYSTEM_DATA */ meltfrout->
 				     tabval[3]));
+		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -5487,6 +5599,10 @@ lab_endgetargs:;
 		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
 				     meltfrout->tabval[0]));
 		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      ;
 		      /*epilog */
 		    }
 		    ;
@@ -5523,6 +5639,10 @@ lab_endgetargs:;
 		      /*^touch */
 		      meltgc_touch (( /*!INITIAL_SYSTEM_DATA */ meltfrout->
 				     tabval[3]));
+		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -6126,6 +6246,10 @@ lab_endgetargs:;
 		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
 				     meltfrout->tabval[0]));
 		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      ;
 		      /*epilog */
 		    }
 		    ;
@@ -6162,6 +6286,10 @@ lab_endgetargs:;
 		      /*^touch */
 		      meltgc_touch (( /*!INITIAL_SYSTEM_DATA */ meltfrout->
 				     tabval[3]));
+		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -6432,6 +6560,10 @@ lab_endgetargs:;
 		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
 				     meltfrout->tabval[0]));
 		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      ;
 		      /*epilog */
 		    }
 		    ;
@@ -6468,6 +6600,10 @@ lab_endgetargs:;
 		      /*^touch */
 		      meltgc_touch (( /*!INITIAL_SYSTEM_DATA */ meltfrout->
 				     tabval[3]));
+		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -7064,6 +7200,10 @@ lab_endgetargs:;
 		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
 				     meltfrout->tabval[0]));
 		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      ;
 		      /*epilog */
 		    }
 		    ;
@@ -7100,6 +7240,10 @@ lab_endgetargs:;
 		      /*^touch */
 		      meltgc_touch (( /*!INITIAL_SYSTEM_DATA */ meltfrout->
 				     tabval[3]));
+		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -7372,6 +7516,10 @@ lab_endgetargs:;
 		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
 				     meltfrout->tabval[0]));
 		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      ;
 		      /*epilog */
 		    }
 		    ;
@@ -7408,6 +7556,10 @@ lab_endgetargs:;
 		      /*^touch */
 		      meltgc_touch (( /*!INITIAL_SYSTEM_DATA */ meltfrout->
 				     tabval[3]));
+		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -8005,6 +8157,10 @@ lab_endgetargs:;
 		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
 				     meltfrout->tabval[0]));
 		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      ;
 		      /*epilog */
 		    }
 		    ;
@@ -8041,6 +8197,10 @@ lab_endgetargs:;
 		      /*^touch */
 		      meltgc_touch (( /*!INITIAL_SYSTEM_DATA */ meltfrout->
 				     tabval[3]));
+		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -8313,6 +8473,10 @@ lab_endgetargs:;
 		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
 				     meltfrout->tabval[0]));
 		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      ;
 		      /*epilog */
 		    }
 		    ;
@@ -8349,6 +8513,10 @@ lab_endgetargs:;
 		      /*^touch */
 		      meltgc_touch (( /*!INITIAL_SYSTEM_DATA */ meltfrout->
 				     tabval[3]));
+		      ;
+		      /*^touchobj */
+
+		      melt_dbgtrace_written_object (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -8551,6 +8719,11 @@ lab_endgetargs:;
 	  ;
 	  /*^touch */
 	  meltgc_touch ( /*_.R__V2*/ meltfptr[1]);
+	  ;
+	  /*^touchobj */
+
+	  melt_dbgtrace_written_object ( /*_.R__V2*/ meltfptr[1],
+					"put-fields");
 	  ;
 	  /*epilog */
 	}

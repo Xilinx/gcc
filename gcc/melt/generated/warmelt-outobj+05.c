@@ -2366,6 +2366,14 @@ meltmod__warmelt_outobj__initialmeltchunk_14 (struct
 					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
+meltmod__warmelt_outobj__initialmeltchunk_15 (struct
+					      frame_melt_start_this_module_st
+					      *, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_outobj__initialmeltchunk_16 (struct
+					      frame_melt_start_this_module_st
+					      *, char *);
+void MELT_MODULE_VISIBILITY
 meltmod__warmelt_outobj__forward_or_mark_module_start_frame (struct
 							     melt_callframe_st
 							     *fp,
@@ -3174,6 +3182,11 @@ lab_endgetargs:;
     melt_putfield_object (( /*_.INST__V34*/ meltfptr[33]), (2),
 			  (( /*!konst_8 */ meltfrout->tabval[8])),
 			  "SUCME_COMMENT");
+    ;
+    /*^touchobj */
+
+    melt_dbgtrace_written_object ( /*_.INST__V34*/ meltfptr[33],
+				  "newly made instance");
     ;
     /*_.UCMEB1__V33*/ meltfptr[32] = /*_.INST__V34*/ meltfptr[33];;
 
@@ -11134,6 +11147,11 @@ lab_endgetargs:;
 			  ( /*_.LAMBDA___V29*/ meltfptr[28]),
 			  "MOCX_ERRORHANDLER");
     ;
+    /*^touchobj */
+
+    melt_dbgtrace_written_object ( /*_.INST__V32*/ meltfptr[31],
+				  "newly made instance");
+    ;
     /*_.MODCTX__V31*/ meltfptr[30] = /*_.INST__V32*/ meltfptr[31];;
     MELT_LOCATION ("warmelt-outobj.melt:5573:/ checksignal");
     MELT_CHECK_SIGNAL ();
@@ -12158,6 +12176,11 @@ lab_endgetargs:;
 	newobj;
     };
     ;
+    /*^touchobj */
+
+    melt_dbgtrace_written_object ( /*_.INST__V20*/ meltfptr[19],
+				  "newly made instance");
+    ;
     /*_.REFERR__V19*/ meltfptr[18] = /*_.INST__V20*/ meltfptr[19];;
 
     {
@@ -12481,6 +12504,11 @@ lab_endgetargs:;
     melt_putfield_object (( /*_.INST__V35*/ meltfptr[34]), (11),
 			  ( /*_.RUNERRORHDLR__V26*/ meltfptr[22]),
 			  "MOCX_ERRORHANDLER");
+    ;
+    /*^touchobj */
+
+    melt_dbgtrace_written_object ( /*_.INST__V35*/ meltfptr[34],
+				  "newly made instance");
     ;
     /*_.MODCTX__V34*/ meltfptr[33] = /*_.INST__V35*/ meltfptr[34];;
     MELT_LOCATION ("warmelt-outobj.melt:5662:/ checksignal");
@@ -14029,6 +14057,11 @@ lab_endgetargs:;
 	  ;
 	  /*^touch */
 	  meltgc_touch (( /*~REFERR */ meltfclos->tabval[1]));
+	  ;
+	  /*^touchobj */
+
+	  melt_dbgtrace_written_object (( /*~REFERR */ meltfclos->tabval[1]),
+					"put-fields");
 	  ;
 	  /*epilog */
 	}

@@ -2328,6 +2328,22 @@ meltmod__warmelt_normatch__initialmeltchunk_29 (struct
 						frame_melt_start_this_module_st
 						*, char *);
 void MELT_MODULE_VISIBILITY
+meltmod__warmelt_normatch__initialmeltchunk_30 (struct
+						frame_melt_start_this_module_st
+						*, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_normatch__initialmeltchunk_31 (struct
+						frame_melt_start_this_module_st
+						*, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_normatch__initialmeltchunk_32 (struct
+						frame_melt_start_this_module_st
+						*, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_normatch__initialmeltchunk_33 (struct
+						frame_melt_start_this_module_st
+						*, char *);
+void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__forward_or_mark_module_start_frame (struct
 							       melt_callframe_st
 							       *fp,
@@ -5883,6 +5899,11 @@ lab_endgetargs:;
     melt_putfield_object (( /*_.INST__V17*/ meltfptr[16]), (3),
 			  ( /*_.EDGBUF__V15*/ meltfptr[14]), "MCHGX_EDGOUT");
     ;
+    /*^touchobj */
+
+    melt_dbgtrace_written_object ( /*_.INST__V17*/ meltfptr[16],
+				  "newly made instance");
+    ;
     /*_.MG__V16*/ meltfptr[15] = /*_.INST__V17*/ meltfptr[16];;
 
 #if MELT_HAVE_DEBUG
@@ -6787,6 +6808,11 @@ lab_endgetargs:;
     melt_putfield_object (( /*_.INST__V29*/ meltfptr[28]), (0),
 			  ( /*_.SLOC__V17*/ meltfptr[13]), "NREP_LOC");
     ;
+    /*^touchobj */
+
+    melt_dbgtrace_written_object ( /*_.INST__V29*/ meltfptr[28],
+				  "newly made instance");
+    ;
     /*_.NCHINT__V28*/ meltfptr[27] = /*_.INST__V29*/ meltfptr[28];;
     MELT_LOCATION ("warmelt-normatch.melt:2301:/ checksignal");
     MELT_CHECK_SIGNAL ();
@@ -6833,6 +6859,11 @@ lab_endgetargs:;
 		    MELTOBMAG_OBJECT);
     melt_putfield_object (( /*_.INST__V31*/ meltfptr[30]), (2),
 			  ( /*_.NCHINT__V28*/ meltfptr[27]), "LETBIND_EXPR");
+    ;
+    /*^touchobj */
+
+    melt_dbgtrace_written_object ( /*_.INST__V31*/ meltfptr[30],
+				  "newly made instance");
     ;
     /*_.CINTBIND__V30*/ meltfptr[29] = /*_.INST__V31*/ meltfptr[30];;
 
@@ -7446,6 +7477,11 @@ lab_endgetargs:;
 				( /*_.NMATX__V37*/ meltfptr[33]),
 				"LETBIND_EXPR");
 	  ;
+	  /*^touchobj */
+
+	  melt_dbgtrace_written_object ( /*_.INST__V58*/ meltfptr[57],
+					"newly made instance");
+	  ;
 	  /*_.CBIND__V57*/ meltfptr[56] = /*_.INST__V58*/ meltfptr[57];;
 	  MELT_LOCATION ("warmelt-normatch.melt:2328:/ checksignal");
 	  MELT_CHECK_SIGNAL ();
@@ -7501,6 +7537,11 @@ lab_endgetargs:;
 	  melt_putfield_object (( /*_.INST__V60*/ meltfptr[59]), (3),
 				( /*_.CBIND__V57*/ meltfptr[56]),
 				"NOCC_BIND");
+	  ;
+	  /*^touchobj */
+
+	  melt_dbgtrace_written_object ( /*_.INST__V60*/ meltfptr[59],
+					"newly made instance");
 	  ;
 	  /*_.CLOCC__V59*/ meltfptr[58] = /*_.INST__V60*/ meltfptr[59];;
 
@@ -8220,6 +8261,11 @@ lab_endgetargs:;
 				( /*_.VARHDLERLIST__V91*/ meltfptr[90]),
 				"PCTN_VARHANDLERS");
 	  ;
+	  /*^touchobj */
+
+	  melt_dbgtrace_written_object ( /*_.INST__V93*/ meltfptr[92],
+					"newly made instance");
+	  ;
 	  /*_.PCN__V92*/ meltfptr[91] = /*_.INST__V93*/ meltfptr[92];;
 	  MELT_LOCATION ("warmelt-normatch.melt:2372:/ checksignal");
 	  MELT_CHECK_SIGNAL ();
@@ -8238,6 +8284,11 @@ lab_endgetargs:;
    /*_.INST__V95*/ meltfptr[94] =
 	      newobj;
 	  };
+	  ;
+	  /*^touchobj */
+
+	  melt_dbgtrace_written_object ( /*_.INST__V95*/ meltfptr[94],
+					"newly made instance");
 	  ;
 	  /*_.NTESTCONT__V94*/ meltfptr[93] = /*_.INST__V95*/ meltfptr[94];;
 
@@ -9023,6 +9074,11 @@ lab_endgetargs:;
 	  melt_putfield_object (( /*_.INST__V123*/ meltfptr[122]), (7),
 				(( /*nil */ NULL)), "NTSUCCESS_DO");
 	  ;
+	  /*^touchobj */
+
+	  melt_dbgtrace_written_object ( /*_.INST__V123*/ meltfptr[122],
+					"newly made instance");
+	  ;
 	  /*_.NEWSUCTESTER__V122*/ meltfptr[121] =
 	    /*_.INST__V123*/ meltfptr[122];;
 
@@ -9597,6 +9653,11 @@ lab_endgetargs:;
 		melt_putfield_object (( /*_.INST__V143*/ meltfptr[134]), (0),
 				      ( /*_.CURTESTER__V120*/ meltfptr[119]),
 				      "REFERENCED_VALUE");
+		;
+		/*^touchobj */
+
+		melt_dbgtrace_written_object ( /*_.INST__V143*/ meltfptr[134],
+					      "newly made instance");
 		;
 		/*_.CURTESTCONT__V142*/ meltfptr[130] =
 		  /*_.INST__V143*/ meltfptr[134];;
@@ -12415,6 +12476,11 @@ lab_endgetargs:;
 		/*^touch */
 		meltgc_touch ( /*_.NEWSUCTESTER__V122*/ meltfptr[121]);
 		;
+		/*^touchobj */
+
+		melt_dbgtrace_written_object ( /*_.NEWSUCTESTER__V122*/
+					      meltfptr[121], "put-fields");
+		;
 		/*epilog */
 	      }
 	      ;
@@ -13347,6 +13413,11 @@ lab_endgetargs:;
     melt_putfield_object (( /*_.INST__V279*/ meltfptr[190]), (4),
 			  ( /*_.NMATX__V37*/ meltfptr[33]), "NMATCH_MATCHED");
     ;
+    /*^touchobj */
+
+    melt_dbgtrace_written_object ( /*_.INST__V279*/ meltfptr[190],
+				  "newly made instance");
+    ;
     /*_.NMATCH__V278*/ meltfptr[192] = /*_.INST__V279*/ meltfptr[190];;
     MELT_LOCATION ("warmelt-normatch.melt:2563:/ checksignal");
     MELT_CHECK_SIGNAL ();
@@ -13407,6 +13478,11 @@ lab_endgetargs:;
     melt_putfield_object (( /*_.INST__V282*/ meltfptr[125]), (1),
 			  ( /*_.CSYM__V280*/ meltfptr[219]), "NOCC_SYMB");
     ;
+    /*^touchobj */
+
+    melt_dbgtrace_written_object ( /*_.INST__V282*/ meltfptr[125],
+				  "newly made instance");
+    ;
     /*_.CLOCC__V281*/ meltfptr[135] = /*_.INST__V282*/ meltfptr[125];;
     MELT_LOCATION ("warmelt-normatch.melt:2568:/ checksignal");
     MELT_CHECK_SIGNAL ();
@@ -13463,6 +13539,11 @@ lab_endgetargs:;
     melt_putfield_object (( /*_.INST__V284*/ meltfptr[179]), (2),
 			  ( /*_.NMATCH__V278*/ meltfptr[192]),
 			  "LETBIND_EXPR");
+    ;
+    /*^touchobj */
+
+    melt_dbgtrace_written_object ( /*_.INST__V284*/ meltfptr[179],
+				  "newly made instance");
     ;
     /*_.CBIND__V283*/ meltfptr[178] = /*_.INST__V284*/ meltfptr[179];;
 
@@ -13611,6 +13692,11 @@ lab_endgetargs:;
 	  ;
 	  /*^touch */
 	  meltgc_touch ( /*_.CLOCC__V281*/ meltfptr[135]);
+	  ;
+	  /*^touchobj */
+
+	  melt_dbgtrace_written_object ( /*_.CLOCC__V281*/ meltfptr[135],
+					"put-fields");
 	  ;
 	  /*epilog */
 	}
@@ -14125,6 +14211,11 @@ lab_endgetargs:;
 		/*^touch */
 		meltgc_touch ( /*_.CURTEST__V294*/ meltfptr[150]);
 		;
+		/*^touchobj */
+
+		melt_dbgtrace_written_object ( /*_.CURTEST__V294*/
+					      meltfptr[150], "put-fields");
+		;
 		/*epilog */
 	      }
 	      ;
@@ -14532,6 +14623,11 @@ lab_endgetargs:;
     ;
     /*^touch */
     meltgc_touch ( /*_.CLOCC__V281*/ meltfptr[135]);
+    ;
+    /*^touchobj */
+
+    melt_dbgtrace_written_object ( /*_.CLOCC__V281*/ meltfptr[135],
+				  "put-fields");
     ;
 
 
@@ -15330,6 +15426,11 @@ lab_endgetargs:;
 	  /*^touch */
 	  meltgc_touch (( /*~NTESTCONT */ meltfclos->tabval[0]));
 	  ;
+	  /*^touchobj */
+
+	  melt_dbgtrace_written_object (( /*~NTESTCONT */ meltfclos->
+					 tabval[0]), "put-fields");
+	  ;
 	  /*epilog */
 	}
 	;
@@ -15911,6 +16012,11 @@ lab_endgetargs:;
 		    MELTOBMAG_OBJECT);
     melt_putfield_object (( /*_.INST__V24*/ meltfptr[23]), (3),
 			  ( /*_.BIND__V2*/ meltfptr[1]), "NOCC_BIND");
+    ;
+    /*^touchobj */
+
+    melt_dbgtrace_written_object ( /*_.INST__V24*/ meltfptr[23],
+				  "newly made instance");
     ;
     /*_.SYOCC__V23*/ meltfptr[22] = /*_.INST__V24*/ meltfptr[23];;
 
@@ -16924,6 +17030,11 @@ lab_endgetargs:;
 		    MELTOBMAG_OBJECT);
     melt_putfield_object (( /*_.INST__V28*/ meltfptr[27]), (4),
 			  ( /*_.STR__V4*/ meltfptr[3]), "MFLAG_STRING");
+    ;
+    /*^touchobj */
+
+    melt_dbgtrace_written_object ( /*_.INST__V28*/ meltfptr[27],
+				  "newly made instance");
     ;
     /*_.MFLAG__V27*/ meltfptr[26] = /*_.INST__V28*/ meltfptr[27];;
 
@@ -21142,6 +21253,11 @@ lab_endgetargs:;
 	  /*^touch */
 	  meltgc_touch ( /*_.CURMCASE__V2*/ meltfptr[1]);
 	  ;
+	  /*^touchobj */
+
+	  melt_dbgtrace_written_object ( /*_.CURMCASE__V2*/ meltfptr[1],
+					"put-fields");
+	  ;
 	  /*epilog */
 	}
 	;
@@ -24219,6 +24335,11 @@ lab_endgetargs:;
 	  ;
 	  /*^touch */
 	  meltgc_touch ( /*_.RECV__V2*/ meltfptr[1]);
+	  ;
+	  /*^touchobj */
+
+	  melt_dbgtrace_written_object ( /*_.RECV__V2*/ meltfptr[1],
+					"put-fields");
 	  ;
 
 
@@ -29780,6 +29901,10 @@ lab_endgetargs:;
 					      /*^touch */
 					      meltgc_touch ( /*_.RECV__V2*/
 							    meltfptr[1]);
+					      ;
+					      /*^touchobj */
+
+					      melt_dbgtrace_written_object ( /*_.RECV__V2*/ meltfptr[1], "put-fields");
 					      ;
 
 

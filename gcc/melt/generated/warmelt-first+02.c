@@ -1234,6 +1234,42 @@ meltmod__warmelt_first__initialmeltchunk_49 (struct
 					     frame_melt_start_this_module_st
 					     *, char *);
 void MELT_MODULE_VISIBILITY
+meltmod__warmelt_first__initialmeltchunk_50 (struct
+					     frame_melt_start_this_module_st
+					     *, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_first__initialmeltchunk_51 (struct
+					     frame_melt_start_this_module_st
+					     *, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_first__initialmeltchunk_52 (struct
+					     frame_melt_start_this_module_st
+					     *, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_first__initialmeltchunk_53 (struct
+					     frame_melt_start_this_module_st
+					     *, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_first__initialmeltchunk_54 (struct
+					     frame_melt_start_this_module_st
+					     *, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_first__initialmeltchunk_55 (struct
+					     frame_melt_start_this_module_st
+					     *, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_first__initialmeltchunk_56 (struct
+					     frame_melt_start_this_module_st
+					     *, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_first__initialmeltchunk_57 (struct
+					     frame_melt_start_this_module_st
+					     *, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_first__initialmeltchunk_58 (struct
+					     frame_melt_start_this_module_st
+					     *, char *);
+void MELT_MODULE_VISIBILITY
 meltmod__warmelt_first__forward_or_mark_module_start_frame (struct
 							    melt_callframe_st
 							    *fp, int marking);
@@ -6033,6 +6069,12 @@ lab_endgetargs:;
 			    /*^touch */
 			    meltgc_touch ( /*_.DIS__V2*/ meltfptr[1]);
 			    ;
+			    /*^touchobj */
+
+			    melt_dbgtrace_written_object ( /*_.DIS__V2*/
+							  meltfptr[1],
+							  "put-fields");
+			    ;
 
 
 			    {
@@ -9717,6 +9759,11 @@ lab_endgetargs:;
 				      ( /*_.DESCR__V3*/ meltfptr[2]),
 				      "DENV_DESCR");
 		;
+		/*^touchobj */
+
+		melt_dbgtrace_written_object ( /*_.INST__V8*/ meltfptr[7],
+					      "newly made instance");
+		;
 		/*_.INST___V7*/ meltfptr[6] = /*_.INST__V8*/ meltfptr[7];;
 		/*^compute */
 		/*_.IFELSE___V5*/ meltfptr[4] = /*_.INST___V7*/ meltfptr[6];;
@@ -9777,6 +9824,11 @@ lab_endgetargs:;
 		melt_putfield_object (( /*_.INST__V11*/ meltfptr[10]), (1),
 				      ( /*_.PARENV__V2*/ meltfptr[1]),
 				      "ENV_PREV");
+		;
+		/*^touchobj */
+
+		melt_dbgtrace_written_object ( /*_.INST__V11*/ meltfptr[10],
+					      "newly made instance");
 		;
 		/*_.INST___V10*/ meltfptr[6] = /*_.INST__V11*/ meltfptr[10];;
 		/*^compute */

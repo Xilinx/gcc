@@ -2328,6 +2328,22 @@ meltmod__warmelt_normatch__initialmeltchunk_29 (struct
 						frame_melt_start_this_module_st
 						*, char *);
 void MELT_MODULE_VISIBILITY
+meltmod__warmelt_normatch__initialmeltchunk_30 (struct
+						frame_melt_start_this_module_st
+						*, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_normatch__initialmeltchunk_31 (struct
+						frame_melt_start_this_module_st
+						*, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_normatch__initialmeltchunk_32 (struct
+						frame_melt_start_this_module_st
+						*, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_normatch__initialmeltchunk_33 (struct
+						frame_melt_start_this_module_st
+						*, char *);
+void MELT_MODULE_VISIBILITY
 meltmod__warmelt_normatch__forward_or_mark_module_start_frame (struct
 							       melt_callframe_st
 							       *fp,
@@ -3448,6 +3464,11 @@ lab_endgetargs:;
     melt_putfield_object (( /*_.INST__V19*/ meltfptr[18]), (5),
 			  ( /*_.MAPSTEP__V5*/ meltfptr[4]),
 			  "MCHGX_STEPNAMEMAP");
+    ;
+    /*^touchobj */
+
+    melt_dbgtrace_written_object ( /*_.INST__V19*/ meltfptr[18],
+				  "newly made instance");
     ;
     /*_.MG__V18*/ meltfptr[17] = /*_.INST__V19*/ meltfptr[18];;
     MELT_LOCATION ("warmelt-normatch.melt:6824:/ blockmultialloc");

@@ -879,6 +879,11 @@ void MELT_MODULE_VISIBILITY meltmod__warmelt_debug__initialmeltchunk_5 (struct
 									*,
 									char
 									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_debug__initialmeltchunk_6 (struct
+									frame_melt_start_this_module_st
+									*,
+									char
+									*);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_debug__forward_or_mark_module_start_frame (struct
 							    melt_callframe_st
@@ -1078,6 +1083,12 @@ lab_endgetargs:;
 		/*^touch */
 		meltgc_touch (( /*!EDGE_DEBUG_FUNCONT */ meltfrout->
 			       tabval[0]));
+		;
+		/*^touchobj */
+
+		melt_dbgtrace_written_object (( /*!EDGE_DEBUG_FUNCONT */
+					       meltfrout->tabval[0]),
+					      "put-fields");
 		;
 		/*epilog */
 	      }
@@ -1330,6 +1341,12 @@ lab_endgetargs:;
 		meltgc_touch (( /*!BASICBLOCK_DEBUG_FUNCONT */ meltfrout->
 			       tabval[0]));
 		;
+		/*^touchobj */
+
+		melt_dbgtrace_written_object (( /*!BASICBLOCK_DEBUG_FUNCONT */
+					       meltfrout->tabval[0]),
+					      "put-fields");
+		;
 		/*epilog */
 	      }
 	      ;
@@ -1579,6 +1596,12 @@ lab_endgetargs:;
 		/*^touch */
 		meltgc_touch (( /*!LOOP_DEBUG_FUNCONT */ meltfrout->
 			       tabval[0]));
+		;
+		/*^touchobj */
+
+		melt_dbgtrace_written_object (( /*!LOOP_DEBUG_FUNCONT */
+					       meltfrout->tabval[0]),
+					      "put-fields");
 		;
 		/*epilog */
 	      }
@@ -2119,6 +2142,11 @@ lab_endgetargs:;
 	    melt_putfield_object (( /*_.INST__V17*/ meltfptr[16]), (2),
 				  ( /*_.BOXEDMAXDEPTH__V7*/ meltfptr[6]),
 				  "DBGI_MAXDEPTH");
+	    ;
+	    /*^touchobj */
+
+	    melt_dbgtrace_written_object ( /*_.INST__V17*/ meltfptr[16],
+					  "newly made instance");
 	    ;
 	    /*_.DBGI__V16*/ meltfptr[12] = /*_.INST__V17*/ meltfptr[16];;
 	    /*^compute */

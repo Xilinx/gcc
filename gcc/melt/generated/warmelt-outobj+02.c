@@ -2366,6 +2366,14 @@ meltmod__warmelt_outobj__initialmeltchunk_14 (struct
 					      frame_melt_start_this_module_st
 					      *, char *);
 void MELT_MODULE_VISIBILITY
+meltmod__warmelt_outobj__initialmeltchunk_15 (struct
+					      frame_melt_start_this_module_st
+					      *, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_outobj__initialmeltchunk_16 (struct
+					      frame_melt_start_this_module_st
+					      *, char *);
+void MELT_MODULE_VISIBILITY
 meltmod__warmelt_outobj__forward_or_mark_module_start_frame (struct
 							     melt_callframe_st
 							     *fp,
@@ -4788,6 +4796,11 @@ lab_endgetargs:;
     /*^touch */
     meltgc_touch (( /*!PREVLOC_CONTAINER */ meltfrout->tabval[0]));
     ;
+    /*^touchobj */
+
+    melt_dbgtrace_written_object (( /*!PREVLOC_CONTAINER */ meltfrout->
+				   tabval[0]), "put-fields");
+    ;
 
     MELT_LOCATION ("warmelt-outobj.melt:1171:/ checksignal");
     MELT_CHECK_SIGNAL ();
@@ -4809,6 +4822,11 @@ lab_endgetargs:;
     ;
     /*^touch */
     meltgc_touch (( /*!PREVIMPLBUF_CONTAINER */ meltfrout->tabval[1]));
+    ;
+    /*^touchobj */
+
+    melt_dbgtrace_written_object (( /*!PREVIMPLBUF_CONTAINER */ meltfrout->
+				   tabval[1]), "put-fields");
     ;
 
     MELT_LOCATION ("warmelt-outobj.melt:1174:/ checksignal");
@@ -14541,6 +14559,11 @@ lab_endgetargs:;
 	  /*^touch */
 	  meltgc_touch (( /*!PREVLOC_CONTAINER */ meltfrout->tabval[18]));
 	  ;
+	  /*^touchobj */
+
+	  melt_dbgtrace_written_object (( /*!PREVLOC_CONTAINER */ meltfrout->
+					 tabval[18]), "put-fields");
+	  ;
 
 	  MELT_LOCATION ("warmelt-outobj.melt:1887:/ checksignal");
 	  MELT_CHECK_SIGNAL ();
@@ -14561,6 +14584,12 @@ lab_endgetargs:;
 	  ;
 	  /*^touch */
 	  meltgc_touch (( /*!PREVIMPLBUF_CONTAINER */ meltfrout->tabval[19]));
+	  ;
+	  /*^touchobj */
+
+	  melt_dbgtrace_written_object (( /*!PREVIMPLBUF_CONTAINER */
+					 meltfrout->tabval[19]),
+					"put-fields");
 	  ;
 
 	  MELT_LOCATION ("warmelt-outobj.melt:1888:/ quasiblock");
@@ -15055,6 +15084,11 @@ lab_endgetargs:;
     /*^touch */
     meltgc_touch (( /*!PREVLOC_CONTAINER */ meltfrout->tabval[18]));
     ;
+    /*^touchobj */
+
+    melt_dbgtrace_written_object (( /*!PREVLOC_CONTAINER */ meltfrout->
+				   tabval[18]), "put-fields");
+    ;
 
     MELT_LOCATION ("warmelt-outobj.melt:1904:/ checksignal");
     MELT_CHECK_SIGNAL ();
@@ -15075,6 +15109,11 @@ lab_endgetargs:;
     ;
     /*^touch */
     meltgc_touch (( /*!PREVIMPLBUF_CONTAINER */ meltfrout->tabval[19]));
+    ;
+    /*^touchobj */
+
+    melt_dbgtrace_written_object (( /*!PREVIMPLBUF_CONTAINER */ meltfrout->
+				   tabval[19]), "put-fields");
     ;
 
     MELT_LOCATION ("warmelt-outobj.melt:1905:/ quasiblock");

@@ -880,6 +880,11 @@ void MELT_MODULE_VISIBILITY meltmod__warmelt_debug__initialmeltchunk_5 (struct
 									*,
 									char
 									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_debug__initialmeltchunk_6 (struct
+									frame_melt_start_this_module_st
+									*,
+									char
+									*);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_debug__forward_or_mark_module_start_frame (struct
 							    melt_callframe_st
@@ -1324,6 +1329,11 @@ lab_endgetargs:;
 	  melt_putfield_object (( /*_.INST__V17*/ meltfptr[16]), (2),
 				( /*_.BOXEDMAXDEPTH__V7*/ meltfptr[6]),
 				"DBGI_MAXDEPTH");
+	  ;
+	  /*^touchobj */
+
+	  melt_dbgtrace_written_object ( /*_.INST__V17*/ meltfptr[16],
+					"newly made instance");
 	  ;
 	  /*_.DBGI__V16*/ meltfptr[12] = /*_.INST__V17*/ meltfptr[16];;
 	  /*^compute */
@@ -1883,6 +1893,12 @@ lab_endgetargs:;
 		meltgc_touch (( /*!TREE_DEBUG_FUNCONT */ meltfrout->
 			       tabval[0]));
 		;
+		/*^touchobj */
+
+		melt_dbgtrace_written_object (( /*!TREE_DEBUG_FUNCONT */
+					       meltfrout->tabval[0]),
+					      "put-fields");
+		;
 		/*epilog */
 	      }
 	      ;
@@ -2130,6 +2146,12 @@ lab_endgetargs:;
 		/*^touch */
 		meltgc_touch (( /*!GIMPLE_DEBUG_FUNCONT */ meltfrout->
 			       tabval[0]));
+		;
+		/*^touchobj */
+
+		melt_dbgtrace_written_object (( /*!GIMPLE_DEBUG_FUNCONT */
+					       meltfrout->tabval[0]),
+					      "put-fields");
 		;
 		/*epilog */
 	      }
@@ -2381,6 +2403,12 @@ lab_endgetargs:;
 		/*^touch */
 		meltgc_touch (( /*!GIMPLESEQ_DEBUG_FUNCONT */ meltfrout->
 			       tabval[0]));
+		;
+		/*^touchobj */
+
+		melt_dbgtrace_written_object (( /*!GIMPLESEQ_DEBUG_FUNCONT */
+					       meltfrout->tabval[0]),
+					      "put-fields");
 		;
 		/*epilog */
 	      }
@@ -2853,7 +2881,7 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
 	     (void *) iniframp__);
   (void) meltpredefinited;	/* avoid warning if non-used. */
   melt_assertmsg ("check module initial frame",
-		  iniframp__->mcfr_nbvar == /*minihash */ -3574);
+		  iniframp__->mcfr_nbvar == /*minihash */ -2663);
   cdat = (struct cdata_st *) meltgc_allocate (sizeof (*cdat), 0);
   melt_prohibit_garbcoll = TRUE;
   /*initial routine predef */
@@ -7187,7 +7215,7 @@ melt_start_this_module (void *modargp_)
 /**initial routine prologue**/
   /* set initial frame marking */
   ((struct melt_callframe_st *) &meltfram__)->mcfr_nbvar =
-    /*minihash */ -3574;
+    /*minihash */ -2663;
   ((struct melt_callframe_st *) &meltfram__)->mcfr_forwmarkrout =
     meltmod__warmelt_debug__forward_or_mark_module_start_frame;
  /**COMMENT: get previous environment **/ ;
@@ -8694,7 +8722,8 @@ melt_start_this_module (void *modargp_)
   meltmod__warmelt_debug__initialmeltchunk_2 (&meltfram__, meltpredefinited);
   meltmod__warmelt_debug__initialmeltchunk_3 (&meltfram__, meltpredefinited);
   meltmod__warmelt_debug__initialmeltchunk_4 (&meltfram__, meltpredefinited);
-  meltmod__warmelt_debug__initialmeltchunk_5 (&meltfram__, meltpredefinited);;
+  meltmod__warmelt_debug__initialmeltchunk_5 (&meltfram__, meltpredefinited);
+  meltmod__warmelt_debug__initialmeltchunk_6 (&meltfram__, meltpredefinited);;
   goto labend_rout;
 labend_rout:;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -8741,6 +8770,10 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V47*/ meltfptr[46]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V47*/ meltfptr[46],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -8758,6 +8791,10 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V49*/ meltfptr[48]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V49*/ meltfptr[48],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:39:/ initchunk");
   /*^putslot */
@@ -8867,6 +8904,12 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
   meltgc_touch ( /*_.VALDATA___V54*/ meltfptr[53]);
 
   MELT_LOCATION ("warmelt-debug.melt:39:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V54*/ meltfptr[53],
+				"new static instance");
+
+  MELT_LOCATION ("warmelt-debug.melt:39:/ initchunk");
   /*^putslot */
   /*putslot */
   melt_assertmsg ("putslot checkobj",
@@ -8906,6 +8949,12 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
   meltgc_touch ( /*_.VALDATA___V56*/ meltfptr[55]);
 
   MELT_LOCATION ("warmelt-debug.melt:39:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V56*/ meltfptr[55],
+				"new static instance");
+
+  MELT_LOCATION ("warmelt-debug.melt:39:/ initchunk");
   /*^putslot */
   /*putslot */
   melt_assertmsg ("putslot checkobj",
@@ -8943,6 +8992,12 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
   /*^touch */
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V58*/ meltfptr[57]);
+
+  MELT_LOCATION ("warmelt-debug.melt:39:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V58*/ meltfptr[57],
+				"new static instance");
 
   /*putupl#8 */
   melt_assertmsg ("putupl #8 checktup",
@@ -9011,6 +9066,12 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V51*/ meltfptr[50]);
 
+  MELT_LOCATION ("warmelt-debug.melt:39:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V51*/ meltfptr[50],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -9028,6 +9089,10 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V61*/ meltfptr[60]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V61*/ meltfptr[60],
+				"new static instance");
 
   /*putslot */
   melt_assertmsg ("putslot checkobj",
@@ -9047,6 +9112,10 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V63*/ meltfptr[62]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V63*/ meltfptr[62],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -9065,6 +9134,10 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V65*/ meltfptr[64]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V65*/ meltfptr[64],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -9082,6 +9155,10 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V67*/ meltfptr[66]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V67*/ meltfptr[66],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:53:/ initchunk");
   /*^putslot */
@@ -9176,6 +9253,12 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V69*/ meltfptr[68]);
 
+  MELT_LOCATION ("warmelt-debug.melt:53:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V69*/ meltfptr[68],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -9193,6 +9276,10 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V74*/ meltfptr[73]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V74*/ meltfptr[73],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:61:/ initchunk");
   /*^putslot */
@@ -9228,6 +9315,10 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V79*/ meltfptr[78]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V79*/ meltfptr[78],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:61:/ initchunk");
   /*^putslot */
@@ -9267,6 +9358,12 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
   /*^touch */
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V78*/ meltfptr[77]);
+
+  MELT_LOCATION ("warmelt-debug.melt:61:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V78*/ meltfptr[77],
+				"new static instance");
 
   /*putupl#12 */
   melt_assertmsg ("putupl #12 checktup",
@@ -9386,6 +9483,12 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V76*/ meltfptr[75]);
 
+  MELT_LOCATION ("warmelt-debug.melt:61:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V76*/ meltfptr[75],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -9403,6 +9506,10 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V85*/ meltfptr[84]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V85*/ meltfptr[84],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:66:/ initchunk");
   /*^putslot */
@@ -9497,6 +9604,12 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V87*/ meltfptr[86]);
 
+  MELT_LOCATION ("warmelt-debug.melt:66:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V87*/ meltfptr[86],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -9514,6 +9627,10 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V92*/ meltfptr[91]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V92*/ meltfptr[91],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:69:/ initchunk");
   /*^putslot */
@@ -9571,6 +9688,12 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V96*/ meltfptr[95]);
 
+  MELT_LOCATION ("warmelt-debug.melt:69:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V96*/ meltfptr[95],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -9588,6 +9711,10 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V98*/ meltfptr[97]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V98*/ meltfptr[97],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:69:/ initchunk");
   /*^putslot */
@@ -9627,6 +9754,12 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
   /*^touch */
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V97*/ meltfptr[96]);
+
+  MELT_LOCATION ("warmelt-debug.melt:69:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V97*/ meltfptr[96],
+				"new static instance");
 
   /*putupl#17 */
   melt_assertmsg ("putupl #17 checktup",
@@ -9788,6 +9921,12 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V94*/ meltfptr[93]);
 
+  MELT_LOCATION ("warmelt-debug.melt:69:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V94*/ meltfptr[93],
+				"new static instance");
+
   MELT_LOCATION ("warmelt-debug.melt:76:/ initchunk");
   /*^putroutconst */
   /*putroutconst */
@@ -9917,6 +10056,12 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V110*/ meltfptr[109]);
 
+  MELT_LOCATION ("warmelt-debug.melt:174:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V110*/ meltfptr[109],
+				"new static instance");
+
   MELT_LOCATION ("warmelt-debug.melt:446:/ initchunk");
   /*^putroutconstnotnull */
   /*putroutconstnotnull */
@@ -9943,6 +10088,20 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
   ((meltroutine_ptr_t) /*_.VALROUT___V109*/ meltfptr[108])->tabval[2] =
     (melt_ptr_t) ( /*_.DISCR_INTEGER__V11*/ meltfptr[10]);
 
+
+#undef meltfram__
+}				/*end of meltmod__warmelt_debug__initialmeltchunk_0 */
+
+void
+meltmod__warmelt_debug__initialmeltchunk_1 (struct
+					    frame_melt_start_this_module_st
+					    *meltmeltframptr__,
+					    char meltpredefinited[])
+{
+#define meltfram__ (*meltmeltframptr__)
+#undef meltcallcount
+#define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-debug.melt:165:/ initchunk");
   /*^putslot */
   /*putslot */
@@ -9965,6 +10124,12 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
   /*^touch */
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V112*/ meltfptr[111]);
+
+  MELT_LOCATION ("warmelt-debug.melt:165:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V112*/ meltfptr[111],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:446:/ initchunk");
   /*^putroutconstnotnull */
@@ -10093,6 +10258,10 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V115*/ meltfptr[114]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V115*/ meltfptr[114],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -10112,6 +10281,10 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V117*/ meltfptr[116]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V117*/ meltfptr[116],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -10130,6 +10303,10 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V119*/ meltfptr[118]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V119*/ meltfptr[118],
+				"new static instance");
 
   /*putslot */
   melt_assertmsg ("putslot checkobj",
@@ -10151,20 +10328,10 @@ meltmod__warmelt_debug__initialmeltchunk_0 (struct
   meltgc_touch ( /*_.VALDATA___V121*/ meltfptr[120]);
 
 
-#undef meltfram__
-}				/*end of meltmod__warmelt_debug__initialmeltchunk_0 */
+  melt_dbgtrace_written_object ( /*_.VALDATA___V121*/ meltfptr[120],
+				"new static instance");
 
-void
-meltmod__warmelt_debug__initialmeltchunk_1 (struct
-					    frame_melt_start_this_module_st
-					    *meltmeltframptr__,
-					    char meltpredefinited[])
-{
-#define meltfram__ (*meltmeltframptr__)
-#undef meltcallcount
-#define meltcallcount 0L
-  (void) meltpredefinited;
-/*putslot*/
+  /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
 				    ( /*_.VALDATA___V123*/ meltfptr[122])) ==
@@ -10182,6 +10349,10 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V123*/ meltfptr[122]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V123*/ meltfptr[122],
+				"new static instance");
 
   /*putslot */
   melt_assertmsg ("putslot checkobj",
@@ -10202,6 +10373,10 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V125*/ meltfptr[124]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V125*/ meltfptr[124],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -10221,6 +10396,10 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V127*/ meltfptr[126]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V127*/ meltfptr[126],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -10239,6 +10418,10 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V129*/ meltfptr[128]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V129*/ meltfptr[128],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:165:/ initchunk");
   /*^putslot */
@@ -10281,6 +10464,12 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V131*/ meltfptr[130]);
 
+  MELT_LOCATION ("warmelt-debug.melt:165:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V131*/ meltfptr[130],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -10299,6 +10488,10 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V132*/ meltfptr[131]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V132*/ meltfptr[131],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:165:/ initchunk");
   /*^putslot */
@@ -10342,6 +10535,12 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
   meltgc_touch ( /*_.VALDATA___V134*/ meltfptr[133]);
 
   MELT_LOCATION ("warmelt-debug.melt:165:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V134*/ meltfptr[133],
+				"new static instance");
+
+  MELT_LOCATION ("warmelt-debug.melt:165:/ initchunk");
   /*^putslot */
   /*putslot */
   melt_assertmsg ("putslot checkobj",
@@ -10381,6 +10580,12 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
   /*^touch */
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V135*/ meltfptr[134]);
+
+  MELT_LOCATION ("warmelt-debug.melt:165:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V135*/ meltfptr[134],
+				"new static instance");
 
   /*putupl#24 */
   melt_assertmsg ("putupl #24 checktup",
@@ -10446,6 +10651,10 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V137*/ meltfptr[136]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V137*/ meltfptr[136],
+				"new static instance");
+
   MELT_LOCATION ("warmelt-debug.melt:174:/ initchunk");
   /*^putslot */
   /*putslot */
@@ -10486,6 +10695,12 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
   /*^touch */
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V139*/ meltfptr[138]);
+
+  MELT_LOCATION ("warmelt-debug.melt:174:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V139*/ meltfptr[138],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:174:/ initchunk");
   /*^putslot */
@@ -10529,6 +10744,12 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
   meltgc_touch ( /*_.VALDATA___V140*/ meltfptr[139]);
 
   MELT_LOCATION ("warmelt-debug.melt:174:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V140*/ meltfptr[139],
+				"new static instance");
+
+  MELT_LOCATION ("warmelt-debug.melt:174:/ initchunk");
   /*^putslot */
   /*putslot */
   melt_assertmsg ("putslot checkobj",
@@ -10568,6 +10789,12 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
   /*^touch */
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V141*/ meltfptr[140]);
+
+  MELT_LOCATION ("warmelt-debug.melt:174:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V141*/ meltfptr[140],
+				"new static instance");
 
   /*putupl#27 */
   melt_assertmsg ("putupl #27 checktup",
@@ -10633,6 +10860,10 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V143*/ meltfptr[142]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V143*/ meltfptr[142],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -10652,10 +10883,20 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V145*/ meltfptr[144]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V145*/ meltfptr[144],
+				"new static instance");
+
   MELT_LOCATION ("warmelt-debug.melt:185:/ initchunk");
   /*^touch */
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V147*/ meltfptr[146]);
+
+  MELT_LOCATION ("warmelt-debug.melt:185:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V147*/ meltfptr[146],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:186:/ initchunk");
   /*^putroutconstnotnull */
@@ -10723,10 +10964,20 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V150*/ meltfptr[149]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V150*/ meltfptr[149],
+				"new static instance");
+
   MELT_LOCATION ("warmelt-debug.melt:198:/ initchunk");
   /*^touch */
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V152*/ meltfptr[151]);
+
+  MELT_LOCATION ("warmelt-debug.melt:198:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V152*/ meltfptr[151],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:199:/ initchunk");
   /*^putroutconstnotnull */
@@ -10794,10 +11045,20 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V155*/ meltfptr[154]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V155*/ meltfptr[154],
+				"new static instance");
+
   MELT_LOCATION ("warmelt-debug.melt:211:/ initchunk");
   /*^touch */
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V157*/ meltfptr[156]);
+
+  MELT_LOCATION ("warmelt-debug.melt:211:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V157*/ meltfptr[156],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:212:/ initchunk");
   /*^putroutconstnotnull */
@@ -10865,10 +11126,20 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V160*/ meltfptr[159]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V160*/ meltfptr[159],
+				"new static instance");
+
   MELT_LOCATION ("warmelt-debug.melt:224:/ initchunk");
   /*^touch */
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V162*/ meltfptr[161]);
+
+  MELT_LOCATION ("warmelt-debug.melt:224:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V162*/ meltfptr[161],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:225:/ initchunk");
   /*^putroutconstnotnull */
@@ -10936,10 +11207,20 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V165*/ meltfptr[164]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V165*/ meltfptr[164],
+				"new static instance");
+
   MELT_LOCATION ("warmelt-debug.melt:237:/ initchunk");
   /*^touch */
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V167*/ meltfptr[166]);
+
+  MELT_LOCATION ("warmelt-debug.melt:237:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V167*/ meltfptr[166],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:238:/ initchunk");
   /*^putroutconstnotnull */
@@ -10968,6 +11249,20 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
   ((meltroutine_ptr_t) /*_.VALROUT___V168*/ meltfptr[167])->tabval[1] =
     (melt_ptr_t) ( /*_.CLASS_REFERENCE__V14*/ meltfptr[13]);
 
+
+#undef meltfram__
+}				/*end of meltmod__warmelt_debug__initialmeltchunk_1 */
+
+void
+meltmod__warmelt_debug__initialmeltchunk_2 (struct
+					    frame_melt_start_this_module_st
+					    *meltmeltframptr__,
+					    char meltpredefinited[])
+{
+#define meltfram__ (*meltmeltframptr__)
+#undef meltcallcount
+#define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-debug.melt:238:/ initchunk");
   /*^touch */
   /*touch:IROUTVAL_ */
@@ -11007,10 +11302,20 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V170*/ meltfptr[169]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V170*/ meltfptr[169],
+				"new static instance");
+
   MELT_LOCATION ("warmelt-debug.melt:250:/ initchunk");
   /*^touch */
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V172*/ meltfptr[171]);
+
+  MELT_LOCATION ("warmelt-debug.melt:250:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V172*/ meltfptr[171],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:251:/ initchunk");
   /*^putroutconstnotnull */
@@ -11078,6 +11383,10 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V175*/ meltfptr[174]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V175*/ meltfptr[174],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -11096,6 +11405,10 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V177*/ meltfptr[176]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V177*/ meltfptr[176],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:263:/ initchunk");
   /*^putslot */
@@ -11138,6 +11451,12 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V179*/ meltfptr[178]);
 
+  MELT_LOCATION ("warmelt-debug.melt:263:/ initchunk");
+  /*^touchobj */
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V179*/ meltfptr[178],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -11156,6 +11475,10 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V181*/ meltfptr[180]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V181*/ meltfptr[180],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:272:/ initchunk");
   /*^putroutconst */
@@ -11444,6 +11767,10 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V185*/ meltfptr[184]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V185*/ meltfptr[184],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -11462,6 +11789,10 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V187*/ meltfptr[186]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V187*/ meltfptr[186],
+				"new static instance");
 
   /*putslot */
   melt_assertmsg ("putslot checkobj",
@@ -11482,6 +11813,10 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V189*/ meltfptr[188]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V189*/ meltfptr[188],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -11501,6 +11836,10 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V191*/ meltfptr[190]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V191*/ meltfptr[190],
+				"new static instance");
+
   MELT_LOCATION ("warmelt-debug.melt:493:/ initchunk");
   /*^putroutconstnotnull */
   /*putroutconstnotnull */
@@ -11513,20 +11852,6 @@ meltmod__warmelt_debug__initialmeltchunk_1 (struct
   ((meltroutine_ptr_t) /*_.VALROUT___V193*/ meltfptr[192])->tabval[0] =
     (melt_ptr_t) ( /*_.VALDATA___V51*/ meltfptr[50]);
 
-
-#undef meltfram__
-}				/*end of meltmod__warmelt_debug__initialmeltchunk_1 */
-
-void
-meltmod__warmelt_debug__initialmeltchunk_2 (struct
-					    frame_melt_start_this_module_st
-					    *meltmeltframptr__,
-					    char meltpredefinited[])
-{
-#define meltfram__ (*meltmeltframptr__)
-#undef meltcallcount
-#define meltcallcount 0L
-  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-debug.melt:493:/ initchunk");
   /*^putroutconstnotnull */
   /*putroutconstnotnull */
@@ -11637,6 +11962,10 @@ meltmod__warmelt_debug__initialmeltchunk_2 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V199*/ meltfptr[198]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V199*/ meltfptr[198],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -11655,6 +11984,10 @@ meltmod__warmelt_debug__initialmeltchunk_2 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V201*/ meltfptr[200]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V201*/ meltfptr[200],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:594:/ initchunk");
   /*^putroutconstnotnull */
@@ -11720,6 +12053,10 @@ meltmod__warmelt_debug__initialmeltchunk_2 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V205*/ meltfptr[204]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V205*/ meltfptr[204],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:616:/ initchunk");
   /*^putroutconstnotnull */
@@ -11877,6 +12214,10 @@ meltmod__warmelt_debug__initialmeltchunk_2 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V211*/ meltfptr[210]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V211*/ meltfptr[210],
+				"new static instance");
+
   MELT_LOCATION ("warmelt-debug.melt:723:/ initchunk");
   /*^putroutconstnotnull */
   /*putroutconstnotnull */
@@ -11954,6 +12295,10 @@ meltmod__warmelt_debug__initialmeltchunk_2 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V215*/ meltfptr[214]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V215*/ meltfptr[214],
+				"new static instance");
+
   MELT_LOCATION ("warmelt-debug.melt:750:/ initchunk");
   /*^putroutconstnotnull */
   /*putroutconstnotnull */
@@ -12019,6 +12364,10 @@ meltmod__warmelt_debug__initialmeltchunk_2 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V219*/ meltfptr[218]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V219*/ meltfptr[218],
+				"new static instance");
+
   MELT_LOCATION ("warmelt-debug.melt:779:/ initchunk");
   /*^putroutconstnotnull */
   /*putroutconstnotnull */
@@ -12082,6 +12431,10 @@ meltmod__warmelt_debug__initialmeltchunk_2 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V223*/ meltfptr[222]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V223*/ meltfptr[222],
+				"new static instance");
+
   MELT_LOCATION ("warmelt-debug.melt:801:/ initchunk");
   /*^putroutconstnotnull */
   /*putroutconstnotnull */
@@ -12094,6 +12447,20 @@ meltmod__warmelt_debug__initialmeltchunk_2 (struct
   ((meltroutine_ptr_t) /*_.VALROUT___V225*/ meltfptr[224])->tabval[0] =
     (melt_ptr_t) ( /*_.VALDATA___V51*/ meltfptr[50]);
 
+
+#undef meltfram__
+}				/*end of meltmod__warmelt_debug__initialmeltchunk_2 */
+
+void
+meltmod__warmelt_debug__initialmeltchunk_3 (struct
+					    frame_melt_start_this_module_st
+					    *meltmeltframptr__,
+					    char meltpredefinited[])
+{
+#define meltfram__ (*meltmeltframptr__)
+#undef meltcallcount
+#define meltcallcount 0L
+  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-debug.melt:801:/ initchunk");
   /*^putroutconst */
   /*putroutconst */
@@ -12159,6 +12526,10 @@ meltmod__warmelt_debug__initialmeltchunk_2 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V227*/ meltfptr[226]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V227*/ meltfptr[226],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:834:/ initchunk");
   /*^putroutconstnotnull */
@@ -12300,6 +12671,10 @@ meltmod__warmelt_debug__initialmeltchunk_2 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V232*/ meltfptr[231]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V232*/ meltfptr[231],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -12318,6 +12693,10 @@ meltmod__warmelt_debug__initialmeltchunk_2 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V234*/ meltfptr[233]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V234*/ meltfptr[233],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:861:/ initchunk");
   /*^putroutconstnotnull */
@@ -12455,6 +12834,10 @@ meltmod__warmelt_debug__initialmeltchunk_2 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V240*/ meltfptr[239]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V240*/ meltfptr[239],
+				"new static instance");
+
   MELT_LOCATION ("warmelt-debug.melt:941:/ initchunk");
   /*^putroutconstnotnull */
   /*putroutconstnotnull */
@@ -12531,6 +12914,10 @@ meltmod__warmelt_debug__initialmeltchunk_2 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V244*/ meltfptr[243]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V244*/ meltfptr[243],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:963:/ initchunk");
   /*^putroutconstnotnull */
@@ -12839,20 +13226,6 @@ meltmod__warmelt_debug__initialmeltchunk_2 (struct
   /*touch:IROUTVAL_ */
   meltgc_touch ( /*_.VALROUT___V252*/ meltfptr[251]);
 
-
-#undef meltfram__
-}				/*end of meltmod__warmelt_debug__initialmeltchunk_2 */
-
-void
-meltmod__warmelt_debug__initialmeltchunk_3 (struct
-					    frame_melt_start_this_module_st
-					    *meltmeltframptr__,
-					    char meltpredefinited[])
-{
-#define meltfram__ (*meltmeltframptr__)
-#undef meltcallcount
-#define meltcallcount 0L
-  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-debug.melt:963:/ initchunk");
   /*^putroutconst */
   /*putroutconst */
@@ -12907,6 +13280,10 @@ meltmod__warmelt_debug__initialmeltchunk_3 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V254*/ meltfptr[253]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V254*/ meltfptr[253],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -12926,6 +13303,10 @@ meltmod__warmelt_debug__initialmeltchunk_3 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V256*/ meltfptr[255]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V256*/ meltfptr[255],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -12944,6 +13325,10 @@ meltmod__warmelt_debug__initialmeltchunk_3 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V258*/ meltfptr[257]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V258*/ meltfptr[257],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:1048:/ initchunk");
   /*^putroutconstnotnull */
@@ -13282,6 +13667,10 @@ meltmod__warmelt_debug__initialmeltchunk_3 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V268*/ meltfptr[267]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V268*/ meltfptr[267],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -13300,6 +13689,10 @@ meltmod__warmelt_debug__initialmeltchunk_3 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V270*/ meltfptr[269]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V270*/ meltfptr[269],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:1129:/ initchunk");
   /*^putroutconstnotnull */
@@ -13408,6 +13801,24 @@ meltmod__warmelt_debug__initialmeltchunk_3 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V274*/ meltfptr[273]);
+
+
+#undef meltfram__
+}				/*end of meltmod__warmelt_debug__initialmeltchunk_3 */
+
+void
+meltmod__warmelt_debug__initialmeltchunk_4 (struct
+					    frame_melt_start_this_module_st
+					    *meltmeltframptr__,
+					    char meltpredefinited[])
+{
+#define meltfram__ (*meltmeltframptr__)
+#undef meltcallcount
+#define meltcallcount 0L
+  (void) meltpredefinited;
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V274*/ meltfptr[273],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:1165:/ initchunk");
   /*^putroutconstnotnull */
@@ -13519,6 +13930,10 @@ meltmod__warmelt_debug__initialmeltchunk_3 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V280*/ meltfptr[279]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V280*/ meltfptr[279],
+				"new static instance");
+
   MELT_LOCATION ("warmelt-debug.melt:1202:/ initchunk");
   /*^putroutconstnotnull */
   /*putroutconstnotnull */
@@ -13626,6 +14041,10 @@ meltmod__warmelt_debug__initialmeltchunk_3 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V286*/ meltfptr[285]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V286*/ meltfptr[285],
+				"new static instance");
+
   MELT_LOCATION ("warmelt-debug.melt:1254:/ initchunk");
   /*^putroutconstnotnull */
   /*putroutconstnotnull */
@@ -13723,6 +14142,10 @@ meltmod__warmelt_debug__initialmeltchunk_3 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V292*/ meltfptr[291]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V292*/ meltfptr[291],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:1289:/ initchunk");
   /*^putroutconstnotnull */
@@ -13883,6 +14306,10 @@ meltmod__warmelt_debug__initialmeltchunk_3 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V298*/ meltfptr[297]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V298*/ meltfptr[297],
+				"new static instance");
+
   MELT_LOCATION ("warmelt-debug.melt:1309:/ initchunk");
   /*^putroutconstnotnull */
   /*putroutconstnotnull */
@@ -13948,6 +14375,10 @@ meltmod__warmelt_debug__initialmeltchunk_3 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V302*/ meltfptr[301]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V302*/ meltfptr[301],
+				"new static instance");
 
   MELT_LOCATION ("warmelt-debug.melt:1322:/ initchunk");
   /*^putroutconstnotnull */
@@ -14054,6 +14485,10 @@ meltmod__warmelt_debug__initialmeltchunk_3 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V308*/ meltfptr[307]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V308*/ meltfptr[307],
+				"new static instance");
+
   MELT_LOCATION ("warmelt-debug.melt:1347:/ initchunk");
   /*^putroutconstnotnull */
   /*putroutconstnotnull */
@@ -14152,20 +14587,6 @@ meltmod__warmelt_debug__initialmeltchunk_3 (struct
   ((meltroutine_ptr_t) /*_.VALROUT___V312*/ meltfptr[311])->tabval[1] =
     (melt_ptr_t) ( /*_.CLASS_ENVIRONMENT__V44*/ meltfptr[43]);
 
-
-#undef meltfram__
-}				/*end of meltmod__warmelt_debug__initialmeltchunk_3 */
-
-void
-meltmod__warmelt_debug__initialmeltchunk_4 (struct
-					    frame_melt_start_this_module_st
-					    *meltmeltframptr__,
-					    char meltpredefinited[])
-{
-#define meltfram__ (*meltmeltframptr__)
-#undef meltcallcount
-#define meltcallcount 0L
-  (void) meltpredefinited;
   MELT_LOCATION ("warmelt-debug.melt:1358:/ initchunk");
   /*^putroutconst */
   /*putroutconst */
@@ -14244,6 +14665,10 @@ meltmod__warmelt_debug__initialmeltchunk_4 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V314*/ meltfptr[313]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V314*/ meltfptr[313],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -14262,6 +14687,10 @@ meltmod__warmelt_debug__initialmeltchunk_4 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V316*/ meltfptr[315]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V316*/ meltfptr[315],
+				"new static instance");
 
   /*putclosurout#41 */
   melt_assertmsg ("putclosrout#41 checkclo",
@@ -14438,6 +14867,10 @@ meltmod__warmelt_debug__initialmeltchunk_4 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V324*/ meltfptr[323]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V324*/ meltfptr[323],
+				"new static instance");
+
   MELT_LOCATION ("warmelt-debug.melt:1455:/ initchunk");
   /*^putroutconst */
   /*putroutconst */
@@ -14546,6 +14979,10 @@ meltmod__warmelt_debug__initialmeltchunk_4 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V328*/ meltfptr[327]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V328*/ meltfptr[327],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -14562,8 +14999,26 @@ meltmod__warmelt_debug__initialmeltchunk_4 (struct
     (melt_ptr_t) (
   /*_.VALSTR___V331*/ meltfptr[330]);
 
-  /*touch:VALUEDATA_ */
+
+#undef meltfram__
+}				/*end of meltmod__warmelt_debug__initialmeltchunk_4 */
+
+void
+meltmod__warmelt_debug__initialmeltchunk_5 (struct
+					    frame_melt_start_this_module_st
+					    *meltmeltframptr__,
+					    char meltpredefinited[])
+{
+#define meltfram__ (*meltmeltframptr__)
+#undef meltcallcount
+#define meltcallcount 0L
+  (void) meltpredefinited;
+/*touch:VALUEDATA_*/
   meltgc_touch ( /*_.VALDATA___V330*/ meltfptr[329]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V330*/ meltfptr[329],
+				"new static instance");
 
   /*putslot */
   melt_assertmsg ("putslot checkobj",
@@ -14584,6 +15039,10 @@ meltmod__warmelt_debug__initialmeltchunk_4 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V332*/ meltfptr[331]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V332*/ meltfptr[331],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -14602,6 +15061,10 @@ meltmod__warmelt_debug__initialmeltchunk_4 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V334*/ meltfptr[333]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V334*/ meltfptr[333],
+				"new static instance");
 
   /*putslot */
   melt_assertmsg ("putslot checkobj",
@@ -14622,6 +15085,10 @@ meltmod__warmelt_debug__initialmeltchunk_4 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V336*/ meltfptr[335]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V336*/ meltfptr[335],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -14640,6 +15107,10 @@ meltmod__warmelt_debug__initialmeltchunk_4 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V338*/ meltfptr[337]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V338*/ meltfptr[337],
+				"new static instance");
 
   /*putslot */
   melt_assertmsg ("putslot checkobj",
@@ -14660,6 +15131,10 @@ meltmod__warmelt_debug__initialmeltchunk_4 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V340*/ meltfptr[339]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V340*/ meltfptr[339],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -14678,6 +15153,10 @@ meltmod__warmelt_debug__initialmeltchunk_4 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V342*/ meltfptr[341]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V342*/ meltfptr[341],
+				"new static instance");
 
   /*putslot */
   melt_assertmsg ("putslot checkobj",
@@ -14698,6 +15177,10 @@ meltmod__warmelt_debug__initialmeltchunk_4 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V344*/ meltfptr[343]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V344*/ meltfptr[343],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -14716,6 +15199,10 @@ meltmod__warmelt_debug__initialmeltchunk_4 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V346*/ meltfptr[345]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V346*/ meltfptr[345],
+				"new static instance");
 
   /*putslot */
   melt_assertmsg ("putslot checkobj",
@@ -14736,6 +15223,10 @@ meltmod__warmelt_debug__initialmeltchunk_4 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V348*/ meltfptr[347]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V348*/ meltfptr[347],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -14755,6 +15246,10 @@ meltmod__warmelt_debug__initialmeltchunk_4 (struct
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V350*/ meltfptr[349]);
 
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V350*/ meltfptr[349],
+				"new static instance");
+
   /*putslot */
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
@@ -14773,6 +15268,10 @@ meltmod__warmelt_debug__initialmeltchunk_4 (struct
 
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V352*/ meltfptr[351]);
+
+
+  melt_dbgtrace_written_object ( /*_.VALDATA___V352*/ meltfptr[351],
+				"new static instance");
 
  /**COMMENT: before toplevel body **/ ;
 
@@ -16522,6 +17021,11 @@ meltmod__warmelt_debug__initialmeltchunk_4 (struct
 	  /*^touch */
 	  meltgc_touch ( /*_.INITIAL_SYSTEM_DATA__V8*/ meltfptr[7]);
 	  ;
+	  /*^touchobj */
+
+	  melt_dbgtrace_written_object ( /*_.INITIAL_SYSTEM_DATA__V8*/
+					meltfptr[7], "put-fields");
+	  ;
 	  /*epilog */
 	}
 	;
@@ -16677,21 +17181,7 @@ meltmod__warmelt_debug__initialmeltchunk_4 (struct
   (void)
     meltgc_intern_symbol ((melt_ptr_t) ( /*_.VALDATA___V145*/ meltfptr[144]));
 
-
-#undef meltfram__
-}				/*end of meltmod__warmelt_debug__initialmeltchunk_4 */
-
-void
-meltmod__warmelt_debug__initialmeltchunk_5 (struct
-					    frame_melt_start_this_module_st
-					    *meltmeltframptr__,
-					    char meltpredefinited[])
-{
-#define meltfram__ (*meltmeltframptr__)
-#undef meltcallcount
-#define meltcallcount 0L
-  (void) meltpredefinited;
-/*internsym:GIMPLE_DEBUG_FUNCONT*/
+  /*internsym:GIMPLE_DEBUG_FUNCONT */
   (void)
     meltgc_intern_symbol ((melt_ptr_t) ( /*_.VALDATA___V150*/ meltfptr[149]));
 
@@ -16799,7 +17289,21 @@ meltmod__warmelt_debug__initialmeltchunk_5 (struct
   (void)
     meltgc_intern_symbol ((melt_ptr_t) ( /*_.VALDATA___V258*/ meltfptr[257]));
 
-  /*internsym:DISCR_MAP_STRINGS */
+
+#undef meltfram__
+}				/*end of meltmod__warmelt_debug__initialmeltchunk_5 */
+
+void
+meltmod__warmelt_debug__initialmeltchunk_6 (struct
+					    frame_melt_start_this_module_st
+					    *meltmeltframptr__,
+					    char meltpredefinited[])
+{
+#define meltfram__ (*meltmeltframptr__)
+#undef meltcallcount
+#define meltcallcount 0L
+  (void) meltpredefinited;
+/*internsym:DISCR_MAP_STRINGS*/
   (void)
     meltgc_intern_symbol ((melt_ptr_t) ( /*_.VALDATA___V268*/ meltfptr[267]));
 
@@ -16908,7 +17412,7 @@ meltmod__warmelt_debug__initialmeltchunk_5 (struct
 
 
 #undef meltfram__
-}				/*end of meltmod__warmelt_debug__initialmeltchunk_5 */
+}				/*end of meltmod__warmelt_debug__initialmeltchunk_6 */
 
 void
 meltmod__warmelt_debug__forward_or_mark_module_start_frame (struct
@@ -16918,7 +17422,7 @@ meltmod__warmelt_debug__forward_or_mark_module_start_frame (struct
   int ix = 0;
   initial_frame_st *meltframptr_ = (initial_frame_st *) fp;
   melt_assertmsg ("check module frame",
-		  meltframptr_->mcfr_nbvar == /*minihash */ -3574);
+		  meltframptr_->mcfr_nbvar == /*minihash */ -2663);
   if (!marking && melt_is_forwarding)
     {
       dbgprintf
