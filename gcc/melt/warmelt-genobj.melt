@@ -408,6 +408,14 @@
 	   obrallobj_classname		;the class name
 	   ))
 
+;; instruction for touched objects, for the GC and for low level debug
+;; purposes see melt_dbgtrace_touched_object macro in runtime.
+(defclass class_objtouchedobj
+  :super  class_objinstr
+  :fields (obto_touchedobj		;the touched object
+	   obto_message			;the message
+	   ))
+
 
 ;; new closure allocation
 (defclass class_objnewclosure
@@ -639,6 +647,7 @@
  class_objrawallocobj
  class_objsetpredef
  class_objtouch
+ class_objtouchedobj
  class_objvalue
  class_procroutineobj
  class_routineobj

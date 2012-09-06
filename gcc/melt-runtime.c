@@ -143,26 +143,19 @@ const int melt_gccplugin_version = 0;
 
 
 
-#if ENABLE_CHECKING
-/* For debugging purposes, used thru gdb.  */
-void *melt_alptr_1;
-void *melt_alptr_2;
-unsigned melt_objhash_1;
-unsigned melt_objhash_2;
-void melt_break_alptr_1_at (const char *msg, const char *fil, int line);
-void melt_break_alptr_2_at (const char *msg, const char *fil, int line);
-void melt_break_objhash_1_at (const char *msg, const char *fil, int line);
-void melt_break_objhash_2_at (const char *msg, const char *fil, int line);
-#define melt_break_alptr_1(Msg) melt_break_alptr_1_at((Msg),__FILE__,__LINE__)
-#define melt_break_alptr_2(Msg) melt_break_alptr_2_at((Msg),__FILE__,__LINE__)
-#define melt_break_objhash_1(Msg) melt_break_objhash_1_at((Msg),__FILE__,__LINE__)
-#define melt_break_objhash_2(Msg) melt_break_objhash_2_at((Msg),__FILE__,__LINE__)
-#endif /* ENABLE_CHECKING */
 
 /* include a generated files of strings constants */
 #include "melt-runtime-params-inc.c"
 
 #include "melt-runtime.h"
+
+#if ENABLE_CHECKING
+/* For debugging purposes, used thru gdb.  */
+void *melt_alptr_1=NULL;
+void *melt_alptr_2=NULL;
+unsigned melt_objhash_1=0;
+unsigned melt_objhash_2=0;
+#endif /* ENABLE_CHECKING */
 
 long melt_blocklevel_signals;
 
@@ -386,7 +379,7 @@ void melt_break_objhash_2_at (const char*msg, const char* fil, int line);
 void
 melt_break_objhash_1_at (const char*msg, const char* fil, int line)
 {
-  fprintf (stderr, "melt_break_objhash_1 %s:%d: %s objhash_1=%#ux\n",
+  fprintf (stderr, "melt_break_objhash_1 %s:%d: %s objhash_1=%#x\n",
            melt_basename(fil), line, msg, melt_objhash_1);
   fflush (stderr);
 }
@@ -394,7 +387,7 @@ melt_break_objhash_1_at (const char*msg, const char* fil, int line)
 void
 melt_break_objhash_2_at (const char*msg, const char* fil, int line)
 {
-  fprintf (stderr, "melt_break_objhash_2 %s:%d: %s objhash_2=%#ux\n",
+  fprintf (stderr, "melt_break_objhash_2 %s:%d: %s objhash_2=%#x\n",
            melt_basename(fil), line, msg, melt_objhash_2);
   fflush (stderr);
 }

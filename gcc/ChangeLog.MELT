@@ -1,6 +1,31 @@
 
 2012-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.h (tracedptr1, traceptr2): Remove.
+	(melt_alptr_1, melt_alptr_2, melt_objhash_1, melt_objhash_2): extern variables.
+	(melt_break_alptr_1, melt_break_alptr_2, melt_break_objhash_1)
+	(melt_break_objhash_2): Move macros from melt-runtime.c
+	(melt_dbgtrace_touched_object_at): New inline function.
+	(melt_dbgtrace_touched_object): New macro.
+	(meltgc_allocate, melt_allocatereserved): Call melt_alptr_1,
+	... macros.
+
+	* melt-runtime.c (melt_alptr_1, melt_alptr_2, melt_objhash_1)
+	(melt_objhash_2, melt_break_alptr_1, melt_break_alptr_2)
+	(melt_break_objhash_1, melt_break_objhash_2)
+	(melt_break_objhash_2): Move to melt-runtime.h
+	(melt_alptr_1, melt_alptr_2, melt_objhash_1, melt_objhash_2):
+	Define and initialize here.
+
+	* melt/warmelt-genobj.melt (class_objtouchedobj): New class, not
+	yet used.
+
+	* melt/warmelt-outobj.melt (outpucod_objtouch): Typo in debug message.
+	(outpucod_objtouchedobj): New method for output_c_code on
+	class_objtouchedobj.
+
+2012-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{Regenerate}}
 	* gcc/melt/generated/meltrunsup-inc.c: Regenerate.
 	* gcc/melt/generated/meltrunsup.h: Regenerate.

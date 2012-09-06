@@ -3535,7 +3535,7 @@ MELT_EXTERN  void* melt_start_this_module (void*);
 
 ;; output a touch
 (defun outpucod_objtouch (otouch declbuf implbuf :long depth)
-  (assert_msg "check oclear" (is_a otouch class_objtouch))
+  (assert_msg "check otouch" (is_a otouch class_objtouch))
   (let ( (iloc (unsafe_get_field :obi_loc otouch)) 
 	 (touched (unsafe_get_field :otouch_val otouch)) 
 	 (comm (unsafe_get_field :otouch_comment otouch))
@@ -3558,6 +3558,30 @@ MELT_EXTERN  void* melt_start_this_module (void*);
 
 
 
+;; output a touched object
+(defun outpucod_objtouchedobj (otch declbuf implbuf :long depth)
+  (assert_msg "check otch" (is_a otch class_objtouchedobj))
+  (let ( (iloc (unsafe_get_field :obi_loc otch)) 
+	 (touched (unsafe_get_field :obto_touchedobj otch)) 
+	 (msg (unsafe_get_field :obto_message otch))
+	 )
+    (output_location iloc implbuf depth "touchobj")
+    (add2sbuf_indentnl implbuf depth)
+    (add2sbuf_strconst implbuf "meltgc_touch (")
+    (output_c_code touched declbuf implbuf depth)
+    (add2sbuf_strconst implbuf ");")
+    (add2sbuf_indentnl implbuf depth)
+    (add2sbuf_strconst implbuf "melt_dbgtrace_touched_object (")
+    (output_c_code touched declbuf implbuf depth)
+    (add2sbuf_strconst implbuf ", \"")
+    (if (is_string msg) 
+	(add2sbuf_cencstring implbuf msg)
+      (add2sbuf_strconst implbuf "*touched*"))
+    (add2sbuf_strconst implbuf ");")
+    (add2sbuf_indentnl implbuf depth)))
+(install_method class_objtouchedobj output_c_code outpucod_objtouchedobj)
+	     
+  
 ;;; output a put tuple (mostly used in initial data content filling)
 (defun outpucod_objputuple (optup declbuf implbuf :long depth)
   (assert_msg "check optyp" (is_a optup class_objputuple))

@@ -908,9 +908,42 @@ void melt_garbcoll (size_t wanted, enum melt_gckind_en gckd);
 #if ENABLE_CHECKING
 /* to ease debugging we sometimes want to know when some pointer is
    allocated: set these variables in the debugger */
-static void* tracedptr1;
-static void* tracedptr2;
+MELT_EXTERN void *melt_alptr_1;
+MELT_EXTERN void *melt_alptr_2;
+MELT_EXTERN unsigned melt_objhash_1;
+MELT_EXTERN unsigned melt_objhash_2;
+void melt_break_alptr_1_at (const char *msg, const char *fil, int line);
+void melt_break_alptr_2_at (const char *msg, const char *fil, int line);
+void melt_break_objhash_1_at (const char *msg, const char *fil, int line);
+void melt_break_objhash_2_at (const char *msg, const char *fil, int line);
+#define melt_break_alptr_1(Msg) melt_break_alptr_1_at((Msg),__FILE__,__LINE__)
+#define melt_break_alptr_2(Msg) melt_break_alptr_2_at((Msg),__FILE__,__LINE__)
+#define melt_break_objhash_1(Msg) melt_break_objhash_1_at((Msg),__FILE__,__LINE__)
+#define melt_break_objhash_2(Msg) melt_break_objhash_2_at((Msg),__FILE__,__LINE__)
 
+static void inline 
+melt_dbgtrace_touched_object_at(meltobject_ptr_t ob, const char*msg, const char*fil, int lin)
+{
+  unsigned obh = 0;
+  if (!ob || !msg) 
+    return;
+  if (ob == melt_alptr_1) 
+    melt_break_alptr_1_at(msg, fil, lin);
+  if (ob == melt_alptr_2) 
+    melt_break_alptr_2_at(msg, fil, lin);
+  obh = ob->obj_hash;
+  if (!obh) 
+    return;
+  if (obh == melt_objhash_1)
+    melt_break_objhash_1_at(msg, fil, lin);
+  if (obh == melt_objhash_1)
+    melt_break_objhash_2_at(msg, fil, lin);    
+}
+#define melt_dbgtrace_touched_object(Obj,Msg) do { \
+  melt_dbgtrace_touched_object_at ((meltobject_ptr_t)(Obj),(Msg),\
+				  __FILE__,__LINE__); }while(0)
+#else
+#define melt_dbgtrace_touched_object(Obj,Msg) do{}while(0)
 #endif
 
 /* the allocator routine allocates a zone of BASESZ with extra GAP */
@@ -932,10 +965,10 @@ meltgc_allocate (size_t basesz, size_t gap)
     melt_garbcoll (wanted, MELT_MINOR_OR_FULL);
   ptr = melt_curalz;
 #if ENABLE_CHECKING
-  if (ptr == tracedptr1)
-    debugeprintf("allocated tracedptr1 %p", ptr);
-  else if (ptr == tracedptr2)
-    debugeprintf("allocated tracedptr2 %p", ptr);
+  if (ptr == melt_alptr_1)
+    melt_break_alptr_1("allocated alptr1");
+  else if (ptr == melt_alptr_2)
+    melt_break_alptr_2("allocated alptr2");
 #endif
   melt_curalz += wanted;
   return ptr;
@@ -988,14 +1021,15 @@ melt_allocatereserved (size_t basesz, size_t gap)
     melt_reserved_allocation_failure((long) wanted);
   ptr = melt_curalz;
 #if ENABLE_CHECKING
-  if (ptr == tracedptr1)
-    debugeprintf("allocated tracedptr1 %p", ptr);
-  else if (ptr == tracedptr2)
-    debugeprintf("allocated tracedptr2 %p", ptr);
+  if (ptr == melt_alptr_1)
+    melt_break_alptr_1("allocatedreserved alptr1");
+  else if (ptr == melt_alptr_2)
+    melt_break_alptr_1("allocatedreserved alptr2");
 #endif
   melt_curalz += wanted;
   return ptr;
 }
+
 
 /* we maintain a small cache hasharray of touched values - the touched
    cache size should be a small prime */
