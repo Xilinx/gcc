@@ -3943,9 +3943,11 @@ mips_rtx_costs (rtx x, int code, int outer_code, int opno ATTRIBUTE_UNUSED,
 /* Implement TARGET_ADDRESS_COST.  */
 
 static int
-mips_address_cost (rtx addr, bool speed ATTRIBUTE_UNUSED)
+mips_address_cost (rtx addr, enum machine_mode mode,
+		   addr_space_t as ATTRIBUTE_UNUSED,
+		   bool speed ATTRIBUTE_UNUSED)
 {
-  return mips_address_insns (addr, SImode, false);
+  return mips_address_insns (addr, mode, false);
 }
 
 /* Information about a single instruction in a multi-instruction
@@ -15729,7 +15731,10 @@ mips_reorg (void)
     }
 
   if (optimize > 0 && flag_delayed_branch)
-    dbr_schedule (get_insns ());
+    {
+      cleanup_barriers ();
+      dbr_schedule (get_insns ());
+    }
   mips_reorg_process_insns ();
   if (!TARGET_MIPS16
       && TARGET_EXPLICIT_RELOCS

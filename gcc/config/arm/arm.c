@@ -162,7 +162,7 @@ static bool arm_fastmul_rtx_costs (rtx, enum rtx_code, enum rtx_code, int *, boo
 static bool arm_xscale_rtx_costs (rtx, enum rtx_code, enum rtx_code, int *, bool);
 static bool arm_9e_rtx_costs (rtx, enum rtx_code, enum rtx_code, int *, bool);
 static bool arm_rtx_costs (rtx, int, int, int, int *, bool);
-static int arm_address_cost (rtx, bool);
+static int arm_address_cost (rtx, enum machine_mode, addr_space_t, bool);
 static int arm_register_move_cost (enum machine_mode, reg_class_t, reg_class_t);
 static int arm_memory_move_cost (enum machine_mode, reg_class_t, bool);
 static void arm_init_builtins (void);
@@ -8411,7 +8411,8 @@ arm_thumb_address_cost (rtx x)
 }
 
 static int
-arm_address_cost (rtx x, bool speed ATTRIBUTE_UNUSED)
+arm_address_cost (rtx x, enum machine_mode mode ATTRIBUTE_UNUSED,
+		  addr_space_t as ATTRIBUTE_UNUSED, bool speed ATTRIBUTE_UNUSED)
 {
   return TARGET_32BIT ? arm_arm_address_cost (x) : arm_thumb_address_cost (x);
 }
@@ -20351,12 +20352,13 @@ typedef enum {
    and return an expression for the accessed memory.
 
    The intrinsic function operates on a block of registers that has
-   mode REG_MODE.  This block contains vectors of type TYPE_MODE.
-   The function references the memory at EXP in mode MEM_MODE;
-   this mode may be BLKmode if no more suitable mode is available.  */
+   mode REG_MODE.  This block contains vectors of type TYPE_MODE.  The
+   function references the memory at EXP of type TYPE and in mode
+   MEM_MODE; this mode may be BLKmode if no more suitable mode is
+   available.  */
 
 static tree
-neon_dereference_pointer (tree exp, enum machine_mode mem_mode,
+neon_dereference_pointer (tree exp, tree type, enum machine_mode mem_mode,
 			  enum machine_mode reg_mode,
 			  neon_builtin_type_mode type_mode)
 {
@@ -20374,17 +20376,17 @@ neon_dereference_pointer (tree exp, enum machine_mode mem_mode,
   gcc_assert (reg_size % vector_size == 0);
   nvectors = reg_size / vector_size;
 
+  /* Work out the type of each element.  */
+  gcc_assert (POINTER_TYPE_P (type));
+  elem_type = TREE_TYPE (type);
+
   /* Work out how many elements are being loaded or stored.
      MEM_MODE == REG_MODE implies a one-to-one mapping between register
      and memory elements; anything else implies a lane load or store.  */
   if (mem_mode == reg_mode)
-    nelems = vector_size * nvectors;
+    nelems = vector_size * nvectors / int_size_in_bytes (elem_type);
   else
     nelems = nvectors;
-
-  /* Work out the type of each element.  */
-  gcc_assert (POINTER_TYPE_P (TREE_TYPE (exp)));
-  elem_type = TREE_TYPE (TREE_TYPE (exp));
 
   /* Create a type that describes the full access.  */
   upper_bound = build_int_cst (size_type_node, nelems - 1);
@@ -20399,12 +20401,14 @@ neon_dereference_pointer (tree exp, enum machine_mode mem_mode,
 static rtx
 arm_expand_neon_args (rtx target, int icode, int have_retval,
 		      neon_builtin_type_mode type_mode,
-		      tree exp, ...)
+		      tree exp, int fcode, ...)
 {
   va_list ap;
   rtx pat;
   tree arg[NEON_MAX_BUILTIN_ARGS];
   rtx op[NEON_MAX_BUILTIN_ARGS];
+  tree arg_type;
+  tree formals;
   enum machine_mode tmode = insn_data[icode].operand[0].mode;
   enum machine_mode mode[NEON_MAX_BUILTIN_ARGS];
   enum machine_mode other_mode;
@@ -20417,7 +20421,9 @@ arm_expand_neon_args (rtx target, int icode, int have_retval,
 	  || !(*insn_data[icode].operand[0].predicate) (target, tmode)))
     target = gen_reg_rtx (tmode);
 
-  va_start (ap, exp);
+  va_start (ap, fcode);
+
+  formals = TYPE_ARG_TYPES (TREE_TYPE (arm_builtin_decls[fcode]));
 
   for (;;)
     {
@@ -20430,12 +20436,15 @@ arm_expand_neon_args (rtx target, int icode, int have_retval,
           opno = argc + have_retval;
           mode[argc] = insn_data[icode].operand[opno].mode;
           arg[argc] = CALL_EXPR_ARG (exp, argc);
+	  arg_type = TREE_VALUE (formals);
           if (thisarg == NEON_ARG_MEMORY)
             {
               other_mode = insn_data[icode].operand[1 - opno].mode;
-              arg[argc] = neon_dereference_pointer (arg[argc], mode[argc],
-                                                    other_mode, type_mode);
+              arg[argc] = neon_dereference_pointer (arg[argc], arg_type,
+						    mode[argc], other_mode,
+						    type_mode);
             }
+
           op[argc] = expand_normal (arg[argc]);
 
           switch (thisarg)
@@ -20472,6 +20481,7 @@ arm_expand_neon_args (rtx target, int icode, int have_retval,
             }
 
           argc++;
+	  formals = TREE_CHAIN (formals);
         }
     }
 
@@ -20554,7 +20564,7 @@ arm_expand_neon_builtin (int fcode, tree exp, rtx target)
     case NEON_UNOP:
     case NEON_CONVERT:
     case NEON_DUPLANE:
-      return arm_expand_neon_args (target, icode, 1, type_mode, exp,
+      return arm_expand_neon_args (target, icode, 1, type_mode, exp, fcode,
         NEON_ARG_COPY_TO_REG, NEON_ARG_CONSTANT, NEON_ARG_STOP);
 
     case NEON_BINOP:
@@ -20564,89 +20574,89 @@ arm_expand_neon_builtin (int fcode, tree exp, rtx target)
     case NEON_SCALARMULH:
     case NEON_SHIFTINSERT:
     case NEON_LOGICBINOP:
-      return arm_expand_neon_args (target, icode, 1, type_mode, exp,
+      return arm_expand_neon_args (target, icode, 1, type_mode, exp, fcode,
         NEON_ARG_COPY_TO_REG, NEON_ARG_COPY_TO_REG, NEON_ARG_CONSTANT,
         NEON_ARG_STOP);
 
     case NEON_TERNOP:
-      return arm_expand_neon_args (target, icode, 1, type_mode, exp,
+      return arm_expand_neon_args (target, icode, 1, type_mode, exp, fcode,
         NEON_ARG_COPY_TO_REG, NEON_ARG_COPY_TO_REG, NEON_ARG_COPY_TO_REG,
         NEON_ARG_CONSTANT, NEON_ARG_STOP);
 
     case NEON_GETLANE:
     case NEON_FIXCONV:
     case NEON_SHIFTIMM:
-      return arm_expand_neon_args (target, icode, 1, type_mode, exp,
+      return arm_expand_neon_args (target, icode, 1, type_mode, exp, fcode,
         NEON_ARG_COPY_TO_REG, NEON_ARG_CONSTANT, NEON_ARG_CONSTANT,
         NEON_ARG_STOP);
 
     case NEON_CREATE:
-      return arm_expand_neon_args (target, icode, 1, type_mode, exp,
+      return arm_expand_neon_args (target, icode, 1, type_mode, exp, fcode,
         NEON_ARG_COPY_TO_REG, NEON_ARG_STOP);
 
     case NEON_DUP:
     case NEON_SPLIT:
     case NEON_REINTERP:
-      return arm_expand_neon_args (target, icode, 1, type_mode, exp,
+      return arm_expand_neon_args (target, icode, 1, type_mode, exp, fcode,
         NEON_ARG_COPY_TO_REG, NEON_ARG_STOP);
 
     case NEON_COMBINE:
     case NEON_VTBL:
-      return arm_expand_neon_args (target, icode, 1, type_mode, exp,
+      return arm_expand_neon_args (target, icode, 1, type_mode, exp, fcode,
         NEON_ARG_COPY_TO_REG, NEON_ARG_COPY_TO_REG, NEON_ARG_STOP);
 
     case NEON_RESULTPAIR:
-      return arm_expand_neon_args (target, icode, 0, type_mode, exp,
+      return arm_expand_neon_args (target, icode, 0, type_mode, exp, fcode,
         NEON_ARG_COPY_TO_REG, NEON_ARG_COPY_TO_REG, NEON_ARG_COPY_TO_REG,
         NEON_ARG_STOP);
 
     case NEON_LANEMUL:
     case NEON_LANEMULL:
     case NEON_LANEMULH:
-      return arm_expand_neon_args (target, icode, 1, type_mode, exp,
+      return arm_expand_neon_args (target, icode, 1, type_mode, exp, fcode,
         NEON_ARG_COPY_TO_REG, NEON_ARG_COPY_TO_REG, NEON_ARG_CONSTANT,
         NEON_ARG_CONSTANT, NEON_ARG_STOP);
 
     case NEON_LANEMAC:
-      return arm_expand_neon_args (target, icode, 1, type_mode, exp,
+      return arm_expand_neon_args (target, icode, 1, type_mode, exp, fcode,
         NEON_ARG_COPY_TO_REG, NEON_ARG_COPY_TO_REG, NEON_ARG_COPY_TO_REG,
         NEON_ARG_CONSTANT, NEON_ARG_CONSTANT, NEON_ARG_STOP);
 
     case NEON_SHIFTACC:
-      return arm_expand_neon_args (target, icode, 1, type_mode, exp,
+      return arm_expand_neon_args (target, icode, 1, type_mode, exp, fcode,
         NEON_ARG_COPY_TO_REG, NEON_ARG_COPY_TO_REG, NEON_ARG_CONSTANT,
         NEON_ARG_CONSTANT, NEON_ARG_STOP);
 
     case NEON_SCALARMAC:
-      return arm_expand_neon_args (target, icode, 1, type_mode, exp,
+      return arm_expand_neon_args (target, icode, 1, type_mode, exp, fcode,
 	NEON_ARG_COPY_TO_REG, NEON_ARG_COPY_TO_REG, NEON_ARG_COPY_TO_REG,
         NEON_ARG_CONSTANT, NEON_ARG_STOP);
 
     case NEON_SELECT:
     case NEON_VTBX:
-      return arm_expand_neon_args (target, icode, 1, type_mode, exp,
+      return arm_expand_neon_args (target, icode, 1, type_mode, exp, fcode,
 	NEON_ARG_COPY_TO_REG, NEON_ARG_COPY_TO_REG, NEON_ARG_COPY_TO_REG,
         NEON_ARG_STOP);
 
     case NEON_LOAD1:
     case NEON_LOADSTRUCT:
-      return arm_expand_neon_args (target, icode, 1, type_mode, exp,
+      return arm_expand_neon_args (target, icode, 1, type_mode, exp, fcode,
 	NEON_ARG_MEMORY, NEON_ARG_STOP);
 
     case NEON_LOAD1LANE:
     case NEON_LOADSTRUCTLANE:
-      return arm_expand_neon_args (target, icode, 1, type_mode, exp,
+      return arm_expand_neon_args (target, icode, 1, type_mode, exp, fcode,
 	NEON_ARG_MEMORY, NEON_ARG_COPY_TO_REG, NEON_ARG_CONSTANT,
 	NEON_ARG_STOP);
 
     case NEON_STORE1:
     case NEON_STORESTRUCT:
-      return arm_expand_neon_args (target, icode, 0, type_mode, exp,
+      return arm_expand_neon_args (target, icode, 0, type_mode, exp, fcode,
 	NEON_ARG_MEMORY, NEON_ARG_COPY_TO_REG, NEON_ARG_STOP);
 
     case NEON_STORE1LANE:
     case NEON_STORESTRUCTLANE:
-      return arm_expand_neon_args (target, icode, 0, type_mode, exp,
+      return arm_expand_neon_args (target, icode, 0, type_mode, exp, fcode,
 	NEON_ARG_MEMORY, NEON_ARG_COPY_TO_REG, NEON_ARG_CONSTANT,
 	NEON_ARG_STOP);
     }
@@ -20950,7 +20960,7 @@ arm_expand_builtin (tree exp,
 	  else if (icode == CODE_FOR_iwmmxt_tinsrw && (selector < 0 ||selector > 1))
 	    error ("the range of selector should be in 0 to 1");
 	  mask <<= selector;
-	  op2 = gen_rtx_CONST_INT (SImode, mask);
+	  op2 = GEN_INT (mask);
 	}
       if (target == 0
 	  || GET_MODE (target) != tmode
@@ -21853,7 +21863,7 @@ thumb1_extra_regs_pushed (arm_stack_offsets *offsets, bool for_prologue)
   unsigned long l_mask = live_regs_mask & (for_prologue ? 0x40ff : 0xff);
   /* Then count how many other high registers will need to be pushed.  */
   unsigned long high_regs_pushed = bit_count (live_regs_mask & 0x0f00);
-  int n_free, reg_base;
+  int n_free, reg_base, size;
 
   if (!for_prologue && frame_pointer_needed)
     amount = offsets->locals_base - offsets->saved_regs;
@@ -21892,7 +21902,8 @@ thumb1_extra_regs_pushed (arm_stack_offsets *offsets, bool for_prologue)
   n_free = 0;
   if (!for_prologue)
     {
-      reg_base = arm_size_return_regs () / UNITS_PER_WORD;
+      size = arm_size_return_regs ();
+      reg_base = ARM_NUM_INTS (size);
       live_regs_mask >>= reg_base;
     }
 
@@ -21946,8 +21957,7 @@ thumb1_unexpanded_epilogue (void)
   if (extra_pop > 0)
     {
       unsigned long extra_mask = (1 << extra_pop) - 1;
-      live_regs_mask |= extra_mask << ((size + UNITS_PER_WORD - 1) 
-				       / UNITS_PER_WORD);
+      live_regs_mask |= extra_mask << ARM_NUM_INTS (size);
     }
 
   /* The prolog may have pushed some high registers to use as
@@ -22751,7 +22761,6 @@ arm_expand_epilogue (bool really_return)
   int num_regs = 0;
   int i;
   int amount;
-  int floats_from_frame = 0;
   arm_stack_offsets *offsets;
 
   func_type = arm_current_func_type ();
@@ -22778,18 +22787,7 @@ arm_expand_epilogue (bool really_return)
   /* Get frame offsets for ARM.  */
   offsets = arm_get_frame_offsets ();
   saved_regs_mask = offsets->saved_regs_mask;
-
-  /* Find offset of floating point register from frame pointer.
-     The initialization is done in this way to take care of frame pointer
-     and static-chain register, if stored.  */
-  floats_from_frame = offsets->saved_args - offsets->frame;
-  /* Compute how many registers saved and how far away the floats will be.  */
-  for (i = 0; i <= LAST_ARM_REGNUM; i++)
-    if (saved_regs_mask & (1 << i))
-      {
-        num_regs++;
-        floats_from_frame += 4;
-      }
+  num_regs = bit_count (saved_regs_mask);
 
   if (frame_pointer_needed)
     {
@@ -25940,6 +25938,72 @@ arm_evpc_neon_vtrn (struct expand_vec_perm_d *d)
   return true;
 }
 
+/* Recognize patterns for the VEXT insns.  */
+
+static bool
+arm_evpc_neon_vext (struct expand_vec_perm_d *d)
+{
+  unsigned int i, nelt = d->nelt;
+  rtx (*gen) (rtx, rtx, rtx, rtx);
+  rtx offset;
+
+  unsigned int location;
+
+  unsigned int next  = d->perm[0] + 1;
+
+  /* TODO: Handle GCC's numbering of elements for big-endian.  */
+  if (BYTES_BIG_ENDIAN)
+    return false;
+
+  /* Check if the extracted indexes are increasing by one.  */
+  for (i = 1; i < nelt; next++, i++)
+    {
+      /* If we hit the most significant element of the 2nd vector in
+	 the previous iteration, no need to test further.  */
+      if (next == 2 * nelt)
+	return false;
+
+      /* If we are operating on only one vector: it could be a
+	 rotation.  If there are only two elements of size < 64, let
+	 arm_evpc_neon_vrev catch it.  */
+      if (d->one_vector_p && (next == nelt))
+	{
+	  if ((nelt == 2) && (d->vmode != V2DImode))
+	    return false;
+	  else
+	    next = 0;
+	}
+
+      if (d->perm[i] != next)
+	return false;
+    }
+
+  location = d->perm[0];
+
+  switch (d->vmode)
+    {
+    case V16QImode: gen = gen_neon_vextv16qi; break;
+    case V8QImode: gen = gen_neon_vextv8qi; break;
+    case V4HImode: gen = gen_neon_vextv4hi; break;
+    case V8HImode: gen = gen_neon_vextv8hi; break;
+    case V2SImode: gen = gen_neon_vextv2si; break;
+    case V4SImode: gen = gen_neon_vextv4si; break;
+    case V2SFmode: gen = gen_neon_vextv2sf; break;
+    case V4SFmode: gen = gen_neon_vextv4sf; break;
+    case V2DImode: gen = gen_neon_vextv2di; break;
+    default:
+      return false;
+    }
+
+  /* Success! */
+  if (d->testing_p)
+    return true;
+
+  offset = GEN_INT (location);
+  emit_insn (gen (d->target, d->op0, d->op1, offset));
+  return true;
+}
+
 /* The NEON VTBL instruction is a fully variable permuation that's even
    stronger than what we expose via VEC_PERM_EXPR.  What it doesn't do
    is mask the index operand as VEC_PERM_EXPR requires.  Therefore we
@@ -25979,6 +26043,12 @@ arm_evpc_neon_vtbl (struct expand_vec_perm_d *d)
 static bool
 arm_expand_vec_perm_const_1 (struct expand_vec_perm_d *d)
 {
+  /* Check if the input mask matches vext before reordering the
+     operands.  */
+  if (TARGET_NEON)
+    if (arm_evpc_neon_vext (d))
+      return true;
+
   /* The pattern matching functions above are written to look for a small
      number to begin the sequence (0, 1, N/2).  If we begin with an index
      from the second operand, we can swap the operands.  */
@@ -26221,12 +26291,12 @@ arm_emit_coreregs_64bit_shift (enum rtx_code code, rtx out, rtx in,
 
   /* Macros to make following code more readable.  */
   #define SUB_32(DEST,SRC) \
-	    gen_addsi3 ((DEST), (SRC), gen_rtx_CONST_INT (VOIDmode, -32))
+	    gen_addsi3 ((DEST), (SRC), GEN_INT (-32))
   #define RSB_32(DEST,SRC) \
-	    gen_subsi3 ((DEST), gen_rtx_CONST_INT (VOIDmode, 32), (SRC))
+	    gen_subsi3 ((DEST), GEN_INT (32), (SRC))
   #define SUB_S_32(DEST,SRC) \
 	    gen_addsi3_compare0 ((DEST), (SRC), \
-				 gen_rtx_CONST_INT (VOIDmode, -32))
+				 GEN_INT (-32))
   #define SET(DEST,SRC) \
 	    gen_rtx_SET (SImode, (DEST), (SRC))
   #define SHIFT(CODE,SRC,AMOUNT) \
@@ -26262,7 +26332,7 @@ arm_emit_coreregs_64bit_shift (enum rtx_code code, rtx out, rtx in,
 	{
 	  if (code == ASHIFTRT)
 	    {
-	      rtx const31_rtx = gen_rtx_CONST_INT (VOIDmode, 31);
+	      rtx const31_rtx = GEN_INT (31);
 	      emit_insn (SET (out_down, SHIFT (code, in_up, const31_rtx)));
 	      emit_insn (SET (out_up, SHIFT (code, in_up, const31_rtx)));
 	    }
@@ -26274,8 +26344,7 @@ arm_emit_coreregs_64bit_shift (enum rtx_code code, rtx out, rtx in,
       else if (INTVAL (amount) < 32)
 	{
 	  /* Shifts by a constant less than 32.  */
-	  rtx reverse_amount = gen_rtx_CONST_INT (VOIDmode,
-						  32 - INTVAL (amount));
+	  rtx reverse_amount = GEN_INT (32 - INTVAL (amount));
 
 	  emit_insn (SET (out_down, LSHIFT (code, in_down, amount)));
 	  emit_insn (SET (out_down,
@@ -26286,12 +26355,12 @@ arm_emit_coreregs_64bit_shift (enum rtx_code code, rtx out, rtx in,
       else
 	{
 	  /* Shifts by a constant greater than 31.  */
-	  rtx adj_amount = gen_rtx_CONST_INT (VOIDmode, INTVAL (amount) - 32);
+	  rtx adj_amount = GEN_INT (INTVAL (amount) - 32);
 
 	  emit_insn (SET (out_down, SHIFT (code, in_up, adj_amount)));
 	  if (code == ASHIFTRT)
 	    emit_insn (gen_ashrsi3 (out_up, in_up,
-				    gen_rtx_CONST_INT (VOIDmode, 31)));
+				    GEN_INT (31)));
 	  else
 	    emit_insn (SET (out_up, const0_rtx));
 	}
