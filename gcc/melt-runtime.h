@@ -935,9 +935,9 @@ melt_dbgtrace_written_object_at(meltobject_ptr_t ob, const char*msg, const char*
   if (!obh) 
     return;
   if (obh == melt_objhash_1)
-    melt_break_objhash_1_at(msg, fil, lin);
-  if (obh == melt_objhash_1)
-    melt_break_objhash_2_at(msg, fil, lin);    
+    melt_break_objhash_1_at (msg, fil, lin);
+  if (obh == melt_objhash_2)
+    melt_break_objhash_2_at (msg, fil, lin);    
 }
 #define melt_dbgtrace_written_object(Obj,Msg) do { \
   melt_dbgtrace_written_object_at ((meltobject_ptr_t)(Obj),(Msg),\

@@ -643,6 +643,13 @@ if [ ! -f "meltbuild-sources/$MELTGCCBUILTIN_DEFAULT_MODLIS.[+flavor+].modlis" \
   echo [+base+].[+flavor+] >> $melt_modlis_temp
  [+ENDFOR melt_application_file+]
   $GCCMELT_MOVE_IF_CHANGE $melt_modlis_temp  "meltbuild-sources/$MELTGCCBUILTIN_DEFAULT_MODLIS.[+flavor+].modlis"
+  #  [+ (. (fromline))+] warmelt module list [+flavor+]
+  melt_modlis_temp="meltbuild-sources/warmelt.[+flavor+].modlis-tmp$$"
+  echo "# MELT translator modules:" >> $melt_modlis_temp
+ [+FOR melt_translator_file+] 
+  echo [+base+].[+flavor+] >> $melt_modlis_temp
+ [+ENDFOR melt_translator_file+]
+  $GCCMELT_MOVE_IF_CHANGE $melt_modlis_temp  "meltbuild-sources/warmelt.[+flavor+].modlis"
 else
   meltbuild_info  [+(.(fromline))+] keeping module list  "meltbuild-sources/$MELTGCCBUILTIN_DEFAULT_MODLIS.[+flavor+].modlis"  
 fi

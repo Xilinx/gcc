@@ -1,6 +1,14 @@
 
 2012-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-build-script.tpl: Also generate
+	meltbuild-sources/warmelt.*.modlis files.
+	* melt-build-script.sh: Regenerate.
+
+	* melt-runtime.h (melt_dbgtrace_written_object_at): Typo.
+
+2012-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{Regenerate, with debugtracing of writes in objects}}
 	* melt/generated/warmelt-base+01.c: Regenerate.
 	* melt/generated/warmelt-base+02.c: Regenerate.
