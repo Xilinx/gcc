@@ -1,8 +1,13 @@
 
 2012-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* testsuite/melt/tcheader.melt: Working again.
+
+2012-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{ cheader working again! }}
 	* melt/warmelt-outobj.melt (normadeclb_macroexpanded_list): Move
 	normalization before cheader emission.
+	(compile_list_sexpr): Remove low-level debug message.
 	(translate_macroexpanded_list): Add debug.
 
 2012-09-06  Basile Starynkevitch  <basile@starynkevitch.net>

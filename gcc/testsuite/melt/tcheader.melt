@@ -1,6 +1,6 @@
 ;; -*- lisp -*-
 ;; file  gcc/testsuite/melt/tcheader.melt
-;; test the cheader operation
+;; test the cheader operation; working at svn rev 191029 of the MELT branch.
 
 #| run in buildir/gcc
  ln -s $GCCMELT_SOURCE/gcc/testsuite/melt/tcheader.melt 
@@ -12,7 +12,6 @@
     -fmelt-debug empty-file-for-melt.c
 |#
 (cheader #{
-#warning we have a cheader here defining MELT_URL
 #define OUR_MELT_URL "http://gcc-melt.org/"
 }#)
 
