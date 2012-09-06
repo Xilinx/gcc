@@ -5524,7 +5524,7 @@ if (1) return;
   (if (is_string v)
       (code_chunk
        fatalerrormsg_chk 
-       #{ /* compile_list_sexpr $FATALERRORMSG_CHK */
+       #{ /*fatal_compile_error $FATALERRORMSG_CHK */
        melt_fatal_error ("MELT failed to compile module %s (%ld errors): %s",
 			 melt_string_str ((melt_ptr_t) $MODNAMSTR),
 			 melt_error_counter,
@@ -5532,7 +5532,7 @@ if (1) return;
        }#)
     (code_chunk 
      fatalerror_chk 
-     #{ /* compile_list_sexpr $FATALERROR_CHK */
+     #{ /* fatal_compile_error $FATALERROR_CHK */
      melt_fatal_error ("MELT failed to compile module %s (%ld errors)",
 		       melt_string_str ((melt_ptr_t) $MODNAMSTR),
 		       melt_error_counter) ;
@@ -5572,6 +5572,16 @@ if (1) return;
 			  ))
 	(ncx (create_normcontext modctx)) 
 	)
+    (debug "compile_list_sexpr modctx=" modctx 
+	   "\n of class " (discrim modctx))
+    ;; temporary low lebel debug chunk
+    (code_chunk dbgchk #{ /* compile_list_sexpr $DBGCHK */
+	debugvalue ("compile_list_sexpr $DBGCHK modctx", $MODCTX);
+	debugeprintf ("compile_list_sexpr $DBGCHK modctx@%p hash %#x objlen %d",
+		     (void*) $MODCTX, (int) ((meltobject_ptr_t)$MODCTX)->obj_hash, 
+		     (int) ((meltobject_ptr_t)$MODCTX)->obj_len);
+    }#)
+    ;;
     ;; is it very unusual that inienv is null, only happenning in
     ;; translateinit mode, when bootstrapping warmelt-first.melt
     (when (null inienv)

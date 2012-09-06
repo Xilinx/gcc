@@ -1,6 +1,11 @@
 
 2012-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-outobj.melt (compile_list_sexpr): Tempory low level
+	debug message.
+
+2012-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-build-script.tpl: Also generate
 	meltbuild-sources/warmelt.*.modlis files.
 	* melt-build-script.sh: Regenerate.
