@@ -1,3 +1,9 @@
+2012-09-05  Ollie Wild  <aaw@google.com>
+
+	* src/Makefile.am (LTCXXCOMPILE): Pass -UPIC when compiling static
+	libraries.
+	* src/Makefile.in: Regenerate.
+
 2012-08-03  Ollie Wild  <aaw@google.com>
 	    Richard Smith  <richardsmith@google.com>
 

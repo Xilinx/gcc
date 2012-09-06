@@ -1,3 +1,9 @@
+2012-09-05  Ollie Wild  <aaw@google.com>
+
+	* ltmain.sh (func_mode_compile): Add -Xcompiler-shared and
+	-Xcompiler-static options.
+	(func_mode_help): Document new options.
+
 2012-08-22  Han Shen  <shenhan@google.com>
 
 	Fixed the problem that LINUX_GRTE_EXTRA_SPECS overrides
