@@ -3039,13 +3039,11 @@ $SBUF.}#
     (list_append obodl (instance class_objtouch
 				 :obi_loc loc
 				 :otouch_val oobj))
-#|@@temp
     ;; emit debugtrace of written object
     (list_append obodl (instance class_objdbgtracewriteobj
 				 :obi_loc loc
 				 :obdtw_writtenobj oobj
 				 :obdtw_message '"put-fields"))
-|#
     ;; add the updated obj to the block
     (list_append obodl oobj)
     (return oblock)
@@ -4316,7 +4314,6 @@ $SBUF.}#
       ;; the birth zone so don't need to be touched.  
       ;; 
       ;; add the debugtracing
-#|@@temp
       (let ( (odbgtr (instance class_objdbgtracewriteobj
 			       :obi_loc nloc
 			       :obdtw_writtenobj locv
@@ -4325,7 +4322,6 @@ $SBUF.}#
 		     )
 	(list_append olis odbgtr)
 	)
-|#
       (list_append olis locv) ;;; last instruction is just the value, which can be set to some dest
       (debug "compilobj_nrep_makeinst result oblock=" oblock)
       oblock
@@ -4473,14 +4469,12 @@ $SBUF.}#
 			   :obi_loc (if nloc nloc (unsafe_get_field :nrep_loc ndat))
 			   :otouch_comment comm
 			   :otouch_val obj))
-    #|@@temp
     ;; debugwrite the object		;
     (list_append istmtlis
     (instance class_objdbgtracewriteobj
     :obi_loc (if nloc nloc (unsafe_get_field :nrep_loc ndat))
     :obdtw_writtenobj obj
     :obdtw_message '"new static instance"))
-    |#
     ;; for every non nil local obvar, clear it
     (multiple_every
      tupvar

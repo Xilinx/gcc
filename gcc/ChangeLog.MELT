@@ -1,6 +1,12 @@
 
 2012-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-genobj.melt (compilobj_nrep_unsafe_put_fields)
+	(compilobj_nrep_makeinst, compil_data_and_slots_fill): Unomment the
+	addition of class_objdbgtracewriteobj instance.
+
+2012-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{Regenerate}}
 	* melt/generated/warmelt-base+meltdesc.c: Regenerate.
 	* melt/generated/warmelt-base+melttime.h: Regenerate.
