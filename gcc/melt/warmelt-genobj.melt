@@ -572,6 +572,7 @@
 (defclass class_initial_extension_routineobj
   :super class_initialroutineobj
   :fields (
+	   oiroutx_extendname
 	   ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -661,7 +662,9 @@
 ;; variadic function to make an objlocatedexpv out of a macrostring
 (defun make_objlocatedexp (loc cty :rest)
   (debug "make_objlocatedexp loc=" loc " cty=" cty)
-  (assert_msg "make_objlocatedexp check loc" (or (null loc) (is_a loc discr_mixed_location)))
+  (assert_msg "make_objlocatedexp check loc" (or (null loc)
+						 (is_a loc discr_mixed_location)
+						 (is_a loc discr_mixed_integer)))
   (assert_msg "make_objlocatedexp check cty" (is_a cty class_ctype))
   (let ( (arglist (make_list discr_list)) 
 	 )
@@ -1124,6 +1127,9 @@ $SBUF.}#
 (defun append_commentconst (ilist :cstring comment :value iloc)
   (list_append ilist (instance class_objcommentinstr :obi_loc iloc :obci_comment (make_stringconst discr_string comment))))
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile the initial procedure into an object
 (defun compile2obj_initproc (ipro modctx idata compicache procurmodenvlist importvalues)
   (debug "compile2obj_initproc ipro=" ipro 
@@ -1455,9 +1461,94 @@ $SBUF.}#
   (assert_msg "check modctx" (is_a modctx class_module_context))
   (assert_msg "check compicache" (is_mapobject compicache))
   (assert_msg "check importvalues" (is_list importvalues))
-  (assert_msg "@$@compile2obj_initextendproc unimplemented")
-)
+  (let ( (locmap (make_mapobject discr_map_objects 50))
+	 (oiniprolog (make_list discr_list))
+	 (oinibody (make_list discr_list))
+	 (oinitxrout 
+	  (instance class_initial_extension_routineobj
+		    ;; change carefully the name, since the runtime
+		    ;; should know it, notably its
+		    ;; meltgc_run_c_extension function
+		    :named_name '"melt_run_extension"
+		    :obrout_proc ipro
+		    :obrout_body oinibody
+		    :obrout_nbval (make_integerbox discr_integer 0)
+		    :obrout_nblong (make_integerbox discr_integer 0)
+		    :obrout_others (make_list discr_list)
+		    :obrout_cntciter (make_integerbox discr_integer 0)
+		    :obrout_cntletrec (make_integerbox discr_integer 0)
+		    :oirout_fill (make_list discr_list)
+		    :oirout_prolog oiniprolog
+		    :oiroutx_extendname (get_field :mocx_modulename modctx)
+		    ))
+	 (importmap (make_mapobject discr_map_objects 10))
+	 ;; running expressions are usually smaller
+	 (gcx (instance 
+	       class_initial_generation_context
+	       :gncx_objrout oinitxrout
+	       :gncx_locmap locmap
+	       :gncx_freeptrlist (make_list discr_list)
+	       :gncx_freelonglist (make_list discr_list)
+	       :gncx_freeothermaps (make_mapobject discr_map_objects 10)
+	       :gncx_compicache compicache
+	       :gncx_modulcontext modctx
+	       :gncx_matchmap (make_mapobject discr_map_objects 20)
+	       :igncx_procurmodenvlist
+	       (list_map 
+		procurmodenvlist
+		(lambda (curpro)
+		  (debug "compile2obj_initextendproc procurmodenvlist curpro=" curpro)
+		  (let ( (curou (mapobject_get compicache curpro)) )
+		    (debug "compile2obj_initextendproc procurmodenvlist curou=" curou)
+		    (assert_msg "check curou" (is_object curou))
+		    curou)))
+	       ;; perhaps we should store not a list of procedures, but their matching routines
+	       :igncx_importmap importmap
+	       ))
+	 ;; stack location for the return value
+	 (retinit 
+	  (let ( (reti (get_free_objlocptr gcx '_retruninit_)) )
+	    (put_fields gcx :gncx_retloc reti)
+	    (put_fields oinitxrout :obrout_retval reti)
+	    reti))
+	 ;; stack location for the current environment box container
+	 (ocurenvboxloc
+	  (let ( (boxl (get_free_objlocptr gcx '_ocurenvboxloc_)) )
+	    (put_fields gcx :igncx_contenvloc boxl)
+	    boxl))
+	 ;; stack location for the value exporter and importer
+	 (ovalueexporter (get_free_objlocptr gcx '_valexport_)) 
+	 (ovalueimporter (get_free_objlocptr gcx '_valimport_))
+	 ;; initial defined bindings
+	 (inidefbinds (get_field :ninit_defbinds ipro))
+	 )
+    (append_commentconst oinibody "start of oinibody")
+    (debug "compile2obj_initextendproc ocurenvboxloc=" ocurenvboxloc " inidefbinds=" inidefbinds)
+;;; reserve location for defined values
+    (foreach_in_list
+     (inidefbinds)
+     (curpair curdefbind)
+     (debug "compile2obj_initextendproc curdefbind=" curdefbind
+	    " of discrim=" (discrim curdefbind))
+     (let ( (inidefsymb (get_field :binder curdefbind))
+	    (oinisym (get_field :fixbind_data curdefbind))
+	    (oinidefloc (get_free_objlocptr gcx inidefsymb))
+	    )
+       (debug "compile2obj_initextendproc oinidefloc=" oinidefloc " oinisym=" oinisym
+	      " of discrim:" (discrim oinisym)
+	      " curdefbind=" curdefbind)
+       ;;oinisym is often a class_nrep_locsymocc but can be a
+       ;;class_nrep_defined_constant
+       (assert_msg "check oinisym" (is_a oinisym class_nrep_simple))
+       (mapobject_put locmap curdefbind oinidefloc)
+       ))
+    (debug "compile2obj_initextendproc updated locmap=" locmap)
+    (assert_msg "@$@compile2obj_initextendproc unimplemented")
+    ))
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values 
  compile2obj_initproc

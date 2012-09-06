@@ -1,6 +1,12 @@
 
 2012-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-genobj.melt (make_objlocatedexp): loc can be a mixed integer.
+	(compile2obj_initextendproc): Copy-pasted some code from
+	compile2obj_initproc but incomplete.
+
+2012-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.
