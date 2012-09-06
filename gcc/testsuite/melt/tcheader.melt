@@ -13,18 +13,18 @@
 |#
 (cheader #{
 #warning we have a cheader here defining MELT_URL
-#define MELT_URL "http://gcc-melt.org/"
+#define OUR_MELT_URL "http://gcc-melt.org/"
 }#)
 
 (defun melt_url_str (void) 
   (let ( (res ())
 	 )
     (code_chunk chunk #{
-#ifdef MELT_URL
+#ifdef OUR_MELT_URL
       $RES = meltgc_new_string ((meltobject_ptr_t) $DISCR_STRING, 
-				MELT_URL);
+				OUR_MELT_URL);
 #else
-#error MELT_URL undefined
+#error OUR_MELT_URL undefined
 #endif
    }#)
    res))

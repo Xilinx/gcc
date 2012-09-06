@@ -30,16 +30,6 @@
 ;;    generated C file[s])
 ;;    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-;; temporary disgusting hack, because the :named_name of the module
-;; init routine has changed
-
-(cheader #{
-#define frame_start_module_melt_st frame_melt_start_this_module_st
-#define frame_start_this_module_melt_st frame_melt_start_this_module_st
-#warning shameful disgusting hack to remove in warmelt-outobj
-}#)
-
 ;; the limit for our [generated C code] implementation and declaration
 ;; buffer length. The biggest file is often one of
 ;; melt-stage2/warmelt*c or one of melt-sources/xtramelt*c. 9Mbytes is
@@ -4421,6 +4411,7 @@ MELT_EXTERN  void* melt_start_this_module (void*);
      meltgc_add_strbuf_cstr ((melt_ptr_t) $DEBUF, lbasename (melt_string_str((melt_ptr_t) $MODNAMSTR))) ;
      }#
      )
+    ;;
     (add2sbuf_strconst debuf "\";")
     (add2sbuf_indentnl debuf 0)
     (add2sbuf_strconst debuf "const char melt_modulerealpath[]=\"")
@@ -4739,6 +4730,7 @@ extern "C" {
 	(output_sbuf_no_overwrite_strval debuf meltdescpath)
 	(output_sbuf_no_overwrite_strval tibuf melttimepath)
 	(output_sbuf_no_overwrite_strval mkbuf meltmakepath)
+	(debug "output_melt_descriptor final modctx=" modctx)
 	)
       )
     )
@@ -5114,6 +5106,7 @@ if (1) return;
   (assert_msg "check modctx" (is_a modctx class_module_context))
   (assert_msg "check ncx" (is_a ncx class_normalization_context))
   (assert_msg "check inienv" (is_a inienv class_environment))
+  (debug "normadeclb_macroexpanded_list modctx=" modctx)
   (let (
 	(:long startclock 0)
 	(normlist (list))
@@ -5130,7 +5123,8 @@ if (1) return;
 			  :sucme_comment '"at very start"
 			  ))
 	)
-    (debug "normadeclb_macroexpanded_list cheadlist=" cheadlist)
+    (debug "normadeclb_macroexpanded_list modctx=" modctx)
+    (debug "normadeclb_macroexpanded_list @@cheadlist=" cheadlist)
     (code_chunk startmodnam
 		#{ /* normadeclb_macroexpanded_list $STARTMODNAM */
 		#if HAVE_CLOCK
@@ -5169,6 +5163,8 @@ if (1) return;
 	(add2sbuf_indentnl declbuf 0)
 	)
       )
+    (debug "normadeclb_macroexpanded_list modctx=" modctx 
+	   "\n with @@cheadlist=" cheadlist)
     ;; only warmelt-first.melt gets a zeroed MELT_HAS_INITIAL_ENVIRONMENT
     (if modinienv
 	(progn
@@ -5196,48 +5192,8 @@ if (1) return;
     (add2sbuf_indentnl declbuf 0)
     (add2sbuf_indentnl declbuf 0)
     (list_prepend xlist ucmeb1)
-    (debug "normadeclb_macroexpanded_list xlist=" xlist " inienv=" inienv)
-    ;; handle cheaders
-    (let (
-	  (cheadtup (list_to_multiple cheadlist discr_multiple))
-	  (:long nbchead (multiple_length cheadtup))
-	  )
-      (debug "normadeclb_macroexpanded_list cheadtup=" cheadtup "\n nbchead=" nbchead)
-      (if (>i nbchead 0)
-	  (progn
-	    (add2sbuf_indentnl declbuf 0)
-	    (add2sbuf_indentnl declbuf 0)
-	    (add2out declbuf ##{/***** $NBCHEAD extra C headers *****/}#)
-	    (add2sbuf_indentnl declbuf 0)
-	    (add2sbuf_indentnl declbuf 0)
-	    (foreach_in_multiple
-	     (cheadtup)
-	     (curchead :long hix)
-	     (debug "normadeclb_macroexpanded_list curchead=" curchead " hix=" hix)
-	     (assert_msg "check curchead" (is_a curchead class_source_cheader))
-	     (add2sbuf_indentnl declbuf 0)
-	     (add2out declbuf ##{/** header #$HIX: **/}#)
-	     (add2sbuf_indentnl declbuf 0)
-	     (let ( (hloc (get_field :loca_location curchead))
-		    (chstr (get_field :scheader_codestring curchead))
-		    )
-	       (if hloc
-		   (output_raw_location hloc declbuf 0 "cheader"))
-	       (add2out declbuf chstr)
-	       (add2sbuf_indentnl declbuf 0)
-	       )
-	     )
-	    (add2sbuf_indentnl declbuf 0)
-	    (add2sbuf_indentnl declbuf 0)
-	    (add2out declbuf ##{/***** end of $NBCHEAD extra C headers *****/}#)
-	    (add2sbuf_indentnl declbuf 0)
-	    (add2sbuf_indentnl declbuf 0)
-	    ))
-      )
     ;;
-    (assert_msg "check iniproc" (is_a iniproc class_nrep_initproc))
-    (assert_msg "check xlist" (is_list xlist))
-    ;;
+    ;; we need to normalize now, because cheaders are handled by normalization
     (list_every
      xlist
      (lambda (sexp :long ix)
@@ -5271,6 +5227,52 @@ if (1) return;
 		  ))
 	    (list_append normlist nexp)
 	    )))))
+
+    (debug "normadeclb_macroexpanded_list @@cheadlist=" cheadlist "\n modctx=" modctx)
+    ;; handle cheaders, should be done after normalization which is filling cheadlist
+    (let (
+	  (cheadtup (list_to_multiple cheadlist discr_multiple))
+	  (:long nbchead (multiple_length cheadtup))
+	  )
+      (debug "normadeclb_macroexpanded_list cheadtup=" cheadtup "\n nbchead=" nbchead
+	     "\n @@cheadlist=" cheadlist)
+      (if (>i nbchead 0)
+	  (progn
+	    (add2sbuf_indentnl declbuf 0)
+	    (add2sbuf_indentnl declbuf 0)
+	    (add2out declbuf ##{/***** $NBCHEAD extra C headers *****/}#)
+	    (add2sbuf_indentnl declbuf 0)
+	    (add2sbuf_indentnl declbuf 0)
+	    (foreach_in_multiple
+	     (cheadtup)
+	     (curchead :long hix)
+	     (debug "normadeclb_macroexpanded_list curchead=" curchead " hix=" hix)
+	     (assert_msg "check curchead" (is_a curchead class_source_cheader))
+	     (add2sbuf_indentnl declbuf 0)
+	     (add2out declbuf ##{/** header #$HIX: **/}#)
+	     (add2sbuf_indentnl declbuf 0)
+	     (let ( (hloc (get_field :loca_location curchead))
+		    (chstr (get_field :scheader_codestring curchead))
+		    )
+	       (if hloc
+		   (output_raw_location hloc declbuf 0 "cheader"))
+	       (add2out declbuf chstr)
+	       (add2sbuf_indentnl declbuf 0)
+	       )
+	     )
+	    (add2sbuf_indentnl declbuf 0)
+	    (add2sbuf_indentnl declbuf 0)
+	    (add2out declbuf ##{/***** end of $NBCHEAD extra C headers *****/}#)
+	    (add2sbuf_indentnl declbuf 0)
+	    (add2sbuf_indentnl declbuf 0)
+	    ))
+      (debug "normadeclb_macroexpanded_list  @@cheadlist=" cheadlist)
+      )
+    ;;
+    (assert_msg "check iniproc" (is_a iniproc class_nrep_initproc))
+    (assert_msg "check xlist" (is_list xlist))
+    ;;
+    
     (return normlist declbuf startclock)
     ))
 
@@ -5302,12 +5304,14 @@ if (1) return;
 	(iniproc (get_field :nctx_initproc ncx))
 	(implbuf (make_strbuf discr_strbuf)) 
 	)
-    (debug "translate_macroexpanded_list modinienv=" modinienv " modnamstr=" modnamstr)
+    (debug "translate_macroexpanded_list modinienv=" modinienv " modnamstr=" modnamstr
+	   " before normadeclb_macroexpanded_list modctx=" modctx)
     (multicall
      (normlist declbuf :long startclock)
      (normadeclb_macroexpanded_list xlist modnamstr modctx ncx inienv)
      (assert_msg "check normlist" (is_list normlist))
      (assert_msg "check declbuf" (is_strbuf declbuf))
+     (debug "translate_macroexpanded_list after normadeclb_macroexpanded_list modctx=" modctx)
      ;;
      ;;
      (when (melt_error_counter)
@@ -5453,6 +5457,7 @@ if (1) return;
 		))
 	     ;;
 	     ;; output the descriptive C file 
+	     (debug "translate_macroexpanded_list before output descrfil modctx=" modctx)
 	     (output_melt_descriptor modnamstr secfiles modctx)
 	     ;; remove the old extra files
 	     (foreach_long_upto 
@@ -5465,6 +5470,7 @@ if (1) return;
 		    (add2out baksbuf delfilnam "~")
 		    (let ( (bakfilnam (strbuf2string discr_string baksbuf))
 			   )
+		      (debug "translate_macroexpanded_list delfilix=" delfilix)
 		      (code_chunk 
 		       backupchk
 		       #{ /*translate_macroexpanded_list $BACKUPCHK*/ {
@@ -5483,6 +5489,7 @@ if (1) return;
 		       } /*end translate_macroexpanded_list $BACKUPCHK*/ }#)
 		      ))))
 	     ;;
+	     (debug "translate_macroexpanded_list before endmodnamchk modctx=" modctx)
 	     (code_chunk 
 	      endmodnam
 	      #{ /* translate_macroexpanded_list $ENDMODNAM */
@@ -5504,6 +5511,7 @@ if (1) return;
 		      melt_string_str ((melt_ptr_t) $MODNAMSTR), $NBSECFILES) ;
 	      #endif /* HAVE_CLOCK && CLOCKS_PER_SEC */
 	      /* end translate_macroexpanded_list $ENDMODNAM */ }#)
+	     (debug "translate_macroexpanded_list ending modctx=" modctx)
 	     (shortbacktrace_dbg "translate_macroexpanded_list ended" 25)
 	     (when (melt_error_counter)
 	       (if (is_closure errorhdlr) 
@@ -5574,14 +5582,6 @@ if (1) return;
 	)
     (debug "compile_list_sexpr modctx=" modctx 
 	   "\n of class " (discrim modctx))
-    ;; temporary low lebel debug chunk
-    (code_chunk dbgchk #{ /* compile_list_sexpr $DBGCHK */
-	debugvalue ("compile_list_sexpr $DBGCHK modctx", $MODCTX);
-	debugeprintf ("compile_list_sexpr $DBGCHK modctx@%p hash %#x objlen %d",
-		     (void*) $MODCTX, (int) ((meltobject_ptr_t)$MODCTX)->obj_hash, 
-		     (int) ((meltobject_ptr_t)$MODCTX)->obj_len);
-    }#)
-    ;;
     ;; is it very unusual that inienv is null, only happenning in
     ;; translateinit mode, when bootstrapping warmelt-first.melt
     (when (null inienv)
@@ -5599,17 +5599,18 @@ if (1) return;
     (let ( (xlist (macroexpand_toplevel_list lsexp inienv macroexpand_1 modctx)) 
 	   (:long lenxlist (list_length xlist))
 	   )
+      (debug "compile_list_sexpr after macroexpansion modctx=" modctx)
+      ;;
       (if (<=i lenxlist 3)
 	  (code_chunk warnshortchk
 		      #{/* compile_list_sexpr $WARNSHORTCHK*/
 		      warning (0, "MELT expanded few (%d) expressions", (int) $LENXLIST) ;
 		      }#))
+      (debug "compile_list_sexpr before translation modctx=" modctx)
       ;;
       (translate_macroexpanded_list xlist modnamstr modctx ncx inienv compile2obj_initproc)
-      ))
-  ;;
-  (message_dbg "ended compile_list_sexpr")
-  )
+      (debug "compile_list_sexpr after translation modctx=" modctx)
+      )))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
