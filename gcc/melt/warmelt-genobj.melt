@@ -417,12 +417,6 @@
 	   obdtw_message			;the message
 	   ))
 
-(compile_warning "class_objtouchedobj is obsolete")
-(defclass class_objtouchedobj
-  :super class_objdbgtracewriteobj  
-  :fields (obto_touchedobj		;the touched object
-	   obto_message			;the message
-	   ))
 
 ;; new closure allocation
 (defclass class_objnewclosure
@@ -658,8 +652,6 @@
  class_objvalue
  class_procroutineobj
  class_routineobj
-
- class_objtouchedobj
  )					;end export_class
 
 (export_synonym class_objblock class_objplainblock)
@@ -3047,7 +3039,14 @@ $SBUF.}#
     (list_append obodl (instance class_objtouch
 				 :obi_loc loc
 				 :otouch_val oobj))
-    ;; add the touched obj to the block
+#|@@temp
+    ;; emit debugtrace of written object
+    (list_append obodl (instance class_objdbgtracewriteobj
+				 :obi_loc loc
+				 :obdtw_writtenobj oobj
+				 :obdtw_message '"put-fields"))
+|#
+    ;; add the updated obj to the block
     (list_append obodl oobj)
     (return oblock)
     ))
@@ -4315,15 +4314,18 @@ $SBUF.}#
 	      )))))
       ;; since nmki was normalized, the new object was allocated in
       ;; the birth zone so don't need to be touched.  
-      ;; temporary, add a touch for measures
-      (let ( (otouch (instance class_objtouch
+      ;; 
+      ;; add the debugtracing
+#|@@temp
+      (let ( (odbgtr (instance class_objdbgtracewriteobj
 			       :obi_loc nloc
-			       :otouch_val locv))
+			       :obdtw_writtenobj locv
+			       :obdtw_message '"newly made instance"
+			       ))
 		     )
-	(list_append olis otouch)
+	(list_append olis odbgtr)
 	)
-      ;; we don't need to add any objtouch because the nmki was
-      ;; normalized!
+|#
       (list_append olis locv) ;;; last instruction is just the value, which can be set to some dest
       (debug "compilobj_nrep_makeinst result oblock=" oblock)
       oblock
@@ -4392,24 +4394,24 @@ $SBUF.}#
 		  (instance 
 		   class_objexpv
 		   :obx_cont (tuple
-					  (make_stringconst discr_verbatim_string 
-							    "MELTPREDEFIX(meltpredefinited,")
-					  (make_string discr_verbatim_string 
-						       (unsafe_get_field :named_name ipredef))
-					  (make_stringconst discr_verbatim_string 
-							    ")")
-					  ))
+			      (make_stringconst discr_verbatim_string 
+						"MELTPREDEFIX(meltpredefinited,")
+			      (make_string discr_verbatim_string 
+					   (unsafe_get_field :named_name ipredef))
+			      (make_stringconst discr_verbatim_string 
+						")")
+			      ))
 		  )
 		( (is_integerbox ipredef)
 		  (instance
 		   class_objexpv
 		   :obx_cont (tuple
-					  (make_stringconst discr_verbatim_string 
-							    "predefinited[")
-					  ipredef
-					  (make_stringconst discr_verbatim_string 
-							    "]")
-					  ))
+			      (make_stringconst discr_verbatim_string 
+						"predefinited[")
+			      ipredef
+			      (make_stringconst discr_verbatim_string 
+						"]")
+			      ))
 		  )
 		))
 	      (initlis (make_list discr_list))
@@ -4471,6 +4473,14 @@ $SBUF.}#
 			   :obi_loc (if nloc nloc (unsafe_get_field :nrep_loc ndat))
 			   :otouch_comment comm
 			   :otouch_val obj))
+    #|@@temp
+    ;; debugwrite the object		;
+    (list_append istmtlis
+    (instance class_objdbgtracewriteobj
+    :obi_loc (if nloc nloc (unsafe_get_field :nrep_loc ndat))
+    :obdtw_writtenobj obj
+    :obdtw_message '"new static instance"))
+    |#
     ;; for every non nil local obvar, clear it
     (multiple_every
      tupvar

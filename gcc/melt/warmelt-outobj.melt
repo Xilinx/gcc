@@ -3573,7 +3573,7 @@ MELT_EXTERN  void* melt_start_this_module (void*);
     (if (is_string msg) 
 	(add2sbuf_cencstring implbuf msg)
       (add2sbuf_strconst implbuf "*written object*"))
-    (add2sbuf_strconst implbuf ");")
+    (add2sbuf_strconst implbuf "\");")
     (add2sbuf_indentnl implbuf depth)))
 (install_method class_objdbgtracewriteobj output_c_code outpucod_dbgtracewriteobj)
 	     
