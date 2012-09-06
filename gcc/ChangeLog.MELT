@@ -1,5 +1,20 @@
 
 
+2012-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.c (melt_objhash_1, melt_objhash_2): New variables
+	for low-level gdb debugging.
+	(melt_break_objhash_1, melt_break_objhash_2): New macros for
+	low-level gdb debugging.
+	(melt_break_objhash_1_at, melt_break_objhash_2_at): New helper
+	functions for low-level gdb debugging.
+
+	* melt/warmelt-base.melt (valdesc_object): Use above for low-level
+	gdb debugging.
+
+	* gcc/testsuite/melt/tcheader.melt: Example uses MELT_URL, not
+	BASILE_EMAIL macro string.
+
 2012-09-05  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-normal.melt (normexp_cheader): More debug.

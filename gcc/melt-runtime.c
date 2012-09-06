@@ -147,10 +147,16 @@ const int melt_gccplugin_version = 0;
 /* For debugging purposes, used thru gdb.  */
 void *melt_alptr_1;
 void *melt_alptr_2;
+unsigned melt_objhash_1;
+unsigned melt_objhash_2;
 void melt_break_alptr_1_at (const char *msg, const char *fil, int line);
 void melt_break_alptr_2_at (const char *msg, const char *fil, int line);
+void melt_break_objhash_1_at (const char *msg, const char *fil, int line);
+void melt_break_objhash_2_at (const char *msg, const char *fil, int line);
 #define melt_break_alptr_1(Msg) melt_break_alptr_1_at((Msg),__FILE__,__LINE__)
 #define melt_break_alptr_2(Msg) melt_break_alptr_2_at((Msg),__FILE__,__LINE__)
+#define melt_break_objhash_1(Msg) melt_break_objhash_1_at((Msg),__FILE__,__LINE__)
+#define melt_break_objhash_2(Msg) melt_break_objhash_2_at((Msg),__FILE__,__LINE__)
 #endif /* ENABLE_CHECKING */
 
 /* include a generated files of strings constants */
@@ -369,6 +375,27 @@ melt_break_alptr_2_at (const char*msg, const char* fil, int line)
 {
   fprintf (stderr, "melt_break_alptr_2 %s:%d: %s alptr_2=%p\n",
            melt_basename(fil), line, msg, melt_alptr_2);
+  fflush (stderr);
+}
+
+void melt_break_objhash_1_at (const char*msg, const char* fil, int line);
+void melt_break_objhash_2_at (const char*msg, const char* fil, int line);
+#define melt_break_objhash_1(Msg) melt_break_objhash_1_at((Msg),__FILE__,__LINE__)
+#define melt_break_objhash_2(Msg) melt_break_objhash_2_at((Msg),__FILE__,__LINE__)
+
+void
+melt_break_objhash_1_at (const char*msg, const char* fil, int line)
+{
+  fprintf (stderr, "melt_break_objhash_1 %s:%d: %s objhash_1=%#ux\n",
+           melt_basename(fil), line, msg, melt_objhash_1);
+  fflush (stderr);
+}
+
+void
+melt_break_objhash_2_at (const char*msg, const char* fil, int line)
+{
+  fprintf (stderr, "melt_break_objhash_2 %s:%d: %s objhash_2=%#ux\n",
+           melt_basename(fil), line, msg, melt_objhash_2);
   fflush (stderr);
 }
 
@@ -2279,6 +2306,16 @@ meltgc_new_raw_object (meltobject_ptr_t klass_p, unsigned len)
   } while (h == 0);
   obj_newobjv->obj_hash = h;
   obj_newobjv->obj_len = len;
+#if ENABLE_CHECKING
+  if (melt_alptr_1 && (void*)melt_alptr_1 == (void*)newobjv)
+    melt_break_alptr_1("newrawobj alptr_1");
+  if (melt_alptr_2 && (void*)melt_alptr_2 == (void*)newobjv)
+    melt_break_alptr_2("newrawobj alptr_1");
+  if (melt_objhash_1 == h)
+    melt_break_objhash_1("newrawobj objhash1");
+  if (melt_objhash_2 == h)
+    melt_break_objhash_1("newrawobj objhash2");
+#endif
 end:
   MELT_EXITFRAME ();
   return (meltobject_ptr_t) newobjv;

@@ -12,23 +12,23 @@
     -fmelt-debug empty-file-for-melt.c
 |#
 (cheader #{
-#warning we have a cheader.here
-#define BASILE_EMAIL "basile@starynkevitch.net"
+#warning we have a cheader here defining MELT_URL
+#define MELT_URL "http://gcc-melt.org/"
 }#)
 
-(defun basile_email_str (void) 
+(defun melt_url_str (void) 
   (let ( (res ())
 	 )
     (code_chunk chunk #{
-#ifdef BASILE_EMAIL
+#ifdef MELT_URL
       $RES = meltgc_new_string ((meltobject_ptr_t) $DISCR_STRING, 
-				BASILE_EMAIL);
+				MELT_URL);
 #else
-#error BASILE_EMAIL undefined
+#error MELT_URL undefined
 #endif
    }#)
    res))
 
-(debug "Basile's email=" (basile_email_str))
+(debug "MELT url is " (melt_url_str))
 
 ;;eof tcheader.melt
