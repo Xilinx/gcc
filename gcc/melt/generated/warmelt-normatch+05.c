@@ -3449,6 +3449,9 @@ lab_endgetargs:;
 			  ( /*_.MAPSTEP__V5*/ meltfptr[4]),
 			  "MCHGX_STEPNAMEMAP");
     ;
+    /*^touch */
+    meltgc_touch ( /*_.INST__V19*/ meltfptr[18]);
+    ;
     /*_.MG__V18*/ meltfptr[17] = /*_.INST__V19*/ meltfptr[18];;
     MELT_LOCATION ("warmelt-normatch.melt:6824:/ blockmultialloc");
     /*multiallocblock */

@@ -25800,6 +25800,9 @@ lab_endgetargs:;
     melt_putfield_object (( /*_.INST__V13*/ meltfptr[12]), (3),
 			  ( /*_.DATA__V3*/ meltfptr[2]), "INCH_DATA");
     ;
+    /*^touch */
+    meltgc_touch ( /*_.INST__V13*/ meltfptr[12]);
+    ;
     /*_.INCHDLR__V12*/ meltfptr[5] = /*_.INST__V13*/ meltfptr[12];;
     MELT_LOCATION ("warmelt-modes.melt:4088:/ cond");
     /*cond */ if (
@@ -26111,6 +26114,9 @@ lab_endgetargs:;
   /*_.INST__V4*/ meltfptr[3] =
 	newobj;
     };
+    ;
+    /*^touch */
+    meltgc_touch ( /*_.INST__V4*/ meltfptr[3]);
     ;
     /*_.GOTALARM_CONT__V3*/ meltfptr[2] = /*_.INST__V4*/ meltfptr[3];;
     /*^compute */
@@ -27835,6 +27841,9 @@ lab_endgetargs:;
 		  melt_putfield_object (( /*_.INST__V18*/ meltfptr[17]), (3),
 					( /*_.DATA__V3*/ meltfptr[2]),
 					"ALARMH_DATA");
+		  ;
+		  /*^touch */
+		  meltgc_touch ( /*_.INST__V18*/ meltfptr[17]);
 		  ;
 		  /*_.ALHD__V17*/ meltfptr[15] =
 		    /*_.INST__V18*/ meltfptr[17];;
@@ -31219,6 +31228,9 @@ lab_endgetargs:;
 		melt_putfield_object (( /*_.INST__V20*/ meltfptr[19]), (3),
 				      ( /*_.DATA__V3*/ meltfptr[2]),
 				      "CHILPROH_DATA");
+		;
+		/*^touch */
+		meltgc_touch ( /*_.INST__V20*/ meltfptr[19]);
 		;
 		/*_.CHPH__V19*/ meltfptr[18] = /*_.INST__V20*/ meltfptr[19];;
 

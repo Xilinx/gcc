@@ -3178,6 +3178,9 @@ lab_endgetargs:;
 	  melt_putfield_object (( /*_.INST__V23*/ meltfptr[22]), (0),
 				(( /*nil */ NULL)), "REFERENCED_VALUE");
 	  ;
+	  /*^touch */
+	  meltgc_touch ( /*_.INST__V23*/ meltfptr[22]);
+	  ;
 	  /*_.CONTK__V22*/ meltfptr[21] = /*_.INST__V23*/ meltfptr[22];;
 	  MELT_LOCATION ("warmelt-normal.melt:6990:/ quasiblock");
 
@@ -3657,6 +3660,9 @@ lab_endgetargs:;
     melt_putfield_object (( /*_.INST__V42*/ meltfptr[41]), (2),
 			  ( /*_.NVAL__V34*/ meltfptr[23]), "NSTPD_VALUE");
     ;
+    /*^touch */
+    meltgc_touch ( /*_.INST__V42*/ meltfptr[41]);
+    ;
     /*_.NFPRE__V41*/ meltfptr[40] = /*_.INST__V42*/ meltfptr[41];;
     MELT_LOCATION ("warmelt-normal.melt:7017:/ checksignal");
     MELT_CHECK_SIGNAL ();
@@ -3703,6 +3709,9 @@ lab_endgetargs:;
 		    MELTOBMAG_OBJECT);
     melt_putfield_object (( /*_.INST__V44*/ meltfptr[43]), (2),
 			  ( /*_.NFPRE__V41*/ meltfptr[40]), "LETBIND_EXPR");
+    ;
+    /*^touch */
+    meltgc_touch ( /*_.INST__V44*/ meltfptr[43]);
     ;
     /*_.CBIND__V43*/ meltfptr[42] = /*_.INST__V44*/ meltfptr[43];;
     MELT_LOCATION ("warmelt-normal.melt:7021:/ checksignal");
@@ -3759,6 +3768,9 @@ lab_endgetargs:;
 		    MELTOBMAG_OBJECT);
     melt_putfield_object (( /*_.INST__V46*/ meltfptr[45]), (3),
 			  ( /*_.CBIND__V43*/ meltfptr[42]), "NOCC_BIND");
+    ;
+    /*^touch */
+    meltgc_touch ( /*_.INST__V46*/ meltfptr[45]);
     ;
     /*_.SYOCC__V45*/ meltfptr[44] = /*_.INST__V46*/ meltfptr[45];;
 

@@ -23117,6 +23117,9 @@ lab_endgetargs:;
 			  ( /*_.MAKE_INTEGERBOX__V30*/ meltfptr[29]),
 			  "MKDOC_BOXCOUNTER");
     ;
+    /*^touch */
+    meltgc_touch ( /*_.INST__V32*/ meltfptr[31]);
+    ;
     /*_.MDINFO__V31*/ meltfptr[30] = /*_.INST__V32*/ meltfptr[31];;
 
 #if MELT_HAVE_DEBUG

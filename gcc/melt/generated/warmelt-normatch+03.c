@@ -6638,6 +6638,9 @@ lab_endgetargs:;
     melt_putfield_object (( /*_.INST__V58*/ meltfptr[57]), (3),
 			  ( /*_.MFLAG__V56*/ meltfptr[55]), "MSTEP_FLAG");
     ;
+    /*^touch */
+    meltgc_touch ( /*_.INST__V58*/ meltfptr[57]);
+    ;
     /*_.FLAGSTEP__V57*/ meltfptr[56] = /*_.INST__V58*/ meltfptr[57];;
     MELT_LOCATION ("warmelt-normatch.melt:3453:/ checksignal");
     MELT_CHECK_SIGNAL ();
@@ -6710,6 +6713,9 @@ lab_endgetargs:;
     melt_putfield_object (( /*_.INST__V60*/ meltfptr[59]), (7),
 			  ( /*_.NBINDCONST__V44*/ meltfptr[43]),
 			  "MSTEPTESTCONST_BIND");
+    ;
+    /*^touch */
+    meltgc_touch ( /*_.INST__V60*/ meltfptr[59]);
     ;
     /*_.STEPTEST__V59*/ meltfptr[58] = /*_.INST__V60*/ meltfptr[59];;
 
@@ -8339,6 +8345,9 @@ lab_endgetargs:;
 				      ( /*_.MAKE_INTEGERBOX__V30*/
 				       meltfptr[25]), "TUPCP_INDEX");
 		;
+		/*^touch */
+		meltgc_touch ( /*_.INST__V32*/ meltfptr[31]);
+		;
 		/*_.TUCOMP__V31*/ meltfptr[30] =
 		  /*_.INST__V32*/ meltfptr[31];;
 
@@ -9058,6 +9067,9 @@ lab_endgetargs:;
 	  melt_putfield_object (( /*_.INST__V67*/ meltfptr[66]), (6),
 				( /*_.DCOMP__V65*/ meltfptr[64]),
 				"MSTTUP_COMPONENTS");
+	  ;
+	  /*^touch */
+	  meltgc_touch ( /*_.INST__V67*/ meltfptr[66]);
 	  ;
 	  /*_.NEWSTEP__V66*/ meltfptr[65] = /*_.INST__V67*/ meltfptr[66];;
 	  MELT_LOCATION ("warmelt-normatch.melt:3557:/ compute");
@@ -10200,6 +10212,9 @@ lab_endgetargs:;
 				      ( /*_.MAKE_LIST__V110*/ meltfptr[109]),
 				      "MDATA_STEPS");
 		;
+		/*^touch */
+		meltgc_touch ( /*_.INST__V112*/ meltfptr[111]);
+		;
 		/*_.NEWDATA__V111*/ meltfptr[110] =
 		  /*_.INST__V112*/ meltfptr[111];;
 
@@ -11248,6 +11263,9 @@ lab_endgetargs:;
 				( /*_.LIST_TO_MULTIPLE__V148*/ meltfptr[69]),
 				"MSTEP_FLAGARGS");
 	  ;
+	  /*^touch */
+	  meltgc_touch ( /*_.INST__V150*/ meltfptr[101]);
+	  ;
 	  /*_.INST___V149*/ meltfptr[68] = /*_.INST__V150*/ meltfptr[101];;
 	  /*^compute */
 	  /*_.STEPSETFLAG__V147*/ meltfptr[113] =
@@ -11312,6 +11330,9 @@ lab_endgetargs:;
 	  melt_putfield_object (( /*_.INST__V152*/ meltfptr[103]), (3),
 				( /*_.MFLAG__V145*/ meltfptr[104]),
 				"MSTEP_FLAG");
+	  ;
+	  /*^touch */
+	  meltgc_touch ( /*_.INST__V152*/ meltfptr[103]);
 	  ;
 	  /*_.INST___V151*/ meltfptr[102] = /*_.INST__V152*/ meltfptr[103];;
 	  /*^compute */
@@ -11424,6 +11445,9 @@ lab_endgetargs:;
     melt_putfield_object (( /*_.INST__V155*/ meltfptr[129]), (8),
 			  ( /*_.LIST_TO_MULTIPLE__V153*/ meltfptr[114]),
 			  "MSTGROUP_ELSE");
+    ;
+    /*^touch */
+    meltgc_touch ( /*_.INST__V155*/ meltfptr[129]);
     ;
     /*_.STEPGROUP__V154*/ meltfptr[134] = /*_.INST__V155*/ meltfptr[129];;
     MELT_LOCATION ("warmelt-normatch.melt:3641:/ checksignal");
@@ -13777,6 +13801,9 @@ lab_endgetargs:;
 				( /*_.DSLOTS__V72*/ meltfptr[41]),
 				"MSTINS_SLOTS");
 	  ;
+	  /*^touch */
+	  meltgc_touch ( /*_.INST__V74*/ meltfptr[73]);
+	  ;
 	  /*_.NEWSTEP__V73*/ meltfptr[72] = /*_.INST__V74*/ meltfptr[73];;
 	  MELT_LOCATION ("warmelt-normatch.melt:3721:/ compute");
 	  /*_.ISTEP__V54*/ meltfptr[48] = /*_.SETQ___V75*/ meltfptr[74] =
@@ -14553,6 +14580,9 @@ lab_endgetargs:;
 					    (4),
 					    ( /*_.MAKE_LIST__V107*/
 					     meltfptr[106]), "MDATA_STEPS");
+		      ;
+		      /*^touch */
+		      meltgc_touch ( /*_.INST__V109*/ meltfptr[108]);
 		      ;
 		      /*_.NEWSLOT__V108*/ meltfptr[107] =
 			/*_.INST__V109*/ meltfptr[108];;
@@ -15581,6 +15611,9 @@ lab_endgetargs:;
 				( /*_.LIST_TO_MULTIPLE__V144*/ meltfptr[109]),
 				"MSTEP_FLAGARGS");
 	  ;
+	  /*^touch */
+	  meltgc_touch ( /*_.INST__V146*/ meltfptr[104]);
+	  ;
 	  /*_.INST___V145*/ meltfptr[110] = /*_.INST__V146*/ meltfptr[104];;
 	  /*^compute */
 	  /*_.STEPSETFLAG__V143*/ meltfptr[107] =
@@ -15645,6 +15678,9 @@ lab_endgetargs:;
 	  melt_putfield_object (( /*_.INST__V148*/ meltfptr[45]), (3),
 				( /*_.MFLAG__V36*/ meltfptr[35]),
 				"MSTEP_FLAG");
+	  ;
+	  /*^touch */
+	  meltgc_touch ( /*_.INST__V148*/ meltfptr[45]);
 	  ;
 	  /*_.INST___V147*/ meltfptr[111] = /*_.INST__V148*/ meltfptr[45];;
 	  /*^compute */
@@ -15757,6 +15793,9 @@ lab_endgetargs:;
     melt_putfield_object (( /*_.INST__V151*/ meltfptr[103]), (8),
 			  ( /*_.LIST_TO_MULTIPLE__V149*/ meltfptr[74]),
 			  "MSTGROUP_ELSE");
+    ;
+    /*^touch */
+    meltgc_touch ( /*_.INST__V151*/ meltfptr[103]);
     ;
     /*_.STEPGROUP__V150*/ meltfptr[77] = /*_.INST__V151*/ meltfptr[103];;
     MELT_LOCATION ("warmelt-normatch.melt:3800:/ checksignal");
@@ -16810,6 +16849,9 @@ lab_endgetargs:;
 		    MELTOBMAG_OBJECT);
     melt_putfield_object (( /*_.INST__V29*/ meltfptr[28]), (3),
 			  ( /*_.MFLAG__V27*/ meltfptr[26]), "MSTEP_FLAG");
+    ;
+    /*^touch */
+    meltgc_touch ( /*_.INST__V29*/ meltfptr[28]);
     ;
     /*_.FLAGSTEP__V28*/ meltfptr[27] = /*_.INST__V29*/ meltfptr[28];;
 
@@ -18598,6 +18640,9 @@ lab_endgetargs:;
 				( /*_.SYMBVAL__V22*/ meltfptr[21]),
 				"MSTEPTESTVAR_DATA");
 	  ;
+	  /*^touch */
+	  meltgc_touch ( /*_.INST__V94*/ meltfptr[77]);
+	  ;
 	  /*_.STEPTEST__V93*/ meltfptr[67] = /*_.INST__V94*/ meltfptr[77];;
 
 	  {
@@ -20149,6 +20194,9 @@ lab_endgetargs:;
     melt_putfield_object (( /*_.INST__V36*/ meltfptr[35]), (8),
 			  (( /*nil */ NULL)), "MSTGROUP_ELSE");
     ;
+    /*^touch */
+    meltgc_touch ( /*_.INST__V36*/ meltfptr[35]);
+    ;
     /*_.STEPGROUP__V35*/ meltfptr[34] = /*_.INST__V36*/ meltfptr[35];;
     MELT_LOCATION ("warmelt-normatch.melt:3928:/ checksignal");
     MELT_CHECK_SIGNAL ();
@@ -20213,6 +20261,9 @@ lab_endgetargs:;
 		    MELTOBMAG_OBJECT);
     melt_putfield_object (( /*_.INST__V39*/ meltfptr[38]), (3),
 			  ( /*_.MFLAG__V37*/ meltfptr[36]), "MSTEP_FLAG");
+    ;
+    /*^touch */
+    meltgc_touch ( /*_.INST__V39*/ meltfptr[38]);
     ;
     /*_.FLAGSTEP__V38*/ meltfptr[37] = /*_.INST__V39*/ meltfptr[38];;
 
@@ -22527,6 +22578,9 @@ lab_endgetargs:;
     melt_putfield_object (( /*_.INST__V34*/ meltfptr[33]), (8),
 			  (( /*nil */ NULL)), "MSTGROUP_ELSE");
     ;
+    /*^touch */
+    meltgc_touch ( /*_.INST__V34*/ meltfptr[33]);
+    ;
     /*_.STEPGROUP__V33*/ meltfptr[32] = /*_.INST__V34*/ meltfptr[33];;
     MELT_LOCATION ("warmelt-normatch.melt:4010:/ checksignal");
     MELT_CHECK_SIGNAL ();
@@ -22591,6 +22645,9 @@ lab_endgetargs:;
 		    MELTOBMAG_OBJECT);
     melt_putfield_object (( /*_.INST__V37*/ meltfptr[36]), (3),
 			  ( /*_.MFLAG__V35*/ meltfptr[34]), "MSTEP_FLAG");
+    ;
+    /*^touch */
+    meltgc_touch ( /*_.INST__V37*/ meltfptr[36]);
     ;
     /*_.FLAGSTEP__V36*/ meltfptr[35] = /*_.INST__V37*/ meltfptr[36];;
     /*^compute */
@@ -23911,6 +23968,9 @@ lab_endgetargs:;
 					    ( /*_.SORTEDMDATAS__V88*/
 					     meltfptr[87]),
 					    "MSTEP_CLEARDATA");
+		      ;
+		      /*^touch */
+		      meltgc_touch ( /*_.INST__V91*/ meltfptr[90]);
 		      ;
 		      /*_.ERASESTEP__V90*/ meltfptr[89] =
 			/*_.INST__V91*/ meltfptr[90];;
@@ -29724,6 +29784,9 @@ lab_endgetargs:;
 				( /*_.OUTDATATUP__V139*/ meltfptr[91]),
 				"MSTMA_OUTS");
 	  ;
+	  /*^touch */
+	  meltgc_touch ( /*_.INST__V141*/ meltfptr[81]);
+	  ;
 	  /*_.NEWSTEP__V140*/ meltfptr[96] = /*_.INST__V141*/ meltfptr[81];;
 	  MELT_LOCATION ("warmelt-normatch.melt:4226:/ compute");
 	  /*_.CURSTEP__V37*/ meltfptr[36] = /*_.SETQ___V142*/ meltfptr[80] =
@@ -30477,6 +30540,9 @@ lab_endgetargs:;
 		melt_putfield_object (( /*_.INST__V171*/ meltfptr[170]), (4),
 				      ( /*_.MAKE_LIST__V169*/ meltfptr[168]),
 				      "MDATA_STEPS");
+		;
+		/*^touch */
+		meltgc_touch ( /*_.INST__V171*/ meltfptr[170]);
 		;
 		/*_.NEWSLOT__V170*/ meltfptr[169] =
 		  /*_.INST__V171*/ meltfptr[170];;
@@ -31255,6 +31321,9 @@ lab_endgetargs:;
 		    MELTOBMAG_OBJECT);
     melt_putfield_object (( /*_.INST__V199*/ meltfptr[167]), (8),
 			  (( /*nil */ NULL)), "MSTGROUP_ELSE");
+    ;
+    /*^touch */
+    meltgc_touch ( /*_.INST__V199*/ meltfptr[167]);
     ;
     /*_.TESTGROUP__V198*/ meltfptr[165] = /*_.INST__V199*/ meltfptr[167];;
 
@@ -32280,6 +32349,9 @@ lab_endgetargs:;
 				( /*_.LIST_TO_MULTIPLE__V237*/ meltfptr[219]),
 				"MSTEP_FLAGARGS");
 	  ;
+	  /*^touch */
+	  meltgc_touch ( /*_.INST__V239*/ meltfptr[221]);
+	  ;
 	  /*_.INST___V238*/ meltfptr[220] = /*_.INST__V239*/ meltfptr[221];;
 	  /*^compute */
 	  /*_.FLAGSTEP__V236*/ meltfptr[225] =
@@ -32344,6 +32416,9 @@ lab_endgetargs:;
 	  melt_putfield_object (( /*_.INST__V241*/ meltfptr[215]), (3),
 				( /*_.MFLAG__V40*/ meltfptr[39]),
 				"MSTEP_FLAG");
+	  ;
+	  /*^touch */
+	  meltgc_touch ( /*_.INST__V241*/ meltfptr[215]);
 	  ;
 	  /*_.INST___V240*/ meltfptr[211] = /*_.INST__V241*/ meltfptr[215];;
 	  /*^compute */

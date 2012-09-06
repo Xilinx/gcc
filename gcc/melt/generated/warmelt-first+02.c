@@ -9717,6 +9717,9 @@ lab_endgetargs:;
 				      ( /*_.DESCR__V3*/ meltfptr[2]),
 				      "DENV_DESCR");
 		;
+		/*^touch */
+		meltgc_touch ( /*_.INST__V8*/ meltfptr[7]);
+		;
 		/*_.INST___V7*/ meltfptr[6] = /*_.INST__V8*/ meltfptr[7];;
 		/*^compute */
 		/*_.IFELSE___V5*/ meltfptr[4] = /*_.INST___V7*/ meltfptr[6];;
@@ -9777,6 +9780,9 @@ lab_endgetargs:;
 		melt_putfield_object (( /*_.INST__V11*/ meltfptr[10]), (1),
 				      ( /*_.PARENV__V2*/ meltfptr[1]),
 				      "ENV_PREV");
+		;
+		/*^touch */
+		meltgc_touch ( /*_.INST__V11*/ meltfptr[10]);
 		;
 		/*_.INST___V10*/ meltfptr[6] = /*_.INST__V11*/ meltfptr[10];;
 		/*^compute */

@@ -6203,6 +6203,9 @@ lab_endgetargs:;
 			  ( /*_.BOXEDMAXDEPTH__V5*/ meltfptr[4]),
 			  "DBGI_MAXDEPTH");
     ;
+    /*^touch */
+    meltgc_touch ( /*_.INST__V7*/ meltfptr[6]);
+    ;
     /*_.DBGI__V6*/ meltfptr[5] = /*_.INST__V7*/ meltfptr[6];;
 
     {
