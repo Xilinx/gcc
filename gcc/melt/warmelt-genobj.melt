@@ -1557,117 +1557,133 @@ $SBUF.}#
        (mapobject_put locmap curdefbind oinidefloc)
        ))
     (debug "compile2obj_initextendproc updated locmap=" locmap)
-    ;;
-    ;; the prologue start by getting the the current environment
-    ;; reference and the raw value tuple
-    (list_append oiniprolog
-		 (make_objlocatedexp 
-		  () ctype_void
-		  ##{/*initextendproc get boxcurenv*/ $OCURENVBOXLOC = meltrunboxcurenv_p ;}#
-		  ))
-    (list_append oiniprolog
-		 (make_objlocatedexp 
-		  () ctype_void
-		  ##{/*initextendproc get litvaluetup*/ $OLITVALUETUPLOC  = meltrunlitvaltup_p ;}#
-		  ))
-    (debug "compile2obj_initextendproc before body oiniprolog=" oiniprolog)
-    ;; now handle the body
-    ;; the tuple to compile the body
     (let (
-	  (odatatup 
-	   (list_to_multiple
-	    idata discr_multiple
-	    (lambda (curdat)
-	      (assert_msg "check curdat" (is_a curdat class_nrep_bound_data))
-	      (let ( (curobd (compile_obj curdat gcx)) )
-		curobd))))
-	  (toplis (unsafe_get_field :ninit_topl ipro)) 
+	  (limplocv
+	   (list_map 
+	    importvalues
+	    (lambda (ival)
+	      (debug "compile2obj_initextendproc imported ival=" ival)
+	      (assert_msg "check ival" (is_a ival class_nrep_importedval))
+	      (let ( (isym (unsafe_get_field :nimport_symb ival)) 
+		     (ilocv (get_free_objlocptr gcx isym))
+		     )
+		(debug "compile2obj_initextendproc imported ilocv=" ilocv)
+		(mapobject_put importmap isym ilocv)
+		ilocv
+		))))
 	  )
-      (put_fields oinitxrout
-			 :oirout_data odatatup)
-      (assert_msg "check toplis" (is_list_or_null toplis))
-      ;; compile the toplevels
-      (let ( (objtoplis 
-	      (list_map
-	       toplis
-	       (lambda (curtop)
-		 (let ( (otop (compile_obj curtop gcx)) )
-		   (debug "compile2obj_initextendproc otop=" otop)
-		   otop)))) 
-	     )
-	;; generate the getting of symbols & keywords
-	(append_commentconst oiniprolog "get symbols & keywords")
-	(multiple_every
-	 odatatup
-	 (lambda (curpdat :long curk) 
-	   (if (is_a curpdat class_objinitobject)
-	       (let ( (odat (unsafe_get_field :oie_data curpdat))
-		      )
-		 (debug "compile2obj_initextendproc getting curpdat=" curpdat)
-		 (cond 
-		  ;; first  check for keywords, since they are also symbols (so order is important)
-		  ( (is_a odat class_nrep_datakeyword)
-		    (let ( (ogkw (instance class_objgetnamedkeyword
-					   :obgnamed_iobj curpdat))
-			   )
-		      (list_append oiniprolog ogkw)
-		      (debug "compile2obj_initextendproc added keyword getting ogkw=" ogkw)
-		      ))
-		  ( (is_a odat class_nrep_datasymbol)
-		    (let ( (ogsy (instance class_objgetnamedsymbol
-					   :obgnamed_iobj curpdat))
-			   )
-		      (list_append oiniprolog ogsy)
-		      (debug "compile2obj_initextendproc added symbol getting ogsy=" ogsy)
-		      ))
-		  )))))
-	;; get the value importer if needed
-	(if (>i (mapobject_count importmap) 0)
-	    (progn
-	      (append_commentconst oiniprolog "get the value importer")
-	      (list_append oiniprolog
-			   (instance class_objgetslot
-				     :obdi_destlist (list ovalueimporter)
-				     :ogetsl_obj initialsystemdata_objpredef 
-				     :ogetsl_field sysdata_value_importer))
-	      ))
-	(if (>i (list_length importvalues) 0)
-	    (progn
-	      (append_commentconst oiniprolog "before getting imported values")
-	      ;; generate the getting of imported values
-	      (list_every
-	       importvalues
-	       (lambda (curimport)
-		 (debug "compile2obj_initextendproc curimport=" curimport)
-		 (assert_msg "check curimport" (is_a curimport class_nrep_importedval))
-		 (compile_warning "the generated import should have a cstring")
-		 (let ( (impsym (unsafe_get_field :nimport_symb curimport)) 
-			(impsydat (unsafe_get_field :nimport_sydata curimport))
-			(impsymstr (get_field :named_name impsym))
-			(modulstr (get_field :mocx_modulename modctx)) 
-			(osymdat (compile_obj impsydat gcx))
-			(oimplocv (mapobject_get importmap impsym))
-			(oimpappl (instance class_objapply
-					    :obdi_destlist (list oimplocv)
-					    :obapp_clos ovalueimporter
-					    :obapp_args (tuple osymdat oprevenvloc impsymstr modulstr)))
+      (debug "compile2obj_initextendproc limplocv=" limplocv)
+      ;;
+      ;; the prologue start by getting the the current environment
+      ;; reference and the raw value tuple
+      (list_append oiniprolog
+		   (make_objlocatedexp 
+		    () ctype_void
+		    ##{/*initextendproc get boxcurenv*/ $OCURENVBOXLOC = meltrunboxcurenv_p ;}#
+		    ))
+      (list_append oiniprolog
+		   (make_objlocatedexp 
+		    () ctype_void
+		    ##{/*initextendproc get litvaluetup*/ $OLITVALUETUPLOC  = meltrunlitvaltup_p ;}#
+		    ))
+      (debug "compile2obj_initextendproc before body oiniprolog=" oiniprolog)
+      ;; now handle the body
+      ;; the tuple to compile the body
+      (let (
+	    (odatatup 
+	     (list_to_multiple
+	      idata discr_multiple
+	      (lambda (curdat)
+		(assert_msg "check curdat" (is_a curdat class_nrep_bound_data))
+		(let ( (curobd (compile_obj curdat gcx)) )
+		  curobd))))
+	    (toplis (unsafe_get_field :ninit_topl ipro)) 
+	    )
+	(put_fields oinitxrout
+		    :oirout_data odatatup)
+	(assert_msg "check toplis" (is_list_or_null toplis))
+	;; compile the toplevels
+	(let ( (objtoplis 
+		(list_map
+		 toplis
+		 (lambda (curtop)
+		   (let ( (otop (compile_obj curtop gcx)) )
+		     (debug "compile2obj_initextendproc otop=" otop)
+		     otop)))) 
+	       )
+	  ;; generate the getting of symbols & keywords
+	  (append_commentconst oiniprolog "get symbols & keywords")
+	  (multiple_every
+	   odatatup
+	   (lambda (curpdat :long curk) 
+	     (if (is_a curpdat class_objinitobject)
+		 (let ( (odat (unsafe_get_field :oie_data curpdat))
 			)
-		   (list_append oiniprolog oimpappl)
-		   )))
-	      (append_commentconst oiniprolog "after getting imported values")
-	      ))
-	;; append the compiled toplevel
-	(append_commentconst oinibody "before toplevel body")
-	(list_every 
-	 objtoplis
-	 (lambda (curobjt)
-	   (list_append oinibody curobjt)))
-	(append_commentconst oinibody "after toplevel body")
-	;;
-	(debug "compile2obj_initextendproc oinibody=" oinibody)
-	;;
-	(assert_msg "@$@compile2obj_initextendproc unimplemented")
-	))))
+		   (debug "compile2obj_initextendproc getting curpdat=" curpdat)
+		   (cond 
+		    ;; first  check for keywords, since they are also symbols (so order is important)
+		    ( (is_a odat class_nrep_datakeyword)
+		      (let ( (ogkw (instance class_objgetnamedkeyword
+					     :obgnamed_iobj curpdat))
+			     )
+			(list_append oiniprolog ogkw)
+			(debug "compile2obj_initextendproc added keyword getting ogkw=" ogkw)
+			))
+		    ( (is_a odat class_nrep_datasymbol)
+		      (let ( (ogsy (instance class_objgetnamedsymbol
+					     :obgnamed_iobj curpdat))
+			     )
+			(list_append oiniprolog ogsy)
+			(debug "compile2obj_initextendproc added symbol getting ogsy=" ogsy)
+			))
+		    )))))
+	  ;; get the value importer if needed
+	  (if (>i (mapobject_count importmap) 0)
+	      (progn
+		(append_commentconst oiniprolog "get the value importer")
+		(list_append oiniprolog
+			     (instance class_objgetslot
+				       :obdi_destlist (list ovalueimporter)
+				       :ogetsl_obj initialsystemdata_objpredef 
+				       :ogetsl_field sysdata_value_importer))
+		))
+	  (if (>i (list_length importvalues) 0)
+	      (progn
+		(append_commentconst oiniprolog "before getting imported values")
+		;; generate the getting of imported values
+		(list_every
+		 importvalues
+		 (lambda (curimport)
+		   (debug "compile2obj_initextendproc curimport=" curimport)
+		   (assert_msg "check curimport" (is_a curimport class_nrep_importedval))
+		   (compile_warning "the generated import should have a cstring")
+		   (let ( (impsym (unsafe_get_field :nimport_symb curimport)) 
+			  (impsydat (unsafe_get_field :nimport_sydata curimport))
+			  (impsymstr (get_field :named_name impsym))
+			  (modulstr (get_field :mocx_modulename modctx)) 
+			  (osymdat (compile_obj impsydat gcx))
+			  (oimplocv (mapobject_get importmap impsym))
+			  (oimpappl (instance class_objapply
+					      :obdi_destlist (list oimplocv)
+					      :obapp_clos ovalueimporter
+					      :obapp_args (tuple osymdat oprevenvloc impsymstr modulstr)))
+			  )
+		     (list_append oiniprolog oimpappl)
+		     )))
+		(append_commentconst oiniprolog "after getting imported values")
+		))
+	  ;; append the compiled toplevel
+	  (append_commentconst oinibody "before toplevel body")
+	  (list_every 
+	   objtoplis
+	   (lambda (curobjt)
+	     (list_append oinibody curobjt)))
+	  (append_commentconst oinibody "after toplevel body")
+	  ;;
+	  (debug "compile2obj_initextendproc oinibody=" oinibody)
+	  ;;
+	  (assert_msg "@$@compile2obj_initextendproc unimplemented")
+	  )))))
 
 
 
@@ -3558,11 +3574,11 @@ $SBUF.}#
   (assert_msg "check bind" (is_a bind class_value_binding))
   (assert_msg "check gcx" (is_a gcx class_initial_generation_context))
   (debug "compilobj_value_binding bind=" bind)
-  (let ( (sym (unsafe_get_field :binder bind))
-	 (importmap (unsafe_get_field :igncx_importmap gcx))
+  (let ( (sym (get_field :binder bind))
+	 (importmap (get_field :igncx_importmap gcx))
 	 (olocv (mapobject_get importmap sym))
 	 )
-    (debug "compilobj_value_binding olocv=" olocv)
+    (debug "compilobj_value_binding olocv=" olocv " importmap=" importmap)
     (assert_msg "check olocv" (is_a olocv class_objlocv))
     (return olocv)
     )
