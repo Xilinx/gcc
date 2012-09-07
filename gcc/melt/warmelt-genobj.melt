@@ -1453,7 +1453,7 @@ $SBUF.}#
 ;; it compiles the initial routine for runtime evaluation
 (defun compile2obj_initextendproc (ipro modctx idata compicache procurmodenvlist importvalues)
   (debug "compile2obj_initextendproc ipro=" ipro 
-	 "\n* modctx=" modctx "\n* compicache=" compicache
+	 "\n* modctx=" modctx "\n* idata=" idata "\n* compicache=" compicache
 	 "\n* procurmodenvlist=" procurmodenvlist 
 	 "\n* importvalues=" importvalues
 	 "\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n"
@@ -1520,6 +1520,10 @@ $SBUF.}#
 	  (let ( (boxl (get_free_objlocptr gcx '_ocurenvboxloc_)) )
 	    (put_fields gcx :igncx_contenvloc boxl)
 	    boxl))
+	 ;; reserve stack location for the current environment
+	 (ocurenvloc
+	  (let ( (locl (get_free_objlocptr gcx '_ocurenvloc_)) )
+	    locl))
 	 ;; reserve stack location for the previous environment
 	 (oprevenvloc
 	  (let ( (boxl (get_free_objlocptr gcx '_prevenvloc_)) )
@@ -1586,6 +1590,18 @@ $SBUF.}#
 		    () ctype_void
 		    ##{/*initextendproc get litvaluetup*/ $OLITVALUETUPLOC  = meltrunlitvaltup_p ;}#
 		    ))
+      (list_append oiniprolog
+		   (instance class_objgetslot
+			     :obdi_destlist (list ocurenvloc)
+			     :ogetsl_obj ocurenvboxloc
+			     :ogetsl_field referenced_value
+			     ))
+      (list_append oiniprolog
+		   (instance class_objgetslot
+			     :obdi_destlist (list oprevenvloc)
+			     :ogetsl_obj ocurenvloc
+			     :ogetsl_field env_prev
+			     ))
       (debug "compile2obj_initextendproc before body oiniprolog=" oiniprolog)
       ;; now handle the body
       ;; the tuple to compile the body
@@ -1601,6 +1617,7 @@ $SBUF.}#
 	    )
 	(put_fields oinitxrout
 		    :oirout_data odatatup)
+	(debug "compile2obj_initextendproc toplis=" toplis)
 	(assert_msg "check toplis" (is_list_or_null toplis))
 	;; compile the toplevels
 	(let ( (objtoplis 
@@ -1611,6 +1628,7 @@ $SBUF.}#
 		     (debug "compile2obj_initextendproc otop=" otop)
 		     otop)))) 
 	       )
+	  (debug "compile2obj_initextendproc objtoplis=" objtoplis)
 	  ;; generate the getting of symbols & keywords
 	  (append_commentconst oiniprolog "get symbols & keywords")
 	  (multiple_every
@@ -1637,6 +1655,8 @@ $SBUF.}#
 			(debug "compile2obj_initextendproc added symbol getting ogsy=" ogsy)
 			))
 		    )))))
+	  (debug "compile2obj_initextendproc before imports oiniprolog=" oiniprolog)
+	  ;;
 	  ;; get the value importer if needed
 	  (if (>i (mapobject_count importmap) 0)
 	      (progn

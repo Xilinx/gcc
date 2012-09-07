@@ -3,6 +3,9 @@
 	* melt/warmelt-genobj.melt (compile2obj_initextendproc): More code.
 
 2012-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.melt (compile2obj_initextendproc): More code.
+
+2012-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.c (melt_start_runext_rout_t): New type and signature.
 	(meltgc_run_c_extension): Wants a melt_start_run_extension function.
