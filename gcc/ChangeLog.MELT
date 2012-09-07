@@ -1,5 +1,10 @@
 
 2012-09-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.melt (compile2obj_initextendproc): normal
+	list closure is appending nil with warning if last expression
+	don't give a value.
+
+2012-09-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-genobj.melt (translate_macroexpanded_list): Get
 	normalisthandler as additional parameter.
 	(compile2obj_initproc): Pass nil as the normalisthandler.
