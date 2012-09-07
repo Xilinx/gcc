@@ -947,10 +947,18 @@ routine procedures.}#
 ;;; always be a simple occurrence, and the work being done in the
 ;;; bindings list.
 (defselector normal_exp class_selector
+  :doc #{Normalize an expression, often an S-expr or a literal
+  constant. $RECV is the reciever, $ENV the environment of
+  $CLASS_ENVIRONMENT, $NCX the normalization context of
+  $CLASS_NORMALIZATION_CONTEXT and $PSLOC the parent source
+  location. Should return a normalized thing, often an instance of
+  $CLASS_NREP_LOCSYMOCC, and as a secondary result a list of
+  bindings.)}#
+  :formals (recv env ncx psloc)
 					;  :named_name (stringconst2val discr_namestring "NORMAL_EXP")
   )
 
-;; many stuff are already normalized 
+;; many stuff, e.g. constant literal strings or numbers, are already normalized 
 (defun normexp_identical (recv env ncx psloc)
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
@@ -958,10 +966,8 @@ routine procedures.}#
   (debug "normexp_identical recv" recv)
   (return recv ()))
 
-(install_method discr_any_receiver normal_exp  normexp_identical)
-
-;; I'm not sure to understand why we need this.
 (install_method discr_string normal_exp  normexp_identical)
+(install_method discr_integer normal_exp  normexp_identical)
 
 (defun normexp_null (recv env ncx psloc)
   (assert_msg "check env" (is_a env class_environment))
@@ -971,6 +977,46 @@ routine procedures.}#
     (return normnull ())
     ))
 (install_method discr_null_receiver normal_exp normexp_null)
+
+
+;;; an object or a value may have to be normalized only when inside a
+;;; constructed s-expression. The reader is not able to give such
+;;; values.  So it practically happens only when running an
+;;; evaluation.
+;;;;;;;;;;;;;;;;
+(defun normexp_any_object (recv env ncx psloc)
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normalization_context))
+  ;; we should normalize arbitrary objects into themselves. However,
+  ;; we should collect all these objects, so that the runtime
+  ;; evaluator gets them all, so the normalized expression would be an
+  ;; access to some constant offset inside a tuple
+  (let ( (cla (discrim recv))
+	 (claname (get_field :named_name cla))
+	 (recname (get_field :named_name recv))
+	 )
+    (if (is_string recname)
+	(error_strv psloc 
+		    "unimplemented normalization for literal object named " recname))
+    (error_strv psloc 
+		"unimplemented normalization for literal object of " claname)
+    (assert_msg "@$@ unimplemented normexp_any_object")))
+(install_method class_root normal_exp  normexp_any_object)
+
+(defun normexp_any_value (recv env ncx psloc)
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normalization_context))
+  ;; we should normalize arbitrary values into themselves, unless when
+  ;; they are containers for stuff like DISCR_TREE etc..., then we
+  ;; should unbox that stuff.  so the normalized expression would be
+  ;; an access to some constant offset inside a tuple or its unboxing
+  (let ( (cla (discrim recv))
+	 (claname (get_field :named_name cla))
+	 )
+    (error_strv psloc 
+		"unimplemented normalization for literal value of " claname)
+    (assert_msg "@$@ unimplemented normexp_any_value")))
+(install_method discr_any_receiver normal_exp  normexp_any_value)
 
 ;;; catchall for src
 (defun normexp_src_catchall (recv env ncx psloc)
