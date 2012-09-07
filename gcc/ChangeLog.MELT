@@ -1,5 +1,11 @@
 
-2012-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
+2012-09-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.melt (translate_macroexpanded_list): Get
+	normalisthandler as additional parameter.
+	(compile2obj_initproc): Pass nil as the normalisthandler.
+	(compile2obj_initextendproc): Pass a normal list handler closure.
+
+2012-09-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-genobj.melt (compile2obj_initextendproc): More code.
 
 2012-09-06  Basile Starynkevitch  <basile@starynkevitch.net>

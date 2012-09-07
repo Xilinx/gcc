@@ -5281,7 +5281,7 @@ if (1) return;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; utility function to translate a macroexpanded list
-(defun translate_macroexpanded_list (xlist modnamstr modctx ncx inienv iniproctransl)
+(defun translate_macroexpanded_list (xlist modnamstr modctx ncx inienv normalisthandler iniproctransl)
   (debug "translate_macroexpanded_list modnamstr=" modnamstr "\n* modctx=" modctx
 	 "\n* inienv=" inienv
 	 "\n* iniproctransl=" iniproctransl)
@@ -5311,7 +5311,13 @@ if (1) return;
      (normadeclb_macroexpanded_list xlist modnamstr modctx ncx inienv)
      (assert_msg "check normlist" (is_list normlist))
      (assert_msg "check declbuf" (is_strbuf declbuf))
-     (debug "translate_macroexpanded_list after normadeclb_macroexpanded_list modctx=" modctx)
+     (debug "translate_macroexpanded_list after normadeclb_macroexpanded_list modctx=" modctx
+	    "\n normalisthandler=" normalisthandler)
+     (when (is_closure normalisthandler)
+       (debug "translate_macroexpanded_list before calling normalisthandler normlist=" normlist)
+       (normalisthandler normlist modctx ncx inienv)
+       (debug "translate_macroexpanded_list after calling normalisthandler normlist=" normlist)
+       )
      ;;
      ;;
      (when (melt_error_counter)
@@ -5608,7 +5614,7 @@ if (1) return;
 		      }#))
       (debug "compile_list_sexpr before translation modctx=" modctx)
       ;;
-      (translate_macroexpanded_list xlist modnamstr modctx ncx inienv compile2obj_initproc)
+      (translate_macroexpanded_list xlist modnamstr modctx ncx inienv () compile2obj_initproc)
       (debug "compile_list_sexpr after translation modctx=" modctx)
       )))
 
@@ -5726,7 +5732,7 @@ if (1) return;
 	       (addexp exprs -999999))
 	      (:else
 	       (runerrorhdlr '"No expressions")))
-	   ls))
+	     ls))
 	  )
       ;;macro expand
       (debug "translate_run_melt_expressions modctx=" modctx "\n ncx=" ncx "\n lsexp=" lsexp)
@@ -5735,13 +5741,21 @@ if (1) return;
 	(return () ()))
       (let ( (xlist (macroexpand_toplevel_list lsexp env macroexpand_1 modctx)) 
 	     (:long lenxlist (list_length xlist))
+	     ;; normalextend should ensure that the last normal gives a value
+	     (normalextend 
+	      (lambda (normlist modctx ncx inienv)
+		(debug "translate_run_melt_expressions/normalextend normlist=" normlist)
+		(let ( (lastnorm (list_last_element normlist))
+		       )
+		  (debug "translate_run_melt_expressions/normalextend lastnorm=" lastnorm)
+		  )))
 	     )
 	(debug "translate_run_melt_expressions xlist=" xlist)
 	(when (or (notnull !referr) (>i (melt_error_counter) starterrcount))
 	  (runerrorhdlr '"runtime macroexpansion failed")
 	  (return () ()))
 	;; translate to C code
-	(translate_macroexpanded_list xlist nakedbasnam modctx ncx env compile2obj_initextendproc)
+	(translate_macroexpanded_list xlist nakedbasnam modctx ncx env normalextend compile2obj_initextendproc)
 	(when  (or (notnull !referr) (>i (melt_error_counter) starterrcount))
 	  (runerrorhdlr '"runtime translation to code failed")
 	  (return () ()))
