@@ -1195,12 +1195,12 @@ $SBUF.}#
 	   reti))
 	(boxloc
 	 (let ( (boxl (get_free_objlocptr gcx '_contenv_)) )
-	   (unsafe_put_fields gcx :igncx_contenvloc boxl)
+	   (put_fields gcx :igncx_contenvloc boxl)
 	   boxl))
 	(ofreshenv  (get_free_objlocptr gcx '_freshenv_))
 	(oprevenv  (let ( (preve (get_free_objlocptr gcx '_prevenv_))
 			  )
-		     (unsafe_put_fields gcx :igncx_prevenvloc preve)
+		     (put_fields gcx :igncx_prevenvloc preve)
 		     preve))
 	(ovalueexporter (get_free_objlocptr gcx '_valexport_)) 
 	(ovalueimporter (get_free_objlocptr gcx '_valimport_))
@@ -1450,6 +1450,7 @@ $SBUF.}#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; this function is similar to compile2obj_initproc but they are some differences
+;; it compiles the initial routine for runtime evaluation
 (defun compile2obj_initextendproc (ipro modctx idata compicache procurmodenvlist importvalues)
   (debug "compile2obj_initextendproc ipro=" ipro 
 	 "\n* modctx=" modctx "\n* compicache=" compicache
@@ -1470,7 +1471,7 @@ $SBUF.}#
 		    ;; change carefully the name, since the runtime
 		    ;; should know it, notably its
 		    ;; meltgc_run_c_extension function
-		    :named_name '"melt_run_extension"
+		    :named_name '"melt_start_run_extension"
 		    :obrout_proc ipro
 		    :obrout_body oinibody
 		    :obrout_nbval (make_integerbox discr_integer 0)
@@ -1483,9 +1484,10 @@ $SBUF.}#
 		    :oiroutx_extendname (get_field :mocx_modulename modctx)
 		    ))
 	 (importmap (make_mapobject discr_map_objects 10))
+	 (valoclist (make_list discr_list))
 	 ;; running expressions are usually smaller
 	 (gcx (instance 
-	       class_initial_generation_context
+	       class_extension_generation_context
 	       :gncx_objrout oinitxrout
 	       :gncx_locmap locmap
 	       :gncx_freeptrlist (make_list discr_list)
@@ -1505,6 +1507,7 @@ $SBUF.}#
 		    curou)))
 	       ;; perhaps we should store not a list of procedures, but their matching routines
 	       :igncx_importmap importmap
+	       :egncx_valoclist valoclist
 	       ))
 	 ;; reserve stack location for the return value
 	 (retinit 
@@ -1517,10 +1520,15 @@ $SBUF.}#
 	  (let ( (boxl (get_free_objlocptr gcx '_ocurenvboxloc_)) )
 	    (put_fields gcx :igncx_contenvloc boxl)
 	    boxl))
+	 ;; reserve stack location for the previous environment
+	 (oprevenvloc
+	  (let ( (boxl (get_free_objlocptr gcx '_prevenvloc_)) )
+	    (put_fields gcx :igncx_prevenvloc boxl)
+	    boxl))
 	 ;; reserve stack location for the tuple of literal values
 	 (olitvaluetuploc
 	  (let ( (boxl (get_free_objlocptr gcx '_olitvaluetuploc_)) )
-	    (put_fields gcx :igncx_contenvloc boxl)
+	    (put_fields gcx :egncx_litvaltuploc boxl)
 	    boxl))
 	 ;; stack location for the value exporter and importer
 	 (ovalueexporter (get_free_objlocptr gcx '_valexport_)) 
@@ -1549,10 +1557,117 @@ $SBUF.}#
        (mapobject_put locmap curdefbind oinidefloc)
        ))
     (debug "compile2obj_initextendproc updated locmap=" locmap)
-    
     ;;
-    (assert_msg "@$@compile2obj_initextendproc unimplemented")
-    ))
+    ;; the prologue start by getting the the current environment
+    ;; reference and the raw value tuple
+    (list_append oiniprolog
+		 (make_objlocatedexp 
+		  () ctype_void
+		  ##{/*initextendproc get boxcurenv*/ $OCURENVBOXLOC = meltrunboxcurenv_p ;}#
+		  ))
+    (list_append oiniprolog
+		 (make_objlocatedexp 
+		  () ctype_void
+		  ##{/*initextendproc get litvaluetup*/ $OLITVALUETUPLOC  = meltrunlitvaltup_p ;}#
+		  ))
+    (debug "compile2obj_initextendproc before body oiniprolog=" oiniprolog)
+    ;; now handle the body
+    ;; the tuple to compile the body
+    (let (
+	  (odatatup 
+	   (list_to_multiple
+	    idata discr_multiple
+	    (lambda (curdat)
+	      (assert_msg "check curdat" (is_a curdat class_nrep_bound_data))
+	      (let ( (curobd (compile_obj curdat gcx)) )
+		curobd))))
+	  (toplis (unsafe_get_field :ninit_topl ipro)) 
+	  )
+      (put_fields oinitxrout
+			 :oirout_data odatatup)
+      (assert_msg "check toplis" (is_list_or_null toplis))
+      ;; compile the toplevels
+      (let ( (objtoplis 
+	      (list_map
+	       toplis
+	       (lambda (curtop)
+		 (let ( (otop (compile_obj curtop gcx)) )
+		   (debug "compile2obj_initextendproc otop=" otop)
+		   otop)))) 
+	     )
+	;; generate the getting of symbols & keywords
+	(append_commentconst oiniprolog "get symbols & keywords")
+	(multiple_every
+	 odatatup
+	 (lambda (curpdat :long curk) 
+	   (if (is_a curpdat class_objinitobject)
+	       (let ( (odat (unsafe_get_field :oie_data curpdat))
+		      )
+		 (debug "compile2obj_initextendproc getting curpdat=" curpdat)
+		 (cond 
+		  ;; first  check for keywords, since they are also symbols (so order is important)
+		  ( (is_a odat class_nrep_datakeyword)
+		    (let ( (ogkw (instance class_objgetnamedkeyword
+					   :obgnamed_iobj curpdat))
+			   )
+		      (list_append oiniprolog ogkw)
+		      (debug "compile2obj_initextendproc added keyword getting ogkw=" ogkw)
+		      ))
+		  ( (is_a odat class_nrep_datasymbol)
+		    (let ( (ogsy (instance class_objgetnamedsymbol
+					   :obgnamed_iobj curpdat))
+			   )
+		      (list_append oiniprolog ogsy)
+		      (debug "compile2obj_initextendproc added symbol getting ogsy=" ogsy)
+		      ))
+		  )))))
+	;; get the value importer if needed
+	(if (>i (mapobject_count importmap) 0)
+	    (progn
+	      (append_commentconst oiniprolog "get the value importer")
+	      (list_append oiniprolog
+			   (instance class_objgetslot
+				     :obdi_destlist (list ovalueimporter)
+				     :ogetsl_obj initialsystemdata_objpredef 
+				     :ogetsl_field sysdata_value_importer))
+	      ))
+	(if (>i (list_length importvalues) 0)
+	    (progn
+	      (append_commentconst oiniprolog "before getting imported values")
+	      ;; generate the getting of imported values
+	      (list_every
+	       importvalues
+	       (lambda (curimport)
+		 (debug "compile2obj_initextendproc curimport=" curimport)
+		 (assert_msg "check curimport" (is_a curimport class_nrep_importedval))
+		 (compile_warning "the generated import should have a cstring")
+		 (let ( (impsym (unsafe_get_field :nimport_symb curimport)) 
+			(impsydat (unsafe_get_field :nimport_sydata curimport))
+			(impsymstr (get_field :named_name impsym))
+			(modulstr (get_field :mocx_modulename modctx)) 
+			(osymdat (compile_obj impsydat gcx))
+			(oimplocv (mapobject_get importmap impsym))
+			(oimpappl (instance class_objapply
+					    :obdi_destlist (list oimplocv)
+					    :obapp_clos ovalueimporter
+					    :obapp_args (tuple osymdat oprevenvloc impsymstr modulstr)))
+			)
+		   (list_append oiniprolog oimpappl)
+		   )))
+	      (append_commentconst oiniprolog "after getting imported values")
+	      ))
+	;; append the compiled toplevel
+	(append_commentconst oinibody "before toplevel body")
+	(list_every 
+	 objtoplis
+	 (lambda (curobjt)
+	   (list_append oinibody curobjt)))
+	(append_commentconst oinibody "after toplevel body")
+	;;
+	(debug "compile2obj_initextendproc oinibody=" oinibody)
+	;;
+	(assert_msg "@$@compile2obj_initextendproc unimplemented")
+	))))
 
 
 
@@ -5103,7 +5218,7 @@ $SBUF.}#
 (defun compilobj_quasidata_current_module_environment_container (qdcm gcx)
   (assert_msg "check qdcm" (is_a qdcm class_nrep_quasidata_current_module_environment_container))
   (assert_msg "check gcx" (is_a gcx class_initial_generation_context))
-  (let ( (locbox (unsafe_get_field :igncx_contenvloc gcx)) 
+  (let ( (locbox (get_field :igncx_contenvloc gcx)) 
 	 )
     (return locbox)))
 (install_method class_nrep_quasidata_current_module_environment_container compile_obj compilobj_quasidata_current_module_environment_container)
@@ -5113,7 +5228,7 @@ $SBUF.}#
 (defun compilobj_quasidata_parent_module_environment (qdpm gcx)
   (assert_msg "check qdpm" (is_a qdpm class_nrep_quasidata_parent_module_environment))
   (assert_msg "check gcx" (is_a gcx class_initial_generation_context))
-  (let ( (prevenvloc (unsafe_get_field :igncx_prevenvloc gcx)) 
+  (let ( (prevenvloc (get_field :igncx_prevenvloc gcx)) 
 	 )
     (return prevenvloc)))
 (install_method class_nrep_quasidata_parent_module_environment compile_obj compilobj_quasidata_parent_module_environment)
@@ -5167,7 +5282,7 @@ $SBUF.}#
 	 (ncomm (unsafe_get_field :ncumeb_comment nucmeb))
 	 (nex (unsafe_get_field :nucmeb_expr nucmeb))
 	 (pcml (unsafe_get_field :igncx_procurmodenvlist gcx))
-	 (ocontenvloc (unsafe_get_field :igncx_contenvloc gcx))
+	 (ocontenvloc (get_field :igncx_contenvloc gcx))
 	 (csbuf (let ( (sb (make_strbuf discr_strbuf)) 
 		       )
 		  (add2sbuf_strconst sb "upd.cur.mod.env.cont")

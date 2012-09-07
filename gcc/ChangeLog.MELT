@@ -1,6 +1,19 @@
 
 2012-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.c (melt_start_runext_rout_t): New type and signature.
+	(meltgc_run_c_extension): Wants a melt_start_run_extension function.
+
+	* melt/warmelt-first.melt (class_initial_generation_context): Better doc.
+	(class_extension_generation_context): New class.
+
+	* melt/warmelt-genobj.melt (compile2obj_initextendproc): More code.
+	(compilobj_quasidata_current_module_environment_container)
+	(compilobj_quasidata_parent_module_environment): Use safer field
+	access.
+
+2012-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-first.melt (class_initial_generation_context):
 	Improve comment.
 

@@ -921,19 +921,31 @@ label prefix is in $GNCX_MATCHMAP.}# )
 ;; code generation context for initial routine in modules
 (defclass class_initial_generation_context
   :super class_c_generation_context
-  :fields (igncx_prevenvloc	    ;local for previous environment [parent_module_environment]
-	   igncx_contenvloc	    ;local for the container of environment
+  :fields (igncx_prevenvloc	    ;stack local for previous environment [parent_module_environment]
+	   igncx_contenvloc	    ;stack local for the container of environment
 	   igncx_procurmodenvlist   ;list of routines using the current_module_environment_container
 	   igncx_importmap	    ;mapping of imported symbols to locvars
 	   )
   :doc #{The internal $CLASS_INITIAL_GENERATION_CONTEXT (for gurus) is used when
 generating the initial routine of a module, which builds the current
 environment and evaluates the module toplevel expressions. The
-$IGNCX_PREVENVLOC is the local for the parent environment. The
+$IGNCX_PREVENVLOC is the local stack slot for the parent environment. The
 $IGNCX_CONTENVLOC is the local for the container of the current
 module's environment. The list of routines using it is in
 $IGNCX_PROCURMODENVLIST. The mapping of imported symbolts to locals is
 $IGNCX_IMPORTMAP.}# )
+
+;; code generation context for initial routine in runtime-evaluated extensions
+(defclass class_extension_generation_context
+  :super class_initial_generation_context
+  :fields (egncx_valoclist
+	   egncx_litvaltuploc
+	   )
+  :doc #{The internal $CLASS_EXTENSION_GENERATION_CONTEXT (for gurus)
+is used when generating the initial routine of an extension, i.e. for
+runtime evaluation of expressions. $EGNCX_VALOCLIST is the list of
+stack location for literal values. and $EGNCX_LITVALTUPLOC is the
+stack location for the literal values tuple.}# )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; common superclass for objcode
@@ -4172,6 +4184,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  class_discriminant 
  class_environment
  class_exported_binding
+ class_extension_generation_context
  class_field
  class_field_binding
  class_fixed_binding

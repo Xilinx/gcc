@@ -271,6 +271,9 @@ static FILE* melt_trace_source_fil;
 
 #define MELT_MODULE_MAGIC  0x5cc065cf  /*1556112847*/
 
+/* The start routine of every MELT module is named
+   melt_start_this_module and gets its parent environment and returns
+   the newly built current environment. */
 typedef melt_ptr_t (melt_start_rout_t) (melt_ptr_t);
 
 typedef struct melt_module_info_st {
@@ -293,7 +296,17 @@ struct melt_callframe_st* melt_topframe;
 struct meltlocalsptr_st* melt_localtab;
 
 
-/** special values are linked in a list to permit their explicit deletion */
+/* The start routine of every MELT extension (dynamically loaded
+   shared object to evaluate at runtime some expressions in a given
+   environment, e.g. used for read-eval-print-loop etc...) is named
+   melt_start_run_extension, its parameters are a box containing the
+   current environment to be extended and a tuple for literal
+   values. It is returning the resulting value of the evaluation.
+ */
+typedef melt_ptr_t melt_start_runext_rout_t (melt_ptr_t /*boxcurenv*/, melt_ptr_t /*tuplitval*/);
+
+/** special values are linked in a list to permit their explicit
+deletion */
 
 struct meltspecial_st* melt_newspeclist;
 struct meltspecial_st* melt_oldspeclist;
@@ -9040,7 +9053,7 @@ meltgc_run_c_extension (melt_ptr_t basename_p, melt_ptr_t env_p)
   MELTRUNDESCR_REQUIRED_SYMBOL (melt_primaryhexmd5, char);		\
   MELTRUNDESCR_REQUIRED_SYMBOL (melt_secondaryhexmd5tab, char*);	\
   MELTRUNDESCR_REQUIRED_SYMBOL (melt_versionmeltstr, char);		\
-  MELTRUNDESCR_REQUIRED_SYMBOL (melt_run_extension, melt_start_rout_t)
+  MELTRUNDESCR_REQUIRED_SYMBOL (melt_start_run_extension, melt_start_runext_rout_t)
   /* list of optional dynamic symbols (dlsymed in the module, provided
      in the FOO+meltdesc.c or FOO+melttime.h file). */
 #define MELTRUNDESCR_OPTIONAL_LIST				\
