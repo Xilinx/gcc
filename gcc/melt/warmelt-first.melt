@@ -918,7 +918,7 @@ $GNCX_MODULCONTEXT. A map keyed by normal matchers to give a unique
 label prefix is in $GNCX_MATCHMAP.}# )
 
 
-;; code generation context for initial routine
+;; code generation context for initial routine in modules
 (defclass class_initial_generation_context
   :super class_c_generation_context
   :fields (igncx_prevenvloc	    ;local for previous environment [parent_module_environment]

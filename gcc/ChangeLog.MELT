@@ -1,6 +1,13 @@
 
 2012-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-first.melt (class_initial_generation_context):
+	Improve comment.
+
+	* melt/warmelt-genobj.melt (compile2obj_initextendproc): More code.
+
+2012-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-normal.melt (normal_exp): Document it.
 	(normexp_any_object): New incomplete method for normal_exp of any
 	object of class_root.

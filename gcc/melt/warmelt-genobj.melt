@@ -1247,7 +1247,7 @@ $SBUF.}#
 	       ctype_void
 	       ##{/*checkfreshenv*/ if (($OPREVENV)
 					&& melt_magic_discr((melt_ptr_t)($OFRESHENV)) != MELTOBMAG_CLOSURE)
-  	           warning(0, "bad MELT FRESH_ENV @%p in system data <%s:%d>",
+  	           warning(0, "MELT corruption: bad FRESH_ENV @%p in system data <%s:%d>",
 			      (void*) ($OFRESHENV), __FILE__, __LINE__);}#
 		   )
 	      )
@@ -1449,6 +1449,7 @@ $SBUF.}#
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; this function is similar to compile2obj_initproc but they are some differences
 (defun compile2obj_initextendproc (ipro modctx idata compicache procurmodenvlist importvalues)
   (debug "compile2obj_initextendproc ipro=" ipro 
 	 "\n* modctx=" modctx "\n* compicache=" compicache
@@ -1505,15 +1506,20 @@ $SBUF.}#
 	       ;; perhaps we should store not a list of procedures, but their matching routines
 	       :igncx_importmap importmap
 	       ))
-	 ;; stack location for the return value
+	 ;; reserve stack location for the return value
 	 (retinit 
 	  (let ( (reti (get_free_objlocptr gcx '_retruninit_)) )
 	    (put_fields gcx :gncx_retloc reti)
 	    (put_fields oinitxrout :obrout_retval reti)
 	    reti))
-	 ;; stack location for the current environment box container
+	 ;; reserve stack location for the current environment box container
 	 (ocurenvboxloc
 	  (let ( (boxl (get_free_objlocptr gcx '_ocurenvboxloc_)) )
+	    (put_fields gcx :igncx_contenvloc boxl)
+	    boxl))
+	 ;; reserve stack location for the tuple of literal values
+	 (olitvaluetuploc
+	  (let ( (boxl (get_free_objlocptr gcx '_olitvaluetuploc_)) )
 	    (put_fields gcx :igncx_contenvloc boxl)
 	    boxl))
 	 ;; stack location for the value exporter and importer
@@ -1524,7 +1530,7 @@ $SBUF.}#
 	 )
     (append_commentconst oinibody "start of oinibody")
     (debug "compile2obj_initextendproc ocurenvboxloc=" ocurenvboxloc " inidefbinds=" inidefbinds)
-;;; reserve location for defined values
+    ;; reserve location for defined values
     (foreach_in_list
      (inidefbinds)
      (curpair curdefbind)
@@ -1543,6 +1549,8 @@ $SBUF.}#
        (mapobject_put locmap curdefbind oinidefloc)
        ))
     (debug "compile2obj_initextendproc updated locmap=" locmap)
+    
+    ;;
     (assert_msg "@$@compile2obj_initextendproc unimplemented")
     ))
 
