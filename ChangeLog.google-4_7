@@ -1,3 +1,7 @@
+2012-09-07  Sterling Augustine  <saugustine@google.com>
+
+	* gcc/dwarf2out.c (output_pubnames): Call comp_unit_die.
+
 2012-09-05  Ollie Wild  <aaw@google.com>
 
 	* ltmain.sh (func_mode_compile): Add -Xcompiler-shared and
