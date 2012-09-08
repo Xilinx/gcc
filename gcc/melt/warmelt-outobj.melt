@@ -1685,7 +1685,8 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; output code for the initial module routine
 (defun outpucod_initialmoduleroutine (pini declbuf implbuf :long depth)
-  (debug "outpucod_initialmoduleroutine start pini=" pini)
+  (debug "outpucod_initialmoduleroutine start pini=" pini
+	 "\n of discrim=" (discrim pini))
   (assert_msg "check pini" (is_a pini class_initial_module_routineobj))
   (let ( 
 	(idatup (unsafe_get_field :oirout_data pini)) 
@@ -1823,14 +1824,14 @@ MELT_EXTERN  void* melt_start_this_module (void*);
     (add2sbuf_cident implbuf omodnam)
     (add2sbuf_strconst implbuf "__forward_or_mark_module_start_frame;")
     (add2sbuf_indentnl implbuf 1)
-    (list_every
-     iprolog
-     (lambda (curprol)
+    (foreach_in_list
+     (iprolog)
+     (curpair curprol)
        (if (and curprol (not (is_a curprol class_objpurevalue)))
 	   (progn
 	     (output_c_code curprol declbuf implbuf 1)
 	     (add2sbuf_indentnl implbuf 1))
-	 )))
+	 ))
     (add2sbuf_strconst implbuf "/**initial routine cdata initializer**/")
     (add2sbuf_indentnl implbuf 0)
 ;;; output call cdata initializer
@@ -2052,6 +2053,7 @@ MELT_EXTERN  void* melt_start_this_module (void*);
   (assert_msg "check pini" (is_a pini class_initial_extension_routineobj))
   (debug "outpucod_initialextensionroutine start pini=" pini
 	 "\n of discrim " (discrim pini))
+  (shortbacktrace_dbg "outpucod_initialextensionroutine" 20)
   (let (
 	(oname (get_field :named_name pini))
 	(odatup (get_field :oirout_data pini))
@@ -2117,13 +2119,61 @@ MELT_EXTERN  void* melt_start_this_module (void*);
        (add2sbuf_indentnl dsbuf 0)
        (add2out dsbuf  ##{ meltrun_$OMODNAM#_initial_frame_st}#))
      pini declbuf)
+    ;; generate the prologue
+    (debug "outpucod_initialextensionroutine oprolog=" oprolog)
+    (add2sbuf_indentnl implbuf 1)
+    (add2out implbuf  ##{ /* extension $OMODNAM prologue */}#)
+    (foreach_in_list
+     (oprolog)
+     (curpair curprol)
+     (when (and curprol (not (is_a curprol class_objpurevalue)))
+       (add2sbuf_indentnl implbuf 1)
+       (output_c_code curprol declbuf implbuf 1)))
     ;; generate the fill of the cdata
+    (add2sbuf_indentnl implbuf 1)
     (add2out implbuf  ##{ /* extension $OMODNAM cdata fill */}#)
     (output_curframe_cdat_fill odatup implbuf)
-    
-    (assert_msg "@$@unimplemented outpucod_initialextensionroutine")
-    ))
+    ;; generate the body
+    (debug "outpucod_initialextensionroutine obody=" obody)
+    (add2sbuf_indentnl implbuf 1)
+    (let ( (bodtup
+	    (cond 
+	     ((is_list obody) (list_to_multiple obody discr_multiple))
+	     ((is_multiple obody) obody)
+	     (:else
+	      (assert_msg "unexpected body"))))
+	   (:long nbbody (multiple_length bodtup))
+	   )
+      (debug "outpucod_initialextensionroutine bodtup=" bodtup)
+      (add2out implbuf  ##{ /* extension $OMODNAM body of $NBBODY instructions */}#)
+      (foreach_in_multiple
+       (bodtup)
+       (curbody :long bodix)
+       (debug "outpucod_initialextensionroutine curbody=" curbody)
+       (when (and curbody (not (is_a curbody class_objpurevalue)))
+	 (add2sbuf_indentnl implbuf 1)
+	 (add2out implbuf  ##{ /*sideffecting $OMODNAM extension body #$BODIX */}#)
+	 (let ( (curloc (get_field :obi_loc curbody))
+		)
+	   (if curloc 
+	       (output_location curloc implbuf 1 "curbody")))
+	 (output_c_code curbody declbuf implbuf 1)
+	 )
+       )
+      (add2sbuf_indentnl implbuf 1)
+      (add2out implbuf  ##{ /* ending run extension $OMODNAM  */}#)
+      (add2out implbuf ##{
+#error  run extension $OMODNAM   is incomplete
+       } /* end  $ONAME */}#)
+      (compile_warning "outpucod_initialextensionroutine is incomplete since generating incomplete code")
+      (add2sbuf_indentnl implbuf 0)
+      (add2sbuf_indentnl implbuf 0)
+      )))
 (install_method class_initial_extension_routineobj output_c_code outpucod_initialextensionroutine)
+
+
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
