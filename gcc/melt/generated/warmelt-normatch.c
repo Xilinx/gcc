@@ -82868,7 +82868,7 @@ meltmod__warmelt_normatch__initialmeltchunk_33 (struct
  /**COMMENT: set retinit from boxloc **/ ;
 
  /*_.RETINIT___V1*/ meltfptr[0] =
-    /* finalfreshenvget */
+    /* finalsetretinit */
     melt_reference_value ((melt_ptr_t) ( /*_.CONTENV___V2*/ meltfptr[1]));
  /**COMMENT: end the initproc **/ ;
 

@@ -17408,7 +17408,7 @@ meltmod__warmelt_debug__initialmeltchunk_6 (struct
  /**COMMENT: set retinit from boxloc **/ ;
 
  /*_.RETINIT___V1*/ meltfptr[0] =
-    /* finalfreshenvget */
+    /* finalsetretinit */
     melt_reference_value ((melt_ptr_t) ( /*_.CONTENV___V2*/ meltfptr[1]));
  /**COMMENT: end the initproc **/ ;
 
