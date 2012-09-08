@@ -1,6 +1,17 @@
 
 2012-09-08  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-first.melt (ctype_long, ctype_cstring): Add boxing
+	& unboxing.
+
+	* melt/warmelt-normal.melt (normexp_definstance): Check that
+	fields get values.
+
+	* melt/warmelt-outobj.melt (translate_run_melt_expressions): Note
+	that we should box the stuff returned last..
+
+2012-09-08  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{Regenerate}}
 	* melt/generated/meltrunsup.h: Regenerate.
 	* melt/generated/warmelt-base+meltdesc.c: Regenerate.

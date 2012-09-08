@@ -6109,6 +6109,10 @@ source location.}#
 	    (ncur nbindcur)
 	    (normal_exp curexp env ncx sloc)
 	    (debug "normexp_definstance field ncur=" ncur " nbindcur=" nbindcur)
+	    (if (!= (get_ctype ncur env) ctype_value)
+		(error_strv sloc
+			    "field in DEFINSTANCE don't get a value"
+			    (get_field :named_name curfld)))
 	    (multiple_put_nth slotup curoff ncur)
 	    (if (is_list nbindcur)
 		(let ( (thebindlist (deref nbindcont)))

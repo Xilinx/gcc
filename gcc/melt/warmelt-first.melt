@@ -2344,8 +2344,8 @@ list.}#
   :ctype_parstring '"MELTBPARSTR_LONG"
   :ctype_argfield '"meltbp_long"
   :ctype_resfield '"meltbp_longptr"
-  ; :ctypp_boxing "/*boxing ctype_long*/ meltgc_newint"
-  ; :ctypp_unboxing "/*unboxing ctype_long*/melt_get_int"
+  :ctypp_boxing '"/*boxing ctype_long*/ meltgc_newint"
+  :ctypp_unboxing '"/*unboxing ctype_long*/melt_get_int"
   )
 (install_ctype_descr ctype_long "C long unboxed integer")
 
@@ -2724,8 +2724,8 @@ Keyword is :cstring.}#
   :ctype_parchar '"MELTBPAR_CSTRING"
   :ctype_parstring '"MELTBPARSTR_CSTRING"
   :ctype_argfield '"meltbp_cstring"
-  ; :ctypp_boxing "/*ctype_cstring boxing*/ meltgc_new_stringdup"
-  ; :ctypp_unboxing "/*ctype_cstring unboxing*/ melt_string_str"
+  :ctypp_boxing '"/*ctype_cstring boxing*/ meltgc_new_stringdup"
+  :ctypp_unboxing '"/*ctype_cstring unboxing*/ melt_string_str"
   )
 (install_ctype_descr ctype_cstring "C constant strings (statically allocated outside of any heap)")
 

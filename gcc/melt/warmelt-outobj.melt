@@ -5769,6 +5769,8 @@ if (1) return;
 		       (lastctyp (get_ctype lastnorm inienv))
 		       )
 		  (debug "translate_run_melt_expressions/normalextend lastnorm=" lastnorm " lastctyp=" lastctyp)
+		  ;; we really should box the last stuff and return
+		  ;; the boxed value
 		  (when (!= lastctyp ctype_value)
 		    (warningmsg_strv 
 		     "runtime expressions don't end with a :value giving expression, appending () to them."
