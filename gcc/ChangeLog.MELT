@@ -1,6 +1,38 @@
 
 2012-09-08  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	{{Regenerate}}
+	* melt/generated/warmelt-base+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-base+melttime.h: Regenerate.
+	* melt/generated/warmelt-debug+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-debug+melttime.h: Regenerate.
+	* melt/generated/warmelt-first+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-first+melttime.h: Regenerate.
+	* melt/generated/warmelt-first.c: Regenerate.
+	* melt/generated/warmelt-genobj+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-genobj+melttime.h: Regenerate.
+	* melt/generated/warmelt-macro+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-macro+melttime.h: Regenerate.
+	* melt/generated/warmelt-modes+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-modes+melttime.h: Regenerate.
+	* melt/generated/warmelt-normal+04.c: Regenerate.
+	* melt/generated/warmelt-normal+05.c: Regenerate.
+	* melt/generated/warmelt-normal+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-normal+melttime.h: Regenerate.
+	* melt/generated/warmelt-normal.c: Regenerate.
+	* melt/generated/warmelt-normatch+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-normatch+melttime.h: Regenerate.
+	* melt/generated/warmelt-outobj+01.c: Regenerate.
+	* melt/generated/warmelt-outobj+02.c: Regenerate.
+	* melt/generated/warmelt-outobj+03.c: Regenerate.
+	* melt/generated/warmelt-outobj+04.c: Regenerate.
+	* melt/generated/warmelt-outobj+05.c: Regenerate.
+	* melt/generated/warmelt-outobj+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-outobj+melttime.h: Regenerate.
+	* melt/generated/warmelt-outobj.c: Regenerate.
+
+2012-09-08  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-outobj.melt (outpucod_initialextensionroutine):
 	More code, but generating incomplete C code.
 
