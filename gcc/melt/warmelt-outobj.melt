@@ -5778,7 +5778,7 @@ if (1) return;
 		num_$NUMCHK++					   ;
 		$NUM = num_$NUMCHK				   ;
 		snprintf (basbuf_$NUMCHK, sizeof(basbuf_$NUMCHK), 
-					  "MELTrun_%05ld", num_$NUMCHK)	;
+					  "MELTrun%04lx", num_$NUMCHK) ;
 		$NAKEDBASNAM = meltgc_new_string_raw_len ((meltobject_ptr_t)MELT_PREDEF (DISCR_STRING),
 							  basbuf_$NUMCHK, -1) ;
 		}#)
@@ -5904,16 +5904,25 @@ if (1) return;
 	(when (or (notnull !referr) (>i (melt_error_counter) starterrcount))
 	  (runerrorhdlr '"runtime macroexpansion failed")
 	  (return () ()))
-	;; translate to C code
-	(translate_macroexpanded_list xlist nakedbasnam modctx ncx env 
-				      normalextend compile2obj_initextendproc)
-	(debug "translate_run_melt_expressions after translation to nakedbasnam=" nakedbasnam)
-	(when  (or (notnull !referr) (>i (melt_error_counter) starterrcount))
-	  (runerrorhdlr '"runtime translation to code failed")
-	  (return () ()))
-	;; should now compile the generated C code
-	(assert_msg "@$@translate_run_melt_expressions incomplete")
-	))))
+	(let ( (basename (make_string_tempname_suffixed discr_string nakedbasnam "_eXt"))
+	       (binbasename (make_string_tempname_suffixed discr_string nakedbasnam "_RunX"))
+	       )
+	  (debug "translate_run_melt_expressions basename=" basename
+		 " binbasename=" binbasename)
+	  ;; translate to C code
+	  (translate_macroexpanded_list xlist basename modctx ncx env 
+					normalextend compile2obj_initextendproc)
+	  (debug "translate_run_melt_expressions after translation to nakedbasnam=" nakedbasnam)
+	  (when  (or (notnull !referr) (>i (melt_error_counter) starterrcount))
+	    (runerrorhdlr '"runtime translation to code failed")
+	    (return () ()))
+	  ;; should now compile the generated C code
+	  (debug "translate_run_melt_expressions before compiling quicklybuilt flavor of basename=" basename " binbasename=" binbasename)
+	  (generate_flavored_melt_module basename binbasename '"quicklybuilt")
+	  (debug "translate_run_melt_expressions after compiling quicklybuilt flavor of basename=" basename)
+	  
+	  (assert_msg "@$@translate_run_melt_expressions incomplete")
+	  )))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
