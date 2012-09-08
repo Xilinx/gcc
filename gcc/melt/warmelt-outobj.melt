@@ -5905,10 +5905,8 @@ if (1) return;
 	  (runerrorhdlr '"runtime macroexpansion failed")
 	  (return () ()))
 	(let ( (basename (make_string_tempname_suffixed discr_string nakedbasnam "_eXt"))
-	       (binbasename (make_string_tempname_suffixed discr_string nakedbasnam "_RunX"))
 	       )
-	  (debug "translate_run_melt_expressions basename=" basename
-		 " binbasename=" binbasename)
+	  (debug "translate_run_melt_expressions basename=" basename)
 	  ;; translate to C code
 	  (translate_macroexpanded_list xlist basename modctx ncx env 
 					normalextend compile2obj_initextendproc)
@@ -5917,8 +5915,10 @@ if (1) return;
 	    (runerrorhdlr '"runtime translation to code failed")
 	    (return () ()))
 	  ;; should now compile the generated C code
-	  (debug "translate_run_melt_expressions before compiling quicklybuilt flavor of basename=" basename " binbasename=" binbasename)
-	  (generate_flavored_melt_module basename binbasename '"quicklybuilt")
+	  ;; FIXME: we should have a runbuilt flavor.... (also in the
+	  ;; runtime and the melt-module.mk)
+	  (debug "translate_run_melt_expressions before compiling quicklybuilt flavor of basename=" basename)
+	  (generate_flavored_melt_module basename basename '"quicklybuilt")
 	  (debug "translate_run_melt_expressions after compiling quicklybuilt flavor of basename=" basename)
 	  
 	  (assert_msg "@$@translate_run_melt_expressions incomplete")
