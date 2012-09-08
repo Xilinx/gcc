@@ -310,6 +310,20 @@ routine is $CTYPE_MARKER and $CTYPE_DESCR is some descriptive string
 or data. A possible alternate keyword is given by $CTYPE_ALTKEYWORD.
  Adding new c-types requires an update of MELT runtime!}# )
 
+;;; the class describing plain ctypes, i.e. not GTY-ed, like :cstring or :long
+(defclass class_ctype_plain
+  :predef CLASS_CTYPE_PLAIN
+  :super class_ctype
+  :fields (
+	   ctypp_boxing ;the boxing name
+	   ctypp_unboxing ;the unboxing name
+	   )
+  :doc #{The $CLASS_CTYPE_PLAIN is for predefined descriptors of plain
+  c-types which are not GTY-ed so need a boxing and unboxing
+  chunk. The $CTYPP_BOXING is the name of a C function or macro
+  getting the discriminant and the stuff and boxing them. The
+  $CTYPP_UNBOXING is the name of a C function or macro unboxing its value.}# )
+
 ;;; the class describing ctype which are GTY-ed, like tree-s
 (defclass class_ctype_gty
   :predef CLASS_CTYPE_GTY
@@ -2298,7 +2312,7 @@ list.}#
 ;;; and each of them nearly requires some code in melt-runtime.h
 ;;; which should be enhanced for any new ctype
 ;; the C type for values
-(definstance ctype_value class_ctype
+(definstance ctype_value class_ctype_plain
   :doc #{The $CTYPE_VALUE is the c-type of any MELT value. See also $DISCR_ANY_RECEIVER, $CLASS_ROOT etc. Keyword is :value.}#
   :predef CTYPE_VALUE
   :named_name  '"CTYPE_VALUE"
@@ -2310,12 +2324,18 @@ list.}#
   :ctype_argfield '"meltbp_vptr"
   :ctype_resfield '"meltbp_aptr"
   :ctype_marker '"gt_ggc_mx_melt_un"
+  ;; we don't have any boxing or unboxing chunks
+  :ctypp_boxing ()
+  :ctypp_unboxing ()
   )
 (install_ctype_descr ctype_value "any melt value pointer")
 
+
+;;;;;;;;;;;;;;;;
 ;; the C type for long
-(definstance ctype_long class_ctype
-  :doc #{The $CTYPE_LONG is the c-type of raw long number stuff. See also $DISCR_INTEGER. Keyword is :long.}#
+(definstance ctype_long class_ctype_plain
+  :doc #{The $CTYPE_LONG is the c-type of raw long number stuff.
+ See also $DISCR_INTEGER. Keyword is :long.}#
   :predef CTYPE_LONG
   :named_name  '"CTYPE_LONG"
   :ctype_keyword ':long
@@ -2324,6 +2344,8 @@ list.}#
   :ctype_parstring '"MELTBPARSTR_LONG"
   :ctype_argfield '"meltbp_long"
   :ctype_resfield '"meltbp_longptr"
+  ; :ctypp_boxing "/*boxing ctype_long*/ meltgc_newint"
+  ; :ctypp_unboxing "/*unboxing ctype_long*/melt_get_int"
   )
 (install_ctype_descr ctype_long "C long unboxed integer")
 
@@ -2692,7 +2714,7 @@ with only a side effect and no results. Keyword is :void but cannot be used to t
 (install_ctype_descr ctype_void "void type for side-effecting primitives without results")
 
 ;; the C type for constant C strings
-(definstance ctype_cstring class_ctype
+(definstance ctype_cstring class_ctype_plain
   :doc #{The $CTYPE_CSTRING is the c-type of raw C string [const char*] stuff. See also DISCR_STRING.
 Keyword is :cstring.}#
   :predef CTYPE_CSTRING
@@ -2702,6 +2724,8 @@ Keyword is :cstring.}#
   :ctype_parchar '"MELTBPAR_CSTRING"
   :ctype_parstring '"MELTBPARSTR_CSTRING"
   :ctype_argfield '"meltbp_cstring"
+  ; :ctypp_boxing "/*ctype_cstring boxing*/ meltgc_new_stringdup"
+  ; :ctypp_unboxing "/*ctype_cstring unboxing*/ melt_string_str"
   )
 (install_ctype_descr ctype_cstring "C constant strings (statically allocated outside of any heap)")
 

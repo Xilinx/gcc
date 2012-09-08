@@ -1,5 +1,20 @@
 
 2012-09-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_unbox_int): New unlined function.
+
+	* melt-predef.list (CLASS_CTYPE_PLAIN): New.
+
+	* melt/warmelt-first.melt (class_ctype_plain): New with fields
+	ctypp_boxing & ctypp_unboxing.
+
+	* melt/warmelt-genobj.melt (compile2obj_initextendproc): Partly
+	completed.
+
+	* melt/warmelt-outobj.melt (translate_macroexpanded_list): Improve
+	comments.
+	(translate_run_melt_expressions): More code.
+
+2012-09-08  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.

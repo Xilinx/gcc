@@ -1116,6 +1116,16 @@ melt_get_int (melt_ptr_t v)
     }
 }
 
+static inline long
+melt_unbox_int (melt_ptr_t v)
+{
+  if (!v) return 0L;
+  if (melt_magic_discr(v) == MELTOBMAG_INT)
+    return  ((struct meltint_st *) (v))->val;
+  return 0L;
+}
+
+#define melt_unbox_long(V) melt_unbox_int(V)
 
 /* Make a boxed real from a real value.  If discr is NULL, use DISCR_REAL.  */
 melt_ptr_t meltgc_new_real(meltobject_ptr_t discr, REAL_VALUE_TYPE r);

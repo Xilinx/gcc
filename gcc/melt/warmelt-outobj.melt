@@ -5282,6 +5282,23 @@ if (1) return;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; utility function to translate a macroexpanded list
 (defun translate_macroexpanded_list (xlist modnamstr modctx ncx inienv normalisthandler iniproctransl)
+  ;; XLIST is the list of macro-expanded things, usually instances of
+  ;; subclasses of class_source
+  ;;
+  ;; MODNAMSTR is the name string of the module
+  ;;
+  ;; MODCTX is the module generation context of class_module_context
+  ;;
+  ;; NCX is the normalization context, of class_normalization_context
+  ;;
+  ;; INIENV is the initial environment, of class_environment
+  ;;
+  ;; NORMALISTHANDLER is null or a closure to post-process the
+  ;; normalized list
+  ;;
+  ;; INIPROCTRANSL is the translator of the initial routine
+  ;;
+  ;;;;;;;;;;;;;;;;
   (debug "translate_macroexpanded_list modnamstr=" modnamstr "\n* modctx=" modctx
 	 "\n* inienv=" inienv
 	 "\n* iniproctransl=" iniproctransl)
@@ -5621,7 +5638,10 @@ if (1) return;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun translate_run_melt_expressions (exprs env)
-  :doc #{Translate and run the MELT s-expressions from $EXPRS in the $ENV environment, which can be modified.}#
+  :doc #{Translate and run the MELT s-expressions from $EXPRS in the
+  $ENV environment, which can be modified, e.g. by definitions inside
+  the $EXPRS. The last expression should preferably gives a value,
+  which is returned...}#
   (debug "translate_run_melt_expressions start exprs=" exprs "\n*env=" env)
   (when (null exprs) 
     (debug "translate_run_melt_expressions gets and gives null")
@@ -5750,7 +5770,9 @@ if (1) return;
 		       )
 		  (debug "translate_run_melt_expressions/normalextend lastnorm=" lastnorm " lastctyp=" lastctyp)
 		  (when (!= lastctyp ctype_value)
-		    (warningmsg_strv "runtime evaluated expressions don't end with a :value expression" (get_field :named_name lastctyp))
+		    (warningmsg_strv 
+		     "runtime expressions don't end with a :value giving expression, appending () to them."
+		     (get_field :named_name lastctyp))
 		    (list_append normlist (instance class_nrep_nil))
 		    (debug "translate_run_melt_expressions/normalextend updated normlist=" normlist)
 		    )
@@ -5761,7 +5783,9 @@ if (1) return;
 	  (runerrorhdlr '"runtime macroexpansion failed")
 	  (return () ()))
 	;; translate to C code
-	(translate_macroexpanded_list xlist nakedbasnam modctx ncx env normalextend compile2obj_initextendproc)
+	(translate_macroexpanded_list xlist nakedbasnam modctx ncx env 
+				      normalextend compile2obj_initextendproc)
+	(debug "translate_run_melt_expressions after translation to nakedbasnam=" nakedbasnam)
 	(when  (or (notnull !referr) (>i (melt_error_counter) starterrcount))
 	  (runerrorhdlr '"runtime translation to code failed")
 	  (return () ()))

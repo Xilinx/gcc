@@ -1434,7 +1434,7 @@ $SBUF.}#
 	;; emit setting the retinit from the boxloc
 	(let ( (osetretinit
 		(make_objcompute () ctype_value
-				 ##{/* finalfreshenvget */ melt_reference_value((melt_ptr_t)($BOXLOC))}#))
+				 ##{/* finalsetretinit */ melt_reference_value((melt_ptr_t)($BOXLOC))}#))
 	       )
 	  (put_objdest osetretinit retinit)
 	  (debug "compile2obj_initproc adding osetretinit=" osetretinit)
@@ -1700,9 +1700,11 @@ $SBUF.}#
 	     (list_append oinibody curobjt)))
 	  (append_commentconst oinibody "after toplevel body")
 	  ;;
-	  (debug "compile2obj_initextendproc oinibody=" oinibody)
+	  (debug "compile2obj_initextendproc final oinibody=" oinibody)
+	  ;; some things are still missing ...
 	  ;;
-	  (assert_msg "@$@compile2obj_initextendproc unimplemented")
+	  (debug "compile2obj_initextendproc gives oinitxrout=" oinitxrout)
+	  (return oinitxrout)
 	  )))))
 
 
