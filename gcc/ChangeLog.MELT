@@ -1,6 +1,11 @@
 
 2012-09-08  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-outobj.melt (outpucod_initialextensionroutine):
+	More code, but very incomplete.
+
+2012-09-08  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-first.melt (ctype_long, ctype_cstring): Add boxing
 	& unboxing.
 

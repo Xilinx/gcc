@@ -2050,9 +2050,79 @@ MELT_EXTERN  void* melt_start_this_module (void*);
 ;;; output extension initial routine
 (defun outpucod_initialextensionroutine  (pini declbuf implbuf :long depth)
   (assert_msg "check pini" (is_a pini class_initial_extension_routineobj))
-  (debug "outpucod_initialextensionroutine start pini=" pini)
-  (assert_msg "@$@unimplemented outpucod_initialextensionroutine")
-)
+  (debug "outpucod_initialextensionroutine start pini=" pini
+	 "\n of discrim " (discrim pini))
+  (let (
+	(oname (get_field :named_name pini))
+	(odatup (get_field :oirout_data pini))
+	(orfill (get_field :oirout_fill pini))
+	(oprolog (get_field :oirout_prolog pini))
+	(omodnam (unsafe_get_field :oirout_modulename pini))
+	(obody (get_field :obrout_body pini))
+	(onbval (get_field :obrout_nbval pini))
+	(:long nbval (get_int onbval))
+	(:long minihash (+i 1 (%iraw (obj_hash pini) 4096)))
+	(oretval (get_field :obrout_retval pini))
+	)
+    (add2sbuf_indentnl declbuf 0)
+    (add2sbuf_indentnl declbuf 0)
+    (add2out 
+     declbuf 
+     ##{ /** declare initial extension running routine $ONAME 
+     * of $OMODNAM [outpucod_initialextensionroutine] **/
+     MELT_EXTERN melt_ptr_t $ONAME (melt_ptr_t meltarg_curenv_p, meltarg_tuplitval_p) ;
+     struct  meltextend_$OMODNAM#_initial_frame_st ;
+     void MELT_MODULE_VISIBILITY 
+     meltrun_$OMODNAM#_mark_or_forward (struct meltextend_$OMODNAM#_initial_frame_st*, int) ;
+     #ifdef MELT_HAVE_DEBUG
+     MELT_EXTERN const char meltextend_$OMODNAM#_have_debug_enabled[] ;
+     #define melt_have_debug_string meltextend_$OMODNAM#_have_debug_enabled
+     #else
+     MELT_EXTERN const char meltextend_$OMODNAM#_have_debug_disabled[] ;
+     #define melt_have_debug_string meltextend_$OMODNAM#_have_debug_disabled
+     #endif /* MELT_HAVE_DEBUG */
+     }#)
+    (add2sbuf_indentnl declbuf 0)
+    (add2out
+     implbuf
+     ##{ /* implement extension running routine $ONAME 
+     of $OMODNAM [outpucod_initialextensionroutine] **/
+     #ifdef MELT_HAVE_DEBUG
+     const char meltextend_$OMODNAM#_have_debug_enabled[]
+     = "MELT running extension $OMODNAM has debug enabled" ;
+     #else
+     const char meltextend_$OMODNAM#_have_debug_disabled[]
+     = "MELT running extension $OMODNAM has debug disabled" ;
+     #endif /* MELT_HAVE_DEBUG */
+     }#)
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_indentnl implbuf 0)
+    (add2out implbuf ##{
+	     /** implement initial extension routine $ONAME 
+	     * of $OMODNAM [outpucod_initialextensionroutine] **/
+	     melt_ptr_t $ONAME (melt_ptr_t meltarg_curenv_p, meltarg_tuplitval_p) {}#)
+    (add2sbuf_strconst implbuf "/* extension routine frame */ typedef ")
+    (output_curframe_declstruct pini implbuf)
+    (add2out implbuf ##{meltrun_$OMODNAM#_initial_frame_st ;}#
+	     )
+    (add2sbuf_indentnl implbuf 1)
+    (output_curframe_cdat_struct odatup implbuf)
+    (add2sbuf_strconst implbuf " *cdat = NULL;")
+    (add2sbuf_indentnl implbuf 1)
+    ;; generate the initial frame declaration
+    (add2out declbuf ##{ /* extension $OMODNAM initial frame */}#)
+    (add2sbuf_indentnl implbuf 1)
+    (output_curframe_declstruct_init 
+     (lambda (rou dsbuf)
+       (add2sbuf_indentnl dsbuf 0)
+       (add2out dsbuf  ##{ meltrun_$OMODNAM#_initial_frame_st}#))
+     pini declbuf)
+    ;; generate the fill of the cdata
+    (add2out implbuf  ##{ /* extension $OMODNAM cdata fill */}#)
+    (output_curframe_cdat_fill odatup implbuf)
+    
+    (assert_msg "@$@unimplemented outpucod_initialextensionroutine")
+    ))
 (install_method class_initial_extension_routineobj output_c_code outpucod_initialextensionroutine)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
