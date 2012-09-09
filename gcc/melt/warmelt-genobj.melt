@@ -1534,9 +1534,13 @@ $SBUF.}#
 	  (let ( (boxl (get_free_objlocptr gcx '_olitvaluetuploc_)) )
 	    (put_fields gcx :egncx_litvaltuploc boxl)
 	    boxl))
-	 ;; stack location for the value exporter and importer
-	 (ovalueexporter (get_free_objlocptr gcx '_valexport_)) 
-	 (ovalueimporter (get_free_objlocptr gcx '_valimport_))
+	 ;; We don't have any exporter, because all values stay
+	 ;; defined in the current environment so are implicitly
+	 ;; exported.
+	 ;;
+	 ;; We don't have any importer, because we use the value
+	 ;; literal tuple instead.
+	 ;;
 	 ;; initial defined bindings
 	 (inidefbinds (get_field :ninit_defbinds ipro))
 	 )
@@ -1657,16 +1661,6 @@ $SBUF.}#
 		    )))))
 	  (debug "compile2obj_initextendproc before imports oiniprolog=" oiniprolog)
 	  ;;
-	  ;; get the value importer if needed
-	  (if (>i (mapobject_count importmap) 0)
-	      (progn
-		(append_commentconst oiniprolog "get the value importer")
-		(list_append oiniprolog
-			     (instance class_objgetslot
-				       :obdi_destlist (list ovalueimporter)
-				       :ogetsl_obj initialsystemdata_objpredef 
-				       :ogetsl_field sysdata_value_importer))
-		))
 	  (if (>i (list_length importvalues) 0)
 	      (progn
 		(append_commentconst oiniprolog "before getting imported values")
@@ -1682,13 +1676,10 @@ $SBUF.}#
 			  (impsymstr (get_field :named_name impsym))
 			  (modulstr (get_field :mocx_modulename modctx)) 
 			  (osymdat (compile_obj impsydat gcx))
-			  (oimplocv (mapobject_get importmap impsym))
-			  (oimpappl (instance class_objapply
-					      :obdi_destlist (list oimplocv)
-					      :obapp_clos ovalueimporter
-					      :obapp_args (tuple osymdat oprevenvloc impsymstr modulstr)))
 			  )
-		     (list_append oiniprolog oimpappl)
+		     (debug "compile2obj_initextendproc impsydat=" impsydat "\n osymdat=" osymdat)
+		     ;; should put the imported value in the value literal tuple
+		     (assert_msg "@$@unimplemented compile2obj_initextendproc/import")
 		     )))
 		(append_commentconst oiniprolog "after getting imported values")
 		))

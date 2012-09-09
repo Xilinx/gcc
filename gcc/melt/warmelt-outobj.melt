@@ -35,7 +35,7 @@
 ;; melt-stage2/warmelt*c or one of melt-sources/xtramelt*c. 9Mbytes is
 ;; not enough!
 (definstance buffer_limit_cont class_reference
-  :referenced_value '18765000)
+  :referenced_value '33554432)		;; 2^25
 
 
 (defun get_code_buffer_limit () 
@@ -5802,7 +5802,7 @@ if (1) return;
 					))
 			   )
 			  (set_ref referr (or v :true))))
-	  (modctx (instance class_module_context
+	  (modctx (instance class_running_extension_module_context
 			    :mocx_modulename  nakedbasnam
 			    :mocx_expfieldict (make_mapstring discr_map_strings 71)
 			    :mocx_expclassdict (make_mapstring discr_map_strings 19)
@@ -5815,6 +5815,8 @@ if (1) return;
 			    :mocx_packagepclist (make_list discr_list)
 			    :mocx_gendevlist (make_list discr_list)
 			    :mocx_errorhandler runerrorhdlr
+			    :morcx_litervalist (list ())
+			    :morcx_literobjmap (make_mapobject discr_map_objects 53)
 			    ))
 	  (ncx (create_normal_extending_context modctx env))
 	  (lsexp

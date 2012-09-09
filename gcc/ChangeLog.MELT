@@ -1,5 +1,16 @@
 
 2012-09-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt (class_running_extension_module_context): New.
+	(class_normalization_context): Improve doc.
+
+	* melt/warmelt-genobj.melt (compile2obj_initextendproc): No more imports.
+	Use literal value machinery.
+
+	* melt/warmelt-outobj.melt (buffer_limit_cont): Increase to 2^25.
+	(translate_run_melt_expressions): make a
+	class_running_extension_module_context.
+
+2012-09-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt (translate_run_melt_expressions): The
 	same binbasename is used for both the basename of C files, and for
 	basename of modules.

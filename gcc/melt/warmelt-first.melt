@@ -861,6 +861,17 @@ the list of cheader. $MOCX_GENDEVLIST is the list of instances of
 $CLASS_SOURCE_GENERATOR_DEVICE. $MOCX_ERRORHANDLER is the closure, if
 any, to call on errors. For gurus!}# )
 
+(defclass class_running_extension_module_context
+  :super class_module_context
+  :fields (morcx_litervalist
+	   morcx_literobjmap
+	   morcx_countlitval
+	   )
+  :doc #{The $CLASS_RUNNING_EXTENSION_MODULE_CONTEXT is for runtime
+evaluation of expressions. Field $MORCX_LITERVALIST is the list of
+literal values, with $MORCX_LITEROBJMAP used to literal
+objects. $MORCX_COUNTLITVAL is the literal value counter.}# )
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalization context
 (defclass class_normalization_context
@@ -958,8 +969,8 @@ $IGNCX_IMPORTMAP.}# )
   :doc #{The internal $CLASS_EXTENSION_GENERATION_CONTEXT (for gurus)
 is used when generating the initial routine of an extension, i.e. for
 runtime evaluation of expressions. $EGNCX_VALOCLIST is the list of
-stack location for literal values. and $EGNCX_LITVALTUPLOC is the
-stack location for the literal values tuple.}# )
+literal values stack locations, and $EGNCX_LITVALTUPLOC is the stack location for the
+literal values tuple.}# )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; common superclass for objcode
@@ -4243,6 +4254,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  class_primitive_binding
  class_proped 
  class_root
+ class_running_extension_module_context
  class_selector
  class_selector_binding 
  class_sexpr
