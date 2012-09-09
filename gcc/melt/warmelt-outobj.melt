@@ -5816,6 +5816,7 @@ if (1) return;
 			    :mocx_gendevlist (make_list discr_list)
 			    :mocx_errorhandler runerrorhdlr
 			    :morcx_litervalist (list ())
+			    :morcx_countlitval (make_integerbox discr_integer 1)
 			    :morcx_literobjmap (make_mapobject discr_map_objects 53)
 			    ))
 	  (ncx (create_normal_extending_context modctx env))

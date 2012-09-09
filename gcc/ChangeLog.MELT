@@ -1,6 +1,17 @@
 
 2012-09-08  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-first.melt
+	(class_running_extension_module_context): Improve documentation.
+
+	* melt/warmelt-normal.melt (class_literal_value): New class.
+	(register_literal_value): New function.
+
+	* melt/warmelt-outobj.melt (translate_run_melt_expressions): Fill
+	the :morcx_countlitval field correctly.
+
+2012-09-08  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.

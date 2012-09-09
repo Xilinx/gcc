@@ -869,7 +869,7 @@ any, to call on errors. For gurus!}# )
 	   )
   :doc #{The $CLASS_RUNNING_EXTENSION_MODULE_CONTEXT is for runtime
 evaluation of expressions. Field $MORCX_LITERVALIST is the list of
-literal values, with $MORCX_LITEROBJMAP used to literal
+literal values of $CLASS_LITERAL_VALUE, with $MORCX_LITEROBJMAP used to literal
 objects. $MORCX_COUNTLITVAL is the literal value counter.}# )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

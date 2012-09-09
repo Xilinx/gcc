@@ -831,6 +831,81 @@ routine procedures.}#
 ;; internal primitive to return the last predefined index
 (defprimitive last_globpredef_index () :long
   "BGLOB__LASTGLOB")
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defclass class_literal_value 
+  :super class_proped
+  :fields (litv_value
+	   litv_rank
+	   litv_loc)
+  :doc #{$CLASS_LITERAL_VALUE is the class managing literal values in runtime extension modules.
+  $LITV_VALUE is the literal value itself
+  $LITV_RANK is its unique rank in the extension module
+  $LITV_LOC may contain its stack location}#
+)
+(export_class class_literal_value)
+
+(defun register_literal_value (val modctx)
+  (debug "register_literal_value val=" val "\n in modctx=" modctx)
+  (assert_msg "check modctx" (is_a modctx class_running_extension_module_context))
+  (let ( (litvalist (get_field :morcx_litervalist modctx))
+	 (litobjmap (get_field :morcx_literobjmap modctx))
+	 (countlit (get_field :morcx_countlitval modctx))
+	 (:long count (get_int countlit))
+	 )
+    (assert_msg "check litvalist" (is_list litvalist))
+    (assert_msg "check litobjmap" (is_mapobject litobjmap))
+    (assert_msg "check countlit" (is_integerbox countlit))
+    ;; check once in a while that the counter is the list length
+    (assert_msg "check count" (or (%iraw count 4) (==i count (list_length litvalist))))
+    (cond ( (null val)
+	    (assert_msg "null literal value" ())
+	    (return))
+	  ( (is_integerbox val)
+	    (assert_msg "integer literal value" ())
+	    (return))
+	  ( (is_string val)
+	    (assert_msg "string literal value" ())
+	    (return))
+	  ( (is_object val)
+	    (let ( (litv (mapobject_get litobjmap val))
+		   )
+	      (cond
+	       (litv 
+		(debug "register_literal_value found litv=" litv)
+		(assert_msg "check litv" (is_a litv class_literal_value))
+		(assert_msg "check old found value" (== (get_field :litv_value litv) val)))
+	       (:else
+		(setq litv (instance class_literal_value
+				     :litv_value val
+				     :litv_rank (make_integerbox discr_constant_integer count)
+				     :litv_loc ()
+				     ))
+		(list_append litvalist litv)
+		(put_int countlit (+i count 1))
+		(mapobject_put litobjmap val litv)
+		(debug "register_literal_value new litv=" litv "\n updated litobjmap=" litobjmap)
+		)
+	       )
+	      (return litv)
+	      ))
+	  (:else
+	   ;; non-object value
+	   (let ( (litv (instance class_literal_value
+				  :litv_value val
+				  :litv_rank (make_integerbox discr_constant_integer count)
+				  :litv_loc ()
+				  ))
+		  )
+	     (list_append litvalist litv)
+	     (put_int countlit (+i count 1))
+	     (debug "register_literal_value nonobject value litv=" litv)
+	     (return litv)
+	     ))
+	  )))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; create a normalization context
 (defun create_normcontext (modctx)
@@ -7159,6 +7234,7 @@ source location.}#
  normalize_binding
  normalize_tuple
  prepare_constructor_binding
+ register_literal_value
  wrap_normal_let1
  wrap_normal_letseq
  )
