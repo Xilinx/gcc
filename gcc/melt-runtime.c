@@ -4845,6 +4845,10 @@ obstack_add_escaped_path (struct obstack* obs, const char* path)
 #define WORKSPACE_ARG "GCCMELT_MODULE_WORKSPACE="
 /* flavor of the binary module */
 #define FLAVOR_ARG "GCCMELT_MODULE_FLAVOR="
+
+/* do we build with C++ the generated C modules */
+#define BUILD_WITH_CXX_ARG "MELTGCC_BUILD_WITH_CXX="
+
 /* the additional C flags */
 #define CFLAGS_ARG "GCCMELT_CFLAGS="
 /* the flag to change directory for make */
@@ -4915,6 +4919,14 @@ melt_run_make_for_plugin (const char*ourmakecommand, const char*ourmakefile, con
   if (warnescapedchar)
     warning (0, "escaped character[s] in MELT binary module %s", binbase);
   obstack_1grow (&cmd_obstack, ' ');
+
+  /* add the built with C++ argument if needed */
+#if defined(ENABLE_BUILD_WITH_CXX) || MELT_GCC_VERSION >= 4008 || defined(__cplusplus)
+  {
+    obstack_1grow (&cmd_obstack, ' ');
+    obstack_grow (&cmd_obstack, BUILD_WITH_CXX_ARG "=Yes");
+  }
+#endif
 
   /* add the cflag argument if needed */
   if (ourcflags && ourcflags[0]) {
@@ -4987,7 +4999,7 @@ melt_run_make_for_branch (const char*ourmakecommand, const char*ourmakefile, con
   int argc = 0;
   int err = 0;
   int cstatus = 0;
-  const char *argv[20] = { NULL };
+  const char *argv[25] = { NULL };
   const char *errmsg = NULL;
   char* srcarg = NULL;
   char* binarg = NULL;
@@ -5022,7 +5034,16 @@ melt_run_make_for_branch (const char*ourmakecommand, const char*ourmakefile, con
   else
     srcarg = concat (MODULE_SOURCEBASE_ARG, mycwd, "/", srcbase, NULL);
   argv[argc++] = srcarg;
-  debugeprintf("melt_run_make_for_branch arg srcarg %s", srcarg);
+  debugeprintf ("melt_run_make_for_branch arg srcarg %s", srcarg);
+
+  /* add the built with C++ argument if needed */
+#if defined(ENABLE_BUILD_WITH_CXX) || MELT_GCC_VERSION >= 4008 || defined(__cplusplus)
+  {
+    char*cplusarg = BUILD_WITH_CXX_ARG "=YesBranch";
+    argv[argc++] = cplusarg;
+    debugeprintf ("melt_run_make_for_branch arg with C++: %s", cplusarg);
+  }
+#endif /* endif */
 
   /* the binary base argument */
   if (IS_ABSOLUTE_PATH(binbase))
