@@ -1466,6 +1466,7 @@ $SBUF.}#
   (let ( (locmap (make_mapobject discr_map_objects 50))
 	 (oiniprolog (make_list discr_list))
 	 (oinibody (make_list discr_list))
+	 (modenv (get_field :ninitextend_modenv ipro))
 	 (oinitxrout 
 	  (instance class_initial_extension_routineobj
 		    ;; change carefully the name, since the runtime
@@ -1545,7 +1546,8 @@ $SBUF.}#
 	 (inidefbinds (get_field :ninit_defbinds ipro))
 	 )
     (append_commentconst oinibody "start of oinibody")
-    (debug "compile2obj_initextendproc ocurenvboxloc=" ocurenvboxloc " inidefbinds=" inidefbinds)
+    (debug "compile2obj_initextendproc ocurenvboxloc=" ocurenvboxloc "\n inidefbinds=" inidefbinds
+	   "\n modenv=" modenv)
     ;; reserve location for defined values
     (foreach_in_list
      (inidefbinds)
@@ -1672,15 +1674,32 @@ $SBUF.}#
 		   (assert_msg "check curimport" (is_a curimport class_nrep_importedval))
 		   (compile_warning "the generated import should have a cstring")
 		   (let ( (impsym (unsafe_get_field :nimport_symb curimport)) 
-			  (impsydat (unsafe_get_field :nimport_sydata curimport))
-			  (impsymstr (get_field :named_name impsym))
 			  (modulstr (get_field :mocx_modulename modctx)) 
-			  (osymdat (compile_obj impsydat gcx))
+			  (symbind (find_env modenv impsym))
+			  (oimplocv (mapobject_get importmap impsym))
 			  )
-		     (debug "compile2obj_initextendproc impsydat=" impsydat "\n osymdat=" osymdat)
-		     ;; should put the imported value in the value literal tuple
-		     (assert_msg "@$@unimplemented compile2obj_initextendproc/import")
-		     )))
+		     (debug "compile2obj_initextendproc impsym=" impsym "\n symbind=" symbind "\n oimplocv=" oimplocv)
+		     (let ( (val (cond
+				  ((is_a symbind class_value_binding)
+				   (get_field :vbind_value symbind))
+				  (:else
+				   (errormsg_strv "runtime extension cannot import " (get_field :named_name impsym))
+				   (assert_msg "unimplemented handling of of import in compile2obj_initextendproc/import" ())
+				   ())))
+			    (litval (register_literal_value val modctx))
+			    (:long litrank (get_int (get_field :litv_rank litval)))
+			    (ogetlit (make_objcompute
+				      ()
+				      ctype_value
+				      ##{/* retrieve runtime literal value #$LITRANK */
+				      ((melt_ptr_t) (((meltmultiple_ptr_t)$OLITVALUETUPLOC)->tabval[$LITRANK]))
+				      }#))
+			    )
+		       (put_objdest ogetlit oimplocv)
+		       (debug "compile2obj_initextendproc/import val=" val " symbind=" symbind
+			      " litval=" litval " ogetlit=" ogetlit)
+		       (list_append oiniprolog ogetlit)
+		       ))))
 		(append_commentconst oiniprolog "after getting imported values")
 		))
 	  ;; append the compiled toplevel

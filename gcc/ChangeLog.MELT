@@ -1,5 +1,9 @@
 
 2012-09-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.melt (compile2obj_initextendproc): Importing
+	values thru literal values.
+
+2012-09-08  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-first.melt
 	(class_running_extension_module_context): Improve documentation.
