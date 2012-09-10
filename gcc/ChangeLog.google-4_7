@@ -1,3 +1,8 @@
+2012-09-10  Teresa Johnson  <tejohnson@google.com>
+
+	* loop-unroll.c (code_size_limit_factor): Guard against divide
+	by zero exception.
+
 2012-09-05  Cary Coutant  <ccoutant@gmail.com>
 
 	Backport trunk patch to fix a problem where type signature does
