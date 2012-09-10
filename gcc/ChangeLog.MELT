@@ -1,4 +1,7 @@
 
+2012-09-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (melt.encap): Also depend upon stmp-int-hdrs.
+
 2012-09-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (BUILD_WITH_CXX_ARG) New.
 	(melt_run_make_for_plugin, melt_run_make_for_branch) use it to

@@ -5399,7 +5399,10 @@ $(srcdir)/melt-build-script.sh:  @MAINT@ $(srcdir)/melt-build-script.def $(srcdi
 
 .PHONY: melt.encap melt-clean melt-translator melt-applications melt-modlists melt-gendoc
 
-melt.encap  meltgendoc.texi:  melt-build-settings.sh  melt-build-param.sh $(srcdir)/melt-build-script.sh $(melt_make_cc1_dependency) $(MELTBUILD_MKFILE) warmelt-predef.melt melt-predef.h $(wildcard $(srcdir)/melt/*.melt $(srcdir)/melt/generated/*.[ch]) melt-gendoc
+
+## melt.encap may need the include/stdint.h to compile & check the
+## MELT runtime so depends upon stmp-int-hdrs ...
+melt.encap  meltgendoc.texi:  melt-build-settings.sh  melt-build-param.sh stmp-int-hdrs $(srcdir)/melt-build-script.sh $(melt_make_cc1_dependency) $(MELTBUILD_MKFILE) warmelt-predef.melt melt-predef.h $(wildcard $(srcdir)/melt/*.melt $(srcdir)/melt/generated/*.[ch]) melt-gendoc
 
 melt-clean:
 	$(RM) -rf meltbuild*
