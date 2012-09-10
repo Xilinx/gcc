@@ -1,3 +1,450 @@
+2012-09-10  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/54536
+	* config/avr/avr-mcus.def (at90usb1287): Set LIBRARY_NAME to "usb1287".
+
+2012-09-10  Jan Hubicka  <jh@suse.cz>
+
+	* lto-cgraph.c (compute_ltrans_boundary): Do not care about aliases.
+	* symtab.c (symtab_make_decl_local): Remove user defined visibility
+	when making symbol local.
+
+2012-09-09  Mark Kettenis  <kettenis@gnu.org>
+
+	* config/openbsd-stdint.h (INTMAX_TYPE, UINTMAX_TYPE): Define.
+			
+2012-09-09  Jan Hubicka  <jh@suse.cz>
+
+	* passes.c (ipa_write_summaries_1): Set state;
+	do not call compute_ltrans_boundary.
+	(ipa_write_optimization_summaries): Likewise.
+	(ipa_write_summaries): compute_ltrans_boundary here.
+	* lto-streamer.h (lto_symtab_encoder_d): NODES are allocated in heap.
+	(compute_ltrans_boundary): Update prototype.
+
+2012-09-09  Ulrich Drepper  <drepper@gmail.com>
+
+	* config/i386/cpuid.h: Define signature_*_e[bcd]x macros for
+	matching results of level 0 calls to __cpuid to processor
+	manufacturers.
+	* config/i386/driver-i386.c (vendor_signatures): Removed.
+	(processor_signatures): Removed.
+	(host_detect_local_cpu): Replace uses of now-removed SIG_*
+	constants with the new signature_*_ebx constants.
+
+2012-09-08  Jan Hubicka  <jh@suse.cz>
+
+	Replace cgraph_node_set and varpool_node_set by symtab_node_encoder
+	in partitioning.
+	* tree-pass.h (cgraph_node_set_def, varpool_node_set_def): Remove
+	forward declaration.
+	(lto_symtab_encoder_d): Forward declare.
+	(ipa_write_optimization_summaries): Update.
+	* lto-cgraph.c (lto_symtab_encoder_new): Do not initialize
+	body, initializer and in_partition.
+	(lto_symtab_encoder_delete): Update.
+	(lto_symtab_encoder_encode): Update.
+	(lto_symtab_encoder_lookup): Move inline.
+	(lto_symtab_encoder_delete_node): New function.
+	(lto_symtab_encoder_encode_body_p, lto_set_symtab_encoder_encode_body,
+	lto_symtab_encoder_encode_initializer_p,
+	lto_set_symtab_encoder_encode_initializer, lto_symtab_encoder_in_partition_p,
+	lto_symtab_encoder_in_partition_p): Update.
+	(compute_ltrans_boundary): Take encoder as an input.
+	* passes.c (ipa_write_summaries_1): Update.
+	(ipa_write_summaries_1): Update.
+	(ipa_write_summaries): Update.
+	(ipa_write_optimization_summaries): Update.
+	* lto-streamer.c (print_lto_report): Report number of cgraph nodes.
+	* lto-streamer.h (lto_stats_d): Replace num_output_cgraph_nodes by
+	num_output_symtab_nodes.
+	(lto_encoder_entry): New structure.
+	(struct lto_symtab_encoder_d): Reorg.
+	(lto_symtab_encoder_delete_node): Declare.
+	(lto_symtab_encoder_lookup): Bring inline.
+	(compute_ltrans_boundary): Update.
+	(lto_symtab_encoder_size): Update.
+	(lsei_node, lsei_cgraph_node, lsei_varpool_node): Update.
+	(lto_symtab_encoder_deref): Update.
+
+2012-09-08  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* config/pa/pa.c (hppa_rtx_costs): Update costs for large integer modes.
+
+2012-09-08  Andi Kleen  <ak@linux.intel.com>
+
+	* gcc/lto/lto.c (do_whole_program_analysis): 
+	Fix last broken patch
+
+2012-09-08  Andi Kleen  <ak@linux.intel.com>
+
+	* gcc/common.opt (-fmem-report-wpa): Add
+	* gcc/doc/invoke.texi (-fmem-report-wpa): Document.
+	* gcc/lto/lto.c (do_whole_program_analysis): Run mem_report
+	when mem_report_wpa is set.
+
+2012-09-07  Anthony Green  <green@moxielogic.com>
+
+	* config/moxie/moxie.c (moxie_expand_prologue): Optimize prologue
+	for functions with large static stack requirements.
+	(moxie_expand_epilogue): Use $r12 instead of $r5 for pulling saved
+	values off of the stack.
+
+2012-09-07  Nick Clifton  <nickc@redhat.com>
+
+	* config/v850/v850.h (DBX_DEBUGGING_INFO): Define.
+	(ASM_GENERATE_INTERNAL_LABEL): Define if not already provided.
+	* config/v850/v850.c (compute_register_save_size): Always include
+	the link pointer.
+	(increment_stack): New function - emits insns to increment or
+	decrement the stack pointer.
+	(expand_prologue, expand_epilogue): Use it.
+	(expand_prologue): Set the function stack size, if requested.
+	(v850_debug_unwind_info): New function.
+	(TARGET_DEBUG_UNWIND_INFO): Define.
+
+2012-09-07  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR tree-ssa/54295
+	* tree-ssa-math-opts.c (widening_mult_conversion_strippable_p):
+	Sign-extension of a zero-extended value can be simplified to
+	just zero-extension.
+
+2012-09-07  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/53667
+	* tree-ssa-structalias.c (handle_rhs_call): Properly clobber
+	EAF_NOESCAPED arguments.  Transitively close non-EAF_DIRECT
+	arguments separately.
+
+2012-09-07  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* bitmap.c (bitmap_last_set_bit): Rewrite to return the correct bit.
+
+	* graphite.c (print_global_statistics): Use EDGE_COUNT instead
+	of VEC_length.
+	(print_graphite_scop_statistics): Likewise.
+	* graphite-scop-detection.c (get_bb_type): Use single_succ_p.
+	(print_graphite_scop_statistics): Use EDGE_COUNT, not VEC_length.
+	(canonicalize_loop_closed_ssa): Use single_pred_p.
+
+	* alias.c (reg_seen): Make this an sbitmap.
+	(record_set, init_alias_analysis): Update.
+
+	* tree-ssa-coalesce.c (ssa_conflicts_dump): Fix dumping.
+
+2012-09-07  Tom de Vries  <tom@codesourcery.com>
+
+	PR tree-optimization/53986
+	* tree-vrp.c (extract_range_from_multiplicative_op_1): Allow
+	LSHIFT_EXPR.
+	(extract_range_from_binary_expr_1): Handle LSHIFT with constant range as
+	shift amount.
+
+2012-09-07  Segher Boessenkool  <segher@kernel.crashing.org>
+
+	* config/rs6000/aix43.h (RS6000_CALL_GLUE): Delete.
+	* config/rs6000/aix51.h (RS6000_CALL_GLUE): Delete.
+	* config/rs6000/aix52.h (RS6000_CALL_GLUE): Delete.
+	* config/rs6000/aix53.h (RS6000_CALL_GLUE): Delete.
+	* config/rs6000/aix61.h (RS6000_CALL_GLUE): Delete.
+	* config/rs6000/freebsd64.h (RS6000_CALL_GLUE): Delete.
+	* config/rs6000/linux64.h (RS6000_CALL_GLUE): Delete.
+	* config/rs6000/rs6000.c (print_operand) ['.']: Delete.
+	* config/rs6000/rs6000.h (RS6000_CALL_GLUE): Delete.
+	* config/rs6000/rs6000.md (tls_gd_aix<TLSmode:tls_abi_suffix>):
+	Replace %. with nop.
+	(tls_gd_call_aix<TLSmode:tls_abi_suffix>): Ditto.
+	(tls_ld_aix<TLSmode:tls_abi_suffix>): Ditto.
+	(tls_ld_call_aix<TLSmode:tls_abi_suffix>): Ditto.
+	(call_nonlocal_aix32): Ditto.
+	(call_nonlocal_aix64): Ditto.
+	(call_value_nonlocal_aix32): Ditto.
+	(call_value_nonlocal_aix64): Ditto.
+
+2012-09-06  Andi Kleen <ak@linux.intel.com>
+
+	* doc/invoke.texi (-ffat-lto-objects): Clarify that gcc-ar
+	et.al. should be used.
+
+2012-09-06  Andi Kleen  <ak@linux.intel.com>
+
+	* gcc/lto-streamer.h (res_pair): Add.
+	(lto_file_decl_data): Replace resolutions with respairs.
+	Add max_index.
+	* gcc/lto/lto.c (lto_resolution_read): Remove max_index.  Add rp.
+	Initialize respairs.
+	(lto_file_finalize): Set up resolutions vector lazily from respairs.
+
+2012-09-06  Lawrence Crowl  <crowl@google.com>
+
+	* double-int.h (double_int::operator &=): New.
+	(double_int::operator ^=): New.
+	(double_int::operator |=): New.
+	(double_int::mul_with_sign): Modify overflow parameter to bool*.
+	(double_int::add_with_sign): New.
+	(double_int::ule): New.
+	(double_int::sle): New.
+	(binary double_int::operator *): Remove parameter name.
+	(binary double_int::operator +): Likewise.
+	(binary double_int::operator -): Likewise.
+	(binary double_int::operator &): Likewise.
+	(double_int::operator |): Likewise.
+	(double_int::operator ^): Likewise.
+	(double_int::and_not): Likewise.
+	(double_int::from_shwi): Tidy formatting.
+	(double_int::from_uhwi): Likewise.
+	(double_int::from_uhwi): Likewise.
+	* double-int.c (double_int::mul_with_sign): Modify overflow parameter
+	to bool*.
+	(double_int::add_with_sign): New.
+	(double_int::ule): New.
+	(double_int::sle): New.
+	* builtins.c: Modify to use the new double_int interface.
+	* cgraph.c: Likewise.
+	* combine.c: Likewise.
+	* dwarf2out.c: Likewise.
+	* emit-rtl.c: Likewise.
+	* expmed.c: Likewise.
+	* expr.c: Likewise.
+	* fixed-value.c: Likewise.
+	* fold-const.c: Likewise.
+	* gimple-fold.c: Likewise.
+	* gimple-ssa-strength-reduction.c: Likewise.
+	* gimplify-rtx.c: Likewise.
+	* ipa-prop.c: Likewise.
+	* loop-iv.c: Likewise.
+	* optabs.c: Likewise.
+	* stor-layout.c: Likewise.
+	* tree-affine.c: Likewise.
+	* tree-cfg.c: Likewise.
+	* tree-dfa.c: Likewise.
+	* tree-flow-inline.h: Likewise.
+	* tree-object-size.c: Likewise.
+	* tree-predcom.c: Likewise.
+	* tree-pretty-print.c: Likewise.
+	* tree-sra.c: Likewise.
+	* tree-ssa-address.c: Likewise.
+	* tree-ssa-alias.c: Likewise.
+	* tree-ssa-ccp.c: Likewise.
+	* tree-ssa-forwprop.c: Likewise.
+	* tree-ssa-loop-ivopts.c: Likewise.
+	* tree-ssa-loop-niter.c: Likewise.
+	* tree-ssa-phiopt.c: Likewise.
+	* tree-ssa-pre.c: Likewise.
+	* tree-ssa-sccvn: Likewise.
+	* tree-ssa-structalias.c: Likewise.
+	* tree-ssa.c: Likewise.
+	* tree-switch-conversion.c: Likewise.
+	* tree-vect-loop-manip.c: Likewise.
+	* tree-vrp.c: Likewise.
+	* tree.h: Likewise.
+	* tree.c: Likewise.
+	* varasm.c: Likewise.
+
+2012-09-06  Uros Bizjak  <ubizjak@gmail.com>
+
+	* configure.ac (hle prefixes): Remove .code64.
+	* configure: Regenerated.
+
+2012-09-06  Kyrylo Tkachov  <kyrylo.tkachov@arm.com>
+
+	* config/arm/arm.c: Use CONST_INT_P, CONST_DOUBLE_P, REG_P, MEM_P,
+	LABEL_P, JUMP_P, CALL_P, NOTE_P, BARRIER_P consistently.
+	* config/arm/arm.h: Use REG_P, MEM_P consistently.
+	* config/arm/arm.md: Use CONST_INT_P, REG_P, MEM_P, CONST_DOUBLE_P
+	consistently.
+	* config/arm/neon.md: Use REG_P consistently.
+	* config/arm/predicates.md: Use CONST_INT_P, REG_P, MEM_P consistently.
+	* config/arm/thumb2.md: Use CONST_INT_P, REG_P consistently.
+	* config/arm/vec-common.md: Use REG_P consistently.
+
+2012-09-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/54498
+	* tree-ssa-alias.h (get_continuation_for_phi): Add flag to
+	abort when reaching an already visited region.
+	* tree-ssa-alias.c (maybe_skip_until): Likewise.  And do it.
+	(get_continuation_for_phi_1): Likewise.
+	(walk_non_aliased_vuses): When we translated the reference,
+	abort when we re-visit a region.
+	* tree-ssa-pre.c (translate_vuse_through_block): Adjust.
+
+2012-09-06  David Edelsohn  <dje.gcc@gmail.com>
+
+	* config/rs6000/rs6000.c (rs6000_xcoff_asm_named_section): Add TLS
+	section.
+	* config/rs6000/rs6000.c (rs6000_debug_address_cost): Add new
+	arguments to TARGET_ADDRESS_COST call.
+
+2012-09-06  Richard Guenther  <rguenther@suse.de>
+
+	* tree.h (MOVE_NONTEMPORAL): Remove.
+	* tree-pretty-print.c (dump_generic_node): Remove
+	MOVE_NONTEMPORAL handling.
+	* expr.c (expand_expr_real_1): Likewise.
+
+2012-09-06  Richard Guenther  <rguenther@suse.de>
+
+	* passes.c (execute_function_todo): Call compute_may_aliases
+	only if flag_tree_pta is set.
+
+2012-09-06  Andrew Pinski  <apinski@cavium.com>
+
+	PR tree-opt/54494
+	* tree-inline.c (remap_gimple_op_r): Copy TREE_SIDE_EFFECTS also.
+
+2012-09-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/54455
+	* sel-sched-ir.c (maybe_tidy_empty_bb): Give up if previous fallthru
+	bb ends up with asm goto referencing bb's label.
+
+2012-09-06  Chen Liqin  <liqin.gcc@gmail.com>
+
+	* config/score/score.c: Remove TARGET_LEGITIMIZE_ADDRESS define and
+	score_legitimize_address function, use compiler default code instead.
+
+2012-09-05  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-inline.c (want_inline_small_function_p): Use
+	INLINE_HINT_loop_iterations hint.
+
+2012-09-05  Andrew Pinski  <apinski@cavium.com>
+
+ 	* optabs.c (emit_conditional_add): Correct comment about the arguments.
+	Remove code which might swap op2 and op3 since they cannot be swapped.
+	* doc/md.texi (add@var{mode}cc): Fix document about how the arguments
+	are used.
+
+2012-09-05  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* hooks.c (hook_int_rtx_mode_as_bool_0): New function.
+	* hooks.h (hook_int_rtx_mode_as_bool_0): Declare it.
+	* output.h (default_address_cost): Add machine_mode and address space
+	arguments.
+	* target.def (address_cost): Likewise.
+	* rtlanal.c (address_cost): Pass mode and address space to target hook.
+	(default_address_cost): Add unnamed machine_mode and address space
+	arguments.
+	* doc/tm.texi: Regenerate.
+	* config/alpha/alpha.c (TARGET_ADDRESS_COST): Use
+	hook_int_rtx_mode_as_bool_0 instead of hook_int_rtx_bool_0.
+	* config/arm/arm.c (arm_address_cost): Add machine_mode and address
+	space arguments.
+	* config/avr/avr.c (avr_address_cost): Likewise.
+	* config/bfin/bfin.c (bfin_address_cost): Likewise.
+	* config/cr16/cr16.c (cr16_address_cost): Likewise.
+	* config/cris/cris.c (cris_address_cost): Likewise.
+	* config/epiphany/epiphany.c (epiphany_address_cost): Likewise.
+	* config/i386/i386.c (ix86_address_cost): Likewise.
+	* config/ia64/ia64.c (TARGET_ADDRESS_COST): Use
+	hook_int_rtx_mode_as_bool_0 instead of hook_int_rtx_bool_0.
+	* config/iq2000/iq2000.c (iq2000_address_cost): Add machine_mode and
+	address space arguments.  Pass them on in recursive invocation.
+	* config/lm32/lm32.c (TARGET_ADDRESS_COST): Use
+	hook_int_rtx_mode_as_bool_0 instead of hook_int_rtx_bool_0.
+	* config/m32c/m32c.c (m32c_address_cost): Add machine_mode and address
+	space arguments.
+	* config/m32r/m32r.c (TARGET_ADDRESS_COST): Use
+	hook_int_rtx_mode_as_bool_0 instead of hook_int_rtx_bool_0.
+	* config/mcore/mcore.c (TARGET_ADDRESS_COST): Likewise.
+	* config/mep/mep.c (mep_address_cost): Add machine_mode and address
+	space arguments.
+	* config/microblaze/microblaze.c (microblaze_address_cost): Likewise.
+	* config/mips/mips.c (mips_address_cost): Likewise.
+	* config/mmix/mmix.c (TARGET_ADDRESS_COST): Use
+	hook_int_rtx_mode_as_bool_0 instead of hook_int_rtx_bool_0.
+	* config/mn10300/mn10300.c (mn10300_address_cost): Add machine_mode and
+	address space arguments.
+	(mn10300_rtx_costs): Pass GET_MODE (x) and MEM_ADDR_SPACE (x) to
+	mn10300_address_cost.
+	* config/pa/pa.c (hppa_address_cost): Add machine_mode and address
+	space arguments.
+	* config/rs6000/rs6000.c (rs6000_debug_address_cost): Likewise.
+	(TARGET_ADDRESS_COST): Use hook_int_rtx_mode_as_bool_0 instead of
+	hook_int_rtx_bool_0.
+	* config/rx/rx.c (rx_address_cost): Add machine_mode and address
+	space arguments.
+	* config/s390/s390.c (s390_address_cost): Likewise.
+	* config/score/score-protos.h (score_address_cost): Likewise.
+	* config/score/score.c (score_address_cost): Likewise.
+	* config/sh/sh.c (sh_address_cost): Likewise.
+	* config/sparc/sparc.c (TARGET_ADDRESS_COST): Use
+	hook_int_rtx_mode_as_bool_0 instead of hook_int_rtx_bool_0.
+	* config/spu/spu.c (TARGET_ADDRESS_COST): Likewise.
+	* config/stormy16/stormy16.c (xstormy16_address_cost): Add machine_mode
+	and address space arguments.
+	* config/v850/v850.c (TARGET_ADDRESS_COST): Use
+	hook_int_rtx_mode_as_bool_0 instead of hook_int_rtx_bool_0.
+	* config/vax/vax.c (vax_address_cost): Add machine_mode and address
+	space arguments.
+	* config/xtensa/xtensa (TARGET_ADDRESS_COST): Use
+	hook_int_rtx_mode_as_bool_0 instead of hook_int_rtx_bool_0.
+
+2012-09-05   Diego Novillo  <dnovillo@google.com>
+
+	PR bootstrap/54484
+	* vec.h (vec_t::lower_bound): Fix spelling of LESSTHAN argument.
+
+2012-09-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/54486
+	* builtins.c (fold_builtin_strspn, fold_builtin_strcspn): Use
+	build_int_cst with size_type_node instead of size_int.
+
+2012-09-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (<sse4_1>_blendv<ssemodesuffix><avxsizesuffix>):
+	Use register_operand instead of reg_not_xmm0_operand{,_maybe_avx}.
+	Use nonimmediate_operand instead of
+	nonimm_not_xmm0_operand{,_maybe_avx}.
+	(<sse4_1_avx2>_pblendvb): Ditto.
+	(sse4_2_pcmpestr): Ditto.
+	(*sse4_2_pcmpestr_unaligned): Ditto.
+	(sse4_2_pcmpistr): Ditto.
+	(*sse4_2_pcmpistr_unaligned): Ditto.
+	* config/i386/predicates.md (reg_not_xmm0_operand): Remove predicate.
+	(nonimm_not_xmm0_operand): Ditto.
+	(nonimm_not_xmm0_operand_maybe_avx): Ditto.
+	(nonimm_not_xmm0_operand_maybe_avx): Ditto.
+	* config/i386/i386.md (rdpmc): Do not force operand 1 into ecx.
+
+2012-09-05  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* bb-reorder.c: Clarify a few points in the head comment and fix
+	long lines in other comments.
+	(find_traces): Fix long line.
+	(find_traces_1_round): Likewise.
+	(better_edge_p): Likewise.
+	(connect_traces): Likewise.
+	(duplicate_computed_gotos): Likewise.
+	(find_rarely_executed_basic_blocks_and_cr): Remove trailing spaces.
+	(fix_up_fall_thru_edges): Fix formatting.
+
+2012-09-05  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/46590
+	* tree-ssa-loop-ivcanon.c (try_unroll_loop_completely): Do not
+	update SSA form here.
+	(canonicalize_induction_variables): Assert we do not need to
+	update SSA form.
+	(tree_unroll_loops_completely): Update SSA form here.
+	* tree-ssa-loop-manip.c (gimple_duplicate_loop_to_header_edge):
+	Do not verify loop-closed SSA form if SSA form is not up-to-date.
+
+2012-09-05  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/54461
+	* config.gcc (tm_file,target=avr-*-*): Add avr/avrlibc.h if
+	not configured --with-avrlibc=no.
+	(tm_defines,target=avr-*-*): Add WITH_AVRLIBC if not configured
+	--with-avrlibc=no.
+	* config/avr/avrlibc.h: New file.
+	* config/avr/avr-c.c: Build-in define __WITH_AVRLIBC__ if
+	not configured --with-avrlibc=no.
+	* doc/invoke.texi (AVR Built-in Macros): Document __WITH_AVRLIBC__
+
 2012-09-04  Teresa Johnson  <tejohnson@google.com>
 
 	* gcov-io.c (gcov_write_summary): Write out non-zero histogram
@@ -182,8 +629,8 @@
 2012-09-04  Bin Cheng  <bin.cheng@arm.com>
 
 	PR target/45070
-	* config/arm/arm.c (thumb1_extra_regs_pushed): Handle return value of size
-	less than 4 bytes by using macro ARM_NUM_INTS.
+	* config/arm/arm.c (thumb1_extra_regs_pushed): Handle return value
+	of size less than 4 bytes by using macro ARM_NUM_INTS.
 	(thumb1_unexpanded_epilogue): Use macro ARM_NUM_INTS.
 
 2012-09-04  Richard Guenther  <rguenther@suse.de>
@@ -207,10 +654,8 @@
 
 2012-09-04  Christophe Lyon  <christophe.lyon@linaro.org>
 
-	* config/arm/arm.c (arm_evpc_neon_vext): New
-	function.
-	(arm_expand_vec_perm_const_1): Add call to
-	arm_evpc_neon_vext.
+	* config/arm/arm.c (arm_evpc_neon_vext): New function.
+	(arm_expand_vec_perm_const_1): Add call to arm_evpc_neon_vext.
 
 2012-09-04  Oleg Endo  <olegendo@gcc.gnu.org>
 
@@ -366,7 +811,7 @@
 2012-08-31  Greta Yorsh  <Greta.Yorsh@arm.com>
 
 	* config/arm/arm.c (arm_expand_epilogue): Remove unused variable
-        floats_from_frame.
+	floats_from_frame.
 
 2012-08-31  Martin Jambor  <mjambor@suse.cz>
 
@@ -2598,11 +3043,6 @@
 	* gdbinit.in: (macro define __FILE__): New.
 	(macro define __LINE__): New.
 	(skip "tree.h"): New.
-
-2012-08-14  Uros Bizjak  <ubizjak@gmail.com>
-
-	* config/i386/i386.md (enabled): Add comment with explanation
-	why fma4 instructions are disabled for generic code.
 
 2012-08-14  Oleg Endo  <olegendo@gcc.gnu.org>
 

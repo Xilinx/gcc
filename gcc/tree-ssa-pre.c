@@ -1291,7 +1291,7 @@ translate_vuse_through_block (VEC (vn_reference_op_s, heap) *operands,
 	  unsigned int cnt;
 	  /* Try to find a vuse that dominates this phi node by skipping
 	     non-clobbering statements.  */
-	  vuse = get_continuation_for_phi (phi, &ref, &cnt, &visited);
+	  vuse = get_continuation_for_phi (phi, &ref, &cnt, &visited, false);
 	  if (visited)
 	    BITMAP_FREE (visited);
 	}
@@ -1600,11 +1600,9 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 		&& TREE_CODE (op[2]) == INTEGER_CST)
 	      {
 		double_int off = tree_to_double_int (op[0]);
-		off = double_int_add (off,
-				      double_int_neg
-				        (tree_to_double_int (op[1])));
-		off = double_int_mul (off, tree_to_double_int (op[2]));
-		if (double_int_fits_in_shwi_p (off))
+		off += -tree_to_double_int (op[1]);
+		off *= tree_to_double_int (op[2]);
+		if (off.fits_shwi ())
 		  newop.off = off.low;
 	      }
 	    VEC_replace (vn_reference_op_s, newoperands, j, newop);

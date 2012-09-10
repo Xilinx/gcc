@@ -328,7 +328,7 @@ Objective-C and Objective-C++ Dialects}.
 -feliminate-unused-debug-symbols -femit-class-debug-always @gol
 -fenable-@var{kind}-@var{pass} @gol
 -fenable-@var{kind}-@var{pass}=@var{range-list} @gol
--fdebug-types-section @gol
+-fdebug-types-section -fmem-report-wpa @gol
 -fmem-report -fpre-ipa-mem-report -fpost-ipa-mem-report -fprofile-arcs @gol
 -frandom-seed=@var{string} -fsched-verbose=@var{n} @gol
 -fsel-sched-verbose -fsel-sched-dump-cfg -fsel-sched-pipelining-verbose @gol
@@ -5137,6 +5137,11 @@ pass when it finishes.
 Makes the compiler print some statistics about permanent memory
 allocation when it finishes.
 
+@item -fmem-report-wpa
+@opindex fmem-report-wpa
+Makes the compiler print some statistics about permanent memory
+allocation for the WPA phase only.
+
 @item -fpre-ipa-mem-report
 @opindex fpre-ipa-mem-report
 @item -fpost-ipa-mem-report
@@ -8144,7 +8149,9 @@ requires the complete toolchain to be aware of LTO. It requires a linker with
 linker plugin support for basic functionality.  Additionally,
 @command{nm}, @command{ar} and @command{ranlib}
 need to support linker plugins to allow a full-featured build environment
-(capable of building static libraries etc).
+(capable of building static libraries etc). gcc provides the @command{gcc-ar},
+@command{gcc-nm}, @command{gcc-ranlib} wrappers to pass the right options
+to these tools. With non fat LTO makefiles need to be modified to use them.
 
 The default is @option{-ffat-lto-objects} but this default is intended to
 change in future releases when linker plugin enabled environments become more
@@ -11501,6 +11508,10 @@ address as if addressed by an instruction to access RAM like @code{LD}
 or @code{STS}. This offset depends on the device architecture and has
 to be subtracted from the RAM address in order to get the
 respective I/O@tie{}address.
+
+@item __WITH_AVRLIBC__
+The compiler is configured to be used together with AVR-Libc.
+See the @code{--with-avrlibc} configure option.
 
 @end table
 

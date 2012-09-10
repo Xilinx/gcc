@@ -1,4 +1,79 @@
+2012-09-10  Sebastian Huber  <sebastian.huber@embedded-brains.de>
+	    Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/43852
+	* acinclude.m4 (GLIBCXX_ENABLE_VERBOSE): Define.
+	* configure.ac (GLIBCXX_ENABLE_VERBOSE): Use it.
+	* config.h.in: Regenerate.
+	* configure: Likewise.
+	* libsupc++/eh_term_handler.cc (_GLIBCXX_VERBOSE): Check new macro.
+	* libsupc++/pure.cc (_GLIBCXX_VERBOSE): Likewise.
+	* doc/xml/manual/configure.xml (--disable-libstdcxx-verbose): Document.
+	* doc/html/manual/configure.html: Regenerate.
+
+2012-09-09  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR bootstrap/54419
+	* acinclude.m4 (GLIBCXX_CHECK_X86_RDRAND): Remove stray character.
+	* configure: Regenerated.
+
+2012-09-09  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/54388
+	* include/std/array (array::at() const): Ensure lvalue result.
+	* testsuite/23_containers/array/element_access/54388.cc: New.
+	* testsuite/23_containers/array/tuple_interface/get_neg.cc: Adjust
+	dg-error line numbers.
+	* testsuite/23_containers/array/tuple_interface/tuple_element_neg.cc:
+	Likewise.
+
+2012-09-09  Ulrich Drepper  <drepper@gmail.com>
+	    Dominique d'Humieres  <dominiq@lps.ens.fr>
+	    Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	PR bootstrap/54419
+	* acinclude.m4: Define GLIBCXX_CHECK_X86_RDRAND.
+	* configure.ac: Use GLIBCXX_CHECK_X86_RDRAND to test for rdrand
+	support in assembler.
+	* src/c++11/random.cc (__x86_rdrand): Depend on _GLIBCXX_X86_RDRAND.
+	(random_device::_M_init): Likewise.
+	(random_device::_M_getval): Likewise.
+	* configure: Regenerated.
+	* config.h.in: Regenerated.
+
+2012-09-09  Ulrich Drepper  <drepper@gmail.com>
+
+	* src/c++11/random.cc (random_device::_M_init): Use new macro
+	signature_INTEL_ebx to check for Intel processors.
+
+2012-09-06  Thiago Macieira  <thiago.macieira@intel.com>
+
+	PR libstdc++/54172
+        * libsupc++/guard.cc (__cxa_guard_acquire): Exit the loop earlier if
+        we detect that another thread has had success. Don't compare_exchange
+        from a finished state back to a waiting state. Comment.
+
+2012-09-05  François Dumont  <fdumont@gcc.gnu.org>
+
+	PR libstdc++/54296
+	* include/bits/hashtable.h (_M_erase(size_type, __node_base*,
+	__node_type*)): New.
+	(erase(const_iterator)): Use latter.
+	(_M_erase(std::true_type, const key_type&)): New, likewise.
+	(_M_erase(std::false_type, const key_type&)): New. Find all nodes
+	matching the key before deallocating them so that the key doesn't
+	get invalidated.
+	(erase(const key_type&)): Use the new member functions.
+	* testsuite/23_containers/unordered_map/erase/54296.cc: New.
+	* testsuite/23_containers/unordered_multimap/erase/54296.cc: New.
+
 2012-09-05  Ulrich Drepper  <drepper@gmail.com>
+
+	* src/c++11/random.cc (random_device::_M_init): Check whether cpuid
+	instruction is available by using __get_cpuid_max.
+
+	* include/ext/random.tcc (__gnu_cxx:normal_mv_distribution<>)
+	(operator()): Use __generate() function of _M_nd.
 
 	* include/ext/random: Add __gnu_cxx:normal_mv_distribution<> class.
 	* include/ext/random.tccAdd out-of-line functions for

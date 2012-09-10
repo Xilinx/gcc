@@ -524,9 +524,6 @@ struct GTY(()) tree_base {
        TYPE_REF_CAN_ALIAS_ALL in
            POINTER_TYPE, REFERENCE_TYPE
 
-       MOVE_NONTEMPORAL in
-           MODIFY_EXPR
-
        CASE_HIGH_SEEN in
            CASE_LABEL_EXPR
 
@@ -1161,10 +1158,6 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
    by this type can alias anything.  */
 #define TYPE_REF_CAN_ALIAS_ALL(NODE) \
   (PTR_OR_REF_CHECK (NODE)->base.static_flag)
-
-/* In a MODIFY_EXPR, means that the store in the expression is nontemporal.  */
-#define MOVE_NONTEMPORAL(NODE) \
-  (EXPR_CHECK (NODE)->base.static_flag)
 
 /* In an INTEGER_CST, REAL_CST, COMPLEX_CST, or VECTOR_CST, this means
    there was an overflow in folding.  */
@@ -4725,7 +4718,7 @@ extern tree force_fit_type_double (tree, double_int, int, bool);
 static inline tree
 build_int_cstu (tree type, unsigned HOST_WIDE_INT cst)
 {
-  return double_int_to_tree (type, uhwi_to_double_int (cst));
+  return double_int_to_tree (type, double_int::from_uhwi (cst));
 }
 
 extern tree build_int_cst (tree, HOST_WIDE_INT);

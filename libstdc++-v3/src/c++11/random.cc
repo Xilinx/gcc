@@ -50,7 +50,7 @@ namespace std _GLIBCXX_VISIBILITY(default)
       return __ret;
     }
 
-#if defined __i386__ || defined __x86_64__
+#if (defined __i386__ || defined __x86_64__) && defined _GLIBCXX_X86_RDRAND
     unsigned int
     __attribute__ ((target("rdrnd")))
     __x86_rdrand(void)
@@ -75,11 +75,11 @@ namespace std _GLIBCXX_VISIBILITY(default)
 
     if (token == "default")
       {
-#if defined __i386__ || defined __x86_64__
+#if (defined __i386__ || defined __x86_64__) && defined _GLIBCXX_X86_RDRAND
 	unsigned int eax, ebx, ecx, edx;
-	__cpuid(0, eax, ebx, ecx, edx);
-	// Check for "GenuineIntel"
-	if (ebx == 0x756e6547 && ecx == 0x6c65746e && edx == 0x49656e69)
+	// Check availability of cpuid and, for now at least, also the
+	// CPU signature for Intel's
+	if (__get_cpuid_max(0, &ebx) > 0 && ebx == signature_INTEL_ebx)
 	  {
 	    __cpuid(1, eax, ebx, ecx, edx);
 	    if (ecx & bit_RDRND)
@@ -104,7 +104,6 @@ namespace std _GLIBCXX_VISIBILITY(default)
 
   void
   random_device::_M_init_pretr1(const std::string& token)
-
   {
     _M_mt.seed(_M_strtoul(token));
   }
@@ -119,7 +118,7 @@ namespace std _GLIBCXX_VISIBILITY(default)
   random_device::result_type
   random_device::_M_getval()
   {
-#if (defined __i386__ || defined __x86_64__)
+#if (defined __i386__ || defined __x86_64__) && defined _GLIBCXX_X86_RDRAND
     if (! _M_file)
       return __x86_rdrand();
 #endif
