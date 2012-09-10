@@ -9436,7 +9436,7 @@ static void
 output_pubname (dw_offset die_offset, pubname_entry *entry)
 {
   dw_die_ref die = entry->die;
-  int is_static = get_AT_flag (die, DW_AT_external) ? 1 : 0;
+  int is_static = get_AT_flag (die, DW_AT_external) ? 0 : 1;
 
   dw2_asm_output_data (DWARF_OFFSET_SIZE, die_offset, "DIE offset");
 

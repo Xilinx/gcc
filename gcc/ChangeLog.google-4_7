@@ -1,3 +1,7 @@
+2012-09-10  Sterling Augustine  <saugustine@google.com>
+
+	* dwarf2out.c (output_pubname): Correct conditional.
+
 2012-09-10  Teresa Johnson  <tejohnson@google.com>
 
 	* loop-unroll.c (code_size_limit_factor): Guard against divide
