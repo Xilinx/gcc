@@ -1,3 +1,13 @@
+
+2012-09-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{generated runtime extension compilable by C, but incomplete &
+	wrong; it has too much useless initial data...
+	}}
+	* melt/warmelt-genobj.melt (compile2obj_initextendproc): get
+	correctly the box of curenv & the litvaltup thru parameters.
+	* melt/warmelt-outobj.melt (outpucod_initialextensionroutine):
+	Less incorrect emitted C code.
+
 2012-09-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	*  melt/generated/meltrunsup.h: Regenerate.
