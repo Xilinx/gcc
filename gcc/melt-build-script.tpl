@@ -678,30 +678,35 @@ if [ ! -f $meltcheckruntime_stamp -o $meltcheckruntime_stamp -ot "$GCCMELT_RUNTI
     -o $meltcheckruntime_stamp -ot "$GCCMELT_RUNTIME_C" \
     -o $meltcheckruntime_stamp -ot $melt_final_application_stamp ]; then
     #@ [+(.(fromline))+] checkruntime
-    meltcheckruntime_args=meltbuild-checkruntime.args 
-    meltcheckruntime_argstemp=$meltcheckruntime_args-tmp$$
-    echo ' -DGCCMELT_FROM_ARG="[+(.(fromline))+]"' > $meltcheckruntime_argstemp
-    meltbuild_arg mode=meltframe >> $meltcheckruntime_argstemp
-    meltbuild_arg workdir=meltbuild-workdir >>  $meltcheckruntime_argstemp
-    meltbuild_arg tempdir=meltbuild-tempdir >> $meltcheckruntime_argstemp
-    meltbuild_arg source-path=meltbuild-sources >> $meltcheckruntime_argstemp
-    meltbuild_arg module-path=meltbuild-modules >> $meltcheckruntime_argstemp
-    meltbuild_arg "module-cflags=\"$GCCMELT_COMPILER_FLAGS\"" >> $meltcheckruntime_argstemp
-    meltbuild_arg bootstrapping  >> $meltcheckruntime_argstemp
-    echo ' -o /dev/null' >> $meltcheckruntime_argstemp
-    cat $GCCMELT_RUNTIME_ARGS < /dev/null >>  $meltcheckruntime_argstemp
-    $GCCMELT_MOVE_IF_CHANGE  $meltcheckruntime_argstemp $meltcheckruntime_args
-    [ -f "$meltcheckruntime_args" ] || meltbuild_error  [+(.(fromline))+] missing check runtime args  "$meltcheckruntime_args"
-   meltbuild_info [+(.(fromline))+] $meltcheckruntime_args  is
-   cat $meltcheckruntime_args < /dev/null > /dev/stderr
-   if [ -n "$MELTGCCBUILTIN_BUILD_WITH_CXX" ]; then
-       $GCCMELT_CC1_PREFIX $GCCMELT_CC1PLUS @$meltcheckruntime_args \
-	   || meltbuild_error [+(.(fromline))+] failed  $GCCMELT_CC1PLUS with arguments @$meltcheckruntime_args
-   else
-       $GCCMELT_CC1_PREFIX $GCCMELT_CC1 @$meltcheckruntime_args \
-	   || meltbuild_error [+(.(fromline))+] failed  $GCCMELT_CC1 with arguments @$meltcheckruntime_args
-   fi
-   meltbuild_info [+(.(fromline))+] done check runtime with $meltcheckruntime_args
+    if [ -f melt-no-check-runtime -o -n "$MELTGCC_NO_CHECK_RUNTIME" -o ! -f melt-runtime.i ]; then
+	meltbuild_info [+(.(fromline))+] skipping check of MELT runtime
+    else
+	meltcheckruntime_args=meltbuild-checkruntime.args 
+	meltcheckruntime_argstemp=$meltcheckruntime_args-tmp$$
+	echo ' -DGCCMELT_FROM_ARG="[+(.(fromline))+]"' > $meltcheckruntime_argstemp
+	meltbuild_arg mode=meltframe >> $meltcheckruntime_argstemp
+	meltbuild_arg workdir=meltbuild-workdir >>  $meltcheckruntime_argstemp
+	meltbuild_arg tempdir=meltbuild-tempdir >> $meltcheckruntime_argstemp
+	meltbuild_arg source-path=meltbuild-sources >> $meltcheckruntime_argstemp
+	meltbuild_arg module-path=meltbuild-modules >> $meltcheckruntime_argstemp
+	meltbuild_arg "module-cflags=\"$GCCMELT_COMPILER_FLAGS\"" >> $meltcheckruntime_argstemp
+	meltbuild_arg bootstrapping  >> $meltcheckruntime_argstemp
+	echo ' -o /dev/null' >> $meltcheckruntime_argstemp
+	echo melt-runtime.i >> $meltcheckruntime_argstemp
+	$GCCMELT_MOVE_IF_CHANGE  $meltcheckruntime_argstemp $meltcheckruntime_args
+	[ -f "$meltcheckruntime_args" ] || meltbuild_error  [+(.(fromline))+] missing check runtime args  "$meltcheckruntime_args"
+	meltbuild_info [+(.(fromline))+] $meltcheckruntime_args  is
+	cat $meltcheckruntime_args < /dev/null > /dev/stderr
+	if [ -n "$MELTGCCBUILTIN_BUILD_WITH_CXX" ]; then
+	    $GCCMELT_CC1_PREFIX $GCCMELT_CC1PLUS @$meltcheckruntime_args \
+		|| meltbuild_error [+(.(fromline))+] failed  $GCCMELT_CC1PLUS with arguments @$meltcheckruntime_args
+	else
+	    $GCCMELT_CC1_PREFIX $GCCMELT_CC1 @$meltcheckruntime_args \
+		|| meltbuild_error [+(.(fromline))+] failed  $GCCMELT_CC1 with arguments @$meltcheckruntime_args
+	fi
+	meltbuild_info [+(.(fromline))+] done check runtime with $meltcheckruntime_args
+    fi
+
    #@ [+(.(fromline))+] checkhello
     meltcheckhelloworld_args=meltbuild-checkhelloworld.args 
     meltcheckhelloworld_argstemp=$meltcheckhelloworld_args-tmp$$

@@ -1,4 +1,16 @@
 
+2012-09-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (melt-runtime.i): Correct command.
+	(melt-runtime-raw.i): New target.
+	(melt.encap): Needs melt-runtime.i
+
+	* melt-build-script.tpl: check runtime uses and checks
+	melt-runtime.i, can be disabled with melt-no-check-runtime file or
+	MELTGCC_NO_CHECK_RUNTIME environment variable.
+
+	* melt-build-script.sh: Regenerate.
+
+
 2012-09-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (melt.encap): Also depend upon stmp-int-hdrs.
 
