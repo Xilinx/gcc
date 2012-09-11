@@ -5567,8 +5567,11 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
   }
   if (strchr(melt_basename (binbase), '.'))
     melt_fatal_error ("MELT binary base %s to compile %s should not have dots", binbase, srcbase);
-  if (strcmp(flavor, "quicklybuilt") && strcmp(flavor, "optimized") && strcmp(flavor, "debugnoline"))
-    melt_fatal_error ("invalid flavor %s to compile %s - expecting {quicklybuilt,optimized,debugnoline}", flavor, srcbase);
+  if (strcmp(flavor, "quicklybuilt")
+      && strcmp(flavor, "optimized")
+      && strcmp(flavor, "debugnoline") 
+      && strcmp(flavor, "runextend"))
+    melt_fatal_error ("invalid flavor %s to compile %s - expecting {quicklybuilt,optimized,debugnoline,runextend}", flavor, srcbase);
   ourmakecommand = melt_argument ("module-make-command");
   if (!ourmakecommand || !ourmakecommand[0])
     ourmakecommand = melt_module_make_command;

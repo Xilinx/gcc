@@ -72,7 +72,7 @@ $(warning MELT time stamp file $(GCCMELT_MODULE_SOURCEBASE)+melttime.h does not 
 endif
 
 ## check the flavor
-ifeq ($(findstring $(GCCMELT_MODULE_FLAVOR),optimized quicklybuilt debugnoline dynamic),)
+ifeq ($(findstring $(GCCMELT_MODULE_FLAVOR),optimized quicklybuilt debugnoline dynamic runextend),)
 $(error invalid GCCMELT_MODULE_FLAVOR $(GCCMELT_MODULE_FLAVOR))
 endif
 
@@ -140,6 +140,7 @@ GCCMELT_QUICKLYBUILT_FLAGS ?= -O0 -Wall
 GCCMELT_DYNAMIC_FLAGS ?= -O0
 GCCMELT_DEBUGNOLINE_FLAGS ?= -g
 GCCMELT_DESCRIPTOR_FLAGS ?= -O
+GCCMELT_RUNEXTEND_FLAGS ?= -O0
 
 ## these flags are preprocessor flags depending upon the flavor, don't override them without reason
 GCCMELT_QUICKLYBUILT_PREPROFLAGS= -DMELTGCC_MODULE_QUICKLYBUILT -DMELT_HAVE_DEBUG=1
@@ -147,6 +148,7 @@ GCCMELT_OPTIMIZED_PREPROFLAGS= -DMELTGCC_MODULE_OPTIMIZED -DMELT_HAVE_DEBUG=0
 GCCMELT_DEBUGNOLINE_PREPROFLAGS= -DMELTGCC_MODULE_DEBUGNOLINE  -DMELTGCC_NOLINENUMBERING -DMELT_HAVE_DEBUG=1
 GCCMELT_DYNAMIC_PREPROFLAGS= -DMELTGCC_MODULE_DYNAMIC  -DMELTGCC_NOLINENUMBERING -DMELT_HAVE_DEBUG=1  -DMELTGCC_DYNAMIC_OBJSTRUCT
 GCCMELT_DESCRIPTOR_PREPROFLAGS= -DMELTGCC_MODULE_DESCRIPTOR 
+GCCMELT_RUNEXTEND_PREPROFLAGS= -DMELTGCC_MODULE_RUNEXTEND   -DMELTGCC_NOLINENUMBERING  -DMELT_HAVE_DEBUG=1 
 
 GCCMELT_PREPROFLAGS= -I $(realpath $(GCCMELT_HEADER_DIR))
 
@@ -267,6 +269,30 @@ $(GCCMELTGEN_BUILD)%.dynamic.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed.c | 
 
 
 
+
+## runextend flavor
+$(GCCMELTGEN_BUILD)%.runextend.meltpic.o: | $(GCCMELT_MODULE_DEPENDENCIES)
+	@echo @+@melt-module runextend.meltpic at= $@ left= $< question= $? caret= $^ realpathleft= $(realpath $<)
+	if [ -z "$(filter %.mdsumed.c, $(realpath $<))" ]; then \
+	   $(GCCMELT_COMPILER) $(GCCMELT_RUNEXTEND_PREPROFLAGS)  $(GCCMELT_PREPROFLAGS) \
+              $(GCCMELT_RUNEXTEND_FLAGS) $(GCCMELT_CFLAGS)  $(GCCMELT_PACKAGES_CFLAGS) \
+	        -fPIC -c -o $@ $< ; \
+	else \
+          GCCMELTGENMDSUMEDPIC=$(GCCMELTGEN_BUILD)$(notdir $(patsubst %.mdsumed.c,%.runextend.meltmdsumedpic.o,$(realpath $<))); \
+	  echo  @+@melt-module runextend.meltpicmd GCCMELTGENMDSUMEDPIC=  $$GCCMELTGENMDSUMEDPIC ; \
+          $(MAKE) -e -f $(filter %melt-module.mk, $(MAKEFILE_LIST)) $$GCCMELTGENMDSUMEDPIC ;  \
+          $(LN_S) -v -f `realpath $$GCCMELTGENMDSUMEDPIC` $@ ; fi
+
+$(GCCMELTGEN_BUILD)%.runextend.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed.c | $(GCCMELT_MODULE_DEPENDENCIES)
+	@echo @+@melt-module runextend.meltmdsumedpic at= $@ left= $< question= $? caret= $^
+	$(GCCMELT_COMPILER) $(GCCMELT_RUNEXTEND_PREPROFLAGS)  $(GCCMELT_PREPROFLAGS) \
+           $(GCCMELT_DEBUGNOLINE_FLAGS) $(GCCMELT_CFLAGS)  $(GCCMELT_PACKAGES_CFLAGS) \
+	   -fPIC -c -o $@ $<
+
+
+
+################
+
 ## descriptor quasi-flavor, never symlinked!
 $(GCCMELTGEN_BUILD)%.descriptor.meltpic.o: | $(GCCMELT_MODULE_DEPENDENCIES)
 	@echo @+@melt-module descriptor.meltpic at= $@ left= $< question= $? caret= $^
@@ -275,6 +301,7 @@ $(GCCMELTGEN_BUILD)%.descriptor.meltpic.o: | $(GCCMELT_MODULE_DEPENDENCIES)
 	   -fPIC -c -o $@ $<
 
 
+################################################################
 ## linking the module in various flavors
 $(GCCMELTGEN_BUILD)$(GCCMELT_BASE).meltmod-%.quicklybuilt.so: 
 	@echo @+@melt-module meltmod.quicklybuilt at= $@ left= $< question= $? caret= $^
@@ -291,6 +318,12 @@ $(GCCMELTGEN_BUILD)$(GCCMELT_BASE).meltmod-%.debugnoline.so:
 $(GCCMELTGEN_BUILD)$(GCCMELT_BASE).meltmod-%.dynamic.so: 
 	@echo @+@melt-module meltmod.dynamic at= $@ left= $< question= $? caret= $^
 	$(GCCMELT_COMPILER) $(GCCMELT_DYNAMIC_FLAGS) $(GCCMELT_SHARED_FLAGS) -o $@ $^ $(GCCMELT_PACKAGES_LIBES)
+
+
+$(GCCMELTGEN_BUILD)$(GCCMELT_BASE).meltmod-%.runextend.so: 
+	@echo @+@melt-module meltmod.runextend at= $@ left= $< question= $? caret= $^
+	$(GCCMELT_COMPILER) $(GCCMELT_RUNEXTEND_FLAGS) $(GCCMELT_SHARED_FLAGS) -o $@ $^ $(GCCMELT_PACKAGES_LIBES)
+
 
 
 ################

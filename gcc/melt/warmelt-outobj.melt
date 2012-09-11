@@ -5918,10 +5918,8 @@ if (1) return;
 	    (runerrorhdlr '"runtime translation to code failed")
 	    (return () ()))
 	  ;; should now compile the generated C code
-	  ;; FIXME: we should have a runbuilt flavor.... (also in the
-	  ;; runtime and the melt-module.mk)
 	  (debug "translate_run_melt_expressions before compiling quicklybuilt flavor of basename=" basename)
-	  (generate_flavored_melt_module basename basename '"quicklybuilt")
+	  (generate_flavored_melt_module basename basename '"runextend")
 	  (debug "translate_run_melt_expressions after compiling quicklybuilt flavor of basename=" basename)
 	  
 	  (assert_msg "@$@translate_run_melt_expressions incomplete")

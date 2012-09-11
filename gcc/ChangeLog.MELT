@@ -1,5 +1,15 @@
 
 2012-09-11  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	{{adding flavor runextend}}
+	* melt-module.mk: Add runextend flavor.
+
+	* melt-runtime.c (melt_compile_source): Accept runextend flavor.
+
+	* melt/warmelt-outobj.melt (translate_run_melt_expressions):
+	Generate a runextend flavor of the module.
+
+2012-09-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (melt-runtime.i): Correct command.
 	(melt-runtime-raw.i): New target.
 	(melt.encap): Needs melt-runtime.i
