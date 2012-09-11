@@ -1114,8 +1114,8 @@ C_COMMON_OBJS = c-family/c-common.o c-family/c-cppbuiltin.o c-family/c-dump.o \
   c-family/c-format.o c-family/c-gimplify.o c-family/c-lex.o \
   c-family/c-omp.o c-family/c-opts.o c-family/c-pch.o \
   c-family/c-ppoutput.o c-family/c-pragma.o c-family/c-pretty-print.o \
-  c-family/c-semantics.o c-family/c-ada-spec.o tree-mudflap.o cilk-spawn.o \
-  elem-function.o
+  c-family/c-semantics.o c-family/c-ada-spec.o tree-mudflap.o \
+  c-family/c-cilk.o c-family/elem-function.o
 
 # Language-independent object files.
 # We put the insn-*.o files first so that a parallel make will build
@@ -3339,8 +3339,8 @@ lower-subreg.o : lower-subreg.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
    $(EXPR_H) $(EXCEPT_H) $(REGS_H) $(TREE_PASS_H) $(DF_H) dce.h \
    lower-subreg.h
 
-elem-function.o: elem-function.c $(CONFIG_H) $(SYSTEM_H) $(TREE_H) $(GIMPLE_H) \
-  $(OPTABS_H) $(RECOG_H)
+c-family/elem-function.o: c-family/elem-function.c $(CONFIG_H) $(SYSTEM_H) \
+  $(TREE_H) $(GIMPLE_H) $(OPTABS_H) $(RECOG_H)
 
 array-notation-common.o: array-notation-common.c $(CONFIG_H) $(SYSTEM_H) \
     $(TREE_H) $(RTL_H) $(OPTABS_H) $(GIMPLE_H) $(RECOG_H) 
@@ -3350,8 +3350,8 @@ cilk.o: cilk.c $(CONFIG_H) $(SYSTEM_H) $(TREE_H) $(RTL_H) $(OPTABS_H) \
 
 cilk-low.o: cilk-low.c $(CONFIG_H) $(SYSTEM_H) $(GIMPLE_H) $(TREE_H) cilk.h
 
-cilk-spawn.o: cilk-spawn.c $(GIMPLE_H) $(CONFIG_H) $(SYSTEM_H) $(TREE_H) \
-   $(TREE_INLINE_H) cilk.h
+c-family/c-cilk.o: c-family/c-cilk.c $(GIMPLE_H) $(CONFIG_H) $(SYSTEM_H) \
+   $(TREE_H) $(TREE_INLINE_H) cilk.h
 
 pragma_simd.o: pragma_simd.c $(GIMPLE_H) $(CONFIG_H) $(SYSTEM_H) $(TREE_H) \
    $(TREE_INLINE_H)

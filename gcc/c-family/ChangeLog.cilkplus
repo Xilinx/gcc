@@ -1,3 +1,8 @@
+2012-09-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-cilk.c: New file.
+	* elem-function.c: Likewise.
+
 2012-07-30  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-common.c (c_define_builtins): Fixed comment spacing.

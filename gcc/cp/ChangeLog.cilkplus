@@ -1,3 +1,9 @@
+2012-09-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cilk.c: Deleted file.
+	* cp-cilk.c: New file.
+	* Make-lang.in: Renamed all occurances of cp/cilk.* to cp/cp-cilk.*.
+
 2012-08-21  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cilk.c (gimplify_cilk_for_stmt_1): Extracted variables and added them

@@ -87,7 +87,7 @@ CXX_AND_OBJCXX_OBJS = cp/call.o cp/decl.o cp/expr.o cp/pt.o cp/typeck2.o \
  cp/typeck.o cp/cvt.o cp/except.o cp/friend.o cp/init.o cp/method.o \
  cp/search.o cp/semantics.o cp/tree.o cp/repo.o cp/dump.o cp/optimize.o \
  cp/mangle.o cp/cp-objcp-common.o cp/name-lookup.o cp/cxx-pretty-print.o \
- cp/cp-gimplify.o cp/cilk.o cp/cp-array-notation.o $(CXX_C_OBJS)
+ cp/cp-gimplify.o cp/cp-cilk.o cp/cp-array-notation.o $(CXX_C_OBJS)
 
 # Language-specific object files for C++.
 CXX_OBJS = cp/cp-lang.o c-family/stub-objc.o $(CXX_AND_OBJCXX_OBJS)
@@ -270,8 +270,8 @@ CXX_TREE_H = $(TREE_H) cp/name-lookup.h cp/cp-tree.h $(C_COMMON_H) \
 CXX_PARSER_H = tree.h c-family/c-pragma.h cp/parser.h
 CXX_PRETTY_PRINT_H = cp/cxx-pretty-print.h $(C_PRETTY_PRINT_H)
 
-cp/cilk.o: cp/cilk.c cilk.h cp/decl.h $(CXX_TREE_H) $(CONFIG_H) $(SYSTEM_H) \
-  $(TREE_DUMP_H)
+cp/cp-cilk.o: cp/cp-cilk.c cilk.h cp/decl.h $(CXX_TREE_H) $(CONFIG_H) \
+  $(SYSTEM_H) $(TREE_DUMP_H)
 
 cp/cp-array-notation.o: cp/cp-array-notation.c  $(CXX_TREE_H) $(TM_H) \
   $(FLAGS_H) toplev.h $(DIAGNOSTIC_H) convert.h $(C_COMMON_H) $(TARGET_H) \

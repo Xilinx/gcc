@@ -194,3 +194,8 @@ c/c-typeck.o : c/c-typeck.c c/c-lang.h $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_
 	langhooks.h tree-iterator.h $(BITMAP_H) $(GIMPLE_H) \
 	c-family/c-objc.h cilk.h
 
+c/c-array-notation.o: c/c-array-notation.c  c/c-lang.h $(CONFIG_H) \
+	$(SYSTEM_H) coretypes.h $(TM_H) $(TREE_H) \
+	$(C_TREE_H) $(TARGET_H) $(FLAGS_H) intl.h output.h $(EXPR_H) \
+	langhooks.h tree-iterator.h $(BITMAP_H) $(GIMPLE_H) c-family/c-objc.h
+

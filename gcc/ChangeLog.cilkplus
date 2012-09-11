@@ -1,3 +1,9 @@
+2012-09-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cilk-spawn.c: Remove file.
+	* elem-function.c: Likewise.
+	* Makefile.in: Renamed cilk-spawn.* to c-family/c-cilk.*
+
 2012-08-22  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* alias.c (record_component_aliases): Added a check for builtin
