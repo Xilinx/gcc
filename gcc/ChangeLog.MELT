@@ -1,5 +1,10 @@
 
 2012-09-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (output_melt_descriptor): Remove the
+	generation of old fashioned make dependencies with the .meltmod at
+	end of file paths.
+
+2012-09-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt (output_melt_descriptor): When run-time
 	extension, only emit runextend & optimized make dependencies.
 
