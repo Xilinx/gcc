@@ -4454,7 +4454,9 @@ MELT_EXTERN  void* melt_start_this_module (void*);
 	(modprefstr (string4out discr_string "$(GCCMELTGEN_BUILD)" modbuildstr))
 	(packagepclist (get_field :mocx_packagepclist modctx))
 	(flavortuple
-	 (tuple '"quicklybuilt" '"optimized" '"dynamic" '"debugnoline"))
+	 (if (is_a modctx class_running_extension_module_context)
+	     (tuple '"runextend" '"optimized")
+	   (tuple '"quicklybuilt" '"optimized" '"dynamic" '"debugnoline")))
 	)
     (add2sbuf_strconst debuf "/** GENERATED MELT DESCRIPTOR FILE ")
     (add2sbuf_ccomstring debuf modnamstr)

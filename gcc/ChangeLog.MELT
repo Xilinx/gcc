@@ -1,5 +1,9 @@
 
 2012-09-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (output_melt_descriptor): When run-time
+	extension, only emit runextend & optimized make dependencies.
+
+2012-09-11  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{adding flavor runextend}}
 	* melt-module.mk: Add runextend flavor.
