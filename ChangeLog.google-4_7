@@ -1,3 +1,7 @@
+2012-09-11  Sterling Augustine  <saugustine@google.com>
+
+	* dwarf2out.c (output_pubname): Add conditional.
+
 2012-09-07  Sterling Augustine  <saugustine@google.com>
 
 	* gcc/dwarf2out.c (output_pubnames): Call comp_unit_die.
