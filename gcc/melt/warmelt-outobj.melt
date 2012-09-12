@@ -1190,13 +1190,17 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 
 ;;; output the code for declaring the current frame struct
 (defun output_curframe_declstruct (rou dsbuf)
+  (debug "output_curframe_declstruct rou=" rou)
   (let (
 	(obody (unsafe_get_field :obrout_body rou))
 	(onbval (unsafe_get_field :obrout_nbval rou))
 	(onblong (unsafe_get_field :obrout_nblong rou))
 	(:long nbval (get_int onbval))
 	(:long nblong (get_int onblong))
-	(:long isinitial (is_a rou class_initialroutineobj))
+	(:long isinitial 
+	       (or (is_a rou class_initialroutineobj)
+		   (is_a rou class_initial_extension_routineobj)
+	       ))
 	(others (unsafe_get_field :obrout_others rou))
 	)       
     ;; output the current frame
@@ -1360,10 +1364,15 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	(onblong (unsafe_get_field :obrout_nblong rou))
 	(:long nbval (get_int onbval))
 	(:long nblong (get_int onblong))
-	(:long isinitial (is_a rou class_initialroutineobj))
+	(:long isinitial 
+	       (or (is_a rou class_initialroutineobj)
+		   (is_a rou class_initial_extension_routineobj)
+	       ))
 	(others (unsafe_get_field :obrout_others rou))
 	(rouname (get_field :named_name rou))
 	)       
+    (debug "output_curframe_declstruct_init declstruct= " declstruct 
+	   "\n declstructinit rou" rou " isinitial=" isinitial)
     ;; output call counter for debugging
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "#if MELT_HAVE_DEBUG")
@@ -1387,7 +1396,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (declstruct rou implbuf)
     (if (not isinitial)
 	(add2sbuf_strconst implbuf "    *meltframptr_=0,"))
-    (add2sbuf_strconst implbuf "    meltfram__;")
+    (add2sbuf_strconst implbuf "    meltfram__; /*declfrastruct*/")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "#define meltframe meltfram__")
     (if (not isinitial)
@@ -2107,7 +2116,7 @@ $ONAME (melt_ptr_t meltarg_curenvbox_p, melt_ptr_t meltarg_tuplitval_p)
     ;; the marking routine will use that
     ;;
     (add2sbuf_indentnl declbuf 1)
-     (add2out implbuf ##{/* extension routine $OMODNAM initial frame decl */ typedef }#)
+     (add2out declbuf ##{/* extension routine $OMODNAM initial frame decl */ typedef }#)
     (output_curframe_declstruct pini declbuf)
     (add2out declbuf ##{ meltrun_$OMODNAM#_initialext_frame_t /*declaring runextend $OMODNAM frame type*/;}#
 	     )
@@ -2121,7 +2130,7 @@ $ONAME (melt_ptr_t meltarg_curenvbox_p, melt_ptr_t meltarg_tuplitval_p)
        (add2out dsbuf  ##{ meltrun_$OMODNAM#_initialext_frame_t}#))
      pini implbuf)
     (add2sbuf_indentnl implbuf 0)
-    (add2out implbuf ##{ /* extension $OMODNAM declared initial frame */}#)
+    (add2out implbuf ##{ /* extension $OMODNAM initialized initial frame */}#)
     ;;
     (add2sbuf_indentnl implbuf 0)
     (add2out implbuf ##{ /* extension $OMODNAM cdata struct */}#)
@@ -2165,6 +2174,7 @@ $ONAME (melt_ptr_t meltarg_curenvbox_p, melt_ptr_t meltarg_tuplitval_p)
        (when (and curbody (not (is_a curbody class_objpurevalue)))
 	 (add2sbuf_indentnl implbuf 1)
 	 (add2out implbuf  ##{ /*sideffecting $OMODNAM extension body #$BODIX */}#)
+	 (add2sbuf_indentnl implbuf 1)
 	 (let ( (curloc (get_field :obi_loc curbody))
 		)
 	   (if curloc 

@@ -1597,12 +1597,14 @@ $SBUF.}#
     (list_append oiniprolog
 		 (make_objlocatedexp 
 		  () ctype_void
-		  ##{/*initextendproc get boxcurenv*/ $OCURENVBOXLOC = meltarg_curenvbox_p ;}#
+		  ##{/*initextendproc get boxcurenv*/ $OCURENVBOXLOC
+		  = meltarg_curenvbox_p ;}#
 		  ))
     (list_append oiniprolog
 		 (make_objlocatedexp 
 		  () ctype_void
-		  ##{/*initextendproc get litvaluetup*/ $OLITVALUETUPLOC  = meltarg_tuplitval_p ;}#
+		  ##{/*initextendproc get litvaluetup*/ $OLITVALUETUPLOC 
+		  = meltarg_tuplitval_p ;}#
 		  ))
     (list_append oiniprolog
 		 (instance class_objgetslot

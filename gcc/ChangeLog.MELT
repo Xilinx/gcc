@@ -1,4 +1,12 @@
 2012-09-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.melt (compile2obj_initextendproc): Emission
+	of nicer indented code.
+
+	* melt/warmelt-outobj.melt (output_curframe_declstruct)
+	(output_curframe_declstruct_init): Both module and extension
+	initialization routines are specially handed.
+
+2012-09-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-genobj.melt (compile2obj_initextendproc): Imported
 	values use literal values.
 	* melt/warmelt-outobj.melt (outpucod_initialextensionroutine): The
