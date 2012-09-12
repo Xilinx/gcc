@@ -19656,7 +19656,7 @@ lab_endgetargs:;
       argtab[2].meltbp_aptr =
 	(melt_ptr_t *) & /*_.OCURENVBOXLOC__V52*/ meltfptr[50];
       /*^apply.arg */
-      argtab[3].meltbp_cstring = " = meltrunboxcurenv_p ;";
+      argtab[3].meltbp_cstring = " = meltarg_curenvbox_p ;";
       /*_.MAKE_OBJLOCATEDEXP__V97*/ meltfptr[70] =
 	melt_apply ((meltclosure_ptr_t)
 		    (( /*!MAKE_OBJLOCATEDEXP */ meltfrout->tabval[30])),
@@ -19691,7 +19691,7 @@ lab_endgetargs:;
       argtab[2].meltbp_aptr =
 	(melt_ptr_t *) & /*_.OLITVALUETUPLOC__V61*/ meltfptr[59];
       /*^apply.arg */
-      argtab[3].meltbp_cstring = "  = meltrunlitvaltup_p ;";
+      argtab[3].meltbp_cstring = "  = meltarg_tuplitval_p ;";
       /*_.MAKE_OBJLOCATEDEXP__V98*/ meltfptr[94] =
 	melt_apply ((meltclosure_ptr_t)
 		    (( /*!MAKE_OBJLOCATEDEXP */ meltfrout->tabval[30])),
