@@ -1,3 +1,8 @@
+2012-09-12   Cary Coutant  <ccoutant@google.com>
+
+	* gcc.c (replace_extension_spec_func): Restrict search for
+	extension to last component of path.
+
 2012-09-10  Sterling Augustine  <saugustine@google.com>
 
 	* dwarf2out.c (output_pubname): Correct conditional.

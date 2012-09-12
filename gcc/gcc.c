@@ -8413,12 +8413,18 @@ replace_extension_spec_func (int argc, const char **argv)
   char *name;
   char *p;
   char *result;
+  int i;
 
   if (argc != 2)
     fatal_error ("too few arguments to %%:replace-extension");
 
   name = xstrdup (argv[0]);
-  p = strrchr (name, '.');
+
+  for (i = strlen(name) - 1; i >= 0; i--)
+    if (IS_DIR_SEPARATOR (name[i]))
+      break;
+
+  p = strrchr (name + i + 1, '.');
   if (p != NULL)
       *p = '\0';
 
