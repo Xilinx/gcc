@@ -1,4 +1,9 @@
 2012-09-12  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-outobj.melt (output_curframe_declstruct_init): Emit
+	tricky code for special initial routines, with marking routine...
+
+2012-09-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-genobj.melt (compile2obj_initextendproc): Emission
 	of nicer indented code.
 
