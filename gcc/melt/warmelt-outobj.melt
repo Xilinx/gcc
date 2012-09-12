@@ -2103,13 +2103,15 @@ $ONAME (melt_ptr_t meltarg_curenvbox_p, melt_ptr_t meltarg_tuplitval_p)
 
 }#)
     ;;
-    ;; generate the initial frame declaration
+    ;; generate the initial frame declaration in the decl buf, because
+    ;; the marking routine will use that
     ;;
-    (add2sbuf_indentnl implbuf 1)
+    (add2sbuf_indentnl declbuf 1)
      (add2out implbuf ##{/* extension routine $OMODNAM initial frame decl */ typedef }#)
-    (output_curframe_declstruct pini implbuf)
-    (add2out implbuf ##{ meltrun_$OMODNAM#_initialext_frame_t /*declaring run $OMODNAM frame type*/;}#
+    (output_curframe_declstruct pini declbuf)
+    (add2out declbuf ##{ meltrun_$OMODNAM#_initialext_frame_t /*declaring runextend $OMODNAM frame type*/;}#
 	     )
+    (add2sbuf_indentnl declbuf 1)
     ;;
     (add2sbuf_indentnl implbuf 1)
     (add2out implbuf ##{/* extension routine $OMODNAM initial frame init */}#)

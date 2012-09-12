@@ -1,4 +1,12 @@
 2012-09-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.melt (compile2obj_initextendproc): Imported
+	values use literal values.
+	* melt/warmelt-outobj.melt (outpucod_initialextensionroutine): The
+	frame of the initial extension routine is a global structure, so
+	can have its marking routine.
+
+2012-09-12  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{Regenerate}}
 	* melt/generated/meltrunsup.h: Regenerate.
 	* melt/generated/meltrunsup-inc.c: Regenerate.
