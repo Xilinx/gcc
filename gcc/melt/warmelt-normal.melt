@@ -596,11 +596,23 @@ routine procedures.}#
 	   ))
 
 ;; normal static start value
-;; obtained from an initial binding
+;; obtained from an initial binding, imported from parent environment
 (defclass class_nrep_importedval
   :super class_nrep_simple
   :fields (nimport_symb		    ;the symbol
 	   nimport_sydata	    ;the symbol data
+	   ))
+
+;; normal literal value
+(defclass class_nrep_literalvalue
+  :super class_nrep_simple
+  :fields (nlitval_regval
+	   ))
+
+;; normal literal named values
+(defclass class_nrep_literalnamedvalue
+  :super class_nrep_literalvalue
+  :fields (nlitval_symbol
 	   ))
 
 ;; normal  occurrence of a symbol 
@@ -761,6 +773,8 @@ routine procedures.}#
  class_nrep_instance
  class_nrep_lambda
  class_nrep_lambdaroutproc
+ class_nrep_literalvalue
+ class_nrep_literalnamedvalue
  class_nrep_let
  class_nrep_letrec
  class_nrep_locsymocc
@@ -1518,169 +1532,189 @@ source location.}#
 ;;;; normalize a symbol occurrence
 (defun normexp_symbol (recv env ncx psloc)
   (debug "normexp_symbol recv=" recv " psloc=" psloc)
+  (assert_msg "check ncx" (is_a ncx class_normalization_context))
   (multicall
    (bind procs)
    (find_enclosing_env env recv)
    (debug "normexp_symbol after find_enclosing_env bind=" bind " procs=" procs)
    (assert_msg "normexp_symbol check recv" (is_a recv class_symbol))
-   (if (null psloc)
-       (shortbacktrace_dbg "normex_symbol null psloc" 10)
-     )
-   (if (null bind)
-       (progn
-	 (error_strv psloc "unknown name; symbol is not bound"
-		     (unsafe_get_field :named_name recv))
-	 (shortbacktrace_dbg "normex_symbol null bind" 15)
-	 (return () ())))
-   (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx))
-	  (syca (mapobject_get sycmap recv)) )
-     (assert_msg "check sycmap" (is_mapobject sycmap))
-     (debug "normex_symbol syca=" syca " for recv=" recv " bind=" bind)
-     (cond 
-      ;; check if in the cache
-      (syca 
-       (return syca ()))	     ;already cached
-      ;;
-      ;; value binding, get/put it into the map
-      ( (is_a bind class_value_binding)
-	(let ( (bvar (mapobject_get (unsafe_get_field :nctx_valbindmap ncx) bind)) )
-	  (debug "normexp_symbol value bind=" bind " procs=" procs)
-	  (if (null bvar)
-	      (let ( (newbvar 
-		      (instance class_nrep_importedval
-				:nrep_loc psloc
-				:nimport_symb recv
-				:nimport_sydata (normal_symbol_data recv ncx psloc))) )
-		(mapobject_put (unsafe_get_field :nctx_valbindmap ncx) bind newbvar)
-		(setq bvar newbvar)
-		(list_append (unsafe_get_field :nctx_valuelist ncx) newbvar)
-		))
-	  ;; if procs ia non-empty list, symbol is a "closed" constant for the value
-	  (if (and (is_list procs)
-		   (is_pair (list_first procs)))
-	      (let ( (fxocc
-		      (instance class_nrep_constocc
+   (let ( (modctx  (unsafe_get_field :nctx_modulcontext ncx))
+	  (valbindmap (unsafe_get_field :nctx_valbindmap ncx))
+	  (valuelist (unsafe_get_field :nctx_valuelist ncx))
+	  )
+     (if (null psloc)
+	 (shortbacktrace_dbg "normex_symbol null psloc" 10)
+       )
+     (if (null bind)
+	 (progn
+	   (error_strv psloc "unknown name; symbol is not bound"
+		       (unsafe_get_field :named_name recv))
+	   (shortbacktrace_dbg "normex_symbol null bind" 15)
+	   (return () ())))
+     (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx))
+	    (syca (mapobject_get sycmap recv)) )
+       (assert_msg "check sycmap" (is_mapobject sycmap))
+       (debug "normex_symbol syca=" syca " for recv=" recv " bind=" bind)
+       (cond 
+	;; check if in the cache
+	(syca 
+	 (return syca ()))   ;already cached
+	;;
+	;; value binding, get/put it into the map
+	( (is_a bind class_value_binding)
+	  (let ( (bvar (mapobject_get valbindmap bind)) 
+		 (val (get_field :vbind_value bind))
+		 )
+	    (debug "normexp_symbol value bind=" bind " procs=" procs)
+	    (if (null bvar)
+		(let ( (newbvar 
+			(cond ( (is_a modctx class_running_extension_module_context)
+				(let
+				    ( (reglitval (register_literal_value val  modctx))
+				      (nlitval (instance class_nrep_literalnamedvalue
+							 :nlitval_regval reglitval
+							 :nlitval_symbol recv))
+				      )
+				  (debug "normexp_symbol nlitval=" nlitval)
+				  nlitval
+				  )
+				)
+			      (:else
+			       (instance class_nrep_importedval
+					 :nrep_loc psloc
+					 :nimport_symb recv
+					 :nimport_sydata (normal_symbol_data recv ncx psloc)))))
+		       )
+		  (mapobject_put valbindmap bind newbvar)
+		  (setq bvar newbvar)
+		  (list_append valuelist newbvar)
+		  ))
+	    ;; if procs ia non-empty list, symbol is a "closed" constant for the value
+	    (if (and (is_list procs)
+		     (is_pair (list_first procs)))
+		(let ( (fxocc
+			(instance class_nrep_constocc
+				  :nrep_loc psloc
+				  :nocc_symb recv
+				  :nocc_bind bind
+				  :nocc_ctyp ctype_value
+				  :ncloc_procs procs))
+		       )
+		  ;; cache the result
+		  (mapobject_put sycmap recv fxocc)
+		  (debug "normexp_symbol const value fxocc" fxocc " updated sycmap=" sycmap)
+		  ;; put the const occurrence if needed in the const list of each proc
+		  (list_every
+		   procs
+		   (lambda (pr)
+		     (assert_msg "check pr" (is_a pr class_nrep_anyproc))
+		     (let ( (clcont
+			     (instance class_reference :referenced_value fxocc))
+			    (cnstproc (unsafe_get_field :nrpro_const pr)) )
+		       (list_every 
+			cnstproc
+			(lambda (cx) (if (== cx fxocc)
+					 (progn (put_fields clcont :referenced_value ()) ()))))
+		       (let ( (newcl (get_field :referenced_value clcont)) )
+			 (if newcl (list_append cnstproc newcl))) 
+		       )))
+		  (return fxocc ())
+		  )
+	      ;; otherwise symbol is the direct value
+	      (progn
+		;; cache the result
+		(mapobject_put sycmap recv bvar)
+		(debug "normexp_symbol local value bvar=" bvar " updated sycmap=" sycmap)
+		(return bvar ())
+		)
+	      )))
+	;;
+	;; the procs is a non-empty list, so the symbol is closed
+	( (and (is_list procs)
+	       (is_pair (list_first procs)))
+	  (debug "normexp_symbol closed procs=" procs " bind=" bind)
+	  ;; check that a closed symbol is always a value
+	  (let ( (bty
+		  (cond ( (is_a bind class_formal_binding)
+			  (unsafe_get_field :fbind_type bind) )
+			( (is_a bind class_let_binding)
+			  (unsafe_get_field :letbind_type bind))
+			(:else ()))) 
+		 )
+	    (if bty 
+		(if (!= bty ctype_value)
+		    (error_strv psloc
+				"closed variable has non value type (boxing required)"
+				(unsafe_get_field :named_name recv)
+				)))
+	    (setq bty ctype_value)
+	    (if (is_a bind class_fixed_binding)
+		(let ( (fxocc
+			(instance class_nrep_constocc
+				  :nrep_loc psloc
+				  :nocc_symb recv
+				  :nocc_bind bind
+				  :nocc_ctyp ctype_value
+				  :ncloc_procs procs)) )
+		  ;; cache the result
+		  (mapobject_put sycmap recv fxocc)
+		  (debug "normexp_symbol fxocc" fxocc " updated sycmap=" sycmap)
+		  ;; put the const occurrence if needed in the const list of each proc
+		  (list_every
+		   procs
+		   (lambda (pr)
+		     (assert_msg "check pr" (is_a pr class_nrep_anyproc))
+		     (let ( (clcont
+			     (instance class_reference :referenced_value fxocc))
+			    (cnstproc (unsafe_get_field :nrpro_const pr)) )
+		       (list_every 
+			cnstproc
+			(lambda (cx) (if (== cx fxocc)
+					 (progn
+					   (put_fields clcont :referenced_value ()) ()))))
+		       (let ( (newcl (get_field :referenced_value clcont)) )
+			 (if newcl (list_append cnstproc newcl))) 
+		       )))
+		  (return fxocc ())
+		  )
+	      (let ( (clocc 
+		      (instance class_nrep_closedocc
 				:nrep_loc psloc
 				:nocc_symb recv
-				:nocc_bind bind
 				:nocc_ctyp ctype_value
-				:ncloc_procs procs))
+				:nocc_bind bind
+				:ncloc_procs procs)) 
 		     )
 		;; cache the result
-		(mapobject_put sycmap recv fxocc)
-		(debug "normexp_symbol const value fxocc" fxocc " updated sycmap=" sycmap)
-		;; put the const occurrence if needed in the const list of each proc
-		(list_every
+		(mapobject_put sycmap recv clocc)
+		(debug "normexp_symbol updated sycmap=" sycmap " clocc=" clocc)
+		;; put the closed occurrence if needed in the closed list of each proc
+		(list_every 
 		 procs
 		 (lambda (pr)
 		   (assert_msg "check pr" (is_a pr class_nrep_anyproc))
-		   (let ( (clcont
-			   (instance class_reference :referenced_value fxocc))
-			  (cnstproc (unsafe_get_field :nrpro_const pr)) )
+		   (let ( (clcont (instance class_reference :referenced_value clocc))
+			  (clobindl (unsafe_get_field :nrpro_closedb pr)) )
 		     (list_every 
-		      cnstproc
-		      (lambda (cx) (if (== cx fxocc)
-				       (progn (put_fields clcont :referenced_value ()) ()))))
+		      clobindl
+		      (lambda (clbnd) (if (== clbnd bind)
+					  (progn (put_fields clcont :referenced_value ()) ()))))
 		     (let ( (newcl (get_field :referenced_value clcont)) )
-		       (if newcl (list_append cnstproc newcl))) 
+		       (if newcl (list_append clobindl bind))) 
 		     )))
-		(return fxocc ())
+		(return clocc ())
+		) ) ) ) 
+	;;
+	;; dispatch the binding
+	(:else 
+	 (debug "normexp_symbol before normalize_binding bind=" bind " for recv=" recv " psloc=" psloc)
+	 (let ( (resnormbind 
+		 (normalize_binding bind env ncx procs psloc))
 		)
-	    ;; otherwise symbol is the direct value
-	    (progn
-	      ;; cache the result
-	      (mapobject_put sycmap recv bvar)
-	      (debug "normexp_symbol local value bvar=" bvar " updated sycmap=" sycmap)
-	      (return bvar ())
-	      )
-	    )))
-      ;;
-      ;; the procs is a non-empty list, so the symbol is closed
-      ( (and (is_list procs)
-	     (is_pair (list_first procs)))
-	(debug "normexp_symbol closed procs=" procs " bind=" bind)
-	;; check that a closed symbol is always a value
-	(let ( (bty
-		(cond ( (is_a bind class_formal_binding)
-			(unsafe_get_field :fbind_type bind) )
-		      ( (is_a bind class_let_binding)
-			(unsafe_get_field :letbind_type bind))
-		      (:else ()))) 
-	       )
-	  (if bty 
-	      (if (!= bty ctype_value)
-		  (error_strv psloc
-			      "closed variable has non value type (boxing required)"
-			      (unsafe_get_field :named_name recv)
-			      )))
-	  (setq bty ctype_value)
-	  (if (is_a bind class_fixed_binding)
-	      (let ( (fxocc
-		      (instance class_nrep_constocc
-				:nrep_loc psloc
-				:nocc_symb recv
-				:nocc_bind bind
-				:nocc_ctyp ctype_value
-				:ncloc_procs procs)) )
-		;; cache the result
-		(mapobject_put sycmap recv fxocc)
-		(debug "normexp_symbol fxocc" fxocc " updated sycmap=" sycmap)
-		;; put the const occurrence if needed in the const list of each proc
-		(list_every
-		 procs
-		 (lambda (pr)
-		   (assert_msg "check pr" (is_a pr class_nrep_anyproc))
-		   (let ( (clcont
-			   (instance class_reference :referenced_value fxocc))
-			  (cnstproc (unsafe_get_field :nrpro_const pr)) )
-		     (list_every 
-		      cnstproc
-		      (lambda (cx) (if (== cx fxocc)
-				       (progn
-					 (put_fields clcont :referenced_value ()) ()))))
-		     (let ( (newcl (get_field :referenced_value clcont)) )
-		       (if newcl (list_append cnstproc newcl))) 
-		     )))
-		(return fxocc ())
-		)
-	    (let ( (clocc 
-		    (instance class_nrep_closedocc
-			      :nrep_loc psloc
-			      :nocc_symb recv
-			      :nocc_ctyp ctype_value
-			      :nocc_bind bind
-			      :ncloc_procs procs)) 
-		   )
-	      ;; cache the result
-	      (mapobject_put sycmap recv clocc)
-	      (debug "normexp_symbol updated sycmap=" sycmap " clocc=" clocc)
-	      ;; put the closed occurrence if needed in the closed list of each proc
-	      (list_every 
-	       procs
-	       (lambda (pr)
-		 (assert_msg "check pr" (is_a pr class_nrep_anyproc))
-		 (let ( (clcont (instance class_reference :referenced_value clocc))
-			(clobindl (unsafe_get_field :nrpro_closedb pr)) )
-		   (list_every 
-		    clobindl
-		    (lambda (clbnd) (if (== clbnd bind)
-					(progn (put_fields clcont :referenced_value ()) ()))))
-		   (let ( (newcl (get_field :referenced_value clcont)) )
-		     (if newcl (list_append clobindl bind))) 
-		   )))
-	      (return clocc ())
-	      ) ) ) ) 
-      ;;
-      ;; dispatch the binding
-      (:else 
-       (debug "normexp_symbol before normalize_binding bind=" bind " for recv=" recv " psloc=" psloc)
-       (let ( (resnormbind 
-	       (normalize_binding bind env ncx procs psloc))
-	      )
-	 (debug "normexp_symbol after normalize_binding resnormbind=" resnormbind
-		" for bind=" bind " recv=" recv " psloc=" psloc)
-	 (return resnormbind ())
-	 ))))))
+	   (debug "normexp_symbol after normalize_binding resnormbind=" resnormbind
+		  " for bind=" bind " recv=" recv " psloc=" psloc)
+	   (return resnormbind ())
+	   )))))))
 
 (install_method class_symbol normal_exp normexp_symbol)
 
