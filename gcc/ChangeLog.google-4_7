@@ -1,3 +1,8 @@
+2012-09-13  Xinliang David Li  <davidxl@google.com>
+
+	* cgraphunit.c (cgraph_add_output_node): Check for
+	duplicates of compiler generated functions.
+
 2012-09-12   Cary Coutant  <ccoutant@google.com>
 
 	* gcc.c (replace_extension_spec_func): Restrict search for

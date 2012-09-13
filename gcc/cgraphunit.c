@@ -1430,7 +1430,12 @@ cgraph_add_output_node (struct cgraph_node *node)
   if (!L_IPO_COMP_MODE)
     return node;
 
-  if (!TREE_PUBLIC (node->decl))
+  /* Never common non public names except for compiler
+     generated static functions. (they are not promoted
+     to globals either.  */
+  if (!TREE_PUBLIC (node->decl)
+      && !(DECL_ARTIFICIAL (node->decl)
+	   && DECL_ASSEMBLER_NAME_SET_P (node->decl)))
     return node;
 
   if (!output_node_hash)
