@@ -22,6 +22,10 @@ sh
 ## melt-build-script.tpl generates melt-build-script.sh which may
 ## create meltbuild-* files and directories.  The invoking makefile
 ## may clean these meltbuild-* things.
+
+## Ypu may want to set the GCCMELT_BUILD_NOTIFICATION environment variable
+## to a shell script called with two arguments (a title, and a message)
+## e.g. using notify-send or logger in such a script.
 shopt -s nullglob
 
 [+(. (define comefromcount 0))+]
@@ -73,6 +77,16 @@ function meltbuild_symlink () {
 ## our info function
 function meltbuild_info () {
     echo MELT BUILD SCRIPT INFO: $@ > /dev/stderr
+}
+
+## our notice function - for more important things than info
+function meltbuild_notice () {
+    meltnotititle=$1
+    shift
+    (echo; echo; echo MELT BUILD SCRIPT NOTICE "$meltnotititle:" $@ ; echo ) > /dev/stderr
+    if [ -n "$GCCMELT_BUILD_NOTIFICATION" ]; then
+	$GCCMELT_BUILD_NOTIFICATION "$meltnotititle:" "$*"
+    fi
 }
 
 ## utility to build MELT specific arguments in meltbuild_emit
@@ -135,6 +149,8 @@ esac
 
 
 function meltbuild_do_stage_zero () {
+meltbuild_notice STAGE0+  [+(.(fromline))+] starting stage zero
+
 [+FOR melt_translator_file+]
   meltbuild_info making stage0 [+base+]  [+(.(fromline))+]
 
@@ -332,7 +348,8 @@ function meltbuild_do_stage () {
 [+ENDFOR melt_translator_file+]
     local meltstamp
     local meltstamptmp
-
+#### meltbuild_do_stage [+(.(fromline))+]
+    meltbuild_notice "$meltcurstagedir+" starting  stage $meltcurstagedir flavor $meltcurflavor from $meltfrom
 ####  meltbuild_do_stage [+(.(fromline))+]
     meltbuild_info $meltfrom starting stage $meltcurstagedir flavor $meltcurflavor previous $meltprevstagedir previous flavor $meltprevflavor
     [ -d $meltcurstagedir ] || mkdir $meltcurstagedir
@@ -505,6 +522,7 @@ melt_final_translator_stamp=meltbuild-final-translator.stamp
 if [ ! -f $melt_final_translator_stamp -o $melt_final_translator_stamp -ot $GCCMELT_RUNTIME_DEPENDENCY \
 [+FOR melt_translator_file+] -o $melt_final_translator_stamp -ot $GCCMELT_MELTSOURCEDIR/[+base+].melt \
 [+ENDFOR melt_translator_file+] -o $melt_final_translator_stamp -ot $GCCMELT_LASTSTAGE/$GCCMELT_LASTSTAGE.stamp ]; then
+    meltbuild_notice 'Emit Translator Source'  [+(.(fromline))+] emit then translate the MELT translator 
     meltbuild_info [+(.(fromline))+] emit then translate the compile translator for  $melt_final_translator_stamp
     meltbuild_emit_translator_sources
     meltbuild_symlink_melt_translator_sources
@@ -540,11 +558,12 @@ fi
 meltbuild_info [+(.(fromline))+] before applications GCCMELT_SKIPEMITC=$GCCMELT_SKIPEMITC.
 
 meltbuild_info [+(.(fromline))+] times before applications at `date '+%x %H:%M:%S'`: ;  times > /dev/stderr
-
  
 melt_final_application_stamp=meltbuild-final-application.stamp
 
 function meltbuild_do_applications () {
+meltbuild_notice 'doing applications'  [+(.(fromline))+] doing applications 
+
 [+FOR melt_application_file+]
 [+ (define apbase (get "base")) (define apindex (for-index)) +]
   ## meltbuild_do_applications [+base+] [+(.(fromline))+]
@@ -620,6 +639,7 @@ fi
 #@ [+(.(fromline))+]
 if [ "$melt_overall_goal" = "applications" ]; then
     meltbuild_info [+(.(fromline))+] done applications overall goal with stamp  $melt_final_translator_stamp
+    meltbuild_notice 'Done applications' [+(.(fromline))+] applications overall goal 
     exit 0
 fi
 ################################################################
@@ -755,7 +775,7 @@ fi
 ################################################################
 #@ [+(.(fromline))+]
 if [ "$melt_overall_goal" = "regenerate" ]; then
-    meltbuild_info [+(.(fromline))+] regenerating runtime support
+    meltbuild_notice regenerating runtime support [+(.(fromline))+] 
     [ -d meltbuild-sources/generated ] || mkdir meltbuild-sources/generated
     meltregen_args=meltbuild-regen.args
     meltregen_argstemp="$meltregen_args-tmp$$"

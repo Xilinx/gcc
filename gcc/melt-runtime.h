@@ -79,7 +79,7 @@ extern void fatal_error (const char *, ...);
 /* We need hwint.h for  HOST_WIDE_INT */
 #include "hwint.h"
 
-extern const char melt_runtime_build_date[];
+MELT_EXTERN const char melt_runtime_build_date[];
 
 extern void melt_fatal_info (const char*filename, int lineno);
 
@@ -94,16 +94,19 @@ extern void melt_fatal_info (const char*filename, int lineno);
  lbasename(__FILE__), __LINE__, ##__VA_ARGS__)
 
 /* the version string of GCC when MELT was initialized */
-extern char* melt_gccversionstr;
+MELT_EXTERN char* melt_gccversionstr;
 
 /* The version number of GCC, at MELT build time. So 4006 is for 4.6,
    4007 is for 4.7.  Same as MELT_GCC_VERSION constant macro.  */
-extern const int melt_gcc_version;
+MELT_EXTERN const int melt_gcc_version;
 /* Points to the gcc_version from plugin-version.h */
-extern struct plugin_gcc_version* melt_plugin_gcc_version;
+MELT_EXTERN struct plugin_gcc_version* melt_plugin_gcc_version;
 
 /* The GCCPLUGIN_VERSION at MELT build time, e.g. 4008 for GCC 4.8  */
-extern const int melt_gccplugin_version;
+MELT_EXTERN const int melt_gccplugin_version;
+
+MELT_EXTERN int melt_count_runtime_extensions;
+#define MELT_MAX_RUNTIME_EXTENSIONS 4000000
 
 /* The version string of MELT; this is parsed by make, so spaces are
    important!  That version string is extracted by scripts or

@@ -1,6 +1,29 @@
 
 2012-09-13  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-build-script.tpl: Add meltbuild_notice function using
+	GCCMELT_BUILD_NOTIFICATION.
+
+	* melt-build-script.sh: Regenerate.
+
+	* melt-runtime.h (melt_runtime_build_date, melt_gccversionstr)
+	(melt_gcc_version, melt_plugin_gcc_version)
+	(melt_gccplugin_version, melt_count_runtime_extensions): Move or
+	add declaration using MELT_EXTERN.
+	(MELT_MAX_RUNTIME_EXTENSIONS): New macro.
+
+	* melt-runtime.c (melt_count_runtime_extensions): New variable.
+	(melt_extension_info_st, melt_extension_info_t): New struct and
+	type.
+	(melt_extinfvec): New variable.
+	(melt_dlsym_all): Use it.
+	(meltgc_run_c_extension): Done.
+
+	* melt/warmelt-outobj.melt (translate_run_melt_expressions):
+	Coded, but should be tested.
+
+2012-09-13  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-genobj.melt (compile2obj_initextendproc):
 	Better emission of check.
 	* melt/warmelt-outobj.melt (translate_run_melt_expressions):

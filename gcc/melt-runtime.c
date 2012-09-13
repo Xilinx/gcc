@@ -40,11 +40,6 @@ const int melt_is_plugin = 0;
 #endif /* MELT_IS_PLUGIN */
 
 
-#if defined(MELT_GCC_VERSION) && (MELT_GCC_VERSION > 0)
-const int melt_gcc_version = MELT_GCC_VERSION;
-#else
-#error should be given a MELT_GCC_VERSION
-#endif
 
 #include "bversion.h"
 #include "config.h"
@@ -113,13 +108,6 @@ const int melt_gcc_version = MELT_GCC_VERSION;
    gcc_version, etc... and thru "configargs.h" static constants like
    configure_default_options etc.... */
 #include "plugin-version.h"
-struct plugin_gcc_version *melt_plugin_gcc_version;
-
-#if defined (GCCPLUGIN_VERSION)
-const int melt_gccplugin_version = GCCPLUGIN_VERSION;
-#else
-const int melt_gccplugin_version = 0;
-#endif
 
 /* since 4.7, we have a GCCPLUGIN_VERSION in plugin-version.h. */
 #if defined(GCCPLUGIN_VERSION) && (GCCPLUGIN_VERSION != MELT_GCC_VERSION)
@@ -149,6 +137,21 @@ const int melt_gccplugin_version = 0;
 
 #include "melt-runtime.h"
 
+
+#if defined(MELT_GCC_VERSION) && (MELT_GCC_VERSION > 0)
+const int melt_gcc_version = MELT_GCC_VERSION;
+#else
+#error should be given a MELT_GCC_VERSION
+#endif
+
+struct plugin_gcc_version *melt_plugin_gcc_version;
+
+#if defined (GCCPLUGIN_VERSION)
+const int melt_gccplugin_version = GCCPLUGIN_VERSION;
+#else
+const int melt_gccplugin_version = 0;
+#endif
+
 #if ENABLE_CHECKING
 /* For debugging purposes, used thru gdb.  */
 void *melt_alptr_1=NULL;
@@ -156,6 +159,8 @@ void *melt_alptr_2=NULL;
 unsigned melt_objhash_1=0;
 unsigned melt_objhash_2=0;
 #endif /* ENABLE_CHECKING */
+
+int melt_count_runtime_extensions;
 
 long melt_blocklevel_signals;
 
@@ -292,8 +297,27 @@ DEF_VEC_ALLOC_O (melt_module_info_t, heap);
 
 static VEC (melt_module_info_t, heap) *melt_modinfvec = 0;
 
-struct melt_callframe_st* melt_topframe;
-struct meltlocalsptr_st* melt_localtab;
+/* Extensions are dlopen-ed shared objects for direct evaluation */
+#define MELT_EXTENSION_MAGIC 0x44b9cd8d /*0x44b9cd8d*/
+typedef struct melt_extension_info_st {
+  unsigned mmx_magic;   /* always MELT_EXTENSION_MAGIC */
+  unsigned mmx_rank;	/* the rank of this extension */
+  void *mmx_dlh;      /* dlopen handle */
+  char* mmx_extpath;  /* strdup-ed file path passed to dlopen, ending
+			 with MELT_DYNLOADED_SUFFIX */
+  char* mmx_descrbase;		/* strdup-ed file base path of the
+           MELT descriptive file, without its
+           +meltdesc.c suffix */
+  /* no start routine is needed, since it is immediately called */
+} melt_extension_info_t;
+
+DEF_VEC_O (melt_extension_info_t);
+DEF_VEC_ALLOC_O (melt_extension_info_t, heap);
+
+static VEC (melt_extension_info_t, heap) *melt_extinfvec =0;
+
+
+struct melt_callframe_st* melt_topframe =0;
 
 
 /* The start routine of every MELT extension (dynamically loaded
@@ -5046,7 +5070,7 @@ melt_run_make_for_branch (const char*ourmakecommand, const char*ourmakefile, con
   /* add the built with C++ argument if needed */
 #if defined(ENABLE_BUILD_WITH_CXX) || MELT_GCC_VERSION >= 4008 || defined(__cplusplus)
   {
-    char*cplusarg = BUILD_WITH_CXX_ARG "=YesBranch";
+    const char*cplusarg = BUILD_WITH_CXX_ARG "=YesBranch";
     argv[argc++] = cplusarg;
     debugeprintf ("melt_run_make_for_branch arg with C++: %s", cplusarg);
   }
@@ -5784,11 +5808,27 @@ melt_dlsym_all (const char *nam)
   melt_module_info_t *mi = 0;
   /* Index 0 is unused in melt_modinfvec!  */
   for (ix = 1; VEC_iterate (melt_module_info_t, melt_modinfvec, ix, mi); ix++) {
-    void *p = (void *) dlsym ((void *) mi->mmi_dlh, nam);
+    void *p = NULL;
     gcc_assert (mi->mmi_magic == MELT_MODULE_MAGIC);
+    p = (void *) dlsym ((void *) mi->mmi_dlh, nam);
     if (p)
       return p;
   };
+  /* Index 0 is unused in melt_extinfvec! */
+  if (melt_extinfvec) 
+    {
+      melt_extension_info_t *mx = 0;
+      for (ix = 1; 
+	   VEC_iterate (melt_extension_info_t, melt_extinfvec, ix, mx); 
+	   ix++) 
+	{
+	  void *p = NULL;
+	  gcc_assert (mx->mmx_magic == MELT_MODULE_MAGIC);
+	  p = (void *) dlsym ((void *) mx->mmx_dlh, nam);
+	  if (p)
+	    return p;
+	};
+    };
   return (void *) dlsym (proghandle, nam);
 }
 
@@ -9068,6 +9108,8 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
 }
 
 
+
+
 melt_ptr_t
 meltgc_run_c_extension (melt_ptr_t basename_p, melt_ptr_t env_p, melt_ptr_t litvaltup_p)
 {
@@ -9100,7 +9142,7 @@ meltgc_run_c_extension (melt_ptr_t basename_p, melt_ptr_t env_p, melt_ptr_t litv
 #undef MELTRUNDESCR_OPTIONAL_SYMBOL
 #define MELTRUNDESCR_OPTIONAL(Sym) dyno_##Sym
 #define MELTRUNDESCR_REQUIRED(Sym) dynr_##Sym
-  char basenamebuf[64];
+  char basenamebuf[128];
   char* descversionmelt = NULL;
   char* descpath = NULL;
   FILE *descfile = NULL;
@@ -9108,14 +9150,21 @@ meltgc_run_c_extension (melt_ptr_t basename_p, melt_ptr_t env_p, melt_ptr_t litv
   size_t descsize = 0;
   ssize_t desclinlen = 0;
   int desclinenum = 0;
-  MELT_ENTERFRAME (4, NULL);
-#define basenamev     meltfram__.mcfr_varptr[0]
-#define environv      meltfram__.mcfr_varptr[1]
-#define resv          meltfram__.mcfr_varptr[2]
+  int nbsecfileindex = -1;
+  char* sopath = NULL;
+  void* dlh = NULL;
+  char descmd5hex[36];		/* 32 would be enough, but we want a
+				   zero terminated string. */
+  MELT_ENTERFRAME (5, NULL);
+#define resv          meltfram__.mcfr_varptr[0]
+#define basenamev     meltfram__.mcfr_varptr[1]
+#define environv      meltfram__.mcfr_varptr[2]
 #define litvaltupv    meltfram__.mcfr_varptr[3]
+#define envrefv       meltfram__.mcfr_varptr[4]
   basenamev = basename_p;
   environv = env_p;
   litvaltupv = litvaltup_p;
+  memset (descmd5hex, 0, sizeof(descmd5hex));
   if (!basenamev || !environv || !litvaltupv)
     goto end;
   {
@@ -9124,8 +9173,15 @@ meltgc_run_c_extension (melt_ptr_t basename_p, melt_ptr_t env_p, melt_ptr_t litv
       goto end;
     memset (basenamebuf, 0, sizeof(basenamebuf));
     strncpy (basenamebuf, basestr, sizeof(basenamebuf)-1);
-    if (strcmp(basestr, basenamebuf))
-      goto end;
+    if (strcmp(basestr, basenamebuf)) 
+      {
+	/* This probably should never happen, unless the basenamev is
+	   a too long name. */
+	melt_fatal_error
+	  ("MELT runnning extension buffered basename %s different of %s",
+	   basenamebuf, basestr);
+	goto end;
+      }
   }
   debugeprintf ("meltgc_run_c_extension basenamebuf=%s", basenamebuf);
   descpath = melt_tempdir_path (basenamebuf, "+meltdesc.c");
@@ -9169,13 +9225,114 @@ meltgc_run_c_extension (melt_ptr_t basename_p, melt_ptr_t env_p, melt_ptr_t litv
 	{
 	  descversionmelt = melt_c_string_in_descr (pqu1);
 	  debugeprintf ("meltgc_run_c_extension found descversionmelt %s", descversionmelt);
-	}
-#warning meltgc_run_c_extension very incomplete
+	};
+      /* check that melt_lastsecfileindex is 0 */
+      if (nbsecfileindex < 0 && (pc = strstr(descline, "melt_lastsecfileindex"))!= NULL
+	  && (pqu1 = strchr(pc, '=')) != NULL)
+	if ((nbsecfileindex = atoi (pqu1+1))>0)
+	  melt_fatal_error ("cannot handle multi-C-file runtime extension %s [%d]", 
+			    basenamebuf, nbsecfileindex);
+      /* parse the melt_primaryhexmd5 */
+      if (descmd5hex[0] == (char)0 
+	  && (pc = strstr(descline, "melt_primaryhexmd5[]")) != NULL
+	  && (pqu1 = strchr (pc, '\"')) != NULL
+	  && (pqu2 = strchr (pqu1+1, '\"')) != NULL
+	  && (pqu2 >= pqu1 + 20) /* actually 32 */
+	  && (pqu2 < pqu1 + sizeof(descmd5hex)))
+	strncpy (descmd5hex, pqu1+1, pqu2-pqu1-1);
     };				/* end loop reading descfile */
-  melt_fatal_error ("meltgc_run_c_extension %s incomplete", basenamebuf);
+  /* check that the md5sum of the primary C file is descmd5hex */
+  {
+    char compmd5buf[32];
+    char* cpath = NULL;
+    memset (compmd5buf, 0, sizeof(compmd5buf));
+    cpath = concat (basenamebuf, ".c", NULL);
+    if (access (cpath, R_OK))
+      melt_fatal_error ("cannot access runtime extension primary C file %s - %s",
+			cpath, xstrerror (errno));
+    melt_string_hex_md5sum_file_to_hexbuf (cpath, compmd5buf);
+    if (strcmp (compmd5buf, descmd5hex))
+      melt_fatal_error ("runtime extension primary file %s has md5sum of %s but expecting %s",
+			cpath, compmd5buf, descmd5hex);
+    free (cpath), cpath = NULL;
+  }
+  sopath = concat (basenamebuf,
+		   ".meltmod-",
+		   descmd5hex,
+		   ".runextend",
+		   MELT_DYNLOADED_SUFFIX,
+		   NULL);
+  debugeprintf ("meltgc_run_c_extension sopath=%s", sopath);
+  if (access (sopath, R_OK))
+    melt_fatal_error ("runtime extension module %s not accessible - %s",
+		      sopath, xstrerror(errno));
+  debugeprintf("meltgc_run_c_extension sopath %s before dlopen", sopath);
+  dlh = dlopen (sopath, RTLD_NOW | RTLD_GLOBAL);
+  if (!dlh)
+    melt_fatal_error ("failed to dlopen runtime extension %s - %s",
+		      sopath, dlerror ());
+  MELT_LOCATION_HERE ("meltgc_run_c_extension after dlopen");
+  /* load the required and optional symbols */
+#define MELTRUNDESCR_REQUIRED_SYMBOL(Sym,Typ) do   {	\
+  dynr_##Sym = (Typ*) dlsym (dlh, #Sym);		\
+      if (!dynr_##Sym)					\
+	melt_fatal_error				\
+	  ("failed to get " #Sym			\
+	   " from runtime extension %s - %s",		\
+	   sopath, dlerror());				\
+  } while(0)
+  MELTRUNDESCR_REQUIRED_LIST;
+#undef MELTRUNDESCR_REQUIRED_SYMBOL
+#define MELTRUNDESCR_OPTIONAL_SYMBOL(Sym,Typ) \
+  dyno_##Sym = (Typ*) dlsym (dlh, #Sym);
+  MELTRUNDESCR_OPTIONAL_LIST;
+#undef MELTRUNDESCR_OPTIONAL_SYMBOL
+  /* check the primary md5sum */
+  if (!dynr_melt_primaryhexmd5 
+      || strcmp(dynr_melt_primaryhexmd5, descmd5hex))
+    melt_fatal_error ("invalid primary md5sum in runtime extension %s - got %s expecting %s",
+    sopath, dynr_melt_primaryhexmd5, descmd5hex);
+  {
+    melt_extension_info_t mext = { 0, NULL, NULL, NULL };
+    int ix = 0;
+    if (!melt_extinfvec)
+      {
+	melt_extinfvec = VEC_alloc (melt_extension_info_t, heap, 32);
+	/* don't use the index 0 so push a null at 0 in modextvec.  */
+	VEC_safe_push (melt_extension_info_t, heap, melt_extinfvec,
+		       (melt_extension_info_t *) 0);
+      }
+    ix = VEC_length (melt_extension_info_t, melt_extinfvec);
+    gcc_assert (ix > 0);
+    mext.mmx_dlh = dlh;
+    mext.mmx_descrbase = xstrdup (basenamebuf);
+    mext.mmx_extpath = xstrdup (sopath);
+    mext.mmx_rank = ix;
+    mext.mmx_magic = MELT_EXTENSION_MAGIC;
+    VEC_safe_push (melt_extension_info_t, heap, melt_extinfvec, &mext);
+    debugeprintf ("meltgc_run_c_extension %s has index %d", 
+		  basenamebuf, ix);
+  }
+  envrefv = meltgc_new_reference ((melt_ptr_t) environv);
+  debugeprintf ("meltgc_run_c_extension envrefv@%p", (void*)envrefv);
+  {
+#if MELT_HAVE_DEBUG
+    char locbuf[80];
+    memset (locbuf,0,sizeof(locbuf));
+    MELT_LOCATION_HERE_PRINTF (locbuf, 
+			       "run-c-ext.. basename %s", basenamebuf);
+#endif
+    debugeprintf ("meltgc_run_c_extension before calling dynr_melt_start_run_extension@%p", (void*) dynr_melt_start_run_extension);
+    resv = (*dynr_melt_start_run_extension) ((melt_ptr_t)envrefv,
+					     (melt_ptr_t)litvaltupv);
+    debugeprintf ("meltgc_run_c_extension after call resv=%p", (void*)resv);
+    MELT_LOCATION_HERE ("meltgc_run_c_extension ending");
+  }
  end:
   if (descpath)
     free (descpath), descpath = NULL;
+  if (sopath)
+    free (sopath), sopath = NULL;
   if (descfile)
     fclose (descfile), descfile = NULL;
   MELT_EXITFRAME ();
@@ -9187,7 +9344,10 @@ meltgc_run_c_extension (melt_ptr_t basename_p, melt_ptr_t env_p, melt_ptr_t litv
 #undef basenamev
 #undef environv
 #undef resv
+#undef envrefv
 }
+
+
 
 
 melt_ptr_t
@@ -9459,6 +9619,7 @@ end:
   return (melt_ptr_t) env;
 #undef env
 }
+
 
 int
 meltgc_load_one_module (const char*flavoredmodule)

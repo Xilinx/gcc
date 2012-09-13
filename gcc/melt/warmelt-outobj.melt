@@ -5833,7 +5833,18 @@ if (1) return;
       )))
 
 
+
+
+
+;;;;;**********************************************************
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defprimitive melt_run_extension (basename env litval) :value
+  #{ /* melt_run_extension */ meltgc_run_c_extension
+      ((melt_ptr_t) $BASENAME,
+       (melt_ptr_t) $ENV,
+       (melt_ptr_t) $LITVAL) }#
+)
+
 (defun translate_run_melt_expressions (exprs env)
   :doc #{Translate and run the MELT s-expressions from $EXPRS in the
   $ENV environment, which can be modified, e.g. by definitions inside
@@ -5849,11 +5860,16 @@ if (1) return;
 	 (nakedbasnam ())
 	 (referr (instance class_reference))
 	 )
-    (code_chunk numchk #{/* translate_run_melt_expressions $NUMCHK */ static long num_$NUMCHK ;
-		char basbuf_$NUMCHK[64]				   ;
+    (code_chunk numchk #{/* translate_run_melt_expressions $NUMCHK */ 
+		char basbuf_$NUMCHK[64] ;
+		long num_$NUMCHK = 0;
 		memset (basbuf_$NUMCHK, 0, sizeof(basbuf_$NUMCHK)) ;
-		num_$NUMCHK++					   ;
-		$NUM = num_$NUMCHK				   ;
+		melt_count_runtime_extensions++;
+		num_$NUMCHK = melt_count_runtime_extensions;
+		if (melt_count_runtime_extensions
+		    > MELT_MAX_RUNTIME_EXTENSIONS)
+		  melt_fatal_error ("too many %ld MELT runtime extensions",
+				    num_$NUMCHK);
 		snprintf (basbuf_$NUMCHK, sizeof(basbuf_$NUMCHK), 
 					  "MELTrun%04lx", num_$NUMCHK) ;
 		$NAKEDBASNAM = meltgc_new_string_raw_len ((meltobject_ptr_t)MELT_PREDEF (DISCR_STRING),
@@ -5996,7 +6012,7 @@ if (1) return;
 	    (runerrorhdlr '"runtime translation to code failed")
 	    (return () ()))
 	  ;; should now compile the generated C code
-	  (debug "translate_run_melt_expressions before compiling quicklybuilt flavor of basename=" basename)
+	  (debug "translate_run_melt_expressions before compiling quicklybuilt flavor of basename=" basename "\n modctx=" modctx)
 	  (generate_flavored_melt_module basename basename '"runextend")
 	  (debug "translate_run_melt_expressions after compiling runextend flavor of basename=" basename)
 	  ;; make the literal value tuple
@@ -6005,7 +6021,10 @@ if (1) return;
 	  (let ( (:long nblitval (list_length litvalist))
 		 (tuplitval (make_multiple discr_multiple nblitval))
 		 (:long ix 0)
+		 (filtup (get_field :mocx_filetuple modctx))
+		 (:long nbfile (multiple_length filtup))
 		 )
+	    (debug "translate_run_melt_expressions filtup=" filtup)
 	    (foreach_in_list
 	     (litvalist)
 	     (curpair curlitval)
@@ -6022,8 +6041,15 @@ if (1) return;
 		 ))
 	     (setq ix (+i ix 1)))	;end of foreach_in_list litvalist
 	  (debug "translate_run_melt_expressions tuplitval=" tuplitval)
-	  (assert_msg "@$@translate_run_melt_expressions incomplete")
-	  ))))))
+	  (debug "before melt_run_extension basename=" basename
+		 "\n* env=" env
+		 "\n* tuplitval=" tuplitval)
+	  (let ( (result (melt_run_extension basename env tuplitval))
+		 )
+	    (debug "after melt_run_extension basename=" basename
+		   "\n* translate_run_melt_expressions result=" result)
+	    (return result)
+	  )))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
