@@ -9061,7 +9061,7 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
 
 
 melt_ptr_t
-meltgc_run_c_extension (melt_ptr_t basename_p, melt_ptr_t env_p)
+meltgc_run_c_extension (melt_ptr_t basename_p, melt_ptr_t env_p, melt_ptr_t litvaltup_p)
 {
   /* list of required dynamic symbols (dlsymed in the FOO module,
      provided in the FOO+meltdesc.c or FOO+melttime.h or FOO.c
@@ -9104,9 +9104,11 @@ meltgc_run_c_extension (melt_ptr_t basename_p, melt_ptr_t env_p)
 #define basenamev     meltfram__.mcfr_varptr[0]
 #define environv      meltfram__.mcfr_varptr[1]
 #define resv          meltfram__.mcfr_varptr[2]
+#define litvaltupv    meltfram__.mcfr_varptr[3]
   basenamev = basename_p;
   environv = env_p;
-  if (!basenamev || !environv)
+  litvaltupv = litvaltup_p;
+  if (!basenamev || !environv || !litvaltupv)
     goto end;
   {
     const char* basestr = melt_string_str ((melt_ptr_t) basenamev);

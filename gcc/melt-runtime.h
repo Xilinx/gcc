@@ -2423,8 +2423,15 @@ meltgc_start_flavored_module (melt_ptr_t env_p, const char*modulbase, const char
 melt_ptr_t meltgc_start_module_by_index (melt_ptr_t env_p, int modix);
 
 /* Run the start routines of all modules which have not been
-   started. ENV_P is the parent environment. */
+   started. ENV_P is the parent environment. Gives an environment. */
 melt_ptr_t meltgc_start_all_new_modules (melt_ptr_t env_p);
+
+
+/* Run a C extension module of BASENAME_P in environment ENV_P with
+   literal tuple value LITVALTUP_P. Only called from
+   translate_run_melt_expressions MELT function. */
+melt_ptr_t
+meltgc_run_c_extension (melt_ptr_t basename_p, melt_ptr_t env_p, melt_ptr_t litvaltup_p);
 
 /* Compile a SRCBASE file (without .c) into a BINBASE file (without
    .so) in a WORKDIR (or the tempdir) with given FLAVOR. See

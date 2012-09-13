@@ -1,5 +1,13 @@
 2012-09-13  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.h (meltgc_start_all_new_modules): Improve comment.
+	(meltgc_run_c_extension): New declaration.
+
+	* melt-runtime.c (meltgc_run_c_extension): Gets also the literal
+	value tuple. Still incomplete.
+
+2012-09-13  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-genobj.melt (compile2obj_initextendproc):
 	Emit checking of the literal value tuple's length.
 
