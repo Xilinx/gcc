@@ -1,3 +1,8 @@
+2012-09-13  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* tree-profile.c (tree_profiling): Added a check for cilk plus flag and
+	whether it is a cilk helper function before calling branch_prob ().
+
 2012-09-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cilk-spawn.c: Remove file.

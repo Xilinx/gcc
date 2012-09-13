@@ -481,7 +481,12 @@ tree_profiling (void)
       if (execute_fixup_cfg () & TODO_cleanup_cfg)
 	cleanup_tree_cfg ();
 
-      branch_prob ();
+      /* We do not have line numbers for the Cilk Helper function since it is
+	 all internally generated.  So we can't do this for this function.  */
+      if (flag_enable_cilk && cfun->is_cilk_helper_function)
+	;
+      else
+	branch_prob ();
 
       if (! flag_branch_probabilities
 	  && flag_profile_values)
