@@ -1460,13 +1460,15 @@ $SBUF.}#
 	 )
   (assert_msg "check ipro" (is_a ipro class_nrep_initextendproc))
   (assert_msg "check idata" (is_list idata))
-  (assert_msg "check modctx" (is_a modctx class_module_context))
+  (assert_msg "check modctx" (is_a modctx class_running_extension_module_context))
   (assert_msg "check compicache" (is_mapobject compicache))
   (assert_msg "check importvalues" (is_list importvalues))
   (let ( (locmap (make_mapobject discr_map_objects 50))
 	 (oiniprolog (make_list discr_list))
 	 (oinibody (make_list discr_list))
 	 (modenv (get_field :ninitextend_modenv ipro))
+	 (modname (get_field :mocx_modulename modctx))
+	 (litvalist (get_field :morcx_litervalist modctx))
 	 (oinitxrout 
 	  (instance class_initial_extension_routineobj
 		    ;; change carefully the name, since the runtime
@@ -1600,11 +1602,19 @@ $SBUF.}#
 		  ##{/*initextendproc get boxcurenv*/ $OCURENVBOXLOC
 		  = meltarg_curenvbox_p ;}#
 		  ))
-    (list_append oiniprolog
+    (debug " litvalist=" litvalist)
+    (let ( (:long nblitval (list_length litvalist))
+	   )
+      (list_append oiniprolog
 		 (make_objlocatedexp 
 		  () ctype_void
 		  ##{/*initextendproc get litvaluetup*/ $OLITVALUETUPLOC 
-		  = meltarg_tuplitval_p ;}#
+		  = meltarg_tuplitval_p;
+		  if (melt_multiple_length((melt_ptr_t) $OLITVALUETUPLOC) !=
+					  $NBLITVAL)
+		    melt_fatal_error ("bad runtime extension literal value tuple@%p in $MODNAME, wants $NBLITVAL components", 
+				      (void*) $OLITVALUETUPLOC);
+		  }#
 		  ))
     (list_append oiniprolog
 		 (instance class_objgetslot
@@ -1720,7 +1730,7 @@ $SBUF.}#
 	;;
 	(debug "compile2obj_initextendproc gives oinitxrout=" oinitxrout)
 	(return oinitxrout)
-	))))
+	)))))
 
 
 

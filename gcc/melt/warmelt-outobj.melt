@@ -5878,6 +5878,7 @@ if (1) return;
 					))
 			   )
 			  (set_ref referr (or v :true))))
+	  (litvalist (make_list discr_list))
 	  (modctx (instance class_running_extension_module_context
 			    :mocx_modulename  nakedbasnam
 			    :mocx_expfieldict (make_mapstring discr_map_strings 71)
@@ -5891,7 +5892,7 @@ if (1) return;
 			    :mocx_packagepclist (make_list discr_list)
 			    :mocx_gendevlist (make_list discr_list)
 			    :mocx_errorhandler runerrorhdlr
-			    :morcx_litervalist (list ())
+			    :morcx_litervalist litvalist
 			    :morcx_countlitval (make_integerbox discr_integer 1)
 			    :morcx_literobjmap (make_mapobject discr_map_objects 53)
 			    ))
@@ -5996,10 +5997,32 @@ if (1) return;
 	  ;; should now compile the generated C code
 	  (debug "translate_run_melt_expressions before compiling quicklybuilt flavor of basename=" basename)
 	  (generate_flavored_melt_module basename basename '"runextend")
-	  (debug "translate_run_melt_expressions after compiling quicklybuilt flavor of basename=" basename)
-	  
+	  (debug "translate_run_melt_expressions after compiling runextend flavor of basename=" basename)
+	  ;; make the literal value tuple
+	  (assert_msg "check litvalist" (is_list litvalist))
+	  (debug "translate_run_melt_expressions after generation litvalist=" litvalist)
+	  (let ( (:long nblitval (list_length litvalist))
+		 (tuplitval (make_multiple discr_multiple nblitval))
+		 (:long ix 0)
+		 )
+	    (foreach_in_list
+	     (litvalist)
+	     (curpair curlitval)
+	     (debug "translate_run_melt_expressions ix=" ix 
+		    " curlitval=" curlitval)
+	     (when curlitval
+	       (assert_msg "check curlitval" 
+			   (is_a curlitval class_literal_value))
+	       (let ( (val (get_field :litv_value curlitval))
+		      (bxrk (get_field :litv_rank curlitval))
+		      )
+		 (assert_msg "check bxrk" (==i (get_int bxrk) ix))
+		 (multiple_put_nth tuplitval ix val)
+		 ))
+	     (setq ix (+i ix 1)))	;end of foreach_in_list litvalist
+	  (debug "translate_run_melt_expressions tuplitval=" tuplitval)
 	  (assert_msg "@$@translate_run_melt_expressions incomplete")
-	  )))))
+	  ))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

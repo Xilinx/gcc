@@ -1,5 +1,13 @@
 2012-09-13  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-genobj.melt (compile2obj_initextendproc):
+	Emit checking of the literal value tuple's length.
+
+	* melt/warmelt-outobj.melt (translate_run_melt_expressions):
+	Build the literal value tuple.
+
+2012-09-13  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-outobj.melt (outpucod_initialextensionroutine):
 	Emit return of the initial extension routine.
 
