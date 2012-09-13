@@ -1,5 +1,10 @@
 2012-09-13  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.c (melt_run_make_for_plugin): Correct call to
+	obstack_grow for BUILD_WITH_CXX_ARG.
+
+2012-09-13  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.h (meltgc_start_all_new_modules): Improve comment.
 	(meltgc_run_c_extension): New declaration.
 

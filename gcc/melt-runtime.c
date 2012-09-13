@@ -4924,7 +4924,8 @@ melt_run_make_for_plugin (const char*ourmakecommand, const char*ourmakefile, con
 #if defined(ENABLE_BUILD_WITH_CXX) || MELT_GCC_VERSION >= 4008 || defined(__cplusplus)
   {
     obstack_1grow (&cmd_obstack, ' ');
-    obstack_grow (&cmd_obstack, BUILD_WITH_CXX_ARG "=Yes");
+    obstack_grow (&cmd_obstack, BUILD_WITH_CXX_ARG "=Yes", 
+		  sizeof(BUILD_WITH_CXX_ARG "=Yes"));
   }
 #endif
 
