@@ -2145,6 +2145,16 @@ $ONAME (melt_ptr_t meltarg_curenvbox_p, melt_ptr_t meltarg_tuplitval_p)
 	     )
     (add2sbuf_indentnl declbuf 1)
     ;;
+
+    ;; declare the marking routine
+    (add2sbuf_indentnl declbuf 1)
+    (add2out 
+     declbuf 
+     ##{/* extension routine $OMODNAM initial frame marking routine decl */
+     static void meltmarking_$ONAME (struct melt_callframe_st*, int);
+}#)
+    
+    ;; initialize the frame
     (add2sbuf_indentnl implbuf 1)
     (add2out implbuf ##{/* extension routine $OMODNAM initial frame init */}#)
     (output_curframe_declstruct_init 
@@ -2210,6 +2220,42 @@ $ONAME (melt_ptr_t meltarg_curenvbox_p, melt_ptr_t meltarg_tuplitval_p)
       (add2out implbuf ##{
 #warning run extension $OMODNAM   is incomplete
        } /* end  $ONAME */}#)
+      (add2sbuf_indentnl implbuf 0)
+      ;;
+
+    ;; implement the marking routine
+    (add2sbuf_indentnl implbuf 1)
+    (add2out 
+     implbuf 
+     ##{/* extension routine $OMODNAM initial frame marking routine implem */
+     static void 
+     meltmarking_$ONAME (struct melt_callframe_st*fp, int marking) {
+     int ix=0;
+     meltrun_$OMODNAM#_initialext_frame_t* meltframptr_ 
+      = ( meltrun_$OMODNAM#_initialext_frame_t*)fp;
+     melt_assertmsg("check extension $OMODNAM frame", 
+		    meltframptr_->mcfr_nbvar == /*minihash*/ -$MINIHASH);
+     if (!marking && melt_is_forwarding) {
+       dbgprintf ("$OMODNAM extension forwarding $NBVAL variables in frame @%p",
+		  (void*)meltframptr_);
+       for (ix=0; 
+	    ix< $NBVAL;
+	    ix++) 
+         MELT_FORWARDED (meltframptr_->mcfr_varptr[ix]);
+       return;
+     } /*end forwarking extension $OMODNAM*/
+     dbgprintf ("$OMODNAM extension marking frame@%p with $NBVAL values",
+		(void*)meltframptr_);
+}#)
+    ;;
+    (add2sbuf_indentnl implbuf 0)
+    (outpucod_marker pini implbuf)
+    (add2out 
+     implbuf 
+     ##{} /* end extension meltmarking_$ONAME */}#)
+    (add2sbuf_indentnl implbuf 0)
+    ;;
+
       (compile_warning "outpucod_initialextensionroutine is incomplete since generating incomplete code")
       (add2sbuf_indentnl implbuf 0)
       (add2sbuf_indentnl implbuf 0)
