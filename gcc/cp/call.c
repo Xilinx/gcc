@@ -5538,7 +5538,8 @@ build_op_delete_call (enum tree_code code, tree addr, tree size,
 	  for (i = 1; i < nargs; i++)
 	    argarray[i] = CALL_EXPR_ARG (placement, i);
 	  mark_used (fn);
-	  return build_cxx_call (fn, CILK_CALL_NORMAL, nargs, argarray);
+	  return build_cxx_call (fn, CILK_CALL_NORMAL, nargs, argarray,
+				 complain);
 	}
       else
 	{
@@ -6146,12 +6147,12 @@ convert_arg_to_ellipsis (tree arg, tsubst_flags_t complain)
       arg = cp_perform_integral_promotions (arg, complain);
     }
 
-  arg = require_complete_type (arg);
+  arg = require_complete_type_sfinae (arg, complain);
   arg_type = TREE_TYPE (arg);
 
   if (arg != error_mark_node
       /* In a template (or ill-formed code), we can have an incomplete type
-	 even after require_complete_type, in which case we don't know
+	 even after require_complete_type_sfinae, in which case we don't know
 	 whether it has trivial copy or not.  */
       && COMPLETE_TYPE_P (arg_type))
     {
@@ -6902,7 +6903,7 @@ build_over_call (struct z_candidate *cand, int flags,
 	return error_mark_node;
     }
 
-  return build_cxx_call (fn, spawning, nargs, argarray);
+  return build_cxx_call (fn, spawning, nargs, argarray, complain);
 }
 
 /* Build and return a call to FN, using NARGS arguments in ARGARRAY.
@@ -6910,7 +6911,8 @@ build_over_call (struct z_candidate *cand, int flags,
    high-level operations.  */
 
 tree
-build_cxx_call (tree fn, enum call_context spawning, int nargs, tree *argarray)
+build_cxx_call (tree fn, enum call_context spawning, int nargs, tree *argarray,
+		tsubst_flags_t complain)
 {
   tree fndecl;
   int optimize_sav;
@@ -6943,12 +6945,12 @@ build_cxx_call (tree fn, enum call_context spawning, int nargs, tree *argarray)
   if (VOID_TYPE_P (TREE_TYPE (fn)))
     return fn;
 
-  fn = require_complete_type (fn);
+  fn = require_complete_type_sfinae (fn, complain);
   if (fn == error_mark_node)
     return error_mark_node;
 
   if (MAYBE_CLASS_TYPE_P (TREE_TYPE (fn)))
-    fn = build_cplus_new (TREE_TYPE (fn), fn, tf_warning_or_error);
+    fn = build_cplus_new (TREE_TYPE (fn), fn, complain);
   return convert_from_reference (fn);
 }
 

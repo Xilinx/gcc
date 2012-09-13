@@ -253,21 +253,21 @@ build_zero_init_1 (tree type, tree nelts, bool static_storage_p,
 	 have an upper bound of -1.  */
       if (!tree_int_cst_equal (max_index, integer_minus_one_node))
 	{
-	  constructor_elt *ce;
+	  constructor_elt ce;
 
 	  v = VEC_alloc (constructor_elt, gc, 1);
-	  ce = VEC_quick_push (constructor_elt, v, NULL);
 
 	  /* If this is a one element array, we just use a regular init.  */
 	  if (tree_int_cst_equal (size_zero_node, max_index))
-	    ce->index = size_zero_node;
+	    ce.index = size_zero_node;
 	  else
-	    ce->index = build2 (RANGE_EXPR, sizetype, size_zero_node,
+	    ce.index = build2 (RANGE_EXPR, sizetype, size_zero_node,
 				max_index);
 
-	  ce->value = build_zero_init_1 (TREE_TYPE (type),
+	  ce.value = build_zero_init_1 (TREE_TYPE (type),
 					 /*nelts=*/NULL_TREE,
 					 static_storage_p, NULL_TREE);
+	  VEC_quick_push (constructor_elt, v, ce);
 	}
 
       /* Build a constructor to contain the initializations.  */
@@ -448,28 +448,27 @@ build_value_init_noctor (tree type, tsubst_flags_t complain)
 	 have an upper bound of -1.  */
       if (!tree_int_cst_equal (max_index, integer_minus_one_node))
 	{
-	  constructor_elt *ce;
+	  constructor_elt ce;
 
 	  v = VEC_alloc (constructor_elt, gc, 1);
-	  ce = VEC_quick_push (constructor_elt, v, NULL);
 
 	  /* If this is a one element array, we just use a regular init.  */
 	  if (tree_int_cst_equal (size_zero_node, max_index))
-	    ce->index = size_zero_node;
+	    ce.index = size_zero_node;
 	  else
-	    ce->index = build2 (RANGE_EXPR, sizetype, size_zero_node,
-				max_index);
+	    ce.index = build2 (RANGE_EXPR, sizetype, size_zero_node, max_index);
 
-	  ce->value = build_value_init (TREE_TYPE (type), complain);
+	  ce.value = build_value_init (TREE_TYPE (type), complain);
+	  VEC_quick_push (constructor_elt, v, ce);
 
-	  if (ce->value == error_mark_node)
+	  if (ce.value == error_mark_node)
 	    return error_mark_node;
 
 	  /* We shouldn't have gotten here for anything that would need
 	     non-trivial initialization, and gimplify_init_ctor_preeval
 	     would need to be fixed to allow it.  */
-	  gcc_assert (TREE_CODE (ce->value) != TARGET_EXPR
-		      && TREE_CODE (ce->value) != AGGR_INIT_EXPR);
+	  gcc_assert (TREE_CODE (ce.value) != TARGET_EXPR
+		      && TREE_CODE (ce.value) != AGGR_INIT_EXPR);
 	}
 
       /* Build a constructor to contain the initializations.  */
@@ -1744,8 +1743,10 @@ expand_aggr_init_1 (tree binfo, tree true_exp, tree exp, tree init, int flags,
      that's value-initialization.  */
   if (init == void_type_node)
     {
-      /* If no user-provided ctor, we need to zero out the object.  */
-      if (!type_has_user_provided_constructor (type))
+      /* If the type has data but no user-provided ctor, we need to zero
+	 out the object.  */
+      if (!type_has_user_provided_constructor (type)
+	  && !is_really_empty_class (type))
 	{
 	  tree field_size = NULL_TREE;
 	  if (exp != true_exp && CLASSTYPE_AS_BASE (type) != type)
@@ -2740,7 +2741,8 @@ build_new_1 (VEC(tree,gc) **placement, tree type, tree nelts,
 	      /* We are processing something like `new int (10)', which
 		 means allocate an int, and initialize it with 10.  */
 
-	      ie = build_x_compound_expr_from_vec (*init, "new initializer");
+	      ie = build_x_compound_expr_from_vec (*init, "new initializer",
+						   complain);
 	      init_expr = cp_build_modify_expr (init_expr, INIT_EXPR, ie,
 						complain);
 	    }

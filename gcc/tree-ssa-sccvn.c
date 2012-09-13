@@ -591,21 +591,21 @@ copy_reference_ops_from_ref (tree ref, VEC(vn_reference_op_s, heap) **result)
       temp.op1 = TMR_STEP (ref);
       temp.op2 = TMR_OFFSET (ref);
       temp.off = -1;
-      VEC_safe_push (vn_reference_op_s, heap, *result, &temp);
+      VEC_safe_push (vn_reference_op_s, heap, *result, temp);
 
       memset (&temp, 0, sizeof (temp));
       temp.type = NULL_TREE;
       temp.opcode = ERROR_MARK;
       temp.op0 = TMR_INDEX2 (ref);
       temp.off = -1;
-      VEC_safe_push (vn_reference_op_s, heap, *result, &temp);
+      VEC_safe_push (vn_reference_op_s, heap, *result, temp);
 
       memset (&temp, 0, sizeof (temp));
       temp.type = NULL_TREE;
       temp.opcode = TREE_CODE (TMR_BASE (ref));
       temp.op0 = TMR_BASE (ref);
       temp.off = -1;
-      VEC_safe_push (vn_reference_op_s, heap, *result, &temp);
+      VEC_safe_push (vn_reference_op_s, heap, *result, temp);
       return;
     }
 
@@ -656,13 +656,12 @@ copy_reference_ops_from_ref (tree ref, VEC(vn_reference_op_s, heap) **result)
 		if (TREE_INT_CST_LOW (bit_offset) % BITS_PER_UNIT == 0)
 		  {
 		    double_int off
-		      = double_int_add (tree_to_double_int (this_offset),
-					double_int_rshift
-					  (tree_to_double_int (bit_offset),
-					   BITS_PER_UNIT == 8
-					   ? 3 : exact_log2 (BITS_PER_UNIT),
-					   HOST_BITS_PER_DOUBLE_INT, true));
-		    if (double_int_fits_in_shwi_p (off))
+		      = tree_to_double_int (this_offset)
+			+ tree_to_double_int (bit_offset)
+			  .arshift (BITS_PER_UNIT == 8
+				    ? 3 : exact_log2 (BITS_PER_UNIT),
+				    HOST_BITS_PER_DOUBLE_INT);
+		    if (off.fits_shwi ())
 		      temp.off = off.low;
 		  }
 	      }
@@ -680,11 +679,9 @@ copy_reference_ops_from_ref (tree ref, VEC(vn_reference_op_s, heap) **result)
 	      && TREE_CODE (temp.op2) == INTEGER_CST)
 	    {
 	      double_int off = tree_to_double_int (temp.op0);
-	      off = double_int_add (off,
-				    double_int_neg
-				      (tree_to_double_int (temp.op1)));
-	      off = double_int_mul (off, tree_to_double_int (temp.op2));
-	      if (double_int_fits_in_shwi_p (off))
+	      off += -tree_to_double_int (temp.op1);
+	      off *= tree_to_double_int (temp.op2);
+	      if (off.fits_shwi ())
 		temp.off = off.low;
 	    }
 	  break;
@@ -703,7 +700,7 @@ copy_reference_ops_from_ref (tree ref, VEC(vn_reference_op_s, heap) **result)
 	  temp.opcode = MEM_REF;
 	  temp.op0 = build_int_cst (build_pointer_type (TREE_TYPE (ref)), 0);
 	  temp.off = 0;
-	  VEC_safe_push (vn_reference_op_s, heap, *result, &temp);
+	  VEC_safe_push (vn_reference_op_s, heap, *result, temp);
 	  temp.opcode = ADDR_EXPR;
 	  temp.op0 = build_fold_addr_expr (ref);
 	  temp.type = TREE_TYPE (temp.op0);
@@ -742,7 +739,7 @@ copy_reference_ops_from_ref (tree ref, VEC(vn_reference_op_s, heap) **result)
 	default:
 	  gcc_unreachable ();
 	}
-      VEC_safe_push (vn_reference_op_s, heap, *result, &temp);
+      VEC_safe_push (vn_reference_op_s, heap, *result, temp);
 
       if (REFERENCE_CLASS_P (ref)
 	  || TREE_CODE (ref) == MODIFY_EXPR
@@ -952,7 +949,7 @@ copy_reference_ops_from_call (gimple call,
       temp.type = TREE_TYPE (lhs);
       temp.op0 = lhs;
       temp.off = -1;
-      VEC_safe_push (vn_reference_op_s, heap, *result, &temp);
+      VEC_safe_push (vn_reference_op_s, heap, *result, temp);
     }
 
   /* Copy the type, opcode, function being called and static chain.  */
@@ -962,7 +959,7 @@ copy_reference_ops_from_call (gimple call,
   temp.op0 = gimple_call_fn (call);
   temp.op1 = gimple_call_chain (call);
   temp.off = -1;
-  VEC_safe_push (vn_reference_op_s, heap, *result, &temp);
+  VEC_safe_push (vn_reference_op_s, heap, *result, temp);
 
   /* Copy the call arguments.  As they can be references as well,
      just chain them together.  */
@@ -1018,8 +1015,8 @@ vn_reference_fold_indirect (VEC (vn_reference_op_s, heap) **ops,
   if (addr_base != op->op0)
     {
       double_int off = tree_to_double_int (mem_op->op0);
-      off = double_int_sext (off, TYPE_PRECISION (TREE_TYPE (mem_op->op0)));
-      off = double_int_add (off, shwi_to_double_int (addr_offset));
+      off = off.sext (TYPE_PRECISION (TREE_TYPE (mem_op->op0)));
+      off += double_int::from_shwi (addr_offset);
       mem_op->op0 = double_int_to_tree (TREE_TYPE (mem_op->op0), off);
       op->op0 = build_fold_addr_expr (addr_base);
       if (host_integerp (mem_op->op0, 0))
@@ -1052,7 +1049,7 @@ vn_reference_maybe_forwprop_address (VEC (vn_reference_op_s, heap) **ops,
     return;
 
   off = tree_to_double_int (mem_op->op0);
-  off = double_int_sext (off, TYPE_PRECISION (TREE_TYPE (mem_op->op0)));
+  off = off.sext (TYPE_PRECISION (TREE_TYPE (mem_op->op0)));
 
   /* The only thing we have to do is from &OBJ.foo.bar add the offset
      from .foo.bar to the preceding MEM_REF offset and replace the
@@ -1069,8 +1066,8 @@ vn_reference_maybe_forwprop_address (VEC (vn_reference_op_s, heap) **ops,
 	  || TREE_CODE (addr_base) != MEM_REF)
 	return;
 
-      off = double_int_add (off, shwi_to_double_int (addr_offset));
-      off = double_int_add (off, mem_ref_offset (addr_base));
+      off += double_int::from_shwi (addr_offset);
+      off += mem_ref_offset (addr_base);
       op->op0 = TREE_OPERAND (addr_base, 0);
     }
   else
@@ -1082,7 +1079,7 @@ vn_reference_maybe_forwprop_address (VEC (vn_reference_op_s, heap) **ops,
 	  || TREE_CODE (ptroff) != INTEGER_CST)
 	return;
 
-      off = double_int_add (off, tree_to_double_int (ptroff));
+      off += tree_to_double_int (ptroff);
       op->op0 = ptr;
     }
 
@@ -1242,11 +1239,9 @@ valueize_refs_1 (VEC (vn_reference_op_s, heap) *orig, bool *valueized_anything)
 	       && TREE_CODE (vro->op2) == INTEGER_CST)
 	{
 	  double_int off = tree_to_double_int (vro->op0);
-	  off = double_int_add (off,
-				double_int_neg
-				  (tree_to_double_int (vro->op1)));
-	  off = double_int_mul (off, tree_to_double_int (vro->op2));
-	  if (double_int_fits_in_shwi_p (off))
+	  off += -tree_to_double_int (vro->op1);
+	  off *= tree_to_double_int (vro->op2);
+	  if (off.fits_shwi ())
 	    vro->off = off.low;
 	}
     }
@@ -3771,7 +3766,7 @@ start_over:
 	    {
 	      /* Recurse by pushing the current use walking state on
 		 the stack and starting over.  */
-	      VEC_safe_push(ssa_op_iter, heap, itervec, &iter);
+	      VEC_safe_push(ssa_op_iter, heap, itervec, iter);
 	      VEC_safe_push(tree, heap, namevec, name);
 	      name = use;
 	      goto start_over;

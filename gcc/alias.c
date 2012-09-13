@@ -855,8 +855,8 @@ new_alias_set (void)
   if (flag_strict_aliasing)
     {
       if (alias_sets == 0)
-	VEC_safe_push (alias_set_entry, gc, alias_sets, (alias_set_entry) 0);
-      VEC_safe_push (alias_set_entry, gc, alias_sets, (alias_set_entry) 0);
+	VEC_safe_push (alias_set_entry, gc, alias_sets, 0);
+      VEC_safe_push (alias_set_entry, gc, alias_sets, 0);
       return VEC_length (alias_set_entry, alias_sets) - 1;
     }
   else
@@ -1227,7 +1227,7 @@ find_base_value (rtx src)
 
 /* While scanning insns to find base values, reg_seen[N] is nonzero if
    register N has been set in this function.  */
-static char *reg_seen;
+static sbitmap reg_seen;
 
 static void
 record_set (rtx dest, const_rtx set, void *data ATTRIBUTE_UNUSED)
@@ -1253,7 +1253,7 @@ record_set (rtx dest, const_rtx set, void *data ATTRIBUTE_UNUSED)
     {
       while (--n >= 0)
 	{
-	  reg_seen[regno + n] = 1;
+	  SET_BIT (reg_seen, regno + n);
 	  new_reg_base_value[regno + n] = 0;
 	}
       return;
@@ -1274,12 +1274,12 @@ record_set (rtx dest, const_rtx set, void *data ATTRIBUTE_UNUSED)
   else
     {
       /* There's a REG_NOALIAS note against DEST.  */
-      if (reg_seen[regno])
+      if (TEST_BIT (reg_seen, regno))
 	{
 	  new_reg_base_value[regno] = 0;
 	  return;
 	}
-      reg_seen[regno] = 1;
+      SET_BIT (reg_seen, regno);
       new_reg_base_value[regno] = unique_base_value (unique_id++);
       return;
     }
@@ -1335,10 +1335,10 @@ record_set (rtx dest, const_rtx set, void *data ATTRIBUTE_UNUSED)
       }
   /* If this is the first set of a register, record the value.  */
   else if ((regno >= FIRST_PSEUDO_REGISTER || ! fixed_regs[regno])
-	   && ! reg_seen[regno] && new_reg_base_value[regno] == 0)
+	   && ! TEST_BIT (reg_seen, regno) && new_reg_base_value[regno] == 0)
     new_reg_base_value[regno] = find_base_value (src);
 
-  reg_seen[regno] = 1;
+  SET_BIT (reg_seen, regno);
 }
 
 /* Return REG_BASE_VALUE for REGNO.  Selective scheduler uses this to avoid
@@ -2796,7 +2796,7 @@ init_alias_analysis (void)
   VEC_safe_grow_cleared (rtx, gc, reg_base_value, maxreg);
 
   new_reg_base_value = XNEWVEC (rtx, maxreg);
-  reg_seen = XNEWVEC (char, maxreg);
+  reg_seen = sbitmap_alloc (maxreg);
 
   /* The basic idea is that each pass through this loop will use the
      "constant" information from the previous pass to propagate alias
@@ -2841,7 +2841,7 @@ init_alias_analysis (void)
       memset (new_reg_base_value, 0, maxreg * sizeof (rtx));
 
       /* Wipe the reg_seen array clean.  */
-      memset (reg_seen, 0, maxreg);
+      sbitmap_zero (reg_seen);
 
       /* Mark all hard registers which may contain an address.
 	 The stack, frame and argument pointers may contain an address.
@@ -2964,7 +2964,7 @@ init_alias_analysis (void)
   /* Clean up.  */
   free (new_reg_base_value);
   new_reg_base_value = 0;
-  free (reg_seen);
+  sbitmap_free (reg_seen);
   reg_seen = 0;
   timevar_pop (TV_ALIAS_ANALYSIS);
 }

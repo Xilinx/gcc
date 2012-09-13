@@ -1,5 +1,5 @@
 /* Instruction scheduling pass.  Selective scheduler and pipeliner.
-   Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011
+   Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -1542,7 +1542,7 @@ insert_in_history_vect (VEC (expr_history_def, heap) **pvect,
 
   vinsn_attach (old_expr_vinsn);
   vinsn_attach (new_expr_vinsn);
-  VEC_safe_insert (expr_history_def, heap, vect, ind, &temp);
+  VEC_safe_insert (expr_history_def, heap, vect, ind, temp);
   *pvect = vect;
 }
 
@@ -3686,6 +3686,22 @@ maybe_tidy_empty_bb (basic_block bb)
   FOR_EACH_EDGE (e, ei, bb->preds)
     if (e->flags & EDGE_COMPLEX)
       return false;
+    else if (e->flags & EDGE_FALLTHRU)
+      {
+	rtx note;
+	/* If prev bb ends with asm goto, see if any of the
+	   ASM_OPERANDS_LABELs don't point to the fallthru
+	   label.  Do not attempt to redirect it in that case.  */
+	if (JUMP_P (BB_END (e->src))
+	    && (note = extract_asm_operands (PATTERN (BB_END (e->src)))))
+	  {
+	    int i, n = ASM_OPERANDS_LABEL_LENGTH (note);
+
+	    for (i = 0; i < n; ++i)
+	      if (XEXP (ASM_OPERANDS_LABEL (note, i), 0) == BB_HEAD (bb))
+		return false;
+	  }
+      }
 
   free_data_sets (bb);
 

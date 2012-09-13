@@ -255,7 +255,7 @@
 {
   if (can_create_pseudo_p ())
     {
-      if (GET_CODE (operands[0]) != REG)
+      if (!REG_P (operands[0]))
 	operands[1] = force_reg (TImode, operands[1]);
     }
 })
@@ -267,7 +267,7 @@
 {
   if (can_create_pseudo_p ())
     {
-      if (GET_CODE (operands[0]) != REG)
+      if (!REG_P (operands[0]))
 	operands[1] = force_reg (<MODE>mode, operands[1]);
     }
 })
@@ -705,6 +705,33 @@
                                   (if_then_else (match_test "<Scalar_mul_8_16>")
                                     (const_string "neon_mla_qqq_8_16")
                                     (const_string "neon_mla_qqq_32_qqd_32_scalar")))))]
+)
+
+;; Fused multiply-accumulate
+(define_insn "fma<VCVTF:mode>4"
+  [(set (match_operand:VCVTF 0 "register_operand" "=w")
+        (fma:VCVTF (match_operand:VCVTF 1 "register_operand" "w")
+		 (match_operand:VCVTF 2 "register_operand" "w")
+		 (match_operand:VCVTF 3 "register_operand" "0")))]
+  "TARGET_NEON && TARGET_FMA && flag_unsafe_math_optimizations"
+  "vfma%?.<V_if_elem>\\t%<V_reg>0, %<V_reg>1, %<V_reg>2"
+  [(set (attr "neon_type")
+	(if_then_else (match_test "<Is_d_reg>")
+		      (const_string "neon_fp_vmla_ddd")
+		      (const_string "neon_fp_vmla_qqq")))]
+)
+
+(define_insn "*fmsub<VCVTF:mode>4"
+  [(set (match_operand:VCVTF 0 "register_operand" "=w")
+        (fma:VCVTF (neg:VCVTF (match_operand:VCVTF 1 "register_operand" "w"))
+		   (match_operand:VCVTF 2 "register_operand" "w")
+		   (match_operand:VCVTF 3 "register_operand" "0")))]
+  "TARGET_NEON && TARGET_FMA && flag_unsafe_math_optimizations"
+  "vfms%?.<V_if_elem>\\t%<V_reg>0, %<V_reg>1, %<V_reg>2"
+  [(set (attr "neon_type")
+	(if_then_else (match_test "<Is_d_reg>")
+		      (const_string "neon_fp_vmla_ddd")
+		      (const_string "neon_fp_vmla_qqq")))]
 )
 
 (define_insn "ior<mode>3"

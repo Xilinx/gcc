@@ -1,3 +1,59 @@
+2012-09-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/54541
+	PR c++/54542
+	* call.c (build_cxx_call): Add tsubst_flags_t parameter, use
+	require_complete_type_sfinae.
+	(build_op_delete_call, build_over_call): Adjust.
+	* typeck.c (build_x_compound_expr_from_vec): Add tsubst_flags_t
+	parameter.
+	(cp_build_function_call_vec): Adjust.
+	* init.c (build_new_1): Likewise.
+	* rtti.c (throw_bad_cast, throw_bad_typeid, build_dynamic_cast_1):
+	Likewise.
+	* optimize.c (build_delete_destructor_body): Likewise.
+	* cp-tree.h: Adjust declarations.
+
+	* call.c (convert_arg_to_ellipsis): Use require_complete_type_sfinae.
+
+2012-09-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/54538
+	PR c++/53783
+	* pt.c (tsubst_copy_and_build) [LAMBDA_EXPR]: Go back to using RECUR
+	for LAMBDA_EXPR_EXTRA_SCOPE except for function scope.
+
+	PR c++/54506
+	* decl.c (move_signature_fn_p): Split out from move_fn_p.
+	* method.c (process_subob_fn): Use it.
+	* cp-tree.h: Declare it.
+
+2012-09-07  Jason Merrill  <jason@redhat.com>
+
+	* semantics.c (sort_constexpr_mem_initializers): Tweak.
+
+2012-09-09  Mark Kettenis  <kettenis@openbsd.org>
+
+	* decl.c (reshape_init_class): Avoid dereferencing a
+	past-the-end pointer.
+
+2012-09-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* pt.c (num_template_headers_for_class): Rework per the code
+	inline in cp_parser_check_declarator_template_parameters.
+	* parser.c (cp_parser_check_declarator_template_parameters):
+	Use num_template_headers_for_class.
+
+2012-09-06  Jason Merrill  <jason@redhat.com>
+
+	PR c++/54341
+	PR c++/54253
+	* semantics.c (sort_constexpr_mem_initializers): New.
+	(build_constexpr_constructor_member_initializers): Use it.
+	(cx_check_missing_mem_inits): Skip artificial fields.
+	* init.c (expand_aggr_init_1): Don't zero out a class
+	with no data.
+
 2012-09-05  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/54191

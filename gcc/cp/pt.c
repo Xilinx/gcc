@@ -2215,9 +2215,9 @@ copy_default_args_to_explicit_spec (tree decl)
 int
 num_template_headers_for_class (tree ctype)
 {
-  int template_count = 0;
-  tree t = ctype;
-  while (t != NULL_TREE && CLASS_TYPE_P (t))
+  int num_templates = 0;
+
+  while (ctype && CLASS_TYPE_P (ctype))
     {
       /* You're supposed to have one `template <...>' for every
 	 template class, but you don't need one for a full
@@ -2229,21 +2229,20 @@ num_template_headers_for_class (tree ctype)
 
 	 is correct; there shouldn't be a `template <>' for the
 	 definition of `S<int>::f'.  */
-      if (CLASSTYPE_TEMPLATE_SPECIALIZATION (t)
-	  && !any_dependent_template_arguments_p (CLASSTYPE_TI_ARGS (t)))
-	/* T is an explicit (not partial) specialization.  All
-	   containing classes must therefore also be explicitly
-	   specialized.  */
+      if (!CLASSTYPE_TEMPLATE_INFO (ctype))
+	/* If CTYPE does not have template information of any
+	   kind,  then it is not a template, nor is it nested
+	   within a template.  */
 	break;
-      if ((CLASSTYPE_USE_TEMPLATE (t) || CLASSTYPE_IS_TEMPLATE (t))
-	  && PRIMARY_TEMPLATE_P (CLASSTYPE_TI_TEMPLATE (t)))
-	template_count += 1;
+      if (explicit_class_specialization_p (ctype))
+	break;
+      if (PRIMARY_TEMPLATE_P (CLASSTYPE_TI_TEMPLATE (ctype)))
+	++num_templates;
 
-      t = TYPE_MAIN_DECL (t);
-      t = DECL_CONTEXT (t);
+      ctype = TYPE_CONTEXT (ctype);
     }
 
-  return template_count;
+  return num_templates;
 }
 
 /* Do a simple sanity check on the template headers that precede the
@@ -14301,8 +14300,18 @@ tsubst_copy_and_build (tree t,
 	LAMBDA_EXPR_MUTABLE_P (r) = LAMBDA_EXPR_MUTABLE_P (t);
 	LAMBDA_EXPR_DISCRIMINATOR (r)
 	  = (LAMBDA_EXPR_DISCRIMINATOR (t));
-	LAMBDA_EXPR_EXTRA_SCOPE (r)
-	  = tsubst (LAMBDA_EXPR_EXTRA_SCOPE (t), args, complain, in_decl);
+	/* For a function scope, we want to use tsubst so that we don't
+	   complain about referring to an auto function before its return
+	   type has been deduced.  Otherwise, we want to use tsubst_copy so
+	   that we look up the existing field/parameter/variable rather
+	   than build a new one.  */
+	tree scope = LAMBDA_EXPR_EXTRA_SCOPE (t);
+	if (scope && TREE_CODE (scope) == FUNCTION_DECL)
+	  scope = tsubst (LAMBDA_EXPR_EXTRA_SCOPE (t), args,
+			  complain, in_decl);
+	else
+	  scope = RECUR (scope);
+	LAMBDA_EXPR_EXTRA_SCOPE (r) = scope;
 	LAMBDA_EXPR_RETURN_TYPE (r)
 	  = tsubst (LAMBDA_EXPR_RETURN_TYPE (t), args, complain, in_decl);
 
@@ -20485,7 +20494,7 @@ append_type_to_template_for_access_check_1 (tree t,
 
   VEC_safe_push (qualified_typedef_usage_t, gc,
 		 TI_TYPEDEFS_NEEDING_ACCESS_CHECKING (ti),
-		 &typedef_usage);
+		 typedef_usage);
 }
 
 /* Append TYPE_DECL to the template TEMPL.
