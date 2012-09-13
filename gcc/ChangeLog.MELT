@@ -1,6 +1,11 @@
 2012-09-13  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-outobj.melt (outpucod_initialextensionroutine):
+	Emit return of the initial extension routine.
+
+2012-09-13  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-outobj.melt (outpucod_initialextensionroutine):
 	Emit marking & forwarding function for the initial routine.
 
 2012-09-12  Basile Starynkevitch  <basile@starynkevitch.net>
