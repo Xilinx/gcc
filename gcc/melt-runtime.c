@@ -4880,6 +4880,10 @@ melt_run_make_for_plugin (const char*ourmakecommand, const char*ourmakefile, con
   struct obstack cmd_obstack;
   memset (&cmd_obstack, 0, sizeof(cmd_obstack));
   obstack_init (&cmd_obstack);
+  debugeprintf ("starting melt_run_make_for_plugin ourmakecommand=%s ourmakefile=%s ourcflags=%s",
+		ourmakecommand, ourmakefile, ourcflags);
+  debugeprintf ("starting melt_run_make_for_plugin flavor=%s srcbase=%s binbase=%s workdir=%s pwd=%s", 
+		flavor, srcbase, binbase, workdir, mycwd);
   if (!flavor)
     flavor = MELT_DEFAULT_FLAVOR;
 
@@ -4925,14 +4929,16 @@ melt_run_make_for_plugin (const char*ourmakecommand, const char*ourmakefile, con
   {
     obstack_1grow (&cmd_obstack, ' ');
     obstack_grow (&cmd_obstack, BUILD_WITH_CXX_ARG "=Yes", 
-		  sizeof(BUILD_WITH_CXX_ARG "=Yes"));
+		  strlen (BUILD_WITH_CXX_ARG "=Yes"));
   }
 #endif
 
   /* add the cflag argument if needed */
   if (ourcflags && ourcflags[0]) {
+    debugeprintf ("melt_run_make_for_plugin ourcflags=%s", ourcflags);
     obstack_1grow (&cmd_obstack, ' ');
     /* don't warn about escapes for cflags, they contain spaces...*/
+    debugeprintf ("melt_run_make_for_plugin CFLAGS_ARG=%s", CFLAGS_ARG);
     obstack_grow (&cmd_obstack, CFLAGS_ARG, strlen (CFLAGS_ARG));
     obstack_add_escaped_path (&cmd_obstack, ourcflags);
     obstack_1grow (&cmd_obstack, ' ');
@@ -5590,6 +5596,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
                 :(getenv ("GCCMELT_MODULE_CFLAGS"));
   if (!ourcflags || !ourcflags[0])
     ourcflags = melt_module_cflags;
+  debugeprintf ("melt_compile_source ourcflags: %s", ourcflags);
 
   debugeprintf ("melt_compile_source binbase='%s' srcbase='%s' flavor='%s'",
                 binbase, srcbase, flavor);
