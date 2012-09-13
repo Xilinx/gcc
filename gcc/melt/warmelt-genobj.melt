@@ -1612,7 +1612,8 @@ $SBUF.}#
 		  = meltarg_tuplitval_p;
 		  if (melt_multiple_length((melt_ptr_t) $OLITVALUETUPLOC) !=
 					  $NBLITVAL)
-		    melt_fatal_error ("bad runtime extension literal value tuple@%p in $MODNAME, wants $NBLITVAL components", 
+		    melt_fatal_error ("bad runtime extension literal value tuple@%p in " 
+				      $MODNAME ", wants $NBLITVAL components", 
 				      (void*) $OLITVALUETUPLOC);
 		  }#
 		  ))

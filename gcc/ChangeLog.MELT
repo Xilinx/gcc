@@ -1,6 +1,13 @@
 
 2012-09-13  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-genobj.melt (compile2obj_initextendproc):
+	Better emission of check.
+	* melt/warmelt-outobj.melt (translate_run_melt_expressions):
+	First element of literal list is null.
+
+2012-09-13  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.c (melt_run_make_for_plugin): Correct call to
 	obstack_grow for BUILD_WITH_CXX_ARG.
 
