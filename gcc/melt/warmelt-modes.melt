@@ -188,10 +188,11 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 	   " inarg=" inarg
 	   "\n inexprs=" inexprs)
     (assert_msg "check curenv" (is_a curenv class_environment))
-    (multicall
-     (res other)
-     (translate_run_melt_expressions inexprs curenv)
-     (debug "eval_docmd run res=" res " other=" other)
+    (let (
+	  (res (translate_run_melt_expressions inexprs curenv))
+	  )
+     (debug "eval_docmd run res=" res)
+     (return :true)
     )))
 
 (definstance eval_mode

@@ -5523,10 +5523,12 @@ if (1) return;
     (multicall
      (normlist declbuf :long startclock)
      (normadeclb_macroexpanded_list xlist modnamstr modctx ncx inienv)
+     (debug "translate_macroexpanded_list normlist=" normlist)
      (assert_msg "check normlist" (is_list normlist))
      (assert_msg "check declbuf" (is_strbuf declbuf))
      (debug "translate_macroexpanded_list after normadeclb_macroexpanded_list modctx=" modctx
-	    "\n normalisthandler=" normalisthandler)
+	    "\n normalisthandler=" normalisthandler
+	    "\n normlist=" normlist)
      (when (is_closure normalisthandler)
        (debug "translate_macroexpanded_list before calling normalisthandler normlist=" normlist)
        (normalisthandler normlist modctx ncx inienv)
@@ -5574,6 +5576,7 @@ if (1) return;
 	 (return))
        ;;
        ;; compile the initial procedure
+       (debug "translate_macroexpanded_list objlist=" objlist)
        (assert_msg "check objlist" (is_list objlist))
        (let ( (inipro (unsafe_get_field :nctx_initproc ncx)) 
 	      (inidata (unsafe_get_field :nctx_datalist ncx))
@@ -5581,12 +5584,16 @@ if (1) return;
 	      (procurmodenvlist (unsafe_get_field :nctx_procurmodenvlist ncx))
 	      )
 	 (debug "translate_macroexpanded_list before compiling initproc inipro=" inipro
-		"\n iniproctransl=" iniproctransl)
+		"\n iniproctransl=" iniproctransl
+		"\n normlist=" normlist)
 	 (assert_msg "check inipro" (is_a inipro class_nrep_initproc))
 	 (assert_msg "check iniproctransl" (is_closure iniproctransl))
+	 (debug "translate_macroexpanded_list before calling iniproctransl inipro= " inipro)
 	 (let ( (iniobj
 		 (iniproctransl inipro modctx inidata compicache procurmodenvlist importvalues)) 
 		)
+	   (debug "translate_macroexpanded_list iniobj=" iniobj
+		  "\n objlist=" objlist)
 	   ;;
 	   (foreach_in_list
 	    (objlist)
@@ -5981,20 +5988,40 @@ if (1) return;
 	     ;; normalextend should ensure that the last normal gives a value
 	     (normalextend 
 	      (lambda (normlist modctx ncx inienv)
-		(debug "translate_run_melt_expressions/normalextend normlist=" normlist)
+		(debug "translate_run_melt_expressions/normalextend normlist=" normlist "\n ncx=" ncx)
+		(shortbacktrace_dbg "translate_run_melt_expressions/normalextend" 13)
 		(let ( (lastnorm (list_last_element normlist))
 		       (lastctyp (get_ctype lastnorm inienv))
 		       )
-		  (debug "translate_run_melt_expressions/normalextend lastnorm=" lastnorm " lastctyp=" lastctyp)
-		  ;; we really should box the last stuff and return
-		  ;; the boxed value
-		  (when (!= lastctyp ctype_value)
+		  (debug "translate_run_melt_expressions/normalextend lastnorm=" lastnorm 
+			 " lastctyp=" lastctyp)
+		  (assert_msg "check lastctyp" (is_a lastctyp class_ctype))
+		  (cond
+		   ((== lastctyp ctype_value)
+		    (let ( (nret (instance class_nrep_return
+					   :nret_main lastnorm
+					   ))
+			   )
+		      (list_append normlist nret)
+		      (debug "translate_run_melt_expressions/normalextend append nret=" nret)
+		    ))
+		   ((== lastctyp ctype_long)
+		    (warningmsg_plain "add boxing of last extension runtime integer expression")
+		    (assert_msg "@$@translate_run_melt_expressions/normalextend  unimplemented number boxing")
+		    ;;;
+		    )
+		   ((== lastctyp ctype_cstring)
+		    (warningmsg_plain "add boxing of last extension runtime integer expression")
+		    (assert_msg "@$@translate_run_melt_expressions/normalextend  unimplemented string boxing")
+		    )
+		   (:else
 		    (warningmsg_strv 
 		     "runtime expressions don't end with a :value giving expression, appending () to them."
 		     (get_field :named_name lastctyp))
 		    (list_append normlist (instance class_nrep_nil))
 		    (debug "translate_run_melt_expressions/normalextend updated normlist=" normlist)
-		    )
+		    ))
+		  (debug "translate_run_melt_expressions/normalextend updated normlist=" normlist)
 		  )))
 	     )
 	(debug "translate_run_melt_expressions xlist=" xlist)

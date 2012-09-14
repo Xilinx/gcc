@@ -1,6 +1,13 @@
 
 2012-09-14  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-outobj.melt (translate_macroexpanded_list)
+	(translate_run_melt_expressions): More debug.
+
+	* melt/warmelt-modes.melt (eval_docmd): return true.
+
+2012-09-14  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.c (meltgc_run_c_extension): compmd5buf should be
 	bigger than 32 chars for the null terminating byte.
 
