@@ -585,6 +585,76 @@ gcov_dump_module_info (void)
   __gcov_finalize_dyn_callgraph ();
 }
 
+/* Insert counter VALUE into HISTOGRAM.  */
+
+static void
+gcov_histogram_insert(gcov_bucket_type *histogram, gcov_type value)
+{
+  unsigned i;
+
+  i = gcov_histo_index(value);
+  histogram[i].num_counters++;
+  histogram[i].cum_value += value;
+  if (value < histogram[i].min_value)
+    histogram[i].min_value = value;
+}
+
+/* Computes a histogram of the arc counters to place in the summary SUM.  */
+
+static void
+gcov_compute_histogram (struct gcov_summary *sum)
+{
+  struct gcov_info *gi_ptr;
+  const struct gcov_fn_info *gfi_ptr;
+  const struct gcov_ctr_info *ci_ptr;
+  struct gcov_ctr_summary *cs_ptr;
+  unsigned t_ix, f_ix, ctr_info_ix, ix;
+  int h_ix;
+
+  /* This currently only applies to arc counters.  */
+  t_ix = GCOV_COUNTER_ARCS;
+
+  /* First check if there are any counts recorded for this counter.  */
+  cs_ptr = &(sum->ctrs[t_ix]);
+  if (!cs_ptr->num)
+    return;
+
+  for (h_ix = 0; h_ix < GCOV_HISTOGRAM_SIZE; h_ix++)
+    {
+      cs_ptr->histogram[h_ix].num_counters = 0;
+      cs_ptr->histogram[h_ix].min_value = cs_ptr->run_max;
+      cs_ptr->histogram[h_ix].cum_value = 0;
+    }
+
+  /* Walk through all the per-object structures and record each of
+     the count values in histogram.  */
+  for (gi_ptr = __gcov_list; gi_ptr; gi_ptr = gi_ptr->next)
+    {
+      if (!gi_ptr->merge[t_ix])
+        continue;
+
+      /* Find the appropriate index into the gcov_ctr_info array
+         for the counter we are currently working on based on the
+         existence of the merge function pointer for this object.  */
+      for (ix = 0, ctr_info_ix = 0; ix < t_ix; ix++)
+        {
+          if (gi_ptr->merge[ix])
+            ctr_info_ix++;
+        }
+      for (f_ix = 0; f_ix != gi_ptr->n_functions; f_ix++)
+        {
+          gfi_ptr = gi_ptr->functions[f_ix];
+
+          if (!gfi_ptr || gfi_ptr->key != gi_ptr)
+            continue;
+
+          ci_ptr = &gfi_ptr->ctrs[ctr_info_ix];
+          for (ix = 0; ix < ci_ptr->num; ix++)
+            gcov_histogram_insert (cs_ptr->histogram, ci_ptr->values[ix]);
+        }
+    }
+}
+
 /* Dump the coverage counts. We merge with existing counts when
    possible, to avoid growing the .da files ad infinitum. We use this
    program's checksum to make sure we only accumulate whole program
@@ -758,118 +828,6 @@ gcov_sort_topn_counter_arrays (const struct gcov_info *gi_ptr)
      }
 }
 
-/* Used by qsort to sort gcov values in descending order.  */
-
-static int
-sort_by_reverse_gcov_value (const void *pa, const void *pb)
-{
-  const gcov_type a = *(gcov_type const *)pa;
-  const gcov_type b = *(gcov_type const *)pb;
-
-  if (b > a)
-    return 1;
-  else if (b == a)
-    return 0;
-  else
-    return -1;
-}
-
-/* Determines the number of counters required to cover a given percentage
-   of the total sum of execution counts in the summary, which is then also
-   recorded in SUM.  */
-
-static void
-gcov_compute_cutoff_values (struct gcov_summary *sum)
-{
-  struct gcov_info *gi_ptr;
-  const struct gcov_fn_info *gfi_ptr;
-  const struct gcov_ctr_info *ci_ptr;
-  struct gcov_ctr_summary *cs_ptr;
-  unsigned t_ix, f_ix, i, ctr_info_ix, index;
-  gcov_unsigned_t c_num;
-  gcov_type *value_array;
-  gcov_type cum, cum_cutoff;
-  char *cutoff_str;
-  unsigned cutoff_perc;
-
-#define CUM_CUTOFF_PERCENT_TIMES_10 999
-  cutoff_str = getenv ("GCOV_HOTCODE_CUTOFF_TIMES_10");
-  if (cutoff_str && strlen (cutoff_str))
-    cutoff_perc = atoi (cutoff_str);
-  else
-    cutoff_perc = CUM_CUTOFF_PERCENT_TIMES_10;
-
-  /* This currently only applies to arc counters.  */
-  t_ix = GCOV_COUNTER_ARCS;
-
-  /* First check if there are any counts recorded for this counter.  */
-  cs_ptr = &(sum->ctrs[t_ix]);
-  if (!cs_ptr->num)
-    return;
-
-  /* Determine the cumulative counter value at the specified cutoff
-     percentage and record the percentage for use by gcov consumers.
-     Check for overflow when sum_all is multiplied by the cutoff_perc,
-     and if so, do the divide first.  */
-  if (cs_ptr->sum_all*cutoff_perc < cs_ptr->sum_all)
-    /* Overflow, do the divide first.  */
-    cum_cutoff = cs_ptr->sum_all / 1000 * cutoff_perc;
-  else
-    /* Otherwise multiply first to get the correct value for small
-       values of sum_all.  */
-    cum_cutoff = (cs_ptr->sum_all * cutoff_perc) / 1000;
-
-  /* Next, walk through all the per-object structures and save each of
-     the count values in value_array.  */
-  index = 0;
-  value_array = (gcov_type *) malloc (sizeof (gcov_type) * cs_ptr->num);
-  for (gi_ptr = __gcov_list; gi_ptr; gi_ptr = gi_ptr->next)
-    {
-      if (!gi_ptr->merge[t_ix])
-        continue;
-
-      /* Find the appropriate index into the gcov_ctr_info array
-         for the counter we are currently working on based on the
-         existence of the merge function pointer for this object.  */
-      for (i = 0, ctr_info_ix = 0; i < t_ix; i++)
-        {
-          if (gi_ptr->merge[i])
-            ctr_info_ix++;
-        }
-      for (f_ix = 0; f_ix != gi_ptr->n_functions; f_ix++)
-        {
-          gfi_ptr = gi_ptr->functions[f_ix];
-
-          if (!gfi_ptr || gfi_ptr->key != gi_ptr)
-            continue;
-
-          ci_ptr = &gfi_ptr->ctrs[ctr_info_ix];
-          /* Sanity check that there are enough entries in value_arry
-            for this function's counters. Gracefully handle the case when
-            there are not, in case something in the profile info is
-            corrupted.  */
-          c_num = ci_ptr->num;
-          if (index + c_num > cs_ptr->num)
-            c_num = cs_ptr->num - index;
-          /* Copy over this function's counter values.  */
-          memcpy (&value_array[index], ci_ptr->values,
-                  sizeof (gcov_type) * c_num);
-          index += c_num;
-        }
-    }
-
-  /* Sort all the counter values by descending value and finally
-     accumulate the values from hottest on down until reaching
-     the cutoff value computed earlier.  */
-  qsort (value_array, cs_ptr->num, sizeof (gcov_type),
-         sort_by_reverse_gcov_value);
-  for (cum = 0, c_num = 0; c_num < cs_ptr->num && cum < cum_cutoff; c_num++)
-    cum += value_array[c_num];
-  /* Record the number of counters required to reach the cutoff value.  */
-  cs_ptr->num_hot_counters = c_num;
-  free (value_array);
-}
-
 /* Compute object summary recored in gcov_info INFO. The result is
    stored in OBJ_SUM. Note that the caller is responsible for
    zeroing out OBJ_SUM, otherwise the summary is accumulated.  */
@@ -971,8 +929,6 @@ gcov_merge_gcda_file (struct gcov_info *gi_ptr)
            break;
 
          length = gcov_read_unsigned ();
-         if (length != GCOV_TAG_SUMMARY_LENGTH)
-           goto read_mismatch;
          gcov_read_summary (&tmp);
          if ((error = gcov_is_error ()))
            goto read_error;
@@ -1069,15 +1025,16 @@ rewrite:;
         if (gi_ptr->merge[t_ix])
           {
             if (!cs_prg->runs++)
-              {
-                cs_prg->num = cs_tprg->num;
-                if (cs_tprg->num_hot_counters > cs_prg->num_hot_counters)
-                  cs_prg->num_hot_counters = cs_tprg->num_hot_counters;
-              }
+              cs_prg->num = cs_tprg->num;
             cs_prg->sum_all += cs_tprg->sum_all;
             if (cs_prg->run_max < cs_tprg->run_max)
               cs_prg->run_max = cs_tprg->run_max;
             cs_prg->sum_max += cs_tprg->run_max;
+            if (cs_prg->runs == 1)
+              memcpy (cs_prg->histogram, cs_tprg->histogram,
+                      sizeof (gcov_bucket_type) * GCOV_HISTOGRAM_SIZE);
+            else
+              gcov_histogram_merge (cs_prg->histogram, cs_tprg->histogram);
           }
         else if (cs_prg->runs)
           goto read_mismatch;
@@ -1086,7 +1043,13 @@ rewrite:;
           memcpy (cs_all, cs_prg, sizeof (*cs_all));
         else if (!all.checksum
                  && (!GCOV_LOCKED || cs_all->runs == cs_prg->runs)
-                 && memcmp (cs_all, cs_prg, sizeof (*cs_all)))
+                   /* Don't compare the histograms, which may have slight
+                      variations depending on the order they were updated
+                      due to the truncating integer divides used in the
+                      merge.  */
+                   && memcmp (cs_all, cs_prg,
+                              sizeof (*cs_all) - (sizeof (gcov_bucket_type)
+                                                  * GCOV_HISTOGRAM_SIZE)))
           {
             fprintf (stderr, "profiling:%s:Invocation mismatch - "
                 "some data files may have been removed%s\n",
@@ -1105,19 +1068,28 @@ rewrite:;
    the size is in units of gcov_type.  */
 
 GCOV_LINKAGE unsigned
-gcov_gcda_file_size (struct gcov_info *gi_ptr)
+gcov_gcda_file_size (struct gcov_info *gi_ptr,
+                     struct gcov_summary *sum)
 {
   unsigned size;
   const struct gcov_fn_info *fi_ptr;
-  unsigned f_ix, t_ix;
+  unsigned f_ix, t_ix, h_ix, h_cnt = 0;
   unsigned n_counts;
   const struct gcov_ctr_info *ci_ptr;
+  const struct gcov_ctr_summary *csum;
 
   /* GCOV_DATA_MAGIC, GCOV_VERSION and time_stamp.  */
   size = 3;
 
-  /* Program summary.  */
-  size += 2 + GCOV_TAG_SUMMARY_LENGTH;
+  /* Program summary, which depends on the number of non-zero
+     histogram entries.  */
+  csum = &sum->ctrs[GCOV_COUNTER_ARCS];
+  for (h_ix = 0; h_ix < GCOV_HISTOGRAM_SIZE; h_ix++)
+    {
+      if (csum->histogram[h_ix].num_counters > 0)
+        h_cnt++;
+    }
+  size += 2 + GCOV_TAG_SUMMARY_LENGTH(h_cnt);
 
   /* size for each function.  */
   for (f_ix = 0; f_ix < gi_ptr->n_functions; f_ix++)
@@ -1197,9 +1169,6 @@ gcov_write_gcda_file (struct gcov_info *gi_ptr)
         }
       eof_pos1 = gcov_position ();
     }
-    gcc_assert (!eof_pos ||
-                (eof_pos == gcov_position () && eof_pos1 == eof_pos));
-
     eof_pos = eof_pos1;
     /* Write the end marker  */
     gcov_write_unsigned (0);
@@ -1239,7 +1208,7 @@ gcov_exit_init (void)
          is FDO/LIPO.  */
       dump_module_info |= gi_ptr->mod_info->is_primary;
     }
-  gcov_compute_cutoff_values (&this_program);
+  gcov_compute_histogram (&this_program);
 
   gcov_alloc_filename ();
 

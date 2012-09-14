@@ -1,3 +1,36 @@
+2012-09-14  Teresa Johnson  <tejohnson@google.com>
+
+	Backport from trunk r190952 and r191238:
+
+	* gcov-io.c (gcov_write_summary): Write out non-zero histogram
+        entries to function summary along with an occupancy bit vector.
+	(gcov_read_summary): Read in the histogram entries.
+	(gcov_histo_index): New function.
+	(gcov_histogram_merge): Ditto.
+	* gcov-io.h (gcov_type_unsigned): New type.
+        (struct gcov_bucket_type): Ditto.
+        (struct gcov_ctr_summary): Include histogram.
+        (GCOV_TAG_SUMMARY_LENGTH): Update to include histogram entries.
+        (GCOV_HISTOGRAM_SIZE): New macro.
+        (GCOV_HISTOGRAM_BITVECTOR_SIZE): Ditto.
+        (gcov_gcda_file_size): New parameter.
+	* profile.c (NUM_GCOV_WORKING_SETS): Ditto.
+        (gcov_working_sets): New global variable.
+	(compute_working_sets): New function.
+	(find_working_set): Ditto.
+	(get_exec_counts): Invoke compute_working_sets.
+	* loop-unroll.c (code_size_limit_factor): Call new function
+        find_working_set to obtain working set information.
+	* coverage.c (read_counts_file): Merge histograms, and
+        fix bug with accessing summary info for non-summable counters.
+	* basic-block.h (gcov_type_unsigned): New type.
+        (struct gcov_working_set_info): Ditto.
+        (find_working_set): Declare.
+	* gcov-dump.c (tag_summary): Dump out histogram.
+	* configure.ac (HOST_HAS_F_SETLKW): Set based on compile
+        test using F_SETLKW with fcntl.
+	* configure, gcc/config.in: Regenerate.
+
 2012-09-13  Xinliang David Li  <davidxl@google.com>
 
 	* cgraphunit.c (cgraph_add_output_node): Check for

@@ -194,11 +194,17 @@ report_unroll_peel(struct loop *loop, location_t locus)
 static int
 code_size_limit_factor(struct loop *loop)
 {
-  unsigned size_threshold;
+  unsigned size_threshold, num_hot_counters;
   struct niter_desc *desc = get_simple_loop_desc (loop);
   gcov_type sum_to_header_ratio;
   int hotness_ratio_threshold;
   int limit_factor;
+  gcov_working_set_t *ws;
+
+  ws = find_working_set(999);
+  if (! ws)
+    return 1;
+  num_hot_counters = ws->num_counters;
 
   /* First check if the application has a large codesize footprint.
      This is estimated from FDO profile summary information for the
@@ -208,7 +214,7 @@ code_size_limit_factor(struct loop *loop)
      profile where icache misses may be a concern.  */
   size_threshold = PARAM_VALUE (PARAM_UNROLLPEEL_CODESIZE_THRESHOLD);
   if (!profile_info
-      || profile_info->num_hot_counters <= size_threshold
+      || num_hot_counters <= size_threshold
       || !profile_info->sum_all)
     return 1;
 
@@ -223,7 +229,7 @@ code_size_limit_factor(struct loop *loop)
   /* Next, set the value of the codesize-based unroll factor divisor which in
      most loops will need to be set to a value that will reduce or eliminate
      unrolling/peeling.  */
-  if (profile_info->num_hot_counters < size_threshold * 2
+  if (num_hot_counters < size_threshold * 2
       && loop->header->count > 0)
     {
       /* For applications that are less than twice the codesize limit, allow
@@ -231,7 +237,7 @@ code_size_limit_factor(struct loop *loop)
       sum_to_header_ratio = profile_info->sum_all / loop->header->count;
       hotness_ratio_threshold = PARAM_VALUE (PARAM_UNROLLPEEL_HOTNESS_THRESHOLD);
       /* When the profile count sum to loop entry header ratio is smaller than
-         the threshold (i.e. the loop entry is hot enough, the divisor is set
+         the threshold (i.e. the loop entry is hot enough), the divisor is set
          to 1 so the unroll/peel factor is not reduced. When it is bigger
          than the ratio, increase the divisor by the amount this ratio
          is over the threshold, which will quickly reduce the unroll/peel

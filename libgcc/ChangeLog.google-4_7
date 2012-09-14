@@ -1,3 +1,16 @@
+2012-09-14  Teresa Johnson  <tejohnson@google.com>
+
+	Backport from trunk r190952 and r191074.
+
+	* libgcov.c (gcov_histogram_insert): New function.
+	(gcov_compute_histogram): Ditto.
+	(sort_by_reverse_gcov_value): Remove function.
+	(gcov_compute_cutoff_values): Ditto.
+	(gcov_merge_gcda_file): Merge histogram while merging summary.
+	(gcov_gcda_file_size): Include histogram in summary size computation.
+	(gcov_write_gcda_file): Remove assert that is no longer valid.
+	(gcov_exit_init): Invoke gcov_compute_histogram.
+
 2012-08-29  Chris Manghane  <cmang@google.com>
 
 	Backport r190762 from google/main.

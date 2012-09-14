@@ -205,6 +205,13 @@
 #endif
 
 
+/* Define to the name of the function reordering plugin DSO that must be
+   passed to the linker's -plugin=LIB option. */
+#ifndef USED_FOR_TARGET
+#undef FRPLUGINSONAME
+#endif
+
+
 /* Define to enable detailed memory allocation stats gathering. */
 #ifndef USED_FOR_TARGET
 #undef GATHER_STATISTICS
@@ -339,6 +346,12 @@
 #endif
 
 
+/* Define if your assembler supports HLE prefixes. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_IX86_HLE
+#endif
+
+
 /* Define if your assembler supports the .quad directive. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_AS_IX86_QUAD
@@ -354,11 +367,6 @@
 /* Define if your assembler supports the sahf mnemonic in 64bit mode. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_AS_IX86_SAHF
-#endif
-
-/* Define if your assembler supports HLE prefixes. */
-#ifndef USED_FOR_TARGET
-#undef HAVE_AS_IX86_HLE
 #endif
 
 
@@ -1599,6 +1607,12 @@
 #endif
 
 
+/* Define if F_SETLKW supported by fcntl. */
+#ifndef USED_FOR_TARGET
+#undef HOST_HAS_F_SETLKW
+#endif
+
+
 /* Define as const if the declaration of iconv() needs const. */
 #ifndef USED_FOR_TARGET
 #undef ICONV_CONST
@@ -1634,11 +1648,6 @@
 #undef LINKER_HASH_STYLE
 #endif
 
-/* Define to the name of the function reordering plugin DSO that must be
-   passed to the linker's -plugin=LIB option. */
-#ifndef USED_FOR_TARGET
-#undef FRPLUGINSONAME
-#endif
 
 /* Define to the name of the LTO plugin DSO that must be passed to the
    linker's -plugin=LIB option. */
