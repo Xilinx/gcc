@@ -219,8 +219,9 @@ GCCMELT_STAGE_ZERO = meltbuild-stage0-quicklybuilt
 
 
 all: melt-run.h melt.so melt-applications melt-gendoc doc
+	@echo 
 	@echo '+++++++++++++++++++'
-	@echo MELT plugin compilation completed.
+	@echo -n MELT plugin compilation completed at ; date
 	@echo 
 	@echo You may want to manually compile			\
 	       simplemelt-gtkmm-probe.cc if you have GTK3.4 and	\
@@ -229,7 +230,8 @@ all: melt-run.h melt.so melt-applications melt-gendoc doc
 	@echo
 	@echo you may want to install with e.g. \
 	  make install DESTDIR=/tmp/meltinstall \
-	  then copy your '$DESTDIR' appropriately to the installation tree.
+	  then copy your '$$DESTDIR' appropriately to the installation tree.
+	@echo
 
 
 gt-melt-runtime.h:  $(MELTGCC_RUNTIME_INCLUDES) $(MELTGCC_GTYPESTATE) \

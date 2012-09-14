@@ -1,4 +1,9 @@
 
+2012-09-14  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.c (meltgc_run_c_extension): compmd5buf should be
+	bigger than 32 chars for the null terminating byte.
+
 2012-09-13  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-build-script.tpl: Add meltbuild_notice function using

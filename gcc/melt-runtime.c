@@ -9243,7 +9243,8 @@ meltgc_run_c_extension (melt_ptr_t basename_p, melt_ptr_t env_p, melt_ptr_t litv
     };				/* end loop reading descfile */
   /* check that the md5sum of the primary C file is descmd5hex */
   {
-    char compmd5buf[32];
+    char compmd5buf[40];	/* Should be bigger than 32, for the
+				   terminating null char. */
     char* cpath = NULL;
     memset (compmd5buf, 0, sizeof(compmd5buf));
     cpath = concat (basenamebuf, ".c", NULL);
