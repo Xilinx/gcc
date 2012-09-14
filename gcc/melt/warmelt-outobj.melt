@@ -5530,9 +5530,9 @@ if (1) return;
 	    "\n normalisthandler=" normalisthandler
 	    "\n normlist=" normlist)
      (when (is_closure normalisthandler)
-       (debug "translate_macroexpanded_list before calling normalisthandler normlist=" normlist)
+       (debug "translate_macroexpanded_list before calling normalisthandler normlist=" normlist "\n of length " (list_length normlist))
        (normalisthandler normlist modctx ncx inienv)
-       (debug "translate_macroexpanded_list after calling normalisthandler normlist=" normlist)
+       (debug "translate_macroexpanded_list after calling normalisthandler normlist=" normlist "\n of length " (list_length normlist))
        )
      ;;
      ;;
@@ -5583,9 +5583,11 @@ if (1) return;
 	      (importvalues (unsafe_get_field :nctx_valuelist ncx))
 	      (procurmodenvlist (unsafe_get_field :nctx_procurmodenvlist ncx))
 	      )
-	 (debug "translate_macroexpanded_list before compiling initproc inipro=" inipro
+	 (debug "translate_macroexpanded_list before compiling initproc inipro=" inipro "\n of discrim=" (discrim inipro)
 		"\n iniproctransl=" iniproctransl
 		"\n normlist=" normlist)
+	 (assert_msg "null iniprobody" (null (get_field :nproc_body inipro)))
+	 (put_fields inipro :nproc_body normlist)
 	 (assert_msg "check inipro" (is_a inipro class_nrep_initproc))
 	 (assert_msg "check iniproctransl" (is_closure iniproctransl))
 	 (debug "translate_macroexpanded_list before calling iniproctransl inipro= " inipro)

@@ -1,6 +1,14 @@
 
 2012-09-14  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-genobj.melt (compilobj_nrep_literalvalue): New
+	method for compile_obj of class_nrep_literalvalue.
+
+	* melt/warmelt-outobj.melt (translate_macroexpanded_list): Fill
+	the nprocy_body with the result of the normalisthandler.
+
+2012-09-14  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-outobj.melt (translate_macroexpanded_list)
 	(translate_run_melt_expressions): More debug.
 

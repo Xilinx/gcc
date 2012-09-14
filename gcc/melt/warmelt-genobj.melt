@@ -2174,6 +2174,32 @@ $SBUF.}#
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun compilobj_nrep_literalvalue (nlitv gcx)
+  (debug "compilobj_nrep_literalvalue nlitv=" nlitv 
+	 "\n of discrim=" (discrim nlitv)
+	 "\n gcx=" gcx)
+  (let ( (litregval (get_field  :nlitval_regval nlitv))
+	 (litvrank (get_field :litv_rank litregval))
+	 (olitup (get_field :egncx_litvaltuploc gcx))
+	 (nloc (get_field :nrep_loc nlitv))
+	 )
+    (debug "compilobj_nrep_literalvalue litregval=" litregval
+	   "\n litvrank=" litvrank
+	   "\n olitup=" olitup)
+    (assert_msg "check litregval" (is_a litregval class_literal_value))
+    (assert_msg "check litvrank" (is_integerbox litvrank))
+    (assert_msg "check gcx" (is_a gcx class_extension_generation_context))
+    (let ( (res (make_objlocatedexp 
+		 nloc ctype_value
+		 ##{/*comp.literalvalue*/ (melt_ptr_t) (((meltmultiple_ptr_t)$OLITUP)->tabval[$LITVRANK])}#))
+	   )
+      (debug "compilobj_nrep_literalvalue res=" res)
+      (return res)
+      )))
+
+(install_method class_nrep_literalvalue compile_obj compilobj_nrep_literalvalue)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_definedconstant (ndconst gcx)
   (debug "compilobj definedconstant ndconst=" ndconst " gcx=" gcx)
   (assert_msg "check gcx" (is_a gcx class_initial_generation_context))
