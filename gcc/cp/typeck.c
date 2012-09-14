@@ -6374,6 +6374,11 @@ build_reinterpret_cast_1 (tree type, tree expr, bool c_cast_p,
           else
             return error_mark_node;
         }
+      else if (TYPE_PRECISION (type) == TYPE_PRECISION (intype)
+	       && !TYPE_UNSIGNED (type)
+	       && ptr_mode != word_mode)
+	warning_at (input_location, OPT_Wpointer_to_signed_int_cast,
+		    "cast from %qT to %qT", intype, type);
       if (NULLPTR_TYPE_P (intype))
         return build_int_cst (type, 0);
     }

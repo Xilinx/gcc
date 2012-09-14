@@ -581,6 +581,10 @@ Wpointer-to-int-cast
 C ObjC Var(warn_pointer_to_int_cast) Init(1) Warning
 Warn when a pointer is cast to an integer of a different size
 
+Wpointer-to-signed-int-cast
+C ObjC C++ ObjC++ Var(warn_pointer_to_signed_int_cast) Warning
+Warn when a pointer is cast to a signed integer of the same size
+
 Wpragmas
 C ObjC C++ ObjC++ Var(warn_pragmas) Init(1) Warning
 Warn about misuses of pragmas

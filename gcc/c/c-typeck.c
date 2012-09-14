@@ -4657,15 +4657,20 @@ build_c_cast (location_t loc, tree type, tree expr)
 		    "cast increases required alignment of target type");
 
       if (TREE_CODE (type) == INTEGER_TYPE
-	  && TREE_CODE (otype) == POINTER_TYPE
-	  && TYPE_PRECISION (type) != TYPE_PRECISION (otype))
-      /* Unlike conversion of integers to pointers, where the
-         warning is disabled for converting constants because
-         of cases such as SIG_*, warn about converting constant
-         pointers to integers. In some cases it may cause unwanted
-         sign extension, and a warning is appropriate.  */
-	warning_at (loc, OPT_Wpointer_to_int_cast,
-		    "cast from pointer to integer of different size");
+	  && TREE_CODE (otype) == POINTER_TYPE)
+	{
+	  if (TYPE_PRECISION (type) != TYPE_PRECISION (otype))
+	    /* Unlike conversion of integers to pointers, where the
+	       warning is disabled for converting constants because
+	       of cases such as SIG_*, warn about converting constant
+	       pointers to integers. In some cases it may cause unwanted
+	       sign extension, and a warning is appropriate.  */
+	    warning_at (loc, OPT_Wpointer_to_int_cast,
+			"cast from pointer to integer of different size");
+	  else if (!TYPE_UNSIGNED (type) && ptr_mode != word_mode)
+	    warning_at (loc, OPT_Wpointer_to_signed_int_cast,
+			"cast from pointer to signed integer");
+	}
 
       if (TREE_CODE (value) == CALL_EXPR
 	  && TREE_CODE (type) != TREE_CODE (otype))
