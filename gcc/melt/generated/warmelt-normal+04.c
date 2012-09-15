@@ -2586,6 +2586,8 @@ meltmod__warmelt_normal__forward_or_mark_module_start_frame (struct
 							     melt_callframe_st
 							     *fp,
 							     int marking);
+#define meltmarking_melt_start_this_module  meltmod__warmelt_normal__forward_or_mark_module_start_frame
+
 
 
 /**** warmelt-normal+04.c implementations ****/
@@ -2635,8 +2637,9 @@ meltrout_122_warmelt_normal_NORMEXP_KEYWORD (meltclosure_ptr_t meltclosp_,
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_122_warmelt_normal_NORMEXP_KEYWORD is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -2657,7 +2660,8 @@ meltrout_122_warmelt_normal_NORMEXP_KEYWORD (meltclosure_ptr_t meltclosp_,
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 40;
+/* declstructinit plain routine meltrout_122_warmelt_normal_NORMEXP_KEYWORD nbval 40*/
+  meltfram__.mcfr_nbvar = 40 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -3716,8 +3720,9 @@ meltrout_123_warmelt_normal_FILL_NORMAL_FORMALBIND (meltclosure_ptr_t
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_123_warmelt_normal_FILL_NORMAL_FORMALBIND is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -3738,7 +3743,8 @@ meltrout_123_warmelt_normal_FILL_NORMAL_FORMALBIND (meltclosure_ptr_t
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 24;
+/* declstructinit plain routine meltrout_123_warmelt_normal_FILL_NORMAL_FORMALBIND nbval 24*/
+  meltfram__.mcfr_nbvar = 24 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -4302,8 +4308,9 @@ meltrout_124_warmelt_normal_FILL_NORMAL_FORMALS (meltclosure_ptr_t meltclosp_,
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_124_warmelt_normal_FILL_NORMAL_FORMALS is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -4324,7 +4331,8 @@ meltrout_124_warmelt_normal_FILL_NORMAL_FORMALS (meltclosure_ptr_t meltclosp_,
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 12;
+/* declstructinit plain routine meltrout_124_warmelt_normal_FILL_NORMAL_FORMALS nbval 12*/
+  meltfram__.mcfr_nbvar = 12 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -4626,8 +4634,9 @@ meltrout_125_warmelt_normal_FILL_NORMAL_EXPANSION (meltclosure_ptr_t
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_125_warmelt_normal_FILL_NORMAL_EXPANSION is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -4648,7 +4657,8 @@ meltrout_125_warmelt_normal_FILL_NORMAL_EXPANSION (meltclosure_ptr_t
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 8;
+/* declstructinit plain routine meltrout_125_warmelt_normal_FILL_NORMAL_EXPANSION nbval 8*/
+  meltfram__.mcfr_nbvar = 8 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -4851,8 +4861,9 @@ meltrout_126_warmelt_normal_LAMBDA___43__ (meltclosure_ptr_t meltclosp_,
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_126_warmelt_normal_LAMBDA___43__ is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -4873,7 +4884,8 @@ meltrout_126_warmelt_normal_LAMBDA___43__ (meltclosure_ptr_t meltclosp_,
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 14;
+/* declstructinit plain routine meltrout_126_warmelt_normal_LAMBDA___43__ nbval 14*/
+  meltfram__.mcfr_nbvar = 14 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -5307,8 +5319,9 @@ meltrout_127_warmelt_normal_NORMEXP_DEFPRIMITIVE (meltclosure_ptr_t
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_127_warmelt_normal_NORMEXP_DEFPRIMITIVE is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -5329,7 +5342,8 @@ meltrout_127_warmelt_normal_NORMEXP_DEFPRIMITIVE (meltclosure_ptr_t
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 49;
+/* declstructinit plain routine meltrout_127_warmelt_normal_NORMEXP_DEFPRIMITIVE nbval 49*/
+  meltfram__.mcfr_nbvar = 49 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -6522,8 +6536,9 @@ meltrout_128_warmelt_normal_NORMEXP_DEFCITERATOR (meltclosure_ptr_t
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_128_warmelt_normal_NORMEXP_DEFCITERATOR is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -6544,7 +6559,8 @@ meltrout_128_warmelt_normal_NORMEXP_DEFCITERATOR (meltclosure_ptr_t
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 72;
+/* declstructinit plain routine meltrout_128_warmelt_normal_NORMEXP_DEFCITERATOR nbval 72*/
+  meltfram__.mcfr_nbvar = 72 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -8371,8 +8387,9 @@ meltrout_129_warmelt_normal_NORMEXP_CITERATION (meltclosure_ptr_t meltclosp_,
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_129_warmelt_normal_NORMEXP_CITERATION is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -8393,7 +8410,8 @@ meltrout_129_warmelt_normal_NORMEXP_CITERATION (meltclosure_ptr_t meltclosp_,
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 140;
+/* declstructinit plain routine meltrout_129_warmelt_normal_NORMEXP_CITERATION nbval 140*/
+  meltfram__.mcfr_nbvar = 140 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -11713,8 +11731,9 @@ meltrout_130_warmelt_normal_LAMBDA___44__ (meltclosure_ptr_t meltclosp_,
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_130_warmelt_normal_LAMBDA___44__ is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -11735,7 +11754,8 @@ meltrout_130_warmelt_normal_LAMBDA___44__ (meltclosure_ptr_t meltclosp_,
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 16;
+/* declstructinit plain routine meltrout_130_warmelt_normal_LAMBDA___44__ nbval 16*/
+  meltfram__.mcfr_nbvar = 16 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -12219,8 +12239,9 @@ meltrout_131_warmelt_normal_LAMBDA___45__ (meltclosure_ptr_t meltclosp_,
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_131_warmelt_normal_LAMBDA___45__ is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -12241,7 +12262,8 @@ meltrout_131_warmelt_normal_LAMBDA___45__ (meltclosure_ptr_t meltclosp_,
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 31;
+/* declstructinit plain routine meltrout_131_warmelt_normal_LAMBDA___45__ nbval 31*/
+  meltfram__.mcfr_nbvar = 31 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -13169,8 +13191,9 @@ meltrout_132_warmelt_normal_LAMBDA___46__ (meltclosure_ptr_t meltclosp_,
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_132_warmelt_normal_LAMBDA___46__ is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -13191,7 +13214,8 @@ meltrout_132_warmelt_normal_LAMBDA___46__ (meltclosure_ptr_t meltclosp_,
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 9;
+/* declstructinit plain routine meltrout_132_warmelt_normal_LAMBDA___46__ nbval 9*/
+  meltfram__.mcfr_nbvar = 9 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -13453,8 +13477,9 @@ meltrout_133_warmelt_normal_LAMBDA___47__ (meltclosure_ptr_t meltclosp_,
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_133_warmelt_normal_LAMBDA___47__ is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -13475,7 +13500,8 @@ meltrout_133_warmelt_normal_LAMBDA___47__ (meltclosure_ptr_t meltclosp_,
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 12;
+/* declstructinit plain routine meltrout_133_warmelt_normal_LAMBDA___47__ nbval 12*/
+  meltfram__.mcfr_nbvar = 12 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -13834,8 +13860,9 @@ meltrout_134_warmelt_normal_LAMBDA___48__ (meltclosure_ptr_t meltclosp_,
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_134_warmelt_normal_LAMBDA___48__ is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -13856,7 +13883,8 @@ meltrout_134_warmelt_normal_LAMBDA___48__ (meltclosure_ptr_t meltclosp_,
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 8;
+/* declstructinit plain routine meltrout_134_warmelt_normal_LAMBDA___48__ nbval 8*/
+  meltfram__.mcfr_nbvar = 8 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -14094,8 +14122,9 @@ meltrout_135_warmelt_normal_LAMBDA___49__ (meltclosure_ptr_t meltclosp_,
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_135_warmelt_normal_LAMBDA___49__ is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -14116,7 +14145,8 @@ meltrout_135_warmelt_normal_LAMBDA___49__ (meltclosure_ptr_t meltclosp_,
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 6;
+/* declstructinit plain routine meltrout_135_warmelt_normal_LAMBDA___49__ nbval 6*/
+  meltfram__.mcfr_nbvar = 6 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -14297,8 +14327,9 @@ meltrout_136_warmelt_normal_LAMBDA___50__ (meltclosure_ptr_t meltclosp_,
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_136_warmelt_normal_LAMBDA___50__ is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -14319,7 +14350,8 @@ meltrout_136_warmelt_normal_LAMBDA___50__ (meltclosure_ptr_t meltclosp_,
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 2;
+/* declstructinit plain routine meltrout_136_warmelt_normal_LAMBDA___50__ nbval 2*/
+  meltfram__.mcfr_nbvar = 2 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -14411,8 +14443,9 @@ meltrout_137_warmelt_normal_NORMEXP_DEFCMATCHER (meltclosure_ptr_t meltclosp_,
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_137_warmelt_normal_NORMEXP_DEFCMATCHER is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -14433,7 +14466,8 @@ meltrout_137_warmelt_normal_NORMEXP_DEFCMATCHER (meltclosure_ptr_t meltclosp_,
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 98;
+/* declstructinit plain routine meltrout_137_warmelt_normal_NORMEXP_DEFCMATCHER nbval 98*/
+  meltfram__.mcfr_nbvar = 98 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -17022,8 +17056,9 @@ meltrout_138_warmelt_normal_NORMEXP_DEFUNMATCHER (meltclosure_ptr_t
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_138_warmelt_normal_NORMEXP_DEFUNMATCHER is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -17044,7 +17079,8 @@ meltrout_138_warmelt_normal_NORMEXP_DEFUNMATCHER (meltclosure_ptr_t
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 108;
+/* declstructinit plain routine meltrout_138_warmelt_normal_NORMEXP_DEFUNMATCHER nbval 108*/
+  meltfram__.mcfr_nbvar = 108 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -19738,8 +19774,9 @@ meltrout_139_warmelt_normal_NORMEXP_DEFCLASS (meltclosure_ptr_t meltclosp_,
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_139_warmelt_normal_NORMEXP_DEFCLASS is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -19760,7 +19797,8 @@ meltrout_139_warmelt_normal_NORMEXP_DEFCLASS (meltclosure_ptr_t meltclosp_,
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 101;
+/* declstructinit plain routine meltrout_139_warmelt_normal_NORMEXP_DEFCLASS nbval 101*/
+  meltfram__.mcfr_nbvar = 101 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -22477,8 +22515,9 @@ meltrout_140_warmelt_normal_NORMEXP_DEFINSTANCE (meltclosure_ptr_t meltclosp_,
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_140_warmelt_normal_NORMEXP_DEFINSTANCE is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -22499,7 +22538,8 @@ meltrout_140_warmelt_normal_NORMEXP_DEFINSTANCE (meltclosure_ptr_t meltclosp_,
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 72;
+/* declstructinit plain routine meltrout_140_warmelt_normal_NORMEXP_DEFINSTANCE nbval 72*/
+  meltfram__.mcfr_nbvar = 72 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -24317,8 +24357,9 @@ meltrout_141_warmelt_normal_LAMBDA___51__ (meltclosure_ptr_t meltclosp_,
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_141_warmelt_normal_LAMBDA___51__ is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -24339,7 +24380,8 @@ meltrout_141_warmelt_normal_LAMBDA___51__ (meltclosure_ptr_t meltclosp_,
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 33;
+/* declstructinit plain routine meltrout_141_warmelt_normal_LAMBDA___51__ nbval 33*/
+  meltfram__.mcfr_nbvar = 33 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -25283,8 +25325,9 @@ meltrout_142_warmelt_normal_NORMEXP_DEFINE (meltclosure_ptr_t meltclosp_,
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_142_warmelt_normal_NORMEXP_DEFINE is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -25305,7 +25348,8 @@ meltrout_142_warmelt_normal_NORMEXP_DEFINE (meltclosure_ptr_t meltclosp_,
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 113;
+/* declstructinit plain routine meltrout_142_warmelt_normal_NORMEXP_DEFINE nbval 113*/
+  meltfram__.mcfr_nbvar = 113 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -28241,8 +28285,9 @@ meltrout_143_warmelt_normal_LAMBDA___52__ (meltclosure_ptr_t meltclosp_,
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_143_warmelt_normal_LAMBDA___52__ is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -28263,7 +28308,8 @@ meltrout_143_warmelt_normal_LAMBDA___52__ (meltclosure_ptr_t meltclosp_,
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 3;
+/* declstructinit plain routine meltrout_143_warmelt_normal_LAMBDA___52__ nbval 3*/
+  meltfram__.mcfr_nbvar = 3 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -28386,8 +28432,9 @@ meltrout_144_warmelt_normal_NORMEXP_DEFSELECTOR (meltclosure_ptr_t meltclosp_,
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_144_warmelt_normal_NORMEXP_DEFSELECTOR is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -28408,7 +28455,8 @@ meltrout_144_warmelt_normal_NORMEXP_DEFSELECTOR (meltclosure_ptr_t meltclosp_,
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 84;
+/* declstructinit plain routine meltrout_144_warmelt_normal_NORMEXP_DEFSELECTOR nbval 84*/
+  meltfram__.mcfr_nbvar = 84 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -30588,8 +30636,9 @@ meltrout_145_warmelt_normal_LAMBDA___53__ (meltclosure_ptr_t meltclosp_,
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_145_warmelt_normal_LAMBDA___53__ is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -30610,7 +30659,8 @@ meltrout_145_warmelt_normal_LAMBDA___53__ (meltclosure_ptr_t meltclosp_,
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 17;
+/* declstructinit plain routine meltrout_145_warmelt_normal_LAMBDA___53__ nbval 17*/
+  meltfram__.mcfr_nbvar = 17 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -31108,8 +31158,9 @@ meltrout_146_warmelt_normal_NORMAL_VALUE_EXPORTER (meltclosure_ptr_t
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_146_warmelt_normal_NORMAL_VALUE_EXPORTER is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -31130,7 +31181,8 @@ meltrout_146_warmelt_normal_NORMAL_VALUE_EXPORTER (meltclosure_ptr_t
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 22;
+/* declstructinit plain routine meltrout_146_warmelt_normal_NORMAL_VALUE_EXPORTER nbval 22*/
+  meltfram__.mcfr_nbvar = 22 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -31731,8 +31783,9 @@ meltrout_147_warmelt_normal_NORMAL_EXPORTED_VALUE (meltclosure_ptr_t
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_147_warmelt_normal_NORMAL_EXPORTED_VALUE is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -31753,7 +31806,8 @@ meltrout_147_warmelt_normal_NORMAL_EXPORTED_VALUE (meltclosure_ptr_t
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 61;
+/* declstructinit plain routine meltrout_147_warmelt_normal_NORMAL_EXPORTED_VALUE nbval 61*/
+  meltfram__.mcfr_nbvar = 61 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -33272,8 +33326,9 @@ meltrout_148_warmelt_normal_NORMEXP_EXPORT_VALUES (meltclosure_ptr_t
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_148_warmelt_normal_NORMEXP_EXPORT_VALUES is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -33294,7 +33349,8 @@ meltrout_148_warmelt_normal_NORMEXP_EXPORT_VALUES (meltclosure_ptr_t
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 56;
+/* declstructinit plain routine meltrout_148_warmelt_normal_NORMEXP_EXPORT_VALUES nbval 56*/
+  meltfram__.mcfr_nbvar = 56 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -34748,8 +34804,9 @@ meltrout_149_warmelt_normal_NORMEXP_EXPORT_SYNONYM (meltclosure_ptr_t
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_149_warmelt_normal_NORMEXP_EXPORT_SYNONYM is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -34770,7 +34827,8 @@ meltrout_149_warmelt_normal_NORMEXP_EXPORT_SYNONYM (meltclosure_ptr_t
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 46;
+/* declstructinit plain routine meltrout_149_warmelt_normal_NORMEXP_EXPORT_SYNONYM nbval 46*/
+  meltfram__.mcfr_nbvar = 46 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -35927,8 +35985,9 @@ meltrout_150_warmelt_normal_NORMEXP_EXPORT_CLASS (meltclosure_ptr_t
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_150_warmelt_normal_NORMEXP_EXPORT_CLASS is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -35949,7 +36008,8 @@ meltrout_150_warmelt_normal_NORMEXP_EXPORT_CLASS (meltclosure_ptr_t
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 33;
+/* declstructinit plain routine meltrout_150_warmelt_normal_NORMEXP_EXPORT_CLASS nbval 33*/
+  meltfram__.mcfr_nbvar = 33 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -36800,8 +36860,9 @@ meltrout_151_warmelt_normal_LAMBDA___54__ (meltclosure_ptr_t meltclosp_,
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_151_warmelt_normal_LAMBDA___54__ is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -36822,7 +36883,8 @@ meltrout_151_warmelt_normal_LAMBDA___54__ (meltclosure_ptr_t meltclosp_,
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 45;
+/* declstructinit plain routine meltrout_151_warmelt_normal_LAMBDA___54__ nbval 45*/
+  meltfram__.mcfr_nbvar = 45 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -38038,8 +38100,9 @@ meltrout_152_warmelt_normal_LAMBDA___55__ (meltclosure_ptr_t meltclosp_,
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_152_warmelt_normal_LAMBDA___55__ is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -38060,7 +38123,8 @@ meltrout_152_warmelt_normal_LAMBDA___55__ (meltclosure_ptr_t meltclosp_,
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 26;
+/* declstructinit plain routine meltrout_152_warmelt_normal_LAMBDA___55__ nbval 26*/
+  meltfram__.mcfr_nbvar = 26 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -38726,8 +38790,9 @@ meltrout_153_warmelt_normal_NORMAL_MACRO_EXPORTER (meltclosure_ptr_t
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_153_warmelt_normal_NORMAL_MACRO_EXPORTER is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -38748,7 +38813,8 @@ meltrout_153_warmelt_normal_NORMAL_MACRO_EXPORTER (meltclosure_ptr_t
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 30;
+/* declstructinit plain routine meltrout_153_warmelt_normal_NORMAL_MACRO_EXPORTER nbval 30*/
+  meltfram__.mcfr_nbvar = 30 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -39577,8 +39643,9 @@ meltrout_154_warmelt_normal_NORMAL_PATMACRO_EXPORTER (meltclosure_ptr_t
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_154_warmelt_normal_NORMAL_PATMACRO_EXPORTER is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -39599,7 +39666,8 @@ meltrout_154_warmelt_normal_NORMAL_PATMACRO_EXPORTER (meltclosure_ptr_t
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 30;
+/* declstructinit plain routine meltrout_154_warmelt_normal_NORMAL_PATMACRO_EXPORTER nbval 30*/
+  meltfram__.mcfr_nbvar = 30 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -40426,8 +40494,9 @@ meltrout_155_warmelt_normal_NORMAL_EXPORTED_MACRO (meltclosure_ptr_t
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_155_warmelt_normal_NORMAL_EXPORTED_MACRO is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -40448,7 +40517,8 @@ meltrout_155_warmelt_normal_NORMAL_EXPORTED_MACRO (meltclosure_ptr_t
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 60;
+/* declstructinit plain routine meltrout_155_warmelt_normal_NORMAL_EXPORTED_MACRO nbval 60*/
+  meltfram__.mcfr_nbvar = 60 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -41979,8 +42049,9 @@ meltrout_156_warmelt_normal_NORMEXP_EXPORT_MACRO (meltclosure_ptr_t
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_156_warmelt_normal_NORMEXP_EXPORT_MACRO is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -42001,7 +42072,8 @@ meltrout_156_warmelt_normal_NORMEXP_EXPORT_MACRO (meltclosure_ptr_t
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 40;
+/* declstructinit plain routine meltrout_156_warmelt_normal_NORMEXP_EXPORT_MACRO nbval 40*/
+  meltfram__.mcfr_nbvar = 40 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -42959,8 +43031,9 @@ meltrout_157_warmelt_normal_NORMAL_EXPORTED_PATMACRO (meltclosure_ptr_t
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_157_warmelt_normal_NORMAL_EXPORTED_PATMACRO is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -42981,7 +43054,8 @@ meltrout_157_warmelt_normal_NORMAL_EXPORTED_PATMACRO (meltclosure_ptr_t
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 61;
+/* declstructinit plain routine meltrout_157_warmelt_normal_NORMAL_EXPORTED_PATMACRO nbval 61*/
+  meltfram__.mcfr_nbvar = 61 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -44548,8 +44622,9 @@ meltrout_158_warmelt_normal_NORMEXP_EXPORT_PATMACRO (meltclosure_ptr_t
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_158_warmelt_normal_NORMEXP_EXPORT_PATMACRO is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -44570,7 +44645,8 @@ meltrout_158_warmelt_normal_NORMEXP_EXPORT_PATMACRO (meltclosure_ptr_t
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 57;
+/* declstructinit plain routine meltrout_158_warmelt_normal_NORMEXP_EXPORT_PATMACRO nbval 57*/
+  meltfram__.mcfr_nbvar = 57 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -45940,8 +46016,9 @@ meltrout_159_warmelt_normal_NORMEXP_CURRENT_MODULE_ENVIRONMENT_CONTAINER
 /*others*/
     long _spare_;
   }
-   *meltframptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;	/*declfrastruct */
 #define meltframe meltfram__
+  /*meltrout_159_warmelt_normal_NORMEXP_CURRENT_MODULE_ENVIRONMENT_CONTAINER is not initial declstructinit */
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
@@ -45963,7 +46040,8 @@ meltrout_159_warmelt_normal_NORMEXP_CURRENT_MODULE_ENVIRONMENT_CONTAINER
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 31;
+/* declstructinit plain routine meltrout_159_warmelt_normal_NORMEXP_CURRENT_MODULE_ENVIRONMENT_CONTAINER nbval 31*/
+  meltfram__.mcfr_nbvar = 31 /*nbval */ ;
   meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
