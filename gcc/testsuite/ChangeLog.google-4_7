@@ -1,3 +1,11 @@
+2012-09-14  Dehao Chen  <dehao@google.com>
+
+	Backport r191338 from trunk:
+
+	2012-09-14  Dehao Chen  <dehao@google.com>
+
+	* g++.dg/debug/dwarf2/deallocator.C: New test.
+
 2012-09-05  Cary Coutant  <ccoutant@gmail.com>
 
 	Backport trunk patch to fix a problem where type signature does
