@@ -1,6 +1,26 @@
 
 2012-09-15  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.c (meltgc_read_from_val): Change the location name
+	to <parsed-string#%ld> format.
+
+	* melt/warmelt-normal.melt
+	(class_nrep_check_running_module_environment_container): New.
+	(normexp_update_current_module_environment_container): Instanciate
+	it for runtime extension.
+
+	* melt/warmelt-genobj.melt
+	(compilobj_nrep_check_running_module_environment_container): New
+	method for compile_obj of
+	class_nrep_check_running_module_environment_container.
+
+	* melt/warmelt-outobj.melt (translate_run_melt_expressions): More
+	debug.
+
+	* melt/warmelt-modes.melt (eval_docmd): Eval in a fresh environment.
+
+2012-09-15  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{Regenerate}}
 	* melt-build-script.sh: Regenerate.
 	* melt/generated/meltrunsup-inc.c: Regenerate.

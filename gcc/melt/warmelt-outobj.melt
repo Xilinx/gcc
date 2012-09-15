@@ -5588,6 +5588,7 @@ if (1) return;
 		"\n normlist=" normlist)
 	 (assert_msg "null iniprobody" (null (get_field :nproc_body inipro)))
 	 (put_fields inipro :nproc_body normlist)
+	 (debug "translate_macroexpanded_list unpdated inipro=" inipro)
 	 (assert_msg "check inipro" (is_a inipro class_nrep_initproc))
 	 (assert_msg "check iniproctransl" (is_closure iniproctransl))
 	 (debug "translate_macroexpanded_list before calling iniproctransl inipro= " inipro)
@@ -5699,7 +5700,6 @@ if (1) return;
 		    (add2out baksbuf delfilnam "~")
 		    (let ( (bakfilnam (strbuf2string discr_string baksbuf))
 			   )
-		      (debug "translate_macroexpanded_list delfilix=" delfilix)
 		      (code_chunk 
 		       backupchk
 		       #{ /*translate_macroexpanded_list $BACKUPCHK*/ {
@@ -5847,6 +5847,8 @@ if (1) return;
 
 ;;;;;**********************************************************
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; an internal primitive to run an extension file with a basename, an
+;; environment, and a tuple of literals
 (defprimitive melt_run_extension (basename env litval) :value
   #{ /* melt_run_extension */ meltgc_run_c_extension
       ((melt_ptr_t) $BASENAME,
@@ -5868,6 +5870,8 @@ if (1) return;
 	 (:long starterrcount (melt_error_counter))
 	 (nakedbasnam ())
 	 (referr (instance class_reference))
+	 ;; we need to store the normlist for debugging purposes
+	 (refnormlist (instance class_reference))
 	 )
     (code_chunk numchk #{/* translate_run_melt_expressions $NUMCHK */ 
 		char basbuf_$NUMCHK[64] ;
@@ -5990,8 +5994,11 @@ if (1) return;
 	     ;; normalextend should ensure that the last normal gives a value
 	     (normalextend 
 	      (lambda (normlist modctx ncx inienv)
-		(debug "translate_run_melt_expressions/normalextend normlist=" normlist "\n ncx=" ncx)
+		(debug "translate_run_melt_expressions/normalextend normlist=" normlist
+		       "\n old !refnormlist=" !refnormlist
+		       "\n ncx=" ncx)
 		(shortbacktrace_dbg "translate_run_melt_expressions/normalextend" 13)
+		(assert_msg "check null !refnormlist" (null !refnormlist))
 		(let ( (lastnorm (list_last_element normlist))
 		       (lastctyp (get_ctype lastnorm inienv))
 		       )
@@ -6023,6 +6030,7 @@ if (1) return;
 		    (list_append normlist (instance class_nrep_nil))
 		    (debug "translate_run_melt_expressions/normalextend updated normlist=" normlist)
 		    ))
+		  (set_ref refnormlist normlist)
 		  (debug "translate_run_melt_expressions/normalextend updated normlist=" normlist)
 		  )))
 	     )
@@ -6032,11 +6040,14 @@ if (1) return;
 	  (return () ()))
 	(let ( (basename (make_string_tempname_suffixed discr_string nakedbasnam "_eXt"))
 	       )
-	  (debug "translate_run_melt_expressions basename=" basename)
+	  (debug "translate_run_melt_expressions basename=" basename 
+		 " refnormlist=" refnormlist)
 	  ;; translate to C code
 	  (translate_macroexpanded_list xlist basename modctx ncx env 
 					normalextend compile2obj_initextendproc)
-	  (debug "translate_run_melt_expressions after translation to nakedbasnam=" nakedbasnam)
+	  (debug "translate_run_melt_expressions after translation"
+		 " refnormlist=" refnormlist
+		 " to nakedbasnam=" nakedbasnam)
 	  (when  (or (notnull !referr) (>i (melt_error_counter) starterrcount))
 	    (runerrorhdlr '"runtime translation to code failed")
 	    (return () ()))

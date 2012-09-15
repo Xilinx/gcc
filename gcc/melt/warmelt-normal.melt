@@ -720,6 +720,11 @@ routine procedures.}#
 	   ncumeb_comment		;optional comment
 	   ))
 
+;; normalized check of current running module environment box
+(defclass class_nrep_check_running_module_environment_container
+  :super class_nrep_expression
+  :fields (nchrumod_comment		;optional comment
+	   ))
 
 ;;; export all the normalized representations classes
 (export_class ;; normal representations classes in alphabetical order
@@ -737,6 +742,7 @@ routine procedures.}#
  class_nrep_chunk
  class_nrep_citeration
  class_nrep_checksignal
+ class_nrep_check_running_module_environment_container
  class_nrep_closedocc
  class_nrep_comment 
  class_nrep_constant
@@ -7005,80 +7011,114 @@ source location.}#
   (assert_msg "check update_current_module_environment_container recv" (is_a recv class_source_update_current_module_environment_container))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_update_current_module_environment_container recv" recv)
+  (debug "normexp_update_current_module_environment_container recv=" recv
+	 "\n env=" env
+	 "\n ncx=" ncx)
+  (shortbacktrace_dbg "normexp_update_current_module_environment_container" 15)
   (let ( 
 	(sloc (unsafe_get_field :loca_location recv))
 	(scomm (unsafe_get_field :sucme_comment recv))
 	(curproc (unsafe_get_field :nctx_curproc ncx))
 	(iniproc (unsafe_get_field :nctx_initproc ncx))
 	(modctx (unsafe_get_field :nctx_modulcontext ncx))
-	(modnam (if (is_a modctx class_module_context) (unsafe_get_field :mocx_modulename modctx)))
+	(modnam  (get_field :mocx_modulename modctx))
 	)
     (if (!= curproc iniproc)
 	(progn
 	  (error_plain sloc "(UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER) not at toplevel")
 	  (return)))
-    (let ( (nup (instance class_nrep_update_current_module_environment_container
-			  ;; :ncumeb_expr filled later
+    (debug "normexp_update_current_module_environment_container modctx=" modctx)
+    (cond ((is_a modctx class_running_extension_module_context)
+	   (let ( (nchk (instance class_nrep_check_running_module_environment_container
+				  :nrep_loc sloc
+				  :nchrumod_comment scomm
+				  ))
+		  (csym (clone_symbol 'checkrunmodenvbox_))
+		  (cbind (instance 
+			  class_normal_let_binding
+			  :letbind_loc sloc
+			  :binder csym
+			  :letbind_type ctype_void
+			  ;; ctype_void because the sideffect is in nchk
+			  :letbind_expr nchk))
+		  (clocc (instance 
+			  class_nrep_locsymocc
 			  :nrep_loc sloc
-			  :ncumeb_comment scomm
-			  )) 
-	   (csym (clone_symbol 'updatcurmodenvbox_))
-	   (cbind (instance 
-		   class_normal_let_binding
-		   :letbind_loc sloc
-		   :binder csym
-		   :letbind_type ctype_void
-		   ;; ctype_void because the sideffect is in nup
-		   :letbind_expr nup))
-	   (clocc (instance 
-		   class_nrep_locsymocc
-		   :nrep_loc sloc
-		   :nocc_ctyp ctype_void
-		   :nocc_symb csym
-		   :nocc_bind cbind))
-	   (csbuf (let ( (sb (make_strbuf discr_strbuf)) )
-		    (add2sbuf_strconst sb "cur.mod.env.cont : ")
-		    (add2sbuf_string sb scomm)
-		    sb))
-	   (scurenvbox (instance class_source_current_module_environment_container
-				 :loca_location sloc
-				 :cmec_comment (strbuf2string discr_string csbuf)))
-	   (sgetcurenvbox
-	    (instance 
-	     class_source_or
-	     :loca_location psloc
-	     :sor_disj 
-	     (tuple
-	      scurenvbox
-	      (instance 
-	       class_source_apply
-	       :loca_location psloc
-	       :sapp_fun (instance
-			  class_source_unsafe_get_field
-			  :loca_location psloc
-			  :suget_obj (instance
-				      class_source_fetch_predefined
-				      :loca_location psloc
-				      :sfepd_predef 'initial_system_data
-				      )
-			  :suget_field sysdata_cont_fresh_env
-			  )
-	       :sargop_args (tuple
-				       (instance class_source_parent_module_environment
-						 :loca_location psloc)
-				       modnam
-				       )))))
-	   )
-      (multicall
-       (ncurenvbox bindlist)
-       (normal_exp sgetcurenvbox env ncx sloc)
-       (list_append bindlist cbind)
-       (unsafe_put_fields nup :nucmeb_expr ncurenvbox)
-       (debug "normexp_update_current_module_environment_container result bindlist=" bindlist" clocc=" clocc)
-       (return clocc bindlist)
-       )
-      )))
+			  :nocc_ctyp ctype_void
+			  :nocc_symb csym
+			  :nocc_bind cbind))
+		  (bindlist (list cbind))
+		  )
+	     (debug "normexp_update_current_module_environment_container gives nchk=" nchk
+		    " clocc=" clocc " bindlist=" bindlist)
+	     (return clocc bindlist)
+	     ))
+	  ((is_a modctx class_module_context)
+	   (assert_msg "check modctx not running" (is_not_a modctx class_running_extension_module_context))
+	   (let ( (nup (instance class_nrep_update_current_module_environment_container
+				 ;; :ncumeb_expr filled later
+				 :nrep_loc sloc
+				 :ncumeb_comment scomm
+				 )) 
+		  (csym (clone_symbol 'updatcurmodenvbox_))
+		  (cbind (instance 
+			  class_normal_let_binding
+			  :letbind_loc sloc
+			  :binder csym
+			  :letbind_type ctype_void
+			  ;; ctype_void because the sideffect is in nup
+			  :letbind_expr nup))
+		  (clocc (instance 
+			  class_nrep_locsymocc
+			  :nrep_loc sloc
+			  :nocc_ctyp ctype_void
+			  :nocc_symb csym
+			  :nocc_bind cbind))
+		  (csbuf (let ( (sb (make_strbuf discr_strbuf)) )
+			   (add2sbuf_strconst sb "cur.mod.env.cont : ")
+			   (add2sbuf_string sb scomm)
+			   sb))
+		  (scurenvbox (instance class_source_current_module_environment_container
+					:loca_location sloc
+					:cmec_comment (strbuf2string discr_string csbuf)))
+		  (sgetcurenvbox
+		   (instance 
+		    class_source_or
+		    :loca_location psloc
+		    :sor_disj 
+		    (tuple
+		     scurenvbox
+		     (instance 
+		      class_source_apply
+		      :loca_location psloc
+		      :sapp_fun (instance
+				 class_source_unsafe_get_field
+				 :loca_location psloc
+				 :suget_obj (instance
+					     class_source_fetch_predefined
+					     :loca_location psloc
+					     :sfepd_predef 'initial_system_data
+					     )
+				 :suget_field sysdata_cont_fresh_env
+				 )
+		      :sargop_args (tuple
+				    (instance class_source_parent_module_environment
+					      :loca_location psloc)
+				    modnam
+				    )))))
+		  )
+	     (multicall
+	      (ncurenvbox bindlist)
+	      (normal_exp sgetcurenvbox env ncx sloc)
+	      (list_append bindlist cbind)
+	      (unsafe_put_fields nup :nucmeb_expr ncurenvbox)
+	      (debug "normexp_update_current_module_environment_container result bindlist=" bindlist" clocc=" clocc)
+	      (return clocc bindlist)
+	      )
+	     ))
+	  (:else
+	   (assert_msg "normexp_update_current_module_environment_container unexpected module context" ()))
+	  )))
 (install_method class_source_update_current_module_environment_container normal_exp normexp_update_current_module_environment_container)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

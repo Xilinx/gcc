@@ -7780,6 +7780,7 @@ end:
 melt_ptr_t
 meltgc_read_from_val (melt_ptr_t strv_p, melt_ptr_t locnam_p)
 {
+  static long parsecount;
 #if MELT_HAVE_DEBUG
   char curlocbuf[140];
 #endif
@@ -7819,6 +7820,7 @@ meltgc_read_from_val (melt_ptr_t strv_p, melt_ptr_t locnam_p)
   }
   if (!rbuf)
     goto end;
+  parsecount++;
   rds.rfil = 0;
   rds.rpath = 0;
   rds.rlineno = 0;
@@ -7827,9 +7829,12 @@ meltgc_read_from_val (melt_ptr_t strv_p, melt_ptr_t locnam_p)
   rd = &rds;
   MELT_LOCATION_HERE_PRINTF(curlocbuf, "meltgc_read_from_val rbuf=%.70s", rbuf);
   if (locnamv == NULL) {
+    char buf[40];
+    memset(buf, 0, sizeof(buf));
+    snprintf (buf, sizeof(buf), "<parsed-string#%ld>", parsecount);
     rds.rhas_file_location = false;
     locnamv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING),
-                                 "<string>");
+                                 buf);
     rd->rpfilnam = (melt_ptr_t *) &locnamv;
   }
   rds.rpfilnam = (melt_ptr_t *) & locnamv;

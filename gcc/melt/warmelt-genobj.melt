@@ -5452,6 +5452,30 @@ $SBUF.}#
 
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun compilobj_nrep_check_running_module_environment_container (nchmeb gcx)
+  (debug "compilobj_nrep_check_running_module_environment_container nchmeb=" nchmeb "\n gcx=" gcx)
+  (assert_msg "check nucmeb" (is_a nchmeb class_nrep_check_running_module_environment_container))
+  (assert_msg "check gcx" (is_a gcx class_extension_generation_context))
+  (let (
+	(nchcomm (get_field :nchrumod_comment nchmeb))
+	(nloc (get_field :nrep_loc nchmeb))
+	(ocontenvloc (get_field :igncx_contenvloc gcx))
+	(obodl (make_list discr_list))
+	(csbuf (make_strbuf discr_strbuf))
+	(ocblo (instance class_objcommentedblock
+			 :obi_loc nloc
+			 :oblo_bodyl obodl
+			 :ocomblo_comment 
+			 (progn
+			   (add2out csbuf "check.run.mod.env:" nchcomm)
+			   (strbuf2string discr_string csbuf))))
+	)
+    (debug "compilobj_nrep_check_running_module_environment_container ocblo=" ocblo "\n ocontenvloc=" ocontenvloc)
+    (assert_msg "@$@unimplemented  compilobj_nrep_check_running_module_environment_container")
+    ))
+(install_method class_nrep_check_running_module_environment_container compile_obj compilobj_nrep_check_running_module_environment_container)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

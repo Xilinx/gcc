@@ -189,9 +189,10 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 	   "\n inexprs=" inexprs)
     (assert_msg "check curenv" (is_a curenv class_environment))
     (let (
-	  (res (translate_run_melt_expressions inexprs curenv))
+	  (newenv (fresh_env curenv))
+	  (res (translate_run_melt_expressions inexprs newenv))
 	  )
-     (debug "eval_docmd run res=" res)
+     (debug "eval_docmd run res=" res "\n newenv=" newenv)
      (return :true)
     )))
 
