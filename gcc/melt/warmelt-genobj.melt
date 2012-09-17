@@ -1,7 +1,7 @@
 ;; File warmelt-genobj.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
+    Copyright 2008 - 2012 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -5393,56 +5393,57 @@ $SBUF.}#
     ;; get the igncx_procurmodenvlist from gcx
     ;; for each routine of class_procroutineobj  get its nrpro_const list and
     ;; for each CLASS_NREP_QUASIDATA_CURRENT_MODULE_ENVIRONMENT_CONTAINER there do ....
-    (list_every 
-     pcml
-     (lambda (curout)
-       (if (is_a curout class_procroutineobj)
-	   (let (
-		 (curproc (unsafe_get_field :obrout_proc curout))
-		 (cnslis (unsafe_get_field :nrpro_const curproc)) 
-		 (datarout (unsafe_get_field :nrpro_datarout curproc))
-		 (odatarout (compile_obj datarout gcx))
-		 (boxcount (make_integerbox discr_integer 0))
-		 (oroutlocvar (unsafe_get_field :oie_locvar odatarout))
-		 )
-	     (assert_msg "check odatarout" (is_a odatarout class_objinitroutine))
-	     (list_every 
-	      cnslis
-	      (lambda (curconst)
-		(let (
-		      (:long curcount (get_int boxcount))
-		      )
-		  (if (is_a curconst class_nrep_quasidata_current_module_environment_container)
-		      ;; set into oroutlocvar  the constant ranked curcount to oex
-		      ;; and touch it
-		      (let (
-			    (oputrout (instance class_objputroutconst
-						:obi_loc nloc
-						:oprconst_rout oroutlocvar
-						:oprconst_off  (make_integerbox discr_integer curcount)
-						:oprconst_cval oex
-						))
-			    (otouchrout (instance class_objtouch
-						  :obi_loc nloc
-						  :otouch_val oroutlocvar
-						  :otouch_comment '"compobj.upd.mod.env.box"
-						  ))
-			    (ocopy (instance class_objcompute
-					     :obi_loc nloc
-					     :obdi_destlist (list ocontenvloc)
-					     :obcpt_expr oex
-					     :obcpt_type ctype_value
-					     ))
-			    )
-			(list_append obodl oputrout)
-			(list_append obodl otouchrout)
-			(list_append obodl ocopy)
-			)
+    (foreach_in_list
+     (pcml)
+     (curpair curout)
+     (debug "compilobj_nrep_update_current_module_environment_container curout=" curout)
+     (if (is_a curout class_procroutineobj)
+	 (let (
+	       (curproc (unsafe_get_field :obrout_proc curout))
+	       (cnslis (unsafe_get_field :nrpro_const curproc)) 
+	       (datarout (unsafe_get_field :nrpro_datarout curproc))
+	       (odatarout (compile_obj datarout gcx))
+	       (boxcount (make_integerbox discr_integer 0))
+	       (oroutlocvar (unsafe_get_field :oie_locvar odatarout))
+	       )
+	   (assert_msg "check odatarout" (is_a odatarout class_objinitroutine))
+	   (list_every 
+	    cnslis
+	    (lambda (curconst)
+	      (let (
+		    (:long curcount (get_int boxcount))
 		    )
+		(if (is_a curconst class_nrep_quasidata_current_module_environment_container)
+		    ;; set into oroutlocvar  the constant ranked curcount to oex
+		    ;; and touch it
+		    (let (
+			  (oputrout (instance class_objputroutconst
+					      :obi_loc nloc
+					      :oprconst_rout oroutlocvar
+					      :oprconst_off  (make_integerbox discr_integer curcount)
+					      :oprconst_cval oex
+					      ))
+			  (otouchrout (instance class_objtouch
+						:obi_loc nloc
+						:otouch_val oroutlocvar
+						:otouch_comment '"compobj.upd.mod.env.box"
+						))
+			  (ocopy (instance class_objcompute
+					   :obi_loc nloc
+					   :obdi_destlist (list ocontenvloc)
+					   :obcpt_expr oex
+					   :obcpt_type ctype_value
+					   ))
+			  )
+		      (list_append obodl oputrout)
+		      (list_append obodl otouchrout)
+		      (list_append obodl ocopy)
+		      )
 		  )
-		))
-	     (put_int boxcount (+i (get_int boxcount) 1))
-	     ))))
+		)
+	      ))
+	   (put_int boxcount (+i (get_int boxcount) 1))
+	   )))
     (debug "compobj.upd.mod.env.box result ocblo=" ocblo)
     (return ocblo)
     ))
@@ -5461,8 +5462,13 @@ $SBUF.}#
 	(nchcomm (get_field :nchrumod_comment nchmeb))
 	(nloc (get_field :nrep_loc nchmeb))
 	(ocontenvloc (get_field :igncx_contenvloc gcx))
+	(pcml (get_field :igncx_procurmodenvlist gcx))
 	(obodl (make_list discr_list))
 	(csbuf (make_strbuf discr_strbuf))
+	(locenv (get_free_objlocptr gcx '_curmodenv_)) ;stack location
+					;for the
+					;current
+					;environment
 	(ocblo (instance class_objcommentedblock
 			 :obi_loc nloc
 			 :oblo_bodyl obodl
@@ -5470,9 +5476,74 @@ $SBUF.}#
 			 (progn
 			   (add2out csbuf "check.run.mod.env:" nchcomm)
 			   (strbuf2string discr_string csbuf))))
+	(ochkcont (make_objlocatedexp 
+		   nloc ctype_void
+		   ##{ /*check running module environment reference*/
+		   if (!melt_is_instance_of ((melt_ptr_t)$OCONTENVLOC,
+					     (melt_ptr_t) MELT_PREDEF(CLASS_REFERENCE)))
+		   melt_fatal_error ("MELT running extension with bad module environment reference @%p", (void*) $OCONTENVLOC) ;
+		   }#))
+	(ogetenv (make_objlocatedexp
+		  nloc ctype_void
+		  ##{ /*retrieve then check running module environment*/
+		  $LOCENV = melt_reference_value ((melt_ptr_t)$OCONTENVLOC) ;
+		  if (!melt_is_instance_of ((melt_ptr_t) $LOCENV,
+					    (melt_ptr_t) MELT_PREDEF(CLASS_ENVIRONMENT)))
+		  melt_fatal_error ("MELT running extension with bad environment @%p in its reference @%p",
+				    (void*) $LOCENV, (void*) $OCONTENVLOC) ;
+		  }#))
 	)
     (debug "compilobj_nrep_check_running_module_environment_container ocblo=" ocblo "\n ocontenvloc=" ocontenvloc)
-    (assert_msg "@$@unimplemented  compilobj_nrep_check_running_module_environment_container")
+    (debug "compilobj_nrep_check_running_module_environment_container ochkcont=" ochkcont
+	   "\n ogetenv=" ogetenv)
+    (list_append obodl ochkcont)
+    (list_append obodl ogetenv)
+    (foreach_in_list
+     (pcml)
+     (curpair curout)
+     (debug "compilobj_nrep_update_current_module_environment_container curout=" curout)
+     (if (is_a curout class_procroutineobj)
+	 (let (
+	       (curproc (unsafe_get_field :obrout_proc curout))
+	       (cnslis (unsafe_get_field :nrpro_const curproc)) 
+	       (datarout (unsafe_get_field :nrpro_datarout curproc))
+	       (odatarout (compile_obj datarout gcx))
+	       (boxcount (make_integerbox discr_integer 0))
+	       (oroutlocvar (unsafe_get_field :oie_locvar odatarout))
+	       )
+	   (assert_msg "check odatarout" (is_a odatarout class_objinitroutine))
+	   (list_every 
+	    cnslis
+	    (lambda (curconst)
+	      (let (
+		    (:long curcount (get_int boxcount))
+		    )
+		(if (is_a curconst class_nrep_quasidata_current_module_environment_container)
+		    ;; set into oroutlocvar  the constant ranked curcount to oex
+		    ;; and touch it
+		    (let (
+			  (oputrout (instance class_objputroutconst
+					      :obi_loc nloc
+					      :oprconst_rout oroutlocvar
+					      :oprconst_off  (make_integerbox discr_integer curcount)
+					      :oprconst_cval locenv
+					      ))
+			  (otouchrout (instance class_objtouch
+						:obi_loc nloc
+						:otouch_val oroutlocvar
+						:otouch_comment '"updat.cur.running.mod.env"
+						))
+			  )
+		      (list_append obodl oputrout)
+		      (list_append obodl otouchrout)
+		      )
+		  )
+		)
+	      ))
+	   (put_int boxcount (+i (get_int boxcount) 1))
+	   )))
+    (debug "compilobj_nrep_check_running_module_environment_container gives ocblo=" ocblo)
+    (return ocblo)    
     ))
 (install_method class_nrep_check_running_module_environment_container compile_obj compilobj_nrep_check_running_module_environment_container)
 

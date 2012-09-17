@@ -1,6 +1,12 @@
 
 2012-09-17  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-genobj.melt: Use hyphens in copyright dates.
+	(compilobj_nrep_update_current_module_environment_container): Use a foreach loop.
+	(compilobj_nrep_check_running_module_environment_container): Complete.
+
+2012-09-17  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{when merging trunk svn rev 191371}}
 	* melt-runtime.c (melt_load_module_index): Push an empty slot, not
 	a null pointer, into melt_modinfvec.
