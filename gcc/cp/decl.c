@@ -2639,16 +2639,16 @@ tree
 declare_local_label (tree id)
 {
   tree decl;
-  cp_label_binding *bind;
+  cp_label_binding bind;
 
   /* Add a new entry to the SHADOWED_LABELS list so that when we leave
      this scope we can restore the old value of IDENTIFIER_TYPE_VALUE.  */
-  bind = VEC_safe_push (cp_label_binding, gc,
-			current_binding_level->shadowed_labels, NULL);
-  bind->prev_value = IDENTIFIER_LABEL_VALUE (id);
+  bind.prev_value = IDENTIFIER_LABEL_VALUE (id);
 
   decl = make_label_decl (id, /*local_p=*/1);
-  bind->label = decl;
+  bind.label = decl;
+  VEC_safe_push (cp_label_binding, gc, current_binding_level->shadowed_labels,
+		 bind);
 
   return decl;
 }
@@ -3235,13 +3235,15 @@ make_typename_type (tree context, tree name, enum tag_types tag_type,
 	name = TREE_OPERAND (fullname, 0) = DECL_NAME (name);
       else if (TREE_CODE (name) == OVERLOAD)
 	{
-	  error ("%qD is not a type", name);
+	  if (complain & tf_error)
+	    error ("%qD is not a type", name);
 	  return error_mark_node;
 	}
     }
   if (TREE_CODE (name) == TEMPLATE_DECL)
     {
-      error ("%qD used without template parameters", name);
+      if (complain & tf_error)
+	error ("%qD used without template parameters", name);
       return error_mark_node;
     }
   gcc_assert (TREE_CODE (name) == IDENTIFIER_NODE);
@@ -10536,7 +10538,7 @@ local_variable_p (const_tree t)
 
 static tree
 local_variable_p_walkfn (tree *tp, int *walk_subtrees,
-			 void *data ATTRIBUTE_UNUSED)
+			 void * /*data*/)
 {
   /* Check DECL_NAME to avoid including temporaries.  We don't check
      DECL_ARTIFICIAL because we do want to complain about 'this'.  */
@@ -10859,10 +10861,6 @@ copy_fn_p (const_tree d)
 bool
 move_fn_p (const_tree d)
 {
-  tree args;
-  tree arg_type;
-  bool result = false;
-
   gcc_assert (DECL_FUNCTION_MEMBER_P (d));
 
   if (cxx_dialect == cxx98)
@@ -10872,11 +10870,28 @@ move_fn_p (const_tree d)
   if (TREE_CODE (d) == TEMPLATE_DECL
       || (DECL_TEMPLATE_INFO (d)
          && DECL_MEMBER_TEMPLATE_P (DECL_TI_TEMPLATE (d))))
-    /* Instantiations of template member functions are never copy
+    /* Instantiations of template member functions are never move
        functions.  Note that member functions of templated classes are
        represented as template functions internally, and we must
-       accept those as copy functions.  */
+       accept those as move functions.  */
     return 0;
+
+  return move_signature_fn_p (d);
+}
+
+/* D is a constructor or overloaded `operator='.
+
+   Then, this function returns true when D has the same signature as a move
+   constructor or move assignment operator (because either it is such a
+   ctor/op= or it is a template specialization with the same signature),
+   false otherwise.  */
+
+bool
+move_signature_fn_p (const_tree d)
+{
+  tree args;
+  tree arg_type;
+  bool result = false;
 
   args = FUNCTION_FIRST_USER_PARMTYPE (d);
   if (!args)
@@ -13769,10 +13784,8 @@ maybe_register_incomplete_var (tree var)
 	  || (TYPE_LANG_SPECIFIC (inner_type)
 	      && TYPE_BEING_DEFINED (inner_type)))
 	{
-	  incomplete_var *iv
-	    = VEC_safe_push (incomplete_var, gc, incomplete_vars, NULL);
-	  iv->decl = var;
-	  iv->incomplete_type = inner_type;
+	  incomplete_var iv = {var, inner_type};
+	  VEC_safe_push (incomplete_var, gc, incomplete_vars, iv);
 	}
     }
 }

@@ -9077,7 +9077,7 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
     minf.mmi_modpath = xstrdup (sopath);
     minf.mmi_startrout = MELTDESCR_REQUIRED (melt_start_this_module);
     minf.mmi_magic = MELT_MODULE_MAGIC;
-    VEC_safe_push (melt_module_info_t, heap, melt_modinfvec, &minf);
+    VEC_safe_push (melt_module_info_t, heap, melt_modinfvec, minf);
     debugeprintf ("melt_load_module_index successful ix %d srcbase %s sopath %s flavor %s",
                   ix, srcbase, sopath, flavor);
     if (!quiet_flag || melt_flag_debug) {
@@ -9303,10 +9303,11 @@ meltgc_run_c_extension (melt_ptr_t basename_p, melt_ptr_t env_p, melt_ptr_t litv
     int ix = 0;
     if (!melt_extinfvec)
       {
+	melt_extension_info_t emptymei = {0};
 	melt_extinfvec = VEC_alloc (melt_extension_info_t, heap, 32);
 	/* don't use the index 0 so push a null at 0 in modextvec.  */
 	VEC_safe_push (melt_extension_info_t, heap, melt_extinfvec,
-		       (melt_extension_info_t *) 0);
+		       emptymei);
       }
     ix = VEC_length (melt_extension_info_t, melt_extinfvec);
     gcc_assert (ix > 0);
@@ -9315,7 +9316,7 @@ meltgc_run_c_extension (melt_ptr_t basename_p, melt_ptr_t env_p, melt_ptr_t litv
     mext.mmx_extpath = xstrdup (sopath);
     mext.mmx_rank = ix;
     mext.mmx_magic = MELT_EXTENSION_MAGIC;
-    VEC_safe_push (melt_extension_info_t, heap, melt_extinfvec, &mext);
+    VEC_safe_push (melt_extension_info_t, heap, melt_extinfvec, mext);
     debugeprintf ("meltgc_run_c_extension %s has index %d", 
 		  basenamebuf, ix);
   }
@@ -10602,13 +10603,18 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   if (melt_minorsizekilow == 0) {
     const char* minzstr = melt_argument ("minor-zone");
     melt_minorsizekilow = minzstr ? (atol (minzstr)) : 0;
-    if (melt_minorsizekilow<256) melt_minorsizekilow=256;
-    else if (melt_minorsizekilow>16384) melt_minorsizekilow=16384;
+    if (melt_minorsizekilow < 256)
+      melt_minorsizekilow = 256;
+    else if (melt_minorsizekilow > 32768) 
+      melt_minorsizekilow = 32768;
   }
   melt_modinfvec = VEC_alloc (melt_module_info_t, heap, 32);
-  /* don't use the index 0 so push a null at 0 in modinfvec.  */
-  VEC_safe_push (melt_module_info_t, heap, melt_modinfvec,
-                 (melt_module_info_t *) 0);
+  /* don't use the index 0 so push an empty at 0 in modinfvec.  */
+  {
+    melt_module_info_t emptymi = {0};
+    VEC_safe_push (melt_module_info_t, heap, melt_modinfvec,
+		   emptymi);
+  }
   /* The program handle dlopen is not traced! */
   proghandle = dlopen (NULL, RTLD_NOW | RTLD_GLOBAL);
   if (!proghandle)

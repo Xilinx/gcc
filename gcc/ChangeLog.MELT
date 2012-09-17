@@ -1,4 +1,15 @@
 
+2012-09-17  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	{{when merging trunk svn rev 191371}}
+	* melt-runtime.c (melt_load_module_index): Push an empty slot, not
+	a null pointer, into melt_modinfvec.
+	(meltgc_run_c_extension): Push an empty slot, not
+	a null pointer, into melt_extinfvec.
+	(melt_really_initialize): Better indentation, and increase maximal
+	minore size to 32768Kwords. Push an empty slot, not a null
+	pointer, into melt_modinfvec.
+
 2012-09-15  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.c (meltgc_read_from_val): Change the location name

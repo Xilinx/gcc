@@ -145,11 +145,8 @@ push_deferring_access_checks (deferring_kind deferring)
     deferred_access_no_check++;
   else
     {
-      deferred_access *ptr;
-
-      ptr = VEC_safe_push (deferred_access, gc, deferred_access_stack, NULL);
-      ptr->deferred_access_checks = NULL;
-      ptr->deferring_access_checks_kind = deferring;
+      deferred_access e = {NULL, deferring};
+      VEC_safe_push (deferred_access, gc, deferred_access_stack, e);
     }
 }
 
@@ -243,7 +240,7 @@ pop_to_parent_deferring_access_checks (void)
 		}
 	      /* Insert into parent's checks.  */
 	      VEC_safe_push (deferred_access_check, gc,
-			     ptr->deferred_access_checks, chk);
+			     ptr->deferred_access_checks, *chk);
 	    found:;
 	    }
 	}
@@ -311,7 +308,6 @@ perform_or_defer_access_check (tree binfo, tree decl, tree diag_decl,
   int i;
   deferred_access *ptr;
   deferred_access_check *chk;
-  deferred_access_check *new_access;
 
 
   /* Exit if we are in a context that no access checking is performed.
@@ -341,13 +337,9 @@ perform_or_defer_access_check (tree binfo, tree decl, tree diag_decl,
 	}
     }
   /* If not, record the check.  */
-  new_access =
-    VEC_safe_push (deferred_access_check, gc,
-		   ptr->deferred_access_checks, 0);
-  new_access->binfo = binfo;
-  new_access->decl = decl;
-  new_access->diag_decl = diag_decl;
-  new_access->loc = input_location;
+  deferred_access_check new_access = {binfo, decl, diag_decl, input_location};
+  VEC_safe_push (deferred_access_check, gc, ptr->deferred_access_checks,
+		 new_access);
 
   return true;
 }
@@ -3463,7 +3455,7 @@ calculate_direct_bases (tree type)
 /* Virtual base classes are handled separately in finish_bases */
 
 static tree
-dfs_calculate_bases_pre (tree binfo, ATTRIBUTE_UNUSED void *data_)
+dfs_calculate_bases_pre (tree binfo, void * /*data_*/)
 {
   /* Don't walk bases of virtual bases */
   return BINFO_VIRTUAL_P (binfo) ? dfs_skip_bases : NULL_TREE;
@@ -5903,24 +5895,26 @@ check_constexpr_ctor_body (tree last, tree list)
 static VEC(constructor_elt,gc) *
 sort_constexpr_mem_initializers (tree type, VEC(constructor_elt,gc) *vec)
 {
-  if (!CLASSTYPE_HAS_PRIMARY_BASE_P (type)
-      || (CLASSTYPE_PRIMARY_BINFO (type)
-	  == BINFO_BASE_BINFO (TYPE_BINFO (type), 0)))
+  tree pri = CLASSTYPE_PRIMARY_BINFO (type);
+  constructor_elt elt;
+  int i;
+
+  if (pri == NULL_TREE
+      || pri == BINFO_BASE_BINFO (TYPE_BINFO (type), 0))
     return vec;
 
   /* Find the element for the primary base and move it to the beginning of
      the vec.  */
-  tree pri = BINFO_TYPE (CLASSTYPE_PRIMARY_BINFO (type));
   VEC(constructor_elt,gc) &v = *vec;
-  int pri_idx;
-
-  for (pri_idx = 1; ; ++pri_idx)
-    if (TREE_TYPE (v[pri_idx].index) == pri)
+  pri = BINFO_TYPE (pri);
+  for (i = 1; ; ++i)
+    if (TREE_TYPE (v[i].index) == pri)
       break;
-  constructor_elt pri_elt = v[pri_idx];
-  for (int i = 0; i < pri_idx; ++i)
-    v[i+1] = v[i];
-  v[0] = pri_elt;
+
+  elt = v[i];
+  for (; i > 0; --i)
+    v[i] = v[i-1];
+  v[0] = elt;
   return vec;
 }
 
@@ -7480,7 +7474,11 @@ cxx_eval_indirect_ref (const constexpr_call *call, tree t,
     }
 
   if (r == NULL_TREE)
-    return t;
+    {
+      if (!addr)
+	VERIFY_CONSTANT (t);
+      return t;
+    }
   return r;
 }
 
