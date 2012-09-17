@@ -6700,9 +6700,11 @@ is used to define patmacros.}#)
 
 (install_initial_macro 'current_module_environment_container mexpand_current_module_environment_container)
 (export_macro current_module_environment_container mexpand_current_module_environment_container
-	      :doc #{@code{($CURRENT_MODULE_ENVIRONMENT_CONTAINER)} 
-returns a container, i.e. a reference thru @code{$CLASS_REFERENCE}, 
-for the current environment. See also $PARENT_MODULE_ENVIRONMENT and $CLASS_ENVIRONMENT.}#)
+	      :doc #{@code{($CURRENT_MODULE_ENVIRONMENT_CONTAINER)}
+returns a container, i.e. a reference thru @code{$CLASS_REFERENCE},
+for the current environment. See also $PARENT_MODULE_ENVIRONMENT and
+$CLASS_ENVIRONMENT. Will be renamed as
+@code{CURRENT_MODULE_ENVIRONMENT_REFERENCE}.}#)
 
 
 ;;;;;;;;;;;;;;;;
@@ -6760,7 +6762,8 @@ for the current environment. See also $PARENT_MODULE_ENVIRONMENT and $CLASS_ENVI
 #{@code{($UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER)} is a guru
 macro to update the current module environment container.  You
 probably should never use it, but it is necessary inside MELT. See
-$CURRENT_MODULE_ENVIRONMENT_CONTAINER.}#)
+$CURRENT_MODULE_ENVIRONMENT_CONTAINER. Will be renamed as
+@code{UPDATE_CURRENT_MODULE_ENVIRONMENT_BOX}.}#)
 
 
 

@@ -1,6 +1,18 @@
 
 2012-09-17  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-macro.melt (current_module_environment_container)
+	(update_current_module_environment_container): Mention future
+	names current_module_environment_box and
+	update_current_module_environment_box in :doc string.
+
+	* melt/warmelt-genobj.melt
+	(compilobj_nrep_check_running_module_environment_container): Use
+	the environment box to update the routines' constants for current
+	environment boxes.
+
+2012-09-17  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-genobj.melt: Use hyphens in copyright dates.
 	(compilobj_nrep_update_current_module_environment_container): Use a foreach loop.
 	(compilobj_nrep_check_running_module_environment_container): Complete.

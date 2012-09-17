@@ -5526,7 +5526,7 @@ $SBUF.}#
 					      :obi_loc nloc
 					      :oprconst_rout oroutlocvar
 					      :oprconst_off  (make_integerbox discr_integer curcount)
-					      :oprconst_cval locenv
+					      :oprconst_cval ocontenvloc
 					      ))
 			  (otouchrout (instance class_objtouch
 						:obi_loc nloc
@@ -5541,7 +5541,10 @@ $SBUF.}#
 		)
 	      ))
 	   (put_int boxcount (+i (get_int boxcount) 1))
-	   )))
+	   ))) 
+    (list_append obodl (instance class_objclear :obi_loc nloc
+				 :oclr_vloc locenv))
+    (dispose_objloc locenv gcx)
     (debug "compilobj_nrep_check_running_module_environment_container gives ocblo=" ocblo)
     (return ocblo)    
     ))
