@@ -1,3 +1,74 @@
+2012-09-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR libstdc++/54172
+	* libsupc++/guard.cc (__cxa_guard_acquire): Fix up the last
+	argument of the first __atomic_compare_exchange_n.
+
+2012-09-09  Thiago Macieira  <thiago.macieira@intel.com>
+
+	PR libstdc++/54172
+        * libsupc++/guard.cc (__cxa_guard_acquire): Exit the loop earlier if
+        we detect that another thread has had success. Don't compare_exchange
+        from a finished state back to a waiting state. Comment.
+
+2012-09-09  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/54388
+	* include/std/array (array::at() const): Ensure lvalue result.
+	* testsuite/23_containers/array/element_access/54388.cc: New.
+
+2012-09-06  Marc Glisse  <marc.glisse@inria.fr>
+	    Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/54376
+	* include/bits/random.h (lognormal_distribution<>::operator==,
+	gamma_distribution<>::operator==,
+	chi_squared_distribution<>::operator==,
+	fisher_f_distribution<>::operator==,
+	student_t_distribution<>::operator==,
+	binomial_distribution<>::operator==,
+	negative_binomial_distribution<>::operator==,
+	poisson_distribution<>::operator==): Change inline friend definition
+	to non-template.
+	* testsuite/26_numerics/random/binomial_distribution/requirements/
+	explicit_instantiation/1.cc: New.
+	* testsuite/26_numerics/random/cauchy_distribution/requirements/
+	explicit_instantiation/1.cc: Likewise.
+	* testsuite/26_numerics/random/chi_squared_distribution/
+	requirements/explicit_instantiation/1.cc: Likewise.
+	* testsuite/26_numerics/random/discrete_distribution/requirements/
+	explicit_instantiation/1.cc: Likewise.
+	* testsuite/26_numerics/random/exponential_distribution/
+	requirements/explicit_instantiation/1.cc: Likewise.
+	* testsuite/26_numerics/random/extreme_value_distribution/
+	requirements/explicit_instantiation/1.cc: Likewise.
+	* testsuite/26_numerics/random/fisher_f_distribution/requirements/
+	explicit_instantiation/1.cc: Likewise.
+	* testsuite/26_numerics/random/gamma_distribution/requirements/
+	explicit_instantiation/1.cc: Likewise.
+	* testsuite/26_numerics/random/geometric_distribution/requirements/
+	explicit_instantiation/1.cc: Likewise.
+	* testsuite/26_numerics/random/lognormal_distribution/requirements/
+	explicit_instantiation/1.cc: Likewise.
+	* testsuite/26_numerics/random/negative_binomial_distribution/
+	requirements/explicit_instantiation/1.cc: Likewise.
+	* testsuite/26_numerics/random/normal_distribution/requirements/
+	explicit_instantiation/1.cc: Likewise.
+	* testsuite/26_numerics/random/piecewise_constant_distribution/
+	requirements/explicit_instantiation/1.cc: Likewise.
+	* testsuite/26_numerics/random/piecewise_linear_distribution/
+	requirements/explicit_instantiation/1.cc: Likewise.
+	* testsuite/26_numerics/random/poisson_distribution/requirements/
+	explicit_instantiation/1.cc: Likewise.
+	* testsuite/26_numerics/random/student_t_distribution/requirements/
+	explicit_instantiation/1.cc: Likewise.
+	* testsuite/26_numerics/random/uniform_int_distribution/
+	requirements/explicit_instantiation/1.cc: Likewise.
+	* testsuite/26_numerics/random/uniform_real_distribution/
+	requirements/explicit_instantiation/1.cc: Likewise.
+	* testsuite/26_numerics/random/weibull_distribution/requirements/
+	explicit_instantiation/1.cc: Likewise.
+
 2012-08-26  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	* testsuite/30_threads/async/54297.cc: Add dg-require-nanosleep.
