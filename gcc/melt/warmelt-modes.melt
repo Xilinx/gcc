@@ -182,6 +182,8 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 	(curenv moduldata)
 	(inarg (make_stringconst discr_string (melt_argument "arg")))
 	(inexprs (read_strv inarg))
+	(stdout (get_field :sysdata_stdout initial_system_data))
+	(occmap (make_mapobject  discr_map_objects 50))
 	)
     (debug "eval_docmd start parmodenv=" parmodenv 
 	   "\n curenv=" curenv
@@ -189,12 +191,20 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 	   "\n inexprs=" inexprs)
     (assert_msg "check curenv" (is_a curenv class_environment))
     (let (
+	  (:long nbexprs (list_length inexprs))
 	  (newenv (fresh_env curenv))
 	  (res (translate_run_melt_expressions inexprs newenv))
+	  (dbgi (instance class_debug_information
+			  :dbgi_out stdout
+			  :dbgi_occmap occmap
+			  :dbgi_maxdepth '8))
 	  )
-     (debug "eval_docmd run res=" res "\n newenv=" newenv)
-     (return :true)
-    )))
+      (debug "eval_docmd run res=" res "\n newenv=" newenv "\n dbgi=" dbgi)
+      (add2out stdout "\n;;; result of eval mode of " nbexprs " expression[s] is ...\n")
+      (dbg_out res dbgi 0)
+      (add2out stdout "\n")
+      (return :true)
+      )))
 
 (definstance eval_mode
   class_melt_mode

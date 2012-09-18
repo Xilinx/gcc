@@ -11,6 +11,8 @@
 	melt_warn_for_no_expected_secondary_results only for non-initial
 	routines.
 
+	* melt/warmelt-modes.melt (eval_docmd): Print the result to stdout.
+
 2012-09-18  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/generated/meltrunsup.h: Regenerate.
