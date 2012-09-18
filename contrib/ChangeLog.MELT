@@ -1,4 +1,9 @@
 
+2012-09-18  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* MELT-Plugin-Makefile (all): Mention Alexandre Lissy Qt Python
+	MELT probe in message.
+
 2012-09-14  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* MELT-Plugin-Makefile (all): Improve the echo-ed message.
