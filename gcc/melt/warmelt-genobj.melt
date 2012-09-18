@@ -1607,152 +1607,153 @@ $SBUF.}#
     (let ( (:long nblitval (list_length litvalist))
 	   )
       (list_append oiniprolog
-		 (make_objlocatedexp 
-		  () ctype_void
-		  ##{/*initextendproc get litvaluetup*/ $OLITVALUETUPLOC 
-		  = meltarg_tuplitval_p;
-		  if (melt_multiple_length((melt_ptr_t) $OLITVALUETUPLOC) !=
-					  $NBLITVAL)
+		   (make_objlocatedexp 
+		    () ctype_void
+		    ##{/*initextendproc get litvaluetup*/ $OLITVALUETUPLOC 
+		    = meltarg_tuplitval_p ;
+		    if (melt_multiple_length((melt_ptr_t) $OLITVALUETUPLOC) !=
+					    $NBLITVAL)
 		    melt_fatal_error ("bad runtime extension literal value tuple@%p in " 
 				      $MODNAME ", wants $NBLITVAL components", 
-				      (void*) $OLITVALUETUPLOC);
-		  }#
-		  ))
-    (list_append oiniprolog
-		 (instance class_objgetslot
-			   :obdi_destlist (list ocurenvloc)
-			   :ogetsl_obj ocurenvboxloc
-			   :ogetsl_field referenced_value
-			   ))
-    (list_append oiniprolog
-		 (instance class_objgetslot
-			   :obdi_destlist (list oprevenvloc)
-			   :ogetsl_obj ocurenvloc
-			   :ogetsl_field env_prev
-			   ))
-    (debug "compile2obj_initextendproc before body oiniprolog=" oiniprolog
-	   "\n idata=" idata)
-    ;; now handle the body
-    ;; the tuple to compile the body
-    (let (
-	  (odatatup 
-	   (list_to_multiple
-	    idata discr_multiple
-	    (lambda (curdat)
-	      (assert_msg "check curdat" (is_a curdat class_nrep_bound_data))
-	      (let ( (curobd (compile_obj curdat gcx)) )
-		curobd))))
-	  (toplis (unsafe_get_field :ninit_topl ipro)) 
-	  )
-      (put_fields oinitxrout
-		  :oirout_data odatatup)
-      (debug "compile2obj_initextendproc toplis=" toplis)
-      (assert_msg "check toplis" (is_list_or_null toplis))
-      ;; compile the toplevels
-      (let ( (objtoplis 
-	      (list_map
-	       toplis
-	       (lambda (curtop)
-		 (debug "compile2obj_initextendproc curtop=" curtop)
-		 (let ( (otop (compile_obj curtop gcx)) )
-		   (debug "compile2obj_initextendproc otop=" otop)
-		   otop)))) 
-	     )
-	(debug "compile2obj_initextendproc objtoplis=" objtoplis)
-	;; generate the getting of symbols & keywords
-	(append_commentconst oiniprolog "get symbols & keywords")
-	(multiple_every
-	 odatatup
-	 (lambda (curpdat :long curk) 
-	   (if (is_a curpdat class_objinitobject)
-	       (let ( (odat (unsafe_get_field :oie_data curpdat))
-		      )
-		 (debug "compile2obj_initextendproc getting curpdat=" curpdat)
-		 (cond 
-		  ;; first  check for keywords, since they are also symbols (so order is important)
-		  ( (is_a odat class_nrep_datakeyword)
-		    (let ( (ogkw (instance class_objgetnamedkeyword
-					   :obgnamed_iobj curpdat))
-			   )
-		      (list_append oiniprolog ogkw)
-		      (debug "compile2obj_initextendproc added keyword getting ogkw=" ogkw)
-		      ))
-		  ( (is_a odat class_nrep_datasymbol)
-		    (let ( (ogsy (instance class_objgetnamedsymbol
-					   :obgnamed_iobj curpdat))
-			   )
-		      (list_append oiniprolog ogsy)
-		      (debug "compile2obj_initextendproc added symbol getting ogsy=" ogsy)
-		      ))
-		  )))))
-	(debug "compile2obj_initextendproc before imports oiniprolog=" oiniprolog)
-	;;
-	(if (>i (list_length importvalues) 0)
-	    (progn
-	      (append_commentconst oiniprolog "before getting imported values")
-	      ;; generate the getting of imported values
-	      (list_every
-	       importvalues
-	       (lambda (curimport)
-		 (debug "compile2obj_initextendproc curimport=" curimport)
-		 (assert_msg "check curimport" (is_a curimport  class_nrep_literalnamedvalue))
-		 (compile_warning "the generated import should have a cstring")
-		 (let ( (impsym (get_field :nlitval_symbol curimport)) 
-			(regval (get_field :nlitval_regval curimport))
-			(val (get_field :litv_value regval))
-			(modulstr (get_field :mocx_modulename modctx)) 
-			(oimplocv (mapobject_get importmap impsym))
+				      (void*) $OLITVALUETUPLOC)	;
+		    }#
+		    ))
+      (list_append oiniprolog
+		   (instance class_objgetslot
+			     :obdi_destlist (list ocurenvloc)
+			     :ogetsl_obj ocurenvboxloc
+			     :ogetsl_field referenced_value
+			     ))
+      (list_append oiniprolog
+		   (instance class_objgetslot
+			     :obdi_destlist (list oprevenvloc)
+			     :ogetsl_obj ocurenvloc
+			     :ogetsl_field env_prev
+			     ))
+      (debug "compile2obj_initextendproc before body oiniprolog=" oiniprolog
+	     "\n idata=" idata)
+      ;; now handle the body
+      ;; the tuple to compile the body
+      (let (
+	    (odatatup 
+	     (list_to_multiple
+	      idata discr_multiple
+	      (lambda (curdat)
+		(assert_msg "check curdat" (is_a curdat class_nrep_bound_data))
+		(let ( (curobd (compile_obj curdat gcx)) )
+		  curobd))))
+	    (toplis (unsafe_get_field :ninit_topl ipro)) 
+	    )
+	(put_fields oinitxrout
+		    :oirout_data odatatup)
+	(debug "compile2obj_initextendproc toplis=" toplis)
+	(assert_msg "check toplis" (is_list_or_null toplis))
+	;; compile the toplevels
+	(let ( (objtoplis 
+		(list_map
+		 toplis
+		 (lambda (curtop)
+		   (debug "compile2obj_initextendproc curtop=" curtop)
+		   (let ( (otop (compile_obj curtop gcx)) )
+		     (debug "compile2obj_initextendproc otop=" otop)
+		     otop)))) 
+	       )
+	  (debug "compile2obj_initextendproc objtoplis=" objtoplis)
+	  ;; generate the getting of symbols & keywords
+	  (append_commentconst oiniprolog "get symbols & keywords")
+	  (multiple_every
+	   odatatup
+	   (lambda (curpdat :long curk) 
+	     (if (is_a curpdat class_objinitobject)
+		 (let ( (odat (unsafe_get_field :oie_data curpdat))
 			)
-		   (debug "compile2obj_initextendproc impsym=" impsym "\n regval=" regval "\n oimplocv=" oimplocv)
-		   (let ( 
-			  (:long litrank (get_int (get_field :litv_rank regval)))
-			  (ogetlit (make_objcompute
-				    ()
-				    ctype_value
-				    ##{/* retrieve runtime literal value #$LITRANK */
-				    ((melt_ptr_t) (((meltmultiple_ptr_t)$OLITVALUETUPLOC)->tabval[$LITRANK]))
-				    }#))
+		   (debug "compile2obj_initextendproc getting curpdat=" curpdat)
+		   (cond 
+		    ;; first  check for keywords, since they are also symbols (so order is important)
+		    ( (is_a odat class_nrep_datakeyword)
+		      (let ( (ogkw (instance class_objgetnamedkeyword
+					     :obgnamed_iobj curpdat))
+			     )
+			(list_append oiniprolog ogkw)
+			(debug "compile2obj_initextendproc added keyword getting ogkw=" ogkw)
+			))
+		    ( (is_a odat class_nrep_datasymbol)
+		      (let ( (ogsy (instance class_objgetnamedsymbol
+					     :obgnamed_iobj curpdat))
+			     )
+			(list_append oiniprolog ogsy)
+			(debug "compile2obj_initextendproc added symbol getting ogsy=" ogsy)
+			))
+		    )))))
+	  (debug "compile2obj_initextendproc before imports oiniprolog=" oiniprolog)
+	  ;;
+	  (if (>i (list_length importvalues) 0)
+	      (progn
+		(append_commentconst oiniprolog "before getting imported values")
+		;; generate the getting of imported values
+		(list_every
+		 importvalues
+		 (lambda (curimport)
+		   (debug "compile2obj_initextendproc curimport=" curimport)
+		   (assert_msg "check curimport" (is_a curimport  class_nrep_literalnamedvalue))
+		   (compile_warning "the generated import should have a cstring")
+		   (let ( (impsym (get_field :nlitval_symbol curimport)) 
+			  (regval (get_field :nlitval_regval curimport))
+			  (val (get_field :litv_value regval))
+			  (modulstr (get_field :mocx_modulename modctx)) 
+			  (oimplocv (mapobject_get importmap impsym))
 			  )
-		     (put_objdest ogetlit oimplocv)
-		     (debug "compile2obj_initextendproc/import val=" val
-			    " regval=" regval
-			    " ogetlit=" ogetlit)
-		     (list_append oiniprolog ogetlit)
-		     ))))
-	      (append_commentconst oiniprolog "after getting imported values")
-	      ))
-	;; append the compiled toplevel
-	(append_commentconst oinibody "before toplevel body")
-	(debug "compile2obj_initextendproc objtoplis=" objtoplis)
-	(foreach_in_list
-	 (objtoplis)
-	 (curpair curobjt)
+		     (debug "compile2obj_initextendproc impsym=" impsym "\n regval=" regval "\n oimplocv=" oimplocv)
+		     (let ( 
+			   (:long litrank (get_int (get_field :litv_rank regval)))
+			   (ogetlit (make_objcompute
+				     ()
+				     ctype_value
+				     ##{/* retrieve runtime literal value #$LITRANK */
+				     ((melt_ptr_t) (((meltmultiple_ptr_t)$OLITVALUETUPLOC)->tabval[$LITRANK]))
+				     }#))
+			   )
+		       (put_objdest ogetlit oimplocv)
+		       (debug "compile2obj_initextendproc/import val=" val
+			      " regval=" regval
+			      " ogetlit=" ogetlit)
+		       (list_append oiniprolog ogetlit)
+		       ))))
+		(append_commentconst oiniprolog "after getting imported values")
+		))
+	  ;; append the compiled toplevel
+	  (append_commentconst oinibody "before toplevel body")
+	  (debug "compile2obj_initextendproc objtoplis=" objtoplis)
+	  (foreach_in_list
+	   (objtoplis)
+	   (curpair curobjt)
 	   (list_append oinibody curobjt))
-	(debug "compile2obj_initextendproc updated oinibody=" oinibody)
-	(debug "compile2obj_initextendproc nbody=" nbody)
-	(foreach_in_list 
-	 (nbody)
-	 (curnpair curninst)
-	 (debug "compile2obj_initextendproc curninst=" curninst)
-	 (let ( (curobjb (compile_obj curninst gcx))
-		)
-	   (debug "compile2obj_initextendproc curobjb=" curobjb)
-	   (cond ( (is_a curobjb class_objpurevalue)
-		   (debug "compile2obj_initextendproc skipping pure curobjb=" curobjb)
-		   (void)
-		   )
-		 (:else
-		  (debug "compile2obj_initextendproc appending curobjb=" curobjb)
-		  (list_append oinibody curobjb)
-		  (void)))
-	 ))
-	;;
-	(append_commentconst oinibody "after toplevel body")
-	(debug "compile2obj_initextendproc final oinibody=" oinibody)
-	;;
-	(debug "compile2obj_initextendproc gives oinitxrout=" oinitxrout)
-	(return oinitxrout)
-	)))))
+	  (debug "compile2obj_initextendproc updated oinibody=" oinibody)
+	  (debug "compile2obj_initextendproc nbody=" nbody)
+	  (foreach_in_list 
+	   (nbody)
+	   (curnpair curninst)
+	   (debug "compile2obj_initextendproc curninst=" curninst)
+	   (if (is_not_a curninst class_nrep_routproc)
+	       (let ( (curobjb (compile_obj curninst gcx))
+		      )
+		 (debug "compile2obj_initextendproc curobjb=" curobjb)
+		 (cond ( (is_a curobjb class_objpurevalue)
+			 (debug "compile2obj_initextendproc skipping pure curobjb=" curobjb)
+			 (void)
+			 )
+		       (:else
+			(debug "compile2obj_initextendproc appending curobjb=" curobjb)
+			(list_append oinibody curobjb)
+			(void)))
+		 )))
+	  ;;
+	  (append_commentconst oinibody "after toplevel body")
+	  (debug "compile2obj_initextendproc final oinibody=" oinibody)
+	  ;;
+	  (debug "compile2obj_initextendproc gives oinitxrout=" oinitxrout)
+	  (return oinitxrout)
+	  )))))
 
 
 

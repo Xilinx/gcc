@@ -1,6 +1,16 @@
 
 2012-09-18  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-genobj.melt (compile2obj_initextendproc): Don't
+	compile again the instances of class_nrep_routproc in the top
+	normal nbody.
+
+	* melt/warmelt-outobj.melt
+	(translate_run_melt_expressions/normalextend): Should auto-box
+	non-values.
+
+2012-09-18  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{The eval mode seems to work on simple input like (quote 1) for
 	the first time!}}
 	* melt/warmelt-genobj.melt (compile2obj_initextendproc): Also

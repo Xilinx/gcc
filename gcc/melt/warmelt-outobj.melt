@@ -6030,12 +6030,12 @@ if (1) return;
 		      (debug "translate_run_melt_expressions/normalextend append nret=" nret)
 		    ))
 		   ((== lastctyp ctype_long)
-		    (warningmsg_plain "add boxing of last extension runtime integer expression")
+		    (warningmsg_plain "add boxing of last integer expression in runtime extension")
 		    (assert_msg "@$@translate_run_melt_expressions/normalextend  unimplemented number boxing")
 		    ;;;
 		    )
 		   ((== lastctyp ctype_cstring)
-		    (warningmsg_plain "add boxing of last extension runtime integer expression")
+		    (warningmsg_plain "add boxing of last string expression in runtime extension")
 		    (assert_msg "@$@translate_run_melt_expressions/normalextend  unimplemented string boxing")
 		    )
 		   (:else
