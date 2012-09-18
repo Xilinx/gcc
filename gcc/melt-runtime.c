@@ -4367,7 +4367,7 @@ meltgc_new_string_nakedbasename (meltobject_ptr_t discr_p,
   } else
     strcop = strcpy ((char *) xcalloc (1, slen + 1), str);
   basestr = (const char *) melt_basename (strcop);
-  dot = (char*) strrchr (basestr, '.');
+  dot = CONST_CAST (char*, strrchr (basestr, '.'));
   if (dot)
     *dot = 0;
   slen = strlen (basestr);
@@ -4402,7 +4402,7 @@ meltgc_new_string_tempname_suffixed (meltobject_ptr_t
   memset(suffix, 0, sizeof(suffix));
   if (suffstr) strncpy(suffix, suffstr, sizeof(suffix)-1);
   if (basestr)
-    dot = (char*) strrchr(basestr, '.');
+    dot = CONST_CAST (char*, strrchr(basestr, '.'));
   if (dot)
     *dot=0;
   tempnampath = melt_tempdir_path (basestr, suffix);
@@ -9299,11 +9299,11 @@ meltgc_run_c_extension (melt_ptr_t basename_p, melt_ptr_t env_p, melt_ptr_t litv
     melt_fatal_error ("invalid primary md5sum in runtime extension %s - got %s expecting %s",
     sopath, dynr_melt_primaryhexmd5, descmd5hex);
   {
-    melt_extension_info_t mext = { 0, NULL, NULL, NULL };
+    melt_extension_info_t mext = { 0, 0, NULL, NULL, NULL };
     int ix = 0;
     if (!melt_extinfvec)
       {
-	melt_extension_info_t emptymei = {0};
+	melt_extension_info_t emptymei = {0, 0, NULL, NULL, NULL };
 	melt_extinfvec = VEC_alloc (melt_extension_info_t, heap, 32);
 	/* don't use the index 0 so push a null at 0 in modextvec.  */
 	VEC_safe_push (melt_extension_info_t, heap, melt_extinfvec,
@@ -10611,7 +10611,7 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   melt_modinfvec = VEC_alloc (melt_module_info_t, heap, 32);
   /* don't use the index 0 so push an empty at 0 in modinfvec.  */
   {
-    melt_module_info_t emptymi = {0};
+    melt_module_info_t emptymi = {0, NULL, NULL, NULL, NULL};
     VEC_safe_push (melt_module_info_t, heap, melt_modinfvec,
 		   emptymi);
   }

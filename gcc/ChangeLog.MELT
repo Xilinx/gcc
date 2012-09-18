@@ -1,6 +1,14 @@
 
 2012-09-18  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.c (meltgc_new_string_nakedbasename): Use CONST_CAST
+	to avoid warning.
+	(meltgc_new_string_tempname_suffixed): Likewise.
+	(meltgc_run_c_extension): Fill the empty melt_extension_info_t.
+	(melt_really_initialize): Fill the empty melt_module_info_t.
+
+2012-09-18  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-outobj.melt (normadeclb_macroexpanded_list): Also
 	return a bindlist.
 	(translate_macroexpanded_list): More debug. The normalisthandler
