@@ -5307,6 +5307,7 @@ if (1) return;
   (let (
 	(:long startclock 0)
 	(normlist (list))
+	(bindlist (list))
 	(declbuf (make_strbuf discr_strbuf))
 	(firstx (pair_head (list_first xlist)))
 	(firstloc (if (is_a firstx class_source) (get_field :loca_location firstx)))
@@ -5423,6 +5424,7 @@ if (1) return;
 			       wnexp)
 		  ))
 	    (list_append normlist nexp)
+	    (list_append bindlist nbind)
 	    )))))
 
     (debug "normadeclb_macroexpanded_list @@cheadlist=" cheadlist "\n modctx=" modctx)
@@ -5469,8 +5471,11 @@ if (1) return;
     (assert_msg "check iniproc" (is_a iniproc class_nrep_initproc))
     (assert_msg "check xlist" (is_list xlist))
     ;;
-    
-    (return normlist declbuf startclock)
+    (debug "normadeclb_macroexpanded_list gives normlist=" normlist
+	   "\n bindlist=" bindlist
+	   "\n declbuf=" declbuf
+	   "\n startclock=" startclock)
+    (return normlist bindlist declbuf startclock)
     ))
 
 
@@ -5521,18 +5526,24 @@ if (1) return;
     (debug "translate_macroexpanded_list modinienv=" modinienv " modnamstr=" modnamstr
 	   " before normadeclb_macroexpanded_list modctx=" modctx)
     (multicall
-     (normlist declbuf :long startclock)
+     (normlist bindlist declbuf :long startclock)
      (normadeclb_macroexpanded_list xlist modnamstr modctx ncx inienv)
-     (debug "translate_macroexpanded_list normlist=" normlist)
+     (debug "translate_macroexpanded_list normadeclb_macroexpanded_list give normlist=" normlist 
+	    "\n bindlist=" bindlist)
      (assert_msg "check normlist" (is_list normlist))
+     (assert_msg "check bindlist" (is_list bindlist))
      (assert_msg "check declbuf" (is_strbuf declbuf))
      (debug "translate_macroexpanded_list after normadeclb_macroexpanded_list modctx=" modctx
 	    "\n normalisthandler=" normalisthandler
 	    "\n normlist=" normlist)
      (when (is_closure normalisthandler)
-       (debug "translate_macroexpanded_list before calling normalisthandler normlist=" normlist "\n of length " (list_length normlist))
-       (normalisthandler normlist modctx ncx inienv)
-       (debug "translate_macroexpanded_list after calling normalisthandler normlist=" normlist "\n of length " (list_length normlist))
+       (debug "translate_macroexpanded_list before calling normalisthandler normlist=" normlist 
+	      "\n of length " (list_length normlist)
+	      "\n bindlist=" bindlist "\n of length " (list_length bindlist))
+       (normalisthandler normlist bindlist modctx ncx inienv)
+       (debug "translate_macroexpanded_list after calling normalisthandler normlist=" normlist
+	      "\n of length " (list_length normlist)
+	      "\n bindlist=" bindlist "\n of length " (list_length bindlist))
        )
      ;;
      ;;
@@ -5993,16 +6004,19 @@ if (1) return;
 	     (:long lenxlist (list_length xlist))
 	     ;; normalextend should ensure that the last normal gives a value
 	     (normalextend 
-	      (lambda (normlist modctx ncx inienv)
+	      (lambda (normlist bindlist modctx ncx inienv)
 		(debug "translate_run_melt_expressions/normalextend normlist=" normlist
+		       "\n bindlist=" bindlist
 		       "\n old !refnormlist=" !refnormlist
 		       "\n ncx=" ncx)
 		(shortbacktrace_dbg "translate_run_melt_expressions/normalextend" 13)
 		(assert_msg "check null !refnormlist" (null !refnormlist))
 		(let ( (lastnorm (list_last_element normlist))
+		       (lastbind (list_last_element bindlist))
 		       (lastctyp (get_ctype lastnorm inienv))
 		       )
 		  (debug "translate_run_melt_expressions/normalextend lastnorm=" lastnorm 
+			 " lastbind=" lastbind
 			 " lastctyp=" lastctyp)
 		  (assert_msg "check lastctyp" (is_a lastctyp class_ctype))
 		  (cond

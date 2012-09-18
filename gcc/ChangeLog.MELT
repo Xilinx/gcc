@@ -1,4 +1,12 @@
 
+2012-09-18  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-outobj.melt (normadeclb_macroexpanded_list): Also
+	return a bindlist.
+	(translate_macroexpanded_list): More debug. The normalisthandler
+	also gets the bindlist.
+	(translate_run_melt_expressions): The normalextend also gets the bindlist.
+
 2012-09-17  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-macro.melt (current_module_environment_container)
