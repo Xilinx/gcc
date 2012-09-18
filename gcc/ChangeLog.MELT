@@ -1,6 +1,18 @@
 
 2012-09-18  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	{{The eval mode seems to work on simple input like (quote 1) for
+	the first time!}}
+	* melt/warmelt-genobj.melt (compile2obj_initextendproc): Also
+	compiles the body.
+
+	* melt/warmelt-outobj.melt (compilobj_nrep_return): Reject
+	secondary returns for initial routine. Emit
+	melt_warn_for_no_expected_secondary_results only for non-initial
+	routines.
+
+2012-09-18  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/generated/meltrunsup.h: Regenerate.
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/warmelt-base.c: Regenerate.

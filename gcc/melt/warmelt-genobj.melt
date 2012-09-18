@@ -1467,6 +1467,7 @@ $SBUF.}#
 	 (oiniprolog (make_list discr_list))
 	 (oinibody (make_list discr_list))
 	 (modenv (get_field :ninitextend_modenv ipro))
+	 (nbody (get_field :nproc_body ipro))
 	 (modname (get_field :mocx_modulename modctx))
 	 (litvalist (get_field :morcx_litervalist modctx))
 	 (oinitxrout 
@@ -1629,7 +1630,8 @@ $SBUF.}#
 			   :ogetsl_obj ocurenvloc
 			   :ogetsl_field env_prev
 			   ))
-    (debug "compile2obj_initextendproc before body oiniprolog=" oiniprolog)
+    (debug "compile2obj_initextendproc before body oiniprolog=" oiniprolog
+	   "\n idata=" idata)
     ;; now handle the body
     ;; the tuple to compile the body
     (let (
@@ -1651,6 +1653,7 @@ $SBUF.}#
 	      (list_map
 	       toplis
 	       (lambda (curtop)
+		 (debug "compile2obj_initextendproc curtop=" curtop)
 		 (let ( (otop (compile_obj curtop gcx)) )
 		   (debug "compile2obj_initextendproc otop=" otop)
 		   otop)))) 
@@ -1720,14 +1723,32 @@ $SBUF.}#
 	      ))
 	;; append the compiled toplevel
 	(append_commentconst oinibody "before toplevel body")
-	(list_every 
-	 objtoplis
-	 (lambda (curobjt)
-	   (list_append oinibody curobjt)))
-	(append_commentconst oinibody "after toplevel body")
+	(debug "compile2obj_initextendproc objtoplis=" objtoplis)
+	(foreach_in_list
+	 (objtoplis)
+	 (curpair curobjt)
+	   (list_append oinibody curobjt))
+	(debug "compile2obj_initextendproc updated oinibody=" oinibody)
+	(debug "compile2obj_initextendproc nbody=" nbody)
+	(foreach_in_list 
+	 (nbody)
+	 (curnpair curninst)
+	 (debug "compile2obj_initextendproc curninst=" curninst)
+	 (let ( (curobjb (compile_obj curninst gcx))
+		)
+	   (debug "compile2obj_initextendproc curobjb=" curobjb)
+	   (cond ( (is_a curobjb class_objpurevalue)
+		   (debug "compile2obj_initextendproc skipping pure curobjb=" curobjb)
+		   (void)
+		   )
+		 (:else
+		  (debug "compile2obj_initextendproc appending curobjb=" curobjb)
+		  (list_append oinibody curobjb)
+		  (void)))
+	 ))
 	;;
+	(append_commentconst oinibody "after toplevel body")
 	(debug "compile2obj_initextendproc final oinibody=" oinibody)
-	;; some things are still missing ...
 	;;
 	(debug "compile2obj_initextendproc gives oinitxrout=" oinitxrout)
 	(return oinitxrout)
@@ -4452,7 +4473,7 @@ $SBUF.}#
 (defun compilobj_nrep_return (nret gcx)
   (assert_msg "check nret" (is_a nret class_nrep_return))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
-  (debug "compilobj_nrep_return nret=" nret)
+  (debug "compilobj_nrep_return nret=" nret "\n gcx=" gcx)
   (let ( (rloc (unsafe_get_field :nrep_loc nret))
 	 (rmain (unsafe_get_field :nret_main nret))
 	 (rrest (unsafe_get_field :nret_rest nret)) ;; a tuple or nil
@@ -4466,9 +4487,15 @@ $SBUF.}#
 	 )
     (assert_msg "check orout" (is_a orout class_routineobj))
     (assert_msg "check rrest" (is_multiple_or_null rrest))
-    (if (null (unsafe_get_field :obrout_retval orout))
-	(unsafe_put_fields orout :obrout_retval retloc))
+    (if (null (get_field :obrout_retval orout))
+	(put_fields orout :obrout_retval retloc))
     (list_append olis (put_objdest omainv retloc))
+    (when (and (is_a orout class_initialroutineobj)
+	       (>i (multiple_length rrest) 0))
+      (debug "compilobj_nrep_return bad initial orout=" orout " with secondary results rrest=" rrest)
+      (error_plain rloc "(RETURN ...) with secondary results outside of function")
+      (return)
+      )
     (foreach_in_multiple
      (rrest)
      (rxtra :long ix)
@@ -4479,24 +4506,26 @@ $SBUF.}#
 		       :obxres_rank (make_integerbox discr_integer ix)
 		       :obxres_obloc (compile_obj rxtra gcx))) 
 	    )
+       (debug "compilobj_nrep_return oxres=" oxres)
        ;; maybe we need to compute the ctype of the extra result....
        (list_append olis oxres)))
     ;; if no secondary results are returned, emit a check that no
     ;; secondary actual results are expected
-    (if (==i (multiple_length rrest) 0)
-	(let ( (ochecknores 
-		(make_objlocatedexp rloc ctype_void		
-				    ##{ /*ochecknores compilobj_nrep_return*/
-#if MELT_HAVE_DEBUG
-    if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)  melt_warn_for_no_expected_secondary_results();
-     /* we warned when secondary results are expected but not returned. */
-#endif /*MELT_HAVE_DEBUG*/
-}#
-	     ))
-	     )
-	(debug "compilobj_nrep_return ochecknores=" ochecknores)
-	(list_append olis ochecknores)
-      ))
+    (if (is_not_a orout class_initialroutineobj)
+	(if (==i (multiple_length rrest) 0)
+	    (let ( (ochecknores 
+		    (make_objlocatedexp rloc ctype_void		
+					##{ /*ochecknores compilobj_nrep_return*/
+					#if MELT_HAVE_DEBUG
+					if (meltxresdescr_ && meltxresdescr_[0] && meltxrestab_)  melt_warn_for_no_expected_secondary_results()	;
+					/* we warned when secondary results are expected but not returned. */
+					#endif /*MELT_HAVE_DEBUG*/
+					}#
+					))
+		   )
+	      (debug "compilobj_nrep_return ochecknores=" ochecknores)
+	      (list_append olis ochecknores)
+	      )))
     (list_append olis 
 		 (instance class_objfinalreturn
 			   :obi_loc rloc))

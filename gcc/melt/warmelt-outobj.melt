@@ -2218,8 +2218,8 @@ $ONAME (melt_ptr_t meltarg_curenvbox_p, melt_ptr_t meltarg_tuplitval_p)
       (add2sbuf_indentnl implbuf 1)
       (add2out implbuf  ##{ /*-- ending run extension $OMODNAM  --*/}#)
       (add2out implbuf ##{
- goto end;
-end: melt_topframe = meltfram__.mcfr_prev;
+ goto labend_rout;
+labend_rout: melt_topframe = meltfram__.mcfr_prev;
   return (melt_ptr_t)}#)
       (output_c_code oretval declbuf implbuf 1)
       (add2out implbuf ##{; /*return value of extension $OMODNAM */
@@ -5602,7 +5602,8 @@ if (1) return;
 	 (debug "translate_macroexpanded_list unpdated inipro=" inipro)
 	 (assert_msg "check inipro" (is_a inipro class_nrep_initproc))
 	 (assert_msg "check iniproctransl" (is_closure iniproctransl))
-	 (debug "translate_macroexpanded_list before calling iniproctransl inipro= " inipro)
+	 (debug "translate_macroexpanded_list inipro= " inipro
+		"\n before calling iniproctransl=" iniproctransl)
 	 (let ( (iniobj
 		 (iniproctransl inipro modctx inidata compicache procurmodenvlist importvalues)) 
 		)
