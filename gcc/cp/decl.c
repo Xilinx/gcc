@@ -3248,13 +3248,15 @@ make_typename_type (tree context, tree name, enum tag_types tag_type,
 	name = TREE_OPERAND (fullname, 0) = DECL_NAME (name);
       else if (TREE_CODE (name) == OVERLOAD)
 	{
-	  error ("%qD is not a type", name);
+	  if (complain & tf_error)
+	    error ("%qD is not a type", name);
 	  return error_mark_node;
 	}
     }
   if (TREE_CODE (name) == TEMPLATE_DECL)
     {
-      error ("%qD used without template parameters", name);
+      if (complain & tf_error)
+	error ("%qD used without template parameters", name);
       return error_mark_node;
     }
   gcc_assert (TREE_CODE (name) == IDENTIFIER_NODE);
@@ -10552,7 +10554,7 @@ local_variable_p (const_tree t)
 
 static tree
 local_variable_p_walkfn (tree *tp, int *walk_subtrees,
-			 void *data ATTRIBUTE_UNUSED)
+			 void * /*data*/)
 {
   /* Check DECL_NAME to avoid including temporaries.  We don't check
      DECL_ARTIFICIAL because we do want to complain about 'this'.  */
@@ -12694,9 +12696,19 @@ start_preparsed_function (tree decl1, tree attrs, int flags)
   int doing_friend = 0;
   cp_binding_level *bl;
   tree current_function_parms;
-  struct c_fileinfo *finfo
-    = get_fileinfo (LOCATION_FILE (DECL_SOURCE_LOCATION (decl1)));
+  struct c_fileinfo *finfo = NULL;
   bool honor_interface;
+
+  /* This was added to make sure that the location is available.  For example,
+     in Cilk Plus, we add internal functions which does not have a line or
+     file location.  This will make sure we do not crash in those cases.  
+     Also, we added the check to see finfo is available before we accessed the
+     structure's fields.  */
+  if (DECL_SOURCE_LOCATION (decl1) 
+      && LOCATION_FILE (DECL_SOURCE_LOCATION (decl1))) 
+    finfo = get_fileinfo (LOCATION_FILE (DECL_SOURCE_LOCATION (decl1)));
+  else
+    finfo = NULL;
 
   /* Sanity check.  */
   gcc_assert (TREE_CODE (TREE_VALUE (void_list_node)) == VOID_TYPE);
@@ -12983,7 +12995,7 @@ start_preparsed_function (tree decl1, tree attrs, int flags)
   /* If this function belongs to an interface, it is public.
      If it belongs to someone else's interface, it is also external.
      This only affects inlines and template instantiations.  */
-  else if (!finfo->interface_unknown && honor_interface)
+  else if (finfo && !finfo->interface_unknown && honor_interface)
     {
       if (DECL_DECLARED_INLINE_P (decl1)
 	  || DECL_TEMPLATE_INSTANTIATION (decl1))
@@ -13006,7 +13018,7 @@ start_preparsed_function (tree decl1, tree attrs, int flags)
       if (!DECL_EXTERNAL (decl1))
 	mark_needed (decl1);
     }
-  else if (finfo->interface_unknown && finfo->interface_only
+  else if (finfo && finfo->interface_unknown && finfo->interface_only
 	   && honor_interface)
     {
       /* If MULTIPLE_SYMBOL_SPACES is defined and we saw a #pragma

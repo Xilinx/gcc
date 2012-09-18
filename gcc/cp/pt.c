@@ -5188,7 +5188,7 @@ has_value_dependent_address (tree op)
    call.c  */
 
 static int
-unify_success (bool explain_p ATTRIBUTE_UNUSED)
+unify_success (bool /*explain_p*/)
 {
   return 0;
 }
@@ -5203,7 +5203,7 @@ unify_parameter_deduction_failure (bool explain_p, tree parm)
 }
 
 static int
-unify_invalid (bool explain_p ATTRIBUTE_UNUSED)
+unify_invalid (bool /*explain_p*/)
 {
   return 1;
 }
@@ -10457,6 +10457,16 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 	if (spec)
 	  {
 	    r = spec;
+	    break;
+	  }
+
+	if (TREE_CODE (t) == VAR_DECL && DECL_ANON_UNION_VAR_P (t))
+	  {
+	    /* Just use name lookup to find a member alias for an anonymous
+	       union, but then add it to the hash table.  */
+	    r = lookup_name (DECL_NAME (t));
+	    gcc_assert (DECL_ANON_UNION_VAR_P (r));
+	    register_local_specialization (r, t);
 	    break;
 	  }
 
@@ -19303,10 +19313,15 @@ value_dependent_expression_p (tree expression)
 
     case VAR_DECL:
        /* A constant with literal type and is initialized
-	  with an expression that is value-dependent.  */
+	  with an expression that is value-dependent.
+
+          Note that a non-dependent parenthesized initializer will have
+          already been replaced with its constant value, so if we see
+          a TREE_LIST it must be dependent.  */
       if (DECL_INITIAL (expression)
 	  && decl_constant_var_p (expression)
-	  && value_dependent_expression_p (DECL_INITIAL (expression)))
+	  && (TREE_CODE (DECL_INITIAL (expression)) == TREE_LIST
+	      || value_dependent_expression_p (DECL_INITIAL (expression))))
 	return true;
       return false;
 
@@ -19653,7 +19668,7 @@ type_dependent_expression_p (tree expression)
 
 static tree
 instantiation_dependent_r (tree *tp, int *walk_subtrees,
-			   void *data ATTRIBUTE_UNUSED)
+			   void * /*data*/)
 {
   if (TYPE_P (*tp))
     {

@@ -396,11 +396,12 @@ gfc_compare_derived_types (gfc_symbol *derived1, gfc_symbol *derived2)
   if (derived1 == derived2)
     return 1;
 
+  gcc_assert (derived1 && derived2);
+
   /* Special case for comparing derived types across namespaces.  If the
      true names and module names are the same and the module name is
      nonnull, then they are equal.  */
-  if (derived1 != NULL && derived2 != NULL
-      && strcmp (derived1->name, derived2->name) == 0
+  if (strcmp (derived1->name, derived2->name) == 0
       && derived1->module != NULL && derived2->module != NULL
       && strcmp (derived1->module, derived2->module) == 0)
     return 1;
@@ -507,14 +508,18 @@ gfc_compare_types (gfc_typespec *ts1, gfc_typespec *ts2)
 static int
 compare_type_rank (gfc_symbol *s1, gfc_symbol *s2)
 {
+  gfc_array_spec *as1, *as2;
   int r1, r2;
 
-  r1 = (s1->as != NULL) ? s1->as->rank : 0;
-  r2 = (s2->as != NULL) ? s2->as->rank : 0;
+  as1 = (s1->ts.type == BT_CLASS) ? CLASS_DATA (s1)->as : s1->as;
+  as2 = (s2->ts.type == BT_CLASS) ? CLASS_DATA (s2)->as : s2->as;
+
+  r1 = as1 ? as1->rank : 0;
+  r2 = as2 ? as2->rank : 0;
 
   if (r1 != r2
-      && (!s1->as || s1->as->type != AS_ASSUMED_RANK)
-      && (!s2->as || s2->as->type != AS_ASSUMED_RANK))
+      && (!as1 || as1->type != AS_ASSUMED_RANK)
+      && (!as2 || as2->type != AS_ASSUMED_RANK))
     return 0;			/* Ranks differ.  */
 
   return gfc_compare_types (&s1->ts, &s2->ts)
@@ -2263,8 +2268,7 @@ get_expr_storage_size (gfc_expr *e)
 
 	    elements *= (end - start)/stride + 1L;
 	  }
-      else if (ref->type == REF_ARRAY && ref->u.ar.type == AR_FULL
-	       && ref->u.ar.as->lower && ref->u.ar.as->upper)
+      else if (ref->type == REF_ARRAY && ref->u.ar.type == AR_FULL)
 	for (i = 0; i < ref->u.ar.as->rank; i++)
 	  {
 	    if (ref->u.ar.as->lower[i] && ref->u.ar.as->upper[i]
