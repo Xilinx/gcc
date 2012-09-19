@@ -1,3 +1,16 @@
+2012-09-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/54575
+	* pt.c (instantiate_alias_template): New.
+	(tsubst): Use it.
+	(push_access_scope): Allow TYPE_DECL.
+
+2012-09-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53661
+	* typeck2.c (check_narrowing): Avoid false positives on conversion
+	from enumeral type.
+
 2012-09-14  Marc Glisse  <marc.glisse@inria.fr>
 
 	PR c++/54427

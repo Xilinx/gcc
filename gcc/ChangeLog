@@ -1,3 +1,254 @@
+2012-09-19  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-forwprop.c (get_prop_source_stmt): Simplify. 
+
+2012-09-19  Jan Hubicka  <jh@suse.cz>
+
+	* symtab.c (insert_to_assembler_name_hash): Do not insert
+	register vars.
+	(unlink_from_assembler_name_hash): NULL out pointers of unlinked
+	var.
+	(symtab_prevail_in_asm_name_hash): New.
+	(symtab_initialize_asm_name_hash): Break out from ...
+	(symtab_node_for_asm): ... here.
+	(dump_symtab_base): Dump LTO file data.
+	(verify_symtab_base): Register vars are not in symtab.
+	* cgraph.h (symtab_initialize_asm_name_hash,
+	symtab_prevail_in_asm_name_hash): New functions.
+	(symtab_real_symbol_p): New inline.
+	* lto-symtab.c: Do not include gt-lto-symtab.h.
+	(lto_symtab_entry_def): Remove.
+	(lto_symtab_entry_t): Remove.
+	(lto_symtab_identifiers): Remove.
+	(lto_symtab_free): Remove.
+	(lto_symtab_entry_hash): Remove.
+	(lto_symtab_entry_eq): Remove.
+	(lto_symtab_entry_marked_p): Remove.
+	(lto_symtab_maybe_init_hash_table): Remove.
+	(resolution_guessed_p, set_resolution_guessed): New functions.
+	(lto_symtab_register_decl): Only set resolution info.
+	(lto_symtab_get, lto_symtab_get_resolution): Remove.
+	(lto_symtab_merge): Reorg to work across symtab; do nothing if decls
+	are same.
+	(lto_symtab_resolve_replaceable_p): Reorg to work on symtab.
+	(lto_symtab_resolve_can_prevail_p): Likewise; only real symbols can
+	prevail.
+	(lto_symtab_resolve_symbols): Reorg to work on symtab.
+	(lto_symtab_merge_decls_2): Likewise.
+	(lto_symtab_merge_decls_1): Likewise; add debug dumps.
+	(lto_symtab_merge_decls): Likewise; do not merge at ltrans stage.
+	(lto_symtab_merge_cgraph_nodes_1): Reorg to work on symtab.
+	(lto_symtab_merge_cgraph_nodes): Likewise; do not merge at ltrans stage.
+	(lto_symtab_prevailing_decl): Rewrite to lookup into symtab.
+	* lto-streaer.h (lto_symtab_free): Remove.
+	* lto-cgraph.c (add_references): Cleanup.
+	* varpool.c (varpool_assemble_decl): Skip hard regs.
+
+2012-09-19  Richard Guenther  <rguenther@suse.de>
+
+	PR other/53316
+	* common/common-target.h (OPT_LEVELS_1_PLUS_NOT_DEBUG): Add.
+
+2012-09-19  Richard Guenther  <rguenther@suse.de>
+
+	PR other/53316
+	* common.opt (optimize_debug): New variable.
+	(Og): New optimization level.
+	* doc/invoke.texi (Og): Document.
+	* opts.c (maybe_default_option): Add debug parameter.
+	(maybe_default_options): Likewise.
+	(default_options_optimization): Handle -Og.
+	(common_handle_option): Likewise.
+	* passes.c (gate_all_optimizations): Do not run with -Og.
+	(gate_all_optimizations_g): New gate, run with -Og.
+	(pass_all_optimizations_g): New container pass, run with -Og.
+	(init_optimization_passes): Schedule pass_all_optimizations_g
+	alongside pass_all_optimizations.
+
+2012-09-19  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/54132
+	* tree-loop-distribution.c (classify_partition): Properly
+	check dependences for memmove.
+	* tree-data-ref.h (compute_affine_dependence): Declare.
+	* tree-data-ref.c (compute_affine_dependence): Export.
+
+2012-09-19  Zhenqiang Chen <zhenqiang.chen@arm.com>
+
+	PR middle-end/54364
+	* bb-reorder.c (connect_better_edge_p): New added.
+	(find_traces_1_round): When optimizing for size, ignore edge frequency
+	and probability, and handle all in one round.
+	(bb_to_key): Use bb->index as key when optimizing for size.
+	(better_edge_p): The bb with smaller index is better when optimizing
+	for size.
+	(connect_traces): When optimizing for size, connect block n with
+	block n + 1; connect trace m with trace m + 1 if falling through.
+	(gate_handle_reorder_blocks): Enable bbro when optimizing for -Os.
+
+2012-09-19  Bin Cheng  <bin.cheng@arm.com>
+
+	* fold-const.c (fold_truth_andor): Remove duplicated check on
+	BRANCH_COST.
+
+2012-09-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR middle-end/54617
+	* expr.c (store_field): Handle a PARALLEL in more cases.
+
+2012-09-18  Segher Boessenkool  <segher@kernel.crashing.org>
+
+	* config/rs6000/rs6000.md (sminsi3, smaxsi3, uminsi3, umaxsi3):
+	Delete.
+	(abssi2, abs<mode>2_isel, nabs<mode>2_isel, abssi2_nopower,
+	nabs_nopower): Delete.
+	(absdi2, absdi2_internal, nabsdi2): Delete.
+	(smindi3, smaxdi3, umindi3, umaxdi3): Delete.
+
+2012-09-18  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.md: Tidy up empty "".  Fix C code indentation.
+	* config/avr/avr-fixed.md: Ditto.
+
+2012-09-18  Maciej W. Rozycki  <macro@codesourcery.com>
+
+	* config/rs6000/rs6000.c (print_operand) <'c'>: Remove.
+	* config/rs6000/spe.md: Remove a leftover comment.
+
+2012-09-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/54592
+	* config/i386/i386.c (ix86_rtx_costs): Limit > UNITS_PER_WORD
+	AND/IOR/XOR cost calculation to MODE_INT class modes.
+
+2012-09-18 Thomas Quinot  <quinot@adacore.com>       
+
+	* doc/invoke.texi: Document -fada-spec-parent.
+
+2012-09-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/54610
+	* tree-ssa-forwprop.c: Include optabs.h.  Don't include
+	tree-vectorizer.h.
+	(simplify_vector_constructor): Don't use vect_gen_perm_mask,
+	instead create the mask constant here.
+	* Makefile.in (tree-ssa-forwprop.o): Depend on $(OPTABS_H).
+	Don't depend on $(TREE_VECTORIZER_H).
+
+2012-09-18  Florian Weimer  <fweimer@redhat.com>
+
+	* Makefile.in (BASIC_BLOCK_H): Add cfg-flags.def.
+
+2012-09-18  Richard Guenther  <rguenther@suse.de>
+
+	* statistics.h (CXX_MEM_STAT_INFO): New define.
+	* gimple.h (gimple_build_assign_with_ops_stat,
+	gimple_build_assign_with_ops, gimple_build_assign_with_ops3):
+	Turn into an overload of the function gimple_build_assign_with_ops.
+	* gimple.c (gimple_build_assign_with_ops_stat): Rename to ...
+	(gimple_build_assign_with_ops): ... this.
+	* tree-ssa-loop-im.c (move_computations_stmt): Adjust.
+	* tree-ssa-math-opts.c (convert_mult_to_fma): Likewise.
+	* tree-vect-data-refs.c (vect_permute_store_chain): Likewise.
+	(vect_permute_load_chain): Likewise.
+	* tree-vect-generic.c (expand_vector_divmod): Likewise.
+	* tree-vect-patterns.c (vect_recog_dot_prod_pattern): Likewise.
+	(vect_recog_divmod_pattern): Likewise.
+	(vect_recog_mixed_size_cond_pattern): Likewise.
+	(adjust_bool_pattern): Likewise.
+	* tree-vect-slp.c (vect_create_mask_and_perm): Likewise.
+	* tree-vect-stmts.c (vectorizable_operation): Likewise.
+	(permute_vec_elements): Likewise.
+	(vectorizable_load): Likewise.
+
+2012-09-17  Paul Koning  <ni1d@arrl.net>
+
+	* doc/invoke.text (-feliminate-unused-debug-types): Update to
+	reflect that this is enabled by default.
+
+2012-09-17  Ben Cheng  <bccheng@google.com
+
+	* config/arm/linux-elf.h (LINUX_TARGET_LINK_SPEC): Suppress the
+	dynamic linker commands for statically linked programs.
+
+2012-09-17  Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	* config/arm/arm.c (arm_rtx_costs_1): Handle vec_extract and vec_set
+	patterns.
+	* config/arm/arm.md ("vec_set<mode>_internal"): Support memory source
+	operands, implemented via vld1 instruction.
+	("vec_extract<mode>"): Support memory destination operands, implemented
+	via vst1 instruction.
+	("neon_vst1_lane<mode>"): Use UNSPEC_VST1_LANE instead of vec_select.
+	* config/arm/predicates.md ("neon_lane_number"): Remove.
+
+2012-09-17  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+	    Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	* config/arm/arm.c (output_move_neon): Update comment.
+	Use vld1.64/vst1.64 instead of vldm/vstm where possible.
+	(neon_vector_mem_operand): Support double-word modes.
+	* config/arm/neon.md (*neon_mov VD): Call output_move_neon
+	instead of output_move_vfp.  Change constraint from Uv to Un.
+
+2012-09-17  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/54598
+	* tree-streamer-in.c (unpack_ts_real_cst_value_fields): Use ggc'ed
+	FIXED_VALUE_TYPE instead of struct fixed_value.
+
+2012-09-17  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.c (CONST_FIXED_P): Remove define.
+	* config/avr/avr.md (add<mode>3): Use CONST_FIXED_P.
+
+2012-09-17  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/54607
+	* config.gcc (tm_file,avr): Add avr/avr-arch.h.
+	* config/avr/t-avr (gen-avr-mmcu-texi): Use CC_FOR_BUILD to
+	compile.  Don't depend on TM_H.  Use CFLAGS_FOR_BUILD.
+	* config/avr/avr.h (avr_arch, base_arch_s, mcu_type_s): Source out
+	to...
+	* config/avr/avr-arch.h: ...this new file.
+	* config/avr/gen-avr-mmcu-texi.c: Include avr-arch.h, stdio.h,
+	stdlib.h.
+	* comparator: Make letters smaller than digits.
+	* config/avr/avr-devices.c: Don't include headers if used in
+	gen-avr-mmcu-texi.c.
+	* doc/avr-mmcu.texi: Regenerate.
+
+2012-09-17  Georg-Johann Lay  <avr@gjlay.de>
+
+	* rtl.h (CONST_FIXED_P): New predicate macro.
+
+2012-09-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-cfgcleanup. (cleanup_control_expr_graph) <GIMPLE_COND>: Remove
+	code doing propagation from degenerate PHI nodes.
+	* tree-ssa-loop-ivcanon.c (propagate_into_all_uses): New function.
+	(propagate_constants_for_unrolling): Likewise.
+	(tree_unroll_loops_completely): If the current loop has been unrolled
+	and its father isn't the entire function, propagate constants within
+	the new basic blocks by means of propagate_constants_for_unrolling.
+
+2012-09-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/54563
+	* tree-ssa-math-opts.c (execute_cse_sincos): Call
+	gimple_purge_dead_eh_edges if last call has been changed.
+
+2012-09-17  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/54222
+	* config/avr/avr.c (avr_out_plus_symbol): Fix typo if PLUS and PSImode.
+	(avr_out_plus_1): Remove log comments from assembler output.
+
+2012-09-17  Ruben Buchatskiy  <ruben@ispras.ru>
+
+	* config/arm/vfp.md (*thumb2_movdf_vfp): Require one of the operands
+	to be a register.
+
 2012-09-16  Richard Sandiford  <rdsandiford@googlemail.com>
 
 	* calls.c (expand_call): Use emit_group_move for PARALLEL->PARALLEL
@@ -160,6 +411,9 @@
 	(*fmai_fnmadd_<mode>, *fmai_fnmsub_<mode>): Likewise.  Negate
 	operand 2 instead of operand 1, but put it as first argument
 	of fma.
+	* config/i386/fmaintrin.h (_mm_fnmadd_sd, _mm_fnmadd_ss,
+	_mm_fnmsub_sd, _mm_fnmsub_ss): Negate the second argument instead
+	of the first.
 
 2012-09-14  Richard Guenther  <rguenther@suse.de>
 
