@@ -2,6 +2,10 @@
 
 2012-09-19  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* Makefile.in (all-melt): New target
+
+2012-09-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{Regenerate}}
 	* melt/generated/meltrunsup.h: Regenerate.
 	* melt/generated/meltrunsup-inc.c: Regenerate.

@@ -5493,7 +5493,9 @@ melt-build-param.sh:  Makefile ./cc1$(exeext)
 
 ##
 
-.PHONY: install-all-melt install-melt-includes install-melt-sources install-melt-modules install-melt-mk install-melt-default-modules-list check-melt-runtime
+.PHONY: all-melt install-all-melt install-melt-includes install-melt-sources install-melt-modules install-melt-mk install-melt-default-modules-list check-melt-runtime
+
+all-melt: melt.encap
 
 install-all-melt: all-melt install-melt-includes install-melt-sources install-melt-modules  install-melt-mk install-melt-default-modules-list 
 
