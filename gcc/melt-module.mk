@@ -183,7 +183,11 @@ endif
 
 ################################################################
 ## if available, include the melt generated make fragment
-GCCMELTGEN_BUILD?=$(GCCMELT_MODULE_WORKSPACE)/
+ifndef GCCMELTGEN_BUILD
+GCCMELTGEN_BUILD:=$(realpath $(GCCMELT_MODULE_WORKSPACE))/
+$(info GCCMELTGEN_BUILD set to $(GCCMELTBEN_BUILD))
+endif
+
 include $(GCCMELT_MODULE_SOURCEBASE)+meltbuild.mk
 
 GCCMELT_PACKAGES_CFLAGS=$(if $(MELTGENMOD_PACKAGELIST),$(shell pkg-config --cflags $(MELTGENMOD_PACKAGELIST)))
@@ -286,7 +290,7 @@ $(GCCMELTGEN_BUILD)%.runextend.meltpic.o: | $(GCCMELT_MODULE_DEPENDENCIES)
 $(GCCMELTGEN_BUILD)%.runextend.meltmdsumedpic.o: $(GCCMELTGEN_BUILD)%.mdsumed.c | $(GCCMELT_MODULE_DEPENDENCIES)
 	@echo @+@melt-module runextend.meltmdsumedpic at= $@ left= $< question= $? caret= $^
 	$(GCCMELT_COMPILER) $(GCCMELT_RUNEXTEND_PREPROFLAGS)  $(GCCMELT_PREPROFLAGS) \
-           $(GCCMELT_DEBUGNOLINE_FLAGS) $(GCCMELT_CFLAGS)  $(GCCMELT_PACKAGES_CFLAGS) \
+           $(GCCMELT_RUNEXTEND_FLAGS) $(GCCMELT_CFLAGS)  $(GCCMELT_PACKAGES_CFLAGS) \
 	   -fPIC -c -o $@ $<
 
 
@@ -328,13 +332,13 @@ $(GCCMELTGEN_BUILD)$(GCCMELT_BASE).meltmod-%.runextend.so:
 
 ################
 ifneq ($(realpath $(GCCMELTGEN_BUILD)),$(realpath $(dir $(GCCMELT_MODULE_BINARYBASE))))
-$(info hereGCCMELTGEN_BUILD=$(GCCMELTGEN_BUILD) real= $(realpath $(GCCMELTGEN_BUILD)) GCCMELT_MODULE_BINARYBASE=$(GCCMELT_MODULE_BINARYBASE) realdir= $(realpath $(dir $(GCCMELT_MODULE_BINARYBASE))) dir= $(dir $(GCCMELT_MODULE_BINARYBASE)))
+$(info here.aa.GCCMELTGEN_BUILD=$(GCCMELTGEN_BUILD) real= $(realpath $(GCCMELTGEN_BUILD)) GCCMELT_MODULE_BINARYBASE=$(GCCMELT_MODULE_BINARYBASE) realdir= $(realpath $(dir $(GCCMELT_MODULE_BINARYBASE))) dir= $(dir $(GCCMELT_MODULE_BINARYBASE)) GCCMELT_CUMULATED_MD5=$(GCCMELT_CUMULATED_MD5))
 $(GCCMELT_MODULE_BINARYBASE).meltmod-$(GCCMELT_CUMULATED_MD5).$(GCCMELT_MODULE_FLAVOR).so: \
   $(GCCMELTGEN_BUILD)$(notdir $(GCCMELT_MODULE_BINARYBASE).meltmod-$(GCCMELT_CUMULATED_MD5).$(GCCMELT_MODULE_FLAVOR).so)
 	@echo @+@melt-module symlinkmodule at= $@ circ= $^ left= $< monster= $(GCCMELTGEN_BUILD)$(notdir $(GCCMELT_MODULE_BINARYBASE).meltmod-$(GCCMELT_CUMULATED_MD5).$(GCCMELT_MODULE_FLAVOR).so)
 	$(LN_S) -v -f $(realpath $(GCCMELTGEN_BUILD)$(notdir $(GCCMELT_MODULE_BINARYBASE).meltmod-$(GCCMELT_CUMULATED_MD5).$(GCCMELT_MODULE_FLAVOR).so))  $@
 else
-$(info hereGCCMELTGEN_BUILD=$(GCCMELTGEN_BUILD) same as dir of GCCMELT_MODULE_BINARYBASE= $(GCCMELT_MODULE_BINARYBASE))
+$(info here.ab.GCCMELTGEN_BUILD=$(GCCMELTGEN_BUILD) really $(realpath $(GCCMELTGEN_BUILD)) same as dir of GCCMELT_MODULE_BINARYBASE= $(GCCMELT_MODULE_BINARYBASE) GCCMELT_CUMULATED_MD5=$(GCCMELT_CUMULATED_MD5))
 endif
 
 ################################################################

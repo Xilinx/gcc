@@ -2,7 +2,7 @@
 ;; file warmelt-base.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
+    Copyright 2008 - 2012 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
                and Pierre Vittet  <piervit@pvittet.com>
 
@@ -3643,6 +3643,42 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
 )
 (install_value_descriptor valdesc_special_mpfr)
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; extra list utilities
+(defun list_remove_last_element (lis)
+  :doc #{$LIST_REMOVE_LAST_ELEMENT is a costly function to remove and
+  return the last element of a list $LIS. It runs in a time proportional to
+  the length of the list $LIS and truncates it.}#
+  (if (not (is_list lis))
+      (return ()))
+  (let ( (lastpair (list_last lis))
+	 (prevpair ())
+	 )
+    (if lastpair (assert_msg "check lastpair" (is_pair lastpair)))
+    (foreach_in_list
+     (lis)
+     (curpair curelem)
+     (assert_msg "check curpair" (is_pair curpair))
+     (when (== curpair lastpair)
+       (setq curpair ())
+       (if (is_pair prevpair)
+	   (code_chunk updatepair_chk 
+		       #{ /* list_remove_last_element $UPDATEPAIR_CHK */
+		       ((struct meltpair_st*)$PREVPAIR)->tl = NULL;
+		       ((struct meltlist_st*)$LIS)->last
+		           = (struct meltpair_st*) $PREVPAIR;
+		       meltgc_touch_dest ($LIS, $PREVPAIR);
+		       }#)
+	 (code_chunk emptylist_chk
+		     #{ /* list_remove_last_element $EMPTYLIST_CHK */
+		     ((struct meltlist_st*)$LIS)->first = NULL;
+		     ((struct meltlist_st*)$LIS)->last = NULL;
+		     meltgc_touch ($LIS);
+		     }#))
+       (return curelem))
+     (setq prevpair curpair))
+    ))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; variadic related utilities
 
@@ -3878,6 +3914,7 @@ which signals are not handled. It could be dynamically nested.}#
  is_out
  is_strbuf
  is_stringconst
+ list_remove_last_element
  longbacktrace_dbg
  make_mixint
  make_mixloc

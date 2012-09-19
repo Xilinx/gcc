@@ -1,4 +1,25 @@
 
+2012-09-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.c (melt_print_version_info): Improve output.
+	(melt_run_make_for_plugin): Pass BUILD_WITH_CXX_ARG=YesPlugin.
+	(melt_run_make_for_branch): Pass BUILD_WITH_CXX_ARG=YesBranch.
+	(meltgc_poll_inputs): REPL mode requires accepting 0 as the file
+	descriptor.
+
+	* melt-module.mk (GCCMELTGEN_BUILD): Default to realpath of
+	GCCMELT_MODULE_WORKSPACE.
+	(%.runextend.meltmdsumedpic.o): Improve command.
+
+	* melt/warmelt-base.melt (list_remove_last_element): New.
+
+	* melt/warmelt-outobj.melt
+	(translate_run_melt_expressions/normalextend): Remove and replace
+	last with a return.
+
+	* melt/warmelt-modes.melt (repl_docmd): The wait function is
+	polling for 30 seconds.
+
 
 2012-09-19  Basile Starynkevitch  <basile@starynkevitch.net>
 

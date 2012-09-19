@@ -1236,6 +1236,10 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (add2sbuf_indentnl dsbuf 0)
     (add2sbuf_strconst dsbuf "  struct melt_callframe_st *mcfr_prev;")
     (add2sbuf_indentnl dsbuf 0)
+    (add2sbuf_strconst dsbuf "#undef MELTFRAM_NBVARPTR")
+    (add2sbuf_indentnl dsbuf 0)
+    (add2sbuf_strconst dsbuf "#undef MELTFRAM_NBVARNUM")
+    (add2sbuf_indentnl dsbuf 0)
     (if (>i nbval 0) 
 	(progn
 	  (add2sbuf_strconst dsbuf "#define MELTFRAM_NBVARPTR ")
@@ -6022,13 +6026,15 @@ if (1) return;
 		  (assert_msg "check lastctyp" (is_a lastctyp class_ctype))
 		  (cond
 		   ((== lastctyp ctype_value)
-		    (let ( (nret (instance class_nrep_return
-					   :nret_main lastnorm
-					   ))
-			   )
-		      (list_append normlist nret)
-		      (debug "translate_run_melt_expressions/normalextend append nret=" nret)
-		    ))
+		    (when (is_not_a lastnorm class_nrep_return)
+		      (let ( (nret (instance class_nrep_return
+					     :nret_main lastnorm
+					     ))
+			     )
+			(list_remove_last_element normlist)
+			(list_append normlist nret)
+			(debug "translate_run_melt_expressions/normalextend replaced lastnorm=" lastnorm "with nret=" nret)
+		    )))
 		   ((== lastctyp ctype_long)
 		    (warningmsg_plain "add boxing of last integer expression in runtime extension")
 		    (assert_msg "@$@translate_run_melt_expressions/normalextend  unimplemented number boxing")

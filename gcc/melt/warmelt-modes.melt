@@ -275,9 +275,12 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 		() ()
 		(setq res (translate_run_melt_expressions inlist replenv)))
 	       (debug "repl_processor run res=" res "\n replenv=" replenv "\n dbgi=" dbgi "\n")
-	       (add2out stdout "\n;; Result of REPL #" replcount " is:\n")
-	       (dbg_out res dbgi 0)
-	       (add2out stdout "\n\n")
+	       (cond ((null res)
+		      (add2out stdout "\n;; Result of REPL #" replcount " is null!\n\n"))
+		     (:else
+		      (add2out stdout "\n;; Result of REPL #" replcount " is:\n")
+		      (dbg_out res dbgi 0)
+		      (add2out stdout "\n\n")))
 	       )
 	     )
 	   ))))
@@ -312,7 +315,7 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 						   $EVALCOUNT) ;
 					   fflush (NULL)       ;
 					   }#)
-			       (poll_all_inputs 3000))
+			       (poll_all_inputs 30000))
 			     (debug "repl_docmd/waitfun end refcont=" refcont 
 				    " evalcounter=" evalcounter)
 			     )))

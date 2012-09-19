@@ -520,13 +520,13 @@ melt_print_version_info (FILE *fil, const char* indent)
   if (melt_is_plugin) {
     fprintf (fil, "%sUse -fplugin-arg-melt-source-path= or -fplugin-arg-melt-module-path= to override them with a colon-separated path.\n",
              indent);
-    fprintf (fil, "%sMELT built-in module make command [-fmelt-plugin-arg-module-make-command=] %s\n",
+    fprintf (fil, "%sMELT built-in module make command [-fplugin-arg-melt-module-make-command=] %s\n",
              indent, melt_module_make_command);
-    fprintf (fil, "%sMELT built-in module makefile [-fmelt-plugin-arg-module-makefile=] %s\n",
+    fprintf (fil, "%sMELT built-in module makefile [-fplugin-arg-melt-module-makefile=] %s\n",
              indent, melt_module_makefile);
-    fprintf (fil, "%sMELT built-in module cflags [-fmelt-plugin-arg-module-cflags=] %s\n",
+    fprintf (fil, "%sMELT built-in module cflags [-fplugin-arg-melt-module-cflags=] %s\n",
              indent, melt_module_cflags);
-    fprintf (fil, "%sMELT built-in default module list [-fmelt-plugin-arg-init=@]%s\n",
+    fprintf (fil, "%sMELT built-in default module list [-fplugin-arg-melt-init=@]%s\n",
              indent, melt_default_modlis);
   } else {
     fprintf (fil, "%sUse -fmelt-source-path= or -fmelt-module-path= to override them with a colon-separated path.\n",
@@ -4952,8 +4952,8 @@ melt_run_make_for_plugin (const char*ourmakecommand, const char*ourmakefile, con
 #if defined(ENABLE_BUILD_WITH_CXX) || MELT_GCC_VERSION >= 4008 || defined(__cplusplus)
   {
     obstack_1grow (&cmd_obstack, ' ');
-    obstack_grow (&cmd_obstack, BUILD_WITH_CXX_ARG "=Yes", 
-		  strlen (BUILD_WITH_CXX_ARG "=Yes"));
+    obstack_grow (&cmd_obstack, BUILD_WITH_CXX_ARG "YesPlugin", 
+		  strlen (BUILD_WITH_CXX_ARG "YesPlugin"));
   }
 #endif
 
@@ -5070,7 +5070,7 @@ melt_run_make_for_branch (const char*ourmakecommand, const char*ourmakefile, con
   /* add the built with C++ argument if needed */
 #if defined(ENABLE_BUILD_WITH_CXX) || MELT_GCC_VERSION >= 4008 || defined(__cplusplus)
   {
-    const char*cplusarg = BUILD_WITH_CXX_ARG "=YesBranch";
+    const char*cplusarg = BUILD_WITH_CXX_ARG "YesBranch";
     argv[argc++] = cplusarg;
     debugeprintf ("melt_run_make_for_branch arg with C++: %s", cplusarg);
   }
@@ -13648,7 +13648,7 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
   for (ix = 0; ix < buckcount; ix++) {
     long curfd = ((struct meltbucketlongs_st*)inbuckv)->buckl_entab[ix].ebl_at;
     curhandv = ((struct meltbucketlongs_st*)inbuckv)->buckl_entab[ix].ebl_va;
-    if (curfd <= 0 || !curhandv)
+    if (curfd < 0 || !curhandv)
       continue;
     if (!melt_is_instance_of ((melt_ptr_t) curhandv,
                               (melt_ptr_t) MELT_PREDEF (CLASS_INPUT_CHANNEL_HANDLER)))
