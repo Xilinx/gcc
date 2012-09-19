@@ -2133,7 +2133,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 (defun register_all_passes_end_hook_first (fun)
   :doc #{Use $REGISTER_ALL_PASSES_END_HOOK_FIRST to register a function $FUN to
   be run at PLUGIN_ALL_PASSES_END, in first place.  $FUN must be a closure
-  which take 1 argument (the boxed tree of the parsed declaration).}#
+  which take 1 argument.}#
   (if (is_closure fun)
       (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
 	    )

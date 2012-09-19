@@ -24,27 +24,7 @@
 
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; small analysis
 
-(defclass class_smallcfun
-  :super class_named
-  :fields (scfun_decl
-	   scfun_entbb
-	   ))
-
-(defclass class_smallbb
-  :super class_proped
-  :fields (sbb_bbcont
-	   ))
-
-(defclass class_smallanalysis 
-  :super class_analysis_state
-  :fields (sman_cfuns			;list of class_smallcfun-s
-	   sman_cfundict		;dict of class_smallcfun-s
-	   sman_cfuntreemap		;treemap of class_smallcfun-s
-	   sman_bbtable			;hashtable bb -> class_smallbb
-	   ))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -530,4 +510,169 @@
 )
 (install_melt_mode meltframe_mode)
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; interactive Read Eval Print loop
+(defclass class_read_eval_print_loop_data 
+  :super class_proped
+  :fields (repl_env
+	   repl_counter
+	   repl_contref
+	   repl_data))
+
+(defun repl_processor (inch inlist)
+  (debug "repl_processor inch=" inch "\n inlist=" inlist)
+  (assert_msg "check inch" (is_a inch class_input_channel_handler))
+  (let ( (repldata (get_field :inch_data inch))
+	 (replenv (get_field :repl_env repldata))
+	 (replcounterv (get_field :repl_counter repldata))
+	 (replcontref (get_field :repl_contref repldata))
+	 (:long replcount (get_int replcounterv))
+	 )
+    (assert_msg "check repldata" (is_a repldata class_read_eval_print_loop_data))
+    (assert_msg "check replenv" (is_a replenv class_environment))
+    (assert_msg "check replcounterv" (is_integerbox replcounterv))
+    (cond ((null inlist)
+	   (code_chunk eofrepl_chk 
+		       #{ /* repl_processor $EOFREPL_CHK */ 
+		       printf ("\n;;; End of Input on Read-Eval-Print-Loop #%ld\n",
+			       $REPLCOUNT) ;
+		       fflush (NULL)	   ;
+		       }#)
+	   (set_ref replcontref :true)
+	   )
+	  (:else
+	   (assert_msg "check inlist" (is_list inlist))
+	   (setq replcount (+i replcount 1))
+	   (put_int replcounterv replcount)
+	   (let ( 
+		 (:long inlistlen (list_length inlist))
+		 (stdout (get_field :sysdata_stdout initial_system_data))
+		 )
+	     (code_chunk beforevalrepl_chk
+			 #{ /* repl_processor $BEFOREVALREPL_CHK */
+			 printf ("\n;; MELT REPL evaluation #%ld of %ld expressions\n",
+				 $REPLCOUNT, $INLISTLEN) ;
+			 fflush (NULL)			 ; 
+			 }#)
+	     (set_ref replcontref ())
+	     (let ( (res ())
+		    (occmap (make_mapobject  discr_map_objects 50))
+		    (dbgi (instance class_debug_information
+				    :dbgi_out stdout
+				    :dbgi_occmap occmap
+				    :dbgi_maxdepth '8))
+		    )
+	       (debug "repl_processor before translate&run inlist=" inlist
+		      "\n replenv=" replenv)
+	       (block_signals 
+		() ()
+		(setq res (translate_run_melt_expressions inlist replenv)))
+	       (debug "repl_processor run res=" res "\n replenv=" replenv "\n dbgi=" dbgi "\n")
+	       (add2out stdout "\n;; Result of REPL #" replcount " is:\n")
+	       (dbg_out res dbgi 0)
+	       (add2out stdout "\n\n")
+	       )
+	     )
+	   ))))
+
+(defun repl_docmd (cmd moduldata)
+  (assert_msg "check moduldata" (is_a moduldata class_environment))
+  (let ( (newenv (fresh_env moduldata '"the interactive Read-Eval-Print-Loop environment"))
+	 (refcont (instance class_reference))
+	 (evalcounter (make_integerbox discr_integer 0))
+	 (repldata (instance class_read_eval_print_loop_data
+			     :repl_env newenv
+			     :repl_counter evalcounter
+			     :repl_contref refcont
+			     ))
+	 (contfun (lambda () (set_ref refcont :true)))
+	 (waitfun (lambda (msgv)
+		    (debug "repl_docmd/waitfun start refcont=" refcont 
+			   " evalcounter=" evalcounter "\n msgv=" msgv)
+		    (forever waitfunloop
+			     (let ( (:long evalcount (get_int evalcounter)) 
+				    )
+			       (if (!refcont) (exit waitfunloop))
+			       (code_chunk waitfunloop_chk
+					   #{ /* repl_docmd $WAITFUNLOOP_CHK */
+					   const char* $WAITFUNLOOP_CHK#_msg = 
+					   melt_string_str ($MSGV) ;
+					   if ($WAITFUNLOOP_CHK#_msg)
+					   printf ("\n;; MELT REPL#%ld waiting: %s\n", 
+						   $EVALCOUNT, $WAITFUNLOOP_CHK#_msg) ;
+					   else
+					   printf ("\n;; MELT REPL#%ld waiting ?\n", 
+						   $EVALCOUNT) ;
+					   fflush (NULL)       ;
+					   }#)
+			       (poll_all_inputs 3000))
+			     (debug "repl_docmd/waitfun end refcont=" refcont 
+				    " evalcounter=" evalcounter)
+			     )))
+	 (contvalbind (instance class_value_binding
+				:binder 'continue
+				:vbind_value contfun))
+	 (waitreplbind (instance class_value_binding
+				 :binder 'wait-repl
+				 :vbind_value waitfun))
+	 )
+    (put_env newenv contvalbind)
+    (put_env newenv waitreplbind)
+    (debug "repl_docmd newenv=" newenv " repldata=" repldata)
+    (register_input_channel_handler repl_processor repldata 0)
+    (code_chunk replwelcome_chk 
+		#{ /* repl_docmd $REPLWELCOME_CHK */
+		printf ("; Welcome to the MELT interactive Read-Eval-Print-Loop [=REPL]\n") ;
+		printf ("; Type a sequence of MELT expressions to be evaluated\n") ;
+		printf ("; End that sequence with two (2) consecutive newlines.\n") ;
+		printf ("; Call the CONTINUE function like (CONTINUE) to exit this REPL, or give an end-of-file thru ^D\n") ;
+		printf ("; Call (WAIT-REPL [welcome-string-value]) from a hook to wait for more input and exit of the REPL\n") ;
+		fflush (NULL)		;
+		}#)
+    ;; register waiting REPL after all passes
+    (register_all_passes_end_hook_first
+     (lambda (endp)
+       (debug "repl_docmd/endpasses endp=" endp)
+       (code_chunk endp_chk
+		   #{ /* repl_docmd/endpasses $ENDP_CHK */
+		   printf ("; GCC MELT ended all passes\n")	 ;
+		   printf ("; type (CONTINUE) to proceed.\n")	 ;
+		   fflush (NULL)				 ;
+		   }#)
+       (waitfun '"ended all GCC passes")))
+    ;; register waiting REPL after compilation unit ended
+    (at_finish_unit_first
+     (lambda (finp)
+       (debug "repl_docmd/finishunit finp=" finp)
+       (code_chunk finp_chk
+		   #{ /* repl_docmd/finishunit $FINP_CHK */
+		   printf ("; GCC MELT finished compilation unit\n") ;
+		   printf ("; type (CONTINUE) to proceed.\n")	     ;
+		   fflush (NULL)				     ;
+		   }#)
+       (waitfun '"finished compilation unit")))
+    ;; register last REPL at exit
+    (at_exit_last 
+     (lambda (exip)
+       (debug "repl_docmd/atexit exip=" exip)
+       (code_chunk endp_chk
+		   #{ /* repl_docmd/endpasses $ENDP_CHK */
+		   printf ("; GCC MELT exiting\n");
+		   printf ("; type (CONTINUE) to proceed.\n");
+		   fflush (NULL);
+		   }#)
+       (waitfun '"GCC MELT exiting")))
+    (waitfun '"GCC MELT initial wait")	;initial wait for REPL
+    (return repldata)		 ;return something to succeed the mode
+    ))
+
+(definstance repl_mode
+  class_melt_mode
+  :named_name '"repl"
+  :meltmode_help '"interactive Read Eval Print Loop mode"
+  :meltmode_fun repl_docmd
+)
+(install_melt_mode repl_mode)
 ;; eof xtramelt-ana-simple.melt

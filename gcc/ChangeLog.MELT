@@ -1,4 +1,12 @@
 
+2012-09-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-base.melt (register_all_passes_end_hook_first):
+	Improve doc.
+
+	* melt/xtramelt-ana-simple.melt (repl_mode): New mode repl for
+	Read Eval Print Loop.
+
 2012-09-18  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-genobj.melt (compile2obj_initextendproc): Don't
