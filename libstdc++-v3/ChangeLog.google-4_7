@@ -1,3 +1,14 @@
+2012-09-19  Ollie Wild  <aaw@google.com>
+	    Thiago Macieira  <thiago.macieira@intel.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	Merge r191125 and r191191 from gcc-4_7-branch.
+
+	* libsupc++/guard.cc (__cxa_guard_acquire): Exit the loop earlier if
+	we detect that another thread has had success. Don't compare_exchange
+	from a finished state back to a waiting state.  Fix up the last
+	argument of the first __atomic_compare_exchange_n.  Comment.
+
 2012-09-05  Ollie Wild  <aaw@google.com>
 
 	* src/Makefile.am (LTCXXCOMPILE): Pass -UPIC when compiling static
