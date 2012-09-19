@@ -9077,7 +9077,12 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
     minf.mmi_modpath = xstrdup (sopath);
     minf.mmi_startrout = MELTDESCR_REQUIRED (melt_start_this_module);
     minf.mmi_magic = MELT_MODULE_MAGIC;
+#if MELT_GCC_VERSION >= 4008
+  // GCC 4.8 vector is C++ template so requires
     VEC_safe_push (melt_module_info_t, heap, melt_modinfvec, minf);
+#else
+    VEC_safe_push (melt_module_info_t, heap, melt_modinfvec, &minf);
+#endif
     debugeprintf ("melt_load_module_index successful ix %d srcbase %s sopath %s flavor %s",
                   ix, srcbase, sopath, flavor);
     if (!quiet_flag || melt_flag_debug) {
@@ -9136,8 +9141,7 @@ meltgc_run_c_extension (melt_ptr_t basename_p, melt_ptr_t env_p, melt_ptr_t litv
   /* list of optional dynamic symbols (dlsymed in the module, provided
      in the FOO+meltdesc.c or FOO+melttime.h file). */
 #define MELTRUNDESCR_OPTIONAL_LIST				\
-  MELTRUNDESCR_OPTIONAL_SYMBOL (melt_versionstr, char);		\
-  MELTRUNDESCR_OPTIONAL_SYMBOL (melt_modulerealpath, char)
+  MELTRUNDESCR_OPTIONAL_SYMBOL (melt_versionstr, char);	
   /* declare our dynamic symbols */
 #define MELTRUNDESCR_REQUIRED_SYMBOL(Sym,Typ) Typ* dynr_##Sym = NULL
   MELTRUNDESCR_REQUIRED_LIST;
@@ -9306,8 +9310,22 @@ meltgc_run_c_extension (melt_ptr_t basename_p, melt_ptr_t env_p, melt_ptr_t litv
 	melt_extension_info_t emptymei = {0, 0, NULL, NULL, NULL };
 	melt_extinfvec = VEC_alloc (melt_extension_info_t, heap, 32);
 	/* don't use the index 0 so push a null at 0 in modextvec.  */
+#if MELT_GCC_VERSION >= 4008
+  // GCC 4.8 vector is C++ template so requires
 	VEC_safe_push (melt_extension_info_t, heap, melt_extinfvec,
 		       emptymei);
+#else
+	VEC_safe_push (melt_extension_info_t, heap, melt_extinfvec,
+		       &emptymei);
+#endif
+      }
+    /* check the melt_versionstr of the extension */
+    if (dyno_melt_versionstr) 
+      {
+	if (strcmp(dyno_melt_versionstr, melt_version_str()))
+	  
+	  melt_fatal_error ("runtime extension %s for MELT version %s but this MELT expects %s",
+			    basenamebuf, dyno_melt_versionstr, melt_version_str());
       }
     ix = VEC_length (melt_extension_info_t, melt_extinfvec);
     gcc_assert (ix > 0);
@@ -9316,7 +9334,12 @@ meltgc_run_c_extension (melt_ptr_t basename_p, melt_ptr_t env_p, melt_ptr_t litv
     mext.mmx_extpath = xstrdup (sopath);
     mext.mmx_rank = ix;
     mext.mmx_magic = MELT_EXTENSION_MAGIC;
+#if MELT_GCC_VERSION >= 4008
+  // GCC 4.8 vector is C++ template so requires
     VEC_safe_push (melt_extension_info_t, heap, melt_extinfvec, mext);
+#else
+    VEC_safe_push (melt_extension_info_t, heap, melt_extinfvec, &mext);
+#endif
     debugeprintf ("meltgc_run_c_extension %s has index %d", 
 		  basenamebuf, ix);
   }
@@ -10612,8 +10635,14 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   /* don't use the index 0 so push an empty at 0 in modinfvec.  */
   {
     melt_module_info_t emptymi = {0, NULL, NULL, NULL, NULL};
+#if MELT_GCC_VERSION >= 4008
+  // GCC 4.8 vector is C++ template so requires
     VEC_safe_push (melt_module_info_t, heap, melt_modinfvec,
 		   emptymi);
+#else
+    VEC_safe_push (melt_module_info_t, heap, melt_modinfvec,
+		   &emptymi);
+#endif
   }
   /* The program handle dlopen is not traced! */
   proghandle = dlopen (NULL, RTLD_NOW | RTLD_GLOBAL);
