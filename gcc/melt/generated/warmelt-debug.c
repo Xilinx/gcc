@@ -14,7 +14,7 @@ MELT_EXTERN const char meltrun_used_md5_melt[] =
 
 /***************************************************
 ***
-    Copyright 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
+    Copyright 2009 - 2012 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.

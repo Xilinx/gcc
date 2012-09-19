@@ -19889,7 +19889,7 @@ lab_endgetargs:;
       memset (&argtab, 0, sizeof (argtab));
       /*^apply.arg */
       argtab[0].meltbp_cstring =
-	"\n goto end;\nend: melt_topframe = meltfram__.mcfr_prev;\n  return (melt_ptr_t)";
+	"\n goto labend_rout;\nlabend_rout: melt_topframe = meltfram__.mcfr_prev;\n  return (melt_ptr_t)";
       /*_.ADD2OUT__V75*/ meltfptr[63] =
 	melt_apply ((meltclosure_ptr_t)
 		    (( /*!ADD2OUT */ meltfrout->tabval[5])),
