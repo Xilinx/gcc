@@ -1,5 +1,11 @@
 
 2012-09-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-modes.melt (repl_mode, class_read_eval_print_loop_data, repl_docmd): Moved from ...
+	* melt/xtramelt-ana-simple.melt: Read Eval Print Loop removed,
+	since moved to warmelt-modes.melt.
+
+2012-09-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_load_module_index): melt_modinfvec handling
 	slightly different in 4.8 or in earlier GCC.
 	(meltgc_run_c_extension): Likewise for melt_extinfvec.
