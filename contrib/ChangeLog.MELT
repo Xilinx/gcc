@@ -1,4 +1,8 @@
 
+2012-09-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* MELT-Plugin-Makefile (all): Improve messages.
+
 2012-09-18  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* MELT-Plugin-Makefile (all): Mention Alexandre Lissy Qt Python

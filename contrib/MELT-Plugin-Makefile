@@ -225,8 +225,10 @@ all: melt-run.h melt.so melt-applications melt-gendoc doc
 	@echo 
 	@echo You may want to manually compile			\
 	       simplemelt-gtkmm-probe.cc if you have GTK3.4 and	\
-	       GTKmm. See its last dozen of lines for building	\
-	       instructions. You could also use the Qt Python MELT \
+	       GTKmm.
+	@echo See its last dozen of lines for building	\
+	       instructions. 
+	@echo You could also use the Qt Python MELT \
 	       probe by Alexandre Lissy from \
 	       git://git.mandriva.com/users/alissy/python-qt-melt-probe.git 
 	@echo
