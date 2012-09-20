@@ -2,7 +2,7 @@
    MELT header melt-runtime.h
    [[middle end lisp translator, see http://gcc.gnu.org/wiki/MELT or
    www.gcc-melt.org ]]
-   Copyright (C)  2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
+   Copyright (C)  2008 - 2012 Free Software Foundation, Inc.
    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
    and Pierre Vittet <piervit@pvittet.com>
 
@@ -111,7 +111,7 @@ MELT_EXTERN int melt_count_runtime_extensions;
 /* The version string of MELT; this is parsed by make, so spaces are
    important!  That version string is extracted by scripts or
    makefiles... */
-#define MELT_VERSION_STRING "0.9.7-rc0"
+#define MELT_VERSION_STRING "0.9.7-rc1"
 
 /* return a read only version string */
 extern const char* melt_version_str(void);

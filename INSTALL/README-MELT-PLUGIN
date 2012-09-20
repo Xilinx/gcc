@@ -184,9 +184,95 @@ Comments about the MELT plugin (including its installation script) are
 welcome by email to <basile@starynkevitch.net> [please mention MELT in
 the subject line] and to <gcc-melt@googlegroups.com>
 
+
+
+
+
 ################################################################
-NEWS for 0.9.6 MELT plugin for GCC 4.6 & 4.7
-[[july, 31st 2012]]
+NEWS for 0.9.7 MELT plugin for GCC 4.6 & 4.7 & future 4.8
+[[september, XXth, 2012]]
+
+   Language improvement
+   ====================
+
+ When creating an instance with definstance or instance, the
+ translator checks that fields are filled with values. Previous
+ versions of MELT could crash in that case.
+
+ (CHEADER ...) constructs are working as documented.
+
+ The Parma Polyhedra Library is removed from MELT.
+
+ String values know their length, so safe access to some byte inside
+ is possible.
+
+   Added a lot of cmatchers (and implicit primitives) like
+	tree_boolean_false_node, tree_boolean_true_node,
+	tree_boolean_type_node, tree_char_type_node,
+	tree_const_ptr_type_node, tree_double_type_node,
+	tree_float_type_node, tree_int128_integer_type_node,
+	tree_int128_unsigned_type_node, tree_integer_minus_one_node,
+	tree_integer_one_node, tree_integer_type_node,
+	tree_integer_zero_node, tree_long_double_type_node,
+	tree_long_integer_type_node, tree_long_long_integer_type_node,
+	tree_long_long_unsigned_type_node,
+	tree_long_unsigned_type_node, tree_null_pointer_node,
+	tree_ptr_type_node, tree_short_integer_type_node,
+	tree_short_unsigned_type_node, tree_signed_char_type_node,
+	tree_size_type_node, tree_unsigned_char_type_node,
+	tree_unsigned_type_node, tree_void_type_node
+   to access the very built-in trees known to GCC.
+   Added more tree & gimple related matchers and primitives.
+
+ Less spurious warnings when building MELT.
+
+
+   Runtime improvements
+   ====================
+
+  Add a runtime expression evaluation function
+  TRANSLATE_RUN_MELT_EXPRESSIONS with a mode eval for initial
+  evaluation of a sequence of expressions, and a mode repl for
+  read-eval-print-loop.
+
+  The building procedure has been revamped. Advanced users could
+  define their GCCMELT_BUILD_NOTIFICATION environment variable to
+  e.g. a script meltbuild-notification like
+
+      #! /bin/bash
+      # first arg title, second arg message
+      if [ "$DISPLAY" = ":0.0" -a -n "$DESKTOP_SESSION" -a $(which notify-send) ]; then
+         notify-send -t 3500 -i info "MELT BUILD: $1" "$2"
+      else
+         logger -t meltbuild -p user.info "$1=" "$2"
+      fi
+
+  and they will have a nice bubble notification under most Linux
+  desktops of the major steps of the build. The building procedure is
+  now quicker than before.
+
+  Advanved MELT users can set their MELTGCC_NO_CHECK_RUNTIME to
+  disable checking of the MELT runtime. This is notably needed when
+  the MELT plugin is compiled for a cross compiler.
+
+  Advanced MELT users willing to debug with gdb could set the
+  melt_alptr_1 and melt_objhash_1 in their gdb debugger to track
+  allocation or changes of MELT values or objects.
+
+  The -fmelt-debugging=all option works as expected in the MELT branch
+  and so does -fplugin-arg-melt-debugging=all in the MELT plugin.
+
+
+Numerous bug fixes. The probe has still naughty behavior on large C
+source. Consider using Alexandre Lissy's replacement (Python/Qt
+based) of the probe.
+
+
+
+
+
+ ################################################################
+ NEWS for 0.9.6 MELT plugin for GCC 4.6 & 4.7 [[july, 31st 2012]]
 
    Language improvements
    =====================
@@ -205,6 +291,7 @@ NEWS for 0.9.6 MELT plugin for GCC 4.6 & 4.7
 
    The CLASS_CONTAINER has been renamed as CLASS_REFERENCE. Likewise
    SET_CONTENT is renamed as SET_REFERENCE...
+
 
    Runtime improvements
    ====================
