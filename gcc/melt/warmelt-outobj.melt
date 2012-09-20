@@ -6023,15 +6023,15 @@ if (1) return;
 	 (refnormlist (instance class_reference))
 	 )
     (code_chunk numchk #{/* translate_run_melt_expressions $NUMCHK */ 
-		char basbuf_$NUMCHK[64] ;
-		long num_$NUMCHK = 0;
+		char basbuf_$NUMCHK[64]				   ;
+		long num_$NUMCHK = 0				   ;
 		memset (basbuf_$NUMCHK, 0, sizeof(basbuf_$NUMCHK)) ;
-		melt_count_runtime_extensions++;
-		num_$NUMCHK = melt_count_runtime_extensions;
+		melt_count_runtime_extensions++			   ;
+		num_$NUMCHK = melt_count_runtime_extensions	   ;
 		if (melt_count_runtime_extensions
 		    > MELT_MAX_RUNTIME_EXTENSIONS)
-		  melt_fatal_error ("too many %ld MELT runtime extensions",
-				    num_$NUMCHK);
+		melt_fatal_error ("too many %ld MELT runtime extensions",
+				  num_$NUMCHK) ;
 		snprintf (basbuf_$NUMCHK, sizeof(basbuf_$NUMCHK), 
 					  "MELTrun%04lx", num_$NUMCHK) ;
 		$NAKEDBASNAM = meltgc_new_string_raw_len ((meltobject_ptr_t)MELT_PREDEF (DISCR_STRING),
@@ -6057,7 +6057,7 @@ if (1) return;
 					))
 			   )
 			  (set_ref referr (or v :true))))
-	  (litvalist (list ()))		;first element of list is ignored, so null
+	  (litvalist (list ()))	;first element of list is ignored, so null
 	  (modctx (instance class_running_extension_module_context
 			    :mocx_modulename  nakedbasnam
 			    :mocx_expfieldict (make_mapstring discr_map_strings 71)
@@ -6152,12 +6152,12 @@ if (1) return;
 		(let ( (lastnormpair (list_last normlist))
 		       (lastbindpair (list_last normlist))
 		       (lastnorm (list_last_element normlist))
-		       (lastbind (list_last_element bindlist))
+		       (lastbinds (list_last_element bindlist))
 		       (lastctyp (get_ctype lastnorm inienv))
 		       )
 		  (debug "translate_run_melt_expressions/normalextend lastnorm=" lastnorm 
 			 " lastnormpair=" lastnormpair
-			 " lastbind=" lastbind
+			 " lastbinds=" lastbinds
 			 " lastctyp=" lastctyp)
 		  (assert_msg "check lastctyp" (is_a lastctyp class_ctype))
 		  (cond
@@ -6169,23 +6169,19 @@ if (1) return;
 			     )
 			(pair_set_head lastnormpair nret)
 			(debug "translate_run_melt_expressions/normalextend replaced lastnorm=" lastnorm "with nret=" nret " in lastnormpair=" lastnormpair)
-		    )))
-		   ((== lastctyp ctype_long)
-		    (warningmsg_plain "add boxing of last integer expression in runtime extension")
-		    (assert_msg "@$@translate_run_melt_expressions/normalextend  unimplemented number boxing")
-		    ;;;
-		    )
-		   ((== lastctyp ctype_cstring)
-		    (warningmsg_plain "add boxing of last string expression in runtime extension")
-		    (assert_msg "@$@translate_run_melt_expressions/normalextend  unimplemented string boxing")
-		    )
+			)))
 		   (:else
 		    (warningmsg_strv 
-		     "runtime expressions don't end with a :value giving expression, appending () to them."
+		     "runtime expressions ending with a non-value expression, auto-boxing it."
 		     (get_field :named_name lastctyp))
-		    (list_append normlist (instance class_nrep_nil))
-		    (debug "translate_run_melt_expressions/normalextend updated normlist=" normlist)
-		    ))
+		    (multicall
+		     (newexp newbinds)
+		     (autobox_normal_return lastnorm lastbinds lastctyp ncx)
+		     (debug "translate_run_melt_expressions/normalextend autoboxed newexp=" newexp
+			    " newbinds=" newbinds)
+		     (pair_set_head lastnormpair newexp)
+		     (pair_set_head lastbindpair newbinds)
+		     )))
 		  (set_ref refnormlist normlist)
 		  (debug "translate_run_melt_expressions/normalextend updated normlist=" normlist)
 		  )))
@@ -6235,17 +6231,17 @@ if (1) return;
 		 (assert_msg "check bxrk" (==i (get_int bxrk) ix))
 		 (multiple_put_nth tuplitval ix val)
 		 ))
-	     (setq ix (+i ix 1)))	;end of foreach_in_list litvalist
-	  (debug "translate_run_melt_expressions tuplitval=" tuplitval)
-	  (debug "before melt_run_extension basename=" basename
-		 "\n* env=" env
-		 "\n* tuplitval=" tuplitval)
-	  (let ( (result (melt_run_extension basename env tuplitval))
-		 )
-	    (debug "after melt_run_extension basename=" basename
-		   "\n* translate_run_melt_expressions result=" result)
-	    (return result)
-	  )))))))
+	     (setq ix (+i ix 1)))    ;end of foreach_in_list litvalist
+	    (debug "translate_run_melt_expressions tuplitval=" tuplitval)
+	    (debug "before melt_run_extension basename=" basename
+		   "\n* env=" env
+		   "\n* tuplitval=" tuplitval)
+	    (let ( (result (melt_run_extension basename env tuplitval))
+		   )
+	      (debug "after melt_run_extension basename=" basename
+		     "\n* translate_run_melt_expressions result=" result)
+	      (return result)
+	      )))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
