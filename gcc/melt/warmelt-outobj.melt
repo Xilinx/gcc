@@ -2229,15 +2229,18 @@ labend_rout: melt_topframe = meltfram__.mcfr_prev;
       (add2out implbuf ##{; /*return value of extension $OMODNAM */
 } /* end  $ONAME */}#)
       (add2sbuf_indentnl implbuf 0)
+      (add2sbuf_indentnl implbuf 0)
+      (add2sbuf_indentnl implbuf 0)
+      (add2sbuf_indentnl implbuf 0)
       ;;
 
     ;; implement the marking routine
-    (add2sbuf_indentnl implbuf 1)
+    (add2sbuf_indentnl implbuf 0)
     (add2out 
      implbuf 
      ##{/* extension routine $OMODNAM initial frame marking routine implem */
-     static void 
-     meltmarking_$ONAME (struct melt_callframe_st*fp, int marking) {
+static void 
+meltmarking_$ONAME (struct melt_callframe_st*fp, int marking) {
      int ix=0;
      meltrun_$OMODNAM#_initialext_frame_t* meltframptr_ 
       = ( meltrun_$OMODNAM#_initialext_frame_t*)fp;
@@ -6039,7 +6042,8 @@ if (1) return;
 		}#)
     (debug "translate_run_melt_expressions nakedbasnam=" nakedbasnam " num=" num " starterrcount=" starterrcount)
     (let (
-	  (runerrorhdlr (lambda (v)
+	  (runerrorhdlr 
+	   (lambda (v)
 			  (debug "runerrorhdlr v=" v)
 			  (cond 
 			   ((is_string v)
@@ -6057,8 +6061,10 @@ if (1) return;
 					))
 			   )
 			  (set_ref referr (or v :true))))
-	  (litvalist (list ()))	;first element of list is ignored, so null
-	  (modctx (instance class_running_extension_module_context
+	  (litvalist 
+	   (list ()))	;first element of list is ignored, so null
+	  (modctx
+	   (instance class_running_extension_module_context
 			    :mocx_modulename  nakedbasnam
 			    :mocx_expfieldict (make_mapstring discr_map_strings 71)
 			    :mocx_expclassdict (make_mapstring discr_map_strings 19)
@@ -6075,7 +6081,8 @@ if (1) return;
 			    :morcx_countlitval (make_integerbox discr_integer 1)
 			    :morcx_literobjmap (make_mapobject discr_map_objects 53)
 			    ))
-	  (ncx (create_normal_extending_context modctx env))
+	  (ncx 
+	   (create_normal_extending_context modctx env))
 	  (lsexp
 	   (let
 	       ( (ls (make_list discr_list))
@@ -6138,7 +6145,8 @@ if (1) return;
       (when !referr
 	(runerrorhdlr '"runtime invalid expressions")
 	(return () ()))
-      (let ( (xlist (macroexpand_toplevel_list lsexp env macroexpand_1 modctx)) 
+      (let ( (xlist
+	      (macroexpand_toplevel_list lsexp env macroexpand_1 modctx)) 
 	     (:long lenxlist (list_length xlist))
 	     ;; normalextend should ensure that the last normal gives a value
 	     (normalextend 
@@ -6147,10 +6155,11 @@ if (1) return;
 		       "\n bindlist=" bindlist
 		       "\n old !refnormlist=" !refnormlist
 		       "\n ncx=" ncx)
+		(assert_msg "check bindlist != normlist" (!= bindlist normlist))
 		(shortbacktrace_dbg "translate_run_melt_expressions/normalextend" 13)
 		(assert_msg "check null !refnormlist" (null !refnormlist))
 		(let ( (lastnormpair (list_last normlist))
-		       (lastbindpair (list_last normlist))
+		       (lastbindpair (list_last bindlist))
 		       (lastnorm (list_last_element normlist))
 		       (lastbinds (list_last_element bindlist))
 		       (lastctyp (get_ctype lastnorm inienv))
@@ -6162,15 +6171,23 @@ if (1) return;
 		  (assert_msg "check lastctyp" (is_a lastctyp class_ctype))
 		  (cond
 		   ((== lastctyp ctype_value)
+		    (debug "translate_run_melt_expressions/normalextend value lastnorm=" lastnorm "\n of discrim=" (discrim lastnorm)
+			   "\n lastnormpair=" lastnormpair
+			   "\n normlist=" normlist)
 		    (when (is_not_a lastnorm class_nrep_return)
 		      (let ( (nret (instance class_nrep_return
 					     :nret_main lastnorm
 					     ))
 			     )
 			(pair_set_head lastnormpair nret)
-			(debug "translate_run_melt_expressions/normalextend replaced lastnorm=" lastnorm "with nret=" nret " in lastnormpair=" lastnormpair)
+			(debug "translate_run_melt_expressions/normalextend replaced lastnorm=" lastnorm
+			       "\n with nret=" nret 
+			       "\n in lastnormpair=" lastnormpair)
+			(setq lastnorm nret)
 			)))
 		   (:else
+		    (debug "translate_run_melt_expressions/normalextend nonvalue lastnorm=" lastnorm 
+			   " of discrim " (discrim lastnorm) "\n lastctyp=" lastctyp)
 		    (warningmsg_strv 
 		     "runtime expressions ending with a non-value expression, auto-boxing it."
 		     (get_field :named_name lastctyp))
@@ -6181,9 +6198,36 @@ if (1) return;
 			    " newbinds=" newbinds)
 		     (pair_set_head lastnormpair newexp)
 		     (pair_set_head lastbindpair newbinds)
+		     (setq lastbinds newbinds)
+		     (setq lastnorm newexp)
 		     )))
+		  ;;
+		  (debug "translate_run_melt_expressions/normalextend lastbinds=" lastbinds "\n lastnorm=" lastnorm 
+			 "\n lastnormpair=" lastnormpair
+			 "\n normlist=" normlist
+			 "\n bindlist=" bindlist)
+		  (if (list_first lastbinds)
+		    (let ( (nfinlet (wrap_normal_let1 lastnorm lastbinds ()))
+			  )
+		      (debug "translate_run_melt_expressions/normalextend nfinlet=" nfinlet)
+		      (debug "translate_run_melt_expressions/normalextend before lastnormpair=" lastnormpair
+			     "\n lastbindpair=" lastbindpair
+			     "\n normlist=" normlist
+			     "\n bindlist=" bindlist)
+		      (pair_set_head lastnormpair nfinlet)
+		      (pair_set_head lastbindpair ())
+		      (debug "translate_run_melt_expressions/normalextend updated lastnormpair=" lastnormpair
+			     "\n lastbindpair=" lastbindpair
+			     "\n normlist=" normlist
+			     "\n bindlist=" bindlist)
+		      (assert_msg "check bindlist != normlist" (!= bindlist normlist))
+		      (setq lastnorm nfinlet)
+		      (setq lastbinds ())
+		      ))
 		  (set_ref refnormlist normlist)
-		  (debug "translate_run_melt_expressions/normalextend updated normlist=" normlist)
+		  (debug "translate_run_melt_expressions/normalextend final normlist=" normlist
+			 "\n final bindlist=" bindlist)
+		  (return)
 		  )))
 	     )
 	(debug "translate_run_melt_expressions xlist=" xlist)

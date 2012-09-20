@@ -1,6 +1,12 @@
 
 2012-09-20  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-outobj.melt
+	(translate_run_melt_expressions/normalextend): Add autoboxing and
+	working return of last value.
+
+2012-09-20  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.
