@@ -5873,6 +5873,134 @@ if (1) return;
 )
 
 
+;; utility function to box a non-value normal as a return of an
+;; autoboxed value
+(defun autobox_normal_return (nexp nbinds ctyp ncx)
+  (debug "autobox_normal_return nexp=" nexp " nbinds=" nbinds " ctyp=" ctyp " ncx=" ncx)
+  (if (null nbinds) (setq nbinds (make_list discr_list)))
+  (assert_msg "check ctyp" (is_a ctyp class_ctype))
+  (assert_msg "check nbind" (is_list nbinds))
+  (let ( (csym (clone_symbol 'retautoboxval))
+	 (cbind (instance class_normal_let_binding
+			  :letbind_loc ()
+			  :binder csym
+			  :letbind_type ctype_value
+			  :letbind_expr () ;to be filled later
+			  ))
+	 (clocc (instance class_nrep_locsymocc
+			  :nrep_loc ()
+			  :nocc_ctyp ctype_value
+			  :nocc_symb csym
+			  :nocc_bind cbind))
+	 )
+    (debug "autobox_normal_return clocc=" clocc " incomplete cbind=" cbind)
+    (cond
+     ( (== ctyp ctype_value)
+       (if (is_not_a nexp class_nrep_return)
+	   (let ( (nret (instance class_nrep_return
+				  :nret_main nexp
+				  ))
+		  )
+	     (debug "autobox_normal_return gives nret=" nret " nbinds=" nbinds)
+	     (return nret nbinds))
+	 (return nexp nbinds)))
+     ;; autoboxing longs
+     ( (== ctyp ctype_long)
+       (let ( (nchk (instance 
+		     class_nrep_chunk
+		     :nrep_loc ()
+		     :nchunk_expansion
+		     (tuple 
+		      (make_stringconst 
+		       discr_verbatim_string 
+		       "/*autobox long*/ meltgc_new_int((meltobject_ptr_t)MELT_PREDEF(DISCR_CONST_INTEGER), ")
+		      nexp
+		      (make_stringconst 
+		       discr_verbatim_string 
+		       ")"))
+		     :nchunk_oper 'autoboxlong
+		     :nexpr_ctyp ctype_value))
+	      (nret (instance class_nrep_return
+			      :nret_main clocc
+			      ))
+	      )
+	 (put_fields cbind :letbind_expr nchk)
+	 (list_append nbinds cbind)
+	 (debug "autobox_normal_return long return nret=" nret " nbinds=" nbinds)
+	 (return nret nbinds)
+	 ))
+     ;; autoboxing cstrings
+     ( (== ctyp ctype_cstring)
+       (let ( (nchk (instance 
+		     class_nrep_chunk
+		     :nrep_loc ()
+		     :nchunk_expansion
+		     (tuple 
+		      (make_stringconst 
+		       discr_verbatim_string 
+		       "/*autobox cstring*/ meltgc_new_stringdup((meltobject_ptr_t)MELT_PREDEF(DISCR_STRING), ")
+		      nexp
+		      (make_stringconst 
+		       discr_verbatim_string 
+		       ")"))
+		     :nchunk_oper 'autoboxstring
+		     :nexpr_ctyp ctype_value))
+	      (nret (instance class_nrep_return
+			      :nret_main clocc
+			      ))
+	      )
+	 (put_fields cbind :letbind_expr nchk)
+	 (list_append nbinds cbind)
+	 (debug "autobox_normal_return cstring return nret=" nret " nbinds=" nbinds)
+	 (return nret nbinds)
+	 ))
+     ;; autoboxing gty-ed ctypes
+     ( (is_a ctyp class_ctype_gty)
+       (let ( (dis (get_field :ctypg_boxdiscr ctyp))
+	      (boxf (get_field :ctypg_boxfun ctyp)) 
+	      (ctynam (get_field :named_name ctyp))
+	      (nchk (instance 
+		     class_nrep_chunk
+		     :nrep_loc ()
+		     :nchunk_expansion
+		     (tuple 
+		      (make_stringconst 
+		       discr_verbatim_string 
+		       "/*autobox-gty ")
+		      (make_string discr_verbatim_string ctynam)
+		      (make_stringconst 
+		       discr_verbatim_string 
+		       "*/ ")
+		      (make_string discr_verbatim_string boxf)
+		      (make_stringconst 
+		       discr_verbatim_string 
+		       " ((meltobject_ptr_t)MELT_PREDEF (")
+		      (make_string discr_verbatim_string dis)
+		      (make_stringconst 
+		       discr_verbatim_string 
+		       "), ")
+		      nexp
+		      (make_stringconst 
+		       discr_verbatim_string 
+		       ")"))
+		     :nchunk_oper 'autoboxgty
+		     :nexpr_ctyp ctype_value))
+	      (nret (instance class_nrep_return
+			      :nret_main clocc
+			      ))
+	      )
+	 (put_fields cbind :letbind_expr nchk)
+	 (list_append nbinds cbind)
+	 (debug "autobox_normal_return gtyctype return nret=" nret " nbinds=" nbinds)
+	 (return nret nbinds)
+	 ))
+     ;;
+     (:else
+      (debug "autobox_normal_return unexpected ctyp=" ctyp "\n of discrim " (discrim ctyp))
+      (assert_msg "autobox_normal_return unexpected ctype" ())
+      ))))
+
+
 ;; translate and run a list of expressions in an environment
 (defun translate_run_melt_expressions (exprs env)
   :doc #{Translate and run the MELT s-expressions from $EXPRS in the
@@ -5880,10 +6008,13 @@ if (1) return;
   the $EXPRS. The last expression should preferably gives a value,
   which is returned...}#
   (debug "translate_run_melt_expressions start exprs=" exprs "\n*env=" env)
+  (assert_msg "check env" (is_a env class_environment))
   (when (not (is_list exprs))
     (debug "translate_run_melt_expressions gets " exprs " and gives null")
     (return ()))
-  (assert_msg "check env" (is_a env class_environment))
+  (when (null (list_first exprs))
+    (debug "translate_run_melt_expressions gets empty list and gives null")
+    (return ()))
   (let ( (:long num 0)
 	 (:long starterrcount (melt_error_counter))
 	 (nakedbasnam ())

@@ -2355,8 +2355,8 @@ list.}#
   :ctype_parstring '"MELTBPARSTR_LONG"
   :ctype_argfield '"meltbp_long"
   :ctype_resfield '"meltbp_longptr"
-  :ctypp_boxing '"/*boxing ctype_long*/ meltgc_newint"
-  :ctypp_unboxing '"/*unboxing ctype_long*/melt_get_int"
+  :ctypp_boxing '"/*boxing ctype_long*/ meltgc_new_int"
+  :ctypp_unboxing '"/*unboxing ctype_long*/ melt_get_int"
   )
 (install_ctype_descr ctype_long "C long unboxed integer")
 

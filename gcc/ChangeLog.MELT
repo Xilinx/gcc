@@ -1,5 +1,11 @@
 2012-09-20  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-first.melt (ctype_long): Use meltgc_new_int to box.
+
+	* melt/warmelt-outobj.melt (autobox_normal_return): New function.
+
+2012-09-20  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-outobj.melt (translate_run_melt_expressions):
 	Change the head of last pair when adding a return.
 	Should auto-box non values.
