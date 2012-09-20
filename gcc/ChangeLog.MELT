@@ -1,3 +1,8 @@
+2012-09-20  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-outobj.melt (translate_run_melt_expressions):
+	Change the head of last pair when adding a return.
+	Should auto-box non values.
 
 2012-09-19  Basile Starynkevitch  <basile@starynkevitch.net>
 

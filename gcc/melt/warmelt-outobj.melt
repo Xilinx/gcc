@@ -5872,14 +5872,16 @@ if (1) return;
        (melt_ptr_t) $LITVAL) }#
 )
 
+
+;; translate and run a list of expressions in an environment
 (defun translate_run_melt_expressions (exprs env)
   :doc #{Translate and run the MELT s-expressions from $EXPRS in the
   $ENV environment, which can be modified, e.g. by definitions inside
   the $EXPRS. The last expression should preferably gives a value,
   which is returned...}#
   (debug "translate_run_melt_expressions start exprs=" exprs "\n*env=" env)
-  (when (null exprs) 
-    (debug "translate_run_melt_expressions gets and gives null")
+  (when (not (is_list exprs))
+    (debug "translate_run_melt_expressions gets " exprs " and gives null")
     (return ()))
   (assert_msg "check env" (is_a env class_environment))
   (let ( (:long num 0)
@@ -6016,11 +6018,14 @@ if (1) return;
 		       "\n ncx=" ncx)
 		(shortbacktrace_dbg "translate_run_melt_expressions/normalextend" 13)
 		(assert_msg "check null !refnormlist" (null !refnormlist))
-		(let ( (lastnorm (list_last_element normlist))
+		(let ( (lastnormpair (list_last normlist))
+		       (lastbindpair (list_last normlist))
+		       (lastnorm (list_last_element normlist))
 		       (lastbind (list_last_element bindlist))
 		       (lastctyp (get_ctype lastnorm inienv))
 		       )
 		  (debug "translate_run_melt_expressions/normalextend lastnorm=" lastnorm 
+			 " lastnormpair=" lastnormpair
 			 " lastbind=" lastbind
 			 " lastctyp=" lastctyp)
 		  (assert_msg "check lastctyp" (is_a lastctyp class_ctype))
@@ -6031,9 +6036,8 @@ if (1) return;
 					     :nret_main lastnorm
 					     ))
 			     )
-			(list_remove_last_element normlist)
-			(list_append normlist nret)
-			(debug "translate_run_melt_expressions/normalextend replaced lastnorm=" lastnorm "with nret=" nret)
+			(pair_set_head lastnormpair nret)
+			(debug "translate_run_melt_expressions/normalextend replaced lastnorm=" lastnorm "with nret=" nret " in lastnormpair=" lastnormpair)
 		    )))
 		   ((== lastctyp ctype_long)
 		    (warningmsg_plain "add boxing of last integer expression in runtime extension")
