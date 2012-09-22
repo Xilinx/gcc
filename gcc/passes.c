@@ -703,7 +703,6 @@ void
 dump_passes (void)
 {
   struct cgraph_node *n, *node = NULL;
-  tree save_fndecl = current_function_decl;
 
   create_pass_tab();
 
@@ -718,7 +717,6 @@ dump_passes (void)
     return;
 
   push_cfun (DECL_STRUCT_FUNCTION (node->symbol.decl));
-  current_function_decl = node->symbol.decl;
 
   dump_pass_list (all_lowering_passes, 1);
   dump_pass_list (all_small_ipa_passes, 1);
@@ -728,7 +726,6 @@ dump_passes (void)
   dump_pass_list (all_passes, 1);
 
   pop_cfun ();
-  current_function_decl = save_fndecl;
 }
 
 
@@ -1528,11 +1525,13 @@ init_optimization_passes (void)
       NEXT_PASS (pass_lower_vector_ssa);
       /* Perform simple scalar cleanup which is constant/copy propagation.  */
       NEXT_PASS (pass_ccp);
+      NEXT_PASS (pass_object_sizes);
+      /* Copy propagation also copy-propagates constants, this is necessary
+         to forward object-size results properly.  */
       NEXT_PASS (pass_copy_prop);
       NEXT_PASS (pass_rename_ssa_copies);
       NEXT_PASS (pass_dce);
       /* Fold remaining builtins.  */
-      NEXT_PASS (pass_object_sizes);
       NEXT_PASS (pass_fold_builtins);
       /* ???  We do want some kind of loop invariant motion, but we possibly
          need to adjust LIM to be more friendly towards preserving accurate
@@ -1699,14 +1698,12 @@ do_per_function (void (*callback) (void *data), void *data)
 	    && (!node->clone_of || node->symbol.decl != node->clone_of->symbol.decl))
 	  {
 	    push_cfun (DECL_STRUCT_FUNCTION (node->symbol.decl));
-	    current_function_decl = node->symbol.decl;
 	    callback (data);
 	    if (!flag_wpa)
 	      {
 	        free_dominance_info (CDI_DOMINATORS);
 	        free_dominance_info (CDI_POST_DOMINATORS);
 	      }
-	    current_function_decl = NULL;
 	    pop_cfun ();
 	    ggc_collect ();
 	  }
@@ -1747,11 +1744,9 @@ do_per_function_toporder (void (*callback) (void *data), void *data)
 	  if (cgraph_function_with_gimple_body_p (node))
 	    {
 	      push_cfun (DECL_STRUCT_FUNCTION (node->symbol.decl));
-	      current_function_decl = node->symbol.decl;
 	      callback (data);
 	      free_dominance_info (CDI_DOMINATORS);
 	      free_dominance_info (CDI_POST_DOMINATORS);
-	      current_function_decl = NULL;
 	      pop_cfun ();
 	      ggc_collect ();
 	    }

@@ -98,7 +98,15 @@ fi
 
 AC_SUBST(WARN_FLAGS)
 
-GCC_CHECK_UNWIND_GETIPINFO
+if test -n "${with_target_subdir}"; then
+  GCC_CHECK_UNWIND_GETIPINFO
+else
+  AC_CHECK_FUNC(_Unwind_GetIPInfo, [have_unwind_getipinfo=yes],
+		[have_unwind_getipinfo=no])
+  if test "$have_unwind_getipinfo" = "yes"; then
+    AC_DEFINE(HAVE_GETIPINFO, 1, [Define if _Unwind_GetIPInfo is available.])
+  fi
+fi
 
 # When building as a target library, shared libraries may want to link
 # this in.  We don't want to provide another shared library to
@@ -167,6 +175,8 @@ if test "$backtrace_supported" = "yes"; then
   BACKTRACE_SUPPORTED=1
 fi
 AC_SUBST(BACKTRACE_SUPPORTED)
+
+GCC_HEADER_STDINT(gstdint.h)
 
 AC_CHECK_HEADERS(sys/mman.h)
 if test "$ac_cv_header_sys_mman_h" = "no"; then

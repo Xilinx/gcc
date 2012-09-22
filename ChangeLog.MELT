@@ -1,4 +1,8 @@
 
+2012-09-22  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	MELT branch merged with trunk rev 191642 using svnmerge.
+
 2012-09-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{0.9.7 rc1 release candidate}}
 	* INSTALL/README-MELT-PLUGIN: Mention news for 0.9.7

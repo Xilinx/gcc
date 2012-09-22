@@ -221,7 +221,7 @@ lto_materialize_function (struct cgraph_node *node)
 
 	  gcc_assert (DECL_STRUCT_FUNCTION (decl) == NULL);
 
-	  allocate_struct_function (decl, false);
+	  push_struct_function (decl);
 	  announce_function (decl);
 	  lto_input_function_body (file_data, decl, data);
 	  if (DECL_FUNCTION_PERSONALITY (decl) && !first_personality_decl)
@@ -229,6 +229,7 @@ lto_materialize_function (struct cgraph_node *node)
 	  lto_stats.num_function_bodies++;
 	  lto_free_section_data (file_data, LTO_section_function_body, name,
 				 data, len);
+	  pop_cfun ();
 	  ggc_collect ();
 	}
     }
@@ -2734,7 +2735,6 @@ lto_fixup_prevailing_decls (tree t)
   else if (EXPR_P (t))
     {
       int i;
-      LTO_NO_PREVAIL (t->exp.block);
       for (i = TREE_OPERAND_LENGTH (t) - 1; i >= 0; --i)
 	LTO_SET_PREVAIL (TREE_OPERAND (t, i));
     }

@@ -1,3 +1,89 @@
+2012-09-22  Kai Tietz  <ktietz@redhat.com>
+
+	* gcc.dg/tree-ssa/scev-3.c: Add llp64 to xfail.
+	* gcc.dg/tree-ssa/scev-4.c: Likewise.
+
+2012-09-21  Dehao Chen  <dehao@google.com>
+
+	PR go/54649
+	PR tree-optimization/54655
+	* g++.dg/pr54655.C: New testcase.
+
+2012-09-21  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/54647
+	* g++.dg/torture/pr54647.C: New testcase.
+
+2012-09-21  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR c++/54427
+	* c-c++-common/torture/vector-compare-2.c: Add -w.
+
+2012-09-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/opt20.ads: Move dg directive to...
+	* gnat.dg/opt20.adb: ...here.
+	* gnat.dg/addr1.ad[sb]: Likewise.
+	* gnat.dg/concat2.ad[sb]: Likewise.
+	* gnat.dg/array16.ad[sb]: Likewise.
+	* gnat.dg/atomic5.ad[sb]: Likewise.
+	* gnat.dg/discr29.ad[sb]: Likewise.
+	* gnat.dg/noreturn5.ad[sb]: Likewise.
+	* gnat.dg/vect8.ad[sb]: Likewise.  Add dg-options.
+	* gnat.dg/discr23.ads: Remove dg directive.
+	* gnat.dg/nested_float_packed.ads: Likewise.
+	* gnat.dg/oconst6.ads: Move to...
+	* gnat.dg/specs/oconst6.ads: ...here.
+
+2012-09-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/52432
+	* g++.dg/cpp0x/decltype32.C: Tweak.
+
+2012-09-20  Marc Glisse  <marc.glisse@inria.fr>
+
+	* gcc.dg/tree-ssa/forwprop-19.c: Check in forwprop1.
+	* gcc.dg/tree-ssa/forwprop-20.c: Check in forwprop1.
+	* gcc.dg/tree-ssa/forwprop-21.c: Check in copyprop1.
+	* gcc.dg/tree-ssa/forwprop-22.c: Check in copyprop1.
+
+2012-09-19  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR c++/54581
+	* g++.dg/cpp0x/decltype-54581.C: New testcase.
+
+2012-09-19  Steve Ellcey  <sellcey@mips.com>
+
+	* gcc.target/mips/pr37362.c: Add mips*-mti-elf exception.
+
+2012-09-19  Tulio Magno Quites Machado Filho  <tuliom@linux.vnet.ibm.com>
+
+	* gcc.target/powerpc/ppc-get-timebase.c: New file.
+	* gcc.target/powerpc/ppc-mftb.c: New file.
+
+2012-09-19  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/54089
+	* gcc.target/sh/pr54089-1.c (test_11, test_12, test_13, test_14): New
+	functions.
+
+2012-09-19  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/54236
+	* gcc.target/sh/pr54236-1.c (test_08): Add one bit left shift case.
+
+2012-09-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.c-torture/execute/20120919-1.c: New test.
+
+2012-09-19  Richard Guenther  <rguenther@suse.de>
+
+	* lib/c-torture.exp (TORTURE_OPTIONS): Add -Og -g.
+
+2012-09-19  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/builtin-unreachable-6.c: Adjust.
+
 2012-09-19  Richard Guenther  <rguenther@suse.de>
 
 	* gcc.dg/builtin-object-size-10.c: Adjust.
