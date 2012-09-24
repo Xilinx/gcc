@@ -1111,15 +1111,15 @@ cgraph_is_aux_decl_external (struct cgraph_node *node)
   if (node->is_versioned_clone)
     return false;
 
-  /* virtual functions won't be deleted in the primary module.  */
-  if (DECL_VIRTUAL_P (decl))
-    return true;
-
   /* Comdat or weak functions in aux modules are not external --
      there is no guarantee that the definitition will be emitted
      in the primary compilation of this auxiliary module.  */
   if (DECL_COMDAT (decl) || DECL_WEAK (decl))
     return false;
+
+  /* virtual functions won't be deleted in the primary module.  */
+  if (DECL_VIRTUAL_P (decl))
+    return true;
 
   if (!TREE_PUBLIC (decl))
     return false;

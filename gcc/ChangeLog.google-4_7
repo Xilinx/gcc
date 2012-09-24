@@ -1,3 +1,10 @@
+2012-09-24  Rong Xu  <xur@google.com>
+
+	Google ref b/7078882.
+	* gcc/l-ipo.c (cgraph_is_aux_decl_external): output comdat
+	virtual functions when they are auxiliary modules; otherwise
+	we may get undefined symbol in linking.
+
 2012-09-14  Dehao Chen  <dehao@google.com>
 
 	Backport r191338 from trunk.
