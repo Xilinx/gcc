@@ -1,4 +1,9 @@
 
+2012-09-24  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* make-melt-plugin-source-tar.sh: If the first argument is -l do
+	symlinking instead of copying.
+
 2012-09-19  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* MELT-Plugin-Makefile (all): Improve messages.

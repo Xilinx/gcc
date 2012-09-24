@@ -7,7 +7,7 @@
 ##
 ##    Middle End Lisp Translator = MELT
 ##
-##    Copyright (C)  2010, 2011, 2012 Free Software Foundation, Inc.
+##    Copyright (C)  2010 - 2012 Free Software Foundation, Inc.
 ##    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 ## 
 ## This file is part of GCC.
@@ -25,6 +25,16 @@
 ## You should have received a copy of the GNU General Public License
 ## along with GCC; see the file COPYING3.   If not see
 ## <http://www.gnu.org/licenses/>.
+
+
+## if the first argument is -l, we are using symlinks instead of copying
+
+if [ "$1" = "-l" ]; then
+    gccmelt_copy="ln -svf"
+    shift
+else
+    gccmelt_copy="cp -av"
+fi
 
 ## the first argument of this script is the source tree of the GCC
 ## MELT branch from which is extracted the MELT plugin source, for
@@ -71,7 +81,7 @@ date +"source tar timestamp %c" > $gccmelt_tarbase/GCCMELT-SOURCE-DATE
 
 copymelt() {
     if [ -f $gccmelt_source_tree/$1 ]; then
-	    cp -av $gccmelt_source_tree/$1 $gccmelt_tarbase/$2
+	$gccmelt_copy $gccmelt_source_tree/$1 $gccmelt_tarbase/$2
     fi
 }
 
