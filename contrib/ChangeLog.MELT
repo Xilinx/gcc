@@ -1,6 +1,11 @@
 
 2012-09-24  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* make-melt-plugin-source-tar.sh: When symlinking also symlink the
+	*.melt files...
+
+2012-09-24  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* make-melt-plugin-source-tar.sh: If the first argument is -l do
 	symlinking instead of copying.
 

@@ -122,11 +122,11 @@ copymelt gcc/melt-build-script.tpl gcc/melt-build-script.def gcc/melt-build-scri
 
 
 for mf in $gccmelt_source_tree/gcc/melt/*.melt ; do 
-    cp -av $mf  $gccmelt_tarbase/melt/
+    $gccmelt_copy $mf  $gccmelt_tarbase/melt/
 done
 
 for mf in $gccmelt_source_tree/gcc/melt/generated/*.[ch] ; do 
-    cp -av $mf  $gccmelt_tarbase/melt/generated/
+    $gccmelt_copy $mf  $gccmelt_tarbase/melt/generated/
 done
 
 
