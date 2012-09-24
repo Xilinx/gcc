@@ -1969,16 +1969,18 @@ meltgc_add_out_cstr_len (melt_ptr_t outbuf_p, const char *str, int slen)
 {
   const char *ps = NULL;
   char *pd = NULL;
+  char *lastnl = NULL;
   char *encstr = NULL;
   /* duplicate the given string either on stack in tinybuf or in
      xcalloc-ed buffer */
   char *dupstr = NULL;
+  int encsiz = 0;
   char tinybuf[80];
   if (!str)
     return;
   if (slen<0)
     slen = strlen(str);
-  if (slen<(int) sizeof(tinybuf)-1) {
+  if (slen<(int) sizeof(tinybuf)-3) {
     memset (tinybuf, 0, sizeof(tinybuf));
     memcpy (tinybuf, str, slen);
     dupstr = tinybuf;
@@ -1986,14 +1988,41 @@ meltgc_add_out_cstr_len (melt_ptr_t outbuf_p, const char *str, int slen)
     dupstr = (char*) xcalloc (slen + 2, 1);
     memcpy (dupstr, str, slen);
   }
-  /* at most four characters e.g. \xAB per original character */
-  encstr = (char *) xcalloc (slen + 5, 4);
+  /* at most four characters e.g. \xAB per original character, but
+     occasionally a backslashed newline for readability */
+  encsiz = slen+slen/16+8;
+  encstr = (char *) xcalloc (encsiz+4, 1);
   pd = encstr;
   for (ps = dupstr; *ps; ps++) {
+    if (pd - encstr > encsiz - 8) 
+      {
+	int newsiz = ((5*encsiz/4 + slen/8 + 5)|7);
+	char *newstr = (char*)xcalloc (newsiz+1, 1);
+	size_t curln = pd - encstr;
+	memcpy (newstr, encstr, curln);
+	free (encstr), encstr = newstr;
+	encsiz = newsiz;
+	pd = encstr + curln;
+      }
+    if ((ps[1] && ps[2] && ps[3] && pd > (lastnl?lastnl:encstr)+64)
+	|| (ISSPACE(ps[0]) &&  pd > (lastnl?lastnl:encstr)+30))
+      {
+	strcpy (pd, "\\" "\n"); 
+	pd += 2;
+	lastnl = pd;
+      }
     switch (*ps) {
 #define ADDS(S) strcpy(pd, S); pd += sizeof(S)-1; break
     case '\n':
-      ADDS ("\\n");
+      if (ps[1] &&  pd > (lastnl?lastnl:encstr)+30)
+	{
+	  strcpy (pd, "\\" "n" "\\" "\n"); 
+	  pd += 4;
+	  lastnl = pd;
+	  break;
+	}
+      else
+	ADDS ("\\n");
     case '\r':
       ADDS ("\\r");
     case '\t':

@@ -1,4 +1,18 @@
 
+2012-09-24  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h (MELT_VERSION_STRING): Bump to 0.9.7-pre-rc2
+
+	* melt-runtime.c (meltgc_add_out_cstr_len): Output some occasional
+	newlines for readability.  Grow the encstr buffer dynamically when
+	needed.
+
+	* melt/warmelt-genobj.melt (compile2obj_initextendproc): More
+	debugging.
+
+	* melt/warmelt-outobj.melt (outpucod_initialextensionroutine):
+	More debugging.
+
 2012-09-20  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.h (MELT_VERSION_STRING): Bump to 0.9.7-rc1

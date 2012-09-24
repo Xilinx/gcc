@@ -1727,6 +1727,7 @@ $SBUF.}#
 	  (foreach_in_list
 	   (objtoplis)
 	   (curpair curobjt)
+	   (debug "compile2obj_initextendproc appendinf curobjt=" curobjt)
 	   (list_append oinibody curobjt))
 	  (debug "compile2obj_initextendproc updated oinibody=" oinibody)
 	  (debug "compile2obj_initextendproc nbody=" nbody)
