@@ -644,7 +644,7 @@ parse_validate_atomic_model_option (const char* str)
     std::getline (ss, tokens.back (), ',');
   }
 
-  if (tokens.empty ())
+  if (tokens.is_empty ())
     err_ret ("invalid atomic model option");
 
   /* The first token must be the atomic model name.  */
@@ -671,7 +671,7 @@ got_mode_name:;
 	{
 	  std::string offset_str = tokens[i].substr (strlen ("gbr-offset="));
 	  ret.tcb_gbr_offset = integral_argument (offset_str.c_str ());
-	  if (offset_str.empty () || ret.tcb_gbr_offset == -1)
+	  if (offset_str.is_empty () || ret.tcb_gbr_offset == -1)
 	    err_ret ("could not parse gbr-offset value \"%s\" in atomic model "
 		     "option", offset_str.c_str ());
 	}

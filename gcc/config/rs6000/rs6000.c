@@ -24924,10 +24924,8 @@ typedef struct branch_island_d {
   int line_number;
 } branch_island;
 
-DEF_VEC_O(branch_island);
-DEF_VEC_ALLOC_O(branch_island,gc);
 
-static VEC(branch_island,gc) *branch_islands;
+static vec<branch_island, va_gc> *branch_islands;
 
 /* Remember to generate a branch island for far calls to the given
    function.  */
@@ -24937,7 +24935,7 @@ add_compiler_branch_island (tree label_name, tree function_name,
 			    int line_number)
 {
   branch_island bi = {function_name, label_name, line_number};
-  VEC_safe_push (branch_island, gc, branch_islands, bi);
+  branch_islands.safe_push (bi);
 }
 
 /* Generate far-jump branch islands for everything recorded in
@@ -24951,9 +24949,9 @@ macho_branch_islands (void)
 {
   char tmp_buf[512];
 
-  while (!VEC_empty (branch_island, branch_islands))
+  while (!branch_islands.is_empty ())
     {
-      branch_island *bi = &VEC_last (branch_island, branch_islands);
+      branch_island *bi = &branch_islands.last ();
       const char *label = IDENTIFIER_POINTER (bi->label_name);
       const char *name = IDENTIFIER_POINTER (bi->function_name);
       char name_buf[512];
@@ -25021,7 +25019,7 @@ macho_branch_islands (void)
       if (write_symbols == DBX_DEBUG || write_symbols == XCOFF_DEBUG)
 	dbxout_stabd (N_SLINE, bi->line_number);
 #endif /* DBX_DEBUGGING_INFO || XCOFF_DEBUGGING_INFO */
-      VEC_pop (branch_island, branch_islands);
+      branch_islands.pop ();
     }
 }
 
@@ -25034,7 +25032,7 @@ no_previous_def (tree function_name)
   branch_island *bi;
   unsigned ix;
 
-  FOR_EACH_VEC_ELT (branch_island, branch_islands, ix, bi)
+  FOR_EACH_VEC_ELT (branch_islands, ix, bi)
     if (function_name == bi->function_name)
       return 0;
   return 1;
@@ -25049,7 +25047,7 @@ get_prev_label (tree function_name)
   branch_island *bi;
   unsigned ix;
 
-  FOR_EACH_VEC_ELT (branch_island, branch_islands, ix, bi)
+  FOR_EACH_VEC_ELT (branch_islands, ix, bi)
     if (function_name == bi->function_name)
       return bi->label_name;
   return NULL_TREE;

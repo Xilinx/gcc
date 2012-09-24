@@ -2614,10 +2614,10 @@ rx_option_override (void)
 {
   unsigned int i;
   cl_deferred_option *opt;
-  VEC(cl_deferred_option,heap) *vec
-    = (VEC(cl_deferred_option,heap) *) rx_deferred_options;
+  vec<cl_deferred_option> vec
+    = (vec<cl_deferred_option> ) rx_deferred_options;
 
-  FOR_EACH_VEC_ELT (cl_deferred_option, vec, i, opt)
+  FOR_EACH_VEC_ELT (vec, i, opt)
     {
       switch (opt->opt_index)
 	{

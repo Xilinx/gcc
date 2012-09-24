@@ -488,7 +488,8 @@ gfc_trans_call (gfc_code * code, bool dependency_check,
 
       /* Add the subroutine call to the block.  */
       gfc_conv_procedure_call (&loopse, code->resolved_sym,
-			       code->ext.actual, code->expr1, NULL);
+			       code->ext.actual, code->expr1,
+			       NULL);
 
       if (mask && count1)
 	{
@@ -2093,7 +2094,7 @@ gfc_trans_character_select (gfc_code *code)
   gfc_code *c;
   gfc_se se, expr1se;
   int n, k;
-  VEC(constructor_elt,gc) *inits = NULL;
+  vec<constructor_elt, va_gc> *inits = NULL;
 
   tree pchartype = gfc_get_pchar_type (code->expr1->ts.kind);
 
@@ -2321,7 +2322,7 @@ gfc_trans_character_select (gfc_code *code)
   /* Generate the structure describing the branches */
   for (d = cp; d; d = d->right)
     {
-      VEC(constructor_elt,gc) *node = NULL;
+      vec<constructor_elt, va_gc> *node = NULL;
 
       gfc_init_se (&se, NULL);
 
