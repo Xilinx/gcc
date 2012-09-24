@@ -1,5 +1,10 @@
 2012-09-24  Rong Xu  <xur@google.com>
 
+	Google Ref: b/7210837 and b/7210303. 
+	* gcc/coverage.c (force_matching_cg_opts): add new entries.
+ 
+2012-09-24  Rong Xu  <xur@google.com>
+
 	Google ref b/7078882.
 	* gcc/l-ipo.c (cgraph_is_aux_decl_external): output comdat
 	virtual functions when they are auxiliary modules; otherwise

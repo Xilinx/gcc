@@ -274,6 +274,7 @@ static struct opt_desc force_matching_cg_opts[] =
   {
     { "-fexceptions", "-fno-exceptions", true },
     { "-fsized-delete", "-fno-sized-delete", false },
+    { "-frtti", "-fno-rtti", true },
     { NULL, NULL, false }
   };
 
