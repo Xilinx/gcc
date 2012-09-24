@@ -1,3 +1,70 @@
+2012-09-24  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-streamer-in.c (unpack_ts_type_common_value_fields): Stream in
+	TYPE_NONALIASED_COMPONENT flag.
+	* tree-streamer-out.c (pack_ts_type_common_value_fields): Stream out
+	TYPE_NONALIASED_COMPONENT flag.
+
+2012-09-21  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/54638
+	Backport from mainline
+	2012-04-19  Richard Guenther  <rguenther@suse.de>
+
+	* ira-int.h (ira_allocno_object_iter_cond): Avoid out-of-bound
+	array access.
+
+2012-09-20  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/54552
+	* c-typeck.c (c_cast_expr): When casting to a type requiring
+	C_MAYBE_CONST_EXPR to be created, pass the inner expression to
+	c_fully_fold first.
+
+2012-09-20  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/54103
+	* c-typeck.c (build_unary_op): Pass original argument of
+	TRUTH_NOT_EXPR to c_objc_common_truthvalue_conversion, then remove
+	any C_MAYBE_CONST_EXPR, if it has integer operands.
+	(build_binary_op): Pass original arguments of TRUTH_ANDIF_EXPR,
+	TRUTH_ORIF_EXPR, TRUTH_AND_EXPR, TRUTH_OR_EXPR and TRUTH_XOR_EXPR
+	to c_objc_common_truthvalue_conversion, then remove any
+	C_MAYBE_CONST_EXPR, if they have integer operands.  Use
+	c_objc_common_truthvalue_conversion not
+	c_common_truthvalue_conversion.
+	(c_objc_common_truthvalue_conversion): Build NE_EXPR directly and
+	call note_integer_operands for arguments with integer operands
+	that are not integer constants.
+
+2012-09-20  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from mainline
+	2012-09-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/54563
+	* tree-ssa-math-opts.c (execute_cse_sincos): Call
+	gimple_purge_dead_eh_edges if last call has been changed.
+
+	2012-09-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/54564
+	* config/i386/sse.md (fmai_vmfmadd_<mode>): Use (match_dup 1)
+	instead of (match_dup 0) as second argument to vec_merge.
+	(*fmai_fmadd_<mode>, *fmai_fmsub_<mode>): Likewise.
+	Remove third alternative.
+	(*fmai_fnmadd_<mode>, *fmai_fnmsub_<mode>): Likewise.  Negate
+	operand 2 instead of operand 1, but put it as first argument
+	of fma.
+	* config/i386/fmaintrin.h (_mm_fnmadd_sd, _mm_fnmadd_ss,
+	_mm_fnmsub_sd, _mm_fnmsub_ss): Negate the second argument instead
+	of the first.
+
+2012-09-20  Jakub Jelinek  <jakub@redhat.com>
+
+	* BASE-VER: Set to 4.7.3.
+	* DEV-PHASE: Set to prerelease.
+
 2012-09-20  Release Manager
 
 	* GCC 4.7.2 released.

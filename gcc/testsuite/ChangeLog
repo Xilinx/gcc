@@ -1,3 +1,101 @@
+2012-09-24  Janis Johnson  <janisjo@codesourcery.com>
+
+	Backport from mainline:
+
+	2012-07-24  Janis Johnson  <janisjo@codesourcery.com>
+	* lib/gcc-dg.exp (process-message): Don't ignore errors.
+
+	2012-07-25  Janis Johnson  <janisjo@codesourcery.com>
+	* g++.dg/cpp0x/nullptr21.c: Remove printfs, make self-checking.
+
+	2012-07-26  Janis Johnson  <janisjo@codesourcery.com>
+	* gcc.dg/pr45259.c: Only -fpic depends on fpic support.
+
+	2012-09-18  Janis Johnson  <janisjo@codesourcery.com>
+	* gcc.dg/vect/pr52298.c: Remove "dg-do run".
+
+	2012-09-18  Janis Johnson  <janisjo@codesourcery.com>
+	* lib/target-supports.exp
+	(check_effective_target_vect_widen_mult_qi_to_hi,
+	check_effective_target_vect_widen_mult_hi_to_si,
+	check_effective_target_vect_widen_mult_qi_to_hi_pattern,
+	check_effective_target_vect_widen_mult_hi_to_si_pattern,
+	check_effective_target_vect_pack_trunc,
+	check_effective_target_vect_unpack,
+	check_effective_target_vect_multiple_sizes): Check arm_neon_ok
+	instead of arm_none.
+
+	2012-09-18  Janis Johnson  <janisjo@codesourcery.com>
+	* gcc.dg/vect/no-vfa-vect-101.c: Skip a check for an irrelevant
+	target instead of xfailing it.
+	* gcc.dg/vect/no-vfa-vect-102.c: Likewise.
+	* gcc.dg/vect/no-vfa-vect-102a.c: Likewise.
+	* gcc.dg/vect/no-vfa-vect-37.c: Likewise.
+	* gcc.dg/vect/no-vfa-vect-79.c: Likewise.
+	* gcc.dg/vect/vect-104.c: Likewise.
+	* gcc.dg/vect/vect-outer-1-big-array.c: Likewise.
+	* gcc.dg/vect/vect-outer-1.c: Likewise.
+	* gcc.dg/vect/vect-outer-1a-big-array.c: Likewise.
+	* gcc.dg/vect/vect-outer-1a.c: Likewise.
+	* gcc.dg/vect/vect-outer-1b-big-array.c: Likewise.
+	* gcc.dg/vect/vect-outer-1b.c: Likewise.
+	* gcc.dg/vect/vect-outer-2b.c: Likewise.
+	* gcc.dg/vect/vect-outer-3a-big-array.c: Likewise.
+	* gcc.dg/vect/vect-outer-3a.c: Likewise.
+	* gcc.dg/vect/vect-outer-3b.c: Likewise.
+	* gcc.dg/vect/vect-reduc-dot-s8b.c: Likewise.
+
+	2012-09-18  Janis Johnson  <janisjo@codesourcery.com>
+	* gcc.dg/vect/fast-math-pr35982.c: Skip check instead of xfail.
+
+2012-09-22  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	Backport from mainline:
+	2012-09-16  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR testsuite/54007
+	* gnat.dg/lto15.adb: Require lto.
+
+2012-09-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/opt20.ads: Move dg directive to...
+	* gnat.dg/opt20.adb: ...here.
+	* gnat.dg/addr1.ad[sb]: Likewise.
+	* gnat.dg/concat2.ad[sb]: Likewise.
+	* gnat.dg/array16.ad[sb]: Likewise.
+	* gnat.dg/atomic5.ad[sb]: Likewise.
+	* gnat.dg/discr29.ad[sb]: Likewise.
+	* gnat.dg/noreturn5.ad[sb]: Likewise.
+	* gnat.dg/vect8.ad[sb]: Likewise.  Add dg-options.
+	* gnat.dg/discr23.ads: Remove dg directive.
+	* gnat.dg/nested_float_packed.ads: Likewise.
+	* gnat.dg/oconst6.ads: Move to...
+	* gnat.dg/specs/oconst6.ads: ...here.
+
+2012-09-20  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/54552
+	* gcc.c-torture/compile/pr54552-1.c: New test.
+
+2012-09-20  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/54103
+	* gcc.c-torture/compile/pr54103-1.c,
+	gcc.c-torture/compile/pr54103-2.c,
+	gcc.c-torture/compile/pr54103-3.c,
+	gcc.c-torture/compile/pr54103-4.c,
+	gcc.c-torture/compile/pr54103-5.c,
+	gcc.c-torture/compile/pr54103-6.c: New tests.
+	* gcc.dg/c90-const-expr-8.c: Update expected column number.
+
+2012-09-20  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from mainline
+	2012-09-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/54563
+	* g++.dg/torture/pr54563.C: New test.
+
 2012-09-20  Release Manager
 
 	* GCC 4.7.2 released.
