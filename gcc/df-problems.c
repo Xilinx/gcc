@@ -98,6 +98,28 @@ df_get_live_in (basic_block bb)
    Utility functions.
 ----------------------------------------------------------------------------*/
 
+/* A helper function checking if UD/DU is large and dense. It returns true
+   if UD/DU can potentially consume huge amount of memory. Returns false
+   otherwise
+*/
+
+bool
+df_check_ud_du_memory_usage (void)
+{
+  /* TODO: make this a target hook. The heuristic applies only to x86 in
+     m32 mode with -Os. In that mode 'push' instruction is used in argument
+     passing, with sp adjustment instruction after each function call. The
+     side effect is that the DU/UD becomes really dense.  */
+#define DF_LARGE_FUNC 20000
+
+  if (optimize_size
+      && n_basic_blocks_for_function (cfun) > DF_LARGE_FUNC)  
+    return true;
+
+  return false;
+}
+
+
 /* Generic versions to get the void* version of the block info.  Only
    used inside the problem instance vectors.  */
 
@@ -4619,6 +4641,3 @@ df_md_add_problem (void)
 {
   df_add_problem (&problem_MD);
 }
-
-
-

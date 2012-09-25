@@ -936,6 +936,9 @@ find_and_remove_re (void)
 static unsigned int
 rest_of_handle_ree (void)
 {
+  if (df_check_ud_du_memory_usage ())
+    return 0;
+
   timevar_push (TV_REE);
   find_and_remove_re ();
   timevar_pop (TV_REE);
