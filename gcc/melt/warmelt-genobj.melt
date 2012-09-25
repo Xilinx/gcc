@@ -803,9 +803,10 @@
     (debug "make_objexpandpureval arglist=" arglist)
     (let ( (res
 	    (instance  class_objexpandpureval
+		       :obv_type ctyp
 		       :oxpurval_loc loc
 		       :oxpurval_comm comm
-		       :oxpurval_cont (list_to_multiple discr_multiple arglist)))
+		       :oxpurval_cont (list_to_multiple arglist discr_multiple)))
 	   )
       (debug "make_objexpandpureval res=" res)
       (return res)
