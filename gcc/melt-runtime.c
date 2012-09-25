@@ -2004,8 +2004,10 @@ meltgc_add_out_cstr_len (melt_ptr_t outbuf_p, const char *str, int slen)
 	encsiz = newsiz;
 	pd = encstr + curln;
       }
-    if ((ps[1] && ps[2] && ps[3] && pd > (lastnl?lastnl:encstr)+64)
-	|| (ISSPACE(ps[0]) &&  pd > (lastnl?lastnl:encstr)+30))
+    if ((pd > (lastnl?lastnl:encstr)+72) && ps[1] && ps[2]
+	|| ((pd > (lastnl?lastnl:encstr)+64) 
+	    && !ISALNUM(ps[0]) && ps[0] != '_')
+	)
       {
 	strcpy (pd, "\\" "\n"); 
 	pd += 2;
@@ -2014,7 +2016,7 @@ meltgc_add_out_cstr_len (melt_ptr_t outbuf_p, const char *str, int slen)
     switch (*ps) {
 #define ADDS(S) strcpy(pd, S); pd += sizeof(S)-1; break
     case '\n':
-      if (ps[1] &&  pd > (lastnl?lastnl:encstr)+30)
+      if (ps[1] &&  pd > (lastnl?lastnl:encstr)+40)
 	{
 	  strcpy (pd, "\\" "n" "\\" "\n"); 
 	  pd += 4;
