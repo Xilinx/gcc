@@ -1328,6 +1328,152 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
   melt_check_call_frames (MELT_NOYOUNG, "after garbage collection");
 }
 
+#define MELTPYD_MAX_RANK 512
+enum {
+  meltpydrank__none=0,
+  meltpydrank_file,
+  meltpydrank_rawfile,
+  meltpydrank_mpfr,
+  meltpydrank_reserve1,
+  meltpydrank_reserve2,
+  meltpydrank_reserve3,
+  meltpydrank_reserve4,
+  meltpydrank_reserve5,
+  meltpydrank_reserve6,
+  meltpydrank_reserve7,
+  meltpydrank_reserve8,
+  meltpydrank__last
+};
+
+static void meltpayload_file_destroy (struct meltspecialdata_st*, const struct melt_payload_descriptor_st*);
+static char* meltpayload_file_sprint (struct meltspecialdata_st*, const struct melt_payload_descriptor_st*);
+
+
+static struct melt_payload_descriptor_st meltpydescr_file = {
+  .meltpyd_magic = MELT_PAYLOAD_DESCRIPTOR_MAGIC,
+  .meltpyd_rank = meltpydrank_file,
+  .meltpyd_name = "file",
+  .meltpyd_data = NULL,
+  .meltpyd_destroy_rout = meltpayload_file_destroy,
+  .meltpyd_sprint_rout = meltpayload_file_sprint,
+  .meltpyd_spare1 = 0
+};
+
+
+static void meltpayload_rawfile_destroy (struct meltspecialdata_st*, const struct melt_payload_descriptor_st*);
+static char* meltpayload_rawfile_sprint (struct meltspecialdata_st*, const struct melt_payload_descriptor_st*);
+static struct melt_payload_descriptor_st meltpydescr_rawfile = {
+  .meltpyd_magic = MELT_PAYLOAD_DESCRIPTOR_MAGIC,
+  .meltpyd_rank = meltpydrank_rawfile,
+  .meltpyd_name = "rawfile",
+  .meltpyd_data = NULL,
+  .meltpyd_destroy_rout = meltpayload_rawfile_destroy,
+  .meltpyd_sprint_rout = meltpayload_rawfile_sprint,
+  .meltpyd_spare1 = 0
+};
+
+static void meltpayload_mpfr_destroy (struct meltspecialdata_st*, const struct melt_payload_descriptor_st*);
+static char* meltpayload_mpfr_sprint (struct meltspecialdata_st*, const struct melt_payload_descriptor_st*);
+static struct melt_payload_descriptor_st meltpydescr_mpfr = {
+  .meltpyd_magic = MELT_PAYLOAD_DESCRIPTOR_MAGIC,
+  .meltpyd_rank = meltpydrank_mpfr,
+  .meltpyd_name = "mpfr",
+  .meltpyd_data = NULL,
+  .meltpyd_destroy_rout = meltpayload_mpfr_destroy,
+  .meltpyd_sprint_rout = meltpayload_mpfr_sprint,
+  .meltpyd_spare1 = 0
+};
+
+
+
+/* FIXME: should use a vector */
+static struct melt_payload_descriptor_st* meltpyd_array[MELTPYD_MAX_RANK];
+
+static void melt_payload_initialize_static_descriptors (void)
+{
+  meltpyd_array[meltpydrank_file] = &meltpydescr_file;
+  meltpyd_array[meltpydrank_rawfile] = &meltpydescr_rawfile;
+  meltpyd_array[meltpydrank_mpfr] = &meltpydescr_mpfr;
+}
+
+int melt_payload_register_descriptor (struct melt_payload_descriptor_st*mpd)
+{
+  unsigned mrk = 0;
+  if (!mpd) return 0;
+  if (mpd->meltpyd_magic != MELT_PAYLOAD_DESCRIPTOR_MAGIC || !mpd->meltpyd_name)
+    melt_fatal_error("MELT cannot register corrupted payload descriptor @%p",
+		     (void*) mpd);
+  if (mpd->meltpyd_rank > 0 && mpd->meltpyd_rank < MELTPYD_MAX_RANK
+      && meltpyd_array[mpd->meltpyd_rank] == mpd)
+    return mpd->meltpyd_rank;
+  if (mpd->meltpyd_rank != 0)
+    melt_fatal_error("MELT cannot register payload descriptor @%p with bad rank %d",
+		     (void*) mpd, mpd->meltpyd_rank);
+  {
+    unsigned r = 0;
+    for (r = meltpydrank__last; r < MELTPYD_MAX_RANK && !mrk; r++) 
+      if (!meltpyd_array[r]) 
+	mrk = r;
+  }
+  if (!mrk) 
+    melt_fatal_error("MELT cannot register payload descriptor @%p, table of %d is full",
+		     (void*)mpd, MELTPYD_MAX_RANK);
+  mpd->meltpyd_rank = mrk;
+  meltpyd_array[mrk] = mpd;
+  return mrk;
+}
+
+
+static void meltpayload_file_destroy (struct meltspecialdata_st*, const struct melt_payload_descriptor_st*);
+static char* meltpayload_file_sprint (struct meltspecialdata_st*, const struct melt_payload_descriptor_st*);
+
+
+
+
+
+static void 
+meltpayload_rawfile_destroy (struct meltspecialdata_st*sd, const struct melt_payload_descriptor_st*mpd)
+{
+  melt_fatal_error("meltpayload_rawfile_destroy unimplemented sd@%p", sd);
+}
+
+static char* 
+meltpayload_rawfile_sprint (struct meltspecialdata_st*sd, const struct melt_payload_descriptor_st*mpd)
+{
+  melt_fatal_error("meltpayload_rawfile_sprint unimplemented sd@%p", sd);
+  return NULL;
+}
+
+
+
+static void 
+meltpayload_file_destroy (struct meltspecialdata_st*sd, const struct melt_payload_descriptor_st*mpd)
+{
+  melt_fatal_error("meltpayload_file_destroy unimplemented sd@%p", sd);
+}
+
+static char* 
+meltpayload_file_sprint (struct meltspecialdata_st*sd, const struct melt_payload_descriptor_st*mpd)
+{
+  melt_fatal_error("meltpayload_file_sprint unimplemented sd@%p", sd);
+  return NULL;
+}
+
+
+
+
+static void 
+meltpayload_mpfr_destroy (struct meltspecialdata_st*sd, const struct melt_payload_descriptor_st*mpd)
+{
+  melt_fatal_error("meltpayload_mpfr_destroy unimplemented sd@%p", sd);
+}
+
+static char* 
+meltpayload_mpfr_sprint (struct meltspecialdata_st*sd, const struct melt_payload_descriptor_st*mpd)
+{
+  melt_fatal_error("meltpayload_mpfr_sprint unimplemented sd@%p", sd);
+  return NULL;
+}
 
 
 /* The inline function melt_allocatereserved is the only one
@@ -10441,6 +10587,8 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   debugeprintf ("melt_really_initialize melt_start_time=%ld",
 		(long) melt_start_time.tv_sec);
  
+  melt_payload_initialize_static_descriptors ();
+
 #ifdef MELT_IS_PLUGIN
   /* when MELT is a plugin, we need to process the debug
      argument. When MELT is a branch, the melt_argument function is

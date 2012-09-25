@@ -411,6 +411,33 @@ struct meltspecialpayload_st {
   void* meltpayload_ptr2;
 };
 
+#define MELT_PAYLOAD_DESCRIPTOR_MAGIC 0x6795688b /* 1737844875 */
+struct melt_payload_descriptor_st;
+/* signature of payload destruction */
+typedef void meltpayload_destroy_t (struct meltspecialdata_st*, const struct melt_payload_descriptor_st*);
+/* signature of payload short printing; return a malloc-ed buffer to
+   be freed by the caller. */
+typedef char* meltpayload_sprint_t (struct meltspecialdata_st*, const struct melt_payload_descriptor_st*);
+
+/* payload descriptors should be static */
+struct melt_payload_descriptor_st {
+  unsigned meltpyd_magic;	/* always
+				   MELT_PAYLOAD_DESCRIPTOR_MAGIC, even
+				   at registration time */
+  unsigned meltpyd_rank;	/* either the rank, or 0 */
+  const char* meltpyd_name;	/* unique name */
+  void* meltpyd_data;	/* data for the client */
+  meltpayload_destroy_t* meltpyd_destroy_rout; /* the destroying routine */
+  meltpayload_sprint_t* meltpyd_sprint_rout;     /* the short printing routine */
+  void* meltpyd_spare1;
+  void* meltpyd_spare2;
+  void* meltpyd_spare3;
+};
+
+/* return a positive rank, or -1 on failure. May also fail with
+   melt_fatal_error. */
+int melt_payload_register_descriptor (struct melt_payload_descriptor_st*);
+
 /* forwarded pointers; nobody see them except the melt copying
    garbage collector */
 struct 

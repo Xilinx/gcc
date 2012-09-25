@@ -1,6 +1,21 @@
 
 2012-09-25  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.h (MELT_PAYLOAD_DESCRIPTOR_MAGIC): New.
+	(struct melt_payload_descriptor_st): New.
+	(melt_payload_register_descriptor): New declaration.
+
+	* melt-runtime.c (MELTPYD_MAX_RANK, meltpydrank_file)
+	(meltpydrank_rawfile, meltpydrank_mpfr): New constants.
+	(meltpydescr_file, meltpydescr_rawfile, meltpydescr_mpfr): New
+	static payload descriptors.
+	(meltpyd_array): New static array.
+	(melt_payload_initialize_static_descriptors): Its initialization
+	routine.
+	(melt_really_initialize): Call it.
+
+2012-09-25  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.h (melt_mark_special, melt_get_file): Use
 	specialmark & specialpayload fields.
 	* melt-runtime.c (delete_special, meltgc_make_special)
