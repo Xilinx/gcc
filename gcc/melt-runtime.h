@@ -1108,7 +1108,7 @@ static inline void
 melt_mark_special (struct meltspecial_st *p)
 {
   /* FIXME: gengtype don't generate call to this! */
-  p->mark = 1;
+  p->specialmark = 1;
   melt_debuggc_eprintf ("marked special %p of magic %d = %s", 
                         (void*)p, p->discr->meltobj_magic, 
 			melt_obmag_string (p->discr->meltobj_magic));
@@ -3140,7 +3140,7 @@ melt_get_file(melt_ptr_t file_p)
     return NULL;
   magic = melt_magic_discr (file_p);
   if (magic == MELTOBMAG_SPEC_FILE || magic == MELTOBMAG_SPEC_RAWFILE)
-    return ((struct meltspecialfile_st*)file_p)->val.sp_file;
+    return ((struct meltspecialfile_st*)file_p)->specialpayload.sp_file;
   return NULL;
 }
 

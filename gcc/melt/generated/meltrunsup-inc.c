@@ -216,23 +216,27 @@ melt_obmag_string (int i)
     case MELTOBMAG_ROUTINE:
       return "MELTOBMAG_ROUTINE";
 
-      /*valdesc #16 VALDESC_SPECIAL_FILE */
+      /*valdesc #16 VALDESC_SPECIAL_DATA */
+    case MELTOBMAG_SPECIAL_DATA:
+      return "MELTOBMAG_SPECIAL_DATA";
+
+      /*valdesc #17 VALDESC_SPECIAL_FILE */
     case MELTOBMAG_SPEC_FILE:
       return "MELTOBMAG_SPEC_FILE";
 
-      /*valdesc #17 VALDESC_SPECIAL_MPFR */
+      /*valdesc #18 VALDESC_SPECIAL_MPFR */
     case MELTOBMAG_SPEC_MPFR:
       return "MELTOBMAG_SPEC_MPFR";
 
-      /*valdesc #18 VALDESC_SPECIAL_RAW_FILE */
+      /*valdesc #19 VALDESC_SPECIAL_RAW_FILE */
     case MELTOBMAG_SPEC_RAWFILE:
       return "MELTOBMAG_SPEC_RAWFILE";
 
-      /*valdesc #19 VALDESC_STRBUF */
+      /*valdesc #20 VALDESC_STRBUF */
     case MELTOBMAG_STRBUF:
       return "MELTOBMAG_STRBUF";
 
-      /*valdesc #20 VALDESC_STRING */
+      /*valdesc #21 VALDESC_STRING */
     case MELTOBMAG_STRING:
       return "MELTOBMAG_STRING";
     default:
@@ -660,7 +664,29 @@ melt_forwarded_copy (melt_ptr_t p)
 	break;
       }
 
-      /*valdesc #16 VALDESC_SPECIAL_FILE */
+      /*valdesc #16 VALDESC_SPECIAL_DATA */
+    case MELTOBMAG_SPECIAL_DATA:
+      {
+	struct meltspecialdata_st *src = (struct meltspecialdata_st *) p;
+	struct meltspecialdata_st *dst = NULL;
+	/* from VALDESC_SPECIAL_DATA */
+/* ggc_alloc_meltspecialdata_st should be gengtype generated for VALDESC_SPECIAL_DATA */
+#ifndef ggc_alloc_meltspecialdata_st
+#define ggc_alloc_meltspecialdata_st() ((struct meltspecialdata_st *)(ggc_internal_alloc_stat (sizeof (struct meltspecialdata_st) MEM_STAT_INFO)))
+#endif
+	dst = ggc_alloc_meltspecialdata_st ();
+	*dst = *src;
+	/* mark the new copy! */
+	dst->meltspec_mark = 1;
+	/* add the new copy to the old (major) special list */
+	dst->meltspec_next = (struct meltspecialdata_st *) melt_oldspeclist;
+	melt_oldspeclist = (struct meltspecial_st *) dst;
+
+	n = (melt_ptr_t) dst;
+	break;
+      }
+
+      /*valdesc #17 VALDESC_SPECIAL_FILE */
     case MELTOBMAG_SPEC_FILE:
       {
 	struct meltspecialfile_st *src = (struct meltspecialfile_st *) p;
@@ -673,16 +699,16 @@ melt_forwarded_copy (melt_ptr_t p)
 	dst = ggc_alloc_meltspecialfile_st ();
 	*dst = *src;
 	/* mark the new copy! */
-	dst->mark = 1;
+	dst->specialmark = 1;
 	/* add the new copy to the old (major) special list */
-	dst->nextspec = melt_oldspeclist;
+	dst->specialnext = melt_oldspeclist;
 	melt_oldspeclist = (struct meltspecial_st *) dst;
 
 	n = (melt_ptr_t) dst;
 	break;
       }
 
-      /*valdesc #17 VALDESC_SPECIAL_MPFR */
+      /*valdesc #18 VALDESC_SPECIAL_MPFR */
     case MELTOBMAG_SPEC_MPFR:
       {
 	struct meltspecialmpfr_st *src = (struct meltspecialmpfr_st *) p;
@@ -695,16 +721,16 @@ melt_forwarded_copy (melt_ptr_t p)
 	dst = ggc_alloc_meltspecialmpfr_st ();
 	*dst = *src;
 	/* mark the new copy! */
-	dst->mark = 1;
+	dst->specialmark = 1;
 	/* add the new copy to the old (major) special list */
-	dst->nextspec = melt_oldspeclist;
+	dst->specialnext = melt_oldspeclist;
 	melt_oldspeclist = (struct meltspecial_st *) dst;
 
 	n = (melt_ptr_t) dst;
 	break;
       }
 
-      /*valdesc #18 VALDESC_SPECIAL_RAW_FILE */
+      /*valdesc #19 VALDESC_SPECIAL_RAW_FILE */
     case MELTOBMAG_SPEC_RAWFILE:
       {
 	struct meltspecialrawfile_st *src =
@@ -718,16 +744,16 @@ melt_forwarded_copy (melt_ptr_t p)
 	dst = ggc_alloc_meltspecialrawfile_st ();
 	*dst = *src;
 	/* mark the new copy! */
-	dst->mark = 1;
+	dst->specialmark = 1;
 	/* add the new copy to the old (major) special list */
-	dst->nextspec = melt_oldspeclist;
+	dst->specialnext = melt_oldspeclist;
 	melt_oldspeclist = (struct meltspecial_st *) dst;
 
 	n = (melt_ptr_t) dst;
 	break;
       }
 
-      /*valdesc #19 VALDESC_STRBUF */
+      /*valdesc #20 VALDESC_STRBUF */
     case MELTOBMAG_STRBUF:
       {
 	struct meltstrbuf_st *src = (struct meltstrbuf_st *) p;
@@ -764,7 +790,7 @@ melt_forwarded_copy (melt_ptr_t p)
 	break;
       }
 
-      /*valdesc #20 VALDESC_STRING */
+      /*valdesc #21 VALDESC_STRING */
     case MELTOBMAG_STRING:
       {
 	struct meltstring_st *src = (struct meltstring_st *) p;
@@ -1450,44 +1476,55 @@ melt_scanning (melt_ptr_t p)
 	break;
       }
 
-      /*valdesc #16 VALDESC_SPECIAL_FILE */
+      /*valdesc #16 VALDESC_SPECIAL_DATA */
+    case MELTOBMAG_SPECIAL_DATA:
+      {
+	struct meltspecialdata_st *src = (struct meltspecialdata_st *) p;
+	/* from VALDESC_SPECIAL_DATA */
+	src->meltspec_mark = 1;
+	MELT_FORWARDED (src->meltspec_value);
+
+	break;
+      }
+
+      /*valdesc #17 VALDESC_SPECIAL_FILE */
     case MELTOBMAG_SPEC_FILE:
       {
 	struct meltspecialfile_st *src = (struct meltspecialfile_st *) p;
 	/* from VALDESC_SPECIAL_FILE */
-	src->mark = 1;
+	src->specialmark = 1;
 
 	break;
       }
 
-      /*valdesc #17 VALDESC_SPECIAL_MPFR */
+      /*valdesc #18 VALDESC_SPECIAL_MPFR */
     case MELTOBMAG_SPEC_MPFR:
       {
 	struct meltspecialmpfr_st *src = (struct meltspecialmpfr_st *) p;
 	/* from VALDESC_SPECIAL_MPFR */
-	src->mark = 1;
+	src->specialmark = 1;
 
 	break;
       }
 
-      /*valdesc #18 VALDESC_SPECIAL_RAW_FILE */
+      /*valdesc #19 VALDESC_SPECIAL_RAW_FILE */
     case MELTOBMAG_SPEC_RAWFILE:
       {
 	struct meltspecialrawfile_st *src =
 	  (struct meltspecialrawfile_st *) p;
 	/* from VALDESC_SPECIAL_RAW_FILE */
-	src->mark = 1;
+	src->specialmark = 1;
 
 	break;
       }
 
-      /*valdesc #19 VALDESC_STRBUF */
+      /*valdesc #20 VALDESC_STRBUF */
     case MELTOBMAG_STRBUF:
       {
 	break;
       }
 
-      /*valdesc #20 VALDESC_STRING */
+      /*valdesc #21 VALDESC_STRING */
     case MELTOBMAG_STRING:
       {
 	break;
@@ -2498,7 +2535,7 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
       };
       break;
 
-/******* cloning the 20 value descriptors *******/
+/******* cloning the 21 value descriptors *******/
 /** cloning value descriptor #1 VALDESC_BUCKETLONGS **/
       /*explicit cloning for VALDESC_BUCKETLONGS */
     case MELTOBMAG_BUCKETLONGS:
@@ -2831,19 +2868,23 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
       /*no cloning for VALDESC_ROUTINE */
     case MELTOBMAG_ROUTINE:
       break;
-/** cloning value descriptor #16 VALDESC_SPECIAL_FILE **/
+/** cloning value descriptor #16 VALDESC_SPECIAL_DATA **/
+      /*no cloning for VALDESC_SPECIAL_DATA */
+    case MELTOBMAG_SPECIAL_DATA:
+      break;
+/** cloning value descriptor #17 VALDESC_SPECIAL_FILE **/
       /*no cloning for VALDESC_SPECIAL_FILE */
     case MELTOBMAG_SPEC_FILE:
       break;
-/** cloning value descriptor #17 VALDESC_SPECIAL_MPFR **/
+/** cloning value descriptor #18 VALDESC_SPECIAL_MPFR **/
       /*no cloning for VALDESC_SPECIAL_MPFR */
     case MELTOBMAG_SPEC_MPFR:
       break;
-/** cloning value descriptor #18 VALDESC_SPECIAL_RAW_FILE **/
+/** cloning value descriptor #19 VALDESC_SPECIAL_RAW_FILE **/
       /*no cloning for VALDESC_SPECIAL_RAW_FILE */
     case MELTOBMAG_SPEC_RAWFILE:
       break;
-/** cloning value descriptor #19 VALDESC_STRBUF **/
+/** cloning value descriptor #20 VALDESC_STRBUF **/
       /*explicit cloning for VALDESC_STRBUF */
     case MELTOBMAG_STRBUF:
       {
@@ -2862,7 +2903,7 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
 	  resv = (melt_ptr_t) dst;
       };
       break;
-/** cloning value descriptor #20 VALDESC_STRING **/
+/** cloning value descriptor #21 VALDESC_STRING **/
       /*explicit cloning for VALDESC_STRING */
     case MELTOBMAG_STRING:
       {
@@ -2895,4 +2936,4 @@ end:
 
 
 /*** End of code file meltbuild-sources/generated/meltrunsup-inc.c generated on 2012 Sep 25
- * by GCC MELT 4.8.0 20120922 (experimental) [melt-branch revision 191693] MELT_0.9.7-pre-rc2 . ***/
+ * by GCC MELT 4.8.0 20120922 (experimental) [melt-branch revision 191713] MELT_0.9.7-pre-rc2 . ***/

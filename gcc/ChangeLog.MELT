@@ -1,6 +1,59 @@
 
 2012-09-25  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.h (melt_mark_special, melt_get_file): Use
+	specialmark & specialpayload fields.
+	* melt-runtime.c (delete_special, meltgc_make_special)
+	(melt_minor_copying_garbage_collector, melt_garbcoll)
+	(meltgc_add_out_raw_len, meltgc_out_add_indent)
+	(meltgc_ppout_gimple, meltgc_ppout_gimple_seq)
+	(meltgc_ppout_tree_perhaps_briefly, meltgc_out_edge)
+	(meltgc_out_loop, meltgc_new_file, meltgc_gimple_gate)
+	(meltgc_gimple_execute, meltgc_rtl_gate, meltgc_rtl_execute)
+	(meltgc_simple_ipa_gate, meltgc_simple_ipa_execute): Likewise.
+
+	* melt/warmelt-base.melt (valdesc_special_data): Better copy
+	chunk.
+
+	{{Regenerate, going to specialdata}}
+	* melt/generated/meltrunsup-inc.c
+	* melt/generated/meltrunsup.h
+	* melt/generated/warmelt-base+03.c
+	* melt/generated/warmelt-base+meltdesc.c
+	* melt/generated/warmelt-base+melttime.h
+	* melt/generated/warmelt-base.c
+	* melt/generated/warmelt-debug+meltdesc.c
+	* melt/generated/warmelt-debug+melttime.h
+	* melt/generated/warmelt-debug.c
+	* melt/generated/warmelt-first+meltdesc.c
+	* melt/generated/warmelt-first+melttime.h
+	* melt/generated/warmelt-first.c
+	* melt/generated/warmelt-genobj+04.c
+	* melt/generated/warmelt-genobj+05.c
+	* melt/generated/warmelt-genobj+meltdesc.c
+	* melt/generated/warmelt-genobj+melttime.h
+	* melt/generated/warmelt-genobj.c
+	* melt/generated/warmelt-macro+meltdesc.c
+	* melt/generated/warmelt-macro+melttime.h
+	* melt/generated/warmelt-macro.c
+	* melt/generated/warmelt-modes+meltdesc.c
+	* melt/generated/warmelt-modes+melttime.h
+	* melt/generated/warmelt-modes.c
+	* melt/generated/warmelt-normal+meltdesc.c
+	* melt/generated/warmelt-normal+melttime.h
+	* melt/generated/warmelt-normal.c
+	* melt/generated/warmelt-normatch+04.c
+	* melt/generated/warmelt-normatch+meltdesc.c
+	* melt/generated/warmelt-normatch+melttime.h
+	* melt/generated/warmelt-normatch.c
+	* melt/generated/warmelt-outobj+02.c
+	* melt/generated/warmelt-outobj+04.c
+	* melt/generated/warmelt-outobj+meltdesc.c
+	* melt/generated/warmelt-outobj+melttime.h
+	* melt/generated/warmelt-outobj.c
+
+2012-09-25  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.h (struct meltspecialpayload_st): New.
 
 	* melt/warmelt-base.melt (valdesc_special_data): New.

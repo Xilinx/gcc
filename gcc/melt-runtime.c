@@ -768,22 +768,22 @@ delete_special (struct meltspecial_st *sp)
                         (void*) sp, magic, melt_obmag_string (magic));
   switch (magic) {
   case MELTOBMAG_SPEC_FILE:
-    if (sp->val.sp_file) {
-      fclose (sp->val.sp_file);
-      sp->val.sp_file = NULL;
+    if (sp->specialpayload.sp_file) {
+      fclose (sp->specialpayload.sp_file);
+      sp->specialpayload.sp_file = NULL;
     };
     break;
   case MELTOBMAG_SPEC_RAWFILE:
-    if (sp->val.sp_file) {
-      fflush (sp->val.sp_file);
-      sp->val.sp_file = NULL;
+    if (sp->specialpayload.sp_file) {
+      fflush (sp->specialpayload.sp_file);
+      sp->specialpayload.sp_file = NULL;
     };
     break;
   case MELTOBMAG_SPEC_MPFR:
-    if (sp->val.sp_mpfr) {
-      mpfr_clear ((mpfr_ptr) (sp->val.sp_mpfr));
-      free (sp->val.sp_mpfr);
-      sp->val.sp_mpfr = NULL;
+    if (sp->specialpayload.sp_mpfr) {
+      mpfr_clear ((mpfr_ptr) (sp->specialpayload.sp_mpfr));
+      free (sp->specialpayload.sp_mpfr);
+      sp->specialpayload.sp_mpfr = NULL;
     };
     break;
   default:
@@ -934,8 +934,8 @@ meltgc_make_special (melt_ptr_t discr_p) {
   case ALL_MELTOBMAG_SPECIAL_CASES:
     specv = meltgc_allocate (sizeof(struct meltspecial_st),0);
     sp_specv->discr = (meltobject_ptr_t) discrv;
-    sp_specv->mark = 0;
-    sp_specv->nextspec = melt_newspeclist;
+    sp_specv->specialmark = 0;
+    sp_specv->specialnext = melt_newspeclist;
     melt_newspeclist = sp_specv;
     melt_debuggc_eprintf ("make_special %p discr %p magic %d %s",
                           specv, discrv, magic, melt_obmag_string(magic));
@@ -1112,10 +1112,10 @@ melt_minor_copying_garbage_collector (size_t wanted)
   melt_bscanvec = NULL;
 
   /* Delete every unmarked special on the new list and clear it */
-  for (specp = melt_newspeclist; specp; specp = specp->nextspec) {
+  for (specp = melt_newspeclist; specp; specp = specp->specialnext) {
     gcc_assert (melt_is_young (specp));
     melt_debuggc_eprintf ("melt_minor_copying_garbage_collector specp %p has mark %d",
-                          (void*) specp, specp->mark);
+                          (void*) specp, specp->specialmark);
 
 #if ENABLE_CHECKING
     if (melt_alptr_1 && (void*)melt_alptr_1 == (void*)specp) {
@@ -1136,7 +1136,7 @@ melt_minor_copying_garbage_collector (size_t wanted)
     }
 #endif /*ENABLE_CHECKING*/
 
-    if (!specp->mark) {
+    if (!specp->specialmark) {
       melt_debuggc_eprintf ("melt_minor_copying_garbage_collector deleting newspec %p", (void*)specp);
       delete_special (specp);
     }
@@ -1247,7 +1247,7 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
                   melt_nb_garbcoll, melt_nb_full_garbcoll);
     /* clear our mark fields on old special list before running Ggc. */
     for (specp = melt_oldspeclist; specp; specp = nextspecp) {
-      specp->mark = 0;
+      specp->specialmark = 0;
       nboldspec++;
 
 #if ENABLE_CHECKING
@@ -1277,7 +1277,7 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
     /* Delete the unmarked specials.  */
     prevspecptr = &melt_oldspeclist;
     for (specp = melt_oldspeclist; specp; specp = nextspecp) {
-      nextspecp = specp->nextspec;
+      nextspecp = specp->specialnext;
 
 #if ENABLE_CHECKING
       if (melt_alptr_1 && (void*)melt_alptr_1 == (void*)specp) {
@@ -1299,13 +1299,13 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
 #endif /*ENABLE_CHECKING*/
 
       melt_debuggc_eprintf ("melt_garbcoll deletespecloop old specp %p mark %d",
-                            (void*)specp, specp->mark);
+                            (void*)specp, specp->specialmark);
       /* we test both the mark field, if mark_hook is really working
 	 in gengtype, and the result of ggc_marked_p, for GCC versions
 	 where it is not working. mark_hook don't work in GCC 4.7 and
 	 probably not even in 4.6 */ 
-      if (specp->mark || ggc_marked_p(specp)) {
-        prevspecptr = &specp->nextspec;
+      if (specp->specialmark || ggc_marked_p(specp)) {
+        prevspecptr = &specp->specialnext;
         continue;
       }
       melt_debuggc_eprintf ("melt_garbcoll deletespecloop deleting old specp %p",
@@ -1762,8 +1762,8 @@ melt_output_length (melt_ptr_t out_p)
   case MELTOBMAG_SPEC_FILE:
   case MELTOBMAG_SPEC_RAWFILE: {
     struct meltspecial_st *sp = (struct meltspecial_st *) out_p;
-    if (sp->val.sp_file) {
-      long off = ftell (sp->val.sp_file);
+    if (sp->specialpayload.sp_file) {
+      long off = ftell (sp->specialpayload.sp_file);
       return off;
     }
     break;
@@ -1911,7 +1911,7 @@ meltgc_add_out_raw_len (melt_ptr_t outbuf_p, const char *str, int slen)
   switch (melt_magic_discr ((melt_ptr_t) (outbufv))) {
   case MELTOBMAG_SPEC_FILE:
   case MELTOBMAG_SPEC_RAWFILE: {
-    FILE* f = spec_outbufv->val.sp_file;
+    FILE* f = spec_outbufv->specialpayload.sp_file;
     if (f) {
       int fno = fileno (f);
       const char* eol = NULL;
@@ -2306,7 +2306,7 @@ meltgc_out_add_indent (melt_ptr_t outbuf_p, int depth, int linethresh)
     llln = be - nl;
     gcc_assert (llln >= 0);
   } else if (outmagic == MELTOBMAG_SPEC_FILE || outmagic == MELTOBMAG_SPEC_RAWFILE) {
-    FILE *f = spec_outbufv->val.sp_file;
+    FILE *f = spec_outbufv->specialpayload.sp_file;
     int fn = f?fileno(f):-1;
     if (f && fn>=0 && fn<=MELTMAXFILE)
       llln = ftell(f) - lasteol[fn];
@@ -11668,7 +11668,7 @@ meltgc_ppout_gimple (melt_ptr_t out_p, int indentsp, gimple gstmt)
   break;
   case MELTOBMAG_SPEC_FILE:
   case MELTOBMAG_SPEC_RAWFILE: {
-    FILE* f = ((struct meltspecial_st*)outv)->val.sp_file;
+    FILE* f = ((struct meltspecial_st*)outv)->specialpayload.sp_file;
     if (!f)
       goto end;
     print_gimple_stmt (f, gstmt, indentsp,
@@ -11715,7 +11715,7 @@ meltgc_ppout_gimple_seq (melt_ptr_t out_p, int indentsp,
   break;
   case MELTOBMAG_SPEC_FILE:
   case MELTOBMAG_SPEC_RAWFILE: {
-    FILE* f = ((struct meltspecial_st*)outv)->val.sp_file;
+    FILE* f = ((struct meltspecial_st*)outv)->specialpayload.sp_file;
     if (!f)
       goto end;
     print_gimple_seq (f, gseq, indentsp,
@@ -11762,7 +11762,7 @@ meltgc_ppout_tree_perhaps_briefly (melt_ptr_t out_p, int indentsp, tree tr, bool
   break;
   case MELTOBMAG_SPEC_FILE:
   case MELTOBMAG_SPEC_RAWFILE: {
-    FILE* f = ((struct meltspecial_st*)outv)->val.sp_file;
+    FILE* f = ((struct meltspecial_st*)outv)->specialpayload.sp_file;
     if (!f)
       goto end;
     if (briefly)
@@ -11845,7 +11845,7 @@ meltgc_out_edge (melt_ptr_t out_p, edge edg)
   break;
   case MELTOBMAG_SPEC_FILE:
   case MELTOBMAG_SPEC_RAWFILE: {
-    FILE* f = ((struct meltspecial_st*)outv)->val.sp_file;
+    FILE* f = ((struct meltspecial_st*)outv)->specialpayload.sp_file;
     if (!f)
       goto end;
     dump_edge_info (f, edg,
@@ -11895,7 +11895,7 @@ meltgc_out_loop (melt_ptr_t out_p, loop_p loo)
   break;
   case MELTOBMAG_SPEC_FILE:
   case MELTOBMAG_SPEC_RAWFILE: {
-    FILE* f = ((struct meltspecial_st*)outv)->val.sp_file;
+    FILE* f = ((struct meltspecial_st*)outv)->specialpayload.sp_file;
     if (!f)
       goto end;
     fprintf (f, "loop@%p: ", (void*) loo);
@@ -11988,7 +11988,7 @@ meltgc_new_file (melt_ptr_t discr_p, FILE* fil)
       && object_discrv->meltobj_magic != MELTOBMAG_SPEC_RAWFILE)
     goto end;
   resv = meltgc_make_special ((melt_ptr_t) discrv);
-  spec_resv->val.sp_file = fil;
+  spec_resv->specialpayload.sp_file = fil;
 end:
   MELT_EXITFRAME ();
   return (melt_ptr_t) resv;
@@ -12699,8 +12699,8 @@ meltgc_gimple_gate(void)
     goto end;
   dumpv = melt_get_inisysdata (MELTFIELD_SYSDATA_DUMPFILE);
   if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) {
-    oldf = ((struct meltspecial_st*)dumpv)->val.sp_file;
-    ((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
+    oldf = ((struct meltspecial_st*)dumpv)->specialpayload.sp_file;
+    ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = dump_file;
   }
   debugeprintf ("meltgc_gimple_gate pass %s before apply", current_pass->name);
   MELT_LOCATION_HERE_PRINTF (curlocbuf, "meltgc_gimple_gate pass %s before apply", current_pass->name);
@@ -12717,7 +12717,7 @@ meltgc_gimple_gate(void)
     FILE *df = melt_get_file ((melt_ptr_t) dumpv);
     if (df)
       fflush (df);
-    ((struct meltspecial_st*)dumpv)->val.sp_file = oldf;
+    ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = oldf;
   };
 end:
   debugeprintf ("meltgc_gimple_gate pass %s ended ok=%d", current_pass->name, ok);
@@ -12782,8 +12782,8 @@ meltgc_gimple_execute (void)
     debugeprintf ("gimple_execute passname %s before apply",
                   current_pass->name);
     if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) {
-      oldf = ((struct meltspecial_st*)dumpv)->val.sp_file;
-      ((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
+      oldf = ((struct meltspecial_st*)dumpv)->specialpayload.sp_file;
+      ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = dump_file;
     };
     debugeprintf ("gimple_execute passname %s before apply dbgcounter %ld",
                   current_pass->name, passdbgcounter);
@@ -12803,7 +12803,7 @@ meltgc_gimple_execute (void)
       FILE *df = melt_get_file ((melt_ptr_t) dumpv);
       if (df)
         fflush(df);
-      ((struct meltspecial_st*)dumpv)->val.sp_file = oldf;
+      ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = oldf;
     };
     MELT_LOCATION_HERE_PRINTF(curlocbuf, "meltgc_gimple_execute pass %s after apply",
                               current_pass->name);
@@ -12866,8 +12866,8 @@ meltgc_rtl_gate(void)
     goto end;
   dumpv = melt_get_inisysdata (MELTFIELD_SYSDATA_DUMPFILE);
   if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) {
-    oldf = ((struct meltspecial_st*)dumpv)->val.sp_file;
-    ((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
+    oldf = ((struct meltspecial_st*)dumpv)->specialpayload.sp_file;
+    ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = dump_file;
   }
   MELT_LOCATION_HERE_PRINTF(curlocbuf, "meltgc_rtl_gate pass %s before apply", current_pass->name);
   MELT_CHECK_SIGNAL ();
@@ -12882,7 +12882,7 @@ meltgc_rtl_gate(void)
     FILE *df = melt_get_file ((melt_ptr_t) dumpv);
     if (df)
       fflush (df);
-    ((struct meltspecial_st*)dumpv)->val.sp_file = oldf;
+    ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = oldf;
   };
   ok = (resv != NULL);
 end:
@@ -12936,8 +12936,8 @@ meltgc_rtl_execute(void)
     union meltparam_un restab[1];
     dumpv = melt_get_inisysdata (MELTFIELD_SYSDATA_DUMPFILE);
     if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) {
-      oldf = ((struct meltspecial_st*)dumpv)->val.sp_file;
-      ((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
+      oldf = ((struct meltspecial_st*)dumpv)->specialpayload.sp_file;
+      ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = dump_file;
     }
     memset (&restab, 0, sizeof (restab));
     restab[0].meltbp_longptr = &todol;
@@ -12964,7 +12964,7 @@ meltgc_rtl_execute(void)
       FILE *df = melt_get_file ((melt_ptr_t) dumpv);
       if (df)
         fflush (df);
-      ((struct meltspecial_st*)dumpv)->val.sp_file = oldf;
+      ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = oldf;
     };
     if (resvalv)
       res = (unsigned int) todol;
@@ -13023,8 +13023,8 @@ meltgc_simple_ipa_gate(void)
     goto end;
   dumpv = melt_get_inisysdata (MELTFIELD_SYSDATA_DUMPFILE);
   if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) {
-    oldf = ((struct meltspecial_st*)dumpv)->val.sp_file;
-    ((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
+    oldf = ((struct meltspecial_st*)dumpv)->specialpayload.sp_file;
+    ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = dump_file;
   }
   debugeprintf ("meltgc_simple_ipa_gate pass %s before apply", current_pass->name);
   MELT_LOCATION_HERE_PRINTF (curlocbuf,
@@ -13044,7 +13044,7 @@ meltgc_simple_ipa_gate(void)
     FILE *df = melt_get_file ((melt_ptr_t) dumpv);
     if (df)
       fflush (df);
-    ((struct meltspecial_st*)dumpv)->val.sp_file = oldf;
+    ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = oldf;
   };
 end:
   debugeprintf ("meltgc_simple_ipa_gate pass %s end ok=%d", current_pass->name, ok);
@@ -13110,8 +13110,8 @@ meltgc_simple_ipa_execute(void)
                   current_pass->name);
     dumpv = melt_get_inisysdata (MELTFIELD_SYSDATA_DUMPFILE);
     if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) {
-      oldf = ((struct meltspecial_st*)dumpv)->val.sp_file;
-      ((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
+      oldf = ((struct meltspecial_st*)dumpv)->specialpayload.sp_file;
+      ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = dump_file;
     }
     debugeprintf ("meltgc_simple_ipa_execute pass %s before apply", current_pass->name);
     MELT_LOCATION_HERE_PRINTF (curlocbuf,
@@ -13127,7 +13127,7 @@ meltgc_simple_ipa_execute(void)
       FILE *df = melt_get_file ((melt_ptr_t) dumpv);
       if (df)
         fflush (df);
-      ((struct meltspecial_st*)dumpv)->val.sp_file = oldf;
+      ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = oldf;
     };
     MELT_LOCATION_HERE_PRINTF (curlocbuf,
                                "meltgc_simple_ipa_execute pass %s after apply", current_pass->name);
