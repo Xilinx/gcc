@@ -1,5 +1,11 @@
 
 2012-09-25  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h (struct meltspecialpayload_st): New.
+
+	* melt/warmelt-base.melt (valdesc_special_data): New.
+
+2012-09-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{mark_hook GTY annotation don't work, so need a hack around that.}}
 
 	* melt-runtime.h (melt_mark_special, melt_mark_decay):

@@ -3555,9 +3555,10 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_unionmem '"u_special_file"
   :valdesc_gty #{$' mark_hook ("melt_mark_special")}#
   :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_FILE in warmelt-base.melt */
-    int mark;
-    struct meltspecial_st *GTY ((skip)) nextspec;
-    union melt_special_un GTY ((skip)) val;
+    int specialmark;
+    unsigned specialkind;
+    struct meltspecial_st *GTY ((skip)) specialnext;
+    union melt_special_un GTY ((skip)) specialpayload;
   }#
   :valdesc_copychunk #{$' /* from VALDESC_SPECIAL_FILE */
 /* ggc_alloc_meltspecialfile_st should be gengtype generated for VALDESC_SPECIAL_FILE */
@@ -3567,13 +3568,13 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
     dst = ggc_alloc_meltspecialfile_st ();
     *dst = *src;
     /* mark the new copy! */
-    dst->mark = 1;
+    dst->specialmark = 1;
     /* add the new copy to the old (major) special list */
-    dst->nextspec = melt_oldspeclist;
+    dst->specialnext = melt_oldspeclist;
     melt_oldspeclist = (struct meltspecial_st*)dst;
   }#
   :valdesc_forwchunk #{$' /* from VALDESC_SPECIAL_FILE */
-    src->mark = 1;
+    src->specialmark = 1;
   }#
 
 )
@@ -3588,9 +3589,10 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_unionmem '"u_special_rawfile"
   :valdesc_gty #{$' mark_hook ("melt_mark_special")}#
   :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_RAW_FILE in warmelt-base.melt */
-    int mark;
-    struct meltspecial_st *GTY ((skip)) nextspec;
-    union melt_special_un GTY ((skip)) val;
+    int specialmark;
+    unsigned specialkind;
+    struct meltspecial_st *GTY ((skip)) specialnext;
+    union melt_special_un GTY ((skip)) specialpayload;
   }#
   :valdesc_copychunk #{$' /* from VALDESC_SPECIAL_RAW_FILE */
 /* ggc_alloc_meltspecialrawfile_st should be gengtype generated for VALDESC_SPECIAL_RAW_FILE */
@@ -3600,13 +3602,13 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
     dst = ggc_alloc_meltspecialrawfile_st ();
     *dst = *src;
     /* mark the new copy! */
-    dst->mark = 1;
+    dst->specialmark = 1;
     /* add the new copy to the old (major) special list */
-    dst->nextspec = melt_oldspeclist;
+    dst->specialnext = melt_oldspeclist;
     melt_oldspeclist = (struct meltspecial_st*)dst;
   }#
   :valdesc_forwchunk #{$' /* from VALDESC_SPECIAL_RAW_FILE */
-    src->mark = 1;
+    src->specialmark = 1;
   }#
 )
 (install_value_descriptor valdesc_special_raw_file)
@@ -3620,9 +3622,10 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_unionmem '"u_special_mpfr"
   :valdesc_gty #{$' mark_hook ("melt_mark_special")}#
   :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_MPFR in warmelt-base.melt */
-    int mark;
-    struct meltspecial_st *GTY ((skip)) nextspec;
-    union melt_special_un GTY ((skip)) val;
+    int specialmark;
+    unsigned specialkind;
+    struct meltspecial_st *GTY ((skip)) specialnext;
+    union melt_special_un GTY ((skip)) specialpayload;
   }#
   :valdesc_copychunk #{$' /* from VALDESC_SPECIAL_MPFR */
 /* ggc_alloc_meltspecialmpfr_st should be gengtype generated for VALDESC_SPECIAL_MPFR */
@@ -3632,16 +3635,51 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
     dst = ggc_alloc_meltspecialmpfr_st ();
     *dst = *src;
     /* mark the new copy! */
-    dst->mark = 1;
+    dst->specialmark = 1;
     /* add the new copy to the old (major) special list */
-    dst->nextspec = melt_oldspeclist;
+    dst->specialnext = melt_oldspeclist;
     melt_oldspeclist = (struct meltspecial_st*)dst;
   }#
   :valdesc_forwchunk #{$' /* from VALDESC_SPECIAL_MPFR */
-    src->mark = 1;
+    src->specialmark = 1;
   }#
 )
 (install_value_descriptor valdesc_special_mpfr)
+
+;;;;;;;;;;;;;;;; special data
+(definstance valdesc_special_data class_value_descriptor
+  :doc #{$VALDESC_SPECIAL_data describes special finalized data.}#
+  :named_name '"VALDESC_SPECIAL_DATA"
+  :valdesc_objmagic '"MELTOBMAG_SPECIAL_DATA"
+  :valdesc_struct '"meltspecialdata_st"
+  :valdesc_unionmem '"u_special_data"
+  :valdesc_gty #{$' mark_hook ("melt_mark_special_data")}#
+  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_DATA in warmelt-base.melt */
+    int meltspec_mark;
+    unsigned meltspec_kind;
+    struct meltspecialdata_st *GTY ((skip)) meltspec_next;
+    melt_ptr_t meltspec_value;
+    struct meltspecialpayload_st GTY ((skip)) meltspec_payload;
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_SPECIAL_DATA */
+/* ggc_alloc_meltspecialdata_st should be gengtype generated for VALDESC_SPECIAL_DATA */
+#ifndef ggc_alloc_meltspecialdata_st
+#define ggc_alloc_meltspecialdata_st() ((struct meltspecialdata_st *)(ggc_internal_alloc_stat (sizeof (struct meltspecialdata_st) MEM_STAT_INFO)))
+#endif
+    dst = ggc_alloc_meltspecialdata_st ();
+    *dst = *src;
+    /* mark the new copy! */
+    dst->meltspec_mark = 1;
+    /* add the new copy to the old (major) special list */
+    dst->meltspec_next = melt_oldspeclist;
+    melt_oldspeclist = (struct meltspecial_st*)dst;
+  }#
+  :valdesc_forwchunk #{$' /* from VALDESC_SPECIAL_DATA */
+    src->meltspec_mark = 1;
+    MELT_FORWARDED (src->meltspec_value);
+  }#
+)
+(install_value_descriptor valdesc_special_data)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -4064,6 +4102,7 @@ which signals are not handled. It could be dynamically nested.}#
  valdesc_pair
  valdesc_real
  valdesc_routine
+ valdesc_special_data
  valdesc_special_file
  valdesc_special_file
  valdesc_special_mpfr

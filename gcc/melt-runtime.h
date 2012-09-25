@@ -398,6 +398,19 @@ union melt_special_un
 #define meltspecial_st meltspecialfile_st
 struct meltspecial_st*meltgc_make_special (melt_ptr_t discr_p);
 
+
+struct meltspecialpayload_st {
+  union meltpayload_un {
+    void* meltpayload__ptr1;
+    FILE* meltpayload__file1;
+    void* meltpayload__mpfrp1;
+  } meltpayload__un1;
+#define meltpayload_ptr1 meltpayload__un1.meltpayload__ptr1
+#define meltpayload_file1 meltpayload__un1.meltpayload__file1
+#define meltpayload_mpfrp1 meltpayload__un1.meltpayload__mpfrp1
+  void* meltpayload_ptr2;
+};
+
 /* forwarded pointers; nobody see them except the melt copying
    garbage collector */
 struct 
