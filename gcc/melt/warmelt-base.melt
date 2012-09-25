@@ -1358,7 +1358,7 @@ output $OUT. It is called by the $ADD2OUT variadic function.}#
 
 ;;;;;;;;;;;;;;;;
 (defun string4out (dis :rest)
-  :doc #{Variadic function to make of string for output, 
+  :doc #{Variadic function to make a string for output, 
   using $DIS as the string discriminant and the rest for filling it. See also $ADD2OUT.}#
   (unless dis (setq dis discr_string))
   (unless (is_a dis class_discriminant)

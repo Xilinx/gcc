@@ -162,6 +162,91 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
   (add2sbuf_strconst implbuf "(/*nil*/NULL)"))
 (install_method class_objnil output_c_code outpucod_nil)
 
+;;; output code for a objexpandpureval
+(defun outpucod_objexpandpureval (obx declbuf implbuf :long depth)
+  (debug "outpucod_objexpandpureval obx=" obx)
+  (assert_msg "check obx" (is_a obx class_objexpandpureval))
+  (let ( (oloc (get_field :oxpurval_loc obx))
+	 (ocomm (get_field :oxpurval_comm obx))
+	 (ocont (get_field :oxpurval_cont obx))
+	 (otyp (get_field :obv_type obx))
+	 )
+    (assert_msg "check ocont" (is_multiple_or_null ocont))
+    (assert_msg "check otyp" (is_a otyp class_ctype))
+    (cond
+     ((== otyp ctype_void)
+      (shortbacktrace_dbg "outpucod_objexpandpureval pure void" 15)
+      (if oloc
+	  (let ( (:cstring comstr (the_null_cstring))
+		 )
+	    (warning_plain oloc "strange pure value with :void ctype")
+	    (code_chunk 
+	     fillcomstr_chk
+	     #{ /* outpucod_objexpandpureval void $FILLCOMSTR_CHK */
+	     static char buf_$FILLCOMSTR_CHK [80] ;
+	     const char* comstr_$FILLCOMSTR_CHK = 
+	        melt_string_str ((melt_ptr_t)$OCOMM) ;
+	     if (comstr_$FILLCOMSTR_CHK)
+	     snprintf(buf_$FILLCOMSTR_CHK, 
+		      sizeof(buf_$FILLCOMSTR_CHK),
+		      "xpurvalvoid: %s", comstr_$FILLCOMSTR_CHK) ;
+	     else
+	     snprintf(buf_$FILLCOMSTR_CHK, 
+		      sizeof(buf_$FILLCOMSTR_CHK),
+		      "[xpurvalvoid/%lx]", melt_obj_hash ((melt_ptr_t) $OBX)) ;
+	     $COMSTR = buf_$FILLCOMSTR_CHK ;
+	     /* outpucod_objexpandpureval void end $FILLCOMSTR_CHK */
+	     }#)
+	    (output_location oloc implbuf depth comstr))
+	(add2sbuf_indentnl implbuf depth)
+	)
+      (when (and (null oloc) (is_string ocomm))
+	(add2out implbuf "/*xpurval!")
+	(add2sbuf_ccomstring implbuf ocomm)
+	(add2out implbuf "*/ ")
+	)
+      (add2out implbuf "{")
+      (foreach_in_multiple 
+       (ocont)
+       (comp :long ix)
+       (output_c_code comp declbuf implbuf (+i depth 1)))
+      (add2sbuf_indentnl implbuf (+i depth 1))
+      (add2out implbuf "}")
+      (add2sbuf_indentnl implbuf depth)
+      )
+     (:else
+      ;; non-void ctype
+      (if oloc
+	  (let ( (:cstring comstr (the_null_cstring))
+		 )
+	    (code_chunk 
+	     fillcomstr_chk
+	     #{ /* outpucod_objexpandpureval nonvoid $FILLCOMSTR_CHK */
+	     static char buf_$FILLCOMSTR_CHK [80] ;
+	     const char* comstr_$FILLCOMSTR_CHK 
+	        = melt_string_str ((melt_ptr_t)$OCOMM) ;
+	     if (comstr_$FILLCOMSTR_CHK)
+	     snprintf(buf_$FILLCOMSTR_CHK, 
+		      sizeof(buf_$FILLCOMSTR_CHK),
+		      "xpurval: %s", comstr_$FILLCOMSTR_CHK) ;
+	     else
+	     snprintf(buf_$FILLCOMSTR_CHK, 
+		      sizeof(buf_$FILLCOMSTR_CHK),
+		      "[xpurval/%lx]", melt_obj_hash ((melt_ptr_t) $OBX)) ;
+	     $COMSTR = buf_$FILLCOMSTR_CHK ;
+	     /* outpucod_objexpandpureval nonvoid end $FILLCOMSTR_CHK */
+	     }#)
+	    (output_raw_location oloc implbuf depth comstr))
+	)
+      (add2out implbuf "(")
+      (foreach_in_multiple 
+       (ocont)
+       (comp :long ix)
+       (output_c_code comp declbuf implbuf (+i depth 1)))
+      (add2out implbuf ")")
+      ))    
+    ))
+(install_method class_objexpandpureval output_c_code outpucod_objexpandpureval)
 
 (defun outdeclinit_objinitobject (recv sbuf)
   (add2sbuf_strconst sbuf " struct MELT_OBJECT_STRUCT(")
@@ -2207,9 +2292,11 @@ $ONAME (melt_ptr_t meltarg_curenvbox_p, melt_ptr_t meltarg_tuplitval_p)
       (foreach_in_multiple
        (bodtup)
        (curbody :long bodix)
-       (debug "outpucod_initialextensionroutine curbody=" curbody)
+       (debug "outpucod_initialextensionroutine bodix=" bodix 
+	      "\n curbody=" curbody
+	      "\n of discrim=" (discrim curbody) "\n")
        (when (and curbody (is_not_a curbody class_objpurevalue))
-	 (debug "outpucod_initialextensionroutine bodix=" bodix "\n real curbody=" curbody)
+	 (debug "outpucod_initialextensionroutine good bodix=" bodix "\n real curbody=" curbody)
 	 (add2sbuf_indentnl implbuf 1)
 	 (add2out implbuf  ##{ /*sideffecting $OMODNAM extension body #$BODIX */}#)
 	 (add2sbuf_indentnl implbuf 1)

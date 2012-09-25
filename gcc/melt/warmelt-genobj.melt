@@ -32,14 +32,15 @@
 ;;    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-;;;; value like objects
+;;;; value like objects;; value here is meant in the sense of the C
+;;;; language so can be any thing.
 (defclass class_objvalue
   :super class_generated_c_code
   :fields ( obv_type			;the ctype
 	    ))
 
 
-;;; pure values are side-effect free
+;;; pure values expressions are side-effect free
 (defclass class_objpurevalue
   :super class_objvalue
   :fields ())
@@ -79,6 +80,14 @@
 (defclass class_objnil
   :super class_objpurevalue
   :fields ())
+
+;; expanded pure C value, side-effect-free so could be non-emitted
+(defclass class_objexpandpureval
+  :super class_objpurevalue
+  :fields (oxpurval_loc			;optional source location
+	   oxpurval_comm		;optional comment
+	   oxpurval_cont		;expanded content chunk
+))
 
 ;; initial element 
 (defclass class_objinitelem
@@ -165,6 +174,7 @@
   :super class_objexpv
   :fields (obcx_loc			;optional location
 	   ))
+
 
 (defclass class_objflag
   :super class_objpurevalue
@@ -598,6 +608,7 @@
  class_objdbgtracewriteobj
  class_objdestinstr
  class_objexit
+ class_objexpandpureval
  class_objexpv
  class_objfinalreturn
  class_objgetarg

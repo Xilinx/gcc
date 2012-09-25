@@ -1,6 +1,18 @@
 
 2012-09-25  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.c (meltgc_add_out_cstr_len): Introduce curlinoff.
+
+	* melt/warmelt-base.melt (string4out): Better doc.
+
+	* melt/warmelt-genobj.melt (class_objexpandpureval): New class
+	with fields oxpurval_loc oxpurval_comm oxpurval_cont.
+
+	* melt/warmelt-outobj.melt (outpucod_objexpandpureval): New method
+	for output_c_code on class_objexpandpureval.
+
+2012-09-25  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.c (meltgc_add_out_cstr_len): Increase thresholds to
 	auto-add escaped newline.
 

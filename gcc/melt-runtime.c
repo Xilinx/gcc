@@ -1994,6 +1994,7 @@ meltgc_add_out_cstr_len (melt_ptr_t outbuf_p, const char *str, int slen)
   encstr = (char *) xcalloc (encsiz+4, 1);
   pd = encstr;
   for (ps = dupstr; *ps; ps++) {
+    int curlinoff = pd - (lastnl?lastnl:encstr);
     if (pd - encstr > encsiz - 8) 
       {
 	int newsiz = ((5*encsiz/4 + slen/8 + 5)|7);
@@ -2004,27 +2005,27 @@ meltgc_add_out_cstr_len (melt_ptr_t outbuf_p, const char *str, int slen)
 	encsiz = newsiz;
 	pd = encstr + curln;
       }
-    if ((pd > (lastnl?lastnl:encstr)+72) && ps[1] && ps[2]
-	|| ((pd > (lastnl?lastnl:encstr)+64) 
-	    && !ISALNUM(ps[0]) && ps[0] != '_')
-	)
+    if (ps[1] && ps[2] && ps[3] && curlinoff > 65 && ps[4])
       {
-	strcpy (pd, "\\" "\n"); 
-	pd += 2;
-	lastnl = pd;
+	if ((!ISALNUM(ps[0]) && ps[0] != '_')
+	    || ISSPACE(ps[0])
+	    || curlinoff > 76)
+	  {
+	    strcpy (pd, "\\" "\n"); 
+	    pd += 2;
+	    lastnl = pd;
+	  }
       }
     switch (*ps) {
 #define ADDS(S) strcpy(pd, S); pd += sizeof(S)-1; break
     case '\n':
-      if (ps[1] &&  pd > (lastnl?lastnl:encstr)+40)
+      if (ps[1] && ps[2] && curlinoff > 32) 
 	{
-	  strcpy (pd, "\\" "n" "\\" "\n"); 
-	  pd += 4;
-	  lastnl = pd;
-	  break;
+	    strcpy (pd, "\\" "\n"); 
+	    pd += 2;
+	    lastnl = pd;
 	}
-      else
-	ADDS ("\\n");
+      ADDS ("\\n");
     case '\r':
       ADDS ("\\r");
     case '\t':
