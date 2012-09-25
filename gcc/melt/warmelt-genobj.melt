@@ -762,6 +762,56 @@
       )))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; variadic function to make an objexpandpureval out of a macrostring
+(defun make_objexpandpureval (loc ctyp comm :rest)
+  (debug "make_objexpandpureval loc=" loc " ctyp=" ctyp " comm=" comm)
+  (assert_msg "make_objexpandpureval check loc" (or (null loc) (is_a loc discr_mixed_location)))
+  (assert_msg "make_objexpandpureval check ctyp" (is_a ctyp class_ctype))
+  (assert_msg "make_objexpandpureval check comm" (or (null comm) (is_string comm)))
+  (when (== ctyp ctype_void)
+      (warning_plain loc "bizarre :void ctype for pure expanded cvalue")
+      (shortbacktrace_dbg "make_objexpandpureval void" 15))
+  (let ( (arglist (make_list discr_list)) 
+	 )
+    (forever 
+     argloop
+     (variadic ( () 
+		 (exit argloop))
+	       ( (:long l)
+		 (let ( (bl (make_integerbox discr_constant_integer l))
+			)
+		   (list_append arglist bl)))
+	       ( (:cstring s)
+		 (let ( (bs (make_stringconst discr_verbatim_string s)) 
+			)
+		   (list_append arglist bs)))
+	       ( (:value v)
+		 (cond ( (is_list v)
+			 (list_append2list arglist v))
+		       ( (is_multiple v)
+			 (foreach_in_multiple
+			  (v)
+			  (curcomp :long ix)
+			  (list_append arglist curcomp)))
+		       (:else
+			(list_append arglist v))))
+	       ( :else
+		 (debug "make_objexpandpureval varargctype=" (variadic_ctype 0))
+		 (assert_msg "unexpected variable argument for make_objexpandpureval" ()))
+	       ))
+    (debug "make_objexpandpureval arglist=" arglist)
+    (let ( (res
+	    (instance  class_objexpandpureval
+		       :oxpurval_loc loc
+		       :oxpurval_comm comm
+		       :oxpurval_cont (list_to_multiple discr_multiple arglist)))
+	   )
+      (debug "make_objexpandpureval res=" res)
+      (return res)
+      )))
+
+
 ;;;; selector to generate the declaration of an initial
 ;;; receiver some objinielem
 ;;; argument strbuf
@@ -814,6 +864,7 @@ $SBUF.}#
   )
 
 (export_values
+ make_objexpandpureval 
  output_c_code
  output_c_declinit
  output_c_initial_fill
@@ -2223,8 +2274,9 @@ $SBUF.}#
     (assert_msg "check litregval" (is_a litregval class_literal_value))
     (assert_msg "check litvrank" (is_integerbox litvrank))
     (assert_msg "check gcx" (is_a gcx class_extension_generation_context))
-    (let ( (res (make_objlocatedexp 
+    (let ( (res (make_objexpandpureval 
 		 nloc ctype_value
+		 (string4out discr_verbatim_string ##{literal-value #$LITVRANK}#)
 		 ##{/*comp.literalvalue*/ (melt_ptr_t) (((meltmultiple_ptr_t)$OLITUP)->tabval[$LITVRANK])}#))
 	   )
       (debug "compilobj_nrep_literalvalue res=" res)
