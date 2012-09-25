@@ -1,5 +1,17 @@
 
 2012-09-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{mark_hook GTY annotation don't work, so need a hack around that.}}
+
+	* melt-runtime.h (melt_mark_special, melt_mark_decay):
+	Re-introduced these mark_hook-s which mistakingly are not emitted
+	by gengtype.
+
+	* melt-runtime.c (melt_garbcoll): Clear explicitly the mark on old
+	special list. Use both mark fields and ggc_marked_p to delete
+	them, since gengtype don't honor mark_hook.
+	(meltgc_read_file): Re-order local pointer in frame.
+
+2012-09-25  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{Read errors are not fatal any more}}
 	* melt-runtime.c (struct reading_st): Rename as...

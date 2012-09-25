@@ -1241,11 +1241,37 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
   melt_minor_copying_garbage_collector (wanted);
 
   if (needfull) {
+    long nboldspec = 0;
     melt_nb_full_garbcoll++;
     debugeprintf ("melt_garbcoll #%ld fullgarbcoll #%ld",
                   melt_nb_garbcoll, melt_nb_full_garbcoll);
-    debugeprintf ("melt_garbcoll calling gcc_collect #%ld", melt_nb_full_garbcoll);
-    /* There is no need to force a GGC collection.  */
+    /* clear our mark fields on old special list before running Ggc. */
+    for (specp = melt_oldspeclist; specp; specp = nextspecp) {
+      specp->mark = 0;
+      nboldspec++;
+
+#if ENABLE_CHECKING
+      if (melt_alptr_1 && (void*)melt_alptr_1 == (void*)specp) {
+        int mag = specp->discr->meltobj_magic;
+        fprintf (stderr, "melt_garbcoll  clear oldmark special alptr_1 %p mag %d\n",  melt_alptr_1, mag);
+        fflush (stderr);
+        melt_debuggc_eprintf("melt_garbcoll #%ld clear oldmark special alptr_1 %p mag %d",
+                             melt_nb_garbcoll, melt_alptr_1, mag);
+        melt_break_alptr_1 ("garbcoll clear oldmark special alptr_1");
+      }
+      if (melt_alptr_2 && (void*)melt_alptr_2 == (void*)specp) {
+        int mag = specp->discr->meltobj_magic;
+        fprintf (stderr, "melt_garbcoll clear oldmark special alptr_2 %p mag %d\n",  melt_alptr_2, mag);
+        fflush (stderr);
+        melt_debuggc_eprintf("melt_garbcoll #%ld clear oldmark  special alptr_2 %p mag %d",
+                             melt_nb_garbcoll, melt_alptr_2, mag);
+        melt_break_alptr_2 ("garbcoll clear oldmark special alptr_2");
+      }
+#endif /* ENABLE_CHECKING */
+    };
+    debugeprintf ("melt_garbcoll calling gcc_collect #%ld after clearing %ld oldspecial marks", melt_nb_full_garbcoll, nboldspec);
+    /* There is no need to force a GGC collection, just to run it, and
+       Ggc may decide to skip it.  */
     ggc_collect ();
     debugeprintf ("melt_garbcoll after fullgarbcoll #%ld", melt_nb_full_garbcoll);
     /* Delete the unmarked specials.  */
@@ -1274,7 +1300,11 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
 
       melt_debuggc_eprintf ("melt_garbcoll deletespecloop old specp %p mark %d",
                             (void*)specp, specp->mark);
-      if (specp->mark) {
+      /* we test both the mark field, if mark_hook is really working
+	 in gengtype, and the result of ggc_marked_p, for GCC versions
+	 where it is not working. mark_hook don't work in GCC 4.7 and
+	 probably not even in 4.6 */ 
+      if (specp->mark || ggc_marked_p(specp)) {
         prevspecptr = &specp->nextspec;
         continue;
       }
@@ -7666,8 +7696,8 @@ meltgc_read_file (const char *filnam, const char *locnam)
   const char* srcpathstr = melt_argument ("source-path");
   MELT_ENTERFRAME (3, NULL);
 #define valv      meltfram__.mcfr_varptr[0]
-#define locnamv   meltfram__.mcfr_varptr[1]
-#define seqv      meltfram__.mcfr_varptr[2]
+#define seqv      meltfram__.mcfr_varptr[1]
+#define locnamv   meltfram__.mcfr_varptr[2]
   memset (&rds, 0, sizeof (rds));
   debugeprintf ("meltgc_read_file filnam %s locnam %s", filnam, locnam);
   if (!filnam || !filnam[0])

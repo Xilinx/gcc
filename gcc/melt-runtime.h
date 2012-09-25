@@ -1088,6 +1088,33 @@ meltgc_touch_dest (void *touchedptr, void *destptr)
 
 
 
+/* these are mark_hook-s for GTY, but it may be possible that gengtype
+   don't generate them anymore. See
+   http://gcc.gnu.org/ml/gcc/2010-07/msg00248.html for more.  */
+static inline void
+melt_mark_special (struct meltspecial_st *p)
+{
+  /* FIXME: gengtype don't generate call to this! */
+  p->mark = 1;
+  melt_debuggc_eprintf ("marked special %p of magic %d = %s", 
+                        (void*)p, p->discr->meltobj_magic, 
+			melt_obmag_string (p->discr->meltobj_magic));
+}
+
+static inline void
+melt_mark_decay (struct meltdecay_st *p)
+{
+  /* FIXME: gengtype don't generate call to this! */
+  /* this is tricky since it actually changes the marked data; however,
+     changing pointers to NULL is ok! */
+  if (p->remain <= 0)
+    p->val = NULL;
+  else
+    p->remain--;
+}
+
+
+
 
 /* low level map routines */
 
