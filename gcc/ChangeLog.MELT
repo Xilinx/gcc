@@ -1,4 +1,9 @@
 
+
+2012-09-25  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h (MELT_VERSION_STRING): Bump to 0.9.7-rc2
+
 2012-09-25  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.h (MELT_PAYLOAD_DESCRIPTOR_MAGIC): New.
