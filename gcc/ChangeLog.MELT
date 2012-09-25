@@ -1,6 +1,23 @@
 
 2012-09-25  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	{{Read errors are not fatal any more}}
+	* melt-runtime.c (struct reading_st): Rename as...
+	(struct melt_reading_st): also add readmagic & readjmpbuf fields.
+	(MELT_READING_MAGIC): New macro.
+	(melt_read_got_error_at): New declaration and function.
+	(MELT_READ_ERROR): Call it.
+	(melt_skipspace_getc, melt_readsimplename, melt_readsimplelong)
+	(meltgc_readseqlist, meltgc_makesexpr, meltgc_readsexpr)
+	(meltgc_readstring, meltgc_readmacrostringsequence)
+	(melrtgc_readhashescape, meltgc_readval, meltgc_read_file)
+	(meltgc_read_from_rawstring, meltgc_read_from_rawstring)
+	(meltgc_read_from_val): Check or initialize the magic. When
+	initializing melt_reading_st, do a setjmp to catch errors.
+	(meltgc_load_one_module, meltgc_poll_inputs): Add a CONST_CAST.
+
+2012-09-25  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{Regenerate}}
 	* melt/generated/meltrunsup.h: Regenerate.
 	* melt/generated/meltrunsup-inc.c: Regenerate.

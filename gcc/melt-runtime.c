@@ -6032,7 +6032,9 @@ melt_find_file_at (int lin, const char*path, ...)
 /*************** initial load machinery *******************/
 
 
-struct reading_st {
+#define MELT_READING_MAGIC 0xdeb73d1 /* 233534417 */
+struct melt_reading_st {
+  unsigned readmagic;		/* always MELT_READING_MAGIC */
   FILE *rfil;
   const char *rpath;
   char *rcurlin;    /* current line mallocated buffer */
@@ -6041,6 +6043,7 @@ struct reading_st {
   source_location rsrcloc;  /* current source location */
   melt_ptr_t *rpfilnam;         /* pointer to location of file name string */
   bool rhas_file_location;  /* true iff the string comes from a file */
+  jmp_buf readjmpbuf; /* for setjmp on read errors */
 };
 
 #define MELT_READ_TABULATION_FACTOR 8
@@ -6052,14 +6055,14 @@ static struct obstack melt_bstring_obstack;
 #define rdfollowc(Rk) rd->rcurlin[rd->rcol + (Rk)]
 #define rdeof() ((rd->rfil?feof(rd->rfil):1) && rd->rcurlin[rd->rcol]==0)
 
-static void melt_linemap_compute_current_location (struct reading_st *rd);
+static void melt_linemap_compute_current_location (struct melt_reading_st *rd);
 
-#define MELT_READ_ERROR(Fmt,...)    do {                               \
-   melt_linemap_compute_current_location (rd);                          \
-   error_at(rd->rsrcloc, Fmt, ##__VA_ARGS__);                           \
-   melt_fatal_error ("MELT read failure <%s:%d>",                       \
-                     melt_basename(__FILE__), __LINE__);                    \
- } while(0)
+static void melt_read_got_error_at (struct melt_reading_st*rd, const char* file, int line) ATTRIBUTE_NORETURN;
+
+#define MELT_READ_ERROR(Fmt,...)    do {			\
+   melt_linemap_compute_current_location (rd);			\
+   error_at(rd->rsrcloc, Fmt, ##__VA_ARGS__);			\
+   melt_read_got_error_at(rd, melt_basename(__FILE__), __LINE__); } while(0)
 
 #define MELT_READ_WARNING(Fmt,...)  do {      \
    melt_linemap_compute_current_location (rd);      \
@@ -6069,15 +6072,16 @@ static void melt_linemap_compute_current_location (struct reading_st *rd);
 
 /* meltgc_readval returns the read value and sets *PGOT to true if something
    was read */
-static melt_ptr_t meltgc_readval (struct reading_st *rd, bool * pgot);
+static melt_ptr_t meltgc_readval (struct melt_reading_st *rd, bool * pgot);
 
 static void
-melt_linemap_compute_current_location (struct reading_st* rd)
+melt_linemap_compute_current_location (struct melt_reading_st* rd)
 {
   int colnum = 1;
   int cix = 0;
   if (!rd || !rd->rcurlin || !rd->rhas_file_location)
     return;
+  gcc_assert (rd->readmagic == MELT_READING_MAGIC);
   for (cix=0; cix<rd->rcol; cix++) {
     char c = rd->rcurlin[cix];
     if (!c)
@@ -6095,16 +6099,33 @@ melt_linemap_compute_current_location (struct reading_st* rd)
 #endif /*MELT_GCC_VERSION*/
 }
 
-static melt_ptr_t meltgc_readstring (struct reading_st *rd);
-static melt_ptr_t meltgc_readmacrostringsequence (struct reading_st *rd);
+static void 
+melt_read_got_error_at (struct melt_reading_st*rd, const char* file, int line) 
+{
+  gcc_assert (rd && rd->readmagic == MELT_READING_MAGIC);
+  error ("MELT read error from %s:%d [MELT built %s, version %s]", 
+	 file, line, melt_runtime_build_date, melt_version_str ());
+  if (rd->rpath && rd->rlineno && rd->rcol)
+    error ("MELT read error while reading %s line %d column %d", 
+	   rd->rpath, rd->rlineno, rd->rcol);
+  fflush(NULL);
+#if MELT_HAVE_DEBUG
+  melt_dbgshortbacktrace ("MELT read error", 100);
+#endif
+  longjmp (rd->readjmpbuf, 1);
+}
+
+static melt_ptr_t meltgc_readstring (struct melt_reading_st *rd);
+static melt_ptr_t meltgc_readmacrostringsequence (struct melt_reading_st *rd);
 
 enum commenthandling_en
 { COMMENT_SKIP, COMMENT_NO };
 static int
-melt_skipspace_getc (struct reading_st *rd, enum commenthandling_en comh)
+melt_skipspace_getc (struct melt_reading_st *rd, enum commenthandling_en comh)
 {
   int c = 0;
   int incomm = 0;
+  gcc_assert (rd && rd->readmagic == MELT_READING_MAGIC);
 readagain:
   if (rdeof ())
     return EOF;
@@ -6232,9 +6253,10 @@ readline: {
 #define EXTRANAMECHARS "_+-*/<>=!?:%~&@$|"
 /* read a simple name on the melt_bname_obstack */
 static char *
-melt_readsimplename (struct reading_st *rd)
+melt_readsimplename (struct melt_reading_st *rd)
 {
   int c = 0;
+  gcc_assert (rd && rd->readmagic == MELT_READING_MAGIC);
   while (!rdeof () && (c = rdcurc ()) > 0 &&
          (ISALNUM (c) || strchr (EXTRANAMECHARS, c) != NULL)) {
     obstack_1grow (&melt_bname_obstack, (char) c);
@@ -6247,13 +6269,14 @@ melt_readsimplename (struct reading_st *rd)
 
 /* read an integer, like +123, which may also be +%numbername */
 static long
-melt_readsimplelong (struct reading_st *rd)
+melt_readsimplelong (struct melt_reading_st *rd)
 {
   int c = 0;
   long r = 0;
   char *endp = 0;
   char *nam = 0;
   bool neg = FALSE;
+  gcc_assert (rd && rd->readmagic == MELT_READING_MAGIC);
   /* we do not need any GC locals ie MELT_ENTERFRAME because no
      garbage collection occurs here */
   c = rdcurc ();
@@ -6321,7 +6344,7 @@ melt_readsimplelong (struct reading_st *rd)
 
 
 static melt_ptr_t
-meltgc_readseqlist (struct reading_st *rd, int endc)
+meltgc_readseqlist (struct melt_reading_st *rd, int endc)
 {
   int c = 0;
   int nbcomp = 0;
@@ -6332,6 +6355,7 @@ meltgc_readseqlist (struct reading_st *rd, int endc)
 #define compv meltfram__.mcfr_varptr[1]
 #define listv meltfram__.mcfr_varptr[2]
 #define pairv meltfram__.mcfr_varptr[3]
+  gcc_assert (rd && rd->readmagic == MELT_READING_MAGIC);
   seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
 readagain:
   compv = NULL;
@@ -6398,7 +6422,7 @@ enum melt_macrostring_en {
 };
 
 static melt_ptr_t
-meltgc_makesexpr (struct reading_st *rd, int lineno, melt_ptr_t contents_p,
+meltgc_makesexpr (struct melt_reading_st *rd, int lineno, melt_ptr_t contents_p,
                   location_t loc, enum melt_macrostring_en ismacrostring)
 {
   MELT_ENTERFRAME (4, NULL);
@@ -6406,6 +6430,7 @@ meltgc_makesexpr (struct reading_st *rd, int lineno, melt_ptr_t contents_p,
 #define contsv   meltfram__.mcfr_varptr[1]
 #define locmixv meltfram__.mcfr_varptr[2]
 #define sexpclassv meltfram__.mcfr_varptr[3]
+  gcc_assert (rd && rd->readmagic == MELT_READING_MAGIC);
   contsv = contents_p;
   gcc_assert (melt_magic_discr ((melt_ptr_t) contsv) == MELTOBMAG_LIST);
   if (loc == 0)
@@ -6662,7 +6687,7 @@ end:
 
 
 static melt_ptr_t
-meltgc_readsexpr (struct reading_st *rd, int endc)
+meltgc_readsexpr (struct melt_reading_st *rd, int endc)
 {
   int lineno = rd->rlineno;
   location_t loc = 0;
@@ -6673,6 +6698,7 @@ meltgc_readsexpr (struct reading_st *rd, int endc)
 #define sexprv  meltfram__.mcfr_varptr[0]
 #define contv   meltfram__.mcfr_varptr[1]
 #define locmixv meltfram__.mcfr_varptr[2]
+  gcc_assert (rd && rd->readmagic == MELT_READING_MAGIC);
   if (!endc || rdeof ())
     MELT_READ_ERROR ("MELT: eof in s-expr (lin%d)", lineno);
   (void) melt_skipspace_getc (rd, COMMENT_SKIP);
@@ -6697,7 +6723,7 @@ meltgc_readsexpr (struct reading_st *rd, int endc)
 /* if the string ends with "_ call gettext on it to have it
    localized/internationlized -i18n- */
 static melt_ptr_t
-meltgc_readstring (struct reading_st *rd)
+meltgc_readstring (struct melt_reading_st *rd)
 {
   int c = 0;
   int nbesc = 0;
@@ -6706,6 +6732,7 @@ meltgc_readstring (struct reading_st *rd)
   MELT_ENTERFRAME (1, NULL);
 #define strv   meltfram__.mcfr_varptr[0]
 #define str_strv  ((struct meltstring_st*)(strv))
+  gcc_assert (rd && rd->readmagic == MELT_READING_MAGIC);
   obstack_init (&melt_bstring_obstack);
   while ((c = rdcurc ()) != '"' && !rdeof ()) {
     if (c != '\\') {
@@ -6852,7 +6879,7 @@ meltgc_readstring (struct reading_st *rd)
 
 **/
 static melt_ptr_t
-meltgc_readmacrostringsequence (struct reading_st *rd)
+meltgc_readmacrostringsequence (struct melt_reading_st *rd)
 {
   int lineno = rd->rlineno;
   int escaped = 0;
@@ -6870,6 +6897,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
 #define  compv    meltfram__.mcfr_varptr[5]
 #define  subseqv  meltfram__.mcfr_varptr[6]
 #define  pairv    meltfram__.mcfr_varptr[7]
+  gcc_assert (rd && rd->readmagic == MELT_READING_MAGIC);
   melt_linemap_compute_current_location (rd);
   loc = rd->rsrcloc;
   MELT_LOCATION_HERE_PRINTF (curlocbuf,
@@ -7047,7 +7075,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
 
 
 static melt_ptr_t
-melrtgc_readhashescape (struct reading_st *rd)
+melrtgc_readhashescape (struct melt_reading_st *rd)
 {
   int c = 0;
   char *nam = NULL;
@@ -7057,6 +7085,7 @@ melrtgc_readhashescape (struct reading_st *rd)
 #define compv  meltfram__.mcfr_varptr[1]
 #define listv  meltfram__.mcfr_varptr[2]
 #define pairv  meltfram__.mcfr_varptr[3]
+  gcc_assert (rd && rd->readmagic == MELT_READING_MAGIC);
   readv = NULL;
   c = rdcurc ();
   if (!c || rdeof ())
@@ -7193,7 +7222,7 @@ char_escape:
 
 
 static melt_ptr_t
-meltgc_readval (struct reading_st *rd, bool * pgot)
+meltgc_readval (struct melt_reading_st *rd, bool * pgot)
 {
   int c = 0;
   char *nam = 0;
@@ -7207,6 +7236,7 @@ meltgc_readval (struct reading_st *rd, bool * pgot)
 #define compv   meltfram__.mcfr_varptr[1]
 #define seqv    meltfram__.mcfr_varptr[2]
 #define altv    meltfram__.mcfr_varptr[3]
+  gcc_assert (rd && rd->readmagic == MELT_READING_MAGIC);
   loc = rd->rsrcloc;
   MELT_LOCATION_HERE_PRINTF (curlocbuf,
                              "readvalstart @ %s:%d:%d",
@@ -7629,9 +7659,9 @@ meltgc_read_file (const char *filnam, const char *locnam)
 #if MELT_HAVE_DEBUG
   char curlocbuf[140];
 #endif
-  struct reading_st rds;
+  struct melt_reading_st rds;
   FILE *fil = 0;
-  struct reading_st *rd = 0;
+  struct melt_reading_st *rd = 0;
   char *filnamdup = 0;
   const char* srcpathstr = melt_argument ("source-path");
   MELT_ENTERFRAME (3, NULL);
@@ -7709,10 +7739,18 @@ meltgc_read_file (const char *filnam, const char *locnam)
   rds.rpath = filnamdup;
   rds.rlineno = 0;
   (void) linemap_add (line_table, LC_ENTER, false, filnamdup, 0);
-  rd = &rds;
   locnamv = meltgc_new_stringdup ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), locnam);
   rds.rpfilnam = (melt_ptr_t *) & locnamv;
   rds.rhas_file_location = true;
+  rds.readmagic = MELT_READING_MAGIC;
+  if (setjmp (rds.readjmpbuf)) 
+    {
+      warning (0, "MELT reading of file %s failed", 
+	       filnamdup);
+      seqv = NULL;
+      goto end;
+    }
+  rd = &rds;
   seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
   while (!rdeof ()) {
     bool got = FALSE;
@@ -7758,9 +7796,9 @@ meltgc_read_from_rawstring (const char *rawstr, const char *locnam,
 #if MELT_HAVE_DEBUG
   char curlocbuf[140];
 #endif
-  struct reading_st rds;
+  struct melt_reading_st rds;
   char *rbuf = 0;
-  struct reading_st *rd = 0;
+  struct melt_reading_st *rd = 0;
   MELT_ENTERFRAME (3, NULL);
 #define seqv      meltfram__.mcfr_varptr[0]
 #define locnamv   meltfram__.mcfr_varptr[1]
@@ -7780,12 +7818,24 @@ meltgc_read_from_rawstring (const char *rawstr, const char *locnam,
     locnamv = meltgc_new_stringdup ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), locnam);
     MELT_LOCATION_HERE_PRINTF(curlocbuf, "meltgc_read_from_rawstring locnam=%s", locnam);
   } else {
+    static long bufcount;
+    char locnambuf[64];
+    bufcount++;
+    snprintf (locnambuf, sizeof (locnambuf), "<string-buffer-%ld>", bufcount);
     rds.rhas_file_location = false;
     locnamv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING),
-                                 "<string-buffer>");
+                                 locnambuf);
     MELT_LOCATION_HERE_PRINTF(curlocbuf, "meltgc_read_from_rawstring rawstr=%.50s", rawstr);
   }
   seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
+  rds.readmagic = MELT_READING_MAGIC;
+  if (setjmp (rds.readjmpbuf)) 
+    {
+      warning (0, "MELT reading of string %s failed", 
+	       melt_string_str ((melt_ptr_t) locnamv));
+      seqv = NULL;
+      goto end;
+    }
   rds.rpfilnam = (melt_ptr_t *) & locnamv;
   while (rdcurc ()) {
     bool got = FALSE;
@@ -7816,9 +7866,9 @@ meltgc_read_from_val (melt_ptr_t strv_p, melt_ptr_t locnam_p)
 #if MELT_HAVE_DEBUG
   char curlocbuf[140];
 #endif
-  struct reading_st rds;
+  struct melt_reading_st rds;
   char *rbuf = 0;
-  struct reading_st *rd = 0;
+  struct melt_reading_st *rd = 0;
   int strmagic = 0;
   MELT_ENTERFRAME (4, NULL);
 #define valv      meltfram__.mcfr_varptr[0]
@@ -7859,6 +7909,13 @@ meltgc_read_from_val (melt_ptr_t strv_p, melt_ptr_t locnam_p)
   rds.rcurlin = rbuf;
   rds.rhas_file_location = true;
   rd = &rds;
+  rds.readmagic = MELT_READING_MAGIC;
+  if (setjmp (rds.readjmpbuf)) 
+    {
+      warning (0, "MELT reading from value failed");
+      seqv = NULL;
+      goto end;
+    }
   MELT_LOCATION_HERE_PRINTF(curlocbuf, "meltgc_read_from_val rbuf=%.70s", rbuf);
   if (locnamv == NULL) {
     char buf[40];
@@ -9712,7 +9769,7 @@ meltgc_load_one_module (const char*flavoredmodule)
     dupflavmod = tinybuf;
   } else
     dupflavmod = xstrdup (flavoredmodule);
-  dotptr = (char*) strchr (melt_basename (dupflavmod), '.');
+  dotptr = CONST_CAST (char*, strchr (melt_basename (dupflavmod), '.'));
   if (dotptr) {
     *dotptr = (char)0;
     flavor = dotptr + 1;
@@ -13732,7 +13789,7 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
           do {
             const char* bufdata = melt_strbuf_str ((melt_ptr_t) sbufv);
             char* buf2nl =
-              bufdata ? ((char*)strstr(bufdata,"\n\n"))
+              bufdata ? CONST_CAST (char*, strstr(bufdata,"\n\n"))
               : NULL;
             eaten = false;
             debugeprintf ("meltgc_poll_inputs bufdata=%s buf2nl=%p", bufdata, (void*) buf2nl);
