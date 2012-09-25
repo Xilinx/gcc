@@ -1725,8 +1725,29 @@ lab_endgetargs:;
       union meltparam_un argtab[1];
       memset (&argtab, 0, sizeof (argtab));
       /*^apply.arg */
-      argtab[0].meltbp_cstring =
-	" /* generated cloning routine head */\nmelt_ptr_t\nmeltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)\n{\n  unsigned srcmagic = 0;\n  unsigned newmagic = 0;\n  MELT_ENTERFRAME (5, NULL);\n#define resv       meltfram__.mcfr_varptr[0]\n#define srcvalv    meltfram__.mcfr_varptr[1]\n#define newdiscrv  meltfram__.mcfr_varptr[2]\n#define srcdiscrv  meltfram__.mcfr_varptr[3]\n#define compv      meltfram__.mcfr_varptr[4]\n  srcvalv = srcval_p;\n  newdiscrv = newdiscr_p;\n  resv = srcvalv;\n  if (!srcvalv) \n     goto end;\n  srcdiscrv = ((melt_ptr_t)srcvalv)->u_discr;\n  if (!newdiscrv)\n    newdiscrv = srcdiscrv;\n  if (melt_magic_discr((melt_ptr_t)newdiscrv) != MELTOBMAG_OBJECT\n      || ((meltobject_ptr_t)newdiscrv)->obj_len < MELTLENGTH_CLASS_DISCRIMINANT)\n    goto end;\n  if (!melt_is_instance_of((melt_ptr_t)newdiscrv, \n\t\t\t   MELT_PREDEF (CLASS_DISCRIMINANT)))\n    goto end;\n  srcmagic = melt_magic_discr ((melt_ptr_t)srcvalv);\n  newmagic = ((meltobject_ptr_t)newdiscrv)->meltobj_magic;\n  if (srcmagic != newmagic) \n    goto end;\n  switch (srcmagic) { /* end cloning heeader */\n";
+      argtab[0].meltbp_cstring = " /* generated cloning routine head */\
+\nmelt_ptr_t\nmeltgc_clone_with_discriminant (melt_ptr_t srcval_p,\
+ melt_ptr_t newdiscr_p)\n{\n  unsigned srcmagic = 0;\
+\n  unsigned newmagic = 0;\n  MELT_ENTERFRAME (5, NULL);\
+\n#define resv       meltfram__.mcfr_varptr[0]\
+\n#define srcvalv    meltfram__.mcfr_varptr[1]\
+\n#define newdiscrv  meltfram__.mcfr_varptr[2]\
+\n#define srcdiscrv  meltfram__.mcfr_varptr[3]\
+\n#define compv      meltfram__.mcfr_varptr[4]\
+\n  srcvalv = srcval_p;\n  newdiscrv = newdiscr_p;\
+\n  resv = srcvalv;\n  if (!srcvalv) \
+\n     goto end;\n  srcdiscrv = ((melt_ptr_t)srcvalv)->u_discr;\
+\n  if (!newdiscrv)\n    newdiscrv = srcdiscrv;\
+\n  if (melt_magic_discr((melt_ptr_t)newdiscrv) != MELTOBMAG_OBJECT\
+\
+\n      || ((meltobject_ptr_t)newdiscrv)->obj_len < MELTLENGTH_CLASS_DISCRIMI\
+NANT)\n    goto end;\n  if (!melt_is_instance_of((melt_ptr_t)newdiscrv\
+, \n\t\t\t   MELT_PREDEF (CLASS_DISCRIMINANT)))\
+\n    goto end;\n  srcmagic = melt_magic_discr ((melt_ptr_t)srcvalv\
+);\n  newmagic = ((meltobject_ptr_t)newdiscrv)->meltobj_magic;\
+\n  if (srcmagic != newmagic) \n    goto end;\
+\n  switch (srcmagic) { /* end cloning heeade\
+r */\n";
       /*_.ADD2OUT__V16*/ meltfptr[14] =
 	melt_apply ((meltclosure_ptr_t)
 		    (( /*!ADD2OUT */ meltfrout->tabval[1])),
@@ -2293,7 +2314,9 @@ lab_endgetargs:;
 	    memset (&argtab, 0, sizeof (argtab));
 	    /*^apply.arg */
 	    argtab[0].meltbp_cstring =
-	      "\n            *dst = *src;\n\t    dst->discr = (meltobject_ptr_t) newdiscrv; \n\t    resv = (melt_ptr_t) dst;\n          }\n\t  break;";
+	      "\n            *dst = *src;\n\t    dst->discr = (meltobject_ptr_t) newdiscrv\
+; \n\t    resv = (melt_ptr_t) dst;\
+\n          }\n\t  break;";
 	    /*_.ADD2OUT__V35*/ meltfptr[34] =
 	      melt_apply ((meltclosure_ptr_t)
 			  (( /*!ADD2OUT */ meltfrout->tabval[1])),
@@ -2397,7 +2420,9 @@ lab_endgetargs:;
 		    (melt_ptr_t *) & /*_.MAPSTRUCT__V31*/ meltfptr[30];
 		  /*^apply.arg */
 		  argtab[8].meltbp_cstring =
-		    " *) srcvalv;\n\t  unsigned oldlen =  melt_primtab[src->lenix];\n\t  unsigned newlen = 4*src->count/3 + 5;\n\t  struct ";
+		    " *) srcvalv;\n\t  unsigned oldlen =  melt_primtab[src->lenix];\
+\n\t  unsigned newlen = 4*src->count/3 + 5;\
+\n\t  struct ";
 		  /*^apply.arg */
 		  argtab[9].meltbp_aptr =
 		    (melt_ptr_t *) & /*_.MAPSTRUCT__V31*/ meltfptr[30];
@@ -2409,19 +2434,29 @@ lab_endgetargs:;
 		    (melt_ptr_t *) & /*_.MAPSTRUCT__V31*/ meltfptr[30];
 		  /*^apply.arg */
 		  argtab[12].meltbp_cstring =
-		    " *) meltgc_raw_new_mappointers((meltobject_ptr_t)newdiscrv, newlen);\n\t  unsigned ix = 0;\n\t  dst->meltmap_aux = src->meltmap_aux;\n\t  if (src->entab)\n            for (ix=0; ix<oldlen; \n\t\t ix++) {\n\t       melt_ptr_t curva = src->entab[ix].e_va;\n\t       ";
+		    " *) meltgc_raw_new_mappointers((meltobject_ptr_t)newdiscrv, newlen\
+);\n\t  unsigned ix = 0;\n\t  dst->meltmap_aux = src->meltmap_aux;\
+\
+\n\t  if (src->entab)\n            for (ix=0; ix<oldlen; \
+\n\t\t ix++) {\n\t       melt_ptr_t curva = src->entab[ix].e_va;\
+\n\t \
+      ";
 		  /*^apply.arg */
 		  argtab[13].meltbp_aptr =
 		    (melt_ptr_t *) & /*_.TYCNAME__V27*/ meltfptr[26];
 		  /*^apply.arg */
 		  argtab[14].meltbp_cstring =
-		    " curat = src->entab[ix].e_at;\n\t       if (curva != NULL && curat != (";
+		    " curat = src->entab[ix].e_at;\n\t       if (curva != NULL && curat\
+ != (";
 		  /*^apply.arg */
 		  argtab[15].meltbp_aptr =
 		    (melt_ptr_t *) & /*_.TYCNAME__V27*/ meltfptr[26];
 		  /*^apply.arg */
 		  argtab[16].meltbp_cstring =
-		    ") HTAB_DELETED_ENTRY)\n\t         meltgc_raw_put_mappointers((void*)dst, (const void*)curat, curva);\n\t    }\n\t  resv = (melt_ptr_t) dst;\n         };\n         break; ";
+		    ") HTAB_DELETED_ENTRY)\n\t         meltgc_raw_put_mappointers((void\
+*)dst, (const void*)curat, curva);\
+\n\t    }\n\t  resv = (melt_ptr_t) dst;\
+\n         };\n         break; ";
 		  /*_.ADD2OUT__V40*/ meltfptr[39] =
 		    melt_apply ((meltclosure_ptr_t)
 				(( /*!ADD2OUT */ meltfrout->tabval[1])),
@@ -2788,7 +2823,10 @@ lab_endgetargs:;
 		    (melt_ptr_t *) & /*_.VALSTRUCT__V46*/ meltfptr[28];
 		  /*^apply.arg */
 		  argtab[14].meltbp_cstring =
-		    "), 0);\n\t\t     *dst = *src;\n\t\t     dst->discr = (meltobject_ptr_t)newdiscrv;\n\t\t     resv = (melt_ptr_t) dst;\n\t\t   }\n\t\t   break; ";
+		    "), 0);\n\t\t     *dst = *src;\n\t\t     dst->discr = (meltobject_ptr_t\
+)newdiscrv;\n\t\t     resv = (melt_ptr_t) dst;\
+\n\t\t   }\n\t\t \
+  break; ";
 		  /*_.ADD2OUT__V50*/ meltfptr[32] =
 		    melt_apply ((meltclosure_ptr_t)
 				(( /*!ADD2OUT */ meltfrout->tabval[1])),
@@ -2884,7 +2922,9 @@ lab_endgetargs:;
 			  meltfptr[27];
 			/*^apply.arg */
 			argtab[14].meltbp_cstring =
-			  ";\n\t\t     if (dst) \n\t\t        resv = (melt_ptr_t) dst;\n\t\t   };\n\t\t   break;";
+			  ";\n\t\t     if (dst) \n\t\t        resv = (melt_ptr_t) dst;\
+\n\t\t   };\n\t\t \
+  break;";
 			/*_.ADD2OUT__V52*/ meltfptr[34] =
 			  melt_apply ((meltclosure_ptr_t)
 				      (( /*!ADD2OUT */ meltfrout->tabval[1])),
@@ -3224,8 +3264,12 @@ lab_endgetargs:;
       union meltparam_un argtab[1];
       memset (&argtab, 0, sizeof (argtab));
       /*^apply.arg */
-      argtab[0].meltbp_cstring =
-	"\n/* generated cloning routine trailer */\n    default: ;\n  } /*end switch srcmagic for cloning */\n end:\n  MELT_EXITFRAME();\n  return (melt_ptr_t) resv;\n}  /* end of generated meltgc_clone_with_discriminant */\n#undef resv\n#undef srcvalv\n#undef newdiscrv\n#undef discrv\n#undef compv\n";
+      argtab[0].meltbp_cstring = "\n/* generated cloning routine trailer */\
+\n    default: ;\n  } /*end switch srcmagic for cloning */\
+\n end:\n  MELT_EXITFRAME();\n  return (melt_ptr_t) resv;\
+\n}  /* end of generated meltgc_clone_with_discriminant */\
+\n#undef resv\n#undef srcvalv\n#undef newdiscrv\
+\n#undef discrv\n#undef compv\n";
       /*_.ADD2OUT__V59*/ meltfptr[34] =
 	melt_apply ((meltclosure_ptr_t)
 		    (( /*!ADD2OUT */ meltfrout->tabval[1])),
@@ -11698,7 +11742,8 @@ lab_endgetargs:;
 	      /*add2sbuf_strconst */
 		meltgc_add_strbuf ((melt_ptr_t)
 				   ( /*_.CODEBUF__V5*/ meltfptr[4]),
-				   ("if (melt_magic_discr((melt_ptr_t)discrv) != MELTOBMAG_OBJECT) goto end;"));
+				   ("if (melt_magic_discr((melt_ptr_t)discrv) != MELTOBMAG_OBJECT) goto\
+ end;"));
 	    }
 	    ;
 
@@ -16439,7 +16484,8 @@ lab_endgetargs:;
 		      (melt_ptr_t *) & /*_.MAPAUXDATAFUN__V55*/ meltfptr[54];
 		    /*^apply.arg */
 		    argtab[4].meltbp_cstring =
-		      " (melt_ptr_t map_p)\n\t       {\n\t         if (melt_magic_discr (map_p) == ";
+		      " (melt_ptr_t map_p)\n\t       {\n\t         if (melt_magic_discr (map_p\
+) == ";
 		    /*^apply.arg */
 		    argtab[5].meltbp_aptr =
 		      (melt_ptr_t *) & /*_.MAPMAGIC__V61*/ meltfptr[60];
@@ -16450,7 +16496,8 @@ lab_endgetargs:;
 		      (melt_ptr_t *) & /*_.MAPSTRUCT__V67*/ meltfptr[66];
 		    /*^apply.arg */
 		    argtab[8].meltbp_cstring =
-		      "*)map_p)->meltmap_aux;\n\t\t return NULL;\n\t       }\n\t       ";
+		      "*)map_p)->meltmap_aux;\n\t\t return NULL;\
+\n\t       }\n\t       ";
 		    /*_.ADD2OUT__V71*/ meltfptr[70] =
 		      melt_apply ((meltclosure_ptr_t)
 				  (( /*!ADD2OUT */ meltfrout->tabval[7])),
@@ -16569,7 +16616,8 @@ lab_endgetargs:;
 		      (melt_ptr_t *) & /*_.MAPAUXPUTFUN__V56*/ meltfptr[55];
 		    /*^apply.arg */
 		    argtab[4].meltbp_cstring =
-		      " (melt_ptr_t map_p, melt_ptr_t val_p)\n\t       {\n\t         if (melt_magic_discr (map_p) == ";
+		      " (melt_ptr_t map_p, melt_ptr_t val_p)\
+\n\t       {\n\t         if (melt_magic_discr (map_p) == ";
 		    /*^apply.arg */
 		    argtab[5].meltbp_aptr =
 		      (melt_ptr_t *) & /*_.MAPMAGIC__V61*/ meltfptr[60];
@@ -16580,7 +16628,10 @@ lab_endgetargs:;
 		      (melt_ptr_t *) & /*_.MAPSTRUCT__V67*/ meltfptr[66];
 		    /*^apply.arg */
 		    argtab[8].meltbp_cstring =
-		      "*)map_p)->meltmap_aux = val_p;\n\t\t   meltgc_touch_dest (map_p, val_p);\n                 }\n\t\t return NULL;\n\t       }\n\t       ";
+		      "*)map_p)->meltmap_aux = val_p;\n\t\t   meltgc_touch_dest (map_p, val_p\
+);\n                 }\n\t\t return NULL;\
+\n\t       }\n\t \
+      ";
 		    /*_.ADD2OUT__V75*/ meltfptr[72] =
 		      melt_apply ((meltclosure_ptr_t)
 				  (( /*!ADD2OUT */ meltfrout->tabval[7])),

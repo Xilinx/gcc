@@ -3640,10 +3640,9 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-normal.melt:3917:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.SLOC__V17*/ meltfptr[13]),
-			    ("bad DEFUN-ed function [nested definitions are prohibited; consider using LETREC]"),
-			    (melt_ptr_t) ( /*_.NAMED_NAME__V40*/
-					  meltfptr[39]));
+	    melt_error_str ((melt_ptr_t) ( /*_.SLOC__V17*/ meltfptr[13]), ("bad DEFUN-ed function [nested definitions are prohibited; consider\
+ using LETREC]"), (melt_ptr_t)
+			    ( /*_.NAMED_NAME__V40*/ meltfptr[39]));
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-normal.melt:3920:/ quasiblock");

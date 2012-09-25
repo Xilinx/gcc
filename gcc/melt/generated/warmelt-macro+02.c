@@ -2817,10 +2817,8 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2408:/ locexp");
-	    /* error_plain */
-	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			      ("symbol expected for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"),
-			      (melt_ptr_t) 0);
+	    /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]), ("symbol expected for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test\
+> <fill> <oper>)"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2411:/ quasiblock");
@@ -2906,10 +2904,8 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2419:/ locexp");
-	    /* error_plain */
-	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			      ("empty ins for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"),
-			      (melt_ptr_t) 0);
+	    /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]), ("empty ins for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill\
+> <oper>)"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2420:/ quasiblock");
@@ -3557,10 +3553,8 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2442:/ locexp");
-	    /* error_plain */
-	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			      ("bad outs for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"),
-			      (melt_ptr_t) 0);
+	    /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]), ("bad outs for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill\
+> <oper>)"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2443:/ quasiblock");
@@ -3808,10 +3802,8 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2454:/ locexp");
-	    /* error_plain */
-	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			      ("bad statesym for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"),
-			      (melt_ptr_t) 0);
+	    /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]), ("bad statesym for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test\
+> <fill> <oper>)"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2455:/ quasiblock");
@@ -4229,10 +4221,8 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2471:/ locexp");
-	    /* error_plain */
-	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			      ("bad test expansion in (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"),
-			      (melt_ptr_t) 0);
+	    /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]), ("bad test expansion in (DEFCMATCHER <symb> <ins> <outs> <statesym> \
+<test> <fill> <oper>)"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2472:/ quasiblock");
@@ -4572,10 +4562,8 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2486:/ locexp");
-	    /* error_plain */
-	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			      ("bad fill expansion in (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"),
-			      (melt_ptr_t) 0);
+	    /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]), ("bad fill expansion in (DEFCMATCHER <symb> <ins> <outs> <statesym> \
+<test> <fill> <oper>)"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2487:/ quasiblock");
@@ -4913,10 +4901,8 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2500:/ locexp");
-	    /* error_plain */
-	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			      ("bad oper expansion in (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"),
-			      (melt_ptr_t) 0);
+	    /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]), ("bad oper expansion in (DEFCMATCHER <symb> <ins> <outs> <statesym> \
+<test> <fill> <oper>)"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2501:/ quasiblock");
@@ -5218,9 +5204,8 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2511:/ locexp");
-	    melt_warning_str (0, (melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			      ("extra in (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"),
-			      (melt_ptr_t) 0);
+	    melt_warning_str (0, (melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]), ("extra in (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill>\
+ <oper>)"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -7126,10 +7111,9 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2600:/ locexp");
-	    /* error_plain */
-	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			      ("symbol expected for (DEFUNMATCHER <symb> <ins> <outs> [:doc docum] <matchfun> <applyfun> [<data>])"),
-			      (melt_ptr_t) 0);
+	    /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]), ("symbol expected for (DEFUNMATCHER <symb> <ins> <outs> [:doc docum]\
+ <matchfun> <applyfun> [<data>])"), (melt_ptr_t)
+					      0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2603:/ quasiblock");
@@ -7215,10 +7199,8 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2611:/ locexp");
-	    /* error_plain */
-	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			      ("empty ins for (DEFUNMATCHER <symb> <ins> <outs> [:doc docum] <matchfun> <applyfun> [<data>])"),
-			      (melt_ptr_t) 0);
+	    /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]), ("empty ins for (DEFUNMATCHER <symb> <ins> <outs> [:doc docum] <matchfun\
+> <applyfun> [<data>])"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2612:/ quasiblock");
@@ -7303,10 +7285,9 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2615:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			    ("(DEFUNMATCHER <symb>  <ins> ...) inputs cannot be variadic with last :rest formal"),
-			    (melt_ptr_t) ( /*_.NAMED_NAME__V44*/
-					  meltfptr[41]));
+	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]), ("(DEFUNMATCHER <symb>  <ins> ...) inputs cannot be variadic with last\
+ :rest formal"), (melt_ptr_t)
+			    ( /*_.NAMED_NAME__V44*/ meltfptr[41]));
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2617:/ quasiblock");
@@ -7717,10 +7698,8 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2633:/ locexp");
-	    /* error_plain */
-	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			      ("bad outs for (DEFUNMATCHER <symb> <ins> <outs>[:doc docum]  <matchfun> <applyfun> [<data>])"),
-			      (melt_ptr_t) 0);
+	    /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]), ("bad outs for (DEFUNMATCHER <symb> <ins> <outs>[:doc docum]  <matchfun\
+> <applyfun> [<data>])"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2634:/ quasiblock");
@@ -7804,10 +7783,9 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2637:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			    ("(DEFUNMATCHER <symb>  <ins> <outs> ...) outputs cannot be variadic with last :rest formal"),
-			    (melt_ptr_t) ( /*_.NAMED_NAME__V72*/
-					  meltfptr[49]));
+	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]), ("(DEFUNMATCHER <symb>  <ins> <outs> ...) outputs cannot be variadic\
+ with last :rest formal"), (melt_ptr_t)
+			    ( /*_.NAMED_NAME__V72*/ meltfptr[49]));
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2639:/ quasiblock");
@@ -8016,10 +7994,8 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2654:/ locexp");
-	    /* error_plain */
-	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			      ("bad matchfun for (DEFUNMATCHER <symb> <ins> <outs> <matchfun> <applyfun> [<data>])"),
-			      (melt_ptr_t) 0);
+	    /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]), ("bad matchfun for (DEFUNMATCHER <symb> <ins> <outs> <matchfun> <applyfun\
+> [<data>])"), (melt_ptr_t) 0);
 	  }
 	  ;
 	     /*clear *//*_.IFELSE___V88*/ meltfptr[50] = 0;
@@ -8535,10 +8511,8 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2677:/ locexp");
-	    /* error_plain */
-	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			      ("extra for (DEFUNMATCHER <symb> <ins> <outs> <matchfun> [<applyfun> [<data>]])"),
-			      (melt_ptr_t) 0);
+	    /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]), ("extra for (DEFUNMATCHER <symb> <ins> <outs> <matchfun> [<applyfun>\
+ [<data>]])"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -27516,10 +27490,8 @@ lab_endgetargs:;
 
 		{
 		  MELT_LOCATION ("warmelt-macro.melt:3480:/ locexp");
-		  melt_error_str ((melt_ptr_t) ( /*_.LOC__V24*/ meltfptr[23]),
-				  ("invalid class in (DEFSELECTOR <name> <class>); expecting CLASS_SELECTOR or its subclass"),
-				  (melt_ptr_t) ( /*_.NAMED_NAME__V87*/
-						meltfptr[55]));
+		  melt_error_str ((melt_ptr_t) ( /*_.LOC__V24*/ meltfptr[23]), ("invalid class in (DEFSELECTOR <name> <class>); expecting CLASS_SELECTOR\
+ or its subclass"), (melt_ptr_t) ( /*_.NAMED_NAME__V87*/ meltfptr[55]));
 		}
 		;
 		/*epilog */
@@ -28172,12 +28144,8 @@ lab_endgetargs:;
 				      {
 					MELT_LOCATION
 					  ("warmelt-macro.melt:3520:/ locexp");
-					/* error_plain */
-					  melt_error_str ((melt_ptr_t)
-							  ( /*_.LOC__V24*/
-							   meltfptr[23]),
-							  (":formals of DEFSELECTOR should have at least one value argument for the receiver"),
-							  (melt_ptr_t) 0);
+					/* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V24*/ meltfptr[23]), (":formals of DEFSELECTOR should have at least one value argument for\
+ the receiver"), (melt_ptr_t) 0);
 				      }
 				      ;
 		       /*clear *//*_.IFELSE___V120*/
@@ -36687,10 +36655,8 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-macro.melt:3889:/ locexp");
-      /* error_plain */
-	melt_error_str ((melt_ptr_t) ( /*_.LOC__V15*/ meltfptr[11]),
-			("OBJECT cannot be macro-expanded in expression context - use INSTANCE instead"),
-			(melt_ptr_t) 0);
+      /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V15*/ meltfptr[11]), ("OBJECT cannot be macro-expanded in expression context - use INSTANCE\
+ instead"), (melt_ptr_t) 0);
     }
     ;
     MELT_LOCATION ("warmelt-macro.melt:3890:/ quasiblock");

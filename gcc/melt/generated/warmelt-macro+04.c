@@ -9179,11 +9179,8 @@ lab_endgetargs:;
 
 		{
 		  MELT_LOCATION ("warmelt-macro.melt:5574:/ locexp");
-		  /* error_plain */
-		    melt_error_str ((melt_ptr_t)
-				    ( /*_.LOC__V14*/ meltfptr[13]),
-				    ("(VARIADIC variadic-case...) expects a list, so cannot have non-list components."),
-				    (melt_ptr_t) 0);
+		  /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V14*/ meltfptr[13]), ("(VARIADIC variadic-case...) expects a list, so cannot have non-list\
+ components."), (melt_ptr_t) 0);
 		}
 		;
 		MELT_LOCATION ("warmelt-macro.melt:5575:/ quasiblock");
@@ -13347,10 +13344,8 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:5708:/ locexp");
-	    /* error_plain */
-	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			      ("called expression in MULTICALL is invalid, expecting application or send"),
-			      (melt_ptr_t) 0);
+	    /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]), ("called expression in MULTICALL is invalid, expecting application or\
+ send"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:5709:/ quasiblock");
@@ -16981,11 +16976,8 @@ lab_endgetargs:;
 
 		{
 		  MELT_LOCATION ("warmelt-macro.melt:5874:/ locexp");
-		  /* error_plain */
-		    melt_error_str ((melt_ptr_t)
-				    ( /*_.LOC__V18*/ meltfptr[17]),
-				    ("invalid argument to (USE_PACKAGE_FROM_PKG_CONFIG <pkg-name>...), expecting string"),
-				    (melt_ptr_t) 0);
+		  /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V18*/ meltfptr[17]), ("invalid argument to (USE_PACKAGE_FROM_PKG_CONFIG <pkg-name>...), expecting\
+ string"), (melt_ptr_t) 0);
 		}
 		;
 		MELT_LOCATION ("warmelt-macro.melt:5875:/ quasiblock");
@@ -31489,10 +31481,8 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:6565:/ locexp");
-	    /* error_plain */
-	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
-			      ("(EXPORT_PATMACRO <sym> <patexpander> <macexpander> [:doc <docum>]) expecting symbol"),
-			      (melt_ptr_t) 0);
+	    /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]), ("(EXPORT_PATMACRO <sym> <patexpander> <macexpander> [:doc <docum>])\
+ expecting symbol"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -31548,10 +31538,8 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:6569:/ locexp");
-	    /* error_plain */
-	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
-			      ("(EXPORT_PATMACRO <sym> <patexpander> <macexpander> [:doc <docum>]) expecting patexpander"),
-			      (melt_ptr_t) 0);
+	    /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]), ("(EXPORT_PATMACRO <sym> <patexpander> <macexpander> [:doc <docum>])\
+ expecting patexpander"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -31607,10 +31595,8 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:6573:/ locexp");
-	    /* error_plain */
-	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
-			      ("(EXPORT_PATMACRO <sym> <patexpander> <macexpander> [:doc <docum>]) expecting macexpander"),
-			      (melt_ptr_t) 0);
+	    /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]), ("(EXPORT_PATMACRO <sym> <patexpander> <macexpander> [:doc <docum>])\
+ expecting macexpander"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */

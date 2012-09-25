@@ -34153,7 +34153,8 @@ lab_endgetargs:;
     {
       MELT_LOCATION ("warmelt-normatch.melt:4369:/ locexp");
       meltgc_add_out ((melt_ptr_t) ( /*_.NODEBUF__V16*/ meltfptr[15]),
-		      ("<tr><td><font color=\"royalblue4\" face=\"Times-Roman Bold\" point-size=\"6\">"));
+		      ("<tr><td><font color=\"royalblue4\" face=\"Times-Roman Bold\" point\
+-size=\"6\">"));
     }
     ;
 
@@ -34215,7 +34216,8 @@ lab_endgetargs:;
     {
       MELT_LOCATION ("warmelt-normatch.melt:4381:/ locexp");
       meltgc_add_out ((melt_ptr_t) ( /*_.NODEBUF__V16*/ meltfptr[15]),
-		      ("<tr><td colspan=\"2\"><font face=\"Time-Roman Italics\" point-size=\"7\" color=\"navy\">"));
+		      ("<tr><td colspan=\"2\"><font face=\"Time-Roman Italics\" point-size\
+=\"7\" color=\"navy\">"));
     }
     ;
 
@@ -35180,7 +35182,8 @@ lab_endgetargs:;
     {
       MELT_LOCATION ("warmelt-normatch.melt:4436:/ locexp");
       meltgc_add_out ((melt_ptr_t) ( /*_.NODEBUF__V18*/ meltfptr[17]),
-		      ("<tr><td><font color=\"salmon4\" face=\"Times-Roman Bold\" point-size=\"6\">"));
+		      ("<tr><td><font color=\"salmon4\" face=\"Times-Roman Bold\" point-size\
+=\"6\">"));
     }
     ;
 
@@ -35242,7 +35245,8 @@ lab_endgetargs:;
     {
       MELT_LOCATION ("warmelt-normatch.melt:4448:/ locexp");
       meltgc_add_out ((melt_ptr_t) ( /*_.NODEBUF__V18*/ meltfptr[17]),
-		      ("<tr><td colspan=\"2\"><font color=\"salmon\" face=\"Helvetica Oblique\" point-size=\"6\">"));
+		      ("<tr><td colspan=\"2\"><font color=\"salmon\" face=\"Helvetica Oblique\
+\" point-size=\"6\">"));
     }
     ;
     MELT_LOCATION ("warmelt-normatch.melt:4449:/ cond");
@@ -35552,7 +35556,8 @@ lab_endgetargs:;
 		    (melt_ptr_t *) & /*_.FLDNAME__V38*/ meltfptr[37];
 		  /*^apply.arg */
 		  argtab[5].meltbp_cstring =
-		    "</font>>,  color=violet, style=dotted ];\n\t\t    ";
+		    "</font>>,  color=violet, style=dotted ];\
+\n\t\t    ";
 		  /*_.ADD2OUT__V41*/ meltfptr[39] =
 		    melt_apply ((meltclosure_ptr_t)
 				(( /*!ADD2OUT */ meltfrout->tabval[7])),
@@ -36366,7 +36371,8 @@ lab_endgetargs:;
     {
       MELT_LOCATION ("warmelt-normatch.melt:4509:/ locexp");
       meltgc_add_out ((melt_ptr_t) ( /*_.NODEBUF__V14*/ meltfptr[13]),
-		      ("<tr><td><font color=\"hotpink\" face=\"Times-Roman Bold\" point-size=\"6\">"));
+		      ("<tr><td><font color=\"hotpink\" face=\"Times-Roman Bold\" point-size\
+=\"6\">"));
     }
     ;
 
@@ -37151,7 +37157,8 @@ lab_endgetargs:;
 		  argtab[4].meltbp_long = /*_#CPIX__L9*/ meltfnum[7];
 		  /*^apply.arg */
 		  argtab[5].meltbp_cstring =
-		    "]</font>>,  color=violet, style=dotted ];\n\t\t      ";
+		    "]</font>>,  color=violet, style=dotted ];\
+\n\t\t      ";
 		  /*_.ADD2OUT__V56*/ meltfptr[46] =
 		    melt_apply ((meltclosure_ptr_t)
 				(( /*!ADD2OUT */ meltfrout->tabval[4])),
@@ -37947,7 +37954,8 @@ lab_endgetargs:;
     {
       MELT_LOCATION ("warmelt-normatch.melt:4575:/ locexp");
       meltgc_add_out ((melt_ptr_t) ( /*_.NODEBUF__V16*/ meltfptr[15]),
-		      ("<tr><td><font color=\"hotpink\" face=\"Times-Roman Bold\" point-size=\"6\">"));
+		      ("<tr><td><font color=\"hotpink\" face=\"Times-Roman Bold\" point-size\
+=\"6\">"));
     }
     ;
 
@@ -38800,7 +38808,8 @@ lab_endgetargs:;
     {
       MELT_LOCATION ("warmelt-normatch.melt:4633:/ locexp");
       meltgc_add_out ((melt_ptr_t) ( /*_.NODEBUF__V17*/ meltfptr[16]),
-		      ("<tr><td colspan=\"2\"><font color=\"peru\" face=\"Time-Roman Italics\" point-size=\"7\">"));
+		      ("<tr><td colspan=\"2\"><font color=\"peru\" face=\"Time-Roman Italics\
+\" point-size=\"7\">"));
     }
     ;
     MELT_LOCATION ("warmelt-normatch.melt:4634:/ cond");
@@ -40177,7 +40186,8 @@ lab_endgetargs:;
     {
       MELT_LOCATION ("warmelt-normatch.melt:4701:/ locexp");
       meltgc_add_out ((melt_ptr_t) ( /*_.NODEBUF__V15*/ meltfptr[14]),
-		      ("<tr><td><font color=\"firebrick\" face=\"Times-Roman Bold\" point-size=\"6\">"));
+		      ("<tr><td><font color=\"firebrick\" face=\"Times-Roman Bold\" point-size\
+=\"6\">"));
     }
     ;
 
@@ -40239,7 +40249,8 @@ lab_endgetargs:;
     {
       MELT_LOCATION ("warmelt-normatch.melt:4713:/ locexp");
       meltgc_add_out ((melt_ptr_t) ( /*_.NODEBUF__V15*/ meltfptr[14]),
-		      ("<tr><td><font color=\"turquoise4\" face=\"Times-Roman\" point-size=\"7\">flag#"));
+		      ("<tr><td><font color=\"turquoise4\" face=\"Times-Roman\" point-size\
+=\"7\">flag#"));
     }
     ;
  /*_#GET_INT__L9*/ meltfnum[0] =
@@ -40270,7 +40281,8 @@ lab_endgetargs:;
     {
       MELT_LOCATION ("warmelt-normatch.melt:4717:/ locexp");
       meltgc_add_out ((melt_ptr_t) ( /*_.NODEBUF__V15*/ meltfptr[14]),
-		      ("</font></td> <td><font face=\"Helvetiva Italic\" color=\"olivedrab\" point-size=\"6.5\">"));
+		      ("</font></td> <td><font face=\"Helvetiva Italic\" color=\"olivedrab\
+\" point-size=\"6.5\">"));
     }
     ;
 
@@ -41261,7 +41273,8 @@ lab_endgetargs:;
     {
       MELT_LOCATION ("warmelt-normatch.melt:4764:/ locexp");
       meltgc_add_out ((melt_ptr_t) ( /*_.NODEBUF__V15*/ meltfptr[14]),
-		      ("<tr><td><font color=\"SaddleBrown\" face=\"Times-Roman Bold\" point-size=\"6\">"));
+		      ("<tr><td><font color=\"SaddleBrown\" face=\"Times-Roman Bold\" point\
+-size=\"6\">"));
     }
     ;
 
@@ -41323,7 +41336,8 @@ lab_endgetargs:;
     {
       MELT_LOCATION ("warmelt-normatch.melt:4776:/ locexp");
       meltgc_add_out ((melt_ptr_t) ( /*_.NODEBUF__V15*/ meltfptr[14]),
-		      ("<tr><td><font color=\"LimeGreen\" face=\"Times-Roman Bold\" point-size=\"6\">"));
+		      ("<tr><td><font color=\"LimeGreen\" face=\"Times-Roman Bold\" point-size\
+=\"6\">"));
     }
     ;
     /*citerblock FOREACH_IN_MULTIPLE */
@@ -42120,7 +42134,8 @@ lab_endgetargs:;
     {
       MELT_LOCATION ("warmelt-normatch.melt:4824:/ locexp");
       meltgc_add_out ((melt_ptr_t) ( /*_.NODEBUF__V15*/ meltfptr[14]),
-		      ("<tr><td><font color=\"darkolivegreen4\" face=\"Times-Roman Bold\" point-size=\"6\">"));
+		      ("<tr><td><font color=\"darkolivegreen4\" face=\"Times-Roman Bold\" point\
+-size=\"6\">"));
     }
     ;
 
@@ -42182,7 +42197,8 @@ lab_endgetargs:;
     {
       MELT_LOCATION ("warmelt-normatch.melt:4836:/ locexp");
       meltgc_add_out ((melt_ptr_t) ( /*_.NODEBUF__V15*/ meltfptr[14]),
-		      ("<tr><td><font color=\"turquoise4\" face=\"Times-Roman\" point-size=\"7\">flag#"));
+		      ("<tr><td><font color=\"turquoise4\" face=\"Times-Roman\" point-size\
+=\"7\">flag#"));
     }
     ;
  /*_#GET_INT__L6*/ meltfnum[0] =
@@ -42213,7 +42229,8 @@ lab_endgetargs:;
     {
       MELT_LOCATION ("warmelt-normatch.melt:4840:/ locexp");
       meltgc_add_out ((melt_ptr_t) ( /*_.NODEBUF__V15*/ meltfptr[14]),
-		      ("</font></td> <td><font face=\"Helvetiva Italic\" color=\"olivedrab\" point-size=\"6.5\"> "));
+		      ("</font></td> <td><font face=\"Helvetiva Italic\" color=\"olivedrab\
+\" point-size=\"6.5\"> "));
     }
     ;
 

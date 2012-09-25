@@ -2904,7 +2904,8 @@ lab_endgetargs:;
     {
       MELT_LOCATION ("warmelt-normatch.melt:4877:/ locexp");
       meltgc_add_out ((melt_ptr_t) ( /*_.NODEBUF__V16*/ meltfptr[15]),
-		      ("<tr><td><font color=\"mediumseagreen\" face=\"Times-Roman Bold\" point-size=\"6\">"));
+		      ("<tr><td><font color=\"mediumseagreen\" face=\"Times-Roman Bold\" point\
+-size=\"6\">"));
     }
     ;
 
@@ -2966,7 +2967,8 @@ lab_endgetargs:;
     {
       MELT_LOCATION ("warmelt-normatch.melt:4889:/ locexp");
       meltgc_add_out ((melt_ptr_t) ( /*_.NODEBUF__V16*/ meltfptr[15]),
-		      ("<tr><td><font color=\"turquoise4\" face=\"Times-Roman\" point-size=\"7\">flag#"));
+		      ("<tr><td><font color=\"turquoise4\" face=\"Times-Roman\" point-size\
+=\"7\">flag#"));
     }
     ;
  /*_#GET_INT__L6*/ meltfnum[0] =
@@ -3017,7 +3019,8 @@ lab_endgetargs:;
     {
       MELT_LOCATION ("warmelt-normatch.melt:4896:/ locexp");
       meltgc_add_out ((melt_ptr_t) ( /*_.NODEBUF__V16*/ meltfptr[15]),
-		      ("</font></td> <td><font face=\"Helvetiva Italic\" color=\"olivedrab\" point-size=\"6.5\">"));
+		      ("</font></td> <td><font face=\"Helvetiva Italic\" color=\"olivedrab\
+\" point-size=\"6.5\">"));
     }
     ;
 
@@ -3071,7 +3074,8 @@ lab_endgetargs:;
 	  {
 	    MELT_LOCATION ("warmelt-normatch.melt:4902:/ locexp");
 	    meltgc_add_out ((melt_ptr_t) ( /*_.NODEBUF__V16*/ meltfptr[15]),
-			    ("<tr><td colspan=\"2\"><font color=\"goldenrod4\" face=\"Times-Roman\" point-size=\"6.5\">flags{"));
+			    ("<tr><td colspan=\"2\"><font color=\"goldenrod4\" face=\"Times-Roman\
+\" point-size=\"6.5\">flags{"));
 	  }
 	  ;
 	  /*citerblock FOREACH_IN_MULTIPLE */
@@ -15964,7 +15968,7 @@ lab_endgetargs:;
       ;
       /*^putpairtail */
       /*putpairtail */
-      melt_assertmsg ("putpairtail /1f39723b checkpair",
+      melt_assertmsg ("putpairtail /318d8a5d checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.NSETFLAG__V25*/ meltfptr[24]))
 		      == MELTOBMAG_PAIR);
@@ -16921,7 +16925,7 @@ lab_endgetargs:;
       ;
       /*^putpairtail */
       /*putpairtail */
-      melt_assertmsg ("putpairtail /3ac6f807 checkpair",
+      melt_assertmsg ("putpairtail /3f48741d checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.NSETFLAG__V26*/ meltfptr[25]))
 		      == MELTOBMAG_PAIR);
@@ -50605,7 +50609,8 @@ lab_endgetargs:;
 			  argtab[2].meltbp_long = 6363;
 			  /*^apply.arg */
 			  argtab[3].meltbp_cstring =
-			    "altmatch_handle_normalized_mdata matdata before match_data_update_data_steps_index";
+			    "altmatch_handle_normalized_mdata matdata before match_data_update_data_steps_\
+index";
 			  /*^apply.arg */
 			  argtab[4].meltbp_aptr =
 			    (melt_ptr_t *) & /*_.MATDATA__V2*/ meltfptr[1];
@@ -54080,7 +54085,8 @@ lab_endgetargs:;
 		  argtab[2].meltbp_long = 6481;
 		  /*^apply.arg */
 		  argtab[3].meltbp_cstring =
-		    "altmatch_normalize_match_context freshmdata after altmatch_handle_normalized_mdata";
+		    "altmatch_normalize_match_context freshmdata after altmatch_handle_normalized_\
+mdata";
 		  /*^apply.arg */
 		  argtab[4].meltbp_aptr =
 		    (melt_ptr_t *) & /*_.FRESHMDATA__V41*/ meltfptr[40];
@@ -54193,7 +54199,8 @@ lab_endgetargs:;
 		  argtab[2].meltbp_long = 6482;
 		  /*^apply.arg */
 		  argtab[3].meltbp_cstring =
-		    "altmatch_normalize_match_context mstepqueue after altmatch_handle_normalized_mdata";
+		    "altmatch_normalize_match_context mstepqueue after altmatch_handle_normalized_\
+mdata";
 		  /*^apply.arg */
 		  argtab[4].meltbp_aptr =
 		    (melt_ptr_t *) & /*_.MSTEPQUEUE__V21*/ meltfptr[20];

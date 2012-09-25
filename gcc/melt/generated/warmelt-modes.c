@@ -6152,7 +6152,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
 	     (void *) iniframp__);
   (void) meltpredefinited;	/* avoid warning if non-used. */
   melt_assertmsg ("check module initial frame",
-		  iniframp__->mcfr_nbvar == /*minihash */ -3753);
+		  iniframp__->mcfr_nbvar == /*minihash */ -452);
   cdat = (struct cdata_st *) meltgc_allocate (sizeof (*cdat), 0);
   melt_prohibit_garbcoll = TRUE;
   /*initial routine predef */
@@ -6635,7 +6635,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
 		    meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_31__RUNFILE_MODE.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_MELT_MODE__V7*/ meltfptr[6]);
-  cdat->dobj_31__RUNFILE_MODE.obj_hash = 948558580;
+  cdat->dobj_31__RUNFILE_MODE.obj_hash = 499571171;
   cdat->dobj_31__RUNFILE_MODE.obj_len = 5;
 
 
@@ -6654,10 +6654,10 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
     (melt_ptr_t) & cdat->dstr_33__translate_and_ru;
   cdat->dstr_33__translate_and_ru.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_STRING))));
-  /*small inistring */ strncpy (cdat->dstr_33__translate_and_ru.val,
-				"translate and run a .melt file.\n \t ARGUMENT=\ninput file; [OUTPUT=generated C]. The module is quickly compiled and\nhas basic debug support thru DEBUG, ASSERT_MSG...",
-				sizeof (cdat->dstr_33__translate_and_ru.val) -
-				1);
+  /*small inistring */ strncpy (cdat->dstr_33__translate_and_ru.val, "translate and run a .melt file.\n \t ARGUMENT=\
+\ninput file; [OUTPUT=generated C]. The module is quickly compiled\
+ and\nhas basic debug support thru DEBUG, ASSERT_MSG...",
+				sizeof (cdat->dstr_33__translate_and_ru.val) - 1);
   cdat->dstr_33__translate_and_ru.val[163] = (char) 0;
   cdat->dstr_33__translate_and_ru.slen = 163;
 
@@ -6752,7 +6752,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
 		    meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_40__RUNDEBUG_MODE.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_MELT_MODE__V7*/ meltfptr[6]);
-  cdat->dobj_40__RUNDEBUG_MODE.obj_hash = 442038569;
+  cdat->dobj_40__RUNDEBUG_MODE.obj_hash = 894261806;
   cdat->dobj_40__RUNDEBUG_MODE.obj_len = 5;
 
 
@@ -6771,10 +6771,9 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
     (melt_ptr_t) & cdat->dstr_42__translate_and_ru;
   cdat->dstr_42__translate_and_ru.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_STRING))));
-  /*small inistring */ strncpy (cdat->dstr_42__translate_and_ru.val,
-				"translate and run a .melt file for debug;\n\n\t ARGUMENT= input file;  [OUTPUT=generated C]",
-				sizeof (cdat->dstr_42__translate_and_ru.val) -
-				1);
+  /*small inistring */ strncpy (cdat->dstr_42__translate_and_ru.val, "translate and run a .melt file for debug;\
+\n\n\t ARGUMENT= input file;  [OUTPUT=generated C]",
+				sizeof (cdat->dstr_42__translate_and_ru.val) - 1);
   cdat->dstr_42__translate_and_ru.val[88] = (char) 0;
   cdat->dstr_42__translate_and_ru.slen = 88;
 
@@ -7046,7 +7045,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
 		    meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_60__EVAL_MODE.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_MELT_MODE__V7*/ meltfptr[6]);
-  cdat->dobj_60__EVAL_MODE.obj_hash = 882227107;
+  cdat->dobj_60__EVAL_MODE.obj_hash = 967820650;
   cdat->dobj_60__EVAL_MODE.obj_len = 5;
 
 
@@ -7065,9 +7064,8 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
     (melt_ptr_t) & cdat->dstr_62__translate_and_ru;
   cdat->dstr_62__translate_and_ru.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_STRING))));
-  /*small inistring */ strncpy (cdat->dstr_62__translate_and_ru.val,
-				"translate and run, i.e. evaluate, a MELT expression;\n\n\t ARGUMENT= input file",
-				sizeof (cdat->dstr_62__translate_and_ru.val) -
+  /*small inistring */ strncpy (cdat->dstr_62__translate_and_ru.val, "translate and run, i.e. evaluate, a MELT expression;\
+\n\n\t ARGUMENT= input file", sizeof (cdat->dstr_62__translate_and_ru.val) -
 				1);
   cdat->dstr_62__translate_and_ru.val[76] = (char) 0;
   cdat->dstr_62__translate_and_ru.slen = 76;
@@ -7158,7 +7156,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   cdat->dobj_67__CLASS_READ_EVAL_PRINT_LOOP_DATA.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_67__CLASS_READ_EVAL_PRINT_LOOP_DATA.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_67__CLASS_READ_EVAL_PRINT_LOOP_DATA.obj_hash = 223664586;
+  cdat->dobj_67__CLASS_READ_EVAL_PRINT_LOOP_DATA.obj_hash = 681460118;
   cdat->dobj_67__CLASS_READ_EVAL_PRINT_LOOP_DATA.obj_len = 8;
 
 
@@ -7235,7 +7233,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   cdat->dobj_73__REPL_ENV.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_73__REPL_ENV.obj_num = 1;
-  cdat->dobj_73__REPL_ENV.obj_hash = 860192046;
+  cdat->dobj_73__REPL_ENV.obj_hash = 420393222;
   cdat->dobj_73__REPL_ENV.obj_len = 4;
 
 
@@ -7300,7 +7298,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   cdat->dobj_77__REPL_COUNTER.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_77__REPL_COUNTER.obj_num = 2;
-  cdat->dobj_77__REPL_COUNTER.obj_hash = 910773795;
+  cdat->dobj_77__REPL_COUNTER.obj_hash = 867927239;
   cdat->dobj_77__REPL_COUNTER.obj_len = 4;
 
 
@@ -7367,7 +7365,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   cdat->dobj_81__REPL_CONTREF.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_81__REPL_CONTREF.obj_num = 3;
-  cdat->dobj_81__REPL_CONTREF.obj_hash = 804952858;
+  cdat->dobj_81__REPL_CONTREF.obj_hash = 105450915;
   cdat->dobj_81__REPL_CONTREF.obj_len = 4;
 
 
@@ -7432,7 +7430,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   cdat->dobj_85__REPL_DATA.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_85__REPL_DATA.obj_num = 4;
-  cdat->dobj_85__REPL_DATA.obj_hash = 744503735;
+  cdat->dobj_85__REPL_DATA.obj_hash = 323850913;
   cdat->dobj_85__REPL_DATA.obj_len = 4;
 
 
@@ -7988,7 +7986,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
 		    meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_124__REPL_MODE.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_MELT_MODE__V7*/ meltfptr[6]);
-  cdat->dobj_124__REPL_MODE.obj_hash = 186867228;
+  cdat->dobj_124__REPL_MODE.obj_hash = 108440280;
   cdat->dobj_124__REPL_MODE.obj_len = 5;
 
 
@@ -8067,7 +8065,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   cdat->dobj_129__CLASS_MAKEDOC_INFO.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_129__CLASS_MAKEDOC_INFO.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_129__CLASS_MAKEDOC_INFO.obj_hash = 768090496;
+  cdat->dobj_129__CLASS_MAKEDOC_INFO.obj_hash = 775678930;
   cdat->dobj_129__CLASS_MAKEDOC_INFO.obj_len = 8;
 
 
@@ -8148,7 +8146,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   cdat->dobj_135__MKDOC_PRIMITIVES.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_135__MKDOC_PRIMITIVES.obj_num = 1;
-  cdat->dobj_135__MKDOC_PRIMITIVES.obj_hash = 945615627;
+  cdat->dobj_135__MKDOC_PRIMITIVES.obj_hash = 35045211;
   cdat->dobj_135__MKDOC_PRIMITIVES.obj_len = 4;
 
 
@@ -8217,7 +8215,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   cdat->dobj_139__MKDOC_FUNCTIONS.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_139__MKDOC_FUNCTIONS.obj_num = 2;
-  cdat->dobj_139__MKDOC_FUNCTIONS.obj_hash = 684586283;
+  cdat->dobj_139__MKDOC_FUNCTIONS.obj_hash = 715355830;
   cdat->dobj_139__MKDOC_FUNCTIONS.obj_len = 4;
 
 
@@ -8286,7 +8284,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   cdat->dobj_143__MKDOC_CITERATORS.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_143__MKDOC_CITERATORS.obj_num = 3;
-  cdat->dobj_143__MKDOC_CITERATORS.obj_hash = 423074299;
+  cdat->dobj_143__MKDOC_CITERATORS.obj_hash = 213708230;
   cdat->dobj_143__MKDOC_CITERATORS.obj_len = 4;
 
 
@@ -8355,7 +8353,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   cdat->dobj_147__MKDOC_CMATCHERS.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_147__MKDOC_CMATCHERS.obj_num = 4;
-  cdat->dobj_147__MKDOC_CMATCHERS.obj_hash = 398715461;
+  cdat->dobj_147__MKDOC_CMATCHERS.obj_hash = 53315661;
   cdat->dobj_147__MKDOC_CMATCHERS.obj_len = 4;
 
 
@@ -8424,7 +8422,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   cdat->dobj_151__MKDOC_SELECTORS.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_151__MKDOC_SELECTORS.obj_num = 5;
-  cdat->dobj_151__MKDOC_SELECTORS.obj_hash = 510226426;
+  cdat->dobj_151__MKDOC_SELECTORS.obj_hash = 704174827;
   cdat->dobj_151__MKDOC_SELECTORS.obj_len = 4;
 
 
@@ -8493,7 +8491,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   cdat->dobj_155__MKDOC_FIELDS.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_155__MKDOC_FIELDS.obj_num = 6;
-  cdat->dobj_155__MKDOC_FIELDS.obj_hash = 1008716740;
+  cdat->dobj_155__MKDOC_FIELDS.obj_hash = 192019657;
   cdat->dobj_155__MKDOC_FIELDS.obj_len = 4;
 
 
@@ -8562,7 +8560,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   cdat->dobj_159__MKDOC_CLASSES.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_159__MKDOC_CLASSES.obj_num = 7;
-  cdat->dobj_159__MKDOC_CLASSES.obj_hash = 154604355;
+  cdat->dobj_159__MKDOC_CLASSES.obj_hash = 961119874;
   cdat->dobj_159__MKDOC_CLASSES.obj_len = 4;
 
 
@@ -8631,7 +8629,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   cdat->dobj_163__MKDOC_INSTANCES.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_163__MKDOC_INSTANCES.obj_num = 8;
-  cdat->dobj_163__MKDOC_INSTANCES.obj_hash = 226071664;
+  cdat->dobj_163__MKDOC_INSTANCES.obj_hash = 954633642;
   cdat->dobj_163__MKDOC_INSTANCES.obj_len = 4;
 
 
@@ -8700,7 +8698,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   cdat->dobj_167__MKDOC_MACROS.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_167__MKDOC_MACROS.obj_num = 9;
-  cdat->dobj_167__MKDOC_MACROS.obj_hash = 108330730;
+  cdat->dobj_167__MKDOC_MACROS.obj_hash = 785303486;
   cdat->dobj_167__MKDOC_MACROS.obj_len = 4;
 
 
@@ -8769,7 +8767,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   cdat->dobj_171__MKDOC_PATMACROS.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_171__MKDOC_PATMACROS.obj_num = 10;
-  cdat->dobj_171__MKDOC_PATMACROS.obj_hash = 127354105;
+  cdat->dobj_171__MKDOC_PATMACROS.obj_hash = 197153801;
   cdat->dobj_171__MKDOC_PATMACROS.obj_len = 4;
 
 
@@ -8838,7 +8836,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   cdat->dobj_175__MKDOC_FORMALOCCMAP.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_175__MKDOC_FORMALOCCMAP.obj_num = 11;
-  cdat->dobj_175__MKDOC_FORMALOCCMAP.obj_hash = 377424957;
+  cdat->dobj_175__MKDOC_FORMALOCCMAP.obj_hash = 178168238;
   cdat->dobj_175__MKDOC_FORMALOCCMAP.obj_len = 4;
 
 
@@ -8907,7 +8905,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   cdat->dobj_179__MKDOC_PREDEFMAP.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_179__MKDOC_PREDEFMAP.obj_num = 12;
-  cdat->dobj_179__MKDOC_PREDEFMAP.obj_hash = 650037539;
+  cdat->dobj_179__MKDOC_PREDEFMAP.obj_hash = 1073669506;
   cdat->dobj_179__MKDOC_PREDEFMAP.obj_len = 4;
 
 
@@ -8976,7 +8974,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   cdat->dobj_183__MKDOC_DOCSYMAP.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_183__MKDOC_DOCSYMAP.obj_num = 13;
-  cdat->dobj_183__MKDOC_DOCSYMAP.obj_hash = 411265095;
+  cdat->dobj_183__MKDOC_DOCSYMAP.obj_hash = 87376693;
   cdat->dobj_183__MKDOC_DOCSYMAP.obj_len = 4;
 
 
@@ -9045,7 +9043,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   cdat->dobj_187__MKDOC_SUBCLASSMAP.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_187__MKDOC_SUBCLASSMAP.obj_num = 14;
-  cdat->dobj_187__MKDOC_SUBCLASSMAP.obj_hash = 801881631;
+  cdat->dobj_187__MKDOC_SUBCLASSMAP.obj_hash = 756815292;
   cdat->dobj_187__MKDOC_SUBCLASSMAP.obj_len = 4;
 
 
@@ -9114,7 +9112,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   cdat->dobj_191__MKDOC_BOXCOUNTER.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_191__MKDOC_BOXCOUNTER.obj_num = 15;
-  cdat->dobj_191__MKDOC_BOXCOUNTER.obj_hash = 1005592430;
+  cdat->dobj_191__MKDOC_BOXCOUNTER.obj_hash = 131779748;
   cdat->dobj_191__MKDOC_BOXCOUNTER.obj_len = 4;
 
 
@@ -10768,7 +10766,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
 		    meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_311__MAKEDOC_MODE.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_MELT_MODE__V7*/ meltfptr[6]);
-  cdat->dobj_311__MAKEDOC_MODE.obj_hash = 393099233;
+  cdat->dobj_311__MAKEDOC_MODE.obj_hash = 944280038;
   cdat->dobj_311__MAKEDOC_MODE.obj_len = 5;
 
 
@@ -10787,10 +10785,9 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
     (melt_ptr_t) & cdat->dstr_313__generate_texi_d;
   cdat->dstr_313__generate_texi_d.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_STRING))));
-  /*small inistring */ strncpy (cdat->dstr_313__generate_texi_d.val,
-				"generate .texi documentation from .melt source files;\n\n\t ARGLIST= input file, ...; OUTPUT= generated file",
-				sizeof (cdat->dstr_313__generate_texi_d.val) -
-				1);
+  /*small inistring */ strncpy (cdat->dstr_313__generate_texi_d.val, "generate .texi documentation from .melt source files;\
+\n\n\t ARGLIST= input file, ...; OUTPUT= generated file",
+				sizeof (cdat->dstr_313__generate_texi_d.val) - 1);
   cdat->dstr_313__generate_texi_d.val[105] = (char) 0;
   cdat->dstr_313__generate_texi_d.slen = 105;
 
@@ -10910,7 +10907,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
 		    meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_322__HELP_MODE.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_MELT_MODE__V7*/ meltfptr[6]);
-  cdat->dobj_322__HELP_MODE.obj_hash = 123448419;
+  cdat->dobj_322__HELP_MODE.obj_hash = 235346122;
   cdat->dobj_322__HELP_MODE.obj_len = 5;
 
 
@@ -11002,7 +10999,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
 		    meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_329__NOP_MODE.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_MELT_MODE__V7*/ meltfptr[6]);
-  cdat->dobj_329__NOP_MODE.obj_hash = 824344182;
+  cdat->dobj_329__NOP_MODE.obj_hash = 859992317;
   cdat->dobj_329__NOP_MODE.obj_len = 5;
 
 
@@ -11054,9 +11051,10 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
     (melt_ptr_t) & cdat->dstr_334__from_genera;
   cdat->dstr_334__from_genera.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_STRING))));
-  /*small inistring */ strncpy (cdat->dstr_334__from_genera.val,
-				" /** from generate_runtypesupport_enum_objmagic **/\n     enum meltobmag_en /*generated*/ { MELTOBMAG__NONE = 0,\n     ",
-				sizeof (cdat->dstr_334__from_genera.val) - 1);
+  /*small inistring */ strncpy (cdat->dstr_334__from_genera.val, " /** from generate_runtypesupport_enum_objmagic **/\
+\n     enum meltobmag_en /*generated*/ { MELTOBMAG__NONE = 0,\
+\n     ", sizeof (cdat->dstr_334__from_genera.val) -
+				1);
   cdat->dstr_334__from_genera.val[117] = (char) 0;
   cdat->dstr_334__from_genera.slen = 117;
 
@@ -11153,10 +11151,11 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
     (melt_ptr_t) & cdat->dstr_341__ifndef_meltobj;
   cdat->dstr_341__ifndef_meltobj.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_STRING))));
-  /*small inistring */ strncpy (cdat->dstr_341__ifndef_meltobj.val,
-				"\n#ifndef meltobject_ptr_t_TYPEDEFINED\ntypedef struct meltobject_st* meltobject_ptr_t ;\n#define meltobject_ptr_t_TYPEDEFINED\n#endif /*meltobject_ptr_t_TYPEDEFINED*/\n",
-				sizeof (cdat->dstr_341__ifndef_meltobj.val) -
-				1);
+  /*small inistring */ strncpy (cdat->dstr_341__ifndef_meltobj.val, "\n#ifndef meltobject_ptr_t_TYPEDEFINED\
+\ntypedef struct meltobject_st* meltobject_ptr_t ;\
+\n#define meltobject_ptr_t_TYPEDEFINED\
+\n#endif /*meltobject_ptr_t_TYPEDEFINED*/\n",
+				sizeof (cdat->dstr_341__ifndef_meltobj.val) - 1);
   cdat->dstr_341__ifndef_meltobj.val[164] = (char) 0;
   cdat->dstr_341__ifndef_meltobj.slen = 164;
 
@@ -11166,10 +11165,10 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
     (melt_ptr_t) & cdat->dstr_342__ifndef_melt_pt;
   cdat->dstr_342__ifndef_melt_pt.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_STRING))));
-  /*small inistring */ strncpy (cdat->dstr_342__ifndef_melt_pt.val,
-				"\n#ifndef melt_ptr_t_TYPEDEFINED\ntypedef union melt_un* melt_ptr_t ;\n#define melt_ptr_t_TYPEDEFINED\n#endif /*melt_ptr_t_TYPEDEFINED*/\n",
-				sizeof (cdat->dstr_342__ifndef_melt_pt.val) -
-				1);
+  /*small inistring */ strncpy (cdat->dstr_342__ifndef_melt_pt.val, "\n#ifndef melt_ptr_t_TYPEDEFINED\ntypedef union melt_un* melt_ptr_t\
+ ;\n#define melt_ptr_t_TYPEDEFINED\
+\n#endif /*melt_ptr_t_TYPEDEFINED*/\n",
+				sizeof (cdat->dstr_342__ifndef_melt_pt.val) - 1);
   cdat->dstr_342__ifndef_melt_pt.val[133] = (char) 0;
   cdat->dstr_342__ifndef_melt_pt.slen = 133;
 
@@ -11179,10 +11178,11 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
     (melt_ptr_t) & cdat->dstr_343__ifndef_meltrou;
   cdat->dstr_343__ifndef_meltrou.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_STRING))));
-  /*small inistring */ strncpy (cdat->dstr_343__ifndef_meltrou.val,
-				"\n#ifndef meltroutine_ptr_t_TYPEDEFINED\ntypedef struct meltroutine_st *meltroutine_ptr_t ;\n#define meltroutine_ptr_t_TYPEDEFINED\n#endif /*meltroutine_ptr_t_TYPEDEFINED*/\n",
-				sizeof (cdat->dstr_343__ifndef_meltrou.val) -
-				1);
+  /*small inistring */ strncpy (cdat->dstr_343__ifndef_meltrou.val, "\n#ifndef meltroutine_ptr_t_TYPEDEFINED\
+\ntypedef struct meltroutine_st *meltroutine_ptr_t ;\
+\n#define meltroutine_ptr_t_TYPEDEFINED\
+\n#endif /*meltroutine_ptr_t_TYPEDEFINED*/\n",
+				sizeof (cdat->dstr_343__ifndef_meltrou.val) - 1);
   cdat->dstr_343__ifndef_meltrou.val[169] = (char) 0;
   cdat->dstr_343__ifndef_meltrou.slen = 169;
 
@@ -11192,10 +11192,11 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
     (melt_ptr_t) & cdat->dstr_344__ifndef_meltclo;
   cdat->dstr_344__ifndef_meltclo.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_STRING))));
-  /*small inistring */ strncpy (cdat->dstr_344__ifndef_meltclo.val,
-				"\n#ifndef meltclosure_ptr_t_TYPEDEFINED\ntypedef struct meltclosure_st *meltclosure_ptr_t ;\n#define meltclosure_ptr_t_TYPEDEFINED\n#endif /*meltclosure_ptr_t_TYPEDEFINED*/\n",
-				sizeof (cdat->dstr_344__ifndef_meltclo.val) -
-				1);
+  /*small inistring */ strncpy (cdat->dstr_344__ifndef_meltclo.val, "\n#ifndef meltclosure_ptr_t_TYPEDEFINED\
+\ntypedef struct meltclosure_st *meltclosure_ptr_t ;\
+\n#define meltclosure_ptr_t_TYPEDEFINED\
+\n#endif /*meltclosure_ptr_t_TYPEDEFINED*/\n",
+				sizeof (cdat->dstr_344__ifndef_meltclo.val) - 1);
   cdat->dstr_344__ifndef_meltclo.val[169] = (char) 0;
   cdat->dstr_344__ifndef_meltclo.slen = 169;
 
@@ -11208,17 +11209,17 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   /*big inistring */
   /*really big chunk inistring */
   memcpy (cdat->dstr_345__ifndef_meltrou.val + 0,
-	  "\n#ifndef meltroutfun_t_TYPEDEFINED\ntypedef melt_ptr_t meltroutfu"
-	  "n_t (struct meltclosure_st* meltclosp_,\n                        "
-	  "          melt_ptr_t meltfirstargp_,\n                           "
-	  "       const melt_argdescr_cell_t meltxargdescr_[],\n            ",
+	  "\n#ifndef meltroutfun_t_TYPEDEFINED\
+\ntypedef melt_ptr_t meltroutfu" "n_t (struct meltclosure_st* meltclosp_,\
+\n                        " "          melt_ptr_t meltfirstargp_,\
+\n                           " "       const melt_argdescr_cell_t meltxargdescr_[],\
+\n            ",
 	  /*big */ 256);
   /*really big chunk inistring */
   memcpy (cdat->dstr_345__ifndef_meltrou.val + 256,
-	  "                      union meltparam_un *meltxargtab_,\n        "
-	  "                          const melt_argdescr_cell_t meltxresdes"
-	  "cr_[],\n                                  union meltparam_un *mel"
-	  "txrestab_) ;\n#define meltroutfun_t_TYPEDEFINED\n#endif /*meltrout",
+	  "                      union meltparam_un *meltxargtab_,\
+\n        " "                          const melt_argdescr_cell_t meltxresdes" "cr_[],\n                                  union meltparam_un *mel" "txrestab_) ;\n#define meltroutfun_t_TYPEDEFINED\
+\n#endif /*meltrout",
 	  /*big */ 256);
   /*end big inistring */ strncpy (cdat->dstr_345__ifndef_meltrou.val + 512,
 				  "fun_t_TYPEDEFINED*/\n",
@@ -11291,17 +11292,17 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   /*big inistring */
   /*really big chunk inistring */
   memcpy (cdat->dstr_350__cheney_like_.val + 0,
-	  "\n/* cheney like forwarding generated function */\nmelt_ptr_t \nmel"
-	  "t_forwarded_copy (melt_ptr_t p)\n{ /* header generated by generat"
-	  "e_runtypesupport_forwcopy_fun */\n  melt_ptr_t n = 0;\n  int mag ="
-	  " 0;\n  gcc_assert (melt_is_young (p));\n  gcc_assert (p->u_discr &",
+	  "\n/* cheney like forwarding generated function */\
+\nmelt_ptr_t \nmel" "t_forwarded_copy (melt_ptr_t p)\n{ /* header generated by generat" "e_runtypesupport_forwcopy_fun */\n  melt_ptr_t n = 0;\
+\n  int mag =" " 0;\n  gcc_assert (melt_is_young (p));\
+\n  gcc_assert (p->u_discr &",
 	  /*big */ 256);
   /*really big chunk inistring */
   memcpy (cdat->dstr_350__cheney_like_.val + 256,
-	  "& p->u_discr != MELT_FORWARDED_DISCR);\n  if (p->u_discr->meltobj"
-	  "_class == MELT_FORWARDED_DISCR)\n    mag =\n      ((meltobject_ptr"
-	  "_t)\n       (((struct meltforward_st *) p->u_discr)->forward))->m"
-	  "eltobj_magic;\n  else\n    mag = p->u_discr->meltobj_magic;\n  melt",
+	  "& p->u_discr != MELT_FORWARDED_DISCR);\
+\n  if (p->u_discr->meltobj" "_class == MELT_FORWARDED_DISCR)\n    mag =\
+\n      ((meltobject_ptr" "_t)\n       (((struct meltforward_st *) p->u_discr)->forward))->m" "eltobj_magic;\n  else\n    mag = p->u_discr->meltobj_magic;\
+\n  melt",
 	  /*big */ 256);
   /*end big inistring */ strncpy (cdat->dstr_350__cheney_like_.val + 512,
 				  "_forward_counter++;\n  switch (mag) { /* end of generated header */\n",
@@ -11323,39 +11324,42 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
 	  " /* trailer generated by generate_runtypesupport_forwcopy_fun  *"
 	  "/\n    default:\n      fatal_error (\"corruption: forward invalid p"
 	  "=%p discr=%p magic=%d\",\n\t\t   (void *) p, (void *) p->u_discr, ma"
-	  "g);\n   } /* end switch (mag) */\n\n    melt_debuggc_eprintf (\"melt",
+	  "g);\n   } /* end switch (mag) */\n\
+\n    melt_debuggc_eprintf (\"melt",
 	  /*big */ 256);
   /*really big chunk inistring */
   memcpy (cdat->dstr_351__trailer_gene.val + 256,
-	  "_forwarded_copy#%ld/%04ld %p => %p %s\", \n\t\t\t  melt_nb_garbcoll, "
-	  "melt_forward_counter, (void*)p, \n                          (void"
-	  "*)n, melt_obmag_string (mag));\n  if (n)\n    {\n#if ENABLE_CHECKIN"
-	  "G\n      if (melt_alptr_1 && (void*)melt_alptr_1 == (void*)n) \n\t{",
+	  "_forwarded_copy#%ld/%04ld %p => %p %s\", \
+\n\t\t\t  melt_nb_garbcoll, " "melt_forward_counter, (void*)p, \n                          (void" "*)n, melt_obmag_string (mag));\n  if (n)\
+\n    {\n#if ENABLE_CHECKIN" "G\n      if (melt_alptr_1 && (void*)melt_alptr_1 == (void*)n) \
+\n\t{",
 	  /*big */ 256);
   /*really big chunk inistring */
   memcpy (cdat->dstr_351__trailer_gene.val + 512,
 	  "\n\t  fprintf (stderr, \"melt_forwarded_copy to alptr_1 %p mag %d\\n"
-	  "\",  melt_alptr_1, mag);\n\t  fflush (stderr);\n\t  melt_debuggc_epri"
-	  "ntf(\"melt_forwarded_copy #%ld alptr_1 %p mag %d\", \n\t\t\t       mel"
-	  "t_nb_garbcoll, melt_alptr_1, mag);\n\t  melt_break_alptr_1 (\"forwa",
+	  "\",  melt_alptr_1, mag);\n\t  fflush (stderr);\
+\n\t  melt_debuggc_epri" "ntf(\"melt_forwarded_copy #%ld alptr_1 %p mag %d\", \
+\n\t\t\t       mel" "t_nb_garbcoll, melt_alptr_1, mag);\
+\n\t  melt_break_alptr_1 (\"forwa",
 	  /*big */ 256);
   /*really big chunk inistring */
   memcpy (cdat->dstr_351__trailer_gene.val + 768,
 	  "rded copy to alptr_1\");\n\t}\n      if (melt_alptr_2 && (void*)melt"
 	  "_alptr_2 == (void*)n) \n\t{\n\t  fprintf (stderr, \"melt_forwarded_co"
-	  "py to alptr_2 %p mag %d\\n\",  melt_alptr_2, mag);\n\t  fflush (stde"
-	  "rr);\n\t  melt_debuggc_eprintf(\"melt_forwarded_copy #%ld alptr_2 %",
+	  "py to alptr_2 %p mag %d\\n\",  melt_alptr_2, mag);\
+\n\t  fflush (stde" "rr);\n\t  melt_debuggc_eprintf(\"melt_forwarded_copy #%ld alptr_2 %",
 	  /*big */ 256);
   /*really big chunk inistring */
   memcpy (cdat->dstr_351__trailer_gene.val + 1024,
-	  "p\", \n\t\t\t       melt_nb_garbcoll, melt_alptr_2);\n\t  melt_break_al"
-	  "ptr_2 (\"forwarded copy to alptr_2\");\n\t};\n#endif /*ENABLE_CHECKIN"
-	  "G*/\n\n      p->u_forward.discr = MELT_FORWARDED_DISCR;\n      p->u"
-	  "_forward.forward = n;\n      VEC_safe_push (melt_ptr_t, gc, melt_",
+	  "p\", \n\t\t\t       melt_nb_garbcoll, melt_alptr_2);\
+\n\t  melt_break_al" "ptr_2 (\"forwarded copy to alptr_2\");\
+\n\t};\n#endif /*ENABLE_CHECKIN" "G*/\n\n      p->u_forward.discr = MELT_FORWARDED_DISCR;\
+\n      p->u" "_forward.forward = n;\n      VEC_safe_push (melt_ptr_t, gc, melt_",
 	  /*big */ 256);
   /*almost big chunk inistring */
   memcpy (cdat->dstr_351__trailer_gene.val + 1280,
-	  "bscanvec, n);\n    }\n  return n;\n}  /* end of melt_forwarded_copy",
+	  "bscanvec, n);\n    }\n  return n;\
+\n}  /* end of melt_forwarded_copy",
 	  /*evenlessbig */ 64);
   /*end big inistring */ strncpy (cdat->dstr_351__trailer_gene.val + 1344,
 				  " generated by generate_runtypesupport_forwcopy_fun */\n",
@@ -11414,22 +11418,23 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   /*big inistring */
   /*really big chunk inistring */
   memcpy (cdat->dstr_356__header_from_.val + 0,
-	  " /* header from generate_runtypesupport_scanning */\n/* The melt_"
-	  "scanning routine is mostly Chesney like ; however some types,\n  "
-	  " including objects, strbuf, stringmaps, objectmaps, all the othe"
-	  "r\n   *maps, contain a pointer to a non value ; this pointer shou",
+	  " /* header from generate_runtypesupport_scanning */\
+\n/* The melt_" "scanning routine is mostly Chesney like ; however some types,\
+\n  " " including objects, strbuf, stringmaps, objectmaps, all the othe" "r\n   *maps, contain a pointer to a non value ; this pointer shou",
 	  /*big */ 256);
   /*really big chunk inistring */
   memcpy (cdat->dstr_356__header_from_.val + 256,
-	  "ld be\n   carefully updated if it was young. */\nstatic void\nmelt_"
-	  "scanning (melt_ptr_t p)\n{\n  unsigned omagic = 0;\n  if (!p)\n    r"
-	  "eturn;\n  gcc_assert (p != (void *) HTAB_DELETED_ENTRY);\n  gcc_as"
-	  "sert (p->u_discr && p->u_discr != (meltobject_ptr_t) 1);\n  MELT_",
+	  "ld be\n   carefully updated if it was young. */\
+\nstatic void\nmelt_" "scanning (melt_ptr_t p)\n{\n  unsigned omagic = 0;\
+\n  if (!p)\n    r" "eturn;\n  gcc_assert (p != (void *) HTAB_DELETED_ENTRY);\
+\n  gcc_as" "sert (p->u_discr && p->u_discr != (meltobject_ptr_t) 1);\
+\n  MELT_",
 	  /*big */ 256);
   /*quite big chunk inistring */
   memcpy (cdat->dstr_356__header_from_.val + 512,
-	  "FORWARDED (p->u_discr);\n  gcc_assert (!melt_is_young (p));\n  oma"
-	  "gic = p->u_discr->meltobj_magic;\n  switch (omagic)\n    {\n/* end ",
+	  "FORWARDED (p->u_discr);\n  gcc_assert (!melt_is_young (p));\
+\n  oma" "gic = p->u_discr->meltobj_magic;\n  switch (omagic)\
+\n    {\n/* end ",
 	  /*lessbig */ 128);
   /*end big inistring */ strncpy (cdat->dstr_356__header_from_.val + 640,
 				  "of header from generate_runtypesupport_scanning*/",
@@ -11448,14 +11453,13 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   /*big inistring */
   /*really big chunk inistring */
   memcpy (cdat->dstr_357__trailer_gene.val + 0,
-	  " /* trailer generated by generate_runtypesupport_scanning */\n   "
-	  " default:\n      /* gcc_unreachable (); */\n      fatal_error (\"me"
-	  "lt melt_scanning GC: corrupted heap, p=%p omagic=%d\\n\",\n\t\t   (vo"
-	  "id *) p, (int) omagic);\n    }\n} /* end of melt_scanning generate",
+	  " /* trailer generated by generate_runtypesupport_scanning */\
+\n   " " default:\n      /* gcc_unreachable (); */\
+\n      fatal_error (\"me" "lt melt_scanning GC: corrupted heap, p=%p omagic=%d\\n\",\
+\n\t\t   (vo" "id *) p, (int) omagic);\n    }\n} /* end of melt_scanning generate",
 	  /*big */ 256);
-  /*end big inistring */ strncpy (cdat->dstr_357__trailer_gene.val + 256,
-				  "d by generate_runtypesupport_scanning */\n   ",
-				  sizeof (cdat->dstr_357__trailer_gene.val) -
+  /*end big inistring */ strncpy (cdat->dstr_357__trailer_gene.val + 256, "d by generate_runtypesupport_scanning */\
+\n   ", sizeof (cdat->dstr_357__trailer_gene.val) -
 				  257);
 
   cdat->dstr_357__trailer_gene.val[300] = (char) 0;
@@ -11526,10 +11530,12 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
     (melt_ptr_t) & cdat->dstr_364__const_char_melt;
   cdat->dstr_364__const_char_melt.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_STRING))));
-  /*small inistring */ strncpy (cdat->dstr_364__const_char_melt.val,
-				"const char* melt_obmag_string (int i) {\n#define MELT_MAG2STR_CACHEBUF 17\n#define MELT_MAG2STR_MAGLEN   16\n   static char melt_cacheobmagbuf[MELT_MAG2STR_CACHEBUF][MELT_MAG2STR_MAGLEN] ;\n   switch (i) {\n     case 0: return \"MeltObMag!0\" ;",
-				sizeof (cdat->dstr_364__const_char_melt.val) -
-				1);
+  /*small inistring */ strncpy (cdat->dstr_364__const_char_melt.val, "const char* melt_obmag_string (int i) {\
+\n#define MELT_MAG2STR_CACHEBUF 17\
+\n#define MELT_MAG2STR_MAGLEN   16\
+\n   static char melt_cacheobmagbuf[MELT_MAG2STR_CACHEBUF][MELT_MAG2STR_MAGLE\
+N] ;\n   switch (i) {\n     case 0: return \"MeltObMag!0\" ;",
+				sizeof (cdat->dstr_364__const_char_melt.val) - 1);
   cdat->dstr_364__const_char_melt.val[237] = (char) 0;
   cdat->dstr_364__const_char_melt.slen = 237;
 
@@ -11539,8 +11545,10 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
     (melt_ptr_t) & cdat->dstr_365__default_int;
   cdat->dstr_365__default_int.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_STRING))));
-  /*small inistring */ strncpy (cdat->dstr_365__default_int.val,
-				"default:\n  { int ix = (i & 0x3ffffff) % MELT_MAG2STR_CACHEBUF;\n    snprintf (melt_cacheobmagbuf[ix], MELT_MAG2STR_MAGLEN-1, \"?MeltObjMag?%d\", i);\n    return melt_cacheobmagbuf[ix];\n  }\n } /* end switch */\n} /* end generated melt_obmag_string */\n",
+  /*small inistring */ strncpy (cdat->dstr_365__default_int.val, "default:\n  { int ix = (i & 0x3ffffff) % MELT_MAG2STR_CACHEBUF;\
+\n    snprintf (melt_cacheobmagbuf[ix], MELT_MAG2STR_MAGLEN-1, \"?MeltObjMag\
+?%d\", i);\n    return melt_cacheobmagbuf[ix];\
+\n  }\n } /* end switch */\n} /* end generated melt_obmag_string */\n",
 				sizeof (cdat->dstr_365__default_int.val) - 1);
   cdat->dstr_365__default_int.val[245] = (char) 0;
   cdat->dstr_365__default_int.slen = 245;
@@ -11658,10 +11666,10 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
     (melt_ptr_t) & cdat->dstr_374__generated_map;
   cdat->dstr_374__generated_map.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_STRING))));
-  /*small inistring */ strncpy (cdat->dstr_374__generated_map.val,
-				" /*generated map creation */\n\t\t\t       if (melt_magic_discr ((melt_ptr_t) discr) != MELTOBMAG_OBJECT)\n\t\t\t       return NULL ;\n\t\t\t       if (discr->meltobj_magic != ",
-				sizeof (cdat->dstr_374__generated_map.val) -
-				1);
+  /*small inistring */ strncpy (cdat->dstr_374__generated_map.val, " /*generated map creation */\n\t\t\t       if (melt_magic_discr ((melt_ptr_t\
+) discr) != MELTOBMAG_OBJECT)\n\t\t\t       return NULL ;\
+\n\t\t\t       if (discr->meltobj_magic != ",
+				sizeof (cdat->dstr_374__generated_map.val) - 1);
   cdat->dstr_374__generated_map.val[164] = (char) 0;
   cdat->dstr_374__generated_map.slen = 164;
 
@@ -11671,9 +11679,11 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
     (melt_ptr_t) & cdat->dstr_375__not_map_mag;
   cdat->dstr_375__not_map_mag.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_STRING))));
-  /*small inistring */ strncpy (cdat->dstr_375__not_map_mag.val,
-				") /* not map magic */\n\t\t\t       return NULL ;\n\t\t\t       return (melt_ptr_t) meltgc_raw_new_mappointers (discr, len) ;\n\t\t\t       } /*end generated new map for ",
-				sizeof (cdat->dstr_375__not_map_mag.val) - 1);
+  /*small inistring */ strncpy (cdat->dstr_375__not_map_mag.val, ") /* not map magic */\n\t\t\t       return NULL ;\
+\n\t\t\t       return (melt_ptr_t) meltgc_raw_new_mappointers (discr\
+, len) ;\n\t\t\t       } /*end generated new map\
+ for ", sizeof (cdat->dstr_375__not_map_mag.val) -
+				1);
   cdat->dstr_375__not_map_mag.val[158] = (char) 0;
   cdat->dstr_375__not_map_mag.slen = 158;
 
@@ -11917,7 +11927,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_391__RUNTYPESUPPORT_MODE.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_MELT_MODE__V7*/ meltfptr[6]);
-  cdat->dobj_391__RUNTYPESUPPORT_MODE.obj_hash = 40104157;
+  cdat->dobj_391__RUNTYPESUPPORT_MODE.obj_hash = 485304233;
   cdat->dobj_391__RUNTYPESUPPORT_MODE.obj_len = 5;
 
 
@@ -11939,10 +11949,9 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
     (melt_ptr_t) & cdat->dstr_393__generate_runtime;
   cdat->dstr_393__generate_runtime.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_STRING))));
-  /*small inistring */ strncpy (cdat->dstr_393__generate_runtime.val,
-				"generate runtime support for our GTY types (ctypes, values);\n\n\t OUTPUT=generated file prefix",
-				sizeof (cdat->dstr_393__generate_runtime.
-					val) - 1);
+  /*small inistring */ strncpy (cdat->dstr_393__generate_runtime.val, "generate runtime support for our GTY types (ctypes, values);\
+\n\n\t OUTPUT=generated file prefix",
+				sizeof (cdat->dstr_393__generate_runtime.val) - 1);
   cdat->dstr_393__generate_runtime.val[92] = (char) 0;
   cdat->dstr_393__generate_runtime.slen = 92;
 
@@ -12072,7 +12081,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_403__TRANSLATETOMODULE_MODE.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_MELT_MODE__V7*/ meltfptr[6]);
-  cdat->dobj_403__TRANSLATETOMODULE_MODE.obj_hash = 852836260;
+  cdat->dobj_403__TRANSLATETOMODULE_MODE.obj_hash = 810393294;
   cdat->dobj_403__TRANSLATETOMODULE_MODE.obj_len = 5;
 
 
@@ -12094,10 +12103,11 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
     (melt_ptr_t) & cdat->dstr_405__translate_a_mel;
   cdat->dstr_405__translate_a_mel.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_STRING))));
-  /*small inistring */ strncpy (cdat->dstr_405__translate_a_mel.val,
-				"translate a .melt file to MELT_DYNLOADED_SUFFIX modules in quicklybuilt, optimized, debugnoline flavors;\n\n\t ARGUMENT= input file; OUTPUT= generated module with MELT_DYNLOADED_SUFFIX; OUTPUTC= generated *.c file.",
-				sizeof (cdat->dstr_405__translate_a_mel.val) -
-				1);
+  /*small inistring */ strncpy (cdat->dstr_405__translate_a_mel.val, "translate a .melt file to MELT_DYNLOADED_SUFFIX modules in quicklybuilt\
+, optimized, debugnoline flavors;\
+\n\n\t ARGUMENT= input file; OUTPUT= generated module with MELT_DYNLOADED_SUF\
+FIX; OUTPUTC= generated *.c file.",
+				sizeof (cdat->dstr_405__translate_a_mel.val) - 1);
   cdat->dstr_405__translate_a_mel.val[211] = (char) 0;
   cdat->dstr_405__translate_a_mel.slen = 211;
 
@@ -12183,7 +12193,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_411__TRANSLATEDEBUG_MODE.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_MELT_MODE__V7*/ meltfptr[6]);
-  cdat->dobj_411__TRANSLATEDEBUG_MODE.obj_hash = 31852755;
+  cdat->dobj_411__TRANSLATEDEBUG_MODE.obj_hash = 155867859;
   cdat->dobj_411__TRANSLATEDEBUG_MODE.obj_len = 5;
 
 
@@ -12208,15 +12218,14 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   /*big inistring */
   /*really big chunk inistring */
   memcpy (cdat->dstr_413__translate_a_mel.val + 0,
-	  "translate a .melt file to .debugnoline module for low-level\ndebu"
-	  "g, including gdb;\n\n\t ARGUMENT= input file; OUTPUT= generated mod"
-	  "ule with MELT_DYNLOADED_SUFFIX; COUTPUT= generated *.c file\n\n\t g"
-	  "enerates also *.c and no MELT line number;\n\n\t Useful for running",
+	  "translate a .melt file to .debugnoline module for low-level\
+\ndebu" "g, including gdb;\n\n\t ARGUMENT= input file; OUTPUT= generated mod" "ule with MELT_DYNLOADED_SUFFIX; COUTPUT= generated *.c file\
+\n\n\t g" "enerates also *.c and no MELT line number;\
+\n\n\t Useful for running",
 	  /*big */ 256);
-  /*end big inistring */ strncpy (cdat->dstr_413__translate_a_mel.val + 256,
-				  " gdb on the module. MELT debugging (DEBUG,\nASSERT_MSG) is enabled",
-				  sizeof (cdat->dstr_413__translate_a_mel.
-					  val) - 257);
+  /*end big inistring */ strncpy (cdat->dstr_413__translate_a_mel.val + 256, " gdb on the module. MELT debugging (DEBUG,\
+\nASSERT_MSG) is enabled", sizeof (cdat->dstr_413__translate_a_mel.val) -
+				  257);
 
   cdat->dstr_413__translate_a_mel.val[321] = (char) 0;
   cdat->dstr_413__translate_a_mel.slen = 321;
@@ -12305,7 +12314,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_419__TRANSLATEQUICKLY_MODE.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_MELT_MODE__V7*/ meltfptr[6]);
-  cdat->dobj_419__TRANSLATEQUICKLY_MODE.obj_hash = 154317335;
+  cdat->dobj_419__TRANSLATEQUICKLY_MODE.obj_hash = 143496736;
   cdat->dobj_419__TRANSLATEQUICKLY_MODE.obj_len = 5;
 
 
@@ -12327,10 +12336,11 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
     (melt_ptr_t) & cdat->dstr_421__translate_quickl;
   cdat->dstr_421__translate_quickl.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_STRING))));
-  /*small inistring */ strncpy (cdat->dstr_421__translate_quickl.val,
-				"translate quickly a .melt file to .quicklybuilt module with MELT debugging enabled (DEBUG, ASSERT_MSG...);\n\n\t ARGUMENT= input file; OUTPUT= generated module with MELT_DYNLOADED_SUFFIX; COUTPUT= generated *.c file\n.",
-				sizeof (cdat->dstr_421__translate_quickl.
-					val) - 1);
+  /*small inistring */ strncpy (cdat->dstr_421__translate_quickl.val, "translate quickly a .melt file to .quicklybuilt module with MELT debugging\
+ enabled (DEBUG, ASSERT_MSG...);\n\
+\n\t ARGUMENT= input file; OUTPUT= generated module with MELT_DYNLOADED_SUFFI\
+X; COUTPUT= generated *.c file\n.",
+				sizeof (cdat->dstr_421__translate_quickl.val) - 1);
   cdat->dstr_421__translate_quickl.val[214] = (char) 0;
   cdat->dstr_421__translate_quickl.slen = 214;
 
@@ -12416,7 +12426,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_427__TRANSLATEOPTIMIZED_MODE.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_MELT_MODE__V7*/ meltfptr[6]);
-  cdat->dobj_427__TRANSLATEOPTIMIZED_MODE.obj_hash = 498807239;
+  cdat->dobj_427__TRANSLATEOPTIMIZED_MODE.obj_hash = 1032689448;
   cdat->dobj_427__TRANSLATEOPTIMIZED_MODE.obj_len = 5;
 
 
@@ -12438,10 +12448,11 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
     (melt_ptr_t) & cdat->dstr_429__translate_a_me;
   cdat->dstr_429__translate_a_me.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_STRING))));
-  /*small inistring */ strncpy (cdat->dstr_429__translate_a_me.val,
-				"translate  a .melt file to an .optimized module without MELT debugging\n\n\t ARGUMENT= input file; OUTPUT= generated module with MELT_DYNLOADED_SUFFIX; COUTPUT= generated *.c file\n.",
-				sizeof (cdat->dstr_429__translate_a_me.val) -
-				1);
+  /*small inistring */ strncpy (cdat->dstr_429__translate_a_me.val, "translate  a .melt file to an .optimized module without MELT debugging\
+\
+\n\n\t ARGUMENT= input file; OUTPUT= generated module with MELT_DYNLOADED_SUF\
+FIX; COUTPUT= generated *.c file\n.",
+				sizeof (cdat->dstr_429__translate_a_me.val) - 1);
   cdat->dstr_429__translate_a_me.val[178] = (char) 0;
   cdat->dstr_429__translate_a_me.slen = 178;
 
@@ -12515,7 +12526,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_434__TRANSLATEFILE_MODE.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_MELT_MODE__V7*/ meltfptr[6]);
-  cdat->dobj_434__TRANSLATEFILE_MODE.obj_hash = 852245816;
+  cdat->dobj_434__TRANSLATEFILE_MODE.obj_hash = 57255456;
   cdat->dobj_434__TRANSLATEFILE_MODE.obj_len = 5;
 
 
@@ -12537,9 +12548,8 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
     (melt_ptr_t) & cdat->dstr_436__translate_a_mel;
   cdat->dstr_436__translate_a_mel.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_STRING))));
-  /*small inistring */ strncpy (cdat->dstr_436__translate_a_mel.val,
-				"translate a .melt file to .c;\n\n\t ARGUMENT= input file; OUTPUT= generated C file",
-				sizeof (cdat->dstr_436__translate_a_mel.val) -
+  /*small inistring */ strncpy (cdat->dstr_436__translate_a_mel.val, "translate a .melt file to .c;\n\n\t ARGUMENT= input file; OUTPUT= generated\
+ C file", sizeof (cdat->dstr_436__translate_a_mel.val) -
 				1);
   cdat->dstr_436__translate_a_mel.val[79] = (char) 0;
   cdat->dstr_436__translate_a_mel.slen = 79;
@@ -12659,7 +12669,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_444__TRANSLATEINIT_MODE.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_MELT_MODE__V7*/ meltfptr[6]);
-  cdat->dobj_444__TRANSLATEINIT_MODE.obj_hash = 433794654;
+  cdat->dobj_444__TRANSLATEINIT_MODE.obj_hash = 742330356;
   cdat->dobj_444__TRANSLATEINIT_MODE.obj_len = 5;
 
 
@@ -12681,10 +12691,10 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
     (melt_ptr_t) & cdat->dstr_446__translate_the_ve;
   cdat->dstr_446__translate_the_ve.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_STRING))));
-  /*small inistring */ strncpy (cdat->dstr_446__translate_the_ve.val,
-				"translate the very first *.melt file;\n\n\t useful only at MELT installation! ARGUMENT= input file; OUTPUT= generated file.",
-				sizeof (cdat->dstr_446__translate_the_ve.
-					val) - 1);
+  /*small inistring */ strncpy (cdat->dstr_446__translate_the_ve.val, "translate the very first *.melt file;\
+\n\n\t useful only at MELT installation! ARGUMENT= input file; OUTPUT\
+= generated file.", sizeof (cdat->dstr_446__translate_the_ve.val) -
+				1);
   cdat->dstr_446__translate_the_ve.val[120] = (char) 0;
   cdat->dstr_446__translate_the_ve.slen = 120;
 
@@ -12825,7 +12835,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_457__TRANSLATEINITMODULE_MODE.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_MELT_MODE__V7*/ meltfptr[6]);
-  cdat->dobj_457__TRANSLATEINITMODULE_MODE.obj_hash = 908690491;
+  cdat->dobj_457__TRANSLATEINITMODULE_MODE.obj_hash = 661233112;
   cdat->dobj_457__TRANSLATEINITMODULE_MODE.obj_len = 5;
 
 
@@ -12847,10 +12857,11 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
     (melt_ptr_t) & cdat->dstr_459__translate_the_ve;
   cdat->dstr_459__translate_the_ve.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_STRING))));
-  /*small inistring */ strncpy (cdat->dstr_459__translate_the_ve.val,
-				"translate the very first *.melt file into quicklybuilt, optimized, debugnoline falvors of modules;\n\n\t useful only at MELT installation! ARGUMENT= input file; OUTPUT= generated module base.",
-				sizeof (cdat->dstr_459__translate_the_ve.
-					val) - 1);
+  /*small inistring */ strncpy (cdat->dstr_459__translate_the_ve.val, "translate the very first *.melt file into quicklybuilt, optimized,\
+ debugnoline falvors of modules;\n\
+\n\t useful only at MELT installation! ARGUMENT= input file; OUTPUT\
+= generated module base.", sizeof (cdat->dstr_459__translate_the_ve.val) -
+				1);
   cdat->dstr_459__translate_the_ve.val[188] = (char) 0;
   cdat->dstr_459__translate_the_ve.slen = 188;
 
@@ -12939,7 +12950,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_465__TRANSLATEINITMODULEQUICKLYBUILT_MODE.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_MELT_MODE__V7*/ meltfptr[6]);
-  cdat->dobj_465__TRANSLATEINITMODULEQUICKLYBUILT_MODE.obj_hash = 682500958;
+  cdat->dobj_465__TRANSLATEINITMODULEQUICKLYBUILT_MODE.obj_hash = 897934864;
   cdat->dobj_465__TRANSLATEINITMODULEQUICKLYBUILT_MODE.obj_len = 5;
 
 
@@ -12961,10 +12972,10 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
     (melt_ptr_t) & cdat->dstr_467__translate_the_ve;
   cdat->dstr_467__translate_the_ve.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_STRING))));
-  /*small inistring */ strncpy (cdat->dstr_467__translate_the_ve.val,
-				"translate the very first *.melt file into quicklybuilt module;\n\n\t useful only at MELT installation! ARGUMENT= input file; OUTPUT= generated module base.",
-				sizeof (cdat->dstr_467__translate_the_ve.
-					val) - 1);
+  /*small inistring */ strncpy (cdat->dstr_467__translate_the_ve.val, "translate the very first *.melt file into quicklybuilt module;\
+\n\n\t useful only at MELT installation! ARGUMENT= input file; OUTPUT\
+= generated module base.", sizeof (cdat->dstr_467__translate_the_ve.val) -
+				1);
   cdat->dstr_467__translate_the_ve.val[152] = (char) 0;
   cdat->dstr_467__translate_the_ve.slen = 152;
 
@@ -13052,7 +13063,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_473__TRANSLATEINITMODULEDEBUGNOLINE_MODE.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_MELT_MODE__V7*/ meltfptr[6]);
-  cdat->dobj_473__TRANSLATEINITMODULEDEBUGNOLINE_MODE.obj_hash = 404670791;
+  cdat->dobj_473__TRANSLATEINITMODULEDEBUGNOLINE_MODE.obj_hash = 776100125;
   cdat->dobj_473__TRANSLATEINITMODULEDEBUGNOLINE_MODE.obj_len = 5;
 
 
@@ -13074,10 +13085,10 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
     (melt_ptr_t) & cdat->dstr_475__translate_the_ve;
   cdat->dstr_475__translate_the_ve.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_STRING))));
-  /*small inistring */ strncpy (cdat->dstr_475__translate_the_ve.val,
-				"translate the very first *.melt file into debugnoline module;\n\n\t useful only at MELT installation! ARGUMENT= input file; OUTPUT= generated module base.",
-				sizeof (cdat->dstr_475__translate_the_ve.
-					val) - 1);
+  /*small inistring */ strncpy (cdat->dstr_475__translate_the_ve.val, "translate the very first *.melt file into debugnoline module;\
+\n\n\t useful only at MELT installation! ARGUMENT= input file; OUTPUT\
+= generated module base.", sizeof (cdat->dstr_475__translate_the_ve.val) -
+				1);
   cdat->dstr_475__translate_the_ve.val[151] = (char) 0;
   cdat->dstr_475__translate_the_ve.slen = 151;
 
@@ -13164,7 +13175,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_481__TRANSLATEINITMODULEOPTIMIZED_MODE.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_MELT_MODE__V7*/ meltfptr[6]);
-  cdat->dobj_481__TRANSLATEINITMODULEOPTIMIZED_MODE.obj_hash = 65081431;
+  cdat->dobj_481__TRANSLATEINITMODULEOPTIMIZED_MODE.obj_hash = 158203676;
   cdat->dobj_481__TRANSLATEINITMODULEOPTIMIZED_MODE.obj_len = 5;
 
 
@@ -13186,10 +13197,10 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
     (melt_ptr_t) & cdat->dstr_483__translate_the_ve;
   cdat->dstr_483__translate_the_ve.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_STRING))));
-  /*small inistring */ strncpy (cdat->dstr_483__translate_the_ve.val,
-				"translate the very first *.melt file into optimized module;\n\n\t useful only at MELT installation! ARGUMENT= input file; OUTPUT= generated module base.",
-				sizeof (cdat->dstr_483__translate_the_ve.
-					val) - 1);
+  /*small inistring */ strncpy (cdat->dstr_483__translate_the_ve.val, "translate the very first *.melt file into optimized module;\
+\n\n\t useful only at MELT installation! ARGUMENT= input file; OUTPUT\
+= generated module base.", sizeof (cdat->dstr_483__translate_the_ve.val) -
+				1);
   cdat->dstr_483__translate_the_ve.val[149] = (char) 0;
   cdat->dstr_483__translate_the_ve.slen = 149;
 
@@ -13298,7 +13309,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_490__ALARM_BUCKET_REFERENCE.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_REFERENCE__V24*/ meltfptr[23]);
-  cdat->dobj_490__ALARM_BUCKET_REFERENCE.obj_hash = 896756766;
+  cdat->dobj_490__ALARM_BUCKET_REFERENCE.obj_hash = 668236686;
   cdat->dobj_490__ALARM_BUCKET_REFERENCE.obj_len = 1;
 
   /*inirout drout_491__HANDLE_ALARM_SIGNAL */
@@ -13489,7 +13500,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_504__CHILDPROC_BUCKET_REFERENCE.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_REFERENCE__V24*/ meltfptr[23]);
-  cdat->dobj_504__CHILDPROC_BUCKET_REFERENCE.obj_hash = 821698339;
+  cdat->dobj_504__CHILDPROC_BUCKET_REFERENCE.obj_hash = 781832435;
   cdat->dobj_504__CHILDPROC_BUCKET_REFERENCE.obj_len = 1;
 
   /*inirout drout_505__CHILD_PROCESS_SIGCHLD_HANDLER */
@@ -13790,8 +13801,8 @@ melt_start_this_module (void *modargp_)
 
   /*melt_start_this_module is initial declstructinit */
   memset (&meltfram__, 0, sizeof (meltfram__));
-/* declstructinit initial routine melt_start_this_module minihash 3753*/
-  meltfram__.mcfr_nbvar = -3753 /*minihash */ ;
+/* declstructinit initial routine melt_start_this_module minihash 452*/
+  meltfram__.mcfr_nbvar = -452 /*minihash */ ;
   ((struct melt_callframe_st *) &meltfram__)->mcfr_forwmarkrout =
     meltmarking_melt_start_this_module;
 
@@ -13799,8 +13810,7 @@ melt_start_this_module (void *modargp_)
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
 /**initial routine prologue**/
   /* set initial frame marking */
-  ((struct melt_callframe_st *) &meltfram__)->mcfr_nbvar =
-    /*minihash */ -3753;
+  ((struct melt_callframe_st *) &meltfram__)->mcfr_nbvar = /*minihash */ -452;
   ((struct melt_callframe_st *) &meltfram__)->mcfr_forwmarkrout =
     meltmod__warmelt_modes__forward_or_mark_module_start_frame;
  /**COMMENT: get previous environment **/ ;
@@ -32912,7 +32922,7 @@ meltmod__warmelt_modes__forward_or_mark_module_start_frame (struct
   int ix = 0;
   initial_frame_st *meltframptr_ = (initial_frame_st *) fp;
   melt_assertmsg ("check module frame",
-		  meltframptr_->mcfr_nbvar == /*minihash */ -3753);
+		  meltframptr_->mcfr_nbvar == /*minihash */ -452);
   if (!marking && melt_is_forwarding)
     {
       dbgprintf

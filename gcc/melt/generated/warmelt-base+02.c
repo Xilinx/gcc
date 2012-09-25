@@ -7388,7 +7388,8 @@ lab_endgetargs:;
 	  {
 	    MELT_LOCATION ("warmelt-base.melt:2415:/ locexp");
 	    error ("MELT ERROR MSG [#%ld]::: %s", melt_dbgcounter,
-		   ("Bad function (non closure) passed to register_early_gimple_passes_start_hook_first"));
+		   ("Bad function (non closure) passed to register_early_gimple_passes_start_hook_\
+first"));
 	  }
 	  ;
 	  /*epilog */

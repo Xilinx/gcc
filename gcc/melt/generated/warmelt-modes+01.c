@@ -27181,7 +27181,8 @@ lab_endgetargs:;
 	  {
 	    MELT_LOCATION ("warmelt-modes.melt:1542:/ locexp");
 	    error ("MELT ERROR MSG [#%ld]::: %s", melt_dbgcounter,
-		   ("makedoc MELT mode needs an -f[plugin-arg-]melt-arglist of comma-separated *.melt file[s]"));
+		   ("makedoc MELT mode needs an -f[plugin-arg-]melt-arglist of comma-separated\
+ *.melt file[s]"));
 	  }
 	  ;
 	  /*epilog */

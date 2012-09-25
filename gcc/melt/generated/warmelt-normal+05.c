@@ -5532,7 +5532,9 @@ lab_endgetargs:;
 
 			{
 			  /*^locexp */
-			  melt_assert_failed (("normexp_update_current_module_environment_container unexpected module context"), ("warmelt-normal.melt") ? ("warmelt-normal.melt") : __FILE__, (7120) ? (7120) : __LINE__, __FUNCTION__);
+			  melt_assert_failed (("normexp_update_current_module_environment_container unexpected module\
+ context"), ("warmelt-normal.melt") ? ("warmelt-normal.melt") : __FILE__,
+					      (7120) ? (7120) : __LINE__, __FUNCTION__);
 			  ;
 			}
 			;

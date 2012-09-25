@@ -17094,10 +17094,8 @@ lab_endgetargs:;
 											      {
 												MELT_LOCATION
 												  ("warmelt-macro.melt:1388:/ locexp");
-												melt_warning_str
-												  (0,
-												   (melt_ptr_t)
-												   ( /*_.SLOC__V17*/ meltfptr[16]), ("forward referenced operator handled as application when bootstrapping MELT"), (melt_ptr_t) ( /*_.NAMED_NAME__V179*/ meltfptr[50]));
+												melt_warning_str (0, (melt_ptr_t) ( /*_.SLOC__V17*/ meltfptr[16]), ("forward referenced operator handled as application when bootstrapping\
+ MELT"), (melt_ptr_t) ( /*_.NAMED_NAME__V179*/ meltfptr[50]));
 											      }
 											      ;
 											      /*epilog */
@@ -38065,10 +38063,8 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2118:/ locexp");
-	    /* error_plain */
-	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V18*/ meltfptr[17]),
-			      ("missing symbol for (DEFPRIMITIVE symb args type  [:doc documentation] expansion...)"),
-			      (melt_ptr_t) 0);
+	    /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V18*/ meltfptr[17]), ("missing symbol for (DEFPRIMITIVE symb args type  [:doc documentation\
+] expansion...)"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -38145,10 +38141,8 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2125:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V18*/ meltfptr[17]),
-			    ("(DEFPRIMITIVE <symb> ...) cannot have variadic formals, ending with :REST"),
-			    (melt_ptr_t) ( /*_.NAMED_NAME__V29*/
-					  meltfptr[28]));
+	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V18*/ meltfptr[17]), ("(DEFPRIMITIVE <symb> ...) cannot have variadic formals, ending with\
+ :REST"), (melt_ptr_t) ( /*_.NAMED_NAME__V29*/ meltfptr[28]));
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2129:/ quasiblock");
@@ -38222,10 +38216,8 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2135:/ locexp");
-	    /* error_plain */
-	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V18*/ meltfptr[17]),
-			      ("missing type keyword for (DEFPRIMITIVE symb args type [:doc documentation] expansion...)"),
-			      (melt_ptr_t) 0);
+	    /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V18*/ meltfptr[17]), ("missing type keyword for (DEFPRIMITIVE symb args type [:doc documentation\
+] expansion...)"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -40296,10 +40288,8 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2249:/ locexp");
-	    /* error_plain */
-	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			      ("missing symbol for (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)"),
-			      (melt_ptr_t) 0);
+	    /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]), ("missing symbol for (DEFCITERATOR symb startformals statesymb locformals\
+ expbefore expafter)"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2251:/ quasiblock");
@@ -40394,10 +40384,8 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2260:/ locexp");
-	    /* error_plain */
-	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			      ("missing statsymb for (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)"),
-			      (melt_ptr_t) 0);
+	    /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]), ("missing statsymb for (DEFCITERATOR symb startformals statesymb locformals\
+ expbefore expafter)"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2262:/ quasiblock");
@@ -40544,10 +40532,8 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2273:/ locexp");
-	    /* error_plain */
-	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			      ("(DEFCITERATOR symb startformals state localformals...) cannot have variadic local formals"),
-			      (melt_ptr_t) 0);
+	    /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]), ("(DEFCITERATOR symb startformals state localformals...) cannot have\
+ variadic local formals"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2275:/ quasiblock");
@@ -40711,10 +40697,9 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2289:/ locexp");
-	    /* error_plain */
-	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			      ("missing before expansion for  (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)"),
-			      (melt_ptr_t) 0);
+	    /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]), ("missing before expansion for  (DEFCITERATOR symb startformals statesymb\
+ locformals expbefore expafter)"), (melt_ptr_t)
+					      0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2290:/ quasiblock");
@@ -40867,10 +40852,9 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2299:/ locexp");
-	    /* error_plain */
-	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			      ("missing after expansion for  (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)"),
-			      (melt_ptr_t) 0);
+	    /* error_plain */ melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]), ("missing after expansion for  (DEFCITERATOR symb startformals statesymb\
+ locformals expbefore expafter)"), (melt_ptr_t)
+					      0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2300:/ quasiblock");
