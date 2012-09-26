@@ -78,49 +78,46 @@ enum meltobmag_en /*generated */
   /*valdesc #17 VALDESC_SPECIAL_FILE */
   MELTOBMAG_SPEC_FILE /*valmagic */  = 20016,
 
-  /*valdesc #18 VALDESC_SPECIAL_MPFR */
-  MELTOBMAG_SPEC_MPFR /*valmagic */  = 20017,
+  /*valdesc #18 VALDESC_SPECIAL_RAW_FILE */
+  MELTOBMAG_SPEC_RAWFILE /*valmagic */  = 20017,
 
-  /*valdesc #19 VALDESC_SPECIAL_RAW_FILE */
-  MELTOBMAG_SPEC_RAWFILE /*valmagic */  = 20018,
+  /*valdesc #19 VALDESC_STRBUF */
+  MELTOBMAG_STRBUF /*valmagic */  = 20018,
 
-  /*valdesc #20 VALDESC_STRBUF */
-  MELTOBMAG_STRBUF /*valmagic */  = 20019,
-
-  /*valdesc #21 VALDESC_STRING */
-  MELTOBMAG_STRING /*valmagic */  = 20020,
+  /*valdesc #20 VALDESC_STRING */
+  MELTOBMAG_STRING /*valmagic */  = 20019,
 
 /* ctype gty object magic */
   /*gtyctype #1 CTYPE_BASIC_BLOCK */
-  MELTOBMAG_BASICBLOCK /*boxedmagic */  = 20021,
-  MELTOBMAG_MAPBASICBLOCKS /*mapmagic */  = 20022,
+  MELTOBMAG_BASICBLOCK /*boxedmagic */  = 20020,
+  MELTOBMAG_MAPBASICBLOCKS /*mapmagic */  = 20021,
   /*gtyctype #2 CTYPE_BITMAP */
-  MELTOBMAG_BITMAP /*boxedmagic */  = 20023,
-  MELTOBMAG_MAPBITMAPS /*mapmagic */  = 20024,
+  MELTOBMAG_BITMAP /*boxedmagic */  = 20022,
+  MELTOBMAG_MAPBITMAPS /*mapmagic */  = 20023,
   /*gtyctype #3 CTYPE_EDGE */
-  MELTOBMAG_EDGE /*boxedmagic */  = 20025,
-  MELTOBMAG_MAPEDGES /*mapmagic */  = 20026,
+  MELTOBMAG_EDGE /*boxedmagic */  = 20024,
+  MELTOBMAG_MAPEDGES /*mapmagic */  = 20025,
   /*gtyctype #4 CTYPE_GIMPLE */
-  MELTOBMAG_GIMPLE /*boxedmagic */  = 20027,
-  MELTOBMAG_MAPGIMPLES /*mapmagic */  = 20028,
+  MELTOBMAG_GIMPLE /*boxedmagic */  = 20026,
+  MELTOBMAG_MAPGIMPLES /*mapmagic */  = 20027,
   /*gtyctype #5 CTYPE_GIMPLE_SEQ */
-  MELTOBMAG_GIMPLESEQ /*boxedmagic */  = 20029,
-  MELTOBMAG_MAPGIMPLESEQS /*mapmagic */  = 20030,
+  MELTOBMAG_GIMPLESEQ /*boxedmagic */  = 20028,
+  MELTOBMAG_MAPGIMPLESEQS /*mapmagic */  = 20029,
   /*gtyctype #6 CTYPE_LOOP */
-  MELTOBMAG_LOOP /*boxedmagic */  = 20031,
-  MELTOBMAG_MAPLOOPS /*mapmagic */  = 20032,
+  MELTOBMAG_LOOP /*boxedmagic */  = 20030,
+  MELTOBMAG_MAPLOOPS /*mapmagic */  = 20031,
   /*gtyctype #7 CTYPE_RTVEC */
-  MELTOBMAG_RTVEC /*boxedmagic */  = 20033,
-  MELTOBMAG_MAPRTVECS /*mapmagic */  = 20034,
+  MELTOBMAG_RTVEC /*boxedmagic */  = 20032,
+  MELTOBMAG_MAPRTVECS /*mapmagic */  = 20033,
   /*gtyctype #8 CTYPE_RTX */
-  MELTOBMAG_RTX /*boxedmagic */  = 20035,
-  MELTOBMAG_MAPRTXS /*mapmagic */  = 20036,
+  MELTOBMAG_RTX /*boxedmagic */  = 20034,
+  MELTOBMAG_MAPRTXS /*mapmagic */  = 20035,
   /*gtyctype #9 CTYPE_TREE */
-  MELTOBMAG_TREE /*boxedmagic */  = 20037,
-  MELTOBMAG_MAPTREES /*mapmagic */  = 20038,
+  MELTOBMAG_TREE /*boxedmagic */  = 20036,
+  MELTOBMAG_MAPTREES /*mapmagic */  = 20037,
   MELTOBMAG__LAST
 };				/* end generated enum meltobmag_en */
-#define MELT_COUNT_GENERATED_OBJMAGIC 30
+#define MELT_COUNT_GENERATED_OBJMAGIC 29
 /*** end from generate_runtypesupport_enum_objmagic **/
 
 
@@ -713,22 +710,7 @@ struct GTY ((mark_hook ("melt_mark_special"))) meltspecialfile_st /* when MELTOB
 /* no decl. chunk */
 
 
-/*gtyvaldesc #18 VALDESC_SPECIAL_MPFR*/
-struct GTY ((mark_hook ("melt_mark_special"))) meltspecialmpfr_st /* when MELTOBMAG_SPEC_MPFR */
-{
-  meltobject_ptr_t discr;
-  /* from VALDESC_SPECIAL_MPFR in warmelt-base.melt */
-  int specialmark;
-  unsigned specialkind;
-  struct meltspecial_st *GTY ((skip)) specialnext;
-  union melt_special_un GTY ((skip)) specialpayload;
-
-};				/* end meltspecialmpfr_st */
-
-/* no decl. chunk */
-
-
-/*gtyvaldesc #19 VALDESC_SPECIAL_RAW_FILE*/
+/*gtyvaldesc #18 VALDESC_SPECIAL_RAW_FILE*/
 struct GTY ((mark_hook ("melt_mark_special"))) meltspecialrawfile_st /* when MELTOBMAG_SPEC_RAWFILE */
 {
   meltobject_ptr_t discr;
@@ -743,7 +725,7 @@ struct GTY ((mark_hook ("melt_mark_special"))) meltspecialrawfile_st /* when MEL
 /* no decl. chunk */
 
 
-/*gtyvaldesc #20 VALDESC_STRBUF*/
+/*gtyvaldesc #19 VALDESC_STRBUF*/
 struct GTY (()) meltstrbuf_st /* when MELTOBMAG_STRBUF */
 {
   meltobject_ptr_t discr;
@@ -764,7 +746,7 @@ struct GTY (()) meltstrbuf_st /* when MELTOBMAG_STRBUF */
 /* no decl. chunk */
 
 
-/*gtyvaldesc #21 VALDESC_STRING*/
+/*gtyvaldesc #20 VALDESC_STRING*/
 struct GTY ((variable_size)) meltstring_st /* when MELTOBMAG_STRING */
 {
   meltobject_ptr_t discr;
@@ -878,16 +860,13 @@ typedef union GTY ((desc ("%0.u_discr->meltobj_magic"))) melt_un
   /*union.valdesc #17 VALDESC_SPECIAL_FILE */
   struct meltspecialfile_st GTY ((tag ("MELTOBMAG_SPEC_FILE"))) u_special_file;	/* generated value union member */
 
-  /*union.valdesc #18 VALDESC_SPECIAL_MPFR */
-  struct meltspecialmpfr_st GTY ((tag ("MELTOBMAG_SPEC_MPFR"))) u_special_mpfr;	/* generated value union member */
-
-  /*union.valdesc #19 VALDESC_SPECIAL_RAW_FILE */
+  /*union.valdesc #18 VALDESC_SPECIAL_RAW_FILE */
   struct meltspecialrawfile_st GTY ((tag ("MELTOBMAG_SPEC_RAWFILE"))) u_special_rawfile;	/* generated value union member */
 
-  /*union.valdesc #20 VALDESC_STRBUF */
+  /*union.valdesc #19 VALDESC_STRBUF */
   struct meltstrbuf_st GTY ((tag ("MELTOBMAG_STRBUF"))) u_strbuf;	/* generated value union member */
 
-  /*union.valdesc #21 VALDESC_STRING */
+  /*union.valdesc #20 VALDESC_STRING */
   struct meltstring_st GTY ((tag ("MELTOBMAG_STRING"))) u_string;	/* generated value union member */
 
 } melt_un_t /*end generated melt_un */ ;
@@ -2399,5 +2378,5 @@ melt_auxput_maptrees (melt_ptr_t map_p, melt_ptr_t val_p)
 /** end of code generated by generate_runtypesupport_predef_fields **/
 
 
-/*** End of declaration file meltbuild-sources/generated/meltrunsup.h generated on 2012 Sep 25
- * by GCC MELT 4.8.0 20120922 (experimental) [melt-branch revision 191713] MELT_0.9.7-pre-rc2 . ***/
+/*** End of declaration file meltbuild-sources/generated/meltrunsup.h generated on 2012 Sep 26
+ * by GCC MELT 4.8.0 20120922 (experimental) [melt-branch revision 191764] MELT_0.9.7-pre-rc3 . ***/
