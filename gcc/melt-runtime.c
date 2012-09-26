@@ -12284,14 +12284,22 @@ meltgc_new_file (melt_ptr_t discr_p, FILE* fil)
 #endif
     case MELTOBMAG_SPECIAL_DATA:
       {
-#warning meltgc_new_file incomplete for special data files
-#if 0
 	resv = meltgc_make_specialdata ((melt_ptr_t) discrv);
-	if (discrv == MELT_PREDEF(DISCR_FILE)
-	    || melt_is_subclass_of ((meltobject_ptr_t)discrv, (meltobject_ptr_t)MELT_PREDEF(DISCR_FILE)))
+	/* first handle rawfile which are special cases of files */
+	if (discrv == MELT_PREDEF(DISCR_RAWFILE)
+	    || melt_is_subclass_of ((meltobject_ptr_t)discrv, 
+				    (meltobject_ptr_t)MELT_PREDEF(DISCR_RAWFILE)))
 	  {
+	    spda_resv->meltspec_kind = meltpydkind_rawfile;
+	    spda_resv->meltspec_payload.meltpayload_file1 = fil;
 	  }
-#endif	
+	else if (discrv == MELT_PREDEF(DISCR_FILE)
+	    || melt_is_subclass_of ((meltobject_ptr_t)discrv, 
+				    (meltobject_ptr_t)MELT_PREDEF(DISCR_FILE)))
+	  {
+	    spda_resv->meltspec_kind = meltpydkind_file;
+	    spda_resv->meltspec_payload.meltpayload_file1 = fil;
+	  }
       }
       break;
     default:
@@ -12308,26 +12316,6 @@ end:
 }
 
 
-void melt_clear_special(melt_ptr_t val_p)
-{
-  MELT_ENTERFRAME(1, NULL);
-#define valv meltfram__.mcfr_varptr[0]
-#define spec_valv ((struct meltspecial_st*)valv)
-  valv = val_p;
-  if (!valv) goto end;
-  switch(melt_magic_discr((melt_ptr_t) valv)) 
-    {
-    case ALL_MELTOBMAG_SPECIAL_CASES:
-      delete_special(spec_valv);
-      break;
-    default:
-      break;
-    }
- end:
-  MELT_EXITFRAME();
-#undef valv
-#undef spec_valv
-}
 
 
 
