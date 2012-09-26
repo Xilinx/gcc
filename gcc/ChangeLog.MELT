@@ -2,6 +2,14 @@
 
 2012-09-26  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.h (MELT_HAS_OBMAG_SPEC): Set to 0, so disable old
+	specials.
+
+	* melt/warmelt-base.melt (valdesc_special_file)
+	(valdesc_special_raw_file): Remove.
+
+2012-09-26  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.

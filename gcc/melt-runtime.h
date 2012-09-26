@@ -81,7 +81,7 @@ extern void fatal_error (const char *, ...);
 
 
 // switch to 0 when MELTOBMAG_SPEC_FILE is removed
-#define MELT_HAS_OBMAG_SPEC 1
+#define MELT_HAS_OBMAG_SPEC 0
 
 MELT_EXTERN const char melt_runtime_build_date[];
 
