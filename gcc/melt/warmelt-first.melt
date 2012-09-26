@@ -2136,7 +2136,7 @@ to non-nil values. See also $CTYPE_RTVEC.}#
 
 ;;; the discriminant for files [closed by the garbage collector] 
 (definstance discr_file class_discriminant
-  :obj_num MELTOBMAG_SPEC_FILE
+  :obj_num MELTOBMAG_SPECIAL_DATA
   :predef DISCR_FILE
   :doc #{The $DISCR_FILE is the discriminant of boxed FILE*, which are fclose-d when the 
 boxed value is inaccessible. See also $DISCR_RAWFILE.}#
@@ -2148,7 +2148,7 @@ boxed value is inaccessible. See also $DISCR_RAWFILE.}#
 (definstance discr_rawfile class_discriminant
   :doc #{The $DISCR_RAWFILE is the discriminant of boxed FILE*, The MELT garbage collector dont
 fclose them. See also $DISCR_FILE.}#
-  :obj_num MELTOBMAG_SPEC_RAWFILE
+  :obj_num MELTOBMAG_SPECIAL_DATA
   :predef DISCR_RAWFILE
   :disc_super discr_file
   :named_name '"DISCR_RAWFILE"

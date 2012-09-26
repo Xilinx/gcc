@@ -2,6 +2,11 @@
 
 2012-09-26  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-first.melt (discr_file, discr_rawfile): Use
+	MELTOBMAG_SPECIAL_DATA.
+
+2012-09-26  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.c (meltgc_new_file): Handle special data case.
 
 2012-09-26  Basile Starynkevitch  <basile@starynkevitch.net>
