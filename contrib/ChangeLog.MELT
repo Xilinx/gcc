@@ -1,3 +1,6 @@
+2012-09-26  Alexandre Lissy  <alissy@mandriva.com>
+
+	* simplemelt-pyqt4-probe.py: Adding Python/Qt4 probe
 
 2012-09-24  Basile Starynkevitch  <basile@starynkevitch.net>
 
