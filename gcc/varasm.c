@@ -5771,7 +5771,7 @@ remove_unreachable_alias_pairs (void)
 }
 
 
-/* Returns true alias alias target node can be found for
+/* Returns true if alias target node can be found for
    assembler name TARGET.  */
 
 static bool
@@ -5788,7 +5788,7 @@ alias_target_node_exist_p (tree target)
     if (!node->global.inlined_to && HAS_DECL_ASSEMBLER_NAME_P (node->decl))
       {
         tree name = DECL_ASSEMBLER_NAME (node->decl);
-        /* assume the assembler names are commonedx  */
+        /* Assume the assembler names are commoned.  */
         if (name == target && !DECL_EXTERNAL (node->decl))
           return true;
       }
@@ -5844,14 +5844,19 @@ finish_aliases_1 (void)
 		   || ! DECL_VIRTUAL_P (target_decl))
 	       && ! lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl)))
         {
-          /* In lightweight IPO, find the merged decl and check that
-	     it is defined.  */
-          tree real_target_decl = cgraph_find_decl (p->target);
-          if (!real_target_decl || DECL_EXTERNAL (real_target_decl))
+
+          /* Note that the assembler name hashing management is broken in LIPO mode.
+             The node mapped by an assembler name might be deleted or it might be
+             mapped to a function that is not the one that is 'expanded' (and therefore
+             marked as 'extern' -- even when it has body.  This needs more cleanup.
+             Since same_body_alias pairs are usually added late after the target
+             function is expanded, it is usually safe to ignore the 'error'  */
+
+          if (!L_IPO_COMP_MODE || !alias_target_node_exist_p (p->target))
 	    {
-	      error ("%q+D aliased to external symbol %qE",
+              error ("%q+D aliased to external symbol %qE",
 		     p->decl, p->target);
-	      p->emitted_diags |= ALIAS_DIAG_TO_EXTERN;
+                     p->emitted_diags |= ALIAS_DIAG_TO_EXTERN;
 	    }
         }
     }

@@ -1,19 +1,24 @@
 2012-09-24  Xinliang David Li  <davidxl@google.com>
 
-        * df-problems.c (df_check_ud_du_memory_usage): New function.
-        * ree.c (rest_of_handle_ree): Suppress ree if it requires
-          too much memory.
-        * dce.c (rest_of_handle_ud_dce): Ditto.
+	* varasm.c (finish_alias_1):  Fix mis-fired error
+	for extern alias (same-body) in LIPO mode.
+
+2012-09-24  Xinliang David Li  <davidxl@google.com>
+
+	* df-problems.c (df_check_ud_du_memory_usage): New function.
+	* ree.c (rest_of_handle_ree): Suppress ree if it requires
+	 too much memory.
+	* dce.c (rest_of_handle_ud_dce): Ditto.
 
 2012-09-24  Rong Xu  <xur@google.com>
 
 	Google Ref: b/7210837 and b/7210303. 
-	* gcc/coverage.c (force_matching_cg_opts): add new entries.
+	* coverage.c (force_matching_cg_opts): add new entries.
  
 2012-09-24  Rong Xu  <xur@google.com>
 
 	Google ref b/7078882.
-	* gcc/l-ipo.c (cgraph_is_aux_decl_external): output comdat
+	* l-ipo.c (cgraph_is_aux_decl_external): output comdat
 	virtual functions when they are auxiliary modules; otherwise
 	we may get undefined symbol in linking.
 
