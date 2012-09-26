@@ -367,8 +367,7 @@ static VEC (meltchar_p, heap)* parsedmeltfilevect;
 /* to code case ALL_MELTOBMAG_SPECIAL_CASES: */
 #define ALL_MELTOBMAG_SPECIAL_CASES             \
          MELTOBMAG_SPEC_FILE:                   \
-    case MELTOBMAG_SPEC_RAWFILE:                \
-    case MELTOBMAG_SPEC_MPFR
+    case MELTOBMAG_SPEC_RAWFILE
 
 /* Obstack used for reading names */
 static struct obstack melt_bname_obstack;
@@ -759,6 +758,11 @@ int melt_debug_depth (void)
 }
 
 
+#define MELTPYD_MAX_RANK 512
+/* FIXME: should use a vector */
+static struct melt_payload_descriptor_st* meltpyd_array[MELTPYD_MAX_RANK];
+
+
 
 static inline void
 delete_special (struct meltspecial_st *sp)
@@ -767,6 +771,7 @@ delete_special (struct meltspecial_st *sp)
   melt_debuggc_eprintf ("delete_special deleting sp %p magic %d %s",
                         (void*) sp, magic, melt_obmag_string (magic));
   switch (magic) {
+#if MELT_HAS_OBMAG_SPEC
   case MELTOBMAG_SPEC_FILE:
     if (sp->specialpayload.sp_file) {
       fclose (sp->specialpayload.sp_file);
@@ -779,12 +784,34 @@ delete_special (struct meltspecial_st *sp)
       sp->specialpayload.sp_file = NULL;
     };
     break;
-  case MELTOBMAG_SPEC_MPFR:
-    if (sp->specialpayload.sp_mpfr) {
-      mpfr_clear ((mpfr_ptr) (sp->specialpayload.sp_mpfr));
-      free (sp->specialpayload.sp_mpfr);
-      sp->specialpayload.sp_mpfr = NULL;
-    };
+#endif /*MELT_HAS_OBMAG_SPEC*/
+  case MELTOBMAG_SPECIAL_DATA:
+    {
+      struct meltspecialdata_st *msd = (struct meltspecialdata_st*)sp;
+      unsigned kind = msd->meltspec_kind;
+      struct melt_payload_descriptor_st* mpyd = NULL;
+      if (kind != 0) 
+	{
+	  if (kind >= MELTPYD_MAX_RANK
+	      || (mpyd = meltpyd_array[kind]) == NULL)
+	    melt_fatal_error ("invalid kind %d of deleted special data @%p", 
+			      kind, (void*)msd);
+	  if (mpyd->meltpyd_magic != MELT_PAYLOAD_DESCRIPTOR_MAGIC
+	      || (mpyd->meltpyd_rank > 0 && mpyd->meltpyd_rank != kind)
+	      || !mpyd->meltpyd_name)
+	    melt_fatal_error ("invalid payload descriptor of kind %d for deleted special data @%p",
+			      kind, (void*)msd);
+	  if (mpyd->meltpyd_destroy_rout)
+	    {
+	      melt_debuggc_eprintf ("delete_special destroying kind %d=%s data @%p",
+				    kind, mpyd->meltpyd_name, (void*)msd);
+	      (*mpyd->meltpyd_destroy_rout) (msd, mpyd);
+	      melt_debuggc_eprintf ("delete_special destroyed kind %d=%s data @%p",
+				    kind, mpyd->meltpyd_name, (void*)msd);
+	    };
+	}
+      memset (msd, 0, sizeof(struct meltspecialdata_st));
+    }
     break;
   default:
     break;
@@ -920,17 +947,20 @@ melt_cbreak_at (const char *msg, const char *fil, int lin)
 
 /* make a special value; return NULL if the discriminant is not special */
 struct meltspecial_st*
-meltgc_make_special (melt_ptr_t discr_p) {
-  int magic = 0;
+meltgc_make_special (melt_ptr_t discr_p) 
+{
+  unsigned magic = 0;
   MELT_ENTERFRAME (2, NULL);
 #define discrv     meltfram__.mcfr_varptr[0]
 #define specv      meltfram__.mcfr_varptr[1]
 #define sp_specv ((struct meltspecial_st*)(specv))
+#define spda_specv ((struct meltspecialdata_st*)(specv))
   discrv = discr_p;
   if (!discrv || melt_magic_discr((melt_ptr_t)discrv) != MELTOBMAG_OBJECT)
     goto end;
   magic = ((meltobject_ptr_t)discrv)->meltobj_magic;
   switch (magic) {
+#if MELT_HAS_OBMAG_SPEC
   case ALL_MELTOBMAG_SPECIAL_CASES:
     specv = meltgc_allocate (sizeof(struct meltspecial_st),0);
     sp_specv->discr = (meltobject_ptr_t) discrv;
@@ -954,15 +984,92 @@ meltgc_make_special (melt_ptr_t discr_p) {
     };
 #endif /*ENABLE_CHECKING*/
     break;
+#endif /*MELT_HAS_OBMAG_SPEC*/
+    /* our new special data */
+  case MELTOBMAG_SPECIAL_DATA:
+    {
+      specv = meltgc_allocate (sizeof(struct meltspecialdata_st), 0);
+      memset (specv, 0, sizeof(struct meltspecialdata_st));
+      spda_specv->discr = (meltobject_ptr_t) discrv;
+      spda_specv->meltspec_mark = 0;
+      spda_specv->meltspec_next = (meltspecialdata_st*)melt_newspeclist;
+      melt_newspeclist = (meltspecial_st*)specv;
+      melt_debuggc_eprintf ("make_special data %p discr %p magic %d %s",
+			    specv, discrv, magic, melt_obmag_string(magic));
+#if ENABLE_CHECKING
+      if (melt_alptr_1 && (void*)melt_alptr_1 == specv) {
+	fprintf (stderr, "meltgc_make_special data alptr_1 %p mag %d %s\n",
+		 melt_alptr_1, magic, melt_obmag_string(magic));
+	fflush (stderr);
+	melt_break_alptr_1 ("meltgc_make_special data alptr_1");
+      };
+      if (melt_alptr_2 && (void*)melt_alptr_2 == specv) {
+	fprintf (stderr, "meltgc_make_special data alptr_2 %p mag %d %s\n",
+		 melt_alptr_2, magic, melt_obmag_string(magic));
+	fflush (stderr);
+	melt_break_alptr_2 ("meltgc_make_special data alptr_2");
+      };
+#endif /*ENABLE_CHECKING*/
+    }
+    break;
   default:
     goto end;
   }
-end:
+ end:
   MELT_EXITFRAME();
   return sp_specv;
 #undef discrv
 #undef specv
 #undef sp_specv
+#undef spda_specv
+}
+
+
+/* make a special value; return NULL if the discriminant is not special data */
+struct meltspecialdata_st*
+meltgc_make_specialdata (melt_ptr_t discr_p) 
+{
+  unsigned magic = 0;
+  MELT_ENTERFRAME (2, NULL);
+#define discrv     meltfram__.mcfr_varptr[0]
+#define specv      meltfram__.mcfr_varptr[1]
+#define spda_specv ((struct meltspecialdata_st*)(specv))
+  discrv = discr_p;
+  if (!discrv || melt_magic_discr((melt_ptr_t)discrv) != MELTOBMAG_OBJECT)
+    goto end;
+  magic = ((meltobject_ptr_t)discrv)->meltobj_magic;
+  if (magic != MELTOBMAG_SPECIAL_DATA)
+    goto end;
+  specv = meltgc_allocate (sizeof(struct meltspecialdata_st), 0);
+  memset (specv, 0, sizeof(struct meltspecialdata_st));
+  spda_specv->discr = (meltobject_ptr_t) discrv;
+  spda_specv->meltspec_mark = 0;
+  spda_specv->meltspec_next = (meltspecialdata_st*)melt_newspeclist;
+  melt_newspeclist = (meltspecial_st*)specv;
+  melt_debuggc_eprintf ("make_specialdata %p discr %p magic %d %s",
+			specv, discrv, magic, melt_obmag_string(magic));
+#if ENABLE_CHECKING
+  if (melt_alptr_1 && (void*)melt_alptr_1 == specv) 
+    {
+      fprintf (stderr, "meltgc_make_specialdata alptr_1 %p mag %d %s\n",
+	       melt_alptr_1, magic, melt_obmag_string(magic));
+      fflush (stderr);
+      melt_break_alptr_1 ("meltgc_make_special data alptr_1");
+    };
+  if (melt_alptr_2 && (void*)melt_alptr_2 == specv) 
+    {
+      fprintf (stderr, "meltgc_make_specialdata alptr_2 %p mag %d %s\n",
+	       melt_alptr_2, magic, melt_obmag_string(magic));
+      fflush (stderr);
+      melt_break_alptr_2 ("meltgc_make_specialdata alptr_2");
+    };
+#endif /*ENABLE_CHECKING*/
+ end:
+  MELT_EXITFRAME();
+  return spda_specv;
+#undef discrv
+#undef specv
+#undef spda_specv
 }
 
 /***
@@ -1328,30 +1435,13 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
   melt_check_call_frames (MELT_NOYOUNG, "after garbage collection");
 }
 
-#define MELTPYD_MAX_RANK 512
-enum {
-  meltpydrank__none=0,
-  meltpydrank_file,
-  meltpydrank_rawfile,
-  meltpydrank_mpfr,
-  meltpydrank_reserve1,
-  meltpydrank_reserve2,
-  meltpydrank_reserve3,
-  meltpydrank_reserve4,
-  meltpydrank_reserve5,
-  meltpydrank_reserve6,
-  meltpydrank_reserve7,
-  meltpydrank_reserve8,
-  meltpydrank__last
-};
-
 static void meltpayload_file_destroy (struct meltspecialdata_st*, const struct melt_payload_descriptor_st*);
 static char* meltpayload_file_sprint (struct meltspecialdata_st*, const struct melt_payload_descriptor_st*);
 
 
 static struct melt_payload_descriptor_st meltpydescr_file = {
   .meltpyd_magic = MELT_PAYLOAD_DESCRIPTOR_MAGIC,
-  .meltpyd_rank = meltpydrank_file,
+  .meltpyd_rank = meltpydkind_file,
   .meltpyd_name = "file",
   .meltpyd_data = NULL,
   .meltpyd_destroy_rout = meltpayload_file_destroy,
@@ -1364,7 +1454,7 @@ static void meltpayload_rawfile_destroy (struct meltspecialdata_st*, const struc
 static char* meltpayload_rawfile_sprint (struct meltspecialdata_st*, const struct melt_payload_descriptor_st*);
 static struct melt_payload_descriptor_st meltpydescr_rawfile = {
   .meltpyd_magic = MELT_PAYLOAD_DESCRIPTOR_MAGIC,
-  .meltpyd_rank = meltpydrank_rawfile,
+  .meltpyd_rank = meltpydkind_rawfile,
   .meltpyd_name = "rawfile",
   .meltpyd_data = NULL,
   .meltpyd_destroy_rout = meltpayload_rawfile_destroy,
@@ -1372,28 +1462,10 @@ static struct melt_payload_descriptor_st meltpydescr_rawfile = {
   .meltpyd_spare1 = 0
 };
 
-static void meltpayload_mpfr_destroy (struct meltspecialdata_st*, const struct melt_payload_descriptor_st*);
-static char* meltpayload_mpfr_sprint (struct meltspecialdata_st*, const struct melt_payload_descriptor_st*);
-static struct melt_payload_descriptor_st meltpydescr_mpfr = {
-  .meltpyd_magic = MELT_PAYLOAD_DESCRIPTOR_MAGIC,
-  .meltpyd_rank = meltpydrank_mpfr,
-  .meltpyd_name = "mpfr",
-  .meltpyd_data = NULL,
-  .meltpyd_destroy_rout = meltpayload_mpfr_destroy,
-  .meltpyd_sprint_rout = meltpayload_mpfr_sprint,
-  .meltpyd_spare1 = 0
-};
-
-
-
-/* FIXME: should use a vector */
-static struct melt_payload_descriptor_st* meltpyd_array[MELTPYD_MAX_RANK];
-
 static void melt_payload_initialize_static_descriptors (void)
 {
-  meltpyd_array[meltpydrank_file] = &meltpydescr_file;
-  meltpyd_array[meltpydrank_rawfile] = &meltpydescr_rawfile;
-  meltpyd_array[meltpydrank_mpfr] = &meltpydescr_mpfr;
+  meltpyd_array[meltpydkind_file] = &meltpydescr_file;
+  meltpyd_array[meltpydkind_rawfile] = &meltpydescr_rawfile;
 }
 
 int melt_payload_register_descriptor (struct melt_payload_descriptor_st*mpd)
@@ -1411,7 +1483,7 @@ int melt_payload_register_descriptor (struct melt_payload_descriptor_st*mpd)
 		     (void*) mpd, mpd->meltpyd_rank);
   {
     unsigned r = 0;
-    for (r = meltpydrank__last; r < MELTPYD_MAX_RANK && !mrk; r++) 
+    for (r = meltpydkind__last; r < MELTPYD_MAX_RANK && !mrk; r++) 
       if (!meltpyd_array[r]) 
 	mrk = r;
   }
@@ -1460,20 +1532,6 @@ meltpayload_file_sprint (struct meltspecialdata_st*sd, const struct melt_payload
 }
 
 
-
-
-static void 
-meltpayload_mpfr_destroy (struct meltspecialdata_st*sd, const struct melt_payload_descriptor_st*mpd)
-{
-  melt_fatal_error("meltpayload_mpfr_destroy unimplemented sd@%p", sd);
-}
-
-static char* 
-meltpayload_mpfr_sprint (struct meltspecialdata_st*sd, const struct melt_payload_descriptor_st*mpd)
-{
-  melt_fatal_error("meltpayload_mpfr_sprint unimplemented sd@%p", sd);
-  return NULL;
-}
 
 
 /* The inline function melt_allocatereserved is the only one
@@ -1899,21 +1957,39 @@ melt_output_length (melt_ptr_t out_p)
   if (!out_p)
     return 0;
   switch (melt_magic_discr (out_p)) {
-  case MELTOBMAG_STRBUF: {
-    struct meltstrbuf_st *sb = (struct meltstrbuf_st *) out_p;
-    if (sb->bufend >= sb->bufstart)
-      return sb->bufend - sb->bufstart;
-    break;
-  }
-  case MELTOBMAG_SPEC_FILE:
-  case MELTOBMAG_SPEC_RAWFILE: {
-    struct meltspecial_st *sp = (struct meltspecial_st *) out_p;
-    if (sp->specialpayload.sp_file) {
-      long off = ftell (sp->specialpayload.sp_file);
-      return off;
+  case MELTOBMAG_STRBUF: 
+    {
+      struct meltstrbuf_st *sb = (struct meltstrbuf_st *) out_p;
+      if (sb->bufend >= sb->bufstart)
+	return sb->bufend - sb->bufstart;
     }
     break;
-  }
+#if MELT_HAS_OBMAG_SPEC
+  case MELTOBMAG_SPEC_FILE:
+  case MELTOBMAG_SPEC_RAWFILE: 
+    {
+      struct meltspecial_st *sp = (struct meltspecial_st *) out_p;
+      if (sp->specialpayload.sp_file) {
+	long off = ftell (sp->specialpayload.sp_file);
+	return off;
+      }
+    }
+    break;
+#endif
+  case MELTOBMAG_SPECIAL_DATA:
+    {
+      struct meltspecialdata_st* spd = (struct meltspecialdata_st*) out_p;
+      if (spd->meltspec_kind == meltpydkind_file || 
+	  spd->meltspec_kind == meltpydkind_rawfile) 
+	{
+	  FILE *fil = spd->meltspec_payload.meltpayload_file1;
+	  if (fil) {
+	    long off = ftell (fil);
+	    return off;
+	  }
+	}
+    }
+    break;
   default:
     break;
   }
@@ -2047,6 +2123,7 @@ meltgc_add_out_raw_len (melt_ptr_t outbuf_p, const char *str, int slen)
 #define outbufv  meltfram__.mcfr_varptr[0]
 #define buf_outbufv  ((struct meltstrbuf_st*)(outbufv))
 #define spec_outbufv  ((struct meltspecial_st*)(outbufv))
+#define spda_outbufv  ((struct meltspecialdata_st*)(outbufv))
   outbufv = outbuf_p;
   if (!str)
     goto end;
@@ -2055,20 +2132,42 @@ meltgc_add_out_raw_len (melt_ptr_t outbuf_p, const char *str, int slen)
   if (slen<=0)
     goto end;
   switch (melt_magic_discr ((melt_ptr_t) (outbufv))) {
+#if MELT_HAS_OBMAG_SPEC
   case MELTOBMAG_SPEC_FILE:
-  case MELTOBMAG_SPEC_RAWFILE: {
-    FILE* f = spec_outbufv->specialpayload.sp_file;
-    if (f) {
-      int fno = fileno (f);
-      const char* eol = NULL;
-      long fp = ftell (f);
-      (void) fwrite(str, (size_t)slen, (size_t)1, f);
-      if (fno < MELTMAXFILE && fno >= 0 && (eol = strchr(str, '\n'))
-          && eol-str < slen)
-        lasteol[fno] = fp + (eol-str);
+  case MELTOBMAG_SPEC_RAWFILE: 
+    {
+      FILE* f = spec_outbufv->specialpayload.sp_file;
+      if (f)
+	{
+	  int fno = fileno (f);
+	  const char* eol = NULL;
+	  long fp = ftell (f);
+	  (void) fwrite(str, (size_t)slen, (size_t)1, f);
+	  if (fno < MELTMAXFILE && fno >= 0 && (eol = strchr(str, '\n'))
+	      && eol-str < slen)
+	    lasteol[fno] = fp + (eol-str);
+	}
     }
-  }
-  break;
+    break;
+#endif
+  case MELTOBMAG_SPECIAL_DATA:
+    {
+      if (spda_outbufv->meltspec_kind == meltpydkind_file 
+	  || spda_outbufv->meltspec_kind == meltpydkind_rawfile)
+	{
+	  FILE *f = spda_outbufv->meltspec_payload.meltpayload_file1;
+	  if (f) 
+	    {
+	      int fno = fileno (f);
+	      const char* eol = NULL;
+	      long fp = ftell (f);
+	      (void) fwrite(str, (size_t)slen, (size_t)1, f);
+	      if (fno < MELTMAXFILE && fno >= 0 && (eol = strchr(str, '\n'))
+		  && eol-str < slen)
+		lasteol[fno] = fp + (eol-str);
+	    }
+	}
+    }
   case MELTOBMAG_STRBUF:
     gcc_assert (!melt_is_young (str));
     blen = melt_primtab[buf_outbufv->buflenix];
@@ -2105,11 +2204,12 @@ meltgc_add_out_raw_len (melt_ptr_t outbuf_p, const char *str, int slen)
   default:
     goto end;
   }
-end:
+ end:
   MELT_EXITFRAME ();
 #undef outbufv
 #undef buf_outbufv
-#undef fil_outbufv
+#undef spec_outbufv
+#undef spda_outbufv
 }
 
 void
@@ -2437,6 +2537,8 @@ meltgc_out_add_indent (melt_ptr_t outbuf_p, int depth, int linethresh)
      meltgc_add_outbuf_raw */
 #define outbv   meltfram__.mcfr_varptr[0]
 #define outbufv ((struct meltstrbuf_st*)(outbv))
+#define spec_outv ((struct meltspecial_st*)(outbv))
+#define spda_outv ((struct meltspecialdata_st*)(outbv))
   outbv = outbuf_p;
   if (!outbv)
     goto end;
@@ -2451,8 +2553,17 @@ meltgc_out_add_indent (melt_ptr_t outbuf_p, int depth, int linethresh)
     for (nl = be - 1; nl > bs && *nl && *nl != '\n'; nl--);
     llln = be - nl;
     gcc_assert (llln >= 0);
-  } else if (outmagic == MELTOBMAG_SPEC_FILE || outmagic == MELTOBMAG_SPEC_RAWFILE) {
-    FILE *f = spec_outbufv->specialpayload.sp_file;
+  } 
+#if MELT_HAS_OBMAG_SPEC
+  else if (outmagic == MELTOBMAG_SPEC_FILE || outmagic == MELTOBMAG_SPEC_RAWFILE) {
+    FILE *f = spec_outv->specialpayload.sp_file;
+    int fn = f?fileno(f):-1;
+    if (f && fn>=0 && fn<=MELTMAXFILE)
+      llln = ftell(f) - lasteol[fn];
+  }
+#endif
+  else if (outmagic == MELTOBMAG_SPECIAL_DATA) {
+    FILE *f = spda_outv->meltspec_payload.meltpayload_file1;
     int fn = f?fileno(f):-1;
     if (f && fn>=0 && fn<=MELTMAXFILE)
       llln = ftell(f) - lasteol[fn];
@@ -2468,10 +2579,12 @@ meltgc_out_add_indent (melt_ptr_t outbuf_p, int depth, int linethresh)
     if (nbsp > 0 && nbsp % 32 != 0)
       meltgc_add_out_raw ((melt_ptr_t) outbv, spaces32 + (32 - nbsp % 32));
   }
-end:
+ end:
   MELT_EXITFRAME ();
 #undef outbufv
 #undef outbv
+#undef spec_outv
+#undef spda_outv
 }
 
 
@@ -6504,9 +6617,11 @@ melt_readsimplelong (struct melt_reading_st *rd)
     NUMNAM (MELTOBMAG_MAPBASICBLOCKS);
     NUMNAM (MELTOBMAG_MAPEDGES);
     NUMNAM (MELTOBMAG_DECAY);
+    NUMNAM (MELTOBMAG_SPECIAL_DATA);
+#if MELT_HAS_OBMAG_SPEC
     NUMNAM (MELTOBMAG_SPEC_FILE);
     NUMNAM (MELTOBMAG_SPEC_RAWFILE);
-    NUMNAM (MELTOBMAG_SPEC_MPFR);
+#endif
     /** the fields' ranks of melt.h have been removed in rev126278 */
 #undef NUMNAM
     if (r < 0)
@@ -11792,7 +11907,7 @@ meltgc_ppout_gimple (melt_ptr_t out_p, int indentsp, gimple gstmt)
 {
   int outmagic = 0;
 #define outv meltfram__.mcfr_varptr[0]
-  MELT_ENTERFRAME (2, NULL);
+  MELT_ENTERFRAME (1, NULL);
   outv = out_p;
   if (!outv)
     goto end;
@@ -11803,31 +11918,36 @@ meltgc_ppout_gimple (melt_ptr_t out_p, int indentsp, gimple gstmt)
     goto end;
   }
   switch (outmagic) {
-  case MELTOBMAG_STRBUF: {
-    FILE* oldfil = melt_open_ppfile ();
-    print_gimple_stmt (meltppfile, gstmt, indentsp,
-                       TDF_LINENO | TDF_SLIM | TDF_VOPS);
-    melt_close_ppfile (oldfil);
-    meltgc_add_out_raw_len ((melt_ptr_t) outv, meltppbuffer, (int) meltppbufsiz);
-    free(meltppbuffer);
-    meltppbuffer = 0;
-    meltppbufsiz = 0;
-  }
-  break;
+  case MELTOBMAG_STRBUF: 
+    {
+      FILE* oldfil = melt_open_ppfile ();
+      print_gimple_stmt (meltppfile, gstmt, indentsp,
+			 TDF_LINENO | TDF_SLIM | TDF_VOPS);
+      melt_close_ppfile (oldfil);
+      meltgc_add_out_raw_len ((melt_ptr_t) outv, meltppbuffer, (int) meltppbufsiz);
+      free(meltppbuffer);
+      meltppbuffer = 0;
+      meltppbufsiz = 0;
+    }
+    break;
+#if MELT_HAS_OBMAG_SPEC
   case MELTOBMAG_SPEC_FILE:
-  case MELTOBMAG_SPEC_RAWFILE: {
-    FILE* f = ((struct meltspecial_st*)outv)->specialpayload.sp_file;
-    if (!f)
-      goto end;
-    print_gimple_stmt (f, gstmt, indentsp,
-                       TDF_LINENO | TDF_SLIM | TDF_VOPS);
-    fflush (f);
-  }
-  break;
+  case MELTOBMAG_SPEC_RAWFILE: 
+#endif
+  case MELTOBMAG_SPECIAL_DATA:
+    {
+      FILE* f = melt_get_file ((melt_ptr_t)outv);
+      if (!f)
+	goto end;
+      print_gimple_stmt (f, gstmt, indentsp,
+			 TDF_LINENO | TDF_SLIM | TDF_VOPS);
+      fflush (f);
+    }
+    break;
   default:
     goto end;
   }
-end:
+ end:
   MELT_EXITFRAME ();
 #undef outv
 }
@@ -11860,21 +11980,25 @@ meltgc_ppout_gimple_seq (melt_ptr_t out_p, int indentsp,
     meltppbuffer = 0;
     meltppbufsiz = 0;
   }
-  break;
+    break;
+#if MELT_HAS_OBMAG_SPEC
   case MELTOBMAG_SPEC_FILE:
-  case MELTOBMAG_SPEC_RAWFILE: {
-    FILE* f = ((struct meltspecial_st*)outv)->specialpayload.sp_file;
-    if (!f)
-      goto end;
-    print_gimple_seq (f, gseq, indentsp,
-                      TDF_LINENO | TDF_SLIM | TDF_VOPS);
-    fflush (f);
-  }
-  break;
+  case MELTOBMAG_SPEC_RAWFILE: 
+#endif
+  case MELTOBMAG_SPECIAL_DATA:
+    {
+      FILE* f = melt_get_file ((melt_ptr_t)outv);
+      if (!f)
+	goto end;
+      print_gimple_seq (f, gseq, indentsp,
+			TDF_LINENO | TDF_SLIM | TDF_VOPS);
+      fflush (f);
+    }
+    break;
   default:
     goto end;
   }
-end:
+ end:
   MELT_EXITFRAME ();
 #undef endv
 }
@@ -11908,9 +12032,13 @@ meltgc_ppout_tree_perhaps_briefly (melt_ptr_t out_p, int indentsp, tree tr, bool
     meltppbufsiz = 0;
   }
   break;
+#if MELT_HAS_OBMAG_SPEC
   case MELTOBMAG_SPEC_FILE:
-  case MELTOBMAG_SPEC_RAWFILE: {
-    FILE* f = ((struct meltspecial_st*)outv)->specialpayload.sp_file;
+  case MELTOBMAG_SPEC_RAWFILE: 
+#endif
+  case MELTOBMAG_SPECIAL_DATA:
+    {
+      FILE* f = melt_get_file ((melt_ptr_t)outv);
     if (!f)
       goto end;
     if (briefly)
@@ -11983,31 +12111,35 @@ meltgc_out_edge (melt_ptr_t out_p, edge edg)
 #if MELT_GCC_VERSION >= 4008
 		    TDF_DETAILS,
 #endif
- /*do_succ=*/ 1);
+		    /*do_succ=*/ 1);
     melt_close_ppfile (oldfil);
     meltgc_add_out_raw_len ((melt_ptr_t) outv, meltppbuffer, (int) meltppbufsiz);
     free(meltppbuffer);
     meltppbuffer = 0;
     meltppbufsiz = 0;
   }
-  break;
+    break;
+#if MELT_HAS_OBMAG_SPEC
   case MELTOBMAG_SPEC_FILE:
-  case MELTOBMAG_SPEC_RAWFILE: {
-    FILE* f = ((struct meltspecial_st*)outv)->specialpayload.sp_file;
-    if (!f)
-      goto end;
-    dump_edge_info (f, edg,
-#if MELT_GCC_VERSION >= 4008
-		    TDF_DETAILS, // argument appearing in GCC 4.8 august 2012 trunk
+  case MELTOBMAG_SPEC_RAWFILE: 
 #endif
- /*do_succ=*/ 1);
-    fflush (f);
-  }
-  break;
+  case MELTOBMAG_SPECIAL_DATA:
+    {
+      FILE* f = melt_get_file ((melt_ptr_t)outv);
+      if (!f)
+	goto end;
+      dump_edge_info (f, edg,
+#if MELT_GCC_VERSION >= 4008
+		      TDF_DETAILS, // argument appearing in GCC 4.8 august 2012 trunk
+#endif
+		      /*do_succ=*/ 1);
+      fflush (f);
+    }
+    break;
   default:
     goto end;
   }
-end:
+ end:
   MELT_EXITFRAME ();
 #undef outv
 }
@@ -12040,21 +12172,25 @@ meltgc_out_loop (melt_ptr_t out_p, loop_p loo)
     meltppbuffer = 0;
     meltppbufsiz = 0;
   }
-  break;
+    break;
+#if MELT_HAS_OBMAG_SPEC
   case MELTOBMAG_SPEC_FILE:
-  case MELTOBMAG_SPEC_RAWFILE: {
-    FILE* f = ((struct meltspecial_st*)outv)->specialpayload.sp_file;
-    if (!f)
-      goto end;
-    fprintf (f, "loop@%p: ", (void*) loo);
-    flow_loop_dump (loo, f, NULL, 1);
-    fflush (f);
-  }
-  break;
+  case MELTOBMAG_SPEC_RAWFILE: 
+#endif
+  case MELTOBMAG_SPECIAL_DATA:
+    {
+      FILE* f = melt_get_file ((melt_ptr_t)outv);
+      if (!f)
+	goto end;
+      fprintf (f, "loop@%p: ", (void*) loo);
+      flow_loop_dump (loo, f, NULL, 1);
+      fflush (f);
+    }
+    break;
   default:
     goto end;
   }
-end:
+ end:
   MELT_EXITFRAME ();
 #undef outv
 }
@@ -12124,23 +12260,51 @@ end:
 melt_ptr_t
 meltgc_new_file (melt_ptr_t discr_p, FILE* fil)
 {
+  unsigned mag = 0;
   MELT_ENTERFRAME(2, NULL);
 #define discrv meltfram__.mcfr_varptr[0]
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define resv   meltfram__.mcfr_varptr[1]
 #define spec_resv ((struct meltspecial_st*)(resv))
+#define spda_resv ((struct meltspecialdata_st*)(resv))
   discrv = (void *) discr_p;
   if (melt_magic_discr ((melt_ptr_t) (discrv)) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->meltobj_magic != MELTOBMAG_SPEC_FILE
-      && object_discrv->meltobj_magic != MELTOBMAG_SPEC_RAWFILE)
+  mag = object_discrv->meltobj_magic;
+  switch (mag) 
+    {
+#if MELT_HAS_OBMAG_SPEC
+    case MELTOBMAG_SPEC_FILE:
+    case MELTOBMAG_SPEC_RAWFILE:
+      {
+	resv = meltgc_make_special ((melt_ptr_t) discrv);
+	spec_resv->specialpayload.sp_file = fil;
+      }
+      break;
+#endif
+    case MELTOBMAG_SPECIAL_DATA:
+      {
+#warning meltgc_new_file incomplete for special data files
+#if 0
+	resv = meltgc_make_specialdata ((melt_ptr_t) discrv);
+	if (discrv == MELT_PREDEF(DISCR_FILE)
+	    || melt_is_subclass_of ((meltobject_ptr_t)discrv, (meltobject_ptr_t)MELT_PREDEF(DISCR_FILE)))
+	  {
+	  }
+#endif	
+      }
+      break;
+    default:
+      resv = NULL;
+      goto end;
+    }
     goto end;
-  resv = meltgc_make_special ((melt_ptr_t) discrv);
-  spec_resv->specialpayload.sp_file = fil;
 end:
   MELT_EXITFRAME ();
   return (melt_ptr_t) resv;
 #undef resv
+#undef spec_resv
+#undef spda_resv
 }
 
 
@@ -12151,14 +12315,15 @@ void melt_clear_special(melt_ptr_t val_p)
 #define spec_valv ((struct meltspecial_st*)valv)
   valv = val_p;
   if (!valv) goto end;
-  switch(melt_magic_discr((melt_ptr_t) valv)) {
-  case ALL_MELTOBMAG_SPECIAL_CASES:
-    delete_special(spec_valv);
-    break;
-  default:
-    break;
-  }
-end:
+  switch(melt_magic_discr((melt_ptr_t) valv)) 
+    {
+    case ALL_MELTOBMAG_SPECIAL_CASES:
+      delete_special(spec_valv);
+      break;
+    default:
+      break;
+    }
+ end:
   MELT_EXITFRAME();
 #undef valv
 #undef spec_valv

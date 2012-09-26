@@ -1,5 +1,39 @@
 
 
+2012-09-26  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h (MELT_VERSION_STRING): Bump to 0.9.7-pre-rc3
+	(MELT_HAS_OBMAG_SPEC): New configurable macro.
+	(meltpydkind_file, meltpydkind_rawfile, meltpydkind_mpfr): New
+	enum moved from melt-runtime.c.
+	(melt_special_kind): New function.
+	(melt_is_out, melt_is_file, melt_get_file): Improve to use
+	MELT_HAS_OBMAG_SPEC.
+	(melt_clear_special): Remove.
+	Remove mpfr related things.
+
+	* melt-runtime.c (MELTPYD_MAX_RANK, meltpyd_array): New.
+	(delete_special, meltgc_make_special): Improve to use
+	MELT_HAS_OBMAG_SPEC.
+	(meltgc_make_specialdata): New.
+	(meltpydrank_file, meltpydrank_rawfile, meltpydrank_mpfr): Remove,
+	since moved to melt-runtime.h and renamed as meltpydkind_file etc.
+	(melt_output_length, meltgc_add_out_raw_len)
+	(meltgc_out_add_indent, melt_readsimplelong, meltgc_ppout_gimple)
+	(meltgc_ppout_gimple_seq, meltgc_ppout_tree_perhaps_briefly)
+	(meltgc_out_edge, meltgc_out_loop, meltgc_new_file): Improve to
+	use MELT_HAS_OBMAG_SPEC.
+	(melt_clear_special): Remove.
+
+	* melt-predef.list: add DISCR_FILE & DISCR_RAWFILE.
+
+	* melt/warmelt-first.melt (discr_file, discr_rawfile): predefine.
+
+	* melt/warmelt-base.melt (valdesc_special_mpfr): Remove.
+
+	* melt/xtramelt-ana-base.melt (clear_special): Remove.
+
+
 2012-09-25  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.h (MELT_VERSION_STRING): Bump to 0.9.7-rc2

@@ -79,6 +79,10 @@ extern void fatal_error (const char *, ...);
 /* We need hwint.h for  HOST_WIDE_INT */
 #include "hwint.h"
 
+
+// switch to 0 when MELTOBMAG_SPEC_FILE is removed
+#define MELT_HAS_OBMAG_SPEC 1
+
 MELT_EXTERN const char melt_runtime_build_date[];
 
 extern void melt_fatal_info (const char*filename, int lineno);
@@ -111,7 +115,7 @@ MELT_EXTERN int melt_count_runtime_extensions;
 /* The version string of MELT; this is parsed by make, so spaces are
    important!  That version string is extracted by scripts or
    makefiles... */
-#define MELT_VERSION_STRING "0.9.7-rc2"
+#define MELT_VERSION_STRING "0.9.7-pre-rc3"
 
 /* return a read only version string */
 extern const char* melt_version_str(void);
@@ -403,11 +407,9 @@ struct meltspecialpayload_st {
   union meltpayload_un {
     void* meltpayload__ptr1;
     FILE* meltpayload__file1;
-    void* meltpayload__mpfrp1;
   } meltpayload__un1;
 #define meltpayload_ptr1 meltpayload__un1.meltpayload__ptr1
 #define meltpayload_file1 meltpayload__un1.meltpayload__file1
-#define meltpayload_mpfrp1 meltpayload__un1.meltpayload__mpfrp1
   void* meltpayload_ptr2;
 };
 
@@ -749,12 +751,42 @@ melt_unsafe_magic_discr (melt_ptr_t p)
   return p->u_discr->meltobj_magic;
 }
 
+enum {
+  meltpydkind__none=0,
+  meltpydkind_file,
+  meltpydkind_rawfile,
+  meltpydkind_reserve1,
+  meltpydkind_reserve2,
+  meltpydkind_reserve3,
+  meltpydkind_reserve4,
+  meltpydkind_reserve5,
+  meltpydkind_reserve6,
+  meltpydkind_reserve7,
+  meltpydkind_reserve8,
+  meltpydkind_reserve9,
+  meltpydkind__last
+};
+
+static inline unsigned
+melt_special_kind (melt_ptr_t p)
+{
+  if (p && melt_magic_discr (p) == MELTOBMAG_SPECIAL_DATA)
+    return ((struct meltspecialdata_st*)p)->meltspec_kind;
+  else
+    return 0;
+}
+
 /* test if a pointer is an output - either a string buffer or a file */
 static inline bool
 melt_is_out (melt_ptr_t p)
 {
   int d = melt_magic_discr(p);
-  return d == MELTOBMAG_STRBUF || d == MELTOBMAG_SPEC_FILE || d == MELTOBMAG_SPEC_RAWFILE;
+  unsigned k = melt_special_kind (p);
+  return d == MELTOBMAG_STRBUF
+#if MELT_HAS_OBMAG_SPEC
+    || d == MELTOBMAG_SPEC_FILE || d == MELTOBMAG_SPEC_RAWFILE
+#endif
+    || k == meltpydkind_file || k == meltpydkind_rawfile;
 }
 
 /* test if a pointer is a file */
@@ -762,7 +794,12 @@ static inline bool
 melt_is_file (melt_ptr_t p)
 {
   int d = melt_magic_discr(p);
-  return d == MELTOBMAG_SPEC_FILE || d == MELTOBMAG_SPEC_RAWFILE;
+  unsigned k = melt_special_kind (p);
+  return 
+#if MELT_HAS_OBMAG_SPEC
+    d == MELTOBMAG_SPEC_FILE || d == MELTOBMAG_SPEC_RAWFILE ||
+#endif
+    k == meltpydkind_file || k == meltpydkind_rawfile;
 }
 
 
@@ -2427,8 +2464,7 @@ meltgc_register_pass (melt_ptr_t pass_p, const char* positioning,
 /*** allocate a boxed file ***/
 melt_ptr_t meltgc_new_file(melt_ptr_t discr_p, FILE* fil);
 
-/* clear any boxed special by appropriately deleting inside */
-void melt_clear_special(melt_ptr_t val_p);
+
 
 
 /**************************** misc *****************************/
@@ -3166,8 +3202,17 @@ melt_get_file(melt_ptr_t file_p)
   if (!file_p)
     return NULL;
   magic = melt_magic_discr (file_p);
+#if MELT_HAS_OBMAG_SPEC
   if (magic == MELTOBMAG_SPEC_FILE || magic == MELTOBMAG_SPEC_RAWFILE)
     return ((struct meltspecialfile_st*)file_p)->specialpayload.sp_file;
+#endif
+  if (magic == MELTOBMAG_SPECIAL_DATA) 
+    {
+      unsigned k = melt_special_kind (file_p);
+      if (k == meltpydkind_file || k == meltpydkind_rawfile)
+	return ((struct meltspecialdata_st*)file_p)->meltspec_payload.meltpayload_file1;
+    }
+
   return NULL;
 }
 

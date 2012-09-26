@@ -768,11 +768,6 @@
 
 ;;;;;;;;;;;;;;;;
 
-(defprimitive clear_special (v) :void
- #{ melt_clear_special($v); 
- }#)
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; iterators needed in our analysis
 
@@ -1604,7 +1599,6 @@ current function and gives its declaration in $CFUNDECL}#
  cfun_has_cfg
  cfun_nonlocal_goto_save_area
  cfun_static_chain_decl
- clear_special 
  dbg_tree_briefly
  debug_dominance_info
  debug_post_dominance_info
