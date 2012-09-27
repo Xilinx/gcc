@@ -47,6 +47,13 @@ expand_location (source_location loc)
 {
   expanded_location xloc;
   const struct line_map *map;
+  tree block = NULL;
+
+  if (IS_ADHOC_LOC (loc))
+    {
+      block = LOCATION_BLOCK (loc);
+      loc = LOCATION_LOCUS (loc);
+    }
 
   /* If LOC describes a location with a discriminator, extract the
      discriminator and map it to the real location.  */
@@ -58,6 +65,7 @@ expand_location (source_location loc)
 				  LRK_SPELLING_LOCATION, &map);
   xloc = linemap_expand_location (line_table, map, loc);
 
+  xloc.data = block;
   if (loc <= BUILTINS_LOCATION)
     xloc.file = loc == UNKNOWN_LOCATION ? NULL : _("<built-in>");
 
@@ -75,6 +83,9 @@ location_t
 location_with_discriminator (location_t locus, int discriminator)
 {
   static int next_discriminator_location = 0;
+  tree block = LOCATION_BLOCK (locus);
+  location_t ret;
+  locus = LOCATION_LOCUS (locus);
 
   if (min_discriminator_location == UNKNOWN_LOCATION)
     {
@@ -85,7 +96,11 @@ location_with_discriminator (location_t locus, int discriminator)
   VEC_safe_push (int, heap, discriminator_location_locations, (int) locus);
   VEC_safe_push (int, heap, discriminator_location_discriminators,
 		 discriminator);
-  return next_discriminator_location++;
+  ret = block ?
+      COMBINE_LOCATION_DATA (line_table, next_discriminator_location, block)
+      : LOCATION_LOCUS (next_discriminator_location);
+  next_discriminator_location++;
+  return ret;
 }
 
 /* Return TRUE if LOCUS represents a location with a discriminator.  */
@@ -94,7 +109,7 @@ bool
 has_discriminator (location_t locus)
 {
   return (min_discriminator_location != UNKNOWN_LOCATION
-	  && locus >= min_discriminator_location);
+	  && LOCATION_LOCUS (locus) >= min_discriminator_location);
 }
 
 /* Return the real location_t value for LOCUS.  */
@@ -102,6 +117,7 @@ has_discriminator (location_t locus)
 location_t
 map_discriminator_location (location_t locus)
 {
+  locus = LOCATION_LOCUS (locus);
   if (! has_discriminator (locus))
     return locus;
   return (location_t) VEC_index (int, discriminator_location_locations,
@@ -113,6 +129,7 @@ map_discriminator_location (location_t locus)
 int
 get_discriminator_from_locus (location_t locus)
 {
+  locus = LOCATION_LOCUS (locus);
   if (! has_discriminator (locus))
     return 0;
   return VEC_index (int, discriminator_location_discriminators,

@@ -1015,7 +1015,8 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 
 #endif
 
-#define TREE_BLOCK(NODE)		*(tree_block (NODE))
+#define TREE_BLOCK(NODE)		(tree_block (NODE))
+#define TREE_SET_BLOCK(T, B)		(tree_set_block ((T), (B)))
 
 #include "tree-check.h"
 
@@ -1696,7 +1697,8 @@ struct GTY(()) tree_constructor {
 #define EXPR_LOCATION(NODE) \
   (EXPR_P ((NODE)) ? (NODE)->exp.locus : UNKNOWN_LOCATION)
 #define SET_EXPR_LOCATION(NODE, LOCUS) EXPR_CHECK ((NODE))->exp.locus = (LOCUS)
-#define EXPR_HAS_LOCATION(NODE) (EXPR_LOCATION (NODE) != UNKNOWN_LOCATION)
+#define EXPR_HAS_LOCATION(NODE) (LOCATION_LOCUS (EXPR_LOCATION (NODE))	\
+  != UNKNOWN_LOCATION)
 #define EXPR_LOC_OR_HERE(NODE) (EXPR_HAS_LOCATION (NODE) ? (NODE)->exp.locus : input_location)
 #define EXPR_FILENAME(NODE) LOCATION_FILE (EXPR_CHECK ((NODE))->exp.locus)
 #define EXPR_LINENO(NODE) LOCATION_LINE (EXPR_CHECK (NODE)->exp.locus)
@@ -1873,7 +1875,8 @@ extern void protected_set_expr_location (tree, location_t);
 					      OMP_CLAUSE_PRIVATE,	\
 	                                      OMP_CLAUSE_COPYPRIVATE), 0)
 #define OMP_CLAUSE_HAS_LOCATION(NODE) \
-  ((OMP_CLAUSE_CHECK (NODE))->omp_clause.locus != UNKNOWN_LOCATION)
+  (LOCATION_LOCUS ((OMP_CLAUSE_CHECK (NODE))->omp_clause.locus)		\
+  != UNKNOWN_LOCATION)
 #define OMP_CLAUSE_LOCATION(NODE)  (OMP_CLAUSE_CHECK (NODE))->omp_clause.locus
 
 /* True on an OMP_SECTION statement that was the last lexical member.
@@ -1964,7 +1967,6 @@ enum omp_clause_default_kind
 struct GTY(()) tree_exp {
   struct tree_typed typed;
   location_t locus;
-  tree block;
   tree GTY ((special ("tree_exp"),
 	     desc ("TREE_CODE ((tree) &%0)")))
     operands[1];
@@ -2697,7 +2699,7 @@ struct function;
 #define DECL_SOURCE_FILE(NODE) LOCATION_FILE (DECL_SOURCE_LOCATION (NODE))
 #define DECL_SOURCE_LINE(NODE) LOCATION_LINE (DECL_SOURCE_LOCATION (NODE))
 #define DECL_IS_BUILTIN(DECL) \
-  (DECL_SOURCE_LOCATION (DECL) <= BUILTINS_LOCATION)
+  (LOCATION_LOCUS (DECL_SOURCE_LOCATION (DECL)) <= BUILTINS_LOCATION)
 
 /*  For FIELD_DECLs, this is the RECORD_TYPE, UNION_TYPE, or
     QUAL_UNION_TYPE node that the field is a member of.  For VAR_DECL,
@@ -5157,7 +5159,7 @@ function_args_iter_next (function_args_iterator *i)
 static inline bool
 inlined_function_outer_scope_p (const_tree block)
 {
- return BLOCK_SOURCE_LOCATION (block) != UNKNOWN_LOCATION;
+ return LOCATION_LOCUS (BLOCK_SOURCE_LOCATION (block)) != UNKNOWN_LOCATION;
 }
 
 /* Loop over all function arguments of FNTYPE.  In each iteration, PTR is set
@@ -5529,7 +5531,8 @@ extern bool subrange_type_for_debug_p (const_tree, tree *, tree *);
 extern HOST_WIDE_INT int_cst_value (const_tree);
 extern HOST_WIDEST_INT widest_int_cst_value (const_tree);
 
-extern tree *tree_block (tree);
+extern tree tree_block (tree);
+extern void tree_set_block (tree, tree);
 extern location_t *block_nonartificial_location (tree);
 extern location_t tree_nonartificial_location (tree);
 

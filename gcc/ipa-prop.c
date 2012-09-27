@@ -899,8 +899,11 @@ compute_scalar_jump_functions (struct ipa_node_params *info,
 
       if (is_gimple_ip_invariant (arg))
 	{
+	  tree constant = unshare_expr (arg);
+	  if (constant && EXPR_P (constant))
+	    SET_EXPR_LOCATION (constant, UNKNOWN_LOCATION);
 	  jfunc->type = IPA_JF_CONST;
-	  jfunc->value.constant = arg;
+	  jfunc->value.constant = constant;
 	}
       else if (TREE_CODE (arg) == SSA_NAME)
 	{
@@ -2778,6 +2781,8 @@ ipa_write_jump_function (struct output_block *ob,
       stream_write_tree (ob, jump_func->value.known_type.component_type, true);
       break;
     case IPA_JF_CONST:
+      gcc_assert (
+	  EXPR_LOCATION (jump_func->value.constant) == UNKNOWN_LOCATION);
       stream_write_tree (ob, jump_func->value.constant, true);
       break;
     case IPA_JF_PASS_THROUGH:

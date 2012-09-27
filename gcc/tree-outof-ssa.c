@@ -111,8 +111,7 @@ set_location_for_edge (edge e)
 {
   if (e->goto_locus)
     {
-      set_curr_insn_source_location (e->goto_locus);
-      set_curr_insn_block (e->goto_block);
+      set_curr_insn_location (e->goto_locus);
     }
   else
     {
@@ -128,8 +127,7 @@ set_location_for_edge (edge e)
 		continue;
 	      if (gimple_has_location (stmt) || gimple_block (stmt))
 		{
-		  set_curr_insn_source_location (gimple_location (stmt));
-		  set_curr_insn_block (gimple_block (stmt));
+		  set_curr_insn_location (gimple_location (stmt));
 		  return;
 		}
 	    }
@@ -194,7 +192,7 @@ insert_partition_copy_on_edge (edge e, int dest, int src, source_location locus)
   set_location_for_edge (e);
   /* If a locus is provided, override the default.  */
   if (locus)
-    set_curr_insn_source_location (locus);
+    set_curr_insn_location (locus);
 
   var = partition_to_var (SA.map, src);
   seq = emit_partition_copy (SA.partition_to_pseudo[dest],
@@ -231,7 +229,7 @@ insert_value_copy_on_edge (edge e, int dest, tree src, source_location locus)
   set_location_for_edge (e);
   /* If a locus is provided, override the default.  */
   if (locus)
-    set_curr_insn_source_location (locus);
+    set_curr_insn_location (locus);
 
   start_sequence ();
 
@@ -287,7 +285,7 @@ insert_rtx_to_part_on_edge (edge e, int dest, rtx src, int unsignedsrcp,
   set_location_for_edge (e);
   /* If a locus is provided, override the default.  */
   if (locus)
-    set_curr_insn_source_location (locus);
+    set_curr_insn_location (locus);
 
   /* We give the destination as sizeexp in case src/dest are BLKmode
      mems.  Usually we give the source.  As we result from SSA names
@@ -323,7 +321,7 @@ insert_part_to_rtx_on_edge (edge e, rtx dest, int src, source_location locus)
   set_location_for_edge (e);
   /* If a locus is provided, override the default.  */
   if (locus)
-    set_curr_insn_source_location (locus);
+    set_curr_insn_location (locus);
 
   var = partition_to_var (SA.map, src);
   seq = emit_partition_copy (dest,

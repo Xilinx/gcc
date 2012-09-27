@@ -1,3 +1,11 @@
+2012-09-27  Dehao Chen  <dehao@google.com>
+
+	Backport from trunk r191494, r191510, r191614, r191669, r191680,
+	r191706, r191747, r191759, r191779 and r191810:
+
+	* c-family/c-pch.c (c_common_read_pch): Rebuild the location_adhoc_data
+	map when read in the pch.
+
 2012-07-24  Cary Coutant  <ccoutant@google.com>
     
     Backport Fission patches from trunk at r188195, r188857, r189084,

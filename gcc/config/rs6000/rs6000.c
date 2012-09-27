@@ -21344,7 +21344,6 @@ rs6000_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
      instruction scheduling worth while.  Note that use_thunk calls
      assemble_start_function and assemble_end_function.  */
   insn = get_insns ();
-  insn_locators_alloc ();
   shorten_branches (insn);
   final_start_function (insn, file, 1);
   final (insn, file, 1);
@@ -26989,7 +26988,7 @@ rs6000_final_prescan_insn (rtx insn, rtx *operand ATTRIBUTE_UNUSED,
     {
       const char *temp;
       int insn_code_number = recog_memoized (insn);
-      location_t location = locator_location (INSN_LOCATOR (insn));
+      location_t location = INSN_LOCATION (insn);
 
       /* Punt on insns we cannot recognize.  */
       if (insn_code_number < 0)

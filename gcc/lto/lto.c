@@ -2436,7 +2436,6 @@ lto_fixup_prevailing_decls (tree t)
   else if (EXPR_P (t))
     {
       int i;
-      LTO_NO_PREVAIL (t->exp.block);
       for (i = TREE_OPERAND_LENGTH (t) - 1; i >= 0; --i)
 	LTO_SET_PREVAIL (TREE_OPERAND (t, i));
     }

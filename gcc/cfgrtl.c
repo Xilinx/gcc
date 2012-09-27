@@ -1297,10 +1297,7 @@ force_nonfallthru_and_redirect (edge e, basic_block target, rtx jump_label)
   else
     jump_block = e->src;
 
-  if (e->goto_locus && e->goto_block == NULL)
-    loc = e->goto_locus;
-  else
-    loc = 0;
+  loc = e->goto_locus;
   e->flags &= ~EDGE_FALLTHRU;
   if (target == EXIT_BLOCK_PTR)
     {
@@ -2842,11 +2839,11 @@ cfg_layout_merge_blocks (basic_block a, basic_block b)
   if (!optimize && EDGE_SUCC (a, 0)->goto_locus)
     {
       rtx insn = BB_END (a), end = PREV_INSN (BB_HEAD (a));
-      int goto_locus = EDGE_SUCC (a, 0)->goto_locus;
+      location_t goto_locus = EDGE_SUCC (a, 0)->goto_locus;
 
-      while (insn != end && (!INSN_P (insn) || INSN_LOCATOR (insn) == 0))
+      while (insn != end && (!INSN_P (insn) || INSN_LOCATION (insn) == 0))
 	insn = PREV_INSN (insn);
-      if (insn != end && locator_eq (INSN_LOCATOR (insn), goto_locus))
+      if (insn != end && INSN_LOCATION (insn) == goto_locus)
 	goto_locus = 0;
       else
 	{
@@ -2854,14 +2851,14 @@ cfg_layout_merge_blocks (basic_block a, basic_block b)
 	  end = NEXT_INSN (BB_END (b));
 	  while (insn != end && !INSN_P (insn))
 	    insn = NEXT_INSN (insn);
-	  if (insn != end && INSN_LOCATOR (insn) != 0
-	      && locator_eq (INSN_LOCATOR (insn), goto_locus))
+	  if (insn != end && INSN_HAS_LOCATION (insn)
+	      && INSN_LOCATION (insn) == goto_locus)
 	    goto_locus = 0;
 	}
-      if (goto_locus)
+      if (LOCATION_LOCUS (goto_locus) != UNKNOWN_LOCATION)
 	{
 	  BB_END (a) = emit_insn_after_noloc (gen_nop (), BB_END (a), a);
-	  INSN_LOCATOR (BB_END (a)) = goto_locus;
+	  INSN_LOCATION (BB_END (a)) = goto_locus;
 	}
     }
 
@@ -2937,7 +2934,8 @@ cfg_layout_merge_blocks (basic_block a, basic_block b)
     }
 
   /* If B was a forwarder block, propagate the locus on the edge.  */
-  if (forwarder_p && !EDGE_SUCC (b, 0)->goto_locus)
+  if (forwarder_p
+      && LOCATION_LOCUS (EDGE_SUCC (b, 0)->goto_locus) != UNKNOWN_LOCATION)
     EDGE_SUCC (b, 0)->goto_locus = EDGE_SUCC (a, 0)->goto_locus;
 
   if (dump_file)

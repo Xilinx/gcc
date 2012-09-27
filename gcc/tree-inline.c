@@ -855,10 +855,6 @@ remap_gimple_op_r (tree *tp, int *walk_subtrees, void *data)
       /* Otherwise, just copy the node.  Note that copy_tree_r already
 	 knows not to copy VAR_DECLs, etc., so this is safe.  */
 
-      /* We should never have TREE_BLOCK set on non-statements.  */
-      if (EXPR_P (*tp))
-	gcc_assert (!TREE_BLOCK (*tp));
-
       if (TREE_CODE (*tp) == MEM_REF)
 	{
 	  tree ptr = TREE_OPERAND (*tp, 0);
@@ -904,13 +900,9 @@ remap_gimple_op_r (tree *tp, int *walk_subtrees, void *data)
 	{
 	  /* Variable substitution need not be simple.  In particular,
 	     the MEM_REF substitution above.  Make sure that
-	     TREE_CONSTANT and friends are up-to-date.  But make sure
-	     to not improperly set TREE_BLOCK on some sub-expressions.  */
+	     TREE_CONSTANT and friends are up-to-date.  */
 	  int invariant = is_gimple_min_invariant (*tp);
-	  tree block = id->block;
-	  id->block = NULL_TREE;
 	  walk_tree (&TREE_OPERAND (*tp, 0), remap_gimple_op_r, data, NULL);
-	  id->block = block;
 	  recompute_tree_invariant_for_addr_expr (*tp);
 
 	  /* If this used to be invariant, but is not any longer,
@@ -920,6 +912,22 @@ remap_gimple_op_r (tree *tp, int *walk_subtrees, void *data)
 
 	  *walk_subtrees = 0;
 	}
+    }
+
+  /* Update the TREE_BLOCK for the cloned expr.  */
+  if (EXPR_P (*tp))
+    {
+      tree new_block = id->remapping_type_depth == 0 ? id->block : NULL;
+      tree old_block = TREE_BLOCK (*tp);
+      if (old_block)
+	{
+	  tree *n;
+	  n = (tree *) pointer_map_contains (id->decl_map,
+					     TREE_BLOCK (*tp));
+	  if (n)
+	    new_block = *n;
+	}
+      TREE_SET_BLOCK (*tp, new_block);
     }
 
   /* Keep iterating.  */
@@ -1147,11 +1155,10 @@ copy_tree_body_r (tree *tp, int *walk_subtrees, void *data)
 	      tree *n;
 	      n = (tree *) pointer_map_contains (id->decl_map,
 						 TREE_BLOCK (*tp));
-	      gcc_assert (n || id->remapping_type_depth != 0);
 	      if (n)
 		new_block = *n;
 	    }
-	  TREE_BLOCK (*tp) = new_block;
+	  TREE_SET_BLOCK (*tp, new_block);
 	}
 
       if (TREE_CODE (*tp) != OMP_CLAUSE)
@@ -2027,6 +2034,7 @@ copy_phis_for_bb (basic_block bb, copy_body_data *id)
 	      tree new_arg;
 	      tree block = id->block;
 	      edge_iterator ei2;
+	      location_t locus;
 
 	      /* When doing partial cloning, we allow PHIs on the entry block
 		 as long as all the arguments are the same.  Find any input
@@ -2038,9 +2046,7 @@ copy_phis_for_bb (basic_block bb, copy_body_data *id)
 
 	      arg = PHI_ARG_DEF_FROM_EDGE (phi, old_edge);
 	      new_arg = arg;
-	      id->block = NULL_TREE;
 	      walk_tree (&new_arg, copy_tree_body_r, id, NULL);
-	      id->block = block;
 	      gcc_assert (new_arg);
 	      /* With return slot optimization we can end up with
 	         non-gimple (foo *)&this->m, fix that here.  */
@@ -2053,8 +2059,20 @@ copy_phis_for_bb (basic_block bb, copy_body_data *id)
 		  gsi_insert_seq_on_edge (new_edge, stmts);
 		  inserted = true;
 		}
-	      add_phi_arg (new_phi, new_arg, new_edge,
-			   gimple_phi_arg_location_from_edge (phi, old_edge));
+	      locus = gimple_phi_arg_location_from_edge (phi, old_edge);
+	      block = id->block;
+	      if (LOCATION_BLOCK (locus))
+		{
+		  tree *n;
+		  n = (tree *) pointer_map_contains (id->decl_map,
+			LOCATION_BLOCK (locus));
+		  gcc_assert (n);
+		  block = *n;
+		}
+
+	      add_phi_arg (new_phi, new_arg, new_edge, block ?
+		  COMBINE_LOCATION_DATA (line_table, locus, block) :
+		  LOCATION_LOCUS (locus));
 	    }
 	}
     }
@@ -3921,7 +3939,8 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
   id->block = make_node (BLOCK);
   BLOCK_ABSTRACT_ORIGIN (id->block) = fn;
   BLOCK_SOURCE_LOCATION (id->block) = input_location;
-  prepend_lexical_block (gimple_block (stmt), id->block);
+  if (gimple_block (stmt))
+    prepend_lexical_block (gimple_block (stmt), id->block);
 
   /* Local declarations will be replaced by their equivalents in this
      map.  */

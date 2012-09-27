@@ -221,127 +221,38 @@ record_effective_endpoints (void)
     cfg_layout_function_footer = unlink_insn_chain (cfg_layout_function_footer, get_last_insn ());
 }
 
-/* Data structures representing mapping of INSN_LOCATOR into scope blocks, line
-   numbers and files.  In order to be GGC friendly we need to use separate
-   varrays.  This also slightly improve the memory locality in binary search.
-   The _locs array contains locators where the given property change.  The
-   block_locators_blocks contains the scope block that is used for all insn
-   locator greater than corresponding block_locators_locs value and smaller
-   than the following one.  Similarly for the other properties.  */
-static VEC(int,heap) *block_locators_locs;
-static GTY(()) VEC(tree,gc) *block_locators_blocks;
-static VEC(int,heap) *locations_locators_locs;
-DEF_VEC_O(location_t);
-DEF_VEC_ALLOC_O(location_t,heap);
-static VEC(location_t,heap) *locations_locators_vals;
-int prologue_locator;
-int epilogue_locator;
-
-/* Hold current location information and last location information, so the
-   datastructures are built lazily only when some instructions in given
-   place are needed.  */
+location_t prologue_location, epilogue_location;
 static location_t curr_location, last_location;
-static tree curr_block, last_block;
-static int curr_rtl_loc = -1;
 
-/* Allocate insn locator datastructure.  */
+/* Allocate insn location datastructure.  */
 void
-insn_locators_alloc (void)
+insn_locations_init (void)
 {
-  prologue_locator = epilogue_locator = 0;
-
-  block_locators_locs = VEC_alloc (int, heap, 32);
-  block_locators_blocks = VEC_alloc (tree, gc, 32);
-  locations_locators_locs = VEC_alloc (int, heap, 32);
-  locations_locators_vals = VEC_alloc (location_t, heap, 32);
-
+  prologue_location = epilogue_location = 0;
   curr_location = UNKNOWN_LOCATION;
   last_location = UNKNOWN_LOCATION;
-  curr_block = NULL;
-  last_block = NULL;
-  curr_rtl_loc = 0;
 }
 
 /* At the end of emit stage, clear current location.  */
 void
-insn_locators_finalize (void)
+insn_locations_finalize (void)
 {
-  if (curr_rtl_loc >= 0)
-    epilogue_locator = curr_insn_locator ();
-  curr_rtl_loc = -1;
+  epilogue_location = curr_location;
+  curr_location = UNKNOWN_LOCATION;
 }
-
-/* Allocate insn locator datastructure.  */
-void
-insn_locators_free (void)
-{
-  prologue_locator = epilogue_locator = 0;
-
-  VEC_free (int, heap, block_locators_locs);
-  VEC_free (tree,gc, block_locators_blocks);
-  VEC_free (int, heap, locations_locators_locs);
-  VEC_free (location_t, heap, locations_locators_vals);
-}
-
 
 /* Set current location.  */
 void
-set_curr_insn_source_location (location_t location)
+set_curr_insn_location (location_t location)
 {
-  /* IV opts calls into RTL expansion to compute costs of operations.  At this
-     time locators are not initialized.  */
-  if (curr_rtl_loc == -1)
-    return;
   curr_location = location;
 }
 
 /* Get current location.  */
 location_t
-get_curr_insn_source_location (void)
+curr_insn_location (void)
 {
   return curr_location;
-}
-
-/* Set current scope block.  */
-void
-set_curr_insn_block (tree b)
-{
-  /* IV opts calls into RTL expansion to compute costs of operations.  At this
-     time locators are not initialized.  */
-  if (curr_rtl_loc == -1)
-    return;
-  if (b)
-    curr_block = b;
-}
-
-/* Get current scope block.  */
-tree
-get_curr_insn_block (void)
-{
-  return curr_block;
-}
-
-/* Return current insn locator.  */
-int
-curr_insn_locator (void)
-{
-  if (curr_rtl_loc == -1 || curr_location == UNKNOWN_LOCATION)
-    return 0;
-  if (last_block != curr_block)
-    {
-      curr_rtl_loc++;
-      VEC_safe_push (int, heap, block_locators_locs, curr_rtl_loc);
-      VEC_safe_push (tree, gc, block_locators_blocks, curr_block);
-      last_block = curr_block;
-    }
-  if (last_location != curr_location)
-    {
-      curr_rtl_loc++;
-      VEC_safe_push (int, heap, locations_locators_locs, curr_rtl_loc);
-      VEC_safe_push (location_t, heap, locations_locators_vals, &curr_location);
-      last_location = curr_location;
-    }
-  return curr_rtl_loc;
 }
 
 static unsigned int
@@ -460,134 +371,35 @@ change_scope (rtx orig_insn, tree s1, tree s2)
     }
 }
 
-/* Return lexical scope block locator belongs to.  */
-static tree
-locator_scope (int loc)
-{
-  int max = VEC_length (int, block_locators_locs);
-  int min = 0;
-
-  /* When block_locators_locs was initialized, the pro- and epilogue
-     insns didn't exist yet and can therefore not be found this way.
-     But we know that they belong to the outer most block of the
-     current function.
-     Without this test, the prologue would be put inside the block of
-     the first valid instruction in the function and when that first
-     insn is part of an inlined function then the low_pc of that
-     inlined function is messed up.  Likewise for the epilogue and
-     the last valid instruction.  */
-  if (loc == prologue_locator || loc == epilogue_locator)
-    return DECL_INITIAL (cfun->decl);
-
-  if (!max || !loc)
-    return NULL;
-  while (1)
-    {
-      int pos = (min + max) / 2;
-      int tmp = VEC_index (int, block_locators_locs, pos);
-
-      if (tmp <= loc && min != pos)
-	min = pos;
-      else if (tmp > loc && max != pos)
-	max = pos;
-      else
-	{
-	  min = pos;
-	  break;
-	}
-    }
-  return VEC_index (tree, block_locators_blocks, min);
-}
-
 /* Return lexical scope block insn belongs to.  */
 tree
 insn_scope (const_rtx insn)
 {
-  return locator_scope (INSN_LOCATOR (insn));
-}
-
-/* Return line number of the statement specified by the locator.  */
-location_t
-locator_location (int loc)
-{
-  int max = VEC_length (int, locations_locators_locs);
-  int min = 0;
-
-  while (1)
-    {
-      int pos = (min + max) / 2;
-      int tmp = VEC_index (int, locations_locators_locs, pos);
-
-      if (tmp <= loc && min != pos)
-	min = pos;
-      else if (tmp > loc && max != pos)
-	max = pos;
-      else
-	{
-	  min = pos;
-	  break;
-	}
-    }
-  return *VEC_index (location_t, locations_locators_vals, min);
-}
-
-/* Return source line of the statement that produced this insn.  */
-int
-locator_line (int loc)
-{
-  expanded_location xloc;
-  if (!loc)
-    return 0;
-  else
-    xloc = expand_location (locator_location (loc));
-  return xloc.line;
+  return LOCATION_BLOCK (INSN_LOCATION (insn));
 }
 
 /* Return line number of the statement that produced this insn.  */
 int
 insn_line (const_rtx insn)
 {
-  return locator_line (INSN_LOCATOR (insn));
-}
-
-/* Return source file of the statement specified by LOC.  */
-const char *
-locator_file (int loc)
-{
-  expanded_location xloc;
-  if (!loc)
-    return 0;
-  else
-    xloc = expand_location (locator_location (loc));
-  return xloc.file;
+  return LOCATION_LINE (INSN_LOCATION (insn));
 }
 
 /* Return source file of the statement that produced this insn.  */
 const char *
 insn_file (const_rtx insn)
 {
-  return locator_file (INSN_LOCATOR (insn));
+  return LOCATION_FILE (INSN_LOCATION (insn));
 }
 
 /* Return discriminator of the statement that produced this insn.  */
 int
 insn_discriminator (const_rtx insn)
 {
-  int loc = INSN_LOCATOR (insn);
+  location_t loc = INSN_LOCATION (insn);
   if (!loc)
     return 0;
-  return get_discriminator_from_locus (locator_location (loc));
-}
-
-/* Return true if LOC1 and LOC2 locators have the same location and scope.  */
-bool
-locator_eq (int loc1, int loc2)
-{
-  if (loc1 == loc2)
-    return true;
-  if (locator_location (loc1) != locator_location (loc2))
-    return false;
-  return locator_scope (loc1) == locator_scope (loc2);
+  return get_discriminator_from_locus (loc);
 }
 
 /* Rebuild all the NOTE_INSN_BLOCK_BEG and NOTE_INSN_BLOCK_END notes based
@@ -624,7 +436,7 @@ reemit_insn_block_notes (void)
 					 insn_scope (XVECEXP (body, 0, i)));
 	}
       if (! this_block)
-	continue;
+	this_block = DECL_INITIAL (cfun->decl);
 
       if (this_block != cur_block)
 	{
@@ -964,15 +776,15 @@ fixup_reorder_chain (void)
 	      insn = BB_END (e->src);
 	      end = PREV_INSN (BB_HEAD (e->src));
 	      while (insn != end
-		     && (!NONDEBUG_INSN_P (insn) || INSN_LOCATOR (insn) == 0))
+		     && (!NONDEBUG_INSN_P (insn) || !INSN_HAS_LOCATION (insn)))
 		insn = PREV_INSN (insn);
 	      if (insn != end
-		  && locator_eq (INSN_LOCATOR (insn), (int) e->goto_locus))
+		  && INSN_LOCATION (insn) == e->goto_locus)
 		continue;
 	      if (simplejump_p (BB_END (e->src))
-		  && INSN_LOCATOR (BB_END (e->src)) == 0)
+		  && !INSN_HAS_LOCATION (BB_END (e->src)))
 		{
-		  INSN_LOCATOR (BB_END (e->src)) = e->goto_locus;
+		  INSN_LOCATION (BB_END (e->src)) = e->goto_locus;
 		  continue;
 		}
 	      dest = e->dest;
@@ -988,15 +800,15 @@ fixup_reorder_chain (void)
 		  end = NEXT_INSN (BB_END (dest));
 		  while (insn != end && !NONDEBUG_INSN_P (insn))
 		    insn = NEXT_INSN (insn);
-		  if (insn != end && INSN_LOCATOR (insn)
-		      && locator_eq (INSN_LOCATOR (insn), (int) e->goto_locus))
+		  if (insn != end && INSN_HAS_LOCATION (insn)
+		      && INSN_LOCATION (insn) == e->goto_locus)
 		    continue;
 		}
 	      nb = split_edge (e);
 	      if (!INSN_P (BB_END (nb)))
 		BB_END (nb) = emit_insn_after_noloc (gen_nop (), BB_END (nb),
 						     nb);
-	      INSN_LOCATOR (BB_END (nb)) = e->goto_locus;
+	      INSN_LOCATION (BB_END (nb)) = e->goto_locus;
 
 	      /* If there are other incoming edges to the destination block
 		 with the same goto locus, redirect them to the new block as
@@ -1005,7 +817,7 @@ fixup_reorder_chain (void)
 	      for (ei2 = ei_start (dest->preds); (e2 = ei_safe_edge (ei2)); )
 		if (e2->goto_locus
 		    && !(e2->flags & (EDGE_ABNORMAL | EDGE_FALLTHRU))
-		    && locator_eq (e->goto_locus, e2->goto_locus))
+		    && e->goto_locus == e2->goto_locus)
 		  redirect_edge_and_branch (e2, nb);
 		else
 		  ei_next (&ei2);
@@ -1505,5 +1317,3 @@ copy_bbs (basic_block *bbs, unsigned n, basic_block *new_bbs,
   for (i = 0; i < n; i++)
     bbs[i]->flags &= ~BB_DUPLICATED;
 }
-
-#include "gt-cfglayout.h"

@@ -1,3 +1,193 @@
+2012-09-27  Dehao Chen  <dehao@google.com>
+
+	Backport from trunk r191494, r191510, r191614, r191669, r191680,
+	r191706, r191747, r191759, r191779 and r191810:
+
+	* toplev.c (toplev_main): Finalize block_locations.
+	* tree.c (tree_set_block): New.
+	(tree_block): Change to use LOCATION_BLOCK.
+	(build1_stat): Remove block.
+	* tree.h (TREE_SET_BLOCK): New.
+	(tree_set_block): New.
+	(tree_block): Change to return tree.
+	(TREE_BLOCK): Likewise.
+	(tree_exp): Remove block.
+	(DECL_IS_BUILTIN): Compare LOCATION_LOCUS.
+	(EXPR_HAS_LOCATION): Likewise.
+	(inlined_function_outer_scope_p): Likewise.
+	(OMP_CLAUSE_HAS_LOCATION): Likewise.
+	* cfglayout.c (reemit_insn_block_notes): Change to use LOCATION_BLOCK.
+	(fixup_reorder_chain): Likewise.
+	(insn_discriminator): Likewise.
+	(insn_locators_alloc): Remove.
+	(insn_locators_finalize): Remove.
+	(insn_locators_free): Remove.
+	(set_curr_insn_source_location): Remove.
+	(get_curr_insn_source_location): Remove.
+	(set_curr_insn_block): Remove.
+	(get_curr_insn_block): Remove.
+	(locator_scope): Remove.
+	(insn_scope): Change to use new location.
+	(locator_location): Remove.
+	(insn_line): Change to use new location.
+	(locator_file): Remove.
+	(insn_file): Change to use new location.
+	(locator_eq): Remove.
+	(insn_locations_init): New.
+	(insn_locations_finalize): New.
+	(set_curr_insn_location): New.
+	(curr_insn_location): New.
+	* final.c (final_start_function): Likewise.
+	* input.c (expand_location): Likewise.
+	(location_with_discriminator): Likewise.
+	(has_discriminator): Likewise.
+	(map_discriminator_location): Likewise.
+	(get_discriminator_from_locus): Likewise.
+	* input.h (LOCATION_LOCUS): New.
+	(LOCATION_BLOCK): New.
+	* fold-const.c (expr_location_or): Change to use new location.
+	* reorg.c (emit_delay_sequence): Likewise.
+	(dbr_schedule): Likewise.
+	* modulo-sched.c (loop_single_full_bb_p): Likewise.
+	(dump_insn_location): Likewise.
+	(loop_canon_p): Likewise.
+	(sms_schedule): Likewise.
+	* lto-streamer-out.c (lto_output_location_bitpack): Likewise.
+	* lto-cgraph.c (output_node_opt_summary): Likewise.
+	* jump.c (rtx_renumbered_equal_p): Likewise.
+	* ifcvt.c (noce_try_move): Likewise.
+	(noce_try_store_flag): Likewise.
+	(noce_try_store_flag_constants): Likewise.
+	(noce_try_addcc): Likewise.
+	(noce_try_store_flag_mask): Likewise.
+	(noce_try_cmove): Likewise.
+	(noce_try_cmove_arith): Likewise.
+	(noce_try_minmax): Likewise.
+	(noce_try_abs): Likewise.
+	(noce_try_sign_mask): Likewise.
+	(noce_try_bitop): Likewise.
+	(noce_process_if_block): Likewise.
+	(cond_move_process_if_block): Likewise.
+	(find_cond_trap): Likewise.
+	* ipa-prop.c (ipa_set_jf_constant): Likewise.
+	(ipa_write_jump_function): Likewise.
+	* dwarf2out.c (add_src_coords_attributes): Likewise.
+	* expr.c (expand_expr_real): Likewise.
+	* tree-parloops.c (create_loop_fn): Likewise.
+	* recog.c (peep2_attempt): Likewise.
+	* function.c (free_after_compilation): Likewise.
+	(expand_function_end): Likewise.
+	(maybe_copy_prologue_epilogue_insn): Likewise.
+	(set_insn_locations): Likewise.
+	(thread_prologue_and_epilogue_insns): Likewise.
+	* print-rtl.c (print_rtx): Likewise.
+	* profile.c (branch_prob): Likewise.
+	* trans-mem.c (ipa_tm_scan_irr_block): Likewise.
+	* gimplify.c (gimplify_call_expr): Likewise.
+	* except.c (duplicate_eh_regions_1): Likewise.
+	* emit-rtl.c (try_split): Likewise.
+	(make_insn_raw): Likewise.
+	(make_debug_insn_raw): Likewise.
+	(make_jump_insn_raw): Likewise.
+	(make_call_insn_raw): Likewise.
+	(emit_pattern_after_setloc): Likewise.
+	(emit_pattern_after): Likewise.
+	(emit_insn_after_setloc): Likewise.
+	(emit_insn_after): Likewise.
+	(emit_jump_insn_after_setloc): Likewise.
+	(emit_jump_insn_after): Likewise.
+	(emit_call_insn_after_setloc): Likewise.
+	(emit_call_insn_after): Likewise.
+	(emit_debug_insn_after_setloc): Likewise.
+	(emit_debug_insn_after): Likewise.
+	(emit_pattern_before_setloc): Likewise.
+	(emit_pattern_before): Likewise.
+	(emit_insn_before_setloc): Likewise.
+	(emit_insn_before): Likewise.
+	(emit_jump_insn_before_setloc): Likewise.
+	(emit_jump_insn_before): Likewise.
+	(emit_call_insn_before_setloc): Likewise.
+	(emit_call_insn_before): Likewise.
+	(emit_debug_insn_before_setloc): Likewise.
+	(emit_debug_insn_before): Likewise.
+	(emit_copy_of_insn_after): Likewise.
+	* cfgexpand.c (gimple_assign_rhs_to_tree): Change to use new location.
+	(expand_gimple_cond): Likewise.
+	(expand_call_stmt): Likewise.
+	(expand_gimple_stmt_1): Likewise.
+	(expand_gimple_basic_block): Likewise.
+	(construct_exit_block): Likewise.
+	(gimple_expand_cfg): Likewise.
+	* cfgcleanup.c (try_forward_edges): Likewise.
+	* tree-ssa-live.c (remove_unused_scope_block_p): Likewise.
+	(dump_scope_block): Likewise.
+	(mark_all_vars_used): Likewise.
+	(remove_unused_locals): Likewise.
+	(clear_unused_block_pointer): New.
+	(clear_unused_block_pointer_1): New.
+	* rtl.c (rtx_equal_p_cb): Likewise.
+	(rtx_equal_p): Likewise.
+	* rtl.h (XUINT): New.
+	(INSN_LOCATOR): Remove.
+	(CURR_INSN_LOCATION): Remove.
+	(INSN_LOCATION): New.
+	(INSN_HAS_LOCATION): New.
+	* tree-inline.c (remap_gimple_op_r): Change to use new location.
+	(copy_tree_body_r): Likewise.
+	(copy_phis_for_bb): Likewise.
+	(expand_call_inline): Likewise.
+	* tree-streamer-in.c (lto_input_ts_exp_tree_pointers): Likewise.
+	* tree-streamer-out.c (write_ts_decl_minimal_tree_pointers): Likewise.
+	* gimple-streamer-out.c (output_gimple_stmt): Likewise.
+	* combine.c (try_combine): Likewise.
+	* tree-outof-ssa.c (set_location_for_edge): Likewise.
+	(insert_partition_copy_on_edge): Likewise.
+	(insert_value_copy_on_edge): Likewise.
+	(insert_rtx_to_part_on_edge): Likewise.
+	(insert_part_to_rtx_on_edge): Likewise.
+	* basic-block.h (edge_def): Remove field.
+	* gimple.h (gimple_statement_base): Remove field.
+	(gimple_bb): Change to use new location.
+	(gimple_block): Likewise.
+	(gimple_set_block): Likewise.
+	(gimple_set_location): Likewise.
+	(gimple_has_location): Likewise.
+	* tree-cfg.c (make_cond_expr_edges): Likewise.
+	(make_goto_expr_edges): Likewise.
+	(gimple_can_merge_blocks_p): Likewise.
+	(assign_discriminator): Likewise.
+	(move_stmt_op): Likewise.
+	(move_block_to_fn): Likewise.
+	* config/alpha/alpha.c (alpha_output_mi_thunk_osf): Likewise.
+	* config/sparc/sparc.c (sparc_output_mi_thunk): Likewise.
+	* config/i386/i386.c (x86_output_mi_thunk): Likewise.
+	* config/tilegx/tilegx.c (tilegx_output_mi_thunk): Likewise.
+	* config/sh/sh.c (sh_output_mi_thunk): Likewise.
+	(gen_block_redirect): Likewise.
+	* config/ia64/ia64.c (ia64_output_mi_thunk): Likewise.
+	* config/rs6000/rs6000.c (rs6000_output_mi_thunk): Likewise.
+	(rs6000_final_prescan_insn): Likewise.
+	* config/score/score.c (score_output_mi_thunk): Likewise.
+	* config/tilepro/tilepro.c (tilepro_asm_output_mi_thunk): Likewise.
+	* config/mips/mips.c (mips_output_mi_thunk): Likewise.
+	(mips16_gp_pseudo_reg): Likewise.
+	* config/s390/s390.c (s390_chunkify_start): Likewise.
+	* config/spu/spu.c (emit_nop_for_insn): Likewise.
+	(pad_bb): Likewise.
+	(spu_emit_branch_hint): Likewise.
+	(insert_hbrp_for_ilb_runout): Likewise.
+	* config/mep/mep.c (mep_make_bundle): Likewise.
+	(mep_bundle_insns): Likewise.
+	* config/c6x/c6x.c (gen_one_bundle): Likewise.
+	* config/picochip/picochip.c (picochip_reorg): Likewise.
+	* config/arm/arm.c (require_pic_register): Likewise.
+	* config/bfin/bfin.c (gen_one_bundle): Likewise.
+	* cfgrtl.c (force_nonfallthru_and_redirect): Likewise.
+	(cfg_layout_merge_blocks): Likewise.
+	* stmt.c (emit_case_nodes): Likewise.
+	* tree-eh.c (lower_try_finally_dup_block): Likewise.
+	(honor_protect_cleanup_actions): Likewise.
+
 2012-09-24  Xinliang David Li  <davidxl@google.com>
 
 	* varasm.c (finish_alias_1):  Fix mis-fired error
@@ -42,32 +232,32 @@
 	Backport from trunk r190952 and r191238:
 
 	* gcov-io.c (gcov_write_summary): Write out non-zero histogram
-        entries to function summary along with an occupancy bit vector.
+	entries to function summary along with an occupancy bit vector.
 	(gcov_read_summary): Read in the histogram entries.
 	(gcov_histo_index): New function.
 	(gcov_histogram_merge): Ditto.
 	* gcov-io.h (gcov_type_unsigned): New type.
-        (struct gcov_bucket_type): Ditto.
-        (struct gcov_ctr_summary): Include histogram.
-        (GCOV_TAG_SUMMARY_LENGTH): Update to include histogram entries.
-        (GCOV_HISTOGRAM_SIZE): New macro.
-        (GCOV_HISTOGRAM_BITVECTOR_SIZE): Ditto.
-        (gcov_gcda_file_size): New parameter.
+	(struct gcov_bucket_type): Ditto.
+	(struct gcov_ctr_summary): Include histogram.
+	(GCOV_TAG_SUMMARY_LENGTH): Update to include histogram entries.
+	(GCOV_HISTOGRAM_SIZE): New macro.
+	(GCOV_HISTOGRAM_BITVECTOR_SIZE): Ditto.
+	(gcov_gcda_file_size): New parameter.
 	* profile.c (NUM_GCOV_WORKING_SETS): Ditto.
-        (gcov_working_sets): New global variable.
+	(gcov_working_sets): New global variable.
 	(compute_working_sets): New function.
 	(find_working_set): Ditto.
 	(get_exec_counts): Invoke compute_working_sets.
 	* loop-unroll.c (code_size_limit_factor): Call new function
-        find_working_set to obtain working set information.
+	find_working_set to obtain working set information.
 	* coverage.c (read_counts_file): Merge histograms, and
-        fix bug with accessing summary info for non-summable counters.
+	fix bug with accessing summary info for non-summable counters.
 	* basic-block.h (gcov_type_unsigned): New type.
-        (struct gcov_working_set_info): Ditto.
-        (find_working_set): Declare.
+	(struct gcov_working_set_info): Ditto.
+	(find_working_set): Declare.
 	* gcov-dump.c (tag_summary): Dump out histogram.
 	* configure.ac (HOST_HAS_F_SETLKW): Set based on compile
-        test using F_SETLKW with fcntl.
+	test using F_SETLKW with fcntl.
 	* configure, gcc/config.in: Regenerate.
 
 2012-09-13  Xinliang David Li  <davidxl@google.com>
@@ -484,56 +674,56 @@
 
 	r184891:
 	2012-03-04  Uros Bizjak  <ubizjak@gmail.com>
-        * config/i386/constraints.md (Ya): New internal constraint.
-        * config/i386/i386.md (zero_extendsidi2): Remove expansion.
-        (*zero_extendsidi2_rex64): Add x,x alternative.
-        (*zero_extendsidi2): Ditto.  Add o,0 alternative.
-        Remove flags reg clobber.  Adjust corresponding splits.
-        (zero_extend<mode>si2): Macroize expander from zero_extendhisi2 and
-        zero_extendqisi2 expanders using SWI12 mode iterator.
-        (zero_extend<mode>si2_and): Macroize insn from
-        zero_extendhisi2_and and zero_extendqisi2_and.  Merge corresponding
-        splitters.
-        (*zero_extend<mode>si2):  Macroize insn from
-        *zero_extendhisi2_movzbl and *zero_extendqisi2_movzbl.
-        (*zero_extend*2_movzbl_and): Remove insn patterns.
-        (zero_extendqihi2_and): Merge corresponding splitter.
-        (*zero_extendqihi2): Rename from *zero_extendqihi2_movzbl.
-        (*zero_extend*2_movzbl_and): Remove insn patterns.
-        (*anddi_1): Split TYPE_IMOVX instructions.
-        (*andsi_1): Use Ya for alternative 2.  Split TYPE_IMOVX instructions.
-        (*andhi_1): Ditto.
-        (and->zext splitter): Add splitter pattern.
-        (zero extend with andsi3 splitter): Adjust zero_extend pattern.
+	* config/i386/constraints.md (Ya): New internal constraint.
+	* config/i386/i386.md (zero_extendsidi2): Remove expansion.
+	(*zero_extendsidi2_rex64): Add x,x alternative.
+	(*zero_extendsidi2): Ditto.  Add o,0 alternative.
+	Remove flags reg clobber.  Adjust corresponding splits.
+	(zero_extend<mode>si2): Macroize expander from zero_extendhisi2 and
+	zero_extendqisi2 expanders using SWI12 mode iterator.
+	(zero_extend<mode>si2_and): Macroize insn from
+	zero_extendhisi2_and and zero_extendqisi2_and.  Merge corresponding
+	splitters.
+	(*zero_extend<mode>si2):  Macroize insn from
+	*zero_extendhisi2_movzbl and *zero_extendqisi2_movzbl.
+	(*zero_extend*2_movzbl_and): Remove insn patterns.
+	(zero_extendqihi2_and): Merge corresponding splitter.
+	(*zero_extendqihi2): Rename from *zero_extendqihi2_movzbl.
+	(*zero_extend*2_movzbl_and): Remove insn patterns.
+	(*anddi_1): Split TYPE_IMOVX instructions.
+	(*andsi_1): Use Ya for alternative 2.  Split TYPE_IMOVX instructions.
+	(*andhi_1): Ditto.
+	(and->zext splitter): Add splitter pattern.
+	(zero extend with andsi3 splitter): Adjust zero_extend pattern.
 
 	r186839:
 	2012-04-25  Jakub Jelinek  <jakub@redhat.com>
-        PR target/53110
-        * config/i386/i386.md (and<mode>3): For andq $0xffffffff, reg
-        instead expand it as zero extension.
+	PR target/53110
+	* config/i386/i386.md (and<mode>3): For andq $0xffffffff, reg
+	instead expand it as zero extension.
 
 	r186979:
 	2012-04-30  Uros Bizjak  <ubizjak@gmail.com>
-        * config/i386/i386.md (and<mode>3): Expand masking operations with
-        0xff, 0xffff or 0xffffffff immediates to corresponding zero_extend RTX.
-        (and splitter): Split to DImode zero_extend RTX for DImode operand[0].
+	* config/i386/i386.md (and<mode>3): Expand masking operations with
+	0xff, 0xffff or 0xffffffff immediates to corresponding zero_extend RTX.
+	(and splitter): Split to DImode zero_extend RTX for DImode operand[0].
 
 	r186993:
 	2012-04-30  Uros Bizjak  <ubizjak@gmail.com>
 	* config/i386/i386.md (and<mode>3): Change runtime operand mode checks
-        to compile-time "mode == <MODE>mode" checks.
-        (and splitter): Ditto.
+	to compile-time "mode == <MODE>mode" checks.
+	(and splitter): Ditto.
 
 	r188630:
 	2012-06-14  Uros Bizjak  <ubizjak@gmail.com>
-        * config/i386/i386.md (*zero_extendsidi2): Remove x,x alternative.
-        (*zero_extendsidi2_rex64): Ditto.  Remove isa attribute.
+	* config/i386/i386.md (*zero_extendsidi2): Remove x,x alternative.
+	(*zero_extendsidi2_rex64): Ditto.  Remove isa attribute.
 
 	r188634:
 	2012-06-14  Uros Bizjak  <ubizjak@gmail.com>
 	Fix my previous commit to:
-        * config/i386/i386.md (*zero_extendsidi2): Remove x,x alternative.
-        (*zero_extendsidi2_rex64): Ditto.  Remove isa attribute.
+	* config/i386/i386.md (*zero_extendsidi2): Remove x,x alternative.
+	(*zero_extendsidi2_rex64): Ditto.  Remove isa attribute.
 
 	r188648:
 	2012-06-14  Uros Bizjak  <ubizjak@gmail.com>
@@ -553,7 +743,7 @@
     Backport pending Fission patch at http://codereview.appspot.com/6305113.
     
     2012-07-18  Sterling Augustine <saugustine@google.com>
-                Cary Coutant <ccoutant@google.com>
+		Cary Coutant <ccoutant@google.com>
     
     	* common.opt (gno-split-dwarf, gsplit-dwarf): New switches.
     	* doc/invoke.texi (Debugging Options): Document them.
@@ -835,32 +1025,32 @@
 	2012-06-07  Teresa Johnson  <tejohnson@google.com>
 
 	* doc/invoke.texi: Rename -fripa-peel-size-limit
-        and -fripa-unroll-size-limit to -fpeel-codesize-limit and
-        -funroll-codesize-limit, respectively. Remove
-        codesize-hotness-threshold param and add unrollpeel-hotness-threshold
-        param.
+	and -fripa-unroll-size-limit to -fpeel-codesize-limit and
+	-funroll-codesize-limit, respectively. Remove
+	codesize-hotness-threshold param and add unrollpeel-hotness-threshold
+	param.
 	* gcov-io.c (gcov_write_summary): Write new summary info.
 	(gcov_read_summary): Read new summary info.
 	* gcov-io.h (GCOV_TAG_SUMMARY_LENGTH): Update for new summary info.
-        (struct gcov_ctr_summary): Add new summary info: num_hot_counters.
+	(struct gcov_ctr_summary): Add new summary info: num_hot_counters.
 	* loop-unroll.c (limit_code_size): Renamed to
-        code_size_limit_factor.
+	code_size_limit_factor.
 	(code_size_limit_factor): Renamed from limit_code size. Update to
-        use new summary info and refine for very hot loops.
+	use new summary info and refine for very hot loops.
 	(decide_unrolling_and_peeling): Remove call to limit_code_size.
-        (decide_unroll_runtime_iterations): Call code_size_limit_factor
-        to control the unroll factor.
+	(decide_unroll_runtime_iterations): Call code_size_limit_factor
+	to control the unroll factor.
 	(decide_peel_simple, decide_unroll_stupid): Ditto.
 	* coverage.c (read_counts_file): Propagate new summary info.
 	* common.opt: Rename -fripa-peel-size-limit
-        and -fripa-unroll-size-limit to -fpeel-codesize-limit and
-        -funroll-codesize-limit, respectively.
+	and -fripa-unroll-size-limit to -fpeel-codesize-limit and
+	-funroll-codesize-limit, respectively.
 	* tree-optimize.c (cgraph_codesize_estimate): Remove.
 	(compute_codesize_estimate): Remove.
 	(execute_cleanup_cfg_post_optimizing): Remove call to
-        compute_codesize_estimate.
+	compute_codesize_estimate.
 	* params.def (PARAM_UNROLLPEEL_CODESIZE_THRESHOLD): Remove.
-        (PARAM_UNROLLPEEL_HOTNESS_THRESHOLD): Add.
+	(PARAM_UNROLLPEEL_HOTNESS_THRESHOLD): Add.
 	* gcov-dump.c (tag_summary): Dump new summary info.
 
 2012-06-07  Dehao Chen  <dehao@google.com>
@@ -958,21 +1148,21 @@
 	* loop-unroll.c (loop_has_FP_comp): Remove function.
 	(max_unroll_with_branches): New function.
 	(decide_unroll_constant_iterations, decide_unroll_runtime_iterations):
-        Add heuristic to avoid increasing branch mispredicts when unrolling.
+	Add heuristic to avoid increasing branch mispredicts when unrolling.
 	(limit_code_size, decide_peel_simple, decide_unroll_stupid): Retrieve
-        number of branches from niter_desc instead of via function that walks
-        loop.
+	number of branches from niter_desc instead of via function that walks
+	loop.
 	* loop-iv.c (get_simple_loop_desc): Invoke new analyze_loop_insns
-        function, and add guards to enable this function to work for the
-        outermost loop.
+	function, and add guards to enable this function to work for the
+	outermost loop.
 	* cfgloop.c (insn_has_fp_set, analyze_loop_insns): New functions.
-        (num_loop_branches): Remove.
+	(num_loop_branches): Remove.
 	* cfgloop.h (struct niter_desc): Added new fields to cache additional
-        loop analysis information.
-        (num_loop_branches): Remove.
+	loop analysis information.
+	(num_loop_branches): Remove.
 	(analyze_loop_insns): Declare.
 	* params.def (PARAM_MIN_ITER_UNROLL_WITH_BRANCHES): New param.
-        (PARAM_UNROLL_OUTER_LOOP_BRANCH_BUDGET): Ditto.
+	(PARAM_UNROLL_OUTER_LOOP_BRANCH_BUDGET): Ditto.
 
 2012-05-16  Sriraman Tallam  <tmsriram@google.com>
 
@@ -1177,40 +1367,40 @@
 
 	Backport from google/main rev 185083
 
-	        * config/i386/i386.c (build_struct_with_one_bit_fields): New function.
-	        (make_var_decl): New function.
-	        (get_field_from_struct): New function.
-	        (fold_builtin_target): New function.
-	        (ix86_fold_builtin): New function.
-	        (ix86_expand_builtin): Expand new builtins by folding them.
-	        (make_platform_builtin): New functions.
-	        (ix86_init_platform_type_builtins): Make the new builtins.
-	        (ix86_init_builtins): Make new builtins to detect CPU type.
-	        (TARGET_FOLD_BUILTIN): New macro.
-	        (IX86_BUILTIN_CPU_SUPPORTS_CMOV): New enum value.
-	        (IX86_BUILTIN_CPU_SUPPORTS_MMX): New enum value.
-	        (IX86_BUILTIN_CPU_SUPPORTS_POPCOUNT): New enum value.
-	        (IX86_BUILTIN_CPU_SUPPORTS_SSE): New enum value.
-	        (IX86_BUILTIN_CPU_SUPPORTS_SSE2): New enum value.
-	        (IX86_BUILTIN_CPU_SUPPORTS_SSE3): New enum value.
-	        (IX86_BUILTIN_CPU_SUPPORTS_SSSE3): New enum value.
-	        (IX86_BUILTIN_CPU_SUPPORTS_SSE4_1): New enum value.
-	        (IX86_BUILTIN_CPU_SUPPORTS_SSE4_2): New enum value.
-	        (IX86_BUILTIN_CPU_INIT): New enum value.
-	        (IX86_BUILTIN_CPU_IS_AMD): New enum value.
-	        (IX86_BUILTIN_CPU_IS_INTEL): New enum value.
-	        (IX86_BUILTIN_CPU_IS_INTEL_ATOM): New enum value.
-	        (IX86_BUILTIN_CPU_IS_INTEL_CORE2): New enum value.
-	        (IX86_BUILTIN_CPU_IS_INTEL_COREI7_NEHALEM): New enum value.
-	        (IX86_BUILTIN_CPU_IS_INTEL_COREI7_WESTMERE): New enum value.
-	        (IX86_BUILTIN_CPU_IS_INTEL_COREI7_SANDYBRIDGE): New enum value.
-	        (IX86_BUILTIN_CPU_IS_AMDFAM10_BARCELONA): New enum value.
-	        (IX86_BUILTIN_CPU_IS_AMDFAM10_SHANGHAI): New enum value.
-	        (IX86_BUILTIN_CPU_IS_AMDFAM10_ISTANBUL): New enum value.
-	        (IX86_BUILTIN_CPU_IS_AMDFAM15H_BDVER1): New enum value.
-	        (IX86_BUILTIN_CPU_IS_AMDFAM15H_BDVER2): New enum value.
-	        * config/i386/i386-builtin-types.def: New function type.
-	        * testsuite/gcc.target/builtin_target.c: New testcase.
+		* config/i386/i386.c (build_struct_with_one_bit_fields): New function.
+		(make_var_decl): New function.
+		(get_field_from_struct): New function.
+		(fold_builtin_target): New function.
+		(ix86_fold_builtin): New function.
+		(ix86_expand_builtin): Expand new builtins by folding them.
+		(make_platform_builtin): New functions.
+		(ix86_init_platform_type_builtins): Make the new builtins.
+		(ix86_init_builtins): Make new builtins to detect CPU type.
+		(TARGET_FOLD_BUILTIN): New macro.
+		(IX86_BUILTIN_CPU_SUPPORTS_CMOV): New enum value.
+		(IX86_BUILTIN_CPU_SUPPORTS_MMX): New enum value.
+		(IX86_BUILTIN_CPU_SUPPORTS_POPCOUNT): New enum value.
+		(IX86_BUILTIN_CPU_SUPPORTS_SSE): New enum value.
+		(IX86_BUILTIN_CPU_SUPPORTS_SSE2): New enum value.
+		(IX86_BUILTIN_CPU_SUPPORTS_SSE3): New enum value.
+		(IX86_BUILTIN_CPU_SUPPORTS_SSSE3): New enum value.
+		(IX86_BUILTIN_CPU_SUPPORTS_SSE4_1): New enum value.
+		(IX86_BUILTIN_CPU_SUPPORTS_SSE4_2): New enum value.
+		(IX86_BUILTIN_CPU_INIT): New enum value.
+		(IX86_BUILTIN_CPU_IS_AMD): New enum value.
+		(IX86_BUILTIN_CPU_IS_INTEL): New enum value.
+		(IX86_BUILTIN_CPU_IS_INTEL_ATOM): New enum value.
+		(IX86_BUILTIN_CPU_IS_INTEL_CORE2): New enum value.
+		(IX86_BUILTIN_CPU_IS_INTEL_COREI7_NEHALEM): New enum value.
+		(IX86_BUILTIN_CPU_IS_INTEL_COREI7_WESTMERE): New enum value.
+		(IX86_BUILTIN_CPU_IS_INTEL_COREI7_SANDYBRIDGE): New enum value.
+		(IX86_BUILTIN_CPU_IS_AMDFAM10_BARCELONA): New enum value.
+		(IX86_BUILTIN_CPU_IS_AMDFAM10_SHANGHAI): New enum value.
+		(IX86_BUILTIN_CPU_IS_AMDFAM10_ISTANBUL): New enum value.
+		(IX86_BUILTIN_CPU_IS_AMDFAM15H_BDVER1): New enum value.
+		(IX86_BUILTIN_CPU_IS_AMDFAM15H_BDVER2): New enum value.
+		* config/i386/i386-builtin-types.def: New function type.
+		* testsuite/gcc.target/builtin_target.c: New testcase.
 
 2012-03-07  Diego Novillo  <dnovillo@google.com>
 

@@ -1189,7 +1189,7 @@ branch_prob (void)
 	     is not computed twice.  */
 	  if (last
 	      && gimple_has_location (last)
-	      && e->goto_locus != UNKNOWN_LOCATION
+	      && LOCATION_LOCUS (e->goto_locus) != UNKNOWN_LOCATION
 	      && !single_succ_p (bb)
 	      && (LOCATION_FILE (e->goto_locus)
 	          != LOCATION_FILE (gimple_location (last))
@@ -1199,7 +1199,6 @@ branch_prob (void)
 	      basic_block new_bb = split_edge (e);
 	      edge ne = single_succ_edge (new_bb);
 	      ne->goto_locus = e->goto_locus;
-	      ne->goto_block = e->goto_block;
 	    }
 	  if ((e->flags & (EDGE_ABNORMAL | EDGE_ABNORMAL_CALL))
 	       && e->dest != EXIT_BLOCK_PTR)
@@ -1418,7 +1417,8 @@ branch_prob (void)
 
 	  /* Notice GOTO expressions eliminated while constructing the CFG.  */
 	  if (single_succ_p (bb)
-	      && single_succ_edge (bb)->goto_locus != UNKNOWN_LOCATION)
+	      && LOCATION_LOCUS (single_succ_edge (bb)->goto_locus)
+		 != UNKNOWN_LOCATION)
 	    {
 	      expanded_location curr_location
 		= expand_location (single_succ_edge (bb)->goto_locus);

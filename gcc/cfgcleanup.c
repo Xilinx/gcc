@@ -483,13 +483,15 @@ try_forward_edges (int mode, basic_block b)
 		  int new_locus = single_succ_edge (target)->goto_locus;
 		  int locus = goto_locus;
 
-		  if (new_locus && locus && !locator_eq (new_locus, locus))
+		  if (new_locus != UNKNOWN_LOCATION
+		      && locus != UNKNOWN_LOCATION
+		      && new_locus != locus)
 		    new_target = NULL;
 		  else
 		    {
 		      rtx last;
 
-		      if (new_locus)
+		      if (new_locus != UNKNOWN_LOCATION)
 			locus = new_locus;
 
 		      last = BB_END (target);
@@ -497,13 +499,15 @@ try_forward_edges (int mode, basic_block b)
 			last = prev_nondebug_insn (last);
 
 		      new_locus = last && INSN_P (last)
-				  ? INSN_LOCATOR (last) : 0;
+				  ? INSN_LOCATION (last) : 0;
 
-		      if (new_locus && locus && !locator_eq (new_locus, locus))
+		      if (new_locus != UNKNOWN_LOCATION
+			  && locus != UNKNOWN_LOCATION
+			  && new_locus != locus)
 			new_target = NULL;
 		      else
 			{
-			  if (new_locus)
+			  if (new_locus != UNKNOWN_LOCATION)
 			    locus = new_locus;
 
 			  goto_locus = locus;
