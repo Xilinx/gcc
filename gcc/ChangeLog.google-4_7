@@ -1,3 +1,12 @@
+2012-09-28  Rong Xu  <xur@google.com>
+
+	Google Ref: b/7005205
+	* gcc/coverage.c (coverage_checksum_string): strip out LIPO 
+	specific string. 
+	(crc32_string_1): New function.
+	* gcc/cp/decl2.c (start_static_storage_duration_function):
+	generate LIPO specific string.
+
 2012-09-27  Dehao Chen  <dehao@google.com>
 
 	Backport from trunk r191494, r191510, r191614, r191669, r191680,

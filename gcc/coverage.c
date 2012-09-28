@@ -904,6 +904,26 @@ tree_coverage_counter_addr (unsigned counter, unsigned no)
 }
 
 
+/* Generate a crc32 of a string with specified STR_LEN when it's not 0.
+   Non-zero STR_LEN should only be seen in LIPO mode.  */
+
+static unsigned
+crc32_string_1 (unsigned chksum, const char *string, unsigned str_len)
+{
+  char *dup;
+
+  if (!L_IPO_COMP_MODE || str_len == 0)
+    return crc32_string (chksum, string);
+
+  gcc_assert (str_len > 0 && str_len < strlen (string));
+  dup = xstrdup (string);
+  dup[str_len] = 0;
+  chksum = crc32_string (chksum, dup);
+  free (dup);
+
+  return chksum;
+}
+
 /* Generate a checksum for a string.  CHKSUM is the current
    checksum.  */
 
@@ -912,6 +932,25 @@ coverage_checksum_string (unsigned chksum, const char *string)
 {
   int i;
   char *dup = NULL;
+  unsigned lipo_orig_str_len = 0;
+
+  /* Strip out the ending ".cmo.[0-9]*" string from function
+     name. Otherwise we will have lineno checksum mismatch.  */
+  if (L_IPO_COMP_MODE)
+    {
+      int len;
+
+      i = len = strlen (string);
+      while (i--)
+        if ((string[i] < '0' || string[i] > '9'))
+          break;
+      if ((i > 5) && (i != len - 1))
+        {
+          if (!strncmp (string + i - 4, ".cmo.", 5))
+            lipo_orig_str_len = i - 4;
+        }
+
+    }
 
   /* Look for everything that looks if it were produced by
      get_file_function_name and zero out the second part
@@ -958,7 +997,7 @@ coverage_checksum_string (unsigned chksum, const char *string)
 	}
     }
 
-  chksum = crc32_string (chksum, string);
+  chksum = crc32_string_1 (chksum, string, lipo_orig_str_len);
   if (dup)
     free (dup);
 

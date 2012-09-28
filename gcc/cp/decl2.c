@@ -2911,7 +2911,7 @@ start_static_storage_duration_function (unsigned count)
      SSDF_IDENTIFIER_<number>.  */
   sprintf (id, "%s_%u", SSDF_IDENTIFIER, count);
   if (L_IPO_IS_AUXILIARY_MODULE)
-    sprintf (id, "%s_%u", id, current_module_id);
+    sprintf (id, "%s.cmo.%u", id, current_module_id);
 
   type = build_function_type_list (void_type_node,
 				   integer_type_node, integer_type_node,
