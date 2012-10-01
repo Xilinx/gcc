@@ -1,4 +1,9 @@
+2012-10-01  Alexandre Lissy  <alissy@mandriva.com>
 
+	* melt-build-script.tpl: Use >&2 instead of >/dev/stderr
+	everywhere.
+
+	* melt-build-script.sh: Regenerate.
 
 2012-09-26  Basile Starynkevitch  <basile@starynkevitch.net>
 

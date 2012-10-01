@@ -65,7 +65,7 @@ date +"/*empty file for MELT build %c*/" > meltbuild-empty-file.c
 
 ## our error function  [+(.(fromline))+]
 function meltbuild_error () {
-    echo MELT BUILD SCRIPT FAILURE: $@ > /dev/stderr
+    echo MELT BUILD SCRIPT FAILURE: $@ >&2
     exit 1
 }
 
@@ -76,14 +76,14 @@ function meltbuild_symlink () {
 
 ## our info function
 function meltbuild_info () {
-    echo MELT BUILD SCRIPT INFO: $@ > /dev/stderr
+    echo MELT BUILD SCRIPT INFO: $@ >&2
 }
 
 ## our notice function - for more important things than info
 function meltbuild_notice () {
     meltnotititle=$1
     shift
-    (echo; echo; echo MELT BUILD SCRIPT NOTICE "$meltnotititle:" $@ ; echo ) > /dev/stderr
+    (echo; echo; echo MELT BUILD SCRIPT NOTICE "$meltnotititle:" $@ ; echo ) >&2
     if [ -n "$GCCMELT_BUILD_NOTIFICATION" ]; then
 	$GCCMELT_BUILD_NOTIFICATION "$meltnotititle:" "$*"
     fi
@@ -205,7 +205,7 @@ meltbuild_notice STAGE0+  [+(.(fromline))+] starting stage zero
 ##
   mv $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK-tmp$$ $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK
   meltbuild_info [+(.(fromline))+] generated stagezero makedep $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK
-  ls -l $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK > /dev/stderr
+  ls -l $MELT_ZERO_GENERATED_[+varsuf+]_BUILDMK >&2
 
   $GCCMELT_MAKE -f $GCCMELT_MODULE_MK melt_module \
       GCCMELT_FROM=stagezero-[+(.(fromline))+] \
@@ -221,7 +221,7 @@ meltbuild_notice STAGE0+  [+(.(fromline))+] starting stage zero
       || meltbuild_error  [+(.(fromline))+] stage0 [+base+] did not build "(with $GCCMELT_MAKE  -f $GCCMELT_MODULE_MK)" compiler $GCCMELT_COMPILER cflags $GCCMELT_COMPILER_FLAGS
 
   meltbuild_info [+(.(fromline))+] stage0 [+base+] module 
-  ls -l "$GCCMELT_STAGE_ZERO/[+base+].meltmod-$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5.$GCCMELT_ZERO_FLAVOR.so" > /dev/stderr \
+  ls -l "$GCCMELT_STAGE_ZERO/[+base+].meltmod-$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5.$GCCMELT_ZERO_FLAVOR.so" >&2 \
       || meltbuild_error  [+(.(fromline))+] stage0 [+base+] fail to build \
       "$GCCMELT_STAGE_ZERO/[+base+].meltmod-$MELT_ZERO_GENERATED_[+varsuf+]_CUMULMD5.$GCCMELT_ZERO_FLAVOR.so"
 
@@ -250,7 +250,7 @@ else
    meltbuild_info [+(.(fromline))+] skipped stage0 because of stamp file $melt_stagezero_stamp
 fi
 
-meltbuild_info [+(.(fromline))+] times after stagezero at `date '+%x %H:%M:%S'`: ;  times > /dev/stderr
+meltbuild_info [+(.(fromline))+] times after stagezero at `date '+%x %H:%M:%S'`: ;  times >&2
 
 
 
@@ -301,7 +301,7 @@ function meltbuild_emit () {
     echo meltbuild-empty-file.c >>  $meltargs-$$-tmp
     mv $meltargs-$$-tmp $meltargs
     meltbuild_info $meltfrom argument file $meltargs is
-    cat  $meltargs < /dev/null > /dev/stderr
+    cat  $meltargs < /dev/null >&2
     if [ -z "$GCCMELT_SKIPEMITC" ]; then
 	$GCCMELT_CC1_PREFIX $GCCMELT_CC1 @$meltargs || meltbuild_error $meltfrom failed with arguments @$meltargs
         ## remove obsolete secondary C files left previously in $meltstage 
@@ -557,7 +557,7 @@ fi
 ################################################################
 meltbuild_info [+(.(fromline))+] before applications GCCMELT_SKIPEMITC=$GCCMELT_SKIPEMITC.
 
-meltbuild_info [+(.(fromline))+] times before applications at `date '+%x %H:%M:%S'`: ;  times > /dev/stderr
+meltbuild_info [+(.(fromline))+] times before applications at `date '+%x %H:%M:%S'`: ;  times >&2
  
 melt_final_application_stamp=meltbuild-final-application.stamp
 
@@ -622,7 +622,7 @@ meltbuild_notice 'doing applications'  [+(.(fromline))+] doing applications
 [+ENDFOR melt_application_file+]
   echo "///end stamp $melt_final_application_stamp"  >> $meltappstamptemp
   $GCCMELT_MOVE_IF_CHANGE $meltappstamptemp  $melt_final_application_stamp
-meltbuild_info [+(.(fromline))+] times after applications at `date '+%x %H:%M:%S'`: ;  times > /dev/stderr
+meltbuild_info [+(.(fromline))+] times after applications at `date '+%x %H:%M:%S'`: ;  times >&2
 } ## end meltbuild_do_applications  [+(.(fromline))+]
 
 if [ ! -f  "$melt_final_application_stamp" \
@@ -716,7 +716,7 @@ if [ ! -f $meltcheckruntime_stamp -o $meltcheckruntime_stamp -ot "$GCCMELT_RUNTI
 	$GCCMELT_MOVE_IF_CHANGE  $meltcheckruntime_argstemp $meltcheckruntime_args
 	[ -f "$meltcheckruntime_args" ] || meltbuild_error  [+(.(fromline))+] missing check runtime args  "$meltcheckruntime_args"
 	meltbuild_info [+(.(fromline))+] $meltcheckruntime_args  is
-	cat $meltcheckruntime_args < /dev/null > /dev/stderr
+	cat $meltcheckruntime_args < /dev/null >&2
 	if [ -n "$MELTGCCBUILTIN_BUILD_WITH_CXX" ]; then
 	    $GCCMELT_CC1_PREFIX $GCCMELT_CC1PLUS @$meltcheckruntime_args \
 		|| meltbuild_error [+(.(fromline))+] failed  $GCCMELT_CC1PLUS with arguments @$meltcheckruntime_args
@@ -746,7 +746,7 @@ if [ ! -f $meltcheckruntime_stamp -o $meltcheckruntime_stamp -ot "$GCCMELT_RUNTI
     $GCCMELT_MOVE_IF_CHANGE  $meltcheckhelloworld_argstemp $meltcheckhelloworld_args
     [ -f "$meltcheckhelloworld_args" ] || meltbuild_error  [+(.(fromline))+] missing check helloworld args  "$meltcheckhelloworld_args"
    meltbuild_info [+(.(fromline))+] $meltcheckhelloworld_args  is
-   cat $meltcheckhelloworld_args < /dev/null > /dev/stderr
+   cat $meltcheckhelloworld_args < /dev/null >&2
     $GCCMELT_CC1_PREFIX $GCCMELT_CC1 @$meltcheckhelloworld_args \
 	|| meltbuild_error [+(.(fromline))+] running helloworld failed with arguments @$meltcheckhelloworld_args
    meltbuild_info [+(.(fromline))+] done check helloworld with $meltcheckhelloworld_args
@@ -790,7 +790,7 @@ if [ "$melt_overall_goal" = "regenerate" ]; then
     echo meltbuild-empty-file.c >> $meltregen_argstemp
     $GCCMELT_MOVE_IF_CHANGE  $meltregen_argstemp $meltregen_args
    meltbuild_info [+(.(fromline))+] $meltregen_args  is
-   cat $meltregen_args < /dev/null > /dev/stderr
+   cat $meltregen_args < /dev/null >&2
     $GCCMELT_CC1_PREFIX $GCCMELT_CC1 @$meltregen_args \
 	|| meltbuild_error [+(.(fromline))+] failed with arguments @$meltregen_args
     meltbuild_info [+(.(fromline))+] done regenerate overall goal
@@ -817,7 +817,7 @@ if [   ! -f meltgendoc.texi [+FOR melt_translator_file " \\\n"+] -o meltbuild-so
    echo meltbuild-empty-file.c >> $meltgen_args
    $GCCMELT_MOVE_IF_CHANGE  $meltgen_args meltbuild-gendoc.args
    meltbuild_info [+(.(fromline))+]  meltbuild-gendoc.args is
-   cat meltbuild-gendoc.args < /dev/null > /dev/stderr
+   cat meltbuild-gendoc.args < /dev/null >&2
    $GCCMELT_CC1_PREFIX $GCCMELT_CC1 @meltbuild-gendoc.args \
      || meltbuild_error [+(.(fromline))+] failed with arguments @meltbuild-gendoc.args
 else
@@ -825,7 +825,7 @@ else
 fi
 
 ################
-meltbuild_info [+(.(fromline))+] successfully done with times at `date '+%x %H:%M:%S'`: ; times > /dev/stderr
+meltbuild_info [+(.(fromline))+] successfully done with times at `date '+%x %H:%M:%S'`: ; times >&2
 
 ################################################################
 #@ [+(.(fromline))+]
