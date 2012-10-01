@@ -1,5 +1,9 @@
 
 2012-10-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt (valdesc_special_data): Typo in the copy
+	chunk.
+
+2012-10-01  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.h (meltgc_specialdata_sprint): New declaration.
 	(melt_is_out): Always check the magic discr.
