@@ -1072,6 +1072,44 @@ meltgc_make_specialdata (melt_ptr_t discr_p)
 #undef spda_specv
 }
 
+
+
+char* 
+meltgc_specialdata_sprint (melt_ptr_t specd_p)
+{
+  char *res = NULL;
+  unsigned kind = 0;
+  struct melt_payload_descriptor_st* mpyd = NULL;
+  MELT_ENTERFRAME (1, NULL);
+#define specv  meltfram__.mcfr_varptr[0]
+#define spda_specv ((struct meltspecialdata_st*)(specv))
+  specv = specd_p;
+  if (melt_magic_discr ((melt_ptr_t) specv) != MELTOBMAG_SPECIAL_DATA)
+    goto end;
+  kind = spda_specv->meltspec_kind;
+  if (kind > 0 && kind < MELTPYD_MAX_RANK && (mpyd = meltpyd_array[kind]) != NULL)
+    {
+      gcc_assert (mpyd->meltpyd_magic == MELT_PAYLOAD_DESCRIPTOR_MAGIC);
+      gcc_assert (mpyd->meltpyd_rank == 0 || mpyd->meltpyd_rank == kind);
+      if (mpyd->meltpyd_sprint_rout)
+	res = (*mpyd->meltpyd_sprint_rout) (spda_specv, mpyd);
+      if (!res)
+	{
+	  char resbuf[80];
+	  snprintf (resbuf, sizeof(resbuf), "special:%s@@%p.%#lx",
+		    mpyd->meltpyd_name, (void*) specv,
+		    (long) spda_specv->meltspec_payload.meltpayload_ptr1);
+	  res = xstrdup (resbuf);
+	}
+    }
+ end:
+  MELT_EXITFRAME ();
+  return res;
+#undef specv
+#undef spda_specv
+}
+
+
 /***
  * the marking routine is registered thru PLUGIN_GGC_MARKING
  * it makes GGC play nice with MELT.
@@ -1440,26 +1478,30 @@ static char* meltpayload_file_sprint (struct meltspecialdata_st*, const struct m
 
 
 static struct melt_payload_descriptor_st meltpydescr_file = {
-  .meltpyd_magic = MELT_PAYLOAD_DESCRIPTOR_MAGIC,
-  .meltpyd_rank = meltpydkind_file,
-  .meltpyd_name = "file",
-  .meltpyd_data = NULL,
-  .meltpyd_destroy_rout = meltpayload_file_destroy,
-  .meltpyd_sprint_rout = meltpayload_file_sprint,
-  .meltpyd_spare1 = 0
+  /* .meltpyd_magic = */ MELT_PAYLOAD_DESCRIPTOR_MAGIC,
+  /* .meltpyd_rank = */ meltpydkind_file,
+  /* .meltpyd_name = */ "file",
+  /* .meltpyd_data = */ NULL,
+  /* .meltpyd_destroy_rout = */ meltpayload_file_destroy,
+  /* .meltpyd_sprint_rout = */ meltpayload_file_sprint,
+  /* .meltpyd_spare1 =*/ 0,
+  /* .meltpyd_spare2 =*/ 0,
+  /* .meltpyd_spare3 =*/ 0
 };
 
 
 static void meltpayload_rawfile_destroy (struct meltspecialdata_st*, const struct melt_payload_descriptor_st*);
 static char* meltpayload_rawfile_sprint (struct meltspecialdata_st*, const struct melt_payload_descriptor_st*);
 static struct melt_payload_descriptor_st meltpydescr_rawfile = {
-  .meltpyd_magic = MELT_PAYLOAD_DESCRIPTOR_MAGIC,
-  .meltpyd_rank = meltpydkind_rawfile,
-  .meltpyd_name = "rawfile",
-  .meltpyd_data = NULL,
-  .meltpyd_destroy_rout = meltpayload_rawfile_destroy,
-  .meltpyd_sprint_rout = meltpayload_rawfile_sprint,
-  .meltpyd_spare1 = 0
+  /* .meltpyd_magic = */ MELT_PAYLOAD_DESCRIPTOR_MAGIC,
+  /* .meltpyd_rank = */ meltpydkind_rawfile,
+  /* .meltpyd_name = */ "rawfile",
+  /* .meltpyd_data = */ NULL,
+  /* .meltpyd_destroy_rout = */ meltpayload_rawfile_destroy,
+  /* .meltpyd_sprint_rout = */ meltpayload_rawfile_sprint,
+  /* .meltpyd_spare1 = */ 0,
+  /* .meltpyd_spare2 =*/ 0,
+  /* .meltpyd_spare3 =*/ 0
 };
 
 static void melt_payload_initialize_static_descriptors (void)
@@ -1504,31 +1546,45 @@ static char* meltpayload_file_sprint (struct meltspecialdata_st*, const struct m
 
 
 static void 
-meltpayload_rawfile_destroy (struct meltspecialdata_st*sd, const struct melt_payload_descriptor_st*mpd)
+meltpayload_rawfile_destroy (struct meltspecialdata_st*sd, const struct melt_payload_descriptor_st*mpd ATTRIBUTE_UNUSED)
 {
-  melt_fatal_error("meltpayload_rawfile_destroy unimplemented sd@%p", sd);
+  if (sd->meltspec_payload.meltpayload_file1)
+    fflush (sd->meltspec_payload.meltpayload_file1);
+  sd->meltspec_payload.meltpayload_file1 = NULL;
 }
 
 static char* 
-meltpayload_rawfile_sprint (struct meltspecialdata_st*sd, const struct melt_payload_descriptor_st*mpd)
+meltpayload_rawfile_sprint (struct meltspecialdata_st*sd, const struct melt_payload_descriptor_st*mpd ATTRIBUTE_UNUSED)
 {
-  melt_fatal_error("meltpayload_rawfile_sprint unimplemented sd@%p", sd);
-  return NULL;
+  char buf[64];
+  if (sd->meltspec_payload.meltpayload_file1)
+    snprintf (buf, sizeof(buf), "raw:FILE@%p#%d", 
+	      (void*)(sd->meltspec_payload.meltpayload_file1), fileno (sd->meltspec_payload.meltpayload_file1));
+  else
+    strcpy (buf, "raw-NULL-FILE");
+  return xstrdup (buf);
 }
 
 
 
 static void 
-meltpayload_file_destroy (struct meltspecialdata_st*sd, const struct melt_payload_descriptor_st*mpd)
+meltpayload_file_destroy (struct meltspecialdata_st*sd, const struct melt_payload_descriptor_st*mpd ATTRIBUTE_UNUSED)
 {
-  melt_fatal_error("meltpayload_file_destroy unimplemented sd@%p", sd);
+  if (sd->meltspec_payload.meltpayload_file1)
+    fclose (sd->meltspec_payload.meltpayload_file1);
+  sd->meltspec_payload.meltpayload_file1 = NULL;
 }
 
 static char* 
-meltpayload_file_sprint (struct meltspecialdata_st*sd, const struct melt_payload_descriptor_st*mpd)
+meltpayload_file_sprint (struct meltspecialdata_st*sd, const struct melt_payload_descriptor_st*mpd ATTRIBUTE_UNUSED)
 {
-  melt_fatal_error("meltpayload_file_sprint unimplemented sd@%p", sd);
-  return NULL;
+  char buf[64];
+  if (sd->meltspec_payload.meltpayload_file1)
+    snprintf (buf, sizeof(buf), "FILE@%p#%d", 
+	      (void*)(sd->meltspec_payload.meltpayload_file1), fileno (sd->meltspec_payload.meltpayload_file1));
+  else
+    strcpy (buf, "NULL-FILE");
+  return xstrdup (buf);
 }
 
 
@@ -12960,7 +13016,70 @@ end:
 }
 
 
+static FILE* 
+meltgc_set_dump_file (FILE* dumpf)
+{
+  FILE *oldf = NULL;
+  MELT_ENTERFRAME(1, NULL);
+#define dumpv        meltfram__.mcfr_varptr[0]
+  dumpv = melt_get_inisysdata (MELTFIELD_SYSDATA_DUMPFILE);
+  if (melt_discr((melt_ptr_t) dumpv) == (meltobject_ptr_t) MELT_PREDEF(DISCR_RAWFILE))
+    {
+#if MELT_HAS_OBMAG_SPEC
+      if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) 
+	{
+	  oldf = ((struct meltspecial_st*)dumpv)->specialpayload.sp_file;
+	  if (oldf) 
+	    fflush (oldf);
+	  ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = dumpf;
+	  goto end;
+	}
+#endif
+      if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPECIAL_DATA
+	  && ((struct meltspecialdata_st*)dumpv)->meltspec_kind == meltpydkind_rawfile)
+	{
+	  oldf = ((struct meltspecialdata_st*)dumpv)->meltspec_payload.meltpayload_file1;
+	  if (oldf) 
+	    fflush (oldf);
+	  ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = dumpf;
+	  goto end;
+	}
+    }
+ end:
+  MELT_EXITFRAME();
+  return oldf;
+#undef dumpv
+}
 
+
+static void
+meltgc_restore_dump_file (FILE* oldf)
+{
+  MELT_ENTERFRAME(1, NULL);
+#define dumpv        meltfram__.mcfr_varptr[0]
+  if (dump_file)
+    fflush (dump_file);
+  dumpv = melt_get_inisysdata (MELTFIELD_SYSDATA_DUMPFILE);
+  if (melt_discr((melt_ptr_t) dumpv) == (meltobject_ptr_t) MELT_PREDEF(DISCR_RAWFILE))
+    {
+#if MELT_HAS_OBMAG_SPEC
+      if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) 
+	{
+	  ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = oldf;
+	  goto end;
+	}
+#endif
+      if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPECIAL_DATA
+	  && ((struct meltspecialdata_st*)dumpv)->meltspec_kind == meltpydkind_rawfile)
+	{
+	  ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = oldf;
+	  goto end;
+	}
+    }
+ end:
+  MELT_EXITFRAME();
+#undef dumpv
+}
 
 /* the gate function of MELT gimple passes */
 static bool
@@ -12972,12 +13091,11 @@ meltgc_gimple_gate(void)
 #if MELT_HAVE_DEBUG
   char curlocbuf[120];
 #endif
-  MELT_ENTERFRAME(6, NULL);
+  MELT_ENTERFRAME(4, NULL);
 #define passv        meltfram__.mcfr_varptr[0]
 #define passdictv    meltfram__.mcfr_varptr[1]
 #define closv        meltfram__.mcfr_varptr[2]
 #define resv         meltfram__.mcfr_varptr[3]
-#define dumpv        meltfram__.mcfr_varptr[4]
   if (!modstr)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr)
@@ -12998,11 +13116,7 @@ meltgc_gimple_gate(void)
   closv = melt_object_nth_field((melt_ptr_t) passv, MELTFIELD_GCCPASS_GATE);
   if (melt_magic_discr((melt_ptr_t) closv) != MELTOBMAG_CLOSURE)
     goto end;
-  dumpv = melt_get_inisysdata (MELTFIELD_SYSDATA_DUMPFILE);
-  if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) {
-    oldf = ((struct meltspecial_st*)dumpv)->specialpayload.sp_file;
-    ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = dump_file;
-  }
+  oldf = meltgc_set_dump_file (dump_file);
   debugeprintf ("meltgc_gimple_gate pass %s before apply", current_pass->name);
   MELT_LOCATION_HERE_PRINTF (curlocbuf, "meltgc_gimple_gate pass %s before apply", current_pass->name);
   MELT_CHECK_SIGNAL ();
@@ -13014,12 +13128,7 @@ meltgc_gimple_gate(void)
   ok = (resv != NULL);
   debugeprintf ("meltgc_gimple_gate pass %s after apply ok=%d",
                 current_pass->name, ok);
-  if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) {
-    FILE *df = melt_get_file ((melt_ptr_t) dumpv);
-    if (df)
-      fflush (df);
-    ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = oldf;
-  };
+  meltgc_restore_dump_file (oldf);
 end:
   debugeprintf ("meltgc_gimple_gate pass %s ended ok=%d", current_pass->name, ok);
   MELT_EXITFRAME();
@@ -13028,7 +13137,6 @@ end:
 #undef passdictv
 #undef closv
 #undef resv
-#undef dumpv
 }
 
 
@@ -13041,19 +13149,17 @@ meltgc_gimple_execute (void)
 #if MELT_HAVE_DEBUG
   char curlocbuf[120];
 #endif
-  MELT_ENTERFRAME(5, NULL);
+  MELT_ENTERFRAME(4, NULL);
 #define passv        meltfram__.mcfr_varptr[0]
 #define passdictv    meltfram__.mcfr_varptr[1]
 #define closv        meltfram__.mcfr_varptr[2]
 #define resvalv      meltfram__.mcfr_varptr[3]
-#define dumpv        meltfram__.mcfr_varptr[4]
   if (!modstr)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
     goto end;
   MELT_LOCATION_HERE("meltgc_gimple_execute");
   MELT_CHECK_SIGNAL ();
-  dumpv = melt_get_inisysdata (MELTFIELD_SYSDATA_DUMPFILE);
   gcc_assert (current_pass != NULL);
   gcc_assert (current_pass->name != NULL);
   gcc_assert (current_pass->type == GIMPLE_PASS);
@@ -13082,10 +13188,7 @@ meltgc_gimple_execute (void)
       debug_tree (cfun->decl);
     debugeprintf ("gimple_execute passname %s before apply",
                   current_pass->name);
-    if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) {
-      oldf = ((struct meltspecial_st*)dumpv)->specialpayload.sp_file;
-      ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = dump_file;
-    };
+    oldf = meltgc_set_dump_file (dump_file);
     debugeprintf ("gimple_execute passname %s before apply dbgcounter %ld",
                   current_pass->name, passdbgcounter);
     /* apply with one extra long result */
@@ -13100,12 +13203,7 @@ meltgc_gimple_execute (void)
                   restab);
     debugeprintf ("gimple_execute passname %s after apply dbgcounter %ld",
                   current_pass->name, passdbgcounter);
-    if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) {
-      FILE *df = melt_get_file ((melt_ptr_t) dumpv);
-      if (df)
-        fflush(df);
-      ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = oldf;
-    };
+    meltgc_restore_dump_file (oldf);
     MELT_LOCATION_HERE_PRINTF(curlocbuf, "meltgc_gimple_execute pass %s after apply",
                               current_pass->name);
     MELT_CHECK_SIGNAL ();
@@ -13122,7 +13220,6 @@ end:
 #undef passdictv
 #undef closv
 #undef resvalv
-#undef dumpv
 }
 
 
@@ -13137,12 +13234,11 @@ meltgc_rtl_gate(void)
   int ok = TRUE;
   FILE* oldf = NULL;
   static const char* modstr;
-  MELT_ENTERFRAME(6, NULL);
+  MELT_ENTERFRAME(4, NULL);
 #define passv        meltfram__.mcfr_varptr[0]
 #define passdictv    meltfram__.mcfr_varptr[1]
 #define closv        meltfram__.mcfr_varptr[2]
 #define resv         meltfram__.mcfr_varptr[3]
-#define dumpv        meltfram__.mcfr_varptr[4]
   if (!modstr)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
@@ -13165,11 +13261,7 @@ meltgc_rtl_gate(void)
   closv = melt_object_nth_field((melt_ptr_t) passv, MELTFIELD_GCCPASS_GATE);
   if (melt_magic_discr((melt_ptr_t) closv) != MELTOBMAG_CLOSURE)
     goto end;
-  dumpv = melt_get_inisysdata (MELTFIELD_SYSDATA_DUMPFILE);
-  if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) {
-    oldf = ((struct meltspecial_st*)dumpv)->specialpayload.sp_file;
-    ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = dump_file;
-  }
+  oldf = meltgc_set_dump_file (dump_file);
   MELT_LOCATION_HERE_PRINTF(curlocbuf, "meltgc_rtl_gate pass %s before apply", current_pass->name);
   MELT_CHECK_SIGNAL ();
   resv =
@@ -13179,12 +13271,7 @@ meltgc_rtl_gate(void)
                 (union meltparam_un *) 0);
   MELT_LOCATION_HERE_PRINTF(curlocbuf, "meltgc_rtl_gate pass %s after apply", current_pass->name);
   MELT_CHECK_SIGNAL ();
-  if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) {
-    FILE *df = melt_get_file ((melt_ptr_t) dumpv);
-    if (df)
-      fflush (df);
-    ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = oldf;
-  };
+  meltgc_restore_dump_file (oldf);
   ok = (resv != NULL);
 end:
   debugeprintf ("meltgc_rtl_gate pass %s end ok=%d", current_pass->name, ok);
@@ -13203,12 +13290,11 @@ meltgc_rtl_execute(void)
 #if MELT_HAVE_DEBUG
   char curlocbuf[120];
 #endif
-  MELT_ENTERFRAME(6, NULL);
+  MELT_ENTERFRAME(4, NULL);
 #define passv        meltfram__.mcfr_varptr[0]
 #define passdictv    meltfram__.mcfr_varptr[1]
 #define closv        meltfram__.mcfr_varptr[2]
 #define resvalv      meltfram__.mcfr_varptr[3]
-#define dumpv        meltfram__.mcfr_varptr[4]
   if (!modstr)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
@@ -13235,11 +13321,7 @@ meltgc_rtl_execute(void)
     long passdbgcounter = melt_dbgcounter;
     long todol = 0;
     union meltparam_un restab[1];
-    dumpv = melt_get_inisysdata (MELTFIELD_SYSDATA_DUMPFILE);
-    if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) {
-      oldf = ((struct meltspecial_st*)dumpv)->specialpayload.sp_file;
-      ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = dump_file;
-    }
+    oldf = meltgc_set_dump_file (dump_file);
     memset (&restab, 0, sizeof (restab));
     restab[0].meltbp_longptr = &todol;
     debugeprintf
@@ -13261,12 +13343,7 @@ meltgc_rtl_execute(void)
     MELT_CHECK_SIGNAL ();
     debugeprintf ("rtl_execute passname %s after apply dbgcounter %ld",
                   current_pass->name, passdbgcounter);
-    if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) {
-      FILE *df = melt_get_file ((melt_ptr_t) dumpv);
-      if (df)
-        fflush (df);
-      ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = oldf;
-    };
+    meltgc_restore_dump_file (oldf);
     if (resvalv)
       res = (unsigned int) todol;
     meltgc_run_meltpass_after_hook ();
@@ -13279,7 +13356,6 @@ end:
 #undef passdictv
 #undef closv
 #undef resvalv
-#undef dumpv
 }
 
 
@@ -13294,12 +13370,11 @@ meltgc_simple_ipa_gate(void)
 #endif
   FILE* oldf = NULL;
   static const char*modstr;
-  MELT_ENTERFRAME(6, NULL);
+  MELT_ENTERFRAME(4, NULL);
 #define passv        meltfram__.mcfr_varptr[0]
 #define passdictv    meltfram__.mcfr_varptr[1]
 #define closv        meltfram__.mcfr_varptr[2]
 #define resv         meltfram__.mcfr_varptr[3]
-#define dumpv        meltfram__.mcfr_varptr[4]
   if (!modstr)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
@@ -13322,11 +13397,7 @@ meltgc_simple_ipa_gate(void)
   closv = melt_object_nth_field((melt_ptr_t) passv, MELTFIELD_GCCPASS_GATE);
   if (melt_magic_discr((melt_ptr_t) closv) != MELTOBMAG_CLOSURE)
     goto end;
-  dumpv = melt_get_inisysdata (MELTFIELD_SYSDATA_DUMPFILE);
-  if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) {
-    oldf = ((struct meltspecial_st*)dumpv)->specialpayload.sp_file;
-    ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = dump_file;
-  }
+  oldf = meltgc_set_dump_file (dump_file);
   debugeprintf ("meltgc_simple_ipa_gate pass %s before apply", current_pass->name);
   MELT_LOCATION_HERE_PRINTF (curlocbuf,
                              "meltgc_simple_ipa_gate pass %s before apply", current_pass->name);
@@ -13341,12 +13412,7 @@ meltgc_simple_ipa_gate(void)
   MELT_LOCATION_HERE_PRINTF (curlocbuf,
                              "meltgc_simple_ipa_gate pass %s after apply", current_pass->name);
   MELT_CHECK_SIGNAL ();
-  if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) {
-    FILE *df = melt_get_file ((melt_ptr_t) dumpv);
-    if (df)
-      fflush (df);
-    ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = oldf;
-  };
+  meltgc_restore_dump_file (oldf);
 end:
   debugeprintf ("meltgc_simple_ipa_gate pass %s end ok=%d", current_pass->name, ok);
   MELT_EXITFRAME();
@@ -13370,12 +13436,11 @@ meltgc_simple_ipa_execute(void)
 #if MELT_HAVE_DEBUG
   char curlocbuf[120];
 #endif
-  MELT_ENTERFRAME(6, NULL);
+  MELT_ENTERFRAME(4, NULL);
 #define passv        meltfram__.mcfr_varptr[0]
 #define passdictv    meltfram__.mcfr_varptr[1]
 #define closv        meltfram__.mcfr_varptr[2]
 #define resvalv      meltfram__.mcfr_varptr[3]
-#define dumpv        meltfram__.mcfr_varptr[4]
   if (!modstr)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
@@ -13409,11 +13474,7 @@ meltgc_simple_ipa_execute(void)
      current_pass->name, melt_dbgcounter);
     debugeprintf ("simple_ipa_execute passname %s before apply",
                   current_pass->name);
-    dumpv = melt_get_inisysdata (MELTFIELD_SYSDATA_DUMPFILE);
-    if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) {
-      oldf = ((struct meltspecial_st*)dumpv)->specialpayload.sp_file;
-      ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = dump_file;
-    }
+    oldf = meltgc_set_dump_file (dump_file);
     debugeprintf ("meltgc_simple_ipa_execute pass %s before apply", current_pass->name);
     MELT_LOCATION_HERE_PRINTF (curlocbuf,
                                "meltgc_simple_ipa_execute pass %s before apply", current_pass->name);
@@ -13424,14 +13485,9 @@ meltgc_simple_ipa_execute(void)
                   (melt_ptr_t) passv, "",
                   (union meltparam_un *) 0, MELTBPARSTR_LONG "",
                   restab);
-    if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) {
-      FILE *df = melt_get_file ((melt_ptr_t) dumpv);
-      if (df)
-        fflush (df);
-      ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = oldf;
-    };
     MELT_LOCATION_HERE_PRINTF (curlocbuf,
                                "meltgc_simple_ipa_execute pass %s after apply", current_pass->name);
+    meltgc_restore_dump_file (oldf);
     MELT_CHECK_SIGNAL ();
     debugeprintf ("simple_ipa_execute passname %s after apply dbgcounter %ld",
                   current_pass->name, passdbgcounter);

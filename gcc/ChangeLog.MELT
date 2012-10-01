@@ -1,3 +1,20 @@
+
+2012-10-01  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h (meltgc_specialdata_sprint): New declaration.
+	(melt_is_out): Always check the magic discr.
+
+	* melt-runtime.c (meltgc_specialdata_sprint): New function.
+	(meltpydescr_file, meltpydescr_rawfile): Don't use designated
+	field initializers.
+	(meltpayload_rawfile_destroy, meltpayload_rawfile_sprint)
+	(meltpayload_file_destroy, meltpayload_file_sprint): Implement.
+	(meltgc_set_dump_file, meltgc_restore_dump_file): New static
+	functions.
+	(meltgc_gimple_gate, meltgc_gimple_execute, meltgc_rtl_gate)
+	(meltgc_rtl_execute, meltgc_simple_ipa_gate)
+	(meltgc_simple_ipa_execute): Use them.
+
 2012-10-01  Alexandre Lissy  <alissy@mandriva.com>
 
 	* melt-build-script.tpl: Use >&2 instead of >/dev/stderr

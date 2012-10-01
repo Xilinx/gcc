@@ -767,6 +767,7 @@ enum {
   meltpydkind__last
 };
 
+/* Gives the special kind of some special data. */
 static inline unsigned
 melt_special_kind (melt_ptr_t p)
 {
@@ -775,6 +776,10 @@ melt_special_kind (melt_ptr_t p)
   else
     return 0;
 }
+
+/* Gives a malloc-ed string -to be freed by the caller routine- for
+   short printing of a special data, or else NULL.  */
+char* meltgc_specialdata_sprint (melt_ptr_t ptr);
 
 /* test if a pointer is an output - either a string buffer or a file */
 static inline bool
@@ -793,13 +798,15 @@ melt_is_out (melt_ptr_t p)
 static inline bool
 melt_is_file (melt_ptr_t p)
 {
-  int d = melt_magic_discr(p);
+  int d = melt_magic_discr (p);
   unsigned k = melt_special_kind (p);
   return 
+    (d == MELTOBMAG_SPECIAL_DATA 
 #if MELT_HAS_OBMAG_SPEC
-    d == MELTOBMAG_SPEC_FILE || d == MELTOBMAG_SPEC_RAWFILE ||
+     || d == MELTOBMAG_SPEC_FILE || d == MELTOBMAG_SPEC_RAWFILE
 #endif
-    k == meltpydkind_file || k == meltpydkind_rawfile;
+     ) &&
+    (k == meltpydkind_file || k == meltpydkind_rawfile);
 }
 
 
