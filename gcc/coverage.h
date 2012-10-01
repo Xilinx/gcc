@@ -45,7 +45,12 @@ extern int coverage_counter_alloc (unsigned /*counter*/, unsigned/*num*/);
 extern tree tree_coverage_counter_ref (unsigned /*counter*/, unsigned/*num*/);
 /* Use a counter address from the most recent allocation.  */
 extern tree tree_coverage_counter_addr (unsigned /*counter*/, unsigned/*num*/);
-
+/* Get the load latency info for the current file and line */
+extern gcov_pmu_ll_info_t *get_coverage_pmu_latency (const char*,
+                                                     gcov_unsigned_t);
+/* Get the load latency info for the current file and line */
+extern gcov_pmu_brm_info_t *
+get_coverage_pmu_branch_mispredict (const char*, gcov_unsigned_t);
 /* Get all the counters for the current function.  */
 extern gcov_type *get_coverage_counts (unsigned /*counter*/,
 				       unsigned /*expected*/,
@@ -69,6 +74,9 @@ extern void coverage_dc_end_function (void);
 /* True if a function entry corresponding to the given function identifier
    is present in the coverage internal data structures.  */
 extern bool coverage_function_present (unsigned fn_ident);
+
+/* True if there is PMU data present in this compilation. */
+extern bool pmu_data_present (void);
 
 extern tree get_gcov_type (void);
 extern tree get_gcov_unsigned_t (void);

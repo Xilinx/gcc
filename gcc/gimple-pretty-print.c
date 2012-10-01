@@ -26,8 +26,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "diagnostic.h"
+#include "basic-block.h"
 #include "tree-pretty-print.h"
 #include "gimple-pretty-print.h"
+#include "coverage.h"
 #include "hashtab.h"
 #include "tree-flow.h"
 #include "tree-pass.h"
@@ -1629,6 +1631,10 @@ dump_gimple_phi (pretty_printer *buffer, gimple phi, int spc, int flags)
 	  pp_decimal_int (buffer, xloc.column);
 	  pp_string (buffer, "] ");
 	}
+      if ((flags & TDF_PMU) && pmu_data_present ()
+          && (gimple_phi_arg_location (phi, i)))
+        dump_pmu (buffer, gimple_phi_arg_location (phi, i));
+
       dump_generic_node (buffer, gimple_phi_arg_def (phi, i), spc, flags,
 			 false);
       pp_character (buffer, '(');
@@ -1874,6 +1880,9 @@ dump_gimple_stmt (pretty_printer *buffer, gimple gs, int spc, int flags)
 	}
       pp_string (buffer, "] ");
     }
+
+  if ((flags & TDF_PMU) && pmu_data_present () && gimple_has_location (gs))
+    dump_pmu (buffer, gimple_location (gs));
 
   if (flags & TDF_EH)
     {

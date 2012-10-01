@@ -1653,6 +1653,12 @@ common_handle_option (struct gcc_options *opts,
 	opts->x_flag_gcse_after_reload = value;
       break;
 
+    case OPT_fpmu_profile_use_:
+      opts->x_pmu_profile_data = xstrdup (arg);
+      opts->x_flag_pmu_profile_use = true;
+      value = true;
+      break;
+
     case OPT_fprofile_generate_:
       opts->x_profile_data_prefix = xstrdup (arg);
       value = true;

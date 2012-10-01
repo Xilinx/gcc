@@ -399,7 +399,7 @@ Objective-C and Objective-C++ Dialects}.
 -fprofile-generate=@var{path} -fprofile-generate-sampling @gol
 -fprofile-use -fprofile-use=@var{path} -fprofile-values @gol
 -fpmu-profile-generate=@var{pmuoption} @gol
--fpmu-profile-use=@var{pmuoption} @gol
+-fpmu-profile-use=@var{pmudata} @gol
 -freciprocal-math -free -fregmove -frename-registers -freorder-blocks @gol
 -frecord-gcc-switches-in-elf@gol
 -freorder-blocks-and-partition -freorder-functions @gol
@@ -8407,12 +8407,11 @@ displayed using coverage tool gcov. The params variable
 "pmu_profile_n_addresses" can be used to restrict PMU data collection
 to only this many addresses.
 
-@item -fpmu-profile-use=@var{pmuoption}
+@item -fpmu-profile-use=@var{pmudata}
 @opindex fpmu-profile-use
 
-Enable performance monitoring unit (PMU) profiling based
-optimizations.  Currently only @var{load-latency} and
-@var{branch-mispredict} are supported.
+If @var{pmudata} is specified, GCC will read PMU data from @var{pmudata}. If
+unspecified, PMU data will be read from 'pmuprofile.gcda'.
 
 @item -fprofile-strip=@var{base_suffix}
 @opindex fprofile-strip

@@ -1695,9 +1695,13 @@ fpmu-profile-generate=
 Common Joined RejectNegative Var(flag_pmu_profile_generate)
 -fpmu-profile-generate=[load-latency]  Generate pmu profile for cache misses. Currently only pfmon based load latency profiling is supported on Intel/PEBS and AMD/IBS platforms.
 
+fpmu-profile-use
+Common Var(flag_pmu_profile_use)
+-fpmu-profile-use=[pmuprofile.gcda]  The pmu profile data file to use for pmu feedback.
+
 fpmu-profile-use=
-Common Joined RejectNegative Var(flag_pmu_profile_use)
--fpmu-profile-use=[load-latency]  Use pmu profile data while optimizing.  Currently only perfmon based load latency profiling is supported on Intel/PEBS and AMD/IBS platforms.
+Common Joined RejectNegative Var(pmu_profile_data)
+-fpmu-profile-use=[pmuprofile.gcda]  The pmu profile data file to use for pmu feedback.
 
 fpredictive-commoning
 Common Report Var(flag_predictive_commoning) Optimization

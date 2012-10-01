@@ -3022,9 +3022,9 @@ static void process_pmu_profile (void)
         {
           gcov_pmu_st_entry_t *st_entry = XCNEW (gcov_pmu_st_entry_t);
           gcov_read_pmu_string_table_entry (st_entry, length);
+          string_table->st_count++;
           /* Verify that we read string table entries in the right order */
           gcc_assert (st_entry->index == string_table->st_count);
-          string_table->st_count++;
           if (string_table->st_count >= string_table->alloc_st_count)
             {
               string_table->alloc_st_count *= 2;

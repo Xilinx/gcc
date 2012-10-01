@@ -25,6 +25,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "output.h"
+#include "basic-block.h"
+#include "gcov-io.h"
+#include "coverage.h"
 #include "tree-pretty-print.h"
 #include "hashtab.h"
 #include "tree-flow.h"
@@ -51,6 +54,7 @@ static void do_niy (pretty_printer *, const_tree);
 
 static pretty_printer buffer;
 static int initialized = 0;
+static char *file_prefix = NULL;
 
 /* Try to print something for an unknown tree code.  */
 
@@ -461,6 +465,31 @@ dump_omp_clauses (pretty_printer *buffer, tree clause, int spc, int flags)
     }
 }
 
+/* Dump detailed information about pmu load latency events */
+
+static void
+dump_load_latency_details (pretty_printer *buffer, gcov_pmu_ll_info_t *ll_info)
+{
+  if (ll_info == NULL)
+    return;
+
+  pp_string (buffer, "\n[load latency contribution: ");
+  pp_scalar (buffer, "%.2f%%\n", ll_info->self / 100.f);
+  pp_string (buffer, "average cycle distribution:\n");
+  pp_scalar (buffer, "%.2f%% <= 10 cycles\n",
+             ll_info->lt_10 / 100.f);
+  pp_scalar (buffer, "%.2f%% <= 32 cycles\n",
+             ll_info->lt_32 / 100.f);
+  pp_scalar (buffer, "%.2f%% <= 64 cycles\n",
+             ll_info->lt_64 / 100.f);
+  pp_scalar (buffer, "%.2f%% <= 256 cycles\n",
+             ll_info->lt_256 / 100.f);
+  pp_scalar (buffer, "%.2f%% <= 1024 cycles\n",
+             ll_info->lt_1024 / 100.f);
+  pp_scalar (buffer, "%.2f%% > 1024 cycles\n",
+             ll_info->gt_1024 / 100.f);
+  pp_string (buffer, "] ");
+}
 
 /* Dump location LOC to BUFFER.  */
 
@@ -485,6 +514,50 @@ dump_location (pretty_printer *buffer, location_t loc)
   pp_string (buffer, "] ");
 }
 
+/* Dump PMU info about LOC to BUFFER.  */
+
+void
+dump_pmu (pretty_printer *buffer, location_t loc)
+{
+  expanded_location xloc = expand_location (loc);
+  gcov_pmu_ll_info_t *ll_info;
+  gcov_pmu_brm_info_t *brm_info;
+  char *src;
+  uint64_t src_size;
+
+  if (!xloc.file)
+    return;
+
+  if (!file_prefix)
+    file_prefix = getpwd ();
+
+  if (!IS_ABSOLUTE_PATH (xloc.file))
+    {
+      src_size = strlen (xloc.file) + strlen (file_prefix) + 1;
+      src = XCNEWVEC (char, src_size + 1);
+      strcpy (src, file_prefix);
+      strcat (src, "/");
+      strcat (src, xloc.file);
+    }
+  else
+    src = xstrdup (xloc.file);
+
+  ll_info = get_coverage_pmu_latency (src, xloc.line);
+  brm_info =
+      get_coverage_pmu_branch_mispredict (src, xloc.line);
+
+  if (ll_info)
+    dump_load_latency_details (buffer, ll_info);
+
+  if (brm_info)
+    {
+      pp_string (buffer, "[branch misprediction contribution: ");
+      pp_scalar (buffer, "%.2f%%", brm_info->self / 100.f);
+      pp_string (buffer, "] ");
+    }
+
+  XDELETE (src);
+}
 
 /* Dump lexical block BLOCK.  BUFFER, SPC and FLAGS are as in
    dump_generic_node.  */
@@ -621,6 +694,9 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 
   if ((flags & TDF_LINENO) && EXPR_HAS_LOCATION (node))
     dump_location (buffer, EXPR_LOCATION (node));
+
+  if ((flags & TDF_PMU) && pmu_data_present () && EXPR_HAS_LOCATION (node))
+    dump_pmu (buffer, EXPR_LOCATION (node));
 
   switch (TREE_CODE (node))
     {

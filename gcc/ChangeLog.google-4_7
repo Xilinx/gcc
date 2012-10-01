@@ -1,3 +1,41 @@
+2012-10-01  Teresa Johnson  <tejohnson@google.com>
+
+        Backport 191932 from google/main:
+
+        Add a new dump flag that dumps PMU profile information using the -pmu
+        dump option.
+
+        2012-10-01  Teresa Johnson  <tejohnson@google.com>
+                    Chris Manghane  <cmang@google.com>
+
+	* doc/invoke.texi: Update -fpmu-profile-use option.
+	* tree-dump.c: Add new dump flag.
+	* tree-pretty-print.c (dump_load_latency_details): New function.
+	(dump_pmu): Ditto.
+	(dump_generic_node): Add support for new dump flag.
+	* tree-pretty-print.h (dump_pmu): Declare.
+	* tree-pass.h (enum tree_dump_index): Add new dump flag.
+	* gcov.c (process_pmu_profile): Fix string table count assert.
+	* opts.c (OPT_fpmu_profile_use_): Add support for -fpmu-profile-use.
+	* gimple-pretty-print.c (dump_gimple_phi): Add support for new dump
+        flag.
+	(dump_gimple_stmt): Ditto.
+	* coverage.c (struct pmu_entry): New structure.
+        (struct gcov_pmu_summary): Ditto.
+	(htab_pmu_entry_hash): New function.
+	(htab_pmu_entry_eq): Ditto.
+	(htab_pmu_entry_del): Ditto.
+	(read_pmu_file): Ditto.
+	(get_pmu_hash_entry): Ditto.
+	(process_pmu_data): Ditto.
+	(get_coverage_pmu_latency): Ditto.
+	(get_coverage_pmu_branch_mispredict): Ditto.
+	(pmu_data_present): Ditto.
+	(coverage_init): Add pmu file read support.
+	* coverage.h (get_coverage_pmu_latency): Declare.
+        (get_coverage_pmu_branch_mispredict): Ditto.
+	* common.opt: Update -fpmu-profile-use option.
+
 2012-09-28  Rong Xu  <xur@google.com>
 
 	Google Ref: b/7005205
