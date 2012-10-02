@@ -1,6 +1,11 @@
 
 2012-10-02  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-base.melt (valdesc_special_data): Correct the
+	copying chunk again.
+
+2012-10-02  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.h: Remove MELT_HAS_OBMAG_SPEC everywhere.
 
 	* melt-runtime.c: Likewise.
