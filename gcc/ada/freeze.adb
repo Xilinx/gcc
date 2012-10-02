@@ -24,6 +24,7 @@
 ------------------------------------------------------------------------------
 
 with Atree;    use Atree;
+with Checks;   use Checks;
 with Debug;    use Debug;
 with Einfo;    use Einfo;
 with Elists;   use Elists;
@@ -2570,8 +2571,15 @@ package body Freeze is
       --  It is improper to freeze an external entity within a generic because
       --  its freeze node will appear in a non-valid context. The entity will
       --  be frozen in the proper scope after the current generic is analyzed.
+      --  However, aspects must be analyzed because they may be queried later
+      --  within the generic itself, and the corresponding pragma or attribute
+      --  definition has not been analyzed yet.
 
       elsif Inside_A_Generic and then External_Ref_In_Generic (Test_E) then
+         if Has_Delayed_Aspects (E) then
+            Analyze_Aspects_At_Freeze_Point (E);
+         end if;
+
          return No_List;
 
       --  AI05-0213: A formal incomplete type does not freeze the actual. In
@@ -2655,12 +2663,20 @@ package body Freeze is
          end;
       end if;
 
-      --  Deal with delayed aspect specifications. The analysis of the
-      --  aspect is required to be delayed to the freeze point, thus we
-      --  analyze the pragma or attribute definition clause in the tree at
-      --  this point. We also analyze the aspect specification node at the
-      --  freeze point when the aspect doesn't correspond to
-      --  pragma/attribute definition clause.
+      --  Add checks to detect proper initialization of scalars that may appear
+      --  as subprogram parameters.
+
+      if Is_Subprogram (E)
+        and then Check_Validity_Of_Parameters
+      then
+         Apply_Parameter_Validity_Checks (E);
+      end if;
+
+      --  Deal with delayed aspect specifications. The analysis of the aspect
+      --  is required to be delayed to the freeze point, thus we analyze the
+      --  pragma or attribute definition clause in the tree at this point. We
+      --  also analyze the aspect specification node at the freeze point when
+      --  the aspect doesn't correspond to pragma/attribute definition clause.
 
       if Has_Delayed_Aspects (E) then
          Analyze_Aspects_At_Freeze_Point (E);

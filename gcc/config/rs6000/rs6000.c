@@ -58,6 +58,7 @@
 #include "tm-constrs.h"
 #include "opts.h"
 #include "tree-vectorizer.h"
+#include "dumpfile.h"
 #if TARGET_XCOFF
 #include "xcoffout.h"  /* get declarations of xcoff_*_section_name */
 #endif
@@ -2445,21 +2446,34 @@ rs6000_option_override_internal (bool global_init_p)
       rs6000_cpu_index = cpu_index = main_target_opt->x_rs6000_cpu_index;
       have_cpu = true;
     }
+  else if (implicit_cpu)
+    {
+      rs6000_cpu_index = cpu_index = rs6000_cpu_name_lookup (implicit_cpu);
+      have_cpu = true;
+    }
   else
     {
-      const char *default_cpu =
-        (implicit_cpu ? implicit_cpu
-         : (TARGET_POWERPC64 ? "powerpc64" : "powerpc"));
-
+      const char *default_cpu = (TARGET_POWERPC64 ? "powerpc64" : "powerpc");
       rs6000_cpu_index = cpu_index = rs6000_cpu_name_lookup (default_cpu);
-      have_cpu = implicit_cpu != 0;
+      have_cpu = false;
     }
 
   gcc_assert (cpu_index >= 0);
 
-  target_flags &= ~set_masks;
-  target_flags |= (processor_target_table[cpu_index].target_enable
-		   & set_masks);
+  /* If we have a cpu, either through an explicit -mcpu=<xxx> or if the
+     compiler was configured with --with-cpu=<xxx>, replace all of the ISA bits
+     with those from the cpu, except for options that were explicitly set.  If
+     we don't have a cpu, do not override the target bits set in
+     TARGET_DEFAULT.  */
+  if (have_cpu)
+    {
+      target_flags &= ~set_masks;
+      target_flags |= (processor_target_table[cpu_index].target_enable
+		       & set_masks);
+    }
+  else
+    target_flags |= (processor_target_table[cpu_index].target_enable
+		     & ~target_flags_explicit);
 
   if (rs6000_tune_index >= 0)
     tune_index = rs6000_tune_index;
@@ -2725,10 +2739,6 @@ rs6000_option_override_internal (bool global_init_p)
 	  else
 	    rs6000_altivec_abi = 1;
 	}
-
-      /* Enable VRSAVE for AltiVec ABI, unless explicitly overridden.  */
-      if (!global_options_set.x_TARGET_ALTIVEC_VRSAVE)
-	TARGET_ALTIVEC_VRSAVE = rs6000_altivec_abi;
     }
 
   /* Set the Darwin64 ABI as default for 64-bit Darwin.  
@@ -3518,11 +3528,11 @@ rs6000_density_test (rs6000_cost_data *data)
       && vec_cost + not_vec_cost > DENSITY_SIZE_THRESHOLD)
     {
       data->cost[vect_body] = vec_cost * (100 + DENSITY_PENALTY) / 100;
-      if (vect_print_dump_info (REPORT_DETAILS))
-	fprintf (vect_dump,
-		 "density %d%%, cost %d exceeds threshold, penalizing "
-		 "loop body cost by %d%%", density_pct, 
-		 vec_cost + not_vec_cost, DENSITY_PENALTY);
+      if (dump_kind_p (MSG_NOTE))
+	dump_printf_loc (MSG_NOTE, vect_location,
+			 "density %d%%, cost %d exceeds threshold, penalizing "
+			 "loop body cost by %d%%", density_pct,
+			 vec_cost + not_vec_cost, DENSITY_PENALTY);
     }
 }
 
@@ -6463,7 +6473,8 @@ rs6000_debug_legitimate_address_p (enum machine_mode mode, rtx x,
 /* Implement TARGET_MODE_DEPENDENT_ADDRESS_P.  */
 
 static bool
-rs6000_mode_dependent_address_p (const_rtx addr)
+rs6000_mode_dependent_address_p (const_rtx addr,
+				 addr_space_t as ATTRIBUTE_UNUSED)
 {
   return rs6000_mode_dependent_address_ptr (addr);
 }
@@ -17841,7 +17852,8 @@ rs6000_stack_info (void)
   else
     info_ptr->spe_gp_size = 0;
 
-  if (TARGET_ALTIVEC_ABI)
+  /* Set VRSAVE register if it is saved and restored.  */
+  if (TARGET_ALTIVEC_ABI && TARGET_ALTIVEC_VRSAVE)
     info_ptr->vrsave_mask = compute_vrsave_mask ();
   else
     info_ptr->vrsave_mask = 0;

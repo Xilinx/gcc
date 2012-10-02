@@ -153,7 +153,7 @@ package body Sem_Elab is
    --  This is set True till the compilation is complete, including the
    --  insertion of all instance bodies. Then when Check_Elab_Calls is called,
    --  the delay table is used to make the delayed calls and this flag is reset
-   --  to False, so that the calls are processed
+   --  to False, so that the calls are processed.
 
    -----------------------
    -- Local Subprograms --
@@ -1162,8 +1162,6 @@ package body Sem_Elab is
       Ent : Entity_Id;
       P   : Node_Id;
 
-   --  Start of processing for Check_Elab_Call
-
    begin
       --  If the call does not come from the main unit, there is nothing to
       --  check. Elaboration call from units in the context of the main unit
@@ -1190,7 +1188,7 @@ package body Sem_Elab is
 
       --  Nothing to do if this is a call already rewritten for elab checking
 
-      elsif Nkind (Parent (N)) = N_Conditional_Expression then
+      elsif Nkind (Parent (N)) = N_If_Expression then
          return;
 
       --  Nothing to do if inside a generic template
@@ -1206,10 +1204,17 @@ package body Sem_Elab is
       if Debug_Flag_LL then
          Write_Str ("  Check_Elab_Call: ");
 
-         if No (Name (N))
-           or else not Is_Entity_Name (Name (N))
-         then
+         if Nkind (N) = N_Attribute_Reference then
+            if not Is_Entity_Name (Prefix (N)) then
+               Write_Str ("<<not entity name>>");
+            else
+               Write_Name (Chars (Entity (Prefix (N))));
+            end if;
+            Write_Str ("'Access");
+
+         elsif No (Name (N)) or else not Is_Entity_Name (Name (N)) then
             Write_Str ("<<not entity name>> ");
+
          else
             Write_Name (Chars (Entity (Name (N))));
          end if;
@@ -2930,7 +2935,8 @@ package body Sem_Elab is
       --  the context of the call has already been analyzed, an insertion
       --  will not work if it depends on subsequent expansion (e.g. a call in
       --  a branch of a short-circuit). In that case we replace the call with
-      --  a conditional expression, or with a Raise if it is unconditional.
+      --  an if expression, or with a Raise if it is unconditional.
+
       --  Unfortunately this does not work if the call has a dynamic size,
       --  because gigi regards it as a dynamic-sized temporary. If such a call
       --  appears in a short-circuit expression, the elaboration check will be
@@ -2967,14 +2973,14 @@ package body Sem_Elab is
                   Reloc_N := Relocate_Node (N);
                   Save_Interps (N, Reloc_N);
                   Rewrite (N,
-                    Make_Conditional_Expression (Loc,
+                    Make_If_Expression (Loc,
                       Expressions => New_List (C, Reloc_N, R)));
                end if;
 
                Analyze_And_Resolve (N, Typ);
 
                --  If the original call requires a range check, so does the
-               --  conditional expression.
+               --  if expression.
 
                if Chk then
                   Enable_Range_Check (N);

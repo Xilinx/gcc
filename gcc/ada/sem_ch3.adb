@@ -4974,12 +4974,9 @@ package body Sem_Ch3 is
             Subtype_Indication (Component_Def));
       end if;
 
-      --  Ada 2012: if the element type has invariants we must create an
-      --  invariant procedure for the array type as well.
-
-      if Has_Invariants (Element_Type) then
-         Set_Has_Invariants (T);
-      end if;
+      --  There may be an invariant declared for the component type, but
+      --  the construction of the component invariant checking procedure
+      --  takes place during expansion.
    end Array_Type_Declaration;
 
    ------------------------------------------------------
@@ -7544,16 +7541,38 @@ package body Sem_Ch3 is
                --  subtype must be statically compatible with the parent
                --  discriminant's subtype (3.7(15)).
 
-               if Present (Corresponding_Discriminant (Discrim))
-                 and then
-                   not Subtypes_Statically_Compatible
-                         (Etype (Discrim),
-                          Etype (Corresponding_Discriminant (Discrim)))
-               then
-                  Error_Msg_N
-                    ("subtype must be compatible with parent discriminant",
-                     Discrim);
-               end if;
+               --  However, if the record contains an array constrained by
+               --  the discriminant but with some different bound, the compiler
+               --  attemps to create a smaller range for the discriminant type.
+               --  (See exp_ch3.Adjust_Discriminants). In this case, where
+               --  the discriminant type is a scalar type, the check must use
+               --  the original discriminant type in the parent declaration.
+
+               declare
+                  Corr_Disc : constant Entity_Id :=
+                      Corresponding_Discriminant (Discrim);
+                  Disc_Type : constant Entity_Id := Etype (Discrim);
+                  Corr_Type : Entity_Id;
+
+               begin
+                  if Present (Corr_Disc) then
+                     if Is_Scalar_Type (Disc_Type) then
+                        Corr_Type :=
+                           Entity (Discriminant_Type (Parent (Corr_Disc)));
+                     else
+                        Corr_Type := Etype (Corr_Disc);
+                     end if;
+
+                     if not
+                        Subtypes_Statically_Compatible (Disc_Type, Corr_Type)
+                     then
+                        Error_Msg_N
+                          ("subtype must be compatible "
+                           & "with parent discriminant",
+                           Discrim);
+                     end if;
+                  end if;
+               end;
 
                Next_Discriminant (Discrim);
             end loop;
@@ -17010,18 +17029,7 @@ package body Sem_Ch3 is
          when N_Attribute_Reference =>
             return Attribute_Name (Original_Node (Exp)) = Name_Input;
 
-         --  For a conditional expression, all dependent expressions must be
-         --  legal constructs.
-
-         when N_Conditional_Expression =>
-            declare
-               Then_Expr : constant Node_Id :=
-                             Next (First (Expressions (Original_Node (Exp))));
-               Else_Expr : constant Node_Id := Next (Then_Expr);
-            begin
-               return OK_For_Limited_Init_In_05 (Typ, Then_Expr)
-                 and then OK_For_Limited_Init_In_05 (Typ, Else_Expr);
-            end;
+         --  For a case expression, all dependent expressions must be legal
 
          when N_Case_Expression =>
             declare
@@ -17038,6 +17046,19 @@ package body Sem_Ch3 is
                end loop;
 
                return True;
+            end;
+
+         --  For an if expression, all dependent expressions must be legal
+
+         when N_If_Expression =>
+            declare
+               Then_Expr : constant Node_Id :=
+                             Next (First (Expressions (Original_Node (Exp))));
+               Else_Expr : constant Node_Id := Next (Then_Expr);
+            begin
+               return OK_For_Limited_Init_In_05 (Typ, Then_Expr)
+                        and then
+                      OK_For_Limited_Init_In_05 (Typ, Else_Expr);
             end;
 
          when others =>
@@ -19305,6 +19326,17 @@ package body Sem_Ch3 is
          end;
       end if;
    end Check_Anonymous_Access_Components;
+
+   ----------------------------------
+   -- Preanalyze_Assert_Expression --
+   ----------------------------------
+
+   procedure Preanalyze_Assert_Expression (N : Node_Id; T : Entity_Id) is
+   begin
+      In_Assertion_Expr := In_Assertion_Expr + 1;
+      Preanalyze_Spec_Expression (N, T);
+      In_Assertion_Expr := In_Assertion_Expr - 1;
+   end Preanalyze_Assert_Expression;
 
    --------------------------------
    -- Preanalyze_Spec_Expression --

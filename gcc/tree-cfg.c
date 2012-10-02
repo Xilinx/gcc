@@ -4000,6 +4000,80 @@ verify_gimple_assign_single (gimple stmt)
       return res;
 
     case CONSTRUCTOR:
+      if (TREE_CODE (rhs1_type) == VECTOR_TYPE)
+	{
+	  unsigned int i;
+	  tree elt_i, elt_v, elt_t = NULL_TREE;
+
+	  if (CONSTRUCTOR_NELTS (rhs1) == 0)
+	    return res;
+	  /* For vector CONSTRUCTORs we require that either it is empty
+	     CONSTRUCTOR, or it is a CONSTRUCTOR of smaller vector elements
+	     (then the element count must be correct to cover the whole
+	     outer vector and index must be NULL on all elements, or it is
+	     a CONSTRUCTOR of scalar elements, where we as an exception allow
+	     smaller number of elements (assuming zero filling) and
+	     consecutive indexes as compared to NULL indexes (such
+	     CONSTRUCTORs can appear in the IL from FEs).  */
+	  FOR_EACH_CONSTRUCTOR_ELT (CONSTRUCTOR_ELTS (rhs1), i, elt_i, elt_v)
+	    {
+	      if (elt_t == NULL_TREE)
+		{
+		  elt_t = TREE_TYPE (elt_v);
+		  if (TREE_CODE (elt_t) == VECTOR_TYPE)
+		    {
+		      tree elt_t = TREE_TYPE (elt_v);
+		      if (!useless_type_conversion_p (TREE_TYPE (rhs1_type),
+						      TREE_TYPE (elt_t)))
+			{
+			  error ("incorrect type of vector CONSTRUCTOR"
+				 " elements");
+			  debug_generic_stmt (rhs1);
+			  return true;
+			}
+		      else if (CONSTRUCTOR_NELTS (rhs1)
+			       * TYPE_VECTOR_SUBPARTS (elt_t)
+			       != TYPE_VECTOR_SUBPARTS (rhs1_type))
+			{
+			  error ("incorrect number of vector CONSTRUCTOR"
+				 " elements");
+			  debug_generic_stmt (rhs1);
+			  return true;
+			}
+		    }
+		  else if (!useless_type_conversion_p (TREE_TYPE (rhs1_type),
+						       elt_t))
+		    {
+		      error ("incorrect type of vector CONSTRUCTOR elements");
+		      debug_generic_stmt (rhs1);
+		      return true;
+		    }
+		  else if (CONSTRUCTOR_NELTS (rhs1)
+			   > TYPE_VECTOR_SUBPARTS (rhs1_type))
+		    {
+		      error ("incorrect number of vector CONSTRUCTOR elements");
+		      debug_generic_stmt (rhs1);
+		      return true;
+		    }
+		}
+	      else if (!useless_type_conversion_p (elt_t, TREE_TYPE (elt_v)))
+		{
+		  error ("incorrect type of vector CONSTRUCTOR elements");
+		  debug_generic_stmt (rhs1);
+		  return true;
+		}
+	      if (elt_i != NULL_TREE
+		  && (TREE_CODE (elt_t) == VECTOR_TYPE
+		      || TREE_CODE (elt_i) != INTEGER_CST
+		      || compare_tree_int (elt_i, i) != 0))
+		{
+		  error ("vector CONSTRUCTOR with non-NULL element index");
+		  debug_generic_stmt (rhs1);
+		  return true;
+		}
+	    }
+	}
+      return res;
     case OBJ_TYPE_REF:
     case ASSERT_EXPR:
     case WITH_SIZE_EXPR:
@@ -6013,7 +6087,9 @@ move_stmt_op (tree *tp, int *walk_subtrees, void *data)
 
   if (EXPR_P (t))
     {
-      if (TREE_BLOCK (t))
+      if (TREE_BLOCK (t) == p->orig_block
+	  || (p->orig_block == NULL_TREE
+	  && TREE_BLOCK (t) == NULL_TREE))
 	TREE_SET_BLOCK (t, p->new_block);
     }
   else if (DECL_P (t) || TREE_CODE (t) == SSA_NAME)
@@ -6315,7 +6391,7 @@ move_block_to_fn (struct function *dest_cfun, basic_block bb,
     }
 
   FOR_EACH_EDGE (e, ei, bb->succs)
-    if (!IS_UNKNOWN_LOCATION (e->goto_locus))
+    if (e->goto_locus != UNKNOWN_LOCATION)
       {
 	tree block = LOCATION_BLOCK (e->goto_locus);
 	if (d->orig_block == NULL_TREE

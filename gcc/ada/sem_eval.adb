@@ -743,6 +743,16 @@ package body Sem_Eval is
    begin
       Diff.all := No_Uint;
 
+      --  In preanalysis mode, always return Unknown, it is too early to be
+      --  thinking we know the result of a comparison, save that judgment for
+      --  the full analysis. This is particularly important in the case of
+      --  pre and postconditions, which otherwise can be prematurely collapsed
+      --  into having True or False conditions when this is inappropriate.
+
+      if not Full_Analysis then
+         return Unknown;
+      end if;
+
       --  If either operand could raise constraint error, then we cannot
       --  know the result at compile time (since CE may be raised!)
 
@@ -939,21 +949,31 @@ package body Sem_Eval is
             LLo, LHi : Uint;
             RLo, RHi : Uint;
 
+            Single : Boolean;
+            --  True if each range is a single point
+
          begin
             Determine_Range (L, LOK, LLo, LHi, Assume_Valid);
             Determine_Range (R, ROK, RLo, RHi, Assume_Valid);
 
             if LOK and ROK then
+               Single := (LLo = LHi) and then (RLo = RHi);
+
                if LHi < RLo then
+                  if Single and Assume_Valid then
+                     Diff.all := RLo - LLo;
+                  end if;
+
                   return LT;
 
                elsif RHi < LLo then
+                  if Single and Assume_Valid then
+                     Diff.all := LLo - RLo;
+                  end if;
+
                   return GT;
 
-               elsif LLo = LHi
-                 and then RLo = RHi
-                 and then LLo = RLo
-               then
+               elsif Single and then LLo = RLo then
 
                   --  If the range includes a single literal and we can assume
                   --  validity then the result is known even if an operand is
@@ -1862,15 +1882,74 @@ package body Sem_Eval is
       end;
    end Eval_Concatenation;
 
-   ---------------------------------
-   -- Eval_Conditional_Expression --
-   ---------------------------------
+   ----------------------
+   -- Eval_Entity_Name --
+   ----------------------
 
-   --  We can fold to a static expression if the condition and both constituent
+   --  This procedure is used for identifiers and expanded names other than
+   --  named numbers (see Eval_Named_Integer, Eval_Named_Real. These are
+   --  static if they denote a static constant (RM 4.9(6)) or if the name
+   --  denotes an enumeration literal (RM 4.9(22)).
+
+   procedure Eval_Entity_Name (N : Node_Id) is
+      Def_Id : constant Entity_Id := Entity (N);
+      Val    : Node_Id;
+
+   begin
+      --  Enumeration literals are always considered to be constants
+      --  and cannot raise constraint error (RM 4.9(22)).
+
+      if Ekind (Def_Id) = E_Enumeration_Literal then
+         Set_Is_Static_Expression (N);
+         return;
+
+      --  A name is static if it denotes a static constant (RM 4.9(5)), and
+      --  we also copy Raise_Constraint_Error. Notice that even if non-static,
+      --  it does not violate 10.2.1(8) here, since this is not a variable.
+
+      elsif Ekind (Def_Id) = E_Constant then
+
+         --  Deferred constants must always be treated as nonstatic
+         --  outside the scope of their full view.
+
+         if Present (Full_View (Def_Id))
+           and then not In_Open_Scopes (Scope (Def_Id))
+         then
+            Val := Empty;
+         else
+            Val := Constant_Value (Def_Id);
+         end if;
+
+         if Present (Val) then
+            Set_Is_Static_Expression
+              (N, Is_Static_Expression (Val)
+                    and then Is_Static_Subtype (Etype (Def_Id)));
+            Set_Raises_Constraint_Error (N, Raises_Constraint_Error (Val));
+
+            if not Is_Static_Expression (N)
+              and then not Is_Generic_Type (Etype (N))
+            then
+               Validate_Static_Object_Name (N);
+            end if;
+
+            return;
+         end if;
+      end if;
+
+      --  Fall through if the name is not static
+
+      Validate_Static_Object_Name (N);
+   end Eval_Entity_Name;
+
+   ------------------------
+   -- Eval_If_Expression --
+   ------------------------
+
+   --  We can fold to a static expression if the condition and both dependent
    --  expressions are static. Otherwise, the only required processing is to do
    --  the check for non-static context for the then and else expressions.
 
-   procedure Eval_Conditional_Expression (N : Node_Id) is
+   procedure Eval_If_Expression (N : Node_Id) is
       Condition  : constant Node_Id := First (Expressions (N));
       Then_Expr  : constant Node_Id := Next (Condition);
       Else_Expr  : constant Node_Id := Next (Then_Expr);
@@ -1939,66 +2018,7 @@ package body Sem_Eval is
       end if;
 
       Set_Is_Static_Expression (N, Rstat);
-   end Eval_Conditional_Expression;
-
-   ----------------------
-   -- Eval_Entity_Name --
-   ----------------------
-
-   --  This procedure is used for identifiers and expanded names other than
-   --  named numbers (see Eval_Named_Integer, Eval_Named_Real. These are
-   --  static if they denote a static constant (RM 4.9(6)) or if the name
-   --  denotes an enumeration literal (RM 4.9(22)).
-
-   procedure Eval_Entity_Name (N : Node_Id) is
-      Def_Id : constant Entity_Id := Entity (N);
-      Val    : Node_Id;
-
-   begin
-      --  Enumeration literals are always considered to be constants
-      --  and cannot raise constraint error (RM 4.9(22)).
-
-      if Ekind (Def_Id) = E_Enumeration_Literal then
-         Set_Is_Static_Expression (N);
-         return;
-
-      --  A name is static if it denotes a static constant (RM 4.9(5)), and
-      --  we also copy Raise_Constraint_Error. Notice that even if non-static,
-      --  it does not violate 10.2.1(8) here, since this is not a variable.
-
-      elsif Ekind (Def_Id) = E_Constant then
-
-         --  Deferred constants must always be treated as nonstatic
-         --  outside the scope of their full view.
-
-         if Present (Full_View (Def_Id))
-           and then not In_Open_Scopes (Scope (Def_Id))
-         then
-            Val := Empty;
-         else
-            Val := Constant_Value (Def_Id);
-         end if;
-
-         if Present (Val) then
-            Set_Is_Static_Expression
-              (N, Is_Static_Expression (Val)
-                    and then Is_Static_Subtype (Etype (Def_Id)));
-            Set_Raises_Constraint_Error (N, Raises_Constraint_Error (Val));
-
-            if not Is_Static_Expression (N)
-              and then not Is_Generic_Type (Etype (N))
-            then
-               Validate_Static_Object_Name (N);
-            end if;
-
-            return;
-         end if;
-      end if;
-
-      --  Fall through if the name is not static
-
-      Validate_Static_Object_Name (N);
-   end Eval_Entity_Name;
+   end Eval_If_Expression;
 
    ----------------------------
    -- Eval_Indexed_Component --
@@ -3238,6 +3258,38 @@ package body Sem_Eval is
          end;
       end if;
    end Eval_Slice;
+
+   ---------------------------------
+   -- Eval_Static_Predicate_Check --
+   ---------------------------------
+
+   function Eval_Static_Predicate_Check
+     (N   : Node_Id;
+      Typ : Entity_Id) return Boolean
+   is
+      Loc  : constant Source_Ptr := Sloc (N);
+      Pred : constant List_Id := Static_Predicate (Typ);
+      Test : Node_Id;
+
+   begin
+      if No (Pred) then
+         return True;
+      end if;
+
+      --  The static predicate is a list of alternatives in the proper format
+      --  for an Ada 2012 membership test. If the argument is a literal, the
+      --  membership test can be evaluated statically. The caller transforms
+      --  a result of False into a static contraint error.
+
+      Test := Make_In (Loc,
+         Left_Opnd    => New_Copy_Tree (N),
+         Right_Opnd   => Empty,
+         Alternatives => Pred);
+      Analyze_And_Resolve (Test, Standard_Boolean);
+
+      return Nkind (Test) = N_Identifier
+        and then Entity (Test) = Standard_True;
+   end Eval_Static_Predicate_Check;
 
    -------------------------
    -- Eval_String_Literal --

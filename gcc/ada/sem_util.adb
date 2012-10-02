@@ -37,6 +37,7 @@ with Freeze;   use Freeze;
 with Lib;      use Lib;
 with Lib.Xref; use Lib.Xref;
 with Nlists;   use Nlists;
+with Nmake;    use Nmake;
 with Output;   use Output;
 with Opt;      use Opt;
 with Restrict; use Restrict;
@@ -1191,6 +1192,50 @@ package body Sem_Util is
       end if;
    end Check_Implicit_Dereference;
 
+   ----------------------------------
+   -- Check_Internal_Protected_Use --
+   ----------------------------------
+
+   procedure Check_Internal_Protected_Use (N : Node_Id; Nam : Entity_Id) is
+      S    : Entity_Id;
+      Prot : Entity_Id;
+
+   begin
+      S := Current_Scope;
+      while Present (S) loop
+         if S = Standard_Standard then
+            return;
+
+         elsif Ekind (S) = E_Function
+           and then Ekind (Scope (S)) = E_Protected_Type
+         then
+            Prot := Scope (S);
+            exit;
+         end if;
+
+         S := Scope (S);
+      end loop;
+
+      if Scope (Nam) = Prot and then Ekind (Nam) /= E_Function then
+         if Nkind (N) = N_Subprogram_Renaming_Declaration then
+            Error_Msg_N
+              ("within protected function cannot use protected "
+               & "procedure in renaming or as generic actual", N);
+
+         elsif Nkind (N) = N_Attribute_Reference then
+            Error_Msg_N
+              ("within protected function cannot take access of "
+               & " protected procedure", N);
+
+         else
+            Error_Msg_N
+              ("within protected function, protected object is constant", N);
+            Error_Msg_N
+              ("\cannot call operation that may modify it", N);
+         end if;
+      end if;
+   end Check_Internal_Protected_Use;
+
    ---------------------------------------
    -- Check_Later_Vs_Basic_Declarations --
    ---------------------------------------
@@ -2206,9 +2251,9 @@ package body Sem_Util is
                Msgs := False;
                exit;
 
-            --  Conditional expression
+            --  If expression
 
-            elsif Nkind (P) = N_Conditional_Expression then
+            elsif Nkind (P) = N_If_Expression then
                declare
                   Cond : constant Node_Id := First (Expressions (P));
                   Texp : constant Node_Id := Next (Cond);
@@ -7719,10 +7764,12 @@ package body Sem_Util is
             when N_Function_Call =>
                return Etype (N) /= Standard_Void_Type;
 
-            --  A reference to the stream attribute Input is a function call
+            --  Attributes 'Input and 'Result produce objects
 
             when N_Attribute_Reference =>
-               return Attribute_Name (N) = Name_Input;
+               return Attribute_Name (N) = Name_Input
+                        or else
+                      Attribute_Name (N) = Name_Result;
 
             when N_Selected_Component =>
                return
@@ -12100,13 +12147,15 @@ package body Sem_Util is
       begin
          Desc := N;
 
+         --  Seems dubious that case expressions are not handled here ???
+
          P := Parent (N);
          while Present (P) loop
             if         Nkind (P) = N_If_Statement
               or else  Nkind (P) = N_Case_Statement
               or else (Nkind (P) in N_Short_Circuit
                          and then Desc = Right_Opnd (P))
-              or else (Nkind (P) = N_Conditional_Expression
+              or else (Nkind (P) = N_If_Expression
                          and then Desc /= First (Expressions (P)))
               or else  Nkind (P) = N_Exception_Handler
               or else  Nkind (P) = N_Selective_Accept

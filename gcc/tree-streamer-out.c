@@ -181,6 +181,9 @@ pack_ts_decl_common_value_fields (struct bitpack_d *bp, tree expr)
       bp_pack_value (bp, expr->decl_common.off_align, 8);
     }
 
+  if (TREE_CODE (expr) == VAR_DECL)
+    bp_pack_value (bp, DECL_NONLOCAL_FRAME (expr), 1);
+
   if (TREE_CODE (expr) == RESULT_DECL
       || TREE_CODE (expr) == PARM_DECL
       || TREE_CODE (expr) == VAR_DECL)
@@ -279,6 +282,8 @@ pack_ts_type_common_value_fields (struct bitpack_d *bp, tree expr)
   bp_pack_value (bp, TYPE_NEEDS_CONSTRUCTING (expr), 1);
   if (RECORD_OR_UNION_TYPE_P (expr))
     bp_pack_value (bp, TYPE_TRANSPARENT_AGGR (expr), 1);
+  else if (TREE_CODE (expr) == ARRAY_TYPE)
+    bp_pack_value (bp, TYPE_NONALIASED_COMPONENT (expr), 1);
   bp_pack_value (bp, TYPE_PACKED (expr), 1);
   bp_pack_value (bp, TYPE_RESTRICT (expr), 1);
   bp_pack_value (bp, TYPE_CONTAINS_PLACEHOLDER_INTERNAL (expr), 2);

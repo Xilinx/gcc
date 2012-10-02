@@ -2392,10 +2392,6 @@ package body Exp_Ch6 is
          Expand_Put_Call_With_Symbol (Call_Node);
       end if;
 
-      --  Remove the dimensions of every parameters in call
-
-      Remove_Dimension_In_Call (N);
-
       --  Ignore if previous error
 
       if Nkind (Call_Node) in N_Has_Etype
@@ -3404,6 +3400,14 @@ package body Exp_Ch6 is
 
       Expand_Actuals (Call_Node, Subp);
 
+      --  Verify that the actuals do not share storage. This check must be done
+      --  on the caller side rather that inside the subprogram to avoid issues
+      --  of parameter passing.
+
+      if Check_Aliasing_Of_Parameters then
+         Apply_Parameter_Aliasing_Checks (Call_Node, Subp);
+      end if;
+
       --  If the subprogram is a renaming, or if it is inherited, replace it in
       --  the call with the name of the actual subprogram being called. If this
       --  is a dispatching call, the run-time decides what to call. The Alias
@@ -4045,7 +4049,10 @@ package body Exp_Ch6 is
          Context := Parent (N);
          while Present (Context) loop
 
-            if Nkind (Context) = N_Conditional_Expression then
+            --  The following could use a comment (and why is N_Case_Expression
+            --  not treated in a similar manner ???
+
+            if Nkind (Context) = N_If_Expression then
                exit;
 
             --  Stop the search when reaching any statement because we have
@@ -4088,13 +4095,15 @@ package body Exp_Ch6 is
 
       Remove_Side_Effects (N);
 
-      --  The function call is part of a conditional expression alternative.
-      --  The temporary result must live as long as the conditional expression
-      --  itself, otherwise it will be finalized too early. Mark the transient
-      --  as processed to avoid untimely finalization.
+      --  The function call is part of an if expression dependent expression.
+      --  The temporary result must live as long as the if expression itself,
+      --  otherwise it will be finalized too early. Mark the transient as
+      --  processed to avoid untimely finalization.
+
+      --  Why no special handling for case expressions here ???
 
       if Present (Context)
-        and then Nkind (Context) = N_Conditional_Expression
+        and then Nkind (Context) = N_If_Expression
         and then Nkind (N) = N_Explicit_Dereference
       then
          Set_Is_Processed_Transient (Entity (Prefix (N)));
@@ -4772,31 +4781,31 @@ package body Exp_Ch6 is
             else
                pragma Assert
                  (Nkind
-                    (First
-                       (Statements (Handled_Statement_Sequence (Orig_Bod))))
+                   (First
+                     (Statements (Handled_Statement_Sequence (Orig_Bod))))
                   = N_Block_Statement);
 
                declare
                   Blk_Stmt    : constant Node_Id :=
                     First
                       (Statements
-                           (Handled_Statement_Sequence (Orig_Bod)));
+                        (Handled_Statement_Sequence (Orig_Bod)));
                   First_Stmt  : constant Node_Id :=
                     First
                       (Statements
-                           (Handled_Statement_Sequence (Blk_Stmt)));
+                        (Handled_Statement_Sequence (Blk_Stmt)));
                   Second_Stmt : constant Node_Id := Next (First_Stmt);
 
                begin
                   pragma Assert
                     (Nkind (First_Stmt) = N_Procedure_Call_Statement
-                       and then Nkind (Second_Stmt) = Sinfo.N_Return_Statement
-                       and then No (Next (Second_Stmt)));
+                      and then Nkind (Second_Stmt) = N_Simple_Return_Statement
+                      and then No (Next (Second_Stmt)));
 
                   Bod :=
                     Copy_Generic_Node
                       (First
-                         (Statements (Handled_Statement_Sequence (Orig_Bod))),
+                        (Statements (Handled_Statement_Sequence (Orig_Bod))),
                        Empty, Instantiating => True);
                   Blk := Bod;
 
@@ -5120,8 +5129,8 @@ package body Exp_Ch6 is
          --  Remove the return statement
 
          pragma Assert
-           (Nkind (Last (Statements (Handled_Statement_Sequence (Blk))))
-            = Sinfo.N_Return_Statement);
+           (Nkind (Last (Statements (Handled_Statement_Sequence (Blk)))) =
+                                                   N_Simple_Return_Statement);
 
          Remove (Last (Statements (Handled_Statement_Sequence (Blk))));
       end if;

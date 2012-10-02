@@ -1,5 +1,5 @@
 /* SCC value numbering for trees
-   Copyright (C) 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
    Contributed by Daniel Berlin <dan@dberlin.org>
 
@@ -1555,7 +1555,8 @@ vn_reference_lookup_3 (ao_ref *ref, tree vuse, void *vr_)
 
   /* 3) Assignment from a constant.  We can use folds native encode/interpret
      routines to extract the assigned bits.  */
-  else if (CHAR_BIT == 8 && BITS_PER_UNIT == 8
+  else if (vn_walk_kind == VN_WALKREWRITE
+	   && CHAR_BIT == 8 && BITS_PER_UNIT == 8
 	   && ref->size == maxsize
 	   && maxsize % BITS_PER_UNIT == 0
 	   && offset % BITS_PER_UNIT == 0
@@ -1638,8 +1639,12 @@ vn_reference_lookup_3 (ao_ref *ref, tree vuse, void *vr_)
 		  if (i < CONSTRUCTOR_NELTS (ctor))
 		    {
 		      constructor_elt *elt = CONSTRUCTOR_ELT (ctor, i);
-		      if (compare_tree_int (elt->index, i) == 0)
-			val = elt->value;
+		      if (TREE_CODE (TREE_TYPE (rhs1)) == VECTOR_TYPE)
+			{
+			  if (TREE_CODE (TREE_TYPE (elt->value))
+			      != VECTOR_TYPE)
+			    val = elt->value;
+			}
 		    }
 		}
 	      if (val)
