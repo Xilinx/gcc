@@ -332,13 +332,8 @@ typedef melt_ptr_t melt_start_runext_rout_t (melt_ptr_t /*boxcurenv*/, melt_ptr_
 /** special values are linked in a list to permit their explicit
 deletion */
 
-#if MELT_HAS_OBMAG_SPEC
-struct meltspecial_st* melt_newspeclist;
-struct meltspecial_st* melt_oldspeclist;
-#else
 struct meltspecialdata_st* melt_newspecdatalist;
 struct meltspecialdata_st* melt_oldspecdatalist;
-#endif
 
 unsigned long melt_kilowords_sincefull;
 /* number of full & any melt garbage collections */
@@ -798,38 +793,6 @@ melt_delete_specialdata (struct meltspecialdata_st *msd)
   memset (msd, 0, sizeof(struct meltspecialdata_st));
 }
 
-#if MELT_HAS_OBMAG_SPEC
-static inline void
-delete_special (struct meltspecial_st *sp)
-{
-  int magic = sp->discr->meltobj_magic;
-  melt_debuggc_eprintf ("delete_special deleting sp %p magic %d %s",
-                        (void*) sp, magic, melt_obmag_string (magic));
-  switch (magic) {
-  case MELTOBMAG_SPEC_FILE:
-    if (sp->specialpayload.sp_file) {
-      fclose (sp->specialpayload.sp_file);
-      sp->specialpayload.sp_file = NULL;
-    };
-    break;
-  case MELTOBMAG_SPEC_RAWFILE:
-    if (sp->specialpayload.sp_file) {
-      fflush (sp->specialpayload.sp_file);
-      sp->specialpayload.sp_file = NULL;
-    };
-    break;
-  case MELTOBMAG_SPECIAL_DATA:
-    {
-      struct meltspecialdata_st *msd = (struct meltspecialdata_st*)sp;
-      melt_delete_specialdata (msd);
-    }
-    break;
-  default:
-    break;
-  }
-  /* Don't ggc_free sp, it is the responsability of the caller!  */
-}
-#endif /*MELT_HAS_OBMAG_SPEC*/
 
 #ifdef ENABLE_CHECKING
 /* only for debugging, to be set from the debugger */
@@ -972,31 +935,6 @@ meltgc_make_special (melt_ptr_t discr_p)
     goto end;
   magic = ((meltobject_ptr_t)discrv)->meltobj_magic;
   switch (magic) {
-#if MELT_HAS_OBMAG_SPEC
-  case ALL_MELTOBMAG_SPECIAL_CASES:
-    specv = meltgc_allocate (sizeof(struct meltspecial_st),0);
-    sp_specv->discr = (meltobject_ptr_t) discrv;
-    sp_specv->specialmark = 0;
-    sp_specv->specialnext = melt_newspeclist;
-    melt_newspeclist = sp_specv;
-    melt_debuggc_eprintf ("make_special %p discr %p magic %d %s",
-                          specv, discrv, magic, melt_obmag_string(magic));
-#if ENABLE_CHECKING
-    if (melt_alptr_1 && (void*)melt_alptr_1 == specv) {
-      fprintf (stderr, "meltgc_make_special alptr_1 %p mag %d %s\n",
-               melt_alptr_1, magic, melt_obmag_string(magic));
-      fflush (stderr);
-      melt_break_alptr_1 ("meltgc_make_special alptr_1");
-    };
-    if (melt_alptr_2 && (void*)melt_alptr_2 == specv) {
-      fprintf (stderr, "meltgc_make_special alptr_2 %p mag %d %s\n",
-               melt_alptr_2, magic, melt_obmag_string(magic));
-      fflush (stderr);
-      melt_break_alptr_2 ("meltgc_make_special alptr_2");
-    };
-#endif /*ENABLE_CHECKING*/
-    break;
-#endif /*MELT_HAS_OBMAG_SPEC*/
     /* our new special data */
   case MELTOBMAG_SPECIAL_DATA:
     {
@@ -1004,13 +942,8 @@ meltgc_make_special (melt_ptr_t discr_p)
       memset (specv, 0, sizeof(struct meltspecialdata_st));
       spda_specv->discr = (meltobject_ptr_t) discrv;
       spda_specv->meltspec_mark = 0;
-#if MELT_HAS_OBMAG_SPEC
-      spda_specv->meltspec_next = melt_newspeclist;
-      melt_newspeclist = (meltspecial_st*)specv;
-#else
       spda_specv->meltspec_next = melt_newspecdatalist;
       melt_newspecdatalist = (meltspecialdata_st*)specv;
-#endif
       melt_debuggc_eprintf ("make_special data %p discr %p magic %d %s",
 			    specv, discrv, magic, melt_obmag_string(magic));
 #if ENABLE_CHECKING
@@ -1061,13 +994,8 @@ meltgc_make_specialdata (melt_ptr_t discr_p)
   memset (specv, 0, sizeof(struct meltspecialdata_st));
   spda_specv->discr = (meltobject_ptr_t) discrv;
   spda_specv->meltspec_mark = 0;
-#if MELT_HAS_OBMAG_SPEC
-  spda_specv->meltspec_next = (meltspecialdata_st*)melt_newspeclist;
-  melt_newspeclist = (meltspecial_st*)specv;
-#else
   spda_specv->meltspec_next = melt_newspecdatalist;
   melt_newspecdatalist = (meltspecialdata_st*)specv;
-#endif
   melt_debuggc_eprintf ("make_specialdata %p discr %p magic %d %s",
 			specv, discrv, magic, melt_obmag_string(magic));
 #if ENABLE_CHECKING
@@ -1205,44 +1133,6 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 }
 
 
-#if MELT_HAS_OBMAG_SPEC
-static void
-melt_delete_unmarked_new_special (void)
-{
-  struct meltspecial_st *specp = NULL;
-  /* Delete every unmarked special on the new list and clear it */
-  for (specp = melt_newspeclist; specp != NULL; specp = specp->specialnext) {
-    gcc_assert (melt_is_young (specp));
-    melt_debuggc_eprintf ("melt_delete_unmarked_new_special specp %p has mark %d",
-                          (void*) specp, specp->specialmark);
-
-#if ENABLE_CHECKING
-    if (melt_alptr_1 && (void*)melt_alptr_1 == (void*)specp) {
-      int mag = specp->discr->meltobj_magic;
-      fprintf (stderr, "melt_delete_unmarked_new_special  new special alptr_1 %p mag %d\n",  melt_alptr_1, mag);
-      fflush (stderr);
-      melt_debuggc_eprintf("melt_delete_unmarked_new_special #%ld new special alptr_1 %p mag %d",
-                           melt_nb_garbcoll, melt_alptr_1, mag);
-      melt_break_alptr_1 ("garbcoll new special alptr_1");
-    }
-    if (melt_alptr_2 && (void*)melt_alptr_2 == (void*)specp) {
-      int mag = specp->discr->meltobj_magic;
-      fprintf (stderr, "melt_delete_unmarked_new_special new special alptr_2 %p mag %d\n",  melt_alptr_2, mag);
-      fflush (stderr);
-      melt_debuggc_eprintf("melt_delete_unmarked_new_special #%ld new special alptr_2 %p mag %d",
-                           melt_nb_garbcoll, melt_alptr_2, mag);
-      melt_break_alptr_2 ("garbcoll new special alptr_2");
-    }
-#endif /*ENABLE_CHECKING*/
-
-    if (!specp->specialmark) {
-      melt_debuggc_eprintf ("melt_delete_unmarked_new_special deleting newspec %p", (void*)specp);
-      delete_special (specp);
-    }
-  }
-  melt_newspeclist = NULL;
-}
-#else
 static void
 melt_delete_unmarked_new_specialdata (void)
 {
@@ -1279,7 +1169,6 @@ melt_delete_unmarked_new_specialdata (void)
   }
   melt_newspecdatalist = NULL;
 }
-#endif /*MELT_HAS_OBMAG_SPEC*/
 
 
 /* The minor MELT GC is a copying generational garbage collector whose
@@ -1354,11 +1243,7 @@ melt_minor_copying_garbage_collector (size_t wanted)
   VEC_free (melt_ptr_t, gc, melt_bscanvec);
   melt_bscanvec = NULL;
 
-#if MELT_HAS_OBMAG_SPEC
-  melt_delete_unmarked_new_special ();
-#else
   melt_delete_unmarked_new_specialdata ();
-#endif
 
   /* Free the previous young zone and allocate a new one.  */
   melt_debuggc_eprintf ("melt_minor_copying_garbage_collector %ld freeing alz=%p-%p",
@@ -1394,90 +1279,6 @@ melt_ggcstart_callback (void *gcc_data ATTRIBUTE_UNUSED,
 }
 
 
-#if MELT_HAS_OBMAG_SPEC
-static long 
-melt_clear_old_special (void)
-{
-  long nboldspec = 0;
-  struct meltspecial_st *specp = NULL;
-  struct meltspecial_st *nextspecp = NULL;
-  /* clear our mark fields on old special list before running Ggc. */
-  for (specp = melt_oldspeclist; specp != NULL; specp = nextspecp) {
-    specp->specialmark = 0;
-    nextspecp = specp->specialnext;
-    nboldspec++;
-
-#if ENABLE_CHECKING
-    if (melt_alptr_1 && (void*)melt_alptr_1 == (void*)specp) {
-      int mag = specp->discr->meltobj_magic;
-      fprintf (stderr, "melt_clear_old_special clear oldmark special alptr_1 %p mag %d\n",  melt_alptr_1, mag);
-      fflush (stderr);
-      melt_debuggc_eprintf("melt_clear_old_special #%ld clear oldmark special alptr_1 %p mag %d",
-			   melt_nb_garbcoll, melt_alptr_1, mag);
-      melt_break_alptr_1 ("melt_clear_old_special clear oldmark special alptr_1");
-    }
-    if (melt_alptr_2 && (void*)melt_alptr_2 == (void*)specp) {
-      int mag = specp->discr->meltobj_magic;
-      fprintf (stderr, "melt_garbcoll clear oldmark special alptr_2 %p mag %d\n",  melt_alptr_2, mag);
-      fflush (stderr);
-      melt_debuggc_eprintf("melt_clear_old_special #%ld clear oldmark  special alptr_2 %p mag %d",
-			   melt_nb_garbcoll, melt_alptr_2, mag);
-      melt_break_alptr_2 ("melt_clear_old_special clear oldmark special alptr_2");
-    }
-#endif /* ENABLE_CHECKING */
-  };
-  return nboldspec;
-}
-
-static void
-melt_delete_unmarked_old_special (void)
-{
-  struct meltspecial_st *specp = NULL;
-  struct meltspecial_st *nextspecp = NULL;
-  struct meltspecial_st **prevspecptr = NULL;
-  /* Delete the unmarked specials.  */
-  prevspecptr = &melt_oldspeclist;
-  for (specp = melt_oldspeclist; specp; specp = nextspecp) {
-    nextspecp = specp->specialnext;
-
-#if ENABLE_CHECKING
-    if (melt_alptr_1 && (void*)melt_alptr_1 == (void*)specp) {
-      int mag = specp->discr->meltobj_magic;
-      fprintf (stderr, "melt_delete_unmarked_old_special alptr_1 %p mag %d\n",  melt_alptr_1, mag);
-      fflush (stderr);
-      melt_debuggc_eprintf("melt_delete_unmarked_old_special #%ld old special alptr_1 %p mag %d",
-			   melt_nb_garbcoll, melt_alptr_1, mag);
-      melt_break_alptr_1 ("melt_delete_unmarked_old_special alptr_1");
-    }
-    if (melt_alptr_2 && (void*)melt_alptr_2 == (void*)specp) {
-      int mag = specp->discr->meltobj_magic;
-      fprintf (stderr, "melt_delete_unmarked_old_special alptr_2 %p mag %d\n",  melt_alptr_2, mag);
-      fflush (stderr);
-      melt_debuggc_eprintf("melt_delete_unmarked_old_special #%ld old special alptr_2 %p mag %d",
-			   melt_nb_garbcoll, melt_alptr_2, mag);
-      melt_break_alptr_2 ("melt_delete_unmarked_old_special alptr_2");
-    }
-#endif /*ENABLE_CHECKING*/
-
-    melt_debuggc_eprintf ("melt_delete_unmarked_old_special deletespecloop old specp %p mark %d",
-			  (void*)specp, specp->specialmark);
-    /* we test both the mark field, if mark_hook is really working
-       in gengtype, and the result of ggc_marked_p, for GCC versions
-       where it is not working. mark_hook don't work in GCC 4.7 and
-       probably not even in 4.6 */ 
-    if (specp->specialmark || ggc_marked_p(specp)) {
-      prevspecptr = &specp->specialnext;
-      continue;
-    }
-    melt_debuggc_eprintf ("melt_delete_unmarked_old_special deletespecloop deleting old specp %p",
-			  (void*)specp);
-    delete_special (specp);
-    memset (specp, 0, sizeof (*specp));
-    ggc_free (specp);
-    *prevspecptr = nextspecp;
-  };
-}
-#else  /* !MELT_HAS_OBMAG_SPEC */
 
 static long
 melt_clear_old_specialdata (void)
@@ -1562,7 +1363,6 @@ melt_delete_unmarked_old_specialdata (void)
     *prevspecdaptr = nextspecda;
   };
 }
-#endif /*MELT_HAS_OBMAG_SPEC*/
 
 
 
@@ -1631,21 +1431,13 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
     melt_nb_full_garbcoll++;
     debugeprintf ("melt_garbcoll #%ld fullgarbcoll #%ld",
                   melt_nb_garbcoll, melt_nb_full_garbcoll);
-#if MELT_HAS_OBMAG_SPEC
-    melt_clear_old_special ();
-#else
     melt_clear_old_specialdata ();
-#endif /* MELT_HAS_OBMAG_SPEC */
     debugeprintf ("melt_garbcoll calling gcc_collect #%ld after clearing %ld oldspecial marks", melt_nb_full_garbcoll, nboldspec);
     /* There is no need to force a GGC collection, just to run it, and
        Ggc may decide to skip it.  */
     ggc_collect ();
     debugeprintf ("melt_garbcoll after fullgarbcoll #%ld", melt_nb_full_garbcoll);
-#if MELT_HAS_OBMAG_SPEC
-    melt_delete_unmarked_old_special ();
-#else
     melt_delete_unmarked_old_specialdata ();
-#endif /* MELT_HAS_OBMAG_SPEC */
     if (!quiet_flag) {
       /* when not quiet, the GGC collector displays data, so we can
          add a message and end the line! "*/
@@ -2206,18 +1998,6 @@ melt_output_length (melt_ptr_t out_p)
 	return sb->bufend - sb->bufstart;
     }
     break;
-#if MELT_HAS_OBMAG_SPEC
-  case MELTOBMAG_SPEC_FILE:
-  case MELTOBMAG_SPEC_RAWFILE: 
-    {
-      struct meltspecial_st *sp = (struct meltspecial_st *) out_p;
-      if (sp->specialpayload.sp_file) {
-	long off = ftell (sp->specialpayload.sp_file);
-	return off;
-      }
-    }
-    break;
-#endif
   case MELTOBMAG_SPECIAL_DATA:
     {
       struct meltspecialdata_st* spd = (struct meltspecialdata_st*) out_p;
@@ -2374,24 +2154,6 @@ meltgc_add_out_raw_len (melt_ptr_t outbuf_p, const char *str, int slen)
   if (slen<=0)
     goto end;
   switch (melt_magic_discr ((melt_ptr_t) (outbufv))) {
-#if MELT_HAS_OBMAG_SPEC
-  case MELTOBMAG_SPEC_FILE:
-  case MELTOBMAG_SPEC_RAWFILE: 
-    {
-      FILE* f = spec_outbufv->specialpayload.sp_file;
-      if (f)
-	{
-	  int fno = fileno (f);
-	  const char* eol = NULL;
-	  long fp = ftell (f);
-	  (void) fwrite(str, (size_t)slen, (size_t)1, f);
-	  if (fno < MELTMAXFILE && fno >= 0 && (eol = strchr(str, '\n'))
-	      && eol-str < slen)
-	    lasteol[fno] = fp + (eol-str);
-	}
-    }
-    break;
-#endif
   case MELTOBMAG_SPECIAL_DATA:
     {
       if (spda_outbufv->meltspec_kind == meltpydkind_file 
@@ -2796,14 +2558,6 @@ meltgc_out_add_indent (melt_ptr_t outbuf_p, int depth, int linethresh)
     llln = be - nl;
     gcc_assert (llln >= 0);
   } 
-#if MELT_HAS_OBMAG_SPEC
-  else if (outmagic == MELTOBMAG_SPEC_FILE || outmagic == MELTOBMAG_SPEC_RAWFILE) {
-    FILE *f = spec_outv->specialpayload.sp_file;
-    int fn = f?fileno(f):-1;
-    if (f && fn>=0 && fn<=MELTMAXFILE)
-      llln = ftell(f) - lasteol[fn];
-  }
-#endif
   else if (outmagic == MELTOBMAG_SPECIAL_DATA) {
     FILE *f = spda_outv->meltspec_payload.meltpayload_file1;
     int fn = f?fileno(f):-1;
@@ -6860,10 +6614,6 @@ melt_readsimplelong (struct melt_reading_st *rd)
     NUMNAM (MELTOBMAG_MAPEDGES);
     NUMNAM (MELTOBMAG_DECAY);
     NUMNAM (MELTOBMAG_SPECIAL_DATA);
-#if MELT_HAS_OBMAG_SPEC
-    NUMNAM (MELTOBMAG_SPEC_FILE);
-    NUMNAM (MELTOBMAG_SPEC_RAWFILE);
-#endif
     /** the fields' ranks of melt.h have been removed in rev126278 */
 #undef NUMNAM
     if (r < 0)
@@ -11308,13 +11058,8 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
     gcc_assert (wantedwords * sizeof (void *) >
                 300 * MELTGLOB__LASTGLOB * sizeof (struct meltobject_st));
     melt_allocate_young_gc_zone (wantedwords / sizeof(void*));
-#if MELT_HAS_OBMAG_SPEC
-    melt_newspeclist = NULL;
-    melt_oldspeclist = NULL;
-#else
     melt_newspecdatalist = NULL;
     melt_oldspecdatalist = NULL;
-#endif
     debugeprintf ("melt_really_initialize alz %p-%p (%ld Kw)",
                   melt_startalz, melt_endalz, (long) wantedwords >> 10);
   }
@@ -12177,10 +11922,6 @@ meltgc_ppout_gimple (melt_ptr_t out_p, int indentsp, gimple gstmt)
       meltppbufsiz = 0;
     }
     break;
-#if MELT_HAS_OBMAG_SPEC
-  case MELTOBMAG_SPEC_FILE:
-  case MELTOBMAG_SPEC_RAWFILE: 
-#endif
   case MELTOBMAG_SPECIAL_DATA:
     {
       FILE* f = melt_get_file ((melt_ptr_t)outv);
@@ -12228,10 +11969,6 @@ meltgc_ppout_gimple_seq (melt_ptr_t out_p, int indentsp,
     meltppbufsiz = 0;
   }
     break;
-#if MELT_HAS_OBMAG_SPEC
-  case MELTOBMAG_SPEC_FILE:
-  case MELTOBMAG_SPEC_RAWFILE: 
-#endif
   case MELTOBMAG_SPECIAL_DATA:
     {
       FILE* f = melt_get_file ((melt_ptr_t)outv);
@@ -12279,10 +12016,6 @@ meltgc_ppout_tree_perhaps_briefly (melt_ptr_t out_p, int indentsp, tree tr, bool
     meltppbufsiz = 0;
   }
   break;
-#if MELT_HAS_OBMAG_SPEC
-  case MELTOBMAG_SPEC_FILE:
-  case MELTOBMAG_SPEC_RAWFILE: 
-#endif
   case MELTOBMAG_SPECIAL_DATA:
     {
       FILE* f = melt_get_file ((melt_ptr_t)outv);
@@ -12366,10 +12099,6 @@ meltgc_out_edge (melt_ptr_t out_p, edge edg)
     meltppbufsiz = 0;
   }
     break;
-#if MELT_HAS_OBMAG_SPEC
-  case MELTOBMAG_SPEC_FILE:
-  case MELTOBMAG_SPEC_RAWFILE: 
-#endif
   case MELTOBMAG_SPECIAL_DATA:
     {
       FILE* f = melt_get_file ((melt_ptr_t)outv);
@@ -12420,10 +12149,6 @@ meltgc_out_loop (melt_ptr_t out_p, loop_p loo)
     meltppbufsiz = 0;
   }
     break;
-#if MELT_HAS_OBMAG_SPEC
-  case MELTOBMAG_SPEC_FILE:
-  case MELTOBMAG_SPEC_RAWFILE: 
-#endif
   case MELTOBMAG_SPECIAL_DATA:
     {
       FILE* f = melt_get_file ((melt_ptr_t)outv);
@@ -12520,15 +12245,6 @@ meltgc_new_file (melt_ptr_t discr_p, FILE* fil)
   mag = object_discrv->meltobj_magic;
   switch (mag) 
     {
-#if MELT_HAS_OBMAG_SPEC
-    case MELTOBMAG_SPEC_FILE:
-    case MELTOBMAG_SPEC_RAWFILE:
-      {
-	resv = meltgc_make_special ((melt_ptr_t) discrv);
-	spec_resv->specialpayload.sp_file = fil;
-      }
-      break;
-#endif
     case MELTOBMAG_SPECIAL_DATA:
       {
 	resv = meltgc_make_specialdata ((melt_ptr_t) discrv);
@@ -13216,16 +12932,6 @@ meltgc_set_dump_file (FILE* dumpf)
   dumpv = melt_get_inisysdata (MELTFIELD_SYSDATA_DUMPFILE);
   if (melt_discr((melt_ptr_t) dumpv) == (meltobject_ptr_t) MELT_PREDEF(DISCR_RAWFILE))
     {
-#if MELT_HAS_OBMAG_SPEC
-      if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) 
-	{
-	  oldf = ((struct meltspecial_st*)dumpv)->specialpayload.sp_file;
-	  if (oldf) 
-	    fflush (oldf);
-	  ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = dumpf;
-	  goto end;
-	}
-#endif
       if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPECIAL_DATA
 	  && ((struct meltspecialdata_st*)dumpv)->meltspec_kind == meltpydkind_rawfile)
 	{
@@ -13253,13 +12959,6 @@ meltgc_restore_dump_file (FILE* oldf)
   dumpv = melt_get_inisysdata (MELTFIELD_SYSDATA_DUMPFILE);
   if (melt_discr((melt_ptr_t) dumpv) == (meltobject_ptr_t) MELT_PREDEF(DISCR_RAWFILE))
     {
-#if MELT_HAS_OBMAG_SPEC
-      if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) 
-	{
-	  ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = oldf;
-	  goto end;
-	}
-#endif
       if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPECIAL_DATA
 	  && ((struct meltspecialdata_st*)dumpv)->meltspec_kind == meltpydkind_rawfile)
 	{

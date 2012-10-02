@@ -80,8 +80,6 @@ extern void fatal_error (const char *, ...);
 #include "hwint.h"
 
 
-// switch to 0 when MELTOBMAG_SPEC_FILE is removed
-#define MELT_HAS_OBMAG_SPEC 0
 
 MELT_EXTERN const char melt_runtime_build_date[];
 
@@ -398,13 +396,7 @@ union melt_special_un
 };
 /* make a special value; return NULL if the discriminant is not special */
 
-#if MELT_HAS_OBMAG_SPEC
-/* actually, all meltspecial*_st structures are similar */
-#define meltspecial_st meltspecialfile_st
-struct meltspecial_st*meltgc_make_special (melt_ptr_t discr_p);
-#else
 struct meltspecialdata_st* meltgc_make_specialdata (melt_ptr_t discr_p);
-#endif /*MELT_HAS_OBMAG_SPEC*/
 
 struct meltspecialpayload_st {
   union meltpayload_un {
@@ -791,9 +783,6 @@ melt_is_out (melt_ptr_t p)
   int d = melt_magic_discr(p);
   unsigned k = melt_special_kind (p);
   return d == MELTOBMAG_STRBUF
-#if MELT_HAS_OBMAG_SPEC
-    || d == MELTOBMAG_SPEC_FILE || d == MELTOBMAG_SPEC_RAWFILE
-#endif
     || k == meltpydkind_file || k == meltpydkind_rawfile;
 }
 
@@ -805,9 +794,6 @@ melt_is_file (melt_ptr_t p)
   unsigned k = melt_special_kind (p);
   return 
     (d == MELTOBMAG_SPECIAL_DATA 
-#if MELT_HAS_OBMAG_SPEC
-     || d == MELTOBMAG_SPEC_FILE || d == MELTOBMAG_SPEC_RAWFILE
-#endif
      ) &&
     (k == meltpydkind_file || k == meltpydkind_rawfile);
 }
@@ -927,16 +913,9 @@ extern char *melt_curalz;
 extern void **melt_storalz;
 
 
-#if MELT_HAS_OBMAG_SPEC
-/* list of specials in the allocation zone */
-MELT_EXTERN struct meltspecial_st *melt_newspeclist;
-/* list of specials in the old Ggc heap */
-MELT_EXTERN struct meltspecial_st *melt_oldspeclist;
-#else
 /* special data in the allocation zone and in the old Ggc heap */
 MELT_EXTERN struct meltspecialdata_st* melt_newspecdatalist;
 MELT_EXTERN struct meltspecialdata_st* melt_oldspecdatalist;
-#endif
 
 
 /* kilowords allocated since last full collection */
@@ -1182,20 +1161,6 @@ meltgc_touch_dest (void *touchedptr, void *destptr)
 
 
 
-#if MELT_HAS_OBMAG_SPEC
-/* these are mark_hook-s for GTY, but it may be possible that gengtype
-   don't generate them anymore. See
-   http://gcc.gnu.org/ml/gcc/2010-07/msg00248.html for more.  */
-static inline void
-melt_mark_special (struct meltspecial_st *p)
-{
-  /* FIXME: gengtype don't generate call to this! */
-  p->specialmark = 1;
-  melt_debuggc_eprintf ("marked special %p of magic %d = %s", 
-                        (void*)p, p->discr->meltobj_magic, 
-			melt_obmag_string (p->discr->meltobj_magic));
-}
-#else
 static inline void
 melt_mark_specialdata (struct meltspecialdata_st* p)
 {
@@ -1204,7 +1169,6 @@ melt_mark_specialdata (struct meltspecialdata_st* p)
                         (void*)p, p->discr->meltobj_magic, 
 			melt_obmag_string (p->discr->meltobj_magic));
 }
-#endif 
 
 static inline void
 melt_mark_decay (struct meltdecay_st *p)
@@ -3230,10 +3194,6 @@ melt_get_file(melt_ptr_t file_p)
   if (!file_p)
     return NULL;
   magic = melt_magic_discr (file_p);
-#if MELT_HAS_OBMAG_SPEC
-  if (magic == MELTOBMAG_SPEC_FILE || magic == MELTOBMAG_SPEC_RAWFILE)
-    return ((struct meltspecialfile_st*)file_p)->specialpayload.sp_file;
-#endif
   if (magic == MELTOBMAG_SPECIAL_DATA) 
     {
       unsigned k = melt_special_kind (file_p);

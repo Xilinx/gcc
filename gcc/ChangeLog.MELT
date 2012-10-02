@@ -1,6 +1,12 @@
 
 2012-10-02  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.h: Remove MELT_HAS_OBMAG_SPEC everywhere.
+
+	* melt-runtime.c: Likewise.
+
+2012-10-02  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.h (melt_mark_specialdata): New function.
 
 	* melt-runtime.c (meltgc_set_dump_file, meltgc_restore_dump_file):
