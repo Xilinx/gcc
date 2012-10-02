@@ -1,4 +1,22 @@
 
+2012-10-02  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	{{trying to disable MELT_HAS_OBMAG_SPEC everywhere, so reorganizing some code}}
+	* melt-runtime.h (melt_newspeclist, melt_oldspeclist): Declared as MELT_EXTERN.
+	(melt_newspecdatalist, melt_oldspecdatalist): New declaration.
+
+	* melt-runtime.c (melt_newspecdatalist, melt_oldspecdatalist): New
+	definitions.
+	(melt_delete_specialdata, delete_special, meltgc_make_special)
+	(meltgc_make_specialdata, melt_delete_unmarked_new_special)
+	(melt_delete_unmarked_new_specialdata, melt_clear_old_special)
+	(melt_clear_old_specialdata): New or improve function.
+	(melt_minor_copying_garbage_collector, melt_garbcoll): Call helper
+	functions above.
+
+	* melt/generated/meltrunsup-inc.c (melt_forwarded_copy): Hand-edit
+	to almost remove MELTOBMAG_SPEC_FILE & MELTOBMAG_SPEC_RAWFILE cases.
+
 2012-10-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-base.melt (valdesc_special_data): Typo in the copy
 	chunk.

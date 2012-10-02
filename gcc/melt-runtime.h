@@ -924,10 +924,18 @@ extern char *melt_curalz;
 extern void **melt_storalz;
 
 
+#if MELT_HAS_OBMAG_SPEC
 /* list of specials in the allocation zone */
-extern struct meltspecial_st *melt_newspeclist;
-/* list of specials in the heap */
-extern struct meltspecial_st *melt_oldspeclist;
+MELT_EXTERN struct meltspecial_st *melt_newspeclist;
+/* list of specials in the old Ggc heap */
+MELT_EXTERN struct meltspecial_st *melt_oldspeclist;
+#else
+/* special data in the allocation zone and in the old Ggc heap */
+MELT_EXTERN struct meltspecialdata_st* melt_newspecdatalist;
+MELT_EXTERN struct meltspecialdata_st* melt_oldspecdatalist;
+#endif
+
+
 /* kilowords allocated since last full collection */
 extern unsigned long melt_kilowords_sincefull;
 /* number of full & any melt garbage collections */

@@ -675,8 +675,8 @@ melt_forwarded_copy (melt_ptr_t p)
 	/* mark the new copy! */
 	dst->meltspec_mark = 1;
 	/* add the new copy to the old (major) special list */
-	dst->meltspec_next = (struct meltspecialdata_st *) melt_oldspeclist;
-	melt_oldspeclist = (struct meltspecial_st *) dst;
+	dst->meltspec_next = melt_oldspecdatalist;
+	melt_oldspecdatalist =  dst;
 
 	n = (melt_ptr_t) dst;
 	break;
@@ -685,46 +685,13 @@ melt_forwarded_copy (melt_ptr_t p)
       /*valdesc #17 VALDESC_SPECIAL_FILE */
     case MELTOBMAG_SPEC_FILE:
       {
-	struct meltspecialfile_st *src = (struct meltspecialfile_st *) p;
-	struct meltspecialfile_st *dst = NULL;
-	/* from VALDESC_SPECIAL_FILE */
-/* ggc_alloc_meltspecialfile_st should be gengtype generated for VALDESC_SPECIAL_FILE */
-#ifndef ggc_alloc_meltspecialfile_st
-#define ggc_alloc_meltspecialfile_st() ((struct meltspecialfile_st *)(ggc_internal_alloc_stat (sizeof (struct meltspecialfile_st) MEM_STAT_INFO)))
-#endif
-	dst = ggc_alloc_meltspecialfile_st ();
-	*dst = *src;
-	/* mark the new copy! */
-	dst->specialmark = 1;
-	/* add the new copy to the old (major) special list */
-	dst->specialnext = melt_oldspeclist;
-	melt_oldspeclist = (struct meltspecial_st *) dst;
-
-	n = (melt_ptr_t) dst;
-	break;
+	melt_fatal_error ("unexpected MELTOBMAG_SPEC_FILE melt_forwarded_copy src@%p", (void*)p);
       }
 
       /*valdesc #18 VALDESC_SPECIAL_RAW_FILE */
     case MELTOBMAG_SPEC_RAWFILE:
       {
-	struct meltspecialrawfile_st *src =
-	  (struct meltspecialrawfile_st *) p;
-	struct meltspecialrawfile_st *dst = NULL;
-	/* from VALDESC_SPECIAL_RAW_FILE */
-/* ggc_alloc_meltspecialrawfile_st should be gengtype generated for VALDESC_SPECIAL_RAW_FILE */
-#ifndef ggc_alloc_meltspecialrawfile_st
-#define ggc_alloc_meltspecialrawfile_st() ((struct meltspecialrawfile_st *)(ggc_internal_alloc_stat (sizeof (struct meltspecialrawfile_st) MEM_STAT_INFO)))
-#endif
-	dst = ggc_alloc_meltspecialrawfile_st ();
-	*dst = *src;
-	/* mark the new copy! */
-	dst->specialmark = 1;
-	/* add the new copy to the old (major) special list */
-	dst->specialnext = melt_oldspeclist;
-	melt_oldspeclist = (struct meltspecial_st *) dst;
-
-	n = (melt_ptr_t) dst;
-	break;
+	melt_fatal_error ("unexpected MELTOBMAG_SPEC_RAWFILE melt_forwarded_copy src@%p", (void*)p);
       }
 
       /*valdesc #19 VALDESC_STRBUF */

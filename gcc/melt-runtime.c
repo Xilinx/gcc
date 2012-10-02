@@ -332,8 +332,14 @@ typedef melt_ptr_t melt_start_runext_rout_t (melt_ptr_t /*boxcurenv*/, melt_ptr_
 /** special values are linked in a list to permit their explicit
 deletion */
 
+#if MELT_HAS_OBMAG_SPEC
 struct meltspecial_st* melt_newspeclist;
 struct meltspecial_st* melt_oldspeclist;
+#else
+struct meltspecialdata_st* melt_newspecdatalist;
+struct meltspecialdata_st* melt_oldspecdatalist;
+#endif
+
 unsigned long melt_kilowords_sincefull;
 /* number of full & any melt garbage collections */
 unsigned long melt_nb_full_garbcoll;
@@ -765,13 +771,41 @@ static struct melt_payload_descriptor_st* meltpyd_array[MELTPYD_MAX_RANK];
 
 
 static inline void
+melt_delete_specialdata (struct meltspecialdata_st *msd)
+{
+  unsigned kind = msd->meltspec_kind;
+  struct melt_payload_descriptor_st* mpyd = NULL;
+  if (kind != 0) 
+    {
+      if (kind >= MELTPYD_MAX_RANK
+	  || (mpyd = meltpyd_array[kind]) == NULL)
+	melt_fatal_error ("invalid kind %d of deleted special data @%p", 
+			  kind, (void*)msd);
+      if (mpyd->meltpyd_magic != MELT_PAYLOAD_DESCRIPTOR_MAGIC
+	  || (mpyd->meltpyd_rank > 0 && mpyd->meltpyd_rank != kind)
+	  || !mpyd->meltpyd_name)
+	melt_fatal_error ("invalid payload descriptor of kind %d for deleted special data @%p",
+			  kind, (void*)msd);
+      if (mpyd->meltpyd_destroy_rout)
+	{
+	  melt_debuggc_eprintf ("delete_special destroying kind %d=%s data @%p",
+				kind, mpyd->meltpyd_name, (void*)msd);
+	  (*mpyd->meltpyd_destroy_rout) (msd, mpyd);
+	  melt_debuggc_eprintf ("delete_special destroyed kind %d=%s data @%p",
+				kind, mpyd->meltpyd_name, (void*)msd);
+	};
+    }
+  memset (msd, 0, sizeof(struct meltspecialdata_st));
+}
+
+#if MELT_HAS_OBMAG_SPEC
+static inline void
 delete_special (struct meltspecial_st *sp)
 {
   int magic = sp->discr->meltobj_magic;
   melt_debuggc_eprintf ("delete_special deleting sp %p magic %d %s",
                         (void*) sp, magic, melt_obmag_string (magic));
   switch (magic) {
-#if MELT_HAS_OBMAG_SPEC
   case MELTOBMAG_SPEC_FILE:
     if (sp->specialpayload.sp_file) {
       fclose (sp->specialpayload.sp_file);
@@ -784,33 +818,10 @@ delete_special (struct meltspecial_st *sp)
       sp->specialpayload.sp_file = NULL;
     };
     break;
-#endif /*MELT_HAS_OBMAG_SPEC*/
   case MELTOBMAG_SPECIAL_DATA:
     {
       struct meltspecialdata_st *msd = (struct meltspecialdata_st*)sp;
-      unsigned kind = msd->meltspec_kind;
-      struct melt_payload_descriptor_st* mpyd = NULL;
-      if (kind != 0) 
-	{
-	  if (kind >= MELTPYD_MAX_RANK
-	      || (mpyd = meltpyd_array[kind]) == NULL)
-	    melt_fatal_error ("invalid kind %d of deleted special data @%p", 
-			      kind, (void*)msd);
-	  if (mpyd->meltpyd_magic != MELT_PAYLOAD_DESCRIPTOR_MAGIC
-	      || (mpyd->meltpyd_rank > 0 && mpyd->meltpyd_rank != kind)
-	      || !mpyd->meltpyd_name)
-	    melt_fatal_error ("invalid payload descriptor of kind %d for deleted special data @%p",
-			      kind, (void*)msd);
-	  if (mpyd->meltpyd_destroy_rout)
-	    {
-	      melt_debuggc_eprintf ("delete_special destroying kind %d=%s data @%p",
-				    kind, mpyd->meltpyd_name, (void*)msd);
-	      (*mpyd->meltpyd_destroy_rout) (msd, mpyd);
-	      melt_debuggc_eprintf ("delete_special destroyed kind %d=%s data @%p",
-				    kind, mpyd->meltpyd_name, (void*)msd);
-	    };
-	}
-      memset (msd, 0, sizeof(struct meltspecialdata_st));
+      melt_delete_specialdata (msd);
     }
     break;
   default:
@@ -818,6 +829,7 @@ delete_special (struct meltspecial_st *sp)
   }
   /* Don't ggc_free sp, it is the responsability of the caller!  */
 }
+#endif /*MELT_HAS_OBMAG_SPEC*/
 
 #ifdef ENABLE_CHECKING
 /* only for debugging, to be set from the debugger */
@@ -992,8 +1004,13 @@ meltgc_make_special (melt_ptr_t discr_p)
       memset (specv, 0, sizeof(struct meltspecialdata_st));
       spda_specv->discr = (meltobject_ptr_t) discrv;
       spda_specv->meltspec_mark = 0;
-      spda_specv->meltspec_next = (meltspecialdata_st*)melt_newspeclist;
+#if MELT_HAS_OBMAG_SPEC
+      spda_specv->meltspec_next = melt_newspeclist;
       melt_newspeclist = (meltspecial_st*)specv;
+#else
+      spda_specv->meltspec_next = melt_newspecdatalist;
+      melt_newspecdatalist = (meltspecialdata_st*)specv;
+#endif
       melt_debuggc_eprintf ("make_special data %p discr %p magic %d %s",
 			    specv, discrv, magic, melt_obmag_string(magic));
 #if ENABLE_CHECKING
@@ -1044,8 +1061,13 @@ meltgc_make_specialdata (melt_ptr_t discr_p)
   memset (specv, 0, sizeof(struct meltspecialdata_st));
   spda_specv->discr = (meltobject_ptr_t) discrv;
   spda_specv->meltspec_mark = 0;
+#if MELT_HAS_OBMAG_SPEC
   spda_specv->meltspec_next = (meltspecialdata_st*)melt_newspeclist;
   melt_newspeclist = (meltspecial_st*)specv;
+#else
+  spda_specv->meltspec_next = melt_newspecdatalist;
+  melt_newspecdatalist = (meltspecialdata_st*)specv;
+#endif
   melt_debuggc_eprintf ("make_specialdata %p discr %p magic %d %s",
 			specv, discrv, magic, melt_obmag_string(magic));
 #if ENABLE_CHECKING
@@ -1183,6 +1205,83 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 }
 
 
+#if MELT_HAS_OBMAG_SPEC
+static void
+melt_delete_unmarked_new_special (void)
+{
+  struct meltspecial_st *specp = NULL;
+  /* Delete every unmarked special on the new list and clear it */
+  for (specp = melt_newspeclist; specp != NULL; specp = specp->specialnext) {
+    gcc_assert (melt_is_young (specp));
+    melt_debuggc_eprintf ("melt_delete_unmarked_new_special specp %p has mark %d",
+                          (void*) specp, specp->specialmark);
+
+#if ENABLE_CHECKING
+    if (melt_alptr_1 && (void*)melt_alptr_1 == (void*)specp) {
+      int mag = specp->discr->meltobj_magic;
+      fprintf (stderr, "melt_delete_unmarked_new_special  new special alptr_1 %p mag %d\n",  melt_alptr_1, mag);
+      fflush (stderr);
+      melt_debuggc_eprintf("melt_delete_unmarked_new_special #%ld new special alptr_1 %p mag %d",
+                           melt_nb_garbcoll, melt_alptr_1, mag);
+      melt_break_alptr_1 ("garbcoll new special alptr_1");
+    }
+    if (melt_alptr_2 && (void*)melt_alptr_2 == (void*)specp) {
+      int mag = specp->discr->meltobj_magic;
+      fprintf (stderr, "melt_delete_unmarked_new_special new special alptr_2 %p mag %d\n",  melt_alptr_2, mag);
+      fflush (stderr);
+      melt_debuggc_eprintf("melt_delete_unmarked_new_special #%ld new special alptr_2 %p mag %d",
+                           melt_nb_garbcoll, melt_alptr_2, mag);
+      melt_break_alptr_2 ("garbcoll new special alptr_2");
+    }
+#endif /*ENABLE_CHECKING*/
+
+    if (!specp->specialmark) {
+      melt_debuggc_eprintf ("melt_delete_unmarked_new_special deleting newspec %p", (void*)specp);
+      delete_special (specp);
+    }
+  }
+  melt_newspeclist = NULL;
+}
+#else
+static void
+melt_delete_unmarked_new_specialdata (void)
+{
+  struct meltspecialdata_st *specda = NULL;
+  /* Delete every unmarked special data on the new list and clear it */
+  for (specda = melt_newspecdatalist; specda != NULL; specda = specda->meltspec_next) {
+    gcc_assert (melt_is_young (specda));
+    melt_debuggc_eprintf ("melt_delete_unmarked_new_specialdata specda %p has mark %d",
+                          (void*) specda, specda->meltspec_mark);
+
+#if ENABLE_CHECKING
+    if (melt_alptr_1 && (void*)melt_alptr_1 == (void*)specda) {
+      unsigned mag = specda->discr->meltobj_magic;
+      fprintf (stderr, "melt_delete_unmarked_new_specialdata new special alptr_1 %p mag %d\n",  melt_alptr_1, mag);
+      fflush (stderr);
+      melt_debuggc_eprintf("melt_delete_unmarked_new_specialdata #%ld new special alptr_1 %p mag %d",
+                           melt_nb_garbcoll, melt_alptr_1, mag);
+      melt_break_alptr_1 ("garbcoll new specialdata alptr_1");
+    }
+    if (melt_alptr_2 && (void*)melt_alptr_2 == (void*)specda) {
+      unsigned mag = specda->discr->meltobj_magic;
+      fprintf (stderr, "melt_delete_unmarked_new_specialdata new special alptr_2 %p mag %d\n",  melt_alptr_2, mag);
+      fflush (stderr);
+      melt_debuggc_eprintf("melt_delete_unmarked_new_specialdata #%ld new special alptr_2 %p mag %d",
+                           melt_nb_garbcoll, melt_alptr_2, mag);
+      melt_break_alptr_2 ("garbcoll new specialdata alptr_2");
+    }
+#endif /*ENABLE_CHECKING*/
+
+    if (!specda->meltspec_mark) {
+      melt_debuggc_eprintf ("melt_delete_unmarked_new_specialdata deleting newspec %p", (void*)specda);
+      melt_delete_specialdata (specda);
+    }
+  }
+  melt_newspecdatalist = NULL;
+}
+#endif /*MELT_HAS_OBMAG_SPEC*/
+
+
 /* The minor MELT GC is a copying generational garbage collector whose
    old space is the GGC heap.  */
 static void
@@ -1190,7 +1289,6 @@ melt_minor_copying_garbage_collector (size_t wanted)
 {
   struct melt_callframe_st *cfram = NULL;
   melt_ptr_t *storp = NULL;
-  struct meltspecial_st *specp = NULL;
   int ix = 0;
   melt_check_call_frames (MELT_ANYWHERE, "before garbage collection");
   melt_debuggc_eprintf ("melt_minor_copying_garbage_collector %ld begin alz=%p-%p *****************\n",
@@ -1256,37 +1354,11 @@ melt_minor_copying_garbage_collector (size_t wanted)
   VEC_free (melt_ptr_t, gc, melt_bscanvec);
   melt_bscanvec = NULL;
 
-  /* Delete every unmarked special on the new list and clear it */
-  for (specp = melt_newspeclist; specp; specp = specp->specialnext) {
-    gcc_assert (melt_is_young (specp));
-    melt_debuggc_eprintf ("melt_minor_copying_garbage_collector specp %p has mark %d",
-                          (void*) specp, specp->specialmark);
-
-#if ENABLE_CHECKING
-    if (melt_alptr_1 && (void*)melt_alptr_1 == (void*)specp) {
-      int mag = specp->discr->meltobj_magic;
-      fprintf (stderr, "melt_minor_copying_garbage_collector  new special alptr_1 %p mag %d\n",  melt_alptr_1, mag);
-      fflush (stderr);
-      melt_debuggc_eprintf("melt_minor_copying_garbage_collector #%ld new special alptr_1 %p mag %d",
-                           melt_nb_garbcoll, melt_alptr_1, mag);
-      melt_break_alptr_1 ("garbcoll new special alptr_1");
-    }
-    if (melt_alptr_2 && (void*)melt_alptr_2 == (void*)specp) {
-      int mag = specp->discr->meltobj_magic;
-      fprintf (stderr, "melt_minor_copying_garbage_collector new special alptr_2 %p mag %d\n",  melt_alptr_2, mag);
-      fflush (stderr);
-      melt_debuggc_eprintf("melt_minor_copying_garbage_collector #%ld new special alptr_2 %p mag %d",
-                           melt_nb_garbcoll, melt_alptr_2, mag);
-      melt_break_alptr_2 ("garbcoll new special alptr_2");
-    }
-#endif /*ENABLE_CHECKING*/
-
-    if (!specp->specialmark) {
-      melt_debuggc_eprintf ("melt_minor_copying_garbage_collector deleting newspec %p", (void*)specp);
-      delete_special (specp);
-    }
-  }
-  melt_newspeclist = NULL;
+#if MELT_HAS_OBMAG_SPEC
+  melt_delete_unmarked_new_special ();
+#else
+  melt_delete_unmarked_new_specialdata ();
+#endif
 
   /* Free the previous young zone and allocate a new one.  */
   melt_debuggc_eprintf ("melt_minor_copying_garbage_collector %ld freeing alz=%p-%p",
@@ -1322,6 +1394,178 @@ melt_ggcstart_callback (void *gcc_data ATTRIBUTE_UNUSED,
 }
 
 
+#if MELT_HAS_OBMAG_SPEC
+static long 
+melt_clear_old_special (void)
+{
+  long nboldspec = 0;
+  struct meltspecial_st *specp = NULL;
+  struct meltspecial_st *nextspecp = NULL;
+  /* clear our mark fields on old special list before running Ggc. */
+  for (specp = melt_oldspeclist; specp != NULL; specp = nextspecp) {
+    specp->specialmark = 0;
+    nextspecp = specp->specialnext;
+    nboldspec++;
+
+#if ENABLE_CHECKING
+    if (melt_alptr_1 && (void*)melt_alptr_1 == (void*)specp) {
+      int mag = specp->discr->meltobj_magic;
+      fprintf (stderr, "melt_clear_old_special clear oldmark special alptr_1 %p mag %d\n",  melt_alptr_1, mag);
+      fflush (stderr);
+      melt_debuggc_eprintf("melt_clear_old_special #%ld clear oldmark special alptr_1 %p mag %d",
+			   melt_nb_garbcoll, melt_alptr_1, mag);
+      melt_break_alptr_1 ("melt_clear_old_special clear oldmark special alptr_1");
+    }
+    if (melt_alptr_2 && (void*)melt_alptr_2 == (void*)specp) {
+      int mag = specp->discr->meltobj_magic;
+      fprintf (stderr, "melt_garbcoll clear oldmark special alptr_2 %p mag %d\n",  melt_alptr_2, mag);
+      fflush (stderr);
+      melt_debuggc_eprintf("melt_clear_old_special #%ld clear oldmark  special alptr_2 %p mag %d",
+			   melt_nb_garbcoll, melt_alptr_2, mag);
+      melt_break_alptr_2 ("melt_clear_old_special clear oldmark special alptr_2");
+    }
+#endif /* ENABLE_CHECKING */
+  };
+  return nboldspec;
+}
+
+static void
+melt_delete_unmarked_old_special (void)
+{
+  struct meltspecial_st *specp = NULL;
+  struct meltspecial_st *nextspecp = NULL;
+  struct meltspecial_st **prevspecptr = NULL;
+  /* Delete the unmarked specials.  */
+  prevspecptr = &melt_oldspeclist;
+  for (specp = melt_oldspeclist; specp; specp = nextspecp) {
+    nextspecp = specp->specialnext;
+
+#if ENABLE_CHECKING
+    if (melt_alptr_1 && (void*)melt_alptr_1 == (void*)specp) {
+      int mag = specp->discr->meltobj_magic;
+      fprintf (stderr, "melt_delete_unmarked_old_special alptr_1 %p mag %d\n",  melt_alptr_1, mag);
+      fflush (stderr);
+      melt_debuggc_eprintf("melt_delete_unmarked_old_special #%ld old special alptr_1 %p mag %d",
+			   melt_nb_garbcoll, melt_alptr_1, mag);
+      melt_break_alptr_1 ("melt_delete_unmarked_old_special alptr_1");
+    }
+    if (melt_alptr_2 && (void*)melt_alptr_2 == (void*)specp) {
+      int mag = specp->discr->meltobj_magic;
+      fprintf (stderr, "melt_delete_unmarked_old_special alptr_2 %p mag %d\n",  melt_alptr_2, mag);
+      fflush (stderr);
+      melt_debuggc_eprintf("melt_delete_unmarked_old_special #%ld old special alptr_2 %p mag %d",
+			   melt_nb_garbcoll, melt_alptr_2, mag);
+      melt_break_alptr_2 ("melt_delete_unmarked_old_special alptr_2");
+    }
+#endif /*ENABLE_CHECKING*/
+
+    melt_debuggc_eprintf ("melt_delete_unmarked_old_special deletespecloop old specp %p mark %d",
+			  (void*)specp, specp->specialmark);
+    /* we test both the mark field, if mark_hook is really working
+       in gengtype, and the result of ggc_marked_p, for GCC versions
+       where it is not working. mark_hook don't work in GCC 4.7 and
+       probably not even in 4.6 */ 
+    if (specp->specialmark || ggc_marked_p(specp)) {
+      prevspecptr = &specp->specialnext;
+      continue;
+    }
+    melt_debuggc_eprintf ("melt_delete_unmarked_old_special deletespecloop deleting old specp %p",
+			  (void*)specp);
+    delete_special (specp);
+    memset (specp, 0, sizeof (*specp));
+    ggc_free (specp);
+    *prevspecptr = nextspecp;
+  };
+}
+#else  /* !MELT_HAS_OBMAG_SPEC */
+
+static long
+melt_clear_old_specialdata (void)
+{
+  long nboldspecdata = 0;
+  struct meltspecialdata_st *specda = NULL;
+  struct meltspecialdata_st *nextspecda = NULL;
+  /* clear our mark fields on old special list before running Ggc. */
+  for (specda = melt_oldspecdatalist; specda != NULL; specda = nextspecda) {
+    specda->meltspec_mark = 0;
+    nextspecda = specda->meltspec_next;
+    nboldspecdata++;
+
+#if ENABLE_CHECKING
+    if (melt_alptr_1 && (void*)melt_alptr_1 == (void*)specda) {
+      unsigned mag = specda->discr->meltobj_magic;
+      fprintf (stderr, "melt_clear_old_specialdata oldmark special alptr_1 %p mag %d\n",  melt_alptr_1, mag);
+      fflush (stderr);
+      melt_debuggc_eprintf("melt_clear_old_specialdata #%ld clear oldmark special alptr_1 %p mag %d",
+			   melt_nb_garbcoll, melt_alptr_1, mag);
+      melt_break_alptr_1 ("melt_clear_old_specialdata oldmark special alptr_1");
+    }
+    if (melt_alptr_2 && (void*)melt_alptr_2 == (void*)specda) {
+      unsigned mag = specda->discr->meltobj_magic;
+      fprintf (stderr, "melt_clear_old_specialdata oldmark special alptr_2 %p mag %d\n",  melt_alptr_2, mag);
+      fflush (stderr);
+      melt_debuggc_eprintf("melt_clear_old_specialdata #%ld clear oldmark  special alptr_2 %p mag %d",
+			   melt_nb_garbcoll, melt_alptr_2, mag);
+      melt_break_alptr_2 ("melt_clear_old_specialdata oldmark special alptr_2");
+    }
+#endif /* ENABLE_CHECKING */
+  };
+  return nboldspecdata;
+}
+
+
+static void
+melt_delete_unmarked_old_specialdata (void)
+{
+  struct meltspecialdata_st *specda = NULL;
+  struct meltspecialdata_st *nextspecda = NULL;
+  struct meltspecialdata_st **prevspecdaptr = NULL;
+  /* Delete the unmarked specials.  */
+  prevspecdaptr = &melt_oldspecdatalist;
+  for (specda = melt_oldspecdatalist; specda != NULL; specda = nextspecda) {
+    nextspecda = specda->meltspec_next;
+
+#if ENABLE_CHECKING
+    if (melt_alptr_1 && (void*)melt_alptr_1 == (void*)specda) {
+      int mag = specda->discr->meltobj_magic;
+      fprintf (stderr, "melt_delete_unmarked_old_specialdata alptr_1 %p mag %d\n",  melt_alptr_1, mag);
+      fflush (stderr);
+      melt_debuggc_eprintf("melt_delete_unmarked_old_specialdata #%ld old special alptr_1 %p mag %d",
+			   melt_nb_garbcoll, melt_alptr_1, mag);
+      melt_break_alptr_1 ("melt_delete_unmarked_old_specialdata alptr_1");
+    }
+    if (melt_alptr_2 && (void*)melt_alptr_2 == (void*)specda) {
+      int mag = specda->discr->meltobj_magic;
+      fprintf (stderr, "melt_delete_unmarked_old_specialdata alptr_2 %p mag %d\n",  melt_alptr_2, mag);
+      fflush (stderr);
+      melt_debuggc_eprintf("melt_delete_unmarked_old_specialdata #%ld old special alptr_2 %p mag %d",
+			   melt_nb_garbcoll, melt_alptr_2, mag);
+      melt_break_alptr_2 ("melt_delete_unmarked_old_specialdata alptr_2");
+    }
+#endif /*ENABLE_CHECKING*/
+
+    melt_debuggc_eprintf ("melt_delete_unmarked_old_specialdata deletespecloop old specp %p mark %d",
+			  (void*)specda, specda->meltspec_mark);
+    /* we test both the mark field, if mark_hook is really working
+       in gengtype, and the result of ggc_marked_p, for GCC versions
+       where it is not working. mark_hook don't work in GCC 4.7 and
+       probably not even in 4.6 */ 
+    if (specda->meltspec_mark || ggc_marked_p(specda)) {
+      prevspecdaptr = &specda->meltspec_next;
+      continue;
+    }
+    melt_debuggc_eprintf ("melt_delete_unmarked_old_specialdata deletespecloop deleting old specp %p",
+			  (void*)specda);
+    melt_delete_specialdata (specda);
+    memset (specda, 0, sizeof (*specda));
+    ggc_free (specda);
+    *prevspecdaptr = nextspecda;
+  };
+}
+#endif /*MELT_HAS_OBMAG_SPEC*/
+
+
+
 
 /***
  * Our copying garbage collector, based upon GGC which does the full collection.
@@ -1330,9 +1574,6 @@ void
 melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
 {
   bool needfull = FALSE;
-  struct meltspecial_st **prevspecptr = NULL;
-  struct meltspecial_st *specp = NULL;
-  struct meltspecial_st *nextspecp = NULL;
   if (melt_prohibit_garbcoll)
     fatal_error ("MELT garbage collection prohibited");
   melt_nb_garbcoll++;
@@ -1390,76 +1631,21 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
     melt_nb_full_garbcoll++;
     debugeprintf ("melt_garbcoll #%ld fullgarbcoll #%ld",
                   melt_nb_garbcoll, melt_nb_full_garbcoll);
-    /* clear our mark fields on old special list before running Ggc. */
-    for (specp = melt_oldspeclist; specp; specp = nextspecp) {
-      specp->specialmark = 0;
-      nboldspec++;
-
-#if ENABLE_CHECKING
-      if (melt_alptr_1 && (void*)melt_alptr_1 == (void*)specp) {
-        int mag = specp->discr->meltobj_magic;
-        fprintf (stderr, "melt_garbcoll  clear oldmark special alptr_1 %p mag %d\n",  melt_alptr_1, mag);
-        fflush (stderr);
-        melt_debuggc_eprintf("melt_garbcoll #%ld clear oldmark special alptr_1 %p mag %d",
-                             melt_nb_garbcoll, melt_alptr_1, mag);
-        melt_break_alptr_1 ("garbcoll clear oldmark special alptr_1");
-      }
-      if (melt_alptr_2 && (void*)melt_alptr_2 == (void*)specp) {
-        int mag = specp->discr->meltobj_magic;
-        fprintf (stderr, "melt_garbcoll clear oldmark special alptr_2 %p mag %d\n",  melt_alptr_2, mag);
-        fflush (stderr);
-        melt_debuggc_eprintf("melt_garbcoll #%ld clear oldmark  special alptr_2 %p mag %d",
-                             melt_nb_garbcoll, melt_alptr_2, mag);
-        melt_break_alptr_2 ("garbcoll clear oldmark special alptr_2");
-      }
-#endif /* ENABLE_CHECKING */
-    };
+#if MELT_HAS_OBMAG_SPEC
+    melt_clear_old_special ();
+#else
+    melt_clear_old_specialdata ();
+#endif /* MELT_HAS_OBMAG_SPEC */
     debugeprintf ("melt_garbcoll calling gcc_collect #%ld after clearing %ld oldspecial marks", melt_nb_full_garbcoll, nboldspec);
     /* There is no need to force a GGC collection, just to run it, and
        Ggc may decide to skip it.  */
     ggc_collect ();
     debugeprintf ("melt_garbcoll after fullgarbcoll #%ld", melt_nb_full_garbcoll);
-    /* Delete the unmarked specials.  */
-    prevspecptr = &melt_oldspeclist;
-    for (specp = melt_oldspeclist; specp; specp = nextspecp) {
-      nextspecp = specp->specialnext;
-
-#if ENABLE_CHECKING
-      if (melt_alptr_1 && (void*)melt_alptr_1 == (void*)specp) {
-        int mag = specp->discr->meltobj_magic;
-        fprintf (stderr, "melt_garbcoll  old special alptr_1 %p mag %d\n",  melt_alptr_1, mag);
-        fflush (stderr);
-        melt_debuggc_eprintf("melt_garbcoll #%ld old special alptr_1 %p mag %d",
-                             melt_nb_garbcoll, melt_alptr_1, mag);
-        melt_break_alptr_1 ("garbcoll old special alptr_1");
-      }
-      if (melt_alptr_2 && (void*)melt_alptr_2 == (void*)specp) {
-        int mag = specp->discr->meltobj_magic;
-        fprintf (stderr, "melt_garbcoll old special alptr_2 %p mag %d\n",  melt_alptr_2, mag);
-        fflush (stderr);
-        melt_debuggc_eprintf("melt_garbcoll #%ld old special alptr_2 %p mag %d",
-                             melt_nb_garbcoll, melt_alptr_2, mag);
-        melt_break_alptr_2 ("garbcoll old special alptr_2");
-      }
-#endif /*ENABLE_CHECKING*/
-
-      melt_debuggc_eprintf ("melt_garbcoll deletespecloop old specp %p mark %d",
-                            (void*)specp, specp->specialmark);
-      /* we test both the mark field, if mark_hook is really working
-	 in gengtype, and the result of ggc_marked_p, for GCC versions
-	 where it is not working. mark_hook don't work in GCC 4.7 and
-	 probably not even in 4.6 */ 
-      if (specp->specialmark || ggc_marked_p(specp)) {
-        prevspecptr = &specp->specialnext;
-        continue;
-      }
-      melt_debuggc_eprintf ("melt_garbcoll deletespecloop deleting old specp %p",
-                            (void*)specp);
-      delete_special (specp);
-      memset (specp, 0, sizeof (*specp));
-      ggc_free (specp);
-      *prevspecptr = nextspecp;
-    };
+#if MELT_HAS_OBMAG_SPEC
+    melt_delete_unmarked_old_special ();
+#else
+    melt_delete_unmarked_old_specialdata ();
+#endif /* MELT_HAS_OBMAG_SPEC */
     if (!quiet_flag) {
       /* when not quiet, the GGC collector displays data, so we can
          add a message and end the line! "*/
@@ -11122,8 +11308,13 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
     gcc_assert (wantedwords * sizeof (void *) >
                 300 * MELTGLOB__LASTGLOB * sizeof (struct meltobject_st));
     melt_allocate_young_gc_zone (wantedwords / sizeof(void*));
+#if MELT_HAS_OBMAG_SPEC
     melt_newspeclist = NULL;
     melt_oldspeclist = NULL;
+#else
+    melt_newspecdatalist = NULL;
+    melt_oldspecdatalist = NULL;
+#endif
     debugeprintf ("melt_really_initialize alz %p-%p (%ld Kw)",
                   melt_startalz, melt_endalz, (long) wantedwords >> 10);
   }
