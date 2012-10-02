@@ -3570,8 +3570,8 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
     /* mark the new copy! */
     dst->meltspec_mark = 1;
     /* add the new copy to the old (major) special list */
-    dst->meltspec_next = (struct meltspecialdata_st*)melt_oldspeclist;
-    melt_oldspeclist = (struct meltspecialdata_st*)dst;
+    dst->meltspec_next = melt_oldspecdatalist;
+    melt_oldspeclist = dst;
   }#
   :valdesc_forwchunk #{$' /* from VALDESC_SPECIAL_DATA */
     src->meltspec_mark = 1;

@@ -398,10 +398,13 @@ union melt_special_un
 };
 /* make a special value; return NULL if the discriminant is not special */
 
+#if MELT_HAS_OBMAG_SPEC
 /* actually, all meltspecial*_st structures are similar */
 #define meltspecial_st meltspecialfile_st
 struct meltspecial_st*meltgc_make_special (melt_ptr_t discr_p);
-
+#else
+struct meltspecialdata_st* meltgc_make_specialdata (melt_ptr_t discr_p);
+#endif /*MELT_HAS_OBMAG_SPEC*/
 
 struct meltspecialpayload_st {
   union meltpayload_un {
@@ -1179,7 +1182,7 @@ meltgc_touch_dest (void *touchedptr, void *destptr)
 
 
 
-
+#if MELT_HAS_OBMAG_SPEC
 /* these are mark_hook-s for GTY, but it may be possible that gengtype
    don't generate them anymore. See
    http://gcc.gnu.org/ml/gcc/2010-07/msg00248.html for more.  */
@@ -1192,6 +1195,16 @@ melt_mark_special (struct meltspecial_st *p)
                         (void*)p, p->discr->meltobj_magic, 
 			melt_obmag_string (p->discr->meltobj_magic));
 }
+#else
+static inline void
+melt_mark_specialdata (struct meltspecialdata_st* p)
+{
+  p->meltspec_mark = 1;
+  melt_debuggc_eprintf ("marked specialdata %p of magic %d = %s", 
+                        (void*)p, p->discr->meltobj_magic, 
+			melt_obmag_string (p->discr->meltobj_magic));
+}
+#endif 
 
 static inline void
 melt_mark_decay (struct meltdecay_st *p)

@@ -13232,7 +13232,7 @@ meltgc_set_dump_file (FILE* dumpf)
 	  oldf = ((struct meltspecialdata_st*)dumpv)->meltspec_payload.meltpayload_file1;
 	  if (oldf) 
 	    fflush (oldf);
-	  ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = dumpf;
+	  ((struct meltspecialdata_st*)dumpv)->meltspec_payload.meltpayload_file1 = dumpf;
 	  goto end;
 	}
     }
@@ -13263,7 +13263,7 @@ meltgc_restore_dump_file (FILE* oldf)
       if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPECIAL_DATA
 	  && ((struct meltspecialdata_st*)dumpv)->meltspec_kind == meltpydkind_rawfile)
 	{
-	  ((struct meltspecial_st*)dumpv)->specialpayload.sp_file = oldf;
+	  ((struct meltspecialdata_st*)dumpv)->meltspec_payload.meltpayload_file1 = oldf;
 	  goto end;
 	}
     }

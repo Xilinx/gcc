@@ -9032,7 +9032,8 @@ lab_endgetargs:;
 	      "  /* use arguments output_curframe_declstruct_init */\
 \n\t\t (void) meltclosp_\t ;\n\t\t (void) meltfirstargp_\t ;\
 \n\t\t (void) meltxargdescr_\t ;\n\t\t (void) meltxargtab_\t ;\
-\n\t\t (void) meltxresdescr_\t ;\n\t\t (void) meltxrestab_\t ;\n\t\t ";
+\n\t\t (void) meltxresdescr_\t ;\n\t\t (void) meltx\
+restab_\t ;\n\t\t ";
 	    /*_.ADD2OUT__V22*/ meltfptr[20] =
 	      melt_apply ((meltclosure_ptr_t)
 			  (( /*!ADD2OUT */ meltfrout->tabval[4])),

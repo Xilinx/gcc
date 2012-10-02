@@ -220,19 +220,11 @@ melt_obmag_string (int i)
     case MELTOBMAG_SPECIAL_DATA:
       return "MELTOBMAG_SPECIAL_DATA";
 
-      /*valdesc #17 VALDESC_SPECIAL_FILE */
-    case MELTOBMAG_SPEC_FILE:
-      return "MELTOBMAG_SPEC_FILE";
-
-      /*valdesc #18 VALDESC_SPECIAL_RAW_FILE */
-    case MELTOBMAG_SPEC_RAWFILE:
-      return "MELTOBMAG_SPEC_RAWFILE";
-
-      /*valdesc #19 VALDESC_STRBUF */
+      /*valdesc #17 VALDESC_STRBUF */
     case MELTOBMAG_STRBUF:
       return "MELTOBMAG_STRBUF";
 
-      /*valdesc #20 VALDESC_STRING */
+      /*valdesc #18 VALDESC_STRING */
     case MELTOBMAG_STRING:
       return "MELTOBMAG_STRING";
     default:
@@ -676,25 +668,13 @@ melt_forwarded_copy (melt_ptr_t p)
 	dst->meltspec_mark = 1;
 	/* add the new copy to the old (major) special list */
 	dst->meltspec_next = melt_oldspecdatalist;
-	melt_oldspecdatalist =  dst;
+	melt_oldspecdatalist = dst;
 
 	n = (melt_ptr_t) dst;
 	break;
       }
 
-      /*valdesc #17 VALDESC_SPECIAL_FILE */
-    case MELTOBMAG_SPEC_FILE:
-      {
-	melt_fatal_error ("unexpected MELTOBMAG_SPEC_FILE melt_forwarded_copy src@%p", (void*)p);
-      }
-
-      /*valdesc #18 VALDESC_SPECIAL_RAW_FILE */
-    case MELTOBMAG_SPEC_RAWFILE:
-      {
-	melt_fatal_error ("unexpected MELTOBMAG_SPEC_RAWFILE melt_forwarded_copy src@%p", (void*)p);
-      }
-
-      /*valdesc #19 VALDESC_STRBUF */
+      /*valdesc #17 VALDESC_STRBUF */
     case MELTOBMAG_STRBUF:
       {
 	struct meltstrbuf_st *src = (struct meltstrbuf_st *) p;
@@ -731,7 +711,7 @@ melt_forwarded_copy (melt_ptr_t p)
 	break;
       }
 
-      /*valdesc #20 VALDESC_STRING */
+      /*valdesc #18 VALDESC_STRING */
     case MELTOBMAG_STRING:
       {
 	struct meltstring_st *src = (struct meltstring_st *) p;
@@ -1428,34 +1408,13 @@ melt_scanning (melt_ptr_t p)
 	break;
       }
 
-      /*valdesc #17 VALDESC_SPECIAL_FILE */
-    case MELTOBMAG_SPEC_FILE:
-      {
-	struct meltspecialfile_st *src = (struct meltspecialfile_st *) p;
-	/* from VALDESC_SPECIAL_FILE */
-	src->specialmark = 1;
-
-	break;
-      }
-
-      /*valdesc #18 VALDESC_SPECIAL_RAW_FILE */
-    case MELTOBMAG_SPEC_RAWFILE:
-      {
-	struct meltspecialrawfile_st *src =
-	  (struct meltspecialrawfile_st *) p;
-	/* from VALDESC_SPECIAL_RAW_FILE */
-	src->specialmark = 1;
-
-	break;
-      }
-
-      /*valdesc #19 VALDESC_STRBUF */
+      /*valdesc #17 VALDESC_STRBUF */
     case MELTOBMAG_STRBUF:
       {
 	break;
       }
 
-      /*valdesc #20 VALDESC_STRING */
+      /*valdesc #18 VALDESC_STRING */
     case MELTOBMAG_STRING:
       {
 	break;
@@ -2466,7 +2425,7 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
       };
       break;
 
-/******* cloning the 20 value descriptors *******/
+/******* cloning the 18 value descriptors *******/
 /** cloning value descriptor #1 VALDESC_BUCKETLONGS **/
       /*explicit cloning for VALDESC_BUCKETLONGS */
     case MELTOBMAG_BUCKETLONGS:
@@ -2803,15 +2762,7 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
       /*no cloning for VALDESC_SPECIAL_DATA */
     case MELTOBMAG_SPECIAL_DATA:
       break;
-/** cloning value descriptor #17 VALDESC_SPECIAL_FILE **/
-      /*no cloning for VALDESC_SPECIAL_FILE */
-    case MELTOBMAG_SPEC_FILE:
-      break;
-/** cloning value descriptor #18 VALDESC_SPECIAL_RAW_FILE **/
-      /*no cloning for VALDESC_SPECIAL_RAW_FILE */
-    case MELTOBMAG_SPEC_RAWFILE:
-      break;
-/** cloning value descriptor #19 VALDESC_STRBUF **/
+/** cloning value descriptor #17 VALDESC_STRBUF **/
       /*explicit cloning for VALDESC_STRBUF */
     case MELTOBMAG_STRBUF:
       {
@@ -2830,7 +2781,7 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
 	  resv = (melt_ptr_t) dst;
       };
       break;
-/** cloning value descriptor #20 VALDESC_STRING **/
+/** cloning value descriptor #18 VALDESC_STRING **/
       /*explicit cloning for VALDESC_STRING */
     case MELTOBMAG_STRING:
       {
@@ -2862,5 +2813,5 @@ end:
 #undef compv
 
 
-/*** End of code file meltbuild-sources/generated/meltrunsup-inc.c generated on 2012 Sep 26
- * by GCC MELT 4.8.0 20120922 (experimental) [melt-branch revision 191764] MELT_0.9.7-pre-rc3 . ***/
+/*** End of code file meltbuild-sources/generated/meltrunsup-inc.c generated on 2012 Oct 02
+ * by GCC MELT 4.8.0 20120922 (experimental) [melt-branch revision 191984] MELT_0.9.7-pre-rc3 . ***/
