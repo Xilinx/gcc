@@ -1971,6 +1971,29 @@ pp_cxx_statement (cxx_pretty_printer *pp, tree t)
       pp_needs_newline (pp) = true;
       break;
 
+    case CILK_FOR_STMT:
+      pp_cxx_ws_string (pp, "_Cilk_for");
+      pp_space (pp);
+      pp_cxx_left_paren (pp);
+      if (FOR_INIT_STMT (t))
+	pp_cxx_statement (pp, FOR_INIT_STMT (t));
+      else
+	pp_cxx_semicolon (pp);
+      pp_needs_newline (pp) = false;
+      pp_cxx_whitespace (pp);
+      if (FOR_COND (t))
+	pp_cxx_expression (pp, FOR_COND (t));
+      pp_cxx_semicolon (pp);
+      pp_needs_newline (pp) = false;
+      pp_cxx_whitespace (pp);
+      if (FOR_EXPR (t))
+	pp_cxx_expression (pp, FOR_EXPR (t));
+      pp_cxx_right_paren (pp);
+      pp_newline_and_indent (pp, 3);
+      pp_cxx_statement (pp, FOR_BODY (t));
+      pp_indentation (pp) -= 3;
+      pp_needs_newline (pp) = true;
+      break;
       /* jump-statement:
 	    goto identifier;
 	    continue ;

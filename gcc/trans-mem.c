@@ -2296,8 +2296,31 @@ expand_call_tm (struct tm_region *region,
     }
 
   node = cgraph_get_node (fn_decl);
-  /* All calls should have cgraph here. */
-  gcc_assert (node);
+  /* All calls should have cgraph here.  */
+  if (!node)
+    {
+      /* We can have a nodeless call here if some pass after IPA-tm
+	 added uninstrumented calls.  For example, loop distribution
+	 can transform certain loop constructs into __builtin_mem*
+	 calls.  In this case, see if we have a suitable TM
+	 replacement and fill in the gaps.  */
+      gcc_assert (DECL_BUILT_IN_CLASS (fn_decl) == BUILT_IN_NORMAL);
+      enum built_in_function code = DECL_FUNCTION_CODE (fn_decl);
+      gcc_assert (code == BUILT_IN_MEMCPY
+		  || code == BUILT_IN_MEMMOVE
+		  || code == BUILT_IN_MEMSET);
+
+      tree repl = find_tm_replacement_function (fn_decl);
+      if (repl)
+	{
+	  gimple_call_set_fndecl (stmt, repl);
+	  update_stmt (stmt);
+	  node = cgraph_create_node (repl);
+	  node->local.tm_may_enter_irr = false;
+	  return expand_call_tm (region, gsi);
+	}
+      gcc_unreachable ();
+    }
   if (node->local.tm_may_enter_irr)
     transaction_subcode_ior (region, GTMA_MAY_ENTER_IRREVOCABLE);
 
@@ -3803,7 +3826,6 @@ ipa_tm_scan_irr_block (basic_block bb)
 	    {
 	      tree t = build1 (NOP_EXPR, void_type_node, size_zero_node);
 	      SET_EXPR_LOCATION (t, gimple_location (stmt));
-	      TREE_BLOCK (t) = gimple_block (stmt);
 	      error ("%Kasm not allowed in %<transaction_safe%> function", t);
 	    }
 	  return true;
@@ -3988,7 +4010,6 @@ ipa_tm_scan_irr_function (struct cgraph_node *node, bool for_clone)
       || DECL_STRUCT_FUNCTION (node->symbol.decl)->cfg == NULL)
     return false;
 
-  current_function_decl = node->symbol.decl;
   push_cfun (DECL_STRUCT_FUNCTION (node->symbol.decl));
   calculate_dominance_info (CDI_DOMINATORS);
 
@@ -4060,7 +4081,6 @@ ipa_tm_scan_irr_function (struct cgraph_node *node, bool for_clone)
 
   VEC_free (basic_block, heap, queue);
   pop_cfun ();
-  current_function_decl = NULL;
 
   return ret;
 }
@@ -4698,7 +4718,6 @@ ipa_tm_transform_transaction (struct cgraph_node *node)
 
   d = get_cg_data (&node, true);
 
-  current_function_decl = node->symbol.decl;
   push_cfun (DECL_STRUCT_FUNCTION (node->symbol.decl));
   calculate_dominance_info (CDI_DOMINATORS);
 
@@ -4723,7 +4742,6 @@ ipa_tm_transform_transaction (struct cgraph_node *node)
     update_ssa (TODO_update_ssa_only_virtuals);
 
   pop_cfun ();
-  current_function_decl = NULL;
 }
 
 /* Transform the calls within the transactional clone of NODE.  */
@@ -4742,8 +4760,7 @@ ipa_tm_transform_clone (struct cgraph_node *node)
   if (!node->callees && !node->indirect_calls && !d->irrevocable_blocks_clone)
     return;
 
-  current_function_decl = d->clone->symbol.decl;
-  push_cfun (DECL_STRUCT_FUNCTION (current_function_decl));
+  push_cfun (DECL_STRUCT_FUNCTION (d->clone->symbol.decl));
   calculate_dominance_info (CDI_DOMINATORS);
 
   need_ssa_rename =
@@ -4754,7 +4771,6 @@ ipa_tm_transform_clone (struct cgraph_node *node)
     update_ssa (TODO_update_ssa_only_virtuals);
 
   pop_cfun ();
-  current_function_decl = NULL;
 }
 
 /* Main entry point for the transactional memory IPA pass.  */
@@ -4801,7 +4817,6 @@ ipa_tm_execute (void)
 	    continue;
 	  }
 
-	current_function_decl = node->symbol.decl;
 	push_cfun (DECL_STRUCT_FUNCTION (node->symbol.decl));
 	calculate_dominance_info (CDI_DOMINATORS);
 
@@ -4821,7 +4836,6 @@ ipa_tm_execute (void)
 	  }
 
 	pop_cfun ();
-	current_function_decl = NULL;
       }
 
   /* For every local function on the callee list, scan as if we will be

@@ -720,19 +720,19 @@ rtl_split_block (basic_block bb, void *insnp)
 static bool
 unique_locus_on_edge_between_p (basic_block a, basic_block b)
 {
-  const int goto_locus = EDGE_SUCC (a, 0)->goto_locus;
+  const location_t goto_locus = EDGE_SUCC (a, 0)->goto_locus;
   rtx insn, end;
 
-  if (!goto_locus)
+  if (LOCATION_LOCUS (goto_locus) == UNKNOWN_LOCATION)
     return false;
 
   /* First scan block A backward.  */
   insn = BB_END (a);
   end = PREV_INSN (BB_HEAD (a));
-  while (insn != end && (!NONDEBUG_INSN_P (insn) || INSN_LOCATOR (insn) == 0))
+  while (insn != end && (!NONDEBUG_INSN_P (insn) || !INSN_HAS_LOCATION (insn)))
     insn = PREV_INSN (insn);
 
-  if (insn != end && locator_eq (INSN_LOCATOR (insn), goto_locus))
+  if (insn != end && INSN_LOCATION (insn) == goto_locus)
     return false;
 
   /* Then scan block B forward.  */
@@ -743,8 +743,8 @@ unique_locus_on_edge_between_p (basic_block a, basic_block b)
       while (insn != end && !NONDEBUG_INSN_P (insn))
 	insn = NEXT_INSN (insn);
 
-      if (insn != end && INSN_LOCATOR (insn) != 0
-	  && locator_eq (INSN_LOCATOR (insn), goto_locus))
+      if (insn != end && INSN_HAS_LOCATION (insn)
+	  && INSN_LOCATION (insn) == goto_locus)
 	return false;
     }
 
@@ -761,7 +761,7 @@ emit_nop_for_unique_locus_between (basic_block a, basic_block b)
     return;
 
   BB_END (a) = emit_insn_after_noloc (gen_nop (), BB_END (a), a);
-  INSN_LOCATOR (BB_END (a)) = EDGE_SUCC (a, 0)->goto_locus;
+  INSN_LOCATION (BB_END (a)) = EDGE_SUCC (a, 0)->goto_locus;
 }
 
 /* Blocks A and B are to be merged into a single block A.  The insns
@@ -1477,10 +1477,7 @@ force_nonfallthru_and_redirect (edge e, basic_block target, rtx jump_label)
   else
     jump_block = e->src;
 
-  if (e->goto_locus && e->goto_block == NULL)
-    loc = e->goto_locus;
-  else
-    loc = 0;
+  loc = e->goto_locus;
   e->flags &= ~EDGE_FALLTHRU;
   if (target == EXIT_BLOCK_PTR)
     {
@@ -3344,7 +3341,8 @@ fixup_reorder_chain (void)
         edge_iterator ei;
 
         FOR_EACH_EDGE (e, ei, bb->succs)
-	  if (e->goto_locus && !(e->flags & EDGE_ABNORMAL))
+	  if (LOCATION_LOCUS (e->goto_locus) != UNKNOWN_LOCATION
+	      && !(e->flags & EDGE_ABNORMAL))
 	    {
 	      edge e2;
 	      edge_iterator ei2;
@@ -3354,15 +3352,15 @@ fixup_reorder_chain (void)
 	      insn = BB_END (e->src);
 	      end = PREV_INSN (BB_HEAD (e->src));
 	      while (insn != end
-		     && (!NONDEBUG_INSN_P (insn) || INSN_LOCATOR (insn) == 0))
+		     && (!NONDEBUG_INSN_P (insn) || !INSN_HAS_LOCATION (insn)))
 		insn = PREV_INSN (insn);
 	      if (insn != end
-		  && locator_eq (INSN_LOCATOR (insn), (int) e->goto_locus))
+		  && INSN_LOCATION (insn) == e->goto_locus)
 		continue;
 	      if (simplejump_p (BB_END (e->src))
-		  && INSN_LOCATOR (BB_END (e->src)) == 0)
+		  && !INSN_HAS_LOCATION (BB_END (e->src)))
 		{
-		  INSN_LOCATOR (BB_END (e->src)) = e->goto_locus;
+		  INSN_LOCATION (BB_END (e->src)) = e->goto_locus;
 		  continue;
 		}
 	      dest = e->dest;
@@ -3378,24 +3376,24 @@ fixup_reorder_chain (void)
 		  end = NEXT_INSN (BB_END (dest));
 		  while (insn != end && !NONDEBUG_INSN_P (insn))
 		    insn = NEXT_INSN (insn);
-		  if (insn != end && INSN_LOCATOR (insn)
-		      && locator_eq (INSN_LOCATOR (insn), (int) e->goto_locus))
+		  if (insn != end && INSN_HAS_LOCATION (insn)
+		      && INSN_LOCATION (insn) == e->goto_locus)
 		    continue;
 		}
 	      nb = split_edge (e);
 	      if (!INSN_P (BB_END (nb)))
 		BB_END (nb) = emit_insn_after_noloc (gen_nop (), BB_END (nb),
 						     nb);
-	      INSN_LOCATOR (BB_END (nb)) = e->goto_locus;
+	      INSN_LOCATION (BB_END (nb)) = e->goto_locus;
 
 	      /* If there are other incoming edges to the destination block
 		 with the same goto locus, redirect them to the new block as
 		 well, this can prevent other such blocks from being created
 		 in subsequent iterations of the loop.  */
 	      for (ei2 = ei_start (dest->preds); (e2 = ei_safe_edge (ei2)); )
-		if (e2->goto_locus
+		if (LOCATION_LOCUS (e2->goto_locus) != UNKNOWN_LOCATION
 		    && !(e2->flags & (EDGE_ABNORMAL | EDGE_FALLTHRU))
-		    && locator_eq (e->goto_locus, e2->goto_locus))
+		    && e->goto_locus == e2->goto_locus)
 		  redirect_edge_and_branch (e2, nb);
 		else
 		  ei_next (&ei2);
@@ -4095,7 +4093,8 @@ cfg_layout_merge_blocks (basic_block a, basic_block b)
     }
 
   /* If B was a forwarder block, propagate the locus on the edge.  */
-  if (forwarder_p && !EDGE_SUCC (b, 0)->goto_locus)
+  if (forwarder_p
+      && LOCATION_LOCUS (EDGE_SUCC (b, 0)->goto_locus) != UNKNOWN_LOCATION)
     EDGE_SUCC (b, 0)->goto_locus = EDGE_SUCC (a, 0)->goto_locus;
 
   if (dump_file)

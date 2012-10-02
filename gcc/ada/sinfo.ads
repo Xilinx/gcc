@@ -668,9 +668,8 @@ package Sinfo is
    --  Compile_Time_Known_Aggregate (Flag18-Sem)
    --    Present in N_Aggregate nodes. Set for aggregates which can be fully
    --    evaluated at compile time without raising constraint error. Such
-   --    aggregates can be passed as is to Gigi without any expansion. See
-   --    Exp_Aggr for the specific conditions under which an aggregate has this
-   --    flag set.
+   --    aggregates can be passed as is the back end without any expansion.
+   --    See Exp_Aggr for specific conditions under which this flag gets set.
 
    --  Componentwise_Assignment (Flag14-Sem)
    --    Present in N_Assignment_Statement nodes. Set for a record assignment
@@ -3850,6 +3849,22 @@ package Sinfo is
       --  point operands if the Treat_Fixed_As_Integer flag is set and will
       --  thus treat these nodes in identical manner, ignoring small values.
 
+      --  Note on overflow handling: When the overflow checking mode is set to
+      --  MINIMIZED or ELIMINATED, nodes for signed arithmetic operations may
+      --  be modified to use a larger type for the operands and result. In
+      --  these cases, the back end does not need the Entity field anyway, so
+      --  there is no point in setting it. In fact we reuse the Entity field to
+      --  record the possible range of the result. Entity points to an N_Range
+      --  node whose Low_Bound and High_Bound fields point to integer literal
+      --  nodes containing the computed bounds. These range nodes are only set
+      --  for intermediate nodes whose parents are themselves either arithmetic
+      --  operators, or comparison or membership tests. The computed ranges are
+      --  then used in processing the parent operation. In the case where the
+      --  computed range exceeds that of Long_Long_Integer, and we are running
+      --  in ELIMINATED mode, the operator node will be changed to be a call to
+      --  the appropriate routine in System.Bignums, and in this case we forget
+      --  about keeping track of the range.
+
       ---------------------------------
       -- 4.5.9 Quantified Expression --
       ---------------------------------
@@ -4289,6 +4304,14 @@ package Sinfo is
 
       --  Note: Exception_Junk is set for the wrapping blocks created during
       --  local raise optimization (Exp_Ch11.Expand_Local_Exception_Handlers).
+
+      --  Note: from a control flow viewpoint, a block statement defines an
+      --  extended basic block, i.e. the entry of the block dominates every
+      --  statement in the sequence. When generating new statements with
+      --  exception handlers in the expander at the end of a sequence that
+      --  comes from source code, it can be necessary to wrap them all in a
+      --  block statement in order to expose the implicit control flow to
+      --  gigi and thus prevent it from issuing bogus control flow warnings.
 
       --  N_Block_Statement
       --  Sloc points to DECLARE or BEGIN

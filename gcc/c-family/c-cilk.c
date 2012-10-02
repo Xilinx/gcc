@@ -2661,9 +2661,9 @@ gimplify_cilk_for_1 (struct cilk_for_desc *cfd,
 static tree
 block_for_loop (tree loop)
 {
-  tree *block = tree_block (loop);
+  tree block = tree_block (loop);
   if (block)
-    return *block;
+    return block;
   return DECL_INITIAL (current_function_decl);
 }
 

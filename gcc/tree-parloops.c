@@ -1403,6 +1403,7 @@ create_loop_fn (location_t loc)
   struct function *act_cfun = cfun;
   static unsigned loopfn_num;
 
+  loc = LOCATION_LOCUS (loc);
   snprintf (buf, 100, "%s.$loopfn", current_function_name ());
   ASM_FORMAT_PRIVATE_NAME (tname, buf, loopfn_num++);
   clean_symbol_name (tname);
@@ -1943,7 +1944,6 @@ gather_scalar_reductions (loop_p loop, htab_t reduction_list)
   gimple_stmt_iterator gsi;
   loop_vec_info simple_loop_info;
 
-  vect_dump = NULL;
   simple_loop_info = vect_analyze_loop_form (loop);
 
   for (gsi = gsi_start_phis (loop->header); !gsi_end_p (gsi); gsi_next (&gsi))

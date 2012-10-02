@@ -787,6 +787,9 @@ check_narrowing (tree type, tree init)
   else if (INTEGRAL_OR_ENUMERATION_TYPE_P (ftype)
 	   && CP_INTEGRAL_TYPE_P (type))
     {
+      if (TREE_CODE (ftype) == ENUMERAL_TYPE)
+	/* Check for narrowing based on the values of the enumeration. */
+	ftype = ENUM_UNDERLYING_TYPE (ftype);
       if ((tree_int_cst_lt (TYPE_MAX_VALUE (type),
 			    TYPE_MAX_VALUE (ftype))
 	   || tree_int_cst_lt (TYPE_MIN_VALUE (ftype),
@@ -1055,14 +1058,12 @@ process_init_constructor_array (tree type, tree init,
     {
       tree domain = TYPE_DOMAIN (type);
       if (domain)
-	len = double_int_ext
-	        (double_int_add
-		  (double_int_sub
-		    (tree_to_double_int (TYPE_MAX_VALUE (domain)),
-		     tree_to_double_int (TYPE_MIN_VALUE (domain))),
-		    double_int_one),
-		  TYPE_PRECISION (TREE_TYPE (domain)),
-		  TYPE_UNSIGNED (TREE_TYPE (domain))).low;
+	len = (tree_to_double_int (TYPE_MAX_VALUE (domain))
+	       - tree_to_double_int (TYPE_MIN_VALUE (domain))
+	       + double_int_one)
+	      .ext (TYPE_PRECISION (TREE_TYPE (domain)),
+		    TYPE_UNSIGNED (TREE_TYPE (domain)))
+	      .low;
       else
 	unbounded = true;  /* Take as many as there are.  */
     }

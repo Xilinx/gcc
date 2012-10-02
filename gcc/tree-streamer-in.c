@@ -172,12 +172,11 @@ unpack_ts_real_cst_value_fields (struct bitpack_d *bp, tree expr)
 static void
 unpack_ts_fixed_cst_value_fields (struct bitpack_d *bp, tree expr)
 {
-  struct fixed_value fv;
-
-  fv.mode = bp_unpack_enum (bp, machine_mode, MAX_MACHINE_MODE);
-  fv.data.low = bp_unpack_var_len_int (bp);
-  fv.data.high = bp_unpack_var_len_int (bp);
-  TREE_FIXED_CST (expr) = fv;
+  FIXED_VALUE_TYPE *fp = ggc_alloc_fixed_value ();
+  fp->mode = bp_unpack_enum (bp, machine_mode, MAX_MACHINE_MODE);
+  fp->data.low = bp_unpack_var_len_int (bp);
+  fp->data.high = bp_unpack_var_len_int (bp);
+  TREE_FIXED_CST_PTR (expr) = fp;
 }
 
 
@@ -335,6 +334,8 @@ unpack_ts_type_common_value_fields (struct bitpack_d *bp, tree expr)
   TYPE_NEEDS_CONSTRUCTING (expr) = (unsigned) bp_unpack_value (bp, 1);
   if (RECORD_OR_UNION_TYPE_P (expr))
     TYPE_TRANSPARENT_AGGR (expr) = (unsigned) bp_unpack_value (bp, 1);
+  else if (TREE_CODE (expr) == ARRAY_TYPE)
+    TYPE_NONALIASED_COMPONENT (expr) = (unsigned) bp_unpack_value (bp, 1);
   TYPE_PACKED (expr) = (unsigned) bp_unpack_value (bp, 1);
   TYPE_RESTRICT (expr) = (unsigned) bp_unpack_value (bp, 1);
   TYPE_CONTAINS_PLACEHOLDER_INTERNAL (expr)
@@ -776,7 +777,7 @@ lto_input_ts_exp_tree_pointers (struct lto_input_block *ib,
 
   loc = lto_input_location (ib, data_in);
   SET_EXPR_LOCATION (expr, loc);
-  TREE_BLOCK (expr) = stream_read_tree (ib, data_in);
+  TREE_SET_BLOCK (expr, stream_read_tree (ib, data_in));
 }
 
 

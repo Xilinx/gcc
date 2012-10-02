@@ -3760,7 +3760,6 @@ build1_stat (enum tree_code code, tree type, tree node MEM_STAT_DECL)
   TREE_TYPE (t) = type;
   SET_EXPR_LOCATION (t, UNKNOWN_LOCATION);
   TREE_OPERAND (t, 0) = node;
-  TREE_BLOCK (t) = NULL_TREE;
   if (node && !TYPE_P (node))
     {
       TREE_SIDE_EFFECTS (t) = TREE_SIDE_EFFECTS (node);
@@ -10254,6 +10253,22 @@ signed_type_for (tree type)
   return signed_or_unsigned_type_for (0, type);
 }
 
+/* If TYPE is a vector type, return a signed integer vector type with the
+   same width and number of subparts. Otherwise return boolean_type_node.  */
+
+tree
+truth_type_for (tree type)
+{
+  if (TREE_CODE (type) == VECTOR_TYPE)
+    {
+      tree elem = lang_hooks.types.type_for_size
+        (GET_MODE_BITSIZE (TYPE_MODE (TREE_TYPE (type))), 0);
+      return build_opaque_vector_type (elem, TYPE_VECTOR_SUBPARTS (type));
+    }
+  else
+    return boolean_type_node;
+}
+
 /* Returns the largest value obtainable by casting something in INNER type to
    OUTER type.  */
 
@@ -10838,15 +10853,31 @@ walk_tree_without_duplicates_1 (tree *tp, walk_tree_fn func, void *data,
 }
 
 
-tree *
+tree
 tree_block (tree t)
 {
   char const c = TREE_CODE_CLASS (TREE_CODE (t));
 
   if (IS_EXPR_CODE_CLASS (c))
-    return &t->exp.block;
+    return LOCATION_BLOCK (t->exp.locus);
   gcc_unreachable ();
   return NULL;
+}
+
+void
+tree_set_block (tree t, tree b)
+{
+  char const c = TREE_CODE_CLASS (TREE_CODE (t));
+
+  if (IS_EXPR_CODE_CLASS (c))
+    {
+      if (b)
+	t->exp.locus = COMBINE_LOCATION_DATA (line_table, t->exp.locus, b);
+      else
+	t->exp.locus = LOCATION_LOCUS (t->exp.locus);
+    }
+  else
+    gcc_unreachable ();
 }
 
 /* Create a nameless artificial label and put it in the current

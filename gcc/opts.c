@@ -139,19 +139,6 @@ set_struct_debug_option (struct gcc_options *opts, location_t loc,
     }
 }
 
-/* Handle -ftree-vectorizer-verbose=VAL for options OPTS.  */
-
-static void
-vect_set_verbosity_level (struct gcc_options *opts, int val)
-{
-   if (val < MAX_VERBOSITY_LEVEL)
-     opts->x_user_vect_verbosity_level = (enum vect_verbosity_levels) val;
-   else
-     opts->x_user_vect_verbosity_level
-      = (enum vect_verbosity_levels) (MAX_VERBOSITY_LEVEL - 1);
-}
-
-
 /* Strip off a legitimate source ending from the input string NAME of
    length LEN.  Rather than having to know the names used by all of
    our front ends, we strip off an ending of a period followed by
@@ -314,15 +301,15 @@ init_options_struct (struct gcc_options *opts, struct gcc_options *opts_set)
 }
 
 /* If indicated by the optimization level LEVEL (-Os if SIZE is set,
-   -Ofast if FAST is set), apply the option DEFAULT_OPT to OPTS and
-   OPTS_SET, diagnostic context DC, location LOC, with language mask
-   LANG_MASK and option handlers HANDLERS.  */
+   -Ofast if FAST is set, -Og if DEBUG is set), apply the option DEFAULT_OPT
+   to OPTS and OPTS_SET, diagnostic context DC, location LOC, with language
+   mask LANG_MASK and option handlers HANDLERS.  */
 
 static void
 maybe_default_option (struct gcc_options *opts,
 		      struct gcc_options *opts_set,
 		      const struct default_options *default_opt,
-		      int level, bool size, bool fast,
+		      int level, bool size, bool fast, bool debug,
 		      unsigned int lang_mask,
 		      const struct cl_option_handlers *handlers,
 		      location_t loc,
@@ -335,6 +322,8 @@ maybe_default_option (struct gcc_options *opts,
     gcc_assert (level == 2);
   if (fast)
     gcc_assert (level == 3);
+  if (debug)
+    gcc_assert (level == 1);
 
   switch (default_opt->levels)
     {
@@ -351,7 +340,11 @@ maybe_default_option (struct gcc_options *opts,
       break;
 
     case OPT_LEVELS_1_PLUS_SPEED_ONLY:
-      enabled = (level >= 1 && !size);
+      enabled = (level >= 1 && !size && !debug);
+      break;
+
+    case OPT_LEVELS_1_PLUS_NOT_DEBUG:
+      enabled = (level >= 1 && !debug);
       break;
 
     case OPT_LEVELS_2_PLUS:
@@ -359,7 +352,7 @@ maybe_default_option (struct gcc_options *opts,
       break;
 
     case OPT_LEVELS_2_PLUS_SPEED_ONLY:
-      enabled = (level >= 2 && !size);
+      enabled = (level >= 2 && !size && !debug);
       break;
 
     case OPT_LEVELS_3_PLUS:
@@ -405,7 +398,7 @@ static void
 maybe_default_options (struct gcc_options *opts,
 		       struct gcc_options *opts_set,
 		       const struct default_options *default_opts,
-		       int level, bool size, bool fast,
+		       int level, bool size, bool fast, bool debug,
 		       unsigned int lang_mask,
 		       const struct cl_option_handlers *handlers,
 		       location_t loc,
@@ -415,7 +408,8 @@ maybe_default_options (struct gcc_options *opts,
 
   for (i = 0; default_opts[i].levels != OPT_LEVELS_NONE; i++)
     maybe_default_option (opts, opts_set, &default_opts[i],
-			  level, size, fast, lang_mask, handlers, loc, dc);
+			  level, size, fast, debug,
+			  lang_mask, handlers, loc, dc);
 }
 
 /* Table of options enabled by default at different levels.  */
@@ -444,7 +438,7 @@ static const struct default_options default_options_table[] =
     { OPT_LEVELS_1_PLUS, OPT_ftree_dominator_opts, NULL, 1 },
     { OPT_LEVELS_1_PLUS, OPT_ftree_dse, NULL, 1 },
     { OPT_LEVELS_1_PLUS, OPT_ftree_ter, NULL, 1 },
-    { OPT_LEVELS_1_PLUS, OPT_ftree_sra, NULL, 1 },
+    { OPT_LEVELS_1_PLUS_NOT_DEBUG, OPT_ftree_sra, NULL, 1 },
     { OPT_LEVELS_1_PLUS, OPT_ftree_copyrename, NULL, 1 },
     { OPT_LEVELS_1_PLUS, OPT_ftree_fre, NULL, 1 },
     { OPT_LEVELS_1_PLUS, OPT_ftree_copy_prop, NULL, 1 },
@@ -498,7 +492,7 @@ static const struct default_options default_options_table[] =
     /* Inlining of functions reducing size is a good idea with -Os
        regardless of them being declared inline.  */
     { OPT_LEVELS_3_PLUS_AND_SIZE, OPT_finline_functions, NULL, 1 },
-    { OPT_LEVELS_1_PLUS, OPT_finline_functions_called_once, NULL, 1 },
+    { OPT_LEVELS_1_PLUS_NOT_DEBUG, OPT_finline_functions_called_once, NULL, 1 },
     { OPT_LEVELS_3_PLUS, OPT_funswitch_loops, NULL, 1 },
     { OPT_LEVELS_3_PLUS, OPT_fgcse_after_reload, NULL, 1 },
     { OPT_LEVELS_3_PLUS, OPT_ftree_vectorize, NULL, 1 },
@@ -540,6 +534,7 @@ default_options_optimization (struct gcc_options *opts,
 	      opts->x_optimize = 1;
 	      opts->x_optimize_size = 0;
 	      opts->x_optimize_fast = 0;
+	      opts->x_optimize_debug = 0;
 	    }
 	  else
 	    {
@@ -555,6 +550,7 @@ default_options_optimization (struct gcc_options *opts,
 		    opts->x_optimize = 255;
 		  opts->x_optimize_size = 0;
 		  opts->x_optimize_fast = 0;
+		  opts->x_optimize_debug = 0;
 		}
 	    }
 	  break;
@@ -565,6 +561,7 @@ default_options_optimization (struct gcc_options *opts,
 	  /* Optimizing for size forces optimize to be 2.  */
 	  opts->x_optimize = 2;
 	  opts->x_optimize_fast = 0;
+	  opts->x_optimize_debug = 0;
 	  break;
 
 	case OPT_Ofast:
@@ -572,6 +569,15 @@ default_options_optimization (struct gcc_options *opts,
 	  opts->x_optimize_size = 0;
 	  opts->x_optimize = 3;
 	  opts->x_optimize_fast = 1;
+	  opts->x_optimize_debug = 0;
+	  break;
+
+	case OPT_Og:
+	  /* -Og selects optimization level 1.  */
+	  opts->x_optimize_size = 0;
+	  opts->x_optimize = 1;
+	  opts->x_optimize_fast = 0;
+	  opts->x_optimize_debug = 1;
 	  break;
 
 	default:
@@ -582,7 +588,8 @@ default_options_optimization (struct gcc_options *opts,
 
   maybe_default_options (opts, opts_set, default_options_table,
 			 opts->x_optimize, opts->x_optimize_size,
-			 opts->x_optimize_fast, lang_mask, handlers, loc, dc);
+			 opts->x_optimize_fast, opts->x_optimize_debug,
+			 lang_mask, handlers, loc, dc);
 
   /* -O2 param settings.  */
   opt2 = (opts->x_optimize >= 2);
@@ -612,7 +619,8 @@ default_options_optimization (struct gcc_options *opts,
   maybe_default_options (opts, opts_set,
 			 targetm_common.option_optimization_table,
 			 opts->x_optimize, opts->x_optimize_size,
-			 opts->x_optimize_fast, lang_mask, handlers, loc, dc);
+			 opts->x_optimize_fast, opts->x_optimize_debug,
+			 lang_mask, handlers, loc, dc);
 }
 
 /* After all options at LOC have been read into OPTS and OPTS_SET,
@@ -1408,6 +1416,7 @@ common_handle_option (struct gcc_options *opts,
     case OPT_O:
     case OPT_Os:
     case OPT_Ofast:
+    case OPT_Og:
       /* Currently handled in a prescan.  */
       break;
 
@@ -1535,6 +1544,11 @@ common_handle_option (struct gcc_options *opts,
     case OPT_fmessage_length_:
       pp_set_line_maximum_length (dc->printer, value);
       diagnostic_set_caret_max_width (dc, value);
+      break;
+
+    case OPT_fopt_info:
+    case OPT_fopt_info_:
+      /* Deferred.  */
       break;
 
     case OPT_fpack_struct_:
@@ -1672,7 +1686,9 @@ common_handle_option (struct gcc_options *opts,
       break;
 
     case OPT_ftree_vectorizer_verbose_:
-      vect_set_verbosity_level (opts, value);
+      /* -ftree-vectorizer-verbose is deprecated. It is defined in
+         -terms of fopt-info=N. */
+      /* Deferred.  */
       break;
 
     case OPT_g:

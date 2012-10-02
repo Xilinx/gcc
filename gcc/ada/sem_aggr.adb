@@ -47,6 +47,7 @@ with Sem_Cat;  use Sem_Cat;
 with Sem_Ch3;  use Sem_Ch3;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Ch13; use Sem_Ch13;
+with Sem_Dim;  use Sem_Dim;
 with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
 with Sem_Util; use Sem_Util;
@@ -1726,6 +1727,9 @@ package body Sem_Aggr is
       Discard : Node_Id;
       pragma Warnings (Off, Discard);
 
+      Delete_Choice : Boolean;
+      --  Used when replacing a subtype choice with predicate by a list
+
       Aggr_Low  : Node_Id := Empty;
       Aggr_High : Node_Id := Empty;
       --  The actual low and high bounds of this sub-aggregate
@@ -1766,6 +1770,8 @@ package body Sem_Aggr is
          Assoc := First (Component_Associations (N));
          while Present (Assoc) loop
             Choice := First (Choices (Assoc));
+            Delete_Choice := False;
+
             while Present (Choice) loop
                if Nkind (Choice) = N_Others_Choice then
                   Others_Present := True;
@@ -1792,10 +1798,56 @@ package body Sem_Aggr is
                      Error_Msg_N
                        ("(Ada 83) illegal context for OTHERS choice", N);
                   end if;
+
+               elsif Is_Entity_Name (Choice) then
+                  Analyze (Choice);
+
+                  declare
+                     E      : constant Entity_Id := Entity (Choice);
+                     New_Cs : List_Id;
+                     P      : Node_Id;
+                     C      : Node_Id;
+
+                  begin
+                     if Is_Type (E) and then Has_Predicates (E) then
+                        Freeze_Before (N, E);
+
+                        --  If the subtype has a static predicate, replace the
+                        --  original choice with the list of individual values
+                        --  covered by the predicate.
+
+                        if Present (Static_Predicate (E)) then
+                           Delete_Choice := True;
+
+                           New_Cs := New_List;
+                           P := First (Static_Predicate (E));
+                           while Present (P) loop
+                              C := New_Copy (P);
+                              Set_Sloc (C, Sloc (Choice));
+                              Append_To (New_Cs, C);
+                              Next (P);
+                           end loop;
+
+                           Insert_List_After (Choice, New_Cs);
+                        end if;
+                     end if;
+                  end;
                end if;
 
                Nb_Choices := Nb_Choices + 1;
-               Next (Choice);
+
+               declare
+                  C : constant Node_Id := Choice;
+
+               begin
+                  Next (Choice);
+
+                  if Delete_Choice then
+                     Remove (C);
+                     Nb_Choices := Nb_Choices - 1;
+                     Delete_Choice := False;
+                  end if;
+               end;
             end loop;
 
             Next (Assoc);
@@ -1998,6 +2050,7 @@ package body Sem_Aggr is
                   Nb_Discrete_Choices := Nb_Discrete_Choices + 1;
                   Table (Nb_Discrete_Choices).Choice_Lo := Low;
                   Table (Nb_Discrete_Choices).Choice_Hi := High;
+                  Table (Nb_Discrete_Choices).Choice_Node := Choice;
 
                   Next (Choice);
 
@@ -2115,7 +2168,7 @@ package body Sem_Aggr is
                   then
                      Error_Msg_N
                        ("duplicate choice values in array aggregate",
-                        Table (J).Choice_Hi);
+                        Table (J).Choice_Node);
                      return Failure;
 
                   elsif not Others_Present then
@@ -2496,6 +2549,10 @@ package body Sem_Aggr is
          Set_High_Bound (Aggregate_Bounds (N),
              Duplicate_Subexpr (High_Bound (Aggregate_Bounds (N))));
       end if;
+
+      --  Check the dimensions of each component in the array aggregate
+
+      Analyze_Dimension_Array_Aggregate (N, Component_Typ);
 
       return Success;
    end Resolve_Array_Aggregate;
@@ -3173,8 +3230,9 @@ package body Sem_Aggr is
       -----------------------
 
       procedure Resolve_Aggr_Expr (Expr : Node_Id; Component : Node_Id) is
-         New_C     : Entity_Id := Component;
          Expr_Type : Entity_Id := Empty;
+         New_C     : Entity_Id := Component;
+         New_Expr  : Node_Id;
 
          function Has_Expansion_Delayed (Expr : Node_Id) return Boolean;
          --  If the expression is an aggregate (possibly qualified) then its
@@ -3328,10 +3386,18 @@ package body Sem_Aggr is
          end if;
 
          if Relocate then
-            Add_Association (New_C, Relocate_Node (Expr), New_Assoc_List);
+            New_Expr := Relocate_Node (Expr);
+
+            --  Since New_Expr is not gonna be analyzed later on, we need to
+            --  propagate here the dimensions form Expr to New_Expr.
+
+            Move_Dimensions (Expr, New_Expr);
+
          else
-            Add_Association (New_C, Expr, New_Assoc_List);
+            New_Expr := Expr;
          end if;
+
+         Add_Association (New_C, New_Expr, New_Assoc_List);
       end Resolve_Aggr_Expr;
 
    --  Start of processing for Resolve_Record_Aggregate
@@ -4438,6 +4504,10 @@ package body Sem_Aggr is
 
          Rewrite (N, New_Aggregate);
       end Step_8;
+
+      --  Check the dimensions of the components in the record aggregate
+
+      Analyze_Dimension_Extension_Or_Record_Aggregate (N);
    end Resolve_Record_Aggregate;
 
    -----------------------------

@@ -420,7 +420,7 @@ DEFTREECODE (ARRAY_RANGE_REF, "array_range_ref", tcc_reference, 4)
 
 /* Array Notation expression.
    Operand 0 is the array; operand 1 is the starting array index
-   Operand 2 contains the ending array index.
+   Operand 2 contains the number of elements you need to access.
    Operand 3 is the stride.
    Operand 4 is the element size measured in units of alignments of
    element type. */

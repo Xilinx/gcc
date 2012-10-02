@@ -43,28 +43,10 @@ enum symtab_type
 struct GTY(()) symtab_node_base
 {
   /* Type of the symbol.  */
-  enum symtab_type type;
-  tree decl;
-  struct ipa_ref_list ref_list;
-  /* Circular list of nodes in the same comdat group if non-NULL.  */
-  symtab_node same_comdat_group;
-  /* Ordering of all symtab entries.  */
-  int order;
-  enum ld_plugin_symbol_resolution resolution;
-  /* File stream where this node is being written to.  */
-  struct lto_file_decl_data * lto_file_data;
+  ENUM_BITFIELD (symtab_type) type : 8;
 
-  /* Linked list of symbol table entries starting with symtab_nodes.  */
-  symtab_node next;
-  symtab_node previous;
-  /* Linked list of symbols with the same asm name.  There may be multiple
-     entries for single symbol name in the case of LTO resolutions,
-     existence of inline clones, or duplicated declaration. The last case
-     is a long standing bug frontends and builtin handling. */
-  symtab_node next_sharing_asm_name;
-  symtab_node previous_sharing_asm_name;
-
-  PTR GTY ((skip)) aux;
+  /* The symbols resolution.  */
+  ENUM_BITFIELD (ld_plugin_symbol_resolution) resolution : 8;
 
   /* Set when function has address taken.
      In current implementation it imply needed flag. */
@@ -80,6 +62,32 @@ struct GTY(()) symtab_node_base
   /* Needed variables might become dead by optimization.  This flag
      forces the variable to be output even if it appears dead otherwise.  */
   unsigned force_output : 1;
+
+  /* Ordering of all symtab entries.  */
+  int order;
+
+  tree decl;
+
+  /* Vectors of referring and referenced entities.  */
+  struct ipa_ref_list ref_list;
+
+  /* Circular list of nodes in the same comdat group if non-NULL.  */
+  symtab_node same_comdat_group;
+
+  /* File stream where this node is being written to.  */
+  struct lto_file_decl_data * lto_file_data;
+
+  /* Linked list of symbol table entries starting with symtab_nodes.  */
+  symtab_node next;
+  symtab_node previous;
+  /* Linked list of symbols with the same asm name.  There may be multiple
+     entries for single symbol name in the case of LTO resolutions,
+     existence of inline clones, or duplicated declaration. The last case
+     is a long standing bug frontends and builtin handling. */
+  symtab_node next_sharing_asm_name;
+  symtab_node previous_sharing_asm_name;
+
+  PTR GTY ((skip)) aux;
 };
 
 enum availability
@@ -710,6 +718,8 @@ bool varpool_for_node_and_aliases (struct varpool_node *,
 		                   bool (*) (struct varpool_node *, void *),
 			           void *, bool);
 void varpool_add_new_variable (tree);
+void symtab_initialize_asm_name_hash (void);
+void symtab_prevail_in_asm_name_hash (symtab_node node);
 
 /* Return true when NODE is function.  */
 static inline bool
@@ -1315,4 +1325,27 @@ cgraph_mark_force_output_node (struct cgraph_node *node)
   gcc_checking_assert (!node->global.inlined_to);
 }
 
+/* Return true when the symbol is real symbol, i.e. it is not inline clone
+   or extern function kept around just for inlining.  */
+
+static inline bool
+symtab_real_symbol_p (symtab_node node)
+{
+  struct cgraph_node *cnode;
+  struct ipa_ref *ref;
+
+  if (!symtab_function_p (node))
+    return true;
+  cnode = cgraph (node);
+  if (cnode->global.inlined_to)
+    return false;
+  if (cnode->abstract_and_needed)
+    return false;
+  /* We keep virtual clones in symtab.  */
+  if (!cnode->analyzed
+      || DECL_EXTERNAL (cnode->symbol.decl))
+    return (cnode->callers
+	    || ipa_ref_list_referring_iterate (&cnode->symbol.ref_list, 0, ref));
+  return true;
+}
 #endif  /* GCC_CGRAPH_H  */

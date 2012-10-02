@@ -2557,7 +2557,6 @@ compute_inline_parameters (struct cgraph_node *node, bool early)
   HOST_WIDE_INT self_stack_size;
   struct cgraph_edge *e;
   struct inline_summary *info;
-  tree old_decl = current_function_decl;
 
   gcc_assert (!node->global.inlined_to);
 
@@ -2584,7 +2583,6 @@ compute_inline_parameters (struct cgraph_node *node, bool early)
     }
 
   /* Even is_gimple_min_invariant rely on current_function_decl.  */
-  current_function_decl = node->symbol.decl;
   push_cfun (DECL_STRUCT_FUNCTION (node->symbol.decl));
 
   /* Estimate the stack size for the function if we're optimizing.  */
@@ -2626,7 +2624,6 @@ compute_inline_parameters (struct cgraph_node *node, bool early)
   info->size = info->self_size;
   info->stack_frame_offset = 0;
   info->estimated_stack_size = info->estimated_self_stack_size;
-  current_function_decl = old_decl;
   pop_cfun ();
 }
 
@@ -3557,7 +3554,6 @@ static void
 inline_analyze_function (struct cgraph_node *node)
 {
   push_cfun (DECL_STRUCT_FUNCTION (node->symbol.decl));
-  current_function_decl = node->symbol.decl;
 
   if (dump_file)
     fprintf (dump_file, "\nAnalyzing function: %s/%u\n",
@@ -3566,7 +3562,6 @@ inline_analyze_function (struct cgraph_node *node)
     inline_indirect_intraprocedural_analysis (node);
   compute_inline_parameters (node, false);
 
-  current_function_decl = NULL;
   pop_cfun ();
 }
 

@@ -1,3 +1,63 @@
+2012-09-25  Dehao Chen  <dehao@google.com>
+
+	PR middle-end/54704
+	* line-map.c (location_adhoc_data_hash): Fix the hash function.
+
+2012-09-25  Dehao Chen  <dehao@google.com>
+
+	PR middle-end/54645
+	* include/line-map.h (location_adhoc_data): Move location_adhoc_data
+	into GC.
+	(location_adhoc_data_map): Likewise.
+	(line_maps): Likewise.
+	(rebuild_location_adhoc_htab): New Function.
+	* line-map.c (+rebuild_location_adhoc_htab): new Funcion.
+	(get_combined_adhoc_loc): Move location_adhoc_data into GC.
+	(location_adhoc_data_fini): Likewise.
+	(linemap_init): Likewise.
+	(location_adhoc_data_init): Remove Function.
+
+2012-09-19  Dehao Chen  <dehao@google.com>
+
+	* include/line-map.h (MAX_SOURCE_LOCATION): New value.
+	(location_adhoc_data_fini): New.
+	(get_combined_adhoc_loc): New.
+	(get_data_from_adhoc_loc): New.
+	(get_location_from_adhoc_loc): New.
+	(location_adhoc_data_map): New.
+	(COMBINE_LOCATION_DATA): New.
+	(IS_ADHOC_LOC): New.
+	(expanded_location): New field.
+	(line_maps): New field.
+	* line-map.c (location_adhoc_data): New.
+	(location_adhoc_data_hash): New.
+	(location_adhoc_data_eq): New.
+	(location_adhoc_data_update): New.
+	(get_combined_adhoc_loc): New.
+	(get_data_from_adhoc_loc): New.
+	(get_location_from_adhoc_loc): New.
+	(location_adhoc_data_init): New.
+	(location_adhoc_data_fini): New.
+	(linemap_init): Initialize location_adhoc_data.
+	(linemap_lookup): Change to use new location.
+	(linemap_ordinary_map_lookup): Likewise.
+	(linemap_macro_map_lookup): Likewise.
+	(linemap_macro_map_loc_to_def_point): Likewise.
+	(linemap_macro_map_loc_unwind_toward_spel): Likewise.
+	(linemap_get_expansion_line): Likewise.
+	(linemap_get_expansion_filename): Likewise.
+	(linemap_location_in_system_header_p): Likewise.
+	(linemap_location_from_macro_expansion_p): Likewise.
+	(linemap_macro_loc_to_spelling_point): Likewise.
+	(linemap_macro_loc_to_def_point): Likewise.
+	(linemap_macro_loc_to_exp_point): Likewise.
+	(linemap_resolve_location): Likewise.
+	(linemap_unwind_toward_expansion): Likewise.
+	(linemap_unwind_to_first_non_reserved_loc): Likewise.
+	(linemap_expand_location): Likewise.
+	(linemap_dump_location): Likewise.
+	(linemap_line_start): Likewise.
+
 2012-05-25  Dodji Seketeli  <dodji@redhat.com>
 
 	PR preprocessor/53469

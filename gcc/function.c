@@ -133,7 +133,7 @@ static bool contains (const_rtx, htab_t);
 static void prepare_function_start (void);
 static void do_clobber_return_reg (rtx, void *);
 static void do_use_return_reg (rtx, void *);
-static void set_insn_locators (rtx, int) ATTRIBUTE_UNUSED;
+static void set_insn_locations (rtx, int) ATTRIBUTE_UNUSED;
 
 /* Stack of nested functions.  */
 /* Keep track of the cfun stack.  */
@@ -200,7 +200,6 @@ free_after_compilation (struct function *f)
   f->cfg = NULL;
 
   regno_reg_rtx = NULL;
-  insn_locators_free ();
 }
 
 /* Return size needed for stack frame based on slots so far allocated.
@@ -4413,22 +4412,34 @@ set_cfun (struct function *new_cfun)
 
 static VEC(function_p,heap) *cfun_stack;
 
-/* Push the current cfun onto the stack, and set cfun to new_cfun.  */
+/* Push the current cfun onto the stack, and set cfun to new_cfun.  Also set
+   current_function_decl accordingly.  */
 
 void
 push_cfun (struct function *new_cfun)
 {
+  gcc_assert ((!cfun && !current_function_decl)
+	      || (cfun && current_function_decl == cfun->decl));
   VEC_safe_push (function_p, heap, cfun_stack, cfun);
+  current_function_decl = new_cfun ? new_cfun->decl : NULL_TREE;
   set_cfun (new_cfun);
 }
 
-/* Pop cfun from the stack.  */
+/* Pop cfun from the stack.  Also set current_function_decl accordingly.  */
 
 void
 pop_cfun (void)
 {
   struct function *new_cfun = VEC_pop (function_p, cfun_stack);
+  /* When in_dummy_function, we do have a cfun but current_function_decl is
+     NULL.  We also allow pushing NULL cfun and subsequently changing
+     current_function_decl to something else and have both restored by
+     pop_cfun.  */
+  gcc_checking_assert (in_dummy_function
+		       || !cfun
+		       || current_function_decl == cfun->decl);
   set_cfun (new_cfun);
+  current_function_decl = new_cfun ? new_cfun->decl : NULL_TREE;
 }
 
 /* Return value of funcdef and increase it.  */
@@ -4475,8 +4486,6 @@ allocate_struct_function (tree fndecl, bool abstract_p)
   OVERRIDE_ABI_FORMAT (fndecl);
 #endif
 
-  invoke_set_current_function_hook (fndecl);
-
   if (fndecl != NULL_TREE)
     {
       DECL_STRUCT_FUNCTION (fndecl) = cfun;
@@ -4505,6 +4514,8 @@ allocate_struct_function (tree fndecl, bool abstract_p)
       cfun->elem_fn_already_cloned = false;
       cfun->calls_spawn = DECL_HAS_SPAWN_P (fndecl);
     }
+
+  invoke_set_current_function_hook (fndecl);
 }
 
 /* This is like allocate_struct_function, but pushes a new cfun for FNDECL
@@ -4513,7 +4524,14 @@ allocate_struct_function (tree fndecl, bool abstract_p)
 void
 push_struct_function (tree fndecl)
 {
+  /* When in_dummy_function we might be in the middle of a pop_cfun and
+     current_function_decl and cfun may not match.  */
+  gcc_assert (in_dummy_function
+	      || flag_enable_cilk /* Elem fn needs this.  */
+	      || (!cfun && !current_function_decl)
+	      || (cfun && current_function_decl == cfun->decl));
   VEC_safe_push (function_p, heap, cfun_stack, cfun);
+  current_function_decl = fndecl;
   allocate_struct_function (fndecl, false);
 }
 
@@ -4982,7 +5000,7 @@ expand_function_end (void)
 	      probe_stack_range (STACK_OLD_CHECK_PROTECT, max_frame_size);
 	    seq = get_insns ();
 	    end_sequence ();
-	    set_insn_locators (seq, prologue_locator);
+	    set_insn_locations (seq, prologue_location);
 	    emit_insn_before (seq, stack_check_probe_note);
 	    break;
 	  }
@@ -4997,7 +5015,7 @@ expand_function_end (void)
 
   /* Output a linenumber for the end of the function.
      SDB depends on this.  */
-  set_curr_insn_source_location (input_location);
+  set_curr_insn_location (input_location);
 
   /* Before the return label (if any), clobber the return
      registers so that they are not propagated live to the rest of
@@ -5280,14 +5298,14 @@ maybe_copy_prologue_epilogue_insn (rtx insn, rtx copy)
   *slot = copy;
 }
 
-/* Set the locator of the insn chain starting at INSN to LOC.  */
+/* Set the location of the insn chain starting at INSN to LOC.  */
 static void
-set_insn_locators (rtx insn, int loc)
+set_insn_locations (rtx insn, int loc)
 {
   while (insn != NULL_RTX)
     {
       if (INSN_P (insn))
-	INSN_LOCATOR (insn) = loc;
+	INSN_LOCATION (insn) = loc;
       insn = NEXT_INSN (insn);
     }
 }
@@ -5654,6 +5672,15 @@ dup_block_and_redirect (basic_block bb, basic_block copy_bb, rtx before,
   for (ei = ei_start (bb->preds); (e = ei_safe_edge (ei)); )
     if (!bitmap_bit_p (need_prologue, e->src->index))
       {
+	int freq = EDGE_FREQUENCY (e);
+	copy_bb->count += e->count;
+	copy_bb->frequency += EDGE_FREQUENCY (e);
+	e->dest->count -= e->count;
+	if (e->dest->count < 0)
+	  e->dest->count = 0;
+	e->dest->frequency -= freq;
+	if (e->dest->frequency < 0)
+	  e->dest->frequency = 0;
 	redirect_edge_and_branch_force (e, copy_bb);
 	continue;
       }
@@ -5896,7 +5923,7 @@ thread_prologue_and_epilogue_insns (void)
       end_sequence ();
 
       record_insns (split_prologue_seq, NULL, &prologue_insn_hash);
-      set_insn_locators (split_prologue_seq, prologue_locator);
+      set_insn_locations (split_prologue_seq, prologue_location);
 #endif
     }
 
@@ -5925,7 +5952,7 @@ thread_prologue_and_epilogue_insns (void)
 
       prologue_seq = get_insns ();
       end_sequence ();
-      set_insn_locators (prologue_seq, prologue_locator);
+      set_insn_locations (prologue_seq, prologue_location);
     }
 #endif
 
@@ -6421,7 +6448,7 @@ thread_prologue_and_epilogue_insns (void)
 
       /* Retain a map of the epilogue insns.  */
       record_insns (seq, NULL, &epilogue_insn_hash);
-      set_insn_locators (seq, epilogue_locator);
+      set_insn_locations (seq, epilogue_location);
 
       seq = get_insns ();
       returnjump = get_last_insn ();
@@ -6611,7 +6638,7 @@ epilogue_done:
 	     avoid getting rid of sibcall epilogue insns.  Do this before we
 	     actually emit the sequence.  */
 	  record_insns (seq, NULL, &epilogue_insn_hash);
-	  set_insn_locators (seq, epilogue_locator);
+	  set_insn_locations (seq, epilogue_location);
 
 	  emit_insn_before (seq, insn);
 	}

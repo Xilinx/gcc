@@ -811,15 +811,11 @@ make_cond_expr_edges (basic_block bb)
   e = make_edge (bb, then_bb, EDGE_TRUE_VALUE);
   assign_discriminator (entry_locus, then_bb);
   e->goto_locus = gimple_location (then_stmt);
-  if (e->goto_locus)
-    e->goto_block = gimple_block (then_stmt);
   e = make_edge (bb, else_bb, EDGE_FALSE_VALUE);
   if (e)
     {
       assign_discriminator (entry_locus, else_bb);
       e->goto_locus = gimple_location (else_stmt);
-      if (e->goto_locus)
-	e->goto_block = gimple_block (else_stmt);
     }
 
   /* We do not need the labels anymore.  */
@@ -1029,8 +1025,6 @@ make_goto_expr_edges (basic_block bb)
       edge e = make_edge (bb, label_bb, EDGE_FALLTHRU);
       e->goto_locus = gimple_location (goto_t);
       assign_discriminator (e->goto_locus, label_bb);
-      if (e->goto_locus)
-	e->goto_block = gimple_block (goto_t);
       gsi_remove (&last, true);
       return;
     }
@@ -6030,9 +6024,12 @@ move_stmt_op (tree *tp, int *walk_subtrees, void *data)
   tree t = *tp;
 
   if (EXPR_P (t))
-    /* We should never have TREE_BLOCK set on non-statements.  */
-    gcc_assert (!TREE_BLOCK (t));
-
+    {
+      if (TREE_BLOCK (t) == p->orig_block
+	  || (p->orig_block == NULL_TREE
+	  && TREE_BLOCK (t) == NULL_TREE))
+	TREE_SET_BLOCK (t, p->new_block);
+    }
   else if (DECL_P (t) || TREE_CODE (t) == SSA_NAME)
     {
       if (TREE_CODE (t) == SSA_NAME)
@@ -6332,12 +6329,14 @@ move_block_to_fn (struct function *dest_cfun, basic_block bb,
     }
 
   FOR_EACH_EDGE (e, ei, bb->succs)
-    if (e->goto_locus)
+    if (e->goto_locus != UNKNOWN_LOCATION)
       {
-	tree block = e->goto_block;
+	tree block = LOCATION_BLOCK (e->goto_locus);
 	if (d->orig_block == NULL_TREE
 	    || block == d->orig_block)
-	  e->goto_block = d->new_block;
+	  e->goto_locus = d->new_block ?
+	      COMBINE_LOCATION_DATA (line_table, e->goto_locus, d->new_block) :
+	      LOCATION_LOCUS (e->goto_locus);
 #ifdef ENABLE_CHECKING
 	else if (block != d->new_block)
 	  {
@@ -7918,13 +7917,14 @@ extern void gt_ggc_mx (basic_block&);
 void
 gt_ggc_mx (edge_def *e)
 {
+  tree block = LOCATION_BLOCK (e->goto_locus);
   gt_ggc_mx (e->src);
   gt_ggc_mx (e->dest);
   if (current_ir_type () == IR_GIMPLE)
     gt_ggc_mx (e->insns.g);
   else
     gt_ggc_mx (e->insns.r);
-  gt_ggc_mx (e->goto_block);
+  gt_ggc_mx (block);
 }
 
 /* PCH support for edge_def.  */
@@ -7937,23 +7937,25 @@ extern void gt_pch_nx (basic_block&);
 void
 gt_pch_nx (edge_def *e)
 {
+  tree block = LOCATION_BLOCK (e->goto_locus);
   gt_pch_nx (e->src);
   gt_pch_nx (e->dest);
   if (current_ir_type () == IR_GIMPLE)
     gt_pch_nx (e->insns.g);
   else
     gt_pch_nx (e->insns.r);
-  gt_pch_nx (e->goto_block);
+  gt_pch_nx (block);
 }
 
 void
 gt_pch_nx (edge_def *e, gt_pointer_operator op, void *cookie)
 {
+  tree block = LOCATION_BLOCK (e->goto_locus);
   op (&(e->src), cookie);
   op (&(e->dest), cookie);
   if (current_ir_type () == IR_GIMPLE)
     op (&(e->insns.g), cookie);
   else
     op (&(e->insns.r), cookie);
-  op (&(e->goto_block), cookie);
+  op (&(block), cookie);
 }

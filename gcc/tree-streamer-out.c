@@ -279,6 +279,8 @@ pack_ts_type_common_value_fields (struct bitpack_d *bp, tree expr)
   bp_pack_value (bp, TYPE_NEEDS_CONSTRUCTING (expr), 1);
   if (RECORD_OR_UNION_TYPE_P (expr))
     bp_pack_value (bp, TYPE_TRANSPARENT_AGGR (expr), 1);
+  else if (TREE_CODE (expr) == ARRAY_TYPE)
+    bp_pack_value (bp, TYPE_NONALIASED_COMPONENT (expr), 1);
   bp_pack_value (bp, TYPE_PACKED (expr), 1);
   bp_pack_value (bp, TYPE_RESTRICT (expr), 1);
   bp_pack_value (bp, TYPE_CONTAINS_PLACEHOLDER_INTERNAL (expr), 2);
@@ -471,7 +473,7 @@ write_ts_decl_minimal_tree_pointers (struct output_block *ob, tree expr,
 {
   stream_write_tree (ob, DECL_NAME (expr), ref_p);
   stream_write_tree (ob, DECL_CONTEXT (expr), ref_p);
-  lto_output_location (ob, DECL_SOURCE_LOCATION (expr));
+  lto_output_location (ob, LOCATION_LOCUS (DECL_SOURCE_LOCATION (expr)));
 }
 
 
@@ -668,7 +670,7 @@ write_ts_exp_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
   streamer_write_hwi (ob, TREE_OPERAND_LENGTH (expr));
   for (i = 0; i < TREE_OPERAND_LENGTH (expr); i++)
     stream_write_tree (ob, TREE_OPERAND (expr, i), ref_p);
-  lto_output_location (ob, EXPR_LOCATION (expr));
+  lto_output_location (ob, LOCATION_LOCUS (EXPR_LOCATION (expr)));
   stream_write_tree (ob, TREE_BLOCK (expr), ref_p);
 }
 

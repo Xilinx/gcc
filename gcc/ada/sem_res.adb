@@ -4965,10 +4965,7 @@ package body Sem_Res is
            ("operation should be qualified or explicitly converted", N);
       end if;
 
-      --  Set overflow and division checking bit. Much cleverer code needed
-      --  here eventually and perhaps the Resolve routines should be separated
-      --  for the various arithmetic operations, since they will need
-      --  different processing. ???
+      --  Set overflow and division checking bit
 
       if Nkind (N) in N_Op then
          if not Overflow_Checks_Suppressed (Etype (N)) then
@@ -5314,15 +5311,7 @@ package body Sem_Res is
       --  Check that this is not a call to a protected procedure or entry from
       --  within a protected function.
 
-      if Ekind (Current_Scope) = E_Function
-        and then Ekind (Scope (Current_Scope)) = E_Protected_Type
-        and then Ekind (Nam) /= E_Function
-        and then Scope (Nam) = Scope (Current_Scope)
-      then
-         Error_Msg_N ("within protected function, protected " &
-           "object is constant", N);
-         Error_Msg_N ("\cannot call operation that may modify it", N);
-      end if;
+      Check_Internal_Protected_Use (N, Nam);
 
       --  Freeze the subprogram name if not in a spec-expression. Note that we
       --  freeze procedure calls as well as function calls. Procedure calls are
@@ -5896,7 +5885,10 @@ package body Sem_Res is
          end;
       end if;
 
-      Analyze_Dimension (N);
+      --  Check the dimensions of the actuals in the call. For function calls,
+      --  propagate the dimensions from the returned type to N.
+
+      Analyze_Dimension_Call (N, Nam);
 
       --  All done, evaluate call and deal with elaboration issues
 
@@ -6732,6 +6724,7 @@ package body Sem_Res is
       end if;
 
       Resolve_Actuals (N, Nam);
+      Check_Internal_Protected_Use (N, Nam);
 
       --  Create a call reference to the entry
 

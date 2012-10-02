@@ -1458,7 +1458,7 @@ fix_array_notation_exprs (tree t)
     case CONVERT_EXPR:
     case CLEANUP_POINT_EXPR:
     case EXPR_STMT:
-      t = fix_array_notation_exprs (TREE_OPERAND (t, 0));
+      TREE_OPERAND (t, 0) = fix_array_notation_exprs (TREE_OPERAND (t, 0));
       return t;
     case COND_EXPR:
       t = fix_conditional_array_notations_1 (t);

@@ -5331,6 +5331,11 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p,
 	  cp_lvalue_kind clk = lvalue_kind (expr);
 	  type = unlowered_expr_type (expr);
 	  gcc_assert (TREE_CODE (type) != REFERENCE_TYPE);
+
+	  /* For vector types, pick a non-opaque variant.  */
+	  if (TREE_CODE (type) == VECTOR_TYPE)
+	    type = strip_typedefs (type);
+
 	  if (clk != clk_none && !(clk & clk_class))
 	    type = cp_build_reference_type (type, (clk & clk_rvalueref));
 	}
@@ -9556,7 +9561,7 @@ finish_cilk_block (void)
 tree
 finish_sync_stmt (bool implicit)
 {
-  tree s = build_stmt (UNKNOWN_LOCATION, CILK_SYNC_STMT);
+  tree s = build_stmt (input_location, CILK_SYNC_STMT);
 
   TREE_THIS_VOLATILE (s) = 1;
   TREE_SIDE_EFFECTS (s) = 1;
@@ -9572,10 +9577,10 @@ begin_cilk_for_stmt (void)
 {
   tree c_tree = NULL_TREE;
 
-  c_tree = build_stmt (UNKNOWN_LOCATION, CILK_FOR_STMT, NULL_TREE, NULL_TREE, 
+  c_tree = build_stmt (input_location, CILK_FOR_STMT, NULL_TREE, NULL_TREE, 
 		       NULL_TREE, NULL_TREE, NULL_TREE, NULL_TREE, NULL_TREE);
   /* add a new scope for uncond cilk_for */
-  TREE_CHAIN (c_tree) = do_pushlevel (sk_cilk_for);
+  FOR_SCOPE (c_tree) = do_pushlevel (sk_cilk_for);
 
   return c_tree;
 }
@@ -9589,8 +9594,9 @@ finish_cilk_for_stmt (tree c_for_stmt)
 
   FOR_BODY (c_for_stmt) = do_poplevel (FOR_BODY (c_for_stmt));
 
-  scope = TREE_CHAIN (c_for_stmt);
-  TREE_CHAIN (c_for_stmt) = NULL;
+  scope = FOR_SCOPE (c_for_stmt);
+  // TREE_CHAIN (c_for_stmt) = NULL;
+  FOR_SCOPE (c_for_stmt) = NULL;
   add_stmt (do_poplevel (scope));
 
   finish_stmt ();
@@ -9603,6 +9609,7 @@ finish_cilk_for_init_stmt (tree c_for_stmt)
 {
   add_stmt (c_for_stmt);
   FOR_BODY (c_for_stmt) = do_pushlevel (sk_block);
+  // add_stmt (c_for_stmt);
 }
 
 /* This function will handle the condition part of a Cilk_for statement.  */

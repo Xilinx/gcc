@@ -288,8 +288,12 @@ C("Target_OS", OS_Type, TARGET_OS, "")
 #define Target_Name TARGET
 CST(Target_Name, "")
 
-#define sizeof_unsigned_int sizeof (unsigned int)
-CND(sizeof_unsigned_int, "Size of unsigned int")
+/**
+ ** Note: the name of the following constant is recognized specially by
+ **  xoscons (case sensitive).
+ **/
+#define SIZEOF_unsigned_int sizeof (unsigned int)
+CND(SIZEOF_unsigned_int, "Size of unsigned int")
 
 /*
 
@@ -1288,7 +1292,7 @@ CNS(MAX_tv_sec, "")
 }
 /*
 
-   --  Sizes of various data types
+   --  Sizes and alignments of various data types
 */
 
 #define SIZEOF_sockaddr_in (sizeof (struct sockaddr_in))
@@ -1302,6 +1306,9 @@ CND(SIZEOF_sockaddr_in6, "struct sockaddr_in6")
 
 #define SIZEOF_fd_set (sizeof (fd_set))
 CND(SIZEOF_fd_set, "fd_set");
+#define ALIGNOF_fd_set (__alignof__ (fd_set))
+CND(ALIGNOF_fd_set, "");
+
 CND(FD_SETSIZE, "Max fd value");
 
 #define SIZEOF_struct_hostent (sizeof (struct hostent))
