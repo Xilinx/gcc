@@ -2174,6 +2174,7 @@ meltgc_add_out_raw_len (melt_ptr_t outbuf_p, const char *str, int slen)
 	    }
 	}
     }
+    break;
   case MELTOBMAG_STRBUF:
     gcc_assert (!melt_is_young (str));
     blen = melt_primtab[buf_outbufv->buflenix];

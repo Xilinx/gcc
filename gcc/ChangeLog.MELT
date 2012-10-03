@@ -1,6 +1,10 @@
 
 2012-10-03  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.c (meltgc_add_out_raw_len): Missing break.
+
+2012-10-03  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-modes.melt (repl_docmd): Move the replwelcome_chk
 	chunk before.
 
