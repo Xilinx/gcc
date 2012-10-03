@@ -287,6 +287,16 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 
 (defun repl_docmd (cmd moduldata)
   (assert_msg "check moduldata" (is_a moduldata class_environment))
+  (debug "repl_docmd cmd=" cmd " moduldata=" moduldata)
+  (code_chunk replwelcome_chk 
+	      #{ /* repl_docmd $REPLWELCOME_CHK */
+	      printf ("; Welcome to the MELT interactive Read-Eval-Print-Loop [=REPL]\n");
+	      printf ("; Type a sequence of MELT expressions to be evaluated\n");
+	      printf ("; End that sequence with two (2) consecutive newlines.\n");
+	      printf ("; Call the CONTINUE function like (CONTINUE) to exit this REPL, or give an end-of-file thru ^D\n");
+	      printf ("; Call (WAIT-REPL [welcome-string-value]) from a hook to wait for more input and exit of the REPL\n");
+	      fflush (NULL);
+	      }#)
   (let ( (newenv (fresh_env moduldata '"the interactive Read-Eval-Print-Loop environment"))
 	 (refcont (instance class_reference))
 	 (evalcounter (make_integerbox discr_integer 0))
@@ -330,24 +340,15 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
     (put_env newenv waitreplbind)
     (debug "repl_docmd newenv=" newenv " repldata=" repldata)
     (register_input_channel_handler repl_processor repldata 0)
-    (code_chunk replwelcome_chk 
-		#{ /* repl_docmd $REPLWELCOME_CHK */
-		printf ("; Welcome to the MELT interactive Read-Eval-Print-Loop [=REPL]\n") ;
-		printf ("; Type a sequence of MELT expressions to be evaluated\n") ;
-		printf ("; End that sequence with two (2) consecutive newlines.\n") ;
-		printf ("; Call the CONTINUE function like (CONTINUE) to exit this REPL, or give an end-of-file thru ^D\n") ;
-		printf ("; Call (WAIT-REPL [welcome-string-value]) from a hook to wait for more input and exit of the REPL\n") ;
-		fflush (NULL)		;
-		}#)
     ;; register waiting REPL after all passes
     (register_all_passes_end_hook_first
      (lambda (endp)
        (debug "repl_docmd/endpasses endp=" endp)
        (code_chunk endp_chk
 		   #{ /* repl_docmd/endpasses $ENDP_CHK */
-		   printf ("; GCC MELT ended all passes\n")	 ;
-		   printf ("; type (CONTINUE) to proceed.\n")	 ;
-		   fflush (NULL)				 ;
+		   printf ("; GCC MELT ended all passes\n")   ;
+		   printf ("; type (CONTINUE) to proceed.\n") ;
+		   fflush (NULL)			      ;
 		   }#)
        (waitfun '"ended all GCC passes")))
     ;; register waiting REPL after compilation unit ended
@@ -367,9 +368,9 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
        (debug "repl_docmd/atexit exip=" exip)
        (code_chunk endp_chk
 		   #{ /* repl_docmd/endpasses $ENDP_CHK */
-		   printf ("; GCC MELT exiting\n");
-		   printf ("; type (CONTINUE) to proceed.\n");
-		   fflush (NULL);
+		   printf ("; GCC MELT exiting\n")	      ;
+		   printf ("; type (CONTINUE) to proceed.\n") ;
+		   fflush (NULL)			      ;
 		   }#)
        (waitfun '"GCC MELT exiting")))
     (waitfun '"GCC MELT initial wait")	;initial wait for REPL

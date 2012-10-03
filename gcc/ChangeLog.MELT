@@ -1,6 +1,13 @@
 
 2012-10-03  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-modes.melt (repl_docmd): Move the replwelcome_chk
+	chunk before.
+
+	* melt-runtime.h (MELT_VERSION_STRING): Bump to 0.9.7-pre.
+
+2012-10-03  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.h (MELT_MAX_RUNTIME_EXTENSIONS): Decrease to
 	3000000.
 	(MELT_VERSION_STRING): Bump to 0.9.7-rc3.
