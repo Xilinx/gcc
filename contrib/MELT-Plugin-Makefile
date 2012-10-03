@@ -47,6 +47,11 @@ endif
 MELTGCC_BUILD_WITH_CXX = $(shell grep -q 'define[[:space:]]\+ENABLE_BUILD_WITH_CXX[[:space:]]\+1' \
   `$(MELTGCC) -print-file-name=plugin/include/auto-host.h` && echo yes)
 
+## You may want to set MELTGCC_NO_CHECK_RUNTIME environment variable
+## when cross-compiling (since you cannot compile melt-runtime.c with
+## a MELT augmented GCC in that case). See file melt-build-script.tpl
+## for more.
+
 ## The compiler and flags used to build the melt.so plugin and to
 ## compile MELT generated code.  Notice that melt-module.mk use the
 ## same Make variables.  For a melt plugin to GCC 4.7 or later, that
@@ -229,7 +234,8 @@ all: melt-run.h melt.so melt-applications melt-gendoc doc
 	@echo See its last dozen of lines for building	\
 	       instructions. 
 	@echo You could also use the Qt Python MELT \
-	       probe by Alexandre Lissy from \
+	       probe by Alexandre Lissy in the file simplemelt-pyqt4-probe.py \
+	       or from \
 	       git://git.mandriva.com/users/alissy/python-qt-melt-probe.git 
 	@echo
 	@echo you may want to install with e.g. \

@@ -108,12 +108,12 @@ MELT_EXTERN struct plugin_gcc_version* melt_plugin_gcc_version;
 MELT_EXTERN const int melt_gccplugin_version;
 
 MELT_EXTERN int melt_count_runtime_extensions;
-#define MELT_MAX_RUNTIME_EXTENSIONS 4000000
+#define MELT_MAX_RUNTIME_EXTENSIONS 3000000
 
 /* The version string of MELT; this is parsed by make, so spaces are
    important!  That version string is extracted by scripts or
    makefiles... */
-#define MELT_VERSION_STRING "0.9.7-pre-rc3"
+#define MELT_VERSION_STRING "0.9.7-rc3"
 
 /* return a read only version string */
 extern const char* melt_version_str(void);
@@ -416,7 +416,7 @@ typedef void meltpayload_destroy_t (struct meltspecialdata_st*, const struct mel
    be freed by the caller. */
 typedef char* meltpayload_sprint_t (struct meltspecialdata_st*, const struct melt_payload_descriptor_st*);
 
-/* payload descriptors should be static */
+/* Payload descriptors should be static or global.  */
 struct melt_payload_descriptor_st {
   unsigned meltpyd_magic;	/* always
 				   MELT_PAYLOAD_DESCRIPTOR_MAGIC, even
@@ -426,6 +426,7 @@ struct melt_payload_descriptor_st {
   void* meltpyd_data;	/* data for the client */
   meltpayload_destroy_t* meltpyd_destroy_rout; /* the destroying routine */
   meltpayload_sprint_t* meltpyd_sprint_rout;     /* the short printing routine */
+  /* Unused, always 0 fields, for "upward" binary compatibility.  */
   void* meltpyd_spare1;
   void* meltpyd_spare2;
   void* meltpyd_spare3;

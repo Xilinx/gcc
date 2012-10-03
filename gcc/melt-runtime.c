@@ -1347,10 +1347,12 @@ melt_delete_unmarked_old_specialdata (void)
 
     melt_debuggc_eprintf ("melt_delete_unmarked_old_specialdata deletespecloop old specp %p mark %d",
 			  (void*)specda, specda->meltspec_mark);
-    /* we test both the mark field, if mark_hook is really working
-       in gengtype, and the result of ggc_marked_p, for GCC versions
-       where it is not working. mark_hook don't work in GCC 4.7 and
-       probably not even in 4.6 */ 
+    /* We test both the mark field, if mark_hook is really working in
+       gengtype, and the result of ggc_marked_p, for GCC versions
+       where it is not working. mark_hook don't always work in GCC 4.7
+       and probably not even in 4.6.  See
+       http://gcc.gnu.org/ml/gcc-patches/2012-10/msg00164.html for a
+       corrective patch to gengtype.  */ 
     if (specda->meltspec_mark || ggc_marked_p(specda)) {
       prevspecdaptr = &specda->meltspec_next;
       continue;

@@ -190,7 +190,7 @@ the subject line] and to <gcc-melt@googlegroups.com>
 
 ################################################################
 NEWS for 0.9.7 MELT plugin for GCC 4.6 & 4.7 & future 4.8
-[[september, XXth, 2012]]
+[[october, XXth, 2012]]
 
    Language improvement
    ====================
@@ -234,6 +234,9 @@ NEWS for 0.9.7 MELT plugin for GCC 4.6 & 4.7 & future 4.8
   TRANSLATE_RUN_MELT_EXPRESSIONS with a mode eval for initial
   evaluation of a sequence of expressions, and a mode repl for
   read-eval-print-loop.
+
+  Advanced users could register their own finalized client data using
+  the melt_payload_register_descriptor C function.
 
   The building procedure has been revamped. Advanced users could
   define their GCCMELT_BUILD_NOTIFICATION environment variable to

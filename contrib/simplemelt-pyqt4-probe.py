@@ -19,6 +19,9 @@
 MELT probe in PyQt
 """
 
+## See also git://git.mandriva.com/users/alissy/python-qt-melt-probe.git
+## which contains the "upstream" version of this script.
+
 import sys
 import os
 import argparse

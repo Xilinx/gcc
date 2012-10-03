@@ -1,3 +1,15 @@
+
+2012-10-03  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* MELT-Plugin-Makefile: Mention MELTGCC_NO_CHECK_RUNTIME in
+	comment. Mention the simplemelt-pyqt4-probe.py in echo-ed message.
+
+	* make-melt-plugin-source-tar.sh: Also copy
+	simplemelt-pyqt4-probe.py.
+
+	* simplemelt-pyqt4-probe.py: Mention upstream git repository in
+	comment.
+
 2012-09-26  Alexandre Lissy  <alissy@mandriva.com>
 
 	* simplemelt-pyqt4-probe.py: Adding Python/Qt4 probe

@@ -142,7 +142,7 @@ for cf in  $gccmelt_source_tree/contrib/*melt*.sh $gccmelt_source_tree/contrib/p
     chmod a+x $gccmelt_tarbase/$(basename $cf)
 done
 
-for cf in   $gccmelt_source_tree/contrib/simplemelt-gtkmm-probe.cc ; do
+for cf in   $gccmelt_source_tree/contrib/simplemelt-gtkmm-probe.cc $gccmelt_source_tree/contrib/simplemelt-pyqt4-probe.py ; do
     copymelt contrib/$(basename $cf) 
 done
 

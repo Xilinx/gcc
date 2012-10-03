@@ -1,4 +1,8 @@
 
+2012-10-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{MELT plugin 0.9.7-rc3 release candidate}}
+	* INSTALL/README-MELT-PLUGIN: Comment about probe.
+
 2012-10-02  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	MELT branch merged with trunk rev 191993 using svnmerge.py
