@@ -6004,7 +6004,7 @@ if (1) return;
 		     (tuple 
 		      (make_stringconst 
 		       discr_verbatim_string 
-		       "/*autobox long*/ meltgc_new_int((meltobject_ptr_t)MELT_PREDEF(DISCR_CONST_INTEGER), ")
+		       "/*autobox long*/ meltgc_new_int((meltobject_ptr_t)MELT_PREDEF(DISCR_CONSTANT_INTEGER), ")
 		      nexp
 		      (make_stringconst 
 		       discr_verbatim_string 
