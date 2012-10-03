@@ -867,6 +867,15 @@ package body Exp_Ch4 is
    --  Start of processing for Expand_Allocator_Expression
 
    begin
+      --  Handle call to C++ constructor
+
+      if Is_CPP_Constructor_Call (Exp) then
+         Make_CPP_Constructor_Call_In_Allocator
+           (Allocator => N,
+            Function_Call => Exp);
+         return;
+      end if;
+
       --  In the case of an Ada 2012 allocator whose initial value comes from a
       --  function call, pass "the accessibility level determined by the point
       --  of call" (AI05-0234) to the function. Conceptually, this belongs in
@@ -899,58 +908,6 @@ package body Exp_Ch4 is
       --  Case of tagged type or type requiring finalization
 
       if Is_Tagged_Type (T) or else Needs_Finalization (T) then
-         if Is_CPP_Constructor_Call (Exp) then
-
-            --  Generate:
-            --    Pnnn : constant ptr_T := new (T);
-            --    Init (Pnnn.all,...);
-
-            --  Allocate the object without an expression
-
-            Node := Relocate_Node (N);
-            Set_Expression (Node, New_Reference_To (Etype (Exp), Loc));
-
-            --  Avoid its expansion to avoid generating a call to the default
-            --  C++ constructor.
-
-            Set_Analyzed (Node);
-
-            Temp := Make_Temporary (Loc, 'P', N);
-
-            Temp_Decl :=
-              Make_Object_Declaration (Loc,
-                Defining_Identifier => Temp,
-                Constant_Present    => True,
-                Object_Definition   => New_Reference_To (PtrT, Loc),
-                Expression          => Node);
-            Insert_Action (N, Temp_Decl);
-
-            Apply_Accessibility_Check (Temp);
-
-            --  Locate the enclosing list and insert the C++ constructor call
-
-            declare
-               P : Node_Id;
-
-            begin
-               P := Parent (Node);
-               while not Is_List_Member (P) loop
-                  P := Parent (P);
-               end loop;
-
-               Insert_List_After_And_Analyze (P,
-                 Build_Initialization_Call (Loc,
-                   Id_Ref          =>
-                     Make_Explicit_Dereference (Loc,
-                       Prefix => New_Reference_To (Temp, Loc)),
-                   Typ             => Etype (Exp),
-                   Constructor_Ref => Exp));
-            end;
-
-            Rewrite (N, New_Reference_To (Temp, Loc));
-            Analyze_And_Resolve (N, PtrT);
-            return;
-         end if;
 
          --  Ada 2005 (AI-318-02): If the initialization expression is a call
          --  to a build-in-place function, then access to the allocated object
@@ -2308,6 +2265,9 @@ package body Exp_Ch4 is
    procedure Expand_Compare_Minimize_Eliminate_Overflow (N : Node_Id) is
       Loc : constant Source_Ptr := Sloc (N);
 
+      Result_Type : constant Entity_Id := Etype (N);
+      --  Capture result type (could be a derived boolean type)
+
       Llo, Lhi : Uint;
       Rlo, Rhi : Uint;
 
@@ -2452,22 +2412,22 @@ package body Exp_Ch4 is
                   Right := Convert_To_Bignum (Right);
                end if;
 
-               --  We need a sequence that looks like
+               --  We rewrite our node with:
 
-               --    Bnn : Boolean;
-
-               --    declare
-               --       M : Mark_Id := SS_Mark;
-               --    begin
-               --       Bnn := Big_xx (Left, Right); (xx = EQ, NT etc)
-               --       SS_Release (M);
-               --    end;
-
-               --  This block is inserted (using Insert_Actions), and then the
-               --  node is replaced with a reference to Bnn.
+               --    do
+               --       Bnn : Result_Type;
+               --       declare
+               --          M : Mark_Id := SS_Mark;
+               --       begin
+               --          Bnn := Big_xx (Left, Right); (xx = EQ, NT etc)
+               --          SS_Release (M);
+               --       end;
+               --    in
+               --       Bnn
+               --    end
 
                declare
-                  Blk : constant Node_Id  := Make_Bignum_Block (Loc);
+                  Blk : constant Node_Id   := Make_Bignum_Block (Loc);
                   Bnn : constant Entity_Id := Make_Temporary (Loc, 'B', N);
                   Ent : RE_Id;
 
@@ -2481,7 +2441,7 @@ package body Exp_Ch4 is
                      when N_Op_Ne => Ent := RE_Big_NE;
                   end case;
 
-                  --  Insert assignment to Bnn
+                  --  Insert assignment to Bnn into the bignum block
 
                   Insert_Before
                     (First (Statements (Handled_Statement_Sequence (Blk))),
@@ -2493,19 +2453,18 @@ package body Exp_Ch4 is
                              New_Occurrence_Of (RTE (Ent), Loc),
                            Parameter_Associations => New_List (Left, Right))));
 
-                  --  Insert actions (declaration of Bnn and block)
+                  --  Now do the rewrite with expression actions
 
-                  Insert_Actions (N, New_List (
-                    Make_Object_Declaration (Loc,
-                      Defining_Identifier => Bnn,
-                      Object_Definition   =>
-                        New_Occurrence_Of (Standard_Boolean, Loc)),
-                    Blk));
-
-                  --  Rewrite node with reference to Bnn
-
-                  Rewrite (N, New_Occurrence_Of (Bnn, Loc));
-                  Analyze_And_Resolve (N);
+                  Rewrite (N,
+                    Make_Expression_With_Actions (Loc,
+                      Actions    => New_List (
+                        Make_Object_Declaration (Loc,
+                          Defining_Identifier => Bnn,
+                          Object_Definition   =>
+                            New_Occurrence_Of (Result_Type, Loc)),
+                        Blk),
+                      Expression => New_Occurrence_Of (Bnn, Loc)));
+                  Analyze_And_Resolve (N, Result_Type);
                end;
             end;
 
@@ -3736,6 +3695,9 @@ package body Exp_Ch4 is
       --  Despite the name, this routine applies only to N_In, not to
       --  N_Not_In. The latter is always rewritten as not (X in Y).
 
+      Result_Type : constant Entity_Id := Etype (N);
+      --  Capture result type, may be a derived boolean type
+
       Loc : constant Source_Ptr := Sloc (N);
       Lop : constant Node_Id    := Left_Opnd (N);
       Rop : constant Node_Id    := Right_Opnd (N);
@@ -3801,34 +3763,41 @@ package body Exp_Ch4 is
             declare
                Blk    : constant Node_Id   := Make_Bignum_Block (Loc);
                Bnn    : constant Entity_Id := Make_Temporary (Loc, 'B', N);
+               L      : constant Entity_Id :=
+                          Make_Defining_Identifier (Loc, Name_uL);
                Lopnd  : constant Node_Id   := Convert_To_Bignum (Lop);
                Lbound : constant Node_Id   :=
                           Convert_To_Bignum (Low_Bound (Rop));
                Hbound : constant Node_Id   :=
                           Convert_To_Bignum (High_Bound (Rop));
 
-            --  Now we insert code that looks like
+            --  Now we rewrite the membership test node to look like
 
-            --    Bnn : Boolean;
-
-            --    declare
-            --       M : Mark_Id := SS_Mark;
-            --       L : Bignum  := Lopnd;
-            --    begin
-            --       Bnn := Big_GE (L, Lbound) and then Big_LE (L, Hbound)
-            --       SS_Release (M);
-            --    end;
-
-            --  and rewrite the membership test as a reference to Bnn
+            --    do
+            --       Bnn : Result_Type;
+            --       declare
+            --          M : Mark_Id := SS_Mark;
+            --          L : Bignum  := Lopnd;
+            --       begin
+            --          Bnn := Big_GE (L, Lbound) and then Big_LE (L, Hbound)
+            --          SS_Release (M);
+            --       end;
+            --    in
+            --       Bnn
+            --    end
 
             begin
+               --  Insert declaration of L into declarations of bignum block
+
                Insert_After
                  (Last (Declarations (Blk)),
                   Make_Object_Declaration (Loc,
-                    Defining_Identifier => Bnn,
+                    Defining_Identifier => L,
                     Object_Definition   =>
                       New_Occurrence_Of (RTE (RE_Bignum), Loc),
                     Expression          => Lopnd));
+
+               --  Insert assignment to Bnn into expressions of bignum block
 
                Insert_Before
                  (First (Statements (Handled_Statement_Sequence (Blk))),
@@ -3840,22 +3809,29 @@ package body Exp_Ch4 is
                           Make_Function_Call (Loc,
                             Name                   =>
                               New_Occurrence_Of (RTE (RE_Big_GE), Loc),
-                            Parameter_Associations => New_List (Lbound)),
+                            Parameter_Associations => New_List (
+                              New_Occurrence_Of (L, Loc),
+                              Lbound)),
                         Right_Opnd =>
                           Make_Function_Call (Loc,
                             Name                   =>
-                              New_Occurrence_Of (RTE (RE_Big_GE), Loc),
-                            Parameter_Associations => New_List (Hbound)))));
+                              New_Occurrence_Of (RTE (RE_Big_LE), Loc),
+                            Parameter_Associations => New_List (
+                              New_Occurrence_Of (L, Loc),
+                              Hbound)))));
 
-               Insert_Actions (N, New_List (
-                 Make_Object_Declaration (Loc,
-                   Defining_Identifier => Bnn,
-                   Object_Definition   =>
-                     New_Occurrence_Of (Standard_Boolean, Loc)),
-                 Blk));
+               --  Now rewrite the node
 
-               Rewrite (N, New_Occurrence_Of (Bnn, Loc));
-               Analyze_And_Resolve (N);
+               Rewrite (N,
+                 Make_Expression_With_Actions (Loc,
+                   Actions    => New_List (
+                     Make_Object_Declaration (Loc,
+                       Defining_Identifier => Bnn,
+                       Object_Definition   =>
+                         New_Occurrence_Of (Result_Type, Loc)),
+                     Blk),
+                   Expression => New_Occurrence_Of (Bnn, Loc)));
+               Analyze_And_Resolve (N, Result_Type);
                return;
             end;
 
@@ -3876,12 +3852,16 @@ package body Exp_Ch4 is
 
             else
                Convert_To_And_Rewrite (LLIB, Lop);
-               Analyze_And_Resolve (Lop, LLIB, Suppress => All_Checks);
+               Set_Analyzed (Lop, False);
+               Analyze_And_Resolve (Lop, LLIB);
+
+               --  For the right operand, avoid unnecessary recursion into
+               --  this routine, we know that overflow is not possible.
 
                Convert_To_And_Rewrite (LLIB, Low_Bound (Rop));
                Convert_To_And_Rewrite (LLIB, High_Bound (Rop));
                Set_Analyzed (Rop, False);
-               Analyze_And_Resolve (Rop, LLIB, Suppress => All_Checks);
+               Analyze_And_Resolve (Rop, LLIB, Suppress => Overflow_Check);
             end if;
 
             --  Now the three operands are of the same signed integer type,
@@ -3909,29 +3889,34 @@ package body Exp_Ch4 is
 
          elsif Is_RTE (Etype (Lop), RE_Bignum) then
 
-            --  For X in T, we want to insert code that looks like
+            --  For X in T, we want to rewrite our node as
 
-            --    Bnn : Boolean;
+            --    do
+            --       Bnn : Result_Type;
 
-            --    declare
-            --       M   : Mark_Id := SS_Mark;
-            --       Lnn : Long_Long_Integer'Base
-            --       Nnn : Bignum;
+            --       declare
+            --          M   : Mark_Id := SS_Mark;
+            --          Lnn : Long_Long_Integer'Base
+            --          Nnn : Bignum;
 
-            --    begin
-            --      Nnn := X;
+            --       begin
+            --         Nnn := X;
 
-            --      if not Bignum_In_LLI_Range (Nnn) then
-            --         Bnn := False;
-            --      else
-            --         Lnn := From_Bignum (Nnn);
-            --         Bnn := Lnn in T'Base and then T'Base (Lnn) in T;
-            --      end if;
+            --         if not Bignum_In_LLI_Range (Nnn) then
+            --            Bnn := False;
+            --         else
+            --            Lnn := From_Bignum (Nnn);
+            --            Bnn :=
+            --              Lnn in LLIB (T'Base'First) .. LLIB (T'Base'Last)
+            --                and then T'Base (Lnn) in T;
+            --         end if;
             --
-            --       SS_Release (M);
-            --    end;
+            --          SS_Release (M);
+            --       end
+            --   in
+            --       Bnn
+            --   end
 
-            --  And then rewrite the original membership as a reference to Bnn.
             --  A bit gruesome, but here goes.
 
             declare
@@ -3939,10 +3924,12 @@ package body Exp_Ch4 is
                Bnn : constant Entity_Id := Make_Temporary (Loc, 'B', N);
                Lnn : constant Entity_Id := Make_Temporary (Loc, 'L', N);
                Nnn : constant Entity_Id := Make_Temporary (Loc, 'N', N);
+               T   : constant Entity_Id := Etype (Rop);
+               TB  : constant Entity_Id := Base_Type (T);
                Nin : Node_Id;
 
             begin
-               --  The last membership test is marked to prevent recursion
+               --  Mark the last membership operation to prevent recursion
 
                Nin :=
                  Make_In (Loc,
@@ -3976,12 +3963,14 @@ package body Exp_Ch4 is
 
                     Make_If_Statement (Loc,
                       Condition =>
-                        Make_Function_Call (Loc,
-                          Name =>
-                            New_Occurrence_Of
-                              (RTE (RE_Bignum_In_LLI_Range), Loc),
-                          Parameter_Associations => New_List (
-                            New_Occurrence_Of (Nnn, Loc))),
+                        Make_Op_Not (Loc,
+                          Right_Opnd =>
+                            Make_Function_Call (Loc,
+                              Name                   =>
+                                New_Occurrence_Of
+                                  (RTE (RE_Bignum_In_LLI_Range), Loc),
+                              Parameter_Associations => New_List (
+                                New_Occurrence_Of (Nnn, Loc)))),
 
                       Then_Statements => New_List (
                         Make_Assignment_Statement (Loc,
@@ -4000,27 +3989,42 @@ package body Exp_Ch4 is
                                   New_Occurrence_Of (Nnn, Loc)))),
 
                         Make_Assignment_Statement (Loc,
-                          Name => New_Occurrence_Of (Bnn, Loc),
+                          Name       => New_Occurrence_Of (Bnn, Loc),
                           Expression =>
                             Make_And_Then (Loc,
-                              Left_Opnd =>
+                              Left_Opnd  =>
                                 Make_In (Loc,
-                                  Left_Opnd  =>
-                                    New_Occurrence_Of (Lnn, Loc),
+                                  Left_Opnd  => New_Occurrence_Of (Lnn, Loc),
                                   Right_Opnd =>
-                                    New_Occurrence_Of
-                                      (Base_Type (Etype (Rop)), Loc)),
+                                    Make_Range (Loc,
+                                      Low_Bound  =>
+                                        Convert_To (LLIB,
+                                          Make_Attribute_Reference (Loc,
+                                            Attribute_Name => Name_First,
+                                            Prefix         =>
+                                              New_Occurrence_Of (TB, Loc))),
+
+                                      High_Bound =>
+                                        Convert_To (LLIB,
+                                          Make_Attribute_Reference (Loc,
+                                            Attribute_Name => Name_Last,
+                                            Prefix         =>
+                                              New_Occurrence_Of (TB, Loc))))),
+
                               Right_Opnd => Nin))))));
 
-               Insert_Actions (N, New_List (
-                 Make_Object_Declaration (Loc,
-                   Defining_Identifier => Bnn,
-                   Object_Definition   =>
-                     New_Occurrence_Of (Standard_Boolean, Loc)),
-                 Blk));
+               --  Now we can do the rewrite
 
-               Rewrite (N, New_Occurrence_Of (Bnn, Loc));
-               Analyze_And_Resolve (N);
+               Rewrite (N,
+                 Make_Expression_With_Actions (Loc,
+                   Actions    => New_List (
+                     Make_Object_Declaration (Loc,
+                       Defining_Identifier => Bnn,
+                       Object_Definition   =>
+                         New_Occurrence_Of (Result_Type, Loc)),
+                     Blk),
+                   Expression => New_Occurrence_Of (Bnn, Loc)));
+               Analyze_And_Resolve (N, Result_Type);
                return;
             end;
 
@@ -4030,11 +4034,15 @@ package body Exp_Ch4 is
          else
             pragma Assert (Base_Type (Etype (Lop)) = LLIB);
 
-            --  We rewrite the membership test as
+            --  We rewrite the membership test as (where T is the type with
+            --  the predicate, i.e. the type of the right operand)
 
-            --    Lop in T'Base and then T'Base (Lop) in T
+            --    Lop in LLIB (T'Base'First) .. LLIB (T'Base'Last)
+            --      and then T'Base (Lop) in T
 
             declare
+               T   : constant Entity_Id := Etype (Rop);
+               TB  : constant Entity_Id := Base_Type (T);
                Nin : Node_Id;
 
             begin
@@ -4042,24 +4050,32 @@ package body Exp_Ch4 is
 
                Nin :=
                  Make_In (Loc,
-                   Left_Opnd =>
-                     Convert_To (Base_Type (Etype (Rop)),
-                       Duplicate_Subexpr (Lop)),
-                   Right_Opnd => New_Occurrence_Of (Etype (Rop), Loc));
+                   Left_Opnd  => Convert_To (TB, Duplicate_Subexpr (Lop)),
+                   Right_Opnd => New_Occurrence_Of (T, Loc));
                Set_No_Minimize_Eliminate (Nin);
 
                --  Now do the rewrite
 
                Rewrite (N,
                  Make_And_Then (Loc,
-                   Left_Opnd =>
+                   Left_Opnd  =>
                      Make_In (Loc,
                        Left_Opnd  => Lop,
                        Right_Opnd =>
-                         New_Occurrence_Of (Base_Type (Etype (Lop)), Loc)),
+                         Make_Range (Loc,
+                           Low_Bound  =>
+                             Convert_To (LLIB,
+                               Make_Attribute_Reference (Loc,
+                                 Attribute_Name => Name_First,
+                                 Prefix => New_Occurrence_Of (TB, Loc))),
+                           High_Bound =>
+                             Convert_To (LLIB,
+                               Make_Attribute_Reference (Loc,
+                                 Attribute_Name => Name_Last,
+                                 Prefix => New_Occurrence_Of (TB, Loc))))),
                    Right_Opnd => Nin));
-
-               Analyze_And_Resolve (N, Restype, Suppress => All_Checks);
+               Set_Analyzed (N, False);
+               Analyze_And_Resolve (N, Restype);
             end;
          end if;
       end if;

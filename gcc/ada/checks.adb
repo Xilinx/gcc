@@ -195,15 +195,15 @@ package body Checks is
 
    procedure Apply_Arithmetic_Overflow_Checked_Suppressed (N : Node_Id);
    --  Used to apply arithmetic overflow checks for all cases except operators
-   --  on signed arithmetic types in Minimized/Eliminate case (for which we
+   --  on signed arithmetic types in MINIMIZED/ELIMINATED case (for which we
    --  call Apply_Arithmetic_Overflow_Minimized_Eliminated below). N is always
    --  a signed integer arithmetic operator (if and case expressions are not
    --  included for this case).
 
    procedure Apply_Arithmetic_Overflow_Minimized_Eliminated (Op : Node_Id);
    --  Used to apply arithmetic overflow checks for the case where the overflow
-   --  checking mode is Minimized or Eliminated (and the Do_Overflow_Check flag
-   --  is known to be set) and we have an signed integer arithmetic op (which
+   --  checking mode is MINIMIZED or ELIMINATED (and the Do_Overflow_Check flag
+   --  is known to be set) and we have a signed integer arithmetic op (which
    --  includes the case of if and case expressions).
 
    procedure Apply_Division_Check
@@ -317,7 +317,7 @@ package body Checks is
    --  integer operands. This includes unary and binary operators, and also
    --  if and case expression nodes where the dependent expressions are of
    --  a signed integer type. These are the kinds of nodes for which special
-   --  handling applies in MINIMIZED or EXTENDED overflow checking mode.
+   --  handling applies in MINIMIZED or ELIMINATED overflow checking mode.
 
    function Range_Or_Validity_Checks_Suppressed
      (Expr : Node_Id) return Boolean;
@@ -774,7 +774,7 @@ package body Checks is
       then
          Apply_Arithmetic_Overflow_Checked_Suppressed (N);
 
-      --  Otherwise use the new routine for Minimized/Eliminated modes for
+      --  Otherwise use the new routine for MINIMIZED/ELIMINATED modes for
       --  the case of a signed integer arithmetic op, with Do_Overflow_Check
       --  set True, and the checking mode is Minimized_Or_Eliminated.
 
@@ -1101,17 +1101,16 @@ package body Checks is
 
       --  In all these cases, we will process at the higher level (and then
       --  this node will be processed during the downwards recursion that
-      --  is part of the processing in Minimize_Eliminate_Overflow_Checks.
+      --  is part of the processing in Minimize_Eliminate_Overflow_Checks).
 
       if Is_Signed_Integer_Arithmetic_Op (P)
-        or else Nkind (Op) in N_Membership_Test
-        or else Nkind (Op) in N_Op_Compare
+        or else Nkind (P) in N_Membership_Test
+        or else Nkind (P) in N_Op_Compare
 
         --  We may also be a range operand in a membership test
 
-        or else (Nkind (Op) = N_Range
-                  and then Nkind (Parent (Op)) in N_Membership_Test)
-
+        or else (Nkind (P) = N_Range
+                  and then Nkind (Parent (P)) in N_Membership_Test)
       then
          return;
       end if;
@@ -4468,7 +4467,7 @@ package body Checks is
       end if;
 
       --  Remainder of processing is for Checked case, and is unchanged from
-      --  earlier versions preceding the addition of Minimized/Eliminated.
+      --  earlier versions preceding the addition of MINIMIZED/ELIMINATED.
 
       --  Nothing to do if the range of the result is known OK. We skip this
       --  for conversions, since the caller already did the check, and in any
@@ -7405,6 +7404,16 @@ package body Checks is
 
       elsif Top_Level
         and then not (Bignum_Operands or Long_Long_Integer_Operands)
+
+        --  One further refinement. If we are at the top level, but our parent
+        --  is a type conversion, then go into bignum or long long integer node
+        --  since the result will be converted to that type directly without
+        --  going through the result type, and we may avoid an overflow. This
+        --  is the case for example of Long_Long_Integer (A ** 4), where A is
+        --  of type Integer, and the result A ** 4 fits in Long_Long_Integer
+        --  but does not fit in Integer.
+
+        and then Nkind (Parent (N)) /= N_Type_Conversion
       then
          --  Here we will keep the original types, but we do need an overflow
          --  check, so we will set Do_Overflow_Check to True (actually it is
@@ -7562,12 +7571,6 @@ package body Checks is
 
       if Nkind (N) = N_Op_Expon and then Etype (Right_Opnd (N)) = LLIB then
          Convert_To_And_Rewrite (Standard_Natural, Right_Opnd (N));
-
-         --  Now Long_Long_Integer_Operands may have to be reset if that was
-         --  the only long long integer operand, i.e. we now have long long
-         --  integer operands only if the left operand is long long integer.
-
-         Long_Long_Integer_Operands := Etype (Left_Opnd (N)) = LLIB;
       end if;
 
       --  Here we will do the operation in Long_Long_Integer. We do this even

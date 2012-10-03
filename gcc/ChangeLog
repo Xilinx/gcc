@@ -1,3 +1,98 @@
+2012-10-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/54785
+	* doc/invoke.texi: Document -mprefer-avx128.
+
+2012-10-02  Andrew Pinski  <apinski@cavium.com>
+
+	* simplify-rtx.c (simplify_unary_operation_1 <case TRUNCATE>):
+	Don't optimize a truncate of a mem if it is a vector mode.
+
+2012-10-02  Alexandre Oliva <aoliva@redhat.com>
+
+	PR debug/54551
+	* Makefile.in (VALTRACK_H): Add hash-table.h.
+	* valtrack.h: Include hash-table.h.
+	(struct dead_debug_global_entry): New.
+	(struct dead_debug_hash_descr): New.
+	(struct dead_debug_global): New.
+	(struct dead_debug): Rename to...
+	(struct dead_debug_local): ... this.  Adjust all uses.
+	(dead_debug_global_init, dead_debug_global_finish): New.
+	(dead_debug_init): Rename to...
+	(dead_debug_local_init): ... this.  Adjust all callers.
+	(dead_debug_finish): Rename to...
+	(dead_debug_local_finish): ... this.  Adjust all callers.
+	* valtrack.c (dead_debug_global_init): New.
+	(dead_debug_init): Rename to...
+	(dead_debug_local_init): ... this.  Take global parameter.
+	Save it and initialize used bitmap from it.
+	(dead_debug_global_find, dead_debug_global_insert): New.
+	(dead_debug_global_replace_temp): New.
+	(dead_debug_promote_uses): New.
+	(dead_debug_finish): Rename to...
+	(dead_debug_local_finish): ... this.  Promote remaining uses.
+	(dead_debug_global_finish): New.
+	(dead_debug_add): Try to replace global temps first.
+	(dead_debug_insert_temp): Support global replacements.
+	* dce.c (word_dce_process_block, dce_process_block): Add
+	global_debug parameter.  Pass it on.
+	(fast_dce): Initialize, pass on and finalize global_debug.
+	* df-problems.c (df_set_unused_notes_for_mw): Adjusted.
+	(df_create_unused_notes, df_note_bb_compute): Likewise.
+	(df_note_compute): Justify local-only dead debug analysis.
+
+2012-10-02  Alexandre Oliva <aoliva@redhat.com>
+
+	PR debug/53135
+	* dwarf2out.c (value_format): Use block4 for dw_val_class_loc
+	when needed.
+
+2012-10-02  Alexandre Oliva <aoliva@redhat.com>
+
+	PR debug/54177
+	* var-tracking.c (vt_add_function_parameter): Bail if
+	var_lowpart fails.
+
+2012-10-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/54741
+	*  config/i386/driver-i386.c (XCR_XFEATURE_ENABLED_MASK): New.
+	(XSTATE_FP): Likewise.
+	(XSTATE_SSE): Likewise.
+	(XSTATE_YMM): Likewise.
+	(host_detect_local_cpu): Disable AVX, AVX2, FMA, FMA4 and XOP if
+	SSE and YMM states aren't supported.
+
+2012-10-02  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.md (*baddu_si_eb, *baddu_si_el): Merge into...
+	(*baddu_si): ...this new pattern.
+
+2012-10-02  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* ira-int.h (target_ira_int): Add x_ira_useful_class_mode_regs.
+	(ira_useful_class_mode_regs): New macro.
+	* ira.c (clarify_prohibited_class_mode_regs): Set up
+	ira_useful_class_mode_regs.
+	* ira-color.c (setup_profitable_hard_regs): Use it to initialise
+	profitable_hard_regs.
+
+2012-10-02  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* ira.h (target_ira): Add x_ira_class_singleton.
+	(ira_class_singleton): New macro.
+	* ira.c (setup_prohibited_class_mode_regs): Set up ira_class_singleton.
+	* ira-build.c (update_conflict_hard_reg_costs): Use
+	ira_class_singleton to check for classes with a single
+	allocatable register.
+	* ira-lives.c (ira_implicitly_set_insn_hard_regs): Likewise.
+	(single_reg_class): Likewise.  When more than one class is specified,
+	check whether they have the same singleton register.
+	(process_single_reg_class_operands): Require single_reg_class
+	to return NO_REGS or a class with a single allocatable register.
+	Obtain that register from ira_class_singleton.
+
 2012-10-02  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	* config/rs6000/rs6000.c (rs6000_option_override_internal): If

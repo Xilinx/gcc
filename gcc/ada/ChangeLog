@@ -1,3 +1,74 @@
+2012-10-03  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch6.adb (New_Overloaded_Entity): call
+	Append_Inherited_Subprogram when appropriate.
+	* sem_dim.adb (Analyze_Dimension_Call): Do not perform dimensional
+	analysis if call has previous semantic error.
+	* sem_util.ads, sem_util.adb (Append_Inherited_Subprogram):
+	new subprogram to handle properly the visibility of inherited
+	operations that are primitives of a type extension, when the
+	parent type and operations are declared in the same visible part.
+
+2012-10-03  Robert Dewar  <dewar@adacore.com>
+
+	* checks.adb (Minimize_Eliminate_Overflow_Checks): Properly
+	handle case of top level expression within type conversion
+	* gnat1drv.adb (Adjust_Global_Switches): Set SUPPRESSED as
+	default for overflow checking for -gnatg mode (includes run-time).
+	* sem_res.adb (Resolve_Type_Conversion): Avoid bogus warnings
+	about redundant conversions from MINIMIZED/EXTENDED mode checking
+
+2012-10-03  Javier Miranda  <miranda@adacore.com>
+
+	* exp_ch4.adb (Expand_N_Allocator_Expression): Minor code
+	reorganization and cleanup. Done to ensure proper management of
+	the C++ constructor covering tagged and untagged types and also
+	non-default constructors.
+	* exp_ch6.ads, exp_ch6.adb (Make_CPP_Constructor_Call_In_Allocator):
+	New subprogram.
+
+2012-10-03  Gary Dismukes  <dismukes@adacore.com>
+
+	* sem_ch6.adb: Minor typo fix.
+
+2012-10-03  Robert Dewar  <dewar@adacore.com>
+
+	* checks.adb (Apply_Arithmetic_Overflow_Minimized_Eliminated):
+	Set Top_Level properly (to False) for operand of range of
+	membership test.
+	* exp_ch4.adb (Expand_Membership_Minimize_Eliminate_Overflow):
+	Fix crash with -gnato3 and membership operations.
+	(Expand_Membership_Minimize_Eliminate_Overflow): Fix error message
+	and wrong results for -gnato3 large expression and predicated
+	subtype.
+	(Expand_Membership_Minimize_Eliminate_Overflow): Use
+	expression action node to avoid using insert actions (bombs in
+	some cases).
+	(Expand_Compare_Minimize_Eliminate_Overflow): Use expression action
+	node to avoid using insert actions (bombs in some cases).
+
+2012-10-03  Javier Miranda  <miranda@adacore.com>
+
+	* exp_disp.adb (Set_CPP_Constructors_Old): Handle constructor of
+	untagged type that has all its parameters with defaults and hence it
+	covers the default constructor.
+
+2012-10-03  Yannick Moy  <moy@adacore.com>
+
+	* checks.adb, sem_prag.adb, s-bignum.ads: Minor typo fixes.
+
+2012-10-03  Thomas Quinot  <quinot@adacore.com>
+
+	* g-socket.adb (Connect_Socket, version with timeout): When the
+	newly-connected socket is reported as available for writing, check
+	whether it has a pending asynchronous error prior to returning.
+
+2012-10-03  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch6.adb (Check_Conformance): Additional info when subtype
+	conformance fails, due to a missing null exclusion indicatar in
+	a formal that must match a controlling access formal.
+
 2012-10-02  Ben Brosgol  <brosgol@adacore.com>
 
 	* gnat_rm.texi: Minor editing.
