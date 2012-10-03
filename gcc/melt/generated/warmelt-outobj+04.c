@@ -15152,7 +15152,8 @@ ltstr[]\t    ;\n\t     extern \"C\" const char melt_genversionstr[\
 \n\t     extern \"C\" const char* const melt_secondaryhexmd5tab[] \
 ;\n\t     extern \"C\" const int melt_lastsecfileindex\t\t    ;\
 \n\t     extern \"C\" const char melt_cumulated_hexmd5[]\t    ;\
-\n\n\t     extern \"C\" {\n\t     #endif /*__cplusplus */\n\t     ";
+\n\n\t     extern \"C\" {\n\
+\t     #endif /*__cplusplus */\n\t     ";
       /*_.ADD2OUT__V37*/ meltfptr[36] =
 	melt_apply ((meltclosure_ptr_t)
 		    (( /*!ADD2OUT */ meltfrout->tabval[13])),
@@ -18326,8 +18327,7 @@ ltstr[]\t    ;\n\t     extern \"C\" const char melt_genversionstr[\
  dlsym-ed */\nextern \"C\" const char melt_gen_timestamp[] ;\
 \nextern \"C\" const long long melt_gen_timenum ;\
 \nextern \"C\" const char melt_build_timestamp[] ;\
-\nextern \"C\" {\n#endif /*__cplusplu\
-s */\n\n\t\t ";
+\nextern \"C\" {\n#endif /*__cplusplus */\n\n\t\t ";
       /*_.ADD2OUT__V140*/ meltfptr[139] =
 	melt_apply ((meltclosure_ptr_t)
 		    (( /*!ADD2OUT */ meltfrout->tabval[13])),

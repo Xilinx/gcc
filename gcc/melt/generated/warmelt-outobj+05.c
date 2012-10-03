@@ -17013,8 +17013,8 @@ lab_endgetargs:;
 		  (meltgc_new_stringdup
 		   ((meltobject_ptr_t)
 		    (( /*!DISCR_VERBATIM_STRING */ meltfrout->tabval[11])),
-		    ("/*autobox long*/ meltgc_new_int((meltobject_ptr_t)MELT_PREDEF(DISCR_CONST_INT\
-EGER), ")));;
+		    ("/*autobox long*/ meltgc_new_int((meltobject_ptr_t)MELT_PREDEF(DISCR_CONSTANT_\
+INTEGER), ")));;
 		/*^compute */
      /*_.MAKE_STRINGCONST__V41*/ meltfptr[28] =
 		  (meltgc_new_stringdup

@@ -2813,5 +2813,5 @@ end:
 #undef compv
 
 
-/*** End of code file meltbuild-sources/generated/meltrunsup-inc.c generated on 2012 Oct 02
- * by GCC MELT 4.8.0 20120922 (experimental) [melt-branch revision 191987] MELT_0.9.7-pre-rc3 . ***/
+/*** End of code file meltbuild-sources/generated/meltrunsup-inc.c generated on 2012 Oct 03
+ * by GCC MELT 4.8.0 20121003 (experimental) [melt-branch revision 192042] MELT_0.9.7-rc3b . ***/
