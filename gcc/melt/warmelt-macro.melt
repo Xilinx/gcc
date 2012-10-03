@@ -1,7 +1,7 @@
 ;; file warmelt-macro.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
+    Copyright 2008 - 2012 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -847,6 +847,39 @@ $SPAC_OUTARGS are the output sub-patterns.}#
   :super class_source_pattern_matcher
   :fields ())
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; compute the recursive weight of an s-expr (or give :true if too big)
+(defun s_expr_weight (topsexpr)
+  :doc #{Return some weight of the given sexpr $TOPSEXPR or null if too big}#
+  (letrec ( (recweight
+	     (lambda (arg :long cum max)
+	       (if (is_a arg class_sexpr)
+		   (let ( (cont (get_field :sexp_contents arg))
+			  (:long contlen (list_length cont))
+			  (:long newcum (+i (+i contlen 1) cum))
+			  )
+		     (if (>i newcum max)
+			 (return () newcum)
+		       (progn
+			 (foreach_in_list
+			  (cont)
+			  (curpair curelem)
+			  (multicall
+			   (nres :long nw)
+			   (recweight curelem newcum max)
+			   (setq newcum nw)
+			   (if (null nres) (return () newcum))))
+			 (return :true newcum))))
+		 (return :true cum))))
+	    )
+    (multicall
+     (res :long w)
+     (recweight topsexpr 0 6000)
+     (if res (make_integerbox discr_constant_integer w) ()))))
+	    
+		       
+		       
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;; first pass, macro expansion
@@ -2718,6 +2751,7 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
 :doc #{The $DEFUNMATCHER syntax defines a matcher thru a MELT
 function. Syntax is (DEFUNMATCHER <symbol> <in-formals> <out-formals>
 [:doc docum] <match-function> [<apply-function> [<data>]])}#)
+
 
 ;;;;;;;;;;;;;;;;;; the defun expander
 ;;;(DEFUN funame formals [:doc documentation] body...)
@@ -6363,6 +6397,17 @@ remain.}#)
 	(xarglist (expand_pairlist_as_list curpair env mexpander modctx))
 	(dbgarglist (list ()))
 	)
+    ;;; warn if the debug expr is really heavy
+    (let ( (sexpw (s_expr_weight sexpr)) 
+	   (:long nbsepw (get_int sexpw))
+	   )
+      (if (or
+	   (>i nbsepw 26)
+	   (null sexpw))
+	  (warning_strv loc
+			"suspicious very heavy (DEBUG ....)"
+			(string4out discr_string "weight:" sexpw))))
+    ;;;
     (if (not (is_string dfilnam))
 	(progn
 	  (error_plain loc "(DEBUG ...) used without file location")
@@ -6943,6 +6988,7 @@ $CURRENT_MODULE_ENVIRONMENT_CONTAINER. Will be renamed as
  patternexpand_pairlist_as_tuple
  pattern_weight_tuple
  register_generator_device
+ s_expr_weight
  )			  ;end of values for source representations
 
 

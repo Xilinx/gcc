@@ -980,7 +980,8 @@ routine procedures.}#
 (defun create_normal_extending_context (modctx modenv)
   :doc #{Internal routine to create a normalization context for module
   context $MODCTX, used to compile, e.g. for running, the extension of a module environment $MODENV.}#
-  (debug "create_normal_extending_context start modctx=" modctx "\n* modenv=" modenv "\n")
+  (debug "create_normal_extending_context start modctx=" modctx
+	 "\n* modenv=" modenv "\n")
   (let ( (:long maxpredefix (last_globpredef_index))
 	 (:long ix 1)
 	 (predefmap (make_mapobject discr_map_objects (+i 11 (*i 2 maxpredefix))))

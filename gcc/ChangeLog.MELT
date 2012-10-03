@@ -1,5 +1,12 @@
 
 2012-10-03  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-macro.melt (s_expr_weight): New exported function.
+	(mexpand_debug): Use it to warn for heavy debug expressions.
+
+	* melt/warmelt-normal.melt (create_normal_extending_context): Re-indent.
+
+2012-10-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): revert to 0.9.7-rc3b
 
 	* melt/warmelt-macro.melt (mexpand_debug): Inform about long debug
