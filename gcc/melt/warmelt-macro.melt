@@ -6394,6 +6394,7 @@ remain.}#)
     (list_append2list dbgarglist xarglist)
     (debug "mexpand_debug dbgarglist" dbgarglist)
     (let (
+	  (:long nbdbgarg (list_length dbgarglist))
 	  (theneeddbg
 	   (cond 
 	    ( (is_a theneeddbgbind class_primitive_binding)
@@ -6445,6 +6446,13 @@ remain.}#)
 			    :sifp_else ()
 			    )) 
 	  )
+      ;;
+      (if (>=i nbdbgarg 15)
+	  (let ( (strnbarg (string4out discr_string nbdbgarg))
+		 )
+	  (inform_strv loc "quite long (DEBUG ...), perhaps consider splitting it" strnbarg)
+	  ))
+      ;;
       (debug "mexpand_debug dcall=" dcall " return dcppif=" dcppif)
       (return dcppif)
       )))
