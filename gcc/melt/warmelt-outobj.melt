@@ -1686,6 +1686,8 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (add2sbuf_string implbuf ofunam)
     (add2sbuf_strconst implbuf "\", meltcallcount);")
     (add2sbuf_indentnl implbuf 1)
+    (add2sbuf_strconst implbuf "MELT_TRACE_EXIT_LOCATION ();")
+    (add2sbuf_indentnl implbuf 1)
     (add2out implbuf " melt_blocklevel_signals = current_blocklevel_signals_" onam "_melt;")
     (add2sbuf_indentnl implbuf 1)
     (add2sbuf_strconst implbuf " melt_topframe = (struct melt_callframe_st*) meltfram__.mcfr_prev;")

@@ -185,6 +185,11 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 	(stdout (get_field :sysdata_stdout initial_system_data))
 	(occmap (make_mapobject  discr_map_objects 50))
 	)
+    (code_chunk evalstart_chk 
+		#{ /* eval_docmd $EVALSTART_CHK */
+		debugeprintf ("eval_docmd start cmd@%p", (void*)$CMD);
+		MELT_LOCATION_HERE ("eval_docmd @*@starting eval@*@");
+		}#)
     (debug "eval_docmd start parmodenv=" parmodenv 
 	   "\n curenv=" curenv
 	   " inarg=" inarg

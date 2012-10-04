@@ -1,5 +1,15 @@
 
 2012-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_INITFRAME_AT): Show the current __func__.
+	(MELT_TRACE_EXIT_LOCATION_AT, MELT_TRACE_EXIT_LOCATION): New macros.
+	(MELT_EXITFRAME): Use it.
+
+	* melt/warmelt-outobj.melt (outpucod_procroutine): Emit
+	MELT_TRACE_EXIT_LOCATION.
+
+	* melt/warmelt-modes.melt (eval_docmd): Add chunk for location.
+
+2012-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (do_finalize_melt): Improve notice about melt
 	location trace.
 

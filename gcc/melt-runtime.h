@@ -2844,8 +2844,8 @@ MELT_EXTERN FILE* melt_loctrace_file;
 #define MELT_INITFRAME_AT(NBVAR,CLOS,FIL,LIN) do {		\
   static char locbuf_##LIN[84];					\
   if (!locbuf_##LIN[0])						\
-    snprintf(locbuf_##LIN, sizeof(locbuf_##LIN)-1, "%s:%d",	\
-	     basename (FIL), (int)LIN);				\
+    snprintf(locbuf_##LIN, sizeof(locbuf_##LIN)-1, "%s:%d ~%s",	\
+	     basename (FIL), (int)LIN, __func__);	       	\
   memset(&meltfram__, 0, sizeof(meltfram__));			\
   meltfram__.mcfr_nbvar = (NBVAR);				\
   meltfram__.mcfr_flocs = locbuf_##LIN;				\
@@ -2882,6 +2882,14 @@ MELT_EXTERN FILE* melt_loctrace_file;
 #define MELT_LOCATION_HERE_MACRO(MSG)  \
   MELT_LOCATION_HERE_AT_MACRO(__FILE__,__LINE__,MSG)
 #define MELT_LOCATION_HERE(MSG)  MELT_LOCATION_HERE_MACRO(MSG)
+
+
+#define MELT_TRACE_EXIT_LOCATION_AT(FIL,LIN) do {	\
+ if (MELT_UNLIKELY(melt_loctrace_file != NULL))		\
+   fprintf (melt_loctrace_file, "%s:%d -%s\n",		\
+	    melt_basename (FIL), LIN, __func__);	\
+} while(0)
+#define MELT_TRACE_EXIT_LOCATION() MELT_TRACE_EXIT_LOCATION_AT(__FILE__,__LINE__)
 
 /* SBUF should be a local array of char */
 #define MELT_LOCATION_HERE_PRINTF_AT(SBUF,FIL,LIN,FMT,...) do {	\
@@ -2926,6 +2934,7 @@ MELT_EXTERN FILE* melt_loctrace_file;
 #define MELT_LOCATION_HERE(MSG) do{/*locationhere without MELT_HAVE_DEBUG*/}while(0)
 #define MELT_LOCATION_HERE_PRINTF(SBUF,FMT,...) do{/*locationhereprintf without MELT_HAVE_DEBUG*/}while(0)
 #define MELT_TRACE_LOCATION(S) do{/*trace location without MELT_HAVE_DEBUG*/}while(0)
+#define MELT_TRACE_EXIT_LOCATION() do {/*trace exit location without MELT_HAVE_DEBUG*/}while(0)
 
 /* initialize the current callframe and link it at top */
 #define MELT_INITFRAME(NBVAR,CLOS) do {	 /*initframe without MELT_HAVE_DEBUG*/ \
@@ -2948,8 +2957,10 @@ MELT_EXTERN FILE* melt_loctrace_file;
   MELT_DECLEMPTYFRAME(); MELT_INITFRAME(0,CLOS)
 
 /* exit the current frame and return */
-#define MELT_EXITFRAME() do {		\
-    melt_topframe = (struct melt_callframe_st*)(meltfram__.mcfr_prev);	\
+#define MELT_EXITFRAME() do {					\
+    MELT_TRACE_EXIT_LOCATION ();				\
+    melt_topframe						\
+      = (struct melt_callframe_st*)(meltfram__.mcfr_prev);	\
 } while(0)
 
 /****
