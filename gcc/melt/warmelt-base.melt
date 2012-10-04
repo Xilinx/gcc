@@ -3552,7 +3552,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_objmagic '"MELTOBMAG_SPECIAL_DATA"
   :valdesc_struct '"meltspecialdata_st"
   :valdesc_unionmem '"u_special_data"
-  :valdesc_gty #{$' mark_hook ("melt_mark_special_data")}#
+  :valdesc_gty #{$' mark_hook ("melt_mark_specialdata")}#
   :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_DATA in warmelt-base.melt */
     int meltspec_mark;
     unsigned meltspec_kind;

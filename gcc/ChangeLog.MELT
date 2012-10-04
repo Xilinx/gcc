@@ -1,5 +1,12 @@
 
 2012-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_mark_special_data): Macro, same as
+	melt_mark_specialdata.
+
+	* melt/warmelt-base.melt (valdesc_special_data): Use
+	melt_mark_specialdata.
+
+2012-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Probe is showing some SSA gimple also}}
 	* melt/xtramelt-probe.melt (scanssaprobe_exec)
 	(install_scanssaprobe_pass): New functions

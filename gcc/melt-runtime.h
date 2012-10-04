@@ -1170,6 +1170,8 @@ melt_mark_specialdata (struct meltspecialdata_st* p)
                         (void*)p, p->discr->meltobj_magic, 
 			melt_obmag_string (p->discr->meltobj_magic));
 }
+#define melt_mark_special_data(P) melt_mark_specialdata(P)
+
 
 static inline void
 melt_mark_decay (struct meltdecay_st *p)
