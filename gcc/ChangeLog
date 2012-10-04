@@ -1,3 +1,156 @@
+2012-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
+
+        * gengtype.c (walk_type): Emit mark_hook when inside a
+          struct of a union member.
+
+2012-10-04  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/predicates.md (flash_operand): New predicate.
+	* config/avr/avr.md (reload_in<mode>): Use it in operand 1 instead
+	of memory_operand.
+
+2012-10-04  Tobias Burnus  <burnus@net-b.de>
+
+	* gcc.c (record_temp_file, add_sysrooted_prefix, process_command,
+	do_self_spec, compare_debug_dump_opt_spec_function): Plug memleaks.
+	(do_spec_1): Ditto, fix out-of-bound access.
+	* opts.c (common_handle_option): Plug memleak.
+
+2012-10-04  Jason Merrill  <jason@redhat.com>
+
+	* config/darwin.c (darwin_assemble_visibility): Treat
+	VISIBILITY_INTERNAL as hidden.
+
+	* config/darwin-c.c (find_subframework_file): Add missing const.
+	(framework_construct_pathname): Likewise.
+
+2012-10-04  Florian Weimer  <fweimer@redhat.com>
+
+	* doc/cpp.texi (Pragmas): Document #pragma GCC warning, #pragma
+	GCC error.
+
+2012-10-04  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/54735
+	* tree-ssa-pre.c (do_pre): Make sure to update virtual SSA form before
+	cleaning up the CFG.
+
+2012-10-04  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/47799
+	* tree-streamer-out.c (write_ts_block_tree_pointers): For
+	inlined functions outer scopes write the ultimate origin
+	as BLOCK_ABSTRACT_ORIGIN and BLOCK_SOURCE_LOCATION.
+	Do not stream the fragment chains.
+	* tree-streamer-in.c (lto_input_ts_block_tree_pointers): Likewise.
+	* dwarf2out.c (gen_subprogram_die): Handle NULL DECL_INITIAL.
+	(dwarf2out_decl): Always output DECL_ABSTRACT function decls.
+
+2012-10-04  Arnaud Charlet  <charlet@adacore.com>
+
+	* dumpfile.h, dumpfile.c: Remove TDI_ada.
+
+2012-10-04  Yuri Rumyantsev  <ysrumyan@gmail.com>
+
+	* config/i386/i386.c (ix86_dep_by_shift_count_body) : Add
+	check on reload_completed since it can be invoked before
+	register allocation phase in pre-reload schedule.
+	(ia32_multipass_dfa_lookahead) : Do not use dfa_lookahead for pre-reload
+	schedule to save compile time.
+	(ix86_sched_reorder) : Do not perform ready list reordering for pre-reload
+	schedule to save compile time.
+	(insn_is_function_arg) : New function. Returns true if lhs of insn is
+	HW function argument register.
+	(add_parameter_dependencies) : New function. Add output dependencies
+	for chain of function adjacent arguments if only there is a move to
+	likely spilled HW registers. Return first argument if at least one
+	dependence was added or NULL otherwise.
+	(avoid_func_arg_motion) : New function. Add output or anti dependency
+	from insn to first_arg to restrict code motion.
+	(add_dependee_for_func_arg) : New function. Avoid cross block motion of
+	function argument through adding dependency from the first non-jump
+	insn in bb.
+	(ix86_dependencies_evaluation_hook) : New function. Hook for pre-reload schedule:
+	avoid motion of function arguments passed in passed in likely spilled
+	HW registers.
+	(ix86_adjust_priority) : New function. Hook for pre-reload schedule: set priority
+	of moves from likely spilled HW registers to maximum to schedule them
+	as soon as possible.
+	(ix86_sched_init_global): Do not perform multipass scheduling for pre-reload
+	schedule to save compile time.
+
+2012-10-04  Uros Bizjak  <ubizjak@gmail.com>
+
+	* configure.ac (noexception_flags): Add -fasynchronous-unwind-tables.
+	* configure: Regenerate.
+
+2012-10-04  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.c (sh_can_use_simple_return_p): Return false for
+	SHmedia	and SHcompact using call cookie.
+	* config/sh/sh.md (epilogue): Emit non-inlined return insns for
+	SHmedia	and SHcompact using call cookie.
+
+2012-10-03  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/51244
+	* config/sh/sh.md (*mov_t_msb_neg): New insn and two accompanying
+	unnamed split patterns.
+
+2012-10-03  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/50457
+	* config/sh/sh.c (parse_validate_atomic_model_option): Handle name
+	strings in sh_atomic_model.
+	* config/sh/sh.h (TARGET_CPU_CPP_BUILTINS): Move macro implementation
+	to ...
+	* config/sh/sh-c.c (sh_cpu_cpp_builtins): ... this new function.
+	Add __SH1__ and __SH2__ defines.  Add __SH_ATOMIC_MODEL_*__ define.
+	* config/sh/sh-protos.h (sh_atomic_model): Add name and cdef_name
+	variables.
+	(sh_cpu_cpp_builtins): Declare new function.
+
+2012-10-03  Dehao Chen  <dehao@google.com>
+
+	PR middle-end/54782
+	* tree-cfg.c (move_block_to_fn): Update lexical block for phi_args.
+
+2012-10-03  Vladimir Makarov  <vmakarov@redhat.com>
+
+	* reginfo.c (max_regno_since_last_resize): New.
+	(reg_preferred_class, reg_alternate_class): Add assert.
+	(allocate_reg_info): Initialize allocated reg info.
+	(resize_reg_info): Make bigger reg_info and initialize new memory.
+	(reginfo_init): Initialize max_regno_since_last_resize.
+	(setup_reg_classes): Change assert.
+
+2012-10-03  Andrew W. Nosenko <andrew.w.nosenko@gmail.com>
+
+	* config/i386/driver-i386.c (host_detect_local_cpu): Fix logic
+	in SSE and YMM state support check for -march=native.
+
+2012-10-03  Nick Clifton  <nickc@redhat.com>
+
+	* config/rx/rx.c (struct decl_chain): New local structure.
+	(warned_decls): New local variable.  Contains a stack of decls for
+	which warnings have been issued.
+	(add_warned_decl): Adds a decl to the stack.
+	(already_warned): Returns true if a given decl is on the stack.
+	(rx_set_current_function): Issue a warning if multiple fast
+	interrupt handlers are defined.
+	* config/rx/rx.opt (mwarn-multiple-fast-interrupts): New option.
+	* doc/invoke.texi: Document the option.
+
+2012-09-03  Mark Kettenis  <kettenis@openbsd.org>
+
+	* config.gcc (*-*-openbsd4.[3-9]|*-*-openbsd[5-9]*): Set
+	default_use_cxa_atexit to yes.
+
+2012-10-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/54792
+	* sched-deps.c (find_modifiable_mems): Scan also TAIL insn.
+
 2012-10-02  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/54785
@@ -57,7 +210,7 @@
 2012-10-02  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/54741
-	*  config/i386/driver-i386.c (XCR_XFEATURE_ENABLED_MASK): New.
+	* config/i386/driver-i386.c (XCR_XFEATURE_ENABLED_MASK): New.
 	(XSTATE_FP): Likewise.
 	(XSTATE_SSE): Likewise.
 	(XSTATE_YMM): Likewise.
@@ -121,9 +274,8 @@
 	* tree-ssa-sccvn.c (vn_reference_lookup_3): For VECTOR_TYPE
 	CONSTRUCTORs, don't do anything if element type is VECTOR_TYPE,
 	and don't check index.
-	* tree-vect-slp.c (vect_get_constant_vectors): VIEW_CONVERT_EXPR
-	ctor elements first if their type isn't compatible with vector
-	element type.
+	* tree-vect-slp.c (vect_get_constant_vectors): VIEW_CONVERT_EXPR ctor
+	elements first if their type isn't compatible with vector element type.
 
 2012-10-02  Eric Botcazou  <ebotcazou@adacore.com>
 

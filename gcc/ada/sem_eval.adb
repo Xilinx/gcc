@@ -37,6 +37,7 @@ with Namet;    use Namet;
 with Nmake;    use Nmake;
 with Nlists;   use Nlists;
 with Opt;      use Opt;
+with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
 with Sem_Aux;  use Sem_Aux;
 with Sem_Cat;  use Sem_Cat;
@@ -198,7 +199,7 @@ package body Sem_Eval is
    --  Tests to see if expression N whose single operand is Op1 is foldable,
    --  i.e. the operand value is known at compile time. If the operation is
    --  foldable, then Fold is True on return, and Stat indicates whether
-   --  the result is static (i.e. both operands were static). Note that it
+   --  the result is static (i.e. the operand was static). Note that it
    --  is quite possible for Fold to be True, and Stat to be False, since
    --  there are cases in which we know the value of an operand even though
    --  it is not technically static (e.g. the static lower bound of a range
@@ -232,7 +233,7 @@ package body Sem_Eval is
       Stat : out Boolean;
       Fold : out Boolean);
    --  Same processing, except applies to an expression N with two operands
-   --  Op1 and Op2.
+   --  Op1 and Op2. The result is static only if both operands are static.
 
    function Test_In_Range
      (N            : Node_Id;
@@ -240,11 +241,11 @@ package body Sem_Eval is
       Assume_Valid : Boolean;
       Fixed_Int    : Boolean;
       Int_Real     : Boolean) return Range_Membership;
-   --  Common processing for Is_In_Range and Is_Out_Of_Range:
-   --  Returns In_Range or Out_Of_Range if it can be guaranteed at compile time
-   --  that expression N is known to be in or out of range of the subtype Typ.
-   --  If not compile time known, Unknown is returned.
-   --  See documentation of Is_In_Range for complete description of parameters.
+   --  Common processing for Is_In_Range and Is_Out_Of_Range: Returns In_Range
+   --  or Out_Of_Range if it can be guaranteed at compile time that expression
+   --  N is known to be in or out of range of the subtype Typ. If not compile
+   --  time known, Unknown is returned. See documentation of Is_In_Range for
+   --  complete description of parameters.
 
    procedure To_Bits (U : Uint; B : out Bits);
    --  Converts a Uint value to a bit string of length B'Length
@@ -942,7 +943,49 @@ package body Sem_Eval is
             end if;
          end if;
 
-         --  Try range analysis on variables and see if ranges are disjoint
+         --  First attempt is to decompose the expressions to extract a
+         --  constant offset resulting from the use of any of the forms:
+
+         --     expr + literal
+         --     expr - literal
+         --     typ'Succ (expr)
+         --     typ'Pred (expr)
+
+         --  Then we see if the two expressions are the same value, and if so
+         --  the result is obtained by comparing the offsets.
+
+         --  Note: the reason we do this test first is that it returns only
+         --  decisive results (with diff set), where other tests, like the
+         --  range test, may not be as so decisive. Consider for example
+         --  J .. J + 1. This code can conclude LT with a difference of 1,
+         --  even if the range of J is not known.
+
+         declare
+            Lnode : Node_Id;
+            Loffs : Uint;
+            Rnode : Node_Id;
+            Roffs : Uint;
+
+         begin
+            Compare_Decompose (L, Lnode, Loffs);
+            Compare_Decompose (R, Rnode, Roffs);
+
+            if Is_Same_Value (Lnode, Rnode) then
+               if Loffs = Roffs then
+                  return EQ;
+
+               elsif Loffs < Roffs then
+                  Diff.all := Roffs - Loffs;
+                  return LT;
+
+               else
+                  Diff.all := Loffs - Roffs;
+                  return GT;
+               end if;
+            end if;
+         end;
+
+         --  Next, try range analysis and see if operand ranges are disjoint
 
          declare
             LOK, ROK : Boolean;
@@ -1073,42 +1116,6 @@ package body Sem_Eval is
                end case;
             end if;
          end if;
-
-         --  Next attempt is to decompose the expressions to extract
-         --  a constant offset resulting from the use of any of the forms:
-
-         --     expr + literal
-         --     expr - literal
-         --     typ'Succ (expr)
-         --     typ'Pred (expr)
-
-         --  Then we see if the two expressions are the same value, and if so
-         --  the result is obtained by comparing the offsets.
-
-         declare
-            Lnode : Node_Id;
-            Loffs : Uint;
-            Rnode : Node_Id;
-            Roffs : Uint;
-
-         begin
-            Compare_Decompose (L, Lnode, Loffs);
-            Compare_Decompose (R, Rnode, Roffs);
-
-            if Is_Same_Value (Lnode, Rnode) then
-               if Loffs = Roffs then
-                  return EQ;
-
-               elsif Loffs < Roffs then
-                  Diff.all := Roffs - Loffs;
-                  return LT;
-
-               else
-                  Diff.all := Loffs - Roffs;
-                  return GT;
-               end if;
-            end if;
-         end;
 
          --  Next attempt is to see if we have an entity compared with a
          --  compile time known value, where there is a current value
@@ -4039,12 +4046,18 @@ package body Sem_Eval is
 
       --  We now have the literal with the right value, both the actual type
       --  and the expected type of this literal are taken from the expression
-      --  that was evaluated.
+      --  that was evaluated. So now we do the Analyze and Resolve.
+
+      --  Note that we have to reset Is_Static_Expression both after the
+      --  analyze step (because Resolve will evaluate the literal, which
+      --  will cause semantic errors if it is marked as static), and after
+      --  the Resolve step (since Resolve in some cases sets this flag).
 
       Analyze (N);
       Set_Is_Static_Expression (N, Static);
       Set_Etype (N, Typ);
       Resolve (N);
+      Set_Is_Static_Expression (N, Static);
    end Fold_Str;
 
    ---------------
@@ -4093,12 +4106,18 @@ package body Sem_Eval is
 
       --  We now have the literal with the right value, both the actual type
       --  and the expected type of this literal are taken from the expression
-      --  that was evaluated.
+      --  that was evaluated. So now we do the Analyze and Resolve.
+
+      --  Note that we have to reset Is_Static_Expression both after the
+      --  analyze step (because Resolve will evaluate the literal, which
+      --  will cause semantic errors if it is marked as static), and after
+      --  the Resolve step (since Resolve in some cases sets this flag).
 
       Analyze (N);
       Set_Is_Static_Expression (N, Static);
       Set_Etype (N, Typ);
       Resolve (N);
+      Set_Is_Static_Expression (N, Static);
    end Fold_Uint;
 
    ----------------
@@ -4128,12 +4147,20 @@ package body Sem_Eval is
 
       Set_Original_Entity (N, Ent);
 
-      --  Both the actual and expected type comes from the original expression
+      --  We now have the literal with the right value, both the actual type
+      --  and the expected type of this literal are taken from the expression
+      --  that was evaluated. So now we do the Analyze and Resolve.
+
+      --  Note that we have to reset Is_Static_Expression both after the
+      --  analyze step (because Resolve will evaluate the literal, which
+      --  will cause semantic errors if it is marked as static), and after
+      --  the Resolve step (since Resolve in some cases sets this flag).
 
       Analyze (N);
       Set_Is_Static_Expression (N, Static);
       Set_Etype (N, Typ);
       Resolve (N);
+      Set_Is_Static_Expression (N, Static);
    end Fold_Ureal;
 
    ---------------
@@ -5413,10 +5440,12 @@ package body Sem_Eval is
             return;
          end if;
 
-         --  Type must be scalar or string type
+         --  Type must be scalar or string type (but allow Bignum, since this
+         --  is really a scalar type from our point of view in this diagnosis).
 
          if not Is_Scalar_Type (Typ)
            and then not Is_String_Type (Typ)
+           and then not Is_RTE (Typ, RE_Bignum)
          then
             Error_Msg_N
               ("static expression must have scalar or string type " &
@@ -5533,7 +5562,14 @@ package body Sem_Eval is
 
          when N_Function_Call =>
             Why_Not_Static_List (Parameter_Associations (N));
-            Error_Msg_N ("non-static function call (RM 4.9(6,18))!", N);
+
+            --  Complain about non-static function call unless we have Bignum
+            --  which means that the underlying expression is really some
+            --  scalar arithmetic operation.
+
+            if not Is_RTE (Typ, RE_Bignum) then
+               Error_Msg_N ("non-static function call (RM 4.9(6,18))!", N);
+            end if;
 
          when N_Parameter_Association =>
             Why_Not_Static (Explicit_Actual_Parameter (N));
