@@ -674,7 +674,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
 
 
 /*gtyvaldesc #16 VALDESC_SPECIAL_DATA*/
-struct GTY ((mark_hook ("melt_mark_special_data"))) meltspecialdata_st /* when MELTOBMAG_SPECIAL_DATA */
+struct GTY ((mark_hook ("melt_mark_specialdata"))) meltspecialdata_st /* when MELTOBMAG_SPECIAL_DATA */
 {
   meltobject_ptr_t discr;
   /* from VALDESC_SPECIAL_DATA in warmelt-base.melt */
@@ -2337,4 +2337,4 @@ melt_auxput_maptrees (melt_ptr_t map_p, melt_ptr_t val_p)
 
 
 /*** End of declaration file meltbuild-sources/generated/meltrunsup.h generated on 2012 Oct 04
- * by GCC MELT 4.8.0 20121003 (experimental) [melt-branch revision 192062] MELT_0.9.7-rc3b . ***/
+ * by GCC MELT 4.8.0 20121004 (experimental) [melt-branch revision 192096] MELT_0.9.7-pre-rc4 . ***/

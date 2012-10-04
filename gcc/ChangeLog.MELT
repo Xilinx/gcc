@@ -1,5 +1,32 @@
 
 2012-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Regenerate}}
+	* melt/generated/meltrunsup-inc.c
+	* melt/generated/meltrunsup.h
+	* melt/generated/warmelt-base+meltdesc.c
+	* melt/generated/warmelt-base+melttime.h
+	* melt/generated/warmelt-base.c
+	* melt/generated/warmelt-debug+meltdesc.c
+	* melt/generated/warmelt-debug+melttime.h
+	* melt/generated/warmelt-first+meltdesc.c
+	* melt/generated/warmelt-first+melttime.h
+	* melt/generated/warmelt-genobj+04.c
+	* melt/generated/warmelt-genobj+meltdesc.c
+	* melt/generated/warmelt-genobj+melttime.h
+	* melt/generated/warmelt-macro+meltdesc.c
+	* melt/generated/warmelt-macro+melttime.h
+	* melt/generated/warmelt-modes+meltdesc.c
+	* melt/generated/warmelt-modes+melttime.h
+	* melt/generated/warmelt-normal+meltdesc.c
+	* melt/generated/warmelt-normal+melttime.h
+	* melt/generated/warmelt-normatch+meltdesc.c
+	* melt/generated/warmelt-normatch+melttime.h
+	* melt/generated/warmelt-outobj+04.c
+	* melt/generated/warmelt-outobj+meltdesc.c
+	* melt/generated/warmelt-outobj+melttime.h
+
+
+2012-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): Bump to 0.9.7-pre-rc4
 
 2012-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
