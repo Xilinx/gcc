@@ -1,4 +1,10 @@
 
+2012-10-04  Alexandre Lissy  <alissy@mandriva.com>
+
+	* melt-runtime.c (meltgc_make_special, meltgc_make_specialdata):
+	Cast to struct meltspecialdata_st*, not to meltspecialdata_st* for
+	C compatibility with GCC 4.6.
+
 2012-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-debug.melt (class_debug_output_information): New class.
 	(dbg_outobject, dbgout_fields)

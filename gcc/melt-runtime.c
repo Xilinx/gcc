@@ -947,7 +947,7 @@ meltgc_make_special (melt_ptr_t discr_p)
       spda_specv->discr = (meltobject_ptr_t) discrv;
       spda_specv->meltspec_mark = 0;
       spda_specv->meltspec_next = melt_newspecdatalist;
-      melt_newspecdatalist = (meltspecialdata_st*)specv;
+      melt_newspecdatalist = (struct meltspecialdata_st*)specv;
       melt_debuggc_eprintf ("make_special data %p discr %p magic %d %s",
 			    specv, discrv, magic, melt_obmag_string(magic));
 #if ENABLE_CHECKING
@@ -999,7 +999,7 @@ meltgc_make_specialdata (melt_ptr_t discr_p)
   spda_specv->discr = (meltobject_ptr_t) discrv;
   spda_specv->meltspec_mark = 0;
   spda_specv->meltspec_next = melt_newspecdatalist;
-  melt_newspecdatalist = (meltspecialdata_st*)specv;
+  melt_newspecdatalist = (struct meltspecialdata_st*)specv;
   melt_debuggc_eprintf ("make_specialdata %p discr %p magic %d %s",
 			specv, discrv, magic, melt_obmag_string(magic));
 #if ENABLE_CHECKING
