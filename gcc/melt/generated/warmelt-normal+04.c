@@ -3667,6 +3667,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("NORMEXP_KEYWORD", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_122_warmelt_normal_NORMEXP_KEYWORD_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -4258,6 +4259,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("FILL_NORMAL_FORMALBIND", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_123_warmelt_normal_FILL_NORMAL_FORMALBIND_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -4585,6 +4587,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("FILL_NORMAL_FORMALS", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_124_warmelt_normal_FILL_NORMAL_FORMALS_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -4817,6 +4820,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("FILL_NORMAL_EXPANSION", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_125_warmelt_normal_FILL_NORMAL_EXPANSION_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -5274,6 +5278,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_126_warmelt_normal_LAMBDA___43___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -6493,6 +6498,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("NORMEXP_DEFPRIMITIVE", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_127_warmelt_normal_NORMEXP_DEFPRIMITIVE_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -8347,6 +8353,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("NORMEXP_DEFCITERATOR", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_128_warmelt_normal_NORMEXP_DEFCITERATOR_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -11695,6 +11702,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("NORMEXP_CITERATION", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_129_warmelt_normal_NORMEXP_CITERATION_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -12205,6 +12213,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_130_warmelt_normal_LAMBDA___44___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -13159,6 +13168,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_131_warmelt_normal_LAMBDA___45___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -13447,6 +13457,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_132_warmelt_normal_LAMBDA___46___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -13832,6 +13843,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_133_warmelt_normal_LAMBDA___47___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -14096,6 +14108,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_134_warmelt_normal_LAMBDA___48___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -14303,6 +14316,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_135_warmelt_normal_LAMBDA___49___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -14419,6 +14433,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_136_warmelt_normal_LAMBDA___50___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -17033,6 +17048,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("NORMEXP_DEFCMATCHER", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_137_warmelt_normal_NORMEXP_DEFCMATCHER_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -19754,6 +19770,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("NORMEXP_DEFUNMATCHER", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_138_warmelt_normal_NORMEXP_DEFUNMATCHER_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -22497,6 +22514,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("NORMEXP_DEFCLASS", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_139_warmelt_normal_NORMEXP_DEFCLASS_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -24343,6 +24361,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("NORMEXP_DEFINSTANCE", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_140_warmelt_normal_NORMEXP_DEFINSTANCE_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -25313,6 +25332,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_141_warmelt_normal_LAMBDA___51___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -28275,6 +28295,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("NORMEXP_DEFINE", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_142_warmelt_normal_NORMEXP_DEFINE_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -28422,6 +28443,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_143_warmelt_normal_LAMBDA___52___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -30630,6 +30652,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("NORMEXP_DEFSELECTOR", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_144_warmelt_normal_NORMEXP_DEFSELECTOR_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -31151,6 +31174,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_145_warmelt_normal_LAMBDA___53___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -31778,6 +31802,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("NORMAL_VALUE_EXPORTER", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_146_warmelt_normal_NORMAL_VALUE_EXPORTER_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -33323,6 +33348,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("NORMAL_EXPORTED_VALUE", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_147_warmelt_normal_NORMAL_EXPORTED_VALUE_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -34803,6 +34829,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("NORMEXP_EXPORT_VALUES", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_148_warmelt_normal_NORMEXP_EXPORT_VALUES_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -35986,6 +36013,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("NORMEXP_EXPORT_SYNONYM", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_149_warmelt_normal_NORMEXP_EXPORT_SYNONYM_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -36866,6 +36894,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("NORMEXP_EXPORT_CLASS", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_150_warmelt_normal_NORMEXP_EXPORT_CLASS_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -38108,6 +38137,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_151_warmelt_normal_LAMBDA___54___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -38797,6 +38827,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_152_warmelt_normal_LAMBDA___55___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -39649,6 +39680,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("NORMAL_MACRO_EXPORTER", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_153_warmelt_normal_NORMAL_MACRO_EXPORTER_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -40505,6 +40537,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("NORMAL_PATMACRO_EXPORTER", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_154_warmelt_normal_NORMAL_PATMACRO_EXPORTER_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -42062,6 +42095,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("NORMAL_EXPORTED_MACRO", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_155_warmelt_normal_NORMAL_EXPORTED_MACRO_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -43043,6 +43077,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("NORMEXP_EXPORT_MACRO", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_156_warmelt_normal_NORMEXP_EXPORT_MACRO_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -44636,6 +44671,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("NORMAL_EXPORTED_PATMACRO", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_157_warmelt_normal_NORMAL_EXPORTED_PATMACRO_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -46040,6 +46076,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("NORMEXP_EXPORT_PATMACRO", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_158_warmelt_normal_NORMEXP_EXPORT_PATMACRO_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -46872,6 +46909,7 @@ lab_endgetargs:;
 labend_rout:
   melt_trace_end ("NORMEXP_CURRENT_MODULE_ENVIRONMENT_CONTAINER",
 		  meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_159_warmelt_normal_NORMEXP_CURRENT_MODULE_ENVIRONMENT_CONTAINER_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;

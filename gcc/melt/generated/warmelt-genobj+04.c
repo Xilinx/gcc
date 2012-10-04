@@ -4374,6 +4374,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("COMPILOBJ_NREP_IF", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_121_warmelt_genobj_COMPILOBJ_NREP_IF_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -5225,6 +5226,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("COMPILOBJ_NREP_IFISA", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_122_warmelt_genobj_COMPILOBJ_NREP_IFISA_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -6131,6 +6133,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("COMPILOBJ_NREP_IFTUPLESIZED", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_123_warmelt_genobj_COMPILOBJ_NREP_IFTUPLESIZED_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -6884,7 +6887,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /1f637161 checkpair",
+	    melt_assertmsg ("putpairtail /3b02a38d checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V33*/
 					       meltfptr[32])) ==
@@ -6907,7 +6910,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /19ed98d5 checkpair",
+	    melt_assertmsg ("putpairtail /204f89fa checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.OVARIADICINDEX__V34*/
 					       meltfptr[33])) ==
@@ -6930,7 +6933,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /2a50eea2 checkpair",
+	    melt_assertmsg ("putpairtail /21fd447e checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V35*/
 					       meltfptr[34])) ==
@@ -7160,7 +7163,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /333df5a8 checkpair",
+	    melt_assertmsg ("putpairtail /e9490c3 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V47*/
 					       meltfptr[46])) ==
@@ -7183,7 +7186,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /37cf4480 checkpair",
+	    melt_assertmsg ("putpairtail /3fc7e98a checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V48*/
 					       meltfptr[47])) ==
@@ -7206,7 +7209,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /7b1df29 checkpair",
+	    melt_assertmsg ("putpairtail /a584437 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V49*/
 					       meltfptr[48])) ==
@@ -7229,7 +7232,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /a664f57 checkpair",
+	    melt_assertmsg ("putpairtail /18a93959 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.OVARIADICINDEX__V50*/
 					       meltfptr[49])) ==
@@ -7252,7 +7255,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /134d9592 checkpair",
+	    melt_assertmsg ("putpairtail /6a20fe9 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V51*/
 					       meltfptr[50])) ==
@@ -7275,7 +7278,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /39d55359 checkpair",
+	    melt_assertmsg ("putpairtail /2a54d92f checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.OVARIADICINDEX__V52*/
 					       meltfptr[51])) ==
@@ -7298,7 +7301,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /12ce75d2 checkpair",
+	    melt_assertmsg ("putpairtail /71193cc checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V53*/
 					       meltfptr[52])) ==
@@ -7321,7 +7324,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /247fd6c8 checkpair",
+	    melt_assertmsg ("putpairtail /42b5c7a checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V54*/
 					       meltfptr[53])) ==
@@ -7344,7 +7347,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /20fa7604 checkpair",
+	    melt_assertmsg ("putpairtail /33945af9 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V55*/
 					       meltfptr[54])) ==
@@ -8796,6 +8799,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("COMPILOBJ_NREP_IFVARIADIC", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_124_warmelt_genobj_COMPILOBJ_NREP_IFVARIADIC_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -9000,6 +9004,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("GETCTYPE_IFVARIADIC", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_125_warmelt_genobj_GETCTYPE_IFVARIADIC_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -10233,6 +10238,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("COMPILOBJ_NREP_VARIADIC_ARGUMENT", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_126_warmelt_genobj_COMPILOBJ_NREP_VARIADIC_ARGUMENT_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -11261,6 +11267,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("COMPILOBJ_NREP_CONSUMEVARIADIC", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_127_warmelt_genobj_COMPILOBJ_NREP_CONSUMEVARIADIC_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -11633,6 +11640,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("PUTOBJDEST_OBJCOND", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_128_warmelt_genobj_PUTOBJDEST_OBJCOND_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -12231,6 +12239,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("COMPILOBJ_NREP_CPPIF", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_129_warmelt_genobj_COMPILOBJ_NREP_CPPIF_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -12603,6 +12612,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("PUTOBJDEST_OBJCPPIF", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_130_warmelt_genobj_PUTOBJDEST_OBJCPPIF_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -13918,8 +13928,7 @@ lab_endgetargs:;
 \n\t\t\t\t\t#if MELT_HAVE_DEBUG\n\t\t\t\t\tif (meltxresdescr_ && meltxresdesc\
 r_[0] && meltxrestab_)  melt_warn_for_no_expected_secondary_results\
 ()\t;\n\t\t\t\t\t/* we warned when secondary results are expected but\
- not returned. */\n\t\t\t\t\t#endif /*MELT_HAVE\
-_DEBUG*/\n\t\t\t\t\t";
+ not returned. */\n\t\t\t\t\t#endif /*MELT_HAVE_DEBUG*/\n\t\t\t\t\t";
 		  /*_.OCHECKNORES__V48*/ meltfptr[44] =
 		    melt_apply ((meltclosure_ptr_t)
 				(( /*!MAKE_OBJLOCATEDEXP */ meltfrout->
@@ -14307,6 +14316,7 @@ _DEBUG*/\n\t\t\t\t\t";
   goto labend_rout;
 labend_rout:
   melt_trace_end ("COMPILOBJ_NREP_RETURN", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_131_warmelt_genobj_COMPILOBJ_NREP_RETURN_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -14439,6 +14449,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_132_warmelt_genobj_LAMBDA___42___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -15375,6 +15386,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("COMPILOBJ_NREP_LAMBDA", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_133_warmelt_genobj_COMPILOBJ_NREP_LAMBDA_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -15587,6 +15599,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_134_warmelt_genobj_LAMBDA___43___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -16576,6 +16589,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("COMPILOBJ_NREP_MAKEINST", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_135_warmelt_genobj_COMPILOBJ_NREP_MAKEINST_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -17056,6 +17070,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_136_warmelt_genobj_LAMBDA___44___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -17498,6 +17513,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("COMPILOBJ_ROUTPROC", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_137_warmelt_genobj_COMPILOBJ_ROUTPROC_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -17765,6 +17781,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("COMPILOBJ_PREDEF", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_138_warmelt_genobj_COMPILOBJ_PREDEF_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -19929,6 +19946,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("COMPIL_DATA_AND_SLOTS_FILL", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_139_warmelt_genobj_COMPIL_DATA_AND_SLOTS_FILL_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -20295,6 +20313,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_140_warmelt_genobj_LAMBDA___45___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -20599,6 +20618,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_141_warmelt_genobj_LAMBDA___46___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -20785,6 +20805,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_142_warmelt_genobj_LAMBDA___47___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -21147,6 +21168,7 @@ lab_endgetargs:;
 labend_rout:
   melt_trace_end ("DISPOSE_DLOCBIND_AFTER_DATA_AND_SLOTS_FILL",
 		  meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_143_warmelt_genobj_DISPOSE_DLOCBIND_AFTER_DATA_AND_SLOTS_FILL_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -21301,6 +21323,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_144_warmelt_genobj_LAMBDA___48___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -22464,6 +22487,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("COMPILOBJ_DATASYMBOL", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_145_warmelt_genobj_COMPILOBJ_DATASYMBOL_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -23815,6 +23839,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("COMPILOBJ_DATAINSTANCE", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_146_warmelt_genobj_COMPILOBJ_DATAINSTANCE_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -25062,6 +25087,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("COMPILOBJ_DATATUPLE", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_147_warmelt_genobj_COMPILOBJ_DATATUPLE_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -25240,6 +25266,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_148_warmelt_genobj_LAMBDA___49___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -25450,6 +25477,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_149_warmelt_genobj_LAMBDA___50___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -26164,6 +26192,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("COMPILOBJ_DATASTRING", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_150_warmelt_genobj_COMPILOBJ_DATASTRING_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -26871,6 +26900,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("COMPILOBJ_DATABOXEDINTEGER", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_151_warmelt_genobj_COMPILOBJ_DATABOXEDINTEGER_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -28289,6 +28319,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("COMPILOBJ_DATACLOSURE", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_152_warmelt_genobj_COMPILOBJ_DATACLOSURE_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -28529,6 +28560,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_153_warmelt_genobj_LAMBDA___51___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -29812,6 +29844,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("COMPILOBJ_DATAROUTINE", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_154_warmelt_genobj_COMPILOBJ_DATAROUTINE_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -30594,6 +30627,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_155_warmelt_genobj_LAMBDA___52___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -30916,6 +30950,7 @@ lab_endgetargs:;
 labend_rout:
   melt_trace_end ("COMPILOBJ_QUASIDATA_CURRENT_MODULE_ENVIRONMENT_CONTAINER",
 		  meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_156_warmelt_genobj_COMPILOBJ_QUASIDATA_CURRENT_MODULE_ENVIRONMENT_CONTAINER_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;

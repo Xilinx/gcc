@@ -1501,6 +1501,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("DEBUG_MSG_FUN", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_69_warmelt_first_DEBUG_MSG_FUN_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;

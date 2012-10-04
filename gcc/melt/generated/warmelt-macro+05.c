@@ -2496,6 +2496,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_143_warmelt_macro_LAMBDA___39___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -3792,6 +3793,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("MEXPAND_EXPORT_SYNONYM", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_144_warmelt_macro_MEXPAND_EXPORT_SYNONYM_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -4488,6 +4490,7 @@ lab_endgetargs:;
 labend_rout:
   melt_trace_end ("MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER",
 		  meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_145_warmelt_macro_MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -5216,6 +5219,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("MEXPAND_PARENT_MODULE_ENVIRONMENT", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_146_warmelt_macro_MEXPAND_PARENT_MODULE_ENVIRONMENT_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -5911,6 +5915,7 @@ lab_endgetargs:;
 labend_rout:
   melt_trace_end ("MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER",
 		  meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_147_warmelt_macro_MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -6788,6 +6793,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("MEXPAND_FETCH_PREDEFINED", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_148_warmelt_macro_MEXPAND_FETCH_PREDEFINED_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -7749,6 +7755,7 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("MEXPAND_STORE_PREDEFINED", meltcallcount);
+  MELT_TRACE_EXIT_LOCATION ();
   melt_blocklevel_signals =
     current_blocklevel_signals_meltrout_149_warmelt_macro_MEXPAND_STORE_PREDEFINED_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
