@@ -1,5 +1,11 @@
 
 2012-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Probe is showing some SSA gimple also}}
+	* melt/xtramelt-probe.melt (scanssaprobe_exec)
+	(install_scanssaprobe_pass): New functions
+	(probe_docmd): Use them.
+
+2012-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 
 	* melt/generated/meltrunsup.h: Regenerate.

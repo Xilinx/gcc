@@ -823,11 +823,80 @@
   (debug "install_scanprobe_pass installed scpropass=" scpropass)
   (return scpropass)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; show also the SSA form of the gimples
+(defun scanssaprobe_exec (pass)
+  (debug "scanssaprobe_exec start pass=" pass)
+  (let ( (probdat (probe_get_data))
+	 )
+    (with_cfun_decl 
+     ()
+     (:tree cfundecl)
+     ;; every basic block of the current cfun is interesting
+     (each_bb_current_fun 
+      ()
+      (:basic_block bb)
+      (debug "scanssaprobe_exec bb=" bb)
+      (let (
+	    (:long bbix (basicblock_index bb))
+	    (:gimple_seq bbgs (gimple_seq_of_basic_block bb))
+	    (gimpcount (make_integerbox discr_integer 0))
+	    (bbgimpletitle (string4out discr_string "Basic Block #" bbix " Gimple/SSA"))
+	    )
+	(debug "scanssaprobe_exec bbix=" bbix " bbgs=" bbgs)
+	;; walk the gimpleseq to show gimple/SSAs inside
+	(walk_gimple_seq_unique_tree 
+	 probdat bbgs
+	 (lambda (pd :gimple g)
+	   (let ( (:long cntgimp (get_int gimpcount))
+		  )
+	     (put_int gimpcount (+i cntgimp 1)))
+	   (debug "scanssprobe_exec/lambda-stmt g=" g " gimpcount=" gimpcount)
+	   (let ( (gbox (make_gimple discr_gimple g))
+		  (uniqgimpcount
+		   (make_integerbox discr_constant_integer (get_int gimpcount)))
+		  )
+	     (probe_interesting_location_add_informer
+	      (probe_gimple_interesting_location probdat g)
+	      (lambda (iloc)
+		(debug "scanssaprobe_exec/lambda-stmt/lambda-loc iloc=" iloc " gbox=" gbox)
+		(shortbacktrace_dbg "scanssprobe_exec/lambda-stmt/lambda-loc" 15)
+		(let ( (gsbuf (make_strbuf discr_strbuf))
+		       (titbuf (make_strbuf discr_strbuf))
+		       )
+		  (output_gimple gsbuf (gimple_content gbox))
+		  (add2out titbuf bbgimpletitle " ##" (get_int uniqgimpcount))
+		  (return (strbuf2string discr_string gsbuf) 
+			  (strbuf2string discr_string titbuf))
+		  )))
+	     (return)
+	     ))
+	 ())
+	(debug "scanssprobe_exec done bbix=" bbix)))
+     )))
+
+(defun install_scanssaprobe_pass ()
+  (let ( (scpropass (instance class_gcc_gimple_pass
+			      :named_name '"melt_scanssaprobe_pass"
+			      :gccpass_gate ()
+			      :gccpass_exec scanssaprobe_exec
+			      :gccpass_data ())
+		    )
+	 )
+  (debug "install_scanssaprobe_pass start scpropass=" scpropass)
+  (install_melt_gcc_pass scpropass "before" "release_ssa" 0)
+  (debug "install_scanssaprobe_pass installed scpropass=" scpropass)
+  (return scpropass)))
+  
 ;;;;;;;;;;;;;;;; mode to start the probe
 (defun probe_docmd (cmd moduldata)
   (debug "probe_docmd cmd=" cmd " moduldata=" moduldata)
   (start_probe)
   (install_scanprobe_pass)
+  (debug "probe_docmd after scanprobe cmd=" cmd)
+  (install_scanssaprobe_pass)
+  (debug "probe_docmd done cmd=" cmd)
   (return :true)
   )
 
