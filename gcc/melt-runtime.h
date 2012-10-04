@@ -2813,6 +2813,17 @@ extern melt_ptr_t melt_jmpval;
 /* declare the current callframe */
 #if MELT_HAVE_DEBUG>0
 
+/* this file is set thru the GCCMELT_TRACE_LOCATION environment
+   variable.  You almost never need that, except for low level
+   debugging. */
+MELT_EXTERN FILE* melt_loctrace_file;
+
+#define MELT_TRACE_LOCATION(S) do{			\
+  if (MELT_UNLIKELY(melt_loctrace_file != NULL)) {	\
+    fputs((S), melt_loctrace_file);			\
+    putc('\n', melt_loctrace_file);			\
+  }}while(0)
+
 #define MELT_DECLFRAME(NBVAR) struct {		\
   int mcfr_nbvar;				\
   const char* mcfr_flocs;			\
@@ -2828,30 +2839,41 @@ extern melt_ptr_t melt_jmpval;
   struct excepth_melt_st* mcfr_exh;		\
   struct melt_callframe_st* mcfr_prev;		\
 } meltfram__
+
 /* initialize the current callframe and link it at top */
-#define MELT_INITFRAME_AT(NBVAR,CLOS,FIL,LIN) do {			\
-  static char locbuf_##LIN[84];						\
-  if (!locbuf_##LIN[0])							\
-    snprintf(locbuf_##LIN, sizeof(locbuf_##LIN)-1, "%s:%d",		\
-	     basename (FIL), (int)LIN);					\
-  memset(&meltfram__, 0, sizeof(meltfram__));				\
-  meltfram__.mcfr_nbvar = (NBVAR);					\
-  meltfram__.mcfr_flocs = locbuf_##LIN;					\
-  meltfram__.mcfr_prev = (struct melt_callframe_st*) melt_topframe;	\
-  meltfram__.mcfr_clos = (CLOS);					\
-  melt_topframe = ((struct melt_callframe_st*)&meltfram__);		\
+#define MELT_INITFRAME_AT(NBVAR,CLOS,FIL,LIN) do {		\
+  static char locbuf_##LIN[84];					\
+  if (!locbuf_##LIN[0])						\
+    snprintf(locbuf_##LIN, sizeof(locbuf_##LIN)-1, "%s:%d",	\
+	     basename (FIL), (int)LIN);				\
+  memset(&meltfram__, 0, sizeof(meltfram__));			\
+  meltfram__.mcfr_nbvar = (NBVAR);				\
+  meltfram__.mcfr_flocs = locbuf_##LIN;				\
+  meltfram__.mcfr_clos = (CLOS);				\
+  meltfram__.mcfr_prev						\
+    = (struct melt_callframe_st*) melt_topframe;		\
+  melt_topframe = ((struct melt_callframe_st*)&meltfram__);	\
+  MELT_TRACE_LOCATION (meltfram__.mcfr_flocs);                  \
 } while(0)
+
 #define MELT_INITFRAME_AT_MACRO(NBVAR,CLOS,FIL,LIN) \
   MELT_INITFRAME_AT(NBVAR,CLOS,FIL,LIN)
 #define MELT_INITFRAME(NBVAR,CLOS) \
   MELT_INITFRAME_AT_MACRO(NBVAR,CLOS,__FILE__,__LINE__)
-#define MELT_LOCATION(LOCS) do{meltfram__.mcfr_flocs= LOCS;}while(0)
-#define MELT_LOCATION_HERE_AT(FIL,LIN,MSG) do {				\
-  static char locbuf_##LIN[88];						\
-  if (!locbuf_##LIN[0])							\
-    snprintf(locbuf_##LIN, sizeof(locbuf_##LIN)-1, "%s:%d <%s>",	\
-	     basename (FIL), (int)LIN, MSG);				\
-  meltfram__.mcfr_flocs =  locbuf_##LIN;			       	\
+
+#define MELT_LOCATION(LOCS) do{			\
+  meltfram__.mcfr_flocs = LOCS;			\
+  MELT_TRACE_LOCATION (meltfram__.mcfr_flocs);	\
+}while(0)
+
+#define MELT_LOCATION_HERE_AT(FIL,LIN,MSG) do {		\
+  static char locbuf_##LIN[88];				\
+  if (!locbuf_##LIN[0])					\
+    snprintf(locbuf_##LIN, sizeof(locbuf_##LIN),	\
+             "%s:%d <%s>",				\
+	     basename (FIL), (int)LIN, MSG);		\
+  meltfram__.mcfr_flocs =  locbuf_##LIN;		\
+  MELT_TRACE_LOCATION (meltfram__.mcfr_flocs);		\
 } while(0)
 /* We need several indirections of macro to have the ##LIN trick above
    working!  */
@@ -2864,11 +2886,13 @@ extern melt_ptr_t melt_jmpval;
 /* SBUF should be a local array of char */
 #define MELT_LOCATION_HERE_PRINTF_AT(SBUF,FIL,LIN,FMT,...) do {	\
   memset (SBUF, 0, sizeof(SBUF));				\
-  snprintf (SBUF, sizeof(SBUF)-1,				\
+  snprintf (SBUF, sizeof(SBUF),					\
 	    "%s:%d:: " FMT,					\
-	    melt_basename (FIL), (int)LIN, __VA_ARGS__);	\
-  meltfram__.mcfr_flocs = SBUF;	} while(0)
-
+	    melt_basename (FIL),				\
+            (int)LIN, __VA_ARGS__);				\
+  meltfram__.mcfr_flocs = SBUF;					\
+  MELT_TRACE_LOCATION (meltfram__.mcfr_flocs);			\
+} while(0)
 /* We need several indirections of macro to have the ##LIN trick above
    working!  */
 #define MELT_LOCATION_HERE_PRINTF_AT_MACRO(SBUF,FIL,LIN,FMT,...)	\
@@ -2901,6 +2925,7 @@ extern melt_ptr_t melt_jmpval;
 #define MELT_LOCATION(LOCS) do{/*location without MELT_HAVE_DEBUG*/}while(0)
 #define MELT_LOCATION_HERE(MSG) do{/*locationhere without MELT_HAVE_DEBUG*/}while(0)
 #define MELT_LOCATION_HERE_PRINTF(SBUF,FMT,...) do{/*locationhereprintf without MELT_HAVE_DEBUG*/}while(0)
+#define MELT_TRACE_LOCATION(S) do{/*trace location without MELT_HAVE_DEBUG*/}while(0)
 
 /* initialize the current callframe and link it at top */
 #define MELT_INITFRAME(NBVAR,CLOS) do {	 /*initframe without MELT_HAVE_DEBUG*/ \

@@ -1,4 +1,16 @@
 
+2012-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	{{very low level trace location facility}}
+	* melt-runtime.h (melt_loctrace_file): New variable.
+	(MELT_TRACE_LOCATION): New macro.
+	(MELT_INITFRAME_AT, MELT_LOCATION, MELT_LOCATION_HERE_AT)
+	(MELT_LOCATION_HERE_PRINTF_AT): Use it.
+
+	* melt-runtime.c (melt_really_initialize, do_finalize_melt): Set
+	and handle melt_loctrace_file using GCCMELT_TRACE_LOCATION
+	environment variable.
+
 2012-10-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
