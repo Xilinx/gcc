@@ -47,7 +47,15 @@ e.g. $DEBUG_MSG macro.  The produced output or buffer is $DBGI_OUT,
 the occurrence map is $DBGI_OCCMAP, used to avoid outputting twice the
 same object. The boxed maximal depth is $DBGI_MAXDEPTH.}# )
 
-(export_class class_debug_information)
+(defclass class_debug_output_information
+  :doc #{The $CLASS_DEBUG_OUTPUT_INFORMATION is for debug output,
+  which happens even when debug printing is not enabled by a program
+  argument like @code{-f[plugin-arg-]melt-debugging}.}#
+  :super class_debug_information
+  :fields (
+	   ))
+
+(export_class class_debug_information class_debug_output_information)
 
 ;;;;;;
 (defprimitive debug_depth () :long 
@@ -472,9 +480,10 @@ $DBGI at given $DEPTH}#
 	 (discr (discrim obj))
 	 (:long maxdepth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	 )
-    (if (null out)
-	(return))
-    (if (melt_really_need_dbglim  depth maxdepth)
+    (if (null out)      
+      (return))
+    (if (or (melt_really_need_dbglim  depth maxdepth) 
+	    (and (<i depth maxdepth) (is_a dbgi class_debug_output_information)))
 	(progn
 	  (cond
 	   ( (is_object obj)
@@ -486,7 +495,7 @@ $DBGI at given $DEPTH}#
 	   )
 	  )
       (progn
-	(add2out_strconst out ".!.")
+	(add2out_strconst out ".?.")
 	))))
 
 ;; utility to dump fields in an object from a given rank to a given rank
@@ -502,11 +511,14 @@ $DBGI at given $DEPTH}#
 	 (clafieldseq (unsafe_get_field :class_fields cla))
 	 (out  (unsafe_get_field :dbgi_out dbgi))
 	 (:long outoff (output_length out))
+	 (:long maxdepth (get_int (get_field :dbgi_maxdepth dbgi)))
 	 )
     (assert_msg "check out" (is_out out))
     ;; outoff may be -1 when out is a non-seekable file like stdout
     (if (<i ix 0) (setq ix 0))
-    (if (melt_really_need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+    (if (or 
+	 (melt_really_need_dbglim depth maxdepth)
+	 (and (<i depth maxdepth) (is_a dbgi class_debug_output_information)))
 	(forever fldloop
 		 (if (>=i ix nbf)
 		     (exit fldloop))
@@ -553,10 +565,13 @@ $TORANK}#
 	 (:long ix fromrank)
 	 (clafieldseq (unsafe_get_field :class_fields cla))
 	 (out  (unsafe_get_field :dbgi_out dbgi))
+	 (:long maxdepth (get_int (get_field :dbgi_maxdepth dbgi)))
 	 )
     (assert_msg "check out" (is_out out))
     (if (<i ix 0) (setq ix 0))
-    (if (melt_really_need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+    (if (or 
+	 (melt_really_need_dbglim depth maxdepth)
+	 (and (<i depth maxdepth) (is_a dbgi class_debug_output_information)))
 	(forever fldloop
 		 (if (>=i ix nbf)
 		     (exit fldloop))
@@ -724,6 +739,7 @@ $TORANK}#
   (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_out dbgi))
+	 (:long maxdepth (get_int (get_field :dbgi_maxdepth dbgi)))
 	 )
     (if (== dis discr_mixed_integer)
 	(progn 
@@ -735,7 +751,9 @@ $TORANK}#
 	(add2sbuf_strconst sbuf "#[")
 	(add2sbuf_longdec sbuf (get_int self)))
       )
-    (if  (melt_really_need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+    (if (or 
+	 (melt_really_need_dbglim depth maxdepth)
+	 (and (<i depth maxdepth) (is_a dbgi class_debug_output_information)))
 	(progn
 	  (add2sbuf_strconst sbuf ",")
 	  (dbg_out (mixint_val self) dbgi (+i depth 1))
@@ -752,6 +770,7 @@ $TORANK}#
   (assert_msg "check self mixloc" (is_mixloc self))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_out dbgi))
+	 (:long maxdepth (get_int (get_field :dbgi_maxdepth dbgi)))
 	 )
     (if (== dis DISCR_MIXED_LOCATION)
 	(progn 
@@ -763,7 +782,9 @@ $TORANK}#
 	(add2sbuf_strconst sbuf "#![")
 	(add2sbuf_longdec sbuf (get_int self)))
       )
-    (if  (melt_really_need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+    (if (or 
+	 (melt_really_need_dbglim depth maxdepth)
+	 (and (<i depth maxdepth) (is_a dbgi class_debug_output_information)))
 	(progn
 	  (add2sbuf_strconst sbuf ",")
 	  (add2sbuf_mixloc sbuf self)
@@ -780,12 +801,15 @@ $TORANK}#
   (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (assert_msg "check self mixbigint" (is_mixbigint self))
   (let ( (dis (discrim self)) 
-	 (sbuf  (unsafe_get_field :dbgi_out dbgi))
+	 (sbuf  (get_field :dbgi_out dbgi))
+	 (:long maxdepth (get_int (get_field :dbgi_maxdepth dbgi)))
 	 )
     (add2sbuf_strconst sbuf " |")
     (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
     (add2sbuf_strconst sbuf "#![")
-  (if  (melt_really_need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+  (if (or 
+       (melt_really_need_dbglim depth maxdepth)
+       (and (<i depth maxdepth) (is_a dbgi class_debug_output_information)))
       (progn
 	(dbg_out (mixbigint_val self) dbgi (+i depth 1))
 	(add2sbuf_strconst sbuf ",")
@@ -862,7 +886,9 @@ $TORANK}#
   (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
 	 (:long oldmaxdepth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
-	 (sbuf  (unsafe_get_field :dbgi_out dbgi)) )
+	 (sbuf  (unsafe_get_field :dbgi_out dbgi))
+	 (:long maxdepth (get_int (get_field :dbgi_maxdepth dbgi))) 
+	 )
     (if (== dis DISCR_CLOSURE)
 	(add2sbuf_strconst sbuf " *clo(<")
       (progn
@@ -873,7 +899,10 @@ $TORANK}#
     (dbg_out (closure_routine self) dbgi depth)
     (put_int (unsafe_get_field :dbgi_maxdepth dbgi) oldmaxdepth)
     (if (and (<i depth 2)
-	     (melt_really_need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi))))
+	     (or 
+	      (melt_really_need_dbglim depth maxdepth)
+	      (and (<i depth maxdepth) (is_a dbgi class_debug_output_information)))
+	     )
 	(let ((:long ix 0))
 	  (add2sbuf_strconst sbuf "/")
 	  (add2sbuf_longdec sbuf (closure_size self))
@@ -901,7 +930,8 @@ $TORANK}#
 (defun dbgout_list_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
-	 (sbuf  (unsafe_get_field :dbgi_out dbgi)) )
+	 (:long maxdepth (get_int (get_field :dbgi_maxdepth dbgi)))
+	 (sbuf (get_field :dbgi_out dbgi)) )
     (if (== dis DISCR_LIST)
 	(add2sbuf_strconst sbuf " *li(")
       (progn
@@ -913,7 +943,9 @@ $TORANK}#
 	  (:long ix 0) 
 	  )
       ;(checkcallstack_msg "before loop dbgout_list_method")
-      (if (melt_really_need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+      (if (or 
+	 (melt_really_need_dbglim depth maxdepth)
+	 (and (<i depth maxdepth) (is_a dbgi class_debug_output_information)))
 	  (forever listloop
 		   ;(checkcallstack_msg "start loop dbgout_list_method")
 		   (if (>i ix 300)
@@ -941,14 +973,17 @@ $TORANK}#
 (defun dbgout_pair_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
-	 (sbuf  (unsafe_get_field :dbgi_out dbgi)) )
+	 (:long maxdepth (get_int (get_field :dbgi_maxdepth dbgi)))
+	 (sbuf  (get_field :dbgi_out dbgi)) )
     (if (== dis DISCR_PAIR)
 	(add2sbuf_strconst sbuf " *pa(.")
       (progn
 	(add2sbuf_strconst sbuf " |")
 	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
 	(add2sbuf_strconst sbuf "(.")))
-    (if (melt_really_need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+    (if (or 
+	 (melt_really_need_dbglim depth maxdepth)
+	 (and (<i depth maxdepth) (is_a dbgi class_debug_output_information)))
 	(progn
 	  (dbg_out (pair_head self) dbgi (+i depth 1))
 	  (add2sbuf_indent sbuf depth)
@@ -965,6 +1000,7 @@ $TORANK}#
   (let ( (dis (discrim self)) 
 	 (out  (get_field :dbgi_out dbgi))
 	 (:long mapcount (mapobject_count self))
+	 (:long maxdepth (get_int (get_field :dbgi_maxdepth dbgi)))
 	 )
     (assert_msg "check out at start" (is_out out))
     (if (== dis DISCR_MAP_OBJECTS)
@@ -975,7 +1011,9 @@ $TORANK}#
 	(add2out_strconst out "{")))
     (add2out_strconst out "/")
     (add2out_longdec out (mapobject_count self))
-    (if (melt_really_need_dbglim (+i depth 2) (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+    (if (or 
+	 (melt_really_need_dbglim (+i depth 2) maxdepth)
+	 (and (<i (+i depth 2) maxdepth) (is_a dbgi class_debug_output_information)))
 	(let (
 	      (nextdepthbox (make_integerbox discr_integer (+i 2 depth)))
 	      (countbox (make_integerbox discr_integer 0))
@@ -1054,6 +1092,7 @@ $TORANK}#
 	 (nextdepthbox (make_integerbox discr_integer (+i 2 depth)))
 	 (countbox (make_integerbox discr_integer 0))
 	 (tupl (make_multiple discr_multiple mapcount))
+	 (:long maxdepth (get_int (get_field :dbgi_maxdepth dbgi)))
 	 )
     (if (== dis DISCR_MAP_STRINGS)
 	(add2sbuf_strconst sbuf " <(")
@@ -1063,7 +1102,9 @@ $TORANK}#
 	(add2sbuf_strconst sbuf "<(")))
     (add2sbuf_strconst sbuf "/")
     (add2sbuf_longdec sbuf mapcount)
-    (if (melt_really_need_debug (+i depth 2))
+    (if (or 
+	 (melt_really_need_dbglim (+i depth 2) maxdepth)
+	 (and (<i (+i depth 2) maxdepth) (is_a dbgi class_debug_output_information)))
 	(let (
 	      (aux (mapstring_aux self))
 	      )
@@ -1135,6 +1176,7 @@ $TORANK}#
 	 (:long nextdepth  (+i 2 depth))
 	 (nextdepthbox (make_integerbox discr_integer nextdepth))
 	 (aux (bucketlong_aux self))
+	 (:long maxdepth (get_int (get_field :dbgi_maxdepth dbgi)))
 	 (:long xnum (bucketlong_xnum self))
 	 )
     (add2out sbuf ".bucklong/" (get_field :named_name dis) "!{")
@@ -1165,6 +1207,7 @@ $TORANK}#
 (defun dbgout_anyobject_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
+	 (:long maxdepth (get_int (get_field :dbgi_maxdepth dbgi)))
 	 (sbuf  (unsafe_get_field :dbgi_out dbgi)) ) 
     (add2sbuf_strconst sbuf "|")
     (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
@@ -1177,8 +1220,9 @@ $TORANK}#
 	    (add2sbuf_strconst sbuf "#")
 	    (add2sbuf_longdec sbuf onum)))
       )
-    (if (melt_really_need_dbglim (+i depth 1) 
-		     (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+    (if (or 
+	 (melt_really_need_dbglim (+i depth 1) maxdepth)
+	 (and (<i (+i depth 1) maxdepth) (is_a dbgi class_debug_output_information)))
 	(progn
 	  (add2sbuf_strconst sbuf "{")
 	  (dbgout_fields self dbgi (+i depth 1) 0 0)
@@ -1223,6 +1267,7 @@ $TORANK}#
 	 (out  (unsafe_get_field :dbgi_out dbgi))
 	 (onam (unsafe_get_field :named_name self))
 	 (oprop (unsafe_get_field :prop_table self))
+	 (:long maxdepth (get_int (get_field :dbgi_maxdepth dbgi)))
 	 ) 
     (assert_msg "check out" (is_out out))
     (add2out_strconst out "`")
@@ -1231,7 +1276,9 @@ $TORANK}#
     (add2out_string out (unsafe_get_field :named_name dis))
     (add2out_strconst out "/")
     (add2out_longhex out (obj_hash self))
-    (if (melt_really_need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+    (if (or 
+	 (melt_really_need_dbglim depth maxdepth)
+	 (and (<i depth maxdepth) (is_a dbgi class_debug_output_information)))
 	(let ( (:long onum (obj_num self)) 
 	       )
 	  (if onum
@@ -1380,12 +1427,16 @@ $TORANK}#
 	   (:long newmaxdepth  (-i (/i oldmaxdepth 2) 1))
 	   )
       (if (<i newmaxdepth 0) (setq newmaxdepth 0))
-      (if (melt_really_need_dbglim depth oldmaxdepth)
+      (if (or 
+	 (melt_really_need_dbglim depth oldmaxdepth)
+	 (and (<i depth oldmaxdepth) (is_a dbgi class_debug_output_information)))
 	  (progn
 	    (and (>i depth 0) (>i oldmaxdepth 3)
 		 (put_int (unsafe_get_field :dbgi_maxdepth dbgi) newmaxdepth))
 	    (dbgout_fields self dbgi (+i depth 1) 0 offprev)
-	    (if (melt_really_need_dbglim (+i depth 2) newmaxdepth)
+	    (if (or 
+	 (melt_really_need_dbglim depth newmaxdepth)
+	 (and (<i depth newmaxdepth) (is_a dbgi class_debug_output_information)))
 		(dbgoutagain_fields self dbgi (+i depth 2) offprev 0)
 	      (add2out_strconst out ".._.."))
 	    (put_int (unsafe_get_field :dbgi_maxdepth dbgi) oldmaxdepth)
@@ -1425,6 +1476,7 @@ $TORANK}#
 	 (out  (unsafe_get_field :dbgi_out dbgi)) 
 	 (binderv (unsafe_get_field :binder self))
 	 (:long bindnum (get_int self))
+	 (:long maxdepth (get_int (get_field :dbgi_maxdepth dbgi)))
 	 ) 
     (add2out_indent out depth)
     (add2out_strconst out "[~")
@@ -1437,7 +1489,9 @@ $TORANK}#
 	  (add2out_longdec out bindnum)))
     (add2out_strconst out ":")
     (dbg_outputagain binderv dbgi (+i depth 2))
-    (if (melt_really_need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+    (if (or 
+	 (melt_really_need_dbglim depth maxdepth)
+	 (and (<i depth maxdepth) (is_a dbgi class_debug_output_information)))
 	(progn
 	  (add2out_strconst out "; ")
 	  (dbgout_fields self dbgi (+i depth 1) 1 0)
@@ -1458,7 +1512,7 @@ $TORANK}#
 	 (sbuf (make_strbuf discr_strbuf)) 
 	 (occmap (make_mapobject discr_map_objects 50))
 	 (boxedmaxdepth (make_integerbox discr_integer 14))
-	 (dbgi (instance class_debug_information
+	 (dbgi (instance class_debug_output_information
 			 :dbgi_out sbuf
 			 :dbgi_occmap occmap
 			 :dbgi_maxdepth boxedmaxdepth))

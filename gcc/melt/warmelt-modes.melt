@@ -199,7 +199,7 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 	  (:long nbexprs (list_length inexprs))
 	  (newenv (fresh_env curenv))
 	  (res (translate_run_melt_expressions inexprs newenv))
-	  (dbgi (instance class_debug_information
+	  (dbgi (instance class_debug_output_information
 			  :dbgi_out stdout
 			  :dbgi_occmap occmap
 			  :dbgi_maxdepth '8))

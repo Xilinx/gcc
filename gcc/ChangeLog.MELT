@@ -1,5 +1,20 @@
 
 2012-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-debug.melt (class_debug_output_information): New class.
+	(dbg_outobject, dbgout_fields)
+	(dbgoutagain_fields, dbgout_integer_method, dbgout_mixint_method)
+	(dbgout_mixloc_method, dbgout_mixbigint_method)
+	(dbgout_routine_method, dbgout_list_method)
+	(dbgout_closure_method, dbgout_pair_method)
+	(dbgout_mapobject_method, dbgout_anyobject_method)
+	(dbgout_environment_method, dbgout_anybinding_method): Test it in
+	most debug output methods.
+	(display_debug_message): Use it.
+
+	* melt/warmelt-modes.melt (eval_docmd): Use
+	class_debug_output_information.
+
+2012-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_INITFRAME_AT): Show the current __func__.
 	(MELT_TRACE_EXIT_LOCATION_AT, MELT_TRACE_EXIT_LOCATION): New macros.
 	(MELT_EXITFRAME): Use it.
