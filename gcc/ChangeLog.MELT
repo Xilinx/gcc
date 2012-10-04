@@ -1,5 +1,9 @@
 
 2012-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (do_finalize_melt): Improve notice about melt
+	location trace.
+
+2012-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{very low level trace location facility}}
 	* melt-runtime.h (melt_loctrace_file): New variable.

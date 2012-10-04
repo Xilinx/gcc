@@ -11265,7 +11265,9 @@ do_finalize_melt (void)
       fflush (melt_loctrace_file);
       l = ftell (melt_loctrace_file);
       fclose (melt_loctrace_file), melt_loctrace_file = NULL;
-      inform (UNKNOWN_LOCATION, "MELT wrote debug tracing location file of %ldKbytes\n", l>>10);
+      inform (UNKNOWN_LOCATION, 
+	      "MELT wrote trace location file of %ld Kbytes with GCCMELT_TRACE_LOCATION=%s\n",
+	      l>>10, getenv ("GCCMELT_TRACE_LOCATION"));
     }
 #endif
   dbgprintf ("do_finalize_melt ended melt_nb_modules=%d", melt_nb_modules);
