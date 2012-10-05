@@ -272,12 +272,16 @@ class SmeltArg;
 #define SMELT_MARKLOC_STOCKID GTK_STOCK_YES
 
 class SmeltMainWindow;
+class SmeltLocationInfo;
 class SmeltFile {
   friend class SmeltMainWindow;
   long _sfilnum;    // unique number in _mainsfilemapnum;
   int _sfilnblines;   // number of lines
   std::string _sfilname;  // file path
   Gsv::View _sfilview;  // source view
+  typedef std::map<int,SmeltLocationInfo*> linelocinfomap_t;
+  typedef std::map<int,linelocinfomap_t> infolinemap_t;
+  infolinemap_t _slineinfomap;
   static std::map<long,SmeltFile*> mainsfilemapnum_;
   static std::map<std::string,SmeltFile*> mainsfiledict_;
 public:
@@ -304,6 +308,8 @@ public:
   SmeltFile(SmeltMainWindow*,const std::string&filepath,long num);
   SmeltFile(SmeltMainWindow*,const enum pseudofile_en pseudo,long num);
   ~SmeltFile();
+  bool on_meltmark_event(const Glib::RefPtr<Glib::Object>&ob,GdkEvent*ev,const Gtk::TextIter& it);
+  bool on_motion_event (GdkEventMotion* ev);
   Glib::RefPtr<Gsv::Gutter> left_gutter() {
     return _sfilview.get_gutter(Gtk::TEXT_WINDOW_LEFT);
   }
@@ -321,7 +327,6 @@ public:
   }
 };        // end class SmeltFile
 
-class SmeltLocationInfo;
 
 //////
 class SmeltLocationDialog : public Gtk::MessageDialog {
@@ -454,7 +459,7 @@ class SmeltMainWindow : public Gtk::ApplicationWindow {
   Gtk::Statusbar _mainstatusbar;
   Glib::RefPtr<Gtk::ActionGroup> _mainactgroup;
   static std::map<long,SmeltLocationInfo*> mainlocinfmapnum_;
-  sigc::connection _mainshowconn;		// connection to show later all the main window
+  sigc::connection _mainshowconn;   // connection to show later all the main window
   int _mainshowfromline;
   static SmeltLocationInfo* shown_location_by_number (long l) {
     if (l == 0) return (SmeltLocationInfo*)SMELT_NULLPTR;
@@ -1127,8 +1132,8 @@ public:
       if (!_app_connreq_to_melt) {
         SMELT_DEBUG("connecting requests");
         _app_connreq_to_melt
-        = Glib::signal_io().connect(sigc::mem_fun(*this, &SmeltApplication::reqbuf_to_melt_cb),
-                                    _app_reqchan_to_melt, Glib::IO_OUT);
+          = Glib::signal_io().connect(sigc::mem_fun(*this, &SmeltApplication::reqbuf_to_melt_cb),
+                                      _app_reqchan_to_melt, Glib::IO_OUT);
       }
     }
   }
@@ -1437,7 +1442,7 @@ SmeltFile::SmeltFile(SmeltMainWindow*mwin,const std::string&filepath,long num)
   Glib::RefPtr<Gsv::Language> lang = langman->guess_language(filepath,std::string());
   if (lang) {
     SMELT_DEBUG("guessed lang id=" << (lang->get_id().c_str()) <<
-		" name=" << (lang->get_name().c_str()));
+                " name=" << (lang->get_name().c_str()));
     sbuf->set_language(lang);
   }
   _sfilview.set_editable(false);
@@ -1449,6 +1454,20 @@ SmeltFile::SmeltFile(SmeltMainWindow*mwin,const std::string&filepath,long num)
     markattrs->set_stock_id(SMELT_MARKLOC_STOCKID);
     _sfilview.set_mark_attributes(SMELT_MARKLOC_CATEGORY,markattrs,markprio);
   }
+
+  _sfilview.signal_motion_notify_event().connect(sigc::mem_fun(this,
+      &SmeltFile::on_motion_event));
+  {
+    typedef Glib::RefPtr<Gtk::TextTag> tagref_t;
+    tagref_t tagmeltmark = _sfilview.get_buffer()->create_tag ("meltmark");
+    tagmeltmark->property_style() = Pango::STYLE_OBLIQUE;
+    tagmeltmark->property_underline() = Pango::UNDERLINE_SINGLE;
+    tagmeltmark->property_background() = "darkred";
+    tagmeltmark->property_foreground() = "yellow";
+    tagmeltmark->signal_event().connect(sigc::mem_fun(this,
+                                        &SmeltFile::on_meltmark_event));
+  }
+
   {
     std::ifstream infil(filepath.c_str());
     int nblines = 0;
@@ -1566,21 +1585,49 @@ SmeltFile::~SmeltFile()
 }
 
 
+#warning we should keep the last clicked SmeltLocationInfo* and hightlight it...
+bool
+SmeltFile::on_motion_event(GdkEventMotion*ev)
+{
+  return false;     // propagate the event
+}
+
+bool
+SmeltFile::on_meltmark_event(const Glib::RefPtr<Glib::Object>&ob,
+                             GdkEvent*ev,
+                             const Gtk::TextIter& it)
+{
+  SMELT_DEBUG("meltmarkevent ev type#" << ev->type);
+  if (it.get_buffer() == _sfilview.get_buffer()) {
+    SmeltLocationInfo* locinf = NULL;
+    int lin = it.get_line();
+    infolinemap_t::iterator infiter = _slineinfomap.find(lin);
+    if (infiter != _slineinfomap.end()) {
+      int col = it.get_line_offset();
+      linelocinfomap_t&infmap = infiter->second;
+      linelocinfomap_t::iterator lociter = infmap.find (col);
+      if (lociter != infmap.end())
+        locinf = lociter->second;
+    }
+    if (!locinf) return false;  // propagate the event
+  }
+  return false;     // to propagate the event
+}
 
 void
 SmeltMainWindow::postpone_show_all_from(int lin)
 {
-  if (_mainshowconn) 
+  if (_mainshowconn)
     return;
   SMELT_DEBUG("postponed show all from line " << lin);
-  _mainshowconn = 
+  _mainshowconn =
     Glib::signal_timeout().connect(sigc::mem_fun(*this,&SmeltMainWindow::postpone_show_all_cb),
-				   200);
+                                   200);
   _mainshowfromline = lin;
 }
 
 // callback for timeout...
-bool 
+bool
 SmeltMainWindow::postpone_show_all_cb (void)
 {
   int fromlin =  _mainshowfromline;
@@ -1648,6 +1695,7 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
   SmeltLocationInfo* inf = new SmeltLocationInfo(marknum,sfil,lineno,col);
   mainlocinfmapnum_[marknum] = inf;
 
+#warning we should use the meltmarktag instead, since inserting buttons is ugly and time-expensive
   Gtk::Button* but = new Gtk::Button("*");
   Glib::RefPtr<Gtk::TextChildAnchor> chanch = Gtk::TextChildAnchor::create ();
   tbuf->insert_child_anchor(itcur,chanch);

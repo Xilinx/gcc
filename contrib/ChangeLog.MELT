@@ -1,4 +1,9 @@
 
+2012-10-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.cc: Work in progress, should have a
+	meltmark tag for marked location and not use any more embedded gtk
+	buttons.
+
 2012-10-03  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* MELT-Plugin-Makefile: Mention MELTGCC_NO_CHECK_RUNTIME in
