@@ -1,3 +1,193 @@
+2012-10-08  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/54685
+	* gcc.target/sh/pr54685.c: New.
+
+2012-10-08  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/53528 C++11 attribute support
+	* g++.dg/cpp0x/gen-attrs-1.C: New test.
+	* g++.dg/cpp0x/gen-attrs-2.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-2-1.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-3.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-4.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-5.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-6.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-7.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-8.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-9.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-10.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-11.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-12.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-13.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-14.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-15.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-16.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-17.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-18.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-19.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-20.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-21.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-22.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-23.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-24.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-25.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-26.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-27.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-28.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-29.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-30.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-31.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-32.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-33.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-34.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-35.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-36.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-36-1.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-37.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-38.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-39.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-39-1.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-40.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-41.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-42.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-43.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-44.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-45.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-46.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-47.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-47-1.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-48.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-49.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-50.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-51.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-52.C: Likewise.
+	* g++.dg/cpp0x/gen-attrs-53.C: Likewise.
+
+2012-10-08  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/tree-ssa/slsr-30.c: Use correct cleanup directive.
+	* gcc.dg/tree-ssa/attr-hotcold-2.c: Likewise.
+	* gcc.dg/tree-ssa/ldist-21.c: Add missing cleanup directive.
+
+2012-10-08  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/54760
+	* gcc.target/sh/pr54760-2.c: New.
+	* gcc.target/sh/pr54760-3.c: New.
+
+2012-10-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51422
+	* g++.dg/cpp0x/lambda/lambda-ice8.C: New.
+
+2012-10-07  Richard Sandiford  <rdsandiford@googlemail.com>
+	    Sandra Loosemore  <sandra@codesourcery.com>
+
+	* gcc.target/mips/madd-9.c: Force code to be tuned for the 4kc
+	and test that the accumulator is initialized using MULT.
+	* gcc.target/mips/mips32-dsp-accinit-1.c: New test.
+	* gcc.target/mips/mips32-dsp-accinit-2.c: Likewise.
+
+2012-10-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/52764
+	* g++.dg/cpp0x/stdint.C: New.
+
+2012-10-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/54249
+	* g++.dg/cpp0x/stddef.C: New.
+
+2012-10-06  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/54832
+	* gfortran.dg/typebound_operator_17.f90: New.
+
+2012-10-06  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/53831
+	PR lto/54776
+	* g++.dg/lto/v1-plugin-api-not-supported.C: New testcase.
+
+2012-10-06  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/lto/resolutions_0.c: New testcase.
+
+2012-10-06  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45521
+	* gfortran.dg/generic_25.f90: New.
+	* gfortran.dg/generic_26.f90: New.
+	* gfortran.dg/generic_27.f90: New.
+
+2012-10-06  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/54760
+	* gcc.target/sh/pr54760-1.c: New.
+
+2012-10-05  Jakub Jelinek  <jakub@redhat.com>
+
+	* g++.dg/torture/Wsizeof-pointer-memaccess1.C: New test.
+	* g++.dg/torture/Wsizeof-pointer-memaccess2.C: New test.
+	* g++.dg/warn/Wsign-compare-5.C: New test.
+	* g++.dg/warn/Wsizeof-pointer-memaccess-1.C: New test.
+	* g++.dg/warn/Wnull-conversion-1.C: For c++11 add dg-error.
+	* g++.dg/ext/builtin30.C: New test.
+	* g++.dg/ext/vla12.C: New test.
+	* gcc.dg/builtins-85.c: New test.
+
+	PR debug/54519
+	* gcc.dg/guality/pr54519-1.c: New test.
+	* gcc.dg/guality/pr54519-2.c: New test.
+	* gcc.dg/guality/pr54519-3.c: New test.
+	* gcc.dg/guality/pr54519-4.c: New test.
+	* gcc.dg/guality/pr54519-5.c: New test.
+	* gcc.dg/guality/pr54519-6.c: New test.
+
+2012-10-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50893
+	* g++.dg/cpp0x/defaulted38.C: New.
+
+2012-10-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/33763
+	* c-c++-common/pr33763.c: New test.
+
+	PR tree-optimization/54810
+	* gcc.dg/tree-ssa/vrp85.c: New test.
+
+2012-10-04  David Edelsohn  <dje.gcc@gmail.com>
+
+	* gcc.dg/ucnid-7.c: Skip on AIX.
+	* gcc.dg/ucnid-8.c: Same.
+	* gcc.dg/ucnid-10.c: Same.
+	* gcc.dg/ucnid-13.c: Same.
+	* gcc.dg/attr-alias-3.c: Same.
+	* gcc.dg/attr-alias-5.c: Same.
+	* gcc.dg/torture/pr51106-2.c: Same.
+	* gcc.dg/vmx/3b-13.c: Use valid splat index.
+
+2012-10-04  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/52233
+	* g++.dg/cpp0x/alias-decl-23.C: New.
+
+2012-10-04  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/53403
+	* g++.dg/template/friend53.C: New.
+
+2012-10-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* lib/gcc-dg.exp (cleanup-ada-spec): New procedure.
+	* lib/scanasm.exp (get_ada_spec_filename): Likewise.
+	(scan-ada-spec): Likewise.
+	(scan-ada-spec-not): Likewise.
+	* gcc.dg/dump-ada-spec-1.c: New test.
+	* g++.dg/other/dump-ada-spec-1.C: Likewise.
+
 2012-10-04  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gcc.dg/lto/20120723_0.c: Skip on SPARC 32-bit.

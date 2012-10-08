@@ -14687,17 +14687,6 @@ print_operand (FILE *file, rtx x, int code)
     {
       /* %a is output_address.  */
 
-    case 'A':
-      /* If X is a constant integer whose low-order 5 bits are zero,
-	 write 'l'.  Otherwise, write 'r'.  This is a kludge to fix a bug
-	 in the AIX assembler where "sri" with a zero shift count
-	 writes a trash instruction.  */
-      if (GET_CODE (x) == CONST_INT && (INTVAL (x) & 31) == 0)
-	putc ('l', file);
-      else
-	putc ('r', file);
-      return;
-
     case 'b':
       /* If constant, low-order 16 bits of constant, unsigned.
 	 Otherwise, write normally.  */
@@ -28295,6 +28284,7 @@ rs6000_code_end (void)
   TREE_PUBLIC (decl) = 1;
   TREE_STATIC (decl) = 1;
 
+#if RS6000_WEAK
   if (USE_HIDDEN_LINKONCE)
     {
       DECL_COMDAT_GROUP (decl) = DECL_ASSEMBLER_NAME (decl);
@@ -28307,6 +28297,7 @@ rs6000_code_end (void)
       ASM_DECLARE_FUNCTION_NAME (asm_out_file, name, decl);
     }
   else
+#endif
     {
       switch_to_section (text_section);
       ASM_OUTPUT_LABEL (asm_out_file, name);

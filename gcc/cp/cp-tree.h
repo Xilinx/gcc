@@ -78,6 +78,7 @@ c-common.h, not after.
       OVL_ARG_DEPENDENT (in OVERLOAD)
       PACK_EXPANSION_LOCAL_P (in *_PACK_EXPANSION)
       TINFO_RECHECK_ACCESS_P (in TEMPLATE_INFO)
+      SIZEOF_EXPR_TYPE_P (in SIZEOF_EXPR)
    1: IDENTIFIER_VIRTUAL_P (in IDENTIFIER_NODE)
       TI_PENDING_TEMPLATE_FLAG.
       TEMPLATE_PARMS_FOR_INLINE.
@@ -417,7 +418,9 @@ typedef enum cpp0x_warn_str
   /* user defined literals */
   CPP0X_USER_DEFINED_LITERALS,
   /* delegating constructors */
-  CPP0X_DELEGATING_CTORS
+  CPP0X_DELEGATING_CTORS,
+  /* C++11 attributes */
+  CPP0X_ATTRIBUTES
 } cpp0x_warn_str;
   
 /* The various kinds of operation used by composite_pointer_type. */
@@ -4055,6 +4058,10 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 #define CONVERT_EXPR_VBASE_PATH(NODE) \
   TREE_LANG_FLAG_0 (CONVERT_EXPR_CHECK (NODE))
 
+/* True if SIZEOF_EXPR argument is type.  */
+#define SIZEOF_EXPR_TYPE_P(NODE) \
+  TREE_LANG_FLAG_0 (SIZEOF_EXPR_CHECK (NODE))
+
 /* An enumeration of the kind of tags that C++ accepts.  */
 enum tag_types {
   none_type = 0, /* Not a tag type.  */
@@ -4679,6 +4686,7 @@ typedef enum cp_decl_spec {
   ds_type_spec,
   ds_redefined_builtin_type_spec,
   ds_attribute,
+  ds_std_attribute,
   ds_storage_class,
   ds_long_long,
   ds_last /* This enumerator must always be the last one.  */
@@ -4697,6 +4705,8 @@ typedef struct cp_decl_specifier_seq {
   tree type;
   /* The attributes, if any, provided with the specifier sequence.  */
   tree attributes;
+  /* The c++11 attributes that follows the type specifier.  */
+  tree std_attributes;
   /* If non-NULL, a built-in type that the user attempted to redefine
      to some other type.  */
   tree redefined_builtin_type;
@@ -4765,8 +4775,14 @@ struct cp_declarator {
      to indicate this is a parameter pack.  */
   BOOL_BITFIELD parameter_pack_p : 1;
   location_t id_loc; /* Currently only set for cdk_id and cdk_function. */
-  /* Attributes that apply to this declarator.  */
+  /* GNU Attributes that apply to this declarator.  If the declarator
+     is a pointer or a reference, these attribute apply to the type
+     pointed to.  */
   tree attributes;
+  /* Standard C++11 attributes that apply to this declarator.  If the
+     declarator is a pointer or a reference, these attributes apply
+     to the pointer, rather than to the type pointed to.  */
+  tree std_attributes;
   /* For all but cdk_id and cdk_error, the contained declarator.  For
      cdk_id and cdk_error, guaranteed to be NULL.  */
   cp_declarator *declarator;
@@ -5063,7 +5079,9 @@ extern tree build_cp_library_fn_ptr		(const char *, tree);
 extern tree push_library_fn			(tree, tree, tree);
 extern tree push_void_library_fn		(tree, tree);
 extern tree push_throw_library_fn		(tree, tree);
-extern tree check_tag_decl			(cp_decl_specifier_seq *);
+extern void warn_misplaced_attr_for_class_type  (source_location location,
+						 tree class_type);
+extern tree check_tag_decl			(cp_decl_specifier_seq *, bool);
 extern tree shadow_tag				(cp_decl_specifier_seq *);
 extern tree groktypename			(cp_decl_specifier_seq *, const cp_declarator *, bool);
 extern tree start_decl				(const cp_declarator *, cp_decl_specifier_seq *, int, tree, tree, tree *);
@@ -5406,6 +5424,7 @@ extern tree build_non_dependent_expr		(tree);
 extern void make_args_non_dependent		(VEC(tree,gc) *);
 extern bool reregister_specialization		(tree, tree, tree);
 extern tree fold_non_dependent_expr		(tree);
+extern tree fold_non_dependent_expr_sfinae	(tree, tsubst_flags_t);
 extern bool alias_type_or_template_p            (tree);
 extern bool alias_template_specialization_p     (tree);
 extern bool explicit_class_specialization_p     (tree);
@@ -5695,7 +5714,6 @@ extern void lang_check_failed			(const char *, int,
 						 const char *) ATTRIBUTE_NORETURN;
 extern tree stabilize_expr			(tree, tree *);
 extern void stabilize_call			(tree, tree *);
-extern void stabilize_aggr_init			(tree, tree *);
 extern bool stabilize_init			(tree, tree *);
 extern tree add_stmt_to_compound		(tree, tree);
 extern void init_tree				(void);
@@ -5824,6 +5842,7 @@ extern int comp_cv_qualification		(const_tree, const_tree);
 extern int comp_cv_qual_signature		(tree, tree);
 extern tree cxx_sizeof_or_alignof_expr		(tree, enum tree_code, bool);
 extern tree cxx_sizeof_or_alignof_type		(tree, enum tree_code, bool);
+extern tree cxx_alignas_expr                    (tree);
 extern tree cxx_sizeof_nowarn                   (tree);
 extern tree is_bitfield_expr_with_lowered_type  (const_tree);
 extern tree unlowered_expr_type                 (const_tree);

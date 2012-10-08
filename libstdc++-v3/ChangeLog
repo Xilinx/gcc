@@ -1,3 +1,59 @@
+2012-10-07  Matthias Klose  <doko@ubuntu.com>
+
+	* testsuite/28_regex/algorithms/match/basic: Remove empty directory.
+	* testsuite/28_regex/algorithms/match/extended: Likewise.
+	* testsuite/28_regex/algorithms/match: Likewise.
+
+2012-10-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/52764
+	* include/c_global/cstdint: Remove __STDC_LIMIT_MACROS and
+	__STDC_CONSTANT_MACROS related macros.
+
+2012-10-06  Joe Seymour  <jseymour@codesourcery.com>
+
+	* include/tr2/dynamic_bitset: Fix cxxabi_forced.h include path.
+
+2012-10-05  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/28_regex/algorithms/match: Rename to...
+	* testsuite/28_regex/algorithms/regex_match: ...this.
+	* testsuite/28_regex/basic_regex/regex.cc: Rename to...
+	* testsuite/28_regex/basic_regex/ctors/basic/default.cc: ...this.
+	* testsuite/util/testsuite_regex.h: New.
+	* testsuite/28_regex/basic_regex/ctors/basic/raw_string.cc: New.
+
+2012-10-05  Jakub Jelinek  <jakub@redhat.com>
+
+	* testsuite/20_util/shared_ptr/cons/43820_neg.cc: Adjust line
+	numbers.
+
+2012-10-05  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR libstdc++/54686
+	* include/c_global/cstdlib (abs(long long)): Define with
+	__builtin_llabs when we have long long.
+	(abs(long)): Use __builtin_labs.
+	(abs(__int128)): Define when we have __int128.
+
+2012-10-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/c_global/cstdlib: Remove redundant pasto code protected
+	by __GXX_EXPERIMENTAL_CXX0X__.
+	* include/c_global/cwctype: Likewise.
+	* include/c_global/ccomplex: Remove uses of obsolete macro
+	_GLIBCXX_INCLUDE_AS_TR1.
+	* include/c_global/cfloat: Likewise.
+
+2012-10-05  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR libstdc++/54686
+	* include/c_std/cstdlib (abs(long long)): Define with
+	__builtin_llabs when we have long long.
+	(abs(long)): Use __builtin_labs.
+	(abs(__int128)): Define when we have __int128.
+	* testsuite/26_numerics/headers/cstdlib/54686.c: New file.
+
 2012-10-03  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR libstdc++/53248

@@ -10329,6 +10329,7 @@ package body Sem_Prag is
          when Pragma_Invariant => Invariant : declare
             Type_Id : Node_Id;
             Typ     : Entity_Id;
+            PDecl   : Node_Id;
 
             Discard : Boolean;
             pragma Unreferenced (Discard);
@@ -10380,8 +10381,13 @@ package body Sem_Prag is
 
             --  Note that the type has at least one invariant, and also that
             --  it has inheritable invariants if we have Invariant'Class.
+            --  Build the corresponding invariant procedure declaration, so
+            --  that calls to it can be generated before the body is built
+            --  (for example wihin an expression function).
 
-            Set_Has_Invariants (Typ);
+            PDecl := Build_Invariant_Procedure_Declaration (Typ);
+            Insert_After (N, PDecl);
+            Analyze (PDecl);
 
             if Class_Present (N) then
                Set_Has_Inheritable_Invariants (Typ);
@@ -11798,8 +11804,16 @@ package body Sem_Prag is
                Check_Optional_Identifier (Arg, Name);
                Check_Arg_Is_Identifier (Argx);
 
+               --  Do not suppress overflow checks for formal verification.
+               --  Instead, require that a check is inserted so that formal
+               --  verification can detect wraparound errors.
+
                if Chars (Argx) = Name_Suppressed then
-                  return Suppressed;
+                  if Alfa_Mode then
+                     return Checked;
+                  else
+                     return Suppressed;
+                  end if;
 
                elsif Chars (Argx) = Name_Checked then
                   return Checked;
@@ -12116,6 +12130,11 @@ package body Sem_Prag is
                Ent := Entity (Get_Pragma_Arg (Arg1));
                Decl := Parent (Ent);
 
+               --  Check for duplication before inserting in list of
+               --  representation items.
+
+               Check_Duplicate_Pragma (Ent);
+
                if Rep_Item_Too_Late (Ent, N) then
                   return;
                end if;
@@ -12130,8 +12149,6 @@ package body Sem_Prag is
                     ("object type for pragma% is not potentially persistent",
                      Arg1);
                end if;
-
-               Check_Duplicate_Pragma (Ent);
 
                Prag :=
                  Make_Linker_Section_Pragma

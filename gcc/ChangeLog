@@ -1,3 +1,327 @@
+2012-10-08  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/54825
+	* tree-ssa-sccvn.c (vn_nary_length_from_stmt): Handle BIT_FIELD_REF.
+	(init_vn_nary_op_from_stmt): Likewise.
+	* tree-ssa-pre.c (compute_avail): Use vn_nary_op_lookup_stmt.
+	* tree-ssa-sccvn.h (sizeof_vn_nary_op): Avoid overflow.
+
+2012-10-08  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-pre.c (postorder_num): New global.
+	(compute_antic): Initialize all blocks and adjust for
+	generic postorder.
+	(my_rev_post_order_compute): Remove.
+	(init_pre): Use inverted_post_order_compute.
+
+2012-10-08  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* sched-int.h (schedule_block): Adjust declaration.
+	* sched-rgn.c (bb_state_array, bb_state): New static variables.
+	(sched_rgn_init): Initialize them.
+	(sched_rgn_free): Free them.
+	(schedule_region): Save scheduling state for future blocks, and
+	pass such state to schedule_block.
+	* params.def (PARAM_SCHED_STATE_EDGE_PROB_CUTOFF): New.
+	* doc/invoke.texi (--param): Document it.
+	* haifa-sched.c (schedule_block): New arg init_state.  Use it to
+	initialize state if nonnull.  All callers changed.
+	Call advance_one_cycle after scheduling.
+
+2012-10-08  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/54854
+	* doc/invoke.texi (AVR Options): Remove -mshort-calls.
+	* config/avr/avr.opt (-mshort-calls): Remove option.
+	* config/avr/avr.h (AVR_HAVE_JMP_CALL): Don't depend on
+	TARGET_SHORT_CALLS.
+
+2012-10-08  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/54685
+	* config/sh/sh.md (one_cmplsi2): Make insn_and_split.  Add manual
+	combine matching for an insn sequence where a ge:SI pattern can be used.
+
+2012-10-08  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/53528 C++11 attribute support
+	* plugin.h (register_scoped_attributes): Declare new function.
+	* tree.h (enu attribute_flags::ATTR_FLAG_CXX_11): New flag.
+	(lookup_scoped_attribute_spec, cxx_11_attribute_p)
+	(get_attribute_name, get_attribute_namespace): Declare new functions.
+	(struct attribute_spec): Remove const qualifier from the members.
+	* tree.c (comp_type_attributes, private_lookup_attribute)
+	(lookup_ident_attribute, remove_attribute, merge_attribute)
+	(attribute_hash_list, attribute_list_contained): Use
+	get_attribute_name.
+	* attribs.c (decl_attributes): Don't crash on error_mark_node.
+	Forbid c++11 attributes appertaining to type-specifiers.
+	(attribute_hash): Remove global variable.
+	(attributes_table): New global variable.
+	(find_attribute_namespace, register_scoped_attribute): New static
+	functions.
+	(register_scoped_attributes, lookup_scoped_attribute_spec)
+	(cxx11_attribute_p, get_attribute_name, get_attribute_namespace):
+	New public functions.
+	(init_attributes): Register all the GNU attributes into the "gnu"
+	namespace.
+	(register_attribute): Use register_scoped_attribute to register
+	the attribute into the "gnu" namespace.
+	(lookup_attribute_spec): Use lookup_scoped_attribute_spec to
+	lookup the attribute in the "gnu" namespace.
+	(decl_attributes): Use new get_attribute_namespace and
+	lookup_scoped_attribute_spec to consider attribute namespaces when
+	looking up attributes.  When operating in c++-11 mode, pass flag
+	ATTR_FLAG_CXX11 to the spec handler.
+
+2012-10-08  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/54815
+	* config/avr/avr.md (*add<mode>3, add<mode>3, addpsi3): Make
+	constraint alternative "r,0,r" slighly more expensive.
+	(sub<mode>3,
+	(andqi3, andhi3, andpsi3, andsi3): Ditto.
+	(iorqi3, iorhi3, iorpsi3, iorsi3): Ditto.
+	(xorhi3, xorpsi3, xorsi3): Ditto.
+
+2012-10-08  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/54760
+	* config/sh/sh.md (*mov<mode>_gbr_load, *mov<mode>_gbr_store): New
+	insns and accompanying unnamed splits.
+	* config/sh/predicates.md (general_movsrc_operand,
+	general_movdst_operand): Reject GBR addresses.
+	* config/sh/sh-protos.h (sh_find_equiv_gbr_addr): New declaration.
+	* config/sh/sh.c (sh_address_cost, sh_legitimate_address_p,
+	sh_secondary_reload): Handle GBR addresses.
+	(base_reg_disp): New class.
+	(sh_find_base_reg_disp, sh_find_equiv_gbr_addr): New functions.
+
+2012-10-08  Hans-Peter Nilsson  <hp@bitrange.com>
+
+	* config/mmix/mmix.c (mmix_output_octa): Don't assume
+	HOST_WIDEST_INT_PRINT_HEX starts with "0x".  Instead use
+	HOST_WIDE_INT_PRINT_HEX_PURE, falling back to
+	HOST_WIDEST_INT_PRINT_UNSIGNED.
+
+2012-10-07  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* machmode.h (GET_MODE_UNIT_PRECISION): New macro.
+	* simplify-rtx.c (simplify_truncation): New function,
+	extracted from simplify_subreg and (in small part) from
+	simplify_unary_operation_1.
+	(simplify_unary_operation_1) <TRUNCATE>: Use it.  Remove sign bit
+	test for !TRULY_NOOP_TRUNCATION_MODES_P.
+	(simplify_subreg): Use simplify_truncate for lowpart subregs
+	where both the inner and outer modes are scalar integers.
+	* config/mips/mips.c (mips_truncated_op_cost): New function.
+	(mips_rtx_costs): Adjust test for BADDU.
+	* config/mips/mips.md (*baddu_di<mode>): Push truncates to operands.
+
+2012-10-07  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-inline-analysis.c (do_estimate_edge_time): Return actual
+	time spent by the inlined sequence.
+	(do_estimate_edge_growth): Rename to ...
+	(do_estimate_edge_time): ... this one; return size of inlined sequence.
+	* ipa-inline.h (do_estimate_edge_size): New.
+	(do_estimate_edge_growth): Remove.
+	(estimate_edge_size): New function.
+	(estimate_edge_growth): Use it.
+
+2012-10-07  Jan Hubicka  <jh@suse.cz>
+
+	* lto-cgraph.c (lto_symtab_encoder_new): New parameter FOR_INPUT.
+	(lto_symtab_encoder_delete): Update.
+	(lto_symtab_encoder_encode): Update.
+	(compute_ltrans_boundary): Update.
+	(input_symtab): Update.
+	* lto-streamer.h (lto_symtab_encoder_new): Update.
+
+2012-10-07  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips-protos.h (mips_split_type): New enum.
+	(mips_split_64bit_move_p, mips_split_doubleword_move): Delete.
+	(mips_split_move_p, mips_split_move, mips_split_move_insn_p)
+	(mips_split_move_insn): Declare.
+	* config/mips/mips.c (mips_tuning_info): New variable.
+	(mips_load_store_insns): Use mips_split_move_insn_p instead of
+	mips_split_64bit_move_p.
+	(mips_emit_move_or_split, mips_mult_move_p): New functions.
+	(mips_split_64bit_move_p): Rename to...
+	(mips_split_move_p): ...this and take a mips_split_type argument.
+	Generalize to all moves.  Call mips_mult_move_p.
+	(mips_split_doubleword_move): Rename to...
+	(mips_split_move): ...this and take a mips_split_type argument.
+	Assert that mips_split_move_p holds.
+	(mips_insn_split_type, mips_split_move_insn_p, mips_split_move_insn):
+	New functions.
+	(mips_output_move): Use mips_split_move_p instead of
+	mips_split_64bit_move_p.  Handle MULT $0, $0 moves.
+	(mips_save_reg): Use mips_emit_move_or_split.
+	(mips_sim_reset): Assign to curr_state.  Call targetm.sched.init
+	and advance_state.
+	(mips_sim_init): Call targetm.sched.init_dfa_pre_cycle_insn and
+	targetm.sched.init_dfa_post_cycle_insn, if defined.
+	(mips_sim_next_cycle): Assign to curr_state.  Use advance_state
+	instead of state_transition.
+	(mips_sim_issue_insn): Assign to curr_state.  Use
+	targetm.sched.variable_issue to see how many more insns can be issued.
+	(mips_seq_time, mips_mult_zero_zero_cost)
+	(mips_set_fast_mult_zero_zero_p, mips_set_tuning_info)
+	(mips_expand_to_rtl_hook): New functions.
+	(TARGET_EXPAND_TO_RTL_HOOK): Define.
+	* config/mips/mips.md (move_type): Add imul.
+	(type): Map imul move_types to imul.
+	(*movdi_32bit, *movti): Add imul alternatives.
+	Use mips_split_move_insn_p and mips_split_move_insn instead of
+	mips_split_64bit_move_p and mips_split_doubleword_move in move
+	splitters.
+
+2012-10-06  Segher Boessenkool  <segher@kernel.crashing.org>
+
+	* config/rs6000/rs6000.c (print_operand) ['A']: Delete.
+
+2012-10-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/52764
+	* ginclude/stdint-wrap.h: In C++11 if __STDC_HOSTED__ define
+	__STDC_LIMIT_MACROS and __STDC_CONSTANT_MACROS.
+	* ginclude/stdint-gcc.h: In C++11 unconditionally define
+	limit and constant macros.
+
+2012-10-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/54249
+	* ginclude/stddef.h: In C++11 mode declare nullptr_t in the global
+	namespace.
+
+2012-10-06  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/53831
+	PR lto/54776
+	* lto-streamer-out.c (produce_symtab): Cleanup; drop v1 API hack.
+
+2012-10-06  Dehao Chen  <dehao@google.com>
+
+	PR debug/54826
+	* gimple-low.c (lower_stmt): Set the block for call args.
+
+2012-10-06  Jan Hubicka  <jh@suse.cz>
+
+	* doc/invoke.texi (-fprofile-report): Document.
+	* common.opt (-fprofile-report): New option.
+	* toplev.c (finalize): Call dump_profile_report.
+	* toplev.h (profile_report): Declare.
+	* passes.c (profile_record): New static var.
+	(check_profile_consistency): New function.
+	(dump_profile_record): New function.
+	(execute_one_ipa_transform_pass): Call check_profile_consistency.
+	(execute_one_pass): Likewise.
+
+2012-10-06  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/54790
+	* lto-streamer.h (lto_symtab_register_decl, lto_symtab_get_resolution,
+	lto_mark_nothrow_fndecl, lto_fixup_nothrow_decls): Remove.
+	* lto-symtab.c (lto_symtab_register_decl): Remove.
+
+2012-10-06  Andreas Schwab  <schwab@linux-m68k.org>
+
+	PR rtl-optimization/54739
+	* config/m68k/m68k.md (anddi3, iordi3, xordi3, one_cmpldi2): Remove.
+
+2012-10-06  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/54760
+	* config/sh/sh.md (define_constants): Add UNSPECV_GBR.
+	(get_thread_pointer, set_thread_pointer): New expanders.
+	(load_gbr): Rename to store_gbr.  Remove GBR_REG use.
+	(store_gbr): New insn.
+	* config/sh/sh.c (prepare_move_operands): Use gen_store_gbr instead of
+	gen_load_gbr in TLS_MODEL_LOCAL_EXEC case.
+	(sh1_builtin_p): New function.
+	(signature_args): Add SH_BLTIN_VP.
+	(bdesc): Add __builtin_thread_pointer and __builtin_set_thread_pointer.
+
+2012-10-05  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR rtl-optimization/54739
+	* config/pa/pa.md: Remove DImode and, not and, ior and xor patterns
+	for 32-bit targets.  Adjust expanders.
+
+	* config/pa/pa.md: Adjust unamed HImode add insn pattern.
+
+2012-10-05  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/sh.c (builtin_description): Add is_enabled member.
+	(shmedia_builtin_p): New function.
+	(bdesc): Use shmedia_builtin_p for existing built-ins.
+	(sh_media_init_builtins, sh_init_builtins): Merge into single function
+	sh_init_builtins.  Add is_enabled checking.  Move variable declarations
+	to where they are actually used.
+	(sh_media_builtin_decl, sh_builtin_decl): Merge into single function
+	sh_builtin_decl.  Add is_enabled checking.
+	(sh_expand_builtin): Move variable declarations to where they are
+	actually used.
+
+2012-10-05  Jakub Jelinek  <jakub@redhat.com>
+
+	* tree-inline.c (expand_call_inline): Move VAR_DECLs with
+	PARM_DECL origins from remapped DECL_INITIAL's BLOCK_VARS
+	into id->block's BLOCK_VARS.
+
+	PR debug/54519
+	* ipa-split.c (split_function): Add debug args and debug source
+	and normal stmts for args_to_skip which are gimple regs.
+	* tree-inline.c (copy_debug_stmt): When inlining, adjust source
+	debug bind stmts to debug binds of corresponding DEBUG_EXPR_DECL.
+
+2012-10-05  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.md: Fix indentations of insn C snippets.
+
+2012-10-05  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/54811
+	* tree-ssa-live.c (clear_unused_block_pointer_1): Look at
+	DECL_DEBUG_EXPR again.
+
+2012-10-05  Jan Hubicka  <jh@suse.cz>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/33763
+	* tree-inline.c (expand_call_inline): Silently ignore always_inline
+	attribute for redefined extern inline functions.
+
+2012-10-04  Jan Hubicka  <jh@suse.cz>
+
+	* tree-vectorizer.h (vect_estimate_min_profitable_iters): Remove.
+	* tree-vect-loop.c (vect_estimate_min_profitable_iters): Declare here.
+	(vect_analyze_loop_operations): Use loop count estimate to rule out
+	unprofitable vectorization.
+	(vect_estimate_min_profitable_iters): Return
+	ret_min_profitable_estimate.
+
+2012-10-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/54810
+	* tree-vrp.c (register_edge_assert_for_2): Handle
+	NAME = (unsigned) NAME2; if (NAME cmp CST) for
+	narrowing casts to unsigned integral type like
+	NAME = NAME2 & CST2; if (NAME cmp CST) where CST2
+	is the max value of the unsigned integral type.
+
+2012-10-04  Jeff Law  <law@redhat.com>
+
+	* PR target/50356
+	* config/h8300/h8300.c (h8300_rtx_costs): Fix typo in CONST_INT case.
+
+2012-10-04  Jason Merrill  <jason@redhat.com>
+
+	* config/rs6000/rs6000.c (rs6000_code_end): Protect the use of
+	ASM_WEAKEN_DECL with #if RS6000_WEAK.
+
 2012-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
 
         * gengtype.c (walk_type): Emit mark_hook when inside a
@@ -55,10 +379,10 @@
 	* config/i386/i386.c (ix86_dep_by_shift_count_body) : Add
 	check on reload_completed since it can be invoked before
 	register allocation phase in pre-reload schedule.
-	(ia32_multipass_dfa_lookahead) : Do not use dfa_lookahead for pre-reload
-	schedule to save compile time.
-	(ix86_sched_reorder) : Do not perform ready list reordering for pre-reload
-	schedule to save compile time.
+	(ia32_multipass_dfa_lookahead) : Do not use dfa_lookahead for
+	pre-reload schedule to save compile time.
+	(ix86_sched_reorder) : Do not perform ready list reordering for
+	pre-reload schedule to save compile time.
 	(insn_is_function_arg) : New function. Returns true if lhs of insn is
 	HW function argument register.
 	(add_parameter_dependencies) : New function. Add output dependencies
@@ -70,14 +394,14 @@
 	(add_dependee_for_func_arg) : New function. Avoid cross block motion of
 	function argument through adding dependency from the first non-jump
 	insn in bb.
-	(ix86_dependencies_evaluation_hook) : New function. Hook for pre-reload schedule:
-	avoid motion of function arguments passed in passed in likely spilled
-	HW registers.
-	(ix86_adjust_priority) : New function. Hook for pre-reload schedule: set priority
-	of moves from likely spilled HW registers to maximum to schedule them
-	as soon as possible.
-	(ix86_sched_init_global): Do not perform multipass scheduling for pre-reload
-	schedule to save compile time.
+	(ix86_dependencies_evaluation_hook) : New function. Hook for
+	pre-reload schedule: avoid motion of function arguments passed in
+	likely spilled HW registers.
+	(ix86_adjust_priority) : New function. Hook for pre-reload schedule:
+	set priority of moves from likely spilled HW registers to maximum to
+	schedule them as soon as possible.
+	(ix86_sched_init_global): Do not perform multipass scheduling for
+	pre-reload schedule to save compile time.
 
 2012-10-04  Uros Bizjak  <ubizjak@gmail.com>
 
@@ -141,7 +465,7 @@
 	* config/rx/rx.opt (mwarn-multiple-fast-interrupts): New option.
 	* doc/invoke.texi: Document the option.
 
-2012-09-03  Mark Kettenis  <kettenis@openbsd.org>
+2012-10-03  Mark Kettenis  <kettenis@openbsd.org>
 
 	* config.gcc (*-*-openbsd4.[3-9]|*-*-openbsd[5-9]*): Set
 	default_use_cxa_atexit to yes.
@@ -4295,7 +4619,7 @@
 
 2012-08-17  Nick Clifton  <nickc@redhat.com>
 
-	* config/fr30/fr30.md  (cbranchsi4): Remove mode from comparison.
+	* config/fr30/fr30.md (cbranchsi4): Remove mode from comparison.
 	(branch_true): Likewise.
 	(branch_false): Likewise.
 
@@ -17919,7 +18243,7 @@
 	* config/arm/linux-eabi.h (GLIBC_DYNAMIC_LINKER_SOFT_FLOAT): Define.
 	(GLIBC_DYNAMIC_LINKER_HARD_FLOAT): Define.
 	(GLIBC_DYNAMIC_LINKER_DEFAULT): Define.
-	(GLIBC_DYNAMIC_LINKER):	Redefine to use the hard float path.
+	(GLIBC_DYNAMIC_LINKER): Redefine to use the hard float path.
 
 2012-04-25  Sriraman Tallam  <tmsriram@google.com>
 
