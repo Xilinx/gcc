@@ -1,3 +1,12 @@
+2012-10-08  Dehao Chen  <dehao@google.com>
+
+	Backport 192215 from trunk:
+
+	2012-10-08  Dehao Chen  <dehao@google.com>
+
+	* predict.c (predict_extra_loop_exits): Use
+	predict_paths_leading_to_edge to replace predict_edge_def.
+
 2012-10-01  Teresa Johnson  <tejohnson@google.com>
 
         Backport 191932 from google/main:

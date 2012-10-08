@@ -1365,22 +1365,16 @@ predict_extra_loop_exits (edge exit_edge)
 
       if (!TREE_CONSTANT (val) || !(integer_zerop (val) || integer_onep (val)))
 	continue;
-      if (check_value_one ^ integer_onep (val))
+      if ((check_value_one ^ integer_onep (val)) == 1)
 	continue;
-      if (VEC_length (edge, e->src->succs) != 1)
+      if (EDGE_COUNT (e->src->succs) != 1)
 	{
-	  if (!predicted_by_p (exit_edge->src, PRED_LOOP_ITERATIONS_GUESSED)
-	      && !predicted_by_p (exit_edge->src, PRED_LOOP_ITERATIONS)
-	      && !predicted_by_p (exit_edge->src, PRED_LOOP_EXIT))
-	    predict_edge_def (e, PRED_LOOP_EXIT, NOT_TAKEN);
+	  predict_paths_leading_to_edge (e, PRED_LOOP_EXIT, NOT_TAKEN);
 	  continue;
 	}
 
       FOR_EACH_EDGE (e1, ei, e->src->preds)
-	if (!predicted_by_p (exit_edge->src, PRED_LOOP_ITERATIONS_GUESSED)
-	    && !predicted_by_p (exit_edge->src, PRED_LOOP_ITERATIONS)
-	    && !predicted_by_p (exit_edge->src, PRED_LOOP_EXIT))
-	  predict_edge_def (e1, PRED_LOOP_EXIT, NOT_TAKEN);
+	predict_paths_leading_to_edge (e1, PRED_LOOP_EXIT, NOT_TAKEN);
     }
 }
 
