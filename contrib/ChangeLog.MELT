@@ -1,4 +1,15 @@
 
+2012-10-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{still incomplete}}
+	* simplemelt-gtkmm-probe.cc (SmeltFile): Add _slastevent &
+	_slastlocinfo fields.
+	(SmeltFile::SmeltFile): Clear them at construction time.
+	(SmeltFile::on_motion_event, SmeltFile::on_meltmark_event): Set
+	them.
+	(SmeltLocationInfo::text_start_iter)
+	(SmeltLocationInfo::text_end_iter, SmeltLocationInfo::highlight)
+	(SmeltLocationInfo::unhighlight): New member functions.
+
 2012-10-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.cc: Work in progress, should have a
 	meltmark tag for marked location and not use any more embedded gtk

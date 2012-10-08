@@ -282,6 +282,8 @@ class SmeltFile {
   typedef std::map<int,SmeltLocationInfo*> linelocinfomap_t;
   typedef std::map<int,linelocinfomap_t> infolinemap_t;
   infolinemap_t _slineinfomap;
+  GdkEvent* _slastevent;
+  SmeltLocationInfo* _slastlocinfo;
   static std::map<long,SmeltFile*> mainsfilemapnum_;
   static std::map<std::string,SmeltFile*> mainsfiledict_;
 public:
@@ -417,7 +419,11 @@ public:
     _sli_lineno = 0, _sli_col = 0;
   }
   void on_update(void);
+  void highlight(void);
+  void unhighlight(void);
   void on_dialog_response(int);
+  Gtk::TextIter text_start_iter(void);
+  Gtk::TextIter text_end_iter(void);
   static Glib::RefPtr<Gtk::TextTagTable> the_tag_table() {
     return sli_tagtbl_;
   };
@@ -1425,7 +1431,7 @@ SmeltArg SmeltArg::parse_string_arg(const std::string& s, int& pos) throw (std::
 
 ////////////////////////////////////////////////////////////////
 SmeltFile::SmeltFile(SmeltMainWindow*mwin,const std::string&filepath,long num)
-  : _sfilnum(num), _sfilnblines(0), _sfilname(filepath), _sfilview()
+  : _sfilnum(num), _sfilnblines(0), _sfilname(filepath), _sfilview(), _slastevent(NULL), _slastlocinfo(NULL)
 {
   SMELT_DEBUG("constructing filepath=" << filepath << " num=" << num << " this@" << (void*)this);
   assert(mwin != SMELT_NULLPTR);
@@ -1511,7 +1517,7 @@ SmeltFile::SmeltFile(SmeltMainWindow*mwin,const std::string&filepath,long num)
 
 ////////////////////////////////////////////////////////////////
 SmeltFile::SmeltFile(SmeltMainWindow*mwin,SmeltFile::pseudofile_en pseudokind,long num)
-  : _sfilnum(num), _sfilnblines(0), _sfilname(), _sfilview()
+  : _sfilnum(num), _sfilnblines(0), _sfilname(), _sfilview(), _slastevent(NULL), _slastlocinfo(NULL)
 {
   SMELT_DEBUG("constructing pseudokind#" << (int)pseudokind << " num=" << num << " this@" << (void*)this);
   assert(mwin != SMELT_NULLPTR);
@@ -1585,10 +1591,17 @@ SmeltFile::~SmeltFile()
 }
 
 
-#warning we should keep the last clicked SmeltLocationInfo* and hightlight it...
 bool
 SmeltFile::on_motion_event(GdkEventMotion*ev)
 {
+  if ((GdkEvent*)ev == _slastevent) {
+    if (_slastlocinfo)
+      _slastlocinfo->highlight();
+  } else {
+    if (_slastlocinfo)
+      _slastlocinfo->unhighlight();
+    _slastevent = NULL;
+  }
   return false;     // propagate the event
 }
 
@@ -1610,6 +1623,8 @@ SmeltFile::on_meltmark_event(const Glib::RefPtr<Glib::Object>&ob,
         locinf = lociter->second;
     }
     if (!locinf) return false;  // propagate the event
+    _slastevent = (GdkEvent*)ev;
+    _slastlocinfo = locinf;
   }
   return false;     // to propagate the event
 }
@@ -1703,9 +1718,10 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
   but->signal_clicked().connect(sigc::mem_fun(*inf,
                                 &SmeltLocationInfo::on_update));
   but->show();
+
   sfil->view().queue_draw();
   postpone_show_all_from(__LINE__);
-  SMELT_DEBUG("added mark but@" << (void*) but);
+  SMELT_DEBUG("added mark#" << marknum);
 }
 
 
@@ -1745,6 +1761,12 @@ SmeltLocationInfo::initialize (void)
     SmeltTagSymbol::register_tag(tagitalic);
     sli_tagtbl_->add(tagitalic);
   }
+  {
+    tagref_t taghighlight = Gtk::TextTag::create ("highlight");
+    taghighlight->property_background() = "Orange";
+    SmeltTagSymbol::register_tag(taghighlight);
+    sli_tagtbl_->add(taghighlight);
+  }
 }
 
 /* When the user press a location button, on_update is called. It
@@ -1763,6 +1785,60 @@ SmeltLocationInfo::on_update(void)
 }
 
 
+Gtk::TextIter
+SmeltLocationInfo::text_start_iter(void)
+{
+  g_assert (_sli_fil != NULL);
+  Glib::RefPtr<Gsv::Buffer> tbuf = _sli_fil->view().get_source_buffer();
+  Gtk::TextIter itlin = (_sli_lineno>0)?(tbuf->get_iter_at_line (_sli_lineno-1)):(tbuf->begin());
+  Gtk::TextIter itendlin = itlin;
+  int col = _sli_col;
+  g_assert (col >= 0);
+  itendlin.forward_line();
+  itendlin.backward_char();
+  int linwidth = itendlin.get_line_offset();
+  if (col<=0 || linwidth==0)
+    col = 1;
+  else if (col>linwidth)
+    col = linwidth;
+  Gtk::TextIter itcur = itlin;
+  if (col>1)
+    itcur.forward_chars(col-1);
+  return itcur;
+}
+
+Gtk::TextIter
+SmeltLocationInfo::text_end_iter(void)
+{
+  Gtk::TextIter stit = text_start_iter();
+  if (!stit.inside_word()) {
+    stit.forward_char();
+    return stit;
+  } else {
+    stit.forward_word_end();
+    return stit;
+  }
+}
+
+void
+SmeltLocationInfo::highlight(void)
+{
+  g_assert (_sli_fil != NULL);
+  Glib::RefPtr<Gsv::Buffer> tbuf = _sli_fil->view().get_source_buffer();
+  Gtk::TextIter stit = text_start_iter();
+  Gtk::TextIter enit = text_end_iter();
+  tbuf->apply_tag_by_name ("highlight", stit, enit);
+}
+
+void
+SmeltLocationInfo::unhighlight(void)
+{
+  g_assert (_sli_fil != NULL);
+  Glib::RefPtr<Gsv::Buffer> tbuf = _sli_fil->view().get_source_buffer();
+  Gtk::TextIter stit = text_start_iter();
+  Gtk::TextIter enit = text_end_iter();
+  tbuf->remove_tag_by_name ("highlight", stit, enit);
+}
 
 
 void
