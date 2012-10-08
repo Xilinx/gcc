@@ -1,0 +1,18 @@
+2012-10-08  Sergey Lega  <legabox@gmail.com>
+
+	* include/bits/regex.h (basic_regex::_M_print): Add.
+	* include/bits/regex_compiler.h (_Scanner): Add _CharT, _StringT,
+	_FlagT, _CtypeT, _CharClassT, _ClassPairT types. Add character caching.
+	* include/bits/regex_nfa.h (_Automaton): Add _M_dot, _M_print.
+	(_BaseToken): Add.
+	(_IntervalToken): Add.
+	(_CharToken): Add.
+	(_TokenFactory): Add.
+	(_IntervalMatcher): Add.
+	* testsuite/28_regex/algorithms/regex_match/basic/
+	string_02.cc, string_interval.cc, string_interval_01.cc,
+	string_interval_01_02.cc, string_interval_01_03.cc,
+	string_interval_01_04.cc, string_interval_02.cc,
+	string_interval_02_01.cc, string_interval_01_01.cc,
+	01_basic_valid.cc: New.
+	* testsuite/performance/28_regex/string_01.cc: New.

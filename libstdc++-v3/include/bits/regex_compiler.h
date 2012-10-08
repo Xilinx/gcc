@@ -28,6 +28,8 @@
  *  Do not attempt to use it directly. @headername{regex}
  */
 
+#include <map>
+
 namespace std _GLIBCXX_VISIBILITY(default)
 {
 namespace __detail
@@ -62,17 +64,24 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
    * the same input pattern in syntactically different ways.
    */
   template<typename _InputIterator>
-    class _Scanner: public _Scanner_base
-    {
-    public:
-      typedef _InputIterator                                        _IteratorT;
-      typedef typename std::iterator_traits<_IteratorT>::value_type _CharT;
-      typedef std::basic_string<_CharT>                             _StringT;
-      typedef regex_constants::syntax_option_type                   _FlagT;
-      typedef const std::ctype<_CharT>                              _CtypeT;
+  class _Scanner: public _Scanner_base
+  {
+  public:
+    typedef _InputIterator                                        _IteratorT;
 
-      /// Token types returned from the scanner.
-      enum _TokenT
+    /**
+     * @brief The character container type used in the
+     * implementation of template
+     */
+    typedef typename std::iterator_traits<_IteratorT>::value_type _CharT;
+
+    typedef std::basic_string<_CharT> _StringT;
+
+    typedef regex_constants::syntax_option_type _FlagT;
+    typedef const std::ctype<_CharT> _CtypeT;
+
+    /// Token types returned from the scanner.
+    enum _TokenT
       {
 	_S_token_anychar,
 	_S_token_backref,
@@ -105,55 +114,165 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	_S_token_unknown
       };
 
-      _Scanner(_IteratorT __begin, _IteratorT __end, _FlagT __flags,
-	       std::locale __loc)
-      : _M_current(__begin) , _M_end(__end) , _M_flags(__flags),
-        _M_ctype(std::use_facet<_CtypeT>(__loc)), _M_state(_S_state_at_start)
-      { _M_advance(); }
+    /// Char classes acceptable by scanner.
+    enum _CharClassT
+      {
+	_S_class_alpha,
+	_S_class_ascii,
+	_S_class_blank,
+	_S_class_cntrl,
+	_S_class_digit,
+	_S_class_graph,
+	_S_class_lower,
+	_S_class_print,
+	_S_class_punct,
+	_S_class_space,
+	_S_class_upper,
+	_S_class_word,
+	_S_class_alnum,
+	_S_class_xdigit,
+	_S_class_unknown
+      };
 
-      void
+    typedef std::map<_StringT, _CharClassT> _MapT;
+    typedef std::pair<std::string, _CharClassT> _ClassPairT;
+
+  public:
+    _Scanner(_IteratorT __begin, _IteratorT __end, _FlagT __flags,
+	     std::locale __loc)
+      : _M_begin(__begin), _M_current(__begin) , _M_end(__end) ,
+	_M_flags(__flags),
+	_M_ctype(std::use_facet<_CtypeT>(__loc)), _M_state(_S_state_at_start)
+    {
+      _M_dot = _M_ctype.widen('.');
+      _M_star = _M_ctype.widen('*');
+      _M_plus = _M_ctype.widen('+');
+      _M_or = _M_ctype.widen('|');
+      _M_bracket_beg = _M_ctype.widen('[');
+      _M_bracket_end = _M_ctype.widen(']');
+      _M_esc = _M_ctype.widen('\\');
+      _M_sub_beg = _M_ctype.widen('(');
+      _M_sub_end = _M_ctype.widen(')');
+      _M_brace_beg = _M_ctype.widen('{');
+      _M_brace_end = _M_ctype.widen('}');
+      _M_comma = _M_ctype.widen(',');
+      _M_carret = _M_ctype.widen('^');
+      _M_dash = _M_ctype.widen('-');
+      _M_eof = _M_ctype.widen('x');
+      _M_eol = _M_ctype.widen('$');
+      _M_colon = _M_ctype.widen(':');
+      _M_equals = _M_ctype.widen('=');
+
+      // init of names of char classes.
+      std::vector<_ClassPairT > _names;
+      _names.push_back(_ClassPairT("alnum", _S_class_alnum));
+      _names.push_back(_ClassPairT("alpha", _S_class_alpha));
+      _names.push_back(_ClassPairT("ascii", _S_class_ascii));
+      _names.push_back(_ClassPairT("blank", _S_class_blank));
+      _names.push_back(_ClassPairT("digit", _S_class_digit));
+      _names.push_back(_ClassPairT("graph", _S_class_graph));
+      _names.push_back(_ClassPairT("lower", _S_class_lower));
+      _names.push_back(_ClassPairT("print", _S_class_print));
+      _names.push_back(_ClassPairT("punct", _S_class_punct));
+      _names.push_back(_ClassPairT("space", _S_class_space));
+      _names.push_back(_ClassPairT("upper", _S_class_upper));
+      _names.push_back(_ClassPairT("word", _S_class_word));
+      _names.push_back(_ClassPairT("xdigit", _S_class_xdigit));
+
+      for (typename std::vector<_ClassPairT>::iterator _str = _names.begin();
+	   _str != _names.end();
+	   _str++)
+	{
+	  _StringT _current;
+	  for (std::string::iterator _ch = _str->first.begin();
+	       _ch != _str->first.end();
+	       _ch++)
+	    _current += _M_ctype.widen(*_ch);
+
+	  _M_classnames[_current] = _str->second;
+	}
+
+
       _M_advance();
+    }
 
-      _TokenT
-      _M_token() const
-      { return _M_curToken; }
+    void
+    _M_advance();
 
-      const _StringT&
-      _M_value() const
-      { return _M_curValue; }
+    _TokenT
+    _M_token() const
+    { return _M_curToken; }
+
+    _CharClassT
+    _M_charclass (const _StringT& __classname) const;
+
+    const _StringT&
+    _M_value() const
+    { return _M_curValue; }
 
 #ifdef _GLIBCXX_DEBUG
-      std::ostream&
-      _M_print(std::ostream&);
+    std::ostream&
+    _M_print(std::ostream&);
 #endif
 
-    private:
-      void
-      _M_eat_escape();
+  private:
+    void
+    _M_eat_escape();
 
-      void
-      _M_scan_in_brace();
+    void
+    _M_scan_in_brace();
 
-      void
-      _M_scan_in_bracket();
+    void
+    _M_scan_in_bracket();
 
-      void
-      _M_eat_charclass();
+    void
+    _M_eat_charclass();
 
-      void
-      _M_eat_equivclass();
+    void
+    _M_eat_equivclass();
 
-      void
-      _M_eat_collsymbol();
+    void
+    _M_eat_collsymbol();
 
-      _IteratorT  _M_current;
-      _IteratorT  _M_end;
-      _FlagT      _M_flags;
-      _CtypeT&    _M_ctype;
-      _TokenT     _M_curToken;
-      _StringT    _M_curValue;
-      _StateT     _M_state;
-    };
+    _CharT      _M_dot;
+    _CharT      _M_star;
+    _CharT      _M_plus;
+    _CharT      _M_or;
+    _CharT      _M_bracket_beg;
+    _CharT      _M_bracket_end;
+    _CharT      _M_esc;
+    _CharT      _M_sub_beg;
+    _CharT      _M_sub_end;
+    _CharT      _M_brace_beg;
+    _CharT      _M_brace_end;
+    _CharT      _M_carret;
+    _CharT      _M_comma;
+    _CharT      _M_dash;
+    _CharT      _M_eof;
+    _CharT      _M_eol;
+    _CharT      _M_colon;
+    _CharT      _M_equals;
+    // char classes names.
+    _MapT _M_classnames;
+    _IteratorT  _M_current;
+    _IteratorT  _M_end;
+    _IteratorT  _M_begin;
+    _FlagT      _M_flags;
+    _CtypeT&    _M_ctype;
+    _TokenT     _M_curToken;
+    _StringT    _M_curValue;
+    _StateT     _M_state;
+  };
+
+  template<typename _InputIterator>
+    typename _Scanner<_InputIterator>::_CharClassT
+    _Scanner<_InputIterator>::
+    _M_charclass (const _StringT& __classname) const
+    {
+      typename _MapT::const_iterator __class = _M_classnames.find(__classname);
+      return __class == _M_classnames.end()? _S_class_unknown: __class->second;
+    }
+
 
   template<typename _InputIterator>
     void
@@ -180,73 +299,95 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 #if 0
       // TODO: re-enable line anchors when _M_assertion is implemented.
       // See PR libstdc++/47724
-      else if (_M_state & _S_state_at_start && __c == _M_ctype.widen('^'))
+      else if (_M_state & _S_state_at_start && __c == _M_carret)
 	{
 	  _M_curToken = _S_token_line_begin;
 	  ++_M_current;
 	  return;
 	}
-      else if (__c == _M_ctype.widen('$'))
+      else if (__c == _M_dot)
 	{
 	  _M_curToken = _S_token_line_end;
 	  ++_M_current;
 	  return;
 	}
 #endif
-      else if (__c == _M_ctype.widen('.'))
+      else if (__c == _M_dot)
 	{
 	  _M_curToken = _S_token_anychar;
 	  ++_M_current;
 	  return;
 	}
-      else if (__c == _M_ctype.widen('*'))
+      else if (__c == _M_star)
 	{
+	  if (_M_current == _M_begin)
+	    {
+	      __throw_regex_error(regex_constants::error_badrepeat);
+	      return;
+	    }
 	  _M_curToken = _S_token_closure0;
 	  ++_M_current;
 	  return;
 	}
-      else if (__c == _M_ctype.widen('+'))
+      else if (__c == _M_plus)
 	{
+	  if (_M_current == _M_begin)
+	    {
+	      __throw_regex_error(regex_constants::error_badrepeat);
+	      return;
+	    }
 	  _M_curToken = _S_token_closure1;
 	  ++_M_current;
 	  return;
 	}
-      else if (__c == _M_ctype.widen('|'))
+      else if (__c == _M_or)
 	{
 	  _M_curToken = _S_token_or;
 	  ++_M_current;
 	  return;
 	}
-      else if (__c == _M_ctype.widen('['))
+      else if (__c == _M_bracket_beg)
 	{
 	  _M_curToken = _S_token_bracket_begin;
 	  _M_state |= (_S_state_in_bracket | _S_state_at_start);
 	  ++_M_current;
 	  return;
 	}
-      else if (__c == _M_ctype.widen('\\'))
+      else if (__c == _M_esc)
 	{
 	  _M_eat_escape();
 	  return;
 	}
       else if (!(_M_flags & (regex_constants::basic | regex_constants::grep)))
 	{
-	  if (__c == _M_ctype.widen('('))
+	  if (__c == _M_sub_beg)
 	    {
 	      _M_curToken = _S_token_subexpr_begin;
 	      ++_M_current;
 	      return;
 	    }
-	  else if (__c == _M_ctype.widen(')'))
+	  else if (__c == _M_sub_end)
 	    {
 	      _M_curToken = _S_token_subexpr_end;
 	      ++_M_current;
 	      return;
 	    }
-	  else if (__c == _M_ctype.widen('{'))
+	  else if (__c == _M_brace_beg)
 	    {
 	      _M_curToken = _S_token_interval_begin;
 	      _M_state |= _S_state_in_brace;
+	      ++_M_current;
+	      return;
+	    }
+	  else if (__c == _M_bracket_beg)
+	    {
+	      if (_M_current == _M_begin)
+		{
+		  __throw_regex_error(regex_constants::error_brack);
+		  return;
+		}
+	      _M_curToken = _S_token_bracket_begin;
+	      _M_state |= (_S_state_in_bracket | _S_state_at_start);
 	      ++_M_current;
 	      return;
 	    }
@@ -276,7 +417,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	    }
 	  return;
 	}
-      else if (*_M_current == _M_ctype.widen(','))
+      else if (*_M_current == _M_comma)
 	{
 	  _M_curToken = _S_token_comma;
 	  ++_M_current;
@@ -284,12 +425,12 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	}
       if (_M_flags & (regex_constants::basic | regex_constants::grep))
 	{
-	  if (*_M_current == _M_ctype.widen('\\'))
+	  if (*_M_current == _M_esc)
 	    _M_eat_escape();
 	}
-      else 
+      else
 	{
-	  if (*_M_current == _M_ctype.widen('}'))
+	  if (*_M_current == _M_brace_end)
 	    {
 	      _M_curToken = _S_token_interval_end;
 	      _M_state &= ~_S_state_in_brace;
@@ -307,45 +448,50 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       if (_M_state & _S_state_at_start && *_M_current == _M_ctype.widen('^'))
 	{
 	  _M_curToken = _S_token_inverse_class;
+	  // XXX
+	 if (*(_M_current - 1) == _M_bracket_beg)
+	    _M_curValue.assign(1, (*(_M_current++)));
+	  else
+	    _M_curValue += *(_M_current++);
+
 	  _M_state &= ~_S_state_at_start;
-	  ++_M_current;
-	  return;
+	  _M_scan_in_bracket();
 	}
-      else if (*_M_current == _M_ctype.widen('['))
+      else if (*_M_current == _M_bracket_beg)
 	{
 	  ++_M_current;
-	  if (_M_current == _M_end)
+	  if (*_M_current == *_M_end)
 	    {
 	      _M_curToken = _S_token_eof;
 	      return;
 	    }
 
-	  if (*_M_current == _M_ctype.widen('.'))
+	  if (*_M_current == _M_dot)
 	    {
 	      _M_curToken = _S_token_collsymbol;
 	      _M_eat_collsymbol();
 	      return;
 	    }
-	  else if (*_M_current == _M_ctype.widen(':'))
+	  else if (*_M_current == _M_colon)
 	    {
 	      _M_curToken = _S_token_char_class_name;
 	      _M_eat_charclass();
 	      return;
 	    }
-	  else if (*_M_current == _M_ctype.widen('='))
+	  else if (*_M_current == _M_equals)
 	    {
 	      _M_curToken = _S_token_equiv_class_name;
 	      _M_eat_equivclass();
 	      return;
 	    }
 	}
-      else if (*_M_current == _M_ctype.widen('-'))
+      else if (*_M_current == _M_dash)
 	{
 	  _M_curToken = _S_token_dash;
-	  ++_M_current;
-	  return;
+	   _M_curValue += *(_M_current++);
+	  _M_scan_in_bracket ();
 	}
-      else if (*_M_current == _M_ctype.widen(']'))
+      else if (*_M_current == _M_bracket_end)
 	{
 	  if (!(_M_flags & regex_constants::ECMAScript)
 	      || !(_M_state & _S_state_at_start))
@@ -376,7 +522,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       _CharT __c = *_M_current;
       ++_M_current;
 
-      if (__c == _M_ctype.widen('('))
+      if (__c == _M_sub_beg)
 	{
 	  if (!(_M_flags & (regex_constants::basic | regex_constants::grep)))
 	    {
@@ -386,7 +532,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	  else
 	    _M_curToken = _S_token_subexpr_begin;
 	}
-      else if (__c == _M_ctype.widen(')'))
+      else if (__c == _M_sub_end)
 	{
 	  if (!(_M_flags & (regex_constants::basic | regex_constants::grep)))
 	    {
@@ -396,7 +542,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	  else
 	    _M_curToken = _S_token_subexpr_end;
 	}
-      else if (__c == _M_ctype.widen('{'))
+      else if (__c == _M_brace_beg)
 	{
 	  if (!(_M_flags & (regex_constants::basic | regex_constants::grep)))
 	    {
@@ -409,7 +555,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	      _M_state |= _S_state_in_brace;
 	    }
 	}
-      else if (__c == _M_ctype.widen('}'))
+      else if (__c == _M_brace_end)
 	{
 	  if (!(_M_flags & (regex_constants::basic | regex_constants::grep)))
 	    {
@@ -424,7 +570,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	      _M_curToken = _S_token_interval_end;
 	    }
 	}
-      else if (__c == _M_ctype.widen('x'))
+      else if (__c == _M_eof)
 	{
 	  ++_M_current;
 	  if (_M_current == _M_end)
@@ -449,11 +595,11 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		}
 	    }
 	}
-      else if (__c == _M_ctype.widen('^')
-	       || __c == _M_ctype.widen('.')
-	       || __c == _M_ctype.widen('*')
-	       || __c == _M_ctype.widen('$')
-	       || __c == _M_ctype.widen('\\'))
+      else if (__c == _M_carret
+	       || __c == _M_dot
+	       || __c == _M_star
+	       || __c == _M_eol
+	       || __c == _M_esc)
 	{
 	  _M_curToken = _S_token_ord_char;
 	  _M_curValue.assign(1, __c);
@@ -462,6 +608,34 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	{
 	  _M_curToken = _S_token_backref;
 	  _M_curValue.assign(1, __c);
+	}
+      else if (__c == _M_bracket_beg)
+	{
+	  if (!(_M_flags & (regex_constants::basic | regex_constants::grep)))
+	    {
+	      _M_curToken = _S_token_ord_char;
+	      _M_curValue.assign(1, __c);
+	    }
+	  else
+	    {
+	      _M_curToken = _S_token_bracket_begin;
+	      _M_state |= _S_state_in_brace;
+	    }
+	}
+      else if (__c == _M_bracket_end)
+	{
+	  if (!(_M_flags & (regex_constants::basic | regex_constants::grep)))
+	    {
+	      _M_curToken = _S_token_ord_char;
+	      _M_curValue.assign(1, __c);
+	    }
+	  else
+	    {
+	      if (!(_M_state && _S_state_in_brace))
+		__throw_regex_error(regex_constants::error_badbrace);
+	      _M_state &= ~_S_state_in_brace;
+	      _M_curToken = _S_token_bracket_end;
+	    }
 	}
       else
 	__throw_regex_error(regex_constants::error_escape);
@@ -475,19 +649,29 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     _Scanner<_InputIterator>::
     _M_eat_charclass()
     {
-      ++_M_current; // skip ':'
+      typedef std::basic_string<_CharT> _StringT;
+
       if (_M_current == _M_end)
 	__throw_regex_error(regex_constants::error_ctype);
-      for (_M_curValue.clear();
-	   _M_current != _M_end && *_M_current != _M_ctype.widen(':');
+
+      // skip ':'
+      _M_curValue += *(_M_current++);
+
+      _StringT _classname;
+      for (;
+	   _M_current != _M_end && *_M_current != _M_colon;
 	   ++_M_current)
-	_M_curValue += *_M_current;
+	_classname += *_M_current;
+      if (_M_classnames.find(_classname) == _M_classnames.end())
+	__throw_regex_error(regex_constants::error_ctype);
       if (_M_current == _M_end)
 	__throw_regex_error(regex_constants::error_ctype);
-      ++_M_current; // skip ':'
-      if (*_M_current != _M_ctype.widen(']'))
-	__throw_regex_error(regex_constants::error_ctype);
-      ++_M_current; // skip ']'
+      // skip ':'
+      _M_curValue += _classname;
+      _M_curValue += *(_M_current++);
+      //if (*_M_current != _M_bracket_end)
+      // __throw_regex_error(regex_constants::error_ctype);
+      //++_M_current;  skip ']'
     }
 
 
@@ -500,13 +684,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       if (_M_current == _M_end)
 	__throw_regex_error(regex_constants::error_collate);
       for (_M_curValue.clear();
-	   _M_current != _M_end && *_M_current != _M_ctype.widen('=');
+	   _M_current != _M_end && *_M_current != _M_equals;
 	   ++_M_current)
 	_M_curValue += *_M_current;
       if (_M_current == _M_end)
 	__throw_regex_error(regex_constants::error_collate);
       ++_M_current; // skip '='
-      if (*_M_current != _M_ctype.widen(']'))
+      if (*_M_current != _M_bracket_end)
 	__throw_regex_error(regex_constants::error_collate);
       ++_M_current; // skip ']'
     }
@@ -521,13 +705,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       if (_M_current == _M_end)
 	__throw_regex_error(regex_constants::error_collate);
       for (_M_curValue.clear();
-	   _M_current != _M_end && *_M_current != _M_ctype.widen('.');
+	   _M_current != _M_end && *_M_current != _M_dot;
 	   ++_M_current)
 	_M_curValue += *_M_current;
       if (_M_current == _M_end)
 	__throw_regex_error(regex_constants::error_collate);
       ++_M_current; // skip '.'
-      if (*_M_current != _M_ctype.widen(']'))
+      if (*_M_current != _M_bracket_end)
 	__throw_regex_error(regex_constants::error_collate);
       ++_M_current; // skip ']'
     }
@@ -538,6 +722,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     _Scanner<_InputIterator>::
     _M_print(std::ostream& ostr)
     {
+      ostr << "Symbol " << *_M_current <<"\n";
+      ostr << "Token:\n";
       switch (_M_curToken)
       {
 	case _S_token_anychar:
@@ -638,6 +824,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       typedef typename std::iterator_traits<_InIter>::value_type _CharT;
       typedef std::basic_string<_CharT>                          _StringT;
       typedef regex_constants::syntax_option_type                _FlagT;
+      typedef _IntervalMatcher<_InIter, _TraitsT>                _IMatcherT;
 
       _Compiler(const _InIter& __b, const _InIter& __e,
 		_TraitsT& __traits, _FlagT __flags);
@@ -646,10 +833,16 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       _M_nfa() const
       { return _M_state_store; }
 
+#ifdef _GLIBCXX_DEBUG
+      std::ostream&
+      _M_print(std::ostream&);
+#endif
+
     private:
       typedef _Scanner<_InIter>                              _ScannerT;
       typedef typename _ScannerT::_TokenT                    _TokenT;
       typedef std::stack<_StateSeq, std::vector<_StateSeq> > _StackT;
+      typedef const std::ctype<_CharT>                       _CtypeT;
       typedef _RangeMatcher<_InIter, _TraitsT>               _RMatcherT;
 
       // accepts a specific token or returns false.
@@ -712,6 +905,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       _StringT       _M_cur_value;
       _Nfa           _M_state_store;
       _StackT        _M_stack;
+      _CharT         _M_esc;
+      _CharT         _M_carret;
+      _CharT         _M_dash;
     };
 
   template<typename _InIter, typename _TraitsT>
@@ -724,8 +920,14 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       typedef _StartTagger<_InIter, _TraitsT> _Start;
       typedef _EndTagger<_InIter, _TraitsT> _End;
 
+      _CtypeT& ctype(std::use_facet<_CtypeT>(_M_traits.getloc()));
+
+      _M_esc = ctype.widen('\\');
+      _M_carret = ctype.widen('^');
+      _M_dash = ctype.widen('-');
+
       _StateSeq __r(_M_state_store,
-      		    _M_state_store._M_insert_subexpr_begin(_Start(0)));
+		    _M_state_store._M_insert_subexpr_begin(_Start(0)));
       _M_disjunction();
       if (!_M_stack.empty())
 	{
@@ -740,11 +942,11 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     bool
     _Compiler<_InIter, _TraitsT>::
     _M_match_token(_Compiler<_InIter, _TraitsT>::_TokenT token)
-    { 
+    {
       if (token == _M_scanner._M_token())
 	{
-	  _M_cur_value = _M_scanner._M_value();
 	  _M_scanner._M_advance();
+	  _M_cur_value = _M_scanner._M_value();
 	  return true;
 	}
       return false;
@@ -872,7 +1074,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	  _StateSeq __r(_M_stack.top());
 	  int __min_rep = _M_cur_int_value(10);
 	  for (int __i = 1; __i < __min_rep; ++__i)
-	    _M_stack.top()._M_append(__r._M_clone()); 
+	    _M_stack.top()._M_append(__r._M_clone());
 	  if (_M_match_token(_ScannerT::_S_token_comma))
 	    if (_M_match_token(_ScannerT::_S_token_dup_count))
 	      {
@@ -914,15 +1116,15 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       if (_M_match_token(_ScannerT::_S_token_anychar))
 	{
 	  _M_stack.push(_StateSeq(_M_state_store,
-                                  _M_state_store._M_insert_matcher
-                                  (_AnyMatcher)));
+				  _M_state_store._M_insert_matcher
+				  (_AnyMatcher)));
 	  return true;
 	}
       if (_M_match_token(_ScannerT::_S_token_ord_char))
 	{
 	  _M_stack.push(_StateSeq(_M_state_store,
-                                  _M_state_store._M_insert_matcher
-                                  (_CMatcher(_M_cur_value[0], _M_traits))));
+				  _M_state_store._M_insert_matcher
+				  (_CMatcher(_M_cur_value[0], _M_traits))));
 	  return true;
 	}
       if (_M_match_token(_ScannerT::_S_token_quoted_char))
@@ -965,13 +1167,33 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     _Compiler<_InIter, _TraitsT>::
     _M_bracket_expression()
     {
+      typedef typename _TraitsT::char_type char_type;
+      typedef std::pair<char_type, char_type> _M_PairT;
+      typedef std::vector<_TokenFactory<_TraitsT> > _M_TokenListT;
+      typedef _TokenFactory<_TraitsT> _TokFactory;
+
       if (_M_match_token(_ScannerT::_S_token_bracket_begin))
 	{
-	  _RMatcherT __matcher(_M_match_token(_ScannerT::_S_token_line_begin),
-			       _M_traits);
-	  if (!_M_bracket_list(__matcher)
-	      || !_M_match_token(_ScannerT::_S_token_bracket_end))
-	    __throw_regex_error(regex_constants::error_brack);
+
+	  const _M_PairT cp(_M_cur_value[0], _M_cur_value[1]);
+	  _M_TokenListT __ml;
+
+	  bool negation = false;
+	  for (int i = 0; i< _M_cur_value.length(); i++)
+	    {
+	      if (_M_cur_value[i] == _M_carret)
+		negation = true;
+	      else if (_M_cur_value[i] == _M_dash)
+		__ml.push_back(_TokFactory(_M_cur_value[i-1], _M_cur_value[++i], negation));
+	      else if ((_M_cur_value[i + 1] == _M_dash)
+		  || (_M_cur_value[i + 1] == _M_carret))
+		__ml.push_back(_TokFactory(_M_cur_value[i], negation));
+	    }
+	  _IMatcherT __matcher(__ml, _M_traits);
+
+	  // if (!(_M_bracket_list(__matcher)))
+	  // __throw_regex_error(regex_constants::error_brack);
+
 	  _M_stack.push(_StateSeq(_M_state_store,
 				  _M_state_store._M_insert_matcher(__matcher)));
 	  return true;
@@ -1097,12 +1319,24 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       return __v;
     }
 
+#ifdef _GLIBCXX_DEBUG
+  template<typename _InIter, typename _TraitsT>
+    std::ostream&
+    _Compiler<_InIter, _TraitsT>::
+    _M_print(std::ostream& ostr)
+    {
+      ostream << "Top of _Compiler::_M_stack: " << _M_stack.top(); << "\n";
+      ostream << "_M_cur_value: " << _M_cur_value << "\n";
+      ostrean << "_M_stack.size: " << _M_stack.size() << '\n';
+    }
+#endif
+
   template<typename _InIter, typename _TraitsT>
     _AutomatonPtr
     __compile(const _InIter& __b, const _InIter& __e, _TraitsT& __t,
 	      regex_constants::syntax_option_type __f)
     { return _AutomatonPtr(new _Nfa(_Compiler<_InIter, _TraitsT>(__b, __e, __t,
-                                        __f)._M_nfa())); }
+					__f)._M_nfa())); }
 
  //@} regex-detail
 _GLIBCXX_END_NAMESPACE_VERSION

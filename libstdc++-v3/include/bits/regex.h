@@ -690,6 +690,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       void
       _M_dot(std::ostream& __ostr)
       { _M_automaton->_M_dot(__ostr); }
+
+     void 
+      _M_print(std::ostream& __ostr)
+      { _M_automaton->_M_print(__ostr); }
 #endif
       
       const __detail::_AutomatonPtr&
