@@ -793,7 +793,7 @@ slpeel_make_loop_iterate_ntimes (struct loop *loop, tree niters)
   loop_loc = find_loop_location (loop);
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
-      if (loop_loc != UNKNOWN_LOC)
+      if (LOCATION_LOCUS (loop_loc) != UNKNOWN_LOC)
         fprintf (dump_file, "\nloop at %s:%d: ",
                  LOC_FILE (loop_loc), LOC_LINE (loop_loc));
       print_gimple_stmt (dump_file, cond_stmt, 0, TDF_SLIM);
@@ -1239,7 +1239,7 @@ slpeel_tree_peel_loop_to_edge (struct loop *loop,
       loop_loc = find_loop_location (loop);
       if (dump_file && (dump_flags & TDF_DETAILS))
         {
-          if (loop_loc != UNKNOWN_LOC)
+          if (LOCATION_LOCUS (loop_loc) != UNKNOWN_LOC)
             fprintf (dump_file, "\n%s:%d: note: ",
                      LOC_FILE (loop_loc), LOC_LINE (loop_loc));
           fprintf (dump_file, "tree_duplicate_loop_to_edge_cfg failed.\n");

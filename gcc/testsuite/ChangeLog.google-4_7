@@ -1,3 +1,9 @@
+2012-10-08  Dehao Chen  <dehao@google.com>
+
+	Backport r192049 from:trunk:
+
+	* gcc.dg/pr54782.c: New test.
+
 2012-09-14  Dehao Chen  <dehao@google.com>
 
 	Backport r191338 from trunk:

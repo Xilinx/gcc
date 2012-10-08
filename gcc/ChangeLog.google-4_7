@@ -1,5 +1,18 @@
 2012-10-08  Dehao Chen  <dehao@google.com>
 
+	Backport 191931, 192049, 192120, 192165 from trunk.
+
+	* tree-vect-loop-manip.c (slpeel_make_loop_iterate_ntimes): Use
+	LOCATION_LOCUS to compare with UNKNOWN_LOCATION.
+	(slpeel_tree_peel_loop_to_edge): Likewise.
+	* tree-vectorizer.c (vectorize_loops): Likewise.
+	* tree-cfg.c (move_block_to_fn): Update lexical block for phi_args.
+	* tree-ssa-live.c (clear_unused_block_pointer_1): Look at
+	DECL_DEBUG_EXPR again.
+	* gimple-low.c (lower_stmt): Set the block for call args.
+
+2012-10-08  Dehao Chen  <dehao@google.com>
+
 	Backport 192215 from trunk:
 
 	2012-10-08  Dehao Chen  <dehao@google.com>

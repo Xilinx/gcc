@@ -6186,6 +6186,7 @@ move_block_to_fn (struct function *dest_cfun, basic_block bb,
       use_operand_p use;
       tree op = PHI_RESULT (phi);
       ssa_op_iter oi;
+      unsigned i;
 
       if (!is_gimple_reg (op))
 	{
@@ -6202,6 +6203,23 @@ move_block_to_fn (struct function *dest_cfun, basic_block bb,
 	  op = USE_FROM_PTR (use);
 	  if (TREE_CODE (op) == SSA_NAME)
 	    SET_USE (use, replace_ssa_name (op, d->vars_map, dest_cfun->decl));
+	}
+
+      for (i = 0; i < EDGE_COUNT (bb->preds); i++)
+	{
+	  location_t locus = gimple_phi_arg_location (phi, i);
+	  tree block = LOCATION_BLOCK (locus);
+
+	  if (locus == UNKNOWN_LOCATION)
+	    continue;
+	  if (d->orig_block == NULL_TREE || block == d->orig_block)
+	    {
+	      if (d->new_block == NULL_TREE)
+		locus = LOCATION_LOCUS (locus);
+	      else
+		locus = COMBINE_LOCATION_DATA (line_table, locus, d->new_block);
+	      gimple_phi_arg_set_location (phi, i, locus);
+	    }
 	}
 
       gsi_next (&si);
