@@ -1,6 +1,11 @@
 2012-10-09  Rong Xu <xur@google.com>
 
 	Google Ref: b/7049102.
+	* gcc.dg/tree-ssa/vrp1.c: New testcase.
+
+2012-10-09  Rong Xu <xur@google.com>
+
+	Google Ref: b/7049102.
 	Backport r190291 from trunk.
 
 	2012-08-10  Richard Guenther  <rguenther@suse.de>
