@@ -1466,8 +1466,8 @@ SmeltFile::SmeltFile(SmeltMainWindow*mwin,const std::string&filepath,long num)
 
   _sfilview.signal_motion_notify_event().connect(sigc::mem_fun(this,
       &SmeltFile::on_motion_event));
+  typedef Glib::RefPtr<Gtk::TextTag> tagref_t;
   {
-    typedef Glib::RefPtr<Gtk::TextTag> tagref_t;
     tagref_t tagmeltmark = _sfilview.get_buffer()->create_tag ("meltmark");
     tagmeltmark->property_style() = Pango::STYLE_OBLIQUE;
     tagmeltmark->property_underline() = Pango::UNDERLINE_SINGLE;
@@ -1475,6 +1475,10 @@ SmeltFile::SmeltFile(SmeltMainWindow*mwin,const std::string&filepath,long num)
     tagmeltmark->property_foreground() = "yellow";
     tagmeltmark->signal_event().connect(sigc::mem_fun(this,
                                         &SmeltFile::on_meltmark_event));
+  }
+  {
+    tagref_t taghighlight = _sfilview.get_buffer()->create_tag ("highlight");
+    taghighlight->property_background() = "Orange";
   }
 
   {
@@ -1625,7 +1629,7 @@ SmeltFile::on_meltmark_event(const Glib::RefPtr<Glib::Object>&ob,
   if (it.get_buffer() == _sfilview.get_buffer()) {
     SmeltLocationInfo* locinf = NULL;
     int lin = it.get_line()+1;	// we count lines from 1 but Gtk count them from 0
-    SMELT_DEBUG("meltmarkevent ev type#" << ev->type << ", line " << lin);
+    //SMELT_DEBUG("meltmarkevent ev type#" << ev->type << ", line " << lin);
     infolinemap_t::iterator infiter = _slineinfomap.find(lin);
     if (infiter != _slineinfomap.end()) {
       linelocinfovec_t&infvec = infiter->second;
@@ -1789,12 +1793,6 @@ SmeltLocationInfo::initialize (void)
     tagitalic->property_style() = Pango::STYLE_OBLIQUE;
     SmeltTagSymbol::register_tag(tagitalic);
     sli_tagtbl_->add(tagitalic);
-  }
-  {
-    tagref_t taghighlight = Gtk::TextTag::create ("highlight");
-    taghighlight->property_background() = "Orange";
-    SmeltTagSymbol::register_tag(taghighlight);
-    sli_tagtbl_->add(taghighlight);
   }
 }
 

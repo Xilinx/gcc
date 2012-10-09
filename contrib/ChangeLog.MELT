@@ -1,5 +1,10 @@
 
 2012-10-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.cc (SmeltFile::SmeltFile): Create
+	"hightlight" tag here.
+	(SmeltFile::on_meltmark_event): Debug-print only button events.
+
+2012-10-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.cc (SmeltFile::add_location_info): Add debug.
 	(SmeltFile::on_meltmark_event): Count line from 1 not 0.
 
