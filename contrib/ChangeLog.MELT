@@ -1,4 +1,13 @@
 
+2012-10-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.cc (SmeltFile): New linelocinfovec_t
+	typedef.
+	(SmeltFile::add_location_info): New.
+	(SmeltLocationInfo::activate): New.
+	(SmeltLocationInfo::inside): New.
+	(SmeltFile::on_meltmark_event, SmeltMainWindow::mark_location):
+	Use them.
+
 2012-10-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{still incomplete}}
 	* simplemelt-gtkmm-probe.cc (SmeltFile): Add _slastevent &

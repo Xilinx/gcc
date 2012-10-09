@@ -279,8 +279,8 @@ class SmeltFile {
   int _sfilnblines;   // number of lines
   std::string _sfilname;  // file path
   Gsv::View _sfilview;  // source view
-  typedef std::map<int,SmeltLocationInfo*> linelocinfomap_t;
-  typedef std::map<int,linelocinfomap_t> infolinemap_t;
+  typedef std::vector<SmeltLocationInfo*> linelocinfovec_t;
+  typedef std::map<int,linelocinfovec_t> infolinemap_t;
   infolinemap_t _slineinfomap;
   GdkEvent* _slastevent;
   SmeltLocationInfo* _slastlocinfo;
@@ -310,6 +310,7 @@ public:
   SmeltFile(SmeltMainWindow*,const std::string&filepath,long num);
   SmeltFile(SmeltMainWindow*,const enum pseudofile_en pseudo,long num);
   ~SmeltFile();
+  void add_location_info(SmeltLocationInfo*inf);
   bool on_meltmark_event(const Glib::RefPtr<Glib::Object>&ob,GdkEvent*ev,const Gtk::TextIter& it);
   bool on_motion_event (GdkEventMotion* ev);
   Glib::RefPtr<Gsv::Gutter> left_gutter() {
@@ -421,9 +422,11 @@ public:
   void on_update(void);
   void highlight(void);
   void unhighlight(void);
+  void activate(void);
   void on_dialog_response(int);
   Gtk::TextIter text_start_iter(void);
   Gtk::TextIter text_end_iter(void);
+  bool inside (const Gtk::TextIter&);
   static Glib::RefPtr<Gtk::TextTagTable> the_tag_table() {
     return sli_tagtbl_;
   };
@@ -1591,6 +1594,13 @@ SmeltFile::~SmeltFile()
 }
 
 
+void SmeltFile::add_location_info(SmeltLocationInfo*inf)
+{
+  g_assert (inf !=  NULL);
+  linelocinfovec_t& locvec = _slineinfomap[inf->lineno()];
+  locvec.push_back(inf);
+}
+
 bool
 SmeltFile::on_motion_event(GdkEventMotion*ev)
 {
@@ -1616,15 +1626,29 @@ SmeltFile::on_meltmark_event(const Glib::RefPtr<Glib::Object>&ob,
     int lin = it.get_line();
     infolinemap_t::iterator infiter = _slineinfomap.find(lin);
     if (infiter != _slineinfomap.end()) {
-      int col = it.get_line_offset();
-      linelocinfomap_t&infmap = infiter->second;
-      linelocinfomap_t::iterator lociter = infmap.find (col);
-      if (lociter != infmap.end())
-        locinf = lociter->second;
+      linelocinfovec_t&infvec = infiter->second;
+      for (linelocinfovec_t::iterator itvec= infvec.begin();
+           !locinf && itvec!=infvec.end();
+           itvec++) {
+        SmeltLocationInfo* curlocinf = *itvec;
+        if (!curlocinf)
+          continue;
+        if (curlocinf->inside(it)) {
+          locinf = curlocinf;
+          break;
+        }
+      }
     }
-    if (!locinf) return false;  // propagate the event
+    if (!locinf) {
+      SMELT_DEBUG("meltmarkevent no locinf lin=" << lin);
+      return false;  // propagate the event
+    }
+    SMELT_DEBUG("meltmarkevent locinf#" << locinf->num());
     _slastevent = (GdkEvent*)ev;
     _slastlocinfo = locinf;
+    if (ev->type == GDK_BUTTON_RELEASE) {
+      locinf->on_update();
+    }
   }
   return false;     // to propagate the event
 }
@@ -1708,9 +1732,11 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
     itcur.forward_chars(col-1);
   SMELT_DEBUG("itcur=" << itcur);
   SmeltLocationInfo* inf = new SmeltLocationInfo(marknum,sfil,lineno,col);
+  sfil->add_location_info (inf);
   mainlocinfmapnum_[marknum] = inf;
+  inf->activate();
 
-#warning we should use the meltmarktag instead, since inserting buttons is ugly and time-expensive
+#if 0
   Gtk::Button* but = new Gtk::Button("*");
   Glib::RefPtr<Gtk::TextChildAnchor> chanch = Gtk::TextChildAnchor::create ();
   tbuf->insert_child_anchor(itcur,chanch);
@@ -1718,6 +1744,7 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
   but->signal_clicked().connect(sigc::mem_fun(*inf,
                                 &SmeltLocationInfo::on_update));
   but->show();
+#endif
 
   sfil->view().queue_draw();
   postpone_show_all_from(__LINE__);
@@ -1820,9 +1847,29 @@ SmeltLocationInfo::text_end_iter(void)
   }
 }
 
+bool
+SmeltLocationInfo::inside(const Gtk::TextIter &it)
+{
+  Gtk::TextIter stit = text_start_iter();
+  Gtk::TextIter enit = text_end_iter();
+  return it.in_range(stit,enit);
+}
+
+void
+SmeltLocationInfo::activate(void)
+{
+  SMELT_DEBUG("activate #" << _sli_num);
+  g_assert (_sli_fil != NULL);
+  Glib::RefPtr<Gsv::Buffer> tbuf = _sli_fil->view().get_source_buffer();
+  Gtk::TextIter stit = text_start_iter();
+  Gtk::TextIter enit = text_end_iter();
+  tbuf->apply_tag_by_name ("meltmark", stit, enit);
+}
+
 void
 SmeltLocationInfo::highlight(void)
 {
+  SMELT_DEBUG("highlight #" << _sli_num);
   g_assert (_sli_fil != NULL);
   Glib::RefPtr<Gsv::Buffer> tbuf = _sli_fil->view().get_source_buffer();
   Gtk::TextIter stit = text_start_iter();
@@ -1833,6 +1880,7 @@ SmeltLocationInfo::highlight(void)
 void
 SmeltLocationInfo::unhighlight(void)
 {
+  SMELT_DEBUG("unhighlight #" << _sli_num);
   g_assert (_sli_fil != NULL);
   Glib::RefPtr<Gsv::Buffer> tbuf = _sli_fil->view().get_source_buffer();
   Gtk::TextIter stit = text_start_iter();
