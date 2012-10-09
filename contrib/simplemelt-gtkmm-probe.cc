@@ -1597,6 +1597,8 @@ SmeltFile::~SmeltFile()
 void SmeltFile::add_location_info(SmeltLocationInfo*inf)
 {
   g_assert (inf !=  NULL);
+  SMELT_DEBUG("addlocinfo inf#" << inf->num()
+	      << " line "<< inf->lineno() << " col " << inf->col());
   linelocinfovec_t& locvec = _slineinfomap[inf->lineno()];
   locvec.push_back(inf);
 }
@@ -1620,10 +1622,10 @@ SmeltFile::on_meltmark_event(const Glib::RefPtr<Glib::Object>&ob,
                              GdkEvent*ev,
                              const Gtk::TextIter& it)
 {
-  SMELT_DEBUG("meltmarkevent ev type#" << ev->type);
   if (it.get_buffer() == _sfilview.get_buffer()) {
     SmeltLocationInfo* locinf = NULL;
-    int lin = it.get_line();
+    int lin = it.get_line()+1;	// we count lines from 1 but Gtk count them from 0
+    SMELT_DEBUG("meltmarkevent ev type#" << ev->type << ", line " << lin);
     infolinemap_t::iterator infiter = _slineinfomap.find(lin);
     if (infiter != _slineinfomap.end()) {
       linelocinfovec_t&infvec = infiter->second;
