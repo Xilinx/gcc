@@ -1,3 +1,8 @@
+2012-10-09  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* semantics.c (simplify_aggr_init_expr): Carried over the Cilk_spawn's
+	detach point when converting aggr_init_expr to a call_expr.
+
 2012-09-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cilk.c: Deleted file.

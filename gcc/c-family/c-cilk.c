@@ -221,7 +221,11 @@ recognize_spawn (tree exp)
   if (!SPAWN_CALL_P (exp))
     return false;
   SPAWN_CALL_P (exp) = 0;
-  SPAWN_DETACH_POINT (exp) = 1;
+
+  if (TREE_CODE (exp) == CALL_EXPR)
+    SPAWN_DETACH_POINT (exp) = 1;
+  else if (TREE_CODE (exp) == TARGET_EXPR && TARGET_EXPR_INITIAL (exp))
+    SPAWN_DETACH_POINT (TARGET_EXPR_INITIAL (exp)) = 1;
   return true;
 }
 
@@ -296,7 +300,8 @@ cilk_valid_spawn (tree exp0)
     exp = TREE_OPERAND (exp, 0);
 
   if (TREE_CODE (exp) == TARGET_EXPR)
-    if (TARGET_EXPR_INITIAL (exp) && TREE_CODE (exp) != AGGR_INIT_EXPR)
+    if (TARGET_EXPR_INITIAL (exp)
+	&& TREE_CODE (TARGET_EXPR_INITIAL (exp)) != AGGR_INIT_EXPR)
       exp = TARGET_EXPR_INITIAL (exp);
 
   if (exp == NULL_TREE)
@@ -434,8 +439,8 @@ gimplify_cilk_spawn (tree *spawn_p, gimple_seq *before ATTRIBUTE_UNUSED,
   if (*arg_array == NULL_TREE)
     call2 = build_call_expr (function, 0);
   else 
-    call2 = build_call_expr_loc_array (UNKNOWN_LOCATION, function, total_args, 
-				       arg_array);
+    call2 = build_call_expr_loc_array (EXPR_LOCATION (*spawn_p), function,
+				       total_args, arg_array);
 
   *spawn_p = alloc_stmt_list ();  
   gcc_assert (cfun->cilk_frame_decl != NULL_TREE);
@@ -1552,7 +1557,6 @@ install_body_with_frame_cleanup (tree fndecl, tree body)
 {
   tree list;
   tree frame = make_cilk_frame (fndecl);
-  tree addr = build1 (ADDR_EXPR, cilk_frame_ptr_type_decl, frame);
   tree dtor = build_cilk_function_exit (frame, false, false);
   add_local_decl (cfun, frame);
 

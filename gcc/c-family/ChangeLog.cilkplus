@@ -2,6 +2,11 @@
 
 	* c-cilk.c (install_body_with_frame_cleanup): Moved enter_frame call
 	from here to the gimplify_call_expr (right before inserting detach).
+	(recognize_spawn): Set the Cilk_spawn's detach point to the initial
+	node of the target-expr.
+	(cilk_valid_spawn): Fixed a bug of checking the TARGET_EXPR's initial
+	node instead of the node itself.
+	(gimplify_cilk_spawn): Set the expression's location correctly.
 
 2012-10-08  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
