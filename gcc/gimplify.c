@@ -2485,7 +2485,6 @@ gimplify_call_expr (tree *expr_p, gimple_seq *pre_p, bool want_value)
   bool builtin_va_start_p = FALSE;
   location_t loc = EXPR_LOCATION (*expr_p);
   bool is_detach = false;
-  tree detach_begin = NULL_TREE, detach_end = NULL_TREE;
 
   gcc_assert (TREE_CODE (*expr_p) == CALL_EXPR);
 
@@ -2656,6 +2655,7 @@ gimplify_call_expr (tree *expr_p, gimple_seq *pre_p, bool want_value)
       {
 	tree frame;
 	tree detach_expr;
+	tree detach_begin, detach_end, enter_end, enter_h_begin, enter_frame;
 	if (TREE_CODE (*expr_p) != CALL_EXPR)
 	  warning (0,
 		   "spawned function call vanished during IL transformation.");
@@ -2669,9 +2669,19 @@ gimplify_call_expr (tree *expr_p, gimple_seq *pre_p, bool want_value)
 	    warning (0, "spawning function lacks frame descriptor");
 	    frame = null_pointer_node;
 	  }
+
+	/* We move creation of the enter frame of the helper function right
+	   before the detach so that we can handle case shown by the
+	   testsuite code spawning_arc.cc.  */
+	enter_h_begin = build_call_expr (cilk_enter_h_begin_fndecl, 1, frame);
+	enter_frame = build_call_expr (cilk_enter_fndecl, 1, frame);
+	enter_end = build_call_expr (cilk_enter_end_fndecl, 1, frame);
 	detach_begin = build_call_expr (cilk_detach_begin_fndecl, 1, frame);
 	detach_end = build_call_expr (cilk_detach_end_fndecl, 0);
 	detach_expr = build_call_expr (cilk_detach_fndecl, 1, frame);
+	gimplify_and_add (enter_h_begin, pre_p);
+	gimplify_and_add (enter_frame, pre_p);
+	gimplify_and_add (enter_end, pre_p);
 	gimplify_and_add (detach_begin, pre_p);
 	gimplify_and_add (detach_expr, pre_p);
 	gimplify_and_add (detach_end, pre_p);

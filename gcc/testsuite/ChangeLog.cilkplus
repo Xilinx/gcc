@@ -1,3 +1,7 @@
+2012-10-09  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* g++.dg/cilk-plus/cilk_keywords_test/execute/spawning_arc.cc: New test.
+
 2012-10-08  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* g++.dg/cilk-plus/cilk_keywords_test/compile/fib-struct.cc: Added

@@ -1,3 +1,8 @@
+2012-10-09  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-cilk.c (install_body_with_frame_cleanup): Moved enter_frame call
+	from here to the gimplify_call_expr (right before inserting detach).
+
 2012-10-08  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-cilk.c (recognize_spawn): Added a check for not TARGET_EXPR.

@@ -1553,18 +1553,10 @@ install_body_with_frame_cleanup (tree fndecl, tree body)
   tree list;
   tree frame = make_cilk_frame (fndecl);
   tree addr = build1 (ADDR_EXPR, cilk_frame_ptr_type_decl, frame);
-  tree ctor = build_call_expr (cilk_enter_fndecl, 1, addr);
   tree dtor = build_cilk_function_exit (frame, false, false);
-  tree enter_h_begin = build_call_expr (cilk_enter_h_begin_fndecl, 1, addr);
-  tree enter_end = build_call_expr (cilk_enter_end_fndecl, 1, addr);
-
   add_local_decl (cfun, frame);
 
   DECL_SAVED_TREE (fndecl) = (list = alloc_stmt_list ());
-
-  append_to_statement_list_force (enter_h_begin, &list);
-  append_to_statement_list_force (ctor, &list);
-  append_to_statement_list_force (enter_end, &list);
   append_to_statement_list_force (build_stmt (EXPR_LOCATION (body), 
 					      TRY_FINALLY_EXPR, body, dtor),
 				  &list);

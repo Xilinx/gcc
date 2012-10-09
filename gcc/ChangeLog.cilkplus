@@ -1,3 +1,8 @@
+2012-10-09  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* gimplify.c (gimplify_call_expr): Moved enter_frame call from the
+	frame_body creation to right before the detach call.
+
 2012-10-08  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* tree.h (SPAWN_DETACH_POINT): Removed the restriction of a CALL_EXPR.
