@@ -1,5 +1,8 @@
 
 2012-10-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* MELT-Plugin-Makefile: Improve by using melt_cflags.
+
+2012-10-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.cc (SmeltFile::SmeltFile): Create
 	"hightlight" tag here.
 	(SmeltFile::on_meltmark_event): Debug-print only button events.
