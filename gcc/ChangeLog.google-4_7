@@ -1,3 +1,20 @@
+2012-10-09  Rong Xu <xur@google.com>
+
+	Google Ref: b/7049102.
+	Backport r190291 from trunk.
+
+	2012-08-10  Richard Guenther  <rguenther@suse.de>
+
+		PR tree-optimization/54109
+		* tree-ssa-forwprop.c
+		(forward_propagate_addr_into_variable_array_index): Remove.
+		(forward_propagate_addr_expr_1): Adjust.
+
+		* gcc.dg/torture/pr54109.c: New testcase.
+		* gcc.dg/tree-ssa/forwprop-1.c: Adjust.
+		* gcc.dg/tree-ssa/forwprop-2.c: Likewise.
+
+
 2012-10-08  Dehao Chen  <dehao@google.com>
 
 	Backport 191931, 192049, 192120, 192165 from trunk.
