@@ -1,6 +1,8 @@
+/* { dg-do assemble } */
+/* { dg-final { scan-assembler "cilk_spawn_001" } }  */
+
 #include <cilk/cilk.h>
-#include <cstdio>
-#include <pthread.h> 
+#include <cstdlib>
 #define FIB_PARAMETER 40
 struct fib_struct
 {
@@ -42,13 +44,10 @@ int main () {
    struct fib_struct z ;
    z.x = FIB_PARAMETER; 
    
-    std::printf("fib(%d) = %d\n", FIB_PARAMETER, fib(z).x);
     int parallel_fib = fib(z).x;
     int serial_fib = sfib(FIB_PARAMETER);
-    if (serial_fib == parallel_fib)
-      std::puts("correct.");
-    else
-      std::puts("error.");
+    if (serial_fib != parallel_fib)
+      abort ();
     
     return 0;
 }

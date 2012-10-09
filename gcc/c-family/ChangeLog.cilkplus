@@ -1,3 +1,9 @@
+2012-10-08  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-cilk.c (recognize_spawn): Added a check for not TARGET_EXPR.
+	(cilk_valid_spawn): Added a check if TARGET_EXPR_INITIAL is not an
+	aggregate init. expr.
+
 2012-09-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-cilk.c: New file.

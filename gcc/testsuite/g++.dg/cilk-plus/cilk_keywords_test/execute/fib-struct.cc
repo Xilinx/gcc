@@ -1,8 +1,6 @@
 /* { dg-do run } */
 /* { dg-options "-ldl -lcilkrts" } */
 
-
-
 #include <cilk/cilk.h>
 #include <cstdlib>
 #define FIB_PARAMETER 40

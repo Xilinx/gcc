@@ -1,3 +1,10 @@
+2012-10-08  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* g++.dg/cilk-plus/cilk_keywords_test/compile/fib-struct.cc: Added
+	directive to assemble and check assembler to find spawn helper.
+	* g++.dg/cilk-plus/cilk_keywords_test/compile/fib-struct2.cc: New test.
+	* g++.dg/cilk-plus/cilk_keywords_test/execute/fib-struct2.cc: Likewise.
+
 2012-08-21  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* g++.dg/cilk-plus/cilk_plus.exp: Reorganized all tests into compile

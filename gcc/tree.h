@@ -1827,7 +1827,7 @@ extern void protected_set_expr_location (tree, location_t);
 #define CILK_FN_P(N) (N->base.is_cilk_helper_fn)
 
 /* True if this call is the point at which a wrapper should detach. */
-#define SPAWN_DETACH_POINT(NODE) (CALL_EXPR_CHECK (NODE)->base.default_def_flag)
+#define SPAWN_DETACH_POINT(NODE) ((NODE)->base.default_def_flag)
 
 
 /* TM directives and accessors.  */

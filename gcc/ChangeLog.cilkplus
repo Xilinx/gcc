@@ -1,3 +1,7 @@
+2012-10-08  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* tree.h (SPAWN_DETACH_POINT): Removed the restriction of a CALL_EXPR.
+
 2012-09-13  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* tree-profile.c (tree_profiling): Added a check for cilk plus flag and

@@ -216,7 +216,7 @@ cilk_spawnable_constructor (tree exp)
 static bool
 recognize_spawn (tree exp)
 {
-  if (TREE_CODE (exp) != CALL_EXPR)
+  if (TREE_CODE (exp) != CALL_EXPR && TREE_CODE (exp) != TARGET_EXPR)
     return lang_hooks.cilkplus.recognize_spawn (exp);
   if (!SPAWN_CALL_P (exp))
     return false;
@@ -296,7 +296,8 @@ cilk_valid_spawn (tree exp0)
     exp = TREE_OPERAND (exp, 0);
 
   if (TREE_CODE (exp) == TARGET_EXPR)
-    exp = TARGET_EXPR_INITIAL (exp);
+    if (TARGET_EXPR_INITIAL (exp) && TREE_CODE (exp) != AGGR_INIT_EXPR)
+      exp = TARGET_EXPR_INITIAL (exp);
 
   if (exp == NULL_TREE)
     return false; /* Happens with C++ TARGET_EXPR.  */
