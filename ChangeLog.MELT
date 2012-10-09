@@ -1,4 +1,7 @@
 
+2012-10-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{0.9.7 rc4 release candidate}}
+
 2012-10-08  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	MELT branch merged with trunk rev 192205 using svnmerge.py
