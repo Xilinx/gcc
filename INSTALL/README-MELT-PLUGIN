@@ -190,7 +190,7 @@ the subject line] and to <gcc-melt@googlegroups.com>
 
 ################################################################
 NEWS for 0.9.7 MELT plugin for GCC 4.6 & 4.7 & future 4.8
-[[october, XXth, 2012]]
+[[october, 10th, 2012]]
 
    Language improvement
    ====================
@@ -233,7 +233,12 @@ NEWS for 0.9.7 MELT plugin for GCC 4.6 & 4.7 & future 4.8
   Add a runtime expression evaluation function
   TRANSLATE_RUN_MELT_EXPRESSIONS with a mode eval for initial
   evaluation of a sequence of expressions, and a mode repl for
-  read-eval-print-loop.
+  read-eval-print-loop, and a mode eval for evaluating and printing a
+  given expression. Try e.g. 
+     gcc -c -fplugin=melt  -fplugin-arg-melt-mode=eval \
+        -fplugin-arg-melt-arg='(list discr_tree class_sexpr)' \
+        empty.c
+
 
   Advanced users could register their own finalized client data using
   the melt_payload_register_descriptor C function.
@@ -266,8 +271,8 @@ NEWS for 0.9.7 MELT plugin for GCC 4.6 & 4.7 & future 4.8
   and so does -fplugin-arg-melt-debugging=all in the MELT plugin.
 
 
-Numerous bug fixes. The probe has still naughty behavior on large C
-source. Consider using Alexandre Lissy's replacement (Python/Qt
+Numerous bug fixes. The probe has been improved, and also shows some
+Gimple/SSA. Consider using Alexandre Lissy's replacement (Python/Qt
 based) of the probe.
 
 
