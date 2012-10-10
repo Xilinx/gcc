@@ -1105,6 +1105,14 @@ make it all fit in fewer cache lines.
 If the value of this macro has a type, it should be an unsigned type.
 @end defmac
 
+@deftypefn {Target Hook} HOST_WIDE_INT TARGET_VECTOR_ALIGNMENT (const_tree @var{type})
+This hook can be used to define the alignment for a vector of type
+@var{type}, in order to comply with a platform ABI.  The default is to
+require natural alignment for vector types.  The alignment returned by
+this hook must be a power-of-two multiple of the default alignment of
+the vector element type.
+@end deftypefn
+
 @defmac STACK_SLOT_ALIGNMENT (@var{type}, @var{mode}, @var{basic-align})
 If defined, a C expression to compute the alignment for stack slot.
 @var{type} is the data type, @var{mode} is the widest mode available,
@@ -11364,11 +11372,6 @@ value of @code{TARGET_CONST_ANCHOR} is a power of 2.  For example, on
 MIPS, where add-immediate takes a 16-bit signed value,
 @code{TARGET_CONST_ANCHOR} is set to @samp{0x8000}.  The default value
 is zero, which disables this optimization.  @end deftypevr
-
-@deftypefn {Target Hook} {unsigned HOST_WIDE_INT} TARGET_MEMMODEL_CHECK (unsigned HOST_WIDE_INT @var{val})
-Validate target specific memory model mask bits. When NULL no target specific
-memory model bits are allowed.
-@end deftypefn
 
 @deftypevr {Target Hook} {unsigned char} TARGET_ATOMIC_TEST_AND_SET_TRUEVAL
 This value should be set if the result written by @code{atomic_test_and_set} is not exactly 1, i.e. the @code{bool} @code{true}.

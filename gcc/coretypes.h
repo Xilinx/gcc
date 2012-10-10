@@ -194,8 +194,5 @@ enum memmodel
   MEMMODEL_LAST = 6
 };
 
-/* Suppose that higher bits are target dependant. */
-#define MEMMODEL_MASK ((1<<16)-1)
-
 #endif /* coretypes.h */
 

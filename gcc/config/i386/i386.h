@@ -75,8 +75,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define TARGET_FSGSBASE	OPTION_ISA_FSGSBASE
 #define TARGET_RDRND	OPTION_ISA_RDRND
 #define TARGET_F16C	OPTION_ISA_F16C
-#define TARGET_RTM      OPTION_ISA_RTM
-#define TARGET_HLE	OPTION_ISA_HLE
 
 #define TARGET_LP64	(TARGET_64BIT && !TARGET_X32)
 
@@ -455,8 +453,10 @@ extern unsigned char ix86_arch_features[X86_ARCH_LAST];
 #define TARGET_FISTTP		(TARGET_SSE3 && TARGET_80387)
 
 extern int x86_prefetch_sse;
-
 #define TARGET_PREFETCH_SSE	x86_prefetch_sse
+
+extern int x86_prefetchw;
+#define TARGET_PREFETCHW	x86_prefetchw
 
 #define ASSEMBLER_DIALECT	(ix86_asm_dialect)
 
@@ -2361,9 +2361,6 @@ extern void debug_dispatch_window (int);
 #define TARGET_RECIP_SQRT	((recip_mask & RECIP_MASK_SQRT) != 0)
 #define TARGET_RECIP_VEC_DIV	((recip_mask & RECIP_MASK_VEC_DIV) != 0)
 #define TARGET_RECIP_VEC_SQRT	((recip_mask & RECIP_MASK_VEC_SQRT) != 0)
-
-#define IX86_HLE_ACQUIRE (1 << 16)
-#define IX86_HLE_RELEASE (1 << 17)
 
 /*
 Local variables:

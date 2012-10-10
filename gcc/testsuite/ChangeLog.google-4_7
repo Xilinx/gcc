@@ -21,74 +21,10 @@
 
 	    * g++.dg/debug/dwarf2/nested-4.C: New.
 
-2012-08-22   Easwaran Raman  <eraman@google.com>
-	Backport r187477 from trunk:
-
-	2012-05-14  Andi Kleen <ak@linux.intel.com>
-		    Jakub Jelinek  <jakub@redhat.com>
-	
-		PR target/53315
-		* gcc.target/i386/i386.exp (check_effective_target_rtm): New.
-		* gcc.target/i386/rtm-check.h: New file.
-		* gcc.target/i386/pr53315.c: New test.
-
 2012-08-16  Ollie Wild  <aaw@google.com>
 
 	PR c++/54197
 	* g++.dg/init/lifetime3.C: New test.
-
-2012-08-13   Easwaran Raman  <eraman@google.com>
-	Backport the following patches from trunk to add support for Intel
-	Transactional Memory Instructions support (Google ref b/6496405):
-	r185218, r185223, r187051, r187089, r187094.
-
-	r85218,r185223:
-	2012-03-12  Kirill Yukhin  <kirill.yukhin@intel.com>
-		* gcc.target/i386/rtm-xabort-1.c: New.
-		* gcc.target/i386/rtm-xbegin-1.c: Ditto.
-		* gcc.target/i386/rtm-xend-1.c: Ditto.
-		* gcc.target/i386/rtm-xtest-1.c: Ditto.
-		* gcc.target/i386/sse-12.c: Test RTM intrinsics.
-		* gcc.target/i386/sse-13.c: Ditto.
-		* gcc.target/i386/sse-14.c: Ditto.
-		* gcc.target/i386/sse-22.c: Ditto.
-		* gcc.target/i386/sse-23.c: Ditto.
-		* g++.dg/other/i386-2.C: Ditto.
-		* g++.dg/other/i386-3.C: Ditto.
-
-	r187051:
-	2012-05-02  Kirill Yukhin  <kirill.yukhin@intel.com>
-		* gcc.target/i386/hle-cmpxchg-acq-1.c: New.
-		* gcc.target/i386/hle-cmpxchg-rel-1.c: Ditto.
-		* gcc.target/i386/hle-add-acq-1.c: Ditto.
-		* gcc.target/i386/hle-add-rel-1.c: Ditto.
-		* gcc.target/i386/hle-and-acq-1.c: Ditto.
-		* gcc.target/i386/hle-and-rel-1.c: Ditto.
-		* gcc.target/i386/hle-or-acq-1.c: Ditto.
-		* gcc.target/i386/hle-or-rel-1.c: Ditto.
-		* gcc.target/i386/hle-sub-acq-1.c: Ditto.
-		* gcc.target/i386/hle-sub-rel-1.c: Ditto.
-		* gcc.target/i386/hle-xadd-acq-1.c: Ditto.
-		* gcc.target/i386/hle-xadd-rel-1.c: Ditto.
-		* gcc.target/i386/hle-xchg-acq-1.c: Ditto.
-		* gcc.target/i386/hle-xchg-rel-1.c: Ditto.
-		* gcc.target/i386/hle-xor-acq-1.c: Ditto.
-		* gcc.target/i386/hle-xor-rel-1.c: Ditto.
-
-	r187089:
-	2012-05-03  Jakub Jelinek  <jakub@redhat.com>
-		* gcc.target/i386/hle-xadd-rel-1.c: Match .byte 0xf3 instead of
-		.byte 0xf2.
-		* gcc.target/i386/hle-sub-rel-1.c: Likewise.
-		* gcc.target/i386/hle-xchg-rel-1.c: Likewise.
-		* gcc.target/i386/hle-add-rel-1.c: Likewise.
-
-	r187094:
-	2012-05-03  Uros Bizjak  <ubizjak@gmail.com>
-		* gcc.target/i386/hle-cmpxchg-acq-1.c (dg-options): Add -march=x86-64.
-		* gcc.target/i386/hle-xadd-acq-1.c (dg-options): Ditto.
-		* gcc.target/i386/hle-cmpxchg-rel-1.c (dg-options): Ditto.
-		* gcc.target/i386/hle-xadd-rel-1.c (dg-options): Ditto.
 
 2012-08-09   Cary Coutant  <ccoutant@google.com>
 

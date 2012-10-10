@@ -1093,6 +1093,8 @@ make it all fit in fewer cache lines.
 If the value of this macro has a type, it should be an unsigned type.
 @end defmac
 
+@hook TARGET_VECTOR_ALIGNMENT
+
 @defmac STACK_SLOT_ALIGNMENT (@var{type}, @var{mode}, @var{basic-align})
 If defined, a C expression to compute the alignment for stack slot.
 @var{type} is the data type, @var{mode} is the widest mode available,
@@ -11242,10 +11244,5 @@ value of @code{TARGET_CONST_ANCHOR} is a power of 2.  For example, on
 MIPS, where add-immediate takes a 16-bit signed value,
 @code{TARGET_CONST_ANCHOR} is set to @samp{0x8000}.  The default value
 is zero, which disables this optimization.  @end deftypevr
-
-@hook TARGET_MEMMODEL_CHECK
-Validate target specific memory model mask bits. When NULL no target specific
-memory model bits are allowed.
-@end deftypefn
 
 @hook TARGET_ATOMIC_TEST_AND_SET_TRUEVAL

@@ -715,6 +715,7 @@ go_net_files = \
 	go/net/lookup_unix.go \
 	go/net/mac.go \
 	go/net/net.go \
+	go/net/net_posix.go \
 	go/net/parse.go \
 	go/net/pipe.go \
 	go/net/port.go \
@@ -1794,7 +1795,7 @@ GOTESTFLAGS =
 
 # Check a package.
 CHECK = \
-	GC="$(GOC) $(GOCFLAGS) -L `${PWD_COMMAND}` -L `${PWD_COMMAND}`/.libs"; \
+	GC="$(GOC) $(GOCFLAGS) $($(subst /,_,$@)_GOCFLAGS) -L `${PWD_COMMAND}` -L `${PWD_COMMAND}`/.libs"; \
 	export GC; \
 	GOLIBS="$(MATH_LIBS) $(NET_LIBS)"; \
 	export GOLIBS; \
@@ -3012,6 +3013,9 @@ runtime/pprof.lo: $(go_runtime_pprof_files)
 runtime/pprof/check: $(CHECK_DEPS)
 	@$(CHECK)
 .PHONY: runtime/pprof/check
+# At least for now, we need -static-libgo for this test, because
+# otherwise we can't get the line numbers.
+runtime_pprof_check_GOCFLAGS = -static-libgo
 
 @go_include@ sync/atomic.lo.dep
 sync/atomic.lo.dep: $(go_sync_atomic_files)
@@ -3548,6 +3552,7 @@ TEST_PACKAGES = \
 	os/user/check \
 	path/filepath/check \
 	regexp/syntax/check \
+	runtime/pprof/check \
 	sync/atomic/check \
 	text/scanner/check \
 	text/tabwriter/check \

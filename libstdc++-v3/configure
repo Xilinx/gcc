@@ -15587,6 +15587,8 @@ int main()
 }
 EOF
 
+
+
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for __float128" >&5
 $as_echo_n "checking for __float128... " >&6; }
     if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
@@ -15594,8 +15596,7 @@ $as_echo_n "checking for __float128... " >&6; }
   ac_status=$?
   $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
   test $ac_status = 0; }; then
-
-$as_echo "#define _GLIBCXX_USE_FLOAT128 1" >>confdefs.h
+      $as_echo "#define _GLIBCXX_USE_FLOAT128 1" >>confdefs.h
 
       enable_float128=yes
     else
@@ -66499,6 +66500,8 @@ ac_config_files="$ac_config_files scripts/testsuite_flags"
 
 ac_config_files="$ac_config_files scripts/extract_symvers"
 
+ac_config_files="$ac_config_files doc/xsl/customization.xsl"
+
 
 # Multilibs need MULTISUBDIR defined correctly in certain makefiles so
 # that multilib installs will end up installed in the correct place.
@@ -67710,6 +67713,7 @@ do
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "scripts/testsuite_flags") CONFIG_FILES="$CONFIG_FILES scripts/testsuite_flags" ;;
     "scripts/extract_symvers") CONFIG_FILES="$CONFIG_FILES scripts/extract_symvers" ;;
+    "doc/xsl/customization.xsl") CONFIG_FILES="$CONFIG_FILES doc/xsl/customization.xsl" ;;
     "include/Makefile") CONFIG_FILES="$CONFIG_FILES include/Makefile" ;;
     "libsupc++/Makefile") CONFIG_FILES="$CONFIG_FILES libsupc++/Makefile" ;;
     "python/Makefile") CONFIG_FILES="$CONFIG_FILES python/Makefile" ;;

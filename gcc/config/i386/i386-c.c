@@ -1,5 +1,5 @@
 /* Subroutines used for macro/preprocessor support on the ia-32.
-   Copyright (C) 2008, 2009, 2010, 2011, 2012
+   Copyright (C) 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -261,8 +261,6 @@ ix86_target_macros_internal (HOST_WIDE_INT isa_flag,
     def_or_undef (parse_in, "__AVX2__");
   if (isa_flag & OPTION_MASK_ISA_FMA)
     def_or_undef (parse_in, "__FMA__");
-  if (isa_flag & OPTION_MASK_ISA_RTM)
-    def_or_undef (parse_in, "__RTM__");
   if (isa_flag & OPTION_MASK_ISA_SSE4A)
     def_or_undef (parse_in, "__SSE4A__");
   if (isa_flag & OPTION_MASK_ISA_FMA4)
@@ -395,9 +393,6 @@ ix86_target_macros (void)
       cpp_assert (parse_in, "machine=i386");
       builtin_define_std ("i386");
     }
-
-  cpp_define_formatted (parse_in, "__ATOMIC_HLE_ACQUIRE=%d", IX86_HLE_ACQUIRE);
-  cpp_define_formatted (parse_in, "__ATOMIC_HLE_RELEASE=%d", IX86_HLE_RELEASE);
 
   ix86_target_macros_internal (ix86_isa_flags,
 			       ix86_arch,

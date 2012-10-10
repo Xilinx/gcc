@@ -5332,7 +5332,6 @@ static enum memmodel
 get_memmodel (tree exp)
 {
   rtx op;
-  unsigned HOST_WIDE_INT val;
 
   /* If the parameter is not a constant, it's a run time value so we'll just
      convert it to MEMMODEL_SEQ_CST to avoid annoying runtime checking.  */
@@ -5340,25 +5339,13 @@ get_memmodel (tree exp)
     return MEMMODEL_SEQ_CST;
 
   op = expand_normal (exp);
-
-  val = INTVAL (op);
-  if (targetm.memmodel_check)
-    val = targetm.memmodel_check (val);
-  else if (val & ~MEMMODEL_MASK)
-    {
-      warning (OPT_Winvalid_memory_model,
-	       "Unknown architecture specifier in memory model to builtin.");
-      return MEMMODEL_SEQ_CST;
-    }
-
-  if ((INTVAL(op) & MEMMODEL_MASK) >= MEMMODEL_LAST)
+  if (INTVAL (op) < 0 || INTVAL (op) >= MEMMODEL_LAST)
     {
       warning (OPT_Winvalid_memory_model,
 	       "invalid memory model argument to builtin");
       return MEMMODEL_SEQ_CST;
     }
-
-  return (enum memmodel) val;
+  return (enum memmodel) INTVAL (op);
 }
 
 /* Expand the __atomic_exchange intrinsic:
@@ -5373,7 +5360,7 @@ expand_builtin_atomic_exchange (enum machine_mode mode, tree exp, rtx target)
   enum memmodel model;
 
   model = get_memmodel (CALL_EXPR_ARG (exp, 2));
-  if ((model & MEMMODEL_MASK) == MEMMODEL_CONSUME)
+  if (model == MEMMODEL_CONSUME)
     {
       error ("invalid memory model for %<__atomic_exchange%>");
       return NULL_RTX;
@@ -5409,8 +5396,7 @@ expand_builtin_atomic_compare_exchange (enum machine_mode mode, tree exp,
   success = get_memmodel (CALL_EXPR_ARG (exp, 4));
   failure = get_memmodel (CALL_EXPR_ARG (exp, 5));
 
-  if ((failure & MEMMODEL_MASK) == MEMMODEL_RELEASE
-      || (failure & MEMMODEL_MASK) == MEMMODEL_ACQ_REL)
+  if (failure == MEMMODEL_RELEASE || failure == MEMMODEL_ACQ_REL)
     {
       error ("invalid failure memory model for %<__atomic_compare_exchange%>");
       return NULL_RTX;
@@ -5461,8 +5447,8 @@ expand_builtin_atomic_load (enum machine_mode mode, tree exp, rtx target)
   enum memmodel model;
 
   model = get_memmodel (CALL_EXPR_ARG (exp, 1));
-  if ((model & MEMMODEL_MASK) == MEMMODEL_RELEASE
-      || (model & MEMMODEL_MASK) == MEMMODEL_ACQ_REL)
+  if (model == MEMMODEL_RELEASE
+      || model == MEMMODEL_ACQ_REL)
     {
       error ("invalid memory model for %<__atomic_load%>");
       return NULL_RTX;
@@ -5490,9 +5476,9 @@ expand_builtin_atomic_store (enum machine_mode mode, tree exp)
   enum memmodel model;
 
   model = get_memmodel (CALL_EXPR_ARG (exp, 2));
-  if ((model & MEMMODEL_MASK) != MEMMODEL_RELAXED
-      && (model & MEMMODEL_MASK) != MEMMODEL_SEQ_CST
-      && (model & MEMMODEL_MASK) != MEMMODEL_RELEASE)
+  if (model != MEMMODEL_RELAXED
+      && model != MEMMODEL_SEQ_CST
+      && model != MEMMODEL_RELEASE)
     {
       error ("invalid memory model for %<__atomic_store%>");
       return NULL_RTX;
@@ -5598,8 +5584,7 @@ expand_builtin_atomic_clear (tree exp)
   mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   model = get_memmodel (CALL_EXPR_ARG (exp, 1));
 
-  if ((model & MEMMODEL_MASK) == MEMMODEL_ACQUIRE
-      || (model & MEMMODEL_MASK) == MEMMODEL_ACQ_REL)
+  if (model == MEMMODEL_ACQUIRE || model == MEMMODEL_ACQ_REL)
     {
       error ("invalid memory model for %<__atomic_store%>");
       return const0_rtx;
@@ -11942,7 +11927,7 @@ fold_builtin_strspn (location_t loc, tree s1, tree s2)
       if (p1 && p2)
 	{
 	  const size_t r = strspn (p1, p2);
-	  return size_int (r);
+	  return build_int_cst (size_type_node, r);
 	}
 
       /* If either argument is "", return NULL_TREE.  */
@@ -11987,7 +11972,7 @@ fold_builtin_strcspn (location_t loc, tree s1, tree s2)
       if (p1 && p2)
 	{
 	  const size_t r = strcspn (p1, p2);
-	  return size_int (r);
+	  return build_int_cst (size_type_node, r);
 	}
 
       /* If the first argument is "", return NULL_TREE.  */

@@ -817,11 +817,6 @@
   struct ix86_address parts;
   int ok;
 
-  /*  LEA handles zero-extend by itself.  */
-  if (GET_CODE (op) == ZERO_EXTEND
-      || GET_CODE (op) == AND)
-    return false;
-
   ok = ix86_decompose_address (op, &parts);
   gcc_assert (ok);
   return parts.seg == SEG_DEFAULT;
@@ -962,6 +957,9 @@
 {
   struct ix86_address parts;
   int ok;
+
+  if (TARGET_64BIT || !flag_pic)
+    return true;
 
   ok = ix86_decompose_address (XEXP (op, 0), &parts);
   gcc_assert (ok);
