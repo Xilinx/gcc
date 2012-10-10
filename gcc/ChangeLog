@@ -1,3 +1,328 @@
+2012-10-10  Richard Biener  <rguenther@suse.de>
+
+	* lto-streamer-in.c (lto_input_location_bitpack): Rename to ...
+	(lto_input_location): ... this.  Kill original.
+	(input_eh_region): Adjust.
+	(input_struct_function_base): Likewise.
+	(lto_read_tree): Likewise.
+	* lto-streamer-out.c (lto_output_location_bitpack): Rename to ...
+	(lto_output_location): ... this.  Kill original.
+	(lto_write_tree): Adjust.
+	(output_eh_region): Likewise.
+	(output_struct_function_base): Likewise.
+	* lto-streamer.c (lto_streamer_hooks_init): Initialize location
+	hooks.
+	* lto-streamer.h (lto_input_location): Adjust prototype.
+	(lto_output_location): Likewise.
+	* streamer-hooks.h (struct streamer_hooks): Adjust prototype
+	of input_location and output_location hooks.
+	(stream_input_location): New define.
+	(stream_output_location): Likewise.
+	* tree-streamer-in.c (unpack_ts_block_value_fields): Adjust.
+	(unpack_value_fields): Likewise.
+	(streamer_read_tree_bitfields): Likewise.
+	(lto_input_ts_decl_minimal_tree_pointers): Likewise.
+	(lto_input_ts_exp_tree_pointers): Likewise.
+	(lto_input_ts_block_tree_pointers): Likewise.
+	* tree-streamer-out.c (pack_ts_block_value_fields): Adjust.
+	(streamer_pack_tree_bitfields): Likewise.
+	(write_ts_decl_minimal_tree_pointers): Likewise.
+	(write_ts_exp_tree_pointers): Likewise.
+	(write_ts_block_tree_pointers): Likewise.
+	* gimple-streamer-in.c (input_phi): Adjust.
+	(input_gimple_stmt): Likewise.
+	* gimple-streamer-out.c (output_phi): Adjust.
+	(output_gimple_stmt): Likewise.
+	* tree-streamer.h (streamer_read_tree_bitfields): Adjust prototype.
+	(streamer_pack_tree_bitfields): Likewise.
+
+2012-10-10  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* config/rs6000/rs6000.c (altivec_expand_dst_builtin): Fix signed
+	vs. unsigned warnings by using enum type for function code.
+	(paired_expand_builtin): Likewise.
+	(spe_expand_builtin): Likewise.
+
+	* config/rs6000/rs6000-c.c (rs6000_target_modify_macros): Change
+	builtin mask, target flags masks type to HOST_WIDE_INT in
+	preparation for growing the number of ISA switches from 31 to 63.
+
+	* config/rs6000/rs6000.opt (rs6000_builtin_mask): Make mask type
+	HOST_WIDE_INT.
+
+	* config/rs6000/rs6000.c (struct builtin_description): Make
+	builtin mask field HOST_WIDE_INT.  Make target flags field
+	HOST_WIDE_INT in preparation for growing the # of ISA switches.
+	(struct rs6000_builtin_info_type): Likewise.
+	(struct rs6000_ptt): Likewise.
+	(rs6000_builtin_mask_calculate): Likewise.
+	(rs6000_invalid_builtin): Likewise.
+	(rs6000_builtin_decl): Likewise.
+	(rs6000_common_init_builtins): Likewise.
+	(rs6000_darwin_file_start): Likewise.
+	(rs6000_final_prescan_insn): Likewise.
+	(rs6000_inner_target_options): Likewise.
+	(build_target_option_node): Likewise.
+	(rs6000_function_specific_print): Likewise.
+	(DEBUG_FMT_W): New format for printing HOST_WIDE_INT in hex.
+
+	* config/rs6000/rs6000-protos.h (rs6000_builtin_mask_calculate):
+	Make target flags, builtin masks arguments/return values
+	HOST_WIDE_INT in preparation for growing the number of ISA from 31
+	to 63.
+	(rs6000_target_modify_macros): Likewise.
+	(rs6000_target_modify_macros_ptr): Likewise.
+
+	* config/rs6000/rs6000.c (DEBUG_FMT_ID): Move "-32s" to a separate
+	define and change DEBUG_FMT_<x> to use it.
+	(DEBUG_FMT_D): Likewise.
+	(DEBUG_FMT_S): Likewise.
+	(DEBUG_FMT_X): Delete, no longer used.
+	(DEBUG_FMT_W): Likewise.
+	(DEBUG_FMT_WX): New debug format for printing options in a
+	friendly fashion.
+	(rs6000_debug_reg_global): If -mdebug=reg, print all of the
+	options in target_flags and target_flags_explicit.  Print the
+	default options for -mcpu=<xxx>, -mtune=<xxx>, and the default
+	options.  Adjust printing out the builtin options.
+	(rs6000_option_override_internal): Change printing the builtin
+	options to use rs6000_print_builtin_options.
+	(rs6000_function_specific_print): Change to use
+	rs6000_print_isa_options to print ISA flags.
+	(rs6000_print_options_internal): New function for expanded
+	-mdebug=reg option printing to print both the ISA options, and the
+	builtins that are enabled.
+	(rs6000_print_isa_options): New function to print the ISA
+	options.
+	(rs6000_print_builtin_options): New function to print the builtin
+	functions enabled.
+
+2012-10-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/51109
+	* config/i386/bdver1.md (bdver1-mult): Remove.
+
+	PR middle-end/54879
+	* combine.c (count_rtxs): Use RTX_BIN_ARITH resp. RTX_COMM_ARITH
+	instead of '2' resp. 'c' for GET_RTX_CLASS comparisons.
+
+	PR middle-end/54862
+	* simplify-rtx.c (simplify_truncation): Compare UINTVAL instead of
+	INTVAL of second argument with precision resp. op_precision.
+
+2012-10-10  Dodji Seketeli  <dodji@redhat.com>
+
+	PR middle-end/54860 - Make sure attributes hash table is created
+	* attribs.c (register_scoped_attributes): Ensure the attribute
+	hash table is created.
+
+2012-10-10  Ganesh Gopalasubramanian  <Ganesh.Gopalasubramanian@amd.com>
+
+	PR target/51109
+	* config/i386/bdver1.md (bdver1_int): Automaton has been
+	split to reduce state transitions.
+
+2012-10-10  Richard Biener  <rguenther@suse.de>
+
+	PR middle-end/54876
+	* ipa-prop.c (prune_expression_for_jf_1): New function.
+	(prune_expression_for_jf): Clear EXPR_LOCATION for all
+	sub-expressions as well.
+
+2012-10-10  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config.gcc: Enable zEC12 for with-arch and with-tune
+          configure switches.
+	* common/config/s390/s390-common.c (processor_flags_table): Add
+	zEC12 entry.
+	* config/s390/2827.md: New file.
+	* config/s390/s390-opts.h (enum processor_type): Add
+	PROCESSOR_2827_ZEC12.
+	* config/s390/s390.h (enum processor_flags): Add PF_ZEC12.
+	(TARGET_CPU_ZEC12, TARGET_ZEC12): New macro definitions.
+	* config/s390/s390.c (zEC12_cost): New definition.
+	(s390_option_override): Set costs for zEC12.
+	Set parameter defaults for zEC12.
+	(legitimate_reload_fp_constant_p): Adjust comment.
+	(preferred_la_operand_p): Adjust comment.
+	(s390_expand_insv): Generate insv pattern without CC clobber for
+	zEC12.
+	(s390_adjust_priority): Add zEC12 check.
+	(s390_issue_rate): Return 2 for zEC12.
+	(s390_reorg): Enable code optimizations for zEC12.
+	(s390_sched_reorder): Reorder insns according to OOO attributes.
+	(s390_get_sched_attrmask): New function.
+	(s390_sched_score): New function.
+	(s390_sched_variable_issue): Update s390_sched_state.
+	(s390_sched_init): Reset s390_sched_state.
+	(s390_loop_unroll_adjust): Enable for zEC12.
+	* config/s390/s390.opt: Add zEC12 processor type value.
+	* config/s390/s390.md: Enable mnemonic attribute.
+	(attr cpu, cpu_facility): Add zEC12.
+	Include 2827.md.
+	("*insv<mode>_zEC12", "*insv<mode>_zEC12_noshift")
+	("*load_and_trap<mode>"): New insn definition.
+	("*cmp_and_trap_unsigned_int<mode>"): Add clt and clgt.
+
+2012-10-09  David S. Miller  <davem@davemloft.net>
+
+	* config/sparc/sparc.md (type attribute): Add new types 'visl'
+	(VIS logical operation), 'vismv' (VIS move), and 'pdistn'.  Rename
+	'fgm_pdist' to 'pdist'.
+	(*movsi_insn): Use vismv and visl.
+	(*movdi_insn_sp64): Likewise.
+	(*movsf_insn): Likewise.
+	(*movdf_insn_sp64): Likewise.
+	(*mov<VM32:mode>_insn): Likewise, use 'fsrc2s' instead of 'fsrc1s'.
+	(*mov<VM64:mode>_insn_sp64): Likewise, use 'fsrc2s' instead of 'fsrc1s'.
+	(*mov<VM64:mode>_insn_sp32): Likewise, use 'fsrc2s' instead of 'fsrc1s'.
+	(VIS logical instructions): Mark as visl.
+	(pdist_vis): Use 'pdist'.
+	(pditsn<mode>_vis): Use 'pdistn'.
+	* config/sparc/ultra1_2.md: Adjust for new VIS attribute types.
+	* config/sparc/ultra3.md: Likewise.
+	* config/sparc/niagara.md: Likewise.
+	* config/sparc/niagara2.md: Likewise.
+	* config/sparc/niagara4.md: Add cpu units "n4_slot2" and
+	"n4_load_store" for special store scheduling.  Use them in load
+	and store reservations.  Integer divide and multiply can only
+	issue in slot-1.  Represent 1-cycle VIS moves and 3-cycle VIS
+	logic operations.
+
+2012-10-10  Dehao Chen  <dehao@google.com>
+
+	* tree-eh.c (lower_try_finally_onedest): Set correct location for
+	deallocator.
+	* gimplify.c (gimplify_expr): Set correct location for TRY stmt.
+
+2012-10-10  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/52480
+	* config/sh/sh.md (extv, extzv): Check that operands[3] is zero,
+	regardless of the endianness.
+
+2012-10-09  Lawrence Crowl  <crowl@google.com>
+
+	* Makefile.in (fold-const.o): Add depencence on hash-table.h.
+	(dse.o): Likewise.
+	(cfg.o): Likewise.
+	* fold-const.c (fold_checksum_tree): Change to new type-safe hash table.
+	* (print_fold_checksum): Likewise.
+	* cfg.c (var bb_original): Likewise.
+	* (var bb_copy): Likewise.
+	* (var loop_copy): Likewise.
+	* hash-table.h (template hash_table): Constify parameters for find...
+	and remove_elt... member functions.
+        (hash_table::empty) Correct size expression.
+        (hash_table::clear_slot) Correct deleted entry assignment.
+	* dse.c (var rtx_group_table): Change to new type-safe hash table.
+
+2012-10-09  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* basic-block. (profile_record): New struct, moved from passes.c.
+	* cfghooks.h (struct cfg_hooks) <account_profile_record>: New hook.
+	(account_profile_record): New prototype.
+	* cfghooks.c (account_profile_record): New function.
+	* tree-cfg.c (gimple_account_profile_record): New function
+	(gimple_cfg_hooks): Add it.
+	* cfgrtl.c (rtl_account_profile_record): New function
+	(rtl_cfg_hooks, cfg_layout_rtl_cfg_hooks): Add it.
+	* passes.c (check_profile_consistency): Simplify.  Move IR-dependent
+	code around using cfghooks machinery.
+
+2012-10-09  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/54760
+	* doc/extend.texi (Target Builtins): Add SH built-in section.
+	Document __builtin_thread_pointer and __builtin_set_thread_pointer.
+
+2012-10-09  Venkataramanan Kumar  <venkataramanan.kumar@amd.com>
+
+	PR middle-end/53397
+	* tree-ssa-loop-prefetch.c (gather_memory_references_ref):
+	Perform non constant step prefetching in inner loop, only
+	when it is invariant in the entire loop nest.
+	* tree-ssa-loop-prefetch.c (dump_mem_details): New function to dump
+	base, step and delta values of memeory reference analysed for
+	prefetching.
+	* tree-ssa-loop-prefetch.c (dump_mem_ref): Call dump_mem_details
+	to print base, step and delta values of memory reference.
+	* cfgloop.h (loop_outermost): New function that returns outermost
+	loop for a given loop in a loop nest.
+
+2012-10-09  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/54837
+	* cfgexpand.c (expand_debug_source_expr): Move checking
+	code conditional on a found decl_debug_args vector.
+
+2012-10-09  Richard Guenther  <rguenther@suse.de>
+
+	* tree-streamer.c (streamer_tree_cache_get): Move ...
+	* tree-streamer.h (streamer_tree_cache_get): ... here as inline.
+
+2012-10-09  Jan Hubicka  <jh@suse.cz>
+
+	* loop-unroll.c (unroll_loop_constant_iterations): Add
+	update of loop->nb_iterations_upper_bound I missed in my previous
+	commit; use TRUNC_DIV_EXPR instead of FLOOR_DIV_EXPR to divide
+	iteration count.
+	(decide_unroll_runtime_iterations): Avoid overflow.
+	(unroll_loop_runtime_iterations): Use TRUNC_DIV_EXPR instead of
+	FLOOR_DIV_EXPR to update iteration bounds.
+	(decide_peel_simple): Avoid integer overflow when deciding
+	on number of peelings.
+	(decide_unroll_stupid): Likewise.
+
+2012-10-09  Tobias Burnus  <burnus@net-b.de>
+
+	* lto-cgraph.c (input_node_opt_summary): Remove unused code.
+	* lto-opts.c (append_to_collect_gcc_options): Fix condition.
+	* lto-symtab.c (lto_cgraph_replace_node): Don't xstrdup string
+	which is passed to fprintf.
+
+2012-10-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/54194
+	* tree.h: Add EXPR_LOC_OR_LOC.
+
+2012-10-09  Nick Clifton  <nickc@redhat.com>
+
+	PR rtl-optimization/54739
+	* config/mcore/mcore.md: (anddi3, iordi3, xordi3): Delete patterns.
+
+	PR target/54661
+	* config/mcore/mcore.c (mcore_output_movedouble): Fix typo.
+
+2012-10-09  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR c++/54427
+	* fold-const.c (fold_binary_loc): Use build_zero_cst instead of
+	build_int_cst for a potential vector.
+
+2012-10-08  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/atom.md (atom_sse_4): Merge atom_sse_attr attibutes.
+	(atom_sse_5): Ditto.
+
+2012-10-08  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR target/54400
+	* config/i386/i386.md (type attribute): Add sseadd1.
+	(unit attribute): Add support for sseadd1.
+	(memory attribute): Likewise.
+	* config/i386/athlon.md: Likewise.
+	* config/i386/core2.md: Likewise.
+	* config/i386/atom.md: Likewise.
+	* config/i386/ppro.md: Likewise.
+	* config/i386/bdver1.md: Likewise.
+	* config/i386/sse.md (sse3_h<plusminus_insn>v2df3): Split into...
+	(sse3_haddv2df3): ... expander.
+	(*sse3_haddv2df3): ... define_insn. Accept permuted operands.
+	(sse3_hsubv2df3): ... define_insn.
+	(*sse3_haddv2df3_low): New define_insn.
+	(*sse3_hsubv2df3_low): New define_insn.
+
 2012-10-08  Jan Hubicka  <jh@suse.cz>
 
 	* loop-unswitch.c (unswitch_single_loop): Use
@@ -33,8 +358,6 @@
 	PR debug/54831
 	* var-tracking.c (vt_add_function_parameter): Use condition instead
 	of gcc_assert.
-
-	* testsuite/g++.dg/debug/pr54831.C: New test.
 
 2012-10-08  Dehao Chen  <dehao@google.com>
 
@@ -131,7 +454,8 @@
 
 	PR target/54685
 	* config/sh/sh.md (one_cmplsi2): Make insn_and_split.  Add manual
-	combine matching for an insn sequence where a ge:SI pattern can be used.
+	combine matching for an insn sequence where a ge:SI pattern
+	can be used.
 
 2012-10-08  Dodji Seketeli  <dodji@redhat.com>
 
@@ -170,8 +494,7 @@
 	PR target/54815
 	* config/avr/avr.md (*add<mode>3, add<mode>3, addpsi3): Make
 	constraint alternative "r,0,r" slighly more expensive.
-	(sub<mode>3,
-	(andqi3, andhi3, andpsi3, andsi3): Ditto.
+	(sub<mode>3, andqi3, andhi3, andpsi3, andsi3): Ditto.
 	(iorqi3, iorhi3, iorpsi3, iorsi3): Ditto.
 	(xorhi3, xorpsi3, xorsi3): Ditto.
 
@@ -18564,7 +18887,6 @@
 	(IX86_BUILTIN_CPU_IS): New enum value.
 	(IX86_BUILTIN_CPU_SUPPORTS): New enum value.
 	* config/i386/i386-builtin-types.def: New function type.
-	* testsuite/gcc.target/builtin_target.c: New testcase.
 	* doc/extend.texi: Document builtins.
 
 2012-04-24  Olivier Hainque  <hainque@adacore.com>
