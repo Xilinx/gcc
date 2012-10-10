@@ -56,6 +56,7 @@ c-common.h, not after.
       AGGR_INIT_VIA_CTOR_P (in AGGR_INIT_EXPR)
       PTRMEM_OK_P (in ADDR_EXPR, OFFSET_REF, SCOPE_REF)
       PAREN_STRING_LITERAL (in STRING_CST)
+      DECL_GNU_TLS_P (in VAR_DECL)
       KOENIG_LOOKUP_P (in CALL_EXPR)
       STATEMENT_LIST_NO_SCOPE (in STATEMENT_LIST).
       EXPR_STMT_STMT_EXPR_RESULT (in EXPR_STMT)
@@ -2425,6 +2426,11 @@ struct GTY((variable_size)) lang_decl {
   (DECL_NAME (NODE) \
    && !strcmp (IDENTIFIER_POINTER (DECL_NAME (NODE)), "__PRETTY_FUNCTION__"))
 
+/* Nonzero if the thread-local variable was declared with __thread
+   as opposed to thread_local.  */
+#define DECL_GNU_TLS_P(NODE) \
+  (TREE_LANG_FLAG_0 (VAR_DECL_CHECK (NODE)))
+
 /* The _TYPE context in which this _DECL appears.  This field holds the
    class where a virtual function instance is actually defined.  */
 #define DECL_CLASS_CONTEXT(NODE) \
@@ -4379,6 +4385,8 @@ extern int at_eof;
    in the TREE_VALUE slot and the initializer is stored in the
    TREE_PURPOSE slot.  */
 extern GTY(()) tree static_aggregates;
+/* Likewise, for thread local storage.  */
+extern GTY(()) tree tls_aggregates;
 
 enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, TYPENAME_FLAG };
 
@@ -4732,6 +4740,8 @@ typedef struct cp_decl_specifier_seq {
   BOOL_BITFIELD explicit_int128_p : 1;
   /* True iff "char" was explicitly provided.  */
   BOOL_BITFIELD explicit_char_p : 1;
+  /* True iff ds_thread is set for __thread, not thread_local.  */
+  BOOL_BITFIELD gnu_thread_keyword_p : 1;
 } cp_decl_specifier_seq;
 
 /* The various kinds of declarators.  */
@@ -5189,6 +5199,7 @@ extern tree cp_build_parm_decl			(tree, tree);
 extern tree get_guard				(tree);
 extern tree get_guard_cond			(tree);
 extern tree set_guard				(tree);
+extern tree get_tls_wrapper_fn			(tree);
 extern void mark_needed				(tree);
 extern bool decl_needed_p			(tree);
 extern void note_vague_linkage_fn		(tree);
@@ -5984,6 +5995,9 @@ extern tree mangle_ctor_vtbl_for_type		(tree, tree);
 extern tree mangle_thunk			(tree, int, tree, tree);
 extern tree mangle_conv_op_name_for_type	(tree);
 extern tree mangle_guard_variable		(tree);
+extern tree mangle_tls_init_fn			(tree);
+extern tree mangle_tls_wrapper_fn		(tree);
+extern bool decl_tls_wrapper_p			(tree);
 extern tree mangle_ref_init_variable		(tree);
 
 /* in dump.c */

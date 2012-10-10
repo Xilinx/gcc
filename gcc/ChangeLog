@@ -1,3 +1,286 @@
+2012-10-10  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config.gcc: Enable zEC12 for with-arch and with-tune
+          configure switches.
+	* common/config/s390/s390-common.c (processor_flags_table): Add
+	zEC12 entry.
+	* config/s390/2827.md: New file.
+	* config/s390/s390-opts.h (enum processor_type): Add
+	PROCESSOR_2827_ZEC12.
+	* config/s390/s390.h (enum processor_flags): Add PF_ZEC12.
+	(TARGET_CPU_ZEC12, TARGET_ZEC12): New macro definitions.
+	* config/s390/s390.c (zEC12_cost): New definition.
+	(s390_option_override): Set costs for zEC12.
+	Set parameter defaults for zEC12.
+	(legitimate_reload_fp_constant_p): Adjust comment.
+	(preferred_la_operand_p): Adjust comment.
+	(s390_expand_insv): Generate insv pattern without CC clobber for
+	zEC12.
+	(s390_adjust_priority): Add zEC12 check.
+	(s390_issue_rate): Return 2 for zEC12.
+	(s390_reorg): Enable code optimizations for zEC12.
+	(s390_sched_reorder): Reorder insns according to OOO attributes.
+	(s390_get_sched_attrmask): New function.
+	(s390_sched_score): New function.
+	(s390_sched_variable_issue): Update s390_sched_state.
+	(s390_sched_init): Reset s390_sched_state.
+	(s390_loop_unroll_adjust): Enable for zEC12.
+	* config/s390/s390.opt: Add zEC12 processor type value.
+	* config/s390/s390.md: Enable mnemonic attribute.
+	(attr cpu, cpu_facility): Add zEC12.
+	Include 2827.md.
+	("*insv<mode>_zEC12", "*insv<mode>_zEC12_noshift")
+	("*load_and_trap<mode>"): New insn definition.
+	("*cmp_and_trap_unsigned_int<mode>"): Add clt and clgt.
+
+2012-10-09  David S. Miller  <davem@davemloft.net>
+
+	* config/sparc/sparc.md (type attribute): Add new types 'visl'
+	(VIS logical operation), 'vismv' (VIS move), and 'pdistn'.  Rename
+	'fgm_pdist' to 'pdist'.
+	(*movsi_insn): Use vismv and visl.
+	(*movdi_insn_sp64): Likewise.
+	(*movsf_insn): Likewise.
+	(*movdf_insn_sp64): Likewise.
+	(*mov<VM32:mode>_insn): Likewise, use 'fsrc2s' instead of 'fsrc1s'.
+	(*mov<VM64:mode>_insn_sp64): Likewise, use 'fsrc2s' instead of 'fsrc1s'.
+	(*mov<VM64:mode>_insn_sp32): Likewise, use 'fsrc2s' instead of 'fsrc1s'.
+	(VIS logical instructions): Mark as visl.
+	(pdist_vis): Use 'pdist'.
+	(pditsn<mode>_vis): Use 'pdistn'.
+	* config/sparc/ultra1_2.md: Adjust for new VIS attribute types.
+	* config/sparc/ultra3.md: Likewise.
+	* config/sparc/niagara.md: Likewise.
+	* config/sparc/niagara2.md: Likewise.
+	* config/sparc/niagara4.md: Add cpu units "n4_slot2" and
+	"n4_load_store" for special store scheduling.  Use them in load
+	and store reservations.  Integer divide and multiply can only
+	issue in slot-1.  Represent 1-cycle VIS moves and 3-cycle VIS
+	logic operations.
+
+2012-10-10  Dehao Chen  <dehao@google.com>
+
+	* tree-eh.c (lower_try_finally_onedest): Set correct location for
+	deallocator.
+	* gimplify.c (gimplify_expr): Set correct location for TRY stmt.
+
+2012-10-10  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/52480
+	* config/sh/sh.md (extv, extzv): Check that operands[3] is zero,
+	regardless of the endianness.
+
+2012-10-09  Lawrence Crowl  <crowl@google.com>
+
+	* Makefile.in (fold-const.o): Add depencence on hash-table.h.
+	(dse.o): Likewise.
+	(cfg.o): Likewise.
+	* fold-const.c (fold_checksum_tree): Change to new type-safe hash table.
+	* (print_fold_checksum): Likewise.
+	* cfg.c (var bb_original): Likewise.
+	* (var bb_copy): Likewise.
+	* (var loop_copy): Likewise.
+	* hash-table.h (template hash_table): Constify parameters for find...
+	and remove_elt... member functions.
+        (hash_table::empty) Correct size expression.
+        (hash_table::clear_slot) Correct deleted entry assignment.
+	* dse.c (var rtx_group_table): Change to new type-safe hash table.
+
+2012-10-09  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* basic-block. (profile_record): New struct, moved from passes.c.
+	* cfghooks.h (struct cfg_hooks) <account_profile_record>: New hook.
+	(account_profile_record): New prototype.
+	* cfghooks.c (account_profile_record): New function.
+	* tree-cfg.c (gimple_account_profile_record): New function
+	(gimple_cfg_hooks): Add it.
+	* cfgrtl.c (rtl_account_profile_record): New function
+	(rtl_cfg_hooks, cfg_layout_rtl_cfg_hooks): Add it.
+	* passes.c (check_profile_consistency): Simplify.  Move IR-dependent
+	code around using cfghooks machinery.
+
+2012-10-09  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/54760
+	* doc/extend.texi (Target Builtins): Add SH built-in section.
+	Document __builtin_thread_pointer and __builtin_set_thread_pointer.
+
+2012-10-09  Venkataramanan Kumar  <venkataramanan.kumar@amd.com>
+
+	PR middle-end/53397
+	* tree-ssa-loop-prefetch.c (gather_memory_references_ref):
+	Perform non constant step prefetching in inner loop, only
+	when it is invariant in the entire loop nest.
+	* tree-ssa-loop-prefetch.c (dump_mem_details): New function to dump
+	base, step and delta values of memeory reference analysed for
+	prefetching.
+	* tree-ssa-loop-prefetch.c (dump_mem_ref): Call dump_mem_details
+	to print base, step and delta values of memory reference.
+	* cfgloop.h (loop_outermost): New function that returns outermost
+	loop for a given loop in a loop nest.
+
+2012-10-09  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/54837
+	* cfgexpand.c (expand_debug_source_expr): Move checking
+	code conditional on a found decl_debug_args vector.
+
+2012-10-09  Richard Guenther  <rguenther@suse.de>
+
+	* tree-streamer.c (streamer_tree_cache_get): Move ...
+	* tree-streamer.h (streamer_tree_cache_get): ... here as inline.
+
+2012-10-09  Jan Hubicka  <jh@suse.cz>
+
+	* loop-unroll.c (unroll_loop_constant_iterations): Add
+	update of loop->nb_iterations_upper_bound I missed in my previous
+	commit; use TRUNC_DIV_EXPR instead of FLOOR_DIV_EXPR to divide
+	iteration count.
+	(decide_unroll_runtime_iterations): Avoid overflow.
+	(unroll_loop_runtime_iterations): Use TRUNC_DIV_EXPR instead of
+	FLOOR_DIV_EXPR to update iteration bounds.
+	(decide_peel_simple): Avoid integer overflow when deciding
+	on number of peelings.
+	(decide_unroll_stupid): Likewise.
+
+2012-10-09  Tobias Burnus  <burnus@net-b.de>
+
+	* lto-cgraph.c (input_node_opt_summary): Remove unused code.
+	* lto-opts.c (append_to_collect_gcc_options): Fix condition.
+	* lto-symtab.c (lto_cgraph_replace_node): Don't xstrdup string
+	which is passed to fprintf.
+
+2012-10-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/54194
+	* tree.h: Add EXPR_LOC_OR_LOC.
+
+2012-10-09  Nick Clifton  <nickc@redhat.com>
+
+	PR rtl-optimization/54739
+	* config/mcore/mcore.md: (anddi3, iordi3, xordi3): Delete patterns.
+
+	PR target/54661
+	* config/mcore/mcore.c (mcore_output_movedouble): Fix typo.
+
+2012-10-09  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR c++/54427
+	* fold-const.c (fold_binary_loc): Use build_zero_cst instead of
+	build_int_cst for a potential vector.
+
+2012-10-08  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/atom.md (atom_sse_4): Merge atom_sse_attr attibutes.
+	(atom_sse_5): Ditto.
+
+2012-10-08  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR target/54400
+	* config/i386/i386.md (type attribute): Add sseadd1.
+	(unit attribute): Add support for sseadd1.
+	(memory attribute): Likewise.
+	* config/i386/athlon.md: Likewise.
+	* config/i386/core2.md: Likewise.
+	* config/i386/atom.md: Likewise.
+	* config/i386/ppro.md: Likewise.
+	* config/i386/bdver1.md: Likewise.
+	* config/i386/sse.md (sse3_h<plusminus_insn>v2df3): Split into...
+	(sse3_haddv2df3): ... expander.
+	(*sse3_haddv2df3): ... define_insn. Accept permuted operands.
+	(sse3_hsubv2df3): ... define_insn.
+	(*sse3_haddv2df3_low): New define_insn.
+	(*sse3_hsubv2df3_low): New define_insn.
+
+2012-10-08  Jan Hubicka  <jh@suse.cz>
+
+	* loop-unswitch.c (unswitch_single_loop): Use
+	estimated_loop_iterations_int to prevent unswitching when loop
+	is known to not roll.
+	* tree-ssa-loop-niter.c (estimated_loop_iterations): Do not segfault
+	when SCEV is not initialized.
+	(max_loop_iterations): Likewise.
+	* tree-ssa-loop-unswitch.c (tree_ssa_unswitch_loops): Use
+	estimated_loop_iterations_int to prevent unswithcing when
+	loop is known to not roll.
+	* tree-scalar-evolution.c (scev_initialized_p): New function.
+	* tree-scalar-evolution.h (scev_initialized_p): Likewise.
+	* loop-unroll.c (decide_peel_once_rolling): Use
+	max_loop_iterations_int.
+	(unroll_loop_constant_iterations): Update
+	nb_iterations_upper_bound and nb_iterations_estimate.
+	(decide_unroll_runtime_iterations): Use
+	estimated_loop_iterations or max_loop_iterations;
+	(unroll_loop_runtime_iterations): fix profile updating.
+	(decide_peel_simple): Use estimated_loop_iterations
+	and max_loop_iterations.
+	(decide_unroll_stupid): Use estimated_loop_iterations
+	ad max_loop_iterations.
+	* loop-doloop.c (doloop_modify): Use max_loop_iterations_int.
+	(doloop_optimize): Likewise.
+	* loop-iv.c (iv_number_of_iterations): Use record_niter_bound.
+	(find_simple_exit): Likewise.
+	* cfgloop.h (struct niter_desc): Remove niter_max.
+
+2012-10-08  Marek Polacek  <polacek@redhat.com>
+
+	PR debug/54831
+	* var-tracking.c (vt_add_function_parameter): Use condition instead
+	of gcc_assert.
+
+2012-10-08  Dehao Chen  <dehao@google.com>
+
+	* predict.c (predict_loops): Predict for short-circuit conditions.
+	(predict_extra_loop_exits): New Function.
+
+2012-10-08  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* bitmap.h (bitmap_and_into): Update prototype.
+	* bitmap.c (bitmap_and_into): Return true if the target bitmap
+	changed, false otherwise.
+
+	* df.h (df_dump_insn_problem_function): New function type.
+	(struct df_problem): Add two functions, to dump just before and
+	just after an insn.
+	(DF_RD_PRUNE_DEAD_DEFS): New changable flag.
+	(df_dump_insn_top, df_dump_insn_bottom): New prototypes.
+	* df-core (df_dump_region): Use dump_bb.
+	(df_dump_bb_problem_data): New function.
+	(df_dump_top, df_dump_bottom): Rewrite using df_dump_bb_problem_data.
+	(df_dump_insn_problem_data): New function.
+	(df_dump_insn_top, df_dump_insn_bottom): New functions.
+	* df-scan.c (problem_SCAN): Add NULL fields for new members.
+	* df-problems.c (df_rd_local_compute): Ignore hard registers if
+	DF_NO_HARD_REGS is in effect.
+	(df_rd_transfer_function): If DF_RD_PRUNE_DEAD_DEFS is in effect,
+	prune reaching defs using the LR problem.
+	(df_rd_start_dump): Fix dumping of DEFs map.
+	(df_rd_dump_defs_set): New function.
+	(df_rd_top_dump, df_rd_bottom_dump): Use it.
+	(problem_RD): Add NULL fields for new members.
+	(problem_LR, problem_LIVE): Likewise.
+	(df_chain_bb_dump): New function.
+	(df_chain_top_dump): Dump only for artificial DEFs and USEs,
+	using df_chain_bb_dump.
+	(df_chain_bottom_dump): Likewise.
+	(df_chain_insn_top_dump, df_chain_insn_bottom_dump): New functions.
+	(problem_CHAIN): Add them as new members.
+	(problem_WORD_LR, problem_NOTE): Add NULL fields for new members.
+	(problem_MD): Likewise.
+	* cfgrtl.c (rtl_dump_bb): Use df_dump_insn_top and df_dump_insn_bottom.
+	(print_rtl_with_bb): Likewise.
+
+	* dce.c (init_dce): Use DF_RD_PRUNE_DEAD_DEFS.
+	* loop-invariant.c (find_defs): Likewise.
+	* loop-iv.c (iv_analysis_loop_init): Likewise.
+	* ree.c (find_and_remove_re): Likewise.
+	* web.c (web_main): Likewise.
+
+2012-10-08  Jason Merrill  <jason@redhat.com>
+
+	* config/rs6000/rs6000.c (rs6000_code_end): Protect the use of
+	ASM_WEAKEN_DECL with #if RS6000_WEAK.
+
 2012-10-08  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/54825
@@ -40,7 +323,8 @@
 
 	PR target/54685
 	* config/sh/sh.md (one_cmplsi2): Make insn_and_split.  Add manual
-	combine matching for an insn sequence where a ge:SI pattern can be used.
+	combine matching for an insn sequence where a ge:SI pattern
+	can be used.
 
 2012-10-08  Dodji Seketeli  <dodji@redhat.com>
 
@@ -79,8 +363,7 @@
 	PR target/54815
 	* config/avr/avr.md (*add<mode>3, add<mode>3, addpsi3): Make
 	constraint alternative "r,0,r" slighly more expensive.
-	(sub<mode>3,
-	(andqi3, andhi3, andpsi3, andsi3): Ditto.
+	(sub<mode>3, andqi3, andhi3, andpsi3, andsi3): Ditto.
 	(iorqi3, iorhi3, iorpsi3, iorsi3): Ditto.
 	(xorhi3, xorpsi3, xorsi3): Ditto.
 
@@ -314,7 +597,7 @@
 
 2012-10-04  Jeff Law  <law@redhat.com>
 
-	* PR target/50356
+	PR target/50356
 	* config/h8300/h8300.c (h8300_rtx_costs): Fix typo in CONST_INT case.
 
 2012-10-04  Jason Merrill  <jason@redhat.com>
@@ -324,8 +607,8 @@
 
 2012-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
 
-        * gengtype.c (walk_type): Emit mark_hook when inside a
-          struct of a union member.
+	* gengtype.c (walk_type): Emit mark_hook when inside a
+	struct of a union member.
 
 2012-10-04  Georg-Johann Lay  <avr@gjlay.de>
 
@@ -18473,7 +18756,6 @@
 	(IX86_BUILTIN_CPU_IS): New enum value.
 	(IX86_BUILTIN_CPU_SUPPORTS): New enum value.
 	* config/i386/i386-builtin-types.def: New function type.
-	* testsuite/gcc.target/builtin_target.c: New testcase.
 	* doc/extend.texi: Document builtins.
 
 2012-04-24  Olivier Hainque  <hainque@adacore.com>

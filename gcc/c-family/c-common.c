@@ -543,6 +543,7 @@ const struct c_common_resword c_common_reswords[] =
   { "switch",		RID_SWITCH,	0 },
   { "template",		RID_TEMPLATE,	D_CXXONLY | D_CXXWARN },
   { "this",		RID_THIS,	D_CXXONLY | D_CXXWARN },
+  { "thread_local",	RID_THREAD,	D_CXXONLY | D_CXX0X | D_CXXWARN },
   { "throw",		RID_THROW,	D_CXX_OBJC | D_CXXWARN },
   { "true",		RID_TRUE,	D_CXXONLY | D_CXXWARN },
   { "try",		RID_TRY,	D_CXX_OBJC | D_CXXWARN },
@@ -10526,7 +10527,7 @@ warn_array_subscript_with_type_char (tree index)
    was enclosed in parentheses.  */
 
 void
-warn_about_parentheses (enum tree_code code,
+warn_about_parentheses (location_t loc, enum tree_code code,
 			enum tree_code code_left, tree arg_left,
 			enum tree_code code_right, tree arg_right)
 {
@@ -10546,104 +10547,147 @@ warn_about_parentheses (enum tree_code code,
   switch (code)
     {
     case LSHIFT_EXPR:
-      if (code_left == PLUS_EXPR || code_right == PLUS_EXPR)
-	warning (OPT_Wparentheses,
-		 "suggest parentheses around %<+%> inside %<<<%>");
-      else if (code_left == MINUS_EXPR || code_right == MINUS_EXPR)
-	warning (OPT_Wparentheses,
-		 "suggest parentheses around %<-%> inside %<<<%>");
+      if (code_left == PLUS_EXPR)
+	warning_at (EXPR_LOC_OR_LOC (arg_left, loc), OPT_Wparentheses,
+		    "suggest parentheses around %<+%> inside %<<<%>");
+      else if (code_right == PLUS_EXPR)
+	warning_at (EXPR_LOC_OR_LOC (arg_right, loc), OPT_Wparentheses,
+		    "suggest parentheses around %<+%> inside %<<<%>");
+      else if (code_left == MINUS_EXPR)
+	warning_at (EXPR_LOC_OR_LOC (arg_left, loc), OPT_Wparentheses,
+		    "suggest parentheses around %<-%> inside %<<<%>");
+      else if (code_right == MINUS_EXPR)
+	warning_at (EXPR_LOC_OR_LOC (arg_right, loc), OPT_Wparentheses,
+		    "suggest parentheses around %<-%> inside %<<<%>");
       return;
 
     case RSHIFT_EXPR:
-      if (code_left == PLUS_EXPR || code_right == PLUS_EXPR)
-	warning (OPT_Wparentheses,
-		 "suggest parentheses around %<+%> inside %<>>%>");
-      else if (code_left == MINUS_EXPR || code_right == MINUS_EXPR)
-	warning (OPT_Wparentheses,
-		 "suggest parentheses around %<-%> inside %<>>%>");
+      if (code_left == PLUS_EXPR)
+	warning_at (EXPR_LOC_OR_LOC (arg_left, loc), OPT_Wparentheses,
+		    "suggest parentheses around %<+%> inside %<>>%>");
+      else if (code_right == PLUS_EXPR)
+	warning_at (EXPR_LOC_OR_LOC (arg_right, loc), OPT_Wparentheses,
+		    "suggest parentheses around %<+%> inside %<>>%>");
+      else if (code_left == MINUS_EXPR)
+	warning_at (EXPR_LOC_OR_LOC (arg_left, loc), OPT_Wparentheses,
+		    "suggest parentheses around %<-%> inside %<>>%>");
+      else if (code_right == MINUS_EXPR)
+	warning_at (EXPR_LOC_OR_LOC (arg_right, loc), OPT_Wparentheses,
+		    "suggest parentheses around %<-%> inside %<>>%>");
       return;
 
     case TRUTH_ORIF_EXPR:
-      if (code_left == TRUTH_ANDIF_EXPR || code_right == TRUTH_ANDIF_EXPR)
-	warning (OPT_Wparentheses,
-		 "suggest parentheses around %<&&%> within %<||%>");
+      if (code_left == TRUTH_ANDIF_EXPR)
+	warning_at (EXPR_LOC_OR_LOC (arg_left, loc), OPT_Wparentheses,
+		    "suggest parentheses around %<&&%> within %<||%>");
+      else if (code_right == TRUTH_ANDIF_EXPR)
+	warning_at (EXPR_LOC_OR_LOC (arg_right, loc), OPT_Wparentheses,
+		    "suggest parentheses around %<&&%> within %<||%>");
       return;
 
     case BIT_IOR_EXPR:
       if (code_left == BIT_AND_EXPR || code_left == BIT_XOR_EXPR
-	  || code_left == PLUS_EXPR || code_left == MINUS_EXPR
-	  || code_right == BIT_AND_EXPR || code_right == BIT_XOR_EXPR
-	  || code_right == PLUS_EXPR || code_right == MINUS_EXPR)
-	warning (OPT_Wparentheses,
+	  || code_left == PLUS_EXPR || code_left == MINUS_EXPR)
+	warning_at (EXPR_LOC_OR_LOC (arg_left, loc), OPT_Wparentheses,
+		 "suggest parentheses around arithmetic in operand of %<|%>");
+      else if (code_right == BIT_AND_EXPR || code_right == BIT_XOR_EXPR
+	       || code_right == PLUS_EXPR || code_right == MINUS_EXPR)
+	warning_at (EXPR_LOC_OR_LOC (arg_right, loc), OPT_Wparentheses,
 		 "suggest parentheses around arithmetic in operand of %<|%>");
       /* Check cases like x|y==z */
-      else if (TREE_CODE_CLASS (code_left) == tcc_comparison
-	       || TREE_CODE_CLASS (code_right) == tcc_comparison)
-	warning (OPT_Wparentheses,
+      else if (TREE_CODE_CLASS (code_left) == tcc_comparison)
+	warning_at (EXPR_LOC_OR_LOC (arg_left, loc), OPT_Wparentheses,
+		 "suggest parentheses around comparison in operand of %<|%>");
+      else if (TREE_CODE_CLASS (code_right) == tcc_comparison)
+	warning_at (EXPR_LOC_OR_LOC (arg_right, loc), OPT_Wparentheses,
 		 "suggest parentheses around comparison in operand of %<|%>");
       /* Check cases like !x | y */
       else if (code_left == TRUTH_NOT_EXPR
 	       && !APPEARS_TO_BE_BOOLEAN_EXPR_P (code_right, arg_right))
-	warning (OPT_Wparentheses, "suggest parentheses around operand of "
-		 "%<!%> or change %<|%> to %<||%> or %<!%> to %<~%>");
+	warning_at (EXPR_LOC_OR_LOC (arg_left, loc), OPT_Wparentheses,
+		    "suggest parentheses around operand of "
+		    "%<!%> or change %<|%> to %<||%> or %<!%> to %<~%>");
       return;
 
     case BIT_XOR_EXPR:
       if (code_left == BIT_AND_EXPR
-	  || code_left == PLUS_EXPR || code_left == MINUS_EXPR
-	  || code_right == BIT_AND_EXPR
-	  || code_right == PLUS_EXPR || code_right == MINUS_EXPR)
-	warning (OPT_Wparentheses,
+	  || code_left == PLUS_EXPR || code_left == MINUS_EXPR)
+	warning_at (EXPR_LOC_OR_LOC (arg_left, loc), OPT_Wparentheses,
+		 "suggest parentheses around arithmetic in operand of %<^%>");
+      else if (code_right == BIT_AND_EXPR
+	       || code_right == PLUS_EXPR || code_right == MINUS_EXPR)
+	warning_at (EXPR_LOC_OR_LOC (arg_right, loc), OPT_Wparentheses,
 		 "suggest parentheses around arithmetic in operand of %<^%>");
       /* Check cases like x^y==z */
-      else if (TREE_CODE_CLASS (code_left) == tcc_comparison
-	       || TREE_CODE_CLASS (code_right) == tcc_comparison)
-	warning (OPT_Wparentheses,
+      else if (TREE_CODE_CLASS (code_left) == tcc_comparison)
+	warning_at (EXPR_LOC_OR_LOC (arg_left, loc), OPT_Wparentheses,
+		 "suggest parentheses around comparison in operand of %<^%>");
+      else if (TREE_CODE_CLASS (code_right) == tcc_comparison)
+	warning_at (EXPR_LOC_OR_LOC (arg_right, loc), OPT_Wparentheses,
 		 "suggest parentheses around comparison in operand of %<^%>");
       return;
 
     case BIT_AND_EXPR:
-      if (code_left == PLUS_EXPR || code_right == PLUS_EXPR)
-	warning (OPT_Wparentheses,
+      if (code_left == PLUS_EXPR)
+	warning_at (EXPR_LOC_OR_LOC (arg_left, loc), OPT_Wparentheses,
 		 "suggest parentheses around %<+%> in operand of %<&%>");
-      else if (code_left == MINUS_EXPR || code_right == MINUS_EXPR)
-	warning (OPT_Wparentheses,
+      else if (code_right == PLUS_EXPR)
+	warning_at (EXPR_LOC_OR_LOC (arg_right, loc), OPT_Wparentheses,
+		 "suggest parentheses around %<+%> in operand of %<&%>");
+      else if (code_left == MINUS_EXPR)
+	warning_at (EXPR_LOC_OR_LOC (arg_left, loc), OPT_Wparentheses,
+		 "suggest parentheses around %<-%> in operand of %<&%>");
+      else if (code_right == MINUS_EXPR)
+	warning_at (EXPR_LOC_OR_LOC (arg_right, loc), OPT_Wparentheses,
 		 "suggest parentheses around %<-%> in operand of %<&%>");
       /* Check cases like x&y==z */
-      else if (TREE_CODE_CLASS (code_left) == tcc_comparison
-	       || TREE_CODE_CLASS (code_right) == tcc_comparison)
-	warning (OPT_Wparentheses,
+      else if (TREE_CODE_CLASS (code_left) == tcc_comparison)
+	warning_at (EXPR_LOC_OR_LOC (arg_left, loc), OPT_Wparentheses,
+		 "suggest parentheses around comparison in operand of %<&%>");
+      else if (TREE_CODE_CLASS (code_right) == tcc_comparison)
+	warning_at (EXPR_LOC_OR_LOC (arg_right, loc), OPT_Wparentheses,
 		 "suggest parentheses around comparison in operand of %<&%>");
       /* Check cases like !x & y */
       else if (code_left == TRUTH_NOT_EXPR
 	       && !APPEARS_TO_BE_BOOLEAN_EXPR_P (code_right, arg_right))
-	warning (OPT_Wparentheses, "suggest parentheses around operand of "
-		 "%<!%> or change %<&%> to %<&&%> or %<!%> to %<~%>");
+	warning_at (EXPR_LOC_OR_LOC (arg_left, loc), OPT_Wparentheses,
+		    "suggest parentheses around operand of "
+		    "%<!%> or change %<&%> to %<&&%> or %<!%> to %<~%>");
       return;
 
     case EQ_EXPR:
-      if (TREE_CODE_CLASS (code_left) == tcc_comparison
-          || TREE_CODE_CLASS (code_right) == tcc_comparison)
-	warning (OPT_Wparentheses,
+      if (TREE_CODE_CLASS (code_left) == tcc_comparison)
+	warning_at (EXPR_LOC_OR_LOC (arg_left, loc), OPT_Wparentheses,
+		 "suggest parentheses around comparison in operand of %<==%>");
+      else if (TREE_CODE_CLASS (code_right) == tcc_comparison)
+	warning_at (EXPR_LOC_OR_LOC (arg_right, loc), OPT_Wparentheses,
 		 "suggest parentheses around comparison in operand of %<==%>");
       return;
     case NE_EXPR:
-      if (TREE_CODE_CLASS (code_left) == tcc_comparison
-          || TREE_CODE_CLASS (code_right) == tcc_comparison)
-	warning (OPT_Wparentheses,
+      if (TREE_CODE_CLASS (code_left) == tcc_comparison)
+	warning_at (EXPR_LOC_OR_LOC (arg_left, loc), OPT_Wparentheses,
+		 "suggest parentheses around comparison in operand of %<!=%>");
+      else if (TREE_CODE_CLASS (code_right) == tcc_comparison)
+	warning_at (EXPR_LOC_OR_LOC (arg_right, loc), OPT_Wparentheses,
 		 "suggest parentheses around comparison in operand of %<!=%>");
       return;
 
     default:
-      if (TREE_CODE_CLASS (code) == tcc_comparison
-	   && ((TREE_CODE_CLASS (code_left) == tcc_comparison
+      if (TREE_CODE_CLASS (code) == tcc_comparison)
+	{
+	  if (TREE_CODE_CLASS (code_left) == tcc_comparison
 		&& code_left != NE_EXPR && code_left != EQ_EXPR
 		&& INTEGRAL_TYPE_P (TREE_TYPE (arg_left)))
-	       || (TREE_CODE_CLASS (code_right) == tcc_comparison
+	    warning_at (EXPR_LOC_OR_LOC (arg_left, loc), OPT_Wparentheses,
+			"comparisons like %<X<=Y<=Z%> do not "
+			"have their mathematical meaning");
+	  else if (TREE_CODE_CLASS (code_right) == tcc_comparison
 		   && code_right != NE_EXPR && code_right != EQ_EXPR
-		   && INTEGRAL_TYPE_P (TREE_TYPE (arg_right)))))
-	warning (OPT_Wparentheses, "comparisons like %<X<=Y<=Z%> do not "
-		 "have their mathematical meaning");
+		   && INTEGRAL_TYPE_P (TREE_TYPE (arg_right)))
+	    warning_at (EXPR_LOC_OR_LOC (arg_right, loc), OPT_Wparentheses,
+			"comparisons like %<X<=Y<=Z%> do not "
+			"have their mathematical meaning");
+	}
       return;
     }
 #undef NOT_A_BOOLEAN_EXPR_P
@@ -11250,6 +11294,109 @@ convert_vector_to_pointer_for_subscript (location_t loc,
       *vecp = build1 (ADDR_EXPR, type1, *vecp);
       *vecp = convert (type, *vecp);
     }
+}
+
+/* Determine which of the operands, if any, is a scalar that needs to be
+   converted to a vector, for the range of operations.  */
+enum stv_conv
+scalar_to_vector (location_t loc, enum tree_code code, tree op0, tree op1,
+		  bool complain)
+{
+  tree type0 = TREE_TYPE (op0);
+  tree type1 = TREE_TYPE (op1);
+  bool integer_only_op = false;
+  enum stv_conv ret = stv_firstarg;
+
+  gcc_assert (TREE_CODE (type0) == VECTOR_TYPE
+	      || TREE_CODE (type1) == VECTOR_TYPE);
+  switch (code)
+    {
+      /* Most GENERIC binary expressions require homogeneous arguments.
+	 LSHIFT_EXPR and RSHIFT_EXPR are exceptions and accept a first
+	 argument that is a vector and a second one that is a scalar, so
+	 we never return stv_secondarg for them.  */
+      case RSHIFT_EXPR:
+      case LSHIFT_EXPR:
+	if (TREE_CODE (type0) == INTEGER_TYPE
+	    && TREE_CODE (TREE_TYPE (type1)) == INTEGER_TYPE)
+	  {
+	    if (unsafe_conversion_p (TREE_TYPE (type1), op0, false))
+	      {
+		if (complain)
+		  error_at (loc, "conversion of scalar %qT to vector %qT "
+			    "involves truncation", type0, type1);
+		return stv_error;
+	      }
+	    else
+	      return stv_firstarg;
+	  }
+	break;
+
+      case BIT_IOR_EXPR:
+      case BIT_XOR_EXPR:
+      case BIT_AND_EXPR:
+	integer_only_op = true;
+	/* ... fall through ...  */
+
+      case PLUS_EXPR:
+      case MINUS_EXPR:
+      case MULT_EXPR:
+      case TRUNC_DIV_EXPR:
+      case CEIL_DIV_EXPR:
+      case FLOOR_DIV_EXPR:
+      case ROUND_DIV_EXPR:
+      case EXACT_DIV_EXPR:
+      case TRUNC_MOD_EXPR:
+      case FLOOR_MOD_EXPR:
+      case RDIV_EXPR:
+      case EQ_EXPR:
+      case NE_EXPR:
+      case LE_EXPR:
+      case GE_EXPR:
+      case LT_EXPR:
+      case GT_EXPR:
+      /* What about UNLT_EXPR?  */
+	if (TREE_CODE (type0) == VECTOR_TYPE)
+	  {
+	    tree tmp;
+	    ret = stv_secondarg;
+	    /* Swap TYPE0 with TYPE1 and OP0 with OP1  */
+	    tmp = type0; type0 = type1; type1 = tmp;
+	    tmp = op0; op0 = op1; op1 = tmp;
+	  }
+
+	if (TREE_CODE (type0) == INTEGER_TYPE
+	    && TREE_CODE (TREE_TYPE (type1)) == INTEGER_TYPE)
+	  {
+	    if (unsafe_conversion_p (TREE_TYPE (type1), op0, false))
+	      {
+		if (complain)
+		  error_at (loc, "conversion of scalar %qT to vector %qT "
+			    "involves truncation", type0, type1);
+		return stv_error;
+	      }
+	    return ret;
+	  }
+	else if (!integer_only_op
+		    /* Allow integer --> real conversion if safe.  */
+		 && (TREE_CODE (type0) == REAL_TYPE
+		     || TREE_CODE (type0) == INTEGER_TYPE)
+		 && SCALAR_FLOAT_TYPE_P (TREE_TYPE (type1)))
+	  {
+	    if (unsafe_conversion_p (TREE_TYPE (type1), op0, false))
+	      {
+		if (complain)
+		  error_at (loc, "conversion of scalar %qT to vector %qT "
+			    "involves truncation", type0, type1);
+		return stv_error;
+	      }
+	    return ret;
+	  }
+      default:
+	break;
+    }
+
+  return stv_nothing;
 }
 
 /* Return true iff ALIGN is an integral constant that is a fundamental
