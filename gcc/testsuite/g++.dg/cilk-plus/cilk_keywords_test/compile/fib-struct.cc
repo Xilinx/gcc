@@ -1,6 +1,3 @@
-/* { dg-do assemble } */
-/* { dg-final { scan-assembler "cilk_spawn_001" } }  */
-
 #include <cilk/cilk.h>
 #include <cstdlib>
 #define FIB_PARAMETER 40

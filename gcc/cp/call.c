@@ -561,7 +561,7 @@ null_ptr_cst_p (tree t)
     {
       /* Core issue 903 says only literal 0 is a null pointer constant.  */
       if (cxx_dialect < cxx0x)
-	t = integral_constant_value (t);
+	t = maybe_constant_value (t);
       STRIP_NOPS (t);
       if (integer_zerop (t) && !TREE_OVERFLOW (t))
 	return true;
@@ -4783,7 +4783,7 @@ build_conditional_expr_1 (tree arg1, tree arg2, tree arg3,
 	 but now we sometimes wrap them in NOP_EXPRs so the test would
 	 fail.  */
       if (CLASS_TYPE_P (TREE_TYPE (result)))
-	result = get_target_expr (result);
+	result = get_target_expr_sfinae (result, complain);
       /* If this expression is an rvalue, but might be mistaken for an
 	 lvalue, we must add a NON_LVALUE_EXPR.  */
       result = rvalue (result);
@@ -5903,7 +5903,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	field = next_initializable_field (DECL_CHAIN (field));
 	CONSTRUCTOR_APPEND_ELT (vec, field, size_int (len));
 	new_ctor = build_constructor (totype, vec);
-	return get_target_expr (new_ctor);
+	return get_target_expr_sfinae (new_ctor, complain);
       }
 
     case ck_aggr:
@@ -5919,7 +5919,8 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	  return fold_if_not_in_template (expr);
 	}
       expr = reshape_init (totype, expr, complain);
-      return get_target_expr (digest_init (totype, expr, complain));
+      return get_target_expr_sfinae (digest_init (totype, expr, complain),
+				     complain);
 
     default:
       break;
@@ -8743,9 +8744,9 @@ perform_direct_initialization_if_possible (tree type,
 
   The next several functions are involved in this lifetime extension.  */
 
-/* DECL is a VAR_DECL whose type is a REFERENCE_TYPE.  The reference
-   is being bound to a temporary.  Create and return a new VAR_DECL
-   with the indicated TYPE; this variable will store the value to
+/* DECL is a VAR_DECL or FIELD_DECL whose type is a REFERENCE_TYPE.  The
+   reference is being bound to a temporary.  Create and return a new
+   VAR_DECL with the indicated TYPE; this variable will store the value to
    which the reference is bound.  */
 
 tree
@@ -8757,13 +8758,15 @@ make_temporary_var_for_ref_to_temp (tree decl, tree type)
   var = create_temporary_var (type);
 
   /* Register the variable.  */
-  if (TREE_STATIC (decl))
+  if (TREE_CODE (decl) == VAR_DECL
+      && (TREE_STATIC (decl) || DECL_THREAD_LOCAL_P (decl)))
     {
       /* Namespace-scope or local static; give it a mangled name.  */
       /* FIXME share comdat with decl?  */
       tree name;
 
-      TREE_STATIC (var) = 1;
+      TREE_STATIC (var) = TREE_STATIC (decl);
+      DECL_TLS_MODEL (var) = DECL_TLS_MODEL (decl);
       name = mangle_ref_init_variable (decl);
       DECL_NAME (var) = name;
       SET_DECL_ASSEMBLER_NAME (var, name);
@@ -8816,6 +8819,9 @@ set_up_extended_ref_temp (tree decl, tree expr, VEC(tree,gc) **cleanups,
   /* Recursively extend temps in this initializer.  */
   TARGET_EXPR_INITIAL (expr)
     = extend_ref_init_temps (decl, TARGET_EXPR_INITIAL (expr), cleanups);
+
+  /* Any reference temp has a non-trivial initializer.  */
+  DECL_NONTRIVIALLY_INITIALIZED_P (var) = true;
 
   /* If the initializer is constant, put it in DECL_INITIAL so we get
      static initialization and use in constant expressions.  */
@@ -8879,8 +8885,14 @@ set_up_extended_ref_temp (tree decl, tree expr, VEC(tree,gc) **cleanups,
     {
       rest_of_decl_compilation (var, /*toplev=*/1, at_eof);
       if (TYPE_HAS_NONTRIVIAL_DESTRUCTOR (type))
-	static_aggregates = tree_cons (NULL_TREE, var,
-				       static_aggregates);
+	{
+	  if (DECL_THREAD_LOCAL_P (var))
+	    tls_aggregates = tree_cons (NULL_TREE, var,
+					tls_aggregates);
+	  else
+	    static_aggregates = tree_cons (NULL_TREE, var,
+					   static_aggregates);
+	}
     }
 
   *initp = init;

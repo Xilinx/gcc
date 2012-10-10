@@ -168,9 +168,6 @@ package body Sem is
          when N_Component_Declaration =>
             Analyze_Component_Declaration (N);
 
-         when N_Conditional_Expression =>
-            Analyze_Conditional_Expression (N);
-
          when N_Conditional_Entry_Call =>
             Analyze_Conditional_Entry_Call (N);
 
@@ -278,6 +275,9 @@ package body Sem is
 
          when N_Identifier =>
             Analyze_Identifier (N);
+
+         when N_If_Expression =>
+            Analyze_If_Expression (N);
 
          when N_If_Statement =>
             Analyze_If_Statement (N);
@@ -730,6 +730,20 @@ package body Sem is
             Scope_Suppress := Svg;
          end;
 
+      elsif Suppress = Overflow_Check then
+         declare
+            Svg : constant Overflow_Check_Type :=
+                    Scope_Suppress.Overflow_Checks_General;
+            Sva : constant Overflow_Check_Type :=
+                    Scope_Suppress.Overflow_Checks_Assertions;
+         begin
+            Scope_Suppress.Overflow_Checks_General    := Suppressed;
+            Scope_Suppress.Overflow_Checks_Assertions := Suppressed;
+            Analyze (N);
+            Scope_Suppress.Overflow_Checks_General    := Svg;
+            Scope_Suppress.Overflow_Checks_Assertions := Sva;
+         end;
+
       else
          declare
             Svg : constant Boolean := Scope_Suppress.Suppress (Suppress);
@@ -767,6 +781,20 @@ package body Sem is
             Scope_Suppress := Suppress_All;
             Analyze_List (L);
             Scope_Suppress := Svg;
+         end;
+
+      elsif Suppress = Overflow_Check then
+         declare
+            Svg : constant Overflow_Check_Type :=
+                    Scope_Suppress.Overflow_Checks_General;
+            Sva : constant Overflow_Check_Type :=
+                    Scope_Suppress.Overflow_Checks_Assertions;
+         begin
+            Scope_Suppress.Overflow_Checks_General    := Suppressed;
+            Scope_Suppress.Overflow_Checks_Assertions := Suppressed;
+            Analyze_List (L);
+            Scope_Suppress.Overflow_Checks_General    := Svg;
+            Scope_Suppress.Overflow_Checks_Assertions := Sva;
          end;
 
       else

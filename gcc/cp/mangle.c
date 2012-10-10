@@ -1,6 +1,6 @@
 /* Name mangling for the 3.0 C++ ABI.
    Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010,
-   2011  Free Software Foundation, Inc.
+   2011, 2012  Free Software Foundation, Inc.
    Written by Alex Samuel <samuel@codesourcery.com>
 
    This file is part of GCC.
@@ -2581,6 +2581,12 @@ write_expression (tree expr)
       write_char ('E');
     }
   else if (TREE_CODE (expr) == SIZEOF_EXPR
+	   && SIZEOF_EXPR_TYPE_P (expr))
+    {
+      write_string ("st");
+      write_type (TREE_TYPE (TREE_OPERAND (expr, 0)));
+    }
+  else if (TREE_CODE (expr) == SIZEOF_EXPR
 	   && TYPE_P (TREE_OPERAND (expr, 0)))
     {
       write_string ("st");
@@ -3678,6 +3684,20 @@ mangle_conv_op_name_for_type (const tree type)
   return identifier;
 }
 
+/* Write out the appropriate string for this variable when generating
+   another mangled name based on this one.  */
+
+static void
+write_guarded_var_name (const tree variable)
+{
+  if (strncmp (IDENTIFIER_POINTER (DECL_NAME (variable)), "_ZGR", 4) == 0)
+    /* The name of a guard variable for a reference temporary should refer
+       to the reference, not the temporary.  */
+    write_string (IDENTIFIER_POINTER (DECL_NAME (variable)) + 4);
+  else
+    write_name (variable, /*ignore_local_scope=*/0);
+}
+
 /* Return an identifier for the name of an initialization guard
    variable for indicated VARIABLE.  */
 
@@ -3686,13 +3706,46 @@ mangle_guard_variable (const tree variable)
 {
   start_mangling (variable);
   write_string ("_ZGV");
-  if (strncmp (IDENTIFIER_POINTER (DECL_NAME (variable)), "_ZGR", 4) == 0)
-    /* The name of a guard variable for a reference temporary should refer
-       to the reference, not the temporary.  */
-    write_string (IDENTIFIER_POINTER (DECL_NAME (variable)) + 4);
-  else
-    write_name (variable, /*ignore_local_scope=*/0);
+  write_guarded_var_name (variable);
   return finish_mangling_get_identifier (/*warn=*/false);
+}
+
+/* Return an identifier for the name of a thread_local initialization
+   function for VARIABLE.  */
+
+tree
+mangle_tls_init_fn (const tree variable)
+{
+  start_mangling (variable);
+  write_string ("_ZTH");
+  write_guarded_var_name (variable);
+  return finish_mangling_get_identifier (/*warn=*/false);
+}
+
+/* Return an identifier for the name of a thread_local wrapper
+   function for VARIABLE.  */
+
+#define TLS_WRAPPER_PREFIX "_ZTW"
+
+tree
+mangle_tls_wrapper_fn (const tree variable)
+{
+  start_mangling (variable);
+  write_string (TLS_WRAPPER_PREFIX);
+  write_guarded_var_name (variable);
+  return finish_mangling_get_identifier (/*warn=*/false);
+}
+
+/* Return true iff FN is a thread_local wrapper function.  */
+
+bool
+decl_tls_wrapper_p (const tree fn)
+{
+  if (TREE_CODE (fn) != FUNCTION_DECL)
+    return false;
+  tree name = DECL_NAME (fn);
+  return strncmp (IDENTIFIER_POINTER (name), TLS_WRAPPER_PREFIX,
+		  strlen (TLS_WRAPPER_PREFIX)) == 0;
 }
 
 /* Return an identifier for the name of a temporary variable used to

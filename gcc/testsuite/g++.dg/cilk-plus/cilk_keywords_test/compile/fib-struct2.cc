@@ -1,6 +1,3 @@
-/* { dg-do assemble } */
-/* { dg-final { scan-assembler "cilk_spawn_001" } } */
-
 #if HAVE_IO
 #include <cstdio>
 #endif

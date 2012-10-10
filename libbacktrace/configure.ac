@@ -96,6 +96,12 @@ else
 fi
 AC_SUBST(BACKTRACE_FILE)
 
+EXTRA_FLAGS=
+if test "x$GCC" = "xyes"; then
+  EXTRA_FLAGS=-funwind-tables
+fi
+AC_SUBST(EXTRA_FLAGS)
+
 ACX_PROG_CC_WARNING_OPTS([-W -Wall -Wwrite-strings -Wstrict-prototypes \
 			  -Wmissing-prototypes -Wold-style-definition \
 			  -Wmissing-format-attribute -Wcast-qual],
@@ -219,6 +225,24 @@ if test "$ALLOC_FILE" = "alloc.lo"; then
   BACKTRACE_USES_MALLOC=1
 fi
 AC_SUBST(BACKTRACE_USES_MALLOC)
+
+# Check for dl_iterate_phdr.
+AC_CHECK_HEADERS(link.h)
+if test "$ac_cv_header_link_h" = "no"; then
+  have_dl_iterate_phdr=no
+else
+  if test -n "${with_target_subdir}"; then
+    # When built as a GCC target library, we can't do a link test.
+    AC_EGREP_HEADER([dl_iterate_phdr], [link.h], [have_dl_iterate_phdr=yes],
+		    [have_dl_iterate_phdr=no])
+  else
+    AC_CHECK_FUNC([dl_iterate_phdr], [have_dl_iterate_phdr=yes],
+		  [have_dl_iterate_phdr=no])
+  fi
+fi
+if test "$have_dl_iterate_phdr" = "yes"; then
+  AC_DEFINE(HAVE_DL_ITERATE_PHDR, 1, [Define if dl_iterate_phdr is available.])
+fi
 
 # Check for the fcntl function.
 if test -n "${with_target_subdir}"; then

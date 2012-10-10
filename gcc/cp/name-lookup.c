@@ -4179,6 +4179,7 @@ hidden_name_p (tree val)
 {
   if (DECL_P (val)
       && DECL_LANG_SPECIFIC (val)
+      && TYPE_FUNCTION_OR_TEMPLATE_DECL_P (val)
       && DECL_ANTICIPATED (val))
     return true;
   return false;

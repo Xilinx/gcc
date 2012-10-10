@@ -1,7 +1,44 @@
+2012-10-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/54194
+	* c-common.c (warn_about_parentheses): Add location_t parameter;
+	use EXPR_LOC_OR_LOC.
+	* c-common.h: Update declaration.
+
+2012-10-09  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR c++/54427
+	* c-common.c (scalar_to_vector): Moved from c-typeck.c. Support
+	more operations. Make error messages optional.
+	* c-common.h (enum stv_conv): Moved from c-typeck.c.
+	(scalar_to_vector): Declare.
+
+2012-10-08  Jason Merrill  <jason@redhat.com>
+
+	* c-common.c (c_common_reswords): Add thread_local.
+
+2012-10-08  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/53528 C++11 attribute support
+	* c-common.h (bitfield_p, cxx_fundamental_alignment_p): Declare
+	new functions.
+	* c-common.c (check_cxx_fundamental_alignment_constraints): New
+	static function.
+	(handle_aligned_attribute): In choose strictest alignment
+	among many.  Use new check_cxx_fundamental_alignment_constraints.
+	(handle_transparent_union_attribute): In c++11 attribute syntax,
+	don't look through typedefs.
+
+2012-10-04  Arnaud Charlet  <charlet@adacore.com>
+
+	* c-ada-spec.c (print_ada_declaration): Remove handling of TDF_RAW.
+	* c.opt (-fdump-ada-spec, -fdump-ada-spec-slim): Move switch definition
+	out of dumpfile.h.
+
 2012-09-25  Dehao Chen  <dehao@google.com>
 
 	PR middle-end/54645
-	* c-family/c-pch.c (c_common_read_pch): Rebuild the location_adhoc_data
+	* c-pch.c (c_common_read_pch): Rebuild the location_adhoc_data
 	map when read in the pch.
 
 2012-09-18 Arnaud Charlet  <charlet@adacore.com>

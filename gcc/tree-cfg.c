@@ -4012,6 +4012,80 @@ verify_gimple_assign_single (gimple stmt)
       return res;
 
     case CONSTRUCTOR:
+      if (TREE_CODE (rhs1_type) == VECTOR_TYPE)
+	{
+	  unsigned int i;
+	  tree elt_i, elt_v, elt_t = NULL_TREE;
+
+	  if (CONSTRUCTOR_NELTS (rhs1) == 0)
+	    return res;
+	  /* For vector CONSTRUCTORs we require that either it is empty
+	     CONSTRUCTOR, or it is a CONSTRUCTOR of smaller vector elements
+	     (then the element count must be correct to cover the whole
+	     outer vector and index must be NULL on all elements, or it is
+	     a CONSTRUCTOR of scalar elements, where we as an exception allow
+	     smaller number of elements (assuming zero filling) and
+	     consecutive indexes as compared to NULL indexes (such
+	     CONSTRUCTORs can appear in the IL from FEs).  */
+	  FOR_EACH_CONSTRUCTOR_ELT (CONSTRUCTOR_ELTS (rhs1), i, elt_i, elt_v)
+	    {
+	      if (elt_t == NULL_TREE)
+		{
+		  elt_t = TREE_TYPE (elt_v);
+		  if (TREE_CODE (elt_t) == VECTOR_TYPE)
+		    {
+		      tree elt_t = TREE_TYPE (elt_v);
+		      if (!useless_type_conversion_p (TREE_TYPE (rhs1_type),
+						      TREE_TYPE (elt_t)))
+			{
+			  error ("incorrect type of vector CONSTRUCTOR"
+				 " elements");
+			  debug_generic_stmt (rhs1);
+			  return true;
+			}
+		      else if (CONSTRUCTOR_NELTS (rhs1)
+			       * TYPE_VECTOR_SUBPARTS (elt_t)
+			       != TYPE_VECTOR_SUBPARTS (rhs1_type))
+			{
+			  error ("incorrect number of vector CONSTRUCTOR"
+				 " elements");
+			  debug_generic_stmt (rhs1);
+			  return true;
+			}
+		    }
+		  else if (!useless_type_conversion_p (TREE_TYPE (rhs1_type),
+						       elt_t))
+		    {
+		      error ("incorrect type of vector CONSTRUCTOR elements");
+		      debug_generic_stmt (rhs1);
+		      return true;
+		    }
+		  else if (CONSTRUCTOR_NELTS (rhs1)
+			   > TYPE_VECTOR_SUBPARTS (rhs1_type))
+		    {
+		      error ("incorrect number of vector CONSTRUCTOR elements");
+		      debug_generic_stmt (rhs1);
+		      return true;
+		    }
+		}
+	      else if (!useless_type_conversion_p (elt_t, TREE_TYPE (elt_v)))
+		{
+		  error ("incorrect type of vector CONSTRUCTOR elements");
+		  debug_generic_stmt (rhs1);
+		  return true;
+		}
+	      if (elt_i != NULL_TREE
+		  && (TREE_CODE (elt_t) == VECTOR_TYPE
+		      || TREE_CODE (elt_i) != INTEGER_CST
+		      || compare_tree_int (elt_i, i) != 0))
+		{
+		  error ("vector CONSTRUCTOR with non-NULL element index");
+		  debug_generic_stmt (rhs1);
+		  return true;
+		}
+	    }
+	}
+      return res;
     case OBJ_TYPE_REF:
     case ASSERT_EXPR:
     case WITH_SIZE_EXPR:
@@ -6260,6 +6334,7 @@ move_block_to_fn (struct function *dest_cfun, basic_block bb,
       use_operand_p use;
       tree op = PHI_RESULT (phi);
       ssa_op_iter oi;
+      unsigned i;
 
       if (virtual_operand_p (op))
 	{
@@ -6276,6 +6351,23 @@ move_block_to_fn (struct function *dest_cfun, basic_block bb,
 	  op = USE_FROM_PTR (use);
 	  if (TREE_CODE (op) == SSA_NAME)
 	    SET_USE (use, replace_ssa_name (op, d->vars_map, dest_cfun->decl));
+	}
+
+      for (i = 0; i < EDGE_COUNT (bb->preds); i++)
+	{
+	  location_t locus = gimple_phi_arg_location (phi, i);
+	  tree block = LOCATION_BLOCK (locus);
+
+	  if (locus == UNKNOWN_LOCATION)
+	    continue;
+	  if (d->orig_block == NULL_TREE || block == d->orig_block)
+	    {
+	      if (d->new_block == NULL_TREE)
+		locus = LOCATION_LOCUS (locus);
+	      else
+		locus = COMBINE_LOCATION_DATA (line_table, locus, d->new_block);
+	      gimple_phi_arg_set_location (phi, i, locus);
+	    }
 	}
 
       gsi_next (&si);
@@ -7516,6 +7608,30 @@ gimple_lv_add_condition_to_bb (basic_block first_head ATTRIBUTE_UNUSED,
   e0->flags |= EDGE_FALSE_VALUE;
 }
 
+
+/* Do book-keeping of basic block BB for the profile consistency checker.
+   If AFTER_PASS is 0, do pre-pass accounting, or if AFTER_PASS is 1
+   then do post-pass accounting.  Store the counting in RECORD.  */
+static void
+gimple_account_profile_record (basic_block bb, int after_pass,
+			       struct profile_record *record)
+{
+  gimple_stmt_iterator i;
+  for (i = gsi_start_bb (bb); !gsi_end_p (i); gsi_next (&i))
+    {
+      record->size[after_pass]
+	+= estimate_num_insns (gsi_stmt (i), &eni_size_weights);
+      if (profile_status == PROFILE_READ)
+	record->time[after_pass]
+	  += estimate_num_insns (gsi_stmt (i),
+				 &eni_time_weights) * bb->count;
+      else if (profile_status == PROFILE_GUESSED)
+	record->time[after_pass]
+	  += estimate_num_insns (gsi_stmt (i),
+				 &eni_time_weights) * bb->frequency;
+    }
+}
+
 struct cfg_hooks gimple_cfg_hooks = {
   "gimple",
   gimple_verify_flow_info,
@@ -7549,6 +7665,7 @@ struct cfg_hooks gimple_cfg_hooks = {
   flush_pending_stmts, 		/* flush_pending_stmts */  
   gimple_empty_block_p,           /* block_empty_p */
   gimple_split_block_before_cond_jump, /* split_block_before_cond_jump */
+  gimple_account_profile_record,
 };
 
 

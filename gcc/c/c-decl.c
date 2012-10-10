@@ -53,7 +53,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic-core.h"
 #include "dumpfile.h"
 #include "cgraph.h"
-#include "hashtab.h"
+#include "hash-table.h"
 #include "langhooks-def.h"
 #include "pointer-set.h"
 #include "plugin.h"
@@ -6902,15 +6902,16 @@ is_duplicate_field (tree x, tree y)
    to HTAB, giving errors for any duplicates.  */
 
 static void
-detect_field_duplicates_hash (tree fieldlist, htab_t htab)
+detect_field_duplicates_hash (tree fieldlist,
+			      hash_table <pointer_hash <tree_node> > htab)
 {
   tree x, y;
-  void **slot;
+  tree_node **slot;
 
   for (x = fieldlist; x ; x = DECL_CHAIN (x))
     if ((y = DECL_NAME (x)) != 0)
       {
-	slot = htab_find_slot (htab, y, INSERT);
+	slot = htab.find_slot (y, INSERT);
 	if (*slot)
 	  {
 	    error ("duplicate member %q+D", x);
@@ -6930,7 +6931,7 @@ detect_field_duplicates_hash (tree fieldlist, htab_t htab)
 	    && TREE_CODE (TYPE_NAME (TREE_TYPE (x))) == TYPE_DECL)
 	  {
 	    tree xn = DECL_NAME (TYPE_NAME (TREE_TYPE (x)));
-	    slot = htab_find_slot (htab, xn, INSERT);
+	    slot = htab.find_slot (xn, INSERT);
 	    if (*slot)
 	      error ("duplicate member %q+D", TYPE_NAME (TREE_TYPE (x)));
 	    *slot = xn;
@@ -7002,10 +7003,11 @@ detect_field_duplicates (tree fieldlist)
     }
   else
     {
-      htab_t htab = htab_create (37, htab_hash_pointer, htab_eq_pointer, NULL);
+      hash_table <pointer_hash <tree_node> > htab;
+      htab.create (37);
 
       detect_field_duplicates_hash (fieldlist, htab);
-      htab_delete (htab);
+      htab.dispose ();
     }
 }
 
@@ -10086,10 +10088,10 @@ c_write_global_declarations (void)
   gcc_assert (!current_scope);
 
   /* Handle -fdump-ada-spec[-slim]. */
-  if (dump_initialized_p (TDI_ada))
+  if (flag_dump_ada_spec || flag_dump_ada_spec_slim)
     {
       /* Build a table of files to generate specs for */
-      if (get_dump_file_info (TDI_ada)->pflags & TDF_SLIM)
+      if (flag_dump_ada_spec_slim)
 	collect_source_ref (main_input_filename);
       else
 	for_each_global_decl (collect_source_ref_cb);

@@ -1817,6 +1817,9 @@ finalize (bool no_backend)
   if (mem_report)
     dump_memory_report (true);
 
+  if (profile_report)
+    dump_profile_report ();
+
   /* Language-specific end of compilation actions.  */
   lang_hooks.finish ();
 }

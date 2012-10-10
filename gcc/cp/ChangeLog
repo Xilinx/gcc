@@ -1,3 +1,243 @@
+2012-10-10  Dehao Chen  <dehao@google.com>
+
+	* cp-gimplify.c (cp_genericize_r): Set location for TRY expr.
+
+2012-10-09  Lawrence Crowl  <crowl@google.com>
+
+	* Make-lang.in (class.o): Add dependence on hash-table.h.
+	(tree.o): Likewise.
+	(semantics.o): Likewise.
+	* class.c (fixed_type_or_null): Change to new type-safe hash table.
+	* tree.c (verify_stmt_tree): Likewise.
+	(verify_stmt_tree_r): Likewise.
+	* semantics.c (struct nrv_data): Likewise.
+
+2012-10-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/54194
+	* typeck.c (build_x_binary_op): Update warn_about_parentheses call.
+	* parser.c (cp_parser_binary_expression): Use SET_EXPR_LOCATION
+	on current.lhs.
+
+2012-10-09  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR c++/54427
+	* typeck.c (cp_build_binary_op): Handle mixed scalar-vector
+	operations.
+	[LSHIFT_EXPR, RSHIFT_EXPR]: Likewise.
+
+2012-10-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/54858
+	* tree.c (cp_tree_equal): Handle FIELD_DECL.
+
+2012-10-08  Jason Merrill  <jason@redhat.com>
+
+	Allow dynamic initialization of thread_locals.
+	* decl.c: Define tls_aggregates.
+	(expand_static_init): Remove sorry.  Add to tls_aggregates.
+	* cp-tree.h: Declare tls_aggregates.
+	* call.c (set_up_extended_ref_temp): Add to tls_aggregates.
+	* decl2.c (var_needs_tls_wrapper): New.
+	(var_defined_without_dynamic_init): New.
+	(get_tls_init_fn, get_tls_wrapper_fn): New.
+	(generate_tls_wrapper, handle_tls_init): New.
+	(cp_write_global_declarations): Call handle_tls_init and
+	enerate_tls_wrapper.
+	* mangle.c (write_guarded_var_name): Split out from..
+	(mangle_guard_variable): ...here.
+	(mangle_tls_init_fn, mangle_tls_wrapper_fn): Use it.
+	(decl_tls_wrapper_p): New.
+	* semantics.c (finish_id_expression): Replace use of thread_local
+	variable with a call to its wrapper.
+
+	* decl.c (get_thread_atexit_node): New.
+	(register_dtor_fn): Use it for TLS.
+
+	Partial implementation of C++11 thread_local.
+	* decl.c (cp_finish_decl): Remove errors about non-trivial
+	initialization and destruction of TLS variables.
+	(register_dtor_fn): Add sorry about TLS variables.
+	(expand_static_init): Add sorry about non-local TLS variables,
+	or error with __thread.
+	Don't emit thread-safety guards for local TLS variables.
+	(grokdeclarator): thread_local in a function implies static.
+	* decl.h: Adjust prototype.
+	* decl2.c (get_guard): Copy DECL_TLS_MODEL.
+	* parser.c (cp_parser_set_storage_class, cp_parser_set_decl_spec_type)
+	(set_and_check_decl_spec_loc): Take the token rather than the location.
+	Distinguish between __thread and thread_local.
+	(cp_parser_set_storage_class): Don't complain about thread_local before
+	extern/static.
+	(token_is__thread): New.
+	* call.c (make_temporary_var_for_ref_to_temp): Handle TLS.
+	* cp-tree.h (DECL_GNU_TLS_P): New.
+	(cp_decl_specifier_seq): Add gnu_thread_keyword_p.
+
+2012-10-08  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/53528 C++11 attribute support
+	* cp-tree.h (enum cpp0x_warn_str::CPP0X_ATTRIBUTES): New member.
+	(enum cp_decl_spec::ds_std_attribute): New enumerator.
+	(struct cp_decl_specifier_seq::std_attributes): New field.
+	(cxx_alignas_expr, warn_misplaced_attr_for_class_type): Declare
+	new functions.
+	(check_tag_decl): Take an extra parameter for explicit
+	instantiations.
+	* decl.c (warn_misplaced_attr_for_class_type): Extract from ...
+	(check_tag_decl): ... here.  Add check for c++11 attributes being
+	applied to an explicit instantiation.  Take an extra parameter for
+	explicit instantiations.
+	(grokdeclarator): Make sure a c++11 attribute after an array
+	declarator appertains to the array, an attribute after a function
+	declarator appertains to the function type, an attribute after a
+	declarator-id appertains to the entity being declared, and an
+	attribute after a pointer declarator appertain to the pointer.
+	* decl2.c (is_late_template_attribute): Use get_attribute_name.
+	* error.c (maybe_warn_cpp0x): Support
+	CPP0X_GENERALIZED_ATTRIBUTES.
+	* parser.c (cp_next_tokens_can_be_attribute_p)
+	(cp_next_tokens_can_be_gnu_attribute_p)
+	(cp_next_tokens_can_be_std_attribute_p)
+	(cp_nth_tokens_can_be_attribute_p)
+	(cp_nth_tokens_can_be_gnu_attribute_p)
+	(cp_nth_tokens_can_be_std_attribute_p)
+	(cp_parser_gnu_attribute_list, cp_parser_std_attribute)
+	(cp_parser_std_attribute_spec, cp_parser_std_attribute_spec_seq)
+	(cp_parser_attributes_opt, cp_parser_std_attribute_list): New
+	static functions.
+	(cp_parser_gnu_attributes_opt): Replace cp_parser_attributes_opt.
+	(cp_parser_gnu_attribute_list): Replace cp_parser_attribute_list.
+	(cp_parser_postfix_expression): Disallow "[[" tokens here.
+	(cp_parser_label_for_labeled_statement): Use take an extra
+	parameter for attributes.
+	(cp_parser_block_declaration): Use
+	cp_nth_tokens_can_be_std_attribute_p here.
+	(cp_parser_decl_specifier_seq): Likewise.  Store C++11 attributes
+	that appears in in decl specifiers in cp_decl_specifier_seq::std_attributes.
+	declaration.  Emit proper warning about misplaced c++11 attributes
+	for class type.
+	(cp_parser_explicit_instantiation): Adjust call to check_tag_decl.
+	(cp_parser_init_declarator):  Parsing attributes here is no more a
+	GNU extension in c++-11.
+	(cp_parser_type_specifier_seq): Use
+	cp_next_tokens_can_be_attribute_p.
+	(cp_parser_direct_declarator): Likewise.  Hang c++11 attributes
+	following the declarator to its syntactic construct.  It'll later
+	be applied to the proper appertaining entity by grokdeclarator.
+	(cp_parser_ptr_operator): Likewise.
+	(make_declarator): Initialize cp_declarator::std_attribute.
+	(make_pointer_declarator, make_reference_declarator)
+	(make_ptrmem_declarator, cp_parser_make_indirect_declarator): Take
+	attributes that appertain to the pointer/reference in argument.
+	(cp_parser_ptr_operator): Take an out parameter for c++11
+	attributes.  Update comments.
+	(cp_parser_new_declarator_opt)
+	(cp_parser_conversion_declarator_opt): Adjust.
+	(cp_parser_declarator): Likewise.  Handle C++11 attributes.
+	Rename attributes to gnu_attribute for better legibility.
+	(cp_parser_simple_declaration): Update comment.
+	(cp_parser_class_specifier_1): Parse GNU attributes specifically
+	(cp_parser_enum_specifier): Accept only gnu attributes after the
+	specifier.
+	(cp_parser_member_declaration): Don't clear attributes -- intended
+	for the entity being declared -- too early because check_tag_decl
+	needs them.
+	(cp_parser_statement): Update comment.  Parse optional c++11
+	attributes at the beginning of the relevant kind of statements and
+	ignore them, for now, unless when calling
+	cp_parser_label_for_labeled_statement.
+	(cp_parser_label_for_labeled_statement): Take c++11 attributes
+	in parameter.
+	* semantics.c (potential_constant_expression_1): Likewise.
+	* typeck.c (fundamental_alignment_p, cxx_alignas_expr): New public
+	functions.
+
+2012-10-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* pt.c (fold_non_dependent_expr_sfinae): Remove static specifier.
+	(tsubst_copy_and_build): Use get_target_expr_sfinae.
+	* call.c (build_conditional_expr_1, convert_like_real): Likewise.
+	* cvt.c (build_up_reference): Likewise.
+	(ocp_convert): Use abstract_virtuals_error_sfinae.
+	(build_up_reference): Propagate complain to cp_build_addr_expr.
+	* decl.c (compute_array_index_type): Use fold_non_dependent_expr_sfinae.
+	* cp-tree.h: Update declarations.
+
+	* cvt.c	(build_expr_type_conversion): Tidy.
+
+	* tree.c (stabilize_aggr_init): Change to static.
+
+2012-10-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51422
+	* semantics.c (is_normal_capture_proxy): Return true for
+	error_mark_node as DECL_VALUE_EXPR.
+
+2012-10-05  Jakub Jelinek  <jakub@redhat.com>
+
+	* cp-tree.h (SIZEOF_EXPR_TYPE_P): Define.
+	* tree.c (cp_tree_equal): Handle SIZEOF_EXPR with
+	SIZEOF_EXPR_TYPE_P.
+	* mangle.c (write_expression): Likewise.
+	* cxx-pretty-print.c (pp_cxx_unary_expression): Likewise.
+	* error.c (dump_expr): Likewise.
+	* parser.c (cp_parser_unary_expression): For sizeof call
+	cxx_sizeof_or_alignof_{type,expr} just for diagnostics and
+	return SIZEOF_EXPR with the operand.
+	* pt.c (tsubst_copy, tsubst_copy_and_build): For SIZEOF_EXPR,
+	call cxx_sizeof_or_alignof_{type,expr} for diagnostics, but
+	return SIZEOF_EXPR with tsubsted operand.
+	(value_dependent_expression_p): Handle SIZEOF_EXPR with
+	SIZEOF_EXPR_TYPE_P.
+	(instantiation_dependent_r): Likewise.
+	* call.c (null_ptr_cst_p): Call maybe_constant_value for C++98.
+	* semantics.c (finish_call_expr): Call
+	sizeof_pointer_memaccess_warning if needed.
+	(cxx_eval_constant_expression): Handle SIZEOF_EXPR.
+	(potential_constant_expression_1): Remove early exit for
+	C++98.  Handle PROPERTY_REF.
+	* decl.c (duplicate_decls): When redeclaring a builtin function,
+	keep the merged decl builtin also if newdecl is a gnu_inline
+	inline definition.
+	(fold_sizeof_expr_r): New function.
+	(compute_array_index_type): Fold SIZEOF_EXPRs in itype.
+	* cp-gimplify.c (cp_genericize_r): Fold SIZEOF_EXPR.
+	* typeck.c (cp_build_binary_op): For warn_for_sign_compare
+	try harder using maybe_constant_value to get INTEGER_CSTs.
+
+	* decl.c (stabilize_vla_size): Call pointer_set_destroy
+	at the end.
+
+2012-10-04  Arnaud Charlet  <charlet@adacore.com>
+        
+        * decl2.c (cp_write_global_declarations): Fix handling of
+        -fdump-ada-spec*.
+
+2012-10-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/54777
+	* semantics.c (cxx_eval_constant_expression) <case COMPOUND_EXPR>: If
+	not ignoring the second operand, pass the original second operand
+	and not one with stripped nops to cxx_eval_constant_expression.
+
+2012-10-01  Jason Merrill  <jason@redhat.com>
+
+	* decl.c (check_initializer): Set DECL_NONTRIVIALLY_INITIALIZED_P
+	for a constructor call.
+	(decl_jump_unsafe): So don't bother checking
+	type_has_nontrivial_default_init.
+	* call.c (set_up_extended_ref_temp): Set
+	DECL_NONTRIVIALLY_INITIALIZED_P.
+
+	* cp-tree.h (TYPE_FUNCTION_OR_TEMPLATE_DECL_CHECK): New.
+	(DECL_FRIEND_P, DECL_ANTICIPATED): Use it.
+	(TYPE_FUNCTION_OR_TEMPLATE_DECL_P): New.
+	* name-lookup.c (hidden_name_p): Use it.
+
+	* cp-tree.h (DECL_PRETTY_FUNCTION_P): Just look at the name.
+	* decl.c (cp_make_fname_decl): Adjust.
+
 2012-09-30  Sharad Singhai  <singhai@google.com>
 
 	* decl2.c (cp_write_global_declarations): Use a different method
