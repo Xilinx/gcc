@@ -1,3 +1,11 @@
+2012-10-10  Dehao Chen  <dehao@google.com>
+
+	Backport 192285 from trunk:
+
+	2012-10-10  Dehao Chen  <dehao@google.com>
+
+	* cp-gimplify.c (cp_genericize_r): Set location for TRY expr.
+
 2012-08-17   Xinliang David Li  <davidxl@google.com>
 
 	error.c (dump_template_bindings): Avoid template

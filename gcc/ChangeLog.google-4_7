@@ -1,3 +1,13 @@
+2012-10-10  Dehao Chen  <dehao@google.com>
+
+	Backport 192285 from trunk:
+
+	2012-10-10  Dehao Chen  <dehao@google.com>
+
+	* tree-eh.c (lower_try_finally_onedest): Set correct location for
+	deallocator.
+	* gimplify.c (gimplify_expr): Set correct location for TRY stmt.
+
 2012-10-10  Diego Novillo  <dnovillo@google.com>
 
 	Merge from gcc-4_7-branch rev 192176.
