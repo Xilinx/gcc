@@ -10784,7 +10784,7 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
 
 #if MELT_HAVE_DEBUG
   {
-    static char* tracepath = getenv ("GCCMELT_TRACE_LOCATION");
+    char* tracepath = getenv ("GCCMELT_TRACE_LOCATION");
     if (tracepath) 
       {
 	melt_loctrace_file = fopen (tracepath, "w");
