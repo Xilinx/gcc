@@ -13928,8 +13928,7 @@ lab_endgetargs:;
 \n\t\t\t\t\t#if MELT_HAVE_DEBUG\n\t\t\t\t\tif (meltxresdescr_ && meltxresdesc\
 r_[0] && meltxrestab_)  melt_warn_for_no_expected_secondary_results\
 ()\t;\n\t\t\t\t\t/* we warned when secondary results are expected but\
- not returned. */\n\t\t\t\t\t#endif /*MELT_HAVE\
-_DEBUG*/\n\t\t\t\t\t";
+ not returned. */\n\t\t\t\t\t#endif /*MELT_HAVE_DEBUG*/\n\t\t\t\t\t";
 		  /*_.OCHECKNORES__V48*/ meltfptr[44] =
 		    melt_apply ((meltclosure_ptr_t)
 				(( /*!MAKE_OBJLOCATEDEXP */ meltfrout->
