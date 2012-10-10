@@ -1,3 +1,12 @@
+2012-10-09  Harshit Chopra  <harshit@google.com>
+
+	Backport 192231 from google/main:
+
+	2012-09-28  Harshit Chopra  <harshit@google.com>
+
+        * gcc/config/i386/i386.c (ix86_output_function_nops_prologue_epilogue):
+	Emit relative address to function patch sections.
+
 2012-10-09  Rong Xu <xur@google.com>
 
 	Google Ref: b/7049102.

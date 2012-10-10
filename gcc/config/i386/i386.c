@@ -11154,7 +11154,7 @@ ix86_output_function_nops_prologue_epilogue (FILE *file,
        $LFPEL0:
          <pre_instruction>
          0x90 (repeated num_actual_nops times)
-         .quad $LFPESL0
+         .quad $LFPESL0 - .
      followed by section 'section_name' which contains the address
      of instruction at 'label'.
    */
@@ -11166,7 +11166,10 @@ ix86_output_function_nops_prologue_epilogue (FILE *file,
     asm_fprintf (file, ASM_BYTE"0x90\n");
 
   fprintf (file, ASM_QUAD);
+  /* Output "section_label - ." for the relative address of the entry in
+     the section 'section_name'.  */
   assemble_name_raw (file, section_label);
+  fprintf (file, " - .");
   fprintf (file, "\n");
 
   /* Emit the backpointer section. For functions belonging to comdat group,
@@ -11200,7 +11203,7 @@ ix86_output_function_nops_prologue_epilogue (FILE *file,
          .quad $LFPEL0
    */
   ASM_OUTPUT_INTERNAL_LABEL (file, section_label);
-  fprintf(file, ASM_QUAD"\t");
+  fprintf(file, ASM_QUAD);
   assemble_name_raw (file, label);
   fprintf (file, "\n");
 
