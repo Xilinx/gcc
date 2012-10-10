@@ -1,0 +1,10 @@
+2012-10-10  Wei Mi <wmi@google.com>
+
+	* Makefile.in: Add tree-asan.c.
+	* common.opt: Add -fasan option.
+	* invoke.texi: Document the new flag.
+	* passes.c: Add the asan pass.
+	* toplev.c (compile_file): Call asan_finish_file.
+	* tree-asan.c: New file.
+	* tree-asan.h: New file.
+	* tree-pass.h: Declare pass_asan.
