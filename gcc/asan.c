@@ -40,7 +40,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "ggc.h"
 #include "cgraph.h"
 #include "gimple.h"
-#include "tree-asan.h"
+#include "asan.h"
 #include "gimple-pretty-print.h"
 
 /*

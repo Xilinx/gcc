@@ -1,3 +1,10 @@
+2012-10-10  Diego Novillo  <dnovillo@google.com>
+
+	* asan.c: Rename from tree-asan.c.
+	Update all users.
+	* asan.h: Rename from tree-asan.h
+	Update all users.
+
 2012-10-10  Wei Mi <wmi@google.com>
 
 	* Makefile.in: Add tree-asan.c.

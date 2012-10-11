@@ -72,7 +72,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "value-prof.h"
 #include "alloc-pool.h"
 #include "tree-mudflap.h"
-#include "tree-asan.h"
+#include "asan.h"
 #include "gimple.h"
 #include "tree-ssa-alias.h"
 #include "plugin.h"
