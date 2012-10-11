@@ -53,6 +53,7 @@ sources = \
 	bad_typeid.cc \
 	class_type_info.cc \
 	del_op.cc \
+	del_opsz.cc \
 	del_opnt.cc \
 	del_opv.cc \
 	del_opvnt.cc \

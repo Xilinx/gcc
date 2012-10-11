@@ -1,3 +1,15 @@
+2012-10-11  Easwaran Raman <eraman@google.com>
+
+	Merge r192382 from google/main:
+
+	Google ref b/6982747
+
+	* libsupc++/Makefile.am: Add del_opsz.cc to sources.
+	* libsupc++/Makefile.in: Regenerated.
+	* libsupc++/del_opsz.cc: New file.
+	* libsupc++/del_op.cc(operator delete(void*,std::size_t)):
+	  Remove.
+
 2012-09-19  Ollie Wild  <aaw@google.com>
 	    Thiago Macieira  <thiago.macieira@intel.com>
 	    Jakub Jelinek  <jakub@redhat.com>
