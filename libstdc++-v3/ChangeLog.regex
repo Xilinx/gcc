@@ -1,3 +1,8 @@
+2012-10-10  Sergey Lega  <legabox@gmail.com>
+
+	* include/bits/regex_compiler.h (_Compiler): _CMatcher renamed to
+	_CMatcherT. string_02.cc test fixed.
+
 2012-10-08  Sergey Lega  <legabox@gmail.com>
 
 	* include/bits/regex.h (basic_regex::_M_print): Add.

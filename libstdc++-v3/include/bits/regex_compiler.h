@@ -945,8 +945,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     {
       if (token == _M_scanner._M_token())
 	{
-	  _M_scanner._M_advance();
 	  _M_cur_value = _M_scanner._M_value();
+	  _M_scanner._M_advance();
 	  return true;
 	}
       return false;
@@ -1109,7 +1109,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     _Compiler<_InIter, _TraitsT>::
     _M_atom()
     {
-      typedef _CharMatcher<_InIter, _TraitsT> _CMatcher;
+      typedef _CharMatcher<_InIter, _TraitsT> _CMatcherT;
       typedef _StartTagger<_InIter, _TraitsT> _Start;
       typedef _EndTagger<_InIter, _TraitsT> _End;
 
@@ -1124,7 +1124,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	{
 	  _M_stack.push(_StateSeq(_M_state_store,
 				  _M_state_store._M_insert_matcher
-				  (_CMatcher(_M_cur_value[0], _M_traits))));
+				  (_CMatcherT(_M_cur_value[0], _M_traits))));
 	  return true;
 	}
       if (_M_match_token(_ScannerT::_S_token_quoted_char))
@@ -1132,7 +1132,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	  // note that in the ECMA grammar, this case covers backrefs.
 	  _M_stack.push(_StateSeq(_M_state_store,
 				  _M_state_store._M_insert_matcher
-				  (_CMatcher(_M_cur_value[0], _M_traits))));
+				  (_CMatcherT(_M_cur_value[0], _M_traits))));
 	  return true;
 	}
       if (_M_match_token(_ScannerT::_S_token_backref))
