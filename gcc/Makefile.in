@@ -3681,6 +3681,7 @@ GTFILES = $(CPP_ID_DATA_H) $(srcdir)/input.h $(srcdir)/coretypes.h \
   $(srcdir)/lto-streamer.h \
   $(srcdir)/target-globals.h \
   $(srcdir)/ipa-inline.h \
+  $(srcdir)/asan.c \
   @all_gtfiles@
 
 # Compute the list of GT header files from the corresponding C sources,
