@@ -2,7 +2,7 @@
 ;; file xtramelt-ana-tree.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
+    Copyright 2008 - 2012 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
                 and Jeremie Salvucci  <jeremie.salvucci@free.fr>
                 and Pierre Vittet  <piervit@pvittet.com>
@@ -111,6 +111,16 @@ current :tree and :gimple. Stop walking if the closure gives null.}#
 (defprimitive tree_uid (:tree tr) :long
   :doc #{$TREE_UID gives the uid of tree $TR}#
   #{(($TR) ? (long) DECL_UID($TR) : 0L)}#)
+
+(defprimitive tree_useless_type_conversion_p (:tree tr1 tr2) :long
+  :doc #{$TREE_USELESS_TYPE_CONVERSION_P checks that $TR1 and $TR2 are non-null and are type convertible using the @code{useless_type_conversion_p} function of GCC.}#
+  #{/*tree_useless_type_conversion_p*/ ($TR1) && ($TR2)
+  && useless_type_conversion_p(($TR1),($TR2))}#)
+
+(defprimitive tree_types_compatible_p (:tree tr1 tr2) :long
+  :doc #{$TREE_TYPES_COMPATIBLE_P checks that $TR1 and $TR2 are non-null and are type convertible using the @code{types_compatible_p} function of GCC.}#
+  #{/*tree_types_compatible_p*/ ($TR1) && ($TR2)
+  && types_compatible_p(($TR1),($TR2))}#)
 
 (defprimitive tree_chain_prepend (:tree purpose value chain) :tree
 	:doc #{Create a new TREE_LIST node with $PURPOSE and $VALUE trees
@@ -1662,13 +1672,15 @@ pointer type node.}#
  tree_size_type_node 
  tree_ssa_name 
  tree_string_cst
- tree_type
+ tree_type 
  tree_type_decl
  tree_type_decl_named
  tree_type_declaration
+ tree_types_compatible_p
  tree_uid
  tree_unsigned_char_type_node 
- tree_unsigned_type_node 
+ tree_unsigned_type_node
+ tree_useless_type_conversion_p
  tree_var_decl
  tree_var_decl_named
  tree_var_decl_of_name
