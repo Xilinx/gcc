@@ -1,3 +1,11 @@
+2012-10-12  Jakub Jelinek  <jakub@redhat.com>
+
+	* asan.c (build_check_stmt): Rename join_bb variable to else_bb.
+	(gate_asan_O0): New function.
+	(pass_asan_O0): New variable.
+	* passes.c (init_optimization_passes): Add pass_asan_O0.
+	* tree-pass.h (pass_asan_O0): New declaration.
+
 2012-10-11  Jakub Jelinek  <jakub@redhat.com>
 
 	* Makefile.in (GTFILES): Add $(srcdir)/asan.c.
