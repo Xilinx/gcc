@@ -1,3 +1,24 @@
+2012-10-08  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/54854
+	* doc/invoke.texi (AVR Options): Deprecate -mshort-calls.
+
+2012-10-05  Mark Kettenis  <kettenis@openbsd.org>
+
+	* config.gcc (*-*-openbsd4.[3-9]|*-*-openbsd[5-9]*): Set
+	default_use_cxa_atexit to yes.
+		
+2012-10-05  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* config/pa/pa.md: Adjust unamed HImode add insn pattern.
+
+2012-10-05  Jan Hubicka  <jh@suse.cz>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/33763
+	* tree-inline.c (expand_call_inline): Silently ignore always_inline
+	attribute for redefined extern inline functions.
+
 2012-10-03  H.J. Lu  <hongjiu.lu@intel.com>
 
 	Backported from mainline
