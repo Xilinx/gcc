@@ -1,3 +1,51 @@
+2012-10-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/54381
+	* semantics.c (finish_call_expr): Pass array of 3 sizeof_arg
+	trees and locs (corresponding to first 3 arguments) to
+	sizeof_pointer_memaccess_warning.
+
+2012-10-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/24449
+	* decl.c (grokfndecl): When checking for ::main declarations
+	use PROCESSING_REAL_TEMPLATE_DECL_P().
+
+2012-10-12  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR c++/53055
+	* call.c (build_new_op_1): Pass RO_ARROW_STAR to cp_build_indirect_ref.
+	* typeck.c (cp_build_indirect_ref): Handle RO_ARROW_STAR.
+
+2012-10-11  Jason Merrill  <jason@redhat.com>
+
+	* cp-tree.h (DECL_THUNKS): NULL_TREE for non-virtual functions.
+	(SET_DECL_THUNKS): New.
+	* decl.c (duplicate_decls): Adjust.
+	* method.c (make_thunk): Adjust.
+
+	* decl.c (grokdeclarator): Set DECL_GNU_TLS_P for static data
+	members, too.
+
+2012-10-09  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/53540 - using fails to be equivalent to typedef
+	* cp-tree.h (TYPE_TEMPLATE_INFO): For an alias that is not an
+	instance of alias template, don't look for its TEMPLATE_INFO in
+	its declaration.
+	(alias_template_specialization_p): Take const_tree.
+	* pt.c (alias_template_specialization_p): Take a const_tree.
+	Don't call primary_template_instantiation_p.
+	(primary_template_instantiation_p): Call
+	alias_template_specialization_p.
+
+2012-10-10  Dodji Seketeli  <dodji@redhat.com>
+
+	* parser (cp_parser_statement): Parse c++11 attributes
+	tentatively.
+	(cp_parser_std_attribute_spec_seq): Do not warn too early about
+	using c++11 attributes in non c++11 mode.
+
 2012-10-10  Dehao Chen  <dehao@google.com>
 
 	* cp-gimplify.c (cp_genericize_r): Set location for TRY expr.

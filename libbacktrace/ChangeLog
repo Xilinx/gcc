@@ -1,3 +1,22 @@
+2012-10-11  Ian Lance Taylor  <iant@google.com>
+
+	* configure.ac: Do not use dl_iterate_phdr on Solaris 10.
+	* configure: Rebuild.
+
+2012-10-10  Ian Lance Taylor  <iant@google.com>
+
+	* elf.c: Rename all Elf typedefs to start with b_elf, and be all
+	lower case.
+
+2012-10-10  Hans-Peter Nilsson  <hp@bitrange.com>
+
+	* elf.c (elf_add_syminfo_data): Add casts to avoid warning.
+
+2012-10-09  Ian Lance Taylor  <iant@google.com>
+
+	* dwarf.c (dwarf_fileline): Add cast to avoid warning.
+	(backtrace_dwarf_add): Likewise.
+
 2012-10-09  Ian Lance Taylor  <iant@google.com>
 
 	Add support for tracing through shared libraries.

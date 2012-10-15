@@ -2382,7 +2382,11 @@ struct GTY((variable_size)) lang_decl {
 
 /* The thunks associated with NODE, a FUNCTION_DECL.  */
 #define DECL_THUNKS(NODE) \
-  (LANG_DECL_FN_CHECK (NODE)->context)
+  (DECL_VIRTUAL_P (NODE) ? LANG_DECL_FN_CHECK (NODE)->context : NULL_TREE)
+
+/* Set DECL_THUNKS.  */
+#define SET_DECL_THUNKS(NODE,THUNKS) \
+  (LANG_DECL_FN_CHECK (NODE)->context = (THUNKS))
 
 /* Nonzero if NODE is a thunk, rather than an ordinary function.  */
 #define DECL_THUNK_P(NODE)			\
@@ -2650,8 +2654,8 @@ extern void decl_shadowed_for_var_insert (tree, tree);
    template info for the alias template, not the one (if any) for the
    template of the underlying type.  */
 #define TYPE_TEMPLATE_INFO(NODE)					\
-  (TYPE_ALIAS_P (NODE)							\
-   ? ((TYPE_NAME (NODE) && DECL_LANG_SPECIFIC (TYPE_NAME (NODE)))	\
+  ((TYPE_ALIAS_P (NODE) && DECL_LANG_SPECIFIC (TYPE_NAME (NODE)))	\
+   ? (DECL_LANG_SPECIFIC (TYPE_NAME (NODE))				\
       ? DECL_TEMPLATE_INFO (TYPE_NAME (NODE))				\
       : NULL_TREE)							\
    : ((TREE_CODE (NODE) == ENUMERAL_TYPE)				\
@@ -5483,7 +5487,7 @@ extern bool reregister_specialization		(tree, tree, tree);
 extern tree fold_non_dependent_expr		(tree);
 extern tree fold_non_dependent_expr_sfinae	(tree, tsubst_flags_t);
 extern bool alias_type_or_template_p            (tree);
-extern bool alias_template_specialization_p     (tree);
+extern bool alias_template_specialization_p     (const_tree);
 extern bool explicit_class_specialization_p     (tree);
 extern int push_tinst_level                     (tree);
 extern void pop_tinst_level                     (void);
