@@ -1013,6 +1013,8 @@ current :tree and :gimple. Stop walking if the closure gives null.}#
   #{ /* tree_reference_type $TREEREFTY ?*/ (($TR) && TREE_CODE($TR) == REFERENCE_TYPE) }#
   ;; fill
   #{ /* tree_reference_type $TREEREFTY !*/ $TYPETR = TREE_TYPE($TR); }#
+  ;; operator
+  #{ /* tree_reference_type: */ build_reference_type(($TYPETR)) }#
 )
 
 
@@ -1117,7 +1119,11 @@ current :tree and :gimple. Stop walking if the closure gives null.}#
   #{ /* tree_array_type $TREEARRTYP ! */
   $TELEMTYPE = TREE_TYPE ($TR);
   $TDOMAINTYPE = TYPE_DOMAIN ($TR);
-  }#)
+  }#
+  #{ /* tree_array_type: */
+  build_array_type ($TELEMTYPE, $TDOMAINTYPE)
+  }#
+  )
 
 
 (defcmatcher tree_field_decl
