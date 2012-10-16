@@ -675,6 +675,18 @@ Wthread-safety
 Common Var(warn_thread_safety) Warning
 Warn about potential thread safety issues when the code is annotated with thread safety attributes
 
+Wthread-safety-analysis
+Common Ignore
+Does nothing.  For compatibility with clang thread safety analysis.
+
+Wthread-safety-attributes
+Common Ignore
+Does nothing.  For compatibility with clang thread safety analysis.
+
+Wthread-safety-precise
+Common Ignore
+Does nothing.  For compatibility with clang thread safety analysis.
+
 Wthread-unguarded-var
 Common Var(warn_thread_unguarded_var) Init(1) Warning
 Warn about shared variables not properly protected by locks specified in the attributes
