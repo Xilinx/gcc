@@ -2047,7 +2047,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 (defun register_all_passes_start_hook_first (fun)
   :doc #{Use $REGISTER_ALL_PASSES_START_HOOK_FIRST to register a function $FUN to
   be run at PLUGIN_ALL_PASSES_START, in first place.  $FUN must be a closure
-  which take 1 argument (the boxed tree of the parsed declaration).}#
+  which takes no arguments and whose result is ignored.}#
   (if (is_closure fun)
       (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
 	    )
@@ -2072,7 +2072,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 (defun register_all_passes_start_hook_last (fun)
   :doc #{Use $REGISTER_ALL_PASSES_START_HOOK_LAST to register a function $FUN to
   be run at PLUGIN_ALL_PASSES_START, in last place.  $FUN must be a closure
-  which take 1 argument (the boxed tree of the parsed declaration).}#
+  which takes no argument and whose result is ignored.}#
   (if (is_closure fun)
       (let ( (lastlist (get_field :delqu_last finishdecl_delayed_queue))
 	    )
@@ -2133,7 +2133,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 (defun register_all_passes_end_hook_first (fun)
   :doc #{Use $REGISTER_ALL_PASSES_END_HOOK_FIRST to register a function $FUN to
   be run at PLUGIN_ALL_PASSES_END, in first place.  $FUN must be a closure
-  which take 1 argument.}#
+  which takes no argument and whose result is ignored.}#
   (if (is_closure fun)
       (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
 	    )
@@ -2158,7 +2158,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 (defun register_all_passes_end_hook_last (fun)
   :doc #{Use $REGISTER_ALL_PASSES_END_HOOK_LAST to register a function $FUN to
   be run at PLUGIN_ALL_PASSES_END, in last place.  $FUN must be a closure
-  which take 1 argument (the boxed tree of the parsed declaration).}#
+  which takes no arguments and whose result is ignored.}#
   (if (is_closure fun)
       (let ( (lastlist (get_field :delqu_last finishdecl_delayed_queue))
 	    )
@@ -2217,9 +2217,9 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
     )))
 
 (defun register_all_ipa_passes_start_hook_first (fun)
-  :doc #{Use $REGISTER_ALL_IPA_PASSES_START_HOOK_FIRST to register a function $FUN to
-  be run at PLUGIN_ALL_IPA_PASSES_START, in first place.  $FUN must be a closure
-  which take 1 argument (the boxed tree of the parsed declaration).}#
+  :doc #{Use $REGISTER_ALL_IPA_PASSES_START_HOOK_FIRST to register a
+  function $FUN to be run at PLUGIN_ALL_IPA_PASSES_START, in first
+  place.  $FUN must be a closure which take no arguments.}#
   (if (is_closure fun)
       (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
 	    )
@@ -2242,9 +2242,10 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
     ))
 
 (defun register_all_ipa_passes_start_hook_last (fun)
-  :doc #{Use $REGISTER_ALL_IPA_PASSES_START_HOOK_LAST to register a function $FUN to
-  be run at PLUGIN_ALL_IPA_PASSES_START, in last place.  $FUN must be a closure
-  which take 1 argument (the boxed tree of the parsed declaration).}#
+  :doc #{Use $REGISTER_ALL_IPA_PASSES_START_HOOK_LAST to register a
+  function $FUN to be run at PLUGIN_ALL_IPA_PASSES_START, in last
+  place.  $FUN must be a closure which takes no arguments and whose
+  result is ignored.}#
   (if (is_closure fun)
       (let ( (lastlist (get_field :delqu_last finishdecl_delayed_queue))
 	    )
@@ -2305,7 +2306,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 (defun register_all_ipa_passes_end_hook_first (fun)
   :doc #{Use $REGISTER_ALL_IPA_PASSES_END_HOOK_FIRST to register a function $FUN to
   be run at PLUGIN_ALL_IPA_PASSES_END, in first place.  $FUN must be a closure
-  which take 1 argument (the boxed tree of the parsed declaration).}#
+  which takes no arguments and whose result is ignored.}#
   (if (is_closure fun)
       (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
 	    )
@@ -2330,7 +2331,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 (defun register_all_ipa_passes_end_hook_last (fun)
   :doc #{Use $REGISTER_ALL_IPA_PASSES_END_HOOK_LAST to register a function $FUN to
   be run at PLUGIN_ALL_IPA_PASSES_END, in last place.  $FUN must be a closure
-  which take 1 argument (the boxed tree of the parsed declaration).}#
+  which takes no arguments and whose result is ignored.}#
   (if (is_closure fun)
       (let ( (lastlist (get_field :delqu_last finishdecl_delayed_queue))
 	    )
@@ -2392,9 +2393,10 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
     )))
 
 (defun register_early_gimple_passes_start_hook_first (fun)
-  :doc #{Use $REGISTER_EARLY_GIMPLE_PASSES_START_HOOK_FIRST to register a function $FUN to
-  be run at PLUGIN_EARLY_GIMPLE_PASSES_START, in first place.  $FUN must be a closure
-  which take 1 argument (the boxed tree of the parsed declaration).}#
+  :doc #{Use $REGISTER_EARLY_GIMPLE_PASSES_START_HOOK_FIRST to
+  register a function $FUN to be run at
+  PLUGIN_EARLY_GIMPLE_PASSES_START, in first place.  $FUN must be a
+  closure which takes no arguments and whose result is ignored.}#
   (if (is_closure fun)
       (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
 	    )
@@ -2417,9 +2419,10 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
     ))
 
 (defun register_early_gimple_passes_start_hook_last (fun)
-  :doc #{Use $REGISTER_EARLY_GIMPLE_PASSES_START_HOOK_LAST to register a function $FUN to
-  be run at PLUGIN_EARLY_GIMPLE_PASSES_START, in last place.  $FUN must be a closure
-  which take 1 argument (the boxed tree of the parsed declaration).}#
+  :doc #{Use $REGISTER_EARLY_GIMPLE_PASSES_START_HOOK_LAST to register
+  a function $FUN to be run at PLUGIN_EARLY_GIMPLE_PASSES_START, in
+  last place.  $FUN must be a closure which take no arguments and
+  whose result is ignored.}#
   (if (is_closure fun)
       (let ( (lastlist (get_field :delqu_last finishdecl_delayed_queue))
 	    )
@@ -2478,9 +2481,10 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
     )))
 
 (defun register_early_gimple_passes_end_hook_first (fun)
-  :doc #{Use $REGISTER_EARLY_GIMPLE_PASSES_END_HOOK_FIRST to register a function $FUN to
-  be run at PLUGIN_EARLY_GIMPLE_PASSES_END, in first place.  $FUN must be a closure
-  which take 1 argument (the boxed tree of the parsed declaration).}#
+  :doc #{Use $REGISTER_EARLY_GIMPLE_PASSES_END_HOOK_FIRST to register
+  a function $FUN to be run at PLUGIN_EARLY_GIMPLE_PASSES_END, in
+  first place.  $FUN must be a closure which takes no arguments and
+  whose result is ignored.}#
   (if (is_closure fun)
       (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
 	    )
@@ -2503,9 +2507,10 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
     ))
 
 (defun register_early_gimple_passes_end_hook_last (fun)
-  :doc #{Use $REGISTER_EARLY_GIMPLE_PASSES_END_HOOK_LAST to register a function $FUN to
-  be run at PLUGIN_EARLY_GIMPLE_PASSES_END, in last place.  $FUN must be a closure
-  which take 1 argument (the boxed tree of the parsed declaration).}#
+  :doc #{Use $REGISTER_EARLY_GIMPLE_PASSES_END_HOOK_LAST to register a
+  function $FUN to be run at PLUGIN_EARLY_GIMPLE_PASSES_END, in last
+  place.  $FUN must be a closure which takes no arguments and whose
+  result is ignored.}#
   (if (is_closure fun)
       (let ( (lastlist (get_field :delqu_last finishdecl_delayed_queue))
 	    )

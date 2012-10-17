@@ -1,4 +1,16 @@
 
+2012-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-base.melt (register_all_passes_start_hook_first)
+	(register_all_passes_start_hook_last)
+	(register_all_passes_end_hook_first)
+	(register_all_passes_end_hook_last)
+	(register_all_ipa_passes_start_hook_first)
+	(register_all_ipa_passes_start_hook_last)
+	(register_all_ipa_passes_end_hook_first)
+	(register_all_ipa_passes_end_hook_last): Correct documentation
+	about the closure's signature.
+
 2012-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/xtramelt-ana-tree.melt (tree_array_type): In expression
