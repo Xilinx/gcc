@@ -43,6 +43,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "asan.h"
 #include "gimple-pretty-print.h"
 #include "target.h"
+#include "expr.h"
+#include "optabs.h"
 
 /*
  AddressSanitizer finds out-of-bounds and use-after-free bugs 
@@ -79,9 +81,194 @@ along with GCC; see the file COPYING3.  If not see
  to create redzones for stack and global object and poison them.
 */
 
+alias_set_type asan_shadow_set = -1;
+
 /* Pointer types to 1 resp. 2 byte integers in shadow memory.  A separate
    alias set is used for all shadow memory accesses.  */
 static GTY(()) tree shadow_ptr_types[2];
+
+/* Return a CONST_INT representing 4 subsequent shadow memory bytes.  */
+
+static rtx
+asan_shadow_cst (unsigned char shadow_bytes[4])
+{
+  int i;
+  unsigned HOST_WIDE_INT val = 0;
+  gcc_assert (WORDS_BIG_ENDIAN == BYTES_BIG_ENDIAN);
+  for (i = 0; i < 4; i++)
+    val |= (unsigned HOST_WIDE_INT) shadow_bytes[BYTES_BIG_ENDIAN ? 3 - i : i]
+	   << (BITS_PER_UNIT * i);
+  return GEN_INT (trunc_int_for_mode (val, SImode));
+}
+
+/* Insert code to protect stack vars.  The prologue sequence should be emitted
+   directly, epilogue sequence returned.  BASE is the register holding the
+   stack base, against which OFFSETS array offsets are relative to, OFFSETS
+   array contains pairs of offsets in reverse order, always the end offset
+   of some gap that needs protection followed by starting offset,
+   and DECLS is an array of representative decls for each var partition.
+   LENGTH is the length of the OFFSETS array, DECLS array is LENGTH / 2 - 1
+   elements long (OFFSETS include gap before the first variable as well
+   as gaps after each stack variable).  */
+
+rtx
+asan_emit_stack_protection (rtx base, HOST_WIDE_INT *offsets, tree *decls,
+			    int length)
+{
+  rtx shadow_base, shadow_mem, ret, mem;
+  unsigned char shadow_bytes[4];
+  HOST_WIDE_INT base_offset = offsets[length - 1], offset, prev_offset;
+  HOST_WIDE_INT last_offset, last_size;
+  int l;
+  unsigned char cur_shadow_byte = ASAN_STACK_MAGIC_LEFT;
+  static pretty_printer pp;
+  static bool pp_initialized;
+  const char *buf;
+  size_t len;
+  tree str_cst;
+
+  /* First of all, prepare the description string.  */
+  if (!pp_initialized)
+    {
+      pp_construct (&pp, /* prefix */NULL, /* line-width */0);
+      pp_initialized = true;
+    }
+  pp_clear_output_area (&pp);
+  if (DECL_NAME (current_function_decl))
+    pp_base_tree_identifier (&pp, DECL_NAME (current_function_decl));
+  else
+    pp_string (&pp, "<unknown>");
+  pp_space (&pp);
+  pp_decimal_int (&pp, length / 2 - 1);
+  pp_space (&pp);
+  for (l = length - 2; l; l -= 2)
+    {
+      tree decl = decls[l / 2 - 1];
+      pp_wide_integer (&pp, offsets[l] - base_offset);
+      pp_space (&pp);
+      pp_wide_integer (&pp, offsets[l - 1] - offsets[l]);
+      pp_space (&pp);
+      if (DECL_P (decl) && DECL_NAME (decl))
+	{
+	  pp_decimal_int (&pp, IDENTIFIER_LENGTH (DECL_NAME (decl)));
+	  pp_space (&pp);
+	  pp_base_tree_identifier (&pp, DECL_NAME (decl));
+	}
+      else
+	pp_string (&pp, "9 <unknown>");
+      pp_space (&pp);
+    }
+  buf = pp_base_formatted_text (&pp);
+  len = strlen (buf);
+  str_cst = build_string (len + 1, buf);
+  TREE_TYPE (str_cst)
+    = build_array_type (char_type_node, build_index_type (size_int (len)));
+  TREE_READONLY (str_cst) = 1;
+  TREE_STATIC (str_cst) = 1;
+  str_cst = build1 (ADDR_EXPR, build_pointer_type (char_type_node), str_cst);
+
+  /* Emit the prologue sequence.  */
+  base = expand_binop (Pmode, add_optab, base, GEN_INT (base_offset),
+		       NULL_RTX, 1, OPTAB_DIRECT);
+  mem = gen_rtx_MEM (ptr_mode, base);
+  emit_move_insn (mem, GEN_INT (ASAN_STACK_FRAME_MAGIC));
+  mem = adjust_address (mem, VOIDmode, GET_MODE_SIZE (ptr_mode));
+  emit_move_insn (mem, expand_normal (str_cst));
+  shadow_base = expand_binop (Pmode, lshr_optab, base,
+			      GEN_INT (ASAN_SHADOW_SHIFT),
+			      NULL_RTX, 1, OPTAB_DIRECT);
+  shadow_base = expand_binop (Pmode, add_optab, shadow_base,
+			      GEN_INT (targetm.asan_shadow_offset ()),
+			      NULL_RTX, 1, OPTAB_DIRECT);
+  gcc_assert (asan_shadow_set != -1
+	      && (ASAN_RED_ZONE_SIZE >> ASAN_SHADOW_SHIFT) == 4);
+  shadow_mem = gen_rtx_MEM (SImode, shadow_base);
+  set_mem_alias_set (shadow_mem, asan_shadow_set);
+  prev_offset = base_offset;
+  for (l = length; l; l -= 2)
+    {
+      if (l == 2)
+	cur_shadow_byte = ASAN_STACK_MAGIC_RIGHT;
+      offset = offsets[l - 1];
+      if ((offset - base_offset) & (ASAN_RED_ZONE_SIZE - 1))
+	{
+	  int i;
+	  HOST_WIDE_INT aoff
+	    = base_offset + ((offset - base_offset)
+			     & ~(ASAN_RED_ZONE_SIZE - HOST_WIDE_INT_1));
+	  shadow_mem = adjust_address (shadow_mem, VOIDmode,
+				       (aoff - prev_offset)
+				       >> ASAN_SHADOW_SHIFT);
+	  prev_offset = aoff;
+	  for (i = 0; i < 4; i++, aoff += (1 << ASAN_SHADOW_SHIFT))
+	    if (aoff < offset)
+	      {
+		if (aoff < offset - (1 << ASAN_SHADOW_SHIFT) + 1)
+		  shadow_bytes[i] = 0;
+		else
+		  shadow_bytes[i] = offset - aoff;
+	      }
+	    else
+	      shadow_bytes[i] = ASAN_STACK_MAGIC_PARTIAL;
+	  emit_move_insn (shadow_mem, asan_shadow_cst (shadow_bytes));
+	  offset = aoff;
+	}
+      while (offset <= offsets[l - 2] - ASAN_RED_ZONE_SIZE)
+	{
+	  shadow_mem = adjust_address (shadow_mem, VOIDmode,
+				       (offset - prev_offset)
+				       >> ASAN_SHADOW_SHIFT);
+	  prev_offset = offset;
+	  memset (shadow_bytes, cur_shadow_byte, 4);
+	  emit_move_insn (shadow_mem, asan_shadow_cst (shadow_bytes));
+	  offset += ASAN_RED_ZONE_SIZE;
+	}
+      cur_shadow_byte = ASAN_STACK_MAGIC_MIDDLE;
+    }
+  do_pending_stack_adjust ();
+
+  /* Construct epilogue sequence.  */
+  start_sequence ();
+
+  shadow_mem = gen_rtx_MEM (BLKmode, shadow_base);
+  set_mem_alias_set (shadow_mem, asan_shadow_set);
+  prev_offset = base_offset;
+  last_offset = base_offset;
+  last_size = 0;
+  for (l = length; l; l -= 2)
+    {
+      offset = base_offset + ((offsets[l - 1] - base_offset)
+			     & ~(ASAN_RED_ZONE_SIZE - HOST_WIDE_INT_1));
+      if (last_offset + last_size != offset)
+	{
+	  shadow_mem = adjust_address (shadow_mem, VOIDmode,
+				       (last_offset - prev_offset)
+				       >> ASAN_SHADOW_SHIFT);
+	  prev_offset = last_offset;
+	  clear_storage (shadow_mem, GEN_INT (last_size >> ASAN_SHADOW_SHIFT),
+			 BLOCK_OP_NORMAL);
+	  last_offset = offset;
+	  last_size = 0;
+	}
+      last_size += base_offset + ((offsets[l - 2] - base_offset)
+				  & ~(ASAN_RED_ZONE_SIZE - HOST_WIDE_INT_1))
+		   - offset;
+    }
+  if (last_size)
+    {
+      shadow_mem = adjust_address (shadow_mem, VOIDmode,
+				   (last_offset - prev_offset)
+				   >> ASAN_SHADOW_SHIFT);
+      clear_storage (shadow_mem, GEN_INT (last_size >> ASAN_SHADOW_SHIFT),
+		     BLOCK_OP_NORMAL);
+    }
+
+  do_pending_stack_adjust ();
+
+  ret = get_insns ();
+  end_sequence ();
+  return ret;
+}
 
 /* Construct a function tree for __asan_report_{load,store}{1,2,4,8,16}.
    IS_STORE is either 1 (for a store) or 0 (for a load).
@@ -401,12 +588,12 @@ asan_finish_file (void)
 static void
 asan_init_shadow_ptr_types (void)
 {
-  alias_set_type set = new_alias_set ();
+  asan_shadow_set = new_alias_set ();
   shadow_ptr_types[0] = build_distinct_type_copy (unsigned_char_type_node);
-  TYPE_ALIAS_SET (shadow_ptr_types[0]) = set;
+  TYPE_ALIAS_SET (shadow_ptr_types[0]) = asan_shadow_set;
   shadow_ptr_types[0] = build_pointer_type (shadow_ptr_types[0]);
   shadow_ptr_types[1] = build_distinct_type_copy (short_unsigned_type_node);
-  TYPE_ALIAS_SET (shadow_ptr_types[1]) = set;
+  TYPE_ALIAS_SET (shadow_ptr_types[1]) = asan_shadow_set;
   shadow_ptr_types[1] = build_pointer_type (shadow_ptr_types[1]);
 }
 

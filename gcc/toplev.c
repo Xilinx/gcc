@@ -1544,7 +1544,9 @@ process_options (void)
     }
 
   /* Address Sanitizer needs porting to each target architecture.  */
-  if (flag_asan && targetm.asan_shadow_offset == NULL)
+  if (flag_asan
+      && (targetm.asan_shadow_offset == NULL
+	  || !FRAME_GROWS_DOWNWARD))
     {
       warning (0, "-fasan not supported for this target");
       flag_asan = 0;
