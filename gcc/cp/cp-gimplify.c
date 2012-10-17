@@ -317,9 +317,16 @@ static void
 genericize_cilk_for_stmt (tree *stmt_p ATTRIBUTE_UNUSED, int *walk_subtrees,
 			  void *data ATTRIBUTE_UNUSED)
 {
-  /* When we have a cilk for we resolve all the internal statements such as  
-     continue, while, for etc. during gimplification inside
-     gimplify_cilk_for_stmt.  */
+  tree stmt = *stmt_p;
+  gcc_assert (flag_enable_cilk);
+  cp_walk_tree (&FOR_COND (stmt), cp_genericize_r, data, NULL);
+  cp_walk_tree (&CILK_FOR_INIT (stmt), cp_genericize_r, data, NULL);
+  cp_walk_tree (&CILK_FOR_GRAIN (stmt), cp_genericize_r, data, NULL);
+  cp_walk_tree (&CILK_FOR_VAR (stmt), cp_genericize_r, data, NULL);
+  cp_walk_tree (&FOR_EXPR (stmt), cp_genericize_r, data, NULL);
+  
+  /* We resolve the body of _Cilk_for after we create the nested function to
+     make sure we do not resolve continue and break statments.  */
   *walk_subtrees = 0;
 }
 

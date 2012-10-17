@@ -1,3 +1,8 @@
+2012-10-17  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cp-gimplify.c (genericize_cilk_for_stmt): Walk through all the
+	_Cilk_for components that are visible by the outer function.
+
 2012-10-09  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* semantics.c (simplify_aggr_init_expr): Carried over the Cilk_spawn's
