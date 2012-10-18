@@ -1,3 +1,117 @@
+2012-10-16  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.target/i386/l_fma_float_?.c: Update.
+	* gcc.target/i386/l_fma_double_?.c: Update.
+	* gfortran.dg/do_1.f90: XFAIL
+	* gcc.dg/tree-ssa/cunroll-1.c: New testcase.
+	* gcc.dg/tree-ssa/cunroll-2.c: New testcase.
+	* gcc.dg/tree-ssa/cunroll-3.c: New testcase.
+	* gcc.dg/tree-ssa/cunroll-4.c: New testcase.
+	* gcc.dg/tree-ssa/cunroll-5.c: New testcase.
+	* gcc.dg/tree-ssa/ldist-17.c: Block cunroll to make testcase still
+	valid.
+
+2012-10-16  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/53063
+	PR c/40989
+	* gcc.dg/Wstrict-overflow-24.c: New.
+
+2012-10-16  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/50981
+	PR fortran/54618
+	* gfortran.dg/class_optional_1.f90: New.
+	* gfortran.dg/class_optional_2.f90: New.
+
+2012-10-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/54796
+	* gcc.dg/guality/pr54796.c: New test.
+
+	PR tree-optimization/54889
+	* gfortran.dg/pr54889.f90: New test.
+
+2012-10-16  Eric Botcazou <ebotcazou@adacore.com>
+
+	* g++.dg/other/dump-ada-spec-2.C: New test.
+
+2012-10-16  Easwaran Raman  <eraman@google.com>
+
+	* gcc.dg/tree-prof/switch-case-1.c: New test case.
+	* gcc.dg/tree-prof/switch-case-2.c: New test case.
+
+2012-10-16  Hans-Peter Nilsson  <hp@bitrange.com>
+
+	* gcc.dg/torture/stackalign/builtin-apply-2.c,
+	gcc.dg/builtin-apply2.c: Correct STACK_ARGUMENTS_SIZE for MMIX.
+
+2012-10-15  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/54925
+	* gcc.c-torture/compile/pr54925.c: New.
+
+2012-10-15  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/51244
+	* gcc.target/sh/pr51244-17.c: New.
+
+2012-10-15  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/54760
+	* gcc.target/sh/pr54760-2.c: Add long long and unsigned long long test
+	functions.
+	* gcc.target/sh/pr54760-4.c: New.
+
+2012-10-15  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/34777
+	* gcc.target/sh/torture/sh-torture.exp: New.
+	* gcc.target/sh/torture/pr34777.c: New.
+
+2012-10-15  Matthias Klose  <doko@ubuntu.com>
+
+	* lib/target-supports.exp (check_profiling_available): Match
+	arm*-*-linux-* for ARM Linux/GNU.
+	* g++.dg/torture/predcom-1.C: Match arm*-*-linux-* for ARM Linux/GNU.
+	* gfortran.dg/enum_10.f90: Likewise.
+	* gfortran.dg/enum_9.f90: Likewise.
+	* gcc.target/arm/synchronize.c: Likewise.
+	* g++.old-deja/g++.jason/enum6.C: Likewise.
+	* g++.old-deja/g++.other/enum4.C: Likewise.
+	* g++.old-deja/g++.law/enum9.C: Likewise.
+
+2012-10-15  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* g++.dg/tls/thread_local-cse.C: Move dg-do line.
+	* g++.dg/tls/thread_local-wrap4.C: Require fpic.
+
+2012-10-15  Alexandre Oliva  <aoliva@redhat.com>
+	    Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/17805
+	* g++.dg/overload/operator6.C: New.
+
+2012-10-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50080 (again)
+	* g++.dg/parse/tmpl-outside2.C: Tweak, error in C++98.
+	* g++.dg/parse/tmpl-outside1.C: Likewise.
+	* g++.dg/template/qualttp18.C: Likewise.
+	* g++.old-deja/g++.pt/memtemp87.C: Likewise.
+	* g++.old-deja/g++.pt/overload13.C: Likewise.
+
+2012-10-15  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/avx256-unaligned-load-1.c: Update asm scan patterns.
+	* gcc.target/i386/avx256-unaligned-load-2.c: Ditto.
+	* gcc.target/i386/avx256-unaligned-load-3.c: Ditto.
+	* gcc.target/i386/avx256-unaligned-load-4.c: Ditto.
+	* gcc.target/i386/avx256-unaligned-store-1.c: Ditto.
+	* gcc.target/i386/avx256-unaligned-store-2.c: Ditto.
+	* gcc.target/i386/avx256-unaligned-store-3.c: Ditto.
+	* gcc.target/i386/avx256-unaligned-store-4.c: Ditto.
+
 2012-10-15  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/50080
