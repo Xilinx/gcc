@@ -1201,17 +1201,22 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 	 (spair (pair_tail (list_first scont)))
 	 (soper (pair_head (list_first scont)))
 	 (xargtup (expand_restlist_as_tuple scont env mexpander modctx))
-	 (cmatin (unsafe_get_field :amatch_in cmat))
-	 (cmatexp (unsafe_get_field :cmatch_expoper cmat))
+	 (cmatin (get_field :amatch_in cmat))
+	 (cmatout (get_field :amatch_out cmat))
+	 (cmatexp (get_field :cmatch_expoper cmat))
 	 )
+    (debug "expand_cmatchexpr xargtup=" xargtup "\n cmatin=" cmatin
+	   "\n cmatout=" cmatout
+	   "\n cmat=" cmat)
     (if (!=i (multiple_length xargtup)
-	     (multiple_length cmatin))
+	     (multiple_length cmatout))
 	(progn
-	  (debug "expand_cmatchexpr bad xargtup" xargtup)
-	  (debug "expand_cmatchexpr bad cmatin" cmatin)
-	  (warning_strv sloc
-		      "bad argument number for cmatcher expression"_
-		      (unsafe_get_field :named_name cmat))))
+	  (debug "expand_cmatchexpr bad xargtup=" xargtup
+		 "\n bad cmatin=" cmatin
+		 "\n bad cmatout=" cmatout)
+	  (error_strv sloc
+			"bad argument number for cmatcher expression"_
+			(get_field :named_name cmat))))
     (if (null cmatexp)
 	(progn
 	  (error_strv sloc
@@ -1227,7 +1232,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 	    ) )
       (debug "expand_cmatchexpr res" res)
       (return res)
-)))
+      )))
 
 
 ;;; expand a funmatcher expression

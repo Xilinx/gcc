@@ -1,6 +1,11 @@
 
 2012-10-18  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-macro.melt (expand_cmatchexpr): Correct detection
+	of arity mismatch. Signal an error in that case, not a warning.
+
+2012-10-18  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/xtramelt-ana-tree.melt (tree_type_addr_space, tree_type_p):
 	New.
 
