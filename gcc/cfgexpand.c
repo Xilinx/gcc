@@ -4615,7 +4615,13 @@ gimple_expand_cfg (void)
   insn_locations_finalize ();
 
   if (var_ret_seq)
-    emit_insn_after (var_ret_seq, return_label);
+    {
+      rtx after = return_label;
+      rtx next = NEXT_INSN (after);
+      if (next && NOTE_INSN_BASIC_BLOCK_P (next))
+	after = next;
+      emit_insn_after (var_ret_seq, after);
+    }
 
   /* Zap the tree EH table.  */
   set_eh_throw_stmt_table (cfun, NULL);

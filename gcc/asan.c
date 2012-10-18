@@ -459,6 +459,8 @@ build_check_stmt (tree base,
       set_immediate_dominator (CDI_DOMINATORS, else_bb, cond_bb);
     }
 
+  base = unshare_expr (base);
+
   gsi = gsi_last_bb (cond_bb);
   g = gimple_build_assign_with_ops (TREE_CODE (base),
 				    make_ssa_name (TREE_TYPE (base), NULL),
@@ -748,6 +750,10 @@ asan_add_global (tree decl, tree type, VEC(constructor_elt, gc) *v)
   CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, init);
 }
 
+/* Needs to be GTY(()), because cgraph_build_static_cdtor may
+   invoke ggc_collect.  */
+static GTY(()) tree asan_ctor_statements;
+
 /* Module-level instrumentation.
    - Insert __asan_init() into the list of CTORs.
    - TODO: insert redzones around globals.
@@ -756,12 +762,11 @@ asan_add_global (tree decl, tree type, VEC(constructor_elt, gc) *v)
 void
 asan_finish_file (void)
 {
-  tree ctor_statements = NULL_TREE;
   struct varpool_node *vnode;
   unsigned HOST_WIDE_INT gcount = 0;
 
   append_to_statement_list (build_call_expr (asan_init_func (), 0),
-			    &ctor_statements);
+			    &asan_ctor_statements);
   FOR_EACH_DEFINED_VARIABLE (vnode)
     if (asan_protect_global (vnode->symbol.decl))
       ++gcount;
@@ -799,7 +804,7 @@ asan_finish_file (void)
       append_to_statement_list (build_call_expr (decl, 2,
 						 build_fold_addr_expr (var),
 						 build_int_cst (uptr, gcount)),
-				&ctor_statements);
+				&asan_ctor_statements);
 
       decl = build_fn_decl ("__asan_unregister_globals", type);
       TREE_NOTHROW (decl) = 1;
@@ -810,7 +815,7 @@ asan_finish_file (void)
       cgraph_build_static_cdtor ('D', dtor_statements,
 				 MAX_RESERVED_INIT_PRIORITY - 1);
     }
-  cgraph_build_static_cdtor ('I', ctor_statements,
+  cgraph_build_static_cdtor ('I', asan_ctor_statements,
 			     MAX_RESERVED_INIT_PRIORITY - 1);
 }
 

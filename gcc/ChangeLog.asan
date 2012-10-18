@@ -1,3 +1,15 @@
+2012-10-18  Jakub Jelinek  <jakub@redhat.com>
+
+	* asan.c (build_check_stmt): Unshare base.
+
+	* asan.c (asan_ctor_statements): New variable.
+	(asan_finish_file): Use asan_ctor_statements instead
+	of ctor_statements.
+
+	* cfgexpand.c (gimple_expand_cfg): If return_label is
+	followed by NOTE_INSN_BASIC_BLOCK, emit var_ret_seq
+	after the note instead of before it.
+
 2012-10-17  Jakub Jelinek  <jakub@redhat.com>
 
 	* varasm.c: Include asan.h.
