@@ -1,4 +1,9 @@
 
+2012-10-18  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/xtramelt-ana-tree.melt (tree_type_addr_space, tree_type_p):
+	New.
+
 2012-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-base.melt (register_all_passes_start_hook_first)

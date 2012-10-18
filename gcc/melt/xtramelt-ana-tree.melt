@@ -108,6 +108,10 @@ current :tree and :gimple. Stop walking if the closure gives null.}#
   :doc #{$TREE_TYPE gives the type of tree $TR}#
   #{(($TR) ? TREE_TYPE($TR) : (tree) NULL)}#)
 
+(defprimitive tree_type_addr_space (:tree tr) :long
+  :doc #{$TREE_TYPE_ADDR_SPACE gives the address space of type tree $TR}#
+  #{(($TR && TYPE_P($TR))  ? TYPE_ADDR_SPACE($TR) : 0L)}#)
+
 (defprimitive tree_uid (:tree tr) :long
   :doc #{$TREE_UID gives the uid of tree $TR}#
   #{(($TR) ? (long) DECL_UID($TR) : 0L)}#)
@@ -979,6 +983,18 @@ current :tree and :gimple. Stop walking if the closure gives null.}#
 				       TREE_STRING_LENGTH ($tr));
   }#)
        
+;;; pattern for  types
+(defcmatcher tree_type_p
+  (:tree tr)
+  (:tree typetr)
+  treetypet
+  :doc #{$TREE_TYPE_P match a type tree $TR and extract the inside type $TYPETR}#
+  ;; test
+  #{ /*tree_type_p $TREETYPET ?*/ (($TR) && TYPE_P(($tr))) }#
+  ;; fill
+  #{ /*tree_type_p $TREETYPET !*/ $TYPETR = TREE_TYPE($tr); }#
+)
+
 ;;; pattern for pointer types (or reference type)
 (defcmatcher tree_pointer_type_p
   (:tree tr)
@@ -1678,7 +1694,9 @@ pointer type node.}#
  tree_size_type_node 
  tree_ssa_name 
  tree_string_cst
- tree_type 
+ tree_type   
+ tree_type_addr_space 
+ tree_type_p
  tree_type_decl
  tree_type_decl_named
  tree_type_declaration
