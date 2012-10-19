@@ -1064,8 +1064,8 @@ expand_builtin_cilk_metadata (const char *annotation, tree exp)
   zca_data metadata_info;
   unsigned short size;
   dw_loc_descr_ref loc_ref;
-  
-  metadata_label  = create_metadata_label (annotation);
+
+  metadata_label = create_metadata_label (annotation);
   expand_call (exp, NULL_RTX, 1);
   call_insn = get_last_insn ();
   emit_insn_after (metadata_label, get_last_insn ());
@@ -1102,12 +1102,10 @@ expand_builtin_cilk_metadata (const char *annotation, tree exp)
       metadata_info.dwarf_expr = (unsigned short)(size & 0xFF) |
 	(unsigned short) (loc_ref->dw_loc_opc << 8);
     }  
-  else
-    {
-      /* This means we have no arguments.  */
+  else 
+    /* This means we have no arguments.  */ 
+    metadata_info.dwarf_expr = 1 | (DW_OP_lit0 << 8);
 
-      metadata_info.dwarf_expr = 1 | (DW_OP_lit0 << 8);
-    }
   metadata_info.ptr_next = NULL;
   insert_into_zca_list (metadata_info);
   if (cfun) 
@@ -1119,6 +1117,70 @@ expand_builtin_cilk_metadata (const char *annotation, tree exp)
 
   return const0_rtx;
 }
+
+/* Adds *ANNOTATION into the zca_list and extracts the register information
+   from CALL_INSN.  */
+
+void
+replace_cilk_metadata (char *annotation, rtx call_insn)
+{
+  rtx metadata_label = NULL_RTX;
+  rtx expr_list_rtx = NULL_RTX, ii_rtx = NULL_RTX, reg_rtx = NULL_RTX;
+  zca_data metadata_info;
+  unsigned short size;
+  dw_loc_descr_ref loc_ref;
+  
+  metadata_label = create_metadata_label (annotation);
+  emit_insn_after (metadata_label, call_insn);
+  metadata_info.label = metadata_label;
+  metadata_info.string = xstrdup (annotation);
+  metadata_info.ptr_next = NULL;
+  expr_list_rtx = XEXP (call_insn, 8);
+  if (expr_list_rtx)
+    {
+      for (ii_rtx  = expr_list_rtx; ii_rtx ; ii_rtx = XEXP (ii_rtx, 1))
+	{
+	  /* We have 2 options, either functions with 1 parameter or functions 
+	     with 2 parameter.  Either case, you take the last parameter 
+	     (1st in the former and 2nd in the latter).  So we do this.  */
+	  reg_rtx = XEXP (ii_rtx, 0);
+	  if (reg_rtx)
+	    if (GET_CODE (reg_rtx) == USE)
+	      {
+		reg_rtx = XEXP (reg_rtx, 0);
+		if (REG_P (reg_rtx))
+		  metadata_info.reg_rtx = reg_rtx;
+		else if (MEM_P (reg_rtx)) /* this means we are using stack */
+		  metadata_info.reg_rtx = cilk_fix_stack_reg (reg_rtx);
+	      }
+	  
+	}
+
+      loc_ref = loc_descriptor (metadata_info.reg_rtx, VOIDmode,
+				VAR_INIT_STATUS_UNKNOWN);
+  
+      gcc_assert (loc_ref);
+      size = (unsigned short) size_of_locs (loc_ref);
+
+      metadata_info.dwarf_expr = (unsigned short)(size & 0xFF) |
+	(unsigned short) (loc_ref->dw_loc_opc << 8);
+    }  
+  else
+      /* This means we have no arguments.  */
+    metadata_info.dwarf_expr = 1 | (DW_OP_lit0 << 8);
+  
+  metadata_info.ptr_next = NULL;
+  insert_into_zca_list (metadata_info);
+  if (cfun) 
+    { 
+      cfun->calls_notify_intrinsic = 1;
+      cfun->is_cilk_function = 1;
+      CILK_FN_P (cfun->decl) = 1;
+    }
+
+  return;
+}
+
 
 /* This function will return true if the function is an annotated function.  */
 
@@ -1185,7 +1247,15 @@ cilk_remove_annotated_functions (rtx first)
 			  {
 			    function_name = xstrdup (XSTR (symbol_insn, 0));
 			    if (cilk_annotated_function_p (function_name))
-			      VEC_safe_push (rtx, gc, rtx_delete_list, insn);
+			      {
+				/* We have already annotated the builtin
+				   functions with notify_intrnsic.  */
+				if (strcmp (function_name, "__notify_intrinsic")
+				    || !strcmp (function_name,
+						"__notify_zc_intrinsic"))
+				  replace_cilk_metadata (function_name, insn);
+				VEC_safe_push (rtx, gc, rtx_delete_list, insn);
+			      }
 			  }
 		    }
 		}
