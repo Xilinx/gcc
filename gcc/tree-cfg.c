@@ -2062,7 +2062,7 @@ gimple_debug_bb_n (int n)
 /* Dump the CFG on stderr.
 
    FLAGS are the same used by the tree dumping functions
-   (see TDF_* in tree-pass.h).  */
+   (see TDF_* in dumpfile.h).  */
 
 void
 gimple_debug_cfg (int flags)
@@ -6737,7 +6737,7 @@ move_sese_region_to_fn (struct function *dest_cfun, basic_block entry_bb,
 }
 
 
-/* Dump FUNCTION_DECL FN to file FILE using FLAGS (see TDF_* in tree-pass.h)
+/* Dump FUNCTION_DECL FN to file FILE using FLAGS (see TDF_* in dumpfile.h)
    */
 
 void

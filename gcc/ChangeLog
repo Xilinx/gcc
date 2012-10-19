@@ -1,3 +1,31 @@
+2012-11-04  Aldy Hernandez  <aldyh@redhat.com>
+	    Richard Henderson  <rth@redhat.com>
+
+	* trans-mem.c (tm_log_emit_save_or_restores): Remove FALLTHRU_EDGE
+	parameter and calculate locally.
+	(struct tm_region): Add new fields:
+	original_transaction_was_outer, transaction_label, tm_state, and
+	restart_block.
+	(tm_region_init_0): Initialize new tm_region fields.
+	(expand_assign_tm): Add comments.
+	(expand_transaction): Reorganize to be called in tmmark pass
+	instead of the tmedge pass.  Set and use restart_block.
+	(expand_block_edges): Set abnormal edges.
+	(generate_tm_state): New.
+	(execute_tm_mark): Generate TM_STATE temporaries.  Expand gimple
+	transactions into calls into the run-time.
+	(tm_region_for_stmt_1): New.
+	(tm_region_for_stmt): New.
+	(make_tm_edge): Rename to split_bb_make_tm_edge and rewrite.
+	transaction.  Point abnormal TM_ABORT edges appropriately.
+	(tmedge_wire_transaction_restarts): Abstract code previously in
+	expand_transaction to wire abnormal edges.
+	(expand_regions_1): Rewrite to use callback.
+	(expand_regions): Same.
+	(execute_tm_edges): Call expand_regions with new callback.
+	* trans-mem.h (PR_MULTIWAYCODE): New.
+	* tree-cfg.c (gimple_debug_cfg): Update comment.
+
 2012-11-05  Oleg Endo  <olegendo@gcc.gnu.org>
 
 	* config/sh/sh.h (TARGET_CACHE32, TARGET_HARVARD): Delete macro.

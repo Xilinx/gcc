@@ -1,3 +1,12 @@
+2012-11-04  Aldy Hernandez  <aldyh@redhat.com>
+
+	* gcc.dg/tm/debug-1.c: Scan for _ITM_beginTransaction.
+	* gcc.dg/tm/irrevocable-3.c: Scan for doesGoIrrevocable.
+	* gcc.dg/tm/irrevocable-4.c: Scan for hasNoIrrevocable.
+	* gcc.dg/tm/props-4.c: Do not scan for LABEL.
+	* gcc.dg/tm/memopt-11.c: Adjust scan text.
+	* gcc.dg/tm/memopt-10.c: Adjust scan text.
+
 2012-11-04  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/55199
