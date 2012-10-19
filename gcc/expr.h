@@ -484,7 +484,7 @@ extern void do_compare_rtx_and_jump (rtx, rtx, enum rtx_code, int,
 
 /* Two different ways of generating switch statements.  */
 extern int try_casesi (tree, tree, tree, tree, rtx, rtx, rtx);
-extern int try_tablejump (tree, tree, tree, tree, rtx, rtx);
+extern int try_tablejump (tree, tree, tree, tree, rtx, rtx, int);
 
 /* Functions from alias.c */
 #include "alias.h"

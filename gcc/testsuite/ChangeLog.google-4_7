@@ -1,3 +1,12 @@
+2012-10-18   Easwaran Raman <eraman@google.com>
+
+	Backport r183817 from google/gcc-4_6 branch.
+
+	2012-02-01  Easwaran Raman  <eraman@google.com>
+	
+		* tree-prof/switch-case-1.c: New test.
+		* tree-prof/switch-case-2.c: New test.
+
 2012-10-10  Dehao Chen  <dehao@google.com>
 
 	Backport 192285 from trunk:

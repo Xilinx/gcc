@@ -1,3 +1,28 @@
+2012-10-18   Easwaran Raman <eraman@google.com>
+
+	Backport r183817 from google/gcc-4_6 branch.
+
+	2012-02-01  Easwaran Raman  <eraman@google.com>
+	
+		* expr.c (do_tablejump): Add default_probability as the
+		sixth parameter and use it to generate REG_BR_PROB note.
+		(try_tablejump): Add default_probability as a parameter.
+		* cfgbuild.c (non_zero_profile_counts): New function.
+		(compute_outgoing_frequencies): If edges have profile counts
+		set, don't replace them with guessed values.
+		* expr.h (try_tablejump): Add additional parameter to the
+		declaration.
+		* stmt.c (tree-flow.h): Include.
+		(case_node): Add new fields count and subtree_count.
+		(add_case_node): Pass count as a paramater and initialize
+		count field of case_node.
+		(case_probability): New macro.
+		(expand_case): Propagate profile information from the tree
+		level to RTL during switch case expansion.
+		(balance_case_nodes): Compute subtree_count for case nodes.
+		(emit_case_nodes): Set branch probabilities for generated
+		branches.
+
 2012-10-16   DeLesley Hutchins  <delesley@google.com>
 
 	common.opt:

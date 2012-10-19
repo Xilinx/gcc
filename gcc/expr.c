@@ -156,7 +156,7 @@ static rtx do_store_flag (sepops, rtx, enum machine_mode);
 #ifdef PUSH_ROUNDING
 static void emit_single_push_insn (enum machine_mode, rtx, tree);
 #endif
-static void do_tablejump (rtx, enum machine_mode, rtx, rtx, rtx);
+static void do_tablejump (rtx, enum machine_mode, rtx, rtx, rtx, int);
 static rtx const_vector_from_tree (tree);
 static void write_complex_part (rtx, rtx, bool);
 
@@ -10766,7 +10766,7 @@ try_casesi (tree index_type, tree index_expr, tree minval, tree range,
 
 static void
 do_tablejump (rtx index, enum machine_mode mode, rtx range, rtx table_label,
-	      rtx default_label)
+	      rtx default_label, int default_probability)
 {
   rtx temp, vector;
 
@@ -10782,8 +10782,16 @@ do_tablejump (rtx index, enum machine_mode mode, rtx range, rtx table_label,
      the maximum value of the range.  */
 
   if (default_label)
-    emit_cmp_and_jump_insns (index, range, GTU, NULL_RTX, mode, 1,
-			     default_label);
+    {
+      emit_cmp_and_jump_insns (index, range, GTU, NULL_RTX, mode, 1,
+			       default_label);
+      if (default_probability != -1)
+        {
+          rtx jump_insn = get_last_insn();
+          add_reg_note (jump_insn, REG_BR_PROB, GEN_INT (default_probability));
+        }
+    }
+
 
   /* If index is in range, it must fit in Pmode.
      Convert to Pmode so we can index with it.  */
@@ -10826,7 +10834,7 @@ do_tablejump (rtx index, enum machine_mode mode, rtx range, rtx table_label,
 
 int
 try_tablejump (tree index_type, tree index_expr, tree minval, tree range,
-	       rtx table_label, rtx default_label)
+	       rtx table_label, rtx default_label, int default_probability)
 {
   rtx index;
 
@@ -10844,7 +10852,7 @@ try_tablejump (tree index_type, tree index_expr, tree minval, tree range,
 			       TYPE_MODE (TREE_TYPE (range)),
 			       expand_normal (range),
 			       TYPE_UNSIGNED (TREE_TYPE (range))),
-		table_label, default_label);
+		table_label, default_label, default_probability);
   return 1;
 }
 
