@@ -1,3 +1,8 @@
+2012-10-18  Xinliang David Li  <davidxl@google.com>
+
+	* asan.c (asan_init_shadow_ptr_types): change shadow type
+	to signed type.
+
 2012-10-10  Richard Biener  <rguenther@suse.de>
 
 	* lto-streamer-in.c (lto_input_location_bitpack): Rename to ...

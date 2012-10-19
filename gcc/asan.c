@@ -825,10 +825,10 @@ static void
 asan_init_shadow_ptr_types (void)
 {
   asan_shadow_set = new_alias_set ();
-  shadow_ptr_types[0] = build_distinct_type_copy (unsigned_char_type_node);
+  shadow_ptr_types[0] = build_distinct_type_copy (signed_char_type_node);
   TYPE_ALIAS_SET (shadow_ptr_types[0]) = asan_shadow_set;
   shadow_ptr_types[0] = build_pointer_type (shadow_ptr_types[0]);
-  shadow_ptr_types[1] = build_distinct_type_copy (short_unsigned_type_node);
+  shadow_ptr_types[1] = build_distinct_type_copy (short_integer_type_node);
   TYPE_ALIAS_SET (shadow_ptr_types[1]) = asan_shadow_set;
   shadow_ptr_types[1] = build_pointer_type (shadow_ptr_types[1]);
 }
