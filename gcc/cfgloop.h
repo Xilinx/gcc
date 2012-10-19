@@ -254,7 +254,8 @@ extern basic_block *get_loop_body_in_custom_order (const struct loop *,
 			       int (*) (const void *, const void *));
 
 extern VEC (edge, heap) *get_loop_exit_edges (const struct loop *);
-edge single_exit (const struct loop *);
+extern edge single_exit (const struct loop *);
+extern edge single_likely_exit (struct loop *loop);
 extern unsigned num_loop_branches (const struct loop *);
 
 extern edge loop_preheader_edge (const struct loop *);
@@ -309,6 +310,7 @@ extern edge create_empty_if_region_on_edge (edge, tree);
 extern struct loop *create_empty_loop_on_edge (edge, tree, tree, tree, tree,
 					       tree *, tree *, struct loop *);
 extern struct loop * duplicate_loop (struct loop *, struct loop *);
+extern void copy_loop_info (struct loop *loop, struct loop *target);
 extern void duplicate_subloops (struct loop *, struct loop *);
 extern bool duplicate_loop_to_header_edge (struct loop *, edge,
 					   unsigned, sbitmap, edge,
@@ -319,7 +321,8 @@ extern struct loop *loopify (edge, edge,
 struct loop * loop_version (struct loop *, void *,
 			    basic_block *, unsigned, unsigned, unsigned, bool);
 extern bool remove_path (edge);
-void scale_loop_frequencies (struct loop *, int, int);
+extern void unloop (struct loop *, bool *);
+extern void scale_loop_frequencies (struct loop *, int, int);
 
 /* Induction variable analysis.  */
 

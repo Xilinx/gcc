@@ -1,3 +1,361 @@
+2012-10-19  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/54981
+	* gcc.dg/pr54981.c: New testcase.
+
+2012-10-19  Zhenqiang Chen <zhenqiang.chen@linaro.org>
+
+	PR target/54892
+	* gcc.target/arm/pr54892.c: New.
+
+2012-10-19  Bin Cheng  <bin.cheng@arm.com>
+
+	* testsuite/gcc.dg/hoist-register-pressure.c: New test.
+
+2012-10-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/54501
+	* g++.dg/init/array30.C: New.
+	* g++.dg/init/array31.C: Likewise.
+
+2012-10-18  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/54884
+	* gfortran.dg/public_private_module_7.f90: New.
+
+2012-10-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/29633
+	* g++.dg/template/pr29633.C: New.
+
+2012-10-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/loop_optimization13.ad[sb]: New test.
+	* gnat.dg/loop_optimization13_pkg.ads: New helper.
+
+2012-10-18  Matthew Gretton-Dann  <matthew.gretton-dann@arm.com>
+
+	* gcc.target/arm/neon/vfmaQf32.c: New testcase.
+	* gcc.target/arm/neon/vfmaf32.c: Likewise.
+	* gcc.target/arm/neon/vfmsQf32.c: Likewise.
+	* gcc.target/arm/neon/vfmsf32.c: Likewise.
+
+2012-10-18  Matthew Gretton-Dann  <matthew.gretton-dann@arm.com>
+
+	* gcc.target/arm/ftest-armv8a-arm.c: New testcase.
+	* gcc.target/arm/ftest-armv8a-thumb.c: Likewise.
+	* gcc.target/arm/ftest-support-arm.h (feature_matrix): Add
+	ARMv8-A row.
+	* gcc.target/arm/ftest-support-thumb.h (feature_matrix):
+	Likewise.
+	* gcc.target/arm/ftest-support.h (architecture): Add ARMv8-A.
+	* lib/target-supports.exp: Add ARMv8-A architecture expectation.
+
+2012-10-16  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.target/i386/l_fma_float_?.c: Update.
+	* gcc.target/i386/l_fma_double_?.c: Update.
+	* gfortran.dg/do_1.f90: XFAIL
+	* gcc.dg/tree-ssa/cunroll-1.c: New testcase.
+	* gcc.dg/tree-ssa/cunroll-2.c: New testcase.
+	* gcc.dg/tree-ssa/cunroll-3.c: New testcase.
+	* gcc.dg/tree-ssa/cunroll-4.c: New testcase.
+	* gcc.dg/tree-ssa/cunroll-5.c: New testcase.
+	* gcc.dg/tree-ssa/ldist-17.c: Block cunroll to make testcase still
+	valid.
+
+2012-10-16  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/53063
+	PR c/40989
+	* gcc.dg/Wstrict-overflow-24.c: New.
+
+2012-10-16  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/50981
+	PR fortran/54618
+	* gfortran.dg/class_optional_1.f90: New.
+	* gfortran.dg/class_optional_2.f90: New.
+
+2012-10-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/54796
+	* gcc.dg/guality/pr54796.c: New test.
+
+	PR tree-optimization/54889
+	* gfortran.dg/pr54889.f90: New test.
+
+2012-10-16  Eric Botcazou <ebotcazou@adacore.com>
+
+	* g++.dg/other/dump-ada-spec-2.C: New test.
+
+2012-10-16  Easwaran Raman  <eraman@google.com>
+
+	* gcc.dg/tree-prof/switch-case-1.c: New test case.
+	* gcc.dg/tree-prof/switch-case-2.c: New test case.
+
+2012-10-16  Hans-Peter Nilsson  <hp@bitrange.com>
+
+	* gcc.dg/torture/stackalign/builtin-apply-2.c,
+	gcc.dg/builtin-apply2.c: Correct STACK_ARGUMENTS_SIZE for MMIX.
+
+2012-10-15  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/54925
+	* gcc.c-torture/compile/pr54925.c: New.
+
+2012-10-15  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/51244
+	* gcc.target/sh/pr51244-17.c: New.
+
+2012-10-15  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/54760
+	* gcc.target/sh/pr54760-2.c: Add long long and unsigned long long test
+	functions.
+	* gcc.target/sh/pr54760-4.c: New.
+
+2012-10-15  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/34777
+	* gcc.target/sh/torture/sh-torture.exp: New.
+	* gcc.target/sh/torture/pr34777.c: New.
+
+2012-10-15  Matthias Klose  <doko@ubuntu.com>
+
+	* lib/target-supports.exp (check_profiling_available): Match
+	arm*-*-linux-* for ARM Linux/GNU.
+	* g++.dg/torture/predcom-1.C: Match arm*-*-linux-* for ARM Linux/GNU.
+	* gfortran.dg/enum_10.f90: Likewise.
+	* gfortran.dg/enum_9.f90: Likewise.
+	* gcc.target/arm/synchronize.c: Likewise.
+	* g++.old-deja/g++.jason/enum6.C: Likewise.
+	* g++.old-deja/g++.other/enum4.C: Likewise.
+	* g++.old-deja/g++.law/enum9.C: Likewise.
+
+2012-10-15  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* g++.dg/tls/thread_local-cse.C: Move dg-do line.
+	* g++.dg/tls/thread_local-wrap4.C: Require fpic.
+
+2012-10-15  Alexandre Oliva  <aoliva@redhat.com>
+	    Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/17805
+	* g++.dg/overload/operator6.C: New.
+
+2012-10-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50080 (again)
+	* g++.dg/parse/tmpl-outside2.C: Tweak, error in C++98.
+	* g++.dg/parse/tmpl-outside1.C: Likewise.
+	* g++.dg/template/qualttp18.C: Likewise.
+	* g++.old-deja/g++.pt/memtemp87.C: Likewise.
+	* g++.old-deja/g++.pt/overload13.C: Likewise.
+
+2012-10-15  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/avx256-unaligned-load-1.c: Update asm scan patterns.
+	* gcc.target/i386/avx256-unaligned-load-2.c: Ditto.
+	* gcc.target/i386/avx256-unaligned-load-3.c: Ditto.
+	* gcc.target/i386/avx256-unaligned-load-4.c: Ditto.
+	* gcc.target/i386/avx256-unaligned-store-1.c: Ditto.
+	* gcc.target/i386/avx256-unaligned-store-2.c: Ditto.
+	* gcc.target/i386/avx256-unaligned-store-3.c: Ditto.
+	* gcc.target/i386/avx256-unaligned-store-4.c: Ditto.
+
+2012-10-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50080
+	* g++.dg/parse/tmpl-outside2.C: New.
+	* g++.dg/parse/tmpl-outside1.C: Adjust.
+	* g++.dg/template/qualttp18.C: Likewise.
+	* g++.old-deja/g++.pt/memtemp87.C: Likewise.
+	* g++.old-deja/g++.pt/overload13.C: Likewise.
+
+2012-10-15  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR tree-optimization/54915
+	* gcc.dg/tree-ssa/pr54915.c: New testcase.
+
+2012-10-15  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/54920
+	* gcc.dg/torture/pr54920.c: New testcase.
+
+2012-10-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/unchecked_convert9.ad[sb]: New test.
+
+2012-10-13  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/tls/thread_local7g.C: Require tls_native.
+
+2012-10-14  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/inh-ctor1.C: New.
+	* g++.dg/cpp0x/inh-ctor2.C: New.
+	* g++.dg/cpp0x/inh-ctor3.C: New.
+	* g++.dg/cpp0x/inh-ctor4.C: New.
+	* g++.dg/cpp0x/inh-ctor5.C: New.
+	* g++.dg/cpp0x/inh-ctor6.C: New.
+	* g++.dg/cpp0x/inh-ctor7.C: New.
+	* g++.dg/cpp0x/inh-ctor8.C: New.
+	* g++.dg/cpp0x/inh-ctor9.C: New.
+	* g++.dg/cpp0x/inh-ctor10.C: New.
+	* g++.dg/cpp0x/inh-ctor11.C: New.
+	* g++.dg/cpp0x/inh-ctor12.C: New.
+	* g++.dg/cpp0x/inh-ctor13.C: New.
+
+2012-10-14  Steven Bosscher  <steven@gcc.gnu.org>
+
+	PR rtl-optimization/54919
+	* gcc.dg/pr54919.c: New testcase.
+
+2012-10-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/53581
+	* g++.dg/template/crash113.C: New.
+
+2012-10-14  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/unroll_5.c: New testcase.
+
+2012-10-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/52643
+	* g++.dg/opt/pr52643.C: New.
+
+2012-10-12  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/54602
+	* gcc.target/sh/pr54602-1.c: New.
+	* gcc.target/sh/pr54602-2.c: New.
+	* gcc.target/sh/pr54602-3.c: New.
+	* gcc.target/sh/pr54602-4.c: New.
+
+2012-10-12  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/54680
+	* gcc.target/sh/pr54680.c: New.
+
+2012-10-12  Jan Hubicka <jh@suse.cz>
+
+	* gcc.dg/webizer.c: New testcase.
+
+2012-10-12  Janis Johnson  <janisjo@codesourcery.com>
+
+	* gcc.dg/vect/pr48765.c: Skip for conflicting options, don't
+	specify -m64.
+
+	* gcc.target/arm/div64-unwinding.c: Skip, don't xfail, for
+	GNU/Linux.
+
+	* lib/target-supports.exp (check_effective_target_arm_hard_vfp_ok):
+	Return 0 if already specifying -mfloat-abi other than hard.
+
+2012-10-12  Joe Seymour  <jseymour@codesourcery.com>
+
+	* gcc.dg/pr53060.c: Prune irrelevant warning.
+
+2012-10-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/54381
+	* c-c++-common/Wsizeof-pointer-memaccess1.c: New test.
+	* c-c++-common/Wsizeof-pointer-memaccess2.c: New test.
+	* gcc.dg/Wsizeof-pointer-memaccess1.c: New test.
+	* gcc.dg/torture/Wsizeof-pointer-memaccess1.c: Test also stpncpy.
+	Adjust expected wording of warnings for *cmp* builtins.
+	* g++.dg/torture/Wsizeof-pointer-memaccess1.C: Likewise.
+	* g++.dg/torture/Wsizeof-pointer-memaccess2.C: Likewise.
+
+2012-10-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/24449
+	* g++.dg/parse/friend-main.C: New.
+
+2012-10-12  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR c++/53055
+	* g++.dg/pr53055.C: New testcase.
+
+2012-10-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/52744
+	* g++.dg/cpp0x/pr52744.C: New.
+
+2012-10-12  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40453
+	* gfortran.dg/dummy_procedure_9.f90: New.
+
+2012-10-12  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/54894
+	* gcc.dg/torture/pr54894.c: New testcase.
+
+2012-10-12  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/51244
+	* gcc.target/sh/pr51244-13.c: New.
+	* gcc.target/sh/pr51244-14.c: New.
+	* gcc.target/sh/pr51244-15.c: New.
+	* gcc.target/sh/pr51244-16.c: New.
+
+2012-10-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51878
+	* g++.dg/cpp0x/decltype45.C: New.
+
+2012-10-11  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/54784
+	* gfortran.dg/class_allocate_13.f90: New.
+
+2012-10-11  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/ext/visibility/pragma-override1.C: Fix target markup.
+	* g++.dg/ext/visibility/pragma-override2.C: Fix target markup.
+
+	* g++.dg/gomp/tls-5.C: Require tls_native.
+	* g++.dg/tls/thread_local7.C: Require tls_native.
+	* g++.dg/tls/static2.C: New.
+
+2012-10-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/36107
+	* g++.dg/ext/weak5.C: New.
+
+2012-10-11  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR testsuite/54868
+	* gcc.dg/tree-ssa/forwprop-22.c: Move ...
+	* gcc.dg/vect/nodump-forwprop-22.c: ... here. Adapt options.
+
+2012-10-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/43765
+	* g++.dg/parse/pr43765.C: New.
+
+2012-10-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	* obj-c++.dg/tls/init-2.mm: Tweak errors.
+
+2012-10-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/43663
+	* g++.dg/init/bitfield3.C: New.
+
+2012-10-10  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/mips32-dsp-accinit-2.c: Fix test description.
+
+2012-10-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/54877
+	* gcc.dg/torture/pr54877.c: New test.
+
 2012-10-10  Venkataramanan Kumar  <venkataramanan.kumar@amd.com>
 
 	PR testsuite/53397

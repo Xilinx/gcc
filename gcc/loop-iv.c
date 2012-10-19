@@ -1964,12 +1964,12 @@ simplify_using_initial_values (struct loop *loop, enum rtx_code op, rtx *expr)
 	  note_stores (PATTERN (insn), mark_altered, this_altered);
 	  if (CALL_P (insn))
 	    {
-	      int i;
-
 	      /* Kill all call clobbered registers.  */
-	      for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
-		if (TEST_HARD_REG_BIT (regs_invalidated_by_call, i))
-		  SET_REGNO_REG_SET (this_altered, i);
+	      unsigned int i;
+	      hard_reg_set_iterator hrsi;
+	      EXECUTE_IF_SET_IN_HARD_REG_SET (regs_invalidated_by_call,
+					      0, i, hrsi)
+		SET_REGNO_REG_SET (this_altered, i);
 	    }
 
 	  if (suitable_set_for_replacement (insn, &dest, &src))
@@ -2004,11 +2004,30 @@ simplify_using_initial_values (struct loop *loop, enum rtx_code op, rtx *expr)
 		}
 	    }
 	  else
-	    /* If we did not use this insn to make a replacement, any overlap
-	       between stores in this insn and our expression will cause the
-	       expression to become invalid.  */
-	    if (for_each_rtx (expr, altered_reg_used, this_altered))
-	      goto out;
+	    {
+	      rtx *pnote, *pnote_next;
+
+	      /* If we did not use this insn to make a replacement, any overlap
+		 between stores in this insn and our expression will cause the
+		 expression to become invalid.  */
+	      if (for_each_rtx (expr, altered_reg_used, this_altered))
+		goto out;
+
+	      /* Likewise for the conditions.  */
+	      for (pnote = &cond_list; *pnote; pnote = pnote_next)
+		{
+		  rtx note = *pnote;
+		  rtx old_cond = XEXP (note, 0);
+
+		  pnote_next = &XEXP (note, 1);
+		  if (for_each_rtx (&old_cond, altered_reg_used, this_altered))
+		    {
+		      *pnote = *pnote_next;
+		      pnote_next = pnote;
+		      free_EXPR_LIST_node (note);
+		    }
+		}
+	    }
 
 	  if (CONSTANT_P (*expr))
 	    goto out;
@@ -2224,13 +2243,18 @@ determine_max_iter (struct loop *loop, struct niter_desc *desc, rtx old_niter)
   rtx niter = desc->niter_expr;
   rtx mmin, mmax, cmp;
   unsigned HOST_WIDEST_INT nmax, inc;
+  unsigned HOST_WIDEST_INT andmax = 0;
+
+  /* We used to look for constant operand 0 of AND,
+     but canonicalization should always make this impossible.  */
+  gcc_checking_assert (GET_CODE (niter) != AND
+	               || !CONST_INT_P (XEXP (niter, 0)));
 
   if (GET_CODE (niter) == AND
-      && CONST_INT_P (XEXP (niter, 0)))
+      && CONST_INT_P (XEXP (niter, 1)))
     {
-      nmax = INTVAL (XEXP (niter, 0));
-      if (!(nmax & (nmax + 1)))
-	return nmax;
+      andmax = UINTVAL (XEXP (niter, 1));
+      niter = XEXP (niter, 0);
     }
 
   get_mode_bounds (desc->mode, desc->signed_p, desc->mode, &mmin, &mmax);
@@ -2258,7 +2282,13 @@ determine_max_iter (struct loop *loop, struct niter_desc *desc, rtx old_niter)
       if (dump_file)
 	fprintf (dump_file, ";; improved upper bound by one.\n");
     }
-  return nmax / inc;
+  nmax /= inc;
+  if (andmax)
+    nmax = MIN (nmax, andmax);
+  if (dump_file)
+    fprintf (dump_file, ";; Determined upper bound "HOST_WIDEST_INT_PRINT_DEC".\n",
+	     nmax);
+  return nmax;
 }
 
 /* Computes number of iterations of the CONDITION in INSN in LOOP and stores
@@ -2563,7 +2593,7 @@ iv_number_of_iterations (struct loop *loop, rtx insn, rtx condition,
 			 ? iv0.base
 			 : mode_mmin);
 	  max = (up - down) / inc + 1;
-	  record_niter_bound (loop, double_int::from_shwi (max),
+	  record_niter_bound (loop, double_int::from_uhwi (max),
 			      false, true);
 
 	  if (iv0.step == const0_rtx)
@@ -2776,14 +2806,14 @@ iv_number_of_iterations (struct loop *loop, rtx insn, rtx condition,
 
       desc->const_iter = true;
       desc->niter = val & GET_MODE_MASK (desc->mode);
-      record_niter_bound (loop, double_int::from_shwi (desc->niter),
+      record_niter_bound (loop, double_int::from_uhwi (desc->niter),
 			  false, true);
     }
   else
     {
       max = determine_max_iter (loop, desc, old_niter);
       gcc_assert (max);
-      record_niter_bound (loop, double_int::from_shwi (max),
+      record_niter_bound (loop, double_int::from_uhwi (max),
 			  false, true);
 
       /* simplify_using_initial_values does a copy propagation on the registers

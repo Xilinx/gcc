@@ -541,22 +541,22 @@
   (eq_attr "needs_delay_slot" "yes")
   [(eq_attr "in_delay_slot" "yes") (nil) (nil)])
 
-;; On the SH and SH2, the rte instruction reads the return pc from the stack,
-;; and thus we can't put a pop instruction in its delay slot.
-;; On the SH3 and SH4, the rte instruction does not use the stack, so a pop
-;; instruction can go in the delay slot.
 ;; Since a normal return (rts) implicitly uses the PR register,
 ;; we can't allow PR register loads in an rts delay slot.
+;; On the SH1* and SH2*, the rte instruction reads the return pc from the
+;; stack, and thus we can't put a pop instruction in its delay slot.
+;; On the SH3* and SH4*, the rte instruction does not use the stack, so a
+;; pop instruction can go in the delay slot, unless it references a banked
+;; register (the register bank is switched by rte).
 (define_delay
   (eq_attr "type" "return")
   [(and (eq_attr "in_delay_slot" "yes")
 	(ior (and (eq_attr "interrupt_function" "no")
 		  (eq_attr "type" "!pload,prset"))
 	     (and (eq_attr "interrupt_function" "yes")
-		  (ior
-		   (not (match_test "TARGET_SH3"))
-		   (eq_attr "hit_stack" "no")
-		   (eq_attr "banked" "no"))))) (nil) (nil)])
+		  (ior (match_test "TARGET_SH3") (eq_attr "hit_stack" "no"))
+		  (eq_attr "banked" "no"))))
+   (nil) (nil)])
 
 ;; Since a call implicitly uses the PR register, we can't allow
 ;; a PR register store in a jsr delay slot.
@@ -3708,6 +3708,26 @@ label:
   "xor	%2,%0"
   [(set_attr "type" "arith")])
 
+;; The *logical_op_t pattern helps combine eliminating sign/zero extensions
+;; of results where one of the inputs is a T bit store.  Notice that this
+;; pattern must not match during reload.  If reload picks this pattern it
+;; will be impossible to split it afterwards.
+(define_insn_and_split "*logical_op_t"
+  [(set (match_operand:SI 0 "arith_reg_dest")
+	(match_operator:SI 3 "logical_operator"
+	  [(match_operand:SI 1 "arith_reg_operand")
+	   (match_operand:SI 2 "t_reg_operand")]))]
+  "TARGET_SH1 && can_create_pseudo_p ()"
+  "#"
+  "&& 1"
+  [(set (match_dup 4) (reg:SI T_REG))
+   (set (match_dup 0) (match_dup 3))]
+{
+  operands[4] = gen_reg_rtx (SImode);
+  operands[3] = gen_rtx_fmt_ee (GET_CODE (operands[3]), SImode,
+				operands[1], operands[4]);
+})
+
 (define_insn "*xorsi3_media"
   [(set (match_operand:SI 0 "arith_reg_dest" "=r,r")
 	(xor:SI (match_operand:SI 1 "logical_reg_operand" "%r,r")
@@ -5322,8 +5342,8 @@ label:
   emit_insn (gen_movsi (operands[0], operands[1]));
 
   emit_jump_insn (INTVAL (operands[3])
-		  ? gen_branch_true (skip_neg_label, get_t_reg_rtx ())
-		  : gen_branch_false (skip_neg_label, get_t_reg_rtx ()));
+		  ? gen_branch_true (skip_neg_label)
+		  : gen_branch_false (skip_neg_label));
 
   emit_label_after (skip_neg_label,
 		    emit_insn (gen_negsi2 (operands[0], operands[1])));
@@ -5391,8 +5411,8 @@ label:
   emit_insn (gen_movsi (high_dst, high_src));
 
   emit_jump_insn (INTVAL (operands[3]) 
-		  ? gen_branch_true (skip_neg_label, get_t_reg_rtx ())
-		  : gen_branch_false (skip_neg_label, get_t_reg_rtx ()));
+		  ? gen_branch_true (skip_neg_label)
+		  : gen_branch_false (skip_neg_label));
 
   if (!INTVAL (operands[3]))
     emit_insn (gen_clrt ());
@@ -5575,11 +5595,25 @@ label:
   [(set (match_operand:SI 0 "arith_reg_dest")
 	(zero_extend:SI (match_operand:QIHI 1 "zero_extend_operand")))])
 
-(define_insn "*zero_extend<mode>si2_compact"
+(define_insn_and_split "*zero_extend<mode>si2_compact"
   [(set (match_operand:SI 0 "arith_reg_dest" "=r")
 	(zero_extend:SI (match_operand:QIHI 1 "arith_reg_operand" "r")))]
   "TARGET_SH1"
   "extu.<bw>	%1,%0"
+  "&& can_create_pseudo_p ()"
+  [(set (match_dup 0) (match_dup 2))]
+{
+  /* Sometimes combine fails to combine a T bit or negated T bit store to a
+     reg with a following zero extension.  In the split pass after combine,
+     try to figure the extended reg was set.  If it originated from the T
+     bit we can replace the zero extension with a reg move, which will be
+     eliminated.  Notice that this also helps the *cbranch_t splitter when
+     it tries to post-combine tests and conditional branches, as it does not
+     check for zero extensions.  */
+  operands[2] = sh_try_omit_signzero_extend (operands[1], curr_insn);
+  if (operands[2] == NULL_RTX)
+    FAIL;
+}
   [(set_attr "type" "arith")])
 
 (define_insn "*zero_extendhisi2_media"
@@ -5804,11 +5838,23 @@ label:
 			   subreg_lowpart_offset (SImode, GET_MODE (op1)));
 })
 
-(define_insn "*extend<mode>si2_compact_reg"
+(define_insn_and_split "*extend<mode>si2_compact_reg"
   [(set (match_operand:SI 0 "arith_reg_dest" "=r")
 	(sign_extend:SI (match_operand:QIHI 1 "arith_reg_operand" "r")))]
   "TARGET_SH1"
   "exts.<bw>	%1,%0"
+  "&& can_create_pseudo_p ()"
+  [(set (match_dup 0) (match_dup 2))]
+{
+  /* Sometimes combine fails to combine a T bit or negated T bit store to a
+     reg with a following sign extension.  In the split pass after combine,
+     try to figure the extended reg was set.  If it originated from the T
+     bit we can replace the sign extension with a reg move, which will be
+     eliminated.  */
+  operands[2] = sh_try_omit_signzero_extend (operands[1], curr_insn);
+  if (operands[2] == NULL_RTX)
+    FAIL;
+}
   [(set_attr "type" "arith")])
 
 ;; FIXME: Fold non-SH2A and SH2A alternatives with "enabled" attribute.
@@ -6185,21 +6231,6 @@ label:
 
   emit_insn (gen_ashlsi3 (operands[5], operands[0], operands[2]));
 })
-
-;; Define additional pop for SH1 and SH2 so it does not get 
-;; placed in the delay slot.
-(define_insn "*movsi_pop"
-  [(set (match_operand:SI 0 "register_operand" "=r,x,l")
-        (match_operand:SI 1 "sh_no_delay_pop_operand" ">,>,>"))]
-  "(TARGET_SH1 || TARGET_SH2E || TARGET_SH2A)
-   && ! TARGET_SH3"
-  "@
-	mov.l	%1,%0
-	lds.l	%1,%0
-	lds.l	%1,%0"
-  [(set_attr "type" "load_si,mem_mac,pload")
-   (set_attr "length" "2,2,2")
-   (set_attr "in_delay_slot" "no,no,no")])
 
 ;; t/r must come after r/r, lest reload will try to reload stuff like
 ;; (set (subreg:SI (mem:QI (plus:SI (reg:SI SP_REG) (const_int 12)) 0) 0)
@@ -6598,10 +6629,19 @@ label:
 ;; picked to load/store regs.  If the regs regs are on the stack reload will
 ;; try other insns and not stick to movqi_reg_reg.
 ;; The same applies to the movhi variants.
+;;
+;; Notice, that T bit is not allowed as a mov src operand here.  This is to
+;; avoid things like (set (reg:QI) (subreg:QI (reg:SI T_REG) 0)), which
+;; introduces zero extensions after T bit stores and redundant reg copies.
+;;
+;; FIXME: We can't use 'arith_reg_operand' (which disallows T_REG) as a
+;; predicate for the mov src operand because reload will have trouble
+;; reloading MAC subregs otherwise.  For that probably special patterns
+;; would be required.
 (define_insn "*mov<mode>_reg_reg"
   [(set (match_operand:QIHI 0 "arith_reg_dest" "=r")
 	(match_operand:QIHI 1 "register_operand" "r"))]
-  "TARGET_SH1"
+  "TARGET_SH1 && !t_reg_operand (operands[1], VOIDmode)"
   "mov	%1,%0"
   [(set_attr "type" "move")])
 
@@ -8108,47 +8148,105 @@ label:
 ;; Define the real conditional branch instructions.
 ;; ------------------------------------------------------------------------
 
-(define_insn "branch_true"
-  [(set (pc) (if_then_else (ne (match_operand 1 "t_reg_operand" "")
-			       (const_int 0))
-			   (label_ref (match_operand 0 "" ""))
+(define_expand "branch_true"
+  [(set (pc) (if_then_else (ne (reg:SI T_REG) (const_int 0))
+			   (label_ref (match_operand 0))
 			   (pc)))]
-  "TARGET_SH1"
-{
-  return output_branch (1, insn, operands);
-}
-  [(set_attr "type" "cbranch")])
+  "TARGET_SH1")
 
-(define_insn "*branch_true_eq"
-  [(set (pc) (if_then_else (eq (match_operand 1 "t_reg_operand" "")
-			       (const_int 1))
-			   (label_ref (match_operand 0 "" ""))
+(define_expand "branch_false"
+  [(set (pc) (if_then_else (eq (reg:SI T_REG) (const_int 0))
+			   (label_ref (match_operand 0))
 			   (pc)))]
-  "TARGET_SH1"
-{
-  return output_branch (1, insn, operands);
-}
-  [(set_attr "type" "cbranch")])
+  "TARGET_SH1")
 
-(define_insn "branch_false"
-  [(set (pc) (if_then_else (eq (match_operand 1 "t_reg_operand" "")
-			       (const_int 0))
-			   (label_ref (match_operand 0 "" ""))
+(define_insn_and_split "*cbranch_t"
+  [(set (pc) (if_then_else (match_operand 1 "cbranch_treg_value")
+			   (label_ref (match_operand 0))
 			   (pc)))]
   "TARGET_SH1"
 {
-  return output_branch (0, insn, operands);
+  return output_branch (sh_eval_treg_value (operands[1]), insn, operands);
 }
-  [(set_attr "type" "cbranch")])
-
-(define_insn "*branch_false_ne"
-  [(set (pc) (if_then_else (ne (match_operand 1 "t_reg_operand" "")
-			       (const_int 1))
-			   (label_ref (match_operand 0 "" ""))
+  "&& can_create_pseudo_p ()"
+  [(set (pc) (if_then_else (eq (reg:SI T_REG) (match_dup 2))
+			   (label_ref (match_dup 0))
 			   (pc)))]
-  "TARGET_SH1"
 {
-  return output_branch (0, insn, operands);
+  /* Try to find missed test and branch combine opportunities which result
+     in redundant T bit tests before conditional branches.
+     FIXME: Probably this would not be needed if CCmode was used
+     together with TARGET_FIXED_CONDITION_CODE_REGS.  */
+
+  const int treg_value = sh_eval_treg_value (operands[1]);
+  operands[2] = NULL_RTX;
+
+  /* Scan the insns backwards for an insn that sets the T bit by testing a
+     reg against zero like:
+	(set (reg T_REG) (eq (reg) (const_int 0)))  */
+  rtx testing_insn = NULL_RTX;
+  rtx tested_reg = NULL_RTX;
+
+  set_of_reg s0 = sh_find_set_of_reg (get_t_reg_rtx (), curr_insn,
+				      prev_nonnote_insn_bb);
+  if (s0.set_src != NULL_RTX
+      && GET_CODE (s0.set_src) == EQ
+      && REG_P (XEXP (s0.set_src, 0))
+      && satisfies_constraint_Z (XEXP (s0.set_src, 1)))
+    {
+      testing_insn = s0.insn;
+      tested_reg = XEXP (s0.set_src, 0);
+    }
+  else
+    FAIL;
+
+  /* Continue scanning the insns backwards and try to find the insn that
+     sets the tested reg which we found above.  If the reg is set by storing
+     the T bit or the negated T bit we can eliminate the test insn before
+     the branch.  Notice that the branch condition has to be inverted if the
+     test is eliminated.  */
+
+  /* If the T bit is used between the testing insn and the brach insn
+     leave it alone.  */
+  if (reg_used_between_p (get_t_reg_rtx (), testing_insn, curr_insn))
+    FAIL;
+
+  while (true)
+    {
+      set_of_reg s1 = sh_find_set_of_reg (tested_reg, s0.insn,
+					  prev_nonnote_insn_bb);
+      if (s1.set_src == NULL_RTX)
+	break;
+
+      if (t_reg_operand (s1.set_src, VOIDmode))
+	operands[2] = GEN_INT (treg_value ^ 1);
+      else if (negt_reg_operand (s1.set_src, VOIDmode))
+	operands[2] = GEN_INT (treg_value);
+      else if (REG_P (s1.set_src))
+	{
+	   /* If it's a reg-reg copy follow the copied reg.  This can
+	      happen e.g. when T bit store zero-extensions are
+	      eliminated.  */
+	  tested_reg = s1.set_src;
+	  s0.insn = s1.insn;
+	  continue;
+	}
+
+	/* It's only safe to remove the testing insn if the T bit is not
+	   modified between the testing insn and the insn that stores the
+	   T bit.  Notice that some T bit stores such as negc also modify
+	   the T bit.  */
+	if (modified_between_p (get_t_reg_rtx (), s1.insn, testing_insn)
+	    || modified_in_p (get_t_reg_rtx (), s1.insn))
+	  operands[2] = NULL_RTX;
+
+	break;
+      }
+
+  if (operands[2] == NULL_RTX)
+    FAIL;
+
+  set_insn_deleted (testing_insn);
 }
   [(set_attr "type" "cbranch")])
 
@@ -8376,11 +8474,14 @@ label:
 			  (pc)))
 	      (set (match_dup 0)
 		   (plus:SI (match_dup 0) (const_int -1)))
-	      (clobber (reg:SI T_REG))])]
+	      (clobber (reg:SI T_REG))])
+   (match_operand 5 "" "")]
   "TARGET_SH2"
 {
   if (GET_MODE (operands[0]) != SImode)
     FAIL;
+  emit_insn (gen_doloop_end_split (operands[0], operands[4], operands[0]));
+  DONE;
 })
 
 (define_insn_and_split "doloop_end_split"
@@ -10085,7 +10186,7 @@ label:
 ;;
 ;; On SH the thread pointer is kept in the GBR.
 ;; These patterns are usually expanded from the respective built-in functions.
-(define_expand "get_thread_pointer"
+(define_expand "get_thread_pointersi"
   [(set (match_operand:SI 0 "register_operand") (reg:SI GBR_REG))]
   "TARGET_SH1")
 
@@ -10096,7 +10197,7 @@ label:
   "stc	gbr,%0"
   [(set_attr "type" "tls_load")])
 
-(define_expand "set_thread_pointer"
+(define_expand "set_thread_pointersi"
   [(set (reg:SI GBR_REG)
 	(unspec_volatile:SI [(match_operand:SI 0 "register_operand")]
 	 UNSPECV_GBR))]
@@ -10167,6 +10268,47 @@ label:
   "mov.<bwl>	%0,@(0,gbr)"
   [(set_attr "type" "store")])
 
+;; DImode memory accesses have to be split in two SImode accesses.
+;; Split them before reload, so that it gets a better chance to figure out
+;; how to deal with the R0 restriction for the individual SImode accesses.
+;; Do not match this insn during or after reload because it can't be split
+;; afterwards.
+(define_insn_and_split "*movdi_gbr_load"
+  [(set (match_operand:DI 0 "register_operand")
+	(match_operand:DI 1 "gbr_address_mem"))]
+  "TARGET_SH1 && can_create_pseudo_p ()"
+  "#"
+  "&& 1"
+  [(set (match_dup 3) (match_dup 5))
+   (set (match_dup 4) (match_dup 6))]
+{
+  /* Swap low/high part load order on little endian, so that the result reg
+     of the second load can be used better.  */
+  int off = TARGET_LITTLE_ENDIAN ? 1 : 0;
+  operands[3 + off] = gen_lowpart (SImode, operands[0]);
+  operands[5 + off] = gen_lowpart (SImode, operands[1]);
+  operands[4 - off] = gen_highpart (SImode, operands[0]);
+  operands[6 - off] = gen_highpart (SImode, operands[1]);
+})
+
+(define_insn_and_split "*movdi_gbr_store"
+  [(set (match_operand:DI 0 "gbr_address_mem")
+	(match_operand:DI 1 "register_operand"))]
+  "TARGET_SH1 && can_create_pseudo_p ()"
+  "#"
+  "&& 1"
+  [(set (match_dup 3) (match_dup 5))
+   (set (match_dup 4) (match_dup 6))]
+{
+  /* Swap low/high part store order on big endian, so that stores of function
+     call results can save a reg copy.  */
+  int off = TARGET_LITTLE_ENDIAN ? 0 : 1;
+  operands[3 + off] = gen_lowpart (SImode, operands[0]);
+  operands[5 + off] = gen_lowpart (SImode, operands[1]);
+  operands[4 - off] = gen_highpart (SImode, operands[0]);
+  operands[6 - off] = gen_highpart (SImode, operands[1]);
+})
+
 ;; Sometimes memory accesses do not get combined with the store_gbr insn,
 ;; in particular when the displacements are in the range of the regular move
 ;; insns.  Thus, in the first split pass after the combine pass we search
@@ -10177,15 +10319,15 @@ label:
 ;; other operand) and there's no point of doing it if the GBR is not
 ;; referenced in a function at all.
 (define_split
-  [(set (match_operand:QIHISI 0 "register_operand")
-	(match_operand:QIHISI 1 "memory_operand"))]
+  [(set (match_operand:QIHISIDI 0 "register_operand")
+	(match_operand:QIHISIDI 1 "memory_operand"))]
   "TARGET_SH1 && !reload_in_progress && !reload_completed
    && df_regs_ever_live_p (GBR_REG)"
   [(set (match_dup 0) (match_dup 1))]
 {
   rtx gbr_mem = sh_find_equiv_gbr_addr (curr_insn, operands[1]);
   if (gbr_mem != NULL_RTX)
-    operands[1] = change_address (operands[1], GET_MODE (operands[1]), gbr_mem);
+    operands[1] = replace_equiv_address (operands[1], gbr_mem);
   else
     FAIL;
 })
@@ -10199,7 +10341,7 @@ label:
 {
   rtx gbr_mem = sh_find_equiv_gbr_addr (curr_insn, operands[1]);
   if (gbr_mem != NULL_RTX)
-    operands[1] = change_address (operands[1], GET_MODE (operands[1]), gbr_mem);
+    operands[1] = replace_equiv_address (operands[1], gbr_mem);
   else
     FAIL;
 })
@@ -10218,23 +10360,22 @@ label:
   if (gbr_mem != NULL_RTX)
     {
       operands[2] = gen_reg_rtx (GET_MODE (operands[1]));
-      operands[1] = change_address (operands[1], GET_MODE (operands[1]),
-				    gbr_mem);
+      operands[1] = replace_equiv_address (operands[1], gbr_mem);
     }
   else
     FAIL;
 })
 
 (define_split
-  [(set (match_operand:QIHISI 0 "memory_operand")
-	(match_operand:QIHISI 1 "register_operand"))]
+  [(set (match_operand:QIHISIDI 0 "memory_operand")
+	(match_operand:QIHISIDI 1 "register_operand"))]
   "TARGET_SH1 && !reload_in_progress && !reload_completed
    && df_regs_ever_live_p (GBR_REG)"
   [(set (match_dup 0) (match_dup 1))]
 {
   rtx gbr_mem = sh_find_equiv_gbr_addr (curr_insn, operands[0]);
   if (gbr_mem != NULL_RTX)
-    operands[0] = change_address (operands[0], GET_MODE (operands[0]), gbr_mem);
+    operands[0] = replace_equiv_address (operands[0], gbr_mem);
   else
     FAIL;
 })
@@ -10960,25 +11101,53 @@ label:
 	(set (reg:SI T_REG) (const_int 1))
 	(use (match_dup 2))])])
 
-;; In some cases the zero extension does not get combined away and a 
-;; sequence like the following might remain:
-;;	mov	#-1,r2
-;;	tst	r1,r1
-;;	negc	r2,r1
-;;	extu.b	r1,r1
-(define_peephole2
-  [(parallel
-       [(set (match_operand:SI 0 "arith_reg_dest" "")
-	     (xor:SI (match_operand:SI 1 "t_reg_operand" "") (const_int 1)))
-	(set (reg:SI T_REG) (const_int 1))
-	(use (match_operand:SI 2 "arith_reg_operand" ""))])
-   (set (match_dup 0)
-	(zero_extend:SI (match_operand 3 "arith_reg_operand" "")))]
-  "TARGET_SH1 && REGNO (operands[0]) == REGNO (operands[3])"
-  [(parallel
-       [(set (match_dup 0) (xor:SI (match_dup 1) (const_int 1)))
-	(set (reg:SI T_REG) (const_int 1))
-	(use (match_dup 2))])])
+;; Store the negated T bit in a reg using r0 and xor.  This one doesn't
+;; clobber the T bit, which is useful when storing the T bit and the
+;; negated T bit in parallel.  On SH2A the movrt insn can be used for that.
+;; Usually we don't want this insn to be matched, except for cases where the
+;; T bit clobber is really not appreciated.  Hence the extra use on T_REG.
+(define_insn_and_split "movrt_xor"
+  [(set (match_operand:SI 0 "arith_reg_dest" "=z")
+	(xor:SI (match_operand:SI 1 "t_reg_operand") (const_int 1)))
+   (use (reg:SI T_REG))]
+  "TARGET_SH1 && !TARGET_SH2A"
+  "#"
+  "&& reload_completed"
+  [(set (match_dup 0) (reg:SI T_REG))
+   (set (match_dup 0) (xor:SI (match_dup 0) (const_int 1)))])
+
+;; Store the T bit and the negated T bit in two regs in parallel.  There is
+;; no real insn to do that, but specifying this pattern will give combine
+;; some opportunities.
+(define_insn_and_split "*movt_movrt"
+  [(parallel [(set (match_operand:SI 0 "arith_reg_dest")
+		   (match_operand:SI 1 "negt_reg_operand"))
+	      (set (match_operand:SI 2 "arith_reg_dest")
+		   (match_operand:SI 3 "t_reg_operand"))])]
+  "TARGET_SH1"
+  "#"
+  "&& 1"
+  [(const_int 0)]
+{
+  rtx i = TARGET_SH2A
+	  ? gen_movrt (operands[0], get_t_reg_rtx ())
+	  : gen_movrt_xor (operands[0], get_t_reg_rtx ());
+  
+  emit_insn (i);
+  emit_insn (gen_movt (operands[2], get_t_reg_rtx ()));
+  DONE;
+})
+
+(define_insn_and_split "*movt_movrt"
+  [(parallel [(set (match_operand:SI 0 "arith_reg_dest")
+		   (match_operand:SI 1 "t_reg_operand"))
+	      (set (match_operand:SI 2 "arith_reg_dest")
+		   (match_operand:SI 3 "negt_reg_operand"))])]
+  "TARGET_SH1"
+  "#"
+  "&& 1"
+  [(parallel [(set (match_dup 2) (match_dup 3))
+	      (set (match_dup 0) (match_dup 1))])])
 
 ;; Use negc to store the T bit in a MSB of a reg in the following way:
 ;;	T = 1: 0x80000000 -> reg
@@ -12055,22 +12224,6 @@ label:
   [(set_attr "type" "fsrra")
    (set_attr "fp_mode" "single")])
 
-(define_insn "fsca"
-  [(set (match_operand:V2SF 0 "fp_arith_reg_operand" "=f")
-	(vec_concat:V2SF
-	 (unspec:SF [(mult:SF
-		      (float:SF (match_operand:SI 1 "fpul_operand" "y"))
-		      (match_operand:SF 2 "immediate_operand" "i"))
-		    ] UNSPEC_FSINA)
-	 (unspec:SF [(mult:SF (float:SF (match_dup 1)) (match_dup 2))
-		    ] UNSPEC_FCOSA)))
-   (use (match_operand:PSI 3 "fpscr_operand" "c"))]
-  "TARGET_FPU_ANY && TARGET_FSCA
-   && operands[2] == sh_fsca_int2sf ()"
-  "fsca	fpul,%d0"
-  [(set_attr "type" "fsca")
-   (set_attr "fp_mode" "single")])
-
 ;; When the sincos pattern is defined, the builtin functions sin and cos
 ;; will be expanded to the sincos pattern and one of the output values will
 ;; remain unused.
@@ -12096,6 +12249,38 @@ label:
   emit_move_insn (operands[1], gen_rtx_SUBREG (SFmode, fsca, 4));
   DONE;
 })
+
+(define_insn_and_split "fsca"
+  [(set (match_operand:V2SF 0 "fp_arith_reg_operand" "=f")
+	(vec_concat:V2SF
+	 (unspec:SF [(mult:SF
+		      (float:SF (match_operand:SI 1 "fpul_fsca_operand" "y"))
+		      (match_operand:SF 2 "fsca_scale_factor" "i"))
+		    ] UNSPEC_FSINA)
+	 (unspec:SF [(mult:SF (float:SF (match_dup 1)) (match_dup 2))
+		    ] UNSPEC_FCOSA)))
+   (use (match_operand:PSI 3 "fpscr_operand" "c"))]
+  "TARGET_FPU_ANY && TARGET_FSCA"
+  "fsca	fpul,%d0"
+  "&& !fpul_operand (operands[1], SImode)"
+  [(const_int 0)]
+{
+  /* If operands[1] is something like (fix:SF (float:SF (reg:SI))) reduce it
+     to a simple reg, otherwise reload will have trouble reloading the
+     pseudo into fpul.  */
+  rtx x = XEXP (operands[1], 0);
+  while (x != NULL_RTX && !fpul_operand (x, SImode))
+    {
+      gcc_assert (GET_CODE (x) == FIX || GET_CODE (x) == FLOAT);
+      x = XEXP (x, 0);
+    }
+
+  gcc_assert (x != NULL_RTX && fpul_operand (x, SImode));
+  emit_insn (gen_fsca (operands[0], x, operands[2], operands[3]));
+  DONE;
+}
+  [(set_attr "type" "fsca")
+   (set_attr "fp_mode" "single")])
 
 (define_expand "abssf2"
   [(set (match_operand:SF 0 "fp_arith_reg_operand" "")
@@ -15165,7 +15350,7 @@ label:
   else
     {
       emit_insn (gen_stack_protect_test_si (operands[0], operands[1]));
-      emit_jump_insn (gen_branch_true (operands[2], get_t_reg_rtx ()));
+      emit_jump_insn (gen_branch_true (operands[2]));
     }
 
   DONE;

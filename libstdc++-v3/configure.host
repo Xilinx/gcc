@@ -291,6 +291,9 @@ case "${host_os}" in
   netbsd*)
     os_include_dir="os/bsd/netbsd"
     ;;
+  openbsd*)
+    os_include_dir="os/bsd/openbsd"
+    ;;
   qnx6.[12]*)
     os_include_dir="os/qnx/qnx6.1"
     c_model=c
@@ -345,7 +348,7 @@ case "${host}" in
         fi
     esac
     case "${host}" in
-      arm*-*-linux-*eabi)
+      arm*-*-linux-*)
 	port_specific_symbol_files="\$(srcdir)/../config/os/gnu-linux/arm-eabi-extra.ver"
 	;;
     esac

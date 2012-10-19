@@ -2059,7 +2059,7 @@ prepare_cbranch_operands (rtx *operands, enum machine_mode mode,
 void
 expand_cbranchsi4 (rtx *operands, enum rtx_code comparison, int probability)
 {
-  rtx (*branch_expander) (rtx, rtx) = gen_branch_true;
+  rtx (*branch_expander) (rtx) = gen_branch_true;
   comparison = prepare_cbranch_operands (operands, SImode, comparison);
   switch (comparison)
     {
@@ -2071,7 +2071,7 @@ expand_cbranchsi4 (rtx *operands, enum rtx_code comparison, int probability)
   emit_insn (gen_rtx_SET (VOIDmode, get_t_reg_rtx (),
                           gen_rtx_fmt_ee (comparison, SImode,
                                           operands[1], operands[2])));
-  rtx jump = emit_jump_insn (branch_expander (operands[3], get_t_reg_rtx ()));
+  rtx jump = emit_jump_insn (branch_expander (operands[3]));
   if (probability >= 0)
     add_reg_note (jump, REG_BR_PROB, GEN_INT (probability));
 }
@@ -2123,7 +2123,7 @@ expand_cbranchdi4 (rtx *operands, enum rtx_code comparison)
       if (TARGET_CMPEQDI_T)
 	{
 	  emit_insn (gen_cmpeqdi_t (operands[1], operands[2]));
-	  emit_jump_insn (gen_branch_true (operands[3], get_t_reg_rtx ()));
+	  emit_jump_insn (gen_branch_true (operands[3]));
 	  return true;
 	}
       msw_skip = NE;
@@ -2150,7 +2150,7 @@ expand_cbranchdi4 (rtx *operands, enum rtx_code comparison)
       if (TARGET_CMPEQDI_T)
 	{
 	  emit_insn (gen_cmpeqdi_t (operands[1], operands[2]));
-	  emit_jump_insn (gen_branch_false (operands[3], get_t_reg_rtx ()));
+	  emit_jump_insn (gen_branch_false (operands[3]));
 	  return true;
 	}
       msw_taken = NE;
@@ -2279,6 +2279,43 @@ expand_cbranchdi4 (rtx *operands, enum rtx_code comparison)
   if (msw_skip != LAST_AND_UNUSED_RTX_CODE)
     emit_label (skip_label);
   return true;
+}
+
+/* Given an operand, return 1 if the evaluated operand plugged into an
+   if_then_else will result in a branch_true, 0 if branch_false, or
+   -1 if neither nor applies.  The truth table goes like this:
+
+       op   | cmpval |   code  | result
+   ---------+--------+---------+--------------------
+      T (0) |   0    |  EQ (1) |  0 = 0 ^ (0 == 1)
+      T (0) |   1    |  EQ (1) |  1 = 0 ^ (1 == 1)
+      T (0) |   0    |  NE (0) |  1 = 0 ^ (0 == 0)
+      T (0) |   1    |  NE (0) |  0 = 0 ^ (1 == 0)
+     !T (1) |   0    |  EQ (1) |  1 = 1 ^ (0 == 1)
+     !T (1) |   1    |  EQ (1) |  0 = 1 ^ (1 == 1)
+     !T (1) |   0    |  NE (0) |  0 = 1 ^ (0 == 0)
+     !T (1) |   1    |  NE (0) |  1 = 1 ^ (1 == 0)  */
+int
+sh_eval_treg_value (rtx op)
+{
+  enum rtx_code code = GET_CODE (op);
+  if ((code != EQ && code != NE) || !CONST_INT_P (XEXP (op, 1)))
+    return -1;
+
+  int cmpop = code == EQ ? 1 : 0;
+  int cmpval = INTVAL (XEXP (op, 1));
+  if (cmpval != 0 && cmpval != 1)
+    return -1;
+
+  int t;
+  if (t_reg_operand (XEXP (op, 0), GET_MODE (XEXP (op, 0))))
+    t = 0;
+  else if (negt_reg_operand (XEXP (op, 0), GET_MODE (XEXP (op, 0))))
+    t = 1;
+  else
+    return -1;
+  
+  return t ^ (cmpval == cmpop);
 }
 
 /* Emit INSN, possibly in a PARALLEL with an USE of fpscr for SH4.  */
@@ -2485,9 +2522,9 @@ sh_emit_compare_and_branch (rtx *operands, enum machine_mode mode)
     sh_emit_set_t_insn (gen_ieee_ccmpeqsf_t (op0, op1), mode);
 
   if (branch_code == code)
-    emit_jump_insn (gen_branch_true (operands[3], get_t_reg_rtx ()));
+    emit_jump_insn (gen_branch_true (operands[3]));
   else
-    emit_jump_insn (gen_branch_false (operands[3], get_t_reg_rtx ()));
+    emit_jump_insn (gen_branch_false (operands[3]));
 }
 
 void
@@ -2521,7 +2558,7 @@ sh_emit_compare_and_set (rtx *operands, enum machine_mode mode)
             {
               lab = gen_label_rtx ();
               sh_emit_scc_to_t (EQ, op0, op1);
-              emit_jump_insn (gen_branch_true (lab, get_t_reg_rtx ()));
+              emit_jump_insn (gen_branch_true (lab));
               code = GT;
            }
           else
@@ -9414,30 +9451,42 @@ sh_insert_attributes (tree node, tree *attributes)
   return;
 }
 
-/* Supported attributes:
+/*------------------------------------------------------------------------------
+  Target specific attributes
+  Supported attributes are:
 
-   interrupt_handler -- specifies this function is an interrupt handler.
+   * interrupt_handler
+	Specifies this function is an interrupt handler.
 
-   trapa_handler - like above, but don't save all registers.
+   * trapa_handler
+	Like interrupt_handler, but don't save all registers.
 
-   sp_switch -- specifies an alternate stack for an interrupt handler
-   to run on.
+   * sp_switch
+	Specifies an alternate stack for an interrupt handler to run on.
 
-   trap_exit -- use a trapa to exit an interrupt function instead of
-   an rte instruction.
+   * trap_exit
+	Use a trapa to exit an interrupt function instead of rte.
 
-   nosave_low_regs - don't save r0..r7 in an interrupt handler.
-     This is useful on the SH3 and upwards,
-     which has a separate set of low regs for User and Supervisor modes.
-     This should only be used for the lowest level of interrupts.  Higher levels
-     of interrupts must save the registers in case they themselves are
-     interrupted.
+   * nosave_low_regs
+	Don't save r0..r7 in an interrupt handler function.
+	This is useful on SH3* and SH4*, which have a separate set of low
+	regs for user and privileged modes.
+	This is mainly to be used for non-reentrant interrupt handlers (i.e.
+	those that run with interrupts disabled and thus can't be
+	interrupted thenselves).
 
-   renesas -- use Renesas calling/layout conventions (functions and
-   structures).
+   * renesas
+	Use Renesas calling/layout conventions (functions and structures).
 
-   resbank -- In case of an ISR, use a register bank to save registers
-   R0-R14, MACH, MACL, GBR and PR.  This is useful only on SH2A targets.
+   * resbank
+	In case of an interrupt handler function, use a register bank to
+	save registers R0-R14, MACH, MACL, GBR and PR.
+	This is available only on SH2A targets.
+
+   * function_vector
+	Declares a function to be called using the TBR relative addressing
+	mode.  Takes an argument that specifies the slot number in the table
+	where this function can be looked up by the JSR/N @@(disp8,TBR) insn.
 */
 
 /* Handle a 'resbank' attribute.  */
@@ -10762,13 +10811,8 @@ sh_adjust_cost (rtx insn, rtx link ATTRIBUTE_UNUSED, rtx dep_insn, int cost)
 	 function's address.  */
       if (CALL_P (insn))
 	{
-	  rtx call = PATTERN (insn);
-
-	  if (GET_CODE (call) == PARALLEL)
-	    call = XVECEXP (call, 0 ,0);
-	  if (GET_CODE (call) == SET)
-	    call = SET_SRC (call);
-	  if (GET_CODE (call) == CALL && MEM_P (XEXP (call, 0))
+	  rtx call = get_call_rtx_from (insn);
+	  if (call
 		  /* sibcalli_thunk uses a symbol_ref in an unspec.  */
 	      && (GET_CODE (XEXP (XEXP (call, 0), 0)) == UNSPEC
 		  || ! reg_set_p (XEXP (XEXP (call, 0), 0), dep_insn)))
@@ -11778,12 +11822,6 @@ static struct builtin_description bdesc[] =
     CODE_FOR_byterev,	"__builtin_sh_media_BYTEREV", SH_BLTIN_2, 0 },
   { shmedia_builtin_p,
     CODE_FOR_prefetch,	"__builtin_sh_media_PREFO", SH_BLTIN_PSSV, 0 },
-
-  { sh1_builtin_p,
-    CODE_FOR_get_thread_pointer, "__builtin_thread_pointer", SH_BLTIN_VP, 0 },
-  { sh1_builtin_p,
-    CODE_FOR_set_thread_pointer, "__builtin_set_thread_pointer",
-    SH_BLTIN_PV, 0 },
 };
 
 static void
@@ -12628,11 +12666,9 @@ check_use_sfunc_addr (rtx insn, rtx reg)
   gcc_unreachable ();
 }
 
-/* This function returns a constant rtx that represents pi / 2**15 in
-   SFmode.  it's used to scale SFmode angles, in radians, to a
-   fixed-point signed 16.16-bit fraction of a full circle, i.e., 2*pi
-   maps to 0x10000).  */
-
+/* This function returns a constant rtx that represents 2**15 / pi in
+   SFmode.  It's used to scale a fixed-point signed 16.16-bit fraction
+   of a full circle back to an SFmode value, i.e. 0x10000 maps to 2*pi.  */
 static GTY(()) rtx sh_fsca_sf2int_rtx;
 
 rtx
@@ -12649,11 +12685,10 @@ sh_fsca_sf2int (void)
   return sh_fsca_sf2int_rtx;
 }
 
-/* This function returns a constant rtx that represents 2**15 / pi in
-   SFmode.  it's used to scale a fixed-point signed 16.16-bit fraction
-   of a full circle back to a SFmode value, i.e., 0x10000 maps to
-   2*pi).  */
-
+/* This function returns a constant rtx that represents pi / 2**15 in
+   SFmode.  It's used to scale SFmode angles, in radians, to a
+   fixed-point signed 16.16-bit fraction of a full circle, i.e. 2*pi
+   maps to 0x10000.  */
 static GTY(()) rtx sh_fsca_int2sf_rtx;
 
 rtx
@@ -13355,6 +13390,10 @@ sh_find_base_reg_disp (rtx insn, rtx x, disp_t disp = 0, rtx base_reg = NULL)
       for (rtx i = prev_nonnote_insn (insn); i != NULL;
 	   i = prev_nonnote_insn (i))
 	{
+	  if (REGNO_REG_SET_P (regs_invalidated_by_call_regset, GBR_REG)
+	      && CALL_P (i))
+	    break;
+
 	  if (!NONJUMP_INSN_P (i))
 	    continue;
 
@@ -13418,6 +13457,116 @@ sh_find_equiv_gbr_addr (rtx insn, rtx mem)
       if (gbr_displacement (disp, GET_MODE (mem)))
 	return gen_rtx_PLUS (SImode, gen_rtx_REG (SImode, GBR_REG), disp);
     }
+
+  return NULL_RTX;
+}
+
+/*------------------------------------------------------------------------------
+  Manual insn combine support code.
+*/
+
+/* Given a reg rtx and a start insn, try to find the insn that sets the
+   specified reg by using the specified insn stepping function, such as 
+   'prev_nonnote_insn_bb'.  When the insn is found, try to extract the rtx
+   of the reg set.  */
+set_of_reg
+sh_find_set_of_reg (rtx reg, rtx insn, rtx(*stepfunc)(rtx))
+{
+  set_of_reg result;
+  result.insn = insn;
+  result.set_rtx = NULL_RTX;
+  result.set_src = NULL_RTX;
+
+  if (!REG_P (reg) || insn == NULL_RTX)
+    return result;
+
+  for (result.insn = stepfunc (insn); result.insn != NULL_RTX;
+       result.insn = stepfunc (result.insn))
+    {
+      if (LABEL_P (result.insn) || BARRIER_P (result.insn))
+	return result;
+      if (!NONJUMP_INSN_P (result.insn))
+	continue;
+      if (reg_set_p (reg, result.insn))
+	{
+	  result.set_rtx = set_of (reg, result.insn);
+
+	  if (result.set_rtx == NULL_RTX || GET_CODE (result.set_rtx) != SET)
+	    return result;
+
+	  result.set_src = XEXP (result.set_rtx, 1);
+	  return result;
+	}
+    }
+
+  return result;
+}
+
+/* Given an op rtx and an insn, try to find out whether the result of the
+   specified op consists only of logical operations on T bit stores.  */
+bool
+sh_is_logical_t_store_expr (rtx op, rtx insn)
+{
+  if (!logical_operator (op, SImode))
+    return false;
+
+  rtx ops[2] = { XEXP (op, 0), XEXP (op, 1) };
+  int op_is_t_count = 0;
+
+  for (int i = 0; i < 2; ++i)
+    {
+      if (t_reg_operand (ops[i], VOIDmode)
+	  || negt_reg_operand (ops[i], VOIDmode))
+	op_is_t_count++;
+
+      else
+	{
+	  set_of_reg op_set = sh_find_set_of_reg (ops[i], insn,
+						  prev_nonnote_insn_bb);
+	  if (op_set.set_src == NULL_RTX)
+	    continue;
+
+	  if (t_reg_operand (op_set.set_src, VOIDmode)
+	      || negt_reg_operand (op_set.set_src, VOIDmode)
+	      || sh_is_logical_t_store_expr (op_set.set_src, op_set.insn))
+	      op_is_t_count++;
+	}
+    }
+  
+  return op_is_t_count == 2;
+}
+
+/* Given the operand that is extended in a sign/zero extend insn, and the
+   insn, try to figure out whether the sign/zero extension can be replaced
+   by a simple reg-reg copy.  If so, the replacement reg rtx is returned,
+   NULL_RTX otherwise.  */
+rtx
+sh_try_omit_signzero_extend (rtx extended_op, rtx insn)
+{
+  if (REG_P (extended_op))
+    extended_op = extended_op;
+  else if (GET_CODE (extended_op) == SUBREG && REG_P (SUBREG_REG (extended_op)))
+    extended_op = SUBREG_REG (extended_op);
+  else
+    return NULL_RTX;
+
+  /* Reg moves must be of the same mode.  */
+  if (GET_MODE (extended_op) != SImode)
+    return NULL_RTX;
+
+  set_of_reg s = sh_find_set_of_reg (extended_op, insn, prev_nonnote_insn_bb);
+  if (s.set_src == NULL_RTX)
+    return NULL_RTX;
+
+  if (t_reg_operand (s.set_src, VOIDmode)
+      || negt_reg_operand (s.set_src, VOIDmode))
+    return extended_op;
+
+  /* If the zero extended reg was formed by a logical operation, check the
+     operands of the logical operation.  If both originated from T bit
+     stores the zero extension can be eliminated.  */
+  else if (sh_is_logical_t_store_expr (s.set_src, s.insn))
+    return extended_op;
 
   return NULL_RTX;
 }

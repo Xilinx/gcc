@@ -1,3 +1,36 @@
+2012-10-18  Sebastian Huber <sebastian.huber@embedded-brains.de>
+
+	* config.host
+	(arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtemseabi*): Rename
+	"arm*-*-rtemseabi*" to "arm*-*-rtems*".
+
+2012-10-17  Matthew Gretton-Dann  <matthew.gretton-dann@arm.com>
+
+	* config/arm/lib1funcs.S (__ARM_ARCH__): Define for ARMv8-A.
+
+2012-10-15  Matthias Klose  <doko@ubuntu.com>
+
+	* config.host: Match arm*-*-linux-* for ARM Linux/GNU.
+
+2012-10-15  Pavel Chupin  <pavel.v.chupin@intel.com>
+
+	* configure: Regenerate.
+	* configure.ac: Replace code with GCC_AC_THREAD_HEADER use.
+
+2012-10-10  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sfp-exceptions.c (__sfp_handle_exceptions): Emit SSE
+	instructions for 64bit targets only.
+
+2012-10-10  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sfp-machine.h (FP_RND_NEAREST, FP_RND_ZERO, FP_RND_PINF,
+	FP_RND_MINF, FP_RND_MASK, FP_INIT_ROUNDMODE, _FP_DECL_EX): Move to ...
+	* config/i386/32/sfp-machine.h: ... here.
+	* config/i386/64/sfp-machine.h (FP_RND_NEAREST, FP_RND_ZERO,
+	FP_RND_PINF, FP_RND_MINF, FP_RND_MASK, FP_INIT_ROUNDMODE, _FP_DECL_EX):
+	New defines.
+
 2012-10-07  Matthias Klose  <doko@ubuntu.com>
 
 	* config/arm/unwind-arm.h (__gnu_unwind_24bit): Mark parameters

@@ -1158,6 +1158,11 @@ dnl --enable-libstdcxx-time=no
 dnl --disable-libstdcxx-time
 dnl        disables the checks completely
 dnl
+dnl N.B. Darwin provides nanosleep but doesn't support the whole POSIX
+dnl Timers option, so doesn't define _POSIX_TIMERS. Because the test
+dnl below fails Darwin unconditionally defines _GLIBCXX_USE_NANOSLEEP in
+dnl os_defines.h and also defines _GLIBCXX_USE_SCHED_YIELD.
+dnl
 AC_DEFUN([GLIBCXX_ENABLE_LIBSTDCXX_TIME], [
 
   AC_MSG_CHECKING([for clock_gettime, nanosleep and sched_yield])
@@ -1861,6 +1866,9 @@ AC_DEFUN([GLIBCXX_ENABLE_CLOCALE], [
 	;;
       darwin* | freebsd*)
 	enable_clocale_flag=darwin
+	;;
+      openbsd*)
+	enable_clocale_flag=newlib
 	;;
       *)
 	if test x"$with_newlib" = x"yes"; then
@@ -3298,15 +3306,13 @@ dnl namespace are complex and fragile enough as it is).  We must also
 dnl add a relative path so that -I- is supported properly.
 dnl
 dnl Substs:
-dnl  glibcxx_thread_h
+dnl  thread_header
 dnl
 AC_DEFUN([GLIBCXX_ENABLE_THREADS], [
   AC_MSG_CHECKING([for thread model used by GCC])
   target_thread_file=`$CXX -v 2>&1 | sed -n 's/^Thread model: //p'`
   AC_MSG_RESULT([$target_thread_file])
-
-  glibcxx_thread_h=gthr-$target_thread_file.h
-  AC_SUBST(glibcxx_thread_h)
+  GCC_AC_THREAD_HEADER([$target_thread_file])
 ])
 
 
@@ -3613,3 +3619,4 @@ AC_DEFUN([GLIBCXX_ENABLE_WERROR], [
 # Macros from the top-level gcc directory.
 m4_include([../config/gc++filt.m4])
 m4_include([../config/tls.m4])
+m4_include([../config/gthr.m4])
