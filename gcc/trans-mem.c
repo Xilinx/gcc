@@ -133,6 +133,10 @@
 	over:
 */
 
+static void *expand_regions (struct tm_region *,
+			     void *(*callback)(struct tm_region *, void *),
+			     void *);
+
 
 /* Return the attributes we want to examine for X, or NULL if it's not
    something we examine.  We look at function types, but allow pointers
@@ -1247,8 +1251,7 @@ tm_log_emit_restores (basic_block entry_block, basic_block bb)
    TRXN_PROP is either A_SAVELIVEVARIABLES or A_RESTORELIVEVARIABLES.
 
    The code sequence is inserted in a new basic block created in
-   END_BB which is inserted between BEFORE_BB and the destination of
-   FALLTHRU_EDGE.
+   END_BB which is inserted between BEFORE_BB and its fall thru edge.
 
    STATUS is the return value from _ITM_beginTransaction.
    ENTRY_BLOCK is the entry block for the transaction.
@@ -1262,13 +1265,13 @@ tm_log_emit_save_or_restores (basic_block entry_block,
 			      tree status,
 			      void (*emitf)(basic_block, basic_block),
 			      basic_block before_bb,
-			      edge fallthru_edge,
 			      basic_block *end_bb)
 {
   basic_block cond_bb, code_bb;
   gimple cond_stmt, stmt;
   gimple_stmt_iterator gsi;
   tree t1, t2;
+  edge fallthru_edge = FALLTHRU_EDGE (before_bb);
   int old_flags = fallthru_edge->flags;
 
   cond_bb = create_empty_bb (before_bb);
@@ -1765,11 +1768,29 @@ struct tm_region
   /* Link to the next outer transaction.  */
   struct tm_region *outer;
 
-  /* The GIMPLE_TRANSACTION statement beginning this transaction.  */
+  /* The GIMPLE_TRANSACTION statement beginning this transaction.
+     After TM_MARK, this gets replaced by a call to
+     BUILT_IN_TM_START.  */
   gimple transaction_stmt;
 
-  /* The entry block to this region.  */
+  /* After TM_MARK expands the GIMPLE_TRANSACTION into a call to
+     BUILT_IN_TM_START, this field is true if the transaction is an
+     outer transaction.  */
+  bool original_transaction_was_outer;
+
+  /* This holds the transaction label from the original
+     GIMPLE_TRANSACTION statement.  */
+  tree transaction_label;
+
+  /* Return value from BUILT_IN_TM_START.  */
+  tree tm_state;
+
+  /* The entry block to this region.  This will always be the first
+     block of the body of the transaction.  */
   basic_block entry_block;
+
+  /* The first block after an expanded call to _ITM_beginTransaction.  */
+  basic_block restart_block;
 
   /* The set of all blocks that end the region; NULL if only EXIT_BLOCK.
      These blocks are still a part of the region (i.e., the border is
@@ -1819,6 +1840,9 @@ tm_region_init_0 (struct tm_region *outer, basic_block bb, gimple stmt)
   region->outer = outer;
 
   region->transaction_stmt = stmt;
+  region->original_transaction_was_outer = false;
+  region->transaction_label = gimple_transaction_label (stmt);
+  region->tm_state = NULL;
 
   /* There are either one or two edges out of the block containing
      the GIMPLE_TRANSACTION, one to the actual region and one to the
@@ -2192,6 +2216,7 @@ expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
       return;
     }
 
+  // Remove original load/store statement.
   gsi_remove (gsi, true);
 
   if (load_p && !store_p)
@@ -2245,7 +2270,9 @@ expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
   if (!store_p)
     requires_barrier (region->entry_block, lhs, gcall);
 
-  /* add_stmt_to_tm_region  (region, gcall); */
+  // The calls to build_tm_{store,load} above inserted the instrumented
+  // call into the stream.
+  // gsi_insert_before (gsi, gcall, GSI_SAME_STMT);
 }
 
 
@@ -2515,6 +2542,133 @@ compute_transaction_bits (void)
     bitmap_obstack_release (&tm_obstack);
 }
 
+/* Replace the GIMPLE_TRANSACTION in this region with the corresponding
+   call to BUILT_IN_TM_START.  */
+
+static void *
+expand_transaction (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
+{
+  int flags;
+  tree tm_start = builtin_decl_explicit (BUILT_IN_TM_START);
+
+  /* ??? There are plenty of bits here we're not computing.  */
+  int subcode = gimple_transaction_subcode (region->transaction_stmt);
+  if (subcode & GTMA_DOES_GO_IRREVOCABLE)
+    flags = PR_DOESGOIRREVOCABLE | PR_UNINSTRUMENTEDCODE;
+  else
+    flags = PR_INSTRUMENTEDCODE;
+  if ((subcode & GTMA_MAY_ENTER_IRREVOCABLE) == 0)
+    flags |= PR_HASNOIRREVOCABLE;
+  /* If the transaction does not have an abort in lexical scope and is not
+     marked as an outer transaction, then it will never abort.  */
+  if ((subcode & GTMA_HAVE_ABORT) == 0
+      && (subcode & GTMA_IS_OUTER) == 0)
+    flags |= PR_HASNOABORT;
+  if ((subcode & GTMA_HAVE_STORE) == 0)
+    flags |= PR_READONLY;
+  if (subcode & GTMA_IS_OUTER)
+    region->original_transaction_was_outer = true;
+  tree t = build_int_cst (TREE_TYPE (region->tm_state), flags);
+  gimple call = gimple_build_call (tm_start, 1, t);
+  gimple_call_set_lhs (call, region->tm_state);
+  gimple_set_location (call, gimple_location (region->transaction_stmt));
+
+  basic_block transaction_bb = gimple_bb (region->transaction_stmt);
+
+  // Generate log saves.
+  if (!VEC_empty (tree, tm_log_save_addresses))
+    tm_log_emit_saves (region->entry_block, transaction_bb);
+
+  // Replace the GIMPLE_TRANSACTION with the call to BUILT_IN_TM_START.
+  gimple_stmt_iterator gsi = gsi_last_bb (transaction_bb);
+  gcc_assert (gsi_stmt (gsi) == region->transaction_stmt);
+  gsi_insert_before (&gsi, call, GSI_SAME_STMT);
+  gsi_remove (&gsi, true);
+
+  region->restart_block = region->entry_block;
+
+  // Generate log restores.
+  basic_block slice_bb;
+  if (!VEC_empty (tree, tm_log_save_addresses))
+    region->restart_block =
+      tm_log_emit_save_or_restores (region->entry_block,
+				    A_RESTORELIVEVARIABLES,
+				    region->tm_state,
+				    tm_log_emit_restores,
+				    transaction_bb,
+				    &slice_bb);
+  else
+    slice_bb = transaction_bb;
+
+  /* If we have an ABORT edge, create a test following the start
+     call to perform the abort.  */
+  if (region->transaction_label)
+    {
+      basic_block test_bb = create_empty_bb (slice_bb);
+      if (current_loops && slice_bb->loop_father)
+	add_bb_to_loop (test_bb, slice_bb->loop_father);
+      if (VEC_empty (tree, tm_log_save_addresses))
+	region->restart_block = test_bb;
+
+      tree t1 = create_tmp_reg (TREE_TYPE (region->tm_state), NULL);
+      tree t2 = build_int_cst (TREE_TYPE (region->tm_state),
+			       A_ABORTTRANSACTION);
+      gimple stmt = gimple_build_assign_with_ops (BIT_AND_EXPR, t1,
+						  region->tm_state, t2);
+      gimple_stmt_iterator gsi = gsi_last_bb (test_bb);
+      gsi_insert_after (&gsi, stmt, GSI_CONTINUE_LINKING);
+
+      t2 = build_int_cst (TREE_TYPE (region->tm_state), 0);
+      stmt = gimple_build_cond (NE_EXPR, t1, t2, NULL, NULL);
+      gsi_insert_after (&gsi, stmt, GSI_CONTINUE_LINKING);
+
+      edge e = FALLTHRU_EDGE (slice_bb);
+      redirect_edge_pred (e, test_bb);
+      e->flags = EDGE_FALSE_VALUE;
+      e->probability = PROB_ALWAYS - PROB_VERY_UNLIKELY;
+
+      e = BRANCH_EDGE (transaction_bb);
+      redirect_edge_pred (e, test_bb);
+      e->flags = EDGE_TRUE_VALUE;
+      e->probability = PROB_VERY_UNLIKELY;
+
+      e = make_edge (slice_bb, test_bb, EDGE_FALLTHRU);
+    }
+  /* Otherwise, if we have no abort, but we have PHIs at the beginning
+     of the atomic region, this means we have a loop at the beginning
+     of the atomic region that shares the first block.  This can cause
+     problems with the transaction restart abnormal edges to be added
+     in the tm_edges pass.  Solve this by adding a new empty block to
+     receive the abnormal edges.  */
+  else if (phi_nodes (region->entry_block))
+    {
+      basic_block empty_bb = create_empty_bb (transaction_bb);
+      region->restart_block = empty_bb;
+      if (current_loops && transaction_bb->loop_father)
+	add_bb_to_loop (empty_bb, transaction_bb->loop_father);
+
+      edge e = FALLTHRU_EDGE (transaction_bb);
+      redirect_edge_pred (e, empty_bb);
+
+      e = make_edge (transaction_bb, empty_bb, EDGE_FALLTHRU);
+    }
+
+  region->transaction_stmt = call;
+  return NULL;
+}
+
+/* Generate the temporary to be used for the return value of
+   BUILT_IN_TM_START.  */
+
+static void *
+generate_tm_state (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
+{
+  tree tm_start = builtin_decl_explicit (BUILT_IN_TM_START);
+  region->tm_state =
+    create_tmp_reg (TREE_TYPE (TREE_TYPE (tm_start)), "tm_state");
+  return NULL;
+}
+
 /* Entry point to the MARK phase of TM expansion.  Here we replace
    transactional memory statements with calls to builtins, and function
    calls with their transactional clones (if available).  But we don't
@@ -2531,9 +2685,12 @@ execute_tm_mark (void)
   queue = VEC_alloc (basic_block, heap, 10);
   pending_edge_inserts_p = false;
 
+  expand_regions (all_tm_regions, generate_tm_state, NULL);
+
   for (region = all_tm_regions; region ; region = region->next)
     {
       tm_log_init ();
+
       /* If we have a transaction...  */
       if (region->exit_blocks)
 	{
@@ -2561,8 +2718,12 @@ execute_tm_mark (void)
       tm_log_emit ();
     }
 
+  // Expand GIMPLE_TRANSACTIONs into calls into the runtime.
+  expand_regions (all_tm_regions, expand_transaction, NULL);
+
   if (pending_edge_inserts_p)
     gsi_commit_edge_inserts ();
+  free_dominance_info (CDI_DOMINATORS);
   return 0;
 }
 
@@ -2586,23 +2747,85 @@ struct gimple_opt_pass pass_tm_mark =
  }
 };
 
-/* Create an abnormal call edge from BB to the first block of the region
-   represented by STATE.  Also record the edge in the TM_RESTART map.  */
+
+/* A helper function for tm_region_for_stmt.  Search the instructions
+   in REGION and return the one that contains the gimple statement in
+   DATA.  If the statement in DATA is not found, return NULL.  */
+
+static void *
+tm_region_for_stmt_1 (struct tm_region *region, void *data)
+{
+  void *ret = NULL;
+  gimple stmt = (gimple) data;
+  unsigned int i;
+  basic_block bb;
+  VEC (basic_block, heap) *queue;
+
+  queue = get_tm_region_blocks (region->entry_block,
+				region->exit_blocks,
+				region->irr_blocks,
+				NULL,
+				/*stop_at_irr_p=*/false);
+  for (i = 0; VEC_iterate (basic_block, queue, i, bb); ++i)
+    {
+      gimple_stmt_iterator gsi = gsi_start_bb (bb);
+      for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+	if (gsi_stmt (gsi) == stmt)
+	  {
+	    ret = (void *) region;
+	    goto exit;
+	  }
+    }
+ exit:
+  VEC_free (basic_block, heap, queue);
+  return ret;
+}
+
+/* Find the region that contains STMT.  This implementation is a
+   temporary measure (read inefficient).  We should either keep this
+   information on the side, or find it through some clever EH landing
+   pad searches.
+
+   ?? We should be able to get the inner transaction via the region_nr
+   saved on STMT, and read the transaction_stmt from that, and find
+   the first region block from there.  */
+
+static struct tm_region *
+tm_region_for_stmt (gimple stmt)
+{
+  struct tm_region *region;
+  region = (struct tm_region *) expand_regions (all_tm_regions,
+						tm_region_for_stmt_1,
+						(void *) stmt);
+  return region;
+}
+
+/* Create an abnormal edge from STMT at iter, splitting the block
+   as necessary.  Adjust *PNEXT as needed for the split block.  */
 
 static inline void
-make_tm_edge (gimple stmt, basic_block bb, struct tm_region *region)
+split_bb_make_tm_edge (gimple stmt, basic_block dest_bb,
+                       gimple_stmt_iterator iter, gimple_stmt_iterator *pnext)
 {
-  void **slot;
-  struct tm_restart_node *n, dummy;
+  basic_block bb = gimple_bb (stmt);
+  if (!gsi_one_before_end_p (iter))
+    {
+      edge e = split_block (bb, stmt);
+      *pnext = gsi_start_bb (e->dest);
+    }
+  make_edge (bb, dest_bb, EDGE_ABNORMAL);
 
+  // Record the need for the edge for the benefit of the rtl passes.
   if (cfun->gimple_df->tm_restart == NULL)
     cfun->gimple_df->tm_restart = htab_create_ggc (31, struct_ptr_hash,
 						   struct_ptr_eq, ggc_free);
 
+  struct tm_restart_node dummy;
   dummy.stmt = stmt;
-  dummy.label_or_list = gimple_block_label (region->entry_block);
-  slot = htab_find_slot (cfun->gimple_df->tm_restart, &dummy, INSERT);
-  n = (struct tm_restart_node *) *slot;
+  dummy.label_or_list = gimple_block_label (dest_bb);
+
+  void **slot = htab_find_slot (cfun->gimple_df->tm_restart, &dummy, INSERT);
+  struct tm_restart_node *n = (struct tm_restart_node *) *slot;
   if (n == NULL)
     {
       n = ggc_alloc_tm_restart_node ();
@@ -2612,13 +2835,10 @@ make_tm_edge (gimple stmt, basic_block bb, struct tm_region *region)
     {
       tree old = n->label_or_list;
       if (TREE_CODE (old) == LABEL_DECL)
-	old = tree_cons (NULL, old, NULL);
+        old = tree_cons (NULL, old, NULL);
       n->label_or_list = tree_cons (NULL, dummy.label_or_list, old);
     }
-
-  make_edge (bb, region->entry_block, EDGE_ABNORMAL);
 }
-
 
 /* Split block BB as necessary for every builtin function we added, and
    wire up the abnormal back edges implied by the transaction restart.  */
@@ -2626,203 +2846,147 @@ make_tm_edge (gimple stmt, basic_block bb, struct tm_region *region)
 static void
 expand_block_edges (struct tm_region *region, basic_block bb)
 {
-  gimple_stmt_iterator gsi;
+  gimple_stmt_iterator gsi, next_gsi;
 
-  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); )
+  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi = next_gsi)
     {
-      bool do_next = true;
       gimple stmt = gsi_stmt (gsi);
 
-      /* ??? TM_COMMIT (and any other tm builtin function) in a nested
-	 transaction has an abnormal edge back to the outer-most transaction
-	 (there are no nested retries), while a TM_ABORT also has an abnormal
-	 backedge to the inner-most transaction.  We haven't actually saved
-	 the inner-most transaction here.  We should be able to get to it
-	 via the region_nr saved on STMT, and read the transaction_stmt from
-	 that, and find the first region block from there.  */
-      /* ??? Shouldn't we split for any non-pure, non-irrevocable function?  */
-      if (gimple_code (stmt) == GIMPLE_CALL
-	  && (gimple_call_flags (stmt) & ECF_TM_BUILTIN) != 0)
+      next_gsi = gsi;
+      gsi_next (&next_gsi);
+
+      // ??? Shouldn't we split for any non-pure, non-irrevocable function?
+      if (gimple_code (stmt) != GIMPLE_CALL
+	  || (gimple_call_flags (stmt) & ECF_TM_BUILTIN) == 0)
+	continue;
+
+      if (DECL_FUNCTION_CODE (gimple_call_fndecl (stmt)) == BUILT_IN_TM_ABORT)
 	{
-	  if (gsi_one_before_end_p (gsi))
-	    make_tm_edge (stmt, bb, region);
-	  else
+	  // If we have a ``_transaction_cancel [[outer]]'', there is only
+	  // one abnormal edge: to the transaction marked OUTER.
+	  // All compiler-generated instances of BUILT_IN_TM_ABORT have a
+	  // constant argument, which we can examine here.  Users invoking
+	  // TM_ABORT directly get what they deserve.
+	  tree arg = gimple_call_arg (stmt, 0);
+	  if (TREE_CODE (arg) == INTEGER_CST
+	      && (TREE_INT_CST_LOW (arg) & AR_OUTERABORT) != 0
+	      && !decl_is_tm_clone (current_function_decl))
 	    {
-	      edge e = split_block (bb, stmt);
-	      make_tm_edge (stmt, bb, region);
-	      bb = e->dest;
-	      gsi = gsi_start_bb (bb);
-	      do_next = false;
+	      // Find the GTMA_IS_OUTER transaction.
+	      for (; region; region = region->outer)
+		if (region->original_transaction_was_outer)
+		  {
+		    split_bb_make_tm_edge (stmt, region->restart_block,
+					   gsi, &next_gsi);
+		    break;
+		  }
+
+	      // Otherwise, the front-end should have semantically checked
+	      // outer aborts, but in either case the target region is not
+	      // within this function.
+	      continue;
 	    }
 
-	  /* Delete any tail-call annotation that may have been added.
-	     The tail-call pass may have mis-identified the commit as being
-	     a candidate because we had not yet added this restart edge.  */
-	  gimple_call_set_tail (stmt, false);
+	  // Non-outer, TM aborts have an abnormal edge to the inner-most
+	  // transaction, the one being aborted;
+	  struct tm_region *inner = tm_region_for_stmt (stmt);
+	  if (inner)
+	    split_bb_make_tm_edge (stmt, inner->restart_block, gsi, &next_gsi);
 	}
 
-      if (do_next)
-	gsi_next (&gsi);
+      // All TM builtins have an abnormal edge to the outer-most transaction.
+      // We never restart inner transactions.  For tm clones, we know a-priori
+      // that the outer-most transaction is outside the function.
+      if (decl_is_tm_clone (current_function_decl))
+	continue;
+
+      if (cfun->gimple_df->tm_restart == NULL)
+	cfun->gimple_df->tm_restart
+	  = htab_create_ggc (31, struct_ptr_hash, struct_ptr_eq, ggc_free);
+
+      // All TM builtins have an abnormal edge to the outer-most transaction.
+      // We never restart inner transactions.
+      while (region->outer)
+	region = region->outer;
+      split_bb_make_tm_edge (stmt, region->restart_block, gsi, &next_gsi);
+
+      // Delete any tail-call annotation that may have been added.
+      // The tail-call pass may have mis-identified the commit as being
+      // a candidate because we had not yet added this restart edge.
+      gimple_call_set_tail (stmt, false);
     }
 }
 
-/* Expand the GIMPLE_TRANSACTION statement into the STM library call.  */
+/* Wire transaction restart edges and split BB's at each TM builtin
+   function.  */
 
-static void
-expand_transaction (struct tm_region *region)
+static void *
+tmedge_wire_transaction_restarts (struct tm_region *region,
+				  void *data ATTRIBUTE_UNUSED)
 {
-  tree status, tm_start;
-  basic_block atomic_bb, slice_bb;
-  gimple_stmt_iterator gsi;
-  tree t1, t2;
-  gimple g;
-  int flags, subcode;
+  unsigned int i;
+  basic_block bb;
+  VEC (basic_block, heap) *queue;
 
-  tm_start = builtin_decl_explicit (BUILT_IN_TM_START);
-  status = create_tmp_reg (TREE_TYPE (TREE_TYPE (tm_start)), "tm_state");
-
-  /* ??? There are plenty of bits here we're not computing.  */
-  subcode = gimple_transaction_subcode (region->transaction_stmt);
-  if (subcode & GTMA_DOES_GO_IRREVOCABLE)
-    flags = PR_DOESGOIRREVOCABLE | PR_UNINSTRUMENTEDCODE;
-  else
-    flags = PR_INSTRUMENTEDCODE;
-  if ((subcode & GTMA_MAY_ENTER_IRREVOCABLE) == 0)
-    flags |= PR_HASNOIRREVOCABLE;
-  /* If the transaction does not have an abort in lexical scope and is not
-     marked as an outer transaction, then it will never abort.  */
-  if ((subcode & GTMA_HAVE_ABORT) == 0
-      && (subcode & GTMA_IS_OUTER) == 0)
-    flags |= PR_HASNOABORT;
-  if ((subcode & GTMA_HAVE_STORE) == 0)
-    flags |= PR_READONLY;
-  t2 = build_int_cst (TREE_TYPE (status), flags);
-  g = gimple_build_call (tm_start, 1, t2);
-  gimple_call_set_lhs (g, status);
-  gimple_set_location (g, gimple_location (region->transaction_stmt));
-
-  atomic_bb = gimple_bb (region->transaction_stmt);
-
-  if (!VEC_empty (tree, tm_log_save_addresses))
-    tm_log_emit_saves (region->entry_block, atomic_bb);
-
-  gsi = gsi_last_bb (atomic_bb);
-  gsi_insert_before (&gsi, g, GSI_SAME_STMT);
-  gsi_remove (&gsi, true);
-
-  if (!VEC_empty (tree, tm_log_save_addresses))
-    region->entry_block =
-      tm_log_emit_save_or_restores (region->entry_block,
-				    A_RESTORELIVEVARIABLES,
-				    status,
-				    tm_log_emit_restores,
-				    atomic_bb,
-				    FALLTHRU_EDGE (atomic_bb),
-				    &slice_bb);
-  else
-    slice_bb = atomic_bb;
-
-  /* If we have an ABORT statement, create a test following the start
-     call to perform the abort.  */
-  if (gimple_transaction_label (region->transaction_stmt))
-    {
-      edge e;
-      basic_block test_bb;
-
-      test_bb = create_empty_bb (slice_bb);
-      if (current_loops && slice_bb->loop_father)
-	add_bb_to_loop (test_bb, slice_bb->loop_father);
-      if (VEC_empty (tree, tm_log_save_addresses))
-	region->entry_block = test_bb;
-      gsi = gsi_last_bb (test_bb);
-
-      t1 = create_tmp_reg (TREE_TYPE (status), NULL);
-      t2 = build_int_cst (TREE_TYPE (status), A_ABORTTRANSACTION);
-      g = gimple_build_assign_with_ops (BIT_AND_EXPR, t1, status, t2);
-      gsi_insert_after (&gsi, g, GSI_CONTINUE_LINKING);
-
-      t2 = build_int_cst (TREE_TYPE (status), 0);
-      g = gimple_build_cond (NE_EXPR, t1, t2, NULL, NULL);
-      gsi_insert_after (&gsi, g, GSI_CONTINUE_LINKING);
-
-      e = FALLTHRU_EDGE (slice_bb);
-      redirect_edge_pred (e, test_bb);
-      e->flags = EDGE_FALSE_VALUE;
-      e->probability = PROB_ALWAYS - PROB_VERY_UNLIKELY;
-
-      e = BRANCH_EDGE (atomic_bb);
-      redirect_edge_pred (e, test_bb);
-      e->flags = EDGE_TRUE_VALUE;
-      e->probability = PROB_VERY_UNLIKELY;
-
-      e = make_edge (slice_bb, test_bb, EDGE_FALLTHRU);
-    }
-
-  /* If we've no abort, but we do have PHIs at the beginning of the atomic
-     region, that means we've a loop at the beginning of the atomic region
-     that shares the first block.  This can cause problems with the abnormal
-     edges we're about to add for the transaction restart.  Solve this by
-     adding a new empty block to receive the abnormal edges.  */
-  else if (phi_nodes (region->entry_block))
-    {
-      edge e;
-      basic_block empty_bb;
-
-      region->entry_block = empty_bb = create_empty_bb (atomic_bb);
-      if (current_loops && atomic_bb->loop_father)
-	add_bb_to_loop (empty_bb, atomic_bb->loop_father);
-
-      e = FALLTHRU_EDGE (atomic_bb);
-      redirect_edge_pred (e, empty_bb);
-
-      e = make_edge (atomic_bb, empty_bb, EDGE_FALLTHRU);
-    }
-
-  /* The GIMPLE_TRANSACTION statement no longer exists.  */
-  region->transaction_stmt = NULL;
+  /* Collect the set of blocks in this region.  Do this before
+     splitting edges, so that we don't have to play with the
+     dominator tree in the middle.  */
+  queue = get_tm_region_blocks (region->entry_block,
+				region->exit_blocks,
+				region->irr_blocks,
+				NULL,
+				/*stop_at_irr_p=*/false);
+  for (i = 0; VEC_iterate (basic_block, queue, i, bb); ++i)
+    expand_block_edges (region, bb);
+  VEC_free (basic_block, heap, queue);
+  return NULL;
 }
-
-static void expand_regions (struct tm_region *);
 
 /* Helper function for expand_regions.  Expand REGION and recurse to
-   the inner region.  */
+   the inner region.  Call CALLBACK on each region.  CALLBACK returns
+   NULL to continue the traversal, otherwise a non-null value which
+   this function will return as well.  */
 
-static void
-expand_regions_1 (struct tm_region *region)
+static void *
+expand_regions_1 (struct tm_region *region,
+		  void *(*callback)(struct tm_region *, void *),
+		  void *data)
 {
+  void *retval = NULL;
   if (region->exit_blocks)
     {
-      unsigned int i;
-      basic_block bb;
-      VEC (basic_block, heap) *queue;
-
-      /* Collect the set of blocks in this region.  Do this before
-	 splitting edges, so that we don't have to play with the
-	 dominator tree in the middle.  */
-      queue = get_tm_region_blocks (region->entry_block,
-				    region->exit_blocks,
-				    region->irr_blocks,
-				    NULL,
-				    /*stop_at_irr_p=*/false);
-      expand_transaction (region);
-      for (i = 0; VEC_iterate (basic_block, queue, i, bb); ++i)
-	expand_block_edges (region, bb);
-      VEC_free (basic_block, heap, queue);
+      retval = callback (region, data);
+      if (retval)
+	return retval;
     }
   if (region->inner)
-    expand_regions (region->inner);
+    {
+      retval = expand_regions (region->inner, callback, data);
+      if (retval)
+	return retval;
+    }
+  return retval;
 }
 
-/* Expand regions starting at REGION.  */
+/* Traverse the regions enclosed and including REGION.  Execute
+   CALLBACK for each region, passing DATA.  CALLBACK returns NULL to
+   continue the traversal, otherwise a non-null value which this
+   function will return as well.  */
 
-static void
-expand_regions (struct tm_region *region)
+static void *
+expand_regions (struct tm_region *region,
+		void *(*callback)(struct tm_region *, void *),
+		void *data)
 {
+  void *retval = NULL;
   while (region)
     {
-      expand_regions_1 (region);
+      retval = expand_regions_1 (region, callback, data);
+      if (retval)
+	return retval;
       region = region->next;
     }
+  return retval;
 }
 
 /* Entry point to the final expansion of transactional nodes. */
@@ -2830,7 +2994,7 @@ expand_regions (struct tm_region *region)
 static unsigned int
 execute_tm_edges (void)
 {
-  expand_regions (all_tm_regions);
+  expand_regions (all_tm_regions, tmedge_wire_transaction_restarts, NULL);
   tm_log_delete ();
 
   /* We've got to release the dominance info now, to indicate that it
