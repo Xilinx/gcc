@@ -1,3 +1,8 @@
+2012-10-19   Xinliang David Li  <davidxl@google.com>
+
+	* dwarf2out.c (get_subprogram_die): Use FUNC_LABEL_ID instead
+	of current_function_funcdef_no to synthysize label name.
+
 2012-10-19  Teresa Johnson  <tejohnson@google.com>
 
 	Backport r192624 from google/main.
