@@ -2129,6 +2129,129 @@ swap_ops_for_binary_stmt (VEC(operand_entry_t, heap) * ops,
     }
 }
 
+/* Assign UIDs to statements in basic block BB.  */
+
+static void
+assign_uids (basic_block bb)
+{
+  unsigned uid = 0;
+  gimple_stmt_iterator gsi;
+  /* First assign uids to phis.  */
+  for (gsi = gsi_start_phis (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+    {
+      gimple stmt = gsi_stmt (gsi);
+      gimple_set_uid (stmt, uid++);
+    }
+
+  /* Then assign uids to stmts.  */
+  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+    {
+      gimple stmt = gsi_stmt (gsi);
+      gimple_set_uid (stmt, uid++);
+    }
+}
+
+/* For each operand in OPS, find the basic block that contains the statement
+   which defines the operand. For all such basic blocks, assign UIDs.  */
+
+static void
+assign_uids_in_relevant_bbs (VEC(operand_entry_t, heap) * ops)
+{
+  operand_entry_t oe;
+  int i;
+  struct pointer_set_t *seen_bbs = pointer_set_create ();
+
+  for (i = 0; VEC_iterate (operand_entry_t, ops, i, oe); i++)
+    {
+      gimple def_stmt;
+      basic_block bb;
+      if (TREE_CODE (oe->op) != SSA_NAME)
+        continue;
+      def_stmt = SSA_NAME_DEF_STMT (oe->op);
+      bb = gimple_bb (def_stmt);
+      if (!pointer_set_contains (seen_bbs, bb))
+        {
+          assign_uids (bb);
+          pointer_set_insert (seen_bbs, bb);
+        }
+    }
+  pointer_set_destroy (seen_bbs);
+}
+
+/* Ensure that operands in the OPS vector starting from OPINDEXth entry are live
+   at STMT.  This is accomplished by moving STMT if needed.  */
+
+static void
+ensure_ops_are_available (gimple stmt, VEC(operand_entry_t, heap) * ops,
+                          int opindex)
+{
+  int i;
+  int len = VEC_length (operand_entry_t, ops);
+  gimple insert_stmt = stmt;
+  basic_block insert_bb = gimple_bb (stmt);
+  gimple_stmt_iterator gsi_insert, gsistmt;
+  for (i = opindex; i < len; i++)
+    {
+      operand_entry_t oe = VEC_index (operand_entry_t, ops, i);
+      gimple def_stmt;
+      basic_block def_bb;
+      /* Ignore constants and operands with default definitons.  */
+      if (TREE_CODE (oe->op) != SSA_NAME
+          || SSA_NAME_IS_DEFAULT_DEF (oe->op))
+        continue;
+      def_stmt = SSA_NAME_DEF_STMT (oe->op);
+      def_bb = gimple_bb (def_stmt);
+      if (def_bb != insert_bb
+          && !dominated_by_p (CDI_DOMINATORS, insert_bb, def_bb))
+        {
+          insert_bb = def_bb;
+          insert_stmt = def_stmt;
+        }
+      else if (def_bb == insert_bb
+               && gimple_uid (insert_stmt) < gimple_uid (def_stmt))
+        insert_stmt = def_stmt;
+    }
+  if (insert_stmt == stmt)
+    return;
+  gsistmt = gsi_for_stmt (stmt);
+  /* If INSERT_STMT is a phi node, then do not insert just after that statement.
+     Instead, find the first non-label gimple statement in BB and insert before
+     that.  */
+  if (gimple_code (insert_stmt) == GIMPLE_PHI)
+    {
+      gsi_insert = gsi_after_labels (insert_bb);
+      gsi_move_before (&gsistmt, &gsi_insert);
+    }
+  /* Statements marked for throw can not be in the middle of a basic block. So
+     we can not insert a statement (not marked for throw) immediately after.  */
+  else if (lookup_stmt_eh_lp (insert_stmt) > 0
+           && stmt_can_throw_internal (insert_stmt))
+    {
+      edge e, succ_edge = NULL;
+      edge_iterator ei;
+
+      /* There should be exactly one normal edge out of the basic block.  */
+      FOR_EACH_EDGE (e, ei, insert_bb->succs)
+        {
+          if (!(e->flags & EDGE_COMPLEX))
+            {
+              gcc_assert (succ_edge == NULL);
+              succ_edge = e;
+            }
+        }
+      /* Insert STMT at the beginning of the successor basic block.  */
+      insert_bb = succ_edge->dest;
+      gsi_insert = gsi_after_labels (insert_bb);
+      gsi_move_before (&gsistmt, &gsi_insert);
+    }
+  else
+    {
+      gsi_insert = gsi_for_stmt (insert_stmt);
+      gsi_move_after (&gsistmt, &gsi_insert);
+    }
+
+}
+
 /* Recursively rewrite our linearized statements so that the operators
    match those in OPS[OPINDEX], putting the computation in rank
    order.  */
@@ -2140,11 +2263,6 @@ rewrite_expr_tree (gimple stmt, unsigned int opindex,
   tree rhs1 = gimple_assign_rhs1 (stmt);
   tree rhs2 = gimple_assign_rhs2 (stmt);
   operand_entry_t oe;
-
-  /* If we have three operands left, then we want to make sure the ones
-     that get the double binary op are chosen wisely.  */
-  if (opindex + 3 == VEC_length (operand_entry_t, ops))
-    swap_ops_for_binary_stmt (ops, opindex, stmt);
 
   /* The final recursion case for this function is that you have
      exactly two operations left.
@@ -2192,19 +2310,17 @@ rewrite_expr_tree (gimple stmt, unsigned int opindex,
     {
       if (!moved)
 	{
-	  gimple_stmt_iterator gsinow, gsirhs1;
-	  gimple stmt1 = stmt, stmt2;
-	  unsigned int count;
+	  gimple stmt1 = stmt;
+	  unsigned int count, i = 1;
 
-	  gsinow = gsi_for_stmt (stmt);
 	  count = VEC_length (operand_entry_t, ops) - opindex - 2;
-	  while (count-- != 0)
+	  while (i <= count)
 	    {
-	      stmt2 = SSA_NAME_DEF_STMT (gimple_assign_rhs1 (stmt1));
-	      gsirhs1 = gsi_for_stmt (stmt2);
-	      gsi_move_before (&gsirhs1, &gsinow);
-	      gsi_prev (&gsinow);
-	      stmt1 = stmt2;
+	      stmt1 = SSA_NAME_DEF_STMT (gimple_assign_rhs1 (stmt1));
+              /* Ensure that STMT1 is moved to a place where all operands in
+                 OPS[opindex + i...] are available.  */
+              ensure_ops_are_available (stmt1, ops, opindex + i);
+              i++;
 	    }
 	  moved = true;
 	}
@@ -2939,7 +3055,18 @@ reassociate_bb (basic_block bb)
 		      && VEC_length (operand_entry_t, ops) > 3)
 		    rewrite_expr_tree_parallel (stmt, width, ops);
 		  else
-		    rewrite_expr_tree (stmt, 0, ops, false);
+                    {
+                      /* When there are three operands left, we want
+                         to make sure the ones that get the double
+                         binary op are chosen wisely.  */
+                      int len = VEC_length (operand_entry_t, ops);
+                      if (len >= 3)
+                        swap_ops_for_binary_stmt (ops, len - 3, stmt);
+ 
+                      assign_uids_in_relevant_bbs (ops);
+		      rewrite_expr_tree (stmt, 0, ops, false);
+                    }
+
 		}
 
 	      VEC_free (operand_entry_t, heap, ops);

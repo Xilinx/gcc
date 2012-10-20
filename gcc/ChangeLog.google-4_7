@@ -1,3 +1,12 @@
+2012-10-19   Easwaran Raman <eraman@google.com>
+
+	* tree-ssa-reassoc.c (assign_uids): New function.
+	(assign_uids_in_relevant_bbs): Likewise.
+	(ensure_ops_are_available): Likewise.
+	(rewrite_expr_tree): Do not move statements beyond what is
+	necessary.Remove call to swap_ops_for_binary_stmt...
+	(reassociate_bb): ... and move it here.
+
 2012-10-19   Xinliang David Li  <davidxl@google.com>
 
 	* dwarf2out.c (get_subprogram_die): Use FUNC_LABEL_ID instead
