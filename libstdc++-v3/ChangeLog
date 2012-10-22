@@ -1,3 +1,91 @@
+2012-10-22  Yufeng Zhang  <yufeng.zhang@arm.com>
+	    Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/configure.xml (--enable-clocale): Document the
+	'newlib' and 'darwin' options. Minor stylistic improvements.
+
+2012-10-21  François Dumont  <fdumont@gcc.gnu.org>
+
+	* include/profile/map.h (map::emplace_hint): Remove invalid
+	parenthesis.
+
+2012-10-21  Hans-Peter Nilsson  <hp@bitrange.com>
+
+	* testsuite/23_containers/bitset/45713.cc: Skip for mmix-*-*.
+	Tweak sizetype-related comment.
+
+2012-10-20  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/scoped_allocator: Avoid badname.
+
+2012-10-19  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/status_cxx2011.xml: Update.
+
+2012-10-19  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/scoped_allocator (__outermost_alloc_traits): Define.
+	(scoped_allocator_adaptor::destroy): Use it.
+	(scoped_allocator_adaptor::construct): Likewise. Overload for
+	piecewise construction of std::pair objects.
+	* testsuite/20_util/scoped_allocator/2.cc: New.
+	* doc/xml/manual/status_cxx2011.xml: Update.
+
+2012-10-18  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/forward_list.h: Add C++11 allocator support.
+	* include/bits/forward_list.tcc: Likewise.
+	* doc/xml/manual/status_cxx2011.xml: Update.
+	* testsuite/23_containers/forward_list/allocator/copy.cc: New.
+	* testsuite/23_containers/forward_list/allocator/copy_assign.cc: New.
+	* testsuite/23_containers/forward_list/allocator/minimal.cc: New.
+	* testsuite/23_containers/forward_list/allocator/move_assign.cc: New.
+	* testsuite/23_containers/forward_list/allocator/noexcept.cc: New.
+	* testsuite/23_containers/forward_list/allocator/swap.cc: New.
+
+2012-10-18  François Dumont  <fdumont@gcc.gnu.org>
+
+	* include/debug/formatter.h (_Debug_msg_id): Add
+	__msg_valid_load_factor.
+	* include/debug/macros.h (__glibcxx_check_max_load_factor): New.
+	* include/debug/unordered_set
+	(unordered_set<>::max_load_factor(float)): Check max load factor
+	is positive.
+	(unordered_multiset<>::max_load_factor(float)): Likewise.
+	* include/debug/unordered_map
+	(unordered_map<>::max_load_factor(float)): Likewise.
+	(unordered_multimap<>::max_load_factor(float)): Likewise.
+	* testsuite/23_containers/unordered_map/debug/max_load_factor_neg.cc:
+	New.
+	* testsuite/23_containers/unordered_multimap/debug/
+	max_load_factor_neg.cc: New.
+	* testsuite/23_containers/unordered_set/debug/max_load_factor_neg.cc:
+	New.
+	* testsuite/23_containers/unordered_multiset/debug/
+	max_load_factor_neg.cc: New.
+
+2012-10-17  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/bits/move.h (move_if_noexcept): Mark constexpr.
+	* include/std/array (front, back): Same.
+	* include/std/chrono: Add comment.
+	* include/std/tuple (__tuple_compare): Mark __eq, __less constexpr.
+	(operator ==, <, >, !=, <=, >=): Same.
+	* testsuite/20_util/forward/c_neg.cc: Adjust line numbers.
+	* testsuite/20_util/forward/f_neg.cc: Same.
+	* testsuite/20_util/move_if_noexcept/constexpr.cc: New.
+	* testsuite/20_util/tuple/comparison_operators/constexpr.cc: New.
+	* testsuite/20_util/tuple/creation_functions/constexpr.cc: Add.
+	* testsuite/23_containers/array/element_access/
+	constexpr_element_access.cc: Same.
+	* testsuite/23_containers/array/tuple_interface/get_neg.cc: Adjust
+	line numbers.
+	* testsuite/23_containers/array/tuple_interface/tuple_element_neg.cc:
+	Same.
+
+	* testsuite/20_util/tuple/comparison_operators/35480_neg.cc:
+          Temporarily add dg-excess-errors.
+
 2012-10-16  François Dumont  <fdumont@gcc.gnu.org>
 
 	* include/debug/formatter.h (_Debug_msg_id): Add

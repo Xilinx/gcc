@@ -14979,19 +14979,24 @@ ix86_print_operand_address (FILE *file, rtx addr)
   else
     {
       /* Print SImode register names to force addr32 prefix.  */
-      if (GET_CODE (addr) == SUBREG)
+      if (SImode_address_operand (addr, VOIDmode))
 	{
+#ifdef ENABLE_CHECKING
 	  gcc_assert (TARGET_64BIT);
-	  gcc_assert (GET_MODE (addr) == SImode);
-	  gcc_assert (GET_MODE (SUBREG_REG (addr)) == DImode);
-	  gcc_assert (!code);
-	  code = 'l';
-	}
-      else if (GET_CODE (addr) == ZERO_EXTEND
-	       || GET_CODE (addr) == AND)
-	{
-	  gcc_assert (TARGET_64BIT);
-	  gcc_assert (GET_MODE (addr) == DImode);
+	  switch (GET_CODE (addr))
+	    {
+	    case SUBREG:
+	      gcc_assert (GET_MODE (addr) == SImode);
+	      gcc_assert (GET_MODE (SUBREG_REG (addr)) == DImode);
+	      break;
+	    case ZERO_EXTEND:
+	    case AND:
+	      gcc_assert (GET_MODE (addr) == DImode);
+	      break;
+	    default:
+	      gcc_unreachable ();
+	    }
+#endif
 	  gcc_assert (!code);
 	  code = 'l';
 	}
@@ -23752,14 +23757,14 @@ assign_386_stack_local (enum machine_mode mode, enum ix86_stack_slot n)
 
 /* Calculate the length of the memory address in the instruction encoding.
    Includes addr32 prefix, does not include the one-byte modrm, opcode,
-   or other prefixes.  */
+   or other prefixes.  We never generate addr32 prefix for LEA insn.  */
 
 int
-memory_address_length (rtx addr)
+memory_address_length (rtx addr, bool lea)
 {
   struct ix86_address parts;
   rtx base, index, disp;
-  int len;
+  int len = 0;
   int ok;
 
   if (GET_CODE (addr) == PRE_DEC
@@ -23780,10 +23785,6 @@ memory_address_length (rtx addr)
   index = parts.index;
   disp = parts.disp;
 
-  /* Add length of addr32 prefix.  */
-  len = (GET_CODE (addr) == ZERO_EXTEND
-	 || GET_CODE (addr) == AND);
-
   /* Rule of thumb:
        - esp as the base always wants an index,
        - ebp as the base always wants a displacement,
@@ -23796,13 +23797,13 @@ memory_address_length (rtx addr)
       /* esp (for its index) and ebp (for its displacement) need
 	 the two-byte modrm form.  Similarly for r12 and r13 in 64-bit
 	 code.  */
-      if (REG_P (addr)
-	  && (addr == arg_pointer_rtx
-	      || addr == frame_pointer_rtx
-	      || REGNO (addr) == SP_REG
-	      || REGNO (addr) == BP_REG
-	      || REGNO (addr) == R12_REG
-	      || REGNO (addr) == R13_REG))
+      if (REG_P (base)
+	  && (base == arg_pointer_rtx
+	      || base == frame_pointer_rtx
+	      || REGNO (base) == SP_REG
+	      || REGNO (base) == BP_REG
+	      || REGNO (base) == R12_REG
+	      || REGNO (base) == R13_REG))
 	len = 1;
     }
 
@@ -23834,7 +23835,6 @@ memory_address_length (rtx addr)
 	    len += 1;
 	}
     }
-
   else
     {
       /* Find the length of the displacement constant.  */
@@ -23869,6 +23869,12 @@ memory_address_length (rtx addr)
     default:
       break;
     }
+
+  /*  If this is not LEA instruction, add the length of addr32 prefix.  */
+  if (TARGET_64BIT && !lea
+      && ((base && GET_MODE (base) == SImode)
+	  || (index && GET_MODE (index) == SImode)))
+    len += 1;
 
   return len;
 }
@@ -23921,7 +23927,8 @@ ix86_attr_length_immediate_default (rtx insn, bool shortform)
 	  case MODE_SI:
 	    len = 4;
 	    break;
-	  /* Immediates for DImode instructions are encoded as 32bit sign extended values.  */
+	  /* Immediates for DImode instructions are encoded
+	     as 32bit sign extended values.  */
 	  case MODE_DI:
 	    len = 4;
 	    break;
@@ -23931,6 +23938,7 @@ ix86_attr_length_immediate_default (rtx insn, bool shortform)
       }
   return len;
 }
+
 /* Compute default value for "length_address" attribute.  */
 int
 ix86_attr_length_address_default (rtx insn)
@@ -23947,15 +23955,8 @@ ix86_attr_length_address_default (rtx insn)
       gcc_assert (GET_CODE (set) == SET);
 
       addr = SET_SRC (set);
-      if (TARGET_64BIT && get_attr_mode (insn) == MODE_SI)
-	{
-	  if (GET_CODE (addr) == ZERO_EXTEND)
-	    addr = XEXP (addr, 0);
-	  if (GET_CODE (addr) == SUBREG)
-	    addr = SUBREG_REG (addr);
-	}
 
-      return memory_address_length (addr);
+      return memory_address_length (addr, true);
     }
 
   extract_insn_cached (insn);
@@ -23977,7 +23978,7 @@ ix86_attr_length_address_default (rtx insn)
 	    if (*constraints == 'X')
 	      continue;
 	  }
-	return memory_address_length (XEXP (recog_data.operand[i], 0));
+	return memory_address_length (XEXP (recog_data.operand[i], 0), false);
       }
   return 0;
 }
@@ -26768,8 +26769,8 @@ static const struct builtin_description bdesc_pcmpistr[] =
 /* Special builtins with variable number of arguments.  */
 static const struct builtin_description bdesc_special_args[] =
 {
-  { ~OPTION_MASK_ISA_64BIT, CODE_FOR_rdtsc, "__builtin_ia32_rdtsc", IX86_BUILTIN_RDTSC, UNKNOWN, (int) UINT64_FTYPE_VOID },
-  { ~OPTION_MASK_ISA_64BIT, CODE_FOR_rdtscp, "__builtin_ia32_rdtscp", IX86_BUILTIN_RDTSCP, UNKNOWN, (int) UINT64_FTYPE_PUNSIGNED },
+  { ~OPTION_MASK_ISA_64BIT, CODE_FOR_nothing, "__builtin_ia32_rdtsc", IX86_BUILTIN_RDTSC, UNKNOWN, (int) UINT64_FTYPE_VOID },
+  { ~OPTION_MASK_ISA_64BIT, CODE_FOR_nothing, "__builtin_ia32_rdtscp", IX86_BUILTIN_RDTSCP, UNKNOWN, (int) UINT64_FTYPE_PUNSIGNED },
   { ~OPTION_MASK_ISA_64BIT, CODE_FOR_pause, "__builtin_ia32_pause", IX86_BUILTIN_PAUSE, UNKNOWN, (int) VOID_FTYPE_VOID },
 
   /* MMX */
@@ -26887,7 +26888,7 @@ static const struct builtin_description bdesc_args[] =
 {
   { ~OPTION_MASK_ISA_64BIT, CODE_FOR_bsr, "__builtin_ia32_bsrsi", IX86_BUILTIN_BSRSI, UNKNOWN, (int) INT_FTYPE_INT },
   { OPTION_MASK_ISA_64BIT, CODE_FOR_bsr_rex64, "__builtin_ia32_bsrdi", IX86_BUILTIN_BSRDI, UNKNOWN, (int) INT64_FTYPE_INT64 },
-  { ~OPTION_MASK_ISA_64BIT, CODE_FOR_rdpmc, "__builtin_ia32_rdpmc", IX86_BUILTIN_RDPMC, UNKNOWN, (int) UINT64_FTYPE_INT },
+  { ~OPTION_MASK_ISA_64BIT, CODE_FOR_nothing, "__builtin_ia32_rdpmc", IX86_BUILTIN_RDPMC, UNKNOWN, (int) UINT64_FTYPE_INT },
   { ~OPTION_MASK_ISA_64BIT, CODE_FOR_rotlqi3, "__builtin_ia32_rolqi", IX86_BUILTIN_ROLQI, UNKNOWN, (int) UINT8_FTYPE_UINT8_INT },
   { ~OPTION_MASK_ISA_64BIT, CODE_FOR_rotlhi3, "__builtin_ia32_rolhi", IX86_BUILTIN_ROLHI, UNKNOWN, (int) UINT16_FTYPE_UINT16_INT },
   { ~OPTION_MASK_ISA_64BIT, CODE_FOR_rotrqi3, "__builtin_ia32_rorqi", IX86_BUILTIN_RORQI, UNKNOWN, (int) UINT8_FTYPE_UINT8_INT },
@@ -30452,7 +30453,7 @@ ix86_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
   enum insn_code icode;
   tree fndecl = TREE_OPERAND (CALL_EXPR_FN (exp), 0);
   tree arg0, arg1, arg2, arg3, arg4;
-  rtx op0, op1, op2, op3, op4, pat;
+  rtx op0, op1, op2, op3, op4, pat, insn;
   enum machine_mode mode0, mode1, mode2, mode3, mode4;
   unsigned int fcode = DECL_FUNCTION_CODE (fndecl);
 
@@ -30632,6 +30633,65 @@ ix86_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
 	emit_move_insn (target, tmp);
 	return target;
       }
+
+    case IX86_BUILTIN_RDPMC:
+    case IX86_BUILTIN_RDTSC:
+    case IX86_BUILTIN_RDTSCP:
+
+      op0 = gen_reg_rtx (DImode);
+      op1 = gen_reg_rtx (DImode);
+
+      if (fcode == IX86_BUILTIN_RDPMC)
+	{
+	  arg0 = CALL_EXPR_ARG (exp, 0);
+	  op2 = expand_normal (arg0);
+	  if (!register_operand (op2, SImode))
+	    op2 = copy_to_mode_reg (SImode, op2);
+
+	  insn = (TARGET_64BIT
+		  ? gen_rdpmc_rex64 (op0, op1, op2)
+		  : gen_rdpmc (op0, op2));
+	  emit_insn (insn);
+	}
+      else if (fcode == IX86_BUILTIN_RDTSC)
+	{
+	  insn = (TARGET_64BIT
+		  ? gen_rdtsc_rex64 (op0, op1)
+		  : gen_rdtsc (op0));
+	  emit_insn (insn);
+	}
+      else
+	{
+	  op2 = gen_reg_rtx (SImode);
+
+	  insn = (TARGET_64BIT
+		  ? gen_rdtscp_rex64 (op0, op1, op2)
+		  : gen_rdtscp (op0, op2));
+	  emit_insn (insn);
+
+	  arg0 = CALL_EXPR_ARG (exp, 0);
+	  op4 = expand_normal (arg0);
+	  if (!address_operand (op4, VOIDmode))
+	    {
+	      op4 = convert_memory_address (Pmode, op4);
+	      op4 = copy_addr_to_reg (op4);
+	    }
+	  emit_move_insn (gen_rtx_MEM (SImode, op4), op2);
+	}
+
+      if (target == 0)
+	target = gen_reg_rtx (mode);
+
+      if (TARGET_64BIT)
+	{
+	  op1 = expand_simple_binop (DImode, ASHIFT, op1, GEN_INT (32),
+				     op1, 1, OPTAB_DIRECT);
+	  op0 = expand_simple_binop (DImode, IOR, op0, op1,
+				     op0, 1, OPTAB_DIRECT);
+	}
+
+      emit_move_insn (target, op0);
+      return target;
 
     case IX86_BUILTIN_LLWPCB:
       arg0 = CALL_EXPR_ARG (exp, 0);

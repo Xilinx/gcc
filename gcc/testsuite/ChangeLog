@@ -1,3 +1,84 @@
+2012-10-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/atomic1.ads: XFAIL on MIPS.
+	* gnat.dg/specs/addr1.ads: Likewise.
+
+2012-10-21  Hans-Peter Nilsson  <hp@bitrange.com>
+
+	* gcc.dg/webizer.c (main): Add missing exit call.
+
+2012-10-21  Thomas König  <tkoenig@gcc.gnu.org>
+
+	PR fortran/54465
+	* gfortran.dg/wextra_1.f:  New test.
+
+2012-10-20  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/tree-prof/unroll-1.c: New testcase.
+
+2012-10-19  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/54224
+	* gfortran.dg/warn_unused_function.f90: New.
+
+2012-10-19  Greta Yorsh  <Greta.Yorsh@arm.com>
+
+	* lib/target-supports.exp (check_effective_target_arm_prefer_ldrd_strd):
+	New procedure.
+
+2012-10-19  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/54981
+	* gcc.dg/pr54981.c: New testcase.
+
+2012-10-19  Zhenqiang Chen <zhenqiang.chen@linaro.org>
+
+	PR target/54892
+	* gcc.target/arm/pr54892.c: New.
+
+2012-10-19  Bin Cheng  <bin.cheng@arm.com>
+
+	* testsuite/gcc.dg/hoist-register-pressure.c: New test.
+
+2012-10-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/54501
+	* g++.dg/init/array30.C: New.
+	* g++.dg/init/array31.C: Likewise.
+
+2012-10-18  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/54884
+	* gfortran.dg/public_private_module_7.f90: New.
+
+2012-10-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/29633
+	* g++.dg/template/pr29633.C: New.
+
+2012-10-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/loop_optimization13.ad[sb]: New test.
+	* gnat.dg/loop_optimization13_pkg.ads: New helper.
+
+2012-10-18  Matthew Gretton-Dann  <matthew.gretton-dann@arm.com>
+
+	* gcc.target/arm/neon/vfmaQf32.c: New testcase.
+	* gcc.target/arm/neon/vfmaf32.c: Likewise.
+	* gcc.target/arm/neon/vfmsQf32.c: Likewise.
+	* gcc.target/arm/neon/vfmsf32.c: Likewise.
+
+2012-10-18  Matthew Gretton-Dann  <matthew.gretton-dann@arm.com>
+
+	* gcc.target/arm/ftest-armv8a-arm.c: New testcase.
+	* gcc.target/arm/ftest-armv8a-thumb.c: Likewise.
+	* gcc.target/arm/ftest-support-arm.h (feature_matrix): Add
+	ARMv8-A row.
+	* gcc.target/arm/ftest-support-thumb.h (feature_matrix):
+	Likewise.
+	* gcc.target/arm/ftest-support.h (architecture): Add ARMv8-A.
+	* lib/target-supports.exp: Add ARMv8-A architecture expectation.
+
 2012-10-16  Jan Hubicka  <jh@suse.cz>
 
 	* gcc.target/i386/l_fma_float_?.c: Update.

@@ -1,8 +1,302 @@
+2012-10-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386-protos.h (memory_address_length): Add new bool
+	argument.  Update all uses.
+	* config/i386/i386.c (memory_address_length): If not LEA insn, then
+	add length of addr32 prefix based on mode of base or index register.
+	(ix86_attr_length_address_default) <TYPE_LEA>: Do not handle SImode
+	addresses here.  Update call to memory_address_length.
+	(ix86_print_address_operand): Use SImode_address_operand predicate.
+	* config/i386/predicates.md (SImode_address_operand): New.
+	* config/i386/i386.md (lea<mode>): Use SImode_address_operand
+	to calculate "mode" attribute.  Use SImode_address_operand predicate
+	instead of open-coding accepted RTX codes.
+
+2012-10-21  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	* rtl.def (ADDR_DIFF_VEC): Fix comment typo.
+
+2012-10-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR rtl-optimization/44194
+	* calls.c (expand_call): Allow sibling calls in the PARALLEL case.
+
+2012-10-21  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/54725
+	* Makefile.in (TARGET_SYSTEM_ROOT_DEFINE): New.
+
+2012-10-21  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	* config/xtensa/xtensa.c (xtensa_expand_builtin): Remove unused 'arg'
+	variable.
+
+2012-10-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR rtl-optimization/54315
+	* calls.c (expand_call): Don't deal specifically with BLKmode values
+	returned in naked registers.
+	* expr.h (copy_blkmode_from_reg): Adjust prototype.
+	* expr.c (copy_blkmode_from_reg): Rename first parameter into
+	TARGET and make it required.  Assert that SRCREG hasn't BLKmode.
+	Add a couple of short-circuits for common cases and be prepared
+	for sub-word registers.
+	(expand_assignment): Call copy_blkmode_from_reg for BLKmode values
+	returned in naked registers.
+	(store_expr): Likewise.
+	(store_field): Likewise.
+
+2012-10-20  Jan Hubicka  <jh@suse.cz>
+
+	* loop-unroll.c (decide_unroll_constant_iterations): Don't
+	perform unrolling for loops with low iterations bounds or estimates.
+
+2012-10-20  Jan Hubicka  <jh@suse.cz>
+
+	* loop-iv.c (iv_number_of_iterations): Record the upper bound
+	only if there are no further conditions on it.
+
+2012-10-20  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/53063
+	PR c/40989
+	* opts.c (finish_options): Remove explicit handling from here.
+
+2012-10-20  Joern Rennecke  <joern.rennecke@embecosm.com>
+	    Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* emit-rtl.c (copy_delay_slot_insn): New function.
+	* emit-rtl.h (copy_delay_slot_insn): Declare.
+	* reorg.c: Include "emit-rtl.h".
+	(steal_delay_list_from_target): Use copy_delay_slot_insn.
+	(fill_slots_from_thread, fill_simple_delay_slots): Likewise.
+
+	* final.c (shorten_branches): When optimizing, start with small
+	length and increase from there, and don't decrease lengths.
+
+2012-10-19  Jan Hubicka  <jh@suse.cz>
+
+	* builtins.def (BUILT_IN_UNREACHABLE): Make
+	ATTR_CONST_NORETURN_NOTHROW_LEAF_LIST.
+	* builtin-attrs.def (ATTR_CONST_NORETURN_NOTHROW_LEAF_LIST): Define.
+
+2012-10-19  Michael Meissner  <meissner@linux.vnet.ibm.com>
+	    Dominique Dhumieres  <dominiq@lps.ens.fr>
+
+	* config/rs6000/rs6000-cpus.def (POWERPC_MASKS): Don't assume
+	OPTION_MASK_STRICT_ALIGN is defined.
+	(MASK_STRICT_ALIGN): If OPTION_MASK_STRICT_ALIGN is not defined,
+	define this to 0 for the 3 ports that use it.
+
+	* config/rs6000/rs6000.c (OPTION_MASK_STRICT_ALIGN): Don't do
+	check for ports not having -mstrict-align here, move test to
+	rs6000-cpus.def.
+	(MASK_STRICT_ALIGN): Likewise.
+	(rs6000_debug_reg_global): Print out correct target flag words if
+	-mdebug=reg.
+
+2012-10-19  Marek Polacek  <polacek@redhat.com>
+
+	PR middle-end/54945
+	* fold-const.c (fold_sign_changed_comparison):  Punt if folding
+	pointer/non-pointer comparison.
+
+2012-10-19  Greta Yorsh  <Greta.Yorsh@arm.com>
+
+	* doc/sourcebuild.texi (Effective-Target Keywords): Document
+	new effective target keyword arm_prefer_ldrd_strd.
+
+2012-10-19  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/54981
+	* tree-loop-distribution.c (ssa_name_has_uses_outside_loop_p):
+	Do not consider debug stmts as uses.
+
+2012-10-19  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/54976
+	* tree-vect-stmts.c (get_vectype_for_scalar_type_and_size):
+	Robustify against odd inner_mode inputs.
+
+2012-10-19  Zhenqiang Chen <zhenqiang.chen@linaro.org>
+
+	PR target/54892
+	* config/arm/arm.c (arm_expand_compare_and_swap): Use SImode to make
+	sure the mode is correct when falling through from above cases.
+
+2012-10-19  Bin Cheng  <bin.cheng@arm.com>
+
+	* common.opt (flag_ira_hoist_pressure): New.
+	* doc/invoke.texi (-fira-hoist-pressure): Describe.
+	* ira-costs.c (ira_set_pseudo_classes): New parameter.
+	* ira.h: Update copyright dates.
+	(ira_set_pseudo_classes): Update prototype.
+	* haifa-sched.c (sched_init): Update call.
+	* ira.c (ira): Update call.
+	* regmove.c: Update copyright dates.
+	(regmove_optimize): Update call.
+	* loop-invariant.c: Update copyright dates.
+	(move_loop_invariants): Update call.
+	* gcse.c: (struct bb_data): New structure.
+	(BB_DATA): New macro.
+	(curr_bb, curr_reg_pressure): New static variables.
+	(should_hoist_expr_to_dom): Rename from hoist_expr_reaches_here_p.
+	Change parameter expr_index to expr.
+	New parameters pressure_class, nregs and hoisted_bbs.
+	Use reg pressure to determine the distance expr can be hoisted.
+	(hoist_code): Use reg pressure to direct the hoist process.
+	(get_regno_pressure_class, get_pressure_class_and_nregs)
+	(change_pressure, calculate_bb_reg_pressure): New.
+	(one_code_hoisting_pass): Calculate register pressure. Allocate
+	and free data.
+
+2012-10-19  Bin Cheng  <bin.cheng@arm.com>
+
+	* gcse.c: Update copyright dates.
+	(hoist_expr_reaches_here_p): Change parameter type from char *
+	to sbitmap.
+
+2012-10-19  Sebastian Huber <sebastian.huber@embedded-brains.de>
+
+	* config.gcc
+	(arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtemseabi*): Rename
+	"arm*-*-rtemseabi*" to "arm*-*-rtems*".
+
+2012-10-19  Alan Modra  <amodra@gmail.com>
+
+	* configure.ac (HAVE_LD_NO_DOT_SYMS): Set if using gold.
+	(HAVE_LD_LARGE_TOC): Likewise.
+	* configure: Regenerate.
+
+2012-10-19  Alan Modra  <amodra@gmail.com>
+
+	* config/rs6000/predicates.md (splat_input_operand): Don't call
+	input_operand for MEMs.  Instead check for volatile and call
+	memory_address_addr_space_p with modified mode.
+
+2012-10-18  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (rdpmc): Remove expander.
+	(rdtsc): Ditto.
+	(rdtscp): Ditto.
+	(rdpmc): Rename from *rdpmc.
+	(rdpmc_rex64): Rename from *rdpmc_rex64.
+	(rdtsc): Rename from *rdtsc.
+	(rdtsc_rex64): Rename from *rdtsc_rex64.
+	(rdtscp): Rename from *rdtscp.
+	(rdtscp_rex64): Rename from *rdtscp_rex64.
+
+	* config/i386/i386.c (struct builtin_description bdesc_special_args)
+	<IX86_BUILTIN_RDTSC>: Use CODE_FOR_NOTHING.
+	<IX86_BUILTIN_RDTSCP>: Ditto.
+	(struct builtin_description bdesc__args) <IX86_BUILTIN_RDPMC>: Ditto.
+	(ix86_expand_builtin) <IX86_BUILTIN_{RDPMC,RDTSC,RDTSCP}>: Handle here.
+
+2012-10-18  Jan-Benedict Glaw  <jbglaw@lug-owl.de>
+
+	* config/sh/sh.c: Fix comment to silence warning.
+
+2012-10-18  Matthew Gretton-Dann  <matthew.gretton-dann@arm.com>
+	    Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+	    Sameera Deshpande  <sameera.deshpande@arm.com>
+
+	* config/arm/cortex-a15-neon.md: New file.
+	* config/arm/cortex-a15.md (cortex_a15_call): Adjust reservation.
+	(cortex_a15_load1): Likewise.
+	(cortex_a15_load3): Likewise.
+	(cortex_a15_store1): Likewise.
+	(cortex_a15_store3): Likewise.
+	(cortex-a15-neon.md): Include.
+
+2012-10-18  Segher Boessenkool  <segher@kernel.crashing.org>
+
+	* config/rs6000/altivec.md (altivec_lvsl, altivec_lvsr): Add mode.
+	(altivec_vsumsws_nomode): Delete.
+	(reduc_splus_<mode>, reduc_uplus_<mode>): Call gen_altivec_vsumsws
+	instead of gen_altivec_vsumsws_nomode.
+	(altivec_lvlx, altivec_lvlxl, altivec_lvrx, altivec_lvrxl): Add mode.
+	* config/rs6000/rs6000.md (probe_stack): Rename to...
+	(probe_stack_<mode>): ... this.  Add mode.  Change pattern to
+	use std instead of stw when appropriate.
+	(probe_stack): New expander.
+	(move_from_CR_ov_bit): Add mode.
+	(splitter for compare_plus_ne0_<mode>, splitter for
+	compare_plus_ne0_<mode>_1): Remove constraints.
+	* config/rs6000/sync.md (loadsync): Rename to...
+	(loadsync_<mode>): ... this.  Add mode.
+	(atomic_load<mode>): Adjust.
+
+2012-10-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* loop-invariant.c: Include target.h.
+	(check_dependency): Return false for an uninitialized argument register
+	that is likely to be spilled.
+	* Makefile.in (loop-invariant.o): Add $(TARGET_H).
+
+2012-10-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* except.c (sjlj_emit_function_enter): Remove unused variable.
+
+2012-10-18  Matthew Gretton-Dann  <matthew.gretton-dann@arm.com>
+	    Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	* config/arm/arm.c (neon_builtin_data): Add vfma and vfms builtins.
+	* config/arm/neon-docgen.ml (intrinsic_groups): Add
+	fused-multiply-* groups.
+	* config/neon-gen.ml (print_feature_test_start): New function.
+	(print_feature_test_end): Likewise.
+	(print_variant): Print feature test macros.
+	* config/arm/neon-testgen.ml (emit_prologue): Allow different
+	tests to require different effective targets.
+	(effective_target): New function.
+	(test_intrinsic): Specify correct effective targets.
+	* gcc/config/arm/neon.md (fma<VCVTF:mode>4_intrinsic): New pattern.
+	(fmsub<VCVTF:mode>4_intrinsic): Likewise.
+	(neon_vfma<VCVFT:mode>): New expand.
+	(neon_vfms<VCVFT:mode>): Likewise.
+	* config/neon.ml (opcode): Add Vfma and Vfms.
+	(features): Add Requires_feature.
+	(ops): Add VFMA and VFMS intrinsics.
+	* config/arm/arm_neon.h: Regenerate.
+	* doc/arm-neon-intrinsics.texi: Likewise.
+
+2012-10-18  Richard Guenther  <rguenther@suse.de>
+
+	* lto-streamer.h (enum LTO_tags): Add LTO_integer_cst.
+	* lto-streamer-in.c (lto_input_tree): Use it.
+	* lto-streamer-out.c (lto_output_tree): Likewise, for
+	!TREE_OVERFLOW integer constants only.
+	* tree-streamer-in.c (unpack_ts_int_cst_value_fields): New function.
+	(unpack_value_fields): Call it.
+	(streamer_read_integer_cst): Simplify.
+	* tree-streamer-out.c (pack_ts_int_cst_value_fields): New function.
+	(streamer_pack_tree_bitfields): Call it.
+	(streamer_write_integer_cst): Adjust.
+
+2012-10-18  Matthew Gretton-Dann  <matthew.gretton-dann@arm.com>
+	    Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	* config.gcc: Add support for ARMv8 for arm*-*-* targets.
+	* config/arm/arm-arches.def: Add armv8-a
+	* config/arm/arm-fpus.def: Add fp-armv8, neon-fp-armv8,
+	crypto-neon-fp-armv8.  Add crypto field.
+	* config/arm/arm-tables.opt: Regenerate.
+	* config/arm/arm.c (FL_FOR_ARCH8A): Likewise.
+	(arm_arch8): New global variable.
+	(ARM_FPU): Add crypto parameter.
+	(arm_option_override): Set arm_arch8, update comments.
+	* config/arm/arm.h (TARGET_CRYPTO): New macro.
+	(arm_fpu_desc): Add crypto field.
+	(base_architecture): Add ARMv8 entry.
+	(arm_arch8): New variable declaration.
+	* config/arm/bpabi.h: ARMv8 supports BE8.
+	* doc/invoke.texi: Document ARMv8 options.
+
 2012-10-17  Aldy Hernandez  <aldyh@redhat.com>
 
 	PR middle-end/54893
-        * trans-mem.c (diagnose_tm_1_op): Allow volatiles inside relaxed
-        transactions.
+	* trans-mem.c (diagnose_tm_1_op): Allow volatiles inside relaxed
+	transactions.
 
 2012-10-17  Aldy Hernandez  <aldyh@redhat.com>
 
@@ -18,15 +312,13 @@
 	* config/rs6000/rs6000.opt (rs6000_isa_flags): New flag word to
 	replace target_flags that gives us 63 possible switches.
 	(x_rs6000_isa_flags): Save area for rs6000_isa_flags.
-	(x_rs6000_isa_flags_explicit): Save area for
-	rs6000_isa_flags_explicit.
+	(x_rs6000_isa_flags_explicit): Save area for rs6000_isa_flags_explicit.
 	(rs6000_target_flags_explicit): Delete in favor of
 	x_rs6000_isa_flags_explicit.
 	(-mpowerpc64): Change all switches that used to be in target_flags
 	to now be in rs6000_isa_flags.  In using rs6000_isa_flags, the
 	options machinary will generate names of the form OPITON_<xxx>
-	instead of TARGET_<xxx> and OPTION_MASK_<xxx> instead of
-	MASK_<xxx>.
+	instead of TARGET_<xxx> and OPTION_MASK_<xxx> instead of MASK_<xxx>.
 	(-mpowerpc-gpopt): Likewise.
 	(-mpowerpc-gfxopt): Likewise.
 	(-mmfcrf): Likewise.
@@ -103,8 +395,7 @@
 	(rs6000_function_specific_restore): Likewise.
 	(rs6000_function_specific_print): Likewise.
 	(rs6000_can_inline_p): Likewise.
-	* config/rs6000/rs6000-c.c (rs6000_target_modify_macros):
-	Likewise.
+	* config/rs6000/rs6000-c.c (rs6000_target_modify_macros): Likewise.
 	(rs6000_cpu_cpp_builtins): Likewise.
 	* common/config/rs6000/rs6000-driver.c (rs6000_handle_option):
 	Likewise.
@@ -149,32 +440,23 @@
 	global_options_set structure.
 
 	* gcc/config/rs6000/aix43.h (SUBTARGET_OVERRIDE_OPTIONS):
-	Change use of target_flags to rs6000_isa_flags,
-	target_flags_explicit to rs6000_isa_flags_explicit, and MASK_<xxx>
-	to OPTION_MASK_<xxx>.
-	* gcc/config/rs6000/aix51.h (SUBTARGET_OVERRIDE_OPTIONS):
-	Likewise.
-	* gcc/config/rs6000/aix52.h (SUBTARGET_OVERRIDE_OPTIONS):
-	Likewise.
-	* gcc/config/rs6000/aix53.h (SUBTARGET_OVERRIDE_OPTIONS):
-	Likewise.
-	* gcc/config/rs6000/aix61.h (SUBTARGET_OVERRIDE_OPTIONS):
-	Likewise.
-	* gcc/config/rs6000/freebsd64.h (RELOCATABLE_NEEDS_FIXUP):
-	Likewise.
+	Change use of target_flags to rs6000_isa_flags, target_flags_explicit
+	to rs6000_isa_flags_explicit, and MASK_<xxx> to OPTION_MASK_<xxx>.
+	* gcc/config/rs6000/aix51.h (SUBTARGET_OVERRIDE_OPTIONS): Likewise.
+	* gcc/config/rs6000/aix52.h (SUBTARGET_OVERRIDE_OPTIONS): Likewise.
+	* gcc/config/rs6000/aix53.h (SUBTARGET_OVERRIDE_OPTIONS): Likewise.
+	* gcc/config/rs6000/aix61.h (SUBTARGET_OVERRIDE_OPTIONS): Likewise.
+	* gcc/config/rs6000/freebsd64.h (RELOCATABLE_NEEDS_FIXUP): Likewise.
 	(SUBSUBTARGET_OVERRIDE_OPTIONS): Likewise.
-	* gcc/config/rs6000/freebsd.h (RELOCATABLE_NEEDS_FIXUP):
-	Likewise.
-	* gcc/config/rs6000/linux64.h (RELOCATABLE_NEEDS_FIXUP):
-	Likewise.
+	* gcc/config/rs6000/freebsd.h (RELOCATABLE_NEEDS_FIXUP): Likewise.
+	* gcc/config/rs6000/linux64.h (RELOCATABLE_NEEDS_FIXUP): Likewise.
 	(SUBSUBTARGET_OVERRIDE_OPTIONS): Likewise.
 	(OPTION_LITTLE_ENDIAN): Likewise.
 	(OPTION_RELOCATABLE): Likewise.
 	(OPTION_EABI): Likewise.
 	(OPTION_PROTOTYPE): Likewise.
 	* gcc/config/rs6000/linux.h (RELOCATABLE_NEEDS_FIXUP): Likewise.
-	* gcc/config/rs6000/option-defaults.h (OPTION_MASK_64BIT):
-	Likewise.
+	* gcc/config/rs6000/option-defaults.h (OPTION_MASK_64BIT): Likewise.
 	(OPT_ARCH32): Likewise.
 	(OPT_ARCH64): Likewise.
 	* gcc/config/rs6000/sysv4.h (TARGET_TOC): Likewise.
@@ -196,7 +478,8 @@
 2012-10-17  Jan Hubicka  <jh@suse.cz>
 
 	* tree-ssa-loop-ivcanon.c (tree_estimate_loop_size): Add edge_to_cancel
-	parameter and use it to estimate code optimized out in the final iteration.
+	parameter and use it to estimate code optimized out in the final
+	iteration.
 	(loop_edge_to_cancel): New function.
 	(try_unroll_loop_completely): New IRRED_IVALIDATED parameter;
 	handle unrolling loops with bounds given via max_loop_iteratins;
@@ -308,15 +591,15 @@
 
 2012-10-17  Greta Yorsh  <Greta.Yorsh@arm.com>
 
-        * config/arm/arm.md (UNSPEC_PROLOGUE_USE): Rename this...
-        (UNSPEC_REGISTER_USE): ... to this.
-        (prologue_use): Rename this...
+	* config/arm/arm.md (UNSPEC_PROLOGUE_USE): Rename this...
+	(UNSPEC_REGISTER_USE): ... to this.
+	(prologue_use): Rename this...
 	  (force_register_use): ... to this and update output assembly.
-        (epilogue) Rename gen_prologue_use to gen_force_register_use.
-        * config/arm/arm.c (arm_expand_prologue): Likewise.
-        (thumb1_expand_epilogue): Likewise.
-        (arm_expand_epilogue): Likewise.
-        (arm_expand_epilogue): Likewise.
+	(epilogue) Rename gen_prologue_use to gen_force_register_use.
+	* config/arm/arm.c (arm_expand_prologue): Likewise.
+	(thumb1_expand_epilogue): Likewise.
+	(arm_expand_epilogue): Likewise.
+	(arm_expand_epilogue): Likewise.
 
 2012-10-17  Georg-Johann Lay  <avr@gjlay.de>
 
@@ -541,8 +824,8 @@
 	* config/sh/iterators.md (QIHISIDI): New mode iterator.
 	* config/sh/predicates.md (gbr_address_mem): New predicate.
 	* config/sh/sh.md (*movdi_gbr_load, *movdi_gbr_store): New
-	insn_and_split.
-	Use QIHISIDI instead of QIHISI in unnamed GBR addressing splits.
+	insn_and_split.  Use QIHISIDI instead of QIHISI in unnamed GBR
+	addressing splits.
 
 2012-10-15  Oleg Endo  <olegendo@gcc.gnu.org>
 
@@ -557,7 +840,7 @@
 	* config.gcc: Match arm*-*-linux-* for ARM Linux/GNU.
 	* doc/install.texi: Use arm-*-*linux-* instead of arm-*-*linux-gnueabi.
 
-2012-10-13  Uros Bizjak  <ubizjak@gmail.com>
+2012-10-15  Uros Bizjak  <ubizjak@gmail.com>
 
 	* config/i386/sse.md (UNSPEC_MOVU): Remove.
 	(UNSPEC_LOADU): New.
