@@ -6852,14 +6852,41 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
 	maybe_emit_free_warning (exp);
       break;
 
+    case BUILT_IN_CILK_ENTER_BEGIN:
+    case BUILT_IN_CILK_ENTER_H_BEGIN:
+    case BUILT_IN_CILK_ENTER_END:
+    case BUILT_IN_CILK_SPAWN_PREPARE:
+    case BUILT_IN_SPAWN_OR_CONT:
+    case BUILT_IN_CILK_DETACH_BEGIN:
+    case BUILT_IN_CILK_DETACH_END:
+    case BUILT_IN_CILK_SYNC_BEGIN:
+    case BUILT_IN_CILK_SYNC_END:
+    case BUILT_IN_CILK_LEAVE_BEGIN:
+    case BUILT_IN_CILK_LEAVE_END:
+    case BUILT_IN_CILK_RESUME:
+    case BUILT_IN_LEAVE_STOLEN:
+    case BUILT_IN_SYNC_ABANDON:
+    case BUILT_IN_CILKSCREEN_DS_INSTR:
+    case BUILT_IN_CILKSCREEN_EN_INSTR:
+    case BUILT_IN_CILKSCREEN_DS_CHK:
+    case BUILT_IN_CILKSCREEN_EN_CHK:
+    case BUILT_IN_CILKSCREEN_AQUIRE_LOCK:
+    case BUILT_IN_CILKSCREEN_REL_LOCK:
+    case BUILT_IN_CILKSCREEN_METACALL: 
+      if (cfun) 
+	{ 
+	  cfun->calls_notify_intrinsic = 1; 
+	  cfun->is_cilk_function = 1; 
+	  CILK_FN_P (cfun->decl) = 1; 
+	}
+      break;
     case BUILT_IN_CILK_DETACH:
       /* Return value is not interesting; it is used as success/failure 
-         indication.  */
-      target = expand_builtin_cilk_detach (exp);
-      if (target)
-        return target;
+	 indication.  */ 
+      target = expand_builtin_cilk_detach (exp); 
+      if (target) 
+	return target; 
       break;
-      
     case BUILT_IN_NOTIFY_INTRINSIC:
     case BUILT_IN_NOTIFY_ZC_INTRINSIC:
       /* Remove tail call optimization since we are going to get rid of this
