@@ -392,15 +392,33 @@ mmix_conditional_register_usage (void)
 
 /* INCOMING_REGNO and OUTGOING_REGNO worker function.
    Those two macros must only be applied to function argument
-   registers.  FIXME: for their current use in gcc, it'd be better
-   with an explicit specific additional FUNCTION_INCOMING_ARG_REGNO_P
-   a'la TARGET_FUNCTION_ARG / TARGET_FUNCTION_INCOMING_ARG instead of
+   registers and the function return value register for the opposite
+   use.  FIXME: for their current use in gcc, it'd be better with an
+   explicit specific additional FUNCTION_INCOMING_ARG_REGNO_P a'la
+   TARGET_FUNCTION_ARG / TARGET_FUNCTION_INCOMING_ARG instead of
    forcing the target to commit to a fixed mapping and for any
-   unspecified register use.  */
+   unspecified register use.  Particularly when thinking about the
+   return-value, it is better to imagine INCOMING_REGNO and
+   OUTGOING_REGNO as named CALLEE_TO_CALLER_REGNO and INNER_REGNO as
+   named CALLER_TO_CALLEE_REGNO because the direction.  The "incoming"
+   and "outgoing" is from the perspective of the parameter-registers,
+   but the same macro is (must be, lacking an alternative like
+   suggested above) used to map the return-value-register from the
+   same perspective.  To make directions even more confusing, the macro
+   MMIX_OUTGOING_RETURN_VALUE_REGNUM holds the number of the register
+   in which to return a value, i.e. INCOMING_REGNO for the return-value-
+   register as received from a called function; the return-value on the
+   way out.  */
 
 int
 mmix_opposite_regno (int regno, int incoming)
 {
+  if (incoming && regno == MMIX_OUTGOING_RETURN_VALUE_REGNUM)
+    return MMIX_RETURN_VALUE_REGNUM;
+
+  if (!incoming && regno == MMIX_RETURN_VALUE_REGNUM)
+    return MMIX_OUTGOING_RETURN_VALUE_REGNUM;
+
   if (!mmix_function_arg_regno_p (regno, incoming))
     return regno;
 
@@ -2281,7 +2299,9 @@ mmix_output_register_setting (FILE *stream,
   if (do_begin_end)
     fprintf (stream, "\t");
 
-  if (mmix_shiftable_wyde_value ((unsigned HOST_WIDEST_INT) value))
+  if (insn_const_int_ok_for_constraint (value, CONSTRAINT_K))
+    fprintf (stream, "NEGU %s,0," HOST_WIDEST_INT_PRINT_DEC, reg_names[regno], -value);
+  else if (mmix_shiftable_wyde_value ((unsigned HOST_WIDEST_INT) value))
     {
       /* First, the one-insn cases.  */
       mmix_output_shiftvalue_op_from_str (stream, "SET",

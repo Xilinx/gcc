@@ -6731,10 +6731,12 @@ fold_sign_changed_comparison (location_t loc, enum tree_code code, tree type,
 	   && TREE_TYPE (TREE_OPERAND (arg1, 0)) == inner_type))
     return NULL_TREE;
 
-  if ((TYPE_UNSIGNED (inner_type) != TYPE_UNSIGNED (outer_type)
-       || POINTER_TYPE_P (inner_type) != POINTER_TYPE_P (outer_type))
+  if (TYPE_UNSIGNED (inner_type) != TYPE_UNSIGNED (outer_type)
       && code != NE_EXPR
       && code != EQ_EXPR)
+    return NULL_TREE;
+
+  if (POINTER_TYPE_P (inner_type) != POINTER_TYPE_P (outer_type))
     return NULL_TREE;
 
   if (TREE_CODE (arg1) == INTEGER_CST)
@@ -8289,6 +8291,40 @@ fold_unary_loc (location_t loc, enum tree_code code, tree type, tree op0)
 	    elts[i] = fold_convert_const (subcode, TREE_TYPE (type), elts[i]);
 	    if (elts[i] == NULL_TREE || !CONSTANT_CLASS_P (elts[i]))
 	      return NULL_TREE;
+	  }
+
+	return build_vector (type, elts);
+      }
+
+    case REDUC_MIN_EXPR:
+    case REDUC_MAX_EXPR:
+    case REDUC_PLUS_EXPR:
+      {
+	unsigned int nelts = TYPE_VECTOR_SUBPARTS (type), i;
+	tree *elts;
+	enum tree_code subcode;
+
+	if (TREE_CODE (op0) != VECTOR_CST)
+	  return NULL_TREE;
+
+	elts = XALLOCAVEC (tree, nelts);
+	if (!vec_cst_ctor_to_array (op0, elts))
+	  return NULL_TREE;
+
+	switch (code)
+	  {
+	  case REDUC_MIN_EXPR: subcode = MIN_EXPR; break;
+	  case REDUC_MAX_EXPR: subcode = MAX_EXPR; break;
+	  case REDUC_PLUS_EXPR: subcode = PLUS_EXPR; break;
+	  default: gcc_unreachable ();
+	  }
+
+	for (i = 1; i < nelts; i++)
+	  {
+	    elts[0] = const_binop (subcode, elts[0], elts[i]);
+	    if (elts[0] == NULL_TREE || !CONSTANT_CLASS_P (elts[0]))
+	      return NULL_TREE;
+	    elts[i] = build_zero_cst (TREE_TYPE (type));
 	  }
 
 	return build_vector (type, elts);
@@ -16092,6 +16128,31 @@ fold_relational_const (enum tree_code code, tree type, tree op0, tree op1)
 	return fold_build2 (TRUTH_ORIF_EXPR, type, rcond, icond);
       else
 	return NULL_TREE;
+    }
+
+  if (TREE_CODE (op0) == VECTOR_CST && TREE_CODE (op1) == VECTOR_CST)
+    {
+      unsigned count = VECTOR_CST_NELTS (op0);
+      tree *elts =  XALLOCAVEC (tree, count);
+      gcc_assert (VECTOR_CST_NELTS (op1) == count
+		  && TYPE_VECTOR_SUBPARTS (type) == count);
+
+      for (unsigned i = 0; i < count; i++)
+	{
+	  tree elem_type = TREE_TYPE (type);
+	  tree elem0 = VECTOR_CST_ELT (op0, i);
+	  tree elem1 = VECTOR_CST_ELT (op1, i);
+
+	  tree tem = fold_relational_const (code, elem_type,
+					    elem0, elem1);
+
+	  if (tem == NULL_TREE)
+	    return NULL_TREE;
+
+	  elts[i] = build_int_cst (elem_type, integer_zerop (tem) ? 0 : -1);
+	}
+
+      return build_vector (type, elts);
     }
 
   /* From here on we only handle LT, LE, GT, GE, EQ and NE.

@@ -1009,6 +1009,13 @@ shorten_branches (rtx first ATTRIBUTE_UNUSED)
 	    align_tab[i] = seq;
 	}
     }
+
+  /* When optimizing, we start assuming minimum length, and keep increasing
+     lengths as we find the need for this, till nothing changes.
+     When not optimizing, we start assuming maximum lengths, and
+     do a single pass to update the lengths.  */
+  bool increasing = optimize != 0;
+
 #ifdef CASE_VECTOR_SHORTEN_MODE
   if (optimize)
     {
@@ -1062,11 +1069,16 @@ shorten_branches (rtx first ATTRIBUTE_UNUSED)
 	  flags.min_after_base = min > rel;
 	  flags.max_after_base = max > rel;
 	  ADDR_DIFF_VEC_FLAGS (pat) = flags;
+
+	  if (increasing)
+	    PUT_MODE (pat, CASE_VECTOR_SHORTEN_MODE (0, 0, pat));
 	}
     }
 #endif /* CASE_VECTOR_SHORTEN_MODE */
 
   /* Compute initial lengths, addresses, and varying flags for each insn.  */
+  int (*length_fun) (rtx) = increasing ? insn_min_length : insn_default_length;
+
   for (insn_current_address = 0, insn = first;
        insn != 0;
        insn_current_address += insn_lengths[uid], insn = NEXT_INSN (insn))
@@ -1117,6 +1129,8 @@ shorten_branches (rtx first ATTRIBUTE_UNUSED)
 #else
 	  const_delay_slots = 0;
 #endif
+	  int (*inner_length_fun) (rtx)
+	    = const_delay_slots ? length_fun : insn_default_length;
 	  /* Inside a delay slot sequence, we do not do any branch shortening
 	     if the shortening could change the number of delay slots
 	     of the branch.  */
@@ -1131,7 +1145,7 @@ shorten_branches (rtx first ATTRIBUTE_UNUSED)
 		inner_length = (asm_insn_count (PATTERN (inner_insn))
 				* insn_default_length (inner_insn));
 	      else
-		inner_length = insn_default_length (inner_insn);
+		inner_length = inner_length_fun (inner_insn);
 
 	      insn_lengths[inner_uid] = inner_length;
 	      if (const_delay_slots)
@@ -1149,7 +1163,7 @@ shorten_branches (rtx first ATTRIBUTE_UNUSED)
 	}
       else if (GET_CODE (body) != USE && GET_CODE (body) != CLOBBER)
 	{
-	  insn_lengths[uid] = insn_default_length (insn);
+	  insn_lengths[uid] = length_fun (insn);
 	  varying_length[uid] = insn_variable_length_p (insn);
 	}
 
@@ -1220,6 +1234,7 @@ shorten_branches (rtx first ATTRIBUTE_UNUSED)
 	      rtx prev;
 	      int rel_align = 0;
 	      addr_diff_vec_flags flags;
+	      enum machine_mode vec_mode;
 
 	      /* Avoid automatic aggregate initialization.  */
 	      flags = ADDR_DIFF_VEC_FLAGS (body);
@@ -1298,9 +1313,12 @@ shorten_branches (rtx first ATTRIBUTE_UNUSED)
 		  else
 		    max_addr += align_fuzz (max_lab, rel_lab, 0, 0);
 		}
-	      PUT_MODE (body, CASE_VECTOR_SHORTEN_MODE (min_addr - rel_addr,
-							max_addr - rel_addr,
-							body));
+	      vec_mode = CASE_VECTOR_SHORTEN_MODE (min_addr - rel_addr,
+						   max_addr - rel_addr, body);
+	      if (!increasing
+		  || (GET_MODE_SIZE (vec_mode)
+		      >= GET_MODE_SIZE (GET_MODE (body))))
+		PUT_MODE (body, vec_mode);
 	      if (JUMP_TABLES_IN_TEXT_SECTION
 		  || readonly_data_section == text_section)
 		{
@@ -1362,10 +1380,15 @@ shorten_branches (rtx first ATTRIBUTE_UNUSED)
 
 		  if (inner_length != insn_lengths[inner_uid])
 		    {
-		      insn_lengths[inner_uid] = inner_length;
-		      something_changed = 1;
+		      if (!increasing || inner_length > insn_lengths[inner_uid])
+			{
+			  insn_lengths[inner_uid] = inner_length;
+			  something_changed = 1;
+			}
+		      else
+			inner_length = insn_lengths[inner_uid];
 		    }
-		  insn_current_address += insn_lengths[inner_uid];
+		  insn_current_address += inner_length;
 		  new_length += inner_length;
 		}
 	    }
@@ -1382,14 +1405,17 @@ shorten_branches (rtx first ATTRIBUTE_UNUSED)
 	  insn_current_address += (new_length - tmp_length);
 #endif
 
-	  if (new_length != insn_lengths[uid])
+	  if (new_length != insn_lengths[uid]
+	      && (!increasing || new_length > insn_lengths[uid]))
 	    {
 	      insn_lengths[uid] = new_length;
 	      something_changed = 1;
 	    }
+	  else
+	    insn_current_address += insn_lengths[uid] - new_length;
 	}
       /* For a non-optimizing compile, do only a single pass.  */
-      if (!optimize)
+      if (!increasing)
 	break;
     }
 
@@ -2534,7 +2560,7 @@ final_scan_insn (rtx insn, FILE *file, int optimize_p ATTRIBUTE_UNUSED,
 	      {
 		rtx src1, src2;
 		if (GET_CODE (SET_SRC (set)) == SUBREG)
-		  SET_SRC (set) = alter_subreg (&SET_SRC (set));
+		  SET_SRC (set) = alter_subreg (&SET_SRC (set), true);
 
 		src1 = SET_SRC (set);
 		src2 = NULL_RTX;
@@ -2542,10 +2568,10 @@ final_scan_insn (rtx insn, FILE *file, int optimize_p ATTRIBUTE_UNUSED,
 		  {
 		    if (GET_CODE (XEXP (SET_SRC (set), 0)) == SUBREG)
 		      XEXP (SET_SRC (set), 0)
-			= alter_subreg (&XEXP (SET_SRC (set), 0));
+			= alter_subreg (&XEXP (SET_SRC (set), 0), true);
 		    if (GET_CODE (XEXP (SET_SRC (set), 1)) == SUBREG)
 		      XEXP (SET_SRC (set), 1)
-			= alter_subreg (&XEXP (SET_SRC (set), 1));
+			= alter_subreg (&XEXP (SET_SRC (set), 1), true);
 		    if (XEXP (SET_SRC (set), 1)
 			== CONST0_RTX (GET_MODE (XEXP (SET_SRC (set), 0))))
 		      src2 = XEXP (SET_SRC (set), 0);
@@ -2948,7 +2974,7 @@ cleanup_subreg_operands (rtx insn)
 	 expression directly.  */
       if (GET_CODE (*recog_data.operand_loc[i]) == SUBREG)
 	{
-	  recog_data.operand[i] = alter_subreg (recog_data.operand_loc[i]);
+	  recog_data.operand[i] = alter_subreg (recog_data.operand_loc[i], true);
 	  changed = true;
 	}
       else if (GET_CODE (recog_data.operand[i]) == PLUS
@@ -2961,7 +2987,7 @@ cleanup_subreg_operands (rtx insn)
     {
       if (GET_CODE (*recog_data.dup_loc[i]) == SUBREG)
 	{
-	  *recog_data.dup_loc[i] = alter_subreg (recog_data.dup_loc[i]);
+	  *recog_data.dup_loc[i] = alter_subreg (recog_data.dup_loc[i], true);
 	  changed = true;
 	}
       else if (GET_CODE (*recog_data.dup_loc[i]) == PLUS
@@ -2973,11 +2999,11 @@ cleanup_subreg_operands (rtx insn)
     df_insn_rescan (insn);
 }
 
-/* If X is a SUBREG, replace it with a REG or a MEM,
-   based on the thing it is a subreg of.  */
+/* If X is a SUBREG, try to replace it with a REG or a MEM, based on
+   the thing it is a subreg of.  Do it anyway if FINAL_P.  */
 
 rtx
-alter_subreg (rtx *xp)
+alter_subreg (rtx *xp, bool final_p)
 {
   rtx x = *xp;
   rtx y = SUBREG_REG (x);
@@ -3001,16 +3027,19 @@ alter_subreg (rtx *xp)
             offset += difference % UNITS_PER_WORD;
         }
 
-      *xp = adjust_address (y, GET_MODE (x), offset);
+      if (final_p)
+	*xp = adjust_address (y, GET_MODE (x), offset);
+      else
+	*xp = adjust_address_nv (y, GET_MODE (x), offset);
     }
   else
     {
       rtx new_rtx = simplify_subreg (GET_MODE (x), y, GET_MODE (y),
-				 SUBREG_BYTE (x));
+				     SUBREG_BYTE (x));
 
       if (new_rtx != 0)
 	*xp = new_rtx;
-      else if (REG_P (y))
+      else if (final_p && REG_P (y))
 	{
 	  /* Simplify_subreg can't handle some REG cases, but we have to.  */
 	  unsigned int regno;
@@ -3050,7 +3079,7 @@ walk_alter_subreg (rtx *xp, bool *changed)
 
     case SUBREG:
       *changed = true;
-      return alter_subreg (xp);
+      return alter_subreg (xp, true);
 
     default:
       break;
@@ -3656,7 +3685,7 @@ void
 output_operand (rtx x, int code ATTRIBUTE_UNUSED)
 {
   if (x && GET_CODE (x) == SUBREG)
-    x = alter_subreg (&x);
+    x = alter_subreg (&x, true);
 
   /* X must not be a pseudo reg.  */
   gcc_assert (!x || !REG_P (x) || REGNO (x) < FIRST_PSEUDO_REGISTER);

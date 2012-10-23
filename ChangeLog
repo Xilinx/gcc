@@ -1,23 +1,20 @@
-2012-10-05  Pavel Chupin  <pavel.v.chupin@intel.com>
+2012-10-22  Eric Botcazou  <ebotcazou@adacore.com>
 
-	Fix missing gthr-default.h issue on separate libstdc++ configure
-	* libstdc++-v3/acinclude.m4: Define glibcxx_thread_h.
-	* libstdc++-v3/include/Makefile.am: Use glibcxx_thread_h.
-	* libstdc++-v3/Makefile.in: Regenerate.
-	* libstdc++-v3/configure: Regenerate.
-	* libstdc++-v3/doc/Makefile.in: Regenerate.
-	* libstdc++-v3/include/Makefile.in: Regenerate.
-	* libstdc++-v3/libsupc++/Makefile.in: Regenerate.
-	* libstdc++-v3/po/Makefile.in: Regenerate.
-	* libstdc++-v3/python/Makefile.in: Regenerate.
-	* libstdc++-v3/src/Makefile.in: Regenerate.
-	* libstdc++-v3/src/c++11/Makefile.in: Regenerate.
-	* libstdc++-v3/src/c++98/Makefile.in: Regenerate.
-	* libstdc++-v3/testsuite/Makefile.in: Regenerate.
+	PR bootstrap/54820
+	* Makefile.tpl (STAGE1_FLAGS_TO_PASS): New variable.
+	(all-[+prefix+][+module+]): Pass stage1_args to sub-makes.
+	(all-stage[+id+]-[+prefix+][+module+]): Likewise, if prev is false.
+	(clean-stage[+id+]-[+prefix+][+module+]): Likewise, if prev is false.
+	(host_modules): Set stage1_args to STAGE1_FLAGS_TO_PASS.
+	* Makefile.in: Regenerate.
+	* configure.ac (have_static_libs): New variable and associated check.
+	(stage1-ldflags): Move to after stage1_libs and set to -static-libstdc++
+	-static-libgcc if stage1_libs is empty and have_static_libs is yes.
+	* configure: Regenerate.
 
 2012-10-10  Richard Biener  <rguenther@suse.de>
 
-	* MAINTAINERS: Adjust for changed surename.
+	* MAINTAINERS: Adjust for changed surname.
 
 2012-10-04  Lawrence Crowl  <crowl@google.com>
 

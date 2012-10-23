@@ -466,6 +466,22 @@ rtx_addr_varies_p (const_rtx x, bool for_alias)
   return 0;
 }
 
+/* Return the CALL in X if there is one.  */
+
+rtx
+get_call_rtx_from (rtx x)
+{
+  if (INSN_P (x))
+    x = PATTERN (x);
+  if (GET_CODE (x) == PARALLEL)
+    x = XVECEXP (x, 0, 0);
+  if (GET_CODE (x) == SET)
+    x = SET_SRC (x);
+  if (GET_CODE (x) == CALL && MEM_P (XEXP (x, 0)))
+    return x;
+  return NULL_RTX;
+}
+
 /* Return the value of the integer term in X, if one is apparent;
    otherwise return 0.
    Only obvious integer terms are detected.
@@ -3465,7 +3481,9 @@ simplify_subreg_regno (unsigned int xregno, enum machine_mode xmode,
   /* Give the backend a chance to disallow the mode change.  */
   if (GET_MODE_CLASS (xmode) != MODE_COMPLEX_INT
       && GET_MODE_CLASS (xmode) != MODE_COMPLEX_FLOAT
-      && REG_CANNOT_CHANGE_MODE_P (xregno, xmode, ymode))
+      && REG_CANNOT_CHANGE_MODE_P (xregno, xmode, ymode)
+      /* We can use mode change in LRA for some transformations.  */
+      && ! lra_in_progress)
     return -1;
 #endif
 
@@ -3475,10 +3493,16 @@ simplify_subreg_regno (unsigned int xregno, enum machine_mode xmode,
     return -1;
 
   if (FRAME_POINTER_REGNUM != ARG_POINTER_REGNUM
-      && xregno == ARG_POINTER_REGNUM)
+      /* We should convert arg register in LRA after the elimination
+	 if it is possible.  */
+      && xregno == ARG_POINTER_REGNUM
+      && ! lra_in_progress)
     return -1;
 
-  if (xregno == STACK_POINTER_REGNUM)
+  if (xregno == STACK_POINTER_REGNUM
+      /* We should convert hard stack register in LRA if it is
+	 possible.  */
+      && ! lra_in_progress)
     return -1;
 
   /* Try to get the register offset.  */

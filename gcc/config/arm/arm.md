@@ -76,7 +76,7 @@
                         ; that points at the containing instruction.
   UNSPEC_PRLG_STK       ; A special barrier that prevents frame accesses
                         ; being scheduled before the stack adjustment insn.
-  UNSPEC_PROLOGUE_USE   ; As USE insns are not meaningful after reload,
+  UNSPEC_REGISTER_USE   ; As USE insns are not meaningful after reload,
                         ; this unspec is used to prevent the deletion of
                         ; instructions setting registers for EH handling
                         ; and stack frame generation.  Operand 0 is the
@@ -10610,7 +10610,7 @@
   "TARGET_EITHER"
   "
   if (crtl->calls_eh_return)
-    emit_insn (gen_prologue_use (gen_rtx_REG (Pmode, 2)));
+    emit_insn (gen_force_register_use (gen_rtx_REG (Pmode, 2)));
   if (TARGET_THUMB1)
    {
      thumb1_expand_epilogue ();
@@ -10644,7 +10644,7 @@
 ;; does not think that it is unused by the sibcall branch that
 ;; will replace the standard function epilogue.
 (define_expand "sibcall_epilogue"
-   [(parallel [(unspec:SI [(reg:SI LR_REGNUM)] UNSPEC_PROLOGUE_USE)
+   [(parallel [(unspec:SI [(reg:SI LR_REGNUM)] UNSPEC_REGISTER_USE)
                (unspec_volatile [(return)] VUNSPEC_EPILOGUE)])]
    "TARGET_32BIT"
    "
@@ -11260,10 +11260,10 @@
   ""
 )
 
-(define_insn "prologue_use"
-  [(unspec:SI [(match_operand:SI 0 "register_operand" "")] UNSPEC_PROLOGUE_USE)]
+(define_insn "force_register_use"
+  [(unspec:SI [(match_operand:SI 0 "register_operand" "")] UNSPEC_REGISTER_USE)]
   ""
-  "%@ %0 needed for prologue"
+  "%@ %0 needed"
   [(set_attr "length" "0")]
 )
 
@@ -11354,6 +11354,16 @@
   [(set_attr "conds" "clob")
    (set_attr "length" "4")]
 )
+
+;; For thread pointer builtin
+(define_expand "get_thread_pointersi"
+  [(match_operand:SI 0 "s_register_operand" "=r")]
+ ""
+ "
+ {
+   arm_load_tp (operands[0]);
+   DONE;
+ }")
 
 ;;
 
@@ -11500,6 +11510,99 @@
 "arm_arch6"
 ""
 )
+
+;; Patterns for LDRD/STRD in Thumb2 mode
+
+(define_insn "*thumb2_ldrd"
+  [(set (match_operand:SI 0 "s_register_operand" "=r")
+        (mem:SI (plus:SI (match_operand:SI 1 "s_register_operand" "rk")
+                         (match_operand:SI 2 "ldrd_strd_offset_operand" "Do"))))
+   (set (match_operand:SI 3 "s_register_operand" "=r")
+        (mem:SI (plus:SI (match_dup 1)
+                         (match_operand:SI 4 "const_int_operand" ""))))]
+  "TARGET_LDRD && TARGET_THUMB2 && reload_completed
+     && current_tune->prefer_ldrd_strd
+     && ((INTVAL (operands[2]) + 4) == INTVAL (operands[4]))
+     && (operands_ok_ldrd_strd (operands[0], operands[3],
+                                  operands[1], INTVAL (operands[2]),
+                                  false, true))"
+  "ldrd%?\t%0, %3, [%1, %2]"
+  [(set_attr "type" "load2")
+   (set_attr "predicable" "yes")])
+
+(define_insn "*thumb2_ldrd_base"
+  [(set (match_operand:SI 0 "s_register_operand" "=r")
+        (mem:SI (match_operand:SI 1 "s_register_operand" "rk")))
+   (set (match_operand:SI 2 "s_register_operand" "=r")
+        (mem:SI (plus:SI (match_dup 1)
+                         (const_int 4))))]
+  "TARGET_LDRD && TARGET_THUMB2 && reload_completed
+     && current_tune->prefer_ldrd_strd
+     && (operands_ok_ldrd_strd (operands[0], operands[2],
+                                  operands[1], 0, false, true))"
+  "ldrd%?\t%0, %2, [%1]"
+  [(set_attr "type" "load2")
+   (set_attr "predicable" "yes")])
+
+(define_insn "*thumb2_ldrd_base_neg"
+  [(set (match_operand:SI 0 "s_register_operand" "=r")
+	(mem:SI (plus:SI (match_operand:SI 1 "s_register_operand" "rk")
+                         (const_int -4))))
+   (set (match_operand:SI 2 "s_register_operand" "=r")
+        (mem:SI (match_dup 1)))]
+  "TARGET_LDRD && TARGET_THUMB2 && reload_completed
+     && current_tune->prefer_ldrd_strd
+     && (operands_ok_ldrd_strd (operands[0], operands[2],
+                                  operands[1], -4, false, true))"
+  "ldrd%?\t%0, %2, [%1, #-4]"
+  [(set_attr "type" "load2")
+   (set_attr "predicable" "yes")])
+
+(define_insn "*thumb2_strd"
+  [(set (mem:SI (plus:SI (match_operand:SI 0 "s_register_operand" "rk")
+                         (match_operand:SI 1 "ldrd_strd_offset_operand" "Do")))
+        (match_operand:SI 2 "s_register_operand" "r"))
+   (set (mem:SI (plus:SI (match_dup 0)
+                         (match_operand:SI 3 "const_int_operand" "")))
+        (match_operand:SI 4 "s_register_operand" "r"))]
+  "TARGET_LDRD && TARGET_THUMB2 && reload_completed
+     && current_tune->prefer_ldrd_strd
+     && ((INTVAL (operands[1]) + 4) == INTVAL (operands[3]))
+     && (operands_ok_ldrd_strd (operands[2], operands[4],
+                                  operands[0], INTVAL (operands[1]),
+                                  false, false))"
+  "strd%?\t%2, %4, [%0, %1]"
+  [(set_attr "type" "store2")
+   (set_attr "predicable" "yes")])
+
+(define_insn "*thumb2_strd_base"
+  [(set (mem:SI (match_operand:SI 0 "s_register_operand" "rk"))
+        (match_operand:SI 1 "s_register_operand" "r"))
+   (set (mem:SI (plus:SI (match_dup 0)
+                         (const_int 4)))
+        (match_operand:SI 2 "s_register_operand" "r"))]
+  "TARGET_LDRD && TARGET_THUMB2 && reload_completed
+     && current_tune->prefer_ldrd_strd
+     && (operands_ok_ldrd_strd (operands[1], operands[2],
+                                  operands[0], 0, false, false))"
+  "strd%?\t%1, %2, [%0]"
+  [(set_attr "type" "store2")
+   (set_attr "predicable" "yes")])
+
+(define_insn "*thumb2_strd_base_neg"
+  [(set (mem:SI (plus:SI (match_operand:SI 0 "s_register_operand" "rk")
+                         (const_int -4)))
+        (match_operand:SI 1 "s_register_operand" "r"))
+   (set (mem:SI (match_dup 0))
+        (match_operand:SI 2 "s_register_operand" "r"))]
+  "TARGET_LDRD && TARGET_THUMB2 && reload_completed
+     && current_tune->prefer_ldrd_strd
+     && (operands_ok_ldrd_strd (operands[1], operands[2],
+                                  operands[0], -4, false, false))"
+  "strd%?\t%1, %2, [%0, #-4]"
+  [(set_attr "type" "store2")
+   (set_attr "predicable" "yes")])
+
 
 ;; Load the load/store multiple patterns
 (include "ldmstm.md")

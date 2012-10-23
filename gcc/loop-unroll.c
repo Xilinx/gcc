@@ -100,10 +100,6 @@ struct var_to_expand
                                       the accumulator.  If REUSE_EXPANSION is 0 reuse
                                       the original accumulator.  Else use
                                       var_expansions[REUSE_EXPANSION - 1].  */
-  unsigned accum_pos;              /* The position in which the accumulator is placed in
-                                      the insn src.  For example in x = x + something
-                                      accum_pos is 0 while in x = something + x accum_pos
-                                      is 1.  */
 };
 
 /* Information about optimization applied in
@@ -523,6 +519,7 @@ decide_unroll_constant_iterations (struct loop *loop, int flags)
 {
   unsigned nunroll, nunroll_by_av, best_copies, best_unroll = 0, n_copies, i;
   struct niter_desc *desc;
+  double_int iterations;
 
   if (!(flags & UAP_UNROLL))
     {
@@ -565,8 +562,14 @@ decide_unroll_constant_iterations (struct loop *loop, int flags)
       return;
     }
 
-  /* Check whether the loop rolls enough to consider.  */
-  if (desc->niter < 2 * nunroll)
+  /* Check whether the loop rolls enough to consider.  
+     Consult also loop bounds and profile; in the case the loop has more
+     than one exit it may well loop less than determined maximal number
+     of iterations.  */
+  if (desc->niter < 2 * nunroll
+      || ((estimated_loop_iterations (loop, &iterations)
+	   || max_loop_iterations (loop, &iterations))
+	  && iterations.ult (double_int::from_shwi (2 * nunroll))))
     {
       if (dump_file)
 	fprintf (dump_file, ";; Not unrolling loop, doesn't roll\n");
@@ -602,26 +605,21 @@ decide_unroll_constant_iterations (struct loop *loop, int flags)
 	}
     }
 
-  if (dump_file)
-    fprintf (dump_file, ";; max_unroll %d (%d copies, initial %d).\n",
-	     best_unroll + 1, best_copies, nunroll);
-
   loop->lpt_decision.decision = LPT_UNROLL_CONSTANT;
   loop->lpt_decision.times = best_unroll;
 
   if (dump_file)
-    fprintf (dump_file,
-	     ";; Decided to unroll the constant times rolling loop, %d times.\n",
-	     loop->lpt_decision.times);
+    fprintf (dump_file, ";; Decided to unroll the loop %d times (%d copies).\n",
+	     loop->lpt_decision.times, best_copies);
 }
 
-/* Unroll LOOP with constant number of iterations LOOP->LPT_DECISION.TIMES + 1
-   times.  The transformation does this:
+/* Unroll LOOP with constant number of iterations LOOP->LPT_DECISION.TIMES times.
+   The transformation does this:
 
    for (i = 0; i < 102; i++)
      body;
 
-   ==>
+   ==>  (LOOP->LPT_DECISION.TIMES == 3)
 
    i = 0;
    body; i++;
@@ -671,7 +669,7 @@ unroll_loop_constant_iterations (struct loop *loop)
 	 of exit condition have continuous body after unrolling.  */
 
       if (dump_file)
-	fprintf (dump_file, ";; Condition on beginning of loop.\n");
+	fprintf (dump_file, ";; Condition at beginning of loop.\n");
 
       /* Peel exit_mod iterations.  */
       RESET_BIT (wont_exit, 0);
@@ -713,7 +711,7 @@ unroll_loop_constant_iterations (struct loop *loop)
 	 the loop tests the condition at the end of loop body.  */
 
       if (dump_file)
-	fprintf (dump_file, ";; Condition on end of loop.\n");
+	fprintf (dump_file, ";; Condition at end of loop.\n");
 
       /* We know that niter >= max_unroll + 2; so we do not need to care of
 	 case when we would exit before reaching the loop.  So just peel
@@ -896,9 +894,7 @@ decide_unroll_runtime_iterations (struct loop *loop, int flags)
   loop->lpt_decision.times = i - 1;
 
   if (dump_file)
-    fprintf (dump_file,
-	     ";; Decided to unroll the runtime computable "
-	     "times rolling loop, %d times.\n",
+    fprintf (dump_file, ";; Decided to unroll the loop %d times.\n",
 	     loop->lpt_decision.times);
 }
 
@@ -949,14 +945,14 @@ split_edge_and_insert (edge e, rtx insns)
   return bb;
 }
 
-/* Unroll LOOP for that we are able to count number of iterations in runtime
-   LOOP->LPT_DECISION.TIMES + 1 times.  The transformation does this (with some
+/* Unroll LOOP for which we are able to count number of iterations in runtime
+   LOOP->LPT_DECISION.TIMES times.  The transformation does this (with some
    extra care for case n < 0):
 
    for (i = 0; i < n; i++)
      body;
 
-   ==>
+   ==>  (LOOP->LPT_DECISION.TIMES == 3)
 
    i = 0;
    mod = n % 4;
@@ -1232,7 +1228,6 @@ static void
 decide_peel_simple (struct loop *loop, int flags)
 {
   unsigned npeel;
-  struct niter_desc *desc;
   double_int iterations;
 
   if (!(flags & UAP_PEEL))
@@ -1257,20 +1252,17 @@ decide_peel_simple (struct loop *loop, int flags)
       return;
     }
 
-  /* Check for simple loops.  */
-  desc = get_simple_loop_desc (loop);
-
-  /* Check number of iterations.  */
-  if (desc->simple_p && !desc->assumptions && desc->const_iter)
-    {
-      if (dump_file)
-	fprintf (dump_file, ";; Loop iterates constant times\n");
-      return;
-    }
-
   /* Do not simply peel loops with branches inside -- it increases number
-     of mispredicts.  */
-  if (num_loop_branches (loop) > 1)
+     of mispredicts.  
+     Exception is when we do have profile and we however have good chance
+     to peel proper number of iterations loop will iterate in practice.
+     TODO: this heuristic needs tunning; while for complette unrolling
+     the branch inside loop mostly eliminates any improvements, for
+     peeling it is not the case.  Also a function call inside loop is
+     also branch from branch prediction POV (and probably better reason
+     to not unroll/peel).  */
+  if (num_loop_branches (loop) > 1
+      && profile_status != PROFILE_READ)
     {
       if (dump_file)
 	fprintf (dump_file, ";; Not peeling, contains branches\n");
@@ -1314,16 +1306,19 @@ decide_peel_simple (struct loop *loop, int flags)
   loop->lpt_decision.times = npeel;
 
   if (dump_file)
-    fprintf (dump_file, ";; Decided to simply peel the loop, %d times.\n",
+    fprintf (dump_file, ";; Decided to simply peel the loop %d times.\n",
 	     loop->lpt_decision.times);
 }
 
-/* Peel a LOOP LOOP->LPT_DECISION.TIMES times.  The transformation:
+/* Peel a LOOP LOOP->LPT_DECISION.TIMES times.  The transformation does this:
+
    while (cond)
      body;
 
-   ==>
+   ==>  (LOOP->LPT_DECISION.TIMES == 3)
 
+   if (!cond) goto end;
+   body;
    if (!cond) goto end;
    body;
    if (!cond) goto end;
@@ -1436,7 +1431,9 @@ decide_unroll_stupid (struct loop *loop, int flags)
     }
 
   /* Do not unroll loops with branches inside -- it increases number
-     of mispredicts.  */
+     of mispredicts. 
+     TODO: this heuristic needs tunning; call inside the loop body
+     is also relatively good reason to not unroll.  */
   if (num_loop_branches (loop) > 1)
     {
       if (dump_file)
@@ -1464,16 +1461,16 @@ decide_unroll_stupid (struct loop *loop, int flags)
   loop->lpt_decision.times = i - 1;
 
   if (dump_file)
-    fprintf (dump_file,
-	     ";; Decided to unroll the loop stupidly, %d times.\n",
+    fprintf (dump_file, ";; Decided to unroll the loop stupidly %d times.\n",
 	     loop->lpt_decision.times);
 }
 
-/* Unroll a LOOP LOOP->LPT_DECISION.TIMES times.  The transformation:
+/* Unroll a LOOP LOOP->LPT_DECISION.TIMES times.  The transformation does this:
+
    while (cond)
      body;
 
-   ==>
+   ==>  (LOOP->LPT_DECISION.TIMES == 3)
 
    while (cond)
      {
@@ -1767,7 +1764,6 @@ analyze_insn_to_expand_var (struct loop *loop, rtx insn)
   ves->op = GET_CODE (src);
   ves->expansion_count = 0;
   ves->reuse_expansion = 0;
-  ves->accum_pos = accum_pos;
   return ves;
 }
 
@@ -2127,9 +2123,7 @@ expand_var_during_unrolling (struct var_to_expand *ve, rtx insn)
   else
     new_reg = get_expansion (ve);
 
-  validate_change (insn, &SET_DEST (set), new_reg, 1);
-  validate_change (insn, &XEXP (SET_SRC (set), ve->accum_pos), new_reg, 1);
-
+  validate_replace_rtx_group (SET_DEST (set), new_reg, insn);
   if (apply_change_group ())
     if (really_new_expansion)
       {
@@ -2169,7 +2163,7 @@ static void
 insert_var_expansion_initialization (struct var_to_expand *ve,
 				     basic_block place)
 {
-  rtx seq, var, zero_init, insn;
+  rtx seq, var, zero_init;
   unsigned i;
   enum machine_mode mode = GET_MODE (ve->reg);
   bool honor_signed_zero_p = HONOR_SIGNED_ZEROS (mode);
@@ -2209,11 +2203,7 @@ insert_var_expansion_initialization (struct var_to_expand *ve,
   seq = get_insns ();
   end_sequence ();
 
-  insn = BB_HEAD (place);
-  while (!NOTE_INSN_BASIC_BLOCK_P (insn))
-    insn = NEXT_INSN (insn);
-
-  emit_insn_after (seq, insn);
+  emit_insn_after (seq, BB_END (place));
 }
 
 /* Combine the variable expansions at the loop exit.  PLACE is the

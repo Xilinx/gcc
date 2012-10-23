@@ -316,6 +316,7 @@ extern const char *mips_output_sync (void);
 extern const char *mips_output_sync_loop (rtx, rtx *);
 extern unsigned int mips_sync_loop_insns (rtx, rtx *);
 extern const char *mips_output_division (const char *, rtx *);
+extern const char *mips_output_probe_stack_range (rtx, rtx);
 extern unsigned int mips_hard_regno_nregs (int, enum machine_mode);
 extern bool mips_linked_madd_p (rtx, rtx);
 extern bool mips_store_data_bypass_p (rtx, rtx);
@@ -350,6 +351,8 @@ extern void mips_expand_vec_unpack (rtx op[2], bool, bool);
 extern void mips_expand_vec_reduc (rtx, rtx, rtx (*)(rtx, rtx, rtx));
 extern void mips_expand_vec_minmax (rtx, rtx, rtx,
 				    rtx (*) (rtx, rtx, rtx), bool);
+
+extern rtx mips_expand_thread_pointer (rtx);
 
 extern bool mips_eh_uses (unsigned int);
 extern bool mips_epilogue_uses (unsigned int);

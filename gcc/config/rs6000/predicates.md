@@ -490,7 +490,6 @@
        (match_test "op == CONST0_RTX (mode)")))
 
 ;; Return 1 if operand is 0.0.
-;; or non-special register register field no cr0
 (define_predicate "zero_fp_constant"
   (and (match_code "const_double")
        (match_test "SCALAR_FLOAT_MODE_P (mode)
@@ -941,12 +940,16 @@
 {
   if (MEM_P (op))
     {
+      if (! volatile_ok && MEM_VOLATILE_P (op))
+	return 0;
       if (mode == DFmode)
 	mode = V2DFmode;
       else if (mode == DImode)
 	mode = V2DImode;
       else
-	gcc_unreachable ();        
+	gcc_unreachable ();
+      return memory_address_addr_space_p (mode, XEXP (op, 0),
+					  MEM_ADDR_SPACE (op));
     }
   return input_operand (op, mode);
 })

@@ -6548,7 +6548,7 @@ sched_init (void)
     sched_pressure = SCHED_PRESSURE_NONE;
 
   if (sched_pressure != SCHED_PRESSURE_NONE)
-    ira_setup_eliminable_regset ();
+    ira_setup_eliminable_regset (false);
 
   /* Initialize SPEC_INFO.  */
   if (targetm.sched.set_sched_flags)
@@ -6633,7 +6633,7 @@ sched_init (void)
 	/* We need info about pseudos for rtl dumps about pseudo
 	   classes and costs.  */
 	regstat_init_n_sets_and_refs ();
-      ira_set_pseudo_classes (sched_verbose ? sched_dump : NULL);
+      ira_set_pseudo_classes (true, sched_verbose ? sched_dump : NULL);
       sched_regno_pressure_class
 	= (enum reg_class *) xmalloc (max_regno * sizeof (enum reg_class));
       for (i = 0; i < max_regno; i++)

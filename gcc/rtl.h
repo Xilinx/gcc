@@ -267,7 +267,8 @@ struct GTY((chain_next ("RTX_NEXT (&%h)"),
      1 in a CALL_INSN if it is a sibling call.
      1 in a SET that is for a return.
      In a CODE_LABEL, part of the two-bit alternate entry field.
-     1 in a CONCAT is VAL_EXPR_IS_COPIED in var-tracking.c.  */
+     1 in a CONCAT is VAL_EXPR_IS_COPIED in var-tracking.c.
+     1 in a VALUE is SP_BASED_VALUE_P in cselib.c.  */
   unsigned int jump : 1;
   /* In a CODE_LABEL, part of the two-bit alternate entry field.
      1 in a MEM if it cannot trap.
@@ -1929,6 +1930,7 @@ extern bool nonzero_address_p (const_rtx);
 extern int rtx_unstable_p (const_rtx);
 extern bool rtx_varies_p (const_rtx, bool);
 extern bool rtx_addr_varies_p (const_rtx, bool);
+extern rtx get_call_rtx_from (rtx);
 extern HOST_WIDE_INT get_integer_term (const_rtx);
 extern rtx get_related_value (const_rtx);
 extern bool offset_within_block_p (const_rtx, HOST_WIDE_INT);
@@ -2370,6 +2372,9 @@ extern int epilogue_completed;
 
 extern int reload_in_progress;
 
+/* Set to 1 while in lra.  */
+extern int lra_in_progress;
+
 /* This macro indicates whether you may create a new
    pseudo-register.  */
 
@@ -2488,7 +2493,12 @@ extern rtx make_compound_operation (rtx, enum rtx_code);
 extern void delete_dead_jumptables (void);
 
 /* In sched-vis.c.  */
-extern void dump_insn_slim (FILE *, const_rtx x);
+extern void debug_bb_n_slim (int);
+extern void debug_bb_slim (struct basic_block_def *);
+extern void print_value_slim (FILE *, const_rtx, int);
+extern void debug_rtl_slim (FILE *, const_rtx, const_rtx, int, int);
+extern void dump_insn_slim (FILE *f, const_rtx x);
+extern void debug_insn_slim (const_rtx x);
 
 /* In sched-rgn.c.  */
 extern void schedule_insns (void);
@@ -2614,6 +2624,7 @@ extern void init_alias_analysis (void);
 extern void end_alias_analysis (void);
 extern void vt_equate_reg_base_value (const_rtx, const_rtx);
 extern bool memory_modified_in_insn_p (const_rtx, const_rtx);
+extern bool memory_must_be_modified_in_insn_p (const_rtx, const_rtx);
 extern bool may_be_sp_based_p (rtx);
 extern rtx gen_hard_reg_clobber (enum machine_mode, unsigned int);
 extern rtx get_reg_known_value (unsigned int);

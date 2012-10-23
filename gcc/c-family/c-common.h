@@ -477,7 +477,9 @@ typedef enum ref_operator {
   /* -> */
   RO_ARROW,
   /* implicit conversion */
-  RO_IMPLICIT_CONVERSION
+  RO_IMPLICIT_CONVERSION,
+  /* ->* */
+  RO_ARROW_STAR
 } ref_operator;
 
 /* Information about a statement tree.  */
@@ -767,8 +769,8 @@ extern tree fix_string_type (tree);
 extern void constant_expression_warning (tree);
 extern void constant_expression_error (tree);
 extern bool strict_aliasing_warning (tree, tree, tree);
-extern void sizeof_pointer_memaccess_warning (location_t, tree,
-					      VEC(tree, gc) *, tree,
+extern void sizeof_pointer_memaccess_warning (location_t *, tree,
+					      VEC(tree, gc) *, tree *,
 					      bool (*) (tree, tree));
 extern void warnings_for_convert_and_check (tree, tree, tree);
 extern tree convert_and_check (tree, tree);
@@ -1019,6 +1021,7 @@ extern tree c_build_bind_expr (location_t, tree, tree);
 
 /* In c-pch.c  */
 extern void pch_init (void);
+extern void pch_cpp_save_state (void);
 extern int c_common_valid_pch (cpp_reader *pfile, const char *name, int fd);
 extern void c_common_read_pch (cpp_reader *pfile, const char *name, int fd,
 			       const char *orig);
