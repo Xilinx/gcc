@@ -1,4 +1,13 @@
 
+2012-10-23  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/xtramelt-ana-gimple.melt (gimple_assign_bit_and)
+	(gimple_assign_bit_ior, gimple_assign_bit_not)
+	(gimple_assign_bit_xor, gimple_assign_lrotate)
+	(gimple_assign_lshift, gimple_assign_max, gimple_assign_min)
+	(gimple_assign_rrotate, gimple_assign_rshift)
+	(gimple_assign_widen_mult): New cmatchers.
+
 2012-10-18  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{Regenerate}}

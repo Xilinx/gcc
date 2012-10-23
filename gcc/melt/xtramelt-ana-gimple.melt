@@ -2,7 +2,7 @@
 ;; file xtramelt-ana-gimple.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
+    Copyright 2008 - 2012 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
                 and Jeremie Salvucci  <jeremie.salvucci@free.fr>
                 and Pierre Vittet  <piervit@pvittet.com>
@@ -351,6 +351,27 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
      $LHS, $RHS, NULL_TREE)}#
   )
 
+;;; match a gimple assign with bitwise not X = ~Y
+(defcmatcher gimple_assign_bit_not
+  (:gimple ga)
+  (:tree lhs
+   :tree rhs)
+  gabnot
+  :doc #{$GIMPLE_ASSIGN_BIT_NOT match or build an unary bitwise not assign into $LHS of $RHS.}# 
+  ;; test
+  #{ /* gimple_assign_unary_bit_not $GABNOT ? */ ($GA 
+     && gimple_expr_code ($GA) == BIT_NOT_EXPR)
+  }#
+  ;; fill
+  #{ /* gimple_assign_bit_not $GABNOT ! */
+       $LHS = gimple_assign_lhs ($GA);
+       $RHS = gimple_assign_rhs1 ($GA);
+  }#
+  ;; operator expansion
+  #{/*gimple_assign_bit_not:*/ gimple_build_assign_with_ops(BIT_NOT_EXPR,
+     $LHS, $RHS, NULL_TREE)}#
+  )
+
 ;;;; match a gimple assign with addition ie X = Y + Z
 (defcmatcher gimple_assign_plus
   (:gimple ga)				;match
@@ -399,6 +420,219 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 )
 
 
+;;;; match a gimple assign with minimum ie X = MIN(Y,  Z)
+(defcmatcher gimple_assign_min
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasmin
+  :doc #{$GIMPLE_ASSIGN_MIN match or build minimum into $LHS of $RHS1 and $RHS2.}#
+  ;; test
+  #{/*gimple_assign_min $GASMIN ?*/ ($ga && is_gimple_assign($ga) 
+     && gimple_expr_code($ga) == MIN_EXPR)}#
+  ;; fill
+  #{/*gimple_assign_min $GASMIN !*/ 
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# 
+  ;; operator expansion
+  #{/*gimple_assign_min:*/ gimple_build_assign_with_ops(MIN_EXPR, 
+    $LHS, $RHS1, $RHS2)}#
+)
+
+;;;; match a gimple assign with maximum ie X = MAX(Y,  Z)
+(defcmatcher gimple_assign_max
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasmax
+  :doc #{$GIMPLE_ASSIGN_MAX match or build maximum into $LHS of $RHS1 and $RHS2.}#
+  ;; test
+  #{/*gimple_assign_max $GASMAX ?*/ ($ga && is_gimple_assign($ga) 
+     && gimple_expr_code($ga) == MAX_EXPR)}#
+  ;; fill
+  #{/*gimple_assign_max $GASMAX !*/ 
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# 
+  ;; operator expansion
+  #{/*gimple_assign_max:*/ gimple_build_assign_with_ops(MAX_EXPR, 
+    $LHS, $RHS1, $RHS2)}#
+)
+
+
+;;bitwise shift
+;;;; match a gimple assign with leftshift ie X = Y lshift Z 
+(defcmatcher gimple_assign_lshift
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gaslsh
+  :doc #{$GIMPLE_ASSIGN_LSHIFT match or build bitwise leftshift into $LHS of $RHS1 and $RHS2.}#
+  ;; test
+  #{/*gimple_assign_lshift $GASLSH ?*/ ($ga && is_gimple_assign($ga) 
+     && gimple_expr_code($ga) == LSHIFT_EXPR)}#
+  ;; fill
+  #{/*gimple_assign_lshift $GASLSH !*/ 
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# 
+  ;; operator expansion
+  #{/*gimple_assign_lshift:*/ gimple_build_assign_with_ops(LSHIFT_EXPR, 
+    $LHS, $RHS1, $RHS2)}#
+)
+
+
+;;;; match a gimple assign with rightshift ie X = Y lshift Z 
+(defcmatcher gimple_assign_rshift
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasrsh
+  :doc #{$GIMPLE_ASSIGN_RSHIFT match or build bitwise rightshift into $LHS of $RHS1 and $RHS2.}#
+  ;; test
+  #{/*gimple_assign_rshift $GASRSH ?*/ ($ga && is_gimple_assign($ga) 
+     && gimple_expr_code($ga) == RSHIFT_EXPR)}#
+  ;; fill
+  #{/*gimple_assign_rshift $GASRSH !*/ 
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# 
+  ;; operator expansion
+  #{/*gimple_assign_rshift:*/ gimple_build_assign_with_ops(RSHIFT_EXPR, 
+    $LHS, $RHS1, $RHS2)}#
+)
+
+
+;; bitwise rotation
+;;;; match a gimple assign with leftrotation ie X = Y lrotate Z 
+(defcmatcher gimple_assign_lrotate
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gaslro
+  :doc #{$GIMPLE_ASSIGN_LROTATE match or build bitwise leftrotate into $LHS of $RHS1 and $RHS2.}#
+  ;; test
+  #{/*gimple_assign_lrotate $GASLRO ?*/ ($ga && is_gimple_assign($ga) 
+     && gimple_expr_code($ga) == LROTATE_EXPR)}#
+  ;; fill
+  #{/*gimple_assign_lrotate $GASLRO !*/ 
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# 
+  ;; operator expansion
+  #{/*gimple_assign_lrotate:*/ gimple_build_assign_with_ops(LROTATE_EXPR, 
+    $LHS, $RHS1, $RHS2)}#
+)
+
+
+;;;; match a gimple assign with rightshift ie X = Y lshift Z 
+(defcmatcher gimple_assign_rrotate
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasrro
+  :doc #{$GIMPLE_ASSIGN_RROTATE match or build bitwise rightrotate into $LHS of $RHS1 and $RHS2.}#
+  ;; test
+  #{/*gimple_assign_rrotate $GASRRO ?*/ ($ga && is_gimple_assign($ga) 
+     && gimple_expr_code($ga) == RROTATE_EXPR)}#
+  ;; fill
+  #{/*gimple_assign_rrotate $GASRRO !*/ 
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# 
+  ;; operator expansion
+  #{/*gimple_assign_rrotate:*/ gimple_build_assign_with_ops(RROTATE_EXPR, 
+    $LHS, $RHS1, $RHS2)}#
+)
+
+;; bitwise and, or, xor
+
+(defcmatcher gimple_assign_bit_ior
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasbior
+  :doc #{$GIMPLE_ASSIGN_BIT_IOR match or build bitwise inclusive-or into $LHS of $RHS1 and $RHS2.}#
+  ;; test
+  #{/*gimple_assign_bit_ior $GASBIOR ?*/ ($ga && is_gimple_assign($ga) 
+     && gimple_expr_code($ga) == BIT_IOR_EXPR)}#
+  ;; fill
+  #{/*gimple_assign_bit_ior $GASBIOR !*/ 
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# 
+  ;; operator expansion
+  #{/*gimple_assign_bit_ior:*/ gimple_build_assign_with_ops(BIT_IOR_EXPR, 
+    $LHS, $RHS1, $RHS2)}#
+)
+
+(defcmatcher gimple_assign_bit_xor
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasbxor
+  :doc #{$GIMPLE_ASSIGN_BIT_XOR match or build bitwise exclusive-or into $LHS of $RHS1 and $RHS2.}#
+  ;; test
+  #{/*gimple_assign_bit_xor $GASBXOR ?*/ ($ga && is_gimple_assign($ga) 
+     && gimple_expr_code($ga) == BIT_XOR_EXPR)}#
+  ;; fill
+  #{/*gimple_assign_bit_xor $GASBXOR !*/ 
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# 
+  ;; operator expansion
+  #{/*gimple_assign_bit_xor:*/ gimple_build_assign_with_ops(BIT_XOR_EXPR, 
+    $LHS, $RHS1, $RHS2)}#
+)
+
+(defcmatcher gimple_assign_bit_and
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasband
+  :doc #{$GIMPLE_ASSIGN_BIT_AND match or build bitwise and into $LHS of $RHS1 and $RHS2.}#
+  ;; test
+  #{/*gimple_assign_bit_and $GASBAND ?*/ ($ga && is_gimple_assign($ga) 
+     && gimple_expr_code($ga) == BIT_AND_EXPR)}#
+  ;; fill
+  #{/*gimple_assign_bit_and $GASBAND !*/ 
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# 
+  ;; operator expansion
+  #{/*gimple_assign_bit_and:*/ gimple_build_assign_with_ops(BIT_AND_EXPR, 
+    $LHS, $RHS1, $RHS2)}#
+)
+
+;; pointer arithmetic
 (defcmatcher gimple_assign_pointerplus
   (:gimple ga)				;match
   (:tree lhs				;left hand side
@@ -443,6 +677,28 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
    }# 
   ;; operator expansion
   #{/*gimple_assign_mult:*/ gimple_build_assign_with_ops(MULT_EXPR, 
+    $LHS, $RHS1, $RHS2)}#
+)
+
+(defcmatcher gimple_assign_widen_mult
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasmult
+  :doc #{$GIMPLE_ASSIGN_WIDEN_MULT match or build a widening multiplication into $LHS of $RHS1 and $RHS2.}#
+  ;; test
+  #{/*gimple_assign_widen_mult $GASMULT ?*/ ($ga && is_gimple_assign($ga) 
+     && gimple_expr_code($ga) == WIDEN_MULT_EXPR)}#
+  ;; fill
+  #{/*gimple_assign_widen_mult $GASMULT !*/ 
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# 
+  ;; operator expansion
+  #{/*gimple_assign_widen_mult:*/ gimple_build_assign_with_ops(WIDEN_MULT_EXPR, 
     $LHS, $RHS1, $RHS2)}#
 )
 
@@ -2286,6 +2542,10 @@ $TREECLOS, TRUE) }#)
  foreach_mapgimple 
  gimple_asm
  gimple_assign_binaryop
+ gimple_assign_bit_and
+ gimple_assign_bit_ior
+ gimple_assign_bit_not
+ gimple_assign_bit_xor
  gimple_assign_cast
  gimple_assign_ceil_div 
  gimple_assign_ceil_mod
@@ -2293,6 +2553,10 @@ $TREECLOS, TRUE) }#)
  gimple_assign_exact_div
  gimple_assign_floor_div
  gimple_assign_floor_mod
+ gimple_assign_lrotate
+ gimple_assign_lshift
+ gimple_assign_max
+ gimple_assign_min
  gimple_assign_minus
  gimple_assign_mult
  gimple_assign_plus
@@ -2300,6 +2564,8 @@ $TREECLOS, TRUE) }#)
  gimple_assign_rdiv
  gimple_assign_round_div
  gimple_assign_round_mod 
+ gimple_assign_rrotate
+ gimple_assign_rshift
  gimple_assign_single
  gimple_assign_ssa_name_copy 
  gimple_assign_to 
@@ -2307,6 +2573,7 @@ $TREECLOS, TRUE) }#)
  gimple_assign_trunc_mod
  gimple_assign_unary_minus
  gimple_assign_unary_nop
+ gimple_assign_widen_mult
  gimple_at_source_location 
  gimple_bind
  gimple_build_assign_convert 
