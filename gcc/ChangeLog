@@ -1,8 +1,155 @@
-2012-10-23  Jakub Jelinek  <jakub@redhat.com>
+2012-10-23  Jeff Law  <law@redhat.com>
 
-	PR c++/54988
-	* decl2.c (cplus_decl_attributes): Don't return early
-	if attributes is NULL.
+	* tree-ssa-threadedge.c (thread_across_edge): Remove unused
+	parameter in call to cond_arg_set_in_bb.
+
+	* tree-ssa-threadedge.c (cond_arg_set_in_bb): Remove unused
+	debugging argument.
+
+	PR tree-optimization/54985
+	* tree-ssa-threadedge.c (cond_arg_set_in_bb): New function extracted
+	from thread_across_edge.
+	(thread_across_edge): Use it in all cases where we might thread
+	across a back edge.
+
+2012-10-23  Vladimir Makarov  <vmakarov@redhat.com>
+
+	* lra-constraints.c (update_ebb_live_info): Process empty blocks.
+
+2012-10-23  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* expmed.c (store_split_bit_field): Update the calls to
+	extract_fixed_bit_field.  In the big-endian case, always
+	use the mode of OP0 to count the number of significant bits.
+	(extract_bit_field_1): Remove unit, offset, bitpos and
+	byte_offset from the outermost scope.  Express conditions in terms
+	of bitnum rather than offset, bitpos and byte_offset.  Move the
+	computation of MODE1 to the block that needs it.  Use MODE unless
+	the TMODE-based mode_for_size calculation succeeds.  Split the
+	plain move cases into two, one for memory accesses and one for
+	register accesses.  Generalize the memory case, freeing it from
+	the old register-based endian checks.  Move the INT_MODE calculation
+	above the code that needs it.  Use simplify_gen_subreg to handle
+	multiword OP0s.  If the field still spans several words, pass it
+	directly to extract_split_bit_field.  Assume after that point
+	that both targets and register sources fit within a word.
+	Replace x-prefixed variables with non-prefixed forms.
+	Compute the bitpos for ext(z)v register operands directly in the
+	chosen unit size, rather than going through an intermediate
+	BITS_PER_WORD unit size.  Simplify the containment check
+	used when forcing OP0 into a register.  Update the call to
+	extract_fixed_bit_field.
+	(extract_fixed_bit_field): Replace the bitpos and offset parameters
+	with a single bitnum parameter, of the same form as extract_bit_field.
+	Assume that OP0 contains the full field.  Simplify the memory offset
+	calculation and containment check for volatile bitfields.  Make the
+	offset explicit when volatile bitfields force a misaligned access.
+	Remove WARNED and fix long lines.  Assert that the processed OP0
+	has an integral mode.
+	(store_split_bit_field): Update the call to store_fixed_bit_field.
+
+2012-10-23  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* expmed.c (lowpart_bit_field_p): New function.
+	(store_bit_field_1): Remove unit, offset, bitpos and byte_offset
+	from the outermost scope.  Express conditions in terms of bitnum
+	rather than offset, bitpos and byte_offset.  Split the plain move
+	cases into two, one for memory accesses and one for register accesses.
+	Allow simplify_gen_subreg to fail rather than calling validate_subreg.
+	Move the handling of multiword OP0s after the code that coerces VALUE
+	to an integer mode.  Use simplify_gen_subreg for this case and assert
+	that it succeeds.  If the field still spans several words, pass it
+	directly to store_split_bit_field.  Assume after that point that
+	both sources and register targets fit within a word.  Replace
+	x-prefixed variables with non-prefixed forms.  Compute the bitpos
+	for insv register operands directly in the chosen unit size, rather
+	than going through an intermediate BITS_PER_WORD unit size.
+	Update the call to store_fixed_bit_field.
+	(store_fixed_bit_field): Replace the bitpos and offset parameters
+	with a single bitnum parameter, of the same form as store_bit_field.
+	Assume that OP0 contains the full field.  Simplify the memory offset
+	calculation.  Assert that the processed OP0 has an integral mode.
+	(store_split_bit_field): Update the call to store_fixed_bit_field.
+
+2012-10-23  Paul Koning  <ni1d@arrl.net>
+
+	PR debug/54508
+	* dwarf2out.c (prune_unused_types_prune): If pruning a class and
+	not all its children were marked, add DW_AT_declaration flag.
+
+2012-10-23  Ian Bolton  <ian.bolton@arm.com>
+	    James Greenhalgh  <james.greenhalgh@arm.com>
+	    Jim MacArthur  <jim.macarthur@arm.com>
+	    Marcus Shawcroft  <marcus.shawcroft@arm.com>
+	    Nigel Stephens  <nigel.stephens@arm.com>
+	    Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+	    Richard Earnshaw  <rearnsha@arm.com>
+	    Sofiane Naci  <sofiane.naci@arm.com>
+	    Stephen Thomas  <stephen.thomas@arm.com>
+	    Tejas Belagod  <tejas.belagod@arm.com>
+	    Yufeng Zhang  <yufeng.zhang@arm.com>
+
+	* config.gcc: Add AArch64.
+	* configure.ac: Add AArch64 TLS support detection.
+	* configure: Regenerate.
+
+2012-10-23  Ian Bolton  <ian.bolton@arm.com>
+	    James Greenhalgh  <james.greenhalgh@arm.com>
+	    Jim MacArthur  <jim.macarthur@arm.com>
+	    Chris Schlumberger-Socha <chris.schlumberger-socha@arm.com>
+	    Marcus Shawcroft  <marcus.shawcroft@arm.com>
+	    Nigel Stephens  <nigel.stephens@arm.com>
+	    Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+	    Richard Earnshaw  <rearnsha@arm.com>
+	    Sofiane Naci  <sofiane.naci@arm.com>
+	    Stephen Thomas  <stephen,thomas@arm.com>
+	    Tejas Belagod  <tejas.belagod@arm.com>
+	    Yufeng Zhang  <yufeng.zhang@arm.com>
+
+	* doc/invoke.texi (AArch64 Options): New.
+	* doc/md.texi (Machine Constraints): Add AArch64.
+
+2012-10-23  Ian Bolton  <ian.bolton@arm.com>
+	    James Greenhalgh  <james.greenhalgh@arm.com>
+	    Jim MacArthur  <jim.macarthur@arm.com>
+	    Chris Schlumberger-Socha <chris.schlumberger-socha@arm.com>
+	    Marcus Shawcroft  <marcus.shawcroft@arm.com>
+	    Nigel Stephens  <nigel.stephens@arm.com>
+	    Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+	    Richard Earnshaw  <rearnsha@arm.com>
+	    Sofiane Naci  <sofiane.naci@arm.com>
+	    Stephen Thomas  <stephen.thomas@arm.com>
+	    Tejas Belagod  <tejas.belagod@arm.com>
+	    Yufeng Zhang  <yufeng.zhang@arm.com>
+
+	* common/config/aarch64/aarch64-common.c: New file.
+	* config/aarch64/aarch64-arches.def: New file.
+	* config/aarch64/aarch64-builtins.c: New file.
+	* config/aarch64/aarch64-cores.def: New file.
+	* config/aarch64/aarch64-elf-raw.h: New file.
+	* config/aarch64/aarch64-elf.h: New file.
+	* config/aarch64/aarch64-generic.md: New file.
+	* config/aarch64/aarch64-linux.h: New file.
+	* config/aarch64/aarch64-modes.def: New file.
+	* config/aarch64/aarch64-option-extensions.def: New file.
+	* config/aarch64/aarch64-opts.h: New file.
+	* config/aarch64/aarch64-protos.h: New file.
+	* config/aarch64/aarch64-simd.md: New file.
+	* config/aarch64/aarch64-tune.md: New file.
+	* config/aarch64/aarch64.c: New file.
+	* config/aarch64/aarch64.h: New file.
+	* config/aarch64/aarch64.md: New file.
+	* config/aarch64/aarch64.opt: New file.
+	* config/aarch64/arm_neon.h: New file.
+	* config/aarch64/constraints.md: New file.
+	* config/aarch64/gentune.sh: New file.
+	* config/aarch64/iterators.md: New file.
+	* config/aarch64/large.md: New file.
+	* config/aarch64/predicates.md: New file.
+	* config/aarch64/small.md: New file.
+	* config/aarch64/sync.md: New file.
+	* config/aarch64/t-aarch64-linux: New file.
+	* config/aarch64/t-aarch64: New file.
 
 2012-10-23  Michael Matz  <matz@suse.de>
 
