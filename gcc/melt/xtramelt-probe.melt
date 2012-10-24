@@ -684,6 +684,10 @@
     (let ( (mainprfil (probe_get_file_of_name probedata mainfilename))
 	   )
       (debug "start_probe mainprfil=" mainprfil)
+      ;;sleep a tiny bit to let the probe show some windows...
+      (code_chunk sleepstartprobe_chk #{ /* start_probe $SLEEPSTARTPROBE_CHK */
+		  usleep (65000);
+		  }#)
       (at_exit_last probe_at_exit)
       (return probedata)
       ))))

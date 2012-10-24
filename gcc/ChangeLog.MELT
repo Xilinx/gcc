@@ -1,4 +1,9 @@
 
+2012-10-24  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/xtramelt-probe.melt (start_probe): Adding a small usleep to
+	let the probe show some windows.
+
 2012-10-23  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/xtramelt-ana-gimple.melt (gimple_assign_bit_and)
