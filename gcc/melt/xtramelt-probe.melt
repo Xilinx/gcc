@@ -804,7 +804,7 @@
 		(shortbacktrace_dbg "scanprobe_exec/lambda-tree/lambda-loc" 15)
 		(let ( (tsbuf (make_strbuf discr_strbuf))
 		       )
-		  (output_tree_briefly tsbuf (tree_content tbox))
+		  (output_tree tsbuf (tree_content tbox))
 		  (return (strbuf2string discr_string tsbuf) bbtreetitle)
 		  )))
 	     (return)

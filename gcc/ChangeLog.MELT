@@ -1,6 +1,11 @@
 
 2012-10-24  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/xtramelt-probe.melt (scanprobe_exec): Use output_tree, not
+	output_tree_briefly, to show trees..
+
+2012-10-24  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/xtramelt-probe.melt (start_probe): Adding a small usleep to
 	let the probe show some windows.
 
