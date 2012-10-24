@@ -1,5 +1,9 @@
 
 2012-10-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.cc (SmeltFile::create_tags): New internal function.
+	(SmeltFile::SmeltFile): Call it.
+
+2012-10-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* MELT-Plugin-Makefile: Improve by using melt_cflags.
 
 2012-10-09  Basile Starynkevitch  <basile@starynkevitch.net>

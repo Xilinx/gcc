@@ -286,6 +286,7 @@ class SmeltFile {
   SmeltLocationInfo* _slastlocinfo;
   static std::map<long,SmeltFile*> mainsfilemapnum_;
   static std::map<std::string,SmeltFile*> mainsfiledict_;
+  void create_tags (Glib::RefPtr<Gsv::Buffer>&);
 public:
   enum pseudofile_en {
     PseudoFile_None,
@@ -1433,8 +1434,31 @@ SmeltArg SmeltArg::parse_string_arg(const std::string& s, int& pos) throw (std::
 
 
 ////////////////////////////////////////////////////////////////
+void
+SmeltFile::create_tags(Glib::RefPtr<Gsv::Buffer>&sbuf)
+{
+  SMELT_DEBUG("create tags _sfilnum#" << _sfilnum);
+  typedef Glib::RefPtr<Gtk::TextTag> tagref_t;
+  {
+    tagref_t tagmeltmark = sbuf->create_tag ("meltmark");
+    tagmeltmark->property_style() = Pango::STYLE_OBLIQUE;
+    tagmeltmark->property_underline() = Pango::UNDERLINE_SINGLE;
+    tagmeltmark->property_background() = "darkred";
+    tagmeltmark->property_foreground() = "yellow";
+    tagmeltmark->signal_event().connect(sigc::mem_fun(this,
+                                        &SmeltFile::on_meltmark_event));
+  }
+  {
+    tagref_t taghighlight = sbuf->create_tag ("highlight");
+    taghighlight->property_background() = "Orange";
+  }
+
+}
+
+////////////////////////////////////////////////////////////////
 SmeltFile::SmeltFile(SmeltMainWindow*mwin,const std::string&filepath,long num)
-  : _sfilnum(num), _sfilnblines(0), _sfilname(filepath), _sfilview(), _slastevent(NULL), _slastlocinfo(NULL)
+  : _sfilnum(num), _sfilnblines(0), _sfilname(filepath),
+    _sfilview(), _slastevent(NULL), _slastlocinfo(NULL)
 {
   SMELT_DEBUG("constructing filepath=" << filepath << " num=" << num << " this@" << (void*)this);
   assert(mwin != SMELT_NULLPTR);
@@ -1445,6 +1469,7 @@ SmeltFile::SmeltFile(SmeltMainWindow*mwin,const std::string&filepath,long num)
   if (filepath.empty() || mainsfiledict_.find(filepath) != mainsfiledict_.end())
     throw smelt_domain_error("SmeltFile: invalid shown file name",filepath);
   Glib::RefPtr<Gsv::Buffer> sbuf = _sfilview.get_source_buffer();
+  SMELT_DEBUG("num#" << num << " sbuf gobj@" << (void*) sbuf->gobj());
   SMELT_DEBUG("guessing language for filepath=" << filepath);
   // sometimes no language is guessed, i.e. when #include-ing foo.def
   Glib::RefPtr<Gsv::LanguageManager> langman = SmeltApplication::instance()->langman();
@@ -1457,30 +1482,16 @@ SmeltFile::SmeltFile(SmeltMainWindow*mwin,const std::string&filepath,long num)
   _sfilview.set_editable(false);
   _sfilview.set_show_line_numbers(true);
   _sfilview.set_show_line_marks(true);
+
   {
     int markprio=1;
     Glib::RefPtr<Gsv::MarkAttributes> markattrs = Gsv::MarkAttributes::create();
     markattrs->set_stock_id(SMELT_MARKLOC_STOCKID);
     _sfilview.set_mark_attributes(SMELT_MARKLOC_CATEGORY,markattrs,markprio);
   }
-
+  create_tags(sbuf);
   _sfilview.signal_motion_notify_event().connect(sigc::mem_fun(this,
       &SmeltFile::on_motion_event));
-  typedef Glib::RefPtr<Gtk::TextTag> tagref_t;
-  {
-    tagref_t tagmeltmark = _sfilview.get_buffer()->create_tag ("meltmark");
-    tagmeltmark->property_style() = Pango::STYLE_OBLIQUE;
-    tagmeltmark->property_underline() = Pango::UNDERLINE_SINGLE;
-    tagmeltmark->property_background() = "darkred";
-    tagmeltmark->property_foreground() = "yellow";
-    tagmeltmark->signal_event().connect(sigc::mem_fun(this,
-                                        &SmeltFile::on_meltmark_event));
-  }
-  {
-    tagref_t taghighlight = _sfilview.get_buffer()->create_tag ("highlight");
-    taghighlight->property_background() = "Orange";
-  }
-
   {
     std::ifstream infil(filepath.c_str());
     int nblines = 0;
@@ -1541,6 +1552,7 @@ SmeltFile::SmeltFile(SmeltMainWindow*mwin,SmeltFile::pseudofile_en pseudokind,lo
     break;
   }
   _sfilname = pseudopath;
+  SMELT_DEBUG(" _sfilname=" << _sfilname);
   if (num == 0 || mainsfilemapnum_.find(num) != mainsfilemapnum_.end())
     throw smelt_domain_error("SmeltFile: invalid shown file number",smelt_long_to_string(num));
   if (pseudopath.empty() || mainsfiledict_.find(pseudopath) != mainsfiledict_.end())
@@ -1549,6 +1561,7 @@ SmeltFile::SmeltFile(SmeltMainWindow*mwin,SmeltFile::pseudofile_en pseudokind,lo
   sbuf->insert(sbuf->end(),"pseudo file ");
   sbuf->insert(sbuf->end(),pseudopath);
   sbuf->insert(sbuf->end(),"\n");
+  create_tags(sbuf);
   SMELT_DEBUG("filled for " << pseudopath);
   _sfilview.set_editable(false);
   _sfilview.set_show_line_numbers(true);
@@ -1559,6 +1572,7 @@ SmeltFile::SmeltFile(SmeltMainWindow*mwin,SmeltFile::pseudofile_en pseudokind,lo
     markattrs->set_stock_id(SMELT_MARKLOC_STOCKID);
     _sfilview.set_mark_attributes(SMELT_MARKLOC_CATEGORY,markattrs,markprio);
   }
+  SMELT_DEBUG("num#" << num << " sbuf gobj@" << (void*) sbuf->gobj());
   {
     Gtk::ScrolledWindow* scrowin = new Gtk::ScrolledWindow;
     scrowin->add (_sfilview);
@@ -1602,7 +1616,7 @@ void SmeltFile::add_location_info(SmeltLocationInfo*inf)
 {
   g_assert (inf !=  NULL);
   SMELT_DEBUG("addlocinfo inf#" << inf->num()
-	      << " line "<< inf->lineno() << " col " << inf->col());
+              << " line "<< inf->lineno() << " col " << inf->col());
   linelocinfovec_t& locvec = _slineinfomap[inf->lineno()];
   locvec.push_back(inf);
 }
@@ -1628,7 +1642,7 @@ SmeltFile::on_meltmark_event(const Glib::RefPtr<Glib::Object>&ob,
 {
   if (it.get_buffer() == _sfilview.get_buffer()) {
     SmeltLocationInfo* locinf = NULL;
-    int lin = it.get_line()+1;	// we count lines from 1 but Gtk count them from 0
+    int lin = it.get_line()+1;  // we count lines from 1 but Gtk count them from 0
     //SMELT_DEBUG("meltmarkevent ev type#" << ev->type << ", line " << lin);
     infolinemap_t::iterator infiter = _slineinfomap.find(lin);
     if (infiter != _slineinfomap.end()) {
@@ -1861,9 +1875,11 @@ SmeltLocationInfo::activate(void)
   SMELT_DEBUG("activate #" << _sli_num);
   g_assert (_sli_fil != NULL);
   Glib::RefPtr<Gsv::Buffer> tbuf = _sli_fil->view().get_source_buffer();
+  SMELT_DEBUG("activate tbuf gobj=" << (void*) tbuf->gobj());
   Gtk::TextIter stit = text_start_iter();
   Gtk::TextIter enit = text_end_iter();
   tbuf->apply_tag_by_name ("meltmark", stit, enit);
+  SMELT_DEBUG("done activate #" << _sli_num);
 }
 
 void
@@ -2649,7 +2665,7 @@ SmeltApplication::setstatus_cmd(SmeltVector&v)
 ////////////////////////////////////////////////////////////////
 /**** for emacs
   ++ Local Variables: ++
-  ++ compile-command: "g++ -Wall -O -g $(pkg-config --cflags --libs gtksourceviewmm-3.0  gtkmm-3.0  gtk+-3.0) -o $HOME/bin/simplemelt-gtkmm-probe simplemelt-gtkmm-probe.cc" ++
+  ++ compile-command: "g++ -Wall -O -g  simplemelt-gtkmm-probe.cc $(pkg-config --cflags --libs gtksourceviewmm-3.0  gtkmm-3.0  gtk+-3.0) -o $HOME/bin/simplemelt-gtkmm-probe" ++
   ++ End: ++
 
   To install, add a script or symlink called melt-probe somewhere in
