@@ -1,5 +1,5 @@
 
-2012-10-09  Basile Starynkevitch  <basile@starynkevitch.net>
+2012-10-34  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.cc (SmeltFile::create_tags): New internal function.
 	(SmeltFile::SmeltFile): Call it.
 
