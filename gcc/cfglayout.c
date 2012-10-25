@@ -766,7 +766,8 @@ fixup_reorder_chain (void)
         edge_iterator ei;
 
         FOR_EACH_EDGE (e, ei, bb->succs)
-	  if (e->goto_locus && !(e->flags & EDGE_ABNORMAL))
+	  if (LOCATION_LOCUS (e->goto_locus) != UNKNOWN_LOCATION
+	      && !(e->flags & EDGE_ABNORMAL))
 	    {
 	      edge e2;
 	      edge_iterator ei2;
@@ -815,7 +816,7 @@ fixup_reorder_chain (void)
 		 well, this can prevent other such blocks from being created
 		 in subsequent iterations of the loop.  */
 	      for (ei2 = ei_start (dest->preds); (e2 = ei_safe_edge (ei2)); )
-		if (e2->goto_locus
+		if (LOCATION_LOCUS (e2->goto_locus) != UNKNOWN_LOCATION
 		    && !(e2->flags & (EDGE_ABNORMAL | EDGE_FALLTHRU))
 		    && e->goto_locus == e2->goto_locus)
 		  redirect_edge_and_branch (e2, nb);

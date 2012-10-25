@@ -1,3 +1,10 @@
+2012-10-25  Dehao Chen  <dehao@google.com>
+
+	Backport r191810 from trunk.
+
+	* cfglayout.c (fixup_reorder_chain): Compare locus against
+	UNKNOWN_LOCATION.
+
 2012-10-20   Xinliang David Li  <davidxl@google.com>
 
 	* dwarf2out.c: change functdef etc to be long time.
