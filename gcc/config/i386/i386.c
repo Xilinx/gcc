@@ -2267,7 +2267,11 @@ static unsigned int initial_ix86_tune_features[X86_TUNE_LAST] = {
 
   /* X86_TUNE_REASSOC_FP_TO_PARALLEL: Try to produce parallel computations
      during reassociation of fp computation.  */
-  m_ATOM
+  m_ATOM,
+
+  /* X86_TUNE_GENERAL_REGS_SSE_SPILL: Try to spill general regs to SSE
+     regs instead of memory.  */
+  m_COREI7 | m_CORE2I7
 };
 
 /* Feature tests against the various architecture variations.  */
@@ -23764,7 +23768,7 @@ memory_address_length (rtx addr, bool lea)
 {
   struct ix86_address parts;
   rtx base, index, disp;
-  int len = 0;
+  int len;
   int ok;
 
   if (GET_CODE (addr) == PRE_DEC
@@ -23776,14 +23780,26 @@ memory_address_length (rtx addr, bool lea)
   ok = ix86_decompose_address (addr, &parts);
   gcc_assert (ok);
 
-  if (parts.base && GET_CODE (parts.base) == SUBREG)
-    parts.base = SUBREG_REG (parts.base);
-  if (parts.index && GET_CODE (parts.index) == SUBREG)
-    parts.index = SUBREG_REG (parts.index);
+  len = (parts.seg == SEG_DEFAULT) ? 0 : 1;
+
+  /*  If this is not LEA instruction, add the length of addr32 prefix.  */
+  if (TARGET_64BIT && !lea
+      && (SImode_address_operand (addr, VOIDmode)
+	  || (parts.base && GET_MODE (parts.base) == SImode)
+	  || (parts.index && GET_MODE (parts.index) == SImode)))
+    len++;
 
   base = parts.base;
   index = parts.index;
   disp = parts.disp;
+
+  if (base && GET_CODE (base) == SUBREG)
+    base = SUBREG_REG (base);
+  if (index && GET_CODE (index) == SUBREG)
+    index = SUBREG_REG (index);
+
+  gcc_assert (base == NULL_RTX || REG_P (base));
+  gcc_assert (index == NULL_RTX || REG_P (index));
 
   /* Rule of thumb:
        - esp as the base always wants an index,
@@ -23797,14 +23813,13 @@ memory_address_length (rtx addr, bool lea)
       /* esp (for its index) and ebp (for its displacement) need
 	 the two-byte modrm form.  Similarly for r12 and r13 in 64-bit
 	 code.  */
-      if (REG_P (base)
-	  && (base == arg_pointer_rtx
-	      || base == frame_pointer_rtx
-	      || REGNO (base) == SP_REG
-	      || REGNO (base) == BP_REG
-	      || REGNO (base) == R12_REG
-	      || REGNO (base) == R13_REG))
-	len = 1;
+      if (base == arg_pointer_rtx
+	  || base == frame_pointer_rtx
+	  || REGNO (base) == SP_REG
+	  || REGNO (base) == BP_REG
+	  || REGNO (base) == R12_REG
+	  || REGNO (base) == R13_REG)
+	len++;
     }
 
   /* Direct Addressing.  In 64-bit mode mod 00 r/m 5
@@ -23814,7 +23829,7 @@ memory_address_length (rtx addr, bool lea)
      by UNSPEC.  */
   else if (disp && !base && !index)
     {
-      len = 4;
+      len += 4;
       if (TARGET_64BIT)
 	{
 	  rtx symbol = disp;
@@ -23832,7 +23847,7 @@ memory_address_length (rtx addr, bool lea)
 		  || (XINT (symbol, 1) != UNSPEC_GOTPCREL
 		      && XINT (symbol, 1) != UNSPEC_PCREL
 		      && XINT (symbol, 1) != UNSPEC_GOTNTPOFF)))
-	    len += 1;
+	    len++;
 	}
     }
   else
@@ -23841,40 +23856,22 @@ memory_address_length (rtx addr, bool lea)
       if (disp)
 	{
 	  if (base && satisfies_constraint_K (disp))
-	    len = 1;
+	    len += 1;
 	  else
-	    len = 4;
+	    len += 4;
 	}
       /* ebp always wants a displacement.  Similarly r13.  */
-      else if (base && REG_P (base)
-	       && (REGNO (base) == BP_REG || REGNO (base) == R13_REG))
-	len = 1;
+      else if (base && (REGNO (base) == BP_REG || REGNO (base) == R13_REG))
+	len++;
 
       /* An index requires the two-byte modrm form....  */
       if (index
 	  /* ...like esp (or r12), which always wants an index.  */
 	  || base == arg_pointer_rtx
 	  || base == frame_pointer_rtx
-	  || (base && REG_P (base)
-	      && (REGNO (base) == SP_REG || REGNO (base) == R12_REG)))
-	len += 1;
+	  || (base && (REGNO (base) == SP_REG || REGNO (base) == R12_REG)))
+	len++;
     }
-
-  switch (parts.seg)
-    {
-    case SEG_FS:
-    case SEG_GS:
-      len += 1;
-      break;
-    default:
-      break;
-    }
-
-  /*  If this is not LEA instruction, add the length of addr32 prefix.  */
-  if (TARGET_64BIT && !lea
-      && ((base && GET_MODE (base) == SImode)
-	  || (index && GET_MODE (index) == SImode)))
-    len += 1;
 
   return len;
 }
@@ -32053,6 +32050,38 @@ ix86_free_from_memory (enum machine_mode mode)
     }
 }
 
+/* Return true if we use LRA instead of reload pass.  */
+static bool
+ix86_lra_p (void)
+{
+  return true;
+}
+
+/* Return a register priority for hard reg REGNO.  */
+static int
+ix86_register_priority (int hard_regno)
+{
+  /* ebp and r13 as the base always wants a displacement, r12 as the
+     base always wants an index.  So discourage their usage in an
+     address.  */
+  if (hard_regno == R12_REG || hard_regno == R13_REG)
+    return 0;
+  if (hard_regno == BP_REG)
+    return 1;
+  /* New x86-64 int registers result in bigger code size.  Discourage
+     them.  */
+  if (FIRST_REX_INT_REG <= hard_regno && hard_regno <= LAST_REX_INT_REG)
+    return 2;
+  /* New x86-64 SSE registers result in bigger code size.  Discourage
+     them.  */
+  if (FIRST_REX_SSE_REG <= hard_regno && hard_regno <= LAST_REX_SSE_REG)
+    return 2;
+  /* Usage of AX register results in smaller code.  Prefer it.  */
+  if (hard_regno == 0)
+    return 4;
+  return 3;
+}
+
 /* Implement TARGET_PREFERRED_RELOAD_CLASS.
 
    Put float CONST_DOUBLE in the constant pool instead of fp regs.
@@ -32186,6 +32215,9 @@ ix86_secondary_reload (bool in_p, rtx x, reg_class_t rclass,
       && !in_p && mode == QImode
       && (rclass == GENERAL_REGS
 	  || rclass == LEGACY_REGS
+	  || rclass == NON_Q_REGS
+	  || rclass == SIREG
+	  || rclass == DIREG
 	  || rclass == INDEX_REGS))
     {
       int regno;
@@ -32295,7 +32327,7 @@ inline_secondary_memory_needed (enum reg_class class1, enum reg_class class2,
       || MAYBE_MMX_CLASS_P (class1) != MMX_CLASS_P (class1)
       || MAYBE_MMX_CLASS_P (class2) != MMX_CLASS_P (class2))
     {
-      gcc_assert (!strict);
+      gcc_assert (!strict || lra_in_progress);
       return true;
     }
 
@@ -40846,6 +40878,22 @@ ix86_autovectorize_vector_sizes (void)
   return (TARGET_AVX && !TARGET_PREFER_AVX128) ? 32 | 16 : 0;
 }
 
+
+
+/* Return class of registers which could be used for pseudo of MODE
+   and of class RCLASS for spilling instead of memory.  Return NO_REGS
+   if it is not possible or non-profitable.  */
+static reg_class_t
+ix86_spill_class (reg_class_t rclass, enum machine_mode mode)
+{
+  if (TARGET_SSE && TARGET_GENERAL_REGS_SSE_SPILL && ! TARGET_MMX
+      && hard_reg_set_subset_p (reg_class_contents[rclass],
+				reg_class_contents[GENERAL_REGS])
+      && (mode == SImode || (TARGET_64BIT && mode == DImode)))
+    return SSE_REGS;
+  return NO_REGS;
+}
+
 /* Implement targetm.vectorize.init_cost.  */
 
 static void *
@@ -41248,6 +41296,12 @@ ix86_memmodel_check (unsigned HOST_WIDE_INT val)
 #undef TARGET_LEGITIMATE_ADDRESS_P
 #define TARGET_LEGITIMATE_ADDRESS_P ix86_legitimate_address_p
 
+#undef TARGET_LRA_P
+#define TARGET_LRA_P ix86_lra_p
+
+#undef TARGET_REGISTER_PRIORITY
+#define TARGET_REGISTER_PRIORITY ix86_register_priority
+
 #undef TARGET_LEGITIMATE_CONSTANT_P
 #define TARGET_LEGITIMATE_CONSTANT_P ix86_legitimate_constant_p
 
@@ -41270,6 +41324,9 @@ ix86_memmodel_check (unsigned HOST_WIDE_INT val)
 #undef TARGET_INIT_LIBFUNCS
 #define TARGET_INIT_LIBFUNCS darwin_rename_builtins
 #endif
+
+#undef TARGET_SPILL_CLASS
+#define TARGET_SPILL_CLASS ix86_spill_class
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
