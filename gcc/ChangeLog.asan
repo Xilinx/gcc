@@ -1,3 +1,8 @@
+2012-10-26  Dodji Seketeli  <dodji@redhat.com>
+
+	* asan.c (build_check_stmt): Accept the memory access to be
+	represented by an SSA_NAME.
+
 2012-10-25  Wei Mi  <wmi@google.com>
 
 	* varasm.c (assemble_variable): Set asan_protected even 
