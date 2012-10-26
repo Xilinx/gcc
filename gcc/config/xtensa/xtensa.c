@@ -1087,7 +1087,7 @@ fixup_subreg_mem (rtx x)
 	gen_rtx_SUBREG (GET_MODE (x),
 			reg_equiv_mem (REGNO (SUBREG_REG (x))),
 			SUBREG_BYTE (x));
-      x = alter_subreg (&temp);
+      x = alter_subreg (&temp, true);
     }
   return x;
 }
@@ -3133,7 +3133,6 @@ xtensa_expand_builtin (tree exp, rtx target,
 {
   tree fndecl = TREE_OPERAND (CALL_EXPR_FN (exp), 0);
   unsigned int fcode = DECL_FUNCTION_CODE (fndecl);
-  rtx arg;
 
   switch (fcode)
     {

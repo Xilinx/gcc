@@ -519,6 +519,7 @@ decide_unroll_constant_iterations (struct loop *loop, int flags)
 {
   unsigned nunroll, nunroll_by_av, best_copies, best_unroll = 0, n_copies, i;
   struct niter_desc *desc;
+  double_int iterations;
 
   if (!(flags & UAP_UNROLL))
     {
@@ -561,8 +562,14 @@ decide_unroll_constant_iterations (struct loop *loop, int flags)
       return;
     }
 
-  /* Check whether the loop rolls enough to consider.  */
-  if (desc->niter < 2 * nunroll)
+  /* Check whether the loop rolls enough to consider.  
+     Consult also loop bounds and profile; in the case the loop has more
+     than one exit it may well loop less than determined maximal number
+     of iterations.  */
+  if (desc->niter < 2 * nunroll
+      || ((estimated_loop_iterations (loop, &iterations)
+	   || max_loop_iterations (loop, &iterations))
+	  && iterations.ult (double_int::from_shwi (2 * nunroll))))
     {
       if (dump_file)
 	fprintf (dump_file, ";; Not unrolling loop, doesn't roll\n");
@@ -1221,7 +1228,6 @@ static void
 decide_peel_simple (struct loop *loop, int flags)
 {
   unsigned npeel;
-  struct niter_desc *desc;
   double_int iterations;
 
   if (!(flags & UAP_PEEL))
@@ -1246,20 +1252,17 @@ decide_peel_simple (struct loop *loop, int flags)
       return;
     }
 
-  /* Check for simple loops.  */
-  desc = get_simple_loop_desc (loop);
-
-  /* Check number of iterations.  */
-  if (desc->simple_p && !desc->assumptions && desc->const_iter)
-    {
-      if (dump_file)
-	fprintf (dump_file, ";; Loop iterates constant times\n");
-      return;
-    }
-
   /* Do not simply peel loops with branches inside -- it increases number
-     of mispredicts.  */
-  if (num_loop_branches (loop) > 1)
+     of mispredicts.  
+     Exception is when we do have profile and we however have good chance
+     to peel proper number of iterations loop will iterate in practice.
+     TODO: this heuristic needs tunning; while for complette unrolling
+     the branch inside loop mostly eliminates any improvements, for
+     peeling it is not the case.  Also a function call inside loop is
+     also branch from branch prediction POV (and probably better reason
+     to not unroll/peel).  */
+  if (num_loop_branches (loop) > 1
+      && profile_status != PROFILE_READ)
     {
       if (dump_file)
 	fprintf (dump_file, ";; Not peeling, contains branches\n");
@@ -1428,7 +1431,9 @@ decide_unroll_stupid (struct loop *loop, int flags)
     }
 
   /* Do not unroll loops with branches inside -- it increases number
-     of mispredicts.  */
+     of mispredicts. 
+     TODO: this heuristic needs tunning; call inside the loop body
+     is also relatively good reason to not unroll.  */
   if (num_loop_branches (loop) > 1)
     {
       if (dump_file)

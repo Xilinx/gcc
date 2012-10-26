@@ -3277,9 +3277,6 @@ expand_call (tree exp, rtx target, int ignore)
 	  else
 	    emit_group_store (target, valreg, rettype,
 			      int_size_in_bytes (rettype));
-
-	  /* We can not support sibling calls for this case.  */
-	  sibcall_failure = 1;
 	}
       else if (target
 	       && GET_MODE (target) == TYPE_MODE (rettype)
@@ -3326,16 +3323,6 @@ expand_call (tree exp, rtx target, int ignore)
 	      if (MEM_P (target))
 		sibcall_failure = 1;
 	    }
-	}
-      else if (TYPE_MODE (rettype) == BLKmode)
-	{
-	  rtx val = valreg;
-	  if (GET_MODE (val) != BLKmode)
-	    val = avoid_likely_spilled_reg (val);
-	  target = copy_blkmode_from_reg (target, val, rettype);
-
-	  /* We can not support sibling calls for this case.  */
-	  sibcall_failure = 1;
 	}
       else
 	target = copy_to_reg (avoid_likely_spilled_reg (valreg));

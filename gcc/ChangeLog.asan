@@ -1,3 +1,7 @@
+2012-10-26  Diego Novillo  <dnovillo@google.com>
+
+	Merge from trunk rev 192857.
+
 2012-10-26  Dodji Seketeli  <dodji@redhat.com>
 
 	* asan.c (insert_if_then_before_iter, instrument_mem_region_access,
@@ -22,7 +26,7 @@
 	* asan.c (build_check_stmt): Accept the memory access to be
 	represented by an SSA_NAME.
 
-2012-10-25  Wei Mi  <wmi@google.com>
+2012-10-25  Wei Mi <wmi@google.com>
 
 	* varasm.c (assemble_variable): Set asan_protected even 
 	for decls that are already ASAN_RED_ZONE_SIZE or more 
