@@ -1,3 +1,9 @@
+2012-10-25  Wei Mi  <wmi@google.com>
+
+	* varasm.c (assemble_variable): Set asan_protected even 
+	for decls that are already ASAN_RED_ZONE_SIZE or more 
+	bytes aligned.
+
 2012-10-19  Diego Novillo  <dnovillo@google.com>
 
 	Merge from trunk rev 192612.

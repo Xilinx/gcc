@@ -1991,11 +1991,11 @@ assemble_variable (tree decl, int top_level ATTRIBUTE_UNUSED,
   align_variable (decl, dont_output_data);
 
   if (flag_asan
-      && asan_protect_global (decl)
-      && DECL_ALIGN (decl) < ASAN_RED_ZONE_SIZE * BITS_PER_UNIT)
+      && asan_protect_global (decl))
     {
       asan_protected = true;
-      DECL_ALIGN (decl) = ASAN_RED_ZONE_SIZE * BITS_PER_UNIT;
+      DECL_ALIGN (decl) = MAX (DECL_ALIGN (decl), 
+                               ASAN_RED_ZONE_SIZE * BITS_PER_UNIT);
     }
 
   set_mem_align (decl_rtl, DECL_ALIGN (decl));
