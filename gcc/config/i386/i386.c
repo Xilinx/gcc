@@ -3162,7 +3162,7 @@ ix86_option_override_internal (bool main_args_p)
 	       TARGET_64BIT ? "64" : "32");
     }
   else
-    ix86_pmode = TARGET_LP64 ? PMODE_DI : PMODE_SI;
+    ix86_pmode = TARGET_64BIT ? PMODE_DI : PMODE_SI;
 
   if (!global_options_set.x_ix86_abi)
     ix86_abi = DEFAULT_ABI;
