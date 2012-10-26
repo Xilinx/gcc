@@ -30,7 +30,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "c-pragma.h"
 #include "flags.h"
 #include "c-common.h"
-#include "output.h"
 #include "tm_p.h"		/* For REGISTER_TARGET_PRAGMAS (why is
 				   this not a target hook?).  */
 #include "vec.h"
@@ -373,10 +372,8 @@ handle_pragma_weak (cpp_reader * ARG_UNUSED (dummy))
     }
   else
     {
-      pending_weak *pe;
-      pe = VEC_safe_push (pending_weak, gc, pending_weaks, NULL);
-      pe->name = name;
-      pe->value = value;
+      pending_weak pe = {name, value};
+      VEC_safe_push (pending_weak, gc, pending_weaks, pe);
     }
 }
 
@@ -500,9 +497,8 @@ add_to_renaming_pragma_list (tree oldname, tree newname)
 	return;
       }
 
-  p = VEC_safe_push (pending_redefinition, gc, pending_redefine_extname, NULL);
-  p->oldname = oldname;
-  p->newname = newname;
+  pending_redefinition e = {oldname, newname};
+  VEC_safe_push (pending_redefinition, gc, pending_redefine_extname, e);
 }
 
 /* The current prefix set by #pragma extern_prefix.  */
@@ -1210,9 +1206,9 @@ c_pp_lookup_pragma (unsigned int id, const char **space, const char **name)
 	  + VEC_length (pragma_ns_name, registered_pp_pragmas)))
     {
       *space = VEC_index (pragma_ns_name, registered_pp_pragmas,
-			  id - PRAGMA_FIRST_EXTERNAL)->space;
+			  id - PRAGMA_FIRST_EXTERNAL).space;
       *name = VEC_index (pragma_ns_name, registered_pp_pragmas,
-			 id - PRAGMA_FIRST_EXTERNAL)->name;
+			 id - PRAGMA_FIRST_EXTERNAL).name;
       return;
     }
 
@@ -1237,14 +1233,14 @@ c_register_pragma_1 (const char *space, const char *name,
 
       ns_name.space = space;
       ns_name.name = name;
-      VEC_safe_push (pragma_ns_name, heap, registered_pp_pragmas, &ns_name);
+      VEC_safe_push (pragma_ns_name, heap, registered_pp_pragmas, ns_name);
       id = VEC_length (pragma_ns_name, registered_pp_pragmas);
       id += PRAGMA_FIRST_EXTERNAL - 1;
     }
   else
     {
       VEC_safe_push (internal_pragma_handler, heap, registered_pragmas,
-                     &ihandler);
+                     ihandler);
       id = VEC_length (internal_pragma_handler, registered_pragmas);
       id += PRAGMA_FIRST_EXTERNAL - 1;
 
@@ -1335,7 +1331,7 @@ c_invoke_pragma_handler (unsigned int id)
   pragma_handler_2arg handler_2arg;
 
   id -= PRAGMA_FIRST_EXTERNAL;
-  ihandler = VEC_index (internal_pragma_handler, registered_pragmas, id);
+  ihandler = &VEC_index (internal_pragma_handler, registered_pragmas, id);
   if (ihandler->extra_data)
     {
       handler_2arg = ihandler->handler.handler_2arg;

@@ -264,7 +264,7 @@
    fpcmp,
    fpmul,fpdivs,fpdivd,
    fpsqrts,fpsqrtd,
-   fga,fgm_pack,fgm_mul,fgm_pdist,edge,edgen,gsr,array,
+   fga,visl,vismv,fgm_pack,fgm_mul,pdist,pdistn,edge,edgen,gsr,array,
    cmove,
    ialuX,
    multi,savew,flushw,iflush,trap"
@@ -290,7 +290,7 @@
 		 ? CALLS_EH_RETURN_TRUE : CALLS_EH_RETURN_FALSE)"))
 
 (define_attr "leaf_function" "false,true"
-  (symbol_ref "(current_function_uses_only_leaf_regs != 0
+  (symbol_ref "(crtl->uses_only_leaf_regs != 0
 		? LEAF_FUNCTION_TRUE : LEAF_FUNCTION_FALSE)"))
 
 (define_attr "delayed_branch" "false,true"
@@ -1457,7 +1457,7 @@
    st\t%1, %0
    fzeros\t%0
    fones\t%0"
-  [(set_attr "type" "*,*,load,store,*,*,fpmove,fpload,fpstore,fga,fga")
+  [(set_attr "type" "*,*,load,store,vismv,vismv,fpmove,fpload,fpstore,visl,visl")
    (set_attr "cpu_feature" "*,*,*,*,vis3,vis3,*,*,*,vis,vis")])
 
 (define_insn "*movsi_lo_sum"
@@ -1622,7 +1622,7 @@
    std\t%1, %0
    fzero\t%0
    fone\t%0"
-  [(set_attr "type" "store,store,store,load,*,*,*,*,fpstore,fpload,*,*,fpmove,*,*,*,fpload,fpstore,fga,fga")
+  [(set_attr "type" "store,store,store,load,*,*,*,*,fpstore,fpload,*,*,fpmove,*,*,*,fpload,fpstore,visl,visl")
    (set_attr "length" "*,2,*,*,2,2,2,2,*,*,2,2,*,2,2,2,*,*,*,*")
    (set_attr "fptype" "*,*,*,*,*,*,*,*,*,*,*,*,double,*,*,*,*,*,double,double")
    (set_attr "cpu_feature" "v9,*,*,*,*,*,*,*,fpu,fpu,fpu,fpu,v9,fpunotv9,vis3,vis3,fpu,fpu,vis,vis")])
@@ -1645,7 +1645,7 @@
    std\t%1, %0
    fzero\t%0
    fone\t%0"
-  [(set_attr "type" "*,*,load,store,*,*,fpmove,fpload,fpstore,fga,fga")
+  [(set_attr "type" "*,*,load,store,vismv,vismv,fpmove,fpload,fpstore,visl,visl")
    (set_attr "fptype" "*,*,*,*,*,*,double,*,*,double,double")
    (set_attr "cpu_feature" "*,*,*,*,vis3,vis3,*,*,*,vis,vis")])
 
@@ -2034,6 +2034,164 @@
   DONE;
 })
 
+(define_expand "movti"
+  [(set (match_operand:TI 0 "nonimmediate_operand" "")
+	(match_operand:TI 1 "general_operand" ""))]
+  "TARGET_ARCH64"
+{
+  if (sparc_expand_move (TImode, operands))
+    DONE;
+})
+
+;; We need to prevent reload from splitting TImode moves, because it
+;; might decide to overwrite a pointer with the value it points to.
+;; In that case we have to do the loads in the appropriate order so
+;; that the pointer is not destroyed too early.
+
+(define_insn "*movti_insn_sp64"
+  [(set (match_operand:TI 0 "nonimmediate_operand" "=r , o,?*e,?o,b")
+        (match_operand:TI 1 "input_operand"        "roJ,rJ, eo, e,J"))]
+  "TARGET_ARCH64
+   && ! TARGET_HARD_QUAD
+   && (register_operand (operands[0], TImode)
+       || register_or_zero_operand (operands[1], TImode))"
+  "#"
+  [(set_attr "length" "2,2,2,2,2")
+   (set_attr "cpu_feature" "*,*,fpu,fpu,vis")])
+
+(define_insn "*movti_insn_sp64_hq"
+  [(set (match_operand:TI 0 "nonimmediate_operand" "=r , o,?*e,?*e,?m,b")
+        (match_operand:TI 1 "input_operand"        "roJ,rJ,  e,  m, e,J"))]
+  "TARGET_ARCH64
+   && TARGET_HARD_QUAD
+   && (register_operand (operands[0], TImode)
+       || register_or_zero_operand (operands[1], TImode))"
+  "@
+  #
+  #
+  fmovq\t%1, %0
+  ldq\t%1, %0
+  stq\t%1, %0
+  #"
+  [(set_attr "type" "*,*,fpmove,fpload,fpstore,*")
+   (set_attr "length" "2,2,*,*,*,2")])
+
+;; Now all the splits to handle multi-insn TI mode moves.
+(define_split
+  [(set (match_operand:TI 0 "register_operand" "")
+        (match_operand:TI 1 "register_operand" ""))]
+  "reload_completed
+   && ((TARGET_FPU
+        && ! TARGET_HARD_QUAD)
+       || (! fp_register_operand (operands[0], TImode)
+           && ! fp_register_operand (operands[1], TImode)))"
+  [(clobber (const_int 0))]
+{
+  rtx set_dest = operands[0];
+  rtx set_src = operands[1];
+  rtx dest1, dest2;
+  rtx src1, src2;
+
+  dest1 = gen_highpart (DImode, set_dest);
+  dest2 = gen_lowpart (DImode, set_dest);
+  src1 = gen_highpart (DImode, set_src);
+  src2 = gen_lowpart (DImode, set_src);
+
+  /* Now emit using the real source and destination we found, swapping
+     the order if we detect overlap.  */
+  if (reg_overlap_mentioned_p (dest1, src2))
+    {
+      emit_insn (gen_movdi (dest2, src2));
+      emit_insn (gen_movdi (dest1, src1));
+    }
+  else
+    {
+      emit_insn (gen_movdi (dest1, src1));
+      emit_insn (gen_movdi (dest2, src2));
+    }
+  DONE;
+})
+
+(define_split
+  [(set (match_operand:TI 0 "nonimmediate_operand" "")
+        (match_operand:TI 1 "const_zero_operand" ""))]
+  "reload_completed"
+  [(clobber (const_int 0))]
+{
+  rtx set_dest = operands[0];
+  rtx dest1, dest2;
+
+  switch (GET_CODE (set_dest))
+    {
+    case REG:
+      dest1 = gen_highpart (DImode, set_dest);
+      dest2 = gen_lowpart (DImode, set_dest);
+      break;
+    case MEM:
+      dest1 = adjust_address (set_dest, DImode, 0);
+      dest2 = adjust_address (set_dest, DImode, 8);
+      break;
+    default:
+      gcc_unreachable ();
+    }
+
+  emit_insn (gen_movdi (dest1, const0_rtx));
+  emit_insn (gen_movdi (dest2, const0_rtx));
+  DONE;
+})
+
+(define_split
+  [(set (match_operand:TI 0 "register_operand" "")
+        (match_operand:TI 1 "memory_operand" ""))]
+  "reload_completed
+   && offsettable_memref_p (operands[1])
+   && (! TARGET_HARD_QUAD
+       || ! fp_register_operand (operands[0], TImode))"
+  [(clobber (const_int 0))]
+{
+  rtx word0 = adjust_address (operands[1], DImode, 0);
+  rtx word1 = adjust_address (operands[1], DImode, 8);
+  rtx set_dest, dest1, dest2;
+
+  set_dest = operands[0];
+
+  dest1 = gen_highpart (DImode, set_dest);
+  dest2 = gen_lowpart (DImode, set_dest);
+
+  /* Now output, ordering such that we don't clobber any registers
+     mentioned in the address.  */
+  if (reg_overlap_mentioned_p (dest1, word1))
+
+    {
+      emit_insn (gen_movdi (dest2, word1));
+      emit_insn (gen_movdi (dest1, word0));
+    }
+  else
+   {
+      emit_insn (gen_movdi (dest1, word0));
+      emit_insn (gen_movdi (dest2, word1));
+   }
+  DONE;
+})
+
+(define_split
+  [(set (match_operand:TI 0 "memory_operand" "")
+	(match_operand:TI 1 "register_operand" ""))]
+  "reload_completed
+   && offsettable_memref_p (operands[0])
+   && (! TARGET_HARD_QUAD
+       || ! fp_register_operand (operands[1], TImode))"
+  [(clobber (const_int 0))]
+{
+  rtx set_src = operands[1];
+
+  emit_insn (gen_movdi (adjust_address (operands[0], DImode, 0),
+			gen_highpart (DImode, set_src)));
+  emit_insn (gen_movdi (adjust_address (operands[0], DImode, 8),
+			gen_lowpart (DImode, set_src)));
+  DONE;
+})
+
 
 ;; Floating point move instructions
 
@@ -2093,7 +2251,7 @@
       gcc_unreachable ();
     }
 }
-  [(set_attr "type" "fga,fga,fpmove,*,*,*,*,*,fpload,load,fpstore,store")
+  [(set_attr "type" "visl,visl,fpmove,*,*,*,vismv,vismv,fpload,load,fpstore,store")
    (set_attr "cpu_feature" "vis,vis,fpu,*,*,*,vis3,vis3,fpu,*,fpu,*")])
 
 ;; The following 3 patterns build SFmode constants in integer registers.
@@ -2165,7 +2323,7 @@
   #
   #
   #"
-  [(set_attr "type" "fga,fga,fpmove,*,*,*,fpload,store,fpstore,load,store,*,*,*,*")
+  [(set_attr "type" "visl,visl,fpmove,*,*,*,fpload,store,fpstore,load,store,*,*,*,*")
    (set_attr "length" "*,*,*,2,2,2,*,*,*,*,*,2,2,2,2")
    (set_attr "fptype" "double,double,double,*,*,*,*,*,*,*,*,*,*,*,*")
    (set_attr "cpu_feature" "vis,vis,v9,fpunotv9,vis3,vis3,fpu,v9,fpu,*,*,fpu,*,*,fpu")])
@@ -2188,7 +2346,7 @@
   ldx\t%1, %0
   stx\t%r1, %0
   #"
-  [(set_attr "type" "fga,fga,fpmove,*,*,load,store,*,load,store,*")
+  [(set_attr "type" "visl,visl,fpmove,vismv,vismv,load,store,*,load,store,*")
    (set_attr "length" "*,*,*,*,*,*,*,*,*,*,2")
    (set_attr "fptype" "double,double,double,double,double,*,*,*,*,*,*")
    (set_attr "cpu_feature" "vis,vis,fpu,vis3,vis3,fpu,fpu,*,*,*,*")])
@@ -2477,7 +2635,7 @@
       dest2 = adjust_address (set_dest, DFmode, 8);
       break;
     default:
-      gcc_unreachable ();      
+      gcc_unreachable ();
     }
 
   emit_insn (gen_movdf (dest1, CONST0_RTX (DFmode)));
@@ -3528,7 +3686,7 @@
 })
 
 (define_insn_and_split "*adddi3_insn_sp32"
-  [(set (match_operand:DI 0 "register_operand" "=r")
+  [(set (match_operand:DI 0 "register_operand" "=&r")
 	(plus:DI (match_operand:DI 1 "arith_double_operand" "%r")
 		 (match_operand:DI 2 "arith_double_operand" "rHI")))
    (clobber (reg:CC CC_REG))]
@@ -7718,7 +7876,7 @@
   "@
   fzeros\t%0
   fones\t%0
-  fsrc1s\t%1, %0
+  fsrc2s\t%1, %0
   ld\t%1, %0
   st\t%1, %0
   st\t%r1, %0
@@ -7727,7 +7885,7 @@
   mov\t%1, %0
   movstouw\t%1, %0
   movwtos\t%1, %0"
-  [(set_attr "type" "fga,fga,fga,fpload,fpstore,store,load,store,*,*,*")
+  [(set_attr "type" "visl,visl,vismv,fpload,fpstore,store,load,store,*,vismv,vismv")
    (set_attr "cpu_feature" "vis,vis,vis,*,*,*,*,*,*,vis3,vis3")])
 
 (define_insn "*mov<VM64:mode>_insn_sp64"
@@ -7740,7 +7898,7 @@
   "@
   fzero\t%0
   fone\t%0
-  fsrc1\t%1, %0
+  fsrc2\t%1, %0
   ldd\t%1, %0
   std\t%1, %0
   stx\t%r1, %0
@@ -7749,7 +7907,7 @@
   movdtox\t%1, %0
   movxtod\t%1, %0
   mov\t%1, %0"
-  [(set_attr "type" "fga,fga,fga,fpload,fpstore,store,load,store,*,*,*")
+  [(set_attr "type" "visl,visl,vismv,fpload,fpstore,store,load,store,vismv,vismv,*")
    (set_attr "cpu_feature" "vis,vis,vis,*,*,*,*,*,vis3,vis3,*")])
 
 (define_insn "*mov<VM64:mode>_insn_sp32"
@@ -7762,7 +7920,7 @@
   "@
   fzero\t%0
   fone\t%0
-  fsrc1\t%1, %0
+  fsrc2\t%1, %0
   #
   #
   ldd\t%1, %0
@@ -7772,7 +7930,7 @@
   std\t%1, %0
   #
   #"
-  [(set_attr "type" "fga,fga,fga,*,*,fpload,fpstore,store,load,store,*,*")
+  [(set_attr "type" "visl,visl,vismv,*,*,fpload,fpstore,store,load,store,*,*")
    (set_attr "length" "*,*,*,2,2,*,*,*,*,*,2,2")
    (set_attr "cpu_feature" "vis,vis,vis,vis3,vis3,*,*,*,*,*,*,*")])
 
@@ -7867,7 +8025,7 @@
 		 (match_operand:VL 2 "register_operand" "<vconstr>")))]
   "TARGET_VIS"
   "f<vlinsn><vlsuf>\t%1, %2, %0"
-  [(set_attr "type" "fga")
+  [(set_attr "type" "visl")
    (set_attr "fptype" "<vfptype>")])
 
 (define_insn "*not_<code><mode>3"
@@ -7876,7 +8034,7 @@
 			 (match_operand:VL 2 "register_operand" "<vconstr>"))))]
   "TARGET_VIS"
   "f<vlninsn><vlsuf>\t%1, %2, %0"
-  [(set_attr "type" "fga")
+  [(set_attr "type" "visl")
    (set_attr "fptype" "<vfptype>")])
 
 ;; (ior (not (op1)) (not (op2))) is the canonical form of NAND.
@@ -7886,7 +8044,7 @@
 		(not:VL (match_operand:VL 2 "register_operand" "<vconstr>"))))]
   "TARGET_VIS"
   "fnand<vlsuf>\t%1, %2, %0"
-  [(set_attr "type" "fga")
+  [(set_attr "type" "visl")
    (set_attr "fptype" "<vfptype>")])
 
 (define_code_iterator vlnotop [ior and])
@@ -7897,7 +8055,7 @@
 		    (match_operand:VL 2 "register_operand" "<vconstr>")))]
   "TARGET_VIS"
   "f<vlinsn>not1<vlsuf>\t%1, %2, %0"
-  [(set_attr "type" "fga")
+  [(set_attr "type" "visl")
    (set_attr "fptype" "<vfptype>")])
 
 (define_insn "*<code>_not2<mode>_vis"
@@ -7906,7 +8064,7 @@
 		    (not:VL (match_operand:VL 2 "register_operand" "<vconstr>"))))]
   "TARGET_VIS"
   "f<vlinsn>not2<vlsuf>\t%1, %2, %0"
-  [(set_attr "type" "fga")
+  [(set_attr "type" "visl")
    (set_attr "fptype" "<vfptype>")])
 
 (define_insn "one_cmpl<mode>2"
@@ -7914,7 +8072,7 @@
 	(not:VL (match_operand:VL 1 "register_operand" "<vconstr>")))]
   "TARGET_VIS"
   "fnot1<vlsuf>\t%1, %0"
-  [(set_attr "type" "fga")
+  [(set_attr "type" "visl")
    (set_attr "fptype" "<vfptype>")])
 
 ;; Hard to generate VIS instructions.  We have builtins for these.
@@ -8193,7 +8351,7 @@
          UNSPEC_PDIST))]
   "TARGET_VIS"
   "pdist\t%1, %2, %0"
-  [(set_attr "type" "fgm_pdist")
+  [(set_attr "type" "pdist")
    (set_attr "fptype" "double")])
 
 ;; Edge instructions produce condition codes equivalent to a 'subcc'
@@ -8275,7 +8433,7 @@
 	 UNSPEC_FCMP))]
   "TARGET_VIS"
   "fcmp<code><GCM:gcm_name>\t%1, %2, %0"
-  [(set_attr "type" "fga")
+  [(set_attr "type" "visl")
    (set_attr "fptype" "double")])
 
 (define_expand "vcond<mode><mode>"
@@ -8516,7 +8674,7 @@
          UNSPEC_PDISTN))]
   "TARGET_VIS3"
   "pdistn\t%1, %2, %0"
-  [(set_attr "type" "fgm_pdist")
+  [(set_attr "type" "pdistn")
    (set_attr "fptype" "double")])
 
 (define_insn "fmean16_vis"
@@ -8566,7 +8724,7 @@
 	 UNSPEC_FUCMP))]
   "TARGET_VIS3"
   "fucmp<code>8\t%1, %2, %0"
-  [(set_attr "type" "fga")])
+  [(set_attr "type" "visl")])
 
 (define_insn "*naddsf3"
   [(set (match_operand:SF 0 "register_operand" "=f")

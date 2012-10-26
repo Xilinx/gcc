@@ -22,8 +22,6 @@ along with GCC; see the file COPYING3.  If not see
 #define GCC_CFGLOOP_H
 
 #include "basic-block.h"
-/* For rtx_code.  */
-#include "rtl.h"
 #include "vecprim.h"
 #include "double-int.h"
 
@@ -44,6 +42,14 @@ enum lpt_dec
 struct GTY (()) lpt_decision {
   enum lpt_dec decision;
   unsigned times;
+};
+
+/* The type of extend applied to an IV.  */
+enum iv_extend_code
+{
+  IV_SIGN_EXTEND,
+  IV_ZERO_EXTEND,
+  IV_UNKNOWN_EXTEND
 };
 
 /* The structure describing a bound on number of iterations of a loop.  */
@@ -74,7 +80,7 @@ struct GTY ((chain_next ("%h.next"))) nb_iter_bound {
 
 struct GTY (()) loop_exit {
   /* The exit edge.  */
-  struct edge_def *e;
+  edge e;
 
   /* Previous and next exit in the list of the exits of the loop.  */
   struct loop_exit *prev;
@@ -108,10 +114,10 @@ struct GTY ((chain_next ("%h.next"))) loop {
   unsigned ninsns;
 
   /* Basic block of loop header.  */
-  struct basic_block_def *header;
+  basic_block header;
 
   /* Basic block of loop latch.  */
-  struct basic_block_def *latch;
+  basic_block latch;
 
   /* For loop unrolling/peeling decision.  */
   struct lpt_decision lpt_decision;
@@ -248,7 +254,8 @@ extern basic_block *get_loop_body_in_custom_order (const struct loop *,
 			       int (*) (const void *, const void *));
 
 extern VEC (edge, heap) *get_loop_exit_edges (const struct loop *);
-edge single_exit (const struct loop *);
+extern edge single_exit (const struct loop *);
+extern edge single_likely_exit (struct loop *loop);
 extern unsigned num_loop_branches (const struct loop *);
 
 extern edge loop_preheader_edge (const struct loop *);
@@ -303,6 +310,7 @@ extern edge create_empty_if_region_on_edge (edge, tree);
 extern struct loop *create_empty_loop_on_edge (edge, tree, tree, tree, tree,
 					       tree *, tree *, struct loop *);
 extern struct loop * duplicate_loop (struct loop *, struct loop *);
+extern void copy_loop_info (struct loop *loop, struct loop *target);
 extern void duplicate_subloops (struct loop *, struct loop *);
 extern bool duplicate_loop_to_header_edge (struct loop *, edge,
 					   unsigned, sbitmap, edge,
@@ -313,7 +321,8 @@ extern struct loop *loopify (edge, edge,
 struct loop * loop_version (struct loop *, void *,
 			    basic_block *, unsigned, unsigned, unsigned, bool);
 extern bool remove_path (edge);
-void scale_loop_frequencies (struct loop *, int, int);
+extern void unloop (struct loop *, bool *, bitmap);
+extern void scale_loop_frequencies (struct loop *, int, int);
 
 /* Induction variable analysis.  */
 
@@ -342,8 +351,9 @@ struct rtx_iv
      see the description above).  */
   rtx base, step;
 
-  /* The type of extend applied to it (SIGN_EXTEND, ZERO_EXTEND or UNKNOWN).  */
-  enum rtx_code extend;
+  /* The type of extend applied to it (IV_SIGN_EXTEND, IV_ZERO_EXTEND,
+     or IV_UNKNOWN_EXTEND).  */
+  enum iv_extend_code extend;
 
   /* Operations applied in the extended mode.  */
   rtx delta, mult;
@@ -378,9 +388,6 @@ struct niter_desc
 
   /* Number of iterations if constant.  */
   unsigned HOST_WIDEST_INT niter;
-
-  /* Upper bound on the number of iterations.  */
-  unsigned HOST_WIDEST_INT niter_max;
 
   /* Assumptions under that the rest of the information is valid.  */
   rtx assumptions;
@@ -436,6 +443,14 @@ static inline unsigned
 loop_depth (const struct loop *loop)
 {
   return VEC_length (loop_p, loop->superloops);
+}
+
+/* Returns the loop depth of the loop BB belongs to.  */
+
+static inline int
+bb_loop_depth (const_basic_block bb)
+{
+  return bb->loop_father ? loop_depth (bb->loop_father) : 0;
 }
 
 /* Returns the immediate superloop of LOOP, or NULL if LOOP is the outermost
@@ -634,7 +649,7 @@ fel_init (loop_iterator *li, loop_p *loop, unsigned flags)
 
 #define FOR_EACH_LOOP_BREAK(LI) \
   { \
-    VEC_free (int, heap, (LI)->to_visit); \
+    VEC_free (int, heap, (LI).to_visit); \
     break; \
   }
 
@@ -698,5 +713,20 @@ extern void unroll_and_peel_loops (int);
 extern void doloop_optimize_loops (void);
 extern void move_loop_invariants (void);
 extern bool finite_loop_p (struct loop *);
+extern void scale_loop_profile (struct loop *loop, int scale, int iteration_bound);
+
+/* Returns the outermost loop of the loop nest that contains LOOP.*/
+static inline struct loop *
+loop_outermost (struct loop *loop)
+{
+  
+  unsigned n = VEC_length (loop_p, loop->superloops);
+
+  if (n <= 1)
+    return loop;
+
+  return VEC_index (loop_p, loop->superloops, 1);
+}
+
 
 #endif /* GCC_CFGLOOP_H */

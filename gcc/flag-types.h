@@ -106,12 +106,12 @@ enum symbol_visibility
 };
 #endif
 
-/* The algorithm used to implement -fsched-pressure.  */
-enum sched_pressure_algorithm
+/* The stack reuse level.  */
+enum stack_reuse_level
 {
-  SCHED_PRESSURE_NONE,
-  SCHED_PRESSURE_WEIGHTED,
-  SCHED_PRESSURE_MODEL
+  SR_NONE,
+  SR_NAMED_VARS,
+  SR_ALL
 };
 
 /* The algorithm used for the integrated register allocator (IRA).  */
@@ -198,22 +198,6 @@ enum fp_contract_mode {
   FP_CONTRACT_OFF = 0,
   FP_CONTRACT_ON = 1,
   FP_CONTRACT_FAST = 2
-};
-
-/* Vectorizer verbosity levels.  */
-enum vect_verbosity_levels {
-  REPORT_NONE,
-  REPORT_VECTORIZED_LOCATIONS,
-  REPORT_UNVECTORIZED_LOCATIONS,
-  REPORT_COST,
-  REPORT_ALIGNMENT,
-  REPORT_DR_DETAILS,
-  REPORT_BAD_FORM_LOOPS,
-  REPORT_OUTER_LOOPS,
-  REPORT_SLP,
-  REPORT_DETAILS,
-  /* New verbosity levels should be added before this one.  */
-  MAX_VERBOSITY_LEVEL
 };
 
 #endif /* ! GCC_FLAG_TYPES_H */

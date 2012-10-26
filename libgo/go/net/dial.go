@@ -81,7 +81,7 @@ func resolveNetAddr(op, net, addr string) (afnet string, a Addr, err error) {
 //	Dial("tcp", "google.com:80")
 //	Dial("tcp", "[de:ad:be:ef::ca:fe]:80")
 //
-// For IP networks, addr must be "ip", "ip4" or "ip6" followed
+// For IP networks, net must be "ip", "ip4" or "ip6" followed
 // by a colon and a protocol number or name.
 //
 // Examples:
@@ -173,7 +173,7 @@ func (a stringAddr) String() string  { return a.addr }
 
 // Listen announces on the local network address laddr.
 // The network string net must be a stream-oriented network:
-// "tcp", "tcp4", "tcp6", or "unix", or "unixpacket".
+// "tcp", "tcp4", "tcp6", "unix" or "unixpacket".
 func Listen(net, laddr string) (Listener, error) {
 	afnet, a, err := resolveNetAddr("listen", net, laddr)
 	if err != nil {

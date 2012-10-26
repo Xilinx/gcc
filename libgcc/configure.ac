@@ -9,6 +9,7 @@ sinclude(../config/override.m4)
 sinclude(../config/picflag.m4)
 sinclude(../config/dfp.m4)
 sinclude(../config/unwind_ipinfo.m4)
+sinclude(../config/gthr.m4)
 
 AC_PREREQ(2.64)
 AC_INIT([GNU C Runtime Library], 1.0,,[libgcc])
@@ -315,7 +316,7 @@ fi
 AC_SUBST(vis_hide)
 
 # See if we have thread-local storage.  We can only test assembler
-# sicne link-time and run-time tests require the newly built
+# since link-time and run-time tests require the newly built
 # gcc, which can't be used to build executable due to that libgcc
 # is yet to be built here.
 GCC_CHECK_CC_TLS
@@ -376,18 +377,7 @@ AC_SUBST(tm_file)
 AC_SUBST(tm_defines)
 
 # Map from thread model to thread header.
-case $target_thread_file in
-    aix)	thread_header=config/rs6000/gthr-aix.h ;;
-    dce)	thread_header=config/pa/gthr-dce.h ;;
-    lynx)	thread_header=config/gthr-lynx.h ;;
-    mipssde)	thread_header=config/mips/gthr-mipssde.h ;;
-    posix)	thread_header=gthr-posix.h ;;
-    rtems)	thread_header=config/gthr-rtems.h ;;
-    single)	thread_header=gthr-single.h ;;
-    tpf)	thread_header=config/s390/gthr-tpf.h ;;
-    vxworks)	thread_header=config/gthr-vxworks.h ;;
-    win32)	thread_header=config/i386/gthr-win32.h ;;
-esac
+GCC_AC_THREAD_HEADER([$target_thread_file])
 
 # Substitute configuration variables
 AC_SUBST(cpu_type)

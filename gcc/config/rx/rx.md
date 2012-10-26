@@ -348,7 +348,7 @@
 )
 
 (define_insn "simple_return"
-  [(return)]
+  [(simple_return)]
   ""
   "rts"
   [(set_attr "length" "1")
@@ -408,7 +408,7 @@
 
 ;; Note - the following set of patterns do not use the "memory_operand"
 ;; predicate or an "m" constraint because we do not allow symbol_refs
-;; or label_refs as legitmate memory addresses.  This matches the
+;; or label_refs as legitimate memory addresses.  This matches the
 ;; behaviour of most of the RX instructions.  Only the call/branch
 ;; instructions are allowed to refer to symbols/labels directly.
 ;; The call operands are in QImode because that is the value of
@@ -1868,7 +1868,7 @@
 
 (define_insn "comparesi3_<extend_types:code><small_int_modes:mode>"
   [(set (reg:CC CC_REG)
-	(compare:CC (match_operand:SI                               0 "register_operand" "=r")
+	(compare:CC (match_operand:SI                               0 "register_operand" "r")
 		    (extend_types:SI (match_operand:small_int_modes 1 "rx_restricted_mem_operand" "Q"))))]
   "(optimize < 3 || optimize_size)"
   "cmp\t%<extend_types:letter>1, %0"

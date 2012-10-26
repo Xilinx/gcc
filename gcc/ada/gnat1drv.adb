@@ -104,11 +104,6 @@ procedure Gnat1drv is
    --  Called when we are not generating code, to check if -gnatR was requested
    --  and if so, explain that we will not be honoring the request.
 
-   procedure Check_Library_Items;
-   --  For debugging -- checks the behavior of Walk_Library_Items
-   pragma Warnings (Off, Check_Library_Items);
-   --  In case the call below is commented out
-
    ----------------------------
    -- Adjust_Global_Switches --
    ----------------------------
@@ -118,9 +113,7 @@ procedure Gnat1drv is
       --  Debug flag -gnatd.I is a synonym for Generate_SCIL and requires code
       --  generation.
 
-      if Debug_Flag_Dot_II
-        and then Operating_Mode = Generate_Code
-      then
+      if Debug_Flag_Dot_II and then Operating_Mode = Generate_Code then
          Generate_SCIL := True;
       end if;
 
@@ -200,13 +193,14 @@ procedure Gnat1drv is
          --  Enable all other language checks
 
          Suppress_Options :=
-           (Access_Check      => True,
-            Alignment_Check   => True,
-            Division_Check    => True,
-            Elaboration_Check => True,
-            Overflow_Check    => True,
-            others            => False);
-         Enable_Overflow_Checks := False;
+           (Suppress                   => (Access_Check      => True,
+                                           Alignment_Check   => True,
+                                           Division_Check    => True,
+                                           Elaboration_Check => True,
+                                           others            => False),
+            Overflow_Checks_General    => Suppressed,
+            Overflow_Checks_Assertions => Suppressed);
+
          Dynamic_Elaboration_Checks := False;
 
          --  Kill debug of generated code, since it messes up sloc values
@@ -267,12 +261,6 @@ procedure Gnat1drv is
 
          Force_ALI_Tree_File := True;
          Try_Semantics := True;
-
-         --  Enable Exception_Extra_Info for now, to avoid extra messages
-         --  on controlled operations.
-         --  ??? To be revised.
-
-         Exception_Extra_Info := True;
       end if;
 
       --  Set Configurable_Run_Time mode if system.ads flag set
@@ -340,21 +328,42 @@ procedure Gnat1drv is
          Exception_Mechanism := Back_End_Exceptions;
       end if;
 
-      --  Set proper status for overflow checks. We turn on overflow checks if
-      --  -gnatp was not specified, and either -gnato is set or the back-end
-      --  takes care of overflow checks. Otherwise we suppress overflow checks
-      --  by default (since front end checks are expensive).
+      --  Set proper status for overflow checks
 
-      if not Opt.Suppress_Checks
-        and then (Opt.Enable_Overflow_Checks
-                    or else
-                      (Targparm.Backend_Divide_Checks_On_Target
-                        and
-                       Targparm.Backend_Overflow_Checks_On_Target))
+      --  If already set (by - gnato or -gnatp) then we have nothing to do
+
+      if Opt.Suppress_Options.Overflow_Checks_General /= Not_Set then
+         null;
+
+      --  Otherwise set appropriate default mode. Note: at present we set
+      --  SUPPRESSED in all three of the following cases. They are separated
+      --  because in the future we may make different choices.
+
+      --  By default suppress overflow checks in -gnatg mode
+
+      elsif GNAT_Mode then
+         Suppress_Options.Overflow_Checks_General    := Suppressed;
+         Suppress_Options.Overflow_Checks_Assertions := Suppressed;
+
+      --  If we have backend divide and overflow checks, then by default
+      --  overflow checks are suppressed. Historically this code used to
+      --  activate overflow checks, although no target currently has these
+      --  flags set, so this was dead code anyway.
+
+      elsif Targparm.Backend_Divide_Checks_On_Target
+              and
+            Targparm.Backend_Overflow_Checks_On_Target
       then
-         Suppress_Options (Overflow_Check) := False;
+         Suppress_Options.Overflow_Checks_General    := Suppressed;
+         Suppress_Options.Overflow_Checks_Assertions := Suppressed;
+
+      --  Otherwise for now, default is checks are suppressed. This is subject
+      --  to change in the future, but for now this is the compatible behavior
+      --  with previous versions of GNAT.
+
       else
-         Suppress_Options (Overflow_Check) := True;
+         Suppress_Options.Overflow_Checks_General    := Suppressed;
+         Suppress_Options.Overflow_Checks_Assertions := Suppressed;
       end if;
 
       --  Set default for atomic synchronization. As this synchronization
@@ -362,7 +371,8 @@ procedure Gnat1drv is
       --  on some targets, an optional target parameter can turn the option
       --  off. Note Atomic Synchronization is implemented as check.
 
-      Suppress_Options (Atomic_Synchronization) := not Atomic_Sync_Default;
+      Suppress_Options.Suppress (Atomic_Synchronization) :=
+        not Atomic_Sync_Default;
 
       --  Set switch indicating if we can use N_Expression_With_Actions
 
@@ -384,7 +394,7 @@ procedure Gnat1drv is
 
       --  Set switch indicating if back end can handle limited types, and
       --  guarantee that no incorrect copies are made (e.g. in the context
-      --  of a conditional expression).
+      --  of an if or case expression).
 
       --  Debug flag -gnatd.L decisively sets usage on
 
@@ -439,13 +449,12 @@ procedure Gnat1drv is
          Restrict.Restrictions.Set (No_Initialize_Scalars) := True;
 
          --  Suppress all language checks since they are handled implicitly by
-         --  the formal verification backend.
+         --    the formal verification backend.
          --  Turn off dynamic elaboration checks.
          --  Turn off alignment checks.
          --  Turn off validity checking.
 
-         Suppress_Options := (others => True);
-         Enable_Overflow_Checks := False;
+         Suppress_Options           := Suppress_All;
          Dynamic_Elaboration_Checks := False;
          Reset_Validity_Check_Options;
 
@@ -513,6 +522,23 @@ procedure Gnat1drv is
 
          Tagged_Type_Expansion := False;
       end if;
+
+      --  If the inlining level has not been set by the user, compute it from
+      --  the optimization level: 1 at -O1/-O2 (and -Os), 2 at -O3 and above.
+
+      if Inline_Level = 0 then
+         if Optimization_Level < 3 then
+            Inline_Level := 1;
+         else
+            Inline_Level := 2;
+         end if;
+      end if;
+
+      --  Finally capture adjusted value of Suppress_Options as the initial
+      --  value for Scope_Suppress, which will be modified as we move from
+      --  scope to scope (by Suppress/Unsuppress/Overflow_Checks pragmas).
+
+      Sem.Scope_Suppress := Opt.Suppress_Options;
    end Adjust_Global_Switches;
 
    --------------------
@@ -655,35 +681,6 @@ procedure Gnat1drv is
          end if;
       end if;
    end Check_Bad_Body;
-
-   -------------------------
-   -- Check_Library_Items --
-   -------------------------
-
-   --  Walk_Library_Items has plenty of assertions, so all we need to do is
-   --  call it, just for these assertions, not actually doing anything else.
-
-   procedure Check_Library_Items is
-
-      procedure Action (Item : Node_Id);
-      --  Action passed to Walk_Library_Items to do nothing
-
-      ------------
-      -- Action --
-      ------------
-
-      procedure Action (Item : Node_Id) is
-      begin
-         null;
-      end Action;
-
-      procedure Walk is new Sem.Walk_Library_Items (Action);
-
-   --  Start of processing for Check_Library_Items
-
-   begin
-      Walk;
-   end Check_Library_Items;
 
    --------------------
    -- Check_Rep_Info --
@@ -1132,14 +1129,6 @@ begin
       Sinput.Lock;
       Namet.Lock;
       Stringt.Lock;
-
-      --  ???Check_Library_Items under control of a debug flag, because it
-      --  currently does not work if the -gnatn switch (back end inlining) is
-      --  used.
-
-      if Debug_Flag_Dot_WW then
-         Check_Library_Items;
-      end if;
 
       --  Here we call the back end to generate the output code
 

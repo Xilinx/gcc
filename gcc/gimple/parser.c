@@ -175,7 +175,7 @@ gl_peek_token (gimple_lexer *lexer)
 {
   if (gl_at_eof (lexer))
     return &gl_eof_token;
-  return VEC_index (gimple_token, lexer->tokens, lexer->cur_token_ix);
+  return &VEC_index (gimple_token, lexer->tokens, lexer->cur_token_ix);
 }
 
 
@@ -1554,11 +1554,11 @@ gl_lex (gimple_lexer *lexer)
 	  || gl_token_is_of_type (&token,CPP_RSHIFT))
 	{
 	  gl_split_token (&token, &first_token, &second_token);
-	  VEC_safe_push (gimple_token, gc, lexer->tokens, &first_token);
-	  VEC_safe_push (gimple_token, gc, lexer->tokens, &second_token);
+	  VEC_safe_push (gimple_token, gc, lexer->tokens, first_token);
+	  VEC_safe_push (gimple_token, gc, lexer->tokens, second_token);
         }
       else 
-	VEC_safe_push (gimple_token, gc, lexer->tokens, &token);
+	VEC_safe_push (gimple_token, gc, lexer->tokens, token);
     }
 
   timevar_pop (TV_CPP);

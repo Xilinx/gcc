@@ -241,7 +241,7 @@ DEF_RTL_EXPR(ADDR_VEC, "addr_vec", "E", RTX_EXTRA)
 
    The third, fourth and fifth operands are only valid when
    CASE_VECTOR_SHORTEN_MODE is defined, and only in an optimizing
-   compilations.  */
+   compilation.  */
 
 DEF_RTL_EXPR(ADDR_DIFF_VEC, "addr_diff_vec", "eEee0", RTX_EXTRA)
 
@@ -322,9 +322,10 @@ DEF_RTL_EXPR(CONST_INT, "const_int", "w", RTX_CONST_OBJ)
 /* fixed-point constant */
 DEF_RTL_EXPR(CONST_FIXED, "const_fixed", "www", RTX_CONST_OBJ)
 
-/* numeric floating point constant.
-   Operands hold the value.  They are all 'w' and there may be from 2 to 6;
-   see real.h.  */
+/* numeric floating point or integer constant.  If the mode is
+   VOIDmode it is an int otherwise it has a floating point mode and a
+   floating point value.  Operands hold the value.  They are all 'w'
+   and there may be from 2 to 6; see real.h.  */
 DEF_RTL_EXPR(CONST_DOUBLE, "const_double", CONST_DOUBLE_FORMAT, RTX_CONST_OBJ)
 
 /* Describes a vector constant.  */

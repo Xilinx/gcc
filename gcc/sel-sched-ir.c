@@ -1,5 +1,5 @@
 /* Instruction scheduling pass.  Selective scheduler and pipeliner.
-   Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011
+   Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -35,8 +35,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "recog.h"
 #include "params.h"
 #include "target.h"
-#include "timevar.h"
-#include "tree-pass.h"
 #include "sched-int.h"
 #include "ggc.h"
 #include "tree.h"
@@ -956,7 +954,13 @@ return_regset_to_pool (regset rs)
 static int
 cmp_v_in_regset_pool (const void *x, const void *xx)
 {
-  return *((const regset *) x) - *((const regset *) xx);
+  uintptr_t r1 = (uintptr_t) *((const regset *) x);
+  uintptr_t r2 = (uintptr_t) *((const regset *) xx);
+  if (r1 > r2)
+    return 1;
+  else if (r1 < r2)
+    return -1;
+  gcc_unreachable ();
 }
 #endif
 
@@ -1520,7 +1524,7 @@ insert_in_history_vect (VEC (expr_history_def, heap) **pvect,
 
   if (res)
     {
-      expr_history_def *phist = VEC_index (expr_history_def, vect, ind);
+      expr_history_def *phist = &VEC_index (expr_history_def, vect, ind);
 
       /* It is possible that speculation types of expressions that were
          propagated through different paths will be different here.  In this
@@ -1538,7 +1542,7 @@ insert_in_history_vect (VEC (expr_history_def, heap) **pvect,
 
   vinsn_attach (old_expr_vinsn);
   vinsn_attach (new_expr_vinsn);
-  VEC_safe_insert (expr_history_def, heap, vect, ind, &temp);
+  VEC_safe_insert (expr_history_def, heap, vect, ind, temp);
   *pvect = vect;
 }
 
@@ -3224,7 +3228,11 @@ has_dependence_note_reg_use (int regno)
       if (reg_last->clobbers)
 	*dsp = (*dsp & ~SPECULATIVE) | DEP_ANTI;
 
-      /* Handle BE_IN_SPEC.  */
+      /* Merge BE_IN_SPEC bits into *DSP when the dependency producer
+	 is actually a check insn.  We need to do this for any register
+	 read-read dependency with the check unless we track properly
+	 all registers written by BE_IN_SPEC-speculated insns, as
+	 we don't have explicit dependence lists.  See PR 53975.  */
       if (reg_last->uses)
 	{
 	  ds_t pro_spec_checked_ds;
@@ -3232,9 +3240,7 @@ has_dependence_note_reg_use (int regno)
 	  pro_spec_checked_ds = INSN_SPEC_CHECKED_DS (has_dependence_data.pro);
 	  pro_spec_checked_ds = ds_get_max_dep_weak (pro_spec_checked_ds);
 
-	  if (pro_spec_checked_ds != 0
-	      && bitmap_bit_p (INSN_REG_SETS (has_dependence_data.pro), regno))
-	    /* Merge BE_IN_SPEC bits into *DSP.  */
+	  if (pro_spec_checked_ds != 0)
 	    *dsp = ds_full_merge (*dsp, pro_spec_checked_ds,
 				  NULL_RTX, NULL_RTX);
 	}
@@ -3680,6 +3686,22 @@ maybe_tidy_empty_bb (basic_block bb)
   FOR_EACH_EDGE (e, ei, bb->preds)
     if (e->flags & EDGE_COMPLEX)
       return false;
+    else if (e->flags & EDGE_FALLTHRU)
+      {
+	rtx note;
+	/* If prev bb ends with asm goto, see if any of the
+	   ASM_OPERANDS_LABELs don't point to the fallthru
+	   label.  Do not attempt to redirect it in that case.  */
+	if (JUMP_P (BB_END (e->src))
+	    && (note = extract_asm_operands (PATTERN (BB_END (e->src)))))
+	  {
+	    int i, n = ASM_OPERANDS_LABEL_LENGTH (note);
+
+	    for (i = 0; i < n; ++i)
+	      if (XEXP (ASM_OPERANDS_LABEL (note, i), 0) == BB_HEAD (bb))
+		return false;
+	  }
+      }
 
   free_data_sets (bb);
 
@@ -4153,7 +4175,7 @@ finish_insns (void)
      removed during the scheduling.  */
   for (i = 0; i < VEC_length (sel_insn_data_def, s_i_d); i++)
     {
-      sel_insn_data_def *sid_entry = VEC_index (sel_insn_data_def, s_i_d, i);
+      sel_insn_data_def *sid_entry = &VEC_index (sel_insn_data_def, s_i_d, i);
 
       if (sid_entry->live)
         return_regset_to_pool (sid_entry->live);
@@ -5044,7 +5066,7 @@ find_place_to_insert_bb (basic_block bb, int rgn)
             break;
         }
 
-      /* We skipped the right block, so we increase i.  We accomodate
+      /* We skipped the right block, so we increase i.  We accommodate
          it for increasing by step later, so we decrease i.  */
       return (i + 1) - 1;
     }

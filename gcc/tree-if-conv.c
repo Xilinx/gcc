@@ -87,12 +87,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "flags.h"
-#include "timevar.h"
 #include "basic-block.h"
-#include "tree-pretty-print.h"
 #include "gimple-pretty-print.h"
 #include "tree-flow.h"
-#include "tree-dump.h"
 #include "cfgloop.h"
 #include "tree-chrec.h"
 #include "tree-data-ref.h"
@@ -224,26 +221,10 @@ reset_bb_predicate (basic_block bb)
 static tree
 ifc_temp_var (tree type, tree expr, gimple_stmt_iterator *gsi)
 {
-  const char *name = "_ifc_";
-  tree var, new_name;
-  gimple stmt;
-
-  /* Create new temporary variable.  */
-  var = create_tmp_var (type, name);
-  add_referenced_var (var);
-
-  /* Build new statement to assign EXPR to new variable.  */
-  stmt = gimple_build_assign (var, expr);
-
-  /* Get SSA name for the new variable and set make new statement
-     its definition statement.  */
-  new_name = make_ssa_name (var, stmt);
-  gimple_assign_set_lhs (stmt, new_name);
-  SSA_NAME_DEF_STMT (new_name) = stmt;
-  update_stmt (stmt);
-
+  tree new_name = make_temp_ssa_name (type, NULL, "_ifc_");
+  gimple stmt = gimple_build_assign (new_name, expr);
   gsi_insert_before (gsi, stmt, GSI_SAME_STMT);
-  return gimple_assign_lhs (stmt);
+  return new_name;
 }
 
 /* Return true when COND is a true predicate.  */
@@ -324,6 +305,65 @@ fold_or_predicates (location_t loc, tree c1, tree c2)
     }
 
   return fold_build2_loc (loc, TRUTH_OR_EXPR, boolean_type_node, c1, c2);
+}
+
+/* Returns true if N is either a constant or a SSA_NAME.  */
+
+static bool
+constant_or_ssa_name (tree n)
+{
+  switch (TREE_CODE (n))
+    {
+      case SSA_NAME:
+      case INTEGER_CST:
+      case REAL_CST:
+      case COMPLEX_CST:
+      case VECTOR_CST:
+	return true;
+      default:
+	return false;
+    }
+}
+
+/* Returns either a COND_EXPR or the folded expression if the folded
+   expression is a MIN_EXPR, a MAX_EXPR, an ABS_EXPR,
+   a constant or a SSA_NAME. */
+
+static tree
+fold_build_cond_expr (tree type, tree cond, tree rhs, tree lhs)
+{
+  tree rhs1, lhs1, cond_expr;
+  cond_expr = fold_ternary (COND_EXPR, type, cond,
+			    rhs, lhs);
+
+  if (cond_expr == NULL_TREE)
+    return build3 (COND_EXPR, type, cond, rhs, lhs);
+
+  STRIP_USELESS_TYPE_CONVERSION (cond_expr);
+
+  if (constant_or_ssa_name (cond_expr))
+    return cond_expr;
+
+  if (TREE_CODE (cond_expr) == ABS_EXPR)
+    {
+      rhs1 = TREE_OPERAND (cond_expr, 1);
+      STRIP_USELESS_TYPE_CONVERSION (rhs1);
+      if (constant_or_ssa_name (rhs1))
+	return build1 (ABS_EXPR, type, rhs1);
+    }
+
+  if (TREE_CODE (cond_expr) == MIN_EXPR
+      || TREE_CODE (cond_expr) == MAX_EXPR)
+    {
+      lhs1 = TREE_OPERAND (cond_expr, 0);
+      STRIP_USELESS_TYPE_CONVERSION (lhs1);
+      rhs1 = TREE_OPERAND (cond_expr, 1);
+      STRIP_USELESS_TYPE_CONVERSION (rhs1);
+      if (constant_or_ssa_name (rhs1)
+	  && constant_or_ssa_name (lhs1))
+	return build2 (TREE_CODE (cond_expr), type, lhs1, rhs1);
+    }
+  return build3 (COND_EXPR, type, cond, rhs, lhs);
 }
 
 /* Add condition NC to the predicate list of basic block BB.  */
@@ -429,7 +469,7 @@ if_convertible_phi_p (struct loop *loop, basic_block bb, gimple phi)
   /* When the flag_tree_loop_if_convert_stores is not set, check
      that there are no memory writes in the branches of the loop to be
      if-converted.  */
-  if (!is_gimple_reg (SSA_NAME_VAR (gimple_phi_result (phi))))
+  if (virtual_operand_p (gimple_phi_result (phi)))
     {
       imm_use_iterator imm_iter;
       use_operand_p use_p;
@@ -822,8 +862,7 @@ if_convertible_bb_p (struct loop *loop, basic_block bb, basic_block exit_bb)
 
   /* Be less adventurous and handle only normal edges.  */
   FOR_EACH_EDGE (e, ei, bb->succs)
-    if (e->flags &
-	(EDGE_ABNORMAL_CALL | EDGE_EH | EDGE_ABNORMAL | EDGE_IRREDUCIBLE_LOOP))
+    if (e->flags & (EDGE_EH | EDGE_ABNORMAL | EDGE_IRREDUCIBLE_LOOP))
       {
 	if (dump_file && (dump_flags & TDF_DETAILS))
 	  fprintf (dump_file, "Difficult to handle edges\n");
@@ -1282,7 +1321,7 @@ predicate_scalar_phi (gimple phi, tree cond,
 
   res = gimple_phi_result (phi);
   /* Do not handle virtual phi nodes.  */
-  if (!is_gimple_reg (SSA_NAME_VAR (res)))
+  if (virtual_operand_p (res))
     return;
 
   bb = gimple_bb (phi);
@@ -1313,8 +1352,8 @@ predicate_scalar_phi (gimple phi, tree cond,
 			   || bb_postdominates_preds (bb));
 
       /* Build new RHS using selected condition and arguments.  */
-      rhs = build3 (COND_EXPR, TREE_TYPE (res),
-		    unshare_expr (cond), arg_0, arg_1);
+      rhs = fold_build_cond_expr (TREE_TYPE (res), unshare_expr (cond),
+				  arg_0, arg_1);
     }
 
   new_stmt = gimple_build_assign (res, rhs);
@@ -1574,7 +1613,7 @@ predicate_mem_writes (loop_p loop)
 	    cond = force_gimple_operand_gsi_1 (&gsi, unshare_expr (cond),
 					       is_gimple_condexpr, NULL_TREE,
 					       true, GSI_SAME_STMT);
-	    rhs = build3 (COND_EXPR, type, unshare_expr (cond), rhs, lhs);
+	    rhs = fold_build_cond_expr (type, unshare_expr (cond), rhs, lhs);
 	    gimple_assign_set_rhs1 (stmt, ifc_temp_var (type, rhs, &gsi));
 	    update_stmt (stmt);
 	  }
@@ -1751,7 +1790,7 @@ tree_if_conversion (struct loop *loop)
   combine_blocks (loop);
 
   if (flag_tree_loop_if_convert_stores)
-    mark_sym_for_renaming (gimple_vop (cfun));
+    mark_virtual_operands_for_renaming (cfun);
 
   changed = true;
 

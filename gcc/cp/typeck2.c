@@ -36,7 +36,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "intl.h"
 #include "cp-tree.h"
 #include "flags.h"
-#include "output.h"
 #include "diagnostic-core.h"
 
 static tree
@@ -58,7 +57,8 @@ error_not_base_type (tree basetype, tree type)
 tree
 binfo_or_else (tree base, tree type)
 {
-  tree binfo = lookup_base (type, base, ba_unique, NULL);
+  tree binfo = lookup_base (type, base, ba_unique,
+			    NULL, tf_warning_or_error);
 
   if (binfo == error_mark_node)
     return NULL_TREE;
@@ -787,6 +787,9 @@ check_narrowing (tree type, tree init)
   else if (INTEGRAL_OR_ENUMERATION_TYPE_P (ftype)
 	   && CP_INTEGRAL_TYPE_P (type))
     {
+      if (TREE_CODE (ftype) == ENUMERAL_TYPE)
+	/* Check for narrowing based on the values of the enumeration. */
+	ftype = ENUM_UNDERLYING_TYPE (ftype);
       if ((tree_int_cst_lt (TYPE_MAX_VALUE (type),
 			    TYPE_MAX_VALUE (ftype))
 	   || tree_int_cst_lt (TYPE_MIN_VALUE (ftype),
@@ -1055,14 +1058,12 @@ process_init_constructor_array (tree type, tree init,
     {
       tree domain = TYPE_DOMAIN (type);
       if (domain)
-	len = double_int_ext
-	        (double_int_add
-		  (double_int_sub
-		    (tree_to_double_int (TYPE_MAX_VALUE (domain)),
-		     tree_to_double_int (TYPE_MIN_VALUE (domain))),
-		    double_int_one),
-		  TYPE_PRECISION (TREE_TYPE (domain)),
-		  TYPE_UNSIGNED (TREE_TYPE (domain))).low;
+	len = (tree_to_double_int (TYPE_MAX_VALUE (domain))
+	       - tree_to_double_int (TYPE_MIN_VALUE (domain))
+	       + double_int_one)
+	      .ext (TYPE_PRECISION (TREE_TYPE (domain)),
+		    TYPE_UNSIGNED (TREE_TYPE (domain)))
+	      .low;
       else
 	unbounded = true;  /* Take as many as there are.  */
     }
@@ -1179,7 +1180,7 @@ process_init_constructor_record (tree type, tree init,
 
       if (idx < VEC_length (constructor_elt, CONSTRUCTOR_ELTS (init)))
 	{
-	  constructor_elt *ce = VEC_index (constructor_elt,
+	  constructor_elt *ce = &VEC_index (constructor_elt,
 					   CONSTRUCTOR_ELTS (init), idx);
 	  if (ce->index)
 	    {
@@ -1265,7 +1266,7 @@ process_init_constructor_record (tree type, tree init,
 
       /* If this is a bitfield, now convert to the lowered type.  */
       if (type != TREE_TYPE (field))
-	next = cp_convert_and_check (TREE_TYPE (field), next);
+	next = cp_convert_and_check (TREE_TYPE (field), next, complain);
       flags |= picflag_from_initializer (next);
       CONSTRUCTOR_APPEND_ELT (v, field, next);
     }
@@ -1306,7 +1307,7 @@ process_init_constructor_union (tree type, tree init,
       VEC_block_remove (constructor_elt, CONSTRUCTOR_ELTS (init), 1, len-1);
     }
 
-  ce = VEC_index (constructor_elt, CONSTRUCTOR_ELTS (init), 0);
+  ce = &VEC_index (constructor_elt, CONSTRUCTOR_ELTS (init), 0);
 
   /* If this element specifies a field, initialize via that field.  */
   if (ce->index)
@@ -1448,7 +1449,8 @@ build_scoped_ref (tree datum, tree basetype, tree* binfo_p)
   if (*binfo_p)
     binfo = *binfo_p;
   else
-    binfo = lookup_base (TREE_TYPE (datum), basetype, ba_check, NULL);
+    binfo = lookup_base (TREE_TYPE (datum), basetype, ba_check,
+			 NULL, tf_warning_or_error);
 
   if (!binfo || binfo == error_mark_node)
     {
@@ -1601,7 +1603,7 @@ build_m_component_ref (tree datum, tree component, tsubst_flags_t complain)
     }
   else
     {
-      binfo = lookup_base (objtype, ctype, ba_check, NULL);
+      binfo = lookup_base (objtype, ctype, ba_check, NULL, complain);
 
       if (!binfo)
 	{

@@ -1,6 +1,5 @@
 /* Definitions of target machine for GNU compiler.  Vxworks PowerPC version.
-   Copyright (C) 1996, 2000, 2002, 2003, 2004, 2005, 2007, 2009, 2010, 2011
-   Free Software Foundation, Inc.
+   Copyright (C) 1996-2012 Free Software Foundation, Inc.
    Contributed by CodeSourcery, LLC.
 
 This file is part of GCC.
@@ -99,8 +98,7 @@ VXWORKS_ADDITIONAL_CPP_SPEC
 #undef MULTILIB_DEFAULTS
 
 #undef TARGET_DEFAULT
-#define TARGET_DEFAULT \
-  (MASK_POWERPC | MASK_NEW_MNEMONICS | MASK_EABI | MASK_STRICT_ALIGN)
+#define TARGET_DEFAULT (MASK_EABI | MASK_STRICT_ALIGN)
 
 #undef PROCESSOR_DEFAULT
 #define PROCESSOR_DEFAULT PROCESSOR_PPC604
@@ -124,6 +122,7 @@ VXWORKS_ADDITIONAL_CPP_SPEC
 
 #undef SUBSUBTARGET_OVERRIDE_OPTIONS
 #define SUBSUBTARGET_OVERRIDE_OPTIONS		\
+  do {						\
   if (!global_options_set.x_g_switch_value)	\
     g_switch_value = SDATA_DEFAULT_SIZE;	\
   VXWORKS_OVERRIDE_OPTIONS;			\

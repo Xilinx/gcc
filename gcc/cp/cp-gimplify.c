@@ -1,6 +1,7 @@
 /* C++-specific tree lowering bits; see also c-gimplify.c and tree-gimple.c.
 
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011,
+   2012
    Free Software Foundation, Inc.
    Contributed by Jason Merrill <jason@redhat.com>
 
@@ -947,11 +948,12 @@ cp_genericize_r (tree *stmt_p, int *walk_subtrees, void *data)
      to lower this construct before scanning it, so we need to lower these
      before doing anything else.  */
   else if (TREE_CODE (stmt) == CLEANUP_STMT)
-    *stmt_p = build2 (CLEANUP_EH_ONLY (stmt) ? TRY_CATCH_EXPR
-					     : TRY_FINALLY_EXPR,
-		      void_type_node,
-		      CLEANUP_BODY (stmt),
-		      CLEANUP_EXPR (stmt));
+    *stmt_p = build2_loc (EXPR_LOCATION (stmt),
+			  CLEANUP_EH_ONLY (stmt) ? TRY_CATCH_EXPR
+						 : TRY_FINALLY_EXPR,
+			  void_type_node,
+			  CLEANUP_BODY (stmt),
+			  CLEANUP_EXPR (stmt));
 
   else if (TREE_CODE (stmt) == IF_STMT)
     {
@@ -1119,6 +1121,22 @@ cp_genericize_r (tree *stmt_p, int *walk_subtrees, void *data)
     genericize_break_stmt (stmt_p);
   else if (TREE_CODE (stmt) == OMP_FOR)
     genericize_omp_for_stmt (stmt_p, walk_subtrees, data);
+  else if (TREE_CODE (stmt) == SIZEOF_EXPR)
+    {
+      if (SIZEOF_EXPR_TYPE_P (stmt))
+	*stmt_p
+	  = cxx_sizeof_or_alignof_type (TREE_TYPE (TREE_OPERAND (stmt, 0)),
+					SIZEOF_EXPR, false);
+      else if (TYPE_P (TREE_OPERAND (stmt, 0)))
+	*stmt_p = cxx_sizeof_or_alignof_type (TREE_OPERAND (stmt, 0),
+					      SIZEOF_EXPR, false);
+      else
+	*stmt_p = cxx_sizeof_or_alignof_expr (TREE_OPERAND (stmt, 0),
+					      SIZEOF_EXPR, false);
+      if (*stmt_p == error_mark_node)
+	*stmt_p = size_one_node;
+      return NULL;
+    }    
 
   pointer_set_insert (p_set, *stmt_p);
 
@@ -1318,8 +1336,7 @@ cxx_omp_clause_apply_fn (tree fn, tree arg1, tree arg2)
    NULL if there's nothing to do.  */
 
 tree
-cxx_omp_clause_default_ctor (tree clause, tree decl,
-			     tree outer ATTRIBUTE_UNUSED)
+cxx_omp_clause_default_ctor (tree clause, tree decl, tree /*outer*/)
 {
   tree info = CP_OMP_CLAUSE_INFO (clause);
   tree ret = NULL;

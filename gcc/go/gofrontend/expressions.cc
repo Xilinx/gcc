@@ -10,11 +10,6 @@
 
 #include <gmp.h>
 
-#ifndef ENABLE_BUILD_WITH_CXX
-extern "C"
-{
-#endif
-
 #include "toplev.h"
 #include "intl.h"
 #include "tree.h"
@@ -23,10 +18,6 @@ extern "C"
 #include "convert.h"
 #include "real.h"
 #include "realmpfr.h"
-
-#ifndef ENABLE_BUILD_WITH_CXX
-}
-#endif
 
 #include "go-c.h"
 #include "gogo.h"
@@ -168,7 +159,8 @@ Expression::convert_for_assignment(Translate_context* context, Type* lhs_type,
   if (lhs_type_tree == error_mark_node)
     return error_mark_node;
 
-  if (lhs_type != rhs_type && lhs_type->interface_type() != NULL)
+  if (lhs_type->forwarded() != rhs_type->forwarded()
+      && lhs_type->interface_type() != NULL)
     {
       if (rhs_type->interface_type() == NULL)
 	return Expression::convert_type_to_interface(context, lhs_type,
@@ -179,7 +171,8 @@ Expression::convert_for_assignment(Translate_context* context, Type* lhs_type,
 							  rhs_type, rhs_tree,
 							  false, location);
     }
-  else if (lhs_type != rhs_type && rhs_type->interface_type() != NULL)
+  else if (lhs_type->forwarded() != rhs_type->forwarded()
+	   && rhs_type->interface_type() != NULL)
     return Expression::convert_interface_to_type(context, lhs_type, rhs_type,
 						 rhs_tree, location);
   else if (lhs_type->is_slice_type() && rhs_type->is_nil_type())
@@ -189,21 +182,22 @@ Expression::convert_for_assignment(Translate_context* context, Type* lhs_type,
 
       VEC(constructor_elt,gc)* init = VEC_alloc(constructor_elt, gc, 3);
 
-      constructor_elt* elt = VEC_quick_push(constructor_elt, init, NULL);
+      constructor_elt empty = {NULL, NULL};
+      constructor_elt* elt = VEC_quick_push(constructor_elt, init, empty);
       tree field = TYPE_FIELDS(lhs_type_tree);
       go_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(field)),
 			"__values") == 0);
       elt->index = field;
       elt->value = fold_convert(TREE_TYPE(field), null_pointer_node);
 
-      elt = VEC_quick_push(constructor_elt, init, NULL);
+      elt = VEC_quick_push(constructor_elt, init, empty);
       field = DECL_CHAIN(field);
       go_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(field)),
 			"__count") == 0);
       elt->index = field;
       elt->value = fold_convert(TREE_TYPE(field), integer_zero_node);
 
-      elt = VEC_quick_push(constructor_elt, init, NULL);
+      elt = VEC_quick_push(constructor_elt, init, empty);
       field = DECL_CHAIN(field);
       go_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(field)),
 			"__capacity") == 0);
@@ -299,19 +293,25 @@ Expression::convert_type_to_interface(Translate_context* context,
       // object type: a list of function pointers for each interface
       // method.
       Named_type* rhs_named_type = rhs_type->named_type();
+      Struct_type* rhs_struct_type = rhs_type->struct_type();
       bool is_pointer = false;
-      if (rhs_named_type == NULL)
+      if (rhs_named_type == NULL && rhs_struct_type == NULL)
 	{
 	  rhs_named_type = rhs_type->deref()->named_type();
+	  rhs_struct_type = rhs_type->deref()->struct_type();
 	  is_pointer = true;
 	}
       tree method_table;
-      if (rhs_named_type == NULL)
-	method_table = null_pointer_node;
-      else
+      if (rhs_named_type != NULL)
 	method_table =
 	  rhs_named_type->interface_method_table(gogo, lhs_interface_type,
 						 is_pointer);
+      else if (rhs_struct_type != NULL)
+	method_table =
+	  rhs_struct_type->interface_method_table(gogo, lhs_interface_type,
+						  is_pointer);
+      else
+	method_table = null_pointer_node;
       first_field_value = fold_convert_loc(location.gcc_location(),
                                            const_ptr_type_node, method_table);
     }
@@ -322,7 +322,8 @@ Expression::convert_type_to_interface(Translate_context* context,
 
   VEC(constructor_elt,gc)* init = VEC_alloc(constructor_elt, gc, 2);
 
-  constructor_elt* elt = VEC_quick_push(constructor_elt, init, NULL);
+  constructor_elt empty = {NULL, NULL};
+  constructor_elt* elt = VEC_quick_push(constructor_elt, init, empty);
   tree field = TYPE_FIELDS(lhs_type_tree);
   go_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(field)),
 		    (lhs_is_empty ? "__type_descriptor" : "__methods")) == 0);
@@ -330,7 +331,7 @@ Expression::convert_type_to_interface(Translate_context* context,
   elt->value = fold_convert_loc(location.gcc_location(), TREE_TYPE(field),
                                 first_field_value);
 
-  elt = VEC_quick_push(constructor_elt, init, NULL);
+  elt = VEC_quick_push(constructor_elt, init, empty);
   field = DECL_CHAIN(field);
   go_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(field)), "__object") == 0);
   elt->index = field;
@@ -446,7 +447,8 @@ Expression::convert_interface_to_interface(Translate_context* context,
 
   VEC(constructor_elt,gc)* init = VEC_alloc(constructor_elt, gc, 2);
 
-  constructor_elt* elt = VEC_quick_push(constructor_elt, init, NULL);
+  constructor_elt empty = {NULL, NULL};
+  constructor_elt* elt = VEC_quick_push(constructor_elt, init, empty);
   tree field = TYPE_FIELDS(lhs_type_tree);
   elt->index = field;
 
@@ -509,7 +511,7 @@ Expression::convert_interface_to_interface(Translate_context* context,
 
   // The second field is simply the object pointer.
 
-  elt = VEC_quick_push(constructor_elt, init, NULL);
+  elt = VEC_quick_push(constructor_elt, init, empty);
   field = DECL_CHAIN(field);
   go_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(field)), "__object") == 0);
   elt->index = field;
@@ -1312,30 +1314,18 @@ Func_expression::do_get_tree(Translate_context* context)
 	     && TREE_CODE(TREE_OPERAND(fnaddr, 0)) == FUNCTION_DECL);
   TREE_ADDRESSABLE(TREE_OPERAND(fnaddr, 0)) = 1;
 
-  // For a normal non-nested function call, that is all we have to do.
-  if (!this->function_->is_function()
-      || this->function_->func_value()->enclosing() == NULL)
-    {
-      go_assert(this->closure_ == NULL);
-      return fnaddr;
-    }
+  // If there is no closure, that is all have to do.
+  if (this->closure_ == NULL)
+    return fnaddr;
 
-  // For a nested function call, we have to always allocate a
-  // trampoline.  If we don't always allocate, then closures will not
-  // be reliably distinct.
-  Expression* closure = this->closure_;
-  tree closure_tree;
-  if (closure == NULL)
-    closure_tree = null_pointer_node;
-  else
-    {
-      // Get the value of the closure.  This will be a pointer to
-      // space allocated on the heap.
-      closure_tree = closure->get_tree(context);
-      if (closure_tree == error_mark_node)
-	return error_mark_node;
-      go_assert(POINTER_TYPE_P(TREE_TYPE(closure_tree)));
-    }
+  go_assert(this->function_->func_value()->enclosing() != NULL);
+
+  // Get the value of the closure.  This will be a pointer to space
+  // allocated on the heap.
+  tree closure_tree = this->closure_->get_tree(context);
+  if (closure_tree == error_mark_node)
+    return error_mark_node;
+  go_assert(POINTER_TYPE_P(TREE_TYPE(closure_tree)));
 
   // Now we need to build some code on the heap.  This code will load
   // the static chain pointer with the closure and then jump to the
@@ -4487,9 +4477,8 @@ Binary_expression::eval_constant(Operator op, Numeric_constant* left_nc,
     case OPERATOR_LE:
     case OPERATOR_GT:
     case OPERATOR_GE:
-      // These return boolean values and as such must be handled
-      // elsewhere.
-      go_unreachable();
+      // These return boolean values, not numeric.
+      return false;
     default:
       break;
     }
@@ -5095,7 +5084,7 @@ Binary_expression::do_lower(Gogo* gogo, Named_object*,
 						     &right_nc, location,
 						     &result))
 	      return this;
-	    return Expression::make_cast(Type::lookup_bool_type(),
+	    return Expression::make_cast(Type::make_boolean_type(),
 					 Expression::make_boolean(result,
 								  location),
 					 location);
@@ -5126,10 +5115,7 @@ Binary_expression::do_lower(Gogo* gogo, Named_object*,
 	    {
 	      int cmp = left_string.compare(right_string);
 	      bool r = Binary_expression::cmp_to_bool(op, cmp);
-	      return Expression::make_cast(Type::lookup_bool_type(),
-					   Expression::make_boolean(r,
-								    location),
-					   location);
+	      return Expression::make_boolean(r, location);
 	    }
 	}
     }
@@ -5198,6 +5184,9 @@ Binary_expression::lower_struct_comparison(Gogo* gogo,
        pf != fields->end();
        ++pf, ++field_index)
     {
+      if (Gogo::is_sink_name(pf->field_name()))
+	continue;
+
       if (field_index > 0)
 	{
 	  if (left_temp == NULL)
@@ -5316,24 +5305,13 @@ Binary_expression::operand_address(Statement_inserter* inserter,
 bool
 Binary_expression::do_numeric_constant_value(Numeric_constant* nc) const
 {
-  Operator op = this->op_;
-
-  if (op == OPERATOR_EQEQ
-      || op == OPERATOR_NOTEQ
-      || op == OPERATOR_LT
-      || op == OPERATOR_LE
-      || op == OPERATOR_GT
-      || op == OPERATOR_GE)
-    return false;
-
   Numeric_constant left_nc;
   if (!this->left_->numeric_constant_value(&left_nc))
     return false;
   Numeric_constant right_nc;
   if (!this->right_->numeric_constant_value(&right_nc))
     return false;
-
-  return Binary_expression::eval_constant(op, &left_nc, &right_nc,
+  return Binary_expression::eval_constant(this->op_, &left_nc, &right_nc,
 					  this->location(), nc);
 }
 
@@ -5358,15 +5336,15 @@ Binary_expression::do_type()
 
   switch (this->op_)
     {
-    case OPERATOR_OROR:
-    case OPERATOR_ANDAND:
     case OPERATOR_EQEQ:
     case OPERATOR_NOTEQ:
     case OPERATOR_LT:
     case OPERATOR_LE:
     case OPERATOR_GT:
     case OPERATOR_GE:
-      return Type::lookup_bool_type();
+      if (this->type_ == NULL)
+	this->type_ = Type::make_boolean_type();
+      return this->type_;
 
     case OPERATOR_PLUS:
     case OPERATOR_MINUS:
@@ -5377,6 +5355,8 @@ Binary_expression::do_type()
     case OPERATOR_MOD:
     case OPERATOR_AND:
     case OPERATOR_BITCLEAR:
+    case OPERATOR_OROR:
+    case OPERATOR_ANDAND:
       {
 	Type* type;
 	if (!Binary_expression::operation_type(this->op_,
@@ -5473,7 +5453,8 @@ Binary_expression::do_determine_type(const Type_context* context)
 	  && (this->left_->type()->integer_type() == NULL
 	      || (subcontext.type->integer_type() == NULL
 		  && subcontext.type->float_type() == NULL
-		  && subcontext.type->complex_type() == NULL)))
+		  && subcontext.type->complex_type() == NULL
+		  && subcontext.type->interface_type() == NULL)))
 	this->report_error(("invalid context-determined non-integer type "
 			    "for shift operand"));
 
@@ -5484,6 +5465,16 @@ Binary_expression::do_determine_type(const Type_context* context)
     }
 
   this->right_->determine_type(&subcontext);
+
+  if (is_comparison)
+    {
+      if (this->type_ != NULL && !this->type_->is_abstract())
+	;
+      else if (context->type != NULL && context->type->is_boolean_type())
+	this->type_ = context->type;
+      else if (!context->may_be_abstract)
+	this->type_ = Type::lookup_bool_type();
+    }
 }
 
 // Report an error if the binary operator OP does not support TYPE.
@@ -5695,7 +5686,7 @@ Binary_expression::do_get_tree(Translate_context* context)
     case OPERATOR_LE:
     case OPERATOR_GT:
     case OPERATOR_GE:
-      return Expression::comparison_tree(context, this->op_,
+      return Expression::comparison_tree(context, this->type_, this->op_,
 					 this->left_->type(), left,
 					 this->right_->type(), right,
 					 this->location());
@@ -6156,8 +6147,8 @@ Expression::make_binary(Operator op, Expression* left, Expression* right,
 // Implement a comparison.
 
 tree
-Expression::comparison_tree(Translate_context* context, Operator op,
-			    Type* left_type, tree left_tree,
+Expression::comparison_tree(Translate_context* context, Type* result_type,
+			    Operator op, Type* left_type, tree left_tree,
 			    Type* right_type, tree right_tree,
 			    Location location)
 {
@@ -6398,7 +6389,13 @@ Expression::comparison_tree(Translate_context* context, Operator op,
   if (left_tree == error_mark_node || right_tree == error_mark_node)
     return error_mark_node;
 
-  tree ret = fold_build2(code, boolean_type_node, left_tree, right_tree);
+  tree result_type_tree;
+  if (result_type == NULL)
+    result_type_tree = boolean_type_node;
+  else
+    result_type_tree = type_to_tree(result_type->get_backend(context->gogo()));
+
+  tree ret = fold_build2(code, result_type_tree, left_tree, right_tree);
   if (CAN_HAVE_LOCATION_P(ret))
     SET_EXPR_LOCATION(ret, location.gcc_location());
   return ret;
@@ -6689,38 +6686,6 @@ Builtin_call_expression::do_set_recover_arg(Expression* arg)
   this->set_args(new_args);
 }
 
-// A traversal class which looks for a call expression.
-
-class Find_call_expression : public Traverse
-{
- public:
-  Find_call_expression()
-    : Traverse(traverse_expressions),
-      found_(false)
-  { }
-
-  int
-  expression(Expression**);
-
-  bool
-  found()
-  { return this->found_; }
-
- private:
-  bool found_;
-};
-
-int
-Find_call_expression::expression(Expression** pexpr)
-{
-  if ((*pexpr)->call_expression() != NULL)
-    {
-      this->found_ = true;
-      return TRAVERSE_EXIT;
-    }
-  return TRAVERSE_CONTINUE;
-}
-
 // Lower a builtin call expression.  This turns new and make into
 // specific expressions.  We also convert to a constant if we can.
 
@@ -6741,20 +6706,6 @@ Builtin_call_expression::do_lower(Gogo* gogo, Named_object* function,
 
   if (this->is_constant())
     {
-      // We can only lower len and cap if there are no function calls
-      // in the arguments.  Otherwise we have to make the call.
-      if (this->code_ == BUILTIN_LEN || this->code_ == BUILTIN_CAP)
-	{
-	  Expression* arg = this->one_arg();
-	  if (arg != NULL && !arg->is_constant())
-	    {
-	      Find_call_expression find_call;
-	      Expression::traverse(&arg, &find_call);
-	      if (find_call.found())
-		return this;
-	    }
-	}
-
       Numeric_constant nc;
       if (this->numeric_constant_value(&nc))
 	return nc.expression(loc);
@@ -7071,8 +7022,42 @@ Builtin_call_expression::one_arg() const
   return args->front();
 }
 
-// Return whether this is constant: len of a string, or len or cap of
-// a fixed array, or unsafe.Sizeof, unsafe.Offsetof, unsafe.Alignof.
+// A traversal class which looks for a call or receive expression.
+
+class Find_call_expression : public Traverse
+{
+ public:
+  Find_call_expression()
+    : Traverse(traverse_expressions),
+      found_(false)
+  { }
+
+  int
+  expression(Expression**);
+
+  bool
+  found()
+  { return this->found_; }
+
+ private:
+  bool found_;
+};
+
+int
+Find_call_expression::expression(Expression** pexpr)
+{
+  if ((*pexpr)->call_expression() != NULL
+      || (*pexpr)->receive_expression() != NULL)
+    {
+      this->found_ = true;
+      return TRAVERSE_EXIT;
+    }
+  return TRAVERSE_CONTINUE;
+}
+
+// Return whether this is constant: len of a string constant, or len
+// or cap of an array, or unsafe.Sizeof, unsafe.Offsetof,
+// unsafe.Alignof.
 
 bool
 Builtin_call_expression::do_is_constant() const
@@ -7094,6 +7079,17 @@ Builtin_call_expression::do_is_constant() const
 	    && arg_type->points_to()->array_type() != NULL
 	    && !arg_type->points_to()->is_slice_type())
 	  arg_type = arg_type->points_to();
+
+	// The len and cap functions are only constant if there are no
+	// function calls or channel operations in the arguments.
+	// Otherwise we have to make the call.
+	if (!arg->is_constant())
+	  {
+	    Find_call_expression find_call;
+	    Expression::traverse(&arg, &find_call);
+	    if (find_call.found())
+	      return false;
+	  }
 
 	if (arg_type->array_type() != NULL
 	    && arg_type->array_type()->length() != NULL)
@@ -7481,7 +7477,7 @@ Builtin_call_expression::do_determine_type(const Type_context* context)
 	if (args != NULL && args->size() == 2)
 	  {
 	    Type* t1 = args->front()->type();
-	    Type* t2 = args->front()->type();
+	    Type* t2 = args->back()->type();
 	    if (!t1->is_abstract())
 	      arg_type = t1;
 	    else if (!t2->is_abstract())
@@ -9975,20 +9971,21 @@ Array_index_expression::do_get_tree(Translate_context* context)
 
   VEC(constructor_elt,gc)* init = VEC_alloc(constructor_elt, gc, 3);
 
-  constructor_elt* elt = VEC_quick_push(constructor_elt, init, NULL);
+  constructor_elt empty = {NULL, NULL};
+  constructor_elt* elt = VEC_quick_push(constructor_elt, init, empty);
   tree field = TYPE_FIELDS(struct_tree);
   go_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(field)), "__values") == 0);
   elt->index = field;
   elt->value = value_pointer;
 
-  elt = VEC_quick_push(constructor_elt, init, NULL);
+  elt = VEC_quick_push(constructor_elt, init, empty);
   field = DECL_CHAIN(field);
   go_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(field)), "__count") == 0);
   elt->index = field;
   elt->value = fold_convert_loc(loc.gcc_location(), TREE_TYPE(field),
                                 result_length_tree);
 
-  elt = VEC_quick_push(constructor_elt, init, NULL);
+  elt = VEC_quick_push(constructor_elt, init, empty);
   field = DECL_CHAIN(field);
   go_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(field)), "__capacity") == 0);
   elt->index = field;
@@ -11371,7 +11368,8 @@ Struct_construction_expression::do_get_tree(Translate_context* context)
       if (val == error_mark_node || TREE_TYPE(val) == error_mark_node)
 	return error_mark_node;
 
-      constructor_elt* elt = VEC_quick_push(constructor_elt, elts, NULL);
+      constructor_elt empty = {NULL, NULL};
+      constructor_elt* elt = VEC_quick_push(constructor_elt, elts, empty);
       elt->index = field;
       elt->value = val;
       if (!TREE_CONSTANT(val))
@@ -11599,7 +11597,8 @@ Array_construction_expression::get_constructor_tree(Translate_context* context,
 	{
 	  if (this->indexes_ != NULL)
 	    go_assert(pi != this->indexes_->end());
-	  constructor_elt* elt = VEC_quick_push(constructor_elt, values, NULL);
+	  constructor_elt empty = {NULL, NULL};
+	  constructor_elt* elt = VEC_quick_push(constructor_elt, values, empty);
 
 	  if (this->indexes_ == NULL)
 	    elt->index = size_int(i);
@@ -11809,7 +11808,8 @@ Open_array_construction_expression::do_get_tree(Translate_context* context)
       if (constructor_type == error_mark_node)
 	return error_mark_node;
       VEC(constructor_elt,gc)* vec = VEC_alloc(constructor_elt, gc, 1);
-      constructor_elt* elt = VEC_quick_push(constructor_elt, vec, NULL);
+      constructor_elt empty = {NULL, NULL};
+      constructor_elt* elt = VEC_quick_push(constructor_elt, vec, empty);
       elt->index = size_int(0);
       Gogo* gogo = context->gogo();
       Btype* btype = element_type->get_backend(gogo);
@@ -11902,19 +11902,20 @@ Open_array_construction_expression::do_get_tree(Translate_context* context)
 
   VEC(constructor_elt,gc)* init = VEC_alloc(constructor_elt, gc, 3);
 
-  constructor_elt* elt = VEC_quick_push(constructor_elt, init, NULL);
+  constructor_elt empty = {NULL, NULL};
+  constructor_elt* elt = VEC_quick_push(constructor_elt, init, empty);
   tree field = TYPE_FIELDS(type_tree);
   go_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(field)), "__values") == 0);
   elt->index = field;
   elt->value = fold_convert(TREE_TYPE(field), space);
 
-  elt = VEC_quick_push(constructor_elt, init, NULL);
+  elt = VEC_quick_push(constructor_elt, init, empty);
   field = DECL_CHAIN(field);
   go_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(field)), "__count") == 0);
   elt->index = field;
   elt->value = fold_convert(TREE_TYPE(field), length_tree);
 
-  elt = VEC_quick_push(constructor_elt, init, NULL);
+  elt = VEC_quick_push(constructor_elt, init, empty);
   field = DECL_CHAIN(field);
   go_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(field)),"__capacity") == 0);
   elt->index = field;
@@ -12118,7 +12119,8 @@ Map_construction_expression::do_get_tree(Translate_context* context)
 
 	  VEC(constructor_elt,gc)* one = VEC_alloc(constructor_elt, gc, 2);
 
-	  constructor_elt* elt = VEC_quick_push(constructor_elt, one, NULL);
+	  constructor_elt empty = {NULL, NULL};
+	  constructor_elt* elt = VEC_quick_push(constructor_elt, one, empty);
 	  elt->index = key_field;
 	  tree val_tree = (*pv)->get_tree(context);
 	  elt->value = Expression::convert_for_assignment(context, key_type,
@@ -12131,7 +12133,7 @@ Map_construction_expression::do_get_tree(Translate_context* context)
 
 	  ++pv;
 
-	  elt = VEC_quick_push(constructor_elt, one, NULL);
+	  elt = VEC_quick_push(constructor_elt, one, empty);
 	  elt->index = val_field;
 	  val_tree = (*pv)->get_tree(context);
 	  elt->value = Expression::convert_for_assignment(context, val_type,
@@ -12142,7 +12144,7 @@ Map_construction_expression::do_get_tree(Translate_context* context)
 	  if (!TREE_CONSTANT(elt->value))
 	    one_is_constant = false;
 
-	  elt = VEC_quick_push(constructor_elt, values, NULL);
+	  elt = VEC_quick_push(constructor_elt, values, empty);
 	  elt->index = size_int(i);
 	  elt->value = build_constructor(struct_type, one);
 	  if (one_is_constant)
@@ -12945,26 +12947,8 @@ Type_guard_expression::do_traverse(Traverse* traverse)
 void
 Type_guard_expression::do_check_types(Gogo*)
 {
-  // 6g permits using a type guard with unsafe.pointer; we are
-  // compatible.
   Type* expr_type = this->expr_->type();
-  if (expr_type->is_unsafe_pointer_type())
-    {
-      if (this->type_->points_to() == NULL
-	  && (this->type_->integer_type() == NULL
-	      || (this->type_->forwarded()
-		  != Type::lookup_integer_type("uintptr"))))
-	this->report_error(_("invalid unsafe.Pointer conversion"));
-    }
-  else if (this->type_->is_unsafe_pointer_type())
-    {
-      if (expr_type->points_to() == NULL
-	  && (expr_type->integer_type() == NULL
-	      || (expr_type->forwarded()
-		  != Type::lookup_integer_type("uintptr"))))
-	this->report_error(_("invalid unsafe.Pointer conversion"));
-    }
-  else if (expr_type->interface_type() == NULL)
+  if (expr_type->interface_type() == NULL)
     {
       if (!expr_type->is_error() && !this->type_->is_error())
 	this->report_error(_("type assertion only valid for interface types"));
@@ -12997,23 +12981,10 @@ Type_guard_expression::do_check_types(Gogo*)
 tree
 Type_guard_expression::do_get_tree(Translate_context* context)
 {
-  Gogo* gogo = context->gogo();
   tree expr_tree = this->expr_->get_tree(context);
   if (expr_tree == error_mark_node)
     return error_mark_node;
-  Type* expr_type = this->expr_->type();
-  if ((this->type_->is_unsafe_pointer_type()
-       && (expr_type->points_to() != NULL
-	   || expr_type->integer_type() != NULL))
-      || (expr_type->is_unsafe_pointer_type()
-	  && this->type_->points_to() != NULL))
-    return convert_to_pointer(type_to_tree(this->type_->get_backend(gogo)),
-			      expr_tree);
-  else if (expr_type->is_unsafe_pointer_type()
-	   && this->type_->integer_type() != NULL)
-    return convert_to_integer(type_to_tree(this->type_->get_backend(gogo)),
-			      expr_tree);
-  else if (this->type_->interface_type() != NULL)
+  if (this->type_->interface_type() != NULL)
     return Expression::convert_interface_to_interface(context, this->type_,
 						      this->expr_->type(),
 						      expr_tree, true,

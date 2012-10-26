@@ -34,7 +34,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "insn-config.h"
 #include "recog.h"
 #include "basic-block.h"
-#include "output.h"
 #include "function.h"
 #include "expr.h"
 #include "except.h"
@@ -42,7 +41,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "cselib.h"
 #include "intl.h"
 #include "obstack.h"
-#include "timevar.h"
 #include "tree-pass.h"
 #include "hashtab.h"
 #include "df.h"
@@ -1329,7 +1327,7 @@ implicit_set_cond_p (const_rtx cond)
 	 the optimization can't be performed.  */
       /* ??? The complex and vector checks are not implemented yet.  We just
 	 always return zero for them.  */
-      if (GET_CODE (cst) == CONST_DOUBLE)
+      if (CONST_DOUBLE_AS_FLOAT_P (cst))
 	{
 	  REAL_VALUE_TYPE d;
 	  REAL_VALUE_FROM_CONST_DOUBLE (d, cst);

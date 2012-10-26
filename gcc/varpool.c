@@ -259,7 +259,7 @@ varpool_analyze_node (struct varpool_node *node)
   node->analyzed = true;
 }
 
-/* Assemble thunks and aliases asociated to NODE.  */
+/* Assemble thunks and aliases associated to NODE.  */
 
 static void
 assemble_aliases (struct varpool_node *node)
@@ -299,6 +299,10 @@ varpool_assemble_decl (struct varpool_node *node)
      after turning real vars into value_expr vars.  */
   if (DECL_HAS_VALUE_EXPR_P (decl)
       && !targetm.have_tls)
+    return false;
+
+  /* Hard register vars do not need to be output.  */
+  if (DECL_HARD_REGISTER (decl))
     return false;
 
   gcc_checking_assert (!TREE_ASM_WRITTEN (decl)
@@ -449,7 +453,7 @@ add_new_static_var (tree type)
   tree new_decl;
   struct varpool_node *new_node;
 
-  new_decl = create_tmp_var (type, NULL);
+  new_decl = create_tmp_var_raw (type, NULL);
   DECL_NAME (new_decl) = create_tmp_var_name (NULL);
   TREE_READONLY (new_decl) = 0;
   TREE_STATIC (new_decl) = 1;
@@ -508,7 +512,7 @@ varpool_extra_name_alias (tree alias, tree decl)
   return alias_node;
 }
 
-/* Call calback on NODE and aliases asociated to NODE. 
+/* Call calback on NODE and aliases associated to NODE. 
    When INCLUDE_OVERWRITABLE is false, overwritable aliases and thunks are
    skipped. */
 

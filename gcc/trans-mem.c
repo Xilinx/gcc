@@ -32,7 +32,6 @@
 #include "params.h"
 #include "target.h"
 #include "langhooks.h"
-#include "tree-pretty-print.h"
 #include "gimple-pretty-print.h"
 #include "cfgloop.h"
 
@@ -549,6 +548,15 @@ struct diagnose_tm
   gimple stmt;
 };
 
+/* Return true if T is a volatile variable of some kind.  */
+
+static bool
+volatile_var_p (tree t)
+{
+  return (SSA_VAR_P (t)
+	  && TREE_THIS_VOLATILE (TREE_TYPE (t)));
+}
+
 /* Tree callback function for diagnose_tm pass.  */
 
 static tree
@@ -557,13 +565,9 @@ diagnose_tm_1_op (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
 {
   struct walk_stmt_info *wi = (struct walk_stmt_info *) data;
   struct diagnose_tm *d = (struct diagnose_tm *) wi->info;
-  enum tree_code code = TREE_CODE (*tp);
 
-  if ((code == VAR_DECL
-       || code == RESULT_DECL
-       || code == PARM_DECL)
-      && d->block_flags & (DIAG_TM_SAFE | DIAG_TM_RELAXED)
-      && TREE_THIS_VOLATILE (TREE_TYPE (*tp))
+  if (volatile_var_p (*tp)
+      && d->block_flags & DIAG_TM_SAFE
       && !d->saw_volatile)
     {
       d->saw_volatile = 1;
@@ -1019,7 +1023,6 @@ tm_log_add (basic_block entry_block, tree addr, gimple stmt)
 	  && !TREE_ADDRESSABLE (type))
 	{
 	  lp->save_var = create_tmp_reg (TREE_TYPE (lp->addr), "tm_save");
-	  add_referenced_var (lp->save_var);
 	  lp->stmts = NULL;
 	  lp->entry_block = entry_block;
 	  /* Save addresses separately in dominator order so we don't
@@ -1287,7 +1290,7 @@ tm_log_emit_save_or_restores (basic_block entry_block,
   gsi = gsi_last_bb (cond_bb);
 
   /* t1 = status & A_{property}.  */
-  t1 = make_rename_temp (TREE_TYPE (status), NULL);
+  t1 = create_tmp_reg (TREE_TYPE (status), NULL);
   t2 = build_int_cst (TREE_TYPE (status), trxn_prop);
   stmt = gimple_build_assign_with_ops (BIT_AND_EXPR, t1, status, t2);
   gsi_insert_after (&gsi, stmt, GSI_CONTINUE_LINKING);
@@ -1381,6 +1384,19 @@ thread_private_new_memory (basic_block entry_block, tree x)
 	  /* x = (cast*) foo ==> foo */
 	  else if (code == VIEW_CONVERT_EXPR || code == NOP_EXPR)
 	    x = gimple_assign_rhs1 (stmt);
+	  /* x = c ? op1 : op2 == > op1 or op2 just like a PHI */
+	  else if (code == COND_EXPR)
+	    {
+	      tree op1 = gimple_assign_rhs2 (stmt);
+	      tree op2 = gimple_assign_rhs3 (stmt);
+	      enum thread_memory_type mem;
+	      retval = thread_private_new_memory (entry_block, op1);
+	      if (retval == mem_non_local)
+		goto new_memory_ret;
+	      mem = thread_private_new_memory (entry_block, op2);
+	      retval = MIN (retval, mem);
+	      goto new_memory_ret;
+	    }
 	  else
 	    {
 	      retval = mem_non_local;
@@ -1778,7 +1794,7 @@ static struct tm_region *all_tm_regions;
 static bitmap_obstack tm_obstack;
 
 
-/* A subroutine of tm_region_init.  Record the existance of the
+/* A subroutine of tm_region_init.  Record the existence of the
    GIMPLE_TRANSACTION statement in a tree of tm_region elements.  */
 
 static struct tm_region *
@@ -2059,7 +2075,7 @@ build_tm_load (location_t loc, tree lhs, tree rhs, gimple_stmt_iterator *gsi)
       gimple g;
       tree temp;
 
-      temp = make_rename_temp (t, NULL);
+      temp = create_tmp_reg (t, NULL);
       gimple_call_set_lhs (gcall, temp);
       gsi_insert_before (gsi, gcall, GSI_SAME_STMT);
 
@@ -2137,7 +2153,7 @@ build_tm_store (location_t loc, tree lhs, tree rhs, gimple_stmt_iterator *gsi)
       gimple g;
       tree temp;
 
-      temp = make_rename_temp (simple_type, NULL);
+      temp = create_tmp_reg (simple_type, NULL);
       t = fold_build1 (VIEW_CONVERT_EXPR, simple_type, rhs);
       g = gimple_build_assign (temp, t);
       gimple_set_location (g, loc);
@@ -2285,8 +2301,31 @@ expand_call_tm (struct tm_region *region,
     }
 
   node = cgraph_get_node (fn_decl);
-  /* All calls should have cgraph here. */
-  gcc_assert (node);
+  /* All calls should have cgraph here.  */
+  if (!node)
+    {
+      /* We can have a nodeless call here if some pass after IPA-tm
+	 added uninstrumented calls.  For example, loop distribution
+	 can transform certain loop constructs into __builtin_mem*
+	 calls.  In this case, see if we have a suitable TM
+	 replacement and fill in the gaps.  */
+      gcc_assert (DECL_BUILT_IN_CLASS (fn_decl) == BUILT_IN_NORMAL);
+      enum built_in_function code = DECL_FUNCTION_CODE (fn_decl);
+      gcc_assert (code == BUILT_IN_MEMCPY
+		  || code == BUILT_IN_MEMMOVE
+		  || code == BUILT_IN_MEMSET);
+
+      tree repl = find_tm_replacement_function (fn_decl);
+      if (repl)
+	{
+	  gimple_call_set_fndecl (stmt, repl);
+	  update_stmt (stmt);
+	  node = cgraph_create_node (repl);
+	  node->local.tm_may_enter_irr = false;
+	  return expand_call_tm (region, gsi);
+	}
+      gcc_unreachable ();
+    }
   if (node->local.tm_may_enter_irr)
     transaction_subcode_ior (region, GTMA_MAY_ENTER_IRREVOCABLE);
 
@@ -2304,7 +2343,7 @@ expand_call_tm (struct tm_region *region,
   if (lhs && requires_barrier (region->entry_block, lhs, stmt)
       && !gimple_call_return_slot_opt_p (stmt))
     {
-      tree tmp = make_rename_temp (TREE_TYPE (lhs), NULL);
+      tree tmp = create_tmp_reg (TREE_TYPE (lhs), NULL);
       location_t loc = gimple_location (stmt);
       edge fallthru_edge = NULL;
 
@@ -2577,7 +2616,7 @@ make_tm_edge (gimple stmt, basic_block bb, struct tm_region *region)
       n->label_or_list = tree_cons (NULL, dummy.label_or_list, old);
     }
 
-  make_edge (bb, region->entry_block, EDGE_ABNORMAL | EDGE_ABNORMAL_CALL);
+  make_edge (bb, region->entry_block, EDGE_ABNORMAL);
 }
 
 
@@ -2591,6 +2630,7 @@ expand_block_edges (struct tm_region *region, basic_block bb)
 
   for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); )
     {
+      bool do_next = true;
       gimple stmt = gsi_stmt (gsi);
 
       /* ??? TM_COMMIT (and any other tm builtin function) in a nested
@@ -2612,6 +2652,7 @@ expand_block_edges (struct tm_region *region, basic_block bb)
 	      make_tm_edge (stmt, bb, region);
 	      bb = e->dest;
 	      gsi = gsi_start_bb (bb);
+	      do_next = false;
 	    }
 
 	  /* Delete any tail-call annotation that may have been added.
@@ -2620,7 +2661,8 @@ expand_block_edges (struct tm_region *region, basic_block bb)
 	  gimple_call_set_tail (stmt, false);
 	}
 
-      gsi_next (&gsi);
+      if (do_next)
+	gsi_next (&gsi);
     }
 }
 
@@ -2637,7 +2679,7 @@ expand_transaction (struct tm_region *region)
   int flags, subcode;
 
   tm_start = builtin_decl_explicit (BUILT_IN_TM_START);
-  status = make_rename_temp (TREE_TYPE (TREE_TYPE (tm_start)), "tm_state");
+  status = create_tmp_reg (TREE_TYPE (TREE_TYPE (tm_start)), "tm_state");
 
   /* ??? There are plenty of bits here we're not computing.  */
   subcode = gimple_transaction_subcode (region->transaction_stmt);
@@ -2694,7 +2736,7 @@ expand_transaction (struct tm_region *region)
 	region->entry_block = test_bb;
       gsi = gsi_last_bb (test_bb);
 
-      t1 = make_rename_temp (TREE_TYPE (status), NULL);
+      t1 = create_tmp_reg (TREE_TYPE (status), NULL);
       t2 = build_int_cst (TREE_TYPE (status), A_ABORTTRANSACTION);
       g = gimple_build_assign_with_ops (BIT_AND_EXPR, t1, status, t2);
       gsi_insert_after (&gsi, g, GSI_CONTINUE_LINKING);
@@ -3568,11 +3610,6 @@ struct tm_ipa_cg_data
   bool want_irr_scan_normal;
 };
 
-typedef struct cgraph_node *cgraph_node_p;
-
-DEF_VEC_P (cgraph_node_p);
-DEF_VEC_ALLOC_P (cgraph_node_p, heap);
-
 typedef VEC (cgraph_node_p, heap) *cgraph_node_queue;
 
 /* Return the ipa data associated with NODE, allocating zeroed memory
@@ -3750,40 +3787,56 @@ ipa_tm_scan_irr_block (basic_block bb)
       gimple stmt = gsi_stmt (gsi);
       switch (gimple_code (stmt))
 	{
-	case GIMPLE_CALL:
-	  if (is_tm_pure_call (stmt))
-	    break;
-
-	  fn = gimple_call_fn (stmt);
-
-	  /* Functions with the attribute are by definition irrevocable.  */
-	  if (is_tm_irrevocable (fn))
-	    return true;
-
-	  /* For direct function calls, go ahead and check for replacement
-	     functions, or transitive irrevocable functions.  For indirect
-	     functions, we'll ask the runtime.  */
-	  if (TREE_CODE (fn) == ADDR_EXPR)
+	case GIMPLE_ASSIGN:
+	  if (gimple_assign_single_p (stmt))
 	    {
-	      struct tm_ipa_cg_data *d;
-	      struct cgraph_node *node;
-
-	      fn = TREE_OPERAND (fn, 0);
-	      if (is_tm_ending_fndecl (fn))
-		break;
-	      if (find_tm_replacement_function (fn))
-		break;
-
-	      node = cgraph_get_node(fn);
-	      d = get_cg_data (&node, true);
-
-	      /* Return true if irrevocable, but above all, believe
-		 the user.  */
-	      if (d->is_irrevocable
-		  && !is_tm_safe_or_pure (fn))
+	      tree lhs = gimple_assign_lhs (stmt);
+	      tree rhs = gimple_assign_rhs1 (stmt);
+	      if (volatile_var_p (lhs) || volatile_var_p (rhs))
 		return true;
 	    }
 	  break;
+
+	case GIMPLE_CALL:
+	  {
+	    tree lhs = gimple_call_lhs (stmt);
+	    if (lhs && volatile_var_p (lhs))
+	      return true;
+
+	    if (is_tm_pure_call (stmt))
+	      break;
+
+	    fn = gimple_call_fn (stmt);
+
+	    /* Functions with the attribute are by definition irrevocable.  */
+	    if (is_tm_irrevocable (fn))
+	      return true;
+
+	    /* For direct function calls, go ahead and check for replacement
+	       functions, or transitive irrevocable functions.  For indirect
+	       functions, we'll ask the runtime.  */
+	    if (TREE_CODE (fn) == ADDR_EXPR)
+	      {
+		struct tm_ipa_cg_data *d;
+		struct cgraph_node *node;
+
+		fn = TREE_OPERAND (fn, 0);
+		if (is_tm_ending_fndecl (fn))
+		  break;
+		if (find_tm_replacement_function (fn))
+		  break;
+
+		node = cgraph_get_node(fn);
+		d = get_cg_data (&node, true);
+
+		/* Return true if irrevocable, but above all, believe
+		   the user.  */
+		if (d->is_irrevocable
+		    && !is_tm_safe_or_pure (fn))
+		  return true;
+	      }
+	    break;
+	  }
 
 	case GIMPLE_ASM:
 	  /* ??? The Approved Method of indicating that an inline
@@ -3794,7 +3847,6 @@ ipa_tm_scan_irr_block (basic_block bb)
 	    {
 	      tree t = build1 (NOP_EXPR, void_type_node, size_zero_node);
 	      SET_EXPR_LOCATION (t, gimple_location (stmt));
-	      TREE_BLOCK (t) = gimple_block (stmt);
 	      error ("%Kasm not allowed in %<transaction_safe%> function", t);
 	    }
 	  return true;
@@ -3979,7 +4031,6 @@ ipa_tm_scan_irr_function (struct cgraph_node *node, bool for_clone)
       || DECL_STRUCT_FUNCTION (node->symbol.decl)->cfg == NULL)
     return false;
 
-  current_function_decl = node->symbol.decl;
   push_cfun (DECL_STRUCT_FUNCTION (node->symbol.decl));
   calculate_dominance_info (CDI_DOMINATORS);
 
@@ -4051,7 +4102,6 @@ ipa_tm_scan_irr_function (struct cgraph_node *node, bool for_clone)
 
   VEC_free (basic_block, heap, queue);
   pop_cfun ();
-  current_function_decl = NULL;
 
   return ret;
 }
@@ -4328,7 +4378,8 @@ ipa_tm_create_version_alias (struct cgraph_node *node, void *data)
 
   record_tm_clone_pair (old_decl, new_decl);
 
-  if (info->old_node->symbol.force_output)
+  if (info->old_node->symbol.force_output
+      || ipa_ref_list_first_referring (&info->old_node->symbol.ref_list))
     ipa_tm_mark_force_output_node (new_node);
   return false;
 }
@@ -4381,7 +4432,8 @@ ipa_tm_create_version (struct cgraph_node *old_node)
   record_tm_clone_pair (old_decl, new_decl);
 
   cgraph_call_function_insertion_hooks (new_node);
-  if (old_node->symbol.force_output)
+  if (old_node->symbol.force_output
+      || ipa_ref_list_first_referring (&old_node->symbol.ref_list))
     ipa_tm_mark_force_output_node (new_node);
 
   /* Do the same thing, but for any aliases of the original node.  */
@@ -4451,7 +4503,6 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
   gettm_fn = builtin_decl_explicit (safe ? BUILT_IN_TM_GETTMCLONE_SAFE
 				    : BUILT_IN_TM_GETTMCLONE_IRR);
   ret = create_tmp_var (ptr_type_node, NULL);
-  add_referenced_var (ret);
 
   if (!safe)
     transaction_subcode_ior (region, GTMA_MAY_ENTER_IRREVOCABLE);
@@ -4473,7 +4524,6 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
   /* Cast return value from tm_gettmclone* into appropriate function
      pointer.  */
   callfn = create_tmp_var (TREE_TYPE (old_fn), NULL);
-  add_referenced_var (callfn);
   g2 = gimple_build_assign (callfn,
 			    fold_build1 (NOP_EXPR, TREE_TYPE (callfn), ret));
   callfn = make_ssa_name (callfn, g2);
@@ -4498,7 +4548,7 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
     {
       tree temp;
 
-      temp = make_rename_temp (rettype, 0);
+      temp = create_tmp_reg (rettype, 0);
       gimple_call_set_lhs (stmt, temp);
 
       g2 = gimple_build_assign (lhs,
@@ -4689,7 +4739,6 @@ ipa_tm_transform_transaction (struct cgraph_node *node)
 
   d = get_cg_data (&node, true);
 
-  current_function_decl = node->symbol.decl;
   push_cfun (DECL_STRUCT_FUNCTION (node->symbol.decl));
   calculate_dominance_info (CDI_DOMINATORS);
 
@@ -4714,7 +4763,6 @@ ipa_tm_transform_transaction (struct cgraph_node *node)
     update_ssa (TODO_update_ssa_only_virtuals);
 
   pop_cfun ();
-  current_function_decl = NULL;
 }
 
 /* Transform the calls within the transactional clone of NODE.  */
@@ -4733,8 +4781,7 @@ ipa_tm_transform_clone (struct cgraph_node *node)
   if (!node->callees && !node->indirect_calls && !d->irrevocable_blocks_clone)
     return;
 
-  current_function_decl = d->clone->symbol.decl;
-  push_cfun (DECL_STRUCT_FUNCTION (current_function_decl));
+  push_cfun (DECL_STRUCT_FUNCTION (d->clone->symbol.decl));
   calculate_dominance_info (CDI_DOMINATORS);
 
   need_ssa_rename =
@@ -4745,7 +4792,6 @@ ipa_tm_transform_clone (struct cgraph_node *node)
     update_ssa (TODO_update_ssa_only_virtuals);
 
   pop_cfun ();
-  current_function_decl = NULL;
 }
 
 /* Main entry point for the transactional memory IPA pass.  */
@@ -4792,7 +4838,6 @@ ipa_tm_execute (void)
 	    continue;
 	  }
 
-	current_function_decl = node->symbol.decl;
 	push_cfun (DECL_STRUCT_FUNCTION (node->symbol.decl));
 	calculate_dominance_info (CDI_DOMINATORS);
 
@@ -4812,7 +4857,6 @@ ipa_tm_execute (void)
 	  }
 
 	pop_cfun ();
-	current_function_decl = NULL;
       }
 
   /* For every local function on the callee list, scan as if we will be

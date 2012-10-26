@@ -68,44 +68,8 @@ runtime_futexwakeup(uint32 *addr, uint32 cnt)
 	// I don't know that futex wakeup can return
 	// EAGAIN or EINTR, but if it does, it would be
 	// safe to loop and call futex again.
-	runtime_printf("futexwakeup addr=%p returned %lld\n", addr, (long long)ret);
+	runtime_printf("futexwakeup addr=%p returned %D\n", addr, ret);
 	*(int32*)0x1006 = 0x1006;
-}
-
-#ifndef O_CLOEXEC
-#define O_CLOEXEC 0
-#endif
-
-static int32
-getproccount(void)
-{
-	int32 fd, rd, cnt, cpustrlen;
-	const char *cpustr;
-	const byte *pos;
-	byte *bufpos;
-	byte buf[256];
-
-	fd = open("/proc/stat", O_RDONLY|O_CLOEXEC, 0);
-	if(fd == -1)
-		return 1;
-	cnt = 0;
-	bufpos = buf;
-	cpustr = "\ncpu";
-	cpustrlen = strlen(cpustr);
-	for(;;) {
-		rd = read(fd, bufpos, sizeof(buf)-cpustrlen);
-		if(rd == -1)
-			break;
-		bufpos[rd] = 0;
-		for(pos=buf; (pos=(const byte*)strstr((const char*)pos, cpustr)) != nil; cnt++, pos++) {
-		}
-		if(rd < cpustrlen)
-			break;
-		memmove(buf, bufpos+rd-cpustrlen+1, cpustrlen-1);
-		bufpos = buf+cpustrlen-1;
-	}
-	close(fd);
-	return cnt ? cnt : 1;
 }
 
 void

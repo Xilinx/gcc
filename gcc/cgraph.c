@@ -39,10 +39,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "basic-block.h"
 #include "cgraph.h"
-#include "output.h"
 #include "intl.h"
 #include "gimple.h"
-#include "tree-dump.h"
+#include "timevar.h"
+#include "dumpfile.h"
 #include "tree-flow.h"
 #include "value-prof.h"
 #include "except.h"
@@ -53,6 +53,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "ipa-inline.h"
 #include "cfgloop.h"
 #include "gimple-pretty-print.h"
+
+/* FIXME: Only for PROP_loops, but cgraph shouldn't have to know about this.  */
+#include "tree-pass.h"
 
 static void cgraph_node_remove_callers (struct cgraph_node *node);
 static inline void cgraph_edge_remove_caller (struct cgraph_edge *e);
@@ -413,7 +416,7 @@ cgraph_get_create_node (tree decl)
 }
 
 /* Mark ALIAS as an alias to DECL.  DECL_NODE is cgraph node representing
-   the function body is associated with (not neccesarily cgraph_node (DECL).  */
+   the function body is associated with (not necessarily cgraph_node (DECL).  */
 
 struct cgraph_node *
 cgraph_create_function_alias (tree alias, tree decl)
@@ -481,9 +484,8 @@ cgraph_add_thunk (struct cgraph_node *decl_node ATTRIBUTE_UNUSED,
   
   node = cgraph_create_node (alias);
   gcc_checking_assert (!virtual_offset
-		       || double_int_equal_p
-		            (tree_to_double_int (virtual_offset),
-			     shwi_to_double_int (virtual_value)));
+		       || tree_to_double_int (virtual_offset) ==
+			     double_int::from_shwi (virtual_value));
   node->thunk.fixed_offset = fixed_offset;
   node->thunk.this_adjusting = this_adjusting;
   node->thunk.virtual_value = virtual_value;
@@ -510,7 +512,7 @@ cgraph_node_for_asm (tree asmname)
   return NULL;
 }
 
-/* Returns a hash value for X (which really is a die_struct).  */
+/* Returns a hash value for X (which really is a cgraph_edge).  */
 
 static hashval_t
 edge_hash (const void *x)
@@ -518,7 +520,7 @@ edge_hash (const void *x)
   return htab_hash_pointer (((const struct cgraph_edge *) x)->call_stmt);
 }
 
-/* Return nonzero if decl_id of die_struct X is the same as UID of decl *Y.  */
+/* Return nonzero if the call_stmt of of cgraph_edge X is stmt *Y.  */
 
 static int
 edge_eq (const void *x, const void *y)
@@ -1125,7 +1127,6 @@ cgraph_release_function_body (struct cgraph_node *node)
 {
   if (DECL_STRUCT_FUNCTION (node->symbol.decl))
     {
-      tree old_decl = current_function_decl;
       push_cfun (DECL_STRUCT_FUNCTION (node->symbol.decl));
       if (cfun->cfg
 	  && current_loops)
@@ -1135,11 +1136,9 @@ cgraph_release_function_body (struct cgraph_node *node)
 	}
       if (cfun->gimple_df)
 	{
-	  current_function_decl = node->symbol.decl;
 	  delete_tree_ssa ();
 	  delete_tree_cfg_annotations ();
 	  cfun->eh = NULL;
-	  current_function_decl = old_decl;
 	}
       if (cfun->cfg)
 	{
@@ -1581,7 +1580,7 @@ cgraph_node_can_be_local_p (struct cgraph_node *node)
 					   NULL, true));
 }
 
-/* Call calback on NODE, thunks and aliases asociated to NODE. 
+/* Call calback on NODE, thunks and aliases associated to NODE. 
    When INCLUDE_OVERWRITABLE is false, overwritable aliases and thunks are
    skipped. */
 
@@ -1617,7 +1616,7 @@ cgraph_for_node_thunks_and_aliases (struct cgraph_node *node,
   return false;
 }
 
-/* Call calback on NODE and aliases asociated to NODE. 
+/* Call calback on NODE and aliases associated to NODE. 
    When INCLUDE_OVERWRITABLE is false, overwritable aliases and thunks are
    skipped. */
 
@@ -1732,7 +1731,7 @@ cgraph_set_const_flag (struct cgraph_node *node, bool readonly, bool looping)
 static bool
 cgraph_set_pure_flag_1 (struct cgraph_node *node, void *data)
 {
-  /* Static pureructors and destructors without a side effect can be
+  /* Static constructors and destructors without a side effect can be
      optimized out.  */
   if (data && !((size_t)data & 2))
     {
@@ -2087,7 +2086,7 @@ verify_edge_count_and_frequency (struct cgraph_edge *e)
   if (gimple_has_body_p (e->caller->symbol.decl)
       && !e->caller->global.inlined_to
       /* FIXME: Inline-analysis sets frequency to 0 when edge is optimized out.
-	 Remove this once edges are actualy removed from the function at that time.  */
+	 Remove this once edges are actually removed from the function at that time.  */
       && (e->frequency
 	  || (inline_edge_summary_vec
 	      && ((VEC_length(inline_edge_summary_t, inline_edge_summary_vec)

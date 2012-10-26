@@ -82,7 +82,7 @@ along with GCC; see the file COPYING3.  If not see
    for each strongly connected component (SCC), we propagate constants
    according to previously computed jump functions.  We also record what known
    values depend on other known values and estimate local effects.  Finally, we
-   propagate cumulative information about these effects from dependant values
+   propagate cumulative information about these effects from dependent values
    to those on which they depend.
 
    Second, we again traverse the call graph in the same topological order and
@@ -112,12 +112,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-flow.h"
 #include "tree-pass.h"
 #include "flags.h"
-#include "timevar.h"
 #include "diagnostic.h"
 #include "tree-pretty-print.h"
-#include "tree-dump.h"
 #include "tree-inline.h"
-#include "fibheap.h"
 #include "params.h"
 #include "ipa-inline.h"
 #include "ipa-utils.h"
@@ -638,17 +635,19 @@ ipa_get_jf_pass_through_result (struct ipa_jump_func *jfunc, tree input)
 {
   tree restype, res;
 
-  gcc_checking_assert (is_gimple_ip_invariant (input));
-  if (jfunc->value.pass_through.operation == NOP_EXPR)
+  if (ipa_get_jf_pass_through_operation (jfunc) == NOP_EXPR)
     return input;
+  else if (TREE_CODE (input) == TREE_BINFO)
+    return NULL_TREE;
 
-  if (TREE_CODE_CLASS (jfunc->value.pass_through.operation)
+  gcc_checking_assert (is_gimple_ip_invariant (input));
+  if (TREE_CODE_CLASS (ipa_get_jf_pass_through_operation (jfunc))
       == tcc_comparison)
     restype = boolean_type_node;
   else
     restype = TREE_TYPE (input);
-  res = fold_binary (jfunc->value.pass_through.operation, restype,
-		     input, jfunc->value.pass_through.operand);
+  res = fold_binary (ipa_get_jf_pass_through_operation (jfunc), restype,
+		     input, ipa_get_jf_pass_through_operand (jfunc));
 
   if (res && !is_gimple_ip_invariant (res))
     return NULL_TREE;
@@ -662,12 +661,16 @@ ipa_get_jf_pass_through_result (struct ipa_jump_func *jfunc, tree input)
 static tree
 ipa_get_jf_ancestor_result (struct ipa_jump_func *jfunc, tree input)
 {
-  if (TREE_CODE (input) == ADDR_EXPR)
+  if (TREE_CODE (input) == TREE_BINFO)
+    return get_binfo_at_offset (input,
+				ipa_get_jf_ancestor_offset (jfunc),
+				ipa_get_jf_ancestor_type (jfunc));
+  else if (TREE_CODE (input) == ADDR_EXPR)
     {
       tree t = TREE_OPERAND (input, 0);
       t = build_ref_for_offset (EXPR_LOCATION (t), t,
-				jfunc->value.ancestor.offset,
-				jfunc->value.ancestor.type, NULL, false);
+				ipa_get_jf_ancestor_offset (jfunc),
+				ipa_get_jf_ancestor_type (jfunc), NULL, false);
       return build_fold_addr_expr (t);
     }
   else
@@ -680,12 +683,12 @@ ipa_get_jf_ancestor_result (struct ipa_jump_func *jfunc, tree input)
 static tree
 ipa_value_from_known_type_jfunc (struct ipa_jump_func *jfunc)
 {
-  tree base_binfo = TYPE_BINFO (jfunc->value.known_type.base_type);
+  tree base_binfo = TYPE_BINFO (ipa_get_jf_known_type_base_type (jfunc));
   if (!base_binfo)
     return NULL_TREE;
   return get_binfo_at_offset (base_binfo,
-			      jfunc->value.known_type.offset,
-			      jfunc->value.known_type.component_type);
+			      ipa_get_jf_known_type_offset (jfunc),
+			      ipa_get_jf_known_type_component_type (jfunc));
 }
 
 /* Determine whether JFUNC evaluates to a known value (that is either a
@@ -697,7 +700,7 @@ tree
 ipa_value_from_jfunc (struct ipa_node_params *info, struct ipa_jump_func *jfunc)
 {
   if (jfunc->type == IPA_JF_CONST)
-    return jfunc->value.constant;
+    return ipa_get_jf_constant (jfunc);
   else if (jfunc->type == IPA_JF_KNOWN_TYPE)
     return ipa_value_from_known_type_jfunc (jfunc);
   else if (jfunc->type == IPA_JF_PASS_THROUGH
@@ -707,9 +710,9 @@ ipa_value_from_jfunc (struct ipa_node_params *info, struct ipa_jump_func *jfunc)
       int idx;
 
       if (jfunc->type == IPA_JF_PASS_THROUGH)
-	idx = jfunc->value.pass_through.formal_id;
+	idx = ipa_get_jf_pass_through_formal_id (jfunc);
       else
-	idx = jfunc->value.ancestor.formal_id;
+	idx = ipa_get_jf_ancestor_formal_id (jfunc);
 
       if (info->ipcp_orig_node)
 	input = VEC_index (tree, info->known_vals, idx);
@@ -732,22 +735,9 @@ ipa_value_from_jfunc (struct ipa_node_params *info, struct ipa_jump_func *jfunc)
 	return NULL_TREE;
 
       if (jfunc->type == IPA_JF_PASS_THROUGH)
-	{
-	  if (jfunc->value.pass_through.operation == NOP_EXPR)
-	    return input;
-	  else if (TREE_CODE (input) == TREE_BINFO)
-	    return NULL_TREE;
-	  else
-	    return ipa_get_jf_pass_through_result (jfunc, input);
-	}
+	return ipa_get_jf_pass_through_result (jfunc, input);
       else
-	{
-	  if (TREE_CODE (input) == TREE_BINFO)
-	    return get_binfo_at_offset (input, jfunc->value.ancestor.offset,
-					jfunc->value.ancestor.type);
-	  else
-	    return ipa_get_jf_ancestor_result (jfunc, input);
-	}
+	return ipa_get_jf_ancestor_result (jfunc, input);
     }
   else
     return NULL_TREE;
@@ -907,13 +897,13 @@ propagate_vals_accross_pass_through (struct cgraph_edge *cs,
   struct ipcp_value *src_val;
   bool ret = false;
 
-  if (jfunc->value.pass_through.operation == NOP_EXPR)
+  if (ipa_get_jf_pass_through_operation (jfunc) == NOP_EXPR)
     for (src_val = src_lat->values; src_val; src_val = src_val->next)
       ret |= add_value_to_lattice (dest_lat, src_val->value, cs,
 				   src_val, src_idx);
   /* Do not create new values when propagating within an SCC because if there
-     arithmetic functions with circular dependencies, there is infinite number
-     of them and we would just make lattices bottom.  */
+     are arithmetic functions with circular dependencies, there is infinite
+     number of them and we would just make lattices bottom.  */
   else if (edge_within_scc (cs))
     ret = set_lattice_contains_variable (dest_lat);
   else
@@ -956,13 +946,7 @@ propagate_vals_accross_ancestor (struct cgraph_edge *cs,
 
   for (src_val = src_lat->values; src_val; src_val = src_val->next)
     {
-      tree t = src_val->value;
-
-      if (TREE_CODE (t) == TREE_BINFO)
-	t = get_binfo_at_offset (t, jfunc->value.ancestor.offset,
-				 jfunc->value.ancestor.type);
-      else
-	t = ipa_get_jf_ancestor_result (jfunc, t);
+      tree t = ipa_get_jf_ancestor_result (jfunc, src_val->value);
 
       if (t)
 	ret |= add_value_to_lattice (dest_lat, t, cs, src_val, src_idx);
@@ -996,7 +980,7 @@ propagate_accross_jump_function (struct cgraph_edge *cs,
 	    return set_lattice_contains_variable (dest_lat);
 	}
       else
-	val = jfunc->value.constant;
+	val = ipa_get_jf_constant (jfunc);
       return add_value_to_lattice (dest_lat, val, cs, NULL, 0);
     }
   else if (jfunc->type == IPA_JF_PASS_THROUGH
@@ -1008,9 +992,9 @@ propagate_accross_jump_function (struct cgraph_edge *cs,
       bool ret;
 
       if (jfunc->type == IPA_JF_PASS_THROUGH)
-	src_idx = jfunc->value.pass_through.formal_id;
+	src_idx = ipa_get_jf_pass_through_formal_id (jfunc);
       else
-	src_idx = jfunc->value.ancestor.formal_id;
+	src_idx = ipa_get_jf_ancestor_formal_id (jfunc);
 
       src_lat = ipa_get_lattice (caller_info, src_idx);
       if (src_lat->bottom)
@@ -1100,7 +1084,8 @@ propagate_constants_accross_call (struct cgraph_edge *cs)
 tree
 ipa_get_indirect_edge_target (struct cgraph_edge *ie,
 			      VEC (tree, heap) *known_vals,
-			      VEC (tree, heap) *known_binfos)
+			      VEC (tree, heap) *known_binfos,
+			      VEC (ipa_agg_jump_function_p, heap) *known_aggs)
 {
   int param_index = ie->indirect_info->param_index;
   HOST_WIDE_INT token, anc_offset;
@@ -1112,8 +1097,26 @@ ipa_get_indirect_edge_target (struct cgraph_edge *ie,
 
   if (!ie->indirect_info->polymorphic)
     {
-      tree t = (VEC_length (tree, known_vals) > (unsigned int) param_index
-	        ? VEC_index (tree, known_vals, param_index) : NULL);
+      tree t;
+
+      if (ie->indirect_info->agg_contents)
+	{
+	  if (VEC_length (ipa_agg_jump_function_p, known_aggs)
+	      > (unsigned int) param_index)
+	    {
+	      struct ipa_agg_jump_function *agg;
+	      agg = VEC_index (ipa_agg_jump_function_p, known_aggs,
+			       param_index);
+	      t = ipa_find_agg_cst_for_param (agg, ie->indirect_info->offset,
+					      ie->indirect_info->by_ref);
+	    }
+	  else
+	    t = NULL;
+	}
+      else
+	t = (VEC_length (tree, known_vals) > (unsigned int) param_index
+	     ? VEC_index (tree, known_vals, param_index) : NULL);
+
       if (t &&
 	  TREE_CODE (t) == ADDR_EXPR
 	  && TREE_CODE (TREE_OPERAND (t, 0)) == FUNCTION_DECL)
@@ -1122,8 +1125,9 @@ ipa_get_indirect_edge_target (struct cgraph_edge *ie,
 	return NULL_TREE;
     }
 
+  gcc_assert (!ie->indirect_info->agg_contents);
   token = ie->indirect_info->otr_token;
-  anc_offset = ie->indirect_info->anc_offset;
+  anc_offset = ie->indirect_info->offset;
   otr_type = ie->indirect_info->otr_type;
 
   t = VEC_index (tree, known_vals, param_index);
@@ -1172,7 +1176,8 @@ devirtualization_time_bonus (struct cgraph_node *node,
       struct inline_summary *isummary;
       tree target;
 
-      target = ipa_get_indirect_edge_target (ie, known_csts, known_binfos);
+      target = ipa_get_indirect_edge_target (ie, known_csts, known_binfos,
+					     NULL);
       if (!target)
 	continue;
 
@@ -1588,7 +1593,7 @@ safe_add (int a, int b)
 
 
 /* Propagate the estimated effects of individual values along the topological
-   from the dependant values to those they depend on.  */
+   from the dependent values to those they depend on.  */
 
 static void
 propagate_effects (void)
@@ -1683,16 +1688,23 @@ ipcp_discover_new_direct_edges (struct cgraph_node *node,
 				VEC (tree, heap) *known_vals)
 {
   struct cgraph_edge *ie, *next_ie;
+  bool found = false;
 
   for (ie = node->indirect_calls; ie; ie = next_ie)
     {
       tree target;
 
       next_ie = ie->next_callee;
-      target = ipa_get_indirect_edge_target (ie, known_vals, NULL);
+      target = ipa_get_indirect_edge_target (ie, known_vals, NULL, NULL);
       if (target)
-	ipa_make_edge_direct_to_target (ie, target);
+	{
+	  ipa_make_edge_direct_to_target (ie, target);
+	  found = true;
+	}
     }
+  /* Turning calls to direct calls will improve overall summary.  */
+  if (found)
+    inline_update_overall_summary (node);
 }
 
 /* Vector of pointers which for linked lists of clones of an original crgaph
@@ -2503,10 +2515,9 @@ ipcp_generate_summary (void)
 /* Write ipcp summary for nodes in SET.  */
 
 static void
-ipcp_write_summary (cgraph_node_set set,
-		    varpool_node_set vset ATTRIBUTE_UNUSED)
+ipcp_write_summary (void)
 {
-  ipa_prop_write_jump_functions (set);
+  ipa_prop_write_jump_functions ();
 }
 
 /* Read ipcp summary.  */

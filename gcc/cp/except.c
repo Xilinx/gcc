@@ -30,7 +30,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "cp-tree.h"
 #include "flags.h"
-#include "output.h"
 #include "tree-inline.h"
 #include "tree-iterator.h"
 #include "target.h"
@@ -425,7 +424,8 @@ initialize_handler_parm (tree decl, tree exp)
       && TYPE_PTR_P (TREE_TYPE (init_type)))
     exp = cp_build_addr_expr (exp, tf_warning_or_error);
 
-  exp = ocp_convert (init_type, exp, CONV_IMPLICIT|CONV_FORCE_TEMP, 0);
+  exp = ocp_convert (init_type, exp, CONV_IMPLICIT|CONV_FORCE_TEMP, 0,
+		     tf_warning_or_error);
 
   init = convert_from_reference (exp);
 
@@ -436,7 +436,8 @@ initialize_handler_parm (tree decl, tree exp)
       /* Generate the copy constructor call directly so we can wrap it.
 	 See also expand_default_init.  */
       init = ocp_convert (TREE_TYPE (decl), init,
-			  CONV_IMPLICIT|CONV_FORCE_TEMP, 0);
+			  CONV_IMPLICIT|CONV_FORCE_TEMP, 0,
+			  tf_warning_or_error);
       /* Force cleanups now to avoid nesting problems with the
 	 MUST_NOT_THROW_EXPR.  */
       init = fold_build_cleanup_point_expr (TREE_TYPE (init), init);
@@ -670,8 +671,7 @@ do_free_exception (tree ptr)
    Called from build_throw via walk_tree_without_duplicates.  */
 
 static tree
-wrap_cleanups_r (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
-		 void *data ATTRIBUTE_UNUSED)
+wrap_cleanups_r (tree *tp, int *walk_subtrees, void * /*data*/)
 {
   tree exp = *tp;
   tree cleanup;
@@ -1051,7 +1051,7 @@ can_convert_eh (tree to, tree from)
     }
 
   if (CLASS_TYPE_P (to) && CLASS_TYPE_P (from)
-      && PUBLICLY_UNIQUELY_DERIVED_P (to, from))
+      && publicly_uniquely_derived_p (to, from))
     return 1;
 
   return 0;
@@ -1128,8 +1128,7 @@ check_handlers (tree handlers)
      expression whose type is a polymorphic class type (10.3).  */
 
 static tree
-check_noexcept_r (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
-		  void *data ATTRIBUTE_UNUSED)
+check_noexcept_r (tree *tp, int * /*walk_subtrees*/, void * /*data*/)
 {
   tree t = *tp;
   enum tree_code code = TREE_CODE (t);
@@ -1248,11 +1247,8 @@ expr_noexcept_p (tree expr, tsubst_flags_t complain)
 	  if (!DECL_INITIAL (fn))
 	    {
 	      /* Not defined yet; check again at EOF.  */
-	      pending_noexcept *p
-		= VEC_safe_push (pending_noexcept, gc,
-				 pending_noexcept_checks, NULL);
-	      p->fn = fn;
-	      p->loc = input_location;
+	      pending_noexcept p = {fn, input_location};
+	      VEC_safe_push (pending_noexcept, gc, pending_noexcept_checks, p);
 	    }
 	  else
 	    maybe_noexcept_warning (fn);

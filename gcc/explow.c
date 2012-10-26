@@ -100,36 +100,33 @@ plus_constant (enum machine_mode mode, rtx x, HOST_WIDE_INT c)
     case CONST_INT:
       if (GET_MODE_BITSIZE (mode) > HOST_BITS_PER_WIDE_INT)
 	{
-	  unsigned HOST_WIDE_INT l1 = INTVAL (x);
-	  HOST_WIDE_INT h1 = (l1 >> (HOST_BITS_PER_WIDE_INT - 1)) ? -1 : 0;
-	  unsigned HOST_WIDE_INT l2 = c;
-	  HOST_WIDE_INT h2 = c < 0 ? -1 : 0;
-	  unsigned HOST_WIDE_INT lv;
-	  HOST_WIDE_INT hv;
+	  double_int di_x = double_int::from_shwi (INTVAL (x));
+	  double_int di_c = double_int::from_shwi (c);
 
-	  if (add_double_with_sign (l1, h1, l2, h2, &lv, &hv, false))
+	  bool overflow;
+	  double_int v = di_x.add_with_sign (di_c, false, &overflow);
+	  if (overflow)
 	    gcc_unreachable ();
 
-	  return immed_double_const (lv, hv, VOIDmode);
+	  return immed_double_int_const (v, VOIDmode);
 	}
 
       return GEN_INT (INTVAL (x) + c);
 
     case CONST_DOUBLE:
       {
-	unsigned HOST_WIDE_INT l1 = CONST_DOUBLE_LOW (x);
-	HOST_WIDE_INT h1 = CONST_DOUBLE_HIGH (x);
-	unsigned HOST_WIDE_INT l2 = c;
-	HOST_WIDE_INT h2 = c < 0 ? -1 : 0;
-	unsigned HOST_WIDE_INT lv;
-	HOST_WIDE_INT hv;
+	double_int di_x = double_int::from_pair (CONST_DOUBLE_HIGH (x),
+						 CONST_DOUBLE_LOW (x));
+	double_int di_c = double_int::from_shwi (c);
 
-	if (add_double_with_sign (l1, h1, l2, h2, &lv, &hv, false))
+	bool overflow;
+	double_int v = di_x.add_with_sign (di_c, false, &overflow);
+	if (overflow)
 	  /* Sorry, we have no way to represent overflows this wide.
 	     To fix, add constant support wider than CONST_DOUBLE.  */
-	  gcc_assert (GET_MODE_BITSIZE (mode) <= 2 * HOST_BITS_PER_WIDE_INT);
+	  gcc_assert (GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_DOUBLE_INT);
 
-	return immed_double_const (lv, hv, VOIDmode);
+	return immed_double_int_const (v, VOIDmode);
       }
 
     case MEM:
@@ -347,8 +344,7 @@ convert_memory_address_addr_space (enum machine_mode to_mode ATTRIBUTE_UNUSED,
      to the default case.  */
   switch (GET_CODE (x))
     {
-    case CONST_INT:
-    case CONST_DOUBLE:
+    CASE_CONST_SCALAR_INT:
       if (GET_MODE_SIZE (to_mode) < GET_MODE_SIZE (from_mode))
 	code = TRUNCATE;
       else if (POINTERS_EXTEND_UNSIGNED < 0)
@@ -1579,12 +1575,11 @@ probe_stack_range (HOST_WIDE_INT first, rtx size)
 								size, first)));
       emit_library_call (stack_check_libfunc, LCT_NORMAL, VOIDmode, 1, addr,
 			 Pmode);
-      return;
     }
 
   /* Next see if we have an insn to check the stack.  */
 #ifdef HAVE_check_stack
-  if (HAVE_check_stack)
+  else if (HAVE_check_stack)
     {
       struct expand_operand ops[1];
       rtx addr = memory_address (Pmode,
@@ -1592,10 +1587,10 @@ probe_stack_range (HOST_WIDE_INT first, rtx size)
 					         stack_pointer_rtx,
 					         plus_constant (Pmode,
 								size, first)));
-
+      bool success;
       create_input_operand (&ops[0], addr, Pmode);
-      if (maybe_expand_insn (CODE_FOR_check_stack, 1, ops))
-	return;
+      success = maybe_expand_insn (CODE_FOR_check_stack, 1, ops);
+      gcc_assert (success);
     }
 #endif
 

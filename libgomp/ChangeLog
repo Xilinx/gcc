@@ -1,3 +1,84 @@
+2012-10-24  Dominique d'Humieres  <dominiq@lps.ens.fr>
+
+	* testsuite/libgomp.graphite/force-parallel-6.c: Adjust the loops.
+
+2012-10-23  Ian Bolton  <ian.bolton@arm.com>
+	    Jim MacArthur  <jim.macarthur@arm.com>
+	    Marcus Shawcroft  <marcus.shawcroft@arm.com>
+	    Nigel Stephens  <nigel.stephens@arm.com>
+	    Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+	    Richard Earnshaw  <rearnsha@arm.com>
+	    Sofiane Naci  <sofiane.naci@arm.com>
+	    Stephen Thomas  <stephen.thomas@arm.com>
+	    Tejas Belagod  <tejas.belagod@arm.com>
+	    Yufeng Zhang  <yufeng.zhang@arm.com>
+
+	* configure.tgt: Add AArch64.
+
+2012-10-04  Jason Merrill  <jason@redhat.com>
+
+	* testsuite/libgomp.c++/tls-init1.C: New.
+
+2012-09-14  David Edelsohn  <dje.gcc@gmail.com>
+
+	* configure: Regenerated.
+
+2012-08-29  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	* config/linux/mips/futex.h (sys_futex0): Change to static
+	function with noinline, nomips16 attributes under MIPS16. Adjust
+	asm statement to place 'li v0,SYS_futex' immediately before
+	syscall insn.
+
+2012-07-04  Sandra Loosemore <sandra@codesourcery.com>
+
+	* libgomp.texi (Library Index): Renamed from "Index" to prevent
+	conflict with index.html on case-insensitive file systems.
+
+2012-07-03  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/linux/x86/futex.h (cpu_relax): Use __builtin_ia32_pause.
+	* testsuite/libgomp.c/sort-1.c (busy_wait): Ditto.
+
+2012-07-02  Richard Guenther  <rguenther@suse.de>
+	    Michael Matz  <matz@suse.de>
+	    Tobias Grosser <tobias@grosser.es>
+	    Sebastian Pop <sebpop@gmail.com>
+
+	* testsuite/libgomp.graphite/force-parallel-4.c: Adjust.
+	* testsuite/libgomp.graphite/force-parallel-5.c: Likewise.
+	* testsuite/libgomp.graphite/force-parallel-7.c: Likewise.
+	* testsuite/libgomp.graphite/force-parallel-8.c: Likewise.
+
+2012-06-28  Andreas Schwab  <schwab@linux-m68k.org>
+
+	* libgomp.texi: Include gpl_v3.texi instead of gpl.texi.
+
+2012-06-22  Richard Guenther  <rguenther@suse.de>
+
+	Merge from graphite branch
+	2012-01-13  Tobias Grosser  <tobias@grosser.es>
+
+	* testsuite/libgomp.graphite/force-parallel-1.c: Adjust.
+	* testsuite/libgomp.graphite/force-parallel-2.c: Likewise.
+
+2012-06-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/53580
+	* testsuite/libgomp.c/pr26943-2.c: Remove #pragma omp barrier,
+	use GOMP_barrier () call instead.
+	* testsuite/libgomp.c/pr26943-3.c: Likewise.
+	* testsuite/libgomp.c/pr26943-4.c: Likewise.
+	* testsuite/libgomp.fortran/vla4.f90: Remove !$omp barrier,
+	call GOMP_barrier instead.
+	* testsuite/libgomp.fortran/vla5.f90: Likewise.
+
+2012-06-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR libgomp/52993
+	* config/linux/lock.c (gomp_init_nest_lock_25): Fix up last
+	argument to memset call.
+
 2012-05-16  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* configure: Regenerated.

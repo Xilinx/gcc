@@ -1,5 +1,5 @@
 /* Data and functions related to line maps and input files.
-   Copyright (C) 2004, 2007, 2008, 2009, 2010, 2011
+   Copyright (C) 2004, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -51,6 +51,13 @@ expand_location_1 (source_location loc,
   expanded_location xloc;
   const struct line_map *map;
   enum location_resolution_kind lrk = LRK_MACRO_EXPANSION_POINT;
+  tree block = NULL;
+
+  if (IS_ADHOC_LOC (loc))
+    {
+      block = LOCATION_BLOCK (loc);
+      loc = LOCATION_LOCUS (loc);
+    }
 
   memset (&xloc, 0, sizeof (xloc));
 
@@ -74,6 +81,7 @@ expand_location_1 (source_location loc,
       xloc = linemap_expand_location (line_table, map, loc);
     }
 
+  xloc.data = block;
   if (loc <= BUILTINS_LOCATION)
     xloc.file = loc == UNKNOWN_LOCATION ? NULL : _("<built-in>");
 
@@ -105,15 +113,8 @@ read_line (FILE *file)
 	  return string;
 	}
       pos += len;
-      ptr = XNEWVEC (char, string_len * 2);
-      if (ptr)
-	{
-	  memcpy (ptr, string, pos);
-	  string = ptr;
-	  string_len += 2;
-	}
-      else
-	pos = 0;
+      string = XRESIZEVEC (char, string, string_len * 2);
+      string_len *= 2;
     }
       
   return pos ? string : NULL;
@@ -124,7 +125,7 @@ read_line (FILE *file)
    the null character.  */
 
 const char *
-location_get_source_line(expanded_location xloc)
+location_get_source_line (expanded_location xloc)
 {
   const char *buffer;
   int lines = 1;
@@ -162,7 +163,7 @@ expand_location_to_spelling_point (source_location loc)
   return expand_location_1 (loc, /*expansion_piont_p=*/false);
 }
 
-/* If LOCATION is in a sytem header and if it's a virtual location for
+/* If LOCATION is in a system header and if it's a virtual location for
    a token coming from the expansion of a macro M, unwind it to the
    location of the expansion point of M.  Otherwise, just return
    LOCATION.

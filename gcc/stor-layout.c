@@ -1,7 +1,7 @@
 /* C-compiler utilities for types and variables storage layout
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1996, 1998,
    1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-   2011 Free Software Foundation, Inc.
+   2011, 2012 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -30,7 +30,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "function.h"
 #include "expr.h"
-#include "output.h"
 #include "diagnostic-core.h"
 #include "ggc.h"
 #include "target.h"
@@ -1628,13 +1627,10 @@ compute_record_mode (tree type)
       if (simple_cst_equal (TYPE_SIZE (type), DECL_SIZE (field)))
 	mode = DECL_MODE (field);
 
-#ifdef MEMBER_TYPE_FORCES_BLK
-      /* With some targets, eg. c4x, it is sub-optimal
-	 to access an aligned BLKmode structure as a scalar.  */
-
-      if (MEMBER_TYPE_FORCES_BLK (field, mode))
+      /* With some targets, it is sub-optimal to access an aligned
+	 BLKmode structure as a scalar.  */
+      if (targetm.member_type_forces_blk (field, mode))
 	return;
-#endif /* MEMBER_TYPE_FORCES_BLK  */
     }
 
   /* If we only have one real field; use its mode if that mode's size
@@ -1799,7 +1795,7 @@ finish_bitfield_representative (tree repr, tree field)
   if (nextf)
     {
       tree maxsize;
-      /* If there was an error, the field may be not layed out
+      /* If there was an error, the field may be not laid out
          correctly.  Don't bother to do anything.  */
       if (TREE_TYPE (nextf) == error_mark_node)
 	return;
@@ -1880,7 +1876,7 @@ finish_bitfield_representative (tree repr, tree field)
 }
 
 /* Compute and set FIELD_DECLs for the underlying objects we should
-   use for bitfield access for the structure layed out with RLI.  */
+   use for bitfield access for the structure laid out with RLI.  */
 
 static void
 finish_bitfield_layout (record_layout_info rli)
@@ -2132,9 +2128,17 @@ layout_type (tree type)
 	TYPE_SIZE (type) = int_const_binop (MULT_EXPR, TYPE_SIZE (innertype),
 					    bitsize_int (nunits));
 
-	/* Always naturally align vectors.  This prevents ABI changes
-	   depending on whether or not native vector modes are supported.  */
-	TYPE_ALIGN (type) = tree_low_cst (TYPE_SIZE (type), 0);
+	/* For vector types, we do not default to the mode's alignment.
+	   Instead, query a target hook, defaulting to natural alignment.
+	   This prevents ABI changes depending on whether or not native
+	   vector modes are supported.  */
+	TYPE_ALIGN (type) = targetm.vector_alignment (type);
+
+	/* However, if the underlying mode requires a bigger alignment than
+	   what the target hook provides, we cannot use the mode.  For now,
+	   simply reject that case.  */
+	gcc_assert (TYPE_ALIGN (type)
+		    >= GET_MODE_ALIGNMENT (TYPE_MODE (type)));
         break;
       }
 
@@ -2214,14 +2218,13 @@ layout_type (tree type)
 		    && TYPE_UNSIGNED (TREE_TYPE (lb))
 		    && tree_int_cst_lt (ub, lb))
 		  {
+		    unsigned prec = TYPE_PRECISION (TREE_TYPE (lb));
 		    lb = double_int_to_tree
 			   (ssizetype,
-			    double_int_sext (tree_to_double_int (lb),
-					     TYPE_PRECISION (TREE_TYPE (lb))));
+			    tree_to_double_int (lb).sext (prec));
 		    ub = double_int_to_tree
 			   (ssizetype,
-			    double_int_sext (tree_to_double_int (ub),
-					     TYPE_PRECISION (TREE_TYPE (ub))));
+			    tree_to_double_int (ub).sext (prec));
 		  }
 		length
 		  = fold_convert (sizetype,
@@ -2231,7 +2234,7 @@ layout_type (tree type)
 	      }
 
 	    /* If we arrived at a length of zero ignore any overflow
-	       that occured as part of the calculation.  There exists
+	       that occurred as part of the calculation.  There exists
 	       an association of the plus one where that overflow would
 	       not happen.  */
 	    if (integer_zerop (length)
@@ -2263,9 +2266,7 @@ layout_type (tree type)
 	TYPE_USER_ALIGN (type) = TYPE_USER_ALIGN (element);
 	SET_TYPE_MODE (type, BLKmode);
 	if (TYPE_SIZE (type) != 0
-#ifdef MEMBER_TYPE_FORCES_BLK
-	    && ! MEMBER_TYPE_FORCES_BLK (type, VOIDmode)
-#endif
+	    && ! targetm.member_type_forces_blk (type, VOIDmode)
 	    /* BLKmode elements force BLKmode aggregate;
 	       else extract/store fields may lose.  */
 	    && (TYPE_MODE (TREE_TYPE (type)) != BLKmode
@@ -2481,8 +2482,8 @@ initialize_sizetypes (void)
     = MIN (precision + BITS_PER_UNIT_LOG + 1, MAX_FIXED_MODE_SIZE);
   bprecision
     = GET_MODE_PRECISION (smallest_mode_for_size (bprecision, MODE_INT));
-  if (bprecision > HOST_BITS_PER_WIDE_INT * 2)
-    bprecision = HOST_BITS_PER_WIDE_INT * 2;
+  if (bprecision > HOST_BITS_PER_DOUBLE_INT)
+    bprecision = HOST_BITS_PER_DOUBLE_INT;
 
   /* Create stubs for sizetype and bitsizetype so we can create constants.  */
   sizetype = make_node (INTEGER_TYPE);
@@ -2561,10 +2562,14 @@ set_min_and_max_values_for_integral_type (tree type,
 	= build_int_cst_wide (type,
 			      (precision - HOST_BITS_PER_WIDE_INT > 0
 			       ? -1
-			       : ((HOST_WIDE_INT) 1 << (precision - 1)) - 1),
+			       : (HOST_WIDE_INT)
+				 (((unsigned HOST_WIDE_INT) 1
+				   << (precision - 1)) - 1)),
 			      (precision - HOST_BITS_PER_WIDE_INT - 1 > 0
-			       ? (((HOST_WIDE_INT) 1
-				   << (precision - HOST_BITS_PER_WIDE_INT - 1))) - 1
+			       ? (HOST_WIDE_INT)
+				 ((((unsigned HOST_WIDE_INT) 1
+				    << (precision - HOST_BITS_PER_WIDE_INT
+					- 1))) - 1)
 			       : 0));
     }
 
@@ -2583,10 +2588,10 @@ fixup_signed_type (tree type)
   int precision = TYPE_PRECISION (type);
 
   /* We can not represent properly constants greater then
-     2 * HOST_BITS_PER_WIDE_INT, still we need the types
+     HOST_BITS_PER_DOUBLE_INT, still we need the types
      as they are used by i386 vector extensions and friends.  */
-  if (precision > HOST_BITS_PER_WIDE_INT * 2)
-    precision = HOST_BITS_PER_WIDE_INT * 2;
+  if (precision > HOST_BITS_PER_DOUBLE_INT)
+    precision = HOST_BITS_PER_DOUBLE_INT;
 
   set_min_and_max_values_for_integral_type (type, precision,
 					    /*is_unsigned=*/false);
@@ -2605,10 +2610,10 @@ fixup_unsigned_type (tree type)
   int precision = TYPE_PRECISION (type);
 
   /* We can not represent properly constants greater then
-     2 * HOST_BITS_PER_WIDE_INT, still we need the types
+     HOST_BITS_PER_DOUBLE_INT, still we need the types
      as they are used by i386 vector extensions and friends.  */
-  if (precision > HOST_BITS_PER_WIDE_INT * 2)
-    precision = HOST_BITS_PER_WIDE_INT * 2;
+  if (precision > HOST_BITS_PER_DOUBLE_INT)
+    precision = HOST_BITS_PER_DOUBLE_INT;
 
   TYPE_UNSIGNED (type) = 1;
 

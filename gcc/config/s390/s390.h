@@ -34,7 +34,8 @@ enum processor_flags
   PF_EXTIMM = 8,
   PF_DFP = 16,
   PF_Z10 = 32,
-  PF_Z196 = 64
+  PF_Z196 = 64,
+  PF_ZEC12 = 128
 };
 
 /* This is necessary to avoid a warning about comparing different enum
@@ -59,6 +60,8 @@ enum processor_flags
  	(s390_arch_flags & PF_Z10)
 #define TARGET_CPU_Z196 \
  	(s390_arch_flags & PF_Z196)
+#define TARGET_CPU_ZEC12 \
+ 	(s390_arch_flags & PF_ZEC12)
 
 /* These flags indicate that the generated code should run on a cpu
    providing the respective hardware facility when run in
@@ -74,6 +77,8 @@ enum processor_flags
        (TARGET_ZARCH && TARGET_CPU_Z10)
 #define TARGET_Z196 \
        (TARGET_ZARCH && TARGET_CPU_Z196)
+#define TARGET_ZEC12 \
+       (TARGET_ZARCH && TARGET_CPU_ZEC12)
 
 
 #define TARGET_AVOID_CMP_AND_BRANCH (s390_tune == PROCESSOR_2817_Z196)
@@ -762,7 +767,7 @@ do {									\
 /* This value is used in tree-sra to decide whether it might benefical
    to split a struct move into several word-size moves.  For S/390
    only small values make sense here since struct moves are relatively
-   cheap thanks to mvc so the small default value choosen for archs
+   cheap thanks to mvc so the small default value chosen for archs
    with memmove patterns should be ok.  But this value is multiplied
    in tree-sra with UNITS_PER_WORD to make a decision so we adjust it
    here to compensate for that factor since mvc costs exactly the same

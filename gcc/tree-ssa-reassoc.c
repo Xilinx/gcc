@@ -25,13 +25,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "basic-block.h"
-#include "tree-pretty-print.h"
 #include "gimple-pretty-print.h"
 #include "tree-inline.h"
 #include "tree-flow.h"
 #include "gimple.h"
-#include "tree-dump.h"
-#include "timevar.h"
 #include "tree-iterator.h"
 #include "tree-pass.h"
 #include "alloc-pool.h"
@@ -237,7 +234,7 @@ phi_rank (gimple stmt)
 
   /* Ignore virtual SSA_NAMEs.  */
   res = gimple_phi_result (stmt);
-  if (!is_gimple_reg (SSA_NAME_VAR (res)))
+  if (virtual_operand_p (res))
     return bb_rank[bb->index];
 
   /* The phi definition must have a single use, and that use must be
@@ -383,14 +380,10 @@ get_rank (tree e)
       int i, n;
       tree op;
 
-      if (TREE_CODE (SSA_NAME_VAR (e)) == PARM_DECL
-	  && SSA_NAME_IS_DEFAULT_DEF (e))
+      if (SSA_NAME_IS_DEFAULT_DEF (e))
 	return find_operand_rank (e);
 
       stmt = SSA_NAME_DEF_STMT (e);
-      if (gimple_bb (stmt) == NULL)
-	return 0;
-
       if (gimple_code (stmt) == GIMPLE_PHI)
 	return phi_rank (stmt);
 
@@ -484,7 +477,7 @@ sort_by_operand_rank (const void *pa, const void *pb)
   /* It's nicer for optimize_expression if constants that are likely
      to fold when added/multiplied//whatever are put next to each
      other.  Since all constants have rank 0, order them by type.  */
-  if (oeb->rank == 0 &&  oea->rank == 0)
+  if (oeb->rank == 0 && oea->rank == 0)
     {
       if (constant_type (oeb->op) != constant_type (oea->op))
 	return constant_type (oeb->op) - constant_type (oea->op);
@@ -969,7 +962,7 @@ static VEC (oecount, heap) *cvec;
 static hashval_t
 oecount_hash (const void *p)
 {
-  const oecount *c = VEC_index (oecount, cvec, (size_t)p - 42);
+  const oecount *c = &VEC_index (oecount, cvec, (size_t)p - 42);
   return htab_hash_pointer (c->op) ^ (hashval_t)c->oecode;
 }
 
@@ -978,8 +971,8 @@ oecount_hash (const void *p)
 static int
 oecount_eq (const void *p1, const void *p2)
 {
-  const oecount *c1 = VEC_index (oecount, cvec, (size_t)p1 - 42);
-  const oecount *c2 = VEC_index (oecount, cvec, (size_t)p2 - 42);
+  const oecount *c1 = &VEC_index (oecount, cvec, (size_t)p1 - 42);
+  const oecount *c2 = &VEC_index (oecount, cvec, (size_t)p2 - 42);
   return (c1->oecode == c2->oecode
 	  && c1->op == c2->op);
 }
@@ -1154,7 +1147,7 @@ zero_one_operation (tree *def, enum tree_code opcode, tree op)
    OP1 or OP2.  Returns the new statement.  */
 
 static gimple
-build_and_add_sum (tree tmpvar, tree op1, tree op2, enum tree_code opcode)
+build_and_add_sum (tree type, tree op1, tree op2, enum tree_code opcode)
 {
   gimple op1def = NULL, op2def = NULL;
   gimple_stmt_iterator gsi;
@@ -1162,9 +1155,8 @@ build_and_add_sum (tree tmpvar, tree op1, tree op2, enum tree_code opcode)
   gimple sum;
 
   /* Create the addition statement.  */
-  sum = gimple_build_assign_with_ops (opcode, tmpvar, op1, op2);
-  op = make_ssa_name (tmpvar, sum);
-  gimple_assign_set_lhs (sum, op);
+  op = make_ssa_name (type, NULL);
+  sum = gimple_build_assign_with_ops (opcode, op, op1, op2);
 
   /* Find an insertion place and insert.  */
   if (TREE_CODE (op1) == SSA_NAME)
@@ -1245,15 +1237,15 @@ build_and_add_sum (tree tmpvar, tree op1, tree op2, enum tree_code opcode)
       in the candidates bitmap with relevant indices into *OPS.
 
     - Second we build the chains of multiplications or divisions for
-      these candidates, counting the number of occurences of (operand, code)
+      these candidates, counting the number of occurrences of (operand, code)
       pairs in all of the candidates chains.
 
-    - Third we sort the (operand, code) pairs by number of occurence and
+    - Third we sort the (operand, code) pairs by number of occurrence and
       process them starting with the pair with the most uses.
 
       * For each such pair we walk the candidates again to build a
         second candidate bitmap noting all multiplication/division chains
-	that have at least one occurence of (operand, code).
+	that have at least one occurrence of (operand, code).
 
       * We build an alternate addition chain only covering these
         candidates with one (operand, code) operation removed from their
@@ -1352,7 +1344,7 @@ undistribute_ops_list (enum tree_code opcode,
 	  c.cnt = 1;
 	  c.id = next_oecount_id++;
 	  c.op = oe1->op;
-	  VEC_safe_push (oecount, heap, cvec, &c);
+	  VEC_safe_push (oecount, heap, cvec, c);
 	  idx = VEC_length (oecount, cvec) + 41;
 	  slot = htab_find_slot (ctable, (void *)idx, INSERT);
 	  if (!*slot)
@@ -1362,7 +1354,7 @@ undistribute_ops_list (enum tree_code opcode,
 	  else
 	    {
 	      VEC_pop (oecount, cvec);
-	      VEC_index (oecount, cvec, (size_t)*slot - 42)->cnt++;
+	      VEC_index (oecount, cvec, (size_t)*slot - 42).cnt++;
 	    }
 	}
     }
@@ -1389,7 +1381,7 @@ undistribute_ops_list (enum tree_code opcode,
   candidates2 = sbitmap_alloc (length);
   while (!VEC_empty (oecount, cvec))
     {
-      oecount *c = VEC_last (oecount, cvec);
+      oecount *c = &VEC_last (oecount, cvec);
       if (c->cnt < 2)
 	break;
 
@@ -1428,7 +1420,6 @@ undistribute_ops_list (enum tree_code opcode,
       if (nr_candidates2 >= 2)
 	{
 	  operand_entry_t oe1, oe2;
-	  tree tmpvar;
 	  gimple prod;
 	  int first = sbitmap_first_set_bit (candidates2);
 
@@ -1439,8 +1430,6 @@ undistribute_ops_list (enum tree_code opcode,
 	      fprintf (dump_file, "Building (");
 	      print_generic_expr (dump_file, oe1->op, 0);
 	    }
-	  tmpvar = create_tmp_reg (TREE_TYPE (oe1->op), NULL);
-	  add_referenced_var (tmpvar);
 	  zero_one_operation (&oe1->op, c->oecode, c->op);
 	  EXECUTE_IF_SET_IN_SBITMAP (candidates2, first+1, i, sbi0)
 	    {
@@ -1452,14 +1441,16 @@ undistribute_ops_list (enum tree_code opcode,
 		  print_generic_expr (dump_file, oe2->op, 0);
 		}
 	      zero_one_operation (&oe2->op, c->oecode, c->op);
-	      sum = build_and_add_sum (tmpvar, oe1->op, oe2->op, opcode);
+	      sum = build_and_add_sum (TREE_TYPE (oe1->op),
+				       oe1->op, oe2->op, opcode);
 	      oe2->op = build_zero_cst (TREE_TYPE (oe2->op));
 	      oe2->rank = 0;
 	      oe1->op = gimple_get_lhs (sum);
 	    }
 
 	  /* Apply the multiplication/division.  */
-	  prod = build_and_add_sum (tmpvar, oe1->op, c->op, c->oecode);
+	  prod = build_and_add_sum (TREE_TYPE (oe1->op),
+				    oe1->op, c->op, c->oecode);
 	  if (dump_file && (dump_flags & TDF_DETAILS))
 	    {
 	      fprintf (dump_file, ") %s ", c->oecode == MULT_EXPR ? "*" : "/");
@@ -1598,20 +1589,17 @@ eliminate_redundant_comparison (enum tree_code opcode,
 	}
       else if (!operand_equal_p (t, curr->op, 0))
 	{
-	  tree tmpvar;
 	  gimple sum;
 	  enum tree_code subcode;
 	  tree newop1;
 	  tree newop2;
 	  gcc_assert (COMPARISON_CLASS_P (t));
-	  tmpvar = create_tmp_var (TREE_TYPE (t), NULL);
-	  add_referenced_var (tmpvar);
 	  extract_ops_from_tree (t, &subcode, &newop1, &newop2);
 	  STRIP_USELESS_TYPE_CONVERSION (newop1);
 	  STRIP_USELESS_TYPE_CONVERSION (newop2);
 	  gcc_checking_assert (is_gimple_val (newop1)
 			       && is_gimple_val (newop2));
-	  sum = build_and_add_sum (tmpvar, newop1, newop2, subcode);
+	  sum = build_and_add_sum (TREE_TYPE (t), newop1, newop2, subcode);
 	  curr->op = gimple_get_lhs (sum);
 	}
       return true;
@@ -2451,7 +2439,6 @@ rewrite_expr_tree_parallel (gimple stmt, int width,
   int ready_stmts_end = 0;
   int i = 0;
   tree last_rhs1 = gimple_assign_rhs1 (stmt);
-  tree lhs_var;
 
   /* We start expression rewriting from the top statements.
      So, in this loop we create a full list of statements
@@ -2459,9 +2446,6 @@ rewrite_expr_tree_parallel (gimple stmt, int width,
   stmts[stmt_num - 1] = stmt;
   for (i = stmt_num - 2; i >= 0; i--)
     stmts[i] = SSA_NAME_DEF_STMT (gimple_assign_rhs1 (stmts[i+1]));
-
-  lhs_var = create_tmp_reg (TREE_TYPE (last_rhs1), NULL);
-  add_referenced_var (lhs_var);
 
   for (i = 0; i < stmt_num; i++)
     {
@@ -2521,7 +2505,7 @@ rewrite_expr_tree_parallel (gimple stmt, int width,
 	  update_stmt (stmts[i]);
 	}
       else
-	stmts[i] = build_and_add_sum (lhs_var, op1, op2, opcode);
+	stmts[i] = build_and_add_sum (TREE_TYPE (last_rhs1), op1, op2, opcode);
 
       if (dump_file && (dump_flags & TDF_DETAILS))
 	{
@@ -3085,30 +3069,13 @@ compare_repeat_factors (const void *x1, const void *x2)
   return rf2->rank - rf1->rank;
 }
 
-/* Get a new SSA name for register variable *TARGET of type TYPE.
-   If *TARGET is null or incompatible with TYPE, create the variable
-   first.  */
-
-static tree
-get_reassoc_pow_ssa_name (tree *target, tree type)
-{
-  if (!*target || !types_compatible_p (type, TREE_TYPE (*target)))
-    {
-      *target = create_tmp_reg (type, "reassocpow");
-      add_referenced_var (*target);
-    }
-
-  return make_ssa_name (*target, NULL);
-}
-
 /* Look for repeated operands in OPS in the multiply tree rooted at
    STMT.  Replace them with an optimal sequence of multiplies and powi
    builtin calls, and remove the used operands from OPS.  Return an
    SSA name representing the value of the replacement sequence.  */
 
 static tree
-attempt_builtin_powi (gimple stmt, VEC(operand_entry_t, heap) **ops,
-		      tree *target)
+attempt_builtin_powi (gimple stmt, VEC(operand_entry_t, heap) **ops)
 {
   unsigned i, j, vec_len;
   int ii;
@@ -3151,7 +3118,7 @@ attempt_builtin_powi (gimple stmt, VEC(operand_entry_t, heap) **ops,
 	      rfnew.rank = oe->rank;
 	      rfnew.count = oe->count;
 	      rfnew.repr = NULL_TREE;
-	      VEC_safe_push (repeat_factor, heap, repeat_factor_vec, &rfnew);
+	      VEC_safe_push (repeat_factor, heap, repeat_factor_vec, rfnew);
 	    }
 	}
     }
@@ -3223,7 +3190,7 @@ attempt_builtin_powi (gimple stmt, VEC(operand_entry_t, heap) **ops,
 		  fputs ("Multiplying by cached product ", dump_file);
 		  for (elt = j; elt < vec_len; elt++)
 		    {
-		      rf = VEC_index (repeat_factor, repeat_factor_vec, elt);
+		      rf = &VEC_index (repeat_factor, repeat_factor_vec, elt);
 		      print_generic_expr (dump_file, rf->factor, 0);
 		      if (elt < vec_len - 1)
 			fputs (" * ", dump_file);
@@ -3233,7 +3200,7 @@ attempt_builtin_powi (gimple stmt, VEC(operand_entry_t, heap) **ops,
 	    }
 	  else
 	    {
-	      iter_result = get_reassoc_pow_ssa_name (target, type);
+	      iter_result = make_temp_ssa_name (type, NULL, "reassocpow");
 	      pow_stmt = gimple_build_call (powi_fndecl, 2, rf1->repr, 
 					    build_int_cst (integer_type_node,
 							   power));
@@ -3249,7 +3216,7 @@ attempt_builtin_powi (gimple stmt, VEC(operand_entry_t, heap) **ops,
 			 dump_file);
 		  for (elt = j; elt < vec_len; elt++)
 		    {
-		      rf = VEC_index (repeat_factor, repeat_factor_vec, elt);
+		      rf = &VEC_index (repeat_factor, repeat_factor_vec, elt);
 		      print_generic_expr (dump_file, rf->factor, 0);
 		      if (elt < vec_len - 1)
 			fputs (" * ", dump_file);
@@ -3283,7 +3250,7 @@ attempt_builtin_powi (gimple stmt, VEC(operand_entry_t, heap) **ops,
 	      fputs ("Building __builtin_pow call for (", dump_file);
 	      for (elt = j; elt < vec_len; elt++)
 		{
-		  rf = VEC_index (repeat_factor, repeat_factor_vec, elt);
+		  rf = &VEC_index (repeat_factor, repeat_factor_vec, elt);
 		  print_generic_expr (dump_file, rf->factor, 0);
 		  if (elt < vec_len - 1)
 		    fputs (" * ", dump_file);
@@ -3308,8 +3275,8 @@ attempt_builtin_powi (gimple stmt, VEC(operand_entry_t, heap) **ops,
 		{
 		  tree op1, op2;
 
-		  rf1 = VEC_index (repeat_factor, repeat_factor_vec, ii);
-		  rf2 = VEC_index (repeat_factor, repeat_factor_vec, ii + 1);
+		  rf1 = &VEC_index (repeat_factor, repeat_factor_vec, ii);
+		  rf2 = &VEC_index (repeat_factor, repeat_factor_vec, ii + 1);
 
 		  /* Init the last factor's representative to be itself.  */
 		  if (!rf2->repr)
@@ -3318,7 +3285,7 @@ attempt_builtin_powi (gimple stmt, VEC(operand_entry_t, heap) **ops,
 		  op1 = rf1->factor;
 		  op2 = rf2->repr;
 
-		  target_ssa = get_reassoc_pow_ssa_name (target, type);
+		  target_ssa = make_temp_ssa_name (type, NULL, "reassocpow");
 		  mul_stmt = gimple_build_assign_with_ops (MULT_EXPR,
 							   target_ssa,
 							   op1, op2);
@@ -3333,8 +3300,8 @@ attempt_builtin_powi (gimple stmt, VEC(operand_entry_t, heap) **ops,
 
 	  /* Form a call to __builtin_powi for the maximum product
 	     just formed, raised to the power obtained earlier.  */
-	  rf1 = VEC_index (repeat_factor, repeat_factor_vec, j);
-	  iter_result = get_reassoc_pow_ssa_name (target, type);
+	  rf1 = &VEC_index (repeat_factor, repeat_factor_vec, j);
+	  iter_result = make_temp_ssa_name (type, NULL, "reassocpow");
 	  pow_stmt = gimple_build_call (powi_fndecl, 2, rf1->repr, 
 					build_int_cst (integer_type_node,
 						       power));
@@ -3347,7 +3314,7 @@ attempt_builtin_powi (gimple stmt, VEC(operand_entry_t, heap) **ops,
 	 form the product of this one and those others.  */
       if (result)
 	{
-	  tree new_result = get_reassoc_pow_ssa_name (target, type);
+	  tree new_result = make_temp_ssa_name (type, NULL, "reassocpow");
 	  mul_stmt = gimple_build_assign_with_ops (MULT_EXPR, new_result,
 						   result, iter_result);
 	  gimple_set_location (mul_stmt, gimple_location (stmt));
@@ -3366,7 +3333,7 @@ attempt_builtin_powi (gimple stmt, VEC(operand_entry_t, heap) **ops,
 	  unsigned k = power;
 	  unsigned n;
 
-	  rf1 = VEC_index (repeat_factor, repeat_factor_vec, i);
+	  rf1 = &VEC_index (repeat_factor, repeat_factor_vec, i);
 	  rf1->count -= power;
 	  
 	  FOR_EACH_VEC_ELT_REVERSE (operand_entry_t, *ops, n, oe)
@@ -3441,7 +3408,7 @@ transform_stmt_to_multiply (gimple_stmt_iterator *gsi, gimple stmt,
       print_gimple_stmt (dump_file, stmt, 0, 0);
     }
 
-  gimple_assign_set_rhs_with_ops_1 (gsi, MULT_EXPR, rhs1, rhs2, NULL_TREE);
+  gimple_assign_set_rhs_with_ops (gsi, MULT_EXPR, rhs1, rhs2);
   update_stmt (gsi_stmt (*gsi));
   remove_visited_stmt_chain (rhs1);
 
@@ -3460,7 +3427,6 @@ reassociate_bb (basic_block bb)
 {
   gimple_stmt_iterator gsi;
   basic_block son;
-  tree target = NULL_TREE;
 
   for (gsi = gsi_last_bb (bb); !gsi_end_p (gsi); gsi_prev (&gsi))
     {
@@ -3546,7 +3512,7 @@ reassociate_bb (basic_block bb)
 	      if (first_pass_instance
 		  && rhs_code == MULT_EXPR
 		  && flag_unsafe_math_optimizations)
-		powi_result = attempt_builtin_powi (stmt, &ops, &target);
+		powi_result = attempt_builtin_powi (stmt, &ops);
 
 	      /* If the operand vector is now empty, all operands were 
 		 consumed by the __builtin_powi optimization.  */
@@ -3585,8 +3551,8 @@ reassociate_bb (basic_block bb)
 		    {
 		      gimple mul_stmt;
 		      tree type = TREE_TYPE (gimple_get_lhs (stmt));
-		      tree target_ssa = get_reassoc_pow_ssa_name (&target,
-								  type);
+		      tree target_ssa = make_temp_ssa_name (type, NULL,
+							    "reassocpow");
 		      gimple_set_lhs (stmt, target_ssa);
 		      update_stmt (stmt);
 		      mul_stmt = gimple_build_assign_with_ops (MULT_EXPR, lhs,
@@ -3647,8 +3613,7 @@ init_reassoc (void)
 {
   int i;
   long rank = 2;
-  tree param;
-  int *bbs = XNEWVEC (int, last_basic_block + 1);
+  int *bbs = XNEWVEC (int, n_basic_blocks - NUM_FIXED_BLOCKS);
 
   /* Find the loops, so that we can prevent moving calculations in
      them.  */
@@ -3663,27 +3628,18 @@ init_reassoc (void)
   /* Reverse RPO (Reverse Post Order) will give us something where
      deeper loops come later.  */
   pre_and_rev_post_order_compute (NULL, bbs, false);
-  bb_rank = XCNEWVEC (long, last_basic_block + 1);
+  bb_rank = XCNEWVEC (long, last_basic_block);
   operand_rank = pointer_map_create ();
 
-  /* Give each argument a distinct rank.   */
-  for (param = DECL_ARGUMENTS (current_function_decl);
-       param;
-       param = DECL_CHAIN (param))
+  /* Give each default definition a distinct rank.  This includes
+     parameters and the static chain.  Walk backwards over all
+     SSA names so that we get proper rank ordering according
+     to tree_swap_operands_p.  */
+  for (i = num_ssa_names - 1; i > 0; --i)
     {
-      if (gimple_default_def (cfun, param) != NULL)
-	{
-	  tree def = gimple_default_def (cfun, param);
-	  insert_operand_rank (def, ++rank);
-	}
-    }
-
-  /* Give the chain decl a distinct rank. */
-  if (cfun->static_chain_decl != NULL)
-    {
-      tree def = gimple_default_def (cfun, cfun->static_chain_decl);
-      if (def != NULL)
-	insert_operand_rank (def, ++rank);
+      tree name = ssa_name (i);
+      if (name && SSA_NAME_IS_DEFAULT_DEF (name))
+	insert_operand_rank (name, ++rank);
     }
 
   /* Set up rank for each BB  */

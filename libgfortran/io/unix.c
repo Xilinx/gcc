@@ -41,13 +41,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #include <errno.h>
 
 
-/* min macro that evaluates its arguments only once.  */
-#define min(a,b)		\
-  ({ typeof (a) _a = (a);	\
-    typeof (b) _b = (b);	\
-    _a < _b ? _a : _b; })
-
-
 /* For mingw, we don't identify files by their inode number, but by a
    64-bit identifier created from a BY_HANDLE_FILE_INFORMATION. */
 #ifdef __MINGW32__
@@ -106,8 +99,19 @@ id_from_fd (const int fd)
   return id_from_handle ((HANDLE) _get_osfhandle (fd));
 }
 
+#endif /* HAVE_WORKING_STAT */
+#endif /* __MINGW32__ */
+
+
+/* min macro that evaluates its arguments only once.  */
+#ifdef min
+#undef min
 #endif
-#endif
+
+#define min(a,b)		\
+  ({ typeof (a) _a = (a);	\
+    typeof (b) _b = (b);	\
+    _a < _b ? _a : _b; })
 
 #ifndef PATH_MAX
 #define PATH_MAX 1024
@@ -955,7 +959,7 @@ open_internal4 (char *base, int length, gfc_offset offset)
   s->buffer = base;
   s->buffer_offset = offset;
 
-  s->active = s->file_length = length;
+  s->active = s->file_length = length * sizeof (gfc_char4_t);
 
   s->st.vptr = &mem4_vtable;
 
@@ -1047,6 +1051,9 @@ tempfile_open (const char *tempdir, char **fname)
 {
   int fd;
   const char *slash = "/";
+#if defined(HAVE_UMASK) && defined(HAVE_MKSTEMP)
+  mode_t mode_mask;
+#endif
 
   if (!tempdir)
     return -1;
@@ -1068,7 +1075,16 @@ tempfile_open (const char *tempdir, char **fname)
   snprintf (template, tempdirlen + 23, "%s%sgfortrantmpXXXXXX", 
 	    tempdir, slash);
 
+#ifdef HAVE_UMASK
+  /* Temporarily set the umask such that the file has 0600 permissions.  */
+  mode_mask = umask (S_IXUSR | S_IRWXG | S_IRWXO);
+#endif
+
   fd = mkstemp (template);
+
+#ifdef HAVE_UMASK
+  (void) umask (mode_mask);
+#endif
 
 #else /* HAVE_MKSTEMP */
   fd = -1;
@@ -1099,9 +1115,9 @@ tempfile_open (const char *tempdir, char **fname)
 
 #if defined(HAVE_CRLF) && defined(O_BINARY)
       fd = open (template, O_RDWR | O_CREAT | O_EXCL | O_BINARY,
-		 S_IRUSR | S_IWUSR, 0600);
+		 S_IRUSR | S_IWUSR);
 #else
-      fd = open (template, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 0600);
+      fd = open (template, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
 #endif
     }
   while (fd == -1 && errno == EEXIST);

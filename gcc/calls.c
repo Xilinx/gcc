@@ -384,13 +384,8 @@ emit_call_1 (rtx funexp, tree fntree ATTRIBUTE_UNUSED, tree fndecl ATTRIBUTE_UNU
 
   /* Some target create a fresh MEM instead of reusing the one provided
      above.  Set its MEM_EXPR.  */
-  call = PATTERN (call_insn);
-  if (GET_CODE (call) == PARALLEL)
-    call = XVECEXP (call, 0, 0);
-  if (GET_CODE (call) == SET)
-    call = SET_SRC (call);
-  if (GET_CODE (call) == CALL
-      && MEM_P (XEXP (call, 0))
+  call = get_call_rtx_from (call_insn);
+  if (call
       && MEM_EXPR (XEXP (call, 0)) == NULL_TREE
       && MEM_EXPR (funmem) != NULL_TREE)
     set_mem_expr (XEXP (call, 0), MEM_EXPR (funmem));
@@ -933,7 +928,7 @@ save_fixed_argument_area (int reg_parm_stack_space, rtx argblock, int *low_to_sa
 	set_mem_align (stack_area, PARM_BOUNDARY);
 	if (save_mode == BLKmode)
 	  {
-	    save_area = assign_stack_temp (BLKmode, num_to_save, 0);
+	    save_area = assign_stack_temp (BLKmode, num_to_save);
 	    emit_block_move (validize_mem (save_area), stack_area,
 			     GEN_INT (num_to_save), BLOCK_OP_CALL_PARM);
 	  }
@@ -1258,7 +1253,7 @@ initialize_argument_information (int num_actuals ATTRIBUTE_UNUSED,
 		  set_mem_attributes (copy, type, 1);
 		}
 	      else
-		copy = assign_temp (type, 0, 1, 0);
+		copy = assign_temp (type, 1, 0);
 
 	      store_expr (args[i].tree_value, copy, 0, false);
 
@@ -1850,7 +1845,7 @@ mem_overlaps_already_clobbered_arg_p (rtx addr, unsigned HOST_WIDE_INT size)
       unsigned HOST_WIDE_INT k;
 
       for (k = 0; k < size; k++)
-	if (i + k < stored_args_map->n_bits
+	if (i + k < SBITMAP_SIZE (stored_args_map)
 	    && TEST_BIT (stored_args_map, i + k))
 	  return true;
     }
@@ -2404,9 +2399,7 @@ expand_call (tree exp, rtx target, int ignore)
 	    /* For variable-sized objects, we must be called with a target
 	       specified.  If we were to allocate space on the stack here,
 	       we would have no way of knowing when to free it.  */
-	    rtx d = assign_temp (rettype, 0, 1, 1);
-
-	    mark_temp_addr_taken (d);
+	    rtx d = assign_temp (rettype, 1, 1);
 	    structure_value_addr = XEXP (d, 0);
 	    target = 0;
 	  }
@@ -3274,21 +3267,16 @@ expand_call (tree exp, rtx target, int ignore)
       else if (GET_CODE (valreg) == PARALLEL)
 	{
 	  if (target == 0)
-	    {
-	      /* This will only be assigned once, so it can be readonly.  */
-	      tree nt = build_qualified_type (rettype,
-					      (TYPE_QUALS (rettype)
-					       | TYPE_QUAL_CONST));
-
-	      target = assign_temp (nt, 0, 1, 1);
-	    }
-
-	  if (! rtx_equal_p (target, valreg))
+	    target = emit_group_move_into_temps (valreg);
+	  else if (rtx_equal_p (target, valreg))
+	    ;
+	  else if (GET_CODE (target) == PARALLEL)
+	    /* Handle the result of a emit_group_move_into_temps
+	       call in the previous pass.  */
+	    emit_group_move (target, valreg);
+	  else
 	    emit_group_store (target, valreg, rettype,
 			      int_size_in_bytes (rettype));
-
-	  /* We can not support sibling calls for this case.  */
-	  sibcall_failure = 1;
 	}
       else if (target
 	       && GET_MODE (target) == TYPE_MODE (rettype)
@@ -3335,16 +3323,6 @@ expand_call (tree exp, rtx target, int ignore)
 	      if (MEM_P (target))
 		sibcall_failure = 1;
 	    }
-	}
-      else if (TYPE_MODE (rettype) == BLKmode)
-	{
-	  rtx val = valreg;
-	  if (GET_MODE (val) != BLKmode)
-	    val = avoid_likely_spilled_reg (val);
-	  target = copy_blkmode_from_reg (target, val, rettype);
-
-	  /* We can not support sibling calls for this case.  */
-	  sibcall_failure = 1;
 	}
       else
 	target = copy_to_reg (avoid_likely_spilled_reg (valreg));
@@ -3696,7 +3674,7 @@ emit_library_call_value_1 (int retval, rtx orgfun, rtx value,
 	  if (value != 0 && MEM_P (value))
 	    mem_value = value;
 	  else
-	    mem_value = assign_temp (tfom, 0, 1, 1);
+	    mem_value = assign_temp (tfom, 1, 1);
 #endif
 	  /* This call returns a big structure.  */
 	  flags &= ~(ECF_CONST | ECF_PURE | ECF_LOOPING_CONST_OR_PURE);
@@ -3811,7 +3789,7 @@ emit_library_call_value_1 (int retval, rtx orgfun, rtx value,
 	  else
 	    {
 	      slot = assign_temp (lang_hooks.types.type_for_mode (mode, 0),
-				  0, 1, 1);
+				  1, 1);
 	      emit_move_insn (slot, val);
 	    }
 
@@ -4035,8 +4013,8 @@ emit_library_call_value_1 (int retval, rtx orgfun, rtx value,
 		    {
 		      argvec[argnum].save_area
 			= assign_stack_temp (BLKmode,
-					     argvec[argnum].locate.size.constant,
-					     0);
+					     argvec[argnum].locate.size.constant
+					     );
 
 		      emit_block_move (validize_mem (argvec[argnum].save_area),
 				       stack_area,
@@ -4446,7 +4424,7 @@ store_one_arg (struct arg_data *arg, rtx argblock, int flags,
 		  tree nt = build_qualified_type (ot, (TYPE_QUALS (ot)
 						       | TYPE_QUAL_CONST));
 
-		  arg->save_area = assign_temp (nt, 0, 1, 1);
+		  arg->save_area = assign_temp (nt, 1, 1);
 		  preserve_temp_slots (arg->save_area);
 		  emit_block_move (validize_mem (arg->save_area), stack_area,
 				   GEN_INT (arg->locate.size.constant),
@@ -4723,11 +4701,7 @@ store_one_arg (struct arg_data *arg, rtx argblock, int flags,
      be deferred during the rest of the arguments.  */
   NO_DEFER_POP;
 
-  /* Free any temporary slots made in processing this argument.  Show
-     that we might have taken the address of something and pushed that
-     as an operand.  */
-  preserve_temp_slots (NULL_RTX);
-  free_temp_slots ();
+  /* Free any temporary slots made in processing this argument.  */
   pop_temp_slots ();
 
   return sibcall_failure;

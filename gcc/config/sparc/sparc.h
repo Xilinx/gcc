@@ -475,7 +475,6 @@ extern enum cmodel sparc_cmodel;
 #endif
 
 /* Now define the sizes of the C data types.  */
-
 #define SHORT_TYPE_SIZE		16
 #define INT_TYPE_SIZE		32
 #define LONG_TYPE_SIZE		(TARGET_ARCH64 ? 64 : 32)
@@ -512,7 +511,6 @@ extern enum cmodel sparc_cmodel;
 #define SPARC_STACK_BOUNDARY_HACK (TARGET_ARCH64 && TARGET_STACK_BIAS)
 
 /* ALIGN FRAMES on double word boundaries */
-
 #define SPARC_STACK_ALIGN(LOC) \
   (TARGET_ARCH64 ? (((LOC)+15) & ~15) : (((LOC)+7) & ~7))
 
@@ -550,6 +548,10 @@ extern enum cmodel sparc_cmodel;
      ? MAX (MAX ((COMPUTED), (SPECIFIED)), BIGGEST_ALIGNMENT) \
      : MAX ((COMPUTED), (SPECIFIED)))			\
    :  MAX ((COMPUTED), (SPECIFIED)))
+
+/* An integer expression for the size in bits of the largest integer machine
+   mode that should actually be used.  We allow pairs of registers.  */
+#define MAX_FIXED_MODE_SIZE GET_MODE_BITSIZE (TARGET_ARCH64 ? TImode : DImode)
 
 /* We need 2 words, so we can save the stack pointer and the return register
    of the function containing a non-local goto target.  */
@@ -1104,15 +1106,12 @@ extern char leaf_reg_remap[];
   {{ FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM}, \
    { FRAME_POINTER_REGNUM, HARD_FRAME_POINTER_REGNUM} }
 
-#define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET) 			\
-  do {									\
-    if ((TO) == STACK_POINTER_REGNUM)					\
-      (OFFSET) = sparc_compute_frame_size (get_frame_size (),		\
-					   current_function_is_leaf);	\
-    else								\
-      (OFFSET) = 0;							\
-    (OFFSET) += SPARC_STACK_BIAS;					\
-  } while (0)
+#define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET) 		\
+  do								\
+    {								\
+      (OFFSET) = sparc_initial_elimination_offset ((TO));	\
+    }								\
+  while (0)
 
 /* Keep the stack pointer constant throughout the function.
    This is both an optimization and a necessity: longjmp
@@ -1712,12 +1711,10 @@ do {									\
     ASM_OUTPUT_ALIGNED_LOCAL (FILE, NAME, SIZE, ALIGN);		\
   } while (0)
 
-#define IDENT_ASM_OP "\t.ident\t"
-
 /* Output #ident as a .ident.  */
 
-#define ASM_OUTPUT_IDENT(FILE, NAME) \
-  fprintf (FILE, "%s\"%s\"\n", IDENT_ASM_OP, NAME);
+#undef TARGET_ASM_OUTPUT_IDENT
+#define TARGET_ASM_OUTPUT_IDENT default_asm_output_ident_directive
 
 /* Prettify the assembly.  */
 
@@ -1748,9 +1745,6 @@ extern int sparc_indent_opcode;
 #else
 #define AS_NIAGARA3_FLAG "d"
 #endif
-
-/* The number of Pmode words for the setjmp buffer.  */
-#define JMP_BUF_SIZE 12
 
 /* We use gcc _mcount for profiling.  */
 #define NO_PROFILE_COUNTERS 0

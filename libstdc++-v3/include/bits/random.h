@@ -1,6 +1,6 @@
 // random number generation -*- C++ -*-
 
-// Copyright (C) 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
+// Copyright (C) 2009-2012 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -148,6 +148,14 @@ _GLIBCXX_END_NAMESPACE_VERSION
       inline _Tp
       __mod(_Tp __x)
       { return _Mod<_Tp, __m, __a, __c>::__calc(__x); }
+
+    /* Determine whether number is a power of 2.  */
+    template<typename _Tp>
+      inline bool
+      _Power_of_2(_Tp __x)
+      {
+	return ((__x - 1) & __x) == 0;
+      };
 
     /*
      * An adaptor class for converting the output of any Generator into
@@ -530,11 +538,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
        * @brief Discard a sequence of random numbers.
        */
       void
-      discard(unsigned long long __z)
-      {
-	for (; __z != 0ULL; --__z)
-	  (*this)();
-      }
+      discard(unsigned long long __z);
 
       result_type
       operator()();
@@ -610,6 +614,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		   __l1, __f1>& __x);
 
     private:
+      void _M_gen_rand();
+
       _UIntType _M_x[state_size];
       size_t    _M_p;
     };
@@ -1577,39 +1583,19 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 #ifdef _GLIBCXX_USE_RANDOM_TR1
 
     explicit
-    random_device(const std::string& __token = "/dev/urandom")
+    random_device(const std::string& __token = "default")
     {
-      if ((__token != "/dev/urandom" && __token != "/dev/random")
-	  || !(_M_file = std::fopen(__token.c_str(), "rb")))
-	std::__throw_runtime_error(__N("random_device::"
-				       "random_device(const std::string&)"));
+      _M_init(__token);
     }
 
     ~random_device()
-    { std::fclose(_M_file); }
+    { _M_fini(); }
 
 #else
 
     explicit
     random_device(const std::string& __token = "mt19937")
-    : _M_mt(_M_strtoul(__token)) { }
-
-  private:
-    static unsigned long
-    _M_strtoul(const std::string& __str)
-    {
-      unsigned long __ret = 5489UL;
-      if (__str != "mt19937")
-	{
-	  const char* __nptr = __str.c_str();
-	  char* __endptr;
-	  __ret = std::strtoul(__nptr, &__endptr, 0);
-	  if (*__nptr == '\0' || *__endptr != '\0')
-	    std::__throw_runtime_error(__N("random_device::_M_strtoul"
-					   "(const std::string&)"));
-	}
-      return __ret;
-    }
+    { _M_init_pretr1(__token); }
 
   public:
 
@@ -1631,12 +1617,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     operator()()
     {
 #ifdef _GLIBCXX_USE_RANDOM_TR1
-      result_type __ret;
-      std::fread(reinterpret_cast<void*>(&__ret), sizeof(result_type),
-		 1, _M_file);
-      return __ret;
+      return this->_M_getval();
 #else
-      return _M_mt();
+      return this->_M_getval_pretr1();
 #endif
     }
 
@@ -1646,11 +1629,18 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   private:
 
-#ifdef _GLIBCXX_USE_RANDOM_TR1
+    void _M_init(const std::string& __token);
+    void _M_init_pretr1(const std::string& __token);
+    void _M_fini();
+
+    result_type _M_getval();
+    result_type _M_getval_pretr1();
+
+    union
+    {
     FILE*        _M_file;
-#else
     mt19937      _M_mt;
-#endif
+  };
   };
 
   /* @} */ // group random_generators
@@ -1783,6 +1773,36 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	result_type
 	operator()(_UniformRandomNumberGenerator& __urng,
 		   const param_type& __p);
+
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng)
+	{ this->__generate(__f, __t, __urng, this->param()); }
+
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
+      template<typename _UniformRandomNumberGenerator>
+	void
+	__generate(result_type* __f, result_type* __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
+    private:
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate_impl(_ForwardIterator __f, _ForwardIterator __t,
+			_UniformRandomNumberGenerator& __urng,
+			const param_type& __p);
 
       param_type _M_param;
     };
@@ -1964,7 +1984,36 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	  return (__aurng() * (__p.b() - __p.a())) + __p.a();
 	}
 
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng)
+	{ this->__generate(__f, __t, __urng, this->param()); }
+
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
+      template<typename _UniformRandomNumberGenerator>
+	void
+	__generate(result_type* __f, result_type* __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
     private:
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate_impl(_ForwardIterator __f, _ForwardIterator __t,
+			_UniformRandomNumberGenerator& __urng,
+			const param_type& __p);
+
       param_type _M_param;
     };
 
@@ -2153,6 +2202,28 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	operator()(_UniformRandomNumberGenerator& __urng,
 		   const param_type& __p);
 
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng)
+	{ this->__generate(__f, __t, __urng, this->param()); }
+
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
+      template<typename _UniformRandomNumberGenerator>
+	void
+	__generate(result_type* __f, result_type* __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
       /**
        * @brief Return true if two normal distributions have
        *        the same parameters and the sequences that would
@@ -2194,6 +2265,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		   std::normal_distribution<_RealType1>& __x);
 
     private:
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate_impl(_ForwardIterator __f, _ForwardIterator __t,
+			_UniformRandomNumberGenerator& __urng,
+			const param_type& __p);
+
       param_type  _M_param;
       result_type _M_saved;
       bool        _M_saved_available;
@@ -2327,17 +2405,38 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		   const param_type& __p)
         { return std::exp(__p.s() * _M_nd(__urng) + __p.m()); }
 
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng)
+	{ this->__generate(__f, __t, __urng, this->param()); }
+
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
+      template<typename _UniformRandomNumberGenerator>
+	void
+	__generate(result_type* __f, result_type* __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
       /**
        * @brief Return true if two lognormal distributions have
        *        the same parameters and the sequences that would
        *        be generated are equal.
        */
-      template<typename _RealType1>
-        friend bool
-        operator==(const std::lognormal_distribution<_RealType1>& __d1,
-		   const std::lognormal_distribution<_RealType1>& __d2)
-        { return (__d1.param() == __d2.param()
-		  && __d1._M_nd == __d2._M_nd); }
+      friend bool
+      operator==(const lognormal_distribution& __d1,
+		 const lognormal_distribution& __d2)
+      { return (__d1.param() == __d2.param()
+		&& __d1._M_nd == __d2._M_nd); }
 
       /**
        * @brief Inserts a %lognormal_distribution random number distribution
@@ -2370,6 +2469,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		   std::lognormal_distribution<_RealType1>& __x);
 
     private:
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate_impl(_ForwardIterator __f, _ForwardIterator __t,
+			_UniformRandomNumberGenerator& __urng,
+			const param_type& __p);
+
       param_type _M_param;
 
       std::normal_distribution<result_type> _M_nd;
@@ -2520,17 +2626,38 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	operator()(_UniformRandomNumberGenerator& __urng,
 		   const param_type& __p);
 
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng)
+	{ this->__generate(__f, __t, __urng, this->param()); }
+
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
+      template<typename _UniformRandomNumberGenerator>
+	void
+	__generate(result_type* __f, result_type* __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
       /**
        * @brief Return true if two gamma distributions have the same
        *        parameters and the sequences that would be generated
        *        are equal.
        */
-      template<typename _RealType1>
-        friend bool
-        operator==(const std::gamma_distribution<_RealType1>& __d1,
-		   const std::gamma_distribution<_RealType1>& __d2)
-        { return (__d1.param() == __d2.param()
-		  && __d1._M_nd == __d2._M_nd); }
+      friend bool
+      operator==(const gamma_distribution& __d1,
+		 const gamma_distribution& __d2)
+      { return (__d1.param() == __d2.param()
+		&& __d1._M_nd == __d2._M_nd); }
 
       /**
        * @brief Inserts a %gamma_distribution random number distribution
@@ -2562,6 +2689,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		   std::gamma_distribution<_RealType1>& __x);
 
     private:
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate_impl(_ForwardIterator __f, _ForwardIterator __t,
+			_UniformRandomNumberGenerator& __urng,
+			const param_type& __p);
+
       param_type _M_param;
 
       std::normal_distribution<result_type> _M_nd;
@@ -2571,7 +2705,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
    * @brief Return true if two gamma distributions are different.
    */
    template<typename _RealType>
-    inline bool
+     inline bool
      operator!=(const std::gamma_distribution<_RealType>& __d1,
 		const std::gamma_distribution<_RealType>& __d2)
     { return !(__d1 == __d2); }
@@ -2685,16 +2819,49 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	  return 2 * _M_gd(__urng, param_type(__p.n() / 2));
 	}
 
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng)
+	{ this->__generate_impl(__f, __t, __urng, _M_gd.param()); }
+
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ typename std::gamma_distribution<result_type>::param_type
+	    __p2(__p.n() / 2);
+	  this->__generate_impl(__f, __t, __urng, __p2); }
+
+      template<typename _UniformRandomNumberGenerator>
+	void
+	__generate(result_type* __f, result_type* __t,
+		   _UniformRandomNumberGenerator& __urng)
+	{ typename std::gamma_distribution<result_type>::param_type
+	    __p2(_M_gd.param());
+	  this->__generate_impl(__f, __t, __urng, __p2); }
+
+      template<typename _UniformRandomNumberGenerator>
+	void
+	__generate(result_type* __f, result_type* __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ typename std::gamma_distribution<result_type>::param_type
+	    __p2(__p.n() / 2);
+	  this->__generate_impl(__f, __t, __urng, __p2); }
+
       /**
        * @brief Return true if two Chi-squared distributions have
        *        the same parameters and the sequences that would be
        *        generated are equal.
        */
-      template<typename _RealType1>
-        friend bool
-        operator==(const std::chi_squared_distribution<_RealType1>& __d1,
-		   const std::chi_squared_distribution<_RealType1>& __d2)
-        { return __d1.param() == __d2.param() && __d1._M_gd == __d2._M_gd; }
+      friend bool
+      operator==(const chi_squared_distribution& __d1,
+		 const chi_squared_distribution& __d2)
+      { return __d1.param() == __d2.param() && __d1._M_gd == __d2._M_gd; }
 
       /**
        * @brief Inserts a %chi_squared_distribution random number distribution
@@ -2727,6 +2894,14 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		   std::chi_squared_distribution<_RealType1>& __x);
 
     private:
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate_impl(_ForwardIterator __f, _ForwardIterator __t,
+			_UniformRandomNumberGenerator& __urng,
+			typename std::gamma_distribution<result_type>::param_type&
+			__p);
+
       param_type _M_param;
 
       std::gamma_distribution<result_type> _M_gd;
@@ -2856,7 +3031,36 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	operator()(_UniformRandomNumberGenerator& __urng,
 		   const param_type& __p);
 
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng)
+	{ this->__generate(__f, __t, __urng, this->param()); }
+
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
+      template<typename _UniformRandomNumberGenerator>
+	void
+	__generate(result_type* __f, result_type* __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
     private:
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate_impl(_ForwardIterator __f, _ForwardIterator __t,
+			_UniformRandomNumberGenerator& __urng,
+			const param_type& __p);
+
       param_type _M_param;
     };
 
@@ -3038,18 +3242,45 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		  / (_M_gd_y(__urng, param_type(__p.n() / 2)) * m()));
 	}
 
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng)
+	{ this->__generate_impl(__f, __t, __urng); }
+
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
+      template<typename _UniformRandomNumberGenerator>
+	void
+	__generate(result_type* __f, result_type* __t,
+		   _UniformRandomNumberGenerator& __urng)
+	{ this->__generate_impl(__f, __t, __urng); }
+
+      template<typename _UniformRandomNumberGenerator>
+	void
+	__generate(result_type* __f, result_type* __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
       /**
        * @brief Return true if two Fisher f distributions have
        *        the same parameters and the sequences that would
        *        be generated are equal.
        */
-      template<typename _RealType1>
-        friend bool
-        operator==(const std::fisher_f_distribution<_RealType1>& __d1,
-		   const std::fisher_f_distribution<_RealType1>& __d2)
-        { return (__d1.param() == __d2.param()
-		  && __d1._M_gd_x == __d2._M_gd_x
-		  && __d1._M_gd_y == __d2._M_gd_y); }
+      friend bool
+      operator==(const fisher_f_distribution& __d1,
+		 const fisher_f_distribution& __d2)
+      { return (__d1.param() == __d2.param()
+		&& __d1._M_gd_x == __d2._M_gd_x
+		&& __d1._M_gd_y == __d2._M_gd_y); }
 
       /**
        * @brief Inserts a %fisher_f_distribution random number distribution
@@ -3082,6 +3313,19 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		   std::fisher_f_distribution<_RealType1>& __x);
 
     private:
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate_impl(_ForwardIterator __f, _ForwardIterator __t,
+			_UniformRandomNumberGenerator& __urng);
+
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate_impl(_ForwardIterator __f, _ForwardIterator __t,
+			_UniformRandomNumberGenerator& __urng,
+			const param_type& __p);
+
       param_type _M_param;
 
       std::gamma_distribution<result_type> _M_gd_x, _M_gd_y;
@@ -3212,17 +3456,44 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	  return _M_nd(__urng) * std::sqrt(__p.n() / __g);
         }
 
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng)
+	{ this->__generate_impl(__f, __t, __urng); }
+
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
+      template<typename _UniformRandomNumberGenerator>
+	void
+	__generate(result_type* __f, result_type* __t,
+		   _UniformRandomNumberGenerator& __urng)
+	{ this->__generate_impl(__f, __t, __urng); }
+
+      template<typename _UniformRandomNumberGenerator>
+	void
+	__generate(result_type* __f, result_type* __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
       /**
        * @brief Return true if two Student t distributions have
        *        the same parameters and the sequences that would
        *        be generated are equal.
        */
-      template<typename _RealType1>
-        friend bool
-        operator==(const std::student_t_distribution<_RealType1>& __d1,
-		   const std::student_t_distribution<_RealType1>& __d2)
-        { return (__d1.param() == __d2.param()
-		  && __d1._M_nd == __d2._M_nd && __d1._M_gd == __d2._M_gd); }
+      friend bool
+      operator==(const student_t_distribution& __d1,
+		 const student_t_distribution& __d2)
+      { return (__d1.param() == __d2.param()
+		&& __d1._M_nd == __d2._M_nd && __d1._M_gd == __d2._M_gd); }
 
       /**
        * @brief Inserts a %student_t_distribution random number distribution
@@ -3255,6 +3526,18 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		   std::student_t_distribution<_RealType1>& __x);
 
     private:
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate_impl(_ForwardIterator __f, _ForwardIterator __t,
+			_UniformRandomNumberGenerator& __urng);
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate_impl(_ForwardIterator __f, _ForwardIterator __t,
+			_UniformRandomNumberGenerator& __urng,
+			const param_type& __p);
+
       param_type _M_param;
 
       std::normal_distribution<result_type> _M_nd;
@@ -3396,7 +3679,35 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	return false;
       }
 
+    template<typename _ForwardIterator,
+	     typename _UniformRandomNumberGenerator>
+      void
+      __generate(_ForwardIterator __f, _ForwardIterator __t,
+		 _UniformRandomNumberGenerator& __urng)
+      { this->__generate(__f, __t, __urng, this->param()); }
+
+    template<typename _ForwardIterator,
+	     typename _UniformRandomNumberGenerator>
+      void
+      __generate(_ForwardIterator __f, _ForwardIterator __t,
+		 _UniformRandomNumberGenerator& __urng, const param_type& __p)
+      { this->__generate_impl(__f, __t, __urng, __p); }
+
+    template<typename _UniformRandomNumberGenerator>
+      void
+      __generate(result_type* __f, result_type* __t,
+		 _UniformRandomNumberGenerator& __urng,
+		 const param_type& __p)
+      { this->__generate_impl(__f, __t, __urng, __p); }
+
   private:
+    template<typename _ForwardIterator,
+	     typename _UniformRandomNumberGenerator>
+      void
+      __generate_impl(_ForwardIterator __f, _ForwardIterator __t,
+		      _UniformRandomNumberGenerator& __urng,
+		      const param_type& __p);
+
     param_type _M_param;
   };
 
@@ -3588,15 +3899,36 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	operator()(_UniformRandomNumberGenerator& __urng,
 		   const param_type& __p);
 
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng)
+	{ this->__generate(__f, __t, __urng, this->param()); }
+
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
+      template<typename _UniformRandomNumberGenerator>
+	void
+	__generate(result_type* __f, result_type* __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
       /**
        * @brief Return true if two binomial distributions have
        *        the same parameters and the sequences that would
        *        be generated are equal.
        */
-      template<typename _IntType1>
 	friend bool
-        operator==(const std::binomial_distribution<_IntType1>& __d1,
-		   const std::binomial_distribution<_IntType1>& __d2)
+        operator==(const binomial_distribution& __d1,
+		   const binomial_distribution& __d2)
 #ifdef _GLIBCXX_USE_C99_MATH_TR1
 	{ return __d1.param() == __d2.param() && __d1._M_nd == __d2._M_nd; }
 #else
@@ -3636,6 +3968,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		   std::binomial_distribution<_IntType1>& __x);
 
     private:
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate_impl(_ForwardIterator __f, _ForwardIterator __t,
+			_UniformRandomNumberGenerator& __urng,
+			const param_type& __p);
+
       template<typename _UniformRandomNumberGenerator>
 	result_type
 	_M_waiting(_UniformRandomNumberGenerator& __urng, _IntType __t);
@@ -3772,7 +4111,36 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	operator()(_UniformRandomNumberGenerator& __urng,
 		   const param_type& __p);
 
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng)
+	{ this->__generate(__f, __t, __urng, this->param()); }
+
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
+      template<typename _UniformRandomNumberGenerator>
+	void
+	__generate(result_type* __f, result_type* __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
     private:
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate_impl(_ForwardIterator __f, _ForwardIterator __t,
+			_UniformRandomNumberGenerator& __urng,
+			const param_type& __p);
+
       param_type _M_param;
     };
 
@@ -3945,16 +4313,43 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	operator()(_UniformRandomNumberGenerator& __urng,
 		   const param_type& __p);
 
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng)
+	{ this->__generate_impl(__f, __t, __urng); }
+
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
+      template<typename _UniformRandomNumberGenerator>
+	void
+	__generate(result_type* __f, result_type* __t,
+		   _UniformRandomNumberGenerator& __urng)
+	{ this->__generate_impl(__f, __t, __urng); }
+
+      template<typename _UniformRandomNumberGenerator>
+	void
+	__generate(result_type* __f, result_type* __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
       /**
        * @brief Return true if two negative binomial distributions have
        *        the same parameters and the sequences that would be
        *        generated are equal.
        */
-      template<typename _IntType1>
-        friend bool
-        operator==(const std::negative_binomial_distribution<_IntType1>& __d1,
-		   const std::negative_binomial_distribution<_IntType1>& __d2)
-        { return __d1.param() == __d2.param() && __d1._M_gd == __d2._M_gd; }
+      friend bool
+      operator==(const negative_binomial_distribution& __d1,
+		 const negative_binomial_distribution& __d2)
+      { return __d1.param() == __d2.param() && __d1._M_gd == __d2._M_gd; }
 
       /**
        * @brief Inserts a %negative_binomial_distribution random
@@ -3988,6 +4383,18 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		   std::negative_binomial_distribution<_IntType1>& __x);
 
     private:
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate_impl(_ForwardIterator __f, _ForwardIterator __t,
+			_UniformRandomNumberGenerator& __urng);
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate_impl(_ForwardIterator __f, _ForwardIterator __t,
+			_UniformRandomNumberGenerator& __urng,
+			const param_type& __p);
+
       param_type _M_param;
 
       std::gamma_distribution<double> _M_gd;
@@ -4129,19 +4536,40 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	operator()(_UniformRandomNumberGenerator& __urng,
 		   const param_type& __p);
 
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng)
+	{ this->__generate(__f, __t, __urng, this->param()); }
+
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
+      template<typename _UniformRandomNumberGenerator>
+	void
+	__generate(result_type* __f, result_type* __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
        /**
 	* @brief Return true if two Poisson distributions have the same
 	*        parameters and the sequences that would be generated
 	*        are equal.
 	*/
-      template<typename _IntType1>
-        friend bool
-        operator==(const std::poisson_distribution<_IntType1>& __d1,
-		   const std::poisson_distribution<_IntType1>& __d2)
+      friend bool
+      operator==(const poisson_distribution& __d1,
+		 const poisson_distribution& __d2)
 #ifdef _GLIBCXX_USE_C99_MATH_TR1
-        { return __d1.param() == __d2.param() && __d1._M_nd == __d2._M_nd; }
+      { return __d1.param() == __d2.param() && __d1._M_nd == __d2._M_nd; }
 #else
-        { return __d1.param() == __d2.param(); }
+      { return __d1.param() == __d2.param(); }
 #endif
 
       /**
@@ -4175,6 +4603,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		   std::poisson_distribution<_IntType1>& __x);
 
     private:
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate_impl(_ForwardIterator __f, _ForwardIterator __t,
+			_UniformRandomNumberGenerator& __urng,
+			const param_type& __p);
+
       param_type _M_param;
 
       // NB: Unused when _GLIBCXX_USE_C99_MATH_TR1 is undefined.
@@ -4313,10 +4748,39 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	{
 	  __detail::_Adaptor<_UniformRandomNumberGenerator, result_type>
 	    __aurng(__urng);
-	  return -std::log(__aurng()) / __p.lambda();
+	  return -std::log(result_type(1) - __aurng()) / __p.lambda();
 	}
 
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng)
+	{ this->__generate(__f, __t, __urng, this->param()); }
+
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
+      template<typename _UniformRandomNumberGenerator>
+	void
+	__generate(result_type* __f, result_type* __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
     private:
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate_impl(_ForwardIterator __f, _ForwardIterator __t,
+			_UniformRandomNumberGenerator& __urng,
+			const param_type& __p);
+
       param_type _M_param;
     };
 
@@ -4491,7 +4955,36 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	operator()(_UniformRandomNumberGenerator& __urng,
 		   const param_type& __p);
 
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng)
+	{ this->__generate(__f, __t, __urng, this->param()); }
+
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
+      template<typename _UniformRandomNumberGenerator>
+	void
+	__generate(result_type* __f, result_type* __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
     private:
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate_impl(_ForwardIterator __f, _ForwardIterator __t,
+			_UniformRandomNumberGenerator& __urng,
+			const param_type& __p);
+
       param_type _M_param;
     };
 
@@ -4666,7 +5159,36 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	operator()(_UniformRandomNumberGenerator& __urng,
 		   const param_type& __p);
 
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng)
+	{ this->__generate(__f, __t, __urng, this->param()); }
+
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
+      template<typename _UniformRandomNumberGenerator>
+	void
+	__generate(result_type* __f, result_type* __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
     private:
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate_impl(_ForwardIterator __f, _ForwardIterator __t,
+			_UniformRandomNumberGenerator& __urng,
+			const param_type& __p);
+
       param_type _M_param;
     };
 
@@ -4867,6 +5389,28 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	operator()(_UniformRandomNumberGenerator& __urng,
 		   const param_type& __p);
 
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng)
+	{ this->__generate(__f, __t, __urng, this->param()); }
+
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
+      template<typename _UniformRandomNumberGenerator>
+	void
+	__generate(result_type* __f, result_type* __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
       /**
        * @brief Inserts a %discrete_distribution random number distribution
        * @p __x into the output stream @p __os.
@@ -4899,6 +5443,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		   std::discrete_distribution<_IntType1>& __x);
 
     private:
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate_impl(_ForwardIterator __f, _ForwardIterator __t,
+			_UniformRandomNumberGenerator& __urng,
+			const param_type& __p);
+
       param_type _M_param;
     };
 
@@ -5105,6 +5656,28 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	operator()(_UniformRandomNumberGenerator& __urng,
 		   const param_type& __p);
 
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng)
+	{ this->__generate(__f, __t, __urng, this->param()); }
+
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
+      template<typename _UniformRandomNumberGenerator>
+	void
+	__generate(result_type* __f, result_type* __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
       /**
        * @brief Inserts a %piecewise_constan_distribution random
        *        number distribution @p __x into the output stream @p __os.
@@ -5138,6 +5711,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		   std::piecewise_constant_distribution<_RealType1>& __x);
 
     private:
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate_impl(_ForwardIterator __f, _ForwardIterator __t,
+			_UniformRandomNumberGenerator& __urng,
+			const param_type& __p);
+
       param_type _M_param;
     };
 
@@ -5347,6 +5927,28 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	operator()(_UniformRandomNumberGenerator& __urng,
 		   const param_type& __p);
 
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng)
+	{ this->__generate(__f, __t, __urng, this->param()); }
+
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate(_ForwardIterator __f, _ForwardIterator __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
+      template<typename _UniformRandomNumberGenerator>
+	void
+	__generate(result_type* __f, result_type* __t,
+		   _UniformRandomNumberGenerator& __urng,
+		   const param_type& __p)
+	{ this->__generate_impl(__f, __t, __urng, __p); }
+
       /**
        * @brief Inserts a %piecewise_linear_distribution random number
        *        distribution @p __x into the output stream @p __os.
@@ -5380,6 +5982,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		   std::piecewise_linear_distribution<_RealType1>& __x);
 
     private:
+      template<typename _ForwardIterator,
+	       typename _UniformRandomNumberGenerator>
+	void
+	__generate_impl(_ForwardIterator __f, _ForwardIterator __t,
+			_UniformRandomNumberGenerator& __urng,
+			const param_type& __p);
+
       param_type _M_param;
     };
 

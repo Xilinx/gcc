@@ -1188,7 +1188,7 @@ package body Uintp is
 
             if D > Int_1 then
 
-               --  Multiply Dividend by D
+               --  Multiply Dividend by d
 
                Carry := 0;
                for J in reverse Dividend'Range loop
@@ -2213,6 +2213,8 @@ package body Uintp is
    ----------------
 
    function UI_To_Int (Input : Uint) return Int is
+      pragma Assert (Input /= No_Uint);
+
    begin
       if Direct (Input) then
          return Direct_Val (Input);

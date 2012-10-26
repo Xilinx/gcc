@@ -36,10 +36,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "function.h"
 #include "flags.h"
 #include "basic-block.h"
-#include "output.h"
 #include "reload.h"
 #include "target.h"
-#include "timevar.h"
 #include "tree-pass.h"
 #include "df.h"
 
@@ -589,7 +587,7 @@ simplify_while_replacing (rtx *loc, rtx to, rtx object,
       break;
     case MINUS:
       if (CONST_INT_P (XEXP (x, 1))
-	  || GET_CODE (XEXP (x, 1)) == CONST_DOUBLE)
+	  || CONST_DOUBLE_AS_INT_P (XEXP (x, 1)))
 	validate_change (object, loc,
 			 simplify_gen_binary
 			 (PLUS, GET_MODE (x), XEXP (x, 0),
@@ -631,7 +629,8 @@ simplify_while_replacing (rtx *loc, rtx to, rtx object,
       if (MEM_P (XEXP (x, 0))
 	  && CONST_INT_P (XEXP (x, 1))
 	  && CONST_INT_P (XEXP (x, 2))
-	  && !mode_dependent_address_p (XEXP (XEXP (x, 0), 0))
+	  && !mode_dependent_address_p (XEXP (XEXP (x, 0), 0),
+					MEM_ADDR_SPACE (XEXP (x, 0)))
 	  && !MEM_VOLATILE_P (XEXP (x, 0)))
 	{
 	  enum machine_mode wanted_mode = VOIDmode;
@@ -994,6 +993,12 @@ general_operand (rtx op, enum machine_mode mode)
       /* FLOAT_MODE subregs can't be paradoxical.  Combine will occasionally
 	 create such rtl, and we must reject it.  */
       if (SCALAR_FLOAT_MODE_P (GET_MODE (op))
+	  /* LRA can use subreg to store a floating point value in an
+	     integer mode.  Although the floating point and the
+	     integer modes need the same number of hard registers, the
+	     size of floating point mode can be less than the integer
+	     mode.  */
+	  && ! lra_in_progress 
 	  && GET_MODE_SIZE (GET_MODE (op)) > GET_MODE_SIZE (GET_MODE (sub)))
 	return 0;
 
@@ -1069,6 +1074,12 @@ register_operand (rtx op, enum machine_mode mode)
       /* FLOAT_MODE subregs can't be paradoxical.  Combine will occasionally
 	 create such rtl, and we must reject it.  */
       if (SCALAR_FLOAT_MODE_P (GET_MODE (op))
+	  /* LRA can use subreg to store a floating point value in an
+	     integer mode.  Although the floating point and the
+	     integer modes need the same number of hard registers, the
+	     size of floating point mode can be less than the integer
+	     mode.  */
+	  && ! lra_in_progress 
 	  && GET_MODE_SIZE (GET_MODE (op)) > GET_MODE_SIZE (GET_MODE (sub)))
 	return 0;
 
@@ -1100,7 +1111,7 @@ scratch_operand (rtx op, enum machine_mode mode)
 
   return (GET_CODE (op) == SCRATCH
 	  || (REG_P (op)
-	      && REGNO (op) < FIRST_PSEUDO_REGISTER));
+	      && (lra_in_progress || REGNO (op) < FIRST_PSEUDO_REGISTER)));
 }
 
 /* Return 1 if OP is a valid immediate operand for mode MODE.
@@ -1160,7 +1171,7 @@ const_double_operand (rtx op, enum machine_mode mode)
       && GET_MODE_CLASS (mode) != MODE_PARTIAL_INT)
     return 0;
 
-  return ((GET_CODE (op) == CONST_DOUBLE || CONST_INT_P (op))
+  return ((CONST_DOUBLE_P (op) || CONST_INT_P (op))
 	  && (mode == VOIDmode || GET_MODE (op) == mode
 	      || GET_MODE (op) == VOIDmode));
 }
@@ -1709,27 +1720,25 @@ asm_operand_ok (rtx op, const char *constraint, const char **constraints)
 
 	case 'E':
 	case 'F':
-	  if (GET_CODE (op) == CONST_DOUBLE
+	  if (CONST_DOUBLE_AS_FLOAT_P (op) 
 	      || (GET_CODE (op) == CONST_VECTOR
 		  && GET_MODE_CLASS (GET_MODE (op)) == MODE_VECTOR_FLOAT))
 	    result = 1;
 	  break;
 
 	case 'G':
-	  if (GET_CODE (op) == CONST_DOUBLE
+	  if (CONST_DOUBLE_AS_FLOAT_P (op)
 	      && CONST_DOUBLE_OK_FOR_CONSTRAINT_P (op, 'G', constraint))
 	    result = 1;
 	  break;
 	case 'H':
-	  if (GET_CODE (op) == CONST_DOUBLE
+	  if (CONST_DOUBLE_AS_FLOAT_P (op)
 	      && CONST_DOUBLE_OK_FOR_CONSTRAINT_P (op, 'H', constraint))
 	    result = 1;
 	  break;
 
 	case 's':
-	  if (CONST_INT_P (op)
-	      || (GET_CODE (op) == CONST_DOUBLE
-		  && GET_MODE (op) == VOIDmode))
+	  if (CONST_INT_P (op) || CONST_DOUBLE_AS_INT_P (op))
 	    break;
 	  /* Fall through.  */
 
@@ -1739,9 +1748,7 @@ asm_operand_ok (rtx op, const char *constraint, const char **constraints)
 	  break;
 
 	case 'n':
-	  if (CONST_INT_P (op)
-	      || (GET_CODE (op) == CONST_DOUBLE
-		  && GET_MODE (op) == VOIDmode))
+	  if (CONST_INT_P (op) || CONST_DOUBLE_AS_INT_P (op))
 	    result = 1;
 	  break;
 
@@ -1951,7 +1958,7 @@ offsettable_address_addr_space_p (int strictp, enum machine_mode mode, rtx y,
   /* Adjusting an offsettable address involves changing to a narrower mode.
      Make sure that's OK.  */
 
-  if (mode_dependent_address_p (y))
+  if (mode_dependent_address_p (y, as))
     return 0;
 
   /* ??? How much offset does an offsettable BLKmode reference need?
@@ -2004,11 +2011,13 @@ offsettable_address_addr_space_p (int strictp, enum machine_mode mode, rtx y,
 /* Return 1 if ADDR is an address-expression whose effect depends
    on the mode of the memory reference it is used in.
 
+   ADDRSPACE is the address space associated with the address.
+
    Autoincrement addressing is a typical example of mode-dependence
    because the amount of the increment depends on the mode.  */
 
 bool
-mode_dependent_address_p (rtx addr)
+mode_dependent_address_p (rtx addr, addr_space_t addrspace)
 {
   /* Auto-increment addressing with anything other than post_modify
      or pre_modify always introduces a mode dependency.  Catch such
@@ -2019,7 +2028,7 @@ mode_dependent_address_p (rtx addr)
       || GET_CODE (addr) == POST_DEC)
     return true;
 
-  return targetm.mode_dependent_address_p (addr);
+  return targetm.mode_dependent_address_p (addr, addrspace);
 }
 
 /* Like extract_insn, but save insn extracted and don't extract again, when
@@ -2580,7 +2589,7 @@ constrain_operands (int strict)
 
 	      case 'E':
 	      case 'F':
-		if (GET_CODE (op) == CONST_DOUBLE
+		if (CONST_DOUBLE_AS_FLOAT_P (op)
 		    || (GET_CODE (op) == CONST_VECTOR
 			&& GET_MODE_CLASS (GET_MODE (op)) == MODE_VECTOR_FLOAT))
 		  win = 1;
@@ -2588,15 +2597,13 @@ constrain_operands (int strict)
 
 	      case 'G':
 	      case 'H':
-		if (GET_CODE (op) == CONST_DOUBLE
+		if (CONST_DOUBLE_AS_FLOAT_P (op)
 		    && CONST_DOUBLE_OK_FOR_CONSTRAINT_P (op, c, p))
 		  win = 1;
 		break;
 
 	      case 's':
-		if (CONST_INT_P (op)
-		    || (GET_CODE (op) == CONST_DOUBLE
-			&& GET_MODE (op) == VOIDmode))
+		if (CONST_INT_P (op) || CONST_DOUBLE_AS_INT_P (op))
 		  break;
 	      case 'i':
 		if (CONSTANT_P (op))
@@ -2604,9 +2611,7 @@ constrain_operands (int strict)
 		break;
 
 	      case 'n':
-		if (CONST_INT_P (op)
-		    || (GET_CODE (op) == CONST_DOUBLE
-			&& GET_MODE (op) == VOIDmode))
+		if (CONST_INT_P (op) || CONST_DOUBLE_AS_INT_P (op))
 		  win = 1;
 		break;
 
@@ -2833,7 +2838,8 @@ split_insn (rtx insn)
 	  if (note && CONSTANT_P (XEXP (note, 0)))
 	    set_unique_reg_note (last, REG_EQUAL, XEXP (note, 0));
 	  else if (CONSTANT_P (SET_SRC (insn_set)))
-	    set_unique_reg_note (last, REG_EQUAL, SET_SRC (insn_set));
+	    set_unique_reg_note (last, REG_EQUAL,
+				 copy_rtx (SET_SRC (insn_set)));
 	}
     }
 
@@ -3335,7 +3341,7 @@ peep2_attempt (basic_block bb, rtx insn, int match_len, rtx attempt)
   /* Replace the old sequence with the new.  */
   last = emit_insn_after_setloc (attempt,
 				 peep2_insn_data[i].insn,
-				 INSN_LOCATOR (peep2_insn_data[i].insn));
+				 INSN_LOCATION (peep2_insn_data[i].insn));
   before_try = PREV_INSN (insn);
   delete_insn_chain (insn, peep2_insn_data[i].insn, false);
 

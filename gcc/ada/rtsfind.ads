@@ -213,8 +213,10 @@ package Rtsfind is
       System_Assertions,
       System_Atomic_Primitives,
       System_Aux_DEC,
+      System_Bignums,
       System_Bit_Ops,
       System_Boolean_Array_Operations,
+      System_Byte_Swapping,
       System_Checked_Pools,
       System_Compare_Array_Signed_16,
       System_Compare_Array_Signed_32,
@@ -731,16 +733,14 @@ package Rtsfind is
      RE_Assert_Failure,                  -- System.Assertions
      RE_Raise_Assert_Failure,            -- System.Assertions
 
-     RE_Atomic_Compare_Exchange_8,       -- System.Atomic_Primitives
-     RE_Atomic_Compare_Exchange_16,      -- System.Atomic_Primitives
-     RE_Atomic_Compare_Exchange_32,      -- System.Atomic_Primitives
-     RE_Atomic_Compare_Exchange_64,      -- System.Atomic_Primitives
-     RE_Atomic_Load_8,                   -- System.Atomic_Primitives
-     RE_Atomic_Load_16,                  -- System.Atomic_Primitives
-     RE_Atomic_Load_32,                  -- System.Atomic_Primitives
-     RE_Atomic_Load_64,                  -- System.Atomic_Primitives
-     RE_Atomic_Synchronize,              -- System.Atomic_Primitives
-     RE_Relaxed,                         -- System.Atomic_Primitives
+     RE_Lock_Free_Read_8,                -- System.Atomic_Primitives
+     RE_Lock_Free_Read_16,               -- System.Atomic_Primitives
+     RE_Lock_Free_Read_32,               -- System.Atomic_Primitives
+     RE_Lock_Free_Read_64,               -- System.Atomic_Primitives
+     RE_Lock_Free_Try_Write_8,           -- System.Atomic_Primitives
+     RE_Lock_Free_Try_Write_16,          -- System.Atomic_Primitives
+     RE_Lock_Free_Try_Write_32,          -- System.Atomic_Primitives
+     RE_Lock_Free_Try_Write_64,          -- System.Atomic_Primitives
      RE_Uint8,                           -- System.Atomic_Primitives
      RE_Uint16,                          -- System.Atomic_Primitives
      RE_Uint32,                          -- System.Atomic_Primitives
@@ -760,6 +760,28 @@ package Rtsfind is
      RE_Type_Class_Task,                 -- System.Aux_DEC
      RE_Type_Class_Address,              -- System.Aux_DEC
 
+     RE_Big_Abs,                         -- System.Bignums
+     RE_Big_Add,                         -- System.Bignums
+     RE_Big_Div,                         -- System.Bignums
+     RE_Big_Exp,                         -- System.Bignums
+     RE_Big_Mod,                         -- System.Bignums
+     RE_Big_Mul,                         -- System.Bignums
+     RE_Big_Neg,                         -- System.Bignums
+     RE_Big_Rem,                         -- System.Bignums
+     RE_Big_Sub,                         -- System.Bignums
+
+     RE_Big_EQ,                          -- System.Bignums
+     RE_Big_GE,                          -- System.Bignums
+     RE_Big_GT,                          -- System.Bignums
+     RE_Big_LE,                          -- System.Bignums
+     RE_Big_LT,                          -- System.Bignums
+     RE_Big_NE,                          -- System.Bignums
+
+     RE_Bignum,                          -- System.Bignums
+     RE_Bignum_In_LLI_Range,             -- System.Bignums
+     RE_To_Bignum,                       -- System.Bignums
+     RE_From_Bignum,                     -- System.Bignums
+
      RE_Bit_And,                         -- System.Bit_Ops
      RE_Bit_Eq,                          -- System.Bit_Ops
      RE_Bit_Not,                         -- System.Bit_Ops
@@ -774,24 +796,24 @@ package Rtsfind is
      RE_Vector_Nxor,                     -- System_Boolean_Array_Operations,
      RE_Vector_Xor,                      -- System_Boolean_Array_Operations,
 
+     RE_Bswap_16,                        -- System.Byte_Swapping
+     RE_Bswap_32,                        -- System.Byte_Swapping
+     RE_Bswap_64,                        -- System.Byte_Swapping
+
      RE_Checked_Pool,                    -- System.Checked_Pools
 
      RE_Compare_Array_S8,                -- System.Compare_Array_Signed_8
      RE_Compare_Array_S8_Unaligned,      -- System.Compare_Array_Signed_8
 
      RE_Compare_Array_S16,               -- System.Compare_Array_Signed_16
-
      RE_Compare_Array_S32,               -- System.Compare_Array_Signed_16
-
      RE_Compare_Array_S64,               -- System.Compare_Array_Signed_16
 
      RE_Compare_Array_U8,                -- System.Compare_Array_Unsigned_8
      RE_Compare_Array_U8_Unaligned,      -- System.Compare_Array_Unsigned_8
 
      RE_Compare_Array_U16,               -- System.Compare_Array_Unsigned_16
-
      RE_Compare_Array_U32,               -- System.Compare_Array_Unsigned_16
-
      RE_Compare_Array_U64,               -- System.Compare_Array_Unsigned_16
 
      RE_Str_Concat_2,                    -- System.Concat_2
@@ -1955,16 +1977,14 @@ package Rtsfind is
      RE_Assert_Failure                   => System_Assertions,
      RE_Raise_Assert_Failure             => System_Assertions,
 
-     RE_Atomic_Compare_Exchange_8        => System_Atomic_Primitives,
-     RE_Atomic_Compare_Exchange_16       => System_Atomic_Primitives,
-     RE_Atomic_Compare_Exchange_32       => System_Atomic_Primitives,
-     RE_Atomic_Compare_Exchange_64       => System_Atomic_Primitives,
-     RE_Atomic_Load_8                    => System_Atomic_Primitives,
-     RE_Atomic_Load_16                   => System_Atomic_Primitives,
-     RE_Atomic_Load_32                   => System_Atomic_Primitives,
-     RE_Atomic_Load_64                   => System_Atomic_Primitives,
-     RE_Atomic_Synchronize               => System_Atomic_Primitives,
-     RE_Relaxed                          => System_Atomic_Primitives,
+     RE_Lock_Free_Read_8                 => System_Atomic_Primitives,
+     RE_Lock_Free_Read_16                => System_Atomic_Primitives,
+     RE_Lock_Free_Read_32                => System_Atomic_Primitives,
+     RE_Lock_Free_Read_64                => System_Atomic_Primitives,
+     RE_Lock_Free_Try_Write_8            => System_Atomic_Primitives,
+     RE_Lock_Free_Try_Write_16           => System_Atomic_Primitives,
+     RE_Lock_Free_Try_Write_32           => System_Atomic_Primitives,
+     RE_Lock_Free_Try_Write_64           => System_Atomic_Primitives,
      RE_Uint8                            => System_Atomic_Primitives,
      RE_Uint16                           => System_Atomic_Primitives,
      RE_Uint32                           => System_Atomic_Primitives,
@@ -1984,6 +2004,28 @@ package Rtsfind is
      RE_Type_Class_Task                  => System_Aux_DEC,
      RE_Type_Class_Address               => System_Aux_DEC,
 
+     RE_Big_Abs                          => System_Bignums,
+     RE_Big_Add                          => System_Bignums,
+     RE_Big_Div                          => System_Bignums,
+     RE_Big_Exp                          => System_Bignums,
+     RE_Big_Mod                          => System_Bignums,
+     RE_Big_Mul                          => System_Bignums,
+     RE_Big_Neg                          => System_Bignums,
+     RE_Big_Rem                          => System_Bignums,
+     RE_Big_Sub                          => System_Bignums,
+
+     RE_Big_EQ                           => System_Bignums,
+     RE_Big_GE                           => System_Bignums,
+     RE_Big_GT                           => System_Bignums,
+     RE_Big_LE                           => System_Bignums,
+     RE_Big_LT                           => System_Bignums,
+     RE_Big_NE                           => System_Bignums,
+
+     RE_Bignum                           => System_Bignums,
+     RE_Bignum_In_LLI_Range              => System_Bignums,
+     RE_To_Bignum                        => System_Bignums,
+     RE_From_Bignum                      => System_Bignums,
+
      RE_Bit_And                          => System_Bit_Ops,
      RE_Bit_Eq                           => System_Bit_Ops,
      RE_Bit_Not                          => System_Bit_Ops,
@@ -1999,6 +2041,10 @@ package Rtsfind is
      RE_Vector_Nor                       => System_Boolean_Array_Operations,
      RE_Vector_Nxor                      => System_Boolean_Array_Operations,
      RE_Vector_Xor                       => System_Boolean_Array_Operations,
+
+     RE_Bswap_16                         => System_Byte_Swapping,
+     RE_Bswap_32                         => System_Byte_Swapping,
+     RE_Bswap_64                         => System_Byte_Swapping,
 
      RE_Compare_Array_S8                 => System_Compare_Array_Signed_8,
      RE_Compare_Array_S8_Unaligned       => System_Compare_Array_Signed_8,

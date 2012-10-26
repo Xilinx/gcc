@@ -28,11 +28,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "except.h"
 #include "pointer-set.h"
 #include "tree-flow.h"
-#include "tree-dump.h"
 #include "tree-inline.h"
-#include "tree-iterator.h"
 #include "tree-pass.h"
-#include "timevar.h"
 #include "langhooks.h"
 #include "ggc.h"
 #include "diagnostic-core.h"
@@ -324,6 +321,7 @@ static bitmap eh_region_may_contain_throw_map;
 struct goto_queue_node
 {
   treemple stmt;
+  location_t location;
   gimple_seq repl_stmt;
   gimple cont_stmt;
   int index;
@@ -563,7 +561,8 @@ static void
 record_in_goto_queue (struct leh_tf_state *tf,
                       treemple new_stmt,
                       int index,
-                      bool is_label)
+                      bool is_label,
+		      location_t location)
 {
   size_t active, size;
   struct goto_queue_node *q;
@@ -586,6 +585,7 @@ record_in_goto_queue (struct leh_tf_state *tf,
   memset (q, 0, sizeof (*q));
   q->stmt = new_stmt;
   q->index = index;
+  q->location = location;
   q->is_label = is_label;
 }
 
@@ -593,7 +593,8 @@ record_in_goto_queue (struct leh_tf_state *tf,
    TF is not null.  */
 
 static void
-record_in_goto_queue_label (struct leh_tf_state *tf, treemple stmt, tree label)
+record_in_goto_queue_label (struct leh_tf_state *tf, treemple stmt, tree label,
+			    location_t location)
 {
   int index;
   treemple temp, new_stmt;
@@ -632,7 +633,7 @@ record_in_goto_queue_label (struct leh_tf_state *tf, treemple stmt, tree label)
      since with a GIMPLE_COND we have an easy access to the then/else
      labels. */
   new_stmt = stmt;
-  record_in_goto_queue (tf, new_stmt, index, true);
+  record_in_goto_queue (tf, new_stmt, index, true, location);
 }
 
 /* For any GIMPLE_GOTO or GIMPLE_RETURN, decide whether it leaves a try_finally
@@ -652,19 +653,22 @@ maybe_record_in_goto_queue (struct leh_state *state, gimple stmt)
     {
     case GIMPLE_COND:
       new_stmt.tp = gimple_op_ptr (stmt, 2);
-      record_in_goto_queue_label (tf, new_stmt, gimple_cond_true_label (stmt));
+      record_in_goto_queue_label (tf, new_stmt, gimple_cond_true_label (stmt),
+				  EXPR_LOCATION (*new_stmt.tp));
       new_stmt.tp = gimple_op_ptr (stmt, 3);
-      record_in_goto_queue_label (tf, new_stmt, gimple_cond_false_label (stmt));
+      record_in_goto_queue_label (tf, new_stmt, gimple_cond_false_label (stmt),
+				  EXPR_LOCATION (*new_stmt.tp));
       break;
     case GIMPLE_GOTO:
       new_stmt.g = stmt;
-      record_in_goto_queue_label (tf, new_stmt, gimple_goto_dest (stmt));
+      record_in_goto_queue_label (tf, new_stmt, gimple_goto_dest (stmt),
+				  gimple_location (stmt));
       break;
 
     case GIMPLE_RETURN:
       tf->may_return = true;
       new_stmt.g = stmt;
-      record_in_goto_queue (tf, new_stmt, -1, false);
+      record_in_goto_queue (tf, new_stmt, -1, false, gimple_location (stmt));
       break;
 
     default:
@@ -869,12 +873,25 @@ frob_into_branch_around (gimple tp, eh_region region, tree over)
    Make sure to record all new labels found.  */
 
 static gimple_seq
-lower_try_finally_dup_block (gimple_seq seq, struct leh_state *outer_state)
+lower_try_finally_dup_block (gimple_seq seq, struct leh_state *outer_state,
+			     location_t loc)
 {
   gimple region = NULL;
   gimple_seq new_seq;
+  gimple_stmt_iterator gsi;
 
   new_seq = copy_gimple_seq_and_replace_locals (seq);
+
+  for (gsi = gsi_start (new_seq); !gsi_end_p (gsi); gsi_next (&gsi))
+    {
+      gimple stmt = gsi_stmt (gsi);
+      if (LOCATION_LOCUS (gimple_location (stmt)) == UNKNOWN_LOCATION)
+	{
+	  tree block = gimple_block (stmt);
+	  gimple_set_location (stmt, loc);
+	  gimple_set_block (stmt, block);
+	}
+    }
 
   if (outer_state->tf)
     region = outer_state->tf->try_finally_expr;
@@ -970,7 +987,8 @@ honor_protect_cleanup_actions (struct leh_state *outer_state,
       gimple_try_set_cleanup (tf->top_p, gimple_eh_else_n_body (eh_else));
     }
   else if (this_state)
-    finally = lower_try_finally_dup_block (finally, outer_state);
+    finally = lower_try_finally_dup_block (finally, outer_state,
+	gimple_location (tf->try_finally_expr));
   finally_may_fallthru = gimple_seq_may_fallthru (finally);
 
   /* If this cleanup consists of a TRY_CATCH_EXPR with TRY_CATCH_IS_CLEANUP
@@ -1082,6 +1100,7 @@ lower_try_finally_onedest (struct leh_state *state, struct leh_tf_state *tf)
   struct goto_queue_node *q, *qe;
   gimple x;
   gimple_seq finally;
+  gimple_stmt_iterator gsi;
   tree finally_label;
   location_t loc = gimple_location (tf->try_finally_expr);
 
@@ -1101,6 +1120,17 @@ lower_try_finally_onedest (struct leh_state *state, struct leh_tf_state *tf)
     }
 
   lower_eh_constructs_1 (state, &finally);
+
+  for (gsi = gsi_start (finally); !gsi_end_p (gsi); gsi_next (&gsi))
+    {
+      gimple stmt = gsi_stmt (gsi);
+      if (LOCATION_LOCUS (gimple_location (stmt)) == UNKNOWN_LOCATION)
+	{
+	  tree block = gimple_block (stmt);
+	  gimple_set_location (stmt, gimple_location (tf->try_finally_expr));
+	  gimple_set_block (stmt, block);
+	}
+    }
 
   if (tf->may_throw)
     {
@@ -1187,7 +1217,7 @@ lower_try_finally_copy (struct leh_state *state, struct leh_tf_state *tf)
 
   if (tf->may_fallthru)
     {
-      seq = lower_try_finally_dup_block (finally, state);
+      seq = lower_try_finally_dup_block (finally, state, tf_loc);
       lower_eh_constructs_1 (state, &seq);
       gimple_seq_add_seq (&new_stmt, seq);
 
@@ -1203,7 +1233,7 @@ lower_try_finally_copy (struct leh_state *state, struct leh_tf_state *tf)
       if (eh_else)
 	seq = gimple_eh_else_e_body (eh_else);
       else
-	seq = lower_try_finally_dup_block (finally, state);
+	seq = lower_try_finally_dup_block (finally, state, tf_loc);
       lower_eh_constructs_1 (state, &seq);
 
       emit_post_landing_pad (&eh_seq, tf->region);
@@ -1253,7 +1283,7 @@ lower_try_finally_copy (struct leh_state *state, struct leh_tf_state *tf)
 	  x = gimple_build_label (lab);
           gimple_seq_add_stmt (&new_stmt, x);
 
-	  seq = lower_try_finally_dup_block (finally, state);
+	  seq = lower_try_finally_dup_block (finally, state, q->location);
 	  lower_eh_constructs_1 (state, &seq);
           gimple_seq_add_seq (&new_stmt, seq);
 
@@ -1320,9 +1350,8 @@ lower_try_finally_switch (struct leh_state *state, struct leh_tf_state *tf)
 
   /* The location of the finally is either the last stmt in the finally
      block or the location of the TRY_FINALLY itself.  */
-  finally_loc = gimple_seq_last_stmt (tf->top_p_seq) != NULL ?
-    gimple_location (gimple_seq_last_stmt (tf->top_p_seq))
-    : tf_loc;
+  x = gimple_seq_last_stmt (finally);
+  finally_loc = x ? gimple_location (x) : tf_loc;
 
   /* Lower the finally block itself.  */
   lower_eh_constructs_1 (state, &finally);
@@ -1346,7 +1375,7 @@ lower_try_finally_switch (struct leh_state *state, struct leh_tf_state *tf)
 
   /* Begin inserting code for getting to the finally block.  Things
      are done in this order to correspond to the sequence the code is
-     layed out.  */
+     laid out.  */
 
   if (tf->may_fallthru)
     {
@@ -1491,8 +1520,8 @@ lower_try_finally_switch (struct leh_state *state, struct leh_tf_state *tf)
 
   /* Build the switch statement, setting last_case to be the default
      label.  */
-  switch_stmt = gimple_build_switch_vec (finally_tmp, last_case,
-                                         case_label_vec);
+  switch_stmt = gimple_build_switch (finally_tmp, last_case,
+				     case_label_vec);
   gimple_set_location (switch_stmt, finally_loc);
 
   /* Need to link SWITCH_STMT after running replace_goto_queue
@@ -1957,7 +1986,7 @@ lower_eh_constructs_2 (struct leh_state *state, gimple_stmt_iterator *gsi)
       /* If the stmt can throw use a new temporary for the assignment
          to a LHS.  This makes sure the old value of the LHS is
 	 available on the EH edge.  Only do so for statements that
-	 potentially fall thru (no noreturn calls e.g.), otherwise
+	 potentially fall through (no noreturn calls e.g.), otherwise
 	 this new assignment might create fake fallthru regions.  */
       if (stmt_could_throw_p (stmt)
 	  && gimple_has_lhs (stmt)
@@ -2748,7 +2777,7 @@ maybe_clean_or_replace_eh_stmt (gimple old_stmt, gimple new_stmt)
   return false;
 }
 
-/* Given a statement OLD_STMT in OLD_FUN and a duplicate statment NEW_STMT
+/* Given a statement OLD_STMT in OLD_FUN and a duplicate statement NEW_STMT
    in NEW_FUN, copy the EH table data from OLD_STMT to NEW_STMT.  The MAP
    operand is the return value of duplicate_eh_regions.  */
 
@@ -3254,22 +3283,18 @@ sink_clobbers (basic_block bb)
   for (gsi_prev (&gsi); !gsi_end_p (gsi); gsi_prev (&gsi))
     {
       gimple stmt = gsi_stmt (gsi);
-      tree vdef;
       if (is_gimple_debug (stmt))
 	continue;
       if (gimple_code (stmt) == GIMPLE_LABEL)
 	break;
       unlink_stmt_vdef (stmt);
       gsi_remove (&gsi, false);
-      vdef = gimple_vdef (stmt);
-      if (vdef && TREE_CODE (vdef) == SSA_NAME)
-	{
-	  release_ssa_name (vdef);
-	  vdef = SSA_NAME_VAR (vdef);
-	  mark_sym_for_renaming (vdef);
-	  gimple_set_vdef (stmt, vdef);
-	  gimple_set_vuse (stmt, vdef);
-	}
+      /* Trigger the operand scanner to cause renaming for virtual
+         operands for this statement.
+	 ???  Given the simple structure of this code manually
+	 figuring out the reaching definition should not be too hard.  */
+      if (gimple_vuse (stmt))
+	gimple_set_vuse (stmt, NULL_TREE);
       gsi_insert_before (&dgsi, stmt, GSI_SAME_STMT);
     }
 
@@ -3307,7 +3332,7 @@ lower_eh_dispatch (basic_block src, gimple stmt)
 
 	/* Collect the labels for a switch.  Zero the post_landing_pad
 	   field becase we'll no longer have anything keeping these labels
-	   in existance and the optimizer will be free to merge these
+	   in existence and the optimizer will be free to merge these
 	   blocks at will.  */
 	for (c = r->u.eh_try.first_catch; c ; c = c->next_catch)
 	  {
@@ -3384,7 +3409,7 @@ lower_eh_dispatch (basic_block src, gimple stmt)
 	    default_label = build_case_label (NULL, NULL, default_label);
 	    sort_case_labels (labels);
 
-	    x = gimple_build_switch_vec (filter, default_label, labels);
+	    x = gimple_build_switch (filter, default_label, labels);
 	    gsi_insert_before (&gsi, x, GSI_SAME_STMT);
 
 	    VEC_free (tree, heap, labels);
@@ -3865,7 +3890,7 @@ cleanup_empty_eh_merge_phis (basic_block new_bb, basic_block old_bb,
 	}
       /* If we didn't find the PHI, but it's a VOP, remember to rename
 	 it later, assuming all other tests succeed.  */
-      else if (!is_gimple_reg (nresult))
+      else if (virtual_operand_p (nresult))
 	bitmap_set_bit (rename_virts, SSA_NAME_VERSION (nresult));
       /* If we didn't find the PHI, and it's a real variable, we know
 	 from the fact that OLD_BB is tree_empty_eh_handler_p that the

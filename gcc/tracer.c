@@ -42,11 +42,8 @@
 #include "rtl.h"
 #include "hard-reg-set.h"
 #include "basic-block.h"
-#include "output.h"
-#include "cfglayout.h"
 #include "fibheap.h"
 #include "flags.h"
-#include "timevar.h"
 #include "params.h"
 #include "coverage.h"
 #include "tree-pass.h"
@@ -72,7 +69,7 @@ sbitmap bb_seen;
 static inline void
 mark_bb_seen (basic_block bb)
 {
-  unsigned int size = SBITMAP_SIZE_BYTES (bb_seen) * 8;
+  unsigned int size = SBITMAP_SIZE (bb_seen);
 
   if ((unsigned int)bb->index >= size)
     bb_seen = sbitmap_resize (bb_seen, size * 2, 0);
@@ -372,14 +369,12 @@ tracer (void)
 {
   bool changed;
 
-  gcc_assert (current_ir_type () == IR_GIMPLE);
-
   if (n_basic_blocks <= NUM_FIXED_BLOCKS + 1)
     return 0;
 
   mark_dfs_back_edges ();
   if (dump_file)
-    dump_flow_info (dump_file, dump_flags);
+    brief_dump_cfg (dump_file, dump_flags);
 
   /* Trace formation is done on the fly inside tail_duplicate */
   changed = tail_duplicate ();
@@ -387,7 +382,7 @@ tracer (void)
     free_dominance_info (CDI_DOMINATORS);
 
   if (dump_file)
-    dump_flow_info (dump_file, dump_flags);
+    brief_dump_cfg (dump_file, dump_flags);
 
   return changed ? TODO_cleanup_cfg : 0;
 }

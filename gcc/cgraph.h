@@ -43,28 +43,10 @@ enum symtab_type
 struct GTY(()) symtab_node_base
 {
   /* Type of the symbol.  */
-  enum symtab_type type;
-  tree decl;
-  struct ipa_ref_list ref_list;
-  /* Circular list of nodes in the same comdat group if non-NULL.  */
-  symtab_node same_comdat_group;
-  /* Ordering of all symtab entries.  */
-  int order;
-  enum ld_plugin_symbol_resolution resolution;
-  /* File stream where this node is being written to.  */
-  struct lto_file_decl_data * lto_file_data;
+  ENUM_BITFIELD (symtab_type) type : 8;
 
-  /* Linked list of symbol table entries starting with symtab_nodes.  */
-  symtab_node next;
-  symtab_node previous;
-  /* Linked list of symbols with the same asm name.  There may be multiple
-     entries for single symbol name in the case of LTO resolutions,
-     existence of inline clones, or duplicated declaration. The last case
-     is a long standing bug frontends and builtin handling. */
-  symtab_node next_sharing_asm_name;
-  symtab_node previous_sharing_asm_name;
-
-  PTR GTY ((skip)) aux;
+  /* The symbols resolution.  */
+  ENUM_BITFIELD (ld_plugin_symbol_resolution) resolution : 8;
 
   /* Set when function has address taken.
      In current implementation it imply needed flag. */
@@ -80,6 +62,32 @@ struct GTY(()) symtab_node_base
   /* Needed variables might become dead by optimization.  This flag
      forces the variable to be output even if it appears dead otherwise.  */
   unsigned force_output : 1;
+
+  /* Ordering of all symtab entries.  */
+  int order;
+
+  tree decl;
+
+  /* Vectors of referring and referenced entities.  */
+  struct ipa_ref_list ref_list;
+
+  /* Circular list of nodes in the same comdat group if non-NULL.  */
+  symtab_node same_comdat_group;
+
+  /* File stream where this node is being written to.  */
+  struct lto_file_decl_data * lto_file_data;
+
+  /* Linked list of symbol table entries starting with symtab_nodes.  */
+  symtab_node next;
+  symtab_node previous;
+  /* Linked list of symbols with the same asm name.  There may be multiple
+     entries for single symbol name in the case of LTO resolutions,
+     existence of inline clones, or duplicated declaration. The last case
+     is a long standing bug frontends and builtin handling. */
+  symtab_node next_sharing_asm_name;
+  symtab_node previous_sharing_asm_name;
+
+  PTR GTY ((skip)) aux;
 };
 
 enum availability
@@ -273,6 +281,10 @@ struct GTY(()) cgraph_node {
   unsigned tm_clone : 1;
 };
 
+DEF_VEC_P(symtab_node);
+DEF_VEC_ALLOC_P(symtab_node,heap);
+DEF_VEC_ALLOC_P(symtab_node,gc);
+
 typedef struct cgraph_node *cgraph_node_ptr;
 
 DEF_VEC_P(cgraph_node_ptr);
@@ -338,9 +350,11 @@ typedef enum cgraph_inline_failed_enum {
 
 struct GTY(()) cgraph_indirect_call_info
 {
-  /* Offset accumulated from ancestor jump functions of inlined call graph
-     edges.  */
-  HOST_WIDE_INT anc_offset;
+  /* When polymorphic is set, this field contains offset where the object which
+     was actually used in the polymorphic resides within a larger structure.
+     If agg_contents is set, the field contains the offset within the aggregate
+     from which the address to call was loaded.  */
+  HOST_WIDE_INT offset;
   /* OBJ_TYPE_REF_TOKEN of a polymorphic call (if polymorphic is set).  */
   HOST_WIDE_INT otr_token;
   /* Type of the object from OBJ_TYPE_REF_OBJECT. */
@@ -353,6 +367,12 @@ struct GTY(()) cgraph_indirect_call_info
   /* Set when the call is a virtual call with the parameter being the
      associated object pointer rather than a simple direct call.  */
   unsigned polymorphic : 1;
+  /* Set when the call is a call of a pointer loaded from contents of an
+     aggregate at offset.  */
+  unsigned agg_contents : 1;
+  /* When the previous bit is set, this one determines whether the destination
+     is loaded from a parameter passed by reference. */
+  unsigned by_ref : 1;
 };
 
 struct GTY((chain_next ("%h.next_caller"), chain_prev ("%h.prev_caller"))) cgraph_edge {
@@ -692,6 +712,8 @@ bool varpool_for_node_and_aliases (struct varpool_node *,
 		                   bool (*) (struct varpool_node *, void *),
 			           void *, bool);
 void varpool_add_new_variable (tree);
+void symtab_initialize_asm_name_hash (void);
+void symtab_prevail_in_asm_name_hash (symtab_node node);
 
 /* Return true when NODE is function.  */
 static inline bool
@@ -1126,7 +1148,8 @@ varpool_can_remove_if_no_refs (struct varpool_node *node)
   if (DECL_EXTERNAL (node->symbol.decl))
     return true;
   return (!node->symbol.force_output && !node->symbol.used_from_other_partition
-  	  && (DECL_COMDAT (node->symbol.decl)
+  	  && ((DECL_COMDAT (node->symbol.decl)
+	       && !symtab_used_from_object_file_p ((symtab_node) node))
 	      || !node->symbol.externally_visible
 	      || DECL_HAS_VALUE_EXPR_P (node->symbol.decl)));
 }
@@ -1181,7 +1204,7 @@ varpool_alias_aliased_node (struct varpool_node *n)
 
 /* Given NODE, walk the alias chain to return the function NODE is alias of.
    Walk through thunk, too.
-   When AVAILABILITY is non-NULL, get minimal availablity in the chain.  */
+   When AVAILABILITY is non-NULL, get minimal availability in the chain.  */
 
 static inline struct cgraph_node *
 cgraph_function_node (struct cgraph_node *node, enum availability *availability)
@@ -1211,7 +1234,7 @@ cgraph_function_node (struct cgraph_node *node, enum availability *availability)
 
 /* Given NODE, walk the alias chain to return the function NODE is alias of.
    Do not walk through thunks.
-   When AVAILABILITY is non-NULL, get minimal availablity in the chain.  */
+   When AVAILABILITY is non-NULL, get minimal availability in the chain.  */
 
 static inline struct cgraph_node *
 cgraph_function_or_thunk_node (struct cgraph_node *node, enum availability *availability)
@@ -1239,7 +1262,7 @@ cgraph_function_or_thunk_node (struct cgraph_node *node, enum availability *avai
 
 /* Given NODE, walk the alias chain to return the function NODE is alias of.
    Do not walk through thunks.
-   When AVAILABILITY is non-NULL, get minimal availablity in the chain.  */
+   When AVAILABILITY is non-NULL, get minimal availability in the chain.  */
 
 static inline struct varpool_node *
 varpool_variable_node (struct varpool_node *node, enum availability *availability)
@@ -1296,4 +1319,27 @@ cgraph_mark_force_output_node (struct cgraph_node *node)
   gcc_checking_assert (!node->global.inlined_to);
 }
 
+/* Return true when the symbol is real symbol, i.e. it is not inline clone
+   or extern function kept around just for inlining.  */
+
+static inline bool
+symtab_real_symbol_p (symtab_node node)
+{
+  struct cgraph_node *cnode;
+  struct ipa_ref *ref;
+
+  if (!symtab_function_p (node))
+    return true;
+  cnode = cgraph (node);
+  if (cnode->global.inlined_to)
+    return false;
+  if (cnode->abstract_and_needed)
+    return false;
+  /* We keep virtual clones in symtab.  */
+  if (!cnode->analyzed
+      || DECL_EXTERNAL (cnode->symbol.decl))
+    return (cnode->callers
+	    || ipa_ref_list_referring_iterate (&cnode->symbol.ref_list, 0, ref));
+  return true;
+}
 #endif  /* GCC_CGRAPH_H  */

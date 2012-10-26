@@ -1,5 +1,5 @@
 /* Pass manager for Fortran front end.
-   Copyright (C) 2010, 2011 Free Software Foundation, Inc.
+   Copyright (C) 2010, 2011, 2012 Free Software Foundation, Inc.
    Contributed by Thomas König.
 
 This file is part of GCC.
@@ -20,6 +20,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "config.h"
 #include "system.h"
+#include "coretypes.h"
 #include "gfortran.h"
 #include "arith.h"
 #include "flags.h"
@@ -37,6 +38,7 @@ static bool optimize_comparison (gfc_expr *, gfc_intrinsic_op);
 static bool optimize_trim (gfc_expr *);
 static bool optimize_lexical_comparison (gfc_expr *);
 static void optimize_minmaxloc (gfc_expr **);
+static bool empty_string (gfc_expr *e);
 
 /* How deep we are inside an argument list.  */
 
@@ -243,7 +245,7 @@ cfe_register_funcs (gfc_expr **e, int *walk_subtrees ATTRIBUTE_UNUSED,
 }
 
 /* Returns a new expression (a variable) to be used in place of the old one,
-   with an an assignment statement before the current statement to set
+   with an assignment statement before the current statement to set
    the value of the variable. Creates a new BLOCK for the statement if
    that hasn't already been done and puts the statement, plus the
    newly created variables, in that block.  */
@@ -734,10 +736,15 @@ optimize_assignment (gfc_code * c)
   lhs = c->expr1;
   rhs = c->expr2;
 
-  /* Optimize away a = trim(b), where a is a character variable.  */
+  if (lhs->ts.type == BT_CHARACTER && !lhs->ts.deferred)
+    {
+      /* Optimize  a = trim(b)  to  a = b.  */
+      remove_trim (rhs);
 
-  if (lhs->ts.type == BT_CHARACTER)
-    remove_trim (rhs);
+      /* Replace a = '   ' by a = '' to optimize away a memcpy.  */
+      if (empty_string(rhs))
+	rhs->value.character.length = 0;
+    }
 
   if (lhs->rank > 0 && gfc_check_dependency (lhs, rhs, true) == 0)
     optimize_binop_array_assignment (c, &rhs, false);
@@ -806,7 +813,7 @@ optimize_op (gfc_expr *e)
 {
   gfc_intrinsic_op op = e->value.op.op;
 
-  /* Only use new-style comparisions.  */
+  /* Only use new-style comparisons.  */
   switch(op)
     {
     case INTRINSIC_EQ_OS:
@@ -931,7 +938,7 @@ optimize_comparison (gfc_expr *e, gfc_intrinsic_op op)
     }
   else if (e->expr_type == EXPR_FUNCTION)
     {
-      /* One of the lexical comparision functions.  */
+      /* One of the lexical comparison functions.  */
       firstarg = e->value.function.actual;
       secondarg = firstarg->next;
       op1 = firstarg->expr;
@@ -1163,14 +1170,14 @@ optimize_trim (gfc_expr *e)
 
   ref->u.ss.start = gfc_get_int_expr (gfc_default_integer_kind, NULL, 1);
 
-  /* Build the function call to len_trim(x, gfc_defaul_integer_kind).  */
+  /* Build the function call to len_trim(x, gfc_default_integer_kind).  */
 
   fcn = get_len_trim_call (gfc_copy_expr (e), gfc_default_integer_kind);
 
   /* Set the end of the reference to the call to len_trim.  */
 
   ref->u.ss.end = fcn;
-  gcc_assert (*rr == NULL);
+  gcc_assert (rr != NULL && *rr == NULL);
   *rr = ref;
   return true;
 }

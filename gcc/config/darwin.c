@@ -1878,7 +1878,7 @@ darwin_asm_named_section (const char *name,
          the assumption of how this is done.  */
       if (lto_section_names == NULL)
         lto_section_names = VEC_alloc (darwin_lto_section_e, gc, 16);
-      VEC_safe_push (darwin_lto_section_e, gc, lto_section_names, &e);
+      VEC_safe_push (darwin_lto_section_e, gc, lto_section_names, e);
    }
   else if (strncmp (name, "__DWARF,", 8) == 0)
     darwin_asm_dwarf_section (name, flags, decl);
@@ -2623,7 +2623,7 @@ darwin_assemble_visibility (tree decl, int vis)
 {
   if (vis == VISIBILITY_DEFAULT)
     ;
-  else if (vis == VISIBILITY_HIDDEN)
+  else if (vis == VISIBILITY_HIDDEN || vis == VISIBILITY_INTERNAL)
     {
       fputs ("\t.private_extern ", asm_out_file);
       assemble_name (asm_out_file,
@@ -2631,7 +2631,7 @@ darwin_assemble_visibility (tree decl, int vis)
       fputs ("\n", asm_out_file);
     }
   else
-    warning (OPT_Wattributes, "internal and protected visibility attributes "
+    warning (OPT_Wattributes, "protected visibility attribute "
 	     "not supported in this configuration; ignored");
 }
 
@@ -2698,7 +2698,7 @@ darwin_asm_dwarf_section (const char *name, unsigned int flags,
       fprintf (asm_out_file, "Lsection%.*s:\n", namelen, sname);
       e.count = 1;
       e.name = xstrdup (sname);
-      VEC_safe_push (dwarf_sect_used_entry, gc, dwarf_sect_names_table, &e);
+      VEC_safe_push (dwarf_sect_used_entry, gc, dwarf_sect_names_table, e);
     }
 }
 
@@ -3006,6 +3006,18 @@ darwin_override_options (void)
       flag_reorder_blocks_and_partition = 0;
       flag_reorder_blocks = 1;
     }
+
+    /* FIXME: flag_objc_sjlj_exceptions is no longer needed since there is only
+       one valid choice of exception scheme for each runtime.  */
+    if (!global_options_set.x_flag_objc_sjlj_exceptions)
+      global_options.x_flag_objc_sjlj_exceptions = 
+				flag_next_runtime && !TARGET_64BIT;
+
+    /* FIXME: and this could be eliminated then too.  */
+    if (!global_options_set.x_flag_exceptions
+	&& flag_objc_exceptions
+	&& TARGET_64BIT)
+      flag_exceptions = 1;
 
   if (flag_mkernel || flag_apple_kext)
     {
@@ -3461,7 +3473,7 @@ darwin_function_section (tree decl, enum node_frequency freq,
 
   /* Startup code should go to startup subsection unless it is
      unlikely executed (this happens especially with function splitting
-     where we can split away unnecesary parts of static constructors).  */
+     where we can split away unnecessary parts of static constructors).  */
   if (startup && freq != NODE_FREQUENCY_UNLIKELY_EXECUTED)
     return (weak)
 	    ? darwin_sections[text_startup_coal_section]

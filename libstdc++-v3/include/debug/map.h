@@ -203,6 +203,27 @@ namespace __debug
       using _Base::at;
 
       // modifiers:
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<typename... _Args>
+	std::pair<iterator, bool>
+	emplace(_Args&&... __args)
+	{
+	  auto __res = _Base::emplace(std::forward<_Args>(__args)...);
+	  return std::pair<iterator, bool>(iterator(__res.first, this),
+					   __res.second);
+	}
+
+      template<typename... _Args>
+	iterator
+	emplace_hint(const_iterator __pos, _Args&&... __args)
+	{
+	  __glibcxx_check_insert(__pos);
+	  return iterator(_Base::emplace_hint(__pos.base(),
+					      std::forward<_Args>(__args)...),
+			  this);
+	}
+#endif
+
       std::pair<iterator, bool>
       insert(const value_type& __x)
       {
@@ -213,8 +234,8 @@ namespace __debug
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       template<typename _Pair, typename = typename
-	       std::enable_if<std::is_convertible<_Pair,
-						  value_type>::value>::type>
+	       std::enable_if<std::is_constructible<value_type,
+						    _Pair&&>::value>::type>
         std::pair<iterator, bool>
         insert(_Pair&& __x)
         {
@@ -244,8 +265,8 @@ namespace __debug
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       template<typename _Pair, typename = typename
-	       std::enable_if<std::is_convertible<_Pair,
-						  value_type>::value>::type>
+	       std::enable_if<std::is_constructible<value_type,
+						    _Pair&&>::value>::type>
         iterator
         insert(const_iterator __position, _Pair&& __x)
         {

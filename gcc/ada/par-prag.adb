@@ -1183,6 +1183,7 @@ begin
            Pragma_Linker_Destructor              |
            Pragma_Linker_Options                 |
            Pragma_Linker_Section                 |
+           Pragma_Lock_Free                      |
            Pragma_Locking_Policy                 |
            Pragma_Long_Float                     |
            Pragma_Machine_Attribute              |
@@ -1198,6 +1199,7 @@ begin
            Pragma_Ordered                        |
            Pragma_Optimize                       |
            Pragma_Optimize_Alignment             |
+           Pragma_Overflow_Checks                |
            Pragma_Pack                           |
            Pragma_Passive                        |
            Pragma_Preelaborable_Initialization   |

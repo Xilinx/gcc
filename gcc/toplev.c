@@ -59,13 +59,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "reload.h"
 #include "ira.h"
 #include "dwarf2asm.h"
-#include "integrate.h"
 #include "debug.h"
 #include "target.h"
 #include "common/common-target.h"
 #include "langhooks.h"
-#include "cfglayout.h"
-#include "cfgloop.h"
+#include "cfgloop.h" /* for init_set_costs */
 #include "hosthooks.h"
 #include "cgraph.h"
 #include "opts.h"
@@ -77,10 +75,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "gimple.h"
 #include "tree-ssa-alias.h"
 #include "plugin.h"
-
-#if defined (DWARF2_UNWIND_INFO) || defined (DWARF2_DEBUGGING_INFO)
-#include "dwarf2out.h"
-#endif
 
 #if defined(DBX_DEBUGGING_INFO) || defined(XCOFF_DEBUGGING_INFO)
 #include "dbxout.h"
@@ -175,8 +169,6 @@ const char *user_label_prefix;
 FILE *asm_out_file;
 FILE *aux_info_file;
 FILE *stack_usage_file = NULL;
-FILE *dump_file = NULL;
-const char *dump_file_name;
 
 /* The current working directory of a translation.  It's generally the
    directory from which compilation was initiated, but a preprocessed
@@ -560,18 +552,15 @@ compile_file (void)
   if (flag_syntax_only || flag_wpa)
     return;
 
-  timevar_start (TV_PHASE_GENERATE);
-
   ggc_protect_identifiers = false;
 
   /* This must also call finalize_compilation_unit.  */
   lang_hooks.decls.final_write_globals ();
 
   if (seen_error ())
-    {
-      timevar_stop (TV_PHASE_GENERATE);
-      return;
-    }
+    return;
+
+  timevar_start (TV_PHASE_LATE_ASM);
 
   /* Compilation unit is finalized.  When producing non-fat LTO object, we are
      basically finished.  */
@@ -652,17 +641,17 @@ compile_file (void)
   /* Attach a special .ident directive to the end of the file to identify
      the version of GCC which compiled this code.  The format of the .ident
      string is patterned after the ones produced by native SVR4 compilers.  */
-#ifdef IDENT_ASM_OP
   if (!flag_no_ident)
     {
       const char *pkg_version = "(GNU) ";
+      char *ident_str;
 
       if (strcmp ("(GCC) ", pkgversion_string))
 	pkg_version = pkgversion_string;
-      fprintf (asm_out_file, "%s\"GCC: %s%s\"\n",
-	       IDENT_ASM_OP, pkg_version, version_string);
+
+      ident_str = ACONCAT (("GCC: ", pkg_version, version_string, NULL));
+      targetm.asm_out.output_ident (ident_str);
     }
-#endif
 
   /* Invoke registered plugin callbacks.  */
   invoke_plugin_callbacks (PLUGIN_FINISH_UNIT, NULL);
@@ -672,7 +661,7 @@ compile_file (void)
      assembly file after this point.  */
   targetm.asm_out.file_end ();
 
-  timevar_stop (TV_PHASE_GENERATE);
+  timevar_stop (TV_PHASE_LATE_ASM);
 }
 
 /* Print version information to FILE.
@@ -917,7 +906,7 @@ init_asm_output (const char *name)
       if (!strcmp (asm_file_name, "-"))
 	asm_out_file = stdout;
       else
-	asm_out_file = fopen (asm_file_name, "w+b");
+	asm_out_file = fopen (asm_file_name, "w");
       if (asm_out_file == 0)
 	fatal_error ("can%'t open %s for writing: %m", asm_file_name);
     }
@@ -1824,6 +1813,9 @@ finalize (bool no_backend)
   if (mem_report)
     dump_memory_report (true);
 
+  if (profile_report)
+    dump_profile_report ();
+
   /* Language-specific end of compilation actions.  */
   lang_hooks.finish ();
 }
@@ -1955,6 +1947,7 @@ toplev_main (int argc, char **argv)
   invoke_plugin_callbacks (PLUGIN_FINISH, NULL);
 
   finalize_plugins ();
+  location_adhoc_data_fini (line_table);
   if (seen_error ())
     return (FATAL_EXIT_CODE);
 

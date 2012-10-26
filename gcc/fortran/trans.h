@@ -109,7 +109,7 @@ typedef enum
 gfc_coarray_type;
 
 
-/* The array-specific scalarization informations.  The array members of
+/* The array-specific scalarization information.  The array members of
    this struct are indexed by actual array index, and thus can be sparse.  */
 
 typedef struct gfc_array_info
@@ -351,8 +351,10 @@ tree gfc_vtable_copy_get (tree);
 tree gfc_get_vptr_from_expr (tree);
 tree gfc_get_class_array_ref (tree, tree);
 tree gfc_copy_class_to_class (tree, tree, tree);
-void gfc_conv_derived_to_class (gfc_se *, gfc_expr *, gfc_typespec, tree);
-void gfc_conv_class_to_class (gfc_se *, gfc_expr *, gfc_typespec, bool);
+void gfc_conv_derived_to_class (gfc_se *, gfc_expr *, gfc_typespec, tree, bool,
+				bool);
+void gfc_conv_class_to_class (gfc_se *, gfc_expr *, gfc_typespec, bool, bool,
+			      bool, bool);
 
 /* Initialize an init/cleanup block.  */
 void gfc_start_wrapped_block (gfc_wrapped_block* block, tree code);
@@ -765,6 +767,8 @@ enum gfc_array_kind
   GFC_ARRAY_UNKNOWN,
   GFC_ARRAY_ASSUMED_SHAPE,
   GFC_ARRAY_ASSUMED_SHAPE_CONT,
+  GFC_ARRAY_ASSUMED_RANK,
+  GFC_ARRAY_ASSUMED_RANK_CONT,
   GFC_ARRAY_ALLOCATABLE,
   GFC_ARRAY_POINTER,
   GFC_ARRAY_POINTER_CONT

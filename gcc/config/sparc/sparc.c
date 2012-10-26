@@ -49,13 +49,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "target-def.h"
 #include "common/common-target.h"
-#include "cfglayout.h"
 #include "gimple.h"
 #include "langhooks.h"
 #include "reload.h"
 #include "params.h"
 #include "df.h"
-#include "dwarf2out.h"
 #include "opts.h"
 
 /* Processor costs */
@@ -471,7 +469,7 @@ struct GTY(()) machine_function
 
   /* True if the current function is leaf and uses only leaf regs,
      so that the SPARC leaf function optimization can be applied.
-     Private version of current_function_uses_only_leaf_regs, see
+     Private version of crtl->uses_only_leaf_regs, see
      sparc_expand_prologue for the rationale.  */
   int leaf_function_p;
 
@@ -569,7 +567,7 @@ static rtx sparc_legitimize_tls_address (rtx);
 static rtx sparc_legitimize_pic_address (rtx, rtx);
 static rtx sparc_legitimize_address (rtx, rtx, enum machine_mode);
 static rtx sparc_delegitimize_address (rtx);
-static bool sparc_mode_dependent_address_p (const_rtx);
+static bool sparc_mode_dependent_address_p (const_rtx, addr_space_t);
 static bool sparc_pass_by_reference (cumulative_args_t,
 				     enum machine_mode, const_tree, bool);
 static void sparc_function_arg_advance (cumulative_args_t,
@@ -691,7 +689,7 @@ char sparc_hard_reg_printed[8];
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS sparc_rtx_costs
 #undef TARGET_ADDRESS_COST
-#define TARGET_ADDRESS_COST hook_int_rtx_bool_0
+#define TARGET_ADDRESS_COST hook_int_rtx_mode_as_bool_0
 #undef TARGET_REGISTER_MOVE_COST
 #define TARGET_REGISTER_MOVE_COST sparc_register_move_cost
 
@@ -1465,6 +1463,18 @@ sparc_expand_move (enum machine_mode mode, rtx *operands)
     case DImode:
       /* input_operand should have filtered out 32-bit mode.  */
       sparc_emit_set_const64 (operands[0], operands[1]);
+      return true;
+
+    case TImode:
+      {
+	rtx high, low;
+	/* TImode isn't available in 32-bit mode.  */
+	split_double (operands[1], &high, &low);
+	emit_insn (gen_movdi (operand_subword (operands[0], 0, 0, TImode),
+			      high));
+	emit_insn (gen_movdi (operand_subword (operands[0], 1, 0, TImode),
+			      low));
+      }
       return true;
 
     default:
@@ -2738,7 +2748,7 @@ emit_soft_tfmode_libcall (const char *func_name, int nargs, rtx *operands)
 	    }
 	  else
 	    {
-	      this_slot = assign_stack_temp (TFmode, GET_MODE_SIZE (TFmode), 0);
+	      this_slot = assign_stack_temp (TFmode, GET_MODE_SIZE (TFmode));
 
 	      /* Operand 0 is the return value.  We'll copy it out later.  */
 	      if (i > 0)
@@ -3494,6 +3504,10 @@ sparc_legitimate_address_p (enum machine_mode mode, rtx addr, bool strict)
 	      && ! (TARGET_ARCH64 && TARGET_HARD_QUAD))
 	    return 0;
 
+	  /* Likewise for TImode, but in all cases.  */
+	  if (mode == TImode)
+	    return 0;
+
 	  /* We prohibit REG + REG on ARCH32 if not optimizing for
 	     DFmode/DImode because then mem_min_alignment is likely to be zero
 	     after reload and the  forced split would lack a matching splitter
@@ -4031,7 +4045,8 @@ sparc_legitimize_reload_address (rtx x, enum machine_mode mode,
 
 
 static bool
-sparc_mode_dependent_address_p (const_rtx addr)
+sparc_mode_dependent_address_p (const_rtx addr,
+				addr_space_t as ATTRIBUTE_UNUSED)
 {
   if (flag_pic && GET_CODE (addr) == PLUS)
     {
@@ -4551,6 +4566,22 @@ sparc_compute_frame_size (HOST_WIDE_INT size, int leaf_function)
   return frame_size;
 }
 
+/* Implement the macro INITIAL_ELIMINATION_OFFSET, return the OFFSET.  */
+
+int
+sparc_initial_elimination_offset (int to)
+{
+  int offset;
+
+  if (to == STACK_POINTER_REGNUM)
+    offset = sparc_compute_frame_size (get_frame_size (), crtl->is_leaf);
+  else
+    offset = 0;
+
+  offset += SPARC_STACK_BIAS;
+  return offset;
+}
+
 /* Output any necessary .register pseudo-ops.  */
 
 void
@@ -4945,18 +4976,6 @@ gen_stack_pointer_inc (rtx increment)
 				    increment));
 }
 
-/* Generate a decrement for the stack pointer.  */
-
-static rtx
-gen_stack_pointer_dec (rtx decrement)
-{
-  return gen_rtx_SET (VOIDmode,
-		      stack_pointer_rtx,
-		      gen_rtx_MINUS (Pmode,
-				     stack_pointer_rtx,
-				     decrement));
-}
-
 /* Expand the function prologue.  The prologue is responsible for reserving
    storage for the frame, saving the call-saved registers and loading the
    GOT register if needed.  */
@@ -4967,7 +4986,7 @@ sparc_expand_prologue (void)
   HOST_WIDE_INT size;
   rtx insn;
 
-  /* Compute a snapshot of current_function_uses_only_leaf_regs.  Relying
+  /* Compute a snapshot of crtl->uses_only_leaf_regs.  Relying
      on the final value of the flag means deferring the prologue/epilogue
      expansion until just before the second scheduling pass, which is too
      late to emit multiple epilogues or return insns.
@@ -4990,7 +5009,7 @@ sparc_expand_prologue (void)
      example, the regrename pass has special provisions to not rename to
      non-leaf registers in a leaf function.  */
   sparc_leaf_function_p
-    = optimize > 0 && current_function_is_leaf && only_leaf_regs_used ();
+    = optimize > 0 && crtl->is_leaf && only_leaf_regs_used ();
 
   size = sparc_compute_frame_size (get_frame_size(), sparc_leaf_function_p);
 
@@ -5092,7 +5111,7 @@ sparc_flat_expand_prologue (void)
   HOST_WIDE_INT size;
   rtx insn;
 
-  sparc_leaf_function_p = optimize > 0 && current_function_is_leaf;
+  sparc_leaf_function_p = optimize > 0 && crtl->is_leaf;
 
   size = sparc_compute_frame_size (get_frame_size(), sparc_leaf_function_p);
 
@@ -5203,7 +5222,7 @@ sparc_asm_function_prologue (FILE *file, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 {
   /* Check that the assumption we made in sparc_expand_prologue is valid.  */
   if (!TARGET_FLAT)
-    gcc_assert (sparc_leaf_function_p == current_function_uses_only_leaf_regs);
+    gcc_assert (sparc_leaf_function_p == crtl->uses_only_leaf_regs);
 
   sparc_output_scratch_registers (file);
 }
@@ -5227,17 +5246,17 @@ sparc_expand_epilogue (bool for_eh)
   else if (sparc_leaf_function_p)
     {
       if (size <= 4096)
-	emit_insn (gen_stack_pointer_dec (GEN_INT (-size)));
+	emit_insn (gen_stack_pointer_inc (GEN_INT (size)));
       else if (size <= 8192)
 	{
-	  emit_insn (gen_stack_pointer_dec (GEN_INT (-4096)));
-	  emit_insn (gen_stack_pointer_dec (GEN_INT (4096 - size)));
+	  emit_insn (gen_stack_pointer_inc (GEN_INT (4096)));
+	  emit_insn (gen_stack_pointer_inc (GEN_INT (size - 4096)));
 	}
       else
 	{
 	  rtx reg = gen_rtx_REG (Pmode, 1);
-	  emit_move_insn (reg, GEN_INT (-size));
-	  emit_insn (gen_stack_pointer_dec (reg));
+	  emit_move_insn (reg, GEN_INT (size));
+	  emit_insn (gen_stack_pointer_inc (reg));
 	}
     }
 }
@@ -5287,17 +5306,17 @@ sparc_flat_expand_epilogue (bool for_eh)
       emit_insn (gen_blockage ());
 
       if (size <= 4096)
-	emit_insn (gen_stack_pointer_dec (GEN_INT (-size)));
+	emit_insn (gen_stack_pointer_inc (GEN_INT (size)));
       else if (size <= 8192)
 	{
-	  emit_insn (gen_stack_pointer_dec (GEN_INT (-4096)));
-	  emit_insn (gen_stack_pointer_dec (GEN_INT (4096 - size)));
+	  emit_insn (gen_stack_pointer_inc (GEN_INT (4096)));
+	  emit_insn (gen_stack_pointer_inc (GEN_INT (size - 4096)));
 	}
       else
 	{
 	  rtx reg = gen_rtx_REG (Pmode, 1);
-	  emit_move_insn (reg, GEN_INT (-size));
-	  emit_insn (gen_stack_pointer_dec (reg));
+	  emit_move_insn (reg, GEN_INT (size));
+	  emit_insn (gen_stack_pointer_inc (reg));
 	}
     }
 }
@@ -7431,7 +7450,7 @@ sparc_emit_float_lib_cmp (rtx x, rtx y, enum rtx_code comparison)
 	}
       else
 	{
-	  slot0 = assign_stack_temp (TFmode, GET_MODE_SIZE(TFmode), 0);
+	  slot0 = assign_stack_temp (TFmode, GET_MODE_SIZE(TFmode));
 	  emit_move_insn (slot0, x);
 	}
 
@@ -7444,7 +7463,7 @@ sparc_emit_float_lib_cmp (rtx x, rtx y, enum rtx_code comparison)
 	}
       else
 	{
-	  slot1 = assign_stack_temp (TFmode, GET_MODE_SIZE(TFmode), 0);
+	  slot1 = assign_stack_temp (TFmode, GET_MODE_SIZE(TFmode));
 	  emit_move_insn (slot1, y);
 	}
 
@@ -8046,29 +8065,18 @@ register_ok_for_ldd (rtx reg)
   return 1;
 }
 
-/* Return 1 if OP is a memory whose address is known to be
-   aligned to 8-byte boundary, or a pseudo during reload.
-   This makes it suitable for use in ldd and std insns.  */
+/* Return 1 if OP, a MEM, has an address which is known to be
+   aligned to an 8-byte boundary.  */
 
 int
 memory_ok_for_ldd (rtx op)
 {
-  if (MEM_P (op))
-    {
-      /* In 64-bit mode, we assume that the address is word-aligned.  */
-      if (TARGET_ARCH32 && !mem_min_alignment (op, 8))
-	return 0;
+  /* In 64-bit mode, we assume that the address is word-aligned.  */
+  if (TARGET_ARCH32 && !mem_min_alignment (op, 8))
+    return 0;
 
-      if (! can_create_pseudo_p ()
-	  && !strict_memory_address_p (Pmode, XEXP (op, 0)))
-	return 0;
-    }
-  else if (REG_P (op) && REGNO (op) >= FIRST_PSEUDO_REGISTER)
-    {
-      if (!(reload_in_progress && reg_renumber [REGNO (op)] < 0))
-	return 0;
-    }
-  else
+  if (! can_create_pseudo_p ()
+      && !strict_memory_address_p (Pmode, XEXP (op, 0)))
     return 0;
 
   return 1;
@@ -10099,35 +10107,30 @@ sparc_fold_builtin (tree fndecl, int n_args ATTRIBUTE_UNUSED,
 	  && TREE_CODE (arg1) == VECTOR_CST
 	  && TREE_CODE (arg2) == INTEGER_CST)
 	{
-	  int overflow = 0;
-	  unsigned HOST_WIDE_INT low = TREE_INT_CST_LOW (arg2);
-	  HOST_WIDE_INT high = TREE_INT_CST_HIGH (arg2);
+	  bool overflow = false;
+	  double_int result = TREE_INT_CST (arg2);
+	  double_int tmp;
 	  unsigned i;
 
 	  for (i = 0; i < VECTOR_CST_NELTS (arg0); ++i)
 	    {
-	      unsigned HOST_WIDE_INT
-		low0 = TREE_INT_CST_LOW (VECTOR_CST_ELT (arg0, i)),
-		low1 = TREE_INT_CST_LOW (VECTOR_CST_ELT (arg1, i));
-	      HOST_WIDE_INT
-		high0 = TREE_INT_CST_HIGH (VECTOR_CST_ELT (arg0, i));
-	      HOST_WIDE_INT
-		high1 = TREE_INT_CST_HIGH (VECTOR_CST_ELT (arg1, i));
+	      double_int e0 = TREE_INT_CST (VECTOR_CST_ELT (arg0, i));
+	      double_int e1 = TREE_INT_CST (VECTOR_CST_ELT (arg1, i));
 
-	      unsigned HOST_WIDE_INT l;
-	      HOST_WIDE_INT h;
+	      bool neg1_ovf, neg2_ovf, add1_ovf, add2_ovf;
 
-	      overflow |= neg_double (low1, high1, &l, &h);
-	      overflow |= add_double (low0, high0, l, h, &l, &h);
-	      if (h < 0)
-		overflow |= neg_double (l, h, &l, &h);
+	      tmp = e1.neg_with_overflow (&neg1_ovf);
+	      tmp = e0.add_with_sign (tmp, false, &add1_ovf);
+	      if (tmp.is_negative ())
+		tmp = tmp.neg_with_overflow (&neg2_ovf);
 
-	      overflow |= add_double (low, high, l, h, &low, &high);
+	      result = result.add_with_sign (tmp, false, &add2_ovf);
+	      overflow |= neg1_ovf | neg2_ovf | add1_ovf | add2_ovf;
 	    }
 
-	  gcc_assert (overflow == 0);
+	  gcc_assert (!overflow);
 
-	  return build_int_cst_wide (rtype, low, high);
+	  return build_int_cst_wide (rtype, result.low, result.high);
 	}
 
     default:
@@ -10428,7 +10431,7 @@ emit_and_preserve (rtx seq, rtx reg, rtx reg2)
     = gen_rtx_MEM (word_mode, plus_constant (Pmode, stack_pointer_rtx,
 					     SPARC_STACK_BIAS + offset));
 
-  emit_insn (gen_stack_pointer_dec (GEN_INT (size)));
+  emit_insn (gen_stack_pointer_inc (GEN_INT (-size)));
   emit_insn (gen_rtx_SET (VOIDmode, slot, reg));
   if (reg2)
     emit_insn (gen_rtx_SET (VOIDmode,
@@ -10472,7 +10475,7 @@ sparc_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
     {
       /* We will emit a regular sibcall below, so we need to instruct
 	 output_sibcall that we are in a leaf function.  */
-      sparc_leaf_function_p = current_function_uses_only_leaf_regs = 1;
+      sparc_leaf_function_p = crtl->uses_only_leaf_regs = 1;
 
       /* This will cause final.c to invoke leaf_renumber_regs so we
 	 must behave as if we were in a not-yet-leafified function.  */
@@ -10482,7 +10485,7 @@ sparc_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
     {
       /* We will emit the sibcall manually below, so we will need to
 	 manually spill non-leaf registers.  */
-      sparc_leaf_function_p = current_function_uses_only_leaf_regs = 0;
+      sparc_leaf_function_p = crtl->uses_only_leaf_regs = 0;
 
       /* We really are in a leaf function.  */
       int_arg_first = SPARC_OUTGOING_INT_ARG_FIRST;
@@ -10640,7 +10643,6 @@ sparc_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
      instruction scheduling worth while.  Note that use_thunk calls
      assemble_start_function and assemble_end_function.  */
   insn = get_insns ();
-  insn_locators_alloc ();
   shorten_branches (insn);
   final_start_function (insn, file, 1);
   final (insn, file, 1);
@@ -10677,7 +10679,10 @@ sparc_reorg (void)
   /* We need to have the (essentially) final form of the insn stream in order
      to properly detect the various hazards.  Run delay slot scheduling.  */
   if (optimize > 0 && flag_delayed_branch)
-    dbr_schedule (get_insns ());
+    {
+      cleanup_barriers ();
+      dbr_schedule (get_insns ());
+    }
 
   /* Now look for specific patterns in the insn stream.  */
   for (insn = get_insns (); insn; insn = next)
@@ -11268,7 +11273,7 @@ sparc_frame_pointer_required (void)
     return false;
 
   /* Otherwise, the frame pointer is required if the function isn't leaf.  */
-  return !(current_function_is_leaf && only_leaf_regs_used ());
+  return !(crtl->is_leaf && only_leaf_regs_used ());
 }
 
 /* The way this is structured, we can't eliminate SFP in favor of SP
@@ -11631,7 +11636,7 @@ sparc_expand_vector_init (rtx target, rtx vals)
 	}
     }
 
-  mem = assign_stack_temp (mode, GET_MODE_SIZE (mode), 0);
+  mem = assign_stack_temp (mode, GET_MODE_SIZE (mode));
   for (i = 0; i < n_elts; i++)
     emit_move_insn (adjust_address_nv (mem, inner_mode,
 				       i * GET_MODE_SIZE (inner_mode)),

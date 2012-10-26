@@ -50,9 +50,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "targhooks.h"
 #include "tree-mudflap.h"
 #include "cgraph.h"
-#include "cfglayout.h"
-#include "basic-block.h"
-#include "tree-iterator.h"
 #include "pointer-set.h"
 
 #ifdef XCOFF_DEBUGGING_INFO
@@ -546,7 +543,7 @@ default_function_section (tree decl, enum node_frequency freq,
     return NULL;
   /* Startup code should go to startup subsection unless it is
      unlikely executed (this happens especially with function splitting
-     where we can split away unnecesary parts of static constructors.  */
+     where we can split away unnecessary parts of static constructors.  */
   if (startup && freq != NODE_FREQUENCY_UNLIKELY_EXECUTED)
     return get_named_text_section (decl, ".text.startup", NULL);
 
@@ -1366,31 +1363,14 @@ make_decl_rtl_for_debug (tree decl)
 void
 assemble_asm (tree string)
 {
+  const char *p;
   app_enable ();
 
   if (TREE_CODE (string) == ADDR_EXPR)
     string = TREE_OPERAND (string, 0);
 
-  fprintf (asm_out_file, "\t%s\n", TREE_STRING_POINTER (string));
-}
-
-/* Record an element in the table of global destructors.  SYMBOL is
-   a SYMBOL_REF of the function to be called; PRIORITY is a number
-   between 0 and MAX_INIT_PRIORITY.  */
-
-void
-default_stabs_asm_out_destructor (rtx symbol ATTRIBUTE_UNUSED,
-				  int priority ATTRIBUTE_UNUSED)
-{
-#if defined DBX_DEBUGGING_INFO || defined XCOFF_DEBUGGING_INFO
-  /* Tell GNU LD that this is part of the static destructor set.
-     This will work for any system that uses stabs, most usefully
-     aout systems.  */
-  dbxout_begin_simple_stabs ("___DTOR_LIST__", 22 /* N_SETT */);
-  dbxout_stab_value_label (XSTR (symbol, 0));
-#else
-  sorry ("global destructors not supported on this target");
-#endif
+  p = TREE_STRING_POINTER (string);
+  fprintf (asm_out_file, "%s%s\n", p[0] == '\t' ? "" : "\t", p);
 }
 
 /* Write the address of the entity given by SYMBOL to SEC.  */
@@ -1441,23 +1421,6 @@ default_dtor_section_asm_out_destructor (rtx symbol,
   assemble_addr_to_section (symbol, dtors_section);
 }
 #endif
-
-/* Likewise for global constructors.  */
-
-void
-default_stabs_asm_out_constructor (rtx symbol ATTRIBUTE_UNUSED,
-				   int priority ATTRIBUTE_UNUSED)
-{
-#if defined DBX_DEBUGGING_INFO || defined XCOFF_DEBUGGING_INFO
-  /* Tell GNU LD that this is part of the static destructor set.
-     This will work for any system that uses stabs, most usefully
-     aout systems.  */
-  dbxout_begin_simple_stabs ("___CTOR_LIST__", 22 /* N_SETT */);
-  dbxout_stab_value_label (XSTR (symbol, 0));
-#else
-  sorry ("global constructors not supported on this target");
-#endif
-}
 
 void
 default_named_section_asm_out_constructor (rtx symbol, int priority)
@@ -2908,8 +2871,8 @@ compare_constant (const tree t1, const tree t2)
 
 	for (idx = 0; idx < VEC_length (constructor_elt, v1); ++idx)
 	  {
-	    constructor_elt *c1 = VEC_index (constructor_elt, v1, idx);
-	    constructor_elt *c2 = VEC_index (constructor_elt, v2, idx);
+	    constructor_elt *c1 = &VEC_index (constructor_elt, v1, idx);
+	    constructor_elt *c2 = &VEC_index (constructor_elt, v2, idx);
 
 	    /* Check that each value is the same...  */
 	    if (!compare_constant (c1->value, c2->value))
@@ -3036,9 +2999,8 @@ copy_constant (tree exp)
 						      CONSTRUCTOR_ELTS (exp)));
 	FOR_EACH_CONSTRUCTOR_ELT (CONSTRUCTOR_ELTS (exp), idx, purpose, value)
 	  {
-	    constructor_elt *ce = VEC_quick_push (constructor_elt, v, NULL);
-	    ce->index = purpose;
-	    ce->value = copy_constant (value);
+	    constructor_elt ce = {purpose, copy_constant (value)};
+	    VEC_quick_push (constructor_elt, v, ce);
 	  }
 	CONSTRUCTOR_ELTS (copy) = v;
 	return copy;
@@ -3663,7 +3625,7 @@ output_constant_pool_2 (enum machine_mode mode, rtx x, unsigned int align)
       {
 	REAL_VALUE_TYPE r;
 
-	gcc_assert (GET_CODE (x) == CONST_DOUBLE);
+	gcc_assert (CONST_DOUBLE_AS_FLOAT_P (x));
 	REAL_VALUE_FROM_CONST_DOUBLE (r, x);
 	assemble_real (r, mode, align);
 	break;
@@ -4686,14 +4648,13 @@ array_size_for_constructor (tree val)
 
   /* Compute the total number of array elements.  */
   tmp = TYPE_MIN_VALUE (TYPE_DOMAIN (TREE_TYPE (val)));
-  i = double_int_sub (tree_to_double_int (max_index), tree_to_double_int (tmp));
-  i = double_int_add (i, double_int_one);
+  i = tree_to_double_int (max_index) - tree_to_double_int (tmp);
+  i += double_int_one;
 
   /* Multiply by the array element unit size to find number of bytes.  */
-  i = double_int_mul (i, tree_to_double_int
-		           (TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (val)))));
+  i *= tree_to_double_int (TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (val))));
 
-  gcc_assert (double_int_fits_in_uhwi_p (i));
+  gcc_assert (i.fits_uhwi ());
   return i.low;
 }
 
@@ -4777,9 +4738,9 @@ output_constructor_regular_field (oc_local_state *local)
 	 sign-extend the result because Ada has negative DECL_FIELD_OFFSETs
 	 but we are using an unsigned sizetype.  */
       unsigned prec = TYPE_PRECISION (sizetype);
-      double_int idx = double_int_sub (tree_to_double_int (local->index),
-				       tree_to_double_int (local->min_index));
-      idx = double_int_sext (idx, prec);
+      double_int idx = tree_to_double_int (local->index)
+		       - tree_to_double_int (local->min_index);
+      idx = idx.sext (prec);
       fieldpos = (tree_low_cst (TYPE_SIZE_UNIT (TREE_TYPE (local->val)), 1)
 		  * idx.low);
     }
@@ -4990,7 +4951,7 @@ output_constructor_bitfield (oc_local_state *local, oc_outer_state *outer)
 	    value = TREE_INT_CST_LOW (local->val);
 	  else
 	    {
-	      gcc_assert (shift < 2 * HOST_BITS_PER_WIDE_INT);
+	      gcc_assert (shift < HOST_BITS_PER_DOUBLE_INT);
 	      value = TREE_INT_CST_HIGH (local->val);
 	      shift -= HOST_BITS_PER_WIDE_INT;
 	    }
@@ -5022,7 +4983,7 @@ output_constructor_bitfield (oc_local_state *local, oc_outer_state *outer)
 	    value = TREE_INT_CST_LOW (local->val);
 	  else
 	    {
-	      gcc_assert (shift < 2 * HOST_BITS_PER_WIDE_INT);
+	      gcc_assert (shift < HOST_BITS_PER_DOUBLE_INT);
 	      value = TREE_INT_CST_HIGH (local->val);
 	      shift -= HOST_BITS_PER_WIDE_INT;
 	    }
@@ -5601,9 +5562,8 @@ assemble_alias (tree decl, tree target)
     do_assemble_alias (decl, target);
   else
     {
-      alias_pair *p = VEC_safe_push (alias_pair, gc, alias_pairs, NULL);
-      p->decl = decl;
-      p->target = target;
+      alias_pair p = {decl, target};
+      VEC_safe_push (alias_pair, gc, alias_pairs, p);
     }
 }
 
@@ -5666,14 +5626,9 @@ static int
 dump_tm_clone_to_vec (void **slot, void *info)
 {
   struct tree_map *map = (struct tree_map *) *slot;
-  VEC(tm_alias_pair,heap) **tm_alias_pairs
-    = (VEC(tm_alias_pair, heap) **) info;
-  tm_alias_pair *p;
-
-  p = VEC_safe_push (tm_alias_pair, heap, *tm_alias_pairs, NULL);
-  p->from = map->base.from;
-  p->to = map->to;
-  p->uid = DECL_UID (p->from);
+  VEC(tm_alias_pair,heap) **tm_alias_pairs = (VEC(tm_alias_pair, heap) **) info;
+  tm_alias_pair p = {DECL_UID (map->base.from), map->base.from, map->to};
+  VEC_safe_push (tm_alias_pair, heap, *tm_alias_pairs, p);
   return 1;
 }
 
@@ -7448,6 +7403,29 @@ default_elf_fini_array_asm_out_destructor (rtx symbol, int priority)
   section *sec = get_elf_initfini_array_priority_section (priority,
 							  false);
   assemble_addr_to_section (symbol, sec);
+}
+
+/* Default TARGET_ASM_OUTPUT_IDENT hook.
+
+   This is a bit of a cheat.  The real default is a no-op, but this
+   hook is the default for all targets with a .ident directive.  */
+
+void
+default_asm_output_ident_directive (const char *ident_str)
+{
+  const char *ident_asm_op = "\t.ident\t";
+
+  /* If we are still in the front end, do not write out the string
+     to asm_out_file.  Instead, add a fake top-level asm statement.
+     This allows the front ends to use this hook without actually
+     writing to asm_out_file, to handle #ident or Pragma Ident.  */
+  if (cgraph_state == CGRAPH_STATE_PARSING)
+    {
+      char *buf = ACONCAT ((ident_asm_op, "\"", ident_str, "\"\n", NULL));
+      add_asm_node (build_string (strlen (buf), buf));
+    }
+  else
+    fprintf (asm_out_file, "%s\"%s\"\n", ident_asm_op, ident_str);
 }
 
 #include "gt-varasm.h"

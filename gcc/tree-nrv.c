@@ -27,8 +27,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "basic-block.h"
 #include "tree-pretty-print.h"
 #include "tree-flow.h"
-#include "timevar.h"
-#include "tree-dump.h"
 #include "tree-pass.h"
 #include "langhooks.h"
 #include "flags.h"	/* For "optimize" in gate_pass_return_slot.
@@ -263,8 +261,6 @@ tree_nrv (void)
   SET_DECL_VALUE_EXPR (found, result);
   DECL_HAS_VALUE_EXPR_P (found) = 1;
 
-  /* FOUND is no longer used.  Ensure it gets removed.  */
-  clear_is_used (found);
   return 0;
 }
 

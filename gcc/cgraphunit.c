@@ -34,7 +34,7 @@ along with GCC; see the file COPYING3.  If not see
       (There is one exception needed for implementing GCC extern inline
 	function.)
 
-    - varpool_finalize_variable
+    - varpool_finalize_decl
 
       This function has same behavior as the above but is used for static
       variables.
@@ -51,7 +51,7 @@ along with GCC; see the file COPYING3.  If not see
       The symbol table is constructed starting from the trivially needed
       symbols finalized by the frontend.  Functions are lowered into
       GIMPLE representation and callgraph/reference lists are constructed.
-      Those are used to discover other neccesary functions and variables.
+      Those are used to discover other necessary functions and variables.
 
       At the end the bodies of unreachable functions are removed.
 
@@ -176,7 +176,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "cgraph.h"
 #include "diagnostic.h"
-#include "timevar.h"
 #include "params.h"
 #include "fibheap.h"
 #include "intl.h"
@@ -220,7 +219,7 @@ static GTY (()) tree vtable_entry_type;
 
 /* Determine if function DECL is trivially needed and should stay in the
    compilation unit.  This is used at the symbol table construction time
-   and differs from later logic removing unnecesary functions that can
+   and differs from later logic removing unnecessary functions that can
    take into account results of analysis, whole program info etc.  */
 
 static bool
@@ -314,7 +313,6 @@ cgraph_process_new_functions (void)
 	  if (!node->analyzed)
 	    cgraph_analyze_function (node);
 	  push_cfun (DECL_STRUCT_FUNCTION (fndecl));
-	  current_function_decl = fndecl;
 	  if ((cgraph_state == CGRAPH_STATE_IPA_SSA
 	      && !gimple_in_ssa_p (DECL_STRUCT_FUNCTION (fndecl)))
 	      /* When not optimizing, be sure we run early local passes anyway
@@ -326,7 +324,6 @@ cgraph_process_new_functions (void)
 	  free_dominance_info (CDI_POST_DOMINATORS);
 	  free_dominance_info (CDI_DOMINATORS);
 	  pop_cfun ();
-	  current_function_decl = NULL;
           cgraph_call_function_insertion_hooks (node);
 	  break;
 
@@ -385,7 +382,7 @@ referred_to_p (symtab_node node)
 {
   struct ipa_ref *ref;
 
-  /* See if there are any refrences at all.  */
+  /* See if there are any references at all.  */
   if (ipa_ref_list_referring_iterate (&node->symbol.ref_list, 0, ref))
     return true;
   /* For functions check also calls.  */
@@ -496,14 +493,12 @@ cgraph_add_new_function (tree fndecl, bool lowered)
 	if (!lowered && cgraph_state == CGRAPH_STATE_EXPANSION)
 	  {
 	    push_cfun (DECL_STRUCT_FUNCTION (fndecl));
-	    current_function_decl = fndecl;
 	    gimple_register_cfg_hooks ();
 	    bitmap_obstack_initialize (NULL);
 	    execute_pass_list (all_lowering_passes);
 	    execute_pass_list (pass_early_local_passes.pass.sub);
 	    bitmap_obstack_release (NULL);
 	    pop_cfun ();
-	    current_function_decl = NULL;
 
 	    lowered = true;
 	  }
@@ -522,7 +517,6 @@ cgraph_add_new_function (tree fndecl, bool lowered)
 	  node->lowered = true;
 	cgraph_analyze_function (node);
 	push_cfun (DECL_STRUCT_FUNCTION (fndecl));
-	current_function_decl = fndecl;
 	gimple_register_cfg_hooks ();
 	bitmap_obstack_initialize (NULL);
 	if (!gimple_in_ssa_p (DECL_STRUCT_FUNCTION (fndecl)))
@@ -530,7 +524,6 @@ cgraph_add_new_function (tree fndecl, bool lowered)
 	bitmap_obstack_release (NULL);
 	pop_cfun ();
 	expand_function (node);
-	current_function_decl = NULL;
 	break;
 
       default:
@@ -598,7 +591,6 @@ fixup_same_cpp_alias_visibility (symtab_node node, symtab_node target, tree alia
 static void
 cgraph_analyze_function (struct cgraph_node *node)
 {
-  tree save = current_function_decl;
   tree decl = node->symbol.decl;
   location_t saved_loc = input_location;
   input_location = DECL_SOURCE_LOCATION (decl);
@@ -639,7 +631,6 @@ cgraph_analyze_function (struct cgraph_node *node)
     }
   else
     {
-      current_function_decl = decl;
       push_cfun (DECL_STRUCT_FUNCTION (decl));
 
       assign_assembler_name_if_neeeded (node->symbol.decl);
@@ -673,7 +664,6 @@ cgraph_analyze_function (struct cgraph_node *node)
     }
   node->analyzed = true;
 
-  current_function_decl = save;
   input_location = saved_loc;
 }
 
@@ -1229,8 +1219,7 @@ init_lowered_empty_function (tree decl)
 
   DECL_SAVED_TREE (decl) = error_mark_node;
   cfun->curr_properties |=
-    (PROP_gimple_lcf | PROP_gimple_leh | PROP_cfg | PROP_referenced_vars |
-     PROP_ssa | PROP_gimple_any);
+    (PROP_gimple_lcf | PROP_gimple_leh | PROP_cfg | PROP_ssa | PROP_gimple_any);
 
   /* Create BB for body of the function and connect it properly.  */
   bb = create_basic_block (NULL, (void *) 0, ENTRY_BLOCK_PTR);
@@ -1282,7 +1271,7 @@ thunk_adjust (gimple_stmt_iterator * bsi,
 	}
 
       vtabletmp =
-	make_rename_temp (build_pointer_type
+	create_tmp_reg (build_pointer_type
 			  (build_pointer_type (vtable_entry_type)), "vptr");
 
       /* The vptr is always at offset zero in the object.  */
@@ -1292,7 +1281,7 @@ thunk_adjust (gimple_stmt_iterator * bsi,
       gsi_insert_after (bsi, stmt, GSI_NEW_STMT);
 
       /* Form the vtable address.  */
-      vtabletmp2 = make_rename_temp (TREE_TYPE (TREE_TYPE (vtabletmp)),
+      vtabletmp2 = create_tmp_reg (TREE_TYPE (TREE_TYPE (vtabletmp)),
 				     "vtableaddr");
       stmt = gimple_build_assign (vtabletmp2,
 				  build_simple_mem_ref (vtabletmp));
@@ -1306,7 +1295,7 @@ thunk_adjust (gimple_stmt_iterator * bsi,
       gsi_insert_after (bsi, stmt, GSI_NEW_STMT);
 
       /* Get the offset itself.  */
-      vtabletmp3 = make_rename_temp (TREE_TYPE (TREE_TYPE (vtabletmp2)),
+      vtabletmp3 = create_tmp_reg (TREE_TYPE (TREE_TYPE (vtabletmp2)),
 				     "vcalloffset");
       stmt = gimple_build_assign (vtabletmp3,
 				  build_simple_mem_ref (vtabletmp2));
@@ -1328,7 +1317,7 @@ thunk_adjust (gimple_stmt_iterator * bsi,
         ptrtmp = ptr;
       else
         {
-          ptrtmp = make_rename_temp (TREE_TYPE (ptr), "ptr");
+          ptrtmp = create_tmp_reg (TREE_TYPE (ptr), "ptr");
           stmt = gimple_build_assign (ptrtmp, ptr);
 	  gsi_insert_after (bsi, stmt, GSI_NEW_STMT);
 	}
@@ -1337,7 +1326,7 @@ thunk_adjust (gimple_stmt_iterator * bsi,
     }
 
   /* Emit the statement and gimplify the adjustment expression.  */
-  ret = make_rename_temp (TREE_TYPE (ptr), "adjusted_this");
+  ret = create_tmp_reg (TREE_TYPE (ptr), "adjusted_this");
   stmt = gimple_build_assign (ret, ptr);
   gsi_insert_after (bsi, stmt, GSI_NEW_STMT);
 
@@ -1383,6 +1372,10 @@ assemble_thunk (struct cgraph_node *node)
       init_function_start (thunk_fndecl);
       cfun->is_thunk = 1;
       assemble_start_function (thunk_fndecl, fnname);
+      (*debug_hooks->source_line) (DECL_SOURCE_LINE (thunk_fndecl),
+				   DECL_SOURCE_FILE (thunk_fndecl),
+				   /* discriminator */ 0,
+				   /* is_stmt */ 1);
 
       targetm.asm_out.output_mi_thunk (asm_out_file, thunk_fndecl,
 				       fixed_offset, virtual_value, alias);
@@ -1442,7 +1435,7 @@ assemble_thunk (struct cgraph_node *node)
 	      BLOCK_VARS (DECL_INITIAL (current_function_decl)) = restmp;
 	    }
 	  else
-            restmp = make_rename_temp (restype, "retval");
+	    restmp = create_tmp_reg (restype, "retval");
 	}
 
       for (arg = a; arg; arg = DECL_CHAIN (arg))
@@ -1455,16 +1448,8 @@ assemble_thunk (struct cgraph_node *node)
 				      virtual_offset));
       else
         VEC_quick_push (tree, vargs, a);
-      add_referenced_var (a);
-      if (is_gimple_reg (a))
-	mark_sym_for_renaming (a);
       for (i = 1, arg = DECL_CHAIN (a); i < nargs; i++, arg = DECL_CHAIN (arg))
-	{
-	  add_referenced_var (arg);
-	  if (is_gimple_reg (arg))
-	    mark_sym_for_renaming (arg);
-	  VEC_quick_push (tree, vargs, arg);
-	}
+	VEC_quick_push (tree, vargs, arg);
       call = gimple_build_call_vec (build_fold_addr_expr_loc (0, alias), vargs);
       VEC_free (tree, heap, vargs);
       gimple_call_set_from_thunk (call, true);
@@ -1530,11 +1515,12 @@ assemble_thunk (struct cgraph_node *node)
       bitmap_obstack_release (NULL);
     }
   current_function_decl = NULL;
+  set_cfun (NULL);
 }
 
 
 
-/* Assemble thunks and aliases asociated to NODE.  */
+/* Assemble thunks and aliases associated to NODE.  */
 
 static void
 assemble_thunks_and_aliases (struct cgraph_node *node)
@@ -1622,8 +1608,6 @@ expand_function (struct cgraph_node *node)
   /* Release the default bitmap obstack.  */
   bitmap_obstack_release (NULL);
 
-  set_cfun (NULL);
-
   /* If requested, warn about function definitions where the function will
      return a value (usually of some struct or union type) which itself will
      take up a lot of stack space.  */
@@ -1668,6 +1652,7 @@ expand_function (struct cgraph_node *node)
 
   /* Make sure that BE didn't give up on compiling.  */
   gcc_assert (TREE_ASM_WRITTEN (decl));
+  set_cfun (NULL);
   current_function_decl = NULL;
 
   /* It would make a lot more sense to output thunks before function body to get more
@@ -1903,7 +1888,7 @@ get_alias_symbol (tree decl)
 
 
 /* Weakrefs may be associated to external decls and thus not output
-   at expansion time.  Emit all neccesary aliases.  */
+   at expansion time.  Emit all necessary aliases.  */
 
 static void
 output_weakrefs (void)

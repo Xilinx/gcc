@@ -35,9 +35,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "expr.h"
 #include "diagnostic-core.h"
 #include "toplev.h"
-#include "output.h"
 #include "ggc.h"
-#include "timevar.h"
 #include "except.h"
 #include "target.h"
 #include "params.h"
@@ -45,6 +43,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "df.h"
 #include "dbgcnt.h"
+#include "pointer-set.h"
 
 /* The basic idea of common subexpression elimination is to go
    through the code, keeping a record of expressions that would
@@ -600,7 +599,6 @@ static void invalidate_from_clobbers (rtx);
 static void invalidate_from_sets_and_clobbers (rtx);
 static rtx cse_process_notes (rtx, rtx, bool *);
 static void cse_extended_basic_block (struct cse_basic_block_data *);
-static void count_reg_usage (rtx, int *, rtx, int);
 static int check_for_label_ref (rtx *, void *);
 extern void dump_class (struct table_elt*);
 static void get_cse_reg_info_1 (unsigned int regno);
@@ -622,9 +620,7 @@ static enum machine_mode cse_cc_succs (basic_block, basic_block, rtx, rtx,
 
 static const struct rtl_hooks cse_rtl_hooks = RTL_HOOKS_INITIALIZER;
 
-/* Nonzero if X has the form (PLUS frame-pointer integer).  We check for
-   virtual regs here because the simplify_*_operation routines are called
-   by integrate.c, which is called before virtual register instantiation.  */
+/* Nonzero if X has the form (PLUS frame-pointer integer).  */
 
 static bool
 fixed_base_plus_p (rtx x)
@@ -635,9 +631,6 @@ fixed_base_plus_p (rtx x)
       if (x == frame_pointer_rtx || x == hard_frame_pointer_rtx)
 	return true;
       if (x == arg_pointer_rtx && fixed_regs[ARG_POINTER_REGNUM])
-	return true;
-      if (REGNO (x) >= FIRST_VIRTUAL_REGISTER
-	  && REGNO (x) <= LAST_VIRTUAL_REGISTER)
 	return true;
       return false;
 
@@ -2103,24 +2096,22 @@ invalidate_for_call (void)
   unsigned hash;
   struct table_elt *p, *next;
   int in_table = 0;
+  hard_reg_set_iterator hrsi;
 
   /* Go through all the hard registers.  For each that is clobbered in
      a CALL_INSN, remove the register from quantity chains and update
      reg_tick if defined.  Also see if any of these registers is currently
      in the table.  */
-
-  for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
-    if (TEST_HARD_REG_BIT (regs_invalidated_by_call, regno))
-      {
-	delete_reg_equiv (regno);
-	if (REG_TICK (regno) >= 0)
-	  {
-	    REG_TICK (regno)++;
-	    SUBREG_TICKED (regno) = -1;
-	  }
-
-	in_table |= (TEST_HARD_REG_BIT (hard_regs_in_table, regno) != 0);
-      }
+  EXECUTE_IF_SET_IN_HARD_REG_SET (regs_invalidated_by_call, 0, regno, hrsi)
+    {
+      delete_reg_equiv (regno);
+      if (REG_TICK (regno) >= 0)
+	{
+	  REG_TICK (regno)++;
+	  SUBREG_TICKED (regno) = -1;
+	}
+      in_table |= (TEST_HARD_REG_BIT (hard_regs_in_table, regno) != 0);
+    }
 
   /* In the case where we have no call-clobbered hard registers in the
      table, we are done.  Otherwise, scan the table and remove any
@@ -2630,9 +2621,7 @@ exp_equiv_p (const_rtx x, const_rtx y, int validate, bool for_gcse)
     {
     case PC:
     case CC0:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
+    CASE_CONST_UNIQUE:
       return x == y;
 
     case LABEL_REF:
@@ -2836,10 +2825,7 @@ canon_reg (rtx x, rtx insn)
     case PC:
     case CC0:
     case CONST:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case LABEL_REF:
     case ADDR_VEC:
@@ -2905,6 +2891,9 @@ find_comparison_args (enum rtx_code code, rtx *parg1, rtx *parg2,
 		      enum machine_mode *pmode1, enum machine_mode *pmode2)
 {
   rtx arg1, arg2;
+  struct pointer_set_t *visited = NULL;
+  /* Set nonzero when we find something of interest.  */
+  rtx x = NULL;
 
   arg1 = *parg1, arg2 = *parg2;
 
@@ -2912,10 +2901,17 @@ find_comparison_args (enum rtx_code code, rtx *parg1, rtx *parg2,
 
   while (arg2 == CONST0_RTX (GET_MODE (arg1)))
     {
-      /* Set nonzero when we find something of interest.  */
-      rtx x = 0;
       int reverse_code = 0;
       struct table_elt *p = 0;
+
+      /* Remember state from previous iteration.  */
+      if (x)
+	{
+	  if (!visited)
+	    visited = pointer_set_create ();
+	  pointer_set_insert (visited, x);
+	  x = 0;
+	}
 
       /* If arg1 is a COMPARE, extract the comparison arguments from it.
 	 On machines with CC0, this is the only case that can occur, since
@@ -2993,10 +2989,8 @@ find_comparison_args (enum rtx_code code, rtx *parg1, rtx *parg2,
 	  if (! exp_equiv_p (p->exp, p->exp, 1, false))
 	    continue;
 
-	  /* If it's the same comparison we're already looking at, skip it.  */
-	  if (COMPARISON_P (p->exp)
-	      && XEXP (p->exp, 0) == arg1
-	      && XEXP (p->exp, 1) == arg2)
+	  /* If it's a comparison we've used before, skip it.  */
+	  if (visited && pointer_set_contains (visited, p->exp))
 	    continue;
 
 	  if (GET_CODE (p->exp) == COMPARE
@@ -3077,6 +3071,8 @@ find_comparison_args (enum rtx_code code, rtx *parg1, rtx *parg2,
   *pmode1 = GET_MODE (arg1), *pmode2 = GET_MODE (arg2);
   *parg1 = fold_rtx (arg1, 0), *parg2 = fold_rtx (arg2, 0);
 
+  if (visited)
+    pointer_set_destroy (visited);
   return code;
 }
 
@@ -3130,10 +3126,7 @@ fold_rtx (rtx x, rtx insn)
       return x;
 
     case CONST:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case LABEL_REF:
     case REG:
@@ -3195,12 +3188,9 @@ fold_rtx (rtx x, rtx insn)
 	    break;
 
 	  case CONST:
-	  case CONST_INT:
+	  CASE_CONST_ANY:
 	  case SYMBOL_REF:
 	  case LABEL_REF:
-	  case CONST_DOUBLE:
-	  case CONST_FIXED:
-	  case CONST_VECTOR:
 	    const_arg = folded_arg;
 	    break;
 
@@ -3471,9 +3461,10 @@ fold_rtx (rtx x, rtx insn)
 	}
 
       {
-	rtx op0 = const_arg0 ? const_arg0 : folded_arg0;
-	rtx op1 = const_arg1 ? const_arg1 : folded_arg1;
-        new_rtx = simplify_relational_operation (code, mode, mode_arg0, op0, op1);
+	rtx op0 = const_arg0 ? const_arg0 : copy_rtx (folded_arg0);
+	rtx op1 = const_arg1 ? const_arg1 : copy_rtx (folded_arg1);
+	new_rtx = simplify_relational_operation (code, mode, mode_arg0,
+						 op0, op1);
       }
       break;
 
@@ -6060,13 +6051,10 @@ cse_process_notes_1 (rtx x, rtx object, bool *changed)
 
   switch (code)
     {
-    case CONST_INT:
     case CONST:
     case SYMBOL_REF:
     case LABEL_REF:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case PC:
     case CC0:
     case LO_SUM:
@@ -6668,10 +6656,7 @@ count_reg_usage (rtx x, int *counts, rtx dest, int incr)
     case PC:
     case CC0:
     case CONST:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case LABEL_REF:
       return;
@@ -6698,10 +6683,11 @@ count_reg_usage (rtx x, int *counts, rtx dest, int incr)
     case CALL_INSN:
     case INSN:
     case JUMP_INSN:
-      /* We expect dest to be NULL_RTX here.  If the insn may trap,
+      /* We expect dest to be NULL_RTX here.  If the insn may throw,
 	 or if it cannot be deleted due to side-effects, mark this fact
 	 by setting DEST to pc_rtx.  */
-      if (insn_could_throw_p (x) || side_effects_p (PATTERN (x)))
+      if ((!cfun->can_delete_dead_exceptions && !insn_nothrow_p (x))
+	  || side_effects_p (PATTERN (x)))
 	dest = pc_rtx;
       if (code == CALL_INSN)
 	count_reg_usage (CALL_INSN_FUNCTION_USAGE (x), counts, dest, incr);
@@ -6806,7 +6792,7 @@ static bool
 insn_live_p (rtx insn, int *counts)
 {
   int i;
-  if (insn_could_throw_p (insn))
+  if (!cfun->can_delete_dead_exceptions && !insn_nothrow_p (insn))
     return true;
   else if (GET_CODE (PATTERN (insn)) == SET)
     return set_live_p (PATTERN (insn), insn, counts);

@@ -1,3 +1,41 @@
+2012-10-24  Torvald Riegel  <triegel@redhat.com>
+
+	* libitm.texi: Clarify ABI requirements for data-logging functions.
+
+2012-10-24  Torvald Riegel  <triegel@redhat.com>
+
+	* retry.cc (gtm_thread::decide_begin_dispatch): Ask dispatch whether
+	it requires serial mode instead of assuming that for certain
+	dispatchs.
+	* dispatch.h (abi_dispatch::requires_serial): New.
+	(abi_dispatch::abi_dispatch): Adapt.
+	* method-gl.cc (gl_wt_dispatch::gl_wt_dispatch): Adapt.
+	* method-ml.cc (ml_wt_dispatch::ml_wt_dispatch): Same.
+	* method-serial.cc (serialirr_dispatch::serialirr_dispatch,
+	serial_dispatch::serial_dispatch,
+	serialirr_onwrite_dispatch::serialirr_onwrite_dispatch): Same.
+
+2012-10-02  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/x86/target.h (struct gtm_jmpbuf): Merge x86_64
+	and ia32 declarations some more.
+	* config/x86/sjlj.S (_ITM_beginTransaction): Move ret to common code.
+
+2012-09-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR other/43620
+	* configure.ac (AM_INIT_AUTOMAKE): Add no-dist.
+	* configure: Regenerate.
+	* Makefile.in: Regenerate.
+
+2012-09-14  David Edelsohn  <dje.gcc@gmail.com>
+
+	* configure: Regenerated.
+
+2012-07-31  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/x86/target.h (cpu_relax): Use __builtin_ia32_pause.
+
 2012-05-21  Patrick Marlier  <patrick.marlier@gmail.com>
 
 	* eh_cpp.cc: Fix __cxa_end_catch declaration.

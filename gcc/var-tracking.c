@@ -96,7 +96,6 @@
 #include "hard-reg-set.h"
 #include "basic-block.h"
 #include "flags.h"
-#include "output.h"
 #include "insn-config.h"
 #include "reload.h"
 #include "sbitmap.h"
@@ -105,7 +104,6 @@
 #include "hashtab.h"
 #include "regs.h"
 #include "expr.h"
-#include "timevar.h"
 #include "tree-pass.h"
 #include "tree-flow.h"
 #include "cselib.h"
@@ -116,6 +114,7 @@
 #include "pointer-set.h"
 #include "recog.h"
 #include "tm_p.h"
+#include "alias.h"
 
 /* var-tracking.c assumes that tree code with the same value as VALUE rtx code
    has no chance to appear in REG_EXPR/MEM_EXPRs and isn't a decl.
@@ -473,6 +472,9 @@ static alloc_pool loc_chain_pool;
 
 /* Alloc pool for struct shared_hash_def.  */
 static alloc_pool shared_hash_pool;
+
+/* Alloc pool for struct loc_exp_dep_s for NOT_ONEPART variables.  */
+static alloc_pool loc_exp_dep_pool;
 
 /* Changed variables, notes will be emitted for them.  */
 static htab_t changed_variables;
@@ -1952,6 +1954,245 @@ var_regno_delete (dataflow_set *set, int regno)
   *reg = NULL;
 }
 
+/* Strip constant offsets and alignments off of LOC.  Return the base
+   expression.  */
+
+static rtx
+vt_get_canonicalize_base (rtx loc)
+{
+  while ((GET_CODE (loc) == PLUS
+	  || GET_CODE (loc) == AND)
+	 && GET_CODE (XEXP (loc, 1)) == CONST_INT
+	 && (GET_CODE (loc) != AND
+	     || INTVAL (XEXP (loc, 1)) < 0))
+    loc = XEXP (loc, 0);
+
+  return loc;
+}
+
+/* Canonicalize LOC using equivalences from SET in addition to those
+   in the cselib static table.  */
+
+static rtx
+vt_canonicalize_addr (dataflow_set *set, rtx oloc)
+{
+  HOST_WIDE_INT ofst = 0;
+  enum machine_mode mode = GET_MODE (oloc);
+  rtx loc = canon_rtx (get_addr (oloc));
+
+  /* Try to substitute a base VALUE for equivalent expressions as much
+     as possible.  The goal here is to expand stack-related addresses
+     to one of the stack base registers, so that we can compare
+     addresses for overlaps.  */
+  while (GET_CODE (vt_get_canonicalize_base (loc)) == VALUE)
+    {
+      rtx x;
+      decl_or_value dv;
+      variable var;
+      location_chain l;
+
+      while (GET_CODE (loc) == PLUS)
+	{
+	  ofst += INTVAL (XEXP (loc, 1));
+	  loc = XEXP (loc, 0);
+	  continue;
+	}
+
+      /* Alignment operations can't normally be combined, so just
+	 canonicalize the base and we're done.  We'll normally have
+	 only one stack alignment anyway.  */
+      if (GET_CODE (loc) == AND)
+	{
+	  x = vt_canonicalize_addr (set, XEXP (loc, 0));
+	  if (x != XEXP (loc, 0))
+	    loc = gen_rtx_AND (mode, x, XEXP (loc, 1));
+	  loc = canon_rtx (get_addr (loc));
+	  break;
+	}
+
+      x = canon_rtx (get_addr (loc));
+
+      /* We've made progress!  Start over.  */
+      if (x != loc || GET_CODE (x) != VALUE)
+	{
+	  loc = x;
+	  continue;
+	}
+
+      dv = dv_from_rtx (x);
+      var = (variable) htab_find_with_hash (shared_hash_htab (set->vars),
+					    dv, dv_htab_hash (dv));
+      if (!var)
+	break;
+
+      /* Look for an improved equivalent expression.  */
+      for (l = var->var_part[0].loc_chain; l; l = l->next)
+	{
+	  rtx base = vt_get_canonicalize_base (l->loc);
+	  if (GET_CODE (base) == REG
+	      || (GET_CODE (base) == VALUE
+		  && canon_value_cmp (base, loc)))
+	    {
+	      loc = l->loc;
+	      break;
+	    }
+	}
+
+      /* No luck with the dataflow set, so we're done.  */
+      if (!l)
+	break;
+    }
+
+  /* Add OFST back in.  */
+  if (ofst)
+    {
+      /* Don't build new RTL if we can help it.  */
+      if (GET_CODE (oloc) == PLUS
+	  && XEXP (oloc, 0) == loc
+	  && INTVAL (XEXP (oloc, 1)) == ofst)
+	return oloc;
+
+      loc = plus_constant (mode, loc, ofst);
+    }
+
+  return loc;
+}
+
+/* Return true iff ADDR has a stack register as the base address.  */
+
+static inline bool
+vt_stack_offset_p (rtx addr)
+{
+  rtx base = vt_get_canonicalize_base (addr);
+
+  if (GET_CODE (base) != REG)
+    return false;
+
+  return REGNO_PTR_FRAME_P (REGNO (base));
+}
+
+/* Return true iff there's a true dependence between MLOC and LOC.
+   MADDR must be a canonicalized version of MLOC's address.  */
+
+static inline bool
+vt_canon_true_dep (dataflow_set *set, rtx mloc, rtx maddr, rtx loc)
+{
+  if (GET_CODE (loc) != MEM)
+    return false;
+
+  if (!canon_true_dependence (mloc, GET_MODE (mloc), maddr, loc, NULL))
+    return false;
+
+  if (!MEM_EXPR (loc) && vt_stack_offset_p (maddr))
+    {
+      rtx addr = vt_canonicalize_addr (set, XEXP (loc, 0));
+      return canon_true_dependence (mloc, GET_MODE (mloc), maddr, loc, addr);
+    }
+
+  return true;
+}
+
+/* Hold parameters for the hashtab traversal function
+   drop_overlapping_mem_locs, see below.  */
+
+struct overlapping_mems
+{
+  dataflow_set *set;
+  rtx loc, addr;
+};
+
+/* Remove all MEMs that overlap with COMS->LOC from the location list
+   of a hash table entry for a value.  COMS->ADDR must be a
+   canonicalized form of COMS->LOC's address, and COMS->LOC must be
+   canonicalized itself.  */
+
+static int
+drop_overlapping_mem_locs (void **slot, void *data)
+{
+  struct overlapping_mems *coms = (struct overlapping_mems *)data;
+  dataflow_set *set = coms->set;
+  rtx mloc = coms->loc, addr = coms->addr;
+  variable var = (variable) *slot;
+
+  if (var->onepart == ONEPART_VALUE)
+    {
+      location_chain loc, *locp;
+      bool changed = false;
+      rtx cur_loc;
+
+      gcc_assert (var->n_var_parts == 1);
+
+      if (shared_var_p (var, set->vars))
+	{
+	  for (loc = var->var_part[0].loc_chain; loc; loc = loc->next)
+	    if (vt_canon_true_dep (set, mloc, addr, loc->loc))
+	      break;
+
+	  if (!loc)
+	    return 1;
+
+	  slot = unshare_variable (set, slot, var, VAR_INIT_STATUS_UNKNOWN);
+	  var = (variable)*slot;
+	  gcc_assert (var->n_var_parts == 1);
+	}
+
+      if (VAR_LOC_1PAUX (var))
+	cur_loc = VAR_LOC_FROM (var);
+      else
+	cur_loc = var->var_part[0].cur_loc;
+
+      for (locp = &var->var_part[0].loc_chain, loc = *locp;
+	   loc; loc = *locp)
+	{
+	  if (!vt_canon_true_dep (set, mloc, addr, loc->loc))
+	    {
+	      locp = &loc->next;
+	      continue;
+	    }
+
+	  *locp = loc->next;
+	  /* If we have deleted the location which was last emitted
+	     we have to emit new location so add the variable to set
+	     of changed variables.  */
+	  if (cur_loc == loc->loc)
+	    {
+	      changed = true;
+	      var->var_part[0].cur_loc = NULL;
+	      if (VAR_LOC_1PAUX (var))
+		VAR_LOC_FROM (var) = NULL;
+	    }
+	  pool_free (loc_chain_pool, loc);
+	}
+
+      if (!var->var_part[0].loc_chain)
+	{
+	  var->n_var_parts--;
+	  changed = true;
+	}
+      if (changed)
+	variable_was_changed (var, set);
+    }
+
+  return 1;
+}
+
+/* Remove from SET all VALUE bindings to MEMs that overlap with LOC.  */
+
+static void
+clobber_overlapping_mems (dataflow_set *set, rtx loc)
+{
+  struct overlapping_mems coms;
+
+  coms.set = set;
+  coms.loc = canon_rtx (loc);
+  coms.addr = vt_canonicalize_addr (set, XEXP (loc, 0));
+
+  set->traversed_vars = set->vars;
+  htab_traverse (shared_hash_htab (set->vars),
+		 drop_overlapping_mem_locs, &coms);
+  set->traversed_vars = NULL;
+}
+
 /* Set the location of DV, OFFSET as the MEM LOC.  */
 
 static void
@@ -1994,6 +2235,7 @@ var_mem_delete_and_set (dataflow_set *set, rtx loc, bool modify,
   tree decl = MEM_EXPR (loc);
   HOST_WIDE_INT offset = INT_MEM_OFFSET (loc);
 
+  clobber_overlapping_mems (set, loc);
   decl = var_debug_decl (decl);
 
   if (initialized == VAR_INIT_STATUS_UNKNOWN)
@@ -2014,6 +2256,7 @@ var_mem_delete (dataflow_set *set, rtx loc, bool clobber)
   tree decl = MEM_EXPR (loc);
   HOST_WIDE_INT offset = INT_MEM_OFFSET (loc);
 
+  clobber_overlapping_mems (set, loc);
   decl = var_debug_decl (decl);
   if (clobber)
     clobber_variable_part (set, NULL, dv_from_decl (decl), offset, NULL);
@@ -2056,6 +2299,9 @@ val_bind (dataflow_set *set, rtx val, rtx loc, bool modified)
   else if (MEM_P (loc))
     {
       struct elt_loc_list *l = CSELIB_VAL_PTR (val)->locs;
+
+      if (modified)
+	clobber_overlapping_mems (set, loc);
 
       if (l && GET_CODE (l->loc) == VALUE)
 	l = canonical_cselib_val (CSELIB_VAL_PTR (l->loc))->locs;
@@ -4434,11 +4680,11 @@ dataflow_set_remove_mem_locs (void **slot, void *data)
 static void
 dataflow_set_clear_at_call (dataflow_set *set)
 {
-  int r;
+  unsigned int r;
+  hard_reg_set_iterator hrsi;
 
-  for (r = 0; r < FIRST_PSEUDO_REGISTER; r++)
-    if (TEST_HARD_REG_BIT (regs_invalidated_by_call, r))
-      var_regno_delete (set, r);
+  EXECUTE_IF_SET_IN_HARD_REG_SET (regs_invalidated_by_call, 0, r, hrsi)
+    var_regno_delete (set, r);
 
   if (MAY_HAVE_DEBUG_INSNS)
     {
@@ -4840,11 +5086,11 @@ var_lowpart (enum machine_mode mode, rtx loc)
 {
   unsigned int offset, reg_offset, regno;
 
-  if (!REG_P (loc) && !MEM_P (loc))
-    return NULL;
-
   if (GET_MODE (loc) == mode)
     return loc;
+
+  if (!REG_P (loc) && !MEM_P (loc))
+    return NULL;
 
   offset = byte_lowpart_offset (mode, GET_MODE (loc));
 
@@ -5264,7 +5510,7 @@ add_uses (rtx *ploc, void *data)
 
       if (dump_file && (dump_flags & TDF_DETAILS))
 	log_op_type (mo.u.loc, cui->bb, cui->insn, mo.type, dump_file);
-      VEC_safe_push (micro_operation, heap, VTI (bb)->mos, &mo);
+      VEC_safe_push (micro_operation, heap, VTI (bb)->mos, mo);
     }
 
   return 0;
@@ -5523,6 +5769,11 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
 
   resolve = preserve = !cselib_preserved_value_p (v);
 
+  if (loc == stack_pointer_rtx
+      && hard_frame_pointer_adjustment != -1
+      && preserve)
+    cselib_set_value_sp_based (v);
+
   nloc = replace_expr_with_values (oloc);
   if (nloc)
     oloc = nloc;
@@ -5548,7 +5799,7 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
 	  if (dump_file && (dump_flags & TDF_DETAILS))
 	    log_op_type (moa.u.loc, cui->bb, cui->insn,
 			 moa.type, dump_file);
-	  VEC_safe_push (micro_operation, heap, VTI (bb)->mos, &moa);
+	  VEC_safe_push (micro_operation, heap, VTI (bb)->mos, moa);
 	}
 
       resolve = false;
@@ -5635,7 +5886,7 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
  log_and_return:
   if (dump_file && (dump_flags & TDF_DETAILS))
     log_op_type (mo.u.loc, cui->bb, cui->insn, mo.type, dump_file);
-  VEC_safe_push (micro_operation, heap, VTI (bb)->mos, &mo);
+  VEC_safe_push (micro_operation, heap, VTI (bb)->mos, mo);
 }
 
 /* Arguments to the call.  */
@@ -5646,9 +5897,8 @@ static rtx call_arguments;
 static void
 prepare_call_arguments (basic_block bb, rtx insn)
 {
-  rtx link, x;
+  rtx link, x, call;
   rtx prev, cur, next;
-  rtx call = PATTERN (insn);
   rtx this_arg = NULL_RTX;
   tree type = NULL_TREE, t, fndecl = NULL_TREE;
   tree obj_type_ref = NULL_TREE;
@@ -5657,11 +5907,8 @@ prepare_call_arguments (basic_block bb, rtx insn)
 
   memset (&args_so_far_v, 0, sizeof (args_so_far_v));
   args_so_far = pack_cumulative_args (&args_so_far_v);
-  if (GET_CODE (call) == PARALLEL)
-    call = XVECEXP (call, 0, 0);
-  if (GET_CODE (call) == SET)
-    call = SET_SRC (call);
-  if (GET_CODE (call) == CALL && MEM_P (XEXP (call, 0)))
+  call = get_call_rtx_from (insn);
+  if (call)
     {
       if (GET_CODE (XEXP (XEXP (call, 0), 0)) == SYMBOL_REF)
 	{
@@ -5935,12 +6182,8 @@ prepare_call_arguments (basic_block bb, rtx insn)
     }
   call_arguments = prev;
 
-  x = PATTERN (insn);
-  if (GET_CODE (x) == PARALLEL)
-    x = XVECEXP (x, 0, 0);
-  if (GET_CODE (x) == SET)
-    x = SET_SRC (x);
-  if (GET_CODE (x) == CALL && MEM_P (XEXP (x, 0)))
+  x = get_call_rtx_from (insn);
+  if (x)
     {
       x = XEXP (XEXP (x, 0), 0);
       if (GET_CODE (x) == SYMBOL_REF)
@@ -6054,7 +6297,7 @@ add_with_sets (rtx insn, struct cselib_set *sets, int n_sets)
 
       if (dump_file && (dump_flags & TDF_DETAILS))
 	log_op_type (PATTERN (insn), bb, insn, mo.type, dump_file);
-      VEC_safe_push (micro_operation, heap, VTI (bb)->mos, &mo);
+      VEC_safe_push (micro_operation, heap, VTI (bb)->mos, mo);
     }
 
   n1 = VEC_length (micro_operation, VTI (bb)->mos);
@@ -6274,29 +6517,41 @@ compute_bb_dataflow (basic_block bb)
 	    {
 	      rtx loc = mo->u.loc;
 	      rtx val, vloc, uloc;
+	      rtx dstv, srcv;
 
 	      vloc = loc;
 	      uloc = XEXP (vloc, 1);
 	      val = XEXP (vloc, 0);
 	      vloc = uloc;
 
+	      if (GET_CODE (uloc) == SET)
+		{
+		  dstv = SET_DEST (uloc);
+		  srcv = SET_SRC (uloc);
+		}
+	      else
+		{
+		  dstv = uloc;
+		  srcv = NULL;
+		}
+
 	      if (GET_CODE (val) == CONCAT)
 		{
-		  vloc = XEXP (val, 1);
+		  dstv = vloc = XEXP (val, 1);
 		  val = XEXP (val, 0);
 		}
 
 	      if (GET_CODE (vloc) == SET)
 		{
-		  rtx vsrc = SET_SRC (vloc);
+		  srcv = SET_SRC (vloc);
 
-		  gcc_assert (val != vsrc);
+		  gcc_assert (val != srcv);
 		  gcc_assert (vloc == uloc || VAL_NEEDS_RESOLUTION (loc));
 
-		  vloc = SET_DEST (vloc);
+		  dstv = vloc = SET_DEST (vloc);
 
 		  if (VAL_NEEDS_RESOLUTION (loc))
-		    val_resolve (out, val, vsrc, insn);
+		    val_resolve (out, val, srcv, insn);
 		}
 	      else if (VAL_NEEDS_RESOLUTION (loc))
 		{
@@ -6312,45 +6567,55 @@ compute_bb_dataflow (basic_block bb)
 		      if (REG_P (uloc))
 			var_reg_delete (out, uloc, true);
 		      else if (MEM_P (uloc))
-			var_mem_delete (out, uloc, true);
+			{
+			  gcc_assert (MEM_P (dstv));
+			  gcc_assert (MEM_ATTRS (dstv) == MEM_ATTRS (uloc));
+			  var_mem_delete (out, dstv, true);
+			}
 		    }
 		  else
 		    {
 		      bool copied_p = VAL_EXPR_IS_COPIED (loc);
-		      rtx set_src = NULL;
+		      rtx src = NULL, dst = uloc;
 		      enum var_init_status status = VAR_INIT_STATUS_INITIALIZED;
 
 		      if (GET_CODE (uloc) == SET)
 			{
-			  set_src = SET_SRC (uloc);
-			  uloc = SET_DEST (uloc);
+			  src = SET_SRC (uloc);
+			  dst = SET_DEST (uloc);
 			}
 
 		      if (copied_p)
 			{
 			  if (flag_var_tracking_uninit)
 			    {
-			      status = find_src_status (in, set_src);
+			      status = find_src_status (in, src);
 
 			      if (status == VAR_INIT_STATUS_UNKNOWN)
-				status = find_src_status (out, set_src);
+				status = find_src_status (out, src);
 			    }
 
-			  set_src = find_src_set_src (in, set_src);
+			  src = find_src_set_src (in, src);
 			}
 
-		      if (REG_P (uloc))
-			var_reg_delete_and_set (out, uloc, !copied_p,
-						status, set_src);
-		      else if (MEM_P (uloc))
-			var_mem_delete_and_set (out, uloc, !copied_p,
-						status, set_src);
+		      if (REG_P (dst))
+			var_reg_delete_and_set (out, dst, !copied_p,
+						status, srcv);
+		      else if (MEM_P (dst))
+			{
+			  gcc_assert (MEM_P (dstv));
+			  gcc_assert (MEM_ATTRS (dstv) == MEM_ATTRS (dst));
+			  var_mem_delete_and_set (out, dstv, !copied_p,
+						  status, srcv);
+			}
 		    }
 		}
 	      else if (REG_P (uloc))
 		var_regno_delete (out, REGNO (uloc));
+	      else if (MEM_P (uloc))
+		clobber_overlapping_mems (out, uloc);
 
-	      val_store (out, val, vloc, insn, true);
+	      val_store (out, val, dstv, insn, true);
 	    }
 	    break;
 
@@ -7553,7 +7818,7 @@ loc_exp_dep_clear (variable var)
 {
   while (!VEC_empty (loc_exp_dep, VAR_LOC_DEP_VEC (var)))
     {
-      loc_exp_dep *led = VEC_last (loc_exp_dep, VAR_LOC_DEP_VEC (var));
+      loc_exp_dep *led = &VEC_last (loc_exp_dep, VAR_LOC_DEP_VEC (var));
       if (led->next)
 	led->next->pprev = led->pprev;
       if (led->pprev)
@@ -7592,8 +7857,15 @@ loc_exp_insert_dep (variable var, rtx x, htab_t vars)
   if (VAR_LOC_DEP_LST (xvar) && VAR_LOC_DEP_LST (xvar)->dv == var->dv)
     return;
 
-  VEC_quick_push (loc_exp_dep, VAR_LOC_DEP_VEC (var), NULL);
-  led = VEC_last (loc_exp_dep, VAR_LOC_DEP_VEC (var));
+  if (var->onepart == NOT_ONEPART)
+    led = (loc_exp_dep *) pool_alloc (loc_exp_dep_pool);
+  else
+    {
+      loc_exp_dep empty;
+      memset (&empty, 0, sizeof (empty));
+      VEC_quick_push (loc_exp_dep, VAR_LOC_DEP_VEC (var), empty);
+      led = &VEC_last (loc_exp_dep, VAR_LOC_DEP_VEC (var));
+    }
   led->dv = var->dv;
   led->value = x;
 
@@ -7669,8 +7941,12 @@ notify_dependents_of_resolved_value (variable ivar, htab_t vars)
 
 	  gcc_checking_assert (dv_changed_p (dv));
 	}
-      else if (!dv_changed_p (dv))
-	continue;
+      else
+	{
+	  gcc_checking_assert (dv_onepart_p (dv) != NOT_ONEPART);
+	  if (!dv_changed_p (dv))
+	    continue;
+      }
 
       var = (variable) htab_find_with_hash (vars, dv, dv_htab_hash (dv));
 
@@ -8125,11 +8401,23 @@ emit_note_insn_var_location (void **varp, void *data)
 	  else if (last_limit > VAR_PART_OFFSET (var, i))
 	    continue;
 	  offset = VAR_PART_OFFSET (var, i);
-	  if (!var->var_part[i].cur_loc)
+	  loc2 = var->var_part[i].cur_loc;
+	  if (loc2 && GET_CODE (loc2) == MEM
+	      && GET_CODE (XEXP (loc2, 0)) == VALUE)
+	    {
+	      rtx depval = XEXP (loc2, 0);
+
+	      loc2 = vt_expand_loc (loc2, vars);
+
+	      if (loc2)
+		loc_exp_insert_dep (var, depval, vars);
+	    }
+	  if (!loc2)
 	    {
 	      complete = false;
 	      continue;
 	    }
+	  gcc_checking_assert (GET_CODE (loc2) != VALUE);
 	  for (lc = var->var_part[i].loc_chain; lc; lc = lc->next)
 	    if (var->var_part[i].cur_loc == lc->loc)
 	      {
@@ -8137,7 +8425,6 @@ emit_note_insn_var_location (void **varp, void *data)
 		break;
 	      }
 	  gcc_assert (lc);
-	  loc2 = var->var_part[i].cur_loc;
 	}
 
       offsets[n_var_parts] = offset;
@@ -8351,7 +8638,6 @@ notify_dependents_of_changed_value (rtx val, htab_t htab,
   while ((led = VAR_LOC_DEP_LST (var)))
     {
       decl_or_value ldv = led->dv;
-      void **islot;
       variable ivar;
 
       /* Deactivate and remove the backlink, as it was “used up”.  It
@@ -8376,13 +8662,34 @@ notify_dependents_of_changed_value (rtx val, htab_t htab,
 	  VEC_safe_push (rtx, stack, *changed_values_stack, dv_as_rtx (ldv));
 	  break;
 
-	default:
-	  islot = htab_find_slot_with_hash (htab, ldv, dv_htab_hash (ldv),
-					    NO_INSERT);
-	  ivar = (variable) *islot;
+	case ONEPART_VDECL:
+	  ivar = (variable) htab_find_with_hash (htab, ldv, dv_htab_hash (ldv));
 	  gcc_checking_assert (!VAR_LOC_DEP_LST (ivar));
 	  variable_was_changed (ivar, NULL);
 	  break;
+
+	case NOT_ONEPART:
+	  pool_free (loc_exp_dep_pool, led);
+	  ivar = (variable) htab_find_with_hash (htab, ldv, dv_htab_hash (ldv));
+	  if (ivar)
+	    {
+	      int i = ivar->n_var_parts;
+	      while (i--)
+		{
+		  rtx loc = ivar->var_part[i].cur_loc;
+
+		  if (loc && GET_CODE (loc) == MEM
+		      && XEXP (loc, 0) == val)
+		    {
+		      variable_was_changed (ivar, NULL);
+		      break;
+		    }
+		}
+	    }
+	  break;
+
+	default:
+	  gcc_unreachable ();
 	}
     }
 }
@@ -8719,29 +9026,41 @@ emit_notes_in_bb (basic_block bb, dataflow_set *set)
 	    {
 	      rtx loc = mo->u.loc;
 	      rtx val, vloc, uloc;
+	      rtx dstv, srcv;
 
 	      vloc = loc;
 	      uloc = XEXP (vloc, 1);
 	      val = XEXP (vloc, 0);
 	      vloc = uloc;
 
+	      if (GET_CODE (uloc) == SET)
+		{
+		  dstv = SET_DEST (uloc);
+		  srcv = SET_SRC (uloc);
+		}
+	      else
+		{
+		  dstv = uloc;
+		  srcv = NULL;
+		}
+
 	      if (GET_CODE (val) == CONCAT)
 		{
-		  vloc = XEXP (val, 1);
+		  dstv = vloc = XEXP (val, 1);
 		  val = XEXP (val, 0);
 		}
 
 	      if (GET_CODE (vloc) == SET)
 		{
-		  rtx vsrc = SET_SRC (vloc);
+		  srcv = SET_SRC (vloc);
 
-		  gcc_assert (val != vsrc);
+		  gcc_assert (val != srcv);
 		  gcc_assert (vloc == uloc || VAL_NEEDS_RESOLUTION (loc));
 
-		  vloc = SET_DEST (vloc);
+		  dstv = vloc = SET_DEST (vloc);
 
 		  if (VAL_NEEDS_RESOLUTION (loc))
-		    val_resolve (set, val, vsrc, insn);
+		    val_resolve (set, val, srcv, insn);
 		}
 	      else if (VAL_NEEDS_RESOLUTION (loc))
 		{
@@ -8757,39 +9076,49 @@ emit_notes_in_bb (basic_block bb, dataflow_set *set)
 		      if (REG_P (uloc))
 			var_reg_delete (set, uloc, true);
 		      else if (MEM_P (uloc))
-			var_mem_delete (set, uloc, true);
+			{
+			  gcc_assert (MEM_P (dstv));
+			  gcc_assert (MEM_ATTRS (dstv) == MEM_ATTRS (uloc));
+			  var_mem_delete (set, dstv, true);
+			}
 		    }
 		  else
 		    {
 		      bool copied_p = VAL_EXPR_IS_COPIED (loc);
-		      rtx set_src = NULL;
+		      rtx src = NULL, dst = uloc;
 		      enum var_init_status status = VAR_INIT_STATUS_INITIALIZED;
 
 		      if (GET_CODE (uloc) == SET)
 			{
-			  set_src = SET_SRC (uloc);
-			  uloc = SET_DEST (uloc);
+			  src = SET_SRC (uloc);
+			  dst = SET_DEST (uloc);
 			}
 
 		      if (copied_p)
 			{
-			  status = find_src_status (set, set_src);
+			  status = find_src_status (set, src);
 
-			  set_src = find_src_set_src (set, set_src);
+			  src = find_src_set_src (set, src);
 			}
 
-		      if (REG_P (uloc))
-			var_reg_delete_and_set (set, uloc, !copied_p,
-						status, set_src);
-		      else if (MEM_P (uloc))
-			var_mem_delete_and_set (set, uloc, !copied_p,
-						status, set_src);
+		      if (REG_P (dst))
+			var_reg_delete_and_set (set, dst, !copied_p,
+						status, srcv);
+		      else if (MEM_P (dst))
+			{
+			  gcc_assert (MEM_P (dstv));
+			  gcc_assert (MEM_ATTRS (dstv) == MEM_ATTRS (dst));
+			  var_mem_delete_and_set (set, dstv, !copied_p,
+						  status, srcv);
+			}
 		    }
 		}
 	      else if (REG_P (uloc))
 		var_regno_delete (set, REGNO (uloc));
+	      else if (MEM_P (uloc))
+		clobber_overlapping_mems (set, uloc);
 
-	      val_store (set, val, vloc, insn, true);
+	      val_store (set, val, dstv, insn, true);
 
 	      emit_notes_for_changes (next_insn, EMIT_NOTE_BEFORE_INSN,
 				      set->vars);
@@ -8898,9 +9227,13 @@ vt_emit_notes (void)
   emit_notes = true;
 
   if (MAY_HAVE_DEBUG_INSNS)
-    dropped_values = htab_create (cselib_get_next_uid () * 2,
-				  variable_htab_hash, variable_htab_eq,
-				  variable_htab_free);
+    {
+      dropped_values = htab_create (cselib_get_next_uid () * 2,
+				    variable_htab_hash, variable_htab_eq,
+				    variable_htab_free);
+      loc_exp_dep_pool = create_alloc_pool ("loc_exp_dep pool",
+					    sizeof (loc_exp_dep), 64);
+    }
 
   dataflow_set_init (&cur);
 
@@ -8992,14 +9325,11 @@ vt_add_function_parameter (tree parm)
   if (GET_MODE (decl_rtl) == BLKmode || GET_MODE (incoming) == BLKmode)
     return;
 
-  /* If there is a DRAP register, rewrite the incoming location of parameters
-     passed on the stack into MEMs based on the argument pointer, as the DRAP
-     register can be reused for other purposes and we do not track locations
-     based on generic registers.  But the prerequisite is that this argument
-     pointer be also the virtual CFA pointer, see vt_initialize.  */
+  /* If there is a DRAP register or a pseudo in internal_arg_pointer,
+     rewrite the incoming location of parameters passed on the stack
+     into MEMs based on the argument pointer, so that incoming doesn't
+     depend on a pseudo.  */
   if (MEM_P (incoming)
-      && stack_realign_drap
-      && arg_pointer_rtx == cfa_base_rtx
       && (XEXP (incoming, 0) == crtl->args.internal_arg_pointer
 	  || (GET_CODE (XEXP (incoming, 0)) == PLUS
 	      && XEXP (XEXP (incoming, 0), 0)
@@ -9023,13 +9353,13 @@ vt_add_function_parameter (tree parm)
       && HARD_REGISTER_P (incoming)
       && OUTGOING_REGNO (REGNO (incoming)) != REGNO (incoming))
     {
-      parm_reg_t *p
-	= VEC_safe_push (parm_reg_t, gc, windowed_parm_regs, NULL);
-      p->incoming = incoming;
+      parm_reg_t p;
+      p.incoming = incoming;
       incoming
 	= gen_rtx_REG_offset (incoming, GET_MODE (incoming),
 			      OUTGOING_REGNO (REGNO (incoming)), 0);
-      p->outgoing = incoming;
+      p.outgoing = incoming;
+      VEC_safe_push (parm_reg_t, gc, windowed_parm_regs, p);
     }
   else if (MEM_P (incoming)
 	   && REG_P (XEXP (incoming, 0))
@@ -9038,11 +9368,11 @@ vt_add_function_parameter (tree parm)
       rtx reg = XEXP (incoming, 0);
       if (OUTGOING_REGNO (REGNO (reg)) != REGNO (reg))
 	{
-	  parm_reg_t *p
-	    = VEC_safe_push (parm_reg_t, gc, windowed_parm_regs, NULL);
-	  p->incoming = reg;
+	  parm_reg_t p;
+	  p.incoming = reg;
 	  reg = gen_raw_REG (GET_MODE (reg), OUTGOING_REGNO (REGNO (reg)));
-	  p->outgoing = reg;
+	  p.outgoing = reg;
+	  VEC_safe_push (parm_reg_t, gc, windowed_parm_regs, p);
 	  incoming = replace_equiv_address_nv (incoming, reg);
 	}
     }
@@ -9071,12 +9401,13 @@ vt_add_function_parameter (tree parm)
 
   if (parm != decl)
     {
-      /* Assume that DECL_RTL was a pseudo that got spilled to
-	 memory.  The spill slot sharing code will force the
-	 memory to reference spill_slot_decl (%sfp), so we don't
-	 match above.  That's ok, the pseudo must have referenced
-	 the entire parameter, so just reset OFFSET.  */
-      gcc_assert (decl == get_spill_slot_decl (false));
+      /* If that DECL_RTL wasn't a pseudo that got spilled to
+	 memory, bail out.  Otherwise, the spill slot sharing code
+	 will force the memory to reference spill_slot_decl (%sfp),
+	 so we don't match above.  That's ok, the pseudo must have
+	 referenced the entire parameter, so just reset OFFSET.  */
+      if (decl != get_spill_slot_decl (false))
+        return;
       offset = 0;
     }
 
@@ -9095,6 +9426,7 @@ vt_add_function_parameter (tree parm)
       && GET_CODE (incoming) != PARALLEL)
     {
       cselib_val *val;
+      rtx lowpart;
 
       /* ??? We shouldn't ever hit this, but it may happen because
 	 arguments passed by invisible reference aren't dealt with
@@ -9103,7 +9435,11 @@ vt_add_function_parameter (tree parm)
       if (offset)
 	return;
 
-      val = cselib_lookup_from_insn (var_lowpart (mode, incoming), mode, true,
+      lowpart = var_lowpart (mode, incoming);
+      if (!lowpart)
+	return;
+
+      val = cselib_lookup_from_insn (lowpart, mode, true,
 				     VOIDmode, get_insns ());
 
       /* ??? Float-typed values in memory are not handled by
@@ -9114,6 +9450,17 @@ vt_add_function_parameter (tree parm)
 	  set_variable_part (out, val->val_rtx, dv, offset,
 			     VAR_INIT_STATUS_INITIALIZED, NULL, INSERT);
 	  dv = dv_from_value (val->val_rtx);
+	}
+
+      if (MEM_P (incoming))
+	{
+	  val = cselib_lookup_from_insn (XEXP (incoming, 0), mode, true,
+					 VOIDmode, get_insns ());
+	  if (val)
+	    {
+	      preserve_value (val);
+	      incoming = replace_equiv_address_nv (incoming, val->val_rtx);
+	    }
 	}
     }
 
@@ -9243,9 +9590,6 @@ vt_init_cfa_base (void)
 				 VOIDmode, get_insns ());
   preserve_value (val);
   cselib_preserve_cfa_base_value (val, REGNO (cfa_base_rtx));
-  var_reg_decl_set (&VTI (ENTRY_BLOCK_PTR)->out, cfa_base_rtx,
-		    VAR_INIT_STATUS_INITIALIZED, dv_from_value (val->val_rtx),
-		    0, NULL_RTX, INSERT);
 }
 
 /* Allocate and initialize the data structures for variable tracking
@@ -9300,6 +9644,41 @@ vt_initialize (void)
     {
       scratch_regs = NULL;
       valvar_pool = NULL;
+    }
+
+  if (MAY_HAVE_DEBUG_INSNS)
+    {
+      rtx reg, expr;
+      int ofst;
+      cselib_val *val;
+
+#ifdef FRAME_POINTER_CFA_OFFSET
+      reg = frame_pointer_rtx;
+      ofst = FRAME_POINTER_CFA_OFFSET (current_function_decl);
+#else
+      reg = arg_pointer_rtx;
+      ofst = ARG_POINTER_CFA_OFFSET (current_function_decl);
+#endif
+
+      ofst -= INCOMING_FRAME_SP_OFFSET;
+
+      val = cselib_lookup_from_insn (reg, GET_MODE (reg), 1,
+				     VOIDmode, get_insns ());
+      preserve_value (val);
+      cselib_preserve_cfa_base_value (val, REGNO (reg));
+      expr = plus_constant (GET_MODE (stack_pointer_rtx),
+			    stack_pointer_rtx, -ofst);
+      cselib_add_permanent_equiv (val, expr, get_insns ());
+
+      if (ofst)
+	{
+	  val = cselib_lookup_from_insn (stack_pointer_rtx,
+					 GET_MODE (stack_pointer_rtx), 1,
+					 VOIDmode, get_insns ());
+	  preserve_value (val);
+	  expr = plus_constant (GET_MODE (reg), reg, ofst);
+	  cselib_add_permanent_equiv (val, expr, get_insns ());
+	}
     }
 
   /* In order to factor out the adjustments made to the stack pointer or to
@@ -9441,7 +9820,7 @@ vt_initialize (void)
 			    log_op_type (PATTERN (insn), bb, insn,
 					 MO_ADJUST, dump_file);
 			  VEC_safe_push (micro_operation, heap, VTI (bb)->mos,
-					 &mo);
+					 mo);
 			  VTI (bb)->out.stack_adjust += pre;
 			}
 		    }
@@ -9473,7 +9852,7 @@ vt_initialize (void)
 			log_op_type (PATTERN (insn), bb, insn,
 				     MO_ADJUST, dump_file);
 		      VEC_safe_push (micro_operation, heap, VTI (bb)->mos,
-				     &mo);
+				     mo);
 		      VTI (bb)->out.stack_adjust += post;
 		    }
 
@@ -9485,6 +9864,19 @@ vt_initialize (void)
 		    {
 		      vt_init_cfa_base ();
 		      hard_frame_pointer_adjustment = fp_cfa_offset;
+		      /* Disassociate sp from fp now.  */
+		      if (MAY_HAVE_DEBUG_INSNS)
+			{
+			  cselib_val *v;
+			  cselib_invalidate_rtx (stack_pointer_rtx);
+			  v = cselib_lookup (stack_pointer_rtx, Pmode, 1,
+					     VOIDmode);
+			  if (v && !cselib_preserved_value_p (v))
+			    {
+			      cselib_set_value_sp_based (v);
+			      preserve_value (v);
+			    }
+			}
 		    }
 		}
 	    }
@@ -9592,6 +9984,9 @@ vt_finalize (void)
 
   if (MAY_HAVE_DEBUG_INSNS)
     {
+      if (loc_exp_dep_pool)
+	free_alloc_pool (loc_exp_dep_pool);
+      loc_exp_dep_pool = NULL;
       free_alloc_pool (valvar_pool);
       VEC_free (rtx, heap, preserved_values);
       cselib_finish ();
@@ -9663,6 +10058,7 @@ variable_tracking_main_1 (void)
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
       dump_dataflow_sets ();
+      dump_reg_info (dump_file);
       dump_flow_info (dump_file, dump_flags);
     }
 

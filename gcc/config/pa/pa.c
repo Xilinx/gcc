@@ -33,11 +33,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "tree.h"
 #include "output.h"
+#include "dbxout.h"
 #include "except.h"
 #include "expr.h"
 #include "optabs.h"
 #include "reload.h"
-#include "integrate.h"
 #include "function.h"
 #include "diagnostic-core.h"
 #include "ggc.h"
@@ -91,7 +91,7 @@ static void copy_reg_pointer (rtx, rtx);
 static void fix_range (const char *);
 static int hppa_register_move_cost (enum machine_mode mode, reg_class_t,
 				    reg_class_t);
-static int hppa_address_cost (rtx, bool);
+static int hppa_address_cost (rtx, enum machine_mode mode, addr_space_t, bool);
 static bool hppa_rtx_costs (rtx, int, int, int, int *, bool);
 static inline rtx force_mode (enum machine_mode, rtx);
 static void pa_reorg (void);
@@ -188,6 +188,7 @@ static enum machine_mode pa_c_mode_for_suffix (char);
 static section *pa_function_section (tree, enum node_frequency, bool, bool);
 static bool pa_cannot_force_const_mem (enum machine_mode, rtx);
 static bool pa_legitimate_constant_p (enum machine_mode, rtx);
+static unsigned int pa_section_type_flags (tree, const char *, int);
 
 /* The following extra sections are only used for SOM.  */
 static GTY(()) section *som_readonly_data_section;
@@ -383,6 +384,8 @@ static size_t n_deferred_plabels = 0;
 
 #undef TARGET_LEGITIMATE_CONSTANT_P
 #define TARGET_LEGITIMATE_CONSTANT_P pa_legitimate_constant_p
+#undef TARGET_SECTION_TYPE_FLAGS
+#define TARGET_SECTION_TYPE_FLAGS pa_section_type_flags
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -1394,7 +1397,8 @@ hppa_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
    as GO_IF_LEGITIMATE_ADDRESS.  */
 
 static int
-hppa_address_cost (rtx X,
+hppa_address_cost (rtx X, enum machine_mode mode ATTRIBUTE_UNUSED,
+		   addr_space_t as ATTRIBUTE_UNUSED,
 		   bool speed ATTRIBUTE_UNUSED)
 {
   switch (GET_CODE (X))
@@ -1418,6 +1422,8 @@ static bool
 hppa_rtx_costs (rtx x, int code, int outer_code, int opno ATTRIBUTE_UNUSED,
 		int *total, bool speed ATTRIBUTE_UNUSED)
 {
+  int factor;
+
   switch (code)
     {
     case CONST_INT:
@@ -1449,11 +1455,20 @@ hppa_rtx_costs (rtx x, int code, int outer_code, int opno ATTRIBUTE_UNUSED,
 
     case MULT:
       if (GET_MODE_CLASS (GET_MODE (x)) == MODE_FLOAT)
-        *total = COSTS_N_INSNS (3);
-      else if (TARGET_PA_11 && !TARGET_DISABLE_FPREGS && !TARGET_SOFT_FLOAT)
-	*total = COSTS_N_INSNS (8);
+	{
+	  *total = COSTS_N_INSNS (3);
+	  return true;
+	}
+
+      /* A mode size N times larger than SImode needs O(N*N) more insns.  */
+      factor = GET_MODE_SIZE (GET_MODE (x)) / 4;
+      if (factor == 0)
+	factor = 1;
+
+      if (TARGET_PA_11 && !TARGET_DISABLE_FPREGS && !TARGET_SOFT_FLOAT)
+	*total = factor * factor * COSTS_N_INSNS (8);
       else
-	*total = COSTS_N_INSNS (20);
+	*total = factor * factor * COSTS_N_INSNS (20);
       return true;
 
     case DIV:
@@ -1467,15 +1482,28 @@ hppa_rtx_costs (rtx x, int code, int outer_code, int opno ATTRIBUTE_UNUSED,
     case UDIV:
     case MOD:
     case UMOD:
-      *total = COSTS_N_INSNS (60);
+      /* A mode size N times larger than SImode needs O(N*N) more insns.  */
+      factor = GET_MODE_SIZE (GET_MODE (x)) / 4;
+      if (factor == 0)
+	factor = 1;
+
+      *total = factor * factor * COSTS_N_INSNS (60);
       return true;
 
     case PLUS: /* this includes shNadd insns */
     case MINUS:
       if (GET_MODE_CLASS (GET_MODE (x)) == MODE_FLOAT)
-	*total = COSTS_N_INSNS (3);
-      else
-        *total = COSTS_N_INSNS (1);
+	{
+	  *total = COSTS_N_INSNS (3);
+	  return true;
+	}
+
+      /* A size N times larger than UNITS_PER_WORD needs N times as
+	 many insns, taking N times as long.  */
+      factor = GET_MODE_SIZE (GET_MODE (x)) / UNITS_PER_WORD;
+      if (factor == 0)
+	factor = 1;
+      *total = factor * COSTS_N_INSNS (1);
       return true;
 
     case ASHIFT:
@@ -1588,7 +1616,7 @@ pa_emit_move_sequence (rtx *operands, enum machine_mode mode, rtx scratch_reg)
       rtx temp = gen_rtx_SUBREG (GET_MODE (operand0),
 				 reg_equiv_mem (REGNO (SUBREG_REG (operand0))),
 				 SUBREG_BYTE (operand0));
-      operand0 = alter_subreg (&temp);
+      operand0 = alter_subreg (&temp, true);
     }
 
   if (scratch_reg
@@ -1605,7 +1633,7 @@ pa_emit_move_sequence (rtx *operands, enum machine_mode mode, rtx scratch_reg)
       rtx temp = gen_rtx_SUBREG (GET_MODE (operand1),
 				 reg_equiv_mem (REGNO (SUBREG_REG (operand1))),
 				 SUBREG_BYTE (operand1));
-      operand1 = alter_subreg (&temp);
+      operand1 = alter_subreg (&temp, true);
     }
 
   if (scratch_reg && reload_in_progress && GET_CODE (operand0) == MEM
@@ -3670,7 +3698,7 @@ pa_compute_frame_size (HOST_WIDE_INT size, int *fregs_live)
   /* Allocate space for the fixed frame marker.  This space must be
      allocated for any function that makes calls or allocates
      stack space.  */
-  if (!current_function_is_leaf || size)
+  if (!crtl->is_leaf || size)
     size += TARGET_64BIT ? 48 : 32;
 
   /* Finally, round to the preferred stack boundary.  */
@@ -3708,7 +3736,7 @@ pa_output_function_prologue (FILE *file, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
      to output the assembler directives which denote the start
      of a function.  */
   fprintf (file, "\t.CALLINFO FRAME=" HOST_WIDE_INT_PRINT_DEC, actual_fsize);
-  if (current_function_is_leaf)
+  if (crtl->is_leaf)
     fputs (",NO_CALLS", file);
   else
     fputs (",CALLS", file);
@@ -5939,7 +5967,7 @@ pa_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
 	}
 
       /* Request a secondary reload with a general scratch register
-	 for everthing else.  ??? Could symbolic operands be handled
+	 for everything else.  ??? Could symbolic operands be handled
 	 directly when generating non-pic PA 2.0 code?  */
       sri->icode = (in_p
 		    ? direct_optab_handler (reload_in_optab, mode)
@@ -7454,7 +7482,7 @@ pa_attr_length_millicode_call (rtx insn)
     return 24;
   else
     {
-      if (!TARGET_LONG_CALLS && distance < 240000)
+      if (!TARGET_LONG_CALLS && distance < MAX_PCREL17F_OFFSET)
 	return 8;
 
       if (TARGET_LONG_ABS_CALL && !flag_pic)
@@ -7667,7 +7695,7 @@ pa_attr_length_call (rtx insn, int sibcall)
   /* pc-relative branch.  */
   if (!TARGET_LONG_CALLS
       && ((TARGET_PA_20 && !sibcall && distance < 7600000)
-	  || distance < 240000))
+	  || distance < MAX_PCREL17F_OFFSET))
     length += 8;
 
   /* 64-bit plabel sequence.  */
@@ -8026,7 +8054,7 @@ pa_attr_length_indirect_call (rtx insn)
   if (TARGET_FAST_INDIRECT_CALLS
       || (!TARGET_PORTABLE_RUNTIME
 	  && ((TARGET_PA_20 && !TARGET_SOM && distance < 7600000)
-	      || distance < 240000)))
+	      || distance < MAX_PCREL17F_OFFSET)))
     return 8;
 
   if (flag_pic)
@@ -9920,11 +9948,9 @@ static GTY(()) VEC(extern_symbol,gc) *extern_symbols;
 void
 pa_hpux_asm_output_external (FILE *file, tree decl, const char *name)
 {
-  extern_symbol * p = VEC_safe_push (extern_symbol, gc, extern_symbols, NULL);
-
   gcc_assert (file == asm_out_file);
-  p->decl = decl;
-  p->name = name;
+  extern_symbol p = {decl, name};
+  VEC_safe_push (extern_symbol, gc, extern_symbols, p);
 }
 
 /* Output text required at the end of an assembler file.
@@ -10340,7 +10366,29 @@ pa_legitimate_constant_p (enum machine_mode mode, rtx x)
       && !pa_cint_ok_for_move (INTVAL (x)))
     return false;
 
+  if (function_label_operand (x, mode))
+    return false;
+
   return true;
+}
+
+/* Implement TARGET_SECTION_TYPE_FLAGS.  */
+
+static unsigned int
+pa_section_type_flags (tree decl, const char *name, int reloc)
+{
+  unsigned int flags;
+
+  flags = default_section_type_flags (decl, name, reloc);
+
+  /* Function labels are placed in the constant pool.  This can
+     cause a section conflict if decls are put in ".data.rel.ro"
+     or ".data.rel.ro.local" using the __attribute__ construct.  */
+  if (strcmp (name, ".data.rel.ro") == 0
+      || strcmp (name, ".data.rel.ro.local") == 0)
+    flags |= SECTION_WRITE | SECTION_RELRO;
+
+  return flags;
 }
 
 #include "gt-pa.h"
