@@ -33208,6 +33208,13 @@ ix86_free_from_memory (enum machine_mode mode)
     }
 }
 
+/* Return true if we use LRA instead of reload pass.  */
+static bool
+ix86_lra_p (void)
+{
+  return ix86_no_lra == 0 && true;
+}
+
 /* Return a register priority for hard reg REGNO.  */
 static int
 ix86_register_priority (int hard_regno)
@@ -42469,7 +42476,7 @@ ix86_memmodel_check (unsigned HOST_WIDE_INT val)
 #define TARGET_LEGITIMATE_ADDRESS_P ix86_legitimate_address_p
 
 #undef TARGET_LRA_P
-#define TARGET_LRA_P hook_bool_void_true
+#define TARGET_LRA_P ix86_lra_p
 
 #undef TARGET_REGISTER_PRIORITY
 #define TARGET_REGISTER_PRIORITY ix86_register_priority
