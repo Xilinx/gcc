@@ -1,4 +1,9 @@
 
+2012-10-28  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* make-melt-plugin-source-tar.sh: Make a snapshot with -s
+	argument.
+
 2012-10-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.cc (SmeltFile::create_tags): New internal function.
 	(SmeltFile::SmeltFile): Call it.

@@ -36,6 +36,13 @@ else
     gccmelt_copy="cp -av"
 fi
 
+
+## if the first argument is -s we are making a snapshot
+if [ "$1" = "-s" ]; then
+    gccmelt_snapshot=snapshot
+    shift
+fi
+
 ## the first argument of this script is the source tree of the GCC
 ## MELT branch from which is extracted the MELT plugin source, for
 ## instance /usr/src/Lang/gcc-melt
@@ -71,6 +78,14 @@ fi
 if [ -z $gccmelt_tarbase ]; then
     echo $0 Bad second argument for GCC MELT tar ball base $gccmelt_tarbase >&2
     exit 1
+fi
+
+if [ -n "$gccmelt_snapshot" ]; then
+    gccmelt_svnrev=$(svn info $gccmelt_source_tree | awk '/^Revision:/{print $2}')
+    case $gccmelt_svnrev in
+	[1-9][0-9]*) gccmelt_snapshot="snap-svnrev-$gccmelt_svnrev";;
+	*);;
+    esac
 fi
 
 rm -rf $gccmelt_tarbase
@@ -118,7 +133,9 @@ copymelt gcc/gimple-pretty-print.h gimple-pretty-print.h
 copymelt gcc/tree-pretty-print.h tree-pretty-print.h
 copymelt gcc/make-melt-predefh.awk make-melt-predefh.awk
 copymelt gcc/make-warmelt-predef.awk make-warmelt-predef.awk
-copymelt gcc/melt-build-script.tpl gcc/melt-build-script.def gcc/melt-build-script.sh
+copymelt gcc/melt-build-script.tpl
+copymelt gcc/melt-build-script.def 
+copymelt gcc/melt-build-script.sh
 
 
 for mf in $gccmelt_source_tree/gcc/melt/*.melt ; do 
@@ -137,6 +154,7 @@ for mf in $gccmelt_source_tree/gcc/*melt*  ; do
     esac
 done
 
+
 for cf in  $gccmelt_source_tree/contrib/*melt*.sh $gccmelt_source_tree/contrib/pygmentize-melt ; do
     copymelt contrib/$(basename $cf) 
     chmod a+x $gccmelt_tarbase/$(basename $cf)
@@ -148,6 +166,14 @@ done
 
 copymelt INSTALL/README-MELT-PLUGIN
 copymelt libmeltopengpu/meltopengpu-runtime.c
+
+if [ -n "$gccmelt_snapshot" ]; then
+    gccmelt_origpat='#define *MELT_VERSION_STRING *"\([a-zA-Z0-9.-]*\)" *'
+    gccmelt_replac="#define MELT_VERSION_STRING \"\\1-$gccmelt_snapshot\""
+    sed -i "s/$gccmelt_origpat/$gccmelt_replac/" $gccmelt_tarbase/melt-runtime.h
+    grep "define *MELT_VERSION_STRING"  $gccmelt_tarbase/melt-runtime.h
+fi
+
 
 if [ -n "$gengtype_prog" ]; then
     gengtype_version=$($gengtype_prog -V | head -1 | awk '{print $NF}' 2>/dev/null)
