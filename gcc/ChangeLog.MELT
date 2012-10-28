@@ -1,4 +1,10 @@
 
+2012-10-28  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/xtramelt-ana-tree.melt (tree_addr_expr): Can be used to
+	build trees.
+	(tree_va_arg_expr): New cmatcher.
+
 2012-10-24  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/xtramelt-probe.melt (scanprobe_exec): Use output_tree, not

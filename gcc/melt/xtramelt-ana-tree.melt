@@ -1064,9 +1064,28 @@ current :tree and :gimple. Stop walking if the closure gives null.}#
   #{ /*  tree_addr_expr $TREEAE !*/
        $TYPE = TREE_TYPE ($tr);
        $EXPR = TREE_OPERAND ($tr, 0);
-  }#)
+  }#
 
+  #{ /* tree_addr_expr: */ (($TYPE != NULL && $EXPR != NULL)
+			    ? build_fold_addr_expr_with_type((tree)$EXPR, (tree)$TYPE)
+			    : (tree)NULL) 
+  }#
+)
 
+;;;;;;;;;;;;;;;;
+(defcmatcher tree_va_arg_expr
+  (:tree tr)
+  (:tree trva trtype)
+  treeva
+  :doc #{$TREE_VA_ARG_EPXR is used for @code{va_arg} in variadic functions.}#
+  #{ /* tree_va_arg_expr $TREEVA ?*/
+  (($TR) && TREE_CODE ($TR) == VA_ARG_EXPR)
+  }#
+  #{ /* tree_va_arg_expr $TREEVA !*/
+     $TRVA = TREE_OPERAND ($TR, 0);
+     $TRTYPE = TREE_TYPE ($TR);
+  }#
+)
 ;;;;;;;;
 (defcmatcher tree_record_type
   (:tree tr)
@@ -1704,7 +1723,8 @@ pointer type node.}#
  tree_uid
  tree_unsigned_char_type_node 
  tree_unsigned_type_node
- tree_useless_type_conversion_p
+ tree_useless_type_conversion_p 
+ tree_va_arg_expr
  tree_var_decl
  tree_var_decl_named
  tree_var_decl_of_name
