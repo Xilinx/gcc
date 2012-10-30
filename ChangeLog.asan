@@ -1,0 +1,7 @@
+2012-10-29  Wei Mi  <wmi@google.com>
+
+	* configure.ac: Add libasan to target_libraries
+	* Makefile.def: Ditto
+	* configure: Regenerate
+	* Makefile.in: Regenerate
+	* libasan: New directory for asan runtime
