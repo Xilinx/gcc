@@ -4921,7 +4921,9 @@ track_expr_p (tree expr, bool need_rtl)
 	realdecl = expr;
       else if (!DECL_P (realdecl))
 	{
-	  if (handled_component_p (realdecl))
+	  if (handled_component_p (realdecl)
+	      || (TREE_CODE (realdecl) == MEM_REF
+		  && TREE_CODE (TREE_OPERAND (realdecl, 0)) == ADDR_EXPR))
 	    {
 	      HOST_WIDE_INT bitsize, bitpos, maxsize;
 	      tree innerdecl
@@ -6746,11 +6748,11 @@ vt_find_locations (void)
   visited = sbitmap_alloc (last_basic_block);
   in_worklist = sbitmap_alloc (last_basic_block);
   in_pending = sbitmap_alloc (last_basic_block);
-  sbitmap_zero (in_worklist);
+  bitmap_clear (in_worklist);
 
   FOR_EACH_BB (bb)
     fibheap_insert (pending, bb_order[bb->index], bb);
-  sbitmap_ones (in_pending);
+  bitmap_ones (in_pending);
 
   while (success && !fibheap_empty (pending))
     {
@@ -6761,7 +6763,7 @@ vt_find_locations (void)
       in_pending = in_worklist;
       in_worklist = sbitmap_swap;
 
-      sbitmap_zero (visited);
+      bitmap_clear (visited);
 
       while (!fibheap_empty (worklist))
 	{

@@ -261,7 +261,7 @@ Objective-C and Objective-C++ Dialects}.
 -Woverlength-strings  -Wpacked  -Wpacked-bitfield-compat  -Wpadded @gol
 -Wparentheses  -Wpedantic-ms-format -Wno-pedantic-ms-format @gol
 -Wpointer-arith  -Wno-pointer-to-int-cast @gol
--Wredundant-decls @gol
+-Wredundant-decls  -Wno-return-local-addr @gol
 -Wreturn-type  -Wsequence-point  -Wshadow @gol
 -Wsign-compare  -Wsign-conversion  -Wsizeof-pointer-memaccess @gol
 -Wstack-protector -Wstack-usage=@var{len} -Wstrict-aliasing @gol
@@ -1617,7 +1617,7 @@ GNU dialect of ISO C99.  When ISO C99 is fully implemented in GCC,
 this will become the default.  The name @samp{gnu9x} is deprecated.
 
 @item gnu11
-@item gnu1x
+@itemx gnu1x
 GNU dialect of ISO C11.  Support is incomplete and experimental.  The
 name @samp{gnu1x} is deprecated.
 
@@ -3539,6 +3539,12 @@ definitions, may be found on the GCC readings page, at
 
 This warning is enabled by @option{-Wall} for C and C++.
 
+@item -Wno-return-local-addr
+@opindex Wno-return-local-addr
+@opindex Wreturn-local-addr
+Do not warn about returning a pointer (or in C++, a reference) to a
+variable that goes out of scope after the function returns.
+
 @item -Wreturn-type
 @opindex Wreturn-type
 @opindex Wno-return-type
@@ -4636,6 +4642,13 @@ cases where multiple declaration is valid and changes nothing.
 @opindex Wno-nested-externs
 Warn if an @code{extern} declaration is encountered within a function.
 
+@item -Wno-inherited-variadic-ctor
+@opindex Winherited-variadic-ctor
+@opindex Wno-inherited-variadic-ctor
+Suppress warnings about use of C++11 inheriting constructors when the
+base class inherited from has a C variadic constructor; the warning is
+on by default because the ellipsis is not inherited.
+
 @item -Winline
 @opindex Winline
 @opindex Wno-inline
@@ -4718,6 +4731,16 @@ scalar operation is performed on every vector element;
 using scalars of wider type, which normally is more performance efficient;
 and @code{as a single scalar}, which means that vector fits into a
 scalar type.
+
+@item -Wno-virtual-move-assign
+@opindex Wvirtual-move-assign
+@opindex Wno-virtual-move-assign
+Suppress warnings about inheriting from a virtual base with a
+non-trivial C++11 move assignment operator.  This is dangerous because
+if the virtual base is reachable along more than one path, it will be
+moved multiple times, which can mean both objects end up in the
+moved-from state.  If the move assignment operator is written to avoid
+moving from a moved-from object, this warning can be disabled.
 
 @item -Wvla
 @opindex Wvla
@@ -5297,7 +5320,7 @@ is set by this option.
 For example, with @option{-fdbg-cnt=dce:10,tail_call:0},
 @code{dbg_cnt(dce)} returns true only for first 10 invocations.
 
-@itemx -fenable-@var{kind}-@var{pass}
+@item -fenable-@var{kind}-@var{pass}
 @itemx -fdisable-@var{kind}-@var{pass}=@var{range-list}
 @opindex fdisable-
 @opindex fenable-
@@ -5452,11 +5475,11 @@ Dump after duplicating the computed gotos.
 @option{-fdump-rtl-ce3} enable dumping after the three
 if conversion passes.
 
-@itemx -fdump-rtl-cprop_hardreg
+@item -fdump-rtl-cprop_hardreg
 @opindex fdump-rtl-cprop_hardreg
 Dump after hard register copy propagation.
 
-@itemx -fdump-rtl-csa
+@item -fdump-rtl-csa
 @opindex fdump-rtl-csa
 Dump after combining stack adjustments.
 
@@ -5467,11 +5490,11 @@ Dump after combining stack adjustments.
 @option{-fdump-rtl-cse1} and @option{-fdump-rtl-cse2} enable dumping after
 the two common subexpression elimination passes.
 
-@itemx -fdump-rtl-dce
+@item -fdump-rtl-dce
 @opindex fdump-rtl-dce
 Dump after the standalone dead code elimination passes.
 
-@itemx -fdump-rtl-dbr
+@item -fdump-rtl-dbr
 @opindex fdump-rtl-dbr
 Dump after delayed branch scheduling.
 
@@ -5516,7 +5539,7 @@ Dump after the initialization of the registers.
 @opindex fdump-rtl-initvals
 Dump after the computation of the initial value sets.
 
-@itemx -fdump-rtl-into_cfglayout
+@item -fdump-rtl-into_cfglayout
 @opindex fdump-rtl-into_cfglayout
 Dump after converting to cfglayout mode.
 
@@ -5546,7 +5569,7 @@ Dump after removing redundant mode switches.
 @opindex fdump-rtl-rnreg
 Dump after register renumbering.
 
-@itemx -fdump-rtl-outof_cfglayout
+@item -fdump-rtl-outof_cfglayout
 @opindex fdump-rtl-outof_cfglayout
 Dump after converting from cfglayout mode.
 
@@ -10803,10 +10826,10 @@ integer multiply, or integer multiply-and-accumulate.
 The default is @option{-mfp-mode=caller}
 
 @item -mnosplit-lohi
+@itemx -mno-postinc
+@itemx -mno-postmodify
 @opindex mnosplit-lohi
-@item -mno-postinc
 @opindex mno-postinc
-@item -mno-postmodify
 @opindex mno-postmodify
 Code generation tweaks that disable, respectively, splitting of 32-bit
 loads, generation of post-increment addresses, and generation of
@@ -10889,7 +10912,7 @@ statically linked only.
 Do not assume that unaligned memory references will be handled by the system.
 
 @item -momit-leaf-frame-pointer
-@item -mno-omit-leaf-frame-pointer
+@itemx -mno-omit-leaf-frame-pointer
 @opindex momit-leaf-frame-pointer
 @opindex mno-omit-leaf-frame-pointer
 Omit or keep the frame pointer in leaf functions.  The former behaviour is the
@@ -11727,7 +11750,7 @@ This is the case for devices with at least 16@tie{}KiB of program
 memory.
 
 @item __AVR_HAVE_EIJMP_EICALL__
-@item __AVR_3_BYTE_PC__
+@itemx __AVR_3_BYTE_PC__
 The device has the @code{EIJMP} and @code{EICALL} instructions.
 This is the case for devices with more than 128@tie{}KiB of program memory.
 This also means that the program counter
@@ -11738,13 +11761,13 @@ The program counter (PC) is 2@tie{}bytes wide. This is the case for devices
 with up to 128@tie{}KiB of program memory.
 
 @item __AVR_HAVE_8BIT_SP__
-@item __AVR_HAVE_16BIT_SP__
+@itemx __AVR_HAVE_16BIT_SP__
 The stack pointer (SP) register is treated as 8-bit respectively
 16-bit register by the compiler.
 The definition of these macros is affected by @code{-mtiny-stack}.
 
 @item __AVR_HAVE_SPH__
-@item __AVR_SP8__
+@itemx __AVR_SP8__
 The device has the SPH (high part of stack pointer) special function
 register or has an 8-bit stack pointer, respectively.
 The definition of these macros is affected by @code{-mmcu=} and
@@ -11752,9 +11775,9 @@ in the cases of @code{-mmcu=avr2} and @code{-mmcu=avr25} also
 by @code{-msp8}.
 
 @item __AVR_HAVE_RAMPD__
-@item __AVR_HAVE_RAMPX__
-@item __AVR_HAVE_RAMPY__
-@item __AVR_HAVE_RAMPZ__
+@itemx __AVR_HAVE_RAMPX__
+@itemx __AVR_HAVE_RAMPY__
+@itemx __AVR_HAVE_RAMPZ__
 The device has the @code{RAMPD}, @code{RAMPX}, @code{RAMPY},
 @code{RAMPZ} special function register, respectively.
 
@@ -11762,7 +11785,7 @@ The device has the @code{RAMPD}, @code{RAMPX}, @code{RAMPY},
 This macro reflects the @code{-mno-interrupts} command line option.
 
 @item __AVR_ERRATA_SKIP__
-@item __AVR_ERRATA_SKIP_JMP_CALL__
+@itemx __AVR_ERRATA_SKIP_JMP_CALL__
 Some AVR devices (AT90S8515, ATmega103) must not skip 32-bit
 instructions because of a hardware erratum.  Skip instructions are
 @code{SBRS}, @code{SBRC}, @code{SBIS}, @code{SBIC} and @code{CPSE}.
@@ -18445,7 +18468,7 @@ Mark the @code{MAC} register as call-clobbered, even if
 @option{-mhitachi} is given.
 
 @item -mieee
-@item -mno-ieee
+@itemx -mno-ieee
 @opindex mieee
 @opindex mnoieee
 Control the IEEE compliance of floating-point comparisons, which affects the

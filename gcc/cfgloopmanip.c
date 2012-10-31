@@ -190,7 +190,7 @@ fix_bb_placements (basic_block from,
     return;
 
   in_queue = sbitmap_alloc (last_basic_block);
-  sbitmap_zero (in_queue);
+  bitmap_clear (in_queue);
   SET_BIT (in_queue, from->index);
   /* Prevent us from going out of the base_loop.  */
   SET_BIT (in_queue, base_loop->header->index);
@@ -327,7 +327,7 @@ remove_path (edge e)
   n_bord_bbs = 0;
   bord_bbs = XNEWVEC (basic_block, n_basic_blocks);
   seen = sbitmap_alloc (last_basic_block);
-  sbitmap_zero (seen);
+  bitmap_clear (seen);
 
   /* Find "border" hexes -- i.e. those with predecessor in removed path.  */
   for (i = 0; i < nrem; i++)
@@ -365,7 +365,7 @@ remove_path (edge e)
   free (rem_bbs);
 
   /* Find blocks whose dominators may be affected.  */
-  sbitmap_zero (seen);
+  bitmap_clear (seen);
   for (i = 0; i < n_bord_bbs; i++)
     {
       basic_block ldom;
@@ -594,7 +594,7 @@ update_dominators_in_loop (struct loop *loop)
   unsigned i;
 
   seen = sbitmap_alloc (last_basic_block);
-  sbitmap_zero (seen);
+  bitmap_clear (seen);
   body = get_loop_body (loop);
 
   for (i = 0; i < loop->num_nodes; i++)
@@ -1586,6 +1586,7 @@ force_single_succ_latches (void)
 	continue;
 
       e = find_edge (loop->latch, loop->header);
+      gcc_checking_assert (e != NULL);
 
       split_edge (e);
     }
@@ -1847,6 +1848,32 @@ fix_loop_structure (bitmap changed_bbs)
     	  bb->aux = NULL;
 	}
     }
+
+  /* Then re-compute the single latch if there is one.  */
+  FOR_EACH_LOOP (li, loop, 0)
+    {
+      edge_iterator ei;
+      edge e, latch = NULL;
+      FOR_EACH_EDGE (e, ei, loop->header->preds)
+	if (dominated_by_p (CDI_DOMINATORS, e->src, loop->header))
+	  {
+	    if (!latch)
+	      latch = e;
+	    else
+	      {
+		latch = NULL;
+		break;
+	      }
+	  }
+      if (latch
+	  && latch->src->loop_father == loop)
+	loop->latch = latch->src;
+      else
+	loop->latch = NULL;
+    }
+
+  if (!loops_state_satisfies_p (LOOPS_MAY_HAVE_MULTIPLE_LATCHES))
+    disambiguate_loops_with_multiple_latches ();
 
   if (loops_state_satisfies_p (LOOPS_HAVE_PREHEADERS))
     create_preheaders (CP_SIMPLE_PREHEADERS);

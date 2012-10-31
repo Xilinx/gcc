@@ -681,34 +681,41 @@ check_caller_edge (struct cgraph_node *node, void *edge)
 }
 
 
-/* Decide if NODE is called once inlining it would eliminate need
-   for the offline copy of function.  */
+/* Decide if inlining NODE would reduce unit size by eliminating
+   the offline copy of function.  
+   When COLD is true the cold calls are considered, too.  */
 
 static bool
-want_inline_function_called_once_p (struct cgraph_node *node)
+want_inline_function_to_all_callers_p (struct cgraph_node *node, bool cold)
 {
    struct cgraph_node *function = cgraph_function_or_thunk_node (node, NULL);
+   struct cgraph_edge *e;
+   bool has_hot_call = false;
+
+   /* Does it have callers?  */
+   if (!node->callers)
+     return false;
    /* Already inlined?  */
    if (function->global.inlined_to)
      return false;
-   /* Zero or more then one callers?  */
-   if (!node->callers
-       || node->callers->next_caller)
+   if (cgraph_function_or_thunk_node (node, NULL) != node)
+     return false;
+   /* Inlining into all callers would increase size?  */
+   if (estimate_growth (node) > 0)
      return false;
    /* Maybe other aliases has more direct calls.  */
    if (cgraph_for_node_and_aliases (node, check_caller_edge, node->callers, true))
      return false;
-   /* Recursive call makes no sense to inline.  */
-   if (cgraph_edge_recursive_p (node->callers))
-     return false;
-   /* External functions are not really in the unit, so inlining
-      them when called once would just increase the program size.  */
-   if (DECL_EXTERNAL (function->symbol.decl))
-     return false;
-   /* Offline body must be optimized out.  */
-   if (!cgraph_will_be_removed_from_program_if_no_direct_calls (function))
-     return false;
-   if (!can_inline_edge_p (node->callers, true))
+   /* All inlines must be possible.  */
+   for (e = node->callers; e; e = e->next_caller)
+     {
+       if (!can_inline_edge_p (e, true))
+         return false;
+       if (!has_hot_call && cgraph_maybe_hot_edge_p (e))
+	 has_hot_call = 1;
+     }
+
+   if (!cold && !has_hot_call)
      return false;
    return true;
 }
@@ -845,8 +852,8 @@ edge_badness (struct cgraph_edge *edge, bool dump)
 	 precision for small bandesses (those are interesting) yet we don't
 	 overflow for growths that are still in interesting range.
 
-	 Fixed point arithmetic with point at 8th bit. */
-      badness = ((gcov_type)growth) * (1<<(19+8));
+	 Fixed point arithmetic with point at 6th bit. */
+      badness = ((gcov_type)growth) * (1<<(19+6));
       badness = (badness + div / 2) / div;
 
       /* Overall growth of inlining all calls of function matters: we want to
@@ -861,9 +868,9 @@ edge_badness (struct cgraph_edge *edge, bool dump)
 	 We might mix the valud into the fraction by taking into account
 	 relative growth of the unit, but for now just add the number
 	 into resulting fraction.  */
-      if (badness > INT_MAX / 2)
+      if (badness > INT_MAX / 8)
 	{
-	  badness = INT_MAX / 2;
+	  badness = INT_MAX / 8;
 	  if (dump)
 	    fprintf (dump_file, "Badness overflow\n");
 	}
@@ -871,6 +878,10 @@ edge_badness (struct cgraph_edge *edge, bool dump)
 		   | INLINE_HINT_loop_iterations
 		   | INLINE_HINT_loop_stride))
 	badness /= 8;
+      if (hints & (INLINE_HINT_same_scc))
+	badness *= 4;
+      if (hints & (INLINE_HINT_in_scc))
+	badness *= 2;
       if (dump)
 	{
 	  fprintf (dump_file,
@@ -1190,13 +1201,27 @@ recursive_inlining (struct cgraph_edge *edge,
     {
       struct cgraph_edge *curr
 	= (struct cgraph_edge *) fibheap_extract_min (heap);
-      struct cgraph_node *cnode;
-
-      if (estimate_size_after_inlining (node, curr) > limit)
-	break;
+      struct cgraph_node *cnode, *dest = curr->callee;
 
       if (!can_inline_edge_p (curr, true))
 	continue;
+
+      /* MASTER_CLONE is produced in the case we already started modified
+	 the function. Be sure to redirect edge to the original body before
+	 estimating growths otherwise we will be seeing growths after inlining
+	 the already modified body.  */
+      if (master_clone)
+	{
+          cgraph_redirect_edge_callee (curr, master_clone);
+          reset_edge_growth_cache (curr);
+	}
+
+      if (estimate_size_after_inlining (node, curr) > limit)
+	{
+	  cgraph_redirect_edge_callee (curr, dest);
+	  reset_edge_growth_cache (curr);
+	  break;
+	}
 
       depth = 1;
       for (cnode = curr->caller;
@@ -1206,7 +1231,11 @@ recursive_inlining (struct cgraph_edge *edge,
           depth++;
 
       if (!want_inline_self_recursive_call_p (curr, node, false, depth))
-	continue;
+	{
+	  cgraph_redirect_edge_callee (curr, dest);
+	  reset_edge_growth_cache (curr);
+	  continue;
+	}
 
       if (dump_file)
 	{
@@ -1228,9 +1257,10 @@ recursive_inlining (struct cgraph_edge *edge,
 	  for (e = master_clone->callees; e; e = e->next_callee)
 	    if (!e->inline_failed)
 	      clone_inlined_nodes (e, true, false, NULL);
+          cgraph_redirect_edge_callee (curr, master_clone);
+          reset_edge_growth_cache (curr);
 	}
 
-      cgraph_redirect_edge_callee (curr, master_clone);
       inline_call (curr, false, new_edges, &overall_size, true);
       lookup_recursive_calls (node, curr->callee, heap);
       n++;
@@ -1314,20 +1344,17 @@ inline_small_functions (void)
   int min_size, max_size;
   VEC (cgraph_edge_p, heap) *new_indirect_edges = NULL;
   int initial_size = 0;
+  struct cgraph_node **order = XCNEWVEC (struct cgraph_node *, cgraph_n_nodes);
 
   if (flag_indirect_inlining)
     new_indirect_edges = VEC_alloc (cgraph_edge_p, heap, 8);
-
-  if (dump_file)
-    fprintf (dump_file,
-	     "\nDeciding on inlining of small functions.  Starting with size %i.\n",
-	     initial_size);
 
   /* Compute overall unit size and other global parameters used by badness
      metrics.  */
 
   max_count = 0;
-  initialize_growth_caches ();
+  ipa_reduced_postorder (order, true, true, NULL);
+  free (order);
 
   FOR_EACH_DEFINED_FUNCTION (node)
     if (!node->global.inlined_to)
@@ -1336,15 +1363,36 @@ inline_small_functions (void)
 	    || node->thunk.thunk_p)
 	  {
 	    struct inline_summary *info = inline_summary (node);
+	    struct ipa_dfs_info *dfs = (struct ipa_dfs_info *) node->symbol.aux;
 
 	    if (!DECL_EXTERNAL (node->symbol.decl))
 	      initial_size += info->size;
+	    if (dfs && dfs->next_cycle)
+	      {
+		struct cgraph_node *n2;
+		int id = dfs->scc_no + 1;
+		for (n2 = node; n2;
+		     n2 = ((struct ipa_dfs_info *) node->symbol.aux)->next_cycle)
+		  {
+		    struct inline_summary *info2 = inline_summary (n2);
+		    if (info2->scc_no)
+		      break;
+		    info2->scc_no = id;
+		  }
+	      }
 	  }
 
 	for (edge = node->callers; edge; edge = edge->next_caller)
 	  if (max_count < edge->count)
 	    max_count = edge->count;
       }
+  ipa_free_postorder_info ();
+  initialize_growth_caches ();
+
+  if (dump_file)
+    fprintf (dump_file,
+	     "\nDeciding on inlining of small functions.  Starting with size %i.\n",
+	     initial_size);
 
   overall_size = initial_size;
   max_size = compute_max_insns (overall_size);
@@ -1509,7 +1557,7 @@ inline_small_functions (void)
 	  reset_edge_caches (edge->callee);
           reset_node_growth_cache (callee);
 
-	  update_callee_keys (edge_heap, edge->callee, updated_nodes);
+	  update_callee_keys (edge_heap, where, updated_nodes);
 	}
       where = edge->caller;
       if (where->global.inlined_to)
@@ -1688,14 +1736,16 @@ ipa_inline (void)
   symtab_remove_unreachable_nodes (true, dump_file);
   free (order);
 
-  /* We already perform some inlining of functions called once during
-     inlining small functions above.  After unreachable nodes are removed,
-     we still might do a quick check that nothing new is found.  */
+  /* Inline functions with a property that after inlining into all callers the
+     code size will shrink because the out-of-line copy is eliminated. 
+     We do this regardless on the callee size as long as function growth limits
+     are met.  */
   if (flag_inline_functions_called_once)
     {
       int cold;
       if (dump_file)
-	fprintf (dump_file, "\nDeciding on functions called once:\n");
+	fprintf (dump_file,
+		 "\nDeciding on functions to be inlined into all callers:\n");
 
       /* Inlining one function called once has good chance of preventing
 	 inlining other function into the same callee.  Ideally we should
@@ -1716,31 +1766,30 @@ ipa_inline (void)
 	{
 	  FOR_EACH_DEFINED_FUNCTION (node)
 	    {
-	      if (want_inline_function_called_once_p (node)
-		  && (cold
-		      || cgraph_maybe_hot_edge_p (node->callers)))
-		{
-		  struct cgraph_node *caller = node->callers->caller;
+	      if (want_inline_function_to_all_callers_p (node, cold))
+		while (node->callers && !node->global.inlined_to)
+		  {
+		    struct cgraph_node *caller = node->callers->caller;
 
-		  if (dump_file)
-		    {
-		      fprintf (dump_file,
-			       "\nInlining %s size %i.\n",
-			       cgraph_node_name (node),
-			       inline_summary (node)->size);
-		      fprintf (dump_file,
-			       " Called once from %s %i insns.\n",
-			       cgraph_node_name (node->callers->caller),
-			       inline_summary (node->callers->caller)->size);
-		    }
+		    if (dump_file)
+		      {
+			fprintf (dump_file,
+				 "\nInlining %s size %i.\n",
+				 cgraph_node_name (node),
+				 inline_summary (node)->size);
+			fprintf (dump_file,
+				 " Called once from %s %i insns.\n",
+				 cgraph_node_name (node->callers->caller),
+				 inline_summary (node->callers->caller)->size);
+		      }
 
-		  inline_call (node->callers, true, NULL, NULL, true);
-		  if (dump_file)
-		    fprintf (dump_file,
-			     " Inlined into %s which now has %i size\n",
-			     cgraph_node_name (caller),
-			     inline_summary (caller)->size);
-		}
+		    inline_call (node->callers, true, NULL, NULL, true);
+		    if (dump_file)
+		      fprintf (dump_file,
+			       " Inlined into %s which now has %i size\n",
+			       cgraph_node_name (caller),
+			       inline_summary (caller)->size);
+		  }
 	    }
 	}
     }

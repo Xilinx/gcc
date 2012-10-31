@@ -584,7 +584,7 @@ cond_arg_set_in_bb (edge e, basic_block bb)
 {
   ssa_op_iter iter;
   use_operand_p use_p;
-  gimple last = gsi_stmt (gsi_last_bb (e->dest));
+  gimple last = last_stmt (e->dest);
 
   /* E->dest does not have to end with a control transferring
      instruction.  This can occurr when we try to extend a jump
@@ -636,6 +636,24 @@ thread_around_empty_block (edge taken_edge,
   /* This block must have a single predecessor (E->dest).  */
   if (!single_pred_p (bb))
     return NULL;
+
+  /* Before threading, copy DEBUG stmts from the predecessor, so that
+     we don't lose the bindings as we redirect the edges.  */
+  if (MAY_HAVE_DEBUG_STMTS)
+    {
+      gsi = gsi_after_labels (bb);
+      for (gimple_stmt_iterator si = gsi_last_bb (taken_edge->src);
+	   !gsi_end_p (si); gsi_prev (&si))
+	{
+	  stmt = gsi_stmt (si);
+	  if (!is_gimple_debug (stmt))
+	    continue;
+
+	  stmt = gimple_copy (stmt);
+	  /* ??? Should we drop the location of the copy?  */
+	  gsi_insert_before (&gsi, stmt, GSI_NEW_STMT);
+	}
+    }
 
   /* This block must have more than one successor.  */
   if (single_succ_p (bb))

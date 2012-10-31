@@ -189,12 +189,6 @@ static void write_complex_part (rtx, rtx, bool);
   (move_by_pieces_ninsns (SIZE, ALIGN, STORE_MAX_PIECES + 1) \
    < (unsigned int) MOVE_RATIO (optimize_insn_for_speed_p ()))
 #endif
-
-/* SLOW_UNALIGNED_ACCESS is nonzero if unaligned accesses are very slow.  */
-
-#ifndef SLOW_UNALIGNED_ACCESS
-#define SLOW_UNALIGNED_ACCESS(MODE, ALIGN) STRICT_ALIGNMENT
-#endif
 
 /* This is run to set up which modes can be used
    directly in memory and to initialize the block move optab.  It is run
@@ -1464,11 +1458,11 @@ emit_block_move_via_loop (rtx x, rtx y, rtx size,
   emit_label (top_label);
 
   tmp = convert_modes (x_addr_mode, iter_mode, iter, true);
-  x_addr = gen_rtx_PLUS (x_addr_mode, x_addr, tmp);
+  x_addr = simplify_gen_binary (PLUS, x_addr_mode, x_addr, tmp);
 
   if (x_addr_mode != y_addr_mode)
     tmp = convert_modes (y_addr_mode, iter_mode, iter, true);
-  y_addr = gen_rtx_PLUS (y_addr_mode, y_addr, tmp);
+  y_addr = simplify_gen_binary (PLUS, y_addr_mode, y_addr, tmp);
 
   x = change_address (x, QImode, x_addr);
   y = change_address (y, QImode, y_addr);
