@@ -188,7 +188,7 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
   bool analyze_pattern_stmt = false;
   HOST_WIDE_INT linear_step_size = 0, new_step_size = 0;
 
-  if (dump_kind_p (MSG_NOTE))
+  if (dump_enabled_p ())
     dump_printf_loc (MSG_NOTE, vect_location,
                      "=== vect_determine_vectorization_factor ===");
 
@@ -200,7 +200,7 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 	{
 	  phi = gsi_stmt (si);
 	  stmt_info = vinfo_for_stmt (phi);
-	  if (dump_kind_p (MSG_NOTE))
+	  if (dump_enabled_p ())
 	    {
 	      dump_printf_loc (MSG_NOTE, vect_location, "==> examining phi: ");
 	      dump_gimple_stmt (MSG_NOTE, TDF_SLIM, phi, 0);
@@ -213,7 +213,7 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 	      gcc_assert (!STMT_VINFO_VECTYPE (stmt_info));
               scalar_type = TREE_TYPE (PHI_RESULT (phi));
 
-	      if (dump_kind_p (MSG_NOTE))
+	      if (dump_enabled_p ())
 		{
 		  dump_printf_loc (MSG_NOTE, vect_location,
                                    "get vectype for scalar type:  ");
@@ -223,7 +223,7 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 	      vectype = get_vectype_for_scalar_type (scalar_type);
 	      if (!vectype)
 		{
-		  if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+		  if (dump_enabled_p ())
 		    {
 		      dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
                                        "not vectorized: unsupported "
@@ -256,14 +256,14 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 		}
 	      STMT_VINFO_VECTYPE (stmt_info) = vectype;
 
-	      if (dump_kind_p (MSG_NOTE))
+	      if (dump_enabled_p ())
 		{
 		  dump_printf_loc (MSG_NOTE, vect_location, "vectype: ");
 		  dump_generic_expr (MSG_NOTE, TDF_SLIM, vectype);
 		}
 
 	      nunits = TYPE_VECTOR_SUBPARTS (vectype);
-	      if (dump_kind_p (MSG_NOTE))
+	      if (dump_enabled_p ())
 		dump_printf_loc (MSG_NOTE, vect_location, "nunits = %d", nunits);
 
 	      if (!vectorization_factor
@@ -310,7 +310,7 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 
           stmt_info = vinfo_for_stmt (stmt);
 
-	  if (dump_kind_p (MSG_NOTE))
+	  if (dump_enabled_p ())
 	    {
 	      dump_printf_loc (MSG_NOTE, vect_location,
                                "==> examining statement: ");
@@ -330,7 +330,7 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
                 {
                   stmt = pattern_stmt;
                   stmt_info = vinfo_for_stmt (pattern_stmt);
-                  if (dump_kind_p (MSG_NOTE))
+                  if (dump_enabled_p ())
                     {
                       dump_printf_loc (MSG_NOTE, vect_location,
                                        "==> examining pattern statement: ");
@@ -339,7 +339,7 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
                 }
               else
 	        {
-	          if (dump_kind_p (MSG_NOTE))
+	          if (dump_enabled_p ())
 	            dump_printf_loc (MSG_NOTE, vect_location, "skip.");
                   gsi_next (&si);
 	          continue;
@@ -379,7 +379,7 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 
 		  if (!gsi_end_p (pattern_def_si))
 		    {
-		      if (dump_kind_p (MSG_NOTE))
+		      if (dump_enabled_p ())
 			{
 			  dump_printf_loc (MSG_NOTE, vect_location,
                                            "==> examining pattern def stmt: ");
@@ -402,7 +402,7 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 
 	  if (gimple_get_lhs (stmt) == NULL_TREE)
 	    {
-	      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+	      if (dump_enabled_p ())
 		{
 	          dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
                                    "not vectorized: irregular stmt.");
@@ -420,7 +420,7 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 
 	  if (VECTOR_MODE_P (TYPE_MODE (gimple_expr_type (stmt))))
 	    {
-	      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+	      if (dump_enabled_p ())
 	        {
 	          dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
                                    "not vectorized: vector stmt in loop:");
@@ -450,7 +450,7 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 	    {
 	      gcc_assert (!STMT_VINFO_DATA_REF (stmt_info));
 	      scalar_type = TREE_TYPE (gimple_get_lhs (stmt));
-	      if (dump_kind_p (MSG_NOTE))
+	      if (dump_enabled_p ())
 		{
 		  dump_printf_loc (MSG_NOTE, vect_location,
                                    "get vectype for scalar type:  ");
@@ -459,7 +459,7 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 	      vectype = get_vectype_for_scalar_type (scalar_type);
 	      if (!vectype)
 		{
-		  if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+		  if (dump_enabled_p ())
 		    {
 		      dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
                                        "not vectorized: unsupported "
@@ -499,7 +499,7 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 	     support one vector size per loop).  */
 	  scalar_type = vect_get_smallest_scalar_type (stmt, &dummy,
 						       &dummy);
-	  if (dump_kind_p (MSG_NOTE))
+	  if (dump_enabled_p ())
 	    {
 	      dump_printf_loc (MSG_NOTE, vect_location,
                                "get vectype for scalar type:  ");
@@ -508,7 +508,7 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 	  vf_vectype = get_vectype_for_scalar_type (scalar_type);
 	  if (!vf_vectype)
 	    {
-	      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+	      if (dump_enabled_p ())
 		{
 		  dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
                                    "not vectorized: unsupported data-type ");
@@ -527,7 +527,7 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 	  if ((GET_MODE_SIZE (TYPE_MODE (vectype))
 	       != GET_MODE_SIZE (TYPE_MODE (vf_vectype))))
 	    {
-	      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+	      if (dump_enabled_p ())
 		{
 		  dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
                                    "not vectorized: different sized vector "
@@ -547,14 +547,14 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 	      return false;
 	    }
 
-	  if (dump_kind_p (MSG_NOTE))
+	  if (dump_enabled_p ())
 	    {
 	      dump_printf_loc (MSG_NOTE, vect_location, "vectype: ");
 	      dump_generic_expr (MSG_NOTE, TDF_SLIM, vf_vectype);
 	    }
 
 	  nunits = TYPE_VECTOR_SUBPARTS (vf_vectype);
-	  if (dump_kind_p (MSG_NOTE))
+	  if (dump_enabled_p ())
 	    dump_printf_loc (MSG_NOTE, vect_location, "nunits = %d", nunits);
 	  if (!vectorization_factor
 	      || (nunits > vectorization_factor))
@@ -595,12 +595,12 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
     }
 
   /* TODO: Analyze cost. Decide if worth while to vectorize.  */
-  if (dump_kind_p (MSG_NOTE))
+  if (dump_enabled_p ())
     dump_printf_loc (MSG_NOTE, vect_location, "vectorization factor = %d",
                      vectorization_factor);
   if (vectorization_factor <= 1)
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
         dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
                          "not vectorized: unsupported data-type");
 
@@ -644,7 +644,7 @@ vect_is_simple_iv_evolution (unsigned loop_nb, tree access_fn, tree * init,
   step_expr = evolution_part;
   init_expr = unshare_expr (initial_condition_in_loop_num (access_fn, loop_nb));
 
-  if (dump_kind_p (MSG_NOTE))
+  if (dump_enabled_p ())
     {
       dump_printf_loc (MSG_NOTE, vect_location, "step: ");
       dump_generic_expr (MSG_NOTE, TDF_SLIM, step_expr);
@@ -657,7 +657,7 @@ vect_is_simple_iv_evolution (unsigned loop_nb, tree access_fn, tree * init,
 
   if (TREE_CODE (step_expr) != INTEGER_CST)
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
         dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
                          "step unknown.");
       return false;
@@ -682,7 +682,7 @@ vect_analyze_scalar_cycles_1 (loop_vec_info loop_vinfo, struct loop *loop)
   gimple_stmt_iterator gsi;
   bool double_reduc;
 
-  if (dump_kind_p (MSG_NOTE))
+  if (dump_enabled_p ())
     dump_printf_loc (MSG_NOTE, vect_location,
                      "=== vect_analyze_scalar_cycles ===");
 
@@ -696,7 +696,7 @@ vect_analyze_scalar_cycles_1 (loop_vec_info loop_vinfo, struct loop *loop)
       tree def = PHI_RESULT (phi);
       stmt_vec_info stmt_vinfo = vinfo_for_stmt (phi);
 
-      if (dump_kind_p (MSG_NOTE))
+      if (dump_enabled_p ())
 	{
 	  dump_printf_loc (MSG_NOTE, vect_location, "Analyze phi: ");
 	  dump_gimple_stmt (MSG_NOTE, TDF_SLIM, phi, 0);
@@ -714,7 +714,7 @@ vect_analyze_scalar_cycles_1 (loop_vec_info loop_vinfo, struct loop *loop)
       if (access_fn)
 	{
 	  STRIP_NOPS (access_fn);
-	  if (dump_kind_p (MSG_NOTE))
+	  if (dump_enabled_p ())
 	    {
 	      dump_printf_loc (MSG_NOTE, vect_location,
                                "Access function of PHI: ");
@@ -733,7 +733,7 @@ vect_analyze_scalar_cycles_1 (loop_vec_info loop_vinfo, struct loop *loop)
 
       gcc_assert (STMT_VINFO_LOOP_PHI_EVOLUTION_PART (stmt_vinfo) != NULL_TREE);
 
-      if (dump_kind_p (MSG_NOTE))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_NOTE, vect_location, "Detected induction.");
       STMT_VINFO_DEF_TYPE (stmt_vinfo) = vect_induction_def;
     }
@@ -748,7 +748,7 @@ vect_analyze_scalar_cycles_1 (loop_vec_info loop_vinfo, struct loop *loop)
       gimple reduc_stmt;
       bool nested_cycle;
 
-      if (dump_kind_p (MSG_NOTE))
+      if (dump_enabled_p ())
         {
           dump_printf_loc (MSG_NOTE, vect_location, "Analyze phi: ");
           dump_gimple_stmt (MSG_NOTE, TDF_SLIM, phi, 0);
@@ -765,7 +765,7 @@ vect_analyze_scalar_cycles_1 (loop_vec_info loop_vinfo, struct loop *loop)
         {
           if (double_reduc)
             {
-              if (dump_kind_p (MSG_NOTE))
+              if (dump_enabled_p ())
                 dump_printf_loc (MSG_NOTE, vect_location,
 				 "Detected double reduction.");
 
@@ -777,7 +777,7 @@ vect_analyze_scalar_cycles_1 (loop_vec_info loop_vinfo, struct loop *loop)
             {
               if (nested_cycle)
                 {
-                  if (dump_kind_p (MSG_NOTE))
+                  if (dump_enabled_p ())
                     dump_printf_loc (MSG_NOTE, vect_location,
 				     "Detected vectorizable nested cycle.");
 
@@ -787,7 +787,7 @@ vect_analyze_scalar_cycles_1 (loop_vec_info loop_vinfo, struct loop *loop)
                 }
               else
                 {
-                  if (dump_kind_p (MSG_NOTE))
+                  if (dump_enabled_p ())
                     dump_printf_loc (MSG_NOTE, vect_location,
 				     "Detected reduction.");
 
@@ -803,7 +803,7 @@ vect_analyze_scalar_cycles_1 (loop_vec_info loop_vinfo, struct loop *loop)
             }
         }
       else
-        if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+        if (dump_enabled_p ())
           dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			   "Unknown def-use cycle pattern.");
     }
@@ -872,7 +872,7 @@ vect_get_loop_niters (struct loop *loop, tree *number_of_iterations)
 {
   tree niters;
 
-  if (dump_kind_p (MSG_NOTE))
+  if (dump_enabled_p ())
     dump_printf_loc (MSG_NOTE, vect_location,
 		     "=== get_loop_niters ===");
   niters = number_of_exit_cond_executions (loop);
@@ -882,7 +882,7 @@ vect_get_loop_niters (struct loop *loop, tree *number_of_iterations)
     {
       *number_of_iterations = niters;
 
-      if (dump_kind_p (MSG_NOTE))
+      if (dump_enabled_p ())
         {
           dump_printf_loc (MSG_NOTE, vect_location, "==> get_loop_niters:");
           dump_generic_expr (MSG_NOTE, TDF_SLIM, *number_of_iterations);
@@ -1130,7 +1130,7 @@ vect_analyze_loop_1 (struct loop *loop)
 {
   loop_vec_info loop_vinfo;
 
-  if (dump_kind_p (MSG_NOTE))
+  if (dump_enabled_p ())
     dump_printf_loc (MSG_NOTE, vect_location,
 		     "===== analyze_loop_nest_1 =====");
 
@@ -1139,7 +1139,7 @@ vect_analyze_loop_1 (struct loop *loop)
   loop_vinfo = vect_analyze_loop_form (loop);
   if (!loop_vinfo)
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
         dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			 "bad inner-loop form.");
       return NULL;
@@ -1165,7 +1165,7 @@ vect_analyze_loop_form (struct loop *loop)
   tree number_of_iterations = NULL;
   loop_vec_info inner_loop_vinfo = NULL;
 
-  if (dump_kind_p (MSG_NOTE))
+  if (dump_enabled_p ())
     dump_printf_loc (MSG_NOTE, vect_location,
 		     "=== vect_analyze_loop_form ===");
 
@@ -1189,7 +1189,7 @@ vect_analyze_loop_form (struct loop *loop)
 
       if (loop->num_nodes != 2)
         {
-          if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+          if (dump_enabled_p ())
             dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "not vectorized: control flow in loop.");
           return NULL;
@@ -1197,7 +1197,7 @@ vect_analyze_loop_form (struct loop *loop)
 
       if (empty_block_p (loop->header))
     {
-          if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+          if (dump_enabled_p ())
             dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "not vectorized: empty loop.");
       return NULL;
@@ -1227,7 +1227,7 @@ vect_analyze_loop_form (struct loop *loop)
 
       if ((loop->inner)->inner || (loop->inner)->next)
 	{
-	  if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+	  if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "not vectorized: multiple nested loops.");
 	  return NULL;
@@ -1237,7 +1237,7 @@ vect_analyze_loop_form (struct loop *loop)
       inner_loop_vinfo = vect_analyze_loop_1 (loop->inner);
       if (!inner_loop_vinfo)
 	{
-	  if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+	  if (dump_enabled_p ())
             dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "not vectorized: Bad inner loop.");
 	  return NULL;
@@ -1246,7 +1246,7 @@ vect_analyze_loop_form (struct loop *loop)
       if (!expr_invariant_in_loop_p (loop,
 					LOOP_VINFO_NITERS (inner_loop_vinfo)))
 	{
-	  if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+	  if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location, 
 			     "not vectorized: inner-loop count not invariant.");
 	  destroy_loop_vec_info (inner_loop_vinfo, true);
@@ -1255,7 +1255,7 @@ vect_analyze_loop_form (struct loop *loop)
 
       if (loop->num_nodes != 5)
         {
-	  if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+	  if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "not vectorized: control flow in loop.");
 	  destroy_loop_vec_info (inner_loop_vinfo, true);
@@ -1271,14 +1271,14 @@ vect_analyze_loop_form (struct loop *loop)
 	  || !single_exit (innerloop)
 	  || single_exit (innerloop)->dest !=  EDGE_PRED (loop->latch, 0)->src)
 	{
-	  if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+	  if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location, 
 			     "not vectorized: unsupported outerloop form.");
 	  destroy_loop_vec_info (inner_loop_vinfo, true);
 	  return NULL;
 	}
 
-      if (dump_kind_p (MSG_NOTE))
+      if (dump_enabled_p ())
         dump_printf_loc (MSG_NOTE, vect_location,
 			 "Considering outer-loop vectorization.");
     }
@@ -1286,7 +1286,7 @@ vect_analyze_loop_form (struct loop *loop)
   if (!single_exit (loop)
       || EDGE_COUNT (loop->header->preds) != 2)
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
         {
           if (!single_exit (loop))
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
@@ -1307,7 +1307,7 @@ vect_analyze_loop_form (struct loop *loop)
   if (!empty_block_p (loop->latch)
         || !gimple_seq_empty_p (phi_nodes (loop->latch)))
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			 "not vectorized: unexpected loop form.");
       if (inner_loop_vinfo)
@@ -1322,12 +1322,12 @@ vect_analyze_loop_form (struct loop *loop)
       if (!(e->flags & EDGE_ABNORMAL))
 	{
 	  split_loop_exit_edge (e);
-	  if (dump_kind_p (MSG_NOTE))
+	  if (dump_enabled_p ())
 	    dump_printf (MSG_NOTE, "split exit edge.");
 	}
       else
 	{
-	  if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+	  if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location, 
 			     "not vectorized: abnormal loop exit edge.");
 	  if (inner_loop_vinfo)
@@ -1339,7 +1339,7 @@ vect_analyze_loop_form (struct loop *loop)
   loop_cond = vect_get_loop_niters (loop, &number_of_iterations);
   if (!loop_cond)
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location, 
 			 "not vectorized: complicated exit condition.");
       if (inner_loop_vinfo)
@@ -1349,7 +1349,7 @@ vect_analyze_loop_form (struct loop *loop)
 
   if (!number_of_iterations)
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location, 
 			 "not vectorized: number of iterations cannot be "
 			 "computed.");
@@ -1360,7 +1360,7 @@ vect_analyze_loop_form (struct loop *loop)
 
   if (chrec_contains_undetermined (number_of_iterations))
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "Infinite number of iterations.");
       if (inner_loop_vinfo)
@@ -1370,7 +1370,7 @@ vect_analyze_loop_form (struct loop *loop)
 
   if (!NITERS_KNOWN_P (number_of_iterations))
     {
-      if (dump_kind_p (MSG_NOTE))
+      if (dump_enabled_p ())
         {
           dump_printf_loc (MSG_NOTE, vect_location,
 			   "Symbolic number of iterations is ");
@@ -1379,7 +1379,7 @@ vect_analyze_loop_form (struct loop *loop)
     }
   else if (TREE_INT_CST_LOW (number_of_iterations) == 0)
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			 "not vectorized: number of iterations = 0.");
       if (inner_loop_vinfo)
@@ -1427,7 +1427,7 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
   HOST_WIDE_INT estimated_niter;
   int min_profitable_estimate;
 
-  if (dump_kind_p (MSG_NOTE))
+  if (dump_enabled_p ())
     dump_printf_loc (MSG_NOTE, vect_location,
 		     "=== vect_analyze_loop_operations ===");
 
@@ -1463,7 +1463,7 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
 				LOOP_VINFO_SLP_UNROLLING_FACTOR (loop_vinfo));
 
       LOOP_VINFO_VECT_FACTOR (loop_vinfo) = vectorization_factor;
-      if (dump_kind_p (MSG_NOTE))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_NOTE, vect_location,
 			 "Updating vectorization factor to %d ",
 			 vectorization_factor);
@@ -1479,7 +1479,7 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
           ok = true;
 
           stmt_info = vinfo_for_stmt (phi);
-          if (dump_kind_p (MSG_NOTE))
+          if (dump_enabled_p ())
             {
               dump_printf_loc (MSG_NOTE, vect_location, "examining phi: ");
               dump_gimple_stmt (MSG_NOTE, TDF_SLIM, phi, 0);
@@ -1498,7 +1498,7 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
                   && STMT_VINFO_DEF_TYPE (stmt_info)
                      != vect_double_reduction_def)
                 {
-                  if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+                  if (dump_enabled_p ())
 		    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location, 
 				     "Unsupported loop-closed phi in "
 				     "outer-loop.");
@@ -1540,7 +1540,7 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
           if (STMT_VINFO_LIVE_P (stmt_info))
             {
               /* FORNOW: not yet supported.  */
-              if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+              if (dump_enabled_p ())
 		dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 				 "not vectorized: value used after loop.");
               return false;
@@ -1550,7 +1550,7 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
               && STMT_VINFO_DEF_TYPE (stmt_info) != vect_induction_def)
             {
               /* A scalar-dependence cycle that we don't support.  */
-              if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+              if (dump_enabled_p ())
 		dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location, 
 				 "not vectorized: scalar dependence cycle.");
               return false;
@@ -1565,7 +1565,7 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
 
           if (!ok)
             {
-              if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+              if (dump_enabled_p ())
                 {
 		  dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location, 
 				   "not vectorized: relevant phi not "
@@ -1591,18 +1591,17 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
      touching this loop.  */
   if (!need_to_vectorize)
     {
-      if (dump_kind_p (MSG_NOTE))
+      if (dump_enabled_p ())
         dump_printf_loc (MSG_NOTE, vect_location,
 			 "All the computation can be taken out of the loop.");
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location, 
 			 "not vectorized: redundant loop. no profit to "
 			 "vectorize.");
       return false;
     }
 
-  if (LOOP_VINFO_NITERS_KNOWN_P (loop_vinfo)
-      && dump_kind_p (MSG_NOTE))
+  if (LOOP_VINFO_NITERS_KNOWN_P (loop_vinfo) && dump_enabled_p ())
     dump_printf_loc (MSG_NOTE, vect_location,
 		     "vectorization_factor = %d, niters = "
 		     HOST_WIDE_INT_PRINT_DEC, vectorization_factor,
@@ -1613,10 +1612,10 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
       || ((max_niter = max_stmt_executions_int (loop)) != -1
 	  && (unsigned HOST_WIDE_INT) max_niter < vectorization_factor))
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			 "not vectorized: iteration count too small.");
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			 "not vectorized: iteration count smaller than "
 			 "vectorization factor.");
@@ -1635,10 +1634,10 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
 
   if (min_profitable_iters < 0)
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			 "not vectorized: vectorization not profitable.");
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location, 
 			 "not vectorized: vector version will never be "
 			 "profitable.");
@@ -1661,10 +1660,10 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
   if (LOOP_VINFO_NITERS_KNOWN_P (loop_vinfo)
       && LOOP_VINFO_INT_NITERS (loop_vinfo) <= th)
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			 "not vectorized: vectorization not profitable.");
-      if (dump_kind_p (MSG_NOTE))
+      if (dump_enabled_p ())
         dump_printf_loc (MSG_NOTE, vect_location,
 			 "not vectorized: iteration count smaller than user "
 			 "specified loop bound parameter or minimum profitable "
@@ -1676,11 +1675,11 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
       && ((unsigned HOST_WIDE_INT) estimated_niter
           <= MAX (th, (unsigned)min_profitable_estimate)))
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			 "not vectorized: estimated iteration count too "
                          "small.");
-      if (dump_kind_p (MSG_NOTE))
+      if (dump_enabled_p ())
         dump_printf_loc (MSG_NOTE, vect_location,
 			 "not vectorized: estimated iteration count smaller "
                          "than specified loop bound parameter or minimum "
@@ -1693,18 +1692,18 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
       || LOOP_VINFO_INT_NITERS (loop_vinfo) % vectorization_factor != 0
       || LOOP_PEELING_FOR_ALIGNMENT (loop_vinfo))
     {
-      if (dump_kind_p (MSG_NOTE))
+      if (dump_enabled_p ())
         dump_printf_loc (MSG_NOTE, vect_location, "epilog loop required.");
       if (!vect_can_advance_ivs_p (loop_vinfo))
         {
-          if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+          if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location, 
 			     "not vectorized: can't create epilog loop 1.");
           return false;
         }
       if (!slpeel_can_duplicate_loop_p (loop, single_exit (loop)))
         {
-          if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+          if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location, 
 			     "not vectorized: can't create epilog loop 2.");
           return false;
@@ -1737,7 +1736,7 @@ vect_analyze_loop_2 (loop_vec_info loop_vinfo)
   ok = vect_analyze_data_refs (loop_vinfo, NULL, &min_vf);
   if (!ok)
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			 "bad data references.");
       return false;
@@ -1755,7 +1754,7 @@ vect_analyze_loop_2 (loop_vec_info loop_vinfo)
   ok = vect_mark_stmts_to_be_vectorized (loop_vinfo);
   if (!ok)
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			 "unexpected pattern.");
       return false;
@@ -1770,7 +1769,7 @@ vect_analyze_loop_2 (loop_vec_info loop_vinfo)
   if (!ok
       || max_vf < min_vf)
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "bad data dependence.");
       return false;
@@ -1779,14 +1778,14 @@ vect_analyze_loop_2 (loop_vec_info loop_vinfo)
   ok = vect_determine_vectorization_factor (loop_vinfo);
   if (!ok)
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			 "can't determine vectorization factor.");
       return false;
     }
   if (max_vf < LOOP_VINFO_VECT_FACTOR (loop_vinfo))
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			 "bad data dependence.");
       return false;
@@ -1798,7 +1797,7 @@ vect_analyze_loop_2 (loop_vec_info loop_vinfo)
   ok = vect_analyze_data_refs_alignment (loop_vinfo, NULL);
   if (!ok)
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			 "bad data alignment.");
       return false;
@@ -1810,7 +1809,7 @@ vect_analyze_loop_2 (loop_vec_info loop_vinfo)
   ok = vect_analyze_data_ref_accesses (loop_vinfo, NULL);
   if (!ok)
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			 "bad data access.");
       return false;
@@ -1822,7 +1821,7 @@ vect_analyze_loop_2 (loop_vec_info loop_vinfo)
   ok = vect_prune_runtime_alias_test_list (loop_vinfo);
   if (!ok)
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			 "too long list of versioning for alias "
 			 "run-time tests.");
@@ -1835,7 +1834,7 @@ vect_analyze_loop_2 (loop_vec_info loop_vinfo)
   ok = vect_enhance_data_refs_alignment (loop_vinfo);
   if (!ok)
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			 "bad data alignment.");
       return false;
@@ -1860,7 +1859,7 @@ vect_analyze_loop_2 (loop_vec_info loop_vinfo)
   ok = vect_analyze_loop_operations (loop_vinfo, slp);
   if (!ok)
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			 "bad operation or unsupported loop bound.");
       return false;
@@ -1884,7 +1883,7 @@ vect_analyze_loop (struct loop *loop)
   current_vector_size = 0;
   vector_sizes = targetm.vectorize.autovectorize_vector_sizes ();
 
-  if (dump_kind_p (MSG_NOTE))
+  if (dump_enabled_p ())
     dump_printf_loc (MSG_NOTE, vect_location,
 		     "===== analyze_loop_nest =====");
 
@@ -1892,7 +1891,7 @@ vect_analyze_loop (struct loop *loop)
       && loop_vec_info_for_loop (loop_outer (loop))
       && LOOP_VINFO_VECTORIZABLE_P (loop_vec_info_for_loop (loop_outer (loop))))
     {
-      if (dump_kind_p (MSG_NOTE))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_NOTE, vect_location,
 			 "outer-loop already vectorized.");
       return NULL;
@@ -1904,7 +1903,7 @@ vect_analyze_loop (struct loop *loop)
       loop_vinfo = vect_analyze_loop_form (loop);
       if (!loop_vinfo)
 	{
-	  if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+	  if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "bad loop form.");
 	  return NULL;
@@ -1926,7 +1925,7 @@ vect_analyze_loop (struct loop *loop)
 
       /* Try the next biggest vector size.  */
       current_vector_size = 1 << floor_log2 (vector_sizes);
-      if (dump_kind_p (MSG_NOTE))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_NOTE, vect_location,
 			 "***** Re-trying analysis with "
 			 "vector size %d\n", current_vector_size);
@@ -2158,7 +2157,7 @@ vect_is_slp_reduction (loop_vec_info loop_info, gimple phi, gimple first_stmt)
                                   == vect_internal_def
                       && !is_loop_header_bb_p (gimple_bb (def_stmt)))))
   	    {
-	      if (dump_kind_p (MSG_NOTE))
+	      if (dump_enabled_p ())
 		{
 		  dump_printf_loc (MSG_NOTE, vect_location, "swapping oprnds: ");
 		  dump_gimple_stmt (MSG_NOTE, TDF_SLIM, next_stmt, 0);
@@ -2260,7 +2259,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
 
       if (!flow_bb_inside_loop_p (loop, gimple_bb (use_stmt)))
         {
-          if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+          if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "intermediate value used outside loop.");
 
@@ -2272,7 +2271,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
         nloop_uses++;
       if (nloop_uses > 1)
         {
-          if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+          if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "reduction used in loop.");
           return NULL;
@@ -2281,7 +2280,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
 
   if (TREE_CODE (loop_arg) != SSA_NAME)
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	{
 	  dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			   "reduction: not ssa_name: ");
@@ -2293,7 +2292,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
   def_stmt = SSA_NAME_DEF_STMT (loop_arg);
   if (!def_stmt)
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			 "reduction: no def_stmt.");
       return NULL;
@@ -2301,7 +2300,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
 
   if (!is_gimple_assign (def_stmt) && gimple_code (def_stmt) != GIMPLE_PHI)
     {
-      if (dump_kind_p (MSG_NOTE))
+      if (dump_enabled_p ())
         dump_gimple_stmt (MSG_NOTE, TDF_SLIM, def_stmt, 0);
       return NULL;
     }
@@ -2329,7 +2328,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
 	nloop_uses++;
       if (nloop_uses > 1)
 	{
-	  if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+	  if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "reduction used in loop.");
 	  return NULL;
@@ -2345,7 +2344,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
       if (gimple_phi_num_args (def_stmt) != 1
           || TREE_CODE (op1) != SSA_NAME)
         {
-          if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+          if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "unsupported phi node definition.");
 
@@ -2358,7 +2357,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
           && flow_bb_inside_loop_p (loop->inner, gimple_bb (def1))
           && is_gimple_assign (def1))
         {
-          if (dump_kind_p (MSG_NOTE))
+          if (dump_enabled_p ())
             report_vect_op (MSG_NOTE, def_stmt,
 			    "detected double reduction: ");
 
@@ -2385,7 +2384,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
   if (check_reduction
       && (!commutative_tree_code (code) || !associative_tree_code (code)))
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
         report_vect_op (MSG_MISSED_OPTIMIZATION, def_stmt,
 			"reduction: not commutative/associative: ");
       return NULL;
@@ -2395,7 +2394,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
     {
       if (code != COND_EXPR)
         {
-	  if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+	  if (dump_enabled_p ())
 	    report_vect_op (MSG_MISSED_OPTIMIZATION, def_stmt,
 			    "reduction: not binary operation: ");
 
@@ -2414,7 +2413,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
 
       if (TREE_CODE (op1) != SSA_NAME && TREE_CODE (op2) != SSA_NAME)
         {
-          if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+          if (dump_enabled_p ())
             report_vect_op (MSG_MISSED_OPTIMIZATION, def_stmt,
 			    "reduction: uses not ssa_names: ");
 
@@ -2428,7 +2427,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
 
       if (TREE_CODE (op1) != SSA_NAME && TREE_CODE (op2) != SSA_NAME)
         {
-          if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+          if (dump_enabled_p ())
 	    report_vect_op (MSG_MISSED_OPTIMIZATION, def_stmt,
 			    "reduction: uses not ssa_names: ");
 
@@ -2446,7 +2445,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
       || (op4 && TREE_CODE (op4) == SSA_NAME
           && !types_compatible_p (type, TREE_TYPE (op4))))
     {
-      if (dump_kind_p (MSG_NOTE))
+      if (dump_enabled_p ())
         {
           dump_printf_loc (MSG_NOTE, vect_location,
 			   "reduction: multiple types: operation type: ");
@@ -2488,7 +2487,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
       && check_reduction)
     {
       /* Changing the order of operations changes the semantics.  */
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	report_vect_op (MSG_MISSED_OPTIMIZATION, def_stmt,
 			"reduction: unsafe fp math optimization: ");
       return NULL;
@@ -2497,7 +2496,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
 	   && check_reduction)
     {
       /* Changing the order of operations changes the semantics.  */
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	report_vect_op (MSG_MISSED_OPTIMIZATION, def_stmt,
 			"reduction: unsafe int math optimization: ");
       return NULL;
@@ -2505,7 +2504,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
   else if (SAT_FIXED_POINT_TYPE_P (type) && check_reduction)
     {
       /* Changing the order of operations changes the semantics.  */
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	report_vect_op (MSG_MISSED_OPTIMIZATION, def_stmt,
 			"reduction: unsafe fixed-point math optimization: ");
       return NULL;
@@ -2542,7 +2541,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
   if (code != COND_EXPR
       && ((!def1 || gimple_nop_p (def1)) && (!def2 || gimple_nop_p (def2))))
     {
-      if (dump_kind_p (MSG_NOTE))
+      if (dump_enabled_p ())
 	report_vect_op (MSG_NOTE, def_stmt, "reduction: no defs for operands: ");
       return NULL;
     }
@@ -2564,7 +2563,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
                           == vect_internal_def
  	              && !is_loop_header_bb_p (gimple_bb (def1)))))))
     {
-      if (dump_kind_p (MSG_NOTE))
+      if (dump_enabled_p ())
 	report_vect_op (MSG_NOTE, def_stmt, "detected reduction: ");
       return def_stmt;
     }
@@ -2587,7 +2586,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
           /* Swap operands (just for simplicity - so that the rest of the code
 	     can assume that the reduction variable is always the last (second)
 	     argument).  */
-          if (dump_kind_p (MSG_NOTE))
+          if (dump_enabled_p ())
 	    report_vect_op (MSG_NOTE, def_stmt,
 	  	            "detected reduction: need to swap operands: ");
 
@@ -2599,7 +2598,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
         }
       else
         {
-          if (dump_kind_p (MSG_NOTE))
+          if (dump_enabled_p ())
             report_vect_op (MSG_NOTE, def_stmt, "detected reduction: ");
         }
 
@@ -2609,14 +2608,14 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
   /* Try to find SLP reduction chain.  */
   if (check_reduction && vect_is_slp_reduction (loop_info, phi, def_stmt))
     {
-      if (dump_kind_p (MSG_NOTE))
+      if (dump_enabled_p ())
         report_vect_op (MSG_NOTE, def_stmt,
 			"reduction: detected reduction chain: ");
 
       return def_stmt;
     }
 
-  if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+  if (dump_enabled_p ())
     report_vect_op (MSG_MISSED_OPTIMIZATION, def_stmt,
 		    "reduction: unknown pattern: ");
        
@@ -2724,7 +2723,7 @@ vect_get_known_peeling_cost (loop_vec_info loop_vinfo, int peel_iters_prologue,
   if (!LOOP_VINFO_NITERS_KNOWN_P (loop_vinfo))
     {
       *peel_iters_epilogue = vf/2;
-      if (dump_kind_p (MSG_NOTE))
+      if (dump_enabled_p ())
         dump_printf_loc (MSG_NOTE, vect_location,
 			 "cost model: epilogue peel iters set to vf/2 "
 			 "because loop iterations are unknown .");
@@ -3017,7 +3016,7 @@ vect_estimate_min_profitable_iters (loop_vec_info loop_vinfo,
   /* vector version will never be profitable.  */
   else
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
         dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			 "cost model: the vector iteration cost = %d "
 			 "divided by the scalar iteration cost = %d "
@@ -3028,7 +3027,7 @@ vect_estimate_min_profitable_iters (loop_vec_info loop_vinfo,
       return;
     }
 
-  if (dump_kind_p (MSG_NOTE))
+  if (dump_enabled_p ())
     {
       dump_printf_loc (MSG_NOTE, vect_location, "Cost model analysis: \n");
       dump_printf (MSG_NOTE, "  Vector inside of loop cost: %d\n",
@@ -3060,7 +3059,7 @@ vect_estimate_min_profitable_iters (loop_vec_info loop_vinfo,
        then skip the vectorized loop.  */
   min_profitable_iters--;
 
-  if (dump_kind_p (MSG_NOTE))
+  if (dump_enabled_p ())
     dump_printf_loc (MSG_NOTE, vect_location,
                      "  Runtime profitability threshold = %d\n", min_profitable_iters);
 
@@ -3085,7 +3084,7 @@ vect_estimate_min_profitable_iters (loop_vec_info loop_vinfo,
     }
   min_profitable_estimate --;
   min_profitable_estimate = MAX (min_profitable_estimate, min_profitable_iters);
-  if (dump_kind_p (MSG_NOTE))
+  if (dump_enabled_p ())
     dump_printf_loc (MSG_NOTE, vect_location,
                      "  Static estimate profitability threshold = %d\n",
                       min_profitable_iters);
@@ -3145,7 +3144,7 @@ vect_model_reduction_cost (stmt_vec_info stmt_info, enum tree_code reduc_code,
   vectype = get_vectype_for_scalar_type (TREE_TYPE (reduction_op));
   if (!vectype)
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
         {
 	  dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			   "unsupported data-type ");
@@ -3216,7 +3215,7 @@ vect_model_reduction_cost (stmt_vec_info stmt_info, enum tree_code reduc_code,
 	}
     }
 
-  if (dump_kind_p (MSG_NOTE))
+  if (dump_enabled_p ())
     dump_printf (MSG_NOTE, 
                  "vect_model_reduction_cost: inside_cost = %d, "
                  "prologue_cost = %d, epilogue_cost = %d .", inside_cost,
@@ -3245,7 +3244,7 @@ vect_model_induction_cost (stmt_vec_info stmt_info, int ncopies)
   prologue_cost = add_stmt_cost (target_cost_data, 2, scalar_to_vec,
 				 stmt_info, 0, vect_prologue);
 
-  if (dump_kind_p (MSG_NOTE))
+  if (dump_enabled_p ())
     dump_printf_loc (MSG_NOTE, vect_location,
                      "vect_model_induction_cost: inside_cost = %d, "
                      "prologue_cost = %d .", inside_cost, prologue_cost);
@@ -3374,7 +3373,7 @@ get_initial_def_for_induction (gimple iv_phi)
 	  new_bb = gsi_insert_on_edge_immediate (pe, init_stmt);
 	  gcc_assert (!new_bb);
 
-	  if (dump_kind_p (MSG_NOTE))
+	  if (dump_enabled_p ())
 	    {
 	      dump_printf_loc (MSG_NOTE, vect_location,
 			       "created new init_stmt: ");
@@ -3517,7 +3516,7 @@ get_initial_def_for_induction (gimple iv_phi)
 		      && !STMT_VINFO_LIVE_P (stmt_vinfo));
 
 	  STMT_VINFO_VEC_STMT (stmt_vinfo) = new_stmt;
-	  if (dump_kind_p (MSG_NOTE))
+	  if (dump_enabled_p ())
 	    {
 	      dump_printf_loc (MSG_NOTE, vect_location,
 			       "vector of inductions after inner-loop:");
@@ -3527,7 +3526,7 @@ get_initial_def_for_induction (gimple iv_phi)
     }
 
 
-  if (dump_kind_p (MSG_NOTE))
+  if (dump_enabled_p ())
     {
       dump_printf_loc (MSG_NOTE, vect_location,
 		       "transform induction: created def-use cycle: ");
@@ -3935,7 +3934,7 @@ vect_create_epilog_for_reduction (VEC (tree, heap) *vect_defs, gimple stmt,
 
           add_phi_arg (phi, def, loop_latch_edge (loop), UNKNOWN_LOCATION);
 
-          if (dump_kind_p (MSG_NOTE))
+          if (dump_enabled_p ())
             {
               dump_printf_loc (MSG_NOTE, vect_location,
 			       "transform reduction: created def-use cycle: ");
@@ -4136,7 +4135,7 @@ vect_create_epilog_for_reduction (VEC (tree, heap) *vect_defs, gimple stmt,
       /*** Case 1:  Create:
            v_out2 = reduc_expr <v_out1>  */
 
-      if (dump_kind_p (MSG_NOTE))
+      if (dump_enabled_p ())
         dump_printf_loc (MSG_NOTE, vect_location,
 			 "Reduce using direct vector reduction.");
 
@@ -4187,7 +4186,7 @@ vect_create_epilog_for_reduction (VEC (tree, heap) *vect_defs, gimple stmt,
                   Create:  va = vop <va, va'>
                 }  */
 
-          if (dump_kind_p (MSG_NOTE))
+          if (dump_enabled_p ())
             dump_printf_loc (MSG_NOTE, vect_location,
 			     "Reduce using vector shifts");
 
@@ -4228,7 +4227,7 @@ vect_create_epilog_for_reduction (VEC (tree, heap) *vect_defs, gimple stmt,
                  Create:  s = op <s, s'>  // For non SLP cases
                }  */
 
-          if (dump_kind_p (MSG_NOTE))
+          if (dump_enabled_p ())
             dump_printf_loc (MSG_NOTE, vect_location,
 			     "Reduce using scalar code. ");
 
@@ -4319,7 +4318,7 @@ vect_create_epilog_for_reduction (VEC (tree, heap) *vect_defs, gimple stmt,
     {
       tree rhs;
 
-      if (dump_kind_p (MSG_NOTE))
+      if (dump_enabled_p ())
         dump_printf_loc (MSG_NOTE, vect_location,
 			 "extract scalar result");
 
@@ -4558,7 +4557,7 @@ vect_finalize_reduction:
                                UNKNOWN_LOCATION);
                   add_phi_arg (vect_phi, PHI_RESULT (inner_phi),
                                loop_latch_edge (outer_loop), UNKNOWN_LOCATION);
-                  if (dump_kind_p (MSG_NOTE))
+                  if (dump_enabled_p ())
                     {
                       dump_printf_loc (MSG_NOTE, vect_location,
 				       "created double reduction phi node: ");
@@ -4908,7 +4907,7 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
     {
       if (!vectorizable_condition (stmt, gsi, NULL, ops[reduc_index], 0, NULL))
         {
-          if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+          if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "unsupported condition in reduction");
 
@@ -4923,7 +4922,7 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
       optab = optab_for_tree_code (code, vectype_in, optab_default);
       if (!optab)
         {
-          if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+          if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "no optab.");
 
@@ -4932,7 +4931,7 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
 
       if (optab_handler (optab, vec_mode) == CODE_FOR_nothing)
         {
-          if (dump_kind_p (MSG_NOTE))
+          if (dump_enabled_p ())
             dump_printf (MSG_NOTE, "op not supported by target.");
 
           if (GET_MODE_SIZE (vec_mode) != UNITS_PER_WORD
@@ -4940,7 +4939,7 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
 	          < vect_min_worthwhile_factor (code))
             return false;
 
-          if (dump_kind_p (MSG_NOTE))
+          if (dump_enabled_p ())
   	    dump_printf (MSG_NOTE, "proceeding using word mode.");
         }
 
@@ -4949,7 +4948,7 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
           && LOOP_VINFO_VECT_FACTOR (loop_vinfo)
    	     < vect_min_worthwhile_factor (code))
         {
-          if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+          if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "not worthwhile without SIMD support.");
 
@@ -5030,7 +5029,7 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
                                          optab_default);
       if (!reduc_optab)
         {
-          if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+          if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "no optab for reduction.");
 
@@ -5040,7 +5039,7 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
       if (reduc_optab
           && optab_handler (reduc_optab, vec_mode) == CODE_FOR_nothing)
         {
-          if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+          if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "reduc op not supported by target.");
 
@@ -5051,7 +5050,7 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
     {
       if (!nested_cycle || double_reduc)
         {
-          if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+          if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "no reduc code for scalar code.");
 
@@ -5061,7 +5060,7 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
 
   if (double_reduc && ncopies > 1)
     {
-      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			 "multiple types in double reduction");
 
@@ -5080,7 +5079,7 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
         ops[1] = fold_convert (TREE_TYPE (ops[0]), ops[1]);
       else
         {
-          if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+          if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "invalid types in dot-prod");
 
@@ -5098,7 +5097,7 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
 
   /** Transform.  **/
 
-  if (dump_kind_p (MSG_NOTE))
+  if (dump_enabled_p ())
     dump_printf_loc (MSG_NOTE, vect_location, "transform reduction.");
 
   /* FORNOW: Multiple types are not supported for condition.  */
@@ -5384,7 +5383,7 @@ vectorizable_induction (gimple phi, gimple_stmt_iterator *gsi ATTRIBUTE_UNUSED,
 
       if (ncopies > 1)
 	{
-	  if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+	  if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "multiple types in nested loop.");
 	  return false;
@@ -5408,7 +5407,7 @@ vectorizable_induction (gimple phi, gimple_stmt_iterator *gsi ATTRIBUTE_UNUSED,
 	  if (!(STMT_VINFO_RELEVANT_P (exit_phi_vinfo)
 		&& !STMT_VINFO_LIVE_P (exit_phi_vinfo)))
 	    {
-	      if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+	      if (dump_enabled_p ())
 		dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location, 
 				 "inner-loop induction only used outside "
 				 "of the outer vectorized loop.");
@@ -5432,7 +5431,7 @@ vectorizable_induction (gimple phi, gimple_stmt_iterator *gsi ATTRIBUTE_UNUSED,
   if (!vec_stmt) /* transformation not required.  */
     {
       STMT_VINFO_TYPE (stmt_info) = induc_vec_info_type;
-      if (dump_kind_p (MSG_NOTE))
+      if (dump_enabled_p ())
         dump_printf_loc (MSG_NOTE, vect_location,
                          "=== vectorizable_induction ===");
       vect_model_induction_cost (stmt_info, ncopies);
@@ -5441,7 +5440,7 @@ vectorizable_induction (gimple phi, gimple_stmt_iterator *gsi ATTRIBUTE_UNUSED,
 
   /** Transform.  **/
 
-  if (dump_kind_p (MSG_NOTE))
+  if (dump_enabled_p ())
     dump_printf_loc (MSG_NOTE, vect_location, "transform induction phi.");
 
   vec_def = get_initial_def_for_induction (phi);
@@ -5506,7 +5505,7 @@ vectorizable_live_operation (gimple stmt,
           && !vect_is_simple_use (op, stmt, loop_vinfo, NULL, &def_stmt, &def,
 				  &dt))
         {
-          if (dump_kind_p (MSG_MISSED_OPTIMIZATION))
+          if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "use not simple.");
           return false;
@@ -5545,7 +5544,7 @@ vect_loop_kill_debug_uses (struct loop *loop, gimple stmt)
 	    {
 	      if (gimple_debug_bind_p (ustmt))
 		{
-		  if (dump_kind_p (MSG_NOTE))
+		  if (dump_enabled_p ())
 		    dump_printf_loc (MSG_NOTE, vect_location,
                                      "killing debug use");
 
@@ -5585,7 +5584,7 @@ vect_transform_loop (loop_vec_info loop_vinfo)
   bool check_profitability = false;
   int th;
 
-  if (dump_kind_p (MSG_NOTE))
+  if (dump_enabled_p ())
     dump_printf_loc (MSG_NOTE, vect_location, "=== vec_transform_loop ===");
 
   /* Use the more conservative vectorization threshold.  If the number
@@ -5599,7 +5598,7 @@ vect_transform_loop (loop_vec_info loop_vinfo)
   if (th >= LOOP_VINFO_VECT_FACTOR (loop_vinfo) - 1
       && !LOOP_VINFO_NITERS_KNOWN_P (loop_vinfo))
     {
-      if (dump_kind_p (MSG_NOTE))
+      if (dump_enabled_p ())
 	dump_printf_loc (MSG_NOTE, vect_location,
 			 "Profitability threshold is %d loop iterations.", th);
       check_profitability = true;
@@ -5660,7 +5659,7 @@ vect_transform_loop (loop_vec_info loop_vinfo)
       for (si = gsi_start_phis (bb); !gsi_end_p (si); gsi_next (&si))
         {
 	  phi = gsi_stmt (si);
-	  if (dump_kind_p (MSG_NOTE))
+	  if (dump_enabled_p ())
 	    {
 	      dump_printf_loc (MSG_NOTE, vect_location,
                                "------>vectorizing phi: ");
@@ -5679,12 +5678,12 @@ vect_transform_loop (loop_vec_info loop_vinfo)
 
 	  if ((TYPE_VECTOR_SUBPARTS (STMT_VINFO_VECTYPE (stmt_info))
 	        != (unsigned HOST_WIDE_INT) vectorization_factor)
-	      && dump_kind_p (MSG_NOTE))
+	      && dump_enabled_p ())
 	    dump_printf_loc (MSG_NOTE, vect_location, "multiple-types.");
 
 	  if (STMT_VINFO_DEF_TYPE (stmt_info) == vect_induction_def)
 	    {
-	      if (dump_kind_p (MSG_NOTE))
+	      if (dump_enabled_p ())
 		dump_printf_loc (MSG_NOTE, vect_location, "transform phi.");
 	      vect_transform_stmt (phi, NULL, NULL, NULL, NULL);
 	    }
@@ -5700,7 +5699,7 @@ vect_transform_loop (loop_vec_info loop_vinfo)
           else
             stmt = gsi_stmt (si);
 
-	  if (dump_kind_p (MSG_NOTE))
+	  if (dump_enabled_p ())
 	    {
 	      dump_printf_loc (MSG_NOTE, vect_location,
 			       "------>vectorizing statement: ");
@@ -5772,7 +5771,7 @@ vect_transform_loop (loop_vec_info loop_vinfo)
 
 		  if (!gsi_end_p (pattern_def_si))
 		    {
-		      if (dump_kind_p (MSG_NOTE))
+		      if (dump_enabled_p ())
 			{
 			  dump_printf_loc (MSG_NOTE, vect_location,
 					   "==> vectorizing pattern def "
@@ -5799,7 +5798,7 @@ vect_transform_loop (loop_vec_info loop_vinfo)
                                                STMT_VINFO_VECTYPE (stmt_info));
 	  if (!STMT_SLP_TYPE (stmt_info)
 	      && nunits != (unsigned int) vectorization_factor
-              && dump_kind_p (MSG_NOTE))
+              && dump_enabled_p ())
 	    /* For SLP VF is set according to unrolling factor, and not to
 	       vector size, hence for SLP this print is not valid.  */
             dump_printf_loc (MSG_NOTE, vect_location,
@@ -5813,7 +5812,7 @@ vect_transform_loop (loop_vec_info loop_vinfo)
 		{
 		  slp_scheduled = true;
 
-		  if (dump_kind_p (MSG_NOTE))
+		  if (dump_enabled_p ())
 		    dump_printf_loc (MSG_NOTE, vect_location,
 				     "=== scheduling SLP instances ===");
 
@@ -5833,7 +5832,7 @@ vect_transform_loop (loop_vec_info loop_vinfo)
 	    }
 
 	  /* -------- vectorize statement ------------ */
-	  if (dump_kind_p (MSG_NOTE))
+	  if (dump_enabled_p ())
 	    dump_printf_loc (MSG_NOTE, vect_location, "transform statement.");
 
 	  grouped_store = false;
@@ -5876,9 +5875,9 @@ vect_transform_loop (loop_vec_info loop_vinfo)
      until all the loops have been transformed?  */
   update_ssa (TODO_update_ssa);
 
-  if (dump_kind_p (MSG_OPTIMIZED_LOCATIONS))
+  if (dump_enabled_p ())
     dump_printf_loc (MSG_OPTIMIZED_LOCATIONS, vect_location, "LOOP VECTORIZED.");
-  if (loop->inner && dump_kind_p (MSG_OPTIMIZED_LOCATIONS))
+  if (loop->inner && dump_enabled_p ())
     dump_printf_loc (MSG_OPTIMIZED_LOCATIONS, vect_location,
 		     "OUTER LOOP VECTORIZED.");
 }
