@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I $(top_srcdir)/include 
+AM_CPPFLAGS = -I $(top_srcdir)/include -I $(top_srcdir)
  
 DEFS = -D_GNU_SOURCE -D_DEBUG -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -DASAN_HAS_EXCEPTIONS=1 -DASAN_FLEXIBLE_MAPPING_AND_OFFSET=0 -DASAN_NEEDS_SEGV=1
 AM_CXXFLAGS = -Wall -W -Wno-unused-parameter -Wwrite-strings -pedantic -Wno-long-long  -fPIC -fno-builtin -fno-exceptions -fomit-frame-pointer -funwind-tables -fvisibility=hidden -Wno-variadic-macros -Wno-c99-extensions 
@@ -26,30 +26,8 @@ asan_files = \
 	asan_thread.cc \
 	asan_win.cc
 
-interception_files = \
-	interception/interception_linux.cc \
-	interception/interception_mac.cc \
-	interception/interception_win.cc
-
-sanitizer_common_files = \
-	sanitizer_common/sanitizer_allocator.cc \
-	sanitizer_common/sanitizer_common.cc \
-	sanitizer_common/sanitizer_flags.cc \
-	sanitizer_common/sanitizer_libc.cc \
-	sanitizer_common/sanitizer_linux.cc \
-	sanitizer_common/sanitizer_mac.cc \
-	sanitizer_common/sanitizer_posix.cc \
-	sanitizer_common/sanitizer_printf.cc \
-	sanitizer_common/sanitizer_stackdepot.cc \
-	sanitizer_common/sanitizer_stacktrace.cc \
-	sanitizer_common/sanitizer_symbolizer.cc \
-	sanitizer_common/sanitizer_symbolizer_linux.cc \
-	sanitizer_common/sanitizer_symbolizer_mac.cc \
-	sanitizer_common/sanitizer_symbolizer_win.cc \
-	sanitizer_common/sanitizer_win.cc
-
-libasan_la_SOURCES = $(asan_files) $(interception_files) $(sanitizer_common_files)
-libasan_la_LIBADD = $(top_builddir)/../libstdc++-v3/src/libstdc++.la
+libasan_la_SOURCES = $(asan_files) 
+libasan_la_LIBADD = $(top_builddir)/sanitizer_common/libsanitizer_common.la $(top_builddir)/interception/libinterception.la $(top_builddir)/../libstdc++-v3/src/libstdc++.la
 libasan_la_LDFLAGS = -version-info `grep -v '^\#' $(srcdir)/libtool-version` -lpthread -ldl
 
 # Work around what appears to be a GNU make bug handling MAKEFLAGS

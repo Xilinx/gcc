@@ -160,7 +160,7 @@ target_libraries="target-libgcc \
 		target-libitm \
 		target-libstdc++-v3 \
 		target-libmudflap \
-		target-libasan \
+		target-libsanitizer \
 		target-libssp \
 		target-libquadmath \
 		target-libgfortran \
