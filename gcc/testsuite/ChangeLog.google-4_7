@@ -1,3 +1,10 @@
+2012-11-01   Easwaran Raman <eraman@google.com>
+
+	Backport 191302 from trunk:
+
+	2012-09-14  Eric Botcazou  <ebotcazou@adacore.com>
+		* gcc.dg/pr44194-1.c: Check that there are no memory accesses left.
+
 2012-10-18   Easwaran Raman <eraman@google.com>
 
 	Backport r183817 from google/gcc-4_6 branch.
