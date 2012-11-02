@@ -44,12 +44,12 @@ along with GCC; see the file COPYING3.	If not see
 
    Here is block diagram of LRA passes:
 
-	  ---------------------				    
-	 | Undo inheritance    |      ---------------	     --------------- 
+	  ---------------------
+	 | Undo inheritance    |      ---------------	     ---------------
 	 | for spilled pseudos)|     | Memory-memory |	    | New (and old) |
 	 | and splits (for     |<----| move coalesce |<-----|	 pseudos    |
 	 | pseudos got the     |      ---------------	    |	assignment  |
-  Start	 |  same  hard regs)   |			     --------------- 
+  Start	 |  same  hard regs)   |			     ---------------
     |	  ---------------------					    ^
     V		  |		 ----------------		    |
  -----------	  V		| Update virtual |		    |
@@ -63,7 +63,7 @@ along with GCC; see the file COPYING3.	If not see
 	|    to memory	 |<-------|    RTL     |--------->|  transformations  |
 	|  substitution	 |	  | transfor-  |	  |    in EBB scope   |
 	 ----------------	  |  mations   |	   -------------------
-		|		    ------------ 
+		|		    ------------
 		V
     -------------------------
    | Hard regs substitution, |
@@ -958,7 +958,7 @@ collect_non_operand_hard_regs (rtx *x, lra_insn_recog_data_t data,
       break;
     case CLOBBER:
       /* We treat clobber of non-operand hard registers as early
-	 clobber (the behavior is expected from asm).  */ 
+	 clobber (the behavior is expected from asm).  */
       list = collect_non_operand_hard_regs (&XEXP (op, 0), data,
 					    list, OP_OUT, true);
       break;
@@ -1055,7 +1055,7 @@ lra_set_insn_recog_data (rtx insn)
 	  if (nop > 0)
 	    {
 	      const char *p =  recog_data.constraints[0];
-	      
+
 	      for (p =	constraints[0]; *p; p++)
 		n += *p == ',';
 	    }
@@ -1241,7 +1241,7 @@ lra_update_insn_recog_data (rtx insn)
   int n;
   unsigned int uid = INSN_UID (insn);
   struct lra_static_insn_data *insn_static_data;
-  
+
   check_and_expand_insn_recog_data (uid);
   if ((data = lra_insn_recog_data[uid]) != NULL
       && data->icode != INSN_CODE (insn))
@@ -1310,7 +1310,7 @@ lra_update_insn_recog_data (rtx insn)
       {
 	int i;
 	bool *bp;
-	
+
 	n = insn_static_data->n_alternatives;
 	bp = data->alternative_enabled_p;
 	lra_assert (n >= 0 && bp != NULL);
@@ -1578,7 +1578,7 @@ add_regs_to_insn_regno_info (lra_insn_recog_data_t data, rtx x, int uid,
       break;
     case CLOBBER:
       /* We treat clobber of non-operand hard registers as early
-	 clobber (the behavior is expected from asm).  */ 
+	 clobber (the behavior is expected from asm).  */
       add_regs_to_insn_regno_info (data, XEXP (x, 0), uid, OP_OUT, true);
       break;
     case PRE_INC: case PRE_DEC: case POST_INC: case POST_DEC:
@@ -1859,19 +1859,19 @@ lra_process_new_insns (rtx insn, rtx before, rtx after, const char *title)
    scratches at the end of LRA.	 */
 
 /* Description of location of a former scratch operand.	 */
-struct loc
+struct sloc
 {
   rtx insn; /* Insn where the scratch was.  */
   int nop;  /* Number of the operand which was a scratch.  */
 };
 
-typedef struct loc *loc_t;
+typedef struct sloc *sloc_t;
 
-DEF_VEC_P(loc_t);
-DEF_VEC_ALLOC_P(loc_t, heap);
+DEF_VEC_P(sloc_t);
+DEF_VEC_ALLOC_P(sloc_t, heap);
 
 /* Locations of the former scratches.  */
-static VEC (loc_t, heap) *scratches;
+static VEC (sloc_t, heap) *scratches;
 
 /* Bitmap of scratch regnos.  */
 static bitmap_head scratch_bitmap;
@@ -1902,11 +1902,11 @@ remove_scratches (void)
   bool insn_changed_p;
   basic_block bb;
   rtx insn, reg;
-  loc_t loc;
+  sloc_t loc;
   lra_insn_recog_data_t id;
   struct lra_static_insn_data *static_id;
 
-  scratches = VEC_alloc (loc_t, heap, get_max_uid ());
+  scratches = VEC_alloc (sloc_t, heap, get_max_uid ());
   bitmap_initialize (&scratch_bitmap, &reg_obstack);
   bitmap_initialize (&scratch_operand_bitmap, &reg_obstack);
   FOR_EACH_BB (bb)
@@ -1926,10 +1926,10 @@ remove_scratches (void)
 				      *id->operand_loc[i], ALL_REGS, NULL);
 	      add_reg_note (insn, REG_UNUSED, reg);
 	      lra_update_dup (id, i);
-	      loc = XNEW (struct loc);
+	      loc = XNEW (struct sloc);
 	      loc->insn = insn;
 	      loc->nop = i;
-	      VEC_safe_push (loc_t, heap, scratches, loc);
+	      VEC_safe_push (sloc_t, heap, scratches, loc);
 	      bitmap_set_bit (&scratch_bitmap, REGNO (*id->operand_loc[i]));
 	      bitmap_set_bit (&scratch_operand_bitmap,
 			      INSN_UID (insn) * MAX_RECOG_OPERANDS + i);
@@ -1950,11 +1950,11 @@ static void
 restore_scratches (void)
 {
   int i, regno;
-  loc_t loc;
+  sloc_t loc;
   rtx last = NULL_RTX;
   lra_insn_recog_data_t id = NULL;
 
-  for (i = 0; VEC_iterate (loc_t, scratches, i, loc); i++)
+  for (i = 0; VEC_iterate (sloc_t, scratches, i, loc); i++)
     {
       if (last != loc->insn)
 	{
@@ -1977,9 +1977,9 @@ restore_scratches (void)
 		     INSN_UID (loc->insn), loc->nop);
 	}
     }
-  for (i = 0; VEC_iterate (loc_t, scratches, i, loc); i++)
+  for (i = 0; VEC_iterate (sloc_t, scratches, i, loc); i++)
     free (loc);
-  VEC_free (loc_t, heap, scratches);
+  VEC_free (sloc_t, heap, scratches);
   bitmap_clear (&scratch_bitmap);
   bitmap_clear (&scratch_operand_bitmap);
 }
@@ -2026,7 +2026,7 @@ check_rtl (bool final_p)
 	for (i = 0; i < id->insn_static_data->n_operands; i++)
 	  {
 	    rtx op = *id->operand_loc[i];
-	      
+
 	    if (MEM_P (op)
 		&& (GET_MODE (op) != BLKmode
 		    || GET_CODE (XEXP (op, 0)) != SCRATCH)
@@ -2055,7 +2055,7 @@ has_nonexceptional_receiver (void)
   /* If we're not optimizing, then just err on the safe side.  */
   if (!optimize)
     return true;
-  
+
   /* First determine which blocks can reach exit via normal paths.  */
   tos = worklist = XNEWVEC (basic_block, n_basic_blocks + 1);
 
@@ -2065,7 +2065,7 @@ has_nonexceptional_receiver (void)
   /* Place the exit block on our worklist.  */
   EXIT_BLOCK_PTR->flags |= BB_REACHABLE;
   *tos++ = EXIT_BLOCK_PTR;
-  
+
   /* Iterate: find everything reachable from what we've already seen.  */
   while (tos != worklist)
     {
@@ -2155,17 +2155,17 @@ update_inc_notes (void)
 /* Set to 1 while in lra.  */
 int lra_in_progress;
 
-/* Start of reload pseudo regnos before the new spill pass.  */ 
+/* Start of reload pseudo regnos before the new spill pass.  */
 int lra_constraint_new_regno_start;
 
-/* Inheritance pseudo regnos before the new spill pass.	 */ 
+/* Inheritance pseudo regnos before the new spill pass.	 */
 bitmap_head lra_inheritance_pseudos;
 
-/* Split regnos before the new spill pass.  */ 
+/* Split regnos before the new spill pass.  */
 bitmap_head lra_split_regs;
 
 /* Reload pseudo regnos before the new assign pass which still can be
-   spilled after the assinment pass.  */ 
+   spilled after the assinment pass.  */
 bitmap_head lra_optional_reload_pseudos;
 
 /* First UID of insns generated before a new spill pass.  */
@@ -2259,7 +2259,7 @@ lra (FILE *f)
   df_set_flags (DF_NO_INSN_RESCAN);
   lra_constraint_insn_stack = VEC_alloc (rtx, heap, get_max_uid ());
   lra_constraint_insn_stack_bitmap = sbitmap_alloc (get_max_uid ());
-  sbitmap_zero (lra_constraint_insn_stack_bitmap);
+  bitmap_clear (lra_constraint_insn_stack_bitmap);
   lra_live_ranges_init ();
   lra_constraints_init ();
   lra_curr_reload_num = 0;
@@ -2307,7 +2307,7 @@ lra (FILE *f)
 	  else
 	    {
 	      /* Do coalescing only for regular algorithms.  */
-	      if (! lra_assign () && lra_coalesce ())	
+	      if (! lra_assign () && lra_coalesce ())
 		live_p = false;
 	      if (lra_undo_inheritance ())
 		live_p = false;
@@ -2334,7 +2334,7 @@ lra (FILE *f)
     }
   restore_scratches ();
   lra_eliminate (true);
-  lra_hard_reg_substitution ();
+  lra_final_code_change ();
   lra_in_progress = 0;
   lra_clear_live_ranges ();
   lra_live_ranges_finish ();
@@ -2355,7 +2355,7 @@ lra (FILE *f)
     {
       sbitmap blocks;
       blocks = sbitmap_alloc (last_basic_block);
-      sbitmap_ones (blocks);
+      bitmap_ones (blocks);
       find_many_sub_basic_blocks (blocks);
       sbitmap_free (blocks);
     }

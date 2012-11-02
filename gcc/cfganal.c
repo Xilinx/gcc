@@ -84,7 +84,7 @@ mark_dfs_back_edges (void)
   visited = sbitmap_alloc (last_basic_block);
 
   /* None of the nodes in the CFG have been visited yet.  */
-  sbitmap_zero (visited);
+  bitmap_clear (visited);
 
   /* Push the first edge on to the stack.  */
   stack[sp++] = ei_start (ENTRY_BLOCK_PTR->succs);
@@ -501,7 +501,7 @@ post_order_compute (int *post_order, bool include_entry_exit,
   visited = sbitmap_alloc (last_basic_block);
 
   /* None of the nodes in the CFG have been visited yet.  */
-  sbitmap_zero (visited);
+  bitmap_clear (visited);
 
   /* Push the first edge on to the stack.  */
   stack[sp++] = ei_start (ENTRY_BLOCK_PTR->succs);
@@ -573,7 +573,9 @@ post_order_compute (int *post_order, bool include_entry_exit,
 }
 
 
-/* Helper routine for inverted_post_order_compute.
+/* Helper routine for inverted_post_order_compute
+   flow_dfs_compute_reverse_execute, and the reverse-CFG
+   deapth first search in dominance.c.
    BB has to belong to a region of CFG
    unreachable by inverted traversal from the exit.
    i.e. there's no control flow path from ENTRY to EXIT
@@ -593,19 +595,17 @@ post_order_compute (int *post_order, bool include_entry_exit,
    that all blocks in the region are reachable
    by starting an inverted traversal from the returned block.  */
 
-static basic_block
+basic_block
 dfs_find_deadend (basic_block bb)
 {
-  sbitmap visited = sbitmap_alloc (last_basic_block);
-  sbitmap_zero (visited);
+  bitmap visited = BITMAP_ALLOC (NULL);
 
   for (;;)
     {
-      SET_BIT (visited, bb->index);
       if (EDGE_COUNT (bb->succs) == 0
-          || TEST_BIT (visited, EDGE_SUCC (bb, 0)->dest->index))
+	  || ! bitmap_set_bit (visited, bb->index))
         {
-          sbitmap_free (visited);
+          BITMAP_FREE (visited);
           return bb;
         }
 
@@ -654,7 +654,7 @@ inverted_post_order_compute (int *post_order)
   visited = sbitmap_alloc (last_basic_block);
 
   /* None of the nodes in the CFG have been visited yet.  */
-  sbitmap_zero (visited);
+  bitmap_clear (visited);
 
   /* Put all blocks that have no successor into the initial work list.  */
   FOR_ALL_BB (bb)
@@ -803,7 +803,7 @@ pre_and_rev_post_order_compute (int *pre_order, int *rev_post_order,
   visited = sbitmap_alloc (last_basic_block);
 
   /* None of the nodes in the CFG have been visited yet.  */
-  sbitmap_zero (visited);
+  bitmap_clear (visited);
 
   /* Push the first edge on to the stack.  */
   stack[sp++] = ei_start (ENTRY_BLOCK_PTR->succs);
@@ -916,7 +916,7 @@ flow_dfs_compute_reverse_init (depth_first_search_ds data)
   data->visited_blocks = sbitmap_alloc (last_basic_block);
 
   /* None of the nodes in the CFG have been visited yet.  */
-  sbitmap_zero (data->visited_blocks);
+  bitmap_clear (data->visited_blocks);
 
   return;
 }
@@ -958,7 +958,7 @@ flow_dfs_compute_reverse_execute (depth_first_search_ds data,
   /* Determine if there are unvisited basic blocks.  */
   FOR_BB_BETWEEN (bb, last_unvisited, NULL, prev_bb)
     if (!TEST_BIT (data->visited_blocks, bb->index))
-      return bb;
+      return dfs_find_deadend (bb);
 
   return NULL;
 }
@@ -1006,7 +1006,7 @@ dfs_enumerate_from (basic_block bb, int reverse,
     {
 
       visited = sbitmap_alloc (size);
-      sbitmap_zero (visited);
+      bitmap_clear (visited);
       v_size = size;
     }
   else if (v_size < size)
@@ -1208,12 +1208,12 @@ sbitmap_intersection_of_succs (sbitmap dst, sbitmap *src,
       if (e->dest == EXIT_BLOCK_PTR)
 	continue;
 
-      sbitmap_copy (dst, src[e->dest->index]);
+      bitmap_copy (dst, src[e->dest->index]);
       break;
     }
 
   if (e == 0)
-    sbitmap_ones (dst);
+    bitmap_ones (dst);
   else
     for (++ix; ix < EDGE_COUNT (b->succs); ix++)
       {
@@ -1250,12 +1250,12 @@ sbitmap_intersection_of_preds (sbitmap dst, sbitmap *src,
       if (e->src == ENTRY_BLOCK_PTR)
 	continue;
 
-      sbitmap_copy (dst, src[e->src->index]);
+      bitmap_copy (dst, src[e->src->index]);
       break;
     }
 
   if (e == 0)
-    sbitmap_ones (dst);
+    bitmap_ones (dst);
   else
     for (++ix; ix < EDGE_COUNT (b->preds); ix++)
       {
@@ -1292,12 +1292,12 @@ sbitmap_union_of_succs (sbitmap dst, sbitmap *src,
       if (e->dest == EXIT_BLOCK_PTR)
 	continue;
 
-      sbitmap_copy (dst, src[e->dest->index]);
+      bitmap_copy (dst, src[e->dest->index]);
       break;
     }
 
   if (ix == EDGE_COUNT (b->succs))
-    sbitmap_zero (dst);
+    bitmap_clear (dst);
   else
     for (ix++; ix < EDGE_COUNT (b->succs); ix++)
       {
@@ -1334,12 +1334,12 @@ sbitmap_union_of_preds (sbitmap dst, sbitmap *src,
       if (e->src== ENTRY_BLOCK_PTR)
 	continue;
 
-      sbitmap_copy (dst, src[e->src->index]);
+      bitmap_copy (dst, src[e->src->index]);
       break;
     }
 
   if (ix == EDGE_COUNT (b->preds))
-    sbitmap_zero (dst);
+    bitmap_clear (dst);
   else
     for (ix++; ix < EDGE_COUNT (b->preds); ix++)
       {

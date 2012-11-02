@@ -34,7 +34,7 @@ along with GCC; see the file COPYING3.	If not see
      end
      create new stack slot S and assign P to S
    end
- 
+
    The actual algorithm is bit more complicated because of different
    pseudo sizes.
 
@@ -143,9 +143,9 @@ assign_mem_slot (int i)
 
   lra_assert (regno_reg_rtx[i] != NULL_RTX && REG_P (regno_reg_rtx[i])
 	      && lra_reg_info[i].nrefs != 0 && reg_renumber[i] < 0);
-  
+
   x = slots[pseudo_slots[i].slot_num].mem;
-  
+
   /* We can use a slot already allocated because it is guaranteed the
      slot provides both enough inherent space and enough total
      space.  */
@@ -181,14 +181,14 @@ assign_mem_slot (int i)
 	}
       slots[pseudo_slots[i].slot_num].mem = stack_slot;
     }
-      
+
   /* On a big endian machine, the "address" of the slot is the address
      of the low part that fits its inherent mode.  */
   if (BYTES_BIG_ENDIAN && inherent_size < total_size)
     adjust += (total_size - inherent_size);
-  
+
   x = adjust_address_nv (x, GET_MODE (regno_reg_rtx[i]), adjust);
-  
+
   /* Set all of the memory attributes as appropriate for a spill.  */
   set_mem_attrs_for_spill (x);
   pseudo_slots[i].mem = x;
@@ -265,7 +265,7 @@ assign_spill_hard_regs (int *pseudo_regnos, int n)
   bitmap setjump_crosses = regstat_get_setjmp_crosses ();
   /* Hard registers which can not be used for any purpose at given
      program point because they are unallocatable or already allocated
-     for other pseudos.	 */ 
+     for other pseudos.	 */
   HARD_REG_SET *reserved_hard_regs;
 
   if (! lra_reg_spill_p)
@@ -571,14 +571,56 @@ lra_spill (void)
   free (pseudo_regnos);
 }
 
+/* Apply alter_subreg for subregs of regs in *LOC.  Use FINAL_P for
+   alter_subreg calls. Return true if any subreg of reg is
+   processed.  */
+static bool
+alter_subregs (rtx *loc, bool final_p)
+{
+  int i;
+  rtx x = *loc;
+  bool res;
+  const char *fmt;
+  enum rtx_code code;
+
+  if (x == NULL_RTX)
+    return false;
+  code = GET_CODE (x);
+  if (code == SUBREG && REG_P (SUBREG_REG (x)))
+    {
+      lra_assert (REGNO (SUBREG_REG (x)) < FIRST_PSEUDO_REGISTER);
+      alter_subreg (loc, final_p);
+      return true;
+    }
+  fmt = GET_RTX_FORMAT (code);
+  res = false;
+  for (i = GET_RTX_LENGTH (code) - 1; i >= 0; i--)
+    {
+      if (fmt[i] == 'e')
+	{
+	  if (alter_subregs (&XEXP (x, i), final_p))
+	    res = true;
+	}
+      else if (fmt[i] == 'E')
+	{
+	  int j;
+
+	  for (j = XVECLEN (x, i) - 1; j >= 0; j--)
+	    if (alter_subregs (&XVECEXP (x, i, j), final_p))
+	      res = true;
+	}
+    }
+  return res;
+}
+
 /* Final change of pseudos got hard registers into the corresponding
-   hard registers.  */
+   hard registers and removing temporary clobbers.  */
 void
-lra_hard_reg_substitution (void)
+lra_final_code_change (void)
 {
   int i, hard_regno;
   basic_block bb;
-  rtx insn;
+  rtx insn, curr;
   int max_regno = max_reg_num ();
 
   for (i = FIRST_PSEUDO_REGISTER; i < max_regno; i++)
@@ -586,25 +628,30 @@ lra_hard_reg_substitution (void)
 	&& (hard_regno = lra_get_regno_hard_regno (i)) >= 0)
       SET_REGNO (regno_reg_rtx[i], hard_regno);
   FOR_EACH_BB (bb)
-    FOR_BB_INSNS (bb, insn)
+    FOR_BB_INSNS_SAFE (bb, insn, curr)
       if (INSN_P (insn))
 	{
-	  lra_insn_recog_data_t id;
+	  rtx pat = PATTERN (insn);
+
+	  if (GET_CODE (pat) == CLOBBER && LRA_TEMP_CLOBBER_P (pat))
+	    {
+	      /* Remove clobbers temporarily created in LRA.  We don't
+		 need them anymore and don't want to waste compiler
+		 time processing them in a few subsequent passes.  */
+	      lra_invalidate_insn_data (insn);
+	      remove_insn (insn);
+	      continue;
+	    }
+
+	  lra_insn_recog_data_t id = lra_get_insn_recog_data (insn);
 	  bool insn_change_p = false;
 
-	  id = lra_get_insn_recog_data (insn);
 	  for (i = id->insn_static_data->n_operands - 1; i >= 0; i--)
-	    {
-	      rtx op = *id->operand_loc[i];
-
-	      if (GET_CODE (op) == SUBREG && REG_P (SUBREG_REG (op)))
-		{
-		  lra_assert (REGNO (SUBREG_REG (op)) < FIRST_PSEUDO_REGISTER);
-		  alter_subreg (id->operand_loc[i], ! DEBUG_INSN_P (insn));
-		  lra_update_dup (id, i);
-		  insn_change_p = true;
-		}
-	    }
+	    if (alter_subregs (id->operand_loc[i], ! DEBUG_INSN_P (insn)))
+	      {
+		lra_update_dup (id, i);
+		insn_change_p = true;
+	      }
 	  if (insn_change_p)
 	    lra_update_operator_dups (id);
 	}

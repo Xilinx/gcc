@@ -4622,7 +4622,10 @@ add_var_loc_to_decl (tree decl, rtx loc_note, const char *label)
   if (DECL_DEBUG_EXPR_IS_FROM (decl))
     {
       tree realdecl = DECL_DEBUG_EXPR (decl);
-      if (realdecl && handled_component_p (realdecl))
+      if (realdecl
+	  && (handled_component_p (realdecl)
+	      || (TREE_CODE (realdecl) == MEM_REF
+		  && TREE_CODE (TREE_OPERAND (realdecl, 0)) == ADDR_EXPR)))
 	{
 	  HOST_WIDE_INT maxsize;
 	  tree innerdecl;
@@ -21259,7 +21262,8 @@ prune_unused_types_prune (dw_die_ref die)
   /* If we pruned children, and this is a class, mark it as a 
      declaration to inform debuggers that this is not a complete
      class definition.  */
-  if (pruned && die->die_mark == 1 && class_scope_p (die))
+  if (pruned && die->die_mark == 1 && class_scope_p (die)
+      && ! is_declaration_die (die))
     add_AT_flag (die, DW_AT_declaration, 1);
 }
 

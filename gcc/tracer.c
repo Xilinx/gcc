@@ -238,7 +238,7 @@ tail_duplicate (void)
   /* Create an oversized sbitmap to reduce the chance that we need to
      resize it.  */
   bb_seen = sbitmap_alloc (last_basic_block * 2);
-  sbitmap_zero (bb_seen);
+  bitmap_clear (bb_seen);
   initialize_original_copy_tables ();
 
   if (profile_info && flag_branch_probabilities)
@@ -379,7 +379,12 @@ tracer (void)
   /* Trace formation is done on the fly inside tail_duplicate */
   changed = tail_duplicate ();
   if (changed)
-    free_dominance_info (CDI_DOMINATORS);
+    {
+      free_dominance_info (CDI_DOMINATORS);
+      calculate_dominance_info (CDI_DOMINATORS);
+      if (current_loops)
+	fix_loop_structure (NULL);
+    }
 
   if (dump_file)
     brief_dump_cfg (dump_file, dump_flags);
