@@ -1,6 +1,5 @@
-/* Definitions for rtems targeting a AVR using ELF.
-   Copyright (C) 2004, 2007 Free Software Foundation, Inc.
-   Contributed by Ralf Corsepius (ralf.corsepius@rtems.org).
+/* Definitions for rtems targeting a microblaze using ELF.
+   Copyright (C) 2012 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -20,8 +19,7 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Specify predefined symbols in preprocessor.  */
 
-#define TARGET_OS_CPP_BUILTINS()	\
-do {					\
-  builtin_define ("__rtems__");		\
-  builtin_assert ("system=rtems");	\
+#define TARGET_OS_CPP_BUILTINS() do {		\
+  builtin_define( "__rtems__" );		\
+  builtin_assert( "system=rtems" );		\
 } while (0)

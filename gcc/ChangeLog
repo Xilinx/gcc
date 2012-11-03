@@ -1,3 +1,246 @@
+2012-11-03  Peter Bergner  <bergner@vnet.ibm.com>
+
+	Backport from mainline
+	2012-10-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53708
+	* tree-vect-data-refs.c (vect_can_force_dr_alignment_p): Preserve
+	user-supplied alignment when used with an explicit section name.
+
+2012-11-02  Jeff Law  <law@redhat.com>
+
+	PR tree-optimization/54985
+	* tree-ssa-threadedge.c (cond_arg_set_in_bb): New function extracted
+	from thread_across_edge.
+	(thread_across_edge): Use it in all cases where we might thread
+	across a back edge.
+
+2012-10-31  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/i386/i386.c (ix86_expand_prologue): Emit frame info for the
+	special register pushes before frame probing and allocation.
+
+2012-10-31  Ralf Corsépius  <ralf.corsepius@rtems.org>,
+	    Joel Sherrill  <joel.sherrill@oarcorp.com>
+
+	* config/sparc/t-rtems: New (Custom multilibs).
+	* config/sparc/t-rtems-64: New (Custom multilibs).
+	* config.gcc (sparc64-*-rtems*): Add sparc/t-rtems-64.
+	(sparc-*-rtems*): Add sparc/t-rtems.
+
+2012-10-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* cse.c (hash_rtx_cb): Replace RTX_UNCHANGING_P with MEM_READONLY_P in
+	head comment.
+	(hash_rtx): Likewise.
+
+2012-10-29  Terry Guo  <terry.guo@arm.com>
+
+	Backport from mainline
+	2012-10-11  Terry Guo  <terry.guo@arm.com>
+
+	* config/arm/arm.c (arm_arch6m): New variable to denote armv6-m
+	architecture.
+	* config/arm/arm.h (TARGET_HAVE_DMB): The armv6-m also has DMB
+	instruction.
+
+2012-10-26  Gunther Nikl  <gnikl@users.sourceforge.net>
+
+	* common/config/m68k/m68k-common.c (m68k_handle_option): Set
+	gcc_options fields of opts_set for -m68020-40 and -m68020-60.
+
+2012-10-26  Ralf Corsépius  <ralf.corsepius@rtems.org>
+
+	* config/avr/t-rtems: Revert previous commit.
+
+2012-10-26  Terry Guo  <terry.guo@arm.com>
+
+	Backport from mainline
+	2012-10-23  Terry Guo  <terry.guo@arm.com>
+
+	PR target/55019
+	* config/arm/arm.c (thumb1_expand_prologue): Don't push high regs with
+	live argument regs.
+
+2012-10-26  Ralf Corsépius  <ralf.corsepius@rtems.org>
+
+	* config/avr/rtems.h (TARGET_OS_CPP_BUILTINS): Remove
+	__USE_INIT_FINI__.
+	* config/avr/t-rtems (LIB1ASMFUNCS): Filter out _exit.
+
+2012-10-25  Ralf Corsépius  <ralf.corsepius@rtems.org>
+
+	* config.gcc (microblaze*-*-rtems*): New target.
+	* config/microblaze/rtems.h: New.
+	* config/microblaze/t-rtems: New.
+
+2012-10-25  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/54902
+	* tree-ssa-pre.c (fini_pre): Return TODO.
+	(execute_pre): Adjust.
+	* tree-ssa-tailmerge.c (tail_merge_optimize): Delete unreachable
+	blocks before computing dominators.
+
+2012-10-24  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2012-10-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (memory_address_length): Assert that non-null
+	base or index RTXes are registers.  Do not check for REG RTXes.
+	Determine addr32 prefix using SImode_address_operand or
+	from original base and index RTXes.  Simplify code.
+
+	2012-10-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386-protos.h (memory_address_length): Add new bool
+	argument.  Update all uses.
+	* config/i386/i386.c (memory_address_length): If not LEA insn, then
+	add length of addr32 prefix based on mode of base or index register.
+	(ix86_attr_length_address_default) <TYPE_LEA>: Do not handle SImode
+	addresses here.  Update call to memory_address_length.
+	(ix86_print_address_operand): Use SImode_address_operand predicate.
+	* config/i386/predicates.md (SImode_address_operand): New.
+	* config/i386/i386.md (lea<mode>): Use SImode_address_operand
+	to calculate "mode" attribute.  Use SImode_address_operand predicate
+	instead of open-coding accepted RTX codes.
+
+2012-10-22  Georg-Johann Lay  <avr@gjlay.de>
+
+	Backport from 2012-10-22 trunk r192685.
+	* doc/invoke.texi (AVR Options): Document __AVR_ARCH__.
+	Note __AVR_<device>__ is not defined for cores.
+	Don't point to --help=target.
+	Order --mcu= documentation according to trunk:/gcc/doc/avr-mmcu.texi.
+
+2012-10-19  Marek Polacek  <polacek@redhat.com>
+
+	Backported from mainline
+	2012-10-19  Marek Polacek  <polacek@redhat.com>
+
+	PR middle-end/54945
+	* fold-const.c (fold_sign_changed_comparison):  Punt if folding
+	pointer/non-pointer comparison.
+
+2012-10-19  Zhenqiang Chen <zhenqiang.chen@linaro.org>
+
+	Backported from mainline
+	2012-10-19  Zhenqiang Chen <zhenqiang.chen@linaro.org>
+
+	PR target/54892
+	* config/arm/arm.c (arm_expand_compare_and_swap): Use SImode to make
+	sure the mode is correct when falling through from above cases.
+
+2012-10-19  Alan Modra  <amodra@gmail.com>
+
+	* configure.ac (HAVE_LD_NO_DOT_SYMS): Set if using gold.
+	(HAVE_LD_LARGE_TOC): Likewise.
+	* configure: Regenerate.
+
+2012-10-19  Alan Modra  <amodra@gmail.com>
+
+	* config/rs6000/predicates.md (splat_input_operand): Don't call
+	input_operand for MEMs.  Instead check for volatile and call
+	memory_address_addr_space_p with modified mode.
+
+2012-10-17  Matthew Gretton-Dann  <matthew.gretton-dann@linaro.org>
+
+	Backported from mainline
+	2012-07-23  Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	* config/arm/arm.c (arm_reorg): Ensure all insns are split.
+
+2012-10-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR rtl-optimization/54870
+	* tree.h (TREE_ADDRESSABLE): Document special usage on SSA_NAME.
+	* cfgexpand.c (update_alias_info_with_stack_vars ): Set it on the
+	SSA_NAME pointer that points to a partition if there is at least
+	one variable with it set in the partition.
+	* dse.c (local_variable_can_escape): New predicate.
+	(can_escape): Call it.
+	* gimplify.c (mark_addressable): If this is a partitioned decl, also
+	mark the SSA_NAME pointer that points to a partition.
+
+2012-10-16  Andrey Belevantsev  <abel@ispras.ru>
+
+	Backport from mainline
+	2012-08-09  Andrey Belevantsev  <abel@ispras.ru>
+
+	PR rtl-optimization/53701
+	* sel-sched.c (vinsn_vec_has_expr_p): Clarify function comment.
+	rocess not only expr's vinsns but all old vinsns from expr's
+	istory of changes.
+
+2012-10-16  Andrey Belevantsev  <abel@ispras.ru>
+
+	Backport from mainline
+	2012-07-31  Andrey Belevantsev  <abel@ispras.ru>
+	PR target/53975
+
+	* sel-sched-ir.c (has_dependence_note_reg_use): Clarify comment.
+	Revert
+	2011-08-04  Sergey Grechanik  <mouseentity@ispras.ru>
+	* sel-sched-ir.c (has_dependence_note_reg_use): Call ds_full_merge
+	only if producer writes to the register given by regno.
+
+2012-09-15  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2012-10-15  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (UNSPEC_MOVU): Remove.
+	(UNSPEC_LOADU): New.
+	(UNSPEC_STOREU): Ditto.
+	(<sse>_movu<ssemodesuffix><avxsizesuffix>): Split to ...
+	(<sse>_loadu<ssemodesuffix><avxsizesuffix>): ... this and ...
+	(<sse>_storeu<ssemodesuffix><avxsizesuffix>) ... this.
+	(<sse2>_movdqu<avxsizesuffix>): Split to ...
+	(<sse2>_loaddqu<avxsizesuffix>): ... this and ...
+	(<sse2>_storedqu<avxsizesuffix>): ... this.
+	(*sse4_2_pcmpestr_unaligned): Update.
+	(*sse4_2_pcmpistr_unaligned): Ditto.
+
+	* config/i386/i386.c (ix86_avx256_split_vector_move_misalign): Use
+	gen_avx_load{dqu,ups,upd}256 to load from unaligned memory and
+	gen_avx_store{dqu,ups,upd}256 to store to unaligned memory.
+	(ix86_expand_vector_move_misalign): Use gen_sse_loadups or
+	gen_sse2_load{dqu,upd} to load from unaligned memory and
+	gen_sse_loadups or gen_sse2_store{dqu,upd}256 to store to
+	unaligned memory.
+	(struct builtin_description bdesc_spec) <IX86_BUILTIN_LOADUPS>:
+	Use CODE_FOR_sse_loadups.
+	<IX86_BUILTIN_LOADUPD>: Use CODE_FOR_sse2_loadupd.
+	<IX86_BUILTIN_LOADDQU>: Use CODE_FOR_sse2_loaddqu.
+	<IX86_BUILTIN_STOREUPS>: Use CODE_FOR_sse_storeups.
+	<IX86_BUILTIN_STOREUPD>: Use CODE_FOR_sse2_storeupd.
+	<IX86_BUILTIN_STOREDQU>: Use CODE_FOR_sse2_storedqu.
+	<IX86_BUILTIN_LOADUPS256>: Use CODE_FOR_avx_loadups256.
+	<IX86_BUILTIN_LOADUPD256>: Use CODE_FOR_avx_loadupd256.
+	<IX86_BUILTIN_LOADDQU256>: Use CODE_FOR_avx_loaddqu256.
+	<IX86_BUILTIN_STOREUPS256>: Use CODE_FOR_avx_storeups256.
+	<IX86_BUILTIN_STOREUPD256>: Use CODE_FOR_avx_storeupd256.
+	<IX86_BUILTIN_STOREDQU256>: Use CODE_FOR_avx_storedqu256.
+
+2012-10-15  Steven Bosscher  <steven@gcc.gnu.org>
+
+	Backport from trunk (r190222):
+
+	PR tree-optimization/54146
+	* ifcvt.c: Include pointer-set.h.
+	(cond_move_process_if_block): Change type of then_regs and
+	else_regs from alloca'd array to pointer_sets.
+	(check_cond_move_block): Update for this change.
+	(cond_move_convert_if_block): Likewise.
+	* Makefile.in: Fix dependencies for ifcvt.o.
+
+2012-10-15  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/54920
+	* tree-ssa-pre.c (create_expression_by_pieces): Properly
+	allocate temporary storage for all NARY elements.
+
 2012-10-08  Georg-Johann Lay  <avr@gjlay.de>
 
 	PR target/54854
@@ -7,7 +250,7 @@
 
 	* config.gcc (*-*-openbsd4.[3-9]|*-*-openbsd[5-9]*): Set
 	default_use_cxa_atexit to yes.
-		
+
 2012-10-05  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
 
 	* config/pa/pa.md: Adjust unamed HImode add insn pattern.
@@ -24,7 +267,7 @@
 	Backported from mainline
 	2012-10-03  Andrew W. Nosenko <andrew.w.nosenko@gmail.com>
 
-	*  config/i386/driver-i386.c (host_detect_local_cpu): Fix logic
+	* config/i386/driver-i386.c (host_detect_local_cpu): Fix logic
 	in SSE and YMM state support check for -march=native.
 
 2012-10-03  Alexandre Oliva <aoliva@redhat.com>
@@ -89,8 +332,7 @@
 
 	PR target/54703
 	* simplify-rtx.c (simplify_binary_operation_1): Perform
-	(x - (x & y)) -> (x & ~y) optimization only for integral
-	modes.
+	(x - (x & y)) -> (x & ~y) optimization only for integral modes.
 
 2012-09-24  Eric Botcazou  <ebotcazou@adacore.com>
 
@@ -168,12 +410,12 @@
 	Backport from mainline
 	2012-09-07  Andi Kleen  <ak@linux.intel.com>
 
-  	* gcc/lto-streamer.h (res_pair): Add.
-    	(lto_file_decl_data): Replace resolutions with respairs.
-    	Add max_index.
-    	* gcc/lto/lto.c (lto_resolution_read): Remove max_index.  Add rp.
-    	Initialize respairs.
-    	(lto_file_finalize): Set up resolutions vector lazily from respairs.
+	* gcc/lto-streamer.h (res_pair): Add.
+	(lto_file_decl_data): Replace resolutions with respairs.
+	Add max_index.
+	* gcc/lto/lto.c (lto_resolution_read): Remove max_index.  Add rp.
+	Initialize respairs.
+	(lto_file_finalize): Set up resolutions vector lazily from respairs.
 
 2012-09-14  Walter Lee  <walt@tilera.com>
 
@@ -239,7 +481,7 @@
 
 2012-09-12  Christian Bruel  <christian.bruel@st.com>
 
-       * config/sh/newlib.h (NO_IMPLICIT_EXTERN_C): Define.
+	* config/sh/newlib.h (NO_IMPLICIT_EXTERN_C): Define.
 
 2012-09-12  Jakub Jelinek  <jakub@redhat.com>
 
