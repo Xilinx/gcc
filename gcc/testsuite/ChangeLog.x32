@@ -1,3 +1,9 @@
+2012-11-03  H.J. Lu  <hjl.tools@gmail.com>
+	    Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	* lib/target-supports.exp (check_effective_target_maybe_x32): New
+	proc.
+
 2012-08-24  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR debug/52857
