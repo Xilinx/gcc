@@ -6888,7 +6888,7 @@ gimplify_transaction (tree *expr_p, gimple_seq *pre_p)
   g = gimplify_and_return_first (TRANSACTION_EXPR_BODY (expr), &body);
   pop_gimplify_context (g);
 
-  g = gimple_build_transaction (body, NULL);
+  g = gimple_build_transaction (body, NULL, NULL);
   if (TRANSACTION_EXPR_OUTER (expr))
     subcode = GTMA_IS_OUTER;
   else if (TRANSACTION_EXPR_RELAXED (expr))
