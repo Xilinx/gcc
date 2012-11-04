@@ -1640,13 +1640,20 @@ lower_transaction (gimple_stmt_iterator *gsi, struct walk_stmt_info *wi)
 
   gimple_transaction_set_body (stmt, NULL);
 
+  /* Add the uninstrumented code path label, which is basically an
+     OVER label at this point.  Later in
+     ipa_uninstrument_transaction() we will set it appropriately.  */
+  tree label = create_artificial_label (UNKNOWN_LOCATION);
+  gimple_transaction_set_uninst_label (stmt, label);
+  gsi_insert_after (gsi, gimple_build_label (label), GSI_CONTINUE_LINKING);
+
   /* If the transaction calls abort or if this is an outer transaction,
      add an "over" label afterwards.  */
   if ((this_state & (GTMA_HAVE_ABORT))
       || (gimple_transaction_subcode(stmt) & GTMA_IS_OUTER))
     {
-      tree label = create_artificial_label (UNKNOWN_LOCATION);
-      gimple_transaction_set_label (stmt, label);
+      label = create_artificial_label (UNKNOWN_LOCATION);
+      gimple_transaction_set_over_label (stmt, label);
       gsi_insert_after (gsi, gimple_build_label (label), GSI_CONTINUE_LINKING);
     }
 
@@ -1778,9 +1785,9 @@ struct tm_region
      outer transaction.  */
   bool original_transaction_was_outer;
 
-  /* This holds the transaction label from the original
+  /* This holds the transaction over label from the original
      GIMPLE_TRANSACTION statement.  */
-  tree transaction_label;
+  tree transaction_over_label;
 
   /* Return value from BUILT_IN_TM_START.  */
   tree tm_state;
@@ -1841,7 +1848,7 @@ tm_region_init_0 (struct tm_region *outer, basic_block bb, gimple stmt)
 
   region->transaction_stmt = stmt;
   region->original_transaction_was_outer = false;
-  region->transaction_label = gimple_transaction_label (stmt);
+  region->transaction_over_label = gimple_transaction_over_label (stmt);
   region->tm_state = NULL;
 
   /* There are either one or two edges out of the block containing
@@ -2602,7 +2609,7 @@ expand_transaction (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
 
   /* If we have an ABORT edge, create a test following the start
      call to perform the abort.  */
-  if (region->transaction_label)
+  if (region->transaction_over_label)
     {
       basic_block test_bb = create_empty_bb (slice_bb);
       if (current_loops && slice_bb->loop_father)
