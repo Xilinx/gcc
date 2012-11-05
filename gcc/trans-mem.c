@@ -2556,7 +2556,7 @@ expand_transaction (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
   if (subcode & GTMA_DOES_GO_IRREVOCABLE)
     flags = PR_DOESGOIRREVOCABLE | PR_UNINSTRUMENTEDCODE;
   else
-    flags = PR_INSTRUMENTEDCODE;
+    flags = PR_MULTIWAYCODE;
   if ((subcode & GTMA_MAY_ENTER_IRREVOCABLE) == 0)
     flags |= PR_HASNOIRREVOCABLE;
   /* If the transaction does not have an abort in lexical scope and is not
