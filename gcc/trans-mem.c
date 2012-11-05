@@ -3902,9 +3902,8 @@ ipa_uninstrument_transaction (struct tm_region *region,
 
   copy_bbs (VEC_address (basic_block, queue), n, new_bbs,
 	    NULL, 0, NULL, NULL, transaction_bb);
-  add_phi_args_after_copy (new_bbs, n, NULL);
-
-  make_edge (transaction_bb, new_bbs[0], EDGE_TM_UNINSTRUMENTED);
+  edge e = make_edge (transaction_bb, new_bbs[0], EDGE_TM_UNINSTRUMENTED);
+  add_phi_args_after_copy (new_bbs, n, e);
 
   // Now we will have a GIMPLE_ATOMIC with 3 possible edges out of it.
   //   a) EDGE_FALLTHRU into the transaction
