@@ -1641,11 +1641,15 @@ lower_transaction (gimple_stmt_iterator *gsi, struct walk_stmt_info *wi)
 
   gimple_transaction_set_body (stmt, NULL);
 
-  /* We need an "over" label for the uninstrumented code path, as well
-     as for outer transactions, or transactions calling abort.  */
-  tree label = create_artificial_label (UNKNOWN_LOCATION);
-  gimple_transaction_set_label (stmt, label);
-  gsi_insert_after (gsi, gimple_build_label (label), GSI_CONTINUE_LINKING);
+  /* If the transaction calls abort or if this is an outer transaction,
+     add an "over" label afterwards.  */
+  if ((this_state & (GTMA_HAVE_ABORT))
+      || (gimple_transaction_subcode(stmt) & GTMA_IS_OUTER))
+    {
+      tree label = create_artificial_label (UNKNOWN_LOCATION);
+      gimple_transaction_set_label (stmt, label);
+      gsi_insert_after (gsi, gimple_build_label (label), GSI_CONTINUE_LINKING);
+    }
 
   /* Record the set of operations found for use later.  */
   this_state |= gimple_transaction_subcode (stmt) & GTMA_DECLARATION_MASK;
@@ -3893,32 +3897,22 @@ ipa_uninstrument_transaction (struct tm_region *region,
 {
   gimple transaction = region->transaction_stmt;
   basic_block transaction_bb = gimple_bb (transaction);
-  int i, n = VEC_length (basic_block, queue);
-  basic_block *bbs = XNEWVEC (basic_block, n);
+  int n = VEC_length (basic_block, queue);
   basic_block *new_bbs = XNEWVEC (basic_block, n);
-  basic_block bb;
 
-  for (i = 0; VEC_iterate (basic_block, queue, i, bb); ++i)
-    bbs[i] = bb;
-
-  // The EDGE_TM_ABORT, is merely an edge over the transaction.  Use
-  // it to find where to put the uninstrumented blocks.
-  edge uninst_edge = find_transaction_edge (transaction, EDGE_TM_ABORT);
-  basic_block uninst_block = uninst_edge->dest;
-
-  copy_bbs (bbs, n, new_bbs, NULL, 0, NULL, NULL, uninst_block);
+  copy_bbs (VEC_address (basic_block, queue), n, new_bbs,
+	    NULL, 0, NULL, NULL, transaction_bb);
   add_phi_args_after_copy (new_bbs, n, NULL);
 
   make_edge (transaction_bb, new_bbs[0], EDGE_TM_UNINSTRUMENTED);
 
-  // No we will have a GIMPLE_ATOMIC with 3 edges out of it.
+  // Now we will have a GIMPLE_ATOMIC with 3 possible edges out of it.
   //   a) EDGE_FALLTHRU into the transaction
   //   b) EDGE_TM_ABORT out of the transaction
   //   c) EDGE_TM_UNINSTRUMENTED into the uninstrumented blocks.
 
   rebuild_cgraph_edges ();
 
-  free (bbs);
   free (new_bbs);
 }
 
