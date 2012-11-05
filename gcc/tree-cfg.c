@@ -668,8 +668,10 @@ make_edges (void)
 		if (abort_label)
 		  make_edge (bb, label_to_block (abort_label), 0);
 		tree uninst_label = gimple_transaction_uninst_label (last);
+		// Mark the uninstrumented label as abnormal to
+		// differentiate it from the OVER label.
 		if (uninst_label)
-		  make_edge (bb, label_to_block (uninst_label), 0);
+		  make_edge (bb, label_to_block (uninst_label), EDGE_ABNORMAL);
 		fallthru = true;
 	      }
 	      break;
