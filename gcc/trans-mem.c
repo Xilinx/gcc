@@ -2782,6 +2782,7 @@ execute_tm_mark (void)
       VEC_free (basic_block, heap, queue);
 
       tm_log_emit ();
+      tm_log_delete ();
     }
 
   // Expand GIMPLE_TRANSACTIONs into calls into the runtime.
@@ -2814,58 +2815,6 @@ struct gimple_opt_pass pass_tm_mark =
  }
 };
 
-
-/* A helper function for tm_region_for_stmt.  Search the instructions
-   in REGION and return the one that contains the gimple statement in
-   DATA.  If the statement in DATA is not found, return NULL.  */
-
-static void *
-tm_region_for_stmt_1 (struct tm_region *region, void *data)
-{
-  void *ret = NULL;
-  gimple stmt = (gimple) data;
-  unsigned int i;
-  basic_block bb;
-  VEC (basic_block, heap) *queue;
-
-  queue = get_tm_region_blocks (region->entry_block,
-				region->exit_blocks,
-				region->irr_blocks,
-				NULL,
-				/*stop_at_irr_p=*/false);
-  for (i = 0; VEC_iterate (basic_block, queue, i, bb); ++i)
-    {
-      gimple_stmt_iterator gsi = gsi_start_bb (bb);
-      for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
-	if (gsi_stmt (gsi) == stmt)
-	  {
-	    ret = (void *) region;
-	    goto exit;
-	  }
-    }
- exit:
-  VEC_free (basic_block, heap, queue);
-  return ret;
-}
-
-/* Find the region that contains STMT.  This implementation is a
-   temporary measure (read inefficient).  We should either keep this
-   information on the side, or find it through some clever EH landing
-   pad searches.
-
-   ?? We should be able to get the inner transaction via the region_nr
-   saved on STMT, and read the transaction_stmt from that, and find
-   the first region block from there.  */
-
-static struct tm_region *
-tm_region_for_stmt (gimple stmt)
-{
-  struct tm_region *region;
-  region = (struct tm_region *) expand_regions (all_tm_regions,
-						tm_region_for_stmt_1,
-						(void *) stmt);
-  return region;
-}
 
 /* Create an abnormal edge from STMT at iter, splitting the block
    as necessary.  Adjust *PNEXT as needed for the split block.  */
@@ -2911,7 +2860,7 @@ split_bb_make_tm_edge (gimple stmt, basic_block dest_bb,
    wire up the abnormal back edges implied by the transaction restart.  */
 
 static void
-expand_block_edges (struct tm_region *region, basic_block bb)
+expand_block_edges (struct tm_region *const region, basic_block bb)
 {
   gimple_stmt_iterator gsi, next_gsi;
 
@@ -2940,10 +2889,10 @@ expand_block_edges (struct tm_region *region, basic_block bb)
 	      && !decl_is_tm_clone (current_function_decl))
 	    {
 	      // Find the GTMA_IS_OUTER transaction.
-	      for (; region; region = region->outer)
-		if (region->original_transaction_was_outer)
+	      for (struct tm_region *o = region; o; o = o->outer)
+		if (o->original_transaction_was_outer)
 		  {
-		    split_bb_make_tm_edge (stmt, region->restart_block,
+		    split_bb_make_tm_edge (stmt, o->restart_block,
 					   gsi, &next_gsi);
 		    break;
 		  }
@@ -2956,9 +2905,7 @@ expand_block_edges (struct tm_region *region, basic_block bb)
 
 	  // Non-outer, TM aborts have an abnormal edge to the inner-most
 	  // transaction, the one being aborted;
-	  struct tm_region *inner = tm_region_for_stmt (stmt);
-	  if (inner)
-	    split_bb_make_tm_edge (stmt, inner->restart_block, gsi, &next_gsi);
+	  split_bb_make_tm_edge (stmt, region->restart_block, gsi, &next_gsi);
 	}
 
       // All TM builtins have an abnormal edge to the outer-most transaction.
@@ -2973,9 +2920,12 @@ expand_block_edges (struct tm_region *region, basic_block bb)
 
       // All TM builtins have an abnormal edge to the outer-most transaction.
       // We never restart inner transactions.
-      while (region->outer)
-	region = region->outer;
-      split_bb_make_tm_edge (stmt, region->restart_block, gsi, &next_gsi);
+      for (struct tm_region *o = region; o; o = o->outer)
+	if (!o->outer)
+	  {
+            split_bb_make_tm_edge (stmt, o->restart_block, gsi, &next_gsi);
+	    break;
+	  }
 
       // Delete any tail-call annotation that may have been added.
       // The tail-call pass may have mis-identified the commit as being
@@ -2984,31 +2934,77 @@ expand_block_edges (struct tm_region *region, basic_block bb)
     }
 }
 
-/* Wire transaction restart edges and split BB's at each TM builtin
-   function.  */
-
+// Callback for expand_regions, collect innermost region data for each bb.
 static void *
-tmedge_wire_transaction_restarts (struct tm_region *region,
-				  void *data ATTRIBUTE_UNUSED)
+collect_bb2reg (struct tm_region *region, void *data)
 {
+  struct tm_region **bb2reg = (struct tm_region **) data;
+  VEC (basic_block, heap) *queue;
   unsigned int i;
   basic_block bb;
-  VEC (basic_block, heap) *queue;
 
-  /* Collect the set of blocks in this region.  Do this before
-     splitting edges, so that we don't have to play with the
-     dominator tree in the middle.  */
   queue = get_tm_region_blocks (region->entry_block,
 				region->exit_blocks,
 				region->irr_blocks,
 				NULL,
 				/*stop_at_irr_p=*/false);
-  for (i = 0; VEC_iterate (basic_block, queue, i, bb); ++i)
-    expand_block_edges (region, bb);
+
+  // We expect expand_region to perform a post-order traversal of
+  // the region tree.  Therefore the last region seen for any bb
+  // is the innermost.
+  FOR_EACH_VEC_ELT (basic_block, queue, i, bb)
+    bb2reg[bb->index] = region;
+
   VEC_free (basic_block, heap, queue);
   return NULL;
 }
 
+/* Entry point to the final expansion of transactional nodes. */
+
+static unsigned int
+execute_tm_edges (void)
+{
+  unsigned n = n_basic_blocks;
+  struct tm_region **bb2reg = XCNEWVEC (struct tm_region *, n);
+  expand_regions (all_tm_regions, collect_bb2reg, bb2reg);
+
+  for (unsigned i = 0; i < n; ++i)
+    if (bb2reg[i] != NULL)
+      expand_block_edges (bb2reg[i], BASIC_BLOCK (i));
+
+  free (bb2reg);
+
+  /* We've got to release the dominance info now, to indicate that it
+     must be rebuilt completely.  Otherwise we'll crash trying to update
+     the SSA web in the TODO section following this pass.  */
+  free_dominance_info (CDI_DOMINATORS);
+  bitmap_obstack_release (&tm_obstack);
+  all_tm_regions = NULL;
+
+  return 0;
+}
+
+struct gimple_opt_pass pass_tm_edges =
+{
+ {
+  GIMPLE_PASS,
+  "tmedge",				/* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
+  NULL,					/* gate */
+  execute_tm_edges,			/* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
+  0,					/* static_pass_number */
+  TV_TRANS_MEM,				/* tv_id */
+  PROP_ssa | PROP_cfg,			/* properties_required */
+  0,			                /* properties_provided */
+  0,					/* properties_destroyed */
+  0,					/* todo_flags_start */
+  TODO_update_ssa
+  | TODO_verify_ssa,			/* todo_flags_finish */
+ }
+};
+
 /* Helper function for expand_regions.  Expand REGION and recurse to
    the inner region.  Call CALLBACK on each region.  CALLBACK returns
    NULL to continue the traversal, otherwise a non-null value which
@@ -3056,44 +3052,6 @@ expand_regions (struct tm_region *region,
   return retval;
 }
 
-/* Entry point to the final expansion of transactional nodes. */
-
-static unsigned int
-execute_tm_edges (void)
-{
-  expand_regions (all_tm_regions, tmedge_wire_transaction_restarts, NULL);
-  tm_log_delete ();
-
-  /* We've got to release the dominance info now, to indicate that it
-     must be rebuilt completely.  Otherwise we'll crash trying to update
-     the SSA web in the TODO section following this pass.  */
-  free_dominance_info (CDI_DOMINATORS);
-  bitmap_obstack_release (&tm_obstack);
-  all_tm_regions = NULL;
-
-  return 0;
-}
-
-struct gimple_opt_pass pass_tm_edges =
-{
- {
-  GIMPLE_PASS,
-  "tmedge",				/* name */
-  OPTGROUP_NONE,                        /* optinfo_flags */
-  NULL,					/* gate */
-  execute_tm_edges,			/* execute */
-  NULL,					/* sub */
-  NULL,					/* next */
-  0,					/* static_pass_number */
-  TV_TRANS_MEM,				/* tv_id */
-  PROP_ssa | PROP_cfg,			/* properties_required */
-  0,			                /* properties_provided */
-  0,					/* properties_destroyed */
-  0,					/* todo_flags_start */
-  TODO_update_ssa
-  | TODO_verify_ssa,			/* todo_flags_finish */
- }
-};
 
 /* A unique TM memory operation.  */
 typedef struct tm_memop
