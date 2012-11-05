@@ -1787,6 +1787,10 @@ struct tm_region
      outer transaction.  */
   bool original_transaction_was_outer;
 
+  /* FIXME: ?? Hmmm, it seems we don't need this after all.  We can
+     get it directly from gimple_transaction_over_label() since we
+     expand_transaction() still has a pointer to the original
+     GIMPLE_TRANSACTION at function entry.  */
   /* This holds the transaction over label from the original
      GIMPLE_TRANSACTION statement.  */
   tree transaction_over_label;
@@ -2632,11 +2636,13 @@ expand_transaction (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
       stmt = gimple_build_cond (NE_EXPR, t1, t2, NULL, NULL);
       gsi_insert_after (&gsi, stmt, GSI_CONTINUE_LINKING);
 
+      // Not abort edge.
       edge e = FALLTHRU_EDGE (slice_bb);
       redirect_edge_pred (e, test_bb);
       e->flags = EDGE_FALSE_VALUE;
       e->probability = PROB_ALWAYS - PROB_VERY_UNLIKELY;
 
+      // Abort/over edge.
       e = BRANCH_EDGE (transaction_bb);
       redirect_edge_pred (e, test_bb);
       e->flags = EDGE_TRUE_VALUE;
@@ -2677,6 +2683,55 @@ generate_tm_state (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
   region->tm_state =
     create_tmp_reg (TREE_TYPE (TREE_TYPE (tm_start)), "tm_state");
   return NULL;
+}
+
+/* Given a transaction in REGION, generate code to split the
+   instrumented and uninstrumented code paths.  */
+
+static void
+split_code_paths (struct tm_region *region, VEC (basic_block, heap) **queue)
+{
+  edge ee = split_block (region->entry_block, NULL);
+  // Where to put the conditional choosing the path to take.
+  basic_block cond_bb = region->restart_block = ee->src;
+
+  // The old block is now ee->dest.  Keep the queue up to date to
+  // avoid re-computing.
+  VEC_safe_push (basic_block, heap, *queue, ee->dest);
+ 
+  // t1 = region->tm_state & A_RUNINSTRUMENTEDCODE
+  tree t1 = create_tmp_reg (TREE_TYPE (region->tm_state), NULL);
+  tree t2 = build_int_cst (TREE_TYPE (region->tm_state),
+			   A_RUNINSTRUMENTEDCODE);
+  gimple stmt = gimple_build_assign_with_ops (BIT_AND_EXPR, t1,
+					      region->tm_state, t2);
+  gimple_stmt_iterator cond_gsi = gsi_last_bb (cond_bb);
+  gsi_insert_after (&cond_gsi, stmt, GSI_CONTINUE_LINKING);
+
+  // if (region->tm_state & A_RUNINSTRUMENTEDCODE)...
+  t2 = build_int_cst (TREE_TYPE (region->tm_state), 0);
+  stmt = gimple_build_cond (NE_EXPR, t1, t2, NULL, NULL);
+  gsi_insert_after (&cond_gsi, stmt, GSI_CONTINUE_LINKING);
+
+  // Fall-thru to the original instrumented path.
+  edge e = FALLTHRU_EDGE (cond_bb);
+  e->flags = EDGE_TRUE_VALUE;
+  e->probability = PROB_VERY_UNLIKELY;
+
+  // Wire the uninstrumented path and make it the likely path.
+  basic_block transaction_bb = gimple_bb (region->transaction_stmt);
+  edge uninst_edge = EDGE_SUCC (transaction_bb, 0);
+  // The abnormal edge is the uninstrumented path.
+  // The fallthru edge is the instrumented path.
+  gcc_assert (uninst_edge->flags & EDGE_ABNORMAL);
+  e = make_edge (cond_bb, uninst_edge->dest, EDGE_FALSE_VALUE);
+  e->probability = PROB_ALWAYS - PROB_VERY_UNLIKELY;
+
+  // There's probably no need for this because our caller is about to
+  // obliterate the GIMPLE_TRANSACTION entirely, but better safe than
+  // sorry.
+  gimple_transaction_set_uninst_label (region->transaction_stmt, NULL);
+  remove_edge (uninst_edge);
 }
 
 /* Entry point to the MARK phase of TM expansion.  Here we replace
@@ -2721,6 +2776,12 @@ execute_tm_mark (void)
 				    region->irr_blocks,
 				    NULL,
 				    /*stop_at_irr_p=*/true);
+
+      // Add the conditional splitting the uninstrumented and
+      // instrumented code paths.
+      if (!decl_is_tm_clone (current_function_decl))
+	split_code_paths (region, &queue);
+
       for (i = 0; VEC_iterate (basic_block, queue, i, bb); ++i)
 	expand_block_tm (region, bb);
       VEC_free (basic_block, heap, queue);
@@ -3828,6 +3889,53 @@ maybe_push_queue (struct cgraph_node *node,
     }
 }
 
+/* Duplicate the basic blocks in QUEUE for use in the uninstrumented
+   code path, and link them to the uninstrumented label in the
+   transaction rooted at REGION.  NODE is the function where the
+   transaction appears in.
+
+   Later in split_code_paths() we will add the conditional to choose
+   between the two alternatives.  */
+
+static void
+ipa_uninstrument_transaction (struct tm_region *region,
+			      VEC (basic_block, heap) *queue)
+{
+  int i, n = VEC_length (basic_block, queue);
+  basic_block *bbs = XNEWVEC (basic_block, n);
+  basic_block *new_bbs = XNEWVEC (basic_block, n);
+  basic_block bb;
+
+  for (i = 0; VEC_iterate (basic_block, queue, i, bb); ++i)
+    bbs[i] = bb;
+
+  gimple stmt = region->transaction_stmt;
+  edge uninst_edge = EDGE_SUCC (gimple_bb (stmt), 0);
+  // The abnormal edge is the uninstrumented path.
+  // The fallthru edge is the instrumented path.
+  gcc_assert (uninst_edge->flags & EDGE_ABNORMAL);
+  basic_block uninst_block = uninst_edge->dest;
+
+  copy_bbs (bbs, n, new_bbs, NULL, 0, NULL, NULL, uninst_block);
+  add_phi_args_after_copy (new_bbs, n, NULL);
+
+  // At entry to this function, UNINST_BLOCK is really the BB after
+  // the transaction.  Move the uninst label to the location where the
+  // uninstrumented blocks will ultimately go.
+  edge ee = split_block (new_bbs[0], NULL);
+  uninst_block = ee->src;
+  tree label = create_artificial_label (UNKNOWN_LOCATION);
+  gimple_transaction_set_uninst_label (stmt, label);
+  gimple_stmt_iterator gsi = gsi_last_bb (uninst_block);
+  gsi_insert_after (&gsi, gimple_build_label (label), GSI_CONTINUE_LINKING);
+  redirect_edge_succ (uninst_edge, uninst_block);
+
+  rebuild_cgraph_edges ();
+
+  free (bbs);
+  free (new_bbs);
+}
+
 /* A subroutine of ipa_tm_scan_calls_transaction and ipa_tm_scan_calls_clone.
    Queue all callees within block BB.  */
 
@@ -3888,6 +3996,9 @@ ipa_tm_scan_calls_transaction (struct tm_ipa_cg_data *d,
 
       bbs = get_tm_region_blocks (r->entry_block, r->exit_blocks, NULL,
 				  d->transaction_blocks_normal, false);
+
+      // Generate the uninstrumented code path for this transaction.
+      ipa_uninstrument_transaction (r, bbs);
 
       FOR_EACH_VEC_ELT (basic_block, bbs, i, bb)
 	ipa_tm_scan_calls_block (callees_p, bb, false);
@@ -4990,6 +5101,7 @@ ipa_tm_execute (void)
 #endif
 
   bitmap_obstack_initialize (&tm_obstack);
+  initialize_original_copy_tables ();
 
   /* For all local functions marked tm_callable, queue them.  */
   FOR_EACH_DEFINED_FUNCTION (node)
@@ -5023,7 +5135,8 @@ ipa_tm_execute (void)
 	  {
 	    d = get_cg_data (&node, true);
 
-	    /* Scan for calls that are in each transaction.  */
+	    /* Scan for calls that are in each transaction, and
+	       generate the uninstrumented code path.  */
 	    ipa_tm_scan_calls_transaction (d, &tm_callees);
 
 	    /* Put it in the worklist so we can scan the function
@@ -5228,6 +5341,7 @@ ipa_tm_execute (void)
   VEC_free (cgraph_node_p, heap, tm_callees);
   VEC_free (cgraph_node_p, heap, irr_worklist);
   bitmap_obstack_release (&tm_obstack);
+  free_original_copy_tables ();
 
   FOR_EACH_FUNCTION (node)
     node->symbol.aux = NULL;
@@ -5255,7 +5369,7 @@ struct simple_ipa_opt_pass pass_ipa_tm =
   0,			                /* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  0,             			/* todo_flags_finish */
+  TODO_update_ssa,      		/* todo_flags_finish */
  },
 };
 
