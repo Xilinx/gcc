@@ -2677,7 +2677,7 @@ generate_tm_state (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
 static void
 split_code_paths (struct tm_region *region, VEC (basic_block, heap) **queue)
 {
-  // fixme
+  //fixme
   return;
   edge ee = split_block (region->entry_block, NULL);
   // Where to put the conditional choosing the path to take.

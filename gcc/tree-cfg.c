@@ -666,7 +666,7 @@ make_edges (void)
 	      {
 		tree abort_label = gimple_transaction_label (last);
 		if (abort_label)
-		  make_edge (bb, label_to_block (abort_label), 0);
+		  make_edge (bb, label_to_block (abort_label), EDGE_TM_ABORT);
 		fallthru = true;
 	      }
 	      break;
