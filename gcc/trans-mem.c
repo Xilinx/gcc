@@ -3910,8 +3910,6 @@ ipa_uninstrument_transaction (struct tm_region *region,
   //   b) EDGE_TM_ABORT out of the transaction
   //   c) EDGE_TM_UNINSTRUMENTED into the uninstrumented blocks.
 
-  rebuild_cgraph_edges ();
-
   free (new_bbs);
 }
 
@@ -3984,6 +3982,21 @@ ipa_tm_scan_calls_transaction (struct tm_ipa_cg_data *d,
 
       VEC_free (basic_block, heap, bbs);
     }
+
+  // ??? copy_bbs should maintain cgraph edges for the blocks as it is
+  // copying them, rather than forcing us to do this externally.
+  rebuild_cgraph_edges ();
+
+  // ??? In ipa_uninstrument_transaction we don't try to update dominators
+  // because copy_bbs doesn't return a VEC like iterate_fix_dominators expects.
+  // Instead, just release dominators here so update_ssa recomputes them.
+  free_dominance_info (CDI_DOMINATORS);
+
+  // When building the uninstrumented code path, copy_bbs will have invoked
+  // create_new_def_for starting an "ssa update context".  There is only one
+  // instance of this context, so resolve ssa updates before moving on to
+  // the next function.
+  update_ssa (TODO_update_ssa);
 }
 
 /* Scan all calls in NODE as if this is the transactional clone,
