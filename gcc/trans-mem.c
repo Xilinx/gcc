@@ -37,6 +37,9 @@
 
 
 #define PROB_VERY_UNLIKELY	(REG_BR_PROB_BASE / 2000 - 1)
+#define PROB_VERY_LIKELY	(PROB_ALWAYS - PROB_VERY_UNLIKELY)
+#define PROB_UNLIKELY		(REG_BR_PROB_BASE / 5 - 1)
+#define PROB_LIKELY		(PROB_ALWAYS - PROB_VERY_LIKELY)
 #define PROB_ALWAYS		(REG_BR_PROB_BASE)
 
 #define A_RUNINSTRUMENTEDCODE	0x0001
@@ -1247,71 +1250,6 @@ tm_log_emit_restores (basic_block entry_block, basic_block bb)
     }
 }
 
-/* Emit the checks for performing either a save or a restore sequence.
-
-   TRXN_PROP is either A_SAVELIVEVARIABLES or A_RESTORELIVEVARIABLES.
-
-   The code sequence is inserted in a new basic block created in
-   END_BB which is inserted between BEFORE_BB and its fall thru edge.
-
-   STATUS is the return value from _ITM_beginTransaction.
-   ENTRY_BLOCK is the entry block for the transaction.
-   EMITF is a callback to emit the actual save/restore code.
-
-   The basic block containing the conditional checking for TRXN_PROP
-   is returned.  */
-static basic_block
-tm_log_emit_save_or_restores (basic_block entry_block,
-			      unsigned trxn_prop,
-			      tree status,
-			      void (*emitf)(basic_block, basic_block),
-			      basic_block before_bb,
-			      basic_block *end_bb)
-{
-  basic_block cond_bb, code_bb;
-  gimple cond_stmt, stmt;
-  gimple_stmt_iterator gsi;
-  tree t1, t2;
-  edge fallthru_edge = FALLTHRU_EDGE (before_bb);
-  int old_flags = fallthru_edge->flags;
-
-  cond_bb = create_empty_bb (before_bb);
-  code_bb = create_empty_bb (cond_bb);
-  *end_bb = create_empty_bb (code_bb);
-  if (current_loops && before_bb->loop_father)
-    {
-      add_bb_to_loop (cond_bb, before_bb->loop_father);
-      add_bb_to_loop (code_bb, before_bb->loop_father);
-      add_bb_to_loop (*end_bb, before_bb->loop_father);
-    }
-  redirect_edge_pred (fallthru_edge, *end_bb);
-  fallthru_edge->flags = EDGE_FALLTHRU;
-  make_edge (before_bb, cond_bb, old_flags);
-
-  set_immediate_dominator (CDI_DOMINATORS, cond_bb, before_bb);
-  set_immediate_dominator (CDI_DOMINATORS, code_bb, cond_bb);
-
-  gsi = gsi_last_bb (cond_bb);
-
-  /* t1 = status & A_{property}.  */
-  t1 = create_tmp_reg (TREE_TYPE (status), NULL);
-  t2 = build_int_cst (TREE_TYPE (status), trxn_prop);
-  stmt = gimple_build_assign_with_ops (BIT_AND_EXPR, t1, status, t2);
-  gsi_insert_after (&gsi, stmt, GSI_CONTINUE_LINKING);
-
-  /* if (t1).  */
-  t2 = build_int_cst (TREE_TYPE (status), 0);
-  cond_stmt = gimple_build_cond (NE_EXPR, t1, t2, NULL, NULL);
-  gsi_insert_after (&gsi, cond_stmt, GSI_CONTINUE_LINKING);
-
-  emitf (entry_block, code_bb);
-
-  make_edge (cond_bb, code_bb, EDGE_TRUE_VALUE);
-  make_edge (cond_bb, *end_bb, EDGE_FALSE_VALUE);
-  make_edge (code_bb, *end_bb, EDGE_FALLTHRU);
-
-  return cond_bb;
-}
 
 static tree lower_sequence_tm (gimple_stmt_iterator *, bool *,
 			       struct walk_stmt_info *);
@@ -2546,68 +2484,113 @@ compute_transaction_bits (void)
 static void *
 expand_transaction (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
 {
-  int flags;
   tree tm_start = builtin_decl_explicit (BUILT_IN_TM_START);
-  tree transaction_label
-    = gimple_transaction_label (region->transaction_stmt);
+  basic_block transaction_bb = gimple_bb (region->transaction_stmt);
+  edge abort_edge = NULL;
+  edge inst_edge = NULL;
+  edge uninst_edge = NULL;
+  edge fallthru_edge = NULL;
+
+  // Identify the various successors of the transaction start.
+  {
+    edge_iterator i;
+    edge e;
+    FOR_EACH_EDGE (e, i, transaction_bb->succs)
+      {
+        if (e->flags & EDGE_TM_ABORT)
+	  abort_edge = e;
+        else if (e->flags & EDGE_TM_UNINSTRUMENTED)
+	  uninst_edge = e;
+	else
+	  inst_edge = e;
+        if (e->flags & EDGE_FALLTHRU)
+	  fallthru_edge = e;
+      }
+  }
 
   /* ??? There are plenty of bits here we're not computing.  */
-  int subcode = gimple_transaction_subcode (region->transaction_stmt);
-  if (subcode & GTMA_DOES_GO_IRREVOCABLE)
-    flags = PR_DOESGOIRREVOCABLE | PR_UNINSTRUMENTEDCODE;
-  else
-    flags = PR_MULTIWAYCODE;
-  if ((subcode & GTMA_MAY_ENTER_IRREVOCABLE) == 0)
-    flags |= PR_HASNOIRREVOCABLE;
-  /* If the transaction does not have an abort in lexical scope and is not
-     marked as an outer transaction, then it will never abort.  */
-  if ((subcode & GTMA_HAVE_ABORT) == 0
-      && (subcode & GTMA_IS_OUTER) == 0)
-    flags |= PR_HASNOABORT;
-  if ((subcode & GTMA_HAVE_STORE) == 0)
-    flags |= PR_READONLY;
-  if (subcode & GTMA_IS_OUTER)
-    region->original_transaction_was_outer = true;
-  tree t = build_int_cst (TREE_TYPE (region->tm_state), flags);
-  gimple call = gimple_build_call (tm_start, 1, t);
-  gimple_call_set_lhs (call, region->tm_state);
-  gimple_set_location (call, gimple_location (region->transaction_stmt));
+  {
+    int subcode = gimple_transaction_subcode (region->transaction_stmt);
+    int flags = 0;
+    if (subcode & GTMA_DOES_GO_IRREVOCABLE)
+      flags |= PR_DOESGOIRREVOCABLE;
+    if ((subcode & GTMA_MAY_ENTER_IRREVOCABLE) == 0)
+      flags |= PR_HASNOIRREVOCABLE;
+    /* If the transaction does not have an abort in lexical scope and is not
+       marked as an outer transaction, then it will never abort.  */
+    if ((subcode & GTMA_HAVE_ABORT) == 0 && (subcode & GTMA_IS_OUTER) == 0)
+      flags |= PR_HASNOABORT;
+    if ((subcode & GTMA_HAVE_STORE) == 0)
+      flags |= PR_READONLY;
+    if (inst_edge)
+      flags |= PR_INSTRUMENTEDCODE;
+    if (uninst_edge)
+      flags |= PR_UNINSTRUMENTEDCODE;
+    if (subcode & GTMA_IS_OUTER)
+      region->original_transaction_was_outer = true;
+    tree t = build_int_cst (TREE_TYPE (region->tm_state), flags);
+    gimple call = gimple_build_call (tm_start, 1, t);
+    gimple_call_set_lhs (call, region->tm_state);
+    gimple_set_location (call, gimple_location (region->transaction_stmt));
 
-  basic_block transaction_bb = gimple_bb (region->transaction_stmt);
+    // Replace the GIMPLE_TRANSACTION with the call to BUILT_IN_TM_START.
+    gimple_stmt_iterator gsi = gsi_last_bb (transaction_bb);
+    gcc_assert (gsi_stmt (gsi) == region->transaction_stmt);
+    gsi_insert_before (&gsi, call, GSI_SAME_STMT);
+    gsi_remove (&gsi, true);
+    region->transaction_stmt = call;
+  }
 
   // Generate log saves.
   if (!VEC_empty (tree, tm_log_save_addresses))
     tm_log_emit_saves (region->entry_block, transaction_bb);
 
-  // Replace the GIMPLE_TRANSACTION with the call to BUILT_IN_TM_START.
-  gimple_stmt_iterator gsi = gsi_last_bb (transaction_bb);
-  gcc_assert (gsi_stmt (gsi) == region->transaction_stmt);
-  gsi_insert_before (&gsi, call, GSI_SAME_STMT);
-  gsi_remove (&gsi, true);
-
+  // In the beginning, we've no tests to perform on transaction restart.
+  // Note that after this point, transaction_bb becomes the "most recent
+  // block containing tests for the transaction".
   region->restart_block = region->entry_block;
 
-  // Generate log restores.
-  basic_block slice_bb;
-  if (!VEC_empty (tree, tm_log_save_addresses))
-    region->restart_block =
-      tm_log_emit_save_or_restores (region->entry_block,
-				    A_RESTORELIVEVARIABLES,
-				    region->tm_state,
-				    tm_log_emit_restores,
-				    transaction_bb,
-				    &slice_bb);
-  else
-    slice_bb = transaction_bb;
+  tree tm_state = region->tm_state;
+  tree tm_state_type = TREE_TYPE (tm_state);
 
-  /* If we have an ABORT edge, create a test following the start
-     call to perform the abort.  */
-  if (transaction_label)
+  // Generate log restores.
+  if (!VEC_empty (tree, tm_log_save_addresses))
     {
-      basic_block test_bb = create_empty_bb (slice_bb);
-      if (current_loops && slice_bb->loop_father)
-	add_bb_to_loop (test_bb, slice_bb->loop_father);
-      if (VEC_empty (tree, tm_log_save_addresses))
+      basic_block test_bb = create_empty_bb (transaction_bb);
+      basic_block code_bb = create_empty_bb (test_bb);
+      basic_block join_bb = create_empty_bb (code_bb);
+      if (current_loops && transaction_bb->loop_father)
+	{
+	  add_bb_to_loop (test_bb, transaction_bb->loop_father);
+	  add_bb_to_loop (code_bb, transaction_bb->loop_father);
+	  add_bb_to_loop (join_bb, transaction_bb->loop_father);
+	}
+      if (region->restart_block == region->entry_block)
+	region->restart_block = test_bb;
+
+      tree t1 = create_tmp_reg (tm_state_type, NULL);
+      tree t2 = build_int_cst (tm_state_type, A_RESTORELIVEVARIABLES);
+      gimple stmt = gimple_build_assign_with_ops (BIT_AND_EXPR, t1,
+						  tm_state, t2);
+      gimple_stmt_iterator gsi = gsi_last_bb (test_bb);
+      gsi_insert_after (&gsi, stmt, GSI_CONTINUE_LINKING);
+
+      tm_log_emit_restores (region->entry_block, code_bb);
+
+      make_edge (transaction_bb, test_bb, EDGE_FALLTHRU);
+      make_edge (test_bb, code_bb, EDGE_TRUE_VALUE);
+      make_edge (test_bb, join_bb, EDGE_FALSE_VALUE);
+      redirect_edge_pred (fallthru_edge, join_bb);
+      transaction_bb = join_bb;
+    }
+
+  // If we have an ABORT edge, create a test to perform the abort.
+  if (abort_edge)
+    {
+      basic_block test_bb = create_empty_bb (transaction_bb);
+      if (current_loops && transaction_bb->loop_father)
+	add_bb_to_loop (test_bb, transaction_bb->loop_father);
+      if (region->restart_block == region->entry_block)
 	region->restart_block = test_bb;
 
       tree t1 = create_tmp_reg (TREE_TYPE (region->tm_state), NULL);
@@ -2622,40 +2605,79 @@ expand_transaction (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
       stmt = gimple_build_cond (NE_EXPR, t1, t2, NULL, NULL);
       gsi_insert_after (&gsi, stmt, GSI_CONTINUE_LINKING);
 
-      // Not abort edge.
-      edge e = FALLTHRU_EDGE (slice_bb);
-      redirect_edge_pred (e, test_bb);
-      e->flags = EDGE_FALSE_VALUE;
-      e->probability = PROB_ALWAYS - PROB_VERY_UNLIKELY;
+      // Not abort edge.  If both are live, chose one at random as we'll
+      // we'll be fixing that up below.
+      redirect_edge_pred (fallthru_edge, test_bb);
+      fallthru_edge->flags = EDGE_FALSE_VALUE;
+      fallthru_edge->probability = PROB_ALWAYS - PROB_VERY_UNLIKELY;
 
       // Abort/over edge.
-      e = BRANCH_EDGE (transaction_bb);
-      redirect_edge_pred (e, test_bb);
-      e->flags = EDGE_TRUE_VALUE;
-      e->probability = PROB_VERY_UNLIKELY;
+      redirect_edge_pred (abort_edge, test_bb);
+      abort_edge->flags = EDGE_TRUE_VALUE;
+      abort_edge->probability = PROB_VERY_UNLIKELY;
 
-      e = make_edge (slice_bb, test_bb, EDGE_FALLTHRU);
+      make_edge (transaction_bb, test_bb, EDGE_FALLTHRU);
+      transaction_bb = test_bb;
     }
-  /* Otherwise, if we have no abort, but we have PHIs at the beginning
-     of the atomic region, this means we have a loop at the beginning
-     of the atomic region that shares the first block.  This can cause
-     problems with the transaction restart abnormal edges to be added
-     in the tm_edges pass.  Solve this by adding a new empty block to
-     receive the abnormal edges.  */
-  else if (phi_nodes (region->entry_block))
+
+  // If we have both instrumented and uninstrumented code paths, select one.
+  if (inst_edge && uninst_edge)
+    {
+      basic_block test_bb = create_empty_bb (transaction_bb);
+      if (current_loops && transaction_bb->loop_father)
+	add_bb_to_loop (test_bb, transaction_bb->loop_father);
+      if (region->restart_block == region->entry_block)
+	region->restart_block = test_bb;
+
+      tree t1 = create_tmp_reg (TREE_TYPE (region->tm_state), NULL);
+      tree t2 = build_int_cst (TREE_TYPE (region->tm_state),
+			       A_RUNUNINSTRUMENTEDCODE);
+
+      gimple stmt = gimple_build_assign_with_ops (BIT_AND_EXPR, t1,
+						  region->tm_state, t2);
+      gimple_stmt_iterator gsi = gsi_last_bb (test_bb);
+      gsi_insert_after (&gsi, stmt, GSI_CONTINUE_LINKING);
+
+      t2 = build_int_cst (TREE_TYPE (region->tm_state), 0);
+      stmt = gimple_build_cond (NE_EXPR, t1, t2, NULL, NULL);
+      gsi_insert_after (&gsi, stmt, GSI_CONTINUE_LINKING);
+
+      // Create the edge into test_bb first, as we want to copy values
+      // out of the fallthru edge.
+      edge e = make_edge (transaction_bb, test_bb, fallthru_edge->flags);
+      e->probability = fallthru_edge->probability;
+
+      // Now update the edges to the inst/uninist implementations.
+      // For now assume that the paths are equally likely.  When using HTM,
+      // we'll try the uninst path first and fallback to inst path if htm
+      // buffers are exceeded.  Without HTM we start with the inst path and
+      // use the uninst path when falling back to serial mode.
+      redirect_edge_pred (inst_edge, test_bb);
+      inst_edge->flags = EDGE_FALSE_VALUE;
+      inst_edge->probability = REG_BR_PROB_BASE / 2;
+
+      redirect_edge_pred (uninst_edge, test_bb);
+      uninst_edge->flags = EDGE_TRUE_VALUE;
+      uninst_edge->probability = REG_BR_PROB_BASE / 2;
+    }
+
+  // If we have no previous special cases, and we have PHIs at the beginning
+  // of the atomic region, this means we have a loop at the beginning of the
+  // atomic region that shares the first block.  This can cause problems with
+  // the transaction restart abnormal edges to be added in the tm_edges pass.
+  // Solve this by adding a new empty block to receive the abnormal edges.
+  if (region->restart_block == region->entry_block
+      && phi_nodes (region->entry_block))
     {
       basic_block empty_bb = create_empty_bb (transaction_bb);
       region->restart_block = empty_bb;
       if (current_loops && transaction_bb->loop_father)
 	add_bb_to_loop (empty_bb, transaction_bb->loop_father);
 
-      edge e = FALLTHRU_EDGE (transaction_bb);
-      redirect_edge_pred (e, empty_bb);
-
-      e = make_edge (transaction_bb, empty_bb, EDGE_FALLTHRU);
+      redirect_edge_pred (fallthru_edge, empty_bb);
+      make_edge (transaction_bb, empty_bb, EDGE_FALLTHRU);
     }
 
-  region->transaction_stmt = call;
   return NULL;
 }
 
@@ -2669,64 +2691,6 @@ generate_tm_state (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
   region->tm_state =
     create_tmp_reg (TREE_TYPE (TREE_TYPE (tm_start)), "tm_state");
   return NULL;
-}
-
-/* Given a GIMPLE_TRANSACTION in STMT, find the successor edge having
-   FLAGS.  */
-
-static edge
-find_transaction_edge (gimple stmt, int flags)
-{
-  gcc_assert (gimple_code (stmt) == GIMPLE_TRANSACTION);
-  basic_block bb = gimple_bb (stmt);
-  for (unsigned int i = 0; i < EDGE_COUNT (bb->succs); ++i)
-    {
-      edge e = EDGE_SUCC (bb, i);
-      if (e->flags & flags)
-	return e;
-    }
-  gcc_unreachable ();
-  return NULL;
-}
-
-/* Given a transaction in REGION, generate code to split the
-   instrumented and uninstrumented code paths.  */
-
-static void
-split_code_paths (struct tm_region *region, VEC (basic_block, heap) **queue)
-{
-  edge ee = split_block (region->entry_block, NULL);
-  // Where to put the conditional choosing the path to take.
-  basic_block cond_bb = region->restart_block = ee->src;
-
-  // The old block is now ee->dest.  Keep the queue up to date to
-  // avoid re-computing.
-  VEC_safe_push (basic_block, heap, *queue, ee->dest);
- 
-  // t1 = region->tm_state & A_RUNINSTRUMENTEDCODE
-  tree t1 = create_tmp_reg (TREE_TYPE (region->tm_state), NULL);
-  tree t2 = build_int_cst (TREE_TYPE (region->tm_state),
-			   A_RUNINSTRUMENTEDCODE);
-  gimple stmt = gimple_build_assign_with_ops (BIT_AND_EXPR, t1,
-					      region->tm_state, t2);
-  gimple_stmt_iterator cond_gsi = gsi_last_bb (cond_bb);
-  gsi_insert_after (&cond_gsi, stmt, GSI_CONTINUE_LINKING);
-
-  // if (region->tm_state & A_RUNINSTRUMENTEDCODE)...
-  t2 = build_int_cst (TREE_TYPE (region->tm_state), 0);
-  stmt = gimple_build_cond (NE_EXPR, t1, t2, NULL, NULL);
-  gsi_insert_after (&cond_gsi, stmt, GSI_CONTINUE_LINKING);
-
-  // Fall-thru to the original instrumented path.
-  edge e = FALLTHRU_EDGE (cond_bb);
-  e->flags = EDGE_TRUE_VALUE;
-  e->probability = PROB_VERY_UNLIKELY;
-
-  // Wire the uninstrumented path and make it the likely path.
-  edge uninst_edge = find_transaction_edge (region->transaction_stmt,
-					    EDGE_TM_UNINSTRUMENTED);
-  e = make_edge (cond_bb, uninst_edge->dest, EDGE_FALSE_VALUE);
-  e->probability = PROB_ALWAYS - PROB_VERY_UNLIKELY;
 }
 
 /* Entry point to the MARK phase of TM expansion.  Here we replace
@@ -2771,11 +2735,6 @@ execute_tm_mark (void)
 				    region->irr_blocks,
 				    NULL,
 				    /*stop_at_irr_p=*/true);
-
-      // Add the conditional splitting the uninstrumented and
-      // instrumented code paths.
-      if (!decl_is_tm_clone (current_function_decl))
-	split_code_paths (region, &queue);
 
       for (i = 0; VEC_iterate (basic_block, queue, i, bb); ++i)
 	expand_block_tm (region, bb);
