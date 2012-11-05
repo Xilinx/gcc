@@ -6748,11 +6748,11 @@ vt_find_locations (void)
   visited = sbitmap_alloc (last_basic_block);
   in_worklist = sbitmap_alloc (last_basic_block);
   in_pending = sbitmap_alloc (last_basic_block);
-  sbitmap_zero (in_worklist);
+  bitmap_clear (in_worklist);
 
   FOR_EACH_BB (bb)
     fibheap_insert (pending, bb_order[bb->index], bb);
-  sbitmap_ones (in_pending);
+  bitmap_ones (in_pending);
 
   while (success && !fibheap_empty (pending))
     {
@@ -6763,20 +6763,20 @@ vt_find_locations (void)
       in_pending = in_worklist;
       in_worklist = sbitmap_swap;
 
-      sbitmap_zero (visited);
+      bitmap_clear (visited);
 
       while (!fibheap_empty (worklist))
 	{
 	  bb = (basic_block) fibheap_extract_min (worklist);
-	  RESET_BIT (in_worklist, bb->index);
-	  gcc_assert (!TEST_BIT (visited, bb->index));
-	  if (!TEST_BIT (visited, bb->index))
+	  bitmap_clear_bit (in_worklist, bb->index);
+	  gcc_assert (!bitmap_bit_p (visited, bb->index));
+	  if (!bitmap_bit_p (visited, bb->index))
 	    {
 	      bool changed;
 	      edge_iterator ei;
 	      int oldinsz, oldoutsz;
 
-	      SET_BIT (visited, bb->index);
+	      bitmap_set_bit (visited, bb->index);
 
 	      if (VTI (bb)->in.vars)
 		{
@@ -6869,21 +6869,21 @@ vt_find_locations (void)
 		      if (e->dest == EXIT_BLOCK_PTR)
 			continue;
 
-		      if (TEST_BIT (visited, e->dest->index))
+		      if (bitmap_bit_p (visited, e->dest->index))
 			{
-			  if (!TEST_BIT (in_pending, e->dest->index))
+			  if (!bitmap_bit_p (in_pending, e->dest->index))
 			    {
 			      /* Send E->DEST to next round.  */
-			      SET_BIT (in_pending, e->dest->index);
+			      bitmap_set_bit (in_pending, e->dest->index);
 			      fibheap_insert (pending,
 					      bb_order[e->dest->index],
 					      e->dest);
 			    }
 			}
-		      else if (!TEST_BIT (in_worklist, e->dest->index))
+		      else if (!bitmap_bit_p (in_worklist, e->dest->index))
 			{
 			  /* Add E->DEST to current round.  */
-			  SET_BIT (in_worklist, e->dest->index);
+			  bitmap_set_bit (in_worklist, e->dest->index);
 			  fibheap_insert (worklist, bb_order[e->dest->index],
 					  e->dest);
 			}
@@ -10099,6 +10099,7 @@ struct rtl_opt_pass pass_variable_tracking =
  {
   RTL_PASS,
   "vartrack",                           /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_handle_var_tracking,             /* gate */
   variable_tracking_main,               /* execute */
   NULL,                                 /* sub */
