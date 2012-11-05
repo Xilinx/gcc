@@ -1,3 +1,30 @@
+2012-11-05  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR target/55204
+	* config/i386/i386.c (ix86_address_subreg_operand): Remove stack
+	pointer check.
+	(print_reg): Use true_regnum rather than REGNO.
+	(ix86_print_operand_address): Remove SUBREG handling.
+
+2012-11-05  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from mainline
+	2012-10-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/54828
+	* gimple.h (is_gimple_sizepos): New inline function.
+	* gimplify.c (gimplify_one_sizepos): Use it.  Remove useless
+	final assignment to expr variable.
+	* tree.c (RETURN_TRUE_IF_VAR): Return true also if
+	!TYPE_SIZES_GIMPLIFIED (type) and _t is going to be gimplified
+	into a local temporary.
+
+	2012-10-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/54877
+	* tree-vect-loop.c (vect_is_simple_reduction_1): For MINUS_EXPR
+	use make_ssa_name instead of copy_ssa_name.
+
 2012-11-03  Peter Bergner  <bergner@vnet.ibm.com>
 
 	Backport from mainline
