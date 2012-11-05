@@ -1641,20 +1641,13 @@ lower_transaction (gimple_stmt_iterator *gsi, struct walk_stmt_info *wi)
 
   gimple_transaction_set_body (stmt, NULL);
 
-  /* Add the uninstrumented code path label, which is basically an
-     OVER label at this point.  Later in
-     ipa_uninstrument_transaction() we will set it appropriately.  */
-  tree label = create_artificial_label (UNKNOWN_LOCATION);
-  gimple_transaction_set_uninst_label (stmt, label);
-  gsi_insert_after (gsi, gimple_build_label (label), GSI_CONTINUE_LINKING);
-
   /* If the transaction calls abort or if this is an outer transaction,
      add an "over" label afterwards.  */
   if ((this_state & (GTMA_HAVE_ABORT))
       || (gimple_transaction_subcode(stmt) & GTMA_IS_OUTER))
     {
-      label = create_artificial_label (UNKNOWN_LOCATION);
-      gimple_transaction_set_over_label (stmt, label);
+      tree label = create_artificial_label (UNKNOWN_LOCATION);
+      gimple_transaction_set_label (stmt, label);
       gsi_insert_after (gsi, gimple_build_label (label), GSI_CONTINUE_LINKING);
     }
 
@@ -1787,14 +1780,6 @@ struct tm_region
      outer transaction.  */
   bool original_transaction_was_outer;
 
-  /* FIXME: ?? Hmmm, it seems we don't need this after all.  We can
-     get it directly from gimple_transaction_over_label() since we
-     expand_transaction() still has a pointer to the original
-     GIMPLE_TRANSACTION at function entry.  */
-  /* This holds the transaction over label from the original
-     GIMPLE_TRANSACTION statement.  */
-  tree transaction_over_label;
-
   /* Return value from BUILT_IN_TM_START.  */
   tree tm_state;
 
@@ -1854,7 +1839,6 @@ tm_region_init_0 (struct tm_region *outer, basic_block bb, gimple stmt)
 
   region->transaction_stmt = stmt;
   region->original_transaction_was_outer = false;
-  region->transaction_over_label = gimple_transaction_over_label (stmt);
   region->tm_state = NULL;
 
   /* There are either one or two edges out of the block containing
@@ -2564,6 +2548,8 @@ expand_transaction (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
 {
   int flags;
   tree tm_start = builtin_decl_explicit (BUILT_IN_TM_START);
+  tree transaction_label
+    = gimple_transaction_label (region->transaction_stmt);
 
   /* ??? There are plenty of bits here we're not computing.  */
   int subcode = gimple_transaction_subcode (region->transaction_stmt);
@@ -2616,7 +2602,7 @@ expand_transaction (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
 
   /* If we have an ABORT edge, create a test following the start
      call to perform the abort.  */
-  if (region->transaction_over_label)
+  if (transaction_label)
     {
       basic_block test_bb = create_empty_bb (slice_bb);
       if (current_loops && slice_bb->loop_father)
@@ -2691,6 +2677,8 @@ generate_tm_state (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
 static void
 split_code_paths (struct tm_region *region, VEC (basic_block, heap) **queue)
 {
+  // fixme
+  return;
   edge ee = split_block (region->entry_block, NULL);
   // Where to put the conditional choosing the path to take.
   basic_block cond_bb = region->restart_block = ee->src;
@@ -2726,12 +2714,6 @@ split_code_paths (struct tm_region *region, VEC (basic_block, heap) **queue)
   gcc_assert (uninst_edge->flags & EDGE_ABNORMAL);
   e = make_edge (cond_bb, uninst_edge->dest, EDGE_FALSE_VALUE);
   e->probability = PROB_ALWAYS - PROB_VERY_UNLIKELY;
-
-  // There's probably no need for this because our caller is about to
-  // obliterate the GIMPLE_TRANSACTION entirely, but better safe than
-  // sorry.
-  gimple_transaction_set_uninst_label (region->transaction_stmt, NULL);
-  remove_edge (uninst_edge);
 }
 
 /* Entry point to the MARK phase of TM expansion.  Here we replace
@@ -3906,6 +3888,9 @@ ipa_uninstrument_transaction (struct tm_region *region,
   basic_block *new_bbs = XNEWVEC (basic_block, n);
   basic_block bb;
 
+  //fixme
+  return;
+
   for (i = 0; VEC_iterate (basic_block, queue, i, bb); ++i)
     bbs[i] = bb;
 
@@ -3925,7 +3910,8 @@ ipa_uninstrument_transaction (struct tm_region *region,
   edge ee = split_block (new_bbs[0], NULL);
   uninst_block = ee->src;
   tree label = create_artificial_label (UNKNOWN_LOCATION);
-  gimple_transaction_set_uninst_label (stmt, label);
+  //fixme
+  //gimple_transaction_set_uninst_label (stmt, label);
   gimple_stmt_iterator gsi = gsi_last_bb (uninst_block);
   gsi_insert_after (&gsi, gimple_build_label (label), GSI_CONTINUE_LINKING);
   redirect_edge_succ (uninst_edge, uninst_block);

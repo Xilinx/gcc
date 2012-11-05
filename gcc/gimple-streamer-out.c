@@ -155,8 +155,7 @@ output_gimple_stmt (struct output_block *ob, gimple stmt)
 
     case GIMPLE_TRANSACTION:
       gcc_assert (gimple_transaction_body (stmt) == NULL);
-      stream_write_tree (ob, gimple_transaction_over_label (stmt), true);
-      stream_write_tree (ob, gimple_transaction_uninst_label (stmt), true);
+      stream_write_tree (ob, gimple_transaction_label (stmt), true);
       break;
 
     default:

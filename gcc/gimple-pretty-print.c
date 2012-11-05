@@ -1348,10 +1348,8 @@ dump_gimple_transaction (pretty_printer *buffer, gimple gs, int spc, int flags)
   if (flags & TDF_RAW)
     {
       dump_gimple_fmt (buffer, spc, flags,
-		       "%G [SUBCODE=%x,OVER_LABEL=%T,UNINST_LABEL=%T] <%+BODY <%S> >",
-		       gs, subcode,
-		       gimple_transaction_over_label (gs),
-		       gimple_transaction_uninst_label (gs),
+		       "%G [SUBCODE=%x,LABEL=%T] <%+BODY <%S> >",
+		       gs, subcode, gimple_transaction_label (gs),
 		       gimple_transaction_body (gs));
     }
   else
@@ -1364,21 +1362,13 @@ dump_gimple_transaction (pretty_printer *buffer, gimple gs, int spc, int flags)
 	pp_string (buffer, "__transaction_atomic");
       subcode &= ~GTMA_DECLARATION_MASK;
 
-      if (subcode
-	  || gimple_transaction_over_label (gs)
-	  || gimple_transaction_uninst_label (gs))
+      if (subcode || gimple_transaction_label (gs))
 	{
 	  pp_string (buffer, "  //");
-	  if (gimple_transaction_over_label (gs))
+	  if (gimple_transaction_label (gs))
 	    {
-	      pp_string (buffer, " OVER_LABEL=");
-	      dump_generic_node (buffer, gimple_transaction_over_label (gs),
-				 spc, flags, false);
-	    }
-	  if (gimple_transaction_uninst_label (gs))
-	    {
-	      pp_string (buffer, " UNINST_LABEL=");
-	      dump_generic_node (buffer, gimple_transaction_uninst_label (gs),
+	      pp_string (buffer, " LABEL=");
+	      dump_generic_node (buffer, gimple_transaction_label (gs),
 				 spc, flags, false);
 	    }
 	  if (subcode)

@@ -1120,12 +1120,11 @@ gimple_build_omp_atomic_store (tree val)
 /* Build a GIMPLE_TRANSACTION statement.  */
 
 gimple
-gimple_build_transaction (gimple_seq body, tree over_label, tree uninst_label)
+gimple_build_transaction (gimple_seq body, tree label)
 {
   gimple p = gimple_alloc (GIMPLE_TRANSACTION, 0);
   gimple_transaction_set_body (p, body);
-  gimple_transaction_set_over_label (p, over_label);
-  gimple_transaction_set_uninst_label (p, uninst_label);
+  gimple_transaction_set_label (p, label);
   return p;
 }
 
@@ -1631,11 +1630,7 @@ walk_gimple_op (gimple stmt, walk_tree_fn callback_op,
       break;
 
     case GIMPLE_TRANSACTION:
-      ret = walk_tree (gimple_transaction_over_label_ptr (stmt), callback_op,
-		       wi, pset);
-      if (ret)
-	return ret;
-      ret = walk_tree (gimple_transaction_uninst_label_ptr (stmt), callback_op,
+      ret = walk_tree (gimple_transaction_label_ptr (stmt), callback_op,
 		       wi, pset);
       if (ret)
 	return ret;

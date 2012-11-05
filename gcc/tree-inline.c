@@ -1346,12 +1346,8 @@ remap_gimple_stmt (gimple stmt, copy_body_data *id)
 
 	case GIMPLE_TRANSACTION:
 	  s1 = remap_gimple_seq (gimple_transaction_body (stmt), id);
-	  copy = gimple_build_transaction
-	           (s1,
-		    gimple_transaction_over_label (stmt),
-		    gimple_transaction_uninst_label (stmt));
-	  gimple_transaction_set_subcode (copy,
-					  gimple_transaction_subcode (stmt));
+	  copy = gimple_build_transaction (s1, gimple_transaction_label (stmt));
+	  gimple_transaction_set_subcode (copy, gimple_transaction_subcode (stmt));
 	  break;
 
 	default:

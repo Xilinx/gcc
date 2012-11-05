@@ -664,14 +664,9 @@ make_edges (void)
 
 	    case GIMPLE_TRANSACTION:
 	      {
-		tree abort_label = gimple_transaction_over_label (last);
+		tree abort_label = gimple_transaction_label (last);
 		if (abort_label)
 		  make_edge (bb, label_to_block (abort_label), 0);
-		tree uninst_label = gimple_transaction_uninst_label (last);
-		// Mark the uninstrumented label as abnormal to
-		// differentiate it from the OVER label.
-		if (uninst_label)
-		  make_edge (bb, label_to_block (uninst_label), EDGE_ABNORMAL);
 		fallthru = true;
 	      }
 	      break;
@@ -1268,19 +1263,12 @@ cleanup_dead_labels (void)
 
 	case GIMPLE_TRANSACTION:
 	  {
-	    tree label = gimple_transaction_over_label (stmt);
+	    tree label = gimple_transaction_label (stmt);
 	    if (label)
 	      {
 		tree new_label = main_block_label (label);
 		if (new_label != label)
-		  gimple_transaction_set_over_label (stmt, new_label);
-	      }
-	    label = gimple_transaction_uninst_label (stmt);
-	    if (label)
-	      {
-		tree new_label = main_block_label (label);
-		if (new_label != label)
-		  gimple_transaction_set_uninst_label (stmt, new_label);
+		  gimple_transaction_set_label (stmt, new_label);
 	      }
 	  }
 	  break;
@@ -4527,10 +4515,7 @@ verify_gimple_in_seq_2 (gimple_seq stmts)
 static bool
 verify_gimple_transaction (gimple stmt)
 {
-  tree lab = gimple_transaction_over_label (stmt);
-  if (lab != NULL && TREE_CODE (lab) != LABEL_DECL)
-    return true;
-  lab = gimple_transaction_uninst_label (stmt);
+  tree lab = gimple_transaction_label (stmt);
   if (lab != NULL && TREE_CODE (lab) != LABEL_DECL)
     return true;
   return verify_gimple_in_seq_2 (gimple_transaction_body (stmt));
@@ -5300,13 +5285,10 @@ gimple_redirect_edge_and_branch (edge e, basic_block dest)
       break;
 
     case GIMPLE_TRANSACTION:
-      /* The ABORT edge has various labels associated with it, otherwise
+      /* The ABORT edge has a stored label associated with it, otherwise
 	 the edges are simply redirectable.  */
       if (e->flags == 0)
-	{
-	  gimple_transaction_set_over_label (stmt, gimple_block_label (dest));
-	  gimple_transaction_set_uninst_label (stmt, gimple_block_label (dest));
-	}
+	gimple_transaction_set_label (stmt, gimple_block_label (dest));
       break;
 
     default:

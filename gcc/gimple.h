@@ -674,13 +674,8 @@ struct GTY(()) gimple_statement_transaction
   /* [ WORD 10 ] */
   gimple_seq body;
 
-  /* [ WORD 11 ]
-     Label out of the transaction (abort or outer path).  */
-  tree over_label;
-
-  /* [ WORD 12 ]
-     Label to the uninstrumented code path.  */
-  tree uninst_label;
+  /* [ WORD 11 ] */
+  tree label;
 };
 
 #define DEFGSSTRUCT(SYM, STRUCT, HAS_TREE_OP)	SYM,
@@ -797,7 +792,7 @@ gimple gimple_build_omp_single (gimple_seq, tree);
 gimple gimple_build_cdt (tree, tree);
 gimple gimple_build_omp_atomic_load (tree, tree);
 gimple gimple_build_omp_atomic_store (tree);
-gimple gimple_build_transaction (gimple_seq, tree, tree);
+gimple gimple_build_transaction (gimple_seq, tree);
 gimple gimple_build_predict (enum br_predictor, enum prediction);
 enum gimple_statement_structure_enum gss_for_assign (enum tree_code);
 void sort_case_labels (VEC(tree,heap) *);
@@ -4753,36 +4748,20 @@ gimple_transaction_body (gimple gs)
   return *gimple_transaction_body_ptr (gs);
 }
 
-/* Return the over label associated with a GIMPLE_TRANSACTION.  */
+/* Return the label associated with a GIMPLE_TRANSACTION.  */
 
 static inline tree
-gimple_transaction_over_label (const_gimple gs)
+gimple_transaction_label (const_gimple gs)
 {
   GIMPLE_CHECK (gs, GIMPLE_TRANSACTION);
-  return gs->gimple_transaction.over_label;
+  return gs->gimple_transaction.label;
 }
 
 static inline tree *
-gimple_transaction_over_label_ptr (gimple gs)
+gimple_transaction_label_ptr (gimple gs)
 {
   GIMPLE_CHECK (gs, GIMPLE_TRANSACTION);
-  return &gs->gimple_transaction.over_label;
-}
-
-/* Return the uninstrumented label associated with a GIMPLE_TRANSACTION.  */
-
-static inline tree
-gimple_transaction_uninst_label (const_gimple gs)
-{
-  GIMPLE_CHECK (gs, GIMPLE_TRANSACTION);
-  return gs->gimple_transaction.uninst_label;
-}
-
-static inline tree *
-gimple_transaction_uninst_label_ptr (gimple gs)
-{
-  GIMPLE_CHECK (gs, GIMPLE_TRANSACTION);
-  return &gs->gimple_transaction.uninst_label;
+  return &gs->gimple_transaction.label;
 }
 
 /* Return the subcode associated with a GIMPLE_TRANSACTION.  */
@@ -4803,22 +4782,13 @@ gimple_transaction_set_body (gimple gs, gimple_seq body)
   gs->gimple_transaction.body = body;
 }
 
-/* Set the over label associated with a GIMPLE_TRANSACTION.  */
+/* Set the label associated with a GIMPLE_TRANSACTION.  */
 
 static inline void
-gimple_transaction_set_over_label (gimple gs, tree label)
+gimple_transaction_set_label (gimple gs, tree label)
 {
   GIMPLE_CHECK (gs, GIMPLE_TRANSACTION);
-  gs->gimple_transaction.over_label = label;
-}
-
-/* Set the uninstrumented label associated with a GIMPLE_TRANSACTION.  */
-
-static inline void
-gimple_transaction_set_uninst_label (gimple gs, tree label)
-{
-  GIMPLE_CHECK (gs, GIMPLE_TRANSACTION);
-  gs->gimple_transaction.uninst_label = label;
+  gs->gimple_transaction.label = label;
 }
 
 /* Set the subcode associated with a GIMPLE_TRANSACTION.  */
