@@ -1641,15 +1641,11 @@ lower_transaction (gimple_stmt_iterator *gsi, struct walk_stmt_info *wi)
 
   gimple_transaction_set_body (stmt, NULL);
 
-  /* If the transaction calls abort or if this is an outer transaction,
-     add an "over" label afterwards.  */
-  if ((this_state & (GTMA_HAVE_ABORT))
-      || (gimple_transaction_subcode(stmt) & GTMA_IS_OUTER))
-    {
-      tree label = create_artificial_label (UNKNOWN_LOCATION);
-      gimple_transaction_set_label (stmt, label);
-      gsi_insert_after (gsi, gimple_build_label (label), GSI_CONTINUE_LINKING);
-    }
+  /* We need an "over" label for the uninstrumented code path, as well
+     as for outer transactions, or transactions calling abort.  */
+  tree label = create_artificial_label (UNKNOWN_LOCATION);
+  gimple_transaction_set_label (stmt, label);
+  gsi_insert_after (gsi, gimple_build_label (label), GSI_CONTINUE_LINKING);
 
   /* Record the set of operations found for use later.  */
   this_state |= gimple_transaction_subcode (stmt) & GTMA_DECLARATION_MASK;
@@ -2671,14 +2667,30 @@ generate_tm_state (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
   return NULL;
 }
 
+/* Given a GIMPLE_TRANSACTION in STMT, find the successor edge having
+   FLAGS.  */
+
+static edge
+find_transaction_edge (gimple stmt, int flags)
+{
+  gcc_assert (gimple_code (stmt) == GIMPLE_TRANSACTION);
+  basic_block bb = gimple_bb (stmt);
+  for (unsigned int i = 0; i < EDGE_COUNT (bb->succs); ++i)
+    {
+      edge e = EDGE_SUCC (bb, i);
+      if (e->flags & flags)
+	return e;
+    }
+  gcc_unreachable ();
+  return NULL;
+}
+
 /* Given a transaction in REGION, generate code to split the
    instrumented and uninstrumented code paths.  */
 
 static void
 split_code_paths (struct tm_region *region, VEC (basic_block, heap) **queue)
 {
-  //fixme
-  return;
   edge ee = split_block (region->entry_block, NULL);
   // Where to put the conditional choosing the path to take.
   basic_block cond_bb = region->restart_block = ee->src;
@@ -2707,11 +2719,8 @@ split_code_paths (struct tm_region *region, VEC (basic_block, heap) **queue)
   e->probability = PROB_VERY_UNLIKELY;
 
   // Wire the uninstrumented path and make it the likely path.
-  basic_block transaction_bb = gimple_bb (region->transaction_stmt);
-  edge uninst_edge = EDGE_SUCC (transaction_bb, 0);
-  // The abnormal edge is the uninstrumented path.
-  // The fallthru edge is the instrumented path.
-  gcc_assert (uninst_edge->flags & EDGE_ABNORMAL);
+  edge uninst_edge = find_transaction_edge (region->transaction_stmt,
+					    EDGE_TM_UNINSTRUMENTED);
   e = make_edge (cond_bb, uninst_edge->dest, EDGE_FALSE_VALUE);
   e->probability = PROB_ALWAYS - PROB_VERY_UNLIKELY;
 }
@@ -3872,9 +3881,8 @@ maybe_push_queue (struct cgraph_node *node,
 }
 
 /* Duplicate the basic blocks in QUEUE for use in the uninstrumented
-   code path, and link them to the uninstrumented label in the
-   transaction rooted at REGION.  NODE is the function where the
-   transaction appears in.
+   code path.  QUEUE are the basic blocks inside the transaction
+   represented in REGION.
 
    Later in split_code_paths() we will add the conditional to choose
    between the two alternatives.  */
@@ -3883,38 +3891,30 @@ static void
 ipa_uninstrument_transaction (struct tm_region *region,
 			      VEC (basic_block, heap) *queue)
 {
+  gimple transaction = region->transaction_stmt;
+  basic_block transaction_bb = gimple_bb (transaction);
   int i, n = VEC_length (basic_block, queue);
   basic_block *bbs = XNEWVEC (basic_block, n);
   basic_block *new_bbs = XNEWVEC (basic_block, n);
   basic_block bb;
 
-  //fixme
-  return;
-
   for (i = 0; VEC_iterate (basic_block, queue, i, bb); ++i)
     bbs[i] = bb;
 
-  gimple stmt = region->transaction_stmt;
-  edge uninst_edge = EDGE_SUCC (gimple_bb (stmt), 0);
-  // The abnormal edge is the uninstrumented path.
-  // The fallthru edge is the instrumented path.
-  gcc_assert (uninst_edge->flags & EDGE_ABNORMAL);
+  // The EDGE_TM_ABORT, is merely an edge over the transaction.  Use
+  // it to find where to put the uninstrumented blocks.
+  edge uninst_edge = find_transaction_edge (transaction, EDGE_TM_ABORT);
   basic_block uninst_block = uninst_edge->dest;
 
   copy_bbs (bbs, n, new_bbs, NULL, 0, NULL, NULL, uninst_block);
   add_phi_args_after_copy (new_bbs, n, NULL);
 
-  // At entry to this function, UNINST_BLOCK is really the BB after
-  // the transaction.  Move the uninst label to the location where the
-  // uninstrumented blocks will ultimately go.
-  edge ee = split_block (new_bbs[0], NULL);
-  uninst_block = ee->src;
-  tree label = create_artificial_label (UNKNOWN_LOCATION);
-  //fixme
-  //gimple_transaction_set_uninst_label (stmt, label);
-  gimple_stmt_iterator gsi = gsi_last_bb (uninst_block);
-  gsi_insert_after (&gsi, gimple_build_label (label), GSI_CONTINUE_LINKING);
-  redirect_edge_succ (uninst_edge, uninst_block);
+  make_edge (transaction_bb, new_bbs[0], EDGE_TM_UNINSTRUMENTED);
+
+  // No we will have a GIMPLE_ATOMIC with 3 edges out of it.
+  //   a) EDGE_FALLTHRU into the transaction
+  //   b) EDGE_TM_ABORT out of the transaction
+  //   c) EDGE_TM_UNINSTRUMENTED into the uninstrumented blocks.
 
   rebuild_cgraph_edges ();
 
