@@ -744,6 +744,7 @@ do_return_redirection (struct goto_queue_node *q, tree finlab, gimple_seq mod)
     gimple_seq_add_seq (&q->repl_stmt, mod);
 
   x = gimple_build_goto (finlab);
+  gimple_set_location (x, q->location);
   gimple_seq_add_stmt (&q->repl_stmt, x);
 }
 
@@ -765,6 +766,7 @@ do_goto_redirection (struct goto_queue_node *q, tree finlab, gimple_seq mod,
     gimple_seq_add_seq (&q->repl_stmt, mod);
 
   x = gimple_build_goto (finlab);
+  gimple_set_location (x, q->location);
   gimple_seq_add_stmt (&q->repl_stmt, x);
 }
 
@@ -864,6 +866,7 @@ frob_into_branch_around (gimple tp, eh_region region, tree over)
       if (!over)
 	over = create_artificial_label (loc);
       x = gimple_build_goto (over);
+      gimple_set_location (x, loc);
       gimple_seq_add_stmt (&cleanup, x);
     }
   gimple_seq_add_seq (&eh_seq, cleanup);
@@ -1092,6 +1095,7 @@ lower_try_finally_nofallthru (struct leh_state *state,
 	  emit_post_landing_pad (&eh_seq, tf->region);
 
 	  x = gimple_build_goto (lab);
+	  gimple_set_location (x, gimple_location (tf->try_finally_expr));
 	  gimple_seq_add_stmt (&eh_seq, x);
 	}
     }
@@ -1230,6 +1234,7 @@ lower_try_finally_copy (struct leh_state *state, struct leh_tf_state *tf)
 
       tmp = lower_try_finally_fallthru_label (tf);
       x = gimple_build_goto (tmp);
+      gimple_set_location (x, tf_loc);
       gimple_seq_add_stmt (&new_stmt, x);
     }
 
@@ -1403,6 +1408,7 @@ lower_try_finally_switch (struct leh_state *state, struct leh_tf_state *tf)
 
       tmp = lower_try_finally_fallthru_label (tf);
       x = gimple_build_goto (tmp);
+      gimple_set_location (x, tf_loc);
       gimple_seq_add_stmt (&switch_body, x);
     }
 
@@ -1431,6 +1437,7 @@ lower_try_finally_switch (struct leh_state *state, struct leh_tf_state *tf)
       gimple_seq_add_stmt (&eh_seq, x);
 
       x = gimple_build_goto (finally_label);
+      gimple_set_location (x, tf_loc);
       gimple_seq_add_stmt (&eh_seq, x);
 
       tmp = build_int_cst (integer_type_node, eh_index);

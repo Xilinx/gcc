@@ -1,3 +1,20 @@
+2012-11-05  Dehao Chen  <dehao@google.com>
+
+	Backport 193169, 193137 and 193053 from trunk:
+
+	* tree-eh.c (do_return_redirection): Set location for jump statement.
+	(do_goto_redirection): Likewise.
+	(frob_into_branch_around): Likewise.
+	(lower_try_finally_nofallthru): Likewise.
+	(lower_try_finally_copy): Likewise.
+	(lower_try_finally_switch): Likewise.
+	* expr.c (store_expr): Use current insn location instead of expr
+	location.
+	(expand_expr_real): Likewise.
+	(expand_expr_real_1): Likewise.
+	* cfglayout.c (reemit_insn_block_notes): Do not change scope if insn
+	location is UNKNOWN_LOCATION.
+
 2012-11-01   Easwaran Raman <eraman@google.com>
 
 	Backport 191302 and 192651 from trunk:
