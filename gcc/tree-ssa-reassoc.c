@@ -1300,7 +1300,7 @@ undistribute_ops_list (enum tree_code opcode,
 	  || !is_reassociable_op (oe1def, dcode, loop))
 	continue;
 
-      SET_BIT (candidates, i);
+      bitmap_set_bit (candidates, i);
       nr_candidates++;
     }
 
@@ -1324,7 +1324,7 @@ undistribute_ops_list (enum tree_code opcode,
   ctable = htab_create (15, oecount_hash, oecount_eq, NULL);
   subops = XCNEWVEC (VEC (operand_entry_t, heap) *,
 		     VEC_length (operand_entry_t, *ops));
-  EXECUTE_IF_SET_IN_SBITMAP (candidates, 0, i, sbi0)
+  EXECUTE_IF_SET_IN_BITMAP (candidates, 0, i, sbi0)
     {
       gimple oedef;
       enum tree_code oecode;
@@ -1389,7 +1389,7 @@ undistribute_ops_list (enum tree_code opcode,
          the common operand in their inner chain.  */
       bitmap_clear (candidates2);
       nr_candidates2 = 0;
-      EXECUTE_IF_SET_IN_SBITMAP (candidates, 0, i, sbi0)
+      EXECUTE_IF_SET_IN_BITMAP (candidates, 0, i, sbi0)
 	{
 	  gimple oedef;
 	  enum tree_code oecode;
@@ -1410,7 +1410,7 @@ undistribute_ops_list (enum tree_code opcode,
 	    {
 	      if (oe1->op == c->op)
 		{
-		  SET_BIT (candidates2, i);
+		  bitmap_set_bit (candidates2, i);
 		  ++nr_candidates2;
 		  break;
 		}
@@ -1431,7 +1431,7 @@ undistribute_ops_list (enum tree_code opcode,
 	      print_generic_expr (dump_file, oe1->op, 0);
 	    }
 	  zero_one_operation (&oe1->op, c->oecode, c->op);
-	  EXECUTE_IF_SET_IN_SBITMAP (candidates2, first+1, i, sbi0)
+	  EXECUTE_IF_SET_IN_BITMAP (candidates2, first+1, i, sbi0)
 	    {
 	      gimple sum;
 	      oe2 = VEC_index (operand_entry_t, *ops, i);
@@ -4300,6 +4300,7 @@ struct gimple_opt_pass pass_reassoc =
  {
   GIMPLE_PASS,
   "reassoc",				/* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_tree_ssa_reassoc,		/* gate */
   execute_reassoc,			/* execute */
   NULL,					/* sub */

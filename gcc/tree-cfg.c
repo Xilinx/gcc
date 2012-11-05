@@ -247,6 +247,7 @@ struct gimple_opt_pass pass_build_cfg =
  {
   GIMPLE_PASS,
   "cfg",				/* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   NULL,					/* gate */
   execute_build_cfg,			/* execute */
   NULL,					/* sub */
@@ -7189,7 +7190,7 @@ gimple_flow_call_edges_add (sbitmap blocks)
   if (! blocks)
     check_last_block = true;
   else
-    check_last_block = TEST_BIT (blocks, EXIT_BLOCK_PTR->prev_bb->index);
+    check_last_block = bitmap_bit_p (blocks, EXIT_BLOCK_PTR->prev_bb->index);
 
   /* In the last basic block, before epilogue generation, there will be
      a fallthru edge to EXIT.  Special care is required if the last insn
@@ -7237,7 +7238,7 @@ gimple_flow_call_edges_add (sbitmap blocks)
       if (!bb)
 	continue;
 
-      if (blocks && !TEST_BIT (blocks, i))
+      if (blocks && !bitmap_bit_p (blocks, i))
 	continue;
 
       gsi = gsi_last_nondebug_bb (bb);
@@ -7721,6 +7722,7 @@ struct gimple_opt_pass pass_split_crit_edges =
  {
   GIMPLE_PASS,
   "crited",                          /* name */
+  OPTGROUP_NONE,                 /* optinfo_flags */
   NULL,                          /* gate */
   split_critical_edges,          /* execute */
   NULL,                          /* sub */
@@ -7874,6 +7876,7 @@ struct gimple_opt_pass pass_warn_function_return =
  {
   GIMPLE_PASS,
   "*warn_function_return",		/* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   NULL,					/* gate */
   execute_warn_function_return,		/* execute */
   NULL,					/* sub */
@@ -7910,6 +7913,7 @@ struct gimple_opt_pass pass_warn_function_noreturn =
  {
   GIMPLE_PASS,
   "*warn_function_noreturn",		/* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_warn_function_noreturn,		/* gate */
   execute_warn_function_noreturn,	/* execute */
   NULL,					/* sub */
@@ -8008,6 +8012,7 @@ struct gimple_opt_pass pass_warn_unused_result =
   {
     GIMPLE_PASS,
     "*warn_unused_result",		/* name */
+    OPTGROUP_NONE,                        /* optinfo_flags */
     gate_warn_unused_result,		/* gate */
     run_warn_unused_result,		/* execute */
     NULL,				/* sub */

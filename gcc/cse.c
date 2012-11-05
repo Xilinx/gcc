@@ -6151,7 +6151,7 @@ cse_find_path (basic_block first_bb, struct cse_basic_block_data *data,
   edge e;
   int path_size;
 
-  SET_BIT (cse_visited_basic_blocks, first_bb->index);
+  bitmap_set_bit (cse_visited_basic_blocks, first_bb->index);
 
   /* See if there is a previous path.  */
   path_size = data->path_size;
@@ -6208,9 +6208,9 @@ cse_find_path (basic_block first_bb, struct cse_basic_block_data *data,
 
 		     We still want to visit each basic block only once, so
 		     halt the path here if we have already visited BB.  */
-		  && !TEST_BIT (cse_visited_basic_blocks, bb->index))
+		  && !bitmap_bit_p (cse_visited_basic_blocks, bb->index))
 		{
-		  SET_BIT (cse_visited_basic_blocks, bb->index);
+		  bitmap_set_bit (cse_visited_basic_blocks, bb->index);
 		  data->path[path_size++].bb = bb;
 		  break;
 		}
@@ -6253,10 +6253,10 @@ cse_find_path (basic_block first_bb, struct cse_basic_block_data *data,
 	      && single_pred_p (e->dest)
 	      /* Avoid visiting basic blocks twice.  The large comment
 		 above explains why this can happen.  */
-	      && !TEST_BIT (cse_visited_basic_blocks, e->dest->index))
+	      && !bitmap_bit_p (cse_visited_basic_blocks, e->dest->index))
 	    {
 	      basic_block bb2 = e->dest;
-	      SET_BIT (cse_visited_basic_blocks, bb2->index);
+	      bitmap_set_bit (cse_visited_basic_blocks, bb2->index);
 	      data->path[path_size++].bb = bb2;
 	      bb = bb2;
 	    }
@@ -6468,7 +6468,7 @@ cse_extended_basic_block (struct cse_basic_block_data *ebb_data)
 		  /* If we truncate the path, we must also reset the
 		     visited bit on the remaining blocks in the path,
 		     or we will never visit them at all.  */
-		  RESET_BIT (cse_visited_basic_blocks,
+		  bitmap_clear_bit (cse_visited_basic_blocks,
 			     ebb_data->path[path_size].bb->index);
 		  ebb_data->path[path_size].bb = NULL;
 		}
@@ -6560,7 +6560,7 @@ cse_main (rtx f ATTRIBUTE_UNUSED, int nregs)
 	{
 	  bb = BASIC_BLOCK (rc_order[i++]);
 	}
-      while (TEST_BIT (cse_visited_basic_blocks, bb->index)
+      while (bitmap_bit_p (cse_visited_basic_blocks, bb->index)
 	     && i < n_blocks);
 
       /* Find all paths starting with BB, and process them.  */
@@ -7456,6 +7456,7 @@ struct rtl_opt_pass pass_cse =
  {
   RTL_PASS,
   "cse1",                               /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_handle_cse,                      /* gate */
   rest_of_handle_cse,			/* execute */
   NULL,                                 /* sub */
@@ -7518,6 +7519,7 @@ struct rtl_opt_pass pass_cse2 =
  {
   RTL_PASS,
   "cse2",                               /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_handle_cse2,                     /* gate */
   rest_of_handle_cse2,			/* execute */
   NULL,                                 /* sub */
@@ -7578,6 +7580,7 @@ struct rtl_opt_pass pass_cse_after_global_opts =
  {
   RTL_PASS,
   "cse_local",                          /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_handle_cse_after_global_opts,    /* gate */
   rest_of_handle_cse_after_global_opts, /* execute */
   NULL,                                 /* sub */

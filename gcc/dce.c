@@ -163,7 +163,7 @@ marked_insn_p (rtx insn)
   /* Artificial defs are always needed and they do not have an insn.
      We should never see them here.  */
   gcc_assert (insn);
-  return TEST_BIT (marked, INSN_UID (insn));
+  return bitmap_bit_p (marked, INSN_UID (insn));
 }
 
 
@@ -177,7 +177,7 @@ mark_insn (rtx insn, bool fast)
     {
       if (!fast)
 	VEC_safe_push (rtx, heap, worklist, insn);
-      SET_BIT (marked, INSN_UID (insn));
+      bitmap_set_bit (marked, INSN_UID (insn));
       if (dump_file)
 	fprintf (dump_file, "  Adding insn %d to worklist\n", INSN_UID (insn));
       if (CALL_P (insn)
@@ -786,6 +786,7 @@ struct rtl_opt_pass pass_ud_rtl_dce =
  {
   RTL_PASS,
   "ud_dce",                             /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_ud_dce,                          /* gate */
   rest_of_handle_ud_dce,                /* execute */
   NULL,                                 /* sub */
@@ -1201,6 +1202,7 @@ struct rtl_opt_pass pass_fast_rtl_dce =
  {
   RTL_PASS,
   "rtl_dce",                            /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_fast_dce,                        /* gate */
   rest_of_handle_fast_dce,              /* execute */
   NULL,                                 /* sub */
