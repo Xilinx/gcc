@@ -2486,6 +2486,9 @@ collect_bb2reg (struct tm_region *region, void *data)
 // Note that the optimizers were locally correct with their transformation,
 // as we have no info within the program that suggests that the blocks cannot
 // be shared.
+//
+// ??? There is currently a hack inside tree-ssa-pre.c to work around the
+// only known instance of this block sharing.
 
 static VEC(tm_region_p, heap) *
 get_bb_regions_instrumented (void)
