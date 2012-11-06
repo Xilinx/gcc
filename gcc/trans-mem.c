@@ -2577,10 +2577,23 @@ expand_transaction (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
 
       tm_log_emit_restores (region->entry_block, code_bb);
 
-      make_edge (transaction_bb, test_bb, EDGE_FALLTHRU);
-      make_edge (test_bb, code_bb, EDGE_TRUE_VALUE);
-      make_edge (test_bb, join_bb, EDGE_FALSE_VALUE);
+      edge ei = make_edge (transaction_bb, test_bb, EDGE_FALLTHRU);
+      edge et = make_edge (test_bb, code_bb, EDGE_TRUE_VALUE);
+      edge ef = make_edge (test_bb, join_bb, EDGE_FALSE_VALUE);
       redirect_edge_pred (fallthru_edge, join_bb);
+
+      join_bb->frequency = test_bb->frequency = transaction_bb->frequency;
+      join_bb->count = test_bb->count = transaction_bb->count;
+
+      ei->probability = PROB_ALWAYS;
+      et->probability = PROB_LIKELY;
+      ef->probability = PROB_UNLIKELY;
+      et->count = apply_probability(test_bb->count, et->probability);
+      ef->count = apply_probability(test_bb->count, ef->probability);
+
+      code_bb->count = et->count;
+      code_bb->frequency = EDGE_FREQUENCY (et);
+
       transaction_bb = join_bb;
     }
 
@@ -2605,18 +2618,26 @@ expand_transaction (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
       stmt = gimple_build_cond (NE_EXPR, t1, t2, NULL, NULL);
       gsi_insert_after (&gsi, stmt, GSI_CONTINUE_LINKING);
 
+      edge ei = make_edge (transaction_bb, test_bb, EDGE_FALLTHRU);
+      test_bb->frequency = transaction_bb->frequency;
+      test_bb->count = transaction_bb->count;
+      ei->probability = PROB_ALWAYS;
+
       // Not abort edge.  If both are live, chose one at random as we'll
       // we'll be fixing that up below.
       redirect_edge_pred (fallthru_edge, test_bb);
       fallthru_edge->flags = EDGE_FALSE_VALUE;
-      fallthru_edge->probability = PROB_ALWAYS - PROB_VERY_UNLIKELY;
+      fallthru_edge->probability = PROB_VERY_LIKELY;
+      fallthru_edge->count
+	= apply_probability(test_bb->count, fallthru_edge->probability);
 
       // Abort/over edge.
       redirect_edge_pred (abort_edge, test_bb);
       abort_edge->flags = EDGE_TRUE_VALUE;
       abort_edge->probability = PROB_VERY_UNLIKELY;
+      abort_edge->count
+	= apply_probability(test_bb->count, abort_edge->probability);
 
-      make_edge (transaction_bb, test_bb, EDGE_FALLTHRU);
       transaction_bb = test_bb;
     }
 
@@ -2646,6 +2667,8 @@ expand_transaction (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
       // out of the fallthru edge.
       edge e = make_edge (transaction_bb, test_bb, fallthru_edge->flags);
       e->probability = fallthru_edge->probability;
+      test_bb->count = e->count = fallthru_edge->count;
+      test_bb->frequency = EDGE_FREQUENCY (e);
 
       // Now update the edges to the inst/uninist implementations.
       // For now assume that the paths are equally likely.  When using HTM,
@@ -2655,10 +2678,14 @@ expand_transaction (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
       redirect_edge_pred (inst_edge, test_bb);
       inst_edge->flags = EDGE_FALSE_VALUE;
       inst_edge->probability = REG_BR_PROB_BASE / 2;
+      inst_edge->count
+	= apply_probability(test_bb->count, inst_edge->probability);
 
       redirect_edge_pred (uninst_edge, test_bb);
       uninst_edge->flags = EDGE_TRUE_VALUE;
       uninst_edge->probability = REG_BR_PROB_BASE / 2;
+      uninst_edge->count
+	= apply_probability(test_bb->count, uninst_edge->probability);
     }
 
   // If we have no previous special cases, and we have PHIs at the beginning
