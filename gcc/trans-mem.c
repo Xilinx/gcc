@@ -2444,6 +2444,44 @@ get_tm_region_blocks (basic_block entry_block,
   return bbs;
 }
 
+// Callback for expand_regions, collect innermost region data for each bb.
+static void *
+collect_bb2reg (struct tm_region *region, void *data)
+{
+  VEC(tm_region_p, heap) *bb2reg = (VEC(tm_region_p, heap) *) data;
+  VEC (basic_block, heap) *queue;
+  unsigned int i;
+  basic_block bb;
+
+  queue = get_tm_region_blocks (region->entry_block,
+				region->exit_blocks,
+				region->irr_blocks,
+				NULL,
+				/*stop_at_irr_p=*/false);
+
+  // We expect expand_region to perform a post-order traversal of
+  // the region tree.  Therefore the last region seen for any bb
+  // is the innermost.
+  FOR_EACH_VEC_ELT (basic_block, queue, i, bb)
+    VEC_replace (tm_region_p, bb2reg, bb->index, region);
+
+  VEC_free (basic_block, heap, queue);
+  return NULL;
+}
+
+static VEC(tm_region_p, heap) *
+get_bb_regions_instrumented (void)
+{
+  unsigned n = last_basic_block;
+  VEC(tm_region_p, heap) *ret;
+
+  ret = VEC_alloc (tm_region_p, heap, n);
+  VEC_safe_grow_cleared (tm_region_p, heap, ret, n);
+  expand_regions (all_tm_regions, collect_bb2reg, ret);
+
+  return ret;
+}
+
 /* Set the IN_TRANSACTION for all gimple statements that appear in a
    transaction.  */
 
@@ -2717,6 +2755,22 @@ generate_tm_state (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
   tree tm_start = builtin_decl_explicit (BUILT_IN_TM_START);
   region->tm_state =
     create_tmp_reg (TREE_TYPE (TREE_TYPE (tm_start)), "tm_state");
+
+  // Reset the subcode, post optimizations.  We'll fill this in
+  // again as we process blocks.
+  if (region->exit_blocks)
+    {
+      unsigned int subcode
+	= gimple_transaction_subcode (region->transaction_stmt);
+
+      if (subcode & GTMA_DOES_GO_IRREVOCABLE)
+	subcode &= (GTMA_DECLARATION_MASK | GTMA_DOES_GO_IRREVOCABLE
+		    | GTMA_MAY_ENTER_IRREVOCABLE);
+      else
+	subcode &= GTMA_DECLARATION_MASK;
+      gimple_transaction_set_subcode (region->transaction_stmt, subcode);
+    }
+
   return NULL;
 }
 
@@ -2728,51 +2782,27 @@ generate_tm_state (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
 static unsigned int
 execute_tm_mark (void)
 {
-  struct tm_region *region;
-  basic_block bb;
-  VEC (basic_block, heap) *queue;
-  size_t i;
-
-  queue = VEC_alloc (basic_block, heap, 10);
   pending_edge_inserts_p = false;
 
   expand_regions (all_tm_regions, generate_tm_state, NULL);
 
-  for (region = all_tm_regions; region ; region = region->next)
-    {
-      tm_log_init ();
+  tm_log_init ();
 
-      /* If we have a transaction...  */
-      if (region->exit_blocks)
-	{
-	  unsigned int subcode
-	    = gimple_transaction_subcode (region->transaction_stmt);
+  VEC(tm_region_p, heap) *bb_regions = get_bb_regions_instrumented ();
+  struct tm_region *r;
+  unsigned i;
 
-	  /* Collect a new SUBCODE set, now that optimizations are done...  */
-	  if (subcode & GTMA_DOES_GO_IRREVOCABLE)
-	    subcode &= (GTMA_DECLARATION_MASK | GTMA_DOES_GO_IRREVOCABLE
-			| GTMA_MAY_ENTER_IRREVOCABLE);
-	  else
-	    subcode &= GTMA_DECLARATION_MASK;
-	  gimple_transaction_set_subcode (region->transaction_stmt, subcode);
-	}
-
-      queue = get_tm_region_blocks (region->entry_block,
-				    region->exit_blocks,
-				    region->irr_blocks,
-				    NULL,
-				    /*stop_at_irr_p=*/true);
-
-      for (i = 0; VEC_iterate (basic_block, queue, i, bb); ++i)
-	expand_block_tm (region, bb);
-      VEC_free (basic_block, heap, queue);
-
-      tm_log_emit ();
-      tm_log_delete ();
-    }
+  // Expaand memory operations into calls into the runtime.
+  // This collects log entries as well.
+  FOR_EACH_VEC_ELT (tm_region_p, bb_regions, i, r)
+    if (r != NULL)
+      expand_block_tm (r, BASIC_BLOCK (i));
 
   // Expand GIMPLE_TRANSACTIONs into calls into the runtime.
   expand_regions (all_tm_regions, expand_transaction, NULL);
+
+  tm_log_emit ();
+  tm_log_delete ();
 
   if (pending_edge_inserts_p)
     gsi_commit_edge_inserts ();
@@ -2920,45 +2950,20 @@ expand_block_edges (struct tm_region *const region, basic_block bb)
     }
 }
 
-// Callback for expand_regions, collect innermost region data for each bb.
-static void *
-collect_bb2reg (struct tm_region *region, void *data)
-{
-  struct tm_region **bb2reg = (struct tm_region **) data;
-  VEC (basic_block, heap) *queue;
-  unsigned int i;
-  basic_block bb;
-
-  queue = get_tm_region_blocks (region->entry_block,
-				region->exit_blocks,
-				region->irr_blocks,
-				NULL,
-				/*stop_at_irr_p=*/false);
-
-  // We expect expand_region to perform a post-order traversal of
-  // the region tree.  Therefore the last region seen for any bb
-  // is the innermost.
-  FOR_EACH_VEC_ELT (basic_block, queue, i, bb)
-    bb2reg[bb->index] = region;
-
-  VEC_free (basic_block, heap, queue);
-  return NULL;
-}
-
 /* Entry point to the final expansion of transactional nodes. */
 
 static unsigned int
 execute_tm_edges (void)
 {
-  unsigned n = n_basic_blocks;
-  struct tm_region **bb2reg = XCNEWVEC (struct tm_region *, n);
-  expand_regions (all_tm_regions, collect_bb2reg, bb2reg);
+  VEC(tm_region_p, heap) *bb_regions = get_bb_regions_instrumented ();
+  struct tm_region *r;
+  unsigned i;
 
-  for (unsigned i = 0; i < n; ++i)
-    if (bb2reg[i] != NULL)
-      expand_block_edges (bb2reg[i], BASIC_BLOCK (i));
+  FOR_EACH_VEC_ELT (tm_region_p, bb_regions, i, r)
+    if (r != NULL)
+      expand_block_edges (r, BASIC_BLOCK (i));
 
-  free (bb2reg);
+  VEC_free (tm_region_p, heap, bb_regions);
 
   /* We've got to release the dominance info now, to indicate that it
      must be rebuilt completely.  Otherwise we'll crash trying to update
