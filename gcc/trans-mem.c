@@ -2524,6 +2524,8 @@ expand_transaction (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
 {
   tree tm_start = builtin_decl_explicit (BUILT_IN_TM_START);
   basic_block transaction_bb = gimple_bb (region->transaction_stmt);
+  tree tm_state = region->tm_state;
+  tree tm_state_type = TREE_TYPE (tm_state);
   edge abort_edge = NULL;
   edge inst_edge = NULL;
   edge uninst_edge = NULL;
@@ -2566,9 +2568,9 @@ expand_transaction (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
       flags |= PR_UNINSTRUMENTEDCODE;
     if (subcode & GTMA_IS_OUTER)
       region->original_transaction_was_outer = true;
-    tree t = build_int_cst (TREE_TYPE (region->tm_state), flags);
+    tree t = build_int_cst (tm_state_type, flags);
     gimple call = gimple_build_call (tm_start, 1, t);
-    gimple_call_set_lhs (call, region->tm_state);
+    gimple_call_set_lhs (call, tm_state);
     gimple_set_location (call, gimple_location (region->transaction_stmt));
 
     // Replace the GIMPLE_TRANSACTION with the call to BUILT_IN_TM_START.
@@ -2587,9 +2589,6 @@ expand_transaction (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
   // Note that after this point, transaction_bb becomes the "most recent
   // block containing tests for the transaction".
   region->restart_block = region->entry_block;
-
-  tree tm_state = region->tm_state;
-  tree tm_state_type = TREE_TYPE (tm_state);
 
   // Generate log restores.
   if (!VEC_empty (tree, tm_log_save_addresses))
@@ -2648,15 +2647,14 @@ expand_transaction (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
       if (region->restart_block == region->entry_block)
 	region->restart_block = test_bb;
 
-      tree t1 = create_tmp_reg (TREE_TYPE (region->tm_state), NULL);
-      tree t2 = build_int_cst (TREE_TYPE (region->tm_state),
-			       A_ABORTTRANSACTION);
+      tree t1 = create_tmp_reg (tm_state_type, NULL);
+      tree t2 = build_int_cst (tm_state_type, A_ABORTTRANSACTION);
       gimple stmt = gimple_build_assign_with_ops (BIT_AND_EXPR, t1,
-						  region->tm_state, t2);
+						  tm_state, t2);
       gimple_stmt_iterator gsi = gsi_last_bb (test_bb);
       gsi_insert_after (&gsi, stmt, GSI_CONTINUE_LINKING);
 
-      t2 = build_int_cst (TREE_TYPE (region->tm_state), 0);
+      t2 = build_int_cst (tm_state_type, 0);
       stmt = gimple_build_cond (NE_EXPR, t1, t2, NULL, NULL);
       gsi_insert_after (&gsi, stmt, GSI_CONTINUE_LINKING);
 
@@ -2692,16 +2690,15 @@ expand_transaction (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
       if (region->restart_block == region->entry_block)
 	region->restart_block = test_bb;
 
-      tree t1 = create_tmp_reg (TREE_TYPE (region->tm_state), NULL);
-      tree t2 = build_int_cst (TREE_TYPE (region->tm_state),
-			       A_RUNUNINSTRUMENTEDCODE);
+      tree t1 = create_tmp_reg (tm_state_type, NULL);
+      tree t2 = build_int_cst (tm_state_type, A_RUNUNINSTRUMENTEDCODE);
 
       gimple stmt = gimple_build_assign_with_ops (BIT_AND_EXPR, t1,
-						  region->tm_state, t2);
+						  tm_state, t2);
       gimple_stmt_iterator gsi = gsi_last_bb (test_bb);
       gsi_insert_after (&gsi, stmt, GSI_CONTINUE_LINKING);
 
-      t2 = build_int_cst (TREE_TYPE (region->tm_state), 0);
+      t2 = build_int_cst (tm_state_type, 0);
       stmt = gimple_build_cond (NE_EXPR, t1, t2, NULL, NULL);
       gsi_insert_after (&gsi, stmt, GSI_CONTINUE_LINKING);
 
