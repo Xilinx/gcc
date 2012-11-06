@@ -2613,6 +2613,10 @@ expand_transaction (struct tm_region *region, void *data ATTRIBUTE_UNUSED)
       gimple_stmt_iterator gsi = gsi_last_bb (test_bb);
       gsi_insert_after (&gsi, stmt, GSI_CONTINUE_LINKING);
 
+      t2 = build_int_cst (tm_state_type, 0);
+      stmt = gimple_build_cond (NE_EXPR, t1, t2, NULL, NULL);
+      gsi_insert_after (&gsi, stmt, GSI_CONTINUE_LINKING);
+
       tm_log_emit_restores (region->entry_block, code_bb);
 
       edge ei = make_edge (transaction_bb, test_bb, EDGE_FALLTHRU);
