@@ -1,3 +1,74 @@
+2012-11-06  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/tree-ssa/loop-1.c: Make to look like a good unroling candidate still.
+	* gcc.dg/tree-ssa/loop-23.c: Likewise.
+	* gcc.dg/tree-ssa/cunroll-1.c: Unrolling now happens early.
+	* gcc.dg/tree-prof/unroll-1.c: Remove confused dg-options.
+
+2012-11-06  David Edelsohn  <dje.gcc@gmail.com>
+
+	* const-uniq-1.c: Expand regex to match AIX XCOFF labels.
+
+2012-11-06  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR middle-end/41993
+	* gcc.dg/torture/pr41993.c: New test.
+
+2012-11-06  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.target/i386/l_fma_float_?.c: Update.
+	* gcc.target/i386/l_fma_double_?.c: Update.
+
+2012-11-06  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/54089
+	* gcc.target/sh/pr54089-8.c: New.
+	* gcc.target/sh/pr54089-9.c: New.
+
+2012-11-06  Vladimir Yakovlev  <vladimir.b.yakovlev@intel.com>
+
+	* gcc.target/i386/avx-vzeroupper-5.c: Changed scan-assembler-times.
+	* gcc.target/i386/avx-vzeroupper-8.c: Likewise.
+	* gcc.target/i386/avx-vzeroupper-9.c: Likewise.
+	* gcc.target/i386/avx-vzeroupper-10.c: Likewise.
+	* gcc.target/i386/avx-vzeroupper-11.c: Likewise.
+	* gcc.target/i386/avx-vzeroupper-12.c: Likewise.
+	* gcc.target/i386/avx-vzeroupper-19.c: Likewis.
+	* gcc.target/i386/avx-vzeroupper-27.c: New.
+
+2012-11-06  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/54917
+	* gfortran.dg/transfer_class_1.f90: New.
+	* gfortran.dg/transfer_class_2.f90: New.
+
+2012-11-05  Sriraman Tallam  <tmsriram@google.com>
+
+	* testsuite/g++.dg/mv1.C: New test.
+	* testsuite/g++.dg/mv2.C: New test.
+	* testsuite/g++.dg/mv3.C: New test.
+	* testsuite/g++.dg/mv4.C: New test.
+	* testsuite/g++.dg/mv5.C: New test.
+	* testsuite/g++.dg/mv6.C: New test.
+
+2012-11-05  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR testsuite/55186
+	* gcc.dg/const-uniq-1.c (a): Increase length four times.
+
+2012-11-05  Jack Howarth <howarth@bromo.med.uc.edu>
+
+	* gcc.dg/torture/pr53922.c: Use -Wl,-undefined,dynamic_lookup on
+	darwin.
+
+2012-11-05  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* g++.dg/torture/20121105-1.C: New test.
+
+2012-11-05  Andreas Schwab  <schwab@linux-m68k.org>
+
+	* gcc.dg/torture/fp-compare.c: New testcase.
+
 2012-11-05  Jan Hubicka  <jh@suse.cz>
 
 	* gcc.dg/const-1.c: Update.
