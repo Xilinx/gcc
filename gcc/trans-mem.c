@@ -2459,15 +2459,33 @@ collect_bb2reg (struct tm_region *region, void *data)
 				NULL,
 				/*stop_at_irr_p=*/false);
 
-  // We expect expand_region to perform a post-order traversal of
-  // the region tree.  Therefore the last region seen for any bb
-  // is the innermost.
+  // We expect expand_region to perform a post-order traversal of the region
+  // tree.  Therefore the last region seen for any bb is the innermost.
   FOR_EACH_VEC_ELT (basic_block, queue, i, bb)
     VEC_replace (tm_region_p, bb2reg, bb->index, region);
 
   VEC_free (basic_block, heap, queue);
   return NULL;
 }
+
+// Returns a vector, indexed by BB->INDEX, of the innermost tm_region to
+// which a basic block belongs.  Note that we only consider the instrumented
+// code paths for the region; the uninstrumented code paths are ignored.
+//
+// ??? This data is very similar to the bb_regions array that is collected
+// during tm_region_init.  Or, rather, this data is similar to what could
+// be used within tm_region_init.  The actual computation in tm_region_init
+// begins and ends with bb_regions entirely full of NULL pointers, due to
+// the way in which pointers are swapped in and out of the array.
+//
+// ??? Our callers expect that blocks are not shared between transactions.
+// When the optimizers get too smart, and blocks are shared, then during
+// the tm_mark phase we'll add log entries to only one of the two transactions,
+// and in the tm_edge phase we'll add edges to the CFG that create invalid
+// cycles.  The symptom being SSA defs that do not dominate their uses.
+// Note that the optimizers were locally correct with their transformation,
+// as we have no info within the program that suggests that the blocks cannot
+// be shared.
 
 static VEC(tm_region_p, heap) *
 get_bb_regions_instrumented (void)
