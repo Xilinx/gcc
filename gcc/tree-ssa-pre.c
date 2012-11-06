@@ -3805,6 +3805,13 @@ compute_avail (void)
 		if (gimple_call_internal_p (stmt))
 		  continue;
 
+		// We cannot value number the builtins that end transactions.
+		// ??? The alternative being unsharing BBs in the tm_init pass.
+		if (flag_tm
+		    && (gimple_call_flags (stmt) & ECF_TM_BUILTIN)
+		    && is_tm_ending_fndecl (gimple_call_fndecl (stmt)))
+		  continue;
+
 		copy_reference_ops_from_call (stmt, &ops);
 		vn_reference_lookup_pieces (gimple_vuse (stmt), 0,
 					    gimple_expr_type (stmt),

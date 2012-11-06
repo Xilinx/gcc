@@ -1,3 +1,8 @@
+2012-11-06  Richard Henderson  <rth@redhat.com>
+
+	* tree-ssa-pre.c (compute_avail): Do not consider is_tm_ending_fndecl
+	calls as available.
+
 2012-11-06  Uros Bizjak  <ubizjak@gmail.com>
 
 	* config/i386/i386.c (ix86_init_machine_status): Do not
