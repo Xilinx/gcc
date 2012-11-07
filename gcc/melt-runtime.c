@@ -7950,9 +7950,9 @@ meltgc_read_file (const char *filnam, const char *locnam)
   char curlocbuf[140];
 #endif
   struct melt_reading_st rds;
-  FILE *fil = 0;
-  struct melt_reading_st *rd = 0;
-  char *filnamdup = 0;
+  FILE *fil = NULL;
+  struct melt_reading_st *rd = NULL;
+  char *filnamdup = NULL;
   const char* srcpathstr = melt_argument ("source-path");
   MELT_ENTERFRAME (3, NULL);
 #define valv      meltfram__.mcfr_varptr[0]
@@ -7975,7 +7975,10 @@ meltgc_read_file (const char *filnam, const char *locnam)
      linemap_add store pointers to it. */
   VEC_safe_push (meltchar_p, heap, parsedmeltfilevect, filnamdup);
   debugeprintf ("meltgc_read_file filnamdup %s locnam %s", filnamdup, locnam);
-  fil = fopen (filnamdup, "rt");
+  if (!strcmp (filnamdup, "-"))
+    fil = stdin;
+  else
+    fil = fopen (filnamdup, "rt");
   /* If needed, find the file in the source path.  */
   if (!fil && !IS_ABSOLUTE_PATH(filnam)) {
     free (filnamdup), filnamdup = NULL;
@@ -8008,9 +8011,9 @@ meltgc_read_file (const char *filnam, const char *locnam)
 	      "You could set the GCCMELT_TRACE_SOURCE env.var. to some file path for debugging");
     melt_fatal_error ("cannot open MELT source file %s - %m", filnam);
   }
-  /* warn if the filename has strange characters in its base name,
+  /* Warn if the filename is not stdin and has strange characters in its base name,
      notably + */
-  {
+  if (strcmp(filnamdup, "-")) {
     const char* filbase = 0;
     int warn = 0;
     for (filbase = melt_basename (filnamdup); *filbase; filbase++) {
@@ -8063,7 +8066,7 @@ meltgc_read_file (const char *filnam, const char *locnam)
   linemap_add (line_table, LC_LEAVE, false, NULL, 0);
   memset (&rds, 0, sizeof(rds));
   rd = 0;
-end:
+ end:
   if (!seqv) {
     debugeprintf ("meltgc_read_file filnam %s fail & return NULL", filnamdup);
     warning(0, "MELT file %s read without content, perhaps failed.", filnamdup);

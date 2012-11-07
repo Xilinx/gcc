@@ -207,18 +207,67 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
       (debug "eval_docmd run res=" res "\n newenv=" newenv "\n dbgi=" dbgi)
       (add2out stdout "\n;;; result of eval mode of " nbexprs " expression[s] is ...\n")
       (dbg_out res dbgi 0)
-      (add2out stdout "\n")
+      (add2out stdout "\n;;; *** end of evaluated result *** \n ")
       (return :true)
       )))
 
 (definstance eval_mode
   class_melt_mode
   :named_name '"eval"
-  :meltmode_help '"translate and run, i.e. evaluate, a MELT expression;\n
-\t ARGUMENT= input file"
+  :meltmode_help '"translate and run, i.e. evaluate, MELT expressions, displaying the last evaluated result;\n
+\t ARGUMENT= expressions to evaluate"
   :meltmode_fun eval_docmd
 )
 (install_melt_mode eval_mode)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; evaluate a sequence of expressions from a file or standard input
+
+(defun evalfile_docmd  (cmd moduldata)
+  (debug "start evalfile_docmd cmd=" cmd " moduldata=" moduldata)  
+  (let ( 
+	(parmodenv (parent_module_environment))
+	(curenv moduldata)
+	(inarg (make_stringconst discr_string (melt_argument "arg")))
+	(inexprs (read_file inarg))
+	(stdout (get_field :sysdata_stdout initial_system_data))
+	(occmap (make_mapobject  discr_map_objects 50))
+	)
+    (code_chunk evalstart_chk 
+		#{ /* evalfile_docmd $EVALSTART_CHK */
+		debugeprintf ("evalfile_docmd start cmd@%p", (void*)$CMD);
+		MELT_LOCATION_HERE ("evalfile_docmd @*@starting eval@*@");
+		}#)
+    (debug "evalfile_docmd start parmodenv=" parmodenv 
+	   "\n curenv=" curenv
+	   " inarg=" inarg
+	   "\n inexprs=" inexprs)
+    (assert_msg "check curenv" (is_a curenv class_environment))
+    (let (
+	  (:long nbexprs (list_length inexprs))
+	  (newenv (fresh_env curenv))
+	  (res (translate_run_melt_expressions inexprs newenv))
+	  (dbgi (instance class_debug_output_information
+			  :dbgi_out stdout
+			  :dbgi_occmap occmap
+			  :dbgi_maxdepth '8))
+	  )
+      (debug "evalfile_docmd run res=" res "\n newenv=" newenv "\n dbgi=" dbgi)
+      (add2out stdout "\n;;; Evaluated result of evaluation from file " inarg " of " nbexprs " expression[s] is ...\n")
+      (dbg_out res dbgi 0)
+      (add2out stdout "\n;;; *** end of evaluated result *** \n ")
+      (return :true)
+      )))
+
+(definstance evalfile_mode
+  class_melt_mode
+  :named_name '"evalfile"
+  :meltmode_help '"translate and run, i.e. evaluate, MELT expressions from a file, displaying the last evaluated result;\n
+\t ARGUMENT= file name, or - for stdin"
+  :meltmode_fun evalfile_docmd
+)
+(install_melt_mode evalfile_mode)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

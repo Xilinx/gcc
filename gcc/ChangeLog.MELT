@@ -1,4 +1,13 @@
 
+2012-11-07  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.c (meltgc_read_file): Handle specially - as stdin.
+
+	* melt/warmelt-modes.melt (eval_docmd): Output terminating comment.
+	(eval_mode): Improve help message.
+	(evalfile_docmd): New function.
+	(evalfile_mode): New mode 'evalfile'.
+
 2012-10-28  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/xtramelt-ana-tree.melt (tree_addr_expr): Can be used to
