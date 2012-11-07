@@ -1581,7 +1581,9 @@ process_alt_operands (int only_alternative)
 		case TARGET_MEM_CONSTRAINT:
 		  if (MEM_P (op) || spilled_pseudo_p (op))
 		    win = true;
-		  if (CONST_POOL_OK_P (mode, op))
+		  /* We can put constant or pseudo value into memory
+		     to satisfy the constraint.  */
+		  if (CONST_POOL_OK_P (mode, op) || REG_P (op))
 		    badop = false;
 		  constmemok = true;
 		  break;
@@ -1613,7 +1615,10 @@ process_alt_operands (int only_alternative)
 		       && offsettable_nonstrict_memref_p (op))
 		      || spilled_pseudo_p (op))
 		    win = true;
-		  if (CONST_POOL_OK_P (mode, op) || MEM_P (op))
+		  /* We can put constant or pseudo value into memory
+		     or make memory address offsetable to satisfy the
+		     constraint.  */
+		  if (CONST_POOL_OK_P (mode, op) || MEM_P (op) || REG_P (op))
 		    badop = false;
 		  constmemok = true;
 		  offmemok = true;
@@ -1638,6 +1643,7 @@ process_alt_operands (int only_alternative)
 		  if (CONST_INT_P (op)
 		      || (GET_CODE (op) == CONST_DOUBLE && mode == VOIDmode))
 		    break;
+
 		case 'i':
 		  if (general_constant_p (op))
 		    win = true;
@@ -1702,10 +1708,12 @@ process_alt_operands (int only_alternative)
 			    win = true;
 
 			  /* If we didn't already win, we can reload
-			     constants via force_const_mem, and other
-			     MEMs by reloading the address like for
+			     constants via force_const_mem or put the
+			     pseudo value into memory, or make other
+			     memory by reloading the address like for
 			     'o'.  */
-			  if (CONST_POOL_OK_P (mode, op) || MEM_P (op))
+			  if (CONST_POOL_OK_P (mode, op)
+			      || MEM_P (op) || REG_P (op))
 			    badop = false;
 			  constmemok = true;
 			  offmemok = true;
@@ -1918,6 +1926,13 @@ process_alt_operands (int only_alternative)
 		    reload_nregs
 		      += ira_reg_class_max_nregs[this_alternative][mode];
 		}
+
+	      /* We are trying to spill pseudo into memory.  It is
+		 usually more costly than moving to a hard register
+		 although it might takes the same number of
+		 reloads.  */
+	      if (no_regs_p && REG_P (op))
+		reject++;
 
 	      /* Input reloads can be inherited more often than output
 		 reloads can be removed, so penalize output
@@ -3095,10 +3110,10 @@ contains_reg_p (rtx x, bool hard_reg_p, bool spilled_p)
   return false;
 }
 
-/* Process all regs in debug location *LOC and change them on
-   equivalent substitution.  Return true if any change was done.  */
+/* Process all regs in location *LOC and change them on equivalent
+   substitution.  Return true if any change was done.  */
 static bool
-debug_loc_equivalence_change_p (rtx *loc)
+loc_equivalence_change_p (rtx *loc)
 {
   rtx subst, reg, x = *loc;
   bool result = false;
@@ -3130,11 +3145,11 @@ debug_loc_equivalence_change_p (rtx *loc)
   for (i = GET_RTX_LENGTH (code) - 1; i >= 0; i--)
     {
       if (fmt[i] == 'e')
-	result = debug_loc_equivalence_change_p (&XEXP (x, i)) || result;
+	result = loc_equivalence_change_p (&XEXP (x, i)) || result;
       else if (fmt[i] == 'E')
 	for (j = XVECLEN (x, i) - 1; j >= 0; j--)
 	  result
-	    = debug_loc_equivalence_change_p (&XVECEXP (x, i, j)) || result;
+	    = loc_equivalence_change_p (&XVECEXP (x, i, j)) || result;
     }
   return result;
 }
@@ -3244,9 +3259,11 @@ lra_constraints (bool first_p)
 {
   bool changed_p;
   int i, hard_regno, new_insns_num;
-  unsigned int min_len, new_min_len;
-  rtx set, x, dest_reg;
+  unsigned int min_len, new_min_len, uid;
+  rtx set, x, reg, dest_reg;
   basic_block last_bb;
+  bitmap_head equiv_insn_bitmap;
+  bitmap_iterator bi;
 
   lra_constraint_iter++;
   if (lra_dump_file != NULL)
@@ -3261,10 +3278,12 @@ lra_constraints (bool first_p)
   lra_risky_transformations_p = false;
   new_insn_uid_start = get_max_uid ();
   new_regno_start = first_p ? lra_constraint_new_regno_start : max_reg_num ();
+  bitmap_initialize (&equiv_insn_bitmap, &reg_obstack);
   for (i = FIRST_PSEUDO_REGISTER; i < new_regno_start; i++)
     if (lra_reg_info[i].nrefs != 0)
       {
 	ira_reg_equiv[i].profitable_p = true;
+	reg = regno_reg_rtx[i];
 	if ((hard_regno = lra_get_regno_hard_regno (i)) >= 0)
 	  {
 	    int j, nregs = hard_regno_nregs[hard_regno][PSEUDO_REGNO_MODE (i)];
@@ -3272,7 +3291,7 @@ lra_constraints (bool first_p)
 	    for (j = 0; j < nregs; j++)
 	      df_set_regs_ever_live (hard_regno + j, true);
 	  }
-	else if ((x = get_equiv_substitution (regno_reg_rtx[i])) != NULL_RTX)
+	else if ((x = get_equiv_substitution (reg)) != reg)
 	  {
 	    bool pseudo_p = contains_reg_p (x, false, false);
 	    rtx set, insn;
@@ -3310,8 +3329,14 @@ lra_constraints (bool first_p)
 	      ira_reg_equiv[i].defined_p = false;
 	    if (contains_reg_p (x, false, true))
 	      ira_reg_equiv[i].profitable_p = false;
+	    if (get_equiv_substitution (reg) != reg)
+	      bitmap_ior_into (&equiv_insn_bitmap, &lra_reg_info[i].insn_bitmap);
 	  }
       }
+  /* We should add all insns containing pseudos which should be
+     substituted by their equivalences.  */
+  EXECUTE_IF_SET_IN_BITMAP (&equiv_insn_bitmap, 0, uid, bi)
+    lra_push_insn_by_uid (uid);
   lra_eliminate (false);
   min_len = lra_insn_stack_length ();
   new_insns_num = 0;
@@ -3342,8 +3367,12 @@ lra_constraints (bool first_p)
 	  /* We need to check equivalence in debug insn and change
 	     pseudo to the equivalent value if necessary.  */
 	  curr_id = lra_get_insn_recog_data (curr_insn);
-	  if (debug_loc_equivalence_change_p (curr_id->operand_loc[0]))
-	    changed_p = true;
+	  if (bitmap_bit_p (&equiv_insn_bitmap, INSN_UID (curr_insn))
+	      && loc_equivalence_change_p (curr_id->operand_loc[0]))
+	    {
+	      lra_update_insn_regno_info (curr_insn);
+	      changed_p = true;
+	    }
 	}
       else if (INSN_P (curr_insn))
 	{
@@ -3403,8 +3432,18 @@ lra_constraints (bool first_p)
 	  init_curr_operand_mode ();
 	  if (curr_insn_transform ())
 	    changed_p = true;
+	  /* Check non-transformed insns too for equiv change as USE
+	     or CLOBBER don't need reloads but can contain pseudos
+	     being changed on their equivalences.  */
+	  else if (bitmap_bit_p (&equiv_insn_bitmap, INSN_UID (curr_insn))
+		   && loc_equivalence_change_p (&PATTERN (curr_insn)))
+	    {
+	      lra_update_insn_regno_info (curr_insn);
+	      changed_p = true;
+	    }
 	}
     }
+  bitmap_clear (&equiv_insn_bitmap);
   /* If we used a new hard regno, changed_p should be true because the
      hard reg is assigned to a new pseudo.  */
 #ifdef ENABLE_CHECKING

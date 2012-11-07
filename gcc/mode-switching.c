@@ -1,6 +1,6 @@
 /* CPU mode switching
    Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008,
-   2009, 2010 Free Software Foundation, Inc.
+   2009, 2010, 2012  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -148,10 +148,10 @@ make_preds_opaque (basic_block b, int j)
     {
       basic_block pb = e->src;
 
-      if (e->aux || ! TEST_BIT (transp[pb->index], j))
+      if (e->aux || ! bitmap_bit_p (transp[pb->index], j))
 	continue;
 
-      RESET_BIT (transp[pb->index], j);
+      bitmap_clear_bit (transp[pb->index], j);
       make_preds_opaque (pb, j);
     }
 }
@@ -324,7 +324,10 @@ create_pre_exit (int n_entities, int *entity_map, const int *num_modes)
 		    else
 		      break;
 		    if (copy_start >= FIRST_PSEUDO_REGISTER)
-		      break;
+		      {
+			last_insn = return_copy;
+			continue;
+		      }
 		    copy_num
 		      = hard_regno_nregs[copy_start][GET_MODE (copy_reg)];
 
@@ -342,6 +345,16 @@ create_pre_exit (int n_entities, int *entity_map, const int *num_modes)
 		      }
 		    if (j >= 0)
 		      {
+			/* __builtin_return emits a sequence of loads to all
+			   return registers.  One of them might require
+			   another mode than MODE_EXIT, even if it is
+			   unrelated to the return value, so we want to put
+			   the final mode switch after it.  */
+			if (maybe_builtin_apply
+			    && targetm.calls.function_value_regno_p
+			        (copy_start))
+			  forced_late_switch = 1;
+
 			/* For the SH4, floating point loads depend on fpscr,
 			   thus we might need to put the final mode switch
 			   after the return value copy.  That is still OK,
@@ -513,7 +526,7 @@ optimize_mode_switching (void)
 	      {
 		ptr = new_seginfo (no_mode, BB_HEAD (bb), bb->index, live_now);
 		add_seginfo (info + bb->index, ptr);
-		RESET_BIT (transp[bb->index], j);
+		bitmap_clear_bit (transp[bb->index], j);
 	      }
 	  }
 
@@ -530,7 +543,7 @@ optimize_mode_switching (void)
 		      last_mode = mode;
 		      ptr = new_seginfo (mode, insn, bb->index, live_now);
 		      add_seginfo (info + bb->index, ptr);
-		      RESET_BIT (transp[bb->index], j);
+		      bitmap_clear_bit (transp[bb->index], j);
 		    }
 #ifdef MODE_AFTER
 		  last_mode = MODE_AFTER (e, last_mode, insn);
@@ -569,7 +582,7 @@ optimize_mode_switching (void)
 	       an extra check in make_preds_opaque.  We also
 	       need this to avoid confusing pre_edge_lcm when
 	       antic is cleared but transp and comp are set.  */
-	    RESET_BIT (transp[bb->index], j);
+	    bitmap_clear_bit (transp[bb->index], j);
 
 	    /* Insert a fake computing definition of MODE into entry
 	       blocks which compute no mode. This represents the mode on
@@ -601,10 +614,10 @@ optimize_mode_switching (void)
 	  FOR_EACH_BB (bb)
 	    {
 	      if (info[bb->index].seginfo->mode == m)
-		SET_BIT (antic[bb->index], j);
+		bitmap_set_bit (antic[bb->index], j);
 
 	      if (info[bb->index].computing == m)
-		SET_BIT (comp[bb->index], j);
+		bitmap_set_bit (comp[bb->index], j);
 	    }
 	}
 
@@ -638,7 +651,7 @@ optimize_mode_switching (void)
 
 	      eg->aux = 0;
 
-	      if (! TEST_BIT (insert[e], j))
+	      if (! bitmap_bit_p (insert[e], j))
 		continue;
 
 	      eg->aux = (void *)1;
@@ -665,7 +678,7 @@ optimize_mode_switching (void)
 	    }
 
 	  FOR_EACH_BB_REVERSE (bb)
-	    if (TEST_BIT (del[bb->index], j))
+	    if (bitmap_bit_p (del[bb->index], j))
 	      {
 		make_preds_opaque (bb, j);
 		/* Cancel the 'deleted' mode set.  */
@@ -763,6 +776,7 @@ struct rtl_opt_pass pass_mode_switching =
  {
   RTL_PASS,
   "mode_sw",                            /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_mode_switching,                  /* gate */
   rest_of_handle_mode_switching,        /* execute */
   NULL,                                 /* sub */

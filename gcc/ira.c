@@ -3620,7 +3620,7 @@ build_insn_chain (void)
 
 			    while (start < last)
 			      {
-				RESET_BIT (live_subregs[regno], start);
+				bitmap_clear_bit (live_subregs[regno], start);
 				start++;
 			      }
 
@@ -3706,7 +3706,7 @@ build_insn_chain (void)
 
 			    while (start < last)
 			      {
-				SET_BIT (live_subregs[regno], start);
+				bitmap_set_bit (live_subregs[regno], start);
 				start++;
 			      }
 			  }
@@ -4716,6 +4716,7 @@ struct rtl_opt_pass pass_ira =
  {
   RTL_PASS,
   "ira",                                /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   NULL,                                 /* gate */
   rest_of_handle_ira,		        /* execute */
   NULL,                                 /* sub */
@@ -4742,6 +4743,7 @@ struct rtl_opt_pass pass_reload =
  {
   RTL_PASS,
   "reload",                             /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   NULL,                                 /* gate */
   rest_of_handle_reload,	        /* execute */
   NULL,                                 /* sub */

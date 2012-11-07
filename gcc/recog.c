@@ -57,14 +57,6 @@ along with GCC; see the file COPYING3.  If not see
 #endif
 #endif
 
-#ifndef HAVE_ATTR_enabled
-static inline bool
-get_attr_enabled (rtx insn ATTRIBUTE_UNUSED)
-{
-  return true;
-}
-#endif
-
 static void validate_replace_rtx_1 (rtx *, rtx, rtx, rtx, bool);
 static void validate_replace_src_1 (rtx *, void *);
 static rtx split_insn (rtx);
@@ -2172,7 +2164,8 @@ extract_insn (rtx insn)
       for (i = 0; i < recog_data.n_alternatives; i++)
 	{
 	  which_alternative = i;
-	  recog_data.alternative_enabled_p[i] = get_attr_enabled (insn);
+	  recog_data.alternative_enabled_p[i]
+	    = HAVE_ATTR_enabled ? get_attr_enabled (insn) : 1;
 	}
     }
 
@@ -2910,7 +2903,7 @@ split_all_insns (void)
 		{
 		  if (split_insn (insn))
 		    {
-		      SET_BIT (blocks, bb->index);
+		      bitmap_set_bit (blocks, bb->index);
 		      changed = true;
 		    }
 		}
@@ -3742,6 +3735,7 @@ struct rtl_opt_pass pass_peephole2 =
  {
   RTL_PASS,
   "peephole2",                          /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_handle_peephole2,                /* gate */
   rest_of_handle_peephole2,             /* execute */
   NULL,                                 /* sub */
@@ -3769,6 +3763,7 @@ struct rtl_opt_pass pass_split_all_insns =
  {
   RTL_PASS,
   "split1",                             /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   NULL,                                 /* gate */
   rest_of_handle_split_all_insns,       /* execute */
   NULL,                                 /* sub */
@@ -3799,6 +3794,7 @@ struct rtl_opt_pass pass_split_after_reload =
  {
   RTL_PASS,
   "split2",                             /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   NULL,                                 /* gate */
   rest_of_handle_split_after_reload,    /* execute */
   NULL,                                 /* sub */
@@ -3816,7 +3812,7 @@ struct rtl_opt_pass pass_split_after_reload =
 static bool
 gate_handle_split_before_regstack (void)
 {
-#if defined (HAVE_ATTR_length) && defined (STACK_REGS)
+#if HAVE_ATTR_length && defined (STACK_REGS)
   /* If flow2 creates new instructions which need splitting
      and scheduling after reload is not done, they might not be
      split until final which doesn't allow splitting
@@ -3843,6 +3839,7 @@ struct rtl_opt_pass pass_split_before_regstack =
  {
   RTL_PASS,
   "split3",                             /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_handle_split_before_regstack,    /* gate */
   rest_of_handle_split_before_regstack, /* execute */
   NULL,                                 /* sub */
@@ -3881,6 +3878,7 @@ struct rtl_opt_pass pass_split_before_sched2 =
  {
   RTL_PASS,
   "split4",                             /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_handle_split_before_sched2,      /* gate */
   rest_of_handle_split_before_sched2,   /* execute */
   NULL,                                 /* sub */
@@ -3900,7 +3898,7 @@ struct rtl_opt_pass pass_split_before_sched2 =
 static bool
 gate_do_final_split (void)
 {
-#if defined (HAVE_ATTR_length) && !defined (STACK_REGS)
+#if HAVE_ATTR_length && !defined (STACK_REGS)
   return 1;
 #else
   return 0;
@@ -3912,6 +3910,7 @@ struct rtl_opt_pass pass_split_for_shorten_branches =
  {
   RTL_PASS,
   "split5",                             /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_do_final_split,                  /* gate */
   split_all_insns_noflow,               /* execute */
   NULL,                                 /* sub */

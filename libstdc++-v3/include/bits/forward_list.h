@@ -48,9 +48,9 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
    */
   struct _Fwd_list_node_base
   {
-    _Fwd_list_node_base() : _M_next(0) { }
+    _Fwd_list_node_base() = default;
 
-    _Fwd_list_node_base* _M_next;
+    _Fwd_list_node_base* _M_next = nullptr;
 
     _Fwd_list_node_base*
     _M_transfer_after(_Fwd_list_node_base* __begin,
@@ -86,19 +86,30 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
   /**
    *  @brief  A helper node class for %forward_list.
-   *          This is just a linked list with a data value in each node.
+   *          This is just a linked list with uninitialized storage for a
+   *          data value in each node.
    *          There is a sorting utility method.
    */
   template<typename _Tp>
     struct _Fwd_list_node
     : public _Fwd_list_node_base
     {
-      template<typename... _Args>
-        _Fwd_list_node(_Args&&... __args)
-        : _Fwd_list_node_base(), 
-          _M_value(std::forward<_Args>(__args)...) { }
+      _Fwd_list_node() = default;
 
-      _Tp _M_value;
+      typename aligned_storage<sizeof(_Tp), alignment_of<_Tp>::value>::type
+	_M_storage;
+
+      _Tp*
+      _M_valptr() noexcept
+      {
+	return static_cast<_Tp*>(static_cast<void*>(&_M_storage));
+      }
+
+      const _Tp*
+      _M_valptr() const noexcept
+      {
+	return static_cast<const _Tp*>(static_cast<const void*>(&_M_storage));
+      }
     };
 
   /**
@@ -127,12 +138,11 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
       reference
       operator*() const
-      { return static_cast<_Node*>(this->_M_node)->_M_value; }
+      { return *static_cast<_Node*>(this->_M_node)->_M_valptr(); }
 
       pointer
       operator->() const
-      { return std::__addressof(static_cast<_Node*>
-				(this->_M_node)->_M_value); }
+      { return static_cast<_Node*>(this->_M_node)->_M_valptr(); }
 
       _Self&
       operator++()
@@ -199,12 +209,11 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
       reference
       operator*() const
-      { return static_cast<_Node*>(this->_M_node)->_M_value; }
+      { return *static_cast<_Node*>(this->_M_node)->_M_valptr(); }
 
       pointer
       operator->() const
-      { return std::__addressof(static_cast<_Node*>
-				(this->_M_node)->_M_value); }
+      { return static_cast<_Node*>(this->_M_node)->_M_valptr(); }
 
       _Self&
       operator++()
@@ -339,9 +348,11 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
           _Node* __node = this->_M_get_node();
           __try
             {
-              _Node_alloc_traits::construct(_M_get_Node_allocator(), __node,
-                                            std::forward<_Args>(__args)...);
-              __node->_M_next = 0;
+	      _Tp_alloc_type __a(_M_get_Node_allocator());
+	      typedef allocator_traits<_Tp_alloc_type> _Alloc_traits;
+	      ::new ((void*)__node) _Node();
+	      _Alloc_traits::construct(__a, __node->_M_valptr(),
+				       std::forward<_Args>(__args)...);
             }
           __catch(...)
             {
@@ -457,8 +468,8 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
        *  constructed elements.
        */
       explicit
-      forward_list(size_type __n)
-      : _Base()
+      forward_list(size_type __n, const _Alloc& __al = _Alloc())
+      : _Base(_Node_alloc_type(__al))
       { _M_default_initialize(__n); }
 
       /**
@@ -589,7 +600,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
        *  in the range [@a __first,@a __last).
        *
        *  Note that the assignment completely changes the %forward_list and
-       *  that the number of elements of the resulting %forward_list's is the
+       *  that the number of elements of the resulting %forward_list is the
        *  same as the number of elements assigned.  Old data is lost.
        */
       template<typename _InputIterator,
@@ -597,9 +608,9 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 	void
         assign(_InputIterator __first, _InputIterator __last)
         {
-          clear();
-          insert_after(cbefore_begin(), __first, __last);
-        }
+	  typedef is_assignable<_Tp, decltype(*__first)> __assignable;
+	  _M_assign(__first, __last, __assignable());
+	}
 
       /**
        *  @brief  Assigns a given value to a %forward_list.
@@ -613,10 +624,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
        */
       void
       assign(size_type __n, const _Tp& __val)
-      {
-        clear();
-        insert_after(cbefore_begin(), __n, __val);
-      }
+      { _M_assign_n(__n, __val, is_copy_assignable<_Tp>()); }
 
       /**
        *  @brief  Assigns an initializer_list to a %forward_list.
@@ -628,10 +636,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
        */
       void
       assign(std::initializer_list<_Tp> __il)
-      {
-        clear();
-        insert_after(cbefore_begin(), __il);
-      }
+      { assign(__il.begin(), __il.end()); }
 
       /// Get a copy of the memory allocation object.
       allocator_type
@@ -744,7 +749,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       front()
       {
         _Node* __front = static_cast<_Node*>(this->_M_impl._M_head._M_next);
-        return __front->_M_value;
+        return *__front->_M_valptr();
       }
 
       /**
@@ -755,7 +760,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       front() const
       {
         _Node* __front = static_cast<_Node*>(this->_M_impl._M_head._M_next);
-        return __front->_M_value;
+        return *__front->_M_valptr();
       }
 
       // 23.3.4.5 modiﬁers:
@@ -1255,13 +1260,70 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
         if (__list._M_get_Node_allocator() == this->_M_get_Node_allocator())
           _M_move_assign(std::move(__list), std::true_type());
         else
-          {
-            // The rvalue's allocator cannot be moved, or is not equal,
-            // so we need to individually move each element.
-            this->assign(std::__make_move_if_noexcept_iterator(__list.begin()),
-                         std::__make_move_if_noexcept_iterator(__list.end()));
-            __list.clear();
-          }
+	  // The rvalue's allocator cannot be moved, or is not equal,
+	  // so we need to individually move each element.
+	  this->assign(std::__make_move_if_noexcept_iterator(__list.begin()),
+		       std::__make_move_if_noexcept_iterator(__list.end()));
+      }
+
+      // Called by assign(_InputIterator, _InputIterator) if _Tp is
+      // CopyAssignable.
+      template<typename _InputIterator>
+	void
+        _M_assign(_InputIterator __first, _InputIterator __last, true_type)
+	{
+	  auto __prev = before_begin();
+	  auto __curr = begin();
+	  auto __end = end();
+	  while (__curr != __end && __first != __last)
+	    {
+	      *__curr = *__first;
+	      ++__prev;
+	      ++__curr;
+	      ++__first;
+	    }
+	  if (__first != __last)
+	    insert_after(__prev, __first, __last);
+	  else if (__curr != __end)
+	    erase_after(__prev, __end);
+        }
+
+      // Called by assign(_InputIterator, _InputIterator) if _Tp is not
+      // CopyAssignable.
+      template<typename _InputIterator>
+	void
+        _M_assign(_InputIterator __first, _InputIterator __last, false_type)
+	{
+	  clear();
+	  insert_after(cbefore_begin(), __first, __last);
+	}
+
+      // Called by assign(size_type, const _Tp&) if Tp is CopyAssignable
+      void
+      _M_assign_n(size_type __n, const _Tp& __val, true_type)
+      {
+	auto __prev = before_begin();
+	auto __curr = begin();
+	auto __end = end();
+	while (__curr != __end && __n > 0)
+	  {
+	    *__curr = __val;
+	    ++__prev;
+	    ++__curr;
+	    --__n;
+	  }
+	if (__n > 0)
+	  insert_after(__prev, __n, __val);
+	else if (__curr != __end)
+	  erase_after(__prev, __end);
+      }
+
+      // Called by assign(size_type, const _Tp&) if Tp is non-CopyAssignable
+      void
+      _M_assign_n(size_type __n, const _Tp& __val, false_type)
+      {
+	clear();
+	insert_after(cbefore_begin(), __n, __val);
       }
     };
 
