@@ -2568,7 +2568,10 @@ melt_ptr_t meltgc_intern_symbol (melt_ptr_t symb);
    is new, return it otherwise return the older homonymous symnol */
 melt_ptr_t meltgc_intern_keyword (melt_ptr_t symb);
 
-/* read a list of sexpressions from a file; if the second argument is non-empty and non-null, it is used for locations; otherwise the basename of the filnam is used */
+/* Read a list of sexpressions from a file; if the second argument is
+   non-empty and non-null, it is used for locations; otherwise the
+   basename of the filnam is used: if the filnam is - read from stdin
+   till eof.  */
 melt_ptr_t meltgc_read_file (const char *filnam, const char* locnam);
 
 /* read a list of sexpressions from a raw string [which should not be

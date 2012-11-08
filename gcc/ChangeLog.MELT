@@ -1,4 +1,9 @@
 
+2012-11-08  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h (meltgc_read_file): Improve comment about - as
+	stdin.
+
 2012-11-07  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.c (meltgc_read_file): Handle specially - as stdin.
