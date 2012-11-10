@@ -396,6 +396,13 @@ static tree ignore_attribute (tree *, tree, tree, int, bool *);
 static tree handle_no_split_stack_attribute (tree *, tree, tree, int, bool *);
 static tree handle_fnspec_attribute (tree *, tree, tree, int, bool *);
 
+static tree handle_always_patch_for_instrumentation_attribute (tree *, tree,
+                                                               tree, int,
+                                                               bool *);
+static tree handle_never_patch_for_instrumentation_attribute (tree *, tree,
+                                                              tree, int,
+                                                              bool *);
+
 static void check_function_nonnull (tree, int, tree *);
 static void check_nonnull_arg (void *, tree, unsigned HOST_WIDE_INT);
 static bool nonnull_check_p (tree, unsigned HOST_WIDE_INT);
@@ -804,6 +811,13 @@ const struct attribute_spec c_common_attribute_table[] =
      The name contains space to prevent its usage in source code.  */
   { "fn spec",	 	      1, 1, false, true, true,
 			      handle_fnspec_attribute, false },
+  { "always_patch_for_instrumentation", 0, 0, true,  false, false,
+                              handle_always_patch_for_instrumentation_attribute,
+                              false },
+  { "never_patch_for_instrumentation", 0, 0, true,  false, false,
+                              handle_never_patch_for_instrumentation_attribute,
+                              false },
+
   { NULL,                     0, 0, false, false, false, NULL, false }
 };
 
@@ -9157,6 +9171,48 @@ handle_no_thread_safety_analysis_attribute (tree *node, tree name,
 
   return NULL_TREE;
 }
+
+/* Handle a "always_patch_for_instrumentation" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_always_patch_for_instrumentation_attribute (tree *node, tree name,
+                                                   tree ARG_UNUSED (args),
+                                                   int ARG_UNUSED (flags),
+                                                   bool *no_add_attrs)
+{
+  if (TREE_CODE (*node) == FUNCTION_DECL)
+    {
+      /* Disable inlining if forced instrumentation.  */
+      DECL_UNINLINABLE (*node) = 1;
+    }
+  else
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+    }
+  return NULL_TREE;
+}
+
+
+/* Handle a "never_patch_for_instrumentation" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_never_patch_for_instrumentation_attribute (tree *node, tree name,
+                                                  tree ARG_UNUSED (args),
+                                                  int ARG_UNUSED (flags),
+                                                  bool *no_add_attrs)
+{
+  if (TREE_CODE (*node) != FUNCTION_DECL)
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+    }
+  return NULL_TREE;
+}
+
+
 
 /* Check for valid arguments being passed to a function with FNTYPE.
    There are NARGS arguments in the array ARGARRAY.  */

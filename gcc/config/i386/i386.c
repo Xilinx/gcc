@@ -11026,6 +11026,13 @@ ix86_expand_epilogue (int style)
    returns.  */
 static bool patch_current_function_p = false;
 
+static inline bool
+has_attribute (const char* attribute_name)
+{
+  return lookup_attribute (attribute_name,
+                           DECL_ATTRIBUTES (current_function_decl)) != NULL;
+}
+
 /* Return true if we patch the current function. By default a function
    is patched if it has loops or if the number of insns is greater than
    patch_functions_min_instructions (number of insns roughly translates
@@ -11039,6 +11046,13 @@ check_should_patch_current_function (void)
   const char* func_name = NULL;
   struct loops loops;
   int num_loops = 0;
+
+  /* If a function has an attribute forcing patching on or off, do as it
+     indicates.  */
+  if (has_attribute ("always_patch_for_instrumentation"))
+    return true;
+  else if (has_attribute ("never_patch_for_instrumentation"))
+    return false;
 
   /* Patch the function if it has at least a loop.  */
   if (!patch_functions_ignore_loops)

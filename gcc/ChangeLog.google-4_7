@@ -1,3 +1,22 @@
+2012-11-09  Harshit Chopra  <harshit@google.com>
+
+	Backport 193381 from google/main.
+
+        * gcc/c-family/c-common.c (handle_always_patch_for_instrumentation_attribute):
+	Handle always_patch_for_instrumentation attribute and turn inlining off for
+	the function.
+        (handle_never_patch_for_instrumentation_attribute): Handle
+	never_patch_for_instrumentation attribute of a function.
+        * gcc/config/i386/i386.c (has_attribute): Checks the presence of an
+	attribute.
+        (check_should_patch_current_function): Takes into account
+	always_patch_for_instrumentation or never_patch_for_instrumentation attribute
+	when deciding that a function should be patched.
+        * gcc/testsuite/gcc.target/i386/patch-functions-force-no-patching.c (int main):
+	Test case to test for never_patch_for_instrumentation attribute.
+        * gcc/testsuite/gcc.target/i386/patch-functions-force-patching.c: Test
+	case to test for always_patch_for_instrumentation attribute.
+
 2012-11-05  Dehao Chen  <dehao@google.com>
 
 	Backport 193169, 193137 and 193053 from trunk:
