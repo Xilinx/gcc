@@ -940,14 +940,21 @@ instrument_mem_region_access (tree base, tree len,
 		    &gsi, /*before_p=*/false, is_store, 1);
 }
 
-/* Instrument the strlen builtin call pointed to by ITER.
+/* Instrument the call (to the builtin strlen function) pointed to by
+   ITER.
 
    This function instruments the access to the first byte of the
    argument, right before the call.  After the call it instruments the
    access to the last byte of the argument; it uses the result of the
-   call to deduce the offset of that last byte.  */
+   call to deduce the offset of that last byte.
 
-static void
+   Upon completion, iff the call has actullay been instrumented, this
+   function returns TRUE and *ITER points to the statement logically
+   following the built-in strlen function call *ITER was initially
+   pointing to.  Otherwise, the function returns FALSE and *ITER
+   remains unchanged.  */
+
+static bool
 instrument_strlen_call (gimple_stmt_iterator *iter)
 {
   gimple call = gsi_stmt (*iter);
@@ -961,8 +968,9 @@ instrument_strlen_call (gimple_stmt_iterator *iter)
   tree len = gimple_call_lhs (call);
   if (len == NULL)
     /* Some passes might clear the return value of the strlen call;
-       bail out in that case.  */
-    return;
+       bail out in that case.  Return FALSE as we are not advancing
+       *ITER.  */
+    return false;
   gcc_assert (INTEGRAL_TYPE_P (TREE_TYPE (len)));
 
   location_t loc = gimple_location (call);
@@ -1006,12 +1014,20 @@ instrument_strlen_call (gimple_stmt_iterator *iter)
   /* Ensure that iter points to the statement logically following the
      one it was initially pointing to.  */
   *iter = gsi;
+  /* As *ITER has been advanced to point to the next statement, let's
+     return true to inform transform_statements that it shouldn't
+     advance *ITER anymore; otherwises it will skip that next
+     statement, which wouldn't be instrumented.  */
+  return true;
 }
 
 /* Instrument the call to a built-in memory access function that is
-   pointed to by the iterator ITER.  */
+   pointed to by the iterator ITER.
 
-static void
+   Upon completion, return TRUE iff *ITER has been advanced to the
+   statement following the one it was originally pointing to.  */
+
+static bool
 instrument_builtin_call (gimple_stmt_iterator *iter)
 {
   gimple call = gsi_stmt (*iter);
@@ -1067,8 +1083,7 @@ instrument_builtin_call (gimple_stmt_iterator *iter)
       break;
 
     case BUILT_IN_STRLEN:
-      instrument_strlen_call (iter);
-      return;
+      return instrument_strlen_call (iter);
 
     /* And now the __atomic* and __sync builtins.
        These are handled differently from the classical memory memory
@@ -1286,7 +1301,7 @@ instrument_builtin_call (gimple_stmt_iterator *iter)
 	  gcc_unreachable ();
 
 	instrument_derefs (iter, dest, loc, is_store);
-	return;
+	return false;
       }
 
     default:
@@ -1307,7 +1322,11 @@ instrument_builtin_call (gimple_stmt_iterator *iter)
       else if (dest != NULL_TREE)
 	instrument_mem_region_access (dest, len, iter,
 				      loc, /*is_store=*/true);
+
+      *iter = gsi_for_stmt (call);
+      return false;
     }
+  return false;
 }
 
 /*  Instrument the assignment statement ITER if it is subject to
@@ -1329,13 +1348,17 @@ instrument_assignment (gimple_stmt_iterator *iter)
 /* Instrument the function call pointed to by the iterator ITER, if it
    is subject to instrumentation.  At the moment, the only function
    calls that are instrumented are some built-in functions that access
-   memory.  Look at instrument_builtin_call to learn more.  */
+   memory.  Look at instrument_builtin_call to learn more.
 
-static void
+   Upon completion return TRUE iff *ITER was advanced to the statement
+   following the one it was originally pointing to.  */
+
+static bool
 maybe_instrument_call (gimple_stmt_iterator *iter)
 {
   if (is_gimple_builtin_call (gsi_stmt (*iter)))
-    instrument_builtin_call (iter);
+    return instrument_builtin_call (iter);
+  return false;
 }
 
 /* asan: this looks too complex. Can this be done simpler? */
@@ -1354,14 +1377,20 @@ transform_statements (void)
   FOR_EACH_BB (bb)
     {
       if (bb->index >= saved_last_basic_block) continue;
-      for (i = gsi_start_bb (bb); !gsi_end_p (i); gsi_next (&i))
+      for (i = gsi_start_bb (bb); !gsi_end_p (i);)
         {
 	  gimple s = gsi_stmt (i);
 
 	  if (gimple_assign_single_p (s))
 	    instrument_assignment (&i);
 	  else if (is_gimple_call (s))
-	    maybe_instrument_call (&i);
+	    {
+	      if (maybe_instrument_call (&i))
+		/* Avoid gsi_next (&i), because maybe_instrument_call
+		   advanced I already.  */
+		continue;
+	    }
+	  gsi_next (&i);
         }
     }
 }
