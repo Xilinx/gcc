@@ -2226,13 +2226,18 @@ the $N-th edge of a gimple phinode.}#
 
 (defprimitive warning_at_gimple (:gimple g :cstring msg) :void
   :doc #{$WARNING_AT_GIMPLE issue a warning at location of gimple $G with string $MSG.}#
-   #{ warning_at(($g ? gimple_location($g) : UNKNOWN_LOCATION), 0, $msg); }#
+   #{ warning_at(($g ? gimple_location($g) : UNKNOWN_LOCATION), 0, "MELT WARNING @Gimple: %s", $MSG); }#
 )
 
 (defprimitive warning_at_gimple_strbuf (:gimple g :value msg) :void
   :doc #{$WARNING_AT_GIMPLE_STRBUF issue a warning at location of gimple $G with strbuf $MSG.}#
    #{ melt_warning_at_strbuf(($g ? gimple_location($g) : UNKNOWN_LOCATION)
     , $msg); }#
+)
+
+(defprimitive error_at_gimple (:gimple g :cstring msg) :void
+  :doc #{$ERROR_AT_GIMPLE issue a warning at location of gimple $G with string $MSG.}#
+   #{ error_at(($g ? gimple_location($g) : UNKNOWN_LOCATION), "MELT ERROR @Gimple: %s", $msg); }#
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2537,6 +2542,7 @@ $TREECLOS, TRUE) }#)
  do_each_gimpleseq 
  do_reveach_gimpleseq 
  each_in_gimpleseq
+ error_at_gimple
  foreach_argument_of_gimple_call
  foreach_case_of_gimple_switch
  foreach_mapgimple 

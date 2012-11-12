@@ -82,7 +82,7 @@ current :tree and :gimple. Stop walking if the closure gives null.}#
   ;; if EXPR_P(tr) use EXPR_LOCATION(tr)
   ;; otherwise no location
   :doc #{$INFORM_AT_TREE give a notice at location of tree $TR with message $MSG}#
-  #{ inform((($tr && DECL_P($tr))? DECL_SOURCE_LOCATION($tr)
+  #{ /*inform_at_tree: */ inform ((($tr && DECL_P($tr))? DECL_SOURCE_LOCATION($tr)
 	    : ($tr && EXPR_P($tr)) ? EXPR_LOCATION($tr) : UNKNOWN_LOCATION), 
   $msg );
   }# )
@@ -92,11 +92,24 @@ current :tree and :gimple. Stop walking if the closure gives null.}#
   ;; if EXPR_P(tr) use EXPR_LOCATION(tr)
   ;; otherwise no location
   :doc #{$WARNING_AT_TREE give a warning at location of tree $TR with message $MSG}#
-  #{ warning_at( (($tr && DECL_P($tr))? DECL_SOURCE_LOCATION($tr)
+  #{ /*warning_at_tree: */ warning_at((($tr && DECL_P($tr))? DECL_SOURCE_LOCATION($tr)
 		 : ($tr && EXPR_P($tr)) ? EXPR_LOCATION($tr) : UNKNOWN_LOCATION), 
-		 0,
+		 0, 
+		 "MELT WARNING @Tree: %s", 
 		 $msg);
   }# )
+
+
+(defprimitive error_at_tree (:tree tr :cstring msg) :void
+  ;; if DECL_P(tr) use DECL_SOURCE_LOCATION(tr)
+  ;; if EXPR_P(tr) use EXPR_LOCATION(tr)
+  ;; otherwise no location
+  :doc #{$ERROR_AT_TREE give a warning at location of tree $TR with message $MSG}#
+  #{ /*error_at_tree: */ error_at ((($tr && DECL_P($tr))? DECL_SOURCE_LOCATION($tr)
+		 : ($tr && EXPR_P($tr)) ? EXPR_LOCATION($tr) : UNKNOWN_LOCATION), 
+				   "MELT ERROR @Tree: %s",
+				   $msg);
+  }#)
 
 (defprimitive warning_at_tree_decl_with_number
   (:tree trdecl :cstring msg :long num) :void
@@ -374,6 +387,30 @@ current :tree and :gimple. Stop walking if the closure gives null.}#
      $CONSTNAME = IDENTIFIER_POINTER(DECL_NAME($TR));
    }# )
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; pattern for label
+(defcmatcher tree_label_decl 
+  (:tree tr)
+  (:tree trlabel
+   :long uidlabel)
+  treelabel
+  :doc #{$TREE_LABEL_DECL match a label declaration tree 
+  $TR extracting its label tree $TRLABEL and uid $UIDLABEL}#
+  ;;; test expansion
+  #{ /* tree_label_decl $TREELABEL ?*/ (($TR) && 
+					TREE_CODE($TR) == LABEL_DECL) }#
+  ;;; test fill
+  #{ /* tree_label_decl $TREELABEL !*/ 
+     $TRLABEL = LABEL_EXPR_LABEL ($TR);
+     $UIDLABEL = LABEL_DECL_UID ($TR);
+  }#
+)
+
+(defprimitive tree_create_artificial_label ()
+  :tree
+  :doc #{Create an artifical label tree, without source location.}#
+  #{ /* tree_create_artificial_label */ create_artificial_label (UNKNOWN_LOCATION) }#)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; pattern for parameters (tree_parm_decl <type> <name> <uid>)
@@ -1658,6 +1695,7 @@ pointer type node.}#
  tree_const_decl_of_name
  tree_const_ptr_type_node 
  tree_content 
+ tree_create_artificial_label
  tree_decl
  tree_decl_at_source_location
  tree_double_type_node 
@@ -1681,6 +1719,7 @@ pointer type node.}#
  tree_integer_type_bounded
  tree_integer_type_node 
  tree_integer_zero_node 
+ tree_label_decl
  tree_list
  tree_long_double_type_node 
  tree_long_integer_type_node 

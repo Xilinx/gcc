@@ -1,6 +1,14 @@
 
 2012-11-12  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/xtramelt-ana-gimple.melt (error_at_gimple): New primitive.
+
+	* melt/xtramelt-ana-tree.melt (error_at_tree)
+	(tree_create_artificial_label): New primitives.
+	(tree_label_decl): New cmatcher.
+
+2012-11-12  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	MELT branch merged with trunk rev 193426 using svnmerge.py
 
 2012-11-07  Basile Starynkevitch  <basile@starynkevitch.net>
