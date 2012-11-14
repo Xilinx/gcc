@@ -1074,11 +1074,11 @@ adjust_insn (basic_block bb, rtx insn)
   if (RTX_FRAME_RELATED_P (insn)
       && find_reg_note (insn, REG_CFA_WINDOW_SAVE, NULL_RTX))
     {
-      unsigned int i, nregs = windowed_parm_regs.length ();
+      unsigned int i, nregs = vec_safe_length (windowed_parm_regs);
       rtx rtl = gen_rtx_PARALLEL (VOIDmode, rtvec_alloc (nregs * 2));
       parm_reg_t *p;
 
-      FOR_EACH_VEC_ELT (windowed_parm_regs, i, p)
+      FOR_EACH_VEC_SAFE_ELT (windowed_parm_regs, i, p)
 	{
 	  XVECEXP (rtl, 0, i * 2)
 	    = gen_rtx_SET (VOIDmode, p->incoming, p->outgoing);
@@ -9353,7 +9353,7 @@ vt_add_function_parameter (tree parm)
 	= gen_rtx_REG_offset (incoming, GET_MODE (incoming),
 			      OUTGOING_REGNO (REGNO (incoming)), 0);
       p.outgoing = incoming;
-      windowed_parm_regs.safe_push (p);
+      vec_safe_push (windowed_parm_regs, p);
     }
   else if (MEM_P (incoming)
 	   && REG_P (XEXP (incoming, 0))
@@ -9366,7 +9366,7 @@ vt_add_function_parameter (tree parm)
 	  p.incoming = reg;
 	  reg = gen_raw_REG (GET_MODE (reg), OUTGOING_REGNO (REGNO (reg)));
 	  p.outgoing = reg;
-	  windowed_parm_regs.safe_push (p);
+	  vec_safe_push (windowed_parm_regs, p);
 	  incoming = replace_equiv_address_nv (incoming, reg);
 	}
     }
