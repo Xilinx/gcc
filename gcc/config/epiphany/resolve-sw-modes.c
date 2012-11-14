@@ -154,7 +154,7 @@ resolve_sw_modes (void)
 	  insert_insn_on_edge (seq, e);
 	}
     }
-  vec_free (todo);
+  todo.release ();
   sbitmap_free (pushed);
   if (need_commit)
     commit_edge_insertions ();
