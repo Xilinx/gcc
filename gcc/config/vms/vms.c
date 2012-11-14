@@ -120,7 +120,7 @@ vms_add_crtl_xlat (const char *name, size_t nlen,
   IDENTIFIER_TRANSPARENT_ALIAS (targ) = 1;
   TREE_CHAIN (targ) = get_identifier_with_length (id_str, id_len);
 
-  aliases_id.safe_push (targ);
+  vec_safe_push (aliases_id, targ);
 }
 
 /* Do VMS specific stuff on builtins: disable the ones that are not
