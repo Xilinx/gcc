@@ -1,3 +1,59 @@
+2012-11-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* common.opt (fvar-tracking-uninit): Document.
+	* toplev.c (process_options): Fix handling of flag_var_tracking_uninit.
+	* config/darwin.c (darwin_override_options): Likewise.
+
+2012-11-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/sparc.h (AS_NIAGARA3_FLAG): Tweak.
+	* config/sparc/sol2.h (TARGET_CPU_niagara4 support): Fix pasto.
+
+2012-11-09  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* doc/install.texi (sparc64-x-solaris2): Mention MPC as well.
+
+2012-11-09  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/i386/i386.c (release_scratch_register_on_entry): Also adjust
+	sp_offset manually.
+
+2012-11-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2012-11-06  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_init_machine_status): Do not
+	explicitly clear tls_descriptor_call_expanded_p again.
+
+	2012-11-06  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md
+	(<avx_avx2>_maskstore<ssemodesuffix><avxsizesuffix>): Mark operand 0
+	as read and written by the instruction.
+
+	2012-11-06  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (TARGET_INSTANTIATE_DECLS): New define.
+	(ix86_instantiate_decls): New function.
+	(ix86_expand_builtin) <case IX86_BUILTIN_LDMXCSR>: Use SLOT_TEMP
+	stack slot instead of SLOT_VIRTUAL.
+	<case IX86_BUILTIN_STMXCSR>: Ditto.
+	(assign_386_stack_local): Do not assert when virtual slot is valid.
+	* config/i386/i386.h (enum ix86_stack_slot): Remove SLOT_VIRTUAL.
+	* config/i386/i386.md (truncdfsf2): Do not use SLOT_VIRTUAL stack slot.
+	(truncxf<mode>2): Ditto.
+	(floatunssi<mode>2): Ditto.
+	(isinf<mode>2): Ditto.
+	* config/i386/sync.md (atomic_load<mode>): Ditto.
+	(atomic_store<mode>): Ditto.
+
+2012-11-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR middle-end/55219
+	* fold-const.c (fold_binary_op_with_conditional_arg): Do not fold if
+	the argument is itself a conditional expression.
+
 2012-11-05  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/i386.c (print_reg): Replace REX_INT_REG_P with
