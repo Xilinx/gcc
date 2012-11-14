@@ -8184,7 +8184,7 @@ move_succs (vec<edge, va_gc> **succsp, basic_block to)
   edge e;
   edge_iterator ei;
 
-  gcc_assert (!to->succs == 0);
+  gcc_assert (to->succs == 0);
 
   to->succs = *succsp;
 
