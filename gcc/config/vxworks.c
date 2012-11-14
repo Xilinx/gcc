@@ -103,17 +103,17 @@ vxworks_emutls_var_init (tree var, tree decl, tree tmpl_addr)
   tree field = TYPE_FIELDS (type);
   
   constructor_elt elt = {field, fold_convert (TREE_TYPE (field), tmpl_addr)};
-  v.quick_push (elt);
+  v->quick_push (elt);
   
   field = DECL_CHAIN (field);
   elt.index = field;
   elt.value = build_int_cst (TREE_TYPE (field), 0);
-  v.quick_push (elt);
+  v->quick_push (elt);
   
   field = DECL_CHAIN (field);
   elt.index = field;
   elt.value = fold_convert (TREE_TYPE (field), DECL_SIZE_UNIT (decl));
-  v.quick_push (elt);
+  v->quick_push (elt);
   
   return build_constructor (type, v);
 }

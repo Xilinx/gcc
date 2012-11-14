@@ -3480,8 +3480,8 @@ hwloop_optimize (hwloop_info loop)
       insn = BB_END (loop->incoming_src);
       /* If we have to insert the LSETUP before a jump, count that jump in the
 	 length.  */
-      if (loop->incoming.length () > 1
-	  || !(loop->incoming.last ()->flags & EDGE_FALLTHRU))
+      if (loop->incoming->length () > 1
+	  || !(loop->incoming->last ()->flags & EDGE_FALLTHRU))
 	{
 	  gcc_assert (JUMP_P (insn));
 	  insn = PREV_INSN (insn);
@@ -3749,8 +3749,8 @@ hwloop_optimize (hwloop_info loop)
   if (loop->incoming_src)
     {
       rtx prev = BB_END (loop->incoming_src);
-      if (loop->incoming.length () > 1
-	  || !(loop->incoming.last ()->flags & EDGE_FALLTHRU))
+      if (loop->incoming->length () > 1
+	  || !(loop->incoming->last ()->flags & EDGE_FALLTHRU))
 	{
 	  gcc_assert (JUMP_P (prev));
 	  prev = PREV_INSN (prev);

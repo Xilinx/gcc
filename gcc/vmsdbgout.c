@@ -712,7 +712,7 @@ write_rtnbeg (int rtnnum, int dosizeonly)
 
       ASM_GENERATE_INTERNAL_LABEL
         (label, FUNC_PROLOG_LABEL,
-	 funcnum_table[rtnnum)];
+	 funcnum_table[rtnnum]);
       totsize += write_debug_addr (label, "prolog breakpoint addr",
 				   dosizeonly);
     }
@@ -746,10 +746,10 @@ write_rtnend (int rtnnum, int dosizeonly)
 
   ASM_GENERATE_INTERNAL_LABEL
    (label1, FUNC_BEGIN_LABEL,
-    funcnum_table[rtnnum)];
+    funcnum_table[rtnnum]);
   ASM_GENERATE_INTERNAL_LABEL
    (label2, FUNC_END_LABEL,
-    funcnum_table[rtnnum)];
+    funcnum_table[rtnnum]);
   totsize += write_debug_delta4 (label2, label1, "routine size", dosizeonly);
 
   return totsize;
@@ -1444,8 +1444,8 @@ vmsdbgout_init (const char *filename)
   /* Skip the first entry - file numbers begin at 1.  */
   file_info_table_in_use = 1;
 
-  vec_alloc (funcnam_table, FUNC_TABLE_INITIAL);
-  vec_alloc (funcnum_table, FUNC_TABLE_INITIAL);
+  funcnam_table.create (FUNC_TABLE_INITIAL);
+  funcnum_table.create (FUNC_TABLE_INITIAL);
 
   /* Allocate the initial hunk of the line_info_table.  */
   line_info_table = XCNEWVEC (dst_line_info_entry, LINE_INFO_TABLE_INCREMENT);

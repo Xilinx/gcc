@@ -61,7 +61,7 @@ resolve_sw_modes (void)
   bool need_commit = false;
   bool finalize_fp_sets = (MACHINE_FUNCTION (cfun)->unknown_mode_sets == 0);
 
-  vec_alloc (todo, last_basic_block);
+  todo.create (last_basic_block);
   pushed = sbitmap_alloc (last_basic_block);
   bitmap_clear (pushed);
   if (!finalize_fp_sets)
@@ -106,7 +106,7 @@ resolve_sw_modes (void)
 	SET_SRC (XVECEXP (PATTERN (insn), 0, 2)) = copy_rtx (src);
 	df_insn_rescan (insn);
       }
-  while (todo).length ()
+  while (todo.length ())
     {
       basic_block bb = todo.pop ();
       int selected_reg, jilted_reg;

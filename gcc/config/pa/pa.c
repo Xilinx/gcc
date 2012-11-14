@@ -469,21 +469,22 @@ pa_option_override (void)
 {
   unsigned int i;
   cl_deferred_option *opt;
-  vec<cl_deferred_option> vec
-    = (vec<cl_deferred_option> ) pa_deferred_options;
+  vec<cl_deferred_option> *v
+    = (vec<cl_deferred_option> *) pa_deferred_options;
 
-  FOR_EACH_VEC_ELT (vec, i, opt)
-    {
-      switch (opt->opt_index)
-	{
-	case OPT_mfixed_range_:
-	  fix_range (opt->arg);
-	  break;
+  if (v)
+    FOR_EACH_VEC_ELT (*v, i, opt)
+      {
+	switch (opt->opt_index)
+	  {
+	  case OPT_mfixed_range_:
+	    fix_range (opt->arg);
+	    break;
 
-	default:
-	  gcc_unreachable ();
-	}
-    }
+	  default:
+	    gcc_unreachable ();
+	  }
+      }
 
   /* Unconditional branches in the delay slot are not compatible with dwarf2
      call frame information.  There is no benefit in using this optimization
@@ -4423,7 +4424,7 @@ output_deferred_profile_counters (void)
       assemble_integer (const0_rtx, LONG_TYPE_SIZE / BITS_PER_UNIT, align, 1);
     }
 
-  vec_free (funcdef_nos);
+  funcdef_nos.release ();
 }
 
 void
@@ -9962,7 +9963,7 @@ pa_hpux_asm_output_external (FILE *file, tree decl, const char *name)
 {
   gcc_assert (file == asm_out_file);
   extern_symbol p = {decl, name};
-  extern_symbols.safe_push (p);
+  vec_safe_push (extern_symbols, p);
 }
 
 /* Output text required at the end of an assembler file.
@@ -9980,7 +9981,7 @@ pa_hpux_file_end (void)
 
   output_deferred_plabels ();
 
-  for (i = 0; extern_symbols.iterate (i, &p); i++)
+  for (i = 0; vec_safe_iterate (extern_symbols, i, &p); i++)
     {
       tree decl = p->decl;
 

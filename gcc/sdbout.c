@@ -1427,7 +1427,7 @@ sdbout_global_decl (tree decl)
       if (!DECL_INITIAL (decl) || !TREE_PUBLIC (decl))
 	sdbout_symbol (decl, 0);
       else
-	deferred_global_decls.safe_push (decl);
+	vec_safe_push (deferred_global_decls, decl);
 
       /* Output COFF information for non-global file-scope initialized
 	 variables.  */
@@ -1445,7 +1445,7 @@ sdbout_finish (const char *main_filename ATTRIBUTE_UNUSED)
   size_t i;
   tree decl;
 
-  FOR_EACH_VEC_ELT (deferred_global_decls, i, decl)
+  FOR_EACH_VEC_SAFE_ELT (deferred_global_decls, i, decl)
     sdbout_symbol (decl, 0);
 }
 
