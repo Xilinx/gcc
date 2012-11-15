@@ -155,7 +155,7 @@ static vec<tree> sccstack;
 
 /* Table of vn_ssa_aux_t's, one per ssa_name.  The vn_ssa_aux_t objects
    are allocated on an obstack for locality reasons, and to free them
-   without looping over the vec_s.  */
+   without looping over the vec.  */
 
 static vec<vn_ssa_aux_t> vn_ssa_aux_table;
 static struct obstack vn_ssa_aux_obstack;

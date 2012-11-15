@@ -4572,7 +4572,7 @@ remove_AT (dw_die_ref die, enum dwarf_attribute attr_kind)
 	  if (a->dw_attr_val.v.val_str->refcount)
 	    a->dw_attr_val.v.val_str->refcount--;
 
-	/* vec_s::ordered_remove should help reduce the number of abbrevs
+	/* vec::ordered_remove should help reduce the number of abbrevs
 	   that are needed.  */
 	die->die_attr->ordered_remove (ix);
 	return;

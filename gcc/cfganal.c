@@ -1145,7 +1145,7 @@ compute_idf (bitmap def_blocks, bitmap_head *dfs)
   phi_insertion_points = BITMAP_ALLOC (NULL);
 
   /* Seed the work list with all the blocks in DEF_BLOCKS.  We use
-     vec_s::quick_push here for speed.  This is safe because we know that
+     vec::quick_push here for speed.  This is safe because we know that
      the number of definition blocks is no greater than the number of
      basic blocks, which is the initial capacity of WORK_STACK.  */
   EXECUTE_IF_SET_IN_BITMAP (def_blocks, 0, bb_index, bi)

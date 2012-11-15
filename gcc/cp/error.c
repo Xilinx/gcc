@@ -1275,7 +1275,7 @@ dump_template_decl (tree t, int flags)
 }
 
 /* find_typenames looks through the type of the function template T
-   and returns a vec_s containing any typedefs, decltypes or TYPENAME_TYPEs
+   and returns a vec containing any typedefs, decltypes or TYPENAME_TYPEs
    it finds.  */
 
 struct find_typenames_t

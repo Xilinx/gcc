@@ -312,7 +312,7 @@ add_use_op (gimple stmt, tree *op, use_optype_p last)
 
 
 /* Takes elements from build_defs and turns them into def operands of STMT.
-   TODO -- Make build_defs vec_s of tree *.  */
+   TODO -- Make build_defs vec of tree *.  */
 
 static inline void
 finalize_ssa_defs (gimple stmt)
@@ -351,7 +351,7 @@ finalize_ssa_defs (gimple stmt)
 
 
 /* Takes elements from build_uses and turns them into use operands of STMT.
-   TODO -- Make build_uses vec_s of tree *.  */
+   TODO -- Make build_uses vec of tree *.  */
 
 static inline void
 finalize_ssa_uses (gimple stmt)

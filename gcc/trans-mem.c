@@ -5179,7 +5179,7 @@ ipa_tm_execute (void)
     }
 
   /* Iterate scans until no more work to be done.  Prefer not to use
-     vec_s::_pop because the worklist tends to follow a breadth-first
+     vec::pop because the worklist tends to follow a breadth-first
      search of the callgraph, which should allow convergance with a
      minimum number of scans.  But we also don't want the worklist
      array to grow without bound, so we shift the array up periodically.  */

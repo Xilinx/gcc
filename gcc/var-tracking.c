@@ -8267,7 +8267,7 @@ resolve_expansions_pending_recursion (vec<rtx, va_stack> pending)
 }
 
 /* Initialize expand_loc_callback_data D with variable hash table V.
-   It must be a macro because of alloca (vec_s stack).  */
+   It must be a macro because of alloca (vec stack).  */
 #define INIT_ELCD(d, v)						\
   do								\
     {								\

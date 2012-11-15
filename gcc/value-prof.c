@@ -73,7 +73,7 @@ along with GCC; see the file COPYING3.  If not see
    to profile.  There are different histogram types (see HIST_TYPE_* in
    value-prof.h) and each transformation can request one or more histogram
    types per GIMPLE statement.  The function gimple_find_values_to_profile()
-   collects the values to profile in a vec_s, and adds the number of counters
+   collects the values to profile in a vec, and adds the number of counters
    required for the different histogram types.
 
    For a -fprofile-generate run, the statements for which values should be

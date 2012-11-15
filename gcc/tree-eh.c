@@ -1371,7 +1371,7 @@ lower_try_finally_switch (struct leh_state *state, struct leh_tf_state *tf)
   finally_tmp = create_tmp_var (integer_type_node, "finally_tmp");
   finally_label = create_artificial_label (finally_loc);
 
-  /* We use vec_s::quick_push on case_label_vec throughout this function,
+  /* We use vec::quick_push on case_label_vec throughout this function,
      since we know the size in advance and allocate precisely as muce
      space as needed.  */
   case_label_vec.create (ndests);

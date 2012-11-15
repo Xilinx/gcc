@@ -11185,7 +11185,7 @@ make_tree_vector (void)
     return tree_vector_cache->pop ();
   else
     {
-      /* Passing 0 to vec_s::alloc returns NULL, and our callers require
+      /* Passing 0 to vec::alloc returns NULL, and our callers require
 	 that we always return a non-NULL value.  The vector code uses
 	 4 when growing a NULL vector, so we do too.  */
       vec<tree, va_gc> *v;

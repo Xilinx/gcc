@@ -3726,7 +3726,7 @@ fill_vec_av_set (av_set_t av, blist_t bnds, fence_t fence,
     av_max_prio = est_ticks_till_branch = INT_MIN;
 
   /* Filter out inappropriate expressions.  Loop's direction is reversed to
-     visit "best" instructions first.  We assume that vec_s::unordered_remove
+     visit "best" instructions first.  We assume that vec::unordered_remove
      moves last element in place of one being deleted.  */
   for (n = vec_av_set.length () - 1, stalled = 0; n >= 0; n--)
     {

@@ -3283,7 +3283,7 @@ hoist_code (void)
 		 to nullify any benefit we get from code hoisting.  */
 	      if (hoistable > 1 && dbg_cnt (hoist_insn))
 		{
-		  /* If (hoistable != vec_s::length), then there is
+		  /* If (hoistable != vec::length), then there is
 		     an occurrence of EXPR in BB itself.  Don't waste
 		     time looking for LCA in this case.  */
 		  if ((unsigned) hoistable == occrs_to_hoist.length ())

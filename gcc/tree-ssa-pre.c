@@ -250,9 +250,9 @@ alloc_expression_id (pre_expr expr)
   if (expr->kind == NAME)
     {
       unsigned version = SSA_NAME_VERSION (PRE_EXPR_NAME (expr));
-      /* vec_s::safe_grow_cleared allocates no headroom.  Avoid frequent
-	 re-allocations by using vec_s::reserve upfront.  There is no
-	 vec_s::quick_grow_cleared unfortunately.  */
+      /* vec::safe_grow_cleared allocates no headroom.  Avoid frequent
+	 re-allocations by using vec::reserve upfront.  There is no
+	 vec::quick_grow_cleared unfortunately.  */
       unsigned old_len = name_to_id.length ();
       name_to_id.reserve (num_ssa_names - old_len);
       name_to_id.safe_grow_cleared (num_ssa_names);

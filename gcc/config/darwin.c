@@ -1874,9 +1874,9 @@ darwin_asm_named_section (const char *name,
       /* Keep the names, we'll need to make a table later.
          TODO: check that we do not revisit sections, that would break
          the assumption of how this is done.  */
-      if (!lto_section_names.exists ())
+      if (lto_section_names == NULL)
         vec_alloc (lto_section_names, 16);
-      lto_section_names.safe_push (e);
+      vec_safe_push (lto_section_names, e);
    }
   else if (strncmp (name, "__DWARF,", 8) == 0)
     darwin_asm_dwarf_section (name, flags, decl);
@@ -2633,7 +2633,7 @@ darwin_assemble_visibility (tree decl, int vis)
 	     "not supported in this configuration; ignored");
 }
 
-/* vec_s used by darwin_asm_dwarf_section.
+/* vec used by darwin_asm_dwarf_section.
    Maybe a hash tab would be better here - but the intention is that this is
    a very short list (fewer than 16 items) and each entry should (ideally, 
    eventually) only be presented once.
@@ -2670,11 +2670,11 @@ darwin_asm_dwarf_section (const char *name, unsigned int flags,
   sname = name + 8;
   namelen = strchr (sname, ',') - sname;
   gcc_assert (namelen);
-  if (!dwarf_sect_names_table.exists ())
+  if (dwarf_sect_names_table == NULL)
     vec_alloc (dwarf_sect_names_table, 16);
   else
     for (i = 0; 
-	 dwarf_sect_names_table.iterate (i, &ref);
+	 dwarf_sect_names_table->iterate (i, &ref);
 	 i++)
       {
 	if (!ref)
@@ -2694,7 +2694,7 @@ darwin_asm_dwarf_section (const char *name, unsigned int flags,
       fprintf (asm_out_file, "Lsection%.*s:\n", namelen, sname);
       e.count = 1;
       e.name = xstrdup (sname);
-      dwarf_sect_names_table.safe_push (e);
+      vec_safe_push (dwarf_sect_names_table, e);
     }
 }
 
@@ -2809,7 +2809,7 @@ darwin_file_end (void)
     }
 
   /* Output the names and indices.  */
-  if (lto_section_names && lto_section_names).length ()
+  if (lto_section_names && lto_section_names->length ())
     {
       int count;
       darwin_lto_section_e *ref;
@@ -2820,7 +2820,7 @@ darwin_file_end (void)
       /* Emit the names.  */
       fprintf (asm_out_file, "\t.section %s,%s,regular,debug\n",
 	       LTO_SEGMENT_NAME, LTO_NAMES_SECTION);
-      FOR_EACH_VEC_ELT (lto_section_names, count, ref)
+      FOR_EACH_VEC_ELT (*lto_section_names, count, ref)
 	{
 	  fprintf (asm_out_file, "L_GNU_LTO_NAME%d:\n", count);
          /* We have to jump through hoops to get the values of the intra-section
@@ -2843,7 +2843,7 @@ darwin_file_end (void)
       fputs ("\t.align\t2\n", asm_out_file);
       fputs ("# Section offset, Section length, Name offset, Name length\n",
 	     asm_out_file);
-      FOR_EACH_VEC_ELT (lto_section_names, count, ref)
+      FOR_EACH_VEC_ELT (*lto_section_names, count, ref)
 	{
 	  fprintf (asm_out_file, "%s L$gnu$lto$offs%d\t;# %s\n",
 		   op, count, ref->sectname);

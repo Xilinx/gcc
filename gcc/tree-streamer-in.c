@@ -907,7 +907,7 @@ lto_input_ts_binfo_tree_pointers (struct lto_input_block *ib,
 
   /* Note that the number of slots in EXPR was read in
      streamer_alloc_tree when instantiating EXPR.  However, the
-     vector is empty so we cannot rely on vec_s::length to know how many
+     vector is empty so we cannot rely on vec::length to know how many
      elements to read.  So, this list is emitted as a 0-terminated
      list on the writer side.  */
   do

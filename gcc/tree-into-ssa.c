@@ -101,7 +101,7 @@ sbitmap interesting_blocks;
    released after we finish updating the SSA web.  */
 static bitmap names_to_release;
 
-/* vec_s of vec_s of PHIs to rewrite in a basic block.  Element I corresponds
+/* vec of vec of PHIs to rewrite in a basic block.  Element I corresponds
    the to basic block with index I.  Allocated once per compilation, *not*
    released between different functions.  */
 static vec<gimple_vec> phis_to_rewrite;

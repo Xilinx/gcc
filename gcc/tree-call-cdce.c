@@ -513,7 +513,7 @@ gen_conditions_for_pow_int_base (tree base, tree expn,
 /* Method to generate conditional statements for guarding conditionally
    dead calls to pow.  One or more statements can be generated for
    each logical condition.  Statement groups of different conditions
-   are separated by a NULL tree and they are stored in the vec_s
+   are separated by a NULL tree and they are stored in the vec
    conds.  The number of logical conditions are stored in *nconds.
 
    See C99 standard, 7.12.7.4:2, for description of pow (x, y).

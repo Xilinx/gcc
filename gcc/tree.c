@@ -1408,7 +1408,7 @@ build_vector_from_val (tree vectype, tree sc)
 }
 
 /* Return a new CONSTRUCTOR node whose type is TYPE and whose values
-   are in the vec_s pointed to by VALS.  */
+   are in the vec pointed to by VALS.  */
 tree
 build_constructor (tree type, vec<constructor_elt, va_gc> *vals)
 {
@@ -4113,7 +4113,7 @@ build_nt (enum tree_code code, ...)
 }
 
 /* Similar to build_nt, but for creating a CALL_EXPR object with a
-   tree vec_s.  */
+   tree vec.  */
 
 tree
 build_nt_call_vec (tree fn, vec<tree, va_gc> *args)
@@ -10141,7 +10141,7 @@ build_call_array_loc (location_t loc, tree return_type, tree fn,
   return t;
 }
 
-/* Like build_call_array, but takes a vec_s.  */
+/* Like build_call_array, but takes a vec.  */
 
 tree
 build_call_vec (tree return_type, tree fn, vec<tree, va_gc> *args)

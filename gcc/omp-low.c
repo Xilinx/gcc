@@ -4773,7 +4773,7 @@ expand_omp_sections (struct omp_region *region)
      and a default case to abort if something goes wrong.  */
   len = EDGE_COUNT (l0_bb->succs);
 
-  /* Use vec_s::quick_push on label_vec throughout, since we know the size
+  /* Use vec::quick_push on label_vec throughout, since we know the size
      in advance.  */
   label_vec.create (len);
 

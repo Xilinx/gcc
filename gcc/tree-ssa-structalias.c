@@ -5145,7 +5145,7 @@ push_fields_onto_fieldstack (tree type, vec<fieldoff_s> *fieldstack,
     return false;
 
   /* If the vector of fields is growing too big, bail out early.
-     Callers check for vec_s::length <= MAX_FIELDS_FOR_FIELD_SENSITIVE, make
+     Callers check for vec::length <= MAX_FIELDS_FOR_FIELD_SENSITIVE, make
      sure this fails.  */
   if (fieldstack->length () > MAX_FIELDS_FOR_FIELD_SENSITIVE)
     return false;
