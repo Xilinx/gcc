@@ -2301,6 +2301,52 @@ static const char *const cpu_names[TARGET_CPU_DEFAULT_max] =
   "btver2"
 };
 
+static bool
+gate_insert_vzeroupper (void)
+{
+  return TARGET_VZEROUPPER;
+}
+
+static unsigned int
+rest_of_handle_insert_vzeroupper (void)
+{
+  int i;
+
+  /* vzeroupper instructions are inserted immediately after reload to
+     account for possible spills from 256bit registers.  The pass
+     reuses mode switching infrastructure by re-running mode insertion
+     pass, so disable entities that have already been processed.  */
+  for (i = 0; i < MAX_386_ENTITIES; i++)
+    ix86_optimize_mode_switching[i] = 0;
+
+  ix86_optimize_mode_switching[AVX_U128] = 1;
+
+  /* Call optimize_mode_switching.  */
+  pass_mode_switching.pass.execute ();
+  return 0;
+}
+
+struct rtl_opt_pass pass_insert_vzeroupper =
+{
+ {
+  RTL_PASS,
+  "vzeroupper",				/* name */
+  OPTGROUP_NONE,			/* optinfo_flags */
+  gate_insert_vzeroupper,		/* gate */
+  rest_of_handle_insert_vzeroupper,	/* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
+  0,					/* static_pass_number */
+  TV_NONE,				/* tv_id */
+  0,					/* properties_required */
+  0,					/* properties_provided */
+  0,					/* properties_destroyed */
+  0,					/* todo_flags_start */
+  TODO_df_finish | TODO_verify_rtl_sharing |
+  0,					/* todo_flags_finish */
+ }
+};
+
 /* Return true if a red-zone is in use.  */
 
 static inline bool
@@ -3705,7 +3751,16 @@ ix86_option_override_internal (bool main_args_p)
 static void
 ix86_option_override (void)
 {
+  static struct register_pass_info insert_vzeroupper_info
+    = { &pass_insert_vzeroupper.pass, "reload",
+	1, PASS_POS_INSERT_AFTER
+      };
+
   ix86_option_override_internal (true);
+
+
+  /* This needs to be done at start up.  It's convenient to do it here.  */
+  register_pass (&insert_vzeroupper_info);
 }
 
 /* Update register usage after having seen the compiler flags.  */
@@ -5184,6 +5239,14 @@ ix86_legitimate_combined_insn (rtx insn)
     }
 
   return true;
+}
+
+/* Implement the TARGET_ASAN_SHADOW_OFFSET hook.  */
+
+static unsigned HOST_WIDE_INT
+ix86_asan_shadow_offset (void)
+{
+  return (unsigned HOST_WIDE_INT) 1 << (TARGET_LP64 ? 44 : 29);
 }
 
 /* Argument support functions.  */
@@ -12195,7 +12258,6 @@ legitimize_pic_address (rtx orig, rtx reg)
 {
   rtx addr = orig;
   rtx new_rtx = orig;
-  rtx base;
 
 #if TARGET_MACHO
   if (TARGET_MACHO && !TARGET_64BIT)
@@ -12400,20 +12462,33 @@ legitimize_pic_address (rtx orig, rtx reg)
 	    }
 	  else
 	    {
-	      base = legitimize_pic_address (XEXP (addr, 0), reg);
-	      new_rtx  = legitimize_pic_address (XEXP (addr, 1),
-						 base == reg ? NULL_RTX : reg);
+	      rtx base = legitimize_pic_address (op0, reg);
+	      enum machine_mode mode = GET_MODE (base);
+	      new_rtx
+	        = legitimize_pic_address (op1, base == reg ? NULL_RTX : reg);
 
 	      if (CONST_INT_P (new_rtx))
-		new_rtx = plus_constant (Pmode, base, INTVAL (new_rtx));
+		{
+		  if (INTVAL (new_rtx) < -16*1024*1024
+		      || INTVAL (new_rtx) >= 16*1024*1024)
+		    {
+		      if (!x86_64_immediate_operand (new_rtx, mode))
+			new_rtx = force_reg (mode, new_rtx);
+		      new_rtx
+		        = gen_rtx_PLUS (mode, force_reg (mode, base), new_rtx);
+		    }
+		  else
+		    new_rtx = plus_constant (mode, base, INTVAL (new_rtx));
+		}
 	      else
 		{
-		  if (GET_CODE (new_rtx) == PLUS && CONSTANT_P (XEXP (new_rtx, 1)))
+		  if (GET_CODE (new_rtx) == PLUS
+		      && CONSTANT_P (XEXP (new_rtx, 1)))
 		    {
-		      base = gen_rtx_PLUS (Pmode, base, XEXP (new_rtx, 0));
+		      base = gen_rtx_PLUS (mode, base, XEXP (new_rtx, 0));
 		      new_rtx = XEXP (new_rtx, 1);
 		    }
-		  new_rtx = gen_rtx_PLUS (Pmode, base, new_rtx);
+		  new_rtx = gen_rtx_PLUS (mode, base, new_rtx);
 		}
 	    }
 	}
@@ -14502,7 +14577,30 @@ ix86_print_operand_address (FILE *file, rtx addr)
 	    }
 #endif
 	  gcc_assert (!code);
-	  code = 'l';
+	  code = 'k';
+	}
+      else if (code == 0
+	       && TARGET_X32
+	       && disp
+	       && CONST_INT_P (disp)
+	       && INTVAL (disp) < -16*1024*1024)
+	{
+	  /* X32 runs in 64-bit mode, where displacement, DISP, in
+	     address DISP(%r64), is encoded as 32-bit immediate sign-
+	     extended from 32-bit to 64-bit.  For -0x40000300(%r64),
+	     address is %r64 + 0xffffffffbffffd00.  When %r64 <
+	     0x40000300, like 0x37ffe064, address is 0xfffffffff7ffdd64,
+	     which is invalid for x32.  The correct address is %r64
+	     - 0x40000300 == 0xf7ffdd64.  To properly encode
+	     -0x40000300(%r64) for x32, we zero-extend negative
+	     displacement by forcing addr32 prefix which truncates
+	     0xfffffffff7ffdd64 to 0xf7ffdd64.  In theory, we should
+	     zero-extend all negative displacements, including -1(%rsp).
+	     However, for small negative displacements, sign-extension
+	     won't cause overflow.  We only zero-extend negative
+	     displacements if they < -16*1024*1024, which is also used
+	     to check legitimate address displacements for PIC.  */
+	  code = 'k';
 	}
 
       if (ASSEMBLER_DIALECT == ASM_ATT)
@@ -14945,10 +15043,15 @@ output_387_binary_op (rtx insn, rtx *operands)
 /* Check if a 256bit AVX register is referenced inside of EXP.   */
 
 static int
-ix86_check_avx256_register (rtx *exp, void *data ATTRIBUTE_UNUSED)
+ix86_check_avx256_register (rtx *pexp, void *data ATTRIBUTE_UNUSED)
 {
-  if (REG_P (*exp)
-      && VALID_AVX256_REG_OR_OI_MODE (GET_MODE (*exp)))
+  rtx exp = *pexp;
+
+  if (GET_CODE (exp) == SUBREG)
+    exp = SUBREG_REG (exp);
+
+  if (REG_P (exp)
+      && VALID_AVX256_REG_OR_OI_MODE (GET_MODE (exp)))
     return 1;
 
   return 0;
@@ -23406,7 +23509,6 @@ ix86_init_machine_status (void)
   f = ggc_alloc_cleared_machine_function ();
   f->use_fast_prologue_epilogue_nregs = -1;
   f->call_abi = ix86_abi;
-  f->optimize_mode_switching[AVX_U128] = TARGET_VZEROUPPER;
 
   return f;
 }
@@ -28864,12 +28966,15 @@ ix86_get_function_versions_dispatcher (void *decl)
   struct cgraph_node *node = NULL;
   struct cgraph_node *default_node = NULL;
   struct cgraph_function_version_info *node_v = NULL;
-  struct cgraph_function_version_info *it_v = NULL;
   struct cgraph_function_version_info *first_v = NULL;
 
   tree dispatch_decl = NULL;
+
+#if defined (ASM_OUTPUT_TYPE_DIRECTIVE) && HAVE_GNU_INDIRECT_FUNCTION
+  struct cgraph_function_version_info *it_v = NULL;
   struct cgraph_node *dispatcher_node = NULL;
   struct cgraph_function_version_info *dispatcher_version_info = NULL;
+#endif
 
   struct cgraph_function_version_info *default_version_info = NULL;
  
@@ -28918,11 +29023,6 @@ ix86_get_function_versions_dispatcher (void *decl)
 #if defined (ASM_OUTPUT_TYPE_DIRECTIVE) && HAVE_GNU_INDIRECT_FUNCTION
   /* Right now, the dispatching is done via ifunc.  */
   dispatch_decl = make_dispatcher_decl (default_node->symbol.decl); 
-#else
-  error_at (DECL_SOURCE_LOCATION (default_node->symbol.decl),
-	    "Multiversioning needs ifunc which is not supported "
-	    "in this configuration");
-#endif
 
   dispatcher_node = cgraph_get_create_node (dispatch_decl);
   gcc_assert (dispatcher_node != NULL);
@@ -28939,7 +29039,11 @@ ix86_get_function_versions_dispatcher (void *decl)
       it_v->dispatcher_resolver = dispatch_decl;
       it_v = it_v->next;
     }
-
+#else
+  error_at (DECL_SOURCE_LOCATION (default_node->symbol.decl),
+	    "multiversioning needs ifunc which is not supported "
+	    "in this configuration");
+#endif
   return dispatch_decl;
 }
 
@@ -42011,6 +42115,9 @@ ix86_memmodel_check (unsigned HOST_WIDE_INT val)
 
 #undef TARGET_LEGITIMATE_COMBINED_INSN
 #define TARGET_LEGITIMATE_COMBINED_INSN ix86_legitimate_combined_insn
+
+#undef TARGET_ASAN_SHADOW_OFFSET
+#define TARGET_ASAN_SHADOW_OFFSET ix86_asan_shadow_offset
 
 #undef TARGET_GIMPLIFY_VA_ARG_EXPR
 #define TARGET_GIMPLIFY_VA_ARG_EXPR ix86_gimplify_va_arg

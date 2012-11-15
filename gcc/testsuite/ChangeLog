@@ -1,3 +1,78 @@
+2012-11-14  Jakub Jelinek  <jakub@redhat.com>
+
+	* lib/asan-dg.exp: New file.
+	* gcc.dg/asan/asan.exp: New file.
+	* g++.dg/dg.exp: Prune also asan tests.
+	* g++.dg/asan/asan.exp: New file.
+	* c-c++-common/asan/memcmp-1.c: New test.
+
+2012-11-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/55323
+	* g++.dg/cpp0x/vt-55323.C: New.
+
+2012-11-13  Sriraman Tallam  <tmsriram@google.com>
+
+	* g++.dg/mv4.C: Add require ifunc. Change error message.
+	* g++.dg/mv5.C: Add require ifunc.
+	* g++.dg/mv6.C: Add require ifunc.
+
+2012-11-13  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/55253
+	* gcc.dg/torture/pr55253.c: New test.
+	* gcc.dg/torture/pr55305.c: Likewise.
+
+2012-11-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/55142
+	* gcc.target/i386/pr55142-1.c: New file.
+	* gcc.target/i386/pr55142-2.c: Likewise.
+
+2012-11-13  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/54466
+	* g++.dg/cpp0x/alias-decl-26.C: New test file.
+
+2012-11-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/avx256-unaligned-load-2.c: Requre !ia32
+	instead of lp64.
+	* gcc.target/i386/avx256-unaligned-store-2.c: Likewise.
+	* gcc.target/i386/pr49715-2.c: Likewise.
+	* gcc.target/i386/retarg.c: Likewise.  Scan both %rdi and %edi.
+
+2012-11-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/55281
+	* gcc.dg/vect/fast-math-pr55281.c: New test.
+	* g++.dg/opt/pr55281.C: New test.
+
+	PR rtl-optimization/54127
+	* gcc.dg/torture/pr54127.c: New test.
+
+2012-11-12  Steven Bosscher  <steven@gcc.gnu.org>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/51447
+	* gcc.c-torture/execute/pr51447.c: New test.
+
+2012-11-12  Ian Bolton  <ian.bolton@arm.com>
+
+	* gcc.target/aarch64/csinc-2.c: New test.
+
+2012-11-12  Ian Bolton  <ian.bolton@arm.com>
+
+	* gcc.target/aarch64/cmn.c: New test.
+	* gcc.target/aarch64/adds.c: New test.
+	* gcc.target/aarch64/subs.c: New test.
+
+2012-11-12  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/55272
+	* gfortran.dg/coarray_29_1.f90: New.
+	* gfortran.dg/coarray_29_2.f90: New.
+
 2012-11-12  Bin Cheng  <bin.cheng@arm.com>
 
 	* gcc.dg/hoist-register-pressure-3.c: New test.

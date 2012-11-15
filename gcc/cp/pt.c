@@ -838,6 +838,7 @@ maybe_process_partial_specialization (tree type)
 	{
 	  check_specialization_namespace (CLASSTYPE_TI_TEMPLATE (type));
 	  SET_CLASSTYPE_TEMPLATE_SPECIALIZATION (type);
+	  DECL_SOURCE_LOCATION (TYPE_MAIN_DECL (type)) = input_location;
 	  if (processing_template_decl)
 	    {
 	      if (push_template_decl (TYPE_MAIN_DECL (type))
@@ -934,6 +935,7 @@ maybe_process_partial_specialization (tree type)
 	     have one level of template argument for the innermost
 	     class template.  */
 	  SET_CLASSTYPE_TEMPLATE_SPECIALIZATION (type);
+	  DECL_SOURCE_LOCATION (TYPE_MAIN_DECL (type)) = input_location;
 	  CLASSTYPE_TI_ARGS (type)
 	    = INNERMOST_TEMPLATE_ARGS (CLASSTYPE_TI_ARGS (type));
 	}
@@ -7372,9 +7374,9 @@ lookup_template_class_1 (tree d1, tree arglist, tree in_decl, tree context,
       if (CLASS_TYPE_P (template_type))
 	{
 	  TREE_PRIVATE (type_decl)
-	    = TREE_PRIVATE (TYPE_STUB_DECL (template_type));
+	    = TREE_PRIVATE (TYPE_MAIN_DECL (template_type));
 	  TREE_PROTECTED (type_decl)
-	    = TREE_PROTECTED (TYPE_STUB_DECL (template_type));
+	    = TREE_PROTECTED (TYPE_MAIN_DECL (template_type));
 	  if (CLASSTYPE_VISIBILITY_SPECIFIED (template_type))
 	    {
 	      DECL_VISIBILITY_SPECIFIED (type_decl) = 1;
