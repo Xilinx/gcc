@@ -7095,6 +7095,13 @@ if test $enable_checking != no ; then
 
 $as_echo "#define ENABLE_CHECKING 1" >>confdefs.h
 
+  case $enable_checking in
+  	*valgrind*)
+
+$as_echo "#define ENABLE_VALGRIND_CHECKING 1" >>confdefs.h
+
+  		;;
+  esac
 fi
 
 # Check whether --enable-canonical-system-headers was given.

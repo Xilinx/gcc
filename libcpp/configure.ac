@@ -130,6 +130,13 @@ enable_checking=no)
 if test $enable_checking != no ; then
   AC_DEFINE(ENABLE_CHECKING, 1,
 [Define if you want more run-time sanity checks.])
+  case $enable_checking in
+  	*valgrind*)
+		AC_DEFINE(ENABLE_VALGRIND_CHECKING, 1,
+[Define if you want to run subprograms and generated programs
+   through valgrind (a memory checker).  This is extremely expensive.])
+  		;;
+  esac
 fi
 
 AC_ARG_ENABLE(canonical-system-headers,

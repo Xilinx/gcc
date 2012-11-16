@@ -1,0 +1,9 @@
+2012-10-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR bootstrap/54691
+	* config.in: Regenerated.
+	* configure: Likewise.
+	* configure.ac: Define ENABLE_VALGRIND_CHECKING for
+	--enable-checking=valgrind.
+	* charset.c (_cpp_convert_input): Allocate and initialize extra
+	16 bytes if ENABLE_VALGRIND_CHECKING is defined.

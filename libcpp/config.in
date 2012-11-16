@@ -21,6 +21,10 @@
    language is requested. */
 #undef ENABLE_NLS
 
+/* Define if you want to run subprograms and generated programs through
+   valgrind (a memory checker). This is extremely expensive. */
+#undef ENABLE_VALGRIND_CHECKING
+
 /* Define to 1 if you have `alloca', as a function or macro. */
 #undef HAVE_ALLOCA
 
