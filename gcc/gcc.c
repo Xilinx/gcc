@@ -3604,6 +3604,87 @@ set_option_handlers (struct cl_option_handlers *handlers)
   handlers->handlers[2].mask = CL_TARGET;
 }
 
+/* Prepend command line before language-specific adjustment/addition of
+   flags.  */
+
+void
+prepend_lang_specific_driver (struct cl_decoded_option **in_decoded_options,
+			      unsigned int *in_decoded_options_count,
+			      int *in_added_libraries)
+{
+  unsigned int i, argc;
+
+  /* The new argument list will be contained in this.  */
+  struct cl_decoded_option *new_decoded_options;
+
+  /* The argument list.  */
+  struct cl_decoded_option *decoded_options;
+
+  bool static_link = false;
+  bool add_libasan = false;
+  bool static_libasan = false;
+
+  argc = *in_decoded_options_count;
+  decoded_options = *in_decoded_options;
+
+  for (i = 1; i < argc; i++)
+    switch (decoded_options[i].opt_index)
+      {
+      case OPT_fsanitize_address:
+	add_libasan = true;
+	break;
+      case OPT_static:
+	static_link = true;
+	break;
+      case OPT_static_libasan:
+	static_libasan = true;
+	break;
+      }
+
+  if (add_libasan)
+    {
+      /* Add -lasan before language-specific adjustment/addition.  */
+      unsigned int added_argc;
+
+      if (static_link)
+	fatal_error ("cannot specify -static with -fsanitize=address");
+
+      added_argc = 1;
+#ifdef HAVE_LD_STATIC_DYNAMIC
+      if (static_libasan)
+	added_argc += 2;
+#endif
+
+      new_decoded_options = XNEWVEC (struct cl_decoded_option,
+				     argc + added_argc);
+
+      i = 0;
+      do
+	{
+	  new_decoded_options[i] = decoded_options[i];
+	  i++;
+	}
+      while (i < argc);
+
+#ifdef HAVE_LD_STATIC_DYNAMIC
+      if (static_libasan)
+	generate_option (OPT_Wl_, LD_STATIC_OPTION, 1, CL_DRIVER,
+			 &new_decoded_options[i++]);
+#endif
+      generate_option (OPT_l, "asan", 1, CL_DRIVER,
+		       &new_decoded_options[i++]);
+#ifdef HAVE_LD_STATIC_DYNAMIC
+      if (static_libasan)
+	generate_option (OPT_Wl_, LD_DYNAMIC_OPTION, 1, CL_DRIVER,
+			 &new_decoded_options[i++]);
+#endif
+
+      *in_decoded_options_count = i;
+      *in_decoded_options = new_decoded_options;
+      *in_added_libraries = 1;
+    }
+}
+
 /* Create the vector `switches' and its contents.
    Store its length in `n_switches'.  */
 
@@ -3694,6 +3775,11 @@ process_command (unsigned int decoded_options_count,
      is relocated. The toolchain was either relocated using GCC_EXEC_PREFIX
      or an automatically created GCC_EXEC_PREFIX from
      decoded_options[0].arg.  */
+
+  /* Prepend command line before language-specific adjustment/addition of
+     flags.  */
+  prepend_lang_specific_driver (&decoded_options, &decoded_options_count,
+				&added_libraries);
 
   /* Do language-specific adjustment/addition of flags.  */
   lang_specific_driver (&decoded_options, &decoded_options_count,
