@@ -160,6 +160,9 @@ int microblaze_has_clz = 0;
 /* Set to one if the targeted core has the swapb and swaph insn.  */
 int microblaze_has_swap = 0;
 
+/* Set to one if -mno-xl-reorder has been passed.  */
+int microblaze_no_reorder = 0;
+
 /* Which CPU pipeline do we use. We haven't really standardized on a CPU 
    version having only a particular type of pipeline. There can still be 
    options on the CPU to scale pipeline features up or down. :( 
@@ -1732,6 +1735,9 @@ microblaze_handle_option (size_t code,
     case OPT_mxl_stack_check:
       warning (0, "-mxl_stack_check is deprecated; use -fstack-check");
       break;
+    case OPT_mno_xl_reorder:
+      microblaze_no_reorder = 1;
+      break;
     }
   return true;
 }
@@ -1839,15 +1845,23 @@ microblaze_option_override (void)
         /* MicroBlaze v8.30a has an undocumented dependency on pattern compare for swapb / swaph insns. */
         if (TARGET_PATTERN_COMPARE)
         {
-            microblaze_has_swap = 1;
-            target_flags |= MASK_REORDER;
+            /* Cannot add MASK_REORDER or use swap insns if -mno-xl-reorder passed */
+            if (!microblaze_no_reorder)
+            {
+                target_flags |= MASK_REORDER;
+                microblaze_has_swap = 1;
+            }
         }
     }
   else
    {
         /* Microblaze versions greater than v8.30a will be able to use swapb / swaph without pattern compare */
-        microblaze_has_swap = 1;
-        target_flags |= MASK_REORDER;
+        /* Cannot add MASK_REORDER or use swap insns if -mno-xl-reorder passed */
+        if (!microblaze_no_reorder)
+        {
+            target_flags |= MASK_REORDER;
+            microblaze_has_swap = 1;
+        }
    }
 
   if (TARGET_MULTIPLY_HIGH && TARGET_SOFT_MUL)
