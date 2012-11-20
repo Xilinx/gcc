@@ -576,9 +576,7 @@ find_var_decl (tree t, const char *var_name, tree *var)
 	unsigned HOST_WIDE_INT idx;
 	constructor_elt *ce;
 
-	for (idx = 0;
-	     VEC_iterate (constructor_elt, CONSTRUCTOR_ELTS (t), idx, ce);
-	     idx++)
+	for (idx = 0; vec_safe_iterate (CONSTRUCTOR_ELTS (t), idx, &ce); idx++)
 	  find_var_decl (ce->value, var_name, var);
 	return;
       }
@@ -841,10 +839,7 @@ change_var_decl (tree *t, tree new_var, tree var)
       {
 	unsigned HOST_WIDE_INT idx;
 	constructor_elt *ce;
-
-	for (idx = 0;
-	     VEC_iterate (constructor_elt, CONSTRUCTOR_ELTS (*t), idx, ce);
-	     idx++) 
+	for (idx = 0; vec_safe_iterate (CONSTRUCTOR_ELTS (*t), idx, &ce); idx++)
 	  change_var_decl (&ce->value, new_var, var);
 	return;
       }

@@ -1019,19 +1019,17 @@ extract_free_variables (tree t, struct wrapper_data *wd,
       SUBTREE (TREE_REALPART (t));
       SUBTREE (TREE_IMAGPART (t));
       return;
-
+#if 0
     case CONSTRUCTOR:
       {
 	unsigned HOST_WIDE_INT idx;
 	constructor_elt *ce;
 
-	for (idx = 0;
-	     VEC_iterate(constructor_elt, CONSTRUCTOR_ELTS (t), idx, ce);
-	     idx++)
+	for (idx = 0; CONSTRUCTOR_ELTS(t).iterate(idx, ce); idx++)
 	  SUBTREE (ce->value);
 	return;
       }
-
+#endif
     case BIND_EXPR:
       {
 	tree decl;

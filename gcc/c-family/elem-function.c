@@ -68,83 +68,83 @@ create_processor_attribute (elem_fn_info *elem_fn_values, tree *opposite_attr)
 {
   /* You will need the opposite attribute for the scalar code part.  */
   tree proc_attr, opp_proc_attr;
-  VEC(tree,gc) *proc_vec_list = VEC_alloc (tree, gc, 4);
-  VEC(tree,gc) *opp_proc_vec_list = VEC_alloc (tree, gc, 4);
-  
+  vec<tree, va_gc> *proc_vec_list;
+  vec<tree, va_gc> *opp_proc_vec_list;
+    
+  vec_alloc (proc_vec_list, 4);
+  vec_alloc (opp_proc_vec_list, 4);
   if (!elem_fn_values || !elem_fn_values->proc_type)
     return NULL_TREE;
 
   if (!strcmp (elem_fn_values->proc_type, "pentium_4"))
     {
-      VEC_safe_push (tree, gc, proc_vec_list,
+      vec_safe_push (proc_vec_list,
 		     build_string (strlen ("arch=pentium4"), "arch=pentium4"));
-      VEC_safe_push (tree, gc, proc_vec_list,
+      vec_safe_push (proc_vec_list,
 		     build_string (strlen ("mmx"), "mmx"));
       if (opposite_attr)
 	{
-	  VEC_safe_push (tree, gc, opp_proc_vec_list,
+	  vec_safe_push (opp_proc_vec_list,
 			 build_string (strlen ("no-mmx"), "no-mmx"));
-	  VEC_safe_push (tree, gc, opp_proc_vec_list,
+	  vec_safe_push (opp_proc_vec_list,
 			 build_string (strlen ("arch=pentium4"),
 				       "arch=pentium4"));
 	}
     }
   else if (!strcmp (elem_fn_values->proc_type, "pentium_4_sse3"))
     {
-      VEC_safe_push (tree, gc, proc_vec_list,
+      vec_safe_push (proc_vec_list,
 		     build_string (strlen ("arch=pentium4"), "arch=pentium4"));
-      VEC_safe_push (tree, gc, proc_vec_list,
+      vec_safe_push (proc_vec_list,
 		     build_string (strlen ("sse3"), "sse3"));
       if (opposite_attr)
 	{
-	  VEC_safe_push (tree, gc, opp_proc_vec_list,
+	  vec_safe_push (opp_proc_vec_list,
 			 build_string (strlen ("arch=pentium4"),
 				       "arch=pentium4"));
-	  VEC_safe_push (tree, gc, opp_proc_vec_list,
+	  vec_safe_push (opp_proc_vec_list,
 			 build_string (strlen ("no-sse3"), "no-sse3"));
 	}
     }
   else if (!strcmp (elem_fn_values->proc_type, "core2_duo_sse3"))
     {
-      VEC_safe_push (tree, gc, proc_vec_list,
+      vec_safe_push (proc_vec_list,
 		     build_string (strlen ("arch=core2"), "arch=core2"));
-      VEC_safe_push (tree, gc, proc_vec_list,
+      vec_safe_push (proc_vec_list,
 		     build_string (strlen ("sse3"), "sse3"));
       if (opposite_attr)
 	{
-	  VEC_safe_push (tree, gc, opp_proc_vec_list,
+	  vec_safe_push (opp_proc_vec_list,
 			 build_string (strlen ("arch=core2"), "arch=core2"));
-	  VEC_safe_push (tree, gc, opp_proc_vec_list,
+	  vec_safe_push (opp_proc_vec_list,
 			 build_string (strlen ("no-sse3"), "no-sse3"));
 	}
     }
   else if (!strcmp (elem_fn_values->proc_type, "core_2_duo_sse_4_1"))
     {
-      VEC_safe_push (tree, gc, proc_vec_list,
+      vec_safe_push (proc_vec_list,
 		     build_string (strlen ("arch=core2"), "arch=core2"));
-      VEC_safe_push (tree, gc, proc_vec_list,
-		     build_string (strlen ("sse4.1"), "sse4.1"));
+      vec_safe_push (proc_vec_list, build_string (strlen ("sse4.1"), "sse4.1"));
       if (opposite_attr)
 	{
-	  VEC_safe_push (tree, gc, opp_proc_vec_list,
+	  vec_safe_push (opp_proc_vec_list,
 			 build_string (strlen ("arch=core2"), "arch=core2"));
-	  VEC_safe_push (tree, gc, opp_proc_vec_list,
+	  vec_safe_push (opp_proc_vec_list,
 			 build_string (strlen ("no-sse4.1"), "no-sse4.1"));
 	}
     }
   else if (!strcmp (elem_fn_values->proc_type, "core_i7_sse4_2"))
     {
-      VEC_safe_push (tree, gc, proc_vec_list,
+      vec_safe_push (proc_vec_list,
 		     build_string (strlen ("arch=corei7"), "arch=corei7"));
-      VEC_safe_push (tree, gc, proc_vec_list,
+      vec_safe_push (proc_vec_list,
 		     build_string (strlen ("sse4.2"), "sse4.2"));
-      VEC_safe_push (tree, gc, proc_vec_list,
-		     build_string (strlen ("avx"), "avx"));
+      vec_safe_push (proc_vec_list, build_string (strlen ("avx"), "avx"));
       if (opposite_attr)
 	{
-	  VEC_safe_push (tree, gc, opp_proc_vec_list,
+	  vec_safe_push (opp_proc_vec_list,
 			 build_string (strlen ("arch=corei7"), "arch=corei7"));
-	  VEC_safe_push (tree, gc, opp_proc_vec_list,
+	  vec_safe_push (opp_proc_vec_list,
 			 build_string (strlen ("no-sse4.2"), "no-sse4.2"));
 	}
     }
@@ -152,13 +152,13 @@ create_processor_attribute (elem_fn_info *elem_fn_values, tree *opposite_attr)
     sorry ("Processor type not supported.");
 
   proc_attr = build_tree_list_vec (proc_vec_list);
-  VEC_truncate (tree, proc_vec_list, 0);
+  vec_safe_truncate (proc_vec_list, 0);
   proc_attr = build_tree_list (get_identifier ("__target__"), proc_attr);
 
   if (opposite_attr)
     {
       opp_proc_attr = build_tree_list_vec (opp_proc_vec_list);
-      VEC_truncate (tree, opp_proc_vec_list, 0);
+      vec_safe_truncate (opp_proc_vec_list, 0);
       opp_proc_attr = build_tree_list (get_identifier ("__target__"),
 				       opp_proc_attr);
       *opposite_attr = opp_proc_attr;
@@ -173,8 +173,11 @@ static tree
 create_optimize_attribute (int option)
 {
   tree opt_attr;
-  VEC(tree,gc) *opt_vec = VEC_alloc (tree,gc, 4);
+  vec<tree, va_gc> *opt_vec = NULL;
   char optimization[2];
+  
+  vec_alloc (opt_vec, 4);
+
   optimization[0] = 'O';
   
   if (option == 3)
@@ -186,9 +189,9 @@ create_optimize_attribute (int option)
   else if (option == 0)
     optimization[1] = '0';
   
-  VEC_safe_push (tree, gc, opt_vec, build_string (2, optimization));
+  vec_safe_push (opt_vec, build_string (2, optimization));
   opt_attr = build_tree_list_vec (opt_vec);
-  VEC_truncate (tree, opt_vec, 0);
+  vec_safe_truncate (opt_vec, 0);
   opt_attr = build_tree_list (get_identifier ("optimize"), opt_attr);
   return opt_attr;
 }

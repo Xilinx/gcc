@@ -864,6 +864,10 @@ fcilkscreen
 C ObjC C++ ObjC++ LTO Report Var(flag_cilkscreen) Init(0)
 Generate Cilkscreen metadata
 
+fcanonical-system-headers
+C ObjC C++ ObjC++
+Where shorter, use canonicalized paths to systems headers.
+
 fcheck-new
 C++ ObjC++ Var(flag_check_new)
 Check the return value of new

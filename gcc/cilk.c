@@ -1221,7 +1221,7 @@ cilk_remove_annotated_functions (rtx first)
   rtx symbol_insn = NULL_RTX;
   char *function_name = NULL;
   int ii = 0;
-  VEC(rtx,gc) *rtx_delete_list = NULL;
+  vec<rtx, va_gc> *rtx_delete_list = NULL;
   
   for (insn = first; insn != NULL_RTX; insn = NEXT_INSN (insn))
     {
@@ -1254,7 +1254,7 @@ cilk_remove_annotated_functions (rtx first)
 				    || !strcmp (function_name,
 						"__notify_zc_intrinsic"))
 				  replace_cilk_metadata (function_name, insn);
-				VEC_safe_push (rtx, gc, rtx_delete_list, insn);
+				vec_safe_push (rtx_delete_list, insn);
 			      }
 			  }
 		    }
@@ -1262,8 +1262,8 @@ cilk_remove_annotated_functions (rtx first)
 	    }
 	}
     }
-  for (ii = 0; ii < (int) VEC_length (rtx, rtx_delete_list); ii++)
-    remove_insn (VEC_index (rtx, rtx_delete_list, ii));
+  for (ii = 0; ii < (int) vec_safe_length (rtx_delete_list); ii++)
+    remove_insn ((*rtx_delete_list)[ii]);
   
   return;
 }
