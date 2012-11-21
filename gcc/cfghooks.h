@@ -119,7 +119,7 @@ struct cfg_hooks
      in loop versioning.  */
   bool (*cfg_hook_duplicate_loop_to_header_edge) (struct loop *, edge,
 						  unsigned, sbitmap,
-						  edge, VEC (edge, heap) **,
+						  edge, vec<edge> *,
 						  int);
 
   /* Add condition to new basic block and update CFG used in loop
@@ -138,6 +138,16 @@ struct cfg_hooks
   /* Add PHI arguments queued in PENDINT_STMT list on edge E to edge
      E->dest (only in tree-ssa loop versioning.  */
   void (*flush_pending_stmts) (edge);
+  
+  /* True if a block contains no executable instructions.  */
+  bool (*empty_block_p) (basic_block);
+
+  /* Split a basic block if it ends with a conditional branch and if
+     the other part of the block is not empty.  */
+  basic_block (*split_block_before_cond_jump) (basic_block);
+
+  /* Do book-keeping of a basic block for the profile consistency checker.  */
+  void (*account_profile_record) (basic_block, int, struct profile_record *);
 };
 
 extern void verify_flow_info (void);
@@ -166,6 +176,8 @@ extern bool predicted_by_p (const_basic_block bb, enum br_predictor predictor);
 extern bool can_duplicate_block_p (const_basic_block);
 extern basic_block duplicate_block (basic_block, edge, basic_block);
 extern bool block_ends_with_call_p (basic_block bb);
+extern bool empty_block_p (basic_block);
+extern basic_block split_block_before_cond_jump (basic_block);
 extern bool block_ends_with_condjump_p (const_basic_block bb);
 extern int flow_call_edges_add (sbitmap);
 extern void execute_on_growing_pred (edge);
@@ -174,7 +186,7 @@ extern bool cfg_hook_duplicate_loop_to_header_edge (struct loop *loop, edge,
 						    unsigned int ndupl,
 						    sbitmap wont_exit,
 						    edge orig,
-						    VEC (edge, heap) **to_remove,
+						    vec<edge> *to_remove,
 						    int flags);
 
 extern void lv_flush_pending_stmts (edge);
@@ -188,6 +200,8 @@ extern bool can_copy_bbs_p (basic_block *, unsigned);
 extern void copy_bbs (basic_block *, unsigned, basic_block *,
 		      edge *, unsigned, edge *, struct loop *,
 		      basic_block);
+
+void account_profile_record (struct profile_record *, int);
 
 extern void cfg_layout_initialize (unsigned int);
 extern void cfg_layout_finalize (void);

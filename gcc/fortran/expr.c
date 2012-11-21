@@ -2059,6 +2059,8 @@ scalarize_intrinsic_call (gfc_expr *e)
 
   free_expr0 (e);
   *e = *expr;
+  /* Free "expr" but not the pointers it contains.  */
+  free (expr);
   gfc_free_expr (old);
   return SUCCESS;
 
@@ -3430,6 +3432,15 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
 	      gfc_resolve_intrinsic (sym, &rvalue->where);
 	      attr = gfc_expr_attr (rvalue);
 	    }
+	  /* Check for result of embracing function.  */
+	  if (sym == gfc_current_ns->proc_name
+	      && sym->attr.function && sym->result == sym)
+	    {
+	      gfc_error ("Function result '%s' is invalid as proc-target "
+			 "in procedure pointer assignment at %L",
+			 sym->name, &rvalue->where);
+	      return FAILURE;
+	    }
 	}
       if (attr.abstract)
 	{
@@ -3504,8 +3515,16 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
       comp = gfc_get_proc_ptr_comp (rvalue);
       if (comp)
 	{
-	  s2 = comp->ts.interface;
-	  name = comp->name;
+	  if (rvalue->expr_type == EXPR_FUNCTION)
+	    {
+	      s2 = comp->ts.interface->result;
+	      name = comp->ts.interface->result->name;
+	    }
+	  else
+	    {
+	      s2 = comp->ts.interface;
+	      name = comp->name;
+	    }
 	}
       else if (rvalue->expr_type == EXPR_FUNCTION)
 	{
@@ -3657,6 +3676,39 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
 		       &rvalue->where);
 	    return FAILURE;
 	  }
+    }
+
+  /* Warn if it is the LHS pointer may lives longer than the RHS target.  */
+  if (gfc_option.warn_target_lifetime
+      && rvalue->expr_type == EXPR_VARIABLE
+      && !rvalue->symtree->n.sym->attr.save
+      && !attr.pointer && !rvalue->symtree->n.sym->attr.host_assoc
+      && !rvalue->symtree->n.sym->attr.in_common
+      && !rvalue->symtree->n.sym->attr.use_assoc
+      && !rvalue->symtree->n.sym->attr.dummy)
+    {
+      bool warn;
+      gfc_namespace *ns;
+
+      warn = lvalue->symtree->n.sym->attr.dummy
+	     || lvalue->symtree->n.sym->attr.result
+	     || lvalue->symtree->n.sym->attr.function
+	     || lvalue->symtree->n.sym->attr.host_assoc
+	     || lvalue->symtree->n.sym->attr.use_assoc
+	     || lvalue->symtree->n.sym->attr.in_common;
+
+      if (rvalue->symtree->n.sym->ns->proc_name
+	  && rvalue->symtree->n.sym->ns->proc_name->attr.flavor != FL_PROCEDURE
+	  && rvalue->symtree->n.sym->ns->proc_name->attr.flavor != FL_PROGRAM)
+       for (ns = rvalue->symtree->n.sym->ns;
+	    ns->proc_name && ns->proc_name->attr.flavor != FL_PROCEDURE;
+	    ns = ns->parent)
+	if (ns->parent == lvalue->symtree->n.sym->ns)
+	  warn = true;
+
+      if (warn)
+	gfc_warning ("Pointer at %L in pointer assignment might outlive the "
+		     "pointer target", &lvalue->where);
     }
 
   return SUCCESS;
@@ -4582,13 +4634,15 @@ gfc_build_intrinsic_call (const char* name, locus where, unsigned numarg, ...)
    (F2008, 16.6.7) or pointer association context (F2008, 16.6.8).
    This is called from the various places when resolving
    the pieces that make up such a context.
+   If own_scope is true (applies to, e.g., ac-implied-do/data-implied-do
+   variables), some checks are not performed.
 
    Optionally, a possible error message can be suppressed if context is NULL
    and just the return status (SUCCESS / FAILURE) be requested.  */
 
 gfc_try
 gfc_check_vardef_context (gfc_expr* e, bool pointer, bool alloc_obj,
-			  const char* context)
+			  bool own_scope, const char* context)
 {
   gfc_symbol* sym = NULL;
   bool is_pointer;
@@ -4673,7 +4727,7 @@ gfc_check_vardef_context (gfc_expr* e, bool pointer, bool alloc_obj,
      assignment to a pointer component from pointer-assignment to a pointer
      component.  Note that (normal) assignment to procedure pointers is not
      possible.  */
-  check_intentin = true;
+  check_intentin = !own_scope;
   ptr_component = (sym->ts.type == BT_CLASS && CLASS_DATA (sym))
 		  ? CLASS_DATA (sym)->attr.class_pointer : sym->attr.pointer;
   for (ref = e->ref; ref && check_intentin; ref = ref->next)
@@ -4708,7 +4762,7 @@ gfc_check_vardef_context (gfc_expr* e, bool pointer, bool alloc_obj,
     }
 
   /* PROTECTED and use-associated.  */
-  if (sym->attr.is_protected && sym->attr.use_assoc  && check_intentin)
+  if (sym->attr.is_protected && sym->attr.use_assoc && check_intentin)
     {
       if (pointer && is_pointer)
 	{
@@ -4730,7 +4784,7 @@ gfc_check_vardef_context (gfc_expr* e, bool pointer, bool alloc_obj,
 
   /* Variable not assignable from a PURE procedure but appears in
      variable definition context.  */
-  if (!pointer && gfc_pure (NULL) && gfc_impure_variable (sym))
+  if (!pointer && !own_scope && gfc_pure (NULL) && gfc_impure_variable (sym))
     {
       if (context)
 	gfc_error ("Variable '%s' can not appear in a variable definition"
@@ -4804,7 +4858,7 @@ gfc_check_vardef_context (gfc_expr* e, bool pointer, bool alloc_obj,
 	}
 
       /* Target must be allowed to appear in a variable definition context.  */
-      if (gfc_check_vardef_context (assoc->target, pointer, false, NULL)
+      if (gfc_check_vardef_context (assoc->target, pointer, false, false, NULL)
 	  == FAILURE)
 	{
 	  if (context)

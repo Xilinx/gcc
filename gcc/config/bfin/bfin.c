@@ -1288,7 +1288,10 @@ bfin_dsp_memref_p (rtx x)
    All addressing modes are equally cheap on the Blackfin.  */
 
 static int
-bfin_address_cost (rtx addr ATTRIBUTE_UNUSED, bool speed ATTRIBUTE_UNUSED)
+bfin_address_cost (rtx addr ATTRIBUTE_UNUSED,
+		   enum machine_mode mode ATTRIBUTE_UNUSED,
+		   addr_space_t as ATTRIBUTE_UNUSED,
+		   bool speed ATTRIBUTE_UNUSED)
 {
   return 1;
 }
@@ -3477,8 +3480,8 @@ hwloop_optimize (hwloop_info loop)
       insn = BB_END (loop->incoming_src);
       /* If we have to insert the LSETUP before a jump, count that jump in the
 	 length.  */
-      if (VEC_length (edge, loop->incoming) > 1
-	  || !(VEC_last (edge, loop->incoming).flags & EDGE_FALLTHRU))
+      if (vec_safe_length (loop->incoming) > 1
+	  || !(loop->incoming->last ()->flags & EDGE_FALLTHRU))
 	{
 	  gcc_assert (JUMP_P (insn));
 	  insn = PREV_INSN (insn);
@@ -3746,8 +3749,8 @@ hwloop_optimize (hwloop_info loop)
   if (loop->incoming_src)
     {
       rtx prev = BB_END (loop->incoming_src);
-      if (VEC_length (edge, loop->incoming) > 1
-	  || !(VEC_last (edge, loop->incoming).flags & EDGE_FALLTHRU))
+      if (vec_safe_length (loop->incoming) > 1
+	  || !(loop->incoming->last ()->flags & EDGE_FALLTHRU))
 	{
 	  gcc_assert (JUMP_P (prev));
 	  prev = PREV_INSN (prev);
@@ -3915,12 +3918,12 @@ gen_one_bundle (rtx slot[3])
     }
 
   /* Avoid line number information being printed inside one bundle.  */
-  if (INSN_LOCATOR (slot[1])
-      && INSN_LOCATOR (slot[1]) != INSN_LOCATOR (slot[0]))
-    INSN_LOCATOR (slot[1]) = INSN_LOCATOR (slot[0]);
-  if (INSN_LOCATOR (slot[2])
-      && INSN_LOCATOR (slot[2]) != INSN_LOCATOR (slot[0]))
-    INSN_LOCATOR (slot[2]) = INSN_LOCATOR (slot[0]);
+  if (INSN_LOCATION (slot[1])
+      && INSN_LOCATION (slot[1]) != INSN_LOCATION (slot[0]))
+    INSN_LOCATION (slot[1]) = INSN_LOCATION (slot[0]);
+  if (INSN_LOCATION (slot[2])
+      && INSN_LOCATION (slot[2]) != INSN_LOCATION (slot[0]))
+    INSN_LOCATION (slot[2]) = INSN_LOCATION (slot[0]);
 
   /* Terminate them with "|| " instead of ";" in the output.  */
   PUT_MODE (slot[0], SImode);

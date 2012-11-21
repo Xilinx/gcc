@@ -34,6 +34,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cgraph.h"
 #include "splay-tree.h"
 #include "gimple.h" /* gimple_has_body_p */
+#include "hash-table.h"
 
 static tree bot_manip (tree *, int *, void *);
 static tree bot_replace (tree *, int *, void *);
@@ -48,6 +49,7 @@ static tree build_local_temp (tree);
 static tree handle_java_interface_attribute (tree *, tree, tree, int, bool *);
 static tree handle_com_interface_attribute (tree *, tree, tree, int, bool *);
 static tree handle_init_priority_attribute (tree *, tree, tree, int, bool *);
+static tree handle_abi_tag_attribute (tree *, tree, tree, int, bool *);
 
 /* If REF is an lvalue, returns the kind of lvalue that REF is.
    Otherwise, returns clk_none.  */
@@ -506,7 +508,7 @@ static tree
 build_vec_init_elt (tree type, tree init, tsubst_flags_t complain)
 {
   tree inner_type = strip_array_types (type);
-  VEC(tree,gc) *argvec;
+  vec<tree, va_gc> *argvec;
 
   if (integer_zerop (array_type_nelts_total (type))
       || !CLASS_TYPE_P (inner_type))
@@ -525,7 +527,7 @@ build_vec_init_elt (tree type, tree init, tsubst_flags_t complain)
       tree dummy = build_dummy_object (inner_type);
       if (!real_lvalue_p (init))
 	dummy = move (dummy);
-      VEC_quick_push (tree, argvec, dummy);
+      argvec->quick_push (dummy);
     }
   init = build_special_member_call (NULL_TREE, complete_ctor_identifier,
 				    &argvec, inner_type, LOOKUP_NORMAL,
@@ -822,6 +824,10 @@ build_cplus_array_type (tree elt_type, tree index_type)
 	  TYPE_NEXT_VARIANT (m) = t;
 	}
     }
+
+  /* Avoid spurious warnings with VLAs (c++/54583).  */
+  if (TYPE_SIZE (t) && EXPR_P (TYPE_SIZE (t)))
+    TREE_NO_WARNING (TYPE_SIZE (t)) = 1;
 
   /* Push these needs up so that initialization takes place
      more easily.  */
@@ -1280,13 +1286,13 @@ strip_typedefs_expr (tree t)
 
     case TREE_LIST:
       {
-	VEC(tree,gc) *vec = make_tree_vector ();
+	vec<tree, va_gc> *vec = make_tree_vector ();
 	bool changed = false;
 	tree it;
 	for (it = t; it; it = TREE_CHAIN (it))
 	  {
 	    tree val = strip_typedefs_expr (TREE_VALUE (t));
-	    VEC_safe_push (tree, gc, vec, val);
+	    vec_safe_push (vec, val);
 	    if (val != TREE_VALUE (t))
 	      changed = true;
 	    gcc_assert (TREE_PURPOSE (it) == NULL_TREE);
@@ -1294,7 +1300,7 @@ strip_typedefs_expr (tree t)
 	if (changed)
 	  {
 	    r = NULL_TREE;
-	    FOR_EACH_VEC_ELT_REVERSE (tree, vec, i, it)
+	    FOR_EACH_VEC_ELT_REVERSE (*vec, i, it)
 	      r = tree_cons (NULL_TREE, it, r);
 	  }
 	else
@@ -1306,13 +1312,13 @@ strip_typedefs_expr (tree t)
     case TREE_VEC:
       {
 	bool changed = false;
-	VEC(tree,gc)* vec = make_tree_vector ();
+	vec<tree, va_gc> *vec = make_tree_vector ();
 	n = TREE_VEC_LENGTH (t);
-	VEC_reserve (tree, gc, vec, n);
+	vec_safe_reserve (vec, n);
 	for (i = 0; i < n; ++i)
 	  {
 	    tree op = strip_typedefs_expr (TREE_VEC_ELT (t, i));
-	    VEC_quick_push (tree, vec, op);
+	    vec->quick_push (op);
 	    if (op != TREE_VEC_ELT (t, i))
 	      changed = true;
 	  }
@@ -1320,7 +1326,7 @@ strip_typedefs_expr (tree t)
 	  {
 	    r = copy_node (t);
 	    for (i = 0; i < n; ++i)
-	      TREE_VEC_ELT (r, i) = VEC_index (tree, vec, i);
+	      TREE_VEC_ELT (r, i) = (*vec)[i];
 	  }
 	else
 	  r = t;
@@ -1331,13 +1337,13 @@ strip_typedefs_expr (tree t)
     case CONSTRUCTOR:
       {
 	bool changed = false;
-	VEC(constructor_elt,gc) *vec
-	  = VEC_copy (constructor_elt, gc, CONSTRUCTOR_ELTS (t));
+	vec<constructor_elt, va_gc> *vec
+	  = vec_safe_copy (CONSTRUCTOR_ELTS (t));
 	n = CONSTRUCTOR_NELTS (t);
 	type = strip_typedefs (TREE_TYPE (t));
 	for (i = 0; i < n; ++i)
 	  {
-	    constructor_elt *e = &VEC_index (constructor_elt, vec, i);
+	    constructor_elt *e = &(*vec)[i];
 	    tree op = strip_typedefs_expr (e->value);
 	    if (op != e->value)
 	      {
@@ -1349,7 +1355,7 @@ strip_typedefs_expr (tree t)
 
 	if (!changed && type == TREE_TYPE (t))
 	  {
-	    VEC_free (constructor_elt, gc, vec);
+	    vec_free (vec);
 	    return t;
 	  }
 	else
@@ -1478,7 +1484,7 @@ copy_binfo (tree binfo, tree type, tree t, tree *igo_prev, int virt)
     {
       /* Push it onto the list after any virtual bases it contains
 	 will have been pushed.  */
-      VEC_quick_push (tree, CLASSTYPE_VBASECLASSES (t), new_binfo);
+      CLASSTYPE_VBASECLASSES (t)->quick_push (new_binfo);
       BINFO_VIRTUAL_P (new_binfo) = 1;
       BINFO_INHERITANCE_CHAIN (new_binfo) = TYPE_BINFO (t);
     }
@@ -1915,22 +1921,21 @@ count_trees (tree t)
 /* Called from verify_stmt_tree via walk_tree.  */
 
 static tree
-verify_stmt_tree_r (tree* tp,
-		    int* walk_subtrees ATTRIBUTE_UNUSED ,
-		    void* data)
+verify_stmt_tree_r (tree* tp, int * /*walk_subtrees*/, void* data)
 {
   tree t = *tp;
-  htab_t *statements = (htab_t *) data;
-  void **slot;
+  hash_table <pointer_hash <tree_node> > *statements
+      = static_cast <hash_table <pointer_hash <tree_node> > *> (data);
+  tree_node **slot;
 
   if (!STATEMENT_CODE_P (TREE_CODE (t)))
     return NULL_TREE;
 
   /* If this statement is already present in the hash table, then
      there is a circularity in the statement tree.  */
-  gcc_assert (!htab_find (*statements, t));
+  gcc_assert (!statements->find (t));
 
-  slot = htab_find_slot (*statements, t, INSERT);
+  slot = statements->find_slot (t, INSERT);
   *slot = t;
 
   return NULL_TREE;
@@ -1943,10 +1948,10 @@ verify_stmt_tree_r (tree* tp,
 void
 verify_stmt_tree (tree t)
 {
-  htab_t statements;
-  statements = htab_create (37, htab_hash_pointer, htab_eq_pointer, NULL);
+  hash_table <pointer_hash <tree_node> > statements;
+  statements.create (37);
   cp_walk_tree (&t, verify_stmt_tree_r, &statements, NULL);
-  htab_delete (statements);
+  statements.dispose ();
 }
 
 /* Check if the type T depends on a type with no linkage and if so, return
@@ -2155,9 +2160,7 @@ bot_manip (tree* tp, int* walk_subtrees, void* data)
    variables.  */
 
 static tree
-bot_replace (tree* t,
-	     int* walk_subtrees ATTRIBUTE_UNUSED ,
-	     void* data)
+bot_replace (tree* t, int* /*walk_subtrees*/, void* data)
 {
   splay_tree target_remap = ((splay_tree) data);
 
@@ -2181,9 +2184,9 @@ bot_replace (tree* t,
       /* In an NSDMI build_base_path defers building conversions to virtual
 	 bases, and we handle it here.  */
       tree basetype = TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (*t)));
-      VEC(tree,gc) *vbases = CLASSTYPE_VBASECLASSES (current_class_type);
+      vec<tree, va_gc> *vbases = CLASSTYPE_VBASECLASSES (current_class_type);
       int i; tree binfo;
-      FOR_EACH_VEC_ELT (tree, vbases, i, binfo)
+      FOR_EACH_VEC_SAFE_ELT (vbases, i, binfo)
 	if (BINFO_TYPE (binfo) == basetype)
 	  break;
       *t = build_base_path (PLUS_EXPR, TREE_OPERAND (*t, 0), binfo, true,
@@ -2324,7 +2327,7 @@ build_min_non_dep (enum tree_code code, tree non_dep, ...)
    that has been built.  */
 
 tree
-build_min_non_dep_call_vec (tree non_dep, tree fn, VEC(tree,gc) *argvec)
+build_min_non_dep_call_vec (tree non_dep, tree fn, vec<tree, va_gc> *argvec)
 {
   tree t = build_nt_call_vec (fn, argvec);
   if (REFERENCE_REF_P (non_dep))
@@ -2563,6 +2566,7 @@ cp_tree_equal (tree t1, tree t2)
 
     case VAR_DECL:
     case CONST_DECL:
+    case FIELD_DECL:
     case FUNCTION_DECL:
     case TEMPLATE_DECL:
     case IDENTIFIER_NODE:
@@ -2606,6 +2610,13 @@ cp_tree_equal (tree t1, tree t2)
 	tree o1 = TREE_OPERAND (t1, 0);
 	tree o2 = TREE_OPERAND (t2, 0);
 
+	if (code1 == SIZEOF_EXPR)
+	  {
+	    if (SIZEOF_EXPR_TYPE_P (t1))
+	      o1 = TREE_TYPE (o1);
+	    if (SIZEOF_EXPR_TYPE_P (t2))
+	      o2 = TREE_TYPE (o2);
+	  }
 	if (TREE_CODE (o1) != TREE_CODE (o2))
 	  return false;
 	if (TYPE_P (o1))
@@ -2772,7 +2783,8 @@ maybe_dummy_object (tree type, tree* binfop)
   tree current = current_nonlambda_class_type ();
 
   if (current
-      && (binfo = lookup_base (current, type, ba_any, NULL)))
+      && (binfo = lookup_base (current, type, ba_any, NULL,
+			       tf_warning_or_error)))
     context = current;
   else
     {
@@ -2992,6 +3004,8 @@ const struct attribute_spec cxx_attribute_table[] =
     handle_com_interface_attribute, false },
   { "init_priority",  1, 1, true,  false, false,
     handle_init_priority_attribute, false },
+  { "abi_tag", 1, -1, false, false, false,
+    handle_abi_tag_attribute, true },
   { NULL,	      0, 0, false, false, false, NULL, false }
 };
 
@@ -3000,7 +3014,7 @@ const struct attribute_spec cxx_attribute_table[] =
 static tree
 handle_java_interface_attribute (tree* node,
 				 tree name,
-				 tree args ATTRIBUTE_UNUSED ,
+				 tree /*args*/,
 				 int flags,
 				 bool* no_add_attrs)
 {
@@ -3025,8 +3039,8 @@ handle_java_interface_attribute (tree* node,
 static tree
 handle_com_interface_attribute (tree* node,
 				tree name,
-				tree args ATTRIBUTE_UNUSED ,
-				int flags ATTRIBUTE_UNUSED ,
+				tree /*args*/,
+				int /*flags*/,
 				bool* no_add_attrs)
 {
   static int warned;
@@ -3055,7 +3069,7 @@ static tree
 handle_init_priority_attribute (tree* node,
 				tree name,
 				tree args,
-				int flags ATTRIBUTE_UNUSED ,
+				int /*flags*/,
 				bool* no_add_attrs)
 {
   tree initp_expr = TREE_VALUE (args);
@@ -3121,6 +3135,96 @@ handle_init_priority_attribute (tree* node,
       *no_add_attrs = true;
       return NULL_TREE;
     }
+}
+
+/* DECL is being redeclared; the old declaration had the abi tags in OLD,
+   and the new one has the tags in NEW_.  Give an error if there are tags
+   in NEW_ that weren't in OLD.  */
+
+bool
+check_abi_tag_redeclaration (const_tree decl, const_tree old, const_tree new_)
+{
+  if (old && TREE_CODE (TREE_VALUE (old)) == TREE_LIST)
+    old = TREE_VALUE (old);
+  if (new_ && TREE_CODE (TREE_VALUE (new_)) == TREE_LIST)
+    new_ = TREE_VALUE (new_);
+  bool err = false;
+  for (const_tree t = new_; t; t = TREE_CHAIN (t))
+    {
+      tree str = TREE_VALUE (t);
+      for (const_tree in = old; in; in = TREE_CHAIN (in))
+	{
+	  tree ostr = TREE_VALUE (in);
+	  if (cp_tree_equal (str, ostr))
+	    goto found;
+	}
+      error ("redeclaration of %qD adds abi tag %E", decl, str);
+      err = true;
+    found:;
+    }
+  if (err)
+    {
+      inform (DECL_SOURCE_LOCATION (decl), "previous declaration here");
+      return false;
+    }
+  return true;
+}
+
+/* Handle an "abi_tag" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_abi_tag_attribute (tree* node, tree name, tree args,
+			  int flags, bool* no_add_attrs)
+{
+  if (TYPE_P (*node))
+    {
+      if (!TAGGED_TYPE_P (*node))
+	{
+	  error ("%qE attribute applied to non-class, non-enum type %qT",
+		 name, *node);
+	  goto fail;
+	}
+      else if (!(flags & (int)ATTR_FLAG_TYPE_IN_PLACE))
+	{
+	  error ("%qE attribute applied to %qT after its definition",
+		 name, *node);
+	  goto fail;
+	}
+
+      tree attributes = TYPE_ATTRIBUTES (*node);
+      tree decl = TYPE_NAME (*node);
+
+      /* Make sure all declarations have the same abi tags.  */
+      if (DECL_SOURCE_LOCATION (decl) != input_location)
+	{
+	  if (!check_abi_tag_redeclaration (decl,
+					    lookup_attribute ("abi_tag",
+							      attributes),
+					    args))
+	    goto fail;
+	}
+    }
+  else
+    {
+      if (TREE_CODE (*node) != FUNCTION_DECL)
+	{
+	  error ("%qE attribute applied to non-function %qD", name, *node);
+	  goto fail;
+	}
+      else if (DECL_LANGUAGE (*node) == lang_c)
+	{
+	  error ("%qE attribute applied to extern \"C\" function %qD",
+		 name, *node);
+	  goto fail;
+	}
+    }
+
+  return NULL_TREE;
+
+ fail:
+  *no_add_attrs = true;
+  return NULL_TREE;
 }
 
 /* Return a new PTRMEM_CST of the indicated TYPE.  The MEMBER is the
@@ -3333,6 +3437,8 @@ special_function_p (const_tree decl)
   /* Rather than doing all this stuff with magic names, we should
      probably have a field of type `special_function_kind' in
      DECL_LANG_SPECIFIC.  */
+  if (DECL_INHERITED_CTOR_BASE (decl))
+    return sfk_inheriting_constructor;
   if (DECL_COPY_CONSTRUCTOR_P (decl))
     return sfk_copy_constructor;
   if (DECL_MOVE_CONSTRUCTOR_P (decl))
@@ -3556,7 +3662,7 @@ stabilize_call (tree call, tree *initp)
    arguments, while, upon return, *INITP contains an expression to
    compute the arguments.  */
 
-void
+static void
 stabilize_aggr_init (tree call, tree *initp)
 {
   tree inits = NULL_TREE;
@@ -3636,8 +3742,8 @@ stabilize_init (tree init, tree *initp)
       unsigned i;
       constructor_elt *ce;
       bool good = true;
-      VEC(constructor_elt,gc) *v = CONSTRUCTOR_ELTS (t);
-      for (i = 0; VEC_iterate (constructor_elt, v, i, ce); ++i)
+      vec<constructor_elt, va_gc> *v = CONSTRUCTOR_ELTS (t);
+      for (i = 0; vec_safe_iterate (v, i, &ce); ++i)
 	{
 	  tree type = TREE_TYPE (ce->value);
 	  tree subinit;
@@ -3721,7 +3827,7 @@ cp_fix_function_decl_p (tree decl)
       /* Don't fix same_body aliases.  Although they don't have their own
 	 CFG, they share it with what they alias to.  */
       if (!node || !node->alias
-	  || !VEC_length (ipa_ref_t, node->symbol.ref_list.references))
+	  || !vec_safe_length (node->symbol.ref_list.references))
 	return true;
     }
 
@@ -3769,8 +3875,7 @@ cp_free_lang_data (tree t)
    should be a C target hook.  But currently this is not possible,
    because this function is called via REGISTER_TARGET_PRAGMAS.  */
 void
-c_register_addr_space (const char *word ATTRIBUTE_UNUSED,
-		       addr_space_t as ATTRIBUTE_UNUSED)
+c_register_addr_space (const char * /*word*/, addr_space_t /*as*/)
 {
 }
 

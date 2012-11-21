@@ -840,6 +840,24 @@ default_branch_target_register_class (void)
   return NO_REGS;
 }
 
+extern bool
+default_lra_p (void)
+{
+  return false;
+}
+
+int
+default_register_priority (int hard_regno ATTRIBUTE_UNUSED)
+{
+  return 0;
+}
+
+extern bool
+default_different_addr_displacement_p (void)
+{
+  return false;
+}
+
 reg_class_t
 default_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
 			  reg_class_t reload_class_i ATTRIBUTE_UNUSED,
@@ -1202,7 +1220,8 @@ default_hard_regno_scratch_ok (unsigned int regno ATTRIBUTE_UNUSED)
 /* The default implementation of TARGET_MODE_DEPENDENT_ADDRESS_P.  */
 
 bool
-default_mode_dependent_address_p (const_rtx addr ATTRIBUTE_UNUSED)
+default_mode_dependent_address_p (const_rtx addr ATTRIBUTE_UNUSED,
+				  addr_space_t addrspace ATTRIBUTE_UNUSED)
 {
   return false;
 }
@@ -1511,6 +1530,14 @@ default_pch_valid_p (const void *data_p, size_t len)
       }
 
   return NULL;
+}
+
+/* Default version of member_type_forces_blk.  */
+
+bool
+default_member_type_forces_blk (const_tree, enum machine_mode)
+{
+  return false;
 }
 
 #include "gt-targhooks.h"

@@ -286,7 +286,7 @@ package body Sem_Prag is
       --  Preanalyze the boolean expression, we treat this as a spec expression
       --  (i.e. similar to a default expression).
 
-      Preanalyze_Spec_Expression (Get_Pragma_Arg (Arg1), Standard_Boolean);
+      Preanalyze_Assert_Expression (Get_Pragma_Arg (Arg1), Standard_Boolean);
 
       --  In ASIS mode, for a pragma generated from a source aspect, also
       --  analyze the original aspect expression.
@@ -294,7 +294,7 @@ package body Sem_Prag is
       if ASIS_Mode
         and then Present (Corresponding_Aspect (N))
       then
-         Preanalyze_Spec_Expression
+         Preanalyze_Assert_Expression
            (Expression (Corresponding_Aspect (N)), Standard_Boolean);
       end if;
 
@@ -504,6 +504,10 @@ package body Sem_Prag is
       procedure Check_Arg_Is_Locking_Policy (Arg : Node_Id);
       --  Check the specified argument Arg to make sure that it is a valid
       --  locking policy name. If not give error and raise Pragma_Exit.
+
+      procedure Check_Arg_Is_Partition_Elaboration_Policy (Arg : Node_Id);
+      --  Check the specified argument Arg to make sure that it is a valid
+      --  elaboration policy name. If not give error and raise Pragma_Exit.
 
       procedure Check_Arg_Is_One_Of
         (Arg                : Node_Id;
@@ -777,6 +781,10 @@ package body Sem_Prag is
       procedure GNAT_Pragma;
       --  Called for all GNAT defined pragmas to check the relevant restriction
       --  (No_Implementation_Pragmas).
+
+      procedure S14_Pragma;
+      --  Called for all pragmas defined for formal verification to check that
+      --  the S14_Extensions flag is set.
 
       function Is_Before_First_Decl
         (Pragma_Node : Node_Id;
@@ -1190,6 +1198,22 @@ package body Sem_Prag is
          end if;
       end Check_Arg_Is_Locking_Policy;
 
+      -----------------------------------------------
+      -- Check_Arg_Is_Partition_Elaboration_Policy --
+      -----------------------------------------------
+
+      procedure Check_Arg_Is_Partition_Elaboration_Policy (Arg : Node_Id) is
+         Argx : constant Node_Id := Get_Pragma_Arg (Arg);
+
+      begin
+         Check_Arg_Is_Identifier (Argx);
+
+         if not Is_Partition_Elaboration_Policy_Name (Chars (Argx)) then
+            Error_Pragma_Arg
+              ("& is not a valid partition elaboration policy name", Argx);
+         end if;
+      end Check_Arg_Is_Partition_Elaboration_Policy;
+
       -------------------------
       -- Check_Arg_Is_One_Of --
       -------------------------
@@ -1260,6 +1284,7 @@ package body Sem_Prag is
             Error_Pragma_Arg ("invalid argument for pragma%", Argx);
          end if;
       end Check_Arg_Is_One_Of;
+
       ---------------------------------
       -- Check_Arg_Is_Queuing_Policy --
       ---------------------------------
@@ -2057,6 +2082,10 @@ package body Sem_Prag is
                S := Defining_Entity (PO);
             else
                S := Defining_Unit_Name (Specification (PO));
+
+               if Nkind (S) = N_Defining_Program_Unit_Name then
+                  S := Defining_Identifier (S);
+               end if;
             end if;
 
             --  Note: we do not analyze the pragma at this point. Instead we
@@ -2092,7 +2121,8 @@ package body Sem_Prag is
               (Get_Pragma_Arg (Arg2), Standard_String);
          end if;
 
-         --  Record if pragma is disabled
+         --  For a pragma in the extended main source unit, record enabled
+         --  status in SCO (note: there is never any SCO for an instance).
 
          if Check_Enabled (Pname) then
             Set_SCO_Pragma_Enabled (Loc);
@@ -2172,7 +2202,7 @@ package body Sem_Prag is
             then
                --  Analyze pragma expression for correctness and for ASIS use
 
-               Preanalyze_Spec_Expression
+               Preanalyze_Assert_Expression
                  (Get_Pragma_Arg (Arg1), Standard_Boolean);
 
                --  In ASIS mode, for a pragma generated from a source aspect,
@@ -2181,7 +2211,7 @@ package body Sem_Prag is
                if ASIS_Mode
                  and then Present (Corresponding_Aspect (N))
                then
-                  Preanalyze_Spec_Expression
+                  Preanalyze_Assert_Expression
                     (Expression (Corresponding_Aspect (N)), Standard_Boolean);
                end if;
             end if;
@@ -3625,9 +3655,18 @@ package body Sem_Prag is
                Generate_Reference (E, Id, 'i');
             end if;
 
-            --  Loop through the homonyms of the pragma argument's entity
+            --  If the pragma comes from from an aspect, it only applies
+            --   to the given entity, not its homonyms.
+
+            if From_Aspect_Specification (N) then
+               return;
+            end if;
+
+            --  Otherwise Loop through the homonyms of the pragma argument's
+            --  entity, an apply convention to those in the current scope.
 
             E1 := Ent;
+
             loop
                E1 := Homonym (E1);
                exit when No (E1) or else Scope (E1) /= Current_Scope;
@@ -3655,10 +3694,6 @@ package body Sem_Prag is
                      Generate_Reference (E1, Id, 'b');
                   end if;
                end if;
-
-               --  For aspect case, do NOT apply to homonyms
-
-               exit when From_Aspect_Specification (N);
             end loop;
          end if;
       end Process_Convention;
@@ -4524,10 +4559,12 @@ package body Sem_Prag is
            or else Is_Generic_Subprogram (Def_Id)
          then
             --  If the name is overloaded, pragma applies to all of the denoted
-            --  entities in the same declarative part.
+            --  entities in the same declarative part, unless the pragma comes
+            --  from an aspect specification.
 
             Hom_Id := Def_Id;
             while Present (Hom_Id) loop
+
                Def_Id := Get_Base_Subprogram (Hom_Id);
 
                --  Ignore inherited subprograms because the pragma will apply
@@ -4636,6 +4673,9 @@ package body Sem_Prag is
                   --  Such homonyms might be present in the context of other
                   --  units being compiled.
 
+                  exit;
+
+               elsif From_Aspect_Specification (N) then
                   exit;
 
                else
@@ -5019,7 +5059,8 @@ package body Sem_Prag is
 
                   --  If previous error, avoid cascaded errors
 
-                  Applies := True;
+                  Check_Error_Detected;
+                  Applies   := True;
                   Effective := True;
 
                else
@@ -5662,19 +5703,6 @@ package body Sem_Prag is
          if C = No_Check_Id then
             Error_Pragma_Arg
               ("argument of pragma% is not valid check name", Arg1);
-         end if;
-
-         --  Special processing for overflow check case
-
-         if C = All_Checks or else C = Overflow_Check then
-            if Suppress_Case then
-               Scope_Suppress.Overflow_Checks_General    := Suppress;
-               Scope_Suppress.Overflow_Checks_Assertions := Suppress;
-            else
-               Scope_Suppress.Overflow_Checks_General    := Check_All;
-               Scope_Suppress.Overflow_Checks_Assertions := Check_All;
-               Opt.Overflow_Checks_Unsuppressed := True;
-            end if;
          end if;
 
          if Arg_Count = 1 then
@@ -6386,6 +6414,17 @@ package body Sem_Prag is
          end if;
       end Set_Ravenscar_Profile;
 
+      ----------------
+      -- S14_Pragma --
+      ----------------
+
+      procedure S14_Pragma is
+      begin
+         if not Formal_Extensions then
+            Error_Pragma ("pragma% requires the use of debug switch -gnatd.V");
+         end if;
+      end S14_Pragma;
+
    --  Start of processing for Analyze_Pragma
 
    begin
@@ -6746,19 +6785,30 @@ package body Sem_Prag is
             end if;
          end Annotate;
 
-         ------------
-         -- Assert --
-         ------------
+         ---------------------------
+         -- Assert/Assert_And_Cut --
+         ---------------------------
 
-         --  pragma Assert ([Check =>] Boolean_EXPRESSION
-         --                 [, [Message =>] Static_String_EXPRESSION]);
+         --  pragma Assert
+         --    (   [Check => ]  Boolean_EXPRESSION
+         --     [, [Message =>] Static_String_EXPRESSION]);
 
-         when Pragma_Assert => Assert : declare
+         --  pragma Assert_And_Cut
+         --    (   [Check => ]  Boolean_EXPRESSION
+         --     [, [Message =>] Static_String_EXPRESSION]);
+
+         when Pragma_Assert | Pragma_Assert_And_Cut => Assert : declare
             Expr : Node_Id;
             Newa : List_Id;
 
          begin
-            Ada_2005_Pragma;
+            if Prag_Id = Pragma_Assert then
+               Ada_2005_Pragma;
+            else -- Pragma_Assert_And_Cut
+               GNAT_Pragma;
+               S14_Pragma;
+            end if;
+
             Check_At_Least_N_Arguments (1);
             Check_At_Most_N_Arguments (2);
             Check_Arg_Order ((Name_Check, Name_Message));
@@ -6768,7 +6818,15 @@ package body Sem_Prag is
 
             --    pragma Check (Assertion, condition [, msg]);
 
-            --  So rewrite pragma in this manner, and analyze the result
+            --  So rewrite pragma in this manner, transfer the message
+            --  argument if present, and analyze the result
+
+            --  Pragma Assert_And_Cut is treated exactly like pragma Assert by
+            --  the frontend. Formal verification tools may use it to "cut" the
+            --  paths through the code, to make verification tractable. When
+            --  dealing with a semantically analyzed tree, the information that
+            --  a Check node N corresponds to a source Assert_And_Cut pragma
+            --  can be retrieved from the pragma kind of Original_Node(N).
 
             Expr := Get_Pragma_Arg (Arg1);
             Newa := New_List (
@@ -6780,8 +6838,7 @@ package body Sem_Prag is
 
             if Arg_Count > 1 then
                Check_Optional_Identifier (Arg2, Name_Message);
-               Analyze_And_Resolve (Get_Pragma_Arg (Arg2), Standard_String);
-               Append_To (Newa, Relocate_Node (Arg2));
+               Append_To (Newa, New_Copy_Tree (Arg2));
             end if;
 
             Rewrite (N,
@@ -6795,7 +6852,7 @@ package body Sem_Prag is
          -- Assertion_Policy --
          ----------------------
 
-         --  pragma Assertion_Policy (Check | Disable |Ignore)
+         --  pragma Assertion_Policy (Check | Disable | Ignore)
 
          when Pragma_Assertion_Policy => Assertion_Policy : declare
             Policy : Node_Id;
@@ -6851,6 +6908,53 @@ package body Sem_Prag is
             else
                Assume_No_Invalid_Values := False;
             end if;
+
+         --------------------------
+         -- Attribute_Definition --
+         --------------------------
+
+         --  pragma Attribute_Definition
+         --    ([Attribute  =>] ATTRIBUTE_DESIGNATOR,
+         --     [Entity     =>] LOCAL_NAME,
+         --     [Expression =>] EXPRESSION | NAME);
+
+         when Pragma_Attribute_Definition => Attribute_Definition : declare
+            Attribute_Designator : constant Node_Id := Get_Pragma_Arg (Arg1);
+            Aname                : Name_Id;
+
+         begin
+            GNAT_Pragma;
+            Check_Arg_Count (3);
+            Check_Optional_Identifier (Arg1, "attribute");
+            Check_Optional_Identifier (Arg2, "entity");
+            Check_Optional_Identifier (Arg3, "expression");
+
+            if Nkind (Attribute_Designator) /= N_Identifier then
+               Error_Msg_N ("attribute name expected", Attribute_Designator);
+               return;
+            end if;
+
+            Check_Arg_Is_Local_Name (Arg2);
+
+            --  If the attribute is not recognized, then issue a warning (not
+            --  an error), and ignore the pragma.
+
+            Aname := Chars (Attribute_Designator);
+
+            if not Is_Attribute_Name (Aname) then
+               Bad_Attribute (Attribute_Designator, Aname, Warn => True);
+               return;
+            end if;
+
+            --  Otherwise, rewrite the pragma as an attribute definition clause
+
+            Rewrite (N,
+              Make_Attribute_Definition_Clause (Loc,
+                Name       => Get_Pragma_Arg (Arg2),
+                Chars      => Aname,
+                Expression => Get_Pragma_Arg (Arg3)));
+            Analyze (N);
+         end Attribute_Definition;
 
          ---------------
          -- AST_Entry --
@@ -7285,7 +7389,9 @@ package body Sem_Prag is
             --  Check is active
 
             else
+               In_Assertion_Expr := In_Assertion_Expr + 1;
                Analyze_And_Resolve (Expr, Any_Boolean);
+               In_Assertion_Expr := In_Assertion_Expr - 1;
             end if;
          end Check;
 
@@ -10314,6 +10420,7 @@ package body Sem_Prag is
          when Pragma_Invariant => Invariant : declare
             Type_Id : Node_Id;
             Typ     : Entity_Id;
+            PDecl   : Node_Id;
 
             Discard : Boolean;
             pragma Unreferenced (Discard);
@@ -10365,8 +10472,13 @@ package body Sem_Prag is
 
             --  Note that the type has at least one invariant, and also that
             --  it has inheritable invariants if we have Invariant'Class.
+            --  Build the corresponding invariant procedure declaration, so
+            --  that calls to it can be generated before the body is built
+            --  (for example wihin an expression function).
 
-            Set_Has_Invariants (Typ);
+            PDecl := Build_Invariant_Procedure_Declaration (Typ);
+            Insert_After (N, PDecl);
+            Analyze (PDecl);
 
             if Class_Present (N) then
                Set_Has_Inheritable_Invariants (Typ);
@@ -11162,6 +11274,135 @@ package body Sem_Prag is
             Set_Standard_Fpt_Formats;
          end Long_Float;
 
+         --------------------
+         -- Loop_Assertion --
+         --------------------
+
+         --  pragma Loop_Assertion
+         --        (  [Invariant =>] boolean_Expression );
+         --     |  ( [[Invariant =>] boolean_Expression ,]
+         --            Variant   =>
+         --              ( TERMINATION_VARIANT {, TERMINATION_VARIANT ) );
+
+         --  TERMINATION_VARIANT ::= CHANGE_MODIFIER => discrete_EXPRESSION
+
+         --  CHANGE_MODIFIER ::= Increasing | Decreasing
+
+         when Pragma_Loop_Assertion => Loop_Assertion : declare
+            procedure Check_Variant (Arg : Node_Id);
+            --  Verify the legality of a variant
+
+            -------------------
+            -- Check_Variant --
+            -------------------
+
+            procedure Check_Variant (Arg : Node_Id) is
+               Expr : constant Node_Id := Expression (Arg);
+
+            begin
+               --  Variants appear in aggregate form
+
+               if Nkind (Expr) = N_Aggregate then
+                  declare
+                     Comp  : Node_Id;
+                     Extra : Node_Id;
+                     Modif : Node_Id;
+
+                  begin
+                     Comp := First (Component_Associations (Expr));
+                     while Present (Comp) loop
+                        Modif := First (Choices (Comp));
+                        Extra := Next (Modif);
+
+                        Check_Arg_Is_One_Of
+                          (Modif, Name_Decreasing, Name_Increasing);
+
+                        if Present (Extra) then
+                           Error_Pragma_Arg
+                             ("only one modifier allowed in argument", Expr);
+                        end if;
+
+                        Preanalyze_And_Resolve
+                          (Expression (Comp), Any_Discrete);
+
+                        Next (Comp);
+                     end loop;
+                  end;
+               else
+                  Error_Pragma_Arg
+                    ("expression on variant must be an aggregate", Expr);
+               end if;
+            end Check_Variant;
+
+            --  Local variables
+
+            Stmt : Node_Id;
+
+         --  Start of processing for Loop_Assertion
+
+         begin
+            GNAT_Pragma;
+            S14_Pragma;
+
+            --  Completely ignore if disabled
+
+            if Check_Disabled (Pname) then
+               Rewrite (N, Make_Null_Statement (Loc));
+               Analyze (N);
+               return;
+            end if;
+
+            --  Verify that the pragma appears inside a loop
+
+            Stmt := N;
+            while Present (Stmt) and then Nkind (Stmt) /= N_Loop_Statement loop
+               Stmt := Parent (Stmt);
+            end loop;
+
+            if No (Stmt) then
+               Error_Pragma ("pragma % must appear inside a loop");
+            end if;
+
+            Check_At_Least_N_Arguments (1);
+            Check_At_Most_N_Arguments  (2);
+
+            --  Process the first argument
+
+            if Chars (Arg1) = Name_Variant then
+               Check_Variant (Arg1);
+
+            elsif Chars (Arg1) = No_Name
+              or else Chars (Arg1) = Name_Invariant
+            then
+               Preanalyze_And_Resolve (Expression (Arg1), Any_Boolean);
+
+            else
+               Error_Pragma_Arg ("argument not allowed in pragma %", Arg1);
+            end if;
+
+            --  Process the second argument
+
+            if Present (Arg2) then
+               if Chars (Arg2) = Name_Variant then
+                  if Chars (Arg1) = Name_Variant then
+                     Error_Pragma ("only one variant allowed in pragma %");
+                  else
+                     Check_Variant (Arg2);
+                  end if;
+
+               elsif Chars (Arg2) = Name_Invariant then
+                  if Chars (Arg1) = Name_Variant then
+                     Error_Pragma_Arg ("invariant must precede variant", Arg2);
+                  else
+                     Error_Pragma ("only one invariant allowed in pragma %");
+                  end if;
+
+               else
+                  Error_Pragma_Arg ("argument not allowed in pragma %", Arg2);
+               end if;
+            end if;
+         end Loop_Assertion;
+
          -----------------------
          -- Machine_Attribute --
          -----------------------
@@ -11749,6 +11990,86 @@ package body Sem_Prag is
             Optimize_Alignment_Local := True;
          end Optimize_Alignment;
 
+         ---------------------
+         -- Overflow_Checks --
+         ---------------------
+
+         --  pragma Overflow_Checks
+         --    ([General => ] MODE [, [Assertions => ] MODE]);
+
+         --  MODE := STRICT | MINIMIZED | ELIMINATED
+
+         --  Note: ELIMINATED is allowed only if Long_Long_Integer'Size is 64
+         --  since System.Bignums makes this assumption. This is true of nearly
+         --  all (all?) targets.
+
+         when Pragma_Overflow_Checks => Overflow_Checks : declare
+            function Get_Check_Mode
+              (Name : Name_Id;
+               Arg  : Node_Id) return Overflow_Check_Type;
+            --  Function to process one pragma argument, Arg. If an identifier
+            --  is present, it must be Name. Check type is returned if a valid
+            --  argument exists, otherwise an error is signalled.
+
+            --------------------
+            -- Get_Check_Mode --
+            --------------------
+
+            function Get_Check_Mode
+              (Name : Name_Id;
+               Arg  : Node_Id) return Overflow_Check_Type
+            is
+               Argx : constant Node_Id := Get_Pragma_Arg (Arg);
+
+            begin
+               Check_Optional_Identifier (Arg, Name);
+               Check_Arg_Is_Identifier (Argx);
+
+               if Chars (Argx) = Name_Strict then
+                  return Strict;
+
+               elsif Chars (Argx) = Name_Minimized then
+                  return Minimized;
+
+               elsif Chars (Argx) = Name_Eliminated then
+                  if Ttypes.Standard_Long_Long_Integer_Size /= 64 then
+                     Error_Pragma_Arg
+                       ("Eliminated not implemented on this target", Argx);
+                  else
+                     return Eliminated;
+                  end if;
+
+               else
+                  Error_Pragma_Arg ("invalid argument for pragma%", Argx);
+               end if;
+            end Get_Check_Mode;
+
+         --  Start of processing for Overflow_Checks
+
+         begin
+            GNAT_Pragma;
+            Check_At_Least_N_Arguments (1);
+            Check_At_Most_N_Arguments (2);
+
+            --  Process first argument
+
+            Scope_Suppress.Overflow_Checks_General :=
+              Get_Check_Mode (Name_General, Arg1);
+
+            --  Case of only one argument
+
+            if Arg_Count = 1 then
+               Scope_Suppress.Overflow_Checks_Assertions :=
+                 Scope_Suppress.Overflow_Checks_General;
+
+            --  Case of two arguments present
+
+            else
+               Scope_Suppress.Overflow_Checks_Assertions  :=
+                 Get_Check_Mode (Name_Assertions, Arg2);
+            end if;
+         end Overflow_Checks;
+
          -------------
          -- Ordered --
          -------------
@@ -11911,6 +12232,53 @@ package body Sem_Prag is
          when Pragma_Page =>
             null;
 
+         ----------------------------------
+         -- Partition_Elaboration_Policy --
+         ----------------------------------
+
+         --  pragma Partition_Elaboration_Policy (policy_IDENTIFIER);
+
+         when Pragma_Partition_Elaboration_Policy => declare
+            subtype PEP_Range is Name_Id
+              range First_Partition_Elaboration_Policy_Name
+                 .. Last_Partition_Elaboration_Policy_Name;
+            PEP_Val : PEP_Range;
+            PEP     : Character;
+
+         begin
+            Ada_2005_Pragma;
+            Check_Arg_Count (1);
+            Check_No_Identifiers;
+            Check_Arg_Is_Partition_Elaboration_Policy (Arg1);
+            Check_Valid_Configuration_Pragma;
+            PEP_Val := Chars (Get_Pragma_Arg (Arg1));
+
+            case PEP_Val is
+               when Name_Concurrent =>
+                  PEP := 'C';
+               when Name_Sequential =>
+                  PEP := 'S';
+            end case;
+
+            if Partition_Elaboration_Policy /= ' '
+              and then Partition_Elaboration_Policy /= PEP
+            then
+               Error_Msg_Sloc := Partition_Elaboration_Policy_Sloc;
+               Error_Pragma
+                 ("partition elaboration policy incompatible with policy#");
+
+            --  Set new policy, but always preserve System_Location since we
+            --  like the error message with the run time name.
+
+            else
+               Partition_Elaboration_Policy := PEP;
+
+               if Partition_Elaboration_Policy_Sloc /= System_Location then
+                  Partition_Elaboration_Policy_Sloc := Loc;
+               end if;
+            end if;
+         end;
+
          -------------
          -- Passive --
          -------------
@@ -12019,6 +12387,11 @@ package body Sem_Prag is
                Ent := Entity (Get_Pragma_Arg (Arg1));
                Decl := Parent (Ent);
 
+               --  Check for duplication before inserting in list of
+               --  representation items.
+
+               Check_Duplicate_Pragma (Ent);
+
                if Rep_Item_Too_Late (Ent, N) then
                   return;
                end if;
@@ -12033,8 +12406,6 @@ package body Sem_Prag is
                     ("object type for pragma% is not potentially persistent",
                      Arg1);
                end if;
-
-               Check_Duplicate_Pragma (Ent);
 
                Prag :=
                  Make_Linker_Section_Pragma
@@ -13555,9 +13926,9 @@ package body Sem_Prag is
             end;
          end Stream_Convert;
 
-         -------------------------
-         -- Style_Checks (GNAT) --
-         -------------------------
+         ------------------
+         -- Style_Checks --
+         ------------------
 
          --  pragma Style_Checks (On | Off | ALL_CHECKS | STRING_LITERAL);
 
@@ -14104,7 +14475,6 @@ package body Sem_Prag is
             Assoc   : constant Node_Id := Arg1;
             Type_Id : constant Node_Id := Get_Pragma_Arg (Assoc);
             Typ     : Entity_Id;
-            Discr   : Entity_Id;
             Tdef    : Node_Id;
             Clist   : Node_Id;
             Vpart   : Node_Id;
@@ -14156,20 +14526,12 @@ package body Sem_Prag is
             --  types and give an error, but in fact the standard does allow
             --  Unchecked_Union on limited types, so this check was removed.
 
+            --  Similarly, GNAT used to require that all discriminants have
+            --  default values, but this is not mandated by the RM.
+
             --  Proceed with basic error checks completed
 
             else
-               Discr := First_Discriminant (Typ);
-               while Present (Discr) loop
-                  if No (Discriminant_Default_Value (Discr)) then
-                     Error_Msg_N
-                       ("unchecked union discriminant must have default value",
-                        Discr);
-                  end if;
-
-                  Next_Discriminant (Discr);
-               end loop;
-
                Tdef  := Type_Definition (Declaration_Node (Typ));
                Clist := Component_List (Tdef);
 
@@ -14705,10 +15067,17 @@ package body Sem_Prag is
                            loop
                               Set_Warnings_Off
                                 (E, (Chars (Get_Pragma_Arg (Arg1)) =
-                                                              Name_Off));
+                                      Name_Off));
+
+                              --  For OFF case, make entry in warnings off
+                              --  pragma table for later processing. But we do
+                              --  not do that within an instance, since these
+                              --  warnings are about what is needed in the
+                              --  template, not an instance of it.
 
                               if Chars (Get_Pragma_Arg (Arg1)) = Name_Off
                                 and then Warn_On_Warnings_Off
+                                and then not In_Instance
                               then
                                  Warnings_Off_Pragmas.Append ((N, E));
                               end if;
@@ -15064,8 +15433,10 @@ package body Sem_Prag is
       Pragma_All_Calls_Remote               => -1,
       Pragma_Annotate                       => -1,
       Pragma_Assert                         => -1,
+      Pragma_Assert_And_Cut                 => -1,
       Pragma_Assertion_Policy               =>  0,
       Pragma_Assume_No_Invalid_Values       =>  0,
+      Pragma_Attribute_Definition           => +3,
       Pragma_Asynchronous                   => -1,
       Pragma_Atomic                         =>  0,
       Pragma_Atomic_Components              =>  0,
@@ -15157,6 +15528,7 @@ package body Sem_Prag is
       Pragma_Lock_Free                      => -1,
       Pragma_Locking_Policy                 => -1,
       Pragma_Long_Float                     => -1,
+      Pragma_Loop_Assertion                 => -1,
       Pragma_Machine_Attribute              => -1,
       Pragma_Main                           => -1,
       Pragma_Main_Storage                   => -1,
@@ -15169,9 +15541,11 @@ package body Sem_Prag is
       Pragma_Obsolescent                    =>  0,
       Pragma_Optimize                       => -1,
       Pragma_Optimize_Alignment             => -1,
+      Pragma_Overflow_Checks                =>  0,
       Pragma_Ordered                        =>  0,
       Pragma_Pack                           =>  0,
       Pragma_Page                           => -1,
+      Pragma_Partition_Elaboration_Policy   => -1,
       Pragma_Passive                        => -1,
       Pragma_Preelaborable_Initialization   => -1,
       Pragma_Polling                        => -1,
@@ -15454,27 +15828,27 @@ package body Sem_Prag is
       --  expressions (i.e. similar to a default expression).
 
       if Present (Arg_Req) then
-         Preanalyze_Spec_Expression
+         Preanalyze_Assert_Expression
            (Get_Pragma_Arg (Arg_Req), Standard_Boolean);
 
          --  In ASIS mode, for a pragma generated from a source aspect, also
          --  analyze the original aspect expression.
 
          if ASIS_Mode and then Present (Corresponding_Aspect (N)) then
-            Preanalyze_Spec_Expression
+            Preanalyze_Assert_Expression
               (Original_Node (Get_Pragma_Arg (Arg_Req)), Standard_Boolean);
          end if;
       end if;
 
       if Present (Arg_Ens) then
-         Preanalyze_Spec_Expression
+         Preanalyze_Assert_Expression
            (Get_Pragma_Arg (Arg_Ens), Standard_Boolean);
 
          --  In ASIS mode, for a pragma generated from a source aspect, also
          --  analyze the original aspect expression.
 
          if ASIS_Mode and then Present (Corresponding_Aspect (N)) then
-            Preanalyze_Spec_Expression
+            Preanalyze_Assert_Expression
               (Original_Node (Get_Pragma_Arg (Arg_Ens)), Standard_Boolean);
          end if;
       end if;

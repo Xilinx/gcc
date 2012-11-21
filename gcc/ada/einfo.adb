@@ -90,6 +90,7 @@ package body Einfo is
    --    Discriminal_Link                Node10
    --    Float_Rep                       Uint10 (but returns Float_Rep_Kind)
    --    Handler_Records                 List10
+   --    Loop_Entry_Attributes           Elist10
    --    Normalized_Position_Max         Uint10
 
    --    Component_Bit_Offset            Uint11
@@ -2245,6 +2246,12 @@ package body Einfo is
       pragma Assert (Is_Enumeration_Type (Id));
       return Node16 (Id);
    end Lit_Strings;
+
+   function Loop_Entry_Attributes (Id : E) return L is
+   begin
+      pragma Assert (Ekind (Id) = E_Loop);
+      return Elist10 (Id);
+   end Loop_Entry_Attributes;
 
    function Low_Bound_Tested (Id : E) return B is
    begin
@@ -4791,6 +4798,12 @@ package body Einfo is
       Set_Node16 (Id, V);
    end Set_Lit_Strings;
 
+   procedure Set_Loop_Entry_Attributes (Id : E; V : L) is
+   begin
+      pragma Assert (Ekind (Id) = E_Loop);
+      Set_Elist10 (Id, V);
+   end Set_Loop_Entry_Attributes;
+
    procedure Set_Low_Bound_Tested (Id : E; V : B := True) is
    begin
       pragma Assert (Is_Formal (Id));
@@ -6214,25 +6227,25 @@ package body Einfo is
    --  Global flag table allowing rapid computation of this function
 
    Entity_Is_Base_Type : constant array (Entity_Kind) of Boolean :=
-                           (E_Enumeration_Subtype          |
-                            E_Incomplete_Type              |
-                            E_Signed_Integer_Subtype       |
-                            E_Modular_Integer_Subtype      |
-                            E_Floating_Point_Subtype       |
-                            E_Ordinary_Fixed_Point_Subtype |
-                            E_Decimal_Fixed_Point_Subtype  |
-                            E_Array_Subtype                |
-                            E_String_Subtype               |
-                            E_Record_Subtype               |
-                            E_Private_Subtype              |
-                            E_Record_Subtype_With_Private  |
-                            E_Limited_Private_Subtype      |
-                            E_Access_Subtype               |
-                            E_Protected_Subtype            |
-                            E_Task_Subtype                 |
-                            E_String_Literal_Subtype       |
-                            E_Class_Wide_Subtype           => False,
-                            others                         => True);
+     (E_Enumeration_Subtype          |
+      E_Incomplete_Type              |
+      E_Signed_Integer_Subtype       |
+      E_Modular_Integer_Subtype      |
+      E_Floating_Point_Subtype       |
+      E_Ordinary_Fixed_Point_Subtype |
+      E_Decimal_Fixed_Point_Subtype  |
+      E_Array_Subtype                |
+      E_String_Subtype               |
+      E_Record_Subtype               |
+      E_Private_Subtype              |
+      E_Record_Subtype_With_Private  |
+      E_Limited_Private_Subtype      |
+      E_Access_Subtype               |
+      E_Protected_Subtype            |
+      E_Task_Subtype                 |
+      E_String_Literal_Subtype       |
+      E_Class_Wide_Subtype           => False,
+      others                         => True);
 
    function Is_Base_Type (Id : E) return Boolean is
    begin
@@ -6967,6 +6980,7 @@ package body Einfo is
             --  previous errors.
 
             elsif No (Etyp) then
+               Check_Error_Detected;
                return T;
 
             elsif Is_Private_Type (T) and then Etyp = Full_View (T) then
@@ -7113,6 +7127,7 @@ package body Einfo is
 
       S := Subprograms_For_Type (Id);
       Set_Subprograms_For_Type (Id, V);
+      Set_Subprograms_For_Type (V, S);
 
       while Present (S) loop
          if Has_Invariants (S) then
@@ -7121,8 +7136,6 @@ package body Einfo is
             S := Subprograms_For_Type (S);
          end if;
       end loop;
-
-      Set_Subprograms_For_Type (Id, V);
    end Set_Invariant_Procedure;
 
    ----------------------------
@@ -7137,6 +7150,7 @@ package body Einfo is
 
       S := Subprograms_For_Type (Id);
       Set_Subprograms_For_Type (Id, V);
+      Set_Subprograms_For_Type (V, S);
 
       while Present (S) loop
          if Has_Predicates (S) then
@@ -7145,8 +7159,6 @@ package body Einfo is
             S := Subprograms_For_Type (S);
          end if;
       end loop;
-
-      Set_Subprograms_For_Type (Id, V);
    end Set_Predicate_Function;
 
    -----------------
@@ -7875,6 +7887,9 @@ package body Einfo is
               E_Package_Body                               |
               E_Procedure                                  =>
             Write_Str ("Handler_Records");
+
+         when E_Loop                                       =>
+            Write_Str ("Loop_Entry_Attributes");
 
          when E_Component                                  |
               E_Discriminant                               =>

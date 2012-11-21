@@ -192,8 +192,6 @@ typedef struct micro_operation_def
   } u;
 } micro_operation;
 
-DEF_VEC_O(micro_operation);
-DEF_VEC_ALLOC_O(micro_operation,heap);
 
 /* A declaration of a variable, or an RTL value being handled like a
    declaration.  */
@@ -264,7 +262,7 @@ typedef struct dataflow_set_def
 typedef struct variable_tracking_info_def
 {
   /* The vector of micro operations.  */
-  VEC(micro_operation, heap) *mos;
+  vec<micro_operation> mos;
 
   /* The IN and OUT set for dataflow analysis.  */
   dataflow_set in;
@@ -317,7 +315,6 @@ typedef struct loc_exp_dep_s
   struct loc_exp_dep_s **pprev;
 } loc_exp_dep;
 
-DEF_VEC_O (loc_exp_dep);
 
 /* This data structure holds information about the depth of a variable
    expansion.  */
@@ -352,7 +349,7 @@ struct onepart_aux
   /* The depth of the cur_loc expression.  */
   expand_depth depth;
   /* Dependencies actively used when expand FROM into cur_loc.  */
-  VEC (loc_exp_dep, none) deps;
+  vec<loc_exp_dep, va_heap, vl_embed> deps;
 };
 
 /* Structure describing one part of variable.  */
@@ -499,11 +496,9 @@ typedef struct GTY(()) parm_reg {
   rtx incoming;
 } parm_reg_t;
 
-DEF_VEC_O(parm_reg_t);
-DEF_VEC_ALLOC_O(parm_reg_t, gc);
 
 /* Vector of windowed parameter registers, if any.  */
-static VEC(parm_reg_t, gc) *windowed_parm_regs = NULL;
+static vec<parm_reg_t, va_gc> *windowed_parm_regs = NULL;
 #endif
 
 /* Variable used to tell whether cselib_process_insn called our hook.  */
@@ -1079,11 +1074,11 @@ adjust_insn (basic_block bb, rtx insn)
   if (RTX_FRAME_RELATED_P (insn)
       && find_reg_note (insn, REG_CFA_WINDOW_SAVE, NULL_RTX))
     {
-      unsigned int i, nregs = VEC_length(parm_reg_t, windowed_parm_regs);
+      unsigned int i, nregs = vec_safe_length (windowed_parm_regs);
       rtx rtl = gen_rtx_PARALLEL (VOIDmode, rtvec_alloc (nregs * 2));
       parm_reg_t *p;
 
-      FOR_EACH_VEC_ELT (parm_reg_t, windowed_parm_regs, i, p)
+      FOR_EACH_VEC_SAFE_ELT (windowed_parm_regs, i, p)
 	{
 	  XVECEXP (rtl, 0, i * 2)
 	    = gen_rtx_SET (VOIDmode, p->incoming, p->outgoing);
@@ -4680,11 +4675,11 @@ dataflow_set_remove_mem_locs (void **slot, void *data)
 static void
 dataflow_set_clear_at_call (dataflow_set *set)
 {
-  int r;
+  unsigned int r;
+  hard_reg_set_iterator hrsi;
 
-  for (r = 0; r < FIRST_PSEUDO_REGISTER; r++)
-    if (TEST_HARD_REG_BIT (regs_invalidated_by_call, r))
-      var_regno_delete (set, r);
+  EXECUTE_IF_SET_IN_HARD_REG_SET (regs_invalidated_by_call, 0, r, hrsi)
+    var_regno_delete (set, r);
 
   if (MAY_HAVE_DEBUG_INSNS)
     {
@@ -4921,7 +4916,9 @@ track_expr_p (tree expr, bool need_rtl)
 	realdecl = expr;
       else if (!DECL_P (realdecl))
 	{
-	  if (handled_component_p (realdecl))
+	  if (handled_component_p (realdecl)
+	      || (TREE_CODE (realdecl) == MEM_REF
+		  && TREE_CODE (TREE_OPERAND (realdecl, 0)) == ADDR_EXPR))
 	    {
 	      HOST_WIDE_INT bitsize, bitpos, maxsize;
 	      tree innerdecl
@@ -5294,7 +5291,7 @@ log_op_type (rtx x, basic_block bb, rtx insn,
 	     enum micro_operation_type mopt, FILE *out)
 {
   fprintf (out, "bb %i op %i insn %i %s ",
-	   bb->index, VEC_length (micro_operation, VTI (bb)->mos),
+	   bb->index, VTI (bb)->mos.length (),
 	   INSN_UID (insn), micro_operation_type_name[mopt]);
   print_inline_rtx (out, x, 2);
   fputc ('\n', out);
@@ -5319,7 +5316,7 @@ log_op_type (rtx x, basic_block bb, rtx insn,
   (RTL_FLAG_CHECK1 ("VAL_EXPR_IS_CLOBBERED", (x), CONCAT)->unchanging)
 
 /* All preserved VALUEs.  */
-static VEC (rtx, heap) *preserved_values;
+static vec<rtx> preserved_values;
 
 /* Ensure VAL is preserved and remember it in a vector for vt_emit_notes.  */
 
@@ -5327,7 +5324,7 @@ static void
 preserve_value (cselib_val *val)
 {
   cselib_preserve_value (val);
-  VEC_safe_push (rtx, heap, preserved_values, val->val_rtx);
+  preserved_values.safe_push (val->val_rtx);
 }
 
 /* Helper function for MO_VAL_LOC handling.  Return non-zero if
@@ -5510,7 +5507,7 @@ add_uses (rtx *ploc, void *data)
 
       if (dump_file && (dump_flags & TDF_DETAILS))
 	log_op_type (mo.u.loc, cui->bb, cui->insn, mo.type, dump_file);
-      VEC_safe_push (micro_operation, heap, VTI (bb)->mos, &mo);
+      VTI (bb)->mos.safe_push (mo);
     }
 
   return 0;
@@ -5769,6 +5766,11 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
 
   resolve = preserve = !cselib_preserved_value_p (v);
 
+  if (loc == stack_pointer_rtx
+      && hard_frame_pointer_adjustment != -1
+      && preserve)
+    cselib_set_value_sp_based (v);
+
   nloc = replace_expr_with_values (oloc);
   if (nloc)
     oloc = nloc;
@@ -5794,7 +5796,7 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
 	  if (dump_file && (dump_flags & TDF_DETAILS))
 	    log_op_type (moa.u.loc, cui->bb, cui->insn,
 			 moa.type, dump_file);
-	  VEC_safe_push (micro_operation, heap, VTI (bb)->mos, &moa);
+	  VTI (bb)->mos.safe_push (moa);
 	}
 
       resolve = false;
@@ -5881,7 +5883,7 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
  log_and_return:
   if (dump_file && (dump_flags & TDF_DETAILS))
     log_op_type (mo.u.loc, cui->bb, cui->insn, mo.type, dump_file);
-  VEC_safe_push (micro_operation, heap, VTI (bb)->mos, &mo);
+  VTI (bb)->mos.safe_push (mo);
 }
 
 /* Arguments to the call.  */
@@ -5892,9 +5894,8 @@ static rtx call_arguments;
 static void
 prepare_call_arguments (basic_block bb, rtx insn)
 {
-  rtx link, x;
+  rtx link, x, call;
   rtx prev, cur, next;
-  rtx call = PATTERN (insn);
   rtx this_arg = NULL_RTX;
   tree type = NULL_TREE, t, fndecl = NULL_TREE;
   tree obj_type_ref = NULL_TREE;
@@ -5903,11 +5904,8 @@ prepare_call_arguments (basic_block bb, rtx insn)
 
   memset (&args_so_far_v, 0, sizeof (args_so_far_v));
   args_so_far = pack_cumulative_args (&args_so_far_v);
-  if (GET_CODE (call) == PARALLEL)
-    call = XVECEXP (call, 0, 0);
-  if (GET_CODE (call) == SET)
-    call = SET_SRC (call);
-  if (GET_CODE (call) == CALL && MEM_P (XEXP (call, 0)))
+  call = get_call_rtx_from (insn);
+  if (call)
     {
       if (GET_CODE (XEXP (XEXP (call, 0), 0)) == SYMBOL_REF)
 	{
@@ -6153,15 +6151,15 @@ prepare_call_arguments (basic_block bb, rtx insn)
       && TREE_CODE (fndecl) == FUNCTION_DECL
       && DECL_HAS_DEBUG_ARGS_P (fndecl))
     {
-      VEC(tree, gc) **debug_args = decl_debug_args_lookup (fndecl);
+      vec<tree, va_gc> **debug_args = decl_debug_args_lookup (fndecl);
       if (debug_args)
 	{
 	  unsigned int ix;
 	  tree param;
-	  for (ix = 0; VEC_iterate (tree, *debug_args, ix, param); ix += 2)
+	  for (ix = 0; vec_safe_iterate (*debug_args, ix, &param); ix += 2)
 	    {
 	      rtx item;
-	      tree dtemp = VEC_index (tree, *debug_args, ix + 1);
+	      tree dtemp = (**debug_args)[ix + 1];
 	      enum machine_mode mode = DECL_MODE (dtemp);
 	      item = gen_rtx_DEBUG_PARAMETER_REF (mode, param);
 	      item = gen_rtx_CONCAT (mode, item, DECL_RTL_KNOWN_SET (dtemp));
@@ -6181,12 +6179,8 @@ prepare_call_arguments (basic_block bb, rtx insn)
     }
   call_arguments = prev;
 
-  x = PATTERN (insn);
-  if (GET_CODE (x) == PARALLEL)
-    x = XVECEXP (x, 0, 0);
-  if (GET_CODE (x) == SET)
-    x = SET_SRC (x);
-  if (GET_CODE (x) == CALL && MEM_P (XEXP (x, 0)))
+  x = get_call_rtx_from (insn);
+  if (x)
     {
       x = XEXP (XEXP (x, 0), 0);
       if (GET_CODE (x) == SYMBOL_REF)
@@ -6248,11 +6242,11 @@ add_with_sets (rtx insn, struct cselib_set *sets, int n_sets)
   cui.sets = sets;
   cui.n_sets = n_sets;
 
-  n1 = VEC_length (micro_operation, VTI (bb)->mos);
+  n1 = VTI (bb)->mos.length ();
   cui.store_p = false;
   note_uses (&PATTERN (insn), add_uses_1, &cui);
-  n2 = VEC_length (micro_operation, VTI (bb)->mos) - 1;
-  mos = VEC_address (micro_operation, VTI (bb)->mos);
+  n2 = VTI (bb)->mos.length () - 1;
+  mos = VTI (bb)->mos.address ();
 
   /* Order the MO_USEs to be before MO_USE_NO_VARs and MO_VAL_USE, and
      MO_VAL_LOC last.  */
@@ -6272,7 +6266,7 @@ add_with_sets (rtx insn, struct cselib_set *sets, int n_sets)
 	}
     }
 
-  n2 = VEC_length (micro_operation, VTI (bb)->mos) - 1;
+  n2 = VTI (bb)->mos.length () - 1;
   while (n1 < n2)
     {
       while (n1 < n2 && mos[n1].type != MO_VAL_LOC)
@@ -6300,17 +6294,17 @@ add_with_sets (rtx insn, struct cselib_set *sets, int n_sets)
 
       if (dump_file && (dump_flags & TDF_DETAILS))
 	log_op_type (PATTERN (insn), bb, insn, mo.type, dump_file);
-      VEC_safe_push (micro_operation, heap, VTI (bb)->mos, &mo);
+      VTI (bb)->mos.safe_push (mo);
     }
 
-  n1 = VEC_length (micro_operation, VTI (bb)->mos);
+  n1 = VTI (bb)->mos.length ();
   /* This will record NEXT_INSN (insn), such that we can
      insert notes before it without worrying about any
      notes that MO_USEs might emit after the insn.  */
   cui.store_p = true;
   note_stores (PATTERN (insn), add_stores, &cui);
-  n2 = VEC_length (micro_operation, VTI (bb)->mos) - 1;
-  mos = VEC_address (micro_operation, VTI (bb)->mos);
+  n2 = VTI (bb)->mos.length () - 1;
+  mos = VTI (bb)->mos.address ();
 
   /* Order the MO_VAL_USEs first (note_stores does nothing
      on DEBUG_INSNs, so there are no MO_VAL_LOCs from this
@@ -6331,7 +6325,7 @@ add_with_sets (rtx insn, struct cselib_set *sets, int n_sets)
 	}
     }
 
-  n2 = VEC_length (micro_operation, VTI (bb)->mos) - 1;
+  n2 = VTI (bb)->mos.length () - 1;
   while (n1 < n2)
     {
       while (n1 < n2 && mos[n1].type == MO_CLOBBER)
@@ -6427,7 +6421,7 @@ compute_bb_dataflow (basic_block bb)
   dataflow_set_copy (&old_out, out);
   dataflow_set_copy (out, in);
 
-  FOR_EACH_VEC_ELT (micro_operation, VTI (bb)->mos, i, mo)
+  FOR_EACH_VEC_ELT (VTI (bb)->mos, i, mo)
     {
       rtx insn = mo->insn;
 
@@ -6749,11 +6743,11 @@ vt_find_locations (void)
   visited = sbitmap_alloc (last_basic_block);
   in_worklist = sbitmap_alloc (last_basic_block);
   in_pending = sbitmap_alloc (last_basic_block);
-  sbitmap_zero (in_worklist);
+  bitmap_clear (in_worklist);
 
   FOR_EACH_BB (bb)
     fibheap_insert (pending, bb_order[bb->index], bb);
-  sbitmap_ones (in_pending);
+  bitmap_ones (in_pending);
 
   while (success && !fibheap_empty (pending))
     {
@@ -6764,20 +6758,20 @@ vt_find_locations (void)
       in_pending = in_worklist;
       in_worklist = sbitmap_swap;
 
-      sbitmap_zero (visited);
+      bitmap_clear (visited);
 
       while (!fibheap_empty (worklist))
 	{
 	  bb = (basic_block) fibheap_extract_min (worklist);
-	  RESET_BIT (in_worklist, bb->index);
-	  gcc_assert (!TEST_BIT (visited, bb->index));
-	  if (!TEST_BIT (visited, bb->index))
+	  bitmap_clear_bit (in_worklist, bb->index);
+	  gcc_assert (!bitmap_bit_p (visited, bb->index));
+	  if (!bitmap_bit_p (visited, bb->index))
 	    {
 	      bool changed;
 	      edge_iterator ei;
 	      int oldinsz, oldoutsz;
 
-	      SET_BIT (visited, bb->index);
+	      bitmap_set_bit (visited, bb->index);
 
 	      if (VTI (bb)->in.vars)
 		{
@@ -6870,21 +6864,21 @@ vt_find_locations (void)
 		      if (e->dest == EXIT_BLOCK_PTR)
 			continue;
 
-		      if (TEST_BIT (visited, e->dest->index))
+		      if (bitmap_bit_p (visited, e->dest->index))
 			{
-			  if (!TEST_BIT (in_pending, e->dest->index))
+			  if (!bitmap_bit_p (in_pending, e->dest->index))
 			    {
 			      /* Send E->DEST to next round.  */
-			      SET_BIT (in_pending, e->dest->index);
+			      bitmap_set_bit (in_pending, e->dest->index);
 			      fibheap_insert (pending,
 					      bb_order[e->dest->index],
 					      e->dest);
 			    }
 			}
-		      else if (!TEST_BIT (in_worklist, e->dest->index))
+		      else if (!bitmap_bit_p (in_worklist, e->dest->index))
 			{
 			  /* Add E->DEST to current round.  */
-			  SET_BIT (in_worklist, e->dest->index);
+			  bitmap_set_bit (in_worklist, e->dest->index);
 			  fibheap_insert (worklist, bb_order[e->dest->index],
 					  e->dest);
 			}
@@ -7735,11 +7729,6 @@ delete_variable_part (dataflow_set *set, rtx loc, decl_or_value dv,
   delete_slot_part (set, loc, slot, offset);
 }
 
-DEF_VEC_P (variable);
-DEF_VEC_ALLOC_P (variable, heap);
-
-DEF_VEC_ALLOC_P_STACK (rtx);
-#define VEC_rtx_stack_alloc(alloc) VEC_stack_alloc (rtx, alloc)
 
 /* Structure for passing some other parameters to function
    vt_expand_loc_callback.  */
@@ -7750,7 +7739,7 @@ struct expand_loc_callback_data
 
   /* Stack of values and debug_exprs under expansion, and their
      children.  */
-  VEC (rtx, stack) *expanding;
+  vec<rtx, va_stack> expanding;
 
   /* Stack of values and debug_exprs whose expansion hit recursion
      cycles.  They will have VALUE_RECURSED_INTO marked when added to
@@ -7758,7 +7747,7 @@ struct expand_loc_callback_data
      resolves to a valid location.  So, if the flag remains set at the
      end of the search, we know no valid location for this one can
      possibly exist.  */
-  VEC (rtx, stack) *pending;
+  vec<rtx, va_stack> pending;
 
   /* The maximum depth among the sub-expressions under expansion.
      Zero indicates no expansion so far.  */
@@ -7783,14 +7772,14 @@ loc_exp_dep_alloc (variable var, int count)
      in the algorithm, so we instead leave an assertion to catch
      errors.  */
   gcc_checking_assert (!count
-		       || VEC_empty (loc_exp_dep, VAR_LOC_DEP_VEC (var)));
+		       || VAR_LOC_DEP_VEC (var) == NULL
+		       || VAR_LOC_DEP_VEC (var)->is_empty ());
 
-  if (VAR_LOC_1PAUX (var)
-      && VEC_space (loc_exp_dep, VAR_LOC_DEP_VEC (var), count))
+  if (VAR_LOC_1PAUX (var) && VAR_LOC_DEP_VEC (var)->space (count))
     return;
 
   allocsize = offsetof (struct onepart_aux, deps)
-    + VEC_embedded_size (loc_exp_dep, count);
+	      + vec<loc_exp_dep, va_heap, vl_embed>::embedded_size (count);
 
   if (VAR_LOC_1PAUX (var))
     {
@@ -7810,7 +7799,7 @@ loc_exp_dep_alloc (variable var, int count)
       VAR_LOC_DEPTH (var).complexity = 0;
       VAR_LOC_DEPTH (var).entryvals = 0;
     }
-  VEC_embedded_init (loc_exp_dep, VAR_LOC_DEP_VEC (var), count);
+  VAR_LOC_DEP_VEC (var)->embedded_init (count);
 }
 
 /* Remove all entries from the vector of active dependencies of VAR,
@@ -7819,14 +7808,14 @@ loc_exp_dep_alloc (variable var, int count)
 static void
 loc_exp_dep_clear (variable var)
 {
-  while (!VEC_empty (loc_exp_dep, VAR_LOC_DEP_VEC (var)))
+  while (VAR_LOC_DEP_VEC (var) && !VAR_LOC_DEP_VEC (var)->is_empty ())
     {
-      loc_exp_dep *led = &VEC_last (loc_exp_dep, VAR_LOC_DEP_VEC (var));
+      loc_exp_dep *led = &VAR_LOC_DEP_VEC (var)->last ();
       if (led->next)
 	led->next->pprev = led->pprev;
       if (led->pprev)
 	*led->pprev = led->next;
-      VEC_pop (loc_exp_dep, VAR_LOC_DEP_VEC (var));
+      VAR_LOC_DEP_VEC (var)->pop ();
     }
 }
 
@@ -7864,8 +7853,10 @@ loc_exp_insert_dep (variable var, rtx x, htab_t vars)
     led = (loc_exp_dep *) pool_alloc (loc_exp_dep_pool);
   else
     {
-      VEC_quick_push (loc_exp_dep, VAR_LOC_DEP_VEC (var), NULL);
-      led = &VEC_last (loc_exp_dep, VAR_LOC_DEP_VEC (var));
+      loc_exp_dep empty;
+      memset (&empty, 0, sizeof (empty));
+      VAR_LOC_DEP_VEC (var)->quick_push (empty);
+      led = &VAR_LOC_DEP_VEC (var)->last ();
     }
   led->dv = var->dv;
   led->value = x;
@@ -7887,7 +7878,8 @@ loc_exp_dep_set (variable var, rtx result, rtx *value, int count, htab_t vars)
 {
   bool pending_recursion = false;
 
-  gcc_checking_assert (VEC_empty (loc_exp_dep, VAR_LOC_DEP_VEC (var)));
+  gcc_checking_assert (VAR_LOC_DEP_VEC (var) == NULL
+		       || VAR_LOC_DEP_VEC (var)->is_empty ());
 
   /* Set up all dependencies from last_child (as set up at the end of
      the loop above) to the end.  */
@@ -8031,7 +8023,7 @@ vt_expand_var_loc_chain (variable var, bitmap regs, void *data, bool *pendrecp)
     }
 
   first_child = result_first_child = last_child
-    = VEC_length (rtx, elcd->expanding);
+    = elcd->expanding.length ();
 
   wanted_entryvals = found_entryvals;
 
@@ -8060,7 +8052,7 @@ vt_expand_var_loc_chain (variable var, bitmap regs, void *data, bool *pendrecp)
       elcd->depth.complexity = elcd->depth.entryvals = 0;
       result = cselib_expand_value_rtx_cb (loc_from, regs, EXPR_DEPTH,
 					   vt_expand_loc_callback, data);
-      last_child = VEC_length (rtx, elcd->expanding);
+      last_child = elcd->expanding.length ();
 
       if (result)
 	{
@@ -8104,16 +8096,16 @@ vt_expand_var_loc_chain (variable var, bitmap regs, void *data, bool *pendrecp)
 	 attempted locs as dependencies, so that we retry the
 	 expansion should any of them change, in the hope it can give
 	 us a new entry without an ENTRY_VALUE?  */
-      VEC_truncate (rtx, elcd->expanding, first_child);
+      elcd->expanding.truncate (first_child);
       goto retry;
     }
 
   /* Register all encountered dependencies as active.  */
   pending_recursion = loc_exp_dep_set
-    (var, result, VEC_address (rtx, elcd->expanding) + result_first_child,
+    (var, result, elcd->expanding.address () + result_first_child,
      last_child - result_first_child, elcd->vars);
 
-  VEC_truncate (rtx, elcd->expanding, first_child);
+  elcd->expanding.truncate (first_child);
 
   /* Record where the expansion came from.  */
   gcc_checking_assert (!result || !pending_recursion);
@@ -8182,7 +8174,7 @@ vt_expand_loc_callback (rtx x, bitmap regs,
       return x;
     }
 
-  VEC_safe_push (rtx, stack, elcd->expanding, x);
+  elcd->expanding.safe_push (x);
 
   /* Check that VALUE_RECURSED_INTO implies NO_LOC_P.  */
   gcc_checking_assert (!VALUE_RECURSED_INTO (x) || NO_LOC_P (x));
@@ -8226,7 +8218,7 @@ vt_expand_loc_callback (rtx x, bitmap regs,
   if (pending_recursion)
     {
       gcc_checking_assert (!result);
-      VEC_safe_push (rtx, stack, elcd->pending, x);
+      elcd->pending.safe_push (x);
     }
   else
     {
@@ -8256,11 +8248,11 @@ vt_expand_loc_callback (rtx x, bitmap regs,
    This function performs this finalization of NULL locations.  */
 
 static void
-resolve_expansions_pending_recursion (VEC (rtx, stack) *pending)
+resolve_expansions_pending_recursion (vec<rtx, va_stack> pending)
 {
-  while (!VEC_empty (rtx, pending))
+  while (!pending.is_empty ())
     {
-      rtx x = VEC_pop (rtx, pending);
+      rtx x = pending.pop ();
       decl_or_value dv;
 
       if (!VALUE_RECURSED_INTO (x))
@@ -8275,13 +8267,13 @@ resolve_expansions_pending_recursion (VEC (rtx, stack) *pending)
 }
 
 /* Initialize expand_loc_callback_data D with variable hash table V.
-   It must be a macro because of alloca (VEC stack).  */
+   It must be a macro because of alloca (vec stack).  */
 #define INIT_ELCD(d, v)						\
   do								\
     {								\
       (d).vars = (v);						\
-      (d).expanding = VEC_alloc (rtx, stack, 4);		\
-      (d).pending = VEC_alloc (rtx, stack, 4);			\
+      vec_stack_alloc (rtx, (d).expanding, 4);			\
+      vec_stack_alloc (rtx, (d).pending, 4);			\
       (d).depth.complexity = (d).depth.entryvals = 0;		\
     }								\
   while (0)
@@ -8290,8 +8282,8 @@ resolve_expansions_pending_recursion (VEC (rtx, stack) *pending)
   do								\
     {								\
       resolve_expansions_pending_recursion ((d).pending);	\
-      VEC_free (rtx, stack, (d).pending);			\
-      VEC_free (rtx, stack, (d).expanding);			\
+      (d).pending.release ();					\
+      (d).expanding.release ();					\
 								\
       if ((l) && MEM_P (l))					\
 	(l) = targetm.delegitimize_address (l);			\
@@ -8338,7 +8330,7 @@ vt_expand_1pvar (variable var, htab_t vars)
 
   loc = vt_expand_var_loc_chain (var, scratch_regs, &data, NULL);
 
-  gcc_checking_assert (VEC_empty (rtx, data.expanding));
+  gcc_checking_assert (data.expanding.is_empty ());
 
   FINI_ELCD (data, loc);
 
@@ -8584,14 +8576,13 @@ emit_note_insn_var_location (void **varp, void *data)
 static int
 values_to_stack (void **slot, void *data)
 {
-  VEC (rtx, stack) **changed_values_stack = (VEC (rtx, stack) **)data;
+  vec<rtx, va_stack> *changed_values_stack = (vec<rtx, va_stack> *) data;
   variable var = (variable) *slot;
 
   if (var->onepart == ONEPART_VALUE)
-    VEC_safe_push (rtx, stack, *changed_values_stack, dv_as_value (var->dv));
+    changed_values_stack->safe_push (dv_as_value (var->dv));
   else if (var->onepart == ONEPART_DEXPR)
-    VEC_safe_push (rtx, stack, *changed_values_stack,
-		   DECL_RTL_KNOWN_SET (dv_as_decl (var->dv)));
+    changed_values_stack->safe_push (DECL_RTL_KNOWN_SET (dv_as_decl (var->dv)));
 
   return 1;
 }
@@ -8619,7 +8610,7 @@ remove_value_from_changed_variables (rtx val)
 
 static void
 notify_dependents_of_changed_value (rtx val, htab_t htab,
-				    VEC (rtx, stack) **changed_values_stack)
+				    vec<rtx, va_stack> *changed_values_stack)
 {
   void **slot;
   variable var;
@@ -8660,7 +8651,7 @@ notify_dependents_of_changed_value (rtx val, htab_t htab,
 	case ONEPART_VALUE:
 	case ONEPART_DEXPR:
 	  set_dv_changed (ldv, true);
-	  VEC_safe_push (rtx, stack, *changed_values_stack, dv_as_rtx (ldv));
+	  changed_values_stack->safe_push (dv_as_rtx (ldv));
 	  break;
 
 	case ONEPART_VDECL:
@@ -8705,17 +8696,19 @@ process_changed_values (htab_t htab)
 {
   int i, n;
   rtx val;
-  VEC (rtx, stack) *changed_values_stack = VEC_alloc (rtx, stack, 20);
+  vec<rtx, va_stack> changed_values_stack;
+
+  vec_stack_alloc (rtx, changed_values_stack, 20);
 
   /* Move values from changed_variables to changed_values_stack.  */
   htab_traverse (changed_variables, values_to_stack, &changed_values_stack);
 
   /* Back-propagate change notifications in values while popping
      them from the stack.  */
-  for (n = i = VEC_length (rtx, changed_values_stack);
-       i > 0; i = VEC_length (rtx, changed_values_stack))
+  for (n = i = changed_values_stack.length ();
+       i > 0; i = changed_values_stack.length ())
     {
-      val = VEC_pop (rtx, changed_values_stack);
+      val = changed_values_stack.pop ();
       notify_dependents_of_changed_value (val, htab, &changed_values_stack);
 
       /* This condition will hold when visiting each of the entries
@@ -8729,7 +8722,7 @@ process_changed_values (htab_t htab)
 	}
     }
 
-  VEC_free (rtx, stack, changed_values_stack);
+  changed_values_stack.release ();
 }
 
 /* Emit NOTE_INSN_VAR_LOCATION note for each variable from a chain
@@ -8898,7 +8891,7 @@ emit_notes_in_bb (basic_block bb, dataflow_set *set)
   dataflow_set_clear (set);
   dataflow_set_copy (set, &VTI (bb)->in);
 
-  FOR_EACH_VEC_ELT (micro_operation, VTI (bb)->mos, i, mo)
+  FOR_EACH_VEC_ELT (VTI (bb)->mos, i, mo)
     {
       rtx insn = mo->insn;
       rtx next_insn = next_non_note_insn_var_location (insn);
@@ -9354,13 +9347,13 @@ vt_add_function_parameter (tree parm)
       && HARD_REGISTER_P (incoming)
       && OUTGOING_REGNO (REGNO (incoming)) != REGNO (incoming))
     {
-      parm_reg_t *p
-	= VEC_safe_push (parm_reg_t, gc, windowed_parm_regs, NULL);
-      p->incoming = incoming;
+      parm_reg_t p;
+      p.incoming = incoming;
       incoming
 	= gen_rtx_REG_offset (incoming, GET_MODE (incoming),
 			      OUTGOING_REGNO (REGNO (incoming)), 0);
-      p->outgoing = incoming;
+      p.outgoing = incoming;
+      vec_safe_push (windowed_parm_regs, p);
     }
   else if (MEM_P (incoming)
 	   && REG_P (XEXP (incoming, 0))
@@ -9369,11 +9362,11 @@ vt_add_function_parameter (tree parm)
       rtx reg = XEXP (incoming, 0);
       if (OUTGOING_REGNO (REGNO (reg)) != REGNO (reg))
 	{
-	  parm_reg_t *p
-	    = VEC_safe_push (parm_reg_t, gc, windowed_parm_regs, NULL);
-	  p->incoming = reg;
+	  parm_reg_t p;
+	  p.incoming = reg;
 	  reg = gen_raw_REG (GET_MODE (reg), OUTGOING_REGNO (REGNO (reg)));
-	  p->outgoing = reg;
+	  p.outgoing = reg;
+	  vec_safe_push (windowed_parm_regs, p);
 	  incoming = replace_equiv_address_nv (incoming, reg);
 	}
     }
@@ -9402,12 +9395,13 @@ vt_add_function_parameter (tree parm)
 
   if (parm != decl)
     {
-      /* Assume that DECL_RTL was a pseudo that got spilled to
-	 memory.  The spill slot sharing code will force the
-	 memory to reference spill_slot_decl (%sfp), so we don't
-	 match above.  That's ok, the pseudo must have referenced
-	 the entire parameter, so just reset OFFSET.  */
-      gcc_assert (decl == get_spill_slot_decl (false));
+      /* If that DECL_RTL wasn't a pseudo that got spilled to
+	 memory, bail out.  Otherwise, the spill slot sharing code
+	 will force the memory to reference spill_slot_decl (%sfp),
+	 so we don't match above.  That's ok, the pseudo must have
+	 referenced the entire parameter, so just reset OFFSET.  */
+      if (decl != get_spill_slot_decl (false))
+        return;
       offset = 0;
     }
 
@@ -9426,6 +9420,7 @@ vt_add_function_parameter (tree parm)
       && GET_CODE (incoming) != PARALLEL)
     {
       cselib_val *val;
+      rtx lowpart;
 
       /* ??? We shouldn't ever hit this, but it may happen because
 	 arguments passed by invisible reference aren't dealt with
@@ -9434,7 +9429,11 @@ vt_add_function_parameter (tree parm)
       if (offset)
 	return;
 
-      val = cselib_lookup_from_insn (var_lowpart (mode, incoming), mode, true,
+      lowpart = var_lowpart (mode, incoming);
+      if (!lowpart)
+	return;
+
+      val = cselib_lookup_from_insn (lowpart, mode, true,
 				     VOIDmode, get_insns ());
 
       /* ??? Float-typed values in memory are not handled by
@@ -9523,31 +9522,6 @@ vt_add_function_parameters (void)
     }
 }
 
-/* Return true if INSN in the prologue initializes hard_frame_pointer_rtx.  */
-
-static bool
-fp_setter (rtx insn)
-{
-  rtx pat = PATTERN (insn);
-  if (RTX_FRAME_RELATED_P (insn))
-    {
-      rtx expr = find_reg_note (insn, REG_FRAME_RELATED_EXPR, NULL_RTX);
-      if (expr)
-	pat = XEXP (expr, 0);
-    }
-  if (GET_CODE (pat) == SET)
-    return SET_DEST (pat) == hard_frame_pointer_rtx;
-  else if (GET_CODE (pat) == PARALLEL)
-    {
-      int i;
-      for (i = XVECLEN (pat, 0) - 1; i >= 0; i--)
-	if (GET_CODE (XVECEXP (pat, 0, i)) == SET
-	    && SET_DEST (XVECEXP (pat, 0, i)) == hard_frame_pointer_rtx)
-	  return true;
-    }
-  return false;
-}
-
 /* Initialize cfa_base_rtx, create a preserved VALUE for it and
    ensure it isn't flushed during cselib_reset_table.
    Can be called only if frame_pointer_rtx resp. arg_pointer_rtx
@@ -9593,7 +9567,7 @@ vt_init_cfa_base (void)
 static bool
 vt_initialize (void)
 {
-  basic_block bb, prologue_bb = single_succ (ENTRY_BLOCK_PTR);
+  basic_block bb;
   HOST_WIDE_INT fp_cfa_offset = -1;
 
   alloc_aux_for_blocks (sizeof (struct variable_tracking_info_def));
@@ -9633,7 +9607,7 @@ vt_initialize (void)
       scratch_regs = BITMAP_ALLOC (NULL);
       valvar_pool = create_alloc_pool ("small variable_def pool",
 				       sizeof (struct variable_def), 256);
-      preserved_values = VEC_alloc (rtx, heap, 256);
+      preserved_values.create (256);
     }
   else
     {
@@ -9814,8 +9788,7 @@ vt_initialize (void)
 			  if (dump_file && (dump_flags & TDF_DETAILS))
 			    log_op_type (PATTERN (insn), bb, insn,
 					 MO_ADJUST, dump_file);
-			  VEC_safe_push (micro_operation, heap, VTI (bb)->mos,
-					 &mo);
+			  VTI (bb)->mos.safe_push (mo);
 			  VTI (bb)->out.stack_adjust += pre;
 			}
 		    }
@@ -9846,19 +9819,29 @@ vt_initialize (void)
 		      if (dump_file && (dump_flags & TDF_DETAILS))
 			log_op_type (PATTERN (insn), bb, insn,
 				     MO_ADJUST, dump_file);
-		      VEC_safe_push (micro_operation, heap, VTI (bb)->mos,
-				     &mo);
+		      VTI (bb)->mos.safe_push (mo);
 		      VTI (bb)->out.stack_adjust += post;
 		    }
 
-		  if (bb == prologue_bb
-		      && fp_cfa_offset != -1
+		  if (fp_cfa_offset != -1
 		      && hard_frame_pointer_adjustment == -1
-		      && RTX_FRAME_RELATED_P (insn)
-		      && fp_setter (insn))
+		      && fp_setter_insn (insn))
 		    {
 		      vt_init_cfa_base ();
 		      hard_frame_pointer_adjustment = fp_cfa_offset;
+		      /* Disassociate sp from fp now.  */
+		      if (MAY_HAVE_DEBUG_INSNS)
+			{
+			  cselib_val *v;
+			  cselib_invalidate_rtx (stack_pointer_rtx);
+			  v = cselib_lookup (stack_pointer_rtx, Pmode, 1,
+					     VOIDmode);
+			  if (v && !cselib_preserved_value_p (v))
+			    {
+			      cselib_set_value_sp_based (v);
+			      preserve_value (v);
+			    }
+			}
 		    }
 		}
 	    }
@@ -9943,7 +9926,7 @@ vt_finalize (void)
 
   FOR_EACH_BB (bb)
     {
-      VEC_free (micro_operation, heap, VTI (bb)->mos);
+      VTI (bb)->mos.release ();
     }
 
   FOR_ALL_BB (bb)
@@ -9970,14 +9953,14 @@ vt_finalize (void)
 	free_alloc_pool (loc_exp_dep_pool);
       loc_exp_dep_pool = NULL;
       free_alloc_pool (valvar_pool);
-      VEC_free (rtx, heap, preserved_values);
+      preserved_values.release ();
       cselib_finish ();
       BITMAP_FREE (scratch_regs);
       scratch_regs = NULL;
     }
 
 #ifdef HAVE_window_save
-  VEC_free (parm_reg_t, gc, windowed_parm_regs);
+  vec_free (windowed_parm_regs);
 #endif
 
   if (vui_vec)
@@ -10079,6 +10062,7 @@ struct rtl_opt_pass pass_variable_tracking =
  {
   RTL_PASS,
   "vartrack",                           /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_handle_var_tracking,             /* gate */
   variable_tracking_main,               /* execute */
   NULL,                                 /* sub */

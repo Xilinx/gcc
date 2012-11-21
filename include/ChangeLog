@@ -1,3 +1,40 @@
+2012-11-09  Jason Merrill  <jason@redhat.com>
+
+	* demangle.h (enum demangle_component_type): Add
+	DEMANGLE_COMPONENT_TAGGED_NAME.
+
+2012-10-29  Sterling Augustine <saugustine@google.com>
+            Cary Coutant <ccoutant@google.com>
+
+	* dwarf2.h (dwarf_location_list_entry_type): New enum with fields
+	DW_LLE_GNU_end_of_list_entry, DW_LLE_GNU_base_address_selection_entry,
+	DW_LLE_GNU_start_end_entry and DW_LLE_GNU_start_length_entry.
+
+
+2012-10-08  Jason Merrill  <jason@redhat.com>
+
+	* demangle.h (enum demangle_component_type): Add
+	DEMANGLE_COMPONENT_TLS_INIT and DEMANGLE_COMPONENT_TLS_WRAPPER.
+
+2012-09-18  Florian Weimer  <fweimer@redhat.com>
+
+	PR other/54411
+	* objalloc.h (objalloc_alloc): Do not use fast path on wraparound.
+
+2012-09-06  Cary Coutant  <ccoutant@google.com>
+
+	* dwarf2.def: Edit comment.
+
+2012-08-24  Sriraman Tallam  <tmsriram@google.com>
+
+	* plugin-api.h (ld_plugin_allow_unique_segment_for_sections):
+	New interface.
+	(ld_plugin_unique_segment_for_sections): New interface.
+	(LDPT_ALLOW_UNIQUE_SEGMENT_FOR_SECTIONS): New enum val.
+	(LDPT_UNIQUE_SEGMENT_FOR_SECTIONS): New enum val.
+	(tv_allow_unique_segment_for_sections): New member.
+	(tv_unique_segment_for_sections): New member.
+
 2012-07-13  Doug Evans  <dje@google.com>
 
 	* filenames.h: #include "hashtab.h".

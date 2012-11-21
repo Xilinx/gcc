@@ -170,7 +170,6 @@
 #include "tree-pass.h"
 #include "target.h"
 #include "df.h"
-#include "vecprim.h"
 #include "emit-rtl.h"  /* FIXME: Can go away once crtl is moved to rtl.h.  */
 
 #ifdef STACK_REGS
@@ -181,7 +180,7 @@
    Indexed by insn UIDs.  A value of zero is uninitialized, one indicates
    the insn uses stack registers, two indicates the insn does not use
    stack registers.  */
-static VEC(char,heap) *stack_regs_mentioned_data;
+static vec<char> stack_regs_mentioned_data;
 
 #define REG_STACK_SIZE (LAST_STACK_REG - FIRST_STACK_REG + 1)
 
@@ -306,25 +305,25 @@ stack_regs_mentioned (const_rtx insn)
   unsigned int uid, max;
   int test;
 
-  if (! INSN_P (insn) || !stack_regs_mentioned_data)
+  if (! INSN_P (insn) || !stack_regs_mentioned_data.exists ())
     return 0;
 
   uid = INSN_UID (insn);
-  max = VEC_length (char, stack_regs_mentioned_data);
+  max = stack_regs_mentioned_data.length ();
   if (uid >= max)
     {
       /* Allocate some extra size to avoid too many reallocs, but
 	 do not grow too quickly.  */
       max = uid + uid / 20 + 1;
-      VEC_safe_grow_cleared (char, heap, stack_regs_mentioned_data, max);
+      stack_regs_mentioned_data.safe_grow_cleared (max);
     }
 
-  test = VEC_index (char, stack_regs_mentioned_data, uid);
+  test = stack_regs_mentioned_data[uid];
   if (test == 0)
     {
       /* This insn has yet to be examined.  Do so now.  */
       test = stack_regs_mentioned_p (PATTERN (insn)) ? 1 : 2;
-      VEC_replace (char, stack_regs_mentioned_data, uid, test);
+      stack_regs_mentioned_data[uid] = test;
     }
 
   return test == 1;
@@ -413,7 +412,7 @@ get_true_reg (rtx *pat)
 	   actual FP register in use.  */
 	{
 	  rtx subreg;
-	  if (FP_REG_P (subreg = SUBREG_REG (*pat)))
+	  if (STACK_REG_P (subreg = SUBREG_REG (*pat)))
 	    {
 	      int regno_off = subreg_regno_offset (REGNO (subreg),
 						   GET_MODE (subreg),
@@ -3199,8 +3198,7 @@ reg_to_stack (void)
   int max_uid;
 
   /* Clean up previous run.  */
-  if (stack_regs_mentioned_data != NULL)
-    VEC_free (char, heap, stack_regs_mentioned_data);
+  stack_regs_mentioned_data.release ();
 
   /* See if there is something to do.  Flow analysis is quite
      expensive so we might save some compilation time.  */
@@ -3279,8 +3277,8 @@ reg_to_stack (void)
 
   /* Allocate a cache for stack_regs_mentioned.  */
   max_uid = get_max_uid ();
-  stack_regs_mentioned_data = VEC_alloc (char, heap, max_uid + 1);
-  memset (VEC_address (char, stack_regs_mentioned_data),
+  stack_regs_mentioned_data.create (max_uid + 1);
+  memset (stack_regs_mentioned_data.address (),
 	  0, sizeof (char) * (max_uid + 1));
 
   convert_regs ();
@@ -3305,6 +3303,7 @@ struct rtl_opt_pass pass_stack_regs =
  {
   RTL_PASS,
   "*stack_regs",                        /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_handle_stack_regs,               /* gate */
   NULL,					/* execute */
   NULL,                                 /* sub */
@@ -3336,6 +3335,7 @@ struct rtl_opt_pass pass_stack_regs_run =
  {
   RTL_PASS,
   "stack",                              /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   NULL,                                 /* gate */
   rest_of_handle_stack_regs,            /* execute */
   NULL,                                 /* sub */

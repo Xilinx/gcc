@@ -44,7 +44,6 @@
 #include "df.h"
 #include "vec.h"
 #include "pointer-set.h"
-#include "vecprim.h"
 #include "dbgcnt.h"
 
 #ifndef HAVE_conditional_move
@@ -1020,7 +1019,7 @@ noce_try_move (struct noce_if_info *if_info)
 	    return FALSE;
 
 	  emit_insn_before_setloc (seq, if_info->jump,
-				   INSN_LOCATOR (if_info->insn_a));
+				   INSN_LOCATION (if_info->insn_a));
 	}
       return TRUE;
     }
@@ -1065,7 +1064,7 @@ noce_try_store_flag (struct noce_if_info *if_info)
 	return FALSE;
 
       emit_insn_before_setloc (seq, if_info->jump,
-			       INSN_LOCATOR (if_info->insn_a));
+			       INSN_LOCATION (if_info->insn_a));
       return TRUE;
     }
   else
@@ -1196,7 +1195,7 @@ noce_try_store_flag_constants (struct noce_if_info *if_info)
 	return FALSE;
 
       emit_insn_before_setloc (seq, if_info->jump,
-			       INSN_LOCATOR (if_info->insn_a));
+			       INSN_LOCATION (if_info->insn_a));
       return TRUE;
     }
 
@@ -1244,7 +1243,7 @@ noce_try_addcc (struct noce_if_info *if_info)
 		return FALSE;
 
 	      emit_insn_before_setloc (seq, if_info->jump,
-				       INSN_LOCATOR (if_info->insn_a));
+				       INSN_LOCATION (if_info->insn_a));
 	      return TRUE;
 	    }
 	  end_sequence ();
@@ -1284,7 +1283,7 @@ noce_try_addcc (struct noce_if_info *if_info)
 		return FALSE;
 
 	      emit_insn_before_setloc (seq, if_info->jump,
-				       INSN_LOCATOR (if_info->insn_a));
+				       INSN_LOCATION (if_info->insn_a));
 	      return TRUE;
 	    }
 	  end_sequence ();
@@ -1333,7 +1332,7 @@ noce_try_store_flag_mask (struct noce_if_info *if_info)
 	    return FALSE;
 
 	  emit_insn_before_setloc (seq, if_info->jump,
-				   INSN_LOCATOR (if_info->insn_a));
+				   INSN_LOCATION (if_info->insn_a));
 	  return TRUE;
 	}
 
@@ -1482,7 +1481,7 @@ noce_try_cmove (struct noce_if_info *if_info)
 	    return FALSE;
 
 	  emit_insn_before_setloc (seq, if_info->jump,
-				   INSN_LOCATOR (if_info->insn_a));
+				   INSN_LOCATION (if_info->insn_a));
 	  return TRUE;
 	}
       else
@@ -1683,7 +1682,7 @@ noce_try_cmove_arith (struct noce_if_info *if_info)
   if (!tmp)
     return FALSE;
 
-  emit_insn_before_setloc (tmp, if_info->jump, INSN_LOCATOR (if_info->insn_a));
+  emit_insn_before_setloc (tmp, if_info->jump, INSN_LOCATION (if_info->insn_a));
   return TRUE;
 
  end_seq_and_fail:
@@ -1930,7 +1929,7 @@ noce_try_minmax (struct noce_if_info *if_info)
   if (!seq)
     return FALSE;
 
-  emit_insn_before_setloc (seq, if_info->jump, INSN_LOCATOR (if_info->insn_a));
+  emit_insn_before_setloc (seq, if_info->jump, INSN_LOCATION (if_info->insn_a));
   if_info->cond = cond;
   if_info->cond_earliest = earliest;
 
@@ -2077,7 +2076,7 @@ noce_try_abs (struct noce_if_info *if_info)
   if (!seq)
     return FALSE;
 
-  emit_insn_before_setloc (seq, if_info->jump, INSN_LOCATOR (if_info->insn_a));
+  emit_insn_before_setloc (seq, if_info->jump, INSN_LOCATION (if_info->insn_a));
   if_info->cond = cond;
   if_info->cond_earliest = earliest;
 
@@ -2156,7 +2155,7 @@ noce_try_sign_mask (struct noce_if_info *if_info)
   if (!seq)
     return FALSE;
 
-  emit_insn_before_setloc (seq, if_info->jump, INSN_LOCATOR (if_info->insn_a));
+  emit_insn_before_setloc (seq, if_info->jump, INSN_LOCATION (if_info->insn_a));
   return TRUE;
 }
 
@@ -2256,7 +2255,7 @@ noce_try_bitop (struct noce_if_info *if_info)
 	return FALSE;
 
       emit_insn_before_setloc (seq, if_info->jump,
-			       INSN_LOCATOR (if_info->insn_a));
+			       INSN_LOCATION (if_info->insn_a));
     }
   return TRUE;
 }
@@ -2415,7 +2414,7 @@ noce_can_store_speculate_p (basic_block top_bb, const_rtx mem)
 		  || (CALL_P (insn) && (!RTL_CONST_CALL_P (insn)))))
 	    return false;
 
-	  if (memory_modified_in_insn_p (mem, insn))
+	  if (memory_must_be_modified_in_insn_p (mem, insn))
 	    return true;
 	  if (modified_in_p (XEXP (mem, 0), insn))
 	    return false;
@@ -2657,7 +2656,7 @@ noce_process_if_block (struct noce_if_info *if_info)
       unshare_all_rtl_in_chain (seq);
       end_sequence ();
 
-      emit_insn_before_setloc (seq, BB_END (test_bb), INSN_LOCATOR (insn_a));
+      emit_insn_before_setloc (seq, BB_END (test_bb), INSN_LOCATION (insn_a));
     }
 
   /* The original THEN and ELSE blocks may now be removed.  The test block
@@ -2695,7 +2694,7 @@ noce_process_if_block (struct noce_if_info *if_info)
 static int
 check_cond_move_block (basic_block bb,
 		       struct pointer_map_t *vals,
-		       VEC (rtx, heap) **regs,
+		       vec<rtx> *regs,
 		       rtx cond)
 {
   rtx insn;
@@ -2760,7 +2759,7 @@ check_cond_move_block (basic_block bb,
       slot = pointer_map_insert (vals, (void *) dest);
       *slot = (void *) src;
 
-      VEC_safe_push (rtx, heap, *regs, dest);
+      regs->safe_push (dest);
     }
 
   return TRUE;
@@ -2851,8 +2850,8 @@ cond_move_process_if_block (struct noce_if_info *if_info)
   int c;
   struct pointer_map_t *then_vals;
   struct pointer_map_t *else_vals;
-  VEC (rtx, heap) *then_regs = NULL;
-  VEC (rtx, heap) *else_regs = NULL;
+  vec<rtx> then_regs = vNULL;
+  vec<rtx> else_regs = vNULL;
   unsigned int i;
   int success_p = FALSE;
 
@@ -2874,7 +2873,7 @@ cond_move_process_if_block (struct noce_if_info *if_info)
      source register does not change after the assignment.  Also count
      the number of registers set in only one of the blocks.  */
   c = 0;
-  FOR_EACH_VEC_ELT (rtx, then_regs, i, reg)
+  FOR_EACH_VEC_ELT (then_regs, i, reg)
     {
       void **then_slot = pointer_map_contains (then_vals, reg);
       void **else_slot = pointer_map_contains (else_vals, reg);
@@ -2893,7 +2892,7 @@ cond_move_process_if_block (struct noce_if_info *if_info)
     }
 
   /* Finish off c for MAX_CONDITIONAL_EXECUTE.  */
-  FOR_EACH_VEC_ELT (rtx, else_regs, i, reg)
+  FOR_EACH_VEC_ELT (else_regs, i, reg)
     {
       gcc_checking_assert (pointer_map_contains (else_vals, reg));
       if (!pointer_map_contains (then_vals, reg))
@@ -2929,7 +2928,7 @@ cond_move_process_if_block (struct noce_if_info *if_info)
       loc_insn = first_active_insn (else_bb);
       gcc_assert (loc_insn);
     }
-  emit_insn_before_setloc (seq, jump, INSN_LOCATOR (loc_insn));
+  emit_insn_before_setloc (seq, jump, INSN_LOCATION (loc_insn));
 
   if (else_bb)
     {
@@ -2957,8 +2956,8 @@ cond_move_process_if_block (struct noce_if_info *if_info)
 done:
   pointer_map_destroy (then_vals);
   pointer_map_destroy (else_vals);
-  VEC_free (rtx, heap, then_regs);
-  VEC_free (rtx, heap, else_regs);
+  then_regs.release ();
+  else_regs.release ();
   return success_p;
 }
 
@@ -3652,7 +3651,7 @@ find_cond_trap (basic_block test_bb, edge then_edge, edge else_edge)
     return FALSE;
 
   /* Emit the new insns before cond_earliest.  */
-  emit_insn_before_setloc (seq, cond_earliest, INSN_LOCATOR (trap));
+  emit_insn_before_setloc (seq, cond_earliest, INSN_LOCATION (trap));
 
   /* Delete the trap block if possible.  */
   remove_edge (trap_bb == then_bb ? then_edge : else_edge);
@@ -4462,6 +4461,7 @@ struct rtl_opt_pass pass_rtl_ifcvt =
  {
   RTL_PASS,
   "ce1",                                /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_handle_if_conversion,            /* gate */
   rest_of_handle_if_conversion,         /* execute */
   NULL,                                 /* sub */
@@ -4499,6 +4499,7 @@ struct rtl_opt_pass pass_if_after_combine =
  {
   RTL_PASS,
   "ce2",                                /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_handle_if_after_combine,         /* gate */
   rest_of_handle_if_after_combine,      /* execute */
   NULL,                                 /* sub */
@@ -4535,6 +4536,7 @@ struct rtl_opt_pass pass_if_after_reload =
  {
   RTL_PASS,
   "ce3",                                /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_handle_if_after_reload,          /* gate */
   rest_of_handle_if_after_reload,       /* execute */
   NULL,                                 /* sub */

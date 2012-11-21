@@ -30,44 +30,89 @@
   (and (match_code "reg")
        (match_test "REGNO (op) == CTR_REGNO
 		    || REGNO (op) > LAST_VIRTUAL_REGISTER")))
-  
+
 ;; Return 1 if op is an Altivec register.
 (define_predicate "altivec_register_operand"
-   (and (match_operand 0 "register_operand")
-	(match_test "GET_CODE (op) != REG
-		     || ALTIVEC_REGNO_P (REGNO (op))
-		     || REGNO (op) > LAST_VIRTUAL_REGISTER")))
+  (match_operand 0 "register_operand")
+{
+  if (GET_CODE (op) == SUBREG)
+    op = SUBREG_REG (op);
+
+  if (!REG_P (op))
+    return 0;
+
+  if (REGNO (op) > LAST_VIRTUAL_REGISTER)
+    return 1;
+
+  return ALTIVEC_REGNO_P (REGNO (op));
+})
 
 ;; Return 1 if op is a VSX register.
 (define_predicate "vsx_register_operand"
-   (and (match_operand 0 "register_operand")
-	(match_test "GET_CODE (op) != REG
-		     || VSX_REGNO_P (REGNO (op))
-		     || REGNO (op) > LAST_VIRTUAL_REGISTER")))
+  (match_operand 0 "register_operand")
+{
+  if (GET_CODE (op) == SUBREG)
+    op = SUBREG_REG (op);
+
+  if (!REG_P (op))
+    return 0;
+
+  if (REGNO (op) > LAST_VIRTUAL_REGISTER)
+    return 1;
+
+  return VSX_REGNO_P (REGNO (op));
+})
 
 ;; Return 1 if op is a vector register that operates on floating point vectors
 ;; (either altivec or VSX).
 (define_predicate "vfloat_operand"
-   (and (match_operand 0 "register_operand")
-	(match_test "GET_CODE (op) != REG
-		     || VFLOAT_REGNO_P (REGNO (op))
-		     || REGNO (op) > LAST_VIRTUAL_REGISTER")))
+  (match_operand 0 "register_operand")
+{
+  if (GET_CODE (op) == SUBREG)
+    op = SUBREG_REG (op);
+
+  if (!REG_P (op))
+    return 0;
+
+  if (REGNO (op) > LAST_VIRTUAL_REGISTER)
+    return 1;
+
+  return VFLOAT_REGNO_P (REGNO (op));
+})
 
 ;; Return 1 if op is a vector register that operates on integer vectors
 ;; (only altivec, VSX doesn't support integer vectors)
 (define_predicate "vint_operand"
-   (and (match_operand 0 "register_operand")
-	(match_test "GET_CODE (op) != REG
-		     || VINT_REGNO_P (REGNO (op))
-		     || REGNO (op) > LAST_VIRTUAL_REGISTER")))
+  (match_operand 0 "register_operand")
+{
+  if (GET_CODE (op) == SUBREG)
+    op = SUBREG_REG (op);
+
+  if (!REG_P (op))
+    return 0;
+
+  if (REGNO (op) > LAST_VIRTUAL_REGISTER)
+    return 1;
+
+  return VINT_REGNO_P (REGNO (op));
+})
 
 ;; Return 1 if op is a vector register to do logical operations on (and, or,
 ;; xor, etc.)
 (define_predicate "vlogical_operand"
-   (and (match_operand 0 "register_operand")
-	(match_test "GET_CODE (op) != REG
-		     || VLOGICAL_REGNO_P (REGNO (op))
-		     || REGNO (op) > LAST_VIRTUAL_REGISTER")))
+  (match_operand 0 "register_operand")
+{
+  if (GET_CODE (op) == SUBREG)
+    op = SUBREG_REG (op);
+
+  if (!REG_P (op))
+    return 0;
+
+  if (REGNO (op) > LAST_VIRTUAL_REGISTER)
+    return 1;
+
+  return VLOGICAL_REGNO_P (REGNO (op));
+})
 
 ;; Return 1 if op is the carry register.
 (define_predicate "ca_operand"
@@ -123,36 +168,73 @@
 
 ;; Return 1 if op is a register that is not special.
 (define_predicate "gpc_reg_operand"
-   (and (match_operand 0 "register_operand")
-	(match_test "(GET_CODE (op) != REG
-		      || (REGNO (op) >= ARG_POINTER_REGNUM
-			  && !CA_REGNO_P (REGNO (op)))
-		      || INT_REGNO_P (REGNO (op))
-		      || FP_REGNO_P (REGNO (op)))
-		     && !((TARGET_E500_DOUBLE || TARGET_SPE)
-			  && invalid_e500_subreg (op, mode))")))
+  (match_operand 0 "register_operand")
+{
+  if ((TARGET_E500_DOUBLE || TARGET_SPE) && invalid_e500_subreg (op, mode))
+    return 0;
+
+  if (GET_CODE (op) == SUBREG)
+    op = SUBREG_REG (op);
+
+  if (!REG_P (op))
+    return 0;
+
+  if (REGNO (op) >= ARG_POINTER_REGNUM && !CA_REGNO_P (REGNO (op)))
+    return 1;
+
+  return INT_REGNO_P (REGNO (op)) || FP_REGNO_P (REGNO (op));
+})
 
 ;; Return 1 if op is a register that is a condition register field.
 (define_predicate "cc_reg_operand"
-   (and (match_operand 0 "register_operand")
-	(match_test "GET_CODE (op) != REG
-		     || REGNO (op) > LAST_VIRTUAL_REGISTER
-		     || CR_REGNO_P (REGNO (op))")))
+  (match_operand 0 "register_operand")
+{
+  if (GET_CODE (op) == SUBREG)
+    op = SUBREG_REG (op);
+
+  if (!REG_P (op))
+    return 0;
+
+  if (REGNO (op) > LAST_VIRTUAL_REGISTER)
+    return 1;
+
+  return CR_REGNO_P (REGNO (op));
+})
 
 ;; Return 1 if op is a register that is a condition register field not cr0.
 (define_predicate "cc_reg_not_cr0_operand"
-   (and (match_operand 0 "register_operand")
-	(match_test "GET_CODE (op) != REG
-		     || REGNO (op) > LAST_VIRTUAL_REGISTER
-		     || CR_REGNO_NOT_CR0_P (REGNO (op))")))
+  (match_operand 0 "register_operand")
+{
+  if (GET_CODE (op) == SUBREG)
+    op = SUBREG_REG (op);
+
+  if (!REG_P (op))
+    return 0;
+
+  if (REGNO (op) > LAST_VIRTUAL_REGISTER)
+    return 1;
+
+  return CR_REGNO_NOT_CR0_P (REGNO (op));
+})
 
 ;; Return 1 if op is a register that is a condition register field and if generating microcode, not cr0.
 (define_predicate "cc_reg_not_micro_cr0_operand"
-   (and (match_operand 0 "register_operand")
-	(match_test "GET_CODE (op) != REG
-		     || REGNO (op) > LAST_VIRTUAL_REGISTER
-		     || (rs6000_gen_cell_microcode && CR_REGNO_NOT_CR0_P (REGNO (op)))
-		     || (!rs6000_gen_cell_microcode && CR_REGNO_P (REGNO (op)))")))
+  (match_operand 0 "register_operand")
+{
+  if (GET_CODE (op) == SUBREG)
+    op = SUBREG_REG (op);
+
+  if (!REG_P (op))
+    return 0;
+
+  if (REGNO (op) > LAST_VIRTUAL_REGISTER)
+    return 1;
+
+  if (rs6000_gen_cell_microcode)
+    return CR_REGNO_NOT_CR0_P (REGNO (op));
+  else
+    return CR_REGNO_P (REGNO (op));
+})
 
 ;; Return 1 if op is a constant integer valid for D field
 ;; or non-special register register.
@@ -408,7 +490,6 @@
        (match_test "op == CONST0_RTX (mode)")))
 
 ;; Return 1 if operand is 0.0.
-;; or non-special register register field no cr0
 (define_predicate "zero_fp_constant"
   (and (match_code "const_double")
        (match_test "SCALAR_FLOAT_MODE_P (mode)
@@ -859,12 +940,16 @@
 {
   if (MEM_P (op))
     {
+      if (! volatile_ok && MEM_VOLATILE_P (op))
+	return 0;
       if (mode == DFmode)
 	mode = V2DFmode;
       else if (mode == DImode)
 	mode = V2DImode;
       else
-	gcc_unreachable ();        
+	gcc_unreachable ();
+      return memory_address_addr_space_p (mode, XEXP (op, 0),
+					  MEM_ADDR_SPACE (op));
     }
   return input_operand (op, mode);
 })

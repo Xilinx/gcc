@@ -107,6 +107,7 @@ Implementation Defined Pragmas
 * Pragma Assert::
 * Pragma Assertion_Policy::
 * Pragma Assume_No_Invalid_Values::
+* Pragma Attribute_Definition::
 * Pragma Ast_Entry::
 * Pragma C_Pass_By_Copy::
 * Pragma Check::
@@ -179,6 +180,7 @@ Implementation Defined Pragmas
 * Pragma Obsolescent::
 * Pragma Optimize_Alignment::
 * Pragma Ordered::
+* Pragma Overflow_Checks::
 * Pragma Passive::
 * Pragma Persistent_BSS::
 * Pragma Polling::
@@ -844,6 +846,7 @@ consideration, the use of these pragmas should be minimized.
 * Pragma Assert::
 * Pragma Assertion_Policy::
 * Pragma Assume_No_Invalid_Values::
+* Pragma Attribute_Definition::
 * Pragma Ast_Entry::
 * Pragma C_Pass_By_Copy::
 * Pragma Check::
@@ -916,6 +919,7 @@ consideration, the use of these pragmas should be minimized.
 * Pragma Obsolescent::
 * Pragma Optimize_Alignment::
 * Pragma Ordered::
+* Pragma Overflow_Checks::
 * Pragma Passive::
 * Pragma Persistent_BSS::
 * Pragma Polling::
@@ -1193,7 +1197,6 @@ of Ada from 2005 on. In GNAT, it is implemented in all versions
 of Ada, and the DISABLE policy is an implementation-defined
 addition.
 
-
 @node Pragma Assertion_Policy
 @unnumberedsec Pragma Assertion_Policy
 @findex Debug_Policy
@@ -1306,6 +1309,31 @@ may be used to handle an OpenVMS asynchronous system trap (@code{AST})
 resulting from an OpenVMS system service call.  The pragma does not affect
 normal use of the entry.  For further details on this pragma, see the
 DEC Ada Language Reference Manual, section 9.12a.
+
+@node Pragma Attribute_Definition
+@unnumberedsec Pragma Attribute_Definition
+@findex Attribute_Definition
+@noindent
+Syntax:
+@smallexample @c ada
+pragma Attribute_Definition
+  ([Attribute  =>] ATTRIBUTE_DESIGNATOR,
+   [Entity     =>] LOCAL_NAME,
+   [Expression =>] EXPRESSION | NAME);
+@end smallexample
+
+@noindent
+If @code{Attribute} is a known attribute name, this pragma is equivalent to
+the attribute definition clause:
+
+@smallexample @c ada
+  for Entity'Attribute use Expression;
+@end smallexample
+
+If @code{Attribute} is not a recognized attribute name, the pragma is
+ignored, and a warning is emitted. This allows source
+code to be written that takes advantage of some new attribute, while remaining
+compilable with earlier compilers.
 
 @node Pragma C_Pass_By_Copy
 @unnumberedsec Pragma C_Pass_By_Copy
@@ -1919,7 +1947,7 @@ where @var{T} is a limited record type imported from C++ with pragma
 The first two forms import the default constructor, used when an object
 of type @var{T} is created on the Ada side with no explicit constructor.
 The latter two forms cover all the non-default constructors of the type.
-See the GNAT users guide for details.
+See the @value{EDITION} User's Guide for details.
 
 If no constructors are imported, it is impossible to create any objects
 on the Ada side and the type is implicitly declared abstract.
@@ -3099,8 +3127,8 @@ initialize with invalid values (similar to Normalize_Scalars, though for
 Initialize_Scalars it is not always possible to determine the invalid
 values in complex cases like signed component fields with non-standard
 sizes). You can also initialize with high or
-low values, or with a specified bit pattern.  See the users guide for binder
-options for specifying these cases.
+low values, or with a specified bit pattern.  See the @value{EDITION}
+User's Guide for binder options for specifying these cases.
 
 This means that you can compile a program, and then without having to
 recompile the program, you can run it with different values being used
@@ -3111,13 +3139,14 @@ uninitialized value.
 
 It is even possible to change the value at execution time eliminating even
 the need to rebind with a different switch using an environment variable.
-See the GNAT users guide for details.
+See the @value{EDITION} User's Guide for details.
 
 Note that pragma @code{Initialize_Scalars} is particularly useful in
 conjunction with the enhanced validity checking that is now provided
 in GNAT, which checks for invalid values under more conditions.
 Using this feature (see description of the @option{-gnatV} flag in the
-users guide) in conjunction with pragma @code{Initialize_Scalars}
+@value{EDITION} User's Guide) in conjunction with
+pragma @code{Initialize_Scalars}
 provides a powerful new tool to assist in the detection of problems
 caused by uninitialized variables.
 
@@ -3125,8 +3154,8 @@ Note: the use of @code{Initialize_Scalars} has a fairly extensive
 effect on the generated code. This may cause your code to be
 substantially larger. It may also cause an increase in the amount
 of stack required, so it is probably a good idea to turn on stack
-checking (see description of stack checking in the GNAT users guide)
-when using this pragma.
+checking (see description of stack checking in the @value{EDITION}
+User's Guide) when using this pragma.
 
 @node Pragma Inline_Always
 @unnumberedsec Pragma Inline_Always
@@ -4003,6 +4032,12 @@ allowed to be bigger than the size of the type, but it can waste space if for
 example fields of type R appear in an enclosing record. If the above type is
 compiled in @code{Optimize_Alignment (Space)} mode, the alignment is set to 1.
 
+However, there is one case in which SPACE is ignored. If a variable length
+record (that is a discriminated record with a component which is an array
+whose length depends on a discriminant), has a pragam pack, then it is not
+in general possible to set the alignment of such a record to one, so the
+pragma is ignored in this case (with a warning).
+
 Specifying TIME causes larger default alignments to be chosen in the case of
 small types with sizes that are not a power of 2. For example, consider:
 
@@ -4126,6 +4161,61 @@ as unordered, and will generate warnings for inappropriate uses.
 
 For additional information please refer to the description of the
 @option{-gnatw.u} switch in the @value{EDITION} User's Guide.
+
+@node Pragma Overflow_Checks
+@unnumberedsec Pragma Overflow_Checks
+@findex Overflow checks
+@findex pragma @code{Overflow_Checks}
+@noindent
+Syntax:
+
+@smallexample @c ada
+pragma Overflow_Checks
+ (  [General    =>] MODE
+  [,[Assertions =>] MODE]);
+
+MODE ::= SUPPRESSED | CHECKED | MINIMIZED | ELIMINATED
+@end smallexample
+
+@noindent
+This pragma sets the current overflow mode to the given mode. For details
+of the meaning of these modes, please refer to the
+``Overflow Check Handling in GNAT'' appendix in the
+@value{EDITION} User's Guide. If only the @code{General} parameter is present,
+the given mode applies to all expressions. If both parameters are present,
+the @code{General} mode applies to expressions outside assertions, and
+the @code{Eliminated} mode applies to expressions within assertions.
+
+The case of the @code{MODE} parameter is ignored,
+so @code{MINIMIZED}, @code{Minimized} and
+@code{minimized} all have the same effect.
+
+The @code{Overflow_Checks} pragma has the same scoping and placement
+rules as pragma @code{Suppress}, so it can occur either as a
+configuration pragma, specifying a default for the whole
+program, or in a declarative scope, where it applies to the
+remaining declarations and statements in that scope.
+
+The pragma @code{Suppress (Overflow_Check)} sets mode
+
+@smallexample @c ada
+   General => Suppressed
+@end smallexample
+
+@noindent
+suppressing all overflow checking within and outside
+assertions.
+
+The pragam @code{Unsuppress (Overflow_Check)} sets mode
+
+@smallexample @c ada
+   General => Checked
+@end smallexample
+
+@noindent
+which causes overflow checking of all intermediate overflows.
+This applies both inside and outside assertions.
+
 
 @node Pragma Passive
 @unnumberedsec Pragma Passive
@@ -5738,8 +5828,8 @@ activated.  The validity checks are first set to include only the default
 reference manual settings, and then a string of letters in the string
 specifies the exact set of options required.  The form of this string
 is exactly as described for the @option{-gnatVx} compiler switch (see the
-GNAT users guide for details).  For example the following two methods
-can be used to enable validity checking for mode @code{in} and
+@value{EDITION} User's Guide for details).  For example the following two
+methods can be used to enable validity checking for mode @code{in} and
 @code{in out} subprogram parameters:
 
 @itemize @bullet
@@ -7893,7 +7983,7 @@ features are used, as defined in Annex J of the Ada Reference Manual.
 wide types
 appear, and that no wide or wide wide string or character literals
 appear in the program (that is literals representing characters not in
-type @code{Character}.
+type @code{Character}).
 
 @node SPARK
 @unnumberedsubsec SPARK
@@ -9365,6 +9455,18 @@ accuracy in some portions of the domain.
 @end cartouche
 Followed.
 
+@cindex Sequential elaboration policy
+@unnumberedsec H.6(15/2): Pragma Partition_Elaboration_Policy
+
+@sp 1
+@cartouche
+If the partition elaboration policy is @code{Sequential} and the
+Environment task becomes permanently blocked during elaboration then the
+partition is deadlocked and it is recommended that the partition be
+immediately terminated.
+@end cartouche
+Not followed.
+
 @c -----------------------------------------
 @node Implementation Defined Characteristics
 @chapter Implementation Defined Characteristics
@@ -9457,8 +9559,12 @@ See separate section on source representation.
 length.  See 2.2(15).
 @end cartouche
 @noindent
-The maximum line length is 255 characters and the maximum length of a
-lexical element is also 255 characters.
+The maximum line length is 255 characters and the maximum length of
+a lexical element is also 255 characters. This is the default setting
+if not overridden by the use of compiler switch @option{-gnaty} (which
+sets the maximum to 79) or @option{-gnatyMnn} which allows the maximum
+line length to be specified to be any value up to 32767. The maximum
+length of a lexical element is the same as the maximum line length.
 
 @sp 1
 @cartouche

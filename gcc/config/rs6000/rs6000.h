@@ -89,6 +89,12 @@
 #define ASM_CPU_POWER7_SPEC "-mpower4 -maltivec"
 #endif
 
+#ifdef HAVE_AS_POWER8
+#define ASM_CPU_POWER8_SPEC "-mpower8"
+#else
+#define ASM_CPU_POWER8_SPEC "-mpower4 -maltivec"
+#endif
+
 #ifdef HAVE_AS_DCI
 #define ASM_CPU_476_SPEC "-m476"
 #else
@@ -102,10 +108,8 @@
 #define ASM_CPU_SPEC \
 "%{!mcpu*: \
   %{mpowerpc64*: -mppc64} \
-  %{!mpowerpc64*: %{mpowerpc*: -mppc}} \
-  %{!mpowerpc*: -mcom}} \
+  %{!mpowerpc64*: %(asm_default)}} \
 %{mcpu=native: %(asm_cpu_native)} \
-%{mcpu=common: -mcom} \
 %{mcpu=cell: -mcell} \
 %{mcpu=power3: -mppc64} \
 %{mcpu=power4: -mpower4} \
@@ -114,6 +118,7 @@
 %{mcpu=power6: %(asm_cpu_power6) -maltivec} \
 %{mcpu=power6x: %(asm_cpu_power6) -maltivec} \
 %{mcpu=power7: %(asm_cpu_power7)} \
+%{mcpu=power8: %(asm_cpu_power8)} \
 %{mcpu=a2: -ma2} \
 %{mcpu=powerpc: -mppc} \
 %{mcpu=rs64a: -mppc64} \
@@ -186,6 +191,7 @@
   { "asm_cpu_power5",		ASM_CPU_POWER5_SPEC },			\
   { "asm_cpu_power6",		ASM_CPU_POWER6_SPEC },			\
   { "asm_cpu_power7",		ASM_CPU_POWER7_SPEC },			\
+  { "asm_cpu_power8",		ASM_CPU_POWER8_SPEC },			\
   { "asm_cpu_476",		ASM_CPU_476_SPEC },			\
   SUBTARGET_EXTRA_SPECS
 
@@ -350,10 +356,6 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 #define PROCESSOR_DEFAULT   PROCESSOR_PPC603
 #define PROCESSOR_DEFAULT64 PROCESSOR_RS64A
 
-/* Specify the dialect of assembler to use.  New mnemonics is dialect one
-   and the old mnemonics are dialect zero.  */
-#define ASSEMBLER_DIALECT (TARGET_NEW_MNEMONICS ? 1 : 0)
-
 /* Debug support */
 #define MASK_DEBUG_STACK	0x01	/* debug stack applications */
 #define	MASK_DEBUG_ARG		0x02	/* debug argument handling */
@@ -470,6 +472,64 @@ extern int rs6000_vector_align[];
 #define TARGET_FCFIDUS	TARGET_POPCNTD
 #define TARGET_FCTIDUZ	TARGET_POPCNTD
 #define TARGET_FCTIWUZ	TARGET_POPCNTD
+
+/* In switching from using target_flags to using rs6000_isa_flags, the options
+   machinery creates OPTION_MASK_<xxx> instead of MASK_<xxx>.  For now map
+   OPTION_MASK_<xxx> back into MASK_<xxx>.  */
+#define MASK_ALTIVEC			OPTION_MASK_ALTIVEC
+#define MASK_CMPB			OPTION_MASK_CMPB
+#define MASK_DFP			OPTION_MASK_DFP
+#define MASK_DLMZB			OPTION_MASK_DLMZB
+#define MASK_EABI			OPTION_MASK_EABI
+#define MASK_FPRND			OPTION_MASK_FPRND
+#define MASK_HARD_FLOAT			OPTION_MASK_HARD_FLOAT
+#define MASK_ISEL			OPTION_MASK_ISEL
+#define MASK_MFCRF			OPTION_MASK_MFCRF
+#define MASK_MFPGPR			OPTION_MASK_MFPGPR
+#define MASK_MULHW			OPTION_MASK_MULHW
+#define MASK_MULTIPLE			OPTION_MASK_MULTIPLE
+#define MASK_NO_UPDATE			OPTION_MASK_NO_UPDATE
+#define MASK_POPCNTB			OPTION_MASK_POPCNTB
+#define MASK_POPCNTD			OPTION_MASK_POPCNTD
+#define MASK_PPC_GFXOPT			OPTION_MASK_PPC_GFXOPT
+#define MASK_PPC_GPOPT			OPTION_MASK_PPC_GPOPT
+#define MASK_RECIP_PRECISION		OPTION_MASK_RECIP_PRECISION
+#define MASK_SOFT_FLOAT			OPTION_MASK_SOFT_FLOAT
+#define MASK_STRICT_ALIGN		OPTION_MASK_STRICT_ALIGN
+#define MASK_STRING			OPTION_MASK_STRING
+#define MASK_UPDATE			OPTION_MASK_UPDATE
+#define MASK_VSX			OPTION_MASK_VSX
+
+#ifndef IN_LIBGCC2
+#define MASK_POWERPC64			OPTION_MASK_POWERPC64
+#endif
+
+#ifdef TARGET_64BIT
+#define MASK_64BIT			OPTION_MASK_64BIT
+#endif
+
+#ifdef TARGET_RELOCATABLE
+#define MASK_RELOCATABLE		OPTION_MASK_RELOCATABLE
+#endif
+
+#ifdef TARGET_LITTLE_ENDIAN
+#define MASK_LITTLE_ENDIAN		OPTION_MASK_LITTLE_ENDIAN
+#endif
+
+#ifdef TARGET_MINIMAL_TOC
+#define MASK_MINIMAL_TOC		OPTION_MASK_MINIMAL_TOC
+#endif
+
+#ifdef TARGET_REGNAMES
+#define MASK_REGNAMES			OPTION_MASK_REGNAMES
+#endif
+
+#ifdef TARGET_PROTOTYPE
+#define MASK_PROTOTYPE			OPTION_MASK_PROTOTYPE
+#endif
+
+/* Explicit ISA options that were set.  */
+#define rs6000_isa_flags_explicit	global_options_set.x_rs6000_isa_flags
 
 /* For power systems, we want to enable Altivec and VSX builtins even if the
    user did not use -maltivec or -mvsx to allow the builtins to be used inside
@@ -700,22 +760,6 @@ extern unsigned rs6000_pointer_size;
 
 /* Every structure's size must be a multiple of this.  */
 #define STRUCTURE_SIZE_BOUNDARY 8
-
-/* Return 1 if a structure or array containing FIELD should be
-   accessed using `BLKMODE'.
-
-   For the SPE, simd types are V2SI, and gcc can be tempted to put the
-   entire thing in a DI and use subregs to access the internals.
-   store_bit_field() will force (subreg:DI (reg:V2SI x))'s to the
-   back-end.  Because a single GPR can hold a V2SI, but not a DI, the
-   best thing to do is set structs to BLKmode and avoid Severe Tire
-   Damage.
-
-   On e500 v2, DF and DI modes suffer from the same anomaly.  DF can
-   fit into 1, whereas DI still needs two.  */
-#define MEMBER_TYPE_FORCES_BLK(FIELD, MODE) \
-  ((TARGET_SPE && TREE_CODE (TREE_TYPE (FIELD)) == VECTOR_TYPE) \
-   || (TARGET_E500_DOUBLE && (MODE) == DFmode))
 
 /* A bit-field declared as `int' forces `int' alignment for the struct.  */
 #define PCC_BITFIELD_TYPE_MATTERS 1
@@ -2208,10 +2252,6 @@ extern char rs6000_reg_names[][8];	/* register names (0 vs. %r0).  */
   {"vs56", 101},{"vs57", 102},{"vs58", 103},{"vs59", 104},      \
   {"vs60", 105},{"vs61", 106},{"vs62", 107},{"vs63", 108} }
 
-/* Text to write out after a CALL that may be replaced by glue code by
-   the loader.  This depends on the AIX version.  */
-#define RS6000_CALL_GLUE "cror 31,31,31"
-
 /* This is how to output an element of a case-vector that is relative.  */
 
 #define ASM_OUTPUT_ADDR_DIFF_ELT(FILE, BODY, VALUE, REL) \
@@ -2255,8 +2295,7 @@ extern char rs6000_reg_names[][8];	/* register names (0 vs. %r0).  */
 
 /* Define which CODE values are valid.  */
 
-#define PRINT_OPERAND_PUNCT_VALID_P(CODE)  \
-  ((CODE) == '.' || (CODE) == '&')
+#define PRINT_OPERAND_PUNCT_VALID_P(CODE)  ((CODE) == '&')
 
 /* Print a memory address as an operand to reference that memory location.  */
 
@@ -2302,6 +2341,7 @@ extern int frame_pointer_needed;
 /* Builtin targets.  For now, we reuse the masks for those options that are in
    target flags, and pick two random bits for SPE and paired which aren't in
    target_flags.  */
+#define RS6000_BTM_ALWAYS	0		/* Always enabled.  */
 #define RS6000_BTM_ALTIVEC	MASK_ALTIVEC	/* VMX/altivec vectors.  */
 #define RS6000_BTM_VSX		MASK_VSX	/* VSX (vector/scalar).  */
 #define RS6000_BTM_SPE		MASK_STRING	/* E500 */
@@ -2311,7 +2351,6 @@ extern int frame_pointer_needed;
 #define RS6000_BTM_FRSQRTE	MASK_PPC_GFXOPT	/* FRSQRTE instruction.  */
 #define RS6000_BTM_FRSQRTES	MASK_POPCNTB	/* FRSQRTES instruction.  */
 #define RS6000_BTM_POPCNTD	MASK_POPCNTD	/* Target supports ISA 2.06.  */
-#define RS6000_BTM_POWERPC	MASK_POWERPC	/* Target is powerpc.  */
 #define RS6000_BTM_CELL		MASK_FPRND	/* Target is cell powerpc.  */
 
 #define RS6000_BTM_COMMON	(RS6000_BTM_ALTIVEC			\
@@ -2321,7 +2360,6 @@ extern int frame_pointer_needed;
 				 | RS6000_BTM_FRSQRTE			\
 				 | RS6000_BTM_FRSQRTES			\
 				 | RS6000_BTM_POPCNTD			\
-				 | RS6000_BTM_POWERPC			\
 				 | RS6000_BTM_CELL)
 
 /* Define builtin enum index.  */

@@ -167,9 +167,9 @@ typedef struct GTY (()) bitmap_obstack {
    bitmap_elt_clear_from to be implemented in unit time rather than
    linear in the number of elements to be freed.  */
 
-typedef struct GTY(()) bitmap_element_def {
-  struct bitmap_element_def *next;		/* Next element.  */
-  struct bitmap_element_def *prev;		/* Previous element.  */
+typedef struct GTY((chain_next ("%h.next"), chain_prev ("%h.prev"))) bitmap_element_def {
+  struct bitmap_element_def *next;	/* Next element.  */
+  struct bitmap_element_def *prev;	/* Previous element.  */
   unsigned int indx;			/* regno/BITMAP_ELEMENT_ALL_BITS.  */
   BITMAP_WORD bits[BITMAP_ELEMENT_WORDS]; /* Bits that are set.  */
 } bitmap_element;
@@ -177,15 +177,17 @@ typedef struct GTY(()) bitmap_element_def {
 struct bitmap_descriptor;
 /* Head of bitmap linked list.  gengtype ignores ifdefs, but for
    statistics we need to add a bitmap descriptor pointer.  As it is
-   not collected, we can just GTY((skip)) it.   */
+   not collected, we can just GTY((skip(""))) it.  Likewise current
+   points to something already pointed to by the chain started by first,
+   no need to walk it again.  */
 
 typedef struct GTY(()) bitmap_head_def {
-  bitmap_element *first;	/* First element in linked list.  */
-  bitmap_element *current;	/* Last element looked at.  */
-  unsigned int indx;		/* Index of last element looked at.  */
-  bitmap_obstack *obstack;	/* Obstack to allocate elements from.
-				   If NULL, then use GGC allocation.  */
-  struct bitmap_descriptor GTY((skip)) *desc;
+  bitmap_element *first;		/* First element in linked list.  */
+  bitmap_element * GTY((skip(""))) current; /* Last element looked at.  */
+  unsigned int indx;			/* Index of last element looked at.  */
+  bitmap_obstack *obstack;		/* Obstack to allocate elements from.
+					   If NULL, then use GGC allocation.  */
+  struct bitmap_descriptor GTY((skip(""))) *desc;
 } bitmap_head;
 
 /* Global data */
@@ -209,7 +211,10 @@ extern bool bitmap_intersect_p (const_bitmap, const_bitmap);
 extern bool bitmap_intersect_compl_p (const_bitmap, const_bitmap);
 
 /* True if MAP is an empty bitmap.  */
-#define bitmap_empty_p(MAP) (!(MAP)->first)
+inline bool bitmap_empty_p (const_bitmap map)
+{
+  return !map->first;
+}
 
 /* True if the bitmap has only a single bit set.  */
 extern bool bitmap_single_bit_set_p (const_bitmap);
@@ -222,7 +227,7 @@ extern unsigned long bitmap_count_bits (const_bitmap);
    are three operand versions that to not destroy the source bitmaps.
    The operations supported are &, & ~, |, ^.  */
 extern void bitmap_and (bitmap, const_bitmap, const_bitmap);
-extern void bitmap_and_into (bitmap, const_bitmap);
+extern bool bitmap_and_into (bitmap, const_bitmap);
 extern bool bitmap_and_compl (bitmap, const_bitmap, const_bitmap);
 extern bool bitmap_and_compl_into (bitmap, const_bitmap);
 #define bitmap_compl_and(DST, A, B) bitmap_and_compl (DST, B, A)
@@ -286,8 +291,11 @@ extern bitmap bitmap_gc_alloc_stat (ALONE_MEM_STAT_DECL);
 extern void bitmap_obstack_free (bitmap);
 
 /* A few compatibility/functions macros for compatibility with sbitmaps */
-#define dump_bitmap(file, bitmap) bitmap_print (file, bitmap, "", "\n")
-#define bitmap_zero(a) bitmap_clear (a)
+inline void dump_bitmap (FILE *file, const_bitmap map)
+{
+  bitmap_print (file, map, "", "\n");
+}
+
 extern unsigned bitmap_first_set_bit (const_bitmap);
 extern unsigned bitmap_last_set_bit (const_bitmap);
 
@@ -674,10 +682,13 @@ bmp_iter_and_compl (bitmap_iterator *bi, unsigned *bit_no)
    should be treated as a read-only variable as it contains loop
    state.  */
 
+#ifndef EXECUTE_IF_SET_IN_BITMAP
+/* See sbitmap.h for the other definition of EXECUTE_IF_SET_IN_BITMAP.  */
 #define EXECUTE_IF_SET_IN_BITMAP(BITMAP, MIN, BITNUM, ITER)		\
   for (bmp_iter_set_init (&(ITER), (BITMAP), (MIN), &(BITNUM));		\
        bmp_iter_set (&(ITER), &(BITNUM));				\
        bmp_iter_next (&(ITER), &(BITNUM)))
+#endif
 
 /* Loop over all the bits set in BITMAP1 & BITMAP2, starting with MIN
    and setting BITNUM to the bit number.  ITER is a bitmap iterator.

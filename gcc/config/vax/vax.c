@@ -53,7 +53,7 @@ static void vax_init_libfuncs (void);
 static void vax_output_mi_thunk (FILE *, tree, HOST_WIDE_INT,
 				 HOST_WIDE_INT, tree);
 static int vax_address_cost_1 (rtx);
-static int vax_address_cost (rtx, bool);
+static int vax_address_cost (rtx, enum machine_mode, addr_space_t, bool);
 static bool vax_rtx_costs (rtx, int, int, int, int *, bool);
 static rtx vax_function_arg (cumulative_args_t, enum machine_mode,
 			     const_tree, bool);
@@ -64,7 +64,7 @@ static rtx vax_builtin_setjmp_frame_value (void);
 static void vax_asm_trampoline_template (FILE *);
 static void vax_trampoline_init (rtx, tree, rtx);
 static int vax_return_pops_args (tree, tree, int);
-static bool vax_mode_dependent_address_p (const_rtx);
+static bool vax_mode_dependent_address_p (const_rtx, addr_space_t);
 
 /* Initialize the GCC target structure.  */
 #undef TARGET_ASM_ALIGNED_HI_OP
@@ -738,7 +738,9 @@ vax_address_cost_1 (rtx addr)
 }
 
 static int
-vax_address_cost (rtx x, bool speed ATTRIBUTE_UNUSED)
+vax_address_cost (rtx x, enum machine_mode mode ATTRIBUTE_UNUSED,
+		  addr_space_t as ATTRIBUTE_UNUSED,
+		  bool speed ATTRIBUTE_UNUSED)
 {
   return (1 + (REG_P (x) ? 0 : vax_address_cost_1 (x)));
 }
@@ -1837,7 +1839,7 @@ vax_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
    thus (because the index scale factor is the length of the operand).  */
 
 static bool
-vax_mode_dependent_address_p (const_rtx x)
+vax_mode_dependent_address_p (const_rtx x, addr_space_t as ATTRIBUTE_UNUSED)
 {
   rtx xfoo0, xfoo1;
 

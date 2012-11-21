@@ -210,6 +210,9 @@ void (*cselib_record_sets_hook) (rtx insn, struct cselib_set *sets,
 #define PRESERVED_VALUE_P(RTX) \
   (RTL_FLAG_CHECK1("PRESERVED_VALUE_P", (RTX), VALUE)->unchanging)
 
+#define SP_BASED_VALUE_P(RTX) \
+  (RTL_FLAG_CHECK1("SP_BASED_VALUE_P", (RTX), VALUE)->jump)
+
 
 
 /* Allocate a struct elt_list and fill in its two elements with the
@@ -534,17 +537,15 @@ entry_and_rtx_equal_p (const void *entry, const void *x_arg)
   rtx x = CONST_CAST_RTX ((const_rtx)x_arg);
   enum machine_mode mode = GET_MODE (x);
 
-  gcc_assert (!CONST_INT_P (x) && GET_CODE (x) != CONST_FIXED
-	      && (mode != VOIDmode || GET_CODE (x) != CONST_DOUBLE));
+  gcc_assert (!CONST_SCALAR_INT_P (x) && GET_CODE (x) != CONST_FIXED);
 
   if (mode != GET_MODE (v->val_rtx))
     return 0;
 
   /* Unwrap X if necessary.  */
   if (GET_CODE (x) == CONST
-      && (CONST_INT_P (XEXP (x, 0))
-	  || GET_CODE (XEXP (x, 0)) == CONST_FIXED
-	  || GET_CODE (XEXP (x, 0)) == CONST_DOUBLE))
+      && (CONST_SCALAR_INT_P (XEXP (x, 0))
+	  || GET_CODE (XEXP (x, 0)) == CONST_FIXED))
     x = XEXP (x, 0);
 
   /* We don't guarantee that distinct rtx's have different hash values,
@@ -737,6 +738,24 @@ cselib_preserve_only_values (void)
   remove_useless_values ();
 
   gcc_assert (first_containing_mem == &dummy_val);
+}
+
+/* Arrange for a value to be marked as based on stack pointer
+   for find_base_term purposes.  */
+
+void
+cselib_set_value_sp_based (cselib_val *v)
+{
+  SP_BASED_VALUE_P (v->val_rtx) = 1;
+}
+
+/* Test whether a value is based on stack pointer for
+   find_base_term purposes.  */
+
+bool
+cselib_sp_based_value_p (cselib_val *v)
+{
+  return SP_BASED_VALUE_P (v->val_rtx);
 }
 
 /* Return the mode in which a register was last set.  If X is not a
@@ -1009,9 +1028,7 @@ rtx_equal_for_cselib_1 (rtx x, rtx y, enum machine_mode memmode)
 static rtx
 wrap_constant (enum machine_mode mode, rtx x)
 {
-  if (!CONST_INT_P (x) 
-      && GET_CODE (x) != CONST_FIXED
-      && !CONST_DOUBLE_AS_INT_P (x))
+  if ((!CONST_SCALAR_INT_P (x)) && GET_CODE (x) != CONST_FIXED)
     return x;
   gcc_assert (mode != VOIDmode);
   return gen_rtx_CONST (mode, x);
@@ -1603,9 +1620,7 @@ cselib_expand_value_rtx_1 (rtx orig, struct expand_value_data *evd,
 	    }
       }
 
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_VECTOR:
+    CASE_CONST_ANY:
     case SYMBOL_REF:
     case CODE_LABEL:
     case PC:
@@ -1856,10 +1871,7 @@ cselib_subst_to_values (rtx x, enum machine_mode memmode)
 	break;
       return e->val_rtx;
 
-    case CONST_DOUBLE:
-    case CONST_VECTOR:
-    case CONST_INT:
-    case CONST_FIXED:
+    CASE_CONST_ANY:
       return x;
 
     case PRE_DEC:
@@ -2581,6 +2593,28 @@ cselib_record_sets (rtx insn)
     }
 }
 
+/* Return true if INSN in the prologue initializes hard_frame_pointer_rtx.  */
+
+bool
+fp_setter_insn (rtx insn)
+{
+  rtx expr, pat = NULL_RTX;
+
+  if (!RTX_FRAME_RELATED_P (insn))
+    return false;
+
+  expr = find_reg_note (insn, REG_FRAME_RELATED_EXPR, NULL_RTX);
+  if (expr)
+    pat = XEXP (expr, 0);
+  if (!modified_in_p (hard_frame_pointer_rtx, pat ? pat : insn))
+    return false;
+
+  /* Don't return true for frame pointer restores in the epilogue.  */
+  if (find_reg_note (insn, REG_CFA_RESTORE, hard_frame_pointer_rtx))
+    return false;
+  return true;
+}
+
 /* Record the effects of INSN.  */
 
 void
@@ -2638,6 +2672,14 @@ cselib_process_insn (rtx insn)
     for (x = CALL_INSN_FUNCTION_USAGE (insn); x; x = XEXP (x, 1))
       if (GET_CODE (XEXP (x, 0)) == CLOBBER)
 	cselib_invalidate_rtx (XEXP (XEXP (x, 0), 0));
+
+  /* On setter of the hard frame pointer if frame_pointer_needed,
+     invalidate stack_pointer_rtx, so that sp and {,h}fp based
+     VALUEs are distinct.  */
+  if (reload_completed
+      && frame_pointer_needed
+      && fp_setter_insn (insn))
+    cselib_invalidate_rtx (stack_pointer_rtx);
 
   cselib_current_insn = NULL_RTX;
 

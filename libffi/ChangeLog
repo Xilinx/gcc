@@ -1,3 +1,18 @@
+2012-10-31  Alan Modra  <amodra@gmail.com>
+
+	* src/powerpc/linux64_closure.S: Add new ABI support.
+	* src/powerpc/linux64.S: Likewise.
+
+2012-09-14  David Edelsohn  <dje.gcc@gmail.com>
+
+	* configure: Regenerated.
+
+2012-08-26  Andrew Pinski  <apinski@cavium.com>
+
+	PR libffi/53014
+	* src/mips/ffi.c (ffi_prep_closure_loc): Allow n32 with soft-float and n64 with
+	soft-float.
+
 2012-08-08  Uros Bizjak  <ubizjak@gmail.com>
 
 	* src/s390/ffi.c (ffi_prep_closure_loc): Don't ASSERT ABI test,

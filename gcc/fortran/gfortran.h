@@ -761,6 +761,10 @@ typedef struct
   /* Set if a function must always be referenced by an explicit interface.  */
   unsigned always_explicit:1;
 
+  /* Set if the symbol is generated and, hence, standard violations
+     shouldn't be flaged.  */
+  unsigned artificial:1;
+
   /* Set if the symbol has been referenced in an expression.  No further
      modification of type or type parameters is permitted.  */
   unsigned referenced:1;
@@ -1266,6 +1270,7 @@ typedef struct gfc_common_head
   struct gfc_symbol *head;
   const char* binding_label;
   int is_bind_c;
+  int refs;
 }
 gfc_common_head;
 
@@ -2225,6 +2230,8 @@ typedef struct
   int warn_unused_dummy_argument;
   int warn_realloc_lhs;
   int warn_realloc_lhs_all;
+  int warn_compare_reals;
+  int warn_target_lifetime;
   int max_errors;
 
   int flag_all_intrinsics;
@@ -2777,7 +2784,7 @@ bool gfc_has_ultimate_allocatable (gfc_expr *);
 bool gfc_has_ultimate_pointer (gfc_expr *);
 
 gfc_expr* gfc_build_intrinsic_call (const char*, locus, unsigned, ...);
-gfc_try gfc_check_vardef_context (gfc_expr*, bool, bool, const char*);
+gfc_try gfc_check_vardef_context (gfc_expr*, bool, bool, bool, const char*);
 
 
 /* st.c */
@@ -2798,7 +2805,7 @@ int gfc_impure_variable (gfc_symbol *);
 int gfc_pure (gfc_symbol *);
 int gfc_implicit_pure (gfc_symbol *);
 int gfc_elemental (gfc_symbol *);
-gfc_try gfc_resolve_iterator (gfc_iterator *, bool);
+gfc_try gfc_resolve_iterator (gfc_iterator *, bool, bool);
 gfc_try find_forall_index (gfc_expr *, gfc_symbol *, int);
 gfc_try gfc_resolve_index (gfc_expr *, int);
 gfc_try gfc_resolve_dim_arg (gfc_expr *);

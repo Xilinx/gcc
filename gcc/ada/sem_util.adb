@@ -36,7 +36,9 @@ with Fname;    use Fname;
 with Freeze;   use Freeze;
 with Lib;      use Lib;
 with Lib.Xref; use Lib.Xref;
+with Namet.Sp; use Namet.Sp;
 with Nlists;   use Nlists;
+with Nmake;    use Nmake;
 with Output;   use Output;
 with Opt;      use Opt;
 with Restrict; use Restrict;
@@ -278,6 +280,63 @@ package body Sem_Util is
       return Alignment (E) * System_Storage_Unit;
    end Alignment_In_Bits;
 
+   ---------------------------------
+   -- Append_Inherited_Subprogram --
+   ---------------------------------
+
+   procedure Append_Inherited_Subprogram (S : Entity_Id) is
+      Par : constant Entity_Id := Alias (S);
+      --  The parent subprogram
+
+      Scop : constant Entity_Id := Scope (Par);
+      --  The scope of definition of the parent subprogram
+
+      Typ : constant Entity_Id := Defining_Entity (Parent (S));
+      --  The derived type of which S is a primitive operation
+
+      Decl   : Node_Id;
+      Next_E : Entity_Id;
+
+   begin
+      if Ekind (Current_Scope) = E_Package
+        and then In_Private_Part (Current_Scope)
+        and then Has_Private_Declaration (Typ)
+        and then Is_Tagged_Type (Typ)
+        and then Scop = Current_Scope
+      then
+         --  The inherited operation is available at the earliest place after
+         --  the derived type declaration ( RM 7.3.1 (6/1)). This is only
+         --  relevant for type extensions. If the parent operation appears
+         --  after the type extension, the operation is not visible.
+
+         Decl := First
+                   (Visible_Declarations
+                     (Specification (Unit_Declaration_Node (Current_Scope))));
+         while Present (Decl) loop
+            if Nkind (Decl) = N_Private_Extension_Declaration
+              and then Defining_Entity (Decl) = Typ
+            then
+               if Sloc (Decl) > Sloc (Par) then
+                  Next_E := Next_Entity (Par);
+                  Set_Next_Entity (Par, S);
+                  Set_Next_Entity (S, Next_E);
+                  return;
+
+               else
+                  exit;
+               end if;
+            end if;
+
+            Next (Decl);
+         end loop;
+      end if;
+
+      --  If partial view is not a type extension, or it appears before the
+      --  subprogram declaration, insert normally at end of entity list.
+
+      Append_Entity (S, Current_Scope);
+   end Append_Inherited_Subprogram;
+
    -----------------------------------------
    -- Apply_Compile_Time_Constraint_Error --
    -----------------------------------------
@@ -345,6 +404,33 @@ package body Sem_Util is
         and then In_Open_Scopes (SCT)
         and then Scope_Depth (ST) >= Scope_Depth (SCT);
    end Available_Full_View_Of_Component;
+
+   -------------------
+   -- Bad_Attribute --
+   -------------------
+
+   procedure Bad_Attribute
+     (N    : Node_Id;
+      Nam  : Name_Id;
+      Warn : Boolean := False)
+   is
+   begin
+      Error_Msg_Warn := Warn;
+      Error_Msg_N ("unrecognized attribute&<", N);
+
+      --  Check for possible misspelling
+
+      Error_Msg_Name_1 := First_Attribute_Name;
+      while Error_Msg_Name_1 <= Last_Attribute_Name loop
+         if Is_Bad_Spelling_Of (Nam, Error_Msg_Name_1) then
+            Error_Msg_N -- CODEFIX
+              ("\possible misspelling of %<", N);
+            exit;
+         end if;
+
+         Error_Msg_Name_1 := Error_Msg_Name_1 + 1;
+      end loop;
+   end Bad_Attribute;
 
    --------------------------------
    -- Bad_Predicated_Subtype_Use --
@@ -1190,6 +1276,50 @@ package body Sem_Util is
          end loop;
       end if;
    end Check_Implicit_Dereference;
+
+   ----------------------------------
+   -- Check_Internal_Protected_Use --
+   ----------------------------------
+
+   procedure Check_Internal_Protected_Use (N : Node_Id; Nam : Entity_Id) is
+      S    : Entity_Id;
+      Prot : Entity_Id;
+
+   begin
+      S := Current_Scope;
+      while Present (S) loop
+         if S = Standard_Standard then
+            return;
+
+         elsif Ekind (S) = E_Function
+           and then Ekind (Scope (S)) = E_Protected_Type
+         then
+            Prot := Scope (S);
+            exit;
+         end if;
+
+         S := Scope (S);
+      end loop;
+
+      if Scope (Nam) = Prot and then Ekind (Nam) /= E_Function then
+         if Nkind (N) = N_Subprogram_Renaming_Declaration then
+            Error_Msg_N
+              ("within protected function cannot use protected "
+               & "procedure in renaming or as generic actual", N);
+
+         elsif Nkind (N) = N_Attribute_Reference then
+            Error_Msg_N
+              ("within protected function cannot take access of "
+               & " protected procedure", N);
+
+         else
+            Error_Msg_N
+              ("within protected function, protected object is constant", N);
+            Error_Msg_N
+              ("\cannot call operation that may modify it", N);
+         end if;
+      end if;
+   end Check_Internal_Protected_Use;
 
    ---------------------------------------
    -- Check_Later_Vs_Basic_Declarations --
@@ -2206,9 +2336,9 @@ package body Sem_Util is
                Msgs := False;
                exit;
 
-            --  Conditional expression
+            --  If expression
 
-            elsif Nkind (P) = N_Conditional_Expression then
+            elsif Nkind (P) = N_If_Expression then
                declare
                   Cond : constant Node_Id := First (Expressions (P));
                   Texp : constant Node_Id := Next (Cond);
@@ -2386,6 +2516,45 @@ package body Sem_Util is
 
       return Plist;
    end Copy_Parameter_List;
+
+   --------------------------------
+   -- Corresponding_Generic_Type --
+   --------------------------------
+
+   function Corresponding_Generic_Type (T : Entity_Id) return Entity_Id is
+      Inst : Entity_Id;
+      Gen  : Entity_Id;
+      Typ  : Entity_Id;
+
+   begin
+      if not Is_Generic_Actual_Type (T) then
+         return Any_Type;
+
+      else
+         Inst := Scope (T);
+
+         if Is_Wrapper_Package (Inst) then
+            Inst := Related_Instance (Inst);
+         end if;
+
+         Gen  :=
+           Generic_Parent
+             (Specification (Unit_Declaration_Node (Inst)));
+
+         --  Generic actual has the same name as the corresponding formal
+
+         Typ := First_Entity (Gen);
+         while Present (Typ) loop
+            if Chars (Typ) = Chars (T) then
+               return Typ;
+            end if;
+
+            Next_Entity (Typ);
+         end loop;
+
+         return Any_Type;
+      end if;
+   end Corresponding_Generic_Type;
 
    --------------------
    -- Current_Entity --
@@ -5229,6 +5398,17 @@ package body Sem_Util is
                                   N_Package_Specification);
    end Has_Declarations;
 
+   -------------------
+   -- Has_Denormals --
+   -------------------
+
+   function Has_Denormals (E : Entity_Id) return Boolean is
+   begin
+      return Is_Floating_Point_Type (E)
+        and then Denorm_On_Target
+        and then not Vax_Float (E);
+   end Has_Denormals;
+
    -------------------------------------------
    -- Has_Discriminant_Dependent_Constraint --
    -------------------------------------------
@@ -5906,6 +6086,17 @@ package body Sem_Util is
          return False;
       end if;
    end Has_Private_Component;
+
+   ----------------------
+   -- Has_Signed_Zeros --
+   ----------------------
+
+   function Has_Signed_Zeros (E : Entity_Id) return Boolean is
+   begin
+      return Is_Floating_Point_Type (E)
+        and then Signed_Zeros_On_Target
+        and then not Vax_Float (E);
+   end Has_Signed_Zeros;
 
    -----------------------------
    -- Has_Static_Array_Bounds --
@@ -7719,10 +7910,12 @@ package body Sem_Util is
             when N_Function_Call =>
                return Etype (N) /= Standard_Void_Type;
 
-            --  A reference to the stream attribute Input is a function call
+            --  Attributes 'Input and 'Result produce objects
 
             when N_Attribute_Reference =>
-               return Attribute_Name (N) = Name_Input;
+               return Attribute_Name (N) = Name_Input
+                        or else
+                      Attribute_Name (N) = Name_Result;
 
             when N_Selected_Component =>
                return
@@ -12100,13 +12293,15 @@ package body Sem_Util is
       begin
          Desc := N;
 
+         --  Seems dubious that case expressions are not handled here ???
+
          P := Parent (N);
          while Present (P) loop
             if         Nkind (P) = N_If_Statement
               or else  Nkind (P) = N_Case_Statement
               or else (Nkind (P) in N_Short_Circuit
                          and then Desc = Right_Opnd (P))
-              or else (Nkind (P) = N_Conditional_Expression
+              or else (Nkind (P) = N_If_Expression
                          and then Desc /= First (Expressions (P)))
               or else  Nkind (P) = N_Exception_Handler
               or else  Nkind (P) = N_Selective_Accept
@@ -13477,7 +13672,9 @@ package body Sem_Util is
       function Has_One_Matching_Field return Boolean;
       --  Determines if Expec_Type is a record type with a single component or
       --  discriminant whose type matches the found type or is one dimensional
-      --  array whose component type matches the found type.
+      --  array whose component type matches the found type. In the case of
+      --  one discriminant, we ignore the variant parts. That's not accurate,
+      --  but good enough for the warning.
 
       ----------------------------
       -- Has_One_Matching_Field --
@@ -13519,10 +13716,10 @@ package body Sem_Util is
                if No (E) then
                   return False;
 
-               elsif (Ekind (E) /= E_Discriminant
-                       and then Ekind (E) /= E_Component)
+               elsif not Ekind_In (E, E_Discriminant, E_Component)
                  or else (Chars (E) = Name_uTag
-                           or else Chars (E) = Name_uParent)
+                            or else
+                          Chars (E) = Name_uParent)
                then
                   Next_Entity (E);
 
@@ -13534,7 +13731,10 @@ package body Sem_Util is
             if not Covers (Etype (E), Found_Type) then
                return False;
 
-            elsif Present (Next_Entity (E)) then
+            elsif Present (Next_Entity (E))
+              and then (Ekind (E) = E_Component
+                         or else Ekind (Next_Entity (E)) = E_Discriminant)
+            then
                return False;
 
             else

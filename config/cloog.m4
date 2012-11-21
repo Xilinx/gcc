@@ -22,12 +22,6 @@
 # Initialize clooglibs/clooginc according to the user input.
 AC_DEFUN([CLOOG_INIT_FLAGS],
 [
-  AC_ARG_WITH(cloog,
-    [AS_HELP_STRING(
-      [--with-cloog=PATH],
-      [Specify prefix directory for the installed CLooG-PPL package.
-       Equivalent to --with-cloog-include=PATH/include
-       plus --with-cloog-lib=PATH/lib])])
   AC_ARG_WITH([cloog-include],
     [AS_HELP_STRING(
       [--with-cloog-include=PATH],
@@ -65,18 +59,14 @@ AC_DEFUN([CLOOG_INIT_FLAGS],
   fi
   dnl If no --with-cloog flag was specified and there is in-tree ClooG
   dnl source, set up flags to use that.
-  if test "x${clooginc}" == x && test "x${clooglibs}" == x \
+  if test "x${clooginc}" = x && test "x${clooglibs}" = x \
      && test -d ${srcdir}/cloog; then
      clooglibs='-L$$r/$(HOST_SUBDIR)/cloog/'"$lt_cv_objdir"' '
      clooginc='-I$$r/$(HOST_SUBDIR)/cloog/include -I$$s/cloog/include -I'${srcdir}'/cloog/include '
   fi
 
   clooginc="-DCLOOG_INT_GMP ${clooginc}"
-  clooglibs="${clooglibs} -lcloog-isl ${isllibs}"
-
-  dnl Flags needed for CLOOG
-  AC_SUBST(clooglibs)
-  AC_SUBST(clooginc)
+  clooglibs="${clooglibs} -lcloog-isl ${isllibs} -lisl"
 ]
 )
 

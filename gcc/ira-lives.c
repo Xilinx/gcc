@@ -779,22 +779,16 @@ single_reg_class (const char *constraints, rtx op, rtx equiv_const)
 	  break;
 
 	case 'n':
-	  if (CONST_INT_P (op)
-	      || CONST_DOUBLE_AS_INT_P (op)
-	      || (equiv_const != NULL_RTX
-		  && (CONST_INT_P (equiv_const)
-		      || CONST_DOUBLE_AS_INT_P (equiv_const))))
+	  if (CONST_SCALAR_INT_P (op)
+	      || (equiv_const != NULL_RTX && CONST_SCALAR_INT_P (equiv_const)))
 	    return NO_REGS;
 	  break;
 
 	case 's':
-	  if ((CONSTANT_P (op) 
-	       && !CONST_INT_P (op) 
-	       && !CONST_DOUBLE_AS_INT_P (op))
+	  if ((CONSTANT_P (op) && !CONST_SCALAR_INT_P (op))
 	      || (equiv_const != NULL_RTX
 		  && CONSTANT_P (equiv_const)
-		  && !CONST_INT_P (equiv_const)
-		  && !CONST_DOUBLE_AS_INT_P (equiv_const)))
+		  && !CONST_SCALAR_INT_P (equiv_const)))
 	    return NO_REGS;
 	  break;
 
@@ -849,9 +843,10 @@ single_reg_class (const char *constraints, rtx op, rtx equiv_const)
 	  next_cl = (c == 'r'
 		     ? GENERAL_REGS
 		     : REG_CLASS_FROM_CONSTRAINT (c, constraints));
-	  if ((cl != NO_REGS && next_cl != cl)
-	      || (ira_class_hard_regs_num[next_cl]
-		  > ira_reg_class_max_nregs[next_cl][GET_MODE (op)]))
+	  if (cl == NO_REGS
+	      ? ira_class_singleton[next_cl][GET_MODE (op)] < 0
+	      : (ira_class_singleton[cl][GET_MODE (op)]
+		 != ira_class_singleton[next_cl][GET_MODE (op)]))
 	    return NO_REGS;
 	  cl = next_cl;
 	  break;
@@ -861,10 +856,10 @@ single_reg_class (const char *constraints, rtx op, rtx equiv_const)
 	  next_cl
 	    = single_reg_class (recog_data.constraints[c - '0'],
 				recog_data.operand[c - '0'], NULL_RTX);
-	  if ((cl != NO_REGS && next_cl != cl)
-	      || next_cl == NO_REGS
-	      || (ira_class_hard_regs_num[next_cl]
-		  > ira_reg_class_max_nregs[next_cl][GET_MODE (op)]))
+	  if (cl == NO_REGS
+	      ? ira_class_singleton[next_cl][GET_MODE (op)] < 0
+	      : (ira_class_singleton[cl][GET_MODE (op)]
+		 != ira_class_singleton[next_cl][GET_MODE (op)]))
 	    return NO_REGS;
 	  cl = next_cl;
 	  break;
@@ -939,13 +934,14 @@ ira_implicitly_set_insn_hard_regs (HARD_REG_SET *set)
 		  cl = (c == 'r'
 			? GENERAL_REGS
 			: REG_CLASS_FROM_CONSTRAINT (c, p));
-		  if (cl != NO_REGS
+		  if (cl != NO_REGS)
+		    {
 		      /* There is no register pressure problem if all of the
 			 regs in this class are fixed.  */
-		      && ira_class_hard_regs_num[cl] != 0
-		      && (ira_class_hard_regs_num[cl]
-			  <= ira_reg_class_max_nregs[cl][mode]))
-		    IOR_HARD_REG_SET (*set, reg_class_contents[cl]);
+		      int regno = ira_class_singleton[cl][mode];
+		      if (regno >= 0)
+			add_to_hard_reg_set (set, mode, regno);
+		    }
 		  break;
 		}
 	}
@@ -989,8 +985,7 @@ process_single_reg_class_operands (bool in_p, int freq)
 
 	  operand_a = ira_curr_regno_allocno_map[regno];
 	  aclass = ALLOCNO_CLASS (operand_a);
-	  if (ira_class_subset_p[cl][aclass]
-	      && ira_class_hard_regs_num[cl] != 0)
+	  if (ira_class_subset_p[cl][aclass])
 	    {
 	      /* View the desired allocation of OPERAND as:
 
@@ -1004,7 +999,8 @@ process_single_reg_class_operands (bool in_p, int freq)
 	      HOST_WIDE_INT offset;
 
 	      xmode = recog_data.operand_mode[i];
-	      xregno = ira_class_hard_regs[cl][0];
+	      xregno = ira_class_singleton[cl][xmode];
+	      gcc_assert (xregno >= 0);
 	      ymode = ALLOCNO_MODE (operand_a);
 	      offset = subreg_lowpart_offset (ymode, xmode);
 	      yregno = simplify_subreg_regno (xregno, xmode, offset, ymode);
@@ -1146,7 +1142,7 @@ process_bb_node_lives (ira_loop_tree_node_t loop_tree_node)
 	  high_pressure_start_point[ira_pressure_classes[i]] = -1;
 	}
       curr_bb_node = loop_tree_node;
-      reg_live_out = DF_LR_OUT (bb);
+      reg_live_out = df_get_live_out (bb);
       sparseset_clear (objects_live);
       REG_SET_TO_HARD_REG_SET (hard_regs_live, reg_live_out);
       AND_COMPL_HARD_REG_SET (hard_regs_live, eliminable_regset);
@@ -1456,32 +1452,32 @@ remove_some_program_points_and_update_live_ranges (void)
   int *map;
   ira_object_t obj;
   ira_object_iterator oi;
-  live_range_t r;
+  live_range_t r, prev_r, next_r;
   sbitmap born_or_dead, born, dead;
   sbitmap_iterator sbi;
   bool born_p, dead_p, prev_born_p, prev_dead_p;
   
   born = sbitmap_alloc (ira_max_point);
   dead = sbitmap_alloc (ira_max_point);
-  sbitmap_zero (born);
-  sbitmap_zero (dead);
+  bitmap_clear (born);
+  bitmap_clear (dead);
   FOR_EACH_OBJECT (obj, oi)
     for (r = OBJECT_LIVE_RANGES (obj); r != NULL; r = r->next)
       {
 	ira_assert (r->start <= r->finish);
-	SET_BIT (born, r->start);
-	SET_BIT (dead, r->finish);
+	bitmap_set_bit (born, r->start);
+	bitmap_set_bit (dead, r->finish);
       }
 
   born_or_dead = sbitmap_alloc (ira_max_point);
-  sbitmap_a_or_b (born_or_dead, born, dead);
+  bitmap_ior (born_or_dead, born, dead);
   map = (int *) ira_allocate (sizeof (int) * ira_max_point);
   n = -1;
   prev_born_p = prev_dead_p = false;
-  EXECUTE_IF_SET_IN_SBITMAP (born_or_dead, 0, i, sbi)
+  EXECUTE_IF_SET_IN_BITMAP (born_or_dead, 0, i, sbi)
     {
-      born_p = TEST_BIT (born, i);
-      dead_p = TEST_BIT (dead, i);
+      born_p = bitmap_bit_p (born, i);
+      dead_p = bitmap_bit_p (dead, i);
       if ((prev_born_p && ! prev_dead_p && born_p && ! dead_p)
 	  || (prev_dead_p && ! prev_born_p && dead_p && ! born_p))
 	map[i] = n;
@@ -1500,10 +1496,19 @@ remove_some_program_points_and_update_live_ranges (void)
   ira_max_point = n;
 
   FOR_EACH_OBJECT (obj, oi)
-    for (r = OBJECT_LIVE_RANGES (obj); r != NULL; r = r->next)
+    for (r = OBJECT_LIVE_RANGES (obj), prev_r = NULL; r != NULL; r = next_r)
       {
+	next_r = r->next;
 	r->start = map[r->start];
 	r->finish = map[r->finish];
+	if (prev_r == NULL || prev_r->start > r->finish + 1)
+	  {
+	    prev_r = r;
+	    continue;
+	  }
+	prev_r->start = r->start;
+	prev_r->next = next_r;
+	ira_finish_live_range (r);
       }
 
   ira_free (map);

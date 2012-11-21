@@ -47,7 +47,7 @@ along with GCC; see the file COPYING3.  If not see
 static bool
 reachable_at_most_once (basic_block va_arg_bb, basic_block va_start_bb)
 {
-  VEC (edge, heap) *stack = NULL;
+  vec<edge> stack = vNULL;
   edge e;
   edge_iterator ei;
   sbitmap visited;
@@ -60,17 +60,17 @@ reachable_at_most_once (basic_block va_arg_bb, basic_block va_start_bb)
     return false;
 
   visited = sbitmap_alloc (last_basic_block);
-  sbitmap_zero (visited);
+  bitmap_clear (visited);
   ret = true;
 
   FOR_EACH_EDGE (e, ei, va_arg_bb->preds)
-    VEC_safe_push (edge, heap, stack, e);
+    stack.safe_push (e);
 
-  while (! VEC_empty (edge, stack))
+  while (! stack.is_empty ())
     {
       basic_block src;
 
-      e = VEC_pop (edge, stack);
+      e = stack.pop ();
       src = e->src;
 
       if (e->flags & EDGE_COMPLEX)
@@ -91,15 +91,15 @@ reachable_at_most_once (basic_block va_arg_bb, basic_block va_start_bb)
 
       gcc_assert (src != ENTRY_BLOCK_PTR);
 
-      if (! TEST_BIT (visited, src->index))
+      if (! bitmap_bit_p (visited, src->index))
 	{
-	  SET_BIT (visited, src->index);
+	  bitmap_set_bit (visited, src->index);
 	  FOR_EACH_EDGE (e, ei, src->preds)
-	    VEC_safe_push (edge, heap, stack, e);
+	    stack.safe_push (e);
 	}
     }
 
-  VEC_free (edge, heap, stack);
+  stack.release ();
   sbitmap_free (visited);
   return ret;
 }
@@ -960,6 +960,7 @@ struct gimple_opt_pass pass_stdarg =
  {
   GIMPLE_PASS,
   "stdarg",				/* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_optimize_stdarg,			/* gate */
   execute_optimize_stdarg,		/* execute */
   NULL,					/* sub */

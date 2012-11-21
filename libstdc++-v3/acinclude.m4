@@ -169,6 +169,32 @@ AC_DEFUN([GLIBCXX_CHECK_COMPILER_FEATURES], [
 
 
 dnl
+dnl Check if the assembler used supports disabling generation of hardware
+dnl capabilities.  This is only supported by Sun as at the moment.
+dnl
+dnl Defines:
+dnl  HWCAP_FLAGS='-Wa,-nH' if possible.
+dnl
+AC_DEFUN([GLIBCXX_CHECK_ASSEMBLER_HWCAP], [
+  test -z "$HWCAP_FLAGS" && HWCAP_FLAGS=''
+
+  ac_save_CFLAGS="$CFLAGS"
+  CFLAGS="$CFLAGS -Wa,-nH"
+
+  AC_MSG_CHECKING([for as that supports -Wa,-nH])
+  AC_TRY_COMPILE([], [return 0;], [ac_hwcap_flags=yes],[ac_hwcap_flags=no])
+  if test "$ac_hwcap_flags" = "yes"; then
+    HWCAP_FLAGS="-Wa,-nH $HWCAP_FLAGS"
+  fi
+  AC_MSG_RESULT($ac_hwcap_flags)
+
+  CFLAGS="$ac_save_CFLAGS"
+
+  AC_SUBST(HWCAP_FLAGS)
+])
+
+
+dnl
 dnl If GNU ld is in use, check to see if tricky linker opts can be used.  If
 dnl the native linker is in use, all variables will be defined to something
 dnl safe (like an empty string).
@@ -660,6 +686,10 @@ if test x"$glibcxx_stylesheets" = x"yes"; then
     glibcxx_local_stylesheets=yes
     XSL_STYLE_DIR=/usr/share/xml/docbook/stylesheet/docbook-xsl-ns
   fi
+  if test -d /usr/share/xml/docbook/stylesheet/nwalsh5/current; then
+    glibcxx_local_stylesheets=yes
+    XSL_STYLE_DIR=/usr/share/xml/docbook/stylesheet/nwalsh5/current
+  fi
 fi
 AC_MSG_RESULT($glibcxx_local_stylesheets)
 
@@ -1131,6 +1161,11 @@ dnl        a large overhead for single-thread programs.
 dnl --enable-libstdcxx-time=no
 dnl --disable-libstdcxx-time
 dnl        disables the checks completely
+dnl
+dnl N.B. Darwin provides nanosleep but doesn't support the whole POSIX
+dnl Timers option, so doesn't define _POSIX_TIMERS. Because the test
+dnl below fails Darwin unconditionally defines _GLIBCXX_USE_NANOSLEEP in
+dnl os_defines.h and also defines _GLIBCXX_USE_SCHED_YIELD.
 dnl
 AC_DEFUN([GLIBCXX_ENABLE_LIBSTDCXX_TIME], [
 
@@ -1836,6 +1871,9 @@ AC_DEFUN([GLIBCXX_ENABLE_CLOCALE], [
       darwin* | freebsd*)
 	enable_clocale_flag=darwin
 	;;
+      openbsd*)
+	enable_clocale_flag=newlib
+	;;
       *)
 	if test x"$with_newlib" = x"yes"; then
 	  enable_clocale_flag=newlib
@@ -2147,7 +2185,6 @@ AC_DEFUN([GLIBCXX_ENABLE_PARALLEL], [
 
   AC_MSG_CHECKING([for parallel mode support])
   AC_MSG_RESULT([$enable_parallel])
-  GLIBCXX_CONDITIONAL(ENABLE_PARALLEL, test $enable_parallel = yes)
 ])
 
 
@@ -2313,6 +2350,31 @@ AC_DEFUN([GLIBCXX_ENABLE_HOSTED], [
   GLIBCXX_CONDITIONAL(GLIBCXX_HOSTED, test $is_hosted = yes)
   AC_DEFINE_UNQUOTED(_GLIBCXX_HOSTED, $hosted_define,
     [Define to 1 if a full hosted library is built, or 0 if freestanding.])
+])
+
+
+dnl
+dnl Check if the user wants a non-verbose library implementation.
+dnl
+dnl --disable-libstdcxx-verbose will turn off descriptive messages to
+dnl standard error on termination.
+dnl
+dnl Defines:
+dnl  _GLIBCXX_VERBOSE (always defined, either to 1 or 0)
+dnl
+AC_DEFUN([GLIBCXX_ENABLE_VERBOSE], [
+  AC_ARG_ENABLE([libstdcxx-verbose],
+    AC_HELP_STRING([--disable-libstdcxx-verbose],
+		   [disable termination messages to standard error]),,
+		   [enable_libstdcxx_verbose=yes])
+  if test x"$enable_libstdcxx_verbose" = xyes; then
+    verbose_define=1
+  else
+    AC_MSG_NOTICE([verbose termination messages are disabled])
+    verbose_define=0
+  fi
+  AC_DEFINE_UNQUOTED(_GLIBCXX_VERBOSE, $verbose_define,
+    [Define to 1 if a verbose library is built, or 0 otherwise.])
 ])
 
 
@@ -3247,10 +3309,14 @@ dnl having to write complex code (the sed commands to clean the macro
 dnl namespace are complex and fragile enough as it is).  We must also
 dnl add a relative path so that -I- is supported properly.
 dnl
+dnl Substs:
+dnl  thread_header
+dnl
 AC_DEFUN([GLIBCXX_ENABLE_THREADS], [
   AC_MSG_CHECKING([for thread model used by GCC])
   target_thread_file=`$CXX -v 2>&1 | sed -n 's/^Thread model: //p'`
   AC_MSG_RESULT([$target_thread_file])
+  GCC_AC_THREAD_HEADER([$target_thread_file])
 ])
 
 
@@ -3357,6 +3423,26 @@ AC_DEFUN([AC_LC_MESSAGES], [
 		[Define if LC_MESSAGES is available in <locale.h>.])
     fi
   ])
+])
+
+dnl
+dnl Check whether rdrand is supported in the assembler.
+AC_DEFUN([GLIBCXX_CHECK_X86_RDRAND], [
+  AC_MSG_CHECKING([for rdrand support in assembler])
+  AC_CACHE_VAL(ac_cv_x86_rdrand, [
+  ac_cv_x86_rdrand=no
+  case "$target" in
+    i?86-*-* | \
+    x86_64-*-*)
+    AC_TRY_COMPILE(, [asm("rdrand %eax");],
+		[ac_cv_x86_rdrand=yes], [ac_cv_x86_rdrand=no])
+  esac
+  ])
+  if test $ac_cv_x86_rdrand = yes; then
+    AC_DEFINE(_GLIBCXX_X86_RDRAND, 1,
+		[ Defined if as can handle rdrand. ])
+  fi
+  AC_MSG_RESULT($ac_cv_x86_rdrand)
 ])
 
 dnl
@@ -3537,3 +3623,4 @@ AC_DEFUN([GLIBCXX_ENABLE_WERROR], [
 # Macros from the top-level gcc directory.
 m4_include([../config/gc++filt.m4])
 m4_include([../config/tls.m4])
+m4_include([../config/gthr.m4])

@@ -1,5 +1,5 @@
 /* Thread edges through blocks and update the control flow and SSA graphs.
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2010, 201
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2010, 2011, 2012
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -110,7 +110,7 @@ struct el
    may have many incoming edges threaded to the same outgoing edge.  This
    can be naturally implemented with a hash table.  */
 
-struct redirection_data
+struct redirection_data : typed_free_remove<redirection_data>
 {
   /* A duplicate of B with the trailing control statement removed and which
      targets a single successor of B.  */
@@ -125,7 +125,30 @@ struct redirection_data
   /* A list of incoming edges which we want to thread to
      OUTGOING_EDGE->dest.  */
   struct el *incoming_edges;
+
+  /* hash_table support.  */
+  typedef redirection_data value_type;
+  typedef redirection_data compare_type;
+  static inline hashval_t hash (const value_type *);
+  static inline int equal (const value_type *, const compare_type *);
 };
+
+inline hashval_t
+redirection_data::hash (const value_type *p)
+{
+  edge e = p->outgoing_edge;
+  return e->dest->index;
+}
+
+inline int
+redirection_data::equal (const value_type *p1, const compare_type *p2)
+{
+  edge e1 = p1->outgoing_edge;
+  edge e2 = p2->outgoing_edge;
+  edge e3 = p1->intermediate_edge;
+  edge e4 = p2->intermediate_edge;
+  return e1 == e2 && e3 == e4;
+}
 
 /* Data structure of information to pass to hash table traversal routines.  */
 struct ssa_local_info_t
@@ -145,7 +168,7 @@ struct ssa_local_info_t
    opportunities as they are discovered.  We keep the registered
    jump threading opportunities in this vector as edge pairs
    (original_edge, target_edge).  */
-static VEC(edge,heap) *threaded_edges;
+static vec<edge> threaded_edges;
 
 /* When we start updating the CFG for threading, data necessary for jump
    threading is attached to the AUX field for the incoming edge.  Use these
@@ -217,32 +240,9 @@ create_block_for_threading (basic_block bb, struct redirection_data *rd)
   rd->dup_block->count = 0;
 }
 
-/* Hashing and equality routines for our hash table.  */
-inline hashval_t
-ssa_redirection_data_hash (const struct redirection_data *p)
-{
-  edge e = p->outgoing_edge;
-  return e->dest->index;
-}
-
-inline int
-ssa_redirection_data_eq (const struct redirection_data *p1,
-			 const struct redirection_data *p2)
-{
-  edge e1 = p1->outgoing_edge;
-  edge e2 = p2->outgoing_edge;
-  edge e3 = p1->intermediate_edge;
-  edge e4 = p2->intermediate_edge;
-
-  return e1 == e2 && e3 == e4;
-}
-
 /* Main data structure to hold information for duplicates of BB.  */
 
-static hash_table <struct redirection_data, ssa_redirection_data_hash,
-		   ssa_redirection_data_eq,
-		   typed_free_remove<struct redirection_data> >
-		  redirection_data;
+static hash_table <redirection_data> redirection_data;
 
 /* Given an outgoing edge E lookup and return its entry in our hash table.
 
@@ -363,7 +363,7 @@ create_edge_and_update_destination_phis (struct redirection_data *rd,
 
   if (rd->outgoing_edge->aux)
     {
-      e->aux = (edge *) XNEWVEC (edge, 2);
+      e->aux = XNEWVEC (edge, 2);
       THREAD_TARGET(e) = THREAD_TARGET (rd->outgoing_edge);
       THREAD_TARGET2(e) = THREAD_TARGET2 (rd->outgoing_edge);
     }
@@ -847,8 +847,15 @@ static bool
 def_split_header_continue_p (const_basic_block bb, const void *data)
 {
   const_basic_block new_header = (const_basic_block) data;
-  return (bb->loop_father == new_header->loop_father
-	  && bb != new_header);
+  const struct loop *l;
+
+  if (bb == new_header
+      || loop_depth (bb->loop_father) < loop_depth (new_header->loop_father))
+    return false;
+  for (l = bb->loop_father; l; l = loop_outer (l))
+    if (l == new_header->loop_father)
+      return true;
+  return false;
 }
 
 /* Thread jumps through the header of LOOP.  Returns true if cfg changes.
@@ -1032,17 +1039,28 @@ thread_through_loop_header (struct loop *loop, bool may_peel_loop_headers)
       nblocks = dfs_enumerate_from (header, 0, def_split_header_continue_p,
 				    bblocks, loop->num_nodes, tgt_bb);
       for (i = 0; i < nblocks; i++)
-	{
-	  remove_bb_from_loops (bblocks[i]);
-	  add_bb_to_loop (bblocks[i], loop_outer (loop));
-	}
+	if (bblocks[i]->loop_father == loop)
+	  {
+	    remove_bb_from_loops (bblocks[i]);
+	    add_bb_to_loop (bblocks[i], loop_outer (loop));
+	  }
       free (bblocks);
+
+      /* If the new header has multiple latches mark it so.  */
+      FOR_EACH_EDGE (e, ei, loop->header->preds)
+	if (e->src->loop_father == loop
+	    && e->src != loop->latch)
+	  {
+	    loop->latch = NULL;
+	    loops_state_set (LOOPS_MAY_HAVE_MULTIPLE_LATCHES);
+	  }
 
       /* Cancel remaining threading requests that would make the
 	 loop a multiple entry loop.  */
       FOR_EACH_EDGE (e, ei, header->preds)
 	{
 	  edge e2;
+
 	  if (e->aux == NULL)
 	    continue;
 
@@ -1129,14 +1147,14 @@ mark_threaded_blocks (bitmap threaded_blocks)
   edge e;
   edge_iterator ei;
 
-  for (i = 0; i < VEC_length (edge, threaded_edges); i += 3)
+  for (i = 0; i < threaded_edges.length (); i += 3)
     {
-      edge e = VEC_index (edge, threaded_edges, i);
-      edge *x = (edge *) XNEWVEC (edge, 2);
+      edge e = threaded_edges[i];
+      edge *x = XNEWVEC (edge, 2);
 
       e->aux = x;
-      THREAD_TARGET (e) = VEC_index (edge, threaded_edges, i + 1);
-      THREAD_TARGET2 (e) = VEC_index (edge, threaded_edges, i + 2);
+      THREAD_TARGET (e) = threaded_edges[i + 1];
+      THREAD_TARGET2 (e) = threaded_edges[i + 2];
       bitmap_set_bit (tmp, e->dest->index);
     }
 
@@ -1191,7 +1209,7 @@ thread_through_all_blocks (bool may_peel_loop_headers)
   /* We must know about loops in order to preserve them.  */
   gcc_assert (current_loops != NULL);
 
-  if (threaded_edges == NULL)
+  if (!threaded_edges.exists ())
     return false;
 
   threaded_blocks = BITMAP_ALLOC (NULL);
@@ -1230,8 +1248,7 @@ thread_through_all_blocks (bool may_peel_loop_headers)
 
   BITMAP_FREE (threaded_blocks);
   threaded_blocks = NULL;
-  VEC_free (edge, heap, threaded_edges);
-  threaded_edges = NULL;
+  threaded_edges.release ();
 
   if (retval)
     loops_state_set (LOOPS_NEED_FIXUP);
@@ -1255,15 +1272,15 @@ register_jump_thread (edge e, edge e2, edge e3)
   if (e2 == NULL)
     return;
 
-  if (threaded_edges == NULL)
-    threaded_edges = VEC_alloc (edge, heap, 15);
+  if (!threaded_edges.exists ())
+    threaded_edges.create (15);
 
   if (dump_file && (dump_flags & TDF_DETAILS)
       && e->dest != e2->src)
     fprintf (dump_file,
 	     "  Registering jump thread around one or more intermediate blocks\n");
 
-  VEC_safe_push (edge, heap, threaded_edges, e);
-  VEC_safe_push (edge, heap, threaded_edges, e2);
-  VEC_safe_push (edge, heap, threaded_edges, e3);
+  threaded_edges.safe_push (e);
+  threaded_edges.safe_push (e2);
+  threaded_edges.safe_push (e3);
 }

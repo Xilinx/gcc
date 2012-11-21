@@ -475,7 +475,6 @@ tree_profiling (void)
 	continue;
 
       push_cfun (DECL_STRUCT_FUNCTION (node->symbol.decl));
-      current_function_decl = node->symbol.decl;
 
       /* Local pure-const may imply need to fixup the cfg.  */
       if (execute_fixup_cfg () & TODO_cleanup_cfg)
@@ -497,8 +496,6 @@ tree_profiling (void)
 	 easy to adjust it, if and when there is some.  */
       free_dominance_info (CDI_DOMINATORS);
       free_dominance_info (CDI_POST_DOMINATORS);
-
-      current_function_decl = NULL;
       pop_cfun ();
     }
 
@@ -533,7 +530,6 @@ tree_profiling (void)
 	continue;
 
       push_cfun (DECL_STRUCT_FUNCTION (node->symbol.decl));
-      current_function_decl = node->symbol.decl;
 
       FOR_EACH_BB (bb)
 	{
@@ -550,7 +546,6 @@ tree_profiling (void)
 
       rebuild_cgraph_edges ();
 
-      current_function_decl = NULL;
       pop_cfun ();
     }
 
@@ -573,6 +568,7 @@ struct simple_ipa_opt_pass pass_ipa_tree_profile =
  {
   SIMPLE_IPA_PASS,
   "profile",  		               /* name */
+  OPTGROUP_NONE,                       /* optinfo_flags */
   gate_tree_profile_ipa,               /* gate */
   tree_profiling,                      /* execute */
   NULL,                                /* sub */

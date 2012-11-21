@@ -76,7 +76,7 @@ extern rtx final_scan_insn (rtx, FILE *, int, int, int *);
 
 /* Replace a SUBREG with a REG or a MEM, based on the thing it is a
    subreg of.  */
-extern rtx alter_subreg (rtx *);
+extern rtx alter_subreg (rtx *, bool);
 
 /* Print an operand using machine-dependent assembler syntax.  */
 extern void output_operand (rtx, int);
@@ -606,7 +606,7 @@ extern void default_elf_init_array_asm_out_constructor (rtx, int);
 extern void default_elf_fini_array_asm_out_destructor (rtx, int);
 extern int maybe_assemble_visibility (tree);
 
-extern int default_address_cost (rtx, bool);
+extern int default_address_cost (rtx, enum machine_mode, addr_space_t, bool);
 
 /* Output stack usage information.  */
 extern void output_stack_usage (void);

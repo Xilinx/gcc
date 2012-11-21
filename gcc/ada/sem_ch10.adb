@@ -164,6 +164,11 @@ package body Sem_Ch10 is
    --  an enclosing scope. Iterate over context to find child units of U_Name
    --  or of some ancestor of it.
 
+   function Is_Ancestor_Unit (U1 : Node_Id; U2 : Node_Id) return Boolean;
+   --  When compiling a unit Q descended from some parent unit P, a limited
+   --  with_clause in the context of P that names some other ancestor of Q
+   --  must not be installed because the ancestor is immediately visible.
+
    function Is_Child_Spec (Lib_Unit : Node_Id) return Boolean;
    --  Lib_Unit is a library unit which may be a spec or a body. Is_Child_Spec
    --  returns True if Lib_Unit is a library spec which is a child spec, i.e.
@@ -720,6 +725,7 @@ package body Sem_Ch10 is
          --  ignore the entire analysis effort
 
          if No (Lib_Unit) then
+            Check_Error_Detected;
             return;
 
          else
@@ -1822,7 +1828,7 @@ package body Sem_Ch10 is
                      Set_Corresponding_Stub (Unit (Comp_Unit), N);
 
                      --  Collect SCO information for loaded subunit if we are
-                     --  in the main unit).
+                     --  in the main unit.
 
                      if Generate_SCO
                        and then
@@ -2672,7 +2678,7 @@ package body Sem_Ch10 is
             --  Abandon processing in case of previous errors
 
             if No (Par_Name) then
-               pragma Assert (Serious_Errors_Detected /= 0);
+               Check_Error_Detected;
                return;
             end if;
          end loop;
@@ -3521,11 +3527,6 @@ package body Sem_Ch10 is
       --  units. The shadow entities are created when the inserted clause is
       --  analyzed. Implements Ada 2005 (AI-50217).
 
-      function Is_Ancestor_Unit (U1 : Node_Id; U2 : Node_Id) return Boolean;
-      --  When compiling a unit Q descended from some parent unit P, a limited
-      --  with_clause in the context of P that names some other ancestor of Q
-      --  must not be installed because the ancestor is immediately visible.
-
       ---------------------
       -- Check_Renamings --
       ---------------------
@@ -3794,22 +3795,6 @@ package body Sem_Ch10 is
          end if;
       end Expand_Limited_With_Clause;
 
-      ----------------------
-      -- Is_Ancestor_Unit --
-      ----------------------
-
-      function Is_Ancestor_Unit (U1 : Node_Id; U2 : Node_Id) return Boolean is
-         E1 : constant Entity_Id := Defining_Entity (Unit (U1));
-         E2 : Entity_Id;
-      begin
-         if Nkind_In (Unit (U2), N_Package_Body, N_Subprogram_Body) then
-            E2 := Defining_Entity (Unit (Library_Unit (U2)));
-            return Is_Ancestor_Package (E1, E2);
-         else
-            return False;
-         end if;
-      end Is_Ancestor_Unit;
-
    --  Start of processing for Install_Limited_Context_Clauses
 
    begin
@@ -4061,8 +4046,17 @@ package body Sem_Ch10 is
             if Nkind (Item) = N_With_Clause
               and then Private_Present (Item)
             then
+               --  If the unit is an ancestor of the current one, it is the
+               --  case of a private limited with clause on a child unit, and
+               --  the compilation of one of its descendants, In that case the
+               --  limited view is errelevant.
+
                if Limited_Present (Item) then
-                  if not Limited_View_Installed (Item) then
+                  if not Limited_View_Installed (Item)
+                    and then
+                      not Is_Ancestor_Unit (Library_Unit (Item),
+                                            Cunit (Current_Sem_Unit))
+                  then
                      Install_Limited_Withed_Unit (Item);
                   end if;
                else
@@ -5112,7 +5106,7 @@ package body Sem_Ch10 is
             --  Abandon processing in case of previous errors
 
             if No (Scope (Uname)) then
-               pragma Assert (Serious_Errors_Detected /= 0);
+               Check_Error_Detected;
                return;
             end if;
 
@@ -5268,6 +5262,22 @@ package body Sem_Ch10 is
           Has_With_Clause
             (C_Unit, Cunit_Entity (Get_Source_Unit (Non_Limited_View (T))));
    end Is_Legal_Shadow_Entity_In_Body;
+
+   ----------------------
+   -- Is_Ancestor_Unit --
+   ----------------------
+
+   function Is_Ancestor_Unit (U1 : Node_Id; U2 : Node_Id) return Boolean is
+      E1 : constant Entity_Id := Defining_Entity (Unit (U1));
+      E2 : Entity_Id;
+   begin
+      if Nkind_In (Unit (U2), N_Package_Body, N_Subprogram_Body) then
+         E2 := Defining_Entity (Unit (Library_Unit (U2)));
+         return Is_Ancestor_Package (E1, E2);
+      else
+         return False;
+      end if;
+   end Is_Ancestor_Unit;
 
    -----------------------
    -- Load_Needed_Body --

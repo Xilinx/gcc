@@ -1,6 +1,6 @@
 /* Definitions of target machine for GCC for IA-32.
    Copyright (C) 1988, 1992, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -41,51 +41,54 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 /* Redefines for option macros.  */
 
-#define TARGET_64BIT	OPTION_ISA_64BIT
-#define TARGET_MMX	OPTION_ISA_MMX
-#define TARGET_3DNOW	OPTION_ISA_3DNOW
-#define TARGET_3DNOW_A	OPTION_ISA_3DNOW_A
-#define TARGET_SSE	OPTION_ISA_SSE
-#define TARGET_SSE2	OPTION_ISA_SSE2
-#define TARGET_SSE3	OPTION_ISA_SSE3
-#define TARGET_SSSE3	OPTION_ISA_SSSE3
-#define TARGET_SSE4_1	OPTION_ISA_SSE4_1
-#define TARGET_SSE4_2	OPTION_ISA_SSE4_2
-#define TARGET_AVX	OPTION_ISA_AVX
-#define TARGET_AVX2	OPTION_ISA_AVX2
-#define TARGET_FMA	OPTION_ISA_FMA
-#define TARGET_SSE4A	OPTION_ISA_SSE4A
-#define TARGET_FMA4	OPTION_ISA_FMA4
-#define TARGET_XOP	OPTION_ISA_XOP
-#define TARGET_LWP	OPTION_ISA_LWP
-#define TARGET_ROUND	OPTION_ISA_ROUND
-#define TARGET_ABM	OPTION_ISA_ABM
-#define TARGET_BMI	OPTION_ISA_BMI
-#define TARGET_BMI2	OPTION_ISA_BMI2
-#define TARGET_LZCNT	OPTION_ISA_LZCNT
-#define TARGET_TBM	OPTION_ISA_TBM
-#define TARGET_POPCNT	OPTION_ISA_POPCNT
-#define TARGET_SAHF	OPTION_ISA_SAHF
-#define TARGET_MOVBE	OPTION_ISA_MOVBE
-#define TARGET_CRC32	OPTION_ISA_CRC32
-#define TARGET_AES	OPTION_ISA_AES
-#define TARGET_PCLMUL	OPTION_ISA_PCLMUL
-#define TARGET_CMPXCHG16B OPTION_ISA_CX16
-#define TARGET_FSGSBASE	OPTION_ISA_FSGSBASE
-#define TARGET_RDRND	OPTION_ISA_RDRND
-#define TARGET_F16C	OPTION_ISA_F16C
-#define TARGET_RTM      OPTION_ISA_RTM
-#define TARGET_HLE	OPTION_ISA_HLE
-#define TARGET_RDSEED	OPTION_ISA_RDSEED
-#define TARGET_PRFCHW	OPTION_ISA_PRFCHW
-#define TARGET_ADX	OPTION_ISA_ADX
+#define TARGET_64BIT	TARGET_ISA_64BIT
+#define TARGET_MMX	TARGET_ISA_MMX
+#define TARGET_3DNOW	TARGET_ISA_3DNOW
+#define TARGET_3DNOW_A	TARGET_ISA_3DNOW_A
+#define TARGET_SSE	TARGET_ISA_SSE
+#define TARGET_SSE2	TARGET_ISA_SSE2
+#define TARGET_SSE3	TARGET_ISA_SSE3
+#define TARGET_SSSE3	TARGET_ISA_SSSE3
+#define TARGET_SSE4_1	TARGET_ISA_SSE4_1
+#define TARGET_SSE4_2	TARGET_ISA_SSE4_2
+#define TARGET_AVX	TARGET_ISA_AVX
+#define TARGET_AVX2	TARGET_ISA_AVX2
+#define TARGET_FMA	TARGET_ISA_FMA
+#define TARGET_SSE4A	TARGET_ISA_SSE4A
+#define TARGET_FMA4	TARGET_ISA_FMA4
+#define TARGET_XOP	TARGET_ISA_XOP
+#define TARGET_LWP	TARGET_ISA_LWP
+#define TARGET_ROUND	TARGET_ISA_ROUND
+#define TARGET_ABM	TARGET_ISA_ABM
+#define TARGET_BMI	TARGET_ISA_BMI
+#define TARGET_BMI2	TARGET_ISA_BMI2
+#define TARGET_LZCNT	TARGET_ISA_LZCNT
+#define TARGET_TBM	TARGET_ISA_TBM
+#define TARGET_POPCNT	TARGET_ISA_POPCNT
+#define TARGET_SAHF	TARGET_ISA_SAHF
+#define TARGET_MOVBE	TARGET_ISA_MOVBE
+#define TARGET_CRC32	TARGET_ISA_CRC32
+#define TARGET_AES	TARGET_ISA_AES
+#define TARGET_PCLMUL	TARGET_ISA_PCLMUL
+#define TARGET_CMPXCHG16B TARGET_ISA_CX16
+#define TARGET_FSGSBASE	TARGET_ISA_FSGSBASE
+#define TARGET_RDRND	TARGET_ISA_RDRND
+#define TARGET_F16C	TARGET_ISA_F16C
+#define TARGET_RTM      TARGET_ISA_RTM
+#define TARGET_HLE	TARGET_ISA_HLE
+#define TARGET_RDSEED	TARGET_ISA_RDSEED
+#define TARGET_PRFCHW	TARGET_ISA_PRFCHW
+#define TARGET_ADX	TARGET_ISA_ADX
+#define TARGET_FXSR	TARGET_ISA_FXSR
+#define TARGET_XSAVE	TARGET_ISA_XSAVE
+#define TARGET_XSAVEOPT	TARGET_ISA_XSAVEOPT
 
-#define TARGET_LP64	OPTION_ABI_64
-#define TARGET_X32	OPTION_ABI_X32
+#define TARGET_LP64	TARGET_ABI_64
+#define TARGET_X32	TARGET_ABI_X32
 
 /* SSE4.1 defines round instructions */
 #define	OPTION_MASK_ISA_ROUND	OPTION_MASK_ISA_SSE4_1
-#define	OPTION_ISA_ROUND	((ix86_isa_flags & OPTION_MASK_ISA_ROUND) != 0)
+#define	TARGET_ISA_ROUND	((ix86_isa_flags & OPTION_MASK_ISA_ROUND) != 0)
 
 #include "config/vxworks-dummy.h"
 
@@ -251,6 +254,7 @@ extern const struct processor_costs ix86_size_cost;
 #define TARGET_AMDFAM10 (ix86_tune == PROCESSOR_AMDFAM10)
 #define TARGET_BDVER1 (ix86_tune == PROCESSOR_BDVER1)
 #define TARGET_BDVER2 (ix86_tune == PROCESSOR_BDVER2)
+#define TARGET_BDVER3 (ix86_tune == PROCESSOR_BDVER3)
 #define TARGET_BTVER1 (ix86_tune == PROCESSOR_BTVER1)
 #define TARGET_BTVER2 (ix86_tune == PROCESSOR_BTVER2)
 #define TARGET_ATOM (ix86_tune == PROCESSOR_ATOM)
@@ -310,7 +314,6 @@ enum ix86_tune_indices {
   X86_TUNE_PAD_RETURNS,
   X86_TUNE_PAD_SHORT_FUNCTION,
   X86_TUNE_EXT_80387_CONSTANTS,
-  X86_TUNE_SHORTEN_X87_SSE,
   X86_TUNE_AVOID_VECTOR_DECODE,
   X86_TUNE_PROMOTE_HIMODE_IMUL,
   X86_TUNE_SLOW_IMUL_IMM32_MEM,
@@ -327,6 +330,7 @@ enum ix86_tune_indices {
   X86_TUNE_AVX128_OPTIMAL,
   X86_TUNE_REASSOC_INT_TO_PARALLEL,
   X86_TUNE_REASSOC_FP_TO_PARALLEL,
+  X86_TUNE_GENERAL_REGS_SSE_SPILL,
 
   X86_TUNE_LAST
 };
@@ -403,7 +407,6 @@ extern unsigned char ix86_tune_features[X86_TUNE_LAST];
 	ix86_tune_features[X86_TUNE_PAD_SHORT_FUNCTION]
 #define TARGET_EXT_80387_CONSTANTS \
 	ix86_tune_features[X86_TUNE_EXT_80387_CONSTANTS]
-#define TARGET_SHORTEN_X87_SSE	ix86_tune_features[X86_TUNE_SHORTEN_X87_SSE]
 #define TARGET_AVOID_VECTOR_DECODE \
 	ix86_tune_features[X86_TUNE_AVOID_VECTOR_DECODE]
 #define TARGET_TUNE_PROMOTE_HIMODE_IMUL \
@@ -431,6 +434,8 @@ extern unsigned char ix86_tune_features[X86_TUNE_LAST];
 	ix86_tune_features[X86_TUNE_REASSOC_INT_TO_PARALLEL]
 #define TARGET_REASSOC_FP_TO_PARALLEL \
 	ix86_tune_features[X86_TUNE_REASSOC_FP_TO_PARALLEL]
+#define TARGET_GENERAL_REGS_SSE_SPILL \
+	ix86_tune_features[X86_TUNE_GENERAL_REGS_SSE_SPILL]
 
 /* Feature tests against the various architecture variations.  */
 enum ix86_arch_indices {
@@ -458,8 +463,7 @@ extern unsigned char ix86_arch_features[X86_ARCH_LAST];
 
 #define TARGET_FISTTP		(TARGET_SSE3 && TARGET_80387)
 
-extern int x86_prefetch_sse;
-
+extern unsigned char x86_prefetch_sse;
 #define TARGET_PREFETCH_SSE	x86_prefetch_sse
 
 #define ASSEMBLER_DIALECT	(ix86_asm_dialect)
@@ -611,6 +615,7 @@ enum target_cpu_default
   TARGET_CPU_DEFAULT_amdfam10,
   TARGET_CPU_DEFAULT_bdver1,
   TARGET_CPU_DEFAULT_bdver2,
+  TARGET_CPU_DEFAULT_bdver3,
   TARGET_CPU_DEFAULT_btver1,
   TARGET_CPU_DEFAULT_btver2,
 
@@ -671,9 +676,17 @@ enum target_cpu_default
 #define LONG_LONG_TYPE_SIZE 64
 #define FLOAT_TYPE_SIZE 32
 #define DOUBLE_TYPE_SIZE 64
-#define LONG_DOUBLE_TYPE_SIZE 80
+#define LONG_DOUBLE_TYPE_SIZE (TARGET_LONG_DOUBLE_64 ? 64 : 80)
 
-#define WIDEST_HARDWARE_FP_SIZE LONG_DOUBLE_TYPE_SIZE
+/* Define this to set long double type size to use in libgcc2.c, which can
+   not depend on target_flags.  */
+#ifdef __LONG_DOUBLE_64__
+#define LIBGCC2_LONG_DOUBLE_TYPE_SIZE 64
+#else
+#define LIBGCC2_LONG_DOUBLE_TYPE_SIZE 80
+#endif
+
+#define WIDEST_HARDWARE_FP_SIZE 80
 
 #if defined (TARGET_BI_ARCH) || TARGET_64BIT_DEFAULT
 #define MAX_BITS_PER_WORD 64
@@ -1000,7 +1013,7 @@ enum target_cpu_default
    applied to them.  */
 
 #define HARD_REGNO_NREGS(REGNO, MODE)					\
-  (FP_REGNO_P (REGNO) || SSE_REGNO_P (REGNO) || MMX_REGNO_P (REGNO)	\
+  (STACK_REGNO_P (REGNO) || SSE_REGNO_P (REGNO) || MMX_REGNO_P (REGNO)	\
    ? (COMPLEX_MODE_P (MODE) ? 2 : 1)					\
    : ((MODE) == XFmode							\
       ? (TARGET_64BIT ? 2 : 3)						\
@@ -1010,7 +1023,7 @@ enum target_cpu_default
 
 #define HARD_REGNO_NREGS_HAS_PADDING(REGNO, MODE)			\
   ((TARGET_128BIT_LONG_DOUBLE && !TARGET_64BIT)				\
-   ? (FP_REGNO_P (REGNO) || SSE_REGNO_P (REGNO) || MMX_REGNO_P (REGNO)	\
+   ? (STACK_REGNO_P (REGNO) || SSE_REGNO_P (REGNO) || MMX_REGNO_P (REGNO) \
       ? 0								\
       : ((MODE) == XFmode || (MODE) == XCmode))				\
    : 0)
@@ -1021,6 +1034,9 @@ enum target_cpu_default
   ((MODE) == V32QImode || (MODE) == V16HImode || (MODE) == V8SImode	\
    || (MODE) == V4DImode || (MODE) == V2TImode || (MODE) == V8SFmode	\
    || (MODE) == V4DFmode)
+
+#define VALID_AVX256_REG_OR_OI_MODE(MODE)					\
+  (VALID_AVX256_REG_MODE (MODE) || (MODE) == OImode)
 
 #define VALID_SSE2_REG_MODE(MODE)					\
   ((MODE) == V16QImode || (MODE) == V8HImode || (MODE) == V2DFmode	\
@@ -1329,11 +1345,11 @@ enum reg_class
 #define REX_INT_REGNO_P(N) \
   IN_RANGE ((N), FIRST_REX_INT_REG, LAST_REX_INT_REG)
 
-#define FP_REG_P(X) (REG_P (X) && FP_REGNO_P (REGNO (X)))
-#define FP_REGNO_P(N) IN_RANGE ((N), FIRST_STACK_REG, LAST_STACK_REG)
+#define STACK_REG_P(X) (REG_P (X) && STACK_REGNO_P (REGNO (X)))
+#define STACK_REGNO_P(N) IN_RANGE ((N), FIRST_STACK_REG, LAST_STACK_REG)
 
 #define ANY_FP_REG_P(X) (REG_P (X) && ANY_FP_REGNO_P (REGNO (X)))
-#define ANY_FP_REGNO_P(N) (FP_REGNO_P (N) || SSE_REGNO_P (N))
+#define ANY_FP_REGNO_P(N) (STACK_REGNO_P (N) || SSE_REGNO_P (N))
 
 #define X87_FLOAT_MODE_P(MODE)	\
   (TARGET_80387 && ((MODE) == SFmode || (MODE) == DFmode || (MODE) == XFmode))
@@ -1358,9 +1374,6 @@ enum reg_class
 
 #define MMX_REG_P(X) (REG_P (X) && MMX_REGNO_P (REGNO (X)))
 #define MMX_REGNO_P(N) IN_RANGE ((N), FIRST_MMX_REG, LAST_MMX_REG)
-
-#define STACK_REG_P(X) (REG_P (X) && STACK_REGNO_P (REGNO (X)))
-#define STACK_REGNO_P(N) IN_RANGE ((N), FIRST_STACK_REG, LAST_STACK_REG)
 
 #define STACK_TOP_P(X) (REG_P (X) && REGNO (X) == FIRST_STACK_REG)
 
@@ -1816,6 +1829,10 @@ do {							\
 #define BRANCH_COST(speed_p, predictable_p) \
   (!(speed_p) ? 2 : (predictable_p) ? 0 : ix86_branch_cost)
 
+/* An integer expression for the size in bits of the largest integer machine
+   mode that should actually be used.  We allow pairs of registers.  */
+#define MAX_FIXED_MODE_SIZE GET_MODE_BITSIZE (TARGET_64BIT ? TImode : DImode)
+
 /* Define this macro as a C expression which is nonzero if accessing
    less than a word of memory (i.e. a `char' or a `short') is no
    faster than accessing a word of memory, i.e., if such access
@@ -2084,6 +2101,7 @@ enum processor_type
   PROCESSOR_AMDFAM10,
   PROCESSOR_BDVER1,
   PROCESSOR_BDVER2,
+  PROCESSOR_BDVER3,
   PROCESSOR_BTVER1,
   PROCESSOR_BTVER2,
   PROCESSOR_ATOM,
@@ -2127,7 +2145,8 @@ enum ix86_fpcmp_strategy {
 
 enum ix86_entity
 {
-  I387_TRUNC = 0,
+  AVX_U128 = 0,
+  I387_TRUNC,
   I387_FLOOR,
   I387_CEIL,
   I387_MASK_PM,
@@ -2136,14 +2155,20 @@ enum ix86_entity
 
 enum ix86_stack_slot
 {
-  SLOT_VIRTUAL = 0,
-  SLOT_TEMP,
+  SLOT_TEMP = 0,
   SLOT_CW_STORED,
   SLOT_CW_TRUNC,
   SLOT_CW_FLOOR,
   SLOT_CW_CEIL,
   SLOT_CW_MASK_PM,
   MAX_386_STACK_LOCALS
+};
+
+enum avx_u128_state
+{
+  AVX_U128_CLEAN,
+  AVX_U128_DIRTY,
+  AVX_U128_ANY
 };
 
 /* Define this macro if the port needs extra instructions inserted
@@ -2161,15 +2186,33 @@ enum ix86_stack_slot
    refer to the mode-switched entity in question.  */
 
 #define NUM_MODES_FOR_MODE_SWITCHING \
-   { I387_CW_ANY, I387_CW_ANY, I387_CW_ANY, I387_CW_ANY }
+  { AVX_U128_ANY, I387_CW_ANY, I387_CW_ANY, I387_CW_ANY, I387_CW_ANY }
 
 /* ENTITY is an integer specifying a mode-switched entity.  If
    `OPTIMIZE_MODE_SWITCHING' is defined, you must define this macro to
    return an integer value not larger than the corresponding element
    in `NUM_MODES_FOR_MODE_SWITCHING', to denote the mode that ENTITY
-   must be switched into prior to the execution of INSN. */
+   must be switched into prior to the execution of INSN.  */
 
 #define MODE_NEEDED(ENTITY, I) ix86_mode_needed ((ENTITY), (I))
+
+/* If this macro is defined, it is evaluated for every INSN during
+   mode switching.  It determines the mode that an insn results in (if
+   different from the incoming mode).  */
+
+#define MODE_AFTER(ENTITY, MODE, I) ix86_mode_after ((ENTITY), (MODE), (I))
+
+/* If this macro is defined, it is evaluated for every ENTITY that
+   needs mode switching.  It should evaluate to an integer, which is
+   a mode that ENTITY is assumed to be switched to at function entry.  */
+
+#define MODE_ENTRY(ENTITY) ix86_mode_entry (ENTITY)
+
+/* If this macro is defined, it is evaluated for every ENTITY that
+   needs mode switching.  It should evaluate to an integer, which is
+   a mode that ENTITY is assumed to be switched to at function exit.  */
+
+#define MODE_EXIT(ENTITY) ix86_mode_exit (ENTITY)
 
 /* This macro specifies the order in which modes for ENTITY are
    processed.  0 is the highest priority.  */
@@ -2180,11 +2223,8 @@ enum ix86_stack_slot
    is the set of hard registers live at the point where the insn(s)
    are to be inserted.  */
 
-#define EMIT_MODE_SET(ENTITY, MODE, HARD_REGS_LIVE) 			\
-  ((MODE) != I387_CW_ANY && (MODE) != I387_CW_UNINITIALIZED		\
-   ? emit_i387_cw_initialization (MODE), 0				\
-   : 0)
-
+#define EMIT_MODE_SET(ENTITY, MODE, HARD_REGS_LIVE) \
+  ix86_emit_mode_set ((ENTITY), (MODE), (HARD_REGS_LIVE))
 
 /* Avoid renaming of stack registers, as doing so in combination with
    scheduling just increases amount of live registers at time and in
@@ -2192,8 +2232,7 @@ enum ix86_stack_slot
 
    ??? Maybe Pentium chips benefits from renaming, someone can try....  */
 
-#define HARD_REGNO_RENAME_OK(SRC, TARGET)  \
-  (! IN_RANGE ((SRC), FIRST_STACK_REG, LAST_STACK_REG))
+#define HARD_REGNO_RENAME_OK(SRC, TARGET) !STACK_REGNO_P (SRC)
 
 
 #define FASTCALL_PREFIX '@'
@@ -2285,21 +2324,6 @@ struct GTY(()) machine_function {
   /* If true, the current function has a STATIC_CHAIN is placed on the
      stack below the return address.  */
   BOOL_BITFIELD static_chain_on_stack : 1;
-
-  /* Nonzero if caller passes 256bit AVX modes.  */
-  BOOL_BITFIELD caller_pass_avx256_p : 1;
-
-  /* Nonzero if caller returns 256bit AVX modes.  */
-  BOOL_BITFIELD caller_return_avx256_p : 1;
-
-  /* Nonzero if the current callee passes 256bit AVX modes.  */
-  BOOL_BITFIELD callee_pass_avx256_p : 1;
-
-  /* Nonzero if the current callee returns 256bit AVX modes.  */
-  BOOL_BITFIELD callee_return_avx256_p : 1;
-
-  /* Nonzero if rescan vzerouppers in the current function is needed.  */
-  BOOL_BITFIELD rescan_vzeroupper_p : 1;
 
   /* During prologue/epilogue generation, the current frame state.
      Otherwise, the frame state at the end of the prologue.  */

@@ -132,6 +132,9 @@ extern rtx default_static_chain (const_tree, bool);
 extern void default_trampoline_init (rtx, tree, rtx);
 extern int default_return_pops_args (tree, tree, int);
 extern reg_class_t default_branch_target_register_class (void);
+extern bool default_lra_p (void);
+extern int default_register_priority (int);
+extern bool default_different_addr_displacement_p (void);
 extern reg_class_t default_secondary_reload (bool, rtx, reg_class_t,
 					     enum machine_mode,
 					     secondary_reload_info *);
@@ -142,7 +145,7 @@ extern tree default_mangle_decl_assembler_name (tree, tree);
 extern tree default_emutls_var_fields (tree, tree *);
 extern tree default_emutls_var_init (tree, tree, tree);
 extern bool default_hard_regno_scratch_ok (unsigned int);
-extern bool default_mode_dependent_address_p (const_rtx addr);
+extern bool default_mode_dependent_address_p (const_rtx, addr_space_t);
 extern bool default_target_option_valid_attribute_p (tree, tree, tree, int);
 extern bool default_target_option_pragma_parse (tree, tree);
 extern bool default_target_can_inline_p (tree, tree);
@@ -189,3 +192,4 @@ extern const char *default_pch_valid_p (const void *, size_t);
 
 extern void default_asm_output_ident_directive (const char*);
 
+extern bool default_member_type_forces_blk (const_tree, enum machine_mode);

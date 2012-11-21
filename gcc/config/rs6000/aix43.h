@@ -26,7 +26,7 @@
 do {									\
   if (TARGET_64BIT && ! TARGET_POWERPC64)				\
     {									\
-      target_flags |= MASK_POWERPC64;					\
+      rs6000_isa_flags |= OPTION_MASK_POWERPC64;			\
       warning (0, "-maix64 requires PowerPC64 architecture remain enabled"); \
     }									\
   if (TARGET_SOFT_FLOAT && TARGET_LONG_DOUBLE_128)			\
@@ -49,10 +49,8 @@ do {									\
 #undef ASM_CPU_SPEC
 #define ASM_CPU_SPEC \
 "%{!mcpu*: %{!maix64: \
-  %{mpowerpc*: %{!mpowerpc64: -mppc}} \
-  %{mpowerpc64: -mppc64} \
-  %{!mpower*: %{!mpowerpc*: %(asm_default)}}}} \
-%{mcpu=common: -mcom} \
+  %{!mpowerpc64: %(asm_default)} \
+  %{mpowerpc64: -mppc64}}} \
 %{mcpu=power3: -m620} \
 %{mcpu=power4: -m620} \
 %{mcpu=powerpc: -mppc} \
@@ -67,7 +65,7 @@ do {									\
 %{mcpu=630: -m620}"
 
 #undef	ASM_DEFAULT_SPEC
-#define ASM_DEFAULT_SPEC "-mcom"
+#define ASM_DEFAULT_SPEC "-mppc"
 
 #undef TARGET_OS_CPP_BUILTINS
 #define TARGET_OS_CPP_BUILTINS()     \
@@ -95,7 +93,7 @@ do {									\
    %{pthread: -D_THREAD_SAFE}"
 
 #undef TARGET_DEFAULT
-#define TARGET_DEFAULT MASK_NEW_MNEMONICS
+#define TARGET_DEFAULT 0
 
 #undef PROCESSOR_DEFAULT
 #define PROCESSOR_DEFAULT PROCESSOR_PPC604e
@@ -143,12 +141,6 @@ do {									\
 
 #undef PTRDIFF_TYPE
 #define PTRDIFF_TYPE "long int"
-
-/* AIX 4 uses PowerPC nop (ori 0,0,0) instruction as call glue for PowerPC
-   and "cror 31,31,31" for POWER architecture.  */
-
-#undef RS6000_CALL_GLUE
-#define RS6000_CALL_GLUE "{cror 31,31,31|nop}"
 
 /* AIX 4.2 and above provides initialization and finalization function
    support from linker command line.  */

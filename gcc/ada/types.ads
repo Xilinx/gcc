@@ -703,33 +703,40 @@ package Types is
    --    4.  Add a new Do_xxx_Check flag to Sinfo (if required)
    --    5.  Add appropriate checks for the new test
 
-   --  The following provides precise details on the mode used to check
-   --  intermediate overflows in expressions for signed integer arithmetic.
+   --  The following provides precise details on the mode used to generate
+   --  code for intermediate overflows in expressions for signed integer
+   --  arithmetic (and how to generate overflow checks if enabled). Note
+   --  that this only affects handling of intermediate results. The final
+   --  result must always fit within the target range, and if overflow
+   --  checking is enabled, the check on the final result is against this
+   --  target range.
 
-   type Overflow_Check_Type is
-     (Suppress,
-      --  Intermediate overflow suppressed. If an arithmetic operation creates
-      --  an overflow, no exception is raised, and the program is erroneous.
+   type Overflow_Check_Type is (
+      Not_Set,
+      --  Dummy value used during initialization process to show that the
+      --  corresponding value has not yet been initialized.
 
-      Check_All,
-      --  All intermediate operations are checked. If the result of any
-      --  arithmetic operation gives a result outside the range of the base
-      --  type, then a Constraint_Error exception is raised.
+      Strict,
+      --  Operations are done in the base type of the subexpression. If
+      --  overflow checks are enabled, then the check is against the range
+      --  of this base type.
 
-      Minimize,
-      --  Where appropriate, arithmetic operations are performed with an
-      --  extended range, using Long_Long_Integer if necessary. As long as
-      --  the result fits in this extended range, then no exception is raised
-      --  and computation continues with the extended result. The final value
-      --  of an expression must fit in the base type of the whole expression.
-      --  If an intermediate result is outside the range of Long_Long_Integer
-      --  then a Constraint_Error exception is raised.
+      Minimized,
+      --  Where appropriate, intermediate arithmetic operations are performed
+      --  with an extended range, using Long_Long_Integer if necessary. If
+      --  overflow checking is enabled, then the check is against the range
+      --  of Long_Long_Integer.
 
-      Eliminate);
+      Eliminated);
       --  In this mode arbitrary precision arithmetic is used as needed to
-      --  ensure that it is impossible for intermediate arithmetic to cause
-      --  an overflow. Again the final value of an expression must fit in
-      --  the base type of the whole expression.
+      --  ensure that it is impossible for intermediate arithmetic to cause an
+      --  overflow. In this mode, intermediate expressions are not affected by
+      --  the overflow checking mode, since overflows are eliminated.
+
+   subtype Minimized_Or_Eliminated is
+     Overflow_Check_Type range Minimized .. Eliminated;
+   --  Define subtype so that clients don't need to know ordering. Note that
+   --  Overflow_Check_Type is not marked as an ordered enumeration type.
 
    --  The following structure captures the state of check suppression or
    --  activation at a particular point in the program execution.
@@ -739,19 +746,15 @@ package Types is
       --  Indicates suppression status of each possible check
 
       Overflow_Checks_General : Overflow_Check_Type;
-      --  This field is relevant only if Suppress (Overflow_Check) is False.
-      --  It indicates the mode of overflow checking to be applied to general
-      --  expressions outside assertions.
+      --  This field indicates the mode for handling code generation and
+      --  overflow checking (if enabled) for intermediate expression values.
+      --  This applies to general expressions outside assertions.
 
       Overflow_Checks_Assertions : Overflow_Check_Type;
-      --  This field is relevant only if Suppress (Overflow_Check) is False.
-      --  It indicates the mode of overflow checking to be applied to any
-      --  expressions occuring inside assertions.
+      --  This field indicates the mode for handling code generation and
+      --  overflow checking (if enabled) for intermediate expression values.
+      --  This applies to any expression occuring inside assertions.
    end record;
-
-   Suppress_All : constant Suppress_Record :=
-                    ((others => True), Suppress, Suppress);
-   --  Constant used to initialize Suppress_Record value to all suppressed.
 
    -----------------------------------
    -- Global Exception Declarations --

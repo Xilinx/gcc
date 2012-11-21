@@ -1964,11 +1964,11 @@ package body Layout is
          pragma Warnings (Off, SO_Ref);
 
          RM_Siz_Expr : Node_Id := Empty;
-         --  Expression for the evolving RM_Siz value. This is typically a
-         --  conditional expression which involves tests of discriminant values
-         --  that are formed as references to the entity V. At the end of
-         --  scanning all the components, a suitable function is constructed
-         --  in which V is the parameter.
+         --  Expression for the evolving RM_Siz value. This is typically an if
+         --  expression which involves tests of discriminant values that are
+         --  formed as references to the entity V. At the end of scanning all
+         --  the components, a suitable function is constructed in which V is
+         --  the parameter.
 
          -----------------------
          -- Local Subprograms --
@@ -2212,7 +2212,7 @@ package body Layout is
                         end if;
 
                         RM_Siz_Expr :=
-                          Make_Conditional_Expression (Loc,
+                          Make_If_Expression (Loc,
                             Expressions =>
                               New_List
                                 (Dtest, Bits_To_SU (RM_SizV), RM_Siz_Expr));
@@ -2448,6 +2448,7 @@ package body Layout is
             and then
               Nkind (Type_Definition (Parent (Desig_Type)))
                  = N_Unconstrained_Array_Definition
+            and then not Debug_Flag_6
          then
             Init_Size (E, 2 * System_Address_Size);
 
@@ -2881,7 +2882,12 @@ package body Layout is
         and then Is_Packed (E)
         and then not Is_Atomic (E)
       then
-         Align := 1;
+         if not Size_Known_At_Compile_Time (E) then
+            Error_Msg_N ("Optimize_Alignment has no effect for &", E);
+            Error_Msg_N ("\pragma is ignored for variable length record?", E);
+         else
+            Align := 1;
+         end if;
 
       --  Not a record, or not packed
 
@@ -3118,6 +3124,19 @@ package body Layout is
 
          if Esize (E) / SSU > Ttypes.Maximum_Alignment then
             S := Ttypes.Maximum_Alignment;
+
+         --  If this is an access type and the target doesn't have strict
+         --  alignment and we are not doing front end layout, then cap the
+         --  alignment to that of a regular access type. This will avoid
+         --  giving fat pointers twice the usual alignment for no practical
+         --  benefit since the misalignment doesn't really matter.
+
+         elsif Is_Access_Type (E)
+           and then not Target_Strict_Alignment
+           and then not Frontend_Layout_On_Target
+         then
+            S := System_Address_Size / SSU;
+
          else
             S := UI_To_Int (Esize (E)) / SSU;
          end if;

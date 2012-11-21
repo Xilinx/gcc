@@ -45,9 +45,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "data-streamer.h"
 #include "tree-streamer.h"
 #include "gcov-io.h"
+#include "tree-pass.h"
 
 static void output_cgraph_opt_summary (void);
-static void input_cgraph_opt_summary (VEC (symtab_node, heap) * nodes);
+static void input_cgraph_opt_summary (vec<symtab_node>  nodes);
 
 /* Number of LDPR values known to GCC.  */
 #define LDPR_NUM_KNOWN (LDPR_PREVAILING_DEF_IRONLY_EXP + 1)
@@ -72,17 +73,18 @@ enum LTO_symtab_tags
   LTO_symtab_last_tag
 };
 
-/* Create a new symtab encoder.  */
+/* Create a new symtab encoder.
+   if FOR_INPUT, the encoder allocate only datastructures needed
+   to read the symtab.  */
 
 lto_symtab_encoder_t
-lto_symtab_encoder_new (void)
+lto_symtab_encoder_new (bool for_input)
 {
   lto_symtab_encoder_t encoder = XCNEW (struct lto_symtab_encoder_d);
-  encoder->map = pointer_map_create ();
-  encoder->nodes = NULL;
-  encoder->body = pointer_set_create ();
-  encoder->initializer = pointer_set_create ();
-  encoder->in_partition = pointer_set_create ();
+
+  if (!for_input)
+    encoder->map = pointer_map_create ();
+  encoder->nodes.create (0);
   return encoder;
 }
 
@@ -92,11 +94,9 @@ lto_symtab_encoder_new (void)
 void
 lto_symtab_encoder_delete (lto_symtab_encoder_t encoder)
 {
-   VEC_free (symtab_node, heap, encoder->nodes);
-   pointer_map_destroy (encoder->map);
-   pointer_set_destroy (encoder->body);
-   pointer_set_destroy (encoder->initializer);
-   pointer_set_destroy (encoder->in_partition);
+   encoder->nodes.release ();
+   if (encoder->map)
+     pointer_map_destroy (encoder->map);
    free (encoder);
 }
 
@@ -112,30 +112,64 @@ lto_symtab_encoder_encode (lto_symtab_encoder_t encoder,
   int ref;
   void **slot;
 
-  slot = pointer_map_contains (encoder->map, node);
-  if (!slot)
+  if (!encoder->map)
     {
-      ref = VEC_length (symtab_node, encoder->nodes);
-      slot = pointer_map_insert (encoder->map, node);
-      *slot = (void *) (intptr_t) ref;
-      VEC_safe_push (symtab_node, heap, encoder->nodes, node);
+      lto_encoder_entry entry = {node, false, false, false};
+
+      ref = encoder->nodes.length ();
+      encoder->nodes.safe_push (entry);
+      return ref;
+    }
+
+  slot = pointer_map_contains (encoder->map, node);
+  if (!slot || !*slot)
+    {
+      lto_encoder_entry entry = {node, false, false, false};
+      ref = encoder->nodes.length ();
+      if (!slot)
+        slot = pointer_map_insert (encoder->map, node);
+      *slot = (void *) (intptr_t) (ref + 1);
+      encoder->nodes.safe_push (entry);
     }
   else
-    ref = (int) (intptr_t) *slot;
+    ref = (size_t) *slot - 1;
 
   return ref;
 }
 
+/* Remove NODE from encoder.  */
 
-/* Look up NODE in encoder.  Return NODE's reference if it has been encoded
-   or LCC_NOT_FOUND if it is not there.  */
-
-int
-lto_symtab_encoder_lookup (lto_symtab_encoder_t encoder,
-			   symtab_node node)
+bool
+lto_symtab_encoder_delete_node (lto_symtab_encoder_t encoder,
+			        symtab_node node)
 {
-  void **slot = pointer_map_contains (encoder->map, node);
-  return (slot ? (int) (intptr_t) *slot : LCC_NOT_FOUND);
+  void **slot, **last_slot;
+  int index;
+  lto_encoder_entry last_node;
+
+  slot = pointer_map_contains (encoder->map, node);
+  if (slot == NULL || !*slot)
+    return false;
+
+  index = (size_t) *slot - 1;
+  gcc_checking_assert (encoder->nodes[index].node == node);
+
+  /* Remove from vector. We do this by swapping node with the last element
+     of the vector.  */
+  last_node = encoder->nodes.pop ();
+  if (last_node.node != node)
+    {
+      last_slot = pointer_map_contains (encoder->map, last_node.node);
+      gcc_checking_assert (last_slot && *last_slot);
+      *last_slot = (void *)(size_t) (index + 1);
+
+      /* Move the last element to the original spot of NODE.  */
+      encoder->nodes[index] = last_node;
+    }
+
+  /* Remove element from hash table.  */
+  *slot = NULL;
+  return true;
 }
 
 
@@ -145,7 +179,8 @@ bool
 lto_symtab_encoder_encode_body_p (lto_symtab_encoder_t encoder,
 				  struct cgraph_node *node)
 {
-  return pointer_set_contains (encoder->body, node);
+  int index = lto_symtab_encoder_lookup (encoder, (symtab_node)node);
+  return encoder->nodes[index].body;
 }
 
 /* Return TRUE if we should encode body of NODE (if any).  */
@@ -154,7 +189,9 @@ static void
 lto_set_symtab_encoder_encode_body (lto_symtab_encoder_t encoder,
 				    struct cgraph_node *node)
 {
-  pointer_set_insert (encoder->body, node);
+  int index = lto_symtab_encoder_encode (encoder, (symtab_node)node);
+  gcc_checking_assert (encoder->nodes[index].node == (symtab_node)node);
+  encoder->nodes[index].body = true;
 }
 
 /* Return TRUE if we should encode initializer of NODE (if any).  */
@@ -163,7 +200,10 @@ bool
 lto_symtab_encoder_encode_initializer_p (lto_symtab_encoder_t encoder,
 					 struct varpool_node *node)
 {
-  return pointer_set_contains (encoder->initializer, node);
+  int index = lto_symtab_encoder_lookup (encoder, (symtab_node)node);
+  if (index == LCC_NOT_FOUND)
+    return false;
+  return encoder->nodes[index].initializer;
 }
 
 /* Return TRUE if we should encode initializer of NODE (if any).  */
@@ -172,7 +212,8 @@ static void
 lto_set_symtab_encoder_encode_initializer (lto_symtab_encoder_t encoder,
 					   struct varpool_node *node)
 {
-  pointer_set_insert (encoder->initializer, node);
+  int index = lto_symtab_encoder_lookup (encoder, (symtab_node)node);
+  encoder->nodes[index].initializer = true;
 }
 
 /* Return TRUE if we should encode initializer of NODE (if any).  */
@@ -181,7 +222,10 @@ bool
 lto_symtab_encoder_in_partition_p (lto_symtab_encoder_t encoder,
 				   symtab_node node)
 {
-  return pointer_set_contains (encoder->in_partition, node);
+  int index = lto_symtab_encoder_lookup (encoder, (symtab_node)node);
+  if (index == LCC_NOT_FOUND)
+    return false;
+  return encoder->nodes[index].in_partition;
 }
 
 /* Return TRUE if we should encode body of NODE (if any).  */
@@ -190,8 +234,8 @@ void
 lto_set_symtab_encoder_in_partition (lto_symtab_encoder_t encoder,
 				     symtab_node node)
 {
-  lto_symtab_encoder_encode (encoder, (symtab_node)node);
-  pointer_set_insert (encoder->in_partition, node);
+  int index = lto_symtab_encoder_encode (encoder, (symtab_node)node);
+  encoder->nodes[index].in_partition = true;
 }
 
 /* Output the cgraph EDGE to OB using ENCODER.  */
@@ -330,6 +374,8 @@ lto_output_node (struct lto_simple_output_block *ob, struct cgraph_node *node,
   intptr_t ref;
   bool in_other_partition = false;
   struct cgraph_node *clone_of;
+  struct ipa_opt_pass_d *pass;
+  int i;
 
   boundary_p = !lto_symtab_encoder_in_partition_p (encoder, (symtab_node)node);
 
@@ -384,6 +430,11 @@ lto_output_node (struct lto_simple_output_block *ob, struct cgraph_node *node,
   lto_output_fn_decl_index (ob->decl_state, ob->main_stream, node->symbol.decl);
   streamer_write_hwi_stream (ob->main_stream, node->count);
   streamer_write_hwi_stream (ob->main_stream, node->count_materialization_scale);
+
+  streamer_write_hwi_stream (ob->main_stream,
+			     node->ipa_transforms_to_apply.length ());
+  FOR_EACH_VEC_ELT (node->ipa_transforms_to_apply, i, pass)
+    streamer_write_hwi_stream (ob->main_stream, pass->pass.static_pass_number);
 
   if (tag == LTO_symtab_analyzed_node)
     {
@@ -555,38 +606,6 @@ output_profile_summary (struct lto_simple_output_block *ob)
     streamer_write_uhwi_stream (ob->main_stream, 0);
 }
 
-/* Add NODE into encoder as well as nodes it is cloned from.
-   Do it in a way so clones appear first.  */
-
-static void
-add_node_to (lto_symtab_encoder_t encoder, struct cgraph_node *node,
-	     bool include_body)
-{
-  if (node->clone_of)
-    add_node_to (encoder, node->clone_of, include_body);
-  else if (include_body)
-    lto_set_symtab_encoder_encode_body (encoder, node);
-  lto_symtab_encoder_encode (encoder, (symtab_node)node);
-}
-
-/* Add all references in LIST to encoders.  */
-
-static void
-add_references (lto_symtab_encoder_t encoder,
-		struct ipa_ref_list *list)
-{
-  int i;
-  struct ipa_ref *ref;
-  for (i = 0; ipa_ref_list_reference_iterate (list, i, ref); i++)
-    if (symtab_function_p (ref->referred))
-      add_node_to (encoder, ipa_ref_node (ref), false);
-    else
-      {
-	struct varpool_node *vnode = ipa_ref_varpool_node (ref);
-        lto_symtab_encoder_encode (encoder, (symtab_node)vnode);
-      }
-}
-
 /* Output all callees or indirect outgoing edges.  EDGE must be the first such
    edge.  */
 
@@ -641,32 +660,69 @@ output_refs (lto_symtab_encoder_t encoder)
   lto_destroy_simple_output_block (ob);
 }
 
-/* Find out all cgraph and varpool nodes we want to encode in current unit
-   and insert them to encoders.  */
-void
-compute_ltrans_boundary (struct lto_out_decl_state *state,
-			 cgraph_node_set set, varpool_node_set vset)
+/* Add NODE into encoder as well as nodes it is cloned from.
+   Do it in a way so clones appear first.  */
+
+static void
+add_node_to (lto_symtab_encoder_t encoder, struct cgraph_node *node,
+	     bool include_body)
+{
+  if (node->clone_of)
+    add_node_to (encoder, node->clone_of, include_body);
+  else if (include_body)
+    lto_set_symtab_encoder_encode_body (encoder, node);
+  lto_symtab_encoder_encode (encoder, (symtab_node)node);
+}
+
+/* Add all references in LIST to encoders.  */
+
+static void
+add_references (lto_symtab_encoder_t encoder,
+		struct ipa_ref_list *list)
+{
+  int i;
+  struct ipa_ref *ref;
+  for (i = 0; ipa_ref_list_reference_iterate (list, i, ref); i++)
+    if (is_a <cgraph_node> (ref->referred))
+      add_node_to (encoder, ipa_ref_node (ref), false);
+    else
+      lto_symtab_encoder_encode (encoder, ref->referred);
+}
+
+/* Find all symbols we want to stream into given partition and insert them
+   to encoders.
+
+   The function actually replaces IN_ENCODER by new one.  The reason is that
+   streaming code needs clone's origin to be streamed before clone.  This
+   means that we need to insert the nodes in specific order.  This order is
+   ignored by the partitioning logic earlier.  */
+
+lto_symtab_encoder_t 
+compute_ltrans_boundary (lto_symtab_encoder_t in_encoder)
 {
   struct cgraph_node *node;
-  cgraph_node_set_iterator csi;
-  varpool_node_set_iterator vsi;
   struct cgraph_edge *edge;
   int i;
   lto_symtab_encoder_t encoder;
+  lto_symtab_encoder_iterator lsei;
 
-  encoder = state->symtab_node_encoder = lto_symtab_encoder_new ();
+  encoder = lto_symtab_encoder_new (false);
 
-  /* Go over all the nodes in SET and assign references.  */
-  for (csi = csi_start (set); !csi_end_p (csi); csi_next (&csi))
+  /* Go over all entries in the IN_ENCODER and duplicate them to
+     ENCODER. At the same time insert masters of clones so
+     every master appears before clone.  */
+  for (lsei = lsei_start_function_in_partition (in_encoder);
+       !lsei_end_p (lsei); lsei_next_function_in_partition (&lsei))
     {
-      node = csi_node (csi);
+      node = lsei_cgraph_node (lsei);
       add_node_to (encoder, node, true);
       lto_set_symtab_encoder_in_partition (encoder, (symtab_node)node);
       add_references (encoder, &node->symbol.ref_list);
     }
-  for (vsi = vsi_start (vset); !vsi_end_p (vsi); vsi_next (&vsi))
+  for (lsei = lsei_start_variable_in_partition (in_encoder);
+       !lsei_end_p (lsei); lsei_next_variable_in_partition (&lsei))
     {
-      struct varpool_node *vnode = vsi_node (vsi);
+      struct varpool_node *vnode = lsei_varpool_node (lsei);
       gcc_assert (!vnode->alias || vnode->alias_of);
       lto_set_symtab_encoder_in_partition (encoder, (symtab_node)vnode);
       lto_set_symtab_encoder_encode_initializer (encoder, vnode);
@@ -678,9 +734,8 @@ compute_ltrans_boundary (struct lto_out_decl_state *state,
   for (i = 0; i < lto_symtab_encoder_size (encoder); i++)
     {
       symtab_node node = lto_symtab_encoder_deref (encoder, i);
-      if (symtab_variable_p (node))
+      if (varpool_node *vnode = dyn_cast <varpool_node> (node))
 	{
-	  struct varpool_node *vnode = varpool (node);
 	  if (DECL_INITIAL (vnode->symbol.decl)
 	      && !lto_symtab_encoder_encode_initializer_p (encoder,
 							   vnode)
@@ -689,20 +744,19 @@ compute_ltrans_boundary (struct lto_out_decl_state *state,
 	      lto_set_symtab_encoder_encode_initializer (encoder, vnode);
 	      add_references (encoder, &vnode->symbol.ref_list);
 	    }
-	  else if (vnode->alias || vnode->alias_of)
-	    add_references (encoder, &vnode->symbol.ref_list);
        }
     }
 
   /* Go over all the nodes again to include callees that are not in
      SET.  */
-  for (csi = csi_start (set); !csi_end_p (csi); csi_next (&csi))
+  for (lsei = lsei_start_function_in_partition (encoder);
+       !lsei_end_p (lsei); lsei_next_function_in_partition (&lsei))
     {
-      node = csi_node (csi);
+      node = lsei_cgraph_node (lsei);
       for (edge = node->callees; edge; edge = edge->next_callee)
 	{
 	  struct cgraph_node *callee = edge->callee;
-	  if (!cgraph_node_in_set_p (callee, set))
+	  if (!lto_symtab_encoder_in_partition_p (encoder, (symtab_node)callee))
 	    {
 	      /* We should have moved all the inlines.  */
 	      gcc_assert (!callee->global.inlined_to);
@@ -710,6 +764,8 @@ compute_ltrans_boundary (struct lto_out_decl_state *state,
 	    }
 	}
     }
+ lto_symtab_encoder_delete (in_encoder);
+ return encoder;
 }
 
 /* Output the part of the symtab in SET and VSET.  */
@@ -743,8 +799,8 @@ output_symtab (void)
   for (i = 0; i < n_nodes; i++)
     {
       symtab_node node = lto_symtab_encoder_deref (encoder, i);
-      if (symtab_function_p (node))
-        lto_output_node (ob, cgraph (node), encoder);
+      if (cgraph_node *cnode = dyn_cast <cgraph_node> (node))
+        lto_output_node (ob, cnode, encoder);
       else
         lto_output_varpool_node (ob, varpool (node), encoder);
 	
@@ -836,7 +892,7 @@ static struct cgraph_node *
 input_node (struct lto_file_decl_data *file_data,
 	    struct lto_input_block *ib,
 	    enum LTO_symtab_tags tag,
-	    VEC(symtab_node, heap) *nodes)
+	    vec<symtab_node> nodes)
 {
   tree fn_decl;
   struct cgraph_node *node;
@@ -845,6 +901,7 @@ input_node (struct lto_file_decl_data *file_data,
   int ref = LCC_NOT_FOUND, ref2 = LCC_NOT_FOUND;
   int clone_ref;
   int order;
+  int i, count;
 
   order = streamer_read_hwi (ib) + order_base;
   clone_ref = streamer_read_hwi (ib);
@@ -854,8 +911,9 @@ input_node (struct lto_file_decl_data *file_data,
 
   if (clone_ref != LCC_NOT_FOUND)
     {
-      node = cgraph_clone_node (cgraph (VEC_index (symtab_node, nodes, clone_ref)), fn_decl,
-				0, CGRAPH_FREQ_BASE, false, NULL, false);
+      node = cgraph_clone_node (cgraph (nodes[clone_ref]), fn_decl,
+				0, CGRAPH_FREQ_BASE, false,
+				vNULL, false);
     }
   else
     node = cgraph_get_create_node (fn_decl);
@@ -866,6 +924,18 @@ input_node (struct lto_file_decl_data *file_data,
 
   node->count = streamer_read_hwi (ib);
   node->count_materialization_scale = streamer_read_hwi (ib);
+
+  count = streamer_read_hwi (ib);
+  node->ipa_transforms_to_apply = vNULL;
+  for (i = 0; i < count; i++)
+    {
+      struct opt_pass *pass;
+      int pid = streamer_read_hwi (ib);
+
+      gcc_assert (pid < passes_by_id_size);
+      pass = passes_by_id[pid];
+      node->ipa_transforms_to_apply.safe_push ((struct ipa_opt_pass_d *) pass);
+    }
 
   if (tag == LTO_symtab_analyzed_node)
     ref = streamer_read_hwi (ib);
@@ -930,7 +1000,7 @@ input_varpool_node (struct lto_file_decl_data *file_data,
   order = streamer_read_hwi (ib) + order_base;
   decl_index = streamer_read_uhwi (ib);
   var_decl = lto_file_decl_data_get_var_decl (file_data, decl_index);
-  node = varpool_node (var_decl);
+  node = varpool_node_for_decl (var_decl);
   node->symbol.order = order;
   if (order >= symtab_order)
     symtab_order = order + 1;
@@ -970,7 +1040,7 @@ input_varpool_node (struct lto_file_decl_data *file_data,
 static void
 input_ref (struct lto_input_block *ib,
 	   symtab_node referring_node,
-	   VEC(symtab_node, heap) *nodes)
+	   vec<symtab_node> nodes)
 {
   symtab_node node = NULL;
   struct bitpack_d bp;
@@ -978,7 +1048,7 @@ input_ref (struct lto_input_block *ib,
 
   bp = streamer_read_bitpack (ib);
   use = (enum ipa_ref_use) bp_unpack_value (&bp, 2);
-  node = VEC_index (symtab_node, nodes, streamer_read_hwi (ib));
+  node = nodes[streamer_read_hwi (ib)];
   ipa_record_reference (referring_node, node, use, NULL);
 }
 
@@ -988,7 +1058,7 @@ input_ref (struct lto_input_block *ib,
    indirect_unknown_callee set).  */
 
 static void
-input_edge (struct lto_input_block *ib, VEC(symtab_node, heap) *nodes,
+input_edge (struct lto_input_block *ib, vec<symtab_node> nodes,
 	    bool indirect)
 {
   struct cgraph_node *caller, *callee;
@@ -1000,13 +1070,13 @@ input_edge (struct lto_input_block *ib, VEC(symtab_node, heap) *nodes,
   struct bitpack_d bp;
   int ecf_flags = 0;
 
-  caller = cgraph (VEC_index (symtab_node, nodes, streamer_read_hwi (ib)));
+  caller = cgraph (nodes[streamer_read_hwi (ib)]);
   if (caller == NULL || caller->symbol.decl == NULL_TREE)
     internal_error ("bytecode stream: no caller found while reading edge");
 
   if (!indirect)
     {
-      callee = cgraph (VEC_index (symtab_node, nodes, streamer_read_hwi (ib)));
+      callee = cgraph (nodes[streamer_read_hwi (ib)]);
       if (callee == NULL || callee->symbol.decl == NULL_TREE)
 	internal_error ("bytecode stream: no callee found while reading edge");
     }
@@ -1051,12 +1121,12 @@ input_edge (struct lto_input_block *ib, VEC(symtab_node, heap) *nodes,
 
 /* Read a cgraph from IB using the info in FILE_DATA.  */
 
-static VEC(symtab_node, heap) *
+static vec<symtab_node> 
 input_cgraph_1 (struct lto_file_decl_data *file_data,
 		struct lto_input_block *ib)
 {
   enum LTO_symtab_tags tag;
-  VEC(symtab_node, heap) *nodes = NULL;
+  vec<symtab_node> nodes = vNULL;
   symtab_node node;
   unsigned i;
 
@@ -1071,7 +1141,7 @@ input_cgraph_1 (struct lto_file_decl_data *file_data,
       else if (tag == LTO_symtab_variable)
         {
 	  node = (symtab_node)input_varpool_node (file_data, ib);
-          VEC_safe_push (symtab_node, heap, nodes, node);
+          nodes.safe_push (node);
 	  lto_symtab_encoder_encode (file_data->symtab_node_encoder, node);
         }
       else
@@ -1079,7 +1149,7 @@ input_cgraph_1 (struct lto_file_decl_data *file_data,
 	  node = (symtab_node)input_node (file_data, ib, tag, nodes);
 	  if (node == NULL || node->symbol.decl == NULL_TREE)
 	    internal_error ("bytecode stream: found empty cgraph node");
-	  VEC_safe_push (symtab_node, heap, nodes, node);
+	  nodes.safe_push (node);
 	  lto_symtab_encoder_encode (file_data->symtab_node_encoder, node);
 	}
 
@@ -1090,15 +1160,15 @@ input_cgraph_1 (struct lto_file_decl_data *file_data,
 
   /* AUX pointers should be all non-zero for function nodes read from the stream.  */
 #ifdef ENABLE_CHECKING
-  FOR_EACH_VEC_ELT (symtab_node, nodes, i, node)
-    gcc_assert (node->symbol.aux || !symtab_function_p (node));
+  FOR_EACH_VEC_ELT (nodes, i, node)
+    gcc_assert (node->symbol.aux || !is_a <cgraph_node> (node));
 #endif
-  FOR_EACH_VEC_ELT (symtab_node, nodes, i, node)
+  FOR_EACH_VEC_ELT (nodes, i, node)
     {
       int ref;
-      if (symtab_function_p (node))
+      if (cgraph_node *cnode = dyn_cast <cgraph_node> (node))
 	{
-	  ref = (int) (intptr_t) cgraph (node)->global.inlined_to;
+	  ref = (int) (intptr_t) cnode->global.inlined_to;
 
 	  /* We share declaration of builtins, so we may read same node twice.  */
 	  if (!node->symbol.aux)
@@ -1107,21 +1177,21 @@ input_cgraph_1 (struct lto_file_decl_data *file_data,
 
 	  /* Fixup inlined_to from reference to pointer.  */
 	  if (ref != LCC_NOT_FOUND)
-	    cgraph (node)->global.inlined_to = cgraph (VEC_index (symtab_node, nodes, ref));
+	    cgraph (node)->global.inlined_to = cgraph (nodes[ref]);
 	  else
-	    cgraph (node)->global.inlined_to = NULL;
+	    cnode->global.inlined_to = NULL;
 	}
 
       ref = (int) (intptr_t) node->symbol.same_comdat_group;
 
       /* Fixup same_comdat_group from reference to pointer.  */
       if (ref != LCC_NOT_FOUND)
-	node->symbol.same_comdat_group = VEC_index (symtab_node, nodes, ref);
+	node->symbol.same_comdat_group = nodes[ref];
       else
 	node->symbol.same_comdat_group = NULL;
     }
-  FOR_EACH_VEC_ELT (symtab_node, nodes, i, node)
-    node->symbol.aux = symtab_function_p (node) ? (void *)1 : NULL;
+  FOR_EACH_VEC_ELT (nodes, i, node)
+    node->symbol.aux = is_a <cgraph_node> (node) ? (void *)1 : NULL;
   return nodes;
 }
 
@@ -1129,7 +1199,7 @@ input_cgraph_1 (struct lto_file_decl_data *file_data,
 
 static void
 input_refs (struct lto_input_block *ib,
-	    VEC(symtab_node, heap) *nodes)
+	    vec<symtab_node> nodes)
 {
   int count;
   int idx;
@@ -1140,7 +1210,7 @@ input_refs (struct lto_input_block *ib,
       if (!count)
 	break;
       idx = streamer_read_uhwi (ib);
-      node = VEC_index (symtab_node, nodes, idx);
+      node = nodes[idx];
       while (count)
 	{
 	  input_ref (ib, node, nodes);
@@ -1270,14 +1340,14 @@ input_symtab (void)
       const char *data;
       size_t len;
       struct lto_input_block *ib;
-      VEC(symtab_node, heap) *nodes;
+      vec<symtab_node> nodes;
 
       ib = lto_create_simple_input_block (file_data, LTO_section_symtab_nodes,
 					  &data, &len);
       if (!ib) 
 	fatal_error ("cannot find LTO cgraph in %s", file_data->file_name);
       input_profile_summary (ib, file_data);
-      file_data->symtab_node_encoder = lto_symtab_encoder_new ();
+      file_data->symtab_node_encoder = lto_symtab_encoder_new (true);
       nodes = input_cgraph_1 (file_data, ib);
       lto_destroy_simple_input_block (file_data, LTO_section_symtab_nodes,
 				      ib, data, len);
@@ -1291,7 +1361,7 @@ input_symtab (void)
 				      ib, data, len);
       if (flag_ltrans)
 	input_cgraph_opt_summary (nodes);
-      VEC_free (symtab_node, heap, nodes);
+      nodes.release ();
     }
 
   merge_profile_summaries (file_data_vec);
@@ -1358,9 +1428,8 @@ output_node_opt_summary (struct output_block *ob,
     }
   else
     streamer_write_uhwi (ob, 0);
-  streamer_write_uhwi (ob, VEC_length (ipa_replace_map_p,
-			               node->clone.tree_map));
-  FOR_EACH_VEC_ELT (ipa_replace_map_p, node->clone.tree_map, i, map)
+  streamer_write_uhwi (ob, vec_safe_length (node->clone.tree_map));
+  FOR_EACH_VEC_SAFE_ELT (node->clone.tree_map, i, map)
     {
       int parm_num;
       tree parm;
@@ -1373,6 +1442,7 @@ output_node_opt_summary (struct output_block *ob,
          mechanism to store function local declarations into summaries.  */
       gcc_assert (parm);
       streamer_write_uhwi (ob, parm_num);
+      gcc_assert (EXPR_LOCATION (map->new_tree) == UNKNOWN_LOCATION);
       stream_write_tree (ob, map->new_tree, true);
       bp = bitpack_create (ob->main_stream);
       bp_pack_value (&bp, map->replace_p, 1);
@@ -1395,7 +1465,6 @@ output_node_opt_summary (struct output_block *ob,
 static void
 output_cgraph_opt_summary (void)
 {
-  symtab_node node;
   int i, n_nodes;
   lto_symtab_encoder_t encoder;
   struct output_block *ob = create_output_block (LTO_section_cgraph_opt_sum);
@@ -1405,18 +1474,21 @@ output_cgraph_opt_summary (void)
   encoder = ob->decl_state->symtab_node_encoder;
   n_nodes = lto_symtab_encoder_size (encoder);
   for (i = 0; i < n_nodes; i++)
-    if (symtab_function_p (node = lto_symtab_encoder_deref (encoder, i))
-	&& output_cgraph_opt_summary_p (cgraph (node)))
-      count++;
+    {
+      symtab_node node = lto_symtab_encoder_deref (encoder, i);
+      cgraph_node *cnode = dyn_cast <cgraph_node> (node);
+      if (cnode && output_cgraph_opt_summary_p (cnode))
+	count++;
+    }
   streamer_write_uhwi (ob, count);
   for (i = 0; i < n_nodes; i++)
     {
-      node = lto_symtab_encoder_deref (encoder, i);
-      if (symtab_function_p (node)
-	  && output_cgraph_opt_summary_p (cgraph (node)))
+      symtab_node node = lto_symtab_encoder_deref (encoder, i);
+      cgraph_node *cnode = dyn_cast <cgraph_node> (node);
+      if (cnode && output_cgraph_opt_summary_p (cnode))
 	{
 	  streamer_write_uhwi (ob, i);
-	  output_node_opt_summary (ob, cgraph (node), encoder);
+	  output_node_opt_summary (ob, cnode, encoder);
 	}
     }
   produce_asm (ob, NULL);
@@ -1463,14 +1535,9 @@ input_node_opt_summary (struct cgraph_node *node,
   count = streamer_read_uhwi (ib_main);
   for (i = 0; i < count; i++)
     {
-      int parm_num;
-      tree parm;
       struct ipa_replace_map *map = ggc_alloc_ipa_replace_map ();
 
-      VEC_safe_push (ipa_replace_map_p, gc, node->clone.tree_map, map);
-      for (parm_num = 0, parm = DECL_ARGUMENTS (node->symbol.decl); parm_num;
-	   parm = DECL_CHAIN (parm))
-	parm_num --;
+      vec_safe_push (node->clone.tree_map, map);
       map->parm_num = streamer_read_uhwi (ib_main);
       map->old_tree = NULL;
       map->new_tree = stream_read_tree (ib_main, data_in);
@@ -1488,8 +1555,8 @@ input_node_opt_summary (struct cgraph_node *node,
 
 static void
 input_cgraph_opt_section (struct lto_file_decl_data *file_data,
-			  const char *data, size_t len, VEC (symtab_node,
-							     heap) * nodes)
+			  const char *data, size_t len,
+			  vec<symtab_node> nodes)
 {
   const struct lto_function_header *header =
     (const struct lto_function_header *) data;
@@ -1506,13 +1573,13 @@ input_cgraph_opt_section (struct lto_file_decl_data *file_data,
 
   data_in =
     lto_data_in_create (file_data, (const char *) data + string_offset,
-			header->string_size, NULL);
+			header->string_size, vNULL);
   count = streamer_read_uhwi (&ib_main);
 
   for (i = 0; i < count; i++)
     {
       int ref = streamer_read_uhwi (&ib_main);
-      input_node_opt_summary (cgraph (VEC_index (symtab_node, nodes, ref)),
+      input_node_opt_summary (cgraph (nodes[ref]),
 			      &ib_main, data_in);
     }
   lto_free_section_data (file_data, LTO_section_cgraph_opt_sum, NULL, data,
@@ -1523,7 +1590,7 @@ input_cgraph_opt_section (struct lto_file_decl_data *file_data,
 /* Input optimization summary of cgraph.  */
 
 static void
-input_cgraph_opt_summary (VEC (symtab_node, heap) * nodes)
+input_cgraph_opt_summary (vec<symtab_node> nodes)
 {
   struct lto_file_decl_data **file_data_vec = lto_get_file_decl_data ();
   struct lto_file_decl_data *file_data;

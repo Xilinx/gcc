@@ -517,6 +517,9 @@ struct mips_cpu_info {
       if (TARGET_OCTEON)						\
 	builtin_define ("__OCTEON__");					\
 									\
+      if (TARGET_SYNCI)							\
+	builtin_define ("__mips_synci");				\
+									\
       /* Macros dependent on the C dialect.  */				\
       if (preprocessing_asm_p ())					\
 	{								\
@@ -725,6 +728,11 @@ struct mips_cpu_info {
 #define MIPS_32BIT_OPTION_SPEC \
   "mips1|mips2|mips32*|mgp32"
 
+/* Infer a -msynci setting from a -mips argument, on the assumption that
+   -msynci is desired where possible.  */
+#define MIPS_ISA_SYNCI_SPEC \
+  "%{msynci|mno-synci:;:%{mips32r2|mips64r2:-msynci;:-mno-synci}}"
+
 #if MIPS_ABI_DEFAULT == ABI_O64 \
   || MIPS_ABI_DEFAULT == ABI_N32 \
   || MIPS_ABI_DEFAULT == ABI_64
@@ -758,7 +766,6 @@ struct mips_cpu_info {
   {"llsc", "%{!mllsc:%{!mno-llsc:-m%(VALUE)}}" }, \
   {"mips-plt", "%{!mplt:%{!mno-plt:-m%(VALUE)}}" }, \
   {"synci", "%{!msynci:%{!mno-synci:-m%(VALUE)}}" }
-
 
 /* A spec that infers the -mdsp setting from an -march argument.  */
 #define BASE_DRIVER_SELF_SPECS \
@@ -1736,6 +1743,9 @@ struct mips_cpu_info {
    - The prologue can use MIPS_PROLOGUE_TEMP as a general temporary
      register.  The register must not conflict with MIPS16_PIC_TEMP.
 
+   - If we aren't generating MIPS16 code, the prologue can also use
+     MIPS_PROLOGUE_TEMP2 as a general temporary register.
+
    - The epilogue can use MIPS_EPILOGUE_TEMP as a general temporary
      register.
 
@@ -1752,6 +1762,10 @@ struct mips_cpu_info {
 #define MIPS16_PIC_TEMP_REGNUM (GP_REG_FIRST + 2)
 #define MIPS_PROLOGUE_TEMP_REGNUM \
   (cfun->machine->interrupt_handler_p ? K0_REG_NUM : GP_REG_FIRST + 3)
+#define MIPS_PROLOGUE_TEMP2_REGNUM \
+  (TARGET_MIPS16 \
+   ? (gcc_unreachable (), INVALID_REGNUM) \
+   : cfun->machine->interrupt_handler_p ? K1_REG_NUM : GP_REG_FIRST + 12)
 #define MIPS_EPILOGUE_TEMP_REGNUM		\
   (cfun->machine->interrupt_handler_p		\
    ? K0_REG_NUM					\
@@ -1759,6 +1773,8 @@ struct mips_cpu_info {
 
 #define MIPS16_PIC_TEMP gen_rtx_REG (Pmode, MIPS16_PIC_TEMP_REGNUM)
 #define MIPS_PROLOGUE_TEMP(MODE) gen_rtx_REG (MODE, MIPS_PROLOGUE_TEMP_REGNUM)
+#define MIPS_PROLOGUE_TEMP2(MODE) \
+  gen_rtx_REG (MODE, MIPS_PROLOGUE_TEMP2_REGNUM)
 #define MIPS_EPILOGUE_TEMP(MODE) gen_rtx_REG (MODE, MIPS_EPILOGUE_TEMP_REGNUM)
 
 /* Define this macro if it is as good or better to call a constant
@@ -2330,13 +2346,19 @@ typedef struct mips_args {
 /* True if we're generating a form of MIPS16 code in which jump tables
    are stored in the text section and encoded as 16-bit PC-relative
    offsets.  This is only possible when general text loads are allowed,
-   since the table access itself will be an "lh" instruction.  */
-/* ??? 16-bit offsets can overflow in large functions.  */
+   since the table access itself will be an "lh" instruction.  If the
+   PC-relative offsets grow too large, 32-bit offsets are used instead.  */
 #define TARGET_MIPS16_SHORT_JUMP_TABLES TARGET_MIPS16_TEXT_LOADS
 
 #define JUMP_TABLES_IN_TEXT_SECTION TARGET_MIPS16_SHORT_JUMP_TABLES
 
-#define CASE_VECTOR_MODE (TARGET_MIPS16_SHORT_JUMP_TABLES ? HImode : ptr_mode)
+#define CASE_VECTOR_MODE (TARGET_MIPS16_SHORT_JUMP_TABLES ? SImode : ptr_mode)
+
+/* Only use short offsets if their range will not overflow.  */
+#define CASE_VECTOR_SHORTEN_MODE(MIN, MAX, BODY) \
+  (!TARGET_MIPS16_SHORT_JUMP_TABLES ? ptr_mode \
+   : ((MIN) >= -32768 && (MAX) < 32768) ? HImode \
+   : SImode)
 
 #define CASE_VECTOR_PC_RELATIVE TARGET_MIPS16_SHORT_JUMP_TABLES
 
@@ -2389,12 +2411,8 @@ typedef struct mips_args {
 #define FUNCTION_MODE SImode
 
 
-
-/* Define if copies to/from condition code registers should be avoided.
-
-   This is needed for the MIPS because reload_outcc is not complete;
-   it needs to handle cases where the source is a general or another
-   condition code register.  */
+/* We allocate $fcc registers by hand and can't cope with moves of
+   CCmode registers to and from pseudos (or memory).  */
 #define AVOID_CCMODE_COPIES
 
 /* A C expression for the cost of a branch instruction.  A value of
@@ -2636,8 +2654,14 @@ while (0)
 #define ASM_OUTPUT_ADDR_DIFF_ELT(STREAM, BODY, VALUE, REL)		\
 do {									\
   if (TARGET_MIPS16_SHORT_JUMP_TABLES)					\
-    fprintf (STREAM, "\t.half\t%sL%d-%sL%d\n",				\
-	     LOCAL_LABEL_PREFIX, VALUE, LOCAL_LABEL_PREFIX, REL);	\
+    {									\
+      if (GET_MODE (BODY) == HImode)					\
+	fprintf (STREAM, "\t.half\t%sL%d-%sL%d\n",			\
+		 LOCAL_LABEL_PREFIX, VALUE, LOCAL_LABEL_PREFIX, REL);	\
+      else								\
+	fprintf (STREAM, "\t.word\t%sL%d-%sL%d\n",			\
+		 LOCAL_LABEL_PREFIX, VALUE, LOCAL_LABEL_PREFIX, REL);	\
+    }									\
   else if (TARGET_GPWORD)						\
     fprintf (STREAM, "\t%s\t%sL%d\n",					\
 	     ptr_mode == DImode ? ".gpdword" : ".gpword",		\
@@ -2785,7 +2809,6 @@ while (0)
 #define STORE_BY_PIECES_P(SIZE, ALIGN) \
   mips_store_by_pieces_p (SIZE, ALIGN)
 
-#ifndef __mips16
 /* Since the bits of the _init and _fini function is spread across
    many object files, each potentially with its own GP, we must assume
    we need to load our GP.  We don't preserve $gp or $ra, since each
@@ -2794,26 +2817,31 @@ while (0)
 #if (defined _ABIO32 && _MIPS_SIM == _ABIO32)
 #define CRT_CALL_STATIC_FUNCTION(SECTION_OP, FUNC)	\
    asm (SECTION_OP "\n\
+	.set push\n\
+	.set nomips16\n\
 	.set noreorder\n\
 	bal 1f\n\
 	nop\n\
 1:	.cpload $31\n\
 	.set reorder\n\
 	jal " USER_LABEL_PREFIX #FUNC "\n\
+	.set pop\n\
 	" TEXT_SECTION_ASM_OP);
 #endif /* Switch to #elif when we're no longer limited by K&R C.  */
 #if (defined _ABIN32 && _MIPS_SIM == _ABIN32) \
    || (defined _ABI64 && _MIPS_SIM == _ABI64)
 #define CRT_CALL_STATIC_FUNCTION(SECTION_OP, FUNC)	\
    asm (SECTION_OP "\n\
+	.set push\n\
+	.set nomips16\n\
 	.set noreorder\n\
 	bal 1f\n\
 	nop\n\
 1:	.set reorder\n\
 	.cpsetup $31, $2, 1b\n\
 	jal " USER_LABEL_PREFIX #FUNC "\n\
+	.set pop\n\
 	" TEXT_SECTION_ASM_OP);
-#endif
 #endif
 
 #ifndef HAVE_AS_TLS

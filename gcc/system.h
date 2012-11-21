@@ -228,6 +228,9 @@ extern int errno;
 # include <stdlib.h>
 #endif
 
+/* Undef vec_free from AIX stdlib.h header which conflicts with vec.h.  */
+#undef vec_free
+
 /* If we don't have an overriding definition, set SUCCESS_EXIT_CODE and
    FATAL_EXIT_CODE to EXIT_SUCCESS and EXIT_FAILURE respectively,
    or 0 and 1 if those macros are not defined.  */
@@ -638,6 +641,11 @@ extern int vsnprintf(char *, size_t, const char *, va_list);
 /* Get libiberty declarations.  */
 #include "libiberty.h"
 
+#undef FFS  /* Some systems predefine this symbol; don't let it interfere.  */
+#undef FLOAT /* Likewise.  */
+#undef ABS /* Likewise.  */
+#undef PC /* Likewise.  */
+
 /* Provide a default for the HOST_BIT_BUCKET.
    This suffices for POSIX-like hosts.  */
 
@@ -769,6 +777,11 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 #undef strerror
  #pragma GCC poison strerror
 
+/* loc_t is defined on some systems and too inviting for some
+   programmers to avoid.  */
+#undef loc_t
+ #pragma GCC poison loc_t
+
 /* Old target macros that have moved to the target hooks structure.  */
  #pragma GCC poison ASM_OPEN_PAREN ASM_CLOSE_PAREN			\
 	FUNCTION_PROLOGUE FUNCTION_EPILOGUE				\
@@ -808,7 +821,7 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 	CAN_DEBUG_WITHOUT_FP UNLIKELY_EXECUTED_TEXT_SECTION_NAME	\
 	HOT_TEXT_SECTION_NAME LEGITIMATE_CONSTANT_P ALWAYS_STRIP_DOTDOT	\
 	OUTPUT_ADDR_CONST_EXTRA SMALL_REGISTER_CLASSES ASM_OUTPUT_IDENT	\
-	ASM_BYTE_OP
+	ASM_BYTE_OP MEMBER_TYPE_FORCES_BLK
 
 /* Target macros only used for code built for the target, that have
    moved to libgcc-tm.h or have never been present elsewhere.  */

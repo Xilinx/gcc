@@ -24,6 +24,7 @@
 ------------------------------------------------------------------------------
 
 with ALI;      use ALI;
+with Atree;    use Atree;
 with Debug;
 with Err_Vars; use Err_Vars;
 with Errutil;
@@ -138,6 +139,37 @@ package body Makeutl is
          Linker_Options_Buffer (Last_Linker_Option) := new String'(Option);
       end if;
    end Add_Linker_Option;
+
+   -------------------
+   -- Absolute_Path --
+   -------------------
+
+   function Absolute_Path
+     (Path    : Path_Name_Type;
+      Project : Project_Id) return String
+   is
+   begin
+      Get_Name_String (Path);
+
+      declare
+         Path_Name : constant String := Name_Buffer (1 .. Name_Len);
+
+      begin
+         if Is_Absolute_Path (Path_Name) then
+            return Path_Name;
+
+         else
+            declare
+               Parent_Directory : constant String :=
+                 Get_Name_String
+                   (Project.Directory.Display_Name);
+
+            begin
+               return Parent_Directory & Path_Name;
+            end;
+         end if;
+      end;
+   end Absolute_Path;
 
    -------------------------
    -- Base_Name_Index_For --

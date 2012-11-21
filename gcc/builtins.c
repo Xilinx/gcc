@@ -4666,7 +4666,14 @@ expand_builtin_trap (void)
 {
 #ifdef HAVE_trap
   if (HAVE_trap)
-    emit_insn (gen_trap ());
+    {
+      rtx insn = emit_insn (gen_trap ());
+      /* For trap insns when not accumulating outgoing args force
+	 REG_ARGS_SIZE note to prevent crossjumping of calls with
+	 different args sizes.  */
+      if (!ACCUMULATE_OUTGOING_ARGS)
+	add_reg_note (insn, REG_ARGS_SIZE, GEN_INT (stack_pointer_delta));
+    }
   else
 #endif
     emit_library_call (abort_libfunc, LCT_NORETURN, VOIDmode, 0);
@@ -4990,7 +4997,7 @@ expand_builtin_signbit (tree exp, rtx target)
 
   if (bitpos < GET_MODE_BITSIZE (rmode))
     {
-      double_int mask = double_int_setbit (double_int_zero, bitpos);
+      double_int mask = double_int_zero.set_bit (bitpos);
 
       if (GET_MODE_SIZE (imode) > GET_MODE_SIZE (rmode))
 	temp = gen_lowpart (rmode, temp);
@@ -5742,6 +5749,45 @@ static void
 expand_builtin_sync_synchronize (void)
 {
   expand_mem_thread_fence (MEMMODEL_SEQ_CST);
+}
+
+static rtx
+expand_builtin_thread_pointer (tree exp, rtx target)
+{
+  enum insn_code icode;
+  if (!validate_arglist (exp, VOID_TYPE))
+    return const0_rtx;
+  icode = direct_optab_handler (get_thread_pointer_optab, Pmode);
+  if (icode != CODE_FOR_nothing)
+    {
+      struct expand_operand op;
+      if (!REG_P (target) || GET_MODE (target) != Pmode)
+	target = gen_reg_rtx (Pmode);
+      create_output_operand (&op, target, Pmode);
+      expand_insn (icode, 1, &op);
+      return target;
+    }
+  error ("__builtin_thread_pointer is not supported on this target");
+  return const0_rtx;
+}
+
+static void
+expand_builtin_set_thread_pointer (tree exp)
+{
+  enum insn_code icode;
+  if (!validate_arglist (exp, POINTER_TYPE, VOID_TYPE))
+    return;
+  icode = direct_optab_handler (set_thread_pointer_optab, Pmode);
+  if (icode != CODE_FOR_nothing)
+    {
+      struct expand_operand op;
+      rtx val = expand_expr (CALL_EXPR_ARG (exp, 0), NULL_RTX,
+			     Pmode, EXPAND_NORMAL);      
+      create_input_operand (&op, val, Pmode);
+      expand_insn (icode, 1, &op);
+      return;
+    }
+  error ("__builtin_set_thread_pointer is not supported on this target");
 }
 
 
@@ -6542,7 +6588,7 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     case BUILT_IN_ATOMIC_COMPARE_EXCHANGE_16:
       {
 	unsigned int nargs, z;
-	VEC(tree,gc) *vec;
+	vec<tree, va_gc> *vec;
 
 	mode = 
 	    get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_COMPARE_EXCHANGE_1);
@@ -6553,12 +6599,12 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
 	/* If this is turned into an external library call, the weak parameter
 	   must be dropped to match the expected parameter list.  */
 	nargs = call_expr_nargs (exp);
-	vec = VEC_alloc (tree, gc, nargs - 1);
+	vec_alloc (vec, nargs - 1);
 	for (z = 0; z < 3; z++)
-	  VEC_quick_push (tree, vec, CALL_EXPR_ARG (exp, z));
+	  vec->quick_push (CALL_EXPR_ARG (exp, z));
 	/* Skip the boolean weak parameter.  */
 	for (z = 4; z < 6; z++)
-	  VEC_quick_push (tree, vec, CALL_EXPR_ARG (exp, z));
+	  vec->quick_push (CALL_EXPR_ARG (exp, z));
 	exp = build_call_vec (TREE_TYPE (exp), CALL_EXPR_FN (exp), vec);
 	break;
       }
@@ -6808,6 +6854,13 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
       if (warn_free_nonheap_object)
 	maybe_emit_free_warning (exp);
       break;
+
+    case BUILT_IN_THREAD_POINTER:
+      return expand_builtin_thread_pointer (exp, target);
+
+    case BUILT_IN_SET_THREAD_POINTER:
+      expand_builtin_set_thread_pointer (exp);
+      return const0_rtx;
 
     default:	/* just do library call, if unknown builtin */
       break;
@@ -8775,14 +8828,14 @@ fold_builtin_memory_op (location_t loc, tree dest, tree src,
 		  if (! operand_equal_p (TREE_OPERAND (src_base, 0),
 					 TREE_OPERAND (dest_base, 0), 0))
 		    return NULL_TREE;
-		  off = double_int_add (mem_ref_offset (src_base),
-					shwi_to_double_int (src_offset));
-		  if (!double_int_fits_in_shwi_p (off))
+		  off = mem_ref_offset (src_base) +
+					double_int::from_shwi (src_offset);
+		  if (!off.fits_shwi ())
 		    return NULL_TREE;
 		  src_offset = off.low;
-		  off = double_int_add (mem_ref_offset (dest_base),
-					shwi_to_double_int (dest_offset));
-		  if (!double_int_fits_in_shwi_p (off))
+		  off = mem_ref_offset (dest_base) +
+					double_int::from_shwi (dest_offset);
+		  if (!off.fits_shwi ())
 		    return NULL_TREE;
 		  dest_offset = off.low;
 		  if (ranges_overlap_p (src_offset, maxsize,
@@ -11160,10 +11213,10 @@ build_call_expr_loc_array (location_t loc, tree fndecl, int n, tree *argarray)
    VEC.  */
 
 tree
-build_call_expr_loc_vec (location_t loc, tree fndecl, VEC(tree,gc) *vec)
+build_call_expr_loc_vec (location_t loc, tree fndecl, vec<tree, va_gc> *vec)
 {
-  return build_call_expr_loc_array (loc, fndecl, VEC_length (tree, vec),
-				    VEC_address (tree, vec));
+  return build_call_expr_loc_array (loc, fndecl, vec_safe_length (vec),
+				    vec_safe_address (vec));
 }
 
 
@@ -11890,7 +11943,7 @@ fold_builtin_strspn (location_t loc, tree s1, tree s2)
       if (p1 && p2)
 	{
 	  const size_t r = strspn (p1, p2);
-	  return size_int (r);
+	  return build_int_cst (size_type_node, r);
 	}
 
       /* If either argument is "", return NULL_TREE.  */
@@ -11935,7 +11988,7 @@ fold_builtin_strcspn (location_t loc, tree s1, tree s2)
       if (p1 && p2)
 	{
 	  const size_t r = strcspn (p1, p2);
-	  return size_int (r);
+	  return build_int_cst (size_type_node, r);
 	}
 
       /* If the first argument is "", return NULL_TREE.  */
@@ -12696,7 +12749,7 @@ fold_builtin_object_size (tree ptr, tree ost)
     {
       bytes = compute_builtin_object_size (ptr, object_size_type);
       if (double_int_fits_to_tree_p (size_type_node,
-				     uhwi_to_double_int (bytes)))
+				     double_int::from_uhwi (bytes)))
 	return build_int_cstu (size_type_node, bytes);
     }
   else if (TREE_CODE (ptr) == SSA_NAME)
@@ -12707,7 +12760,7 @@ fold_builtin_object_size (tree ptr, tree ost)
       bytes = compute_builtin_object_size (ptr, object_size_type);
       if (bytes != (unsigned HOST_WIDE_INT) (object_size_type < 2 ? -1 : 0)
           && double_int_fits_to_tree_p (size_type_node,
-					uhwi_to_double_int (bytes)))
+					double_int::from_uhwi (bytes)))
 	return build_int_cstu (size_type_node, bytes);
     }
 

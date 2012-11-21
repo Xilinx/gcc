@@ -153,7 +153,7 @@ package body Sem_Elab is
    --  This is set True till the compilation is complete, including the
    --  insertion of all instance bodies. Then when Check_Elab_Calls is called,
    --  the delay table is used to make the delayed calls and this flag is reset
-   --  to False, so that the calls are processed
+   --  to False, so that the calls are processed.
 
    -----------------------
    -- Local Subprograms --
@@ -828,6 +828,7 @@ package body Sem_Elab is
                --  If no alias, there is a previous error
 
                if No (Ent) then
+                  Check_Error_Detected;
                   return;
                end if;
             end loop;
@@ -1137,15 +1138,13 @@ package body Sem_Elab is
 
       --  Here we definitely have a bad instantiation
 
-      Error_Msg_NE
-        ("?cannot instantiate& before body seen", N, Ent);
+      Error_Msg_NE ("?cannot instantiate& before body seen", N, Ent);
 
       if Present (Instance_Spec (N)) then
          Supply_Bodies (Instance_Spec (N));
       end if;
 
-      Error_Msg_N
-        ("\?Program_Error will be raised at run time", N);
+      Error_Msg_N ("\?Program_Error will be raised at run time", N);
       Insert_Elab_Check (N);
       Set_ABE_Is_Certain (N);
    end Check_Bad_Instantiation;
@@ -1161,8 +1160,6 @@ package body Sem_Elab is
    is
       Ent : Entity_Id;
       P   : Node_Id;
-
-   --  Start of processing for Check_Elab_Call
 
    begin
       --  If the call does not come from the main unit, there is nothing to
@@ -1190,7 +1187,7 @@ package body Sem_Elab is
 
       --  Nothing to do if this is a call already rewritten for elab checking
 
-      elsif Nkind (Parent (N)) = N_Conditional_Expression then
+      elsif Nkind (Parent (N)) = N_If_Expression then
          return;
 
       --  Nothing to do if inside a generic template
@@ -1206,10 +1203,17 @@ package body Sem_Elab is
       if Debug_Flag_LL then
          Write_Str ("  Check_Elab_Call: ");
 
-         if No (Name (N))
-           or else not Is_Entity_Name (Name (N))
-         then
+         if Nkind (N) = N_Attribute_Reference then
+            if not Is_Entity_Name (Prefix (N)) then
+               Write_Str ("<<not entity name>>");
+            else
+               Write_Name (Chars (Entity (Prefix (N))));
+            end if;
+            Write_Str ("'Access");
+
+         elsif No (Name (N)) or else not Is_Entity_Name (Name (N)) then
             Write_Str ("<<not entity name>> ");
+
          else
             Write_Name (Chars (Entity (Name (N))));
          end if;
@@ -1881,18 +1885,15 @@ package body Sem_Elab is
 
    begin
       --  If not function or procedure call or instantiation, then ignore
-      --  call (this happens in some error case and rewriting cases)
+      --  call (this happens in some error cases and rewriting cases).
 
-      if Nkind (N) /= N_Function_Call
-           and then
-         Nkind (N) /= N_Procedure_Call_Statement
-           and then
-         not Inst_Case
+      if not Nkind_In (N, N_Function_Call, N_Procedure_Call_Statement)
+        and then not Inst_Case
       then
          return;
 
-      --  Nothing to do if this is a call or instantiation that has
-      --  already been found to be a sure ABE
+      --  Nothing to do if this is a call or instantiation that has already
+      --  been found to be a sure ABE.
 
       elsif ABE_Is_Certain (N) then
          return;
@@ -1992,7 +1993,7 @@ package body Sem_Elab is
          then
             return Abandon;
 
-            --  If we have a function call, check it
+         --  If we have a function call, check it
 
          elsif Nkind (N) = N_Function_Call then
             Check_Elab_Call (N, Outer_Scope);
@@ -2073,8 +2074,7 @@ package body Sem_Elab is
 
       Elab_Visited.Append (E);
 
-      --  If the call is to a function that renames a literal, no check
-      --  is needed.
+      --  If the call is to a function that renames a literal, no check needed
 
       if Ekind (E) = E_Enumeration_Literal then
          return;
@@ -2183,12 +2183,10 @@ package body Sem_Elab is
             Error_Msg_NE
               ("?cannot instantiate& before body seen", N, Orig_Ent);
          else
-            Error_Msg_NE
-              ("?cannot call& before body seen", N, Orig_Ent);
+            Error_Msg_NE ("?cannot call& before body seen", N, Orig_Ent);
          end if;
 
-         Error_Msg_N
-           ("\?Program_Error will be raised at run time", N);
+         Error_Msg_N ("\?Program_Error will be raised at run time", N);
          Insert_Elab_Check (N);
 
       --  Call is not at outer level
@@ -2930,7 +2928,8 @@ package body Sem_Elab is
       --  the context of the call has already been analyzed, an insertion
       --  will not work if it depends on subsequent expansion (e.g. a call in
       --  a branch of a short-circuit). In that case we replace the call with
-      --  a conditional expression, or with a Raise if it is unconditional.
+      --  an if expression, or with a Raise if it is unconditional.
+
       --  Unfortunately this does not work if the call has a dynamic size,
       --  because gigi regards it as a dynamic-sized temporary. If such a call
       --  appears in a short-circuit expression, the elaboration check will be
@@ -2967,14 +2966,14 @@ package body Sem_Elab is
                   Reloc_N := Relocate_Node (N);
                   Save_Interps (N, Reloc_N);
                   Rewrite (N,
-                    Make_Conditional_Expression (Loc,
+                    Make_If_Expression (Loc,
                       Expressions => New_List (C, Reloc_N, R)));
                end if;
 
                Analyze_And_Resolve (N, Typ);
 
                --  If the original call requires a range check, so does the
-               --  conditional expression.
+               --  if expression.
 
                if Chk then
                   Enable_Range_Check (N);

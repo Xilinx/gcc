@@ -33,6 +33,7 @@ with Expander; use Expander;
 with Exp_Ch6;  use Exp_Ch6;
 with Exp_Ch7;  use Exp_Ch7;
 with Exp_Ch9;  use Exp_Ch9;
+with Exp_Dbug; use Exp_Dbug;
 with Exp_Disp; use Exp_Disp;
 with Exp_Tss;  use Exp_Tss;
 with Exp_Util; use Exp_Util;
@@ -869,6 +870,24 @@ package body Sem_Ch6 is
          then
             Rewrite (Expr, Convert_To (R_Type, Relocate_Node (Expr)));
             Analyze_And_Resolve (Expr, R_Type);
+
+         --  If this is a local anonymous access to subprogram, the
+         --  accessibility check can be applied statically. The return is
+         --  illegal if the access type of the return expression is declared
+         --  inside of the subprogram (except if it is the subtype indication
+         --  of an extended return statement).
+
+         elsif  Ekind (R_Type) = E_Anonymous_Access_Subprogram_Type then
+            if not Comes_From_Source (Current_Scope)
+              or else Ekind (Current_Scope) = E_Return_Statement
+            then
+               null;
+
+            elsif
+                Scope_Depth (Scope (Etype (Expr))) >= Scope_Depth (Scope_Id)
+            then
+               Error_Msg_N ("cannot return local access to subprogram", N);
+            end if;
          end if;
 
          --  If the result type is class-wide, then check that the return
@@ -2705,6 +2724,20 @@ package body Sem_Ch6 is
 
             Install_Formals (Spec_Id);
             Last_Real_Spec_Entity := Last_Entity (Spec_Id);
+
+            --  Within an instance, add local renaming declarations so that
+            --  gdb can retrieve the values of actuals more easily. This is
+            --  only relevant if generating code (and indeed we definitely
+            --  do not want these definitions -gnatc mode, because that would
+            --  confuse ASIS).
+
+            if Is_Generic_Instance (Spec_Id)
+              and then Is_Wrapper_Package (Current_Scope)
+              and then Expander_Active
+            then
+               Build_Subprogram_Instance_Renamings (N, Current_Scope);
+            end if;
+
             Push_Scope (Spec_Id);
 
             --  Make sure that the subprogram is immediately visible. For
@@ -3449,6 +3482,10 @@ package body Sem_Ch6 is
       if Present (Formals) then
          Push_Scope (Designator);
          Process_Formals (Formals, N);
+
+         --  Check dimensions in N for formals with default expression
+
+         Analyze_Dimension_Formals (N, Formals);
 
          --  Ada 2005 (AI-345): If this is an overriding operation of an
          --  inherited interface operation, and the controlling type is
@@ -5734,14 +5771,31 @@ package body Sem_Ch6 is
 
                declare
                   TSS_Name : constant TSS_Name_Type := Get_TSS_Name (New_Id);
+
                begin
                   if TSS_Name /= TSS_Stream_Read
                     and then TSS_Name /= TSS_Stream_Write
                     and then TSS_Name /= TSS_Stream_Input
                     and then TSS_Name /= TSS_Stream_Output
                   then
-                     Conformance_Error
-                       ("\type of & does not match!", New_Formal);
+                     --  Here we have a definite conformance error. It is worth
+                     --  special casing the error message for the case of a
+                     --  controlling formal (which excludes null).
+
+                     if Is_Controlling_Formal (New_Formal) then
+                        Error_Msg_Node_2 := Scope (New_Formal);
+                        Conformance_Error
+                         ("\controlling formal& of& excludes null, "
+                           & "declaration must exclude null as well",
+                            New_Formal);
+
+                     --  Normal case (couldn't we give more detail here???)
+
+                     else
+                        Conformance_Error
+                          ("\type of & does not match!", New_Formal);
+                     end if;
+
                      return;
                   end if;
                end;
@@ -8024,7 +8078,12 @@ package body Sem_Ch6 is
 
       Set_Homonym (S, E);
 
-      Append_Entity (S, Current_Scope);
+      if Is_Inherited_Operation (S) then
+         Append_Inherited_Subprogram (S);
+      else
+         Append_Entity (S, Current_Scope);
+      end if;
+
       Set_Public_Status (S);
 
       if Debug_Flag_E then
@@ -8655,10 +8714,6 @@ package body Sem_Ch6 is
                    and then
                  FCE (Expression (E1), Expression (E2));
 
-            when N_Conditional_Expression =>
-               return
-                 FCL (Expressions (E1), Expressions (E2));
-
             when N_Explicit_Dereference =>
                return
                  FCE (Prefix (E1), Prefix (E2));
@@ -8677,6 +8732,10 @@ package body Sem_Ch6 is
                    and then
                  FCL (Parameter_Associations (E1),
                       Parameter_Associations (E2));
+
+            when N_If_Expression =>
+               return
+                 FCL (Expressions (E1), Expressions (E2));
 
             when N_Indexed_Component =>
                return
@@ -11074,6 +11133,12 @@ package body Sem_Ch6 is
       Plist : List_Id := No_List;
       --  List of generated postconditions
 
+      procedure Check_Access_Invariants (E : Entity_Id);
+      --  If the subprogram returns an access to a type with invariants, or
+      --  has access parameters whose designated type has an invariant, then
+      --  under the same visibility conditions as for other invariant checks,
+      --  the type invariant must be applied to the returned value.
+
       function Grab_CC return Node_Id;
       --  Prag contains an analyzed contract case pragma. This function copies
       --  relevant components of the pragma, creates the corresponding Check
@@ -11086,6 +11151,9 @@ package body Sem_Ch6 is
       --  empty, this is the case of inheriting a PPC, where we must change
       --  references to parameters of the inherited subprogram to point to the
       --  corresponding parameters of the current subprogram.
+
+      procedure Insert_After_Last_Declaration (Nod : Node_Id);
+      --  Insert node Nod after the last declaration of the context
 
       function Invariants_Or_Predicates_Present return Boolean;
       --  Determines if any invariants or predicates are present for any OUT
@@ -11101,8 +11169,42 @@ package body Sem_Ch6 is
       --  that an invariant check is required (for an IN OUT parameter, or
       --  the returned value of a function.
 
-      function Last_Implicit_Declaration return Node_Id;
-      --  Return the last internally-generated declaration of N
+      -----------------------------
+      -- Check_Access_Invariants --
+      -----------------------------
+
+      procedure Check_Access_Invariants (E : Entity_Id) is
+         Call : Node_Id;
+         Obj  : Node_Id;
+         Typ  : Entity_Id;
+
+      begin
+         if Is_Access_Type (Etype (E))
+           and then not Is_Access_Constant (Etype (E))
+         then
+            Typ := Designated_Type (Etype (E));
+
+            if Has_Invariants (Typ)
+              and then Present (Invariant_Procedure (Typ))
+              and then Is_Public_Subprogram_For (Typ)
+            then
+               Obj :=
+                 Make_Explicit_Dereference (Loc,
+                   Prefix => New_Occurrence_Of (E, Loc));
+               Set_Etype (Obj, Typ);
+
+               Call := Make_Invariant_Call (Obj);
+
+               Append_To (Plist,
+                 Make_If_Statement (Loc,
+                   Condition =>
+                     Make_Op_Ne (Loc,
+                       Left_Opnd   => Make_Null (Loc),
+                       Right_Opnd  => New_Occurrence_Of (E, Loc)),
+                   Then_Statements => New_List (Call)));
+            end if;
+         end if;
+      end Check_Access_Invariants;
 
       -------------
       -- Grab_CC --
@@ -11281,6 +11383,21 @@ package body Sem_Ch6 is
          return CP;
       end Grab_PPC;
 
+      -----------------------------------
+      -- Insert_After_Last_Declaration --
+      -----------------------------------
+
+      procedure Insert_After_Last_Declaration (Nod : Node_Id) is
+         Decls : constant List_Id := Declarations (N);
+
+      begin
+         if No (Decls) then
+            Set_Declarations (N, New_List (Nod));
+         else
+            Append_To (Decls, Nod);
+         end if;
+      end Insert_After_Last_Declaration;
+
       --------------------------------------
       -- Invariants_Or_Predicates_Present --
       --------------------------------------
@@ -11289,10 +11406,17 @@ package body Sem_Ch6 is
          Formal : Entity_Id;
 
       begin
-         --  Check function return result
+         --  Check function return result. If result is an access type there
+         --  may be invariants on the designated type.
 
          if Ekind (Designator) /= E_Procedure
            and then Has_Invariants (Etype (Designator))
+         then
+            return True;
+
+         elsif Ekind (Designator) /= E_Procedure
+           and then Is_Access_Type (Etype (Designator))
+           and then Has_Invariants (Designated_Type (Etype (Designator)))
          then
             return True;
          end if;
@@ -11302,9 +11426,13 @@ package body Sem_Ch6 is
          Formal := First_Formal (Designator);
          while Present (Formal) loop
             if Ekind (Formal) /= E_In_Parameter
-              and then
-                (Has_Invariants (Etype (Formal))
-                  or else Present (Predicate_Function (Etype (Formal))))
+              and then (Has_Invariants (Etype (Formal))
+                         or else Present (Predicate_Function (Etype (Formal))))
+            then
+               return True;
+
+            elsif Is_Access_Type (Etype (Formal))
+              and then Has_Invariants (Designated_Type (Etype (Formal)))
             then
                return True;
             end if;
@@ -11342,9 +11470,22 @@ package body Sem_Ch6 is
          --  If the subprogram declaration is not a list member, it must be
          --  an Init_Proc, in which case we want to consider it to be a
          --  public subprogram, since we do get initializations to deal with.
+         --  Other internally generated subprograms are not public.
 
-         if not Is_List_Member (DD) then
+         if not Is_List_Member (DD)
+           and then Is_Init_Proc (Defining_Entity (DD))
+         then
             return True;
+
+         --  The declaration may have been generated for an expression function
+         --  so check whether that function comes from source.
+
+         elsif not Comes_From_Source (DD)
+           and then
+             (Nkind (Original_Node (DD)) /= N_Expression_Function
+               or else not Comes_From_Source (Defining_Entity (DD)))
+         then
+            return False;
 
          --  Otherwise we test whether the subprogram is declared in the
          --  visible declarations of the package containing the type.
@@ -11353,50 +11494,6 @@ package body Sem_Ch6 is
             return TL = List_Containing (DD);
          end if;
       end Is_Public_Subprogram_For;
-
-      -------------------------------
-      -- Last_Implicit_Declaration --
-      -------------------------------
-
-      function Last_Implicit_Declaration return Node_Id is
-         Loc   : constant Source_Ptr := Sloc (N);
-         Decls : List_Id := Declarations (N);
-         Decl  : Node_Id;
-         Succ  : Node_Id;
-
-      begin
-         if No (Decls) then
-            Decls := New_List (Make_Null_Statement (Loc));
-            Set_Declarations (N, Decls);
-
-         elsif Is_Empty_List (Declarations (N)) then
-            Append_To (Decls, Make_Null_Statement (Loc));
-         end if;
-
-         --  Implicit and source declarations may be interspersed. Search for
-         --  the last implicit declaration which is either succeeded by a
-         --  source construct or is the last node in the declarative list.
-
-         Decl := First (Declarations (N));
-         while Present (Decl) loop
-            Succ := Next (Decl);
-
-            --  The current declaration is the last one, do not return Empty
-
-            if No (Succ) then
-               exit;
-
-            --  The successor is a source construct
-
-            elsif Comes_From_Source (Succ) then
-               exit;
-            end if;
-
-            Next (Decl);
-         end loop;
-
-         return Decl;
-      end Last_Implicit_Declaration;
 
    --  Start of processing for Process_PPCs
 
@@ -11713,7 +11810,7 @@ package body Sem_Ch6 is
       end if;
 
       --  If we had any postconditions and expansion is enabled, or if the
-      --  procedure has invariants, then build the _Postconditions procedure.
+      --  subprogram has invariants, then build the _Postconditions procedure.
 
       if (Present (Plist) or else Invariants_Or_Predicates_Present)
         and then Expander_Active
@@ -11722,7 +11819,7 @@ package body Sem_Ch6 is
             Plist := Empty_List;
          end if;
 
-         --  Special processing for function case
+         --  Special processing for function return
 
          if Ekind (Designator) /= E_Procedure then
             declare
@@ -11752,6 +11849,10 @@ package body Sem_Ch6 is
                   Append_To (Plist,
                     Make_Invariant_Call (New_Occurrence_Of (Rent, Loc)));
                end if;
+
+               --  Same if return value is an access to type with invariants.
+
+               Check_Access_Invariants (Rent);
             end;
 
          --  Procedure rather than a function
@@ -11771,7 +11872,9 @@ package body Sem_Ch6 is
          begin
             Formal := First_Formal (Designator);
             while Present (Formal) loop
-               if Ekind (Formal) /= E_In_Parameter then
+               if Ekind (Formal) /= E_In_Parameter
+                 or else Is_Access_Type (Etype (Formal))
+               then
                   Ftype := Etype (Formal);
 
                   if Has_Invariants (Ftype)
@@ -11782,6 +11885,8 @@ package body Sem_Ch6 is
                        Make_Invariant_Call
                          (New_Occurrence_Of (Formal, Loc)));
                   end if;
+
+                  Check_Access_Invariants (Formal);
 
                   if Present (Predicate_Function (Ftype)) then
                      Append_To (Plist,
@@ -11803,7 +11908,26 @@ package body Sem_Ch6 is
             --  The entity for the _Postconditions procedure
 
          begin
-            Insert_After (Last_Implicit_Declaration,
+            --  Insert the corresponding body of a post condition pragma after
+            --  the last declaration of the context. This ensures that the body
+            --  will not cause any premature freezing as it may mention types:
+
+            --    procedure Proc (Obj : Array_Typ) is
+            --       procedure _postconditions is
+            --       begin
+            --          ... Obj ...
+            --       end _postconditions;
+
+            --       subtype T is Array_Typ (Obj'First (1) .. Obj'Last (1));
+            --    begin
+
+            --  In the example above, Obj is of type T but the incorrect
+            --  placement of _postconditions will cause a crash in gigi due to
+            --  an out of order reference. The body of _postconditions must be
+            --  placed after the declaration of Temp to preserve correct
+            --  visibility.
+
+            Insert_After_Last_Declaration (
               Make_Subprogram_Body (Loc,
                 Specification =>
                   Make_Procedure_Specification (Loc,

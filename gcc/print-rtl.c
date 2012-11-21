@@ -416,10 +416,10 @@ print_rtx (const_rtx in_rtx)
 	if (i == 5 && INSN_P (in_rtx))
 	  {
 #ifndef GENERATOR_FILE
-	    /*  Pretty-print insn locators.  Ignore scoping as it is mostly
+	    /*  Pretty-print insn locations.  Ignore scoping as it is mostly
 		redundant with line number information and do not print anything
 		when there is no location information available.  */
-	    if (INSN_LOCATOR (in_rtx) && insn_file (in_rtx))
+	    if (INSN_LOCATION (in_rtx) && insn_file (in_rtx))
 	      fprintf(outfile, " %s:%i", insn_file (in_rtx), insn_line (in_rtx));
 #endif
 	  }
@@ -427,16 +427,16 @@ print_rtx (const_rtx in_rtx)
 	  {
 #ifndef GENERATOR_FILE
 	    fprintf (outfile, " %s:%i",
-		     locator_file (ASM_OPERANDS_SOURCE_LOCATION (in_rtx)),
-		     locator_line (ASM_OPERANDS_SOURCE_LOCATION (in_rtx)));
+		     LOCATION_FILE (ASM_OPERANDS_SOURCE_LOCATION (in_rtx)),
+		     LOCATION_LINE (ASM_OPERANDS_SOURCE_LOCATION (in_rtx)));
 #endif
 	  }
 	else if (i == 1 && GET_CODE (in_rtx) == ASM_INPUT)
 	  {
 #ifndef GENERATOR_FILE
 	    fprintf (outfile, " %s:%i",
-		     locator_file (ASM_INPUT_SOURCE_LOCATION (in_rtx)),
-		     locator_line (ASM_INPUT_SOURCE_LOCATION (in_rtx)));
+		     LOCATION_FILE (ASM_INPUT_SOURCE_LOCATION (in_rtx)),
+		     LOCATION_LINE (ASM_INPUT_SOURCE_LOCATION (in_rtx)));
 #endif
 	  }
 	else if (i == 6 && NOTE_P (in_rtx))
@@ -811,11 +811,27 @@ print_rtl (FILE *outf, const_rtx rtx_first)
 int
 print_rtl_single (FILE *outf, const_rtx x)
 {
+  return print_rtl_single_with_indent (outf, x, 0);
+}
+
+/* Like print_rtl_single, except specify a file and indentation.  */
+
+int
+print_rtl_single_with_indent (FILE *outf, const_rtx x, int ind)
+{
+  int old_indent = indent;
+  char *s_indent = (char *) alloca ((size_t) ind + 1);
+  memset ((void *) s_indent, ' ', (size_t) ind);
+  s_indent[ind] = '\0';
+
+  indent = ind;
   outfile = outf;
   sawclose = 0;
+  fputs (s_indent, outfile);
   fputs (print_rtx_head, outfile);
   print_rtx (x);
   putc ('\n', outf);
+  indent = old_indent;
   return 1;
 }
 

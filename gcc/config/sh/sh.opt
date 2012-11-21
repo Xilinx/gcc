@@ -320,14 +320,14 @@ Target Mask(HITACHI)
 Follow Renesas (formerly Hitachi) / SuperH calling conventions
 
 msoft-atomic
-Target Report Var(TARGET_SOFT_ATOMIC)
-Use gUSA software atomic sequences
+Target Undocumented Alias(matomic-model=, soft-gusa, none)
+Deprecated.  Use -matomic= instead to select the atomic model
 
-mhard-atomic
-Target Report Var(TARGET_HARD_ATOMIC)
-Use hardware atomic sequences
+matomic-model=
+Target Report RejectNegative Joined Var(sh_atomic_model_str)
+Specify the model for atomic operations
 
-menable-tas
+mtas
 Target Report RejectNegative Var(TARGET_ENABLE_TAS)
 Use tas.b instruction for __atomic_test_and_set
 

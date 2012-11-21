@@ -765,6 +765,8 @@ SYSROOT_CFLAGS_FOR_TARGET
 enable_shared
 enable_fixed_point
 enable_decimal_float
+with_float
+enable_multiarch
 enable_multilib
 coverage_flags
 valgrind_command
@@ -874,6 +876,7 @@ enable_coverage
 enable_gather_detailed_mem_stats
 with_stabs
 enable_multilib
+enable_multiarch
 enable___cxa_atexit
 enable_decimal_float
 enable_fixed_point
@@ -1574,6 +1577,7 @@ Optional Features:
   --enable-gather-detailed-mem-stats
                           enable detailed memory allocation stats gathering
   --enable-multilib       enable library support for multiple ABIs
+  --enable-multiarch      enable support for multiarch paths
   --enable-__cxa_atexit   enable __cxa_atexit for C++
   --enable-decimal-float={no,yes,bid,dpd}
 			enable decimal float extension to C.  Selecting 'bid'
@@ -4863,8 +4867,10 @@ fi
 # optimizations to be activated explicitly by the toplevel.
 case "$CC" in
   */prev-gcc/xgcc*) ;;
-  *) CFLAGS=`echo $CFLAGS | sed "s/-O[s0-9]* *//" ` ;;
+  *) CFLAGS=`echo "$CFLAGS " | sed -e "s/-Ofast[ 	]//" -e "s/-O[gs][ 	]//" -e "s/-O[0-9]*[ 	]//" `
+     CXXFLAGS=`echo "$CXXFLAGS " | sed -e "s/-Ofast[ 	]//" -e "s/-O[gs][ 	]//" -e "s/-O[0-9]*[ 	]//" ` ;;
 esac
+
 
 
 # Determine PICFLAG for target gnatlib.
@@ -6634,7 +6640,7 @@ fi
 # Disable exceptions and RTTI if building with g++
 noexception_flags=
 save_CFLAGS="$CFLAGS"
-for real_option in -fno-exceptions -fno-rtti; do
+for real_option in -fno-exceptions -fno-rtti -fasynchronous-unwind-tables; do
   # Do the check with the no- prefix removed since gcc silently
   # accepts any -Wno-* option on purpose
   case $real_option in
@@ -7012,6 +7018,36 @@ else
   enable_multilib=yes
 fi
 
+
+
+# Determine whether or not multiarch is enabled.
+# Check whether --enable-multiarch was given.
+if test "${enable_multiarch+set}" = set; then :
+  enableval=$enable_multiarch; case "${withval}" in
+yes|no|auto) enable_multiarch=$withval;;
+*) as_fn_error "bad value ${withval} given for --enable-multiarch option" "$LINENO" 5 ;;
+esac
+else
+  enable_multiarch=auto
+fi
+
+if test x${enable_multiarch} = xauto; then
+  if test x${with_native_system_header_dir} != x; then
+    ma_msg_suffix=", disabled auto check (configured with --native-system-header-dir)"
+    enable_multiarch=no
+  fi
+  if test x$host != x$target && test "x$with_sysroot" = x; then
+    ma_msg_suffix=", disabled auto check (cross build configured without --with-sysroot)"
+    enable_multiarch=no
+  fi
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for multiarch configuration" >&5
+$as_echo_n "checking for multiarch configuration... " >&6; }
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $enable_multiarch$ma_msg_suffix" >&5
+$as_echo "$enable_multiarch$ma_msg_suffix" >&6; }
+
+# needed for setting the multiarch name for soft-float/hard-float ABIs
 
 
 # Enable __cxa_atexit for C++.
@@ -8248,7 +8284,7 @@ fi
 for ac_header in limits.h stddef.h string.h strings.h stdlib.h time.h iconv.h \
 		 fcntl.h unistd.h sys/file.h sys/time.h sys/mman.h \
 		 sys/resource.h sys/param.h sys/times.h sys/stat.h \
-		 direct.h malloc.h langinfo.h ldfcn.h locale.h wchar.h
+		 direct.h malloc.h langinfo.h ldfcn.h locale.h wchar.h libintl.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_preproc "$LINENO" "$ac_header" "$as_ac_Header"
@@ -10288,7 +10324,7 @@ CXXFLAGS="$CXXFLAGS -I${srcdir} -I${srcdir}/../include"
 for ac_func in getenv atol asprintf sbrk abort atof getcwd getwd \
 	strsignal strstr stpcpy strverscmp \
 	errno snprintf vsnprintf vasprintf malloc realloc calloc \
-	free basename getopt clock getpagesize clearerr_unlocked feof_unlocked   ferror_unlocked fflush_unlocked fgetc_unlocked fgets_unlocked   fileno_unlocked fprintf_unlocked fputc_unlocked fputs_unlocked   fread_unlocked fwrite_unlocked getchar_unlocked getc_unlocked   putchar_unlocked putc_unlocked
+	free basename getopt clock getpagesize ffs clearerr_unlocked feof_unlocked   ferror_unlocked fflush_unlocked fgetc_unlocked fgets_unlocked   fileno_unlocked fprintf_unlocked fputc_unlocked fputs_unlocked   fread_unlocked fwrite_unlocked getchar_unlocked getc_unlocked   putchar_unlocked putc_unlocked
 do
   ac_tr_decl=`$as_echo "HAVE_DECL_$ac_func" | $as_tr_cpp`
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether $ac_func is declared" >&5
@@ -10728,6 +10764,46 @@ $as_echo "$gcc_cv_type_clock_t" >&6; }
 if test $gcc_cv_type_clock_t = yes; then
 
 $as_echo "#define HAVE_CLOCK_T 1" >>confdefs.h
+
+fi
+
+# Check if F_SETLKW is supported by fcntl.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for F_SETLKW" >&5
+$as_echo_n "checking for F_SETLKW... " >&6; }
+if test "${ac_cv_f_setlkw+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <fcntl.h>
+int
+main ()
+{
+
+struct flock fl;
+fl.l_whence = 0;
+fl.l_start = 0;
+fl.l_len = 0;
+fl.l_pid = 0;
+return fcntl (1, F_SETLKW, &fl);
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  ac_cv_f_setlkw=yes
+else
+  ac_cv_f_setlkw=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_f_setlkw" >&5
+$as_echo "$ac_cv_f_setlkw" >&6; }
+if test $ac_cv_f_setlkw = yes; then
+
+$as_echo "#define HOST_HAS_F_SETLKW 1" >>confdefs.h
 
 fi
 
@@ -14796,6 +14872,7 @@ $as_echo_n "checking for $compiler option to produce PIC... " >&6; }
 	# AIX 5 now supports IA64 processor
 	lt_prog_compiler_static='-Bstatic'
       fi
+      lt_prog_compiler_pic='-fPIC'
       ;;
 
     amigaos*)
@@ -17742,7 +17819,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 17744 "configure"
+#line 17822 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -17848,7 +17925,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 17850 "configure"
+#line 17928 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -19645,6 +19722,7 @@ $as_echo_n "checking for $compiler option to produce PIC... " >&6; }
 	# AIX 5 now supports IA64 processor
 	lt_prog_compiler_static_CXX='-Bstatic'
       fi
+      lt_prog_compiler_pic_CXX='-fPIC'
       ;;
 
     amigaos*)
@@ -21193,11 +21271,15 @@ for f in $gcc_cv_as_bfd_srcdir/configure \
          $gcc_cv_as_gas_srcdir/configure \
          $gcc_cv_as_gas_srcdir/configure.in \
          $gcc_cv_as_gas_srcdir/Makefile.in ; do
-  gcc_cv_gas_version=`sed -n -e 's/^[ 	]*\(VERSION=[0-9]*\.[0-9]*.*\)/\1/p' < $f`
+  gcc_cv_gas_version=`sed -n -e 's/^[ 	]*VERSION=[^0-9A-Za-z_]*\([0-9]*\.[0-9]*.*\)/VERSION=\1/p' < $f`
   if test x$gcc_cv_gas_version != x; then
     break
   fi
 done
+case $gcc_cv_gas_version in
+  VERSION=[0-9]*) ;;
+  *) as_fn_error "cannot find version of in-tree assembler" "$LINENO" 5;;
+esac
 gcc_cv_gas_major_version=`expr "$gcc_cv_gas_version" : "VERSION=\([0-9]*\)"`
 gcc_cv_gas_minor_version=`expr "$gcc_cv_gas_version" : "VERSION=[0-9]*\.\([0-9]*\)"`
 gcc_cv_gas_patch_version=`expr "$gcc_cv_gas_version" : "VERSION=[0-9]*\.[0-9]*\.\([0-9]*\)"`
@@ -21294,6 +21376,12 @@ fi
 
 ORIGINAL_PLUGIN_LD_FOR_TARGET=$gcc_cv_ld
 PLUGIN_LD_SUFFIX=`basename $gcc_cv_ld | sed -e "s,$target_alias-,,"`
+# if the PLUGIN_LD is set ld-new, just have it as ld
+# as that is the installed named.
+if test x$PLUGIN_LD_SUFFIX == xld-new \
+   || test x$PLUGIN_LD_SUFFIX == xcollect-ld ; then
+  PLUGIN_LD_SUFFIX=ld
+fi
 
 # Check whether --with-plugin-ld was given.
 if test "${with_plugin_ld+set}" = set; then :
@@ -21351,11 +21439,15 @@ $as_echo "newly built ld" >&6; }
 	fi
 	for f in $gcc_cv_ld_bfd_srcdir/configure $gcc_cv_ld_gld_srcdir/configure $gcc_cv_ld_gld_srcdir/configure.in $gcc_cv_ld_gld_srcdir/Makefile.in
 	do
-		gcc_cv_gld_version=`sed -n -e 's/^[ 	]*\(VERSION=[0-9]*\.[0-9]*.*\)/\1/p' < $f`
+		gcc_cv_gld_version=`sed -n -e 's/^[ 	]*VERSION=[^0-9A-Za-z_]*\([0-9]*\.[0-9]*.*\)/VERSION=\1/p' < $f`
 		if test x$gcc_cv_gld_version != x; then
 			break
 		fi
 	done
+	case $gcc_cv_gld_version in
+	  VERSION=[0-9]*) ;;
+	  *) as_fn_error "cannot find version of in-tree linker" "$LINENO" 5 ;;
+	esac
 	gcc_cv_gld_major_version=`expr "$gcc_cv_gld_version" : "VERSION=\([0-9]*\)"`
 	gcc_cv_gld_minor_version=`expr "$gcc_cv_gld_version" : "VERSION=[0-9]*\.\([0-9]*\)"`
 else
@@ -22019,6 +22111,12 @@ else
   if test x"$ld_is_gold" = xyes; then
     :
   elif echo "$ld_ver" | grep GNU > /dev/null; then
+    case "${target}" in
+      mmix-knuth-mmixware)
+        # The linker emits by default mmo, not ELF, so "no" is appropriate.
+	gcc_cv_ld_hidden=no
+	;;
+    esac
     if test 0"$ld_date" -lt 20020404; then
       if test -n "$ld_date"; then
 	# If there was date string, but was earlier than 2002-04-04, fail
@@ -22776,6 +22874,9 @@ $as_echo "$gcc_cv_as_comdat_group_percent" >&6; }
  if test $gcc_cv_as_comdat_group_percent = yes; then
    gcc_cv_as_comdat_group_group=no
  else
+   if test -z "${gcc_cv_as_comdat_group_group+set}"; then
+     gcc_cv_as_comdat_group_group=no
+   fi
    case "${target}" in
      # Sun as uses a completely different syntax.
      *-*-solaris2*)
@@ -23126,6 +23227,19 @@ foo:
 	move.l x@TLSLE(%a5),%a0'
 	tls_first_major=2
 	tls_first_minor=19
+	tls_as_opt='--fatal-warnings'
+	;;
+  aarch64*-*-*)
+    conftest_s='
+	.section ".tdata","awT",%progbits
+foo:	.long	25
+	.text
+	adrp  x0, :tlsgd:x
+	add   x0, x0, #:tlsgd_lo12:x
+        bl    __tls_get_addr
+	nop'
+	tls_first_major=2
+	tls_first_minor=20
 	tls_as_opt='--fatal-warnings'
 	;;
   powerpc-*-*)
@@ -24029,6 +24143,48 @@ if test $gcc_cv_as_sparc_fmaf = yes; then
 $as_echo "#define HAVE_AS_FMAF_HPC_VIS3 1" >>confdefs.h
 
 fi
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking assembler for SPARC4 instructions" >&5
+$as_echo_n "checking assembler for SPARC4 instructions... " >&6; }
+if test "${gcc_cv_as_sparc_sparc4+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  gcc_cv_as_sparc_sparc4=no
+  if test x$gcc_cv_as != x; then
+    $as_echo '.text
+       .register %g2, #scratch
+       .register %g3, #scratch
+       .align 4
+       cxbe %g2, %g3, 1f
+1:     cwbneg %g2, %g3, 1f
+1:     sha1
+       md5
+       aes_kexpand0 %f4, %f6, %f8
+       des_round %f38, %f40, %f42, %f44
+       camellia_f %f54, %f56, %f58, %f60
+       kasumi_fi_xor %f46, %f48, %f50, %f52' > conftest.s
+    if { ac_try='$gcc_cv_as $gcc_cv_as_flags -xarch=sparc4 -o conftest.o conftest.s >&5'
+  { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; }
+    then
+	gcc_cv_as_sparc_sparc4=yes
+    else
+      echo "configure: failed program was" >&5
+      cat conftest.s >&5
+    fi
+    rm -f conftest.o conftest.s
+  fi
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gcc_cv_as_sparc_sparc4" >&5
+$as_echo "$gcc_cv_as_sparc_sparc4" >&6; }
+if test $gcc_cv_as_sparc_sparc4 = yes; then
+
+$as_echo "#define HAVE_AS_SPARC4 1" >>confdefs.h
+
+fi
     ;;
 
   i[34567]86-*-* | x86_64-*-*)
@@ -24417,9 +24573,7 @@ if test "${gcc_cv_as_ix86_hle+set}" = set; then :
 else
   gcc_cv_as_ix86_hle=no
   if test x$gcc_cv_as != x; then
-    $as_echo '.code64
-       lock xacquire cmpxchg %esi, (%rcx)
-       ' > conftest.s
+    $as_echo 'lock xacquire cmpxchg %esi, (%ecx)' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -25140,6 +25294,48 @@ $as_echo "#define HAVE_AS_POPCNTD 1" >>confdefs.h
 fi
 
     case $target in
+      *-*-aix*) conftest_s='	.machine "pwr8"
+	.csect .text[PR]';;
+      *) conftest_s='	.machine power8
+	.text';;
+    esac
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking assembler for power8 support" >&5
+$as_echo_n "checking assembler for power8 support... " >&6; }
+if test "${gcc_cv_as_powerpc_power8+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  gcc_cv_as_powerpc_power8=no
+    if test $in_tree_gas = yes; then
+    if test $gcc_cv_gas_vers -ge `expr \( \( 2 \* 1000 \) + 19 \) \* 1000 + 2`
+  then gcc_cv_as_powerpc_power8=yes
+fi
+  elif test x$gcc_cv_as != x; then
+    $as_echo "$conftest_s" > conftest.s
+    if { ac_try='$gcc_cv_as $gcc_cv_as_flags -a32 -o conftest.o conftest.s >&5'
+  { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; }
+    then
+	gcc_cv_as_powerpc_power8=yes
+    else
+      echo "configure: failed program was" >&5
+      cat conftest.s >&5
+    fi
+    rm -f conftest.o conftest.s
+  fi
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gcc_cv_as_powerpc_power8" >&5
+$as_echo "$gcc_cv_as_powerpc_power8" >&6; }
+if test $gcc_cv_as_powerpc_power8 = yes; then
+
+$as_echo "#define HAVE_AS_POWER8 1" >>confdefs.h
+
+fi
+
+    case $target in
       *-*-aix*) conftest_s='	.csect .text[PR]
 	lwsync';;
       *) conftest_s='	.text
@@ -25304,8 +25500,8 @@ if test "${gcc_cv_as_aix_ref+set}" = set; then :
 else
   gcc_cv_as_aix_ref=no
     if test $in_tree_gas = yes; then
-    if test $gcc_cv_gas_vers -ge `expr \( \( 2.21.0 \* 1000 \) + gcc_cv_as_aix_ref=yes \) \* 1000 + `
-  then :
+    if test $gcc_cv_gas_vers -ge `expr \( \( 2 \* 1000 \) + 21 \) \* 1000 + 0`
+  then gcc_cv_as_aix_ref=yes
 fi
   elif test x$gcc_cv_as != x; then
     $as_echo '	.csect stuff[rw]
@@ -26211,7 +26407,9 @@ if test "${gcc_cv_ld_no_dot_syms+set}" = set; then :
   $as_echo_n "(cached) " >&6
 else
   gcc_cv_ld_no_dot_syms=no
-    if test $in_tree_ld = yes ; then
+    if test x"$ld_is_gold" = xyes; then
+      gcc_cv_ld_no_dot_syms=yes
+    elif test $in_tree_ld = yes ; then
       if test "$gcc_cv_gld_major_version" -eq 2 -a "$gcc_cv_gld_minor_version" -ge 16 -o "$gcc_cv_gld_major_version" -gt 2; then
         gcc_cv_ld_no_dot_syms=yes
       fi
@@ -26255,7 +26453,9 @@ if test "${gcc_cv_ld_large_toc+set}" = set; then :
   $as_echo_n "(cached) " >&6
 else
   gcc_cv_ld_large_toc=no
-    if test $in_tree_ld = yes ; then
+    if test x"$ld_is_gold" = xyes; then
+      gcc_cv_ld_large_toc=yes
+    elif test $in_tree_ld = yes ; then
       if test "$gcc_cv_gld_major_version" -eq 2 -a "$gcc_cv_gld_minor_version" -ge 21 -o "$gcc_cv_gld_major_version" -gt 2; then
         gcc_cv_ld_large_toc=yes
       fi
@@ -26272,6 +26472,42 @@ _start:
 EOF
       if $gcc_cv_as -a64 -o conftest.o conftest.s > /dev/null 2>&1 \
          && $gcc_cv_ld $emul_name --no-toc-sort -o conftest conftest.o > /dev/null 2>&1; then
+        gcc_cv_ld_large_toc=yes
+      fi
+      rm -f conftest conftest.o conftest.s
+    fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gcc_cv_ld_large_toc" >&5
+$as_echo "$gcc_cv_ld_large_toc" >&6; }
+    if test x"$gcc_cv_ld_large_toc" = xyes; then
+
+$as_echo "#define HAVE_LD_LARGE_TOC 1" >>confdefs.h
+
+    fi
+    ;;
+esac
+
+case "$target" in
+  *-*-aix*)
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking linker large toc support" >&5
+$as_echo_n "checking linker large toc support... " >&6; }
+if test "${gcc_cv_ld_large_toc+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  gcc_cv_ld_large_toc=no
+    if test x$gcc_cv_as != x ; then
+      cat > conftest.s <<EOF
+	.toc
+LC..1:
+	.tc a[TC],a[RW]
+	.extern a[RW]
+	.csect .text[PR]
+.largetoctest:
+	addis 9,LC..1@u(2)
+	ld 3,LC..1@l(9)
+EOF
+      if $gcc_cv_as -a64 -o conftest.o conftest.s > /dev/null 2>&1; then
         gcc_cv_ld_large_toc=yes
       fi
       rm -f conftest conftest.o conftest.s

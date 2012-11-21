@@ -212,9 +212,13 @@ proc gcc-dg-test { prog do_what extra_tool_flags } {
 proc gcc-dg-prune { system text } {
     global additional_prunes
 
+    # Extra prune rules that will apply to tests defined in a .exp file.
+    # Always remember to clear it in .exp file after executed all tests.
+    global dg_runtest_extra_prunes
+
     set text [prune_gcc_output $text]
 
-    foreach p $additional_prunes {
+    foreach p "$additional_prunes $dg_runtest_extra_prunes" {
 	if { [string length $p] > 0 } {
 	    # Following regexp matches a complete line containing $p.
 	    regsub -all "(^|\n)\[^\n\]*$p\[^\n\]*" $text "" text
@@ -499,6 +503,19 @@ proc cleanup-stack-usage { } {
     }
 }
 
+# Remove an Ada spec file for the current test.
+proc cleanup-ada-spec { } {
+    set testcase [testname-for-summary]
+    remove-build-file "[get_ada_spec_filename $testcase]"
+
+    # Clean up files for additional source files.
+    if [info exists additional_sources] {
+	foreach srcfile $additional_sources {
+	    remove-build-file "[get_ada_spec_filename $srcfile]"
+	}
+    }
+}
+
 # Remove all dump files with the provided suffix.
 proc cleanup-dump { suffix } {
     set testcase [testname-for-summary]
@@ -532,7 +549,7 @@ proc cleanup-saved-temps { args } {
     set suffixes {}
 
     # add the to-be-kept suffixes
-    foreach suffix {".ii" ".i" ".s" ".o" ".gkd"} {
+    foreach suffix {".mii" ".ii" ".i" ".s" ".o" ".gkd"} {
 	if {[lsearch $args $suffix] < 0} {
 	    lappend suffixes $suffix
 	}
@@ -803,3 +820,4 @@ proc gdb-exists { args } {
 }
 
 set additional_prunes ""
+set dg_runtest_extra_prunes ""

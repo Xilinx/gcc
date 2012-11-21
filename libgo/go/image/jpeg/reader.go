@@ -35,11 +35,7 @@ type component struct {
 	tq uint8 // Quantization table destination selector.
 }
 
-type block [blockSize]int
-
 const (
-	blockSize = 64 // A DCT block is 8x8.
-
 	dcTable = 0
 	acTable = 1
 	maxTc   = 1
@@ -51,7 +47,7 @@ const (
 	// A color JPEG image has Y, Cb and Cr components.
 	nColorComponent = 3
 
-	// We only support 4:4:4, 4:2:2 and 4:2:0 downsampling, and therefore the
+	// We only support 4:4:4, 4:4:0, 4:2:2 and 4:2:0 downsampling, and therefore the
 	// number of luma samples per chroma sample is at most 2 in the horizontal
 	// and 2 in the vertical direction.
 	maxH = 2
@@ -74,7 +70,9 @@ const (
 	comMarker   = 0xfe // COMment.
 )
 
-// Maps from the zig-zag ordering to the natural ordering.
+// unzig maps from the zig-zag ordering to the natural ordering. For example,
+// unzig[3] is the column and row of the fourth element in zig-zag order. The
+// value is 16, which means first column (16%8 == 0) and third row (16/8 == 2).
 var unzig = [blockSize]int{
 	0, 1, 8, 16, 9, 2, 3, 10,
 	17, 24, 32, 25, 18, 11, 4, 5,
@@ -94,6 +92,7 @@ type Reader interface {
 
 type decoder struct {
 	r             Reader
+	b             bits
 	width, height int
 	img1          *image.Gray
 	img3          *image.YCbCr
@@ -101,8 +100,7 @@ type decoder struct {
 	nComp         int
 	comp          [nColorComponent]component
 	huff          [maxTc + 1][maxTh + 1]huffman
-	quant         [maxTq + 1]block
-	b             bits
+	quant         [maxTq + 1]block // Quantization tables, in zig-zag order.
 	tmp           [1024]byte
 }
 
@@ -154,12 +152,12 @@ func (d *decoder) processSOF(n int) error {
 		if d.nComp == nGrayComponent {
 			continue
 		}
-		// For color images, we only support 4:4:4, 4:2:2 or 4:2:0 chroma
+		// For color images, we only support 4:4:4, 4:4:0, 4:2:2 or 4:2:0 chroma
 		// downsampling ratios. This implies that the (h, v) values for the Y
-		// component are either (1, 1), (2, 1) or (2, 2), and the (h, v)
+		// component are either (1, 1), (1, 2), (2, 1) or (2, 2), and the (h, v)
 		// values for the Cr and Cb components must be (1, 1).
 		if i == 0 {
-			if hv != 0x11 && hv != 0x21 && hv != 0x22 {
+			if hv != 0x11 && hv != 0x21 && hv != 0x22 && hv != 0x12 {
 				return UnsupportedError("luma downsample ratio")
 			}
 		} else if hv != 0x11 {
@@ -203,12 +201,14 @@ func (d *decoder) makeImg(h0, v0, mxx, myy int) {
 		return
 	}
 	var subsampleRatio image.YCbCrSubsampleRatio
-	switch h0 * v0 {
-	case 1:
+	switch {
+	case h0 == 1 && v0 == 1:
 		subsampleRatio = image.YCbCrSubsampleRatio444
-	case 2:
+	case h0 == 1 && v0 == 2:
+		subsampleRatio = image.YCbCrSubsampleRatio440
+	case h0 == 2 && v0 == 1:
 		subsampleRatio = image.YCbCrSubsampleRatio422
-	case 4:
+	case h0 == 2 && v0 == 2:
 		subsampleRatio = image.YCbCrSubsampleRatio420
 	default:
 		panic("unreachable")
@@ -264,6 +264,7 @@ func (d *decoder) processSOS(n int) error {
 				for j := 0; j < d.comp[i].h*d.comp[i].v; j++ {
 					// TODO(nigeltao): make this a "var b block" once the compiler's escape
 					// analysis is good enough to allocate it on the stack, not the heap.
+					// b is in natural (not zig-zag) order.
 					b = block{}
 
 					// Decode the DC coefficient, as specified in section F.2.2.1.
@@ -282,7 +283,7 @@ func (d *decoder) processSOS(n int) error {
 					b[0] = dc[i] * qt[0]
 
 					// Decode the AC coefficients, as specified in section F.2.2.2.
-					for k := 1; k < blockSize; k++ {
+					for zig := 1; zig < blockSize; zig++ {
 						value, err := d.decodeHuffman(&d.huff[acTable][scan[i].ta])
 						if err != nil {
 							return err
@@ -290,36 +291,59 @@ func (d *decoder) processSOS(n int) error {
 						val0 := value >> 4
 						val1 := value & 0x0f
 						if val1 != 0 {
-							k += int(val0)
-							if k > blockSize {
+							zig += int(val0)
+							if zig > blockSize {
 								return FormatError("bad DCT index")
 							}
 							ac, err := d.receiveExtend(val1)
 							if err != nil {
 								return err
 							}
-							b[unzig[k]] = ac * qt[k]
+							b[unzig[zig]] = ac * qt[zig]
 						} else {
 							if val0 != 0x0f {
 								break
 							}
-							k += 0x0f
+							zig += 0x0f
 						}
 					}
 
 					// Perform the inverse DCT and store the MCU component to the image.
+					idct(&b)
+					dst, stride := []byte(nil), 0
 					if d.nComp == nGrayComponent {
-						idct(d.img1.Pix[8*(my*d.img1.Stride+mx):], d.img1.Stride, &b)
+						dst, stride = d.img1.Pix[8*(my*d.img1.Stride+mx):], d.img1.Stride
 					} else {
 						switch i {
 						case 0:
-							mx0 := h0*mx + (j % 2)
-							my0 := v0*my + (j / 2)
-							idct(d.img3.Y[8*(my0*d.img3.YStride+mx0):], d.img3.YStride, &b)
+							mx0, my0 := h0*mx, v0*my
+							if h0 == 1 {
+								my0 += j
+							} else {
+								mx0 += j % 2
+								my0 += j / 2
+							}
+							dst, stride = d.img3.Y[8*(my0*d.img3.YStride+mx0):], d.img3.YStride
 						case 1:
-							idct(d.img3.Cb[8*(my*d.img3.CStride+mx):], d.img3.CStride, &b)
+							dst, stride = d.img3.Cb[8*(my*d.img3.CStride+mx):], d.img3.CStride
 						case 2:
-							idct(d.img3.Cr[8*(my*d.img3.CStride+mx):], d.img3.CStride, &b)
+							dst, stride = d.img3.Cr[8*(my*d.img3.CStride+mx):], d.img3.CStride
+						}
+					}
+					// Level shift by +128, clip to [0, 255], and write to dst.
+					for y := 0; y < 8; y++ {
+						y8 := y * 8
+						yStride := y * stride
+						for x := 0; x < 8; x++ {
+							c := b[y8+x]
+							if c < -128 {
+								c = 0
+							} else if c > 127 {
+								c = 255
+							} else {
+								c += 128
+							}
+							dst[yStride+x] = uint8(c)
 						}
 					}
 				} // for j
@@ -393,6 +417,15 @@ func (d *decoder) decode(r io.Reader, configOnly bool) (image.Image, error) {
 		if marker == eoiMarker { // End Of Image.
 			break
 		}
+		if rst0Marker <= marker && marker <= rst7Marker {
+			// Figures B.2 and B.16 of the specification suggest that restart markers should
+			// only occur between Entropy Coded Segments and not after the final ECS.
+			// However, some encoders may generate incorrect JPEGs with a final restart
+			// marker. That restart marker will be seen here instead of inside the processSOS
+			// method, and is ignored as a harmless error. Restart markers have no extra data,
+			// so we check for this before we read the 16-bit length of the segment.
+			continue
+		}
 
 		// Read the 16-bit length of the segment. The value includes the 2 bytes for the
 		// length itself, so we subtract 2 to get the number of remaining bytes.
@@ -421,7 +454,7 @@ func (d *decoder) decode(r io.Reader, configOnly bool) (image.Image, error) {
 			err = d.processSOS(n)
 		case marker == driMarker: // Define Restart Interval.
 			err = d.processDRI(n)
-		case marker >= app0Marker && marker <= app15Marker || marker == comMarker: // APPlication specific, or COMment.
+		case app0Marker <= marker && marker <= app15Marker || marker == comMarker: // APPlication specific, or COMment.
 			err = d.ignore(n)
 		default:
 			err = UnsupportedError("unknown marker")

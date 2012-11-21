@@ -1087,6 +1087,7 @@ got_delim:
 
       if (!gfc_check_character_range (c, kind))
 	{
+	  gfc_free_expr (e);
 	  gfc_error ("Character '%s' in string at %C is not representable "
 		     "in character kind %d", gfc_print_wide_char (c), kind);
 	  return MATCH_ERROR;
@@ -1507,8 +1508,9 @@ match_actual_arg (gfc_expr **result)
 
 	  if (sym->attr.in_common && !sym->attr.proc_pointer)
 	    {
-	      gfc_add_flavor (&sym->attr, FL_VARIABLE, sym->name,
-			      &sym->declared_at);
+	      if (gfc_add_flavor (&sym->attr, FL_VARIABLE, sym->name,
+				  &sym->declared_at) == FAILURE)
+		return MATCH_ERROR;
 	      break;
 	    }
 
@@ -1973,6 +1975,8 @@ gfc_match_varspec (gfc_expr *primary, int equiv_flag, bool sub_flag,
 	  gcc_assert (primary->symtree->n.sym->attr.referenced);
 	  if (tbp_sym)
 	    primary->ts = tbp_sym->ts;
+	  else
+	    gfc_clear_ts (&primary->ts);
 
 	  m = gfc_match_actual_arglist (tbp->n.tb->subroutine,
 					&primary->value.compcall.actual);
@@ -2004,8 +2008,7 @@ gfc_match_varspec (gfc_expr *primary, int equiv_flag, bool sub_flag,
 
       primary->ts = component->ts;
 
-      if (component->attr.proc_pointer && ppc_arg
-	  && !gfc_matching_procptr_assignment)
+      if (component->attr.proc_pointer && ppc_arg)
 	{
 	  /* Procedure pointer component call: Look for argument list.  */
 	  m = gfc_match_actual_arglist (sub_flag,
@@ -2014,7 +2017,7 @@ gfc_match_varspec (gfc_expr *primary, int equiv_flag, bool sub_flag,
 	    return MATCH_ERROR;
 
 	  if (m == MATCH_NO && !gfc_matching_ptr_assignment
-	      && !matching_actual_arglist)
+	      && !gfc_matching_procptr_assignment && !matching_actual_arglist)
 	    {
 	      gfc_error ("Procedure pointer component '%s' requires an "
 			 "argument list at %C", component->name);

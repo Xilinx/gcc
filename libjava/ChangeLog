@@ -1,3 +1,21 @@
+2012-11-19  Matthias Klose  <doko@ubuntu.com>
+
+	* libtool-version: Bump soversion.
+
+2012-10-15  Matthias Klose  <doko@ubuntu.com>
+
+	* configure.ac: Match arm*-*-linux-* for ARM Linux/GNU.
+	* configure: Regenerate.
+
+2012-09-14  Dehao Chen  <dehao@google.com>
+
+	* testsuite/libjava.lang/sourcelocation.java: New cases.
+	* testsuite/libjava.lang/sourcelocation.out: New cases.
+
+2012-09-14  David Edelsohn  <dje.gcc@gmail.com>
+
+	* configure: Regenerated.
+
 2012-07-19  Tristan Gingold  <gingold@adacore.com>
 	    Richard Henderson  <rth@redhat.com>
 

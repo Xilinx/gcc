@@ -741,7 +741,6 @@ package body Sem_Type is
    ------------
 
    function Covers (T1, T2 : Entity_Id) return Boolean is
-
       BT1 : Entity_Id;
       BT2 : Entity_Id;
 
@@ -907,9 +906,10 @@ package body Sem_Type is
             --  covers an object T2 that implements a direct derivation of T1.
             --  Note: test for presence of E is defense against previous error.
 
-            if Present (E)
-              and then Present (Interfaces (E))
-            then
+            if No (E) then
+               Check_Error_Detected;
+
+            elsif Present (Interfaces (E)) then
                Elmt := First_Elmt (Interfaces (E));
                while Present (Elmt) loop
                   if Is_Ancestor (Etype (T1), Node (Elmt)) then

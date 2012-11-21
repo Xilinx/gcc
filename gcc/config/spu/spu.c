@@ -53,6 +53,7 @@
 #include "timevar.h"
 #include "df.h"
 #include "dumpfile.h"
+#include "cfgloop.h"
 
 /* Builtin types, data and prototypes. */
 
@@ -1997,7 +1998,7 @@ emit_nop_for_insn (rtx insn)
   else
     new_insn = emit_insn_after (gen_lnop (), insn);
   recog_memoized (new_insn);
-  INSN_LOCATOR (new_insn) = INSN_LOCATOR (insn);
+  INSN_LOCATION (new_insn) = INSN_LOCATION (insn);
 }
 
 /* Insert nops in basic blocks to meet dual issue alignment
@@ -2036,7 +2037,7 @@ pad_bb(void)
 		  prev_insn = emit_insn_before (gen_lnop (), insn);
 		  PUT_MODE (prev_insn, GET_MODE (insn));
 		  PUT_MODE (insn, TImode);
-		  INSN_LOCATOR (prev_insn) = INSN_LOCATOR (insn);
+		  INSN_LOCATION (prev_insn) = INSN_LOCATION (insn);
 		  length += 4;
 		}
 	    }
@@ -2101,11 +2102,11 @@ spu_emit_branch_hint (rtx before, rtx branch, rtx target,
   LABEL_PRESERVE_P (branch_label) = 1;
   insn = emit_label_before (branch_label, branch);
   branch_label = gen_rtx_LABEL_REF (VOIDmode, branch_label);
-  SET_BIT (blocks, BLOCK_FOR_INSN (branch)->index);
+  bitmap_set_bit (blocks, BLOCK_FOR_INSN (branch)->index);
 
   hint = emit_insn_before (gen_hbr (branch_label, target), before);
   recog_memoized (hint);
-  INSN_LOCATOR (hint) = INSN_LOCATOR (branch);
+  INSN_LOCATION (hint) = INSN_LOCATION (branch);
   HINTED_P (branch) = 1;
 
   if (GET_CODE (target) == LABEL_REF)
@@ -2128,7 +2129,7 @@ spu_emit_branch_hint (rtx before, rtx branch, rtx target,
          which could make it too far for the branch offest to fit */
       insn = emit_insn_before (gen_blockage (), hint);
       recog_memoized (insn);
-      INSN_LOCATOR (insn) = INSN_LOCATOR (hint);
+      INSN_LOCATION (insn) = INSN_LOCATION (hint);
     }
   else if (distance <= 8 * 4)
     {
@@ -2140,20 +2141,20 @@ spu_emit_branch_hint (rtx before, rtx branch, rtx target,
 	  insn =
 	    emit_insn_after (gen_nopn_nv (gen_rtx_REG (SImode, 127)), hint);
 	  recog_memoized (insn);
-	  INSN_LOCATOR (insn) = INSN_LOCATOR (hint);
+	  INSN_LOCATION (insn) = INSN_LOCATION (hint);
 	}
 
       /* Make sure any nops inserted aren't scheduled before the hint. */
       insn = emit_insn_after (gen_blockage (), hint);
       recog_memoized (insn);
-      INSN_LOCATOR (insn) = INSN_LOCATOR (hint);
+      INSN_LOCATION (insn) = INSN_LOCATION (hint);
 
       /* Make sure any nops inserted aren't scheduled after the call. */
       if (CALL_P (branch) && distance < 8 * 4)
 	{
 	  insn = emit_insn_before (gen_blockage (), branch);
 	  recog_memoized (insn);
-	  INSN_LOCATOR (insn) = INSN_LOCATOR (branch);
+	  INSN_LOCATION (insn) = INSN_LOCATION (branch);
 	}
     }
 }
@@ -2339,7 +2340,7 @@ insert_hbrp_for_ilb_runout (rtx first)
 		insn =
 		  emit_insn_before (gen_iprefetch (GEN_INT (1)), before_4);
 		recog_memoized (insn);
-		INSN_LOCATOR (insn) = INSN_LOCATOR (before_4);
+		INSN_LOCATION (insn) = INSN_LOCATION (before_4);
 		INSN_ADDRESSES_NEW (insn,
 				    INSN_ADDRESSES (INSN_UID (before_4)));
 		PUT_MODE (insn, GET_MODE (before_4));
@@ -2348,7 +2349,7 @@ insert_hbrp_for_ilb_runout (rtx first)
 		  {
 		    insn = emit_insn_before (gen_lnop (), before_4);
 		    recog_memoized (insn);
-		    INSN_LOCATOR (insn) = INSN_LOCATOR (before_4);
+		    INSN_LOCATION (insn) = INSN_LOCATION (before_4);
 		    INSN_ADDRESSES_NEW (insn,
 					INSN_ADDRESSES (INSN_UID (before_4)));
 		    PUT_MODE (insn, TImode);
@@ -2360,7 +2361,7 @@ insert_hbrp_for_ilb_runout (rtx first)
 		insn =
 		  emit_insn_before (gen_iprefetch (GEN_INT (2)), before_16);
 		recog_memoized (insn);
-		INSN_LOCATOR (insn) = INSN_LOCATOR (before_16);
+		INSN_LOCATION (insn) = INSN_LOCATION (before_16);
 		INSN_ADDRESSES_NEW (insn,
 				    INSN_ADDRESSES (INSN_UID (before_16)));
 		PUT_MODE (insn, GET_MODE (before_16));
@@ -2369,7 +2370,7 @@ insert_hbrp_for_ilb_runout (rtx first)
 		  {
 		    insn = emit_insn_before (gen_lnop (), before_16);
 		    recog_memoized (insn);
-		    INSN_LOCATOR (insn) = INSN_LOCATOR (before_16);
+		    INSN_LOCATION (insn) = INSN_LOCATION (before_16);
 		    INSN_ADDRESSES_NEW (insn,
 					INSN_ADDRESSES (INSN_UID
 							(before_16)));
@@ -2453,10 +2454,14 @@ spu_machine_dependent_reorg (void)
     }
 
   blocks = sbitmap_alloc (last_basic_block);
-  sbitmap_zero (blocks);
+  bitmap_clear (blocks);
 
   in_spu_reorg = 1;
   compute_bb_for_insn ();
+
+  /* (Re-)discover loops so that bb->loop_father can be used
+     in the analysis below.  */
+  loop_optimizer_init (AVOID_CFG_MODIFICATIONS);
 
   compact_blocks ();
 
@@ -2562,14 +2567,13 @@ spu_machine_dependent_reorg (void)
 	     fallthru block. This catches the cases when it is a simple
 	     loop or when there is an initial branch into the loop. */
 	  if (prev && (loop_exit || simple_loop)
-	      && prev->loop_depth <= bb->loop_depth)
+	      && bb_loop_depth (prev) <= bb_loop_depth (bb))
 	    prop = prev;
 
 	  /* If there is only one adjacent predecessor.  Don't propagate
-	     outside this loop.  This loop_depth test isn't perfect, but
-	     I'm not sure the loop_father member is valid at this point.  */
+	     outside this loop.  */
 	  else if (prev && single_pred_p (bb)
-		   && prev->loop_depth == bb->loop_depth)
+		   && prev->loop_father == bb->loop_father)
 	    prop = prev;
 
 	  /* If this is the JOIN block of a simple IF-THEN then
@@ -2578,7 +2582,7 @@ spu_machine_dependent_reorg (void)
 		   && EDGE_COUNT (bb->preds) == 2
 		   && EDGE_COUNT (prev->preds) == 1
 		   && EDGE_PRED (prev, 0)->src == prev2
-		   && prev2->loop_depth == bb->loop_depth
+		   && prev2->loop_father == bb->loop_father
 		   && GET_CODE (branch_target) != REG)
 	    prop = prev;
 
@@ -2600,7 +2604,7 @@ spu_machine_dependent_reorg (void)
 	      if (dump_file)
 		fprintf (dump_file, "propagate from %i to %i (loop depth %i) "
 			 "for %i (loop_exit %i simple_loop %i dist %i)\n",
-			 bb->index, prop->index, bb->loop_depth,
+			 bb->index, prop->index, bb_loop_depth (bb),
 			 INSN_UID (branch), loop_exit, simple_loop,
 			 branch_addr - INSN_ADDRESSES (INSN_UID (bbend)));
 
@@ -2621,7 +2625,7 @@ spu_machine_dependent_reorg (void)
     }
   free (spu_bb_info);
 
-  if (!sbitmap_empty_p (blocks))
+  if (!bitmap_empty_p (blocks))
     find_many_sub_basic_blocks (blocks);
 
   /* We have to schedule to make sure alignment is ok. */
@@ -2656,6 +2660,8 @@ spu_machine_dependent_reorg (void)
       }
 
   spu_var_tracking ();
+
+  loop_optimizer_finalize ();
 
   free_bb_for_insn ();
 
@@ -7155,7 +7161,7 @@ static const struct attribute_spec spu_attribute_table[] =
 #define TARGET_RTX_COSTS spu_rtx_costs
 
 #undef TARGET_ADDRESS_COST
-#define TARGET_ADDRESS_COST hook_int_rtx_bool_0
+#define TARGET_ADDRESS_COST hook_int_rtx_mode_as_bool_0
 
 #undef TARGET_SCHED_ISSUE_RATE
 #define TARGET_SCHED_ISSUE_RATE spu_sched_issue_rate

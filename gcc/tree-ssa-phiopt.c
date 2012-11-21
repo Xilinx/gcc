@@ -479,10 +479,10 @@ blocks_in_phiopt_order (void)
   unsigned np, i;
   sbitmap visited = sbitmap_alloc (last_basic_block);
 
-#define MARK_VISITED(BB) (SET_BIT (visited, (BB)->index))
-#define VISITED_P(BB) (TEST_BIT (visited, (BB)->index))
+#define MARK_VISITED(BB) (bitmap_set_bit (visited, (BB)->index))
+#define VISITED_P(BB) (bitmap_bit_p (visited, (BB)->index))
 
-  sbitmap_zero (visited);
+  bitmap_clear (visited);
 
   MARK_VISITED (ENTRY_BLOCK_PTR);
   FOR_EACH_BB (x)
@@ -517,24 +517,6 @@ blocks_in_phiopt_order (void)
 
 #undef MARK_VISITED
 #undef VISITED_P
-}
-
-
-/* Return TRUE if block BB has no executable statements, otherwise return
-   FALSE.  */
-
-bool
-empty_block_p (basic_block bb)
-{
-  /* BB must have no executable statements.  */
-  gimple_stmt_iterator gsi = gsi_after_labels (bb);
-  if (phi_nodes (bb))
-    return false;
-  if (gsi_end_p (gsi))
-    return true;
-  if (is_gimple_debug (gsi_stmt (gsi)))
-    gsi_next_nondebug (&gsi);
-  return gsi_end_p (gsi);
 }
 
 /* Replace PHI node element whose edge is E in block BB with variable NEW.
@@ -720,9 +702,7 @@ jump_function_from_stmt (tree *arg, gimple stmt)
 						&offset);
       if (tem
 	  && TREE_CODE (tem) == MEM_REF
-	  && double_int_zero_p
-	       (double_int_add (mem_ref_offset (tem),
-				shwi_to_double_int (offset))))
+	  && (mem_ref_offset (tem) + double_int::from_shwi (offset)).is_zero ())
 	{
 	  *arg = TREE_OPERAND (tem, 0);
 	  return true;
@@ -1594,15 +1574,15 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
 {
   gimple then_assign = last_and_only_stmt (then_bb);
   gimple else_assign = last_and_only_stmt (else_bb);
-  VEC (data_reference_p, heap) *then_datarefs, *else_datarefs;
-  VEC (ddr_p, heap) *then_ddrs, *else_ddrs;
+  vec<data_reference_p> then_datarefs, else_datarefs;
+  vec<ddr_p> then_ddrs, else_ddrs;
   gimple then_store, else_store;
   bool found, ok = false, res;
   struct data_dependence_relation *ddr;
   data_reference_p then_dr, else_dr;
   int i, j;
   tree then_lhs, else_lhs;
-  VEC (gimple, heap) *then_stores, *else_stores;
+  vec<gimple> then_stores, else_stores;
   basic_block blocks[3];
 
   if (MAX_STORES_TO_SINK == 0)
@@ -1614,14 +1594,14 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
                                              then_assign, else_assign);
 
   /* Find data references.  */
-  then_datarefs = VEC_alloc (data_reference_p, heap, 1);
-  else_datarefs = VEC_alloc (data_reference_p, heap, 1);
+  then_datarefs.create (1);
+  else_datarefs.create (1);
   if ((find_data_references_in_bb (NULL, then_bb, &then_datarefs)
         == chrec_dont_know)
-      || !VEC_length (data_reference_p, then_datarefs)
+      || !then_datarefs.length ()
       || (find_data_references_in_bb (NULL, else_bb, &else_datarefs)
         == chrec_dont_know)
-      || !VEC_length (data_reference_p, else_datarefs))
+      || !else_datarefs.length ())
     {
       free_data_refs (then_datarefs);
       free_data_refs (else_datarefs);
@@ -1629,9 +1609,9 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
     }
 
   /* Find pairs of stores with equal LHS.  */
-  then_stores = VEC_alloc (gimple, heap, 1);
-  else_stores = VEC_alloc (gimple, heap, 1);
-  FOR_EACH_VEC_ELT (data_reference_p, then_datarefs, i, then_dr)
+  then_stores.create (1);
+  else_stores.create (1);
+  FOR_EACH_VEC_ELT (then_datarefs, i, then_dr)
     {
       if (DR_IS_READ (then_dr))
         continue;
@@ -1640,7 +1620,7 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
       then_lhs = gimple_get_lhs (then_store);
       found = false;
 
-      FOR_EACH_VEC_ELT (data_reference_p, else_datarefs, j, else_dr)
+      FOR_EACH_VEC_ELT (else_datarefs, j, else_dr)
         {
           if (DR_IS_READ (else_dr))
             continue;
@@ -1658,33 +1638,35 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
       if (!found)
         continue;
 
-      VEC_safe_push (gimple, heap, then_stores, then_store);
-      VEC_safe_push (gimple, heap, else_stores, else_store);
+      then_stores.safe_push (then_store);
+      else_stores.safe_push (else_store);
     }
 
   /* No pairs of stores found.  */
-  if (!VEC_length (gimple, then_stores)
-      || VEC_length (gimple, then_stores) > (unsigned) MAX_STORES_TO_SINK)
+  if (!then_stores.length ()
+      || then_stores.length () > (unsigned) MAX_STORES_TO_SINK)
     {
       free_data_refs (then_datarefs);
       free_data_refs (else_datarefs);
-      VEC_free (gimple, heap, then_stores);
-      VEC_free (gimple, heap, else_stores);
+      then_stores.release ();
+      else_stores.release ();
       return false;
     }
 
   /* Compute and check data dependencies in both basic blocks.  */
-  then_ddrs = VEC_alloc (ddr_p, heap, 1);
-  else_ddrs = VEC_alloc (ddr_p, heap, 1);
-  if (!compute_all_dependences (then_datarefs, &then_ddrs, NULL, false)
-      || !compute_all_dependences (else_datarefs, &else_ddrs, NULL, false))
+  then_ddrs.create (1);
+  else_ddrs.create (1);
+  if (!compute_all_dependences (then_datarefs, &then_ddrs,
+				vNULL, false)
+      || !compute_all_dependences (else_datarefs, &else_ddrs,
+				   vNULL, false))
     {
       free_dependence_relations (then_ddrs);
       free_dependence_relations (else_ddrs);
       free_data_refs (then_datarefs);
       free_data_refs (else_datarefs);
-      VEC_free (gimple, heap, then_stores);
-      VEC_free (gimple, heap, else_stores);
+      then_stores.release ();
+      else_stores.release ();
       return false;
     }
   blocks[0] = then_bb;
@@ -1694,7 +1676,7 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
 
   /* Check that there are no read-after-write or write-after-write dependencies
      in THEN_BB.  */
-  FOR_EACH_VEC_ELT (ddr_p, then_ddrs, i, ddr)
+  FOR_EACH_VEC_ELT (then_ddrs, i, ddr)
     {
       struct data_reference *dra = DDR_A (ddr);
       struct data_reference *drb = DDR_B (ddr);
@@ -1710,15 +1692,15 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
           free_dependence_relations (else_ddrs);
 	  free_data_refs (then_datarefs);
 	  free_data_refs (else_datarefs);
-          VEC_free (gimple, heap, then_stores);
-          VEC_free (gimple, heap, else_stores);
+          then_stores.release ();
+          else_stores.release ();
           return false;
         }
     }
 
   /* Check that there are no read-after-write or write-after-write dependencies
      in ELSE_BB.  */
-  FOR_EACH_VEC_ELT (ddr_p, else_ddrs, i, ddr)
+  FOR_EACH_VEC_ELT (else_ddrs, i, ddr)
     {
       struct data_reference *dra = DDR_A (ddr);
       struct data_reference *drb = DDR_B (ddr);
@@ -1734,16 +1716,16 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
           free_dependence_relations (else_ddrs);
 	  free_data_refs (then_datarefs);
 	  free_data_refs (else_datarefs);
-          VEC_free (gimple, heap, then_stores);
-          VEC_free (gimple, heap, else_stores);
+          then_stores.release ();
+          else_stores.release ();
           return false;
         }
     }
 
   /* Sink stores with same LHS.  */
-  FOR_EACH_VEC_ELT (gimple, then_stores, i, then_store)
+  FOR_EACH_VEC_ELT (then_stores, i, then_store)
     {
-      else_store = VEC_index (gimple, else_stores, i);
+      else_store = else_stores[i];
       res = cond_if_else_store_replacement_1 (then_bb, else_bb, join_bb,
                                               then_store, else_store);
       ok = ok || res;
@@ -1753,8 +1735,8 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
   free_dependence_relations (else_ddrs);
   free_data_refs (then_datarefs);
   free_data_refs (else_datarefs);
-  VEC_free (gimple, heap, then_stores);
-  VEC_free (gimple, heap, else_stores);
+  then_stores.release ();
+  else_stores.release ();
 
   return ok;
 }
@@ -1842,7 +1824,8 @@ hoist_adjacent_loads (basic_block bb0, basic_block bb1,
 
       /* Check the mode of the arguments to be sure a conditional move
 	 can be generated for it.  */
-      if (!optab_handler (cmov_optab, TYPE_MODE (TREE_TYPE (arg1))))
+      if (optab_handler (movcc_optab, TYPE_MODE (TREE_TYPE (arg1)))
+	  == CODE_FOR_nothing)
 	continue;
 
       /* Both statements must be assignments whose RHS is a COMPONENT_REF.  */
@@ -1970,6 +1953,7 @@ struct gimple_opt_pass pass_phiopt =
  {
   GIMPLE_PASS,
   "phiopt",				/* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_phiopt,				/* gate */
   tree_ssa_phiopt,			/* execute */
   NULL,					/* sub */
@@ -1998,6 +1982,7 @@ struct gimple_opt_pass pass_cselim =
  {
   GIMPLE_PASS,
   "cselim",				/* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_cselim,				/* gate */
   tree_ssa_cs_elim,			/* execute */
   NULL,					/* sub */

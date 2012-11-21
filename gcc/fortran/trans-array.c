@@ -510,11 +510,26 @@ gfc_free_ss_chain (gfc_ss * ss)
 static void
 free_ss_info (gfc_ss_info *ss_info)
 {
+  int n;
+
   ss_info->refcount--;
   if (ss_info->refcount > 0)
     return;
 
   gcc_assert (ss_info->refcount == 0);
+
+  switch (ss_info->type)
+    {
+    case GFC_SS_SECTION:
+      for (n = 0; n < GFC_MAX_DIMENSIONS; n++)
+	if (ss_info->data.array.subscript[n])
+	  gfc_free_ss_chain (ss_info->data.array.subscript[n]);
+      break;
+
+    default:
+      break;
+    }
+
   free (ss_info);
 }
 
@@ -524,26 +539,7 @@ free_ss_info (gfc_ss_info *ss_info)
 void
 gfc_free_ss (gfc_ss * ss)
 {
-  gfc_ss_info *ss_info;
-  int n;
-
-  ss_info = ss->info;
-
-  switch (ss_info->type)
-    {
-    case GFC_SS_SECTION:
-      for (n = 0; n < ss->dimen; n++)
-	{
-	  if (ss_info->data.array.subscript[ss->dim[n]])
-	    gfc_free_ss_chain (ss_info->data.array.subscript[ss->dim[n]]);
-	}
-      break;
-
-    default:
-      break;
-    }
-
-  free_ss_info (ss_info);
+  free_ss_info (ss->info);
   free (ss);
 }
 
@@ -1026,8 +1022,8 @@ gfc_trans_create_temp_array (stmtblock_t * pre, stmtblock_t * post, gfc_ss * ss,
      dynamic type.  Generate an eltype and then the class expression.  */
   if (eltype == NULL_TREE && initial)
     {
-      if (POINTER_TYPE_P (TREE_TYPE (initial)))
-	class_expr = build_fold_indirect_ref_loc (input_location, initial);
+      gcc_assert (POINTER_TYPE_P (TREE_TYPE (initial)));
+      class_expr = build_fold_indirect_ref_loc (input_location, initial);
       eltype = TREE_TYPE (class_expr);
       eltype = gfc_get_element_type (eltype);
       /* Obtain the structure (class) expression.  */
@@ -1630,7 +1626,7 @@ gfc_trans_array_constructor_value (stmtblock_t * pblock, tree type,
 	  else
 	    {
 	      /* Collect multiple scalar constants into a constructor.  */
-	      VEC(constructor_elt,gc) *v = NULL;
+	      vec<constructor_elt, va_gc> *v = NULL;
 	      tree init;
 	      tree bound;
 	      tree tmptype;
@@ -1805,7 +1801,6 @@ static void
 get_array_ctor_all_strlen (stmtblock_t *block, gfc_expr *e, tree *len)
 {
   gfc_se se;
-  gfc_ss *ss;
 
   /* Don't bother if we already know the length is a constant.  */
   if (*len && INTEGER_CST_P (*len))
@@ -1821,15 +1816,14 @@ get_array_ctor_all_strlen (stmtblock_t *block, gfc_expr *e, tree *len)
   else
     {
       /* Otherwise, be brutal even if inefficient.  */
-      ss = gfc_walk_expr (e);
       gfc_init_se (&se, NULL);
 
       /* No function call, in case of side effects.  */
       se.no_function_call = 1;
-      if (ss == gfc_ss_terminator)
+      if (e->rank == 0)
 	gfc_conv_expr (&se, e);
       else
-	gfc_conv_expr_descriptor (&se, e, ss);
+	gfc_conv_expr_descriptor (&se, e);
 
       /* Fix the value.  */
       *len = gfc_evaluate_now (se.string_length, &se.pre);
@@ -1991,7 +1985,7 @@ gfc_build_constant_array_constructor (gfc_expr * expr, tree type)
   gfc_array_spec as;
   gfc_se se;
   int i;
-  VEC(constructor_elt,gc) *v = NULL;
+  vec<constructor_elt, va_gc> *v = NULL;
 
   /* First traverse the constructor list, converting the constants
      to tree to build an initializer.  */
@@ -2527,7 +2521,7 @@ gfc_add_loop_ss_code (gfc_loopinfo * loop, gfc_ss * ss, bool subscript,
 	case GFC_SS_VECTOR:
 	  /* Get the vector's descriptor and store it in SS.  */
 	  gfc_init_se (&se, NULL);
-	  gfc_conv_expr_descriptor (&se, expr, gfc_walk_expr (expr));
+	  gfc_conv_expr_descriptor (&se, expr);
 	  gfc_add_block_to_block (&outer_loop->pre, &se.pre);
 	  gfc_add_block_to_block (&outer_loop->post, &se.post);
 	  info->descriptor = se.expr;
@@ -5323,7 +5317,7 @@ gfc_conv_array_initializer (tree type, gfc_expr * expr)
   HOST_WIDE_INT hi;
   unsigned HOST_WIDE_INT lo;
   tree index, range;
-  VEC(constructor_elt,gc) *v = NULL;
+  vec<constructor_elt, va_gc> *v = NULL;
 
   if (expr->expr_type == EXPR_VARIABLE
       && expr->symtree->n.sym->attr.flavor == FL_PARAMETER
@@ -6328,6 +6322,44 @@ transposed_dims (gfc_ss *ss)
   return false;
 }
 
+
+/* Convert the last ref of a scalar coarray from an AR_ELEMENT to an
+   AR_FULL, suitable for the scalarizer.  */
+
+static gfc_ss *
+walk_coarray (gfc_expr *e)
+{
+  gfc_ss *ss;
+
+  gcc_assert (gfc_get_corank (e) > 0);
+
+  ss = gfc_walk_expr (e);
+
+  /* Fix scalar coarray.  */
+  if (ss == gfc_ss_terminator)
+    {
+      gfc_ref *ref;
+
+      ref = e->ref;
+      while (ref)
+	{
+	  if (ref->type == REF_ARRAY
+	      && ref->u.ar.codimen > 0)
+	    break;
+
+	  ref = ref->next;
+	}
+
+      gcc_assert (ref != NULL);
+      if (ref->u.ar.type == AR_ELEMENT)
+	ref->u.ar.type = AR_SECTION;
+      ss = gfc_reverse_ss (gfc_walk_array_ref (ss, e, ref));
+    }
+
+  return ss;
+}
+
+
 /* Convert an array for passing as an actual argument.  Expressions and
    vector subscripts are evaluated and stored in a temporary, which is then
    passed.  For whole arrays the descriptor is passed.  For array sections
@@ -6358,8 +6390,9 @@ transposed_dims (gfc_ss *ss)
    function call.  */
 
 void
-gfc_conv_expr_descriptor (gfc_se * se, gfc_expr * expr, gfc_ss * ss)
+gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
 {
+  gfc_ss *ss;
   gfc_ss_type ss_type;
   gfc_ss_info *ss_info;
   gfc_loopinfo loop;
@@ -6375,12 +6408,27 @@ gfc_conv_expr_descriptor (gfc_se * se, gfc_expr * expr, gfc_ss * ss)
   bool subref_array_target = false;
   gfc_expr *arg, *ss_expr;
 
+  if (se->want_coarray)
+    ss = walk_coarray (expr);
+  else
+    ss = gfc_walk_expr (expr);
+
   gcc_assert (ss != NULL);
   gcc_assert (ss != gfc_ss_terminator);
 
   ss_info = ss->info;
   ss_type = ss_info->type;
   ss_expr = ss_info->expr;
+
+  /* Special case: TRANSPOSE which needs no temporary.  */
+  while (expr->expr_type == EXPR_FUNCTION && expr->value.function.isym
+      && NULL != (arg = gfc_get_noncopying_intrinsic_argument (expr)))
+    {
+      /* This is a call to transpose which has already been handled by the
+	 scalarizer, so that we just need to get its argument's descriptor.  */
+      gcc_assert (expr->value.function.isym->id == GFC_ISYM_TRANSPOSE);
+      expr = expr->value.function.actual->expr;
+    }
 
   /* Special case things we know we can pass easily.  */
   switch (expr->expr_type)
@@ -6411,7 +6459,7 @@ gfc_conv_expr_descriptor (gfc_se * se, gfc_expr * expr, gfc_ss * ss)
 	  /* Create a new descriptor if the array doesn't have one.  */
 	  full = 0;
 	}
-      else if (info->ref->u.ar.type == AR_FULL)
+      else if (info->ref->u.ar.type == AR_FULL || se->descriptor_only)
 	full = 1;
       else if (se->direct_byref)
 	full = 0;
@@ -6443,24 +6491,12 @@ gfc_conv_expr_descriptor (gfc_se * se, gfc_expr * expr, gfc_ss * ss)
 	  if (expr->ts.type == BT_CHARACTER)
 	    se->string_length = gfc_get_expr_charlen (expr);
 
+	  gfc_free_ss_chain (ss);
 	  return;
 	}
       break;
       
     case EXPR_FUNCTION:
-
-      /* We don't need to copy data in some cases.  */
-      arg = gfc_get_noncopying_intrinsic_argument (expr);
-      if (arg)
-	{
-	  /* This is a call to transpose...  */
-	  gcc_assert (expr->value.function.isym->id == GFC_ISYM_TRANSPOSE);
-	  /* ... which has already been handled by the scalarizer, so
-	     that we just need to get its argument's descriptor.  */
-	  gfc_conv_expr_descriptor (se, expr->value.function.actual->expr, ss);
-	  return;
-	}
-
       /* A transformational function return value will be a temporary
 	 array descriptor.  We still need to go through the scalarizer
 	 to create the descriptor.  Elemental functions are handled as
@@ -6477,6 +6513,7 @@ gfc_conv_expr_descriptor (gfc_se * se, gfc_expr * expr, gfc_ss * ss)
 	    gcc_assert (se->ss == ss);
 	  se->expr = gfc_build_addr_expr (NULL_TREE, se->expr);
 	  gfc_conv_expr (se, expr);
+	  gfc_free_ss_chain (ss);
 	  return;
 	}
 
@@ -6896,7 +6933,7 @@ array_parameter_size (tree desc, gfc_expr *expr, tree *size)
 /* TODO: Optimize passing g77 arrays.  */
 
 void
-gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, bool g77,
+gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, bool g77,
 			  const gfc_symbol *fsym, const char *proc_name,
 			  tree *size)
 {
@@ -6967,7 +7004,7 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, bool g77,
 
       if (sym->ts.type == BT_DERIVED || sym->ts.type == BT_CLASS)
 	{
-	  gfc_conv_expr_descriptor (se, expr, ss);
+	  gfc_conv_expr_descriptor (se, expr);
 	  se->expr = gfc_conv_array_data (se->expr);
 	  return;
 	}
@@ -6975,6 +7012,7 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, bool g77,
       if (!sym->attr.pointer
 	  && sym->as
 	  && sym->as->type != AS_ASSUMED_SHAPE 
+	  && sym->as->type != AS_DEFERRED
 	  && sym->as->type != AS_ASSUMED_RANK 
 	  && !sym->attr.allocatable)
         {
@@ -6993,7 +7031,7 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, bool g77,
         {
 	  if (sym->attr.dummy || sym->attr.result)
 	    {
-	      gfc_conv_expr_descriptor (se, expr, ss);
+	      gfc_conv_expr_descriptor (se, expr);
 	      tmp = se->expr;
 	    }
 	  if (size)
@@ -7037,7 +7075,7 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, bool g77,
 
   if (no_pack || array_constructor || good_allocatable || ultimate_alloc_comp)
     {
-      gfc_conv_expr_descriptor (se, expr, ss);
+      gfc_conv_expr_descriptor (se, expr);
       if (expr->ts.type == BT_CHARACTER)
 	se->string_length = expr->ts.u.cl->backend_decl;
       if (size)
@@ -7049,7 +7087,7 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, bool g77,
   if (this_array_result)
     {
       /* Result of the enclosing function.  */
-      gfc_conv_expr_descriptor (se, expr, ss);
+      gfc_conv_expr_descriptor (se, expr);
       if (size)
 	array_parameter_size (se->expr, expr, size);
       se->expr = gfc_build_addr_expr (NULL_TREE, se->expr);
@@ -7065,7 +7103,7 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, bool g77,
     {
       /* Every other type of array.  */
       se->want_pointer = 1;
-      gfc_conv_expr_descriptor (se, expr, ss);
+      gfc_conv_expr_descriptor (se, expr);
       if (size)
 	array_parameter_size (build_fold_indirect_ref_loc (input_location,
 						       se->expr),
@@ -7303,8 +7341,8 @@ duplicate_allocatable (tree dest, tree src, tree type, int rank,
 	}
 
       tmp = builtin_decl_explicit (BUILT_IN_MEMCPY);
-      tmp = build_call_expr_loc (input_location, tmp, 3,
-				 dest, src, size);
+      tmp = build_call_expr_loc (input_location, tmp, 3, dest, src,
+				 fold_convert (size_type_node, size));
     }
   else
     {
@@ -7329,7 +7367,8 @@ duplicate_allocatable (tree dest, tree src, tree type, int rank,
       tmp = builtin_decl_explicit (BUILT_IN_MEMCPY);
       tmp = build_call_expr_loc (input_location,
 			tmp, 3, gfc_conv_descriptor_data_get (dest),
-			gfc_conv_descriptor_data_get (src), size);
+			gfc_conv_descriptor_data_get (src),
+			fold_convert (size_type_node, size));
     }
 
   gfc_add_expr_to_block (&block, tmp);

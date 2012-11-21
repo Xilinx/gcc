@@ -691,7 +691,7 @@ standard rule in @file{gcc/Makefile.in} to the variable
 @code{lang_checks}.
 
 @table @code
-@itemx all.cross
+@item all.cross
 @itemx start.encap
 @itemx rest.encap
 FIXME: exactly what goes in each of these targets?
@@ -1238,15 +1238,18 @@ on particular targets.
 
 A selector is:
 @itemize @bullet
-@item one or more target triplets, possibly including wildcard characters
+@item one or more target triplets, possibly including wildcard characters;
+use @samp{*-*-*} to match any target
 @item a single effective-target keyword (@pxref{Effective-Target Keywords})
 @item a logical expression
 @end itemize
 
-Depending on the
-context, the selector specifies whether a test is skipped and reported
-as unsupported or is expected to fail.  Use @samp{*-*-*} to match any
-target.
+Depending on the context, the selector specifies whether a test is
+skipped and reported as unsupported or is expected to fail.  A context
+that allows either @samp{target} or @samp{xfail} also allows
+@samp{@{ target @var{selector1} xfail @var{selector2} @}}
+to skip the test for targets that don't match @var{selector1} and the
+test to fail for targets that match @var{selector2}.
 
 A selector expression appears within curly braces and uses a single
 logical operator: one of @samp{!}, @samp{&&}, or @samp{||}.  An
@@ -1525,9 +1528,17 @@ ARM target supports generating NEON instructions.
 @item arm_neon_hw
 Test system supports executing NEON instructions.
 
+@item arm_neonv2_hw
+Test system supports executing NEON v2 instructions.
+
 @item arm_neon_ok
 @anchor{arm_neon_ok}
 ARM Target supports @code{-mfpu=neon -mfloat-abi=softfp} or compatible
+options.  Some multilibs may be incompatible with these options.
+
+@item arm_neonv2_ok
+@anchor{arm_neonv2_ok}
+ARM Target supports @code{-mfpu=neon-vfpv4 -mfloat-abi=softfp} or compatible
 options.  Some multilibs may be incompatible with these options.
 
 @item arm_neon_fp16_ok
@@ -1544,6 +1555,11 @@ ARM target generates Thumb-2 code for @code{-mthumb}.
 @item arm_vfp_ok
 ARM target supports @code{-mfpu=vfp -mfloat-abi=softfp}.
 Some multilibs may be incompatible with these options.
+
+@item arm_prefer_ldrd_strd
+ARM target prefers @code{LDRD} and @code{STRD} instructions over
+@code{LDM} and @code{STM} instructions.
+
 @end table
 
 @subsubsection MIPS-specific attributes

@@ -52,6 +52,10 @@ extern "C" {
 #include "vxWorks.h"
 #endif
 
+#ifdef __ANDROID__
+#undef linux
+#endif
+
 #ifdef IN_RTS
 #include "tconfig.h"
 #include "tsystem.h"
@@ -103,11 +107,13 @@ char *__gl_interrupt_states              = 0;
 int   __gl_num_interrupt_states          = 0;
 int   __gl_unreserve_all_interrupts      = 0;
 int   __gl_exception_tracebacks          = 0;
-int   __gl_zero_cost_exceptions          = 0;
 int   __gl_detect_blocking               = 0;
 int   __gl_default_stack_size            = -1;
 int   __gl_leap_seconds_support          = 0;
 int   __gl_canonical_streams             = 0;
+
+/* This value is not used anymore, but kept for bootstrapping purpose.  */
+int   __gl_zero_cost_exceptions          = 0;
 
 /* Indication of whether synchronous signal handler has already been
    installed by a previous call to adainit.  */

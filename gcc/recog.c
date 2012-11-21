@@ -40,6 +40,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "tree-pass.h"
 #include "df.h"
+#include "insn-codes.h"
 
 #ifndef STACK_PUSH_CODE
 #ifdef STACK_GROWS_DOWNWARD
@@ -55,14 +56,6 @@ along with GCC; see the file COPYING3.  If not see
 #else
 #define STACK_POP_CODE POST_DEC
 #endif
-#endif
-
-#ifndef HAVE_ATTR_enabled
-static inline bool
-get_attr_enabled (rtx insn ATTRIBUTE_UNUSED)
-{
-  return true;
-}
 #endif
 
 static void validate_replace_rtx_1 (rtx *, rtx, rtx, rtx, bool);
@@ -550,6 +543,16 @@ cancel_changes (int num)
   num_changes = num;
 }
 
+/* Reduce conditional compilation elsewhere.  */
+#ifndef HAVE_extv
+#define HAVE_extv	0
+#define CODE_FOR_extv	CODE_FOR_nothing
+#endif
+#ifndef HAVE_extzv
+#define HAVE_extzv	0
+#define CODE_FOR_extzv	CODE_FOR_nothing
+#endif
+
 /* A subroutine of validate_replace_rtx_1 that tries to simplify the resulting
    rtx.  */
 
@@ -586,8 +589,7 @@ simplify_while_replacing (rtx *loc, rtx to, rtx object,
 			 (PLUS, GET_MODE (x), XEXP (x, 0), XEXP (x, 1)), 1);
       break;
     case MINUS:
-      if (CONST_INT_P (XEXP (x, 1))
-	  || CONST_DOUBLE_AS_INT_P (XEXP (x, 1)))
+      if (CONST_SCALAR_INT_P (XEXP (x, 1)))
 	validate_change (object, loc,
 			 simplify_gen_binary
 			 (PLUS, GET_MODE (x), XEXP (x, 0),
@@ -629,26 +631,25 @@ simplify_while_replacing (rtx *loc, rtx to, rtx object,
       if (MEM_P (XEXP (x, 0))
 	  && CONST_INT_P (XEXP (x, 1))
 	  && CONST_INT_P (XEXP (x, 2))
-	  && !mode_dependent_address_p (XEXP (XEXP (x, 0), 0))
+	  && !mode_dependent_address_p (XEXP (XEXP (x, 0), 0),
+					MEM_ADDR_SPACE (XEXP (x, 0)))
 	  && !MEM_VOLATILE_P (XEXP (x, 0)))
 	{
 	  enum machine_mode wanted_mode = VOIDmode;
 	  enum machine_mode is_mode = GET_MODE (XEXP (x, 0));
 	  int pos = INTVAL (XEXP (x, 2));
 
-	  if (GET_CODE (x) == ZERO_EXTRACT)
+	  if (GET_CODE (x) == ZERO_EXTRACT && HAVE_extzv)
 	    {
-	      enum machine_mode new_mode
-		= mode_for_extraction (EP_extzv, 1);
-	      if (new_mode != MAX_MACHINE_MODE)
-		wanted_mode = new_mode;
+	      wanted_mode = insn_data[CODE_FOR_extzv].operand[1].mode;
+	      if (wanted_mode == VOIDmode)
+		wanted_mode = word_mode;
 	    }
-	  else if (GET_CODE (x) == SIGN_EXTRACT)
+	  else if (GET_CODE (x) == SIGN_EXTRACT && HAVE_extv)
 	    {
-	      enum machine_mode new_mode
-		= mode_for_extraction (EP_extv, 1);
-	      if (new_mode != MAX_MACHINE_MODE)
-		wanted_mode = new_mode;
+	      wanted_mode = insn_data[CODE_FOR_extv].operand[1].mode;
+	      if (wanted_mode == VOIDmode)
+		wanted_mode = word_mode;
 	    }
 
 	  /* If we have a narrower mode, we can do something.  */
@@ -992,6 +993,12 @@ general_operand (rtx op, enum machine_mode mode)
       /* FLOAT_MODE subregs can't be paradoxical.  Combine will occasionally
 	 create such rtl, and we must reject it.  */
       if (SCALAR_FLOAT_MODE_P (GET_MODE (op))
+	  /* LRA can use subreg to store a floating point value in an
+	     integer mode.  Although the floating point and the
+	     integer modes need the same number of hard registers, the
+	     size of floating point mode can be less than the integer
+	     mode.  */
+	  && ! lra_in_progress 
 	  && GET_MODE_SIZE (GET_MODE (op)) > GET_MODE_SIZE (GET_MODE (sub)))
 	return 0;
 
@@ -1067,6 +1074,12 @@ register_operand (rtx op, enum machine_mode mode)
       /* FLOAT_MODE subregs can't be paradoxical.  Combine will occasionally
 	 create such rtl, and we must reject it.  */
       if (SCALAR_FLOAT_MODE_P (GET_MODE (op))
+	  /* LRA can use subreg to store a floating point value in an
+	     integer mode.  Although the floating point and the
+	     integer modes need the same number of hard registers, the
+	     size of floating point mode can be less than the integer
+	     mode.  */
+	  && ! lra_in_progress 
 	  && GET_MODE_SIZE (GET_MODE (op)) > GET_MODE_SIZE (GET_MODE (sub)))
 	return 0;
 
@@ -1098,7 +1111,7 @@ scratch_operand (rtx op, enum machine_mode mode)
 
   return (GET_CODE (op) == SCRATCH
 	  || (REG_P (op)
-	      && REGNO (op) < FIRST_PSEUDO_REGISTER));
+	      && (lra_in_progress || REGNO (op) < FIRST_PSEUDO_REGISTER)));
 }
 
 /* Return 1 if OP is a valid immediate operand for mode MODE.
@@ -1725,7 +1738,7 @@ asm_operand_ok (rtx op, const char *constraint, const char **constraints)
 	  break;
 
 	case 's':
-	  if (CONST_INT_P (op) || CONST_DOUBLE_AS_INT_P (op))
+	  if (CONST_SCALAR_INT_P (op))
 	    break;
 	  /* Fall through.  */
 
@@ -1735,7 +1748,7 @@ asm_operand_ok (rtx op, const char *constraint, const char **constraints)
 	  break;
 
 	case 'n':
-	  if (CONST_INT_P (op) || CONST_DOUBLE_AS_INT_P (op))
+	  if (CONST_SCALAR_INT_P (op))
 	    result = 1;
 	  break;
 
@@ -1938,6 +1951,9 @@ offsettable_address_addr_space_p (int strictp, enum machine_mode mode, rtx y,
     (strictp ? strict_memory_address_addr_space_p
 	     : memory_address_addr_space_p);
   unsigned int mode_sz = GET_MODE_SIZE (mode);
+#ifdef POINTERS_EXTEND_UNSIGNED
+  enum machine_mode pointer_mode = targetm.addr_space.pointer_mode (as);
+#endif
 
   if (CONSTANT_ADDRESS_P (y))
     return 1;
@@ -1945,7 +1961,7 @@ offsettable_address_addr_space_p (int strictp, enum machine_mode mode, rtx y,
   /* Adjusting an offsettable address involves changing to a narrower mode.
      Make sure that's OK.  */
 
-  if (mode_dependent_address_p (y))
+  if (mode_dependent_address_p (y, as))
     return 0;
 
   /* ??? How much offset does an offsettable BLKmode reference need?
@@ -1987,6 +2003,15 @@ offsettable_address_addr_space_p (int strictp, enum machine_mode mode, rtx y,
     z = gen_rtx_LO_SUM (GET_MODE (y), XEXP (y, 0),
 			plus_constant (GET_MODE (y), XEXP (y, 1),
 				       mode_sz - 1));
+#ifdef POINTERS_EXTEND_UNSIGNED
+  /* Likewise for a ZERO_EXTEND from pointer_mode.  */
+  else if (POINTERS_EXTEND_UNSIGNED > 0
+	   && GET_CODE (y) == ZERO_EXTEND
+	   && GET_MODE (XEXP (y, 0)) == pointer_mode)
+    z = gen_rtx_ZERO_EXTEND (GET_MODE (y),
+			     plus_constant (pointer_mode, XEXP (y, 0),
+					    mode_sz - 1));
+#endif
   else
     z = plus_constant (GET_MODE (y), y, mode_sz - 1);
 
@@ -1998,11 +2023,13 @@ offsettable_address_addr_space_p (int strictp, enum machine_mode mode, rtx y,
 /* Return 1 if ADDR is an address-expression whose effect depends
    on the mode of the memory reference it is used in.
 
+   ADDRSPACE is the address space associated with the address.
+
    Autoincrement addressing is a typical example of mode-dependence
    because the amount of the increment depends on the mode.  */
 
 bool
-mode_dependent_address_p (rtx addr)
+mode_dependent_address_p (rtx addr, addr_space_t addrspace)
 {
   /* Auto-increment addressing with anything other than post_modify
      or pre_modify always introduces a mode dependency.  Catch such
@@ -2013,7 +2040,7 @@ mode_dependent_address_p (rtx addr)
       || GET_CODE (addr) == POST_DEC)
     return true;
 
-  return targetm.mode_dependent_address_p (addr);
+  return targetm.mode_dependent_address_p (addr, addrspace);
 }
 
 /* Like extract_insn, but save insn extracted and don't extract again, when
@@ -2157,7 +2184,8 @@ extract_insn (rtx insn)
       for (i = 0; i < recog_data.n_alternatives; i++)
 	{
 	  which_alternative = i;
-	  recog_data.alternative_enabled_p[i] = get_attr_enabled (insn);
+	  recog_data.alternative_enabled_p[i]
+	    = HAVE_ATTR_enabled ? get_attr_enabled (insn) : 1;
 	}
     }
 
@@ -2588,7 +2616,7 @@ constrain_operands (int strict)
 		break;
 
 	      case 's':
-		if (CONST_INT_P (op) || CONST_DOUBLE_AS_INT_P (op))
+		if (CONST_SCALAR_INT_P (op))
 		  break;
 	      case 'i':
 		if (CONSTANT_P (op))
@@ -2596,7 +2624,7 @@ constrain_operands (int strict)
 		break;
 
 	      case 'n':
-		if (CONST_INT_P (op) || CONST_DOUBLE_AS_INT_P (op))
+		if (CONST_SCALAR_INT_P (op))
 		  win = 1;
 		break;
 
@@ -2859,7 +2887,7 @@ split_all_insns (void)
   basic_block bb;
 
   blocks = sbitmap_alloc (last_basic_block);
-  sbitmap_zero (blocks);
+  bitmap_clear (blocks);
   changed = false;
 
   FOR_EACH_BB_REVERSE (bb)
@@ -2895,7 +2923,7 @@ split_all_insns (void)
 		{
 		  if (split_insn (insn))
 		    {
-		      SET_BIT (blocks, bb->index);
+		      bitmap_set_bit (blocks, bb->index);
 		      changed = true;
 		    }
 		}
@@ -3326,7 +3354,7 @@ peep2_attempt (basic_block bb, rtx insn, int match_len, rtx attempt)
   /* Replace the old sequence with the new.  */
   last = emit_insn_after_setloc (attempt,
 				 peep2_insn_data[i].insn,
-				 INSN_LOCATOR (peep2_insn_data[i].insn));
+				 INSN_LOCATION (peep2_insn_data[i].insn));
   before_try = PREV_INSN (insn);
   delete_insn_chain (insn, peep2_insn_data[i].insn, false);
 
@@ -3727,6 +3755,7 @@ struct rtl_opt_pass pass_peephole2 =
  {
   RTL_PASS,
   "peephole2",                          /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_handle_peephole2,                /* gate */
   rest_of_handle_peephole2,             /* execute */
   NULL,                                 /* sub */
@@ -3754,6 +3783,7 @@ struct rtl_opt_pass pass_split_all_insns =
  {
   RTL_PASS,
   "split1",                             /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   NULL,                                 /* gate */
   rest_of_handle_split_all_insns,       /* execute */
   NULL,                                 /* sub */
@@ -3784,6 +3814,7 @@ struct rtl_opt_pass pass_split_after_reload =
  {
   RTL_PASS,
   "split2",                             /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   NULL,                                 /* gate */
   rest_of_handle_split_after_reload,    /* execute */
   NULL,                                 /* sub */
@@ -3801,7 +3832,7 @@ struct rtl_opt_pass pass_split_after_reload =
 static bool
 gate_handle_split_before_regstack (void)
 {
-#if defined (HAVE_ATTR_length) && defined (STACK_REGS)
+#if HAVE_ATTR_length && defined (STACK_REGS)
   /* If flow2 creates new instructions which need splitting
      and scheduling after reload is not done, they might not be
      split until final which doesn't allow splitting
@@ -3828,6 +3859,7 @@ struct rtl_opt_pass pass_split_before_regstack =
  {
   RTL_PASS,
   "split3",                             /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_handle_split_before_regstack,    /* gate */
   rest_of_handle_split_before_regstack, /* execute */
   NULL,                                 /* sub */
@@ -3866,6 +3898,7 @@ struct rtl_opt_pass pass_split_before_sched2 =
  {
   RTL_PASS,
   "split4",                             /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_handle_split_before_sched2,      /* gate */
   rest_of_handle_split_before_sched2,   /* execute */
   NULL,                                 /* sub */
@@ -3885,7 +3918,7 @@ struct rtl_opt_pass pass_split_before_sched2 =
 static bool
 gate_do_final_split (void)
 {
-#if defined (HAVE_ATTR_length) && !defined (STACK_REGS)
+#if HAVE_ATTR_length && !defined (STACK_REGS)
   return 1;
 #else
   return 0;
@@ -3897,6 +3930,7 @@ struct rtl_opt_pass pass_split_for_shorten_branches =
  {
   RTL_PASS,
   "split5",                             /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_do_final_split,                  /* gate */
   split_all_insns_noflow,               /* execute */
   NULL,                                 /* sub */

@@ -34,6 +34,8 @@ with Opt;      use Opt;
 with Output;   use Output;
 with Put_SCOs;
 with SCOs;     use SCOs;
+with Sem;      use Sem;
+with Sem_Util; use Sem_Util;
 with Sinfo;    use Sinfo;
 with Sinput;   use Sinput;
 with Snames;   use Snames;
@@ -102,6 +104,9 @@ package body Par_SCO is
    --  excluding OR and AND) and returns True if so, False otherwise, it does
    --  no other processing.
 
+   function To_Source_Location (S : Source_Ptr) return Source_Location;
+   --  Converts Source_Ptr value to Source_Location (line/col) format
+
    procedure Process_Decisions
      (N           : Node_Id;
       T           : Character;
@@ -109,9 +114,9 @@ package body Par_SCO is
    --  If N is Empty, has no effect. Otherwise scans the tree for the node N,
    --  to output any decisions it contains. T is one of IEGPWX (for context of
    --  expression: if/exit when/entry guard/pragma/while/expression). If T is
-   --  other than X, the node N is the conditional expression involved, and a
-   --  decision is always present (at the very least a simple decision is
-   --  present at the top level).
+   --  other than X, the node N is the if expression involved, and a decision
+   --  is always present (at the very least a simple decision is present at the
+   --  top level).
 
    procedure Process_Decisions
      (L           : List_Id;
@@ -137,6 +142,9 @@ package body Par_SCO is
       --  Node providing the Sloc(s) for the dominance marker
    end record;
    No_Dominant : constant Dominant_Info := (' ', Empty);
+
+   procedure Record_Instance (Id : Instance_Id; Inst_Sloc : Source_Ptr);
+   --  Add one entry from the instance table to the corresponding SCO table
 
    procedure Traverse_Declarations_Or_Statements
      (L : List_Id;
@@ -608,12 +616,15 @@ package body Par_SCO is
 
             --  Case expression
 
+            --  Really hard to believe this is correct given the special
+            --  handling for if expressions below ???
+
             when N_Case_Expression =>
                return OK; -- ???
 
-            --  Conditional expression, processed like an if statement
+            --  If expression, processed like an if statement
 
-            when N_Conditional_Expression =>
+            when N_If_Expression =>
                declare
                   Cond : constant Node_Id := First (Expressions (N));
                   Thnx : constant Node_Id := Next (Cond);
@@ -696,15 +707,36 @@ package body Par_SCO is
       Debug_Put_SCOs;
    end pscos;
 
+   ---------------------
+   -- Record_Instance --
+   ---------------------
+
+   procedure Record_Instance (Id : Instance_Id; Inst_Sloc : Source_Ptr) is
+      Inst_Src  : constant Source_File_Index :=
+                    Get_Source_File_Index (Inst_Sloc);
+   begin
+      SCO_Instance_Table.Append
+        ((Inst_Dep_Num       => Dependency_Num (Unit (Inst_Src)),
+          Inst_Loc           => To_Source_Location (Inst_Sloc),
+          Enclosing_Instance => SCO_Instance_Index (Instance (Inst_Src))));
+      pragma Assert
+        (SCO_Instance_Table.Last = SCO_Instance_Index (Id));
+   end Record_Instance;
+
    ----------------
    -- SCO_Output --
    ----------------
 
    procedure SCO_Output is
+      procedure Populate_SCO_Instance_Table is
+        new Sinput.Iterate_On_Instances (Record_Instance);
+
    begin
       if Debug_Flag_Dot_OO then
          dsco;
       end if;
+
+      Populate_SCO_Instance_Table;
 
       --  Sort the unit tables based on dependency numbers
 
@@ -896,9 +928,14 @@ package body Par_SCO is
       Sloc_Range (Orig, Start, Dummy);
       Index := Condition_Pragma_Hash_Table.Get (Start);
 
-      --  The test here for zero is to deal with possible previous errors
+      --  Index can be zero for boolean expressions that do not have SCOs
+      --  (simple decisions outside of a control flow structure), or in case
+      --  of a previous error.
 
-      if Index /= 0 then
+      if Index = 0 then
+         return;
+
+      else
          pragma Assert (SCO_Table.Table (Index).C1 = ' ');
          SCO_Table.Table (Index).C2 := Constant_Condition_Code (Val);
       end if;
@@ -912,6 +949,17 @@ package body Par_SCO is
       Index : Nat;
 
    begin
+      --  Nothing to do if not generating SCO, or if we're not processing the
+      --  original source occurrence of the pragma.
+
+      if not (Generate_SCO
+               and then
+                 In_Extended_Main_Source_Unit (Cunit_Entity (Current_Sem_Unit))
+               and then not (In_Instance or In_Inlined_Body))
+      then
+         return;
+      end if;
+
       --  Note: the reason we use the Sloc value as the key is that in the
       --  generic case, the call to this procedure is made on a copy of the
       --  original node, so we can't use the Node_Id value.
@@ -920,7 +968,10 @@ package body Par_SCO is
 
       --  The test here for zero is to deal with possible previous errors
 
-      if Index /= 0 then
+      if Index = 0 then
+         Check_Error_Detected;
+
+      else
          declare
             T : SCO_Table_Entry renames SCO_Table.Table (Index);
 
@@ -949,26 +1000,6 @@ package body Par_SCO is
       Pragma_Sloc : Source_Ptr := No_Location;
       Pragma_Name : Pragma_Id  := Unknown_Pragma)
    is
-      function To_Source_Location (S : Source_Ptr) return Source_Location;
-      --  Converts Source_Ptr value to Source_Location (line/col) format
-
-      ------------------------
-      -- To_Source_Location --
-      ------------------------
-
-      function To_Source_Location (S : Source_Ptr) return Source_Location is
-      begin
-         if S = No_Location then
-            return No_Source_Location;
-         else
-            return
-              (Line => Get_Logical_Line_Number (S),
-               Col  => Get_Column_Number (S));
-         end if;
-      end To_Source_Location;
-
-   --  Start of processing for Set_Table_Entry
-
    begin
       SCO_Table.Append
         ((C1          => C1,
@@ -979,6 +1010,21 @@ package body Par_SCO is
           Pragma_Sloc => Pragma_Sloc,
           Pragma_Name => Pragma_Name));
    end Set_Table_Entry;
+
+   ------------------------
+   -- To_Source_Location --
+   ------------------------
+
+   function To_Source_Location (S : Source_Ptr) return Source_Location is
+   begin
+      if S = No_Location then
+         return No_Source_Location;
+      else
+         return
+           (Line => Get_Logical_Line_Number (S),
+            Col  => Get_Column_Number (S));
+      end if;
+   end To_Source_Location;
 
    -----------------------------------------
    -- Traverse_Declarations_Or_Statements --

@@ -963,7 +963,7 @@ alpha_legitimize_address_1 (rtx x, rtx scratch, enum machine_mode mode)
 	  scratch = gen_reg_rtx (Pmode);
 	  dest = gen_reg_rtx (Pmode);
 
-	  emit_insn (gen_load_tp (tp));
+	  emit_insn (gen_get_thread_pointerdi (tp));
 	  emit_insn (gen_rtx_SET (VOIDmode, scratch, eqv));
 	  emit_insn (gen_adddi3 (dest, tp, scratch));
 	  return dest;
@@ -973,7 +973,7 @@ alpha_legitimize_address_1 (rtx x, rtx scratch, enum machine_mode mode)
 	  eqv = gen_rtx_CONST (Pmode, eqv);
 	  tp = gen_reg_rtx (Pmode);
 
-	  emit_insn (gen_load_tp (tp));
+	  emit_insn (gen_get_thread_pointerdi (tp));
 	  if (alpha_tls_size == 32)
 	    {
 	      insn = gen_rtx_HIGH (Pmode, eqv);
@@ -1043,7 +1043,8 @@ alpha_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
    We can simplify the test since we know that the address must be valid.  */
 
 static bool
-alpha_mode_dependent_address_p (const_rtx addr)
+alpha_mode_dependent_address_p (const_rtx addr,
+				addr_space_t as ATTRIBUTE_UNUSED)
 {
   return GET_CODE (addr) == AND;
 }
@@ -6327,8 +6328,6 @@ enum alpha_builtin
   ALPHA_BUILTIN_AMASK,
   ALPHA_BUILTIN_IMPLVER,
   ALPHA_BUILTIN_RPCC,
-  ALPHA_BUILTIN_THREAD_POINTER,
-  ALPHA_BUILTIN_SET_THREAD_POINTER,
   ALPHA_BUILTIN_ESTABLISH_VMS_CONDITION_HANDLER,
   ALPHA_BUILTIN_REVERT_VMS_CONDITION_HANDLER,
 
@@ -6384,8 +6383,6 @@ static enum insn_code const code_for_builtin[ALPHA_BUILTIN_max] = {
   CODE_FOR_builtin_amask,
   CODE_FOR_builtin_implver,
   CODE_FOR_builtin_rpcc,
-  CODE_FOR_load_tp,
-  CODE_FOR_set_tp,
   CODE_FOR_builtin_establish_vms_condition_handler,
   CODE_FOR_builtin_revert_vms_condition_handler,
 
@@ -6542,14 +6539,6 @@ alpha_init_builtins (void)
   ftype = build_function_type_list (alpha_dimode_u, alpha_dimode_u,
 				    alpha_dimode_u, NULL_TREE);
   alpha_add_builtins (two_arg_builtins, ARRAY_SIZE (two_arg_builtins), ftype);
-
-  ftype = build_function_type_list (ptr_type_node, NULL_TREE);
-  alpha_builtin_function ("__builtin_thread_pointer", ftype,
-			  ALPHA_BUILTIN_THREAD_POINTER, ECF_NOTHROW);
-
-  ftype = build_function_type_list (void_type_node, ptr_type_node, NULL_TREE);
-  alpha_builtin_function ("__builtin_set_thread_pointer", ftype,
-			  ALPHA_BUILTIN_SET_THREAD_POINTER, ECF_NOTHROW);
 
   if (TARGET_ABI_OPEN_VMS)
     {
@@ -7087,8 +7076,6 @@ alpha_fold_builtin (tree fndecl, int n_args, tree *op,
     case ALPHA_BUILTIN_AMASK:
     case ALPHA_BUILTIN_IMPLVER:
     case ALPHA_BUILTIN_RPCC:
-    case ALPHA_BUILTIN_THREAD_POINTER:
-    case ALPHA_BUILTIN_SET_THREAD_POINTER:
       /* None of these are foldable at compile-time.  */
     default:
       return NULL;
@@ -8362,7 +8349,6 @@ alpha_output_mi_thunk_osf (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
      instruction scheduling worth while.  Note that use_thunk calls
      assemble_start_function and assemble_end_function.  */
   insn = get_insns ();
-  insn_locators_alloc ();
   shorten_branches (insn);
   final_start_function (insn, file, 1);
   final (insn, file, 1);
@@ -9795,7 +9781,7 @@ alpha_conditional_register_usage (void)
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS alpha_rtx_costs
 #undef TARGET_ADDRESS_COST
-#define TARGET_ADDRESS_COST hook_int_rtx_bool_0
+#define TARGET_ADDRESS_COST hook_int_rtx_mode_as_bool_0
 
 #undef TARGET_MACHINE_DEPENDENT_REORG
 #define TARGET_MACHINE_DEPENDENT_REORG alpha_reorg

@@ -296,9 +296,11 @@ AC_SUBST(OUTPUT_OPTION)
 # optimizations to be activated explicitly by the toplevel.
 case "$CC" in
   */prev-gcc/xgcc*) ;;
-  *) CFLAGS=`echo $CFLAGS | sed "s/-O[[s0-9]]* *//" ` ;;
+  *) CFLAGS=`echo "$CFLAGS " | sed -e "s/-Ofast[[ 	]]//" -e "s/-O[[gs]][[ 	]]//" -e "s/-O[[0-9]]*[[ 	]]//" `
+     CXXFLAGS=`echo "$CXXFLAGS " | sed -e "s/-Ofast[[ 	]]//" -e "s/-O[[gs]][[ 	]]//" -e "s/-O[[0-9]]*[[ 	]]//" ` ;;
 esac
 AC_SUBST(CFLAGS)
+AC_SUBST(CXXFLAGS)
 
 # Determine PICFLAG for target gnatlib.
 GCC_PICFLAG_FOR_TARGET
@@ -363,7 +365,8 @@ AC_SUBST(warn_cxxflags)
 
 # Disable exceptions and RTTI if building with g++
 ACX_PROG_CC_WARNING_OPTS(
-	m4_quote(m4_do([-fno-exceptions -fno-rtti])), [noexception_flags])
+	m4_quote(m4_do([-fno-exceptions -fno-rtti -fasynchronous-unwind-tables])),
+		       [noexception_flags])
 	
 # Enable expensive internal checks
 is_release=
@@ -609,6 +612,31 @@ AC_ARG_ENABLE(multilib,
 		[enable library support for multiple ABIs])],
 [], [enable_multilib=yes])
 AC_SUBST(enable_multilib)
+
+# Determine whether or not multiarch is enabled.
+AC_ARG_ENABLE(multiarch,
+[AS_HELP_STRING([--enable-multiarch],
+		[enable support for multiarch paths])],
+[case "${withval}" in
+yes|no|auto) enable_multiarch=$withval;;
+*) AC_MSG_ERROR(bad value ${withval} given for --enable-multiarch option) ;;
+esac], [enable_multiarch=auto])
+if test x${enable_multiarch} = xauto; then
+  if test x${with_native_system_header_dir} != x; then
+    ma_msg_suffix=", disabled auto check (configured with --native-system-header-dir)"
+    enable_multiarch=no
+  fi
+  if test x$host != x$target && test "x$with_sysroot" = x; then
+    ma_msg_suffix=", disabled auto check (cross build configured without --with-sysroot)"
+    enable_multiarch=no
+  fi
+fi
+AC_MSG_CHECKING(for multiarch configuration)
+AC_SUBST(enable_multiarch)
+AC_MSG_RESULT($enable_multiarch$ma_msg_suffix)
+
+# needed for setting the multiarch name for soft-float/hard-float ABIs
+AC_SUBST(with_float)
 
 # Enable __cxa_atexit for C++.
 AC_ARG_ENABLE(__cxa_atexit,
@@ -912,7 +940,7 @@ AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS(limits.h stddef.h string.h strings.h stdlib.h time.h iconv.h \
 		 fcntl.h unistd.h sys/file.h sys/time.h sys/mman.h \
 		 sys/resource.h sys/param.h sys/times.h sys/stat.h \
-		 direct.h malloc.h langinfo.h ldfcn.h locale.h wchar.h)
+		 direct.h malloc.h langinfo.h ldfcn.h locale.h wchar.h libintl.h)
 
 # Check for thread headers.
 AC_CHECK_HEADER(thread.h, [have_thread_h=yes], [have_thread_h=])
@@ -1075,7 +1103,7 @@ CXXFLAGS="$CXXFLAGS -I${srcdir} -I${srcdir}/../include"
 gcc_AC_CHECK_DECLS(getenv atol asprintf sbrk abort atof getcwd getwd \
 	strsignal strstr stpcpy strverscmp \
 	errno snprintf vsnprintf vasprintf malloc realloc calloc \
-	free basename getopt clock getpagesize gcc_UNLOCKED_FUNCS, , ,[
+	free basename getopt clock getpagesize ffs gcc_UNLOCKED_FUNCS, , ,[
 #include "ansidecl.h"
 #include "system.h"])
 
@@ -1157,6 +1185,22 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 if test $gcc_cv_type_clock_t = yes; then
   AC_DEFINE(HAVE_CLOCK_T, 1,
   [Define if <time.h> defines clock_t.])
+fi
+
+# Check if F_SETLKW is supported by fcntl.
+AC_CACHE_CHECK(for F_SETLKW, ac_cv_f_setlkw, [
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#include <fcntl.h>]], [[
+struct flock fl;
+fl.l_whence = 0;
+fl.l_start = 0;
+fl.l_len = 0;
+fl.l_pid = 0;
+return fcntl (1, F_SETLKW, &fl);]])],
+[ac_cv_f_setlkw=yes],[ac_cv_f_setlkw=no])])
+if test $ac_cv_f_setlkw = yes; then
+  AC_DEFINE(HOST_HAS_F_SETLKW, 1,
+  [Define if F_SETLKW supported by fcntl.])
 fi
 
 # Restore CFLAGS, CXXFLAGS from before the gcc_AC_NEED_DECLARATIONS tests.
@@ -1984,6 +2028,12 @@ fi])
 
 ORIGINAL_PLUGIN_LD_FOR_TARGET=$gcc_cv_ld
 PLUGIN_LD_SUFFIX=`basename $gcc_cv_ld | sed -e "s,$target_alias-,,"`
+# if the PLUGIN_LD is set ld-new, just have it as ld
+# as that is the installed named.
+if test x$PLUGIN_LD_SUFFIX == xld-new \
+   || test x$PLUGIN_LD_SUFFIX == xcollect-ld ; then
+  PLUGIN_LD_SUFFIX=ld
+fi
 AC_ARG_WITH(plugin-ld,
 [AS_HELP_STRING([[--with-plugin-ld=[ARG]]], [specify the plugin linker])],
 [if test x"$withval" != x; then
@@ -2030,11 +2080,17 @@ if test "$gcc_cv_ld" = ../ld/ld-new$build_exeext \
 	for f in $gcc_cv_ld_bfd_srcdir/configure $gcc_cv_ld_gld_srcdir/configure $gcc_cv_ld_gld_srcdir/configure.in $gcc_cv_ld_gld_srcdir/Makefile.in
 	do
 changequote(,)dnl
-		gcc_cv_gld_version=`sed -n -e 's/^[ 	]*\(VERSION=[0-9]*\.[0-9]*.*\)/\1/p' < $f`
+		gcc_cv_gld_version=`sed -n -e 's/^[ 	]*VERSION=[^0-9A-Za-z_]*\([0-9]*\.[0-9]*.*\)/VERSION=\1/p' < $f`
 		if test x$gcc_cv_gld_version != x; then
 			break
 		fi
 	done
+	case $gcc_cv_gld_version in
+	  VERSION=[0-9]*) ;;
+changequote([,])dnl
+	  *) AC_MSG_ERROR([[cannot find version of in-tree linker]]) ;;
+changequote(,)dnl
+	esac
 	gcc_cv_gld_major_version=`expr "$gcc_cv_gld_version" : "VERSION=\([0-9]*\)"`
 	gcc_cv_gld_minor_version=`expr "$gcc_cv_gld_version" : "VERSION=[0-9]*\.\([0-9]*\)"`
 changequote([,])dnl
@@ -2300,6 +2356,12 @@ else
   if test x"$ld_is_gold" = xyes; then
     :
   elif echo "$ld_ver" | grep GNU > /dev/null; then
+    case "${target}" in
+      mmix-knuth-mmixware)
+        # The linker emits by default mmo, not ELF, so "no" is appropriate.
+	gcc_cv_ld_hidden=no
+	;;
+    esac
     if test 0"$ld_date" -lt 20020404; then
       if test -n "$ld_date"; then
 	# If there was date string, but was earlier than 2002-04-04, fail
@@ -2630,6 +2692,9 @@ else
  if test $gcc_cv_as_comdat_group_percent = yes; then
    gcc_cv_as_comdat_group_group=no
  else
+   if test -z "${gcc_cv_as_comdat_group_group+set}"; then
+     gcc_cv_as_comdat_group_group=no
+   fi
    case "${target}" in
      # Sun as uses a completely different syntax.
      *-*-solaris2*)
@@ -2929,6 +2994,19 @@ foo:
 	move.l x@TLSLE(%a5),%a0'
 	tls_first_major=2
 	tls_first_minor=19
+	tls_as_opt='--fatal-warnings'
+	;;
+  aarch64*-*-*)
+    conftest_s='
+	.section ".tdata","awT",%progbits
+foo:	.long	25
+	.text
+	adrp  x0, :tlsgd:x
+	add   x0, x0, #:tlsgd_lo12:x
+        bl    __tls_get_addr
+	nop'
+	tls_first_major=2
+	tls_first_minor=20
 	tls_as_opt='--fatal-warnings'
 	;;
   powerpc-*-*)
@@ -3467,6 +3545,24 @@ foo:
        fnaddd %f10, %f12, %f14],,
       [AC_DEFINE(HAVE_AS_FMAF_HPC_VIS3, 1,
                 [Define if your assembler supports FMAF, HPC, and VIS 3.0 instructions.])])
+
+    gcc_GAS_CHECK_FEATURE([SPARC4 instructions],
+      gcc_cv_as_sparc_sparc4,,
+      [-xarch=sparc4],
+      [.text
+       .register %g2, #scratch
+       .register %g3, #scratch
+       .align 4
+       cxbe %g2, %g3, 1f
+1:     cwbneg %g2, %g3, 1f
+1:     sha1
+       md5
+       aes_kexpand0 %f4, %f6, %f8
+       des_round %f38, %f40, %f42, %f44
+       camellia_f %f54, %f56, %f58, %f60
+       kasumi_fi_xor %f46, %f48, %f50, %f52],,
+      [AC_DEFINE(HAVE_AS_SPARC4, 1,
+                [Define if your assembler supports SPARC4 instructions.])])
     ;;
 
 changequote(,)dnl
@@ -3581,9 +3677,7 @@ foo:	nop
 
     gcc_GAS_CHECK_FEATURE([hle prefixes],
       gcc_cv_as_ix86_hle,,,
-      [.code64
-       lock xacquire cmpxchg %esi, (%rcx)
-       ],,
+      [lock xacquire cmpxchg %esi, (%ecx)],,
       [AC_DEFINE(HAVE_AS_IX86_HLE, 1,
         [Define if your assembler supports HLE prefixes.])])
 
@@ -3819,6 +3913,19 @@ LCF0:
 	  [Define if your assembler supports POPCNTD instructions.])])
 
     case $target in
+      *-*-aix*) conftest_s='	.machine "pwr8"
+	.csect .text[[PR]]';;
+      *) conftest_s='	.machine power8
+	.text';;
+    esac
+
+    gcc_GAS_CHECK_FEATURE([power8 support],
+      gcc_cv_as_powerpc_power8, [2,19,2], -a32,
+      [$conftest_s],,
+      [AC_DEFINE(HAVE_AS_POWER8, 1,
+	  [Define if your assembler supports POWER8 instructions.])])
+
+    case $target in
       *-*-aix*) conftest_s='	.csect .text[[PR]]
 	lwsync';;
       *) conftest_s='	.text
@@ -3861,7 +3968,7 @@ LCF0:
     case $target in
       *-*-aix*)
 	gcc_GAS_CHECK_FEATURE([.ref support],
-	  gcc_cv_as_aix_ref, [2.21.0],,
+	  gcc_cv_as_aix_ref, [2,21,0],,
 	  [	.csect stuff[[rw]]
 	     stuff:
 		.long 1
@@ -4362,7 +4469,9 @@ case "$target:$tm_file" in
     AC_CACHE_CHECK(linker support for omitting dot symbols,
     gcc_cv_ld_no_dot_syms,
     [gcc_cv_ld_no_dot_syms=no
-    if test $in_tree_ld = yes ; then
+    if test x"$ld_is_gold" = xyes; then
+      gcc_cv_ld_no_dot_syms=yes
+    elif test $in_tree_ld = yes ; then
       if test "$gcc_cv_gld_major_version" -eq 2 -a "$gcc_cv_gld_minor_version" -ge 16 -o "$gcc_cv_gld_major_version" -gt 2; then
         gcc_cv_ld_no_dot_syms=yes
       fi
@@ -4399,7 +4508,9 @@ EOF
     AC_CACHE_CHECK(linker large toc support,
     gcc_cv_ld_large_toc,
     [gcc_cv_ld_large_toc=no
-    if test $in_tree_ld = yes ; then
+    if test x"$ld_is_gold" = xyes; then
+      gcc_cv_ld_large_toc=yes
+    elif test $in_tree_ld = yes ; then
       if test "$gcc_cv_gld_major_version" -eq 2 -a "$gcc_cv_gld_minor_version" -ge 21 -o "$gcc_cv_gld_major_version" -gt 2; then
         gcc_cv_ld_large_toc=yes
       fi
@@ -4424,6 +4535,35 @@ EOF
     if test x"$gcc_cv_ld_large_toc" = xyes; then
       AC_DEFINE(HAVE_LD_LARGE_TOC, 1,
     [Define if your PowerPC64 linker supports a large TOC.])
+    fi
+    ;;
+esac
+
+case "$target" in
+  *-*-aix*)
+    AC_CACHE_CHECK(linker large toc support,
+    gcc_cv_ld_large_toc,
+    [gcc_cv_ld_large_toc=no
+    if test x$gcc_cv_as != x ; then
+      cat > conftest.s <<EOF
+	.toc
+LC..1:
+	.tc a[[TC]],a[[RW]]
+	.extern a[[RW]]
+	.csect .text[[PR]]
+.largetoctest:
+	addis 9,LC..1@u(2)
+	ld 3,LC..1@l(9)
+EOF
+      if $gcc_cv_as -a64 -o conftest.o conftest.s > /dev/null 2>&1; then
+        gcc_cv_ld_large_toc=yes
+      fi
+      rm -f conftest conftest.o conftest.s
+    fi
+    ])
+    if test x"$gcc_cv_ld_large_toc" = xyes; then
+      AC_DEFINE(HAVE_LD_LARGE_TOC, 1,
+    [Define if your AIX linker supports a large TOC.])
     fi
     ;;
 esac

@@ -345,8 +345,10 @@
 	  && GET_MODE (op) == PSImode);
 })
 
-;; TODO: Add a comment here.
-
+;; Returns true if OP is an operand that is either the fpul hard reg or
+;; a pseudo.  This prevents combine from propagating function arguments
+;; in hard regs into insns that need the operand in fpul.  If it's a pseudo
+;; reload can fix it up.
 (define_predicate "fpul_operand"
   (match_code "reg")
 {
@@ -357,6 +359,29 @@
 	  && (REGNO (op) == FPUL_REG || REGNO (op) >= FIRST_PSEUDO_REGISTER)
 	  && GET_MODE (op) == mode);
 })
+
+;; Returns true if OP is a valid fpul input operand for the fsca insn.
+;; The value in fpul is a fixed-point value and its scaling is described
+;; in the fsca insn by a mult:SF.  To allow pre-scaled fixed-point inputs
+;; in fpul we have to permit things like
+;;   (reg:SI)
+;;   (fix:SF (float:SF (reg:SI)))
+(define_predicate "fpul_fsca_operand"
+  (match_code "fix,reg")
+{
+  if (fpul_operand (op, SImode))
+    return true;
+  if (GET_CODE (op) == FIX && GET_MODE (op) == SImode
+      && GET_CODE (XEXP (op, 0)) == FLOAT && GET_MODE (XEXP (op, 0)) == SFmode)
+    return fpul_fsca_operand (XEXP (XEXP (op, 0), 0),
+			      GET_MODE (XEXP (XEXP (op, 0), 0)));
+  return false;
+})
+
+;; Returns true if OP is a valid constant scale factor for the fsca insn.
+(define_predicate "fsca_scale_factor"
+  (and (match_code "const_double")
+       (match_test "op == sh_fsca_int2sf ()")))
 
 ;; TODO: Add a comment here.
 
@@ -409,6 +434,14 @@
   if (MEM_P (op))
     {
       rtx inside = XEXP (op, 0);
+
+      /* Disallow mems with GBR address here.  They have to go through
+	 separate special patterns.  */
+      if ((REG_P (inside) && REGNO (inside) == GBR_REG)
+	  || (GET_CODE (inside) == PLUS && REG_P (XEXP (inside, 0))
+	      && REGNO (XEXP (inside, 0)) == GBR_REG))
+	return 0;
+
       if (GET_CODE (inside) == CONST)
 	inside = XEXP (inside, 0);
 
@@ -465,6 +498,17 @@
 {
   if (t_reg_operand (op, mode))
     return 0;
+
+  if (MEM_P (op))
+    {
+      rtx inside = XEXP (op, 0);
+      /* Disallow mems with GBR address here.  They have to go through
+	 separate special patterns.  */
+      if ((REG_P (inside) && REGNO (inside) == GBR_REG)
+	  || (GET_CODE (inside) == PLUS && REG_P (XEXP (inside, 0))
+	      && REGNO (XEXP (inside, 0)) == GBR_REG))
+	return 0;
+    }
 
   /* Only pre dec allowed.  */
   if (MEM_P (op) && GET_CODE (XEXP (op, 0)) == POST_INC)
@@ -791,9 +835,8 @@
   /* Allow T_REG as shift count for dynamic shifts, although it is not
      really possible.  It will then be copied to a general purpose reg.  */
   if (! TARGET_SHMEDIA)
-    return const_int_operand (op, mode)
-	   || (TARGET_DYNSHIFT && (arith_reg_operand (op, mode)
-				   || t_reg_operand (op, mode)));
+    return const_int_operand (op, mode) || arith_reg_operand (op, mode)
+	   || (TARGET_DYNSHIFT && t_reg_operand (op, mode));
 
   return (CONSTANT_P (op)
 	  ? (CONST_INT_P (op)
@@ -825,6 +868,8 @@
   return arith_reg_operand (op, mode);
 })
 
+;; Predicates for matching operands that are constant shift
+;; amounts 1, 2, 8, 16.
 (define_predicate "p27_shift_count_operand"
   (and (match_code "const_int")
        (match_test "satisfies_constraint_P27 (op)")))
@@ -832,6 +877,19 @@
 (define_predicate "not_p27_shift_count_operand"
   (and (match_code "const_int")
        (match_test "! satisfies_constraint_P27 (op)")))
+
+;; For right shifts the constant 1 is a special case because the shlr insn
+;; clobbers the T_REG and is handled by the T_REG clobbering version of the
+;; insn, which is also used for non-P27 shift sequences.
+(define_predicate "p27_rshift_count_operand"
+  (and (match_code "const_int")
+       (match_test "satisfies_constraint_P27 (op)")
+       (match_test "! satisfies_constraint_M (op)")))
+
+(define_predicate "not_p27_rshift_count_operand"
+  (and (match_code "const_int")
+       (ior (match_test "! satisfies_constraint_P27 (op)")
+	    (match_test "satisfies_constraint_M (op)"))))
 
 ;; TODO: Add a comment here.
 
@@ -984,11 +1042,12 @@
 	return REGNO (op) == T_REG;
 
       case SUBREG:
-	return REGNO (SUBREG_REG (op)) == T_REG;
+	return REG_P (SUBREG_REG (op)) && REGNO (SUBREG_REG (op)) == T_REG;
 
       case ZERO_EXTEND:
       case SIGN_EXTEND:
 	return GET_CODE (XEXP (op, 0)) == SUBREG
+	       && REG_P (SUBREG_REG (XEXP (op, 0)))
 	       && REGNO (SUBREG_REG (XEXP (op, 0))) == T_REG;
 
       default:
@@ -1012,4 +1071,88 @@
       default:
 	return 0;
     }
+})
+
+;; A predicate that returns true if OP is a valid construct around the T bit
+;; that can be used as an operand for conditional branches.
+(define_predicate "cbranch_treg_value"
+  (match_code "eq,ne,reg,subreg,xor,sign_extend,zero_extend")
+{
+  return sh_eval_treg_value (op) >= 0;
+})
+
+;; Returns true of OP is arith_reg_operand or t_reg_operand.
+(define_predicate "arith_reg_or_t_reg_operand"
+  (ior (match_operand 0 "arith_reg_operand")
+       (match_operand 0 "t_reg_operand")))
+
+;; A predicate describing the negated value of the T bit register shifted
+;; left by 31.
+(define_predicate "negt_reg_shl31_operand"
+  (match_code "plus,minus,if_then_else")
+{
+  /* (plus:SI (mult:SI (match_operand:SI 1 "t_reg_operand")
+		       (const_int -2147483648))  ;; 0xffffffff80000000
+	      (const_int -2147483648))
+  */
+  if (GET_CODE (op) == PLUS && satisfies_constraint_Jhb (XEXP (op, 1))
+      && GET_CODE (XEXP (op, 0)) == MULT
+      && t_reg_operand (XEXP (XEXP (op, 0), 0), SImode)
+      && satisfies_constraint_Jhb (XEXP (XEXP (op, 0), 1)))
+    return true;
+
+  /* (minus:SI (const_int -2147483648)  ;; 0xffffffff80000000
+	       (mult:SI (match_operand:SI 1 "t_reg_operand")
+			(const_int -2147483648)))
+  */
+  if (GET_CODE (op) == MINUS
+      && satisfies_constraint_Jhb (XEXP (op, 0))
+      && GET_CODE (XEXP (op, 1)) == MULT
+      && t_reg_operand (XEXP (XEXP (op, 1), 0), SImode)
+      && satisfies_constraint_Jhb (XEXP (XEXP (op, 1), 1)))
+    return true;
+
+  /*  (if_then_else:SI (match_operand:SI 1 "t_reg_operand")
+		       (const_int 0)
+		       (const_int -2147483648))  ;; 0xffffffff80000000
+  */
+  if (GET_CODE (op) == IF_THEN_ELSE && t_reg_operand (XEXP (op, 0), SImode)
+      && satisfies_constraint_Z (XEXP (op, 1))
+      && satisfies_constraint_Jhb (XEXP (op, 2)))
+    return true;
+
+  return false;
+})
+
+;; A predicate that determines whether a given constant is a valid
+;; displacement for a gbr load/store of the specified mode.
+(define_predicate "gbr_displacement"
+  (match_code "const_int")
+{
+  const int mode_sz = GET_MODE_SIZE (mode);
+  const int move_sz = mode_sz > GET_MODE_SIZE (SImode)
+				? GET_MODE_SIZE (SImode)
+				: mode_sz;
+  int max_disp = 255 * move_sz;
+  if (mode_sz > move_sz)
+    max_disp -= mode_sz - move_sz;
+
+  return INTVAL (op) >= 0 && INTVAL (op) <= max_disp;
+})
+
+;; A predicate that determines whether OP is a valid GBR addressing mode
+;; memory reference.
+(define_predicate "gbr_address_mem"
+  (match_code "mem")
+{
+  rtx addr = XEXP (op, 0);
+
+  if (REG_P (addr) && REGNO (addr) == GBR_REG)
+    return true;
+  if (GET_CODE (addr) == PLUS
+      && REG_P (XEXP (addr, 0)) && REGNO (XEXP (addr, 0)) == GBR_REG
+      && gbr_displacement (XEXP (addr, 1), mode))
+    return true;
+
+  return false;
 })

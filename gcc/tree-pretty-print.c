@@ -546,13 +546,13 @@ dump_block_node (pretty_printer *buffer, tree block, int spc, int flags)
       newline_and_indent (buffer, spc + 2);
     }
 
-  if (VEC_length (tree, BLOCK_NONLOCALIZED_VARS (block)) > 0)
+  if (vec_safe_length (BLOCK_NONLOCALIZED_VARS (block)) > 0)
     {
       unsigned i;
-      VEC(tree,gc) *nlv = BLOCK_NONLOCALIZED_VARS (block);
+      vec<tree, va_gc> *nlv = BLOCK_NONLOCALIZED_VARS (block);
 
       pp_string (buffer, "NONLOCALIZED_VARS: ");
-      FOR_EACH_VEC_ELT (tree, nlv, i, t)
+      FOR_EACH_VEC_ELT (*nlv, i, t)
 	{
 	  dump_generic_node (buffer, t, 0, flags, false);
 	  pp_string (buffer, " ");
@@ -1330,8 +1330,7 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 		  }
 		else if (is_array_init
 			 && (TREE_CODE (field) != INTEGER_CST
-			     || !double_int_equal_p (tree_to_double_int (field),
-						     curidx)))
+			     || tree_to_double_int (field) != curidx))
 		  {
 		    pp_character (buffer, '[');
 		    if (TREE_CODE (field) == RANGE_EXPR)
@@ -1352,7 +1351,7 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 		  }
 	      }
             if (is_array_init)
-	      curidx = double_int_add (curidx, double_int_one);
+	      curidx += double_int_one;
 	    if (val && TREE_CODE (val) == ADDR_EXPR)
 	      if (TREE_CODE (TREE_OPERAND (val, 0)) == FUNCTION_DECL)
 		val = TREE_OPERAND (val, 0);
@@ -1360,7 +1359,7 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 		dump_decl_name (buffer, val, flags);
 	    else
 		dump_generic_node (buffer, val, spc, flags, false);
-	    if (ix != VEC_length (constructor_elt, CONSTRUCTOR_ELTS (node)) - 1)
+	    if (ix != vec_safe_length (CONSTRUCTOR_ELTS (node)) - 1)
 	      {
 		pp_character (buffer, ',');
 		pp_space (buffer);
@@ -1436,9 +1435,6 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	  		 false);
       pp_space (buffer);
       pp_character (buffer, '=');
-      if (TREE_CODE (node) == MODIFY_EXPR
-	  && MOVE_NONTEMPORAL (node))
-	pp_string (buffer, "{nt}");
       pp_space (buffer);
       dump_generic_node (buffer, TREE_OPERAND (node, 1), spc, flags,
 	  		 false);

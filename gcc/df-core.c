@@ -754,6 +754,7 @@ struct rtl_opt_pass pass_df_initialize_opt =
  {
   RTL_PASS,
   "dfinit",                             /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_opt,                             /* gate */
   rest_of_handle_df_initialize,         /* execute */
   NULL,                                 /* sub */
@@ -781,6 +782,7 @@ struct rtl_opt_pass pass_df_initialize_no_opt =
  {
   RTL_PASS,
   "no-opt dfinit",                      /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   gate_no_opt,                          /* gate */
   rest_of_handle_df_initialize,         /* execute */
   NULL,                                 /* sub */
@@ -828,6 +830,7 @@ struct rtl_opt_pass pass_df_finish =
  {
   RTL_PASS,
   "dfinish",                            /* name */
+  OPTGROUP_NONE,                        /* optinfo_flags */
   NULL,					/* gate */
   rest_of_handle_df_finish,             /* execute */
   NULL,                                 /* sub */
@@ -888,7 +891,7 @@ df_worklist_propagate_forward (struct dataflow *dataflow,
     FOR_EACH_EDGE (e, ei, bb->preds)
       {
         if (age <= BB_LAST_CHANGE_AGE (e->src)
-	    && TEST_BIT (considered, e->src->index))
+	    && bitmap_bit_p (considered, e->src->index))
           changed |= dataflow->problem->con_fun_n (e);
       }
   else if (dataflow->problem->con_fun_0)
@@ -903,7 +906,7 @@ df_worklist_propagate_forward (struct dataflow *dataflow,
         {
           unsigned ob_index = e->dest->index;
 
-          if (TEST_BIT (considered, ob_index))
+          if (bitmap_bit_p (considered, ob_index))
             bitmap_set_bit (pending, bbindex_to_postorder[ob_index]);
         }
       return true;
@@ -933,7 +936,7 @@ df_worklist_propagate_backward (struct dataflow *dataflow,
     FOR_EACH_EDGE (e, ei, bb->succs)
       {
         if (age <= BB_LAST_CHANGE_AGE (e->dest)
-	    && TEST_BIT (considered, e->dest->index))
+	    && bitmap_bit_p (considered, e->dest->index))
           changed |= dataflow->problem->con_fun_n (e);
       }
   else if (dataflow->problem->con_fun_0)
@@ -948,7 +951,7 @@ df_worklist_propagate_backward (struct dataflow *dataflow,
         {
           unsigned ob_index = e->src->index;
 
-          if (TEST_BIT (considered, ob_index))
+          if (bitmap_bit_p (considered, ob_index))
             bitmap_set_bit (pending, bbindex_to_postorder[ob_index]);
         }
       return true;
@@ -988,12 +991,12 @@ df_worklist_dataflow_doublequeue (struct dataflow *dataflow,
   bitmap worklist = BITMAP_ALLOC (&df_bitmap_obstack);
   int age = 0;
   bool changed;
-  VEC(int, heap) *last_visit_age = NULL;
+  vec<int> last_visit_age = vNULL;
   int prev_age;
   basic_block bb;
   int i;
 
-  VEC_safe_grow_cleared (int, heap, last_visit_age, n_blocks);
+  last_visit_age.safe_grow_cleared (n_blocks);
 
   /* Double-queueing. Worklist is for the current iteration,
      and pending is for the next. */
@@ -1015,7 +1018,7 @@ df_worklist_dataflow_doublequeue (struct dataflow *dataflow,
 	  bitmap_clear_bit (pending, index);
 	  bb_index = blocks_in_postorder[index];
 	  bb = BASIC_BLOCK (bb_index);
-	  prev_age = VEC_index (int, last_visit_age, index);
+	  prev_age = last_visit_age[index];
 	  if (dir == DF_FORWARD)
 	    changed = df_worklist_propagate_forward (dataflow, bb_index,
 						     bbindex_to_postorder,
@@ -1026,7 +1029,7 @@ df_worklist_dataflow_doublequeue (struct dataflow *dataflow,
 						      bbindex_to_postorder,
 						      pending, considered,
 						      prev_age);
-	  VEC_replace (int, last_visit_age, index, ++age);
+	  last_visit_age[index] = ++age;
 	  if (changed)
 	    bb->aux = (void *)(ptrdiff_t)age;
 	}
@@ -1037,7 +1040,7 @@ df_worklist_dataflow_doublequeue (struct dataflow *dataflow,
 
   BITMAP_FREE (worklist);
   BITMAP_FREE (pending);
-  VEC_free (int, heap, last_visit_age);
+  last_visit_age.release ();
 
   /* Dump statistics. */
   if (dump_file)
@@ -1080,10 +1083,10 @@ df_worklist_dataflow (struct dataflow *dataflow,
     bbindex_to_postorder[i] = last_basic_block;
 
   /* Initialize the considered map.  */
-  sbitmap_zero (considered);
+  bitmap_clear (considered);
   EXECUTE_IF_SET_IN_BITMAP (blocks_to_consider, 0, index, bi)
     {
-      SET_BIT (considered, index);
+      bitmap_set_bit (considered, index);
     }
 
   /* Initialize the mapping of block index to postorder.  */
@@ -1994,10 +1997,7 @@ df_dump_region (FILE *file)
       EXECUTE_IF_SET_IN_BITMAP (df->blocks_to_analyze, 0, bb_index, bi)
 	{
 	  basic_block bb = BASIC_BLOCK (bb_index);
-
-	  df_print_bb_index (bb, file);
-	  df_dump_top (bb, file);
-	  df_dump_bottom (bb, file);
+	  dump_bb (file, bb, 0, TDF_DETAILS);
 	}
       fprintf (file, "\n");
     }
@@ -2035,10 +2035,9 @@ df_dump_start (FILE *file)
 }
 
 
-/* Dump the top of the block information for BB.  */
-
-void
-df_dump_top (basic_block bb, FILE *file)
+/* Dump the top or bottom of the block information for BB.  */
+static void
+df_dump_bb_problem_data (basic_block bb, FILE *file, bool top)
 {
   int i;
 
@@ -2050,18 +2049,39 @@ df_dump_top (basic_block bb, FILE *file)
       struct dataflow *dflow = df->problems_in_order[i];
       if (dflow->computed)
 	{
-	  df_dump_bb_problem_function bbfun = dflow->problem->dump_top_fun;
+	  df_dump_bb_problem_function bbfun;
+
+	  if (top)
+	    bbfun = dflow->problem->dump_top_fun;
+	  else
+	    bbfun = dflow->problem->dump_bottom_fun;
+
 	  if (bbfun)
 	    bbfun (bb, file);
 	}
     }
 }
 
+/* Dump the top of the block information for BB.  */
+
+void
+df_dump_top (basic_block bb, FILE *file)
+{
+  df_dump_bb_problem_data (bb, file, /*top=*/true);
+}
 
 /* Dump the bottom of the block information for BB.  */
 
 void
 df_dump_bottom (basic_block bb, FILE *file)
+{
+  df_dump_bb_problem_data (bb, file, /*top=*/false);
+}
+
+
+/* Dump information about INSN just before or after dumping INSN itself.  */
+static void
+df_dump_insn_problem_data (const_rtx insn, FILE *file, bool top)
 {
   int i;
 
@@ -2073,11 +2093,33 @@ df_dump_bottom (basic_block bb, FILE *file)
       struct dataflow *dflow = df->problems_in_order[i];
       if (dflow->computed)
 	{
-	  df_dump_bb_problem_function bbfun = dflow->problem->dump_bottom_fun;
-	  if (bbfun)
-	    bbfun (bb, file);
+	  df_dump_insn_problem_function insnfun;
+
+	  if (top)
+	    insnfun = dflow->problem->dump_insn_top_fun;
+	  else
+	    insnfun = dflow->problem->dump_insn_bottom_fun;
+
+	  if (insnfun)
+	    insnfun (insn, file);
 	}
     }
+}
+
+/* Dump information about INSN before dumping INSN itself.  */
+
+void
+df_dump_insn_top (const_rtx insn, FILE *file)
+{
+  df_dump_insn_problem_data (insn,  file, /*top=*/true);
+}
+
+/* Dump information about INSN after dumping INSN itself.  */
+
+void
+df_dump_insn_bottom (const_rtx insn, FILE *file)
+{
+  df_dump_insn_problem_data (insn,  file, /*top=*/false);
 }
 
 

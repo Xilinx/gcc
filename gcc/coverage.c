@@ -77,6 +77,13 @@ typedef struct counts_entry
   unsigned cfg_checksum;
   gcov_type *counts;
   struct gcov_ctr_summary summary;
+
+  /* hash_table support.  */
+  typedef counts_entry value_type;
+  typedef counts_entry compare_type;
+  static inline hashval_t hash (const value_type *);
+  static int equal (const value_type *, const compare_type *);
+  static void remove (value_type *);
 } counts_entry_t;
 
 static GTY(()) struct coverage_data *functions_head = 0;
@@ -121,9 +128,9 @@ static void build_info_type (tree, tree);
 static tree build_fn_info (const struct coverage_data *, tree, tree);
 static tree build_info (tree, tree);
 static bool coverage_obj_init (void);
-static VEC(constructor_elt,gc) *coverage_obj_fn
-(VEC(constructor_elt,gc) *, tree, struct coverage_data const *);
-static void coverage_obj_finish (VEC(constructor_elt,gc) *);
+static vec<constructor_elt, va_gc> *coverage_obj_fn
+(vec<constructor_elt, va_gc> *, tree, struct coverage_data const *);
+static void coverage_obj_finish (vec<constructor_elt, va_gc> *);
 
 /* Return the type node for gcov_type.  */
 
@@ -144,29 +151,27 @@ get_gcov_unsigned_t (void)
 }
 
 inline hashval_t
-coverage_counts_entry_hash (const counts_entry_t *entry)
+counts_entry::hash (const value_type *entry)
 {
   return entry->ident * GCOV_COUNTERS + entry->ctr;
 }
 
 inline int
-coverage_counts_entry_eq (const counts_entry_t *entry1,
-                          const counts_entry_t *entry2)
+counts_entry::equal (const value_type *entry1,
+		     const compare_type *entry2)
 {
   return entry1->ident == entry2->ident && entry1->ctr == entry2->ctr;
 }
 
 inline void
-coverage_counts_entry_del (counts_entry_t *entry)
+counts_entry::remove (value_type *entry)
 {
   free (entry->counts);
   free (entry);
 }
 
 /* Hash table of count data.  */
-static hash_table <counts_entry_t, coverage_counts_entry_hash,
-		   coverage_counts_entry_eq, coverage_counts_entry_del>
-		  counts_hash;
+static hash_table <counts_entry> counts_hash;
 
 /* Read in the counts file, if available.  */
 
@@ -244,6 +249,13 @@ read_counts_file (void)
 		summary.ctrs[ix].run_max = sum.ctrs[ix].run_max;
 	      summary.ctrs[ix].sum_max += sum.ctrs[ix].sum_max;
 	    }
+          if (new_summary)
+            memcpy (summary.ctrs[GCOV_COUNTER_ARCS].histogram,
+                    sum.ctrs[GCOV_COUNTER_ARCS].histogram,
+                    sizeof (gcov_bucket_type) * GCOV_HISTOGRAM_SIZE);
+          else
+            gcov_histogram_merge (summary.ctrs[GCOV_COUNTER_ARCS].histogram,
+                                  sum.ctrs[GCOV_COUNTER_ARCS].histogram);
 	  new_summary = 0;
 	}
       else if (GCOV_TAG_IS_COUNTER (tag) && fn_ident)
@@ -264,8 +276,9 @@ read_counts_file (void)
 	      entry->ctr = elt.ctr;
 	      entry->lineno_checksum = lineno_checksum;
 	      entry->cfg_checksum = cfg_checksum;
-	      entry->summary = summary.ctrs[elt.ctr];
-	      entry->summary.num = n_counts;
+              if (elt.ctr < GCOV_COUNTERS_SUMMABLE)
+                entry->summary = summary.ctrs[elt.ctr];
+              entry->summary.num = n_counts;
 	      entry->counts = XCNEWVEC (gcov_type, n_counts);
 	    }
 	  else if (entry->lineno_checksum != lineno_checksum
@@ -751,8 +764,8 @@ build_fn_info (const struct coverage_data *data, tree type, tree key)
   tree fields = TYPE_FIELDS (type);
   tree ctr_type;
   unsigned ix;
-  VEC(constructor_elt,gc) *v1 = NULL;
-  VEC(constructor_elt,gc) *v2 = NULL;
+  vec<constructor_elt, va_gc> *v1 = NULL;
+  vec<constructor_elt, va_gc> *v2 = NULL;
 
   /* key */
   CONSTRUCTOR_APPEND_ELT (v1, fields,
@@ -782,7 +795,7 @@ build_fn_info (const struct coverage_data *data, tree type, tree key)
   for (ix = 0; ix != GCOV_COUNTERS; ix++)
     if (prg_ctr_mask & (1 << ix))
       {
-	VEC(constructor_elt,gc) *ctr = NULL;
+	vec<constructor_elt, va_gc> *ctr = NULL;
 	tree var = data->ctr_vars[ix];
 	unsigned count = 0;
 
@@ -885,8 +898,8 @@ build_info (tree info_type, tree fn_ary)
   unsigned ix;
   tree filename_string;
   int da_file_name_len;
-  VEC(constructor_elt,gc) *v1 = NULL;
-  VEC(constructor_elt,gc) *v2 = NULL;
+  vec<constructor_elt, va_gc> *v1 = NULL;
+  vec<constructor_elt, va_gc> *v2 = NULL;
 
   /* Version ident */
   CONSTRUCTOR_APPEND_ELT (v1, info_fields,
@@ -1030,8 +1043,8 @@ coverage_obj_init (void)
 /* Generate the coverage function info for FN and DATA.  Append a
    pointer to that object to CTOR and return the appended CTOR.  */
 
-static VEC(constructor_elt,gc) *
-coverage_obj_fn (VEC(constructor_elt,gc) *ctor, tree fn,
+static vec<constructor_elt, va_gc> *
+coverage_obj_fn (vec<constructor_elt, va_gc> *ctor, tree fn,
 		 struct coverage_data const *data)
 {
   tree init = build_fn_info (data, gcov_fn_info_type, gcov_info_var);
@@ -1049,9 +1062,9 @@ coverage_obj_fn (VEC(constructor_elt,gc) *ctor, tree fn,
    function objects from CTOR.  Generate the gcov_info initializer.  */
 
 static void
-coverage_obj_finish (VEC(constructor_elt,gc) *ctor)
+coverage_obj_finish (vec<constructor_elt, va_gc> *ctor)
 {
-  unsigned n_functions = VEC_length(constructor_elt, ctor);
+  unsigned n_functions = vec_safe_length (ctor);
   tree fn_info_ary_type = build_array_type
     (build_qualified_type (gcov_fn_info_ptr_type, TYPE_QUAL_CONST),
      build_index_type (size_int (n_functions - 1)));
@@ -1140,7 +1153,7 @@ coverage_finish (void)
 
   if (coverage_obj_init ())
     {
-      VEC(constructor_elt,gc) *fn_ctor = NULL;
+      vec<constructor_elt, va_gc> *fn_ctor = NULL;
       struct coverage_data *fn;
       
       for (fn = functions_head; fn; fn = fn->next)

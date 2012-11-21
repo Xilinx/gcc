@@ -1033,6 +1033,15 @@ libraries to support different target variants, calling
 conventions, etc.@: should not be built.  The default is to build a
 predefined set of them.
 
+@item --enable-multiarch
+Specify whether to enable or disable multiarch support.  The default is
+to check for glibc start files in a multiarch location, and enable it
+if the files are found.  The auto detection is enabled for native builds,
+and for cross builds configured with @option{--with-sysroot}, and without
+@option{--with-native-system-header-dir}.
+More documentation about multiarch can be found at
+@uref{http://wiki.debian.org/Multiarch}.
+
 Some targets provide finer-grained control over which multilibs are built
 (e.g., @option{--disable-softfloat}):
 @table @code
@@ -1710,6 +1719,14 @@ link time when @option{-fuse-linker-plugin} is enabled.
 This linker should have plugin support such as gold starting with
 version 2.20 or GNU ld starting with version 2.21.
 See @option{-fuse-linker-plugin} for details.
+
+@item --enable-canonical-system-headers
+@itemx --disable-canonical-system-headers
+Enable system header path canonicalization for @file{libcpp}.  This can
+produce shorter header file paths in diagnostics and dependency output
+files, but these changed header paths may conflict with some compilation
+environments.  Enabled by default, and may be disabled using
+@option{--disable-canonical-system-headers}.
 @end table
 
 @subheading Cross-Compiler-Specific Options
@@ -2567,14 +2584,14 @@ The following will run each testsuite eight times using the @samp{arm-sim}
 target, as if you had specified all possible combinations yourself:
 
 @smallexample
---target_board=arm-sim/-mhard-float/-O1
---target_board=arm-sim/-mhard-float/-O2
---target_board=arm-sim/-mhard-float/-O3
---target_board=arm-sim/-mhard-float
---target_board=arm-sim/-msoft-float/-O1
---target_board=arm-sim/-msoft-float/-O2
---target_board=arm-sim/-msoft-float/-O3
---target_board=arm-sim/-msoft-float
+--target_board='arm-sim/-mhard-float/-O1 \
+                arm-sim/-mhard-float/-O2 \
+                arm-sim/-mhard-float/-O3 \
+                arm-sim/-mhard-float \
+                arm-sim/-msoft-float/-O1 \
+                arm-sim/-msoft-float/-O2 \
+                arm-sim/-msoft-float/-O3 \
+                arm-sim/-msoft-float'
 @end smallexample
 
 They can be combined as many times as you wish, in arbitrary ways.  This
@@ -2966,7 +2983,7 @@ GNU Compiler Collection on your machine.
 Note that this list of install notes is @emph{not} a list of supported
 hosts or targets.  Not all supported hosts and targets are listed
 here, only the ones that require host-specific or target-specific
-information are.
+information have to. 
 
 @ifhtml
 @itemize
@@ -3151,7 +3168,7 @@ This is a synonym for @samp{x86_64-*-solaris2.1[0-9]*}.
 @heading @anchor{arm-x-eabi}arm-*-eabi
 ARM-family processors.  Subtargets that use the ELF object format
 require GNU binutils 2.13 or newer.  Such subtargets include:
-@code{arm-*-netbsdelf}, @code{arm-*-*linux-gnueabi}
+@code{arm-*-netbsdelf}, @code{arm-*-*linux-*}
 and @code{arm-*-rtemseabi}.
 
 @html
@@ -3927,8 +3944,7 @@ the O32 ABI.
 <hr />
 @end html
 @heading @anchor{moxie-x-elf}moxie-*-elf
-The moxie processor.  See @uref{http://moxielogic.org/} for more
-information about this processor.
+The moxie processor.
 
 @html
 <hr />
@@ -4260,9 +4276,9 @@ releases mishandled unaligned relocations on @code{sparc-*-*} targets.
 @end html
 @heading @anchor{sparc64-x-solaris2}sparc64-*-solaris2*
 
-When configuring the GNU Multiple Precision Library (GMP) or the
-MPFR library, the canonical target triplet must be specified as
-the @command{build} parameter on the configure line.  For example
+When configuring the GNU Multiple Precision Library (GMP), the MPFR
+library or the MPC library, the canonical target triplet must be specified
+as the @command{build} parameter on the configure line.  For example
 on a Solaris 9 system:
 
 @smallexample

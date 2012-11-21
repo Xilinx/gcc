@@ -1,3 +1,64 @@
+2012-11-19  Mike Stump  <mikestump@comcast.net>
+
+	* compare_tests: Add export LC_ALL=C to make sort happier.
+
+2012-11-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc_update: Update libsanitizer generated files.
+
+2012-11-12  Tobias Burnus  <burnus@net-b.de>
+
+	* gcc_update: Add libquadmath generated files.
+
+2012-11-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc_update: Add libsanitizer generated files.
+
+2012-11-05  Lawrence Crowl  <crowl@google.com>
+
+	* compare_two_ftime_report_sets: New.
+
+2012-11-02  Diego Novillo  <dnovillo@google.com>
+
+	* testsuite-management/validate_failures.py: Add option
+	--clean_build to compare test results against another
+	build.
+
+2012-10-31  Diego Novillo  <dnovillo@google.com>
+
+	* testsuite-management/validate_failures.py: Fix parsing
+	of summary lines.
+
+2012-10-29  Diego Novillo  <dnovillo@google.com>
+
+	* testsuite-management/x86_64-unknown-linux-gnu.xfail: Update.
+
+2012-10-06  Diego Novillo  <dnovillo@google.com>
+
+	* testsuite-management/x86_64-unknown-linux-gnu.xfail: Update.
+
+2012-10-02   Christophe Lyon  <christophe.lyon@linaro.org>
+
+	* check_GNU_style.sh: Remove temporay file upon exit.
+
+2012-09-26  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	* contrib-list.mk (LIST): Remove arm-freebsd6, arm-linux,
+	arm-ecos-elf, arm-rtems, arm-elf and arm-wince-pe.
+	Use --enable-obsolete for picochip-elf.
+
+2012-09-10   Diego Novillo  <dnovillo@google.com>
+
+	* testsuite-management/x86_64-unknown-linux-gnu.xfail: Update.
+
+2012-09-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* make_sunver.pl: Add missing newline at the end of extern "C++" block.
+
+2012-08-24   Diego Novillo  <dnovillo@google.com>
+
+	* testsuite-management/x86_64-unknown-linux-gnu.xfail: Update.
+	
 2012-08-14   Diego Novillo  <dnovillo@google.com>
 
 	* testsuite-management/x86_64-unknown-linux-gnu.xfail: New.

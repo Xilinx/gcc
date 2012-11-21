@@ -2964,11 +2964,15 @@ syntax:
   gfc_syntax_error (st);
 
 cleanup:
+  if (acq_lock != tmp)
+    gfc_free_expr (acq_lock);
+  if (errmsg != tmp)
+    gfc_free_expr (errmsg);
+  if (stat != tmp)
+    gfc_free_expr (stat);
+
   gfc_free_expr (tmp);
   gfc_free_expr (lockvar);
-  gfc_free_expr (acq_lock);
-  gfc_free_expr (stat);
-  gfc_free_expr (errmsg);
 
   return MATCH_ERROR;
 }
@@ -3121,9 +3125,6 @@ sync_statement (gfc_statement st)
 	break;
     }
 
-  if (m == MATCH_ERROR)
-    goto syntax;
-
   if (gfc_match (" )%t") != MATCH_YES)
     goto syntax;
 
@@ -3153,10 +3154,13 @@ syntax:
   gfc_syntax_error (st);
 
 cleanup:
+  if (stat != tmp)
+    gfc_free_expr (stat);
+  if (errmsg != tmp)
+    gfc_free_expr (errmsg);
+
   gfc_free_expr (tmp);
   gfc_free_expr (imageset);
-  gfc_free_expr (stat);
-  gfc_free_expr (errmsg);
 
   return MATCH_ERROR;
 }
@@ -4398,6 +4402,7 @@ gfc_match_common (void)
 
           /* Store a ref to the common block for error checking.  */
           sym->common_block = t;
+          sym->common_block->refs++;
           
           /* See if we know the current common block is bind(c), and if
              so, then see if we can check if the symbol is (which it'll
@@ -5320,6 +5325,7 @@ gfc_match_select_type (void)
   char name[GFC_MAX_SYMBOL_LEN];
   bool class_array;
   gfc_symbol *sym;
+  gfc_namespace *parent_ns;
 
   m = gfc_match_label ();
   if (m == MATCH_ERROR)
@@ -5367,10 +5373,10 @@ gfc_match_select_type (void)
      array, which can have a reference, from other expressions that
      have references, such as derived type components, and are not
      allowed by the standard.
-     TODO; see is it is sufficient to exclude component and substring
+     TODO: see if it is sufficient to exclude component and substring
      references.  */
   class_array = expr1->expr_type == EXPR_VARIABLE
-		  && expr1->ts.type != BT_UNKNOWN
+		  && expr1->ts.type == BT_CLASS
 		  && CLASS_DATA (expr1)
 		  && (strcmp (CLASS_DATA (expr1)->name, "_data") == 0)
 		  && (CLASS_DATA (expr1)->attr.dimension
@@ -5399,7 +5405,9 @@ gfc_match_select_type (void)
   return MATCH_YES;
   
 cleanup:
-  gfc_current_ns = gfc_current_ns->parent;
+  parent_ns = gfc_current_ns->parent;
+  gfc_free_namespace (gfc_current_ns);
+  gfc_current_ns = parent_ns;
   return m;
 }
 

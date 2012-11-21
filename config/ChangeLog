@@ -1,3 +1,25 @@
+2012-11-04  Thomas Schwinge  <thomas@codesourcery.com>
+
+	* dfp.m4 (enable_decimal_float): Enable for i?86*-*-gnu*.
+
+2012-10-15  Pavel Chupin  <pavel.v.chupin@intel.com>
+
+	* gthr.m4: New. Define GCC_AC_THREAD_HEADER.
+
+2012-09-19  Steve Ellcey  <sellcey@mips.com>
+
+	* mt-sde: Change -mcode-xonly to -mcode-readable=pcrel.
+
+2012-09-03  Richard Guenther  <rguenther@suse.de>
+
+	PR bootstrap/54138
+	* config/cloog.m4: Adjust for toplevel reorg.
+	* config/isl.m4: Adjust.
+
+2012-08-26  Art Haas <ahaas@impactweather.com>
+
+	* cloog.m4 (CLOOG_INIT_FLAGS): Use = instead of == in test.
+
 2012-07-04  Tristan Gingold  <gingold@adacore.com>
 
 	* isl.m4 (ISL_CHECK_VERSION): Set to yes if cross-compiling.
@@ -29,6 +51,10 @@
 	* mt-sde: Fix typos.
 	* stdint.m4: Fix typos.
 	* tcl.m4: Fix typos.
+
+2012-05-03  Olivier Hainque  <hainque@adacore.com>
+
+	* mh-ppc-aix (LDFLAGS): Quote $(CC).
 
 2012-04-03  Tristan Gingold  <gingold@adacore.com>
 

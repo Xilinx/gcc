@@ -296,6 +296,9 @@ extern void (*arm_lang_output_object_attributes_hook)(void);
 /* FPU supports fused-multiply-add operations.  */
 #define TARGET_FMA (TARGET_VFP && arm_fpu_desc->rev >= 4)
 
+/* FPU supports Crypto extensions.  */
+#define TARGET_CRYPTO (TARGET_VFP && arm_fpu_desc->crypto)
+
 /* FPU supports Neon instructions.  The setting of this macro gets
    revealed via __ARM_NEON__ so we add extra guards upon TARGET_32BIT
    and TARGET_HARD_FLOAT to ensure that NEON instructions are
@@ -325,7 +328,7 @@ extern void (*arm_lang_output_object_attributes_hook)(void);
 #define TARGET_UNIFIED_ASM TARGET_THUMB2
 
 /* Nonzero if this chip provides the DMB instruction.  */
-#define TARGET_HAVE_DMB		(arm_arch7)
+#define TARGET_HAVE_DMB		(arm_arch6m || arm_arch7)
 
 /* Nonzero if this chip implements a memory barrier via CP15.  */
 #define TARGET_HAVE_DMB_MCR	(arm_arch6 && ! TARGET_HAVE_DMB \
@@ -400,6 +403,7 @@ extern const struct arm_fpu_desc
   enum vfp_reg_type regs;
   int neon;
   int fp16;
+  int crypto;
 } *arm_fpu_desc;
 
 /* Which floating point hardware to schedule for.  */
@@ -443,7 +447,8 @@ enum base_architecture
   BASE_ARCH_7A = 7,
   BASE_ARCH_7R = 7,
   BASE_ARCH_7M = 7,
-  BASE_ARCH_7EM = 7
+  BASE_ARCH_7EM = 7,
+  BASE_ARCH_8A = 8
 };
 
 /* The major revision number of the ARM Architecture implemented by the target.  */
@@ -470,6 +475,9 @@ extern int arm_arch6;
 /* Nonzero if this chip supports the ARM Architecture 6k extensions.  */
 extern int arm_arch6k;
 
+/* Nonzero if instructions present in ARMv6-M can be used.  */
+extern int arm_arch6m;
+
 /* Nonzero if this chip supports the ARM Architecture 7 extensions.  */
 extern int arm_arch7;
 
@@ -478,6 +486,9 @@ extern int arm_arch_notm;
 
 /* Nonzero if instructions present in ARMv7E-M can be used.  */
 extern int arm_arch7em;
+
+/* Nonzero if this chip supports the ARM Architecture 8 extensions.  */
+extern int arm_arch8;
 
 /* Nonzero if this chip can benefit from load scheduling.  */
 extern int arm_ld_sched;
@@ -1194,8 +1205,15 @@ enum reg_class
 /* In VFPv1, VFP registers could only be accessed in the mode they
    were set, so subregs would be invalid there.  However, we don't
    support VFPv1 at the moment, and the restriction was lifted in
-   VFPv2.  */
-#define CANNOT_CHANGE_MODE_CLASS(FROM, TO, CLASS) 0
+   VFPv2.
+   In big-endian mode, modes greater than word size (i.e. DFmode) are stored in
+   VFP registers in little-endian order.  We can't describe that accurately to
+   GCC, so avoid taking subregs of such values.  */
+#define CANNOT_CHANGE_MODE_CLASS(FROM, TO, CLASS)	\
+  (TARGET_VFP && TARGET_BIG_END				\
+   && (GET_MODE_SIZE (FROM) > UNITS_PER_WORD		\
+       || GET_MODE_SIZE (TO) > UNITS_PER_WORD)		\
+   && reg_classes_intersect_p (VFP_REGS, (CLASS)))
 
 /* The class value for index registers, and the one for base regs.  */
 #define INDEX_REG_CLASS  (TARGET_THUMB1 ? LO_REGS : GENERAL_REGS)
@@ -1262,8 +1280,8 @@ enum reg_class
      && CONSTANT_P (X))						\
     ? GENERAL_REGS :						\
     (((MODE) == HImode && ! arm_arch4				\
-      && (GET_CODE (X) == MEM					\
-	  || ((GET_CODE (X) == REG || GET_CODE (X) == SUBREG)	\
+      && (MEM_P (X)					\
+	  || ((REG_P (X) || GET_CODE (X) == SUBREG)	\
 	      && true_regnum (X) == -1)))			\
      ? GENERAL_REGS : NO_REGS)					\
     : THUMB_SECONDARY_INPUT_RELOAD_CLASS (CLASS, MODE, X)))
@@ -1909,10 +1927,10 @@ enum arm_auto_incmodes
   REG_OK_FOR_INDEX_P (X)
 
 #define ARM_BASE_REGISTER_RTX_P(X)  \
-  (GET_CODE (X) == REG && ARM_REG_OK_FOR_BASE_P (X))
+  (REG_P (X) && ARM_REG_OK_FOR_BASE_P (X))
 
 #define ARM_INDEX_REGISTER_RTX_P(X)  \
-  (GET_CODE (X) == REG && ARM_REG_OK_FOR_INDEX_P (X))
+  (REG_P (X) && ARM_REG_OK_FOR_INDEX_P (X))
 
 /* Specify the machine mode that this machine uses
    for the index in the tablejump instruction.  */

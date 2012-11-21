@@ -73,13 +73,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   // Substitute for bad_weak_ptr object in the case of -fno-exceptions.
   inline void
   __throw_bad_weak_ptr()
-  {
-#if __EXCEPTIONS
-    throw bad_weak_ptr();
-#else
-    __builtin_abort();
-#endif
-  }
+  { _GLIBCXX_THROW_OR_ABORT(bad_weak_ptr()); }
 
   using __gnu_cxx::_Lock_policy;
   using __gnu_cxx::__default_lock_policy;
@@ -622,7 +616,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	_S_create_from_up(std::unique_ptr<_Tp, _Del>&& __r,
 	  typename std::enable_if<!std::is_reference<_Del>::value>::type* = 0)
 	{
-	  return new _Sp_counted_deleter<_Tp*, _Del, std::allocator<_Tp>,
+	  return new _Sp_counted_deleter<_Tp*, _Del, std::allocator<void>,
 	    _Lp>(__r.get(), __r.get_deleter());
 	}
 
@@ -633,7 +627,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	{
 	  typedef typename std::remove_reference<_Del>::type _Del1;
 	  typedef std::reference_wrapper<_Del1> _Del2;
-	  return new _Sp_counted_deleter<_Tp*, _Del2, std::allocator<_Tp>,
+	  return new _Sp_counted_deleter<_Tp*, _Del2, std::allocator<void>,
 	    _Lp>(__r.get(), std::ref(__r.get_deleter()));
 	}
 

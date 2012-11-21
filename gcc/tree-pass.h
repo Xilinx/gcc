@@ -46,6 +46,9 @@ struct opt_pass
      name.  If the name starts with a star, no dump happens. */
   const char *name;
 
+  /* The -fopt-info optimization group flags as defined in dumpfile.h. */
+  unsigned int optinfo_flags;
+
   /* If non-null, this pass and all sub-passes are executed only if
      the function returns true.  */
   bool (*gate) (void);
@@ -92,8 +95,7 @@ struct rtl_opt_pass
 
 struct varpool_node;
 struct cgraph_node;
-struct cgraph_node_set_def;
-struct varpool_node_set_def;
+struct lto_symtab_encoder_d;
 
 /* Description of IPA pass with generate summary, write, execute, read and
    transform stages.  */
@@ -257,6 +259,8 @@ struct register_pass_info
 
 extern struct gimple_opt_pass pass_mudflap_1;
 extern struct gimple_opt_pass pass_mudflap_2;
+extern struct gimple_opt_pass pass_asan;
+extern struct gimple_opt_pass pass_asan_O0;
 extern struct gimple_opt_pass pass_lower_cf;
 extern struct gimple_opt_pass pass_refactor_eh;
 extern struct gimple_opt_pass pass_lower_eh;
@@ -526,8 +530,7 @@ extern const char *get_current_pass_name (void);
 extern void print_current_pass (FILE *);
 extern void debug_pass (void);
 extern void ipa_write_summaries (void);
-extern void ipa_write_optimization_summaries (struct cgraph_node_set_def *,
-					      struct varpool_node_set_def *);
+extern void ipa_write_optimization_summaries (struct lto_symtab_encoder_d *);
 extern void ipa_read_summaries (void);
 extern void ipa_read_optimization_summaries (void);
 extern void register_one_dump_file (struct opt_pass *);
@@ -542,6 +545,9 @@ extern void register_pass (struct register_pass_info *);
    throughout the compilation -- we will be able to mark the affected loops
    directly in jump threading, and avoid peeling them next time.  */
 extern bool first_pass_instance;
+
+extern struct opt_pass **passes_by_id;
+extern int passes_by_id_size;
 
 /* Declare for plugins.  */
 extern void do_per_function_toporder (void (*) (void *), void *);

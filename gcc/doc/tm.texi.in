@@ -1240,9 +1240,9 @@ these accesses should use the bitfield container type.
 The default is @code{!TARGET_STRICT_ALIGN}.
 @end deftypefn
 
-@defmac MEMBER_TYPE_FORCES_BLK (@var{field}, @var{mode})
-Return 1 if a structure or array containing @var{field} should be accessed using
-@code{BLKMODE}.
+@hook TARGET_MEMBER_TYPE_FORCES_BLK
+Return true if a structure, union or array containing @var{field} should
+be accessed using @code{BLKMODE}.
 
 If @var{field} is the only field in the structure, @var{mode} is its
 mode, otherwise @var{mode} is VOIDmode.  @var{mode} is provided in the
@@ -1250,7 +1250,7 @@ case where structures of one field would require the structure's mode to
 retain the field's mode.
 
 Normally, this is not needed.
-@end defmac
+@end deftypefn
 
 @defmac ROUND_TYPE_ALIGN (@var{type}, @var{computed}, @var{specified})
 Define this macro as an expression for the alignment of a type (given
@@ -2869,6 +2869,14 @@ as below:
 @end smallexample
 @end defmac
 
+@hook TARGET_LRA_P
+
+@hook TARGET_REGISTER_PRIORITY
+
+@hook TARGET_DIFFERENT_ADDR_DISPLACEMENT_P
+
+@hook TARGET_SPILL_CLASS
+
 @node Old Constraints
 @section Obsolete Macros for Defining Constraints
 @cindex defining constraints, obsolete method
@@ -3863,11 +3871,12 @@ alignment.  Then the definition should be
 If the value of this macro has a type, it should be an unsigned type.
 @end defmac
 
-@findex current_function_outgoing_args_size
+@findex outgoing_args_size
+@findex crtl->outgoing_args_size
 @defmac ACCUMULATE_OUTGOING_ARGS
 A C expression.  If nonzero, the maximum amount of space required for outgoing arguments
-will be computed and placed into the variable
-@code{current_function_outgoing_args_size}.  No space will be pushed
+will be computed and placed into
+@code{crtl->outgoing_args_size}.  No space will be pushed
 onto the stack for each call; instead, the function prologue should
 increase the stack frame size by this amount.
 
@@ -3901,7 +3910,7 @@ if the function called is a library function.
 
 If @code{ACCUMULATE_OUTGOING_ARGS} is defined, this macro controls
 whether the space for these arguments counts in the value of
-@code{current_function_outgoing_args_size}.
+@code{crtl->outgoing_args_size}.
 @end defmac
 
 @defmac STACK_PARMS_IN_REG_PARM_AREA
@@ -4700,7 +4709,8 @@ others leave that for the caller to do.  For example, the 68020 when
 given @option{-mrtd} pops arguments in functions that take a fixed
 number of arguments.
 
-@findex current_function_pops_args
+@findex pops_args
+@findex crtl->args.pops_args
 Your definition of the macro @code{RETURN_POPS_ARGS} decides which
 functions pop their own arguments.  @code{TARGET_ASM_FUNCTION_EPILOGUE}
 needs to know what was decided.  The number of bytes of the current
@@ -4710,8 +4720,9 @@ function's arguments that this function should pop is available in
 
 @itemize @bullet
 @item
-@findex current_function_pretend_args_size
-A region of @code{current_function_pretend_args_size} bytes of
+@findex pretend_args_size
+@findex crtl->args.pretend_args_size
+A region of @code{crtl->args.pretend_args_size} bytes of
 uninitialized space just underneath the first argument arriving on the
 stack.  (This may not be at the very start of the allocated stack region
 if the calling sequence has pushed anything else since pushing the stack
@@ -4738,7 +4749,7 @@ save area closer to the top of the stack.
 @item
 @cindex @code{ACCUMULATE_OUTGOING_ARGS} and stack frames
 Optionally, when @code{ACCUMULATE_OUTGOING_ARGS} is defined, a region of
-@code{current_function_outgoing_args_size} bytes to be used for outgoing
+@code{crtl->outgoing_args_size} bytes to be used for outgoing
 argument lists of the function.  @xref{Stack Arguments}.
 @end itemize
 
@@ -4787,11 +4798,12 @@ may be reconsidered for a subsequent delay slot.  Also, other insns may
 (at least in principle) be considered for the so far unfilled delay
 slot.
 
-@findex current_function_epilogue_delay_list
+@findex epilogue_delay_list
+@findex crtl->epilogue_delay_list
 @findex final_scan_insn
 The insns accepted to fill the epilogue delay slots are put in an RTL
-list made with @code{insn_list} objects, stored in the variable
-@code{current_function_epilogue_delay_list}.  The insn for the first
+list made with @code{insn_list} objects, stored in
+@code{crtl->epilogue_delay_list}.  The insn for the first
 delay slot comes first in the list.  Your definition of the macro
 @code{TARGET_ASM_FUNCTION_EPILOGUE} should fill the delay slots by
 outputting the insns in this list, usually by calling
@@ -5532,7 +5544,8 @@ address;  but often a machine-dependent strategy can generate better code.
 @end defmac
 
 @hook TARGET_MODE_DEPENDENT_ADDRESS_P
-This hook returns @code{true} if memory address @var{addr} can have
+This hook returns @code{true} if memory address @var{addr} in address
+space @var{addrspace} can have
 different meanings depending on the machine mode of the memory
 reference it is used for or if the address is valid for some modes
 but not others.
@@ -7709,6 +7722,20 @@ not recognize @samp{.} or cannot do calculations with it, you will need
 to redefine @code{ASM_OUTPUT_MEASURED_SIZE} to use some other technique.
 @end defmac
 
+@defmac NO_DOLLAR_IN_LABEL
+Define this macro if the assembler does not accept the character
+@samp{$} in label names.  By default constructors and destructors in
+G++ have @samp{$} in the identifiers.  If this macro is defined,
+@samp{.} is used instead.
+@end defmac
+
+@defmac NO_DOT_IN_LABEL
+Define this macro if the assembler does not accept the character
+@samp{.} in label names.  By default constructors and destructors in G++
+have names that use @samp{.}.  If this macro is defined, these names
+are rewritten to avoid @samp{.}.
+@end defmac
+
 @defmac TYPE_ASM_OP
 A C string containing the appropriate assembler directive to specify the
 type of a symbol, without any arguments.  On systems that use ELF, the
@@ -9763,6 +9790,14 @@ changed via the optimize attribute or pragma, see
 @code{TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE}
 @end deftypefn
 
+@hook TARGET_OPTION_FUNCTION_VERSIONS
+This target hook returns @code{true} if @var{DECL1} and @var{DECL2} are
+versions of the same function.  @var{DECL1} and @var{DECL2} are function
+versions if and only if they have the same function signature and
+different target specific attributes, that is, they are compiled for
+different target machines.
+@end deftypefn
+
 @hook TARGET_CAN_INLINE_P
 This target hook returns @code{false} if the @var{caller} function
 cannot inline @var{callee}, based on target specific information.  By
@@ -10486,6 +10521,8 @@ convention when processing system header files, but when processing user
 files @code{__STDC__} will always expand to 1.
 @end defmac
 
+@hook TARGET_C_PREINCLUDE
+
 @defmac NO_IMPLICIT_EXTERN_C
 Define this macro if the system header files support C++ as well as C@.
 This macro inhibits the usual method of using system header files in
@@ -10567,20 +10604,6 @@ Define this macro to control use of the character @samp{$} in
 identifier names for the C family of languages.  0 means @samp{$} is
 not allowed by default; 1 means it is allowed.  1 is the default;
 there is no need to define this macro in that case.
-@end defmac
-
-@defmac NO_DOLLAR_IN_LABEL
-Define this macro if the assembler does not accept the character
-@samp{$} in label names.  By default constructors and destructors in
-G++ have @samp{$} in the identifiers.  If this macro is defined,
-@samp{.} is used instead.
-@end defmac
-
-@defmac NO_DOT_IN_LABEL
-Define this macro if the assembler does not accept the character
-@samp{.} in label names.  By default constructors and destructors in G++
-have names that use @samp{.}.  If this macro is defined, these names
-are rewritten to avoid @samp{.}.
 @end defmac
 
 @defmac INSN_SETS_ARE_DELAYED (@var{insn})
@@ -10783,6 +10806,29 @@ The result is another tree containing a simplified expression for the
 call's result.  If @var{ignore} is true the value will be ignored.
 @end deftypefn
 
+@hook TARGET_COMPARE_VERSION_PRIORITY
+This hook is used to compare the target attributes in two functions to
+determine which function's features get higher priority.  This is used
+during function multi-versioning to figure out the order in which two
+versions must be dispatched.  A function version with a higher priority
+is checked for dispatching earlier.  @var{decl1} and @var{decl2} are
+ the two function decls that will be compared.
+@end deftypefn
+
+@hook TARGET_GET_FUNCTION_VERSIONS_DISPATCHER
+This hook is used to get the dispatcher function for a set of function
+versions.  The dispatcher function is called to invoke the right function
+version at run-time. @var{decl} is one version from a set of semantically
+identical versions.
+@end deftypefn
+
+@hook TARGET_GENERATE_VERSION_DISPATCHER_BODY
+This hook is used to generate the dispatcher logic to invoke the right
+function version at run-time for a given set of function versions.
+@var{arg} points to the callgraph node of the dispatcher function whose
+body must be generated.
+@end deftypefn
+
 @hook TARGET_INVALID_WITHIN_DOLOOP
 
 Take an instruction in @var{insn} and return NULL if it is valid within a
@@ -10796,6 +10842,8 @@ By default, the RTL loop optimizer does not use a present doloop pattern for
 loops containing function calls or branch on table instructions.
 @end deftypefn
 
+@hook TARGET_LEGITIMATE_COMBINED_INSN
+
 @defmac MD_CAN_REDIRECT_BRANCH (@var{branch1}, @var{branch2})
 
 Take a branch insn in @var{branch1} and another in @var{branch2}.
@@ -10806,6 +10854,8 @@ On some targets, branches may have a limited range.  Optimizing the
 filling of delay slots can result in branches being redirected, and this
 may in turn cause a branch offset to overflow.
 @end defmac
+
+@hook TARGET_CAN_FOLLOW_JUMP
 
 @hook TARGET_COMMUTATIVE_P
 This target hook returns @code{true} if @var{x} is considered to be commutative.
@@ -10829,8 +10879,8 @@ the hard register itself, if it is known not to be clobbered---or a
 @code{MEM}.
 If you are returning a @code{MEM}, this is only a hint for the allocator;
 it might decide to use another register anyways.
-You may use @code{current_function_leaf_function} in the hook, functions
-that use @code{REG_N_SETS}, to determine if the hard
+You may use @code{current_function_is_leaf} or 
+@code{REG_N_SETS} in the hook to determine if the hard
 register in question will not be clobbered.
 The default value of this hook is @code{NULL}, which disables any special
 allocation.
@@ -11146,7 +11196,10 @@ accepted by immediate-add plus one.  We currently assume that the
 value of @code{TARGET_CONST_ANCHOR} is a power of 2.  For example, on
 MIPS, where add-immediate takes a 16-bit signed value,
 @code{TARGET_CONST_ANCHOR} is set to @samp{0x8000}.  The default value
-is zero, which disables this optimization.  @end deftypevr
+is zero, which disables this optimization.
+@end deftypevr
+
+@hook TARGET_ASAN_SHADOW_OFFSET
 
 @hook TARGET_MEMMODEL_CHECK
 Validate target specific memory model mask bits. When NULL no target specific

@@ -231,7 +231,7 @@ expand_vector_piecewise (gimple_stmt_iterator *gsi, elem_op_func f,
 			 tree type, tree inner_type,
 			 tree a, tree b, enum tree_code code)
 {
-  VEC(constructor_elt,gc) *v;
+  vec<constructor_elt, va_gc> *v;
   tree part_width = TYPE_SIZE (inner_type);
   tree index = bitsize_int (0);
   int nunits = TYPE_VECTOR_SUBPARTS (type);
@@ -247,14 +247,13 @@ expand_vector_piecewise (gimple_stmt_iterator *gsi, elem_op_func f,
     warning_at (loc, OPT_Wvector_operation_performance,
 		"vector operation will be expanded in parallel");
 
-  v = VEC_alloc(constructor_elt, gc, (nunits + delta - 1) / delta);
+  vec_alloc (v, (nunits + delta - 1) / delta);
   for (i = 0; i < nunits;
        i += delta, index = int_const_binop (PLUS_EXPR, index, part_width))
     {
       tree result = f (gsi, inner_type, a, b, index, part_width, code);
-      constructor_elt *ce = VEC_quick_push (constructor_elt, v, NULL);
-      ce->index = NULL_TREE;
-      ce->value = result;
+      constructor_elt ce = {NULL_TREE, result};
+      v->quick_push (ce);
     }
 
   return build_constructor (type, v);
@@ -668,8 +667,8 @@ expand_vector_divmod (gimple_stmt_iterator *gsi, tree type, tree op0,
 					 << shifts[i]) - 1);
 	      cst = build_vector (type, vec);
 	      addend = make_ssa_name (type, NULL);
-	      stmt = gimple_build_assign_with_ops3 (VEC_COND_EXPR, addend,
-						    cond, cst, zero);
+	      stmt = gimple_build_assign_with_ops (VEC_COND_EXPR, addend,
+						   cond, cst, zero);
 	      gsi_insert_before (gsi, stmt, GSI_SAME_STMT);
 	    }
 	}
@@ -869,6 +868,72 @@ expand_vector_divmod (gimple_stmt_iterator *gsi, tree type, tree op0,
   return gimplify_build2 (gsi, MINUS_EXPR, type, op0, tem);
 }
 
+/* Expand a vector condition to scalars, by using many conditions
+   on the vector's elements.  */
+static void
+expand_vector_condition (gimple_stmt_iterator *gsi)
+{
+  gimple stmt = gsi_stmt (*gsi);
+  tree type = gimple_expr_type (stmt);
+  tree a = gimple_assign_rhs1 (stmt);
+  tree a1 = a;
+  tree a2;
+  bool a_is_comparison = false;
+  tree b = gimple_assign_rhs2 (stmt);
+  tree c = gimple_assign_rhs3 (stmt);
+  vec<constructor_elt, va_gc> *v;
+  tree constr;
+  tree inner_type = TREE_TYPE (type);
+  tree cond_type = TREE_TYPE (TREE_TYPE (a));
+  tree comp_inner_type = cond_type;
+  tree width = TYPE_SIZE (inner_type);
+  tree index = bitsize_int (0);
+  int nunits = TYPE_VECTOR_SUBPARTS (type);
+  int i;
+  location_t loc = gimple_location (gsi_stmt (*gsi));
+
+  if (!is_gimple_val (a))
+    {
+      gcc_assert (COMPARISON_CLASS_P (a));
+      a_is_comparison = true;
+      a1 = TREE_OPERAND (a, 0);
+      a2 = TREE_OPERAND (a, 1);
+      comp_inner_type = TREE_TYPE (TREE_TYPE (a1));
+    }
+
+  if (expand_vec_cond_expr_p (type, TREE_TYPE (a1)))
+    return;
+
+  /* TODO: try and find a smaller vector type.  */
+
+  warning_at (loc, OPT_Wvector_operation_performance,
+	      "vector condition will be expanded piecewise");
+
+  vec_alloc (v, nunits);
+  for (i = 0; i < nunits;
+       i++, index = int_const_binop (PLUS_EXPR, index, width))
+    {
+      tree aa, result;
+      tree bb = tree_vec_extract (gsi, inner_type, b, width, index);
+      tree cc = tree_vec_extract (gsi, inner_type, c, width, index);
+      if (a_is_comparison)
+	{
+	  tree aa1 = tree_vec_extract (gsi, comp_inner_type, a1, width, index);
+	  tree aa2 = tree_vec_extract (gsi, comp_inner_type, a2, width, index);
+	  aa = build2 (TREE_CODE (a), cond_type, aa1, aa2);
+	}
+      else
+	aa = tree_vec_extract (gsi, cond_type, a, width, index);
+      result = gimplify_build3 (gsi, COND_EXPR, inner_type, aa, bb, cc);
+      constructor_elt ce = {NULL_TREE, result};
+      v->quick_push (ce);
+    }
+
+  constr = build_constructor (type, v);
+  gimple_assign_set_rhs_from_tree (gsi, constr);
+  update_stmt (gsi_stmt (*gsi));
+}
+
 static tree
 expand_vector_operation (gimple_stmt_iterator *gsi, tree type, tree compute_type,
 			 gimple assign, enum tree_code code)
@@ -1051,14 +1116,13 @@ vector_element (gimple_stmt_iterator *gsi, tree vect, tree idx, tree *ptmpvec)
 
       if (TREE_CODE (vect) == VECTOR_CST)
 	return VECTOR_CST_ELT (vect, index);
-      else if (TREE_CODE (vect) == CONSTRUCTOR)
+      else if (TREE_CODE (vect) == CONSTRUCTOR
+	       && (CONSTRUCTOR_NELTS (vect) == 0
+		   || TREE_CODE (TREE_TYPE (CONSTRUCTOR_ELT (vect, 0)->value))
+		      != VECTOR_TYPE))
         {
-          unsigned i;
-          tree elt_i, elt_v;
-
-	  FOR_EACH_CONSTRUCTOR_ELT (CONSTRUCTOR_ELTS (vect), i, elt_i, elt_v)
-            if (operand_equal_p (elt_i, idx, 0))
-              return elt_v;
+	  if (index < CONSTRUCTOR_NELTS (vect))
+	    return CONSTRUCTOR_ELT (vect, index)->value;
           return build_zero_cst (vect_elt_type);
         }
       else
@@ -1118,7 +1182,7 @@ lower_vec_perm (gimple_stmt_iterator *gsi)
   tree vect_elt_type = TREE_TYPE (vect_type);
   tree mask_elt_type = TREE_TYPE (mask_type);
   unsigned int elements = TYPE_VECTOR_SUBPARTS (vect_type);
-  VEC(constructor_elt,gc) *v;
+  vec<constructor_elt, va_gc> *v;
   tree constr, t, si, i_val;
   tree vec0tmp = NULL_TREE, vec1tmp = NULL_TREE, masktmp = NULL_TREE;
   bool two_operand_p = !operand_equal_p (vec0, vec1, 0);
@@ -1154,7 +1218,7 @@ lower_vec_perm (gimple_stmt_iterator *gsi)
   warning_at (loc, OPT_Wvector_operation_performance,
               "vector shuffling operation will be expanded piecewise");
 
-  v = VEC_alloc (constructor_elt, gc, elements);
+  vec_alloc (v, elements);
   for (i = 0; i < elements; i++)
     {
       si = size_int (i);
@@ -1216,7 +1280,7 @@ lower_vec_perm (gimple_stmt_iterator *gsi)
 	    t = v0_val;
         }
 
-      CONSTRUCTOR_APPEND_ELT (v, si, t);
+      CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, t);
     }
 
   constr = build_constructor (vect_type, v);
@@ -1250,6 +1314,11 @@ expand_vector_operations_1 (gimple_stmt_iterator *gsi)
       return;
     }
 
+  if (code == VEC_COND_EXPR)
+    {
+      expand_vector_condition (gsi);
+      return;
+    }
   if (rhs_class != GIMPLE_UNARY_RHS && rhs_class != GIMPLE_BINARY_RHS)
     return;
 
@@ -1437,6 +1506,7 @@ struct gimple_opt_pass pass_lower_vector =
  {
   GIMPLE_PASS,
   "veclower",				/* name */
+  OPTGROUP_VEC,                         /* optinfo_flags */
   gate_expand_vector_operations_ssa,    /* gate */
   expand_vector_operations,		/* execute */
   NULL,					/* sub */
@@ -1459,6 +1529,7 @@ struct gimple_opt_pass pass_lower_vector_ssa =
  {
   GIMPLE_PASS,
   "veclower2",				/* name */
+  OPTGROUP_VEC,                         /* optinfo_flags */
   0,	                                /* gate */
   expand_vector_operations,		/* execute */
   NULL,					/* sub */
