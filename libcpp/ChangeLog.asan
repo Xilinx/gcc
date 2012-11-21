@@ -1,0 +1,5 @@
+2012-11-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR bootstrap/55380
+	* charset.c (_cpp_convert_input): Allocate extra 16 bytes for
+	-fsanitize=address if __SANITIZE_ADDRESS__ is defined.

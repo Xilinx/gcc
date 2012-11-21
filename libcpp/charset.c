@@ -1729,9 +1729,16 @@ _cpp_convert_input (cpp_reader *pfile, const char *input_charset,
     iconv_close (input_cset.cd);
 
   /* Resize buffer if we allocated substantially too much, or if we
-     haven't enough space for the \n-terminator.  */
+     haven't enough space for the \n-terminator.  Allocate extra 16
+     bytes for -faddress-sanitizer.  */
   if (to.len + 4096 < to.asize || to.len >= to.asize)
-    to.text = XRESIZEVEC (uchar, to.text, to.len + 1);
+    {
+#ifdef __SANITIZE_ADDRESS__
+      to.text = XRESIZEVEC (uchar, to.text, to.len + 17);
+#else
+      to.text = XRESIZEVEC (uchar, to.text, to.len + 1);
+#endif
+    }
 
   /* If the file is using old-school Mac line endings (\r only),
      terminate with another \r, not an \n, so that we do not mistake
