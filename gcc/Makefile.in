@@ -137,6 +137,14 @@ CFLAGS = @CFLAGS@
 CXXFLAGS = @CXXFLAGS@
 LDFLAGS = @LDFLAGS@
 
+# We only apply -fsanitize=address to the gcc directory.  We use
+# /libsanitizer/asan/.libs as key to turn on -fsanitize=address.
+ifneq (,$(filter /libsanitizer/asan/.libs,$(LDFLAGS)))
+override CFLAGS += -fsanitize=address
+override CXXFLAGS += -fsanitize=address
+override LDFLAGS += -fsanitize=address -static-libasan
+endif
+
 # Flags to determine code coverage. When coverage is disabled, this will
 # contain the optimization flags, as you normally want code coverage
 # without optimization.

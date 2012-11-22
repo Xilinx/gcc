@@ -1,0 +1,3 @@
+2012-11-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* bootstrap-asan.mk: New file.
