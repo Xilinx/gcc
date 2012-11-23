@@ -1,5 +1,10 @@
 
 2012-11-23  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-modes.melt (generate_runtypesupport_forwcopy_fun):
+	Emit code using melt_scangcvect.
+
+2012-11-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{removing rare use of vec.h vectors in the runtime, because the
 	API changed incompatibly between GCC 4.7 and GCC 4.8}}
 
