@@ -1,7 +1,13 @@
 
+2012-11-23  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h (melt_objectvec_t, melt_valvec_t): Remove useless
+	typedef-s.
+
 2012-11-18  Basile Starynkevitch  <basile@starynkevitch.net>
 
-	* melt-module.mk (GCCMELT_MODULE_VERBOSE_BUILD): Could be set externally.
+	* melt-module.mk (GCCMELT_MODULE_VERBOSE_BUILD): Could be set
+	externally.
 	(GCCMELT_VERBOSE_ECHO): New internal variable, use it everywhere.
 
 2012-11-12  Basile Starynkevitch  <basile@starynkevitch.net>

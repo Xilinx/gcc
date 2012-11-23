@@ -649,15 +649,6 @@ DEF_VEC_P (meltobject_ptr_t);
 DEF_VEC_ALLOC_P (meltobject_ptr_t, gc);
 
 
-/* sadly we cannot use these types in GTY-ed structure because
-   gengtype don't follow typedefs but these typedef-s are still
-   useful */
-
-typedef
-VEC (meltobject_ptr_t, gc)
-  melt_objectvec_t;
-     
-typedef VEC (melt_ptr_t, gc) melt_valvec_t;
 
 
 /* Gives the constant string corresponding to a given object magic
