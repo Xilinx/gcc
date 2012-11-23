@@ -1,8 +1,4 @@
-// { dg-do compile }
-// { dg-options "-std=gnu++0x" }
-// { dg-require-normal-mode "" }
-
-// Copyright (C) 2011, 2012 Free Software Foundation, Inc.
+// Copyright (C) 2012 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -19,23 +15,27 @@
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-// { dg-error "static assertion failed" "" { target *-*-* } 185 }
+// { dg-options "-std=gnu++0x" }
+// { dg-do compile }
 
-#include <unordered_set>
+#include <functional>
 
-namespace
+struct F
 {
-  struct hash_without_noexcept
-  {
-    std::size_t operator() (int) const
-    { return 0; }
-  };
+  void operator()() { }
+  void operator&() const { }
+};
+
+void test01()
+{
+  F f;
+  std::function<void()> f1 = f;
+  std::function<void()> f2 = std::ref(f);
 }
 
-void
-test01()
+int main()
 {
-  std::__unordered_set<int, hash_without_noexcept,
-		       std::equal_to<int>, std::allocator<int>,
-		       false> us;
+  test01();
+
+  return 0;
 }
