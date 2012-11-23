@@ -356,6 +356,8 @@ typedef struct meltobject_st* meltobject_ptr_t ;
 #define meltobject_ptr_t_TYPEDEFINED
 #endif /*meltobject_ptr_t_TYPEDEFINED*/
 
+
+
 struct				/* entry of string maps */
 GTY (()) 
 entrystringsmelt_st
@@ -363,6 +365,8 @@ entrystringsmelt_st
   const char *GTY (()) e_at;
   melt_ptr_t e_va;
 };
+
+
 
 
 struct 				/* entry of object maps*/
@@ -373,6 +377,8 @@ entryobjectsmelt_st
   melt_ptr_t e_va;
 };
 
+
+
 struct
 GTY (())			/* entry of long buckets */
 melt_bucketlongentry_st 
@@ -382,6 +388,15 @@ melt_bucketlongentry_st
 };
 
 
+/* We don't want to use GCC vectors from vec.h because GCC 4.7 & 4.8
+   are source incompatible....  */
+struct 
+GTY ((variable_size))
+melt_valuevector_st {
+  unsigned long vv_size;		/* allocated size */
+  unsigned long vv_ulen;		/* used length, should be <= vv_size */
+  melt_ptr_t GTY ((length("%h.vv_ulen"))) vv_tab[MELT_FLEXIBLE_DIM];
+};
 
 /* a union of special pointers which have to be explicitly deleted */
 union melt_special_un
@@ -640,13 +655,9 @@ melt_argdescr_length (const melt_argdescr_cell_t* argdesc)
 /* gnu indent has some trouble with GTY hence */
 /* *INDENT-OFF* */
 
-DEF_VEC_P (melt_ptr_t);
-DEF_VEC_ALLOC_P (melt_ptr_t, gc);
-
-
-
-DEF_VEC_P (meltobject_ptr_t);
-DEF_VEC_ALLOC_P (meltobject_ptr_t, gc);
+/* Since november 2012, MELT svn rev 193746, we don't use any more the
+   vec.h GCC vectors, because they have changed significantly between
+   GCC 4.7 and GCC 4.8 to use C++ templates. */
 
 
 

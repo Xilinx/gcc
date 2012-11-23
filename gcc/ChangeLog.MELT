@@ -1,5 +1,24 @@
 
 2012-11-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{removing rare use of vec.h vectors in the runtime, because the
+	API changed incompatibly between GCC 4.7 and GCC 4.8}}
+
+	* melt-runtime.h: Don't use DEF_VEC_P anymore, notably for
+	melt_ptr_t and meltobject_ptr_t.
+
+	* melt-runtime.c (melt_bscanvec): Remove vector variable.
+	(struct melt_valuevector_st): New internal GTY-ed type.
+	(melt_scangcvect): New GTY-ed static variable, replacing
+	melt_bscanvec.
+	(melt_resize_scangcvect): New static function declaration and
+	implementation.
+	(melt_minor_copying_garbage_collector): initialize, allocate, use,
+	fill, and free melt_scangcvect instead of melt_bscanvec.
+
+	* melt/generated/meltrunsup-inc.c (melt_forwarded_copy):
+	Hand-edited to use melt_scangcvect instead of melt_bscanvec.
+
+2012-11-23  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.h (melt_objectvec_t, melt_valvec_t): Remove useless
 	typedef-s.
