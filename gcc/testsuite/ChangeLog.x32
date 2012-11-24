@@ -1,3 +1,9 @@
+2012-11-24  H.J. Lu  <hjl.tools@gmail.com>
+
+	* gcc.target/i386/pr55142-1.c: Require maybe_x32 target.  Compile
+	with -maddress-mode=long.
+	* gcc.target/i386/pr55142-2.c: Likewise.
+
 2012-11-03  H.J. Lu  <hjl.tools@gmail.com>
 	    Jack Howarth  <howarth@bromo.med.uc.edu>
 
