@@ -73,6 +73,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "alloc-pool.h"
 #include "tree-mudflap.h"
 #include "asan.h"
+#include "tsan.h"
 #include "gimple.h"
 #include "tree-ssa-alias.h"
 #include "plugin.h"
@@ -575,6 +576,9 @@ compile_file (void)
       /* File-scope initialization for AddressSanitizer.  */
       if (flag_asan)
         asan_finish_file ();
+
+      if (flag_tsan)
+	tsan_finish_file ();
 
       output_shared_constant_pool ();
       output_object_blocks ();
@@ -1551,7 +1555,7 @@ process_options (void)
       && (targetm.asan_shadow_offset == NULL
 	  || !FRAME_GROWS_DOWNWARD))
     {
-      warning (0, "-faddress-sanitizer not supported for this target");
+      warning (0, "-fsanitize=address not supported for this target");
       flag_asan = 0;
     }
 

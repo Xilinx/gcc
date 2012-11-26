@@ -1949,7 +1949,7 @@ vectorizable_call (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
     = {vect_unknown_def_type, vect_unknown_def_type, vect_unknown_def_type};
   gimple new_stmt = NULL;
   int ncopies, j;
-  vec<tree> vargs = vec<tree>();
+  vec<tree> vargs = vNULL;
   enum { NARROW, NONE, WIDEN } modifier;
   size_t i, nargs;
   tree lhs;
@@ -2484,7 +2484,7 @@ vect_create_vectorized_promotion_stmts (vec<tree> *vec_oprnds0,
   int i;
   tree vop0, vop1, new_tmp1, new_tmp2;
   gimple new_stmt1, new_stmt2;
-  vec<tree> vec_tmp = vec<tree>();
+  vec<tree> vec_tmp = vNULL;
 
   vec_tmp.create (vec_oprnds0->length () * 2);
   FOR_EACH_VEC_ELT (*vec_oprnds0, i, vop0)
@@ -2550,13 +2550,13 @@ vectorizable_conversion (gimple stmt, gimple_stmt_iterator *gsi,
   int ncopies, i, j;
   tree lhs_type, rhs_type;
   enum { NARROW, NONE, WIDEN } modifier;
-  vec<tree> vec_oprnds0 = vec<tree>();
-  vec<tree> vec_oprnds1 = vec<tree>();
+  vec<tree> vec_oprnds0 = vNULL;
+  vec<tree> vec_oprnds1 = vNULL;
   tree vop0;
   bb_vec_info bb_vinfo = STMT_VINFO_BB_VINFO (stmt_info);
   int multi_step_cvt = 0;
-  vec<tree> vec_dsts = vec<tree>();
-  vec<tree> interm_types = vec<tree>();
+  vec<tree> vec_dsts = vNULL;
+  vec<tree> interm_types = vNULL;
   tree last_oprnd, intermediate_type, cvt_type = NULL_TREE;
   int op_type;
   enum machine_mode rhs_mode;
@@ -3123,7 +3123,7 @@ vectorizable_assignment (gimple stmt, gimple_stmt_iterator *gsi,
   unsigned int nunits = TYPE_VECTOR_SUBPARTS (vectype);
   int ncopies;
   int i, j;
-  vec<tree> vec_oprnds = vec<tree>();
+  vec<tree> vec_oprnds = vNULL;
   tree vop;
   bb_vec_info bb_vinfo = STMT_VINFO_BB_VINFO (stmt_info);
   gimple new_stmt = NULL;
@@ -3332,8 +3332,8 @@ vectorizable_shift (gimple stmt, gimple_stmt_iterator *gsi,
   tree op1_vectype;
   int ncopies;
   int j, i;
-  vec<tree> vec_oprnds0 = vec<tree>();
-  vec<tree> vec_oprnds1 = vec<tree>();
+  vec<tree> vec_oprnds0 = vNULL;
+  vec<tree> vec_oprnds1 = vNULL;
   tree vop0, vop1;
   unsigned int k;
   bool scalar_shift_arg = true;
@@ -3710,9 +3710,9 @@ vectorizable_operation (gimple stmt, gimple_stmt_iterator *gsi,
   tree vectype_out;
   int ncopies;
   int j, i;
-  vec<tree> vec_oprnds0 = vec<tree>();
-  vec<tree> vec_oprnds1 = vec<tree>();
-  vec<tree> vec_oprnds2 = vec<tree>();
+  vec<tree> vec_oprnds0 = vNULL;
+  vec<tree> vec_oprnds1 = vNULL;
+  vec<tree> vec_oprnds2 = vNULL;
   tree vop0, vop1, vop2;
   bb_vec_info bb_vinfo = STMT_VINFO_BB_VINFO (stmt_info);
   int vf;
@@ -4065,11 +4065,11 @@ vectorizable_store (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
   bool grouped_store = false;
   bool store_lanes_p = false;
   unsigned int group_size, i;
-  vec<tree> dr_chain = vec<tree>();
-  vec<tree> oprnds = vec<tree>();
-  vec<tree> result_chain = vec<tree>();
+  vec<tree> dr_chain = vNULL;
+  vec<tree> oprnds = vNULL;
+  vec<tree> result_chain = vNULL;
   bool inv_p;
-  vec<tree> vec_oprnds = vec<tree>();
+  vec<tree> vec_oprnds = vNULL;
   bool slp = (slp_node != NULL);
   unsigned int vec_num;
   bb_vec_info bb_vinfo = STMT_VINFO_BB_VINFO (stmt_info);
@@ -4582,7 +4582,7 @@ vectorizable_load (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
   tree offset = NULL_TREE;
   tree realignment_token = NULL_TREE;
   gimple phi = NULL;
-  vec<tree> dr_chain = vec<tree>();
+  vec<tree> dr_chain = vNULL;
   bool grouped_load = false;
   bool load_lanes_p = false;
   gimple first_stmt;
@@ -5535,10 +5535,10 @@ vectorizable_condition (gimple stmt, gimple_stmt_iterator *gsi,
   stmt_vec_info prev_stmt_info = NULL;
   int i, j;
   bb_vec_info bb_vinfo = STMT_VINFO_BB_VINFO (stmt_info);
-  vec<tree> vec_oprnds0 = vec<tree>();
-  vec<tree> vec_oprnds1 = vec<tree>();
-  vec<tree> vec_oprnds2 = vec<tree>();
-  vec<tree> vec_oprnds3 = vec<tree>();
+  vec<tree> vec_oprnds0 = vNULL;
+  vec<tree> vec_oprnds1 = vNULL;
+  vec<tree> vec_oprnds2 = vNULL;
+  vec<tree> vec_oprnds3 = vNULL;
   tree vec_cmp_type = vectype;
 
   if (slp_node || PURE_SLP_STMT (stmt_info))

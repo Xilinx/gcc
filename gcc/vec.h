@@ -214,9 +214,11 @@ extern void dump_vec_loc_statistics (void);
 /* Control data for vectors.  This contains the number of allocated
    and used slots inside a vector.  */
 
-class vec_prefix
+struct vec_prefix
 {
-protected:
+  /* FIXME - These fields should be private, but we need to cater to
+	     compilers that have stricter notions of PODness for types.  */
+
   /* Memory allocation support routines in vec.c.  */
   void register_overhead (size_t, const char *, int, const char *);
   void release_overhead (void);
@@ -285,8 +287,8 @@ inline void
 va_heap::reserve (vec<T, va_heap, vl_embed> *&v, unsigned reserve, bool exact
 		  MEM_STAT_DECL)
 {
-  unsigned alloc = vec_prefix::calculate_allocation (v ? &v->pfx_ : 0, reserve,
-						     exact);
+  unsigned alloc
+    = vec_prefix::calculate_allocation (v ? &v->vecpfx_ : 0, reserve, exact);
   if (!alloc)
     {
       release (v);
@@ -294,7 +296,7 @@ va_heap::reserve (vec<T, va_heap, vl_embed> *&v, unsigned reserve, bool exact
     }
 
   if (GATHER_STATISTICS && v)
-    v->pfx_.release_overhead ();
+    v->vecpfx_.release_overhead ();
 
   size_t size = vec<T, va_heap, vl_embed>::embedded_size (alloc);
   unsigned nelem = v ? v->length () : 0;
@@ -302,7 +304,7 @@ va_heap::reserve (vec<T, va_heap, vl_embed> *&v, unsigned reserve, bool exact
   v->embedded_init (alloc, nelem);
 
   if (GATHER_STATISTICS)
-    v->pfx_.register_overhead (size FINAL_PASS_MEM_STAT);
+    v->vecpfx_.register_overhead (size FINAL_PASS_MEM_STAT);
 }
 
 
@@ -312,8 +314,11 @@ template<typename T>
 void
 va_heap::release (vec<T, va_heap, vl_embed> *&v)
 {
+  if (v == NULL)
+    return;
+
   if (GATHER_STATISTICS)
-    v->pfx_.release_overhead ();
+    v->vecpfx_.release_overhead ();
   ::free (v);
   v = NULL;
 }
@@ -349,8 +354,8 @@ void
 va_gc::reserve (vec<T, A, vl_embed> *&v, unsigned reserve, bool exact
 		MEM_STAT_DECL)
 {
-  unsigned alloc = vec_prefix::calculate_allocation (v ? &v->pfx_ : 0, reserve,
-						     exact);
+  unsigned alloc
+    = vec_prefix::calculate_allocation (v ? &v->vecpfx_ : 0, reserve, exact);
   if (!alloc)
     {
       ::ggc_free (v);
@@ -447,15 +452,17 @@ va_stack::reserve (vec<T, va_stack, vl_embed> *&v, unsigned nelems, bool exact
     }
 
   /* Move VEC_ to the heap.  */
-  nelems += v->pfx_.num_;
+  nelems += v->vecpfx_.num_;
   vec<T, va_stack, vl_embed> *oldvec = v;
   v = NULL;
   va_heap::reserve (reinterpret_cast<vec<T, va_heap, vl_embed> *&>(v), nelems,
 		    exact);
   if (v && oldvec)
     {
-      v->pfx_.num_ = oldvec->length ();
-      memcpy (v->data_, oldvec->data_, oldvec->length () * sizeof (T));
+      v->vecpfx_.num_ = oldvec->length ();
+      memcpy (v->vecdata_,
+	      oldvec->vecdata_,
+	      oldvec->length () * sizeof (T));
     }
 }
 
@@ -467,6 +474,9 @@ template<typename T>
 void
 va_stack::release (vec<T, va_stack, vl_embed> *&v)
 {
+  if (v == NULL)
+    return;
+
   int ix = stack_vec_register_index (static_cast<void *> (v));
   if (ix >= 0)
     {
@@ -500,6 +510,17 @@ class GTY((user)) vec
 {
 };
 
+/* Type to provide NULL values for vec<T, A, L>.  This is used to
+   provide nil initializers for vec instances.  Since vec must be
+   a POD, we cannot have proper ctor/dtor for it.  To initialize
+   a vec instance, you can assign it the value vNULL.  */
+struct vnull
+{
+  template <typename T, typename A, typename L>
+  operator vec<T, A, L> () { return vec<T, A, L>(); }
+};
+extern vnull vNULL;
+
 
 /* Embeddable vector.  These vectors are suitable to be embedded
    in other data structures so that they can be pre-allocated in a
@@ -531,11 +552,11 @@ template<typename T, typename A>
 class GTY((user)) vec<T, A, vl_embed>
 {
 public:
-  unsigned allocated (void) const { return pfx_.alloc_; }
-  unsigned length (void) const { return pfx_.num_; }
-  bool is_empty (void) const { return pfx_.num_ == 0; }
-  T *address (void) { return data_; }
-  const T *address (void) const { return data_; }
+  unsigned allocated (void) const { return vecpfx_.alloc_; }
+  unsigned length (void) const { return vecpfx_.num_; }
+  bool is_empty (void) const { return vecpfx_.num_ == 0; }
+  T *address (void) { return vecdata_; }
+  const T *address (void) const { return vecdata_; }
   const T &operator[] (unsigned) const;
   T &operator[] (unsigned);
   T &last (void);
@@ -568,9 +589,10 @@ public:
   friend struct va_heap;
   friend struct va_stack;
 
-private:
-  vec_prefix pfx_;
-  T data_[1];
+  /* FIXME - These fields should be private, but we need to cater to
+	     compilers that have stricter notions of PODness for types.  */
+  vec_prefix vecpfx_;
+  T vecdata_[1];
 };
 
 
@@ -782,16 +804,16 @@ template<typename T, typename A>
 inline const T &
 vec<T, A, vl_embed>::operator[] (unsigned ix) const
 {
-  gcc_checking_assert (ix < pfx_.num_);
-  return data_[ix];
+  gcc_checking_assert (ix < vecpfx_.num_);
+  return vecdata_[ix];
 }
 
 template<typename T, typename A>
 inline T &
 vec<T, A, vl_embed>::operator[] (unsigned ix)
 {
-  gcc_checking_assert (ix < pfx_.num_);
-  return data_[ix];
+  gcc_checking_assert (ix < vecpfx_.num_);
+  return vecdata_[ix];
 }
 
 
@@ -801,8 +823,8 @@ template<typename T, typename A>
 inline T &
 vec<T, A, vl_embed>::last (void)
 {
-  gcc_checking_assert (pfx_.num_ > 0);
-  return (*this)[pfx_.num_ - 1];
+  gcc_checking_assert (vecpfx_.num_ > 0);
+  return (*this)[vecpfx_.num_ - 1];
 }
 
 
@@ -816,7 +838,7 @@ template<typename T, typename A>
 inline bool
 vec<T, A, vl_embed>::space (unsigned nelems) const
 {
-  return pfx_.alloc_ - pfx_.num_ >= nelems;
+  return vecpfx_.alloc_ - vecpfx_.num_ >= nelems;
 }
 
 
@@ -831,9 +853,9 @@ template<typename T, typename A>
 inline bool
 vec<T, A, vl_embed>::iterate (unsigned ix, T *ptr) const
 {
-  if (ix < pfx_.num_)
+  if (ix < vecpfx_.num_)
     {
-      *ptr = data_[ix];
+      *ptr = vecdata_[ix];
       return true;
     }
   else
@@ -857,9 +879,9 @@ template<typename T, typename A>
 inline bool
 vec<T, A, vl_embed>::iterate (unsigned ix, T **ptr) const
 {
-  if (ix < pfx_.num_)
+  if (ix < vecpfx_.num_)
     {
-      *ptr = CONST_CAST (T *, &data_[ix]);
+      *ptr = CONST_CAST (T *, &vecdata_[ix]);
       return true;
     }
   else
@@ -882,7 +904,7 @@ vec<T, A, vl_embed>::copy (ALONE_MEM_STAT_DECL) const
     {
       vec_alloc (new_vec, len PASS_MEM_STAT);
       new_vec->embedded_init (len, len);
-      memcpy (new_vec->address(), data_, sizeof (T) * len);
+      memcpy (new_vec->address(), vecdata_, sizeof (T) * len);
     }
   return new_vec;
 }
@@ -900,7 +922,7 @@ vec<T, A, vl_embed>::splice (vec<T, A, vl_embed> &src)
     {
       gcc_checking_assert (space (len));
       memcpy (address() + length(), src.address(), len * sizeof (T));
-      pfx_.num_ += len;
+      vecpfx_.num_ += len;
     }
 }
 
@@ -922,7 +944,7 @@ inline T *
 vec<T, A, vl_embed>::quick_push (const T &obj)
 {
   gcc_checking_assert (space (1));
-  T *slot = &data_[pfx_.num_++];
+  T *slot = &vecdata_[vecpfx_.num_++];
   *slot = obj;
   return slot;
 }
@@ -935,7 +957,7 @@ inline T &
 vec<T, A, vl_embed>::pop (void)
 {
   gcc_checking_assert (length () > 0);
-  return data_[--pfx_.num_];
+  return vecdata_[--vecpfx_.num_];
 }
 
 
@@ -947,7 +969,7 @@ inline void
 vec<T, A, vl_embed>::truncate (unsigned size)
 {
   gcc_checking_assert (length () >= size);
-  pfx_.num_ = size;
+  vecpfx_.num_ = size;
 }
 
 
@@ -960,8 +982,8 @@ vec<T, A, vl_embed>::quick_insert (unsigned ix, const T &obj)
 {
   gcc_checking_assert (length () < allocated ());
   gcc_checking_assert (ix <= length ());
-  T *slot = &data_[ix];
-  memmove (slot + 1, slot, (pfx_.num_++ - ix) * sizeof (T));
+  T *slot = &vecdata_[ix];
+  memmove (slot + 1, slot, (vecpfx_.num_++ - ix) * sizeof (T));
   *slot = obj;
 }
 
@@ -975,8 +997,8 @@ inline void
 vec<T, A, vl_embed>::ordered_remove (unsigned ix)
 {
   gcc_checking_assert (ix < length());
-  T *slot = &data_[ix];
-  memmove (slot, slot + 1, (--pfx_.num_ - ix) * sizeof (T));
+  T *slot = &vecdata_[ix];
+  memmove (slot, slot + 1, (--vecpfx_.num_ - ix) * sizeof (T));
 }
 
 
@@ -988,7 +1010,7 @@ inline void
 vec<T, A, vl_embed>::unordered_remove (unsigned ix)
 {
   gcc_checking_assert (ix < length());
-  data_[ix] = data_[--pfx_.num_];
+  vecdata_[ix] = vecdata_[--vecpfx_.num_];
 }
 
 
@@ -1000,9 +1022,9 @@ inline void
 vec<T, A, vl_embed>::block_remove (unsigned ix, unsigned len)
 {
   gcc_checking_assert (ix + len <= length());
-  T *slot = &data_[ix];
-  pfx_.num_ -= len;
-  memmove (slot, slot + len, (pfx_.num_ - ix) * sizeof (T));
+  T *slot = &vecdata_[ix];
+  vecpfx_.num_ -= len;
+  memmove (slot, slot + len, (vecpfx_.num_ - ix) * sizeof (T));
 }
 
 
@@ -1066,7 +1088,7 @@ inline size_t
 vec<T, A, vl_embed>::embedded_size (unsigned alloc)
 {
   typedef vec<T, A, vl_embed> vec_embedded;
-  return offsetof (vec_embedded, data_) + alloc * sizeof (T);
+  return offsetof (vec_embedded, vecdata_) + alloc * sizeof (T);
 }
 
 
@@ -1077,8 +1099,8 @@ template<typename T, typename A>
 inline void
 vec<T, A, vl_embed>::embedded_init (unsigned alloc, unsigned num)
 {
-  pfx_.alloc_ = alloc;
-  pfx_.num_ = num;
+  vecpfx_.alloc_ = alloc;
+  vecpfx_.num_ = num;
 }
 
 
@@ -1089,8 +1111,8 @@ template<typename T, typename A>
 inline void
 vec<T, A, vl_embed>::quick_grow (unsigned len)
 {
-  gcc_checking_assert (length () <= len && len <= pfx_.alloc_);
-  pfx_.num_ = len;
+  gcc_checking_assert (length () <= len && len <= vecpfx_.alloc_);
+  vecpfx_.num_ = len;
 }
 
 
@@ -1204,10 +1226,10 @@ public:
   { return vec_ ? vec_->length() : 0; }
 
   T *address (void)
-  { return vec_ ? vec_->data_ : NULL; }
+  { return vec_ ? vec_->vecdata_ : NULL; }
 
   const T *address (void) const
-  { return vec_ ? vec_->data_ : NULL; }
+  { return vec_ ? vec_->vecdata_ : NULL; }
 
   const T &operator[] (unsigned ix) const
   { return (*vec_)[ix]; }
@@ -1254,7 +1276,8 @@ public:
   friend void va_stack::alloc(vec<T1, va_stack, vl_ptr>&, unsigned,
 			      vec<T1, va_stack, vl_embed> *);
 
-private:
+  /* FIXME - This field should be private, but we need to cater to
+	     compilers that have stricter notions of PODness for types.  */
   vec<T, A, vl_embed> *vec_;
 };
 
@@ -1420,7 +1443,7 @@ template<typename T, typename A>
 inline vec<T, A, vl_ptr>
 vec<T, A, vl_ptr>::copy (ALONE_MEM_STAT_DECL) const
 {
-  vec<T, A, vl_ptr> new_vec = vec<T, A, vl_ptr>();
+  vec<T, A, vl_ptr> new_vec = vNULL;
   if (length ())
     new_vec.vec_ = vec_->copy ();
   return new_vec;
@@ -1696,9 +1719,14 @@ vec<T, A, vl_ptr>::qsort (int (*cmp) (const void *, const void *))
 
 template<typename T, typename A>
 inline unsigned
-vec<T, A, vl_ptr>::lower_bound (T obj, bool (*lessthan)(const T &, const T &)) const
+vec<T, A, vl_ptr>::lower_bound (T obj, bool (*lessthan)(const T &, const T &))
+    const
 {
   return vec_ ? vec_->lower_bound (obj, lessthan) : 0;
 }
+
+#if (GCC_VERSION >= 3000)
+# pragma GCC poison vec_ vecpfx_ vecdata_
+#endif
 
 #endif // GCC_VEC_H

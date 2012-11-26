@@ -18749,7 +18749,7 @@ static char *
 gen_producer_string (void)
 {
   size_t j;
-  vec<dchar_p> switches = vec<dchar_p>();
+  vec<dchar_p> switches = vNULL;
   const char *language_string = lang_hooks.name;
   char *producer, *tail;
   const char *p;
