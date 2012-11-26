@@ -1,6 +1,14 @@
 
 2012-11-26  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.h (melt_intern_cstring): New function declaration.
+
+	* melt-runtime.c (melt_intstrhtab): New static variable.
+	(melt_raw_interned_cstring_index): New static function.
+	(melt_intern_cstring): New function.
+
+2012-11-26  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-modes.melt (eval_docmd, evalfile_docmd)
 	(repl_processor): Increase the dbgi_maxdepth from 8 to 12.
 

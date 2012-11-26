@@ -169,6 +169,12 @@ extern volatile sig_atomic_t melt_got_sigchld;
 
 extern long melt_blocklevel_signals;
 
+/* Returns an strdup-ed, never free-d, unique canonical string; in
+   other words, if you call it twice with two equal [strcmp returning
+   0] but non identical strings, you get the same identical pointer
+   result. */
+extern const char* melt_intern_cstring (const char* s);
+
 static inline const char* 
 melt_basename(const char* path)
 {

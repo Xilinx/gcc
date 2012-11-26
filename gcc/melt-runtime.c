@@ -426,7 +426,132 @@ const char* melt_version_str (void)
   return MELT_VERSION_STRING  " "  MELT_REVISION;
 }
 
+/******************************************************************/
+/* Interned C strings. */
+static unsigned melt_cstring_hash (const char*ps)
+{
+  unsigned h = 0;
+  const unsigned char*s = (const unsigned char*)ps;
+  if (!s) return 0;
+  for (;;) 
+    {
+      if (!s[0] || !s[1] || !s[2] || !s[3]) 
+	break;
+      h = (29*h) ^ ((s[0]*41) + (s[1]*23));
+      h = (17*h) - ((s[2]*71) ^ (s[3]*53));
+      h &= 0x3fffffff;
+      s += 4;
+    }
+  if (s[0]) h ^= (s[0]*13);
+  if (s[1]) h = (11*h) + (s[1]*79);
+  if (s[2]) h = (83*h) ^ (s[2]*47);
+  if (s[3]) h = (29*h) - (s[3]*97);
+  h &= 0x3fffffff;
+  return h;
+}
 
+static struct {
+  unsigned char csh_sizix; /* allocated size index inside melt_primtab */
+  unsigned csh_count;		/* used count */
+  const char** csh_array;	/* of melt_primtab[csh_sizix] pointers */
+} melt_intstrhtab;
+
+
+static long
+melt_raw_interned_cstring_index (const char*s)
+{
+  unsigned h = 0;
+  unsigned ix = 0;
+  unsigned m = 0;
+  unsigned long siz = melt_primtab[melt_intstrhtab.csh_sizix];
+  gcc_assert (melt_intstrhtab.csh_count + 5 < siz);
+  gcc_assert (s != NULL);
+  gcc_assert (melt_intstrhtab.csh_array != NULL);
+  h = melt_cstring_hash(s);
+  m = h % siz;
+  for (ix = m; ix < siz; ix++)
+    {
+      const char*curs = melt_intstrhtab.csh_array[ix];
+      if (!curs) 
+	{
+	  melt_intstrhtab.csh_array[ix] = s;
+	  melt_intstrhtab.csh_count++;
+	  return ix;
+	}
+      else if (!strcmp(s, curs))
+	return ix;
+    }
+  for (ix = 0; ix < m; ix++)
+    {
+      const char*curs = melt_intstrhtab.csh_array[ix];
+      if (!curs) 
+	{
+	  melt_intstrhtab.csh_array[ix] = s;
+	  melt_intstrhtab.csh_count++;
+	  return ix;
+	}
+      else if (!strcmp(s, curs))
+	return ix;
+    }
+  return -1;
+}
+
+
+const char* 
+melt_intern_cstring (const char* s)
+{
+  if (!s) return NULL;
+  /* This test is also true when melt_intstrhtab is initially cleared! */
+  if (MELT_UNLIKELY (4*melt_intstrhtab.csh_count + 50
+		     > 3*melt_primtab[melt_intstrhtab.csh_sizix]))
+    {
+      unsigned oldsiz = melt_primtab[melt_intstrhtab.csh_sizix];
+      unsigned oldcount =melt_intstrhtab.csh_count;
+      unsigned newix = 0;
+      unsigned newsiz = 0;
+      char**newarr = NULL;
+      const char**oldarr = NULL;
+      for (unsigned ix=1; 
+	   ix<sizeof(melt_primtab)/sizeof(melt_primtab[0]) && newix==0; 
+	   ix++)
+	if (melt_primtab[ix] > 2*melt_intstrhtab.csh_count + 60)
+	  newix = ix;
+      if (!newix)
+	/* should really never happen... */
+	melt_fatal_error ("MELT interned string hash table overflow %u for %s",
+			  melt_intstrhtab.csh_count, s);
+      newsiz = melt_primtab[newix];
+      gcc_assert (newsiz > melt_intstrhtab.csh_count + 10);
+      gcc_assert (newsiz > oldsiz);
+      newarr = (char**) xcalloc (newsiz, sizeof(char*));
+      oldarr = melt_intstrhtab.csh_array;
+      melt_intstrhtab.csh_count = 0;
+      melt_intstrhtab.csh_sizix = newix;
+      melt_intstrhtab.csh_array = CONST_CAST (const char**, newarr);
+      for (unsigned oix=0; oix < oldsiz; oix++)
+	{
+	  long aix = -1;
+	  const char*curs = oldarr[oix];
+	  if (!curs) 
+	    continue;
+	  aix = melt_raw_interned_cstring_index(curs);
+	  gcc_assert (aix > 0);
+	};
+      gcc_assert (melt_intstrhtab.csh_count == oldcount);
+    };
+  {
+    long j = melt_raw_interned_cstring_index(s);
+    const char* ns = NULL;
+    gcc_assert (j >= 0 && j < melt_primtab[melt_intstrhtab.csh_sizix]);
+    ns = melt_intstrhtab.csh_array[j];
+    gcc_assert (ns != NULL);
+    if (ns == s)
+      melt_intstrhtab.csh_array[j] = ns = xstrdup (s);
+    return ns;
+  }
+}
+
+/*****************************************************************/
 #if ENABLE_CHECKING
 
 void melt_break_alptr_1_at (const char*msg, const char* fil, int line);
