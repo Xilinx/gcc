@@ -2236,11 +2236,10 @@ nonoverlapping_component_refs_p (const_rtx rtlx, const_rtx rtly)
       return false;
 
     found:
-      /* If we're left with accessing different fields of a structure,
-	 then no overlap.  */
-      if (TREE_CODE (typex) == RECORD_TYPE
-	  && fieldx != fieldy)
-	return true;
+      /* If we're left with accessing different fields of a structure, then no
+	 possible overlap, unless they are both bitfields.  */
+      if (TREE_CODE (typex) == RECORD_TYPE && fieldx != fieldy)
+	return !(DECL_BIT_FIELD (fieldx) && DECL_BIT_FIELD (fieldy));
 
       /* The comparison on the current field failed.  If we're accessing
 	 a very nested structure, look at the next outer level.  */
