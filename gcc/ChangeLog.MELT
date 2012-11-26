@@ -1,4 +1,13 @@
 
+2012-11-26  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.c: Don't use vectors anymore for module & extension
+	information, because they are not compatible in GCC 4.7 & GCC 4.8.
+	(melt_modinfvec, melt_extinfvec): Remove variable.
+	(melt_modulinfo, melt_extinfo): Add new static variable.
+	(melt_dlsym_all, melt_load_module_index, meltgc_run_c_extension)
+	(meltgc_start_module_by_index, melt_fatal_info): Use and update them.
+
 2012-11-23  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{Regenerate}}

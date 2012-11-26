@@ -323,10 +323,15 @@ typedef struct melt_module_info_st {
   melt_start_rout_t *mmi_startrout; /* start routine */
 } melt_module_info_t;
 
-DEF_VEC_O (melt_module_info_t);
-DEF_VEC_ALLOC_O (melt_module_info_t, heap);
+/* we used to have a melt_modinfvec vector... */
+static struct melt_modulinfovec_st {
+  unsigned modi_size;
+  unsigned modi_count;
+  melt_module_info_t* modi_array;	/* sized modi_size, but filled
+					   only up to modic_count; and
+					   index 0 is never used. */
+} melt_modulinfo;
 
-static VEC (melt_module_info_t, heap) *melt_modinfvec = 0;
 
 /* Extensions are dlopen-ed shared objects for direct evaluation */
 #define MELT_EXTENSION_MAGIC 0x44b9cd8d /*0x44b9cd8d*/
@@ -342,10 +347,13 @@ typedef struct melt_extension_info_st {
   /* no start routine is needed, since it is immediately called */
 } melt_extension_info_t;
 
-DEF_VEC_O (melt_extension_info_t);
-DEF_VEC_ALLOC_O (melt_extension_info_t, heap);
+// we used to have a melt_extinfvec vector
+static struct meltextinfovec_st {
+  unsigned mxi_size;
+  unsigned mxi_count;
+  melt_extension_info_t* mxi_array;
+} melt_extinfo;
 
-static VEC (melt_extension_info_t, heap) *melt_extinfvec =0;
 
 
 struct melt_callframe_st* melt_topframe =0;
@@ -6170,30 +6178,31 @@ void *
 melt_dlsym_all (const char *nam)
 {
   int ix = 0;
-  melt_module_info_t *mi = 0;
-  /* Index 0 is unused in melt_modinfvec!  */
-  for (ix = 1; VEC_iterate (melt_module_info_t, melt_modinfvec, ix, mi); ix++) {
+  gcc_assert (melt_modulinfo.modi_size > melt_modulinfo.modi_count);
+  /* Index 0 is unused in melt_modulinfo!  */
+  for (ix = 1; ix <= (int)melt_modulinfo.modi_count; ix++) {
     void *p = NULL;
+    melt_module_info_t* mi = melt_modulinfo.modi_array + ix;
     gcc_assert (mi->mmi_magic == MELT_MODULE_MAGIC);
     p = (void *) dlsym ((void *) mi->mmi_dlh, nam);
     if (p)
       return p;
   };
-  /* Index 0 is unused in melt_extinfvec! */
-  if (melt_extinfvec) 
-    {
-      melt_extension_info_t *mx = 0;
-      for (ix = 1; 
-	   VEC_iterate (melt_extension_info_t, melt_extinfvec, ix, mx); 
-	   ix++) 
-	{
-	  void *p = NULL;
-	  gcc_assert (mx->mmx_magic == MELT_MODULE_MAGIC);
-	  p = (void *) dlsym ((void *) mx->mmx_dlh, nam);
-	  if (p)
-	    return p;
-	};
-    };
+  /* Index 0 is unused in melt_extinfo! */
+  gcc_assert (melt_extinfo.mxi_size > melt_extinfo.mxi_count);
+  {
+    for (ix = 1; 
+	 ix <= (int)melt_extinfo.mxi_count; 
+	 ix++) 
+      {
+	void *p = NULL;
+	melt_extension_info_t* mx = melt_extinfo.mxi_array + ix;
+	gcc_assert (mx->mmx_magic == MELT_MODULE_MAGIC);
+	p = (void *) dlsym ((void *) mx->mmx_dlh, nam);
+	if (p)
+	  return p;
+      };
+  };
   return (void *) dlsym (proghandle, nam);
 }
 
@@ -9045,7 +9054,7 @@ const char* melt_flavors_array[] = {
   NULL
 };
 
-/* Return a positive index, in the melt_modinfvec vector, of a module
+/* Return a positive index, in the melt_modulinfo, of a module
    of given source base (the path, without "+meltdesc.c" suffix of the
    MELT descriptive file). This function don't run the
    melt_start_this_module routine of the loaded module, but does dlopen
@@ -9307,11 +9316,11 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
       if (!melt_flag_bootstrapping)
 	error ("MELT failed to find module of base %s in builtin directory %s",
 	       srcbase, melt_module_dir);
-    if (melt_trace_module_fil)
-      fflush (melt_trace_module_fil);
-    else
-      inform (UNKNOWN_LOCATION, 
-	      "You could set the GCCMELT_TRACE_MODULE env.var. to some file path for debugging");
+      if (melt_trace_module_fil)
+	fflush (melt_trace_module_fil);
+      else
+	inform (UNKNOWN_LOCATION, 
+		"You could set the GCCMELT_TRACE_MODULE env.var. to some file path for debugging");
       melt_fatal_error ("No MELT module for source base %s flavor %s (parsed cumulated checksum %s)",
 			srcbase, flavor,
 			desccumulatedhexmd5 ? desccumulatedhexmd5 : "unknown");
@@ -9325,9 +9334,23 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
   dlh = dlopen (sopath, RTLD_NOW | RTLD_GLOBAL);
   if (!dlh)
     melt_fatal_error ("Failed to dlopen MELT module %s - %s", sopath, dlerror ());
+
+  /* grow the melt_modulinfo if needed */
+  if (MELT_UNLIKELY (melt_modulinfo.modi_count + 2 >= melt_modulinfo.modi_size))
+    {
+      unsigned oldcnt = melt_modulinfo.modi_count;
+      unsigned newsiz = (oldcnt + oldcnt / 4 + 30)|0xf;
+      melt_module_info_t* oldarr = melt_modulinfo.modi_array;
+      melt_module_info_t* newarr = ( melt_module_info_t*)xcalloc (newsiz, sizeof(melt_module_info_t));
+      memcpy (newarr, oldarr, oldcnt*sizeof(melt_module_info_t));
+      melt_modulinfo.modi_size = newsiz;
+      melt_modulinfo.modi_array = newarr;
+      free (oldarr), oldarr = NULL;
+    }
+
   if (melt_trace_module_fil)
     fprintf (melt_trace_module_fil,
-	     "dlopened %s #%d\n", sopath, VEC_length (melt_module_info_t, melt_modinfvec));
+	     "dlopened %s #%d\n", sopath, melt_modulinfo.modi_count+1);
   validh = TRUE;
 
   /* Retrieve our dynamic symbols. */
@@ -9491,8 +9514,9 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
                 sopath, (int)validh, dlh);
   if (validh) {
     melt_module_info_t minf = { 0, NULL, NULL, NULL, NULL };
-    ix = VEC_length (melt_module_info_t, melt_modinfvec);
+    ix = (int) melt_modulinfo.modi_count + 1;
     gcc_assert (ix > 0);
+    gcc_assert (ix + 2 < (int)melt_modulinfo.modi_size);
     if (ix > 40 && melt_flag_bootstrapping)
       melt_fatal_error ("too big module index %d when bootstrapping", ix);
     minf.mmi_dlh = dlh;
@@ -9500,12 +9524,9 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
     minf.mmi_modpath = xstrdup (sopath);
     minf.mmi_startrout = MELTDESCR_REQUIRED (melt_start_this_module);
     minf.mmi_magic = MELT_MODULE_MAGIC;
-#if MELT_GCC_VERSION >= 4008
-  // GCC 4.8 vector is C++ template so requires
-    VEC_safe_push (melt_module_info_t, heap, melt_modinfvec, minf);
-#else
-    VEC_safe_push (melt_module_info_t, heap, melt_modinfvec, &minf);
-#endif
+    melt_modulinfo.modi_array[ix] = minf;
+    melt_modulinfo.modi_count = ix;
+
     debugeprintf ("melt_load_module_index successful ix %d srcbase %s sopath %s flavor %s",
                   ix, srcbase, sopath, flavor);
     if (!quiet_flag || melt_flag_debug) {
@@ -9705,6 +9726,23 @@ meltgc_run_c_extension (melt_ptr_t basename_p, melt_ptr_t env_p, melt_ptr_t litv
     melt_fatal_error ("failed to dlopen runtime extension %s - %s",
 		      sopath, dlerror ());
   MELT_LOCATION_HERE ("meltgc_run_c_extension after dlopen");
+
+  /* grow the melt_extinfo array if needed */
+  if (MELT_UNLIKELY(melt_extinfo.mxi_count + 2 >= melt_extinfo.mxi_size))
+    {
+      unsigned oldcnt = melt_extinfo.mxi_count;
+      unsigned newsiz = (oldcnt + oldcnt/4 + 20)|0xf;
+      melt_extension_info_t* oldarr
+	= melt_extinfo.mxi_array;
+      melt_extension_info_t* newarr
+	= (melt_extension_info_t*) xcalloc (newsiz, 
+					    sizeof(melt_extension_info_t));
+      memcpy (oldarr, newarr, oldcnt*sizeof(melt_extension_info_t));
+      free (oldarr), oldarr = NULL;
+      melt_extinfo.mxi_size = newsiz;
+      melt_extinfo.mxi_array = newarr;
+    }
+
   /* load the required and optional symbols */
 #define MELTRUNDESCR_REQUIRED_SYMBOL(Sym,Typ) do   {	\
   dynr_##Sym = (Typ*) dlsym (dlh, #Sym);		\
@@ -9728,20 +9766,6 @@ meltgc_run_c_extension (melt_ptr_t basename_p, melt_ptr_t env_p, melt_ptr_t litv
   {
     melt_extension_info_t mext = { 0, 0, NULL, NULL, NULL };
     int ix = 0;
-    if (!melt_extinfvec)
-      {
-	melt_extension_info_t emptymei = {0, 0, NULL, NULL, NULL };
-	melt_extinfvec = VEC_alloc (melt_extension_info_t, heap, 32);
-	/* don't use the index 0 so push a null at 0 in modextvec.  */
-#if MELT_GCC_VERSION >= 4008
-  // GCC 4.8 vector is C++ template so requires
-	VEC_safe_push (melt_extension_info_t, heap, melt_extinfvec,
-		       emptymei);
-#else
-	VEC_safe_push (melt_extension_info_t, heap, melt_extinfvec,
-		       &emptymei);
-#endif
-      }
     /* check the melt_versionstr of the extension */
     if (dyno_melt_versionstr) 
       {
@@ -9750,19 +9774,15 @@ meltgc_run_c_extension (melt_ptr_t basename_p, melt_ptr_t env_p, melt_ptr_t litv
 	  melt_fatal_error ("runtime extension %s for MELT version %s but this MELT expects %s",
 			    basenamebuf, dyno_melt_versionstr, melt_version_str());
       }
-    ix = VEC_length (melt_extension_info_t, melt_extinfvec);
+    ix = melt_extinfo.mxi_count+1;
     gcc_assert (ix > 0);
     mext.mmx_dlh = dlh;
     mext.mmx_descrbase = xstrdup (basenamebuf);
     mext.mmx_extpath = xstrdup (sopath);
     mext.mmx_rank = ix;
     mext.mmx_magic = MELT_EXTENSION_MAGIC;
-#if MELT_GCC_VERSION >= 4008
-  // GCC 4.8 vector is C++ template so requires
-    VEC_safe_push (melt_extension_info_t, heap, melt_extinfvec, mext);
-#else
-    VEC_safe_push (melt_extension_info_t, heap, melt_extinfvec, &mext);
-#endif
+    melt_extinfo.mxi_array[ix] = mext;
+    melt_extinfo.mxi_count = ix;
     debugeprintf ("meltgc_run_c_extension %s has index %d", 
 		  basenamebuf, ix);
   }
@@ -9814,21 +9834,12 @@ meltgc_start_module_by_index (melt_ptr_t env_p, int modix)
 #define resmodv   meltfram__.mcfr_varptr[0]
 #define env       meltfram__.mcfr_varptr[1]
   env = env_p;
-  if (!melt_modinfvec || modix <= 0 || modix >= (int) VEC_length (melt_module_info_t, melt_modinfvec)) {
+  if (modix <= 0 || modix > (int) melt_modulinfo.modi_count)  {
     debugeprintf ("meltgc_start_module_by_index bad index modix %d", modix);
     goto end;
   }
-#if MELT_GCC_VERSION >= 4008
-  // GCC 4.8 vector is C++ template so requires the "&" address-of.
-  mi = &VEC_index (melt_module_info_t, melt_modinfvec, modix);
-#else
-  /* GCC 4.7 or earlier vector is a C macro which don't want the "&" address-of. */
-  mi = VEC_index (melt_module_info_t, melt_modinfvec, modix);
-#endif /* GCC 4.8 */
-  if (!mi) {
-    debugeprintf ("meltgc_start_module_by_index empty index modix %d", modix);
-    goto end;
-  }
+  gcc_assert (melt_modulinfo.modi_array != NULL);
+  mi = melt_modulinfo.modi_array + modix;
   gcc_assert (mi->mmi_magic == MELT_MODULE_MAGIC);
   debugeprintf ("meltgc_start_module_by_index  modix %d module %s",
                 modix, mi->mmi_descrbase);
@@ -9855,19 +9866,17 @@ end:
 melt_ptr_t
 meltgc_start_all_new_modules (melt_ptr_t env_p)
 {
-  melt_module_info_t* mi = NULL;
   int modix;
   char locbuf[200];
   MELT_ENTERFRAME(1, NULL);
 #define env       meltfram__.mcfr_varptr[0]
   env = env_p;
-  gcc_assert (melt_modinfvec != NULL);
+  gcc_assert (melt_modulinfo.modi_array != NULL);
   debugeprintf ("meltgc_start_all_new_modules env %p", env);
   for (modix = 1;
-       VEC_iterate (melt_module_info_t, melt_modinfvec, modix, mi);
+       modix <= (int) melt_modulinfo.modi_count;
        modix++) {
-    if (!mi)
-      continue;
+    melt_module_info_t* mi = melt_modulinfo.modi_array + modix;
     gcc_assert (mi->mmi_magic == MELT_MODULE_MAGIC);
     if (!mi->mmi_startrout)
       continue;
@@ -10513,7 +10522,8 @@ meltgc_load_modules_and_do_mode (void)
     (locbuf, "meltgc_load_modules_and_do_mode before loading curmod %s",
      curmod);
     if (!strcmp(curmod, "@@")) {
-      int lastixmodule = VEC_length (melt_module_info_t, melt_modinfvec);
+      int lastixmodule = (int) melt_modulinfo.modi_count;
+      gcc_assert (lastixmodule < (int) melt_modulinfo.modi_size);
       /* the @@ notation means the initial module list; it should
          always be first. */
       if (melt_nb_modules > 0
@@ -11084,18 +11094,21 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
     else if (melt_minorsizekilow > 32768) 
       melt_minorsizekilow = 32768;
   }
-  melt_modinfvec = VEC_alloc (melt_module_info_t, heap, 32);
-  /* don't use the index 0 so push an empty at 0 in modinfvec.  */
+  /* allocate melt_modulinfo */
   {
-    melt_module_info_t emptymi = {0, NULL, NULL, NULL, NULL};
-#if MELT_GCC_VERSION >= 4008
-  // GCC 4.8 vector is C++ template so requires
-    VEC_safe_push (melt_module_info_t, heap, melt_modinfvec,
-		   emptymi);
-#else
-    VEC_safe_push (melt_module_info_t, heap, melt_modinfvec,
-		   &emptymi);
-#endif
+    unsigned sz = 32;
+    melt_modulinfo.modi_array
+      = (melt_module_info_t*) xcalloc (sz, sizeof(melt_module_info_t));
+    melt_modulinfo.modi_size = sz;
+    melt_modulinfo.modi_count = 0;
+  }
+  /* allocate melt_extinfo */
+  {
+    unsigned sz = 64;
+    melt_extinfo.mxi_array
+      = (melt_extension_info_t*) xcalloc (sz, sizeof(melt_extension_info_t));
+    melt_extinfo.mxi_size = sz;
+    melt_extinfo.mxi_count = 0;
   }
   /* The program handle dlopen is not traced! */
   proghandle = dlopen (NULL, RTLD_NOW | RTLD_GLOBAL);
@@ -12808,7 +12821,6 @@ melt_fatal_info (const char*filename, int lineno)
   int ix = 0;
   const char* workdir = NULL;
   int workdirlen = 0;
-  melt_module_info_t* mi=0;
   if (filename != NULL && lineno>0) 
     {
       error ("MELT fatal failure from %s:%d [MELT built %s, version %s]", 
@@ -12834,11 +12846,13 @@ melt_fatal_info (const char*filename, int lineno)
 #if MELT_HAVE_DEBUG
   melt_dbgshortbacktrace ("MELT fatal failure", 100);
 #endif
-  if (melt_modinfvec)
-    /* Index 0 is unused in melt_modinfvec!  */
-    for (ix = 1; VEC_iterate (melt_module_info_t, melt_modinfvec, ix, mi); ix++) {
+  /* Index 0 is unused in melt_modulinfo. */
+  gcc_assert (melt_modulinfo.modi_count < melt_modulinfo.modi_size);
+  gcc_assert (melt_modulinfo.modi_size > 0 && melt_modulinfo.modi_array != NULL);
+  for (ix = 1; ix <= (int) melt_modulinfo.modi_count; ix++) {
       char*curmodpath = NULL;
-      if (!mi || !mi->mmi_dlh || !(curmodpath = mi->mmi_modpath)
+      melt_module_info_t* mi = melt_modulinfo.modi_array + ix;
+      if (!mi->mmi_dlh || !(curmodpath = mi->mmi_modpath)
           || mi->mmi_magic != MELT_MODULE_MAGIC)
         continue;
       if (workdirlen>0 && !strncmp (workdir, curmodpath, workdirlen))
