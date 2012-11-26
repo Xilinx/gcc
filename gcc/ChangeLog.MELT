@@ -1,6 +1,11 @@
 
 2012-11-26  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-modes.melt (eval_docmd, evalfile_docmd)
+	(repl_processor): Increase the dbgi_maxdepth from 8 to 12.
+
+2012-11-26  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.c: Don't use vectors anymore for module & extension
 	information, because they are not compatible in GCC 4.7 & GCC 4.8.
 	(melt_modinfvec, melt_extinfvec): Remove variable.
