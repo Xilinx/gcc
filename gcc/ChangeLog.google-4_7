@@ -1,3 +1,7 @@
+2012-11-26  Diego Novillo  <dnovillo@google.com>
+
+	* gimplify.c: Work around for PR 55245.
+
 2012-11-09  Harshit Chopra  <harshit@google.com>
 
 	Backport 193381 from google/main.
