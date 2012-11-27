@@ -1,5 +1,14 @@
 2012-11-27  Dehao Chen  <dehao@google.com>
 
+	Backport 193857 from trunk:
+
+	2012-11-27  Dehao Chen  <dehao@google.com>
+
+		* ipa-prop.c (ipa_modify_call_arguments): Set loc correctly.
+		* cfglayout.c (last_location): Remove unused variable.
+
+2012-11-27  Dehao Chen  <dehao@google.com>
+
 	Backport 193852 from trunk:
 
 	2012-11-27  Dehao Chen  <dehao@google.com>

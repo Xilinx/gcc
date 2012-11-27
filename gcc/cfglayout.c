@@ -222,7 +222,7 @@ record_effective_endpoints (void)
 }
 
 location_t prologue_location, epilogue_location;
-static location_t curr_location, last_location;
+static location_t curr_location;
 
 /* Allocate insn location datastructure.  */
 void
@@ -230,7 +230,6 @@ insn_locations_init (void)
 {
   prologue_location = epilogue_location = 0;
   curr_location = UNKNOWN_LOCATION;
-  last_location = UNKNOWN_LOCATION;
 }
 
 /* At the end of emit stage, clear current location.  */
