@@ -1,3 +1,13 @@
+2012-11-27  Dehao Chen  <dehao@google.com>
+
+	Backport 193852 from trunk:
+
+	2012-11-27  Dehao Chen  <dehao@google.com>
+
+		* cfgrtl.c (rtl_merge_blocks): Check with UNKNOWN_LOCATION
+		correctly.
+		(cfg_layout_merge_blocks): Likewise.
+
 2012-11-26   Easwaran Raman <eraman@google.com>
 
 	Backport 193554 from trunk:
