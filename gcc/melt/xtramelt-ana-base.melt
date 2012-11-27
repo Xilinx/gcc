@@ -2,7 +2,7 @@
 ;; file xtramelt-ana-base.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
+    Copyright 2008 - 2012 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
                 and Jeremie Salvucci  <jeremie.salvucci@free.fr>
                 and Pierre Vittet  <piervit@pvittet.com>
@@ -281,10 +281,18 @@
   (:loop curloop :long loopix)
   :doc #{Iterate of each superloop of given loop $LO, for each $CURLOOP of indec $LOOPIX.}#
   ;; before expansion
-  #{ /* foreach_superloop $EACHSUPERLOOP */ unsigned $EACHSUPERLOOP#_ix = 0;
+  #{ /* foreach_superloop $EACHSUPERLOOP */ 
+   unsigned $EACHSUPERLOOP#_ix = 0;
    loop_p $EACHSUPERLOOP#_loop = NULL;
    if ($LO) { 
-     FOR_EACH_VEC_ELT (loop_p, $LO->superloops, $EACHSUPERLOOP#_ix,  $EACHSUPERLOOP#_loop) {
+#if GCCPLUGIN_VERSION >= 4008 || MELT_GCC_VERSION >= 4008
+     FOR_EACH_VEC_SAFE_ELT ($LO->superloops, $EACHSUPERLOOP#_ix, 
+		       $EACHSUPERLOOP#_loop) 
+#else
+     FOR_EACH_VEC_ELT (loop_p, $LO->superloops, $EACHSUPERLOOP#_ix,  
+		       $EACHSUPERLOOP#_loop) 
+#endif
+       {
        $LOOPIX = $EACHSUPERLOOP#_ix;
        $CURLOOP = $EACHSUPERLOOP#_loop;
   }#
@@ -562,25 +570,39 @@
   #{
     /* foreach_dominated_unsafe $EBBDOMD before+ */
 
+#if GCCPLUGIN_VERSION >= 4008 || MELT_GCC_VERSION >= 4008
+    vec<basic_block> $EBBDOMD#_bbvec;
+#else
     VEC (basic_block, heap)*  $EBBDOMD#_bbvec = 0;
+#endif /* GCC 4.8 */
     unsigned int $EBBDOMD#_ix = 0;
     basic_block $EBBDOMD#_bb = 0;
 
-    if($DOMINATOR_BB){
-      $EBBDOMD#_bbvec = get_dominated_by(CDI_DOMINATORS, $DOMINATOR_BB);
-      if($EBBDOMD#_bbvec){
-        FOR_EACH_VEC_ELT (basic_block, $EBBDOMD#_bbvec, 
-          $EBBDOMD#_ix, $EBBDOMD#_bb){
+    if($DOMINATOR_BB) {
+      $EBBDOMD#_bbvec = get_dominated_by (CDI_DOMINATORS, $DOMINATOR_BB);
+#if GCCPLUGIN_VERSION >= 4008 || MELT_GCC_VERSION >= 4008
+        FOR_EACH_VEC_ELT ($EBBDOMD#_bbvec, 
+          $EBBDOMD#_ix, $EBBDOMD#_bb) 
+#else
+        if ($EBBDOMD#_bbvec) 
+          FOR_EACH_VEC_ELT (basic_block, $EBBDOMD#_bbvec, 
+            $EBBDOMD#_ix, $EBBDOMD#_bb) 
+#endif /* GCC 4.8 */
+        {
           if (!$EBBDOMD#_ix)
             continue;
           $DOMINATED_BB = $EBBDOMD#_bb;
      /*$EBBDOMD before- */}#
       ;; after expansion
   #{/* foreach_dominated_unsafe $EBBDOMD after+ */
-          }
-      }}
+        }
+      }
+#if GCCPLUGIN_VERSION >= 4008 || MELT_GCC_VERSION >= 4008
+   /* foreach_dominated_unsafe dont need to free $EBBDOMD#_bbvec */
+#else
     VEC_free (basic_block, heap, $EBBDOMD#_bbvec);
     $EBBDOMD#_bbvec = 0;
+#endif /* GCC 4.8 */
     $EBBDOMD#_bb = 0;
     /* $EBBDOMD after- */}#
 )
@@ -916,7 +938,7 @@
       $EACHCGRAFUNCFG#_fun = DECL_STRUCT_FUNCTION($EACHCGRAFUNCFG#_dcl);
       if (!$EACHCGRAFUNCFG#_fun) 
         continue;
-      debugeprintf("$EACHCGRAFUNCFG#_fun %p", $EACHCGRAFUNCFG#_fun);
+      debugeprintf("$EACHCGRAFUNCFG#_fun %p", (void*) $EACHCGRAFUNCFG#_fun);
       $TMPV = NULL;
       /*  each_cgraph_fun_call_flow_graph this assert fails when in a pass without control flow graph */
       melt_assertmsg ("no cfg in each_cgraph_fun_call_flow_graph $EACHCGRAFUNCFG",
@@ -1018,7 +1040,7 @@
       melt_fatal_error_at_line
        ($EACHBBCURFUN#_line,
 	"each_bb_current_fun used with invalid cfun=%p [$EACHBBCURFUN]", 
-	cfun);
+	(void*) cfun);
   /* end each_bb_current_fun $EACHBBCURFUN */  }
  }# )
 
@@ -1053,7 +1075,7 @@ current function and gives its declaration in $CFUNDECL}#
       melt_fatal_error_at_line 
        ($EACHBBCFUN#_line,
 	"each_bb_cfun used with invalid cfun=%p without cfg [$EACHBBCFUN]", 
-	cfun);
+	(void*) cfun);
    $CFUNBB = (basic_block) NULL;
    $CFUNDECL = (tree) NULL;
   /* end  each_bb_cfun $EACHBBCFUN */  
@@ -1073,7 +1095,8 @@ current function and gives its declaration in $CFUNDECL}#
    if (!cfun)
      melt_fatal_error_at_line
       ($EACHLOCALCFUN#_line,
-       "each_local_decl_cfun [$EACHLOCALCFUN] called without cfun %p", (void*)cfun);
+       "each_local_decl_cfun [$EACHLOCALCFUN] called without cfun %p", 
+       (void*) cfun);
    if (cfun->local_decls) {
      unsigned $EACHLOCALCFUN#_ix = 0;
      tree $EACHLOCALCFUN#_tdcl = NULL_TREE;
@@ -1272,14 +1295,25 @@ current function and gives its declaration in $CFUNDECL}#
   (:edge ed :long ix)			;local formals
   ;; before expansion
   #{ /* $EACHLOOPEXITEDGE before+ */
+#if GCCPLUGIN_VERSION >= 4008 || MELT_GCC_VERSION >= 4008
+  vec<edge> $EACHLOOPEXITEDGE#_edgevec;
+#else
   VEC (edge, heap)* $EACHLOOPEXITEDGE#_edgevec = 0;
+#endif /* GCC 4.8 */
   unsigned $EACHLOOPEXITEDGE#_ix = 0;
   edge $EACHLOOPEXITEDGE#_edge = 0;
   if ($LO) 
     $EACHLOOPEXITEDGE#_edgevec = get_loop_exit_edges ($LO);
-  if ($EACHLOOPEXITEDGE#_edgevec)
-    FOR_EACH_VEC_ELT (edge, $EACHLOOPEXITEDGE#_edgevec, 
-			    $EACHLOOPEXITEDGE#_ix, $EACHLOOPEXITEDGE#_edge) {
+
+#if GCCPLUGIN_VERSION >= 4008 || MELT_GCC_VERSION >= 4008
+      FOR_EACH_VEC_ELT ($EACHLOOPEXITEDGE#_edgevec, 
+		      $EACHLOOPEXITEDGE#_ix, $EACHLOOPEXITEDGE#_edge) 
+#else
+    if ($EACHLOOPEXITEDGE#_edgevec)
+      FOR_EACH_VEC_ELT (edge, $EACHLOOPEXITEDGE#_edgevec, 
+ 			      $EACHLOOPEXITEDGE#_ix, $EACHLOOPEXITEDGE#_edge) 
+#endif /* GCC 4.8 */
+    {
       if (!$EACHLOOPEXITEDGE#_edge) 
         continue;
       $ED = $EACHLOOPEXITEDGE#_edge; 
@@ -1288,8 +1322,12 @@ current function and gives its declaration in $CFUNDECL}#
   ;; after expansion
   #{ /* $EACHLOOPEXITEDGE after+ */
   } /* end FOR_EACH_VEC_ELT  $EACHLOOPEXITEDGE*/
+#if GCCPLUGIN_VERSION >= 4008 || MELT_GCC_VERSION >= 4008
+  /* no need to free $EACHLOOPEXITEDGE#_edgevec */
+#else
   VEC_free (edge, heap, $EACHLOOPEXITEDGE#_edgevec);
   $EACHLOOPEXITEDGE#_edgevec = 0;
+#endif /* GCC 4.8 */
   $EACHLOOPEXITEDGE#_edge = 0;
 /* $EACHLOOPEXITEDGE after- */}#
 )

@@ -1,6 +1,15 @@
 
 2012-11-27  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/xtramelt-ana-base.melt: Painfully merged to new 4.8 trunk,
+	with incompatible use of vectors provided in vec.h.
+	(foreach_superloop, foreach_dominated_unsafe)
+	(each_cgraph_fun_call_flow_graph, loop_body_tuple)
+	(foreach_loop_exit_edges): #if specific code for GCC 4.8 with its
+	vec<> template.
+
+2012-11-27  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-outobj.melt (syntestgen_primitive)
 	(syntestgen_citerator, syntestgen_cmatcher): Identifiers emitted
 	in syntax checking routines should have a melt prefix.
