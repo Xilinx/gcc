@@ -400,12 +400,6 @@ int melt_last_global_ix = MELTGLOB__LASTGLOB;
 
 static void* proghandle;
 
-/* We have a melt prefix to minimize conflict with other code. */
-typedef char *meltchar_p;
-
-DEF_VEC_P (meltchar_p);
-DEF_VEC_ALLOC_P (meltchar_p, heap);
-static VEC (meltchar_p, heap)* parsedmeltfilevect;
 
 /* to code case ALL_MELTOBMAG_SPECIAL_CASES: */
 #define ALL_MELTOBMAG_SPECIAL_CASES             \
@@ -6665,7 +6659,7 @@ readline: {
            && comh == COMMENT_SKIP) {
     char *endp = 0;
     char *newpath = 0;
-    char* newpathdup = 0;
+    const char* newpathdup = 0;
     long newlineno = strtol (&rdfollowc (4), &endp, 10);
     /* take as filename from the first non-space to the last non-space */
     while (endp && *endp && ISSPACE(*endp)) endp++;
@@ -6674,25 +6668,14 @@ readline: {
     while (newpath && ISSPACE(*endp)) endp--;
     debugeprintf (";;## directive for line newlineno=%ld newpath=%s",
                   newlineno, newpath);
-    if (newlineno>0 && newpath) {
-      int ix= 0;
-      char *curpath=0;
-      /* find the newpath in the parsedmeltfilevect or push it
-         there */
-      for (ix = 0;
-           VEC_iterate (meltchar_p, parsedmeltfilevect, ix, curpath);
-           ix++) {
-        if (curpath && !strcmp(newpath, curpath))
-          newpathdup = curpath;
-      }
-      if (!newpathdup) {
-        newpathdup = xstrdup (newpath);
-        VEC_safe_push (meltchar_p, heap, parsedmeltfilevect, newpathdup);
-      }
-      (void) linemap_add (line_table, LC_RENAME_VERBATIM,
-                          false, newpathdup, newlineno);
-    } else if (newlineno>0) {
+    if (newlineno>0) {
+      if (newpath) 
+	newpathdup = melt_intern_cstring (newpath);
+      else
+	newpathdup = melt_intern_cstring (rd->rpath);
     }
+    (void) linemap_add (line_table, LC_RENAME_VERBATIM,
+			false, newpathdup, newlineno);
     goto readline;
   } else if (c == ';' && comh == COMMENT_SKIP)
     goto readline;
@@ -8127,7 +8110,7 @@ meltgc_read_file (const char *filnam, const char *locnam)
   struct melt_reading_st rds;
   FILE *fil = NULL;
   struct melt_reading_st *rd = NULL;
-  char *filnamdup = NULL;
+  const char *filnamdup = NULL;
   const char* srcpathstr = melt_argument ("source-path");
   MELT_ENTERFRAME (3, NULL);
 #define valv      meltfram__.mcfr_varptr[0]
@@ -8144,11 +8127,7 @@ meltgc_read_file (const char *filnam, const char *locnam)
       fprintf (melt_trace_source_fil, "MELT reads MELT source file %s, locally %s\n", filnam, locnam);
       fflush (melt_trace_source_fil);
     }
-  filnamdup = xstrdup (filnam);
-  /* Store the filnamdup in the parsedmeltfilevect vector to be able
-     to free them at end; we need to duplicate filnam because
-     linemap_add store pointers to it. */
-  VEC_safe_push (meltchar_p, heap, parsedmeltfilevect, filnamdup);
+  filnamdup = melt_intern_cstring (filnam);
   debugeprintf ("meltgc_read_file filnamdup %s locnam %s", filnamdup, locnam);
   if (!strcmp (filnamdup, "-"))
     fil = stdin;
@@ -8156,7 +8135,6 @@ meltgc_read_file (const char *filnam, const char *locnam)
     fil = fopen (filnamdup, "rt");
   /* If needed, find the file in the source path.  */
   if (!fil && !IS_ABSOLUTE_PATH(filnam)) {
-    free (filnamdup), filnamdup = NULL;
     filnamdup =
       MELT_FIND_FILE (filnam,
 		      MELT_FILE_LOG, melt_trace_source_fil,
@@ -8167,6 +8145,8 @@ meltgc_read_file (const char *filnam, const char *locnam)
     debugeprintf ("meltgc_read_file filenamdup %s", filnamdup);
     if (filnamdup)
       fil = fopen (filnamdup, "rt");
+    if (fil)
+      filnamdup = melt_intern_cstring (filnamdup);
   }
   if (!fil) {
     if (filnam && srcpathstr)
@@ -11044,7 +11024,6 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   modstr = melt_argument ("mode");
   inistr = melt_argument ("init");
   countdbgstr = melt_argument ("debugskip");
-  parsedmeltfilevect = VEC_alloc (meltchar_p, heap, 12);
 
 
   printset = melt_argument ("print-settings");
@@ -11374,7 +11353,7 @@ do_finalize_melt (void)
   finclosv = melt_get_inisysdata (MELTFIELD_SYSDATA_EXIT_FINALIZER);
   if (melt_magic_discr ((melt_ptr_t) finclosv) == MELTOBMAG_CLOSURE) {
     MELT_LOCATION_HERE
-    ("do_finalize_melt before applying final closure");
+      ("do_finalize_melt before applying final closure");
     (void) melt_apply ((meltclosure_ptr_t) finclosv,
                        (melt_ptr_t) NULL, "", NULL, "", NULL);
   }
@@ -11382,33 +11361,51 @@ do_finalize_melt (void)
      region.  */
   melt_garbcoll (0, MELT_ONLY_MINOR);
   /* Clear the temporary directory if needed.  */
-  if (tempdir_melt[0]) {
-    DIR *tdir = opendir (tempdir_melt);
-    VEC (meltchar_p, heap) * dirvec = 0;
-    int nbdelfil = 0;
-    struct dirent *dent = 0;
-    if (!tdir)
-      melt_fatal_error ("failed to open tempdir %s %m", tempdir_melt);
-    dirvec = VEC_alloc (meltchar_p, heap, 30);
-    while ((dent = readdir (tdir)) != NULL) {
-      if (dent->d_name[0] && dent->d_name[0] != '.')
-        /* this skips  '.' & '..' and we have no  .* file */
-        VEC_safe_push (meltchar_p, heap, dirvec,
-                       concat (tempdir_melt, "/", dent->d_name, NULL));
+  if (tempdir_melt[0]) 
+    {
+      DIR *tdir = opendir (tempdir_melt);
+      int nbdelfil = 0;
+      struct dirent *dent = NULL;
+      char**arrent = NULL;
+      int arrsize = 0;
+      int arrcount = 0;
+      int ix = 0;
+      arrsize = 32;
+      arrent = (char**)xcalloc (arrsize, sizeof(char*));
+      if (!tdir)
+	melt_fatal_error ("failed to open tempdir %s %m", tempdir_melt);
+      while ((dent = readdir (tdir)) != NULL) 
+	{
+	  if (!dent->d_name[0] || dent->d_name[0] == '.')
+	    /* This skips  '.' & '..' entries and we have no  .* files.  */
+	    continue;
+	  if (arrcount+2 >= arrsize) 
+	    {
+	      int newsize = ((3*arrcount/2+40)|0xf)+1;
+	      char** oldarr = arrent;
+	      char** newarr = (char**)xcalloc(newsize, sizeof(char*));
+	      memcpy (newarr, arrent, arrcount*sizeof(char*));
+	      free (oldarr);
+	      arrent = newarr;
+	      arrsize = newsize;
+	    }
+	  arrent[arrcount++] = xstrdup (dent->d_name);
+	};
+      closedir (tdir);
+      for (ix = 0; ix < arrcount; ix++) 
+	{
+	  char *tfilnam = arrent[ix];
+	  debugeprintf ("melt_finalize remove file #%d %s", ix, tfilnam);
+	  if (!remove (tfilnam))
+	      nbdelfil++;
+	  arrent[ix] = NULL;
+	  free (tfilnam);
+	};
+      free (arrent), arrent = NULL;
+      if (nbdelfil>0)
+	inform (UNKNOWN_LOCATION, "MELT removed %d temporary files from %s",
+		nbdelfil, tempdir_melt);
     }
-    closedir (tdir);
-    while (!VEC_empty (meltchar_p, dirvec)) {
-      char *tfilnam = VEC_pop (meltchar_p, dirvec);
-      debugeprintf ("melt_finalize remove file %s", tfilnam);
-      if (!remove (tfilnam))
-        nbdelfil++;
-      free (tfilnam);
-    };
-    VEC_free (meltchar_p, heap, dirvec);
-    if (nbdelfil>0)
-      inform (UNKNOWN_LOCATION, "MELT removed %d temporary files from %s",
-              nbdelfil, tempdir_melt);
-  }
   if (made_tempdir_melt && tempdir_melt[0]) {
     errno = 0;
     if (rmdir (tempdir_melt))
@@ -11417,8 +11414,6 @@ do_finalize_melt (void)
       warning (0, "failed to rmdir melt tempdir %s (%s)",
                tempdir_melt, xstrerror (errno));
   }
-  VEC_free (meltchar_p, heap, parsedmeltfilevect);
-  parsedmeltfilevect = NULL;
   if (melt_generated_c_files_list_fil) 
     {
       fprintf (melt_generated_c_files_list_fil, "# end of generated C file list\n");
@@ -11453,7 +11448,7 @@ do_finalize_melt (void)
     }
 #endif
   dbgprintf ("do_finalize_melt ended melt_nb_modules=%d", melt_nb_modules);
-end:
+ end:
   MELT_EXITFRAME ();
 #undef finclosv
 }
