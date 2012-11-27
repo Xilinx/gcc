@@ -1,6 +1,12 @@
 
 2012-11-27  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-outobj.melt (syntestgen_primitive)
+	(syntestgen_citerator, syntestgen_cmatcher): Identifiers emitted
+	in syntax checking routines should have a melt prefix.
+
+2012-11-27  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{no more DEF_VEC in melt-runtime.*}}
 	* melt-runtime.c (meltchar_p): Remove type, and its DEF_VEC_P.
 	(parsedmeltfilevect): Remove static variable.
