@@ -30399,7 +30399,7 @@ lab_endgetargs:;
 				     melt_is_instance_of ((melt_ptr_t)
 							  ( /*_.CTYP__V4*/
 							   meltfptr[3]),
-							  (melt_ptr_t) (( /*!CLASS_CTYPE */ meltfrout->tabval[2])))
+							  (melt_ptr_t) (( /*!CLASS_QUASI_CTYPE */ meltfrout->tabval[12])))
 			)	/*then */
 			{
 			  /*^cond.then */
@@ -30426,7 +30426,7 @@ lab_endgetargs:;
 				     /*ifisa */
 				     melt_is_instance_of ((melt_ptr_t)
 							  ( /*_.CTYPE_KEYWORD__V51*/ meltfptr[49]),
-							  (melt_ptr_t) (( /*!CLASS_NAMED */ meltfrout->tabval[12])))
+							  (melt_ptr_t) (( /*!CLASS_NAMED */ meltfrout->tabval[13])))
 			)	/*then */
 			{
 			  /*^cond.then */
@@ -30485,13 +30485,13 @@ lab_endgetargs:;
        /*_.MAKE_INTEGERBOX__V54*/ meltfptr[53] =
 			(meltgc_new_int
 			 ((meltobject_ptr_t)
-			  (( /*!DISCR_INTEGER */ meltfrout->tabval[13])),
+			  (( /*!DISCR_INTEGER */ meltfrout->tabval[14])),
 			  ( /*_#OFF__L10*/ meltfnum[8])));;
 		      /*^compute */
        /*_.STRBUF2STRING__V55*/ meltfptr[54] =
 			(meltgc_new_stringdup
 			 ((meltobject_ptr_t)
-			  (( /*!DISCR_STRING */ meltfrout->tabval[14])),
+			  (( /*!DISCR_STRING */ meltfrout->tabval[15])),
 			  melt_strbuf_str ((melt_ptr_t)
 					   ( /*_.NAMBUF__V47*/
 					    meltfptr[39]))));;

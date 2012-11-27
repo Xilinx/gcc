@@ -21345,7 +21345,7 @@ lab_endgetargs:;
 					/*cond */ if (
 						       /*ifisa */
 						       melt_is_instance_of ((melt_ptr_t) ( /*_.CTYP__V84*/ meltfptr[68]),
-									    (melt_ptr_t) (( /*!CLASS_CTYPE */ meltfrout->tabval[12])))
+									    (melt_ptr_t) (( /*!CLASS_QUASI_CTYPE */ meltfrout->tabval[12])))
 					  )	/*then */
 					  {
 					    /*^cond.then */
@@ -21418,7 +21418,7 @@ lab_endgetargs:;
 					/*cond */ if (
 						       /*ifisa */
 						       melt_is_instance_of ((melt_ptr_t) ( /*_.PREVCTYP__V92*/ meltfptr[60]),
-									    (melt_ptr_t) (( /*!CLASS_CTYPE */ meltfrout->tabval[12])))
+									    (melt_ptr_t) (( /*!CLASS_QUASI_CTYPE */ meltfrout->tabval[12])))
 					  )	/*then */
 					  {
 					    /*^cond.then */

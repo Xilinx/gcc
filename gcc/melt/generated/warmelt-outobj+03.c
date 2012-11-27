@@ -12738,7 +12738,7 @@ lab_endgetargs:;
 			obj =
 			  (melt_ptr_t) ( /*_.CURCTYP__V18*/ meltfptr[16])
 			  /*=obj*/ ;
-			melt_object_get_field (slot, obj, 5,
+			melt_object_get_field (slot, obj, 6,
 					       "CTYPE_PARSTRING");
        /*_.CTYPE_PARSTRING__V22*/ meltfptr[21] = slot;
 		      };
@@ -12938,7 +12938,7 @@ lab_endgetargs:;
 					    (melt_ptr_t) ( /*_.CURCTYP__V18*/
 							  meltfptr[16])
 					    /*=obj*/ ;
-					  melt_object_get_field (slot, obj, 6,
+					  melt_object_get_field (slot, obj, 7,
 								 "CTYPE_ARGFIELD");
 	     /*_.CTYPE_ARGFIELD__V28*/
 					    meltfptr[25] = slot;
@@ -14619,7 +14619,7 @@ lab_endgetargs:;
 		  melt_ptr_t slot = NULL, obj = NULL;
 		  obj =
 		    (melt_ptr_t) ( /*_.CURCTYP__V17*/ meltfptr[16]) /*=obj*/ ;
-		  melt_object_get_field (slot, obj, 5, "CTYPE_PARSTRING");
+		  melt_object_get_field (slot, obj, 6, "CTYPE_PARSTRING");
      /*_.CTYPE_PARSTRING__V21*/ meltfptr[20] = slot;
 		};
 		;
@@ -14884,7 +14884,7 @@ lab_endgetargs:;
 				    obj =
 				      (melt_ptr_t) ( /*_.CURCTYP__V17*/
 						    meltfptr[16]) /*=obj*/ ;
-				    melt_object_get_field (slot, obj, 6,
+				    melt_object_get_field (slot, obj, 7,
 							   "CTYPE_ARGFIELD");
 	   /*_.CTYPE_ARGFIELD__V29*/ meltfptr[25] =
 				      slot;
@@ -16842,7 +16842,7 @@ lab_endgetargs:;
 			obj =
 			  (melt_ptr_t) ( /*_.CURCTYP__V27*/ meltfptr[23])
 			  /*=obj*/ ;
-			melt_object_get_field (slot, obj, 5,
+			melt_object_get_field (slot, obj, 6,
 					       "CTYPE_PARSTRING");
        /*_.CTYPE_PARSTRING__V31*/ meltfptr[30] = slot;
 		      };
@@ -16993,7 +16993,7 @@ lab_endgetargs:;
 				    obj =
 				      (melt_ptr_t) ( /*_.CURCTYP__V27*/
 						    meltfptr[23]) /*=obj*/ ;
-				    melt_object_get_field (slot, obj, 6,
+				    melt_object_get_field (slot, obj, 7,
 							   "CTYPE_ARGFIELD");
 	   /*_.CTYPE_ARGFIELD__V36*/ meltfptr[33] =
 				      slot;
@@ -18157,7 +18157,7 @@ lab_endgetargs:;
     {
       melt_ptr_t slot = NULL, obj = NULL;
       obj = (melt_ptr_t) ( /*_.CURCTYP__V3*/ meltfptr[2]) /*=obj*/ ;
-      melt_object_get_field (slot, obj, 5, "CTYPE_PARSTRING");
+      melt_object_get_field (slot, obj, 6, "CTYPE_PARSTRING");
   /*_.CTYPE_PARSTRING__V4*/ meltfptr[3] = slot;
     };
     ;
@@ -18543,7 +18543,7 @@ lab_endgetargs:;
 		  melt_ptr_t slot = NULL, obj = NULL;
 		  obj =
 		    (melt_ptr_t) ( /*_.CURESTYP__V3*/ meltfptr[2]) /*=obj*/ ;
-		  melt_object_get_field (slot, obj, 7, "CTYPE_RESFIELD");
+		  melt_object_get_field (slot, obj, 8, "CTYPE_RESFIELD");
       /*_.CTYPE_RESFIELD__V11*/ meltfptr[8] = slot;
 		};
 		;
@@ -19827,7 +19827,7 @@ lab_endgetargs:;
 		  melt_ptr_t slot = NULL, obj = NULL;
 		  obj =
 		    (melt_ptr_t) ( /*_.CURCTYP__V24*/ meltfptr[20]) /*=obj*/ ;
-		  melt_object_get_field (slot, obj, 5, "CTYPE_PARSTRING");
+		  melt_object_get_field (slot, obj, 6, "CTYPE_PARSTRING");
      /*_.CTYPE_PARSTRING__V28*/ meltfptr[27] = slot;
 		};
 		;
@@ -19970,7 +19970,7 @@ lab_endgetargs:;
 			      obj =
 				(melt_ptr_t) ( /*_.CURCTYP__V24*/
 					      meltfptr[20]) /*=obj*/ ;
-			      melt_object_get_field (slot, obj, 6,
+			      melt_object_get_field (slot, obj, 7,
 						     "CTYPE_ARGFIELD");
 	 /*_.CTYPE_ARGFIELD__V33*/ meltfptr[30] = slot;
 			    };
@@ -21104,7 +21104,7 @@ lab_endgetargs:;
     {
       melt_ptr_t slot = NULL, obj = NULL;
       obj = (melt_ptr_t) ( /*_.CURESTYP__V3*/ meltfptr[2]) /*=obj*/ ;
-      melt_object_get_field (slot, obj, 5, "CTYPE_PARSTRING");
+      melt_object_get_field (slot, obj, 6, "CTYPE_PARSTRING");
   /*_.CTYPE_PARSTRING__V4*/ meltfptr[3] = slot;
     };
     ;
@@ -21490,7 +21490,7 @@ lab_endgetargs:;
 		  melt_ptr_t slot = NULL, obj = NULL;
 		  obj =
 		    (melt_ptr_t) ( /*_.CURESTYP__V3*/ meltfptr[2]) /*=obj*/ ;
-		  melt_object_get_field (slot, obj, 7, "CTYPE_RESFIELD");
+		  melt_object_get_field (slot, obj, 8, "CTYPE_RESFIELD");
       /*_.CTYPE_RESFIELD__V11*/ meltfptr[8] = slot;
 		};
 		;

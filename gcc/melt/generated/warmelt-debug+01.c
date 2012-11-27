@@ -5022,7 +5022,7 @@ lab_endgetargs:;
 											   /*ifisa */
 											   melt_is_instance_of
 											   ((melt_ptr_t) ( /*_.VCTYP__V66*/ meltfptr[31]),
-											    (melt_ptr_t) (( /*!CLASS_CTYPE */ meltfrout->tabval[18])))
+											    (melt_ptr_t) (( /*!CLASS_QUASI_CTYPE */ meltfrout->tabval[18])))
 									      )	/*then */
 									      {
 										/*^cond.then */

@@ -12034,7 +12034,7 @@ lab_endgetargs:;
 			       melt_is_instance_of ((melt_ptr_t)
 						    ( /*_.FBIND_TYPE__V9*/
 						     meltfptr[7]),
-						    (melt_ptr_t) (( /*!CLASS_CTYPE */ meltfrout->tabval[1])))
+						    (melt_ptr_t) (( /*!CLASS_QUASI_CTYPE */ meltfrout->tabval[1])))
 		  )		/*then */
 		  {
 		    /*^cond.then */
@@ -20915,8 +20915,7 @@ lab_endgetargs:;
 		   /*ifisa */
 		   melt_is_instance_of ((melt_ptr_t)
 					( /*_.TYPE__V13*/ meltfptr[12]),
-					(melt_ptr_t) (( /*!CLASS_CTYPE */
-						       meltfrout->tabval[6])))
+					(melt_ptr_t) (( /*!CLASS_QUASI_CTYPE */ meltfrout->tabval[6])))
       )				/*then */
       {
 	/*^cond.then */
@@ -26061,7 +26060,7 @@ lab_endgetargs:;
 			 melt_is_instance_of ((melt_ptr_t)
 					      ( /*_.FBIND_TYPE__V32*/
 					       meltfptr[31]),
-					      (melt_ptr_t) (( /*!CLASS_CTYPE */ meltfrout->tabval[14])))
+					      (melt_ptr_t) (( /*!CLASS_QUASI_CTYPE */ meltfrout->tabval[14])))
 	    )			/*then */
 	    {
 	      /*^cond.then */
@@ -33573,7 +33572,7 @@ lab_endgetargs:;
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
 		  (melt_ptr_t) ( /*_.CURCTYP__V16*/ meltfptr[14]) /*=obj*/ ;
-		melt_object_get_field (slot, obj, 3, "CTYPE_CNAME");
+		melt_object_get_field (slot, obj, 4, "CTYPE_CNAME");
     /*_.CTYPE_CNAME__V26*/ meltfptr[25] = slot;
 	      };
 	      ;
@@ -33744,7 +33743,7 @@ lab_endgetargs:;
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
 		  (melt_ptr_t) ( /*_.CURCTYP__V16*/ meltfptr[14]) /*=obj*/ ;
-		melt_object_get_field (slot, obj, 3, "CTYPE_CNAME");
+		melt_object_get_field (slot, obj, 4, "CTYPE_CNAME");
     /*_.CTYPE_CNAME__V29*/ meltfptr[28] = slot;
 	      };
 	      ;

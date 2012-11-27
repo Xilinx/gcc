@@ -9099,7 +9099,7 @@ lab_endgetargs:;
     {
       melt_ptr_t slot = NULL, obj = NULL;
       obj = (melt_ptr_t) ( /*_.OCTYP__V11*/ meltfptr[10]) /*=obj*/ ;
-      melt_object_get_field (slot, obj, 4, "CTYPE_PARCHAR");
+      melt_object_get_field (slot, obj, 5, "CTYPE_PARCHAR");
   /*_.CTYPE_PARCHAR__V17*/ meltfptr[15] = slot;
     };
     ;
@@ -9170,7 +9170,7 @@ lab_endgetargs:;
 	{
 	  melt_ptr_t slot = NULL, obj = NULL;
 	  obj = (melt_ptr_t) ( /*_.OCTYP__V11*/ meltfptr[10]) /*=obj*/ ;
-	  melt_object_get_field (slot, obj, 7, "CTYPE_RESFIELD");
+	  melt_object_get_field (slot, obj, 8, "CTYPE_RESFIELD");
    /*_.CTYPE_RESFIELD__V18*/ meltfptr[17] = slot;
 	};
 	;
@@ -9370,7 +9370,7 @@ lab_endgetargs:;
     {
       melt_ptr_t slot = NULL, obj = NULL;
       obj = (melt_ptr_t) ( /*_.OCTYP__V11*/ meltfptr[10]) /*=obj*/ ;
-      melt_object_get_field (slot, obj, 7, "CTYPE_RESFIELD");
+      melt_object_get_field (slot, obj, 8, "CTYPE_RESFIELD");
   /*_.CTYPE_RESFIELD__V25*/ meltfptr[21] = slot;
     };
     ;
@@ -9413,7 +9413,7 @@ lab_endgetargs:;
     {
       melt_ptr_t slot = NULL, obj = NULL;
       obj = (melt_ptr_t) ( /*_.OCTYP__V11*/ meltfptr[10]) /*=obj*/ ;
-      melt_object_get_field (slot, obj, 7, "CTYPE_RESFIELD");
+      melt_object_get_field (slot, obj, 8, "CTYPE_RESFIELD");
   /*_.CTYPE_RESFIELD__V26*/ meltfptr[19] = slot;
     };
     ;
@@ -20865,7 +20865,7 @@ lab_endgetargs:;
 	      {
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj = (melt_ptr_t) ( /*_.FTYPE__V23*/ meltfptr[22]) /*=obj*/ ;
-		melt_object_get_field (slot, obj, 3, "CTYPE_CNAME");
+		melt_object_get_field (slot, obj, 4, "CTYPE_CNAME");
     /*_.CTYPE_CNAME__V34*/ meltfptr[26] = slot;
 	      };
 	      ;
@@ -22889,7 +22889,7 @@ lab_endgetargs:;
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
 		  (melt_ptr_t) ( /*_.PRITYPE__V25*/ meltfptr[24]) /*=obj*/ ;
-		melt_object_get_field (slot, obj, 3, "CTYPE_CNAME");
+		melt_object_get_field (slot, obj, 4, "CTYPE_CNAME");
      /*_.PRITYNAM__V37*/ meltfptr[36] = slot;
 	      };
 	      ;
@@ -23210,7 +23210,7 @@ lab_endgetargs:;
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
 		  (melt_ptr_t) ( /*_.PRITYPE__V25*/ meltfptr[24]) /*=obj*/ ;
-		melt_object_get_field (slot, obj, 3, "CTYPE_CNAME");
+		melt_object_get_field (slot, obj, 4, "CTYPE_CNAME");
      /*_.PRITYNAM__V50*/ meltfptr[49] = slot;
 	      };
 	      ;

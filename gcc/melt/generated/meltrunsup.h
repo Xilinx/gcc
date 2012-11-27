@@ -2074,14 +2074,12 @@ melt_auxput_maptrees (melt_ptr_t map_p, melt_ptr_t val_p)
 #define MELT_HAS_PREDEF_CLASS_CTYPE
 /* predefined class CLASS_CTYPE index 6 */ enum
 {
-  MELTFIELD_CTYPE_KEYWORD = 2 /*in CLASS_CTYPE */ ,
-  MELTFIELD_CTYPE_CNAME = 3 /*in CLASS_CTYPE */ ,
-  MELTFIELD_CTYPE_PARCHAR = 4 /*in CLASS_CTYPE */ ,
-  MELTFIELD_CTYPE_PARSTRING = 5 /*in CLASS_CTYPE */ ,
-  MELTFIELD_CTYPE_ARGFIELD = 6 /*in CLASS_CTYPE */ ,
-  MELTFIELD_CTYPE_RESFIELD = 7 /*in CLASS_CTYPE */ ,
-  MELTFIELD_CTYPE_MARKER = 8 /*in CLASS_CTYPE */ ,
-  MELTFIELD_CTYPE_DESCR = 9 /*in CLASS_CTYPE */ ,
+  MELTFIELD_CTYPE_CNAME = 4 /*in CLASS_CTYPE */ ,
+  MELTFIELD_CTYPE_PARCHAR = 5 /*in CLASS_CTYPE */ ,
+  MELTFIELD_CTYPE_PARSTRING = 6 /*in CLASS_CTYPE */ ,
+  MELTFIELD_CTYPE_ARGFIELD = 7 /*in CLASS_CTYPE */ ,
+  MELTFIELD_CTYPE_RESFIELD = 8 /*in CLASS_CTYPE */ ,
+  MELTFIELD_CTYPE_MARKER = 9 /*in CLASS_CTYPE */ ,
   MELTFIELD_CTYPE_ALTKEYWORD = 10 /*in CLASS_CTYPE */ ,
   MELTLENGTH_CLASS_CTYPE = 11
 };
@@ -2337,4 +2335,4 @@ melt_auxput_maptrees (melt_ptr_t map_p, melt_ptr_t val_p)
 
 
 /*** End of declaration file meltbuild-sources/generated/meltrunsup.h generated on 2012 Nov 27
- * by GCC MELT 4.8.0 20121127 (experimental) [melt-branch revision 193838] MELT_0.9.7-post . ***/
+ * by GCC MELT 4.8.0 20121127 (experimental) [melt-branch revision 193860] MELT_0.9.7-post . ***/

@@ -4863,7 +4863,7 @@ lab_endgetargs:;
 			 melt_is_instance_of ((melt_ptr_t)
 					      ( /*_.DATACTYPE__V59*/
 					       meltfptr[58]),
-					      (melt_ptr_t) (( /*!CLASS_CTYPE */ meltfrout->tabval[37])))
+					      (melt_ptr_t) (( /*!CLASS_QUASI_CTYPE */ meltfrout->tabval[37])))
 	    )			/*then */
 	    {
 	      /*^cond.then */

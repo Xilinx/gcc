@@ -6887,7 +6887,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /3b02a38d checkpair",
+	    melt_assertmsg ("putpairtail /1bf4b972 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V33*/
 					       meltfptr[32])) ==
@@ -6910,7 +6910,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /204f89fa checkpair",
+	    melt_assertmsg ("putpairtail /b52a711 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.OVARIADICINDEX__V34*/
 					       meltfptr[33])) ==
@@ -6933,7 +6933,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /21fd447e checkpair",
+	    melt_assertmsg ("putpairtail /38c1dc7a checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V35*/
 					       meltfptr[34])) ==
@@ -7163,7 +7163,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /e9490c3 checkpair",
+	    melt_assertmsg ("putpairtail /134d9592 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V47*/
 					       meltfptr[46])) ==
@@ -7186,7 +7186,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /3fc7e98a checkpair",
+	    melt_assertmsg ("putpairtail /39d55359 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V48*/
 					       meltfptr[47])) ==
@@ -7209,7 +7209,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /a584437 checkpair",
+	    melt_assertmsg ("putpairtail /12ce75d2 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V49*/
 					       meltfptr[48])) ==
@@ -7232,7 +7232,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /18a93959 checkpair",
+	    melt_assertmsg ("putpairtail /247fd6c8 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.OVARIADICINDEX__V50*/
 					       meltfptr[49])) ==
@@ -7255,7 +7255,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /6a20fe9 checkpair",
+	    melt_assertmsg ("putpairtail /20fa7604 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V51*/
 					       meltfptr[50])) ==
@@ -7278,7 +7278,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /2a54d92f checkpair",
+	    melt_assertmsg ("putpairtail /3d23b27 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.OVARIADICINDEX__V52*/
 					       meltfptr[51])) ==
@@ -7301,7 +7301,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /71193cc checkpair",
+	    melt_assertmsg ("putpairtail /c8246d9 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V53*/
 					       meltfptr[52])) ==
@@ -7324,7 +7324,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /42b5c7a checkpair",
+	    melt_assertmsg ("putpairtail /3566285e checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V54*/
 					       meltfptr[53])) ==
@@ -7347,7 +7347,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /33945af9 checkpair",
+	    melt_assertmsg ("putpairtail /3d039348 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V55*/
 					       meltfptr[54])) ==
@@ -7743,7 +7743,7 @@ lab_endgetargs:;
 		      obj =
 			(melt_ptr_t) ( /*_.CURCTYP__V58*/ meltfptr[46])
 			/*=obj*/ ;
-		      melt_object_get_field (slot, obj, 4, "CTYPE_PARCHAR");
+		      melt_object_get_field (slot, obj, 5, "CTYPE_PARCHAR");
       /*_.CTYPE_PARCHAR__V69*/ meltfptr[49] = slot;
 		    };
 		    ;
@@ -9813,7 +9813,7 @@ lab_endgetargs:;
 	      {
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj = (melt_ptr_t) ( /*_.NCTYP__V15*/ meltfptr[14]) /*=obj*/ ;
-		melt_object_get_field (slot, obj, 6, "CTYPE_ARGFIELD");
+		melt_object_get_field (slot, obj, 7, "CTYPE_ARGFIELD");
      /*_.CTYPE_ARGFIELD__V35*/ meltfptr[26] = slot;
 	      };
 	      ;
@@ -10848,7 +10848,7 @@ lab_endgetargs:;
 			       melt_is_instance_of ((melt_ptr_t)
 						    ( /*_.CURCTYP__V22*/
 						     meltfptr[21]),
-						    (melt_ptr_t) (( /*!CLASS_CTYPE */ meltfrout->tabval[7])))
+						    (melt_ptr_t) (( /*!CLASS_QUASI_CTYPE */ meltfrout->tabval[9])))
 		  )		/*then */
 		  {
 		    /*^cond.then */
@@ -10875,7 +10875,7 @@ lab_endgetargs:;
 			       melt_is_instance_of ((melt_ptr_t)
 						    ( /*_.CTYPE_KEYWORD__V26*/
 						     meltfptr[23]),
-						    (melt_ptr_t) (( /*!CLASS_NAMED */ meltfrout->tabval[9])))
+						    (melt_ptr_t) (( /*!CLASS_NAMED */ meltfrout->tabval[10])))
 		  )		/*then */
 		  {
 		    /*^cond.then */
@@ -10979,7 +10979,7 @@ lab_endgetargs:;
     /*^compute */
  /*_.MAKE_INTEGERBOX__V31*/ meltfptr[27] =
       (meltgc_new_int
-       ((meltobject_ptr_t) (( /*!DISCR_INTEGER */ meltfrout->tabval[10])),
+       ((meltobject_ptr_t) (( /*!DISCR_INTEGER */ meltfrout->tabval[11])),
 	( /*_#MULTIPLE_LENGTH__L9*/ meltfnum[8])));;
 
     {
@@ -11000,7 +11000,7 @@ lab_endgetargs:;
     {
       /*_.OTUPLE__V33*/ meltfptr[32] =
 	melt_apply ((meltclosure_ptr_t)
-		    (( /*!LIST_TO_MULTIPLE */ meltfrout->tabval[11])),
+		    (( /*!LIST_TO_MULTIPLE */ meltfrout->tabval[12])),
 		    (melt_ptr_t) ( /*_.OLIST__V16*/ meltfptr[15]), (""),
 		    (union meltparam_un *) 0, "", (union meltparam_un *) 0);
     }
@@ -11017,7 +11017,7 @@ lab_endgetargs:;
       melt_ptr_t newobj = 0;
       melt_raw_object_create (newobj,
 			      (melt_ptr_t) (( /*!CLASS_OBJCOMPUTE */
-					     meltfrout->tabval[12])), (4),
+					     meltfrout->tabval[13])), (4),
 			      "CLASS_OBJCOMPUTE");
   /*_.INST__V35*/ meltfptr[34] =
 	newobj;
@@ -11039,7 +11039,7 @@ lab_endgetargs:;
 				      ( /*_.INST__V35*/ meltfptr[34])) ==
 		    MELTOBMAG_OBJECT);
     melt_putfield_object (( /*_.INST__V35*/ meltfptr[34]), (3),
-			  (( /*!CTYPE_VOID */ meltfrout->tabval[13])),
+			  (( /*!CTYPE_VOID */ meltfrout->tabval[14])),
 			  "OBCPT_TYPE");
     ;
     /*^putslot */

@@ -17737,7 +17737,7 @@ lab_endgetargs:;
 		      obj =
 			(melt_ptr_t) ( /*_.NCTYP__V51*/ meltfptr[46]) /*=obj*/
 			;
-		      melt_object_get_field (slot, obj, 4, "CTYPE_PARCHAR");
+		      melt_object_get_field (slot, obj, 5, "CTYPE_PARCHAR");
       /*_.CTYPE_PARCHAR__V54*/ meltfptr[52] = slot;
 		    };
 		    ;

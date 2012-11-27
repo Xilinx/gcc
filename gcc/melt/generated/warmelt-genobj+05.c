@@ -6729,8 +6729,7 @@ lab_endgetargs:;
       argtab[7].meltbp_cstring =
 	",\n\t\t\t\t\t    (melt_ptr_t) MELT_PREDEF(CLASS_ENVIRONMENT)))\
 \n\t\t  melt_fatal_error (\"MELT running extension with bad environment\
- @%p in its reference @%p\",\n\t\t\t\t    \
-(void*) ";
+ @%p in its reference @%p\",\n\t\t\t\t    (void*) ";
       /*^apply.arg */
       argtab[8].meltbp_aptr = (melt_ptr_t *) & /*_.LOCENV__V19*/ meltfptr[18];
       /*^apply.arg */
@@ -35331,7 +35330,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /3e6b51a3 checkpair",
+	    melt_assertmsg ("putpairtail /2aff0000 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.OSUCC__V37*/
 					       meltfptr[33])) ==

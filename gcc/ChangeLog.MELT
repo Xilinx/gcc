@@ -1,6 +1,59 @@
 
 2012-11-27  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	{{Regenerate}}
+	* gcc/melt/generated/meltrunsup-inc.c: Regenerate.
+	* gcc/melt/generated/meltrunsup.h: Regenerate.
+	* gcc/melt/generated/warmelt-base+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-base+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-base.c: Regenerate.
+	* gcc/melt/generated/warmelt-debug+01.c: Regenerate.
+	* gcc/melt/generated/warmelt-debug+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-debug+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-debug.c: Regenerate.
+	* gcc/melt/generated/warmelt-first+01.c: Regenerate.
+	* gcc/melt/generated/warmelt-first+02.c: Regenerate.
+	* gcc/melt/generated/warmelt-first+03.c: Regenerate.
+	* gcc/melt/generated/warmelt-first+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-first+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-first.c: Regenerate.
+	* gcc/melt/generated/warmelt-genobj+01.c: Regenerate.
+	* gcc/melt/generated/warmelt-genobj+04.c: Regenerate.
+	* gcc/melt/generated/warmelt-genobj+05.c: Regenerate.
+	* gcc/melt/generated/warmelt-genobj+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-genobj+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-genobj.c: Regenerate.
+	* gcc/melt/generated/warmelt-macro+01.c: Regenerate.
+	* gcc/melt/generated/warmelt-macro+04.c: Regenerate.
+	* gcc/melt/generated/warmelt-macro+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-macro+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-macro.c: Regenerate.
+	* gcc/melt/generated/warmelt-modes+01.c: Regenerate.
+	* gcc/melt/generated/warmelt-modes+02.c: Regenerate.
+	* gcc/melt/generated/warmelt-modes+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-modes+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-modes.c: Regenerate.
+	* gcc/melt/generated/warmelt-normal+01.c: Regenerate.
+	* gcc/melt/generated/warmelt-normal+02.c: Regenerate.
+	* gcc/melt/generated/warmelt-normal+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-normal+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-normal.c: Regenerate.
+	* gcc/melt/generated/warmelt-normatch+01.c: Regenerate.
+	* gcc/melt/generated/warmelt-normatch+04.c: Regenerate.
+	* gcc/melt/generated/warmelt-normatch+05.c: Regenerate.
+	* gcc/melt/generated/warmelt-normatch+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-normatch+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-normatch.c: Regenerate.
+	* gcc/melt/generated/warmelt-outobj+02.c: Regenerate.
+	* gcc/melt/generated/warmelt-outobj+03.c: Regenerate.
+	* gcc/melt/generated/warmelt-outobj+04.c: Regenerate.
+	* gcc/melt/generated/warmelt-outobj+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-outobj+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-outobj.c: Regenerate.
+
+
+2012-11-27  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-first.melt (class_quasi_ctype): New class, above class_ctype.
 	(quasi_ctype_auto): New instance.
 

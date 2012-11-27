@@ -12172,7 +12172,7 @@ lab_endgetargs:;
     {
       melt_ptr_t slot = NULL, obj = NULL;
       obj = (melt_ptr_t) ( /*_.CTYP__V3*/ meltfptr[2]) /*=obj*/ ;
-      melt_object_get_field (slot, obj, 5, "CTYPE_PARSTRING");
+      melt_object_get_field (slot, obj, 6, "CTYPE_PARSTRING");
   /*_.CTYPE_PARSTRING__V6*/ meltfptr[4] = slot;
     };
     ;
