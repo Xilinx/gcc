@@ -1,3 +1,11 @@
+2012-11-27  Ollie Wild  <aaw@google.com>
+	Merge r193869 from trunk.
+
+	Google ref b/7621728.
+
+	* include/bits/stl_tree.h (@headername): Fix incorrect Doxygen macro
+	invocation.
+
 2012-10-11  Easwaran Raman <eraman@google.com>
 
 	Merge r192382 from google/main:
