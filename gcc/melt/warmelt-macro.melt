@@ -5230,7 +5230,7 @@ condition is a string such as "4.5." or a list of strings.}#)
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
-	(ctyp ctype_value)
+	(ctyp ctype_value)		;;should become quasi_ctype_auto
 	(var ())
 	(expr ())
 	(curpair (list_first cont))
@@ -5242,11 +5242,11 @@ condition is a string such as "4.5." or a list of strings.}#)
 	       (tynam (unsafe_get_field :named_name curarg))
 	       )
 	  (cond
-	   ( (is_not_a cty class_ctype)
+	   ( (is_not_a cty class_quasi_ctype)
 	     (error_strv loc "letbinding with invalid type keyword"_ tynam))
-	   ( (== (unsafe_get_field :ctype_keyword cty) curarg)
+	   ( (== (get_field :ctype_keyword cty) curarg)
 	     (setq ctyp cty))
-	   ( (== (unsafe_get_field :ctype_altkeyword cty) curarg)
+	   ( (== (get_field :ctype_altkeyword cty) curarg)
 	     (setq ctyp cty)
 	     (warning_strv loc "obsolete alternate ctype keyword in let binding"
 			   tynam)

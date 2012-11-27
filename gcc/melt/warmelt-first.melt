@@ -283,20 +283,41 @@ starting with a colon. Keywords are interned inside the
 $INITIAL_SYSTEM_DATA.}#
   :fields ())
 
+;; singleton class of quasi-ctype, only useful for :auto; all other
+;; ctypes are instances of class_ctype which is a subclass of
+;; class_quasi_ctype
+
+(defclass class_quasi_ctype
+  :super class_named
+  :fields (
+	   ctype_keyword ;the keyword associated to the ctype (e.g. :long)
+	   ctype_descr	  ;descriptive string
+	   )
+  :doc #{The $CLASS_QUASI_CTYPE is only for the :auto ctype
+  annotation. It is a singleton class, but the $CLASS_CTYPE is its
+  subclass. $CTYPE_KEYWORD gives the MELT keyword symbol associated to
+  it. $CTYPE_DESCR gives a descriptive string.}#)
+
+(definstance quasi_ctype_auto class_quasi_ctype
+  :doc #{the $QUASI_CTYPE_AUTO is for :auto annotations}#
+  :named_name '"QUASI_CTYPE_AUTO"
+  :ctype_keyword ':auto
+)
+
+(put_fields ':auto :symb_data quasi_ctype_auto)
+
 ;; class of C types keywords - it is predefined to ensure
 ;; install_ctype_descr always refer to the same class
 (defclass class_ctype
   :predef CLASS_CTYPE
-  :super class_named
+  :super class_quasi_ctype
   :fields (
-	   ctype_keyword ;the keyword associated to the ctype (e.g. :long)
 	   ctype_cname	 ;the name for C of the type (eg long)
 	   ctype_parchar ;the name of the melt parameter char (eg MELTBPAR_LONG)
 	   ctype_parstring ;the name of the melt parameter string (eg MELTBPARSTR_LONG)
 	   ctype_argfield ;the name of the melt argument union field (eg meltbp_long)
 	   ctype_resfield ;the name of the melt result union field (eg meltbp_longptr)
 	   ctype_marker	  ;the name of the marker routine
-	   ctype_descr	  ;descriptive string
 	   ctype_altkeyword ;the alternate keyword associated to the ctype (e.g. :longinteger)
 	   )
   :doc #{The $CLASS_CTYPE is for predefined descriptors of C
@@ -2258,8 +2279,8 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
   (assert_msg "check ctyp" (is_a ctyp class_ctype)) 
   (if (unsafe_get_field :ctype_descr ctyp)
       (return))
-  (let ( (ckw (unsafe_get_field :ctype_keyword ctyp)) 
-	 (altkw (unsafe_get_field :ctype_altkeyword ctyp)) 
+  (let ( (ckw (get_field :ctype_keyword ctyp)) 
+	 (altkw (get_field :ctype_altkeyword ctyp)) 
 	 (ds (make_stringconst discr_string descr))
 	 )
     (assert_msg "check ctype ckw" (is_a ckw class_keyword))
@@ -4253,6 +4274,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  class_primitive
  class_primitive_binding
  class_proped 
+ class_quasi_ctype
  class_root
  class_running_extension_module_context
  class_selector
@@ -4442,6 +4464,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  discr_verbatim_string  
  initial_environment                  
  initial_system_data
+ quasi_ctype_auto
  ) ;;;end export discriminants, instances, selectors
 
 

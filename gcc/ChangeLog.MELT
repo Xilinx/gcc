@@ -1,6 +1,13 @@
 
 2012-11-27  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-first.melt (class_quasi_ctype): New class, above class_ctype.
+	(quasi_ctype_auto): New instance.
+
+	* melt/warmelt-macro.melt (mexpand_letbinding): Accept :auto...
+
+2012-11-27  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{Regenerate}}
 	* gcc/melt/generated/meltrunsup-inc.c: Regenerate.
 	* gcc/melt/generated/meltrunsup.h: Regenerate.
