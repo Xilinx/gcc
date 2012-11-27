@@ -1,3 +1,37 @@
+2012-11-27  Richard Biener  <rguenther@suse.de>
+
+	PR middle-end/55331
+	* g++.dg/opt/pr55331.C: New testcase.
+
+2012-11-26  Richard Biener  <rguenther@suse.de>
+
+	Backport from mainline
+	2012-10-12  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/54894
+	* gcc.dg/torture/pr54894.c: New testcase.
+
+	2012-10-02  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/54735
+	* g++.dg/torture/pr54735.C: New testcase.
+
+2012-11-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/55446
+	* g++.dg/init/new41.C: New.
+
+2012-11-24  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/55314
+	Backport from trunk
+	* gfortran.dg/allocate_error_4.f90:  New test.
+
+2012-11-23  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/55352
+	* gfortran.dg/namelist_76.f90: New.
+
 2012-11-19  H.J. Lu  <hongjiu.lu@intel.com>
 
 	Backported from mainline
