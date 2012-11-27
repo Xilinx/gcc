@@ -1,9 +1,9 @@
-# Temporarily ignore gcc pr54127.
-expire=20151231 | FAIL: gcc.dg/torture/pr53589.c -O3 -g  (test for excess errors)
-expire=20151231 | FAIL: gcc.dg/torture/pr53589.c  -O3 -g  (internal compiler error)
-# Temporarily ignore Google ref b/6983319.
-expire=20151231 | FAIL: gcc.target/powerpc/regnames-1.c (test for excess errors)
-expire=20151231 | FAIL: gcc.target/powerpc/regnames-1.c (internal compiler error)
+# Ignore gcc pr54127.
+FAIL: gcc.dg/torture/pr53589.c -O3 -g  (test for excess errors)
+FAIL: gcc.dg/torture/pr53589.c  -O3 -g  (internal compiler error)
+# Ignore Google ref b/6983319.
+FAIL: gcc.target/powerpc/regnames-1.c (test for excess errors)
+FAIL: gcc.target/powerpc/regnames-1.c (internal compiler error)
 
 FAIL: gfortran.dg/bessel_6.f90  -O0  execution test
 FAIL: gfortran.dg/bessel_6.f90  -O1  execution test

@@ -1,6 +1,11 @@
 2012-11-27  Simon Baldwin  <simonb@google.com>
 
 	* contrib/testsuite-management/powerpc-grtev3-linux-gnu.xfail:
+	Permanently ignore pr54127 and Google ref b/6983319.
+
+2012-11-27  Simon Baldwin  <simonb@google.com>
+
+	* contrib/testsuite-management/powerpc-grtev3-linux-gnu.xfail:
 	Extend expiration date for pr54127 and Google ref b/6983319.
 
 2012-09-11  Sterling Augustine  <saugustine@google.com>
