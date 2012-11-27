@@ -295,7 +295,8 @@ pch_open_file (cpp_reader *pfile, _cpp_file *file, bool *invalid_pch)
      file or the command-line it is not a valid use of PCH.  */
   if (pfile->all_files
       && pfile->all_files->next_file
-      && !pfile->all_files->next_file->implicit_preinclude)
+      && !(pfile->all_files->implicit_preinclude
+	   || pfile->all_files->next_file->implicit_preinclude))
     return false;
 
   flen = strlen (path);
@@ -389,7 +390,7 @@ find_file_in_dir (cpp_reader *pfile, _cpp_file *file, bool *invalid_pch)
       void **pp;
 
       /* We try to canonicalize system headers.  */
-      if (file->dir->sysp)
+      if (CPP_OPTION (pfile, canonical_system_headers) && file->dir->sysp)
 	{
 	  char * canonical_path = maybe_shorter_path (path);
 	  if (canonical_path)

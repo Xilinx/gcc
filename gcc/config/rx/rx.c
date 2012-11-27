@@ -1086,7 +1086,20 @@ static unsigned int
 rx_function_arg_boundary (enum machine_mode mode ATTRIBUTE_UNUSED,
 			  const_tree type ATTRIBUTE_UNUSED)
 {
-  return 32;
+  /* Older versions of the RX backend aligned all on-stack arguements
+     to 32-bits.  The RX C ABI however says that they should be
+     aligned to their natural alignment.  (See section 5.2.2 of the ABI).  */
+  if (TARGET_GCC_ABI)
+    return STACK_BOUNDARY;
+
+  if (type)
+    {
+      if (DECL_P (type))
+	return DECL_ALIGN (type);
+      return TYPE_ALIGN (type);
+    }
+
+  return PARM_BOUNDARY;
 }
 
 /* Return an RTL describing where a function return value of type RET_TYPE
@@ -2614,43 +2627,43 @@ rx_option_override (void)
 {
   unsigned int i;
   cl_deferred_option *opt;
-  VEC(cl_deferred_option,heap) *vec
-    = (VEC(cl_deferred_option,heap) *) rx_deferred_options;
+  vec<cl_deferred_option> *v = (vec<cl_deferred_option> *) rx_deferred_options;
 
-  FOR_EACH_VEC_ELT (cl_deferred_option, vec, i, opt)
-    {
-      switch (opt->opt_index)
-	{
-	case OPT_mint_register_:
-	  switch (opt->value)
-	    {
-	    case 4:
-	      fixed_regs[10] = call_used_regs [10] = 1;
-	      /* Fall through.  */
-	    case 3:
-	      fixed_regs[11] = call_used_regs [11] = 1;
-	      /* Fall through.  */
-	    case 2:
-	      fixed_regs[12] = call_used_regs [12] = 1;
-	      /* Fall through.  */
-	    case 1:
-	      fixed_regs[13] = call_used_regs [13] = 1;
-	      /* Fall through.  */
-	    case 0:
-	      rx_num_interrupt_regs = opt->value;
-	      break;
-	    default:
-	      rx_num_interrupt_regs = 0;
-	      /* Error message already given because rx_handle_option
-		 returned false.  */
-	      break;
-	    }
-	  break;
+  if (v)
+    FOR_EACH_VEC_ELT (*v, i, opt)
+      {
+	switch (opt->opt_index)
+	  {
+	  case OPT_mint_register_:
+	    switch (opt->value)
+	      {
+	      case 4:
+		fixed_regs[10] = call_used_regs [10] = 1;
+		/* Fall through.  */
+	      case 3:
+		fixed_regs[11] = call_used_regs [11] = 1;
+		/* Fall through.  */
+	      case 2:
+		fixed_regs[12] = call_used_regs [12] = 1;
+		/* Fall through.  */
+	      case 1:
+		fixed_regs[13] = call_used_regs [13] = 1;
+		/* Fall through.  */
+	      case 0:
+		rx_num_interrupt_regs = opt->value;
+		break;
+	      default:
+		rx_num_interrupt_regs = 0;
+		/* Error message already given because rx_handle_option
+		  returned false.  */
+		break;
+	      }
+	    break;
 
-	default:
-	  gcc_unreachable ();
-	}
-    }
+	  default:
+	    gcc_unreachable ();
+	  }
+      }
 
   /* This target defaults to strict volatile bitfields.  */
   if (flag_strict_volatile_bitfields < 0 && abi_version_at_least(2))
@@ -3202,7 +3215,39 @@ rx_adjust_insn_length (rtx insn, int current_length)
 
   return (zero && factor == 1) ? 4 : 5;
 }
+
+static bool
+rx_narrow_volatile_bitfield (void)
+{
+  return true;
+}
+
+static bool
+rx_ok_to_inline (tree caller, tree callee)
+{
+  /* Do not inline functions with local variables
+     into a naked CALLER - naked function have no stack frame and
+     locals need a frame in order to have somewhere to live.
+
+     Unfortunately we have no way to determine the presence of
+     local variables in CALLEE, so we have to be cautious and
+     assume that there might be some there.
+
+     We do allow inlining when CALLEE has the "inline" type
+     modifier or the "always_inline" or "gnu_inline" attributes.  */
+  return lookup_attribute ("naked", DECL_ATTRIBUTES (caller)) == NULL_TREE
+    || DECL_DECLARED_INLINE_P (callee)
+    || lookup_attribute ("always_inline", DECL_ATTRIBUTES (callee)) != NULL_TREE
+    || lookup_attribute ("gnu_inline", DECL_ATTRIBUTES (callee)) != NULL_TREE;
+}
+
 
+#undef  TARGET_NARROW_VOLATILE_BITFIELD
+#define TARGET_NARROW_VOLATILE_BITFIELD		rx_narrow_volatile_bitfield
+
+#undef  TARGET_CAN_INLINE_P
+#define TARGET_CAN_INLINE_P			rx_ok_to_inline
+
 #undef  TARGET_ASM_JUMP_ALIGN_MAX_SKIP
 #define TARGET_ASM_JUMP_ALIGN_MAX_SKIP			rx_max_skip_for_label
 #undef  TARGET_ASM_LOOP_ALIGN_MAX_SKIP
@@ -3344,8 +3389,8 @@ rx_adjust_insn_length (rtx insn, int current_length)
 #undef  TARGET_LEGITIMIZE_ADDRESS
 #define TARGET_LEGITIMIZE_ADDRESS		rx_legitimize_address
 
-#undef TARGET_WARN_FUNC_RETURN
-#define TARGET_WARN_FUNC_RETURN rx_warn_func_return
+#undef  TARGET_WARN_FUNC_RETURN
+#define TARGET_WARN_FUNC_RETURN 		rx_warn_func_return
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 

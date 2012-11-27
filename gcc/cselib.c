@@ -2593,6 +2593,28 @@ cselib_record_sets (rtx insn)
     }
 }
 
+/* Return true if INSN in the prologue initializes hard_frame_pointer_rtx.  */
+
+bool
+fp_setter_insn (rtx insn)
+{
+  rtx expr, pat = NULL_RTX;
+
+  if (!RTX_FRAME_RELATED_P (insn))
+    return false;
+
+  expr = find_reg_note (insn, REG_FRAME_RELATED_EXPR, NULL_RTX);
+  if (expr)
+    pat = XEXP (expr, 0);
+  if (!modified_in_p (hard_frame_pointer_rtx, pat ? pat : insn))
+    return false;
+
+  /* Don't return true for frame pointer restores in the epilogue.  */
+  if (find_reg_note (insn, REG_CFA_RESTORE, hard_frame_pointer_rtx))
+    return false;
+  return true;
+}
+
 /* Record the effects of INSN.  */
 
 void
@@ -2603,13 +2625,12 @@ cselib_process_insn (rtx insn)
 
   cselib_current_insn = insn;
 
-  /* Forget everything at a CODE_LABEL, a volatile asm, or a setjmp.  */
+  /* Forget everything at a CODE_LABEL, a volatile insn, or a setjmp.  */
   if (LABEL_P (insn)
       || (CALL_P (insn)
 	  && find_reg_note (insn, REG_SETJMP, NULL))
       || (NONJUMP_INSN_P (insn)
-	  && GET_CODE (PATTERN (insn)) == ASM_OPERANDS
-	  && MEM_VOLATILE_P (PATTERN (insn))))
+	  && volatile_insn_p (PATTERN (insn))))
     {
       cselib_reset_table (next_uid);
       cselib_current_insn = NULL_RTX;
@@ -2650,6 +2671,14 @@ cselib_process_insn (rtx insn)
     for (x = CALL_INSN_FUNCTION_USAGE (insn); x; x = XEXP (x, 1))
       if (GET_CODE (XEXP (x, 0)) == CLOBBER)
 	cselib_invalidate_rtx (XEXP (XEXP (x, 0), 0));
+
+  /* On setter of the hard frame pointer if frame_pointer_needed,
+     invalidate stack_pointer_rtx, so that sp and {,h}fp based
+     VALUEs are distinct.  */
+  if (reload_completed
+      && frame_pointer_needed
+      && fp_setter_insn (insn))
+    cselib_invalidate_rtx (stack_pointer_rtx);
 
   cselib_current_insn = NULL_RTX;
 

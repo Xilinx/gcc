@@ -293,7 +293,9 @@ in_class_p (rtx reg, enum reg_class cl, enum reg_class *new_class)
 	  if (nregs == 1)
 	    return true;
 	  for (j = 0; j < nregs; j++)
-	    if (TEST_HARD_REG_BIT (lra_no_alloc_regs, hard_regno + j))
+	    if (TEST_HARD_REG_BIT (lra_no_alloc_regs, hard_regno + j)
+		|| ! TEST_HARD_REG_BIT (reg_class_contents[common_class],
+					hard_regno + j))
 	      break;
 	  if (j >= nregs)
 	    return true;
@@ -425,7 +427,7 @@ get_reload_reg (enum op_type type, enum machine_mode mode, rtx original,
 	    fprintf (lra_dump_file, "	 Reuse r%d for reload ", regno);
 	    print_value_slim (lra_dump_file, original, 1);
 	  }
-	if (rclass != new_class)
+	if (new_class != lra_get_allocno_class (regno))
 	  change_class (regno, new_class, ", change", false);
 	if (lra_dump_file != NULL)
 	  fprintf (lra_dump_file, "\n");
@@ -1146,7 +1148,12 @@ simplify_operand_subreg (int nop, enum machine_mode reg_mode)
   reg = SUBREG_REG (operand);
   /* If we change address for paradoxical subreg of memory, the
      address might violate the necessary alignment or the access might
-     be slow.  So take this into consideration.	 */
+     be slow.  So take this into consideration.  We should not worry
+     about access beyond allocated memory for paradoxical memory
+     subregs as we don't substitute such equiv memory (see processing
+     equivalences in function lra_constraints) and because for spilled
+     pseudos we allocate stack memory enough for the biggest
+     corresponding paradoxical subreg.  */
   if ((MEM_P (reg)
        && (! SLOW_UNALIGNED_ACCESS (mode, MEM_ALIGN (reg))
 	   || MEM_ALIGN (reg) >= GET_MODE_ALIGNMENT (mode)))
@@ -1942,6 +1949,19 @@ process_alt_operands (int only_alternative)
 	      if (no_regs_p && REG_P (op))
 		reject++;
 
+#ifdef SECONDARY_MEMORY_NEEDED
+	      /* If reload requires moving value through secondary
+		 memory, it will need one more insn at least.  */
+	      if (this_alternative != NO_REGS 
+		  && REG_P (op) && (cl = get_reg_class (REGNO (op))) != NO_REGS
+		  && ((curr_static_id->operand[nop].type != OP_OUT
+		       && SECONDARY_MEMORY_NEEDED (cl, this_alternative,
+						   GET_MODE (op)))
+		      || (curr_static_id->operand[nop].type != OP_IN
+			  && SECONDARY_MEMORY_NEEDED (this_alternative, cl,
+						      GET_MODE (op)))))
+		losers++;
+#endif
 	      /* Input reloads can be inherited more often than output
 		 reloads can be removed, so penalize output
 		 reloads.  */
@@ -3202,6 +3222,17 @@ multi_block_pseudo_p (int regno)
     return false;
 }
 
+/* Return true if LIST contains a deleted insn.  */
+static bool
+contains_deleted_insn_p (rtx list)
+{
+  for (; list != NULL_RTX; list = XEXP (list, 1))
+    if (NOTE_P (XEXP (list, 0))
+	&& NOTE_KIND (XEXP (list, 0)) == NOTE_INSN_DELETED)
+      return true;
+  return false;
+}
+
 /* Return true if X contains a pseudo dying in INSN.  */
 static bool
 dead_pseudo_p (rtx x, rtx insn)
@@ -3304,10 +3335,29 @@ lra_constraints (bool first_p)
 	    bool pseudo_p = contains_reg_p (x, false, false);
 	    rtx set, insn;
 
-	    /* We don't use DF for compilation speed sake.  So it is
-	       problematic to update live info when we use an
-	       equivalence containing pseudos in more than one BB.  */
-	    if ((pseudo_p && multi_block_pseudo_p (i))
+	    /* After RTL transformation, we can not guarantee that
+	       pseudo in the substitution was not reloaded which might
+	       make equivalence invalid.  For example, in reverse
+	       equiv of p0
+
+	       p0 <- ...
+	       ...
+	       equiv_mem <- p0
+
+	       the memory address register was reloaded before the 2nd
+	       insn.  */
+	    if ((! first_p && pseudo_p)
+		/* We don't use DF for compilation speed sake.  So it
+		   is problematic to update live info when we use an
+		   equivalence containing pseudos in more than one
+		   BB.  */
+		|| (pseudo_p && multi_block_pseudo_p (i))
+		/* If an init insn was deleted for some reason, cancel
+		   the equiv.  We could update the equiv insns after
+		   transformations including an equiv insn deletion
+		   but it is not worthy as such cases are extremely
+		   rare.  */ 
+		|| contains_deleted_insn_p (ira_reg_equiv[i].init_insns)
 		/* If it is not a reverse equivalence, we check that a
 		   pseudo in rhs of the init insn is not dying in the
 		   insn.  Otherwise, the live info at the beginning of
@@ -3320,20 +3370,12 @@ lra_constraints (bool first_p)
 		       && (set = single_set (insn)) != NULL_RTX
 		       && REG_P (SET_DEST (set))
 		       && (int) REGNO (SET_DEST (set)) == i)
-		    && init_insn_rhs_dead_pseudo_p (i)))
-	      ira_reg_equiv[i].defined_p = false;
-	    else if (! first_p && pseudo_p)
-	      /* After RTL transformation, we can not guarantee that
-		 pseudo in the substitution was not reloaded which
-		 might make equivalence invalid.  For example, in
-		 reverse equiv of p0
-
-		 p0 <- ...
-		 ...
-		 equiv_mem <- p0
-
-		 the memory address register was reloaded before the
-		 2nd insn.  */
+		    && init_insn_rhs_dead_pseudo_p (i))
+		/* Prevent access beyond equivalent memory for
+		   paradoxical subregs.  */
+		|| (MEM_P (x)
+		    && (GET_MODE_SIZE (lra_reg_info[i].biggest_mode)
+			> GET_MODE_SIZE (GET_MODE (x)))))
 	      ira_reg_equiv[i].defined_p = false;
 	    if (contains_reg_p (x, false, true))
 	      ira_reg_equiv[i].profitable_p = false;
@@ -4633,6 +4675,21 @@ inherit_in_ebb (rtx head, rtx tail)
   return change_p;
 }
 
+/* The maximal number of inheritance/split passes in LRA.  It should
+   be more 1 in order to perform caller saves transformations and much
+   less MAX_CONSTRAINT_ITERATION_NUMBER to prevent LRA to do as many
+   as permitted constraint passes in some complicated cases.  The
+   first inheritance/split pass has a biggest impact on generated code
+   quality.  Each subsequent affects generated code in less degree.
+   For example, the 3rd pass does not change generated SPEC2000 code
+   at all on x86-64.  */
+#define MAX_INHERITANCE_PASSES 2
+
+#if MAX_INHERITANCE_PASSES <= 0 \
+    || MAX_INHERITANCE_PASSES >= MAX_CONSTRAINT_ITERATION_NUMBER - 8
+#error wrong MAX_INHERITANCE_PASSES value
+#endif
+
 /* This value affects EBB forming.  If probability of edge from EBB to
    a BB is not greater than the following value, we don't add the BB
    to EBB.  */
@@ -4649,8 +4706,10 @@ lra_inheritance (void)
   basic_block bb, start_bb;
   edge e;
 
-  timevar_push (TV_LRA_INHERITANCE);
   lra_inheritance_iter++;
+  if (lra_inheritance_iter > MAX_INHERITANCE_PASSES)
+    return;
+  timevar_push (TV_LRA_INHERITANCE);
   if (lra_dump_file != NULL)
     fprintf (lra_dump_file, "\n********** Inheritance #%d: **********\n\n",
 	     lra_inheritance_iter);
@@ -4920,6 +4979,8 @@ lra_undo_inheritance (void)
   bool change_p;
 
   lra_undo_inheritance_iter++;
+  if (lra_undo_inheritance_iter > MAX_INHERITANCE_PASSES)
+    return false;
   if (lra_dump_file != NULL)
     fprintf (lra_dump_file,
 	     "\n********** Undoing inheritance #%d: **********\n\n",

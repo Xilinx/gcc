@@ -611,12 +611,6 @@ gfc_finish_var_decl (tree decl, gfc_symbol * sym)
   if (sym->attr.threadprivate
       && (TREE_STATIC (decl) || DECL_EXTERNAL (decl)))
     DECL_TLS_MODEL (decl) = decl_default_tls_model (decl);
-
-  if (!sym->attr.target
-      && !sym->attr.pointer
-      && !sym->attr.cray_pointee
-      && !sym->attr.proc_pointer)
-    DECL_RESTRICTED_P (decl) = 1;
 }
 
 
@@ -1195,10 +1189,11 @@ gfc_get_symbol_decl (gfc_symbol * sym)
   bool intrinsic_array_parameter = false;
 
   gcc_assert (sym->attr.referenced
-		|| sym->attr.use_assoc
-		|| sym->ns->proc_name->attr.if_source == IFSRC_IFBODY
-		|| (sym->module && sym->attr.if_source != IFSRC_DECL
-		    && sym->backend_decl));
+	      || sym->attr.flavor == FL_PROCEDURE
+	      || sym->attr.use_assoc
+	      || sym->ns->proc_name->attr.if_source == IFSRC_IFBODY
+	      || (sym->module && sym->attr.if_source != IFSRC_DECL
+		  && sym->backend_decl));
 
   if (sym->ns && sym->ns->proc_name && sym->ns->proc_name->attr.function)
     byref = gfc_return_by_reference (sym->ns->proc_name);
@@ -1851,6 +1846,9 @@ build_function_decl (gfc_symbol * sym, bool global)
 	  || sym->attr.public_used))
     TREE_PUBLIC (fndecl) = 1;
 
+  if (sym->attr.referenced || sym->attr.entry_master)
+    TREE_USED (fndecl) = 1;
+
   attributes = add_attributes_to_decl (attr, NULL_TREE);
   decl_attributes (&fndecl, attributes, 0);
 
@@ -2284,8 +2282,8 @@ build_entry_thunks (gfc_namespace * ns, bool global)
   gfc_save_backend_locus (&old_loc);
   for (el = ns->entries; el; el = el->next)
     {
-      VEC(tree,gc) *args = NULL;
-      VEC(tree,gc) *string_args = NULL;
+      vec<tree, va_gc> *args = NULL;
+      vec<tree, va_gc> *string_args = NULL;
 
       thunk_sym = el->sym;
       
@@ -2300,16 +2298,16 @@ build_entry_thunks (gfc_namespace * ns, bool global)
 
       /* Pass extra parameter identifying this entry point.  */
       tmp = build_int_cst (gfc_array_index_type, el->id);
-      VEC_safe_push (tree, gc, args, tmp);
+      vec_safe_push (args, tmp);
 
       if (thunk_sym->attr.function)
 	{
 	  if (gfc_return_by_reference (ns->proc_name))
 	    {
 	      tree ref = DECL_ARGUMENTS (current_function_decl);
-	      VEC_safe_push (tree, gc, args, ref);
+	      vec_safe_push (args, ref);
 	      if (ns->proc_name->ts.type == BT_CHARACTER)
-		VEC_safe_push (tree, gc, args, DECL_CHAIN (ref));
+		vec_safe_push (args, DECL_CHAIN (ref));
 	    }
 	}
 
@@ -2333,27 +2331,27 @@ build_entry_thunks (gfc_namespace * ns, bool global)
 	    {
 	      /* Pass the argument.  */
 	      DECL_ARTIFICIAL (thunk_formal->sym->backend_decl) = 1;
-	      VEC_safe_push (tree, gc, args, thunk_formal->sym->backend_decl);
+	      vec_safe_push (args, thunk_formal->sym->backend_decl);
 	      if (formal->sym->ts.type == BT_CHARACTER)
 		{
 		  tmp = thunk_formal->sym->ts.u.cl->backend_decl;
-		  VEC_safe_push (tree, gc, string_args, tmp);
+		  vec_safe_push (string_args, tmp);
 		}
 	    }
 	  else
 	    {
 	      /* Pass NULL for a missing argument.  */
-	      VEC_safe_push (tree, gc, args, null_pointer_node);
+	      vec_safe_push (args, null_pointer_node);
 	      if (formal->sym->ts.type == BT_CHARACTER)
 		{
 		  tmp = build_int_cst (gfc_charlen_type_node, 0);
-		  VEC_safe_push (tree, gc, string_args, tmp);
+		  vec_safe_push (string_args, tmp);
 		}
 	    }
 	}
 
       /* Call the master function.  */
-      VEC_safe_splice (tree, gc, args, string_args);
+      vec_safe_splice (args, string_args);
       tmp = ns->proc_name->backend_decl;
       tmp = build_call_expr_loc_vec (input_location, tmp, args);
       if (ns->proc_name->attr.mixed_entry_master)
@@ -2616,7 +2614,7 @@ static tree
 build_library_function_decl_1 (tree name, const char *spec,
 			       tree rettype, int nargs, va_list p)
 {
-  VEC(tree,gc) *arglist;
+  vec<tree, va_gc> *arglist;
   tree fntype;
   tree fndecl;
   int n;
@@ -2625,11 +2623,11 @@ build_library_function_decl_1 (tree name, const char *spec,
   gcc_assert (current_function_decl == NULL_TREE);
 
   /* Create a list of the argument types.  */
-  arglist = VEC_alloc (tree, gc, abs (nargs));
+  vec_alloc (arglist, abs (nargs));
   for (n = abs (nargs); n > 0; n--)
     {
       tree argtype = va_arg (p, tree);
-      VEC_quick_push (tree, arglist, argtype);
+      arglist->quick_push (argtype);
     }
 
   /* Build the function type and decl.  */
@@ -4589,22 +4587,25 @@ generate_local_decl (gfc_symbol * sym)
 	}
 
       /* Warn for unused variables, but not if they're inside a common
-	 block, a namelist, or are use-associated.  */
+	 block or a namelist.  */
       else if (warn_unused_variable
-	       && !(sym->attr.in_common || sym->attr.use_assoc || sym->mark
-		    || sym->attr.in_namelist))
+	       && !(sym->attr.in_common || sym->mark || sym->attr.in_namelist))
 	{
-	  gfc_warning ("Unused variable '%s' declared at %L", sym->name,
-		       &sym->declared_at);
-	  if (sym->backend_decl != NULL_TREE)
-	    TREE_NO_WARNING(sym->backend_decl) = 1;
-	}
-      else if (warn_unused_variable && sym->attr.use_only)
-	{
-	  gfc_warning ("Unused module variable '%s' which has been explicitly "
-		       "imported at %L", sym->name, &sym->declared_at);
-	  if (sym->backend_decl != NULL_TREE)
-	    TREE_NO_WARNING(sym->backend_decl) = 1;
+	  if (sym->attr.use_only)
+	    {
+	      gfc_warning ("Unused module variable '%s' which has been "
+			   "explicitly imported at %L", sym->name,
+			   &sym->declared_at);
+	      if (sym->backend_decl != NULL_TREE)
+		TREE_NO_WARNING(sym->backend_decl) = 1;
+	    }
+	  else if (!sym->attr.use_assoc)
+	    {
+	      gfc_warning ("Unused variable '%s' declared at %L",
+			   sym->name, &sym->declared_at);
+	      if (sym->backend_decl != NULL_TREE)
+		TREE_NO_WARNING(sym->backend_decl) = 1;
+	    }
 	}
 
       /* For variable length CHARACTER parameters, the PARM_DECL already
@@ -5005,7 +5006,7 @@ create_main_function (tree fndecl)
      language standard parameters.  */
   {
     tree array_type, array, var;
-    VEC(constructor_elt,gc) *v = NULL;
+    vec<constructor_elt, va_gc> *v = NULL;
 
     /* Passing a new option to the library requires four modifications:
      + add it to the tree_cons list below

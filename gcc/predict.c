@@ -134,13 +134,20 @@ maybe_hot_frequency_p (struct function *fun, int freq)
 static inline bool
 maybe_hot_count_p (struct function *fun, gcov_type count)
 {
-  if (profile_status_for_function (fun) != PROFILE_READ)
+  gcov_working_set_t *ws;
+  static gcov_type min_count = -1;
+  if (fun && profile_status_for_function (fun) != PROFILE_READ)
     return true;
   /* Code executed at most once is not hot.  */
   if (profile_info->runs >= count)
     return false;
-  return (count
-	  > profile_info->sum_max / PARAM_VALUE (HOT_BB_COUNT_FRACTION));
+  if (min_count == -1)
+    {
+      ws = find_working_set (PARAM_VALUE (HOT_BB_COUNT_WS_PERMILLE));
+      gcc_assert (ws);
+      min_count = ws->min_counter;
+    }
+  return (count >= min_count);
 }
 
 /* Return true in case BB can be CPU intensive and should be optimized
@@ -161,8 +168,8 @@ bool
 cgraph_maybe_hot_edge_p (struct cgraph_edge *edge)
 {
   if (profile_info && flag_branch_probabilities
-      && (edge->count
-	  <= profile_info->sum_max / PARAM_VALUE (HOT_BB_COUNT_FRACTION)))
+      && !maybe_hot_count_p (NULL,
+                             edge->count))
     return false;
   if (edge->caller->frequency == NODE_FREQUENCY_UNLIKELY_EXECUTED
       || (edge->callee
@@ -1391,7 +1398,7 @@ predict_loops (void)
     {
       basic_block bb, *bbs;
       unsigned j, n_exits;
-      VEC (edge, heap) *exits;
+      vec<edge> exits;
       struct tree_niter_desc niter_desc;
       edge ex;
       struct nb_iter_bound *nb_iter;
@@ -1402,14 +1409,14 @@ predict_loops (void)
       gimple stmt = NULL;
 
       exits = get_loop_exit_edges (loop);
-      n_exits = VEC_length (edge, exits);
+      n_exits = exits.length ();
       if (!n_exits)
 	{
-          VEC_free (edge, heap, exits);
+          exits.release ();
 	  continue;
 	}
 
-      FOR_EACH_VEC_ELT (edge, exits, j, ex)
+      FOR_EACH_VEC_ELT (exits, j, ex)
 	{
 	  tree niter = NULL;
 	  HOST_WIDE_INT nitercst;
@@ -1452,7 +1459,7 @@ predict_loops (void)
 	  probability = ((REG_BR_PROB_BASE + nitercst / 2) / nitercst);
 	  predict_edge (ex, predictor, probability);
 	}
-      VEC_free (edge, heap, exits);
+      exits.release ();
 
       /* Find information about loop bound variables.  */
       for (nb_iter = loop->bounds; nb_iter;

@@ -382,7 +382,7 @@ bb_has_abnormal_call_pred (basic_block bb)
 }
 
 /* Vec containing execution frequencies of program points.  */
-static VEC(int,heap) *point_freq_vec;
+static vec<int> point_freq_vec;
 
 /* The start of the above vector elements.  */
 int *lra_point_freq;
@@ -392,8 +392,8 @@ int *lra_point_freq;
 static void
 next_program_point (int &point, int freq)
 {
-  VEC_safe_push (int, heap, point_freq_vec, freq);
-  lra_point_freq = VEC_address (int, point_freq_vec);
+  point_freq_vec.safe_push (freq);
+  lra_point_freq = point_freq_vec.address ();
   point++;
 }
 
@@ -935,6 +935,10 @@ lra_create_live_ranges (bool all_p)
 #ifdef STACK_REGS
       lra_reg_info[i].no_stack_p = false;
 #endif
+      /* The biggest mode is already set but its value might be to
+	 conservative because of recent transformation.  Here in this
+	 file we recalculate it again as it costs practically
+	 nothing.  */
       if (regno_reg_rtx[i] != NULL_RTX)
 	lra_reg_info[i].biggest_mode = GET_MODE (regno_reg_rtx[i]);
       else
@@ -955,8 +959,8 @@ lra_create_live_ranges (bool all_p)
   dead_set = sparseset_alloc (max_regno);
   unused_set = sparseset_alloc (max_regno);
   curr_point = 0;
-  point_freq_vec = VEC_alloc (int, heap, get_max_uid () * 2);
-  lra_point_freq = VEC_address (int, point_freq_vec);
+  point_freq_vec.create (get_max_uid () * 2);
+  lra_point_freq = point_freq_vec.address ();
   int *post_order_rev_cfg = XNEWVEC (int, last_basic_block);
   int n_blocks_inverted = inverted_post_order_compute (post_order_rev_cfg);
   lra_assert (n_blocks_inverted == n_basic_blocks);
@@ -991,7 +995,7 @@ lra_clear_live_ranges (void)
 
   for (i = 0; i < max_reg_num (); i++)
     free_live_range_list (lra_reg_info[i].live_ranges);
-  VEC_free (int, heap, point_freq_vec);
+  point_freq_vec.release ();
 }
 
 /* Initialize live ranges data once per function.  */

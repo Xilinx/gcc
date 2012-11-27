@@ -27,7 +27,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "input.h"
 #include "real.h"
 #include "vec.h"
-#include "vecir.h"
 #include "fixed-value.h"
 #include "alias.h"
 #include "hashtab.h"
@@ -239,7 +238,7 @@ struct GTY(()) object_block {
 	 !SYMBOL_REF_ANCHOR_P (X)
 	 SYMBOL_REF_BLOCK (X) == [address of this structure]
 	 SYMBOL_REF_BLOCK_OFFSET (X) >= 0.  */
-  VEC(rtx,gc) *objects;
+  vec<rtx, va_gc> *objects;
 
   /* All the anchor SYMBOL_REFs used to address these objects, sorted
      in order of increasing offset, and then increasing TLS model.
@@ -249,7 +248,7 @@ struct GTY(()) object_block {
 	 SYMBOL_REF_ANCHOR_P (X)
 	 SYMBOL_REF_BLOCK (X) == [address of this structure]
 	 SYMBOL_REF_BLOCK_OFFSET (X) >= 0.  */
-  VEC(rtx,gc) *anchors;
+  vec<rtx, va_gc> *anchors;
 };
 
 /* RTL expression ("rtx").  */
@@ -2605,6 +2604,14 @@ extern void print_simple_rtl (FILE *, const_rtx);
 extern int print_rtl_single (FILE *, const_rtx);
 extern int print_rtl_single_with_indent (FILE *, const_rtx, int);
 extern void print_inline_rtx (FILE *, const_rtx, int);
+
+/* Functions in sched-vis.c.  These must be outside INSN_SCHEDULING as
+   sched-vis.c is compiled always.  FIXME: Ideally these functions would
+   not be in sched-vis.c but in rtl.c, because they are not only used
+   by the scheduler anymore but for all "slim" RTL dumping.  */
+extern void print_insn (char *, const_rtx, int);
+extern void print_pattern (char *, const_rtx, int);
+extern void print_value (char *, const_rtx, int);
 
 /* In function.c */
 extern void reposition_prologue_and_epilogue_notes (void);

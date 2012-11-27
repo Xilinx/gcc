@@ -38,7 +38,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "ggc.h"
 #include "cgraph.h"
-#include "graph.h"
 #include "cfgloop.h"
 #include "except.h"
 #include "plugin.h"
@@ -206,10 +205,7 @@ execute_fixup_cfg (void)
 
   /* We just processed all calls.  */
   if (cfun->gimple_df)
-    {
-      VEC_free (gimple, gc, MODIFIED_NORETURN_CALLS (cfun));
-      MODIFIED_NORETURN_CALLS (cfun) = NULL;
-    }
+    vec_free (MODIFIED_NORETURN_CALLS (cfun));
 
   /* Dump a textual representation of the flowgraph.  */
   if (dump_file)

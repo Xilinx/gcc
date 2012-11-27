@@ -65,8 +65,6 @@ struct occr
 };
 
 typedef struct occr *occr_t;
-DEF_VEC_P (occr_t);
-DEF_VEC_ALLOC_P (occr_t, heap);
 
 /* Hash table entry for assignment expressions.  */
 
@@ -172,10 +170,7 @@ reg_available_p (const_rtx x, const_rtx insn ATTRIBUTE_UNUSED)
 static unsigned int
 hash_set (int regno, int hash_table_size)
 {
-  unsigned int hash;
-
-  hash = regno;
-  return hash % hash_table_size;
+  return (unsigned) regno % hash_table_size;
 }
 
 /* Insert assignment DEST:=SET from INSN in the hash table.

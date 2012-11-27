@@ -1,3 +1,36 @@
+2012-11-22  Georg-Johann Lay  <avr@gjlay.de>
+
+	Adjust decimal point of signed accum mode to GCC default.
+
+	PR target/54222
+	* config/avr/t-avr (LIB1ASMFUNCS): Add _fractsfsq _fractsfusq,
+	_divqq_helper.
+	* config/avr/lib1funcs-fixed.S (__fractqqsf, __fracthqsf)
+	(__fractsasf, __fractsfha, __fractusqsf, __fractsfsa)
+	(__mulha3, __mulsa3)
+	(__divqq3, __divha3, __divsa3): Adjust to new position of
+	decimal point of signed accum types. 
+	
+	(__mulusa3_round): New function.
+	(__mulusa3): Use it.
+	(__divqq_helper): New function.
+	(__udivuqq3): Use it.
+
+2012-11-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/55370
+	* libgcc-std.ver.in: Add GCC_4.8.0 and %inherit for it.
+
+2012-11-18  Teresa Johnson  <tejohnson@google.com>
+
+	PR bootstrap/55051
+	* libgcov.c (gcov_exit): Remove merged program summary
+	comparison unless !GCOV_LOCKED.
+
+2012-11-15  Marcus Shawcroft <marcus.shawcroft@arm.com>
+
+	* soft-fp: Updated from glibc upstream.
+
 2012-11-06  Ian Lance Taylor  <iant@google.com>
 
 	* generic-morestack.c (__generic_morestack): Align the returned

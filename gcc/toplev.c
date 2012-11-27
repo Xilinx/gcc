@@ -49,7 +49,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "basic-block.h"
 #include "intl.h"
 #include "ggc.h"
-#include "graph.h"
 #include "regs.h"
 #include "timevar.h"
 #include "diagnostic.h"
@@ -73,6 +72,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "alloc-pool.h"
 #include "tree-mudflap.h"
 #include "asan.h"
+#include "tsan.h"
 #include "gimple.h"
 #include "tree-ssa-alias.h"
 #include "plugin.h"
@@ -514,16 +514,16 @@ check_global_declaration_1 (tree decl)
 	     "%q+D defined but not used", decl);
 }
 
-/* Issue appropriate warnings for the global declarations in VEC (of
+/* Issue appropriate warnings for the global declarations in V (of
    which there are LEN).  */
 
 void
-check_global_declarations (tree *vec, int len)
+check_global_declarations (tree *v, int len)
 {
   int i;
 
   for (i = 0; i < len; i++)
-    check_global_declaration_1 (vec[i]);
+    check_global_declaration_1 (v[i]);
 }
 
 /* Emit debugging information for all global declarations in VEC.  */
@@ -586,6 +586,9 @@ compile_file (void)
       /* File-scope initialization for AddressSanitizer.  */
       if (flag_asan)
         asan_finish_file ();
+
+      if (flag_tsan)
+	tsan_finish_file ();
 
       output_shared_constant_pool ();
       output_object_blocks ();
@@ -1573,7 +1576,7 @@ process_options (void)
       && (targetm.asan_shadow_offset == NULL
 	  || !FRAME_GROWS_DOWNWARD))
     {
-      warning (0, "-faddress-sanitizer not supported for this target");
+      warning (0, "-fsanitize=address not supported for this target");
       flag_asan = 0;
     }
 

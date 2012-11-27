@@ -97,6 +97,7 @@ along with GCC; see the file COPYING3.	If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
+#include "hard-reg-set.h"
 #include "rtl.h"
 #include "tm_p.h"
 #include "regs.h"
@@ -105,7 +106,6 @@ along with GCC; see the file COPYING3.	If not see
 #include "recog.h"
 #include "output.h"
 #include "addresses.h"
-#include "hard-reg-set.h"
 #include "flags.h"
 #include "function.h"
 #include "expr.h"
@@ -461,6 +461,8 @@ new_insn_reg (int regno, enum op_type type, enum machine_mode mode,
   ir = (struct lra_insn_reg *) pool_alloc (insn_reg_pool);
   ir->type = type;
   ir->biggest_mode = mode;
+  if (GET_MODE_SIZE (mode) > GET_MODE_SIZE (lra_reg_info[regno].biggest_mode))
+    lra_reg_info[regno].biggest_mode = mode;
   ir->subreg_p = subreg_p;
   ir->early_clobber = early_clobber;
   ir->regno = regno;
@@ -916,7 +918,8 @@ collect_non_operand_hard_regs (rtx *x, lra_insn_recog_data_t data,
       for (last = regno + hard_regno_nregs[regno][mode];
 	   regno < last;
 	   regno++)
-	if (! TEST_HARD_REG_BIT (lra_no_alloc_regs, regno))
+	if (! TEST_HARD_REG_BIT (lra_no_alloc_regs, regno)
+	    || TEST_HARD_REG_BIT (eliminable_regset, regno))
 	  {
 	    for (curr = list; curr != NULL; curr = curr->next)
 	      if (curr->regno == regno && curr->subreg_p == subreg_p
@@ -1368,11 +1371,8 @@ get_new_reg_value (void)
 /* Pools for copies.  */
 static alloc_pool copy_pool;
 
-DEF_VEC_P(lra_copy_t);
-DEF_VEC_ALLOC_P(lra_copy_t, heap);
-
 /* Vec referring to pseudo copies.  */
-static VEC(lra_copy_t,heap) *copy_vec;
+static vec<lra_copy_t> copy_vec;
 
 /* Initialize I-th element of lra_reg_info.  */
 static inline void
@@ -1387,6 +1387,7 @@ initialize_lra_reg_info_element (int i)
   lra_reg_info[i].preferred_hard_regno2 = -1;
   lra_reg_info[i].preferred_hard_regno_profit1 = 0;
   lra_reg_info[i].preferred_hard_regno_profit2 = 0;
+  lra_reg_info[i].biggest_mode = VOIDmode;
   lra_reg_info[i].live_ranges = NULL;
   lra_reg_info[i].nrefs = lra_reg_info[i].freq = 0;
   lra_reg_info[i].last_reload = 0;
@@ -1408,7 +1409,7 @@ init_reg_info (void)
     initialize_lra_reg_info_element (i);
   copy_pool
     = create_alloc_pool ("lra copies", sizeof (struct lra_copy), 100);
-  copy_vec = VEC_alloc (lra_copy_t, heap, 100);
+  copy_vec.create (100);
 }
 
 
@@ -1423,7 +1424,7 @@ finish_reg_info (void)
   free (lra_reg_info);
   reg_info_size = 0;
   free_alloc_pool (copy_pool);
-  VEC_free (lra_copy_t, heap, copy_vec);
+  copy_vec.release ();
 }
 
 /* Expand common reg info if it is necessary.  */
@@ -1446,9 +1447,9 @@ lra_free_copies (void)
 {
   lra_copy_t cp;
 
-  while (VEC_length (lra_copy_t, copy_vec) != 0)
+  while (copy_vec.length () != 0)
     {
-      cp = VEC_pop (lra_copy_t, copy_vec);
+      cp = copy_vec.pop ();
       lra_reg_info[cp->regno1].copies = lra_reg_info[cp->regno2].copies = NULL;
       pool_free (copy_pool, cp);
     }
@@ -1473,7 +1474,7 @@ lra_create_copy (int regno1, int regno2, int freq)
       regno1 = temp;
     }
   cp = (lra_copy_t) pool_alloc (copy_pool);
-  VEC_safe_push (lra_copy_t, heap, copy_vec, cp);
+  copy_vec.safe_push (cp);
   cp->regno1_dest_p = regno1_dest_p;
   cp->freq = freq;
   cp->regno1 = regno1;
@@ -1492,9 +1493,9 @@ lra_create_copy (int regno1, int regno2, int freq)
 lra_copy_t
 lra_get_copy (int n)
 {
-  if (n >= (int) VEC_length (lra_copy_t, copy_vec))
+  if (n >= (int) copy_vec.length ())
     return NULL;
-  return VEC_index (lra_copy_t, copy_vec, n);
+  return copy_vec[n];
 }
 
 
@@ -1533,6 +1534,10 @@ add_regs_to_insn_regno_info (lra_insn_recog_data_t data, rtx x, int uid,
   if (REG_P (x))
     {
       regno = REGNO (x);
+      if (regno < FIRST_PSEUDO_REGISTER
+	  && TEST_HARD_REG_BIT (lra_no_alloc_regs, regno)
+	  && ! TEST_HARD_REG_BIT (eliminable_regset, regno))
+	return;
       expand_reg_info ();
       if (bitmap_set_bit (&lra_reg_info[regno].insn_bitmap, uid))
 	{
@@ -1730,7 +1735,7 @@ lra_get_insn_regs (int uid)
 static sbitmap lra_constraint_insn_stack_bitmap;
 
 /* The stack itself.  */
-VEC (rtx, heap) *lra_constraint_insn_stack;
+vec<rtx> lra_constraint_insn_stack;
 
 /* Put INSN on the stack.  If ALWAYS_UPDATE is true, always update the reg
    info for INSN, otherwise only update it if INSN is not already on the
@@ -1749,7 +1754,7 @@ lra_push_insn_1 (rtx insn, bool always_update)
   bitmap_set_bit (lra_constraint_insn_stack_bitmap, uid);
   if (! always_update)
     lra_update_insn_regno_info (insn);
-  VEC_safe_push (rtx, heap, lra_constraint_insn_stack, insn);
+  lra_constraint_insn_stack.safe_push (insn);
 }
 
 /* Put INSN on the stack.  */
@@ -1777,7 +1782,7 @@ lra_push_insn_by_uid (unsigned int uid)
 rtx
 lra_pop_insn (void)
 {
-  rtx insn = VEC_pop (rtx, lra_constraint_insn_stack);
+  rtx insn = lra_constraint_insn_stack.pop ();
   bitmap_clear_bit (lra_constraint_insn_stack_bitmap, INSN_UID (insn));
   return insn;
 }
@@ -1786,7 +1791,7 @@ lra_pop_insn (void)
 unsigned int
 lra_insn_stack_length (void)
 {
-  return VEC_length (rtx, lra_constraint_insn_stack);
+  return lra_constraint_insn_stack.length ();
 }
 
 /* Push insns FROM to TO (excluding it) going in reverse order.	 */
@@ -1860,11 +1865,8 @@ struct sloc
 
 typedef struct sloc *sloc_t;
 
-DEF_VEC_P(sloc_t);
-DEF_VEC_ALLOC_P(sloc_t, heap);
-
 /* Locations of the former scratches.  */
-static VEC (sloc_t, heap) *scratches;
+static vec<sloc_t> scratches;
 
 /* Bitmap of scratch regnos.  */
 static bitmap_head scratch_bitmap;
@@ -1899,7 +1901,7 @@ remove_scratches (void)
   lra_insn_recog_data_t id;
   struct lra_static_insn_data *static_id;
 
-  scratches = VEC_alloc (sloc_t, heap, get_max_uid ());
+  scratches.create (get_max_uid ());
   bitmap_initialize (&scratch_bitmap, &reg_obstack);
   bitmap_initialize (&scratch_operand_bitmap, &reg_obstack);
   FOR_EACH_BB (bb)
@@ -1922,7 +1924,7 @@ remove_scratches (void)
 	      loc = XNEW (struct sloc);
 	      loc->insn = insn;
 	      loc->nop = i;
-	      VEC_safe_push (sloc_t, heap, scratches, loc);
+	      scratches.safe_push (loc);
 	      bitmap_set_bit (&scratch_bitmap, REGNO (*id->operand_loc[i]));
 	      bitmap_set_bit (&scratch_operand_bitmap,
 			      INSN_UID (insn) * MAX_RECOG_OPERANDS + i);
@@ -1942,12 +1944,13 @@ remove_scratches (void)
 static void
 restore_scratches (void)
 {
-  int i, regno;
+  int regno;
+  unsigned i;
   sloc_t loc;
   rtx last = NULL_RTX;
   lra_insn_recog_data_t id = NULL;
 
-  for (i = 0; VEC_iterate (sloc_t, scratches, i, loc); i++)
+  for (i = 0; scratches.iterate (i, &loc); i++)
     {
       if (last != loc->insn)
 	{
@@ -1970,9 +1973,9 @@ restore_scratches (void)
 		     INSN_UID (loc->insn), loc->nop);
 	}
     }
-  for (i = 0; VEC_iterate (sloc_t, scratches, i, loc); i++)
+  for (i = 0; scratches.iterate (i, &loc); i++)
     free (loc);
-  VEC_free (sloc_t, heap, scratches);
+  scratches.release ();
   bitmap_clear (&scratch_bitmap);
   bitmap_clear (&scratch_operand_bitmap);
 }
@@ -2207,13 +2210,16 @@ lra (FILE *f)
 
   timevar_push (TV_LRA);
 
+  COPY_HARD_REG_SET (lra_no_alloc_regs, ira_no_alloc_regs);
+
+  init_reg_info ();
+  expand_reg_info ();
+
   init_insn_recog_data ();
 
 #ifdef ENABLE_CHECKING
   check_rtl (false);
 #endif
-
-  COPY_HARD_REG_SET (lra_no_alloc_regs, ira_no_alloc_regs);
 
   lra_live_range_iter = lra_coalesce_iter = 0;
   lra_constraint_iter = lra_constraint_iter_after_spill = 0;
@@ -2224,9 +2230,6 @@ lra (FILE *f)
   /* We can not set up reload_in_progress because it prevents new
      pseudo creation.  */
   lra_in_progress = 1;
-
-  init_reg_info ();
-  expand_reg_info ();
 
   /* Function remove_scratches can creates new pseudos for clobbers --
      so set up lra_constraint_new_regno_start before its call to
@@ -2250,7 +2253,7 @@ lra (FILE *f)
   /* We don't DF from now and avoid its using because it is to
      expensive when a lot of RTL changes are made.  */
   df_set_flags (DF_NO_INSN_RESCAN);
-  lra_constraint_insn_stack = VEC_alloc (rtx, heap, get_max_uid ());
+  lra_constraint_insn_stack.create (get_max_uid ());
   lra_constraint_insn_stack_bitmap = sbitmap_alloc (get_max_uid ());
   bitmap_clear (lra_constraint_insn_stack_bitmap);
   lra_live_ranges_init ();
@@ -2334,7 +2337,7 @@ lra (FILE *f)
   lra_constraints_finish ();
   finish_reg_info ();
   sbitmap_free (lra_constraint_insn_stack_bitmap);
-  VEC_free (rtx, heap, lra_constraint_insn_stack);
+  lra_constraint_insn_stack.release ();
   finish_insn_recog_data ();
   regstat_free_n_sets_and_refs ();
   regstat_free_ri ();
