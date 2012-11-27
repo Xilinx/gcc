@@ -3483,15 +3483,15 @@ melt_syntax_tester_warmelt_outobj (void)
 /* generating device #1 */
 /*primitive-syntax GENERATED_C_FILENAME*/
   {
-    melt_ptr_t primf_0_DISCR = 0;
-    melt_ptr_t primf_1_BASE = 0;
-    melt_ptr_t primf_2_DIR = 0;
-    long primf_3_NUM = 0;
+    melt_ptr_t meltprimf_0_DISCR = 0;
+    melt_ptr_t meltprimf_1_BASE = 0;
+    melt_ptr_t meltprimf_2_DIR = 0;
+    long meltprimf_3_NUM = 0;
     melt_ptr_t primres_0 = meltgc_new_string_generated_c_filename	/*  generated_c_filename */
-      ((meltobject_ptr_t) (primf_0_DISCR),
-       melt_string_str ((melt_ptr_t) (primf_1_BASE)),
-       melt_string_str ((melt_ptr_t) (primf_2_DIR)),
-       (primf_3_NUM));
+      ((meltobject_ptr_t) (meltprimf_0_DISCR),
+       melt_string_str ((melt_ptr_t) (meltprimf_1_BASE)),
+       melt_string_str ((melt_ptr_t) (meltprimf_2_DIR)),
+       (meltprimf_3_NUM));
     if (primres_0)
       return;
   }				/*end primitive-syntax GENERATED_C_FILENAME */
@@ -3501,14 +3501,14 @@ melt_syntax_tester_warmelt_outobj (void)
 /* generating device #2 */
 /*primitive-syntax MELT_RUN_EXTENSION*/
   {
-    melt_ptr_t primf_0_BASENAME = 0;
-    melt_ptr_t primf_1_ENV = 0;
-    melt_ptr_t primf_2_LITVAL = 0;
+    melt_ptr_t meltprimf_0_BASENAME = 0;
+    melt_ptr_t meltprimf_1_ENV = 0;
+    melt_ptr_t meltprimf_2_LITVAL = 0;
     melt_ptr_t primres_1 =
       /* melt_run_extension */ meltgc_run_c_extension
-      ((melt_ptr_t) primf_0_BASENAME,
-       (melt_ptr_t) primf_1_ENV,
-       (melt_ptr_t) primf_2_LITVAL);
+      ((melt_ptr_t) meltprimf_0_BASENAME,
+       (melt_ptr_t) meltprimf_1_ENV,
+       (melt_ptr_t) meltprimf_2_LITVAL);
     if (primres_1)
       return;
   }				/*end primitive-syntax MELT_RUN_EXTENSION */

@@ -15247,8 +15247,7 @@ ltstr[]\t    ;\n\t     extern \"C\" const char melt_genversionstr[\
       argtab[0].meltbp_cstring =
 	"\n\t     #ifdef __cplusplus\n\t     \" (in C++)\"\
 \n\t     #else\n\t     \" (in C)\"\
-\n\t     #endif\n\t\t\
-\t\t\t;\n\t     ";
+\n\t     #endif\n\t\t\t\t\t;\n\t     ";
       /*_.ADD2OUT__V38*/ meltfptr[37] =
 	melt_apply ((meltclosure_ptr_t)
 		    (( /*!ADD2OUT */ meltfrout->tabval[13])),
@@ -18438,8 +18437,7 @@ plus*/\n\t\t\t\t\t;\n\t\t ";
       /*^apply.arg */
       argtab[0].meltbp_cstring =
 	"\n\t\t #ifdef __cplusplus\n\t\t }  /* end extern C timestamp */\
-\n\t\t #endif /*__cplusplus */\n\n\t\t #els\
-e /* ! ";
+\n\t\t #endif /*__cplusplus */\n\n\t\t #else /* ! ";
       /*^apply.arg */
       argtab[1].meltbp_aptr =
 	(melt_ptr_t *) & /*_.MODIDNAM__V109*/ meltfptr[104];
@@ -18492,8 +18490,7 @@ e /* ! ";
       argtab[0].meltbp_cstring =
 	"\n\t\t #ifdef __cplusplus\n\t\t }\t  /* end extern C descriptor */\
 \
-\n\t\t #endif /*__cplusplus\
- */\n\t\t ";
+\n\t\t #endif /*__cplusplus */\n\t\t ";
       /*_.ADD2OUT__V143*/ meltfptr[142] =
 	melt_apply ((meltclosure_ptr_t)
 		    (( /*!ADD2OUT */ meltfrout->tabval[13])),
@@ -22851,7 +22848,7 @@ lab_endgetargs:;
       argtab[1].meltbp_aptr =
 	(melt_ptr_t *) & /*_.PRIFORMALS__V22*/ meltfptr[21];
       /*^apply.arg */
-      argtab[2].meltbp_cstring = "primf_";
+      argtab[2].meltbp_cstring = "meltprimf_";
       /*_.SUBSTITUTE_FORMALS_FOR_SYNTEST__V34*/ meltfptr[33] =
 	melt_apply ((meltclosure_ptr_t)
 		    (( /*!SUBSTITUTE_FORMALS_FOR_SYNTEST */ meltfrout->
@@ -24708,7 +24705,7 @@ lab_endgetargs:;
       argtab[1].meltbp_aptr =
 	(melt_ptr_t *) & /*_.CITSTAFORMALS__V22*/ meltfptr[21];
       /*^apply.arg */
-      argtab[2].meltbp_cstring = "citstart_";
+      argtab[2].meltbp_cstring = "meltcitstart_";
       /*_.SUBSTITUTE_FORMALS_FOR_SYNTEST__V50*/ meltfptr[46] =
 	melt_apply ((meltclosure_ptr_t)
 		    (( /*!SUBSTITUTE_FORMALS_FOR_SYNTEST */ meltfrout->
@@ -24733,7 +24730,7 @@ lab_endgetargs:;
       argtab[1].meltbp_aptr =
 	(melt_ptr_t *) & /*_.CITBODFORMALS__V24*/ meltfptr[23];
       /*^apply.arg */
-      argtab[2].meltbp_cstring = "citbody_";
+      argtab[2].meltbp_cstring = "meltcitbody_";
       /*_.SUBSTITUTE_FORMALS_FOR_SYNTEST__V51*/ meltfptr[47] =
 	melt_apply ((meltclosure_ptr_t)
 		    (( /*!SUBSTITUTE_FORMALS_FOR_SYNTEST */ meltfrout->
@@ -26811,7 +26808,7 @@ lab_endgetargs:;
       /*^apply.arg */
       argtab[1].meltbp_aptr = (melt_ptr_t *) & /*_.TUPLE___V44*/ meltfptr[39];
       /*^apply.arg */
-      argtab[2].meltbp_cstring = "cmatched_";
+      argtab[2].meltbp_cstring = "meltcmatched_";
       /*_.SUBSTITUTE_FORMALS_FOR_SYNTEST__V46*/ meltfptr[44] =
 	melt_apply ((meltclosure_ptr_t)
 		    (( /*!SUBSTITUTE_FORMALS_FOR_SYNTEST */ meltfrout->
@@ -26836,7 +26833,7 @@ lab_endgetargs:;
       argtab[1].meltbp_aptr =
 	(melt_ptr_t *) & /*_.CMATINS__V22*/ meltfptr[21];
       /*^apply.arg */
-      argtab[2].meltbp_cstring = "cmatinput_";
+      argtab[2].meltbp_cstring = "meltcmatinput_";
       /*_.SUBSTITUTE_FORMALS_FOR_SYNTEST__V47*/ meltfptr[46] =
 	melt_apply ((meltclosure_ptr_t)
 		    (( /*!SUBSTITUTE_FORMALS_FOR_SYNTEST */ meltfrout->
@@ -26861,7 +26858,7 @@ lab_endgetargs:;
       argtab[1].meltbp_aptr =
 	(melt_ptr_t *) & /*_.CMATOUT__V24*/ meltfptr[23];
       /*^apply.arg */
-      argtab[2].meltbp_cstring = "cmatoutput_";
+      argtab[2].meltbp_cstring = "meltcmatoutput_";
       /*_.SUBSTITUTE_FORMALS_FOR_SYNTEST__V48*/ meltfptr[47] =
 	melt_apply ((meltclosure_ptr_t)
 		    (( /*!SUBSTITUTE_FORMALS_FOR_SYNTEST */ meltfrout->

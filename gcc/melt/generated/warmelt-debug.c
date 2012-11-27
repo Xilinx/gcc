@@ -2521,9 +2521,9 @@ melt_syntax_tester_warmelt_debug (void)
 /* generating device #2 */
 /*primitive-syntax MELT_REALLY_NEED_DEBUG*/
   {
-    long primf_0_DEPTH = 0;
+    long meltprimf_0_DEPTH = 0;
     long primres_1 =
-      /*MELT_REALLY_NEED_DEBUG */ (melt_need_debug ((int) primf_0_DEPTH));
+      /*MELT_REALLY_NEED_DEBUG */ (melt_need_debug ((int) meltprimf_0_DEPTH));
     if (primres_1)
       return;
   }				/*end primitive-syntax MELT_REALLY_NEED_DEBUG */
@@ -2544,11 +2544,12 @@ melt_syntax_tester_warmelt_debug (void)
 /* generating device #4 */
 /*primitive-syntax MELT_REALLY_NEED_DBGLIM*/
   {
-    long primf_0_DEPTH = 0;
-    long primf_1_LIMIT = 0;
+    long meltprimf_0_DEPTH = 0;
+    long meltprimf_1_LIMIT = 0;
     long primres_3 =
       ( /*MELT_REALLY_NEED_DBGLIM */
-       melt_need_debug_limit ((int) primf_0_DEPTH, (int) primf_1_LIMIT));
+       melt_need_debug_limit ((int) meltprimf_0_DEPTH,
+			      (int) meltprimf_1_LIMIT));
     if (primres_3)
       return;
   }				/*end primitive-syntax MELT_REALLY_NEED_DBGLIM */

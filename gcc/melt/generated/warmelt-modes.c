@@ -6968,7 +6968,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   cdat->dint_53__.discr =
     (meltobject_ptr_t) (((melt_ptr_t)
 			 (MELT_PREDEF (DISCR_CONSTANT_INTEGER))));
-  cdat->dint_53__.val = 8;
+  cdat->dint_53__.val = 12;
 
 
 /*iniobj dsym_54__ADD2OUT*/
@@ -7128,7 +7128,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   cdat->dint_65__.discr =
     (meltobject_ptr_t) (((melt_ptr_t)
 			 (MELT_PREDEF (DISCR_CONSTANT_INTEGER))));
-  cdat->dint_65__.val = 8;
+  cdat->dint_65__.val = 12;
 
 
 /*iniobj dsym_66__EVALFILE_MODE*/
@@ -7704,7 +7704,7 @@ initialize_module_meltdata_warmelt_modes (initial_frame_st * iniframp__,
   cdat->dint_103__.discr =
     (meltobject_ptr_t) (((melt_ptr_t)
 			 (MELT_PREDEF (DISCR_CONSTANT_INTEGER))));
-  cdat->dint_103__.val = 8;
+  cdat->dint_103__.val = 12;
 
   /*inirout drout_104__REPL_DOCMD */
  /*_.VALROUT___V182*/ meltfptr[181] =

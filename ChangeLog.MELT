@@ -1,5 +1,8 @@
 
-2012-11-26  Basile Starynkevitch  <basile@starynkevitch.net>
+2012-11-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	**merge fixed, gcc/melt/xtramelt-ana-base.melt compiles**
+
+2012-11-27  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	MELT branch merged with trunk rev 193836 using svnmerge.py
 	**broken, gcc/melt/xtramelt-ana-base.melt dont compile**
