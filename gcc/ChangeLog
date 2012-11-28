@@ -1,3 +1,25 @@
+2012-11-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	Backported from mainline
+	2012-11-27  H.J. Lu  <hongjiu.lu@intel.com>
+		    Markus Trippelsdorf  <markus@trippelsdorf.de>
+
+	PR lto/54795
+	* lto-opts.c (lto_write_options): Also handle
+	OPT_SPECIAL_unknown, OPT_SPECIAL_ignore and
+	OPT_SPECIAL_program_name.
+
+	PR lto/55474
+	* lto-wrapper.c (merge_and_complain): Handle
+	OPT_SPECIAL_unknown, OPT_SPECIAL_ignore,
+	OPT_SPECIAL_program_name and OPT_SPECIAL_input_file.
+
+2012-11-27  Paolo Bonzini  <pbonzini@redhat.com>
+
+	PR rtl-optimization/55489
+	* gcse.c (compute_transp): Precompute a canonical version
+	of XEXP (x, 0), and pass it to canon_true_dependence.
+
 2012-11-27  Richard Biener  <rguenther@suse.de>
 
 	PR middle-end/55331
