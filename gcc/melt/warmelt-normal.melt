@@ -1,7 +1,7 @@
 ;; file warmelt-normal.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
+    Copyright 2008 - 2012 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -2906,6 +2906,10 @@ source location.}#
 	  (let ( (nbctype (get_ctype nbdexpr newenv)) 
 		 )
 	    (assert_msg "check nbctype" (is_a nbctype class_ctype))
+	    ;; replace an :auto binding with the appropriate ctype
+	    (if (== sbtyp quasi_ctype_auto)
+		(setq sbtyp nbctype))
+	    ;; check ctype compatibility
 	    (if (!= nbctype sbtyp)
 		(progn
 		  (error_strv 
