@@ -2880,92 +2880,94 @@ source location.}#
 	 (newenv (fresh_env env))
 	 (bindlist (make_list discr_list))
 	 )
-    (multiple_every 
-     sbindings
-     (lambda (sb :long sbix)
-       (assert_msg "check sb" (is_a sb class_source_let_binding))
-       (let ( (sbloc (unsafe_get_field :loca_location sb))
-	      (sbtyp (unsafe_get_field :sletb_type sb))
-	      (sbinder (unsafe_get_field :sletb_binder sb))
-	      (sbexpr (unsafe_get_field :sletb_expr sb)) 
-	      )
-	 (assert_msg "check sbtyp" (is_a sbtyp class_ctype))
-	 ;; issue an inform message if the let binding overrides a previous one
-	 (and
-	  (has_extra_warnings)
-	  (find_env env sbinder)
-	  (inform_strv sbloc "this LET binding hides another one in enclosing scope - "
-			  (get_field :named_name  sbinder))
-	     )
-	 ;;; normalize the binding's expression
-	 (multicall
-	  (nbdexpr nbindings)
-	  (normal_exp sbexpr newenv ncx sbloc)
-	  ;; check that the ctype of the normalized expression
-	  ;; is the same as the let binding's ctype
-	  (let ( (nbctype (get_ctype nbdexpr newenv)) 
-		 )
-	    (assert_msg "check nbctype" (is_a nbctype class_ctype))
-	    ;; replace an :auto binding with the appropriate ctype
-	    (if (== sbtyp quasi_ctype_auto)
-		(setq sbtyp nbctype))
-	    ;; check ctype compatibility
-	    (if (!= nbctype sbtyp)
-		(progn
-		  (error_strv 
-		   sbloc
-		   "ctype mismatch in LET binding of local variable"
-		   (get_field :named_name  sbinder))
-		  (inform_strv
-		   sbloc
-		   "expecting ctype in LET binding"
-		   (get_field :named_name sbtyp))
-		  (inform_strv
-		   sbloc
-		   "ctype of binding expression in LET"
-		   (get_field :named_name nbctype))
-		  )))
-	  ;;
-	  (let ( (lastnbinding (pair_head (list_last nbindings))) )
-	    ;; common case of a normalized apply or primitive, hence a
-	    ;; gensymed variable which is the last in the nbindings
-	    (if (and
-		 (is_a lastnbinding class_normal_let_binding)
-		 (is_a nbdexpr class_nrep_locsymocc)
-		 (== (unsafe_get_field :binder lastnbinding) 
-		     (unsafe_get_field :nocc_symb nbdexpr))
-		 )
-		(let ( (lastnormexp (unsafe_get_field :letbind_expr nbdexpr)) )
-		  (list_every
-		   nbindings
-		   (lambda (b)
-		     (if (!= b lastnbinding)
-			 (list_append bindlist b))))
-		  (let ( (newcbnd
-			  (instance class_normal_let_binding
-				    :binder sbinder
-				    :letbind_type (unsafe_get_field :letbind_type lastnbinding)
-				    :letbind_expr (unsafe_get_field :letbind_expr lastnbinding)
-				    :letbind_loc (unsafe_get_field :letbind_loc lastnbinding)))
-			 )
-		    (list_append bindlist newcbnd)
-		    (put_env newenv newcbnd)
-		    )
-		  )
+    ;; loop on source bindings
+    (foreach_in_multiple
+     (sbindings)
+     (sb :long sbix)
+     (debug "normexp_let sb=" sb " sbix=" sbix)
+     (assert_msg "check sb" (is_a sb class_source_let_binding))
+     (let ( (sbloc (unsafe_get_field :loca_location sb))
+	    (sbtyp (unsafe_get_field :sletb_type sb))
+	    (sbinder (unsafe_get_field :sletb_binder sb))
+	    (sbexpr (unsafe_get_field :sletb_expr sb)) 
+	    )
+       (assert_msg "check sbtyp" (is_a sbtyp class_quasi_ctype))
+       ;; issue an inform message if the let binding overrides a previous one
+       (and
+	(has_extra_warnings)
+	(find_env env sbinder)
+	(inform_strv sbloc "this LET binding hides another one in enclosing scope - "
+		     (get_field :named_name  sbinder))
+	)
+;;; normalize the binding's expression
+       (multicall
+	(nbdexpr nbindings)
+	(normal_exp sbexpr newenv ncx sbloc)
+	;; check that the ctype of the normalized expression
+	;; is the same as the let binding's ctype
+	(let ( (nbctype (get_ctype nbdexpr newenv)) 
+	       )
+	  (assert_msg "check nbctype" (is_a nbctype class_ctype))
+	  ;; replace an :auto binding with the appropriate ctype
+	  (if (== sbtyp quasi_ctype_auto)
+	      (setq sbtyp nbctype))
+	  ;; check ctype compatibility
+	  (if (!= nbctype sbtyp)
 	      (progn
-;;; otherwise, eg a plain constant, a complex if...
-		(list_append2list bindlist  nbindings)
-		(let ( (newpbnd 
+		(error_strv 
+		 sbloc
+		 "ctype mismatch in LET binding of local variable"
+		 (get_field :named_name  sbinder))
+		(inform_strv
+		 sbloc
+		 "expecting ctype in LET binding"
+		 (get_field :named_name sbtyp))
+		(inform_strv
+		 sbloc
+		 "ctype of binding expression in LET"
+		 (get_field :named_name nbctype))
+		)))
+	;;
+	(let ( (lastnbinding (pair_head (list_last nbindings))) )
+	  ;; common case of a normalized apply or primitive, hence a
+	  ;; gensymed variable which is the last in the nbindings
+	  (if (and
+	       (is_a lastnbinding class_normal_let_binding)
+	       (is_a nbdexpr class_nrep_locsymocc)
+	       (== (unsafe_get_field :binder lastnbinding) 
+		   (unsafe_get_field :nocc_symb nbdexpr))
+	       )
+	      (let ( (lastnormexp (unsafe_get_field :letbind_expr nbdexpr)) )
+		(list_every
+		 nbindings
+		 (lambda (b)
+		   (if (!= b lastnbinding)
+		       (list_append bindlist b))))
+		(let ( (newcbnd
 			(instance class_normal_let_binding
 				  :binder sbinder
-				  :letbind_type sbtyp
-				  :letbind_expr nbdexpr
-				  :letbind_loc sbloc)) )
-		  (list_append bindlist newpbnd)
-		  (put_env newenv newpbnd)
-		  ))
-	      ))))
-       ))
+				  :letbind_type (unsafe_get_field :letbind_type lastnbinding)
+				  :letbind_expr (unsafe_get_field :letbind_expr lastnbinding)
+				  :letbind_loc (unsafe_get_field :letbind_loc lastnbinding)))
+		       )
+		  (list_append bindlist newcbnd)
+		  (put_env newenv newcbnd)
+		  )
+		)
+	    (progn
+;;; otherwise, eg a plain constant, a complex if...
+	      (list_append2list bindlist  nbindings)
+	      (let ( (newpbnd 
+		      (instance class_normal_let_binding
+				:binder sbinder
+				:letbind_type sbtyp
+				:letbind_expr nbdexpr
+				:letbind_loc sbloc)) )
+		(list_append bindlist newpbnd)
+		(put_env newenv newpbnd)
+		))
+	    ))))
+     )
 ;;; end of loop on source bindings
     (multicall
      (nbody nbodbindings)
@@ -2984,7 +2986,7 @@ source location.}#
 	(mapobject_remove sycmap (unsafe_get_field :binder bnd))
 	)
        (debug "normexp_let shrinked updated sycmap=" sycmap)
-     )
+       )
 ;;;; make the result
      (let (
 	   (nlastbody (multiple_nth nbody -1))

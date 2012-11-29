@@ -1,6 +1,11 @@
 
 2012-11-29  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-normal.melt (normexp_let): More debugging, use a
+	foreach_in_multiple loop...
+
+2012-11-29  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-macro.melt (lambda_arg_bindings): Reject :auto in formals.
 
 	* melt/warmelt-normal.melt (normexp_let): Handle quasi_ctype_auto.
