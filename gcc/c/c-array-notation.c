@@ -848,7 +848,7 @@ fix_conditional_array_notations_1 (tree stmt)
 {
   tree *array_list = NULL;
   int list_size = 0;
-  tree cond = NULL;
+  tree cond = NULL_TREE, builtin_loop = NULL_TREE, new_var = NULL_TREE;
   int rank = 0, ii = 0, jj = 0;
   tree **array_ops, *array_var, *array_operand, jj_tree, loop;
   tree **array_value, **array_stride, **array_length, **array_start;
@@ -866,9 +866,35 @@ fix_conditional_array_notations_1 (tree stmt)
     /* Otherwise dont even touch the statement.  */
     return stmt;
 
+  find_rank (cond, false, &rank);
+  if (rank == 0)
+    return stmt;
+
+  extract_array_notation_exprs (cond, false, &array_list, &list_size);
+  loop = push_stmt_list ();
+
+  for (ii = 0; ii < list_size; ii++)
+    if (TREE_CODE (array_list[ii]) == CALL_EXPR)
+      {
+	builtin_loop = fix_builtin_array_notation_fn (array_list[ii], &new_var);
+	if (builtin_loop)
+	  {
+	    add_stmt (builtin_loop);
+	    replace_array_notations (&cond, false, &array_list[ii], &new_var,
+				     1);
+	  }
+      }
+
+  array_list = NULL;
+  rank = 0;
+  list_size = 0;
   find_rank (cond, true, &rank);
   if (rank == 0)
-    return stmt;  
+    {
+      add_stmt (stmt);
+      pop_stmt_list (loop);
+      return loop;
+    }
   
   extract_array_notation_exprs (cond, true, &array_list, &list_size);
 
@@ -958,9 +984,6 @@ fix_conditional_array_notations_1 (tree stmt)
 	    }
 	}
     }
-
-  loop = push_stmt_list();
-
   for (ii = 0; ii < rank; ii++)
     {
       array_var[ii] = build_decl (UNKNOWN_LOCATION, VAR_DECL, NULL_TREE,
@@ -2367,6 +2390,20 @@ expand_array_notation_exprs (tree t)
     case BIND_EXPR:
       t = expand_array_notation_exprs (BIND_EXPR_BODY (t));
       return t;
+    case COND_EXPR:
+      t = fix_conditional_array_notations (t);
+
+      /* After the above expansion, if it is still a COND_EXPR, then go into
+	 his subtrees.  */
+      if (TREE_CODE (t) == COND_EXPR)
+	{
+	  COND_EXPR_THEN (t) =
+	    expand_array_notation_exprs (COND_EXPR_THEN (t));
+	  COND_EXPR_ELSE (t) =
+	    expand_array_notation_exprs (COND_EXPR_ELSE (t));
+	}
+      else
+	t = expand_array_notation_exprs (t);
     case STATEMENT_LIST:
       {
 	tree_stmt_iterator ii_tsi;
@@ -2382,4 +2419,30 @@ expand_array_notation_exprs (tree t)
       return t;
     }
   return t;
+}
+
+/* This function will check if OP is a CALL_EXPR that is a builtin array
+   notation function.  If so, then it will set its type to be the type
+   of array notation inside.  */
+
+tree
+find_correct_array_notation_type (tree op)
+{
+  tree fn_arg, return_type = NULL_TREE;
+  an_reduce_type dummy = REDUCE_UNKNOWN;
+
+  if (op)
+    {
+      return_type = TREE_TYPE (op);  /* This is the default case.  */
+      if (TREE_CODE (op) == CALL_EXPR)
+	{
+	  if (is_builtin_array_notation_fn (CALL_EXPR_FN (op), &dummy))
+	    {
+	      fn_arg = CALL_EXPR_ARG (op, 0);
+	      if (fn_arg)
+		return_type = TREE_TYPE (fn_arg);
+	    }
+	}
+    }
+  return return_type;
 }

@@ -1,3 +1,13 @@
+2012-11-28  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c/c-array-notation.c (fix_conditional_array_notations_1): Added some
+	code to handle builtin array notations in a condition expr.
+	(expand_array_notation_exprs): Added a COND_EXPR case.
+	(find_correct_aray_notation_type): New function.
+	* c-typeck.c (build_binary_op): Added a check for array notations inside
+	op0 and op1.  If so, then we call find_correct_array_notation_type.
+
+
 2012-10-19  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cilk.c (replace_cilk_metadata): New function.

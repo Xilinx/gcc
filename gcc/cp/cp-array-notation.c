@@ -1047,11 +1047,11 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
 /* This is the internal function to fix array notations inside conditions.  */
 
 static tree
-fix_conditional_array_notations_1 (tree stmt)
+fix_conditional_array_notations_1 (tree orig_stmt)
 {
-  tree *array_list = NULL;
+  tree *array_list = NULL, stmt = NULL_TREE;
   int list_size = 0;
-  tree cond = NULL;
+  tree cond = NULL_TREE, builtin_loop = NULL_TREE, new_var = NULL_TREE;
   int rank = 0, ii = 0, jj = 0;
   tree **array_ops, *array_var, *array_operand, jj_tree, loop;
   tree **array_value, **array_stride, **array_length, **array_start;
@@ -1060,24 +1060,48 @@ fix_conditional_array_notations_1 (tree stmt)
   bool **count_down, **array_vector;
   char label_name[50];
 
-  if (TREE_CODE (stmt) == COND_EXPR)
-    cond = COND_EXPR_COND (stmt);
-  else if (TREE_CODE (stmt) == IF_STMT)
-    cond = IF_COND (stmt);
-  else if (TREE_CODE (stmt) == SWITCH_STMT)
-    cond = SWITCH_STMT_COND (stmt);
-  else if (TREE_CODE (stmt) == SWITCH_EXPR)
-    cond = SWITCH_COND (stmt);
-  else if (TREE_CODE (stmt) == WHILE_STMT)
-    cond = WHILE_COND (stmt);
-  else if (TREE_CODE (stmt) == FOR_STMT || TREE_CODE (stmt) == CILK_FOR_STMT)
-    cond = FOR_COND (stmt);
-  else if (TREE_CODE (stmt) == DO_STMT)
-    cond = DO_COND (stmt);
+  if (TREE_CODE (orig_stmt) == COND_EXPR)
+    cond = COND_EXPR_COND (orig_stmt);
+  else if (TREE_CODE (orig_stmt) == IF_STMT)
+    cond = IF_COND (orig_stmt);
+  else if (TREE_CODE (orig_stmt) == SWITCH_STMT)
+    cond = SWITCH_STMT_COND (orig_stmt);
+  else if (TREE_CODE (orig_stmt) == SWITCH_EXPR)
+    cond = SWITCH_COND (orig_stmt);
+  else if (TREE_CODE (orig_stmt) == WHILE_STMT)
+    cond = WHILE_COND (orig_stmt);
+  else if (TREE_CODE (orig_stmt) == FOR_STMT
+	   || TREE_CODE (orig_stmt) == CILK_FOR_STMT)
+    cond = FOR_COND (orig_stmt);
+  else if (TREE_CODE (orig_stmt) == DO_STMT)
+    cond = DO_COND (orig_stmt);
   else
     /* Otherwise don't even touch the statement.  */
-    return stmt;
+    return orig_stmt;
 
+  find_rank (cond, false, &rank);
+  if (rank == 0)
+    return orig_stmt;
+  
+  extract_array_notation_exprs (orig_stmt, false, &array_list, &list_size);
+  stmt = alloc_stmt_list ();
+  for (ii = 0; ii < list_size; ii++)
+    {
+      if (TREE_CODE (array_list[ii]) == CALL_EXPR
+	  || TREE_CODE (array_list[ii]) == AGGR_INIT_EXPR)
+	{
+	  builtin_loop =
+	    fix_builtin_array_notation_fn (array_list[ii], &new_var);
+	  append_to_statement_list_force (builtin_loop, &stmt);
+	  replace_array_notations (&orig_stmt, false, &array_list[ii],
+				   &new_var, 1);
+	}
+    }
+  append_to_statement_list_force (orig_stmt, &stmt);
+  rank = 0;
+  list_size = 0;
+  array_list = NULL;
+  
   find_rank (cond, true, &rank);
   if (rank == 0)
     return stmt;  
@@ -2657,3 +2681,31 @@ has_call_expr_with_array_notation (tree node)
     }
   return false;
 }
+
+/* This function will check if OP is a CALL_EXPR that is a builtin array
+   notation function.  If so, then it will set its type to be the type
+   of array notation inside.  */
+
+tree
+find_correct_array_notation_type (tree op)
+{
+  tree fn_arg, return_type = NULL_TREE;
+  an_reduce_type dummy = REDUCE_UNKNOWN;
+
+  if (op)
+    {
+      return_type = TREE_TYPE (op);  /* This is the default case.  */
+      if (TREE_CODE (op) == CALL_EXPR)
+	{
+	  if (is_builtin_array_notation_fn (CALL_EXPR_FN (op), &dummy))
+	    {
+	      fn_arg = CALL_EXPR_ARG (op, 0);
+	      if (fn_arg)
+		return_type = TREE_TYPE (fn_arg);
+	    }
+	}
+    }
+  return return_type;
+}
+      
+  

@@ -62,6 +62,7 @@ static void warn_args_num (location_t, tree, bool);
 static int convert_arguments (tree, vec<tree, va_gc> **, tree, int,
                               tsubst_flags_t);
 extern bool contains_array_notation_expr (tree);
+extern tree find_correct_array_notation_type (tree);
 
 /* Do `exp = require_complete_type (exp);' to make sure exp
    does not have an incomplete type.  (That includes void types.)
@@ -3879,8 +3880,15 @@ cp_build_binary_op (location_t location,
 	}
     }
 
-  type0 = TREE_TYPE (op0);
-  type1 = TREE_TYPE (op1);
+  if (flag_enable_cilk && contains_array_notation_expr (op0))
+    type0 = find_correct_array_notation_type (op0);
+  else
+    type0 = TREE_TYPE (op0);
+
+  if (flag_enable_cilk && contains_array_notation_expr (op1))
+    type1 = find_correct_array_notation_type (op1);
+  else
+    type1 = TREE_TYPE (op1);
 
   /* The expression codes of the data types of the arguments tell us
      whether the arguments are integers, floating, pointers, etc.  */

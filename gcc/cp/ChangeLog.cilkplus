@@ -1,3 +1,13 @@
+2012-11-28  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cp-array-notation.c (fix_conditional_array_notations_1): Added code to
+	handle array notation builtin functions inside a condition of a 
+	conditional statement.
+	(find_correct_array_notation_type): New function.
+	* typeck.c (cp_build_binary_op): Added a check for array notations 
+	inside op0 and op1.  If so, then we call the function 
+	find_correct_array_notation_type.
+
 2012-10-17  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cp-gimplify.c (genericize_cilk_for_stmt): Walk through all the
