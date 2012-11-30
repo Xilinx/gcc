@@ -17929,7 +17929,7 @@ INTEGER), ")));;
 				  obj =
 				    (melt_ptr_t) ( /*_.CTYP__V4*/ meltfptr[3])
 				    /*=obj*/ ;
-				  melt_object_get_field (slot, obj, 17,
+				  melt_object_get_field (slot, obj, 19,
 							 "CTYPG_BOXDISCR");
 	   /*_.DIS__V70*/ meltfptr[33] = slot;
 				};
@@ -17956,7 +17956,7 @@ INTEGER), ")));;
 				  obj =
 				    (melt_ptr_t) ( /*_.CTYP__V4*/ meltfptr[3])
 				    /*=obj*/ ;
-				  melt_object_get_field (slot, obj, 20,
+				  melt_object_get_field (slot, obj, 22,
 							 "CTYPG_BOXFUN");
 	   /*_.BOXF__V71*/ meltfptr[24] = slot;
 				};

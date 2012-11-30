@@ -32222,7 +32222,7 @@ lab_endgetargs:;
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
 		  (melt_ptr_t) ( /*_.CURCTYP__V25*/ meltfptr[24]) /*=obj*/ ;
-		melt_object_get_field (slot, obj, 11, "CTYPG_BOXEDMAGIC");
+		melt_object_get_field (slot, obj, 13, "CTYPG_BOXEDMAGIC");
     /*_.CTYPG_BOXEDMAGIC__V33*/ meltfptr[32] = slot;
 	      };
 	      ;
@@ -32289,7 +32289,7 @@ lab_endgetargs:;
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
 		  (melt_ptr_t) ( /*_.CURCTYP__V25*/ meltfptr[24]) /*=obj*/ ;
-		melt_object_get_field (slot, obj, 12, "CTYPG_MAPMAGIC");
+		melt_object_get_field (slot, obj, 14, "CTYPG_MAPMAGIC");
     /*_.CTYPG_MAPMAGIC__V34*/ meltfptr[33] = slot;
 	      };
 	      ;
@@ -33462,7 +33462,7 @@ lab_endgetargs:;
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
 		  (melt_ptr_t) ( /*_.CURCTYP__V16*/ meltfptr[14]) /*=obj*/ ;
-		melt_object_get_field (slot, obj, 13, "CTYPG_BOXEDSTRUCT");
+		melt_object_get_field (slot, obj, 15, "CTYPG_BOXEDSTRUCT");
     /*_.CTYPG_BOXEDSTRUCT__V24*/ meltfptr[23] = slot;
 	      };
 	      ;
@@ -33505,7 +33505,7 @@ lab_endgetargs:;
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
 		  (melt_ptr_t) ( /*_.CURCTYP__V16*/ meltfptr[14]) /*=obj*/ ;
-		melt_object_get_field (slot, obj, 11, "CTYPG_BOXEDMAGIC");
+		melt_object_get_field (slot, obj, 13, "CTYPG_BOXEDMAGIC");
     /*_.CTYPG_BOXEDMAGIC__V25*/ meltfptr[24] = slot;
 	      };
 	      ;
@@ -33648,7 +33648,7 @@ lab_endgetargs:;
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
 		  (melt_ptr_t) ( /*_.CURCTYP__V16*/ meltfptr[14]) /*=obj*/ ;
-		melt_object_get_field (slot, obj, 15, "CTYPG_ENTRYSTRUCT");
+		melt_object_get_field (slot, obj, 17, "CTYPG_ENTRYSTRUCT");
     /*_.CTYPG_ENTRYSTRUCT__V27*/ meltfptr[26] = slot;
 	      };
 	      ;
@@ -33691,7 +33691,7 @@ lab_endgetargs:;
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
 		  (melt_ptr_t) ( /*_.CURCTYP__V16*/ meltfptr[14]) /*=obj*/ ;
-		melt_object_get_field (slot, obj, 12, "CTYPG_MAPMAGIC");
+		melt_object_get_field (slot, obj, 14, "CTYPG_MAPMAGIC");
     /*_.CTYPG_MAPMAGIC__V28*/ meltfptr[27] = slot;
 	      };
 	      ;
@@ -33827,7 +33827,7 @@ lab_endgetargs:;
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
 		  (melt_ptr_t) ( /*_.CURCTYP__V16*/ meltfptr[14]) /*=obj*/ ;
-		melt_object_get_field (slot, obj, 16, "CTYPG_MAPSTRUCT");
+		melt_object_get_field (slot, obj, 18, "CTYPG_MAPSTRUCT");
     /*_.CTYPG_MAPSTRUCT__V30*/ meltfptr[29] = slot;
 	      };
 	      ;
@@ -33871,7 +33871,7 @@ lab_endgetargs:;
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
 		  (melt_ptr_t) ( /*_.CURCTYP__V16*/ meltfptr[14]) /*=obj*/ ;
-		melt_object_get_field (slot, obj, 12, "CTYPG_MAPMAGIC");
+		melt_object_get_field (slot, obj, 14, "CTYPG_MAPMAGIC");
     /*_.CTYPG_MAPMAGIC__V31*/ meltfptr[30] = slot;
 	      };
 	      ;
@@ -34011,7 +34011,7 @@ lab_endgetargs:;
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
 		  (melt_ptr_t) ( /*_.CURCTYP__V16*/ meltfptr[14]) /*=obj*/ ;
-		melt_object_get_field (slot, obj, 15, "CTYPG_ENTRYSTRUCT");
+		melt_object_get_field (slot, obj, 17, "CTYPG_ENTRYSTRUCT");
     /*_.CTYPG_ENTRYSTRUCT__V32*/ meltfptr[31] = slot;
 	      };
 	      ;
@@ -35521,7 +35521,7 @@ lab_endgetargs:;
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
 		  (melt_ptr_t) ( /*_.CURCTYP__V55*/ meltfptr[53]) /*=obj*/ ;
-		melt_object_get_field (slot, obj, 13, "CTYPG_BOXEDSTRUCT");
+		melt_object_get_field (slot, obj, 15, "CTYPG_BOXEDSTRUCT");
     /*_.CTYPG_BOXEDSTRUCT__V63*/ meltfptr[62] = slot;
 	      };
 	      ;
@@ -35564,7 +35564,7 @@ lab_endgetargs:;
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
 		  (melt_ptr_t) ( /*_.CURCTYP__V55*/ meltfptr[53]) /*=obj*/ ;
-		melt_object_get_field (slot, obj, 11, "CTYPG_BOXEDMAGIC");
+		melt_object_get_field (slot, obj, 13, "CTYPG_BOXEDMAGIC");
     /*_.CTYPG_BOXEDMAGIC__V64*/ meltfptr[63] = slot;
 	      };
 	      ;
@@ -35607,7 +35607,7 @@ lab_endgetargs:;
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
 		  (melt_ptr_t) ( /*_.CURCTYP__V55*/ meltfptr[53]) /*=obj*/ ;
-		melt_object_get_field (slot, obj, 14, "CTYPG_BOXEDUNIMEMB");
+		melt_object_get_field (slot, obj, 16, "CTYPG_BOXEDUNIMEMB");
     /*_.CTYPG_BOXEDUNIMEMB__V65*/ meltfptr[64] = slot;
 	      };
 	      ;
@@ -35666,7 +35666,7 @@ lab_endgetargs:;
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
 		  (melt_ptr_t) ( /*_.CURCTYP__V55*/ meltfptr[53]) /*=obj*/ ;
-		melt_object_get_field (slot, obj, 16, "CTYPG_MAPSTRUCT");
+		melt_object_get_field (slot, obj, 18, "CTYPG_MAPSTRUCT");
     /*_.CTYPG_MAPSTRUCT__V66*/ meltfptr[65] = slot;
 	      };
 	      ;
@@ -35710,7 +35710,7 @@ lab_endgetargs:;
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
 		  (melt_ptr_t) ( /*_.CURCTYP__V55*/ meltfptr[53]) /*=obj*/ ;
-		melt_object_get_field (slot, obj, 12, "CTYPG_MAPMAGIC");
+		melt_object_get_field (slot, obj, 14, "CTYPG_MAPMAGIC");
     /*_.CTYPG_MAPMAGIC__V67*/ meltfptr[66] = slot;
 	      };
 	      ;
@@ -35754,7 +35754,7 @@ lab_endgetargs:;
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
 		  (melt_ptr_t) ( /*_.CURCTYP__V55*/ meltfptr[53]) /*=obj*/ ;
-		melt_object_get_field (slot, obj, 19, "CTYPG_MAPUNIMEMB");
+		melt_object_get_field (slot, obj, 21, "CTYPG_MAPUNIMEMB");
     /*_.CTYPG_MAPUNIMEMB__V68*/ meltfptr[67] = slot;
 	      };
 	      ;
