@@ -1,6 +1,11 @@
 
 2012-11-30  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-first.melt (class_ctype): Add ctype_autoboxdiscr &
+	ctype_autoconstboxdiscr fields.
+
+2012-11-30  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-macro.melt (mexpand_let): Default ctype is :auto...
 
 2012-11-29  Basile Starynkevitch  <basile@starynkevitch.net>

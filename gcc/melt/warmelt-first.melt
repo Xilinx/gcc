@@ -319,6 +319,9 @@ $INITIAL_SYSTEM_DATA.}#
 	   ctype_resfield ;the name of the melt result union field (eg meltbp_longptr)
 	   ctype_marker	  ;the name of the marker routine
 	   ctype_altkeyword ;the alternate keyword associated to the ctype (e.g. :longinteger)
+	   ctype_autoboxdiscr		;discriminant for auto-boxing or nil
+	   ctype_autoconstboxdiscr 	;discriminant for const
+					;auto-boxing or nil
 	   )
   :doc #{The $CLASS_CTYPE is for predefined descriptors of C
 types (like long or tree). $CTYPE_KEYWORD gives the associated
@@ -329,7 +332,10 @@ corresponding C string). Argument member in union is given by
 $CTYPE_ARGFIELD, and by $CTYPE_RESFIELD for results.  The marking
 routine is $CTYPE_MARKER and $CTYPE_DESCR is some descriptive string
 or data. A possible alternate keyword is given by $CTYPE_ALTKEYWORD.
- Adding new c-types requires an update of MELT runtime!}# )
+The $CTYPE_AUTOBOXDISCR gives the discriminant for autoboxing or nil,
+and the $CTYPE_AUTOCONSTBOXDISCR gives the discriminant for const
+autoboxinf oe nil.  Adding new c-types requires an update of MELT
+runtime!}# )
 
 ;;; the class describing plain ctypes, i.e. not GTY-ed, like :cstring or :long
 (defclass class_ctype_plain
