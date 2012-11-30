@@ -5234,7 +5234,7 @@ condition is a string such as "4.5." or a list of strings.}#)
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
-	(ctyp ctype_value)		;;should become quasi_ctype_auto
+	(ctyp quasi_ctype_auto)		
 	(var ())
 	(expr ())
 	(curpair (list_first cont))
@@ -5365,13 +5365,14 @@ condition is a string such as "4.5." or a list of strings.}#)
  let mexpand_let
  :doc #{The $LET syntax is for sequential local bindings of
  expressions. Syntax is (LET ( <binding>... ) <body>...). Each binding
- is an optional ctype such as :long or :gimple or :value (which is the
- default), followed by a local variable name, followed by a single
- expression. The body is a non-empty sequence of expressions,
- evaluated in an environment enriched with the local bindings. The
- MELT LET syntax is sequential, like LET* in Scheme so a variable
- bound in a previous binding can appear in the expression of a later
- binding.}#)
+ is an optional ctype such as :long or :gimple or :value
+ or :auto (which is the default), followed by a local variable name,
+ followed by a single expression. With an :auto type annotation, the
+ bound variable takes the type provided by the binding expression. The
+ body is a non-empty sequence of expressions, evaluated in an
+ environment enriched with the local bindings. The MELT LET syntax is
+ sequential, like LET* in Scheme so a variable bound in a previous
+ binding can appear in the expression of a later binding.}#)
 
 
 ;;;;;;;;;;;;;;;; install methods to detect recursively constructible
