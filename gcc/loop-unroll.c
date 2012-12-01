@@ -1154,6 +1154,13 @@ decide_unroll_runtime_iterations (struct loop *loop, int flags)
       return;
     }
 
+  /* In AutoFDO, the profile is not accurate. If the calculated trip count
+     is larger than the header count, then the profile is not accurate
+     enough to make correct unroll decisions. */
+  if (flag_auto_profile
+      && expected_loop_iterations (loop) > loop->header->count)
+    return;
+
   /* Success; now force nunroll to be power of 2, as we are unable to
      cope with overflows in computation of number of iterations.  */
   for (i = 1; 2 * i <= nunroll; i *= 2)

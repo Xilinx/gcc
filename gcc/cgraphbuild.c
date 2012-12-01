@@ -38,6 +38,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "except.h"
 #include "l-ipo.h"
 #include "ipa-inline.h"
+#include "auto-profile.h"
 
 /* Context of record_reference.  */
 struct record_reference_ctx
@@ -496,6 +497,9 @@ build_cgraph_edges (void)
   gimple_stmt_iterator gsi;
   tree decl;
   unsigned ix;
+
+  if (flag_auto_profile)
+    afdo_set_current_function_count ();
 
   /* Create the callgraph edges and record the nodes referenced by the function.
      body.  */

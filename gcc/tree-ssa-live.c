@@ -546,7 +546,7 @@ remove_unused_scope_block_p (tree scope)
    else if (!nsubblocks)
      ;
    /* For terse debug info we can eliminate info on unused variables.  */
-   else if (!generate_debug_line_table
+   else if (!flag_auto_profile && !generate_debug_line_table
 	    && (debug_info_level == DINFO_LEVEL_NONE
 		|| debug_info_level == DINFO_LEVEL_TERSE))
      {

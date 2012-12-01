@@ -1642,7 +1642,7 @@ direct_call_profiling (void)
 static bool
 gate_tree_profile_ipa (void)
 {
-  return (!in_lto_p
+  return (!in_lto_p && !flag_auto_profile
 	  && (flag_branch_probabilities || flag_test_coverage
 	      || profile_arc_flag || flag_profile_reusedist
               || flag_optimize_locality));

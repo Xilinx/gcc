@@ -1,3 +1,106 @@
+2012-12-01  Dehao Chen  <dehao@dehao.com>
+
+	* cgraphbuild.c (build_cgraph_edges): Handle AutoFDO profile.
+	(rebuild_cgraph_edges): Likewise.
+	* cgraph.c (cgraph_clone_node): Likewise.
+	(clone_function_name): Likewise.
+	* cgraph.h (cgraph_node): New field.
+	* tree-pass.h (pass_ipa_auto_profile): New pass.
+	* cfghooks.c (make_forwarder_block): Handle AutoFDO profile.
+	* ipa-inline-transform.c (clone_inlined_nodes): Likewise.
+	* toplev.c (compile_file): Likewise.
+	(process_options): Likewise.
+	* debug.h (auto_profile_debug_hooks): New.
+	* cgraphunit.c (cgraph_finalize_compilation_unit): Handle AutoFDO
+	profile.
+	(cgraph_copy_node_for_versioning): Likewise.
+	* regs.h (REG_FREQ_FROM_BB): Likewise.
+	* gcov-io.h: (GCOV_TAG_AFDO_FILE_NAMES): New.
+	(GCOV_TAG_AFDO_FUNCTION): New.
+	(GCOV_TAG_AFDO_MODULE_GROUPING): New.
+	* ira-int.h (REG_FREQ_FROM_EDGE_FREQ): Handle AutoFDO profile.
+	* ipa-inline.c (edge_hot_enough_p): Likewise.
+	(edge_badness): Likewise.
+	(inline_small_functions): Likewise.
+	* dwarf2out.c (auto_profile_debug_hooks): New.
+	* opts.c (common_handle_option): Handle AutoFDO profile.
+	* timevar.def (TV_IPA_AUTOFDO): New.
+	* predict.c (compute_function_frequency): Handle AutoFDO profile.
+	(rebuild_frequencies): Handle AutoFDO profile.
+	* auto-profile.c (struct gcov_callsite_pos): New.
+	(struct gcov_callsite): New.
+	(struct gcov_stack): New.
+	(struct gcov_function): New.
+	(struct afdo_bfd_name): New.
+	(struct afdo_module): New.
+	(afdo_get_filename): New.
+	(afdo_get_original_name_size): New.
+	(afdo_get_bfd_name): New.
+	(afdo_read_bfd_names): New.
+	(afdo_stack_hash): New.
+	(afdo_stack_eq): New.
+	(afdo_function_hash): New.
+	(afdo_function_eq): New.
+	(afdo_bfd_name_hash): New.
+	(afdo_bfd_name_eq): New.
+	(afdo_bfd_name_del): New.
+	(afdo_module_hash): New.
+	(afdo_module_eq): New.
+	(afdo_module_num_strings): New.
+	(afdo_add_module): New.
+	(read_aux_modules): New.
+	(get_inline_stack_size_by_stmt): New.
+	(get_inline_stack_size_by_edge): New.
+	(get_function_name_from_block): New.
+	(get_inline_stack_by_stmt): New.
+	(get_inline_stack_by_edge): New.
+	(afdo_get_function_count): New.
+	(afdo_set_current_function_count): New.
+	(afdo_add_bfd_name_mapping): New.
+	(afdo_add_copy_scale): New.
+	(get_stack_count): New.
+	(get_stmt_count): New.
+	(afdo_get_callsite_count): New.
+	(afdo_get_bb_count): New.
+	(afdo_annotate_cfg): New.
+	(read_profile): New.
+	(process_auto_profile): New.
+	(init_auto_profile): New.
+	(end_auto_profile): New.
+	(afdo_find_equiv_class): New.
+	(afdo_propagate_single_edge): New.
+	(afdo_propagate_multi_edge): New.
+	(afdo_propagate_circuit): New.
+	(afdo_propagate): New.
+	(afdo_calculate_branch_prob): New.
+	(auto_profile): New.
+	(gate_auto_profile_ipa): New.
+	(struct simple_ipa_opt_pass): New.
+	* auto-profile.h (init_auto_profile): New.
+	(end_auto_profile): New.
+	(process_auto_profile): New.
+	(afdo_set_current_function_count): New.
+	(afdo_add_bfd_name_mapping): New.
+	(afdo_add_copy_scale): New.
+	(afdo_calculate_branch_prob): New.
+	(afdo_get_callsite_count): New.
+	(afdo_get_bb_count): New.
+	* profile.c (compute_branch_probabilities): Handle AutoFDO profile.
+	(branch_prob): Likeise.
+	* loop-unroll.c (decide_unroll_runtime_iterations): Likewise.
+	* coverage.c (coverage_init): Likewise.
+	* tree-ssa-live.c (remove_unused_scope_block_p): Likewise.
+	* common.opt (fauto-profile): New.
+	* tree-inline.c (copy_bb): Handle AutoFDO profile.
+	(copy_edges_for_bb): Likewise.
+	(copy_cfg_body): Likewise.
+	* tree-profile.c (direct_call_profiling): Likewise.
+	(gate_tree_profile_ipa): Likewise.
+	* basic-block.h (EDGE_ANNOTATED): New field.
+	(BB_ANNOTATED): New field.
+	* tree-cfg.c (gimple_merge_blocks): Handle AutoFDO profile.
+	* passes.c (init_optimization_passes): Handle AutoFDO profile.
+
 2012-11-27  Dehao Chen  <dehao@google.com>
 
 	Backport 193857 from trunk:

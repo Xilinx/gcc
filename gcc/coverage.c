@@ -58,6 +58,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "filenames.h"
 #include "dwarf2asm.h"
 #include "target.h"
+#include "auto-profile.h"
 
 #include "gcov-io.h"
 #include "gcov-io.c"
@@ -2653,6 +2654,8 @@ coverage_init (const char *filename, const char* source_name)
       init_pmu_profiling ();
       tree_init_instrumentation_sampling ();
     }
+  if (flag_auto_profile)
+    init_auto_profile ();
 }
 
 /* Return True if any type of profiling is enabled which requires linking

@@ -119,6 +119,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "ipa-inline.h"
 #include "ipa-utils.h"
+#include "auto-profile.h"
 
 /* Statistics we collect about inlining algorithm.  */
 static int overall_size;
@@ -478,6 +479,21 @@ edge_hot_enough_p (struct cgraph_edge *edge)
 {
   if (cgraph_maybe_hot_edge_p (edge))
     return true;
+  if (flag_auto_profile)
+    {
+      gcov_type callsite_total_count;
+      /* Check if total sample counts in the callee is available.  */
+      if (afdo_get_callsite_count (edge, &callsite_total_count, NULL, true)
+	  && maybe_hot_count_p (callsite_total_count))
+	return true;
+      /* We disable hot-caller heuristic if the callee's entry count is
+	 0 because in this case we do not have enough information to
+	 calculate the scaling factor.  */
+      if (edge->callee->count == 0 && edge->callee->max_bb_count > 0)
+	return false;
+      /* In AutoFDO, if the preivous few heuristic fail, we will fall
+	 back to use hot-caller heuristic as is used by FDO.  */
+    }
   if (PARAM_VALUE (PARAM_INLINE_HOT_CALLER)
       && maybe_hot_count_p (edge->caller->max_bb_count))
     return true;
@@ -856,14 +872,36 @@ edge_badness (struct cgraph_edge *edge, bool dump)
   else if (max_count)
     {
       int relbenefit = relative_time_benefit (callee_info, edge, time_growth);
+      if (flag_auto_profile && edge->count == 0)
+	{
+	  gcov_type callsite_count;
+	  if (afdo_get_callsite_count (edge, &callsite_count, NULL, false))
+	    edge->count = callsite_count;
+	  if (edge->count > max_count)
+	    max_count = edge->count;
+	}
       badness =
 	((int)
 	 ((double) edge->count * INT_MIN / 2 / max_count / 512) *
 	 relative_time_benefit (callee_info, edge, time_growth)) / growth;
-      
+      if (flag_auto_profile && profile_info->sum_all > 0)
+	{
+	  gcov_type callsite_total_count;
+	  if (afdo_get_callsite_count (edge, &callsite_total_count, NULL, true))
+	    {
+	      gcov_type afdo_badness =
+		((int)
+		 ((double) callsite_total_count * INT_MIN / 2 /
+		 profile_info->sum_all / 64) *
+		 relative_time_benefit (callee_info, edge, time_growth)) / growth;
+	      if (afdo_badness < badness)
+		badness = afdo_badness;
+	    }
+	}
+
       /* Be sure that insanity of the profile won't lead to increasing counts
 	 in the scalling and thus to overflow in the computation above.  */
-      gcc_assert (max_count >= edge->count);
+      gcc_assert (flag_auto_profile || max_count >= edge->count);
       if (dump)
 	{
 	  fprintf (dump_file,
@@ -1493,6 +1531,7 @@ inline_small_functions (void)
       }
 
   gcc_assert (in_lto_p
+	      || flag_auto_profile
 	      || !max_count
 	      || (profile_info && flag_branch_probabilities));
 
@@ -1526,7 +1565,7 @@ inline_small_functions (void)
 	 of date value on it, we re-insert it now.  */
       current_badness = edge_badness (edge, false);
       gcc_assert (cached_badness == current_badness);
-      gcc_assert (current_badness >= badness);
+      gcc_assert (flag_auto_profile || current_badness >= badness);
       if (current_badness != badness)
 	{
 	  edge->aux = fibheap_insert (heap, current_badness, edge);
@@ -1647,7 +1686,10 @@ inline_small_functions (void)
 	     thus we need to recompute everything all the time.  Once this is
 	     solved, "|| 1" should go away.  */
 	  if (callee->global.inlined_to || 1)
-	    update_all_callee_keys (heap, callee, updated_nodes);
+	    {
+	      update_all_callee_keys (heap, edge->callee, updated_nodes);
+	      update_all_callee_keys (heap, callee, updated_nodes);
+	    }
 	  else
 	    update_callee_keys (heap, edge->callee, updated_nodes);
 	}

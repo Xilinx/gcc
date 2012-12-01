@@ -89,8 +89,9 @@ DEF_VEC_ALLOC_P(edge,heap);
 					   and cold sections, when we
 					   do partitioning.  */
 #define EDGE_PRESERVE		0x4000	/* Never merge blocks via this edge. */
-#define EDGE_ALL_FLAGS		0x7fff
-
+#define EDGE_ANNOTATED		0x8000  /* Edge has been annotated by AutoFDO
+					   profile.  */
+#define EDGE_ALL_FLAGS          0xffff
 #define EDGE_COMPLEX \
   (EDGE_ABNORMAL | EDGE_ABNORMAL_CALL | EDGE_EH | EDGE_PRESERVE)
 
@@ -268,7 +269,11 @@ enum bb_flags
   /* Set on blocks that are in a transaction.  This is calculated on
      demand, and is available after calling
      compute_transaction_bits().  */
-  BB_IN_TRANSACTION = 1 << 13
+  BB_IN_TRANSACTION = 1 << 13,
+
+  /* Set on blocks that has been annotated by AutoFDO profile. This is
+     calculated while propagating profiles on control flow graph.  */
+  BB_ANNOTATED = 1 << 14
 };
 
 /* Dummy flag for convenience in the hot/cold partitioning code.  */
@@ -961,5 +966,6 @@ extern void default_rtl_profile (void);
 
 /* In profile.c.  */
 extern gcov_working_set_t *find_working_set(unsigned pct_times_10);
+extern void add_working_set (gcov_working_set_t *);
 
 #endif /* GCC_BASIC_BLOCK_H */

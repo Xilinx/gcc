@@ -81,6 +81,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-ssa-alias.h"
 #include "plugin.h"
 #include "tree-threadsafe-analyze.h"
+#include "auto-profile.h"
 
 #if defined (DWARF2_UNWIND_INFO) || defined (DWARF2_DEBUGGING_INFO)
 #include "dwarf2out.h"
@@ -699,6 +700,10 @@ compile_file (void)
 	       IDENT_ASM_OP, pkg_version, version_string);
     }
 #endif
+
+  /* Auto profile finalization. */
+  if (flag_auto_profile)
+    end_auto_profile ();
 
   /* Invoke registered plugin callbacks.  */
   invoke_plugin_callbacks (PLUGIN_FINISH_UNIT, NULL);
@@ -1493,6 +1498,9 @@ process_options (void)
   else
     error ("target system does not support the \"%s\" debug format",
 	   debug_type_names[write_symbols]);
+
+  if (flag_auto_profile && debug_info_level == DINFO_LEVEL_NONE)
+    debug_hooks = &auto_profile_debug_hooks;
 
   /* We know which debug output will be used so we can set flag_var_tracking
      and flag_var_tracking_uninit if the user has not specified them.  */

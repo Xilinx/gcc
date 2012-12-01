@@ -456,6 +456,10 @@ typedef unsigned HOST_WIDEST_INT gcov_type_unsigned;
 #define GCOV_TAG_PMU_BRANCH_MISPREDICT_LENGTH (8)
 #define GCOV_TAG_PMU_TOOL_HEADER ((gcov_unsigned_t)0xa9000000)
 #define GCOV_TAG_MODULE_INFO ((gcov_unsigned_t)0xab000000)
+#define GCOV_TAG_AFDO_FILE_NAMES ((gcov_unsigned_t)0xaa000000)
+#define GCOV_TAG_AFDO_FUNCTION ((gcov_unsigned_t)0xac000000)
+#define GCOV_TAG_AFDO_MODULE_GROUPING ((gcov_unsigned_t)0xae000000)
+#define GCOV_TAG_AFDO_WORKING_SET ((gcov_unsigned_t)0xaf000000)
 #define GCOV_TAG_PMU_STRING_TABLE_ENTRY ((gcov_unsigned_t)0xad000000)
 #define GCOV_TAG_PMU_STRING_TABLE_ENTRY_LENGTH(filename) \
   (gcov_string_length (filename) + 1)

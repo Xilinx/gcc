@@ -359,7 +359,8 @@ Objective-C and Objective-C++ Dialects}.
 @xref{Optimize Options,,Options that Control Optimization}.
 @gccoptlist{-falign-functions[=@var{n}] -falign-jumps[=@var{n}] @gol
 -falign-labels[=@var{n}] -falign-loops[=@var{n}] -fasan -fassociative-math @gol
--fauto-inc-dec -fbranch-probabilities -fbranch-target-load-optimize @gol
+-fauto-inc-dec -fauto-profile -fbranch-probabilities @gol
+-fbranch-target-load-optimize @gol
 -fbranch-target-load-optimize2 -fbtr-bb-exclusive -fcaller-saves @gol
 -fcheck-data-deps -fclone-hot-version-paths @gol
 -fcombine-stack-adjustments -fconserve-stack @gol
@@ -8326,6 +8327,19 @@ we perform a copy-propagation pass to try to reduce scheduling dependencies
 and occasionally eliminate the copy.
 
 Enabled at levels @option{-O}, @option{-O2}, @option{-O3}, @option{-Os}.
+
+@item -fauto-profile
+@itemx -fauto-profile=@var{path}
+@opindex fauto-profile
+Enable auto-profile feedback directed optimizations, and optimizations
+generally profitable only with profile feedback available.
+
+The following options are enabled: @code{-fbranch-probabilities},
+@code{-funroll-loops}, @code{-fpeel-loops}.
+
+If @var{path} is specified, GCC will look at the @var{path} to find
+the profile feedback data files. Otherwise, GCC will find fbdata.afdo
+in the current directory.
 
 @item -fprofile-correction
 @opindex fprofile-correction

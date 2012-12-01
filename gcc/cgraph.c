@@ -101,6 +101,7 @@ The callgraph:
 #include "l-ipo.h"
 #include "ipa-inline.h"
 #include "opts.h"
+#include "auto-profile.h"
 
 const char * const ld_plugin_symbol_resolution_names[]=
 {
@@ -2187,6 +2188,11 @@ cgraph_clone_node (struct cgraph_node *n, tree decl, gcov_type count, int freq,
                               / n->count) * count;
   new_node->is_versioned_clone = n->is_versioned_clone;
   new_node->frequency = n->frequency;
+  /* In AutoFDO, a cloned callee may be hot even when the original
+     function is profiled cold.  */
+  if (flag_auto_profile && count > 0
+      && new_node->frequency == NODE_FREQUENCY_UNLIKELY_EXECUTED)
+    new_node->frequency = NODE_FREQUENCY_NORMAL;
   new_node->clone = n->clone;
   new_node->clone.tree_map = 0;
   if (n->count)
@@ -2198,6 +2204,11 @@ cgraph_clone_node (struct cgraph_node *n, tree decl, gcov_type count, int freq,
     }
   else
     count_scale = 0;
+  /* In AutoFDO, if edge count is larger than callee's entry block
+     count, we will not update the original callee because it may
+     mistakenly mark some hot function as cold.  */
+  if (flag_auto_profile && count >= n->count)
+    update_original = false;
   if (update_original)
     {
       n->count -= count;
@@ -2268,6 +2279,9 @@ clone_function_name (tree decl, const char *suffix)
   prefix[len] = '_';
 #endif
   ASM_FORMAT_PRIVATE_NAME (tmp_name, prefix, clone_fn_id_num++);
+  if (flag_auto_profile)
+    afdo_add_bfd_name_mapping (xstrdup (tmp_name),
+			       xstrdup (lang_hooks.dwarf_name (decl, 0)));
   return get_identifier (tmp_name);
 }
 

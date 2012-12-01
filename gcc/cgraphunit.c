@@ -143,6 +143,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "ipa-utils.h"
 #include "lto-streamer.h"
 #include "l-ipo.h"
+#include "auto-profile.h"
 
 static void cgraph_expand_all_functions (void);
 static void cgraph_mark_functions_to_output (void);
@@ -1345,6 +1346,13 @@ cgraph_finalize_compilation_unit (void)
   timevar_push (TV_CGRAPH);
 
   backend_entered_p = true;
+
+  /* Before compilation, auto profile will process the profile to build the
+     hash tables for later optimizations. We delay this function call here
+     because all the parsing should be done so that we will have the bfd
+     name mapping ready. */
+  if (flag_auto_profile)
+    process_auto_profile ();
 
   /* If LTO is enabled, initialize the streamer hooks needed by GIMPLE.  */
   if (flag_lto)

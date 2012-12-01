@@ -47,6 +47,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-inline.h"
 #include "tree-pass.h"
 #include "l-ipo.h"
+#include "auto-profile.h"
 #include "diagnostic-core.h"
 
 int ncalls_inlined;
@@ -139,6 +140,23 @@ void
 clone_inlined_nodes (struct cgraph_edge *e, bool duplicate,
 		     bool update_original, int *overall_size)
 {
+  bool has_callsite_profile = false;
+  gcov_type callsite_total_count, callsite_max_count; 
+
+  if (flag_auto_profile)
+    {
+      has_callsite_profile =
+	  afdo_get_callsite_count (e, &callsite_total_count,
+				   &callsite_max_count, true);
+      /* If the callsite is inlined in the profile-collection build,
+	 i.e. the cloned callee has its separate profile, we will use
+	 this separate profile to annotate the callee, and the real
+	 callee body will not be affected. Thus here we need to disable
+	 update_original.  */
+      if (has_callsite_profile)
+	update_original = false;
+    }
+
   if (duplicate)
     {
       /* We may eliminate the need for out-of-line copy to be output.
@@ -177,6 +195,23 @@ clone_inlined_nodes (struct cgraph_edge *e, bool duplicate,
 				 update_original, NULL, true);
 	  cgraph_redirect_edge_callee (e, n);
 	}
+    }
+
+  if (flag_auto_profile && has_callsite_profile)
+    {
+      /* The callee's total count will be non-zero if the callsite
+         was inlined in the profile-collection build, In this case,
+         the original callee may be label unlikely_executed, which
+         may prevent its callees being inlined. Thus we need to reset
+         its frequency to normal.  */
+      if (e->callee->frequency == NODE_FREQUENCY_UNLIKELY_EXECUTED)
+	e->callee->frequency = NODE_FREQUENCY_NORMAL;
+      /* we do not have enough information to calculate the node count
+	 and max_bb_count. Thus we set them to the same value to make
+	 other optimizations aware that they are from cloned inline
+	 instances.  */
+      e->callee->count = callsite_total_count;
+      e->callee->max_bb_count = callsite_max_count;
     }
 
   if (e->caller->global.inlined_to)
@@ -354,6 +389,9 @@ inline_call (struct cgraph_edge *e, bool update_original,
     }
 
   clone_inlined_nodes (e, true, update_original, overall_size);
+
+  if (flag_auto_profile)
+    afdo_add_copy_scale (e);
 
   gcc_assert (curr->callee->global.inlined_to == to);
 
