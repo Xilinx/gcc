@@ -364,7 +364,7 @@ runtime!}# )
 	   ctypg_boxedunimemb		;union member name for boxed values
 	   ctypg_entrystruct 		;struct name for hash entry
 	   ctypg_mapstruct 		;struct name map values
-	   ctypg_boxdiscr		;discriminant for boxed values
+	   ctypg_boxdiscr		;obsolete discriminant for boxed values
 	   ctypg_mapdiscr		;discriminant for map values
 	   ctypg_mapunimemb		;union member name for map values
 	   ctypg_boxfun			;name of boxing function
@@ -1976,6 +1976,14 @@ and $DISCR_FORMALS_SEQUENCE.}#
   :disc_super discr_any_receiver
   :named_name '"DISCR_TREE")
 
+(definstance discr_constant_tree class_discriminant
+  :doc #{The $DISCR_CONSTANT_TREE is the discriminant of constnant
+  boxed GCC tree values. See also $CTYPE_TREE and $DISCR_TREE.}#
+  :obj_num MELTOBMAG_TREE
+  :predef DISCR_CONSTANT_TREE
+  :disc_super discr_tree
+  :named_name '"DISCR_CONST_TREE")
+
 ;;; the discriminant for gimple-s
 (definstance discr_gimple class_discriminant
   :doc #{The $DISCR_GIMPLE is the discriminant of boxed GCC gimple values. See also $CTYPE_GIMPLE.}#
@@ -1984,6 +1992,15 @@ and $DISCR_FORMALS_SEQUENCE.}#
   :disc_super discr_any_receiver
   :named_name '"DISCR_GIMPLE")
 
+(definstance discr_constant_gimple class_discriminant
+  :doc #{The $DISCR_CONSTANT_GIMPLE is the discriminant of
+  constant boxed GCC gimple values. See also $CTYPE_GIMPLE and
+  $DISCR_GIMPLE.}#
+  :predef DISCR_CONSTANT_GIMPLE
+  :obj_num MELTOBMAG_GIMPLE
+  :disc_super discr_gimple
+  :named_name '"DISCR_CONSTANT_GIMPLE")
+
 ;;; the discriminant for gimple_seq-s
 (definstance discr_gimple_seq class_discriminant
   :doc #{The $DISCR_GIMPLE_SEQ is the discriminant of boxed GCC gimple_seq values. See also $CTYPE_GIMPLE_SEQ.}#
@@ -1991,6 +2008,15 @@ and $DISCR_FORMALS_SEQUENCE.}#
   :obj_num MELTOBMAG_GIMPLESEQ
   :disc_super discr_any_receiver
   :named_name '"DISCR_GIMPLE_SEQ")
+
+(definstance discr_constant_gimple_seq class_discriminant
+  :doc #{The $DISCR_CONSTANT_GIMPLE_SEQ is the discriminant of
+  constant boxed GCC gimple_seq values. See also $CTYPE_GIMPLE_SEQ and
+  $DISCR_GIMPLE_SEQ.}#
+  :predef DISCR_CONSTANT_GIMPLE_SEQ
+  :obj_num MELTOBMAG_GIMPLESEQ
+  :disc_super discr_gimple_seq
+  :named_name '"DISCR_CONSTANT_GIMPLE_SEQ")
 
 
 ;;; the discriminant for edges
@@ -2001,6 +2027,16 @@ and $DISCR_FORMALS_SEQUENCE.}#
   :disc_super discr_any_receiver
   :named_name '"DISCR_EDGE")
 
+(definstance discr_constant_edge class_discriminant
+  :doc #{The $DISCR_CONSTANT_EDGE is the discriminant of
+  constant boxed GCC edge values. See also $CTYPE_EDGE and
+  $DISCR_EDGE.}#
+  :predef DISCR_CONSTANT_EDGE
+  :obj_num MELTOBMAG_EDGE
+  :disc_super discr_edge
+  :named_name '"DISCR_CONSTANT_EDGE")
+
+
 ;;; the discriminant for boxed basic blocks
 (definstance discr_basic_block class_discriminant
   :doc #{The $DISCR_BASIC_BLOCK is the discriminant of boxed GCC basic_block values. See
@@ -2009,6 +2045,15 @@ also $CTYPE_BASIC_BLOCK.}#
   :obj_num MELTOBMAG_BASICBLOCK
   :disc_super discr_any_receiver
   :named_name '"DISCR_BASIC_BLOCK")
+
+(definstance discr_constant_basic_block class_discriminant
+  :doc #{The $DISCR_CONSTANT_BASIC_BLOCK is the discriminant of
+  constant boxed GCC basic_block values. See also $CTYPE_BASIC_BLOCK and
+  $DISCR_BASIC_BLOCK.}#
+  :predef DISCR_CONSTANT_BASIC_BLOCK
+  :obj_num MELTOBMAG_BASICBLOCK
+  :disc_super discr_basic_block
+  :named_name '"DISCR_CONSTANT_BASIC_BLOCK")
 
 
 ;;; the discriminant for boxed loops
@@ -2020,6 +2065,14 @@ also $CTYPE_LOOP.}#
   :disc_super discr_any_receiver
   :named_name '"DISCR_LOOP")
 
+(definstance discr_constant_loop class_discriminant
+  :doc #{The $DISCR_CONSTANT_LOOP is the discriminant of
+  constant boxed GCC loop values. See also $CTYPE_LOOP and
+  $DISCR_LOOP.}#
+  :predef DISCR_CONSTANT_LOOP
+  :obj_num MELTOBMAG_LOOP
+  :disc_super discr_loop
+  :named_name '"DISCR_CONSTANT_LOOP")
 
 ;;; the discriminant for boxed bitmap-s
 (definstance discr_bitmap class_discriminant
@@ -2382,6 +2435,8 @@ list.}#
   :ctype_parstring '"MELTBPARSTR_LONG"
   :ctype_argfield '"meltbp_long"
   :ctype_resfield '"meltbp_longptr"
+  :ctype_autoboxdiscr discr_integer
+  :ctype_autoconstboxdiscr discr_constant_integer
   :ctypp_boxing '"/*boxing ctype_long*/ meltgc_new_int"
   :ctypp_unboxing '"/*unboxing ctype_long*/ melt_get_int"
   )
@@ -2399,6 +2454,8 @@ list.}#
   :ctype_argfield '"meltbp_tree"
   :ctype_resfield '"meltbp_treeptr"
   :ctype_marker '"gt_ggc_mx_tree_node"
+  :ctype_autoboxdiscr discr_tree
+  :ctype_autoconstboxdiscr discr_constant_tree
 ;; GTY ctype
   :ctypg_boxedmagic '"MELTOBMAG_TREE"
   :ctypg_mapmagic '"MELTOBMAG_MAPTREES"
@@ -2437,6 +2494,8 @@ list.}#
   :ctype_argfield '"meltbp_gimple"
   :ctype_resfield '"meltbp_gimpleptr"
   :ctype_marker '"gt_ggc_mx_gimple_statement_d"
+  :ctype_autoboxdiscr discr_gimple
+  :ctype_autoconstboxdiscr discr_constant_gimple
 ;; GTY ctype
   :ctypg_boxedmagic      '"MELTOBMAG_GIMPLE"
   :ctypg_mapmagic        '"MELTOBMAG_MAPGIMPLES"
@@ -2477,6 +2536,8 @@ Keyword is :gimple_seq.}#
   :ctype_argfield '"meltbp_gimpleseq"
   :ctype_resfield '"meltbp_gimpleseqptr"
   :ctype_marker '"gt_ggc_mx_gimple_seq_d"
+  :ctype_autoboxdiscr discr_gimple_seq
+  :ctype_autoconstboxdiscr discr_constant_gimple_seq
 ;; GTY ctype
   :ctypg_boxedmagic '"MELTOBMAG_GIMPLESEQ"
   :ctypg_mapmagic '"MELTOBMAG_MAPGIMPLESEQS"
@@ -2517,6 +2578,8 @@ Keyword is :basic_block.}#
   :ctype_argfield '"meltbp_bb"
   :ctype_resfield '"meltbp_bbptr"
   :ctype_marker '"gt_ggc_mx_basic_block_def"
+  :ctype_autoboxdiscr discr_basic_block
+  :ctype_autoconstboxdiscr discr_constant_basic_block
 ;; GTY ctype
   :ctypg_boxedmagic '"MELTOBMAG_BASICBLOCK"
   :ctypg_mapmagic '"MELTOBMAG_MAPBASICBLOCKS"
@@ -2556,6 +2619,8 @@ Keyword is :edge.}#
   :ctype_argfield '"meltbp_edge"
   :ctype_resfield '"meltbp_edgeptr"
   :ctype_marker '"gt_ggc_mx_edge_def"
+  :ctype_autoboxdiscr discr_edge
+  :ctype_autoconstboxdiscr discr_constant_edge
 ;; GTY ctype
   :ctypg_boxedmagic '"MELTOBMAG_EDGE"
   :ctypg_mapmagic '"MELTOBMAG_MAPEDGES"
@@ -2595,6 +2660,8 @@ Keyword is :loop.}#
   :ctype_argfield '"meltbp_loop"
   :ctype_resfield '"meltbp_loopptr"
   :ctype_marker '"gt_ggc_mx_loop"
+  :ctype_autoboxdiscr discr_loop
+  :ctype_autoconstboxdiscr discr_constant_loop
 ;; GTY ctype
   :ctypg_boxedmagic '"MELTOBMAG_LOOP"
   :ctypg_mapmagic '"MELTOBMAG_MAPLOOPS"
@@ -2762,6 +2829,7 @@ Keyword is :cstring.}#
   :ctype_parchar '"MELTBPAR_CSTRING"
   :ctype_parstring '"MELTBPARSTR_CSTRING"
   :ctype_argfield '"meltbp_cstring"
+  :ctype_autoconstboxdiscr discr_string
   :ctypp_boxing '"/*ctype_cstring boxing*/ meltgc_new_stringdup"
   :ctypp_unboxing '"/*ctype_cstring unboxing*/ melt_string_str"
   )
@@ -4424,13 +4492,19 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  ctype_value                          
  ctype_void  
  discr_any_receiver                        
- discr_basic_block   
- discr_bucket_longs
+ discr_basic_block                     
  discr_bitmap 
+ discr_bucket_longs
  discr_character_integer                    
  discr_class_sequence                       
  discr_closure                        
+ discr_constant_edge
+ discr_constant_basic_block   
+ discr_constant_gimple
+ discr_constant_gimple_seq
  discr_constant_integer
+ discr_constant_loop
+ discr_constant_tree
  discr_edge
  discr_field_sequence                       
  discr_file
@@ -4439,7 +4513,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  discr_gimple_seq
  discr_integer                        
  discr_list    
- discr_loop
+ discr_loop 
  discr_map_basic_blocks
  discr_map_bitmaps
  discr_map_edges
@@ -4465,7 +4539,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  discr_rtx
  discr_strbuf                         
  discr_string                         
- discr_tree
+ discr_tree                   
  discr_variadic_formal_sequence
  discr_verbatim_string  
  initial_environment                  

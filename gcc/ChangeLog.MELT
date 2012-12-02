@@ -1,4 +1,25 @@
 
+2012-12-02  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-first.melt (discr_constant_tree)
+	(discr_constant_gimple, discr_constant_gimple_seq)
+	(discr_constant_edge, discr_constant_basic_block)
+	(discr_constant_loop): New.
+	(ctype_tree, ctype_gimple, ctype_gimple_seq, ctype_edge)
+	(ctype_basic_block, ctype_loop): Mention them.
+	(ctypg_boxdiscr): Obsolete field.
+
+	* melt/warmelt-outobj.melt (autobox_normal_return): Use
+	:ctype_autoboxdiscr not :ctypg_boxdiscr.
+
+	* melt/warmelt-modes.melt (generate_runtypesupport_boxingfun):
+	Ditto.
+
+	* melt-predef.list (DISCR_CONSTANT_BASIC_BLOCK)
+	(DISCR_CONSTANT_EDGE, DISCR_CONSTANT_GIMPLE)
+	(DISCR_CONSTANT_GIMPLE_SEQ, DISCR_CONSTANT_LOOP)
+	(DISCR_CONSTANT_TREE): New.
+
 2012-11-30  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{Regenerate}}

@@ -3084,7 +3084,7 @@ melt_scanning (melt_ptr_t p)
 		      :ctype_cname         ?(some_string_value ?cname)
 		      :ctypg_boxedmagic    ?(some_string_value ?boxedmagic)
 		      :ctypg_boxedstruct   ?(some_string_value ?boxedstruct)
-		      :ctypg_boxdiscr      ?(and ?boxdiscr
+		      :ctype_autoboxdiscr      ?(and ?boxdiscr
 						 ?(instance class_discriminant
 							    :named_name ?boxdiscrname))
 		      :ctypg_boxfun        ?(some_string_value ?boxfun)

@@ -6049,7 +6049,7 @@ if (1) return;
 	 ))
      ;; autoboxing gty-ed ctypes
      ( (is_a ctyp class_ctype_gty)
-       (let ( (dis (get_field :ctypg_boxdiscr ctyp))
+       (let ( (dis (get_field :ctype_autoboxdiscr ctyp))
 	      (boxf (get_field :ctypg_boxfun ctyp)) 
 	      (ctynam (get_field :named_name ctyp))
 	      (nchk (instance 
