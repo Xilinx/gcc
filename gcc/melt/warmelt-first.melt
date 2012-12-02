@@ -364,7 +364,7 @@ runtime!}# )
 	   ctypg_boxedunimemb		;union member name for boxed values
 	   ctypg_entrystruct 		;struct name for hash entry
 	   ctypg_mapstruct 		;struct name map values
-	   ctypg_boxdiscr		;obsolete discriminant for boxed values
+	   ;;;ctypg_boxdiscr		;obsolete discriminant for boxed values
 	   ctypg_mapdiscr		;discriminant for map values
 	   ctypg_mapunimemb		;union member name for map values
 	   ctypg_boxfun			;name of boxing function
@@ -2463,7 +2463,7 @@ list.}#
   :ctypg_boxedunimemb '"u_tree"
   :ctypg_entrystruct '"entrytreemelt_st"
   :ctypg_mapstruct '"meltmaptrees_st"
-  :ctypg_boxdiscr  discr_tree
+  ;; :ctypg_boxdiscr  discr_tree
   :ctypg_mapdiscr  discr_map_trees
   :ctypg_mapunimemb    '"u_maptrees"
   :ctypg_boxfun        '"meltgc_new_tree"
@@ -2503,7 +2503,7 @@ list.}#
   :ctypg_boxedunimemb    '"u_gimple"
   :ctypg_entrystruct     '"entrygimplemelt_st"
   :ctypg_mapstruct       '"meltmapgimples_st"
-  :ctypg_boxdiscr        discr_gimple
+  ;; :ctypg_boxdiscr        discr_gimple
   :ctypg_mapdiscr        discr_map_gimples
   :ctypg_mapunimemb    	 '"u_mapgimples"
   :ctypg_boxfun        	 '"meltgc_new_gimple"
@@ -2545,7 +2545,7 @@ Keyword is :gimple_seq.}#
   :ctypg_boxedunimemb '"u_gimpleseq"
   :ctypg_entrystruct '"entrygimpleseqmelt_st"
   :ctypg_mapstruct '"meltmapgimpleseqs_st"
-  :ctypg_boxdiscr  discr_gimple_seq
+  ;; :ctypg_boxdiscr  discr_gimple_seq
   :ctypg_mapdiscr  discr_map_gimple_seqs
   :ctypg_mapunimemb    '"u_mapgimpleseqs"	
   :ctypg_boxfun        '"meltgc_new_gimpleseq"
@@ -2587,7 +2587,7 @@ Keyword is :basic_block.}#
   :ctypg_boxedunimemb '"u_basicblock"
   :ctypg_entrystruct '"entrybasicblockmelt_st"
   :ctypg_mapstruct '"meltmapbasicblocks_st"
-  :ctypg_boxdiscr  discr_basic_block
+  ;; :ctypg_boxdiscr  discr_basic_block
   :ctypg_mapdiscr  discr_map_basic_blocks
   :ctypg_mapunimemb    	   '"u_mapbasicblocks"
   :ctypg_boxfun        	   '"meltgc_new_basicblock"
@@ -2628,7 +2628,7 @@ Keyword is :edge.}#
   :ctypg_boxedunimemb '"u_edge"
   :ctypg_entrystruct '"entryedgemelt_st"
   :ctypg_mapstruct '"meltmapedges_st"
-  :ctypg_boxdiscr  discr_edge
+  ;; :ctypg_boxdiscr  discr_edge
   :ctypg_mapdiscr  discr_map_edges
   :ctypg_mapunimemb    	 '"u_mapedges"
   :ctypg_boxfun        	 '"meltgc_new_edge"
@@ -2669,7 +2669,7 @@ Keyword is :loop.}#
   :ctypg_boxedunimemb '"u_loop"
   :ctypg_entrystruct       '"entryloopmelt_st"
   :ctypg_mapstruct         '"meltmaploops_st"
-  :ctypg_boxdiscr          discr_loop
+  ;; :ctypg_boxdiscr          discr_loop
   :ctypg_mapdiscr          discr_map_loops
   :ctypg_mapunimemb    	   '"u_maploops"
   :ctypg_boxfun        	   '"meltgc_new_loop"
@@ -2709,7 +2709,7 @@ Keyword is :rtx.}#
   :ctypg_boxedunimemb '"u_rtx"
   :ctypg_entrystruct '"entryrtxmelt_st"
   :ctypg_mapstruct '"meltmaprtxs_st"
-  :ctypg_boxdiscr  discr_rtx
+  ;; :ctypg_boxdiscr  discr_rtx
   :ctypg_mapdiscr  discr_map_rtxs
   :ctypg_mapunimemb    '"u_maprtxs"
   :ctypg_boxfun        '"meltgc_new_rtx"
@@ -2749,7 +2749,7 @@ Keyword is :bitmap.}#
   :ctypg_boxedunimemb '"u_bitmap"
   :ctypg_entrystruct '"entrybitmapmelt_st"
   :ctypg_mapstruct '"meltmapbitmaps_st"
-  :ctypg_boxdiscr  discr_bitmap
+  ;; :ctypg_boxdiscr  discr_bitmap
   :ctypg_mapdiscr  discr_map_bitmaps
   :ctypg_mapunimemb    	   '"u_mapbitmaps"
   :ctypg_boxfun        	   '"meltgc_new_bitmap"
@@ -2789,7 +2789,7 @@ Keyword is :rtvec.}#
   :ctypg_boxedunimemb '"u_rtvec"
   :ctypg_entrystruct '"entryrtvecmelt_st"
   :ctypg_mapstruct '"meltmaprtvecs_st"
-  :ctypg_boxdiscr  discr_rtvec
+  ;; :ctypg_boxdiscr  discr_rtvec
   :ctypg_mapdiscr  discr_map_rtvecs
   :ctypg_mapunimemb    	   '"u_maprtvecs"
   :ctypg_boxfun        	   '"meltgc_new_rtvec"

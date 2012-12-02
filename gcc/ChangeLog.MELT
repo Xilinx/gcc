@@ -1,6 +1,12 @@
 
 
 2012-12-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt (class_ctype_gty, ctype_tree)
+	(ctype_gimple, ctype_gimple_seq, ctype_basic_block, ctype_edge)
+	(ctype_loop, ctype_rtx, ctype_bitmap, ctype_rtvec): Remove use of
+	obsolete ctypg_boxdiscr field.
+
+2012-12-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.
