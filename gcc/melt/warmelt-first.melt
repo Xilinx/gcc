@@ -2,7 +2,7 @@
 ;; file warmelt-first.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
+    Copyright 2008 - 2012 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -2701,6 +2701,7 @@ Keyword is :rtx.}#
   :ctype_argfield '"meltbp_rtx"
   :ctype_resfield '"meltbp_rtxptr"
   :ctype_marker '"gt_ggc_mx_rtx"
+  :ctype_autoboxdiscr discr_rtx
 ;; GTY ctype
   :ctypg_boxedmagic '"MELTOBMAG_RTX"
   :ctypg_mapmagic '"MELTOBMAG_MAPRTXS"
@@ -2740,6 +2741,7 @@ Keyword is :bitmap.}#
   :ctype_argfield '"meltbp_bitmap"
   :ctype_resfield '"meltbp_bitmapptr"
   :ctype_marker '"gt_ggc_mx_bitmap"
+  :ctype_autoboxdiscr discr_bitmap
 ;; GTY ctype
   :ctypg_boxedmagic '"MELTOBMAG_BITMAP"
   :ctypg_mapmagic '"MELTOBMAG_MAPBITMAPS"
@@ -2779,6 +2781,7 @@ Keyword is :rtvec.}#
   :ctype_argfield '"meltbp_rtvec"
   :ctype_resfield '"meltbp_rtvecptr"
   :ctype_marker '"gt_ggc_mx_rtvec"
+  :ctype_autoboxdiscr discr_rtvec
 ;; GTY ctype
   :ctypg_boxedmagic '"MELTOBMAG_RTVEC"
   :ctypg_mapmagic '"MELTOBMAG_MAPRTVECS"

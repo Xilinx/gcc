@@ -1,5 +1,10 @@
 
 2012-12-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt: Use dash for copyright years.
+	(ctype_rtx, ctype_bitmap, ctype_rtvec): Give the
+	:ctype_autoboxdiscr.
+
+2012-12-02  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-first.melt (discr_constant_tree)
 	(discr_constant_gimple, discr_constant_gimple_seq)
