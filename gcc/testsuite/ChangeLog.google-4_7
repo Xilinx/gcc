@@ -1,3 +1,10 @@
+2012-12-01  Xinliang David Li  <davidxl@google.com>
+
+	Backport r194038 from trunk
+
+	* gcc.target/i386/ifcvt-onecmpl-abs-1.c: Check for
+	cltd.
+
 2012-11-26  Diego Novillo  <dnovillo@google.com>
 
 	Backport from gcc-4_7-branch r193816.
