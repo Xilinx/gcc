@@ -17919,7 +17919,7 @@ INTEGER), ")));;
 					   /*ifisa */
 					   melt_is_instance_of ((melt_ptr_t)
 								( /*_.CTYP__V4*/ meltfptr[3]),
-								(melt_ptr_t) (( /*!CLASS_CTYPE_GTY */ meltfrout->tabval[16])))
+								(melt_ptr_t) (( /*!CLASS_CTYPE */ meltfrout->tabval[2])))
 			      )	/*then */
 			      {
 				/*^cond.then */
@@ -17929,8 +17929,8 @@ INTEGER), ")));;
 				  obj =
 				    (melt_ptr_t) ( /*_.CTYP__V4*/ meltfptr[3])
 				    /*=obj*/ ;
-				  melt_object_get_field (slot, obj, 19,
-							 "CTYPG_BOXDISCR");
+				  melt_object_get_field (slot, obj, 11,
+							 "CTYPE_AUTOBOXDISCR");
 	   /*_.DIS__V70*/ meltfptr[33] = slot;
 				};
 				;

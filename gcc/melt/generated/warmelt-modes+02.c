@@ -13722,7 +13722,7 @@ lab_endgetargs:;
 	    /*^clear */
 	     /*clear *//*_.CTYPG_BOXEDSTRUCT__V26*/ meltfptr[25] = 0;
 	    /*^clear */
-	     /*clear *//*_.CTYPG_BOXDISCR__V27*/ meltfptr[26] = 0;
+	     /*clear *//*_.CTYPE_AUTOBOXDISCR__V27*/ meltfptr[26] = 0;
 	    /*^clear */
 	     /*clear *//*_.CTYPG_BOXFUN__V28*/ meltfptr[27] = 0;
 	    /*^clear */
@@ -13767,6 +13767,17 @@ lab_endgetargs:;
 		    obj =
 		      (melt_ptr_t) ( /*_.CURCTYP__V16*/ meltfptr[14]) /*=obj*/
 		      ;
+		    melt_object_get_field (slot, obj, 11,
+					   "CTYPE_AUTOBOXDISCR");
+      /*_.CTYPE_AUTOBOXDISCR__V27*/ meltfptr[26] = slot;
+		  };
+		  ;
+		  /*^getslot */
+		  {
+		    melt_ptr_t slot = NULL, obj = NULL;
+		    obj =
+		      (melt_ptr_t) ( /*_.CURCTYP__V16*/ meltfptr[14]) /*=obj*/
+		      ;
 		    melt_object_get_field (slot, obj, 13, "CTYPG_BOXEDMAGIC");
       /*_.CTYPG_BOXEDMAGIC__V25*/ meltfptr[24] = slot;
 		  };
@@ -13780,16 +13791,6 @@ lab_endgetargs:;
 		    melt_object_get_field (slot, obj, 15,
 					   "CTYPG_BOXEDSTRUCT");
       /*_.CTYPG_BOXEDSTRUCT__V26*/ meltfptr[25] = slot;
-		  };
-		  ;
-		  /*^getslot */
-		  {
-		    melt_ptr_t slot = NULL, obj = NULL;
-		    obj =
-		      (melt_ptr_t) ( /*_.CURCTYP__V16*/ meltfptr[14]) /*=obj*/
-		      ;
-		    melt_object_get_field (slot, obj, 19, "CTYPG_BOXDISCR");
-      /*_.CTYPG_BOXDISCR__V27*/ meltfptr[26] = slot;
 		  };
 		  ;
 		  /*^getslot */
@@ -14034,7 +14035,7 @@ lab_endgetargs:;
 	    /*cond */ if (
 			   /*normtesterinst */
 	      (melt_is_instance_of
-	       ((melt_ptr_t) ( /*_.CTYPG_BOXDISCR__V27*/ meltfptr[26]),
+	       ((melt_ptr_t) ( /*_.CTYPE_AUTOBOXDISCR__V27*/ meltfptr[26]),
 		(melt_ptr_t) (( /*!CLASS_DISCRIMINANT */ meltfrout->tabval[3])))))	/*then */
 	      {
 		/*^cond.then */
@@ -14046,8 +14047,8 @@ lab_endgetargs:;
 		  {
 		    melt_ptr_t slot = NULL, obj = NULL;
 		    obj =
-		      (melt_ptr_t) ( /*_.CTYPG_BOXDISCR__V27*/ meltfptr[26])
-		      /*=obj*/ ;
+		      (melt_ptr_t) ( /*_.CTYPE_AUTOBOXDISCR__V27*/
+				    meltfptr[26]) /*=obj*/ ;
 		    melt_object_get_field (slot, obj, 1, "NAMED_NAME");
       /*_.NAMED_NAME__V35*/ meltfptr[25] = slot;
 		  };
@@ -14216,7 +14217,7 @@ lab_endgetargs:;
 
 
 	    /*_.BOXDISCR__V39*/ meltfptr[29] =
-	      /*_.CTYPG_BOXDISCR__V27*/ meltfptr[26];;
+	      /*_.CTYPE_AUTOBOXDISCR__V27*/ meltfptr[26];;
 	    /*^compute */
 	    /*_.BOXDISCRNAME__V40*/ meltfptr[39] =
 	      /*_.NAMED_NAME__V35*/ meltfptr[25];;
