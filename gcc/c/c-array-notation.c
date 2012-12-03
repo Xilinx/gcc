@@ -866,7 +866,10 @@ fix_conditional_array_notations_1 (tree stmt)
     /* Otherwise dont even touch the statement.  */
     return stmt;
 
-  find_rank (cond, false, &rank);
+  /* We are playing a game here.. The reason why we are ignoring the builtin
+     function is because we want to find the RANK of the array inside the
+     builtin_function, not detect whether a builtin function exists.  */
+  find_rank (cond, true, &rank);
   if (rank == 0)
     return stmt;
 

@@ -223,10 +223,6 @@ rest_of_type_compilation (tree type, int toplev)
 void
 finish_optimization_passes (void)
 {
-  int i;
-  struct dump_file_info *dfi;
-  char *name;
-
   timevar_push (TV_DUMP);
   if (profile_arc_flag || flag_test_coverage || flag_branch_probabilities)
     {
@@ -234,25 +230,12 @@ finish_optimization_passes (void)
       end_branch_prob ();
       dump_finish (pass_profile.pass.static_pass_number);
     }
-
   if (optimize > 0)
     {
       dump_start (pass_profile.pass.static_pass_number, NULL);
       print_combine_total_stats ();
-      dump_finish (pass_combine.pass.static_pass_number);
+      dump_finish (pass_profile.pass.static_pass_number);
     }
-
-  /* Do whatever is necessary to finish printing the graphs.  */
-  if (graph_dump_format != no_graph)
-    for (i = TDI_end; (dfi = get_dump_file_info (i)) != NULL; ++i)
-      if (dump_initialized_p (i)
-	  && (dfi->pflags & TDF_GRAPH) != 0
-	  && (name = get_dump_file_name (i)) != NULL)
-	{
-	  finish_graph_dump_file (name);
-	  free (name);
-	}
-
   timevar_pop (TV_DUMP);
 }
 
@@ -1536,6 +1519,8 @@ init_optimization_passes (void)
       /* Copy propagation also copy-propagates constants, this is necessary
          to forward object-size results properly.  */
       NEXT_PASS (pass_copy_prop);
+      NEXT_PASS (pass_asan);
+      NEXT_PASS (pass_tsan);
       NEXT_PASS (pass_rename_ssa_copies);
       NEXT_PASS (pass_dce);
       /* Fold remaining builtins.  */
@@ -1776,18 +1761,15 @@ execute_function_dump (void *data ATTRIBUTE_UNUSED)
       if (cfun->curr_properties & PROP_trees)
         dump_function_to_file (current_function_decl, dump_file, dump_flags);
       else
-	{
-	  print_rtl_with_bb (dump_file, get_insns (), dump_flags);
-
-	  if ((cfun->curr_properties & PROP_cfg)
-	      && graph_dump_format != no_graph
-	      && (dump_flags & TDF_GRAPH))
-	    print_rtl_graph_with_bb (dump_file_name, get_insns ());
-	}
+	print_rtl_with_bb (dump_file, get_insns (), dump_flags);
 
       /* Flush the file.  If verification fails, we won't be able to
 	 close the file before aborting.  */
       fflush (dump_file);
+
+      if ((cfun->curr_properties & PROP_cfg)
+	  && (dump_flags & TDF_GRAPH))
+	print_graph_cfg (dump_file_name, cfun->decl);
     }
 }
 
@@ -2069,11 +2051,16 @@ pass_init_dump_file (struct opt_pass *pass)
   /* If a dump file name is present, open it if enabled.  */
   if (pass->static_pass_number != -1)
     {
+      timevar_push (TV_DUMP);
       bool initializing_dump = !dump_initialized_p (pass->static_pass_number);
       dump_file_name = get_dump_file_name (pass->static_pass_number);
       dump_start (pass->static_pass_number, &dump_flags);
       if (dump_file && current_function_decl)
         dump_function_header (dump_file, current_function_decl, dump_flags);
+      if (dump_file && (dump_flags & TDF_GRAPH)
+	  && cfun && (cfun->curr_properties & PROP_cfg))
+	clean_graph_dump_file (dump_file_name);
+      timevar_pop (TV_DUMP);
       return initializing_dump;
     }
   else
@@ -2086,14 +2073,21 @@ pass_init_dump_file (struct opt_pass *pass)
 void
 pass_fini_dump_file (struct opt_pass *pass)
 {
+  timevar_push (TV_DUMP);
+
   /* Flush and close dump file.  */
   if (dump_file_name)
     {
+      gcc_assert (dump_file);
+      if (dump_flags & TDF_GRAPH
+	  && cfun && (cfun->curr_properties & PROP_cfg))
+	finish_graph_dump_file (dump_file_name);
       free (CONST_CAST (char *, dump_file_name));
       dump_file_name = NULL;
     }
 
   dump_finish (pass->static_pass_number);
+  timevar_pop (TV_DUMP);
 }
 
 /* After executing the pass, apply expected changes to the function
@@ -2250,7 +2244,6 @@ override_gate_status (struct opt_pass *pass, tree func, bool gate_status)
 bool
 execute_one_pass (struct opt_pass *pass)
 {
-  bool initializing_dump;
   unsigned int todo_after = 0;
 
   bool gate_status;
@@ -2308,7 +2301,7 @@ execute_one_pass (struct opt_pass *pass)
      This is a hack until the new folder is ready.  */
   in_gimple_form = (cfun && (cfun->curr_properties & PROP_trees)) != 0;
 
-  initializing_dump = pass_init_dump_file (pass);
+  pass_init_dump_file (pass);
 
   /* Run pre-pass verification.  */
   execute_todo (pass->todo_flags_start);
@@ -2334,18 +2327,6 @@ execute_one_pass (struct opt_pass *pass)
     timevar_pop (pass->tv_id);
 
   do_per_function (update_properties_after_pass, pass);
-
-  if (initializing_dump
-      && dump_file
-      && graph_dump_format != no_graph
-      && cfun
-      && (cfun->curr_properties & (PROP_cfg | PROP_rtl))
-	  == (PROP_cfg | PROP_rtl))
-    {
-      get_dump_file_info (pass->static_pass_number)->pflags |= TDF_GRAPH;
-      dump_flags |= TDF_GRAPH;
-      clean_graph_dump_file (dump_file_name);
-    }
 
   if (profile_report && cfun && (cfun->curr_properties & PROP_cfg))
     check_profile_consistency (pass->static_pass_number, 0, true);

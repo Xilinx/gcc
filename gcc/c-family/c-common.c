@@ -7277,8 +7277,8 @@ check_user_alignment (const_tree align, bool allow_zero)
 {
   int i;
 
-  if (!INTEGRAL_TYPE_P (TREE_TYPE (align))
-      || TREE_CODE (align) != INTEGER_CST)
+  if (TREE_CODE (align) != INTEGER_CST
+      || !INTEGRAL_TYPE_P (TREE_TYPE (align)))
     {
       error ("requested alignment is not an integer constant");
       return -1;
@@ -11428,11 +11428,13 @@ c_common_init_ts (void)
    with identifier SUFFIX.  */
 
 tree
-build_userdef_literal (tree suffix_id, tree value, tree num_string)
+build_userdef_literal (tree suffix_id, tree value,
+		       enum overflow_type overflow, tree num_string)
 {
   tree literal = make_node (USERDEF_LITERAL);
   USERDEF_LITERAL_SUFFIX_ID (literal) = suffix_id;
   USERDEF_LITERAL_VALUE (literal) = value;
+  USERDEF_LITERAL_OVERFLOW (literal) = overflow;
   USERDEF_LITERAL_NUM_STRING (literal) = num_string;
   return literal;
 }
