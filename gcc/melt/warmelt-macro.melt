@@ -5855,7 +5855,7 @@ remain.}#)
 	  (boxed (mexpander boxedexp env mexpander modctx))
 	  (src (instance class_source_box
 			 :loca_location loc
-			 :sboxed boxedexp))
+			 :sboxed boxed))
 	  )
       (debug "mexpand_box src=" src)
       (return src)
@@ -5887,7 +5887,7 @@ remain.}#)
 	  (boxed (mexpander boxedexp env mexpander modctx))
 	  (src (instance class_source_constant_box
 			 :loca_location loc
-			 :sboxed boxedexp))
+			 :sboxed boxed))
 	  )
       (debug "mexpand_constant_box src=" src)
       (return src)
