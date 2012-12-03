@@ -207,6 +207,24 @@ gives the tuple of pkg-config package string names. }#
   :fields (squoted
 	   ))
 
+;;;; source box
+(defclass class_source_quasi_box
+  :doc #{The internal super-class $SCLASS_SOURCE_QUASI_BOX is for $BOX and $CONSTANT_BOX abstract syntax. $SBOXED is the boxed stuff.}#
+  :super class_source
+  :fields (sboxed
+	   ))
+
+;;;; source box
+(defclass class_source_box
+  :doc #{The internal $SCLASS_SOURCE_BOX is for $BOX abstract syntax. $SBOXED is the boxed stuff.}#
+  :super class_source_quasi_box
+  :fields ())
+
+(defclass class_source_constant_box
+  :doc #{The internal $SCLASS_SOURCE_CONSTANT_BOX is for $CONSTANT_BOX abstract syntax. $SBOXED is the boxed stuff.}#
+  :super class_source_quasi_box
+  :fields ())
+
 ;; source export 
 (defclass class_source_exportcommon
   :doc #{The internal $CLASS_SOURCE_EXPORTCOMMON is the common
@@ -5818,6 +5836,72 @@ remain.}#)
  quoted. A quoted literal reifies a value, so '2 is a value of
  $DISCR_CONSTANT_INTEGER.}#)
 
+
+
+;;;;;;; for BOX
+(defun mexpand_box (sexpr env mexpander modctx)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check modctx" (is_object modctx))
+  (debug "mexpand_box start sexpr=" sexpr)
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont))) 
+	 (boxedexp (pair_head curpair))
+	 )
+    (if (pair_tail curpair)
+	(error_plain loc "BOX should have only one argument"_))
+    (let (
+	  (boxed (mexpander boxedexp env mexpander modctx))
+	  (src (instance class_source_box
+			 :loca_location loc
+			 :sboxed boxedexp))
+	  )
+      (debug "mexpand_box src=" src)
+      (return src)
+      )))
+(install_initial_macro 'box mexpand_box)
+(export_macro
+ box mexpand_box
+ :doc #{The $BOX syntax is boxing stuff into mutable values. So
+ @code{(box 2)} gives the same as @code{(make_integerbox discr_integer
+ 2)} and if @var{g} is some @i{gimple} stuff, @code{(box g)} gives the
+ same as @code{(make_gimple discr_gimple g)} etc... If the argument is
+ some value, it makes some reference, instance of $CLASS_REFERENCE,
+ from that value.}#)
+
+;;;;;;; for CONSTANT_BOX
+(defun mexpand_constant_box (sexpr env mexpander modctx)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check modctx" (is_object modctx))
+  (debug "mexpand_constant_box start sexpr=" sexpr)
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont))) 
+	 (boxedexp (pair_head curpair))
+	 )
+    (if (pair_tail curpair)
+	(error_plain loc "CONSTANT_BOX should have only one argument"_))
+    (let (
+	  (boxed (mexpander boxedexp env mexpander modctx))
+	  (src (instance class_source_constant_box
+			 :loca_location loc
+			 :sboxed boxedexp))
+	  )
+      (debug "mexpand_constant_box src=" src)
+      (return src)
+      )))
+(install_initial_macro 'constant_box mexpand_constant_box)
+(export_macro
+ box mexpand_box
+ :doc #{The $CONSTANT_BOX syntax is boxing stuff into constant
+ values. So @code{(constant_box 2)} gives the same as
+ @code{(make_integerbox discr_constant_integer 2)} and if @var{g} is
+ some @i{gimple} stuff, @code{(box g)} gives the same as
+ @code{(make_gimple discr_constant_gimple g)} etc...}#)
+
+
 ;;;;;;;; for COMMENT (only of strings)
 (defun mexpand_comment  (sexpr env mexpander modctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
@@ -6903,24 +6987,26 @@ $CURRENT_MODULE_ENVIRONMENT_CONTAINER. Will be renamed as
  class_source_again
  class_source_apply
  class_source_argumented_operator
+ class_source_box
+ class_source_cheader
  class_source_citeration
  class_source_cmatchexpr
  class_source_codechunk
  class_source_comment
  class_source_compilewarning
+ class_source_constant_box
  class_source_cppif
  class_source_current_module_environment_container
- class_source_cheader
  class_source_defciterator
  class_source_defclass
  class_source_defcmatcher
+ class_source_define
  class_source_definition
  class_source_definition_formal
  class_source_definstance
  class_source_defobjcommon
  class_source_defprimitive
  class_source_defselector
- class_source_define
  class_source_defun
  class_source_defunmatcher
  class_source_exit
@@ -6935,8 +7021,8 @@ $CURRENT_MODULE_ENVIRONMENT_CONTAINER. Will be renamed as
  class_source_fieldassign
  class_source_forever
  class_source_funmatchexpr
- class_source_get_field
  class_source_generator_device
+ class_source_get_field
  class_source_if
  class_source_ifelse
  class_source_ifvariadic
@@ -6972,6 +7058,7 @@ $CURRENT_MODULE_ENVIRONMENT_CONTAINER. Will be renamed as
  class_source_primitive
  class_source_progn
  class_source_put_fields
+ class_source_quasi_box
  class_source_quote
  class_source_return
  class_source_setq

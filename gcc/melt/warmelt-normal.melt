@@ -1905,6 +1905,30 @@ source location.}#
 
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; normalize boxes
+(defun normexp_box (recv env ncx psloc)
+  (debug "normexp_box recv" recv)
+  (assert_msg "check box recv" (is_a recv class_source_box))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normalization_context))
+  (let ( (sloc (unsafe_get_field :loca_location recv)) 
+	 (sboxed (get_field :sboxed recv))
+	 )
+    (multicall 
+     (nboxed nbind)
+     (normal_exp sboxed env ncx sloc)
+     (debug "normexp_box nboxed=" nboxed " nbind=" nbind)
+     (let ( (nctyp (get_ctype nboxed env))
+	    )
+       (debug "normexp_box nctyp=" nctyp)
+       (assert_msg "normexp_box check nctyp" (is_a nctyp class_ctype))
+       (assert_msg "@$@normexp_box unimplemented")
+       ))))
+(install_method class_source_box normal_exp normexp_box)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalize a code_chunk
 (defun normexp_code_chunk (recv env ncx psloc)
   (debug "normexp_code_chunk recv" recv)
