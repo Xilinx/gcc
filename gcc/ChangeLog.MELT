@@ -2,6 +2,13 @@
 
 2012-12-03  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-first.melt (class_ctype_plain): Export that class.
+
+	* melt/warmelt-normalt.melt (normexp_box): More but still
+	incomplete.
+
+2012-12-03  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-macro.melt (mexpand_box, mexpand_constant_box): put
 	the macro-expanded argument inside the class_source_box etc...
 

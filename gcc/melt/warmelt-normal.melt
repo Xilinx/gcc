@@ -1920,11 +1920,35 @@ source location.}#
      (normal_exp sboxed env ncx sloc)
      (debug "normexp_box nboxed=" nboxed " nbind=" nbind)
      (let ( (nctyp (get_ctype nboxed env))
+	    (autoboxdiscr (get_field :ctype_autoboxdiscr nctyp))
 	    )
-       (debug "normexp_box nctyp=" nctyp)
        (assert_msg "normexp_box check nctyp" (is_a nctyp class_ctype))
-       (assert_msg "@$@normexp_box unimplemented")
-       ))))
+       (debug "normexp_box nctyp=" nctyp " autoboxdiscr=" autoboxdiscr)
+       (when (is_not_a autoboxdiscr class_discriminant)
+	 (error_strv sloc "non-BOX-able stuff of ctype"
+		     (get_field :named_name nctyp))
+	 (return))
+       (let ( (boxer
+	       (cond ( (is_a nctyp class_ctype_plain)
+		       (let ( (boxing (get_field :ctypp_boxing nctyp))
+			      )
+			 (debug "normexp_box boxing=" boxing)
+			 boxing
+			 ))
+		     ( (is_a nctyp class_ctype_gty)
+		       (let ( (boxfun (get_field :ctypg_boxfun nctyp))
+			      )
+			 (debug "normexp_box boxfun=" boxfun)
+			 boxfun
+			 ))
+		     (:else
+		      (error_strv sloc "unexpected ctype for BOX"
+				  (get_field :named_name nctyp))))
+	       )
+	      )
+	 (debug "normexp_box boxer=" boxer)
+	 (assert_msg "@$@normexp_box unimplemented")
+	 )))))
 (install_method class_source_box normal_exp normexp_box)
 
 

@@ -4311,6 +4311,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  class_reference
  class_ctype
  class_ctype_gty
+ class_ctype_plain
  class_defined_value_binding
  class_delayed_queue
  class_described_environment
