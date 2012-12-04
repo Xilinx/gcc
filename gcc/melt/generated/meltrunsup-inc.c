@@ -1766,6 +1766,10 @@ meltgc_basicblock_updatebox (melt_ptr_t box_p, basic_block val)
   boxv = box_p;
   if (melt_magic_discr ((melt_ptr_t) boxv) != MELTOBMAG_BASICBLOCK)
     goto end;
+  if (((melt_ptr_t) boxv)->u_discr
+      /* generated updatebox nonconst */
+      == (meltobject_ptr_t) MELT_PREDEF (DISCR_CONSTANT_BASIC_BLOCK))
+    goto end;
   ((struct meltbasicblock_st *) (boxv))->val = val;
   meltgc_touch ((melt_ptr_t) boxv);
 end:MELT_EXITFRAME ();
@@ -1842,6 +1846,10 @@ meltgc_edge_updatebox (melt_ptr_t box_p, edge val)
   boxv = box_p;
   if (melt_magic_discr ((melt_ptr_t) boxv) != MELTOBMAG_EDGE)
     goto end;
+  if (((melt_ptr_t) boxv)->u_discr
+      /* generated updatebox nonconst */
+      == (meltobject_ptr_t) MELT_PREDEF (DISCR_CONSTANT_EDGE))
+    goto end;
   ((struct meltedge_st *) (boxv))->val = val;
   meltgc_touch ((melt_ptr_t) boxv);
 end:MELT_EXITFRAME ();
@@ -1879,6 +1887,10 @@ meltgc_gimple_updatebox (melt_ptr_t box_p, gimple val)
 #define boxv meltfram__.mcfr_varptr[0]
   boxv = box_p;
   if (melt_magic_discr ((melt_ptr_t) boxv) != MELTOBMAG_GIMPLE)
+    goto end;
+  if (((melt_ptr_t) boxv)->u_discr
+      /* generated updatebox nonconst */
+      == (meltobject_ptr_t) MELT_PREDEF (DISCR_CONSTANT_GIMPLE))
     goto end;
   ((struct meltgimple_st *) (boxv))->val = val;
   meltgc_touch ((melt_ptr_t) boxv);
@@ -1918,6 +1930,10 @@ meltgc_gimpleseq_updatebox (melt_ptr_t box_p, gimple_seq val)
   boxv = box_p;
   if (melt_magic_discr ((melt_ptr_t) boxv) != MELTOBMAG_GIMPLESEQ)
     goto end;
+  if (((melt_ptr_t) boxv)->u_discr
+      /* generated updatebox nonconst */
+      == (meltobject_ptr_t) MELT_PREDEF (DISCR_CONSTANT_GIMPLE_SEQ))
+    goto end;
   ((struct meltgimpleseq_st *) (boxv))->val = val;
   meltgc_touch ((melt_ptr_t) boxv);
 end:MELT_EXITFRAME ();
@@ -1955,6 +1971,10 @@ melt_loop_updatebox (melt_ptr_t box_p, loop_p val)
 #define boxv meltfram__.mcfr_varptr[0]
   boxv = box_p;
   if (melt_magic_discr ((melt_ptr_t) boxv) != MELTOBMAG_LOOP)
+    goto end;
+  if (((melt_ptr_t) boxv)->u_discr
+      /* generated updatebox nonconst */
+      == (meltobject_ptr_t) MELT_PREDEF (DISCR_CONSTANT_LOOP))
     goto end;
   ((struct meltloop_st *) (boxv))->val = val;
   meltgc_touch ((melt_ptr_t) boxv);
@@ -2069,6 +2089,10 @@ meltgc_tree_updatebox (melt_ptr_t box_p, tree val)
 #define boxv meltfram__.mcfr_varptr[0]
   boxv = box_p;
   if (melt_magic_discr ((melt_ptr_t) boxv) != MELTOBMAG_TREE)
+    goto end;
+  if (((melt_ptr_t) boxv)->u_discr
+      /* generated updatebox nonconst */
+      == (meltobject_ptr_t) MELT_PREDEF (DISCR_CONSTANT_TREE))
     goto end;
   ((struct melttree_st *) (boxv))->val = val;
   meltgc_touch ((melt_ptr_t) boxv);
@@ -2825,5 +2849,5 @@ end:
 #undef compv
 
 
-/*** End of code file meltbuild-sources/generated/meltrunsup-inc.c generated on 2012 Dec 02
- * by GCC MELT 4.8.0 20121127 (experimental) [melt-branch revision 194055] MELT_0.9.7-post . ***/
+/*** End of code file meltbuild-sources/generated/meltrunsup-inc.c generated on 2012 Dec 04
+ * by GCC MELT 4.8.0 20121203 (experimental) [melt-branch revision 194124] MELT_0.9.8-rc0 . ***/

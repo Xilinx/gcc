@@ -17956,7 +17956,7 @@ INTEGER), ")));;
 				  obj =
 				    (melt_ptr_t) ( /*_.CTYP__V4*/ meltfptr[3])
 				    /*=obj*/ ;
-				  melt_object_get_field (slot, obj, 22,
+				  melt_object_get_field (slot, obj, 21,
 							 "CTYPG_BOXFUN");
 	   /*_.BOXF__V71*/ meltfptr[24] = slot;
 				};
