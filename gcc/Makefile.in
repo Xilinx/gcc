@@ -958,7 +958,7 @@ IRA_INT_H = ira.h ira-int.h $(CFGLOOP_H) alloc-pool.h
 LRA_INT_H = lra.h $(BITMAP_H) $(RECOG_H) $(INSN_ATTR_H) insn-codes.h lra-int.h
 DBGCNT_H = dbgcnt.h dbgcnt.def
 LTO_STREAMER_H = lto-streamer.h $(LINKER_PLUGIN_API_H) $(TARGET_H) \
-		$(CGRAPH_H) $(VEC_H) $(TREE_H) $(GIMPLE_H) \
+		$(CGRAPH_H) $(VEC_H) $(HASH_TABLE_H) $(TREE_H) $(GIMPLE_H) \
 		$(GCOV_IO_H) $(DIAGNOSTIC_H) alloc-pool.h
 DATA_STREAMER_H = data-streamer.h $(VEC_H) $(LTO_STREAMER_H)
 GIMPLE_STREAMER_H = gimple-streamer.h $(LTO_STREAMER_H) $(BASIC_BLOCK_H) \

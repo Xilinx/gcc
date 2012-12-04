@@ -1,3 +1,30 @@
+2012-12-03  Lawrence Crowl  <crowl@google.com>
+
+	* data-streamer.h (struct string_slot): Move to lto-streamer.h.
+	(hash_string_slot_node): Move implementation into lto-streamer.h
+	struct string_slot_hasher.
+	(eq_string_slot_node): Likewise.
+
+	* data-streamer-out.c: Update output_block::string_hash_table
+	dependent calls and types.
+
+	* lto-streamer.h (struct string_slot): Move from data-streamer.h
+	(struct string_slot_hasher): New.
+	(htab_t output_block::string_hash_table):
+	Change type to hash_table.  Update dependent calls and types.
+
+	* lto-streamer-in.c (freeing_string_slot_hasher): New.
+	(htab_t file_name_hash_table):
+	Change type to hash_table.  Update dependent calls and types.
+
+	* lto-streamer-out.c: Update output_block::string_hash_table dependent
+	calls and types.
+
+	* lto-streamer.c (htab_t tree_htab):
+	Change type to hash_table.  Update dependent calls and types.
+
+	* Makefile.in: Update to changes above.
+
 2012-12-03  Diego Novillo  <dnovillo@google.com>
 
 	Merge from trunk rev 194065.
