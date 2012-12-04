@@ -1,5 +1,71 @@
 2012-12-04  Lawrence Crowl  <crowl@google.com>
 
+	* cselib.c (htab_t cselib_hash_table):
+	Change type to hash_table.  Update dependent calls and types.
+
+	* dse.c (bitmap clear_alias_sets): Remove unused.
+	(bitmap disqualified_clear_alias_sets): Likewise.
+	(alloc_pool clear_alias_mode_pool): Likewise.
+	(dse_step2_spill): Likewise.
+	(dse_step5_spill): Likewise.
+
+	* gcse.c (htab_t pre_ldst_table):
+	Change type to hash_table.  Update dependent calls and types.
+
+	* gimple-ssa-strength-reduction.c (htab_t base_cand_map):
+	Change type to hash_table.  Update dependent calls and types.
+	(base_cand_dump_callback): Rename to ssa_base_cand_dump_callback to
+	avoid potential global name collision.
+
+	* graphds.h (htab_t graph::indices): Remove unused.
+
+	* haifa-sched.c (htab_t delay_htab):
+	Change type to hash_table.  Update dependent calls and types.
+	(htab_t delay_htab_i2): Likewise.
+
+	* ira-color.c (htab_t allocno_hard_regs_htab):
+	Change type to hash_table.  Update dependent calls and types.
+
+	* ira-costs.c (htab_t cost_classes_htab):
+	Change type to hash_table.  Update dependent calls and types.
+
+	* loop-invariant.c (htab_t merge_identical_invariants::eq):
+	Change type to hash_table.  Update dependent calls and types.
+
+	* loop-iv.c (htab_t bivs):
+	Change type to hash_table.  Update dependent calls and types.
+
+	* loop-unroll.c (htab_t opt_info::insns_to_split):
+	Change type to hash_table.  Update dependent calls and types.
+	(htab_t opt_info::insns_with_var_to_expand): Likewise.
+
+	* passes.c (htab_t name_to_pass_map):
+	Change type to hash_table.  Update dependent calls and types.
+	(pass_traverse): Rename to passes_pass_traverse.
+
+	* plugin.c (htab_t event_tab):
+	Change type to hash_table.  Update dependent calls and types.
+
+	* postreload-gcse.c (htab_t expr_table):
+	Change type to hash_table.  Update dependent calls and types.
+	(dump_hash_table_entry): Rename dump_expr_hash_table_entry.
+
+	* store-motion.c (htab_t store_motion_mems_table):
+	Change type to hash_table.  Update dependent calls and types.
+
+	* tree-cfg.c (htab_t discriminator_per_locus):
+	Change type to hash_table.  Update dependent calls and types.
+
+	* tree-scalar-evolution.c (htab_t resolve_mixers::cache):
+	Change type to hash_table.  Update dependent calls and types.
+
+	* tree-ssa-dom.c (htab_t avail_exprs):
+	Change type to hash_table.  Update dependent calls and types.
+
+	* Makefile.in: Add new dependences on $(HASH_TABLE_H).
+
+2012-12-04  Lawrence Crowl  <crowl@google.com>
+
 	* alloc-pool.c (static hash_table <alloc_pool_hasher> alloc_pool_hash):
 	Move declaration to after the type's method definitons.
 

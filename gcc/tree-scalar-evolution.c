@@ -257,6 +257,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
+#include "hash-table.h"
 #include "gimple-pretty-print.h"
 #include "tree-flow.h"
 #include "cfgloop.h"
@@ -318,7 +319,7 @@ new_scev_info_str (basic_block instantiated_below, tree var)
 
 /* Computes a hash function for database element ELT.  */
 
-static hashval_t
+static inline hashval_t
 hash_scev_info (const void *elt)
 {
   return SSA_NAME_VERSION (((const struct scev_info_str *) elt)->var);
@@ -326,7 +327,7 @@ hash_scev_info (const void *elt)
 
 /* Compares database elements E1 and E2.  */
 
-static int
+static inline int
 eq_scev_info (const void *e1, const void *e2)
 {
   const struct scev_info_str *elt1 = (const struct scev_info_str *) e1;
@@ -343,6 +344,39 @@ del_scev_info (void *e)
 {
   ggc_free (e);
 }
+
+/* Hashtable helpers.  */
+
+struct scev_info_hasher
+{
+  typedef scev_info_str value_type;
+  typedef scev_info_str compare_type;
+  static inline hashval_t hash (const value_type *);
+  static inline bool equal (const value_type *, const compare_type *);
+  static inline void remove (value_type *);
+};
+
+inline hashval_t
+scev_info_hasher::hash (const value_type *elt)
+{
+  return hash_scev_info (elt);
+}
+
+inline bool
+scev_info_hasher::equal (const value_type *elt1, const compare_type *elt2)
+{
+  return eq_scev_info (elt1, elt2);
+}
+
+/* Deletes database element E.  */
+
+inline void
+scev_info_hasher::remove (value_type *e)
+{
+  del_scev_info (e);
+}
+
+typedef hash_table <scev_info_hasher> scev_info_hash_table_type;
 
 /* Get the scalar evolution of VAR for INSTANTIATED_BELOW basic block.
    A first query on VAR returns chrec_not_analyzed_yet.  */
@@ -2082,14 +2116,14 @@ analyze_scalar_evolution_in_loop (struct loop *wrto_loop, struct loop *use_loop,
    INSTANTIATED_BELOW block.  */
 
 static tree
-get_instantiated_value (htab_t cache, basic_block instantiated_below,
-			tree version)
+get_instantiated_value (scev_info_hash_table_type cache,
+			basic_block instantiated_below, tree version)
 {
   struct scev_info_str *info, pattern;
 
   pattern.var = version;
   pattern.instantiated_below = instantiated_below;
-  info = (struct scev_info_str *) htab_find (cache, &pattern);
+  info = cache.find (&pattern);
 
   if (info)
     return info->chrec;
@@ -2101,19 +2135,19 @@ get_instantiated_value (htab_t cache, basic_block instantiated_below,
    INSTANTIATED_BELOW to VAL.  */
 
 static void
-set_instantiated_value (htab_t cache, basic_block instantiated_below,
-			tree version, tree val)
+set_instantiated_value (scev_info_hash_table_type cache,
+			basic_block instantiated_below, tree version, tree val)
 {
   struct scev_info_str *info, pattern;
-  PTR *slot;
+  scev_info_str **slot;
 
   pattern.var = version;
   pattern.instantiated_below = instantiated_below;
-  slot = htab_find_slot (cache, &pattern, INSERT);
+  slot = cache.find_slot (&pattern, INSERT);
 
   if (!*slot)
     *slot = new_scev_info_str (instantiated_below, version);
-  info = (struct scev_info_str *) *slot;
+  info = *slot;
   info->chrec = val;
 }
 
@@ -2148,7 +2182,7 @@ loop_closed_phi_def (tree var)
 }
 
 static tree instantiate_scev_r (basic_block, struct loop *, tree, bool,
-				htab_t, int);
+				scev_info_hash_table_type, int);
 
 /* Analyze all the parameters of the chrec, between INSTANTIATE_BELOW
    and EVOLUTION_LOOP, that were left under a symbolic form.
@@ -2167,7 +2201,8 @@ static tree instantiate_scev_r (basic_block, struct loop *, tree, bool,
 static tree
 instantiate_scev_name (basic_block instantiate_below,
 		       struct loop *evolution_loop, tree chrec,
-		       bool fold_conversions, htab_t cache, int size_expr)
+		       bool fold_conversions, scev_info_hash_table_type cache,
+		       int size_expr)
 {
   tree res;
   struct loop *def_loop;
@@ -2259,7 +2294,8 @@ instantiate_scev_name (basic_block instantiate_below,
 static tree
 instantiate_scev_poly (basic_block instantiate_below,
 		       struct loop *evolution_loop, tree chrec,
-		       bool fold_conversions, htab_t cache, int size_expr)
+		       bool fold_conversions, scev_info_hash_table_type cache,
+		       int size_expr)
 {
   tree op1;
   tree op0 = instantiate_scev_r (instantiate_below, evolution_loop,
@@ -2311,9 +2347,11 @@ instantiate_scev_poly (basic_block instantiate_below,
 
 static tree
 instantiate_scev_binary (basic_block instantiate_below,
-			 struct loop *evolution_loop, tree chrec, enum tree_code code,
+			 struct loop *evolution_loop, tree chrec,
+			 enum tree_code code,
 			 tree type, tree c0, tree c1,
-			 bool fold_conversions, htab_t cache, int size_expr)
+			 bool fold_conversions, scev_info_hash_table_type cache,
+			 int size_expr)
 {
   tree op1;
   tree op0 = instantiate_scev_r (instantiate_below, evolution_loop,
@@ -2371,7 +2409,8 @@ instantiate_scev_binary (basic_block instantiate_below,
 static tree
 instantiate_array_ref (basic_block instantiate_below,
 		       struct loop *evolution_loop, tree chrec,
-		       bool fold_conversions, htab_t cache, int size_expr)
+		       bool fold_conversions, scev_info_hash_table_type cache,
+		       int size_expr)
 {
   tree res;
   tree index = TREE_OPERAND (chrec, 1);
@@ -2408,7 +2447,8 @@ static tree
 instantiate_scev_convert (basic_block instantiate_below,
 			  struct loop *evolution_loop, tree chrec,
 			  tree type, tree op,
-			  bool fold_conversions, htab_t cache, int size_expr)
+			  bool fold_conversions,
+			  scev_info_hash_table_type cache, int size_expr)
 {
   tree op0 = instantiate_scev_r (instantiate_below, evolution_loop, op,
 				 fold_conversions, cache, size_expr);
@@ -2455,7 +2495,8 @@ static tree
 instantiate_scev_not (basic_block instantiate_below,
 		      struct loop *evolution_loop, tree chrec,
 		      enum tree_code code, tree type, tree op,
-		      bool fold_conversions, htab_t cache, int size_expr)
+		      bool fold_conversions, scev_info_hash_table_type cache,
+		      int size_expr)
 {
   tree op0 = instantiate_scev_r (instantiate_below, evolution_loop, op,
 				 fold_conversions, cache, size_expr);
@@ -2502,7 +2543,8 @@ instantiate_scev_not (basic_block instantiate_below,
 static tree
 instantiate_scev_3 (basic_block instantiate_below,
 		    struct loop *evolution_loop, tree chrec,
-		    bool fold_conversions, htab_t cache, int size_expr)
+		    bool fold_conversions, scev_info_hash_table_type cache,
+		    int size_expr)
 {
   tree op1, op2;
   tree op0 = instantiate_scev_r (instantiate_below, evolution_loop,
@@ -2549,7 +2591,8 @@ instantiate_scev_3 (basic_block instantiate_below,
 static tree
 instantiate_scev_2 (basic_block instantiate_below,
 		    struct loop *evolution_loop, tree chrec,
-		    bool fold_conversions, htab_t cache, int size_expr)
+		    bool fold_conversions, scev_info_hash_table_type cache,
+		    int size_expr)
 {
   tree op1;
   tree op0 = instantiate_scev_r (instantiate_below, evolution_loop,
@@ -2588,7 +2631,8 @@ instantiate_scev_2 (basic_block instantiate_below,
 static tree
 instantiate_scev_1 (basic_block instantiate_below,
 		    struct loop *evolution_loop, tree chrec,
-		    bool fold_conversions, htab_t cache, int size_expr)
+		    bool fold_conversions, scev_info_hash_table_type cache,
+		    int size_expr)
 {
   tree op0 = instantiate_scev_r (instantiate_below, evolution_loop,
 				 TREE_OPERAND (chrec, 0),
@@ -2620,7 +2664,8 @@ instantiate_scev_1 (basic_block instantiate_below,
 static tree
 instantiate_scev_r (basic_block instantiate_below,
 		    struct loop *evolution_loop, tree chrec,
-		    bool fold_conversions, htab_t cache, int size_expr)
+		    bool fold_conversions, scev_info_hash_table_type cache,
+		    int size_expr)
 {
   /* Give up if the expression is larger than the MAX that we allow.  */
   if (size_expr++ > PARAM_VALUE (PARAM_SCEV_MAX_EXPR_SIZE))
@@ -2717,7 +2762,8 @@ instantiate_scev (basic_block instantiate_below, struct loop *evolution_loop,
 		  tree chrec)
 {
   tree res;
-  htab_t cache = htab_create (10, hash_scev_info, eq_scev_info, del_scev_info);
+  scev_info_hash_table_type cache;
+  cache.create (10);
 
   if (dump_file && (dump_flags & TDF_SCEV))
     {
@@ -2739,7 +2785,7 @@ instantiate_scev (basic_block instantiate_below, struct loop *evolution_loop,
       fprintf (dump_file, "))\n");
     }
 
-  htab_delete (cache);
+  cache.dispose ();
 
   return res;
 }
@@ -2752,10 +2798,11 @@ instantiate_scev (basic_block instantiate_below, struct loop *evolution_loop,
 tree
 resolve_mixers (struct loop *loop, tree chrec)
 {
-  htab_t cache = htab_create (10, hash_scev_info, eq_scev_info, del_scev_info);
+  scev_info_hash_table_type cache;
+  cache.create (10);
   tree ret = instantiate_scev_r (block_before_loop (loop), loop, chrec, true,
 				 cache, 0);
-  htab_delete (cache);
+  cache.dispose ();
   return ret;
 }
 
