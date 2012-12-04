@@ -611,7 +611,7 @@ $TORANK}#
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_out dbgi))
 	 )
-    (if (== dis DISCR_STRING)
+    (if (or (>i depth 0) (== dis DISCR_STRING))
 	(progn
 	  (add2sbuf_strconst sbuf " \"")
 	  (add2sbuf_cencstring sbuf self)
@@ -720,7 +720,7 @@ $TORANK}#
 	 (sbuf  (unsafe_get_field :dbgi_out dbgi))
 	 )
     (cond 
-     ( (== dis discr_integer)
+     ( (and (== dis discr_integer) (>i depth 0))
        (add2sbuf_strconst sbuf " #")
        (add2sbuf_longdec sbuf (get_int self)))
      ( (and (== dis discr_constant_integer) (>i depth 0))
@@ -741,7 +741,7 @@ $TORANK}#
 	 (sbuf  (unsafe_get_field :dbgi_out dbgi))
 	 (:long maxdepth (get_int (get_field :dbgi_maxdepth dbgi)))
 	 )
-    (if (== dis discr_mixed_integer)
+    (if (and (>i depth 0) (== dis discr_mixed_integer))
 	(progn 
 	  (add2sbuf_strconst sbuf " #[")
 	  (add2sbuf_longdec sbuf (get_int self)))
@@ -772,7 +772,7 @@ $TORANK}#
 	 (sbuf  (unsafe_get_field :dbgi_out dbgi))
 	 (:long maxdepth (get_int (get_field :dbgi_maxdepth dbgi)))
 	 )
-    (if (== dis DISCR_MIXED_LOCATION)
+    (if (and (>i depth 0) (== dis DISCR_MIXED_LOCATION))
 	(progn 
 	  (add2sbuf_strconst sbuf " #![")
 	  (add2sbuf_longdec sbuf (get_int self)))
@@ -827,7 +827,7 @@ $TORANK}#
   (let ( (dis (discrim self)) 
 	 (sbuf (unsafe_get_field :dbgi_out dbgi))
 	 )
-    (if (== dis DISCR_MULTIPLE)
+    (if (and (>i depth 0) (== dis DISCR_MULTIPLE))
 	(add2sbuf_strconst sbuf " *")
       (progn
 	(add2sbuf_strconst sbuf " |")
@@ -861,7 +861,7 @@ $TORANK}#
 	 (sbuf (unsafe_get_field :dbgi_out dbgi))
 	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
 	 )
-    (if (== dis DISCR_ROUTINE)
+    (if (and (>i depth 0) (== dis DISCR_ROUTINE))
 	(add2sbuf_strconst sbuf " *rou[%")
       (progn
 	(add2sbuf_strconst sbuf " |")
@@ -889,7 +889,7 @@ $TORANK}#
 	 (sbuf  (unsafe_get_field :dbgi_out dbgi))
 	 (:long maxdepth (get_int (get_field :dbgi_maxdepth dbgi))) 
 	 )
-    (if (== dis DISCR_CLOSURE)
+    (if (and (>i depth 0) (== dis DISCR_CLOSURE))
 	(add2sbuf_strconst sbuf " *clo(<")
       (progn
 	(add2sbuf_strconst sbuf " |")
@@ -932,7 +932,7 @@ $TORANK}#
   (let ( (dis (discrim self)) 
 	 (:long maxdepth (get_int (get_field :dbgi_maxdepth dbgi)))
 	 (sbuf (get_field :dbgi_out dbgi)) )
-    (if (== dis DISCR_LIST)
+    (if (and (>i depth 0) (== dis DISCR_LIST))
 	(add2sbuf_strconst sbuf " *li(")
       (progn
 	(add2sbuf_strconst sbuf " |")
@@ -975,7 +975,7 @@ $TORANK}#
   (let ( (dis (discrim self)) 
 	 (:long maxdepth (get_int (get_field :dbgi_maxdepth dbgi)))
 	 (sbuf  (get_field :dbgi_out dbgi)) )
-    (if (== dis DISCR_PAIR)
+    (if (and (>i depth 0) (== dis DISCR_PAIR))
 	(add2sbuf_strconst sbuf " *pa(.")
       (progn
 	(add2sbuf_strconst sbuf " |")
@@ -1003,7 +1003,7 @@ $TORANK}#
 	 (:long maxdepth (get_int (get_field :dbgi_maxdepth dbgi)))
 	 )
     (assert_msg "check out at start" (is_out out))
-    (if (== dis DISCR_MAP_OBJECTS)
+    (if (and (>i depth 0) (== dis DISCR_MAP_OBJECTS))
 	(add2out_strconst out " {")
       (progn
 	(add2out_strconst out " |")
@@ -1094,7 +1094,7 @@ $TORANK}#
 	 (tupl (make_multiple discr_multiple mapcount))
 	 (:long maxdepth (get_int (get_field :dbgi_maxdepth dbgi)))
 	 )
-    (if (== dis DISCR_MAP_STRINGS)
+    (if (and (>i depth 0) (== dis DISCR_MAP_STRINGS))
 	(add2sbuf_strconst sbuf " <(")
       (progn
 	(add2sbuf_strconst sbuf " |")
