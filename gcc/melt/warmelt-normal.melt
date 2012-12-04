@@ -1910,6 +1910,9 @@ source location.}#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; normalize boxes
+
+
+;;; mutable boxes
 (defun normexp_box (recv env ncx psloc)
   (debug "normexp_box recv" recv)
   (assert_msg "check box recv" (is_a recv class_source_box))
@@ -2005,6 +2008,100 @@ source location.}#
 	   (return clocc nbind)
 	   ))))))
 (install_method class_source_box normal_exp normexp_box)
+
+
+;;; constant boxes
+(defun normexp_constbox (recv env ncx psloc)
+  (debug "normexp_box recv" recv)
+  (assert_msg "check box recv" (is_a recv class_source_constant_box))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normalization_context))
+  (let ( (sloc (unsafe_get_field :loca_location recv)) 
+	 (sboxed (get_field :sboxed recv))
+	 )
+    (multicall 
+     (nboxed nbind)
+     (normal_exp sboxed env ncx sloc)
+     (debug "normexp_constbox nboxed=" nboxed " nbind=" nbind)
+     (when (not (is_list nbind))
+       (setq nbind (list))
+       (debug "normexp_constbox set nbind=" nbind))
+     (let ( (nctyp (get_ctype nboxed env))
+	    (autoboxdiscr (get_field :ctype_autoconstboxdiscr nctyp))
+	    )
+       (assert_msg "normexp_constbox check nctyp" (is_a nctyp class_ctype))
+       (debug "normexp_constbox nctyp=" nctyp " autoboxdiscr=" autoboxdiscr)
+       (when (is_not_a autoboxdiscr class_discriminant)
+	 (error_strv sloc "non-CONSTANT_BOX-able stuff of ctype"
+		     (get_field :named_name nctyp))
+	 (return))
+       (let (
+	     (boxer
+	      (cond
+	       ( (is_a nctyp class_ctype_plain)
+		 (let ( (boxing (get_field :ctypp_boxing nctyp))
+			)
+		   boxing
+		   ))
+	       ( (is_a nctyp class_ctype_gty)
+		 (let ( (boxfun (get_field :ctypg_boxfun nctyp))
+			)
+		   boxfun
+		   ))
+	       (:else
+		(error_strv sloc "unexpected ctype for BOX"
+			    (get_field :named_name nctyp))))
+	      )
+	     )
+	 (debug "normexp_box boxer=" boxer)
+	 (let ( 
+	       (csym (clone_symbol 'box))
+	       (nchunk (instance class_nrep_chunk
+				 :nrep_loc sloc
+				 :nchunk_oper 'box
+				 :nexpr_ctyp ctype_value
+				 :nchunk_expansion
+				 (if autoboxdiscr
+				     (let 
+					 ( (predefdiscr
+					    (normal_predef autoboxdiscr ncx sloc
+							   "autoconstboxing discriminant"))
+					   )
+				       (tuple
+					(clone_with_discriminant '"/*full constboxing*/ " discr_verbatim_string)
+					(clone_with_discriminant boxer discr_verbatim_string)
+					(clone_with_discriminant '"((meltobject_ptr_t) (" discr_verbatim_string)
+					predefdiscr
+					(clone_with_discriminant '"), (" discr_verbatim_string)
+					nboxed
+					(clone_with_discriminant '"))" discr_verbatim_string)
+					))
+				   (tuple
+					(clone_with_discriminant '"/*short constboxing*/ " discr_verbatim_string)
+				    (clone_with_discriminant boxer discr_verbatim_string)
+				    (clone_with_discriminant '"(" discr_verbatim_string)
+				    nboxed
+				    (clone_with_discriminant '")" discr_verbatim_string)
+				    )
+				   )))
+	       (cbind (instance class_normal_let_binding
+				:letbind_loc sloc
+				:binder csym
+				:letbind_type ctype_value
+				:letbind_expr nchunk
+				))
+	       (clocc (instance class_nrep_locsymocc
+				:nrep_loc sloc
+				:nocc_ctyp ctype_value
+				:nocc_symb csym
+				:nocc_bind cbind))
+	       )
+	   (debug "normexp_constbox nchunk=" nchunk " clocc="  clocc)
+	   (list_append nbind cbind)
+	   (debug "normexp_constbox return clocc=" clocc " nbind=" nbind)
+	   (return clocc nbind)
+	   ))))))
+(install_method class_source_constant_box normal_exp normexp_constbox)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
