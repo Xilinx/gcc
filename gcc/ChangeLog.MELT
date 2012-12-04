@@ -1,6 +1,10 @@
 
 
 2012-12-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-modes.melt (generate_runtypesupport_boxingfun):
+	Avoid updating ctype of ctype_autoconstboxdiscr...
+
+2012-12-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{all debug output shows the discriminant at depth 0}}
 	* melt/warmelt-debug.melt (dbgout_string_method)
 	(dbgout_mixint_method, dbgout_mixloc_method)

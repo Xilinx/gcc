@@ -3090,6 +3090,12 @@ melt_scanning (melt_ptr_t p)
 		      :ctype_autoboxdiscr      ?(and ?boxdiscr
 						 ?(instance class_discriminant
 							    :named_name ?boxdiscrname))
+		      :ctype_autoconstboxdiscr      ?(and ?boxconstdiscr
+							  ?(or 
+							    ?(instance class_discriminant
+								       :named_name ?boxconstdiscrname)
+							    ?_))
+							  
 		      :ctypg_boxfun        ?(some_string_value ?boxfun)
 		      :ctypg_unboxfun      ?(some_string_value ?unboxfun)
 		      :ctypg_updateboxfun  ?(some_string_value ?updateboxfun)
@@ -3218,7 +3224,19 @@ melt_scanning (melt_ptr_t p)
 			       "if (melt_magic_discr((melt_ptr_t)boxv) != ")
 	    (add2sbuf_string codebuf boxedmagic)
 	    (add2sbuf_strconst codebuf ") goto end;")
+	    ;; if we have a ctype_autoconstboxdiscr ensure we are not
+	    ;; updating such a constant box....
 	    (add2sbuf_indentnl codebuf 1)
+	    (when (is_string boxconstdiscrname)
+		(add2out codebuf 
+			 #{if (((melt_ptr_t) boxv)->u_discr
+			       /* generated updatebox nonconst */
+			       == MELT_PREDEF ($BOXCONSTDISCRNAME)) goto end;}#
+			       )
+		(add2sbuf_indentnl codebuf 1)
+		)
+	    ;;
+	    ;;
 	    (add2sbuf_strconst codebuf "((struct ")
 	    (add2sbuf_string codebuf boxedstruct)
 	    (add2sbuf_strconst codebuf "*) (boxv))->val = val;")
