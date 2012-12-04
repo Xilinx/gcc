@@ -1,4 +1,7 @@
 
+2012-12-04  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h (MELT_VERSION_STRING): Bump to 0.9.8-rc0
 
 2012-12-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt (normexp_constbox): New method for
