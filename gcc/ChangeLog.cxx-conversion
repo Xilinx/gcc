@@ -1,5 +1,35 @@
 2012-12-04  Lawrence Crowl  <crowl@google.com>
 
+	* gimple.h (struct gimplify_ctx): Move to gimplify-ctx.h.
+	(push_gimplify_context): Likewise.
+	(pop_gimplify_context): Likewise.
+
+	* gimplify-ctx.h: New.
+	(struct gimple_temp_hash_elt): Move from gimplify.c.
+	(class gimplify_hasher): New.
+	(struct gimplify_ctx): Move from gimple.h.
+	(htab_t gimplify_ctx::temp_htab):
+	Change type to hash_table.  Update dependent calls and types.
+
+	* gimple-fold.c: Include gimplify-ctx.h.
+
+	* gimplify.c: Include gimplify-ctx.h.
+	(struct gimple_temp_hash_elt): Move to gimplify-ctx.h.
+	(htab_t gimplify_ctx::temp_htab):
+	Update dependent calls and types for new type hash_table.
+	(gimple_tree_hash): Move into gimplify_hasher in gimplify-ctx.h.
+	(gimple_tree_eq): Move into gimplify_hasher in gimplify-ctx.h.
+
+	* omp-low.c: Include gimplify-ctx.h.
+
+	* tree-inline.c: Include gimplify-ctx.h.
+
+	* tree-mudflap.c: Include gimplify-ctx.h.
+
+	* Makefile.in: Update to changes above.
+
+2012-12-04  Lawrence Crowl  <crowl@google.com>
+
 	* cselib.c (htab_t cselib_hash_table):
 	Change type to hash_table.  Update dependent calls and types.
 
