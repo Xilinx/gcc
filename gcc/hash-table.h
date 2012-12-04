@@ -380,19 +380,19 @@ public:
   void create (size_t initial_slots);
   bool is_created ();
   void dispose ();
-  value_type *find (const compare_type *comparable);
+  value_type *find (const value_type *value);
   value_type *find_with_hash (const compare_type *comparable, hashval_t hash);
-  value_type **find_slot (const compare_type *comparable,
-			  enum insert_option insert);
+  value_type **find_slot (const value_type *value, enum insert_option insert);
   value_type **find_slot_with_hash (const compare_type *comparable,
 				    hashval_t hash, enum insert_option insert);
   void empty ();
   void clear_slot (value_type **slot);
-  void remove_elt (const compare_type *comparable);
+  void remove_elt (const value_type *value);
   void remove_elt_with_hash (const compare_type *comparable, hashval_t hash);
-  size_t size();
-  size_t elements();
-  double collisions();
+  size_t size ();
+  size_t elements ();
+  size_t elements_with_deleted ();
+  double collisions ();
 
   template <typename Argument,
 	    int (*Callback) (value_type **slot, Argument argument)>
@@ -431,9 +431,9 @@ hash_table <Descriptor, Allocator>::is_created ()
 template <typename Descriptor,
 	  template <typename Type> class Allocator>
 inline typename Descriptor::value_type *
-hash_table <Descriptor, Allocator>::find (const compare_type *comparable)
+hash_table <Descriptor, Allocator>::find (const value_type *value)
 {
-  return find_with_hash (comparable, Descriptor::hash (comparable));
+  return find_with_hash (value, Descriptor::hash (value));
 }
 
 
@@ -443,9 +443,9 @@ template <typename Descriptor,
 	  template <typename Type> class Allocator>
 inline typename Descriptor::value_type **
 hash_table <Descriptor, Allocator>
-::find_slot (const compare_type *comparable, enum insert_option insert)
+::find_slot (const value_type *value, enum insert_option insert)
 {
-  return find_slot_with_hash (comparable, Descriptor::hash (comparable), insert);
+  return find_slot_with_hash (value, Descriptor::hash (value), insert);
 }
 
 
@@ -454,9 +454,9 @@ hash_table <Descriptor, Allocator>
 template <typename Descriptor,
 	  template <typename Type> class Allocator>
 inline void
-hash_table <Descriptor, Allocator>::remove_elt (const compare_type *comparable)
+hash_table <Descriptor, Allocator>::remove_elt (const value_type *value)
 {
-  remove_elt_with_hash (comparable, Descriptor::hash (comparable));
+  remove_elt_with_hash (value, Descriptor::hash (value));
 }
 
 
@@ -476,9 +476,20 @@ hash_table <Descriptor, Allocator>::size()
 template <typename Descriptor,
 	  template <typename Type> class Allocator>
 inline size_t
-hash_table <Descriptor, Allocator>::elements()
+hash_table <Descriptor, Allocator>::elements ()
 {
   return htab->n_elements - htab->n_deleted;
+}
+
+
+/* Return the current number of elements in this hash table. */
+
+template <typename Descriptor,
+	  template <typename Type> class Allocator>
+inline size_t
+hash_table <Descriptor, Allocator>::elements_with_deleted ()
+{
+  return htab->n_elements;
 }
 
 

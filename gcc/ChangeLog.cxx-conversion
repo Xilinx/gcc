@@ -1,5 +1,23 @@
 2012-12-04  Lawrence Crowl  <crowl@google.com>
 
+	* hash-table.h (class hash_table):
+	Correct many methods with parameter types compare_type to the correct
+	value_type.  (Correct code was unlikely to notice the change.)
+	(hash_table::elements_with_deleted): New.
+
+	* ggc-common.c (htab_t saving_htab):
+	Change type to hash_table.  Update dependent calls and types.
+	(htab_t loc_hash): Likewise.
+	(htab_t ptr_hash): Likewise.
+	(call_count): Rename ggc_call_count.
+	(call_alloc): Rename ggc_call_alloc.
+	(loc_descriptor): Rename make_loc_descriptor.
+	(add_statistics): Rename ggc_add_statistics.
+
+	* Makefile.in: Update to changes above.
+
+2012-12-04  Lawrence Crowl  <crowl@google.com>
+
 	* tree-hasher.h: New.
 	(struct int_tree_hasher): New.
 	(typedef int_tree_htab_type): New.
