@@ -3087,15 +3087,11 @@ melt_scanning (melt_ptr_t p)
 		      :ctype_cname         ?(some_string_value ?cname)
 		      :ctypg_boxedmagic    ?(some_string_value ?boxedmagic)
 		      :ctypg_boxedstruct   ?(some_string_value ?boxedstruct)
-		      :ctype_autoboxdiscr      ?(and ?boxdiscr
-						 ?(instance class_discriminant
-							    :named_name ?boxdiscrname))
-		      :ctype_autoconstboxdiscr      ?(and ?boxconstdiscr
-							  ?(or 
-							    ?(instance class_discriminant
-								       :named_name ?boxconstdiscrname)
-							    ?_))
-							  
+		      :ctype_autoboxdiscr  ?(and 
+					     ?boxdiscr
+					     ?(instance class_discriminant
+							:named_name ?boxdiscrname))
+		      :ctype_autoconstboxdiscr  ?boxconstdiscr
 		      :ctypg_boxfun        ?(some_string_value ?boxfun)
 		      :ctypg_unboxfun      ?(some_string_value ?unboxfun)
 		      :ctypg_updateboxfun  ?(some_string_value ?updateboxfun)
@@ -3142,7 +3138,7 @@ melt_scanning (melt_ptr_t p)
 	    (add2sbuf_strconst declbuf " */")
 	    (add2sbuf_indentnl declbuf 0)
 	    (add2sbuf_indentnl declbuf 0)
-	    ;;;;
+;;;;
 	    (add2sbuf_strconst codebuf "/*gtyctype #")
 	    (add2sbuf_longdec codebuf (+i 1 tix))
 	    (add2sbuf_strconst codebuf " ")
@@ -3227,14 +3223,17 @@ melt_scanning (melt_ptr_t p)
 	    ;; if we have a ctype_autoconstboxdiscr ensure we are not
 	    ;; updating such a constant box....
 	    (add2sbuf_indentnl codebuf 1)
-	    (when (is_string boxconstdiscrname)
-		(add2out codebuf 
-			 #{if (((melt_ptr_t) boxv)->u_discr
-			       /* generated updatebox nonconst */
-			       == MELT_PREDEF ($BOXCONSTDISCRNAME)) goto end;}#
-			       )
-		(add2sbuf_indentnl codebuf 1)
-		)
+	    (if (is_a boxconstdiscr class_discriminant)
+		(let ( 
+		      (boxconstdiscrname (get_field :named_name boxconstdiscr))
+		      )
+		  (add2out codebuf 
+			   ##{if (((melt_ptr_t) boxv)->u_discr
+				  /* generated updatebox nonconst */
+				  == MELT_PREDEF ($BOXCONSTDISCRNAME)) goto end ;}#
+			   )
+		  (add2sbuf_indentnl codebuf 1)
+		  ))
 	    ;;
 	    ;;
 	    (add2sbuf_strconst codebuf "((struct ")
@@ -3255,7 +3254,7 @@ melt_scanning (melt_ptr_t p)
 	    )
 	  (?_
 	   (errormsg_strv "invalid GTY-ed ctype for boxing"
-			   (get_field :named_name curctyp))
+			  (get_field :named_name curctyp))
 	   (assert_msg "invalid curctype" ())
 	   ))
    )					;end foreach

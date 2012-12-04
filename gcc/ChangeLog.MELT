@@ -2,6 +2,10 @@
 
 2012-12-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-modes.melt (generate_runtypesupport_boxingfun):
+	Better.
+
+2012-12-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-modes.melt (generate_runtypesupport_boxingfun):
 	Avoid updating ctype of ctype_autoconstboxdiscr...
 
 2012-12-04  Basile Starynkevitch  <basile@starynkevitch.net>
