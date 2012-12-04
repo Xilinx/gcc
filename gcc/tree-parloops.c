@@ -31,6 +31,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "langhooks.h"
 #include "tree-vectorizer.h"
+#include "tree-hasher.h"
 
 /* This pass tries to distribute iterations of loops into several threads.
    The implementation is straightforward -- for each loop we test whether its
@@ -446,11 +447,11 @@ loop_has_blocks_with_irreducible_flag (struct loop *loop)
    right before GSI.  */
 
 static tree
-take_address_of (tree obj, tree type, edge entry, htab_t decl_address,
-		 gimple_stmt_iterator *gsi)
+take_address_of (tree obj, tree type, edge entry,
+		 int_tree_htab_type decl_address, gimple_stmt_iterator *gsi)
 {
   int uid;
-  void **dslot;
+  int_tree_map **dslot;
   struct int_tree_map ielt, *nielt;
   tree *var_p, name, addr;
   gimple stmt;
@@ -473,7 +474,7 @@ take_address_of (tree obj, tree type, edge entry, htab_t decl_address,
      on it.  */
   uid = DECL_UID (TREE_OPERAND (TREE_OPERAND (*var_p, 0), 0));
   ielt.uid = uid;
-  dslot = htab_find_slot_with_hash (decl_address, &ielt, uid, INSERT);
+  dslot = decl_address.find_slot_with_hash (&ielt, uid, INSERT);
   if (!*dslot)
     {
       if (gsi == NULL)
@@ -491,7 +492,7 @@ take_address_of (tree obj, tree type, edge entry, htab_t decl_address,
       *dslot = nielt;
     }
   else
-    name = ((struct int_tree_map *) *dslot)->to;
+    name = (*dslot)->to;
 
   /* Express the address in terms of the canonical SSA name.  */
   TREE_OPERAND (*var_p, 0) = name;
@@ -568,7 +569,7 @@ struct elv_data
 {
   struct walk_stmt_info info;
   edge entry;
-  htab_t decl_address;
+  int_tree_htab_type decl_address;
   gimple_stmt_iterator *gsi;
   bool changed;
   bool reset;
@@ -658,7 +659,7 @@ eliminate_local_variables_1 (tree *tp, int *walk_subtrees, void *data)
 
 static void
 eliminate_local_variables_stmt (edge entry, gimple_stmt_iterator *gsi,
-				htab_t decl_address)
+				int_tree_htab_type decl_address)
 {
   struct elv_data dta;
   gimple stmt = gsi_stmt (*gsi);
@@ -710,8 +711,8 @@ eliminate_local_variables (edge entry, edge exit)
   unsigned i;
   gimple_stmt_iterator gsi;
   bool has_debug_stmt = false;
-  htab_t decl_address = htab_create (10, int_tree_map_hash, int_tree_map_eq,
-				     free);
+  int_tree_htab_type decl_address;
+  decl_address.create (10);
   basic_block entry_bb = entry->src;
   basic_block exit_bb = exit->dest;
 
@@ -735,7 +736,7 @@ eliminate_local_variables (edge entry, edge exit)
 	  if (gimple_debug_bind_p (gsi_stmt (gsi)))
 	    eliminate_local_variables_stmt (entry, &gsi, decl_address);
 
-  htab_delete (decl_address);
+  decl_address.dispose ();
   body.release ();
 }
 
@@ -774,15 +775,15 @@ expr_invariant_in_region_p (edge entry, edge exit, tree expr)
    duplicated, storing the copies in DECL_COPIES.  */
 
 static tree
-separate_decls_in_region_name (tree name,
-			       htab_t name_copies, htab_t decl_copies,
-			       bool copy_name_p)
+separate_decls_in_region_name (tree name, htab_t name_copies,
+			       int_tree_htab_type decl_copies, bool copy_name_p)
 {
   tree copy, var, var_copy;
   unsigned idx, uid, nuid;
   struct int_tree_map ielt, *nielt;
   struct name_to_copy_elt elt, *nelt;
-  void **slot, **dslot;
+  void **slot;
+  int_tree_map **dslot;
 
   if (TREE_CODE (name) != SSA_NAME)
     return name;
@@ -815,7 +816,7 @@ separate_decls_in_region_name (tree name,
 
   uid = DECL_UID (var);
   ielt.uid = uid;
-  dslot = htab_find_slot_with_hash (decl_copies, &ielt, uid, INSERT);
+  dslot = decl_copies.find_slot_with_hash (&ielt, uid, INSERT);
   if (!*dslot)
     {
       var_copy = create_tmp_var (TREE_TYPE (var), get_name (var));
@@ -829,7 +830,7 @@ separate_decls_in_region_name (tree name,
          it again.  */
       nuid = DECL_UID (var_copy);
       ielt.uid = nuid;
-      dslot = htab_find_slot_with_hash (decl_copies, &ielt, nuid, INSERT);
+      dslot = decl_copies.find_slot_with_hash (&ielt, nuid, INSERT);
       gcc_assert (!*dslot);
       nielt = XNEW (struct int_tree_map);
       nielt->uid = nuid;
@@ -852,7 +853,8 @@ separate_decls_in_region_name (tree name,
 
 static void
 separate_decls_in_region_stmt (edge entry, edge exit, gimple stmt,
-			       htab_t name_copies, htab_t decl_copies)
+			       htab_t name_copies,
+			       int_tree_htab_type decl_copies)
 {
   use_operand_p use;
   def_operand_p def;
@@ -891,14 +893,15 @@ separate_decls_in_region_stmt (edge entry, edge exit, gimple stmt,
 
 static bool
 separate_decls_in_region_debug (gimple stmt, htab_t name_copies,
-				htab_t decl_copies)
+				int_tree_htab_type decl_copies)
 {
   use_operand_p use;
   ssa_op_iter oi;
   tree var, name;
   struct int_tree_map ielt;
   struct name_to_copy_elt elt;
-  void **slot, **dslot;
+  void **slot;
+  int_tree_map **dslot;
 
   if (gimple_debug_bind_p (stmt))
     var = gimple_debug_bind_get_var (stmt);
@@ -910,7 +913,7 @@ separate_decls_in_region_debug (gimple stmt, htab_t name_copies,
     return true;
   gcc_assert (DECL_P (var) && SSA_VAR_P (var));
   ielt.uid = DECL_UID (var);
-  dslot = htab_find_slot_with_hash (decl_copies, &ielt, ielt.uid, NO_INSERT);
+  dslot = decl_copies.find_slot_with_hash (&ielt, ielt.uid, NO_INSERT);
   if (!dslot)
     return true;
   if (gimple_debug_bind_p (stmt))
@@ -1254,8 +1257,8 @@ separate_decls_in_region (edge entry, edge exit, htab_t reduction_list,
   basic_block bb0 = single_pred (bb1);
   htab_t name_copies = htab_create (10, name_to_copy_elt_hash,
 				    name_to_copy_elt_eq, free);
-  htab_t decl_copies = htab_create (10, int_tree_map_hash, int_tree_map_eq,
-				    free);
+  int_tree_htab_type decl_copies;
+  decl_copies.create (10);
   unsigned i;
   tree type, type_name, nvar;
   gimple_stmt_iterator gsi;
@@ -1372,7 +1375,7 @@ separate_decls_in_region (edge entry, edge exit, htab_t reduction_list,
 	}
     }
 
-  htab_delete (decl_copies);
+  decl_copies.dispose ();
   htab_delete (name_copies);
 }
 

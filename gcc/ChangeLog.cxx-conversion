@@ -1,4 +1,29 @@
-2012-12-03  Lawrence Crowl  <crowl@google.com>
+2012-12-04  Lawrence Crowl  <crowl@google.com>
+
+	* tree-hasher.h: New.
+	(struct int_tree_hasher): New.
+	(typedef int_tree_htab_type): New.
+
+	* tree-flow.h (extern int_tree_map_hash): Moved into tree-hasher
+	struct int_tree_hasher.
+	(extern int_tree_map_eq): Likewise.
+
+	* tree-complex.c: Include tree-hasher.h
+	(htab_t complex_variable_components):
+	Change type to hash_table.  Update dependent calls and types.
+
+	* tree-parloops.c: Include tree-hasher.h.
+	(htab_t eliminate_local_variables_stmt::decl_address):
+	Change type to hash_table.  Update dependent calls and types.
+	(htab_t separate_decls_in_region::decl_copies): Likewise.
+
+	* tree-ssa.c (int_tree_map_eq): Moved into struct int_tree_hasher
+	in tree-flow.h.
+	(int_tree_map_hash): Likewise.
+
+	* Makefile.in: Update to changes above.
+
+2012-12-04  Lawrence Crowl  <crowl@google.com>
 
 	* data-streamer.h (struct string_slot): Move to lto-streamer.h.
 	(hash_string_slot_node): Move implementation into lto-streamer.h

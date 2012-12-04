@@ -939,6 +939,7 @@ TREE_FLOW_H = tree-flow.h tree-flow-inline.h tree-ssa-operands.h \
 		$(BITMAP_H) sbitmap.h $(BASIC_BLOCK_H) $(GIMPLE_H) \
 		$(HASHTAB_H) $(CGRAPH_H) $(IPA_REFERENCE_H) \
 		tree-ssa-alias.h
+TREE_HASHER_H = tree-hasher.h $(HASH_TABLE_H) $(TREE_FLOW_H)
 TREE_SSA_LIVE_H = tree-ssa-live.h $(PARTITION_H)
 SSAEXPAND_H = ssaexpand.h $(TREE_SSA_LIVE_H)
 PRETTY_PRINT_H = pretty-print.h $(INPUT_H) $(OBSTACK_H)
@@ -2615,7 +2616,8 @@ tree-vectorizer.o: tree-vectorizer.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 tree-loop-distribution.o: tree-loop-distribution.c $(CONFIG_H) $(SYSTEM_H) \
    coretypes.h $(TREE_FLOW_H) $(CFGLOOP_H) $(TREE_DATA_REF_H) $(TREE_PASS_H)
 tree-parloops.o: tree-parloops.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
-   $(TREE_FLOW_H) $(CFGLOOP_H) $(TREE_DATA_REF_H) $(GIMPLE_PRETTY_PRINT_H) \
+   $(TREE_FLOW_H) $(TREE_HASHER_H) $(CFGLOOP_H) $(TREE_DATA_REF_H) \
+   $(GIMPLE_PRETTY_PRINT_H) \
    $(TREE_PASS_H) langhooks.h gt-tree-parloops.h $(TREE_VECTORIZER_H)
 tree-stdarg.o: tree-stdarg.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(TREE_H) $(FUNCTION_H) $(TREE_FLOW_H) $(TREE_PASS_H) \
@@ -3036,7 +3038,7 @@ tree-switch-conversion.o : tree-switch-conversion.c $(CONFIG_H) $(SYSTEM_H) \
     $(GGC_H) $(OBSTACK_H) $(PARAMS_H) $(CPPLIB_H) $(PARAMS_H) \
     $(GIMPLE_PRETTY_PRINT_H) langhooks.h
 tree-complex.o : tree-complex.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TREE_H) \
-    $(TM_H) $(FLAGS_H) $(TREE_FLOW_H) $(GIMPLE_H) \
+    $(TM_H) $(FLAGS_H) $(TREE_FLOW_H) $(TREE_HASHER_H) $(GIMPLE_H) \
     tree-iterator.h $(TREE_PASS_H) tree-ssa-propagate.h
 tree-emutls.o : tree-emutls.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TREE_H) \
     $(GIMPLE_H) $(TREE_PASS_H) $(TREE_FLOW_H) $(CGRAPH_H) langhooks.h \

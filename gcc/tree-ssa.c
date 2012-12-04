@@ -1050,24 +1050,6 @@ err:
   internal_error ("verify_ssa failed");
 }
 
-/* Return true if the uid in both int tree maps are equal.  */
-
-int
-int_tree_map_eq (const void *va, const void *vb)
-{
-  const struct int_tree_map *a = (const struct int_tree_map *) va;
-  const struct int_tree_map *b = (const struct int_tree_map *) vb;
-  return (a->uid == b->uid);
-}
-
-/* Hash a UID in a int_tree_map.  */
-
-unsigned int
-int_tree_map_hash (const void *item)
-{
-  return ((const struct int_tree_map *)item)->uid;
-}
-
 /* Return true if the DECL_UID in both trees are equal.  */
 
 int
