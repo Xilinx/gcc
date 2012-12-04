@@ -23,7 +23,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "obstack.h"
 #include "ggc.h"
 #include "bitmap.h"
-#include "hashtab.h"
+#include "hash-table.h"
 
 /* Store information about each particular bitmap.  */
 struct bitmap_descriptor
@@ -39,35 +39,41 @@ struct bitmap_descriptor
   int search_iter;
 };
 
-/* Hashtable mapping bitmap names to descriptors.  */
-static htab_t bitmap_desc_hash;
-
 /* Hashtable helpers.  */
-static hashval_t
-hash_descriptor (const void *p)
-{
-  const struct bitmap_descriptor *const d =
-    (const struct bitmap_descriptor *) p;
-  return htab_hash_pointer (d->file) + d->line;
-}
+
 struct loc
 {
   const char *file;
   const char *function;
   int line;
 };
-static int
-eq_descriptor (const void *p1, const void *p2)
+
+struct bitmap_desc_hasher : typed_noop_remove <bitmap_descriptor>
 {
-  const struct bitmap_descriptor *const d =
-    (const struct bitmap_descriptor *) p1;
-  const struct loc *const l = (const struct loc *) p2;
+  typedef bitmap_descriptor value_type;
+  typedef loc compare_type;
+  static inline hashval_t hash (const value_type *);
+  static inline bool equal (const value_type *, const compare_type *);
+};
+
+inline hashval_t
+bitmap_desc_hasher::hash (const value_type *d)
+{
+  return htab_hash_pointer (d->file) + d->line;
+}
+
+inline bool
+bitmap_desc_hasher::equal (const value_type *d, const compare_type *l)
+{
   return d->file == l->file && d->function == l->function && d->line == l->line;
 }
 
+/* Hashtable mapping bitmap names to descriptors.  */
+static hash_table <bitmap_desc_hasher> bitmap_desc_hash;
+
 /* For given file and line, return descriptor, create new if needed.  */
 static struct bitmap_descriptor *
-bitmap_descriptor (const char *file, int line, const char *function)
+make_bitmap_descriptor (const char *file, int line, const char *function)
 {
   struct bitmap_descriptor **slot;
   struct loc loc;
@@ -76,13 +82,12 @@ bitmap_descriptor (const char *file, int line, const char *function)
   loc.function = function;
   loc.line = line;
 
-  if (!bitmap_desc_hash)
-    bitmap_desc_hash = htab_create (10, hash_descriptor, eq_descriptor, NULL);
+  if (!bitmap_desc_hash.is_created ())
+    bitmap_desc_hash.create (10);
 
-  slot = (struct bitmap_descriptor **)
-    htab_find_slot_with_hash (bitmap_desc_hash, &loc,
-			      htab_hash_pointer (file) + line,
-			      INSERT);
+  slot = bitmap_desc_hash.find_slot_with_hash (&loc,
+					       htab_hash_pointer (file) + line,
+					       INSERT);
   if (*slot)
     return *slot;
   *slot = XCNEW (struct bitmap_descriptor);
@@ -96,7 +101,7 @@ bitmap_descriptor (const char *file, int line, const char *function)
 void
 bitmap_register (bitmap b MEM_STAT_DECL)
 {
-  b->desc = bitmap_descriptor (ALONE_FINAL_PASS_MEM_STAT);
+  b->desc = make_bitmap_descriptor (ALONE_FINAL_PASS_MEM_STAT);
   b->desc->created++;
 }
 
@@ -2122,13 +2127,12 @@ struct output_info
   int count;
 };
 
-/* Called via htab_traverse.  Output bitmap descriptor pointed out by SLOT
-   and update statistics.  */
-static int
-print_statistics (void **slot, void *b)
+/* Called via hash_table::traverse.  Output bitmap descriptor pointed out by
+   SLOT and update statistics.  */
+int
+print_statistics (bitmap_descriptor **slot, output_info *i)
 {
-  struct bitmap_descriptor *d = (struct bitmap_descriptor *) *slot;
-  struct output_info *i = (struct output_info *) b;
+  struct bitmap_descriptor *d = *slot;
   char s[4096];
 
   if (d->allocated)
@@ -2158,7 +2162,7 @@ dump_bitmap_statistics (void)
   if (! GATHER_STATISTICS)
     return;
 
-  if (!bitmap_desc_hash)
+  if (!bitmap_desc_hash.is_created ())
     return;
 
   fprintf (stderr, "\nBitmap                                     Overall "
@@ -2167,7 +2171,7 @@ dump_bitmap_statistics (void)
   fprintf (stderr, "---------------------------------------------------------------------------------\n");
   info.count = 0;
   info.size = 0;
-  htab_traverse (bitmap_desc_hash, print_statistics, &info);
+  bitmap_desc_hash.traverse <output_info *, print_statistics> (&info);
   fprintf (stderr, "---------------------------------------------------------------------------------\n");
   fprintf (stderr, "%-40s %9d %15"HOST_WIDEST_INT_PRINT"d\n",
 	   "Total", info.count, info.size);

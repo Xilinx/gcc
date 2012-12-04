@@ -1,5 +1,47 @@
 2012-12-04  Lawrence Crowl  <crowl@google.com>
 
+	* alloc-pool.c (static hash_table <alloc_pool_hasher> alloc_pool_hash):
+	Move declaration to after the type's method definitons.
+
+	* attribs.c (htab_t scoped_attributes::attribute_hash):
+	Change type to hash_table.  Update dependent calls and types.
+
+	* bitmap.c (htab_t bitmap_desc_hash):
+	Change type to hash_table.  Update dependent calls and types.
+
+	* dwarf2cfi.c (htab_t trace_index):
+	Change type to hash_table.  Update dependent calls and types.
+
+	* dwarf2out.c (htab_t break_out_includes::cu_hash_table):
+	Change type to hash_table.  Update dependent calls and types.
+	(htab_t copy_decls_for_unworthy_types::decl_table): Likewise.
+	(htab_t optimize_external_refs::map): Likewise.
+	(htab_t output_comp_unit::extern_map): Likewise.
+	(htab_t output_comdat_type_unit::extern_map): Likewise.
+	(htab_t output_macinfo::macinfo_htab): Likewise.
+	(htab_t optimize_location_lists::htab): Likewise.
+	(htab_t dwarf2out_finish::comdat_type_table): Likewise.
+
+	* except.c (htab_t ehspec_hash_type):
+	Change type to hash_table.  Update dependent calls and types.
+	(assign_filter_values::ttypes): Likewise.
+	(assign_filter_values::ehspec): Likewise.
+	(sjlj_assign_call_site_values::ar_hash): Likewise.
+	(convert_to_eh_region_ranges::ar_hash): Likewise.
+
+	* trans-mem.c (htab_t tm_new_mem_hash):
+	Change type to hash_table.  Update dependent calls and types.
+
+	* tree-browser.c (htab_t TB_up_ht):
+	Change type to hash_table.  Update dependent calls and types.
+
+	* tree-eh.c (htab_t finally_tree):
+	Change type to hash_table.  Update dependent calls and types.
+
+	* Makefile.in: Update to changes above.
+
+2012-12-04  Lawrence Crowl  <crowl@google.com>
+
 	* hash-table.h (class hash_table):
 	Correct many methods with parameter types compare_type to the correct
 	value_type.  (Correct code was unlikely to notice the change.)

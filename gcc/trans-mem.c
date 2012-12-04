@@ -20,6 +20,7 @@
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
+#include "hash-table.h"
 #include "tree.h"
 #include "gimple.h"
 #include "tree-flow.h"
@@ -886,10 +887,6 @@ static htab_t tm_log;
    dominator order.  */
 static vec<tree> tm_log_save_addresses;
 
-/* Map for an SSA_NAME originally pointing to a non aliased new piece
-   of memory (malloc, alloc, etc).  */
-static htab_t tm_new_mem_hash;
-
 enum thread_memory_type
   {
     mem_non_local = 0,
@@ -904,6 +901,32 @@ typedef struct tm_new_mem_map
   tree val;
   enum thread_memory_type local_new_memory;
 } tm_new_mem_map_t;
+
+/* Hashtable helpers.  */
+
+struct tm_mem_map_hasher : typed_free_remove <tm_new_mem_map_t>
+{
+  typedef tm_new_mem_map_t value_type;
+  typedef tm_new_mem_map_t compare_type;
+  static inline hashval_t hash (const value_type *);
+  static inline bool equal (const value_type *, const compare_type *);
+};
+
+inline hashval_t
+tm_mem_map_hasher::hash (const value_type *v)
+{
+  return (intptr_t)v->val >> 4;
+}
+
+inline bool
+tm_mem_map_hasher::equal (const value_type *v, const compare_type *c)
+{
+  return v->val == c->val;
+}
+
+/* Map for an SSA_NAME originally pointing to a non aliased new piece
+   of memory (malloc, alloc, etc).  */
+static hash_table <tm_mem_map_hasher> tm_new_mem_hash;
 
 /* Htab support.  Return hash value for a `tm_log_entry'.  */
 static hashval_t
@@ -956,7 +979,7 @@ static void
 tm_log_init (void)
 {
   tm_log = htab_create (10, tm_log_hash, tm_log_eq, tm_log_free);
-  tm_new_mem_hash = htab_create (5, struct_ptr_hash, struct_ptr_eq, free);
+  tm_new_mem_hash.create (5);
   tm_log_save_addresses.create (5);
 }
 
@@ -965,7 +988,7 @@ static void
 tm_log_delete (void)
 {
   htab_delete (tm_log);
-  htab_delete (tm_new_mem_hash);
+  tm_new_mem_hash.dispose ();
   tm_log_save_addresses.release ();
 }
 
@@ -1271,7 +1294,7 @@ thread_private_new_memory (basic_block entry_block, tree x)
 {
   gimple stmt = NULL;
   enum tree_code code;
-  void **slot;
+  tm_new_mem_map_t **slot;
   tm_new_mem_map_t elt, *elt_p;
   tree val = x;
   enum thread_memory_type retval = mem_transaction_local;
@@ -1285,8 +1308,8 @@ thread_private_new_memory (basic_block entry_block, tree x)
 
   /* Look in cache first.  */
   elt.val = x;
-  slot = htab_find_slot (tm_new_mem_hash, &elt, INSERT);
-  elt_p = (tm_new_mem_map_t *) *slot;
+  slot = tm_new_mem_hash.find_slot (&elt, INSERT);
+  elt_p = *slot;
   if (elt_p)
     return elt_p->local_new_memory;
 
