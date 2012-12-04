@@ -188,6 +188,64 @@ the subject line] and to <gcc-melt@googlegroups.com>
 
 
 
+
+################################################################
+NEWS for 0.9.8 MELT plugin for GCC 4.6 & 4.7 & future 4.8
+[[december, XXth, 2012]]
+
+   Language improvements
+   =====================
+
+   * The LET syntax accepts bindings with the :auto ctype-annotation, like e.g.
+
+       (let ( (:auto four (+i 2 2)) )
+        (debug "four=" four))
+
+   the ctype is the obtained by the expression defining that binding 
+   i.e.   (+i 2 2) it the above example which is of ctype_long. 
+
+   The default ctype annotation -which used to be :value- is now :auto
+   this change is upward compatible but is very significant.
+
+   
+   * BOX-ing and CONSTANT_BOX-ing syntactic constructs
+
+   The (BOX <stuff>) syntax makes a mutable value boxing the given
+   stuff. So for example (BOX (+i 2 1)) is the same 
+   as (MAKE_INTEGERBOX DISCR_INTEGER (+i 2 1))
+
+   The (CONSTANT_BOX <stuff>) syntax makes a constant value boxing the 
+   given stuff. So for example (CONSTANT_BOX 1) is the same as
+   the expression (MAKE_INTEGERBOX DISCR_CONSTANT_INTEGER 1)
+
+
+
+   Runtime improvements
+   ====================
+
+   A new evalfile mode is available to evaluate expressions from a
+   file (default is standard input).
+
+   The evaluating modes are diplaying the last evaluated expression
+   using the debug depth parameter, which can be set with
+   -fplugin-arg-melt-debug-depth=10 program argument.
+
+   C-types have now autoboxing fields. Disriminants for constant
+   boxing of stuff have been added, notably
+   DISCR_CONSTANT_BASIC_BLOCK, DISCR_CONSTANT_EDGE,
+   DISCR_CONSTANT_GIMPLE, DISCR_CONSTANT_GIMPLE_SEQ,
+   DISCR_CONSTANT_LOOP, DISCR_CONSTANT_TREE
+
+   Vector from GCC 4.8 are now possible inside MELT.
+
+   A melt_intern_cstring function is available in C to intern
+   arbitrary null-terminated strings.
+
+   The melt-module.mk makefile is accepting the
+   GCCMELT_MODULE_VERBOSE_BUILD variable.
+
+   Several primitives have been added.
+
 ################################################################
 NEWS for 0.9.7 MELT plugin for GCC 4.6 & 4.7 & future 4.8
 [[october, 10th, 2012]]
