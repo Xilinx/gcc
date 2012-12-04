@@ -1971,20 +1971,20 @@ source location.}#
 							   "autoboxing discriminant"))
 					   )
 				       (tuple
-					(clone_with_discriminant discr_verbatim_string '"/*full boxing*/ ")
-					boxer
-					(clone_with_discriminant discr_verbatim_string '"((meltobject_ptr_t) (")
+					(clone_with_discriminant '"/*full boxing*/ " discr_verbatim_string)
+					(clone_with_discriminant boxer discr_verbatim_string)
+					(clone_with_discriminant '"((meltobject_ptr_t) (" discr_verbatim_string)
 					predefdiscr
-					(clone_with_discriminant discr_verbatim_string '"), (")
+					(clone_with_discriminant '"), (" discr_verbatim_string)
 					nboxed
-					(clone_with_discriminant discr_verbatim_string '"))")
+					(clone_with_discriminant '"))" discr_verbatim_string)
 					))
 				   (tuple
-					(clone_with_discriminant discr_verbatim_string '"/*short boxing*/ ")
-				    boxer
-				    (clone_with_discriminant discr_verbatim_string '"(")
+					(clone_with_discriminant '"/*short boxing*/ " discr_verbatim_string)
+				    (clone_with_discriminant boxer discr_verbatim_string)
+				    (clone_with_discriminant '"(" discr_verbatim_string)
 				    nboxed
-				    (clone_with_discriminant discr_verbatim_string '")")
+				    (clone_with_discriminant '")" discr_verbatim_string)
 				    )
 				   )))
 	       (cbind (instance class_normal_let_binding
