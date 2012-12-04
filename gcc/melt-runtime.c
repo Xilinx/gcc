@@ -892,9 +892,9 @@ melt_argument (const char* argname)
 /* the debug depth for MELT debug_msg .... */
 int melt_debug_depth (void)
 {
-#define MELT_DEFAULT_DEBUG_DEPTH 7
+#define MELT_DEFAULT_DEBUG_DEPTH 9
 #define MELT_MINIMAL_DEBUG_DEPTH 2
-#define MELT_MAXIMAL_DEBUG_DEPTH 25
+#define MELT_MAXIMAL_DEBUG_DEPTH 28
   static int d;
   if (MELT_UNLIKELY(!d)) {
     const char* dbgdepthstr = melt_argument ("debug-depth");

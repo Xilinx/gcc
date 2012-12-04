@@ -1811,83 +1811,86 @@ source location.}#
        (let ( (bmap (make_mapobject  discr_map_objects (+i 5 (/iraw (*i 3 nbarg) 2))))
 	      (expargs (make_multiple discr_multiple nbexp))
 	      )
-	 (multiple_every
-	  sopformals
-	  (lambda (forb :long ix)
-	    (assert_msg "check forb" (is_a forb class_formal_binding))
-	    (debug "normexp_primitive forb" forb)
-	    (let ( (forarg (unsafe_get_field :binder forb))
-		   (actarg (multiple_nth nargs ix)) 
-		   (fortype (unsafe_get_field :fbind_type forb))
-		   (actype (get_ctype actarg env))
-		   )
-	      (debug "normexp_primitive actarg=" actarg " actype=" actype)
-	      (if (and (is_a fortype class_ctype)
-		       (is_a actype class_ctype)
-		       (!= fortype actype))
-		  (progn
-		    (error_strv sloc "type mismatch between formals & actuals in primitive"
-				  sopnamstr)
-		    (inform_strv sloc "mismatched primitive formal name"
-				 (unsafe_get_field :named_name forarg))
-		    (inform_strv sloc "mismatched primitive actual type"
-				 (unsafe_get_field :named_name actype))
-		    (inform_strv sloc "mismatched primitive expected type"
-				 (unsafe_get_field :named_name fortype))
-		    ))
-	      (mapobject_put bmap forarg actarg)
-	      )))
-	 (debug "normexp_primitive bmap in sopexp" bmap)
-	 (multiple_every
-	  sopexp
-	  (lambda (excu :long jx)
-	    (let ( (exval
-		    (if (is_a excu class_symbol)
-			(let ( (bval (mapobject_get bmap excu)) )
-			  (if (null bval) 
-			      (progn 
-;; we could perhaps handle symbols which are not primitive arguments
-;; as some kind of closed constants, but this is rarely needed and
-;; requires a lot of work: the excu should then be the constant
-;; itself, and code should be generated to fill the primitive with
-;; non-symbol values.
-				(debug "normexp_primitive recv unexpected symbol in expansion recv=" recv "excu=" excu)
-				(error_strv sloc "unexpected symbol in primitive expansion" 
-					    (unsafe_get_field  :named_name excu))
-				(error_strv sloc "bad primitive name" sopnamstr)
-				))
-			  bval)
-		      excu)) )
-	      (if (null exval)
-		  (progn
-		    (warning_strv sloc "null expansion of primitive argument for"
-				  sopnamstr)
-		    (if (is_a excu class_named) 
-			(warning_strv sloc "null primitive original piece is"
-				      (unsafe_get_field :named_name excu)))
-		    ))
-	      (multiple_put_nth expargs jx exval))
+	 (foreach_in_multiple
+	  (sopformals)
+	  (forb :long ix)
+	  (assert_msg "check forb" (is_a forb class_formal_binding))
+	  (debug "normexp_primitive forb" forb)
+	  (let ( (forarg (unsafe_get_field :binder forb))
+		 (actarg (multiple_nth nargs ix)) 
+		 (fortype (unsafe_get_field :fbind_type forb))
+		 (actype (get_ctype actarg env))
+		 )
+	    (debug "normexp_primitive actarg=" actarg " actype=" actype)
+	    (if (and (is_a fortype class_ctype)
+		     (is_a actype class_ctype)
+		     (!= fortype actype))
+		(progn
+		  (error_strv sloc "type mismatch between formals & actuals in primitive"
+			      sopnamstr)
+		  (inform_strv sloc "mismatched primitive formal name"
+			       (unsafe_get_field :named_name forarg))
+		  (inform_strv sloc "mismatched primitive actual type"
+			       (unsafe_get_field :named_name actype))
+		  (inform_strv sloc "mismatched primitive expected type"
+			       (unsafe_get_field :named_name fortype))
+		  ))
+	    (mapobject_put bmap forarg actarg)
 	    ))
+	 (debug "normexp_primitive bmap in sopexp" bmap)
+	 (foreach_in_multiple
+	  (sopexp)
+	  (excu :long jx)
+	  (let ( (exval
+		  (if (is_a excu class_symbol)
+		      (let ( (bval (mapobject_get bmap excu)) )
+			(if (null bval) 
+			    (progn 
+			      ;; we could perhaps handle symbols which are not primitive arguments
+			      ;; as some kind of closed constants, but this is rarely needed and
+			      ;; requires a lot of work: the excu should then be the constant
+			      ;; itself, and code should be generated to fill the primitive with
+			      ;; non-symbol values.
+			      (debug "normexp_primitive recv unexpected symbol in expansion recv=" recv "excu=" excu)
+			      (error_strv sloc "unexpected symbol in primitive expansion" 
+					  (unsafe_get_field  :named_name excu))
+			      (error_strv sloc "bad primitive name" sopnamstr)
+			      ))
+			bval)
+		    excu)) )
+	    (if (null exval)
+		(progn
+		  (warning_strv sloc "null expansion of primitive argument for"
+				sopnamstr)
+		  (if (is_a excu class_named) 
+		      (warning_strv sloc "null primitive original piece is"
+				    (unsafe_get_field :named_name excu)))
+		  ))
+	    (multiple_put_nth expargs jx exval))
+	  )
+
 	 (debug "normexp_primitive soper" soper)
 	 (assert_msg "check soper is named" (is_a soper class_named))
-	 (let ( (csym (clone_symbol soper)) 
-		(cbind (instance class_normal_let_binding
-				 :letbind_loc sloc
-				 :binder csym
-				 :letbind_type soptype 
-				 :letbind_expr 
-				 (instance class_nrep_chunk
+	 (let ( (csym (clone_symbol soper))
+		(nchunk (instance class_nrep_chunk
 					   :nrep_loc sloc
 					   :nchunk_expansion expargs
 					   :nchunk_oper soper
 					   :nexpr_ctyp soptype
-					   ))) 
+					   ))
+		(cbind (instance class_normal_let_binding
+				 :letbind_loc sloc
+				 :binder csym
+				 :letbind_type soptype 
+				 :letbind_expr nchunk
+				 )) 
 		(clocc (instance class_nrep_locsymocc
 				 :nrep_loc sloc
 				 :nocc_ctyp soptype
 				 :nocc_symb csym
 				 :nocc_bind cbind)) 
 		)
+	   (debug "normexp_primitive nchunk=" nchunk)
 	   (if (is_list nbind) 
 	       (list_append nbind cbind)
 	     (progn
@@ -1919,6 +1922,9 @@ source location.}#
      (nboxed nbind)
      (normal_exp sboxed env ncx sloc)
      (debug "normexp_box nboxed=" nboxed " nbind=" nbind)
+     (when (not (is_list nbind))
+       (setq nbind (list))
+       (debug "normexp_box set nbind=" nbind))
      (let ( (nctyp (get_ctype nboxed env))
 	    (autoboxdiscr (get_field :ctype_autoboxdiscr nctyp))
 	    )
@@ -1928,27 +1934,76 @@ source location.}#
 	 (error_strv sloc "non-BOX-able stuff of ctype"
 		     (get_field :named_name nctyp))
 	 (return))
-       (let ( (boxer
-	       (cond ( (is_a nctyp class_ctype_plain)
-		       (let ( (boxing (get_field :ctypp_boxing nctyp))
-			      )
-			 (debug "normexp_box boxing=" boxing)
-			 boxing
-			 ))
-		     ( (is_a nctyp class_ctype_gty)
-		       (let ( (boxfun (get_field :ctypg_boxfun nctyp))
-			      )
-			 (debug "normexp_box boxfun=" boxfun)
-			 boxfun
-			 ))
-		     (:else
-		      (error_strv sloc "unexpected ctype for BOX"
-				  (get_field :named_name nctyp))))
-	       )
+       (let (
+	     (boxer
+	      (cond
+	       ( (== nctyp ctype_value)
+		 (setq autoboxdiscr ())
+		 '"/*boxvalue*/ meltgc_new_reference"
+		 )
+	       ( (is_a nctyp class_ctype_plain)
+		 (let ( (boxing (get_field :ctypp_boxing nctyp))
+			)
+		   boxing
+		   ))
+	       ( (is_a nctyp class_ctype_gty)
+		 (let ( (boxfun (get_field :ctypg_boxfun nctyp))
+			)
+		   boxfun
+		   ))
+	       (:else
+		(error_strv sloc "unexpected ctype for BOX"
+			    (get_field :named_name nctyp))))
 	      )
+	     )
 	 (debug "normexp_box boxer=" boxer)
-	 (assert_msg "@$@normexp_box unimplemented")
-	 )))))
+	 (let ( 
+	       (csym (clone_symbol 'box))
+	       (nchunk (instance class_nrep_chunk
+				 :nrep_loc sloc
+				 :nchunk_oper 'box
+				 :nexpr_ctyp ctype_value
+				 :nchunk_expansion
+				 (if autoboxdiscr
+				     (let 
+					 ( (predefdiscr
+					    (normal_predef autoboxdiscr ncx sloc
+							   "autoboxing discriminant"))
+					   )
+				       (tuple
+					(clone_with_discriminant discr_verbatim_string '"/*full boxing*/ ")
+					boxer
+					(clone_with_discriminant discr_verbatim_string '"((meltobject_ptr_t) (")
+					predefdiscr
+					(clone_with_discriminant discr_verbatim_string '"), (")
+					nboxed
+					(clone_with_discriminant discr_verbatim_string '"))")
+					))
+				   (tuple
+					(clone_with_discriminant discr_verbatim_string '"/*short boxing*/ ")
+				    boxer
+				    (clone_with_discriminant discr_verbatim_string '"(")
+				    nboxed
+				    (clone_with_discriminant discr_verbatim_string '")")
+				    )
+				   )))
+	       (cbind (instance class_normal_let_binding
+				:letbind_loc sloc
+				:binder csym
+				:letbind_type ctype_value
+				:letbind_expr nchunk
+				))
+	       (clocc (instance class_nrep_locsymocc
+				:nrep_loc sloc
+				:nocc_ctyp ctype_value
+				:nocc_symb csym
+				:nocc_bind cbind))
+	       )
+	   (debug "normexp_box nchunk=" nchunk " clocc="  clocc)
+	   (list_append nbind cbind)
+	   (debug "normexp_box return clocc=" clocc " nbind=" nbind)
+	   (return clocc nbind)
+	   ))))))
 (install_method class_source_box normal_exp normexp_box)
 
 

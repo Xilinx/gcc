@@ -202,7 +202,8 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 	  (dbgi (instance class_debug_output_information
 			  :dbgi_out stdout
 			  :dbgi_occmap occmap
-			  :dbgi_maxdepth '12))
+			  :dbgi_maxdepth (make_integerbox 
+					  discr_constant_integer (debug_depth))))
 	  )
       (debug "eval_docmd run res=" res "\n newenv=" newenv "\n dbgi=" dbgi)
       (add2out stdout "\n;;; result of eval mode of " nbexprs " expression[s] is ...\n")
@@ -251,7 +252,8 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 	  (dbgi (instance class_debug_output_information
 			  :dbgi_out stdout
 			  :dbgi_occmap occmap
-			  :dbgi_maxdepth '12))
+			  :dbgi_maxdepth (make_integerbox 
+					  discr_constant_integer (debug_depth))))
 	  )
       (debug "evalfile_docmd run res=" res "\n newenv=" newenv "\n dbgi=" dbgi)
       (add2out stdout "\n;;; Evaluated result of evaluation from file " inarg " of " nbexprs " expression[s] is ...\n")
@@ -321,7 +323,8 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 		    (dbgi (instance class_debug_information
 				    :dbgi_out stdout
 				    :dbgi_occmap occmap
-				    :dbgi_maxdepth '12))
+				    :dbgi_maxdepth (make_integerbox 
+						    discr_constant_integer (debug_depth))))
 		    )
 	       (debug "repl_processor before translate&run inlist=" inlist
 		      "\n replenv=" replenv)

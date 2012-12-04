@@ -1,10 +1,22 @@
 
 
+2012-12-04  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.c (MELT_DEFAULT_DEBUG_DEPTH): Increase to 9.
+	(MELT_MAXIMAL_DEBUG_DEPTH): Increase to 28.
+
+	* melt/warmelt-normal.melt (normexp_box): More, but still not
+	working.
+
+	* melt/warmelt-modes.melt (eval_docmd, evalfile_docmd)
+	(repl_processor): The :dbgi_maxdepth uses debug_depth.
+
+
 2012-12-03  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-first.melt (class_ctype_plain): Export that class.
 
-	* melt/warmelt-normalt.melt (normexp_box): More but still
+	* melt/warmelt-normal.melt (normexp_box): More but still
 	incomplete.
 
 2012-12-03  Basile Starynkevitch  <basile@starynkevitch.net>
