@@ -1,5 +1,9 @@
 
 2012-12-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-modes.melt (generate_runtypesupport_boxingfun):
+	Emit correct cast.
+
+2012-12-04  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.h (MELT_VERSION_STRING): Bump to 0.9.8-rc0
 
