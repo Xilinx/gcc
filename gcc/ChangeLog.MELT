@@ -1,5 +1,9 @@
 
 2012-12-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt (discr_constant_tree): Typo in its
+	named_name.
+
+2012-12-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-modes.melt (generate_runtypesupport_boxingfun):
 	Emit correct cast.
 

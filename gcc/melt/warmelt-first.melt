@@ -1982,7 +1982,7 @@ and $DISCR_FORMALS_SEQUENCE.}#
   :obj_num MELTOBMAG_TREE
   :predef DISCR_CONSTANT_TREE
   :disc_super discr_tree
-  :named_name '"DISCR_CONST_TREE")
+  :named_name '"DISCR_CONSTANT_TREE")
 
 ;;; the discriminant for gimple-s
 (definstance discr_gimple class_discriminant
