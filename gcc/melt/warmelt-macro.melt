@@ -214,7 +214,6 @@ gives the tuple of pkg-config package string names. }#
   :fields (sboxed
 	   ))
 
-;;;; source box
 (defclass class_source_box
   :doc #{The internal $SCLASS_SOURCE_BOX is for $BOX abstract syntax. $SBOXED is the boxed stuff.}#
   :super class_source_quasi_box
@@ -224,6 +223,20 @@ gives the tuple of pkg-config package string names. }#
   :doc #{The internal $SCLASS_SOURCE_CONSTANT_BOX is for $CONSTANT_BOX abstract syntax. $SBOXED is the boxed stuff.}#
   :super class_source_quasi_box
   :fields ())
+
+
+;;; source unbox
+(defclass class_source_unbox
+  :doc #{The $CLASS_SOURCE_UNBOX is for $UNBOX abstract
+  syntax. $SUNBOX_CTYPE gives the c-type, and $SUNBOX_EXPR gives the
+  expression to unbox.}#
+  :super class_source 
+  :fields (sunbox_ctype
+	   sunbox_expr
+	   ))
+
+
+
 
 ;; source export 
 (defclass class_source_exportcommon
@@ -5894,12 +5907,31 @@ remain.}#)
       )))
 (install_initial_macro 'constant_box mexpand_constant_box)
 (export_macro
- box mexpand_box
+ constant_box mexpand_constant_box
  :doc #{The $CONSTANT_BOX syntax is boxing stuff into constant
  values. So @code{(constant_box 2)} gives the same as
  @code{(make_integerbox discr_constant_integer 2)} and if @var{g} is
  some @i{gimple} stuff, @code{(box g)} gives the same as
  @code{(make_gimple discr_constant_gimple g)} etc...}#)
+
+
+;;;;;;; for UNBOX
+(defun mexpand_unbox (sexpr env mexpander modctx)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check modctx" (is_object modctx))
+  (debug "mexpand_unbox start sexpr=" sexpr)
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont))) 
+	 (boxedexp (pair_head curpair))
+	 )
+    (assert_msg "$@$mexpand_unbox unimplemented")
+    ))
+(install_initial_macro 'unbox mexpand_unbox)
+(export_macro
+ unbox mexpand_unbox
+ :doc #{The $UNBOX syntax is unboxing some value. It is given a ctype and an expression.}#)
 
 
 ;;;;;;;; for COMMENT (only of strings)
@@ -7064,6 +7096,7 @@ $CURRENT_MODULE_ENVIRONMENT_CONTAINER. Will be renamed as
  class_source_setq
  class_source_store_predefined
  class_source_tuple
+ class_source_unbox
  class_source_unsafe_get_field
  class_source_unsafe_put_fields
  class_source_update_current_module_environment_container
