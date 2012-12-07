@@ -73,7 +73,7 @@
  *      extern X myArray[ARRAY_SIZE];
  *      // ...
  *
- *      unsigned int result;
+ *      unsigned int result = 1;
  *      for (std::size_t i = 0; i < ARRAY_SIZE; ++i)
  *      {
  *          result &= compute(myArray[i]);
@@ -97,10 +97,10 @@
  *      extern X myArray[ARRAY_SIZE];
  *      // ...
  *       
- *      cilk::reducer_opand<unsigned int> result;
+ *      cilk::reducer_opand<unsigned int> result(1);
  *      cilk_for (std::size_t i = 0; i < ARRAY_SIZE; ++i)
  *      {
- *          result &= compute(myArray[i]);
+ *          *result &= compute(myArray[i]);
  *      }
  *
  *      std::cout << "The result is: " 
@@ -115,15 +115,15 @@
  * Given 'reducer_opand' objects, x and y, the following are
  * valid statements:
  *..
- *  x &= 5;
- *  x = x & 5;
+ *  *x &= 5;
+ *  *x = *x & 5;
  *..
  * The following are not valid expressions and will result in a run-time error
  * in a debug build:
  *..
- *  x = y;     // Cannot assign one reducer to another
- *  x = y & 5; // Mixed reducers
- *  x = 5 & x; // operator& is not necessarily commutative
+ *  x = y;       // Cannot assign one reducer to another
+ *  *x = *y & 5; // Mixed reducers
+ *  *x = 5 & *x; // operator& is not necessarily commutative
  *..
  *..
  *
@@ -218,6 +218,12 @@ class reducer_opand
     /// Merge the result of AND operation into this object.  The AND operation
     /// must involve this reducer, i.e., x = x + 5; not x = y + 5;
     reducer_opand& operator=(const temp_and& temp);
+
+    reducer_opand&       operator*()       { return *this; }
+    reducer_opand const& operator*() const { return *this; }
+
+    reducer_opand*       operator->()       { return this; }
+    reducer_opand const* operator->() const { return this; }
 
   private:
     friend class temp_and;

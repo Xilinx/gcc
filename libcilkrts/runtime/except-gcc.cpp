@@ -545,6 +545,11 @@ struct pending_exception_info *__cilkrts_get_exception(__cilkrts_worker *w,
 extern "C"
 void __attribute__((nonnull)) __cilkrts_gcc_rethrow(__cilkrts_stack_frame *sf)
 {
+#ifdef __CYGWIN__
+    // Cygwin doesn't support exceptions, so _Unwind_Resume isn't available
+    // Which means we can't support exceptions either
+    __cilkrts_bug("The Cygwin implementation of the Intel Cilk Plus runtime doesn't support exceptions\n");
+#else
     if (sf->except_data) {
 #if CILK_LIB_DEBUG
         CILK_ASSERT(std::uncaught_exception());
@@ -553,6 +558,8 @@ void __attribute__((nonnull)) __cilkrts_gcc_rethrow(__cilkrts_stack_frame *sf)
     } else {
         throw;
     }
+#endif  // __CYGWIN__
 }
 
 /* End except-gcc.cpp */
+

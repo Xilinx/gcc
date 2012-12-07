@@ -1,3 +1,23 @@
+2012-12-06  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* include/cilk/reduce_min.h: Updated to revision 2856.
+	* include/cilk/reduce_max.h: Likewise.
+	* include/cilk/reducer_opadd.h: Likewise.
+	* include/cilk/reducer_opand.h: Likewise.
+	* include/cilk/cilk_api.h: Likewise.
+	* include/cilk/reducer_string.h: Likewise.
+	* include/cilk/reducer_opxor.h: Likewise.
+	* include/cilk/reduce_ostream.h: Likewise.
+	* include/cilk/reducer_list.h: Likewise.
+	* include/cilk/reducer_opor.h: Likewise.
+	* include/cilk/common.h: Likewise.
+	* include/internal/rev.mk: Likewise.
+	* runtime/os-unix.c: Likewise.
+	* runtime/cilk-abi-cilk-for.cpp: Likewise.
+	* runtime/except-gcc.cpp: Likewise.
+	* runtime/global_state.cpp: Likewise.
+	* runtime/sysdep-unix.c: Likewise.
+
 2012-06-12  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* configure: Updated to revision 2546.

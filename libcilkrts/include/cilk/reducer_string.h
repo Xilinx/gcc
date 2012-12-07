@@ -30,8 +30,8 @@
  * Purpose: Reducer hyperobject to accumulate a string.
  *
  * Classes: reducer_basic_string<Elem, Traits, Alloc>
- *          reducer_string - convenience typedef for a reducer string of chars
- *          reducer_wstring - convenience typedef for a reducer string of wchar_t's
+ *          reducer_string - convenience name for a string-of-char reducer
+ *          reducer_wstring - convenience name for a string-of-wchar_t reducer
  *
  * Description:
  * ============
@@ -81,13 +81,13 @@
  *      extern X myArray[ARRAY_SIZE];
  *      // ...
  *
- *      cilk::hyperobject<cilk::reducer_string> result;
+ *      cilk::reducer_string result;
  *      cilk_for (std::size_t i = 0; i < ARRAY_SIZE; ++i)
  *      {
- *          result += compute(myArray[i]);
+ *          *result += compute(myArray[i]);
  *      }
  *
- *      std::cout << "The result is: " << result.get_value().c_str() << std::endl;
+ *      std::cout << "The result is: " << result.get_value() << std::endl;
  *
  *      return 0;
  *  }
@@ -97,8 +97,8 @@
  * ====================
  *
  * 'reducer_string' supports operator+= and append.
- *..
- * The the current value of the reducer can be get using the 'get_value'
+ *
+ * The the current value of the reducer can be retrieved using the 'get_value'
  * method. As with most reducers, the 'get_value' method produces deterministic
  * results only if called before the first spawn after creating a 'hyperobject'
  * or when all strands spawned since creating the 'hyperobject' have been
@@ -204,6 +204,13 @@ public:
     reducer_basic_string<_Elem, _Traits, _Alloc> &operator+=(_Elem ch);
     reducer_basic_string<_Elem, _Traits, _Alloc> &operator+=(const _Elem *ptr);
     reducer_basic_string<_Elem, _Traits, _Alloc> &operator+=(const string_type &right);
+
+    reducer_basic_string&       operator*()       { return *this; }
+    reducer_basic_string const& operator*() const { return *this; }
+
+    reducer_basic_string*       operator->()       { return this; }
+    reducer_basic_string const* operator->() const { return this; }
+
 };  // class reducer_basic_string
 
 /////////////////////////////////////////////////////////////////////////////
