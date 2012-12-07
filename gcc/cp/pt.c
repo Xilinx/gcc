@@ -13596,14 +13596,18 @@ tsubst_copy_and_build (tree t,
 						args, complain, in_decl);
       RETURN (build_x_array_ref (EXPR_LOCATION (t), op1,
 				RECUR (TREE_OPERAND (t, 1)), complain));
+   case ARRAY_NOTATION_REF:
+      {
+	tree start_index, length, stride;
+	op1 = tsubst_non_call_postfix_expression (ARRAY_NOTATION_ARRAY (t),
+						  args, complain, in_decl);
+	start_index = RECUR (ARRAY_NOTATION_START (t));
+	length = RECUR (ARRAY_NOTATION_LENGTH (t));
+	stride = RECUR (ARRAY_NOTATION_STRIDE (t));
 
-    case ARRAY_NOTATION_REF:
-      op1 = tsubst_non_call_postfix_expression (ARRAY_NOTATION_ARRAY (t),
-						args, complain, in_decl);
-      return build5 (ARRAY_NOTATION_REF, TREE_TYPE (op1),
-		     op1, RECUR (ARRAY_NOTATION_START (t)),
-		     RECUR (ARRAY_NOTATION_LENGTH (t)),
-		     RECUR (ARRAY_NOTATION_STRIDE (t)), TREE_TYPE (op1));
+	RETURN (build_array_notation_ref (EXPR_LOCATION (t), op1, start_index,
+					  length, stride, TREE_TYPE (op1)));
+      }
     case SIZEOF_EXPR:
       if (PACK_EXPANSION_P (TREE_OPERAND (t, 0)))
 	RETURN (tsubst_copy (t, args, complain, in_decl));
@@ -15371,7 +15375,7 @@ type_unification_real (tree tparms,
       arg = args[ia];
       ++ia;
 
-      if (TREE_CODE (arg) == ARRAY_NOTATION_REF)
+      if (flag_enable_cilk && TREE_CODE (arg) == ARRAY_NOTATION_REF)
 	return 1;
       
       if (unify_one_argument (tparms, targs, parm, arg, subr, strict,
@@ -18785,6 +18789,9 @@ instantiate_decl (tree d, int defer_ok,
       /* We don't need the local specializations any more.  */
       pointer_map_destroy (local_specializations);
       local_specializations = saved_local_specializations;
+
+    if (flag_enable_cilk && contains_array_notation_expr (DECL_SAVED_TREE (d)))
+      DECL_SAVED_TREE (d) = fix_array_notation_exprs (DECL_SAVED_TREE (d));
 
       /* Finish the function.  */
       d = finish_function (0);

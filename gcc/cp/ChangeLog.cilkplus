@@ -1,3 +1,53 @@
+2012-12-06  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* typeck.c (cp_build_array_ref): Added a check if array index has
+	array notations and if so then emit error if its rank is greater than 1.
+	* cp-array-notation.c (struct inv_list): New struct.
+	(find_rank): Changed *rank from int to size_t.
+	(extract_array_notation_exprs): Removed all variables that used realloc 
+	with vecs and replaced all insertion with the appropriate push function.
+	(replace_array_notations): Likewise.
+	(contains_array_notation_expr): Likewise.
+	(build_array_notation_expr): All the changes as above plus replace
+	several integer type variables to size_t.  Also added location variables
+	when available instead of plane UNKNOWN_LOCATION.  Finally, replaced
+	malloc and free with the appropriate builtin GCC's equivalent.
+	(fix_conditional_array_notations_1): Likewise.
+	(fix_array_notation_expr): Likewise.
+	(fix_array_notation_call_expr): Likewise.
+	(fix_builtin_array_notation_fn): All the changes as the above functions
+	plus added support for MUTATING function.
+	(is_builtin_array_notation_fn): Added support for MUTATING function.
+	(find_correct_array_notation_type): Added a check for builtin array
+	notation function.
+	(find_inv_trees): New function.
+	(replace_inv_trees): Likewise.
+	(replace_invariant_exprs): Likewise.
+	(build_array_notation_ref): Likewise.
+	* semantics.c (finish_return_stmt): Added a check if array notation is
+	present in the return statement.
+	(cxx_eval_constant_expression): Added ARRAY_NOTATION_REF case.
+	(potential_constant_expression_1): Likewise.
+	* pt.c (tsubst_copy_and_build): Added a ARRAY_NOTATION_REF case.
+	* parser.c (cp_parser_postfix_open_square_expression): Added a check for
+	array notation having a braced list index.
+	(cp_parser_selection_statement): Added a check for array notation inside
+	condition.  If so, then emit an error message.
+	(cp_parser_for): Likewise.
+	(cp_parser_iteration_statement): Likewise.
+	(cp_parser_direct_declarator): Added a check for array notations in a
+	declarator.  If so, then emit an error message.
+	(cp_parser_function_definition_after_declarator): Added a check for 
+	array notations in function tree.  If so, then we fix them up.
+	(cp_parser_array_notation): Added several checks for possible syntax
+	errors and emit the appropriate error messages.  Also, wrapped several of
+	the tasks in the function build_array_notation_ref and called it.
+	* cp-objcp-common.c (cp_common_init_ts): Mark ARRAY_NOTATION_REF as
+	TYPED.
+	* cp-tree.h: Added several array notation function definitions.
+	* lex.c (unqualified_fn_lookup_error): If cilk is enabled then  we just
+	return the name.
+
 2012-11-28  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cp-array-notation.c (fix_conditional_array_notations_1): Added code to

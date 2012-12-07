@@ -1,3 +1,50 @@
+2012-12-06  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* array-notation-common.c: Delete.
+	* c/c-parser.c (c_parser_declarator_inner): Added a check for array
+	notation inside a declaration and emit error if found.
+	(c_parser_if_statement): Added a check if array notation expression
+	exists in a if_stmt.  Only call the fix function if it is also true.
+	(c_parser_switch_statement): Added a check if array notation exists in
+	its condition.  If so, then we emit an error message.
+	(c_parser_while_statement): Likewise.
+	(c_parser_do_statement): Likewise.
+	(c_parser_for_statement): Likewise.
+	(c_parser_postfix_expression_after_primary): Did some var name changes.
+	(c_parser_array_notation): Added the location parameter and added some
+	error checking functions.
+	* c/c-typeck.c (build_array_ref): Added a check if array notation inside
+	array's index is one or less.  Otherwise, emit an error.
+	(build_function_call_vec): Added code to not do type conversion for 
+	builtin array notation __sec_reduce functions.
+	* c/c-array_notation.c (struct inv_list): New structure.
+	(find_rank): Changed *rank from int to size_t.
+	(extract_array_notation_exprs): Removed all variables that used realloc 
+	with vecs and replaced all insertion with the appropriate push function.
+	(replace_array_notations): Likewise.
+	(contains_array_notation_expr): Likewise.
+	(build_array_notation_expr): All the changes as above plus replace
+	several integer type variables to size_t.  Also added location variables
+	when available instead of plane UNKNOWN_LOCATION.  Finally, replaced
+	malloc and free with the appropriate builtin GCC's equivalent.
+	(fix_conditional_array_notations_1): Likewise.
+	(fix_array_notation_expr): Likewise.
+	(fix_array_notation_call_expr): Likewise.
+	(fix_builtin_array_notation_fn): All the changes as the above functions
+	plus added support for MUTATING function.
+	(is_builtin_array_notation_fn): Added support for MUTATING function.
+	(find_correct_array_notation_type): Added a check for builtin array
+	notation function.
+	(find_inv_trees): New function.
+	(replace_inv_trees): Likewise.
+	(replace_invariant_exprs): Likewise.
+	(build_array_notation_ref): Likewise.
+	* tree.h: Removed all array notation structures and #defines.
+	* tree.def: Removed ARRAY_NOTATION_REF tree definition and moved it to
+	c-common.
+	* Makefile.in (C_COMMON_OBJS): Added c-family/array-notation-common.c.
+	(OBJS): Removed array-notation-common.o.
+
 2012-11-28  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c/c-array-notation.c (fix_conditional_array_notations_1): Added some

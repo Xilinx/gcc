@@ -1140,7 +1140,7 @@ C_COMMON_OBJS = c-family/c-common.o c-family/c-cppbuiltin.o c-family/c-dump.o \
   c-family/c-omp.o c-family/c-opts.o c-family/c-pch.o \
   c-family/c-ppoutput.o c-family/c-pragma.o c-family/c-pretty-print.o \
   c-family/c-semantics.o c-family/c-ada-spec.o tree-mudflap.o \
-  c-family/c-cilk.o c-family/elem-function.o
+  c-family/array-notation-common.o c-family/c-cilk.o c-family/elem-function.o
 
 # Language-independent object files.
 # We put the insn-*.o files first so that a parallel make will build
@@ -1461,8 +1461,7 @@ OBJS = \
 	vmsdbgout.o \
 	web.o \
 	xcoffout.o \
-        cilk.o \
-	array-notation-common.o \
+	cilk.o \
 	elem-function-common.o \
 	$(out_object_file) \
 	$(EXTRA_OBJS) \
@@ -3424,8 +3423,8 @@ lower-subreg.o : lower-subreg.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 c-family/elem-function.o: c-family/elem-function.c $(CONFIG_H) $(SYSTEM_H) \
   $(TREE_H) $(GIMPLE_H) $(OPTABS_H) $(RECOG_H)
 
-array-notation-common.o: array-notation-common.c $(CONFIG_H) $(SYSTEM_H) \
-    $(TREE_H) $(RTL_H) $(OPTABS_H) $(GIMPLE_H) $(RECOG_H) 
+array-notation-common.o: c-family/array-notation-common.c $(CONFIG_H) \
+  $(SYSTEM_H) $(TREE_H) $(RTL_H) $(OPTABS_H) $(GIMPLE_H) $(RECOG_H) 
 
 cilk.o: cilk.c $(CONFIG_H) $(SYSTEM_H) $(TREE_H) $(RTL_H) $(OPTABS_H) \
    $(GIMPLE_H) $(RECOG_H) cilk.h

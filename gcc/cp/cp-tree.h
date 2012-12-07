@@ -6127,9 +6127,13 @@ extern void cilk_address_modified_variables    (tree);
 extern void gimplify_cilk_spawn                (tree *, gimple_seq *,
 						gimple_seq *);
 /* In cp/cp-array-notations.c */
-extern tree build_x_array_notation_expr        (tree, enum tree_code, tree,
-						tsubst_flags_t);
-extern tree fix_array_notation_exprs           (tree);
+extern tree build_x_array_notation_expr         (location_t, tree,
+						 enum tree_code, tree,
+						 tsubst_flags_t);
+extern tree fix_array_notation_exprs            (tree);
+extern bool contains_array_notation_expr        (tree);
+extern bool is_builtin_array_notation_fn        (tree, an_reduce_type *);
+extern tree find_correct_array_notation_type    (tree); 
 /* -- end of C++ */
 
 #endif /* ! GCC_CP_TREE_H */

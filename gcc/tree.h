@@ -97,20 +97,6 @@ struct pragma_simd_values
 
 extern struct pragma_simd_values *psv_head;
 
-typedef enum array_notation_reduce_type {
-  REDUCE_UNKNOWN = 0,
-  REDUCE_ADD,
-  REDUCE_MUL,
-  REDUCE_ALL_ZEROS,
-  REDUCE_ALL_NONZEROS,
-  REDUCE_ANY_ZEROS,
-  REDUCE_ANY_NONZEROS,
-  REDUCE_MAX,
-  REDUCE_MIN,
-  REDUCE_MAX_INDEX,
-  REDUCE_MIN_INDEX,
-  REDUCE_CUSTOM
-} an_reduce_type;
 
 
 #undef DEFTREECODE
@@ -6725,14 +6711,5 @@ builtin_decl_implicit_p (enum built_in_function fncode)
   return (builtin_info.decl[uns_fncode] != NULL_TREE
 	  && builtin_info.implicit_p[uns_fncode]);
 }
-
-#define ARRAY_NOTATION_CHECK(NODE) TREE_CHECK (NODE, ARRAY_NOTATION_REF)
-#define ARRAY_NOTATION_ARRAY(NODE) TREE_OPERAND (ARRAY_NOTATION_CHECK (NODE), 0)
-#define ARRAY_NOTATION_START(NODE) TREE_OPERAND (ARRAY_NOTATION_CHECK (NODE), 1)
-#define ARRAY_NOTATION_LENGTH(NODE) \
-  TREE_OPERAND (ARRAY_NOTATION_CHECK (NODE), 2)
-#define ARRAY_NOTATION_STRIDE(NODE) \
-  TREE_OPERAND (ARRAY_NOTATION_CHECK (NODE), 3)
-#define ARRAY_NOTATION_TYPE(NODE) TREE_OPERAND (ARRAY_NOTATION_CHECK (NODE), 4)
 
 #endif  /* GCC_TREE_H  */

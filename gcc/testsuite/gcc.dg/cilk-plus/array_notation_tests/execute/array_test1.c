@@ -27,8 +27,6 @@ int main2 (int argc, char **argv)
   for (ii = 0; ii < 10; ii++)
     if (array[ii] != 15)
       abort ();
-  
-
   array[0:5:2] = 20;
 
   for (ii = 0; ii < 10; ii += 2)

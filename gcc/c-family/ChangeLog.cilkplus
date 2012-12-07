@@ -1,3 +1,8 @@
+2012-12-06  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-common.def (ARRAY_NOTATION_REF): New expression definiton.
+	* c-common.c (c_common_init_ts): Added ARRAY_NOTATION_REF as typed.
+
 2012-10-09  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-cilk.c (install_body_with_frame_cleanup): Moved enter_frame call

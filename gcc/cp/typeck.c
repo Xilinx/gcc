@@ -2950,7 +2950,19 @@ cp_build_array_ref (location_t loc, tree array, tree idx,
 	error_at (loc, "subscript missing in array reference");
       return error_mark_node;
     }
-
+  /* Here we are checking the cases for gather and scatter.  If the rank of
+     array notation expression inside gather scatter is > 1 then we must
+     issue an error.  */
+  if (flag_enable_cilk && contains_array_notation_expr (idx))
+    {
+      size_t rank = 0;
+      find_rank (idx, true, &rank);
+      if (rank > 1)
+	{
+	  error_at (loc, "rank of the array's index is greater than 1.");
+	  return error_mark_node;
+	}
+    }
   if (TREE_TYPE (array) == error_mark_node
       || TREE_TYPE (idx) == error_mark_node)
     return error_mark_node;
@@ -5076,7 +5088,6 @@ cp_build_addr_expr_1 (tree arg, bool strict_lvalue, tsubst_flags_t complain)
 	PTRMEM_OK_P (val) = PTRMEM_OK_P (arg);
       return val;
     }
-  
   if (TREE_CODE (arg) == COMPONENT_REF && type_unknown_p (arg)
       && !really_overloaded_fn (TREE_OPERAND (arg, 1)))
     {
@@ -7739,8 +7750,12 @@ convert_for_assignment (tree type, tree rhs,
 {
   tree rhstype;
   enum tree_code coder;
-  
-  if (flag_enable_cilk && contains_array_notation_expr (rhs))
+  an_reduce_type an_type = REDUCE_UNKNOWN;
+
+ /* If we are dealing with built-in array notation function then we don't need
+     to convert them. They will be broken up into modify exprs in future,
+     during which all these checks will be done.  */
+  if (flag_enable_cilk && is_builtin_array_notation_fn (fndecl, &an_type))
     return rhs;
 
   /* Strip NON_LVALUE_EXPRs since we aren't using as an lvalue.  */

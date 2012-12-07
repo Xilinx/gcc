@@ -1,12 +1,36 @@
 /* { dg-do run } */
 /* { dg-options " " } */
 
+#define HAVE_IO 0
+
+#if HAVE_IO
+#include <cstdio>
+#endif
 
 #include <cstdlib>
+template <class T> int main2(int argc, char **argv);
 
-int main(int argc, char **argv)
+int main (int argc, char **argv)
 {
-  int array[10], array_serial[10];
+    return (main2<int>(argc,argv) + main2<long> (argc, argv) +
+	              main2<long long> (argc, argv));
+}
+
+#if HAVE_IO
+template <class T> int print_array (T *array, int size);
+template <class T> int print_array (T *array, int size)
+{
+    for (int ii = 0; ii < size; ii++)
+          printf("%d ", array[ii]);
+      printf("\n");
+        return 0;
+}
+#endif
+
+template <class T>
+int main2(int argc, char **argv)
+{
+  T array[10], array_serial[10];
 
   for (int ii = 0; ii < 10; ii++) {
     array[ii] = 0;
@@ -22,6 +46,11 @@ int main(int argc, char **argv)
   for (int ii = 0; ii < 10; ii++)
     --array_serial[ii];
 
+#if HAVE_IO
+  print_array<T>(array, 10);
+  print_array<T>(array_serial, 10);
+#endif
+
   for (int ii = 0; ii < 10; ii++)
     if (array_serial[ii] != array[ii])
       abort ();
@@ -36,6 +65,11 @@ int main(int argc, char **argv)
   for (int ii = 0; ii < 10; ii++)
     if (array_serial[ii] != array[ii])
       abort ();
+#if HAVE_IO
+  print_array<T>(array, 10);
+  print_array<T>(array_serial, 10);
+#endif
+
 
   if (argc == 2)
     --array[0:10:1]; 
@@ -45,6 +79,11 @@ int main(int argc, char **argv)
       for (int ii = 0; ii < 10; ii++)
 	--array_serial[ii];
     }
+
+#if HAVE_IO
+  print_array<T>(array, 10);
+  print_array<T>(array_serial, 10);
+#endif
 
   for (int ii = 0; ii < 10; ii++)
     if (array_serial[ii] != array[ii])
@@ -56,6 +95,11 @@ int main(int argc, char **argv)
     {
       --array_serial[ii];
     }
+
+#if HAVE_IO
+  print_array<T>(array, 10);
+  print_array<T>(array_serial, 10);
+#endif
 
   for (int ii = 0; ii < 10; ii++)
     if (array_serial[ii] != array[ii])

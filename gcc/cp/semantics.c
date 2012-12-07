@@ -774,6 +774,12 @@ finish_return_stmt (tree expr)
   tree r;
   bool no_warning;
 
+  if (flag_enable_cilk && contains_array_notation_expr (expr))
+    {
+      error_at (input_location,
+		"array notation expression cannot be used as a return value");
+      return error_mark_node;
+    }
   expr = check_return_expr (expr, &no_warning);
 
   if (flag_openmp && !check_omp_return ())
@@ -7888,6 +7894,7 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
 				       non_constant_p, overflow_p);
       break;
 
+    case ARRAY_NOTATION_REF:
     case ARRAY_REF:
       r = cxx_eval_array_reference (call, t, allow_non_constant, addr,
 				    non_constant_p, overflow_p);
@@ -8655,6 +8662,7 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
       want_rval = true;
       /* Fall through.  */
     case ARRAY_REF:
+    case ARRAY_NOTATION_REF:
     case ARRAY_RANGE_REF:
     case MEMBER_REF:
     case DOTSTAR_EXPR:

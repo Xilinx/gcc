@@ -1,3 +1,95 @@
+2012-12-06  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* gcc.dg/cilk-plus/array_notation_tests/execute/builtin_fn_mutating.c:
+	New test.
+	* gcc.dg/cilk-plus/array_notation_tests/execute/conditional.c: Likewise.
+	* gcc.dg/cilk-plus/array_notation_tests/execute/exec-once.c: Likewise.
+	* gcc.dg/cilk-plus/array_notation_tests/execute/comma_exp.c: Likewise.
+	* gcc.dg/cilk-plus/array_notation_tests/execute/n-ptr-test.c: Likewise.
+	* gcc.dg/cilk-plus/array_notation_tests/execute/builtin_fn_custom.c: 
+	Likewise.
+	* gcc.dg/cilk-plus/array_notation_tests/execute/an-if.c: Likewise.
+	* gcc.dg/cilk-plus/array_notation_tests/errors/sec_reduce_max_min_ind.c:
+	Likewise.
+	* gcc.dg/cilk-plus/array_notation_tests/errors/sec_implicit.c: Likewise.
+	* gcc.dg/cilk-plus/array_notation_tests/errors/sec_implicit2.c: Likewise.
+	* gcc.dg/cilk-plus/array_notation_tests/errors/parser_errors2.c: 
+	Likewise.
+	* gcc.dg/cilk-plus/array_notation_tests/errors/parser_errors2.c: 
+	Likewise.
+	* gcc.dg/cilk-plus/array_notation_tests/errors/misc.cc: Likewise.
+	* gcc.dg/cilk-plus/array_notation_tests/errors/parser_errors3.c: 
+	Likewise.
+	* gcc.dg/cilk-plus/array_notation_tests/errors/parser_errors4.c: 
+	Likewise.
+	* gcc.dg/cilk-plus/array_notation_tests/errors/gather-scatter.c: 
+	Likewise.
+	* gcc.dg/cilk-plus/array_notation_tests/errors/rank_mismatch.c: 
+	Likewise.
+	* gcc.dg/cilk-plus/array_notation_tests/errors/decl-ptr-colon.c: 
+	Likewise.
+	* gcc.dg/cilk-plus/array_notation_tests/errors/fp_triplet_values:
+	Likewise.
+	* gcc.dg/cilk-plus/array_notation_tests/errors/fn_ptr.c: Likewise.
+	* gcc.dg/cilk-plus/array_notation_tests/errors/vla.c: Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/execute/builtin_fn_mutating.cc: 
+	Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/execute/array_test_ND_tplt.cc:
+	Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/execute/preincr_test.cc: 
+	Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/execute/array_test1_tplt.cc:
+	Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/execute/array_test2_tplt.cc:
+	Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/execute/conditional.cc: Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/execute/builtin_fn_mutating_tplt.cc: Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/execute/exec-once.cc: Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/execute/comma_exp.cc: Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/execute/n-ptr-test.cc: Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/execute/builtin_fn_custom.cc: 
+	Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/execute/builtin_fn_custom_tplt.cc:
+	Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/errors/sec_reduce_max_min_ind.cc:
+	Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/errors/sec_implicit.cc: Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/errors/parser_errors.cc: 
+	Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/errors/parser_errors2.cc: 
+	Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/errors/parser_errors3.cc: 
+	Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/errors/parser_errors4.cc: 
+	Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/errors/parser_errors5.cc: 
+	Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/errors/gather-scatter.cc: 
+	Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/errors/rank_mismatch.cc: 
+	Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/errors/decl-ptr-colon.cc: 
+	Likewise.
+	* /g++.dg/cilk-plus/array_notation_tests/errors/sec_implicit2.cc: 
+	Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/errors/fp_triplet_values.cc: 
+	Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/errors/fn_ptr.cc: Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/execute/an-if.cc: Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/errors/misc.cc: Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/execute/postdecr_test.c: Added
+	template support.
+	* g++.dg/cilk-plus/array_notation_tests/execute/predecr_test.cc: 
+	Likewise.
+	* gcc.dg/cilk-plus/array_notation_tests/compile/switch_test.c: Remove.
+	* g++.dg/cilk-plus/cilk_keywords_test/compile/func_call.cc: Likewise.
+	* gcc.dg/cilk-plus/array_notation_tests/execute/execute.exp: New script.
+	* gcc.dg/cilk-plus/array_notation_tests/errors/errors.exp: Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/errors/errors.exp: Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/execute/execute.exp: Removed
+	several target specific checks.
+	* g++.dg/cilk-plus/array_notation_tests/compile/compile.exp: Likewise.
+	
 2012-10-17  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* g++.dg/cilk-plus/cilk_keywords_test/execute/cilk_for_genricize_test.cc: New test. 
