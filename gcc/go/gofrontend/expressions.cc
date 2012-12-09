@@ -89,10 +89,11 @@ Expression::do_traverse(Traverse*)
 // expression is being discarded.  By default, we give an error.
 // Expressions with side effects override.
 
-void
+bool
 Expression::do_discarding_value()
 {
   this->unused_value_error();
+  return false;
 }
 
 // This virtual function is called to export expressions.  This will
@@ -109,7 +110,7 @@ Expression::do_export(Export*) const
 void
 Expression::unused_value_error()
 {
-  error_at(this->location(), "value computed is not used");
+  this->report_error(_("value computed is not used"));
 }
 
 // Note that this expression is an error.  This is called by children
@@ -789,9 +790,9 @@ class Error_expression : public Expression
     return true;
   }
 
-  void
+  bool
   do_discarding_value()
-  { }
+  { return true; }
 
   Type*
   do_type()
@@ -1152,9 +1153,9 @@ class Sink_expression : public Expression
   { }
 
  protected:
-  void
+  bool
   do_discarding_value()
-  { }
+  { return true; }
 
   Type*
   do_type();
@@ -2970,46 +2971,6 @@ Type_conversion_expression::do_lower(Gogo*, Named_object*,
 	{
 	  if (!nc.set_type(type, true, location))
 	    return Expression::make_error(location);
-
-	  // Don't simply convert to or from a float or complex type
-	  // with a different size.  That may change the value.
-	  Type* vtype = val->type();
-	  if (vtype->is_abstract())
-	    ;
-	  else if (type->float_type() != NULL)
-	    {
-	      if (vtype->float_type() != NULL)
-		{
-		  if (type->float_type()->bits() != vtype->float_type()->bits())
-		    return this;
-		}
-	      else if (vtype->complex_type() != NULL)
-		{
-		  if (type->float_type()->bits() * 2
-		      != vtype->complex_type()->bits())
-		    return this;
-		}
-	    }
-	  else if (type->complex_type() != NULL)
-	    {
-	      if (vtype->complex_type() != NULL)
-		{
-		  if (type->complex_type()->bits()
-		      != vtype->complex_type()->bits())
-		    return this;
-		}
-	      else if (vtype->float_type() != NULL)
-		{
-		  if (type->complex_type()->bits()
-		      != vtype->float_type()->bits() * 2)
-		    return this;
-		}
-	    }
-	  else if (vtype->float_type() != NULL)
-	    return this;
-	  else if (vtype->complex_type() != NULL)
-	    return this;
-
 	  return nc.expression(location);
 	}
     }
@@ -5363,13 +5324,19 @@ Binary_expression::do_numeric_constant_value(Numeric_constant* nc) const
 
 // Note that the value is being discarded.
 
-void
+bool
 Binary_expression::do_discarding_value()
 {
   if (this->op_ == OPERATOR_OROR || this->op_ == OPERATOR_ANDAND)
-    this->right_->discarding_value();
+    {
+      this->right_->discarding_value();
+      return true;
+    }
   else
-    this->unused_value_error();
+    {
+      this->unused_value_error();
+      return false;
+    }
 }
 
 // Get type.
@@ -6568,7 +6535,7 @@ class Builtin_call_expression : public Call_expression
   bool
   do_numeric_constant_value(Numeric_constant*) const;
 
-  void
+  bool
   do_discarding_value();
 
   Type*
@@ -7370,7 +7337,7 @@ Builtin_call_expression::do_numeric_constant_value(Numeric_constant* nc) const
 // discarding the value of an ordinary function call, but we do for
 // builtin functions, purely for consistency with the gc compiler.
 
-void
+bool
 Builtin_call_expression::do_discarding_value()
 {
   switch (this->code_)
@@ -7391,7 +7358,7 @@ Builtin_call_expression::do_discarding_value()
     case BUILTIN_OFFSETOF:
     case BUILTIN_SIZEOF:
       this->unused_value_error();
-      break;
+      return false;
 
     case BUILTIN_CLOSE:
     case BUILTIN_COPY:
@@ -7400,7 +7367,7 @@ Builtin_call_expression::do_discarding_value()
     case BUILTIN_PRINT:
     case BUILTIN_PRINTLN:
     case BUILTIN_RECOVER:
-      break;
+      return true;
     }
 }
 
@@ -8546,6 +8513,16 @@ Call_expression::do_lower(Gogo* gogo, Named_object* function,
     return Expression::make_cast(this->fn_->type(), this->args_->front(),
 				 loc);
 
+  // Because do_type will return an error type and thus prevent future
+  // errors, check for that case now to ensure that the error gets
+  // reported.
+  if (this->get_function_type() == NULL)
+    {
+      if (!this->fn_->type()->is_error())
+	this->report_error(_("expected function"));
+      return Expression::make_error(loc);
+    }
+
   // Recognize a call to a builtin function.
   Func_expression* fne = this->fn_->func_expression();
   if (fne != NULL
@@ -9235,6 +9212,9 @@ Call_expression::do_get_tree(Translate_context* context)
 	}
     }
 
+  if (func == NULL)
+    fn = save_expr(fn);
+
   tree ret = build_call_array(excess_type != NULL_TREE ? excess_type : rettype,
 			      fn, nargs, args);
   delete[] args;
@@ -9267,6 +9247,24 @@ Call_expression::do_get_tree(Translate_context* context)
 
   if (this->results_ != NULL)
     ret = this->set_results(context, ret);
+
+  // We can't unwind the stack past a call to nil, so we need to
+  // insert an explicit check so that the panic can be recovered.
+  if (func == NULL)
+    {
+      tree compare = fold_build2_loc(location.gcc_location(), EQ_EXPR,
+				     boolean_type_node, fn,
+				     fold_convert_loc(location.gcc_location(),
+						      TREE_TYPE(fn),
+						      null_pointer_node));
+      tree crash = build3_loc(location.gcc_location(), COND_EXPR,
+			      void_type_node, compare,
+			      gogo->runtime_error(RUNTIME_ERROR_NIL_DEREFERENCE,
+						  location),
+			      NULL_TREE);
+      ret = fold_build2_loc(location.gcc_location(), COMPOUND_EXPR,
+			    TREE_TYPE(ret), crash, ret);
+    }
 
   this->tree_ = ret;
 
@@ -14119,7 +14117,7 @@ Numeric_constant::check_int_type(Integer_type* type, bool issue_error,
 
 bool
 Numeric_constant::check_float_type(Float_type* type, bool issue_error,
-				   Location location) const
+				   Location location)
 {
   mpfr_t val;
   switch (this->classification_)
@@ -14172,6 +14170,29 @@ Numeric_constant::check_float_type(Float_type* type, bool issue_error,
 	}
 
       ret = exp <= max_exp;
+
+      if (ret)
+	{
+	  // Round the constant to the desired type.
+	  mpfr_t t;
+	  mpfr_init(t);
+	  switch (type->bits())
+	    {
+	    case 32:
+	      mpfr_set_prec(t, 24);
+	      break;
+	    case 64:
+	      mpfr_set_prec(t, 53);
+	      break;
+	    default:
+	      go_unreachable();
+	    }
+	  mpfr_set(t, val, GMP_RNDN);
+	  mpfr_set(val, t, GMP_RNDN);
+	  mpfr_clear(t);
+
+	  this->set_float(type, val);
+	}
     }
 
   mpfr_clear(val);
@@ -14186,7 +14207,7 @@ Numeric_constant::check_float_type(Float_type* type, bool issue_error,
 
 bool
 Numeric_constant::check_complex_type(Complex_type* type, bool issue_error,
-				     Location location) const
+				     Location location)
 {
   if (type->is_abstract())
     return true;
@@ -14205,46 +14226,77 @@ Numeric_constant::check_complex_type(Complex_type* type, bool issue_error,
     }
 
   mpfr_t real;
+  mpfr_t imag;
   switch (this->classification_)
     {
     case NC_INT:
     case NC_RUNE:
       mpfr_init_set_z(real, this->u_.int_val, GMP_RNDN);
+      mpfr_init_set_ui(imag, 0, GMP_RNDN);
       break;
 
     case NC_FLOAT:
       mpfr_init_set(real, this->u_.float_val, GMP_RNDN);
+      mpfr_init_set_ui(imag, 0, GMP_RNDN);
       break;
 
     case NC_COMPLEX:
-      if (!mpfr_nan_p(this->u_.complex_val.imag)
-	  && !mpfr_inf_p(this->u_.complex_val.imag)
-	  && !mpfr_zero_p(this->u_.complex_val.imag))
-	{
-	  if (mpfr_get_exp(this->u_.complex_val.imag) > max_exp)
-	    {
-	      if (issue_error)
-		error_at(location, "complex imaginary part overflow");
-	      return false;
-	    }
-	}
       mpfr_init_set(real, this->u_.complex_val.real, GMP_RNDN);
+      mpfr_init_set(imag, this->u_.complex_val.imag, GMP_RNDN);
       break;
 
     default:
       go_unreachable();
     }
 
-  bool ret;
-  if (mpfr_nan_p(real) || mpfr_inf_p(real) || mpfr_zero_p(real))
-    ret = true;
-  else
-    ret = mpfr_get_exp(real) <= max_exp;
+  bool ret = true;
+  if (!mpfr_nan_p(real)
+      && !mpfr_inf_p(real)
+      && !mpfr_zero_p(real)
+      && mpfr_get_exp(real) > max_exp)
+    {
+      if (issue_error)
+	error_at(location, "complex real part overflow");
+      ret = false;
+    }
+
+  if (!mpfr_nan_p(imag)
+      && !mpfr_inf_p(imag)
+      && !mpfr_zero_p(imag)
+      && mpfr_get_exp(imag) > max_exp)
+    {
+      if (issue_error)
+	error_at(location, "complex imaginary part overflow");
+      ret = false;
+    }
+
+  if (ret)
+    {
+      // Round the constant to the desired type.
+      mpfr_t t;
+      mpfr_init(t);
+      switch (type->bits())
+	{
+	case 64:
+	  mpfr_set_prec(t, 24);
+	  break;
+	case 128:
+	  mpfr_set_prec(t, 53);
+	  break;
+	default:
+	  go_unreachable();
+	}
+      mpfr_set(t, real, GMP_RNDN);
+      mpfr_set(real, t, GMP_RNDN);
+      mpfr_set(t, imag, GMP_RNDN);
+      mpfr_set(imag, t, GMP_RNDN);
+      mpfr_clear(t);
+
+      this->set_complex(type, real, imag);
+    }
 
   mpfr_clear(real);
-
-  if (!ret && issue_error)
-    error_at(location, "complex real part overflow");
+  mpfr_clear(imag);
 
   return ret;
 }

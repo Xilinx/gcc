@@ -9651,6 +9651,8 @@ get_scratch_register_on_entry (struct scratch_reg *sr)
       tree decl = current_function_decl, fntype = TREE_TYPE (decl);
       bool fastcall_p
 	= lookup_attribute ("fastcall", TYPE_ATTRIBUTES (fntype)) != NULL_TREE;
+      bool thiscall_p
+	= lookup_attribute ("thiscall", TYPE_ATTRIBUTES (fntype)) != NULL_TREE;
       bool static_chain_p = DECL_STATIC_CHAIN (decl);
       int regparm = ix86_function_regparm (fntype, decl);
       int drap_regno
@@ -9661,10 +9663,15 @@ get_scratch_register_on_entry (struct scratch_reg *sr)
       if ((regparm < 1 || (fastcall_p && !static_chain_p))
 	  && drap_regno != AX_REG)
 	regno = AX_REG;
-      else if (regparm < 2 && drap_regno != DX_REG)
+      /* 'thiscall' sets regparm to 1, uses ecx for arguments and edx
+	  for the static chain register.  */
+      else if (thiscall_p && !static_chain_p && drap_regno != AX_REG)
+        regno = AX_REG;
+      else if (regparm < 2 && !thiscall_p && drap_regno != DX_REG)
 	regno = DX_REG;
       /* ecx is the static chain register.  */
-      else if (regparm < 3 && !fastcall_p && !static_chain_p
+      else if (regparm < 3 && !fastcall_p && !thiscall_p
+	       && !static_chain_p
 	       && drap_regno != CX_REG)
 	regno = CX_REG;
       else if (ix86_save_reg (BX_REG, true))
@@ -11180,10 +11187,13 @@ split_stack_prologue_scratch_regno (void)
     return R11_REG;
   else
     {
-      bool is_fastcall;
+      bool is_fastcall, is_thiscall;
       int regparm;
 
       is_fastcall = (lookup_attribute ("fastcall",
+				       TYPE_ATTRIBUTES (TREE_TYPE (cfun->decl)))
+		     != NULL);
+      is_thiscall = (lookup_attribute ("thiscall",
 				       TYPE_ATTRIBUTES (TREE_TYPE (cfun->decl)))
 		     != NULL);
       regparm = ix86_function_regparm (TREE_TYPE (cfun->decl), cfun->decl);
@@ -11196,6 +11206,12 @@ split_stack_prologue_scratch_regno (void)
 		     "nested function");
 	      return INVALID_REGNUM;
 	    }
+	  return AX_REG;
+	}
+      else if (is_thiscall)
+        {
+	  if (!DECL_STATIC_CHAIN (cfun->decl))
+	    return DX_REG;
 	  return AX_REG;
 	}
       else if (regparm < 3)
@@ -12774,6 +12790,9 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 	  tp = get_thread_pointer (Pmode, true);
 	  dest = force_reg (Pmode, gen_rtx_PLUS (Pmode, tp, dest));
 
+	  if (GET_MODE (x) != Pmode)
+	    x = gen_rtx_ZERO_EXTEND (Pmode, x);
+
 	  set_unique_reg_note (get_last_insn (), REG_EQUAL, x);
 	}
       else
@@ -12782,13 +12801,17 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 
 	  if (TARGET_64BIT)
 	    {
-	      rtx rax = gen_rtx_REG (Pmode, AX_REG), insns;
+	      rtx rax = gen_rtx_REG (Pmode, AX_REG);
+	      rtx insns;
 
 	      start_sequence ();
 	      emit_call_insn (ix86_gen_tls_global_dynamic_64 (rax, x,
 							      caddr));
 	      insns = get_insns ();
 	      end_sequence ();
+
+	      if (GET_MODE (x) != Pmode)
+		x = gen_rtx_ZERO_EXTEND (Pmode, x);
 
 	      RTL_CONST_CALL_P (insns) = 1;
 	      emit_libcall_block (insns, dest, rax, x);
@@ -12831,7 +12854,8 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 
 	  if (TARGET_64BIT)
 	    {
-	      rtx rax = gen_rtx_REG (Pmode, AX_REG), insns, eqv;
+	      rtx rax = gen_rtx_REG (Pmode, AX_REG);
+	      rtx insns, eqv;
 
 	      start_sequence ();
 	      emit_call_insn (ix86_gen_tls_local_dynamic_base_64 (rax,
@@ -12859,6 +12883,9 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
       if (TARGET_GNU2_TLS)
 	{
 	  dest = force_reg (Pmode, gen_rtx_PLUS (Pmode, dest, tp));
+
+	  if (GET_MODE (x) != Pmode)
+	    x = gen_rtx_ZERO_EXTEND (Pmode, x);
 
 	  set_unique_reg_note (get_last_insn (), REG_EQUAL, x);
 	}
@@ -24571,12 +24598,19 @@ ix86_static_chain (const_tree fndecl, bool incoming_p)
 
       fntype = TREE_TYPE (fndecl);
       ccvt = ix86_get_callcvt (fntype);
-      if ((ccvt & (IX86_CALLCVT_FASTCALL | IX86_CALLCVT_THISCALL)) != 0)
+      if ((ccvt & IX86_CALLCVT_FASTCALL) != 0)
 	{
 	  /* Fastcall functions use ecx/edx for arguments, which leaves
 	     us with EAX for the static chain.
 	     Thiscall functions use ecx for arguments, which also
 	     leaves us with EAX for the static chain.  */
+	  regno = AX_REG;
+	}
+      else if ((ccvt & IX86_CALLCVT_THISCALL) != 0)
+	{
+	  /* Thiscall functions use ecx for arguments, which leaves
+	     us with EAX and EDX for the static chain.
+	     We are using for abi-compatibility EAX.  */
 	  regno = AX_REG;
 	}
       else if (ix86_function_regparm (fntype, fndecl) == 3)
@@ -32371,8 +32405,10 @@ x86_output_mi_thunk (FILE *file,
   else
     {
       unsigned int ccvt = ix86_get_callcvt (TREE_TYPE (function));
-      if ((ccvt & (IX86_CALLCVT_FASTCALL | IX86_CALLCVT_THISCALL)) != 0)
+      if ((ccvt & IX86_CALLCVT_FASTCALL) != 0)
 	tmp_regno = AX_REG;
+      else if ((ccvt & IX86_CALLCVT_THISCALL) != 0)
+	tmp_regno = DX_REG;
       else
 	tmp_regno = CX_REG;
     }
