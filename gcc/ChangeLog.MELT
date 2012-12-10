@@ -1,4 +1,20 @@
 
+2012-12-10  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-base.melt: Several plugin hooks were running the
+	wrong delayed queue.
+	(melt_all_passes_start_runner)
+	(register_all_passes_start_hook_first)
+	(register_all_passes_start_hook_last): Use
+	all_passes_start_delayed_queue.
+	(register_all_passes_end_hook_first)
+	(register_all_passes_end_hook_last): Use
+	all_passes_end_delayed_queue.
+	(melt_early_gimple_passes_start_runner)
+	(register_early_gimple_passes_start_hook_first)
+	(register_early_gimple_passes_start_hook_last): Use
+	early_gimple_passes_start_delayed_queue.
+
 2012-12-06  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-macro.melt (class_source_unbox): New, with fields

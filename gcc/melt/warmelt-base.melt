@@ -1920,7 +1920,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   #{ /* melt_notify_finish_decl */  meltgc_notify_finish_decl_hook ();}#
 )
 
-;; private finishtype handling queue
+;; private finishdecl handling queue
 (definstance finishdecl_delayed_queue class_delayed_queue
   :named_name '"finishdecl_delayed_queue"
   :delqu_first ()
@@ -2021,8 +2021,8 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 
 ;; internal private routine for PLUGIN_ALL_PASSES_START 
 (defun melt_all_passes_start_runner ()
-  (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
-	 (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+  (let ( (firstlist (get_field :delqu_first all_passes_start_delayed_queue))
+	 (lastlist (get_field :delqu_last all_passes_start_delayed_queue))
 	 (revlastlist (make_list discr_list))
 	 (res ())
 	 )
@@ -2049,13 +2049,13 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   be run at PLUGIN_ALL_PASSES_START, in first place.  $FUN must be a closure
   which takes no arguments and whose result is ignored.}#
   (if (is_closure fun)
-      (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
+      (let ( (firstlist (get_field :delqu_first all_passes_start_delayed_queue))
 	    )
 	(if (null firstlist)
 	    (progn
 	      (setq firstlist (make_list discr_list))
 	      (put_fields
-	        finishdecl_delayed_queue
+	        all_passes_start_delayed_queue
 	        :delqu_first firstlist
 	        :delqu_last (make_list discr_list))
 	      (put_fields
@@ -2074,13 +2074,13 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   be run at PLUGIN_ALL_PASSES_START, in last place.  $FUN must be a closure
   which takes no argument and whose result is ignored.}#
   (if (is_closure fun)
-      (let ( (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+      (let ( (lastlist (get_field :delqu_last all_passes_start_delayed_queue))
 	    )
 	(if (null lastlist)
 	    (progn
 	      (setq lastlist (make_list discr_list))
 	      (put_fields
-	        finishdecl_delayed_queue
+	        all_passes_start_delayed_queue
 	        :delqu_first (make_list discr_list)
 	        :delqu_last lastlist)
 	      (put_fields
@@ -2107,8 +2107,8 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 
 ;; internal private routine for PLUGIN_ALL_PASSES_END 
 (defun melt_all_passes_end_runner ()
-  (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
-	 (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+  (let ( (firstlist (get_field :delqu_first all_passes_end_delayed_queue))
+	 (lastlist (get_field :delqu_last all_passes_end_delayed_queue))
 	 (revlastlist (make_list discr_list))
 	 (res ())
 	 )
@@ -2135,13 +2135,13 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   be run at PLUGIN_ALL_PASSES_END, in first place.  $FUN must be a closure
   which takes no argument and whose result is ignored.}#
   (if (is_closure fun)
-      (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
+      (let ( (firstlist (get_field :delqu_first all_passes_end_delayed_queue))
 	    )
 	(if (null firstlist)
 	    (progn
 	      (setq firstlist (make_list discr_list))
 	      (put_fields
-	        finishdecl_delayed_queue
+	        all_passes_end_delayed_queue
 	        :delqu_first firstlist
 	        :delqu_last (make_list discr_list))
 	      (put_fields
@@ -2160,13 +2160,13 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   be run at PLUGIN_ALL_PASSES_END, in last place.  $FUN must be a closure
   which takes no arguments and whose result is ignored.}#
   (if (is_closure fun)
-      (let ( (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+      (let ( (lastlist (get_field :delqu_last all_passes_end_delayed_queue))
 	    )
 	(if (null lastlist)
 	    (progn
 	      (setq lastlist (make_list discr_list))
 	      (put_fields
-	        finishdecl_delayed_queue
+	        all_passes_end_delayed_queue
 	        :delqu_first (make_list discr_list)
 	        :delqu_last lastlist)
 	      (put_fields
@@ -2193,8 +2193,8 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 
 ;; internal private routine for PLUGIN_ALL_IPA_PASSES_START 
 (defun melt_all_ipa_passes_start_runner ()
-  (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
-	 (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+  (let ( (firstlist (get_field :delqu_first all_ipa_passes_start_delayed_queue))
+	 (lastlist (get_field :delqu_last all_ipa_passes_start_delayed_queue))
 	 (revlastlist (make_list discr_list))
 	 (res ())
 	 )
@@ -2221,13 +2221,13 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   function $FUN to be run at PLUGIN_ALL_IPA_PASSES_START, in first
   place.  $FUN must be a closure which take no arguments.}#
   (if (is_closure fun)
-      (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
+      (let ( (firstlist (get_field :delqu_first all_ipa_passes_start_delayed_queue))
 	    )
 	(if (null firstlist)
 	    (progn
 	      (setq firstlist (make_list discr_list))
 	      (put_fields
-	        finishdecl_delayed_queue
+	        all_ipa_passes_start_delayed_queue
 	        :delqu_first firstlist
 	        :delqu_last (make_list discr_list))
 	      (put_fields
@@ -2247,13 +2247,13 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   place.  $FUN must be a closure which takes no arguments and whose
   result is ignored.}#
   (if (is_closure fun)
-      (let ( (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+      (let ( (lastlist (get_field :delqu_last all_ipa_passes_start_delayed_queue))
 	    )
 	(if (null lastlist)
 	    (progn
 	      (setq lastlist (make_list discr_list))
 	      (put_fields
-	        finishdecl_delayed_queue
+	        all_ipa_passes_start_delayed_queue
 	        :delqu_first (make_list discr_list)
 	        :delqu_last lastlist)
 	      (put_fields
@@ -2280,8 +2280,8 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 
 ;; internal private routine for PLUGIN_ALL_IPA_PASSES_END 
 (defun melt_all_ipa_passes_end_runner ()
-  (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
-	 (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+  (let ( (firstlist (get_field :delqu_first all_ipa_passes_end_delayed_queue))
+	 (lastlist (get_field :delqu_last all_ipa_passes_end_delayed_queue))
 	 (revlastlist (make_list discr_list))
 	 (res ())
 	 )
@@ -2308,13 +2308,13 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   be run at PLUGIN_ALL_IPA_PASSES_END, in first place.  $FUN must be a closure
   which takes no arguments and whose result is ignored.}#
   (if (is_closure fun)
-      (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
+      (let ( (firstlist (get_field :delqu_first all_ipa_passes_end_delayed_queue))
 	    )
 	(if (null firstlist)
 	    (progn
 	      (setq firstlist (make_list discr_list))
 	      (put_fields
-	        finishdecl_delayed_queue
+	        all_ipa_passes_end_delayed_queue
 	        :delqu_first firstlist
 	        :delqu_last (make_list discr_list))
 	      (put_fields
@@ -2333,13 +2333,13 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   be run at PLUGIN_ALL_IPA_PASSES_END, in last place.  $FUN must be a closure
   which takes no arguments and whose result is ignored.}#
   (if (is_closure fun)
-      (let ( (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+      (let ( (lastlist (get_field :delqu_last all_ipa_passes_end_delayed_queue))
 	    )
 	(if (null lastlist)
 	    (progn
 	      (setq lastlist (make_list discr_list))
 	      (put_fields
-	        finishdecl_delayed_queue
+	        all_ipa_passes_end_delayed_queue
 	        :delqu_first (make_list discr_list)
 	        :delqu_last lastlist)
 	      (put_fields
@@ -2369,8 +2369,8 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 
 ;; internal private routine for PLUGIN_EARLY_GIMPLE_PASSES_START 
 (defun melt_early_gimple_passes_start_runner ()
-  (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
-	 (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+  (let ( (firstlist (get_field :delqu_first early_gimple_passes_start_delayed_queue))
+	 (lastlist (get_field :delqu_last early_gimple_passes_start_delayed_queue))
 	 (revlastlist (make_list discr_list))
 	 (res ())
 	 )
@@ -2398,13 +2398,13 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   PLUGIN_EARLY_GIMPLE_PASSES_START, in first place.  $FUN must be a
   closure which takes no arguments and whose result is ignored.}#
   (if (is_closure fun)
-      (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
+      (let ( (firstlist (get_field :delqu_first early_gimple_passes_start_delayed_queue))
 	    )
 	(if (null firstlist)
 	    (progn
 	      (setq firstlist (make_list discr_list))
 	      (put_fields
-	        finishdecl_delayed_queue
+	        early_gimple_passes_start_delayed_queue
 	        :delqu_first firstlist
 	        :delqu_last (make_list discr_list))
 	      (put_fields
@@ -2424,13 +2424,13 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   last place.  $FUN must be a closure which take no arguments and
   whose result is ignored.}#
   (if (is_closure fun)
-      (let ( (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+      (let ( (lastlist (get_field :delqu_last early_gimple_passes_start_delayed_queue))
 	    )
 	(if (null lastlist)
 	    (progn
 	      (setq lastlist (make_list discr_list))
 	      (put_fields
-	        finishdecl_delayed_queue
+	        early_gimple_passes_start_delayed_queue
 	        :delqu_first (make_list discr_list)
 	        :delqu_last lastlist)
 	      (put_fields
@@ -2457,8 +2457,8 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 
 ;; internal private routine for PLUGIN_EARLY_GIMPLE_PASSES_END 
 (defun melt_early_gimple_passes_end_runner ()
-  (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
-	 (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+  (let ( (firstlist (get_field :delqu_first early_gimple_passes_end_delayed_queue))
+	 (lastlist (get_field :delqu_last early_gimple_passes_end_delayed_queue))
 	 (revlastlist (make_list discr_list))
 	 (res ())
 	 )
@@ -2486,13 +2486,13 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   first place.  $FUN must be a closure which takes no arguments and
   whose result is ignored.}#
   (if (is_closure fun)
-      (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
+      (let ( (firstlist (get_field :delqu_first early_gimple_passes_end_delayed_queue))
 	    )
 	(if (null firstlist)
 	    (progn
 	      (setq firstlist (make_list discr_list))
 	      (put_fields
-	        finishdecl_delayed_queue
+	        early_gimple_passes_end_delayed_queue
 	        :delqu_first firstlist
 	        :delqu_last (make_list discr_list))
 	      (put_fields
@@ -2512,13 +2512,13 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   place.  $FUN must be a closure which takes no arguments and whose
   result is ignored.}#
   (if (is_closure fun)
-      (let ( (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+      (let ( (lastlist (get_field :delqu_last early_gimple_passes_end_delayed_queue))
 	    )
 	(if (null lastlist)
 	    (progn
 	      (setq lastlist (make_list discr_list))
 	      (put_fields
-	        finishdecl_delayed_queue
+	        early_gimple_passes_end_delayed_queue
 	        :delqu_first (make_list discr_list)
 	        :delqu_last lastlist)
 	      (put_fields
