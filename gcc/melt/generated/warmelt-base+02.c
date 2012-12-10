@@ -2963,8 +2963,7 @@ lab_endgetargs:;
     /*cond */ if (
 		   /*ifisa */
 		   melt_is_instance_of ((melt_ptr_t)
-					(( /*!FINISHDECL_DELAYED_QUEUE */
-					  meltfrout->tabval[0])),
+					(( /*!ALL_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])),
 					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
       )				/*then */
       {
@@ -2973,7 +2972,7 @@ lab_endgetargs:;
 	{
 	  melt_ptr_t slot = NULL, obj = NULL;
 	  obj =
-	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+	    (melt_ptr_t) (( /*!ALL_PASSES_START_DELAYED_QUEUE */ meltfrout->
 			   tabval[0])) /*=obj*/ ;
 	  melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
    /*_.FIRSTLIST__V2*/ meltfptr[1] = slot;
@@ -2990,8 +2989,7 @@ lab_endgetargs:;
     /*cond */ if (
 		   /*ifisa */
 		   melt_is_instance_of ((melt_ptr_t)
-					(( /*!FINISHDECL_DELAYED_QUEUE */
-					  meltfrout->tabval[0])),
+					(( /*!ALL_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])),
 					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
       )				/*then */
       {
@@ -3000,7 +2998,7 @@ lab_endgetargs:;
 	{
 	  melt_ptr_t slot = NULL, obj = NULL;
 	  obj =
-	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+	    (melt_ptr_t) (( /*!ALL_PASSES_START_DELAYED_QUEUE */ meltfrout->
 			   tabval[0])) /*=obj*/ ;
 	  melt_object_get_field (slot, obj, 3, "DELQU_LAST");
    /*_.LASTLIST__V3*/ meltfptr[2] = slot;
@@ -3310,7 +3308,7 @@ lab_endgetargs:;
 	  /*cond */ if (
 			 /*ifisa */
 			 melt_is_instance_of ((melt_ptr_t)
-					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (( /*!ALL_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])),
 					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
 	    )			/*then */
 	    {
@@ -3319,8 +3317,8 @@ lab_endgetargs:;
 	      {
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
-		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
-				 tabval[0])) /*=obj*/ ;
+		  (melt_ptr_t) (( /*!ALL_PASSES_START_DELAYED_QUEUE */
+				 meltfrout->tabval[0])) /*=obj*/ ;
 		melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
      /*_.FIRSTLIST__V3*/ meltfptr[2] = slot;
 	      };
@@ -3364,7 +3362,7 @@ lab_endgetargs:;
 		/*cond */ if (
 			       /*ifisa */
 			       melt_is_instance_of ((melt_ptr_t)
-						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (( /*!ALL_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])),
 						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
 		  )		/*then */
 		  {
@@ -3377,29 +3375,23 @@ lab_endgetargs:;
 		      /*putslot */
 		      melt_assertmsg ("putslot checkobj @DELQU_FIRST",
 				      melt_magic_discr ((melt_ptr_t)
-							(( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
-		      melt_putfield_object ((( /*!FINISHDECL_DELAYED_QUEUE */
-					      meltfrout->tabval[0])), (2),
-					    ( /*_.FIRSTLIST__V3*/
-					     meltfptr[2]), "DELQU_FIRST");
+							(( /*!ALL_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
+		      melt_putfield_object ((( /*!ALL_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])), (2), ( /*_.FIRSTLIST__V3*/ meltfptr[2]), "DELQU_FIRST");
 		      ;
 		      /*^putslot */
 		      /*putslot */
 		      melt_assertmsg ("putslot checkobj @DELQU_LAST",
 				      melt_magic_discr ((melt_ptr_t)
-							(( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
-		      melt_putfield_object ((( /*!FINISHDECL_DELAYED_QUEUE */
-					      meltfrout->tabval[0])), (3),
-					    ( /*_.MAKE_LIST__V6*/
-					     meltfptr[5]), "DELQU_LAST");
+							(( /*!ALL_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
+		      melt_putfield_object ((( /*!ALL_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])), (3), ( /*_.MAKE_LIST__V6*/ meltfptr[5]), "DELQU_LAST");
 		      ;
 		      /*^touch */
-		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
+		      meltgc_touch (( /*!ALL_PASSES_START_DELAYED_QUEUE */
 				     meltfrout->tabval[0]));
 		      ;
 		      /*^touchobj */
 
-		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      melt_dbgtrace_written_object (( /*!ALL_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -3630,7 +3622,7 @@ lab_endgetargs:;
 	  /*cond */ if (
 			 /*ifisa */
 			 melt_is_instance_of ((melt_ptr_t)
-					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (( /*!ALL_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])),
 					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
 	    )			/*then */
 	    {
@@ -3639,8 +3631,8 @@ lab_endgetargs:;
 	      {
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
-		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
-				 tabval[0])) /*=obj*/ ;
+		  (melt_ptr_t) (( /*!ALL_PASSES_START_DELAYED_QUEUE */
+				 meltfrout->tabval[0])) /*=obj*/ ;
 		melt_object_get_field (slot, obj, 3, "DELQU_LAST");
      /*_.LASTLIST__V3*/ meltfptr[2] = slot;
 	      };
@@ -3683,7 +3675,7 @@ lab_endgetargs:;
 		/*cond */ if (
 			       /*ifisa */
 			       melt_is_instance_of ((melt_ptr_t)
-						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (( /*!ALL_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])),
 						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
 		  )		/*then */
 		  {
@@ -3696,29 +3688,23 @@ lab_endgetargs:;
 		      /*putslot */
 		      melt_assertmsg ("putslot checkobj @DELQU_FIRST",
 				      melt_magic_discr ((melt_ptr_t)
-							(( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
-		      melt_putfield_object ((( /*!FINISHDECL_DELAYED_QUEUE */
-					      meltfrout->tabval[0])), (2),
-					    ( /*_.MAKE_LIST__V6*/
-					     meltfptr[5]), "DELQU_FIRST");
+							(( /*!ALL_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
+		      melt_putfield_object ((( /*!ALL_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])), (2), ( /*_.MAKE_LIST__V6*/ meltfptr[5]), "DELQU_FIRST");
 		      ;
 		      /*^putslot */
 		      /*putslot */
 		      melt_assertmsg ("putslot checkobj @DELQU_LAST",
 				      melt_magic_discr ((melt_ptr_t)
-							(( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
-		      melt_putfield_object ((( /*!FINISHDECL_DELAYED_QUEUE */
-					      meltfrout->tabval[0])), (3),
-					    ( /*_.LASTLIST__V3*/ meltfptr[2]),
-					    "DELQU_LAST");
+							(( /*!ALL_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
+		      melt_putfield_object ((( /*!ALL_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])), (3), ( /*_.LASTLIST__V3*/ meltfptr[2]), "DELQU_LAST");
 		      ;
 		      /*^touch */
-		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
+		      meltgc_touch (( /*!ALL_PASSES_START_DELAYED_QUEUE */
 				     meltfrout->tabval[0]));
 		      ;
 		      /*^touchobj */
 
-		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      melt_dbgtrace_written_object (( /*!ALL_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -3938,7 +3924,7 @@ lab_endgetargs:;
     /*cond */ if (
 		   /*ifisa */
 		   melt_is_instance_of ((melt_ptr_t)
-					(( /*!FINISHDECL_DELAYED_QUEUE */
+					(( /*!ALL_PASSES_END_DELAYED_QUEUE */
 					  meltfrout->tabval[0])),
 					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
       )				/*then */
@@ -3948,7 +3934,7 @@ lab_endgetargs:;
 	{
 	  melt_ptr_t slot = NULL, obj = NULL;
 	  obj =
-	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+	    (melt_ptr_t) (( /*!ALL_PASSES_END_DELAYED_QUEUE */ meltfrout->
 			   tabval[0])) /*=obj*/ ;
 	  melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
    /*_.FIRSTLIST__V2*/ meltfptr[1] = slot;
@@ -3965,7 +3951,7 @@ lab_endgetargs:;
     /*cond */ if (
 		   /*ifisa */
 		   melt_is_instance_of ((melt_ptr_t)
-					(( /*!FINISHDECL_DELAYED_QUEUE */
+					(( /*!ALL_PASSES_END_DELAYED_QUEUE */
 					  meltfrout->tabval[0])),
 					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
       )				/*then */
@@ -3975,7 +3961,7 @@ lab_endgetargs:;
 	{
 	  melt_ptr_t slot = NULL, obj = NULL;
 	  obj =
-	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+	    (melt_ptr_t) (( /*!ALL_PASSES_END_DELAYED_QUEUE */ meltfrout->
 			   tabval[0])) /*=obj*/ ;
 	  melt_object_get_field (slot, obj, 3, "DELQU_LAST");
    /*_.LASTLIST__V3*/ meltfptr[2] = slot;
@@ -4295,7 +4281,7 @@ lab_endgetargs:;
 	  /*cond */ if (
 			 /*ifisa */
 			 melt_is_instance_of ((melt_ptr_t)
-					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (( /*!ALL_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])),
 					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
 	    )			/*then */
 	    {
@@ -4304,8 +4290,8 @@ lab_endgetargs:;
 	      {
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
-		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
-				 tabval[0])) /*=obj*/ ;
+		  (melt_ptr_t) (( /*!ALL_PASSES_END_DELAYED_QUEUE */
+				 meltfrout->tabval[0])) /*=obj*/ ;
 		melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
      /*_.FIRSTLIST__V3*/ meltfptr[2] = slot;
 	      };
@@ -4349,7 +4335,7 @@ lab_endgetargs:;
 		/*cond */ if (
 			       /*ifisa */
 			       melt_is_instance_of ((melt_ptr_t)
-						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (( /*!ALL_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])),
 						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
 		  )		/*then */
 		  {
@@ -4362,29 +4348,23 @@ lab_endgetargs:;
 		      /*putslot */
 		      melt_assertmsg ("putslot checkobj @DELQU_FIRST",
 				      melt_magic_discr ((melt_ptr_t)
-							(( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
-		      melt_putfield_object ((( /*!FINISHDECL_DELAYED_QUEUE */
-					      meltfrout->tabval[0])), (2),
-					    ( /*_.FIRSTLIST__V3*/
-					     meltfptr[2]), "DELQU_FIRST");
+							(( /*!ALL_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
+		      melt_putfield_object ((( /*!ALL_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])), (2), ( /*_.FIRSTLIST__V3*/ meltfptr[2]), "DELQU_FIRST");
 		      ;
 		      /*^putslot */
 		      /*putslot */
 		      melt_assertmsg ("putslot checkobj @DELQU_LAST",
 				      melt_magic_discr ((melt_ptr_t)
-							(( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
-		      melt_putfield_object ((( /*!FINISHDECL_DELAYED_QUEUE */
-					      meltfrout->tabval[0])), (3),
-					    ( /*_.MAKE_LIST__V6*/
-					     meltfptr[5]), "DELQU_LAST");
+							(( /*!ALL_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
+		      melt_putfield_object ((( /*!ALL_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])), (3), ( /*_.MAKE_LIST__V6*/ meltfptr[5]), "DELQU_LAST");
 		      ;
 		      /*^touch */
-		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
+		      meltgc_touch (( /*!ALL_PASSES_END_DELAYED_QUEUE */
 				     meltfrout->tabval[0]));
 		      ;
 		      /*^touchobj */
 
-		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      melt_dbgtrace_written_object (( /*!ALL_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -4623,7 +4603,7 @@ lab_endgetargs:;
 	  /*cond */ if (
 			 /*ifisa */
 			 melt_is_instance_of ((melt_ptr_t)
-					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (( /*!ALL_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])),
 					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
 	    )			/*then */
 	    {
@@ -4632,8 +4612,8 @@ lab_endgetargs:;
 	      {
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
-		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
-				 tabval[0])) /*=obj*/ ;
+		  (melt_ptr_t) (( /*!ALL_PASSES_END_DELAYED_QUEUE */
+				 meltfrout->tabval[0])) /*=obj*/ ;
 		melt_object_get_field (slot, obj, 3, "DELQU_LAST");
      /*_.LASTLIST__V3*/ meltfptr[2] = slot;
 	      };
@@ -4676,7 +4656,7 @@ lab_endgetargs:;
 		/*cond */ if (
 			       /*ifisa */
 			       melt_is_instance_of ((melt_ptr_t)
-						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (( /*!ALL_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])),
 						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
 		  )		/*then */
 		  {
@@ -4689,29 +4669,23 @@ lab_endgetargs:;
 		      /*putslot */
 		      melt_assertmsg ("putslot checkobj @DELQU_FIRST",
 				      melt_magic_discr ((melt_ptr_t)
-							(( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
-		      melt_putfield_object ((( /*!FINISHDECL_DELAYED_QUEUE */
-					      meltfrout->tabval[0])), (2),
-					    ( /*_.MAKE_LIST__V6*/
-					     meltfptr[5]), "DELQU_FIRST");
+							(( /*!ALL_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
+		      melt_putfield_object ((( /*!ALL_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])), (2), ( /*_.MAKE_LIST__V6*/ meltfptr[5]), "DELQU_FIRST");
 		      ;
 		      /*^putslot */
 		      /*putslot */
 		      melt_assertmsg ("putslot checkobj @DELQU_LAST",
 				      melt_magic_discr ((melt_ptr_t)
-							(( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
-		      melt_putfield_object ((( /*!FINISHDECL_DELAYED_QUEUE */
-					      meltfrout->tabval[0])), (3),
-					    ( /*_.LASTLIST__V3*/ meltfptr[2]),
-					    "DELQU_LAST");
+							(( /*!ALL_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
+		      melt_putfield_object ((( /*!ALL_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])), (3), ( /*_.LASTLIST__V3*/ meltfptr[2]), "DELQU_LAST");
 		      ;
 		      /*^touch */
-		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
+		      meltgc_touch (( /*!ALL_PASSES_END_DELAYED_QUEUE */
 				     meltfrout->tabval[0]));
 		      ;
 		      /*^touchobj */
 
-		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      melt_dbgtrace_written_object (( /*!ALL_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -4932,8 +4906,7 @@ lab_endgetargs:;
     /*cond */ if (
 		   /*ifisa */
 		   melt_is_instance_of ((melt_ptr_t)
-					(( /*!FINISHDECL_DELAYED_QUEUE */
-					  meltfrout->tabval[0])),
+					(( /*!ALL_IPA_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])),
 					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
       )				/*then */
       {
@@ -4942,8 +4915,8 @@ lab_endgetargs:;
 	{
 	  melt_ptr_t slot = NULL, obj = NULL;
 	  obj =
-	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
-			   tabval[0])) /*=obj*/ ;
+	    (melt_ptr_t) (( /*!ALL_IPA_PASSES_START_DELAYED_QUEUE */
+			   meltfrout->tabval[0])) /*=obj*/ ;
 	  melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
    /*_.FIRSTLIST__V2*/ meltfptr[1] = slot;
 	};
@@ -4959,8 +4932,7 @@ lab_endgetargs:;
     /*cond */ if (
 		   /*ifisa */
 		   melt_is_instance_of ((melt_ptr_t)
-					(( /*!FINISHDECL_DELAYED_QUEUE */
-					  meltfrout->tabval[0])),
+					(( /*!ALL_IPA_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])),
 					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
       )				/*then */
       {
@@ -4969,8 +4941,8 @@ lab_endgetargs:;
 	{
 	  melt_ptr_t slot = NULL, obj = NULL;
 	  obj =
-	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
-			   tabval[0])) /*=obj*/ ;
+	    (melt_ptr_t) (( /*!ALL_IPA_PASSES_START_DELAYED_QUEUE */
+			   meltfrout->tabval[0])) /*=obj*/ ;
 	  melt_object_get_field (slot, obj, 3, "DELQU_LAST");
    /*_.LASTLIST__V3*/ meltfptr[2] = slot;
 	};
@@ -5280,7 +5252,7 @@ lab_endgetargs:;
 	  /*cond */ if (
 			 /*ifisa */
 			 melt_is_instance_of ((melt_ptr_t)
-					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (( /*!ALL_IPA_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])),
 					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
 	    )			/*then */
 	    {
@@ -5289,8 +5261,8 @@ lab_endgetargs:;
 	      {
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
-		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
-				 tabval[0])) /*=obj*/ ;
+		  (melt_ptr_t) (( /*!ALL_IPA_PASSES_START_DELAYED_QUEUE */
+				 meltfrout->tabval[0])) /*=obj*/ ;
 		melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
      /*_.FIRSTLIST__V3*/ meltfptr[2] = slot;
 	      };
@@ -5334,7 +5306,7 @@ lab_endgetargs:;
 		/*cond */ if (
 			       /*ifisa */
 			       melt_is_instance_of ((melt_ptr_t)
-						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (( /*!ALL_IPA_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])),
 						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
 		  )		/*then */
 		  {
@@ -5347,29 +5319,23 @@ lab_endgetargs:;
 		      /*putslot */
 		      melt_assertmsg ("putslot checkobj @DELQU_FIRST",
 				      melt_magic_discr ((melt_ptr_t)
-							(( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
-		      melt_putfield_object ((( /*!FINISHDECL_DELAYED_QUEUE */
-					      meltfrout->tabval[0])), (2),
-					    ( /*_.FIRSTLIST__V3*/
-					     meltfptr[2]), "DELQU_FIRST");
+							(( /*!ALL_IPA_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
+		      melt_putfield_object ((( /*!ALL_IPA_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])), (2), ( /*_.FIRSTLIST__V3*/ meltfptr[2]), "DELQU_FIRST");
 		      ;
 		      /*^putslot */
 		      /*putslot */
 		      melt_assertmsg ("putslot checkobj @DELQU_LAST",
 				      melt_magic_discr ((melt_ptr_t)
-							(( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
-		      melt_putfield_object ((( /*!FINISHDECL_DELAYED_QUEUE */
-					      meltfrout->tabval[0])), (3),
-					    ( /*_.MAKE_LIST__V6*/
-					     meltfptr[5]), "DELQU_LAST");
+							(( /*!ALL_IPA_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
+		      melt_putfield_object ((( /*!ALL_IPA_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])), (3), ( /*_.MAKE_LIST__V6*/ meltfptr[5]), "DELQU_LAST");
 		      ;
 		      /*^touch */
-		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
+		      meltgc_touch (( /*!ALL_IPA_PASSES_START_DELAYED_QUEUE */
 				     meltfrout->tabval[0]));
 		      ;
 		      /*^touchobj */
 
-		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      melt_dbgtrace_written_object (( /*!ALL_IPA_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -5600,7 +5566,7 @@ lab_endgetargs:;
 	  /*cond */ if (
 			 /*ifisa */
 			 melt_is_instance_of ((melt_ptr_t)
-					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (( /*!ALL_IPA_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])),
 					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
 	    )			/*then */
 	    {
@@ -5609,8 +5575,8 @@ lab_endgetargs:;
 	      {
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
-		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
-				 tabval[0])) /*=obj*/ ;
+		  (melt_ptr_t) (( /*!ALL_IPA_PASSES_START_DELAYED_QUEUE */
+				 meltfrout->tabval[0])) /*=obj*/ ;
 		melt_object_get_field (slot, obj, 3, "DELQU_LAST");
      /*_.LASTLIST__V3*/ meltfptr[2] = slot;
 	      };
@@ -5653,7 +5619,7 @@ lab_endgetargs:;
 		/*cond */ if (
 			       /*ifisa */
 			       melt_is_instance_of ((melt_ptr_t)
-						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (( /*!ALL_IPA_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])),
 						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
 		  )		/*then */
 		  {
@@ -5666,29 +5632,23 @@ lab_endgetargs:;
 		      /*putslot */
 		      melt_assertmsg ("putslot checkobj @DELQU_FIRST",
 				      melt_magic_discr ((melt_ptr_t)
-							(( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
-		      melt_putfield_object ((( /*!FINISHDECL_DELAYED_QUEUE */
-					      meltfrout->tabval[0])), (2),
-					    ( /*_.MAKE_LIST__V6*/
-					     meltfptr[5]), "DELQU_FIRST");
+							(( /*!ALL_IPA_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
+		      melt_putfield_object ((( /*!ALL_IPA_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])), (2), ( /*_.MAKE_LIST__V6*/ meltfptr[5]), "DELQU_FIRST");
 		      ;
 		      /*^putslot */
 		      /*putslot */
 		      melt_assertmsg ("putslot checkobj @DELQU_LAST",
 				      melt_magic_discr ((melt_ptr_t)
-							(( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
-		      melt_putfield_object ((( /*!FINISHDECL_DELAYED_QUEUE */
-					      meltfrout->tabval[0])), (3),
-					    ( /*_.LASTLIST__V3*/ meltfptr[2]),
-					    "DELQU_LAST");
+							(( /*!ALL_IPA_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
+		      melt_putfield_object ((( /*!ALL_IPA_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])), (3), ( /*_.LASTLIST__V3*/ meltfptr[2]), "DELQU_LAST");
 		      ;
 		      /*^touch */
-		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
+		      meltgc_touch (( /*!ALL_IPA_PASSES_START_DELAYED_QUEUE */
 				     meltfrout->tabval[0]));
 		      ;
 		      /*^touchobj */
 
-		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      melt_dbgtrace_written_object (( /*!ALL_IPA_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -5909,8 +5869,7 @@ lab_endgetargs:;
     /*cond */ if (
 		   /*ifisa */
 		   melt_is_instance_of ((melt_ptr_t)
-					(( /*!FINISHDECL_DELAYED_QUEUE */
-					  meltfrout->tabval[0])),
+					(( /*!ALL_IPA_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])),
 					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
       )				/*then */
       {
@@ -5919,7 +5878,7 @@ lab_endgetargs:;
 	{
 	  melt_ptr_t slot = NULL, obj = NULL;
 	  obj =
-	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+	    (melt_ptr_t) (( /*!ALL_IPA_PASSES_END_DELAYED_QUEUE */ meltfrout->
 			   tabval[0])) /*=obj*/ ;
 	  melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
    /*_.FIRSTLIST__V2*/ meltfptr[1] = slot;
@@ -5936,8 +5895,7 @@ lab_endgetargs:;
     /*cond */ if (
 		   /*ifisa */
 		   melt_is_instance_of ((melt_ptr_t)
-					(( /*!FINISHDECL_DELAYED_QUEUE */
-					  meltfrout->tabval[0])),
+					(( /*!ALL_IPA_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])),
 					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
       )				/*then */
       {
@@ -5946,7 +5904,7 @@ lab_endgetargs:;
 	{
 	  melt_ptr_t slot = NULL, obj = NULL;
 	  obj =
-	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
+	    (melt_ptr_t) (( /*!ALL_IPA_PASSES_END_DELAYED_QUEUE */ meltfrout->
 			   tabval[0])) /*=obj*/ ;
 	  melt_object_get_field (slot, obj, 3, "DELQU_LAST");
    /*_.LASTLIST__V3*/ meltfptr[2] = slot;
@@ -6256,7 +6214,7 @@ lab_endgetargs:;
 	  /*cond */ if (
 			 /*ifisa */
 			 melt_is_instance_of ((melt_ptr_t)
-					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (( /*!ALL_IPA_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])),
 					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
 	    )			/*then */
 	    {
@@ -6265,8 +6223,8 @@ lab_endgetargs:;
 	      {
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
-		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
-				 tabval[0])) /*=obj*/ ;
+		  (melt_ptr_t) (( /*!ALL_IPA_PASSES_END_DELAYED_QUEUE */
+				 meltfrout->tabval[0])) /*=obj*/ ;
 		melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
      /*_.FIRSTLIST__V3*/ meltfptr[2] = slot;
 	      };
@@ -6310,7 +6268,7 @@ lab_endgetargs:;
 		/*cond */ if (
 			       /*ifisa */
 			       melt_is_instance_of ((melt_ptr_t)
-						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (( /*!ALL_IPA_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])),
 						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
 		  )		/*then */
 		  {
@@ -6323,29 +6281,23 @@ lab_endgetargs:;
 		      /*putslot */
 		      melt_assertmsg ("putslot checkobj @DELQU_FIRST",
 				      melt_magic_discr ((melt_ptr_t)
-							(( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
-		      melt_putfield_object ((( /*!FINISHDECL_DELAYED_QUEUE */
-					      meltfrout->tabval[0])), (2),
-					    ( /*_.FIRSTLIST__V3*/
-					     meltfptr[2]), "DELQU_FIRST");
+							(( /*!ALL_IPA_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
+		      melt_putfield_object ((( /*!ALL_IPA_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])), (2), ( /*_.FIRSTLIST__V3*/ meltfptr[2]), "DELQU_FIRST");
 		      ;
 		      /*^putslot */
 		      /*putslot */
 		      melt_assertmsg ("putslot checkobj @DELQU_LAST",
 				      melt_magic_discr ((melt_ptr_t)
-							(( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
-		      melt_putfield_object ((( /*!FINISHDECL_DELAYED_QUEUE */
-					      meltfrout->tabval[0])), (3),
-					    ( /*_.MAKE_LIST__V6*/
-					     meltfptr[5]), "DELQU_LAST");
+							(( /*!ALL_IPA_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
+		      melt_putfield_object ((( /*!ALL_IPA_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])), (3), ( /*_.MAKE_LIST__V6*/ meltfptr[5]), "DELQU_LAST");
 		      ;
 		      /*^touch */
-		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
+		      meltgc_touch (( /*!ALL_IPA_PASSES_END_DELAYED_QUEUE */
 				     meltfrout->tabval[0]));
 		      ;
 		      /*^touchobj */
 
-		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      melt_dbgtrace_written_object (( /*!ALL_IPA_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -6576,7 +6528,7 @@ lab_endgetargs:;
 	  /*cond */ if (
 			 /*ifisa */
 			 melt_is_instance_of ((melt_ptr_t)
-					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (( /*!ALL_IPA_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])),
 					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
 	    )			/*then */
 	    {
@@ -6585,8 +6537,8 @@ lab_endgetargs:;
 	      {
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
-		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
-				 tabval[0])) /*=obj*/ ;
+		  (melt_ptr_t) (( /*!ALL_IPA_PASSES_END_DELAYED_QUEUE */
+				 meltfrout->tabval[0])) /*=obj*/ ;
 		melt_object_get_field (slot, obj, 3, "DELQU_LAST");
      /*_.LASTLIST__V3*/ meltfptr[2] = slot;
 	      };
@@ -6629,7 +6581,7 @@ lab_endgetargs:;
 		/*cond */ if (
 			       /*ifisa */
 			       melt_is_instance_of ((melt_ptr_t)
-						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (( /*!ALL_IPA_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])),
 						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
 		  )		/*then */
 		  {
@@ -6642,29 +6594,23 @@ lab_endgetargs:;
 		      /*putslot */
 		      melt_assertmsg ("putslot checkobj @DELQU_FIRST",
 				      melt_magic_discr ((melt_ptr_t)
-							(( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
-		      melt_putfield_object ((( /*!FINISHDECL_DELAYED_QUEUE */
-					      meltfrout->tabval[0])), (2),
-					    ( /*_.MAKE_LIST__V6*/
-					     meltfptr[5]), "DELQU_FIRST");
+							(( /*!ALL_IPA_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
+		      melt_putfield_object ((( /*!ALL_IPA_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])), (2), ( /*_.MAKE_LIST__V6*/ meltfptr[5]), "DELQU_FIRST");
 		      ;
 		      /*^putslot */
 		      /*putslot */
 		      melt_assertmsg ("putslot checkobj @DELQU_LAST",
 				      melt_magic_discr ((melt_ptr_t)
-							(( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
-		      melt_putfield_object ((( /*!FINISHDECL_DELAYED_QUEUE */
-					      meltfrout->tabval[0])), (3),
-					    ( /*_.LASTLIST__V3*/ meltfptr[2]),
-					    "DELQU_LAST");
+							(( /*!ALL_IPA_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
+		      melt_putfield_object ((( /*!ALL_IPA_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])), (3), ( /*_.LASTLIST__V3*/ meltfptr[2]), "DELQU_LAST");
 		      ;
 		      /*^touch */
-		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
+		      meltgc_touch (( /*!ALL_IPA_PASSES_END_DELAYED_QUEUE */
 				     meltfrout->tabval[0]));
 		      ;
 		      /*^touchobj */
 
-		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      melt_dbgtrace_written_object (( /*!ALL_IPA_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -6877,8 +6823,7 @@ lab_endgetargs:;
     /*cond */ if (
 		   /*ifisa */
 		   melt_is_instance_of ((melt_ptr_t)
-					(( /*!FINISHDECL_DELAYED_QUEUE */
-					  meltfrout->tabval[0])),
+					(( /*!EARLY_GIMPLE_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])),
 					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
       )				/*then */
       {
@@ -6887,8 +6832,8 @@ lab_endgetargs:;
 	{
 	  melt_ptr_t slot = NULL, obj = NULL;
 	  obj =
-	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
-			   tabval[0])) /*=obj*/ ;
+	    (melt_ptr_t) (( /*!EARLY_GIMPLE_PASSES_START_DELAYED_QUEUE */
+			   meltfrout->tabval[0])) /*=obj*/ ;
 	  melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
    /*_.FIRSTLIST__V2*/ meltfptr[1] = slot;
 	};
@@ -6904,8 +6849,7 @@ lab_endgetargs:;
     /*cond */ if (
 		   /*ifisa */
 		   melt_is_instance_of ((melt_ptr_t)
-					(( /*!FINISHDECL_DELAYED_QUEUE */
-					  meltfrout->tabval[0])),
+					(( /*!EARLY_GIMPLE_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])),
 					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
       )				/*then */
       {
@@ -6914,8 +6858,8 @@ lab_endgetargs:;
 	{
 	  melt_ptr_t slot = NULL, obj = NULL;
 	  obj =
-	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
-			   tabval[0])) /*=obj*/ ;
+	    (melt_ptr_t) (( /*!EARLY_GIMPLE_PASSES_START_DELAYED_QUEUE */
+			   meltfrout->tabval[0])) /*=obj*/ ;
 	  melt_object_get_field (slot, obj, 3, "DELQU_LAST");
    /*_.LASTLIST__V3*/ meltfptr[2] = slot;
 	};
@@ -7225,7 +7169,7 @@ lab_endgetargs:;
 	  /*cond */ if (
 			 /*ifisa */
 			 melt_is_instance_of ((melt_ptr_t)
-					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (( /*!EARLY_GIMPLE_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])),
 					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
 	    )			/*then */
 	    {
@@ -7234,8 +7178,7 @@ lab_endgetargs:;
 	      {
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
-		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
-				 tabval[0])) /*=obj*/ ;
+		  (melt_ptr_t) (( /*!EARLY_GIMPLE_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])) /*=obj*/ ;
 		melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
      /*_.FIRSTLIST__V3*/ meltfptr[2] = slot;
 	      };
@@ -7279,7 +7222,7 @@ lab_endgetargs:;
 		/*cond */ if (
 			       /*ifisa */
 			       melt_is_instance_of ((melt_ptr_t)
-						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (( /*!EARLY_GIMPLE_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])),
 						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
 		  )		/*then */
 		  {
@@ -7292,29 +7235,22 @@ lab_endgetargs:;
 		      /*putslot */
 		      melt_assertmsg ("putslot checkobj @DELQU_FIRST",
 				      melt_magic_discr ((melt_ptr_t)
-							(( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
-		      melt_putfield_object ((( /*!FINISHDECL_DELAYED_QUEUE */
-					      meltfrout->tabval[0])), (2),
-					    ( /*_.FIRSTLIST__V3*/
-					     meltfptr[2]), "DELQU_FIRST");
+							(( /*!EARLY_GIMPLE_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
+		      melt_putfield_object ((( /*!EARLY_GIMPLE_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])), (2), ( /*_.FIRSTLIST__V3*/ meltfptr[2]), "DELQU_FIRST");
 		      ;
 		      /*^putslot */
 		      /*putslot */
 		      melt_assertmsg ("putslot checkobj @DELQU_LAST",
 				      melt_magic_discr ((melt_ptr_t)
-							(( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
-		      melt_putfield_object ((( /*!FINISHDECL_DELAYED_QUEUE */
-					      meltfrout->tabval[0])), (3),
-					    ( /*_.MAKE_LIST__V6*/
-					     meltfptr[5]), "DELQU_LAST");
+							(( /*!EARLY_GIMPLE_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
+		      melt_putfield_object ((( /*!EARLY_GIMPLE_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])), (3), ( /*_.MAKE_LIST__V6*/ meltfptr[5]), "DELQU_LAST");
 		      ;
 		      /*^touch */
-		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
-				     meltfrout->tabval[0]));
+		      meltgc_touch (( /*!EARLY_GIMPLE_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0]));
 		      ;
 		      /*^touchobj */
 
-		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      melt_dbgtrace_written_object (( /*!EARLY_GIMPLE_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -7548,7 +7484,7 @@ lab_endgetargs:;
 	  /*cond */ if (
 			 /*ifisa */
 			 melt_is_instance_of ((melt_ptr_t)
-					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (( /*!EARLY_GIMPLE_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])),
 					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
 	    )			/*then */
 	    {
@@ -7557,8 +7493,7 @@ lab_endgetargs:;
 	      {
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
-		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
-				 tabval[0])) /*=obj*/ ;
+		  (melt_ptr_t) (( /*!EARLY_GIMPLE_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])) /*=obj*/ ;
 		melt_object_get_field (slot, obj, 3, "DELQU_LAST");
      /*_.LASTLIST__V3*/ meltfptr[2] = slot;
 	      };
@@ -7601,7 +7536,7 @@ lab_endgetargs:;
 		/*cond */ if (
 			       /*ifisa */
 			       melt_is_instance_of ((melt_ptr_t)
-						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (( /*!EARLY_GIMPLE_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])),
 						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
 		  )		/*then */
 		  {
@@ -7614,29 +7549,22 @@ lab_endgetargs:;
 		      /*putslot */
 		      melt_assertmsg ("putslot checkobj @DELQU_FIRST",
 				      melt_magic_discr ((melt_ptr_t)
-							(( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
-		      melt_putfield_object ((( /*!FINISHDECL_DELAYED_QUEUE */
-					      meltfrout->tabval[0])), (2),
-					    ( /*_.MAKE_LIST__V6*/
-					     meltfptr[5]), "DELQU_FIRST");
+							(( /*!EARLY_GIMPLE_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
+		      melt_putfield_object ((( /*!EARLY_GIMPLE_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])), (2), ( /*_.MAKE_LIST__V6*/ meltfptr[5]), "DELQU_FIRST");
 		      ;
 		      /*^putslot */
 		      /*putslot */
 		      melt_assertmsg ("putslot checkobj @DELQU_LAST",
 				      melt_magic_discr ((melt_ptr_t)
-							(( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
-		      melt_putfield_object ((( /*!FINISHDECL_DELAYED_QUEUE */
-					      meltfrout->tabval[0])), (3),
-					    ( /*_.LASTLIST__V3*/ meltfptr[2]),
-					    "DELQU_LAST");
+							(( /*!EARLY_GIMPLE_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
+		      melt_putfield_object ((( /*!EARLY_GIMPLE_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0])), (3), ( /*_.LASTLIST__V3*/ meltfptr[2]), "DELQU_LAST");
 		      ;
 		      /*^touch */
-		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
-				     meltfrout->tabval[0]));
+		      meltgc_touch (( /*!EARLY_GIMPLE_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0]));
 		      ;
 		      /*^touchobj */
 
-		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      melt_dbgtrace_written_object (( /*!EARLY_GIMPLE_PASSES_START_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -7850,8 +7778,7 @@ lab_endgetargs:;
     /*cond */ if (
 		   /*ifisa */
 		   melt_is_instance_of ((melt_ptr_t)
-					(( /*!FINISHDECL_DELAYED_QUEUE */
-					  meltfrout->tabval[0])),
+					(( /*!EARLY_GIMPLE_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])),
 					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
       )				/*then */
       {
@@ -7860,8 +7787,8 @@ lab_endgetargs:;
 	{
 	  melt_ptr_t slot = NULL, obj = NULL;
 	  obj =
-	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
-			   tabval[0])) /*=obj*/ ;
+	    (melt_ptr_t) (( /*!EARLY_GIMPLE_PASSES_END_DELAYED_QUEUE */
+			   meltfrout->tabval[0])) /*=obj*/ ;
 	  melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
    /*_.FIRSTLIST__V2*/ meltfptr[1] = slot;
 	};
@@ -7877,8 +7804,7 @@ lab_endgetargs:;
     /*cond */ if (
 		   /*ifisa */
 		   melt_is_instance_of ((melt_ptr_t)
-					(( /*!FINISHDECL_DELAYED_QUEUE */
-					  meltfrout->tabval[0])),
+					(( /*!EARLY_GIMPLE_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])),
 					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
       )				/*then */
       {
@@ -7887,8 +7813,8 @@ lab_endgetargs:;
 	{
 	  melt_ptr_t slot = NULL, obj = NULL;
 	  obj =
-	    (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
-			   tabval[0])) /*=obj*/ ;
+	    (melt_ptr_t) (( /*!EARLY_GIMPLE_PASSES_END_DELAYED_QUEUE */
+			   meltfrout->tabval[0])) /*=obj*/ ;
 	  melt_object_get_field (slot, obj, 3, "DELQU_LAST");
    /*_.LASTLIST__V3*/ meltfptr[2] = slot;
 	};
@@ -8198,7 +8124,7 @@ lab_endgetargs:;
 	  /*cond */ if (
 			 /*ifisa */
 			 melt_is_instance_of ((melt_ptr_t)
-					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (( /*!EARLY_GIMPLE_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])),
 					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
 	    )			/*then */
 	    {
@@ -8207,8 +8133,8 @@ lab_endgetargs:;
 	      {
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
-		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
-				 tabval[0])) /*=obj*/ ;
+		  (melt_ptr_t) (( /*!EARLY_GIMPLE_PASSES_END_DELAYED_QUEUE */
+				 meltfrout->tabval[0])) /*=obj*/ ;
 		melt_object_get_field (slot, obj, 2, "DELQU_FIRST");
      /*_.FIRSTLIST__V3*/ meltfptr[2] = slot;
 	      };
@@ -8252,7 +8178,7 @@ lab_endgetargs:;
 		/*cond */ if (
 			       /*ifisa */
 			       melt_is_instance_of ((melt_ptr_t)
-						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (( /*!EARLY_GIMPLE_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])),
 						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
 		  )		/*then */
 		  {
@@ -8265,29 +8191,22 @@ lab_endgetargs:;
 		      /*putslot */
 		      melt_assertmsg ("putslot checkobj @DELQU_FIRST",
 				      melt_magic_discr ((melt_ptr_t)
-							(( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
-		      melt_putfield_object ((( /*!FINISHDECL_DELAYED_QUEUE */
-					      meltfrout->tabval[0])), (2),
-					    ( /*_.FIRSTLIST__V3*/
-					     meltfptr[2]), "DELQU_FIRST");
+							(( /*!EARLY_GIMPLE_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
+		      melt_putfield_object ((( /*!EARLY_GIMPLE_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])), (2), ( /*_.FIRSTLIST__V3*/ meltfptr[2]), "DELQU_FIRST");
 		      ;
 		      /*^putslot */
 		      /*putslot */
 		      melt_assertmsg ("putslot checkobj @DELQU_LAST",
 				      melt_magic_discr ((melt_ptr_t)
-							(( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
-		      melt_putfield_object ((( /*!FINISHDECL_DELAYED_QUEUE */
-					      meltfrout->tabval[0])), (3),
-					    ( /*_.MAKE_LIST__V6*/
-					     meltfptr[5]), "DELQU_LAST");
+							(( /*!EARLY_GIMPLE_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
+		      melt_putfield_object ((( /*!EARLY_GIMPLE_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])), (3), ( /*_.MAKE_LIST__V6*/ meltfptr[5]), "DELQU_LAST");
 		      ;
 		      /*^touch */
-		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
-				     meltfrout->tabval[0]));
+		      meltgc_touch (( /*!EARLY_GIMPLE_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0]));
 		      ;
 		      /*^touchobj */
 
-		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      melt_dbgtrace_written_object (( /*!EARLY_GIMPLE_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
@@ -8520,7 +8439,7 @@ lab_endgetargs:;
 	  /*cond */ if (
 			 /*ifisa */
 			 melt_is_instance_of ((melt_ptr_t)
-					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (( /*!EARLY_GIMPLE_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])),
 					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
 	    )			/*then */
 	    {
@@ -8529,8 +8448,8 @@ lab_endgetargs:;
 	      {
 		melt_ptr_t slot = NULL, obj = NULL;
 		obj =
-		  (melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->
-				 tabval[0])) /*=obj*/ ;
+		  (melt_ptr_t) (( /*!EARLY_GIMPLE_PASSES_END_DELAYED_QUEUE */
+				 meltfrout->tabval[0])) /*=obj*/ ;
 		melt_object_get_field (slot, obj, 3, "DELQU_LAST");
      /*_.LASTLIST__V3*/ meltfptr[2] = slot;
 	      };
@@ -8573,7 +8492,7 @@ lab_endgetargs:;
 		/*cond */ if (
 			       /*ifisa */
 			       melt_is_instance_of ((melt_ptr_t)
-						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (( /*!EARLY_GIMPLE_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])),
 						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
 		  )		/*then */
 		  {
@@ -8586,29 +8505,22 @@ lab_endgetargs:;
 		      /*putslot */
 		      melt_assertmsg ("putslot checkobj @DELQU_FIRST",
 				      melt_magic_discr ((melt_ptr_t)
-							(( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
-		      melt_putfield_object ((( /*!FINISHDECL_DELAYED_QUEUE */
-					      meltfrout->tabval[0])), (2),
-					    ( /*_.MAKE_LIST__V6*/
-					     meltfptr[5]), "DELQU_FIRST");
+							(( /*!EARLY_GIMPLE_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
+		      melt_putfield_object ((( /*!EARLY_GIMPLE_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])), (2), ( /*_.MAKE_LIST__V6*/ meltfptr[5]), "DELQU_FIRST");
 		      ;
 		      /*^putslot */
 		      /*putslot */
 		      melt_assertmsg ("putslot checkobj @DELQU_LAST",
 				      melt_magic_discr ((melt_ptr_t)
-							(( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
-		      melt_putfield_object ((( /*!FINISHDECL_DELAYED_QUEUE */
-					      meltfrout->tabval[0])), (3),
-					    ( /*_.LASTLIST__V3*/ meltfptr[2]),
-					    "DELQU_LAST");
+							(( /*!EARLY_GIMPLE_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0]))) == MELTOBMAG_OBJECT);
+		      melt_putfield_object ((( /*!EARLY_GIMPLE_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0])), (3), ( /*_.LASTLIST__V3*/ meltfptr[2]), "DELQU_LAST");
 		      ;
 		      /*^touch */
-		      meltgc_touch (( /*!FINISHDECL_DELAYED_QUEUE */
-				     meltfrout->tabval[0]));
+		      meltgc_touch (( /*!EARLY_GIMPLE_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0]));
 		      ;
 		      /*^touchobj */
 
-		      melt_dbgtrace_written_object (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
+		      melt_dbgtrace_written_object (( /*!EARLY_GIMPLE_PASSES_END_DELAYED_QUEUE */ meltfrout->tabval[0]), "put-fields");
 		      ;
 		      /*epilog */
 		    }
