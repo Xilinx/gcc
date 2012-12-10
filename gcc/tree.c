@@ -11663,6 +11663,7 @@ build_call_list (tree return_type, tree fn, tree arglist)
 
 
 /* Build a vector of type VECTYPE where all the elements are SCs.  */
+
 tree
 build_elem_fn_linear_vector_from_val (tree vectype, tree sc, tree step_size) 
 {
@@ -11684,7 +11685,6 @@ build_elem_fn_linear_vector_from_val (tree vectype, tree sc, tree step_size)
     {
       tree *v = XALLOCAVEC (tree, nunits);
       for (i = 0; i < nunits; ++i)
-	// v[i] = sc;
 	v[i] = build2 (PLUS_EXPR, TREE_TYPE (sc), sc,
 		       fold_build2 (MULT_EXPR, TREE_TYPE (step_size), step_size,
 			            build_int_cst (integer_type_node, i)));
@@ -11696,7 +11696,6 @@ build_elem_fn_linear_vector_from_val (tree vectype, tree sc, tree step_size)
       vec_alloc (v, nunits);
       for (i = 0; i < nunits; ++i)
 	{
-	  // CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, sc);
 	  tree tmp = NULL_TREE;
 	  tmp = build2 (PLUS_EXPR, TREE_TYPE (sc), sc,
 			fold_build2 (MULT_EXPR, TREE_TYPE (step_size), 
@@ -11707,8 +11706,6 @@ build_elem_fn_linear_vector_from_val (tree vectype, tree sc, tree step_size)
       return build_constructor (vectype, v);
     }
 }
-
-
 
 
 #include "gt-tree.h"

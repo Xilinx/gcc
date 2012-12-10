@@ -1,3 +1,7 @@
+2012-12-10  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-cpp-elem-function.c: New file.
+	
 2012-12-06  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-common.def (ARRAY_NOTATION_REF): New expression definiton.

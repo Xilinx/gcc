@@ -5622,6 +5622,15 @@ For vector memory operations the cost may depend on type (@var{vectype}) and
 misalignment value (@var{misalign}).
 @end deftypefn
 
+@hook TARGET_CILKPLUS_BUILTIN_MAP_PROCESSOR_TO_ATTR
+
+@hook TARGET_CILKPLUS_BUILTIN_FIND_PROCESSOR_CODE
+
+@hook TARGET_CILKPLUS_BUILTIN_FIND_ISA_CODE
+
+@hook TARGET_CILKPLUS_BUILTIN_FIND_VLENGTH_FOR_PROC
+
+
 @hook TARGET_VECTORIZE_VECTOR_ALIGNMENT_REACHABLE
 Return true if vector alignment is reachable (by peeling N iterations) for the given type.
 @end deftypefn

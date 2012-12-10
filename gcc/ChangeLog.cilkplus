@@ -1,3 +1,54 @@
+2012-12-10  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* doc/tm.texi (TARGET_CILKPLUS_BUILTIN_MAP_PROCESSOR_TO_ATTR): Added
+	documentation for this hook.
+	(TARGET_CILKPLUS_BUILTIN_FIND_PROCESSOR_CODE): Likewise.
+	(TARGET_CILKPLUS_BUILTIN_FIND_ISA_CODE): Likewise.
+	(TARGET_CILKPLUS_BUILTIN_FIND_VLENGTH_CODE): Likewise.
+	* doc/tm.texi.in (TARGET_CILKPLUS_BUILTIN_MAP_PROCESSOR_TO_ATTR): Added
+	hook.
+	(TARGET_CILKPLUS_BUILTIN_FIND_PROCESSOR_CODE): Likewise.
+	(TARGET_CILKPLUS_BUILTIN_FIND_ISA_CODE): Likewise.
+	(TARGET_CILKPLUS_BUILTIN_FIND_VLENGTH_FOR_PROC): Likewise.
+	* targhooks.c (default_builtin_map_processor_to_attr): New function.
+	(default_builtin_find_processor_code): Likewise.
+	(default_builtin_find_vlength_code): Likewise.
+	(default_builtin_find_isa_code): Likewise.
+	* c/c-parser.c (c_parser_elem_fn_processor_clause): Fixed syntax issue
+	in error message.  Added several checks and error reporting for invalid
+	values.
+	(c_parser_elem_fn_uniform_clause): Likewise.
+	(c_parser_elem_fn_linear_clause): Likewise.
+	(c_parser_elem_fn_vlength_clause): Likewise.
+	* c/c-decl.c (c_builtin_function_ext_scope): Added a check if external
+	scope is non-null.
+	* target.def (TARGET_CILKPLUS): Added this hook and several definitions
+	such as builtin_map_processor_to_attr, builtin_find_processor_code,
+	builtin_find_vlength_for_proc, builtin_find_isa_code.
+	* tree.h (enum elem_fn_parm_type): Moved this to c-common.
+	* cilk.h (elem_fn_info): Added some extra fields into struct.
+	* elem-function-common.c (find_processor_code): Called the target
+	dependent version.  Also made several changes to satisfy the new
+	elemental function mangling format.  Finally, fixed up header comments.
+	(find_suffix): Likewise.
+	(extract_elem_fn_values): Likewise.
+	* tree-vect-stmts.c (elem_fn_vect_get_vec_def_for_operand): Return
+	scalar version for the uniform or linear parameters.
+	(vectorizable_call): Set the function type correctly.
+	* tree-inline.c (remap_var_for_cilk): Remove.
+	(tree_elem_fn_versioning): Fix up header function and reflected changes
+	in tree_function_versioning into this function.
+	(copy_tree_body_r): Removed a call for remap_var_for_cilk.
+	(elem_fn_copy_arguments_for_versioning): Fixed header comments.
+	* Makefile.in (C_COMMON_OBJS): Added c-family/c-cpp-elem-function.o.
+	* config/i386/i386.c (type_natural_mode): Added a check for cilk flag
+	before emitting a note.
+	(ix86_frame_pointer_required): Added a flag_enable_cilk check.
+	(ix86_cilkplus_map_proc_to_attr): New function.
+	(ix86_cilkplus_find_proc_code): Likewise.
+	(ix86_cilkplus_find_isa_code): Likewise.
+	(ix86_builtin_find_vlength_for_proc): Likewise.
+
 2012-12-06  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* array-notation-common.c: Delete.

@@ -1540,4 +1540,37 @@ default_member_type_forces_blk (const_tree, enum machine_mode)
   return false;
 }
 
+/* Default version of default_builtin_processor_to_arch.  */
+
+tree
+default_builtin_map_processor_to_attr (char *, tree *opp_attr)
+{
+  *opp_attr = NULL_TREE;
+  return NULL_TREE;
+}
+
+/* Default version of default_builtin_find_processor_code.  */
+
+char *
+default_builtin_find_processor_code (char *)
+{
+  return NULL;
+}
+
+/* Default version of default_builtin_find_vlength_for_proc.  */
+
+int 
+default_builtin_find_vlength_for_proc (char *)
+{
+  return 0;
+}
+
+/* Default version of default_builtin_find_isa_code.  */
+
+char *
+default_builtin_find_isa_code (char *, char *)
+{
+  return NULL;
+}
+
 #include "gt-targhooks.h"

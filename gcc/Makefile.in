@@ -1140,7 +1140,8 @@ C_COMMON_OBJS = c-family/c-common.o c-family/c-cppbuiltin.o c-family/c-dump.o \
   c-family/c-omp.o c-family/c-opts.o c-family/c-pch.o \
   c-family/c-ppoutput.o c-family/c-pragma.o c-family/c-pretty-print.o \
   c-family/c-semantics.o c-family/c-ada-spec.o tree-mudflap.o \
-  c-family/array-notation-common.o c-family/c-cilk.o c-family/elem-function.o
+  c-family/array-notation-common.o c-family/c-cilk.o \
+  c-family/c-cpp-elem-function.o
 
 # Language-independent object files.
 # We put the insn-*.o files first so that a parallel make will build
@@ -1216,6 +1217,7 @@ OBJS = \
 	dwarf2asm.o \
 	dwarf2cfi.o \
 	dwarf2out.o \
+	elem-function-common.o \
 	emit-rtl.o \
 	et-forest.o \
 	except.o \
@@ -1462,7 +1464,6 @@ OBJS = \
 	web.o \
 	xcoffout.o \
 	cilk.o \
-	elem-function-common.o \
 	$(out_object_file) \
 	$(EXTRA_OBJS) \
 	$(host_hook_obj)

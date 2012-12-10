@@ -1,3 +1,5 @@
+
+/* { dg-final { scan-assembler "simdsimd"  } } */
 /* This test will create 2 clones of the function below, one for mask and one 
    without the mask
  */

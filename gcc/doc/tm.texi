@@ -5706,6 +5706,30 @@ For vector memory operations the cost may depend on type (@var{vectype}) and
 misalignment value (@var{misalign}).
 @end deftypefn
 
+@deftypefn {Target Hook} tree TARGET_CILKPLUS_BUILTIN_MAP_PROCESSOR_TO_ATTR (char *@var{}, tree *@var{})
+This hook is called by a Cilk Plus routine that will be used to map the
+processor clause to the appropriate arch and tune attributes.
+@end deftypefn
+
+@deftypefn {Target Hook} {char *} TARGET_CILKPLUS_BUILTIN_FIND_PROCESSOR_CODE (char *@var{})
+This hook is called by a Cilk Plus routine that will request the
+ processor code for processor name given in the vector attribute for
+ the elemental functions.
+@end deftypefn
+
+@deftypefn {Target Hook} {char *} TARGET_CILKPLUS_BUILTIN_FIND_ISA_CODE (char *@var{}, char *@var{})
+This hook is called by a Cilk Plus routine that will request the 
+  ISA type (based on the register-set where vector parameters are passed).
+  in elemental functions.
+@end deftypefn
+
+@deftypefn {Target Hook} {unsigned int} TARGET_CILKPLUS_BUILTIN_FIND_VLENGTH_FOR_PROC (char *@var{})
+This hook is called by a Cilk Plus routine that will request the
+ default vectorlength for the processor specified in the processor clause
+ in the elemental functions.
+@end deftypefn
+
+
 @deftypefn {Target Hook} bool TARGET_VECTORIZE_VECTOR_ALIGNMENT_REACHABLE (const_tree @var{type}, bool @var{is_packed})
 Return true if vector alignment is reachable (by peeling N iterations) for the given type.
 @end deftypefn

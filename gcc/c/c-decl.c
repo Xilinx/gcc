@@ -3641,8 +3641,9 @@ c_builtin_function_ext_scope (tree decl)
   /* Should never be called on a symbol with a preexisting meaning.  */
   gcc_assert (!I_SYMBOL_BINDING (id));
 
-  bind (id, decl, external_scope, /*invisible=*/false, /*nested=*/false,
-	UNKNOWN_LOCATION);
+  if (external_scope) 
+    bind (id, decl, external_scope, /*invisible=*/false, /*nested=*/false, 
+	  UNKNOWN_LOCATION);
 
   /* Builtins in the implementation namespace are made visible without
      needing to be explicitly declared.  See push_file_scope.  */

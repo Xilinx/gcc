@@ -213,8 +213,9 @@ enum mask_options {
 typedef struct
 {
   char *proc_type;
+  char *isa_type;
   enum mask_options mask;
-  int vectorlength[MAX_VARS];
+  int vectorlength;
   int no_vlengths;
   char *uniform_vars[MAX_VARS];
   int no_uvars;
@@ -230,12 +231,22 @@ typedef struct
 } elem_fn_info;
 
 /* This data structure will hold all the arguments in the function.  */
-typedef struct 
+typedef struct
 {
   tree induction_var;
   tree arguments;
   tree return_var;
+  int no_lvars;
+  char *linear_vars[MAX_VARS];
+  int linear_steps[MAX_VARS];
 } fn_vect_elements;
+
+enum elem_fn_parm_type
+{
+  TYPE_NONE = 0,
+  TYPE_UNIFORM = 1,
+  TYPE_LINEAR = 2
+};
 
 /* Offset of fields in the Cilk frame descriptor.
    Index is same as for cilk_trees.  If the index

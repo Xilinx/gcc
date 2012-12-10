@@ -12094,7 +12094,7 @@ c_parser_elem_fn_processor_clause (c_parser *parser)
   token = c_parser_peek_token (parser);
   if (!c_parser_next_token_is (parser, CPP_OPEN_PAREN))
     {
-      c_parser_error (parser, "expected %<)%>");
+      c_parser_error (parser, "expected %<(%>");
       c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
       return NULL_TREE;
     }
@@ -12147,8 +12147,16 @@ c_parser_elem_fn_processor_clause (c_parser *parser)
 			 build_string (strlen ("core_i7_sse4_2"),
 				       "core_i7_sse4_2"));
 	}
+      else if (!token->value || TREE_CODE (token->value) != IDENTIFIER_NODE) 
+	{
+	  c_parser_error (parser, "expected processor-name");
+	}
       else
-	sorry ("Processor type not supported");
+	{ 
+	  c_parser_consume_token (parser);
+	  error_at (input_location, "processor %s not supported",
+		    IDENTIFIER_POINTER (token->value));
+	}
 	
       if (c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
 	c_parser_consume_token (parser);
@@ -12165,7 +12173,7 @@ c_parser_elem_fn_processor_clause (c_parser *parser)
   return proc_tree_list;
 }
 
-/* This function parses the uniform clause of Cilk Plus elemental functions.  */
+/* This function parses "uniform" clause of Cilk Plus elemental functions.  */
 
 static tree
 c_parser_elem_fn_uniform_clause (c_parser *parser)
@@ -12173,7 +12181,7 @@ c_parser_elem_fn_uniform_clause (c_parser *parser)
   c_token *token;
   tree uniform_tree;
   tree str_token = NULL_TREE;
-  vec<tree,va_gc> *uniform_vec = NULL;
+  vec<tree, va_gc> *uniform_vec = NULL;
 
   if (!c_parser_next_token_is (parser, CPP_OPEN_PAREN))
     {
@@ -12215,7 +12223,7 @@ c_parser_elem_fn_uniform_clause (c_parser *parser)
 	}
       else
 	{
-	  c_parser_error (parser, "expected number or comma");
+	  c_parser_error (parser, "expected variable-name");
 	  c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
 	  return NULL_TREE;
 	}
@@ -12226,6 +12234,7 @@ c_parser_elem_fn_uniform_clause (c_parser *parser)
   uniform_tree = build_tree_list (get_identifier ("uniform"), uniform_tree);
   return uniform_tree;
 }
+
 
 /* This function parses the linear clause of Cilk Plus Elemental functions.  */
 
@@ -12260,10 +12269,22 @@ c_parser_elem_fn_linear_clause (c_parser *parser)
 	      c_parser_consume_token (parser);
 	      token = c_parser_peek_token (parser);
 	      if (token->value && token->type == CPP_NUMBER)
-		step_size = token->value;
+		{ 
+		  step_size = token->value;
+		  if (TREE_TYPE (step_size) 
+		      && TREE_CODE (TREE_TYPE (step_size)) == REAL_TYPE)
+		    {
+		      error_at (input_location, "step-size must be an integer "
+				"constant expression");
+		      c_parser_skip_until_found (parser, CPP_CLOSE_PAREN,
+						 NULL);
+		      return NULL_TREE;
+		    }
+		}
 	      else
 		{
 		  c_parser_error (parser, "expected step-size");
+		  c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
 		  return NULL_TREE;
 		}
 	      c_parser_consume_token (parser);
@@ -12316,8 +12337,7 @@ c_parser_elem_fn_vlength_clause (c_parser *parser)
 
   if (!c_parser_next_token_is (parser, CPP_OPEN_PAREN))
     {
-      c_parser_error (parser, "expected %<)%>");
-      c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
+      c_parser_skip_until_found (parser, CPP_COMMA, "expected %<(%>");
       return NULL_TREE;
     }
   else
@@ -12329,29 +12349,39 @@ c_parser_elem_fn_vlength_clause (c_parser *parser)
       token = c_parser_peek_token (parser);
       if (token->value && token->type == CPP_NUMBER)
 	{
+	  if (TREE_TYPE (token->value)
+	      && TREE_CODE (TREE_TYPE (token->value)) == REAL_TYPE)
+	    {
+	      error_at (input_location, "vectorlength must be an integer.");
+	      c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
+	      return NULL_TREE;
+	    }
+	  if (!integer_pow2p (token->value))
+	    {
+	      error_at (input_location, "vectorlength must be a power of 2.");
+	      c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
+	      return NULL_TREE;
+	    }
+	  else if (compare_tree_int (token->value, 8) == 1
+		   || compare_tree_int (token->value, 2) == -1)
+	    {
+	      error_at (input_location, 
+			"vectorlength must be between 2 and 8.");
+	      c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
+	      return NULL_TREE;
+	    }
 	  vec_safe_push (vlength_vec, token->value);
 	  c_parser_consume_token (parser);
-	  if (c_parser_next_token_is (parser, CPP_COMMA))
+	  if (c_parser_next_token_is_not (parser, CPP_CLOSE_PAREN))
 	    {
-	      c_parser_consume_token (parser);
-	      if (c_parser_next_token_is_not (parser, CPP_NUMBER))
-		{
-		  c_parser_error (parser, "expected vectorlength after %<,%>");
-		  c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
-		  return NULL_TREE;
-		}
-	    }
-	  else if (c_parser_next_token_is_not (parser, CPP_CLOSE_PAREN))
-	    {
-	      c_parser_error (parser,
-			      "expected %<,%> or %<)%> after vectorlength");
+	      c_parser_error (parser, "expected %<)%> after vectorlength");
 	      c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
 	      return NULL_TREE;
 	    }
 	}
       else
 	{
-	  c_parser_error (parser, "expected number or comma");
+	  c_parser_error (parser, "expected number");
 	  c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
 	  return NULL_TREE;
 	}

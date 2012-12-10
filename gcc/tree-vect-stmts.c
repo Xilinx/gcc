@@ -1561,7 +1561,8 @@ elem_fn_vect_get_vec_def_for_operand (tree op, gimple stmt, tree *scalar_def,
     {
       parm_type = find_elem_fn_parm_type (stmt, op, &step_size);
       if (parm_type == TYPE_UNIFORM || parm_type == TYPE_LINEAR)
-	dt = vect_external_def;
+	/* If Linear or Uniform type, just return the scalar version.  */
+	return op;
     }
   else
     parm_type = TYPE_NONE;
@@ -2130,6 +2131,8 @@ vectorizable_call (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 		  new_stmt = gimple_build_call_vec (fndecl, vargs);
 		  new_temp = make_ssa_name (vec_dest, new_stmt);
 		  gimple_call_set_lhs (new_stmt, new_temp);
+		  if (flag_enable_cilk && is_elem_fn (fndecl))
+		    gimple_call_set_fntype (new_stmt, TREE_TYPE (fndecl));
 		  vect_finish_stmt_generation (stmt, new_stmt, gsi);
 		  SLP_TREE_VEC_STMTS (slp_node).quick_push (new_stmt);
 		}
@@ -2165,8 +2168,7 @@ vectorizable_call (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 		    {
 		      enum elem_fn_parm_type parm_type =
 			find_elem_fn_parm_type (stmt, op, &step_size);
-		      if (parm_type == TYPE_UNIFORM
-			  || parm_type == TYPE_LINEAR)
+		      if (parm_type == TYPE_UNIFORM || parm_type == TYPE_LINEAR)
 			dt[i] = vect_constant_def;
 		    }
 		  vec_oprnd0

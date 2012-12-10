@@ -3716,13 +3716,6 @@ struct GTY(()) tree_optimization_option {
 };
 
 
-enum elem_fn_parm_type
-{
-  TYPE_NONE = 0,
-  TYPE_UNIFORM = 1,
-  TYPE_LINEAR = 2
-};
-
 #define TREE_OPTIMIZATION(NODE) \
   (&OPTIMIZATION_NODE_CHECK (NODE)->optimization.opts)
 
@@ -4873,6 +4866,7 @@ extern tree build_vector_stat (tree, tree * MEM_STAT_DECL);
 #define build_vector(t,v) build_vector_stat (t, v MEM_STAT_INFO)
 extern tree build_vector_from_ctor (tree, vec<constructor_elt, va_gc> *);
 extern tree build_vector_from_val (tree, tree);
+extern tree elem_fn_linear_vector_from_val (tree, tree, tree);
 extern tree build_constructor (tree, vec<constructor_elt, va_gc> *);
 extern tree build_constructor_single (tree, tree, tree);
 extern tree build_constructor_from_list (tree, tree);
@@ -6620,7 +6614,6 @@ extern HOST_WIDE_INT find_linear_step_size (int pragma_simd_index, tree var);
 
 tree build_call_list (tree return_type, tree fn, tree arglist);
 bool is_elem_fn (tree);
-enum elem_fn_parm_type find_elem_fn_parm_type (gimple, tree, tree*);
 void elem_fn_create_fn (tree) __attribute__((weak));
 
 /* Functional interface to the builtin functions.  */

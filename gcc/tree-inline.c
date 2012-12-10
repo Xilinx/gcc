@@ -903,26 +903,6 @@ remap_gimple_op_r (tree *tp, int *walk_subtrees, void *data)
   return NULL_TREE;
 }
 
-/* Remap DECL if it is defined.  This is used in Cilk++. */
-static bool
-remap_var_for_cilk (tree *tp, copy_body_data *id)
-{
-  tree decl = *tp;
-  tree *n;
-
-  if (!DECL_P (decl))
-    return false;
-
-  n = (tree *) pointer_map_contains (id->decl_map, decl);
-
-
-  if (n == NULL)
-    return false;
-
-  *tp = (*n);
-  return true;
-}
-
 
 /* Called from copy_body_id via walk_tree.  DATA is really a
    `copy_body_data *'.  */
@@ -987,8 +967,6 @@ copy_tree_body_r (tree *tp, int *walk_subtrees, void *data)
       *tp = new_decl;
       *walk_subtrees = 0;
     }
-    else if (id->remap_var_for_cilk && remap_var_for_cilk (tp, id))
-    *walk_subtrees = 0;
   else if (TREE_CODE (*tp) == STATEMENT_LIST)
     copy_statement_list (tp);
   else if (TREE_CODE (*tp) == SAVE_EXPR
@@ -4912,12 +4890,10 @@ copy_decl_no_change (tree decl, copy_body_data *id)
     {
       TREE_ADDRESSABLE (copy) = 0;
       LABEL_DECL_UID (copy) = -1;
-      if (TREE_CODE(decl) == LABEL_DECL)
-	{
-	  PRAGMA_SIMD_INDEX (copy) = PRAGMA_SIMD_INDEX (decl);
-	}
+      if (flag_enable_cilk && TREE_CODE (decl) == LABEL_DECL)
+	PRAGMA_SIMD_INDEX (copy) = PRAGMA_SIMD_INDEX (decl);
       else
-        PRAGMA_SIMD_INDEX (copy) = 0;
+	PRAGMA_SIMD_INDEX (copy) = 0;
     }
 
   return copy_decl_for_dup_finish (id, decl, copy);
@@ -4967,7 +4943,9 @@ copy_arguments_for_versioning (tree orig_parm, copy_body_data * id,
   return new_parm;
 }
 
-/* Return a copy of the function's argument tree.  */
+/* Return a copy of the function's argument tree but they are vectorized as
+   per VLENGTH value.  Also add a mask variable if MASKED is set to true.  */
+
 static tree
 elem_fn_copy_arguments_for_versioning (tree orig_parm, copy_body_data * id,
 				       bitmap args_to_skip, tree *vars,
@@ -4995,7 +4973,7 @@ elem_fn_copy_arguments_for_versioning (tree orig_parm, copy_body_data * id,
         tree new_tree = remap_decl (arg, id);
 	if (TREE_CODE (new_tree) != PARM_DECL)
 	  new_tree = id->copy_decl (arg, id);
-	TREE_TYPE (new_tree) = copy_node (TREE_TYPE (new_tree));
+	TREE_TYPE (new_tree) = copy_node (TREE_TYPE (new_tree)); 
 	TREE_TYPE (new_tree) = build_vector_type (TREE_TYPE (new_tree),
 						  vlength);
 	DECL_ARG_TYPE (new_tree) = build_vector_type (DECL_ARG_TYPE (new_tree),
@@ -5420,12 +5398,13 @@ tree_function_versioning (tree old_decl, tree new_decl,
   return;
 }
 
+/* This function initializes the cfun struct for elemental functions.  */
+
 static void
 initialize_elem_fn_cfun (tree new_fndecl, tree callee_fndecl)
 {
   struct function *src_cfun = DECL_STRUCT_FUNCTION (callee_fndecl);
 
-  gimple_register_cfg_hooks ();
   /* Get clean struct function.  */
   push_struct_function (new_fndecl);
 
@@ -5463,9 +5442,11 @@ initialize_elem_fn_cfun (tree new_fndecl, tree callee_fndecl)
   pop_cfun ();
 }
 
+/* Elemental function's version of tree_versioning.  */
+
 void
 tree_elem_fn_versioning (tree old_decl, tree new_decl,
-			 vec<ipa_replace_map_p, va_gc> * tree_map,
+			 vec<ipa_replace_map_p, va_gc> *tree_map,
 			 bool update_clones, bitmap args_to_skip,
 			 bool skip_return,
 			 bitmap blocks_to_copy ATTRIBUTE_UNUSED,
@@ -5476,9 +5457,9 @@ tree_elem_fn_versioning (tree old_decl, tree new_decl,
   tree p;
   unsigned i;
   struct ipa_replace_map *replace_info;
-  vec<gimple> init_stmts; 
-  init_stmts.create(10);
+  vec<gimple> init_stmts;
 
+  init_stmts.create (10);
   tree old_current_function_decl = current_function_decl;
   tree vars = NULL_TREE;
 
@@ -5527,8 +5508,6 @@ tree_elem_fn_versioning (tree old_decl, tree new_decl,
   id.transform_new_cfg = true;
   id.transform_return_to_modify = false;
   id.transform_lang_insert_block = NULL;
-
-  current_function_decl = new_decl;
   
   initialize_elem_fn_cfun (new_decl, old_decl);
   push_cfun (DECL_STRUCT_FUNCTION (new_decl));
@@ -5564,17 +5543,6 @@ tree_elem_fn_versioning (tree old_decl, tree new_decl,
 
 	    if (TREE_CODE (op) == VIEW_CONVERT_EXPR)
 	      op = TREE_OPERAND (op, 0);
-
-#if 0
-	    if (TREE_CODE (op) == ADDR_EXPR)
-	      {
-		op = TREE_OPERAND (op, 0);
-		while (handled_component_p (op))
-		  op = TREE_OPERAND (op, 0);
-		if (TREE_CODE (op) == VAR_DECL)
-		  add_referenced_var (op);
-	      }
-#endif
       
 	    gcc_assert (TREE_CODE (replace_info->old_tree) == PARM_DECL);
 	    init = setup_one_parameter (&id, replace_info->old_tree,
@@ -5663,8 +5631,6 @@ tree_elem_fn_versioning (tree old_decl, tree new_decl,
   if (id.debug_map)
     pointer_map_destroy (id.debug_map);
 
-  /*  gcc_assert (!id.debug_stmts); */
-  /* VEC_free (gimple, heap, init_stmts); */
   pop_cfun ();
   current_function_decl = old_current_function_decl;
   gcc_assert (!current_function_decl

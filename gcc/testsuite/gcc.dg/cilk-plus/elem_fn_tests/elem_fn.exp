@@ -1,0 +1,53 @@
+# Copyright (C) 2012
+# Free Software Foundation, Inc.
+
+# Contributed by Balaji V. Iyer  <balaji.v.iyer@intel.com>
+#                Intel Corporation. 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with GCC; see the file COPYING3.  If not see
+# <http://www.gnu.org/licenses/>.
+
+
+# Exit immediately if this isn't a x86 target.
+if { ![istarget i?86*-*-*] && ![istarget x86_64-*-*] } then {
+  return
+}
+
+# Load support procs.
+load_lib gcc-dg.exp
+set tests_32bit [lsort [glob -nocomplain $srcdir/$subdir/32bit/*.\[cS\]]]
+set tests_64bit [lsort [glob -nocomplain $srcdir/$subdir/64bit/*.\[cS\]]]
+set test_errors [lsort [glob -nocomplain $srcdir/$subdir/errors/*.\[cS\]]]
+
+if { [istarget i?86*-*-*] } then {
+
+# Main loop.
+dg-runtest $tests_32bit " -O3 -ftree-vectorize -fcilkplus" " "
+# All done.
+dg-finish
+#dg-runtest $tests_errors " -O3 -ftree-vectorize -fcilkplus" " "
+# All done.
+#dg-finish
+}
+
+# For 64 bit architectures, we can run both 32 bit and 64 bit tests. 
+if { [istarget x86_64-*-*] } then {
+
+# Main loop.
+dg-runtest $tests_32bit "-O3 -ftree-vectorize -fcilkplus -m32" " "
+dg-runtest $tests_64bit "-O3 -ftree-vectorize -fcilkplus" " "
+dg-runtest $test_errors "-O3 -ftree-vectorize -fcilkplus" " "
+
+# All done.
+dg-finish
+}

@@ -941,6 +941,46 @@ hook_int_uint_mode_1)
 
 HOOK_VECTOR_END (sched)
 
+/* Functions relating to Cilk Plus.  */
+#undef HOOK_PREFIX
+#define HOOK_PREFIX "TARGET_CILKPLUS_"
+HOOK_VECTOR (TARGET_CILKPLUS, cilkplus)
+/* The following member value is a function that is used by Cilk Plus routines
+   to map the processor attribute to the appropriate arch and tune attributes.
+   By default, a NULL string is returned.  */
+DEFHOOK
+(builtin_map_processor_to_attr,
+"This hook is called by a Cilk Plus routine that will be used to map the\n\
+processor clause to the appropriate arch and tune attributes.",
+tree, (char *, tree *),
+default_builtin_map_processor_to_attr)
+
+DEFHOOK
+(builtin_find_processor_code,
+ "This hook is called by a Cilk Plus routine that will request the\n\
+ processor code for processor name given in the vector attribute for\n\
+ the elemental functions.",
+char *, (char *),
+default_builtin_find_processor_code)
+
+DEFHOOK
+(builtin_find_vlength_for_proc,
+ "This hook is called by a Cilk Plus routine that will request the\n\
+ default vectorlength for the processor specified in the processor clause\n\
+ in the elemental functions.",
+unsigned int, (char *),
+default_builtin_find_vlength_for_proc)
+
+DEFHOOK
+(builtin_find_isa_code,
+ "This hook is called by a Cilk Plus routine that will request the \n\
+  ISA type (based on the register-set where vector parameters are passed).\n\
+  in elemental functions.",
+char *, (char *, char *),
+default_builtin_find_isa_code)
+
+HOOK_VECTOR_END (cilkplus)
+
 /* Functions relating to vectorization.  */
 #undef HOOK_PREFIX
 #define HOOK_PREFIX "TARGET_VECTORIZE_"

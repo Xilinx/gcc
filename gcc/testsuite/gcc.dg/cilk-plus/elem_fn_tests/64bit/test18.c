@@ -1,3 +1,5 @@
+/* { dg-final { scan-assembler "simdsimd"  } } */
+
 /* This test will create 1 clones of the function below, just mask
  * for the core2_duo with sse 4.1 processor.
  */

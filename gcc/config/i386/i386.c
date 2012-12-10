@@ -5780,20 +5780,16 @@ type_natural_mode (const_tree type, const CUMULATIVE_ARGS *cum)
 		  {
 		    static bool warnedavx;
 
+		    /* In Cilk Plus you can create code for a processor that
+		       is enabled with elemental functions.  */
 		    if (cum
+			&& !flag_enable_cilk
 			&& !warnedavx
 			&& cum->warn_avx)
 		      {
-			/* For Cilk Plus with elemental functions, the user
-			   can generate code for a hardware that is not the
-			   target hardware.  So, this warning is not valid for
-			   us.  */
-			if (!flag_enable_cilk)
-			  {
-			    warnedavx = true;
-			    warning (0, "AVX vector argument without AVX "
-				     "enabled changes the ABI");
-			  }
+			warnedavx = true;
+			warning (0, "AVX vector argument without AVX "
+				 "enabled changes the ABI");
 		      }
 		    return TYPE_MODE (type);
 		  }
@@ -5802,6 +5798,7 @@ type_natural_mode (const_tree type, const CUMULATIVE_ARGS *cum)
 		    static bool warnedsse;
 
 		    if (cum
+			&& !flag_enable_cilk
 			&& !warnedsse
 			&& cum->warn_sse)
 		      {
@@ -7182,18 +7179,12 @@ ix86_function_arg_boundary (enum machine_mode mode, const_tree type)
 	  && !warned
 	  && align != ix86_compat_function_arg_boundary (mode, type,
 							 saved_align))
-	{ 
-	  /* For Cilk Plus with elemental functions, the user can generate 
-	     code for a hardware that is not the target hardware.  So, this 
-	     warning is not valid for Cilk Plus.  */
-	  if (!flag_enable_cilk)
-	    {
-	      warned = true;
-	      inform (input_location,
-		      "The ABI for passing parameters with %d-byte"
-		      " alignment has changed in GCC 4.6",
-		      align / BITS_PER_UNIT);
-	    }
+	{
+	  warned = true;
+	  inform (input_location,
+		  "The ABI for passing parameters with %d-byte"
+		  " alignment has changed in GCC 4.6",
+		  align / BITS_PER_UNIT);
 	}
     }
 
@@ -8517,7 +8508,7 @@ static bool
 ix86_frame_pointer_required (void)
 {
   /* For all Cilk specific functions, we frame pointer is required.  */
-  if (cfun->is_cilk_function == 1) 
+  if (flag_enable_cilk && cfun->is_cilk_function == 1) 
     return true;
 
   /* If we accessed previous frames, then the generated code expects
@@ -42139,6 +42130,187 @@ ix86_memmodel_check (unsigned HOST_WIDE_INT val)
   return val;
 }
 
+/* Return the specific arch attribute for the *PROC_NAME of Elemental
+   function in Cilk Plus.  The *OPPOSITE_ATTR will rutrn the opposite of return
+   value (in terms of optimization) for the scalar function.  */
+
+static tree
+ix86_cilkplus_map_proc_to_attr (char *proc_name, tree *opposite_attr)
+{
+  /* You will need the opposite attribute for the scalar code part.  */
+  tree proc_attr, opp_proc_attr;
+  vec<tree, va_gc> *proc_vec_list, *opp_proc_vec_list;
+  
+  vec_alloc (proc_vec_list, 4);
+  vec_alloc (opp_proc_vec_list, 4);
+  
+  if (!proc_name)
+    return NULL_TREE;
+
+  if (!strcmp (proc_name, "pentium_4"))
+    {
+      vec_safe_push (proc_vec_list,
+		     build_string (strlen ("arch=pentium4"), "arch=pentium4"));
+      vec_safe_push (proc_vec_list, build_string (strlen ("mmx"), "mmx"));
+      if (opposite_attr)
+	{
+	  vec_safe_push (opp_proc_vec_list,
+			 build_string (strlen ("no-mmx"), "no-mmx"));
+	  vec_safe_push (opp_proc_vec_list,
+			 build_string (strlen ("arch=pentium4"),
+				       "arch=pentium4"));
+	}
+    }
+  else if (!strcmp (proc_name, "pentium_4_sse3"))
+    {
+      vec_safe_push (proc_vec_list,
+		     build_string (strlen ("arch=pentium4"), "arch=pentium4"));
+      vec_safe_push (proc_vec_list, build_string (strlen ("sse3"), "sse3"));
+      if (opposite_attr)
+	{
+	  vec_safe_push (opp_proc_vec_list,
+			 build_string (strlen ("arch=pentium4"),
+				       "arch=pentium4"));
+	  vec_safe_push (opp_proc_vec_list,
+			 build_string (strlen ("no-sse3"), "no-sse3"));
+	}
+    }
+  else if (!strcmp (proc_name, "core2_duo_sse3"))
+    {
+      vec_safe_push (proc_vec_list,
+		     build_string (strlen ("arch=core2"), "arch=core2"));
+      vec_safe_push (proc_vec_list, build_string (strlen ("sse3"), "sse3"));
+      if (opposite_attr)
+	{
+	  vec_safe_push (opp_proc_vec_list,
+			 build_string (strlen ("arch=core2"), "arch=core2"));
+	  vec_safe_push (opp_proc_vec_list,
+			 build_string (strlen ("no-sse3"), "no-sse3"));
+	}
+    }
+  else if (!strcmp (proc_name, "core_2_duo_sse_4_1"))
+    {
+      vec_safe_push (proc_vec_list,
+		     build_string (strlen ("arch=core2"), "arch=core2"));
+      vec_safe_push (proc_vec_list, build_string (strlen ("sse4.1"), "sse4.1"));
+      if (opposite_attr)
+	{
+	  vec_safe_push (opp_proc_vec_list,
+			 build_string (strlen ("arch=core2"), "arch=core2"));
+	  vec_safe_push (opp_proc_vec_list,
+			 build_string (strlen ("no-sse4.1"), "no-sse4.1"));
+	}
+    }
+  else if (!strcmp (proc_name, "core_i7_sse4_2"))
+    {
+      vec_safe_push (proc_vec_list,
+		     build_string (strlen ("arch=corei7"), "arch=corei7"));
+      vec_safe_push (proc_vec_list,
+		     build_string (strlen ("sse4.2"), "sse4.2"));
+      vec_safe_push (proc_vec_list, build_string (strlen ("avx"), "avx"));
+      if (opposite_attr)
+	{
+	  vec_safe_push (opp_proc_vec_list,
+			 build_string (strlen ("arch=corei7"), "arch=corei7"));
+	  vec_safe_push (opp_proc_vec_list,
+			 build_string (strlen ("no-sse4.2"), "no-sse4.2"));
+	}
+    }
+  else
+    sorry ("Processor type not supported.");
+
+  proc_attr = build_tree_list_vec (proc_vec_list);
+  vec_safe_truncate (proc_vec_list, 0);
+  proc_attr = build_tree_list (get_identifier ("__target__"), proc_attr);
+
+  if (opposite_attr)
+    {
+      opp_proc_attr = build_tree_list_vec (opp_proc_vec_list);
+      vec_safe_truncate (opp_proc_vec_list, 0);
+      opp_proc_attr = build_tree_list (get_identifier ("__target__"),
+				       opp_proc_attr);
+      *opposite_attr = opp_proc_attr;
+    }
+  return proc_attr;
+}
+
+char *
+ix86_cilkplus_find_proc_code (char *proc_name)
+{
+  if (!proc_name)
+    return xstrdup ("B");
+
+  if (!strcmp (proc_name, "pentium_4"))
+    return xstrdup ("B");
+  else if (!strcmp (proc_name, "pentium_4_sse3"))
+    return xstrdup ("D");
+  else if (!strcmp (proc_name, "core2_duo_sse3"))
+    return xstrdup ("E");
+  else if (!strcmp (proc_name, "core_2_duo_sse_4_1"))
+    return xstrdup ("F");
+  else if (!strcmp (proc_name, "core_i7_sse4_2"))
+    return xstrdup ("H");
+  else
+    gcc_unreachable ();
+
+  return NULL; /* We should never get here.  */
+}
+
+/* Returns appropriate ISA string based on PROC_NAME and ISA_NAME.  */
+
+char *
+ix86_cilkplus_find_isa_for_proc (char *proc_name, char *isa_name)
+{
+  if (isa_name)
+    return isa_name;
+  else if (!proc_name)
+    return xstrdup("xmm");
+  else if (!strcmp (proc_name, "pentium_4"))
+    return xstrdup ("xmm");
+  else if (!strcmp (proc_name, "pentium_4_sse3"))
+    return xstrdup ("xmm");
+  else if (!strcmp (proc_name, "core2_duo_sse3"))
+    return xstrdup ("xmm");
+  else if (!strcmp (proc_name, "core_2_duo_sse_4_1"))
+    return xstrdup ("xmm");
+  else if (!strcmp (proc_name, "core_i7_sse4_2"))
+    return xstrdup ("xmm");
+  else if (!strcmp (proc_name, "core_2nd_gen_avx"))
+    return xstrdup ("ymm1");
+  else if (!strcmp (proc_name, "core_3rd_gen_avx"))
+    return xstrdup ("ymm1");
+  else if (!strcmp (proc_name, "core_4th_gen_avx"))
+    return xstrdup ("ymm2");
+  else
+    gcc_unreachable ();
+
+  return NULL; /* We should never get here.  */
+}
+
+
+/* Returns the appropriate vectorlength based on PROC_NAME.  */
+
+unsigned int
+ix86_builtin_find_vlength_for_proc (char *proc_name)
+{
+  if (!proc_name)
+    return 4;
+  else if (!strcmp (proc_name, "pentium_4"))
+    return 4;
+  else if (!strcmp (proc_name, "pentium_4_sse3"))
+    return 4;
+  else if (!strcmp (proc_name, "core2_duo_sse3"))
+    return 4;
+  else if (!strcmp (proc_name, "core_2_duo_sse_4_1"))
+    return 4;
+  else if (!strcmp (proc_name, "core_i7_sse4_2"))
+    return 8;
+  else
+    /* If we got here, then we have hit a processor that we do not yet
+       support.  */
+    return 0;
+}
+
 /* Initialize the GCC target structure.  */
 #undef TARGET_RETURN_IN_MEMORY
 #define TARGET_RETURN_IN_MEMORY ix86_return_in_memory
@@ -42505,6 +42677,20 @@ ix86_memmodel_check (unsigned HOST_WIDE_INT val)
 
 #undef TARGET_SPILL_CLASS
 #define TARGET_SPILL_CLASS ix86_spill_class
+#undef TARGET_CILKPLUS_BUILTIN_MAP_PROCESSOR_TO_ATTR
+#define TARGET_CILKPLUS_BUILTIN_MAP_PROCESSOR_TO_ATTR \
+  ix86_cilkplus_map_proc_to_attr
+
+#undef TARGET_CILKPLUS_BUILTIN_FIND_PROCESSOR_CODE
+#define TARGET_CILKPLUS_BUILTIN_FIND_PROCESSOR_CODE \
+  ix86_cilkplus_find_proc_code
+
+#undef TARGET_CILKPLUS_BUILTIN_FIND_ISA_CODE
+#define TARGET_CILKPLUS_BUILTIN_FIND_ISA_CODE ix86_cilkplus_find_isa_for_proc
+
+#undef TARGET_CILKPLUS_BUILTIN_FIND_VLENGTH_FOR_PROC
+#define TARGET_CILKPLUS_BUILTIN_FIND_VLENGTH_FOR_PROC  \
+  ix86_builtin_find_vlength_for_proc
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 

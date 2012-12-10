@@ -1,3 +1,56 @@
+2012-12-10  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* gcc.dg/cilk-plus/elem_fn_tests/test1.c: Remove.
+	* gcc.dg/cilk-plus/elem_fn_tests/test2.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test3.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test4.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test5.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test6.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test7.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test8.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test9.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/switch_stmt.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/ctrl_flow2.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test10.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test11.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test12.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test13.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test14.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test15.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test16.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test17.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/test18.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/ctrl_flow.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/32bit/test10.c: New test.
+	* gcc.dg/cilk-plus/elem_fn_tests/32bit/test1.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/32bit/test11.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/32bit/test12.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/32bit/test7.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/32bit/test8.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/32bit/test9.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/64bit/test1.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/64bit/test2.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/64bit/test3.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/64bit/test4.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/64bit/test5.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/64bit/test6.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/64bit/switch_stmt.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/64bit/ctrl_flow2.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/64bit/test13.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/64bit/test14.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/64bit/test15.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/64bit/test16.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/64bit/test17.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/64bit/test18.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/64bit/ctrl_flow.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/elem_fn.exp: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/errors: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/errors/vlength_errors.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/errors/duplicate_decls.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/errors/linear_errors.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/errors/uniform_errors.c: Likewise.
+	* gcc.dg/cilk-plus/elem_fn_tests/errors/processor_errors.c: Likewise.
+	
 2012-12-06  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* gcc.dg/cilk-plus/array_notation_tests/execute/builtin_fn_mutating.c:
