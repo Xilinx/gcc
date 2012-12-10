@@ -1,5 +1,8 @@
 
 2012-12-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt (mexpand_unbox): Even more.
+
+2012-12-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt (mexpand_unbox): Some more.
 
 2012-12-10  Basile Starynkevitch  <basile@starynkevitch.net>
