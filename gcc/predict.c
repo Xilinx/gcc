@@ -137,13 +137,20 @@ maybe_hot_frequency_p (int freq)
 bool
 maybe_hot_count_p (gcov_type count)
 {
+  gcov_working_set_t *ws = NULL;
+  static gcov_type min_count = -1;
   if (!profile_info)
     return false;
   /* Code executed at most once is not hot.  */
   if (profile_info->runs >= count)
     return false;
-  return (count
-	  > profile_info->sum_max / PARAM_VALUE (HOT_BB_COUNT_FRACTION));
+  if (min_count == -1)
+    {
+      ws = find_working_set (PARAM_VALUE (HOT_BB_COUNT_WS_PERMILLE));
+      gcc_assert (ws);
+      min_count = ws->min_counter;
+    }
+  return (count >= min_count);
 }
 
 /* Return true in case BB can be CPU intensive and should be optimized
@@ -163,8 +170,7 @@ bool
 cgraph_maybe_hot_edge_p (struct cgraph_edge *edge)
 {
   if (profile_info && flag_branch_probabilities
-      && (edge->count
-	  <= profile_info->sum_max / PARAM_VALUE (HOT_BB_COUNT_FRACTION)))
+      && !maybe_hot_count_p (edge->count))
     return false;
   if (edge->caller->frequency == NODE_FREQUENCY_UNLIKELY_EXECUTED
       || edge->callee->frequency == NODE_FREQUENCY_UNLIKELY_EXECUTED)
