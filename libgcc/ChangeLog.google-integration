@@ -1,7 +1,0 @@
-2012-03-10   Ollie Wild  <aaw@google.com>
-
-	* Makefile.in (vis_hide): Move default initialization before inclusion
-	of $(tmake_file).
-	* config.host (*-grtev3-*): Disable hiding of symbols in static
-	libraries.
-	* config/t-static-no-vis-hide: New file.

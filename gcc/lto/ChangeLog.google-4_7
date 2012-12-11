@@ -1,6 +1,0 @@
-2012-09-27  Dehao Chen  <dehao@google.com>
-
-	Backport from trunk r191494, r191510, r191614, r191669, r191680,
-	r191706, r191747, r191759, r191779 and r191810:
-
-	* lto/lto.c (lto_fixup_prevailing_decls): Remove tree.exp.block field.

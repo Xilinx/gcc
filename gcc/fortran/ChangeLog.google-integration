@@ -1,3 +1,0 @@
-2011-01-28  Simon Baldwin  <simonb@google.com>
-
-	* module.c (gfc_dump_module): Omit timestamp from output.

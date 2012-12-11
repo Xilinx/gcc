@@ -1,8 +1,0 @@
-2012-09-14  Dehao Chen  <dehao@google.com>
-
-	Backport r191338 from trunk:
-
-	2012-09-14  Dehao Chen  <dehao@google.com>
-
-	* testsuite/libjava.lang/sourcelocation.java: New cases.
-	* testsuite/libjava.lang/sourcelocation.out: New cases.

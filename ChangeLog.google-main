@@ -1,6 +1,0 @@
-2011-06-06  Jing Yu  <jingyu@google.com>
-
-        Backport trunk r174710:
-
-	* configure.ac: Skip target-libiberty for arm*-*-linux-androideabi.
-	* configure: Regenerated.

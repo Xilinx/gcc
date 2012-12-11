@@ -1,4 +1,0 @@
-2011-07-21  Diego Novillo  <dnovillo@google.com>
-
-	* Make-lang.in (JVGENMAIN_OBJS): Add vec.o and ggc-none.o.
-
