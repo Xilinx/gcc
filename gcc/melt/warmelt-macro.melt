@@ -5929,10 +5929,10 @@ remain.}#)
 		   (setq curpair (pair_tail curpair))
 		   (pair_head curpair)))
 	 )
-     (setq curpair (pair_tail curpair))
-     (when curpair
-	 (error_plain loc "UNBOX expects two arguments: (UNBOX <ctype> <expr>)")
-	 (return))
+    (setq curpair (pair_tail curpair))
+    (when curpair
+      (error_plain loc "UNBOX expects two arguments: (UNBOX <ctype> <expr>)")
+      (return))
     (debug "mexpand_unbox ubctypk=" ubctypk " ubexpr=" ubexpr)
     (when (is_not_a ubctypk class_keyword)
       (error_plain loc "first argument to UNBOX should be a ctype keyword like :tree ....")
@@ -5942,12 +5942,23 @@ remain.}#)
       (when (is_not_a ctyp class_ctype)
 	(error_plain loc "first argument to UNBOX should be a ctype")
 	(return))
-    (assert_msg "$@$mexpand_unbox unimplemented")
-    )))
+      (debug "mexpand_unbox ctyp=" ctyp)
+      (let ( (mexp (mexpander ubexpr env mexpander modctx))
+	     (sunbox (instance class_source_unbox
+			       :loca_location loc
+			       :sunbox_ctype ctyp
+			       :sunbox_expr mexp
+			       ))
+	     )
+	(debug "mexpand_unbox mexp=" mexp " sunbox=" sunbox)
+	(return sunbox)
+	))))
 (install_initial_macro 'unbox mexpand_unbox)
 (export_macro
  unbox mexpand_unbox
- :doc #{The $UNBOX syntax is unboxing some value. It is given a ctype and an expression.}#)
+ :doc #{The $UNBOX syntax is unboxing some value into some raw
+ stuff. It is given a ctype and an expression: @code{(UNBOX
+ @var{ctype} @var{expr})}.}#)
 
 
 ;;;;;;;; for COMMENT (only of strings)
