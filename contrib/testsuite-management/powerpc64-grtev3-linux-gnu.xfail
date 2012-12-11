@@ -1,0 +1,149 @@
+# Marked test failures for v16-powerpc64 toolchain built from
+# v16 release branch @64346, and v16 dev branch @64533.
+# *** gcc:
+FAIL: gcc.c-torture/execute/20020226-1.c execution,  -O0 
+FAIL: gcc.c-torture/execute/20020226-1.c execution,  -O1 
+FAIL: gcc.c-torture/execute/20020226-1.c execution,  -O2 
+FAIL: gcc.c-torture/execute/20020226-1.c execution,  -O3 -fomit-frame-pointer 
+FAIL: gcc.c-torture/execute/20020226-1.c execution,  -O3 -g 
+FAIL: gcc.c-torture/execute/20020226-1.c execution,  -Os 
+FAIL: gcc.c-torture/execute/20020226-1.c execution,  -O2 -flto -fno-use-linker-plugin -flto-partition=none 
+FAIL: gcc.c-torture/execute/20020508-1.c execution,  -O0 
+FAIL: gcc.c-torture/execute/20020508-1.c execution,  -O1 
+FAIL: gcc.c-torture/execute/20020508-1.c execution,  -O2 
+FAIL: gcc.c-torture/execute/20020508-1.c execution,  -O3 -fomit-frame-pointer 
+FAIL: gcc.c-torture/execute/20020508-1.c execution,  -O3 -g 
+FAIL: gcc.c-torture/execute/20020508-1.c execution,  -Os 
+FAIL: gcc.c-torture/execute/20020508-1.c execution,  -O2 -flto -fno-use-linker-plugin -flto-partition=none 
+FAIL: gcc.dg/and-1.c scan-assembler-not nand
+FAIL: gcc.dg/cleanup-10.c execution test
+FAIL: gcc.dg/cleanup-11.c execution test
+FAIL: gcc.dg/cleanup-8.c execution test
+FAIL: gcc.dg/cleanup-9.c execution test
+FAIL: gcc.dg/pr44194-1.c scan-rtl-dump dse1 "global deletions = (2|3)"
+FAIL: gcc.dg/pr44194-1.c scan-rtl-dump-not final "set \\(mem"
+FAIL: gcc.dg/pr46728-6.c scan-assembler-not pow
+
+# These tests succeeded in v15-powerpc64. But they failed in v16-x86 too.
+FAIL: gcc.dg/thread_annot_lock-23.c  (test for warnings, line 10)
+FAIL: gcc.dg/thread_annot_lock-23.c  (test for warnings, line 13)
+FAIL: gcc.dg/thread_annot_lock-23.c  (test for warnings, line 15)
+FAIL: gcc.dg/thread_annot_lock-23.c  (test for warnings, line 18)
+FAIL: gcc.dg/thread_annot_lock-23.c  (test for warnings, line 19)
+FAIL: gcc.dg/thread_annot_lock-24.c  (test for warnings, line 8)
+FAIL: gcc.dg/thread_annot_lock-24.c  (test for warnings, line 9)
+FAIL: gcc.dg/thread_annot_lock-24.c  (test for warnings, line 10)
+FAIL: gcc.dg/thread_annot_lock-25.c  (test for warnings, line 8)
+FAIL: gcc.dg/thread_annot_lock-25.c  (test for warnings, line 9)
+FAIL: gcc.dg/thread_annot_lock-25.c  (test for warnings, line 10)
+FAIL: gcc.dg/thread_annot_lock-25.c  (test for warnings, line 22)
+FAIL: gcc.dg/thread_annot_lock-25.c  (test for warnings, line 30)
+FAIL: gcc.dg/thread_annot_lock-42.c  (test for warnings, line 9)
+
+FAIL: gcc.dg/torture/pr53589.c  -O3 -g  (internal compiler error)
+FAIL: gcc.dg/torture/pr53589.c  -O3 -g  (test for excess errors)
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O0  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O0  -fpic  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O0  -fPIC  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O0  -pie -fpie  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O0  -pie -fPIE  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O1  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O1  -fpic  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O1  -fPIC  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O1  -pie -fpie  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O1  -pie -fPIE  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O2  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O2 -flto -fno-use-linker-plugin -flto-partition=none  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O2 -flto -fuse-linker-plugin -fno-fat-lto-objects  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O2  -fpic  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O2  -fPIC  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O2  -pie -fpie  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O2  -pie -fPIE  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O3 -fomit-frame-pointer  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O3 -fomit-frame-pointer  -fpic  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O3 -fomit-frame-pointer  -fPIC  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O3 -fomit-frame-pointer  -pie -fpie  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O3 -fomit-frame-pointer  -pie -fPIE  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O3 -g  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O3 -g  -fpic  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O3 -g  -fPIC  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O3 -g  -pie -fpie  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -O3 -g  -pie -fPIE  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -Os  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -Os  -fpic  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -Os  -fPIC  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -Os  -pie -fpie  execution test
+flaky | FAIL: gcc.dg/torture/tls/tls-test.c  -Os  -pie -fPIE  execution test
+FAIL: gcc.dg/tree-prof/lipo/ic-misattribution-1_0.c scan-ipa-dump-times profile "Indirect call -> direct call" 2
+FAIL: gcc.dg/tree-prof/lipo/indir-call-prof_0.c scan-ipa-dump profile "Indirect call -> direct call.* a1"
+FAIL: gcc.dg/tree-prof/lipo/lipo_inline1_0.c scan-tree-dump-not optimized "foo"
+FAIL: gcc.dg/tree-prof/lipo/lipo_inline1_0.c scan-tree-dump-not optimized "goo"
+FAIL: gcc.dg/tree-ssa/ssa-dom-thread-4.c scan-tree-dump-times dom1 "Threaded" 3
+FAIL: gcc.dg/tree-ssa/vrp47.c scan-tree-dump-times vrp1 "[xy][^ ]* !=" 0
+FAIL: gcc.dg/tree-ssa/vrp47.c scan-tree-dump-times dom2 "x[^ ]* & y" 1
+FAIL: gcc.dg/vect/pr45752.c -flto execution test
+FAIL: gcc.dg/vect/vect-reduc-2short.c -flto execution test
+FAIL: gcc.dg/vect/vect-reduc-6.c -flto execution test
+FAIL: gcc.dg/vect/slp-perm-1.c -flto execution test
+FAIL: gcc.dg/vect/slp-perm-2.c -flto execution test
+FAIL: gcc.dg/vect/slp-perm-3.c -flto execution test
+FAIL: gcc.dg/vect/slp-perm-4.c -flto execution test
+FAIL: gcc.dg/vect/slp-perm-5.c -flto execution test
+FAIL: gcc.dg/vect/slp-perm-6.c -flto execution test
+FAIL: gcc.dg/vect/slp-perm-7.c -flto execution test
+FAIL: gcc.dg/vmx/3a-03.c  -O0  execution test
+FAIL: gcc.dg/vmx/3a-03.c  -O1  execution test
+FAIL: gcc.dg/vmx/3a-03.c  -O2  execution test
+FAIL: gcc.dg/vmx/3a-03.c  -O3 -fomit-frame-pointer  execution test
+FAIL: gcc.dg/vmx/3a-03.c  -O3 -g  execution test
+FAIL: gcc.dg/vmx/3a-03.c  -Os  execution test
+FAIL: gcc.dg/vmx/3a-03.c  -O2 -flto -fno-use-linker-plugin -flto-partition=none  execution test
+FAIL: gcc.dg/vmx/3a-03.c  -O2 -flto -fuse-linker-plugin -fno-fat-lto-objects  execution test
+FAIL: gcc.dg/vmx/3a-03m.c  -O0  execution test
+FAIL: gcc.dg/vmx/3a-03m.c  -O1  execution test
+FAIL: gcc.dg/vmx/3a-03m.c  -O2  execution test
+FAIL: gcc.dg/vmx/3a-03m.c  -O3 -fomit-frame-pointer  execution test
+FAIL: gcc.dg/vmx/3a-03m.c  -O3 -g  execution test
+FAIL: gcc.dg/vmx/3a-03m.c  -Os  execution test
+FAIL: gcc.dg/vmx/3a-03m.c  -O2 -flto -fno-use-linker-plugin -flto-partition=none  execution test
+FAIL: gcc.dg/vmx/3a-03m.c  -O2 -flto -fuse-linker-plugin -fno-fat-lto-objects  execution test
+FAIL: gcc.target/powerpc/ppc-vector-memcpy.c scan-assembler lvx
+FAIL: gcc.target/powerpc/pr46728-1.c scan-assembler-not pow
+FAIL: gcc.target/powerpc/pr46728-2.c scan-assembler-not pow
+FAIL: gcc.target/powerpc/pr46728-3.c scan-assembler-not pow
+FAIL: gcc.target/powerpc/pr46728-4.c scan-assembler-not pow
+FAIL: gcc.target/powerpc/pr46728-7.c scan-assembler-not pow
+FAIL: gcc.target/powerpc/pr46728-8.c scan-assembler-not pow
+
+*** g++:
+FAIL: g++.dg/abi/forced.C -std=gnu++98 execution test
+FAIL: g++.dg/abi/forced.C -std=gnu++11 execution test
+FAIL: g++.dg/ext/cleanup-10.C -std=gnu++98 execution test
+FAIL: g++.dg/ext/cleanup-10.C -std=gnu++11 execution test
+FAIL: g++.dg/ext/cleanup-11.C -std=gnu++98 execution test
+FAIL: g++.dg/ext/cleanup-11.C -std=gnu++11 execution test
+FAIL: g++.dg/ext/cleanup-8.C -std=gnu++98 execution test
+FAIL: g++.dg/ext/cleanup-8.C -std=gnu++11 execution test
+FAIL: g++.dg/ext/cleanup-9.C -std=gnu++98 execution test
+FAIL: g++.dg/ext/cleanup-9.C -std=gnu++11 execution test
+FAIL: g++.dg/warn/Wself-assign-2.C -std=gnu++11  (test for warnings, line 12)
+FAIL: g++.dg/tree-prof/lipo/vcall1_0.C scan-ipa-dump-times profile "Indirect call -> direct call" 2
+FAIL: g++.dg/tree-prof/mversn15.C execution,    -fprofile-generate
+UNRESOLVED: g++.dg/tree-prof/mversn15.C compilation,  -fprofile-use
+UNRESOLVED: g++.dg/tree-prof/mversn15.C execution,    -fprofile-use
+FAIL: g++.dg/tree-prof/mversn15a.C execution,    -fprofile-generate
+UNRESOLVED: g++.dg/tree-prof/mversn15a.C compilation,  -fprofile-use
+UNRESOLVED: g++.dg/tree-prof/mversn15a.C execution,    -fprofile-use
+
+# Fortran failures are not important to us so far.
+*** gfortran:
+FAIL: gfortran.dg/bessel_6.f90  -O0  execution test
+FAIL: gfortran.dg/bessel_6.f90  -O1  execution test
+FAIL: gfortran.dg/bessel_6.f90  -O2  execution test
+FAIL: gfortran.dg/bessel_6.f90  -O3 -fomit-frame-pointer  execution test
+FAIL: gfortran.dg/bessel_6.f90  -O3 -fomit-frame-pointer -funroll-loops  execution test
+FAIL: gfortran.dg/bessel_6.f90  -O3 -fomit-frame-pointer -funroll-all-loops -finline-functions  execution test
+FAIL: gfortran.dg/bessel_6.f90  -O3 -g  execution test
+FAIL: gfortran.dg/bessel_6.f90  -Os  execution test
+XPASS: gfortran.dg/nint_2.f90  -O0  execution test
+FAIL: gfortran.dg/vect/fast-math-pr38968.f90 execution test
