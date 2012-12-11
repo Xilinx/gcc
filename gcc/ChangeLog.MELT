@@ -1,5 +1,9 @@
 
 2012-12-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-gimple.melt (dbgout_mapgimple_method): Add
+	assert.
+
+2012-12-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-gimple.melt (dbgout_mapgimple_method): New
 	method for dbg_output on discr_map_gimples.
 

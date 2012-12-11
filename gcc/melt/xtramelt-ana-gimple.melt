@@ -130,7 +130,7 @@
   #{
    /* foreach_mapgimple $EACHGIMAP*/ int $EACHGIMAP#_rk=0;
    for ($EACHGIMAP#_rk=0;
-        $EACHGIMAP#_rk < melt_size_mapgimples((struct meltmapgimples_st*)($GIMAP));
+        $EACHGIMAP#_rk < (int)melt_size_mapgimples((struct meltmapgimples_st*)($GIMAP));
 	$EACHGIMAP#_rk++) {
    $ATT = (gimple) NULL;
    $VAL = NULL;
@@ -2309,6 +2309,7 @@ the $N-th edge of a gimple phinode.}#
 
 ;;;; boxed gimple seq debug
 (defun dbgout_boxgimpleseq_method (self dbgi :long depth)
+  (assert_msg "check self" (is_a self discr_gimple_seq))
   (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
 	 (out  (unsafe_get_field :dbgi_out dbgi)) ) 
@@ -2324,6 +2325,9 @@ the $N-th edge of a gimple phinode.}#
   )
 (install_method discr_gimple_seq dbg_output dbgout_boxgimpleseq_method)
 
+
+
+;;;;;;;;;;;;;;;;
 (defprimitive make_gimple_mixloc (:gimple g :long num :value val dis) :value
 :doc #{Make a mixed location for the location of gimple $G with value $VAL 
 and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
