@@ -2417,14 +2417,19 @@ expand_block_tm (struct tm_region *region, basic_block bb)
 /* Return the list of basic-blocks in REGION.
 
    STOP_AT_IRREVOCABLE_P is true if caller is uninterested in blocks
-   following a TM_IRREVOCABLE call.  */
+   following a TM_IRREVOCABLE call.
+
+   INCLUDE_UNINSTRUMENTED_P is TRUE if we should include the
+   uninstrumented code path blocks in the list of basic blocks
+   returned, false otherwise.  */
 
 static vec<basic_block> 
 get_tm_region_blocks (basic_block entry_block,
 		      bitmap exit_blocks,
 		      bitmap irr_blocks,
 		      bitmap all_region_blocks,
-		      bool stop_at_irrevocable_p)
+		      bool stop_at_irrevocable_p,
+		      bool include_uninstrumented_p = true)
 {
   vec<basic_block> bbs = vNULL;
   unsigned i;
@@ -2450,7 +2455,9 @@ get_tm_region_blocks (basic_block entry_block,
 	continue;
 
       FOR_EACH_EDGE (e, ei, bb->succs)
-	if (!bitmap_bit_p (visited_blocks, e->dest->index))
+	if ((include_uninstrumented_p
+	     || !(e->flags & EDGE_TM_UNINSTRUMENTED))
+	    && !bitmap_bit_p (visited_blocks, e->dest->index))
 	  {
 	    bitmap_set_bit (visited_blocks, e->dest->index);
 	    bbs.safe_push (e->dest);
@@ -2465,11 +2472,19 @@ get_tm_region_blocks (basic_block entry_block,
   return bbs;
 }
 
+// Callback data for collect_bb2reg.
+struct bb2reg_stuff
+{
+  vec<tm_region_p> *bb2reg;
+  bool include_uninstrumented_p;
+};
+
 // Callback for expand_regions, collect innermost region data for each bb.
 static void *
 collect_bb2reg (struct tm_region *region, void *data)
 {
-  vec<tm_region_p> *bb2reg = (vec<tm_region_p> *) data;
+  struct bb2reg_stuff *stuff = (struct bb2reg_stuff *)data;
+  vec<tm_region_p> *bb2reg = stuff->bb2reg;
   vec<basic_block> queue;
   unsigned int i;
   basic_block bb;
@@ -2478,7 +2493,8 @@ collect_bb2reg (struct tm_region *region, void *data)
 				region->exit_blocks,
 				region->irr_blocks,
 				NULL,
-				/*stop_at_irr_p=*/true);
+				/*stop_at_irr_p=*/true,
+				stuff->include_uninstrumented_p);
 
   // We expect expand_region to perform a post-order traversal of the region
   // tree.  Therefore the last region seen for any bb is the innermost.
@@ -2491,7 +2507,8 @@ collect_bb2reg (struct tm_region *region, void *data)
 
 // Returns a vector, indexed by BB->INDEX, of the innermost tm_region to
 // which a basic block belongs.  Note that we only consider the instrumented
-// code paths for the region; the uninstrumented code paths are ignored.
+// code paths for the region; the uninstrumented code paths are ignored if
+// INCLUDE_UNINSTRUMENTED_P is false.
 //
 // ??? This data is very similar to the bb_regions array that is collected
 // during tm_region_init.  Or, rather, this data is similar to what could
@@ -2512,14 +2529,18 @@ collect_bb2reg (struct tm_region *region, void *data)
 // only known instance of this block sharing.
 
 static vec<tm_region_p>
-get_bb_regions_instrumented (bool traverse_clones)
+get_bb_regions_instrumented (bool traverse_clones,
+			     bool include_uninstrumented_p)
 {
   unsigned n = last_basic_block;
+  struct bb2reg_stuff stuff;
   vec<tm_region_p> ret;
 
   ret.create (n);
   ret.safe_grow_cleared (n);
-  expand_regions (all_tm_regions, collect_bb2reg, &ret, traverse_clones);
+  stuff.bb2reg = &ret;
+  stuff.include_uninstrumented_p = include_uninstrumented_p;
+  expand_regions (all_tm_regions, collect_bb2reg, &stuff, traverse_clones);
 
   return ret;
 }
@@ -2853,7 +2874,8 @@ execute_tm_mark (void)
   tm_log_init ();
 
   vec<tm_region_p> bb_regions
-    = get_bb_regions_instrumented (/*traverse_clones=*/true);
+    = get_bb_regions_instrumented (/*traverse_clones=*/true,
+				   /*include_uninstrumented_p=*/false);
   struct tm_region *r;
   unsigned i;
 
@@ -3027,7 +3049,8 @@ static unsigned int
 execute_tm_edges (void)
 {
   vec<tm_region_p> bb_regions
-    = get_bb_regions_instrumented (/*traverse_clones=*/false);
+    = get_bb_regions_instrumented (/*traverse_clones=*/false,
+				   /*include_uninstrumented_p=*/true);
   struct tm_region *r;
   unsigned i;
 
