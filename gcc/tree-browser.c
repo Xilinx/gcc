@@ -96,14 +96,13 @@ static tree TB_next_expr (tree);
 static tree TB_up_expr (tree);
 static tree TB_first_in_bind (tree);
 static tree TB_last_in_bind (tree);
-static int  TB_parent_eq (const void *, const void *);
 static tree TB_history_prev (void);
 
 /* FIXME: To be declared in a .h file.  */
 void browse_tree (tree);
 
 /* Hashtable helpers.  */
-struct tree_upper_hasher : typed_noop_remove <VALUE>
+struct tree_upper_hasher : typed_noop_remove <tree_node>
 {
   typedef tree_node value_type;
   typedef tree_node compare_type;

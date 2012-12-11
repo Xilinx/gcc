@@ -972,18 +972,18 @@ gimplify_hasher::equal (const value_type *p1, const compare_type *p2)
 
   if (TREE_CODE (t2) != code
       || TREE_TYPE (t1) != TREE_TYPE (t2))
-    return 0;
+    return false;
 
   if (!operand_equal_p (t1, t2, 0))
-    return 0;
+    return false;
 
 #ifdef ENABLE_CHECKING
   /* Only allow them to compare equal if they also hash equal; otherwise
      results are nondeterminate, and we fail bootstrap comparison.  */
-  gcc_assert (gimple_tree_hash (p1) == gimple_tree_hash (p2));
+  gcc_assert (hash (p1) == hash (p2));
 #endif
 
-  return 1;
+  return true;
 }
 
 struct gimplify_ctx
