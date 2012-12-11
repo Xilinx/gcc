@@ -5889,7 +5889,10 @@ assemble_alias (tree decl, tree target)
   tree target_decl;
 
   if (L_IPO_IS_AUXILIARY_MODULE)
-      return;
+    {
+      if (!lookup_attribute ("weakref", DECL_ATTRIBUTES (decl)))
+        return;
+    }
 
   if (lookup_attribute ("weakref", DECL_ATTRIBUTES (decl)))
     {
