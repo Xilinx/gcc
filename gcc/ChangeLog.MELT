@@ -1,5 +1,8 @@
 
 2012-12-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): Bump to 0.9.8-rc2.
+
+2012-12-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): Late bump to 0.9.8-rc1.
 
 	{{Regenerate}}
