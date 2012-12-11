@@ -33,6 +33,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "optabs.h"
 #include "output.h"
 #include "tm_p.h"
+#include "langhooks.h"
 
 /* AddressSanitizer finds out-of-bounds and use-after-free bugs
    with <2x slowdown on average.
@@ -211,6 +212,21 @@ alias_set_type asan_shadow_set = -1;
    alias set is used for all shadow memory accesses.  */
 static GTY(()) tree shadow_ptr_types[2];
 
+/* Initialize shadow_ptr_types array.  */
+
+static void
+asan_init_shadow_ptr_types (void)
+{
+  asan_shadow_set = new_alias_set ();
+  shadow_ptr_types[0] = build_distinct_type_copy (signed_char_type_node);
+  TYPE_ALIAS_SET (shadow_ptr_types[0]) = asan_shadow_set;
+  shadow_ptr_types[0] = build_pointer_type (shadow_ptr_types[0]);
+  shadow_ptr_types[1] = build_distinct_type_copy (short_integer_type_node);
+  TYPE_ALIAS_SET (shadow_ptr_types[1]) = asan_shadow_set;
+  shadow_ptr_types[1] = build_pointer_type (shadow_ptr_types[1]);
+  initialize_sanitizer_builtins ();
+}
+
 /* Asan pretty-printer, used for buidling of the description STRING_CSTs.  */
 static pretty_printer asan_pp;
 static bool asan_pp_initialized;
@@ -233,10 +249,11 @@ asan_pp_string (void)
   size_t len = strlen (buf);
   tree ret = build_string (len + 1, buf);
   TREE_TYPE (ret)
-    = build_array_type (char_type_node, build_index_type (size_int (len)));
+    = build_array_type (TREE_TYPE (shadow_ptr_types[0]),
+			build_index_type (size_int (len)));
   TREE_READONLY (ret) = 1;
   TREE_STATIC (ret) = 1;
-  return build1 (ADDR_EXPR, build_pointer_type (char_type_node), ret);
+  return build1 (ADDR_EXPR, shadow_ptr_types[0], ret);
 }
 
 /* Return a CONST_INT representing 4 subsequent shadow memory bytes.  */
@@ -274,6 +291,9 @@ asan_emit_stack_protection (rtx base, HOST_WIDE_INT *offsets, tree *decls,
   int l;
   unsigned char cur_shadow_byte = ASAN_STACK_MAGIC_LEFT;
   tree str_cst;
+
+  if (shadow_ptr_types[0] == NULL_TREE)
+    asan_init_shadow_ptr_types ();
 
   /* First of all, prepare the description string.  */
   if (!asan_pp_initialized)
@@ -429,6 +449,16 @@ asan_protect_global (tree decl)
   rtx rtl, symbol;
   section *sect;
 
+  if (TREE_CODE (decl) == STRING_CST)
+    {
+      /* Instrument all STRING_CSTs except those created
+	 by asan_pp_string here.  */
+      if (shadow_ptr_types[0] != NULL_TREE
+	  && TREE_CODE (TREE_TYPE (decl)) == ARRAY_TYPE
+	  && TREE_TYPE (TREE_TYPE (decl)) == TREE_TYPE (shadow_ptr_types[0]))
+	return false;
+      return true;
+    }
   if (TREE_CODE (decl) != VAR_DECL
       /* TLS vars aren't statically protectable.  */
       || DECL_THREAD_LOCAL_P (decl)
@@ -485,37 +515,15 @@ asan_protect_global (tree decl)
 static tree
 report_error_func (bool is_store, int size_in_bytes)
 {
-  tree fn_type;
-  tree def;
-  char name[100];
-
-  sprintf (name, "__asan_report_%s%d",
-	   is_store ? "store" : "load", size_in_bytes);
-  fn_type = build_function_type_list (void_type_node, ptr_type_node, NULL_TREE);
-  def = build_fn_decl (name, fn_type);
-  TREE_NOTHROW (def) = 1;
-  DECL_IGNORED_P (def) = 1;
-  TREE_THIS_VOLATILE (def) = 1;  /* Attribute noreturn. Surprise!  */
-  DECL_ATTRIBUTES (def) = tree_cons (get_identifier ("leaf"),
-				     NULL, DECL_ATTRIBUTES (def));
-  return def;
+  static enum built_in_function report[2][5]
+    = { { BUILT_IN_ASAN_REPORT_LOAD1, BUILT_IN_ASAN_REPORT_LOAD2,
+	  BUILT_IN_ASAN_REPORT_LOAD4, BUILT_IN_ASAN_REPORT_LOAD8,
+	  BUILT_IN_ASAN_REPORT_LOAD16 },
+	{ BUILT_IN_ASAN_REPORT_STORE1, BUILT_IN_ASAN_REPORT_STORE2,
+	  BUILT_IN_ASAN_REPORT_STORE4, BUILT_IN_ASAN_REPORT_STORE8,
+	  BUILT_IN_ASAN_REPORT_STORE16 } };
+  return builtin_decl_implicit (report[is_store][exact_log2 (size_in_bytes)]);
 }
-
-/* Construct a function tree for __asan_init().  */
-
-static tree
-asan_init_func (void)
-{
-  tree fn_type;
-  tree def;
-
-  fn_type = build_function_type_list (void_type_node, NULL_TREE);
-  def = build_fn_decl ("__asan_init", fn_type);
-  TREE_NOTHROW (def) = 1;
-  DECL_IGNORED_P (def) = 1;
-  return def;
-}
-
 
 #define PROB_VERY_UNLIKELY	(REG_BR_PROB_BASE / 2000 - 1)
 #define PROB_ALWAYS		(REG_BR_PROB_BASE)
@@ -818,9 +826,6 @@ instrument_derefs (gimple_stmt_iterator *iter, tree t,
       || (unsigned HOST_WIDE_INT) size_in_bytes - 1 >= 16)
     return;
 
-  /* For now just avoid instrumenting bit field acceses.
-     Fixing it is doable, but expected to be messy.  */
-
   HOST_WIDE_INT bitsize, bitpos;
   tree offset;
   enum machine_mode mode;
@@ -829,7 +834,17 @@ instrument_derefs (gimple_stmt_iterator *iter, tree t,
 		       &mode, &unsignedp, &volatilep, false);
   if (bitpos % (size_in_bytes * BITS_PER_UNIT)
       || bitsize != size_in_bytes * BITS_PER_UNIT)
-    return;
+    {
+      if (TREE_CODE (t) == COMPONENT_REF
+	  && DECL_BIT_FIELD_REPRESENTATIVE (TREE_OPERAND (t, 1)) != NULL_TREE)
+	{
+	  tree repr = DECL_BIT_FIELD_REPRESENTATIVE (TREE_OPERAND (t, 1));
+	  instrument_derefs (iter, build3 (COMPONENT_REF, TREE_TYPE (repr),
+					   TREE_OPERAND (t, 0), repr,
+					   NULL_TREE), location, is_store);
+	}
+      return;
+    }
 
   base = build_fold_addr_expr (t);
   build_check_stmt (location, base, iter, /*before_p=*/true,
@@ -849,7 +864,9 @@ instrument_mem_region_access (tree base, tree len,
 			      gimple_stmt_iterator *iter,
 			      location_t location, bool is_store)
 {
-  if (integer_zerop (len))
+  if (!POINTER_TYPE_P (TREE_TYPE (base))
+      || !INTEGRAL_TYPE_P (TREE_TYPE (len))
+      || integer_zerop (len))
     return;
 
   gimple_stmt_iterator gsi = *iter;
@@ -902,20 +919,41 @@ instrument_mem_region_access (tree base, tree len,
 
   /* offset = len - 1;  */
   len = unshare_expr (len);
-  gimple offset =
-    gimple_build_assign_with_ops (TREE_CODE (len),
-				  make_ssa_name (TREE_TYPE (len), NULL),
-				  len, NULL);
-  gimple_set_location (offset, location);
-  gsi_insert_before (&gsi, offset, GSI_NEW_STMT);
+  tree offset;
+  gimple_seq seq = NULL;
+  if (TREE_CODE (len) == INTEGER_CST)
+    offset = fold_build2 (MINUS_EXPR, size_type_node,
+			  fold_convert (size_type_node, len),
+			  build_int_cst (size_type_node, 1));
+  else
+    {
+      gimple g;
+      tree t;
 
-  offset =
-    gimple_build_assign_with_ops (MINUS_EXPR,
-				  make_ssa_name (size_type_node, NULL),
-				  gimple_assign_lhs (offset),
-				  build_int_cst (size_type_node, 1));
-  gimple_set_location (offset, location);
-  gsi_insert_after (&gsi, offset, GSI_NEW_STMT);
+      if (TREE_CODE (len) != SSA_NAME)
+	{
+	  t = make_ssa_name (TREE_TYPE (len), NULL);
+	  g = gimple_build_assign_with_ops (TREE_CODE (len), t, len, NULL);
+	  gimple_set_location (g, location);
+	  gimple_seq_add_stmt_without_update (&seq, g);
+	  len = t;
+	}
+      if (!useless_type_conversion_p (size_type_node, TREE_TYPE (len)))
+	{
+	  t = make_ssa_name (size_type_node, NULL);
+	  g = gimple_build_assign_with_ops (NOP_EXPR, t, len, NULL);
+	  gimple_set_location (g, location);
+	  gimple_seq_add_stmt_without_update (&seq, g);
+	  len = t;
+	}
+
+      t = make_ssa_name (size_type_node, NULL);
+      g = gimple_build_assign_with_ops (MINUS_EXPR, t, len,
+					build_int_cst (size_type_node, 1));
+      gimple_set_location (g, location);
+      gimple_seq_add_stmt_without_update (&seq, g);
+      offset = gimple_assign_lhs (g);
+    }
 
   /* _1 = base;  */
   base = unshare_expr (base);
@@ -924,14 +962,16 @@ instrument_mem_region_access (tree base, tree len,
 				  make_ssa_name (TREE_TYPE (base), NULL),
 				  base, NULL);
   gimple_set_location (region_end, location);
-  gsi_insert_after (&gsi, region_end, GSI_NEW_STMT);
+  gimple_seq_add_stmt_without_update (&seq, region_end);
+  gsi_insert_seq_before (&gsi, seq, GSI_SAME_STMT);
+  gsi_prev (&gsi);
 
   /* _2 = _1 + offset;  */
   region_end =
     gimple_build_assign_with_ops (POINTER_PLUS_EXPR,
 				  make_ssa_name (TREE_TYPE (base), NULL),
 				  gimple_assign_lhs (region_end),
-				  gimple_assign_lhs (offset));
+				  offset);
   gimple_set_location (region_end, location);
   gsi_insert_after (&gsi, region_end, GSI_NEW_STMT);
 
@@ -1089,7 +1129,6 @@ instrument_builtin_call (gimple_stmt_iterator *iter)
        These are handled differently from the classical memory memory
        access builtins above.  */
 
-    case BUILT_IN_ATOMIC_LOAD:
     case BUILT_IN_ATOMIC_LOAD_1:
     case BUILT_IN_ATOMIC_LOAD_2:
     case BUILT_IN_ATOMIC_LOAD_4:
@@ -1192,23 +1231,18 @@ instrument_builtin_call (gimple_stmt_iterator *iter)
     case BUILT_IN_SYNC_LOCK_RELEASE_8:
     case BUILT_IN_SYNC_LOCK_RELEASE_16:
 
-    case BUILT_IN_ATOMIC_TEST_AND_SET:
-    case BUILT_IN_ATOMIC_CLEAR:
-    case BUILT_IN_ATOMIC_EXCHANGE:
     case BUILT_IN_ATOMIC_EXCHANGE_1:
     case BUILT_IN_ATOMIC_EXCHANGE_2:
     case BUILT_IN_ATOMIC_EXCHANGE_4:
     case BUILT_IN_ATOMIC_EXCHANGE_8:
     case BUILT_IN_ATOMIC_EXCHANGE_16:
 
-    case BUILT_IN_ATOMIC_COMPARE_EXCHANGE:
     case BUILT_IN_ATOMIC_COMPARE_EXCHANGE_1:
     case BUILT_IN_ATOMIC_COMPARE_EXCHANGE_2:
     case BUILT_IN_ATOMIC_COMPARE_EXCHANGE_4:
     case BUILT_IN_ATOMIC_COMPARE_EXCHANGE_8:
     case BUILT_IN_ATOMIC_COMPARE_EXCHANGE_16:
 
-    case BUILT_IN_ATOMIC_STORE:
     case BUILT_IN_ATOMIC_STORE_1:
     case BUILT_IN_ATOMIC_STORE_2:
     case BUILT_IN_ATOMIC_STORE_4:
@@ -1339,10 +1373,12 @@ instrument_assignment (gimple_stmt_iterator *iter)
 
   gcc_assert (gimple_assign_single_p (s));
 
-  instrument_derefs (iter, gimple_assign_lhs (s),
-		     gimple_location (s), true);
-  instrument_derefs (iter, gimple_assign_rhs1 (s),
-		     gimple_location (s), false);
+  if (gimple_store_p (s))
+    instrument_derefs (iter, gimple_assign_lhs (s),
+		       gimple_location (s), true);
+  if (gimple_assign_load_p (s))
+    instrument_derefs (iter, gimple_assign_rhs1 (s),
+		       gimple_location (s), false);
 }
 
 /* Instrument the function call pointed to by the iterator ITER, if it
@@ -1489,6 +1525,134 @@ asan_add_global (tree decl, tree type, vec<constructor_elt, va_gc> *v)
   CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, init);
 }
 
+/* Initialize sanitizer.def builtins if the FE hasn't initialized them.  */
+void
+initialize_sanitizer_builtins (void)
+{
+  tree decl;
+
+  if (builtin_decl_implicit_p (BUILT_IN_ASAN_INIT))
+    return;
+
+  tree BT_FN_VOID = build_function_type_list (void_type_node, NULL_TREE);
+  tree BT_FN_VOID_PTR
+    = build_function_type_list (void_type_node, ptr_type_node, NULL_TREE);
+  tree BT_FN_VOID_PTR_PTRMODE
+    = build_function_type_list (void_type_node, ptr_type_node,
+				build_nonstandard_integer_type (POINTER_SIZE,
+								1), NULL_TREE);
+  tree BT_FN_VOID_INT
+    = build_function_type_list (void_type_node, integer_type_node, NULL_TREE);
+  tree BT_FN_BOOL_VPTR_PTR_IX_INT_INT[5];
+  tree BT_FN_IX_CONST_VPTR_INT[5];
+  tree BT_FN_IX_VPTR_IX_INT[5];
+  tree BT_FN_VOID_VPTR_IX_INT[5];
+  tree vptr
+    = build_pointer_type (build_qualified_type (void_type_node,
+						TYPE_QUAL_VOLATILE));
+  tree cvptr
+    = build_pointer_type (build_qualified_type (void_type_node,
+						TYPE_QUAL_VOLATILE
+						|TYPE_QUAL_CONST));
+  tree boolt
+    = lang_hooks.types.type_for_size (BOOL_TYPE_SIZE, 1);
+  int i;
+  for (i = 0; i < 5; i++)
+    {
+      tree ix = build_nonstandard_integer_type (BITS_PER_UNIT * (1 << i), 1);
+      BT_FN_BOOL_VPTR_PTR_IX_INT_INT[i]
+	= build_function_type_list (boolt, vptr, ptr_type_node, ix,
+				    integer_type_node, integer_type_node,
+				    NULL_TREE);
+      BT_FN_IX_CONST_VPTR_INT[i]
+	= build_function_type_list (ix, cvptr, integer_type_node, NULL_TREE);
+      BT_FN_IX_VPTR_IX_INT[i]
+	= build_function_type_list (ix, vptr, ix, integer_type_node,
+				    NULL_TREE);
+      BT_FN_VOID_VPTR_IX_INT[i]
+	= build_function_type_list (void_type_node, vptr, ix,
+				    integer_type_node, NULL_TREE);
+    }
+#define BT_FN_BOOL_VPTR_PTR_I1_INT_INT BT_FN_BOOL_VPTR_PTR_IX_INT_INT[0]
+#define BT_FN_I1_CONST_VPTR_INT BT_FN_IX_CONST_VPTR_INT[0]
+#define BT_FN_I1_VPTR_I1_INT BT_FN_IX_VPTR_IX_INT[0]
+#define BT_FN_VOID_VPTR_I1_INT BT_FN_VOID_VPTR_IX_INT[0]
+#define BT_FN_BOOL_VPTR_PTR_I2_INT_INT BT_FN_BOOL_VPTR_PTR_IX_INT_INT[1]
+#define BT_FN_I2_CONST_VPTR_INT BT_FN_IX_CONST_VPTR_INT[1]
+#define BT_FN_I2_VPTR_I2_INT BT_FN_IX_VPTR_IX_INT[1]
+#define BT_FN_VOID_VPTR_I2_INT BT_FN_VOID_VPTR_IX_INT[1]
+#define BT_FN_BOOL_VPTR_PTR_I4_INT_INT BT_FN_BOOL_VPTR_PTR_IX_INT_INT[2]
+#define BT_FN_I4_CONST_VPTR_INT BT_FN_IX_CONST_VPTR_INT[2]
+#define BT_FN_I4_VPTR_I4_INT BT_FN_IX_VPTR_IX_INT[2]
+#define BT_FN_VOID_VPTR_I4_INT BT_FN_VOID_VPTR_IX_INT[2]
+#define BT_FN_BOOL_VPTR_PTR_I8_INT_INT BT_FN_BOOL_VPTR_PTR_IX_INT_INT[3]
+#define BT_FN_I8_CONST_VPTR_INT BT_FN_IX_CONST_VPTR_INT[3]
+#define BT_FN_I8_VPTR_I8_INT BT_FN_IX_VPTR_IX_INT[3]
+#define BT_FN_VOID_VPTR_I8_INT BT_FN_VOID_VPTR_IX_INT[3]
+#define BT_FN_BOOL_VPTR_PTR_I16_INT_INT BT_FN_BOOL_VPTR_PTR_IX_INT_INT[4]
+#define BT_FN_I16_CONST_VPTR_INT BT_FN_IX_CONST_VPTR_INT[4]
+#define BT_FN_I16_VPTR_I16_INT BT_FN_IX_VPTR_IX_INT[4]
+#define BT_FN_VOID_VPTR_I16_INT BT_FN_VOID_VPTR_IX_INT[4]
+#undef ATTR_NOTHROW_LEAF_LIST
+#define ATTR_NOTHROW_LEAF_LIST ECF_NOTHROW | ECF_LEAF
+#undef ATTR_NORETURN_NOTHROW_LEAF_LIST
+#define ATTR_NORETURN_NOTHROW_LEAF_LIST ECF_NORETURN | ATTR_NOTHROW_LEAF_LIST
+#undef DEF_SANITIZER_BUILTIN
+#define DEF_SANITIZER_BUILTIN(ENUM, NAME, TYPE, ATTRS) \
+  decl = add_builtin_function ("__builtin_" NAME, TYPE, ENUM,		\
+			       BUILT_IN_NORMAL, NAME, NULL_TREE);	\
+  set_call_expr_flags (decl, ATTRS);					\
+  set_builtin_decl (ENUM, decl, true);
+
+#include "sanitizer.def"
+
+#undef DEF_SANITIZER_BUILTIN
+}
+
+/* Called via htab_traverse.  Count number of emitted
+   STRING_CSTs in the constant hash table.  */
+
+static int
+count_string_csts (void **slot, void *data)
+{
+  struct constant_descriptor_tree *desc
+    = (struct constant_descriptor_tree *) *slot;
+  if (TREE_CODE (desc->value) == STRING_CST
+      && TREE_ASM_WRITTEN (desc->value)
+      && asan_protect_global (desc->value))
+    ++*((unsigned HOST_WIDE_INT *) data);
+  return 1;
+}
+
+/* Helper structure to pass two parameters to
+   add_string_csts.  */
+
+struct asan_add_string_csts_data
+{
+  tree type;
+  vec<constructor_elt, va_gc> *v;
+};
+
+/* Called via htab_traverse.  Call asan_add_global
+   on emitted STRING_CSTs from the constant hash table.  */
+
+static int
+add_string_csts (void **slot, void *data)
+{
+  struct constant_descriptor_tree *desc
+    = (struct constant_descriptor_tree *) *slot;
+  if (TREE_CODE (desc->value) == STRING_CST
+      && TREE_ASM_WRITTEN (desc->value)
+      && asan_protect_global (desc->value))
+    {
+      struct asan_add_string_csts_data *aascd
+	= (struct asan_add_string_csts_data *) data;
+      asan_add_global (SYMBOL_REF_DECL (XEXP (desc->rtl, 0)),
+		       aascd->type, aascd->v);
+    }
+  return 1;
+}
+
 /* Needs to be GTY(()), because cgraph_build_static_cdtor may
    invoke ggc_collect.  */
 static GTY(()) tree asan_ctor_statements;
@@ -1504,14 +1668,23 @@ asan_finish_file (void)
   struct varpool_node *vnode;
   unsigned HOST_WIDE_INT gcount = 0;
 
-  append_to_statement_list (build_call_expr (asan_init_func (), 0),
-			    &asan_ctor_statements);
+  if (shadow_ptr_types[0] == NULL_TREE)
+    asan_init_shadow_ptr_types ();
+  /* Avoid instrumenting code in the asan ctors/dtors.
+     We don't need to insert padding after the description strings,
+     nor after .LASAN* array.  */
+  flag_asan = 0;
+
+  tree fn = builtin_decl_implicit (BUILT_IN_ASAN_INIT);
+  append_to_statement_list (build_call_expr (fn, 0), &asan_ctor_statements);
   FOR_EACH_DEFINED_VARIABLE (vnode)
     if (asan_protect_global (vnode->symbol.decl))
       ++gcount;
+  htab_t const_desc_htab = constant_pool_htab ();
+  htab_traverse (const_desc_htab, count_string_csts, &gcount);
   if (gcount)
     {
-      tree type = asan_global_struct (), var, ctor, decl;
+      tree type = asan_global_struct (), var, ctor;
       tree uptr = build_nonstandard_integer_type (POINTER_SIZE, 1);
       tree dtor_statements = NULL_TREE;
       vec<constructor_elt, va_gc> *v;
@@ -1529,26 +1702,24 @@ asan_finish_file (void)
       FOR_EACH_DEFINED_VARIABLE (vnode)
 	if (asan_protect_global (vnode->symbol.decl))
 	  asan_add_global (vnode->symbol.decl, TREE_TYPE (type), v);
+      struct asan_add_string_csts_data aascd;
+      aascd.type = TREE_TYPE (type);
+      aascd.v = v;
+      htab_traverse (const_desc_htab, add_string_csts, &aascd);
       ctor = build_constructor (type, v);
       TREE_CONSTANT (ctor) = 1;
       TREE_STATIC (ctor) = 1;
       DECL_INITIAL (var) = ctor;
       varpool_assemble_decl (varpool_node_for_decl (var));
 
-      type = build_function_type_list (void_type_node, ptr_type_node,
-				       uptr, NULL_TREE);
-      decl = build_fn_decl ("__asan_register_globals", type);
-      TREE_NOTHROW (decl) = 1;
-      DECL_IGNORED_P (decl) = 1;
-      append_to_statement_list (build_call_expr (decl, 2,
+      fn = builtin_decl_implicit (BUILT_IN_ASAN_REGISTER_GLOBALS);
+      append_to_statement_list (build_call_expr (fn, 2,
 						 build_fold_addr_expr (var),
 						 build_int_cst (uptr, gcount)),
 				&asan_ctor_statements);
 
-      decl = build_fn_decl ("__asan_unregister_globals", type);
-      TREE_NOTHROW (decl) = 1;
-      DECL_IGNORED_P (decl) = 1;
-      append_to_statement_list (build_call_expr (decl, 2,
+      fn = builtin_decl_implicit (BUILT_IN_ASAN_UNREGISTER_GLOBALS);
+      append_to_statement_list (build_call_expr (fn, 2,
 						 build_fold_addr_expr (var),
 						 build_int_cst (uptr, gcount)),
 				&dtor_statements);
@@ -1557,20 +1728,7 @@ asan_finish_file (void)
     }
   cgraph_build_static_cdtor ('I', asan_ctor_statements,
 			     MAX_RESERVED_INIT_PRIORITY - 1);
-}
-
-/* Initialize shadow_ptr_types array.  */
-
-static void
-asan_init_shadow_ptr_types (void)
-{
-  asan_shadow_set = new_alias_set ();
-  shadow_ptr_types[0] = build_distinct_type_copy (signed_char_type_node);
-  TYPE_ALIAS_SET (shadow_ptr_types[0]) = asan_shadow_set;
-  shadow_ptr_types[0] = build_pointer_type (shadow_ptr_types[0]);
-  shadow_ptr_types[1] = build_distinct_type_copy (short_integer_type_node);
-  TYPE_ALIAS_SET (shadow_ptr_types[1]) = asan_shadow_set;
-  shadow_ptr_types[1] = build_pointer_type (shadow_ptr_types[1]);
+  flag_asan = 1;
 }
 
 /* Instrument the current function.  */
