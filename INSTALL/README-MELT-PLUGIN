@@ -218,6 +218,10 @@ NEWS for 0.9.8 MELT plugin for GCC 4.6 & 4.7 & future 4.8
    given stuff. So for example (CONSTANT_BOX 1) is the same as
    the expression (MAKE_INTEGERBOX DISCR_CONSTANT_INTEGER 1)
 
+   * UNBOX-ing syntactic construct
+   
+   The (UNBOX <ctype> <value>) is a convenient way to unbox values. For example
+   the expression (UNBOX :TREE V) is the same as (TREE_CONTENT V)
 
 
    Runtime improvements

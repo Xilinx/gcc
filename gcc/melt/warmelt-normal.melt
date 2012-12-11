@@ -2104,6 +2104,72 @@ source location.}#
 (install_method class_source_constant_box normal_exp normexp_constbox)
 
 
+
+;;;  unboxing
+(defun normexp_unbox (recv env ncx psloc)
+  (debug "normexp_unbox recv" recv)
+  (assert_msg "check unbox recv" (is_a recv class_source_unbox))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normalization_context))
+  (let ( (sloc (unsafe_get_field :loca_location recv)) 
+	 (sexp (get_field :sunbox_expr recv))
+	 (ctyp (get_field :sunbox_ctype recv))
+	 (cname (get_field :ctype_cname ctyp))
+	 )
+    (debug "normexp_unbox ctyp=" ctyp)
+    (assert_msg "check ctyp" (is_a ctyp class_ctype))
+    (let ( (unboxer 
+	    (cond ( (is_a ctyp class_ctype_plain)
+		    (get_field :ctypp_unboxing ctyp))
+		  ( (is_a ctyp class_ctype_gty)
+		    (get_field :ctypg_unboxfun ctyp))
+		  (:else
+		   (error_plain sloc "unexpected ctype for UNBOX")
+		   (return))))
+	   )
+      (debug "normexp_unbox unboxer=" unboxer " cname=" cname)
+      (multicall 
+       (nexp nbind)
+       (normal_exp sexp env ncx sloc)
+       (debug "normexp_unbox nexp=" nexp " nbind=" nbind)
+       (when (not (is_list nbind))
+	 (setq nbind (list))
+	 (debug "normexp_unbox set nbind=" nbind))
+       (let (
+	     (csym (clone_symbol 'unbox))
+	     (nchunk 
+	      (instance class_nrep_chunk
+			:nrep_loc sloc
+			:nchunk_oper 'unbox
+			:nexpr_ctyp ctyp
+			:nchunk_expansion
+			(tuple
+			 (clone_with_discriminant '"/*unboxing*/ " discr_verbatim_string)
+			 (clone_with_discriminant unboxer discr_verbatim_string)
+			 (clone_with_discriminant '" ((melt_ptr_t)" discr_verbatim_string)
+			 nexp
+			 (clone_with_discriminant '")" discr_verbatim_string)
+			 )))
+	     (cbind (instance class_normal_let_binding
+			      :letbind_loc sloc
+			      :binder csym
+			      :letbind_type ctyp
+			      :letbind_expr nchunk
+			      ))
+	     (clocc (instance class_nrep_locsymocc
+			      :nrep_loc sloc
+			      :nocc_ctyp ctyp
+			      :nocc_symb csym
+			      :nocc_bind cbind))
+	     )
+	 (debug "normexp_unbox nchunk=" nchunk " clocc="  clocc)
+	 (list_append nbind cbind)
+	 (debug "normexp_unbox return clocc=" clocc " nbind=" nbind)
+	 (return clocc nbind)
+	 )))))
+(install_method class_source_unbox normal_exp normexp_unbox)
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalize a code_chunk
 (defun normexp_code_chunk (recv env ncx psloc)
