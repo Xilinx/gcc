@@ -1,3 +1,18 @@
+2012-12-12  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c/c-objc-common.h (LANG_HOOKS_CILK_CHECK_CTRL_FLOW): New define.
+	* cilk.c (store_labels): New function.
+	(find_all_labels): Likewise.
+	(check_goto_labels_inside_cilk_for_body): Likewise.
+	(check_gotos_inside_cilk_for): Likewise.
+	(check_gotos_outside_cilk_for): Likewise.
+	(check_cilk_ctrl_flow): Likewise.
+	* langhooks.c (lhd_cilk_check_ctrl_flow): Likewise.
+	* langhooks.h (struct lang_hooks_for_cilkplus): New function pointer.
+	* gimplify.c (gimplify_function_tree): Called cilk_check_ctrl_flow
+	function that is part of lang_hooks.
+	* langhooks-def.h (LANG_HOOKS_CILK): New field added.
+
 2012-12-10  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* doc/tm.texi (TARGET_CILKPLUS_BUILTIN_MAP_PROCESSOR_TO_ATTR): Added

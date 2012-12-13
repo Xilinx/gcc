@@ -1292,8 +1292,9 @@ wrapper_parm_cb (const void *key0, void **val0, void *data)
 	 them in code that spawns. */
       if ((TREE_CODE (arg) == VAR_DECL) && DECL_HARD_REGISTER (arg))
 	{
-	  error ("explicit register variable %qD may not be modified in spawn",
-		 arg);
+	  error_at (EXPR_LOCATION (arg),
+		    "explicit register variable %qD may not be modified in "
+		    "spawn", arg);
 	  arg = null_pointer_node;
 	}
       else
@@ -1464,7 +1465,8 @@ copy_decl_for_cilk (tree decl, copy_body_data *id)
       return copy_decl_no_change (decl, id);
 
     case LABEL_DECL:
-      error ("Invalid use of label %q+D in spawn", decl);
+      error_at (EXPR_LOCATION (decl),
+		"Invalid use of label %q+D in spawn", decl);
       return error_mark_node;
 
     case RESULT_DECL:
@@ -1544,7 +1546,8 @@ check_outlined_calls (tree *tp,
   if (! (flags & ECF_NOTHROW) && flag_exceptions)
     *throws = true;
   if (flags & ECF_RETURNS_TWICE)
-    error ("Can not spawn call to function that returns twice");
+    error_at (EXPR_LOCATION (t),
+	      "Can not spawn call to function that returns twice");
   return 0;
 }
 
@@ -1761,6 +1764,7 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
   tree cond = FOR_COND (loop);
   tree init = CILK_FOR_INIT (loop);
   tree incr = cilk_simplify_tree (FOR_EXPR (loop));
+  tree orig_incr = cilk_simplify_tree (FOR_EXPR (loop)); /* Copy for LOC.  */ 
   tree grain = CILK_FOR_GRAIN (loop);
   tree body = FOR_BODY (loop);
   
@@ -1937,9 +1941,12 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
 	  exactly_one = incr_direction == -1;
 	}
       else
-	gcc_unreachable ();
+	{
+	  error_at (EXPR_LOCATION (orig_incr),
+		    "Invalid loop increment operation.");
+	  cfd->invalid = true;
+	}
       break;
-
     default:
       gcc_unreachable ();
     }
@@ -2865,3 +2872,6 @@ c_make_cilk_frame (void)
     }
   return decl;
 }
+
+
+  

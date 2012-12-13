@@ -10982,19 +10982,19 @@ c_finish_cilk_loop (location_t start_locus ATTRIBUTE_UNUSED, tree cvar,
 
   if (!cond)
     {
-      error ("cilk_for missing condition");
+      error ("_Cilk_for missing condition");
       return;
     }
   if (!incr)
     {
-      error ("cilk_for missing increment");
+      error ("_Cilk_for missing increment");
       return;
     }
 
   /* If the condition is zero don't generate a loop construct.  */
   if (TREE_CONSTANT (cond))
     {
-      error ("cilk_for has constant condition");
+      error_at (EXPR_LOCATION (cond), "_Cilk_for has constant condition");
       return;
     }
   if (!cvar)
@@ -11004,7 +11004,7 @@ c_finish_cilk_loop (location_t start_locus ATTRIBUTE_UNUSED, tree cvar,
     }
   if (clab)
     {
-      error ("cilk_for has continue");
+      error_at (EXPR_LOCATION (clab), "_Cilk_for has continue");
       return;
     }
 

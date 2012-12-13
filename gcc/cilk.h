@@ -296,6 +296,7 @@ bool cilk_valid_spawn (tree);
 void gimplify_cilk_spawn (tree *, gimple_seq *, gimple_seq *);
 void gimplify_cilk_sync (tree *, gimple_seq *);
 void gimplify_cilk_for (tree *, gimple_seq *, gimple_seq *);
+void cilk_check_ctrl_flow (tree *);
 extern tree cilk_call_setjmp (tree);
 extern tree make_cilk_frame (tree);
 extern tree build_cilk_function_exit (tree, bool, bool);

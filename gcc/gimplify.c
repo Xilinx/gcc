@@ -8415,6 +8415,8 @@ gimplify_function_tree (tree fndecl)
 
   gcc_assert (!gimple_body (fndecl));
 
+  if (flag_enable_cilk)
+    lang_hooks.cilkplus.cilk_check_ctrl_flow (&DECL_SAVED_TREE (fndecl));
 
   /* Here we check to see if we have a function with the attribute "vector."  
      If so, then we must clone it to masked/unmasked when apropriate.  */

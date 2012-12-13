@@ -37,6 +37,16 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "dwarf2out.h"
 
+
+/* The only reason why we have this struct is that we need a void * to pass
+   into the walk_tree function.  */
+
+struct label_list_struct
+{
+  vec <tree, va_gc> *labels;
+};
+
+
 tree cilk_trees[(int) CILK_TI_MAX];
 
 static HOST_WIDE_INT worker_tail_offset;
@@ -1405,4 +1415,151 @@ is_cilk_function_decl (tree olddecl, tree newdecl)
   if (found_sync || found_leave_frame || found_enter_frame)
     return true;
   return false;
+}
+
+
+/* Helper function for walk_trees.  *WALK_SUBTREES is seto to zero if it
+   encounters a CILK_FOR, LABEL_DECL or GOTO in *TP.  If LABEL_DECL is found
+   then the value is pushed into the list pointed by DATA.  */
+
+static tree
+store_labels (tree *tp, int *walk_subtrees, void *data)
+{
+  struct label_list_struct *label_list = (struct label_list_struct *)data;
+
+  if (!tp || !*tp)
+    return NULL_TREE;
+  else if (TREE_CODE (*tp) == CILK_FOR_STMT
+	   || TREE_CODE (*tp) == GOTO_EXPR)
+    *walk_subtrees = 0;
+  else if (TREE_CODE (*tp) == LABEL_DECL)
+    {
+      *walk_subtrees = 0;
+      vec_safe_push (label_list->labels, *tp);
+    }
+  else
+    *walk_subtrees = 1;
+  return NULL_TREE;
+}
+
+/* Finds all the labels in STMT that is not inside a CILK_FOR.  */
+
+static struct label_list_struct
+find_all_labels (tree stmt)
+{
+  struct label_list_struct label_list;
+
+  label_list.labels = NULL;
+  walk_tree (&stmt, store_labels, (void *)&label_list, NULL);
+  return label_list;
+}
+
+/* Helper function for walk_trees.  If the *TP is GOTO_EXPR it will check if 
+   its destination label is in the list in *DATA.  *WALK_SUBTREES is always 
+   set to one.  */
+
+static tree
+check_goto_labels_inside_cilk_for_body (tree *tp, int *walk_subtrees,
+					void *data)
+{
+  size_t ii = 0;
+  tree ii_t = NULL_TREE;
+  bool label_ok = false;
+  struct label_list_struct *label_list = (struct label_list_struct *)data;
+  if (!tp || !*tp)
+    return NULL_TREE;
+
+  if (TREE_CODE (*tp) == GOTO_EXPR)
+    {
+      tree goto_label = GOTO_DESTINATION (*tp);
+      for (ii = 0; vec_safe_iterate (label_list->labels, ii, &ii_t); ii++)
+	if (ii_t == goto_label)
+	  label_ok = true;
+      
+      if (!label_ok)
+	{
+	  error_at (EXPR_LOCATION (*tp), "goto destination is outside the "
+		    "_Cilk_for scope.");
+	  *tp = error_mark_node;
+	}
+    }
+  else if (TREE_CODE (*tp) == CILK_FOR_STMT)
+    *walk_subtrees = 0;
+  else
+    *walk_subtrees = 1;
+  return NULL_TREE;
+}
+
+/* Helper function for walk_tree. If *TP is a CILK_FOR_STMT, then it will find
+   all the labels in it and then walks through the body to see if the gotos in
+   it are using the local labels.  */
+
+static tree
+check_gotos_inside_cilk_for (tree *tp, int *walk_subtrees,
+			     void *data ATTRIBUTE_UNUSED)
+{
+  struct label_list_struct label_list;
+  if (!tp || !*tp)
+    return NULL_TREE;
+
+  if (TREE_CODE (*tp) == CILK_FOR_STMT)
+    {
+      label_list = find_all_labels (FOR_BODY (*tp));
+      walk_tree (&FOR_BODY (*tp), check_goto_labels_inside_cilk_for_body,
+		 (void *) &label_list, NULL);
+    }
+  *walk_subtrees = 1;
+  return NULL_TREE;
+}
+
+/* Helper function for walk_tree.  */
+
+static tree
+check_gotos_outside_cilk_for (tree *tp, int *walk_subtrees,
+			      void *data)
+{
+  tree ii_t = NULL_TREE;
+  size_t ii = 0;
+  bool label_ok = false;
+  struct label_list_struct *label_list = (struct label_list_struct *) data;
+  if (!tp || !*tp)
+    return NULL_TREE;
+
+  if (TREE_CODE (*tp) == GOTO_EXPR)
+    {
+      tree goto_label = GOTO_DESTINATION (*tp);
+      *walk_subtrees = 0;
+      for (ii = 0; vec_safe_iterate (label_list->labels, ii, &ii_t); ii++)
+	if (ii_t == goto_label)
+	  label_ok = true;
+
+      if (!label_ok)
+	{
+	  error_at (EXPR_LOCATION (*tp), "Goto label is inside a _Cilk_for "
+		    "while the goto itself is outside.");
+	  *tp = error_mark_node;
+	}
+    }
+  else if (TREE_CODE (*tp) == CILK_FOR_STMT)
+    *walk_subtrees = 0;
+  else
+    *walk_subtrees = 1;
+
+  return NULL_TREE;
+}
+ 
+/* Checks some of the control flow changing statements (e.g. goto) in *FNBODY
+   are valid.  */
+
+void
+cilk_check_ctrl_flow (tree *fnbody)
+{
+  struct label_list_struct label_list;
+  if (!fnbody)
+    return;
+  walk_tree (fnbody, check_gotos_inside_cilk_for, NULL, NULL);
+
+  label_list = find_all_labels (*fnbody);
+  walk_tree (fnbody, check_gotos_outside_cilk_for, (void *) &label_list, NULL);
+  return;
 }

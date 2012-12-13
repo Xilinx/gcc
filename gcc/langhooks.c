@@ -730,3 +730,8 @@ lhd_elem_fn_create_fn (tree x ATTRIBUTE_UNUSED)
 {
   return;
 }
+
+void lhd_cilk_check_ctrl_flow (tree *x ATTRIBUTE_UNUSED)
+{
+  return;
+}

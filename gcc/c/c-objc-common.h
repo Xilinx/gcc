@@ -120,4 +120,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #undef LANG_HOOKS_ELEM_FN_CREATE_FN
 #define LANG_HOOKS_ELEM_FN_CREATE_FN elem_fn_create_fn
+
+#undef LANG_HOOKS_CILK_CHECK_CTRL_FLOW
+#define LANG_HOOKS_CILK_CHECK_CTRL_FLOW cilk_check_ctrl_flow
 #endif /* GCC_C_OBJC_COMMON */
