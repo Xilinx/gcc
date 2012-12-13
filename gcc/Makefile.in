@@ -2244,8 +2244,8 @@ tree-ssa-tail-merge.o: tree-ssa-tail-merge.c \
    $(TREE_H) $(TREE_FLOW_H) $(TREE_INLINE_H) $(TREE_DUMP_H) $(HASH_TABLE_H) \
    $(GIMPLE_H) $(FUNCTION_H) tree-ssa-sccvn.h \
    $(CGRAPH_H) $(GIMPLE_PRETTY_PRINT_H) $(PARAMS_H)
-tree-ssa-structalias.o: tree-ssa-structalias.c \
-   $(SYSTEM_H) $(CONFIG_H) coretypes.h $(TM_H) $(GGC_H) $(OBSTACK_H) $(BITMAP_H) \
+tree-ssa-structalias.o: tree-ssa-structalias.c $(SYSTEM_H) $(CONFIG_H) \
+   coretypes.h $(HASH_TABLE_H) $(TM_H) $(GGC_H) $(OBSTACK_H) $(BITMAP_H) \
    $(FLAGS_H) $(TM_P_H) $(BASIC_BLOCK_H) \
    $(DIAGNOSTIC_H) $(TREE_H) $(TREE_FLOW_H) $(TREE_INLINE_H) \
    $(GIMPLE_H) $(HASHTAB_H) $(FUNCTION_H) $(CGRAPH_H) \
@@ -2300,7 +2300,7 @@ tree-ssa-ifcombine.o : tree-ssa-ifcombine.c $(CONFIG_H) $(SYSTEM_H) \
    $(TREE_FLOW_H) $(TREE_PASS_H) $(DIAGNOSTIC_H) \
    $(TREE_PRETTY_PRINT_H)
 tree-ssa-phiopt.o : tree-ssa-phiopt.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
-   $(TM_H) $(GGC_H) $(TREE_H) $(TM_P_H) $(BASIC_BLOCK_H) \
+   $(HASH_TABLE_H) $(TM_H) $(GGC_H) $(TREE_H) $(TM_P_H) $(BASIC_BLOCK_H) \
    $(TREE_FLOW_H) $(TREE_PASS_H) langhooks.h $(FLAGS_H) \
    $(DIAGNOSTIC_H) pointer-set.h domwalk.h $(CFGLOOP_H) \
    $(TREE_DATA_REF_H) $(TREE_PRETTY_PRINT_H) $(GIMPLE_PRETTY_PRINT_H) \
@@ -2327,7 +2327,7 @@ tree-ssa-dom.o : tree-ssa-dom.c $(TREE_FLOW_H) $(CONFIG_H) $(SYSTEM_H) \
    tree-ssa-propagate.h $(CFGLOOP_H) $(PARAMS_H) \
    $(GIMPLE_PRETTY_PRINT_H)
 tree-ssa-uncprop.o : tree-ssa-uncprop.c $(TREE_FLOW_H) $(CONFIG_H) \
-   $(SYSTEM_H) $(TREE_H) $(TM_P_H) \
+   $(SYSTEM_H) $(HASH_TABLE_H) $(TREE_H) $(TM_P_H) \
    $(DIAGNOSTIC_H) $(FUNCTION_H) $(TM_H) coretypes.h \
    $(BASIC_BLOCK_H) domwalk.h $(TREE_PASS_H) $(FLAGS_H) \
    tree-ssa-propagate.h
@@ -2350,7 +2350,7 @@ domwalk.o : domwalk.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(BASIC_BLOCK_H) domwalk.h sbitmap.h
 tree-ssa-live.o : tree-ssa-live.c $(TREE_FLOW_H) $(CONFIG_H) $(SYSTEM_H) \
    $(TREE_H) $(DIAGNOSTIC_H) $(TM_H) coretypes.h dumpfile.h $(TIMEVAR_H) \
-   $(TREE_SSA_LIVE_H) $(BITMAP_H) debug.h $(FLAGS_H) \
+   $(TREE_SSA_LIVE_H) $(BITMAP_H) debug.h $(FLAGS_H) $(HASH_TABLE_H) \
    $(GIMPLE_PRETTY_PRINT_H) $(GIMPLE_H)
 tree-ssa-copyrename.o : tree-ssa-copyrename.c $(TREE_FLOW_H) $(CONFIG_H) \
    $(SYSTEM_H) $(TREE_H) $(DIAGNOSTIC_H) $(FUNCTION_H) \
@@ -2470,7 +2470,7 @@ tree-predcom.o: tree-predcom.c $(CONFIG_H) $(SYSTEM_H) $(TREE_H) $(TM_P_H) \
 tree-ssa-loop-ivopts.o : tree-ssa-loop-ivopts.c $(TREE_FLOW_H) $(CONFIG_H) \
    $(SYSTEM_H) $(TREE_H) $(TM_P_H) $(CFGLOOP_H) $(EXPR_H) \
    $(DIAGNOSTIC_H) $(TM_H) coretypes.h \
-   $(TREE_PASS_H) $(GGC_H) $(RECOG_H) insn-config.h $(HASHTAB_H) $(SCEV_H) \
+   $(TREE_PASS_H) $(GGC_H) $(RECOG_H) insn-config.h $(HASH_TABLE_H) $(SCEV_H) \
    $(CFGLOOP_H) $(PARAMS_H) langhooks.h $(BASIC_BLOCK_H) \
    tree-affine.h pointer-set.h $(TARGET_H) \
    $(GIMPLE_PRETTY_PRINT_H) tree-ssa-propagate.h
@@ -2484,7 +2484,7 @@ tree-ssa-loop-manip.o : tree-ssa-loop-manip.c $(TREE_FLOW_H) $(CONFIG_H) \
    $(CFGLOOP_H) $(TREE_PASS_H) \
    $(SCEV_H) $(PARAMS_H) $(TREE_INLINE_H) langhooks.h
 tree-ssa-loop-im.o : tree-ssa-loop-im.c $(TREE_FLOW_H) $(CONFIG_H) \
-   $(SYSTEM_H) $(TREE_H) $(TM_P_H) $(CFGLOOP_H) domwalk.h \
+   $(SYSTEM_H) $(HASH_TABLE_H) $(TREE_H) $(TM_P_H) $(CFGLOOP_H) domwalk.h \
    $(PARAMS_H) $(DIAGNOSTIC_H) $(TM_H) coretypes.h \
    $(TREE_PASS_H) $(FLAGS_H) $(BASIC_BLOCK_H) \
    pointer-set.h tree-affine.h tree-ssa-propagate.h $(GIMPLE_PRETTY_PRINT_H)
@@ -2501,7 +2501,7 @@ tree-ssa-alias.o : tree-ssa-alias.c $(TREE_FLOW_H) $(CONFIG_H) $(SYSTEM_H) \
    pointer-set.h alloc-pool.h \
    $(TREE_PRETTY_PRINT_H)
 tree-ssa-reassoc.o : tree-ssa-reassoc.c $(TREE_FLOW_H) $(CONFIG_H) \
-   $(SYSTEM_H) $(TREE_H) $(DIAGNOSTIC_H) \
+   $(SYSTEM_H) $(HASH_TABLE_H) $(TREE_H) $(DIAGNOSTIC_H) \
    $(TM_H) coretypes.h $(TREE_PASS_H) $(FLAGS_H) \
    tree-iterator.h $(BASIC_BLOCK_H) $(GIMPLE_H) $(TREE_INLINE_H) \
    $(VEC_H) langhooks.h alloc-pool.h pointer-set.h $(CFGLOOP_H) \
@@ -3033,7 +3033,7 @@ tree-ssa-ccp.o : tree-ssa-ccp.c $(TREE_FLOW_H) $(CONFIG_H) \
    $(DBGCNT_H) $(GIMPLE_PRETTY_PRINT_H) gimple-fold.h
 tree-ssa-strlen.o : tree-ssa-strlen.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
    $(TREE_FLOW_H) $(TREE_PASS_H) domwalk.h alloc-pool.h tree-ssa-propagate.h \
-   $(GIMPLE_PRETTY_PRINT_H) $(PARAMS_H) $(EXPR_H)
+   $(GIMPLE_PRETTY_PRINT_H) $(PARAMS_H) $(EXPR_H) $(HASH_TABLE_H)
 tree-sra.o : tree-sra.c $(CONFIG_H) $(SYSTEM_H) coretypes.h alloc-pool.h \
    $(HASH_TABLE_H) $(TM_H) $(TREE_H) $(GIMPLE_H) $(CGRAPH_H) $(TREE_FLOW_H) \
    $(IPA_PROP_H) $(DIAGNOSTIC_H) statistics.h \
