@@ -1,4 +1,7 @@
 
+2012-12-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-module.mk: Typo in message "GCCMELTGEN_BUILD set"...
+
 2012-12-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): Bump to 0.9.8-rc2.
 

@@ -193,7 +193,7 @@ endif
 ## if available, include the melt generated make fragment
 ifndef GCCMELTGEN_BUILD
 GCCMELTGEN_BUILD:=$(realpath $(GCCMELT_MODULE_WORKSPACE))/
-$(info GCCMELTGEN_BUILD set to $(GCCMELTBEN_BUILD))
+$(info GCCMELTGEN_BUILD set to $(GCCMELTGEN_BUILD))
 endif
 
 include $(GCCMELT_MODULE_SOURCEBASE)+meltbuild.mk
