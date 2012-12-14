@@ -2269,7 +2269,7 @@ tree-into-ssa.o : tree-into-ssa.c $(TREE_FLOW_H) $(CONFIG_H) $(SYSTEM_H) \
    $(TREE_H) $(TM_P_H) $(DIAGNOSTIC_CORE_H) \
    $(FUNCTION_H) $(TM_H) coretypes.h \
    langhooks.h domwalk.h $(TREE_PASS_H) $(PARAMS_H) $(BASIC_BLOCK_H) \
-   $(BITMAP_H) $(CFGLOOP_H) $(FLAGS_H) $(HASHTAB_H) \
+   $(BITMAP_H) $(CFGLOOP_H) $(FLAGS_H) $(HASH_TABLE_H) \
    $(GIMPLE_H) $(TREE_INLINE_H) $(GIMPLE_PRETTY_PRINT_H)
 tree-ssa-ter.o : tree-ssa-ter.c $(TREE_FLOW_H) $(CONFIG_H) $(SYSTEM_H) \
    $(TREE_H) $(DIAGNOSTIC_H) $(TM_H) coretypes.h dumpfile.h \
@@ -2367,7 +2367,7 @@ tree-ssa-pre.o : tree-ssa-pre.c $(TREE_FLOW_H) $(CONFIG_H) \
 tree-ssa-sccvn.o : tree-ssa-sccvn.c $(TREE_FLOW_H) $(CONFIG_H) \
    $(SYSTEM_H) $(TREE_H) $(DIAGNOSTIC_H) \
    $(TM_H) coretypes.h dumpfile.h $(FLAGS_H) $(CFGLOOP_H) \
-   alloc-pool.h $(BASIC_BLOCK_H) $(BITMAP_H) $(HASHTAB_H) $(GIMPLE_H) \
+   alloc-pool.h $(BASIC_BLOCK_H) $(BITMAP_H) $(HASH_TABLE_H) $(GIMPLE_H) \
    $(TREE_INLINE_H) tree-ssa-propagate.h tree-ssa-sccvn.h \
    $(PARAMS_H) $(GIMPLE_PRETTY_PRINT_H) gimple-fold.h
 gimple-ssa-strength-reduction.o : gimple-ssa-strength-reduction.c $(CONFIG_H) \
@@ -3077,7 +3077,7 @@ valtrack.o : valtrack.c $(VALTRACK_H) $(CONFIG_H) $(SYSTEM_H) \
    coretypes.h $(TM_H) $(FUNCTION_H) $(REGS_H) $(EMIT_RTL_H)
 var-tracking.o : var-tracking.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(RTL_H) $(TREE_H) hard-reg-set.h insn-config.h reload.h $(FLAGS_H) \
-   $(BASIC_BLOCK_H) bitmap.h alloc-pool.h $(FIBHEAP_H) $(HASHTAB_H) \
+   $(BASIC_BLOCK_H) bitmap.h alloc-pool.h $(FIBHEAP_H) $(HASH_TABLE_H) \
    $(REGS_H) $(EXPR_H) $(TREE_PASS_H) $(TREE_FLOW_H) \
    cselib.h $(TARGET_H) $(DIAGNOSTIC_CORE_H) $(PARAMS_H) $(DIAGNOSTIC_H) \
    pointer-set.h $(RECOG_H) $(TM_P_H) $(TREE_PRETTY_PRINT_H) $(ALIAS_H)

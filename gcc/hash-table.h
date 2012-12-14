@@ -156,6 +156,47 @@ along with GCC; see the file COPYING3.  If not see
 
       hash_table <pointer_hash <whatever_type>> whatever_type_hash_table;
 
+
+   HASH TABLE ITERATORS
+
+   The hash table provides standard C++ iterators.  For example, consider a
+   hash table of some_info.  We wish to consume each element of the table:
+
+      extern void consume (some_info *);
+
+   We define a convenience typedef and the hash table:
+
+      typedef hash_table <some_info_hasher> info_table_type;
+      info_table_type info_table;
+
+   Then we write the loop in typical C++ style:
+
+      for (info_table_type::iterator iter = info_table.begin ();
+           iter != info_table.end ();
+           ++iter)
+        if ((*iter).status == INFO_READY)
+          consume (&*iter);
+
+   Or with common sub-expression elimination:
+
+      for (info_table_type::iterator iter = info_table.begin ();
+           iter != info_table.end ();
+           ++iter)
+        {
+          some_info &elem = *iter;
+          if (elem.status == INFO_READY)
+            consume (&elem);
+        }
+
+   One can also use a more typical GCC style:
+
+      typedef some_info *some_info_p;
+      some_info *elem_ptr;
+      info_table_type::iterator iter;
+      FOR_EACH_HASH_TABLE_ELEMENT (info_table, elem_ptr, some_info_p, iter)
+        if (elem_ptr->status == INFO_READY)
+          consume (elem_ptr);
+
 */
 
 
@@ -369,6 +410,20 @@ public:
   typedef typename Descriptor::value_type value_type;
   typedef typename Descriptor::compare_type compare_type;
 
+  class iterator
+  {
+  public:
+    inline iterator ();
+    inline iterator (value_type **, value_type **);
+    inline value_type &operator * ();
+    void slide ();
+    inline iterator &operator ++ ();
+    inline bool operator != (const iterator &) const;
+  private:
+    value_type **slot_;
+    value_type **limit_;
+  };
+
 private:
   hash_table_control <value_type> *htab;
 
@@ -401,6 +456,9 @@ public:
   template <typename Argument,
 	    int (*Callback) (value_type **slot, Argument argument)>
   void traverse (Argument argument);
+
+  iterator begin();
+  iterator end();
 };
 
 
@@ -892,5 +950,115 @@ hash_table <Descriptor, Allocator>::traverse (Argument argument)
 
   traverse_noresize <Argument, Callback> (argument);
 }
+
+
+/* Iterator definitions.  */
+
+/* The default constructor produces the end value.  */
+
+template <typename Descriptor,
+	  template <typename Type> class Allocator>
+inline
+hash_table <Descriptor, Allocator>::iterator::iterator ()
+: slot_ (NULL), limit_ (NULL)
+{
+}
+
+/* The parameterized constructor produces the begin value.  */
+
+template <typename Descriptor,
+	  template <typename Type> class Allocator>
+inline
+hash_table <Descriptor, Allocator>::iterator::iterator
+   (value_type **slot, value_type **limit)
+: slot_ (slot), limit_ (limit)
+{
+}
+
+/* Obtain the element.  */
+
+template <typename Descriptor,
+	  template <typename Type> class Allocator>
+inline typename hash_table <Descriptor, Allocator>::value_type &
+hash_table <Descriptor, Allocator>::iterator::operator * ()
+{
+  return **slot_;
+}
+
+/* Slide down the iterator slots until an active entry is found.  */
+
+template <typename Descriptor,
+	  template <typename Type> class Allocator>
+void
+hash_table <Descriptor, Allocator>::iterator::slide ()
+{
+  for ( ; slot_ < limit_; ++slot_ )
+    {
+      value_type *x = *slot_;
+      if (x != HTAB_EMPTY_ENTRY && x != HTAB_DELETED_ENTRY)
+        return;
+    }
+  slot_ = NULL;
+  limit_ = NULL;
+}
+
+/* Bump the iterator.  */
+
+template <typename Descriptor,
+	  template <typename Type> class Allocator>
+inline typename hash_table <Descriptor, Allocator>::iterator &
+hash_table <Descriptor, Allocator>::iterator::operator ++ ()
+{
+  ++slot_;
+  slide ();
+  return *this;
+}
+
+/* Compare iterators.  */
+
+template <typename Descriptor,
+	  template <typename Type> class Allocator>
+inline bool
+hash_table <Descriptor, Allocator>::iterator::
+  operator != (const iterator &other) const
+{
+  return slot_ != other.slot_ || limit_ != other.limit_;
+}
+
+/* Hash table iterator producers.  */
+
+/* The beginning of a hash table iteration.  */
+
+template <typename Descriptor,
+	  template <typename Type> class Allocator>
+inline typename hash_table <Descriptor, Allocator>::iterator
+hash_table <Descriptor, Allocator>::begin ()
+{
+  iterator hti (htab->entries, htab->entries + htab->size);
+  hti.slide ();
+  return hti;
+}
+
+/* The end of a hash table iteration.  */
+
+template <typename Descriptor,
+	  template <typename Type> class Allocator>
+inline typename hash_table <Descriptor, Allocator>::iterator
+hash_table <Descriptor, Allocator>::end ()
+{
+  return iterator ();
+}
+
+/* Iterate through the elements of hash_table HTAB,
+   using hash_table <....>::iterator ITER,
+   storing each element in RESULT, which is of type TYPE.
+
+   This macro has this form for compatibility with the
+   FOR_EACH_HTAB_ELEMENT currently defined in tree-flow.h.  */
+
+#define FOR_EACH_HASH_TABLE_ELEMENT(HTAB, RESULT, TYPE, ITER) \
+  for ((ITER) = (HTAB).begin (); \
+       (ITER) != (HTAB).end () ? (RESULT = &*(ITER) , true) : false; \
+       ++(ITER))
 
 #endif /* TYPED_HASHTAB_H */

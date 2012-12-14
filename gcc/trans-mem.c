@@ -880,8 +880,62 @@ typedef struct tm_log_entry
   tree save_var;
 } *tm_log_entry_t;
 
+
+/* Log entry hashtable helpers.  */
+
+struct log_entry_hasher
+{
+  typedef tm_log_entry value_type;
+  typedef tm_log_entry compare_type;
+  static inline hashval_t hash (const value_type *);
+  static inline bool equal (const value_type *, const compare_type *);
+  static inline void remove (value_type *);
+};
+
+/* Htab support.  Return hash value for a `tm_log_entry'.  */
+inline hashval_t
+log_entry_hasher::hash (const value_type *log)
+{
+  return iterative_hash_expr (log->addr, 0);
+}
+
+/* Htab support.  Return true if two log entries are the same.  */
+inline bool
+log_entry_hasher::equal (const value_type *log1, const compare_type *log2)
+{
+  /* FIXME:
+
+     rth: I suggest that we get rid of the component refs etc.
+     I.e. resolve the reference to base + offset.
+
+     We may need to actually finish a merge with mainline for this,
+     since we'd like to be presented with Richi's MEM_REF_EXPRs more
+     often than not.  But in the meantime your tm_log_entry could save
+     the results of get_inner_reference.
+
+     See: g++.dg/tm/pr46653.C
+  */
+
+  /* Special case plain equality because operand_equal_p() below will
+     return FALSE if the addresses are equal but they have
+     side-effects (e.g. a volatile address).  */
+  if (log1->addr == log2->addr)
+    return true;
+
+  return operand_equal_p (log1->addr, log2->addr, 0);
+}
+
+/* Htab support.  Free one tm_log_entry.  */
+inline void
+log_entry_hasher::remove (value_type *lp)
+{
+  lp->stmts.release ();
+  free (lp);
+}
+
+
 /* The actual log.  */
-static htab_t tm_log;
+static hash_table <log_entry_hasher> tm_log;
 
 /* Addresses to log with a save/restore sequence.  These should be in
    dominator order.  */
@@ -928,57 +982,11 @@ tm_mem_map_hasher::equal (const value_type *v, const compare_type *c)
    of memory (malloc, alloc, etc).  */
 static hash_table <tm_mem_map_hasher> tm_new_mem_hash;
 
-/* Htab support.  Return hash value for a `tm_log_entry'.  */
-static hashval_t
-tm_log_hash (const void *p)
-{
-  const struct tm_log_entry *log = (const struct tm_log_entry *) p;
-  return iterative_hash_expr (log->addr, 0);
-}
-
-/* Htab support.  Return true if two log entries are the same.  */
-static int
-tm_log_eq (const void *p1, const void *p2)
-{
-  const struct tm_log_entry *log1 = (const struct tm_log_entry *) p1;
-  const struct tm_log_entry *log2 = (const struct tm_log_entry *) p2;
-
-  /* FIXME:
-
-     rth: I suggest that we get rid of the component refs etc.
-     I.e. resolve the reference to base + offset.
-
-     We may need to actually finish a merge with mainline for this,
-     since we'd like to be presented with Richi's MEM_REF_EXPRs more
-     often than not.  But in the meantime your tm_log_entry could save
-     the results of get_inner_reference.
-
-     See: g++.dg/tm/pr46653.C
-  */
-
-  /* Special case plain equality because operand_equal_p() below will
-     return FALSE if the addresses are equal but they have
-     side-effects (e.g. a volatile address).  */
-  if (log1->addr == log2->addr)
-    return true;
-
-  return operand_equal_p (log1->addr, log2->addr, 0);
-}
-
-/* Htab support.  Free one tm_log_entry.  */
-static void
-tm_log_free (void *p)
-{
-  struct tm_log_entry *lp = (struct tm_log_entry *) p;
-  lp->stmts.release ();
-  free (lp);
-}
-
 /* Initialize logging data structures.  */
 static void
 tm_log_init (void)
 {
-  tm_log = htab_create (10, tm_log_hash, tm_log_eq, tm_log_free);
+  tm_log.create (10);
   tm_new_mem_hash.create (5);
   tm_log_save_addresses.create (5);
 }
@@ -987,7 +995,7 @@ tm_log_init (void)
 static void
 tm_log_delete (void)
 {
-  htab_delete (tm_log);
+  tm_log.dispose ();
   tm_new_mem_hash.dispose ();
   tm_log_save_addresses.release ();
 }
@@ -1029,11 +1037,11 @@ transaction_invariant_address_p (const_tree mem, basic_block region_entry_block)
 static void
 tm_log_add (basic_block entry_block, tree addr, gimple stmt)
 {
-  void **slot;
+  tm_log_entry **slot;
   struct tm_log_entry l, *lp;
 
   l.addr = addr;
-  slot = htab_find_slot (tm_log, &l, INSERT);
+  slot = tm_log.find_slot (&l, INSERT);
   if (!*slot)
     {
       tree type = TREE_TYPE (addr);
@@ -1074,7 +1082,7 @@ tm_log_add (basic_block entry_block, tree addr, gimple stmt)
       size_t i;
       gimple oldstmt;
 
-      lp = (struct tm_log_entry *) *slot;
+      lp = *slot;
 
       /* If we're generating a save/restore sequence, we don't care
 	 about statements.  */
@@ -1176,10 +1184,10 @@ tm_log_emit_stmt (tree addr, gimple stmt)
 static void
 tm_log_emit (void)
 {
-  htab_iterator hi;
+  hash_table <log_entry_hasher>::iterator hi;
   struct tm_log_entry *lp;
 
-  FOR_EACH_HTAB_ELEMENT (tm_log, lp, tm_log_entry_t, hi)
+  FOR_EACH_HASH_TABLE_ELEMENT (tm_log, lp, tm_log_entry_t, hi)
     {
       size_t i;
       gimple stmt;
@@ -1221,7 +1229,7 @@ tm_log_emit_saves (basic_block entry_block, basic_block bb)
   for (i = 0; i < tm_log_save_addresses.length (); ++i)
     {
       l.addr = tm_log_save_addresses[i];
-      lp = (struct tm_log_entry *) *htab_find_slot (tm_log, &l, NO_INSERT);
+      lp = *(tm_log.find_slot (&l, NO_INSERT));
       gcc_assert (lp->save_var != NULL);
 
       /* We only care about variables in the current transaction.  */
@@ -1257,7 +1265,7 @@ tm_log_emit_restores (basic_block entry_block, basic_block bb)
   for (i = tm_log_save_addresses.length () - 1; i >= 0; i--)
     {
       l.addr = tm_log_save_addresses[i];
-      lp = (struct tm_log_entry *) *htab_find_slot (tm_log, &l, NO_INSERT);
+      lp = *(tm_log.find_slot (&l, NO_INSERT));
       gcc_assert (lp->save_var != NULL);
 
       /* We only care about variables in the current transaction.  */
@@ -3153,6 +3161,35 @@ typedef struct tm_memop
   tree addr;
 } *tm_memop_t;
 
+/* TM memory operation hashtable helpers.  */
+
+struct tm_memop_hasher : typed_free_remove <tm_memop>
+{
+  typedef tm_memop value_type;
+  typedef tm_memop compare_type;
+  static inline hashval_t hash (const value_type *);
+  static inline bool equal (const value_type *, const compare_type *);
+};
+
+/* Htab support.  Return a hash value for a `tm_memop'.  */
+inline hashval_t
+tm_memop_hasher::hash (const value_type *mem)
+{
+  tree addr = mem->addr;
+  /* We drill down to the SSA_NAME/DECL for the hash, but equality is
+     actually done with operand_equal_p (see tm_memop_eq).  */
+  if (TREE_CODE (addr) == ADDR_EXPR)
+    addr = TREE_OPERAND (addr, 0);
+  return iterative_hash_expr (addr, 0);
+}
+
+/* Htab support.  Return true if two tm_memop's are the same.  */
+inline bool
+tm_memop_hasher::equal (const value_type *mem1, const compare_type *mem2)
+{
+  return operand_equal_p (mem1->addr, mem2->addr, 0);
+}
+
 /* Sets for solving data flow equations in the memory optimization pass.  */
 struct tm_memopt_bitmaps
 {
@@ -3185,7 +3222,7 @@ static bitmap_obstack tm_memopt_obstack;
 /* Unique counter for TM loads and stores. Loads and stores of the
    same address get the same ID.  */
 static unsigned int tm_memopt_value_id;
-static htab_t tm_memopt_value_numbers;
+static hash_table <tm_memop_hasher> tm_memopt_value_numbers;
 
 #define STORE_AVAIL_IN(BB) \
   ((struct tm_memopt_bitmaps *) ((BB)->aux))->store_avail_in
@@ -3208,29 +3245,6 @@ static htab_t tm_memopt_value_numbers;
 #define BB_VISITED_P(BB) \
   ((struct tm_memopt_bitmaps *) ((BB)->aux))->visited_p
 
-/* Htab support.  Return a hash value for a `tm_memop'.  */
-static hashval_t
-tm_memop_hash (const void *p)
-{
-  const struct tm_memop *mem = (const struct tm_memop *) p;
-  tree addr = mem->addr;
-  /* We drill down to the SSA_NAME/DECL for the hash, but equality is
-     actually done with operand_equal_p (see tm_memop_eq).  */
-  if (TREE_CODE (addr) == ADDR_EXPR)
-    addr = TREE_OPERAND (addr, 0);
-  return iterative_hash_expr (addr, 0);
-}
-
-/* Htab support.  Return true if two tm_memop's are the same.  */
-static int
-tm_memop_eq (const void *p1, const void *p2)
-{
-  const struct tm_memop *mem1 = (const struct tm_memop *) p1;
-  const struct tm_memop *mem2 = (const struct tm_memop *) p2;
-
-  return operand_equal_p (mem1->addr, mem2->addr, 0);
-}
-
 /* Given a TM load/store in STMT, return the value number for the address
    it accesses.  */
 
@@ -3238,13 +3252,13 @@ static unsigned int
 tm_memopt_value_number (gimple stmt, enum insert_option op)
 {
   struct tm_memop tmpmem, *mem;
-  void **slot;
+  tm_memop **slot;
 
   gcc_assert (is_tm_load (stmt) || is_tm_store (stmt));
   tmpmem.addr = gimple_call_arg (stmt, 0);
-  slot = htab_find_slot (tm_memopt_value_numbers, &tmpmem, op);
+  slot = tm_memopt_value_numbers.find_slot (&tmpmem, op);
   if (*slot)
-    mem = (struct tm_memop *) *slot;
+    mem = *slot;
   else if (op == INSERT)
     {
       mem = XNEW (struct tm_memop);
@@ -3302,11 +3316,11 @@ dump_tm_memopt_set (const char *set_name, bitmap bits)
   fprintf (dump_file, "TM memopt: %s: [", set_name);
   EXECUTE_IF_SET_IN_BITMAP (bits, 0, i, bi)
     {
-      htab_iterator hi;
-      struct tm_memop *mem;
+      hash_table <tm_memop_hasher>::iterator hi;
+      struct tm_memop *mem = NULL;
 
       /* Yeah, yeah, yeah.  Whatever.  This is just for debugging.  */
-      FOR_EACH_HTAB_ELEMENT (tm_memopt_value_numbers, mem, tm_memop_t, hi)
+      FOR_EACH_HASH_TABLE_ELEMENT (tm_memopt_value_numbers, mem, tm_memop_t, hi)
 	if (mem->value_id == i)
 	  break;
       gcc_assert (mem->value_id == i);
@@ -3741,7 +3755,7 @@ execute_tm_memopt (void)
   vec<basic_block> bbs;
 
   tm_memopt_value_id = 0;
-  tm_memopt_value_numbers = htab_create (10, tm_memop_hash, tm_memop_eq, free);
+  tm_memopt_value_numbers.create (10);
 
   for (region = all_tm_regions; region; region = region->next)
     {
@@ -3775,10 +3789,10 @@ execute_tm_memopt (void)
       tm_memopt_free_sets (bbs);
       bbs.release ();
       bitmap_obstack_release (&tm_memopt_obstack);
-      htab_empty (tm_memopt_value_numbers);
+      tm_memopt_value_numbers.empty ();
     }
 
-  htab_delete (tm_memopt_value_numbers);
+  tm_memopt_value_numbers.dispose ();
   return 0;
 }
 
