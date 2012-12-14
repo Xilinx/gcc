@@ -10970,7 +10970,7 @@ c_build_va_arg (location_t loc, tree expr, tree type)
 }
 
 void
-c_finish_cilk_loop (location_t start_locus ATTRIBUTE_UNUSED, tree cvar,
+c_finish_cilk_loop (location_t start_locus, tree cvar,
 		    tree cond, tree incr, tree body, tree clab, tree grain)
 {
   tree init;
@@ -10982,12 +10982,12 @@ c_finish_cilk_loop (location_t start_locus ATTRIBUTE_UNUSED, tree cvar,
 
   if (!cond)
     {
-      error ("_Cilk_for missing condition");
+      error_at (start_locus, "_Cilk_for missing condition");
       return;
     }
   if (!incr)
     {
-      error ("_Cilk_for missing increment");
+      error_at (start_locus, "_Cilk_for missing increment");
       return;
     }
 
@@ -10999,7 +10999,7 @@ c_finish_cilk_loop (location_t start_locus ATTRIBUTE_UNUSED, tree cvar,
     }
   if (!cvar)
     {
-      error ("missing control variable");
+      error_at (start_locus, "missing control variable");
       return;
     }
   if (clab)
@@ -11007,7 +11007,31 @@ c_finish_cilk_loop (location_t start_locus ATTRIBUTE_UNUSED, tree cvar,
       error_at (EXPR_LOCATION (clab), "_Cilk_for has continue");
       return;
     }
+  
+  /* Checks if cond expr is one of the following: !=, <=, <, >=, or >.  */
+  if (TREE_CODE (cond) != NE_EXPR
+      && TREE_CODE (cond) != LT_EXPR
+      && TREE_CODE (cond) != LE_EXPR
+      && TREE_CODE (cond) != GT_EXPR
+      && TREE_CODE (cond) != GE_EXPR)
+    {
+      error_at (EXPR_LOCATION (cond), "_Cilk_for condition must be one of the "
+		"following: !=, <=, <, >= or >");
+      return;
+    }
 
+  /* Checks if the induction variable is volatile or constant.  */
+  if (TREE_THIS_VOLATILE (cvar))
+    {
+      error_at (start_locus, "_Cilk_for induction variable cannot be volatile");
+      return;
+    }
+  else if (TREE_CONSTANT (cvar) || TREE_READONLY (cvar))
+    {
+      error_at (start_locus, "_Cilk_for induction variable cannot be constant or "
+		"readonly");
+      return;
+    }
   init = DECL_INITIAL (cvar);
   
   c_tree = build_stmt (UNKNOWN_LOCATION, CILK_FOR_STMT, NULL_TREE, NULL_TREE,

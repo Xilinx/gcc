@@ -11918,7 +11918,7 @@ c_parser_cilk_for_statement (c_parser *parser, tree grain)
   c_cont_label = NULL_TREE;
   body = c_parser_c99_block_statement (parser);
   c_finish_cilk_loop (loc, cvar, cond, incr, body, c_cont_label, grain);
-  add_stmt (c_end_compound_stmt (UNKNOWN_LOCATION, block, true));
+  add_stmt (c_end_compound_stmt (loc, block, true));
   c_break_label = save_break;
   c_cont_label = save_cont;
 }
