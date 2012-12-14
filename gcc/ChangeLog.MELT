@@ -1,5 +1,13 @@
 
 2012-12-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_finishall_callback)
+	(meltgc_all_passes_start_callback, meltgc_all_passes_end_callback)
+	(meltgc_all_ipa_passes_start_callback)
+	(meltgc_all_ipa_passes_end_callback)
+	(meltgc_early_gimple_passes_start_callback)
+	(meltgc_early_gimple_passes_end_callback): Add debug printing.
+
+2012-12-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-module.mk: Typo in message "GCCMELTGEN_BUILD set"...
 
 2012-12-11  Basile Starynkevitch  <basile@starynkevitch.net>

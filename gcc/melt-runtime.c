@@ -8893,6 +8893,7 @@ static void
 melt_finishall_callback(void *gcc_data ATTRIBUTE_UNUSED,
                         void* user_data ATTRIBUTE_UNUSED)
 {
+  debugeprintf ("melt_finishall_callback melt_nb_garbcoll=%ld", melt_nb_garbcoll);
   do_finalize_melt ();
 }
 
@@ -8910,8 +8911,12 @@ meltgc_all_passes_start_callback (void *gcc_data ATTRIBUTE_UNUSED,
   closv = melt_get_inisysdata (MELTFIELD_SYSDATA_ALL_PASSES_START_HOOK);
   if (closv && melt_magic_discr((melt_ptr_t)closv) == MELTOBMAG_CLOSURE) {
     MELT_LOCATION_HERE ("all_passes_start_callback applying");
+    debugeprintf ("before applying all_passes_start_callback closv=%p", 
+		  (void*) closv);
     (void) melt_apply ((meltclosure_ptr_t) closv, NULL,
                        "", NULL, "", NULL);
+    debugeprintf ("after applying all_passes_start_callback closv=%p", 
+		  (void*) closv);
   }
   MELT_EXITFRAME ();
 #undef closv
@@ -8931,8 +8936,12 @@ meltgc_all_passes_end_callback (void *gcc_data ATTRIBUTE_UNUSED,
   closv = melt_get_inisysdata (MELTFIELD_SYSDATA_ALL_PASSES_END_HOOK);
   if (closv && melt_magic_discr((melt_ptr_t)closv) == MELTOBMAG_CLOSURE) {
     MELT_LOCATION_HERE ("all_passes_end_callback applying");
+    debugeprintf ("before applying all_passes_end_callback closv=%p", 
+		  (void*) closv);
     (void) melt_apply ((meltclosure_ptr_t) closv, NULL,
                        "", NULL, "", NULL);
+    debugeprintf ("after applying all_passes_end_callback closv=%p", 
+		  (void*) closv);
   }
   MELT_EXITFRAME ();
 #undef closv
@@ -8953,8 +8962,12 @@ meltgc_all_ipa_passes_start_callback (void *gcc_data ATTRIBUTE_UNUSED,
   closv = melt_get_inisysdata (MELTFIELD_SYSDATA_ALL_IPA_PASSES_START_HOOK);
   if (closv && melt_magic_discr((melt_ptr_t)closv) == MELTOBMAG_CLOSURE) {
     MELT_LOCATION_HERE ("all_ipa_passes_start_callback applying");
+    debugeprintf ("before applying all_ipa_passes_start_callback closv=%p", 
+		  (void*) closv);
     (void) melt_apply ((meltclosure_ptr_t) closv, NULL,
                        "", NULL, "", NULL);
+    debugeprintf ("after applying all_ipa_passes_start_callback closv=%p", 
+		  (void*) closv);
   }
   MELT_EXITFRAME ();
 #undef closv
@@ -8975,8 +8988,12 @@ meltgc_all_ipa_passes_end_callback (void *gcc_data ATTRIBUTE_UNUSED,
   closv = melt_get_inisysdata (MELTFIELD_SYSDATA_ALL_IPA_PASSES_END_HOOK);
   if (closv && melt_magic_discr((melt_ptr_t)closv) == MELTOBMAG_CLOSURE) {
     MELT_LOCATION_HERE ("all_ipa_passes_end_callback applying");
+    debugeprintf ("before applying all_ipa_passes_end_callback closv=%p", 
+		  (void*) closv);
     (void) melt_apply ((meltclosure_ptr_t) closv, NULL,
                        "", NULL, "", NULL);
+    debugeprintf ("after applying all_ipa_passes_end_callback closv=%p", 
+		  (void*) closv);
   }
   MELT_EXITFRAME ();
 #undef closv
@@ -8997,8 +9014,12 @@ meltgc_early_gimple_passes_start_callback (void *gcc_data ATTRIBUTE_UNUSED,
   closv = melt_get_inisysdata (MELTFIELD_SYSDATA_EARLY_GIMPLE_PASSES_START_HOOK);
   if (closv && melt_magic_discr((melt_ptr_t)closv) == MELTOBMAG_CLOSURE) {
     MELT_LOCATION_HERE ("early_gimple_passes_start_callback applying");
+    debugeprintf ("before applying early_gimple_passes_start_callback closv=%p", 
+		  (void*) closv);
     (void) melt_apply ((meltclosure_ptr_t) closv, NULL,
                        "", NULL, "", NULL);
+    debugeprintf ("after applying early_gimple_passes_start_callback closv=%p", 
+		  (void*) closv);
   }
   MELT_EXITFRAME ();
 #undef closv
@@ -9019,8 +9040,12 @@ meltgc_early_gimple_passes_end_callback (void *gcc_data ATTRIBUTE_UNUSED,
   closv = melt_get_inisysdata (MELTFIELD_SYSDATA_EARLY_GIMPLE_PASSES_END_HOOK);
   if (closv && melt_magic_discr((melt_ptr_t)closv) == MELTOBMAG_CLOSURE) {
     MELT_LOCATION_HERE ("early_gimple_passes_end_callback applying");
+    debugeprintf ("before applying early_gimple_passes_end_callback closv=%p", 
+		  (void*) closv);
     (void) melt_apply ((meltclosure_ptr_t) closv, NULL,
                        "", NULL, "", NULL);
+    debugeprintf ("after applying early_gimple_passes_end_callback closv=%p", 
+		  (void*) closv);
   }
   MELT_EXITFRAME ();
 #undef closv
