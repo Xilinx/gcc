@@ -1,3 +1,17 @@
+2012-12-13  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* tree-vect-loop.c (vect_determine_vectorization_factor): Added a
+	check if assert is requested in simd pragma.
+	(vect_analyze_loop_form): Likewise.
+	(vect_analyze_loop_operations): Likewise.
+	(vect_analyze_loop): Likewise.
+	* tree-cfgcleanup.c (remove_forwarder_block): Copied the pragma
+	simd struct index from the removed bb to the destination basic block.
+	* cfgloop.c (flow_loops_find): Added flag_enable_cilk check.
+	* tree-cfg.c (gimple_merge_blocks): Copied the pragma simd struct
+	index from the source to destination.
+	(remove_bb): Likewise.
+
 2012-12-12  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c/c-objc-common.h (LANG_HOOKS_CILK_CHECK_CTRL_FLOW): New define.

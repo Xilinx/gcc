@@ -423,8 +423,11 @@ flow_loops_find (struct loops *loops)
 	      bitmap_set_bit (headers, header->index);
               /* Here we are going to copy the pragma simd value from 
 		 the latch to the header.  */
-              if ((header->pragma_simd_index == 0)  
-		  && (latch->pragma_simd_index  != 0)) 
+              if (flag_enable_cilk 
+		  && (header->pragma_simd_index == 0 
+		      || header->pragma_simd_index == INVALID_PRAGMA_SIMD_SLOT)
+		  && (latch->pragma_simd_index  != 0 
+		      || latch->pragma_simd_index != INVALID_PRAGMA_SIMD_SLOT))
 		header->pragma_simd_index = latch->pragma_simd_index;
 	      num_loops++;
 	    }
@@ -466,7 +469,8 @@ flow_loops_find (struct loops *loops)
 
 	  loop->header = header;
 	  loop->num = num_loops;
-	  loop->pragma_simd_index = header->pragma_simd_index;
+	  if (flag_enable_cilk)
+	    loop->pragma_simd_index = header->pragma_simd_index;
 
 	  num_loops++;
 

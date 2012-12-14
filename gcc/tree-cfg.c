@@ -1631,6 +1631,11 @@ gimple_merge_blocks (basic_block a, basic_block b)
   if (dump_file)
     fprintf (dump_file, "Merging blocks %d and %d\n", a->index, b->index);
 
+  if (flag_enable_cilk && b->pragma_simd_index != 0
+      && (a->pragma_simd_index == 0
+	  || a->pragma_simd_index == INVALID_PRAGMA_SIMD_SLOT))
+    a->pragma_simd_index = b->pragma_simd_index;
+
   /* Remove all single-valued PHI nodes from block B of the form
      V_i = PHI <V_j> by propagating V_j to all the uses of V_i.  */
   gsi = gsi_last_bb (a);
@@ -1897,7 +1902,11 @@ remove_bb (basic_block bb)
   remove_phi_nodes_and_edges_for_unreachable_block (bb);
   bb->il.gimple.seq = NULL;
   bb->il.gimple.phi_nodes = NULL;
-  bb->next_bb->pragma_simd_index = bb->pragma_simd_index;
+  if (flag_enable_cilk 
+      && bb->next_bb->pragma_simd_index == 0
+      && bb->pragma_simd_index != 0 
+      && bb->pragma_simd_index != INVALID_PRAGMA_SIMD_SLOT)
+    bb->next_bb->pragma_simd_index = bb->pragma_simd_index;
 }
 
 

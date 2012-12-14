@@ -346,6 +346,11 @@ remove_forwarder_block (basic_block bb)
   if (dest == bb)
     return false;
 
+  if (flag_enable_cilk && bb->pragma_simd_index != 0
+      && (dest->pragma_simd_index == 0
+	  || dest->pragma_simd_index == INVALID_PRAGMA_SIMD_SLOT))
+    dest->pragma_simd_index = bb->pragma_simd_index;
+
   /* If the destination block consists of a nonlocal label or is a
      EH landing pad, do not merge it.  */
   label = first_stmt (dest);

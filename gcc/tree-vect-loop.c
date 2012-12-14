@@ -234,8 +234,8 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 		  if (flag_enable_cilk && pragma_simd_assert_requested_p
 		      (loop->pragma_simd_index))
 		    {
-		      error ("Loop not vectorized. " 
-			     "Exiting as requested by Pragma SIMD");
+		      fatal_error ("Loop not vectorized. " 
+				   "Exiting as requested by Pragma SIMD");
 		    }
 		  return false;
 		}
@@ -412,8 +412,8 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 	      if (flag_enable_cilk && pragma_simd_assert_requested_p 
 		  (loop->pragma_simd_index))
 		{
-		  error ("Loop not vectorized. "
-			 "Exiting as requested by PRAGMA SIMD");
+		  fatal_error ("Loop not vectorized. " 
+			       "Exiting as requested by PRAGMA SIMD");
 		}
 	      return false;
 	    }
@@ -429,8 +429,8 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 	      if (flag_enable_cilk && pragma_simd_assert_requested_p 
 		  (loop->pragma_simd_index))
 		{
-		  error ("Loop not vectorized. "
-			 "Exiting as requested by PRAGMA SIMD");
+		  fatal_error ("Loop not vectorized. " 
+			       "Exiting as requested by PRAGMA SIMD");
 		}
 	      return false;
 	    }
@@ -470,8 +470,8 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 		  if (flag_enable_cilk && pragma_simd_assert_requested_p 
 		      (loop->pragma_simd_index))
 		    {
-		      error ("Loop not vectorized. "
-			     "Exiting as requested by PRAGMA SIMD");
+		      fatal_error ("Loop not vectorized. " 
+				   "Exiting as requested by PRAGMA SIMD");
 		    }
 		  return false;
 		}
@@ -518,8 +518,8 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 	      if (flag_enable_cilk && pragma_simd_assert_requested_p 
 		  (loop->pragma_simd_index))
 		{
-		  error ("Loop not vectorized. "
-			 "Exiting as requested by PRAGMA SIMD");
+		  fatal_error ("Loop not vectorized. " 
+			       "Exiting as requested by PRAGMA SIMD");
 		}
 	      return false;
 	    }
@@ -541,8 +541,8 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 	      if (flag_enable_cilk && pragma_simd_assert_requested_p 
 		  (loop->pragma_simd_index))
 		{
-		  error ("Loop not vectorized. "
-			 "Exiting as requested by PRAGMA SIMD");
+		  fatal_error ("Loop not vectorized. " 
+			       "Exiting as requested by PRAGMA SIMD");
 		}
 	      return false;
 	    }
@@ -607,8 +607,8 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
       if (flag_enable_cilk && pragma_simd_assert_requested_p 
 	  (loop->pragma_simd_index))
 	{
-	  error ("Loop not vectorized. "
-		 "Exiting as requested by Pragma SIMD");
+	  fatal_error ("Loop not vectorized. " 
+		       "Exiting as requested by Pragma SIMD");
 	}
       return false;
     }
@@ -1188,17 +1188,25 @@ vect_analyze_loop_form (struct loop *loop)
         {
           if (dump_enabled_p ())
             dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
-			     "not vectorized: control flow in loop.");
+			     "not vectorized: control flow in loop."); 
+	  if (flag_enable_cilk && pragma_simd_assert_requested_p 
+	      (loop->pragma_simd_index)) 
+	    fatal_error ("Loop not vectorized. " 
+			 "Exiting as requested by Pragma SIMD"); 
           return NULL;
         }
 
       if (empty_block_p (loop->header))
-    {
+	{
           if (dump_enabled_p ())
             dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "not vectorized: empty loop.");
-      return NULL;
-    }
+	  if (flag_enable_cilk && pragma_simd_assert_requested_p 
+	      (loop->pragma_simd_index)) 
+	    fatal_error ("Loop not vectorized. " 
+			 "Exiting as requested by Pragma SIMD"); 
+	  return NULL;
+	}
     }
   else
     {
@@ -1227,6 +1235,10 @@ vect_analyze_loop_form (struct loop *loop)
 	  if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "not vectorized: multiple nested loops.");
+	  if (flag_enable_cilk && pragma_simd_assert_requested_p 
+	      (loop->pragma_simd_index)) 
+	    fatal_error ("Loop not vectorized. " 
+			 "Exiting as requested by Pragma SIMD"); 
 	  return NULL;
 	}
 
@@ -1237,6 +1249,10 @@ vect_analyze_loop_form (struct loop *loop)
 	  if (dump_enabled_p ())
             dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "not vectorized: Bad inner loop.");
+	  if (flag_enable_cilk && pragma_simd_assert_requested_p 
+	      (loop->pragma_simd_index)) 
+	    fatal_error ("Loop not vectorized. " 
+			 "Exiting as requested by Pragma SIMD"); 
 	  return NULL;
 	}
 
@@ -1246,6 +1262,10 @@ vect_analyze_loop_form (struct loop *loop)
 	  if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location, 
 			     "not vectorized: inner-loop count not invariant.");
+	  if (flag_enable_cilk && pragma_simd_assert_requested_p 
+	      (loop->pragma_simd_index)) 
+	    fatal_error ("Loop not vectorized. " 
+			 "Exiting as requested by Pragma SIMD"); 
 	  destroy_loop_vec_info (inner_loop_vinfo, true);
 	  return NULL;
 	}
@@ -1255,6 +1275,10 @@ vect_analyze_loop_form (struct loop *loop)
 	  if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "not vectorized: control flow in loop.");
+	  if (flag_enable_cilk && pragma_simd_assert_requested_p 
+	      (loop->pragma_simd_index)) 
+	    fatal_error ("Loop not vectorized. " 
+			 "Exiting as requested by Pragma SIMD"); 
 	  destroy_loop_vec_info (inner_loop_vinfo, true);
 	  return NULL;
         }
@@ -1271,6 +1295,10 @@ vect_analyze_loop_form (struct loop *loop)
 	  if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location, 
 			     "not vectorized: unsupported outerloop form.");
+	  if (flag_enable_cilk && pragma_simd_assert_requested_p 
+	      (loop->pragma_simd_index)) 
+	    fatal_error ("Loop not vectorized. " 
+			 "Exiting as requested by Pragma SIMD"); 
 	  destroy_loop_vec_info (inner_loop_vinfo, true);
 	  return NULL;
 	}
@@ -1286,11 +1314,21 @@ vect_analyze_loop_form (struct loop *loop)
       if (dump_enabled_p ())
         {
           if (!single_exit (loop))
-	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
-			     "not vectorized: multiple exits.");
+	    { 
+	      dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location, 
+			       "not vectorized: multiple exits."); 
+	      if (flag_enable_cilk && pragma_simd_assert_requested_p 
+		  (loop->pragma_simd_index)) 
+		fatal_error ("Loop not vectorized. " 
+			     "Exiting as requested by Pragma SIMD"); 
+	    }
           else if (EDGE_COUNT (loop->header->preds) != 2)
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location, 
 			     "not vectorized: too many incoming edges.");
+	  if (flag_enable_cilk && pragma_simd_assert_requested_p 
+	      (loop->pragma_simd_index)) 
+	    fatal_error ("Loop not vectorized. " 
+			 "Exiting as requested by Pragma SIMD"); 
         }
       if (inner_loop_vinfo)
 	destroy_loop_vec_info (inner_loop_vinfo, true);
@@ -1307,6 +1345,10 @@ vect_analyze_loop_form (struct loop *loop)
       if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			 "not vectorized: unexpected loop form.");
+	  if (flag_enable_cilk && pragma_simd_assert_requested_p 
+	      (loop->pragma_simd_index)) 
+	    fatal_error ("Loop not vectorized. " 
+			 "Exiting as requested by Pragma SIMD"); 
       if (inner_loop_vinfo)
 	destroy_loop_vec_info (inner_loop_vinfo, true);
       return NULL;
@@ -1327,6 +1369,10 @@ vect_analyze_loop_form (struct loop *loop)
 	  if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location, 
 			     "not vectorized: abnormal loop exit edge.");
+	  if (flag_enable_cilk && pragma_simd_assert_requested_p 
+	      (loop->pragma_simd_index)) 
+	    fatal_error ("Loop not vectorized. " 
+			 "Exiting as requested by Pragma SIMD"); 
 	  if (inner_loop_vinfo)
 	    destroy_loop_vec_info (inner_loop_vinfo, true);
 	  return NULL;
@@ -1339,6 +1385,10 @@ vect_analyze_loop_form (struct loop *loop)
       if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location, 
 			 "not vectorized: complicated exit condition.");
+	  if (flag_enable_cilk && pragma_simd_assert_requested_p 
+	      (loop->pragma_simd_index)) 
+	    fatal_error ("Loop not vectorized. " 
+			 "Exiting as requested by Pragma SIMD"); 
       if (inner_loop_vinfo)
 	destroy_loop_vec_info (inner_loop_vinfo, true);
       return NULL;
@@ -1350,6 +1400,10 @@ vect_analyze_loop_form (struct loop *loop)
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location, 
 			 "not vectorized: number of iterations cannot be "
 			 "computed.");
+	  if (flag_enable_cilk && pragma_simd_assert_requested_p 
+	      (loop->pragma_simd_index)) 
+	    fatal_error ("Loop not vectorized. " 
+			 "Exiting as requested by Pragma SIMD"); 
       if (inner_loop_vinfo)
 	destroy_loop_vec_info (inner_loop_vinfo, true);
       return NULL;
@@ -1379,6 +1433,10 @@ vect_analyze_loop_form (struct loop *loop)
       if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			 "not vectorized: number of iterations = 0.");
+	  if (flag_enable_cilk && pragma_simd_assert_requested_p 
+	      (loop->pragma_simd_index)) 
+	    fatal_error ("Loop not vectorized. " 
+			 "Exiting as requested by Pragma SIMD"); 
       if (inner_loop_vinfo)
         destroy_loop_vec_info (inner_loop_vinfo, false);
       return NULL;
@@ -1540,6 +1598,10 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
               if (dump_enabled_p ())
 		dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 				 "not vectorized: value used after loop.");
+	  if (flag_enable_cilk && pragma_simd_assert_requested_p 
+	      (loop->pragma_simd_index)) 
+	    fatal_error ("Loop not vectorized. " 
+			 "Exiting as requested by Pragma SIMD"); 
               return false;
             }
 
@@ -1550,6 +1612,10 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
               if (dump_enabled_p ())
 		dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location, 
 				 "not vectorized: scalar dependence cycle.");
+	  if (flag_enable_cilk && pragma_simd_assert_requested_p 
+	      (loop->pragma_simd_index)) 
+	    fatal_error ("Loop not vectorized. " 
+			 "Exiting as requested by Pragma SIMD"); 
               return false;
             }
 
@@ -1568,6 +1634,10 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
 				   "not vectorized: relevant phi not "
 				   "supported: ");
                   dump_gimple_stmt (MSG_MISSED_OPTIMIZATION, TDF_SLIM, phi, 0);
+		  if (flag_enable_cilk && pragma_simd_assert_requested_p 
+		      (loop->pragma_simd_index)) 
+		    fatal_error ("Loop not vectorized. " 
+				 "Exiting as requested by Pragma SIMD"); 
                 }
 	      return false;
             }
@@ -1595,6 +1665,10 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location, 
 			 "not vectorized: redundant loop. no profit to "
 			 "vectorize.");
+      if (flag_enable_cilk && pragma_simd_assert_requested_p 
+	  (loop->pragma_simd_index)) 
+	fatal_error ("Loop not vectorized. " 
+		     "Exiting as requested by Pragma SIMD"); 
       return false;
     }
 
@@ -1616,6 +1690,10 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			 "not vectorized: iteration count smaller than "
 			 "vectorization factor.");
+      if (flag_enable_cilk && pragma_simd_assert_requested_p 
+	  (loop->pragma_simd_index)) 
+	fatal_error ("Loop not vectorized. " 
+		     "Exiting as requested by Pragma SIMD"); 
       return false;
     }
 
@@ -1638,6 +1716,10 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location, 
 			 "not vectorized: vector version will never be "
 			 "profitable.");
+      if (flag_enable_cilk && pragma_simd_assert_requested_p 
+	  (loop->pragma_simd_index)) 
+	fatal_error ("Loop not vectorized. " 
+		     "Exiting as requested by Pragma SIMD"); 
       return false;
     }
 
@@ -1665,6 +1747,10 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
 			 "not vectorized: iteration count smaller than user "
 			 "specified loop bound parameter or minimum profitable "
 			 "iterations (whichever is more conservative).");
+      if (flag_enable_cilk && pragma_simd_assert_requested_p 
+	  (loop->pragma_simd_index)) 
+	fatal_error ("Loop not vectorized. " 
+		     "Exiting as requested by Pragma SIMD"); 
       return false;
     }
 
@@ -1682,6 +1768,10 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
                          "than specified loop bound parameter or minimum "
                          "profitable iterations (whichever is more "
                          "conservative).");
+      if (flag_enable_cilk && pragma_simd_assert_requested_p 
+	  (loop->pragma_simd_index)) 
+	fatal_error ("Loop not vectorized. " 
+		     "Exiting as requested by Pragma SIMD"); 
       return false;
     }
 
@@ -1696,6 +1786,10 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
           if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location, 
 			     "not vectorized: can't create epilog loop 1.");
+	  if (flag_enable_cilk && pragma_simd_assert_requested_p 
+	      (loop->pragma_simd_index)) 
+	    fatal_error ("Loop not vectorized. " 
+			 "Exiting as requested by Pragma SIMD"); 
           return false;
         }
       if (!slpeel_can_duplicate_loop_p (loop, single_exit (loop)))
@@ -1703,6 +1797,10 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
           if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location, 
 			     "not vectorized: can't create epilog loop 2.");
+	  if (flag_enable_cilk && pragma_simd_assert_requested_p 
+	      (loop->pragma_simd_index)) 
+	    fatal_error ("Loop not vectorized. " 
+			 "Exiting as requested by Pragma SIMD"); 
           return false;
         }
     }
@@ -1735,7 +1833,7 @@ vect_analyze_loop_2 (loop_vec_info loop_vinfo)
     {
       if (dump_enabled_p ())
 	dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
-			 "bad data references.");
+			 "bad data references."); 
       return false;
     }
 
@@ -1903,6 +2001,13 @@ vect_analyze_loop (struct loop *loop)
 	  if (dump_enabled_p ())
 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
 			     "bad loop form.");
+	  if (flag_enable_cilk && pragma_simd_assert_requested_p
+	      (loop->pragma_simd_index))
+	    {
+	      fatal_error ("Loop not vectorized. " 
+			   "Exiting as requested by Pragma SIMD");
+	    }
+
 	  return NULL;
 	}
 
@@ -1918,8 +2023,13 @@ vect_analyze_loop (struct loop *loop)
       vector_sizes &= ~current_vector_size;
       if (vector_sizes == 0
 	  || current_vector_size == 0)
-	return NULL;
-
+	{ 
+	  if (flag_enable_cilk 
+	      && pragma_simd_assert_requested_p (loop->pragma_simd_index)) 
+	    fatal_error ("Loop not vectorized. " 
+			 "Exiting as requested by Pragma SIMD"); 
+	  return NULL;
+	}
       /* Try the next biggest vector size.  */
       current_vector_size = 1 << floor_log2 (vector_sizes);
       if (dump_enabled_p ())
