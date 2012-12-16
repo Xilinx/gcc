@@ -8,6 +8,8 @@
 	Likewise.
 	* gcc.dg/cilk-plus/cilk_keywords_test/errors/concec_cilk_spawn.c: 
 	Likewise.
+	* gcc.dg/cilk-plus/cilk_keywords_test/errors/compound_cilk_spawn.c:
+	Likewise.
 
 2012-12-14  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 

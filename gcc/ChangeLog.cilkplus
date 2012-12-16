@@ -2,6 +2,8 @@
 
 	* c/c-typeck.c (c_finish_cilk_loop): Added a check for multiple expr. in
 	condition or increment inside a _Cilk_for.  If so, then emit an error.
+	(build_compound_expr): Added a check for spawned function call in a 
+	compound expression.  If so, then emit an error.
 	* c/c-parser.c (c_parser_cilk_for_statement): Added a check for 
 	multiple expressions for initialization for a Cilk_for. If so, then 
 	emit an error.

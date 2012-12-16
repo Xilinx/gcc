@@ -4393,6 +4393,15 @@ build_compound_expr (location_t loc, tree expr1, tree expr2)
   tree eptype = NULL_TREE;
   tree ret;
 
+  if (flag_enable_cilk
+      && ((expr1 && TREE_CODE (expr1) == CALL_EXPR && SPAWN_CALL_P (expr1))
+	  || (expr2 && TREE_CODE (expr2) == CALL_EXPR && SPAWN_CALL_P (expr2))))
+    {
+      error_at (loc, "spawned function call cannot be part of a comma "
+		"expression");
+      return error_mark_node;
+    }
+  
   expr1_int_operands = EXPR_INT_CONST_OPERANDS (expr1);
   if (expr1_int_operands)
     expr1 = remove_c_maybe_const_expr (expr1);
