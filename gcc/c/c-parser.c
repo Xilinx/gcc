@@ -6938,7 +6938,23 @@ c_parser_postfix_expression (c_parser *parser)
 	  c_parser_consume_token (parser);
 	  if (!flag_enable_cilk)
 	    {
-	      error ("-fcilkplus must be enabled to use %<cilk_spawn%>");
+	      error ("-fcilkplus must be enabled to use %<_Cilk_spawn%>");
+	      expr.value = error_mark_node;
+	    }
+	  else if (c_parser_peek_token (parser)->keyword == RID_CILK_SPAWN)
+	    {
+	      c_parser_consume_token (parser);
+	      error_at (input_location, "consecutive _Cilk_spawn keyword not "
+			"permitted");
+
+	      /* Now for some reason there are a whole bunch of them, we flush
+		 them all out.  */
+	      while (c_parser_peek_token (parser)->keyword == RID_CILK_SPAWN)
+		c_parser_consume_token (parser);
+	      
+	      /* We are doing this to get rid of whatever the postfix expr
+		 is after the spawns.  */
+	      expr = c_parser_postfix_expression (parser);
 	      expr.value = error_mark_node;
 	    }
 	  else
