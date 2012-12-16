@@ -1,3 +1,14 @@
+2012-12-16  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-cilk.c (extract_for_fields): Set invalid to false as the 
+	initialization value.  Replaced unreachable with a comparison error.  
+	Also, added a check if the end-value is less than start value for
+	_Cilk_for.
+	(compute_loop_var): Set the convert value to unsigned long for pointer
+	type count.
+	(build_cilk_for_body): Added a check for pointer type, and if so, do
+	a type convert (this is done twice).
+
 2012-12-12  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-typeck.c (c_finish_cilk_loop) Added location for error reporting.

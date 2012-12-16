@@ -1772,7 +1772,9 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
   enum tree_code incr_op;
   bool inclusive, iterator, negate_incr, exactly_one;
   int incr_direction, cond_direction, direction;
- 
+
+  cfd->invalid = false; /* Initalize it to everything is OK!.  */
+  
   switch (TREE_CODE (cond))
     {
     case NE_EXPR:
@@ -1814,7 +1816,15 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
       cond_direction = -cond_direction;
     }
   else
-    gcc_unreachable ();
+    {
+      /* If we got here, then the variable initialized for _Cilk_for is not 
+	 theone that is condition checked.  So, we issue an error.  This maybe
+	 changed in the future.  */
+      error_at (EXPR_LOCATION (cond), "comparison is not done against the "
+		"induction variable.");
+      cfd->invalid = true;
+      return;
+    }
 
   gcc_assert (TREE_CODE (TREE_TYPE (limit)) != ARRAY_TYPE);
 
@@ -1961,6 +1971,17 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
 
   direction = cond_direction;
 
+  if (init && limit && TREE_CONSTANT (init) && TREE_CONSTANT (limit)
+      && INTEGRAL_TYPE_P (TREE_TYPE (init)) 
+      && INTEGRAL_TYPE_P (TREE_TYPE (limit))
+      && tree_int_cst_lt (limit, init))
+    {
+      error_at (EXPR_LOCATION (cond), "end-condition value is greater than "
+		"starting point.");
+      cfd->invalid = true;
+      return;
+    }
+  
   cfd->invalid = false;
   cfd->iterator = iterator;
   cfd->inclusive = inclusive;
@@ -2219,6 +2240,7 @@ compute_loop_var (struct cilk_for_desc *cfd, tree loop_var, tree lower_bound)
   tree count_type = TREE_TYPE (loop_var);
   tree scaled, adjusted;
   int incr_sign = cfd->incr_sign;
+  tree cvt_val;
   enum tree_code add_op = incr_sign >= 0 ? PLUS_EXPR : MINUS_EXPR;
 
   /* Compute an expression to be added or subtracted.
@@ -2267,9 +2289,11 @@ compute_loop_var (struct cilk_for_desc *cfd, tree loop_var, tree lower_bound)
      the range does not fit in a signed int.  The sum of the lower
      bound and the count is representable.  Do the addition or
      subtraction in the wider type, then narrow. */
-  adjusted = fold_build2 (add_op, count_type,
-			  cilk_loop_convert (count_type, lower_bound),
-			  scaled);
+  if (POINTER_TYPE_P (count_type))
+    cvt_val = cilk_loop_convert (long_unsigned_type_node, TREE_OPERAND (lower_bound, 0));
+  else
+    cvt_val = cilk_loop_convert (count_type, lower_bound);
+  adjusted = fold_build2 (add_op, count_type, cvt_val, scaled);
 
   return build2 (MODIFY_EXPR, void_type_node,
 		 cfd->var2, cilk_loop_convert (cfd->var_type, adjusted));
@@ -2305,6 +2329,7 @@ build_cilk_for_body (struct cilk_for_desc *cfd)
   tree lower_bound;
   tree loop_var;
   tree tempx, tempy;
+  tree mod_expr = NULL_TREE;
 
   declare_cilk_for_parms (cfd);
 
@@ -2344,9 +2369,22 @@ build_cilk_for_body (struct cilk_for_desc *cfd)
   loop_var = build_decl (UNKNOWN_LOCATION, VAR_DECL, NULL_TREE,
 			 cfd->var_type);
   DECL_CONTEXT (loop_var) = fndecl;
-  add_stmt (build_modify_expr (UNKNOWN_LOCATION, loop_var, TREE_TYPE (loop_var),
-			       NOP_EXPR, UNKNOWN_LOCATION,
-			       cfd->min_parm, TREE_TYPE (cfd->min_parm)));
+  if (POINTER_TYPE_P (TREE_TYPE (loop_var)))
+    {
+      tree new_min_parm = build1 (CONVERT_EXPR, TREE_TYPE (loop_var),
+				  cfd->min_parm);
+      mod_expr = build_modify_expr (UNKNOWN_LOCATION, loop_var,
+				    TREE_TYPE (loop_var), NOP_EXPR,
+				    UNKNOWN_LOCATION, new_min_parm,
+				    TREE_TYPE (new_min_parm));
+    }
+  else
+    mod_expr = build_modify_expr (UNKNOWN_LOCATION, loop_var,
+				  TREE_TYPE (loop_var),
+				  NOP_EXPR, UNKNOWN_LOCATION,
+				  cfd->min_parm, TREE_TYPE (cfd->min_parm));
+
+  add_stmt (mod_expr);
 
   /* The new loop body is
 
@@ -2383,19 +2421,38 @@ build_cilk_for_body (struct cilk_for_desc *cfd)
 
     add_stmt (loop_body);
 
-    tempx = build2 (MODIFY_EXPR, void_type_node, loop_var,
-		    build2 (PLUS_EXPR, TREE_TYPE (loop_var),
-			    loop_var,
-			    build_int_cst (TREE_TYPE (loop_var), 1)));
+    if (POINTER_TYPE_P (TREE_TYPE (loop_var)))
+      {
+	tree cmp_expr = NULL_TREE;
+	tree new_incr_type = TREE_TYPE (TREE_TYPE (loop_var));
+	tree new_max_parm = build1 (CONVERT_EXPR, TREE_TYPE (loop_var),
+				    cfd->max_parm);
+	tempx = build_modify_expr (EXPR_LOCATION (loop_var), loop_var,
+				   TREE_TYPE (loop_var), PLUS_EXPR,
+				   EXPR_LOCATION (loop_var),
+				   build_int_cst (new_incr_type, 1),
+				   TREE_TYPE (loop_var));
+	cmp_expr = build2 (LT_EXPR, boolean_type_node, loop_var, new_max_parm);
+	tempy = build3 (COND_EXPR, void_type_node, cmp_expr,
+			build1 (GOTO_EXPR, void_type_node, lab),
+			build_empty_stmt (EXPR_LOCATION (loop_var)));
+      }
+    else
+      {
+	tempx = build2 (MODIFY_EXPR, void_type_node, loop_var,
+			build2 (PLUS_EXPR, TREE_TYPE (loop_var),
+				loop_var,
+				build_int_cst (TREE_TYPE (loop_var), 1)));
+   
+	tempy = build3 (COND_EXPR, void_type_node,
+			build2 (LT_EXPR, boolean_type_node, loop_var,
+				build_c_cast (UNKNOWN_LOCATION,
+					      TREE_TYPE (loop_var),
+					      cfd->max_parm)),
+			build1 (GOTO_EXPR, void_type_node, lab),
+			build_empty_stmt (UNKNOWN_LOCATION));
+      }
     add_stmt (tempx);
-    
-    tempy = build3 (COND_EXPR, void_type_node,
-		    build2 (LT_EXPR, boolean_type_node, loop_var,
-			    build_c_cast (UNKNOWN_LOCATION,
-					  TREE_TYPE (loop_var), cfd->max_parm)),
-		    build1 (GOTO_EXPR, void_type_node, lab),
-		    build_empty_stmt (UNKNOWN_LOCATION));
-
     add_stmt (tempy);
     pop_stmt_list (loop);
 

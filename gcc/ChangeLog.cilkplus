@@ -1,3 +1,11 @@
+2012-12-16  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c/c-typeck.c (c_finish_cilk_loop): Added a check for multiple expr. in
+	condition or increment inside a _Cilk_for.  If so, then emit an error.
+	* c/c-parser.c (c_parser_cilk_for_statement): Added a check for 
+	multiple expressions for initialization for a Cilk_for. If so, then 
+	emit an error.
+
 2012-12-14  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c/c-parser.c (c_parser_cilk_for_statement): Replaced unknown location with the

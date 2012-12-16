@@ -1,3 +1,12 @@
+2012-12-16  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* gcc.dg/cilk-plus/cilk_keywords_test/errors/cilk_for_invalid_cmp3.c: 
+	New test.
+	* gcc.dg/cilk-plus/cilk_keywords_test/errors/cilk_for_invalid_cmp2.c: 
+	Likewise.
+	* gcc.dg/cilk-plus/cilk_keywords_test/errors/cilk_for_multiple_init.c:
+	Likewise.
+
 2012-12-14  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* gcc.dg/cilk-plus/cilk_keywords_test/errors/cilk_for_invalid_compares.c: 

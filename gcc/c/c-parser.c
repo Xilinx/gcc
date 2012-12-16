@@ -11876,13 +11876,21 @@ c_parser_cilk_for_statement (c_parser *parser, tree grain)
 		{
 		  /* Take the initial value of the set.  */
 		  tree init_exp = c_parser_expression (parser).value;
-
-		  cvar = lookup_name (next_token);
-		  /* Set the initial value of the induction var as the value
-		     that is set to whatever the induction variable is set
-		     here in the init expression.  */
-		  if (TREE_CODE (init_exp) == MODIFY_EXPR)
-		    DECL_INITIAL (cvar) = TREE_OPERAND (init_exp, 1);
+		  if (init_exp && TREE_CODE (init_exp) == COMPOUND_EXPR)
+		    {
+		      error_at (loc, "cannot have multiple initializations in "
+				"_Cilk_for");
+		      cvar = error_mark_node;
+		    }
+		  else
+		    {
+		      cvar = lookup_name (next_token);
+		      /* Set the initial value of the induction var as the value
+			 that is set to whatever the induction variable is set
+			 here in the init expression.  */
+		      if (TREE_CODE (init_exp) == MODIFY_EXPR)
+			DECL_INITIAL (cvar) = TREE_OPERAND (init_exp, 1);
+		    }
 		}
 	    }
 	  c_parser_consume_token (parser);

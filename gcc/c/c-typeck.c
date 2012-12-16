@@ -11028,8 +11028,22 @@ c_finish_cilk_loop (location_t start_locus, tree cvar,
     }
   else if (TREE_CONSTANT (cvar) || TREE_READONLY (cvar))
     {
-      error_at (start_locus, "_Cilk_for induction variable cannot be constant or "
-		"readonly");
+      error_at (start_locus, "_Cilk_for induction variable cannot be constant "
+		"or readonly");
+      return;
+    }
+
+  if (incr && TREE_CODE (incr) == COMPOUND_EXPR)
+    {
+      error_at (start_locus, "Only single increment expression is allowed in "
+		"_Cilk_for");
+      return;
+    }
+
+  if (cond && TREE_CODE (incr) == COMPOUND_EXPR)
+    {
+      error_at (start_locus, "Only single condition expression is allowed in "
+		"_Cilk_for");
       return;
     }
   init = DECL_INITIAL (cvar);
