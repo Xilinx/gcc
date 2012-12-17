@@ -11041,7 +11041,30 @@ c_finish_cilk_loop (location_t start_locus, tree cvar,
 		"or readonly");
       return;
     }
-
+  if (cvar && TREE_STATIC (cvar))
+    {
+      error_at (start_locus, "_Cilk_for induction variable cannot be declared"
+		" static");
+      return;
+    }
+  if (cvar && DECL_EXTERNAL (cvar))
+    {
+      error_at (start_locus, "_Cilk_for induction variable cannot be declared"
+		" extern");
+      return;
+    }
+  if (cvar && DECL_REGISTER (cvar))
+    {
+      error_at (start_locus, "_Cilk_for induction variable cannot be declared"
+		" register");
+      return;
+    }
+  if (cvar && DECL_AUTO (cvar))
+    {
+      error_at (start_locus, "_Cilk_for induction variable cannot be declared"
+		" auto");
+      return;
+    }
   if (incr && TREE_CODE (incr) == COMPOUND_EXPR)
     {
       error_at (start_locus, "Only single increment expression is allowed in "

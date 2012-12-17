@@ -1715,8 +1715,13 @@ c_parser_declaration_or_fndef (c_parser *parser, bool fndef_ok,
 		  && declarator && declarator->u.arg_info)
 		DECL_ARGUMENTS (d) = declarator->u.arg_info->parms;
 	      if (d)
-		finish_decl (d, UNKNOWN_LOCATION, NULL_TREE,
-			     NULL_TREE, asm_name);
+		{
+		  finish_decl (d, UNKNOWN_LOCATION, NULL_TREE,
+			       NULL_TREE, asm_name);
+		  if (TREE_CODE (d) == VAR_DECL
+		      || TREE_CODE (d) == PARM_DECL)
+		    DECL_AUTO (d) = (specs->storage_class == csc_auto);
+		}
 	      
 	      if (c_parser_next_token_is_keyword (parser, RID_IN))
 		{

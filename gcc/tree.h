@@ -2935,6 +2935,9 @@ struct GTY(()) tree_decl_common {
   /* DECL_OFFSET_ALIGN, used only for FIELD_DECLs.  */
   unsigned int off_align : 8;
 
+  /* DECL_AUTO, used only by VAR_DECL to mark auto variables.  */
+  unsigned int decl_auto : 1; 
+
   /* 24 bits unused.  */
 
   /* DECL_ALIGN.  It should have the same size as TYPE_ALIGN.  */
@@ -3007,6 +3010,10 @@ extern void decl_value_expr_insert (tree, tree);
 
 /* In VAR_DECL and PARM_DECL nodes, nonzero means declared `register'.  */
 #define DECL_REGISTER(NODE) (DECL_WRTL_CHECK (NODE)->decl_common.decl_flag_0)
+
+/* In VAR_DECL and PARM_DECL nodes, nonzero means declared 'auto.'  These must
+   be rejected as induction variables for _Cilk_for.  */
+#define DECL_AUTO(NODE) (DECL_WRTL_CHECK (NODE)->decl_common.decl_auto)
 
 struct GTY(()) tree_decl_with_rtl {
   struct tree_decl_common common;
