@@ -1,3 +1,64 @@
+2012-12-16  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR middle-end/55709
+	Forward port from 4.7 branch:
+	2012-04-10  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR middle-end/52894
+	* varasm.c (process_pending_assemble_externals): Set
+	pending_assemble_externals_processed true.
+	(assemble_external): Call assemble_external_real if the pending
+	assemble externals have been processed.
+
+2012-12-16  Eric Botcazou  <ebotcazou@adacore.com>
+	    Tomash Brechko  <tomash.brechko@gmail.com>
+
+	PR target/55673
+	* config/sparc/sparc.c (sparc_emit_membar_for_model): Fix reversed
+	handling of before and after cases.
+	* config/sparc/sync.md (atomic_store): Fix pasto.
+
+2012-12-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR rtl-optimization/55630
+	* expr.c (expand_assignment): Do not call copy_blkmode_to_reg to move
+	BLKmode return values to the return register.
+
+2012-12-15  Alexandre Oliva <aoliva@redhat.com>
+
+	PR libmudflap/53952
+	* expr.c (mem_ref_refers_to_non_mem_p): Factor out
+	implementation into...
+	(addr_expr_of_non_mem_decl_p_1): ... this new function.
+	(addr_expr_of_non_mem_decl_p): New.
+	* tree.h (addr_expr_of_non_mem_decl_p): Declare.
+	* tree-mudflap.c (mf_xform_derefs_1): Don't change MEM_REFs
+	and TARGET_MEM_REFs that have an ADDR_EXPR of a non-mem DECL
+	as base operand.
+
+2012-12-14  Yvan Roux  <yvan.roux@linaro.org>
+
+	* optabs.c (expand_atomic_store): Elide redundant model test.
+
+2012-12-14  Teresa Johnson  <tejohnson@google.com>
+
+        PR gcov-profile/55674
+	* lto-cgraph.c (merge_profile_summaries): Set min correctly the
+        first time we merge into a histogram entry.
+
+2012-12-14  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/55684
+	* tree-ssa-loop-ivcanon.c (remove_redundant_iv_tests): Handle
+	gracefully the case where we cannot compute the number of
+	iterations at an exit.
+
+2012-12-14  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/55687
+	* tree-chrec.h (no_evolution_in_loop_p): Properly use
+	tree_contains_chrecs.
+
 2012-12-13  Richard Henderson  <rth@redhat.com>
 
 	PR middle-end/55492
