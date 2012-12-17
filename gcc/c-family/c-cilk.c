@@ -1770,7 +1770,7 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
   
   tree var_type, count_type, difference_type, limit;
   enum tree_code incr_op;
-  bool inclusive, iterator, negate_incr, exactly_one;
+  bool inclusive, iterator, negate_incr, exactly_one, loopover = false;
   int incr_direction, cond_direction, direction;
 
   cfd->invalid = false; /* Initalize it to everything is OK!.  */
@@ -1875,6 +1875,7 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
     case PREINCREMENT_EXPR:
     case POSTINCREMENT_EXPR:
       negate_incr = false;
+      loopover = false;
       incr_direction = 1; /* Exact. */
       incr = TREE_OPERAND (incr, 1);
       if (incr == NULL_TREE)
@@ -1890,6 +1891,7 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
     case PREDECREMENT_EXPR:
     case POSTDECREMENT_EXPR:
       negate_incr = true;  /* We store +1 and subtract it.  */
+      loopover = true;
       incr_direction = -1; /* Exact.  */
       /* implied_direction = -1; */
       incr = TREE_OPERAND (incr, 1);
@@ -1921,6 +1923,11 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
 	    incr = op0;
 	  else
 	    gcc_unreachable ();
+	  if (TREE_CODE (incr) == INTEGER_CST
+	      && tree_int_cst_compare (incr, integer_zero_node) == -1)
+	    loopover = true;
+	  else
+	    loopover = false;
 	  negate_incr = false;
 	  incr_direction = compute_incr_direction (incr);
 	  /* Adding a negative number treated as unsigned is
@@ -1941,6 +1948,7 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
 
 	  gcc_assert (op0 == var);
 	  incr = op1;
+	  loopover = true;
 	  /* Store the amount to be subtracted.  Negating it could overflow.  */
 	  negate_incr = true;
 	  incr_direction = -compute_incr_direction (incr);
@@ -1971,7 +1979,8 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
 
   direction = cond_direction;
 
-  if (init && limit && TREE_CONSTANT (init) && TREE_CONSTANT (limit)
+  if (!loopover && init && limit && TREE_CONSTANT (init)
+      && TREE_CONSTANT (limit)
       && INTEGRAL_TYPE_P (TREE_TYPE (init)) 
       && INTEGRAL_TYPE_P (TREE_TYPE (limit))
       && tree_int_cst_lt (limit, init))
@@ -1981,6 +1990,7 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
       cfd->invalid = true;
       return;
     }
+  
   
   cfd->invalid = false;
   cfd->iterator = iterator;

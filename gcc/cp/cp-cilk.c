@@ -2066,8 +2066,7 @@ compute_loop_count (struct cilk_for_desc *cfd)
 	    low = TARGET_EXPR_INITIAL (low);
  
 	  count_up = build_new_op (UNKNOWN_LOCATION, MINUS_EXPR, 0, high, low, 
-				   NULL_TREE, 0, 0);
-	  
+				   NULL_TREE, NULL, tf_warning_or_error);
 	  /* We should have already failed if the operator is not callable.  */
 	  gcc_assert (count_up != error_mark_node);
 	}

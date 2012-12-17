@@ -6,6 +6,8 @@
 	(build_cilk_for_body): Likewise.
 	(declare_cilk_for_vars): Changed the generic name form new iteration 
 	var. and inherited it from the existing one.
+	(extract_for_fields): Added a new variable loopover that is used to see
+	if the _Cilk_for is utilizing the overflow rollover check.
 
 2012-12-16  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
