@@ -356,8 +356,16 @@ parse_callgraph_section_contents (void *file_handle,
       Node *callee_node;
 
       callee = get_next_string (&contents, &read_length);
-      callee = canonicalize_function_name (file_handle, callee);
       curr_length += read_length;
+
+      /* We can have multiple header lines; such a situation arises when
+         we've linked objects into a shared library, and we use that
+         library as input to the linker for something else.  Deal
+         gracefully with such cases.  */
+      if (strncmp (callee, "Function ", HEADER_LEN) == 0)
+	continue;
+
+      callee = canonicalize_function_name (file_handle, callee);
       callee_node = get_function_node (callee);
 
       assert (curr_length < length);
@@ -516,6 +524,7 @@ const char *section_types[] = {".text.hot.",
    according to priority, higher priority (lower number), and then laid
    out in priority order.  */
 const int section_priority[] = {0, 3, 4, 2, 1};
+const int UNLIKELY_SECTION_INDEX = 2;
 
 /* Maps the function name corresponding to section SECTION_NAME to the
    object handle and the section index.  */
@@ -587,15 +596,16 @@ map_section_name_to_index (char *section_name, void *handle, int shndx)
     }
 }
 
-/* If SECN is NULL find the section corresponding to function name NAME.
-   If it is a comdat, get all the comdat sections in the group.  Chain these
-   sections to SECTION_END.  Set SECTION_START if it is NULL.  */
+/* Add section S to the chain SECTION_START ... SECTION_END.
+   If it is a comdat, get all the comdat sections in the group.
+   Chain these sections to SECTION_END.  Set SECTION_START if it
+   is NULL.  */
 
 static void
 write_out_node (Section_id *s, Section_id **section_start,
 	        Section_id **section_end)
 {
-  assert (s != NULL);
+  assert (s != NULL && s->processed == 0);
   s->processed = 1;
   if (*section_start == NULL)
     {
@@ -617,6 +627,9 @@ write_out_node (Section_id *s, Section_id **section_start,
       *section_end = s;
     }
 }
+
+int unlikely_segment_start = 0;
+int unlikely_segment_end = 0;
 
 /* Visit each node and print the chain of merged nodes to the file.  Update
    HANDLES and SHNDX to contain the ordered list of sections.  */
@@ -704,6 +717,8 @@ get_layout (FILE *fp, void*** handles,
   for (i = 0; i < NUM_SECTION_TYPES + 1; ++i)
     {
       s_it = section_start[i];
+      if (i == UNLIKELY_SECTION_INDEX + 1)
+	unlikely_segment_start = position;
       while (s_it)
         {
 	  assert (position < num_sections);
@@ -714,6 +729,8 @@ get_layout (FILE *fp, void*** handles,
             fprintf (fp, "%s\n", s_it->full_name);
 	  s_it = s_it->group;
         }
+      if (i == UNLIKELY_SECTION_INDEX + 1)
+	unlikely_segment_end = position;
     }
   return position;
 }

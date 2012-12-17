@@ -74,6 +74,9 @@ static ld_plugin_get_input_section_name get_input_section_name = NULL;
 static ld_plugin_get_input_section_contents get_input_section_contents = NULL;
 static ld_plugin_update_section_order update_section_order = NULL;
 static ld_plugin_allow_section_ordering allow_section_ordering = NULL;
+static ld_plugin_allow_unique_segment_for_sections 
+    allow_unique_segment_for_sections = NULL;
+static ld_plugin_unique_segment_for_sections unique_segment_for_sections = NULL;
 
 /* The file where the final function order will be stored.
    It can be set by using the  plugin option  as --plugin-opt
@@ -86,6 +89,10 @@ static int is_api_exist = 0;
 /* The plugin does nothing when no-op is 1.  */
 static int no_op = 0;
 
+/* The plugin does not create a new segment for unlikely code if
+   no_segment is set.  */
+static int no_segment = 0;
+
 /* Copies new output file name out_file  */
 void get_filename (const char *name)
 {
@@ -96,12 +103,14 @@ void get_filename (const char *name)
 /* Process options to plugin.  Options with prefix "group=" are special.
    They specify the type of grouping. The option "group=none" makes the
    plugin do nothing.   Options with prefix "file=" set the output file
-   where the final function order must be stored.  */
+   where the final function order must be stored.  Option "segment=none"
+   does not place the cold code in a separate ELF segment.  */
 void
 process_option (const char *name)
 {
   const char *option_group = "group=";
   const char *option_file = "file=";
+  const char *option_segment = "segment=";
 
   /* Check if option is "group="  */
   if (strncmp (name, option_group, strlen (option_group)) == 0)
@@ -117,6 +126,16 @@ process_option (const char *name)
   if (strncmp (name, option_file, strlen (option_file)) == 0)
     {
       get_filename (name + strlen (option_file));
+      return;
+    }
+
+  /* Check if options is "segment=none"  */
+  if (strncmp (name, option_segment, strlen (option_segment)) == 0)
+    {
+      if (strcmp (name + strlen (option_segment), "none") == 0)
+	no_segment = 1;
+      else
+	no_segment = 0;
       return;
     }
 
@@ -169,6 +188,13 @@ onload (struct ld_plugin_tv *tv)
 	case LDPT_ALLOW_SECTION_ORDERING:
 	  allow_section_ordering = *entry->tv_u.tv_allow_section_ordering;
 	  break;
+	case LDPT_ALLOW_UNIQUE_SEGMENT_FOR_SECTIONS:
+	  allow_unique_segment_for_sections
+	      = *entry->tv_u.tv_allow_unique_segment_for_sections;
+	  break;
+	case LDPT_UNIQUE_SEGMENT_FOR_SECTIONS:
+	  unique_segment_for_sections = *entry->tv_u.tv_unique_segment_for_sections;
+	  break;
         default:
           break;
         }
@@ -183,7 +209,9 @@ onload (struct ld_plugin_tv *tv)
       && get_input_section_name != NULL
       && get_input_section_contents != NULL
       && update_section_order != NULL
-      && allow_section_ordering != NULL)
+      && allow_section_ordering != NULL
+      && allow_unique_segment_for_sections != NULL
+      && unique_segment_for_sections != NULL)
     is_api_exist = 1;
   else
     return LDPS_OK;
@@ -216,6 +244,7 @@ claim_file_hook (const struct ld_plugin_input_file *file, int *claimed)
     {
       /* Inform the linker to prepare for section reordering.  */
       (*allow_section_ordering) ();
+      (*allow_unique_segment_for_sections) ();
       is_ordering_specified = 1;
     }
 
@@ -258,6 +287,11 @@ claim_file_hook (const struct ld_plugin_input_file *file, int *claimed)
 
 /* This function is called by the linker after all the symbols have been read.
    At this stage, it is fine to tell the linker the desired function order.  */
+
+/* These globals are set to the start and end of the unlikely function sections
+   in the section list, which can then be mapped to a separate segment.  */
+extern int unlikely_segment_start;
+extern int unlikely_segment_end;
 
 enum ld_plugin_status
 all_symbols_read_hook (void)
@@ -302,7 +336,14 @@ all_symbols_read_hook (void)
       && strcmp (out_file, "stderr") != 0)
     fclose (fp);
   /* Pass the new order of functions to the linker.  */
-  update_section_order (section_list, num_entries);
+  update_section_order (section_list, unlikely_segment_start);
+  assert (num_entries >= unlikely_segment_end);
+  update_section_order (section_list, num_entries - unlikely_segment_end);
+  /* Map all unlikely code into a new segment.  */
+  if (no_segment == 0)
+    unique_segment_for_sections (".text.unlikely_executed", 0, 0x1000,
+				 section_list + unlikely_segment_start,
+				 unlikely_segment_end - unlikely_segment_start);
   cleanup ();
   return LDPS_OK;
 }
