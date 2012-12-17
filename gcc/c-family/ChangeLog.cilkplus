@@ -1,3 +1,12 @@
+2012-12-17  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-cilk.c (compute_loop_var): Added a check for integral type of loop 
+	var and set the count type accordingly.  Removed all occurances of 
+	checking the pointer type.
+	(build_cilk_for_body): Likewise.
+	(declare_cilk_for_vars): Changed the generic name form new iteration 
+	var. and inherited it from the existing one.
+
 2012-12-16  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-cilk.c (extract_for_fields): Set invalid to false as the 

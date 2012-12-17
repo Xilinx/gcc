@@ -2237,12 +2237,17 @@ static tree
 compute_loop_var (struct cilk_for_desc *cfd, tree loop_var, tree lower_bound)
 {
   tree incr = cfd->incr;
-  tree count_type = TREE_TYPE (loop_var);
+  tree count_type;
   tree scaled, adjusted;
   int incr_sign = cfd->incr_sign;
   tree cvt_val;
   enum tree_code add_op = incr_sign >= 0 ? PLUS_EXPR : MINUS_EXPR;
 
+  if (INTEGRAL_TYPE_P (TREE_TYPE (loop_var)))
+    count_type = TREE_TYPE (loop_var);
+  else
+    count_type = cfd->count_type;
+  
   /* Compute an expression to be added or subtracted.
 
      We want to add or subtract LOOP_VAR * INCR.  INCR may be negative.
@@ -2289,10 +2294,7 @@ compute_loop_var (struct cilk_for_desc *cfd, tree loop_var, tree lower_bound)
      the range does not fit in a signed int.  The sum of the lower
      bound and the count is representable.  Do the addition or
      subtraction in the wider type, then narrow. */
-  if (POINTER_TYPE_P (count_type))
-    cvt_val = cilk_loop_convert (long_unsigned_type_node, TREE_OPERAND (lower_bound, 0));
-  else
-    cvt_val = cilk_loop_convert (count_type, lower_bound);
+  cvt_val = cilk_loop_convert (count_type, lower_bound);
   adjusted = fold_build2 (add_op, count_type, cvt_val, scaled);
 
   return build2 (MODIFY_EXPR, void_type_node,
@@ -2328,7 +2330,7 @@ build_cilk_for_body (struct cilk_for_desc *cfd)
   tree body, block;
   tree lower_bound;
   tree loop_var;
-  tree tempx, tempy;
+  tree tempx, tempy, new_max_parm;
   tree mod_expr = NULL_TREE;
 
   declare_cilk_for_parms (cfd);
@@ -2366,24 +2368,21 @@ build_cilk_for_body (struct cilk_for_desc *cfd)
       *pointer_map_insert (cfd->wd.decl_map, hack) = lower_bound;
       lower_bound = hack;
     }
-  loop_var = build_decl (UNKNOWN_LOCATION, VAR_DECL, NULL_TREE,
-			 cfd->var_type);
-  DECL_CONTEXT (loop_var) = fndecl;
-  if (POINTER_TYPE_P (TREE_TYPE (loop_var)))
+
+  if (INTEGRAL_TYPE_P (cfd->var_type))
     {
-      tree new_min_parm = build1 (CONVERT_EXPR, TREE_TYPE (loop_var),
-				  cfd->min_parm);
-      mod_expr = build_modify_expr (UNKNOWN_LOCATION, loop_var,
-				    TREE_TYPE (loop_var), NOP_EXPR,
-				    UNKNOWN_LOCATION, new_min_parm,
-				    TREE_TYPE (new_min_parm));
+      tree new_min_parm = build_c_cast (UNKNOWN_LOCATION, cfd->var_type,
+					cfd->min_parm);
+      loop_var = create_tmp_var (cfd->var_type, NULL);     
+      mod_expr = build_modify_expr (UNKNOWN_LOCATION, loop_var, cfd->var_type,
+				    NOP_EXPR, UNKNOWN_LOCATION,
+				    new_min_parm, cfd->var_type);
     }
   else
-    mod_expr = build_modify_expr (UNKNOWN_LOCATION, loop_var,
-				  TREE_TYPE (loop_var),
-				  NOP_EXPR, UNKNOWN_LOCATION,
-				  cfd->min_parm, TREE_TYPE (cfd->min_parm));
-
+    {
+      loop_var = create_tmp_var (TREE_TYPE (cfd->min_parm), NULL);
+      mod_expr = build2 (INIT_EXPR, void_type_node, loop_var, cfd->min_parm);
+    }
   add_stmt (mod_expr);
 
   /* The new loop body is
@@ -2421,37 +2420,18 @@ build_cilk_for_body (struct cilk_for_desc *cfd)
 
     add_stmt (loop_body);
 
-    if (POINTER_TYPE_P (TREE_TYPE (loop_var)))
-      {
-	tree cmp_expr = NULL_TREE;
-	tree new_incr_type = TREE_TYPE (TREE_TYPE (loop_var));
-	tree new_max_parm = build1 (CONVERT_EXPR, TREE_TYPE (loop_var),
-				    cfd->max_parm);
-	tempx = build_modify_expr (EXPR_LOCATION (loop_var), loop_var,
-				   TREE_TYPE (loop_var), PLUS_EXPR,
-				   EXPR_LOCATION (loop_var),
-				   build_int_cst (new_incr_type, 1),
-				   TREE_TYPE (loop_var));
-	cmp_expr = build2 (LT_EXPR, boolean_type_node, loop_var, new_max_parm);
-	tempy = build3 (COND_EXPR, void_type_node, cmp_expr,
-			build1 (GOTO_EXPR, void_type_node, lab),
-			build_empty_stmt (EXPR_LOCATION (loop_var)));
-      }
+    if (INTEGRAL_TYPE_P (cfd->var_type))
+      new_max_parm = build_c_cast (UNKNOWN_LOCATION, cfd->var_type,
+				   cfd->max_parm);
     else
-      {
-	tempx = build2 (MODIFY_EXPR, void_type_node, loop_var,
-			build2 (PLUS_EXPR, TREE_TYPE (loop_var),
-				loop_var,
-				build_int_cst (TREE_TYPE (loop_var), 1)));
-   
-	tempy = build3 (COND_EXPR, void_type_node,
-			build2 (LT_EXPR, boolean_type_node, loop_var,
-				build_c_cast (UNKNOWN_LOCATION,
-					      TREE_TYPE (loop_var),
-					      cfd->max_parm)),
-			build1 (GOTO_EXPR, void_type_node, lab),
-			build_empty_stmt (UNKNOWN_LOCATION));
-      }
+      new_max_parm = cfd->max_parm; /* No typecasting necessary.  */
+    tempx = build2 (MODIFY_EXPR, void_type_node, loop_var,
+		    build2 (PLUS_EXPR, TREE_TYPE (loop_var), loop_var,
+			    build_one_cst (TREE_TYPE (loop_var))));
+    tempy = build3 (COND_EXPR, void_type_node,
+		    build2 (LT_EXPR, boolean_type_node, loop_var, new_max_parm),
+		    build1 (GOTO_EXPR, void_type_node, lab),
+		    build_empty_stmt (UNKNOWN_LOCATION));
     add_stmt (tempx);
     add_stmt (tempy);
     pop_stmt_list (loop);
@@ -2849,10 +2829,8 @@ declare_cilk_for_vars (struct cilk_for_desc *cfd, tree fndecl)
   tree p;
   tree var2;
 
-  var2 = build_decl (UNKNOWN_LOCATION, VAR_DECL,
-		     get_identifier ("_cilk_for_loop_var"),
+  var2 = build_decl (UNKNOWN_LOCATION, VAR_DECL, DECL_NAME (cfd->var),
 		     cfd->var_type);
-  
   DECL_CONTEXT (var2) = fndecl;
   cfd->var2 = var2;
 
