@@ -447,7 +447,6 @@ bool
 asan_protect_global (tree decl)
 {
   rtx rtl, symbol;
-  section *sect;
 
   if (TREE_CODE (decl) == STRING_CST)
     {
@@ -471,7 +470,7 @@ asan_protect_global (tree decl)
 	 padding or not.  */
       || DECL_ONE_ONLY (decl)
       /* Similarly for common vars.  People can use -fno-common.  */
-      || DECL_COMMON (decl)
+      || (DECL_COMMON (decl) && TREE_PUBLIC (decl))
       /* Don't protect if using user section, often vars placed
 	 into user section from multiple TUs are then assumed
 	 to be an array of such vars, putting padding in there
@@ -491,10 +490,6 @@ asan_protect_global (tree decl)
 
   if (CONSTANT_POOL_ADDRESS_P (symbol)
       || TREE_CONSTANT_POOL_ADDRESS_P (symbol))
-    return false;
-
-  sect = get_variable_section (decl, false);
-  if (sect->common.flags & SECTION_COMMON)
     return false;
 
   if (lookup_attribute ("weakref", DECL_ATTRIBUTES (decl)))
@@ -1072,7 +1067,7 @@ instrument_builtin_call (gimple_stmt_iterator *iter)
 {
   gimple call = gsi_stmt (*iter);
 
-  gcc_assert (is_gimple_builtin_call (call));
+  gcc_checking_assert (is_gimple_builtin_call (call));
 
   tree callee = gimple_call_fndecl (call);
   location_t loc = gimple_location (call);
@@ -1392,8 +1387,29 @@ instrument_assignment (gimple_stmt_iterator *iter)
 static bool
 maybe_instrument_call (gimple_stmt_iterator *iter)
 {
-  if (is_gimple_builtin_call (gsi_stmt (*iter)))
-    return instrument_builtin_call (iter);
+  gimple stmt = gsi_stmt (*iter);
+  bool is_builtin = is_gimple_builtin_call (stmt);
+  if (is_builtin
+      && instrument_builtin_call (iter))
+    return true;
+  if (gimple_call_noreturn_p (stmt))
+    {
+      if (is_builtin)
+	{
+	  tree callee = gimple_call_fndecl (stmt);
+	  switch (DECL_FUNCTION_CODE (callee))
+	    {
+	    case BUILT_IN_UNREACHABLE:
+	    case BUILT_IN_TRAP:
+	      /* Don't instrument these.  */
+	      return false;
+	    }
+	}
+      tree decl = builtin_decl_implicit (BUILT_IN_ASAN_HANDLE_NO_RETURN);
+      gimple g = gimple_build_call (decl, 0);
+      gimple_set_location (g, gimple_location (stmt));
+      gsi_insert_before (iter, g, GSI_SAME_STMT);
+    }
   return false;
 }
 
@@ -1595,8 +1611,13 @@ initialize_sanitizer_builtins (void)
 #define BT_FN_VOID_VPTR_I16_INT BT_FN_VOID_VPTR_IX_INT[4]
 #undef ATTR_NOTHROW_LEAF_LIST
 #define ATTR_NOTHROW_LEAF_LIST ECF_NOTHROW | ECF_LEAF
+#undef ATTR_TMPURE_NOTHROW_LEAF_LIST
+#define ATTR_TMPURE_NOTHROW_LEAF_LIST ECF_TM_PURE | ATTR_NOTHROW_LEAF_LIST
 #undef ATTR_NORETURN_NOTHROW_LEAF_LIST
 #define ATTR_NORETURN_NOTHROW_LEAF_LIST ECF_NORETURN | ATTR_NOTHROW_LEAF_LIST
+#undef ATTR_TMPURE_NORETURN_NOTHROW_LEAF_LIST
+#define ATTR_TMPURE_NORETURN_NOTHROW_LEAF_LIST \
+  ECF_TM_PURE | ATTR_NORETURN_NOTHROW_LEAF_LIST
 #undef DEF_SANITIZER_BUILTIN
 #define DEF_SANITIZER_BUILTIN(ENUM, NAME, TYPE, ATTRS) \
   decl = add_builtin_function ("__builtin_" NAME, TYPE, ENUM,		\

@@ -1037,7 +1037,8 @@ get_variable_section (tree decl, bool prefer_noswitch_p)
       && !(prefer_noswitch_p && targetm.have_switchable_bss_sections)
       && bss_initializer_p (decl))
     {
-      if (!TREE_PUBLIC (decl))
+      if (!TREE_PUBLIC (decl)
+	  && !(flag_asan && asan_protect_global (decl)))
 	return lcomm_section;
       if (bss_noswitch_section)
 	return bss_noswitch_section;
@@ -2091,6 +2092,15 @@ contains_pointers_p (tree type)
 static GTY(()) tree pending_assemble_externals;
 
 #ifdef ASM_OUTPUT_EXTERNAL
+/* Some targets delay some output to final using TARGET_ASM_FILE_END.
+   As a result, assemble_external can be called after the list of externals
+   is processed and the pointer set destroyed.  */
+static bool pending_assemble_externals_processed;
+
+/* Avoid O(external_decls**2) lookups in the pending_assemble_externals
+   TREE_LIST in assemble_external.  */
+static struct pointer_set_t *pending_assemble_externals_set;
+
 /* True if DECL is a function decl for which no out-of-line copy exists.
    It is assumed that DECL's assembler name has been set.  */
 
@@ -2142,6 +2152,8 @@ process_pending_assemble_externals (void)
     assemble_external_real (TREE_VALUE (list));
 
   pending_assemble_externals = 0;
+  pending_assemble_externals_processed = true;
+  pointer_set_destroy (pending_assemble_externals_set);
 #endif
 }
 
@@ -2193,7 +2205,13 @@ assemble_external (tree decl ATTRIBUTE_UNUSED)
     weak_decls = tree_cons (NULL, decl, weak_decls);
 
 #ifdef ASM_OUTPUT_EXTERNAL
-  if (value_member (decl, pending_assemble_externals) == NULL_TREE)
+  if (pending_assemble_externals_processed)
+    {
+      assemble_external_real (decl);
+      return;
+    }
+
+  if (! pointer_set_insert (pending_assemble_externals_set, decl))
     pending_assemble_externals = tree_cons (NULL, decl,
 					    pending_assemble_externals);
 #endif
@@ -5906,6 +5924,10 @@ init_varasm_once (void)
 
   if (readonly_data_section == NULL)
     readonly_data_section = text_section;
+
+#ifdef ASM_OUTPUT_EXTERNAL
+  pending_assemble_externals_set = pointer_set_create ();
+#endif
 }
 
 enum tls_model
