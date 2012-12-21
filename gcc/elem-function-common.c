@@ -186,13 +186,18 @@ find_elem_fn_parm_type_1 (tree fndecl, int parm_no, tree *step_size)
 	if (step_size != NULL)
 	  *step_size = build_int_cst (integer_type_node,
 				      elem_fn_values->linear_steps[ii]);
+	XDELETEVEC (elem_fn_values);
 	return TYPE_LINEAR;
       }
     
   for (ii = 0; ii < elem_fn_values->no_uvars; ii++)
-    if (elem_fn_values->uniform_location[ii] == parm_no)
-      return TYPE_UNIFORM;
+    if (elem_fn_values->uniform_location[ii] == parm_no) 
+      {
+	XDELETEVEC (elem_fn_values); 
+	return TYPE_UNIFORM;
+      }
     
+  XDELETEVEC (elem_fn_values); 
   return TYPE_NONE;
 }
   
@@ -259,11 +264,15 @@ find_elem_fn_name (tree old_fndecl, tree vectype_out,
 		       (int) TYPE_VECTOR_SUBPARTS (vectype_out));
 	      warning_at (EXPR_LOCATION (old_fndecl), 0,
 			  (const char *)warning_string);
+	      XDELETEVEC (elem_fn_values); 
 	      return NULL_TREE;
 	    }
 	}
       else
-	return NULL_TREE;
+	{ 
+	  XDELETEVEC (elem_fn_values); 
+	  return NULL_TREE;
+	}
     }
   else
     return NULL_TREE;
@@ -287,6 +296,7 @@ find_elem_fn_name (tree old_fndecl, tree vectype_out,
       DECL_MODE (new_fndecl) = TYPE_MODE (vectype_out);
     }
   
+  XDELETEVEC (elem_fn_values); 
   return new_fndecl;
 }
 
