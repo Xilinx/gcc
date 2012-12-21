@@ -11368,6 +11368,7 @@ do_finalize_melt (void)
 {
   static int didfinal;
   const char* modstr = NULL;
+  int arrcount = 0;
   MELT_ENTERFRAME (1, NULL);
 #define finclosv meltfram__.mcfr_varptr[0]
   if (didfinal++>0)
@@ -11393,7 +11394,6 @@ do_finalize_melt (void)
       struct dirent *dent = NULL;
       char**arrent = NULL;
       int arrsize = 0;
-      int arrcount = 0;
       int ix = 0;
       arrsize = 32;
       arrent = (char**)xcalloc (arrsize, sizeof(char*));
@@ -11436,8 +11436,8 @@ do_finalize_melt (void)
     if (rmdir (tempdir_melt))
       /* @@@ I don't know if it should be a warning or a fatal error -
          we are finalizing! */
-      warning (0, "failed to rmdir melt tempdir %s (%s)",
-               tempdir_melt, xstrerror (errno));
+      warning (0, "failed to rmdir melt tempdir %s with %d directory entries (%s)",
+               tempdir_melt, arrcount, xstrerror (errno));
   }
   if (melt_generated_c_files_list_fil) 
     {

@@ -1,4 +1,10 @@
 
+2012-12-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): Bump to 0.9.8-rc3
+
+	* melt-runtime.c (do_finalize_melt): Improve message when rmdir of
+	tempdir fails.
+
 2012-12-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_finishall_callback)
 	(meltgc_all_passes_start_callback, meltgc_all_passes_end_callback)
