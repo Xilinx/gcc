@@ -11420,11 +11420,20 @@ do_finalize_melt (void)
       for (ix = 0; ix < arrcount; ix++) 
 	{
 	  char *tfilnam = arrent[ix];
-	  debugeprintf ("melt_finalize remove file #%d %s", ix, tfilnam);
-	  if (!remove (tfilnam))
+	  char *tfilpath = concat (tempdir_melt, "/", tfilnam, NULL);
+	  static char symlinkpath[512];
+	  debugeprintf ("melt_finalize remove file #%d %s path %s", ix, tfilnam, tfilpath);
+	  memset (symlinkpath, 0, sizeof(symlinkpath));
+	  if (readlink (tfilpath, symlinkpath, sizeof(symlinkpath)-1)>0)
+	    {
+	      if (symlinkpath[0]=='/' && !remove (symlinkpath))
+		nbdelfil++;
+	    }
+	  if (!remove (tfilpath))
 	      nbdelfil++;
 	  arrent[ix] = NULL;
 	  free (tfilnam);
+	  free (tfilpath);
 	};
       free (arrent), arrent = NULL;
       if (nbdelfil>0)
