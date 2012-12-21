@@ -2151,7 +2151,8 @@ build_info (tree info_type, tree fn_ary)
 
   /* mod_info */
   mod_value = build_gcov_module_info_value (TREE_TYPE (TREE_TYPE (info_fields)));
-  mod_value = build1 (ADDR_EXPR, TREE_TYPE (mod_value), mod_value);
+  mod_value = build1 (ADDR_EXPR, build_pointer_type (TREE_TYPE (mod_value)),
+                      mod_value);
   CONSTRUCTOR_APPEND_ELT (v1, info_fields, mod_value);
   info_fields = DECL_CHAIN (info_fields);
 

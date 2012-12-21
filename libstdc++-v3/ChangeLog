@@ -1,3 +1,160 @@
+2012-12-01  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR libstdc++/55503
+	* testsuite/30_threads/condition_variable/members/53841.cc: Add
+	hppa*-hp-hpux11* to -pthread dg-options.
+
+2012-11-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/55413
+	* include/bits/hashtable.h (_Hashtable<>::_M_rehash_aux): Initialize
+	__bbegin_bkt and __prev_bkt to avoid uninitialized warnings.
+	* testsuite/23_containers/unordered_set/instantiation_neg.cc: Adjust
+	dg-error line number.
+
+2012-11-15  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/53841
+	* include/std/condition_variable (condition_variable::wait_until):
+	Handle clocks with higher resolution than __clock_t.
+	* testsuite/30_threads/condition_variable/members/53841.cc: New.
+
+2012-11-14  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/55320
+	* include/std/functional (function::function(F)): Set _M_manager after
+	operations that could throw.
+	(_Function_base::_Ref_manager::_M_init_functor): Use addressof.
+	* include/tr1/functional
+	(_Function_base::_Ref_manager::_M_init_functor): Use addressof.
+	(_Function_base::_Base_manager::_M_get_pointer): Likewise.
+	* testsuite/20_util/function/cons/55320.cc: New.
+	* testsuite/20_util/function/cons/addressof.cc: New.
+	* testsuite/20_util/bind/ref_neg.cc: Adjust dg-error line numbers.
+	* testsuite/tr1/3_function_objects/function/10.cc: New.
+
+2012-11-12  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/future (atomic_future): Remove declaration of
+	non-standard name.
+
+2012-11-08  François Dumont  <fdumont@gcc.gnu.org>
+
+	PR libstdc++/54075
+	* include/bits/hashtable.h (_Hashtable<>::rehash): Reset hash
+	policy state if no rehash.
+	* testsuite/23_containers/unordered_set/modifiers/reserve.cc
+	(test02): New.
+
+2012-11-08  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/profile/iterator_tracker.h (operator++): Fix returning
+	dangling reference.
+	(operator--): Likewise.
+
+2012-11-06  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* testsuite/20_util/shared_ptr/cons/55123.cc: Remove duplicate
+	include.
+
+2012-11-06  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* testsuite/*: Fix copying permission statements.
+
+2012-11-05  Benjamin Kosnik  <bkoz@redhat.com>
+
+        PR libstdc++/28811
+        PR libstdc++/54482
+        * configure.ac (glibcxx_lt_pic_flag,
+          glibcxx_compiler_pic_flag,
+          glibcxx_compiler_shared_flag): New. Use them.
+        (lt_prog_compiler_pic_CXX): Set via glibcxx_*_flag(s) above.
+        (pic_mode): Set to default.
+        (PIC_CXXFLAGS): Remove.
+        * Makefile.am (PICFLAG, PICFLAG_FOR_TARGET): Remove. Comment.
+        * libsupc++/Makefile.am: Use glibcxx_ld_pic_flag and
+          glibcxx_compiler_shared_flag. Comment.
+        * src/c++11/Makefile.am: Same.
+        * src/c++98/Makefile.am: Same.
+        * src/Makefile.am: Use glibcxx_compiler_pic_flag.
+
+        * Makefile.in: Regenerated.
+        * aclocal.m4: Same.
+        * configure: Same.
+        * doc/Makefile.in: Same.
+        * include/Makefile.in: Same.
+        * libsupc++/Makefile.in: Same.
+        * po/Makefile.in: Same.
+        * python/Makefile.in: Same.
+        * src/Makefile.in: Same.
+        * src/c++11/Makefile.in: Same.
+        * src/c++98/Makefile.in: Same.
+        * testsuite/Makefile.in: Same.
+
+        * src/c++11/compatibility-atomic-c++0x.cc: Use
+          _GLIBCXX_SHARED instead of PIC to designate shared-only
+          code blocks.
+        * src/c++11/compatibility-c++0x.cc: Same.
+        * src/c++11/compatibility-thread-c++0x.cc: Same.
+        * src/c++98/compatibility-list-2.cc: Same.
+        * src/c++98/compatibility.cc: : Same.
+
+        * testsuite/17_intro/shared_with_static_deps.cc: New.
+
+        * doc/xml/manual/build_hacking.xml: Separate configure from
+        make/build issues, add build details.
+
+2012-11-05  Benjamin Kosnik  <bkoz@redhat.com>
+            Oleg Smolsky  <oleg@smolsky.net>
+
+	PR libstdc++/55028
+	*  config/abi/pre/gnu-versioned-namespace.ver: Add symbols.
+	* testsuite/23_containers/unordered_multimap/insert/55028-debug.cc: New.
+
+2012-11-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/55215
+	* include/bits/random.tcc (mersenne_twister_engine<>::seed(_Sseq&)):
+	Assign state_size to _M_p.
+	* testsuite/26_numerics/random/mersenne_twister_engine/cons/55215.cc:
+	New.
+	* testsuite/26_numerics/random/independent_bits_engine/cons/55215.cc:
+	Likewise.
+	* testsuite/26_numerics/random/shuffle_order_engine/cons/55215.cc:
+	Likewise.
+	* testsuite/26_numerics/random/subtract_with_carry_engine/cons/
+	55215.cc: Likewise.
+	* testsuite/26_numerics/random/discard_block_engine/cons/55215.cc:
+	Likewise.
+	* testsuite/26_numerics/random/linear_congruential_engine/cons/
+	55215.cc: Likewise.
+
+2012-11-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/55169
+	* include/bits/random.h: Remove all uses of param().
+
+2012-11-01   Haakan Younes  <hyounes@google.com>
+	     Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/55047
+	* include/bits/random.h (exponential_distribution<>::operator):
+	Fix formula to std::log(result_type(1) - __aurng()).
+	* include/bits/random.tcc: Likewise, everywhere.
+
+2012-10-29  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/55123
+	* include/bits/shared_ptr_base.h (__shared_count::_S_create_from_up):
+	Do not instantiate allocator with element_type.
+	* testsuite/20_util/shared_ptr/cons/55123.cc: New.
+
+2012-10-10  Andrew MacLeod  <amacleod@redhat.com>
+
+	PR libstdc++/54861
+	* include/bits/atomic_base.h (atomic_signal_fence): Call
+	__atomic_signal_fence instead of __atomic_thread_fence.
+
 2012-09-20  Benjamin Kosnik  <bkoz@redhat.com>
 
 	PR libstdc++/54102, part 2

@@ -2799,7 +2799,8 @@ build_new (VEC(tree,gc) **placement, tree type, tree nelts,
 
       orig_placement = make_tree_vector_copy (*placement);
       orig_nelts = nelts;
-      orig_init = make_tree_vector_copy (*init);
+      if (*init)
+	orig_init = make_tree_vector_copy (*init);
 
       make_args_non_dependent (*placement);
       if (nelts)
@@ -3155,8 +3156,7 @@ build_vec_init (tree base, tree maxindex, tree init,
   if (TREE_CODE (atype) == ARRAY_TYPE && TYPE_DOMAIN (atype))
     maxindex = array_type_nelts (atype);
 
-  if (maxindex == NULL_TREE || maxindex == error_mark_node
-      || integer_all_onesp (maxindex))
+  if (maxindex == NULL_TREE || maxindex == error_mark_node)
     return error_mark_node;
 
   if (explicit_value_init_p)

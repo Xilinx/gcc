@@ -767,6 +767,9 @@ int arm_arch6 = 0;
 /* Nonzero if this chip supports the ARM 6K extensions.  */
 int arm_arch6k = 0;
 
+/* Nonzero if instructions present in ARMv6-M can be used.  */
+int arm_arch6m = 0;
+
 /* Nonzero if this chip supports the ARM 7 extensions.  */
 int arm_arch7 = 0;
 
@@ -1726,6 +1729,7 @@ arm_option_override (void)
   arm_arch6 = (insn_flags & FL_ARCH6) != 0;
   arm_arch6k = (insn_flags & FL_ARCH6K) != 0;
   arm_arch_notm = (insn_flags & FL_NOTM) != 0;
+  arm_arch6m = arm_arch6 && !arm_arch_notm;
   arm_arch7 = (insn_flags & FL_ARCH7) != 0;
   arm_arch7em = (insn_flags & FL_ARCH7EM) != 0;
   arm_arch_thumb2 = (insn_flags & FL_THUMB2) != 0;
@@ -13359,6 +13363,13 @@ arm_reorg (void)
   if (TARGET_THUMB2)
     thumb2_reorg ();
 
+  /* Ensure all insns that must be split have been split at this point.
+     Otherwise, the pool placement code below may compute incorrect
+     insn lengths.  Note that when optimizing, all insns have already
+     been split at this point.  */
+  if (!optimize)
+    split_all_insns_noflow ();
+
   minipool_fix_head = minipool_fix_tail = NULL;
 
   /* The first insn must always be a note, or the code below won't
@@ -22329,12 +22340,18 @@ thumb1_expand_prologue (void)
     {
       unsigned pushable_regs;
       unsigned next_hi_reg;
+      unsigned arg_regs_num = TARGET_AAPCS_BASED ? crtl->args.info.aapcs_ncrn
+						 : crtl->args.info.nregs;
+      unsigned arg_regs_mask = (1 << arg_regs_num) - 1;
 
       for (next_hi_reg = 12; next_hi_reg > LAST_LO_REGNUM; next_hi_reg--)
 	if (live_regs_mask & (1 << next_hi_reg))
 	  break;
 
-      pushable_regs = l_mask & 0xff;
+      /* Here we need to mask out registers used for passing arguments
+	 even if they can be pushed.  This is to avoid using them to stash the high
+	 registers.  Such kind of stash may clobber the use of arguments.  */
+      pushable_regs = l_mask & (~arg_regs_mask) & 0xff;
 
       if (pushable_regs == 0)
 	pushable_regs = 1 << thumb_find_work_register (live_regs_mask);
@@ -25094,8 +25111,8 @@ arm_expand_compare_and_swap (rtx operands[])
     case SImode:
       /* Force the value into a register if needed.  We waited until after
 	 the zero-extension above to do this properly.  */
-      if (!arm_add_operand (oldval, mode))
-	oldval = force_reg (mode, oldval);
+      if (!arm_add_operand (oldval, SImode))
+	oldval = force_reg (SImode, oldval);
       break;
 
     case DImode:

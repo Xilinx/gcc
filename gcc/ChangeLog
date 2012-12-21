@@ -1,8 +1,509 @@
+2012-12-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2012-12-06  Uros Bizjak  <ubizjak@gmail.com>
+		    H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/55597
+	* config/i386/i386.c (legitimize_tls_address): Zero-extend x to Pmode,
+	before using it as insn or call equivalent.
+
+2012-12-06  Jason Merrill  <jason@redhat.com>
+
+	PR c++/55032
+	* tree.c (build_array_type_1): Re-layout if we found it in the
+	hash table.
+
+2012-12-05  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* config/pa/pa.md: Use "const_int 0" instead of match_test to simplify
+	opaque cond in all call insns.
+
+2012-12-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/ia64/ia64.c (ia64_compute_frame_size): Allocate the scratch
+	area if the function allocates dynamic stack space.
+	(ia64_initial_elimination_offset): Adjust offsets to above change.
+
+2012-12-03  Richard Biener  <rguenther@suse.de>
+
+	Backport from mainline
+	2012-09-24  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53663
+	* tree-ssa-sccvn.c (vn_reference_lookup_3): Conditional
+	native encode/interpret translation on VN_WALKREWRITE.
+
+2012-12-03 Kai Tietz  <ktietz@redhat.com>
+
+	PR target/53912
+	* ggc-common.c (POINTER_HASH): Cast from pointer via intptr_t.
+
+	PR target/53912
+	* tree-dump.c (dump_pointer): Print pointer via HOST_WIDE_INT_PRINT.
+
+	PR target/53912
+	* pointer-set.c (hash1): Cast from pointer via uintptr_t.
+
+2012-12-01  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	Backport from mainline:
+	2012-11-12  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/55195
+	* config/pa/pa.md (type): Add sibcall and sh_func_adrs insn types.
+	(in_branch_delay): Don't allow sibcall or sh_func_adrs insns.
+	(in_nullified_branch_delay): Likewise.
+	(in_call_delay): Likewise.
+	Define delay for sibcall insns.  Adjust Z3 and Z4 insn reservations for
+	new types.  Add opaque cond to mark all calls, sibcalls, dyncalls and
+	the $$sh_func_adrs call as variable.  Update type of sibcalls and
+	$$sh_func_adrs call.
+	* config/pa/pa.c (pa_adjust_insn_length): Revise to return updated
+	length instead of adjustment.  Handle negative and undefined call
+	adjustments for insn_default_length.  Remove adjustment for millicode
+	insn with unfilled delay slot.
+	(pa_output_millicode_call): Update for revised millicode length.
+	* config/pa/pa.h (ADJUST_INSN_LENGTH): Revise to set LENGTH.
+
+2012-11-29  Kai Tietz  <ktietz@redhat.com>
+
+	PR target/55171
+	* prefix.c (lookup_key): Replace xmalloc/xrealloc
+	use by XNEWVEC/XRESIZEVEC.
+
+	* i386.c (get_scratch_register_on_entry): Handle
+	thiscall-convention.
+	(split_stack_prologue_scratch_regno): Likewise.
+	(ix86_static_chain): Likewise.
+	(x86_output_mi_thunk): Likewise.
+
+2012-11-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	Backported from mainline
+	2012-11-27  H.J. Lu  <hongjiu.lu@intel.com>
+		    Markus Trippelsdorf  <markus@trippelsdorf.de>
+
+	PR lto/54795
+	* lto-opts.c (lto_write_options): Also handle
+	OPT_SPECIAL_unknown, OPT_SPECIAL_ignore and
+	OPT_SPECIAL_program_name.
+
+	PR lto/55474
+	* lto-wrapper.c (merge_and_complain): Handle
+	OPT_SPECIAL_unknown, OPT_SPECIAL_ignore,
+	OPT_SPECIAL_program_name and OPT_SPECIAL_input_file.
+
+2012-11-27  Paolo Bonzini  <pbonzini@redhat.com>
+
+	PR rtl-optimization/55489
+	* gcse.c (compute_transp): Precompute a canonical version
+	of XEXP (x, 0), and pass it to canon_true_dependence.
+
+2012-11-27  Richard Biener  <rguenther@suse.de>
+
+	PR middle-end/55331
+	* gimple-fold.c (gimplify_and_update_call_from_tree): Replace
+	stmt with a NOP instead of removing it.
+
+2012-11-26  Richard Biener  <rguenther@suse.de>
+
+	Backport from mainline
+	2012-10-19  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/54976
+	* tree-vect-stmts.c (get_vectype_for_scalar_type_and_size):
+	Robustify against odd inner_mode inputs.
+
+	2012-10-12  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/54894
+	* tree-vect-stmts.c (get_vectype_for_scalar_type_and_size):
+	Handle over-aligned scalar types properly.
+
+	2012-10-02  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/54735
+	* tree-ssa-pre.c (do_pre): Make sure to update virtual SSA form before
+	cleaning up the CFG.
+
+2012-11-21  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	Backport from mainline
+	2012-11-20  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* config/rs6000/rs6000.md (movdf_hardfloat32): Add a comment
+	explaining the register ordering preferences.
+
+	2012-11-19  Michael Meissner  <meissner@linux.vnet.ibm.com>
+	* config/rs6000/rs6000.md (movdf_hardfloat32): Reorder move
+	constraints so that the traditional floating point loads, stores,
+	and moves are done first, then the VSX loads, stores, and moves,
+	and finally the GPR loads, stores, and moves so that reload
+	chooses FPRs over GPRs, and uses the traditional load/store
+	instructions which provide an offset.
+	(movdf_hardfloat64): Likewise.
+
+2012-11-19  H.J. Lu  <hongjiu.lu@intel.com>
+
+	Backported from mainline
+	2012-11-13  Eric Botcazou  <ebotcazou@adacore.com>
+		    H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/55142
+	* config/i386/i386.c (legitimize_pic_address): Properly handle
+	REG + CONST.
+	(ix86_print_operand_address): Set code to 'k' when forcing
+	addr32 prefix.  For x32, zero-extend negative displacement if
+	it < -16*1024*1024.
+
+2012-11-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* common.opt (fvar-tracking-uninit): Document.
+	* toplev.c (process_options): Fix handling of flag_var_tracking_uninit.
+	* config/darwin.c (darwin_override_options): Likewise.
+
+2012-11-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/sparc.h (AS_NIAGARA3_FLAG): Tweak.
+	* config/sparc/sol2.h (TARGET_CPU_niagara4 support): Fix pasto.
+
+2012-11-09  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* doc/install.texi (sparc64-x-solaris2): Mention MPC as well.
+
+2012-11-09  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/i386/i386.c (release_scratch_register_on_entry): Also adjust
+	sp_offset manually.
+
+2012-11-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2012-11-06  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_init_machine_status): Do not
+	explicitly clear tls_descriptor_call_expanded_p again.
+
+	2012-11-06  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md
+	(<avx_avx2>_maskstore<ssemodesuffix><avxsizesuffix>): Mark operand 0
+	as read and written by the instruction.
+
+	2012-11-06  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (TARGET_INSTANTIATE_DECLS): New define.
+	(ix86_instantiate_decls): New function.
+	(ix86_expand_builtin) <case IX86_BUILTIN_LDMXCSR>: Use SLOT_TEMP
+	stack slot instead of SLOT_VIRTUAL.
+	<case IX86_BUILTIN_STMXCSR>: Ditto.
+	(assign_386_stack_local): Do not assert when virtual slot is valid.
+	* config/i386/i386.h (enum ix86_stack_slot): Remove SLOT_VIRTUAL.
+	* config/i386/i386.md (truncdfsf2): Do not use SLOT_VIRTUAL stack slot.
+	(truncxf<mode>2): Ditto.
+	(floatunssi<mode>2): Ditto.
+	(isinf<mode>2): Ditto.
+	* config/i386/sync.md (atomic_load<mode>): Ditto.
+	(atomic_store<mode>): Ditto.
+
+2012-11-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR middle-end/55219
+	* fold-const.c (fold_binary_op_with_conditional_arg): Do not fold if
+	the argument is itself a conditional expression.
+
+2012-11-05  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (print_reg): Replace REX_INT_REG_P with
+	REX_INT_REGNO_P.
+
+2012-11-05  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR tree-optimization/54986
+	* gimple-fold.c (canonicalize_constructor_val): Strip again all no-op
+	conversions on entry but add them back on exit if needed.
+
+2012-11-05  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR target/55204
+	* config/i386/i386.c (ix86_address_subreg_operand): Remove stack
+	pointer check.
+	(print_reg): Use true_regnum rather than REGNO.
+	(ix86_print_operand_address): Remove SUBREG handling.
+
+2012-11-05  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from mainline
+	2012-10-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/54828
+	* gimple.h (is_gimple_sizepos): New inline function.
+	* gimplify.c (gimplify_one_sizepos): Use it.  Remove useless
+	final assignment to expr variable.
+	* tree.c (RETURN_TRUE_IF_VAR): Return true also if
+	!TYPE_SIZES_GIMPLIFIED (type) and _t is going to be gimplified
+	into a local temporary.
+
+	2012-10-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/54877
+	* tree-vect-loop.c (vect_is_simple_reduction_1): For MINUS_EXPR
+	use make_ssa_name instead of copy_ssa_name.
+
+2012-11-03  Peter Bergner  <bergner@vnet.ibm.com>
+
+	Backport from mainline
+	2012-10-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53708
+	* tree-vect-data-refs.c (vect_can_force_dr_alignment_p): Preserve
+	user-supplied alignment when used with an explicit section name.
+
+2012-11-02  Jeff Law  <law@redhat.com>
+
+	PR tree-optimization/54985
+	* tree-ssa-threadedge.c (cond_arg_set_in_bb): New function extracted
+	from thread_across_edge.
+	(thread_across_edge): Use it in all cases where we might thread
+	across a back edge.
+
+2012-10-31  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/i386/i386.c (ix86_expand_prologue): Emit frame info for the
+	special register pushes before frame probing and allocation.
+
+2012-10-31  Ralf Corsépius  <ralf.corsepius@rtems.org>,
+	    Joel Sherrill  <joel.sherrill@oarcorp.com>
+
+	* config/sparc/t-rtems: New (Custom multilibs).
+	* config/sparc/t-rtems-64: New (Custom multilibs).
+	* config.gcc (sparc64-*-rtems*): Add sparc/t-rtems-64.
+	(sparc-*-rtems*): Add sparc/t-rtems.
+
+2012-10-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* cse.c (hash_rtx_cb): Replace RTX_UNCHANGING_P with MEM_READONLY_P in
+	head comment.
+	(hash_rtx): Likewise.
+
+2012-10-29  Terry Guo  <terry.guo@arm.com>
+
+	Backport from mainline
+	2012-10-11  Terry Guo  <terry.guo@arm.com>
+
+	* config/arm/arm.c (arm_arch6m): New variable to denote armv6-m
+	architecture.
+	* config/arm/arm.h (TARGET_HAVE_DMB): The armv6-m also has DMB
+	instruction.
+
+2012-10-26  Gunther Nikl  <gnikl@users.sourceforge.net>
+
+	* common/config/m68k/m68k-common.c (m68k_handle_option): Set
+	gcc_options fields of opts_set for -m68020-40 and -m68020-60.
+
+2012-10-26  Ralf Corsépius  <ralf.corsepius@rtems.org>
+
+	* config/avr/t-rtems: Revert previous commit.
+
+2012-10-26  Terry Guo  <terry.guo@arm.com>
+
+	Backport from mainline
+	2012-10-23  Terry Guo  <terry.guo@arm.com>
+
+	PR target/55019
+	* config/arm/arm.c (thumb1_expand_prologue): Don't push high regs with
+	live argument regs.
+
+2012-10-26  Ralf Corsépius  <ralf.corsepius@rtems.org>
+
+	* config/avr/rtems.h (TARGET_OS_CPP_BUILTINS): Remove
+	__USE_INIT_FINI__.
+	* config/avr/t-rtems (LIB1ASMFUNCS): Filter out _exit.
+
+2012-10-25  Ralf Corsépius  <ralf.corsepius@rtems.org>
+
+	* config.gcc (microblaze*-*-rtems*): New target.
+	* config/microblaze/rtems.h: New.
+	* config/microblaze/t-rtems: New.
+
+2012-10-25  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/54902
+	* tree-ssa-pre.c (fini_pre): Return TODO.
+	(execute_pre): Adjust.
+	* tree-ssa-tailmerge.c (tail_merge_optimize): Delete unreachable
+	blocks before computing dominators.
+
+2012-10-24  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2012-10-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (memory_address_length): Assert that non-null
+	base or index RTXes are registers.  Do not check for REG RTXes.
+	Determine addr32 prefix using SImode_address_operand or
+	from original base and index RTXes.  Simplify code.
+
+	2012-10-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386-protos.h (memory_address_length): Add new bool
+	argument.  Update all uses.
+	* config/i386/i386.c (memory_address_length): If not LEA insn, then
+	add length of addr32 prefix based on mode of base or index register.
+	(ix86_attr_length_address_default) <TYPE_LEA>: Do not handle SImode
+	addresses here.  Update call to memory_address_length.
+	(ix86_print_address_operand): Use SImode_address_operand predicate.
+	* config/i386/predicates.md (SImode_address_operand): New.
+	* config/i386/i386.md (lea<mode>): Use SImode_address_operand
+	to calculate "mode" attribute.  Use SImode_address_operand predicate
+	instead of open-coding accepted RTX codes.
+
+2012-10-22  Georg-Johann Lay  <avr@gjlay.de>
+
+	Backport from 2012-10-22 trunk r192685.
+	* doc/invoke.texi (AVR Options): Document __AVR_ARCH__.
+	Note __AVR_<device>__ is not defined for cores.
+	Don't point to --help=target.
+	Order --mcu= documentation according to trunk:/gcc/doc/avr-mmcu.texi.
+
+2012-10-19  Marek Polacek  <polacek@redhat.com>
+
+	Backported from mainline
+	2012-10-19  Marek Polacek  <polacek@redhat.com>
+
+	PR middle-end/54945
+	* fold-const.c (fold_sign_changed_comparison):  Punt if folding
+	pointer/non-pointer comparison.
+
+2012-10-19  Zhenqiang Chen <zhenqiang.chen@linaro.org>
+
+	Backported from mainline
+	2012-10-19  Zhenqiang Chen <zhenqiang.chen@linaro.org>
+
+	PR target/54892
+	* config/arm/arm.c (arm_expand_compare_and_swap): Use SImode to make
+	sure the mode is correct when falling through from above cases.
+
+2012-10-19  Alan Modra  <amodra@gmail.com>
+
+	* configure.ac (HAVE_LD_NO_DOT_SYMS): Set if using gold.
+	(HAVE_LD_LARGE_TOC): Likewise.
+	* configure: Regenerate.
+
+2012-10-19  Alan Modra  <amodra@gmail.com>
+
+	* config/rs6000/predicates.md (splat_input_operand): Don't call
+	input_operand for MEMs.  Instead check for volatile and call
+	memory_address_addr_space_p with modified mode.
+
+2012-10-17  Matthew Gretton-Dann  <matthew.gretton-dann@linaro.org>
+
+	Backported from mainline
+	2012-07-23  Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	* config/arm/arm.c (arm_reorg): Ensure all insns are split.
+
+2012-10-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR rtl-optimization/54870
+	* tree.h (TREE_ADDRESSABLE): Document special usage on SSA_NAME.
+	* cfgexpand.c (update_alias_info_with_stack_vars ): Set it on the
+	SSA_NAME pointer that points to a partition if there is at least
+	one variable with it set in the partition.
+	* dse.c (local_variable_can_escape): New predicate.
+	(can_escape): Call it.
+	* gimplify.c (mark_addressable): If this is a partitioned decl, also
+	mark the SSA_NAME pointer that points to a partition.
+
+2012-10-16  Andrey Belevantsev  <abel@ispras.ru>
+
+	Backport from mainline
+	2012-08-09  Andrey Belevantsev  <abel@ispras.ru>
+
+	PR rtl-optimization/53701
+	* sel-sched.c (vinsn_vec_has_expr_p): Clarify function comment.
+	rocess not only expr's vinsns but all old vinsns from expr's
+	istory of changes.
+
+2012-10-16  Andrey Belevantsev  <abel@ispras.ru>
+
+	Backport from mainline
+	2012-07-31  Andrey Belevantsev  <abel@ispras.ru>
+	PR target/53975
+
+	* sel-sched-ir.c (has_dependence_note_reg_use): Clarify comment.
+	Revert
+	2011-08-04  Sergey Grechanik  <mouseentity@ispras.ru>
+	* sel-sched-ir.c (has_dependence_note_reg_use): Call ds_full_merge
+	only if producer writes to the register given by regno.
+
+2012-09-15  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2012-10-15  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (UNSPEC_MOVU): Remove.
+	(UNSPEC_LOADU): New.
+	(UNSPEC_STOREU): Ditto.
+	(<sse>_movu<ssemodesuffix><avxsizesuffix>): Split to ...
+	(<sse>_loadu<ssemodesuffix><avxsizesuffix>): ... this and ...
+	(<sse>_storeu<ssemodesuffix><avxsizesuffix>) ... this.
+	(<sse2>_movdqu<avxsizesuffix>): Split to ...
+	(<sse2>_loaddqu<avxsizesuffix>): ... this and ...
+	(<sse2>_storedqu<avxsizesuffix>): ... this.
+	(*sse4_2_pcmpestr_unaligned): Update.
+	(*sse4_2_pcmpistr_unaligned): Ditto.
+
+	* config/i386/i386.c (ix86_avx256_split_vector_move_misalign): Use
+	gen_avx_load{dqu,ups,upd}256 to load from unaligned memory and
+	gen_avx_store{dqu,ups,upd}256 to store to unaligned memory.
+	(ix86_expand_vector_move_misalign): Use gen_sse_loadups or
+	gen_sse2_load{dqu,upd} to load from unaligned memory and
+	gen_sse_loadups or gen_sse2_store{dqu,upd}256 to store to
+	unaligned memory.
+	(struct builtin_description bdesc_spec) <IX86_BUILTIN_LOADUPS>:
+	Use CODE_FOR_sse_loadups.
+	<IX86_BUILTIN_LOADUPD>: Use CODE_FOR_sse2_loadupd.
+	<IX86_BUILTIN_LOADDQU>: Use CODE_FOR_sse2_loaddqu.
+	<IX86_BUILTIN_STOREUPS>: Use CODE_FOR_sse_storeups.
+	<IX86_BUILTIN_STOREUPD>: Use CODE_FOR_sse2_storeupd.
+	<IX86_BUILTIN_STOREDQU>: Use CODE_FOR_sse2_storedqu.
+	<IX86_BUILTIN_LOADUPS256>: Use CODE_FOR_avx_loadups256.
+	<IX86_BUILTIN_LOADUPD256>: Use CODE_FOR_avx_loadupd256.
+	<IX86_BUILTIN_LOADDQU256>: Use CODE_FOR_avx_loaddqu256.
+	<IX86_BUILTIN_STOREUPS256>: Use CODE_FOR_avx_storeups256.
+	<IX86_BUILTIN_STOREUPD256>: Use CODE_FOR_avx_storeupd256.
+	<IX86_BUILTIN_STOREDQU256>: Use CODE_FOR_avx_storedqu256.
+
+2012-10-15  Steven Bosscher  <steven@gcc.gnu.org>
+
+	Backport from trunk (r190222):
+
+	PR tree-optimization/54146
+	* ifcvt.c: Include pointer-set.h.
+	(cond_move_process_if_block): Change type of then_regs and
+	else_regs from alloca'd array to pointer_sets.
+	(check_cond_move_block): Update for this change.
+	(cond_move_convert_if_block): Likewise.
+	* Makefile.in: Fix dependencies for ifcvt.o.
+
+2012-10-15  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/54920
+	* tree-ssa-pre.c (create_expression_by_pieces): Properly
+	allocate temporary storage for all NARY elements.
+
+2012-10-08  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/54854
+	* doc/invoke.texi (AVR Options): Deprecate -mshort-calls.
+
 2012-10-05  Mark Kettenis  <kettenis@openbsd.org>
 
 	* config.gcc (*-*-openbsd4.[3-9]|*-*-openbsd[5-9]*): Set
 	default_use_cxa_atexit to yes.
-		
+
 2012-10-05  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
 
 	* config/pa/pa.md: Adjust unamed HImode add insn pattern.
@@ -19,7 +520,7 @@
 	Backported from mainline
 	2012-10-03  Andrew W. Nosenko <andrew.w.nosenko@gmail.com>
 
-	*  config/i386/driver-i386.c (host_detect_local_cpu): Fix logic
+	* config/i386/driver-i386.c (host_detect_local_cpu): Fix logic
 	in SSE and YMM state support check for -march=native.
 
 2012-10-03  Alexandre Oliva <aoliva@redhat.com>
@@ -84,8 +585,7 @@
 
 	PR target/54703
 	* simplify-rtx.c (simplify_binary_operation_1): Perform
-	(x - (x & y)) -> (x & ~y) optimization only for integral
-	modes.
+	(x - (x & y)) -> (x & ~y) optimization only for integral modes.
 
 2012-09-24  Eric Botcazou  <ebotcazou@adacore.com>
 
@@ -163,12 +663,12 @@
 	Backport from mainline
 	2012-09-07  Andi Kleen  <ak@linux.intel.com>
 
-  	* gcc/lto-streamer.h (res_pair): Add.
-    	(lto_file_decl_data): Replace resolutions with respairs.
-    	Add max_index.
-    	* gcc/lto/lto.c (lto_resolution_read): Remove max_index.  Add rp.
-    	Initialize respairs.
-    	(lto_file_finalize): Set up resolutions vector lazily from respairs.
+	* gcc/lto-streamer.h (res_pair): Add.
+	(lto_file_decl_data): Replace resolutions with respairs.
+	Add max_index.
+	* gcc/lto/lto.c (lto_resolution_read): Remove max_index.  Add rp.
+	Initialize respairs.
+	(lto_file_finalize): Set up resolutions vector lazily from respairs.
 
 2012-09-14  Walter Lee  <walt@tilera.com>
 
@@ -234,7 +734,7 @@
 
 2012-09-12  Christian Bruel  <christian.bruel@st.com>
 
-       * config/sh/newlib.h (NO_IMPLICIT_EXTERN_C): Define.
+	* config/sh/newlib.h (NO_IMPLICIT_EXTERN_C): Define.
 
 2012-09-12  Jakub Jelinek  <jakub@redhat.com>
 

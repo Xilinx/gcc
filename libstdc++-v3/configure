@@ -602,7 +602,6 @@ ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
-PIC_CXXFLAGS
 WARN_FLAGS
 OPTIMIZE_CXXFLAGS
 TOPLEVEL_INCLUDES
@@ -713,6 +712,9 @@ GLIBCXX_BUILD_PCH_FALSE
 GLIBCXX_BUILD_PCH_TRUE
 GLIBCXX_HOSTED_FALSE
 GLIBCXX_HOSTED_TRUE
+glibcxx_compiler_shared_flag
+glibcxx_compiler_pic_flag
+glibcxx_lt_pic_flag
 enable_static
 enable_shared
 lt_host_flags
@@ -5280,6 +5282,7 @@ $as_echo "$as_me: OS config directory is $os_include_dir" >&6;}
 
 
 
+# Libtool setup.
 if test "x${with_newlib}" != "xyes"; then
   enable_dlopen=yes
 
@@ -11512,7 +11515,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 11515 "configure"
+#line 11518 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -11618,7 +11621,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 11621 "configure"
+#line 11624 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -14904,6 +14907,38 @@ esac
 
 
 
+# libtool variables for C++ shared and position-independent compiles.
+#
+# Use glibcxx_lt_pic_flag to designate the automake variable
+# used to encapsulate the default libtool approach to creating objects
+# with position-independent code. Default: -prefer-pic.
+#
+# Use glibcxx_compiler_shared_flag to designate a compile-time flags for
+# creating shared objects. Default: -D_GLIBCXX_SHARED.
+#
+# Use glibcxx_compiler_pic_flag to designate a compile-time flags for
+# creating position-independent objects. This varies with the target
+# hardware and operating system, but is often: -DPIC -fPIC.
+if test "$enable_shared" = yes; then
+  glibcxx_lt_pic_flag="-prefer-pic"
+  glibcxx_compiler_pic_flag="$lt_prog_compiler_pic_CXX"
+  glibcxx_compiler_shared_flag="-D_GLIBCXX_SHARED"
+
+else
+  glibcxx_lt_pic_flag=
+  glibcxx_compiler_pic_flag=
+  glibcxx_compiler_shared_flag=
+fi
+
+
+
+
+# Override the libtool's pic_flag and pic_mode.
+# Do this step after AM_PROG_LIBTOOL, but before AC_OUTPUT.
+# NB: this impacts --with-pic and --without-pic.
+lt_prog_compiler_pic_CXX="$glibcxx_compiler_pic_flag $glibcxx_compiler_shared_flag"
+pic_mode='default'
+
 # Eliminate -lstdc++ addition to postdeps for cross compiles.
 postdeps_CXX=`echo " $postdeps_CXX " | sed 's, -lstdc++ ,,g'`
 
@@ -14976,7 +15011,7 @@ fi
     #
     # Fake what AC_TRY_COMPILE does.  XXX Look at redoing this new-style.
     cat > conftest.$ac_ext << EOF
-#line 14979 "configure"
+#line 15014 "configure"
 struct S { ~S(); };
 void bar();
 void foo()
@@ -15311,7 +15346,7 @@ $as_echo "$glibcxx_cv_atomic_long_long" >&6; }
   # Fake what AC_TRY_COMPILE does.
 
     cat > conftest.$ac_ext << EOF
-#line 15314 "configure"
+#line 15349 "configure"
 int main()
 {
   typedef bool atomic_type;
@@ -15346,7 +15381,7 @@ $as_echo "$glibcxx_cv_atomic_bool" >&6; }
     rm -f conftest*
 
     cat > conftest.$ac_ext << EOF
-#line 15349 "configure"
+#line 15384 "configure"
 int main()
 {
   typedef short atomic_type;
@@ -15381,7 +15416,7 @@ $as_echo "$glibcxx_cv_atomic_short" >&6; }
     rm -f conftest*
 
     cat > conftest.$ac_ext << EOF
-#line 15384 "configure"
+#line 15419 "configure"
 int main()
 {
   // NB: _Atomic_word not necessarily int.
@@ -15417,7 +15452,7 @@ $as_echo "$glibcxx_cv_atomic_int" >&6; }
     rm -f conftest*
 
     cat > conftest.$ac_ext << EOF
-#line 15420 "configure"
+#line 15455 "configure"
 int main()
 {
   typedef long long atomic_type;
@@ -15496,7 +15531,7 @@ $as_echo "$as_me: WARNING: Performance of certain classes will degrade as a resu
   # unnecessary for this test.
 
     cat > conftest.$ac_ext << EOF
-#line 15499 "configure"
+#line 15534 "configure"
 int main()
 {
   _Decimal32 d1;
@@ -15538,7 +15573,7 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
   # unnecessary for this test.
 
     cat > conftest.$ac_ext << EOF
-#line 15541 "configure"
+#line 15576 "configure"
 template<typename T1, typename T2>
   struct same
   { typedef T2 type; };
@@ -15572,7 +15607,7 @@ $as_echo "$enable_int128" >&6; }
     rm -f conftest*
 
     cat > conftest.$ac_ext << EOF
-#line 15575 "configure"
+#line 15610 "configure"
 template<typename T1, typename T2>
   struct same
   { typedef T2 type; };
@@ -66485,13 +66520,6 @@ $as_echo "$gxx_include_dir" >&6; }
 
   WARN_FLAGS='-Wall -Wextra -Wwrite-strings -Wcast-qual -Wabi'
 
-
-
-if test "$enable_shared" = yes; then
-  PIC_CXXFLAGS="-prefer-pic"
-else
-  PIC_CXXFLAGS=
-fi
 
 
 ac_config_files="$ac_config_files Makefile"

@@ -576,7 +576,7 @@ class Type
   // identity function which gets nothing but a pointer to the value
   // and a size.
   bool
-  compare_is_identity(Gogo* gogo) const
+  compare_is_identity(Gogo* gogo)
   { return this->do_compare_is_identity(gogo); }
 
   // Return a hash code for this type for the method hash table.
@@ -869,7 +869,7 @@ class Type
 
   // Finish the backend representation of a placeholder.
   void
-  finish_backend(Gogo*);
+  finish_backend(Gogo*, Btype*);
 
   // Build a type descriptor entry for this type.  Return a pointer to
   // it.  The location is the location which causes us to need the
@@ -950,7 +950,7 @@ class Type
   { return false; }
 
   virtual bool
-  do_compare_is_identity(Gogo*) const = 0;
+  do_compare_is_identity(Gogo*) = 0;
 
   virtual unsigned int
   do_hash_for_method(Gogo*) const;
@@ -1191,10 +1191,18 @@ class Type
   Btype*
   get_btype_without_hash(Gogo*);
 
+  // A backend type that may be a placeholder.
+  struct Type_btype_entry
+  {
+    Btype *btype;
+    bool is_placeholder;
+  };
+
   // A mapping from Type to Btype*, used to ensure that the backend
-  // representation of identical types is identical.
-  typedef Unordered_map_hash(const Type*, Btype*, Type_hash_identical,
-			     Type_identical) Type_btypes;
+  // representation of identical types is identical.  This is only
+  // used for unnamed types.
+  typedef Unordered_map_hash(const Type*, Type_btype_entry,
+			     Type_hash_identical, Type_identical) Type_btypes;
 
   static Type_btypes type_btypes;
 
@@ -1211,9 +1219,6 @@ class Type
 
   // The type classification.
   Type_classification classification_;
-  // Whether btype_ is a placeholder type used while named types are
-  // being converted.
-  bool btype_is_placeholder_;
   // The backend representation of the type, once it has been
   // determined.
   Btype* btype_;
@@ -1458,7 +1463,7 @@ class Integer_type : public Type
 
 protected:
   bool
-  do_compare_is_identity(Gogo*) const
+  do_compare_is_identity(Gogo*)
   { return true; }
 
   unsigned int
@@ -1535,7 +1540,7 @@ class Float_type : public Type
 
  protected:
   bool
-  do_compare_is_identity(Gogo*) const
+  do_compare_is_identity(Gogo*)
   { return false; }
 
   unsigned int
@@ -1604,7 +1609,7 @@ class Complex_type : public Type
 
  protected:
   bool
-  do_compare_is_identity(Gogo*) const
+  do_compare_is_identity(Gogo*)
   { return false; }
 
   unsigned int
@@ -1664,7 +1669,7 @@ class String_type : public Type
   { return true; }
 
   bool
-  do_compare_is_identity(Gogo*) const
+  do_compare_is_identity(Gogo*)
   { return false; }
 
   Btype*
@@ -1778,7 +1783,7 @@ class Function_type : public Type
   { return true; }
 
   bool
-  do_compare_is_identity(Gogo*) const
+  do_compare_is_identity(Gogo*)
   { return false; }
 
   unsigned int
@@ -1853,7 +1858,7 @@ class Pointer_type : public Type
   { return true; }
 
   bool
-  do_compare_is_identity(Gogo*) const
+  do_compare_is_identity(Gogo*)
   { return true; }
 
   unsigned int
@@ -2139,7 +2144,7 @@ class Struct_type : public Type
   do_has_pointer() const;
 
   bool
-  do_compare_is_identity(Gogo*) const;
+  do_compare_is_identity(Gogo*);
 
   unsigned int
   do_hash_for_method(Gogo*) const;
@@ -2272,7 +2277,7 @@ class Array_type : public Type
   }
 
   bool
-  do_compare_is_identity(Gogo*) const;
+  do_compare_is_identity(Gogo*);
 
   unsigned int
   do_hash_for_method(Gogo*) const;
@@ -2365,7 +2370,7 @@ class Map_type : public Type
   { return true; }
 
   bool
-  do_compare_is_identity(Gogo*) const
+  do_compare_is_identity(Gogo*)
   { return false; }
 
   unsigned int
@@ -2451,7 +2456,7 @@ class Channel_type : public Type
   { return true; }
 
   bool
-  do_compare_is_identity(Gogo*) const
+  do_compare_is_identity(Gogo*)
   { return true; }
 
   unsigned int
@@ -2582,7 +2587,7 @@ class Interface_type : public Type
   { return true; }
 
   bool
-  do_compare_is_identity(Gogo*) const
+  do_compare_is_identity(Gogo*)
   { return false; }
 
   unsigned int
@@ -2865,7 +2870,7 @@ class Named_type : public Type
   do_has_pointer() const;
 
   bool
-  do_compare_is_identity(Gogo*) const;
+  do_compare_is_identity(Gogo*);
 
   unsigned int
   do_hash_for_method(Gogo*) const;
@@ -2949,7 +2954,7 @@ class Named_type : public Type
   // function exits.
   mutable bool seen_;
   // Like seen_, but used only by do_compare_is_identity.
-  mutable bool seen_in_compare_is_identity_;
+  bool seen_in_compare_is_identity_;
   // Like seen_, but used only by do_get_backend.
   bool seen_in_get_backend_;
 };
@@ -3004,7 +3009,7 @@ class Forward_declaration_type : public Type
   { return this->real_type()->has_pointer(); }
 
   bool
-  do_compare_is_identity(Gogo* gogo) const
+  do_compare_is_identity(Gogo* gogo)
   { return this->real_type()->compare_is_identity(gogo); }
 
   unsigned int

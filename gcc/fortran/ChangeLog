@@ -1,3 +1,29 @@
+2012-11-24  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/55314
+	Backport from trunk
+	* resolve.c (resolve_allocate_deallocate):  Compare all
+	subscripts when deciding if to reject a (de)allocate
+	statement.
+
+2012-11-23  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/55352
+	* trans-decl.c (generate_local_decl): Don't warn for explicitly imported
+	but unused module variables which are in a namelist or common block.
+
+2012-11-06  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/54917
+	* target-memory.c (gfc_target_expr_size,gfc_target_interpret_expr):
+	Handle BT_CLASS.
+
+2012-10-14  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/54784
+	* trans-stmt.c (gfc_trans_allocate): Correctly determine the reference
+	to the _data component for polymorphic allocation with SOURCE.
+
 2012-09-20  Release Manager
 
 	* GCC 4.7.2 released.

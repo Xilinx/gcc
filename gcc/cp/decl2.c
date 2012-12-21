@@ -1313,8 +1313,7 @@ void
 cplus_decl_attributes (tree *decl, tree attributes, int flags)
 {
   if (*decl == NULL_TREE || *decl == void_type_node
-      || *decl == error_mark_node
-      || attributes == NULL_TREE)
+      || *decl == error_mark_node)
     return;
 
   if (processing_template_decl)
@@ -1323,8 +1322,6 @@ cplus_decl_attributes (tree *decl, tree attributes, int flags)
 	return;
 
       save_template_attributes (&attributes, decl);
-      if (attributes == NULL_TREE)
-	return;
     }
 
   cp_check_const_attributes (attributes);

@@ -119,6 +119,19 @@ mark_addressable (tree x)
       && TREE_CODE (x) != RESULT_DECL)
     return;
   TREE_ADDRESSABLE (x) = 1;
+
+  /* Also mark the artificial SSA_NAME that points to the partition of X.  */
+  if (TREE_CODE (x) == VAR_DECL
+      && !DECL_EXTERNAL (x)
+      && !TREE_STATIC (x)
+      && cfun->gimple_df != NULL
+      && cfun->gimple_df->decls_to_pointers != NULL)
+    {
+      void *namep
+	= pointer_map_contains (cfun->gimple_df->decls_to_pointers, x); 
+      if (namep)
+	TREE_ADDRESSABLE (*(tree *)namep) = 1;
+    }
 }
 
 /* Return a hash value for a formal temporary table entry.  */
@@ -2123,15 +2136,6 @@ gimplify_compound_lval (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	  if (TREE_OPERAND (t, 3) == NULL_TREE)
 	    {
 	      tree elmt_type = TREE_TYPE (TREE_TYPE (TREE_OPERAND (t, 0)));
-	      /* FIXME google - In some edge cases, ELMT_TYPE may
-		 not have been laid out.  This causes an ICE later
-		 (PR 55245).  We call layout_type if ELMT_TYPE is not
-		 yet complete, but this is not where this bug should
-		 be fixed.  The FE should have laid out all the types
-		 before gimplification.  When a proper fix for PR
-		 55245 is available, remove this.  */
-	      if (!COMPLETE_TYPE_P (elmt_type))
-		layout_type (elmt_type);
 	      tree elmt_size = unshare_expr (array_ref_element_size (t));
 	      tree factor = size_int (TYPE_ALIGN_UNIT (elmt_type));
 
@@ -8012,9 +8016,7 @@ gimplify_one_sizepos (tree *expr_p, gimple_seq *stmt_p)
      a VAR_DECL.  If it's a VAR_DECL from another function, the gimplifier
      will want to replace it with a new variable, but that will cause problems
      if this type is from outside the function.  It's OK to have that here.  */
-  if (expr == NULL_TREE || TREE_CONSTANT (expr)
-      || TREE_CODE (expr) == VAR_DECL
-      || CONTAINS_PLACEHOLDER_P (expr))
+  if (is_gimple_sizepos (expr))
     return;
 
   type = TREE_TYPE (expr);
