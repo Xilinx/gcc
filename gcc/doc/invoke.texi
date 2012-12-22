@@ -4954,6 +4954,11 @@ it reasonable to use the optimizer for programs that might have bugs.
 The following options are useful when GCC is generated with the
 capability for more than one debugging format.
 
+@item -gaccel-tables
+@opindex gaccel-tables
+Enable specialized dwarf accelerator tables for debug clients.  This
+option is only useful if your debugger can use such tables.
+
 @item -gsplit-dwarf
 @opindex gsplit-dwarf
 Separate as much dwarf debugging information as possible into a

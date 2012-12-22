@@ -2439,6 +2439,14 @@ g
 Common JoinedOrMissing
 Generate debug information in default format
 
+gno-accel-tables
+Common Negative(gaccel-tables) Var(dwarf_accel_tables,0) Init(0)
+Don't generate the accelerator tables extension to DWARF
+
+gaccel-tables
+Common Negative(gno-accel-tables) Var(dwarf_accel_tables,1)
+Generate the accelerator tables extension to DWARF
+
 gcoff
 Common JoinedOrMissing Negative(gdwarf-)
 Generate debug information in COFF format

@@ -57,6 +57,8 @@ along with GCC; see the file COPYING3.  If not see
    DW_CFA_... = DWARF2 CFA call frame instruction
    DW_TAG_... = DWARF2 DIE tag */
 
+#include <stdint.h>
+
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
@@ -277,6 +279,7 @@ static GTY(()) rtx current_unit_personality;
 #define LN_PROLOG_AS_LABEL	"LASLTP"
 #define LN_PROLOG_END_LABEL	"LELTP"
 #define DIE_LABEL_PREFIX	"DW"
+#define ACCEL_TABLE_ENTRY_LABEL	"LATE"
 
 /* Match the base name of a file to the base name of a compilation unit. */
 
@@ -2965,6 +2968,7 @@ typedef struct GTY(()) comdat_type_struct
   dw_die_ref root_die;
   dw_die_ref type_die;
   dw_die_ref skeleton_die;
+  unsigned int index;
   char signature[DWARF_TYPE_SIGNATURE_SIZE];
   struct comdat_type_struct *next;
 }
@@ -3387,6 +3391,7 @@ static void collect_checksum_attributes (struct checksum_attributes *, dw_die_re
 static void die_checksum_ordered (dw_die_ref, struct md5_ctx *, int *);
 static void checksum_die_context (dw_die_ref, struct md5_ctx *);
 static void generate_type_signature (dw_die_ref, comdat_type_node *);
+static void output_signature (const char *sig, const char *name);
 static int same_loc_p (dw_loc_descr_ref, dw_loc_descr_ref, int *);
 static int same_dw_val_p (const dw_val_node *, const dw_val_node *, int *);
 static int same_attr_p (dw_attr_ref, dw_attr_ref, int *);
@@ -3447,6 +3452,7 @@ static void add_enumerator_pubname (const char *, dw_die_ref);
 static void add_pubname_string (const char *, dw_die_ref);
 static void add_pubtype (tree, dw_die_ref);
 static void output_pubnames (VEC (pubname_entry,gc) *);
+static void generate_dwarf_accel_tables (void);
 static void output_aranges (unsigned long);
 static unsigned int add_ranges_num (int);
 static unsigned int add_ranges (const_tree);
@@ -6963,10 +6969,40 @@ generate_type_signature (dw_die_ref die, comdat_type_node *type_node)
   die->die_id.die_type_node = type_node;
   type_node->type_die = die;
 
+  die->die_id.die_type_node->index = NO_INDEX_ASSIGNED;
+
   /* If the DIE is a specification, link its declaration to the type node
      as well.  */
   if (decl != NULL)
     decl->die_id.die_type_node = type_node;
+}
+
+/* Output the type index section.  */
+
+#ifndef DEBUG_TU_INDEX_SECTION
+#define DEBUG_TU_INDEX_SECTION	 ".debug_tu_index"
+#endif
+
+static void
+output_type_index_section (void)
+{
+  unsigned i = 1;
+  comdat_type_node *ctnode = comdat_type_list;
+  char null_sig[DWARF_TYPE_SIGNATURE_SIZE];
+
+  switch_to_section (get_section (DEBUG_TU_INDEX_SECTION,
+                                  SECTION_DEBUG, NULL));
+  memset (null_sig, 0, DWARF_TYPE_SIGNATURE_SIZE);
+  output_signature (null_sig, "First entry in tu index is null");
+  while (ctnode != NULL)
+    {
+      if (ctnode->index == NOT_INDEXED)
+        continue;
+      gcc_assert (i == ctnode->index);
+      output_signature (ctnode->signature, "type die signature");
+      ctnode = ctnode->next;
+      i++;
+    }
 }
 
 /* Do the location expressions look same?  */
@@ -7842,6 +7878,7 @@ break_out_comdat_types (dw_die_ref die)
                          get_AT_unsigned (comp_unit_die (), DW_AT_language));
         type_node = ggc_alloc_cleared_comdat_type_node ();
         type_node->root_die = unit;
+        unit->die_id.die_type_node = type_node;
         type_node->next = comdat_type_list;
         comdat_type_list = type_node;
 
@@ -8983,7 +9020,7 @@ output_attr_index_or_value (dw_attr_ref a)
 
 /* Output a type signature.  */
 
-static inline void
+static void
 output_signature (const char *sig, const char *name)
 {
   int i;
@@ -9491,6 +9528,8 @@ output_comdat_type_unit (comdat_type_node *node)
 #endif
 
   /* Output debugging information.  */
+  fprintf (asm_out_file, "\t%s %s: %d\n", ASM_COMMENT_START,
+           "Type unit", node->index);
   output_compilation_unit_header ();
   output_signature (node->signature, "Type Signature");
   dw2_asm_output_data (DWARF_OFFSET_SIZE, node->type_die->die_offset,
@@ -24101,10 +24140,19 @@ dwarf2out_finish (const char *filename)
   for (ctnode = comdat_type_list; ctnode != NULL; ctnode = ctnode->next)
     {
       void **slot = htab_find_slot (comdat_type_table, ctnode, INSERT);
+      /* Zero is reserved for the main compilation unit.  */
+      static unsigned next_index = 1;
 
-      /* Don't output duplicate types.  */
+      /* Don't output duplicate types.  Also, don't index them.  */
       if (*slot != HTAB_EMPTY_ENTRY)
-        continue;
+        {
+          comdat_type_node *ctnode = (comdat_type_node *) *slot;
+          ctnode->index = NOT_INDEXED;
+          continue;
+        }
+
+      ctnode->index = next_index;
+      next_index++;
 
       /* Add a pointer to the line table for the main compilation unit
          so that the debugger can make sense of DW_AT_decl_file
@@ -24182,6 +24230,8 @@ dwarf2out_finish (const char *filename)
 
   output_pubtables ();
 
+  generate_dwarf_accel_tables ();
+
   /* Output the address range information if a CU (.debug_info section)
      was emitted.  We output an empty table even if we had no functions
      to put in it.  This because the consumer has no way to tell the
@@ -24233,6 +24283,622 @@ dwarf2out_finish (const char *filename)
   /* If we emitted any indirect strings, output the string table too.  */
   if (debug_str_hash)
     output_indirect_strings ();
+}
+
+
+/* An implementation of the Daniel J Bernstein hash function.  */
+
+static uint32_t
+djb_hash (const char *s)
+{
+  uint32_t hash = 5381;
+  size_t len = strlen(s);
+  size_t i;
+
+  for (i = 0; i < len; i++)
+    hash = ((hash << 5) + hash) + s[i];
+
+  return hash;
+}
+
+/* A structure to collect dies with the same name.  Eg, there may be
+   many dies with the name '(anonymous namespace)' in a single
+   compilation unit.  */
+
+struct GTY(()) accel_table_entry
+{
+  unsigned int hash;
+  char label[MAX_ARTIFICIAL_LABEL_BYTES];
+  struct GTY (()) indirect_string_node *name;
+  VEC(dw_die_ref,heap) *die_list;
+};
+
+typedef struct accel_table_entry accel_table_entry;
+typedef accel_table_entry *accel_table_entry_ref;
+static GTY ((param_is (accel_table_entry))) htab_t entries;
+
+DEF_VEC_O(accel_table_entry);
+DEF_VEC_ALLOC_O(accel_table_entry,gc);
+
+/* Hash and equality functions for accel_table_entry.  */
+
+static hashval_t
+accel_table_entry_do_hash (const void *x)
+{
+  return ((const struct accel_table_entry *)x)->hash;
+}
+
+static int
+accel_table_entry_eq (const void *x1, const void *x2)
+{
+  return strcmp ((((const struct accel_table_entry *)x1)->name->str),
+		 (const char *)x2) == 0;
+}
+
+enum atom_type
+{
+  atom_type_none = 0,
+   /* DIE offset, check form for encoding.  */
+  atom_type_die_offset = 1,
+  /* DIE offset of the compiler unit header that contains the item in
+     question.  */
+  atom_type_cu_offset = 2,
+  /* DW_TAG_xxx value, should be encoded as DW_FORM_data1 (if no tags
+     exceed 255) or DW_FORM_data2.  */
+  atom_type_tag = 3,
+  /* This implementation uses neither type_flags, nor name_flags, but
+     include them here for completeness.  */
+  /* Flags from enum name_flags.  */
+  atom_type_name_flags = 4,
+  /* Flags from enum type_flags.  */
+  atom_type_type_flags = 5,
+  /* Flags reference to a type signature in the type signature
+     table.  */
+  atom_type_type_signature_index = 6
+};
+
+enum type_flags {
+  type_flag_class_mask = 0x0000000f,
+  type_flag_class_is_implementation = ( 1u << 1 )
+};
+
+typedef struct accel_table_atom {
+  uint16_t type;
+  uint16_t form;
+} accel_table_atom;
+
+DEF_VEC_O(accel_table_atom);
+DEF_VEC_ALLOC_O(accel_table_atom,gc);
+
+typedef struct accel_table_header_data
+{
+  uint32_t die_offset_base;
+  uint32_t atom_count;
+  GTY(()) VEC(accel_table_atom,gc) *atoms;
+} accel_table_header_data;
+
+typedef struct accel_table_bucket
+{
+  GTY(()) VEC(accel_table_entry,gc) *entries;
+} accel_table_bucket;
+
+DEF_VEC_O(accel_table_bucket);
+DEF_VEC_ALLOC_O(accel_table_bucket,gc);
+
+typedef struct accel_table {
+  /* Header  */
+  uint32_t magic;
+  uint16_t version;
+  uint16_t hash_function;
+  uint16_t bucket_count;
+  uint16_t hashes_count;
+  uint32_t header_data_len;
+  accel_table_header_data header_data;
+
+  /* Internal fields  */
+  GTY (()) VEC(accel_table_bucket,gc) *buckets;
+  GTY ((param_is (accel_table_entry))) htab_t entries;
+  section *asection;
+} accel_table;
+
+accel_table names_table;
+accel_table typenames_table;
+accel_table namespaces_table;
+
+/* Add an entry for the name to the given accelerator table.  */
+
+static void
+add_accel_table_entry (accel_table *table, dw_die_ref die, const char *name)
+{
+  accel_table_entry *entry;
+  void **slot;
+  uint32_t hash = djb_hash (name);
+
+  slot = htab_find_slot_with_hash (table->entries, name, hash, INSERT);
+  if (*slot == HTAB_EMPTY_ENTRY)
+    {
+      static unsigned label_count = 0;
+
+      entry = ggc_alloc_cleared_accel_table_entry ();
+      *slot = entry;
+      ASM_GENERATE_INTERNAL_LABEL (entry->label, ACCEL_TABLE_ENTRY_LABEL,
+                                   label_count++);
+      entry->hash = hash;
+      entry->name = find_AT_string (name);
+      /* The table specification requires indirect strings.  */
+      set_indirect_string (entry->name);
+      slot = htab_find_slot_with_hash (table->entries, name, hash, INSERT);
+      gcc_assert(slot && *slot);
+    }
+  else
+    entry = (accel_table_entry *) *slot;
+
+  VEC_safe_push (dw_die_ref, heap, entry->die_list, die);
+}
+
+/* For a given die, add any names, typenames and namespaces
+   to the appropriate table, and also for the die's children.  */
+
+static void
+collect_accel_entries_from_die (dw_die_ref die)
+{
+  dw_die_ref c;
+  dw_attr_ref attr;
+  unsigned ix;
+
+  switch (die->die_tag)
+    {
+      case DW_TAG_label:
+      case DW_TAG_inlined_subroutine:
+      case DW_TAG_subprogram:
+        if (get_AT (die, DW_AT_high_pc) || get_AT (die, DW_AT_low_pc)
+            || get_AT (die, DW_AT_ranges) || get_AT (die, DW_AT_entry_pc))
+          {
+            const char *name = get_AT_string (die, DW_AT_name);
+            add_accel_table_entry (&names_table, die, name);
+            name = get_AT_string (die, ((dwarf_version >= 4)
+                                        ? DW_AT_linkage_name
+                                        : DW_AT_MIPS_linkage_name));
+            if (name)
+              add_accel_table_entry (&names_table, die, name);
+          }
+        break;
+      case DW_TAG_variable:
+        FOR_EACH_VEC_ELT (dw_attr_node, die->die_attr, ix, attr)
+          {
+            dw_loc_descr_ref loc = NULL;
+
+            switch (AT_class (attr))
+              {
+                case dw_val_class_loc_list:
+                  /* Only worry about the first element in the list, because
+                     globals and statics will have just a single location.  */
+                  loc = (*AT_loc_list_ptr (attr))->expr;
+                  break;
+                case dw_val_class_loc:
+                  loc = AT_loc (attr);
+                  break;
+                default:
+                  break;
+              }
+            if (loc && (loc->dw_loc_opc == DW_OP_addr))
+              {
+                const char *name = get_AT_string (die, DW_AT_name);
+                add_accel_table_entry (&names_table, die, name);
+                name = get_AT_string (die, ((dwarf_version >= 4)
+                                            ? DW_AT_linkage_name
+                                            : DW_AT_MIPS_linkage_name));
+                if (name)
+                  add_accel_table_entry (&names_table, die, name);
+              }
+          }
+        break;
+      case DW_TAG_array_type:
+      case DW_TAG_class_type:
+      case DW_TAG_enumeration_type:
+      case DW_TAG_enumerator:
+      case DW_TAG_pointer_type:
+      case DW_TAG_reference_type:
+      case DW_TAG_string_type:
+      case DW_TAG_structure_type:
+      case DW_TAG_subroutine_type:
+      case DW_TAG_typedef:
+      case DW_TAG_union_type:
+      case DW_TAG_ptr_to_member_type:
+      case DW_TAG_set_type:
+      case DW_TAG_subrange_type:
+      case DW_TAG_base_type:
+      case DW_TAG_const_type:
+      case DW_TAG_constant:
+      case DW_TAG_file_type:
+      case DW_TAG_namelist:
+      case DW_TAG_packed_type:
+      case DW_TAG_volatile_type:
+      case DW_TAG_restrict_type:
+      case DW_TAG_interface_type:
+      case DW_TAG_unspecified_type:
+      case DW_TAG_shared_type:
+        if (get_AT (die, DW_AT_name) && !is_declaration_die (die))
+          add_accel_table_entry (&typenames_table, die,
+                                 get_AT_string (die, DW_AT_name));
+        break;
+      case DW_TAG_namespace:
+        {
+          const char *name = get_AT_string (die, DW_AT_name);
+          if (name == NULL)
+            name = "(anonymous namespace)";
+          add_accel_table_entry (&namespaces_table, die, name);
+        }
+        break;
+      default:
+        break;
+    }
+  FOR_EACH_CHILD (die, c, collect_accel_entries_from_die (c));
+}
+
+/* Callback to assign an element to a bucket.  */
+
+static int
+assign_bucket (void **slot, void *data)
+{
+  accel_table *table = (accel_table *) data;
+  struct accel_table_entry *entry = (struct accel_table_entry *) *slot;
+  unsigned index = entry->hash % table->bucket_count;
+  accel_table_bucket *bucket = VEC_index (accel_table_bucket,
+                                          table->buckets, index);
+  VEC_safe_push (accel_table_entry, gc, bucket->entries, entry);
+  return 1;
+}
+
+/* Comparator to find equal hashes.  */
+
+static int
+hash_comparator (const void *x1, const void *x2)
+{
+  const struct accel_table_entry *e1 = (const struct accel_table_entry *) x1;
+  const struct accel_table_entry *e2 = (const struct accel_table_entry *) x2;
+  if (e1->hash > e2->hash)
+    return 1;
+  else if (e1->hash < e2->hash)
+    return -1;
+  else
+    return 0;
+}
+
+/* Typedef for a function to do something with an entry.  Used when
+   iterating over unique hashes in a bucket or table.  */
+
+typedef void (*entry_callback) (accel_table *table, accel_table_entry *entry);
+
+/* Iterate over the unique hashes in an accel table.  This function assumes
+   the hashes are sorted within the buckets.  */
+
+static void
+iterate_over_hashes (accel_table *table, entry_callback callback)
+{
+  unsigned  i;
+  accel_table_bucket *bucket;
+
+  FOR_EACH_VEC_ELT (accel_table_bucket, table->buckets, i, bucket)
+    {
+      /* Use an int64_t here so that all 32-bit hashes are
+         representable, plus an extra sentinal value.  */
+      uint64_t last_hash = UINT64_MAX;
+      accel_table_entry *entry;
+      unsigned j;
+
+      FOR_EACH_VEC_ELT (accel_table_entry, bucket->entries, j, entry)
+        if (entry->hash != last_hash)
+          {
+            (*callback) (table, entry);
+            last_hash = entry->hash;
+          }
+    }
+}
+
+/* Callback to count unique hashes in the table.  */
+
+static void
+increment_hashes_count (accel_table *table,
+                        accel_table_entry *entry ATTRIBUTE_UNUSED)
+{
+  table->hashes_count++;
+}
+
+/* Finalize a dwarf acceleration table.  The table has all the entries
+   added.  Sort the entries into buckets, elminate duplicates,
+   calculate header values, and sort the buckets by hashes.  */
+
+static void
+finalize_accel_table (accel_table *table)
+{
+  unsigned entry_count = htab_elements (table->entries);
+  accel_table_bucket *bucket;
+  unsigned int i;
+
+  /* Bucket count logic follows the llvm implementation, but no
+     particular other reason.  */
+  if (entry_count > 1024)
+    table->bucket_count = entry_count / 4;
+  else if (entry_count > 16)
+    table->bucket_count = entry_count / 2;
+  else if (entry_count > 0)
+    table->bucket_count = entry_count;
+  else
+    table->bucket_count = 1;
+  /* Assign the entries to the buckets.  */
+  VEC_safe_grow_cleared (accel_table_bucket, gc, table->buckets,
+                         table->bucket_count);
+  htab_traverse_noresize (table->entries, assign_bucket, table);
+
+  /* Sort and count hashes.  All bucket processing after this point
+     can assume that the buckets are sorted by hash value.  */
+  FOR_EACH_VEC_ELT (accel_table_bucket, table->buckets, i, bucket)
+    VEC_qsort (accel_table_entry, bucket->entries, hash_comparator);
+  table->hashes_count = 0;
+  iterate_over_hashes (table, increment_hashes_count);
+}
+
+/* Output acceleration table header, and header_data.  */
+
+static void
+output_accel_table_header (accel_table *table)
+{
+  accel_table_atom *atom;
+  unsigned ix;
+
+  dw2_asm_output_data (sizeof (table->magic), table->magic, "'HASH'");
+  dw2_asm_output_data (sizeof (table->version), table->version, "version");
+  dw2_asm_output_data (sizeof (table->hash_function), table->hash_function,
+                       "hash function");
+  dw2_asm_output_data (sizeof (table->bucket_count), table->bucket_count,
+                       "bucket_count");
+  dw2_asm_output_data (sizeof (table->hashes_count), table->hashes_count,
+                       "hashes_count");
+
+  /* Output header_data.  */
+  dw2_asm_output_data (sizeof (table->header_data_len),
+                       table->header_data_len, "header_data_len");
+  dw2_asm_output_data (sizeof (table->header_data.die_offset_base),
+                       table->header_data.die_offset_base, "die_offset_base");
+  dw2_asm_output_data (sizeof (table->header_data.atom_count),
+                       table->header_data.atom_count, "atom count");
+  FOR_EACH_VEC_ELT (accel_table_atom, table->header_data.atoms, ix, atom)
+    {
+      dw2_asm_output_data (sizeof (atom->type), atom->type, "atom_type");
+      dw2_asm_output_data (sizeof (atom->form), atom->form, "%s",
+                           dwarf_form_name (atom->form));
+    }
+}
+
+/* Output acceleration table buckets.  */
+
+static void
+output_accel_table_buckets (accel_table *table)
+{
+  unsigned ix;
+  unsigned index = 0;
+  accel_table_bucket *bucket;
+
+  FOR_EACH_VEC_ELT (accel_table_bucket, table->buckets, ix, bucket)
+    {
+      unsigned int length = VEC_length (accel_table_entry, bucket->entries);
+      if (length != 0)
+        dw2_asm_output_data (sizeof (uint32_t), index,
+                             "offset to hashes in bucket 0x%x", ix);
+      else
+        dw2_asm_output_data (sizeof (uint32_t), UINT32_MAX, "empty bucket");
+      index += length;
+    }
+}
+
+/* Callback to output a hash value.  */
+
+static void
+output_entry_hash (accel_table *table, accel_table_entry *entry)
+{
+  dw2_asm_output_data (sizeof (entry->hash), entry->hash,
+                       "hash in bucket 0x%x",
+                       entry->hash % table->bucket_count);
+}
+
+/* Callback to output an offset to the table entries.  */
+
+static void
+output_entry_offset (accel_table *table, accel_table_entry *entry)
+{
+  dw2_asm_output_offset (DWARF_OFFSET_SIZE, entry->label,
+                         table->asection,
+                         "offset in bucket 0x%x",
+                         entry->hash % table->bucket_count);
+}
+
+/* Output atoms for each die in the accel table entry.  */
+
+static void
+output_die_list_atoms (accel_table *table, accel_table_entry *entry)
+{
+  unsigned i;
+  dw_die_ref die;
+
+  /* Output chain entries.  */
+  dw2_asm_output_data (sizeof (uint32_t),
+                       VEC_length(dw_die_ref, entry->die_list),
+                       "Dies in chain");
+
+  FOR_EACH_VEC_ELT (dw_die_ref, entry->die_list, i, die)
+    {
+      accel_table_atom *atom;
+      unsigned j;
+
+      FOR_EACH_VEC_ELT (accel_table_atom, table->header_data.atoms, j, atom)
+        {
+          switch (atom->type)
+            {
+              case atom_type_die_offset:
+                dw2_asm_output_data (DWARF_OFFSET_SIZE, die->die_offset,
+                                     "die offset");
+                break;
+              case atom_type_type_signature_index:
+                gcc_assert (use_debug_types);
+                {
+                  /* Zero is shorthand for the main CU.  */
+                  unsigned index = 0;
+                  dw_die_ref tu_die = die;
+
+                  while (tu_die && tu_die->die_id.die_type_node == NULL)
+                    tu_die = get_die_parent (tu_die);
+                  if (tu_die)
+                    index = tu_die->die_id.die_type_node->index;
+                  dw2_asm_output_data (DWARF_OFFSET_SIZE, index,
+                                       "Index into signature table");
+                  break;
+                }
+              default:
+                gcc_unreachable ();
+            }
+        }
+    }
+}
+
+/* Output acceleration table bucket entries.  */
+
+static void
+output_accel_table_bucket_entries (accel_table *table)
+{
+  unsigned i, j;
+  accel_table_bucket *bucket;
+  accel_table_entry *e1;
+
+  FOR_EACH_VEC_ELT (accel_table_bucket, table->buckets, i, bucket)
+    {
+      bool start_chain = true;
+
+      FOR_EACH_VEC_ELT (accel_table_entry, bucket->entries, j, e1)
+        {
+          /* Output chain header.  */
+          if (start_chain)
+            {
+              ASM_OUTPUT_LABEL (asm_out_file, e1->label);
+              start_chain = false;
+            }
+          gcc_assert (e1->name->form == DW_FORM_strp);
+          dw2_asm_output_offset (sizeof (uint32_t),
+                                 e1->name->label, debug_str_section,
+                                 "%s", e1->name->str);
+          output_die_list_atoms (table, e1);
+
+          if (j < VEC_length (accel_table_entry, bucket->entries) - 1)
+            {
+              accel_table_entry *e2
+                  = VEC_index (accel_table_entry, bucket->entries, j + 1);
+              if (e1->hash != e2->hash)
+                {
+                  dw2_asm_output_data (sizeof (uint32_t), 0, "end of chain");
+                  start_chain = true;
+                }
+            }
+        }
+      if (start_chain == false)
+        dw2_asm_output_data (sizeof (uint32_t), 0, "end of chain");
+    }
+}
+
+/* Output an acceleration table.  */
+
+static void
+output_accel_table (accel_table *table)
+{
+  switch_to_section (table->asection);
+  output_accel_table_header (table);
+  output_accel_table_buckets (table);
+  iterate_over_hashes (table, output_entry_hash);
+  iterate_over_hashes (table, output_entry_offset);
+  output_accel_table_bucket_entries (table);
+}
+
+/* Add an atom type to the accel table and update related table header
+   fields.  */
+
+static void
+add_accel_table_atom (accel_table *table, enum atom_type atom)
+{
+  accel_table_atom ate_atom;
+
+  /* Fill in header_data.  */
+  ate_atom.type = atom;
+  ate_atom.form = DW_FORM_data4;
+  VEC_safe_push(accel_table_atom, gc, table->header_data.atoms, &ate_atom);
+  table->header_data.atom_count = VEC_length (accel_table_atom,
+                                              table->header_data.atoms);
+  table->header_data_len =
+      sizeof(table->header_data.die_offset_base)
+      + sizeof(table->header_data.atom_count)
+      + (table->header_data.atom_count * sizeof(accel_table_atom));
+}
+
+
+/* Initialize a new accelerator table.  */
+
+static void
+init_accel_table (accel_table *table, const char *section_name)
+{
+  /* Fill in the header.  */
+  table->magic = 0x48415348; /* 'HASH'  */
+  table->version = 1;
+  table->hash_function = 0; /* DJB hash function  */
+
+  table->header_data.die_offset_base = 0;
+  add_accel_table_atom (table, atom_type_die_offset);
+
+  /* Set up internal data structures.  */
+  table->entries = htab_create_ggc (10, accel_table_entry_do_hash,
+                                    accel_table_entry_eq, NULL);
+  table->asection = get_section (section_name, SECTION_DEBUG, NULL);
+
+  /* Other fields will be initialized upon completion.  */
+}
+
+#ifndef DEBUG_NAMES_SECTION
+#define DEBUG_NAMES_SECTION	 ".debug_names"
+#endif
+#ifndef DEBUG_TYPENAMES_SECTION
+#define DEBUG_TYPENAMES_SECTION	 ".debug_typenames"
+#endif
+#ifndef DEBUG_NAMESPACES_SECTION
+#define DEBUG_NAMESPACES_SECTION ".debug_namespaces"
+#endif
+
+/* Sole entry point to build .debug_names, .debug_typenames[.*] and
+   .debug_namespaces.  */
+
+static void
+generate_dwarf_accel_tables (void)
+{
+  comdat_type_node *ctnode;
+
+  init_accel_table (&names_table, DEBUG_NAMES_SECTION);
+  init_accel_table (&typenames_table, DEBUG_TYPENAMES_SECTION);
+  if (use_debug_types)
+    add_accel_table_atom (&typenames_table, atom_type_type_signature_index);
+  init_accel_table (&namespaces_table, DEBUG_NAMESPACES_SECTION);
+
+  /* Figure out which entries go with which table.  */
+  gcc_assert (limbo_die_list == NULL);
+  collect_accel_entries_from_die (comp_unit_die ());
+  for (ctnode = comdat_type_list; ctnode; ctnode = ctnode->next)
+    collect_accel_entries_from_die (ctnode->root_die);
+
+  /* Finalize and output.  */
+  finalize_accel_table (&names_table);
+  output_accel_table (&names_table);
+  finalize_accel_table (&typenames_table);
+  output_accel_table (&typenames_table);
+  finalize_accel_table (&namespaces_table);
+  output_accel_table (&namespaces_table);
+
+  if (use_debug_types)
+    output_type_index_section ();
 }
 
 #include "gt-dwarf2out.h"
