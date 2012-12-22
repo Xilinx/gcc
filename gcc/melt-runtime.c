@@ -201,6 +201,11 @@ static int melt_debugging_after_mode;
 /* the generating GGC marking routine */
 extern void gt_ggc_mx_melt_un (void *);
 
+#ifndef ggc_alloc_cleared_melt_valuevector_st
+#define ggc_alloc_cleared_melt_valuevector_st(S) \
+  ((struct melt_valuevector_st*) (ggc_internal_cleared_alloc_stat ((S) MEM_STAT_INFO)))
+#endif
+
 static void
 melt_resize_scangcvect (unsigned long size)
 {
@@ -212,13 +217,14 @@ melt_resize_scangcvect (unsigned long size)
       struct melt_valuevector_st* oldgcvec = melt_scangcvect;
       unsigned long ulen = oldgcvec->vv_ulen;
       struct melt_valuevector_st* newgcvec 
-	= (struct melt_valuevector_st*) 
-	ggc_alloc_cleared_melt_valuevector_st (sizeof(struct melt_valuevector_st)
-			   +size*sizeof(melt_ptr_t));
+        = (struct melt_valuevector_st*) 
+        ggc_alloc_cleared_melt_valuevector_st 
+        (sizeof(struct melt_valuevector_st)
+         +size*sizeof(melt_ptr_t));
       newgcvec->vv_size = size;
       newgcvec->vv_ulen = ulen;
       memcpy (newgcvec->vv_tab, oldgcvec->vv_tab,
-	      ulen * sizeof(melt_ptr_t));
+              ulen * sizeof(melt_ptr_t));
       ggc_free (oldgcvec), oldgcvec = NULL;
       melt_scangcvect = newgcvec;
     }
@@ -505,8 +511,10 @@ melt_intern_cstring (const char* s)
       unsigned newsiz = 0;
       char**newarr = NULL;
       const char**oldarr = NULL;
-      for (unsigned ix=1; 
-	   ix<sizeof(melt_primtab)/sizeof(melt_primtab[0]) && newix==0; 
+      unsigned ix=0;
+      unsigned oix=0;
+      for (ix = 1; 
+	   ix < sizeof(melt_primtab)/sizeof(melt_primtab[0]) && newix==0; 
 	   ix++)
 	if (melt_primtab[ix] > 2*melt_intstrhtab.csh_count + 60)
 	  newix = ix;
@@ -521,8 +529,8 @@ melt_intern_cstring (const char* s)
       oldarr = melt_intstrhtab.csh_array;
       melt_intstrhtab.csh_count = 0;
       melt_intstrhtab.csh_sizix = newix;
-      melt_intstrhtab.csh_array = CONST_CAST (const char**, newarr);
-      for (unsigned oix=0; oix < oldsiz; oix++)
+      melt_intstrhtab.csh_array = (const char**) CONST_CAST (char**, newarr);
+      for (oix=0; oix < oldsiz; oix++)
 	{
 	  long aix = -1;
 	  const char*curs = oldarr[oix];

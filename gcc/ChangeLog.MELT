@@ -1,4 +1,13 @@
 
+2012-12-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{MELT plugin 0.9.8 release}}
+	* melt-runtime.h (MELT_VERSION_STRING): Bump to 0.9.8
+	* melt-runtime.c (ggc_alloc_cleared_melt_valuevector_st): Macro
+	defined if not gengtype generated.
+	(melt_resize_scangcvect): Use it.
+	(melt_intern_cstring): Declare ix, oix outside of for loop. Force
+	the const cast.
+
 2012-12-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (do_finalize_melt): Properly remove files in
 	temporary directory, by rebuilding their full path and handling
