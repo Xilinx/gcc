@@ -908,6 +908,15 @@ gcov_object_summary (struct gcov_info *info, struct gcov_summary *obj_sum)
   gcov_crc32 = crc32;
 }
 
+struct gcov_summary_buffer
+{
+  struct gcov_summary_buffer *next;
+  struct gcov_summary summary;
+};
+
+static struct gcov_summary_buffer *next_sum_buffer, *sum_buffer;
+static struct gcov_summary_buffer **sum_tail;
+
 /* Merge with existing gcda file in the same directory to avoid
    excessive growthe of the files.  */
 
@@ -924,6 +933,8 @@ gcov_merge_gcda_file (struct gcov_info *gi_ptr)
 
   eof_pos = 0;
   summary_pos = 0;
+  sum_buffer = 0;
+  sum_tail = &sum_buffer;
 
   tag = gcov_read_unsigned ();
   if (tag)
@@ -957,11 +968,36 @@ gcov_merge_gcda_file (struct gcov_info *gi_ptr)
          gcov_read_summary (&tmp);
          if ((error = gcov_is_error ()))
            goto read_error;
-         if (!summary_pos && tmp.checksum == gcov_crc32)
+         if (summary_pos)
            {
-             program = tmp;
-             summary_pos = eof_pos;
+             /* Save all summaries after the one that will be
+                merged into below. These will need to be rewritten
+                as histogram merging may change the number of non-zero
+                histogram entries that will be emitted, and thus the
+                size of the merged summary.  */
+             (*sum_tail) = (struct gcov_summary_buffer *)
+                 malloc (sizeof(struct gcov_summary_buffer));
+             (*sum_tail)->summary = tmp;
+             (*sum_tail)->next = 0;
+             sum_tail = &((*sum_tail)->next);
+             goto next_summary;
            }
+         if (tmp.checksum != gcov_crc32)
+           goto next_summary;
+
+         for (t_ix = 0; t_ix != GCOV_COUNTERS_SUMMABLE; t_ix++)
+           if (tmp.ctrs[t_ix].num != this_program.ctrs[t_ix].num)
+             goto next_summary;
+         program = tmp;
+         summary_pos = eof_pos;
+
+       next_summary:;
+       }
+
+     if (!summary_pos)
+       {
+         memset (&program, 0, sizeof (program));
+         summary_pos = eof_pos;
        }
 
      /* Merge execution counts for each function.  */
@@ -1037,8 +1073,6 @@ read_fatal:;
 
 rewrite:;
     gcov_rewrite ();
-    if (!summary_pos)
-      memset (&program, 0, sizeof (program));
 
     /* Merge the summaries.  */
     for (t_ix = 0; t_ix < GCOV_COUNTERS_SUMMABLE; t_ix++)
@@ -1158,12 +1192,25 @@ gcov_write_gcda_file (struct gcov_info *gi_ptr)
   gcov_write_tag_length (GCOV_DATA_MAGIC, GCOV_VERSION);
   gcov_write_unsigned (gi_ptr->stamp);
 
-  /* if (summary_pos)
-     gcov_seek (summary_pos); */
+   if (summary_pos)
+     gcov_seek (summary_pos);
   gcc_assert (!summary_pos || summary_pos == gcov_position ());
 
   /* Generate whole program statistics.  */
   gcov_write_summary (GCOV_TAG_PROGRAM_SUMMARY, &program);
+
+  /* Rewrite all the summaries that were after the summary we merged
+     into. This is necessary as the merged summary may have a different
+     size due to the number of non-zero histogram entries changing after
+     merging.  */
+
+  while (sum_buffer)
+    {
+      gcov_write_summary (GCOV_TAG_PROGRAM_SUMMARY, &sum_buffer->summary);
+      next_sum_buffer = sum_buffer->next;
+      free (sum_buffer);
+      sum_buffer = next_sum_buffer;
+    }
 
   /* Write execution counts for each function.  */
   for (f_ix = 0; f_ix < gi_ptr->n_functions; f_ix++)

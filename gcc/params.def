@@ -986,7 +986,7 @@ DEFPARAM (PARAM_PROFILE_GENERATE_SAMPLING_PERIOD,
 DEFPARAM (PARAM_GCOV_DEBUG,
 	  "gcov-debug",
 	  "Looking for gcda file in current dir.",
-	  1, 0, 1)
+	  0, 0, 1)
 
 DEFPARAM (PARAM_REUSEDIST_MEAN_DIST_LARGE_THRESH,
           "reusedist-mean-dist-large-thresh",
