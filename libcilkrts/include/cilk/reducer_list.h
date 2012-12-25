@@ -60,8 +60,7 @@
  *      }
  *
  *      std::cout << "The result is: ";
- *      for (std::list<int>::iterator i = result.begin(); i != result.end();
- *           ++i)
+ *      for (std::list<int>::iterator i = result.begin(); i != result.end(); ++i)
  *      {
  *          std::cout << *i << " " << std::endl;
  *      }
@@ -71,8 +70,7 @@
  *..
  * Changing the 'for' to a 'cilk_for' will cause the loop to run in parallel,
  * but doing so will create a data race on the 'result' list.
- * The race is solved by changing 'result' to a 'reducer_list_append'
- * hyperobject:
+ * The race is solved by changing 'result' to a 'reducer_list_append' hyperobject:
  *..
  *  int compute(const X& v);
  *
@@ -82,15 +80,15 @@
  *      extern X myArray[ARRAY_SIZE];
  *      // ...
  *
- *      cilk::reducer_list_append<int> result;
+ *      cilk::hyperobject<cilk::reducer_list_append<int> > result;
  *      cilk_for (std::size_t i = 0; i < ARRAY_SIZE; ++i)
  *      {
- *          result->push_back(compute(myArray[i]));
+ *          result.push_back(compute(myArray[i]));
  *      }
  *
  *      std::cout << "The result is: ";
- *      const std::list &r = result->get_value();
- *      for (std::list<int>::const_iterator i = r.begin(); i != r.end(); ++i)
+ *      const std::list &r = result.get_value();
+ *      for (std::list<int>::iterator i = r.begin(); i != r.end(); ++i)
  *      {
  *          std::cout << *i << " " << std::endl;
  *      }
@@ -106,7 +104,7 @@
  * ordered list of items.  Lists accumulated in Cilk++ strands will be merged
  * to maintain the order of the lists - the order will be the same as if the
  * application was run on a single core.
- *
+ *..
  * The the current value of the reducer can be gotten and set using the
  * 'get_value', 'get_reference', and 'set_value' methods.  As with most
  * reducers, these methods produce deterministic results only if called before
@@ -124,8 +122,8 @@ namespace cilk
 {
 
 /**
- * @brief Reducer hyperobject to accumulate a list of elements where elements
- * are added to the end of the list.
+ * @brief Reducer hyperobject to accumulate a list of elements where elements are
+ * added to the end of the list.
  */
 template<class _Ty,
          class _Ax = std::allocator<_Ty> >
@@ -171,11 +169,6 @@ public:
     // Add an element to the end of the list
     void push_back(const _Ty element);
 
-    reducer_list_append&       operator*()       { return *this; }
-    reducer_list_append const& operator*() const { return *this; }
-
-    reducer_list_append*       operator->()       { return this; }
-    reducer_list_append const* operator->() const { return this; }
 
 private:
     // Not copyable
@@ -372,11 +365,6 @@ public:
     // Add an element to the beginning of the list
     void push_front(const _Ty element);
 
-    reducer_list_prepend&       operator*()       { return *this; }
-    reducer_list_prepend const& operator*() const { return *this; }
-
-    reducer_list_prepend*       operator->()       { return this; }
-    reducer_list_prepend const* operator->() const { return this; }
 
 private:
     // Not copyable

@@ -1,6 +1,6 @@
 #########################################################################
 #
-# Copyright (C) 2011-2012 
+# Copyright (C) 2011 
 # Intel Corporation
 # 
 # This file is part of the Intel Cilk Plus Library.  This library is free
@@ -24,4 +24,4 @@
 # <http://www.gnu.org/licenses/>.
 ###########################################################################
 
-CILK_REVISION = 2856
+CILK_REVISION = 2546

@@ -74,9 +74,9 @@
  *
  *      cilk_for (int i = 0; i < ARRAY_SIZE; ++i)
  *      {
- *          min->calc_min(a[i]);
+ *          min.calc_min(a[i]);
  *      }
- *      std::cout << "min = " << min->get_value() << std::endl;
+ *      std::cout << "min = " << min.get_value() << std::endl;
  *
  *      ...
  *  }
@@ -92,10 +92,10 @@
  *
  *      cilk_for (int i = 0; i < ARRAY_SIZE; ++i)
  *      {
- *          rmi->calc_min(i, a[i]);
+ *          rmi.calc_min(i, a[i]);
  *      }
- *      std::cout << "min = " << rmi->get_value() <<
- *                   ", index = " << rmi->get_index() << std::endl;
+ *      std::cout << "min = " << rmi.get_value() <<
+ *                   ", index = " << rmi.get_index() << std::endl;
  *
  *      ...
  *  }
@@ -302,12 +302,6 @@ public:
     /// Merge the result of a 'min' operation into this object.  The
     /// operation must involve this hyperobject, i.e., x = min_of(x, 5);
     reducer_min& operator=(const temp_min &temp);
-
-    reducer_min&       operator*()       { return *this; }
-    reducer_min const& operator*() const { return *this; }
-
-    reducer_min*       operator->()       { return this; }
-    reducer_min const* operator->() const { return this; }
 
 private:
     // Not copyable
@@ -636,12 +630,6 @@ public:
     // DEPRECATED.  Use calc_min instead.
     void min_of(const Index& index, const Value& value)
         { calc_min(index,value); }
-
-    reducer_min_index&       operator*()       { return *this; }
-    reducer_min_index const& operator*() const { return *this; }
-
-    reducer_min_index*       operator->()       { return this; }
-    reducer_min_index const* operator->() const { return this; }
 
 private:
     // Not copyable

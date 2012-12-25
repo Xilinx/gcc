@@ -74,9 +74,9 @@
  *
  *      cilk_for (int i = 0; i < ARRAY_SIZE; ++i)
  *      {
- *          max->calc_max(a[i]);
+ *          max.calc_max(a[i]);
  *      }
- *      std::cout << "max = " << max->get_value() << std::endl;
+ *      std::cout << "max = " << max.get_value() << std::endl;
  *
  *      ...
  *  }
@@ -94,8 +94,8 @@
  *      {
  *          rmi.calc_max(i, a[i]);
  *      }
- *      std::cout << "max = " << rmi->get_value() <<
- *                   ", index = " << rmi->get_index() << std::endl;
+ *      std::cout << "max = " << rmi.get_value() <<
+ *                   ", index = " << rmi.get_index() << std::endl;
  *
  *      ...
  *  }
@@ -303,12 +303,6 @@ public:
     /// Merge the result of a 'max' operation into this object.  The
     /// operation must involve this hyperobject, i.e., x = max_of(x, 5);
     reducer_max& operator=(const temp_max &temp);
-
-    reducer_max&       operator*()       { return *this; }
-    reducer_max const& operator*() const { return *this; }
-
-    reducer_max*       operator->()       { return this; }
-    reducer_max const* operator->() const { return this; }
 
 private:
     // Not copyable
@@ -636,12 +630,6 @@ public:
 
     // DEPRECATED.  Use calc_max instead.
     void max_of(const Index& index, const Value& value) {calc_max(index,value);}
-
-    reducer_max_index&       operator*()       { return *this; }
-    reducer_max_index const& operator*() const { return *this; }
-
-    reducer_max_index*       operator->()       { return this; }
-    reducer_max_index const* operator->() const { return this; }
 
 private:
     // Not copyable

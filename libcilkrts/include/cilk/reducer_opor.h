@@ -73,7 +73,7 @@
  *      extern X myArray[ARRAY_SIZE];
  *      // ...
  *
- *      unsigned int result = 0;
+ *      unsigned int result;
  *      for (std::size_t i = 0; i < ARRAY_SIZE; ++i)
  *      {
  *          result |= compute(myArray[i]);
@@ -100,7 +100,7 @@
  *      cilk::reducer_opor<unsigned int> result;
  *      cilk_for (std::size_t i = 0; i < ARRAY_SIZE; ++i)
  *      {
- *          *result |= compute(myArray[i]);
+ *          result |= compute(myArray[i]);
  *      }
  *
  *      std::cout << "The result is: " 
@@ -115,15 +115,16 @@
  * Given 'reducer_opor' objects, x and y, the following are
  * valid statements:
  *..
- *  *x |= 5;
- *  *x = *x | 5;
+ *  x |= 5;
+ *  x = x | 5;
  *..
  * The following are not valid expressions and will result in a run-time error
  * in a debug build:
  *..
- *  x = y;       // Cannot assign one reducer to another
- *  *x = *y | 5; // Mixed reducers
- *  *x = 5 | *x; // operator| is not necessarily commutative
+ *  x = y;     // Cannot assign one reducer to another
+ *  x = y | 5; // Mixed reducers
+ *  x = 5 | x; // operator| is not necessarily commutative
+ *..
  *..
  *
  * Requirements on the 'Type' parameter
@@ -213,12 +214,6 @@ class reducer_opor
     /// Merge the result of OR operation into this object.  The OR operation
     /// must involve this reducer, i.e., x = x + 5; not x = y + 5;
     reducer_opor& operator=(const temp_or& temp);
-
-    reducer_opor&       operator*()       { return *this; }
-    reducer_opor const& operator*() const { return *this; }
-
-    reducer_opor*       operator->()       { return this; }
-    reducer_opor const* operator->() const { return this; }
 
   private:
     friend class temp_or;

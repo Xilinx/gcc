@@ -1,6 +1,6 @@
 // cilk_version.h
 //
-// Copyright (C) 2009-2012 
+// Copyright (C) 2009-2011 
 // Intel Corporation
 // 
 // This file is part of the Intel Cilk Plus Library.  This library is free
@@ -28,10 +28,9 @@
 
 #define VERSION_MAJOR 2
 #define VERSION_MINOR 0
-#define VERSION_BUILD 2856
+#define VERSION_BUILD 2546
 #define VERSION_REV 0
-#define VERSION_STRING "2,0,2856,0"
-#define VERSION_HASH "71912a126cb8"
-#define VERSION_BRANCH "v13.0"
-#define TBB_REV_NUMBER ""
-#define VERSION_YEAR "2012"
+#define VERSION_STRING "2,0,2546,0"
+#define VERSION_HASH "977cb3e8296a"
+#define VERSION_BRANCH "eng"
+#define TBB_REV_NUMBER "8650"

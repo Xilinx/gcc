@@ -50,15 +50,7 @@
 #ifndef INCLUDED_CILK_API_H
 #define INCLUDED_CILK_API_H
 
-#ifndef CILK_STUB /* Real (non-stub) definitions below */
-
-#if ! defined(__cilk) && ! defined(USE_CILK_API)
-#   ifdef _WIN32
-#       pragma message("Warning: Cilk ABI is being used with non-Cilk compiler (or Cilk is disabled)")
-#   else
-#       warning Cilk ABI is being used with non-Cilk compiler (or Cilk is disabled)
-#   endif
-#endif
+#ifndef CILK_STUB
 
 #include <cilk/common.h>
 
@@ -202,10 +194,10 @@ typedef void (*__cilkrts_pfn_seh_callback)(const _EXCEPTION_RECORD *exception);
  * runtime aborts the application.
  */
 CILK_API(int) __cilkrts_set_seh_callback(__cilkrts_pfn_seh_callback pfn);
-#endif /* _WIN32 */
+#endif
 
 #if __CILKRTS_ABI_VERSION >= 1
-/* Pedigree API is available only for compilers that use ABI version >= 1. */
+// Pedigree API is available only for compilers that use ABI version >= 1.
 
 /**
  * Pedigree API
@@ -345,7 +337,7 @@ int __cilkrts_bump_loop_rank(void)
     return __cilkrts_bump_loop_rank_internal(__cilkrts_get_tls_worker()); 
 }
 
-#endif /* __CILKRTS_ABI_VERSION >= 1 */
+#endif // __CILKRTS_ABI_VERSION >= 1
 
 __CILKRTS_END_EXTERN_C
 
@@ -385,10 +377,10 @@ __cilkrts_pedigree __cilkrts_get_pedigree_stub(void)
     return ans;
 }
 
-/* Renamed to an actual stub method. */
+// Renamed to an actual stub method.
 #define __cilkrts_get_pedigree() __cilkrts_get_pedigree_stub()
 
-#endif /* __CILKRTS_ABI_VERSION >= 1 */
+#endif // __CILKRTS_ABI_VERSION >= 1
 
 #endif /* CILK_STUB */
 

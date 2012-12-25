@@ -77,7 +77,7 @@
  *  void compute(cilk::reducer_ostream& os, double x)
  *  {
  *      // Perform some significant computation and print the result:
- *      *os << std::asin(x);
+ *      os << std::asin(x);
  *  }
  *
  *  int test()
@@ -224,12 +224,6 @@ public:
 
         return ((*_Pfn)(v));
     }
-
-    reducer_ostream&       operator*()       { return *this; }
-    reducer_ostream const& operator*() const { return *this; }
-
-    reducer_ostream*       operator->()       { return this; }
-    reducer_ostream const* operator->() const { return this; }
 };
 
 

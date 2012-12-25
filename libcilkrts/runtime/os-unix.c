@@ -45,10 +45,8 @@
 #   include <sys/sysctl.h>
     // Uses sysconf(_SC_NPROCESSORS_ONLN) in verbose output
 #elif defined  __FreeBSD__
-#elif defined __CYGWIN__
-// Cygwin on Windows - no additional include files
 #else
-#   error "Unsupported OS"
+#   error Unsupported OS
 #endif
 
 #include <stdarg.h>
@@ -325,14 +323,8 @@ COMMON_SYSDEP int __cilkrts_hardware_cpu_count(void)
     assert((unsigned)count == count);
 
     return count;
-#elif defined  __FreeBSD__ || defined __CYGWIN__
-    int ncores = sysconf(_SC_NPROCESSORS_ONLN);
-
-    return ncores;
-    // Just get the number of processors
-//    return sysconf(_SC_NPROCESSORS_ONLN);
-#else
-#error "Unknown architecture"
+#elif defined  __FreeBSD__
+    return sysconf(_SC_NPROCESSORS_ONLN);
 #endif
 }
 

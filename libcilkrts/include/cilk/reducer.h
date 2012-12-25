@@ -107,10 +107,9 @@ namespace cilk {
 
 /// reducer CLASS TEMPLATE
 ///
-/// A reducer is instantiated on a Monoid.  The Monoid provides the value
-/// type, associative reduce function, and identity for the reducer.  Function
-/// view(), operator*(), and operator()() return the current view of the
-/// reducer, although operator()() is deprecated.
+/// A reducer is instantiated on a Monoid.  The Monoid provides the value type,
+/// associative reduce function, and identity for the reducer.  Function view()
+/// and operator()() return the current view of the reducer.
 template <class Monoid>
 class reducer
 {
@@ -279,15 +278,6 @@ class reducer
         return const_cast<reducer*>(this)->view();
     }
 
-    /// "Dereference" reducer to return the current view.
-    value_type&       operator*()       { return view(); }
-    value_type const& operator*() const { return view(); }
-
-    /// "Dereference" reducer to return the current view.
-    value_type*       operator->()       { return &view(); }
-    value_type const* operator->() const { return &view(); }
-
-    /// operator()() is deprecated.  Use operator*() instead.
     value_type&       operator()()       { return view(); }
     value_type const& operator()() const { return view(); }
 

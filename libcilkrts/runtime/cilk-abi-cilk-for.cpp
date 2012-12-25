@@ -111,7 +111,7 @@ template <typename count_t, typename F>
 inline static
 void call_cilk_for_loop_body(count_t low, count_t high,
                              F body, void *data,
-                             __cilkrts_worker *w,
+                             /* __cilkrts_worker *w, */
                              __cilkrts_pedigree *loop_root_pedigree)
 {
     // The worker is only valid until the first spawn.  Fetch the
@@ -119,6 +119,7 @@ void call_cilk_for_loop_body(count_t low, count_t high,
     // steals.  The sf pointer actually points to the *parent's*
     // __cilkrts_stack_frame, since this function is a non-spawning function
     // and therefore has no cilk stack frame of its own.
+    __cilkrts_worker *w = __cilkrts_get_tls_worker();
     __cilkrts_stack_frame *sf = w->current_stack_frame;
 
     // Save the pedigree node pointed to by the worker.  We'll need to restore
@@ -130,7 +131,7 @@ void call_cilk_for_loop_body(count_t low, count_t high,
     // to flatten the tree regardless of the DAG branches in the cilk_for
     // divide-and-conquer recursion.
     //
-    // The rank is initialized to the low index.  The user is
+    // The rank is initailized to the low index.  The user is
     // expected to call __cilkrts_bump_loop_rank at the end of the cilk_for
     // loop body.
     __cilkrts_pedigree loop_leaf_pedigree;
@@ -155,40 +156,6 @@ void call_cilk_for_loop_body(count_t low, count_t high,
     w->pedigree.parent = saved_next_pedigree_node;
 }
 
-/* capture_spawn_arg_stack_frame
- *
- * Efficiently get the address of the caller's __cilkrts_stack_frame.  The
- * preconditons are that 'w' is the worker at the time of the call and
- * 'w->current_stack_frame' points to the __cilkrts_stack_frame within the
- * spawn helper.  This function should be called only within the argument list
- * of a function that is being spawned because that is the only situation in
- * which these preconditions hold.  This function returns the worker
- * (unchanged) after storing the captured stack frame pointer is stored in the
- * sf argument.
- *
- * The purpose of this function is to get the caller's stack frame in a
- * context where the caller's worker is known but its stack frame is not
- * necessarily initialized.  The "shrink wrap" optimization delays
- * initializing the contents of a spawning function's '__cilkrts_stack_frame'
- * as well as the 'current_stack_frame' pointer within the worker.  By calling
- * this function within a spawning function's argument list, we can ensure
- * that these initializations have occured but that a detach (which would
- * invalidate the worker pointer in the caller) has not yet occured.  Once the
- * '__cilkrts_stack_frame' has been retrieved in this way, it is stable for the
- * remainder of the caller's execution, and becomes an efficient way to get
- * the worker (much more efficient than calling '__cilkrts_get_tls_worker()'),
- * even after a spawn or sync.
- */
-inline __cilkrts_worker* 
-capture_spawn_arg_stack_frame(__cilkrts_stack_frame* &sf, __cilkrts_worker* w)
-{
-    // w->current_stack_frame is the spawn helper's stack frame.
-    // w->current_stack_frame->call_parent is the caller's stack frame.
-    // return w->current_stack_frame->call_parent;
-    sf = w->current_stack_frame->call_parent;
-    return w;
-}
-
 /*
  * cilk_for_recursive
  *
@@ -208,9 +175,14 @@ template <typename count_t, typename F>
 static
 void cilk_for_recursive(count_t low, count_t high,
                         F body, void *data, int grain,
-                        __cilkrts_worker *w,
+                        /* __cilkrts_worker *w, */
                         __cilkrts_pedigree *loop_root_pedigree)
 {
+    // The worker is valid only until the first spawn.  Fetch the
+    // __cilkrts_stack_frame out of the worker, since it will be stable across
+    // steals
+/*    __cilkrts_stack_frame *sf = w->current_stack_frame; */
+
 tail_recurse:
     count_t count = high - low;
     // Invariant: count > 0, grain >= 1
@@ -218,27 +190,17 @@ tail_recurse:
     {
         // Invariant: count >= 2
         count_t mid = low + count / 2;
-        // The worker is valid only until the first spawn and is expensive to
-        // retrieve (using '__cilkrts_get_tls_worker') after the spawn.  The
-        // '__cilkrts_stack_frame' is more stable, but isn't initialized until
-        // the first spawn.  Thus, we want to grab the address of the
-        // '__cilkrts_stack_frame' after it is initialized but before the
-        // spawn detaches.  The only place we can do that is within the
-        // argument list of the spawned function, hence the call to
-        // capture_spawn_arg_stack_frame().
-        __cilkrts_stack_frame *sf;
         _Cilk_spawn cilk_for_recursive(low, mid, body, data, grain,
-                                       capture_spawn_arg_stack_frame(sf, w),
-                                       loop_root_pedigree);
-        w = sf->worker;
+                                       /* sf->worker, */ loop_root_pedigree);
         low = mid;
-
         goto tail_recurse;
     }
 
     // Call the cilk_for loop body lambda function passed in by the compiler to
     // execute one grain
-    call_cilk_for_loop_body(low, high, body, data, w, loop_root_pedigree);
+    call_cilk_for_loop_body(low, high, body, data,
+                            /* sf->worker, */ loop_root_pedigree);
+
 }
 
 static void noop() { }
@@ -256,18 +218,9 @@ static void noop() { }
 template <typename count_t, typename F>
 static void cilk_for_root(F body, void *data, count_t count, int grain)
 {
-    // Pedigree computation:
-    //
-    //    If the last pedigree node on entry to the _Cilk_for has value X,
-    //    then at the start of each iteration of the loop body, the value of
-    //    the last pedigree node should be 0, the value of the second-to-last
-    //    node should equal the loop counter, and the value of the
-    //    third-to-last node should be X.  On return from the _Cilk_for, the
-    //    value of the last pedigree should be incremented to X+2. The
-    //    pedigree within the loop is thus flattened, such that the depth of
-    //    recursion does not affect the results either inside or outside of
-    //    the loop.  Note that the pedigree after the loop exists is the same
-    //    as if a single spawn and sync were executed within this function.
+    __cilkrts_pedigree loop_root_pedigree;
+    __cilkrts_worker *w;
+    __cilkrts_stack_frame *sf;
 
     // TBD: Since the shrink-wrap optimization was turned on in the compiler,
     // it is not possible to get the current stack frame without actually
@@ -278,16 +231,12 @@ static void cilk_for_root(F body, void *data, count_t count, int grain)
 
     // Fetch the current worker.  From that we can get the current stack frame
     // which will be constant even if we're stolen
-    __cilkrts_worker *w = __cilkrts_get_tls_worker();
-    __cilkrts_stack_frame *sf = w->current_stack_frame;
+    w = __cilkrts_get_tls_worker();
+    sf = w->current_stack_frame;
 
-    // Decrement the rank by one to undo the pedigree change from the
-    // _Cilk_spawn
-    --w->pedigree.rank;
-
-    // Save the current worker pedigree into loop_root_pedigree, which will be
-    // the root node for our flattened pedigree.
-    __cilkrts_pedigree loop_root_pedigree = w->pedigree;
+    // Save the current worker pedigree into the loop root
+    --w->pedigree.rank;  // Undo change from spawn
+    loop_root_pedigree = w->pedigree;
 
     // Don't splice the loop_root node in yet.  It will be done when we
     // call the loop body lambda function
@@ -298,27 +247,42 @@ static void cilk_for_root(F body, void *data, count_t count, int grain)
      * Runtime must be started in order to call the grainsize() function.
      */
     int gs = grainsize(grain, count);
-    cilk_for_recursive((count_t) 0, count, body, data, gs, w,
-                       &loop_root_pedigree);
+    if (count > gs)
+    {
+        count_t mid = count / 2;
+        _Cilk_spawn cilk_for_recursive((count_t) 0, mid, body, data, gs, /* w, */
+                                       &loop_root_pedigree);
+        cilk_for_recursive(mid, count, body, data, gs, /* sf->worker, */
+                           &loop_root_pedigree);
 
-    // Need to refetch the worker after calling a spawning function.
-    w = sf->worker;
+        // We must sync before touching the worker below
+        _Cilk_sync;
 
-    // Restore the pedigree in the worker.
-    w->pedigree = loop_root_pedigree;
+        // Need to refetch the worker.  The loop body (or something it calls)
+        // may have included spawns, or the continuation after the cilk_spawn
+        // above may have been stolen, so we can't assume we're on the same
+        // worker
+        w = sf->worker;
 
-    // Bump the worker pedigree.
-    ++w->pedigree.rank;
+        // Restore the pedigree in the worker.  The rank will be bumped
+        // by the return
+        w->pedigree = loop_root_pedigree;
+    }
+    else
+    {
+        // Call the cilk_for loop body lambda function to execute over the
+        // entire range
+        call_cilk_for_loop_body((count_t)0, count, body, data, /* w, */
+                                &loop_root_pedigree);
+    }
 
-    // Implicit sync will increment the pedigree leaf rank again, for a total
-    // of two increments.  If the noop spawn above is removed, then we'll need
-    // to re-enable the following code:
-//     // If this is an optimized build, then the compiler will have optimized
-//     // out the increment of the worker's pedigree in the implied sync.  We
-//     // need to add one to make the pedigree_loop test work correctly.
-// #if CILKRTS_OPTIMIZED
-//     ++sf->worker->pedigree.rank;
-// #endif
+    // If this is an optimized build, then the compiler will have optimized
+    // out the increment of the worker's pedigree in the implied sync.  We
+    // need to add one to make the pedigree_loop test work correctly
+    if (CILKRTS_OPTIMIZED)
+    {
+        ++sf->worker->pedigree.rank;
+    }
 }
 
 // Use extern "C" to suppress name mangling of __cilkrts_cilk_for_32 and

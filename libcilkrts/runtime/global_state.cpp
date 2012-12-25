@@ -51,6 +51,9 @@
 // initialized.
 int cilkg_user_settable_values_initialized = false;
 
+// Pointer to the global state singleton.  
+extern "C" global_state_t *cilkg_singleton_ptr = NULL;  
+
 namespace {
 
 // Single copy of the global state.  Zero-filled until
@@ -62,17 +65,9 @@ global_state_t global_state_singleton =
     sizeof(void *),    // addr_size
 };
 
-
-// Variables that need to export C-style names
-extern "C"
-{
-    // Pointer to the global state singleton.  
-    global_state_t *cilkg_singleton_ptr = NULL;
-
-    // __cilkrts_global_state is exported and referenced by the debugger.
-    // The debugger expects it to be valid when the module loads.
-    global_state_t *__cilkrts_global_state = &global_state_singleton;
-}
+// __cilkrts_global_state is exported and referenced by the debugger.
+// The debugger expects it to be valid when the module loads.
+extern "C" global_state_t *__cilkrts_global_state = &global_state_singleton;
 
 // Returns true if 'a' and 'b' are equal null-terminated strings
 inline bool strmatch(const char* a, const char* b)
@@ -237,11 +232,7 @@ int set_param_imp(global_state_t* g, const CHAR_T* param, const CHAR_T* value)
         if (cilkg_singleton_ptr)
             return __CILKRTS_SET_PARAM_LATE;
 
-        // Fetch the number of cores.  There must be at last 1, since we're
-        // executing on *something*, aren't we!?
         int hardware_cpu_count = __cilkrts_hardware_cpu_count();
-        CILK_ASSERT(hardware_cpu_count > 0);
-
         int max_cpu_count = 16 * hardware_cpu_count;
         if (__cilkrts_running_under_sequential_ptool())
         {
@@ -260,8 +251,6 @@ int set_param_imp(global_state_t* g, const CHAR_T* param, const CHAR_T* value)
         //
         // Sets the number of slots allocated for user worker threads
         int hardware_cpu_count = __cilkrts_hardware_cpu_count();
-        CILK_ASSERT (hardware_cpu_count > 0);
-
         return store_int(&g->max_user_workers, value, 1,
                          16 * hardware_cpu_count);
     }
@@ -300,10 +289,6 @@ int set_param_imp(global_state_t* g, const CHAR_T* param, const CHAR_T* value)
         // ** UNDOCUMENTED **
         //
         // Sets the size (in bytes) of the stacks that Cilk creates.
-        // Can only be set before the runtime starts.
-        if (cilkg_singleton_ptr)
-            return __CILKRTS_SET_PARAM_LATE;
-
         // Maximum value that can be parsed is MAX_INT (32-bit).
         int ret = store_int<size_t>(&g->stack_size, value, 0, INT_MAX);
 
@@ -363,11 +348,7 @@ global_state_t* cilkg_get_user_settable_values()
         // All fields will be zero until set.  In particular
         std::memset(g, 0, sizeof(global_state_t));
 
-        // Fetch the number of cores.  There must be at last 1, since we're
-        // executing on *something*, aren't we!?
         int hardware_cpu_count = __cilkrts_hardware_cpu_count();
-        CILK_ASSERT(hardware_cpu_count > 0);
-
         bool under_ptool = __cilkrts_running_under_sequential_ptool();
         if (under_ptool)
             hardware_cpu_count = 1;
