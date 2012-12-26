@@ -471,7 +471,12 @@ gimple_init_edge_profiler (void)
 	      = build_function_type_list (void_type_node,
 					  gcov_type_ptr, gcov_type_node,
 					  NULL_TREE);
-      tree_one_value_profiler_fn
+      if (PROFILE_GEN_VALUE_ATOMIC)
+        tree_one_value_profiler_fn
+	      = build_fn_decl ("__gcov_one_value_profiler_atomic",
+				     one_value_profiler_fn_type);
+      else
+        tree_one_value_profiler_fn
 	      = build_fn_decl ("__gcov_one_value_profiler",
 				     one_value_profiler_fn_type);
       TREE_NOTHROW (tree_one_value_profiler_fn) = 1;
@@ -487,9 +492,14 @@ gimple_init_edge_profiler (void)
                                       gcov_type_ptr, gcov_type_node,
                                       ptr_void,
                                       ptr_void, NULL_TREE);
-      tree_indirect_call_profiler_fn
-	      = build_fn_decl ("__gcov_indirect_call_profiler",
-				     ic_profiler_fn_type);
+      if (PROFILE_GEN_VALUE_ATOMIC)
+        tree_indirect_call_profiler_fn
+          = build_fn_decl ("__gcov_indirect_call_profiler_atomic",
+                           ic_profiler_fn_type);
+      else
+        tree_indirect_call_profiler_fn
+          = build_fn_decl ("__gcov_indirect_call_profiler",
+                           ic_profiler_fn_type);
       TREE_NOTHROW (tree_indirect_call_profiler_fn) = 1;
       DECL_ATTRIBUTES (tree_indirect_call_profiler_fn)
 	= tree_cons (get_identifier ("leaf"), NULL,
@@ -563,21 +573,39 @@ gimple_gen_edge_profiler (int edgeno, edge e)
      gets re-set in tree_profiling.  */
   if (gcov_type_tmp_var == NULL_TREE)
     gcov_type_tmp_var = create_tmp_reg (gcov_type_node, "PROF_edge_counter");
-  ref = tree_coverage_counter_ref (GCOV_COUNTER_ARCS, edgeno);
+
+  if (PROFILE_GEN_EDGE_ATOMIC)
+    ref = tree_coverage_counter_addr (GCOV_COUNTER_ARCS, edgeno);
+  else
+    ref = tree_coverage_counter_ref (GCOV_COUNTER_ARCS, edgeno);
+
   one = build_int_cst (gcov_type_node, 1);
-  stmt1 = gimple_build_assign (gcov_type_tmp_var, ref);
-  gimple_assign_set_lhs (stmt1, make_ssa_name (gcov_type_tmp_var, stmt1));
-  find_referenced_vars_in (stmt1);
-  stmt2 = gimple_build_assign_with_ops (PLUS_EXPR, gcov_type_tmp_var,
-					gimple_assign_lhs (stmt1), one);
-  gimple_assign_set_lhs (stmt2, make_ssa_name (gcov_type_tmp_var, stmt2));
-  stmt3 = gimple_build_assign (unshare_expr (ref), gimple_assign_lhs (stmt2));
+  if (PROFILE_GEN_EDGE_ATOMIC)
+    {
+      /* __atomic_fetch_add (&counter, 1, MEMMODEL_RELAXED); */
+      stmt3 = gimple_build_call (builtin_decl_explicit (
+                                   GCOV_TYPE_ATOMIC_FETCH_ADD),
+                                 3, ref, one,
+                                 build_int_cst (integer_type_node,
+                                   MEMMODEL_RELAXED));
+      find_referenced_vars_in (stmt3);
+    }
+  else
+    {
+      stmt1 = gimple_build_assign (gcov_type_tmp_var, ref);
+      gimple_assign_set_lhs (stmt1, make_ssa_name (gcov_type_tmp_var, stmt1));
+      find_referenced_vars_in (stmt1);
+      stmt2 = gimple_build_assign_with_ops (PLUS_EXPR, gcov_type_tmp_var,
+            				gimple_assign_lhs (stmt1), one);
+      gimple_assign_set_lhs (stmt2, make_ssa_name (gcov_type_tmp_var, stmt2));
+      stmt3 = gimple_build_assign (unshare_expr (ref), gimple_assign_lhs (stmt2));
 
-  if (flag_profile_generate_sampling)
-    pointer_set_insert (instrumentation_to_be_sampled, stmt1);
+      if (flag_profile_generate_sampling)
+        pointer_set_insert (instrumentation_to_be_sampled, stmt1);
 
-  gsi_insert_on_edge (e, stmt1);
-  gsi_insert_on_edge (e, stmt2);
+      gsi_insert_on_edge (e, stmt1);
+      gsi_insert_on_edge (e, stmt2);
+    }
   gsi_insert_on_edge (e, stmt3);
 }
 

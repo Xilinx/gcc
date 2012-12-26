@@ -1679,6 +1679,22 @@ __gcov_one_value_profiler_body (gcov_type *counters, gcov_type value)
   counters[2]++;
 }
 
+/* Atomic update version of __gcov_one_value_profile_body().  */
+static inline void
+__gcov_one_value_profiler_body_atomic (gcov_type *counters, gcov_type value)
+{
+  if (value == counters[0])
+    GCOV_TYPE_ATOMIC_FETCH_ADD_FN (&counters[1], 1, MEMMODEL_RELAXED);
+  else if (counters[1] == 0)
+    {
+      counters[1] = 1;
+      counters[0] = value;
+    }
+  else
+    GCOV_TYPE_ATOMIC_FETCH_ADD_FN (&counters[1], -1, MEMMODEL_RELAXED);
+  GCOV_TYPE_ATOMIC_FETCH_ADD_FN (&counters[2], 1, MEMMODEL_RELAXED);
+}
+
 #ifdef L_gcov_indirect_call_topn_profiler
 /* Tries to keep track the most frequent N values in the counters where
    N is specified by parameter TOPN_VAL. To track top N values, 2*N counter
@@ -1787,6 +1803,13 @@ __gcov_one_value_profiler (gcov_type *counters, gcov_type value)
 {
   __gcov_one_value_profiler_body (counters, value);
 }
+
+void
+__gcov_one_value_profiler_atomic (gcov_type *counters, gcov_type value)
+{
+  __gcov_one_value_profiler_body_atomic (counters, value);
+}
+
 #endif
 
 #ifdef L_gcov_indirect_call_profiler
@@ -1820,6 +1843,17 @@ __gcov_indirect_call_profiler (gcov_type* counter, gcov_type value,
       || (VTABLE_USES_DESCRIPTORS && callee_func
 	  && *(void **) cur_func == *(void **) callee_func))
     __gcov_one_value_profiler_body (counter, value);
+}
+
+/* Atomic update version of __gcov_indirect_call_profiler().  */
+void
+__gcov_indirect_call_profiler_atomic (gcov_type* counter, gcov_type value,
+                                      void* cur_func, void* callee_func)
+{
+  if (cur_func == callee_func
+      || (VTABLE_USES_DESCRIPTORS && callee_func
+          && *(void **) cur_func == *(void **) callee_func))
+    __gcov_one_value_profiler_body_atomic (counter, value);
 }
 #endif
 
@@ -2136,9 +2170,10 @@ EXPORT_SYMBOL (__gcov_merge_reusedist);
 
 EXPORT_SYMBOL (__gcov_average_profiler);
 EXPORT_SYMBOL (__gcov_indirect_call_profiler);
+EXPORT_SYMBOL (__gcov_indirect_call_profiler_atomic);
 EXPORT_SYMBOL (__gcov_interval_profiler);
 EXPORT_SYMBOL (__gcov_ior_profiler);
-EXPORT_SYMBOL (__gcov_one_value_profiler);
+EXPORT_SYMBOL (__gcov_one_value_profiler_atomic);
 EXPORT_SYMBOL (__gcov_pow2_profiler);
 
 #endif /* __GCOV_KERNEL__ */

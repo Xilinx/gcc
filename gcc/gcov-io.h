@@ -300,6 +300,14 @@ typedef unsigned gcov_type_unsigned __attribute__ ((mode (QI)));
 
 #endif  /* BITS_PER_UNIT == 8  */
 
+#if LONG_LONG_TYPE_SIZE > 32
+#define GCOV_TYPE_ATOMIC_FETCH_ADD_FN __atomic_fetch_add_8
+#define GCOV_TYPE_ATOMIC_FETCH_ADD BUILT_IN_ATOMIC_FETCH_ADD_8
+#else
+#define GCOV_TYPE_ATOMIC_FETCH_ADD_FN __atomic_fetch_add_4
+#define GCOV_TYPE_ATOMIC_FETCH_ADD BUILT_IN_ATOMIC_FETCH_ADD_4
+#endif
+
 #undef EXTRACT_MODULE_ID_FROM_GLOBAL_ID
 #undef EXTRACT_FUNC_ID_FROM_GLOBAL_ID
 #undef GEN_FUNC_GLOBAL_ID
@@ -321,6 +329,18 @@ typedef unsigned gcov_type_unsigned __attribute__ ((mode (QI)));
 
 typedef unsigned gcov_unsigned_t;
 typedef unsigned gcov_position_t;
+
+#if LONG_LONG_TYPE_SIZE > 32
+#define GCOV_TYPE_ATOMIC_FETCH_ADD_FN __atomic_fetch_add_8
+#define GCOV_TYPE_ATOMIC_FETCH_ADD BUILT_IN_ATOMIC_FETCH_ADD_8
+#else
+#define GCOV_TYPE_ATOMIC_FETCH_ADD_FN __atomic_fetch_add_4
+#define GCOV_TYPE_ATOMIC_FETCH_ADD BUILT_IN_ATOMIC_FETCH_ADD_4
+#endif
+#define PROFILE_GEN_EDGE_ATOMIC (flag_profile_gen_atomic == 1 || \
+                                 flag_profile_gen_atomic == 3)
+#define PROFILE_GEN_VALUE_ATOMIC (flag_profile_gen_atomic == 2 || \
+                                  flag_profile_gen_atomic == 3)
 
 /* gcov_type is typedef'd elsewhere for the compiler */
 #if IN_GCOV
