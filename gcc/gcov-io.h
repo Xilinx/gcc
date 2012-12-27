@@ -801,8 +801,8 @@ struct gcov_info
 					  unused) */
   
   unsigned n_functions;		/* number of functions */
-  const struct gcov_fn_info *const *functions; /* pointer to pointers
-					          to function information  */
+  const struct gcov_fn_info **functions; /* pointer to pointers
+					    to function information  */
 };
 
 /* Information about a single imported module.  */
@@ -1008,8 +1008,7 @@ static void gcov_rewrite (void);
 GCOV_LINKAGE void gcov_seek (gcov_position_t /*position*/) ATTRIBUTE_HIDDEN;
 GCOV_LINKAGE void gcov_truncate (void) ATTRIBUTE_HIDDEN;
 GCOV_LINKAGE gcov_unsigned_t gcov_string_length (const char *) ATTRIBUTE_HIDDEN;
-GCOV_LINKAGE unsigned gcov_gcda_file_size (struct gcov_info *,
-                                           struct gcov_summary *);
+GCOV_LINKAGE unsigned gcov_gcda_file_size (struct gcov_info *);
 #else
 /* Available outside libgcov */
 GCOV_LINKAGE void gcov_sync (gcov_position_t /*base*/,

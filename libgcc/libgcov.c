@@ -46,11 +46,11 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #include "tsystem.h"
 #include "coretypes.h"
 #include "tm.h"
-#endif /* __KERNEL__ */
 #include "libgcc_tm.h"
 #include "gthr.h"
+#endif /* __KERNEL__ */
 
-#if 1
+#ifndef __KERNEL__
 #define THREAD_PREFIX __thread
 #else
 #define THREAD_PREFIX
@@ -120,6 +120,7 @@ extern int gcov_dump_complete ATTRIBUTE_HIDDEN;
 #ifdef L_gcov
 #include "gcov-io.c"
 
+#ifndef __GCOV_KERNEL__
 /* Create a strong reference to these symbols so that they are
    unconditionally pulled into the instrumented binary, even when
    the only reference is a weak reference. This is necessary because
@@ -134,6 +135,7 @@ extern int gcov_dump_complete ATTRIBUTE_HIDDEN;
    these symbols will always need to be resolved.  */
 void (*__gcov_dummy_ref1)() = &__gcov_reset;
 void (*__gcov_dummy_ref2)() = &__gcov_dump;
+#endif /* __GCOV_KERNEL__ */
 
 /* Utility function for outputing errors.  */
 static int
@@ -150,6 +152,10 @@ gcov_error (const char *fmt, ...)
   va_end (argp);
   return ret;
 }
+
+/* A program checksum allows us to distinguish program data for an
+   object file included in multiple programs.  */
+static gcov_unsigned_t gcov_crc32;
 
 #ifndef __GCOV_KERNEL__
 /* Emitted in coverage.c.  */
@@ -182,10 +188,6 @@ THREAD_PREFIX gcov_unsigned_t __gcov_sample_counter = 0;
 
 /* Chain of per-object gcov structures.  */
 extern struct gcov_info *__gcov_list;
-
-/* A program checksum allows us to distinguish program data for an
-   object file included in multiple programs.  */
-static gcov_unsigned_t gcov_crc32;
 
 /* Size of the longest file name. */
 static size_t gcov_max_filename = 0;
@@ -323,8 +325,6 @@ gcov_counter_active (const struct gcov_info *info, unsigned int type)
   return (info->merge[type] != 0);
 }
 
-#ifndef __GCOV_KERNEL__
-
 /* Add an unsigned value to the current crc */
 
 static gcov_unsigned_t
@@ -343,6 +343,8 @@ crc32_unsigned (gcov_unsigned_t crc32, gcov_unsigned_t value)
 
   return crc32;
 }
+
+#ifndef __GCOV_KERNEL__
 
 /* Check if VERSION of the info block PTR matches libgcov one.
    Return 1 on success, or zero in case of versions mismatch.
@@ -464,6 +466,8 @@ gcov_alloc_filename (void)
   gi_filename_up = gi_filename + prefix_length;
 }
 
+#endif /* __GCOV_KERNEL__ */
+
 /* Sort N entries in VALUE_ARRAY in descending order.
    Each entry in VALUE_ARRAY has two values. The sorting
    is based on the second value.  */
@@ -508,6 +512,8 @@ gcov_sort_icall_topn_counter (const struct gcov_ctr_info *counters)
       gcov_sort_n_vals (value_array, GCOV_ICALL_TOPN_NCOUNTS - 1);
     }
 }
+
+#ifndef __GCOV_KERNEL__
 
 /* Write imported files (auxiliary modules) for primary module GI_PTR
    into file GI_FILENAME.  */
@@ -586,6 +592,8 @@ gcov_dump_module_info (void)
   __gcov_finalize_dyn_callgraph ();
 }
 
+#endif /* __GCOV_KERNEL__ */
+
 /* Insert counter VALUE into HISTOGRAM.  */
 
 static void
@@ -655,6 +663,8 @@ gcov_compute_histogram (struct gcov_summary *sum)
         }
     }
 }
+
+#ifndef __GCOV_KERNEL__
 
 /* Dump the coverage counts. We merge with existing counts when
    possible, to avoid growing the .da files ad infinitum. We use this
@@ -1049,12 +1059,7 @@ gcov_merge_gcda_file (struct gcov_info *gi_ptr)
              goto read_error;
        }
      if (tag && tag != GCOV_TAG_MODULE_INFO)
-       {
-         read_mismatch:;
-	 fprintf (stderr, "profiling:%s:Merge mismatch for %s\n",
-	          gi_filename, f_ix + 1 ? "function" : "summaries");
-         goto read_fatal;
-	}
+       goto read_mismatch;
     }
   goto rewrite;
 
@@ -1066,6 +1071,11 @@ read_error:;
 #endif /* __GCOV_KERNEL__ */
 
     goto rewrite;
+
+read_mismatch:;
+    gcov_error ("profiling:%s:Merge mismatch for %s\n",
+	     gi_filename, f_ix + 1 ? "function" : "summaries");
+    goto read_fatal;
 
 read_fatal:;
     gcov_close ();
@@ -1110,7 +1120,7 @@ rewrite:;
                               sizeof (*cs_all) - (sizeof (gcov_bucket_type)
                                                   * GCOV_HISTOGRAM_SIZE)))
           {
-            fprintf (stderr, "profiling:%s:Invocation mismatch - "
+            gcov_error ("profiling:%s:Invocation mismatch - "
                 "some data files may have been removed%s\n",
             gi_filename, GCOV_LOCKED
             ? "" : " or concurrent update without locking support");
@@ -1127,14 +1137,14 @@ rewrite:;
    the size is in units of gcov_type.  */
 
 GCOV_LINKAGE unsigned
-gcov_gcda_file_size (struct gcov_info *gi_ptr,
-                     struct gcov_summary *sum)
+gcov_gcda_file_size (struct gcov_info *gi_ptr)
 {
   unsigned size;
   const struct gcov_fn_info *fi_ptr;
   unsigned f_ix, t_ix, h_ix, h_cnt = 0;
   unsigned n_counts;
   const struct gcov_ctr_info *ci_ptr;
+  struct gcov_summary *sum = &this_program;
   const struct gcov_ctr_summary *csum;
 
   /* GCOV_DATA_MAGIC, GCOV_VERSION and time_stamp.  */
@@ -1228,13 +1238,14 @@ gcov_write_gcda_file (struct gcov_info *gi_ptr)
       ci_ptr = gfi_ptr->ctrs;
       for (t_ix = 0; t_ix < GCOV_COUNTERS; t_ix++)
         {
+          gcov_type *c_ptr;
           if (!gi_ptr->merge[t_ix])
             continue;
 
           n_counts = ci_ptr->num;
           gcov_write_tag_length (GCOV_TAG_FOR_COUNTER (t_ix),
                                  GCOV_TAG_COUNTER_LENGTH (n_counts));
-          gcov_type *c_ptr = ci_ptr->values;
+          c_ptr = ci_ptr->values;
           while (n_counts--)
             gcov_write_counter (*c_ptr++);
           ci_ptr++;
@@ -1755,7 +1766,7 @@ __gcov_topn_value_profiler_body (gcov_type *counters, gcov_type value,
      {
        unsigned i, j;
        gcov_type *p, minv;
-       gcov_type* tmp_cnts 
+       gcov_type* tmp_cnts
            = (gcov_type *)alloca (topn_val * sizeof(gcov_type));
 
        *num_eviction = 0;
@@ -2131,15 +2142,20 @@ gcov_set_vfile (gcov_kernel_vfile *file)
   gcov_current_file = file;
 }
 
+/* Init function before dumping the gcda file in kernel.  */
+
+void
+gcov_kernel_dump_gcov_init (void)
+{
+  gcov_exit_init ();
+}
+
 /* Dump one entry in the gcov_info list (for one object) in kernel.  */
 
 void
 gcov_kernel_dump_one_gcov (struct gcov_info *info)
 {
   gcc_assert (gcov_current_file);
-
-  gcov_exit_init ();
-
   gcov_dump_one_gcov (info);
 }
 

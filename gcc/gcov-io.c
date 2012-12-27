@@ -662,6 +662,20 @@ gcov_read_string (void)
   return (const char *) gcov_read_words (length);
 }
 
+#ifdef __GCOV_KERNEL__
+static int
+k_popcountll (long long x)
+{
+  int c = 0;
+  while (x)
+    {
+      c++;
+      x &= (x-1);
+    }
+  return c;
+}
+#endif
+
 GCOV_LINKAGE void
 gcov_read_summary (struct gcov_summary *summary)
 {
@@ -683,7 +697,11 @@ gcov_read_summary (struct gcov_summary *summary)
       for (bv_ix = 0; bv_ix < GCOV_HISTOGRAM_BITVECTOR_SIZE; bv_ix++)
         {
           histo_bitvector[bv_ix] = gcov_read_unsigned ();
+#ifndef __GCOV_KERNEL__
           h_cnt += __builtin_popcountll (histo_bitvector[bv_ix]);
+#else
+          h_cnt += k_popcountll (histo_bitvector[bv_ix]);
+#endif
         }
       bv_ix = 0;
       h_ix = 0;
@@ -1137,7 +1155,6 @@ kernel_file_fclose (gcov_kernel_vfile *fp)
 long
 kernel_file_ftell (gcov_kernel_vfile *fp)
 {
-  gcc_assert (0);  /* should not reach here */
   return 0;
 }
 
@@ -1192,8 +1209,9 @@ kernel_file_fwrite (const void *ptr, size_t size,
   if (vsize <= vpos)
     {
       printk (KERN_ERR
-         "GCOV_KERNEL: something wrong: vbuf=%p vsize=%u vpos=%u\n",
-          vbuf, vsize, vpos);
+         "GCOV_KERNEL: something wrong in file %s: vbuf=%p vsize=%u"
+         " vpos=%u\n",
+          fp->info->filename, vbuf, vsize, vpos);
       return 0;
     }
   len = vsize - vpos;
@@ -1207,8 +1225,9 @@ kernel_file_fwrite (const void *ptr, size_t size,
 
   if (len != nitems)
     printk (KERN_ERR
-        "GCOV_KERNEL: something wrong: size=%lu nitems=%lu ret=%d\n",
-        size, nitems, len);
+        "GCOV_KERNEL: something wrong in file %s: size=%lu nitems=%lu"
+        " ret=%d, vsize=%u vpos=%u \n",
+        fp->info->filename, size, nitems, len, vsize, vpos);
   return len;
 }
 
