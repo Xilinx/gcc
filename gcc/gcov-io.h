@@ -183,6 +183,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
   Todo: using a program to auto-generate the vaules in build time.  */
 #define BITS_PER_UNIT 8
 #define LONG_LONG_TYPE_SIZE 64
+#define MEMMODEL_RELAXED 0
 
 /* There are many gcc_assertions. Set the vaule to 1 if we want a warning
    message if the assertion fails.  */

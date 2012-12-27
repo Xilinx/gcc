@@ -924,8 +924,10 @@ struct gcov_summary_buffer
   struct gcov_summary summary;
 };
 
+#ifndef __GCOV_KERNEL__
 static struct gcov_summary_buffer *next_sum_buffer, *sum_buffer;
 static struct gcov_summary_buffer **sum_tail;
+#endif
 
 /* Merge with existing gcda file in the same directory to avoid
    excessive growthe of the files.  */
@@ -1209,6 +1211,7 @@ gcov_write_gcda_file (struct gcov_info *gi_ptr)
   /* Generate whole program statistics.  */
   gcov_write_summary (GCOV_TAG_PROGRAM_SUMMARY, &program);
 
+#ifndef __GCOV_KERNEL__
   /* Rewrite all the summaries that were after the summary we merged
      into. This is necessary as the merged summary may have a different
      size due to the number of non-zero histogram entries changing after
@@ -1221,6 +1224,7 @@ gcov_write_gcda_file (struct gcov_info *gi_ptr)
       free (sum_buffer);
       sum_buffer = next_sum_buffer;
     }
+#endif
 
   /* Write execution counts for each function.  */
   for (f_ix = 0; f_ix < gi_ptr->n_functions; f_ix++)
