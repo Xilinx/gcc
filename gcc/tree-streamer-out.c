@@ -667,7 +667,7 @@ write_ts_exp_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
   for (i = 0; i < TREE_OPERAND_LENGTH (expr); i++)
     stream_write_tree (ob, TREE_OPERAND (expr, i), ref_p);
   lto_output_location (ob, LOCATION_LOCUS (EXPR_LOCATION (expr)));
-  stream_write_tree (ob, TREE_BLOCK (expr), ref_p);
+  stream_write_tree (ob, NULL_TREE, ref_p);
 }
 
 
