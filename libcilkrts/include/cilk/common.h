@@ -53,6 +53,9 @@
 #       define CILK_EXPORT      __declspec(dllimport)
 #       define CILK_EXPORT_DATA __declspec(dllimport)
 #   endif  /* IN_CILK_RUNTIME */
+#elif defined(__CYGWIN__)
+#   define CILK_EXPORT      /* nothing */
+#   define CILK_EXPORT_DATA /* nothing */
 #else /* Unix/gcc */
 #   ifdef IN_CILK_RUNTIME
 #       define CILK_EXPORT      __attribute__((visibility("protected")))

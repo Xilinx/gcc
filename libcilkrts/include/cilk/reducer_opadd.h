@@ -65,7 +65,7 @@
  *      extern X myArray[ARRAY_SIZE];
  *      // ...
  *
- *      int result;
+ *      int result = 0;
  *      for (std::size_t i = 0; i < ARRAY_SIZE; ++i)
  *      {
  *          result += compute(myArray[i]);
@@ -91,7 +91,7 @@
  *      cilk::reducer_opadd<int> result;
  *      cilk_for (std::size_t i = 0; i < ARRAY_SIZE; ++i)
  *      {
- *          result += compute(myArray[i]);
+ *          *result += compute(myArray[i]);
  *      }
  *
  *      std::cout << "The result is: " << result.get_value() << std::endl;
@@ -105,22 +105,22 @@
  * Given 'reducer_opadd' objects, x and y, the following are
  * valid statements:
  *..
- *  x += 5;
- *  x = x + 5;
- *  x -= 5;
- *  y = y - 5;
- *  ++x;
- *  --x;
- *  x++;
- *  x--;
+ *  *x += 5;
+ *  *x = *x + 5;
+ *  *x -= 5;
+ *  *y = *y - 5;
+ *  ++*x;
+ *  --*x;
+ *  (*x)++;
+ *  (*x)--;
  *..
  * The following are not valid expressions and will result in a run-time error
  * in a debug build:
  *..
- *  x = y;     // Cannot assign one reducer to another
- *  x = y + 5; // Mixed reducers
- *  x = 5 + x; // operator+ is not necessarily commutative
- *  x = 5 - x; // Violates associativity
+ *  x = y;       // Cannot assign one reducer to another
+ *  *x = *y + 5; // Mixed reducers
+ *  *x = 5 + *x; // operator+ is not necessarily commutative
+ *  *x = 5 - *x; // Violates associativity
  *..
  * The the current value of the reducer can be get and set using the
  * 'get_value' and 'set_value' methods, respectively.  As with most reducers,
@@ -134,7 +134,7 @@
  *  cilk::reducer_opadd<int> x;
  *  cilk_spawn func();
  *  int a = x.get_value();
- *  x += 5;
+ *  *x += 5;
  *  int b = x.get_value();
  *  assert(b - a == 5);
  *..
@@ -252,6 +252,12 @@ public:
     /// Merge the result of an addition into this object.  The addition
     /// must involve this reducer, i.e., x = x + 5; not x = y + 5;
     reducer_opadd& operator=(const temp_sum& temp);
+
+    reducer_opadd&       operator*()       { return *this; }
+    reducer_opadd const& operator*() const { return *this; }
+
+    reducer_opadd*       operator->()       { return this; }
+    reducer_opadd const* operator->() const { return this; }
 
   private:
     friend class temp_sum;

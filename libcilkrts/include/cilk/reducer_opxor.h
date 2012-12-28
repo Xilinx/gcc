@@ -73,7 +73,7 @@
  *      extern X myArray[ARRAY_SIZE];
  *      // ...
  *
- *      unsigned int result;
+ *      unsigned int result = 0;
  *      for (std::size_t i = 0; i < ARRAY_SIZE; ++i)
  *      {
  *          result ^= compute(myArray[i]);
@@ -100,7 +100,7 @@
  *      cilk::reducer_opxor<unsigned int> result;
  *      cilk_for (std::size_t i = 0; i < ARRAY_SIZE; ++i)
  *      {
- *          result ^= compute(myArray[i]);
+ *          *result ^= compute(myArray[i]);
  *      }
  *
  *      std::cout << "The result is: " 
@@ -124,7 +124,6 @@
  *  x = y;     // Cannot assign one reducer to another
  *  x = y ^ 5; // Mixed reducers
  *  x = 5 ^ x; // operator^ is not necessarily commutative
- *..
  *..
  *
  * Requirements on the 'Type' parameter
@@ -213,6 +212,12 @@ class reducer_opxor
     /// Merge the result of XOR operation into this object.  The XOR operation
     /// must involve this reducer, i.e., x = x + 5; not x = y + 5;
     reducer_opxor& operator=(const temp_xor& temp);
+
+    reducer_opxor&       operator*()       { return *this; }
+    reducer_opxor const& operator*() const { return *this; }
+
+    reducer_opxor*       operator->()       { return this; }
+    reducer_opxor const* operator->() const { return this; }
 
   private:
     friend class temp_or;
