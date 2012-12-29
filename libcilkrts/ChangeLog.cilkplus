@@ -1,3 +1,8 @@
+2012-12-28  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* runtime/cilk-abi-cilk-for.cpp (capture_spawn_arg_stack_frame): Added
+	#ifdefs to check compiler type between the function's body.
+
 2012-12-06  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* include/cilk/reduce_min.h: Updated to revision 2856.

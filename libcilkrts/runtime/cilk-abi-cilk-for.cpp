@@ -182,12 +182,25 @@ void call_cilk_for_loop_body(count_t low, count_t high,
 inline __cilkrts_worker* 
 capture_spawn_arg_stack_frame(__cilkrts_stack_frame* &sf, __cilkrts_worker* w)
 {
+    // Get current stack frame
+    sf = w->current_stack_frame;
+#ifdef __INTEL_COMPILER
+#   if __INTEL_COMPILER <= 1300 && __INTEL_COMPILER_BUILD_DATE < 20130101
+    // In older compilers 'w->current_stack_frame' points to the
+    // spawn-helper's stack frame.  In newer compiler's however, it points
+    // directly to the pointer's stack frame.  (This change was made to avoid
+    // having the spawn helper in the frame list when evaluating function
+    // arguments, thus avoiding corruption when those arguments themselves
+    // contain cilk_spawns.)
+    
     // w->current_stack_frame is the spawn helper's stack frame.
     // w->current_stack_frame->call_parent is the caller's stack frame.
-    // return w->current_stack_frame->call_parent;
-    sf = w->current_stack_frame->call_parent;
+    sf = sf->call_parent;
+#   endif
+#endif
     return w;
 }
+
 
 /*
  * cilk_for_recursive
