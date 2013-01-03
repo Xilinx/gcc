@@ -2026,7 +2026,11 @@ static unsigned int initial_ix86_tune_features[X86_TUNE_LAST] = {
 
   /* X86_TUNE_GENERAL_REGS_SSE_SPILL: Try to spill general regs to SSE
      regs instead of memory.  */
-  m_COREI7 | m_CORE2I7
+  m_COREI7 | m_CORE2I7,
+
+  /* X86_TUNE_AVOID_MEM_OPND_FOR_CMOVE: Try to avoid memory operands for
+     a conditional move.  */
+  m_ATOM
 };
 
 /* Feature tests against the various architecture variations.  */
@@ -28949,47 +28953,6 @@ dispatch_function_versions (tree dispatch_decl,
   return 0;
 }
 
-/* This function returns true if FN1 and FN2 are versions of the same function,
-   that is, the targets of the function decls are different.  This assumes
-   that FN1 and FN2 have the same signature.  */
-
-static bool
-ix86_function_versions (tree fn1, tree fn2)
-{
-  tree attr1, attr2;
-  struct cl_target_option *target1, *target2;
-
-  if (TREE_CODE (fn1) != FUNCTION_DECL
-      || TREE_CODE (fn2) != FUNCTION_DECL)
-    return false;
-
-  attr1 = DECL_FUNCTION_SPECIFIC_TARGET (fn1);
-  attr2 = DECL_FUNCTION_SPECIFIC_TARGET (fn2);
-
-  /* Atleast one function decl should have target attribute specified.  */
-  if (attr1 == NULL_TREE && attr2 == NULL_TREE)
-    return false;
-
-  if (attr1 == NULL_TREE)
-    attr1 = target_option_default_node;
-  else if (attr2 == NULL_TREE)
-    attr2 = target_option_default_node;
-
-  target1 = TREE_TARGET_OPTION (attr1);
-  target2 = TREE_TARGET_OPTION (attr2);
-
-  /* target1 and target2 must be different in some way.  */
-  if (target1->x_ix86_isa_flags == target2->x_ix86_isa_flags
-      && target1->x_target_flags == target2->x_target_flags
-      && target1->arch == target2->arch
-      && target1->tune == target2->tune
-      && target1->x_ix86_fpmath == target2->x_ix86_fpmath
-      && target1->branch_cost == target2->branch_cost)
-    return false;
-
-  return true;
-}
-
 /* Comparator function to be used in qsort routine to sort attribute
    specification strings to "target".  */
 
@@ -29102,6 +29065,60 @@ ix86_mangle_function_version_assembler_name (tree decl, tree id)
   return get_identifier (assembler_name);
 }
 
+/* This function returns true if FN1 and FN2 are versions of the same function,
+   that is, the target strings of the function decls are different.  This assumes
+   that FN1 and FN2 have the same signature.  */
+
+static bool
+ix86_function_versions (tree fn1, tree fn2)
+{
+  tree attr1, attr2;
+  const char *attr_str1, *attr_str2;
+  char *target1, *target2;
+  bool result;
+  
+  if (TREE_CODE (fn1) != FUNCTION_DECL
+      || TREE_CODE (fn2) != FUNCTION_DECL)
+    return false;
+
+  attr1 = lookup_attribute ("target", DECL_ATTRIBUTES (fn1));
+  attr2 = lookup_attribute ("target", DECL_ATTRIBUTES (fn2));
+
+  /* At least one function decl should have the target attribute specified.  */
+  if (attr1 == NULL_TREE && attr2 == NULL_TREE)
+    return false;
+
+  /* If one function does not have a target attribute, these are versions.  */
+  if (attr1 == NULL_TREE || attr2 == NULL_TREE)
+    return true;
+
+  attr_str1 =  TREE_STRING_POINTER (TREE_VALUE (TREE_VALUE (attr1)));
+  attr_str2 =  TREE_STRING_POINTER (TREE_VALUE (TREE_VALUE (attr2)));
+
+  target1 = sorted_attr_string (attr_str1);
+  target2 = sorted_attr_string (attr_str2);
+
+  /* The sorted target strings must be different for fn1 and fn2
+     to be versions.  */
+  if (strcmp (target1, target2) == 0)
+    result = false;
+  else
+    result = true;
+
+  free (target1);
+  free (target2); 
+  
+  return result;
+}
+
+/* This target supports function multiversioning.  */
+
+static bool
+ix86_supports_function_versions (void)
+{
+  return true;
+}
+
 static tree 
 ix86_mangle_decl_assembler_name (tree decl, tree id)
 {
@@ -29199,7 +29216,7 @@ is_function_default_version (const tree decl)
 {
   return (TREE_CODE (decl) == FUNCTION_DECL
 	  && DECL_FUNCTION_VERSIONED (decl)
-	  && DECL_FUNCTION_SPECIFIC_TARGET (decl) == NULL_TREE);
+	  && lookup_attribute ("target", DECL_ATTRIBUTES (decl)) == NULL_TREE);
 }
 
 /* Make a dispatcher declaration for the multi-versioned function DECL.
@@ -29281,7 +29298,7 @@ ix86_get_function_versions_dispatcher (void *decl)
  
   /* Set the dispatcher for all the versions.  */ 
   it_v = default_version_info;
-  while (it_v->next != NULL)
+  while (it_v != NULL)
     {
       it_v->dispatcher_resolver = dispatch_decl;
       it_v = it_v->next;
@@ -29617,15 +29634,9 @@ fold_builtin_cpu (tree fndecl, tree *args)
       {"avx2",   F_AVX2}
     };
 
-  static tree __processor_model_type = NULL_TREE;
-  static tree __cpu_model_var = NULL_TREE;
-
-  if (__processor_model_type == NULL_TREE)
-    __processor_model_type = build_processor_model_struct ();
-
-  if (__cpu_model_var == NULL_TREE)
-    __cpu_model_var = make_var_decl (__processor_model_type,
-				     "__cpu_model");
+  tree __processor_model_type = build_processor_model_struct ();
+  tree __cpu_model_var = make_var_decl (__processor_model_type,
+					"__cpu_model");
 
   gcc_assert ((args != NULL) && (*args != NULL));
 
@@ -42647,6 +42658,10 @@ ix86_builtin_find_vlength_for_proc (char *proc_name)
 
 #undef TARGET_OPTION_FUNCTION_VERSIONS
 #define TARGET_OPTION_FUNCTION_VERSIONS ix86_function_versions
+
+#undef TARGET_OPTION_SUPPORTS_FUNCTION_VERSIONS
+#define TARGET_OPTION_SUPPORTS_FUNCTION_VERSIONS \
+  ix86_supports_function_versions
 
 #undef TARGET_CAN_INLINE_P
 #define TARGET_CAN_INLINE_P ix86_can_inline_p

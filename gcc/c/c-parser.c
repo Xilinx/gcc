@@ -1190,7 +1190,7 @@ static void c_parser_while_statement (c_parser *);
 static void c_parser_do_statement (c_parser *);
 static void c_parser_for_statement (c_parser *, bool);
 static tree c_parser_asm_statement (c_parser *);
-static tree c_parser_asm_operands (c_parser *, bool);
+static tree c_parser_asm_operands (c_parser *);
 static tree c_parser_asm_goto_operands (c_parser *);
 static tree c_parser_asm_clobbers (c_parser *);
 static struct c_expr c_parser_expr_no_commas (c_parser *, struct c_expr *);
@@ -5313,10 +5313,10 @@ c_parser_asm_statement (c_parser *parser)
 	    /* For asm goto, we don't allow output operands, but reserve
 	       the slot for a future extension that does allow them.  */
 	    if (!is_goto)
-	      outputs = c_parser_asm_operands (parser, false);
+	      outputs = c_parser_asm_operands (parser);
 	    break;
 	  case 1:
-	    inputs = c_parser_asm_operands (parser, true);
+	    inputs = c_parser_asm_operands (parser);
 	    break;
 	  case 2:
 	    clobbers = c_parser_asm_clobbers (parser);
@@ -5354,9 +5354,7 @@ c_parser_asm_statement (c_parser *parser)
   goto error;
 }
 
-/* Parse asm operands, a GNU extension.  If CONVERT_P (for inputs but
-   not outputs), apply the default conversion of functions and arrays
-   to pointers.
+/* Parse asm operands, a GNU extension.
 
    asm-operands:
      asm-operand
@@ -5368,10 +5366,9 @@ c_parser_asm_statement (c_parser *parser)
 */
 
 static tree
-c_parser_asm_operands (c_parser *parser, bool convert_p)
+c_parser_asm_operands (c_parser *parser)
 {
   tree list = NULL_TREE;
-  location_t loc;
   while (true)
     {
       tree name, str;
@@ -5406,12 +5403,8 @@ c_parser_asm_operands (c_parser *parser, bool convert_p)
 	  parser->lex_untranslated_string = true;
 	  return NULL_TREE;
 	}
-      loc = c_parser_peek_token (parser)->location;
       expr = c_parser_expression (parser);
       mark_exp_read (expr.value);
-      if (convert_p)
-	expr = default_function_array_conversion (loc, expr);
-      expr.value = c_fully_fold (expr.value, false, NULL);
       parser->lex_untranslated_string = true;
       if (!c_parser_require (parser, CPP_CLOSE_PAREN, "expected %<)%>"))
 	{

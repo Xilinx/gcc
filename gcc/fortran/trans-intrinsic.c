@@ -5662,7 +5662,7 @@ scalar_transfer:
       gfc_add_expr_to_block (&se->pre, tmp);
 
       se->expr = tmpdecl;
-      se->string_length = dest_word_len;
+      se->string_length = fold_convert (gfc_charlen_type_node, dest_word_len);
     }
   else
     {
@@ -5911,12 +5911,27 @@ gfc_conv_same_type_as (gfc_se *se, gfc_expr *expr)
   gfc_expr *a, *b;
   gfc_se se1, se2;
   tree tmp;
+  tree conda = NULL_TREE, condb = NULL_TREE;
 
   gfc_init_se (&se1, NULL);
   gfc_init_se (&se2, NULL);
 
   a = expr->value.function.actual->expr;
   b = expr->value.function.actual->next->expr;
+
+  if (UNLIMITED_POLY (a))
+    {
+      tmp = gfc_class_vptr_get (a->symtree->n.sym->backend_decl);
+      conda = fold_build2_loc (input_location, NE_EXPR, boolean_type_node,
+			       tmp, build_int_cst (TREE_TYPE (tmp), 0));
+    }
+
+  if (UNLIMITED_POLY (b))
+    {
+      tmp = gfc_class_vptr_get (b->symtree->n.sym->backend_decl);
+      condb = fold_build2_loc (input_location, NE_EXPR, boolean_type_node,
+			       tmp, build_int_cst (TREE_TYPE (tmp), 0));
+    }
 
   if (a->ts.type == BT_CLASS)
     {
@@ -5939,8 +5954,18 @@ gfc_conv_same_type_as (gfc_se *se, gfc_expr *expr)
   gfc_conv_expr (&se1, a);
   gfc_conv_expr (&se2, b);
 
-  tmp = fold_build2_loc (input_location, EQ_EXPR, boolean_type_node,
-			 se1.expr, fold_convert (TREE_TYPE (se1.expr), se2.expr));
+  tmp = fold_build2_loc (input_location, EQ_EXPR,
+			 boolean_type_node, se1.expr,
+			 fold_convert (TREE_TYPE (se1.expr), se2.expr));
+
+  if (conda)
+    tmp = fold_build2_loc (input_location, TRUTH_ANDIF_EXPR,
+			   boolean_type_node, conda, tmp);
+
+  if (condb)
+    tmp = fold_build2_loc (input_location, TRUTH_ANDIF_EXPR,
+			   boolean_type_node, condb, tmp);
+
   se->expr = convert (gfc_typenode_for_spec (&expr->ts), tmp);
 }
 
@@ -7348,8 +7373,13 @@ conv_intrinsic_move_alloc (gfc_code *code)
 
 	  if (from_expr->ts.type == BT_CLASS)
 	    {
-	      vtab = gfc_find_derived_vtab (from_expr->ts.u.derived);
-	      gcc_assert (vtab);
+	      if (UNLIMITED_POLY (from_expr))
+		vtab = NULL;
+	      else
+		{
+		  vtab = gfc_find_derived_vtab (from_expr->ts.u.derived);
+		  gcc_assert (vtab);
+		}
 
 	      gfc_free_expr (from_expr2);
 	      gfc_init_se (&from_se, NULL);
@@ -7361,13 +7391,23 @@ conv_intrinsic_move_alloc (gfc_code *code)
 				  from_se.expr));
 
               /* Reset _vptr component to declared type.  */
-	      tmp = gfc_build_addr_expr (NULL_TREE, gfc_get_symbol_decl (vtab));
-	      gfc_add_modify_loc (input_location, &block, from_se.expr,
-				  fold_convert (TREE_TYPE (from_se.expr), tmp));
+	      if (UNLIMITED_POLY (from_expr))
+		gfc_add_modify_loc (input_location, &block, from_se.expr,
+				    fold_convert (TREE_TYPE (from_se.expr),
+						  null_pointer_node));
+	      else
+		{
+		  tmp = gfc_build_addr_expr (NULL_TREE, gfc_get_symbol_decl (vtab));
+		  gfc_add_modify_loc (input_location, &block, from_se.expr,
+				      fold_convert (TREE_TYPE (from_se.expr), tmp));
+		}
 	    }
 	  else
 	    {
-	      vtab = gfc_find_derived_vtab (from_expr->ts.u.derived);
+	      if (from_expr->ts.type != BT_DERIVED)
+		vtab = gfc_find_intrinsic_vtab (&from_expr->ts);
+	      else
+		vtab = gfc_find_derived_vtab (from_expr->ts.u.derived);
 	      gcc_assert (vtab);
 	      tmp = gfc_build_addr_expr (NULL_TREE, gfc_get_symbol_decl (vtab));
 	      gfc_add_modify_loc (input_location, &block, to_se.expr,
@@ -7390,8 +7430,13 @@ conv_intrinsic_move_alloc (gfc_code *code)
 
       if (from_expr->ts.type == BT_CLASS)
 	{
-	  vtab = gfc_find_derived_vtab (from_expr->ts.u.derived);
-	  gcc_assert (vtab);
+	  if (UNLIMITED_POLY (from_expr))
+	    vtab = NULL;
+	  else
+	    {
+	      vtab = gfc_find_derived_vtab (from_expr->ts.u.derived);
+	      gcc_assert (vtab);
+	    }
 
 	  from_se.want_pointer = 1;
 	  from_expr2 = gfc_copy_expr (from_expr);
@@ -7402,13 +7447,23 @@ conv_intrinsic_move_alloc (gfc_code *code)
 			      from_se.expr));
 
 	  /* Reset _vptr component to declared type.  */
-	  tmp = gfc_build_addr_expr (NULL_TREE, gfc_get_symbol_decl (vtab));
-	  gfc_add_modify_loc (input_location, &block, from_se.expr,
-			      fold_convert (TREE_TYPE (from_se.expr), tmp));
+	  if (UNLIMITED_POLY (from_expr))
+	    gfc_add_modify_loc (input_location, &block, from_se.expr,
+				fold_convert (TREE_TYPE (from_se.expr),
+					      null_pointer_node));
+	  else
+	    {
+	      tmp = gfc_build_addr_expr (NULL_TREE, gfc_get_symbol_decl (vtab));
+	      gfc_add_modify_loc (input_location, &block, from_se.expr,
+				  fold_convert (TREE_TYPE (from_se.expr), tmp));
+	    }
 	}
       else
 	{
-	  vtab = gfc_find_derived_vtab (from_expr->ts.u.derived);
+	  if (from_expr->ts.type != BT_DERIVED)
+	    vtab = gfc_find_intrinsic_vtab (&from_expr->ts);
+	  else
+	    vtab = gfc_find_derived_vtab (from_expr->ts.u.derived);
 	  gcc_assert (vtab);
 	  tmp = gfc_build_addr_expr (NULL_TREE, gfc_get_symbol_decl (vtab));
 	  gfc_add_modify_loc (input_location, &block, to_se.expr,

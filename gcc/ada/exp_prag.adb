@@ -274,17 +274,17 @@ package body Exp_Prag is
    --------------------------
 
    procedure Expand_Pragma_Check (N : Node_Id) is
-      Cond : constant Node_Id    := Arg2 (N);
-      Nam  : constant Name_Id    := Chars (Arg1 (N));
-      Msg  : Node_Id;
+      Loc  : constant Source_Ptr := Sloc (N);
+      --  Location of the pragma node. Note: it is important to use this
+      --  location (and not the location of the expression) for the generated
+      --  statements, otherwise the implicit return statement in the body
+      --  of a pre/postcondition subprogram may inherit the source location
+      --  of part of the expression, which causes confusing debug information
+      --  to be generated, which interferes with coverage analysis tools.
 
-      Loc  : constant Source_Ptr := Sloc (First_Node (Cond));
-      --  Source location used in the case of a failed assertion. Note that
-      --  the source location of the expression is not usually the best choice
-      --  here. For example, it gets located on the last AND keyword in a
-      --  chain of boolean expressiond AND'ed together. It is best to put the
-      --  message on the first character of the assertion, which is the effect
-      --  of the First_Node call here.
+      Cond : constant Node_Id := Arg2 (N);
+      Nam  : constant Name_Id := Chars (Arg1 (N));
+      Msg  : Node_Id;
 
    begin
       --  We already know that this check is enabled, because otherwise the
@@ -362,7 +362,15 @@ package body Exp_Prag is
 
          else
             declare
-               Msg_Loc : constant String := Build_Location_String (Loc);
+               Msg_Loc : constant String :=
+                           Build_Location_String (Sloc (First_Node (Cond)));
+               --  Source location used in the case of a failed assertion:
+               --  point to the failing condition, not Loc. Note that the
+               --  source location of the expression is not usually the best
+               --  choice here. For example, it gets located on the last AND
+               --  keyword in a chain of boolean expressiond AND'ed together.
+               --  It is best to put the message on the first character of the
+               --  condition, which is the effect of the First_Node call here.
 
             begin
                Name_Len := 0;
@@ -440,10 +448,12 @@ package body Exp_Prag is
            and then Entity (Original_Node (Cond)) = Standard_False
          then
             return;
+
          elsif Nam = Name_Assertion then
-            Error_Msg_N ("?assertion will fail at run time", N);
+            Error_Msg_N ("?A?assertion will fail at run time", N);
          else
-            Error_Msg_N ("?check will fail at run time", N);
+
+            Error_Msg_N ("?A?check will fail at run time", N);
          end if;
       end if;
    end Expand_Pragma_Check;

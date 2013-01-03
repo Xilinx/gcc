@@ -1,3 +1,512 @@
+2013-01-02  Teresa Johnson  <tejohnson@google.com>
+
+	* dumpfile.c (dump_loc): Print filename with location.
+	* tree-ssa-loop-ivcanon.c (try_unroll_loop_completely): Use
+	new location_t parameter to emit complete unroll message with
+	new dump framework.
+	(canonicalize_loop_induction_variables): Compute loops location
+	and pass to try_unroll_loop_completely.
+	* loop-unroll.c (report_unroll_peel): New function.
+	(peel_loops_completely): Use new dump format with location
+	for main dumpfile message, and invoke report_unroll_peel on success.
+	(decide_unrolling_and_peeling): Ditto.
+	(decide_peel_once_rolling): Remove old dumpfile message subsumed
+	by report_unroll_peel.
+	(decide_peel_completely): Ditto.
+	(decide_unroll_constant_iterations): Ditto.
+	(decide_unroll_runtime_iterations): Ditto.
+	(decide_peel_simple): Ditto.
+	(decide_unroll_stupid): Ditto.
+	* cfgloop.c (get_loop_location): New function.
+	* cfgloop.h (get_loop_location): Declare.
+
+	testsuite/
+	* gcc.dg/tree-ssa/loop-1.c: Update expected dump message.
+	* gcc.dg/tree-ssa/loop-23.c: Ditto.
+	* gcc.dg/tree-ssa/cunroll-1.c: Ditto.
+	* gcc.dg/tree-ssa/cunroll-2.c: Ditto.
+	* gcc.dg/tree-ssa/cunroll-3.c: Ditto.
+	* gcc.dg/tree-ssa/cunroll-4.c: Ditto.
+	* gcc.dg/tree-ssa/cunroll-5.c: Ditto.
+	* gcc.dg/unroll_1.c: Ditto.
+	* gcc.dg/unroll_2.c: Ditto.
+	* gcc.dg/unroll_3.c: Ditto.
+	* gcc.dg/unroll_4.c: Ditto.
+
+2013-01-02  Sriraman Tallam  <tmsriram@google.com>
+
+	* config/i386/i386.c (fold_builtin_cpu): Remove unnecessary checks for
+	NULL.
+
+2013-01-02  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR middle-end/55198
+	* expr.c (expand_expr_real_1): Don't use bitfield extraction for non
+	BLKmode objects when EXPAND_MEMORY is specified.
+
+2013-01-02  Sriraman Tallam  <tmsriram@google.com>
+
+	* config/i386/i386.c (ix86_get_function_versions_dispatcher): Fix bug
+	in loop predicate.
+	(fold_builtin_cpu): Do not share cpu model decls across statements.
+
+2013-01-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/55804
+	* tree.c (build_array_type_1): Revert earlier change.
+
+2013-01-02  Yufeng Zhang  <yufeng.zhang@arm.com>
+
+	* config/aarch64/aarch64-cores.def: Add entries for "cortex-a53" and
+	"cortex-a57".
+	* config/aarch64/aarch64-tune.md: Re-generate.
+
+2013-01-02  Richard Biener  <rguenther@suse.de>
+
+	* tree-vect-stmts.c (vectorizable_load): When vectorizing an
+	invariant load do not generate a vector load from the scalar
+	location.
+
+2013-01-02  Richard Biener  <rguenther@suse.de>
+
+	PR bootstrap/55784
+	* configure.ac: Add $GMPINC to CFLAGS/CXXFLAGS.
+	* configure: Regenerate.
+
+2013-01-02  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* builtins.c (expand_builtin_mathfn, expand_builtin_mathfn_2)
+	(expand_builtin_mathfn_ternary, expand_builtin_mathfn_3)
+	(expand_builtin_int_roundingfn_2): Keep the original target around
+	for the fallback case.
+
+2013-01-02  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* tree-vrp.c (range_fits_type_p): Require the MSB of the double_int
+	to be clear for sign changes.
+
+2013-01-01  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-inline-analysis.c: Fix formatting.
+
+2013-01-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/55831
+	* tree-vect-loop.c (get_initial_def_for_induction): Use
+	gsi_after_labels instead of gsi_start_bb.
+
+2012-12-27  David Edelsohn  <dje.gcc@gmail.com>
+
+	* config/rs6000/rs6000.c (rs6000_deligitimze_address): Do not
+	delegitimize TLS addresses on AIX.
+	(rs6000_legitimize_tls_address_aix): Append TLS symbol qualifier.
+	Set SYMBOL_FLAG_LOCAL on module symbol.
+	(output_toc): Do not append TLS symbol qualifier here.
+	* config/rs6000/rs6000.md (tls_get_addr_internal): Add GPR 4 to
+	clobbers.
+
+2012-12-27  Andreas Schwab  <schwab@linux-m68k.org>
+
+	* target.def (supports_function_versions): Fix typo.
+
+2012-12-26  Sriraman Tallam  <tmsriram@google.com>
+
+	* doc/tm.texi.in (TARGET_OPTION_SUPPORTS_FUNCTION_VERSIONS): Document
+	new target hook.
+	* doc/tm.texi: Regenerate.
+	* c-family/c-common.c (handle_target_attribute): Retain target attribute
+	for targets that support versioning.
+	* target.def (supports_function_versions): New hook.
+	* cp/class.c (add_method): Remove calls
+	to DECL_FUNCTION_SPECIFIC_TARGET.
+	* config/i386/i386.c (ix86_function_versions): Use target string
+	to check for function versions instead of target flags.
+	* (ix86_supports_function_versions): New function.
+	* (is_function_default_version): Check target string.
+	* TARGET_OPTION_SUPPORTS_FUNCTION_VERSIONS: New macro.
+
+2012-12-27  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* cgraph.c (verify_cgraph_node): Don't allocate/free visited_nodes set.
+
+2012-12-25  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/53789
+	* config/pa/pa.md (movsi): Reject expansion of TLS symbol references
+	after reload starts.
+
+2012-12-22  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/54728
+	* cgraph.h (symtab_real_symbol_p): Drop code looking for external functions.
+	* lto-streamer-out.c (output_symbol_p): New function.
+	(produce_symtab) Use it.
+
+2012-12-21  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/55355
+	* tree-sra.c (type_internals_preclude_sra_p): Also check that
+	bit_position is small enough to fit a single HOST_WIDE_INT.
+
+2012-12-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* rtlanal.c (volatile_insn_p): Delete commented out code.
+	(side_effects_p): Likewise.
+	(may_trap_p_1) <UNSPEC_VOLATILE>: Return 1 again.
+	* target.def (unspec_may_trap_p): Adjust comment.
+	* targhooks.c (default_unspec_may_trap_p): Don't handle UNSPEC_VOLATILE.
+	* config/ia64/ia64.c (ia64_unspec_may_trap_p): Adjust to above change.
+
+2012-12-21  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR middle-end/55775
+	* lra-assigns.c (improve_inheritance): Do nothing after
+	LRA_MAX_INHERITANCE_PASSES pass.
+	* lra-constraints.c (MAX_CONSTRAINT_ITERATION_NUMBER): Rename to
+	LRA_MAX_CONSTRAINT_ITERATION_NUMBER.  Move to lra-int.h.
+	(MAX_INHERITANCE_PASSES): Rename to LRA_MAX_INHERITANCE_PASSES.
+	Move to lra-int.h.
+	* lra-int.h (LRA_MAX_CONSTRAINT_ITERATION_NUMBER): Move from
+	lra-constraints.c.
+	(LRA_MAX_INHERITANCE_PASSES): Ditto.
+
+2012-12-21  Steve Ellcey  <sellcey@mips.com>
+
+	PR bootstrap/54128
+	* ira.c (build_insn_chain): Check only NONDEBUG instructions for
+	register usage.
+
+2012-12-21  David Edelsohn  <dje.gcc@gmail.com>
+
+	* varasm.c (bss_initializer_p): Remove static.
+	* output.h (bss_initializer_p): Declare.
+	* xcoffout.c (xcoff_tbss_section_name): Define.
+	* xcoffout.h (xcoff_tbss_section_name): Declare.
+	* config/rs6000/xcoff.h (TARGET_ENCODE_SECTION_INFO): Define.
+	(ASM_OUTPUT_TLS_COMMON): Merge strings.
+	* config/rs6000/rs6000.c (tls_private_data_section): New.
+	(output_toc): Only output CSECT decoration for TLS.
+	Output appropriate CSECT for data or bss.
+	(rs6000_xcoff_asm_init_sections) Define tls_private_data_section.
+	(rs6000_xcoff_select_section): Handle TLS bss and private data.
+	(rs6000_xcoff_file_start): Generate xcoff_tbss_section_name.
+	(rs6000_xcoff_encode_section_info): Strip SYMBOL_FLAG_HAS_BLOCK_INFO
+	from native TLS symbols.
+
+2012-12-21  Richard Biener  <rguenther@suse.de>
+
+	PR rtl-optimization/52996
+	* cprop.c (bypass_block): When loops are to be preserved
+	do not bypass loop headers.  Revert earlier kludge to remove
+	loops when doing that.
+
+2012-12-21  Richard Biener  <rguenther@suse.de>
+
+	PR bootstrap/54659
+	* system.h: Include gmp.h.
+	* tree-ssa-loop-niter.c: Do not include gmp.h here.
+	* double-int.h: Likewise.
+	* realmpfr.h: Likewise.
+
+2012-12-21  Greta Yorsh  <Greta.Yorsh@arm.com>
+
+        * config/arm/cortex-a7.md: New file.
+        * config/arm/t-arm (MD_INCLUDES): Add cortex-a7.md.
+        * config/arm/arm.md: Include cortex-a7.md.
+        (generic_sched): Don't use generic scheduler for Cortex-A7.
+        (generic_vfp): Likewise.
+        * config/arm/arm.c: (TARGET_SCHED_REORDER): Use arm_sched_reorder.
+        (arm_sched_reorder,cortexa7_sched_reorder): New function.
+        (cortexa7_older_only,cortexa7_younger): Likewise.
+        (arm_issue_rate): Add Cortex-A7.
+
+2012-12-20  Ian Bolton  <ian.bolton@arm.com>
+
+	* gcc/config/aarch64/aarch64.md
+	(*addsi3_aarch64_uxtw): New pattern.
+	(*addsi3_compare0_uxtw): New pattern.
+	(*add_<shift>_si_uxtw): New pattern.
+	(*add_<optab><SHORT:mode>_si_uxtw): New pattern.
+	(*add_<optab><SHORT:mode>_shft_si_uxtw): New pattern.
+	(*add_<optab><SHORT:mode>_mult_si_uxtw): New pattern.
+	(*add_<optab>si_multp2_uxtw): New pattern.
+	(*addsi3_carryin_uxtw): New pattern.
+	(*addsi3_carryin_alt1_uxtw): New pattern.
+	(*addsi3_carryin_alt2_uxtw): New pattern.
+	(*addsi3_carryin_alt3_uxtw): New pattern.
+	(*add_uxtsi_multp2_uxtw): New pattern.
+	(*subsi3_uxtw): New pattern.
+	(*subsi3_compare0_uxtw): New pattern.
+	(*sub_<shift>_si_uxtw): New pattern.
+	(*sub_mul_imm_si_uxtw): New pattern.
+	(*sub_<optab><SHORT:mode>_si_uxtw): New pattern.
+	(*sub_<optab><SHORT:mode>_shft_si_uxtw): New pattern.
+	(*sub_<optab>si_multp2_uxtw): New pattern.
+	(*sub_uxtsi_multp2_uxtw): New pattern.
+	(*negsi2_uxtw): New pattern.
+	(*negsi2_compare0_uxtw): New pattern.
+	(*neg_<shift>_si2_uxtw): New pattern.
+	(*neg_mul_imm_si2_uxtw): New pattern.
+	(*mulsi3_uxtw): New pattern.
+	(*maddsi_uxtw): New pattern.
+	(*msubsi_uxtw): New pattern.
+	(*mulsi_neg_uxtw): New pattern.
+	(*<su_optab>divsi3_uxtw): New pattern.
+
+2012-12-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/55750
+	* gimplify.c (gimplify_self_mod_expr): Don't force lvalue to
+	pass is_gimple_min_lval.
+
+2012-12-20  Richard Henderson  <rth@redhat.com>
+	    Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/s390/constraints.md (NxxDq, NxxSq): New.
+	* config/s390/predicates.md (contiguous_bitmask_operand): New.
+	* config/s390/s390.c (print_operand) ['e', 'f', 's', 't']: New
+	operand letters.
+	* config/s390/s390.md (bfstart, bfend): New mode attrs.
+	(*insv<GPR>_zEC12_noshift): Use them.
+	(*insv<GPR>_z10_noshift): Likewise.
+	(*insv<GPR>_or_z10_noshift): Likewise.
+
+	* config/s390/s390.md (*insv_l_di_reg_extimm): Un-macroize from :P.
+
+	* config/s390/s390.md (*anddi3_cc): Add risbg alternative.
+	(*anddi3_cconly, *anddi3): Likewise.
+	(*andsi3, *andsi3_cconly, *andsi3_zarch): Likewise.
+
+	* config/s390/s390.md (bitsize): New mode attr.
+	(*extzv<GPR>, *extzv<GPR>, *insv<GPR>_zEC12, *insv<GPR>_z10): Use it.
+	(extend<HQI><DSI>2, zero_extend<HQI>si2): Likewise.
+	(zero_extend<HQI>di2, fixuns_trunc<BFP><GPR>2): Likewise.
+
+	* config/s390/predicates.md (nonzero_shift_count_operand): New.
+	* config/s390/s390-protos.h (s390_extzv_shift_ok): Declare.
+	* config/s390/s390.c (s390_extzv_shift_ok): New function.
+	* config/s390/s390.md (extzv): New expander.
+	(*extzv<GPR>_zEC12, *extzv<GPR>_z10): New insns.
+	(*pre_z10_extzv<GPR>): Rename from *extzv<GPR>; simplify with
+	nonzero_shift_count_operand.
+	(*extzv_<GPR>_srl, *extzv_<GPR>_sll): New insns.
+
+	* config/s390/s390.md (IXOR): New code iterator.
+	(*r<IXOR>sbg_<GPR>_noshift): Rename from *insv<GPR>_or_z10_noshift;
+	macro-ize to handle XOR too.
+	(*r<IXOR>sbg_di_rotl, *r<IXOR>sbg_<GPR>_srl, *r<IXOR>sbg_<GPR>_sll):
+	New patterns.
+
+	* config/s390/s390.md (*insv_rnsbg_noshift, *insv_rnsbg_srl): New.
+
+2012-12-20  Thomas Schwinge  <thomas@codesourcery.com>
+
+	PR bootstrap/55202
+	* configure.ac <PLUGIN_LD_SUFFIX>: Use POSIX shell syntax.
+	* configure: Regenerate.
+
+2012-12-20  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	PR target/55754
+	* config/arm/arm.c (arm_canonicalize_comparison): Remove
+	op0_preserve_value check for zero_extend to and transformation.
+
+2012-12-20  Teresa Johnson  <tejohnson@google.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR gcov-profile/55734
+	* gcov-io.c (gcov_read_summary): Use __builtin_popcount instead
+	of __builtin_popcountll when building libgcov.a, otherwise use
+	popcount_hwi.
+	(gcov_histo_index): When not building libgcov.a, use floor_log2
+	instead of __builtin_clzll.
+
+2012-12-20  Richard Biener  <rguenther@suse.de>
+
+	PR middle-end/55740
+	* cfghooks.c (merge_blocks): Properly handle merging of
+	two loop headers.
+
+2012-12-20  Roland Stigge  <stigge@debian.org>
+	    Matthias Klose  <doko@ubuntu.com>
+
+	* config/rs6000/t-spe (MULTIARCH_DIRNAME): Remove.
+	* config/rs6000/t-linux (MULTIARCH_DIRNAME): Define name for
+	powerpc-linux-gnuspe.
+
+2012-12-19  Matthias Klose  <doko@ubuntu.com>
+
+	* config/i386/t-kfreebsd (MULTIARCH_DIRNAME): Add comma to
+	separate arguments in make function.
+
+2012-12-19  Uros Bizjak  <ubizjak@gmail.com>
+	    Yuri Rumyantsev  <ysrumyan@gmail.com>
+
+	* config/i386/i386.h (enum ix86_tune_indices): Add
+	X86_TUNE_AVOID_MEM_OPND_FOR_CMOVE.
+	(TARGET_AVOID_MEM_OPND_FOR_CMOVE): New define.
+	* config/i386/i386.c (initial_ix86_tune_features)
+	<X86TUNE_AVOID_MEM_OPND_FOR_CMOVE>: Initialize.
+	* config/i386/i386.md (splitters to avoid cmove memory operands): New.
+	(peephole2s to avoid cmove memory operands): New.
+
+2012-12-19  Kyrylo Tkachov  <kyrylo.tkachov@arm.com>
+
+	* config/arm/arm.md (f_minmaxs, f_minmaxd): New types.
+	* config/arm/vfp.md (smax<mode>3): New pattern.
+	(smin<mode>3): Likewise.
+
+2012-12-19  Richard Biener  <rguenther@suse.de>
+
+	* targhooks.h (default_canonicalize_comparison): Fix prototype.
+	* targhooks.c (default_canonicalize_comparison): Define.
+
+2012-12-19  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/55736
+	PR tree-optimization/55703
+	* gimplify.c (prune_expr_location): New function.
+	(unshare_expr_without_location): Likewise.
+	* tree.h (unshare_expr_without_location): Declare.
+	* ipa-prop.c (prune_expression_for_jf): Remove.
+	(prune_expression_for_jf_1): Likewise.
+	(ipa_set_jf_constant): Use unshare_expr_without_location.
+	(ipa_set_jf_arith_pass_through): Likewise.
+	(determine_known_aggregate_parts): Likewise.
+	* tree-switch-conversion.c (build_constructors): Use
+	unshare_expr_without_location on all constructor elements.
+
+2012-12-19  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* target.def: Define canonicalize_comparison hook.
+	* targhooks.h (default_canonicalize_comparison): New prototype.
+	* targhooks.c (default_canonicalize_comparison): New function.
+	* doc/tm.texi: Add documentation for the new target hook.
+	* doc/tm.texi.in: Likewise.
+	* combine.c (try_combine): Adjust to use the target hook.
+	* config/alpha/alpha.h (CANONICALIZE_COMPARISON): Remove macro
+	definition.
+	* config/alpha/alpha.c (alpha_canonicalize_comparison): New function.
+	(TARGET_CANONICALIZE_COMPARISON): New macro definition.
+	* config/arm/arm-protos.h (arm_canonicalize_comparison): Remove
+	prototype.
+	* config/arm/arm.c (arm_canonicalize_comparison): Add new parameter.
+	(TARGET_CANONICALIZE_COMPARISON): New macro definition.
+	* config/arm/arm.h (CANONICALIZE_COMPARISON): Remove macro definition.
+	* config/s390/s390-protos.h (s390_canonicalize_comparison): Remove
+	prototype.
+	* config/s390/s390.c (s390_canonicalize_comparison): Add new parameter.
+	(TARGET_CANONICALIZE_COMPARISON): New macro definition.
+	* config/s390/s390.h (CANONICALIZE_COMPARISON): Remove macro definition.
+	* config/sh/sh-protos.h (sh_canonicalize_comparison): Remove prototype.
+	* config/sh/sh.c (sh_canonicalize_comparison): Add new prototype.  New
+	function overloading the old one.
+	(TARGET_CANONICALIZE_COMPARISON): New macro definition.
+	* config/sh/sh.h (CANONICALIZE_COMPARISON): Remove macro definition.
+	* config/spu/spu.c (spu_canonicalize_comparison): New function.
+	(TARGET_CANONICALIZE_COMPARISON): New macro definition.
+	* config/spu/spu.h (CANONICALIZE_COMPARISON): Remove macro definition.
+
+2012-12-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/55730
+	* dwarf2out.c (mem_loc_descriptor): Ignore CLOBBER.
+	* valtrack.c (gen_lowpart_for_debug): New function.
+	(propagate_for_debug): Temporarily set rtl_hooks.gen_lowpart_no_emit
+	to gen_lowpart_for_debug.
+
+2012-12-18  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/55683
+	* ipa-prop.c (try_make_edge_direct_virtual_call): Look into constants
+	for binfo.
+
+2012-12-19  Terry Guo  <terry.guo@arm.com>
+
+	* config/arm/arm.c (thumb_find_work_register): Check argument
+	register number based on current PCS.
+
+2012-12-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/55562
+	* sbitmap.c (bitmap_and, bitmap_xor, bitmap_ior): Return whether
+	dst sbitmap changed even if it doesn't have popcount.
+
+2012-12-18  James Greenhalgh  <james.greenhalgh@arm.com>
+
+	* config/aarch64/aarch64.md (insv_imm<mode>): Add modes
+	for source operands.
+
+2012-12-18  James Greenhalgh  <james.greenhalgh@arm.com>
+
+	* config/aarch64/aarch64.c (aarch64_simd_attr_length_move):
+	Remove unused variables.
+	(aarch64_split_compare_and_swap): Likewise.
+
+2012-12-18  Kyrylo Tkachov  <kyrylo.tkachov@arm.com>
+
+	* config/arm/driver-arm.c (arm_cpu_table): Add Cortex-A7.
+
+2012-12-18  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR other/54324
+	* doc/install.texi (Tools/packages necessary for building GCC):
+	Suggest --disable-stage1-checking for older GCC's.
+
+2012-12-18  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR other/54324
+	* tree-ssa-coalesce.c (struct ssa_name_var_hash): Remove "union"
+	from template parameter.
+
+2012-12-18  Richard Biener  <rguenther@suse.de>
+
+	PR middle-end/54838
+	* cfgloopmanip.c (fix_loop_structure): Re-discover latch
+	edges first and mark loops for removal if no latch edges remain.
+	Properly re-create LOOPS_HAVE_FALLTHRU_PREHEADERS.
+	* loop-init.c (loop_optimizer_finalize): Set
+	LOOPS_MAY_HAVE_MULTIPLE_LATCHES.
+
+2012-12-18  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/55555
+	* tree-ssa-loop-niter.c (idx_infer_loop_bounds): Properly
+	analyze evolution of the index for the loop it is used in.
+	* tree-scalar-evolution.c (instantiate_scev_name): Take
+	inner loop we will be creating a chrec for.  Generalize
+	fix for PR40281 and prune invalid SCEVs.
+	(instantiate_scev_poly): Likewise - pass down inner loop
+	we will be creating a chrec for.
+	(instantiate_scev_binary): Take and pass through inner loop.
+	(instantiate_array_ref): Likewise.
+	(instantiate_scev_convert): Likewise.
+	(instantiate_scev_not): Likewise.
+	(instantiate_scev_3): Likewise.
+	(instantiate_scev_2): Likewise.
+	(instantiate_scev_1): Likewise.
+	(instantiate_scev_r): Likewise.
+	(resolve_mixers): Adjust.
+	(instantiate_scev): Likewise.
+
+2012-12-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/55717
+	* rtlhooks-def.h (RTL_HOOKS_GEN_LOWPART_NO_EMIT): Define to
+	gen_lowpart_if_possible.
+	(gen_lowpart_no_emit_general): Remove prototype.
+	* rtlhooks.c (gen_lowpart_no_emit_general): Removed.
+	* simplify-rtx.c (simplify_unary_operation_1,
+	simplify_binary_operation_1): Continue simplifying if
+	rtl_hooks.gen_lowpart_no_emit returns NULL_RTX.
+	* dwarf2out.c (mem_loc_descriptor) <case TRUNCATE>: Handle
+	truncation like lowpart SUBREG.
+
+2012-12-17  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/contrib.texi (Contributors): Update Kaveh Ghazi's entry;
+	remove broken link to Rutgers University.
+
 2012-12-17  Jan-Benedict Glaw  <jbglaw@lug-owl.de>
 
 	* varasm.c (pending_assemble_externals_processed): Guard
@@ -12463,18 +12972,14 @@
 2012-08-22  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* doc/invoke.texi: Document -mlong-double-64/-mlong-double-80.
-
 	* config/i386/i386.c (flag_opts): Add -mlong-double-64.
 	(TARGET_HAS_BIONIC): Default long double to 64-bit for Bionic.
-
 	* config/i386/i386.h (LONG_DOUBLE_TYPE_SIZE): Use 64 if
 	TARGET_LONG_DOUBLE_64 is true.
 	(LIBGCC2_LONG_DOUBLE_TYPE_SIZE): New macro.
 	(WIDEST_HARDWARE_FP_SIZE): Defined to 80.
-
 	* config/i386/i386.opt (mlong-double-80): New option.
 	(mlong-double-64): Likewise.
-
 	* config/i386/i386-c.c (ix86_target_macros): Define
 	__LONG_DOUBLE_64__ for TARGET_LONG_DOUBLE_64.
 
@@ -12886,7 +13391,6 @@
 	PR target/20020
 	* config/i386/i386.c (ix86_member_type_forces_blk): New function.
 	(TARGET_MEMBER_TYPE_FORCES_BLK): New macro.
-
 	* config/i386/i386.h (MAX_FIXED_MODE_SIZE): New macro.
 
 2012-08-17  Marc Glisse  <marc.glisse@inria.fr>
@@ -12899,31 +13403,21 @@
 	* stor-layout.c (compute_record_mode): Replace
 	MEMBER_TYPE_FORCES_BLK with targetm.member_type_forces_blk.
 	(layout_type): Likewise.
-
 	* system.h: Poison MEMBER_TYPE_FORCES_BLK.
-
 	* target.def (member_type_forces_blk): New target hook.
-
 	* targhooks.c (default_member_type_forces_blk): New.
 	* targhooks.h (default_member_type_forces_blk): Likewise.
-
 	* doc/tm.texi.in (MEMBER_TYPE_FORCES_BLK): Removed.
 	(TARGET_MEMBER_TYPE_FORCES_BLK): New hook.
 	* doc/tm.texi: Regenerated.
-
 	* config/ia64/hpux.h (MEMBER_TYPE_FORCES_BLK): Removed.
-
 	* config/ia64/ia64.c (ia64_member_type_forces_blk): New function.
 	(TARGET_MEMBER_TYPE_FORCES_BLK): New macro.
-
 	* config/rs6000/rs6000.c (TARGET_MEMBER_TYPE_FORCES_BLK): New macro.
 	(rs6000_member_type_forces_blk): New function.
-
 	* config/rs6000/rs6000.h (MEMBER_TYPE_FORCES_BLK): Removed.
-
 	* config/xtensa/xtensa.c (xtensa_member_type_forces_blk): New function.
 	(TARGET_MEMBER_TYPE_FORCES_BLK): New macro.
-
 	* config/xtensa/xtensa.h (MEMBER_TYPE_FORCES_BLK): Removed.
 
 2012-08-17  Diego Novillo  <dnovillo@google.com>
@@ -15600,20 +16094,15 @@
 	PR middle-end/53865
 	* ipa-inline-analysis.c (inline_free_summary): Return if
 	inline_edge_summary_vec is NULL.
-
 	* ipa-split.c (execute_split_functions): Check if a function
 	is inlinable only if inline_edge_summary_vec != NULL.
-
 	* ipa.c (symtab_remove_unreachable_nodes): Restore
 	cgraph_propagate_frequency call when something was changed.
 	(free_inline_summary): New function.
 	(pass_ipa_free_inline_summary): New pass.
-
 	* passes.c (init_optimization_passes): Add
 	pass_ipa_free_inline_summary before pass_ipa_tree_profile.
-
 	* timevar.def (TV_IPA_FREE_INLINE_SUMMARY): New.
-
 	* tree-pass.h (pass_ipa_free_inline_summary): New.
 
 2012-08-02  Richard Earnshaw  <rearnsha@arm.com>
@@ -20489,10 +20978,8 @@
 
 	PR target/53383
 	* doc/invoke.texi: Add a warning for -mpreferred-stack-boundary=3.
-
 	* config/i386/i386.c (ix86_option_override_internal): Allow
 	-mpreferred-stack-boundary=3 for 64-bit if SSE is disabled.
-
 	* config/i386/i386.h (MIN_STACK_BOUNDARY): Set to 64 for 64-bit
 	if SSE is disabled.
 
@@ -22085,7 +22572,7 @@
 2012-06-04  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR bootstrap/53555
-	* config/i386/i386.c (ix86_sched_reorder) Skip debug insns.
+	* config/i386/i386.c (ix86_sched_reorder): Skip debug insns.
 
 2012-06-04  Jason Merrill  <jason@redhat.com>
 
@@ -28376,7 +28863,6 @@
 	PR rtl-optimization/52876
 	* emit-rtl.c (set_reg_attrs_from_value): Handle arbitrary value.
 	Don't call mark_reg_pointer for incompatible pointer sign extension.
-
 	* reginfo.c (reg_scan_mark_refs): Call set_reg_attrs_from_value
 	directly.
 
@@ -29225,21 +29711,17 @@
 
 	* config/i386/biarch64.h (TARGET_64BIT_DEFAULT): Add
 	OPTION_MASK_ABI_64.
-
 	* config/i386/gnu-user64.h (SPEC_64): Support TARGET_BI_ARCH == 2.
 	(SPEC_X32): Likewise.
 	(MULTILIB_DEFAULTS): Likewise.
-
 	* config/i386/i386.c (isa_opts): Remove -m64.
 	(ix86_target_string): Properly handle -m32/-m64/-mx32.
 	(ix86_option_override_internal): Properly
 	set OPTION_MASK_ISA_64BIT and OPTION_MASK_ISA_X32 as well as
 	handle -m32, -m64 and -mx32.
-
 	* config/i386/i386.h (TARGET_X32): Replace OPTION_ISA_X32
 	with OPTION_ABI_X32.  Moved after TARGET_LP64.
 	(TARGET_LP64): Changed to OPTION_ABI_64.
-
 	* config/i386/i386.opt (m64): Replace ISA_64BIT with ABI_64.
 	(mx32): Replace ISA_X32 with ABI_X32.
 
@@ -29937,7 +30419,6 @@
 	if Pmode != word_mode.
 	(legitimize_tls_address): Call gen_tls_initial_exec_x32 if
 	Pmode == SImode for TARGET_X32.
-
 	* config/i386/i386.md (UNSPEC_TLS_IE_X32): New.
 	(tls_initial_exec_x32): Likewise.
 
@@ -30244,14 +30725,10 @@
 
 	PR target/50797
 	* config/i386/i386-opts.h (pmode): New.
-
 	* config/i386/i386.c (ix86_option_override_internal): Properly
 	check and set ix86_pmode.
-
 	* config/i386/i386.h (Pmode): Check ix86_pmode instead of TARGET_64BIT.
-
 	* config/i386/i386.opt (maddress-mode=): New.
-
 	* doc/invoke.texi: Document -maddress-mode=short|long for x86.
 
 2012-03-14  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
@@ -30626,7 +31103,6 @@
 	and ix86_gen_tls_local_dynamic_base_64.
 	(legitimize_tls_address): Use ix86_gen_tls_global_dynamic_64 and
 	ix86_gen_tls_local_dynamic_base_64.
-
 	* config/i386/i386.md (*tls_global_dynamic_64): Renamed to ...
 	(*tls_global_dynamic_64_<mode>): This.
 	(tls_global_dynamic_64): Renamed to ...
@@ -30643,7 +31119,6 @@
 	instead of TARGET_64BIT, to set ix86_gen_add3, ix86_gen_sub3,
 	ix86_gen_one_cmpl2, ix86_gen_andsp, ix86_gen_allocate_stack_worker,
 	ix86_gen_adjust_stack_and_probe and ix86_gen_probe_stack_range.
-
 	* config/i386/sse.md (sse3_monitor64): Renamed to ...
 	(sse3_monitor64_<mode>): This.
 
@@ -30908,7 +31383,6 @@
 	if Pmode != word_mode.
 	(legitimize_tls_address): Call gen_tls_initial_exec_x32 if
 	Pmode == SImode for TARGET_X32.
-
 	* config/i386/i386.md (UNSPEC_TLS_IE_X32): New.
 	(tls_initial_exec_x32): Likewise.
 
@@ -31034,7 +31508,6 @@
 	word_mode.
 	(ix86_split_to_parts): Use word_mode with PUT_MODE for push.
 	(ix86_split_long_move): Likewise.
-
 	* config/i386/i386.md (W): New.
 	(*push<mode>2_prologue): Replace :P with :W.
 	(*pop<mode>1): Likewise.

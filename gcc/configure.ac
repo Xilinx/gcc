@@ -1098,9 +1098,9 @@ AM_LANGINFO_CODESET
 
 # We will need to find libiberty.h and ansidecl.h
 saved_CFLAGS="$CFLAGS"
-CFLAGS="$CFLAGS -I${srcdir} -I${srcdir}/../include"
+CFLAGS="$CFLAGS -I${srcdir} -I${srcdir}/../include $GMPINC"
 saved_CXXFLAGS="$CXXFLAGS"
-CXXFLAGS="$CXXFLAGS -I${srcdir} -I${srcdir}/../include"
+CXXFLAGS="$CXXFLAGS -I${srcdir} -I${srcdir}/../include $GMPINC"
 gcc_AC_CHECK_DECLS(getenv atol asprintf sbrk abort atof getcwd getwd \
 	strsignal strstr stpcpy strverscmp \
 	errno snprintf vsnprintf vasprintf malloc realloc calloc \
@@ -2031,8 +2031,8 @@ ORIGINAL_PLUGIN_LD_FOR_TARGET=$gcc_cv_ld
 PLUGIN_LD_SUFFIX=`basename $gcc_cv_ld | sed -e "s,$target_alias-,,"`
 # if the PLUGIN_LD is set ld-new, just have it as ld
 # as that is the installed named.
-if test x$PLUGIN_LD_SUFFIX == xld-new \
-   || test x$PLUGIN_LD_SUFFIX == xcollect-ld ; then
+if test x$PLUGIN_LD_SUFFIX = xld-new \
+   || test x$PLUGIN_LD_SUFFIX = xcollect-ld ; then
   PLUGIN_LD_SUFFIX=ld
 fi
 AC_ARG_WITH(plugin-ld,

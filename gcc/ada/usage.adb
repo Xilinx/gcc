@@ -167,6 +167,11 @@ begin
    Write_Switch_Char ("Dnn");
    Write_Line ("Debug expanded generated code (max line length = nn)");
 
+   --  Line for -gnatea switch
+
+   Write_Switch_Char ("ea");
+   Write_Line ("Delimiter for automatically added switches (internal switch)");
+
    --  Line for -gnateA switch
 
    Write_Switch_Char ("eA");
@@ -217,6 +222,11 @@ begin
    Write_Switch_Char ("em=?");
    Write_Line ("Specify mapping file, e.g. -gnatem=mapping");
 
+   --  Line for -gnateO=?
+
+   Write_Switch_Char ("eO=?");
+   Write_Line ("Specify an object path file (internal switch)");
+
    --  Line for -gnatep switch
 
    Write_Switch_Char ("ep=?");
@@ -241,6 +251,11 @@ begin
 
    Write_Switch_Char ("eV");
    Write_Line ("Validity checks on subprogram parameters");
+
+   --  Line for -gnatez switch
+
+   Write_Switch_Char ("ez");
+   Write_Line ("Delimiter for automatically added switches (internal switch)");
 
    --  Line for -gnatE switch
 
@@ -526,8 +541,8 @@ begin
    Write_Line ("        .S*  turn off warnings for overridden size clause");
    Write_Line ("        t    turn on warnings for tracking deleted code");
    Write_Line ("        T*   turn off warnings for tracking deleted code");
-   Write_Line ("        .t+  turn on warnings for suspicious contract");
-   Write_Line ("        .T*  turn off warnings for suspicious contract");
+   Write_Line ("        .t*+ turn on warnings for suspicious contract");
+   Write_Line ("        .T   turn off warnings for suspicious contract");
    Write_Line ("        u+   turn on warnings for unused entity");
    Write_Line ("        U*   turn off warnings for unused entity");
    Write_Line ("        .u   turn on warnings for unordered enumeration");
