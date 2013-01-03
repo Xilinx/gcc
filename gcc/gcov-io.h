@@ -308,6 +308,10 @@ typedef unsigned gcov_type_unsigned __attribute__ ((mode (QI)));
 #define GCOV_TYPE_ATOMIC_FETCH_ADD_FN __atomic_fetch_add_4
 #define GCOV_TYPE_ATOMIC_FETCH_ADD BUILT_IN_ATOMIC_FETCH_ADD_4
 #endif
+/* Make the atomic builtin weak. Otherwise we get link unsat 
+   if the builtin is not available.  */
+extern gcov_type GCOV_TYPE_ATOMIC_FETCH_ADD_FN
+  (gcov_type*, gcov_type, int) __attribute__ ((weak));
 
 #undef EXTRACT_MODULE_ID_FROM_GLOBAL_ID
 #undef EXTRACT_FUNC_ID_FROM_GLOBAL_ID
