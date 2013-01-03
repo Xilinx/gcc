@@ -1699,7 +1699,6 @@ gfc_intrinsic_sym;
    EXPR_COMPCALL   Function (or subroutine) call of a procedure pointer
 		   component or type-bound procedure.  */
 
-#include <gmp.h>
 #include <mpfr.h>
 #include <mpc.h>
 #define GFC_RND_MODE GMP_RNDN
@@ -2009,7 +2008,8 @@ typedef struct
     *name, *access, *sequential, *direct, *form, *formatted,
     *unformatted, *recl, *nextrec, *blank, *position, *action, *read,
     *write, *readwrite, *delim, *pad, *iolength, *iomsg, *convert, *strm_pos,
-    *asynchronous, *decimal, *encoding, *pending, *round, *sign, *size, *id;
+    *asynchronous, *decimal, *encoding, *pending, *round, *sign, *size, *id,
+    *iqstream;
 
   gfc_st_label *err;
 

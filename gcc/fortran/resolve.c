@@ -3129,12 +3129,6 @@ resolve_function (gfc_expr *expr)
       return FAILURE;
     }
 
-  if (sym && specification_expr && sym->attr.function
-      && gfc_current_ns->proc_name
-      && gfc_current_ns->proc_name->attr.flavor == FL_MODULE)
-    sym->attr.public_used = 1;
-
-
   /* Switch off assumed size checking and do this again for certain kinds
      of procedure, once the procedure itself is resolved.  */
   need_full_assumed_size++;
@@ -5359,19 +5353,6 @@ resolve_variable (gfc_expr *e)
 
   if (check_assumed_size_reference (sym, e))
     return FAILURE;
-
-  /* If a PRIVATE variable is used in the specification expression of the
-     result variable, it might be accessed from outside the module and can
-     thus not be TREE_PUBLIC() = 0.
-     TODO: sym->attr.public_used only has to be set for the result variable's
-     type-parameter expression and not for dummies or automatic variables.
-     Additionally, it only has to be set if the function is either PUBLIC or
-     used in a generic interface or TBP; unfortunately,
-     proc_name->attr.public_used can get set at a later stage.  */
-  if (specification_expr && sym->attr.access == ACCESS_PRIVATE
-      && !sym->attr.function && !sym->attr.use_assoc
-      && gfc_current_ns->proc_name && gfc_current_ns->proc_name->attr.function)
-    sym->attr.public_used = 1;
 
   /* Deal with forward references to entries during resolve_code, to
      satisfy, at least partially, 12.5.2.5.  */
@@ -8484,7 +8465,7 @@ resolve_select_type (gfc_code *code, gfc_namespace *old_ns)
 	  gfc_expr *e;
 
 	  ivtab = gfc_find_intrinsic_vtab (&c->ts);
-	  gcc_assert (ivtab);
+	  gcc_assert (ivtab && CLASS_DATA (ivtab)->initializer);
 	  e = CLASS_DATA (ivtab)->initializer;
 	  c->low = c->high = gfc_copy_expr (e);
 	}
@@ -11056,7 +11037,7 @@ resolve_fl_var_and_proc (gfc_symbol *sym, int mp_flag)
 	}
       else
 	{
-	  pointer = sym->attr.pointer;
+	  pointer = sym->attr.pointer && !sym->attr.select_type_temporary;
 	  allocatable = sym->attr.allocatable;
 	  dimension = sym->attr.dimension;
 	}
@@ -12146,7 +12127,6 @@ resolve_typebound_procedure (gfc_symtree* stree)
   gcc_assert (stree->n.tb->u.specific);
   proc = stree->n.tb->u.specific->n.sym;
   where = stree->n.tb->where;
-  proc->attr.public_used = 1;
 
   /* Default access should already be resolved from the parser.  */
   gcc_assert (stree->n.tb->access != ACCESS_UNKNOWN);
@@ -13315,7 +13295,7 @@ resolve_symbol (gfc_symbol *sym)
       gcc_assert (as->type != AS_IMPLIED_SHAPE);
       if (((as->type == AS_ASSUMED_SIZE && !as->cp_was_assumed)
 	   || as->type == AS_ASSUMED_SHAPE)
-	  && sym->attr.dummy == 0)
+	  && !sym->attr.dummy && !sym->attr.select_type_temporary)
 	{
 	  if (as->type == AS_ASSUMED_SIZE)
 	    gfc_error ("Assumed size array at %L must be a dummy argument",
@@ -13326,7 +13306,8 @@ resolve_symbol (gfc_symbol *sym)
 	  return;
 	}
       /* TS 29113, C535a.  */
-      if (as->type == AS_ASSUMED_RANK && !sym->attr.dummy)
+      if (as->type == AS_ASSUMED_RANK && !sym->attr.dummy
+	  && !sym->attr.select_type_temporary)
 	{
 	  gfc_error ("Assumed-rank array at %L must be a dummy argument",
 		     &sym->declared_at);

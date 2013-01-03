@@ -599,10 +599,10 @@ package body Checks is
       begin
          if Address_Clause_Overlay_Warnings then
             Error_Msg_FE
-              ("?specified address for& may be inconsistent with alignment ",
+              ("?o?specified address for& may be inconsistent with alignment",
                Aexp, E);
             Error_Msg_FE
-              ("\?program execution may be erroneous (RM 13.3(27))",
+              ("\?o?program execution may be erroneous (RM 13.3(27))",
                Aexp, E);
             Set_Address_Warning_Posted (AC);
          end if;
@@ -1624,7 +1624,7 @@ package body Checks is
                      exit;
                   else
                      Apply_Compile_Time_Constraint_Error
-                       (N, "incorrect value for discriminant&?",
+                       (N, "incorrect value for discriminant&??",
                         CE_Discriminant_Check_Failed, Ent => Discr);
                      return;
                   end if;
@@ -2467,9 +2467,9 @@ package body Checks is
          elsif S = Predicate_Function (Typ) then
             Error_Msg_N
               ("predicate check includes a function call that "
-               & "requires a predicate check?", Parent (N));
+               & "requires a predicate check??", Parent (N));
             Error_Msg_N
-              ("\this will result in infinite recursion?", Parent (N));
+              ("\this will result in infinite recursion??", Parent (N));
             Insert_Action (N,
               Make_Raise_Storage_Error (Sloc (N),
                 Reason => SE_Infinite_Recursion));
@@ -2558,7 +2558,7 @@ package body Checks is
       procedure Bad_Value is
       begin
          Apply_Compile_Time_Constraint_Error
-           (Expr, "value not in range of}?", CE_Range_Check_Failed,
+           (Expr, "value not in range of}??", CE_Range_Check_Failed,
             Ent => Target_Typ,
             Typ => Target_Typ);
       end Bad_Value;
@@ -2692,15 +2692,24 @@ package body Checks is
       Is_Unconstrained_Subscr_Ref :=
         Is_Subscr_Ref and then not Is_Constrained (Arr_Typ);
 
-      --  Always do a range check if the source type includes infinities and
-      --  the target type does not include infinities. We do not do this if
-      --  range checks are killed.
+      --  Special checks for floating-point type
 
-      if Is_Floating_Point_Type (S_Typ)
-        and then Has_Infinities (S_Typ)
-        and then not Has_Infinities (Target_Typ)
-      then
-         Enable_Range_Check (Expr);
+      if Is_Floating_Point_Type (S_Typ) then
+
+         --  Always do a range check if the source type includes infinities and
+         --  the target type does not include infinities. We do not do this if
+         --  range checks are killed.
+
+         if Has_Infinities (S_Typ)
+           and then not Has_Infinities (Target_Typ)
+         then
+            Enable_Range_Check (Expr);
+
+         --  Always do a range check for operators if option set
+
+         elsif Check_Float_Overflow and then Nkind (Expr) in N_Op then
+            Enable_Range_Check (Expr);
+         end if;
       end if;
 
       --  Return if we know expression is definitely in the range of the target
@@ -2780,15 +2789,14 @@ package body Checks is
       --  only if this is not a conversion between integer and real types.
 
       if not Is_Unconstrained_Subscr_Ref
-        and then
-           Is_Discrete_Type (S_Typ) = Is_Discrete_Type (Target_Typ)
+        and then Is_Discrete_Type (S_Typ) = Is_Discrete_Type (Target_Typ)
         and then
           (In_Subrange_Of (S_Typ, Target_Typ, Fixed_Int)
              or else
                Is_In_Range (Expr, Target_Typ,
                             Assume_Valid => True,
-                            Fixed_Int => Fixed_Int,
-                            Int_Real  => Int_Real))
+                            Fixed_Int    => Fixed_Int,
+                            Int_Real     => Int_Real))
       then
          return;
 
@@ -2800,12 +2808,18 @@ package body Checks is
          Bad_Value;
          return;
 
+      --  Floating-point case
       --  In the floating-point case, we only do range checks if the type is
       --  constrained. We definitely do NOT want range checks for unconstrained
       --  types, since we want to have infinities
 
       elsif Is_Floating_Point_Type (S_Typ) then
-         if Is_Constrained (S_Typ) then
+
+      --  Normally, we only do range checks if the type is constrained. We do
+      --  NOT want range checks for unconstrained types, since we want to have
+      --  infinities. Override this decision in Check_Float_Overflow mode.
+
+         if Is_Constrained (S_Typ) or else Check_Float_Overflow then
             Enable_Range_Check (Expr);
          end if;
 
@@ -2904,7 +2918,7 @@ package body Checks is
               and then Entity (Cond) = Standard_True
             then
                Apply_Compile_Time_Constraint_Error
-                 (Ck_Node, "wrong length for array of}?",
+                 (Ck_Node, "wrong length for array of}??",
                   CE_Length_Check_Failed,
                   Ent => Target_Typ,
                   Typ => Target_Typ);
@@ -2984,7 +2998,7 @@ package body Checks is
 
                if Nkind (Ck_Node) = N_Range then
                   Apply_Compile_Time_Constraint_Error
-                    (Low_Bound (Ck_Node), "static range out of bounds of}?",
+                    (Low_Bound (Ck_Node), "static range out of bounds of}??",
                      CE_Range_Check_Failed,
                      Ent => Target_Typ,
                      Typ => Target_Typ);
@@ -3539,11 +3553,11 @@ package body Checks is
          case Check is
             when Access_Check =>
                Error_Msg_N
-                 ("Constraint_Error may be raised (access check)?",
+                 ("Constraint_Error may be raised (access check)??",
                   Parent (Nod));
             when Division_Check =>
                Error_Msg_N
-                 ("Constraint_Error may be raised (zero divide)?",
+                 ("Constraint_Error may be raised (zero divide)??",
                   Parent (Nod));
 
             when others =>
@@ -3552,10 +3566,10 @@ package body Checks is
 
          if K = N_Op_And then
             Error_Msg_N -- CODEFIX
-              ("use `AND THEN` instead of AND?", P);
+              ("use `AND THEN` instead of AND??", P);
          else
             Error_Msg_N -- CODEFIX
-              ("use `OR ELSE` instead of OR?", P);
+              ("use `OR ELSE` instead of OR??", P);
          end if;
 
          --  If not short-circuited, we need the check
@@ -3694,7 +3708,8 @@ package body Checks is
 
          Apply_Compile_Time_Constraint_Error
            (N      => Expression (N),
-            Msg    => "(Ada 2005) null-excluding objects must be initialized?",
+            Msg    =>
+              "(Ada 2005) null-excluding objects must be initialized??",
             Reason => CE_Null_Not_Allowed);
       end if;
 
@@ -3712,7 +3727,7 @@ package body Checks is
                   Apply_Compile_Time_Constraint_Error
                     (N      => Expr,
                      Msg    => "(Ada 2005) null not allowed " &
-                               "in null-excluding components?",
+                               "in null-excluding components??",
                      Reason => CE_Null_Not_Allowed);
 
                when N_Object_Declaration =>
@@ -3726,7 +3741,7 @@ package body Checks is
                   Apply_Compile_Time_Constraint_Error
                     (N      => Expr,
                      Msg    => "(Ada 2005) null not allowed " &
-                               "in null-excluding formals?",
+                               "in null-excluding formals??",
                      Reason => CE_Null_Not_Allowed);
 
                when others =>
@@ -5649,22 +5664,24 @@ package body Checks is
       --  First special case, if the source type is already within the range
       --  of the target type, then no check is needed (probably we should have
       --  stopped Do_Range_Check from being set in the first place, but better
-      --  late than later in preventing junk code!
-
-      --  We do NOT apply this if the source node is a literal, since in this
-      --  case the literal has already been labeled as having the subtype of
-      --  the target.
+      --  late than never in preventing junk code!
 
       if In_Subrange_Of (Source_Type, Target_Type)
+
+        --  We do NOT apply this if the source node is a literal, since in this
+        --  case the literal has already been labeled as having the subtype of
+        --  the target.
+
         and then not
-          (Nkind (N) = N_Integer_Literal
+          (Nkind_In (N, N_Integer_Literal, N_Real_Literal, N_Character_Literal)
              or else
-           Nkind (N) = N_Real_Literal
-             or else
-           Nkind (N) = N_Character_Literal
-             or else
-           (Is_Entity_Name (N)
-              and then Ekind (Entity (N)) = E_Enumeration_Literal))
+               (Is_Entity_Name (N)
+                 and then Ekind (Entity (N)) = E_Enumeration_Literal))
+
+        --  Also do not apply this for floating-point if Check_Float_Overflow
+
+        and then not
+          (Is_Floating_Point_Type (Source_Type) and Check_Float_Overflow)
       then
          return;
       end if;
@@ -5674,9 +5691,7 @@ package body Checks is
       --  reference). Such a double evaluation is always a potential source
       --  of inefficiency, and is functionally incorrect in the volatile case.
 
-      if not Is_Entity_Name (N)
-        or else Treat_As_Volatile (Entity (N))
-      then
+      if not Is_Entity_Name (N) or else Treat_As_Volatile (Entity (N)) then
          Force_Evaluation (N);
       end if;
 
@@ -6466,7 +6481,7 @@ package body Checks is
          if not Inside_Init_Proc then
             Apply_Compile_Time_Constraint_Error
               (N,
-               "null value not allowed here?",
+               "null value not allowed here??",
                CE_Access_Check_Failed);
          else
             Insert_Action (N,
@@ -8251,12 +8266,12 @@ package body Checks is
                            if L_Length > R_Length then
                               Add_Check
                                 (Compile_Time_Constraint_Error
-                                  (Wnode, "too few elements for}?", T_Typ));
+                                  (Wnode, "too few elements for}??", T_Typ));
 
                            elsif  L_Length < R_Length then
                               Add_Check
                                 (Compile_Time_Constraint_Error
-                                  (Wnode, "too many elements for}?", T_Typ));
+                                  (Wnode, "too many elements for}??", T_Typ));
                            end if;
 
                         --  The comparison for an individual index subtype
@@ -8802,13 +8817,13 @@ package body Checks is
                         Add_Check
                           (Compile_Time_Constraint_Error
                              (Low_Bound (Ck_Node),
-                              "static value out of range of}?", T_Typ));
+                              "static value out of range of}??", T_Typ));
 
                      else
                         Add_Check
                           (Compile_Time_Constraint_Error
                             (Wnode,
-                             "static range out of bounds of}?", T_Typ));
+                             "static range out of bounds of}??", T_Typ));
                      end if;
                   end if;
 
@@ -8817,13 +8832,13 @@ package body Checks is
                         Add_Check
                           (Compile_Time_Constraint_Error
                              (High_Bound (Ck_Node),
-                              "static value out of range of}?", T_Typ));
+                              "static value out of range of}??", T_Typ));
 
                      else
                         Add_Check
                           (Compile_Time_Constraint_Error
                              (Wnode,
-                              "static range out of bounds of}?", T_Typ));
+                              "static range out of bounds of}??", T_Typ));
                      end if;
                   end if;
                end if;
@@ -8944,13 +8959,13 @@ package body Checks is
                         Add_Check
                           (Compile_Time_Constraint_Error
                              (Ck_Node,
-                              "static value out of range of}?", T_Typ));
+                              "static value out of range of}??", T_Typ));
 
                      else
                         Add_Check
                           (Compile_Time_Constraint_Error
                              (Wnode,
-                              "static value out of range of}?", T_Typ));
+                              "static value out of range of}??", T_Typ));
                      end if;
                   end if;
 
@@ -9132,7 +9147,7 @@ package body Checks is
                         then
                            Add_Check
                              (Compile_Time_Constraint_Error
-                               (Wnode, "value out of range of}?", T_Typ));
+                               (Wnode, "value out of range of}??", T_Typ));
 
                         else
                            Evolve_Or_Else

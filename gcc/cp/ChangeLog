@@ -1,3 +1,24 @@
+2013-01-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/54325
+	* call.c (build_new_method_call_1): Don't use build_value_init for
+	user-provided default constructors.
+
+	* decl.c (check_default_argument): Use LOOKUP_IMPLICIT.
+
+	PR c++/55032
+	PR c++/55245
+	* tree.c (build_cplus_array_type): Copy layout information
+	to main variant if necessary.
+
+2012-12-28  Kai Tietz  <ktietz@redhat.com>
+
+	* rtti.c (LONGPTR_T): New helper-macro.
+	(get_pseudo_ti_init): Initialize offset_type by LONGPTR_T
+	type instead of 'long' type.
+	(create_tinfo_types): Use for offset/flags field LONGPTR_T
+	type instead of 'long' type.
+
 2012-12-19  Jason Merrill  <jason@redhat.com>
 
 	PR c++/55724

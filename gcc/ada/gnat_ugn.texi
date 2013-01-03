@@ -4178,6 +4178,10 @@ Create expanded source files for source level debugging. This switch
 also suppress generation of cross-reference information
 (see @option{-gnatx}).
 
+@item ^-gnateA^/ALIASING_CHECK^
+@cindex @option{-gnateA} (@command{gcc})
+Check that there is no aliasing between two parameters of the same subprogram.
+
 @item -gnatec=@var{path}
 @cindex @option{-gnatec} (@command{gcc})
 Specify a configuration pragma file
@@ -4185,6 +4189,10 @@ Specify a configuration pragma file
 (the equal sign is optional)
 @end ifclear
 (@pxref{The Configuration Pragmas Files}).
+
+@item ^-gnated^/DISABLE_ATOMIC_SYNCHRONIZATION^
+@cindex @option{-gnated} (@command{gcc})
+Disable atomic synchronization
 
 @item ^-gnateD^/DATA_PREPROCESSING=^symbol@r{[}=@var{value}@r{]}
 @cindex @option{-gnateD} (@command{gcc})
@@ -4203,6 +4211,12 @@ produced at run time.
 @item -gnatef
 @cindex @option{-gnatef} (@command{gcc})
 Display full source path name in brief error messages.
+
+@item -gnateF
+@cindex @option{-gnateF} (@command{gcc})
+Check for overflow on all floating-point operations, including those
+for unconstrained predefined types. See description of pragma
+@code{Check_Float_Overflow} in GNAT RM.
 
 @item -gnateG
 @cindex @option{-gnateG} (@command{gcc})
@@ -4248,6 +4262,14 @@ temporary use of special test software.
 @item -gnateS
 @cindex @option{-gnateS} (@command{gcc})
 Synonym of @option{-fdump-scos}, kept for backards compatibility.
+
+@item ^-gnatet^/TARGET_DEPENDENT_INFO^
+@cindex @option{-gnatet} (@command{gcc})
+Generate target dependent information.
+
+@item ^-gnateV^/PARAMETER_VALIDITY_CHECK^
+@cindex @option{-gnateV} (@command{gcc})
+Check validity of subprogram parameters.
 
 @item -gnatE
 @cindex @option{-gnatE} (@command{gcc})

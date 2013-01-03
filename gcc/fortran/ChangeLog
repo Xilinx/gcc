@@ -1,3 +1,56 @@
+2012-12-28  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/55692
+	* check.c (gfc_check_associated): Remove a "gcc_assert (0)".
+
+2012-12-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/55763
+	* check.c (gfc_check_move_alloc): Handle unlimited polymorphic.
+	* trans-intrinsic.c (conv_intrinsic_move_alloc): Ditto.
+
+2012-12-27  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/48976
+	* gfortran.h (gfc_inquire struct): Add pointer for inquire stream.
+	* io.c (io_tag): Add tag for inquire stream. (match_inquire_element):
+	Add matcher for new tag. (gfc_resolve_inquire): Resolve new tag.
+	* ioparm.def: Add new parameter for inquire stream.
+	* trans-io.c (gfc_trans_inquire): Add tranlste code for inquire
+	stream.
+
+2012-12-23  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/54884
+	* module.c (write_symbol1_recursion): Set attr.public_use.
+	* interface.c (check_sym_interfaces, check_uop_interfaces,
+	gfc_check_interfaces): Remove attr.public_use code.
+	* resolve.c (resolve_function, resolve_variable,
+	resolve_typebound_procedure): Ditto.
+
+2012-12-22  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/55763
+	* module.c (mio_component): Don't skip _hash's initializer.
+	* resolve.c (resolve_select_type): Add an assert.
+	* trans-expr.c (gfc_conv_procedure_call): Handle
+	INTENT(OUT) for UNLIMIT_POLY.
+
+2012-12-21  Richard Biener  <rguenther@suse.de>
+
+	PR bootstrap/54659
+	* gfortran.h: Do not include gmp.h here.
+
+2012-12-21  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/55763
+	* match.c (select_type_set_tmp): Return is a derived type or
+	class typespec has no derived type.
+	* resolve.c (resolve_fl_var_and_proc): Exclude select type
+	temporaries from 'pointer'.
+	(resolve_symbol): Exclude select type temporaries from tests
+	for assumed size and assumed rank.
+
 2012-12-20  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/36044
