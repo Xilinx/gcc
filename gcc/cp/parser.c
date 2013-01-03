@@ -10279,7 +10279,7 @@ cp_parser_jump_statement (cp_parser* parser)
 	  error_at (token->location, "invalid exit from OpenMP structured block");
 	  break;
 	case IN_CILK_SPAWN:
-	  error ("Invalid exit from spawned statement");
+	  error_at (token->location, "invalid exit from spawned statement");
 	  break;
 	default:
 	  gcc_unreachable ();
@@ -29138,7 +29138,7 @@ cp_parser_cilk_for_expression_iterator (cp_parser *parser)
   
   if (token->type == CPP_SEMICOLON)
     {
-      error ("missing loop expression.\n");
+      error_at (input_location, "missing loop expression");
       return error_mark_node;
     }
   if (token->type == CPP_PLUS_PLUS)
@@ -29147,7 +29147,7 @@ cp_parser_cilk_for_expression_iterator (cp_parser *parser)
       token = cp_lexer_peek_token (parser->lexer);
       t_code = PREINCREMENT_EXPR;
     }
-  else if (token->type==CPP_MINUS_MINUS)
+  else if (token->type == CPP_MINUS_MINUS)
     {
       cp_lexer_consume_token (parser->lexer);
       token = cp_lexer_peek_token (parser->lexer);
@@ -29155,7 +29155,7 @@ cp_parser_cilk_for_expression_iterator (cp_parser *parser)
     }
   if (token->type != CPP_NAME)
     {
-      error ("Invalid loop expression");
+      error_at (token->location, "invalid loop expression");
       cp_parser_skip_to_end_of_statement (parser);
       return error_mark_node;
     }
@@ -29168,7 +29168,7 @@ cp_parser_cilk_for_expression_iterator (cp_parser *parser)
   /* Now we see if it is a decl, if not, then the loop is not valid.  */
   if (!DECL_P (name))
     {
-      error ("invalid loop increment expression.\n");
+      error_at (token->location, "invalid loop increment expression\n");
       return error_mark_node;
     }
 
@@ -29183,7 +29183,7 @@ cp_parser_cilk_for_expression_iterator (cp_parser *parser)
 	     here is cases like the oen below:
 		    for (ii = 0; ii < 10; ii++, jj++)
 	   */
-	  error ("invalid loop expression.\n");
+	  error_at (token->location, "invalid loop expression\n");
 	  return error_mark_node;
 	}
       return build2 (t_code, void_type_node, name, NULL_TREE);
@@ -29195,7 +29195,8 @@ cp_parser_cilk_for_expression_iterator (cp_parser *parser)
 	 the following case:
 	      for (ii = 0; ii < 10; ii)
        */
-      error ("The loop expression must modify the control variable.\n");
+      error_at (token->location, 
+		"the loop expression must modify the control variable\n");
       return error_mark_node;
     }
 
@@ -29219,12 +29220,12 @@ cp_parser_cilk_for_expression_iterator (cp_parser *parser)
 	   || (token->type == CPP_OR_EQ)  || (token->type == CPP_MULT_EQ)
 	   || (token->type == CPP_LSHIFT_EQ) || (token->type == CPP_RSHIFT_EQ))
     {
-      error ("Invalid loop increment operation.");
+      error_at (token->location, "invalid loop increment operation");
       return error_mark_node;
     }
   else
     {
-      error ("invalid loop expression.\n");
+      error_at (token->location, "invalid loop expression.\n");
       return error_mark_node;
     }
 

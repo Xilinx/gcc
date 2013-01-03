@@ -265,7 +265,8 @@ copy_decl_for_cilk (tree decl, copy_body_data *id)
       return copy_decl_no_change (decl, id);
 
     case LABEL_DECL:
-      error ("Invalid use of label %q+D in spawn", decl);
+      error_at (EXPR_LOCATION (decl), 
+		"invalid use of label %q+D in spawn", decl);
       return error_mark_node;
 
     case RESULT_DECL:
