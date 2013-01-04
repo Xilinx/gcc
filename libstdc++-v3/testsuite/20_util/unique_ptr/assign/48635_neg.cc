@@ -41,10 +41,10 @@ void f()
   std::unique_ptr<int, B&> ub(nullptr, b);
   std::unique_ptr<int, D&> ud(nullptr, d);
   ub = std::move(ud);
-// { dg-error "use of deleted function" "" { target *-*-* } 195 }
+// { dg-error "use of deleted function" "" { target *-*-* } 203 }
 
   std::unique_ptr<int[], B&> uba(nullptr, b);
   std::unique_ptr<int[], D&> uda(nullptr, d);
   uba = std::move(uda);
-// { dg-error "use of deleted function" "" { target *-*-* } 341 }
+// { dg-error "use of deleted function" "" { target *-*-* } 393 }
 }
