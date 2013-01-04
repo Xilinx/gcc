@@ -1,7 +1,7 @@
 ;; file warmelt-macro.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008 - 2012 Free Software Foundation, Inc.
+    Copyright 2008 - 2013 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -555,6 +555,21 @@ $CLASS_SOURCE_CASEMATCH.}#
   :fields (smat_matchedx		;matched expression
 	   smat_cases			;match case tuple
 	   ))
+
+
+;; NOTE [January 2013] We have a buggy match implementation. The
+;; DSL2011 paper http://gcc-melt.org/MELT-Starynkevitch-DSL2011.pdf is
+;; giving a better match implementation, still unfinished. To ease
+;; development of the alternative (and better) match implementation we
+;; use the temporary MATCHALT syntax.
+(defclass class_source_matchalt 
+  :doc #{the internal $CLASS_SOURCE_MATCHALT is temporary, for
+  $MATCHALT expressions which should behave like $MATCH. See
+  $CLASS_SOURCE_MATCH.}#
+  :super class_source_match
+  :fields ())
+
+;;;;;;;;;;;;;;;;
 
 ;; match case
 (defclass class_source_match_case
@@ -5251,9 +5266,103 @@ condition is a string such as "4.5." or a list of strings.}#)
  :doc #{The $MATCH syntax is for pattern-matching expressions. Syntax
  is (MATCH <matched-expression> <match-case>...). Each match-case
  starts with a pattern followed by expressions. The catch-all pattern
- ?_ should appear in the last match-case if any. Pattern variables
- like ?x are bound by the matching in their match-case.}#)
+ @code{?_} should appear in the last match-case if any. Pattern variables
+ like @code{?x} are bound by the matching in their match-case.}#)
 
+
+;;; matchalt is like match 
+
+;;;; the matchalt expander
+(defun mexpand_matchalt (sexpr env mexpander modctx)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check modctx" (is_object modctx))
+  (if (null mexpander) (setq mexpander macroexpand_1))
+  (debug "mexpand_matchalt sexpr" sexpr)
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(msexp (pair_head (pair_tail (list_first cont))))
+	(matsx (mexpander msexp env mexpander modctx))
+	(mexptuple (pairlist_to_multiple 
+		    (pair_tail (pair_tail (list_first cont)))
+		    discr_multiple
+		    (lambda (c)
+		      (if (is_not_a c class_sexpr)
+			  (error_plain loc "MATCHALT with non-sexpr"_))
+		      c
+		      ))) 
+	(:long nbmatch (multiple_length mexptuple))
+	(lastmexp (let ( (lx (multiple_nth mexptuple -1)) )
+		    (debug "mexpand_matchalt lastmexp lx" lx)
+		    lx))
+	(:long ix (-i nbmatch 1))
+	(caselist (make_list discr_list))
+	)
+    (debug "mexpand_matchalt mexptuple" mexptuple)
+    (forever matchloop
+	     (if (<i ix 0) (exit matchloop))
+	     (let ( (curmatch (multiple_nth mexptuple ix)) )
+	       (debug "mexpand_matchalt curmatch" curmatch)
+	       (cond 
+		;; handle ordinary (pattern ...) clauses
+		( (is_a curmatch class_sexpr)
+		  (let ( (curmatchcont (unsafe_get_field :sexp_contents curmatch))
+			 (curmatchloc (unsafe_get_field :loca_location curmatch)) 
+			 (curmatchpatx (pair_head (list_first curmatchcont)))
+			 (curmatchrestpairs (pair_tail (list_first curmatchcont))) 
+			 (curpatctx (instance class_pattern_expansion_context
+					      :pctx_mexpander mexpander
+					      :pctx_pexpander patternexpand_1
+					      :pctx_varmap (make_mapobject discr_map_objects 17)
+					      :pctx_modctx modctx
+					      ))
+			 (curpat (let ( (cp (patternexpand_1 curmatchpatx env curpatctx curmatchloc)) )
+					(debug "mexpand_matchalt curpat" cp)
+					(assert_msg "check curpat" cp)
+					cp))
+			 (curbody (expand_pairlist_as_tuple curmatchrestpairs env mexpander modctx))
+			 (curcase (instance class_source_match_case
+					    :loca_location curmatchloc
+					    :scam_patt curpat
+					    :scam_body curbody))
+			 )
+		    (debug "mexpand_matchalt curcase" curcase)
+		    (list_prepend caselist curcase)
+		    ))
+		;; detect non-sexp clauses
+		(:else
+		 (error_plain loc "(MATCHALT <expr> <match-case>...) with non sexpr matchcase") 
+		 )))
+	     (setq ix (-i ix 1)))
+    (debug "mexpand_matchalt caselist" caselist)
+    (let (
+	  (casetupl  (list_to_multiple caselist discr_multiple))
+	  (lastcase (multiple_nth casetupl -1))
+	  (smat (instance class_source_matchalt
+			   :loca_location loc
+			   :smat_matchedx matsx
+			   :smat_cases casetupl) 
+		 )
+	  )
+      ;; inform the user if the last matchalt clause is not a joker
+      (if (is_not_a 
+	   (get_field :scam_patt lastcase) 
+	   class_source_pattern_joker_variable)
+	  (inform_plain loc "last (MATCHALT ...) clause is not a joker"))
+      ;;;
+      (debug "mexpand_matchalt result smat" smat)
+      (return smat)
+      )))
+
+(install_initial_macro 'matchalt mexpand_matchalt)
+(export_macro matchalt mexpand_matchalt
+ :doc #{The temporary $MATCHALT syntax is for pattern-matching
+ expressions. It is sama as $MATCH but uses an alternative
+ implementation. @b{Don't use it} (except for test cases), it will disappear when that better
+ implemenation will be fully debugged.}#)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;; for LET
 ;; internal routine to make a letbinding
 (defun mexpand_letbinding (sexpr env mexpander modctx)
@@ -7095,6 +7204,7 @@ $CURRENT_MODULE_ENVIRONMENT_CONTAINER. Will be renamed as
  class_source_letrec_binding
  class_source_list
  class_source_match
+ class_source_matchalt
  class_source_match_case
  class_source_msend
  class_source_multicall

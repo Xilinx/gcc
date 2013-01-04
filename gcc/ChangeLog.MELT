@@ -1,5 +1,11 @@
 
 2013-01-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt (class_source_matchalt): New temporary
+	class, subclass of CLASS_SOURCE_MATCH.
+	(mexpand_matchalt): New temporary macro expander.
+	(matchalt): New temporary macro.
+
+2013-01-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): Bump to 0.9.8-post
 
 2012-12-22  Basile Starynkevitch  <basile@starynkevitch.net>
