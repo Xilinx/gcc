@@ -1,7 +1,7 @@
 ;; File warmelt-genobj.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008 - 2012 Free Software Foundation, Inc.
+    Copyright 2008 - 2013 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -5908,7 +5908,7 @@ $SBUF.}#
 (defclass class_alternate_match_nrep_data 
   :super class_root
   :fields (altmatchn_prev		;the previous
-	   altmatchn_nrep		;the current nrep_altmatch
+	   altmatchn_nrep		;the current nrep_matchalt
 	   altmatchn_flagmap		;mapping from match flags to objflags
 	   altmatchn_datamap		;mapping from nrep matched data to objvalues
 	   )
@@ -5916,10 +5916,10 @@ $SBUF.}#
 (export_class class_alternate_match_nrep_data)
 
 ;;;; compilation of alternate matches
-(defun compilobj_nrep_altmatch (nmat gcx)
-  (assert_msg "check nmat" (is_a nmat class_nrep_altmatch))
+(defun compilobj_nrep_matchalt (nmat gcx)
+  (assert_msg "check nmat" (is_a nmat class_nrep_matchalt))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
-  (debug "compilobj_nrep_altmatch nmat=" nmat "\n** gcx=" gcx 
+  (debug "compilobj_nrep_matchalt nmat=" nmat "\n** gcx=" gcx 
 	 "\n** class_objmatchflagblock=" class_objmatchflagblock "\n")
   (let ( 
 	(nloc (unsafe_get_field :nrep_loc nmat))
@@ -5942,7 +5942,7 @@ $SBUF.}#
 			    :altmatchn_datamap odatamap
 			    )))
 							      
-    (debug "compilobj_nrep_altmatch nmatched=" nmatched " nres=" nres 
+    (debug "compilobj_nrep_matchalt nmatched=" nmatched " nres=" nres 
 	   " nflags=" nflags " nctyp=" nctyp
 	   " nbody=" nbody " oldaltmatch=" oldaltmatch)
     (put_fields gcx :gncx_altmatch altmatch)
@@ -5955,37 +5955,37 @@ $SBUF.}#
 	  )
       (list_append obodyl ocleares)
       ;;
-      (debug "compilobj_nrep_altmatch nflags=" nflags)
+      (debug "compilobj_nrep_matchalt nflags=" nflags)
       (let ( (oflags 
 	      (multiple_map
 	       nflags
 	       (lambda (curnflag :long fix)
-		 (debug "compilobj_nrep_altmatch/lambda curnflag=" curnflag " fix=" fix)
+		 (debug "compilobj_nrep_matchalt/lambda curnflag=" curnflag " fix=" fix)
 		 (let ( (curoflag (compile_obj curnflag gcx))
 			)
-		   (debug "compilobj_nrep_altmatch/lambda curoflag=" curoflag)
+		   (debug "compilobj_nrep_matchalt/lambda curoflag=" curoflag)
 		   (return curoflag))))
 	      )
 	     )
-	(debug "compilobj_nrep_altmatch oflags=" oflags)
+	(debug "compilobj_nrep_matchalt oflags=" oflags)
 	;;
-	(debug "compilobj_nrep_altmatch nbody=" nbody)
+	(debug "compilobj_nrep_matchalt nbody=" nbody)
 	(foreach_in_multiple
 	 (nbody)
 	 (curncomp :long bodix)
-	 (debug  "compilobj_nrep_altmatch curncomp=" curncomp " bodix=" bodix)
+	 (debug  "compilobj_nrep_matchalt curncomp=" curncomp " bodix=" bodix)
 	 (let ( (curocomp (compile_obj curncomp gcx))
 		)
-	   (debug "compilobj_nrep_altmatch curocomp=" curocomp)
+	   (debug "compilobj_nrep_matchalt curocomp=" curocomp)
 	   (assert_msg "check curocomp object" (is_object curocomp))
 	   (list_append obodyl curocomp)
 	   ))
-	(debug "compilobj_nrep_altmatch obodyl=" obodyl)
+	(debug "compilobj_nrep_matchalt obodyl=" obodyl)
 	(dispose_objloc obvares gcx)
 	(put_fields gcx :gncx_altmatch oldaltmatch)
-	(assert_msg "@@unimplemented compilobj_nrep_altmatch")
+	(assert_msg "@@unimplemented compilobj_nrep_matchalt")
 	))))
-(install_method class_nrep_altmatch compile_obj compilobj_nrep_altmatch)
+(install_method class_nrep_matchalt compile_obj compilobj_nrep_matchalt)
 
 
 ;;;;;;;;;;;;;;;;

@@ -1,7 +1,7 @@
 ;; file warmelt-normatch.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
+    Copyright 2008 - 2013 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -2613,6 +2613,7 @@ scanning variables.}#
 
 
 
+;; for matchalt, alternate implementation of pattern matching
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; A L T E R N A T E     I M P L E M E N T A T I O N
@@ -2873,7 +2874,7 @@ $MSTMA_OUTS is the tuple of output matched data.}#
   :doc #{The $CLASS_NREP_MATCH_FLAG is the normalized representation
 of match flags, instances of $CLASS_MATCH_FLAG. $NRPFLA_FLAG is the
 matched flag, and $NRPFLA_NMATCH is the instance of
-$CLASS_NREP_ALTMATCH using that match flag.}#
+$CLASS_NREP_MATCHALT using that match flag.}#
   :fields (nrpfla_flag
 	   nrpfla_nmatch
 	   ))
@@ -5060,9 +5061,9 @@ the flags of the $STEP with an extra context $CTX.}#
 
 ;;;; normal representation for alternate match uses match blocks
 
-(defclass class_nrep_altmatch
+(defclass class_nrep_matchalt
   :super class_nrep_typed_expression
-  :doc #{The $CLASS_NREP_ALTMATCH is the representation for normal
+  :doc #{The $CLASS_NREP_MATCHALT is the representation for normal
 matches. Field $NAMATCH_MATCHED is the normal matched
 stuff. $NAMATCH_RESULT gives if any the result of the
 match. $NAMATCH_BODY is the body tuple, in particular labels of
@@ -5138,7 +5139,7 @@ $NTESTISA_JUMP.}#
   $CLASS_MATCH_STEP. Field $MATNORX_RESLOC gives the instance of
   $CLASS_NREP_LOCSYMOCC for the result of the match. $MATNORX_NMATCH
   gives the partially built normal representation, instance of
-  $CLASS_NREP_ALTMATCH, of the match. Field $MATNORX_FLAGMAP is the
+  $CLASS_NREP_MATCHALT, of the match. Field $MATNORX_FLAGMAP is the
   read-mostly map associating match flags to normalized flags. Field
   $MATNORX_STEPMAP is the read-mostly map associating match steps to
   labels of $CLASS_NREP_MATCH_LABEL. Field $MATNORX_MDATAMAP is the
@@ -5163,11 +5164,11 @@ $NTESTISA_JUMP.}#
 
 
 ;;; utility to normalize a flag with a match normalization context
-(defun altmatch_normalize_flag (flag nmctxt)
-  (debug "altmatch_normalize_flag flag" flag)
-  (assert_msg "altmatch_normalize_flag check flag"
+(defun matchalt_normalize_flag (flag nmctxt)
+  (debug "matchalt_normalize_flag flag" flag)
+  (assert_msg "matchalt_normalize_flag check flag"
 	      (is_a flag class_match_flag))
-  (assert_msg "altmatch_normalize_flag check nmctxt"
+  (assert_msg "matchalt_normalize_flag check nmctxt"
 	      (is_a nmctxt class_match_normalization_context))
   (let ( (flagmap (unsafe_get_field :matnorx_flagmap nmctxt))
 	 (nfla (mapobject_get flagmap flag))
@@ -5180,7 +5181,7 @@ $NTESTISA_JUMP.}#
 			  :nrpfla_flag flag
 			  :nrpfla_nmatch nmatch))
 	  (mapobject_put flagmap flag nfla)))
-    (assert_msg "altmatch_normalize_flag check nfla"
+    (assert_msg "matchalt_normalize_flag check nfla"
 		(is_a nfla class_nrep_match_flag))
     (return nfla)
 ))
@@ -5354,8 +5355,8 @@ normalized expression.}#
   (let  ( (nsloc (or (unsafe_get_field :loca_location step) sloc))
 	  (matflag (unsafe_get_field :mstep_flag step))
 	  (matthen (unsafe_get_field :mstep_then step))
-	  (nthen (altmatch_normalize_step matthen nmctxt))
-	  (nflag (altmatch_normalize_flag matflag nmctxt))
+	  (nthen (matchalt_normalize_step matthen nmctxt))
+	  (nflag (matchalt_normalize_flag matflag nmctxt))
 	  (nsetflag (instance  class_nrep_setq 
 			       :nrep_loc nsloc
 			       :nstq_var nflag
@@ -5380,8 +5381,8 @@ normalized expression.}#
 	  (matflagargs (unsafe_get_field :mstep_flagargs step))
 	  (:long matflagnbargs (multiple_length matflagargs))
 	  (matthen (unsafe_get_field :mstep_then step))
-	  (nthen (altmatch_normalize_step matthen nmctxt))
-	  (nflag (altmatch_normalize_flag matflag nmctxt))
+	  (nthen (matchalt_normalize_step matthen nmctxt))
+	  (nflag (matchalt_normalize_flag matflag nmctxt))
 	  (nsetflag (instance  class_nrep_setq 
 			       :nrep_loc nsloc
 			       :nstq_var nflag
@@ -5399,7 +5400,7 @@ normalized expression.}#
      ;; flag argument, so we optimize it as a setq
      ( (==i matflagnbargs 1)
        (let ( (firstflag (multiple_nth matflagargs 0))
-	      (n1stflag (altmatch_normalize_flag firstflag nmctxt))
+	      (n1stflag (matchalt_normalize_flag firstflag nmctxt))
 	      )
        (put_fields nsetflag :nstq_exp n1stflag)))
      (:else
@@ -5415,7 +5416,7 @@ normalized expression.}#
 	 (matflagargs)
 	 (curmatflag :long flagix)
 	 (debug "normstep_mflagconj curmatflag" curmatflag)
-	 (let ( (curnflag (altmatch_normalize_flag curmatflag nmctxt))
+	 (let ( (curnflag (matchalt_normalize_flag curmatflag nmctxt))
 		)
 	   (debug "normstep_mflagconj curnflag" curnflag)
 	 (if (>i flagix 0)
@@ -5445,7 +5446,7 @@ normalized expression.}#
 	 (matclass (unsafe_get_field :mstins_class step))
 	 (matslots (unsafe_get_field :mstins_slots step))
 	 (matctx (unsafe_get_field :matnorx_matchctxt nmctxt))
-	 (ndata (altmatch_normalize_mdata matdata nmctxt))
+	 (ndata (matchalt_normalize_mdata matdata nmctxt))
 	 )
     (debug "normstep_mtestinstance matclass" matclass)
     (debug "normstep_mtestinstance ndata" ndata)
@@ -5454,8 +5455,8 @@ normalized expression.}#
     (debug "normstep_mtestinstance matelse" matelse)
     (assert_msg "check matclass" (is_a matclass class_class))
     (let (
-	  (nthen (altmatch_normalize_step matthen nmctxt))
-	  (nelse (altmatch_normalize_step matelse nmctxt))
+	  (nthen (matchalt_normalize_step matthen nmctxt))
+	  (nelse (matchalt_normalize_step matelse nmctxt))
 	  (jumpthen (instance class_nrep_match_jump
 			      :nmjmp_label nthen))
 	  (jumpelse (instance class_nrep_match_jump
@@ -5486,7 +5487,7 @@ normalized expression.}#
 	   (progn
 	     (debug "normstep_mtestinstance curmslot" curmslot)
 	     (assert_msg "check curmslot" (is_a curmslot class_matched_data))
-	     (let ( (nslot (altmatch_normalize_mdata curmslot nmctxt))
+	     (let ( (nslot (matchalt_normalize_mdata curmslot nmctxt))
 		    (curfld (multiple_nth clafields curix))
 		    (nflexp (instance class_nrep_unsafe_get_field
 				      :nrep_loc nsloc
@@ -5558,13 +5559,13 @@ normalized expression.}#
 	 (:long matix (get_int matindex))
 	 (matcomp (unsafe_get_field :msttup_components step))
 	 (:long nbcomp (multiple_length matcomp))
-	 (ndata (altmatch_normalize_mdata matdata nmctxt))
+	 (ndata (matchalt_normalize_mdata matdata nmctxt))
 	 )
     (debug "normstep_mtestmultiple matdata=" matdata " matix=" matix 
 	   "\n matcomp=" matcomp "\n ndata=" ndata)
     (let (
-	  (nthen (altmatch_normalize_step matthen nmctxt))
-	  (nelse (altmatch_normalize_step matelse nmctxt))
+	  (nthen (matchalt_normalize_step matthen nmctxt))
+	  (nelse (matchalt_normalize_step matelse nmctxt))
 	  (jumpthen (instance class_nrep_match_jump
 			      :nmjmp_label nthen))
 	  (jumpelse (instance class_nrep_match_jump
@@ -5596,7 +5597,7 @@ normalized expression.}#
 	   (progn
 	     (assert_msg "check curmdata" (is_a curmdata class_matched_data))
 	     (let 
-		 ( (ncompdata (altmatch_normalize_mdata curmdata nmctxt))
+		 ( (ncompdata (matchalt_normalize_mdata curmdata nmctxt))
 		   (ncompexp (instance class_nrep_unsafe_nth_component
 				       :nrep_loc nsloc
 				       :nunth_tuple ndata
@@ -5670,11 +5671,11 @@ normalized expression.}#
     (debug "normstep_mtestvar matdata" matdata)
     (debug "normstep_mtestvar matestdata" matestdata)
     (let (
-	  (nthen (altmatch_normalize_step matthen nmctxt))
-	  (nelse (altmatch_normalize_step matelse nmctxt))
+	  (nthen (matchalt_normalize_step matthen nmctxt))
+	  (nelse (matchalt_normalize_step matelse nmctxt))
 	  (matctx (unsafe_get_field :matnorx_matchctxt nmctxt))
-	  (ndata (altmatch_normalize_mdata matdata nmctxt))
-	  (ntestdata (altmatch_normalize_mdata matestdata nmctxt))
+	  (ndata (matchalt_normalize_mdata matdata nmctxt))
+	  (ntestdata (matchalt_normalize_mdata matestdata nmctxt))
 	  (jumpthen (instance class_nrep_match_jump
 			      :nmjmp_label nthen))
 	  (jumpelse (instance class_nrep_match_jump
@@ -5745,19 +5746,19 @@ normalized expression.}#
 	 (mgrstart (unsafe_get_field :mstgroup_start step))
 	 (mgrthen (unsafe_get_field :mstgroup_then step))
 	 (mgrelse (unsafe_get_field :mstgroup_else step))
-	 (ndata (altmatch_normalize_mdata matdata nmctxt))
-	 (nthen (altmatch_normalize_step matthen nmctxt))
-	 (nelse (altmatch_normalize_step matelse nmctxt))
-	 (nstartgr (altmatch_normalize_step mgrstart nmctxt))
+	 (ndata (matchalt_normalize_mdata matdata nmctxt))
+	 (nthen (matchalt_normalize_step matthen nmctxt))
+	 (nelse (matchalt_normalize_step matelse nmctxt))
+	 (nstartgr (matchalt_normalize_step mgrstart nmctxt))
 	 (nthengr 
 	  (cond
 	   ( (is_object mgrthen)
-	     (altmatch_normalize_step mgrthen nmctxt))
+	     (matchalt_normalize_step mgrthen nmctxt))
 	   ( (is_list mgrthen)
-	     (list_map mgrthen (lambda (elstep) (altmatch_normalize_step elstep nmctxt)))
+	     (list_map mgrthen (lambda (elstep) (matchalt_normalize_step elstep nmctxt)))
 	     )
 	   ( (is_multiple mgrthen)
-	     (multiple_map mgrthen (lambda (elstep)  (altmatch_normalize_step elstep nmctxt)))
+	     (multiple_map mgrthen (lambda (elstep)  (matchalt_normalize_step elstep nmctxt)))
 	     )
 	   ( (null mgrthen)
 	     ())
@@ -5768,12 +5769,12 @@ normalized expression.}#
 	 (nelsegr 
 	  (cond
 	   ( (is_object mgrelse)
-	     (altmatch_normalize_step mgrelse nmctxt))
+	     (matchalt_normalize_step mgrelse nmctxt))
 	   ( (is_list mgrelse)
-	     (list_map mgrelse (lambda (elstep) (altmatch_normalize_step elstep nmctxt)))
+	     (list_map mgrelse (lambda (elstep) (matchalt_normalize_step elstep nmctxt)))
 	     )
 	   ( (is_multiple mgrelse)
-	     (multiple_map mgrelse (lambda (elstep)  (altmatch_normalize_step elstep nmctxt)))
+	     (multiple_map mgrelse (lambda (elstep)  (matchalt_normalize_step elstep nmctxt)))
 	     )
 	   ( (null mgrelse)
 	     ())
@@ -5831,7 +5832,7 @@ normalized expression.}#
        (debug "normstep_msuccwhenflag vix=" vix " vmbind=" vmbind " vmdata=" vmdata)
        (assert_msg "check vmbind" (is_a vmbind class_matched_binding))
        (assert_msg "check vmdata" (is_a vmdata class_matched_data))
-       (let ( (nvdata (altmatch_normalize_mdata vmdata nmctxt))
+       (let ( (nvdata (matchalt_normalize_mdata vmdata nmctxt))
 	      (nvbind (instance class_normal_let_binding
 				 :letbind_loc vnloc
 				 :binder vsym
@@ -5848,8 +5849,8 @@ normalized expression.}#
      )))
     (debug "normstep_msuccwhenflag got mbinds=" mbinds)
     (let (
-	  (nthen (altmatch_normalize_step matthen nmctxt))
-	  (nflag (altmatch_normalize_flag matflag nmctxt))
+	  (nthen (matchalt_normalize_step matthen nmctxt))
+	  (nflag (matchalt_normalize_flag matflag nmctxt))
 	  (matctx (unsafe_get_field :matnorx_matchctxt nmctxt))
 	  (jumpthen (instance class_nrep_match_jump
 			      :nmjmp_label nthen))
@@ -6111,9 +6112,9 @@ normalized expression.}#
     (debug "normstep_mtestmatcher matmatcher" matmatcher)
     (assert_msg "check matmatcher" (is_a matmatcher class_any_matcher))
     (let ( 
-	  (nthen (altmatch_normalize_step matthen nmctxt))
-	  (nelse (altmatch_normalize_step matelse nmctxt))
-	  (ndata (altmatch_normalize_mdata matdata nmctxt))
+	  (nthen (matchalt_normalize_step matthen nmctxt))
+	  (nelse (matchalt_normalize_step matelse nmctxt))
+	  (ndata (matchalt_normalize_mdata matdata nmctxt))
 	  (jumpthen (instance class_nrep_match_jump
 			      :nmjmp_label nthen))
 	  (jumpelse (instance class_nrep_match_jump
@@ -6219,7 +6220,7 @@ normalized expression.}#
 	   (debug "normstep_mtestmatcher curouts" curouts)
 	   (assert_msg "check curmoutbind" (is_a curmoutbind class_formal_binding))
 	   (assert_msg "check curouts" (is_a curouts class_matched_data))
-	   (let (  (nouts (altmatch_normalize_mdata curouts nmctxt))
+	   (let (  (nouts (matchalt_normalize_mdata curouts nmctxt))
 		   )
 	     (debug "normstep_mtestmatcher nouts" nouts)
 	     ;; nouts is a class_nrep_matched_data
@@ -6252,16 +6253,16 @@ normalized expression.}#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; utility to normalize a step with a match normalization context
-(defun altmatch_normalize_step (step nmctxt)
-  (debug "altmatch_normalize_step step" step)
-  (assert_msg "altmatch_normalize_step check nmctxt" (is_a nmctxt class_match_normalization_context))
+(defun matchalt_normalize_step (step nmctxt)
+  (debug "matchalt_normalize_step step" step)
+  (assert_msg "matchalt_normalize_step check nmctxt" (is_a nmctxt class_match_normalization_context))
   ;; special case, null step so gives the end label
   (if (null step)
       (let ( (endlab (unsafe_get_field :matnorx_endlabel nmctxt))
 	     )
-	(debug "altmatch_normalize_step null step so return endlab" endlab)
+	(debug "matchalt_normalize_step null step so return endlab" endlab)
 	(return endlab)))
-  (assert_msg "altmatch_normalize_step check step" (is_a step class_match_step))
+  (assert_msg "matchalt_normalize_step check step" (is_a step class_match_step))
   (let ( (stepmap (unsafe_get_field :matnorx_stepmap nmctxt))
 	 (nlab (mapobject_get stepmap step))
 	 (bodyl (unsafe_get_field :matnorx_bodylist nmctxt))
@@ -6274,10 +6275,10 @@ normalized expression.}#
 			  :nrep_loc sloc
 			  :nmlab_step step))
 	       )
-	  (debug "altmatch_normalize_step newlab" newlab)
+	  (debug "matchalt_normalize_step newlab" newlab)
 	  (mapobject_put stepmap step newlab)
 	  (list_append mstepqueue step)
-	  (debug "altmatch_normalize_step updated mstepqueue" mstepqueue)
+	  (debug "matchalt_normalize_step updated mstepqueue" mstepqueue)
 	  (setq nlab newlab)
 	  ))
     (assert_msg "check good nlab" (is_a nlab class_nrep_match_label))
@@ -6287,11 +6288,11 @@ normalized expression.}#
 
 ;;;;;;;;;;;;;;;;
 ;;; utility to normalize a matched data with a match normalization context
-(defun altmatch_normalize_mdata (mdata nmctxt)
-  (debug "altmatch_normalize_mdata mdata=" mdata "\n* of discrim:" (discrim mdata) "\n")
-  (shortbacktrace_dbg "altmatch_normalize_mdata" 7)
-  (assert_msg "altmatch_normalize_mdata check mdata" (is_a mdata class_matched_data))
-  (assert_msg "altmatch_normalize_mdata check nmctxt" (is_a nmctxt class_match_normalization_context))
+(defun matchalt_normalize_mdata (mdata nmctxt)
+  (debug "matchalt_normalize_mdata mdata=" mdata "\n* of discrim:" (discrim mdata) "\n")
+  (shortbacktrace_dbg "matchalt_normalize_mdata" 7)
+  (assert_msg "matchalt_normalize_mdata check mdata" (is_a mdata class_matched_data))
+  (assert_msg "matchalt_normalize_mdata check nmctxt" (is_a nmctxt class_match_normalization_context))
   (let ( (datamap (unsafe_get_field :matnorx_datamap nmctxt))
 	 (ndata (mapobject_get datamap mdata))
 	 (mdataqueue (unsafe_get_field :matnorx_mdataqueue  nmctxt))
@@ -6299,7 +6300,7 @@ normalized expression.}#
 	 )
     (if ndata
 	(progn
-	  (debug "altmatch_normalize_mdata found cached ndata=" ndata)
+	  (debug "matchalt_normalize_mdata found cached ndata=" ndata)
 	  (return ndata)))
     ;;
     ;; test if mdata is the original data to be matched - ie the first
@@ -6309,7 +6310,7 @@ normalized expression.}#
 	  (setq ndata (unsafe_get_field :mdata_orig mdata))
 	  (list_append mdataqueue mdata)
 	  (mapobject_put datamap mdata ndata)
-	  (debug "altmatch_normalize_mdata return normal ndata=" ndata 
+	  (debug "matchalt_normalize_mdata return normal ndata=" ndata 
 		 "\n of disrim=" (discrim ndata)
 		 "\n from mdata=" mdata
 		 "\n updated mdataqueue=" mdataqueue
@@ -6332,14 +6333,14 @@ normalized expression.}#
 				    :nrep_loc ()
 				    :nmdac_data newdata))
 	     )
-	(debug "altmatch_normalize_mdata make newdata=" newdata 
+	(debug "matchalt_normalize_mdata make newdata=" newdata 
 	       "\n* for mdata=" mdata
 	       "\n* of discrim:" (discrim mdata))
 	(setq ndata newdata)
 	(list_append bodyl newdatainit)
 	(mapobject_put datamap mdata ndata)
 	(list_append mdataqueue mdata)
-	(debug "altmatch_normalize_mdata final ndata=" ndata 
+	(debug "matchalt_normalize_mdata final ndata=" ndata 
 	       "\n* for mdata=" mdata
 	       "\n* updated datamap=" datamap 
 	       "\n* updated mdataqueue=" mdataqueue)
@@ -6347,49 +6348,49 @@ normalized expression.}#
 	))))
 
 
-(defun altmatch_handle_normalized_mdata (matdata ndata nmctxt)
-  (debug "altmatch_handle_normalized_mdata matdata" matdata)
-  (debug "altmatch_handle_normalized_mdata ndata" ndata)
+(defun matchalt_handle_normalized_mdata (matdata ndata nmctxt)
+  (debug "matchalt_handle_normalized_mdata matdata" matdata)
+  (debug "matchalt_handle_normalized_mdata ndata" ndata)
   (assert_msg "check matdata" (is_a matdata class_matched_data))
   (assert_msg "check ndata" (is_a ndata class_nrep_simple))
   (let ( (msteps (unsafe_get_field :mdata_steps matdata))
 	 )
-    (debug "altmatch_handle_normalized_mdata msteps" msteps)
+    (debug "matchalt_handle_normalized_mdata msteps" msteps)
     (cond
      ((is_multiple msteps)
       (void))
      ((is_non_empty_list msteps)
-      (debug "altmatch_handle_normalized_mdata msteps nonemptylist" msteps)
-      (debug "altmatch_handle_normalized_mdata matdata before match_data_update_data_steps_index" matdata)
+      (debug "matchalt_handle_normalized_mdata msteps nonemptylist" msteps)
+      (debug "matchalt_handle_normalized_mdata matdata before match_data_update_data_steps_index" matdata)
       
       (match_data_update_data_steps_index matdata)
-      (debug "altmatch_handle_normalized_mdata matdata after match_data_update_data_steps_index" matdata)
+      (debug "matchalt_handle_normalized_mdata matdata after match_data_update_data_steps_index" matdata)
       (setq msteps (unsafe_get_field :mdata_steps matdata))
-      (debug "altmatch_handle_normalized_mdata msteps after match_data_update_data_steps" msteps)
+      (debug "matchalt_handle_normalized_mdata msteps after match_data_update_data_steps" msteps)
       )
      (:else
       (setq msteps (make_multiple discr_multiple 0))
-      (debug "altmatch_handle_normalized_mdata msteps emptytuple" msteps)))
-    (debug "altmatch_handle_normalized_mdata updated msteps" msteps)
+      (debug "matchalt_handle_normalized_mdata msteps emptytuple" msteps)))
+    (debug "matchalt_handle_normalized_mdata updated msteps" msteps)
     (assert_msg "good tuple msteps" (is_multiple msteps))
     (foreach_in_multiple
      (msteps)
      (curstep :long stepix)
-     (debug "altmatch_handle_normalized_mdata befora normalizing curstep" curstep)
-     (let ( (nlab (altmatch_normalize_step curstep nmctxt))
+     (debug "matchalt_handle_normalized_mdata befora normalizing curstep" curstep)
+     (let ( (nlab (matchalt_normalize_step curstep nmctxt))
 	    )
-       (debug "altmatch_handle_normalized_mdata after normalizing nlab" nlab)
+       (debug "matchalt_handle_normalized_mdata after normalizing nlab" nlab)
        ))
-    (debug "altmatch_normalize_step final nmctxt" nmctxt)
+    (debug "matchalt_normalize_step final nmctxt" nmctxt)
     ))
 
 
 ;;; utility function to make a match normalization context
-(defun altmatch_make_match_normalization_context (matctx matctyp sloc)
-  (debug "altmatch_make_match_normalization_context matctx" matctx)
-  (debug "altmatch_make_match_normalization_context matctyp" matctyp)
+(defun matchalt_make_match_normalization_context (matctx matctyp sloc)
+  (debug "matchalt_make_match_normalization_context matctx" matctx)
+  (debug "matchalt_make_match_normalization_context matctyp" matctyp)
   (let 
-      ( (nmatch (instance class_nrep_altmatch
+      ( (nmatch (instance class_nrep_matchalt
 			  :nexpr_ctyp matctyp
 			  :nrep_loc sloc
 			  :namatch_matched ()
@@ -6442,18 +6443,18 @@ normalized expression.}#
 			   :matnorx_matchctxt matctx
 			   ))
 	)
-    (debug "altmatch_make_match_normalization_context result nmctxt=" nmctxt
+    (debug "matchalt_make_match_normalization_context result nmctxt=" nmctxt
 	   "\n* mrbind=" mrbind)
     (return nmctxt)
     ))
 
 ;;; function to really normalize an alternate match context
-;;; called from normexp_altmatch
-(defun altmatch_normalize_match_context (mdata sloc nmctxt)
-  (debug "altmatch_normalize_match_context mdata" mdata)
-  (compile_warning "mcasetup not used in altmatch_normalize_match_context")
-  (debug "altmatch_normalize_match_context sloc" sloc)
-  (debug "altmatch_normalize_match_context nmctxt" nmctxt)
+;;; called from normexp_matchalt
+(defun matchalt_normalize_match_context (mdata sloc nmctxt)
+  (debug "matchalt_normalize_match_context mdata" mdata)
+  (compile_warning "mcasetup not used in matchalt_normalize_match_context")
+  (debug "matchalt_normalize_match_context sloc" sloc)
+  (debug "matchalt_normalize_match_context nmctxt" nmctxt)
   (assert_msg "check nmctxt" (is_a nmctxt class_match_normalization_context))
   (let ( (mdataqueue (unsafe_get_field :matnorx_mdataqueue nmctxt))
 	 (mstepqueue (unsafe_get_field :matnorx_mstepqueue nmctxt))
@@ -6461,41 +6462,41 @@ normalized expression.}#
 	 (stepmap (unsafe_get_field :matnorx_stepmap nmctxt))
 	 (bodyl (unsafe_get_field :matnorx_bodylist nmctxt))
 	 )
-    (debug "altmatch_normalize_match_context starting with first mdata" mdata)
-    (altmatch_normalize_mdata mdata nmctxt)
-    (debug "altmatch_normalize_match_context initial mdataqueue" mdataqueue)
-    (debug "altmatch_normalize_match_context initial datamap" datamap)
+    (debug "matchalt_normalize_match_context starting with first mdata" mdata)
+    (matchalt_normalize_mdata mdata nmctxt)
+    (debug "matchalt_normalize_match_context initial mdataqueue" mdataqueue)
+    (debug "matchalt_normalize_match_context initial datamap" datamap)
     (forever 
      matchdatanormalizeloop
      (let ( (freshmdata (list_popfirst mdataqueue)) 
 	    (ndata (mapobject_get datamap freshmdata))
 	    )
-       (debug "altmatch_normalize_match_context freshmdata start loop" freshmdata)
-       (debug "altmatch_normalize_match_context ndata start loop" ndata)
+       (debug "matchalt_normalize_match_context freshmdata start loop" freshmdata)
+       (debug "matchalt_normalize_match_context ndata start loop" ndata)
        (if (null freshmdata) (exit matchdatanormalizeloop))
-       (assert_msg "altmatch_normalize_match_context check freshmdata" 
+       (assert_msg "matchalt_normalize_match_context check freshmdata" 
 		   (is_a freshmdata class_matched_data))
-       (assert_msg "altmatch_normalize_match_context check ndata"
+       (assert_msg "matchalt_normalize_match_context check ndata"
 		   (is_a ndata class_nrep_simple))
-       (altmatch_handle_normalized_mdata freshmdata ndata nmctxt)
-       (debug "altmatch_normalize_match_context freshmdata after altmatch_handle_normalized_mdata" freshmdata)
-       (debug "altmatch_normalize_match_context mstepqueue after altmatch_handle_normalized_mdata" mstepqueue)
+       (matchalt_handle_normalized_mdata freshmdata ndata nmctxt)
+       (debug "matchalt_normalize_match_context freshmdata after matchalt_handle_normalized_mdata" freshmdata)
+       (debug "matchalt_normalize_match_context mstepqueue after matchalt_handle_normalized_mdata" mstepqueue)
        (forever
 	matchstepnormalizeloop
 	(let ( (freshmstep (list_popfirst mstepqueue)) 
 	       (freshlab (mapobject_get stepmap freshmstep))
 	       )
-	  (debug "altmatch_normalize_match_context freshmstep" freshmstep)
+	  (debug "matchalt_normalize_match_context freshmstep" freshmstep)
 	  (if (null freshmstep) (exit matchstepnormalizeloop))
-	  (debug "altmatch_normalize_match_context freshlab" freshlab)
-	  (debug "altmatch_normalize_match_context bodyl before normalize_step" bodyl)
+	  (debug "matchalt_normalize_match_context freshlab" freshlab)
+	  (debug "matchalt_normalize_match_context bodyl before normalize_step" bodyl)
 	  (let ( 
 		(normstep (normalize_step freshmstep nmctxt sloc)) 
 		)
 	    (list_append bodyl freshlab)
-	    (debug "altmatch_normalize_match_context freshmstep after normalize_step" freshmstep)
-	    (debug "altmatch_normalize_match_context normstep" normstep)
-	    (debug "altmatch_normalize_match_context bodyl after normalize_step" bodyl)
+	    (debug "matchalt_normalize_match_context freshmstep after normalize_step" freshmstep)
+	    (debug "matchalt_normalize_match_context normstep" normstep)
+	    (debug "matchalt_normalize_match_context bodyl after normalize_step" bodyl)
 	    (letrec ( (add_norm_step
 		       (lambda (ns)
 			 (cond 
@@ -6517,7 +6518,7 @@ normalized expression.}#
 			   ))))
 		      )
 	      (add_norm_step normstep))
-	    (debug "altmatch_normalize_match_context final bodyl" bodyl)
+	    (debug "matchalt_normalize_match_context final bodyl" bodyl)
 	    )
 
 	  ))
@@ -6527,18 +6528,18 @@ normalized expression.}#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalize a match alternate
-(defun normexp_altmatch (recv env ncx psloc)
+(defun normexp_matchalt (recv env ncx psloc)
   (assert_msg "check match recv" (is_a recv class_source_match))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_altmatch recv=" recv)
-  (shortbacktrace_dbg "normexp_altmatch start" 20)
+  (debug "normexp_matchalt recv=" recv)
+  (shortbacktrace_dbg "normexp_matchalt start" 20)
   (let ( (sloc (or (unsafe_get_field :loca_location recv) psloc))
 	 (smatsx (unsafe_get_field :smat_matchedx recv))
 	 (scases (unsafe_get_field :smat_cases recv))
 	 (:long nbcases (multiple_length scases))
 	 (firststep ())
-	 (cintsymb (clone_symbol 'altmatch_inter_))
+	 (cintsymb (clone_symbol 'matchalt_inter_))
 	 (nchint (instance class_nrep_checksignal
 			   :nrep_loc sloc))
 	 (cintbind (instance class_normal_let_binding
@@ -6546,15 +6547,15 @@ normalized expression.}#
 			     :letbind_type ctype_void
 			     :letbind_expr nchint))
 	 )
-    (debug "normexp_altmatch scases=" scases " smatsx=" smatsx)
+    (debug "normexp_matchalt scases=" scases " smatsx=" smatsx)
     (multicall
      (nmatx nbindmatx)
      (normal_exp smatsx env ncx sloc)
-     (debug "normexp_altmatch nmatx=" nmatx " nbindmatx=" nbindmatx)
+     (debug "normexp_matchalt nmatx=" nmatx " nbindmatx=" nbindmatx)
      (if (is_list nbindmatx)
 	 (list_append nbindmatx cintbind)
        (setq nbindmatx (list cintbind)))
-     (debug "normexp_altmatch updated nbindmatx=" nbindmatx)
+     (debug "normexp_matchalt updated nbindmatx=" nbindmatx)
      (let ( (matctyp (get_ctype nmatx env))
 	    (mcasetup (make_multiple discr_multiple nbcases))
 	    (msteplist (make_list discr_list))
@@ -6585,13 +6586,13 @@ normalized expression.}#
 			      :mctx_endlabel endlab
 			      ))
 	    )
-       (debug "normexp_altmatch matctyp=" matctyp
+       (debug "normexp_matchalt matctyp=" matctyp
 	      "\n mdata=" mdata "\n matctx=" matctx)
        ;; build each match case
        (foreach_in_multiple
 	(scases)
 	(curscas :long curix)
-	(debug "normexp_altmatch curscas" curscas)
+	(debug "normexp_matchalt curscas" curscas)
 	(assert_msg "check  curscas" (is_a curscas class_source_match_case))
 	(let ( (curmcase (instance class_match_case
 				   :mcase_mctxt matctx
@@ -6604,7 +6605,7 @@ normalized expression.}#
 	  (fill_matchcase curmcase sloc)
 	  (multiple_put_nth mcasetup curix curmcase)
 	  ))
-       (debug "normexp_altmatch mcasetup" mcasetup)
+       (debug "normexp_matchalt mcasetup" mcasetup)
        ;; translate each match case
        (let ( (prevstep ()) 
 	      (matresctyp ())
@@ -6612,15 +6613,15 @@ normalized expression.}#
 	 (foreach_in_multiple
 	  (mcasetup)
 	  (curmcase :long mix)
-	  (debug "normexp_altmatch before translate_matchcase curmcase" curmcase)
-	  (debug "normexp_altmatch before translate_matchcase prevstep" prevstep)
+	  (debug "normexp_matchalt before translate_matchcase curmcase" curmcase)
+	  (debug "normexp_matchalt before translate_matchcase prevstep" prevstep)
 	  (let ( (mcasloc (or (get_field :loca_location (get_field :mcase_source curmcase)) sloc))
 		 )
 	    (multicall
 	     (curstep curstsucc)
 	     (translate_matchcase curmcase mcasloc prevstep)
-	     (debug "normexp_altmatch after translate_matchcase curstep" curstep)
-	     (debug "normexp_altmatch after translate_matchcase curstsucc" curstsucc)
+	     (debug "normexp_matchalt after translate_matchcase curstep" curstep)
+	     (debug "normexp_matchalt after translate_matchcase curstsucc" curstsucc)
 	     (assert_msg "check curstsucc" (is_a curstsucc class_match_step_success_when_flag))
 	     (let ( 
 		   (curstbindtup (unsafe_get_field :mstepsuccess_binds curstsucc))
@@ -6630,7 +6631,7 @@ normalized expression.}#
 			     (unsafe_get_field :mstepsuccess_body curstsucc) 
 			     -1))
 			   )
-		      (debug "normexp_altmatch lastnbody" l)
+		      (debug "normexp_matchalt lastnbody" l)
 		      l))
 		   (lastctyp
 		    (if (is_a lastnbody class_nrep_locsymocc)
@@ -6645,8 +6646,8 @@ normalized expression.}#
 			(get_ctype lastnbody newcurenv)
 			)))
 		   )
-	       (debug "normexp_altmatch lastnbody" lastnbody)
-	       (debug "normexp_altmatch lastctyp" lastctyp)
+	       (debug "normexp_matchalt lastnbody" lastnbody)
+	       (debug "normexp_matchalt lastctyp" lastctyp)
 	       (assert_msg "check lastctyp" (is_a lastctyp class_ctype))
 	       (cond ( (null matresctyp)
 		       (setq matresctyp lastctyp))
@@ -6663,25 +6664,25 @@ normalized expression.}#
 	       (if (null firststep)
 		   (setq firststep curstep))
 	       ))
-	    (debug "normexp_altmatch updated prevstep" prevstep)
+	    (debug "normexp_matchalt updated prevstep" prevstep)
 	    ))			     ;end foreach_in_multiple mcasetup
 	 ;;
-	 (debug "normexp_altmatch firststep" firststep)
-	 (debug "normexp_altmatch matresctyp" matresctyp)
+	 (debug "normexp_matchalt firststep" firststep)
+	 (debug "normexp_matchalt matresctyp" matresctyp)
 	 ;;
-	 (debug "normexp_altmatch updated mdata" mdata)
+	 (debug "normexp_matchalt updated mdata" mdata)
 	 (if (melt_need_dbg 1)
 	     (let ( (dotprefix (get_field :referenced_value match_graphic_dot_prefix)) )
-	       (debug "normexp_altmatch dotprefix=" dotprefix
+	       (debug "normexp_matchalt dotprefix=" dotprefix
 		      " match_graphic_dot_prefix=" match_graphic_dot_prefix)
 	       (if (is_string dotprefix) 
 		   (mg_altdraw_graphviz mdata dotprefix))))
-	 (let ( (nmctxt (altmatch_make_match_normalization_context matctx matresctyp sloc))
+	 (let ( (nmctxt (matchalt_make_match_normalization_context matctx matresctyp sloc))
 		)
-	   (debug "normexp_altmatch before altmatch_normalize_match_context nmctxt=" nmctxt)
+	   (debug "normexp_matchalt before matchalt_normalize_match_context nmctxt=" nmctxt)
 	   ;;
-	   (altmatch_normalize_match_context mdata sloc nmctxt)
-	   (debug "normexp_altmatch after altmatch_normalize_match_context nmctxt=" nmctxt)
+	   (matchalt_normalize_match_context mdata sloc nmctxt)
+	   (debug "normexp_matchalt after matchalt_normalize_match_context nmctxt=" nmctxt)
 	   (let ( 
 		 (nresloc (unsafe_get_field :matnorx_resloc nmctxt))
 		 (nresmatch (unsafe_get_field :matnorx_nmatch nmctxt))
@@ -6693,14 +6694,14 @@ normalized expression.}#
 		 (nflagslist (make_list discr_list))
 		 (ndatalist (make_list discr_list))
 		 )
-	     (debug "normexp_altmatch nresloc=" nresloc 
+	     (debug "normexp_matchalt nresloc=" nresloc 
 		    "\n* nbodyl=" nbodyl
 		    "\n* nflagmap=" nflagmap)
 	     (foreach_in_mapobject
 	      (nflagmap)
 	      (curflag curnormflag)
 	      (list_append nflagslist curnormflag))
-	     (debug "normexp_altmatch nflagslist" nflagslist)
+	     (debug "normexp_matchalt nflagslist" nflagslist)
 	     ;; sort the nflagslist using the mflag_rank of nrpfla_flag
 	     (let ( (rawnflagstup (list_to_multiple nflagslist))
 		    (sortedflagstup
@@ -6716,13 +6717,13 @@ normalized expression.}#
 		      discr_multiple
 		      ))
 		    )
-	       (assert_msg "check nresmatch" (is_a nresmatch class_nrep_altmatch))
+	       (assert_msg "check nresmatch" (is_a nresmatch class_nrep_matchalt))
 ;;;
-	       (debug "normexp_altmatch ndatamap=" ndatamap)
+	       (debug "normexp_matchalt ndatamap=" ndatamap)
 	       (foreach_in_mapobject
 		(ndatamap)
 		(curndata curnorm)
-		(debug "normexp_altmatch curndata=" curndata 
+		(debug "normexp_matchalt curndata=" curndata 
 		       "\n** of discrim:" (discrim curndata)
 		       "\n* curnorm=" curnorm
 		       "\n** of discrim:" (discrim curnorm)
@@ -6730,18 +6731,18 @@ normalized expression.}#
 		(if (is_a curnorm class_nrep_matched_data)
 		    (let (
 			  )
-		      (debug "normexp_altmatch good curnorm=" curnorm)
+		      (debug "normexp_matchalt good curnorm=" curnorm)
 		      (list_append ndatalist curnorm)
 		      ))
 		)
-	       (debug "normexp_altmatch ndatalist=" ndatalist)
+	       (debug "normexp_matchalt ndatalist=" ndatalist)
 	       (let ( (:long nbndata (list_length ndatalist))
 		      (ndatatup (make_multiple discr_multiple nbndata))
 		      )
 		 (foreach_in_list
 		  (ndatalist)
 		  (curpaird curndata)
-		  (debug "normexp_altmatch curndata=" curndata)
+		  (debug "normexp_matchalt curndata=" curndata)
 		  (assert_msg "check curndata" (is_a curndata class_nrep_matched_data))
 		  (let ( (:long curnrk (get_int (get_field  :nrmatd_rank curndata)))
 			 (:long curnrkm1 (-i curnrk 1))
@@ -6752,7 +6753,7 @@ normalized expression.}#
 		    (multiple_put_nth ndatatup curnrkm1 curndata)
 		    )
 		  )
-		 (debug "normexp_altmatch ndatatup=" ndatatup)
+		 (debug "normexp_matchalt ndatatup=" ndatatup)
 ;;;
 		 (put_fields nresmatch
 			     :namatch_matched nmatx ;; normal matched stuff
@@ -6761,23 +6762,25 @@ normalized expression.}#
 			     :namatch_flags sortedflagstup
 			     :namatch_mdatas ndatatup
 			     )
-		 (debug "normexp_altmatch nresmatch=" nresmatch
+		 (debug "normexp_matchalt nresmatch=" nresmatch
 			"\n* of discrim:" (discrim nresmatch))
-		 (debug "normexp_altmatch final nresbind=" nresbind " nresloc=" nresloc)
-		 (warning_plain sloc "@@??implemented normexp_altmatch")
-		 (compile_warning "@@??implemented normexp_altmatch")
+		 (debug "normexp_matchalt final nresbind=" nresbind " nresloc=" nresloc)
+		 (warning_plain sloc "@@??implemented normexp_matchalt")
+		 (compile_warning "@@??implemented normexp_matchalt")
 		 ;; we probably should do something with nresmatch...
 		 (return nresmatch (list nresbind))
 		 )))))))))
+(install_method class_source_matchalt normal_exp normexp_matchalt)
 
 (defun alternate_match_optset (optsymb :cstring opts)
   (debug "alternate_match_optset optsymb" optsymb)
-  (informsg_plain "enabling alternate matching implementation")
-  (install_method class_source_match normal_exp normexp_altmatch)
+  (informsg_plain "exchange alternate matching implementation")
+  (install_method class_source_match normal_exp normexp_matchalt)
+  (install_method class_source_matchalt normal_exp normexp_matchalt)
 )
 (register_option
  'alternate_match
- '"Enable alternate pattern-matching implementation"
+ '"exchange alternate pattern-matching implementation"
  alternate_match_optset)
 
 
@@ -7073,7 +7076,7 @@ normalized expression.}#
 			     "%Y %b %d %Hh%M",
 			     localtime (&nowt))			;
 	   fprintf (dotfil, "// generated %s\n", nowbuf)	;
-	   fprintf (dotfil, "digraph meltaltmatch_%lx {", $MDATAHASH) ;
+	   fprintf (dotfil, "digraph meltmatchalt_%lx {", $MDATAHASH) ;
 	   fprintf (dotfil, " graph [ label=<<font color='firebrick' point-size='9' face='Helvetica Bold'>Melt Alt Match %s ** %s</font>>,",
 			    lbasename (melt_string_str ((melt_ptr_t) $DOTFILENAME)),
 			    nowbuf)				    ;
@@ -7131,7 +7134,7 @@ normalized expression.}#
  class_matched_normal_data
  class_matching_context
  ;;
- class_nrep_altmatch
+ class_nrep_matchalt
  class_nrep_jump_when_is_a
  class_nrep_match_data_action
  class_nrep_match_data_clear
@@ -7150,4 +7153,5 @@ normalized expression.}#
  normal_pattern
  )
 
+(export_synonym class_nrep_altmatch class_nrep_matchalt)
 ;; eof warmelt-normatch.melt
