@@ -4,16 +4,18 @@
 
 #| run in buildir/gcc
  ln -s $GCCMELT_SOURCE/gcc/testsuite/melt/tmatch-tuple.melt 
- ./cc1 -fmelt-mode=runfile  -fmelt-module-path=melt-stage3:melt-modules \
-    -fmelt-source-path=melt-stage3:melt-sources \
-    -fmelt-tempdir=/tmp -fmelt-init=@warmelt -fmelt-workdir=melt-workdir \
-    -fmelt-option=match_graphic:/tmp/meltupgraph,alternate_match \
+ ./cc1 -fmelt-mode=runfile  -fmelt-module-path=meltbuild-stage3:meltbuild-modules \
+    -fmelt-source-path=meltbuild-stage3:meltbuild-sources \
+    -fmelt-workdir=meltbuild-workdir \
+   -fmelt-tempdir=meltbuild-tempdir \
+    -fmelt-init=@warmelt.quicklybuilt \
+    -fmelt-option=match_graphic:/tmp/meltupgraph \
     -fmelt-arg=tmatch-tuple.melt \
     -fmelt-debug empty-file-for-melt.c
 |#
 
 (defun tmatch1_tup (x f)
-  (match x
+  (matchalt x
          ( ?(tuple 
              ?n 
              ?_

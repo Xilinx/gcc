@@ -1,6 +1,10 @@
 
 
 2013-01-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tmatch-tuple.melt: Uopdate comment giving command.
+	Use matchalt.
+
+2013-01-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt (class_nrep_altmatch, normexp_altmatch): Rename as
 	(class_nrep_matchalt, normexp_matchalt).
 	(alternate_match_optset): Exchange the match & altmatch normalizations.
