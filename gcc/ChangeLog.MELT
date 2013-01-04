@@ -1,6 +1,14 @@
 
 
 2013-01-04  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-normal.melt (normalize_tuple): Better debug.
+	Use foreach_in_list, not list_every.
+
+	* melt/warmelt-outobj.melt (outpucod_objchecksignal): Use
+	output_raw_location.
+
+2013-01-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tmatch-tuple.melt: Uopdate comment giving command.
 	Use matchalt.
 
