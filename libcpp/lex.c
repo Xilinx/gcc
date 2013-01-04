@@ -2224,6 +2224,17 @@ _cpp_lex_direct (cpp_reader *pfile)
 	{
 	  if (*buffer->cur == ':')
 	    {
+	      /* C++11 [2.5/3 lex.pptoken], "Otherwise, if the next
+		 three characters are <:: and the subsequent character
+		 is neither : nor >, the < is treated as a preprocessor
+		 token by itself".  */
+	      if (CPP_OPTION (pfile, cplusplus)
+		  && (CPP_OPTION (pfile, lang) == CLK_CXX11
+		      || CPP_OPTION (pfile, lang) == CLK_GNUCXX11)
+		  && buffer->cur[1] == ':'
+		  && buffer->cur[2] != ':' && buffer->cur[2] != '>')
+		break;
+
 	      buffer->cur++;
 	      result->flags |= DIGRAPH;
 	      result->type = CPP_OPEN_SQUARE;
