@@ -1,3 +1,27 @@
+2013-01-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/55419
+	PR c++/55753
+	* pt.c (tsubst_copy_and_build) [TARGET_EXPR]: Don't touch
+	TREE_CONSTANT.
+
+	PR c++/55842
+	* semantics.c (trait_expr_value): Call maybe_instantiate_noexcept.
+
+	PR c++/55856
+	* semantics.c (build_data_member_initialization): Handle DECL_EXPR.
+
+2013-01-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/54325
+	* call.c (build_new_method_call_1): Don't use build_value_init for
+	user-provided default constructors.
+
+	PR c++/55032
+	PR c++/55245
+	* tree.c (build_cplus_array_type): Copy layout information
+	to main variant if necessary.
+
 2012-12-19  Jason Merrill  <jason@redhat.com>
 
 	PR c++/55724
