@@ -1,6 +1,3 @@
-# TODO(tmsriram): Fix this failure
-UNRESOLVED: g++.dg/tree-prof/callgraph-profiles.C scan-file Moving 1 section\\(s\\) to new segment
-
 # Ignore gcc pr54127.
 FAIL: gcc.dg/torture/pr53589.c -O3 -g  (test for excess errors)
 FAIL: gcc.dg/torture/pr53589.c  -O3 -g  (internal compiler error)
@@ -58,6 +55,7 @@ UNRESOLVED: g++.dg/tree-prof/callgraph-profiles.C scan-file Callgraph group : ma
 UNRESOLVED: g++.dg/tree-prof/callgraph-profiles.C scan-file .text.*.main\n.text.*._Z3barv\n.text.*._Z3foov\n.text.*._Z9notcalledv
 UNRESOLVED: g++.dg/tree-prof/callgraph-profiles.C scan-file Callgraph group : main _Z3barv _Z3foov\n
 UNRESOLVED: g++.dg/tree-prof/callgraph-profiles.C scan-file .text.*.main\n.text.*._Z3barv\n.text.*._Z3foov\n.text.*._Z9notcalledv
+UNRESOLVED: g++.dg/tree-prof/callgraph-profiles.C scan-file Moving 1 section\\(s\\) to new segment
 FAIL: g++.dg/tree-prof/mversn15.C execution,    -g  -fprofile-generate
 UNRESOLVED: g++.dg/tree-prof/mversn15.C compilation,  -g  -fprofile-use
 UNRESOLVED: g++.dg/tree-prof/mversn15.C execution,    -g  -fprofile-use
