@@ -33,8 +33,12 @@ along with this program; see the file COPYING3.  If not see
 
    This plugin dumps the final layout order of the functions in a file
    called "final_layout.txt".  To change the output file, pass the new
-   file name with --plugin-opt.  To dump to stderr instead, just pass
-   stderr to --plugin-opt.  */
+   file name with --plugin-opt,file=<name>.  To dump to stderr instead,
+   just pass stderr as the file name.
+
+   This plugin also allows placing all functions found cold in a separate
+   segment.  This can be enabled with the linker option:
+   --plugin-opt,split_segment=yes.  */
 
 #if HAVE_STDINT_H
 #include <stdint.h>
@@ -89,9 +93,10 @@ static int is_api_exist = 0;
 /* The plugin does nothing when no-op is 1.  */
 static int no_op = 0;
 
-/* The plugin does not create a new segment for unlikely code if
-   no_segment is set.  */
-static int no_segment = 0;
+/* The plugin creates a new segment for unlikely code if split_segment
+   is set.  This can be set with the linker option:
+   "--plugin-opt,split_segment=yes".  */
+static int split_segment = 0;
 
 /* Copies new output file name out_file  */
 void get_filename (const char *name)
@@ -110,7 +115,7 @@ process_option (const char *name)
 {
   const char *option_group = "group=";
   const char *option_file = "file=";
-  const char *option_segment = "segment=";
+  const char *option_segment = "split_segment=";
 
   /* Check if option is "group="  */
   if (strncmp (name, option_group, strlen (option_group)) == 0)
@@ -121,22 +126,26 @@ process_option (const char *name)
 	no_op = 0;
       return;
     }
-
   /* Check if option is "file=" */
-  if (strncmp (name, option_file, strlen (option_file)) == 0)
+  else if (strncmp (name, option_file, strlen (option_file)) == 0)
     {
       get_filename (name + strlen (option_file));
       return;
     }
-
-  /* Check if options is "segment=none"  */
-  if (strncmp (name, option_segment, strlen (option_segment)) == 0)
+  /* Check if options is "split_segment=[yes|no]"  */
+  else if (strncmp (name, option_segment, strlen (option_segment)) == 0)
     {
-      if (strcmp (name + strlen (option_segment), "none") == 0)
-	no_segment = 1;
-      else
-	no_segment = 0;
-      return;
+      const char *option_val = name + strlen (option_segment);
+      if (strcmp (option_val, "no") == 0)
+	{
+	  split_segment = 0;
+	  return;
+	}
+      else if (strcmp (option_val, "yes") == 0)
+	{
+	  split_segment = 1;
+	  return;
+	}
     }
 
   /* Unknown option, set no_op to 1.  */
@@ -244,7 +253,10 @@ claim_file_hook (const struct ld_plugin_input_file *file, int *claimed)
     {
       /* Inform the linker to prepare for section reordering.  */
       (*allow_section_ordering) ();
-      (*allow_unique_segment_for_sections) ();
+      /* Inform the linker to allow certain sections to be placed in
+	 a separate segment.  */
+      if (split_segment == 1)
+        (*allow_unique_segment_for_sections) ();
       is_ordering_specified = 1;
     }
 
@@ -332,18 +344,35 @@ all_symbols_read_hook (void)
       section_list[i].shndx = shndx[i];
     }
 
+  if (split_segment == 1)
+    {
+      /* Pass the new order of functions to the linker.  */
+      /* Fix the order of all sections upto the beginning of the
+	 unlikely section.  */
+      update_section_order (section_list, unlikely_segment_start);
+      assert (num_entries >= unlikely_segment_end);
+      /* Fix the order of all sections after the end of the unlikely
+	 section.  */
+      update_section_order (section_list, num_entries - unlikely_segment_end);
+      /* Map all unlikely code into a new segment.  */
+      unique_segment_for_sections (
+	  ".text.unlikely_executed", 0, 0x1000,
+	  section_list + unlikely_segment_start,
+	  unlikely_segment_end - unlikely_segment_start);
+      if (fp != NULL)
+	fprintf (fp, "Moving %u section(s) to new segment\n",
+		 unlikely_segment_end - unlikely_segment_start);
+    }
+  else
+    {
+      /* Pass the new order of functions to the linker.  */
+      update_section_order (section_list, num_entries);
+    }
+
   if (out_file != NULL
       && strcmp (out_file, "stderr") != 0)
     fclose (fp);
-  /* Pass the new order of functions to the linker.  */
-  update_section_order (section_list, unlikely_segment_start);
-  assert (num_entries >= unlikely_segment_end);
-  update_section_order (section_list, num_entries - unlikely_segment_end);
-  /* Map all unlikely code into a new segment.  */
-  if (no_segment == 0)
-    unique_segment_for_sections (".text.unlikely_executed", 0, 0x1000,
-				 section_list + unlikely_segment_start,
-				 unlikely_segment_end - unlikely_segment_start);
+
   cleanup ();
   return LDPS_OK;
 }
