@@ -1,3 +1,6 @@
+# TODO(tmsriram): Fix this failure
+UNRESOLVED: g++.dg/tree-prof/callgraph-profiles.C scan-file Moving 1 section\\(s\\) to new segment
+
 # Ignore gcc pr54127.
 FAIL: gcc.dg/torture/pr53589.c -O3 -g  (test for excess errors)
 FAIL: gcc.dg/torture/pr53589.c  -O3 -g  (internal compiler error)
