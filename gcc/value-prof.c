@@ -1491,16 +1491,20 @@ gimple_ic_transform_single_targ (gimple stmt, histogram_value histogram)
   gcov_type prob;
   gimple modify;
   struct cgraph_node *direct_call;
+  int perc_threshold, count_threshold;
 
   val = histogram->hvalue.counters [0];
   count = histogram->hvalue.counters [1];
   all = histogram->hvalue.counters [2];
   gimple_remove_histogram_value (cfun, stmt, histogram);
+  bb_all = gimple_bb (stmt)->count;
 
-  if (4 * count <= 3 * all)
+  perc_threshold = PARAM_VALUE (PARAM_SINGLE_ICALL_PROMOTE_PERCENT_THRESHOLD);
+  count_threshold = PARAM_VALUE (PARAM_SINGLE_ICALL_PROMOTE_COUNT_THRESHOLD);
+
+  if (100 * count < bb_all * perc_threshold || count < count_threshold)
     return false;
 
-  bb_all = gimple_bb (stmt)->count;
   /* The order of CHECK_COUNTER calls is important -
      since check_counter can correct the third parameter
      and we want to make count <= all <= bb_all. */
@@ -1508,6 +1512,7 @@ gimple_ic_transform_single_targ (gimple stmt, histogram_value histogram)
       || check_counter (stmt, "ic", &count, &all, all))
     return false;
 
+  all = bb_all;
   if (all > 0)
     prob = (count * REG_BR_PROB_BASE + all / 2) / all;
   else

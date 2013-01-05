@@ -907,6 +907,7 @@ DEFPARAM (PARAM_LOOP_INVARIANT_MAX_BBS_IN_LOOP,
 /* Promote indirect call to conditional direct call only
    when the percentage of the target count over the total
    indirect call count is no smaller than the threshold.  */
+/* For multi-targ indirect_call.  */
 DEFPARAM (PARAM_ICALL_PROMOTE_PERCENT_THRESHOLD,
 	  "icall-promote-target-percent-threshold",
 	  "percentage threshold for direct call promotion"
@@ -915,6 +916,19 @@ DEFPARAM (PARAM_ICALL_PROMOTE_PERCENT_THRESHOLD,
 
 DEFPARAM (PARAM_ICALL_PROMOTE_COUNT_THRESHOLD,
 	  "icall-promote-target_count-threshold",
+	  "call count threshold for direct call promotion"
+          " of a callee target",
+	  1, 0, 0)
+
+/* For single-targ indirect_call.  */
+DEFPARAM (PARAM_SINGLE_ICALL_PROMOTE_PERCENT_THRESHOLD,
+	  "single_icall-promote-target-percent-threshold",
+	  "percentage threshold for direct call promotion"
+          " of a callee target",
+	  67, 0, 100)
+
+DEFPARAM (PARAM_SINGLE_ICALL_PROMOTE_COUNT_THRESHOLD,
+	  "single_icall-promote-target_count-threshold",
 	  "call count threshold for direct call promotion"
           " of a callee target",
 	  1, 0, 0)

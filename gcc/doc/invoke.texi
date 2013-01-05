@@ -9650,6 +9650,16 @@ parameters only when their cumulative size is less or equal to
 @option{ipa-sra-ptr-growth-factor} times the size of the original
 pointer parameter.
 
+@item single_icall-promote-target-percent-threshold
+In value profile use compilation, promote a indirect call to a
+conditional direct call only when the percentage of the target count
+is greater or equal to this threshold.
+
+@item single_icall-promote-target_count-threshold
+In value profile use compilation, promote a indirect call to a
+conditional direct call only when the target count is greater or
+equal to this count threshold.
+
 @item tm-max-aggregate-size
 When making copies of thread-local variables in a transaction, this
 parameter specifies the size in bytes after which variables will be
