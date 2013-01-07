@@ -3281,7 +3281,7 @@ package body Sem_Warn is
    begin
       return
         (Warn_On_Modified_Unread and then Is_Only_Out_Parameter (E))
-           or else Warn_On_All_Unread_Out_Parameters;
+          or else Warn_On_All_Unread_Out_Parameters;
    end Warn_On_Modified_As_Out_Parameter;
 
    ---------------------------------
@@ -3292,41 +3292,75 @@ package body Sem_Warn is
       Act1, Act2   : Node_Id;
       Form1, Form2 : Entity_Id;
 
+      function Is_Covered_Formal (Formal : Node_Id) return Boolean;
+      --  Return True if Formal is covered by the rule
+
+      function Refer_Same_Object (Act1, Act2 : Node_Id) return Boolean;
+      --  Two names are known to refer to the same object if the two names
+      --  are known to denote the same object; or one of the names is a
+      --  selected_component, indexed_component, or slice and its prefix is
+      --  known to refer to the same object as the other name; or one of the
+      --  two names statically denotes a renaming declaration whose renamed
+      --  object_name is known to refer to the same object as the other name
+      --  (RM 6.4.1(6.11/3))
+
+      -----------------------
+      -- Refer_Same_Object --
+      -----------------------
+
+      function Refer_Same_Object (Act1, Act2 : Node_Id) return Boolean is
+      begin
+         return Denotes_Same_Object (Act1, Act2)
+           or else Denotes_Same_Prefix (Act1, Act2);
+      end Refer_Same_Object;
+
+      -----------------------
+      -- Is_Covered_Formal --
+      -----------------------
+
+      function Is_Covered_Formal (Formal : Node_Id) return Boolean is
+      begin
+         return
+           Ekind_In (Formal, E_Out_Parameter, E_In_Out_Parameter)
+             and then (Is_Elementary_Type (Etype (Formal))
+                        or else Is_Record_Type (Etype (Formal))
+                        or else Is_Array_Type (Etype (Formal)));
+      end Is_Covered_Formal;
+
    begin
-      if not Warn_On_Overlap then
+      if Ada_Version < Ada_2012 and then not Warn_On_Overlap then
          return;
       end if;
 
       --  Exclude calls rewritten as enumeration literals
 
-      if Nkind (N) not in N_Subprogram_Call then
-         return;
-      end if;
-
-      --  Exclude calls to library subprograms. Container operations specify
-      --  safe behavior when source and target coincide.
-
-      if Is_Predefined_File_Name
-           (Unit_File_Name (Get_Source_Unit (Sloc (Subp))))
+      if Nkind (N) not in N_Subprogram_Call
+        and then Nkind (N) /= N_Entry_Call_Statement
       then
          return;
       end if;
 
+      --  If a call C has two or more parameters of mode in out or out that are
+      --  of an elementary type, then the call is legal only if for each name
+      --  N that is passed as a parameter of mode in out or out to the call C,
+      --  there is no other name among the other parameters of mode in out or
+      --  out to C that is known to denote the same object (RM 6.4.1(6.15/3))
+
+      --  If appropriate warning switch is set, we also report warnings on
+      --  overlapping parameters that are record types or array types.
+
       Form1 := First_Formal (Subp);
       Act1  := First_Actual (N);
       while Present (Form1) and then Present (Act1) loop
-         if Ekind (Form1) /= E_In_Parameter then
+         if Is_Covered_Formal (Form1) then
             Form2 := First_Formal (Subp);
             Act2  := First_Actual (N);
             while Present (Form2) and then Present (Act2) loop
                if Form1 /= Form2
-                 and then Ekind (Form2) /= E_Out_Parameter
-                 and then
-                   (Denotes_Same_Object (Act1, Act2)
-                      or else
-                    Denotes_Same_Prefix (Act1, Act2))
+                 and then Is_Covered_Formal (Form2)
+                 and then Refer_Same_Object (Act1, Act2)
                then
-                  --  Exclude generic types and guard against previous errors
+                  --  Guard against previous errors
 
                   if Error_Posted (N)
                     or else No (Etype (Act1))
@@ -3334,27 +3368,40 @@ package body Sem_Warn is
                   then
                      null;
 
-                  elsif Is_Generic_Type (Etype (Act1))
-                          or else
-                        Is_Generic_Type (Etype (Act2))
-                  then
-                     null;
-
-                     --  If the actual is a function call in prefix notation,
-                     --  there is no real overlap.
+                  --  If the actual is a function call in prefix notation,
+                  --  there is no real overlap.
 
                   elsif Nkind (Act2) = N_Function_Call then
                      null;
 
-                  --  If type is not by-copy we can assume that the aliasing is
-                  --  intended.
+                  --  If type is not by-copy, assume that aliasing is intended
 
                   elsif
-                    Is_By_Reference_Type (Underlying_Type (Etype (Form1)))
+                    Present (Underlying_Type (Etype (Form1)))
+                      and then
+                        (Is_By_Reference_Type (Underlying_Type (Etype (Form1)))
+                           or else
+                             Convention (Underlying_Type (Etype (Form1))) =
+                               Convention_Ada_Pass_By_Reference)
                   then
                      null;
 
+                  --  Under Ada 2012 we only report warnings on overlapping
+                  --  arrays and record types if switch is set.
+
+                  elsif Ada_Version >= Ada_2012
+                    and then not Is_Elementary_Type (Etype (Form1))
+                    and then not Warn_On_Overlap
+                  then
+                     null;
+
+                  --  Here we may need to issue message
+
                   else
+                     Error_Msg_Warn :=
+                       Ada_Version < Ada_2012
+                         or else not Is_Elementary_Type (Etype (Form1));
+
                      declare
                         Act  : Node_Id;
                         Form : Entity_Id;
@@ -3399,7 +3446,7 @@ package body Sem_Warn is
                                  & "actual for&?I?", Act1, Form);
 
                            else
-                              --  For greater clarity, give name of formal.
+                              --  For greater clarity, give name of formal
 
                               Error_Msg_Node_2 := Form;
                               Error_Msg_FE
@@ -3410,8 +3457,8 @@ package body Sem_Warn is
                         else
                            Error_Msg_Node_2 := Form;
                            Error_Msg_FE
-                             ("writable actual for & overlaps with"
-                               & " actual for&?I?", Act1, Form1);
+                             ("writable actual for & overlaps with "
+                               & "actual for&?I?", Act1, Form1);
                         end if;
                      end;
                   end if;

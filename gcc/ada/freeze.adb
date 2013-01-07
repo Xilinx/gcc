@@ -87,7 +87,8 @@ package body Freeze is
 
    procedure Check_Address_Clause (E : Entity_Id);
    --  Apply legality checks to address clauses for object declarations,
-   --  at the point the object is frozen.
+   --  at the point the object is frozen. Also ensure any initialization is
+   --  performed only after the object has been frozen.
 
    procedure Check_Component_Storage_Order
      (Encl_Type : Entity_Id;
@@ -549,10 +550,11 @@ package body Freeze is
    --------------------------
 
    procedure Check_Address_Clause (E : Entity_Id) is
-      Addr : constant Node_Id   := Address_Clause (E);
+      Addr : constant Node_Id    := Address_Clause (E);
       Expr : Node_Id;
-      Decl : constant Node_Id   := Declaration_Node (E);
-      Typ  : constant Entity_Id := Etype (E);
+      Decl : constant Node_Id    := Declaration_Node (E);
+      Loc  : constant Source_Ptr := Sloc (Decl);
+      Typ  : constant Entity_Id  := Etype (E);
 
    begin
       if Present (Addr) then
@@ -562,12 +564,9 @@ package body Freeze is
             Check_Constant_Address_Clause (Expr, E);
 
             --  Has_Delayed_Freeze was set on E when the address clause was
-            --  analyzed. Reset the flag now unless freeze actions were
-            --  attached to it in the mean time.
-
-            if No (Freeze_Node (E)) then
-               Set_Has_Delayed_Freeze (E, False);
-            end if;
+            --  analyzed, and must remain set because we want the address
+            --  clause to be elaborated only after any entity it references
+            --  has been elaborated.
          end if;
 
          --  If Rep_Clauses are to be ignored, remove address clause from
@@ -603,6 +602,24 @@ package body Freeze is
            and then not Needs_Finalization (Typ)
          then
             Warn_Overlay (Expr, Typ, Name (Addr));
+         end if;
+
+         if Present (Expression (Decl)) then
+
+            --  Capture initialization value at point of declaration
+
+            Remove_Side_Effects (Expression (Decl));
+
+            --  Move initialization to freeze actions (once the object has
+            --  been frozen, and the address clause alignment check has been
+            --  performed.
+
+            Append_Freeze_Action (E,
+              Make_Assignment_Statement (Loc,
+                Name       => New_Occurrence_Of (E, Loc),
+                Expression => Expression (Decl)));
+
+            Set_No_Initialization (Decl);
          end if;
       end if;
    end Check_Address_Clause;
@@ -1097,13 +1114,23 @@ package body Freeze is
                 Attribute_Scalar_Storage_Order);
 
       if Is_Record_Type (Comp_Type) or else Is_Array_Type (Comp_Type) then
-         if No (ADC) then
+         if Present (Comp) and then Chars (Comp) = Name_uParent then
+            if Reverse_Storage_Order (Encl_Type)
+                 /=
+               Reverse_Storage_Order (Comp_Type)
+            then
+               Error_Msg_N
+                 ("record extension must have same scalar storage order as "
+                  & "parent", Err_Node);
+            end if;
+
+         elsif No (ADC) then
             Error_Msg_N ("nested composite must have explicit scalar "
                          & "storage order", Err_Node);
 
          elsif (Reverse_Storage_Order (Encl_Type)
                   /=
-                Reverse_Storage_Order (Etype (Comp_Type)))
+                Reverse_Storage_Order (Comp_Type))
            and then not Comp_Byte_Aligned
          then
             Error_Msg_N
@@ -3315,6 +3342,30 @@ package body Freeze is
             then
                Layout_Object (E);
             end if;
+
+            --  If initialization statements were captured in an expression
+            --  with actions with null expression, and the object does not
+            --  have delayed freezing, move them back now directly within the
+            --  enclosing statement sequence.
+
+            if Ekind_In (E, E_Constant, E_Variable)
+                 and then not Has_Delayed_Freeze (E)
+            then
+               declare
+                  Init_Stmts : constant Node_Id :=
+                                 Initialization_Statements (E);
+               begin
+                  if Present (Init_Stmts)
+                    and then Nkind (Init_Stmts) = N_Expression_With_Actions
+                    and then Nkind (Expression (Init_Stmts)) = N_Null_Statement
+                  then
+                     Insert_List_Before (Init_Stmts, Actions (Init_Stmts));
+                     Remove (Init_Stmts);
+                     Set_Initialization_Statements (E, Empty);
+                  end if;
+               end;
+            end if;
+
          end if;
 
       --  Case of a type or subtype being frozen

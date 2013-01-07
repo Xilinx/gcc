@@ -1318,14 +1318,16 @@ package body Sem_Ch13 is
                            P_Name := A_Name;
 
                         elsif A_Name = Name_Link_Name then
-                           L_Assoc := Make_Pragma_Argument_Association (Loc,
-                              Chars => A_Name,
-                              Expression => Relocate_Node (Expression (A)));
+                           L_Assoc :=
+                             Make_Pragma_Argument_Association (Loc,
+                               Chars      => A_Name,
+                               Expression => Relocate_Node (Expression (A)));
 
                         elsif A_Name = Name_External_Name then
-                           E_Assoc := Make_Pragma_Argument_Association (Loc,
-                              Chars => A_Name,
-                              Expression => Relocate_Node (Expression (A)));
+                           E_Assoc :=
+                             Make_Pragma_Argument_Association (Loc,
+                               Chars      => A_Name,
+                               Expression => Relocate_Node (Expression (A)));
                         end if;
 
                         Next (A);
@@ -1434,13 +1436,36 @@ package body Sem_Ch13 is
                --  Case 2d : Aspects that correspond to a pragma with one
                --  argument.
 
-               when Aspect_Relative_Deadline     =>
+               when Aspect_Abstract_State =>
                   Aitem :=
                     Make_Pragma (Loc,
-                      Pragma_Argument_Associations =>
-                        New_List (
-                          Make_Pragma_Argument_Association (Loc,
-                             Expression => Relocate_Node (Expr))),
+                      Pragma_Identifier            =>
+                        Make_Identifier (Sloc (Id), Name_Abstract_State),
+                      Pragma_Argument_Associations => New_List (
+                        Make_Pragma_Argument_Association (Loc,
+                          Expression => Relocate_Node (Expr))));
+
+                  Delay_Required := False;
+
+               --  Aspect Global must be delayed because it can mention names
+               --  and benefit from the forward visibility rules applicable to
+               --  aspects of subprograms.
+
+               when Aspect_Global =>
+                  Aitem :=
+                    Make_Pragma (Loc,
+                      Pragma_Identifier            =>
+                        Make_Identifier (Sloc (Id), Name_Global),
+                      Pragma_Argument_Associations => New_List (
+                        Make_Pragma_Argument_Association (Loc,
+                          Expression => Relocate_Node (Expr))));
+
+               when Aspect_Relative_Deadline =>
+                  Aitem :=
+                    Make_Pragma (Loc,
+                      Pragma_Argument_Associations => New_List (
+                        Make_Pragma_Argument_Association (Loc,
+                          Expression => Relocate_Node (Expr))),
                       Pragma_Identifier            =>
                         Make_Identifier (Sloc (Id), Name_Relative_Deadline));
 
@@ -1937,6 +1962,20 @@ package body Sem_Ch13 is
                      end if;
 
                      Prepend (Aitem, Declarations (N));
+
+                  --  Aspect Abstract_State produces implicit declarations for
+                  --  all state abstraction entities it defines. To emulate
+                  --  this behavior, insert the pragma at the start of the
+                  --  visible declarations of the related package.
+
+                  elsif Nam = Name_Abstract_State
+                    and then Nkind (N) = N_Package_Declaration
+                  then
+                     if No (Visible_Declarations (Specification (N))) then
+                        Set_Visible_Declarations (Specification (N), New_List);
+                     end if;
+
+                     Prepend (Aitem, Visible_Declarations (Specification (N)));
 
                   else
                      if No (Pragmas_After (Aux)) then
@@ -2880,7 +2919,9 @@ package body Sem_Ch13 is
                   --  Legality checks on the address clause for initialized
                   --  objects is deferred until the freeze point, because
                   --  a subsequent pragma might indicate that the object
-                  --  is imported and thus not initialized.
+                  --  is imported and thus not initialized. Also, the address
+                  --  clause might involve entities that have yet to be
+                  --  elaborated.
 
                   Set_Has_Delayed_Freeze (U_Ent);
 
@@ -2891,11 +2932,26 @@ package body Sem_Ch13 is
                   --  before its definition.
 
                   declare
-                     Init_Call : constant Node_Id := Find_Init_Call (U_Ent, N);
+                     Init_Call : constant Node_Id :=
+                                   Remove_Init_Call (U_Ent, N);
+
                   begin
                      if Present (Init_Call) then
-                        Remove (Init_Call);
-                        Append_Freeze_Action (U_Ent, Init_Call);
+
+                        --  If the init call is an expression with actions with
+                        --  null expression, just extract the actions.
+
+                        if Nkind (Init_Call) = N_Expression_With_Actions
+                          and then
+                            Nkind (Expression (Init_Call)) = N_Null_Statement
+                        then
+                           Append_Freeze_Actions (U_Ent, Actions (Init_Call));
+
+                        --  General case: move Init_Call to freeze actions
+
+                        else
+                           Append_Freeze_Action (U_Ent, Init_Call);
+                        end if;
                      end if;
                   end;
 
@@ -2904,9 +2960,8 @@ package body Sem_Ch13 is
                        ("& cannot be exported if an address clause is given",
                         Nam);
                      Error_Msg_N
-                       ("\define and export a variable " &
-                        "that holds its address instead",
-                        Nam);
+                       ("\define and export a variable "
+                        & "that holds its address instead", Nam);
                   end if;
 
                   --  Entity has delayed freeze, so we will generate an
@@ -4661,9 +4716,37 @@ package body Sem_Ch13 is
       Ocomp   : Entity_Id;
       Posit   : Uint;
       Rectype : Entity_Id;
+      Recdef  : Node_Id;
+
+      function Is_Inherited (Comp : Entity_Id) return Boolean;
+      --  True if Comp is an inherited component in a record extension
+
+      ------------------
+      -- Is_Inherited --
+      ------------------
+
+      function Is_Inherited (Comp : Entity_Id) return Boolean is
+         Comp_Base : Entity_Id;
+
+      begin
+         if Ekind (Rectype) = E_Record_Subtype then
+            Comp_Base := Original_Record_Component (Comp);
+         else
+            Comp_Base := Comp;
+         end if;
+
+         return Comp_Base /= Original_Record_Component (Comp_Base);
+      end Is_Inherited;
+
+      --  Local variables
+
+      Is_Record_Extension : Boolean;
+      --  True if Rectype is a record extension
 
       CR_Pragma : Node_Id := Empty;
       --  Points to N_Pragma node if Complete_Representation pragma present
+
+   --  Start of processing for Analyze_Record_Representation_Clause
 
    begin
       if Ignore_Rep_Clauses then
@@ -4673,9 +4756,7 @@ package body Sem_Ch13 is
       Find_Type (Ident);
       Rectype := Entity (Ident);
 
-      if Rectype = Any_Type
-        or else Rep_Item_Too_Early (Rectype, N)
-      then
+      if Rectype = Any_Type or else Rep_Item_Too_Early (Rectype, N) then
          return;
       else
          Rectype := Underlying_Type (Rectype);
@@ -4703,6 +4784,14 @@ package body Sem_Ch13 is
       elsif Rep_Item_Too_Late (Rectype, N) then
          return;
       end if;
+
+      --  We know we have a first subtype, now possibly go the the anonymous
+      --  base type to determine whether Rectype is a record extension.
+
+      Recdef := Type_Definition (Declaration_Node (Base_Type (Rectype)));
+      Is_Record_Extension :=
+        Nkind (Recdef) = N_Derived_Type_Definition
+          and then Present (Record_Extension_Part (Recdef));
 
       if Present (Mod_Clause (N)) then
          declare
@@ -4879,6 +4968,11 @@ package body Sem_Ch13 is
                        ("cannot reference discriminant of unchecked union",
                         Component_Name (CC));
 
+                  elsif Is_Record_Extension and then Is_Inherited (Comp) then
+                     Error_Msg_NE
+                       ("component clause not allowed for inherited "
+                        & "component&", CC, Comp);
+
                   elsif Present (Component_Clause (Comp)) then
 
                      --  Diagnose duplicate rep clause, or check consistency
@@ -4906,10 +5000,11 @@ package body Sem_Ch13 is
                               Error_Msg_N
                                 ("component clause inconsistent "
                                  & "with representation of ancestor", CC);
+
                            elsif Warn_On_Redundant_Constructs then
                               Error_Msg_N
-                                ("?r?redundant component clause "
-                                 & "for inherited component!", CC);
+                                ("?r?redundant confirming component clause "
+                                 & "for component!", CC);
                            end if;
                         end;
                      end if;
@@ -5091,8 +5186,9 @@ package body Sem_Ch13 is
          return Empty;
       end if;
 
-      SId := Make_Defining_Identifier (Loc,
-         Chars => New_External_Name (Chars (Typ), "Invariant"));
+      SId :=
+        Make_Defining_Identifier (Loc,
+          Chars => New_External_Name (Chars (Typ), "Invariant"));
       Set_Has_Invariants (SId);
       Set_Has_Invariants (Typ);
       Set_Ekind (SId, E_Procedure);
@@ -6818,32 +6914,32 @@ package body Sem_Ch13 is
               Library_Unit_Aspects =>
             T := Standard_Boolean;
 
+         --  Aspects corresponding to attribute definition clauses
+
+         when Aspect_Address =>
+            T := RTE (RE_Address);
+
          when Aspect_Attach_Handler =>
             T := RTE (RE_Interrupt_ID);
+
+         when Aspect_Bit_Order | Aspect_Scalar_Storage_Order =>
+            T := RTE (RE_Bit_Order);
 
          when Aspect_Convention =>
             return;
 
-         --  Default_Value is resolved with the type entity in question
-
-         when Aspect_Default_Value =>
-            T := Entity (ASN);
+         when Aspect_CPU =>
+            T := RTE (RE_CPU_Range);
 
          --  Default_Component_Value is resolved with the component type
 
          when Aspect_Default_Component_Value =>
             T := Component_Type (Entity (ASN));
 
-         --  Aspects corresponding to attribute definition clauses
+         --  Default_Value is resolved with the type entity in question
 
-         when Aspect_Address =>
-            T := RTE (RE_Address);
-
-         when Aspect_Bit_Order | Aspect_Scalar_Storage_Order =>
-            T := RTE (RE_Bit_Order);
-
-         when Aspect_CPU =>
-            T := RTE (RE_CPU_Range);
+         when Aspect_Default_Value =>
+            T := Entity (ASN);
 
          when Aspect_Dispatching_Domain =>
             T := RTE (RE_Dispatching_Domain);
@@ -6853,6 +6949,14 @@ package body Sem_Ch13 is
 
          when Aspect_External_Name =>
             T := Standard_String;
+
+         --  Global is a delayed aspect because it may reference names that
+         --  have not been declared yet. There is no action to be taken with
+         --  respect to the aspect itself as the reference checking is done on
+         --  the corresponding pragma.
+
+         when Aspect_Global =>
+            return;
 
          when Aspect_Link_Name =>
             T := Standard_String;
@@ -6921,9 +7025,10 @@ package body Sem_Ch13 is
               Aspect_Type_Invariant    =>
             T := Standard_Boolean;
 
-         --  Here is the list of aspects that don't require delay analysis.
+         --  Here is the list of aspects that don't require delay analysis
 
-         when Aspect_Contract_Case        |
+         when Aspect_Abstract_State       |
+              Aspect_Contract_Case        |
               Aspect_Contract_Cases       |
               Aspect_Dimension            |
               Aspect_Dimension_System     |
@@ -7216,27 +7321,9 @@ package body Sem_Ch13 is
 
             when N_Type_Conversion           |
                  N_Qualified_Expression      |
-                 N_Allocator                 =>
+                 N_Allocator                 |
+                 N_Unchecked_Type_Conversion =>
                Check_Expr_Constants (Expression (Nod));
-
-            when N_Unchecked_Type_Conversion =>
-               Check_Expr_Constants (Expression (Nod));
-
-               --  If this is a rewritten unchecked conversion, subtypes in
-               --  this node are those created within the instance. To avoid
-               --  order of elaboration issues, replace them with their base
-               --  types. Note that address clauses can cause order of
-               --  elaboration problems because they are elaborated by the
-               --  back-end at the point of definition, and may mention
-               --  entities declared in between (as long as everything is
-               --  static). It is user-friendly to allow unchecked conversions
-               --  in this context.
-
-               if Nkind (Original_Node (Nod)) = N_Function_Call then
-                  Set_Etype (Expression (Nod),
-                    Base_Type (Etype (Expression (Nod))));
-                  Set_Etype (Nod, Base_Type (Etype (Nod)));
-               end if;
 
             when N_Function_Call =>
                if not Is_Pure (Entity (Name (Nod))) then
@@ -7362,7 +7449,7 @@ package body Sem_Ch13 is
       begin
          if Present (CC1) and then Present (CC2) then
 
-            --  Exclude odd case where we have two tag fields in the same
+            --  Exclude odd case where we have two tag components in the same
             --  record, both at location zero. This seems a bit strange, but
             --  it seems to happen in some circumstances, perhaps on an error.
 
@@ -7403,7 +7490,7 @@ package body Sem_Ch13 is
       procedure Find_Component is
 
          procedure Search_Component (R : Entity_Id);
-         --  Search components of R for a match. If found, Comp is set.
+         --  Search components of R for a match. If found, Comp is set
 
          ----------------------
          -- Search_Component --
@@ -7442,8 +7529,8 @@ package body Sem_Ch13 is
 
          Search_Component (Rectype);
 
-         --  If not found, maybe component of base type that is absent from
-         --  statically constrained first subtype.
+         --  If not found, maybe component of base type discriminant that is
+         --  absent from statically constrained first subtype.
 
          if No (Comp) then
             Search_Component (Base_Type (Rectype));
@@ -7571,7 +7658,7 @@ package body Sem_Ch13 is
                  ("bit number out of range of specified size",
                   Last_Bit (CC));
 
-               --  Check for overlap with tag field
+               --  Check for overlap with tag component
 
             else
                if Is_Tagged_Type (Rectype)
@@ -8732,10 +8819,11 @@ package body Sem_Ch13 is
                                 Designated_Type (Etype (F)), Loc))));
 
          if Nam = TSS_Stream_Input then
-            Spec := Make_Function_Specification (Loc,
-                      Defining_Unit_Name       => Subp_Id,
-                      Parameter_Specifications => Formals,
-                      Result_Definition        => T_Ref);
+            Spec :=
+              Make_Function_Specification (Loc,
+                Defining_Unit_Name       => Subp_Id,
+                Parameter_Specifications => Formals,
+                Result_Definition        => T_Ref);
          else
             --  V : [out] T
 

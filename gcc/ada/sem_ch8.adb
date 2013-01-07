@@ -5143,14 +5143,13 @@ package body Sem_Ch8 is
             end if;
 
             if Is_New_Candidate then
-               if Is_Child_Unit (Id) then
-                  exit when Is_Visible_Child_Unit (Id)
-                    or else Is_Immediately_Visible (Id);
-
+               if Is_Child_Unit (Id) or else P_Name = Standard_Standard then
+                  exit when Is_Visible_Lib_Unit (Id);
                else
-                  exit when not Is_Hidden (Id)
-                    or else Is_Immediately_Visible (Id);
+                  exit when not Is_Hidden (Id);
                end if;
+
+               exit when Is_Immediately_Visible (Id);
             end if;
 
             Id := Homonym (Id);
@@ -5329,33 +5328,34 @@ package body Sem_Ch8 is
                   --  declares the desired entity. This error can use a
                   --  specialized message.
 
-                  if In_Open_Scopes (P_Name)
-                    and then Present (Homonym (P_Name))
-                    and then Is_Compilation_Unit (Homonym (P_Name))
-                    and then
-                     (Is_Immediately_Visible (Homonym (P_Name))
-                        or else Is_Visible_Child_Unit (Homonym (P_Name)))
-                  then
+                  if In_Open_Scopes (P_Name) then
                      declare
                         H : constant Entity_Id := Homonym (P_Name);
 
                      begin
-                        Id := First_Entity (H);
-                        while Present (Id) loop
-                           if Chars (Id) = Chars (Selector) then
-                              Error_Msg_Qual_Level := 99;
-                              Error_Msg_Name_1 := Chars (Selector);
-                              Error_Msg_NE
-                                ("% not declared in&", N, P_Name);
-                              Error_Msg_NE
-                                ("\use fully qualified name starting with"
-                                  & " Standard to make& visible", N, H);
-                              Error_Msg_Qual_Level := 0;
-                              goto Done;
-                           end if;
+                        if Present (H)
+                          and then Is_Compilation_Unit (H)
+                          and then
+                            (Is_Immediately_Visible (H)
+                              or else Is_Visible_Lib_Unit (H))
+                        then
+                           Id := First_Entity (H);
+                           while Present (Id) loop
+                              if Chars (Id) = Chars (Selector) then
+                                 Error_Msg_Qual_Level := 99;
+                                 Error_Msg_Name_1 := Chars (Selector);
+                                 Error_Msg_NE
+                                   ("% not declared in&", N, P_Name);
+                                 Error_Msg_NE
+                                   ("\use fully qualified name starting with "
+                                    & "Standard to make& visible", N, H);
+                                 Error_Msg_Qual_Level := 0;
+                                 goto Done;
+                              end if;
 
-                           Next_Entity (Id);
-                        end loop;
+                              Next_Entity (Id);
+                           end loop;
+                        end if;
 
                         --  If not found, standard error message
 
@@ -7685,7 +7685,7 @@ package body Sem_Ch8 is
                if Is_Child_Unit (E) then
                   if not From_With_Type (E) then
                      Set_Is_Immediately_Visible (E,
-                       Is_Visible_Child_Unit (E) or else In_Open_Scopes (E));
+                       Is_Visible_Lib_Unit (E) or else In_Open_Scopes (E));
 
                   else
                      pragma Assert
@@ -7718,7 +7718,7 @@ package body Sem_Ch8 is
                while Present (E) loop
                   if Is_Child_Unit (E) then
                      Set_Is_Immediately_Visible (E,
-                       Is_Visible_Child_Unit (E) or else In_Open_Scopes (E));
+                       Is_Visible_Lib_Unit (E) or else In_Open_Scopes (E));
                   end if;
 
                   Next_Entity (E);
@@ -8030,7 +8030,7 @@ package body Sem_Ch8 is
 
          if not Is_Hidden (Id)
            and then ((not Is_Child_Unit (Id))
-                       or else Is_Visible_Child_Unit (Id))
+                       or else Is_Visible_Lib_Unit (Id))
          then
             Set_Is_Potentially_Use_Visible (Id);
 
@@ -8049,9 +8049,7 @@ package body Sem_Ch8 is
       --  appear after all visible declarations in the parent entity list.
 
       while Present (Id) loop
-         if Is_Child_Unit (Id)
-           and then Is_Visible_Child_Unit (Id)
-         then
+         if Is_Child_Unit (Id) and then Is_Visible_Lib_Unit (Id) then
             Set_Is_Potentially_Use_Visible (Id);
          end if;
 
@@ -8531,4 +8529,20 @@ package body Sem_Ch8 is
       end loop;
    end ws;
 
+   --------
+   -- we --
+   --------
+
+   procedure we (S : Entity_Id) is
+      E : Entity_Id;
+   begin
+      E := First_Entity (S);
+      while Present (E) loop
+         Write_Int (Int (E));
+         Write_Str (" === ");
+         Write_Name (Chars (E));
+         Write_Eol;
+         Next_Entity (E);
+      end loop;
+   end we;
 end Sem_Ch8;

@@ -1,6 +1,6 @@
 /* Perform type resolution on the various structures.
    Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
-   2010, 2011, 2012
+   2010, 2011, 2012, 2013
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -3776,7 +3776,7 @@ resolve_call (gfc_code *c)
   if (csym && gfc_current_ns->parent && csym->ns != gfc_current_ns)
     {
       gfc_symtree *st;
-      gfc_find_sym_tree (csym->name, gfc_current_ns, 1, &st);
+      gfc_find_sym_tree (c->symtree->name, gfc_current_ns, 1, &st);
       sym = st ? st->n.sym : NULL;
       if (sym && csym != sym
 	      && sym->ns == gfc_current_ns
@@ -8349,9 +8349,27 @@ resolve_select_type (gfc_code *code, gfc_namespace *old_ns)
       if (code->expr1->symtree->n.sym->attr.untyped)
 	code->expr1->symtree->n.sym->ts = code->expr2->ts;
       selector_type = CLASS_DATA (code->expr2)->ts.u.derived;
+
+      /* F2008: C803 The selector expression must not be coindexed.  */
+      if (gfc_is_coindexed (code->expr2))
+	{
+	  gfc_error ("Selector at %L must not be coindexed",
+		     &code->expr2->where);
+	  return;
+	}
+
     }
   else
-    selector_type = CLASS_DATA (code->expr1)->ts.u.derived;
+    {
+      selector_type = CLASS_DATA (code->expr1)->ts.u.derived;
+
+      if (gfc_is_coindexed (code->expr1))
+	{
+	  gfc_error ("Selector at %L must not be coindexed",
+		     &code->expr1->where);
+	  return;
+	}
+    }
 
   /* Loop over TYPE IS / CLASS IS cases.  */
   for (body = code->block; body; body = body->block)
