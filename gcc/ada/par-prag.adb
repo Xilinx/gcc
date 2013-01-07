@@ -1092,6 +1092,7 @@ begin
       --  entirely in Sem_Prag, and no further checking is done by Par.
 
       when Pragma_Abort_Defer                    |
+           Pragma_Abstract_State                 |
            Pragma_Assertion_Policy               |
            Pragma_Assume                         |
            Pragma_Assume_No_Invalid_Values       |
@@ -1155,6 +1156,7 @@ begin
            Pragma_Fast_Math                      |
            Pragma_Finalize_Storage_Only          |
            Pragma_Float_Representation           |
+           Pragma_Global                         |
            Pragma_Ident                          |
            Pragma_Implementation_Defined         |
            Pragma_Implemented                    |

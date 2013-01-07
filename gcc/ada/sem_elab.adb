@@ -2541,8 +2541,14 @@ package body Sem_Elab is
      Scop : Entity_Id)
    is
       Elab_Unit  : Entity_Id;
+
+      --  Check whether this is a call to an Initialize subprogram for a
+      --  controlled type. Note that Call can also be a 'Access attribute
+      --  reference, which now generates an elaboration check.
+
       Init_Call  : constant Boolean :=
-                     Chars (Subp) = Name_Initialize
+                     Nkind (Call) = N_Procedure_Call_Statement
+                       and then Chars (Subp) = Name_Initialize
                        and then Comes_From_Source (Subp)
                        and then Present (Parameter_Associations (Call))
                        and then Is_Controlled (Etype (First_Actual (Call)));
@@ -2551,7 +2557,7 @@ package body Sem_Elab is
       --  visible, and we can set the elaboration flag.
 
       if Is_Immediately_Visible (Scop)
-        or else (Is_Child_Unit (Scop) and then Is_Visible_Child_Unit (Scop))
+        or else (Is_Child_Unit (Scop) and then Is_Visible_Lib_Unit (Scop))
       then
          Activate_Elaborate_All_Desirable (Call, Scop);
          Set_Suppress_Elaboration_Warnings (Scop, True);

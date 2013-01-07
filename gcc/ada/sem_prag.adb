@@ -789,6 +789,8 @@ package body Sem_Prag is
       procedure S14_Pragma;
       --  Called for all pragmas defined for formal verification to check that
       --  the S14_Extensions flag is set.
+      --  This name needs fixing ??? There is no such thing as an
+      --  "S14_Extensions" flag ???
 
       function Is_Before_First_Decl
         (Pragma_Node : Node_Id;
@@ -6640,6 +6642,282 @@ package body Sem_Prag is
                Pragma_Misplaced;
             end if;
 
+         --------------------
+         -- Abstract_State --
+         --------------------
+
+         --  ??? no formal grammar available yet
+
+         when Pragma_Abstract_State => Abstract_State : declare
+            Pack_Id : Entity_Id;
+
+            --  Flags used to verify the consistency of states
+
+            Non_Null_Seen : Boolean := False;
+            Null_Seen     : Boolean := False;
+
+            procedure Analyze_Abstract_State (State : Node_Id);
+            --  Verify the legality of a single state declaration. Create and
+            --  decorate a state abstraction entity and introduce it into the
+            --  visibility chain.
+
+            ----------------------------
+            -- Analyze_Abstract_State --
+            ----------------------------
+
+            procedure Analyze_Abstract_State (State : Node_Id) is
+               procedure Check_Duplicate_Property
+                 (Prop   : Node_Id;
+                  Status : in out Boolean);
+               --  Flag Status denotes whether a particular property has been
+               --  seen while processing a state. This routine verifies that
+               --  Prop is not a duplicate property and sets the flag Status.
+
+               ------------------------------
+               -- Check_Duplicate_Property --
+               ------------------------------
+
+               procedure Check_Duplicate_Property
+                 (Prop   : Node_Id;
+                  Status : in out Boolean)
+               is
+               begin
+                  if Status then
+                     Error_Msg_N ("duplicate state property", Prop);
+                  end if;
+
+                  Status := True;
+               end Check_Duplicate_Property;
+
+               --  Local variables
+
+               Errors  : constant Nat := Serious_Errors_Detected;
+               Loc     : constant Source_Ptr := Sloc (State);
+               Assoc   : Node_Id;
+               Id      : Entity_Id;
+               Is_Null : Boolean := False;
+               Level   : Uint := Uint_0;
+               Name    : Name_Id;
+               Prop    : Node_Id;
+
+               --  Flags used to verify the consistency of properties
+
+               Input_Seen     : Boolean := False;
+               Integrity_Seen : Boolean := False;
+               Output_Seen    : Boolean := False;
+               Volatile_Seen  : Boolean := False;
+
+            --  Start of processing for Analyze_Abstract_State
+
+            begin
+               --  A package with a null abstract state is not allowed to
+               --  declare additional states.
+
+               if Null_Seen then
+                  Error_Msg_Name_1 := Chars (Pack_Id);
+                  Error_Msg_N ("package % has null abstract state", State);
+
+               --  Null states appear as internally generated entities
+
+               elsif Nkind (State) = N_Null then
+                  Name := New_Internal_Name ('S');
+                  Is_Null   := True;
+                  Null_Seen := True;
+
+                  --  Catch a case where a null state appears in a list of
+                  --  non-null states.
+
+                  if Non_Null_Seen then
+                     Error_Msg_Name_1 := Chars (Pack_Id);
+                     Error_Msg_N
+                       ("package % has non-null abstract state", State);
+                  end if;
+
+               --  Simple state declaration
+
+               elsif Nkind (State) = N_Identifier then
+                  Name := Chars (State);
+                  Non_Null_Seen := True;
+
+               --  State declaration with various properties. This construct
+               --  appears as an extension aggregate in the tree.
+
+               elsif Nkind (State) = N_Extension_Aggregate then
+                  if Nkind (Ancestor_Part (State)) = N_Identifier then
+                     Name := Chars (Ancestor_Part (State));
+                     Non_Null_Seen := True;
+                  else
+                     Error_Msg_N
+                       ("state name must be an identifier",
+                        Ancestor_Part (State));
+                  end if;
+
+                  --  Process properties Input, Output and Volatile. Ensure
+                  --  that none of them appear more than once.
+
+                  Prop := First (Expressions (State));
+                  while Present (Prop) loop
+                     if Nkind (Prop) = N_Identifier then
+                        if Chars (Prop) = Name_Input then
+                           Check_Duplicate_Property (Prop, Input_Seen);
+                        elsif Chars (Prop) = Name_Output then
+                           Check_Duplicate_Property (Prop, Output_Seen);
+                        elsif Chars (Prop) = Name_Volatile then
+                           Check_Duplicate_Property (Prop, Volatile_Seen);
+                        else
+                           Error_Msg_N ("invalid state property", Prop);
+                        end if;
+                     else
+                        Error_Msg_N ("invalid state property", Prop);
+                     end if;
+
+                     Next (Prop);
+                  end loop;
+
+                  --  Volatile requires exactly one Input or Output
+
+                  if Volatile_Seen
+                    and then
+                      ((Input_Seen and then Output_Seen)           --  both
+                         or else
+                       (not Input_Seen and then not Output_Seen))  --  none
+                  then
+                     Error_Msg_N
+                       ("property Volatile requires exactly one Input or " &
+                        "Output", State);
+                  end if;
+
+                  --  Either Input or Output require Volatile
+
+                  if (Input_Seen or Output_Seen)
+                    and then not Volatile_Seen
+                  then
+                     Error_Msg_N
+                       ("properties Input and Output require Volatile", State);
+                  end if;
+
+                  --  State property Integrity appears as a component
+                  --  association.
+
+                  Assoc := First (Component_Associations (State));
+                  while Present (Assoc) loop
+                     Prop := First (Choices (Assoc));
+                     while Present (Prop) loop
+                        if Nkind (Prop) = N_Identifier
+                          and then Chars (Prop) = Name_Integrity
+                        then
+                           Check_Duplicate_Property (Prop, Integrity_Seen);
+                        else
+                           Error_Msg_N ("invalid state property", Prop);
+                        end if;
+
+                        Next (Prop);
+                     end loop;
+
+                     if Nkind (Expression (Assoc)) = N_Integer_Literal then
+                        Level := Intval (Expression (Assoc));
+                     else
+                        Error_Msg_N
+                          ("integrity level must be an integer literal",
+                           Expression (Assoc));
+                     end if;
+
+                     Next (Assoc);
+                  end loop;
+
+               --  Any other attempt to declare a state is erroneous
+
+               else
+                  Error_Msg_N ("malformed abstract state declaration", State);
+               end if;
+
+               --  Do not generate a state abstraction entity if it was not
+               --  properly declared.
+
+               if Serious_Errors_Detected > Errors then
+                  return;
+               end if;
+
+               --  The generated state abstraction reuses the same characters
+               --  from the original state declaration. Decorate the entity.
+
+               Id := Make_Defining_Identifier (Loc, New_External_Name (Name));
+               Set_Comes_From_Source (Id, not Is_Null);
+               Set_Parent            (Id, State);
+               Set_Ekind             (Id, E_Abstract_State);
+               Set_Etype             (Id, Standard_Void_Type);
+               Set_Integrity_Level   (Id, Level);
+               Set_Refined_State     (Id, Empty);
+
+               --  Every non-null state must be nameable and resolvable the
+               --  same way a constant is.
+
+               if not Is_Null then
+                  Push_Scope (Pack_Id);
+                  Enter_Name (Id);
+                  Pop_Scope;
+               end if;
+
+               --  Associate the state with its related package
+
+               if No (Abstract_States (Pack_Id)) then
+                  Set_Abstract_States (Pack_Id, New_Elmt_List);
+               end if;
+
+               Append_Elmt (Id, Abstract_States (Pack_Id));
+            end Analyze_Abstract_State;
+
+            --  Local variables
+
+            Par   : Node_Id;
+            State : Node_Id;
+
+         --  Start of processing for Abstract_State
+
+         begin
+            GNAT_Pragma;
+            S14_Pragma;
+            Check_Arg_Count (1);
+
+            --  Ensure the proper placement of the pragma. Abstract states must
+            --  be associated with a package declaration.
+
+            if From_Aspect_Specification (N) then
+               Par := Parent (Corresponding_Aspect (N));
+            else
+               Par := Parent (Parent (N));
+            end if;
+
+            if Nkind (Par) = N_Compilation_Unit then
+               Par := Unit (Par);
+            end if;
+
+            if Nkind (Par) /= N_Package_Declaration then
+               Pragma_Misplaced;
+               return;
+            end if;
+
+            Pack_Id := Defining_Unit_Name (Specification (Par));
+            State   := Expression (Arg1);
+
+            --  Multiple abstract states appear as an aggregate
+
+            if Nkind (State) = N_Aggregate then
+               State := First (Expressions (State));
+               while Present (State) loop
+                  Analyze_Abstract_State (State);
+
+                  Next (State);
+               end loop;
+
+            --  Various forms of a single abstract state. Note that these may
+            --  include malformed state declarations.
+
+            else
+               Analyze_Abstract_State (State);
+            end if;
+         end Abstract_State;
+
          ------------
          -- Ada_83 --
          ------------
@@ -9671,6 +9949,362 @@ package body Sem_Prag is
                end if;
             end if;
          end Float_Representation;
+
+         ------------
+         -- Global --
+         ------------
+
+         --  ??? no formal grammar pragma available yet
+
+         when Pragma_Global => Global : declare
+            Subp_Id : Entity_Id;
+
+            Seen : Elist_Id := No_Elist;
+            --  A list containing the entities of all the items processed so
+            --  far. It plays a role in detecting distinct entities.
+
+            --  Flags used to verify the consistency of modes
+
+            Contract_Seen : Boolean := False;
+            In_Out_Seen   : Boolean := False;
+            Input_Seen    : Boolean := False;
+            Output_Seen   : Boolean := False;
+
+            procedure Analyze_Global_List
+              (List        : Node_Id;
+               Global_Mode : Name_Id := Name_Input);
+            --  Verify the legality of a single global list declaration.
+            --  Global_Mode denotes the current mode in effect.
+
+            -------------------------
+            -- Analyze_Global_List --
+            -------------------------
+
+            procedure Analyze_Global_List
+              (List        : Node_Id;
+               Global_Mode : Name_Id := Name_Input)
+            is
+               procedure Analyze_Global_Item
+                 (Item        : Node_Id;
+                  Global_Mode : Name_Id);
+               --  Verify the legality of a single global item declaration.
+               --  Global_Mode denotes the current mode in effect.
+
+               procedure Check_Duplicate_Mode
+                 (Mode   : Node_Id;
+                  Status : in out Boolean);
+               --  Flag Status denotes whether a particular mode has been seen
+               --  while processing a global list. This routine verifies that
+               --  Mode is not a duplicate mode and sets the flag Status.
+
+               procedure Check_Mode_Restriction_In_Function (Mode : Node_Id);
+               --  Mode denotes either In_Out or Output. Depending on the kind
+               --  of the related subprogram, emit an error if those two modes
+               --  apply to a function.
+
+               -------------------------
+               -- Analyze_Global_Item --
+               -------------------------
+
+               procedure Analyze_Global_Item
+                 (Item        : Node_Id;
+                  Global_Mode : Name_Id)
+               is
+                  function Is_Duplicate_Item (Id : Entity_Id) return Boolean;
+                  --  Determine whether Id has already been processed
+
+                  -----------------------
+                  -- Is_Duplicate_Item --
+                  -----------------------
+
+                  function Is_Duplicate_Item (Id : Entity_Id) return Boolean is
+                     Item_Elmt : Elmt_Id;
+
+                  begin
+                     if Present (Seen) then
+                        Item_Elmt := First_Elmt (Seen);
+                        while Present (Item_Elmt) loop
+                           if Node (Item_Elmt) = Id then
+                              return True;
+                           end if;
+
+                           Next_Elmt (Item_Elmt);
+                        end loop;
+                     end if;
+
+                     return False;
+                  end Is_Duplicate_Item;
+
+                  --  Local declarations
+
+                  Id : Entity_Id;
+
+               --  Start of processing for Analyze_Global_Item
+
+               begin
+                  --  Detect one of the following cases
+
+                  --    with Global => (null, Name)
+                  --    with Global => (Name_1, null, Name_2)
+                  --    with Global => (Name, null)
+
+                  if Nkind (Item) = N_Null then
+                     Error_Msg_N
+                       ("cannot mix null and non-null global items", Item);
+                     return;
+                  end if;
+
+                  --  Ensure that the formal parameters are visible when
+                  --  processing an item. This falls out of the general rule
+                  --  of aspects pertaining to subprogram declarations.
+
+                  Push_Scope (Subp_Id);
+                  Install_Formals (Subp_Id);
+                  Analyze (Item);
+                  Pop_Scope;
+
+                  if Is_Entity_Name (Item) then
+                     Id := Entity (Item);
+
+                     --  A global item cannot reference a formal parameter. Do
+                     --  this check first to provide a better error diagnostic.
+
+                     if Is_Formal (Id) then
+                        Error_Msg_N
+                          ("global item cannot reference formal parameter",
+                           Item);
+                        return;
+
+                     --  The only legal references are those to abstract states
+                     --  and variables.
+
+                     elsif not Ekind_In (Entity (Item), E_Abstract_State,
+                                                        E_Variable)
+                     then
+                        Error_Msg_N
+                          ("global item must denote variable or state", Item);
+                        return;
+                     end if;
+
+                  --  Some form of illegal construct masquerading as a name
+
+                  else
+                     Error_Msg_N
+                       ("global item must denote variable or state", Item);
+                     return;
+                  end if;
+
+                  --  The same entity might be referenced through various way.
+                  --  Check the entity of the item rather than the item itself.
+
+                  if Is_Duplicate_Item (Id) then
+                     Error_Msg_N ("duplicate global item", Item);
+
+                  --  Add the entity of the current item to the list of
+                  --  processed items.
+
+                  else
+                     if No (Seen) then
+                        Seen := New_Elmt_List;
+                     end if;
+
+                     Append_Elmt (Id, Seen);
+                  end if;
+
+                  if Ekind (Id) = E_Abstract_State
+                    and then Is_Volatile_State (Id)
+                  then
+                     --  A global item of mode In_Out or Output cannot denote a
+                     --  volatile Input state.
+
+                     if Is_Input_State (Id)
+                       and then (Global_Mode = Name_In_Out
+                                   or else
+                                 Global_Mode = Name_Output)
+                     then
+                        Error_Msg_N
+                          ("global item of mode In_Out or Output cannot " &
+                           "reference Volatile Input state", Item);
+
+                     --  A global item of mode In_Out or Input cannot reference
+                     --  a volatile Output state.
+
+                     elsif Is_Output_State (Id)
+                       and then (Global_Mode = Name_In_Out
+                                   or else
+                                 Global_Mode = Name_Input)
+                     then
+                        Error_Msg_N
+                          ("global item of mode In_Out or Input cannot "
+                           & "reference Volatile Output state", Item);
+                     end if;
+                  end if;
+               end Analyze_Global_Item;
+
+               --------------------------
+               -- Check_Duplicate_Mode --
+               --------------------------
+
+               procedure Check_Duplicate_Mode
+                 (Mode   : Node_Id;
+                  Status : in out Boolean)
+               is
+               begin
+                  if Status then
+                     Error_Msg_N ("duplicate global mode", Mode);
+                  end if;
+
+                  Status := True;
+               end Check_Duplicate_Mode;
+
+               ----------------------------------------
+               -- Check_Mode_Restriction_In_Function --
+               ----------------------------------------
+
+               procedure Check_Mode_Restriction_In_Function (Mode : Node_Id) is
+               begin
+                  if Ekind (Subp_Id) = E_Function then
+                     Error_Msg_Name_1 := Chars (Mode);
+                     Error_Msg_N
+                       ("global mode % not applicable to functions", Mode);
+                  end if;
+               end Check_Mode_Restriction_In_Function;
+
+               --  Local variables
+
+               Assoc : Node_Id;
+               Item  : Node_Id;
+               Mode  : Node_Id;
+
+            --  Start of processing for Analyze_Global_List
+
+            begin
+               --  Single global item declaration
+
+               if Nkind_In (List, N_Identifier, N_Selected_Component) then
+                  Analyze_Global_Item (List, Global_Mode);
+
+               --  Simple global list or moded global list declaration
+
+               elsif Nkind (List) = N_Aggregate then
+
+                  --  The declaration of a simple global list appear as a
+                  --  collection of expressions.
+
+                  if Present (Expressions (List)) then
+                     if Present (Component_Associations (List)) then
+                        Error_Msg_N
+                          ("cannot mix moded and non-moded global lists",
+                           List);
+                     end if;
+
+                     Item := First (Expressions (List));
+                     while Present (Item) loop
+                        Analyze_Global_Item (Item, Global_Mode);
+
+                        Next (Item);
+                     end loop;
+
+                  --  The declaration of a moded global list appears as a
+                  --  collection of component associations where individual
+                  --  choices denote modes.
+
+                  elsif Present (Component_Associations (List)) then
+                     if Present (Expressions (List)) then
+                        Error_Msg_N
+                          ("cannot mix moded and non-moded global lists",
+                           List);
+                     end if;
+
+                     Assoc := First (Component_Associations (List));
+                     while Present (Assoc) loop
+                           Mode := First (Choices (Assoc));
+
+                        if Nkind (Mode) = N_Identifier then
+                           if Chars (Mode) = Name_Contract_In then
+                                 Check_Duplicate_Mode (Mode, Contract_Seen);
+
+                           elsif Chars (Mode) = Name_In_Out then
+                              Check_Duplicate_Mode (Mode, In_Out_Seen);
+                                 Check_Mode_Restriction_In_Function (Mode);
+
+                           elsif Chars (Mode) = Name_Input then
+                                 Check_Duplicate_Mode (Mode, Input_Seen);
+
+                           elsif Chars (Mode) = Name_Output then
+                              Check_Duplicate_Mode (Mode, Output_Seen);
+                                 Check_Mode_Restriction_In_Function (Mode);
+
+                           else
+                              Error_Msg_N ("invalid mode selector", Mode);
+                           end if;
+
+                        else
+                           Error_Msg_N ("invalid mode selector", Mode);
+                        end if;
+
+                        --  Items in a moded list appear as a collection of
+                        --  expressions. Reuse the existing machinery to
+                        --  analyze them.
+
+                        Analyze_Global_List
+                          (List        => Expression (Assoc),
+                           Global_Mode => Chars (Mode));
+
+                        Next (Assoc);
+                     end loop;
+
+                  --  Something went horribly wrong, we have a malformed tree
+
+                  else
+                     raise Program_Error;
+                  end if;
+
+               --  Any other attempt to declare a global item is erroneous
+
+               else
+                  Error_Msg_N ("malformed global list declaration", List);
+               end if;
+            end Analyze_Global_List;
+
+            --  Local variables
+
+            List : Node_Id;
+            Subp : Node_Id;
+
+         --  Start of processing for Global
+
+         begin
+            GNAT_Pragma;
+            S14_Pragma;
+            Check_Arg_Count (1);
+
+            --  Ensure the proper placement of the pragma. Global must be
+            --  associated with a subprogram declaration.
+
+            Subp := Parent (Corresponding_Aspect (N));
+
+            if Nkind (Subp) /= N_Subprogram_Declaration then
+               Pragma_Misplaced;
+               return;
+            end if;
+
+            Subp_Id := Defining_Unit_Name (Specification (Subp));
+            List    := Expression (Arg1);
+
+            --  There is nothing to be done for a null global list
+
+            if Nkind (List) = N_Null then
+               null;
+
+            --  Analyze the various forms of global lists and items. Note that
+            --  some of these may be malformed in which case the analysis emits
+            --  error messages.
+
+            else
+               Analyze_Global_List (List);
+            end if;
+         end Global;
 
          -----------
          -- Ident --
@@ -15748,6 +16382,7 @@ package body Sem_Prag is
    Sig_Flags : constant array (Pragma_Id) of Int :=
      (Pragma_AST_Entry                      => -1,
       Pragma_Abort_Defer                    => -1,
+      Pragma_Abstract_State                 => -1,
       Pragma_Ada_83                         => -1,
       Pragma_Ada_95                         => -1,
       Pragma_Ada_05                         => -1,
@@ -15818,6 +16453,7 @@ package body Sem_Prag is
       Pragma_Fast_Math                      => -1,
       Pragma_Finalize_Storage_Only          =>  0,
       Pragma_Float_Representation           =>  0,
+      Pragma_Global                         => -1,
       Pragma_Ident                          => -1,
       Pragma_Implementation_Defined         => -1,
       Pragma_Implemented                    => -1,

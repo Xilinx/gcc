@@ -202,6 +202,11 @@ begin
    Write_Switch_Char ("ef");
    Write_Line ("Full source path in brief error messages");
 
+   --  Line for -gnateF switch
+
+   Write_Switch_Char ("eF");
+   Write_Line ("Check overflow on predefined Float types");
+
    --  Line for -gnateG switch
 
    Write_Switch_Char ("eG");
@@ -330,11 +335,6 @@ begin
 
    Write_Switch_Char ("n[?]");
    Write_Line ("Enable pragma Inline (both within and across units, ?=1/2)");
-
-   --  Line for -gnatN switch
-
-   Write_Switch_Char ("N");
-   Write_Line ("Full (frontend) inlining of subprograms");
 
    --  Line for -gnato switch
 
@@ -474,6 +474,16 @@ begin
    Write_Line ("        .C*  turn off warnings for unrepped components");
    Write_Line ("        d    turn on warnings for implicit dereference");
    Write_Line ("        D*   turn off warnings for implicit dereference");
+
+   --  Switches -gnatw.d/w.D not available on VMS
+
+   if not OpenVMS_On_Target then
+      Write_Line
+        ("        .d   turn on tagging of warnings with -gnatw switch");
+      Write_Line
+        ("        .D*  turn off tagging of warnings with -gnatw switch");
+   end if;
+
    Write_Line ("        e    treat all warnings (but not info) as errors");
    Write_Line ("        .e   turn on every optional info/warning " &
                                                   "(no exceptions)");
@@ -502,7 +512,7 @@ begin
    Write_Line ("        L*   turn off warnings for missing " &
                                                   "elaboration pragma");
    Write_Line ("        .l   turn on info messages for inherited aspects");
-   Write_Line ("        .L*   turn off info messages for inherited aspects");
+   Write_Line ("        .L*  turn off info messages for inherited aspects");
    Write_Line ("        m+   turn on warnings for variable assigned " &
                                                   "but not read");
    Write_Line ("        M*   turn off warnings for variable assigned " &

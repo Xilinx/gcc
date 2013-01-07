@@ -1765,7 +1765,7 @@ package body Sem_Ch4 is
                    (Is_Immediately_Visible (Scope (DT))
                      or else
                        (Is_Child_Unit (Scope (DT))
-                          and then Is_Visible_Child_Unit (Scope (DT))))
+                         and then Is_Visible_Lib_Unit (Scope (DT))))
                then
                   Set_Etype (N, Available_View (DT));
 
@@ -1902,8 +1902,14 @@ package body Sem_Ch4 is
          exit when No (A);
       end loop;
 
-      Analyze_Expression (Expression (N));
-      Set_Etype (N, Etype (Expression (N)));
+      --  This test needs a comment ???
+
+      if Nkind (Expression (N)) = N_Null_Statement then
+         Set_Etype (N, Standard_Void_Type);
+      else
+         Analyze_Expression (Expression (N));
+         Set_Etype (N, Etype (Expression (N)));
+      end if;
    end Analyze_Expression_With_Actions;
 
    ---------------------------
@@ -6320,13 +6326,12 @@ package body Sem_Ch4 is
           (Is_Immediately_Visible (Scope (Typ))
             or else
               (Is_Child_Unit (Scope (Typ))
-                 and then Is_Visible_Child_Unit (Scope (Typ))))
+                and then Is_Visible_Lib_Unit (Scope (Typ))))
       then
          return Available_View (Typ);
       else
          return Typ;
       end if;
-
    end Process_Implicit_Dereference_Prefix;
 
    --------------------------------

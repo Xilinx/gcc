@@ -217,16 +217,18 @@ dump_conflict_function (FILE *outf, conflict_function *cf)
   unsigned i;
 
   if (cf->n == NO_DEPENDENCE)
-    fprintf (outf, "no dependence\n");
+    fprintf (outf, "no dependence");
   else if (cf->n == NOT_KNOWN)
-    fprintf (outf, "not known\n");
+    fprintf (outf, "not known");
   else
     {
       for (i = 0; i < cf->n; i++)
 	{
+	  if (i != 0)
+	    fprintf (outf, " ");
 	  fprintf (outf, "[");
 	  dump_affine_function (outf, cf->fns[i]);
-	  fprintf (outf, "]\n");
+	  fprintf (outf, "]");
 	}
     }
 }
@@ -244,24 +246,23 @@ dump_subscript (FILE *outf, struct subscript *subscript)
   if (CF_NONTRIVIAL_P (cf))
     {
       tree last_iteration = SUB_LAST_CONFLICT (subscript);
-      fprintf (outf, "  last_conflict: ");
-      print_generic_stmt (outf, last_iteration, 0);
+      fprintf (outf, "\n  last_conflict: ");
+      print_generic_expr (outf, last_iteration, 0);
     }
 
   cf = SUB_CONFLICTS_IN_B (subscript);
-  fprintf (outf, "  iterations_that_access_an_element_twice_in_B: ");
+  fprintf (outf, "\n  iterations_that_access_an_element_twice_in_B: ");
   dump_conflict_function (outf, cf);
   if (CF_NONTRIVIAL_P (cf))
     {
       tree last_iteration = SUB_LAST_CONFLICT (subscript);
-      fprintf (outf, "  last_conflict: ");
-      print_generic_stmt (outf, last_iteration, 0);
+      fprintf (outf, "\n  last_conflict: ");
+      print_generic_expr (outf, last_iteration, 0);
     }
 
-  fprintf (outf, "  (Subscript distance: ");
-  print_generic_stmt (outf, SUB_DISTANCE (subscript), 0);
-  fprintf (outf, "  )\n");
-  fprintf (outf, " )\n");
+  fprintf (outf, "\n  (Subscript distance: ");
+  print_generic_expr (outf, SUB_DISTANCE (subscript), 0);
+  fprintf (outf, " ))\n");
 }
 
 /* Print the classic direction vector DIRV to OUTF.  */
@@ -1508,13 +1509,6 @@ static inline void
 finalize_ddr_dependent (struct data_dependence_relation *ddr,
 			tree chrec)
 {
-  if (dump_file && (dump_flags & TDF_DETAILS))
-    {
-      fprintf (dump_file, "(dependence classified: ");
-      print_generic_expr (dump_file, chrec, 0);
-      fprintf (dump_file, ")\n");
-    }
-
   DDR_ARE_DEPENDENT (ddr) = chrec;
   free_subscripts (DDR_SUBSCRIPTS (ddr));
   DDR_SUBSCRIPTS (ddr).create (0);
@@ -2648,8 +2642,7 @@ end_analyze_subs_aa:
       dump_conflict_function (dump_file, *overlaps_a);
       fprintf (dump_file, ")\n  (overlaps_b = ");
       dump_conflict_function (dump_file, *overlaps_b);
-      fprintf (dump_file, ")\n");
-      fprintf (dump_file, ")\n");
+      fprintf (dump_file, "))\n");
     }
 }
 
@@ -2770,7 +2763,7 @@ analyze_siv_subscript (tree chrec_a,
     {
     siv_subscript_dontknow:;
       if (dump_file && (dump_flags & TDF_DETAILS))
-	fprintf (dump_file, "siv test failed: unimplemented.\n");
+	fprintf (dump_file, "  siv test failed: unimplemented");
       *overlaps_a = conflict_fn_not_known ();
       *overlaps_b = conflict_fn_not_known ();
       *last_conflicts = chrec_dont_know;
@@ -2995,8 +2988,7 @@ analyze_overlapping_iterations (tree chrec_a,
       dump_conflict_function (dump_file, *overlap_iterations_a);
       fprintf (dump_file, ")\n  (overlap_iterations_b = ");
       dump_conflict_function (dump_file, *overlap_iterations_b);
-      fprintf (dump_file, ")\n");
-      fprintf (dump_file, ")\n");
+      fprintf (dump_file, "))\n");
     }
 }
 
@@ -3555,19 +3547,12 @@ static void
 subscript_dependence_tester (struct data_dependence_relation *ddr,
 			     struct loop *loop_nest)
 {
-
-  if (dump_file && (dump_flags & TDF_DETAILS))
-    fprintf (dump_file, "(subscript_dependence_tester \n");
-
   if (subscript_dependence_tester_1 (ddr, DDR_A (ddr), DDR_B (ddr), loop_nest))
     dependence_stats.num_dependence_dependent++;
 
   compute_subscript_distance (ddr);
   if (build_classic_dist_vector (ddr, loop_nest))
     build_classic_dir_vector (ddr);
-
-  if (dump_file && (dump_flags & TDF_DETAILS))
-    fprintf (dump_file, ")\n");
 }
 
 /* Returns true when all the access functions of A are affine or
@@ -4147,11 +4132,11 @@ compute_affine_dependence (struct data_dependence_relation *ddr,
       if (access_functions_are_affine_or_constant_p (dra, loop_nest)
 	  && access_functions_are_affine_or_constant_p (drb, loop_nest))
 	{
+	  subscript_dependence_tester (ddr, loop_nest);
+
 	  if (flag_check_data_deps)
 	    {
-	      /* Compute the dependences using the first algorithm.  */
-	      subscript_dependence_tester (ddr, loop_nest);
-
+	      /* Dump the dependences from the first algorithm.  */
 	      if (dump_file && (dump_flags & TDF_DETAILS))
 		{
 		  fprintf (dump_file, "\n\nBanerjee Analyzer\n");
@@ -4187,8 +4172,6 @@ compute_affine_dependence (struct data_dependence_relation *ddr,
 						  dir_vects));
 		}
 	    }
-	  else
-	    subscript_dependence_tester (ddr, loop_nest);
 	}
 
       /* As a last case, if the dependence cannot be determined, or if
