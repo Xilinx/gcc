@@ -1,5 +1,5 @@
 ;; ARM Cortex-A15 pipeline description
-;; Copyright (C) 2011 Free Software Foundation, Inc.
+;; Copyright (C) 2011, 2012 Free Software Foundation, Inc.
 ;;
 ;; Written by Matthew Gretton-Dann <matthew.gretton-dann@arm.com>
 
@@ -68,7 +68,7 @@
 ;; ALU ops with immediate shift
 (define_insn_reservation "cortex_a15_alu_shift" 3
   (and (eq_attr "tune" "cortexa15")
-       (and (eq_attr "type" "alu_shift")
+       (and (eq_attr "type" "simple_alu_shift,alu_shift")
             (eq_attr "neon_type" "none")))
   "ca15_issue1,(ca15_sx1,ca15_sx1+ca15_sx1_shf,ca15_sx1_alu)\
 	       |(ca15_sx2,ca15_sx2+ca15_sx2_shf,ca15_sx2_alu)")

@@ -1,5 +1,5 @@
 ;; Code and mode itertator and attribute definitions for the ARM backend
-;; Copyright (C) 2010, 2012 Free Software Foundation, Inc.
+;; Copyright (C) 2010, 2011, 2012 Free Software Foundation, Inc.
 ;; Contributed by ARM Ltd.
 ;;
 ;; This file is part of GCC.
@@ -429,8 +429,8 @@
 (define_mode_attr qhs_extenddi_op [(SI "s_register_operand")
 				   (HI "nonimmediate_operand")
 				   (QI "arm_reg_or_extendqisi_mem_op")])
-(define_mode_attr qhs_extenddi_cstr [(SI "r") (HI "rm") (QI "rUq")])
-(define_mode_attr qhs_zextenddi_cstr [(SI "r") (HI "rm") (QI "rm")])
+(define_mode_attr qhs_extenddi_cstr [(SI "r,0,r,r") (HI "r,0,rm,rm") (QI "r,0,rUq,rm")])
+(define_mode_attr qhs_zextenddi_cstr [(SI "r,0,r") (HI "r,0,rm") (QI "r,0,rm")])
 
 ;; Mode attributes used for fixed-point support.
 (define_mode_attr qaddsub_suf [(V4UQQ "8") (V2UHQ "16") (UQQ "8") (UHQ "16")

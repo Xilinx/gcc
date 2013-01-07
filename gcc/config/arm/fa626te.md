@@ -1,5 +1,5 @@
 ;; Faraday FA626TE Pipeline Description
-;; Copyright (C) 2010 Free Software Foundation, Inc.
+;; Copyright (C) 2010, 2012 Free Software Foundation, Inc.
 ;; Written by I-Jui Sung, based on ARM926EJ-S Pipeline Description.
 ;;
 ;; This file is part of GCC.
@@ -73,7 +73,7 @@
 
 (define_insn_reservation "626te_alu_shift_op" 2
  (and (eq_attr "tune" "fa626,fa626te")
-      (eq_attr "type" "alu_shift,alu_shift_reg"))
+      (eq_attr "type" "simple_alu_shift,alu_shift,alu_shift_reg"))
  "fa626te_core")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

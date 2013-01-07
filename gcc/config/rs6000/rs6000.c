@@ -209,6 +209,7 @@ static short cached_can_issue_more;
 static GTY(()) section *read_only_data_section;
 static GTY(()) section *private_data_section;
 static GTY(()) section *tls_data_section;
+static GTY(()) section *tls_private_data_section;
 static GTY(()) section *read_only_private_data_section;
 static GTY(()) section *sdata2_section;
 static GTY(()) section *toc_section;
@@ -5825,6 +5826,15 @@ rs6000_delegitimize_address (rtx orig_x)
 	}
 #endif
       y = XVECEXP (y, 0, 0);
+
+#ifdef HAVE_AS_TLS
+      /* Do not associate thread-local symbols with the original
+	 constant pool symbol.  */
+      if (TARGET_XCOFF
+	  && SYMBOL_REF_TLS_MODEL (get_pool_constant (y)) >= TLS_MODEL_REAL)
+	return orig_x;
+#endif
+
       if (offset != NULL_RTX)
 	y = gen_rtx_PLUS (Pmode, y, offset);
       if (!MEM_P (orig_x))
@@ -5898,10 +5908,29 @@ rs6000_got_sym (void)
 static rtx
 rs6000_legitimize_tls_address_aix (rtx addr, enum tls_model model)
 {
-  rtx sym, mem, tocref, tlsreg, tmpreg, dest;
+  rtx sym, mem, tocref, tlsreg, tmpreg, dest, tlsaddr;
+  const char *name;
+  char *tlsname;
+
+  name = XSTR (addr, 0);
+  /* Append TLS CSECT qualifier, unless the symbol already is qualified
+     or the symbol will be in TLS private data section.  */
+  if (name[strlen (name) - 1] != ']'
+      && (TREE_PUBLIC (SYMBOL_REF_DECL (addr))
+	  || bss_initializer_p (SYMBOL_REF_DECL (addr))))
+    {
+      tlsname = XALLOCAVEC (char, strlen (name) + 4);
+      strcpy (tlsname, name);
+      strcat (tlsname,
+	      bss_initializer_p (SYMBOL_REF_DECL (addr)) ? "[UL]" : "[TL]");
+      tlsaddr = copy_rtx (addr);
+      XSTR (tlsaddr, 0) = ggc_strdup (tlsname);
+    }
+  else
+    tlsaddr = addr;
 
   /* Place addr into TOC constant pool.  */
-  sym = force_const_mem (GET_MODE (addr), addr);
+  sym = force_const_mem (GET_MODE (tlsaddr), tlsaddr);
 
   /* Output the TOC entry and create the MEM referencing the value.  */
   if (constant_pool_expr_p (XEXP (sym, 0))
@@ -5918,27 +5947,28 @@ rs6000_legitimize_tls_address_aix (rtx addr, enum tls_model model)
   if (model == TLS_MODEL_GLOBAL_DYNAMIC
       || model == TLS_MODEL_LOCAL_DYNAMIC)
     {
-      rtx module = gen_reg_rtx (Pmode);
       /* Create new TOC reference for @m symbol.  */
-      const char *name = XSTR (XVECEXP (XEXP (mem, 0), 0, 0), 0);
-      char *name2 = XALLOCAVEC (char, strlen (name) + 1);
-      strcpy (name2, "*LCM");
-      strcat (name2, name + 3);
-      tocref = create_TOC_reference (gen_rtx_SYMBOL_REF (Pmode,
-							 ggc_alloc_string (name2,
-									   strlen (name2))),
-				     NULL_RTX);
-      rtx mem2 = gen_const_mem (Pmode, tocref);
-      set_mem_alias_set (mem2, get_TOC_alias_set ());
+      name = XSTR (XVECEXP (XEXP (mem, 0), 0, 0), 0);
+      tlsname = XALLOCAVEC (char, strlen (name) + 1);
+      strcpy (tlsname, "*LCM");
+      strcat (tlsname, name + 3);
+      rtx modaddr = gen_rtx_SYMBOL_REF (Pmode, ggc_strdup (tlsname));
+      SYMBOL_REF_FLAGS (modaddr) |= SYMBOL_FLAG_LOCAL;
+      tocref = create_TOC_reference (modaddr, NULL_RTX);
+      rtx modmem = gen_const_mem (Pmode, tocref);
+      set_mem_alias_set (modmem, get_TOC_alias_set ());
       
-      dest = gen_reg_rtx (Pmode);
+      rtx modreg = gen_reg_rtx (Pmode);
+      emit_insn (gen_rtx_SET (VOIDmode, modreg, modmem));
+
       tmpreg = gen_reg_rtx (Pmode);
       emit_insn (gen_rtx_SET (VOIDmode, tmpreg, mem));
-      emit_insn (gen_rtx_SET (VOIDmode, module, mem2));
+
+      dest = gen_reg_rtx (Pmode);
       if (TARGET_32BIT)
-	emit_insn (gen_tls_get_addrsi (dest, module, tmpreg));
+	emit_insn (gen_tls_get_addrsi (dest, modreg, tmpreg));
       else
-	emit_insn (gen_tls_get_addrdi (dest, module, tmpreg));
+	emit_insn (gen_tls_get_addrdi (dest, modreg, tmpreg));
       return dest;
     }
   /* Obtain TLS pointer: 32 bit call or 64 bit GPR 13.  */
@@ -22316,23 +22346,24 @@ output_toc (FILE *file, rtx x, int labelno, enum machine_mode mode)
     output_addr_const (file, x);
 
 #if HAVE_AS_TLS
-  if (TARGET_XCOFF && GET_CODE (base) == SYMBOL_REF)
+  if (TARGET_XCOFF && GET_CODE (base) == SYMBOL_REF
+      && SYMBOL_REF_TLS_MODEL (base) != 0)
     {
       if (SYMBOL_REF_TLS_MODEL (base) == TLS_MODEL_LOCAL_EXEC)
-	fputs ("[TL]@le", file);
+	fputs ("@le", file);
       else if (SYMBOL_REF_TLS_MODEL (base) == TLS_MODEL_INITIAL_EXEC)
-	fputs ("[TL]@ie", file);
+	fputs ("@ie", file);
       /* Use global-dynamic for local-dynamic.  */
       else if (SYMBOL_REF_TLS_MODEL (base) == TLS_MODEL_GLOBAL_DYNAMIC
 	       || SYMBOL_REF_TLS_MODEL (base) == TLS_MODEL_LOCAL_DYNAMIC)
 	{
-	  fputs ("[TL]\n", file);
+	  putc ('\n', file);
 	  (*targetm.asm_out.internal_label) (file, "LCM", labelno);
 	  fputs ("\t.tc .", file);
 	  RS6000_OUTPUT_BASENAME (file, name);
 	  fputs ("[TC],", file);
 	  output_addr_const (file, x);
-	  fputs ("[TL]@m", file);
+	  fputs ("@m", file);
 	}
     }
 #endif
@@ -25705,6 +25736,11 @@ rs6000_xcoff_asm_init_sections (void)
 			   rs6000_xcoff_output_tls_section_asm_op,
 			   &xcoff_tls_data_section_name);
 
+  tls_private_data_section
+    = get_unnamed_section (SECTION_TLS,
+			   rs6000_xcoff_output_tls_section_asm_op,
+			   &xcoff_private_data_section_name);
+
   read_only_private_data_section
     = get_unnamed_section (0, rs6000_xcoff_output_readonly_section_asm_op,
 			   &xcoff_private_data_section_name);
@@ -25758,7 +25794,18 @@ rs6000_xcoff_select_section (tree decl, int reloc,
     {
 #if HAVE_AS_TLS
       if (TREE_CODE (decl) == VAR_DECL && DECL_THREAD_LOCAL_P (decl))
-	return tls_data_section;
+	{
+	  if (TREE_PUBLIC (decl))
+	    return tls_data_section;
+	  else if (bss_initializer_p (decl))
+	    {
+	      /* Convert to COMMON to emit in BSS.  */
+	      DECL_COMMON (decl) = 1;
+	      return tls_comm_section;
+	    }
+	  else
+	    return tls_private_data_section;
+	}
       else
 #endif
 	if (TREE_PUBLIC (decl))
@@ -25857,10 +25904,12 @@ rs6000_xcoff_file_start (void)
 			   main_input_filename, ".bss_");
   rs6000_gen_section_name (&xcoff_private_data_section_name,
 			   main_input_filename, ".rw_");
-  rs6000_gen_section_name (&xcoff_tls_data_section_name,
-			   main_input_filename, ".tls_");
   rs6000_gen_section_name (&xcoff_read_only_section_name,
 			   main_input_filename, ".ro_");
+  rs6000_gen_section_name (&xcoff_tls_data_section_name,
+			   main_input_filename, ".tls_");
+  rs6000_gen_section_name (&xcoff_tbss_section_name,
+			   main_input_filename, ".tbss_[UL]");
 
   fputs ("\t.file\t", asm_out_file);
   output_quoted_string (asm_out_file, main_input_filename);
@@ -25886,6 +25935,31 @@ rs6000_xcoff_file_end (void)
 	 ? "\t.long _section_.text\n" : "\t.llong _section_.text\n",
 	 asm_out_file);
 }
+
+#ifdef HAVE_AS_TLS
+static void
+rs6000_xcoff_encode_section_info (tree decl, rtx rtl, int first)
+{
+  rtx symbol;
+  int flags;
+
+  default_encode_section_info (decl, rtl, first);
+
+  /* Careful not to prod global register variables.  */
+  if (!MEM_P (rtl))
+    return;
+  symbol = XEXP (rtl, 0);
+  if (GET_CODE (symbol) != SYMBOL_REF)
+    return;
+
+  flags = SYMBOL_REF_FLAGS (symbol);
+
+  if (TREE_CODE (decl) == VAR_DECL && DECL_THREAD_LOCAL_P (decl))
+    flags &= ~SYMBOL_FLAG_HAS_BLOCK_INFO;
+
+  SYMBOL_REF_FLAGS (symbol) = flags;
+}
+#endif /* HAVE_AS_TLS */
 #endif /* TARGET_XCOFF */
 
 /* Compute a (partial) cost for rtx X.  Return true if the complete

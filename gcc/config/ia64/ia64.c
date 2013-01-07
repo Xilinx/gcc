@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler.
    Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009, 2010, 2011
+   2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
    Contributed by James E. Wilson <wilson@cygnus.com> and
 		  David Mosberger <davidm@hpl.hp.com>.
@@ -5843,19 +5843,16 @@ ia64_secondary_reload_class (enum reg_class rclass,
 static int
 ia64_unspec_may_trap_p (const_rtx x, unsigned flags)
 {
-  if (GET_CODE (x) == UNSPEC)
+  switch (XINT (x, 1))
     {
-      switch (XINT (x, 1))
-	{
-	case UNSPEC_LDA:
-	case UNSPEC_LDS:
-	case UNSPEC_LDSA:
-	case UNSPEC_LDCCLR:
-	case UNSPEC_CHKACLR:
-	case UNSPEC_CHKS:
-	  /* These unspecs are just wrappers.  */
-	  return may_trap_p_1 (XVECEXP (x, 0, 0), flags);
-	}
+    case UNSPEC_LDA:
+    case UNSPEC_LDS:
+    case UNSPEC_LDSA:
+    case UNSPEC_LDCCLR:
+    case UNSPEC_CHKACLR:
+    case UNSPEC_CHKS:
+      /* These unspecs are just wrappers.  */
+      return may_trap_p_1 (XVECEXP (x, 0, 0), flags);
     }
 
   return default_unspec_may_trap_p (x, flags);

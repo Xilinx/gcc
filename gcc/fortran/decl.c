@@ -1,5 +1,6 @@
 /* Declaration statement matcher
-   Copyright (C) 2002, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
+   Copyright (C) 2002, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011,
+   2012, 2013
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -1671,11 +1672,31 @@ match
 gfc_match_null (gfc_expr **result)
 {
   gfc_symbol *sym;
-  match m;
+  match m, m2 = MATCH_NO;
 
-  m = gfc_match (" null ( )");
-  if (m != MATCH_YES)
-    return m;
+  if ((m = gfc_match (" null ( )")) == MATCH_ERROR)
+    return MATCH_ERROR;
+
+  if (m == MATCH_NO)
+    {
+      locus old_loc;
+      char name[GFC_MAX_SYMBOL_LEN + 1];
+
+      if ((m2 = gfc_match (" null (")) != MATCH_YES)
+	return m2;
+
+      old_loc = gfc_current_locus;
+      if ((m2 = gfc_match (" %n ) ", name)) == MATCH_ERROR)
+	return MATCH_ERROR;
+      if (m2 != MATCH_YES
+	  && ((m2 = gfc_match (" mold = %n )", name)) == MATCH_ERROR))
+	return MATCH_ERROR;
+      if (m2 == MATCH_NO)
+	{
+	  gfc_current_locus = old_loc;
+	  return MATCH_NO;
+	}
+    }
 
   /* The NULL symbol now has to be/become an intrinsic function.  */
   if (gfc_get_symbol ("null", NULL, &sym))
@@ -1693,6 +1714,13 @@ gfc_match_null (gfc_expr **result)
     return MATCH_ERROR;
 
   *result = gfc_get_null_expr (&gfc_current_locus);
+
+  /* Invalid per F2008, C512.  */
+  if (m2 == MATCH_YES)
+    {
+      gfc_error ("NULL() initialization at %C may not have MOLD");
+      return MATCH_ERROR;
+    }
 
   return MATCH_YES;
 }
@@ -2735,8 +2763,36 @@ gfc_match_decl_type_spec (gfc_typespec *ts, int implicit_flag)
 	return MATCH_ERROR;
       else if (m == MATCH_YES)
 	{
-	  gfc_fatal_error ("Unlimited polymorphism at %C not yet supported");
+	  gfc_symbol *upe;
+	  gfc_symtree *st;
+	  ts->type = BT_CLASS;
+	  gfc_find_symbol ("$tar", gfc_current_ns, 1, &upe);
+	  if (upe == NULL)
+	    {
+	      upe = gfc_new_symbol ("$tar", gfc_current_ns);
+	      st = gfc_new_symtree (&gfc_current_ns->sym_root, "$tar");
+	      st->n.sym = upe;
+	      gfc_set_sym_referenced (upe);
+	      upe->refs++;
+	      upe->ts.type = BT_VOID;
+	      upe->attr.unlimited_polymorphic = 1;
+	      /* This is essential to force the construction of
+		 unlimited polymorphic component class containers.  */
+	      upe->attr.zero_comp = 1;
+	      if (gfc_add_flavor (&upe->attr, FL_DERIVED,
+				  NULL, &gfc_current_locus) == FAILURE)
 	  return MATCH_ERROR;
+	}
+	  else
+	    {
+	      st = gfc_find_symtree (gfc_current_ns->sym_root, "$tar");
+	      if (st == NULL)
+		st = gfc_new_symtree (&gfc_current_ns->sym_root, "$tar");
+	      st->n.sym = upe;
+	      upe->refs++;
+	    }
+	  ts->u.derived = upe;
+	  return m;
 	}
 
       m = gfc_match (" class ( %n )", name);
@@ -4247,6 +4303,10 @@ gfc_match_data_decl (void)
       m = MATCH_NO;
       goto cleanup;
     }
+
+  if (current_ts.type == BT_CLASS
+	&& current_ts.u.derived->attr.unlimited_polymorphic)
+    goto ok;
 
   if ((current_ts.type == BT_DERIVED || current_ts.type == BT_CLASS)
       && current_ts.u.derived->components == NULL

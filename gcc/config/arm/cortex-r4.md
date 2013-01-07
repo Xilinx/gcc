@@ -1,5 +1,5 @@
 ;; ARM Cortex-R4 scheduling description.
-;; Copyright (C) 2007, 2008 Free Software Foundation, Inc.
+;; Copyright (C) 2007, 2008, 2012 Free Software Foundation, Inc.
 ;; Contributed by CodeSourcery.
 
 ;; This file is part of GCC.
@@ -90,7 +90,7 @@
 
 (define_insn_reservation "cortex_r4_alu_shift" 2
   (and (eq_attr "tune_cortexr4" "yes")
-       (eq_attr "type" "alu_shift"))
+       (eq_attr "type" "simple_alu_shift,alu_shift"))
   "cortex_r4_alu")
 
 (define_insn_reservation "cortex_r4_alu_shift_reg" 2
