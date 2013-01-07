@@ -6754,7 +6754,7 @@ normalized expression.}#
 		    )
 		  )
 		 (debug "normexp_matchalt ndatatup=" ndatatup)
-;;;
+		 ;;
 		 (put_fields nresmatch
 			     :namatch_matched nmatx ;; normal matched stuff
 			     :namatch_result nresloc
@@ -6762,14 +6762,28 @@ normalized expression.}#
 			     :namatch_flags sortedflagstup
 			     :namatch_mdatas ndatatup
 			     )
+		 (let (
+		       (csym (clone_symbol 'matchaltres_))
+		       (clocc (instance  class_nrep_locsymocc
+					  :nrep_loc sloc
+					  :nocc_ctyp matresctyp
+					  :nocc_symb csym))  
+		       (cbind (instance class_normal_let_binding
+					:letbind_loc sloc
+					:binder csym
+					:letbind_type matresctyp
+					:letbind_expr nresmatch))
+		       )
 		 (debug "normexp_matchalt nresmatch=" nresmatch
-			"\n* of discrim:" (discrim nresmatch))
-		 (debug "normexp_matchalt final nresbind=" nresbind " nresloc=" nresloc)
-		 (warning_plain sloc "@@??implemented normexp_matchalt")
-		 (compile_warning "@@??implemented normexp_matchalt")
-		 ;; we probably should do something with nresmatch...
-		 (return nresmatch (list nresbind))
-		 )))))))))
+			"\n* of discrim:" (discrim nresmatch)
+			"\n* matresctyp=" matresctyp
+			)
+		 (debug "normexp_matchalt final nresbind=" nresbind
+			"\n cbind=" cbind
+			"\n clocc=" clocc
+			"\n nresloc=" nresloc)
+		 (return clocc (list nresbind cbind))
+		 ))))))))))
 (install_method class_source_matchalt normal_exp normexp_matchalt)
 
 (defun alternate_match_optset (optsymb :cstring opts)

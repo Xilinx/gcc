@@ -1,5 +1,11 @@
 
 
+2013-01-07  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-normal.melt (normalize_tuple): Improve debug and asserts.
+
+	* melt/warmelt-normatch.melt (normexp_matchalt): More complete.
+
 2013-01-04  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-normal.melt (normalize_tuple): Better debug.
