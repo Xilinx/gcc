@@ -5980,10 +5980,14 @@ $SBUF.}#
 	   (assert_msg "check curocomp object" (is_object curocomp))
 	   (list_append obodyl curocomp)
 	   ))
+	;;
 	(debug "compilobj_nrep_matchalt obodyl=" obodyl)
 	(dispose_objloc obvares gcx)
 	(put_fields gcx :gncx_altmatch oldaltmatch)
-	(assert_msg "@@unimplemented compilobj_nrep_matchalt")
+	(debug "compilobj_nrep_matchalt restored gcx=" gcx 
+	       "\n* result obodyl=" obodyl)
+	;; ?? maybe incomplete ??
+	(return obodyl)
 	))))
 (install_method class_nrep_matchalt compile_obj compilobj_nrep_matchalt)
 
