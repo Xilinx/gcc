@@ -1105,23 +1105,28 @@ resolve_structure_cons (gfc_expr *expr, int init)
       if (!comp->attr.proc_pointer &&
 	  !gfc_compare_types (&cons->expr->ts, &comp->ts))
 	{
-	  t = FAILURE;
 	  if (strcmp (comp->name, "_extends") == 0)
 	    {
 	      /* Can afford to be brutal with the _extends initializer.
 		 The derived type can get lost because it is PRIVATE
 		 but it is not usage constrained by the standard.  */
 	      cons->expr->ts = comp->ts;
-	      t = SUCCESS;
 	    }
 	  else if (comp->attr.pointer && cons->expr->ts.type != BT_UNKNOWN)
-	    gfc_error ("The element in the structure constructor at %L, "
-		       "for pointer component '%s', is %s but should be %s",
-		       &cons->expr->where, comp->name,
-		       gfc_basic_typename (cons->expr->ts.type),
-		       gfc_basic_typename (comp->ts.type));
+	    {
+	      gfc_error ("The element in the structure constructor at %L, "
+			 "for pointer component '%s', is %s but should be %s",
+			 &cons->expr->where, comp->name,
+			 gfc_basic_typename (cons->expr->ts.type),
+			 gfc_basic_typename (comp->ts.type));
+	      t = FAILURE;
+	    }
 	  else
-	    t = gfc_convert_type (cons->expr, &comp->ts, 1);
+	    {
+	      gfc_try t2 = gfc_convert_type (cons->expr, &comp->ts, 1);
+	      if (t != FAILURE)
+		t = t2;
+	    }
 	}
 
       /* For strings, the length of the constructor should be the same as
@@ -8388,12 +8393,16 @@ resolve_select_type (gfc_code *code, gfc_namespace *old_ns)
 	}
 
       /* Check F03:C816.  */
-      if ((c->ts.type == BT_DERIVED || c->ts.type == BT_CLASS)
-	  && !selector_type->attr.unlimited_polymorphic
-	  && !gfc_type_is_extension_of (selector_type, c->ts.u.derived))
+      if (c->ts.type != BT_UNKNOWN && !selector_type->attr.unlimited_polymorphic
+	  && ((c->ts.type != BT_DERIVED && c->ts.type != BT_CLASS)
+	      || !gfc_type_is_extension_of (selector_type, c->ts.u.derived)))
 	{
-	  gfc_error ("Derived type '%s' at %L must be an extension of '%s'",
-		     c->ts.u.derived->name, &c->where, selector_type->name);
+	  if (c->ts.type == BT_DERIVED || c->ts.type == BT_CLASS)
+	    gfc_error ("Derived type '%s' at %L must be an extension of '%s'",
+		       c->ts.u.derived->name, &c->where, selector_type->name);
+	  else
+	    gfc_error ("Unexpected intrinsic type '%s' at %L",
+		       gfc_basic_typename (c->ts.type), &c->where);
 	  error++;
 	  continue;
 	}
@@ -10446,7 +10455,7 @@ resolve_values (gfc_symbol *sym)
   if (t == FAILURE)
     return;
 
-  gfc_check_assign_symbol (sym, sym->value);
+  gfc_check_assign_symbol (sym, NULL, sym->value);
 }
 
 
@@ -12870,6 +12879,10 @@ resolve_fl_derived0 (gfc_symbol *sym)
 					   || c->attr.proc_pointer
 					   || c->attr.allocatable)) == FAILURE)
 	return FAILURE;
+
+      if (c->initializer && !sym->attr.vtype
+	  && gfc_check_assign_symbol (sym, c, c->initializer) == FAILURE)
+	return FAILURE;
     }
 
   check_defined_assignments (sym);
@@ -13656,6 +13669,32 @@ resolve_symbol (gfc_symbol *sym)
 		 "procedure '%s'", sym->name, &sym->declared_at,
 		 sym->ns->proc_name->name);
       return;
+    }
+
+  if (sym->ts.type == BT_LOGICAL
+      && ((sym->attr.function && sym->attr.is_bind_c && sym->result == sym)
+	  || ((sym->attr.dummy || sym->attr.result) && sym->ns->proc_name
+	      && sym->ns->proc_name->attr.is_bind_c)))
+    {
+      int i;
+      for (i = 0; gfc_logical_kinds[i].kind; i++)
+        if (gfc_logical_kinds[i].kind == sym->ts.kind)
+          break;
+      if (!gfc_logical_kinds[i].c_bool && sym->attr.dummy
+	  && gfc_notify_std (GFC_STD_GNU, "LOGICAL dummy argument '%s' at %L "
+			     "with non-C_Bool kind in BIND(C) procedure '%s'",
+			     sym->name, &sym->declared_at,
+			     sym->ns->proc_name->name) == FAILURE)
+	return;
+      else if (!gfc_logical_kinds[i].c_bool
+	       && gfc_notify_std (GFC_STD_GNU, "LOGICAL result variable '%s' at"
+				  " %L with non-C_Bool kind in BIND(C) "
+				  "procedure '%s'", sym->name,
+				  &sym->declared_at,
+				  sym->attr.function ? sym->name
+						     : sym->ns->proc_name->name)
+		  == FAILURE)
+	return;
     }
 
   switch (sym->attr.flavor)

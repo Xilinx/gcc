@@ -13845,6 +13845,11 @@ tsubst_copy_and_build (tree t,
 	    else
 	      qualified_p = false;
 
+	    if (TREE_CODE (function) == ADDR_EXPR
+		&& TREE_CODE (TREE_OPERAND (function, 0)) == FUNCTION_DECL)
+	      /* Avoid error about taking the address of a constructor.  */
+	      function = TREE_OPERAND (function, 0);
+
 	    function = tsubst_copy_and_build (function, args, complain,
 					      in_decl,
 					      !qualified_p,
@@ -14524,6 +14529,9 @@ check_instantiated_arg (tree tmpl, tree t, tsubst_flags_t complain)
 	  return true;
 	}
     }
+  /* Class template and alias template arguments should be OK.  */
+  else if (DECL_TYPE_TEMPLATE_P (t))
+    ;
   /* A non-type argument of integral or enumerated type must be a
      constant.  */
   else if (TREE_TYPE (t)
