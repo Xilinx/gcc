@@ -2063,12 +2063,21 @@ finish_call_expr (tree fn, vec<tree, va_gc> **args, bool disallow_virtual,
   tree result;
   tree orig_fn;
   vec<tree, va_gc> *orig_args = NULL;
+  extern tree cilk_lambda_fn_temp (tree);
 
   if (fn == error_mark_node)
     return error_mark_node;
 
   gcc_assert (!TYPE_P (fn));
 
+  if (flag_enable_cilk
+      && cxx_dialect >= cxx0x
+      && spawning == CILK_CALL_SPAWN
+      && TREE_CODE (fn) != VAR_DECL
+      && TREE_CODE (fn) != OVERLOAD
+      && TREE_CODE (fn) != FUNCTION_DECL)
+    fn = cilk_lambda_fn_temp (fn);
+ 
   orig_fn = fn;
 
   if (processing_template_decl)

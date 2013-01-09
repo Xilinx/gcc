@@ -7169,7 +7169,9 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	break;
 
       ret = GS_OK;
-      if (flag_enable_cilk && lang_hooks.cilkplus.cilk_valid_spawn (*expr_p))
+      if (flag_enable_cilk
+	  && !seen_error ()
+	  && lang_hooks.cilkplus.cilk_valid_spawn (*expr_p))
 	{
 	  if (is_statement)
 	    {

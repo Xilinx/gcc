@@ -1,10 +1,21 @@
+2013-01-09  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* semantics.c (finish_call_expr): Added a check for lambda expression 
+	that is spawned.  If so, then we store it to a variable and spawn that.
+	* mangle.c (write_encoding): Added a check to see if the function is a
+	cilk helper function.
+	(write_qualified_name): Likewise.
+	(write_bare_function_type): Likewise.
+	* lex.c (unqualified_fn_lookup_error): Removed an unnecessary if-stmt.
+	* cp-cilk.c (cilk_lambda_fn_temp): New function.
+
 2013-01-02  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* parser.c (cp_parser_cilk_for_expression_iterator): Uncapitalized an
 	error message and added appropriate location to error message.
 	(cp_parser_jump_statement): Likewise.
 	* cp-cilk.c (copy_decl_for_cilk): Likewise.
-	
+
 2012-12-06  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* typeck.c (cp_build_array_ref): Added a check if array index has

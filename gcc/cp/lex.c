@@ -507,9 +507,7 @@ unqualified_fn_lookup_error (tree name)
 	}
       return name;
     }
-  if (flag_enable_cilk)
-    return name;
-
+  
   return unqualified_name_lookup_error (name);
 }
 

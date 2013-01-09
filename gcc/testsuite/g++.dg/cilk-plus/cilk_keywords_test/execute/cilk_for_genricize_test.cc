@@ -1,3 +1,6 @@
+/* { dg-do run } */
+/* { dg-options "-ldl -lcilkrts" } */
+
 #include <assert.h>
 #include <sys/time.h>
 #include <sys/resource.h>

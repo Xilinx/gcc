@@ -38,7 +38,7 @@ int called_cilk_init_builtin = 0;
 int cilk_worker_regno = CILK_WORKER_INVALID;
 
 HOST_WIDE_INT cilk_field_offsets[CILK_TI_MAX];
-
+static int cilk_lambda_var_cnt = 0;
 tree cilk_wrappers;
 
 enum add_variable_type {
@@ -2875,4 +2875,26 @@ cilk_block_local_label (tree id)
 	     label);
   current_binding_level = b;
   return declare_local_label (id);
+}
+
+/* Returns a local variable to store the LAMBDA_FN.  */
+
+tree
+cilk_lambda_fn_temp (tree lambda_fn)
+{
+  tree return_var;
+  tree fn_name;
+  char fn_name_str[80];
+
+  sprintf (fn_name_str, "_cilk_lmda_fn_var_%06d", cilk_lambda_var_cnt++);
+  fn_name = get_identifier (fn_name_str);
+  return_var = build_decl (input_location, VAR_DECL, fn_name, make_auto ());
+  TREE_USED (return_var) = 1;
+  TREE_ADDRESSABLE (return_var) = 1;
+  DECL_CONTEXT (return_var) = current_function_decl;
+  DECL_INITIAL (return_var) = NULL_TREE;
+  DECL_SEEN_IN_BIND_EXPR_P (return_var) = 1;
+  cp_finish_decl (return_var, lambda_fn, false, NULL_TREE, LOOKUP_NORMAL);
+  add_local_decl (cfun, return_var);
+  return return_var;
 }

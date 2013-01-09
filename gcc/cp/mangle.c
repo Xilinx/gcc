@@ -735,10 +735,11 @@ write_encoding (const tree decl)
 	}
 
       write_bare_function_type (fn_type,
-				(!DECL_CONSTRUCTOR_P (decl)
-				 && !DECL_DESTRUCTOR_P (decl)
-				 && !DECL_CONV_FN_P (decl)
-				 && decl_is_template_id (decl, NULL)),
+				(flag_enable_cilk && CILK_FN_P (decl))
+				|| (!DECL_CONSTRUCTOR_P (decl)
+				    && !DECL_DESTRUCTOR_P (decl)
+				    && !DECL_CONV_FN_P (decl)
+				    && decl_is_template_id (decl, NULL)),
 				d);
     }
 }
@@ -1204,7 +1205,11 @@ write_unqualified_name (const tree decl)
   else if (DECL_DECLARES_FUNCTION_P (decl))
     {
       found = true;
-      if (DECL_CONSTRUCTOR_P (decl))
+      /* If it is a _Cilk_spawn helper function,  then just write it without
+	 questioning like a C function.  */
+      if (flag_enable_cilk && CILK_FN_P (decl))
+	write_source_name (DECL_NAME (decl));
+      else if (DECL_CONSTRUCTOR_P (decl))
 	write_special_name_constructor (decl);
       else if (DECL_DESTRUCTOR_P (decl))
 	write_special_name_destructor (decl);
@@ -2380,13 +2385,17 @@ write_bare_function_type (const tree type, const int include_return_type_p,
 
   MANGLE_TRACE_TREE ("bare-function-type", type);
 
+  /* If it is a Cilk spawn helper function, then it is clearly not a Java
+     function.  */
+  if (flag_enable_cilk && decl != NULL && CILK_FN_P (decl))
+    java_method_p = 0;
   /* Detect Java methods and emit special encoding.  */
-  if (decl != NULL
-      && DECL_FUNCTION_MEMBER_P (decl)
-      && TYPE_FOR_JAVA (DECL_CONTEXT (decl))
-      && !DECL_CONSTRUCTOR_P (decl)
-      && !DECL_DESTRUCTOR_P (decl)
-      && !DECL_CONV_FN_P (decl))
+  else if (decl != NULL
+	   && DECL_FUNCTION_MEMBER_P (decl)
+	   && TYPE_FOR_JAVA (DECL_CONTEXT (decl))
+	   && !DECL_CONSTRUCTOR_P (decl)
+	   && !DECL_DESTRUCTOR_P (decl)
+	   && !DECL_CONV_FN_P (decl))
     {
       java_method_p = 1;
       write_char ('J');

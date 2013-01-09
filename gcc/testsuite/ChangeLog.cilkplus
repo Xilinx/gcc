@@ -1,3 +1,10 @@
+2013-01-09  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* g++.dg/cilk-plus/cilk_keywords_test/execute/c++11-tests/lambda_spawns.cc: New test.
+	* g++.dg/cilk-plus/cilk_keywords_test/execute/c++11-tests/lambda_spawns_tplt.cc: New test.
+	* g++.dg/cilk-plus/cilk_keywords_test/execute/c++11-tests/execute.exp: 
+	New script.
+
 2012-12-17  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* gcc.dg/cilk-plus/cilk_keywords_test/execute/cilk_for_ptr_iter.c: 
