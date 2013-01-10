@@ -689,6 +689,9 @@ DEFTREECODE (MAX_EXPR, "max_expr", tcc_binary, 2)
    operand of the ABS_EXPR must have the same type.  */
 DEFTREECODE (ABS_EXPR, "abs_expr", tcc_unary, 1)
 
+/* Represents the byteswap for an endian conversion.   */
+DEFTREECODE (BYTESWAP_EXPR, "byteswap_expr", tcc_unary, 1)
+
 /* Shift operations for shift and rotate.
    Shift means logical shift if done on an
    unsigned type, arithmetic shift if done on a signed type.

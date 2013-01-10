@@ -1,4 +1,8 @@
 2013-01-10  Andrew Pinski  <apinski@cavium.com>
 
+	* tree.def (BYTESWAP_EXPR): New tree code.
+
+2013-01-10  Andrew Pinski  <apinski@cavium.com>
+
 	* BASE-VER: Change to include the branch name.
 
