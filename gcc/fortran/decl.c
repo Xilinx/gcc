@@ -1,7 +1,5 @@
 /* Declaration statement matcher
-   Copyright (C) 2002, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011,
-   2012, 2013
-   Free Software Foundation, Inc.
+   Copyright (C) 2002-2013 Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
 This file is part of GCC.
@@ -1353,14 +1351,14 @@ add_init_expr_to_sym (const char *name, gfc_expr **initp, locus *var_locus)
       if (sym->ts.type != BT_DERIVED && init->ts.type != BT_DERIVED
 	  && sym->ts.type != BT_CLASS && init->ts.type != BT_CLASS
 	  && !sym->attr.proc_pointer 
-	  && gfc_check_assign_symbol (sym, init) == FAILURE)
+	  && gfc_check_assign_symbol (sym, NULL, init) == FAILURE)
 	return FAILURE;
 
       if (sym->ts.type == BT_CHARACTER && sym->ts.u.cl
 	    && init->ts.type == BT_CHARACTER)
 	{
 	  /* Update symbol character length according initializer.  */
-	  if (gfc_check_assign_symbol (sym, init) == FAILURE)
+	  if (gfc_check_assign_symbol (sym, NULL, init) == FAILURE)
 	    return FAILURE;
 
 	  if (sym->ts.u.cl->length == NULL)
@@ -6955,7 +6953,7 @@ do_parm (void)
       goto cleanup;
     }
 
-  if (gfc_check_assign_symbol (sym, init) == FAILURE
+  if (gfc_check_assign_symbol (sym, NULL, init) == FAILURE
       || gfc_add_flavor (&sym->attr, FL_PARAMETER, sym->name, NULL) == FAILURE)
     {
       m = MATCH_ERROR;

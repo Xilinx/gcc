@@ -1496,6 +1496,11 @@ MELT_H= $(srcdir)/melt/generated/meltrunsup.h \
     melt-predef.h 
 
 MELT_RUNTIME_C= $(srcdir)/melt-runtime.c 
+#### end of MELT things
+
+# This is defined to "yes" if Tree checking is enabled, which roughly means
+# front-end checking.
+TREECHECKING = @TREECHECKING@
 
 MOSTLYCLEANFILES = insn-flags.h insn-config.h insn-codes.h \
  insn-output.c insn-recog.c insn-emit.c insn-extract.c insn-peep.c \
@@ -2687,6 +2692,7 @@ targhooks.o : targhooks.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TREE_H) \
 common/common-targhooks.o : common/common-targhooks.c $(CONFIG_H) $(SYSTEM_H) \
    coretypes.h $(INPUT_H) $(TM_H) $(COMMON_TARGET_H) common/common-targhooks.h
 
+################################################################
 #### added for MELT http://gcc-melt.org
 
 melt_default_probe=melt-probe

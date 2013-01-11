@@ -1,6 +1,5 @@
 /* SSA-PRE for trees.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-   2011, 2012 Free Software Foundation, Inc.
+   Copyright (C) 2001-2013 Free Software Foundation, Inc.
    Contributed by Daniel Berlin <dan@dberlin.org> and Steven Bosscher
    <stevenb@suse.de>
 
@@ -1729,10 +1728,6 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 	    edge e = find_edge (pred, gimple_bb (def_stmt));
 	    tree def = PHI_ARG_DEF (def_stmt, e->dest_idx);
 
-	    /* Valueize it.  */
-	    if (TREE_CODE (def) == SSA_NAME)
-	      def = VN_INFO (def)->valnum;
-
 	    /* Handle constant. */
 	    if (is_gimple_min_invariant (def))
 	      return get_or_alloc_expr_for_constant (def);
@@ -1978,7 +1973,8 @@ valid_in_sets (bitmap_set_t set1, bitmap_set_t set2, pre_expr expr,
   switch (expr->kind)
     {
     case NAME:
-      return bitmap_set_contains_expr (AVAIL_OUT (block), expr);
+      return bitmap_find_leader (AVAIL_OUT (block),
+				 get_expr_value_id (expr)) != NULL;
     case NARY:
       {
 	unsigned int i;
