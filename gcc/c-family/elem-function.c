@@ -2,7 +2,7 @@
    This file contains C/C++ specific functions for elemental
    functions.
    
-   Copyright (C) 2012  Free Software Foundation, Inc.
+   Copyright (C) 2012-2013  Free Software Foundation, Inc.
    Written by Balaji V. Iyer <balaji.v.iyer@intel.com>,
               Intel Corporation
 
