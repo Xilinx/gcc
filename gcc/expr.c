@@ -8636,6 +8636,20 @@ expand_expr_real_2 (sepops ops, rtx target, enum machine_mode tmode,
       return expand_abs (mode, op0, target, unsignedp,
 			 safe_from_p (target, treeop0, 1));
 
+    case BYTESWAP_EXPR:
+      op0 = expand_expr (treeop0, subtarget,
+			 VOIDmode, EXPAND_NORMAL);
+      if (modifier == EXPAND_STACK_PARM)
+	target = 0;
+      temp = expand_unop (mode,
+      			  optab_for_tree_code (BYTESWAP_EXPR, type,
+					       optab_default),
+			  op0, target, 1);
+      gcc_assert (temp);
+
+      /* FIXME: this is wrong for bitfields still since we need to do a shift. */
+      return REDUCE_BIT_FIELD (temp);
+
     case MAX_EXPR:
     case MIN_EXPR:
       target = original_target;

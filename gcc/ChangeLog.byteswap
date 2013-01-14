@@ -1,3 +1,14 @@
+2013-01-14  Andrew Pinski  <apinski@cavium.com>
+
+	* builtins.c (fold_builtin_bswap): Add loc argument.
+	Build BYTESWAP_EXPR tree for the folding of the builtin.
+	(fold_builtin_1): Pass loc to fold_builtin_bswap.
+	* epxr.c (expand_expr_real_2): Add BYTESWAP_EXPR handling.
+	* optabs.c (optab_for_tree_code): Likewise.
+	(expand_unop): Add fixme for byteswap with float types.
+	* tree-cfg.c (verify_gimple_assign_unary): Add BYTESWAP_EXPR handling.
+	* tree-inline.c (estimate_operator_cost): Likewise.
+
 2013-01-10  Andrew Pinski  <apinski@cavium.com>
 
 	* tree.def (BYTESWAP_EXPR): New tree code.

@@ -352,6 +352,9 @@ optab_for_tree_code (enum tree_code code, const_tree type,
   bool trapv;
   switch (code)
     {
+    case BYTESWAP_EXPR:
+      return bswap_optab;
+
     case BIT_AND_EXPR:
       return and_optab;
 
@@ -3040,6 +3043,7 @@ expand_unop (enum machine_mode mode, optab unoptab, rtx op0, rtx target,
   /* Widening (or narrowing) bswap needs special treatment.  */
   if (unoptab == bswap_optab)
     {
+      /* FIXME: Handle floating point modes here */
       /* HImode is special because in this mode BSWAP is equivalent to ROTATE
 	 or ROTATERT.  First try these directly; if this fails, then try the
 	 obvious pair of shifts with allowed widening, as this will probably

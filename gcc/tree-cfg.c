@@ -3345,6 +3345,7 @@ verify_gimple_assign_unary (gimple stmt)
     case PAREN_EXPR:
     case NON_LVALUE_EXPR:
     case CONJ_EXPR:
+    case BYTESWAP_EXPR:
       break;
 
     default:
