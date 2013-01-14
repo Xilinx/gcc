@@ -1,6 +1,5 @@
 ;; GCC machine description for i386 synchronization instructions.
-;; Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
-;; Free Software Foundation, Inc.
+;; Copyright (C) 2005-2013 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
 ;;
@@ -102,9 +101,11 @@
   [(match_operand:SI 0 "const_int_operand")]		;; model
   ""
 {
+  enum memmodel model = (enum memmodel) (INTVAL (operands[0]) & MEMMODEL_MASK);
+
   /* Unless this is a SEQ_CST fence, the i386 memory model is strong
      enough not to require barriers of any kind.  */
-  if (INTVAL (operands[0]) == MEMMODEL_SEQ_CST)
+  if (model == MEMMODEL_SEQ_CST)
     {
       rtx (*mfence_insn)(rtx);
       rtx mem;
@@ -201,7 +202,7 @@
 		       UNSPEC_MOVA))]
   ""
 {
-  enum memmodel model = (enum memmodel) INTVAL (operands[2]);
+  enum memmodel model = (enum memmodel) (INTVAL (operands[2]) & MEMMODEL_MASK);
 
   if (<MODE>mode == DImode && !TARGET_64BIT)
     {
