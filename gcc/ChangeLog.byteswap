@@ -1,5 +1,11 @@
 2013-01-15  Andrew Pinski  <apinski@cavium.com>
 
+	* testsuite/gcc.dg/tree-ssa/bswap-1.c: New testcase.
+	* testsuite/gcc.dg/tree-ssa/bswap-3.c: New testcase.
+	* testsuite/gcc.dg/tree-ssa/bswap-4.c: New testcase.
+
+2013-01-15  Andrew Pinski  <apinski@cavium.com>
+
 	* builtins.c (fold_builtin_bswap): Remove constant folding.
 	Also add a NOP_EXPR after the BYTESWAP_EXPR just in case.
 	* fold-const.c (fold_unary_loc): Optimize two BYTESWAP_EXPR into
