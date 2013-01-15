@@ -1,6 +1,11 @@
 
 
 2013-01-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{mini-milestone: bad C code emitted for matchalt!}}
+	* melt/warmelt-normatch.melt (normexp_matchalt): Missing binding
+	in clocc for matchaltres_ local symbol.
+
+2013-01-15  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-genobj.melt (compilobj_nrep_let): Remplace some
 	multiple_every with a foreach_in_multiple.

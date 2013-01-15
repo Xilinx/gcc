@@ -6764,15 +6764,17 @@ normalized expression.}#
 			     )
 		 (let (
 		       (csym (clone_symbol 'matchaltres_))
-		       (clocc (instance  class_nrep_locsymocc
-					  :nrep_loc sloc
-					  :nocc_ctyp matresctyp
-					  :nocc_symb csym))  
 		       (cbind (instance class_normal_let_binding
 					:letbind_loc sloc
 					:binder csym
 					:letbind_type matresctyp
 					:letbind_expr nresmatch))
+		       (clocc (instance  class_nrep_locsymocc
+					  :nrep_loc sloc
+					  :nocc_ctyp matresctyp
+					  :nocc_symb csym
+					  :nocc_bind cbind
+					  ))  
 		       )
 		 (debug "normexp_matchalt nresmatch=" nresmatch
 			"\n* of discrim:" (discrim nresmatch)
