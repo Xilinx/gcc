@@ -24230,7 +24230,8 @@ dwarf2out_finish (const char *filename)
 
   output_pubtables ();
 
-  generate_dwarf_accel_tables ();
+  if (dwarf_accel_tables)
+    generate_dwarf_accel_tables ();
 
   /* Output the address range information if a CU (.debug_info section)
      was emitted.  We output an empty table even if we had no functions
@@ -24884,7 +24885,6 @@ generate_dwarf_accel_tables (void)
   init_accel_table (&namespaces_table, DEBUG_NAMESPACES_SECTION);
 
   /* Figure out which entries go with which table.  */
-  gcc_assert (limbo_die_list == NULL);
   collect_accel_entries_from_die (comp_unit_die ());
   for (ctnode = comdat_type_list; ctnode; ctnode = ctnode->next)
     collect_accel_entries_from_die (ctnode->root_die);
