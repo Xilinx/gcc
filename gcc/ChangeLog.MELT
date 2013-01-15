@@ -1,6 +1,12 @@
 
 2013-01-15  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-genobj.melt (compilobj_nrep_matchjump): Still incomplete.
+
+	* testsuite/melt/tmatch-tuple.melt: More options in comment.
+
+2013-01-15  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* common.opt (-fmelt-keep-temporary-files): New flag.
 
 	* melt-runtime.c: Update copyright years.

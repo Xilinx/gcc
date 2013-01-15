@@ -3254,18 +3254,20 @@ $SBUF.}#
 			   ;; :oblo_epil is left null
 			   ))
 	 )
-    (multiple_every
-     nseq
-     (lambda (ncomp :long ix)
-       (let ( (ocomp (compile_obj ncomp gcx)) )
-	 (list_append bodyl ocomp)
-	 )))
+    (foreach_in_multiple
+     (nseq)
+     (ncomp :long ix)
+     (debug "compilobj_nrep_progn ncomp=" ncomp " ix=" ix)
+     (let ( (ocomp (compile_obj ncomp gcx)) )
+       (list_append bodyl ocomp)
+       ))
     (let ( (olast (compile_obj nlast gcx)) )
       (list_append bodyl olast))
     (debug "compilobj_nrep_progn oblock=" oblock)
     (return oblock)
     ))
 (install_method class_nrep_progn compile_obj compilobj_nrep_progn)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a multacc [data multiple accessor]
 (defun compilobj_nrep_multacc (nma gcx)
@@ -6132,7 +6134,7 @@ $SBUF.}#
 
 ;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_matchjump (nmjump gcx)
-  (debug "compilobj_nrep_matchedata nmjump=" nmjump 
+  (debug "compilobj_nrep_matchjump nmjump=" nmjump 
 	 "\n of discr=" (discrim nmjump) "\n gcx=" gcx)
   (assert_msg "check nmjump" (is_a nmjump class_nrep_match_jump))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
@@ -6141,6 +6143,7 @@ $SBUF.}#
 	(altmatch (get_field :gncx_altmatch gcx))
 	)
     (debug "compilobj_nrep_matchjump  altmatch=" altmatch)
+    (shortbacktrace_dbg "compilobj_nrep_matchjump" 15)
     (let ( (objc (make_objcompute nloc ctype_void ##{??compilobj_nrep_matchjump
 #error incomplete compilobj_nrep_matchjump 
 }#))
