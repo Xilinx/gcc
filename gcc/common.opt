@@ -976,6 +976,11 @@ Common Report Var(melt_workdir_string) RejectNegative Joined
 Work directory for melt. Generated .c files and .so modules 
 go there if it is given.
 
+; forcibly keep every temporary file
+fmelt-keep-temporary-files
+Common Report Var(melt_flag_keep_temporary_files) 
+Forcibly keep the temporary files. Mostly useful for certain debugging purposes.
+
 
 ; extra modules
 fmelt-extra=

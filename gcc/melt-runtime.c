@@ -1,7 +1,7 @@
 /*** file melt-runtime.c
      Middle End Lisp Translator [MELT] runtime support.
 
-     Copyright (C) 2008 - 2012 Free Software Foundation, Inc.
+     Copyright (C) 2008 - 2013 Free Software Foundation, Inc.
      Contributed by Basile Starynkevitch <basile@starynkevitch.net>
        and Pierre Vittet  <piervit@pvittet.com>
        and Romain Geissler  <romain.geissler@gmail.com>
@@ -239,6 +239,7 @@ melt_resize_scangcvect (unsigned long size)
 int melt_flag_debug = 0;	/* for MELT plugin */
 int melt_flag_bootstrapping = 0;
 int melt_flag_generate_work_link = 0;
+int melt_flag_keep_temporary_files = 0;
 /* In the MELT branch melt_flag_debug is #define-d in generated "options.h"
    as global_options.x_melt_flag_debug. */
 
@@ -766,6 +767,8 @@ melt_argument (const char* argname)
     return melt_flag_bootstrapping?"yes":NULL;
   else if (!strcmp (argname, "generate-work-link"))
     return melt_flag_generate_work_link?"yes":NULL;
+  else if (!strcmp (argname, "keep-temporary-files"))
+    return melt_flag_keep_temporary_files?"yes":NULL;
   else if (!strcmp (argname, "generated-c-file-list"))
     return melt_generated_c_file_list_string;
   else if (!strcmp (argname, "debugskip") || !strcmp (argname, "debug-skip"))
@@ -5278,8 +5281,9 @@ melt_clear_inisysdata(int off)
 
 /* our temporary directory */
 /* maybe it should not be static, or have a bigger length */
-static char tempdir_melt[1024];
-static bool made_tempdir_melt;
+static char melt_tempdir[1024];
+
+static bool melt_made_tempdir;
 /* returns malloc-ed path inside a temporary directory, with a given basename  */
 char *
 melt_tempdir_path (const char *srcnam, const char* suffix)
@@ -5300,11 +5304,11 @@ melt_tempdir_path (const char *srcnam, const char* suffix)
       if (mkdir (tmpdirstr, 0700))
         melt_fatal_error ("failed to mkdir melt_tempdir %s - %m",
                           tmpdirstr);
-      made_tempdir_melt = true;
+      melt_made_tempdir = true;
     }
     return concat (tmpdirstr, "/", basnam, suffix, NULL);
   }
-  if (!tempdir_melt[0]) {
+  if (!melt_tempdir[0]) {
     if (!maymkdir)
       return NULL;
     time (&nowt);
@@ -5312,20 +5316,20 @@ melt_tempdir_path (const char *srcnam, const char* suffix)
     for (loopcnt = 0; loopcnt < 1000; loopcnt++) {
       int n = (melt_lrand () & 0x1fffffff) ^ (nowt & 0xffffff);
       n += (int)getpid ();
-      memset(tempdir_melt, 0, sizeof(tempdir_melt));
-      snprintf (tempdir_melt, sizeof(tempdir_melt)-1,
+      memset(melt_tempdir, 0, sizeof(melt_tempdir));
+      snprintf (melt_tempdir, sizeof(melt_tempdir)-1,
                 "%s-GccMeltTmp-%x",
                 tmpnam(NULL),  n);
-      if (!mkdir (tempdir_melt, 0700)) {
-        made_tempdir_melt = true;
+      if (!mkdir (melt_tempdir, 0700)) {
+        melt_made_tempdir = true;
         mkdirdone = 1;
         break;
       };
     }
     if (!mkdirdone)
-      melt_fatal_error ("failed to create temporary directory for MELT, last try was %s - %m", tempdir_melt);
+      melt_fatal_error ("failed to create temporary directory for MELT, last try was %s - %m", melt_tempdir);
   };
-  return concat (tempdir_melt, "/", basnam, suffix, NULL);
+  return concat (melt_tempdir, "/", basnam, suffix, NULL);
 }
 
 
@@ -8893,7 +8897,7 @@ meltgc_passexec_callback (void *gcc_data,
   MELT_EXITFRAME ();
 }
 
-static void do_finalize_melt (void);
+static void melt_do_finalize (void);
 
 
 /* the plugin callback when finishing all */
@@ -8902,7 +8906,7 @@ melt_finishall_callback(void *gcc_data ATTRIBUTE_UNUSED,
                         void* user_data ATTRIBUTE_UNUSED)
 {
   debugeprintf ("melt_finishall_callback melt_nb_garbcoll=%ld", melt_nb_garbcoll);
-  do_finalize_melt ();
+  melt_do_finalize ();
 }
 
 
@@ -9357,7 +9361,7 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
     (sobase,
      MELT_FILE_LOG, melt_trace_module_fil,
      /* First search in the temporary directory, but don't bother making it.  */
-     MELT_FILE_IN_DIRECTORY, tempdir_melt,
+     MELT_FILE_IN_DIRECTORY, melt_tempdir,
      /* Search in the user provided work directory, if given. */
      MELT_FILE_IN_DIRECTORY, melt_argument ("workdir"),
      /* Search in the user provided module path, if given.  */
@@ -9391,7 +9395,7 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
         (cursobase,
 	 MELT_FILE_LOG, melt_trace_module_fil,
          /* First search in the temporary directory, but don't bother making it.  */
-         MELT_FILE_IN_DIRECTORY, tempdir_melt,
+         MELT_FILE_IN_DIRECTORY, melt_tempdir,
          /* Search in the user provided work directory, if given. */
          MELT_FILE_IN_DIRECTORY, melt_argument ("workdir"),
          /* Search in the user provided module path, if given.  */
@@ -9439,9 +9443,9 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
       if (sobase)
 	error ("MELT failed to find module of base %s with module-path %s", 
 	       sobase, melt_argument ("module-path"));
-      if (tempdir_melt[0]) 
+      if (melt_tempdir[0]) 
 	error ("MELT failed to find module of base %s in temporary dir %s", 
-	       srcbase, tempdir_melt);
+	       srcbase, melt_tempdir);
       if (melt_argument ("workdir")) 
 	error ("MELT failed to find module of base %s in work dir %s", 
 	       srcbase, melt_argument ("workdir"));
@@ -9580,7 +9584,7 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
                       MELT_FILE_IN_ENVIRON_PATH, melt_flag_bootstrapping?NULL:"GCCMELT_SOURCE_PATH",
                       MELT_FILE_IN_DIRECTORY, melt_source_dir,
                       /* also search in the temporary directory, but don't bother making it.  */
-                      MELT_FILE_IN_DIRECTORY, tempdir_melt,
+                      MELT_FILE_IN_DIRECTORY, melt_tempdir,
                       /* Search in the user provided work directory, if given. */
                       MELT_FILE_IN_DIRECTORY, melt_argument ("workdir"),
                       NULL);
@@ -10897,6 +10901,7 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   melt_payload_initialize_static_descriptors ();
 
 #ifdef MELT_IS_PLUGIN
+
   /* when MELT is a plugin, we need to process the debug
      argument. When MELT is a branch, the melt_argument function is
      using melt_flag_debug for "debug" so we don't want this. */
@@ -10942,18 +10947,24 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   /* When MELT is a plugin, we need to process the bootstrapping
      argument. When MELT is a branch, the melt_argument function is
      using melt_flag_bootstrapping for "bootstrapping" so we don't
-     want this.  Likewise for "generate-work-link" and
-     melt_flag_generate_work_link. */
+     want this.  Likewise for "generate-work-link" &
+     melt_flag_generate_work_link, and "keep-temporary-files" &
+     melt_flag_keep_temporary_files. */
   {
     const char *bootstr = melt_argument ("bootstrapping");
     const char *genworkdir = melt_argument ("generate-workdir");
+    const char *keeptemp = melt_argument("keep-temporary-files");
     /* debug=n or debug=0 is handled as no debug */
     if (bootstr && (!bootstr[0] || !strchr("Nn0", bootstr[0])))
       melt_flag_bootstrapping = 1;
     if (genworkdir && (!genworkdir[0] || !strchr("Nn0", genworkdir[0])))
       melt_flag_generate_work_link = 1;
+    if (keeptemp && (!keeptemp[0] || !strchr("Nn0", keeptemp[0])))
+      melt_flag_keep_temporary_files = 1;
   }
+
 #else /*!MELT_IS_PLUGIN*/
+
   {	/* for the MELT branch */
     const char* debuggingstr = melt_argument ("debugging");
     if (debuggingstr && !strcasecmp(debuggingstr, "mode")) 
@@ -10974,6 +10985,8 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   }
 #endif  /* MELT_IS_PLUGIN */
 
+
+  /* Additional debug specific code.  */
 #if MELT_HAVE_DEBUG
   {
     char* tracepath = getenv ("GCCMELT_TRACE_LOCATION");
@@ -11372,32 +11385,36 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
 
 
 static void
-do_finalize_melt (void)
+melt_do_finalize (void)
 {
   static int didfinal;
   const char* modstr = NULL;
   int arrcount = 0;
   MELT_ENTERFRAME (1, NULL);
 #define finclosv meltfram__.mcfr_varptr[0]
+  debugeprintf ("melt_do_finalize didfinal %d start", didfinal);
   if (didfinal++>0)
     goto end;
   modstr = melt_argument ("mode");
+  debugeprintf ("melt_do_finalize modstr %s", modstr);
   if (!modstr)
     goto end;
   finclosv = melt_get_inisysdata (MELTFIELD_SYSDATA_EXIT_FINALIZER);
   if (melt_magic_discr ((melt_ptr_t) finclosv) == MELTOBMAG_CLOSURE) {
     MELT_LOCATION_HERE
-      ("do_finalize_melt before applying final closure");
+      ("melt_do_finalize before applying final closure");
     (void) melt_apply ((meltclosure_ptr_t) finclosv,
                        (melt_ptr_t) NULL, "", NULL, "", NULL);
   }
   /* Always force a minor GC to be sure nothing stays in young
      region.  */
   melt_garbcoll (0, MELT_ONLY_MINOR);
+  debugeprintf("melt_do_finalize melt_tempdir %s melt_made_tempdir %d", 
+	       melt_tempdir, melt_made_tempdir);
   /* Clear the temporary directory if needed.  */
-  if (tempdir_melt[0]) 
+  if (melt_tempdir[0]) 
     {
-      DIR *tdir = opendir (tempdir_melt);
+      DIR *tdir = opendir (melt_tempdir);
       int nbdelfil = 0;
       struct dirent *dent = NULL;
       char**arrent = NULL;
@@ -11406,7 +11423,7 @@ do_finalize_melt (void)
       arrsize = 32;
       arrent = (char**)xcalloc (arrsize, sizeof(char*));
       if (!tdir)
-	melt_fatal_error ("failed to open tempdir %s %m", tempdir_melt);
+	melt_fatal_error ("failed to open tempdir %s %m", melt_tempdir);
       while ((dent = readdir (tdir)) != NULL) 
 	{
 	  if (!dent->d_name[0] || dent->d_name[0] == '.')
@@ -11425,37 +11442,49 @@ do_finalize_melt (void)
 	  arrent[arrcount++] = xstrdup (dent->d_name);
 	};
       closedir (tdir);
-      for (ix = 0; ix < arrcount; ix++) 
+      debugeprintf ("melt_do_finalize arrcount=%d melt_tempdir %s keeptemp=%d",
+		    arrcount, melt_tempdir, melt_flag_keep_temporary_files);
+      if (melt_flag_keep_temporary_files)
 	{
-	  char *tfilnam = arrent[ix];
-	  char *tfilpath = concat (tempdir_melt, "/", tfilnam, NULL);
-	  static char symlinkpath[512];
-	  debugeprintf ("melt_finalize remove file #%d %s path %s", ix, tfilnam, tfilpath);
-	  memset (symlinkpath, 0, sizeof(symlinkpath));
-	  if (readlink (tfilpath, symlinkpath, sizeof(symlinkpath)-1)>0)
+	  if (arrcount > 0)
+	    inform (UNKNOWN_LOCATION,
+		    "MELT forcibly keeping %d temporary files in %s",
+		    arrcount, melt_tempdir);
+	}
+      else 
+	{
+	  for (ix = 0; ix < arrcount; ix++) 
 	    {
-	      if (symlinkpath[0]=='/' && !remove (symlinkpath))
+	      char *tfilnam = arrent[ix];
+	      char *tfilpath = concat (melt_tempdir, "/", tfilnam, NULL);
+	      static char symlinkpath[512];
+	      debugeprintf ("melt_do_finalize remove file #%d %s path %s", ix, tfilnam, tfilpath);
+	      memset (symlinkpath, 0, sizeof(symlinkpath));
+	      if (readlink (tfilpath, symlinkpath, sizeof(symlinkpath)-1)>0)
+		{
+		  if (symlinkpath[0]=='/' && !remove (symlinkpath))
+		    nbdelfil++;
+		}
+	      if (!remove (tfilpath))
 		nbdelfil++;
-	    }
-	  if (!remove (tfilpath))
-	      nbdelfil++;
-	  arrent[ix] = NULL;
-	  free (tfilnam);
-	  free (tfilpath);
-	};
+	      arrent[ix] = NULL;
+	      free (tfilnam);
+	      free (tfilpath);
+	    };
+	}
       free (arrent), arrent = NULL;
       if (nbdelfil>0)
 	inform (UNKNOWN_LOCATION, "MELT removed %d temporary files from %s",
-		nbdelfil, tempdir_melt);
+		nbdelfil, melt_tempdir);
+      if (melt_made_tempdir && !melt_flag_keep_temporary_files) 
+	{
+	  if (rmdir (melt_tempdir))
+	    /* @@@ I don't know if it should be a warning or a fatal error -
+	       we are finalizing! */
+	    warning (0, "failed to rmdir melt tempdir %s with %d directory entries (%s)",
+		     melt_tempdir, arrcount, xstrerror (errno));
+	}
     }
-  if (made_tempdir_melt && tempdir_melt[0]) {
-    errno = 0;
-    if (rmdir (tempdir_melt))
-      /* @@@ I don't know if it should be a warning or a fatal error -
-         we are finalizing! */
-      warning (0, "failed to rmdir melt tempdir %s with %d directory entries (%s)",
-               tempdir_melt, arrcount, xstrerror (errno));
-  }
   if (melt_generated_c_files_list_fil) 
     {
       fprintf (melt_generated_c_files_list_fil, "# end of generated C file list\n");
@@ -11489,7 +11518,7 @@ do_finalize_melt (void)
 	      l>>10, getenv ("GCCMELT_TRACE_LOCATION"));
     }
 #endif
-  dbgprintf ("do_finalize_melt ended melt_nb_modules=%d", melt_nb_modules);
+  dbgprintf ("melt_do_finalize ended melt_nb_modules=%d", melt_nb_modules);
  end:
   MELT_EXITFRAME ();
 #undef finclosv
@@ -11587,7 +11616,7 @@ melt_dynobjstruct_classlength_at (const char *clanam, const char *fil,
 void
 melt_finalize (void)
 {
-  do_finalize_melt ();
+  melt_do_finalize ();
   debugeprintf ("melt_finalize with %ld GarbColl, %ld fullGc",
                 melt_nb_garbcoll, melt_nb_full_garbcoll);
 }
@@ -12823,7 +12852,7 @@ melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
 	    };
 	  if (samemdfil) 
 	    {
-	      unlink (dotempnam);
+	      (void) remove (dotempnam);
 	      if (symlink (md5nam, dotcnam))
 		melt_fatal_error ("failed to symlink old %s as %s - %m", md5nam, dotcnam);
 	      if (IS_ABSOLUTE_PATH (dotcnam))

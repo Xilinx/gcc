@@ -1,4 +1,24 @@
 
+2013-01-15  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* common.opt (-fmelt-keep-temporary-files): New flag.
+
+	* melt-runtime.c: Update copyright years.
+	(melt_flag_keep_temporary_files): New variable in plugin.
+	(melt_argument): Handle it.
+	(tempdir_melt): Rename as ...
+	(melt_tempdir, melt_made_tempdir): New variables.
+	(melt_tempdir_path): Use it.
+	(do_finalize_melt): Rename as melt_do_finalize.
+	(melt_finishall_callback): Call it.
+	(melt_load_module_index): Use melt_tempdir.
+	(melt_do_finalize): Renamed function. Don't remove temporary files
+	when melt_flag_keep_temporary_files.
+	(melt_really_initialize): Set melt_flag_keep_temporary_files in plugin.
+	(melt_finalize): Call melt_do_finalize.
+	(melt_output_cfile_decl_impl_secondary_option): Use remove not
+	unlink.
+
 
 2013-01-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{mini-milestone: bad C code emitted for matchalt!}}
