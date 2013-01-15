@@ -8014,6 +8014,53 @@ fold_unary_loc (location_t loc, enum tree_code code, tree type, tree op0)
       tem = fold_convert_const (code, type, op0);
       return tem ? tem : NULL_TREE;
 
+
+    case BYTESWAP_EXPR:
+      /* Two byte swaps in a row is the same as the inner expression. */
+      if (TREE_CODE (arg0) == BYTESWAP_EXPR)
+	return fold_convert_loc (loc, type, TREE_OPERAND (arg0, 0));
+      /* Constant fold the byte swap.   */
+      if (TREE_CODE (arg0) == INTEGER_CST && !TREE_OVERFLOW (arg0))
+	{
+	  HOST_WIDE_INT hi, width, r_hi = 0;
+	  unsigned HOST_WIDE_INT lo, r_lo = 0;
+	  int s;
+
+	  width = TYPE_PRECISION (type);
+	  lo = TREE_INT_CST_LOW (arg0);
+	  hi = TREE_INT_CST_HIGH (arg0);
+	  for (s = 0; s < width; s += 8)
+	    {
+	      int d = width - s - 8;
+	      unsigned HOST_WIDE_INT byte;
+
+	      if (s < HOST_BITS_PER_WIDE_INT)
+		byte = (lo >> s) & 0xff;
+	      else
+		byte = (hi >> (s - HOST_BITS_PER_WIDE_INT)) & 0xff;
+
+	       if (d < HOST_BITS_PER_WIDE_INT)
+		 r_lo |= byte << d;
+	       else
+		 r_hi |= byte << (d - HOST_BITS_PER_WIDE_INT);
+	    }
+	  if (width < HOST_BITS_PER_WIDE_INT)
+	    return build_int_cst (type, r_lo);
+          else
+	    return build_int_cst_wide (type, r_lo, r_hi);
+	}
+
+#if 0
+      /* Move the type cast outside of BYTESWAP_EXPR. */
+      if (op0 != arg0)
+	return fold_convert_loc (loc, type,
+				 fold_build1_loc (loc,
+						  BYTESWAP_EXPR,
+						  TREE_TYPE (arg0),
+						  arg0));
+#endif
+      return NULL_TREE;
+
     case ADDR_SPACE_CONVERT_EXPR:
       if (integer_zerop (arg0))
 	return fold_convert_const (code, type, arg0);

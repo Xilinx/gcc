@@ -3003,7 +3003,8 @@ ssa_forward_propagate_and_combine (void)
 		enum tree_code code = gimple_assign_rhs_code (stmt);
 
 		if ((code == BIT_NOT_EXPR
-		     || code == NEGATE_EXPR)
+		     || code == NEGATE_EXPR
+		     || code == BYTESWAP_EXPR)
 		    && TREE_CODE (rhs1) == SSA_NAME)
 		  changed = simplify_not_neg_expr (&gsi);
 		else if (code == COND_EXPR

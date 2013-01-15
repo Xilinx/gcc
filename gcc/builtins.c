@@ -8189,57 +8189,12 @@ fold_builtin_bswap (location_t loc, tree fndecl, tree arg)
   if (! validate_arg (arg, INTEGER_TYPE))
     return NULL_TREE;
 
-  /* Optimize constant value.  */
-  if (TREE_CODE (arg) == INTEGER_CST && !TREE_OVERFLOW (arg))
-    {
-      HOST_WIDE_INT hi, width, r_hi = 0;
-      unsigned HOST_WIDE_INT lo, r_lo = 0;
-      type = TREE_TYPE (TREE_TYPE (fndecl));
-
-      width = TYPE_PRECISION (type);
-      lo = TREE_INT_CST_LOW (arg);
-      hi = TREE_INT_CST_HIGH (arg);
-
-      switch (DECL_FUNCTION_CODE (fndecl))
-	{
-	  case BUILT_IN_BSWAP16:
-	  case BUILT_IN_BSWAP32:
-	  case BUILT_IN_BSWAP64:
-	    {
-	      int s;
-
-	      for (s = 0; s < width; s += 8)
-		{
-		  int d = width - s - 8;
-		  unsigned HOST_WIDE_INT byte;
-
-		  if (s < HOST_BITS_PER_WIDE_INT)
-		    byte = (lo >> s) & 0xff;
-		  else
-		    byte = (hi >> (s - HOST_BITS_PER_WIDE_INT)) & 0xff;
-
-		  if (d < HOST_BITS_PER_WIDE_INT)
-		    r_lo |= byte << d;
-		  else
-		    r_hi |= byte << (d - HOST_BITS_PER_WIDE_INT);
-		}
-	    }
-
-	    break;
-
-	default:
-	  gcc_unreachable ();
-	}
-
-      if (width < HOST_BITS_PER_WIDE_INT)
-	return build_int_cst (type, r_lo);
-      else
-	return build_int_cst_wide (type, r_lo, r_hi);
-    }
-
+  /* Just convert the builtin into a BYTESWAP_EXPR. */
   type = TREE_TYPE (TREE_TYPE (fndecl));
   arg = fold_convert (type, arg);
-  return fold_build1_loc (loc, BYTESWAP_EXPR, type, arg);
+  arg = fold_build1_loc (loc, BYTESWAP_EXPR, type, arg);
+  /* Add a NOP_EXPR so it is not considered a lvalue. */
+  return build1_loc (loc, NOP_EXPR, type, arg);
 }
 
 /* A subroutine of fold_builtin to fold the various logarithmic

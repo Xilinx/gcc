@@ -1,3 +1,12 @@
+2013-01-15  Andrew Pinski  <apinski@cavium.com>
+
+	* builtins.c (fold_builtin_bswap): Remove constant folding.
+	Also add a NOP_EXPR after the BYTESWAP_EXPR just in case.
+	* fold-const.c (fold_unary_loc): Optimize two BYTESWAP_EXPR into
+	none. Constant folding of BYTESWAP_EXPR.
+	* tree-ssa-forwprop.c (ssa_forward_propagate_and_combine): Treat
+	BYTESWAP_EXPR like BIT_NOT_EXPR.
+
 2013-01-14  Andrew Pinski  <apinski@cavium.com>
 
 	* builtins.c (fold_builtin_bswap): Add loc argument.
