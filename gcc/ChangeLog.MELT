@@ -1,5 +1,11 @@
 
 
+2013-01-15  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-genobj.melt (compilobj_nrep_let): Remplace some
+	multiple_every with a foreach_in_multiple.
+	(compilobj_nrep_matchalt): Return the oblock.
+
 2013-01-08  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-genobj.melt (compilobj_nrep_matchalt): Return the

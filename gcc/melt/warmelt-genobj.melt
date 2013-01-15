@@ -2531,9 +2531,10 @@ $SBUF.}#
 	      (nexp (unsafe_get_field :letbind_expr nlbnd))
 	      (obva (get_free_objloctyped gcx bder cty))
 	      )
-	 (debug "compilobj_nrep_let current normbinding obva=" obva " nexp=" nexp)
+	 (debug "compilobj_nrep_let current normbinding obva=" obva "\n nexp=" nexp)
 	 (let ( (obnx (compile_obj nexp gcx)) )
-	   (debug "compilobj_nrep_let current normbinding obnx=" obnx)
+	   (debug "compilobj_nrep_let current normbinding obnx=" obnx
+		  "\n for nexp=" nexp "n with obva=" obva)
 	   (if (is_a nexp class_sexpr) 
 	       (if (not (is_object obnx))
 		   (progn 
@@ -2543,6 +2544,9 @@ $SBUF.}#
 	       ;; non void cty
 	       (progn
 		 (mapobject_put locmap nlbnd obva)
+		 (debug "compilobj_nrep_let obnx=" obnx 
+			"\n nlbnd=" nlbnd 
+			"\n obva=" obva)
 		 (let ( (obpd (put_objdest obnx obva)) 
 			(obmy (or obpd obnx))
 			)
@@ -3559,30 +3563,33 @@ $SBUF.}#
 	 )
     (if firstres (list_append reslist firstres))
     ;; add every compiled argument to the resulting block unless it is a pure value
-    (multiple_every 
-     oargs
-     (lambda (ocurarg :long ix)
-       (if (and ocurarg (or (is_not_a ocurarg class_objpurevalue) (is_a ocurarg class_objinstr)))
-	   (list_append obodl ocurarg))))
+    (foreach_in_multiple 
+     (oargs)
+     (ocurarg :long ix)
+       (if 
+	   (and ocurarg 
+		(or (is_not_a ocurarg class_objpurevalue) 
+		    (is_a ocurarg class_objinstr)))
+	   (list_append obodl ocurarg)))
     ;; add the multiapply to the block
     (list_append obodl omapp)
     ;; add the compiled body to the block
     (list_append obodl obody)
     ;; add the clearing of each result to epilog
-    (multiple_every 
-     reslocs
-     (lambda (rloc :long ix)
-       (if (>i ix 0) 
-	   (let ( (oclear (instance class_objclear 
-				    :obi_loc loc
-				    :oclr_vloc rloc)) )
-	     (list_append oepil oclear)
-	     (multiple_put_nth oxres (-i ix 1) rloc)
-	     ))))
+    (foreach_in_multiple 
+     (reslocs)
+     (rloc :long ix)
+     (if (>i ix 0) 
+	 (let ( (oclear (instance class_objclear 
+				  :obi_loc loc
+				  :oclr_vloc rloc)) )
+	   (list_append oepil oclear)
+	   (multiple_put_nth oxres (-i ix 1) rloc)
+	   )))
     ;; dispose the local bindings
-    (multiple_every 
-     rbinds
-     (lambda (bind :long ix) (dispose_bnd_obj bind gcx)))
+    (foreach_in_multiple
+     (rbinds)
+     (bind :long ix) (dispose_bnd_obj bind gcx))
     (debug "compilobj_nrep_multiapply final oblock=" oblock)
     oblock
     ))
@@ -5966,8 +5973,11 @@ $SBUF.}#
 		   (debug "compilobj_nrep_matchalt/lambda curoflag=" curoflag)
 		   (return curoflag))))
 	      )
+	     (oblock (instance class_objplainblock
+			       :obi_loc nloc
+			       :oblo_bodyl obodyl))
 	     )
-	(debug "compilobj_nrep_matchalt oflags=" oflags)
+	(debug "compilobj_nrep_matchalt oflags=" oflags "\n oblock=" oblock)
 	;;
 	(debug "compilobj_nrep_matchalt nbody=" nbody)
 	(foreach_in_multiple
@@ -5984,10 +5994,11 @@ $SBUF.}#
 	(debug "compilobj_nrep_matchalt obodyl=" obodyl)
 	(dispose_objloc obvares gcx)
 	(put_fields gcx :gncx_altmatch oldaltmatch)
+
 	(debug "compilobj_nrep_matchalt restored gcx=" gcx 
-	       "\n* result obodyl=" obodyl)
-	;; ?? maybe incomplete ??
-	(return obodyl)
+	       "\n* obodyl=" obodyl
+	       "\n* result oblock=" oblock)
+	(return oblock)
 	))))
 (install_method class_nrep_matchalt compile_obj compilobj_nrep_matchalt)
 
