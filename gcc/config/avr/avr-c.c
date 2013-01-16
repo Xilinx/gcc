@@ -1,5 +1,4 @@
-/* Copyright (C) 2009, 2010, 2011, 2012
-   Free Software Foundation, Inc.
+/* Copyright (C) 2009-2013 Free Software Foundation, Inc.
    Contributed by Anatoly Sokolov (aesok@post.ru)
 
    This file is part of GCC.
@@ -43,7 +42,7 @@ avr_register_target_pragmas (void)
   /* Register address spaces.  The order must be the same as in the respective
      enum from avr.h (or designated initialized must be used in avr.c).  */
 
-  for (i = 0; avr_addrspace[i].name; i++)
+  for (i = 0; i < ADDR_SPACE_COUNT; i++)
     {
       gcc_assert (i == avr_addrspace[i].id);
 
@@ -160,7 +159,7 @@ avr_cpu_cpp_builtins (struct cpp_reader *pfile)
   
   if (!strcmp (lang_hooks.name, "GNU C"))
     {
-      for (i = 0; avr_addrspace[i].name; i++)
+      for (i = 0; i < ADDR_SPACE_COUNT; i++)
         if (!ADDR_SPACE_GENERIC_P (i)
             /* Only supply __FLASH<n> macro if the address space is reasonable
                for this target.  The address space qualifier itself is still

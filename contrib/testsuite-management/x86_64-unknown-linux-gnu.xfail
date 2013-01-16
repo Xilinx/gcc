@@ -1,4 +1,4 @@
-FAIL: c-c++-common/asan/null-deref-1.c -Os  output pattern test, is ASAN:SIGSEGV
+FAIL: gfortran.dg/class_optional_2.f90 -Os  execution test
 XPASS: gcc.dg/guality/example.c -O2 -flto -fno-use-linker-plugin -flto-partition=none  execution test
 XPASS: gcc.dg/guality/example.c -O2  execution test
 XPASS: gcc.dg/guality/example.c -O0  execution test

@@ -1,6 +1,5 @@
 /* Control flow functions for trees.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
-   2010, 2011, 2012  Free Software Foundation, Inc.
+   Copyright (C) 2001-2013 Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
 This file is part of GCC.
@@ -4468,13 +4467,12 @@ tree_node_can_be_shared (tree t)
   return false;
 }
 
-/* Called via walk_gimple_stmt.  Verify tree sharing.  */
+/* Called via walk_tree.  Verify tree sharing.  */
 
 static tree
-verify_node_sharing (tree *tp, int *walk_subtrees, void *data)
+verify_node_sharing_1 (tree *tp, int *walk_subtrees, void *data)
 {
-  struct walk_stmt_info *wi = (struct walk_stmt_info *) data;
-  struct pointer_set_t *visited = (struct pointer_set_t *) wi->info;
+  struct pointer_set_t *visited = (struct pointer_set_t *) data;
 
   if (tree_node_can_be_shared (*tp))
     {
@@ -4486,6 +4484,15 @@ verify_node_sharing (tree *tp, int *walk_subtrees, void *data)
     return *tp;
 
   return NULL;
+}
+
+/* Called via walk_gimple_stmt.  Verify tree sharing.  */
+
+static tree
+verify_node_sharing (tree *tp, int *walk_subtrees, void *data)
+{
+  struct walk_stmt_info *wi = (struct walk_stmt_info *) data;
+  return verify_node_sharing_1 (tp, walk_subtrees, wi->info);
 }
 
 static bool eh_error_found;
@@ -4540,7 +4547,8 @@ verify_gimple_in_cfg (struct function *fn)
 	  for (i = 0; i < gimple_phi_num_args (phi); i++)
 	    {
 	      tree arg = gimple_phi_arg_def (phi, i);
-	      tree addr = walk_tree (&arg, verify_node_sharing, visited, NULL);
+	      tree addr = walk_tree (&arg, verify_node_sharing_1,
+				     visited, NULL);
 	      if (addr)
 		{
 		  error ("incorrect sharing of tree nodes");

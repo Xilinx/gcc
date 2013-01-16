@@ -1,5 +1,5 @@
 /* Machine description for AArch64 architecture.
-   Copyright (C) 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
+   Copyright (C) 2009-2013 Free Software Foundation, Inc.
    Contributed by ARM Ltd.
 
    This file is part of GCC.
@@ -3278,7 +3278,7 @@ aarch64_print_operand (FILE *f, rtx x, char code)
 	  return;
 	}
 
-      asm_fprintf (f, "%r", REGNO (x) + 1);
+      asm_fprintf (f, "%s", reg_names [REGNO (x) + 1]);
       break;
 
     case 'Q':
@@ -3288,7 +3288,7 @@ aarch64_print_operand (FILE *f, rtx x, char code)
 	  output_operand_lossage ("invalid operand for '%%%c'", code);
 	  return;
 	}
-      asm_fprintf (f, "%r", REGNO (x) + (WORDS_BIG_ENDIAN ? 1 : 0));
+      asm_fprintf (f, "%s", reg_names [REGNO (x) + (WORDS_BIG_ENDIAN ? 1 : 0)]);
       break;
 
     case 'R':
@@ -3298,7 +3298,7 @@ aarch64_print_operand (FILE *f, rtx x, char code)
 	  output_operand_lossage ("invalid operand for '%%%c'", code);
 	  return;
 	}
-      asm_fprintf (f, "%r", REGNO (x) + (WORDS_BIG_ENDIAN ? 0 : 1));
+      asm_fprintf (f, "%s", reg_names [REGNO (x) + (WORDS_BIG_ENDIAN ? 0 : 1)]);
       break;
 
     case 'm':
@@ -3403,7 +3403,7 @@ aarch64_print_operand (FILE *f, rtx x, char code)
       switch (GET_CODE (x))
 	{
 	case REG:
-	  asm_fprintf (f, "%r", REGNO (x));
+	  asm_fprintf (f, "%s", reg_names [REGNO (x)]);
 	  break;
 
 	case MEM:
@@ -3558,36 +3558,36 @@ aarch64_print_operand_address (FILE *f, rtx x)
       {
       case ADDRESS_REG_IMM:
 	if (addr.offset == const0_rtx)
-	  asm_fprintf (f, "[%r]", REGNO (addr.base));
+	  asm_fprintf (f, "[%s]", reg_names [REGNO (addr.base)]);
 	else
-	  asm_fprintf (f, "[%r,%wd]", REGNO (addr.base),
+	  asm_fprintf (f, "[%s,%wd]", reg_names [REGNO (addr.base)],
 		       INTVAL (addr.offset));
 	return;
 
       case ADDRESS_REG_REG:
 	if (addr.shift == 0)
-	  asm_fprintf (f, "[%r,%r]", REGNO (addr.base),
-		       REGNO (addr.offset));
+	  asm_fprintf (f, "[%s,%s]", reg_names [REGNO (addr.base)],
+		       reg_names [REGNO (addr.offset)]);
 	else
-	  asm_fprintf (f, "[%r,%r,lsl %u]", REGNO (addr.base),
-		       REGNO (addr.offset), addr.shift);
+	  asm_fprintf (f, "[%s,%s,lsl %u]", reg_names [REGNO (addr.base)],
+		       reg_names [REGNO (addr.offset)], addr.shift);
 	return;
 
       case ADDRESS_REG_UXTW:
 	if (addr.shift == 0)
-	  asm_fprintf (f, "[%r,w%d,uxtw]", REGNO (addr.base),
+	  asm_fprintf (f, "[%s,w%d,uxtw]", reg_names [REGNO (addr.base)],
 		       REGNO (addr.offset) - R0_REGNUM);
 	else
-	  asm_fprintf (f, "[%r,w%d,uxtw %u]", REGNO (addr.base),
+	  asm_fprintf (f, "[%s,w%d,uxtw %u]", reg_names [REGNO (addr.base)],
 		       REGNO (addr.offset) - R0_REGNUM, addr.shift);
 	return;
 
       case ADDRESS_REG_SXTW:
 	if (addr.shift == 0)
-	  asm_fprintf (f, "[%r,w%d,sxtw]", REGNO (addr.base),
+	  asm_fprintf (f, "[%s,w%d,sxtw]", reg_names [REGNO (addr.base)],
 		       REGNO (addr.offset) - R0_REGNUM);
 	else
-	  asm_fprintf (f, "[%r,w%d,sxtw %u]", REGNO (addr.base),
+	  asm_fprintf (f, "[%s,w%d,sxtw %u]", reg_names [REGNO (addr.base)],
 		       REGNO (addr.offset) - R0_REGNUM, addr.shift);
 	return;
 
@@ -3595,27 +3595,27 @@ aarch64_print_operand_address (FILE *f, rtx x)
 	switch (GET_CODE (x))
 	  {
 	  case PRE_INC:
-	    asm_fprintf (f, "[%r,%d]!", REGNO (addr.base),
+	    asm_fprintf (f, "[%s,%d]!", reg_names [REGNO (addr.base)], 
 			 GET_MODE_SIZE (aarch64_memory_reference_mode));
 	    return;
 	  case POST_INC:
-	    asm_fprintf (f, "[%r],%d", REGNO (addr.base),
+	    asm_fprintf (f, "[%s],%d", reg_names [REGNO (addr.base)],
 			 GET_MODE_SIZE (aarch64_memory_reference_mode));
 	    return;
 	  case PRE_DEC:
-	    asm_fprintf (f, "[%r,-%d]!", REGNO (addr.base),
+	    asm_fprintf (f, "[%s,-%d]!", reg_names [REGNO (addr.base)],
 			 GET_MODE_SIZE (aarch64_memory_reference_mode));
 	    return;
 	  case POST_DEC:
-	    asm_fprintf (f, "[%r],-%d", REGNO (addr.base),
+	    asm_fprintf (f, "[%s],-%d", reg_names [REGNO (addr.base)],
 			 GET_MODE_SIZE (aarch64_memory_reference_mode));
 	    return;
 	  case PRE_MODIFY:
-	    asm_fprintf (f, "[%r,%wd]!", REGNO (addr.base),
+	    asm_fprintf (f, "[%s,%wd]!", reg_names [REGNO (addr.base)],
 			 INTVAL (addr.offset));
 	    return;
 	  case POST_MODIFY:
-	    asm_fprintf (f, "[%r],%wd", REGNO (addr.base),
+	    asm_fprintf (f, "[%s],%wd", reg_names [REGNO (addr.base)],
 			 INTVAL (addr.offset));
 	    return;
 	  default:
@@ -3624,7 +3624,7 @@ aarch64_print_operand_address (FILE *f, rtx x)
 	break;
 
       case ADDRESS_LO_SUM:
-	asm_fprintf (f, "[%r,#:lo12:", REGNO (addr.base));
+	asm_fprintf (f, "[%s,#:lo12:", reg_names [REGNO (addr.base)]);
 	output_addr_const (f, addr.offset);
 	asm_fprintf (f, "]");
 	return;
@@ -3935,9 +3935,9 @@ aarch64_return_addr (int count, rtx frame ATTRIBUTE_UNUSED)
 static void
 aarch64_asm_trampoline_template (FILE *f)
 {
-  asm_fprintf (f, "\tldr\t%r, .+16\n", IP1_REGNUM);
-  asm_fprintf (f, "\tldr\t%r, .+20\n", STATIC_CHAIN_REGNUM);
-  asm_fprintf (f, "\tbr\t%r\n", IP1_REGNUM);
+  asm_fprintf (f, "\tldr\t%s, .+16\n", reg_names [IP1_REGNUM]);
+  asm_fprintf (f, "\tldr\t%s, .+20\n", reg_names [STATIC_CHAIN_REGNUM]);
+  asm_fprintf (f, "\tbr\t%s\n", reg_names [IP1_REGNUM]);
   assemble_aligned_integer (4, const0_rtx);
   assemble_aligned_integer (UNITS_PER_WORD, const0_rtx);
   assemble_aligned_integer (UNITS_PER_WORD, const0_rtx);
@@ -6546,6 +6546,166 @@ aarch64_simd_vector_alignment_reachable (const_tree type, bool is_packed)
 
   /* Vectors whose size is <= BIGGEST_ALIGNMENT are naturally aligned.  */
   return true;
+}
+
+/* If VALS is a vector constant that can be loaded into a register
+   using DUP, generate instructions to do so and return an RTX to
+   assign to the register.  Otherwise return NULL_RTX.  */
+static rtx
+aarch64_simd_dup_constant (rtx vals)
+{
+  enum machine_mode mode = GET_MODE (vals);
+  enum machine_mode inner_mode = GET_MODE_INNER (mode);
+  int n_elts = GET_MODE_NUNITS (mode);
+  bool all_same = true;
+  rtx x;
+  int i;
+
+  if (GET_CODE (vals) != CONST_VECTOR)
+    return NULL_RTX;
+
+  for (i = 1; i < n_elts; ++i)
+    {
+      x = CONST_VECTOR_ELT (vals, i);
+      if (!rtx_equal_p (x, CONST_VECTOR_ELT (vals, 0)))
+	all_same = false;
+    }
+
+  if (!all_same)
+    return NULL_RTX;
+
+  /* We can load this constant by using DUP and a constant in a
+     single ARM register.  This will be cheaper than a vector
+     load.  */
+  x = copy_to_mode_reg (inner_mode, CONST_VECTOR_ELT (vals, 0));
+  return gen_rtx_VEC_DUPLICATE (mode, x);
+}
+
+
+/* Generate code to load VALS, which is a PARALLEL containing only
+   constants (for vec_init) or CONST_VECTOR, efficiently into a
+   register.  Returns an RTX to copy into the register, or NULL_RTX
+   for a PARALLEL that can not be converted into a CONST_VECTOR.  */
+rtx
+aarch64_simd_make_constant (rtx vals)
+{
+  enum machine_mode mode = GET_MODE (vals);
+  rtx const_dup;
+  rtx const_vec = NULL_RTX;
+  int n_elts = GET_MODE_NUNITS (mode);
+  int n_const = 0;
+  int i;
+
+  if (GET_CODE (vals) == CONST_VECTOR)
+    const_vec = vals;
+  else if (GET_CODE (vals) == PARALLEL)
+    {
+      /* A CONST_VECTOR must contain only CONST_INTs and
+	 CONST_DOUBLEs, but CONSTANT_P allows more (e.g. SYMBOL_REF).
+	 Only store valid constants in a CONST_VECTOR.  */
+      for (i = 0; i < n_elts; ++i)
+	{
+	  rtx x = XVECEXP (vals, 0, i);
+	  if (CONST_INT_P (x) || CONST_DOUBLE_P (x))
+	    n_const++;
+	}
+      if (n_const == n_elts)
+	const_vec = gen_rtx_CONST_VECTOR (mode, XVEC (vals, 0));
+    }
+  else
+    gcc_unreachable ();
+
+  if (const_vec != NULL_RTX
+      && aarch64_simd_immediate_valid_for_move (const_vec, mode, NULL, NULL,
+						NULL, NULL, NULL))
+    /* Load using MOVI/MVNI.  */
+    return const_vec;
+  else if ((const_dup = aarch64_simd_dup_constant (vals)) != NULL_RTX)
+    /* Loaded using DUP.  */
+    return const_dup;
+  else if (const_vec != NULL_RTX)
+    /* Load from constant pool. We can not take advantage of single-cycle
+       LD1 because we need a PC-relative addressing mode.  */
+    return const_vec;
+  else
+    /* A PARALLEL containing something not valid inside CONST_VECTOR.
+       We can not construct an initializer.  */
+    return NULL_RTX;
+}
+
+void
+aarch64_expand_vector_init (rtx target, rtx vals)
+{
+  enum machine_mode mode = GET_MODE (target);
+  enum machine_mode inner_mode = GET_MODE_INNER (mode);
+  int n_elts = GET_MODE_NUNITS (mode);
+  int n_var = 0, one_var = -1;
+  bool all_same = true;
+  rtx x, mem;
+  int i;
+
+  x = XVECEXP (vals, 0, 0);
+  if (!CONST_INT_P (x) && !CONST_DOUBLE_P (x))
+    n_var = 1, one_var = 0;
+  
+  for (i = 1; i < n_elts; ++i)
+    {
+      x = XVECEXP (vals, 0, i);
+      if (!CONST_INT_P (x) && !CONST_DOUBLE_P (x))
+	++n_var, one_var = i;
+
+      if (!rtx_equal_p (x, XVECEXP (vals, 0, 0)))
+	all_same = false;
+    }
+
+  if (n_var == 0)
+    {
+      rtx constant = aarch64_simd_make_constant (vals);
+      if (constant != NULL_RTX)
+	{
+	  emit_move_insn (target, constant);
+	  return;
+	}
+    }
+
+  /* Splat a single non-constant element if we can.  */
+  if (all_same)
+    {
+      x = copy_to_mode_reg (inner_mode, XVECEXP (vals, 0, 0));
+      aarch64_emit_move (target, gen_rtx_VEC_DUPLICATE (mode, x));
+      return;
+    }
+
+  /* One field is non-constant.  Load constant then overwrite varying
+     field.  This is more efficient than using the stack.  */
+  if (n_var == 1)
+    {
+      rtx copy = copy_rtx (vals);
+      rtx index = GEN_INT (one_var);
+      enum insn_code icode;
+
+      /* Load constant part of vector, substitute neighboring value for
+	 varying element.  */
+      XVECEXP (copy, 0, one_var) = XVECEXP (vals, 0, one_var ^ 1);
+      aarch64_expand_vector_init (target, copy);
+
+      /* Insert variable.  */
+      x = copy_to_mode_reg (inner_mode, XVECEXP (vals, 0, one_var));
+      icode = optab_handler (vec_set_optab, mode);
+      gcc_assert (icode != CODE_FOR_nothing);
+      emit_insn (GEN_FCN (icode) (target, x, index));
+      return;
+    }
+
+  /* Construct the vector in memory one field at a time
+     and load the whole vector.  */
+  mem = assign_stack_temp (mode, GET_MODE_SIZE (mode));
+  for (i = 0; i < n_elts; i++)
+    emit_move_insn (adjust_address_nv (mem, inner_mode,
+				    i * GET_MODE_SIZE (inner_mode)),
+		    XVECEXP (vals, 0, i));
+  emit_move_insn (target, mem);
+
 }
 
 static unsigned HOST_WIDE_INT

@@ -1,8 +1,6 @@
 /* Definitions of target machine for GNU compiler,
    for ATMEL AVR at90s8515, ATmega103/103L, ATmega603/603L microcontrollers.
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 
-   2008, 2009, 2010, 2011, 2012
-   Free Software Foundation, Inc.
+   Copyright (C) 1998-2013 Free Software Foundation, Inc.
    Contributed by Denis Chertykov (chertykov@gmail.com)
 
 This file is part of GCC.
@@ -37,6 +35,9 @@ typedef struct
 
   /* Segment (i.e. 64k memory chunk) number.  */
   int segment;
+
+  /* Section prefix, e.g. ".progmem1.data"  */
+  const char *section_name;
 } avr_addrspace_t;
 
 extern const avr_addrspace_t avr_addrspace[];
@@ -45,14 +46,16 @@ extern const avr_addrspace_t avr_addrspace[];
 
 enum
   {
-    ADDR_SPACE_RAM,
+    ADDR_SPACE_RAM, /* ADDR_SPACE_GENERIC */
     ADDR_SPACE_FLASH,
     ADDR_SPACE_FLASH1,
     ADDR_SPACE_FLASH2,
     ADDR_SPACE_FLASH3,
     ADDR_SPACE_FLASH4,
     ADDR_SPACE_FLASH5,
-    ADDR_SPACE_MEMX
+    ADDR_SPACE_MEMX,
+    /* Sentinel */
+    ADDR_SPACE_COUNT
   };
 
 #define TARGET_CPU_CPP_BUILTINS()	avr_cpu_cpp_builtins (pfile)

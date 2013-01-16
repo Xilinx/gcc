@@ -1,6 +1,5 @@
 /* Implementation of Fortran 2003 Polymorphism.
-   Copyright (C) 2009, 2010, 2011, 2012, 2013
-   Free Software Foundation, Inc.
+   Copyright (C) 2009-2013 Free Software Foundation, Inc.
    Contributed by Paul Richard Thomas <pault@gcc.gnu.org>
    and Janus Weil <janus@gcc.gnu.org>
 
@@ -461,9 +460,9 @@ get_unique_type_string (char *string, gfc_symbol *derived)
 {
   char dt_name[GFC_MAX_SYMBOL_LEN+1];
   if (derived->attr.unlimited_polymorphic)
-    sprintf (dt_name, "%s", "$tar");
+    strcpy (dt_name, "STAR");
   else
-  sprintf (dt_name, "%s", derived->name);
+    strcpy (dt_name, derived->name);
   dt_name[0] = TOUPPER (dt_name[0]);
   if (derived->attr.unlimited_polymorphic)
     sprintf (string, "_%s", dt_name);
