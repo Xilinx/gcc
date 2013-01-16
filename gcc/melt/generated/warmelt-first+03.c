@@ -1414,7 +1414,7 @@ lab_endgetargs:;
   /*_.DBGMSGFUN__V4*/ meltfptr[3] = slot;
     };
     ;
-    MELT_LOCATION ("warmelt-first.melt:4635:/ checksignal");
+
     MELT_CHECK_SIGNAL ();
     ;
  /*_#IS_CLOSURE__L3*/ meltfnum[2] =
@@ -1428,10 +1428,10 @@ lab_endgetargs:;
 	/*anyblock */
 	{
 
-	  MELT_LOCATION ("warmelt-first.melt:4636:/ checksignal");
+
 	  MELT_CHECK_SIGNAL ();
 	  ;
-	  /*^apply */
+	  MELT_LOCATION ("warmelt-first.melt:4636:/ apply");
 	  /*apply */
 	  {
 	    union meltparam_un argtab[4];

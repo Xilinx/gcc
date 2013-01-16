@@ -1,7 +1,7 @@
 ## file melt-module.mk
 ## a -*- Makefile -*- for GNU make. 
 
-# Copyright (C) 2009 - 2012 Free Software Foundation, Inc.
+# Copyright (C) 2009 - 2013 Free Software Foundation, Inc.
 # Contributed by Basile Starynkevitch  <basile@starynkevitch.net>
 # This file is part of GCC.
 
@@ -340,13 +340,13 @@ $(GCCMELTGEN_BUILD)$(GCCMELT_BASE).meltmod-%.runextend.so:
 
 ################
 ifneq ($(realpath $(GCCMELTGEN_BUILD)),$(realpath $(dir $(GCCMELT_MODULE_BINARYBASE))))
-$(info here.aa.GCCMELTGEN_BUILD=$(GCCMELTGEN_BUILD) real= $(realpath $(GCCMELTGEN_BUILD)) GCCMELT_MODULE_BINARYBASE=$(GCCMELT_MODULE_BINARYBASE) realdir= $(realpath $(dir $(GCCMELT_MODULE_BINARYBASE))) dir= $(dir $(GCCMELT_MODULE_BINARYBASE)) GCCMELT_CUMULATED_MD5=$(GCCMELT_CUMULATED_MD5))
+#$(info here.aa.GCCMELTGEN_BUILD=$(GCCMELTGEN_BUILD) real= $(realpath $(GCCMELTGEN_BUILD)) GCCMELT_MODULE_BINARYBASE=$(GCCMELT_MODULE_BINARYBASE) realdir= $(realpath $(dir $(GCCMELT_MODULE_BINARYBASE))) dir= $(dir $(GCCMELT_MODULE_BINARYBASE)) GCCMELT_CUMULATED_MD5=$(GCCMELT_CUMULATED_MD5))
 $(GCCMELT_MODULE_BINARYBASE).meltmod-$(GCCMELT_CUMULATED_MD5).$(GCCMELT_MODULE_FLAVOR).so: \
   $(GCCMELTGEN_BUILD)$(notdir $(GCCMELT_MODULE_BINARYBASE).meltmod-$(GCCMELT_CUMULATED_MD5).$(GCCMELT_MODULE_FLAVOR).so)
 	@$(GCCMELT_VERBOSE_ECHO) @+@melt-module symlinkmodule at= $@ circ= $^ left= $< monster= $(GCCMELTGEN_BUILD)$(notdir $(GCCMELT_MODULE_BINARYBASE).meltmod-$(GCCMELT_CUMULATED_MD5).$(GCCMELT_MODULE_FLAVOR).so)
 	$(LN_S) -v -f $(realpath $(GCCMELTGEN_BUILD)$(notdir $(GCCMELT_MODULE_BINARYBASE).meltmod-$(GCCMELT_CUMULATED_MD5).$(GCCMELT_MODULE_FLAVOR).so))  $@
 else
-$(info here.ab.GCCMELTGEN_BUILD=$(GCCMELTGEN_BUILD) really $(realpath $(GCCMELTGEN_BUILD)) same as dir of GCCMELT_MODULE_BINARYBASE= $(GCCMELT_MODULE_BINARYBASE) GCCMELT_CUMULATED_MD5=$(GCCMELT_CUMULATED_MD5))
+#$(info here.ab.GCCMELTGEN_BUILD=$(GCCMELTGEN_BUILD) really $(realpath $(GCCMELTGEN_BUILD)) same as dir of GCCMELT_MODULE_BINARYBASE= $(GCCMELT_MODULE_BINARYBASE) GCCMELT_CUMULATED_MD5=$(GCCMELT_CUMULATED_MD5))
 endif
 
 ################################################################
