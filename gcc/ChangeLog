@@ -1,4 +1,128 @@
+2013-01-16  Richard Biener  <rguenther@suse.de>
+
+	* doc/install.texi: Update CLooG and ISL requirements to
+	0.18.0 and 0.11.1.
+
+2013-01-16  Christian Bruel  <christian.bruel@st.com>
+
+	PR target/55301
+	* config/sh/sh.c (sh_expand_prologue): Postpone new_stack mem symbol.
+	(broken_move): Handle UNSPECV_SP_SWITCH_B.
+	* config/sh/sh.md (sp_switch_1): Use set (reg:SI SP_REG).
+
+2013-01-16  DJ Delorie  <dj@redhat.com>
+
+	* config/sh/sh.md (UNSPECV_SP_SWITCH_B): New.
+	(UNSPECV_SP_SWITCH_E): New.
+	(sp_switch_1): Change to an unspec.
+	(sp_switch_2): Change to an unspec.  Don't use post-inc when we
+	replace $r15.
+
+2013-01-16  Uros Bizjak  <ubizjak@gmail.com>
+
+	* emit-rtl.c (need_atomic_barrier_p): Mask memory model argument
+	with MEMMODEL_MASK before comparing with MEMMODEL_* memory types.
+	* optabs.c (maybe_emit_sync_lock_test_and_set): Ditto.
+	(expand_mem_thread_fence): Ditto.
+	(expand_mem_signal_fence): Ditto.
+	(expand_atomic_load): Ditto.
+	(expand_atomic_store): Ditto.
+
+2013-01-16  Alexandre Oliva <aoliva@redhat.com>
+
+	PR rtl-optimization/55547
+	PR rtl-optimization/53827
+	PR debug/53671
+	PR debug/49888
+	* alias.c (memrefs_conflict_p): Set sizes to negative after
+	AND adjustments.
+
 2013-01-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/55940
+	* function.c (thread_prologue_and_epilogue_insns): Always
+	add crtl->drap_reg to set_up_by_prologue.set, even if
+	stack_realign_drap is false.
+
+2013-01-15  Jan-Benedict Glaw  <jbglaw@lug-owl.de>
+
+	* config/vax/vax.md (add<mode>3, sub<mode>3, mul<mode>3, div<mode>3,
+	and<mode>3, *and<mode>_const_int, ior<mode>3, xor<mode>3, ashrsi3,
+	*call): Fix indention.
+
+2013-01-15  Tom de Vries  <tom@codesourcery.com>
+
+	PR target/55876
+	* optabs.c (widen_operand): Use gen_lowpart instead of gen_rtx_SUBREG.
+	Update comment.
+
+2013-01-15  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-optimization/55153
+	* sched-deps.c (sched_analyze_2): Add pending reads for prefetch.
+
+2013-01-15  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/55920
+	* tree-sra.c (analyze_access_subtree): Do not mark non-removable
+	accesses as grp_to_be_debug_replaced.
+
+2013-01-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/55920
+	* tree-sra.c (sra_modify_assign): If for lacc->grp_to_be_debug_replaced
+	there is non-useless type conversion needed from debug rhs to lhs,
+	use build_debug_ref_for_model and/or VIEW_CONVERT_EXPR.
+
+2013-01-15  Joseph Myers  <joseph@codesourcery.com>
+	    Mikael Pettersson  <mikpe@it.uu.se>
+
+	PR target/43961
+	* config/arm/arm.h (ADDR_VEC_ALIGN): Align SImode jump tables for
+	Thumb.
+	(ASM_OUTPUT_CASE_LABEL): Remove.
+	(ASM_OUTPUT_BEFORE_CASE_LABEL): Define to empty.
+	* final.c (shorten_branches): Update alignment of labels before
+	jump tables if CASE_VECTOR_SHORTEN_MODE.
+
+2013-01-15  Richard Biener  <rguenther@suse.de>
+
+	PR bootstrap/55961
+	* system.h: Do not include gmp.h for building host tools.
+
+2013-01-15  Richard Biener  <rguenther@suse.de>
+
+	PR middle-end/55882
+	* emit-rtl.c (set_mem_attributes_minus_bitpos): Correctly
+	account for bitpos when computing alignment.
+
+2013-01-15  Vladimir Yakovlev  <vladimir.b.yakovlev@intel.com>
+
+	* config/i386/i386-c.c (ix86_target_macros_internal): New case.
+	(ix86_target_macros_internal): Likewise.
+
+	* config/i386/i386.c (m_CORE2I7): Removed.
+	(m_CORE_HASWELL): New macro.
+	(m_CORE_ALL): Likewise.
+	(initial_ix86_tune_features): m_CORE2I7 is replaced by m_CORE_ALL.
+	(initial_ix86_arch_features): Likewise.
+	(processor_target_table): Initializations for Core avx2.
+	(cpu_names): New names "core-avx2".
+	(ix86_option_override_internal): Changed PROCESSOR_COREI7 by
+	PROCESSOR_CORE_HASWELL.
+	(ix86_issue_rate): New case.
+	(ia32_multipass_dfa_lookahead): Likewise.
+	(ix86_sched_init_global): Likewise.
+
+	* config/i386/i386.h (TARGET_HASWELL): New macro.
+	(target_cpu_default): New TARGET_CPU_DEFAULT_haswell.
+	(processor_type): New PROCESSOR_HASWELL.
+
+2013-01-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/55955
+	* tree-vect-loop.c (vectorizable_reduction): Give up early on
+	*SHIFT_EXPR and *ROTATE_EXPR codes.
 
 	PR tree-optimization/48766
 	* opts.c (common_handle_option): For -fwrapv disable -ftrapv, for
@@ -26,8 +150,8 @@
 
 2013-01-14  Tejas Belagod  <tejas.belagod@arm.com>
 
-	* config/aarch64/aarch64-simd.md (*aarch64_simd_ld1r<mode>): New. 
-	* config/aarch64/iterators.md (VALLDI): New. 
+	* config/aarch64/aarch64-simd.md (*aarch64_simd_ld1r<mode>): New.
+	* config/aarch64/iterators.md (VALLDI): New.
 
 2012-01-14  Uros Bizjak  <ubizjak@gmail.com>
 	    Andi Kleen  <ak@linux.intel.com>
