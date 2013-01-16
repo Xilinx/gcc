@@ -2584,8 +2584,8 @@ scanning variables.}#
 	  (assert_msg "check curtest" (is_a curtest class_normtester_any))
 	  (assert_msg "check tstix" (>=i tstix 0))
 	  (assert_msg "check tstix not too big" (<i tstix 32767))
-	  (messagenum_dbg "normexp_match testindex tstix" tstix)
 	  (put_int curtest tstix)
+	  (debug "normexp_match testindex tstix=" tstix "\n* curtest=" curtest)
 	  (put_fields curtest :ntest_normatch nmatch)
 	  (debug "normexp_match indexed curtest" curtest)
 	  )
@@ -3434,10 +3434,11 @@ the flags of the $STEP with an extra context $CTX.}#
 	(mctxt (unsafe_get_field :mcase_mctxt mcase))
 	(ncx (get_field :mctx_normctxt mctxt))
 	(env (get_field :mctx_env mctxt))
-	(steplist (unsafe_get_field :mdata_steps mdata))
+	(steplist (get_field :mdata_steps mdata))
 	)
     (assert_msg "check ncx" (is_a ncx class_normalization_context))
     (assert_msg "check env" (is_a env class_environment))
+    (assert_msg "check steplist" (is_list steplist))
     (debug "translpat_constpat before normalization sconstx" sconstx)
     (multicall
      (nconst nbindconst)
@@ -3529,8 +3530,9 @@ the flags of the $STEP with an extra context $CTX.}#
       ;; last test step to add our new test in its else case
       (let ( (istep ())
 	     (laststeptest ())
-	     (steplist (unsafe_get_field :mdata_steps mdata))
+	     (steplist (get_field :mdata_steps mdata))
 	     )
+	(assert_msg "check steplist" (is_list steplist))
 	(foreach_in_list
 	 (steplist)
 	 (curpair curstep)
@@ -3690,8 +3692,9 @@ the flags of the $STEP with an extra context $CTX.}#
       ;; last test step to add our new test in its else case
       (let ( (istep ())
 	     (laststeptest ())
-	     (steplist (unsafe_get_field :mdata_steps mdata))
+	     (steplist (get_field :mdata_steps mdata))
 	     )
+	(assert_msg "check steplist" (is_list steplist))
 	(foreach_in_list
 	 (steplist)
 	 (curpair curstep)
@@ -3823,7 +3826,7 @@ the flags of the $STEP with an extra context $CTX.}#
 	(matctx (unsafe_get_field  :mcase_mctxt mcase))
 	(symbval (mapobject_get varmap symb))
 	(mhandlers (get_field :mctx_varhandlers matctx))
-	(steplist (unsafe_get_field :mdata_steps mdata))
+	(steplist (get_field :mdata_steps mdata))
 	(mctxt (unsafe_get_field :mcase_mctxt mcase))
 	(mflag (make_match_flag recv mctxt (get_field :named_name symb)))
 	(flagstep (instance class_match_step_flag_set 
@@ -3831,8 +3834,8 @@ the flags of the $STEP with an extra context $CTX.}#
 			    :mstep_then ()
 			    :mstep_flag mflag))
 	)
-    (debug "translpat_varpat symb" symb)
-    (debug "translpat_varpat symbval" symbval)
+    (debug "translpat_varpat symb" symb "\n symbval" symbval)
+    (assert_msg "check steplist" (is_list steplist))
     (put_fields mflag :mflag_setstep flagstep)
     (debug "translpat_varpat flagstep" flagstep)
     (cond 
@@ -4131,11 +4134,12 @@ the flags of the $STEP with an extra context $CTX.}#
 	(opout (get_field :amatch_out soper))
 	(:long nbopout (multiple_length opout))
 	(curstep ())
-	(mdatasteps (unsafe_get_field :mdata_steps mdata))
+	(mdatasteps (get_field :mdata_steps mdata))
 	(mflag (make_match_flag recv matctx (get_field :named_name soper)))
 	)
     (assert_msg "check matctx" (is_a matctx class_matching_context))
     (assert_msg "check env" (is_a env class_environment))
+    (assert_msg "check mdatasteps list" (is_list mdatasteps))
     (debug "translpat_patmat soper" soper)
     (assert_msg "check soper" (is_a soper class_any_matcher))
     (debug "translpat_patmat sins" sins)
@@ -5217,7 +5221,8 @@ normalized expression.}#
 					  (make_integerbox discr_constant_integer (+i stix 1))))))
 	       )
 	      (put_fields mdata :mdata_steps msteptup)
-	      (debug "match_data_update_data_steps_index updated msteptup" msteptup)
+	      (debug "match_data_update_data_steps_index updated msteptup=" 
+		     msteptup "\n* updated mdata=" mdata)
 	      )
 	    )
 	  ( (is_multiple msteps)
@@ -6349,20 +6354,19 @@ normalized expression.}#
 
 
 (defun matchalt_handle_normalized_mdata (matdata ndata nmctxt)
-  (debug "matchalt_handle_normalized_mdata matdata" matdata)
-  (debug "matchalt_handle_normalized_mdata ndata" ndata)
+  (debug "matchalt_handle_normalized_mdata matdata" matdata 
+	 "\n* ndata" ndata)
   (assert_msg "check matdata" (is_a matdata class_matched_data))
   (assert_msg "check ndata" (is_a ndata class_nrep_simple))
   (let ( (msteps (unsafe_get_field :mdata_steps matdata))
 	 )
-    (debug "matchalt_handle_normalized_mdata msteps" msteps)
+    (debug "matchalt_handle_normalized_mdata msteps=" msteps)
     (cond
      ((is_multiple msteps)
       (void))
      ((is_non_empty_list msteps)
-      (debug "matchalt_handle_normalized_mdata msteps nonemptylist" msteps)
+      (debug "matchalt_handle_normalized_mdata nonemptylist msteps=" msteps)
       (debug "matchalt_handle_normalized_mdata matdata before match_data_update_data_steps_index" matdata)
-      
       (match_data_update_data_steps_index matdata)
       (debug "matchalt_handle_normalized_mdata matdata after match_data_update_data_steps_index" matdata)
       (setq msteps (unsafe_get_field :mdata_steps matdata))

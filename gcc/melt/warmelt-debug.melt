@@ -2,7 +2,7 @@
 ;; file warmelt-debug.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2009 - 2012 Free Software Foundation, Inc.
+    Copyright 2009 - 2013 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -1213,7 +1213,7 @@ $TORANK}#
     (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
     (add2sbuf_strconst sbuf "/")
     (add2sbuf_longhex sbuf (obj_hash self))
-    (let ( (:long onum (obj_num self)) 
+    (let ( (:long onum (get_int self)) 
 	   )
       (if onum
 	  (progn

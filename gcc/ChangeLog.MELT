@@ -1,4 +1,20 @@
 
+2013-01-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-debug.melt: Update copyright year.
+	(dbgout_anyobject_method): Use get_int to retrieve the obj_num.
+
+	* melt/warmelt-normatch.melt (normexp_match): More debug & asserts.
+	(translpat_constpat): Use get_field not unsafe_get_field. Check
+	steplist.
+	(translpat_varpat, translpat_patmat): Likewise.
+	(match_data_update_data_steps_index)
+	(matchalt_handle_normalized_mdata): Better debug.
+
+	* melt/warmelt-genobj.melt (compilobj_nrep_matchalt): Bette
+	rdebug.
+	(compilobj_nrep_matchjump): Still incomplete. Add failing assert
+	to stop here.
+
 2013-01-15  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-genobj.melt (compilobj_nrep_matchjump): Still incomplete.

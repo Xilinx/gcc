@@ -5999,7 +5999,8 @@ $SBUF.}#
 
 	(debug "compilobj_nrep_matchalt restored gcx=" gcx 
 	       "\n* obodyl=" obodyl
-	       "\n* result oblock=" oblock)
+	       "\n* result oblock=" oblock
+	       "\n*****\n")
 	(return oblock)
 	))))
 (install_method class_nrep_matchalt compile_obj compilobj_nrep_matchalt)
@@ -6141,8 +6142,10 @@ $SBUF.}#
   (let (
 	(nloc (unsafe_get_field :nrep_loc nmjump))
 	(altmatch (get_field :gncx_altmatch gcx))
+	(nlabstep (get_field :nmlab_step nmjump))
 	)
-    (debug "compilobj_nrep_matchjump  altmatch=" altmatch)
+    (debug "compilobj_nrep_matchjump  altmatch=" altmatch
+	   "\n *nlabstep=" nlabstep)
     (shortbacktrace_dbg "compilobj_nrep_matchjump" 15)
     (let ( (objc (make_objcompute nloc ctype_void ##{??compilobj_nrep_matchjump
 #error incomplete compilobj_nrep_matchjump 
@@ -6150,6 +6153,7 @@ $SBUF.}#
 	   )
       (error_plain nloc "not fully implemented compilobj_nrep_matchjump")
       (debug "compilobj_nrep_matchjump objc=" objc)
+      (assert_msg "@$@unimplemented compilobj_nrep_matchjump")
       (return objc)
     )))
 
