@@ -6740,6 +6740,7 @@ normalized expression.}#
 		      ))
 		)
 	       (debug "normexp_matchalt ndatalist=" ndatalist)
+	       ;;
 	       (let ( (:long nbndata (list_length ndatalist))
 		      (ndatatup (make_multiple discr_multiple nbndata))
 		      )
@@ -6757,7 +6758,8 @@ normalized expression.}#
 		    (multiple_put_nth ndatatup curnrkm1 curndata)
 		    )
 		  )
-		 (debug "normexp_matchalt ndatatup=" ndatatup)
+		 (list_append nbodyl endlab)
+		 (debug "normexp_matchalt ndatatup=" ndatatup "\n *nbodyl=" nbodyl)
 		 ;;
 		 (put_fields nresmatch
 			     :namatch_matched nmatx ;; normal matched stuff

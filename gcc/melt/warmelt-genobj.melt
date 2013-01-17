@@ -5952,7 +5952,7 @@ $SBUF.}#
 				  (+i 7 (*i 2 (multiple_length nmdatas)))))
 	(ostepmap (make_mapobject discr_map_objects
 				  (+i 13 (*i 3 (multiple_length nmdatas)))))
-	(labprefix (string4out discr_verbatim_string "_matchaltlab" matchnum "_"))
+	(labprefix (string4out discr_verbatim_string "_meltmatchaltlab" matchnum "_"))
 	(altmatch (instance class_alternate_match_nrep_data 
 			    :altmatchn_prev oldaltmatch
 			    :altmatchn_number matchnum
@@ -6005,9 +6005,11 @@ $SBUF.}#
 		    (stepnum (constant_box (+i stepcount 1)))
 		   )
 	       (debug "compilobj_nrep_matchalt labstep=" labstep "\n stepnum=" stepnum)
-	       (assert_msg "check labstep" (is_a labstep class_match_step))
+	       (assert_msg "check labstep" (or (is_a curncomp class_nrep_match_label_end) 
+					       (is_a labstep class_match_step)))
 	       (assert_msg "check unknown labstep" (null (mapobject_get ostepmap labstep)))
-	       (mapobject_put ostepmap labstep stepnum)
+	       (if labstep 
+		   (mapobject_put ostepmap labstep stepnum))
 	       ))
 	 )
 	(debug "compilobj_nrep_matchalt ostepmap=" ostepmap)
@@ -6023,6 +6025,8 @@ $SBUF.}#
 	   (assert_msg "check curocomp object" (is_object curocomp))
 	   (list_append obodyl curocomp)
 	   ))
+	;; we need to append the result at end of body
+	(list_append obodyl obvares)
 	;;
 	(debug "compilobj_nrep_matchalt obodyl=" obodyl)
 	(dispose_objloc obvares gcx)
@@ -6067,6 +6071,32 @@ $SBUF.}#
       )))
 
 (install_method class_nrep_match_label compile_obj compilobj_nrep_matchlabel)
+
+
+;;;;;;;;;;;;;;;;
+(defun compilobj_nrep_matchlabelend (nmlab gcx)
+  (assert_msg "check nmlab" (is_a nmlab class_nrep_match_label_end))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (debug "compilobj_nrep_matchlabelend nmlab=" nmlab " gcx=" gcx)
+  (let (
+	(nloc (get_field :nrep_loc nmlab))
+	(altmatchdata (get_field :gncx_altmatch gcx))
+	(labprefix (get_field :altmatchn_labprefix altmatchdata))
+	)
+    (debug "compilobj_nrep_matchlabel labprefix=" labprefix)
+    (assert_msg "check labprefix" (is_string labprefix))
+    (shortbacktrace_dbg "compilobj_nrep_matchlabel" 12)
+    (let ( (olabinstr (instance class_objlabelinstr
+				:obi_loc nloc
+				:oblab_prefix (string4out discr_verbatim_string labprefix "_end")
+				)
+		      )
+	   )
+      (debug "compilobj_nrep_matchlabel resultend olabinstr=" olabinstr)
+      (return olabinstr)
+      )))
+
+(install_method class_nrep_match_label_end compile_obj compilobj_nrep_matchlabelend)
 
 
 ;;;;;;;;;;;;;;;;
@@ -6179,24 +6209,35 @@ $SBUF.}#
   (let (
 	(nloc (unsafe_get_field :nrep_loc nmjump))
 	(altmatchdata (get_field :gncx_altmatch gcx))
-	(nstep (get_field :nmlab_step nmjump))
+	(nmlab (get_field :nmjmp_label nmjump))
 	(labprefix (get_field :altmatchn_labprefix altmatchdata))
-	(ostepmap (get_field :altmatchn_stepmap altmatchdata))
-	(stepnum (mapobject_get ostepmap nstep))
 	)
     (debug "compilobj_nrep_matchjump  altmatchdata=" altmatchdata
-	   "\n *nstep=" nstep "\n *stepnum=" stepnum)
+	   "\n *nmlab=" nmlab)
     (assert_msg "check altmatchdata" (is_a altmatchdata class_alternate_match_nrep_data))
-    (assert_msg "check nstep" (is_a nstep class_match_step))
-    (assert_msg "check stepnum" (is_integerbox stepnum))
-    (assert_msg "check labprefix" (is_string labprefix))
-    (shortbacktrace_dbg "compilobj_nrep_matchjump" 15)
-    
-    (let ( (objgotomins (instance class_objgotoinstr
-				  :obi_loc nloc
-				  :obgoto_prefix labprefix
-				  :obgoto_rank stepnum
-				  ))
+    (let ( (objgotomins
+	    (cond ((is_a nmlab class_nrep_match_label_end)
+		   (debug "compilobj_nrep_matchjump ending nmlab=" nmlab)
+		   (instance class_objgotoinstr
+			     :obi_loc nloc
+			     :obgoto_prefix (string4out discr_verbatim_string 
+							labprefix "_end")
+			     ))
+		  ((is_a nmlab class_nrep_match_label)
+		   (let 
+		       (
+			(nstep (get_field :nmlab_step nmlab))
+			(ostepmap (get_field :altmatchn_stepmap altmatchdata))
+			(stepnum (mapobject_get ostepmap nstep))
+			)
+		     (debug "compilobj_nrep_matchjump nstep=" nstep "\n *stepnum=" stepnum)
+		     
+		     (instance class_objgotoinstr
+			       :obi_loc nloc
+			       :obgoto_prefix labprefix
+			       :obgoto_rank stepnum)))
+		  (:else
+		   (assert_msg "unexpected nmlab"))))
 	   )
       (debug "compilobj_nrep_matchjump result objgotomins=" objgotomins)
       (return objgotomins)
