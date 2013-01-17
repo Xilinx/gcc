@@ -6808,6 +6808,9 @@ normalized expression.}#
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; display the graphic of matchalt normalization for Graphviz in .dot
+;; format notice that the numbering of steps is local to this
+;; function...
 (defun mg_altdraw_graphviz (mdata dotprefix)
   (let ( (mapdata (make_mapobject discr_map_objects 43))
 	 (mapstep (make_mapobject discr_map_objects 43))

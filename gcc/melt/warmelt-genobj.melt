@@ -6178,21 +6178,29 @@ $SBUF.}#
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (let (
 	(nloc (unsafe_get_field :nrep_loc nmjump))
-	(altmatch (get_field :gncx_altmatch gcx))
-	(nlabstep (get_field :nmlab_step nmjump))
+	(altmatchdata (get_field :gncx_altmatch gcx))
+	(nstep (get_field :nmlab_step nmjump))
+	(labprefix (get_field :altmatchn_labprefix altmatchdata))
+	(ostepmap (get_field :altmatchn_stepmap altmatchdata))
+	(stepnum (mapobject_get ostepmap nstep))
 	)
     (debug "compilobj_nrep_matchjump  altmatch=" altmatch
-	   "\n *nlabstep=" nlabstep)
+	   "\n *nstep=" nstep "\n *stepnum=" stepnum)
+    (assert_msg "check altmatchdata" (is_a altmatchdata class_alternate_match_nrep_data))
+    (assert_msg "check nstep" (is_a nstep class_match_step))
+    (assert_msg "check stepnum" (is_integerbox stepnum))
+    (assert_msg "check labprefix" (is_string labprefix))
     (shortbacktrace_dbg "compilobj_nrep_matchjump" 15)
-    (let ( (objc (make_objcompute nloc ctype_void ##{??compilobj_nrep_matchjump
-#error incomplete compilobj_nrep_matchjump 
-}#))
+    
+    (let ( (objgotomins (instance class_objgotoinstr
+				  :obi_loc nloc
+				  :obgoto_prefix labprefix
+				  :obgoto_rank stepnum
+				  ))
 	   )
-      (error_plain nloc "not fully implemented compilobj_nrep_matchjump")
-      (debug "compilobj_nrep_matchjump objc=" objc)
-      (assert_msg "@$@unimplemented compilobj_nrep_matchjump")
-      (return objc)
-    )))
+      (debug "compilobj_nrep_matchjump result objgotomins=" objgotomins)
+      (return objgotomins)
+      )))
 
 (install_method class_nrep_match_jump compile_obj compilobj_nrep_matchjump)
 
