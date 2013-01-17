@@ -259,6 +259,8 @@
   :fields (
 	   ))
 
+
+
 ;; multi-allocation block instruction, used for letrec compilation
 (defclass class_objmultiallocblock
   :super class_objanyblock
@@ -5988,8 +5990,9 @@ $SBUF.}#
 		   (debug "compilobj_nrep_matchalt/lambda curoflag=" curoflag)
 		   (return curoflag))))
 	      )
-	     (oblock (instance class_objplainblock
+	     (oblock (instance class_objmatchflagblock
 			       :obi_loc nloc
+			       :omchflgblo_flags oflags
 			       :oblo_bodyl obodyl))
 	     )
 	(debug "compilobj_nrep_matchalt oflags=" oflags "\n oblock=" oblock)
@@ -6128,6 +6131,7 @@ $SBUF.}#
 			    :obflag_rank (get_field :mflag_rank nrfla)))
       (mapobject_put oflagmap nmflag objmf)
       (debug "compilobj_nrep_matchflag new objmf=" objmf " in updated oflagmap=" oflagmap)
+      (shortbacktrace_dbg "compilobj_nrep_matchflag" 15)
       (return objmf)
       )))
 

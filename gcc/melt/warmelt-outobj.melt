@@ -2657,6 +2657,21 @@ meltmarking_$ONAME (struct melt_callframe_st*fp, int marking) {
   )
 (install_method class_objanyblock output_c_code outpucod_objanyblock)
 
+
+;; output code for objmatchflagblock
+(defun outpucod_objmatchflagblock (oblo declbuf implbuf :long depth)
+  (debug "outpucod_objmatchflagblock oblo=" oblo)
+  (assert_msg "check oblo" (is_a oblo class_objmatchflagblock))
+  (let (
+	(oloc (get_field :obi_loc oblo))
+	(oflags (get_field :omchflgblo_flags oblo))
+	(obody (get_field :oblo_bodyl oblo))
+	)
+  (output_location (unsafe_get_field :obi_loc oblo) implbuf depth "matchblock")
+  (assert_msg "@$@unimplemented outpucod_objmatchflagblock")
+))
+(install_method class_objmatchflagblock output_c_code outpucod_objmatchflagblock)
+
 ;; output code for objmultiallocblock
 (defun outpucod_objmultiallocblock (oblo declbuf implbuf :long depth)
   (assert_msg "check oblo" (is_a oblo class_objmultiallocblock))
