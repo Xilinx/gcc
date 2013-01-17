@@ -6898,7 +6898,7 @@ normalized expression.}#
 			   #{/*$CHUNKDISNAM*/ meltgc_add_strbuf ((melt_ptr_t)$NAMBUF,
 								 melt_string_str ((melt_ptr_t)$DISNAM)
 								 + strlen("CLASS_")) }#)
-	       (add2sbuf_strconst nambuf "__")
+	       (add2sbuf_strconst nambuf "_%")
 	       (add2sbuf_longdec nambuf (+i mapcnt 1))
 	       (mapobject_put mapstep step (strbuf2string discr_string nambuf))
 	       (if sdata (scandata sdata))

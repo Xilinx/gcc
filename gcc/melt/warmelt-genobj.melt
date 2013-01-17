@@ -5913,16 +5913,20 @@ $SBUF.}#
 
 
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defclass class_alternate_match_nrep_data 
   :super class_root
   :fields (altmatchn_prev		;the previous
+	   altmatchn_number		;unique number
 	   altmatchn_nrep		;the current nrep_matchalt
 	   altmatchn_flagmap		;mapping from match flags to objflags
 	   altmatchn_datamap		;mapping from nrep matched data to objvalues
+	   altmatchn_stepmap 		;mapping from match steps to their unique number
+	   altmatchn_labprefix		;string prefix for labels
 	   )
   )
 (export_class class_alternate_match_nrep_data)
+
 
 ;;;; compilation of alternate matches
 (defun compilobj_nrep_matchalt (nmat gcx)
@@ -5940,20 +5944,29 @@ $SBUF.}#
 	(nmdatas (unsafe_get_field :namatch_mdatas nmat))
 	(obodyl (make_list discr_list))
 	(oldaltmatch (get_field :gncx_altmatch gcx))
+	(oldmatchnum (or (get_field :altmatchn_number oldaltmatch) '0))
+	(matchnum (+ivi oldmatchnum 1))
 	(oflagmap (make_mapobject discr_map_objects 
 				  (+i 5 (*i 2 (multiple_length nflags)))))
 	(odatamap (make_mapobject discr_map_objects
 				  (+i 7 (*i 2 (multiple_length nmdatas)))))
+	(ostepmap (make_mapobject discr_map_objects
+				  (+i 13 (*i 3 (multiple_length nmdatas)))))
+	(labprefix (string4out discr_verbatim_string "_matchaltlab" matchnum "_"))
 	(altmatch (instance class_alternate_match_nrep_data 
 			    :altmatchn_prev oldaltmatch
+			    :altmatchn_number matchnum
 			    :altmatchn_nrep nmat
 			    :altmatchn_flagmap oflagmap
 			    :altmatchn_datamap odatamap
+			    :altmatchn_stepmap ostepmap
+			    :altmatchn_labprefix labprefix
 			    )))
 							      
-    (debug "compilobj_nrep_matchalt nmatched=" nmatched " nres=" nres 
-	   " nflags=" nflags " nctyp=" nctyp
-	   " nbody=" nbody " oldaltmatch=" oldaltmatch)
+    (debug "compilobj_nrep_matchalt nmatched=" nmatched "\n nres=" nres 
+	   "\n nflags=" nflags "\n nctyp=" nctyp
+	   "\n nbody=" nbody "\n oldaltmatch=" oldaltmatch
+	   "\n new altmatch=" altmatch)
     (put_fields gcx :gncx_altmatch altmatch)
     (let (
 	  (nsymbres (get_field :nocc_symb nres))
@@ -5980,6 +5993,24 @@ $SBUF.}#
 			       :oblo_bodyl obodyl))
 	     )
 	(debug "compilobj_nrep_matchalt oflags=" oflags "\n oblock=" oblock)
+	;;
+	;; fill the stepmap from class_nrep_match_label occurrences
+	(foreach_in_multiple
+	 (nbody)
+	 (curncomp :long bodix)
+	 (debug "compilobj_nrep_matchalt stepmap bodix#" bodix " curncomp=" curncomp)
+	 (if (is_a curncomp class_nrep_match_label)
+	     (let ( (labstep (get_field :nmlab_step curncomp))
+		    (:long stepcount (mapobject_count ostepmap))
+		    (stepnum (constant_box (+i stepcount 1)))
+		   )
+	       (debug "compilobj_nrep_matchalt labstep=" labstep "\n stepnum=" stepnum)
+	       (assert_msg "check labstep" (is_a labstep class_match_step))
+	       (assert_msg "check unknown labstep" (null (mapobject_get ostepmap labstep)))
+	       (mapobject_put ostepmap labstep stepnum)
+	       ))
+	 )
+	(debug "compilobj_nrep_matchalt ostepmap=" ostepmap)
 	;;
 	(debug "compilobj_nrep_matchalt nbody=" nbody)
 	(foreach_in_multiple
@@ -6014,20 +6045,26 @@ $SBUF.}#
   (let (
 	(nloc (get_field :nrep_loc nmlab))
 	(nstep (get_field :nmlab_step nmlab))
-	(stepixv (get_field :mstep_index nstep))
+	(altmatchdata (get_field :gncx_altmatch gcx))
+	(labprefix (get_field :altmatchn_labprefix altmatchdata))
+	(ostepmap (get_field :altmatchn_stepmap altmatchdata))
+	(stepnum (mapobject_get ostepmap nstep))
 	)
-    (debug "compilobj_nrep_matchlabel stepixv=" stepixv " nstep=" nstep)
+    (debug "compilobj_nrep_matchlabel nstep=" nstep
+	   "\n stepnum=" stepnum "\n labprefix=" labprefix)
+    (assert_msg "check altmatchdata" (is_a altmatchdata class_alternate_match_nrep_data))
+    (assert_msg "check nstep" (is_a nstep class_match_step))
+    (assert_msg "check stepnum" (is_integerbox stepnum))
+    (assert_msg "check labprefix" (is_string labprefix))
     (shortbacktrace_dbg "compilobj_nrep_matchlabel" 12)
-(let ( (objm (make_objcompute nloc ctype_void ##{??compilobj_nrep_matchlabel
-#error incomplete compilobj_nrep_matchlabel
-/*nstep=*/ $NSTEP
-/*stepixv=*/ $STEPIXV
-}#))
-       )
-  (error_plain nloc "not fully implemented compilobj_nrep_matchlabel")
-  (debug "compilobj_nrep_matchlabel objm=" objm)
-  (return objm)
-    )))
+    (let ( (olabinstr (instance class_objlabelinstr
+				:obi_loc nloc
+				:oblab_prefix labprefix
+				:oblab_rank stepnum))
+	   )
+      (debug "compilobj_nrep_matchlabel result olabinstr=" olabinstr)
+      (return olabinstr)
+      )))
 
 (install_method class_nrep_match_label compile_obj compilobj_nrep_matchlabel)
 
