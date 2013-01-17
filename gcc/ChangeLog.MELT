@@ -1,5 +1,8 @@
 
 2013-01-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.melt (compilobj_nrep_matchjump): Correct typo.
+
+2013-01-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt (mg_altdraw_graphviz): Add comment.
 
 	* melt/warmelt-genobj.melt (compilobj_nrep_matchjump): Generate a
