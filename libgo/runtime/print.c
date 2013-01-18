@@ -17,13 +17,16 @@ gwrite(const void *v, int32 n)
 	G* g = runtime_g();
 
 	if(g == nil || g->writebuf == nil) {
-		runtime_write(2, v, n);
+		// Avoid -D_FORTIFY_SOURCE problems.
+		int rv __attribute__((unused));
+
+		rv = runtime_write(2, v, n);
 		return;
 	}
-	
+
 	if(g->writenbuf == 0)
 		return;
-	
+
 	if(n > g->writenbuf)
 		n = g->writenbuf;
 	runtime_memmove(g->writebuf, v, n);

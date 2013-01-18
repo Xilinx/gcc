@@ -11967,8 +11967,7 @@ cp_parser_template_parameter_list (cp_parser* parser)
 						parm_loc,
 						parameter,
 						is_non_type,
-						is_parameter_pack,
-						0);
+						is_parameter_pack);
       else
        {
          tree err_parm = build_tree_list (parameter, parameter);
@@ -17665,13 +17664,17 @@ cp_parser_initializer_list (cp_parser* parser, bool* non_constant_p)
 	       && cp_lexer_next_token_is (parser->lexer, CPP_OPEN_SQUARE))
 	{
 	  /* In C++11, [ could start a lambda-introducer.  */
+	  bool non_const = false;
+
 	  cp_parser_parse_tentatively (parser);
 	  cp_lexer_consume_token (parser->lexer);
-	  designator = cp_parser_constant_expression (parser, false, NULL);
+	  designator = cp_parser_constant_expression (parser, true, &non_const);
 	  cp_parser_require (parser, CPP_CLOSE_SQUARE, RT_CLOSE_SQUARE);
 	  cp_parser_require (parser, CPP_EQ, RT_EQ);
 	  if (!cp_parser_parse_definitely (parser))
 	    designator = NULL_TREE;
+	  else if (non_const)
+	    require_potential_rvalue_constant_expression (designator);
 	}
       else
 	designator = NULL_TREE;
@@ -21134,7 +21137,6 @@ cp_parser_template_declaration_after_export (cp_parser* parser, bool member_p)
     {
       /* Parse the template parameters.  */
       parameter_list = cp_parser_template_parameter_list (parser);
-      fixup_template_parms ();
     }
 
   /* Get the deferred access checks from the parameter list.  These

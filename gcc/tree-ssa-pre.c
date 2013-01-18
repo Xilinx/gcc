@@ -1283,7 +1283,7 @@ translate_vuse_through_block (VEC (vn_reference_op_s, heap) *operands,
 	  bitmap visited = NULL;
 	  /* Try to find a vuse that dominates this phi node by skipping
 	     non-clobbering statements.  */
-	  vuse = get_continuation_for_phi (phi, &ref, &visited);
+	  vuse = get_continuation_for_phi (phi, &ref, &visited, false);
 	  if (visited)
 	    BITMAP_FREE (visited);
 	}
@@ -3063,7 +3063,7 @@ create_expression_by_pieces (basic_block block, pre_expr expr,
     case NARY:
       {
 	vn_nary_op_t nary = PRE_EXPR_NARY (expr);
-	tree genop[4];
+	tree *genop = XALLOCAVEC (tree, nary->length);
 	unsigned i;
 	for (i = 0; i < nary->length; ++i)
 	  {
@@ -4820,11 +4820,12 @@ init_pre (bool do_fre)
 
 /* Deallocate data structures used by PRE.  */
 
-static void
+static unsigned 
 fini_pre (bool do_fre)
 {
   bool do_eh_cleanup = !bitmap_empty_p (need_eh_cleanup);
   bool do_ab_cleanup = !bitmap_empty_p (need_ab_cleanup);
+  unsigned todo = 0;
 
   free (postorder);
   VEC_free (bitmap_set_t, heap, value_expressions);
@@ -4851,10 +4852,12 @@ fini_pre (bool do_fre)
   BITMAP_FREE (need_ab_cleanup);
 
   if (do_eh_cleanup || do_ab_cleanup)
-    cleanup_tree_cfg ();
+    todo = TODO_cleanup_cfg;
 
   if (!do_fre)
     loop_optimizer_finalize ();
+
+  return todo;
 }
 
 /* Main entry point to the SSA-PRE pass.  DO_FRE is true if the caller
@@ -4933,7 +4936,7 @@ execute_pre (bool do_fre)
     }
 
   scev_finalize ();
-  fini_pre (do_fre);
+  todo |= fini_pre (do_fre);
 
   if (!do_fre)
     /* TODO: tail_merge_optimize may merge all predecessors of a block, in which
@@ -4945,6 +4948,13 @@ execute_pre (bool do_fre)
        - share the cfg cleanup with fini_pre.  */
     todo |= tail_merge_optimize (todo);
   free_scc_vn ();
+
+  /* Tail merging invalidates the virtual SSA web, together with
+     cfg-cleanup opportunities exposed by PRE this will wreck the
+     SSA updating machinery.  So make sure to run update-ssa
+     manually, before eventually scheduling cfg-cleanup as part of
+     the todo.  */
+  update_ssa (TODO_update_ssa_only_virtuals);
 
   return todo;
 }
@@ -4979,8 +4989,7 @@ struct gimple_opt_pass pass_pre =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   TODO_rebuild_alias,			/* todo_flags_start */
-  TODO_update_ssa_only_virtuals  | TODO_ggc_collect
-  | TODO_verify_ssa /* todo_flags_finish */
+  TODO_ggc_collect | TODO_verify_ssa	/* todo_flags_finish */
  }
 };
 

@@ -1,7 +1,6 @@
 // hashtable.h header -*- C++ -*-
 
-// Copyright (C) 2007, 2008, 2009, 2010, 2011, 2012
-// Free Software Foundation, Inc.
+// Copyright (C) 2007-2012 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -1597,6 +1596,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	  // level.
 	  _M_rehash_policy._M_prev_resize = 0;
 	}
+      else
+	// No rehash, restore previous state to keep a consistent state.
+	_M_rehash_policy._M_reset(__saved_state);
     }
 
   template<typename _Key, typename _Value,
@@ -1634,7 +1636,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       _Bucket* __new_buckets = _M_allocate_buckets(__n);
       _Node* __p = _M_begin();
       _M_before_begin._M_nxt = nullptr;
-      std::size_t __bbegin_bkt;
+      std::size_t __bbegin_bkt = 0;
       while (__p)
 	{
 	  _Node* __next = __p->_M_next();
@@ -1675,8 +1677,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
       _Node* __p = _M_begin();
       _M_before_begin._M_nxt = nullptr;
-      std::size_t __bbegin_bkt;
-      std::size_t __prev_bkt;
+      std::size_t __bbegin_bkt = 0;
+      std::size_t __prev_bkt = 0;
       _Node* __prev_p = nullptr;
       bool __check_bucket = false;
 
@@ -1704,8 +1706,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	    {
 	      if (__check_bucket)
 		{
-		  // Check if we shall update the next bucket because of insertions
-		  // into __prev_bkt bucket.
+		  // Check if we shall update the next bucket because of
+		  // insertions into __prev_bkt bucket.
 		  if (__prev_p->_M_nxt)
 		    {
 		      std::size_t __next_bkt

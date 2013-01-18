@@ -1508,7 +1508,11 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	   the VAR_DECL.  Suppress debug info for the latter but make sure it
 	   will live on the stack so that it can be accessed from within the
 	   debugger through the PARM_DECL.  */
-	if (kind == E_Out_Parameter && definition && !optimize && debug_info_p)
+	if (kind == E_Out_Parameter
+	    && definition
+	    && debug_info_p
+	    && !optimize
+	    && !flag_generate_lto)
 	  {
 	    tree param = create_param_decl (gnu_entity_name, gnu_type, false);
 	    gnat_pushdecl (param, gnat_entity);
@@ -1892,8 +1896,10 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	}
 
       /* If the type we are dealing with has got a smaller alignment than the
-	 natural one, we need to wrap it up in a record type and under-align
-	 the latter.  We reuse the padding machinery for this purpose.  */
+	 natural one, we need to wrap it up in a record type and misalign the
+	 latter; we reuse the padding machinery for this purpose.  Note that,
+	 even if the record type is marked as packed because of misalignment,
+	 we don't pack the field so as to give it the size of the type.  */
       else if (align > 0)
 	{
 	  tree gnu_field_type, gnu_field;
@@ -1923,7 +1929,8 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	     a bitfield.  */
 	  gnu_field
 	    = create_field_decl (get_identifier ("F"), gnu_field_type,
-				 gnu_type, NULL_TREE, bitsize_zero_node, 1, 0);
+				 gnu_type, TYPE_SIZE (gnu_field_type),
+				 bitsize_zero_node, 0, 0);
 
 	  finish_record_type (gnu_type, gnu_field, 2, debug_info_p);
 	  compute_record_mode (gnu_type);
@@ -2251,6 +2258,12 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    TYPE_MULTI_ARRAY_P (tem) = (index > 0);
 	    if (array_type_has_nonaliased_component (tem, gnat_entity))
 	      TYPE_NONALIASED_COMPONENT (tem) = 1;
+
+	    /* If it is passed by reference, force BLKmode to ensure that
+	       objects of this type will always be put in memory.  */
+	    if (TYPE_MODE (tem) != BLKmode
+		&& Is_By_Reference_Type (gnat_entity))
+	      SET_TYPE_MODE (tem, BLKmode);
 	  }
 
 	/* If an alignment is specified, use it if valid.  But ignore it
@@ -2590,6 +2603,11 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	      TYPE_MULTI_ARRAY_P (gnu_type) = (index > 0);
 	      if (array_type_has_nonaliased_component (gnu_type, gnat_entity))
 		TYPE_NONALIASED_COMPONENT (gnu_type) = 1;
+
+	      /* See the E_Array_Type case for the rationale.  */
+	      if (TYPE_MODE (gnu_type) != BLKmode
+		  && Is_By_Reference_Type (gnat_entity))
+		SET_TYPE_MODE (gnu_type, BLKmode);
 	    }
 
 	  /* Attach the TYPE_STUB_DECL in case we have a parallel type.  */
@@ -3158,7 +3176,8 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 
 	/* If it is passed by reference, force BLKmode to ensure that objects
 	   of this type will always be put in memory.  */
-	if (Is_By_Reference_Type (gnat_entity))
+	if (TYPE_MODE (gnu_type) != BLKmode
+	    && Is_By_Reference_Type (gnat_entity))
 	  SET_TYPE_MODE (gnu_type, BLKmode);
 
 	/* We used to remove the associations of the discriminants and _Parent
@@ -3526,12 +3545,12 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		 modify it below.  */
 	      gnu_field_list = nreverse (gnu_field_list);
 	      finish_record_type (gnu_type, gnu_field_list, 2, false);
+	      compute_record_mode (gnu_type);
 
 	      /* See the E_Record_Type case for the rationale.  */
-	      if (Is_By_Reference_Type (gnat_entity))
+	      if (TYPE_MODE (gnu_type) != BLKmode
+		  && Is_By_Reference_Type (gnat_entity))
 		SET_TYPE_MODE (gnu_type, BLKmode);
-	      else
-		compute_record_mode (gnu_type);
 
 	      TYPE_VOLATILE (gnu_type) = Treat_As_Volatile (gnat_entity);
 
@@ -6346,6 +6365,7 @@ elaborate_expression_1 (tree gnu_expr, Entity_Id gnat_entity, tree gnu_name,
   use_variable = expr_variable_p
 		 && (expr_global_p
 		     || (!optimize
+		         && definition
 			 && Is_Itype (gnat_entity)
 			 && Nkind (Associated_Node_For_Itype (gnat_entity))
 			    == N_Loop_Parameter_Specification));

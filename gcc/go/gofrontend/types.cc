@@ -54,8 +54,7 @@ get_backend_interface_fields(Gogo* gogo, Interface_type* type,
 // Class Type.
 
 Type::Type(Type_classification classification)
-  : classification_(classification), btype_is_placeholder_(false),
-    btype_(NULL), type_descriptor_var_(NULL)
+  : classification_(classification), btype_(NULL), type_descriptor_var_(NULL)
 {
 }
 
@@ -430,7 +429,7 @@ Type::are_identical(const Type* t1, const Type* t2, bool errors_are_identical,
 
     case TYPE_CALL_MULTIPLE_RESULT:
       if (reason != NULL)
-	*reason = "invalid use of multiple value function call";
+	*reason = "invalid use of multiple-value function call";
       return false;
 
     default:
@@ -588,6 +587,9 @@ Type::are_compatible_for_comparison(bool is_equality_op, const Type *t1,
 	       p != fields->end();
 	       ++p)
 	    {
+	      if (Gogo::is_sink_name(p->field_name()))
+		continue;
+
 	      if (!p->type()->is_comparable())
 		{
 		  if (reason != NULL)
@@ -633,8 +635,8 @@ Type::are_assignable_check_hidden(const Type* lhs, const Type* rhs,
       if (rhs->is_call_multiple_result_type())
 	{
 	  if (reason != NULL)
-	    reason->assign(_("multiple value function call in "
-			     "single value context"));
+	    reason->assign(_("multiple-value function call in "
+			     "single-value context"));
 	  return false;
 	}
     }
@@ -916,11 +918,7 @@ Btype*
 Type::get_backend(Gogo* gogo)
 {
   if (this->btype_ != NULL)
-    {
-      if (this->btype_is_placeholder_ && gogo->named_types_are_converted())
-	this->finish_backend(gogo);
-      return this->btype_;
-    }
+    return this->btype_;
 
   if (this->forward_declaration_type() != NULL
       || this->named_type() != NULL)
@@ -934,20 +932,36 @@ Type::get_backend(Gogo* gogo)
   // that.  There is no need to use the hash table for named types, as
   // named types are only identical to themselves.
 
-  std::pair<Type*, Btype*> val(this, NULL);
+  std::pair<Type*, Type_btype_entry> val;
+  val.first = this;
+  val.second.btype = NULL;
+  val.second.is_placeholder = false;
   std::pair<Type_btypes::iterator, bool> ins =
     Type::type_btypes.insert(val);
-  if (!ins.second && ins.first->second != NULL)
+  if (!ins.second && ins.first->second.btype != NULL)
     {
-      if (gogo != NULL && gogo->named_types_are_converted())
-	this->btype_ = ins.first->second;
-      return ins.first->second;
+      // Note that GOGO can be NULL here, but only when the GCC
+      // middle-end is asking for a frontend type.  That will only
+      // happen for simple types, which should never require
+      // placeholders.
+      if (!ins.first->second.is_placeholder)
+	this->btype_ = ins.first->second.btype;
+      else if (gogo->named_types_are_converted())
+	{
+	  this->finish_backend(gogo, ins.first->second.btype);
+	  ins.first->second.is_placeholder = false;
+	}
+
+      return ins.first->second.btype;
     }
 
   Btype* bt = this->get_btype_without_hash(gogo);
 
-  if (ins.first->second == NULL)
-    ins.first->second = bt;
+  if (ins.first->second.btype == NULL)
+    {
+      ins.first->second.btype = bt;
+      ins.first->second.is_placeholder = false;
+    }
   else
     {
       // We have already created a backend representation for this
@@ -955,10 +969,9 @@ Type::get_backend(Gogo* gogo)
       // a named type which in turns uses an identical unnamed type.
       // Use the tree we created earlier and ignore the one we just
       // built.
-      bt = ins.first->second;
-      if (gogo == NULL || !gogo->named_types_are_converted())
-	return bt;
-      this->btype_ = bt;
+      if (this->btype_ == bt)
+	this->btype_ = ins.first->second.btype;
+      bt = ins.first->second.btype;
     }
 
   return bt;
@@ -1025,6 +1038,37 @@ Type::get_backend_placeholder(Gogo* gogo)
       // These are simple types that can just be created directly.
       return this->get_backend(gogo);
 
+    case TYPE_MAP:
+    case TYPE_CHANNEL:
+      // All maps and channels have the same backend representation.
+      return this->get_backend(gogo);
+
+    case TYPE_NAMED:
+    case TYPE_FORWARD:
+      // Named types keep track of their own dependencies and manage
+      // their own placeholders.
+      return this->get_backend(gogo);
+
+    case TYPE_INTERFACE:
+      if (this->interface_type()->is_empty())
+	return Interface_type::get_backend_empty_interface_type(gogo);
+      break;
+
+    default:
+      break;
+    }
+
+  std::pair<Type*, Type_btype_entry> val;
+  val.first = this;
+  val.second.btype = NULL;
+  val.second.is_placeholder = false;
+  std::pair<Type_btypes::iterator, bool> ins =
+    Type::type_btypes.insert(val);
+  if (!ins.second && ins.first->second.btype != NULL)
+    return ins.first->second.btype;
+
+  switch (this->classification_)
+    {
     case TYPE_FUNCTION:
       {
 	Location loc = this->function_type()->location();
@@ -1067,37 +1111,36 @@ Type::get_backend_placeholder(Gogo* gogo)
 	}
       break;
 	
-    case TYPE_MAP:
-    case TYPE_CHANNEL:
-      // All maps and channels have the same backend representation.
-      return this->get_backend(gogo);
-
     case TYPE_INTERFACE:
-      if (this->interface_type()->is_empty())
-	return Interface_type::get_backend_empty_interface_type(gogo);
-      else
-	{
-	  std::vector<Backend::Btyped_identifier> bfields;
-	  get_backend_interface_fields(gogo, this->interface_type(), true,
-				       &bfields);
-	  bt = gogo->backend()->struct_type(bfields);
-	}
+      {
+	go_assert(!this->interface_type()->is_empty());
+	std::vector<Backend::Btyped_identifier> bfields;
+	get_backend_interface_fields(gogo, this->interface_type(), true,
+				     &bfields);
+	bt = gogo->backend()->struct_type(bfields);
+      }
       break;
-
-    case TYPE_NAMED:
-    case TYPE_FORWARD:
-      // Named types keep track of their own dependencies and manage
-      // their own placeholders.
-      return this->get_backend(gogo);
 
     case TYPE_SINK:
     case TYPE_CALL_MULTIPLE_RESULT:
+      /* Note that various classifications were handled in the earlier
+	 switch.  */
     default:
       go_unreachable();
     }
 
-  this->btype_ = bt;
-  this->btype_is_placeholder_ = true;
+  if (ins.first->second.btype == NULL)
+    {
+      ins.first->second.btype = bt;
+      ins.first->second.is_placeholder = true;
+    }
+  else
+    {
+      // A placeholder for this type got created along the way.  Use
+      // that one and ignore the one we just built.
+      bt = ins.first->second.btype;
+    }
+
   return bt;
 }
 
@@ -1105,12 +1148,8 @@ Type::get_backend_placeholder(Gogo* gogo)
 // using a placeholder type.
 
 void
-Type::finish_backend(Gogo* gogo)
+Type::finish_backend(Gogo* gogo, Btype *placeholder)
 {
-  go_assert(this->btype_ != NULL);
-  if (!this->btype_is_placeholder_)
-    return;
-
   switch (this->classification_)
     {
     case TYPE_ERROR:
@@ -1126,7 +1165,7 @@ Type::finish_backend(Gogo* gogo)
     case TYPE_FUNCTION:
       {
 	Btype* bt = this->do_get_backend(gogo);
-	if (!gogo->backend()->set_placeholder_function_type(this->btype_, bt))
+	if (!gogo->backend()->set_placeholder_function_type(placeholder, bt))
 	  go_assert(saw_errors());
       }
       break;
@@ -1134,7 +1173,7 @@ Type::finish_backend(Gogo* gogo)
     case TYPE_POINTER:
       {
 	Btype* bt = this->do_get_backend(gogo);
-	if (!gogo->backend()->set_placeholder_pointer_type(this->btype_, bt))
+	if (!gogo->backend()->set_placeholder_pointer_type(placeholder, bt))
 	  go_assert(saw_errors());
       }
       break;
@@ -1171,7 +1210,7 @@ Type::finish_backend(Gogo* gogo)
       go_unreachable();
     }
 
-  this->btype_is_placeholder_ = false;
+  this->btype_ = placeholder;
 }
 
 // Return a pointer to the type descriptor for this type.
@@ -1295,7 +1334,8 @@ Type::type_descriptor_var_name(Gogo* gogo, Named_type* nt)
     return "__go_td_" + this->mangled_name(gogo);
 
   Named_object* no = nt->named_object();
-  const Named_object* in_function = nt->in_function();
+  unsigned int index;
+  const Named_object* in_function = nt->in_function(&index);
   std::string ret = "__go_tdn_";
   if (nt->is_builtin())
     go_assert(in_function == NULL);
@@ -1310,6 +1350,13 @@ Type::type_descriptor_var_name(Gogo* gogo, Named_type* nt)
 	{
 	  ret.append(Gogo::unpack_hidden_name(in_function->name()));
 	  ret.append(1, '.');
+	  if (index > 0)
+	    {
+	      char buf[30];
+	      snprintf(buf, sizeof buf, "%u", index);
+	      ret.append(buf);
+	      ret.append(1, '.');
+	    }
 	}
     }
 
@@ -1746,9 +1793,19 @@ Type::specific_type_functions(Gogo* gogo, Named_type* name,
     {
       // This name is already hidden or not as appropriate.
       base_name = name->name();
-      const Named_object* in_function = name->in_function();
+      unsigned int index;
+      const Named_object* in_function = name->in_function(&index);
       if (in_function != NULL)
-	base_name += '$' + Gogo::unpack_hidden_name(in_function->name());
+	{
+	  base_name += '$' + Gogo::unpack_hidden_name(in_function->name());
+	  if (index > 0)
+	    {
+	      char buf[30];
+	      snprintf(buf, sizeof buf, "%u", index);
+	      base_name += '$';
+	      base_name += buf;
+	    }
+	}
     }
   std::string hash_name = base_name + "$hash";
   std::string equal_name = base_name + "$equal";
@@ -1989,10 +2046,19 @@ Type::uncommon_type_constructor(Gogo* gogo, Type* uncommon_type,
 				     ? gogo->pkgpath()
 				     : package->pkgpath());
 	  n.assign(pkgpath);
-	  if (name->in_function() != NULL)
+	  unsigned int index;
+	  const Named_object* in_function = name->in_function(&index);
+	  if (in_function != NULL)
 	    {
 	      n.append(1, '.');
-	      n.append(Gogo::unpack_hidden_name(name->in_function()->name()));
+	      n.append(Gogo::unpack_hidden_name(in_function->name()));
+	      if (index > 0)
+		{
+		  char buf[30];
+		  snprintf(buf, sizeof buf, "%u", index);
+		  n.append(1, '.');
+		  n.append(buf);
+		}
 	    }
 	  s = Expression::make_string(n, bloc);
 	  vals->push_back(Expression::make_unary(OPERATOR_AND, s, bloc));
@@ -2361,7 +2427,7 @@ class Error_type : public Type
 
  protected:
   bool
-  do_compare_is_identity(Gogo*) const
+  do_compare_is_identity(Gogo*)
   { return false; }
 
   Btype*
@@ -2399,7 +2465,7 @@ class Void_type : public Type
 
  protected:
   bool
-  do_compare_is_identity(Gogo*) const
+  do_compare_is_identity(Gogo*)
   { return false; }
 
   Btype*
@@ -2437,7 +2503,7 @@ class Boolean_type : public Type
 
  protected:
   bool
-  do_compare_is_identity(Gogo*) const
+  do_compare_is_identity(Gogo*)
   { return true; }
 
   Btype*
@@ -2936,8 +3002,8 @@ String_type::do_get_backend(Gogo* gogo)
       // backend representation, so force it to be finished now.
       if (!gogo->named_types_are_converted())
 	{
-	  pb->get_backend_placeholder(gogo);
-	  pb->finish_backend(gogo);
+	  Btype* bt = pb->get_backend_placeholder(gogo);
+	  pb->finish_backend(gogo, bt);
 	}
 
       fields[0].name = "__data";
@@ -3060,7 +3126,7 @@ class Sink_type : public Type
 
  protected:
   bool
-  do_compare_is_identity(Gogo*) const
+  do_compare_is_identity(Gogo*)
   { return false; }
 
   Btype*
@@ -3938,7 +4004,7 @@ class Nil_type : public Type
 
  protected:
   bool
-  do_compare_is_identity(Gogo*) const
+  do_compare_is_identity(Gogo*)
   { return false; }
 
   Btype*
@@ -3989,7 +4055,7 @@ class Call_multiple_result_type : public Type
   }
 
   bool
-  do_compare_is_identity(Gogo*) const
+  do_compare_is_identity(Gogo*)
   { return false; }
 
   Btype*
@@ -4266,7 +4332,7 @@ Struct_type::struct_has_hidden_fields(const Named_type* within,
 // comparisons.
 
 bool
-Struct_type::do_compare_is_identity(Gogo* gogo) const
+Struct_type::do_compare_is_identity(Gogo* gogo)
 {
   const Struct_field_list* fields = this->fields_;
   if (fields == NULL)
@@ -4276,6 +4342,9 @@ Struct_type::do_compare_is_identity(Gogo* gogo) const
        pf != fields->end();
        ++pf)
     {
+      if (Gogo::is_sink_name(pf->field_name()))
+	return false;
+
       if (!pf->type()->compare_is_identity(gogo))
 	return false;
 
@@ -4295,6 +4364,16 @@ Struct_type::do_compare_is_identity(Gogo* gogo) const
 	return false;
       offset += field_size;
     }
+
+  unsigned int struct_size;
+  if (!this->backend_type_size(gogo, &struct_size))
+    return false;
+  if (offset != struct_size)
+    {
+      // Trailing padding may not be zero when on the stack.
+      return false;
+    }
+
   return true;
 }
 
@@ -4530,6 +4609,20 @@ Struct_type::method_function(const std::string& name, bool* is_ambiguous) const
   return Type::method_function(this->all_methods_, name, is_ambiguous);
 }
 
+// Return a pointer to the interface method table for this type for
+// the interface INTERFACE.  IS_POINTER is true if this is for a
+// pointer to THIS.
+
+tree
+Struct_type::interface_method_table(Gogo* gogo,
+				    const Interface_type* interface,
+				    bool is_pointer)
+{
+  return Type::interface_method_table(gogo, this, interface, is_pointer,
+				      &this->interface_method_tables_,
+				      &this->pointer_interface_method_tables_);
+}
+
 // Convert struct fields to the backend representation.  This is not
 // declared in types.h so that types.h doesn't have to #include
 // backend.h.
@@ -4749,6 +4842,9 @@ Struct_type::write_hash_function(Gogo* gogo, Named_type*,
        pf != fields->end();
        ++pf)
     {
+      if (Gogo::is_sink_name(pf->field_name()))
+	continue;
+
       if (first)
 	first = false;
       else
@@ -4840,6 +4936,9 @@ Struct_type::write_equal_function(Gogo* gogo, Named_type* name)
        pf != fields->end();
        ++pf, ++field_index)
     {
+      if (Gogo::is_sink_name(pf->field_name()))
+	continue;
+
       // Compare one field in both P1 and P2.
       Expression* f1 = Expression::make_temporary_reference(p1, bloc);
       f1 = Expression::make_unary(OPERATOR_MULT, f1, bloc);
@@ -4875,14 +4974,15 @@ Struct_type::write_equal_function(Gogo* gogo, Named_type* name)
 void
 Struct_type::do_reflection(Gogo* gogo, std::string* ret) const
 {
-  ret->append("struct { ");
+  ret->append("struct {");
 
   for (Struct_field_list::const_iterator p = this->fields_->begin();
        p != this->fields_->end();
        ++p)
     {
       if (p != this->fields_->begin())
-	ret->append("; ");
+	ret->push_back(';');
+      ret->push_back(' ');
       if (p->is_anonymous())
 	ret->push_back('?');
       else
@@ -4915,7 +5015,10 @@ Struct_type::do_reflection(Gogo* gogo, std::string* ret) const
 	}
     }
 
-  ret->append(" }");
+  if (!this->fields_->empty())
+    ret->push_back(' ');
+
+  ret->push_back('}');
 }
 
 // Mangled name.
@@ -5215,7 +5318,7 @@ Array_type::do_verify()
 // Whether we can use memcmp to compare this array.
 
 bool
-Array_type::do_compare_is_identity(Gogo* gogo) const
+Array_type::do_compare_is_identity(Gogo* gogo)
 {
   if (this->length_ == NULL)
     return false;
@@ -6815,7 +6918,8 @@ Interface_type::implements_interface(const Type* t, std::string* reason) const
 	      std::string n = Gogo::message_name(p->name());
 	      size_t len = 100 + n.length();
 	      char* buf = new char[len];
-	      snprintf(buf, len, _("method %s%s%s requires a pointer"),
+	      snprintf(buf, len,
+		       _("method %s%s%s requires a pointer receiver"),
 		       open_quote, n.c_str(), close_quote);
 	      reason->assign(buf);
 	      delete[] buf;
@@ -7151,7 +7255,17 @@ Interface_type::do_mangled_name(Gogo* gogo, std::string* ret) const
 	{
 	  if (!p->name().empty())
 	    {
-	      std::string n = Gogo::unpack_hidden_name(p->name());
+	      std::string n;
+	      if (!Gogo::is_hidden_name(p->name()))
+		n = p->name();
+	      else
+		{
+		  n = ".";
+		  std::string pkgpath = Gogo::hidden_name_pkgpath(p->name());
+		  n.append(Gogo::pkgpath_for_symbol(pkgpath));
+		  n.append(1, '.');
+		  n.append(Gogo::unpack_hidden_name(p->name()));
+		}
 	      char buf[20];
 	      snprintf(buf, sizeof buf, "%u_",
 		       static_cast<unsigned int>(n.length()));
@@ -7704,32 +7818,9 @@ tree
 Named_type::interface_method_table(Gogo* gogo, const Interface_type* interface,
 				   bool is_pointer)
 {
-  go_assert(!interface->is_empty());
-
-  Interface_method_tables** pimt = (is_pointer
-				    ? &this->interface_method_tables_
-				    : &this->pointer_interface_method_tables_);
-
-  if (*pimt == NULL)
-    *pimt = new Interface_method_tables(5);
-
-  std::pair<const Interface_type*, tree> val(interface, NULL_TREE);
-  std::pair<Interface_method_tables::iterator, bool> ins = (*pimt)->insert(val);
-
-  if (ins.second)
-    {
-      // This is a new entry in the hash table.
-      go_assert(ins.first->second == NULL_TREE);
-      ins.first->second = gogo->interface_method_table_for_type(interface,
-								this,
-								is_pointer);
-    }
-
-  tree decl = ins.first->second;
-  if (decl == error_mark_node)
-    return error_mark_node;
-  go_assert(decl != NULL_TREE && TREE_CODE(decl) == VAR_DECL);
-  return build_fold_addr_expr(decl);
+  return Type::interface_method_table(gogo, this, interface, is_pointer,
+				      &this->interface_method_tables_,
+				      &this->pointer_interface_method_tables_);
 }
 
 // Return whether a named type has any hidden fields.
@@ -7922,7 +8013,7 @@ Named_type::do_has_pointer() const
 // function.
 
 bool
-Named_type::do_compare_is_identity(Gogo* gogo) const
+Named_type::do_compare_is_identity(Gogo* gogo)
 {
   // We don't use this->seen_ here because compare_is_identity may
   // call base() later, and that will mess up if seen_ is set here.
@@ -8358,8 +8449,17 @@ Named_type::do_reflection(Gogo* gogo, std::string* ret) const
     }
   if (this->in_function_ != NULL)
     {
+      ret->push_back('\t');
       ret->append(Gogo::unpack_hidden_name(this->in_function_->name()));
       ret->push_back('$');
+      if (this->in_function_index_ > 0)
+	{
+	  char buf[30];
+	  snprintf(buf, sizeof buf, "%u", this->in_function_index_);
+	  ret->append(buf);
+	  ret->push_back('$');
+	}
+      ret->push_back('\t');
     }
   ret->append(Gogo::unpack_hidden_name(this->named_object_->name()));
 }
@@ -8389,6 +8489,13 @@ Named_type::do_mangled_name(Gogo* gogo, std::string* ret) const
 	{
 	  name.append(Gogo::unpack_hidden_name(this->in_function_->name()));
 	  name.append(1, '$');
+	  if (this->in_function_index_ > 0)
+	    {
+	      char buf[30];
+	      snprintf(buf, sizeof buf, "%u", this->in_function_index_);
+	      name.append(buf);
+	      name.append(1, '$');
+	    }
 	}
     }
   name.append(Gogo::unpack_hidden_name(no->name()));
@@ -8899,6 +9006,42 @@ Type::method_function(const Methods* methods, const std::string& name,
   return m;
 }
 
+// Return a pointer to the interface method table for TYPE for the
+// interface INTERFACE.
+
+tree
+Type::interface_method_table(Gogo* gogo, Type* type,
+			     const Interface_type *interface,
+			     bool is_pointer,
+			     Interface_method_tables** method_tables,
+			     Interface_method_tables** pointer_tables)
+{
+  go_assert(!interface->is_empty());
+
+  Interface_method_tables** pimt = is_pointer ? method_tables : pointer_tables;
+
+  if (*pimt == NULL)
+    *pimt = new Interface_method_tables(5);
+
+  std::pair<const Interface_type*, tree> val(interface, NULL_TREE);
+  std::pair<Interface_method_tables::iterator, bool> ins = (*pimt)->insert(val);
+
+  if (ins.second)
+    {
+      // This is a new entry in the hash table.
+      go_assert(ins.first->second == NULL_TREE);
+      ins.first->second = gogo->interface_method_table_for_type(interface,
+								type,
+								is_pointer);
+    }
+
+  tree decl = ins.first->second;
+  if (decl == error_mark_node)
+    return error_mark_node;
+  go_assert(decl != NULL_TREE && TREE_CODE(decl) == VAR_DECL);
+  return build_fold_addr_expr(decl);
+}
+
 // Look for field or method NAME for TYPE.  Return an Expression for
 // the field or method bound to EXPR.  If there is no such field or
 // method, give an appropriate error and return an error expression.
@@ -8990,7 +9133,7 @@ Type::bind_field_or_method(Gogo* gogo, const Type* type, Expression* expr,
 		 Gogo::message_name(name).c_str(), ambig1.c_str(),
 		 ambig2.c_str());
       else if (found_pointer_method)
-	error_at(location, "method requires a pointer");
+	error_at(location, "method requires a pointer receiver");
       else if (nt == NULL && st == NULL && it == NULL)
 	error_at(location,
 		 ("reference to field %qs in object which "

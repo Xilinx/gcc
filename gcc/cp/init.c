@@ -1736,8 +1736,10 @@ expand_aggr_init_1 (tree binfo, tree true_exp, tree exp, tree init, int flags,
      that's value-initialization.  */
   if (init == void_type_node)
     {
-      /* If no user-provided ctor, we need to zero out the object.  */
-      if (!type_has_user_provided_constructor (type))
+      /* If the type has data but no user-provided ctor, we need to zero
+	 out the object.  */
+      if (!type_has_user_provided_constructor (type)
+	  && !is_really_empty_class (type))
 	{
 	  tree field_size = NULL_TREE;
 	  if (exp != true_exp && CLASSTYPE_AS_BASE (type) != type)
@@ -2792,7 +2794,8 @@ build_new (VEC(tree,gc) **placement, tree type, tree nelts,
 
       orig_placement = make_tree_vector_copy (*placement);
       orig_nelts = nelts;
-      orig_init = make_tree_vector_copy (*init);
+      if (*init)
+	orig_init = make_tree_vector_copy (*init);
 
       make_args_non_dependent (*placement);
       if (nelts)
@@ -3148,8 +3151,7 @@ build_vec_init (tree base, tree maxindex, tree init,
   if (TREE_CODE (atype) == ARRAY_TYPE && TYPE_DOMAIN (atype))
     maxindex = array_type_nelts (atype);
 
-  if (maxindex == NULL_TREE || maxindex == error_mark_node
-      || integer_all_onesp (maxindex))
+  if (maxindex == NULL_TREE || maxindex == error_mark_node)
     return error_mark_node;
 
   if (explicit_value_init_p)

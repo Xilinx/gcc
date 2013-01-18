@@ -452,8 +452,10 @@ extern unsigned char ix86_arch_features[X86_ARCH_LAST];
 #define TARGET_FISTTP		(TARGET_SSE3 && TARGET_80387)
 
 extern int x86_prefetch_sse;
-
 #define TARGET_PREFETCH_SSE	x86_prefetch_sse
+
+extern int x86_prefetchw;
+#define TARGET_PREFETCHW	x86_prefetchw
 
 #define ASSEMBLER_DIALECT	(ix86_asm_dialect)
 
@@ -2113,8 +2115,7 @@ enum ix86_entity
 
 enum ix86_stack_slot
 {
-  SLOT_VIRTUAL = 0,
-  SLOT_TEMP,
+  SLOT_TEMP = 0,
   SLOT_CW_STORED,
   SLOT_CW_TRUNC,
   SLOT_CW_FLOOR,

@@ -1,5 +1,5 @@
 /* Instruction scheduling pass.  Selective scheduler and pipeliner.
-   Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011
+   Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -3224,7 +3224,11 @@ has_dependence_note_reg_use (int regno)
       if (reg_last->clobbers)
 	*dsp = (*dsp & ~SPECULATIVE) | DEP_ANTI;
 
-      /* Handle BE_IN_SPEC.  */
+      /* Merge BE_IN_SPEC bits into *DSP when the dependency producer
+	 is actually a check insn.  We need to do this for any register
+	 read-read dependency with the check unless we track properly
+	 all registers written by BE_IN_SPEC-speculated insns, as
+	 we don't have explicit dependence lists.  See PR 53975.  */
       if (reg_last->uses)
 	{
 	  ds_t pro_spec_checked_ds;
@@ -3232,9 +3236,7 @@ has_dependence_note_reg_use (int regno)
 	  pro_spec_checked_ds = INSN_SPEC_CHECKED_DS (has_dependence_data.pro);
 	  pro_spec_checked_ds = ds_get_max_dep_weak (pro_spec_checked_ds);
 
-	  if (pro_spec_checked_ds != 0
-	      && bitmap_bit_p (INSN_REG_SETS (has_dependence_data.pro), regno))
-	    /* Merge BE_IN_SPEC bits into *DSP.  */
+	  if (pro_spec_checked_ds != 0)
 	    *dsp = ds_full_merge (*dsp, pro_spec_checked_ds,
 				  NULL_RTX, NULL_RTX);
 	}
@@ -3680,6 +3682,22 @@ maybe_tidy_empty_bb (basic_block bb)
   FOR_EACH_EDGE (e, ei, bb->preds)
     if (e->flags & EDGE_COMPLEX)
       return false;
+    else if (e->flags & EDGE_FALLTHRU)
+      {
+	rtx note;
+	/* If prev bb ends with asm goto, see if any of the
+	   ASM_OPERANDS_LABELs don't point to the fallthru
+	   label.  Do not attempt to redirect it in that case.  */
+	if (JUMP_P (BB_END (e->src))
+	    && (note = extract_asm_operands (PATTERN (BB_END (e->src)))))
+	  {
+	    int i, n = ASM_OPERANDS_LABEL_LENGTH (note);
+
+	    for (i = 0; i < n; ++i)
+	      if (XEXP (ASM_OPERANDS_LABEL (note, i), 0) == BB_HEAD (bb))
+		return false;
+	  }
+      }
 
   free_data_sets (bb);
 

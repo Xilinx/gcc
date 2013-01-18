@@ -1,3 +1,111 @@
+2013-01-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <discrete_type>: Do not
+	pack the field of the record type made for a misaligned type.
+
+2013-01-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	Backport from mainline
+	2013-01-04  Robert Dewar  <dewar@adacore.com>
+
+	* gnat_rm.texi: Document alignment choice for subtypes.
+
+2012-12-21  Ed Schonberg  <schonberg@adacore.com>
+
+	PR ada/53737
+	* sem_ch12.adb (Analyze_Associations): Do not check the legality of
+	actuals for RACW types if this is an internal instantiation for a formal
+	package with defaulted parameters.
+
+2012-12-18  Matthew Gretton-Dann  <matthew.gretton-dann@linaro.org>
+
+	Backport from mainline.
+	2012-10-15  Matthias Klose  <doko@ubuntu.com>
+
+	* gcc-interface/Makefile.in: Match arm*-*-linux-*eabi* for
+	ARM Linux/GNU.
+
+2012-12-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/54614
+	Backport from mainline
+
+	2012-10-01  Vincent Pucci  <pucci@adacore.com>
+
+	* s-gearop.adb (Vector_Matrix_Product): Fix dimension check and index
+	of Left in S evaluation.
+
+2012-12-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/53766
+	Backport from mainline
+
+	2012-07-17  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* exp_attr.adb (Expand_N_Attribute_Reference): Add local variables Attr
+	and Conversion_Added.  Add local constant Typ.
+	Retrieve the original attribute after the arithmetic check
+	machinery has modified the node. Add a conversion to the target
+	type when the prefix of attribute Max_Size_In_Storage_Elements
+	is a controlled type.
+
+2012-12-01  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR ada/52110
+	* s-osinte-hpux-dce.ads: Declare pthread_rwlockattr_t and
+	pthread_rwlock_t subtypes.  Delete duplicate declaration of clockid_t.
+	* s-taspri-hpux-dce.ads: Change "pragma Atomic (Thread)" to comment.
+
+2012-11-09  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR other/52438
+	* s-taspri-lynxos.ads: Delete.
+	* s-osinte-kfreebsd-gnu.ads: Change license to GPL V3+.
+	* s-tpopsp-rtems.adb: Likewise.
+	* s-osinte-rtems.adb: Likewise.
+
+2012-10-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/Make-lang.in: Fix and clean up rules for C files.
+
+2012-10-22  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Array_Type>: Force
+	BLKmode on the type if it is passed by reference.
+	<E_Array_Subtype>: Likewise.
+	<E_Record_Type>: Guard the call to Is_By_Reference_Type predicate.
+	<E_Record_Subtype>: Likewise.
+
+	* gcc-interface/Makefile.in: Remove outdated comment and reference to
+	non-existing file.
+
+2012-10-22  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (Loop_Statement_to_gnu): Use gnat_type_for_size
+	directly to obtain an unsigned version of the base type.
+
+2012-10-22  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Out_Parameter>: Do not
+	generate the special PARM_DECL for an Out parameter in LTO mode.
+
+2012-10-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interfaces/decl.c (elaborate_expression_1): Use the variable for
+	bounds of loop iteraration scheme only for locally defined subtypes.
+
+	* gcc-interface/trans.c (build_return_expr): Apply the NRV optimization
+	only for BLKmode.
+
+2012-09-20  Release Manager
+
+	* GCC 4.7.2 released.
+
+2012-09-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (Loop_Statement_to_gnu): Revert to using
+	size_type_node instead of sizetype.
+
 2012-07-19  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gcc-interface/decl.c (gnat_to_gnu_entity) <object>: Try to ensure

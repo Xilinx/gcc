@@ -1,3 +1,218 @@
+2013-01-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/55893
+	* decl.c (cp_finish_decl): Clear TREE_READONLY if the variable
+	needs destruction.
+
+2013-01-08  Joel Brobecker  <brobecker@adacore.com>
+
+	* parser.c (cp_parser_initializer_list): Move declaration
+	of variable non_const to start of lexical block.
+
+2013-01-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/55877
+	* decl.c (reset_type_linkage, bt_reset_linkage): New.
+	(grokdeclarator): Use reset_type_linkage.
+	* name-lookup.c (binding_table_foreach): Handle null table.
+	* tree.c (decl_anon_ns_mem_p): Check TYPE_MAIN_DECL, not TYPE_NAME.
+
+2013-01-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/55419
+	PR c++/55753
+	* pt.c (tsubst_copy_and_build) [TARGET_EXPR]: Don't touch
+	TREE_CONSTANT.
+
+	PR c++/55842
+	* semantics.c (trait_expr_value): Call maybe_instantiate_noexcept.
+
+	PR c++/55856
+	* semantics.c (build_data_member_initialization): Handle DECL_EXPR.
+
+2013-01-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/54325
+	* call.c (build_new_method_call_1): Don't use build_value_init for
+	user-provided default constructors.
+
+	PR c++/55032
+	PR c++/55245
+	* tree.c (build_cplus_array_type): Copy layout information
+	to main variant if necessary.
+
+2012-12-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/55724
+	* pt.c (type_unification_real): Re-combine post-deduction loops.
+
+2012-12-11  Jason Merrill  <jason@redhat.com>
+
+	PR c++/54883
+	* decl2.c (min_vis_r): Handle anon visibility for enums.
+
+2012-12-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/55643
+	* expr.c (mark_exp_read): Handle FLOAT_EXPR similarly to NOP_EXPR.
+
+2012-12-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/55419
+	* tree.c (build_target_expr): Don't set TREE_CONSTANT.
+
+2012-12-07  Matthias Klose  <doko@ubuntu.com>
+
+	* tree.c (build_aggr_init_expr): Add parameter name, mark as unused.
+
+2012-12-06  Jason Merrill  <jason@redhat.com>
+
+	PR c++/54325
+	* tree.c (build_aggr_init_expr): Don't check for abstract class.
+	(build_cplus_new): Check here instead.
+
+	PR c++/55058
+	* pt.c (tsubst): Keep the quals when looking through a typedef.
+
+	PR c++/55249
+	* tree.c (build_vec_init_elt): Use the type of the initializer.
+
+	PR c++/54744
+	* pt.c (resolve_typename_type): Check TYPENAME_IS_RESOLVING_P on scope.
+
+	PR c++/54947
+	* parser.c (cp_parser_initializer_list): Don't require an
+	expression in [] to be constant until we know it's a C99
+	designator.
+
+	PR c++/55015
+	PR c++/53821
+	* semantics.c (maybe_add_lambda_conv_op): Revert earlier change.
+	* decl.c (start_preparsed_function): Make local class methods comdat
+	in templates, too.
+
+2012-11-29  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53137
+	* pt.c (tsubst_expr) [DECL_EXPR]: Set LAMBDA_EXPR_THIS_CAPTURE here.
+	(tsubst_copy_and_build) [LAMBDA_EXPR]: And clear it here.
+	(instantiate_class_template_1): Not here.
+
+	PR c++/53862
+	* pt.c (tsubst_arg_types): Add "end" parameter.
+	(check_undeduced_parms): Use it.
+
+	PR c++/53039
+	* pt.c (arg_from_parm_pack_p): Go back to using same_type_p or
+	cp_tree_equal.
+
+	* cp-tree.h (TEMPLATE_PARM_NUM_SIBLINGS): Remove.
+	(struct template_parm_index_s): Remove num_siblings.
+	* pt.c (fixup_template_parms, fixup_template_parm_index): Remove.
+	(fixup_template_type_parm_type): Remove.
+	(build_template_parm_index): Remove num_siblings parm.
+	(process_template_parm): Likewise.
+	* parser.c (cp_parser_template_parameter_list): Adjust.
+	* tree.c (cp_tree_equal): Don't compare num_siblings.
+	* typeck.c (comp_template_parms_position): Likewise.
+
+	PR c++/50852
+	PR c++/53039
+	* tree.c (strip_typedefs_expr): New.
+	* cp-tree.h: Declare it.
+	* pt.c (convert_template_argument, unify): Use it.
+	* parser.c (cp_parser_template_declaration_after_export): Don't call
+	fixup_template_parms.
+
+2012-11-29  Kai Tietz  <ktietz@redhat.com>
+
+	PR target/53912
+	* class.c (dump_class_hierarchy_r): Cast from pointer via uintptr_t.
+	(dump_vtable): Likewise.
+
+2012-11-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/55446
+	* init.c (build_vec_init): Do not early return error_mark_mode
+	when integer_all_onesp (maxindex).
+
+2012-11-05  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from mainline
+	2012-10-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/54988
+	* decl2.c (cplus_decl_attributes): Don't return early
+	if attributes is NULL.
+
+2012-10-26  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/54984
+	* init.c (build_new): Don't turn a null *init into a pointer to
+	empty vector orig_init.
+
+2012-10-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/54858
+	* tree.c (cp_tree_equal): Handle FIELD_DECL.
+
+2012-10-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/54777
+	* semantics.c (cxx_eval_constant_expression) <case COMPOUND_EXPR>: If
+	not ignoring the second operand, pass the original second operand
+	and not one with stripped nops to cxx_eval_constant_expression.
+
+2012-09-20  Release Manager
+
+	* GCC 4.7.2 released.
+
+2012-09-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53661
+	* typeck2.c (check_narrowing): Avoid false positives on conversion
+	from enumeral type.
+
+2012-09-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53839
+	* semantics.c (cxx_eval_indirect_ref): If we aren't looking for an
+	address, make sure the value is constant.
+
+2012-09-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/54511
+	* pt.c (tsubst_decl) [VAR_DECL]: Handle DECL_ANON_UNION_VAR_P.
+
+2012-09-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/53836
+	* pt.c (value_dependent_expression_p): A TREE_LIST initializer must
+	be dependent.
+
+2012-09-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/54506
+	* decl.c (move_signature_fn_p): Split out from move_fn_p.
+	* method.c (process_subob_fn): Use it.
+	* cp-tree.h: Declare it.
+
+	PR c++/54341
+	PR c++/54253
+	* semantics.c (sort_constexpr_mem_initializers): New.
+	(build_constexpr_constructor_member_initializers): Use it.
+	(cx_check_missing_mem_inits): Skip artificial fields.
+	* init.c (expand_aggr_init_1): Don't zero out a class
+	with no data.
+
+	PR c++/54086
+	* decl.c (grokdeclarator): Allow const and constexpr together.
+
+2012-08-31  Ollie Wild  <aaw@google.com>
+
+	PR c++/54197
+	* call.c (extend_ref_init_temps_1): Handle COMPOUND_EXPR trees.
+
 2012-07-20  Jason Merrill  <jason@redhat.com>
 
 	PR c++/54038

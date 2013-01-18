@@ -701,7 +701,12 @@ type_internals_preclude_sra_p (tree type, const char **msg)
 	      {
 	        *msg = "structure field size not fixed";
 		return true;
-	      }	      
+	      }
+	    if (!host_integerp (bit_position (fld), 0))
+	      {
+	        *msg = "structure field size too big";
+		return true;
+	      }
 	    if (AGGREGATE_TYPE_P (ft)
 		    && int_bit_position (fld) % BITS_PER_UNIT != 0)
 	      {
@@ -971,7 +976,8 @@ static void
 disqualify_base_of_expr (tree t, const char *reason)
 {
   t = get_base_address (t);
-  if (sra_mode == SRA_MODE_EARLY_IPA
+  if (t
+      && sra_mode == SRA_MODE_EARLY_IPA
       && TREE_CODE (t) == MEM_REF)
     t = get_ssa_base_param (TREE_OPERAND (t, 0));
 

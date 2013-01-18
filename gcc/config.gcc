@@ -262,6 +262,7 @@ case ${target} in
  | arm*-wince-pe*			\
  | mips-sgi-irix6.5			\
  | mips*-*-openbsd*			\
+ | picochip-*				\
  | score-*				\
  | *-*-solaris2.8*			\
  )
@@ -693,6 +694,11 @@ case ${target} in
     *-*-openbsd2.*|*-*-openbsd3.[012])
       tm_defines="${tm_defines} HAS_LIBC_R=1" ;;
   esac
+  case ${target} in
+    *-*-openbsd4.[3-9]|*-*-openbsd[5-9]*)
+      default_use_cxa_atexit=yes
+      ;;
+  esac
   ;;
 *-*-rtems*)
   case ${enable_threads} in
@@ -773,6 +779,7 @@ esac
 case ${target} in
 alpha*-*-linux*)
 	tm_file="${tm_file} alpha/elf.h alpha/linux.h alpha/linux-elf.h glibc-stdint.h"
+	tmake_file="${tmake_file} alpha/t-linux"
 	extra_options="${extra_options} alpha/elf.opt"
 	target_cpu_default="MASK_GAS"
 	;;
@@ -851,7 +858,7 @@ arm*-*-linux*)			# ARM GNU/Linux with ELF
 	esac
 	tmake_file="${tmake_file} arm/t-arm"
 	case ${target} in
-	arm*-*-linux-*eabi)
+	arm*-*-linux-*eabi*)
 	    tm_file="$tm_file arm/bpabi.h arm/linux-eabi.h"
 	    tmake_file="$tmake_file arm/t-arm-elf arm/t-bpabi arm/t-linux-eabi"
 	    # Define multilib configuration for arm-linux-androideabi.
@@ -878,7 +885,7 @@ arm*-*-uclinux*)		# ARM ucLinux
 	tm_file="dbxelf.h elfos.h arm/unknown-elf.h arm/elf.h arm/linux-gas.h arm/uclinux-elf.h glibc-stdint.h"
 	tmake_file="arm/t-arm arm/t-arm-elf"
 	case ${target} in
-	arm*-*-uclinux*eabi)
+	arm*-*-uclinux*eabi*)
 	    tm_file="$tm_file arm/bpabi.h arm/uclinux-eabi.h"
 	    tmake_file="$tmake_file arm/t-bpabi"
   	    # The BPABI long long divmod functions return a 128-bit value in
@@ -943,6 +950,10 @@ avr-*-rtems*)
 	;;
 avr-*-*)
 	tm_file="elfos.h avr/elf.h avr/avr.h dbxelf.h avr/avr-stdint.h"
+	if test x${with_avrlibc} = xyes; then
+	    tm_file="${tm_file} ${cpu_type}/avrlibc.h"
+	    tm_defines="${tm_defines} WITH_AVRLIBC"
+	fi
 	tmake_file="avr/t-avr avr/t-multilib"
 	use_gcc_stdint=wrap
 	extra_gcc_objs="driver-avr.o avr-devices.o"
@@ -1055,6 +1066,7 @@ hppa*64*-*-linux*)
 	tm_file="pa/pa64-start.h ${tm_file} dbxelf.h elfos.h gnu-user.h linux.h \
 		 glibc-stdint.h pa/pa-linux.h pa/pa64-regs.h pa/pa-64.h \
 		 pa/pa64-linux.h"
+	tmake_file="${tmake_file} pa/t-linux"
 	gas=yes gnu_ld=yes
 	need_64bit_hwint=yes
 	;;
@@ -1062,6 +1074,7 @@ hppa*-*-linux*)
 	target_cpu_default="MASK_PA_11|MASK_NO_SPACE_REGS"
 	tm_file="${tm_file} dbxelf.h elfos.h gnu-user.h linux.h glibc-stdint.h pa/pa-linux.h \
 		 pa/pa32-regs.h pa/pa32-linux.h"
+	tmake_file="${tmake_file} pa/t-linux"
 	;;
 # port not yet contributed.
 #hppa*-*-openbsd*)
@@ -1540,7 +1553,7 @@ ia64*-*-freebsd*)
 	;;
 ia64*-*-linux*)
 	tm_file="${tm_file} dbxelf.h elfos.h gnu-user.h linux.h glibc-stdint.h ia64/sysv4.h ia64/linux.h"
-	tmake_file="${tmake_file} ia64/t-ia64 t-libunwind"
+	tmake_file="${tmake_file} ia64/t-ia64 ia64/t-linux t-libunwind"
 	target_cpu_default="MASK_GNU_AS|MASK_GNU_LD"
 	;;
 ia64*-*-hpux*)
@@ -1720,6 +1733,14 @@ microblaze*-linux*)
 	c_target_objs="${c_target_objs} microblaze-c.o"
 	cxx_target_objs="${cxx_target_objs} microblaze-c.o"
 	;;
+microblaze*-*-rtems*)
+	tm_file="${tm_file} dbxelf.h"
+	tm_file="${tm_file} microblaze/rtems.h rtems.h newlib-stdint.h"
+	c_target_objs="${c_target_objs} microblaze-c.o"
+	cxx_target_objs="${cxx_target_objs} microblaze-c.o"
+	tmake_file="${tmake_file} microblaze/t-microblaze"
+	tmake_file="${tmake_file} t-rtems microblaze/t-rtems"
+        ;;
 microblaze*-*-*)
         tm_file="${tm_file} dbxelf.h"
 	c_target_objs="${c_target_objs} microblaze-c.o"
@@ -1967,7 +1988,7 @@ powerpc*-*-freebsd*)
 	tm_file="${tm_file} dbxelf.h elfos.h ${fbsd_tm_file} rs6000/sysv4.h"
 	extra_options="${extra_options} rs6000/sysv4.opt"
 	tmake_file="rs6000/t-fprules rs6000/t-ppcos ${tmake_file} rs6000/t-ppccomm"
-	case ${host} in
+	case ${target} in
 	     powerpc64*)
 	    	tm_file="${tm_file} rs6000/default64.h rs6000/freebsd64.h"
 		tmake_file="${tmake_file} rs6000/t-freebsd64"
@@ -2059,6 +2080,7 @@ powerpc-*-linux* | powerpc64-*-linux*)
 		;;
 	    *)
 		tm_file="${tm_file} rs6000/linux.h glibc-stdint.h"
+		tmake_file="$tmake_file rs6000/t-linux"
 		;;
 	esac
 	case ${target} in
@@ -2401,7 +2423,7 @@ sparc-*-elf*)
 	;;
 sparc-*-rtems*)
 	tm_file="${tm_file} dbxelf.h elfos.h sparc/sysv4.h sparc/sp-elf.h sparc/rtemself.h rtems.h newlib-stdint.h"
-	tmake_file="sparc/t-sparc sparc/t-elf t-rtems"
+	tmake_file="sparc/t-sparc sparc/t-elf sparc/t-rtems t-rtems"
 	;;
 sparc-*-linux*)
 	tm_file="${tm_file} dbxelf.h elfos.h sparc/sysv4.h gnu-user.h linux.h glibc-stdint.h sparc/tso.h"
@@ -2422,6 +2444,7 @@ sparc-*-linux*)
 		tmake_file="${tmake_file} sparc/t-linux64"
 	else
 		tm_file="${tm_file} sparc/linux.h"
+		tmake_file="${tmake_file} sparc/t-linux"
 	fi
 	;;
 sparc-*-netbsdelf*)
@@ -2454,7 +2477,7 @@ sparc64-*-elf*)
 sparc64-*-rtems*)
 	tm_file="${tm_file} dbxelf.h elfos.h newlib-stdint.h sparc/sysv4.h sparc/sp64-elf.h sparc/rtemself.h rtems.h"
 	extra_options="${extra_options}"
-	tmake_file="${tmake_file} sparc/t-sparc t-rtems"
+	tmake_file="${tmake_file} sparc/t-sparc sparc/t-rtems-64 t-rtems"
 	;;
 sparc64-*-linux*)
 	tm_file="sparc/biarch64.h ${tm_file} dbxelf.h elfos.h sparc/sysv4.h gnu-user.h linux.h glibc-stdint.h sparc/default-64.h sparc/linux64.h sparc/tso.h"
@@ -3543,9 +3566,14 @@ case ${target} in
 
 	i[34567]86-*-darwin* | x86_64-*-darwin*)
 		;;
-	i[34567]86-*-linux* | x86_64-*-linux* | \
-	  i[34567]86-*-kfreebsd*-gnu | x86_64-*-kfreebsd*-gnu | \
-	  i[34567]86-*-gnu*)
+	i[34567]86-*-linux* | x86_64-*-linux*)
+		tmake_file="$tmake_file i386/t-linux"
+		;;
+	i[34567]86-*-kfreebsd*-gnu | x86_64-*-kfreebsd*-gnu)
+		tmake_file="$tmake_file i386/t-kfreebsd"
+		;;
+	i[34567]86-*-gnu*)
+		tmake_file="$tmake_file i386/t-gnu"
 		;;
 	i[34567]86-*-solaris2* | x86_64-*-solaris2.1[0-9]*)
 		;;

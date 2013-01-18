@@ -5392,7 +5392,8 @@ trait_expr_value (cp_trait_kind kind, tree type1, tree type2)
       return (trait_expr_value (CPTK_HAS_TRIVIAL_CONSTRUCTOR, type1, type2) 
 	      || (CLASS_TYPE_P (type1)
 		  && (t = locate_ctor (type1))
-		  && TYPE_NOTHROW_P (TREE_TYPE (t))));
+		  && (maybe_instantiate_noexcept (t),
+		      TYPE_NOTHROW_P (TREE_TYPE (t)))));
 
     case CPTK_HAS_TRIVIAL_CONSTRUCTOR:
       type1 = strip_array_types (type1);
@@ -5785,15 +5786,19 @@ build_data_member_initialization (tree t, VEC(constructor_elt,gc) **vec)
       member = TREE_OPERAND (t, 0);
       init = unshare_expr (TREE_OPERAND (t, 1));
     }
-  else
+  else if (TREE_CODE (t) == CALL_EXPR)
     {
-      gcc_assert (TREE_CODE (t) == CALL_EXPR);
       member = CALL_EXPR_ARG (t, 0);
       /* We don't use build_cplus_new here because it complains about
 	 abstract bases.  Leaving the call unwrapped means that it has the
 	 wrong type, but cxx_eval_constant_expression doesn't care.  */
       init = unshare_expr (t);
     }
+  else if (TREE_CODE (t) == DECL_EXPR)
+    /* Declaring a temporary, don't add it to the CONSTRUCTOR.  */
+    return true;
+  else
+    gcc_unreachable ();
   if (TREE_CODE (member) == INDIRECT_REF)
     member = TREE_OPERAND (member, 0);
   if (TREE_CODE (member) == NOP_EXPR)
@@ -5876,6 +5881,37 @@ check_constexpr_ctor_body (tree last, tree list)
   return ok;
 }
 
+/* VEC is a vector of constructor elements built up for the base and member
+   initializers of a constructor for TYPE.  They need to be in increasing
+   offset order, which they might not be yet if TYPE has a primary base
+   which is not first in the base-clause.  */
+
+static VEC(constructor_elt,gc) *
+sort_constexpr_mem_initializers (tree type, VEC(constructor_elt,gc) *vec)
+{
+  tree pri = CLASSTYPE_PRIMARY_BINFO (type);
+  constructor_elt elt;
+  int i;
+
+  if (pri == NULL_TREE
+      || pri == BINFO_BASE_BINFO (TYPE_BINFO (type), 0))
+    return vec;
+
+  /* Find the element for the primary base and move it to the beginning of
+     the vec.  */
+  pri = BINFO_TYPE (pri);
+  for (i = 1; ; ++i)
+    if (TREE_TYPE (VEC_index (constructor_elt, vec, i)->index) == pri)
+      break;
+
+  elt = *VEC_index (constructor_elt, vec, i);
+  for (; i > 0; --i)
+    VEC_replace (constructor_elt, vec, i,
+		 VEC_index (constructor_elt, vec, i-1));
+  VEC_replace (constructor_elt, vec, 0, &elt);
+  return vec;
+}
+
 /* Build compile-time evalable representations of member-initializer list
    for a constexpr constructor.  */
 
@@ -5932,6 +5968,7 @@ build_constexpr_constructor_member_initializers (tree type, tree body)
 	      return body;
 	    }
 	}
+      vec = sort_constexpr_mem_initializers (type, vec);
       return build_constructor (type, vec);
     }
   else
@@ -6050,14 +6087,16 @@ cx_check_missing_mem_inits (tree fun, tree body, bool complain)
 	{
 	  index = CONSTRUCTOR_ELT (body, i)->index;
 	  /* Skip base and vtable inits.  */
-	  if (TREE_CODE (index) != FIELD_DECL)
+	  if (TREE_CODE (index) != FIELD_DECL
+	      || DECL_ARTIFICIAL (index))
 	    continue;
 	}
       for (; field != index; field = DECL_CHAIN (field))
 	{
 	  tree ftype;
 	  if (TREE_CODE (field) != FIELD_DECL
-	      || (DECL_C_BIT_FIELD (field) && !DECL_NAME (field)))
+	      || (DECL_C_BIT_FIELD (field) && !DECL_NAME (field))
+	      || DECL_ARTIFICIAL (field))
 	    continue;
 	  ftype = strip_array_types (TREE_TYPE (field));
 	  if (type_has_constexpr_default_constructor (ftype))
@@ -7420,7 +7459,11 @@ cxx_eval_indirect_ref (const constexpr_call *call, tree t,
     }
 
   if (r == NULL_TREE)
-    return t;
+    {
+      if (!addr)
+	VERIFY_CONSTANT (t);
+      return t;
+    }
   return r;
 }
 
@@ -7644,6 +7687,7 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
 	    /* Check that the LHS is constant and then discard it.  */
 	    cxx_eval_constant_expression (call, op0, allow_non_constant,
 					  false, non_constant_p);
+	    op1 = TREE_OPERAND (t, 1);
 	    r = cxx_eval_constant_expression (call, op1, allow_non_constant,
 					      addr, non_constant_p);
 	  }
@@ -9272,6 +9316,8 @@ maybe_add_lambda_conv_op (tree type)
   DECL_NOT_REALLY_EXTERN (fn) = 1;
   DECL_DECLARED_INLINE_P (fn) = 1;
   DECL_ARGUMENTS (fn) = build_this_parm (fntype, TYPE_QUAL_CONST);
+  if (nested)
+    DECL_INTERFACE_KNOWN (fn) = 1;
 
   add_method (type, fn, NULL_TREE);
 
@@ -9302,6 +9348,8 @@ maybe_add_lambda_conv_op (tree type)
   DECL_ARGUMENTS (fn) = copy_list (DECL_CHAIN (DECL_ARGUMENTS (callop)));
   for (arg = DECL_ARGUMENTS (fn); arg; arg = DECL_CHAIN (arg))
     DECL_CONTEXT (arg) = fn;
+  if (nested)
+    DECL_INTERFACE_KNOWN (fn) = 1;
 
   add_method (type, fn, NULL_TREE);
 
