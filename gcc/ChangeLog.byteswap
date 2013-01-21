@@ -1,3 +1,10 @@
+2013-01-21  Andrew Pinski  <apinski@cavium.com>
+
+	* simplify-rtx.c (simplify_binary_operation_1):
+	<case IOR, case AND, case XOR>):  Simplify
+	(BITOP (BYTESWAP A) (BYTESWAP B)) into (BYTESWAP (BITOP A B)).
+	* testsuite/gcc.target/i386/builtin-bswap-5.c: New testcase.
+
 2013-01-15  Andrew Pinski  <apinski@cavium.com>
 
 	* testsuite/gcc.dg/tree-ssa/bswap-1.c: New testcase.
