@@ -111,11 +111,6 @@ FAIL: gfortran.dg/lto/pr45586-2 f_lto_pr45586-2_0.o-f_lto_pr45586-2_0.o link, -O
 FAIL: gfortran.dg/lto/pr45586-2 f_lto_pr45586-2_0.o-f_lto_pr45586-2_0.o link, -O0 -flto -flto-partition=1to1 -fno-use-linker-plugin  (internal compiler error)
 UNRESOLVED: gfortran.dg/lto/pr45586-2 f_lto_pr45586-2_0.o-f_lto_pr45586-2_0.o execute -O0 -flto -fuse-linker-plugin -fno-fat-lto-objects
 UNRESOLVED: gfortran.dg/lto/pr45586-2 f_lto_pr45586-2_0.o-f_lto_pr45586-2_0.o execute -O0 -flto -flto-partition=1to1 -fno-use-linker-plugin
-XPASS: libffi.call/va_1.c -O3 output pattern test, 5 6 10 11 12 13 14 7 8 uc=9 sc=10 11 12 13 14 15 16 2.120000 3.130000?
-XPASS: libffi.call/va_1.c -O0 -W -Wall output pattern test, 5 6 10 11 12 13 14 7 8 uc=9 sc=10 11 12 13 14 15 16 2.120000 3.130000?
-XPASS: libffi.call/va_1.c -Os output pattern test, 5 6 10 11 12 13 14 7 8 uc=9 sc=10 11 12 13 14 15 16 2.120000 3.130000?
-XPASS: libffi.call/va_1.c -O2 -fomit-frame-pointer output pattern test, 5 6 10 11 12 13 14 7 8 uc=9 sc=10 11 12 13 14 15 16 2.120000 3.130000?
-XPASS: libffi.call/va_1.c -O2 output pattern test, 5 6 10 11 12 13 14 7 8 uc=9 sc=10 11 12 13 14 15 16 2.120000 3.130000?
 FAIL: libmudflap.c++/pass41-frag.cxx (-O3) execution test
 FAIL: libmudflap.c++/pass41-frag.cxx (-O2) execution test
 FAIL: libmudflap.c++/pass41-frag.cxx ( -O) execution test
