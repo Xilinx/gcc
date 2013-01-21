@@ -237,13 +237,12 @@ symtab_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
      are special since their declarations are shared with master clone and thus
      cgraph_can_remove_if_no_direct_calls_and_refs_p should not be called on them.  */
   FOR_EACH_DEFINED_FUNCTION (node)
-    if (DECL_ELEM_FN_ALREADY_CLONED (node->symbol.decl)
+    if ((flag_enable_cilk && DECL_ELEM_FN_ALREADY_CLONED (node->symbol.decl))
 	|| (!node->global.inlined_to
 	&& (!cgraph_can_remove_if_no_direct_calls_and_refs_p (node)
 	    /* Keep around virtual functions for possible devirtualization.  */
 	    || (before_inlining_p
-		&& DECL_VIRTUAL_P (node->symbol.decl)
-		&& (DECL_COMDAT (node->symbol.decl) || DECL_EXTERNAL (node->symbol.decl))))))
+		&& DECL_VIRTUAL_P (node->symbol.decl)))))
       {
         gcc_assert (!node->global.inlined_to);
 	pointer_set_insert (reachable, node);
