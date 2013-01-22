@@ -1818,13 +1818,10 @@ execute_optimize_bswap (void)
   if (sizeof (HOST_WIDEST_INT) < 8)
     return 0;
 
-  bswap16_p = (builtin_decl_explicit_p (BUILT_IN_BSWAP16)
-	       && optab_handler (bswap_optab, HImode) != CODE_FOR_nothing);
-  bswap32_p = (builtin_decl_explicit_p (BUILT_IN_BSWAP32)
-	       && optab_handler (bswap_optab, SImode) != CODE_FOR_nothing);
-  bswap64_p = (builtin_decl_explicit_p (BUILT_IN_BSWAP64)
-	       && (optab_handler (bswap_optab, DImode) != CODE_FOR_nothing
-		   || (bswap32_p && word_mode == SImode)));
+  bswap16_p = optab_handler (bswap_optab, HImode) != CODE_FOR_nothing;
+  bswap32_p = optab_handler (bswap_optab, SImode) != CODE_FOR_nothing;
+  bswap64_p = (optab_handler (bswap_optab, DImode) != CODE_FOR_nothing
+		   || (bswap32_p && word_mode == SImode));
 
   if (!bswap16_p && !bswap32_p && !bswap64_p)
     return 0;
@@ -1832,22 +1829,13 @@ execute_optimize_bswap (void)
   /* Determine the argument type of the builtins.  The code later on
      assumes that the return and argument type are the same.  */
   if (bswap16_p)
-    {
-      tree fndecl = builtin_decl_explicit (BUILT_IN_BSWAP16);
-      bswap16_type = TREE_VALUE (TYPE_ARG_TYPES (TREE_TYPE (fndecl)));
-    }
+    bswap16_type = build_nonstandard_integer_type (16, true);
 
   if (bswap32_p)
-    {
-      tree fndecl = builtin_decl_explicit (BUILT_IN_BSWAP32);
-      bswap32_type = TREE_VALUE (TYPE_ARG_TYPES (TREE_TYPE (fndecl)));
-    }
+    bswap32_type = build_nonstandard_integer_type (32, true);
 
   if (bswap64_p)
-    {
-      tree fndecl = builtin_decl_explicit (BUILT_IN_BSWAP64);
-      bswap64_type = TREE_VALUE (TYPE_ARG_TYPES (TREE_TYPE (fndecl)));
-    }
+    bswap64_type = build_nonstandard_integer_type (64, true);
 
   memset (&bswap_stats, 0, sizeof (bswap_stats));
 
@@ -1862,9 +1850,8 @@ execute_optimize_bswap (void)
       for (gsi = gsi_last_bb (bb); !gsi_end_p (gsi); gsi_prev (&gsi))
         {
 	  gimple stmt = gsi_stmt (gsi);
-	  tree bswap_src, bswap_type;
+	  tree bswap_src, bswap_type = NULL_TREE;
 	  tree bswap_tmp;
-	  tree fndecl = NULL_TREE;
 	  int type_size;
 	  gimple call;
 
@@ -1878,30 +1865,21 @@ execute_optimize_bswap (void)
 	    {
 	    case 16:
 	      if (bswap16_p)
-		{
-		  fndecl = builtin_decl_explicit (BUILT_IN_BSWAP16);
-		  bswap_type = bswap16_type;
-		}
+		bswap_type = bswap16_type;
 	      break;
 	    case 32:
 	      if (bswap32_p)
-		{
-		  fndecl = builtin_decl_explicit (BUILT_IN_BSWAP32);
-		  bswap_type = bswap32_type;
-		}
+		bswap_type = bswap32_type;
 	      break;
 	    case 64:
 	      if (bswap64_p)
-		{
-		  fndecl = builtin_decl_explicit (BUILT_IN_BSWAP64);
-		  bswap_type = bswap64_type;
-		}
+		bswap_type = bswap64_type;
 	      break;
 	    default:
 	      continue;
 	    }
 
-	  if (!fndecl)
+	  if (!bswap_type)
 	    continue;
 
 	  bswap_src = find_bswap (stmt);
@@ -1929,7 +1907,8 @@ execute_optimize_bswap (void)
 	      gsi_insert_before (&gsi, convert_stmt, GSI_SAME_STMT);
 	    }
 
-	  call = gimple_build_call (fndecl, 1, bswap_tmp);
+	  call = gimple_build_assign_with_ops (BYTESWAP_EXPR, NULL,
+					       bswap_tmp, NULL);
 
 	  bswap_tmp = gimple_assign_lhs (stmt);
 
@@ -1943,7 +1922,7 @@ execute_optimize_bswap (void)
 	      gsi_insert_after (&gsi, convert_stmt, GSI_SAME_STMT);
 	    }
 
-	  gimple_call_set_lhs (call, bswap_tmp);
+	  gimple_assign_set_lhs (call, bswap_tmp);
 
 	  if (dump_file)
 	    {

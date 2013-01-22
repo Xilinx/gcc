@@ -1,5 +1,11 @@
 2013-01-21  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-ssa-math-opts.c (execute_optimize_bswap):
+	Remove check for the builtins. 	Create directly BYTESWAP_EXPR instead
+	of function calls.
+
+2013-01-21  Andrew Pinski  <apinski@cavium.com>
+
 	* fold-const.c (fold_binary_loc <case EQ_EXPR, case NE_EXPR>):
 	Simplify byteswap(a) ==/!= CONST to a ==/!= BYTESWAP(CONST) as
 	BYTESWAP(CONST) will fold into a constant.
