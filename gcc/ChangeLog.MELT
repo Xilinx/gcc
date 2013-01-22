@@ -1,6 +1,21 @@
 
 2013-01-22  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	{{tmatch-tuple.melt test running ok}}
+	* testsuite/melt/tmatch-tuple.melt: Improve comment.
+	* melt/warmelt-normatch.melt (class_nrep_matchalt): Add
+	namatch_startlabel field.
+	(class_match_normalization_context): Add matnorx_startlabel field.
+	(matchalt_normalize_match_context): More debug printing. Compute
+	the firststeplab and put it into the context.
+	(normexp_matchalt): Use the start label.
+
+	* melt/warmelt-genobj.melt (compilobj_nrep_matchalt): Handle the
+	start label by forcibly generate a useless jump to it to make GCC
+	compiling the emitted code happier.
+
+2013-01-22  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{Regenerate}}
 	* melt/generated/meltrunsup.h: Regenerate.
 	* melt/generated/meltrunsup-inc.c: Regenerate.

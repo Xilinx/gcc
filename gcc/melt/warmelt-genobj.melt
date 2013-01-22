@@ -5945,6 +5945,7 @@ $SBUF.}#
 	(nbody (unsafe_get_field :namatch_body nmat))
 	(nflags (unsafe_get_field :namatch_flags nmat))
 	(nmdatas (unsafe_get_field :namatch_mdatas nmat))
+	(nstartlab (get_field :namatch_startlabel nmat))
 	(obodyl (make_list discr_list))
 	(oldaltmatch (get_field :gncx_altmatch gcx))
 	(oldmatchnum (or (get_field :altmatchn_number oldaltmatch) '0))
@@ -5996,7 +5997,8 @@ $SBUF.}#
 			       :omchflgblo_flags oflags
 			       :oblo_bodyl obodyl))
 	     )
-	(debug "compilobj_nrep_matchalt oflags=" oflags "\n oblock=" oblock)
+	(debug "compilobj_nrep_matchalt oflags=" oflags "\n oblock=" oblock
+	       "\n nbody=" nbody "\n nstartlab=" nstartlab)
 	;;
 	;; fill the stepmap from class_nrep_match_label occurrences
 	(foreach_in_multiple
@@ -6027,6 +6029,22 @@ $SBUF.}#
 		)
 	   (debug "compilobj_nrep_matchalt curocomp=" curocomp)
 	   (assert_msg "check curocomp object" (is_object curocomp))
+	   (if (and (== curncomp nstartlab) 
+		    (is_a curncomp class_nrep_match_label))
+	       ;; we forcibly add a goto to the first label step, to
+	       ;; avoid a label without goto warning from gcc
+	       ;; compiling the generated code
+	     (let ( (startstep (get_field :nmlab_step nstartlab))
+		   (ostartjump
+		     (instance class_objgotoinstr
+			       :obgoto_prefix labprefix
+			       :obgoto_rank (mapobject_get ostepmap startstep)))
+		    )
+	       (debug "compilobj_nrep_matchalt ostartjump=" ostartjump 
+		      "\n startstep=" startstep
+		      "\n ostepmap=" ostepmap)
+	       (list_append obodyl ostartjump)
+	     ))
 	   (list_append obodyl curocomp)
 	   ))
 	;; we need to append the result at end of body

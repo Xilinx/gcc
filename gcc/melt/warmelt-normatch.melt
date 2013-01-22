@@ -2630,7 +2630,7 @@ expression. $MCTX_NMATBIND the corresponding bindings. $MCTX_CASES is
 the tuple of cases each of $CLASS_MATCH_CASE. $MCTX_ENV is the
 environment of the match. $MCTX_MDATA is the initial matched data of
 $CLASS_MATCHED_DATA. $MCTX_VARHANDLERS is the list of pattern variable
-handlers. $MCTX_FLAGS is the list of match flags. $MCTX_ENDLABEL may
+handlers. $MCTX_FLAGS is the list of match flags.  $MCTX_ENDLABEL may
 hold the ending label.}#
   :fields ( mctx_normctxt
 	    mctx_source 
@@ -5080,6 +5080,7 @@ of normal data, instances of $CLASS_NREP_MATCHED_DATA.}#
 	   namatch_body			;the body
 	   namatch_flags		;the tuple of normalized flags
 	   namatch_mdatas		;the tuple of normalized match data
+	   namatch_startlabel
 	   ))
 
 (defclass class_nrep_match_label
@@ -5136,6 +5137,8 @@ $NTESTISA_JUMP.}#
 	  ntestisa_class 
 	  ntestisa_jump))
 
+
+
 (defclass class_match_normalization_context
   :super class_root
   :doc #{The $CLASS_MATCH_NORMALIZATION_CONTEXT is agreggating data
@@ -5163,6 +5166,7 @@ $NTESTISA_JUMP.}#
 	   matnorx_mstepqueue 
 	   matnorx_bodylist
 	   matnorx_endlabel
+	   matnorx_startlabel
 	   matnorx_matchctxt
 	   ))
 
@@ -6261,6 +6265,7 @@ normalized expression.}#
 (defun matchalt_normalize_step (step nmctxt)
   (debug "matchalt_normalize_step step" step)
   (assert_msg "matchalt_normalize_step check nmctxt" (is_a nmctxt class_match_normalization_context))
+  (shortbacktrace_dbg "matchalt_normalize_step" 14)
   ;; special case, null step so gives the end label
   (if (null step)
       (let ( (endlab (unsafe_get_field :matnorx_endlabel nmctxt))
@@ -6455,16 +6460,16 @@ normalized expression.}#
 ;;; function to really normalize an alternate match context
 ;;; called from normexp_matchalt
 (defun matchalt_normalize_match_context (mdata sloc nmctxt)
-  (debug "matchalt_normalize_match_context mdata" mdata)
-  (compile_warning "mcasetup not used in matchalt_normalize_match_context")
-  (debug "matchalt_normalize_match_context sloc" sloc)
-  (debug "matchalt_normalize_match_context nmctxt" nmctxt)
+  (debug "matchalt_normalize_match_context mdata=" mdata
+	 "\n sloc=" sloc "\n nmctxt=" nmctxt)
+  (shortbacktrace_dbg "matchalt_normalize_match_context" 15)
   (assert_msg "check nmctxt" (is_a nmctxt class_match_normalization_context))
   (let ( (mdataqueue (unsafe_get_field :matnorx_mdataqueue nmctxt))
 	 (mstepqueue (unsafe_get_field :matnorx_mstepqueue nmctxt))
 	 (datamap (unsafe_get_field :matnorx_datamap nmctxt))
 	 (stepmap (unsafe_get_field :matnorx_stepmap nmctxt))
 	 (bodyl (unsafe_get_field :matnorx_bodylist nmctxt))
+	 (firststeplab ())
 	 )
     (debug "matchalt_normalize_match_context starting with first mdata" mdata)
     (matchalt_normalize_mdata mdata nmctxt)
@@ -6483,24 +6488,25 @@ normalized expression.}#
        (assert_msg "matchalt_normalize_match_context check ndata"
 		   (is_a ndata class_nrep_simple))
        (matchalt_handle_normalized_mdata freshmdata ndata nmctxt)
-       (debug "matchalt_normalize_match_context freshmdata after matchalt_handle_normalized_mdata" freshmdata)
-       (debug "matchalt_normalize_match_context mstepqueue after matchalt_handle_normalized_mdata" mstepqueue)
+       (debug "matchalt_normalize_match_context after matchalt_handle_normalized_mdata freshmdata=" freshmdata 
+	      "\n mstepqueue=" mstepqueue)
        (forever
 	matchstepnormalizeloop
 	(let ( (freshmstep (list_popfirst mstepqueue)) 
 	       (freshlab (mapobject_get stepmap freshmstep))
 	       )
-	  (debug "matchalt_normalize_match_context freshmstep" freshmstep)
+	  (debug "matchalt_normalize_match_context freshmstep=" freshmstep "\n freshlab=" freshlab)
 	  (if (null freshmstep) (exit matchstepnormalizeloop))
-	  (debug "matchalt_normalize_match_context freshlab" freshlab)
-	  (debug "matchalt_normalize_match_context bodyl before normalize_step" bodyl)
+	  (debug "matchalt_normalize_match_context before normalize_step bodyl=" bodyl
+		 "\n freshmstep=" freshmstep)
+	    (if (null firststeplab) 
+		(setq firststeplab freshlab))
 	  (let ( 
 		(normstep (normalize_step freshmstep nmctxt sloc)) 
 		)
 	    (list_append bodyl freshlab)
-	    (debug "matchalt_normalize_match_context freshmstep after normalize_step" freshmstep)
-	    (debug "matchalt_normalize_match_context normstep" normstep)
-	    (debug "matchalt_normalize_match_context bodyl after normalize_step" bodyl)
+	    (debug "matchalt_normalize_match_context after normalize_step freshmstep=" freshmstep
+		   "\n normstep=" normstep "\n bodyl=" bodyl)
 	    (letrec ( (add_norm_step
 		       (lambda (ns)
 			 (cond 
@@ -6522,13 +6528,17 @@ normalized expression.}#
 			   ))))
 		      )
 	      (add_norm_step normstep))
-	    (debug "matchalt_normalize_match_context final bodyl" bodyl)
 	    )
-
-	  ))
-       )))
+	  )
+	)			  ; end forever matchstepnormalizeloop
+       )
+     )				   ;end forever matchdatanormalizeloop
+    ;;
+    (put_fields nmctxt :matnorx_startlabel firststeplab)
+    (debug "matchalt_normalize_match_context ending firststeplab=" firststeplab "\n bodyl=" bodyl 
+	   "\n nmctxt=" nmctxt)
+    )
   )
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalize a match alternate
@@ -6693,6 +6703,7 @@ normalized expression.}#
 		 (nbodyl (unsafe_get_field :matnorx_bodylist nmctxt))
 		 (nflagmap (unsafe_get_field :matnorx_flagmap nmctxt))
 		 (ndatamap (unsafe_get_field :matnorx_datamap nmctxt))
+		 (nstartlab (unsafe_get_field :matnorx_startlabel nmctxt))
 		 (nendlab (unsafe_get_field :matnorx_endlabel nmctxt))
 		 (nresbind (get_field :nocc_bind nresloc))
 		 (nflagslist (make_list discr_list))
@@ -6767,6 +6778,7 @@ normalized expression.}#
 			     :namatch_body (list_to_multiple nbodyl)
 			     :namatch_flags sortedflagstup
 			     :namatch_mdatas ndatatup
+			     :namatch_startlabel nstartlab
 			     )
 		 (let (
 		       (csym (clone_symbol 'matchaltres_))
