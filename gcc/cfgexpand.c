@@ -3611,6 +3611,9 @@ expand_debug_expr (tree exp)
     case FMA_EXPR:
       return simplify_gen_ternary (FMA, mode, inner_mode, op0, op1, op2);
 
+    case BYTESWAP_EXPR:
+      return simplify_gen_unary (BSWAP, mode, op0, mode);
+
     default:
     flag_unsupported:
 #ifdef ENABLE_CHECKING

@@ -1,3 +1,8 @@
+2013-01-22  Andrew Pinski  <apinski@cavium.com>
+    
+	* cfgexpand.c (expand_debug_expr <case BYTESWAP_EXPR>): Handle
+	BYTESWAP_EXPR.
+
 2013-01-21  Andrew Pinski  <apinski@cavium.com>
 
 	* tree-ssa-math-opts.c (execute_optimize_bswap):
