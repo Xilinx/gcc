@@ -6081,8 +6081,7 @@ r */\n";
 			/*^apply.arg */
 			argtab[14].meltbp_cstring =
 			  ";\n\t\t     if (dst) \n\t\t        resv = (melt_ptr_t) dst;\
-\n\t\t   };\n\t\t \
-  break;";
+\n\t\t   };\n\t\t   break;";
 			/*_.ADD2OUT__V52*/ meltfptr[34] =
 			  melt_apply ((meltclosure_ptr_t)
 				      (( /*!ADD2OUT */ meltfrout->tabval[1])),
