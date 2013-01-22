@@ -13247,6 +13247,17 @@ fold_binary_loc (location_t loc,
 				  fold_convert (TREE_TYPE (opp0), opp1));
 	}
 
+      /* Remove the BYTESWAPs from ==/!=. */
+      if (TREE_CODE (arg0) == BYTESWAP_EXPR
+	  && TREE_CODE (arg1) == INTEGER_CST)
+	{
+	  tree opp0 = TREE_OPERAND (arg0, 0);
+	  tree opp1 = fold_build1 (BYTESWAP_EXPR, TREE_TYPE (opp0),
+				   fold_convert (TREE_TYPE (opp0), arg1));
+	  return fold_build2_loc (loc, code, type, opp0,
+				  fold_convert (TREE_TYPE (opp0), opp1));
+	}
+
       return NULL_TREE;
 
     case LT_EXPR:

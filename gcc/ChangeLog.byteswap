@@ -1,6 +1,13 @@
 2013-01-21  Andrew Pinski  <apinski@cavium.com>
 
 	* fold-const.c (fold_binary_loc <case EQ_EXPR, case NE_EXPR>):
+	Simplify byteswap(a) ==/!= CONST to a ==/!= BYTESWAP(CONST) as
+	BYTESWAP(CONST) will fold into a constant.
+	* testsuite/gcc.dg/tree-ssa/bswap-5.c: New testcase.
+
+2013-01-21  Andrew Pinski  <apinski@cavium.com>
+
+	* fold-const.c (fold_binary_loc <case EQ_EXPR, case NE_EXPR>):
 	Simplify byteswap(a) ==/!= byteswap(b) to a ==/!= b.
 	* testsuite/gcc.dg/tree-ssa/bswap-3.c: New testcase.
 
