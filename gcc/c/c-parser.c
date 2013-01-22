@@ -9340,7 +9340,11 @@ c_parser_cilk_grainsize (c_parser *parser)
 	    warning (0, "%<#pragma cilk grainsize is not followed by cilk_for");
 	  return;
 	}
+      else
+	c_parser_skip_to_pragma_eol (parser);
     }
+  else
+    c_parser_skip_to_pragma_eol (parser);
   return;
 }
 	    

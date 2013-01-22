@@ -1,3 +1,8 @@
+2013-01-22  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c/c-parser.c (c_parser_cilk_grainsize): Added a function call to skip
+	to the end of pragma whenever an error occurred.
+
 2013-01-09  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* gimplify.c (gimplify_expr): Added a check to see if error has occured.
