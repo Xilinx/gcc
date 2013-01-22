@@ -1,5 +1,9 @@
 
 2013-01-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (outpucod_objflag): Implement.
+	(outpucod_objmatchflagblock): Better emitted indentation.
+
+2013-01-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt (outpucod_objflag): New stub method for
 	output_c_code of class_objflag.
 

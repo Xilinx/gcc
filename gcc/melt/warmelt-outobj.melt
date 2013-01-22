@@ -2662,7 +2662,10 @@ meltmarking_$ONAME (struct melt_callframe_st*fp, int marking) {
 (defun outpucod_objflag (oflag declbuf implbuf :long depth)
   (debug "outpucod_objflag oflag=" oflag)
   (assert_msg "check oflag" (is_a oflag class_objflag))
-  (assert_msg "@$@unimplemented outpucod_objflag")
+  (let ( (oflname (get_field :obflag_name oflag))
+	 (oflrank (get_field :obflag_rank oflag))
+	 )
+    (add2out implbuf "meltmatchflag_" oflname "__rk" oflrank " "))
 )
 (install_method class_objflag output_c_code outpucod_objflag)
 
@@ -2697,6 +2700,7 @@ meltmarking_$ONAME (struct melt_callframe_st*fp, int marking) {
     ;; output the body
     (debug "outpucod_objmatchflagblock obody=" obody)
     (when obody
+      (add2sbuf_indentnl implbuf depthsucc)
       (output_location oloc implbuf depth "matchflagblock.body")
       (assert_msg "check obody" (is_list obody))
       (output_code_instructions_list obody declbuf implbuf 
@@ -2705,6 +2709,7 @@ meltmarking_$ONAME (struct melt_callframe_st*fp, int marking) {
     ;; output the epilog
     (debug "outpucod_objmatchflagblock oepil=" oepil)
     (when oepil
+      (add2sbuf_indentnl implbuf depthsucc)
       (output_location oloc implbuf depth "matchflagblock.epilog")
       (assert_msg "check oepil" (is_list oepil))
       (output_code_instructions_list oepil declbuf implbuf 
