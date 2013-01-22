@@ -1,3 +1,8 @@
+2013-01-22  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-cpp-elem-function.c (elem_fn_create_fn): Removed the setting of
+	assembler name.
+
 2012-12-17  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-cilk.c (compute_loop_var): Added a check for integral type of loop 
