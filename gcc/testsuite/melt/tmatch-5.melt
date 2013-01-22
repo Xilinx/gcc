@@ -2,26 +2,33 @@
 ;; file tmatch-5.melt
 
 #| run in buildir/gcc
- ln -sv $GCCMELTSOURCE/gcc/testsuite/melt/tmatch-5.melt
- ./cc1 -fmelt-mode=translatefile  -fmelt-module-path=melt-stage3:.    -fmelt-source-path=melt-stage3:. \
-    -fmelt-tempdir=/tmp -fmelt-init=@warmelt-3 \
-    -fmelt-option=match_graphic=/tmp/melt5graph,alternate_match \
+ ln -s $GCCMELT_SOURCE/gcc/testsuite/melt/tmatch-5.melt 
+ gccmelt_cflags="$(grep fmelt-module-cflags meltbuild-checkruntime.args)" 
+ ./cc1 -fmelt-mode=runfile  -fmelt-module-path=meltbuild-stage3:meltbuild-modules \
+    -fmelt-source-path=meltbuild-stage3:meltbuild-sources \
+    -fmelt-module-makefile=$GCCMELT_SOURCE/gcc/melt-module.mk \
+    -fmelt-workdir=meltbuild-workdir \
+    -fmelt-tempdir=meltbuild-tempdir \
+    -fmelt-keep-temporary-files \
+    -fmelt-init=@warmelt.quicklybuilt \
+    -fmelt-option=match_graphic:/tmp/meltupgraph \
     -fmelt-arg=tmatch-5.melt \
+     "$gccmelt_cflags" \
     -fmelt-debug empty-file-for-melt.c
 |#
 
 
 (defun ttinymicro5 (x g)
-  (match x
+  (matchalt x
    (
     ?(instance class_container 
 	       :container_value ?xxx)
      (g xxx))
    ))
 
-#|	 
+	 
 (defun tmicro5 (x g)
-  (match x
+  (matchalt x
    (
     ?(and ?xx
 	   ?(instance class_container 
@@ -30,8 +37,9 @@
       (g xx))
    ))
 
+#|
 (defun tmini5 (x g)
-  (match 
+  (matchalt 
    x
    ( ?(instance 
        class_container 

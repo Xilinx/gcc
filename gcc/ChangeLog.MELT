@@ -1,6 +1,9 @@
 
 
 2013-01-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* gcc/testsuite/melt/tmatch-5.melt: Change to altmatch.
+
+2013-01-22  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{Regenerate}}
 	* melt/generated/warmelt-base.c: Regenerate.
