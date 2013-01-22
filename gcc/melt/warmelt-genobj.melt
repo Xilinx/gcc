@@ -612,6 +612,7 @@
  class_objexit
  class_objexpandpureval
  class_objexpv
+ class_objflag
  class_objfinalreturn
  class_objgetarg
  class_objgetargrest

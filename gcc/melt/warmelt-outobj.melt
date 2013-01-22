@@ -2666,10 +2666,46 @@ meltmarking_$ONAME (struct melt_callframe_st*fp, int marking) {
 	(oloc (get_field :obi_loc oblo))
 	(oflags (get_field :omchflgblo_flags oblo))
 	(obody (get_field :oblo_bodyl oblo))
+	(oepil (unsafe_get_field :oblo_epil oblo)) 
+	(:long depthsucc (+i depth 1))
 	)
-  (output_location (unsafe_get_field :obi_loc oblo) implbuf depth "matchblock")
-  (assert_msg "@$@unimplemented outpucod_objmatchflagblock")
-))
+    (output_location oloc implbuf depth "matchflagblock")
+    (add2sbuf_strconst implbuf "/*matchflagblock*/ {")
+    ;; output flag declarations;
+    (debug "outpucod_objmatchflagblock oflags=" oflags)
+    (when oflags
+      (assert_msg "check oflags" (is_multiple oflags))
+      (foreach_in_multiple
+       (oflags)
+       (curoflag :long ix)
+       (debug "outpucod_objmatchflagblock curoflag=" curoflag " ix=" ix)
+       (assert_msg "check curoflag" (is_a curoflag class_objflag))
+       (add2sbuf_indentnl implbuf depthsucc)
+       (add2sbuf_strconst implbuf "bool ") ;
+       (output_c_code curoflag declbuf implbuf depthsucc)
+       (add2sbuf_strconst implbuf " = false;")
+       )
+      )
+    ;; output the body
+    (debug "outpucod_objmatchflagblock obody=" obody)
+    (when obody
+      (output_location oloc implbuf depth "matchflagblock.body")
+      (assert_msg "check obody" (is_list obody))
+      (output_code_instructions_list obody declbuf implbuf 
+				     (constant_box depthsucc))
+      )
+    ;; output the epilog
+    (debug "outpucod_objmatchflagblock oepil=" oepil)
+    (when oepil
+      (output_location oloc implbuf depth "matchflagblock.epilog")
+      (assert_msg "check oepil" (is_list oepil))
+      (output_code_instructions_list oepil declbuf implbuf 
+				     (constant_box depthsucc))
+      )
+    (add2sbuf_indentnl implbuf depth)
+    (add2sbuf_strconst implbuf ";} /*end.matchflagblock*/  ") ;
+    (add2sbuf_indentnl implbuf depth)
+    ))
 (install_method class_objmatchflagblock output_c_code outpucod_objmatchflagblock)
 
 ;; output code for objmultiallocblock
