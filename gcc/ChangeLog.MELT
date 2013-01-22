@@ -1,5 +1,9 @@
 
 2013-01-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (outpucod_objflag): New stub method for
+	output_c_code of class_objflag.
+
+2013-01-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-genobj.melt (class_objflag): Export it.
 
 	* melt/warmelt-outobj.melt (outpucod_objmatchflagblock): Complete.

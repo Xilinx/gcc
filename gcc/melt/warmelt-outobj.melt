@@ -2658,6 +2658,14 @@ meltmarking_$ONAME (struct melt_callframe_st*fp, int marking) {
 (install_method class_objanyblock output_c_code outpucod_objanyblock)
 
 
+;; output code for objflag
+(defun outpucod_objflag (oflag declbuf implbuf :long depth)
+  (debug "outpucod_objflag oflag=" oflag)
+  (assert_msg "check oflag" (is_a oflag class_objflag))
+  (assert_msg "@$@unimplemented outpucod_objflag")
+)
+(install_method class_objflag output_c_code outpucod_objflag)
+
 ;; output code for objmatchflagblock
 (defun outpucod_objmatchflagblock (oblo declbuf implbuf :long depth)
   (debug "outpucod_objmatchflagblock oblo=" oblo)
