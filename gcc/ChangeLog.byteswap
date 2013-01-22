@@ -1,4 +1,11 @@
 2013-01-22  Andrew Pinski  <apinski@cavium.com>
+
+	* tree-ssa-math-opts.c (execute_optimize_bswap): Remove the conversion
+	from the src type.  Change the conversion to the dest type to based on
+	the src type.  Remove the build_nonstandard_integer_type calls as they
+	are no longer needed.
+
+2013-01-22  Andrew Pinski  <apinski@cavium.com>
     
 	* cfgexpand.c (expand_debug_expr <case BYTESWAP_EXPR>): Handle
 	BYTESWAP_EXPR.

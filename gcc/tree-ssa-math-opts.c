@@ -1810,7 +1810,6 @@ execute_optimize_bswap (void)
   basic_block bb;
   bool bswap16_p, bswap32_p, bswap64_p;
   bool changed = false;
-  tree bswap16_type = NULL_TREE, bswap32_type = NULL_TREE, bswap64_type = NULL_TREE;
 
   if (BITS_PER_UNIT != 8)
     return 0;
@@ -1826,17 +1825,6 @@ execute_optimize_bswap (void)
   if (!bswap16_p && !bswap32_p && !bswap64_p)
     return 0;
 
-  /* Determine the argument type of the builtins.  The code later on
-     assumes that the return and argument type are the same.  */
-  if (bswap16_p)
-    bswap16_type = build_nonstandard_integer_type (16, true);
-
-  if (bswap32_p)
-    bswap32_type = build_nonstandard_integer_type (32, true);
-
-  if (bswap64_p)
-    bswap64_type = build_nonstandard_integer_type (64, true);
-
   memset (&bswap_stats, 0, sizeof (bswap_stats));
 
   FOR_EACH_BB (bb)
@@ -1850,8 +1838,8 @@ execute_optimize_bswap (void)
       for (gsi = gsi_last_bb (bb); !gsi_end_p (gsi); gsi_prev (&gsi))
         {
 	  gimple stmt = gsi_stmt (gsi);
-	  tree bswap_src, bswap_type = NULL_TREE;
-	  tree bswap_tmp;
+	  tree bswap_src, bswap_tmp;
+	  bool can_be_done = false;
 	  int type_size;
 	  gimple call;
 
@@ -1865,21 +1853,21 @@ execute_optimize_bswap (void)
 	    {
 	    case 16:
 	      if (bswap16_p)
-		bswap_type = bswap16_type;
+		can_be_done = true;
 	      break;
 	    case 32:
 	      if (bswap32_p)
-		bswap_type = bswap32_type;
+		can_be_done = true;
 	      break;
 	    case 64:
 	      if (bswap64_p)
-		bswap_type = bswap64_type;
+		can_be_done = true;
 	      break;
 	    default:
 	      continue;
 	    }
 
-	  if (!bswap_type)
+	  if (!can_be_done)
 	    continue;
 
 	  bswap_src = find_bswap (stmt);
@@ -1895,30 +1883,17 @@ execute_optimize_bswap (void)
 	  else
 	    bswap_stats.found_64bit++;
 
-	  bswap_tmp = bswap_src;
-
-	  /* Convert the src expression if necessary.  */
-	  if (!useless_type_conversion_p (TREE_TYPE (bswap_tmp), bswap_type))
-	    {
-	      gimple convert_stmt;
-	      bswap_tmp = make_temp_ssa_name (bswap_type, NULL, "bswapsrc");
-	      convert_stmt = gimple_build_assign_with_ops
-		  		(NOP_EXPR, bswap_tmp, bswap_src, NULL);
-	      gsi_insert_before (&gsi, convert_stmt, GSI_SAME_STMT);
-	    }
-
 	  call = gimple_build_assign_with_ops (BYTESWAP_EXPR, NULL,
-					       bswap_tmp, NULL);
-
+					       bswap_src, NULL);
 	  bswap_tmp = gimple_assign_lhs (stmt);
 
 	  /* Convert the result if necessary.  */
-	  if (!useless_type_conversion_p (TREE_TYPE (bswap_tmp), bswap_type))
+	  if (!useless_type_conversion_p (TREE_TYPE (bswap_src), TREE_TYPE (bswap_tmp)))
 	    {
 	      gimple convert_stmt;
-	      bswap_tmp = make_temp_ssa_name (bswap_type, NULL, "bswapdst");
+	      bswap_tmp = make_temp_ssa_name (TREE_TYPE (bswap_src), NULL, "bswapdst");
 	      convert_stmt = gimple_build_assign_with_ops
-			(NOP_EXPR, gimple_assign_lhs (stmt), bswap_tmp, NULL);
+	               (NOP_EXPR, gimple_assign_lhs (stmt), bswap_tmp, NULL);
 	      gsi_insert_after (&gsi, convert_stmt, GSI_SAME_STMT);
 	    }
 
