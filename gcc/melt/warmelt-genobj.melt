@@ -6224,8 +6224,37 @@ $SBUF.}#
 
 (install_method class_nrep_match_data_initializer compile_obj compilobj_nrep_matchdatainit)
 
+;;;;;;;;;;;;;;;;
+(defun compilobj_nrep_matchdataclear (nmc gcx)
+  (debug "compilobj_nrep_matchdataclear nmc=" nmc "\n gcx=" gcx)
+  (assert_msg "check nmc" (is_a nmc class_nrep_match_data_clear))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (let (
+	(nloc (get_field :nrep_loc nmc))
+	(ndata (get_field :nmdac_data nmc))
+	(odata (compile_obj ndata gcx))
+	(oclear (instance class_objclear
+			  :obi_loc nloc
+			  :oclr_vloc odata))
+	)
+    (debug "compilobj_nrep_matchdataclear odata=" odata "\n result oclear=" oclear)
+    (return oclear)
+  ))
+(install_method class_nrep_match_data_clear compile_obj compilobj_nrep_matchdataclear)
 
 
+;;;;;;;;;;;;;;;;
+(defun compilobj_nrep_matchdatafinal (nmdatf gcx)
+  (debug "compilobj_nrep_matchdatafinal nmdatf=" nmdatf 
+	 "\n of discr=" (discrim nmdatf) "\n gcx=" gcx)
+  (assert_msg "check nmdatf" (is_a nmdatf class_nrep_match_data_finalizer))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (let (
+	(nloc (unsafe_get_field :nrep_loc nmdatf))
+	)
+    (assert_msg "@$@unimplemented compilobj_nrep_matchdatafinal")
+    ))
+(install_method class_nrep_match_data_finalizer compile_obj compilobj_nrep_matchdatafinal)
 ;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_matchedata (nmdat gcx)
   (debug "compilobj_nrep_matchedata nmdat=" nmdat 

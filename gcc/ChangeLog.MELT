@@ -1,6 +1,11 @@
 
 
 2013-01-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.melt (compilobj_nrep_matchdatafinal): New
+	incomplete method for compile_obj on
+	class_nrep_match_data_finalizer.
+
+2013-01-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt (normstep_mtestvar): Better debug
 	print.
 
