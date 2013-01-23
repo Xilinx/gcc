@@ -1,5 +1,12 @@
 
 
+2013-01-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	* gcc/testsuite/melt/tmatch-5.melt: Use referenced_value field
+	everywhere, and change to current MELT dialect...
+
+	* melt/warmelt-genobj.melt (compilobj_nrep_ifsame): New incomplete
+	method for compile_obj on class_nrep_ifsame.
+
 2013-01-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* gcc/testsuite/melt/tmatch-5.melt: Change to altmatch.
 

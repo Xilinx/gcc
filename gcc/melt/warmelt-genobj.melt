@@ -4275,7 +4275,16 @@ $SBUF.}#
 (install_method class_nrep_ifisa compile_obj compilobj_nrep_ifisa)
 
 
-;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun compilobj_nrep_ifsame (rif gcx)
+  (debug "compilobj_nrep_ifsame rif=" rif "\n gcx=" gcx)
+  (assert_msg "check rif" (is_a rif class_nrep_ifsame))
+  (assert_msg "$@$unimplemented compilobj_nrep_ifsame")
+)
+(install_method class_nrep_ifsame compile_obj compilobj_nrep_ifsame)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_iftuplesized (rif gcx)
   (debug "compilobj_nrep_ifisa rif=" rif)
   (assert_msg "check rif" (is_a rif class_nrep_iftuplesized))

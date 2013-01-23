@@ -21,8 +21,8 @@
 (defun ttinymicro5 (x g)
   (matchalt x
    (
-    ?(instance class_container 
-	       :container_value ?xxx)
+    ?(instance class_reference 
+	       :referenced_value ?xxx)
      (g xxx))
    ))
 
@@ -31,8 +31,8 @@
   (matchalt x
    (
     ?(and ?xx
-	   ?(instance class_container 
-		      :container_value ?xx)
+	   ?(instance class_reference 
+		      :referenced_value ?xx)
       )
       (g xx))
    ))
@@ -42,16 +42,16 @@
   (matchalt 
    x
    ( ?(instance 
-       class_container 
-       :container_value 
+       class_reference 
+       :referenced_value 
        ?(integerbox_of ?bx))
       (g x bx)
       )
 
    (
     ?(and ?xx
-	   ?(instance class_container 
-		      :container_value ?xx)
+	   ?(instance class_reference 
+		      :referenced_value ?xx)
       )
       (g xx))
 
