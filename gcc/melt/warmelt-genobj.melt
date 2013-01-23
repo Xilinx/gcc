@@ -6251,8 +6251,15 @@ $SBUF.}#
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (let (
 	(nloc (unsafe_get_field :nrep_loc nmdatf))
+	(ndata (unsafe_get_field :nmdac_data nmdatf))
+	(odata (compile_obj ndata gcx))
+	(oclear (instance class_objclear
+			  :obi_loc nloc
+			  :oclr_vloc odata))
 	)
-    (assert_msg "@$@unimplemented compilobj_nrep_matchdatafinal")
+    (debug "compilobj_nrep_matchdatafinal ndata=" ndata "\n odata=" odata "\n oclear=" oclear)
+    (dispose_objloc odata gcx)
+    (return oclear)
     ))
 (install_method class_nrep_match_data_finalizer compile_obj compilobj_nrep_matchdatafinal)
 ;;;;;;;;;;;;;;;;
