@@ -1,6 +1,12 @@
 
 
 2013-01-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt (normstep_mtestvar): Better debug
+	print.
+
+	* melt/warmelt-genobj.melt (compilobj_nrep_ifsame): Implement.
+
+2013-01-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* gcc/testsuite/melt/tmatch-5.melt: Use referenced_value field
 	everywhere, and change to current MELT dialect...
 

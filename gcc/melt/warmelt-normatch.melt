@@ -5695,22 +5695,21 @@ normalized expression.}#
 			       :nrep_loc nsloc
 			       :nifs_left ndata
 			       :nifs_right ntestdata
+			       :nexpr_ctyp ctype_void
 			       :nif_then ()
 			       :nif_else ()))
 	  )
-      (debug "normstep_mtestvar nthen" nthen)
-      (debug "normstep_mtestvar nelse" nelse)
-      (debug "normstep_mtestvar ndata" ndata)
-      (debug "normstep_mtestvar ntestdata" ntestdata)
-      (debug "normstep_mtestvar step" step)
-      (debug "normstep_mtestvar ntestsame" ntestsame)
+      (debug "normstep_mtestvar nthen=" nthen "\n nelse=" nelse 
+	     "\n ndata=" ndata)
+      (debug "normstep_mtestvar ntestdata=" ntestdata "\n step=" step
+	     "\n ntestsame=" ntestsame "\n njthen=" njthen)
       ;; update ntestsame using njthen
-      (debug "normstep_mtestvar njthen" njthen)
       (cond ( (is_object njthen)
-	      (unsafe_put_fields ntestsame :nif_then njthen))
+	      (unsafe_put_fields ntestsame 
+				 :nif_then njthen))
 	    ( (is_multiple njthen)
-	      (unsafe_put_fields ntestsame :nif_then 
-				 (instance class_nrep_progn
+	      (unsafe_put_fields ntestsame 
+				 :nif_then (instance class_nrep_progn
 					   :nrep_loc nsloc
 					   :nprogn_seq njthen
 					   :nprogn_last ()))

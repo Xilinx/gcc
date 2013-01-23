@@ -4279,8 +4279,28 @@ $SBUF.}#
 (defun compilobj_nrep_ifsame (rif gcx)
   (debug "compilobj_nrep_ifsame rif=" rif "\n gcx=" gcx)
   (assert_msg "check rif" (is_a rif class_nrep_ifsame))
-  (assert_msg "$@$unimplemented compilobj_nrep_ifsame")
-)
+  (let ( (nloc (get_field :nrep_loc rif))
+	 (nleft (get_field :nifs_left rif))
+	 (nright (get_field :nifs_right rif))
+	 (nthen (get_field :nif_then rif))
+	 (nelse (get_field :nif_else rif))
+	 )
+    (let ( (othen (compile_obj nthen gcx))
+	   (oleft (compile_obj nleft gcx))
+	   (oright (compile_obj nright gcx))
+	   (oelse (if (is_not_a nelse class_nrep_nil) 
+		      (compile_obj nelse gcx)))
+	   (otest (make_objlocatedexp nloc ctype_long
+				      ##{/*ifsame*/ ($OLEFT) == ($ORIGHT)}#))
+	   (obif (instance class_objcond
+			   :obi_loc nloc
+			   :obcond_test otest
+			   :obcond_then othen
+			   :obcond_else oelse))
+	   )
+      (debug "compilobj_nrep_ifsame result obif=" obif)
+      (return obif)
+      )))
 (install_method class_nrep_ifsame compile_obj compilobj_nrep_ifsame)
 
 
