@@ -1990,8 +1990,8 @@ $SBUF.}#
 
 ;; function to dispose, i.e. mark as free and reusable, an  objlocation
 (defun dispose_objloc (oldloc gcx)
-  (debug "dispose_objloc freeeing oldloc=" oldloc)
-  (shortbacktrace_dbg "dispose_objloc" 7)
+  (debug "dispose_objloc start freeeing oldloc=" oldloc)
+  (shortbacktrace_dbg "dispose_objloc" 9)
   (assert_msg "check oldloc" (is_a oldloc class_objlocv))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   ;; the obl_proc iff it has already been freed
@@ -2000,7 +2000,7 @@ $SBUF.}#
     (assert_msg "check oldcty not void" (!= oldcty ctype_void))
     (assert_msg "check oldcty is ctype" (is_a oldcty class_ctype))
     (put_fields oldloc :obl_proc ())			;mark the objlocation as freed
-    (debug " freed oldloc=" oldloc)
+    (debug "dispose_objloc freeing oldloc=" oldloc)
     (cond ( (== oldcty ctype_value)
 	    (let  ( (freepl (unsafe_get_field :gncx_freeptrlist gcx)) )
 	      (list_append freepl oldloc)))
@@ -2016,8 +2016,9 @@ $SBUF.}#
 	     (let ( (freeli (mapobject_get freemap oldcty)) )
 	       ;; since we are freeing, freeli should exist
 	       (assert_msg "check freeli" (is_list freeli))
-	       (list_append freeli oldloc))))))
-  )
+	       (list_append freeli oldloc)))))
+    (debug "dispose_objloc freed oldloc=" oldloc)
+    ))
 
 ;; function to dispose, i.e. mark as free, a binding 
 (defun dispose_bnd_obj (bnd gcx)
@@ -3257,6 +3258,7 @@ $SBUF.}#
 			   ;; :oblo_epil is left null
 			   ))
 	 )
+    (debug "compilobj_nrep_progn nseq=" nseq)
     (foreach_in_multiple
      (nseq)
      (ncomp :long ix)
@@ -6249,17 +6251,16 @@ $SBUF.}#
 	 "\n of discr=" (discrim nmdatf) "\n gcx=" gcx)
   (assert_msg "check nmdatf" (is_a nmdatf class_nrep_match_data_finalizer))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (shortbacktrace_dbg "compilobj_nrep_matchdatafinal" 10)
   (let (
 	(nloc (unsafe_get_field :nrep_loc nmdatf))
 	(ndata (unsafe_get_field :nmdac_data nmdatf))
 	(odata (compile_obj ndata gcx))
-	(oclear (instance class_objclear
-			  :obi_loc nloc
-			  :oclr_vloc odata))
+	;; no need to clear odata, it is already cleared before
 	)
-    (debug "compilobj_nrep_matchdatafinal ndata=" ndata "\n odata=" odata "\n oclear=" oclear)
+    (debug "compilobj_nrep_matchdatafinal ndata=" ndata "\n odata=" odata)
     (dispose_objloc odata gcx)
-    (return oclear)
+    (return)
     ))
 (install_method class_nrep_match_data_finalizer compile_obj compilobj_nrep_matchdatafinal)
 ;;;;;;;;;;;;;;;;

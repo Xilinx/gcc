@@ -12043,47 +12043,48 @@ melt_dbgshortbacktrace (const char *msg, int maxdepth)
     maxdepth = 3;
   fprintf (stderr, "\nSHORT BACKTRACE[#%ld] %s;", melt_dbgcounter,
            msg ? msg : "/");
-  for (fr = melt_topframe; fr != NULL && curdepth < maxdepth;
-       (fr = fr->mcfr_prev), (curdepth++)) {
-    fputs ("\n", stderr);
-    fprintf (stderr, "#%d:", curdepth);
-    if (fr->mcfr_closp && fr->mcfr_nbvar >= 0
-        && melt_magic_discr ((melt_ptr_t) fr->mcfr_closp) == MELTOBMAG_CLOSURE) {
-      meltroutine_ptr_t curout = fr->mcfr_closp->rout;
-      if (melt_magic_discr ((melt_ptr_t) curout) == MELTOBMAG_ROUTINE)
-        fprintf (stderr, "<%s> ", curout->routdescr);
-      else
-        fputs ("?norout?", stderr);
+  for (fr = melt_topframe; fr != NULL && curdepth <= maxdepth;
+       (fr = fr->mcfr_prev), (curdepth++)) 
+    {
+      fputs ("\n", stderr);
+      fprintf (stderr, "#%d:", curdepth);
+      if (fr->mcfr_closp && fr->mcfr_nbvar >= 0
+	  && melt_magic_discr ((melt_ptr_t) fr->mcfr_closp) == MELTOBMAG_CLOSURE) {
+	meltroutine_ptr_t curout = fr->mcfr_closp->rout;
+	if (melt_magic_discr ((melt_ptr_t) curout) == MELTOBMAG_ROUTINE)
+	  fprintf (stderr, "<%s> ", curout->routdescr);
+	else
+	  fputs ("?norout?", stderr);
 #if _GNU_SOURCE
-      /* we have dladdr! */
-      {
-        PTR_UNION_TYPE(meltroutfun_t*) funad = {0};
-        Dl_info funinf;
-        memset (&funinf, 0, sizeof(funinf));
-        PTR_UNION_AS_CAST_PTR (funad) = curout->routfunad;
-        if (dladdr (PTR_UNION_AS_VOID_PTR (funad), &funinf)) {
-          if (funinf.dli_fname)
-            /* Just print the basename of the *.so since it has an
-               md5sum in the path.  */
-            fprintf (stderr, "\n  %s", melt_basename (funinf.dli_fname));
-          if (funinf.dli_sname)
-            fprintf (stderr, " [%s=%p]",
-                     funinf.dli_sname, funinf.dli_saddr);
-          fputc('\n', stderr);
-        } else
-          fputs (" ?", stderr);
-      }
+	/* we have dladdr! */
+	{
+	  PTR_UNION_TYPE(meltroutfun_t*) funad = {0};
+	  Dl_info funinf;
+	  memset (&funinf, 0, sizeof(funinf));
+	  PTR_UNION_AS_CAST_PTR (funad) = curout->routfunad;
+	  if (dladdr (PTR_UNION_AS_VOID_PTR (funad), &funinf)) {
+	    if (funinf.dli_fname)
+	      /* Just print the basename of the *.so since it has an
+		 md5sum in the path.  */
+	      fprintf (stderr, "\n  %s", melt_basename (funinf.dli_fname));
+	    if (funinf.dli_sname)
+	      fprintf (stderr, " [%s=%p]",
+		       funinf.dli_sname, funinf.dli_saddr);
+	    fputc('\n', stderr);
+	  } else
+	    fputs (" ?", stderr);
+	}
 #endif /*_GNU_SOURCE*/
-    } else
-      fprintf (stderr, "_ ");
+      } else
+	fprintf (stderr, "_ ");
 #if MELT_HAVE_DEBUG
-    if (fr->mcfr_flocs && fr->mcfr_flocs[0])
-      fprintf (stderr, "%s\n", fr->mcfr_flocs);
-    else
-      fputs (" ?", stderr);
+      if (fr->mcfr_flocs && fr->mcfr_flocs[0])
+	fprintf (stderr, "%s\n", fr->mcfr_flocs);
+      else
+	fputs (" ?", stderr);
 #endif
-  };
-  if (fr)
+    };
+  if (fr && maxdepth > curdepth)
     fprintf (stderr, "...&%d", maxdepth - curdepth);
   else
     fputs (".", stderr);

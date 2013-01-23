@@ -1,6 +1,16 @@
 
 
 2013-01-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{improved tmatch-5.melt still fails}}
+
+	* melt-runtime.c (melt_dbgshortbacktrace): Improve output.
+
+	* melt/warmelt-genobj.melt (dispose_objloc): More debug.
+	(compilobj_nrep_progn): More debug.
+	(compilobj_nrep_matchdatafinal): Don't clear the data, just
+	dispose it.
+
+2013-01-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-genobj.melt (compilobj_nrep_matchdatafinal):
 	Implement and dispose the compiled location for the data.
 
