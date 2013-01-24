@@ -1,3 +1,8 @@
+2013-01-24  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-cpp-elem-function.c (elem_fn_create_fn): Set the assembler name and
+	a function as elemental function before adding the node.
+
 2013-01-22  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-cpp-elem-function.c (elem_fn_create_fn): Removed the setting of

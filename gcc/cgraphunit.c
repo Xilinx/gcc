@@ -427,6 +427,11 @@ cgraph_finalize_function (tree decl, bool nested)
       && !DECL_DISREGARD_INLINE_LIMITS (decl))
     node->symbol.force_output = 1;
 
+  /* If Cilk Plus is enabled and it is an already cloned elemental function,
+     then we have to force the symbol or function's output.  */
+  if (flag_enable_cilk && DECL_ELEM_FN_ALREADY_CLONED (decl))
+    node->symbol.force_output = 1;
+
   /* When not optimizing, also output the static functions. (see
      PR24561), but don't do so for always_inline functions, functions
      declared inline and nested functions.  These were optimized out

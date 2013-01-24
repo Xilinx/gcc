@@ -769,8 +769,9 @@ elem_fn_create_fn (tree fndecl)
 					elem_fn_values->vectorlength);
       fix_elem_fn_return_value (new_masked_fn, elem_fn_values, induction_var);
       segment_params_for_reg_size (new_masked_fn);
-      call_graph_add_fn (new_masked_fn);
+      SET_DECL_ASSEMBLER_NAME (new_masked_fn, DECL_NAME (new_masked_fn));
       DECL_ELEM_FN_ALREADY_CLONED (new_masked_fn) = true;
+      call_graph_add_fn (new_masked_fn);
       if (DECL_STRUCT_FUNCTION (new_masked_fn))
 	DECL_STRUCT_FUNCTION (new_masked_fn)->elem_fn_already_cloned = true;
     }
@@ -801,8 +802,9 @@ elem_fn_create_fn (tree fndecl)
       fix_elem_fn_return_value (new_unmasked_fn, elem_fn_values,
 				induction_var);
       segment_params_for_reg_size (new_unmasked_fn);
-      call_graph_add_fn (new_unmasked_fn);
+      SET_DECL_ASSEMBLER_NAME (new_unmasked_fn, DECL_NAME (new_unmasked_fn));
       DECL_ELEM_FN_ALREADY_CLONED (new_unmasked_fn) = true;
+      call_graph_add_fn (new_unmasked_fn);
       if (DECL_STRUCT_FUNCTION (new_unmasked_fn))
 	DECL_STRUCT_FUNCTION (new_unmasked_fn)->elem_fn_already_cloned = true;
     }

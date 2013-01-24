@@ -1,3 +1,8 @@
+2013-01-24  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cgraphunit.c (cgraph_finalize_function): If cilkplus is enabled and
+	if it is a cloned elemental function, then we force its output.
+
 2013-01-22  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c/c-parser.c (c_parser_cilk_grainsize): Added a function call to skip
