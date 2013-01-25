@@ -44,7 +44,7 @@ void extract_array_notation_exprs (tree, bool, vec<tree, va_gc> **);
 static bool has_call_expr_with_array_notation (tree expr);
 static tree fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var);
 tree find_correct_array_notation_type (tree op);
-
+static tree fix_return_expr (tree expr);
 
 struct inv_list
 {
@@ -107,7 +107,8 @@ find_rank (tree array, bool ignore_builtin_fn, size_t *rank)
       if (TREE_CODE (array) == CALL_EXPR)
 	{
 	  tree func_name = CALL_EXPR_FN (array);
-	  if (TREE_CODE (func_name) == ADDR_EXPR)
+	  if (TREE_CODE (func_name) == ADDR_EXPR ||
+	      TREE_CODE (func_name) == FUNCTION_DECL)
 	    if (ignore_builtin_fn)
 	      if (is_builtin_array_notation_fn (func_name, &dummy_type))
 		/* If it is a builtin function, then we know it returns a
@@ -373,7 +374,7 @@ replace_invariant_exprs (tree *node)
 	{
 	  if (processing_template_decl || !TREE_TYPE (t))
 	    new_var = build_min_nt_loc (EXPR_LOCATION (t), VAR_DECL, NULL_TREE,
-				       	NULL_TREE);
+					NULL_TREE);
 	  else
 	    new_var = build_decl (EXPR_LOCATION (t), VAR_DECL, NULL_TREE,
 				  TREE_TYPE (t));
@@ -1458,7 +1459,7 @@ fix_conditional_array_notations_1 (tree orig_stmt)
 	}
       else
 	{
-	  array_var[ii] = build_min_nt_loc (location, VAR_DECL, 
+	  array_var[ii] = build_min_nt_loc (location, VAR_DECL,
 					    NULL_TREE, NULL_TREE);
 	  ind_init[ii] = build_x_modify_expr (location, array_var[ii], 
 					      NOP_EXPR,
@@ -1740,7 +1741,6 @@ fix_array_notation_exprs (tree t)
     case OMP_ATOMIC:
     case OMP_CLAUSE:
     case TARGET_EXPR:
-    case RETURN_EXPR:
     case INTEGER_TYPE:
     case ENUMERAL_TYPE:
     case BOOLEAN_TYPE:
@@ -1749,7 +1749,10 @@ fix_array_notation_exprs (tree t)
     case RECORD_TYPE:
     case METHOD_TYPE:
       return t;
- 
+    case RETURN_EXPR:
+      if (contains_array_notation_expr (t))
+	t = fix_return_expr (t);
+      return t;
     case PREDECREMENT_EXPR:
     case PREINCREMENT_EXPR:
     case POSTDECREMENT_EXPR:
@@ -3203,4 +3206,28 @@ find_correct_array_notation_type (tree op)
 	  }
     }
   return return_type;
+}
+
+/* Expands the builtin functions in a return.  */
+
+static tree
+fix_return_expr (tree expr)
+{
+  tree new_mod_list, new_var, new_mod, retval_expr;
+  location_t loc = EXPR_LOCATION (expr);
+
+  if (TREE_CODE (expr) != RETURN_EXPR)
+    return expr;
+
+  new_mod_list = alloc_stmt_list ();
+  retval_expr = TREE_OPERAND (expr, 0);
+  new_var = build_decl (loc, VAR_DECL, NULL_TREE, TREE_TYPE (retval_expr));
+  new_mod = build_x_array_notation_expr (loc, new_var, NOP_EXPR,
+					 TREE_OPERAND (retval_expr, 1),
+					 tf_warning_or_error);
+  TREE_OPERAND (retval_expr, 1) = new_var;
+  TREE_OPERAND (expr, 0) = retval_expr;
+  append_to_statement_list_force (new_mod, &new_mod_list);
+  append_to_statement_list_force (expr, &new_mod_list);
+  return new_mod_list;
 }

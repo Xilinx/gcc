@@ -42,6 +42,7 @@ bool is_builtin_array_notation_fn (tree func_name, an_reduce_type *type);
 static tree fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var);
 bool contains_array_notation_expr (tree expr);
 tree expand_array_notation_exprs (tree t);
+static tree fix_return_expr (tree expr);
 
 
 struct inv_list
@@ -2331,6 +2332,33 @@ contains_array_notation_expr (tree expr)
     return true;
 }
 
+/*  Expands builtin functions in a return.  */
+
+static tree
+fix_return_expr (tree expr)
+{
+  tree new_mod_list, new_var, new_mod, retval_expr;
+  location_t loc = EXPR_LOCATION (expr);
+  if (TREE_CODE (expr) != RETURN_EXPR)
+    return expr;
+
+  new_mod_list = alloc_stmt_list ();
+  retval_expr = TREE_OPERAND (expr, 0);
+  new_var = build_decl (EXPR_LOCATION (expr), VAR_DECL, NULL_TREE,
+			TREE_TYPE (retval_expr));
+  new_mod =
+    build_array_notation_expr (loc, new_var, TREE_TYPE (new_var), NOP_EXPR, loc,
+			       TREE_OPERAND (retval_expr, 1),
+			       TREE_TYPE (TREE_OPERAND (retval_expr, 1)));
+  TREE_OPERAND (retval_expr, 1) = new_var;
+  TREE_OPERAND (expr, 0) = retval_expr;
+  append_to_statement_list_force (new_mod, &new_mod_list);
+  append_to_statement_list_force (expr, &new_mod_list);
+  return new_mod_list;
+}
+
+  
+
 /* Replaces array notations in void function call arguments in ARG with loop and
    tree-node ARRAY_REF and returns that value in a tree node variable called
    LOOP.  */
@@ -2646,6 +2674,9 @@ expand_array_notation_exprs (tree t)
       return t;
     case CALL_EXPR:
       t = fix_array_notation_call_expr (t);
+      return t;
+    case RETURN_EXPR:
+      t = fix_return_expr (t);
       return t;
     default:
       return t;

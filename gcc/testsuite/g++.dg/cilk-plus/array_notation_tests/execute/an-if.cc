@@ -1,3 +1,6 @@
+/* { dg-do run } */
+/* { dg-options " "} */
+
 #if HAVE_IO
 #include <cstdio>
 #endif

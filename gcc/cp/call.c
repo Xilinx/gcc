@@ -6880,12 +6880,19 @@ build_over_call (struct z_candidate *cand, int flags,
 	    }
 	}
 
-      val = convert_like_with_context (conv, arg, fn, i-is_method,
-	                               conversion_warning
-				       ? complain
-				       : complain & (~tf_warning));
+      if (flag_enable_cilk && TREE_CODE (fn) == FUNCTION_DECL
+	  && DECL_NAME (fn) && IDENTIFIER_POINTER (DECL_NAME (fn))
+	  && !strncmp (IDENTIFIER_POINTER (DECL_NAME (fn)), "__sec_reduce", 12))
+	val = arg;
+      else
+	{
+	  val = convert_like_with_context (conv, arg, fn, i-is_method,
+					   conversion_warning
+					   ? complain
+					   : complain & (~tf_warning));
 
-      val = convert_for_arg_passing (type, val, complain);
+	  val = convert_for_arg_passing (type, val, complain);
+	}
       if (val == error_mark_node)
         return error_mark_node;
       else

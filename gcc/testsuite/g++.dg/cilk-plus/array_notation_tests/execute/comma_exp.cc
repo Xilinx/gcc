@@ -1,3 +1,7 @@
+/* { dg-do run } */
+/* { dg-options "" } */
+
+
 #include <cstdlib>
 
 void abort (void);

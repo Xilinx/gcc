@@ -1,3 +1,7 @@
+/* { dg-do run } */
+/* { dg-options "" } */
+
+
 #define NUMBER 75
 #include <cstdlib>
 

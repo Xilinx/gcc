@@ -1,3 +1,14 @@
+2013-01-25  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* semantics.c (finish_return_stmt): Added a check if return expression
+	is a builtin array notation function.  If so, then don't issue an
+	error.
+	* cp-array-notation.c (find_rank): Added a FUNCTION_DECL case.
+	(fix_array_notation_exprs): Added a RETURN_EXPR case.
+	(fix_return_expr): New function.
+	* call.c (build_over_call): Add a check if the function is a built-in
+	array notation function call.  If so, then don't do any type-casting.
+
 2013-01-09  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* semantics.c (finish_call_expr): Added a check for lambda expression 

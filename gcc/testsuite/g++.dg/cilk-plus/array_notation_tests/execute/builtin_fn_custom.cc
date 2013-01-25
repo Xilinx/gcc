@@ -1,14 +1,17 @@
-#define HAVE_IO 0
+/* { dg-do run } */
+/* { dg-options "" } */
+
 
 #if HAVE_IO
 #include <stdio.h>
 #endif
-/* #include <stdlib.h> */
+#include <stdlib.h> 
 
 void abort (void);
 void exit (int);
 
-double my_func (double x, double y)
+template <class T>
+T my_func (T x, T y)
 {
   if (x > y)
     return x;
@@ -16,7 +19,6 @@ double my_func (double x, double y)
     return y;
 }
 
-template <class T>
 int main2 (int argc, char **argv)
 {
   int ii,array[10], y = 0, y_int = 0, array2[10];
@@ -66,4 +68,9 @@ int main2 (int argc, char **argv)
     abort ();
 
   return 0;
+}
+
+int main (int argc, char **argv)
+{
+   return main2 (argc, argv);
 }

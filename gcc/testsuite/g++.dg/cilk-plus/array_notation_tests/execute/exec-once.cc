@@ -1,3 +1,7 @@
+/* { dg-do run } */
+/* { dg-options "" } */
+
+
 #define HAVE_IO 0
 #define NUMBER 1000
 

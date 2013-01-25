@@ -1,3 +1,21 @@
+2013-01-25  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* g++.dg/cilk-plus/array_notation_tests/execute/builtin-in-if.cc: Added
+	the dg-do run and dg-options flags on top of the file.
+	* g++.dg/cilk-plus/array_notation_tests/execute/builtin-in-if.cc:
+	Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/execute/builtin_fn_custom_tplt.cc:
+	Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/execute/comma_exp.cc: Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/execute/exec-once.cc: Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/execute/n-ptr-test.cc: Likewise.
+	* gcc.dg/cilk-plus/cilk_keywords_test/errors/grainsize_error.c:
+	New test case.
+	* gcc.dg/cilk-plus/cilk_keywords_test/errors/test_builtin_return.c:
+	Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/execute/test_builtin_return.cc:
+	Likewise.
+
 2013-01-22  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* gcc.dg/cilk-plus/cilk_keywords_test/errors/grainsize_error1.c: New

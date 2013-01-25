@@ -8696,15 +8696,20 @@ c_finish_return (location_t loc, tree retval, tree origtype)
   tree valtype = TREE_TYPE (TREE_TYPE (current_function_decl)), ret_stmt;
   bool no_warning = false;
   bool npc = false;
+  size_t rank = 0;
 
   if (TREE_THIS_VOLATILE (current_function_decl))
     warning_at (loc, 0,
 		"function declared %<noreturn%> has a %<return%> statement");
   if (flag_enable_cilk && contains_array_notation_expr (retval))
     {
-      error_at (loc, "array notation expression cannot be used as a return "
-		"value");
-      return error_mark_node;
+      find_rank (retval, false, &rank);
+      if (rank >= 1)
+	{
+	  error_at (loc, "array notation expression cannot be used as a "
+		    "return value");
+	  return error_mark_node;
+	}
     }
   if (retval)
     {

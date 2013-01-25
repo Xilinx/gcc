@@ -1,4 +1,6 @@
-#define HAVE_IO 1
+/* { dg-do run } */
+/* { dg-options "" } */
+
 
 #if HAVE_IO 
 #include <cstdio>

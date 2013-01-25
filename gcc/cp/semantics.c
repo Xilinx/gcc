@@ -783,9 +783,17 @@ finish_return_stmt (tree expr)
 
   if (flag_enable_cilk && contains_array_notation_expr (expr))
     {
-      error_at (input_location,
-		"array notation expression cannot be used as a return value");
-      return error_mark_node;
+      size_t rank = 0;
+      find_rank (expr, true, &rank);
+
+      /* If the return expression has a builtin array notation function,  then
+	 it is OK.  */
+      if (rank >= 1)
+	{
+	  error_at (input_location, "array notation expression cannot be "
+		    "used as a return value");
+	  return error_mark_node;
+	}
     }
   expr = check_return_expr (expr, &no_warning);
 
