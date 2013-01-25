@@ -3359,6 +3359,19 @@ the flags of the $STEP with an extra context $CTX.}#
     ))
 (install_method class_match_step_test_matcher scan_step_data scanstepdata_testmatcher)
 
+;;;
+
+(defun scanstepdata_testvariable (step fun ctx)
+  (debug "scanstepdata_testvariable step=" step "\n fun=" fun "\n ctx=" ctx)
+  (assert_msg "check step" (is_a step class_match_step_test_variable))
+  (let ( (tvdata (get_field :msteptestvar_data step))
+	 )
+    (if tvdata (fun tvdata ctx)))
+)
+(install_method class_match_step_test_variable scan_step_data scanstepdata_testvariable)
+
+;;;
+
 (defun scanstepflag_stepwithflag (step fun ctx)
   (assert_msg "check step" (is_a step class_match_step_with_flag))
   (let ( (flag (unsafe_get_field :mstep_flag step)) 

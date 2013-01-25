@@ -1,5 +1,9 @@
 
 
+2013-01-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt (scanstepdata_testvariable): New
+	method for scan_step_data of class_match_step_test_variable.
+
 2013-01-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{improved tmatch-5.melt still fails}}
 
