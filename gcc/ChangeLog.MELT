@@ -1,6 +1,10 @@
 
 
 2013-01-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.melt (dispose_objloc, compilobj_nrep_progn)
+	(compilobj_nrep_matchdatafinal): More debug.
+
+2013-01-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt (scanstepdata_testvariable): New
 	method for scan_step_data of class_match_step_test_variable.
 
