@@ -11,13 +11,14 @@
     -fmelt-tempdir=meltbuild-tempdir \
     -fmelt-keep-temporary-files \
     -fmelt-init=@warmelt.quicklybuilt \
-    -fmelt-option=match_graphic:/tmp/meltupgraph \
+    -fmelt-option=match_graphic:/tmp/melt5graph \
     -fmelt-arg=tmatch-5.melt \
      "$gccmelt_cflags" \
     -fmelt-debug empty-file-for-melt.c
 |#
 
 
+#| ;; this test passes with MELT svn rev 195419 of jan 25, 2013
 (defun ttinymicro5 (x g)
   (matchalt x
    (
@@ -25,7 +26,7 @@
 	       :referenced_value ?xxx)
      (g xxx))
    ))
-
+|#
 	 
 (defun tmicro5 (x g)
   (matchalt x
@@ -36,6 +37,8 @@
       )
       (g xx))
    ))
+
+
 
 #|
 (defun tmini5 (x g)

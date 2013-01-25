@@ -5276,33 +5276,37 @@ normalized expression.}#
 	(return matindex)
 	))))
 
+
+
 ;; this utility function completes a normstep if the step is the last
 ;; in its data, or else return the normstep unchanged...
 (defun complete_normstep_if_last (step normstep nmctxt)
-  (debug "complete_normstep_if_last start step" step)
-  (debug "complete_normstep_if_last start normstep" normstep)
+  (debug "complete_normstep_if_last start step=" step "\n normstep=" normstep)
   (assert_msg "check step" (is_a step class_match_step))
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
+  (shortbacktrace_dbg "complete_normstep_if_last" 7)
   (if (is_not_a step class_match_step_with_data)
       (progn
-	(debug "complete_normstep_if_last step without data" step)
-	(debug "complete_normstep_if_last returning unchanged normstep without data" normstep)
+	(debug "complete_normstep_if_last returning unchanged normstep=" 
+	       normstep "\n without data step=" step)
 	(return normstep)))
   (let ( (matdata (get_field :mstep_data step))
 	 )
     (debug "complete_normstep_if_last matdata before match_data_update_data_steps_index" matdata)
     (assert_msg "check matdata" (is_a matdata class_matched_data))
     (match_data_update_data_steps_index matdata)
-    (debug "complete_normstep_if_last matdata after match_data_update_data_steps_index" matdata)
+    (debug "complete_normstep_if_last after match_data_update_data_steps_index matdata=" matdata)
     (let (
 	  (matindex (match_step_index step))
-	  (datamap (unsafe_get_field :matnorx_datamap nmctxt))
+	  (datamap (get_field :matnorx_datamap nmctxt))
 	  (ndata (mapobject_get datamap matdata))
 	  )
-      (debug "complete_normstep_if_last matindex" matindex)
+      (debug "complete_normstep_if_last matindex=" matindex "\n ndata=" ndata)
+      (assert_msg "check datamap" (is_mapobject datamap))
       (assert_msg "check matindex" (is_integerbox matindex))
+      (assert_msg "check ndata" (is_a ndata class_nrep_simple))
       (let ( (:long numindex (get_int matindex))
-	     (datasteps (unsafe_get_field :mdata_steps matdata))
+	     (datasteps (get_field :mdata_steps matdata))
 	     (:long nbdatasteps (multiple_length datasteps))
 	     )
 	(assert_msg "check numindex" (>i numindex 0))
@@ -5310,19 +5314,19 @@ normalized expression.}#
 	(assert_msg "good numindex" (<=i numindex nbdatasteps))
 	(if (<i numindex nbdatasteps)
 	    (progn
-	      (debug "complete_normstep_if_last return non-last normstep=" normstep " numindex=" numindex)
+	      (debug "complete_normstep_if_last return non-last normstep=" normstep " numindex=" numindex "\n for step=" step)
 	      (return normstep)
 	      ))
 	(debug "complete_normstep_if_last last step=" step " ndata=" ndata)
-	(assert_msg "check ndata" (is_a ndata class_nrep_simple))
 	(if (is_a ndata class_nrep_matched_data)
 	    (let ( (clearndata (instance class_nrep_match_data_clear
 					 :nmdac_data ndata))
 		   (finalndata (instance class_nrep_match_data_finalizer
 					 :nmdac_data ndata))
 		   )
-	      (debug "complete_normstep_if_last clearndata=" clearndata " finalndata=" finalndata
-		     "\n normstep=" normstep)
+	      (debug "complete_normstep_if_last made finalndata=" finalndata
+		      "\n clearndata=" clearndata "\n normstep=" normstep
+		      "\n for step=" step)
 	      (cond ( (is_object normstep)
 		      (let ( (normsteptup (tuple normstep clearndata finalndata)) )
 			(debug "complete_normstep_if_last new normsteptup=" normsteptup)
@@ -5337,13 +5341,13 @@ normalized expression.}#
 			(list_append normsteplist clearndata)
 			(list_append normsteplist finalndata)
 			(let ( (newnormstep (list_to_multiple normsteplist)) )
-			  (debug "complete_normstep_if_last newnormstep=" newnormstep)
+			  (debug "complete_normstep_if_last tuple newnormstep=" newnormstep)
 			  (return newnormstep)
 			  )))
 		    ( (is_list normstep)
 		      (list_append normstep clearndata)
 		      (list_append normstep finalndata)
-		      (debug "complete_normstep_if_last extended normstep=" normstep)
+		      (debug "complete_normstep_if_last extended list normstep=" normstep)
 		      (return normstep))
 		    (:else
 		     (debug "complete_normstep_if_last bad normstep" normstep)
@@ -6927,7 +6931,7 @@ normalized expression.}#
 			   #{/*$CHUNKDISNAM*/ meltgc_add_strbuf ((melt_ptr_t)$NAMBUF,
 								 melt_string_str ((melt_ptr_t)$DISNAM)
 								 + strlen("CLASS_")) }#)
-	       (add2sbuf_strconst nambuf "_%")
+	       (add2sbuf_strconst nambuf "_ms_")
 	       (add2sbuf_longdec nambuf (+i mapcnt 1))
 	       (mapobject_put mapstep step (strbuf2string discr_string nambuf))
 	       (if sdata (scandata sdata))

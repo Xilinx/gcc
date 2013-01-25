@@ -1,6 +1,14 @@
 
 
 2013-01-25  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* testsuite/melt/tmatch-5.melt: Simplified, still failing.
+
+	* melt/warmelt-normatch.melt (complete_normstep_if_last): Added
+	more debug, probably still wrong or wrongly called.
+
+2013-01-25  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-genobj.melt (dispose_objloc, compilobj_nrep_progn)
 	(compilobj_nrep_matchdatafinal): More debug.
 
