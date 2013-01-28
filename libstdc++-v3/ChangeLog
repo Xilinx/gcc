@@ -1,7 +1,20 @@
+2013-01-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/56085
+	* include/std/complex (pow(const complex<>&, int)): Avoid __n
+	signed overflow.
+
+2013-01-22  Jakub Jelinek  <jakub@redhat.com>
+
+	* testsuite/29_atomics/atomic_flag/test_and_set/explicit-hle.cc:
+	Tightten scan-assembler-times regexps, add dg-additional-options for
+	ia32, add -g0 -fno-exceptions -fno-asynchronous-unwind-tables to
+	dg-options.
+
 2013-01-12  Andi Kleen  <ak@linux.intel.com>
 	    Jonathan Wakely  <jwakely.gcc@gmail.com>
 
-	PR libstdc++/55223
+	PR libstdc++/55233
 	* include/bits/atomic_base.h (__memory_order_modifier): Add
 	__memory_order_mask, __memory_order_modifier_mask,
 	__memory_order_hle_acquire, __memory_order_hle_release.
