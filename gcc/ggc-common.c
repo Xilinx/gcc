@@ -246,8 +246,7 @@ ggc_cleared_alloc_ptr_array_two_args (size_t c, size_t n)
 
 /* These are for splay_tree_new_ggc.  */
 void *
-ggc_splay_alloc (enum gt_types_enum obj_type ATTRIBUTE_UNUSED, int sz,
-		 void *nl)
+ggc_splay_alloc (int sz, void *nl)
 {
   gcc_assert (!nl);
   return ggc_internal_alloc (sz);
@@ -294,7 +293,6 @@ struct ptr_data
   gt_handle_reorder reorder_fn;
   size_t size;
   void *new_addr;
-  enum gt_types_enum type;
 };
 
 #define POINTER_HASH(x) (hashval_t)((intptr_t)x >> 3)
@@ -327,8 +325,7 @@ static hash_table <saving_hasher> saving_htab;
 
 int
 gt_pch_note_object (void *obj, void *note_ptr_cookie,
-		    gt_note_pointers note_ptr_fn,
-		    enum gt_types_enum type)
+		    gt_note_pointers note_ptr_fn)
 {
   struct ptr_data **slot;
 
@@ -352,7 +349,6 @@ gt_pch_note_object (void *obj, void *note_ptr_cookie,
     (*slot)->size = strlen ((const char *)obj) + 1;
   else
     (*slot)->size = ggc_get_size (obj);
-  (*slot)->type = type;
   return 1;
 }
 
@@ -393,8 +389,7 @@ ggc_call_count (ptr_data **slot, traversal_state *state)
   struct ptr_data *d = *slot;
 
   ggc_pch_count_object (state->d, d->obj, d->size,
-			d->note_ptr_fn == gt_pch_p_S,
-			d->type);
+			d->note_ptr_fn == gt_pch_p_S);
   state->count++;
   return 1;
 }
@@ -405,8 +400,7 @@ ggc_call_alloc (ptr_data **slot, traversal_state *state)
   struct ptr_data *d = *slot;
 
   d->new_addr = ggc_pch_alloc_object (state->d, d->obj, d->size,
-				      d->note_ptr_fn == gt_pch_p_S,
-				      d->type);
+				      d->note_ptr_fn == gt_pch_p_S);
   state->ptrs[state->ptrs_i++] = d;
   return 1;
 }
