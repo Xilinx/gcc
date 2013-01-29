@@ -199,12 +199,6 @@
 #endif
 
 
-/* Define if the zone collector is in use */
-#ifndef USED_FOR_TARGET
-#undef GGC_ZONE
-#endif
-
-
 /* mcontext_t fields start with __ */
 #ifndef USED_FOR_TARGET
 #undef HAS_MCONTEXT_T_UNDERSCORES

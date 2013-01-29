@@ -1,3 +1,27 @@
+2013-01-28  Tobias Burnus  <burnus@net-b.de>
+	    Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/53537
+	* symbol.c (gfc_find_sym_tree): Don't look for the symbol outside an
+	interface block.
+	(gfc_get_ha_symtree): Let gfc_find_sym_tree lookup the parent namespace.
+	* decl.c (gfc_match_data_decl): Ditto.
+	(variable_decl): Remove undeclared type error.
+	(gfc_match_import): Use renamed instead of original name.
+
+2013-01-27 Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/55984
+	PR fortran/56047
+	* gfortran.h : Add associate_var to symbol_attr.
+	* resolve.c (resolve_assoc_var): Set associate_var attribute.
+	If the target class_ok is set, set it for the associate
+	variable.
+	* check.c (allocatable_check): Associate variables should not
+	have the allocatable attribute even if their symbols do.
+	* class.c (gfc_build_class_symbol): Symbols with associate_var
+	set will always have a good class container.
+
 2013-01-23  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/56081
