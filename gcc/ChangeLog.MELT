@@ -2,6 +2,11 @@
 
 2013-01-29  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-normatch.melt (normstep_mflagset)
+	(normstep_mflagconj, normstep_mtestinstance): More debug.
+
+2013-01-29  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-normatch.melt (normstep_mtestvar)
 	(complete_normstep_if_last): Adding more debugs.
 
