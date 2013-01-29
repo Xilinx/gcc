@@ -1,5 +1,12 @@
 
 
+2013-01-29  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-normatch.melt (normstep_mtestvar)
+	(complete_normstep_if_last): Adding more debugs.
+
+	* testsuite/melt/tmatch-5.melt: Reindent.
+
 2013-01-25  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* testsuite/melt/tmatch-5.melt: Simplified, still failing.

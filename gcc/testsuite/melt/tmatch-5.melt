@@ -31,9 +31,10 @@
 (defun tmicro5 (x g)
   (matchalt x
    (
-    ?(and ?xx
-	   ?(instance class_reference 
-		      :referenced_value ?xx)
+    ?(and
+      ?xx
+      ?(instance class_reference 
+		 :referenced_value ?xx)
       )
       (g xx))
    ))

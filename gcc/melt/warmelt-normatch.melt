@@ -5317,7 +5317,7 @@ normalized expression.}#
 	      (debug "complete_normstep_if_last return non-last normstep=" normstep " numindex=" numindex "\n for step=" step)
 	      (return normstep)
 	      ))
-	(debug "complete_normstep_if_last last step=" step " ndata=" ndata)
+	(debug "complete_normstep_if_last last step=" step "\n ndata=" ndata)
 	(if (is_a ndata class_nrep_matched_data)
 	    (let ( (clearndata (instance class_nrep_match_data_clear
 					 :nmdac_data ndata))
@@ -5327,6 +5327,7 @@ normalized expression.}#
 	      (debug "complete_normstep_if_last made finalndata=" finalndata
 		      "\n clearndata=" clearndata "\n normstep=" normstep
 		      "\n for step=" step)
+	      (shortbacktrace_dbg "complete_normstep_if_last made finalndata" 7)
 	      (cond ( (is_object normstep)
 		      (let ( (normsteptup (tuple normstep clearndata finalndata)) )
 			(debug "complete_normstep_if_last new normsteptup=" normsteptup)
@@ -5682,7 +5683,7 @@ normalized expression.}#
 
 
 (defun normstep_mtestvar (step nmctxt sloc)
-  (debug "normstep_mtestvar step" step)
+  (debug "normstep_mtestvar step=" step "\n sloc=" sloc)
   (assert_msg "check step" (is_a step class_match_step_test_variable))
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
   (let  ( (nsloc (or (unsafe_get_field :loca_location step) sloc))
@@ -5691,23 +5692,47 @@ normalized expression.}#
 	  (matelse (unsafe_get_field :mstep_else step))
 	  (matdata (unsafe_get_field :mstep_data step))
 	  (matestdata (unsafe_get_field :msteptestvar_data step))
+	  (matctx (get_field :matnorx_matchctxt nmctxt))
 	  )
-    (debug "normstep_mtestvar matthen" matthen)
-    (debug "normstep_mtestvar matelse" matelse)
-    (debug "normstep_mtestvar matdata" matdata)
-    (debug "normstep_mtestvar matestdata" matestdata)
+    (debug "normstep_mtestvar matthen=" matthen
+	   "\n matelse=" matelse
+	   "\n matdata=" matdata
+	   "\n matestdata=" matestdata)
     (let (
-	  (nthen (matchalt_normalize_step matthen nmctxt))
-	  (nelse (matchalt_normalize_step matelse nmctxt))
-	  (matctx (unsafe_get_field :matnorx_matchctxt nmctxt))
-	  (ndata (matchalt_normalize_mdata matdata nmctxt))
-	  (ntestdata (matchalt_normalize_mdata matestdata nmctxt))
-	  (jumpthen (instance class_nrep_match_jump
-			      :nmjmp_label nthen))
-	  (jumpelse (instance class_nrep_match_jump
-			      :nmjmp_label nelse))
-	  (njthen (complete_normstep_if_last step jumpthen nmctxt))
-	  (njelse (complete_normstep_if_last step jumpelse nmctxt))
+	  (nthen (let 
+		     ( (ns (matchalt_normalize_step matthen nmctxt)) )
+		   (debug "normstep_mtestvar nthen=" ns)
+		   ns))
+	  (nelse (let 
+		     ( (ns (matchalt_normalize_step matelse nmctxt)) )
+		   (debug "normstep_mtestvar nelse=" ns)
+		   ns))
+	  (ndata (let 
+		     ( (nd (matchalt_normalize_mdata matdata nmctxt)) )
+		   (debug "normstep_mtestvar ndata=" nd)
+		   nd))
+	  (ntestdata (let 
+		     ( (nd (matchalt_normalize_mdata matestdata nmctxt)) )
+		     (debug "normstep_mtestvar ntestdata=" nd)
+		     nd))
+	  (jumpthen (let 
+			( (j (instance class_nrep_match_jump
+					:nmjmp_label nthen)) )
+		      (debug "normstep_mtestvar jumpthen=" j)
+		      j))
+	  (jumpelse (let 
+			( (j (instance class_nrep_match_jump
+			      :nmjmp_label nelse)) )
+		      (debug "normstep_mtestvar jumpelse=" j)
+		      j))
+	  (njthen (let 
+		     ( (s (complete_normstep_if_last step jumpthen nmctxt)) )
+		     (debug "normstep_mtestvar njthen=" s)
+		     s))
+	  (njelse (let 
+		     ( (s (complete_normstep_if_last step jumpelse nmctxt)) )
+		    (debug "normstep_mtestvar njelse=" s)
+		    s))
 	  (ntestsame (instance class_nrep_ifsame
 			       :nrep_loc nsloc
 			       :nifs_left ndata
