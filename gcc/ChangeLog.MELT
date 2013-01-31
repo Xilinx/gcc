@@ -1,5 +1,10 @@
 
 
+2013-01-31  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-normatch.melt (complete_normstep_if_last): Adding
+	more debug.
+
 2013-01-29  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-normatch.melt (normstep_mflagset)

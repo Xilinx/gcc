@@ -5285,23 +5285,24 @@ normalized expression.}#
   (assert_msg "check step" (is_a step class_match_step))
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
   (shortbacktrace_dbg "complete_normstep_if_last" 7)
-  (if (is_not_a step class_match_step_with_data)
-      (progn
+  (when (is_not_a step class_match_step_with_data)
 	(debug "complete_normstep_if_last returning unchanged normstep=" 
 	       normstep "\n without data step=" step)
-	(return normstep)))
+	(return normstep))
+  ;;
   (let ( (matdata (get_field :mstep_data step))
 	 )
-    (debug "complete_normstep_if_last matdata before match_data_update_data_steps_index" matdata)
+    (debug "complete_normstep_if_last matdata=" matdata)
     (assert_msg "check matdata" (is_a matdata class_matched_data))
     (match_data_update_data_steps_index matdata)
-    (debug "complete_normstep_if_last after match_data_update_data_steps_index matdata=" matdata)
+    (debug "complete_normstep_if_last updated matdata=" matdata)
     (let (
 	  (matindex (match_step_index step))
 	  (datamap (get_field :matnorx_datamap nmctxt))
 	  (ndata (mapobject_get datamap matdata))
 	  )
-      (debug "complete_normstep_if_last matindex=" matindex "\n ndata=" ndata)
+      (debug "complete_normstep_if_last matindex=" matindex "\n ndata=" ndata
+	     "\n datamap=" datamap)
       (assert_msg "check datamap" (is_mapobject datamap))
       (assert_msg "check matindex" (is_integerbox matindex))
       (assert_msg "check ndata" (is_a ndata class_nrep_simple))
@@ -5314,7 +5315,8 @@ normalized expression.}#
 	(assert_msg "good numindex" (<=i numindex nbdatasteps))
 	(if (<i numindex nbdatasteps)
 	    (progn
-	      (debug "complete_normstep_if_last return non-last normstep=" normstep " numindex=" numindex "\n for step=" step)
+	      (debug "complete_normstep_if_last return non-last normstep=" normstep " numindex#" numindex "\n for step=" step
+		     "\n matdata=" matdata)
 	      (return normstep)
 	      ))
 	(debug "complete_normstep_if_last last step=" step "\n ndata=" ndata)
@@ -5324,7 +5326,8 @@ normalized expression.}#
 		   (finalndata (instance class_nrep_match_data_finalizer
 					 :nmdac_data ndata))
 		   )
-	      (debug "complete_normstep_if_last made finalndata=" finalndata
+	      (debug "complete_normstep_if_last with matdata=" matdata 
+		     "\n made finalndata=" finalndata
 		      "\n clearndata=" clearndata "\n normstep=" normstep
 		      "\n for step=" step)
 	      (shortbacktrace_dbg "complete_normstep_if_last made finalndata" 7)
