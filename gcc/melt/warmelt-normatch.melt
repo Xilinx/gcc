@@ -5218,17 +5218,18 @@ normalized expression.}#
 
 ;; utility function to update each index of data steps in a data
 (defun match_data_update_data_steps_index (mdata)
-  (debug "match_data_update_steps_index mdata" mdata)
+  (debug "match_data_update_steps_index mdata=" mdata)
   (assert_msg "check mdata" (is_a mdata class_matched_data))
   (let ( (msteps (get_field :mdata_steps mdata))
 	 )
     (cond ( (is_list_or_null msteps)
 	    (let ( (msteptup (list_to_multiple msteps))
 		   )
+	      (debug "match_data_update_steps_index msteptup=" msteptup)
 	      (foreach_in_multiple 
 	       (msteptup)
 	       (curmstep :long stix)
-	       (debug "match_data_update_data_steps_index curmstep" curmstep)
+	       (debug "match_data_update_data_steps_index curmstep=" curmstep)
 	       (if (is_a curmstep class_match_step_with_data)
 		   (let ( (oldixv (unsafe_get_field :mstep_index curmstep)) )
 		     (if oldixv 
@@ -5243,10 +5244,11 @@ normalized expression.}#
 	      )
 	    )
 	  ( (is_multiple msteps)
-	    (debug "match_data_update_data_steps_index msteps already tuple" msteps)
+	    (debug "match_data_update_data_steps_index already tuple msteps=" 
+		   msteps)
 	    )
 	  (:else
-	   (debug "match_data_update_data_steps_index unexpected msteps" msteps)
+	   (debug "match_data_update_data_steps_index unexpected msteps=" msteps)
 	   (assert_msg "@$@unexpected msteps in match_data_update_data_steps_index" ())))))
 
 
@@ -5468,7 +5470,7 @@ normalized expression.}#
 	(put_fields nchunk :nchunk_expansion (list_to_multiple nconjlist))
 	(put_fields nsetflag :nstq_exp nchunk)
       )))
-    (debug "normstep_mflagconj nsetflag=" nsetflag)
+    (debug "normstep_mflagconj nsetflag=" nsetflag "\n step=" step)
     (let ( (res (complete_normstep_if_last step nlisti nmctxt)) )
       (debug "normstep_mflagconj return res=" res)
       (return res)
@@ -5620,14 +5622,26 @@ normalized expression.}#
     (debug "normstep_mtestmultiple matdata=" matdata " matix=" matix 
 	   "\n matcomp=" matcomp "\n ndata=" ndata)
     (let (
-	  (nthen (matchalt_normalize_step matthen nmctxt))
-	  (nelse (matchalt_normalize_step matelse nmctxt))
-	  (jumpthen (instance class_nrep_match_jump
-			      :nmjmp_label nthen))
-	  (jumpelse (instance class_nrep_match_jump
-			      :nmjmp_label nelse))
-	  (njthen (complete_normstep_if_last step jumpthen nmctxt))
-	  (njelse (complete_normstep_if_last step jumpelse nmctxt))
+	  (nthen (let ( (n (matchalt_normalize_step matthen nmctxt)) )
+		   (debug "normstep_mtestmultiple nthen=" n)
+		   n))
+	  (nelse (let ( (n (matchalt_normalize_step matelse nmctxt)) )
+		   (debug "normstep_mtestmultiple nelse=" n)
+		   n))
+	  (jumpthen (let ( (j (instance class_nrep_match_jump
+					:nmjmp_label nthen)) )
+		      (debug "normstep_mtestmultiple jumpthen=" j)
+		      j))
+	  (njthen (let ( (n (complete_normstep_if_last step jumpthen nmctxt)) )
+		    (debug "normstep_mtestmultiple njthen=" n)
+		    n))
+	  (jumpelse (let ( (j (instance class_nrep_match_jump
+					:nmjmp_label nelse)) )
+		      (debug "normstep_mtestmultiple jumpelse=" j)
+		      j))
+	  (njelse (let ( (n (complete_normstep_if_last step jumpelse nmctxt)) )
+		    (debug "normstep_mtestmultiple njelse=" n)
+		    n))
 	  (ncx (get_field :mctx_normctxt matctx))
 	  (niflist (make_list discr_list))
 	  (nbcompval (make_integerbox discr_constant_integer nbcomp))
@@ -5931,9 +5945,13 @@ normalized expression.}#
 	  (nthen (matchalt_normalize_step matthen nmctxt))
 	  (nflag (matchalt_normalize_flag matflag nmctxt))
 	  (matctx (unsafe_get_field :matnorx_matchctxt nmctxt))
-	  (jumpthen (instance class_nrep_match_jump
-			      :nmjmp_label nthen))
-	  (njthen (complete_normstep_if_last step jumpthen nmctxt))
+	  (jumpthen (let ( (j (instance class_nrep_match_jump
+			      :nmjmp_label nthen)) )
+		      (debug "normstep_msuccwhenflag jumpthen=" j)
+		      j))
+	  (njthen (let ( (n (complete_normstep_if_last step jumpthen nmctxt)) )
+		    (debug "normstep_msuccwhenflag njthen=" n)
+		    n))
 	  (:long matbodylen (multiple_length matbody))
 	  (lastmatbody (multiple_nth matbody -1))
 	  (nsetqres (instance class_nrep_setq
@@ -6194,12 +6212,20 @@ normalized expression.}#
 	  (nthen (matchalt_normalize_step matthen nmctxt))
 	  (nelse (matchalt_normalize_step matelse nmctxt))
 	  (ndata (matchalt_normalize_mdata matdata nmctxt))
-	  (jumpthen (instance class_nrep_match_jump
-			      :nmjmp_label nthen))
-	  (jumpelse (instance class_nrep_match_jump
-			      :nmjmp_label nelse))
-	  (njthen (complete_normstep_if_last step jumpthen nmctxt))
-	  (njelse (complete_normstep_if_last step jumpelse nmctxt))
+	  (jumpthen (let ( (j (instance class_nrep_match_jump
+					:nmjmp_label nthen)) )
+		      (debug "normstep_mtestmatcher jumpthen=" j)
+		      j))
+	  (njthen (let ( (n (complete_normstep_if_last step jumpthen nmctxt)) )
+		    (debug "normstep_mtestmatcher njthen=" n)
+		    n))
+	  (jumpelse (let ( (j (instance class_nrep_match_jump
+					:nmjmp_label nelse)) )
+		      (debug "normstep_mtestmatcher jumpelse=" j)
+		      j))
+	  (njelse (let ( (n (complete_normstep_if_last step jumpelse nmctxt)) )
+		    (debug "normstep_mtestmatcher njelse=" n)
+		    n))
 	  (amin (get_field :amatch_in matmatcher))
 	  (ambind (get_field :amatch_matchbind matmatcher))
 	  (amout (get_field :amatch_out matmatcher))
