@@ -1,5 +1,12 @@
 
 
+2013-02-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt (complete_normstep_if_last): Does not
+	make sense when normstep is a jump....
+
+	* melt/warmelt-genobj.melt (compilobj_nrep_matchedata): Better
+	debug...
+
 2013-01-31  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-normatch.melt (match_data_update_steps_index)

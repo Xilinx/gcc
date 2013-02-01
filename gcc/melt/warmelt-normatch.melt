@@ -5280,6 +5280,8 @@ normalized expression.}#
 
 
 
+
+
 ;; this utility function completes a normstep if the step is the last
 ;; in its data, or else return the normstep unchanged...
 (defun complete_normstep_if_last (step normstep nmctxt)
@@ -5317,7 +5319,8 @@ normalized expression.}#
 	(assert_msg "good numindex" (<=i numindex nbdatasteps))
 	(if (<i numindex nbdatasteps)
 	    (progn
-	      (debug "complete_normstep_if_last return non-last normstep=" normstep " numindex#" numindex "\n for step=" step
+	      (debug "complete_normstep_if_last return non-last normstep=" normstep 
+		     " numindex#" numindex "\n for step=" step
 		     "\n matdata=" matdata)
 	      (return normstep)
 	      ))
@@ -5333,13 +5336,23 @@ normalized expression.}#
 		      "\n clearndata=" clearndata "\n normstep=" normstep
 		      "\n for step=" step)
 	      (shortbacktrace_dbg "complete_normstep_if_last made finalndata" 7)
-	      (cond ( (is_object normstep)
-		      (let ( (normsteptup (tuple normstep clearndata finalndata)) )
-			(debug "complete_normstep_if_last new normsteptup=" normsteptup)
-			(return normsteptup)))
-		    ( (null normstep)
+	      (cond 
+	       ( (is_a normstep class_nrep_match_jump)
+		 (debug "complete_normstep_if_last matchjump normstep=" normstep)
+		 ;; it has no sense to add clearing steps after a
+		 ;; jump, we should do more clever things, maybe add
+		 ;; them before....  perhaps remove all call to
+		 ;; complete_normstep_if_last on jump steps in
+		 ;; callers???
+		 (assert_msg "@$@incomplete complete_normstep_if_last jumping normstep")
+		 )
+	       ( (is_object normstep)
+		 (let ( (normsteptup (tuple normstep clearndata finalndata)) )
+		   (debug "complete_normstep_if_last new normsteptup=" normsteptup)
+		   (return normsteptup)))
+	       ( (null normstep)
 		      (let ( (steptupn (tuple clearndata finalndata)) )
-			(debug "complete_normstep_if_last new  for nil steptupn=" steptupn)
+			(debug "complete_normstep_if_last new for nil steptupn=" steptupn)
 			(return steptupn)))
 		    ( (is_multiple normstep)
 		      (let ( (normsteplist (multiple_to_list normstep))
@@ -5364,6 +5377,8 @@ normalized expression.}#
 		   "\n unchanged normstep" normstep)
 	    (return normstep))
 	  )))))
+
+
 
 
 ;;;;;;;;;;;;;;;;
@@ -5763,15 +5778,15 @@ normalized expression.}#
 					:nmjmp_label nthen)) )
 		      (debug "normstep_mtestvar jumpthen=" j)
 		      j))
+	  (njthen (let 
+		     ( (s (complete_normstep_if_last step jumpthen nmctxt)) )
+		     (debug "normstep_mtestvar njthen=" s)
+		     s))
 	  (jumpelse (let 
 			( (j (instance class_nrep_match_jump
 			      :nmjmp_label nelse)) )
 		      (debug "normstep_mtestvar jumpelse=" j)
 		      j))
-	  (njthen (let 
-		     ( (s (complete_normstep_if_last step jumpthen nmctxt)) )
-		     (debug "normstep_mtestvar njthen=" s)
-		     s))
 	  (njelse (let 
 		     ( (s (complete_normstep_if_last step jumpelse nmctxt)) )
 		    (debug "normstep_mtestvar njelse=" s)

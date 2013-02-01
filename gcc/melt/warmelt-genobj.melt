@@ -6270,6 +6270,7 @@ $SBUF.}#
     ))
 (install_method class_nrep_match_data_finalizer compile_obj compilobj_nrep_matchdatafinal)
 
+
 ;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_matchedata (nmdat gcx)
   (debug "compilobj_nrep_matchedata nmdat=" nmdat 
@@ -6285,14 +6286,14 @@ $SBUF.}#
 	(aldatamap (get_field :altmatchn_datamap altmatch))
 	(obmdat (mapobject_get aldatamap nmdat))
 	)
-    (shortbacktrace_dbg "compilobj_nrep_matchdatainit" 10)
+    (shortbacktrace_dbg "compilobj_nrep_matcheddata" 10)
     (debug "compilobj_nrep_matchedata  altmatch=" altmatch "\n aldatamap=" aldatamap 
 	   "\n obmdat=" obmdat "\n.. of discrim=" (discrim obmdat))
     (assert_msg "check obmdat" (is_a obmdat class_objvalue))
     (return obmdat)
     ))
-
 (install_method class_nrep_matched_data compile_obj compilobj_nrep_matchedata)
+
 
 
 
