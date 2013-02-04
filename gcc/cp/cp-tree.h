@@ -6107,6 +6107,7 @@ extern void warn_unimplemented_cilk             (bool fatal);
 extern void build_cilk_types                    (void);
 extern void cilk_gimplify_for_stmt             (tree *, tree *);
 extern void gimplify_cilk_for_stmt             (tree *, gimple_seq *);
+extern void cp_install_body_with_frame_cleanup (tree, tree);
 extern tree build_cilk_run                     (tree);
 extern bool cilk_valid_spawn                   (tree);
 extern void cilk_init_frame_descriptor         (struct function *, bool);

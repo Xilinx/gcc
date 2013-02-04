@@ -217,9 +217,11 @@ void lhd_gimplify_cilk_for (tree *, gimple_seq *, gimple_seq *);
 void lhd_gimplify_cilk_sync (tree *, gimple_seq *);
 void lhd_elem_fn_create_fn (tree);
 void lhd_cilk_check_ctrl_flow (tree *);
+void lhd_install_body_with_frame_cleanup (tree, tree);
 #define LANG_HOOKS_CILK_RECOGNIZE_SPAWN hook_bool_tree_false
 #define LANG_HOOKS_CILK_VALID_CTOR hook_bool_tree_false
 #define LANG_HOOKS_CILK_VALID_SPAWN lhd_cilk_valid_spawn
+#define LANG_HOOKS_FRAME_CLEANUP lhd_install_body_with_frame_cleanup
 #define LANG_HOOKS_GIMPLIFY_CILK_SPAWN lhd_gimplify_cilk_spawn
 #define LANG_HOOKS_GIMPLIFY_CILK_FOR   lhd_gimplify_cilk_for
 #define LANG_HOOKS_GIMPLIFY_CILK_SYNC  lhd_gimplify_cilk_sync
@@ -229,7 +231,8 @@ void lhd_cilk_check_ctrl_flow (tree *);
   LANG_HOOKS_CILK_RECOGNIZE_SPAWN,	\
   LANG_HOOKS_CILK_VALID_CTOR,		\
   LANG_HOOKS_CILK_VALID_SPAWN,		\
-  LANG_HOOKS_GIMPLIFY_CILK_SPAWN,      	\
+  LANG_HOOKS_FRAME_CLEANUP,     	\
+  LANG_HOOKS_GIMPLIFY_CILK_SPAWN,	\
   LANG_HOOKS_GIMPLIFY_CILK_FOR,		\
   LANG_HOOKS_GIMPLIFY_CILK_SYNC,	\
   LANG_HOOKS_CILK_CHECK_CTRL_FLOW,      \

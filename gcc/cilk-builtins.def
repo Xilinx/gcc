@@ -24,6 +24,7 @@ along with GCC; see the file COPYING3.  If not see
 DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_WORKER_ID, "__cilkrts_current_worker_id")
 DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_WORKER_PTR, "__cilkrts_current_worker")
 DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_DETACH, "__cilkrts_detach")
+DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_RETHROW, "__cilkrts_rethrow")
 DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_SYNCHED, "__cilkrts_synched")
 DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_STOLEN, "__cilkrts_was_stolen")
 DEF_CILK_BUILTIN_STUB (BUILT_IN_CILK_ENTER_FRAME, "__cilkrts_enter_frame")

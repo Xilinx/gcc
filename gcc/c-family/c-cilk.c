@@ -99,7 +99,6 @@ static void cilk_outline (tree inner_fn, tree *, struct wrapper_data *);
 static tree copy_decl_for_cilk (tree decl, copy_body_data *id);
 static tree check_outlined_calls (tree *, int *, void *);
 static tree build_cilk_wrapper (tree, tree *);
-static void install_body_with_frame_cleanup (tree, tree);
 static bool var_mentioned_p (tree exp, tree var);
 
 extern tree build_unary_op (location_t location, enum tree_code code,
@@ -135,7 +134,6 @@ call_graph_add_fn (tree fndecl, struct wrapper_data *wd)
     tree_cons (NULL_TREE, fndecl, cilk_trees[CILK_TI_PENDING_FUNCTIONS]);
   
   f->curr_properties = cfun->curr_properties;
-
   gcc_assert (cfun == DECL_STRUCT_FUNCTION (outer)); 
   gcc_assert (cfun->decl == outer);
 
@@ -1407,7 +1405,7 @@ build_cilk_wrapper_body (tree stmt,
   cilk_outline (fndecl, &stmt, wd);
   stmt = fold_build_cleanup_point_expr (void_type_node, stmt);
   gcc_assert (!DECL_SAVED_TREE (fndecl));
-  install_body_with_frame_cleanup (fndecl, stmt);
+  lang_hooks.cilkplus.install_body_with_frame_cleanup (fndecl, stmt);
   gcc_assert (DECL_SAVED_TREE (fndecl));
 
   pop_cfun_to (outer);
@@ -1553,8 +1551,8 @@ check_outlined_calls (tree *tp,
 
 /* This function installs the internal functions of spawn helper and parent.  */
 
-static void
-install_body_with_frame_cleanup (tree fndecl, tree body)
+void
+c_install_body_with_frame_cleanup (tree fndecl, tree body)
 {
   tree list;
   tree frame = make_cilk_frame (fndecl);
@@ -2455,7 +2453,7 @@ build_cilk_for_body (struct cilk_for_desc *cfd)
   body = build3 (BIND_EXPR, void_type_node, loop_var, body, block);
   TREE_CHAIN (loop_var) = cfd->var2;
   if (contains_spawn (body))
-    install_body_with_frame_cleanup (fndecl, body);
+    lang_hooks.cilkplus.install_body_with_frame_cleanup (fndecl, body);
   else
     DECL_SAVED_TREE (fndecl) = body;
 

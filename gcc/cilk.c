@@ -282,7 +282,10 @@ cilk_init_builtins (void)
 
   cilk_pop_fndecl = install_builtin ("__cilkrts_pop_frame", fptr_fun,
 				     BUILT_IN_CILK_POP_FRAME, false);
- 
+
+  cilk_rethrow_fndecl = install_builtin ("__cilkrts_rethrow", fptr_fun,
+					 BUILT_IN_CILK_RETHROW, false);
+  
   cilk_leave_fndecl = build_fn_decl ("__cilkrts_leave_frame", fptr_fun);
   mark_cold (cilk_leave_fndecl);
   cilk_leave_fndecl = lang_hooks.decls.pushdecl (cilk_leave_fndecl);
@@ -701,7 +704,7 @@ make_cilk_frame (tree fn)
   return decl;
 }
 
-/*This function will expand a cilk_sync call.  */
+/* This function will expand a cilk_sync call.  */
 
 tree
 build_cilk_sync (void)
@@ -714,15 +717,17 @@ build_cilk_sync (void)
   tree setjmp_expr;
   tree sync_list, frame_addr;
   tree sync_begin, sync_end;
+  tree except_flag, except_cond;
 
   /* Cilk_sync becomes the following code:
      if (frame.flags & CILK_FRAME_UNSYNCHED)
       if (!builtin_setjmp (frame.ctx)
-            // cilk_enter_begin();
+            // cilk_sync_begin();
           __cilkrts_sync(&frame);
-            // cilk_enter_end();
+            // cilk_sync_end();
        else
-          <NOTHING> ;
+          if (sf.flags & CILK_FRAME_EXCEPTING)
+	    __cilkrts_rethrow (&sf);
     else
           <NOTHING> ;
   */
@@ -736,14 +741,27 @@ build_cilk_sync (void)
 			   build_int_cst (TREE_TYPE (unsynched), 0));
 
   frame_addr = build1 (ADDR_EXPR, cilk_frame_ptr_type_decl, frame);
+
+  /* Check if exception (0x10) bit is set in the sf->flags.  */
+  except_flag = fold_build2 (BIT_AND_EXPR, TREE_TYPE (flags), flags,
+			     build_int_cst (TREE_TYPE (flags),
+					    CILK_FRAME_EXCEPTING));
+  except_flag = fold_build2 (NE_EXPR, TREE_TYPE (except_flag), except_flag,
+			     build_int_cst (TREE_TYPE (except_flag), 0));
+
+  /* If the exception flag is set then call the __cilkrts_rethrow (&sf).  */
+  except_cond = fold_build3 (COND_EXPR, void_type_node, except_flag,
+			     build_call_expr (cilk_rethrow_fndecl, 1,
+					      frame_addr),
+			     build_empty_stmt (EXPR_LOCATION (unsynched)));
+  
   sync_expr = build_call_expr (cilk_sync_fndecl, 1, frame_addr);
   setjmp_expr = cilk_call_setjmp (frame);
   setjmp_expr = fold_build2 (EQ_EXPR, TREE_TYPE (setjmp_expr), setjmp_expr,
 			     build_int_cst (TREE_TYPE (setjmp_expr), 0));
   
   setjmp_expr = fold_build3 (COND_EXPR, void_type_node, setjmp_expr,
-			     sync_expr,
-			     build_empty_stmt (EXPR_LOCATION (unsynched)));
+			     sync_expr, except_cond);
   
   sync = fold_build3 (COND_EXPR, void_type_node, unsynched, setjmp_expr,
 		      build_empty_stmt (EXPR_LOCATION (unsynched)));
@@ -1562,4 +1580,133 @@ cilk_check_ctrl_flow (tree *fnbody)
   label_list = find_all_labels (*fnbody);
   walk_tree (fnbody, check_gotos_outside_cilk_for, (void *) &label_list, NULL);
   return;
+}
+
+/* Sets the EXCEPTION bit (0x10) in the FRAME.flags field.  */
+
+tree
+set_cilk_except_flag (tree frame)
+{
+  tree flags = dot (frame, CILK_TI_FRAME_FLAGS, 0);
+
+  flags = build2 (MODIFY_EXPR, void_type_node, flags,
+		 build2 (BIT_IOR_EXPR, TREE_TYPE (flags), flags,
+			 build_int_cst (TREE_TYPE (flags),
+					CILK_FRAME_EXCEPTING)));
+  return flags;
+}
+
+/* Clears the EXCEPTION bit (0x10) in the FRAME.flags field.  */
+
+tree
+clear_cilk_except_flag (tree frame)
+{
+  tree flags = dot (frame, CILK_TI_FRAME_FLAGS, 0);
+
+  flags = build2 (MODIFY_EXPR, void_type_node, flags,
+		 build2 (BIT_AND_EXPR, TREE_TYPE (flags), flags,
+			 build_int_cst (TREE_TYPE (flags),
+					~CILK_FRAME_EXCEPTING)));
+  return flags;
+}
+
+/* Sets the frame.EXCEPT_DATA field to the head of the exception pointer.  */
+
+tree
+set_cilk_except_data (tree frame)
+{
+  tree except_data = dot (frame, CILK_TI_FRAME_EXCEPTION, 0);
+  tree uresume_fn = builtin_decl_implicit (BUILT_IN_EH_POINTER);
+  tree ret_expr;
+  uresume_fn  = build_call_expr (uresume_fn, 1,
+				 build_int_cst (integer_type_node, 0));
+  ret_expr = build2 (MODIFY_EXPR, void_type_node, except_data, uresume_fn);
+  return ret_expr;
+}
+
+/* This function will insert the code for a _Cilk_sync with the exception
+   related flags and fields set.  This is created seperate because C does not
+   have exceptions and setting and checking these fields could trigger
+   seg-faults.  */
+
+tree
+build_cilk_catch_sync (void)
+{
+  tree frame = cfun->cilk_frame_decl;
+  tree flags;
+  tree unsynched;
+  tree sync;
+  tree sync_expr;
+  tree setjmp_expr;
+  tree sync_list, frame_addr;
+  tree sync_begin, sync_end;
+  tree set_except_flag, except_data, sync_expr_list;
+  tree clear_except_flag, clear_except_cond_list;
+
+  /* We insert the following code:
+     
+     if (frame.flags & CILK_FRAME_UNSYNCHED)
+       {
+         if (!builtin_setjmp (frame.ctx)
+           {
+             frame.except_data = __builtin_eh_pointer(0);
+	     frame.flags |= CILK_FRAME_EXCEPTING;
+	     // cilk_sync_begin();
+             __cilkrts_sync(&frame);
+             // cilk_sync_end();
+	   }
+          else
+	    frame.flags &= ~CILK_FRAME_EXCEPTING.
+       }  
+  */
+  flags = dot (frame, CILK_TI_FRAME_FLAGS, false);
+  
+  unsynched = fold_build2 (BIT_AND_EXPR, TREE_TYPE (flags), flags,
+			   build_int_cst (TREE_TYPE (flags),
+					  CILK_FRAME_UNSYNCHED));
+
+  unsynched = fold_build2 (NE_EXPR, TREE_TYPE (unsynched), unsynched,
+			   build_int_cst (TREE_TYPE (unsynched), 0));
+
+  frame_addr = build1 (ADDR_EXPR, cilk_frame_ptr_type_decl, frame);
+
+  sync_expr_list = alloc_stmt_list ();
+  sync_expr = build_call_expr (cilk_sync_fndecl, 1, frame_addr);
+
+  /* Sets the sf->except_data = __builtin_eh_pointer (0);  */
+  except_data = set_cilk_except_data (frame);
+
+  /* Sets sf->flags to sf->flags | CILK_FRAME_EXCEPTING.  */
+  set_except_flag = set_cilk_except_flag (frame);
+  append_to_statement_list (sync_expr, &sync_expr_list);
+  append_to_statement_list (except_data, &sync_expr_list);
+  append_to_statement_list (set_except_flag, &sync_expr_list);
+
+  clear_except_cond_list = alloc_stmt_list ();
+
+  /* Sets sf->flags to sf->flags & ~CILK_FRAME_EXCEPTING.  */
+  clear_except_flag = clear_cilk_except_flag (frame);
+  append_to_statement_list (clear_except_flag, &clear_except_cond_list);
+  
+  setjmp_expr = cilk_call_setjmp (frame);
+
+  setjmp_expr = fold_build2 (EQ_EXPR, TREE_TYPE (setjmp_expr), setjmp_expr,
+			     build_int_cst (TREE_TYPE (setjmp_expr), 0));
+  
+  /* Checks of __builtin_setjmp (frame.ctx) == 0.  IF so, then we jump to
+     sync_list otherwise, we just jump to the clear_except_cond_list.  */
+  setjmp_expr = fold_build3 (COND_EXPR, void_type_node, setjmp_expr,
+			     sync_expr_list, clear_except_cond_list);
+  
+  sync = fold_build3 (COND_EXPR, void_type_node, unsynched, setjmp_expr,
+		      build_empty_stmt (EXPR_LOCATION (unsynched)));
+  
+  sync_begin = build_call_expr (cilk_sync_begin_fndecl, 1, frame_addr);
+  sync_end = build_call_expr (cilk_sync_end_fndecl, 1, frame_addr);
+  sync_list = alloc_stmt_list ();
+  append_to_statement_list_force (sync_begin, &sync_list);
+  append_to_statement_list_force (sync, &sync_list);  
+  append_to_statement_list_force (sync_end, &sync_list);
+
+  return sync_list;
 }

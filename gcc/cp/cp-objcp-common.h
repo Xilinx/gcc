@@ -166,4 +166,8 @@ extern void cp_common_init_ts (void);
 
 #undef LANG_HOOKS_ELEM_FN_CREATE_FN
 #define LANG_HOOKS_ELEM_FN_CREATE_FN elem_fn_create_fn
+
+#undef LANG_HOOKS_FRAME_CLEANUP
+#define LANG_HOOKS_FRAME_CLEANUP cp_install_body_with_frame_cleanup
+
 #endif /* GCC_CP_OBJCP_COMMON */

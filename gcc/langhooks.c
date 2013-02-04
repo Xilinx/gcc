@@ -730,7 +730,17 @@ lhd_elem_fn_create_fn (tree x ATTRIBUTE_UNUSED)
   return;
 }
 
-void lhd_cilk_check_ctrl_flow (tree *x ATTRIBUTE_UNUSED)
+void
+lhd_cilk_check_ctrl_flow (tree *x ATTRIBUTE_UNUSED)
+{
+  return;
+}
+
+/* Empty function for install that will cleanup the frame in spawn helper.  */
+
+void
+lhd_install_body_with_frame_cleanup (tree x ATTRIBUTE_UNUSED,
+				     tree y ATTRIBUTE_UNUSED)
 {
   return;
 }

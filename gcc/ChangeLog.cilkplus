@@ -1,3 +1,22 @@
+2013-02-04  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cilk.c (cilk_init_builtins): Defined __cilkrts_rethrow builtin
+	function.
+	(build_cilk_sync): Added code to set exception flag and exception data
+	in the stack frame.  Also added code to call __cilkrts_rethrow function.
+	Finally, inserted this code in the appropriate location of if-stmt.
+	(set_cilk_except_flag): New function.
+	(clear_cilk_except_flag): Likewise.
+	(set_cilk_except_data): Likewise.
+	(build_cilk_catch_sync): Likewise.
+	* cilk-builtins.def (BUILT_IN_CILK_RETHROW): New builtin function.
+	* c/c-objc-common.h (LANG_HOOKS_FRAME_CLEANUP): Set this hook to
+	c_install_body_with_frame_cleanup.
+	* langhooks-def.h (LANG_HOOKS_FRAME_CLEANUP): New #define.
+	(lhd_install_body_with_frame_cleanup): New function.
+	* langhooks.h (lang_hooks_for_cilkplus): New struct field called
+	"install_body_with_frame_cleanup."
+
 2013-01-25  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c/c-typeck.c (c_finish_return): Added a check if the return expr is

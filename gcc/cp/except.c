@@ -35,9 +35,9 @@ along with GCC; see the file COPYING3.  If not see
 
 static void push_eh_cleanup (tree);
 static tree prepare_eh_type (tree);
-static tree do_begin_catch (void);
+tree do_begin_catch (void);
 static int dtor_nothrow (tree);
-static tree do_end_catch (tree);
+tree do_end_catch (tree);
 static bool decl_is_java_type (tree decl, int err);
 static void initialize_handler_parm (tree, tree);
 static tree do_allocate_exception (tree);
@@ -182,7 +182,7 @@ do_get_exception_ptr (void)
 /* Build up a call to __cxa_begin_catch, to tell the runtime that the
    exception has been handled.  */
 
-static tree
+tree
 do_begin_catch (void)
 {
   tree fn;
@@ -230,7 +230,7 @@ dtor_nothrow (tree type)
 /* Build up a call to __cxa_end_catch, to destroy the exception object
    for the current catch block if no others are currently using it.  */
 
-static tree
+tree
 do_end_catch (tree type)
 {
   tree fn, cleanup;

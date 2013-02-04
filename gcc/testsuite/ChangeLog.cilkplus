@@ -1,3 +1,7 @@
+2013-02-04  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* g++.dg/cilk-plus/cilk_keywords_test/execute/catch_exc.cc: New test.
+
 2013-01-25  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* g++.dg/cilk-plus/array_notation_tests/execute/builtin-in-if.cc: Added

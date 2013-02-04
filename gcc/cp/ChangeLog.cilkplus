@@ -1,3 +1,13 @@
+2013-02-04  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cp-cilk.c (insert_sync_stmt_after_catch): New function.
+	(cp_install_body_with_frame_cleanup): Likewise.
+	(cp_make_cilk_frame): called walk_tree with insert_sync_stmt_after_catch
+	as a function call parameter.
+	* cp-objcp-common.h (LANG_HOOKS_FRAME_CLEANUP): New define.
+	* except.c (do_begin_catch): Made this routine non-static.
+	(do_end_catch): Likewise.
+
 2013-01-25  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* semantics.c (finish_return_stmt): Added a check if return expression

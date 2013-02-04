@@ -323,5 +323,10 @@ extern bool is_cilk_must_expand_fn (enum built_in_function);
 extern bool is_elem_fn_attribute_p (tree);
 extern bool is_cilk_function_decl (tree, tree);
 extern void clear_pragma_simd_list (void);
+extern tree set_cilk_except_flag (tree);
+extern tree clear_cilk_except_flag (tree);
+extern tree set_cilk_except_data (tree);
+extern void c_install_body_with_frame_cleanup (tree, tree);
+tree build_cilk_catch_sync (void);
 
 #endif /* GCC_CILK_H */

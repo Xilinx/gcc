@@ -131,6 +131,7 @@ struct cilk_for_desc
   struct pointer_map_t *decl_map;
 };
 
+void cp_install_body_with_frame_cleanup (tree fndecl, tree body);
 void gimplify_cilk_for_stmt (tree *for_p, gimple_seq *pre_p);
 static tree compute_loop_var (struct cilk_for_desc *, tree, tree);
 static bool cp_extract_for_fields (struct cilk_for_desc *cfd, tree for_stmt);
@@ -815,6 +816,32 @@ in_cilk_block (void)
 /* This function will insert a _Cilk_sync right before a try block.  */
 
 static tree
+insert_sync_before_catch (tree *tp, int *walk_subtrees,
+			  void *data ATTRIBUTE_UNUSED)
+{
+  tree new_sync_stmt = NULL_TREE, synced_stmt_list = NULL_TREE;
+
+  synced_stmt_list = alloc_stmt_list ();
+  if (TREE_CODE (*tp) == HANDLER)
+    {
+      new_sync_stmt = build_cilk_catch_sync ();
+      gcc_assert (new_sync_stmt && new_sync_stmt != error_mark_node);
+      append_to_statement_list_force (new_sync_stmt, &synced_stmt_list);
+      append_to_statement_list_force (HANDLER_BODY (*tp), &synced_stmt_list);
+      HANDLER_BODY (*tp) = synced_stmt_list;
+      
+      /* We don't need to go any deeper.  */
+      *walk_subtrees = 0;
+      
+      /* We are finished here.  We only need to find the first catch block.  */
+      return *tp;
+    }
+  return NULL;
+}
+
+/* This function will insert a _Cilk_sync right before a try block.  */
+
+static tree
 insert_sync_stmt (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 {
   tree new_sync_stmt = NULL_TREE, synced_stmt_list = NULL_TREE;
@@ -895,6 +922,7 @@ cp_make_cilk_frame (tree compstmt)
       /* Here we talk through all the subtrees of compstmt and as soon as
 	 we find a try block, we insert a _Cilk_sync right before it.  */
       cp_walk_tree (&compstmt, insert_sync_stmt, NULL, NULL);
+      cp_walk_tree (&compstmt, insert_sync_before_catch, NULL, NULL);
     }
 
   return decl;
@@ -2898,3 +2926,41 @@ cilk_lambda_fn_temp (tree lambda_fn)
   add_local_decl (cfun, return_var);
   return return_var;
 }
+
+/* This function installs the internal functions of spawn helper and parent.  */
+
+void
+cp_install_body_with_frame_cleanup (tree fndecl, tree body)
+{
+  tree list, catch_tf_expr;
+  tree try_catch_expr, catch_list, try_finally_expr, except_flag, except_data;
+  tree frame = make_cilk_frame (fndecl);
+  tree dtor = build_cilk_function_exit (frame, false, false);
+  extern tree do_begin_catch (void);
+  extern tree do_end_catch (tree);
+  add_local_decl (cfun, frame);
+
+  DECL_SAVED_TREE (fndecl) = (list = alloc_stmt_list ());
+
+  catch_list = alloc_stmt_list ();
+  except_flag = set_cilk_except_flag (frame);
+  except_data = set_cilk_except_data (frame);
+  append_to_statement_list (except_flag, &catch_list);
+  append_to_statement_list (except_data, &catch_list);
+  append_to_statement_list (do_begin_catch (), &catch_list);
+  append_to_statement_list (build_throw (NULL_TREE), &catch_list);
+  #if 1
+  append_to_statement_list (build_cilk_function_exit (frame, false, false),
+			    &catch_list);
+  #endif
+  catch_tf_expr = build_stmt (EXPR_LOCATION (body), TRY_FINALLY_EXPR,
+			      catch_list, do_end_catch (NULL_TREE));
+  catch_list = build2 (CATCH_EXPR, void_type_node, NULL_TREE, catch_tf_expr);
+
+  try_catch_expr = build_stmt (EXPR_LOCATION (body), TRY_CATCH_EXPR, body,
+			       catch_list);
+  try_finally_expr = build_stmt (EXPR_LOCATION (body), TRY_FINALLY_EXPR,
+				 try_catch_expr, dtor);
+  append_to_statement_list_force (try_finally_expr, &list);
+}
+

@@ -122,4 +122,8 @@ along with GCC; see the file COPYING3.  If not see
 
 #undef LANG_HOOKS_CILK_CHECK_CTRL_FLOW
 #define LANG_HOOKS_CILK_CHECK_CTRL_FLOW cilk_check_ctrl_flow
+
+#undef LANG_HOOKS_FRAME_CLEANUP
+#define LANG_HOOKS_FRAME_CLEANUP c_install_body_with_frame_cleanup
+
 #endif /* GCC_C_OBJC_COMMON */
