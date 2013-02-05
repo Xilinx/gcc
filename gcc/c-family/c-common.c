@@ -6678,7 +6678,7 @@ handle_error_attribute (tree *node, tree name, tree args,
 			int ARG_UNUSED (flags), bool *no_add_attrs)
 {
   if (TREE_CODE (*node) == FUNCTION_DECL
-      || TREE_CODE (TREE_VALUE (args)) == STRING_CST)
+      && TREE_CODE (TREE_VALUE (args)) == STRING_CST)
     /* Do nothing else, just set the attribute.  We'll get at
        it later with lookup_attribute.  */
     ;
@@ -8759,12 +8759,8 @@ handle_target_attribute (tree *node, tree name, tree args, int flags,
       warning (OPT_Wattributes, "%qE attribute ignored", name);
       *no_add_attrs = true;
     }
-  /* Do not strip invalid target attributes for targets which support function
-     multiversioning as the target string is used to determine versioned
-     functions.  */
   else if (! targetm.target_option.valid_attribute_p (*node, name, args,
-						      flags)
-	   && ! targetm.target_option.supports_function_versions ())
+						      flags))
     *no_add_attrs = true;
 
   return NULL_TREE;
