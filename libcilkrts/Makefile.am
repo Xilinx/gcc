@@ -41,7 +41,7 @@ libcilkrts_la_SOURCES = runtime/cilk-abi.c runtime/cilk_api.c           \
   runtime/frame_malloc.c runtime/full_frame.c runtime/jmpbuf.c          \
   runtime/local_state.c runtime/metacall_impl.c runtime/os_mutex-unix.c \
   runtime/os-unix.c runtime/scheduler.c runtime/signal_node.c           \
-  runtime/stacks.c runtime/stats.c runtime/symbol_test.c                \
+  runtime/stacks.c runtime/stats.c			                \
   runtime/sysdep-unix.c runtime/worker_mutex.c runtime/bug.cpp          \
   runtime/cilk-abi-cilk-for.cpp runtime/except-gcc.cpp                  \
   runtime/global_state.cpp runtime/reducer_impl.cpp runtime/pedigrees.c

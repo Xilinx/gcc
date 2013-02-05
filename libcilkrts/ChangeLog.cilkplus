@@ -1,3 +1,8 @@
+2013-02-05  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* Makefile.in (am_libcilkrts_la_OBJECTS): Removed symbol_test.
+	* Makefile.am (libcilkrts_la_SOURCES): Likewise.
+
 2012-12-28  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* runtime/cilk-abi-cilk-for.cpp (capture_spawn_arg_stack_frame): Added

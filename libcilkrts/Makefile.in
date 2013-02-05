@@ -131,7 +131,7 @@ libcilkrts_la_LIBADD =
 am_libcilkrts_la_OBJECTS = cilk-abi.lo cilk_api.lo cilk_malloc.lo \
 	c_reducers.lo frame_malloc.lo full_frame.lo jmpbuf.lo \
 	local_state.lo metacall_impl.lo os_mutex-unix.lo os-unix.lo \
-	scheduler.lo signal_node.lo stacks.lo stats.lo symbol_test.lo \
+	scheduler.lo signal_node.lo stacks.lo stats.lo \
 	sysdep-unix.lo worker_mutex.lo bug.lo cilk-abi-cilk-for.lo \
 	except-gcc.lo global_state.lo reducer_impl.lo pedigrees.lo
 libcilkrts_la_OBJECTS = $(am_libcilkrts_la_OBJECTS)
@@ -308,7 +308,7 @@ libcilkrts_la_SOURCES = runtime/cilk-abi.c runtime/cilk_api.c           \
   runtime/frame_malloc.c runtime/full_frame.c runtime/jmpbuf.c          \
   runtime/local_state.c runtime/metacall_impl.c runtime/os_mutex-unix.c \
   runtime/os-unix.c runtime/scheduler.c runtime/signal_node.c           \
-  runtime/stacks.c runtime/stats.c runtime/symbol_test.c                \
+  runtime/stacks.c runtime/stats.c                 \
   runtime/sysdep-unix.c runtime/worker_mutex.c runtime/bug.cpp          \
   runtime/cilk-abi-cilk-for.cpp runtime/except-gcc.cpp                  \
   runtime/global_state.cpp runtime/reducer_impl.cpp runtime/pedigrees.c
