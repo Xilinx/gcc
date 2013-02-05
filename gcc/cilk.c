@@ -904,9 +904,13 @@ output_zca_table (section *s)
   for (ii = 0; ii < length; ii++)
     {
       zca_entry = find_zca_data (ii);
-
+      if (TYPE_PRECISION (integer_type_node) == 32) 
+	{ 
+	  fputs (integer_asm_op (GET_MODE_SIZE (Pmode), 1), asm_out_file);
+	  fputs ("0\n", asm_out_file);
+	}
       /* This outputs the IP.  */
-      fputs (integer_asm_op (8, 1), asm_out_file);
+      fputs (integer_asm_op (GET_MODE_SIZE (Pmode), 1), asm_out_file);
       output_asm_label (zca_entry->label);
       fputc ('\n', asm_out_file);
 
