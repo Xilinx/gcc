@@ -734,11 +734,10 @@ write_encoding (const tree decl)
 	}
 
       write_bare_function_type (fn_type,
-				(flag_enable_cilk && CILK_FN_P (decl))
-				|| (!DECL_CONSTRUCTOR_P (decl)
-				    && !DECL_DESTRUCTOR_P (decl)
-				    && !DECL_CONV_FN_P (decl)
-				    && decl_is_template_id (decl, NULL)),
+				!DECL_CONSTRUCTOR_P (decl)
+				&& !DECL_DESTRUCTOR_P (decl)
+				&& !DECL_CONV_FN_P (decl)
+				&& decl_is_template_id (decl, NULL),
 				d);
     }
 }

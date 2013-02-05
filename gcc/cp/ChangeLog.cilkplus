@@ -1,3 +1,8 @@
+2013-02-05  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* mangle.c (write_encoding): Removed adding the return type to the
+	mangled name of a Cilk function.
+
 2013-02-04  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cp-cilk.c (insert_sync_stmt_after_catch): New function.
