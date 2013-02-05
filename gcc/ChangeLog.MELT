@@ -1,5 +1,12 @@
 
 
+2013-02-05  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-normatch.melt (complete_normstep_if_last): Check
+	that no jumps are involved...
+
+	(normstep_mtestvar): Simply use the jumps...
+
 2013-02-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt (complete_normstep_if_last): Does not
 	make sense when normstep is a jump....

@@ -5290,9 +5290,9 @@ normalized expression.}#
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
   (shortbacktrace_dbg "complete_normstep_if_last" 7)
   (when (is_not_a step class_match_step_with_data)
-	(debug "complete_normstep_if_last returning unchanged normstep=" 
-	       normstep "\n without data step=" step)
-	(return normstep))
+    (debug "complete_normstep_if_last returning unchanged normstep=" 
+	   normstep "\n without data step=" step)
+    (return normstep))
   ;;
   (let ( (matdata (get_field :mstep_data step))
 	 )
@@ -5333,8 +5333,8 @@ normalized expression.}#
 		   )
 	      (debug "complete_normstep_if_last with matdata=" matdata 
 		     "\n made finalndata=" finalndata
-		      "\n clearndata=" clearndata "\n normstep=" normstep
-		      "\n for step=" step)
+		     "\n clearndata=" clearndata "\n normstep=" normstep
+		     "\n for step=" step)
 	      (shortbacktrace_dbg "complete_normstep_if_last made finalndata" 7)
 	      (cond 
 	       ( (is_a normstep class_nrep_match_jump)
@@ -5344,34 +5344,43 @@ normalized expression.}#
 		 ;; them before....  perhaps remove all call to
 		 ;; complete_normstep_if_last on jump steps in
 		 ;; callers???
-		 (assert_msg "@$@incomplete complete_normstep_if_last jumping normstep")
+		 (assert_msg "@$@faulty complete_normstep_if_last with jumping normstep")
 		 )
 	       ( (is_object normstep)
 		 (let ( (normsteptup (tuple normstep clearndata finalndata)) )
 		   (debug "complete_normstep_if_last new normsteptup=" normsteptup)
 		   (return normsteptup)))
 	       ( (null normstep)
-		      (let ( (steptupn (tuple clearndata finalndata)) )
-			(debug "complete_normstep_if_last new for nil steptupn=" steptupn)
-			(return steptupn)))
-		    ( (is_multiple normstep)
-		      (let ( (normsteplist (multiple_to_list normstep))
-			     )
-			(list_append normsteplist clearndata)
-			(list_append normsteplist finalndata)
-			(let ( (newnormstep (list_to_multiple normsteplist)) )
-			  (debug "complete_normstep_if_last tuple newnormstep=" newnormstep)
-			  (return newnormstep)
-			  )))
-		    ( (is_list normstep)
-		      (list_append normstep clearndata)
-		      (list_append normstep finalndata)
-		      (debug "complete_normstep_if_last extended list normstep=" normstep)
-		      (return normstep))
-		    (:else
-		     (debug "complete_normstep_if_last bad normstep" normstep)
-		     (assert_msg "complete_normstep_if_last unexpected normstep" ())
+		 (let ( (steptupn (tuple clearndata finalndata)) )
+		   (debug "complete_normstep_if_last new for nil steptupn=" steptupn)
+		   (return steptupn)))
+	       ( (is_multiple normstep)
+		 (let ( (normsteplist (multiple_to_list normstep))
+			(lastnormstep (multiple_nth normstep -1))
+			)
+		   (debug "complete_normstep_if_last tuple lastnormstep=" lastnormstep)
+		   (assert_msg "check good lastnormstep" 
+			       (is_not_a lastnormstep class_nrep_match_jump))
+		   (list_append normsteplist clearndata)
+		   (list_append normsteplist finalndata)
+		   (let ( (newnormstep (list_to_multiple normsteplist)) )
+		     (debug "complete_normstep_if_last tuple newnormstep=" newnormstep)
+		     (return newnormstep)
 		     )))
+	       ( (is_list normstep)
+		 (let ( (lastnormstep (list_last normstep)) )
+		   (debug "complete_normstep_if_last list lastnormstep=" lastnormstep)
+		   (assert_msg "check good lastnormstep" 
+			       (is_not_a lastnormstep class_nrep_match_jump))
+		   )
+		 (list_append normstep clearndata)
+		 (list_append normstep finalndata)
+		 (debug "complete_normstep_if_last extended list normstep=" normstep)
+		 (return normstep))
+	       (:else
+		(debug "complete_normstep_if_last bad normstep" normstep)
+		(assert_msg "complete_normstep_if_last unexpected normstep" ())
+		)))
 	  (progn
 	    (debug "complete_normstep_if_last not a matched data  ndata=" ndata
 		   "\n unchanged normstep" normstep)
@@ -5778,19 +5787,11 @@ normalized expression.}#
 					:nmjmp_label nthen)) )
 		      (debug "normstep_mtestvar jumpthen=" j)
 		      j))
-	  (njthen (let 
-		     ( (s (complete_normstep_if_last step jumpthen nmctxt)) )
-		     (debug "normstep_mtestvar njthen=" s)
-		     s))
 	  (jumpelse (let 
 			( (j (instance class_nrep_match_jump
 			      :nmjmp_label nelse)) )
 		      (debug "normstep_mtestvar jumpelse=" j)
 		      j))
-	  (njelse (let 
-		     ( (s (complete_normstep_if_last step jumpelse nmctxt)) )
-		    (debug "normstep_mtestvar njelse=" s)
-		    s))
 	  (ntestsame (instance class_nrep_ifsame
 			       :nrep_loc nsloc
 			       :nifs_left ndata
@@ -5802,37 +5803,12 @@ normalized expression.}#
       (debug "normstep_mtestvar nthen=" nthen "\n nelse=" nelse 
 	     "\n ndata=" ndata)
       (debug "normstep_mtestvar ntestdata=" ntestdata "\n step=" step
-	     "\n ntestsame=" ntestsame "\n njthen=" njthen)
-      ;; update ntestsame using njthen
-      (cond ( (is_object njthen)
-	      (unsafe_put_fields ntestsame 
-				 :nif_then njthen))
-	    ( (is_multiple njthen)
-	      (unsafe_put_fields ntestsame 
-				 :nif_then (instance class_nrep_progn
-					   :nrep_loc nsloc
-					   :nprogn_seq njthen
-					   :nprogn_last ()))
-	      )
-	    (:else
-		(debug "unexpected njelse" njthen)
-		(assert_msg "normstep_mtestvar unexpected njthen" ())
-	     ))
-      ;; update ntestsame using njelse
-      (debug "normstep_mtestvar njelse" njelse)
-      (cond ( (is_object njelse)
-	      (unsafe_put_fields ntestsame :nif_else njelse))
-	    ( (is_multiple njelse)
-	      (unsafe_put_fields ntestsame :nif_else 
-				 (instance class_nrep_progn
-					   :nrep_loc nsloc
-					   :nprogn_seq njelse
-					   :nprogn_last ()))
-	      )
-	    (:else
-		(debug "unexpected njelse" njelse)
-		(assert_msg "normstep_mtestvar unexpected njelse" ())
-	     ))
+	     "\n ntestsame=" ntestsame "\n jumpthen=" jumpthen 
+	     "\n jumpelse=" jumpelse)
+      ;; update ntestsame using jumpthen & jumpelse
+      (put_fields ntestsame 
+		  :nif_then jumpthen
+		  :nif_else jumpelse)
       ;;
       (debug "normstep_mtestvar final ntestsame" ntestsame)
       (return ntestsame)
