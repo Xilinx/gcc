@@ -1981,7 +1981,9 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
       && TREE_CONSTANT (limit)
       && INTEGRAL_TYPE_P (TREE_TYPE (init)) 
       && INTEGRAL_TYPE_P (TREE_TYPE (limit))
-      && tree_int_cst_lt (limit, init))
+      && tree_int_cst_lt (limit, init)
+      && TREE_CONSTANT (incr)
+      && tree_int_cst_lt (integer_zero_node, incr))
     {
       error_at (EXPR_LOCATION (cond), "end-condition value is greater than "
 		"starting point.");

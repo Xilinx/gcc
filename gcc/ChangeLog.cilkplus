@@ -1,3 +1,12 @@
+2013-02-05  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cilk.c (output_zca_table): Defined the integer size to a hard number.
+	* c/c-typeck.c (convert_arguments): Added a check for function being
+	not null.
+	* c/c-parser.c (c_parser_cilk_grainsize): Added a check for the tree
+	C_MAYBE_CONST_EXPR.  If so, then reject the grainsize.  Also, convert
+	the grainsize to long signed int.
+
 2013-02-04  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cilk.c (cilk_init_builtins): Defined __cilkrts_rethrow builtin

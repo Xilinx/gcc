@@ -9316,6 +9316,7 @@ c_parser_cilk_grainsize (c_parser *parser)
 {
   c_token *next_token;
   struct c_expr grain_expr;
+  extern tree convert_to_integer (tree, tree);
   
   c_parser_consume_pragma (parser);
 
@@ -9328,14 +9329,25 @@ c_parser_cilk_grainsize (c_parser *parser)
   if (c_parser_require (parser, CPP_EQ, "expected %<=%>") != 0)
     {
       grain_expr = c_parser_binary_expression (parser, NULL, PREC_NONE);
-
-      if (grain_expr.value && (grain_expr.value != error_mark_node))
+      if (grain_expr.value
+	  && TREE_CODE (grain_expr.value) == C_MAYBE_CONST_EXPR)
+	{
+	  error_at (input_location,
+		    "cannot convert grain to long integer.\n");
+	  c_parser_skip_to_pragma_eol (parser);
+	}   
+      else if (grain_expr.value && (grain_expr.value != error_mark_node))
 	{
 	  c_parser_skip_to_pragma_eol (parser);
 	  next_token = c_parser_peek_token (parser);
 	  if (next_token && (next_token->type == CPP_KEYWORD) 
-	      && (next_token->keyword == RID_CILK_FOR)) 
-	    c_parser_cilk_for_statement (parser, grain_expr.value);
+	      && (next_token->keyword == RID_CILK_FOR))
+	    {
+	      tree grain = convert_to_integer (long_integer_type_node,
+					       grain_expr.value);
+	      if (grain && grain != error_mark_node) 
+		c_parser_cilk_for_statement (parser, grain);
+	    }
 	  else 
 	    warning (0, "%<#pragma cilk grainsize is not followed by cilk_for");
 	  return;

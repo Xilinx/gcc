@@ -1,3 +1,9 @@
+2013-02-05  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-cilk.c (extract_for_fields): Added a check if the increment value
+	is a constant and if it is less than zero.  If so, then don't go into
+	the body of the if-statement.
+
 2013-02-04  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-cilk.c (build_cilk_wrapper_body): Replaced the function call for

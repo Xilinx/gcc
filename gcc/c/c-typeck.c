@@ -3208,7 +3208,7 @@ convert_arguments (tree typelist, vec<tree, va_gc> *values,
     {
       /* If array notation is used and Cilk Plus is enabled, then we do not
 	 worry about this error now.  We will handle them in a later place.  */
-      if (flag_enable_cilk && DECL_NAME (fundecl)
+      if (flag_enable_cilk && fundecl && DECL_NAME (fundecl)
 	  && !strncmp (IDENTIFIER_POINTER (DECL_NAME (fundecl)), "__sec_reduce",
 		       12))
 	;

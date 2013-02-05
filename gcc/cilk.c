@@ -906,7 +906,7 @@ output_zca_table (section *s)
       zca_entry = find_zca_data (ii);
 
       /* This outputs the IP.  */
-      fputs (integer_asm_op (GET_MODE_SIZE (Pmode), 1), asm_out_file);
+      fputs (integer_asm_op (8, 1), asm_out_file);
       output_asm_label (zca_entry->label);
       fputc ('\n', asm_out_file);
 
