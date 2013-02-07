@@ -3832,6 +3832,10 @@ make_range_step (location_t loc, enum tree_code code, tree arg0, tree arg1,
   switch (code)
     {
     case TRUTH_NOT_EXPR:
+      /* We can only do something if the range is testing for zero.  */
+      if (low == NULL_TREE || high == NULL_TREE
+	  || ! integer_zerop (low) || ! integer_zerop (high))
+	return NULL_TREE;
       *p_in_p = ! in_p;
       return arg0;
 
@@ -3904,6 +3908,17 @@ make_range_step (location_t loc, enum tree_code code, tree arg0, tree arg1,
       return arg0;
 
     case NEGATE_EXPR:
+      /* If flag_wrapv and ARG0_TYPE is signed, make sure
+	 low and high are non-NULL, then normalize will DTRT.  */
+      if (!TYPE_UNSIGNED (arg0_type)
+	  && !TYPE_OVERFLOW_UNDEFINED (arg0_type))
+	{
+	  if (low == NULL_TREE)
+	    low = TYPE_MIN_VALUE (arg0_type);
+	  if (high == NULL_TREE)
+	    high = TYPE_MAX_VALUE (arg0_type);
+	}
+
       /* (-x) IN [a,b] -> x in [-b, -a]  */
       n_low = range_binop (MINUS_EXPR, exp_type,
 			   build_int_cst (exp_type, 0),
@@ -13438,10 +13453,22 @@ fold_binary_loc (location_t loc,
 				   TREE_OPERAND (arg1, 1)),
 			   build_int_cst (TREE_TYPE (arg0), 0));
 
+      /* Similarly for X < (cast) (1 << Y).  But cast can't be narrowing,
+	 otherwise Y might be >= # of bits in X's type and thus e.g.
+	 (unsigned char) (1 << Y) for Y 15 might be 0.
+	 If the cast is widening, then 1 << Y should have unsigned type,
+	 otherwise if Y is number of bits in the signed shift type minus 1,
+	 we can't optimize this.  E.g. (unsigned long long) (1 << Y) for Y
+	 31 might be 0xffffffff80000000.  */
       if ((code == LT_EXPR || code == GE_EXPR)
 	  && TYPE_UNSIGNED (TREE_TYPE (arg0))
 	  && CONVERT_EXPR_P (arg1)
 	  && TREE_CODE (TREE_OPERAND (arg1, 0)) == LSHIFT_EXPR
+	  && (TYPE_PRECISION (TREE_TYPE (arg1))
+	      >= TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (arg1, 0))))
+	  && (TYPE_UNSIGNED (TREE_TYPE (TREE_OPERAND (arg1, 0)))
+	      || (TYPE_PRECISION (TREE_TYPE (arg1))
+		  == TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (arg1, 0)))))
 	  && integer_onep (TREE_OPERAND (TREE_OPERAND (arg1, 0), 0)))
 	{
 	  tem = build2 (RSHIFT_EXPR, TREE_TYPE (arg0), arg0,

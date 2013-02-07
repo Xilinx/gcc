@@ -1,3 +1,22 @@
+2013-01-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/56085
+	* include/std/complex (pow(const complex<>&, int)): Avoid __n
+	signed overflow.
+
+2013-01-17  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/52887
+	* src/c++11/regex.cc: Add instantiations for AIX.
+
+2013-01-08  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/status_cxx2011.xml: Document that N3189 is missing.
+
+2013-01-06  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/abi.xml: Update library and symbol versions.
+
 2012-12-18  Matthew Gretton-Dann  <matthew.gretton-dann@linaro.org>
 
 	Backport from mainline

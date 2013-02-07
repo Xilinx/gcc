@@ -143,9 +143,7 @@ lvalue_kind (const_tree ref)
     case ARRAY_REF:
     case PARM_DECL:
     case RESULT_DECL:
-      if (TREE_CODE (TREE_TYPE (ref)) != METHOD_TYPE)
-	return clk_ordinary;
-      break;
+      return clk_ordinary;
 
       /* A scope ref in a template, left as SCOPE_REF to support later
 	 access checking.  */
@@ -1338,6 +1336,8 @@ strip_typedefs_expr (tree t)
 	    r = copy_node (t);
 	    for (i = 0; i < n; ++i)
 	      TREE_VEC_ELT (r, i) = VEC_index (tree, vec, i);
+	    SET_NON_DEFAULT_TEMPLATE_ARGS_COUNT
+	      (r, GET_NON_DEFAULT_TEMPLATE_ARGS_COUNT (t));
 	  }
 	else
 	  r = t;
@@ -2397,7 +2397,7 @@ decl_anon_ns_mem_p (const_tree decl)
       /* Classes and namespaces inside anonymous namespaces have
          TREE_PUBLIC == 0, so we can shortcut the search.  */
       else if (TYPE_P (decl))
-	return (TREE_PUBLIC (TYPE_NAME (decl)) == 0);
+	return (TREE_PUBLIC (TYPE_MAIN_DECL (decl)) == 0);
       else if (TREE_CODE (decl) == NAMESPACE_DECL)
 	return (TREE_PUBLIC (decl) == 0);
       else

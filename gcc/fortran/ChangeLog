@@ -1,3 +1,80 @@
+2013-02-02  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	Backport from trunk
+	PR fortran/50627
+	PR fortran/56054
+	* decl.c (gfc_match_end):  Remove half-ready namespace
+	from parent if the end of a block is missing.
+	* parse.c (parse_module):  Do not put namespace into
+	gsymbol on error.
+
+2013-02-01  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from mainline
+	2013-01-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/56052
+	* trans-decl.c (gfc_get_symbol_decl): Set DECL_ARTIFICIAL
+	and DECL_IGNORED_P on select_type_temporary and don't set
+	DECL_BY_REFERENCE.
+
+2013-01-24  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/56081
+	* resolve.c (resolve_select): Add argument 'select_type', reject
+	non-scalar expressions.
+	(resolve_select_type,resolve_code): Pass new argument to
+	'resolve_select'.
+
+2013-01-17  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/55983
+	* class.c (find_typebound_proc_uop): Check for f2k_derived instead of
+	asserting it.
+
+2013-01-13  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/55072
+	* trans-array.c (gfc_conv_array_parameter): No packing was done for
+	full arrays of derived type.
+
+2013-01-13  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/55618
+	* trans-expr.c (gfc_conv_procedure_call): Dereference scalar
+	character function arguments to elemental procedures in
+	scalarization loops.
+
+2013-01-08  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/42769
+	PR fortran/45836
+	PR fortran/45900
+	* module.c (read_module): Don't reuse local symtree if the associated
+	symbol isn't exactly the one wanted.  Don't reuse local symtree if it is
+	ambiguous.
+	* resolve.c (resolve_call): Use symtree's name instead of symbol's to
+	lookup the symtree.
+
+2013-01-07  Tobias Burnus  <burnus@net-b.de>
+	    Thomas Koenig  <tkoenig@gcc.gnu.org>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/55852
+	* expr.c (gfc_build_intrinsic_call): Avoid clashes
+	with user's procedures.
+	* gfortran.h (gfc_build_intrinsic_call): Update prototype.
+	(GFC_PREFIX): Define.
+	* simplify.c (gfc_simplify_size): Update call.
+
+2013-01-07  Steven G. Kargl  <kargl@gcc.gnu.org>
+	    Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/55827
+	* class.c (gfc_fix_class_refs): Adapt ts initialization for the case
+	e->symtree == NULL.
+	* trans-expr.c (gfc_conv_function_expr): Init sym earlier. Use it.
+
 2012-12-20  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/54818
@@ -579,7 +656,7 @@
 
 	PR fortran/50981
 	* trans-array.c (gfc_walk_elemental_function_args): Fix
-	passing of deallocated allocatables/pointers as absent argument. 
+	passing of deallocated allocatables/pointers as absent argument.
 
 2012-01-16  Tobias Burnus  <burnus@net-b.de>
 
@@ -615,7 +692,7 @@
 2012-01-16  Paul Thomas  <pault@gcc.gnu.org>
 
 	* trans-array.c (gfc_trans_create_temp_array): In the case of a
-	class array temporary, detect a null 'eltype' on entry and use 
+	class array temporary, detect a null 'eltype' on entry and use
 	'initial' to provde the class reference and so, through the
 	vtable, the element size for the dynamic type.
 	* trans-stmt.c (gfc_conv_elemental_dependencies): For class

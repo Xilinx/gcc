@@ -1,3 +1,487 @@
+2013-02-07  Alan Modra  <amodra@gmail.com>
+
+	PR target/53040
+	* config/rs6000/rs6000.c (rs6000_savres_strategy): When using
+	static chain, set REST_INLINE_FPRS too.
+
+2013-02-06  David Edelsohn  <dje.gcc@gmail.com>
+
+	Backport from mainline
+	2013-01-25  Michael Haubenwallner  <michael.haubenwallner@salomon.at>
+
+	* configure.ac (gcc_cv_ld_static_dynamic): Define for AIX native ld.
+	* configure: Regenerate.
+
+2013-02-05  David Edelsohn  <dje.gcc@gmail.com>
+
+	Backport from mainline
+	2013-02-03  David Edelsohn  <dje.gcc@gmail.com>
+		    Andrew Dixie  <andrewd@gentrack.com>
+
+	* collect2.c (GCC_CHECK_HDR): Do not scan objects with F_LOADONLY
+	flag set.
+
+2013-02-05  Richard Biener  <rguenther@suse.de>
+
+	Backport from mainline
+	2012-12-10  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/55107
+	* tree-ssa-pre.c (struct pre_stats): Remove constified field.
+	(bitmap_set_replace_value): Add gcc_unreachable.
+	(do_regular_insertion): Re-write all_same handling.  Insert
+	an assignment instead of a PHI in this case.
+	(execute_pre): Do not record constified events.
+
+2013-02-05  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/54767
+	* tree-vrp.c (vrp_visit_phi_node): For PHI arguments coming via
+	backedges drop all symbolical range information.
+	(execute_vrp): Compute backedges.
+
+2013-02-04  Richard Biener  <rguenther@suse.de>
+
+	Backport from mainline
+	2012-01-11  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/44061
+	* tree-vrp.c (extract_range_basic): Compute zero as
+	value-range for __builtin_constant_p of function parameters.
+
+	2013-01-08  Jakub Jelinek  <jakub@redhat.com>
+ 
+	PR middle-end/55890
+	* tree-ssa-ccp.c (evaluate_stmt): Use gimple_call_builtin_class_p.
+
+2013-02-04  Richard Biener  <rguenther@suse.de>
+
+	Backport from mainline
+	2012-07-04  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53844
+	* tree-ssa-dse.c (dse_possible_dead_store_p): Properly handle
+	the loop virtual PHI.
+
+	2012-12-13  Richard Biener  <rguenther@suse.de>
+
+	PR lto/55660
+	* tree-streamer.c (record_common_node): Check that we are not
+	recursively pre-loading nodes we want to skip.  Handle
+	char_type_node appearing as part of va_list_type_node.
+
+2013-02-04  Richard Biener  <rguenther@suse.de>
+
+	PR middle-end/55890
+	* gimple.h (gimple_call_builtin_class_p): New function.
+	* gimple.c (validate_call): New function.
+	(gimple_call_builtin_class_p): Likewise.
+	* tree-ssa-structalias.c (find_func_aliases_for_builtin_call):
+	Use gimple_call_builtin_class_p.
+	(find_func_clobbers): Likewise.
+	* tree-ssa-strlen.c (adjust_last_stmt): Likewise.
+	(strlen_optimize_stmt): Likewise.
+
+2013-02-01  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from mainline
+	2013-01-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/56125
+	* tree-ssa-math-opts.c (gimple_expand_builtin_pow): Don't optimize
+	pow(x,c) into sqrt(x) * powi(x, n/2) or
+	1.0 / (sqrt(x) * powi(x, abs(n/2))) if c is an integer or when
+	optimizing for size.
+	Don't optimize pow(x,c) into powi(x, n/3) * powi(cbrt(x), n%3) or
+	1.0 / (powi(x, abs(n)/3) * powi(cbrt(x), abs(n)%3)) if 2c is an
+	integer.
+
+	2013-01-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/56098
+	* tree-ssa-phiopt.c (nt_init_block): Don't call add_or_mark_expr
+	for stmts with volatile ops.
+	(cond_store_replacement): Don't optimize if assign has volatile ops.
+	(cond_if_else_store_replacement_1): Don't optimize if either
+	then_assign or else_assign have volatile ops.
+
+	2013-01-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/49069
+	* config/arm/arm.md (cbranchdi4, cstoredi4): Use s_register_operand
+	instead of cmpdi_operand for first comparison operand.
+	Don't assert that comparison operands aren't both constants.
+
+	2013-01-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/56051
+	* fold-const.c (fold_binary_loc): Don't fold
+	X < (cast) (1 << Y) into (X >> Y) != 0 if cast is either
+	a narrowing conversion, or widening conversion from signed
+	to unsigned.
+
+	2013-01-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/56015
+	* expr.c (expand_expr_real_2) <case COMPLEX_EXPR>: Handle
+	the case where writing real complex part of target modifies
+	op1.
+
+	2013-01-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/55940
+	* function.c (thread_prologue_and_epilogue_insns): Always
+	add crtl->drap_reg to set_up_by_prologue.set, even if
+	stack_realign_drap is false.
+
+	2013-01-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/55921
+	* tree-complex.c (expand_complex_asm): New function.
+	(expand_complex_operations_1): Call it for GIMPLE_ASM.
+
+	2013-01-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/55838
+	* loop-iv.c (iv_number_of_iterations): Call lowpart_subreg on
+	iv0.step, iv1.step and step.
+
+	2012-11-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/54046
+	* Makefile.in (gimple-low.o): Depend on langhooks.h.
+	* gimple-low.c: Include langhooks.c.
+	(block_may_fallthru): Handle TARGET_EXPR and ERROR_MARK,
+	by default call lang_hooks.block_may_fallthru.
+	* langhooks.h (struct lang_hooks): Add block_may_fallthru
+	langhook.
+	* langhooks-def.h (LANG_HOOKS_BLOCK_MAY_FALLTHRU): Define.
+	(LANG_HOOKS_INITIALIZER): Use it.
+
+	2012-11-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/55094
+	* builtins.c (expand_builtin_trap): Add REG_ARGS_SIZE note
+	on the trap insn for !ACCUMULATE_OUTGOING_ARGS.
+	* cfgcleanup.c (outgoing_edges_match): Don't look at debug insns
+	on the first old_insns_match_p call.  For !ACCUMULATE_OUTGOING_ARGS
+	fail if the last real insn doesn't have REG_ARGS_SIZE note.
+
+	2012-11-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/55236
+	* fold-const.c (make_range_step) <case NEGATE_EXPR>: For -fwrapv
+	and signed ARG0_TYPE, force low and high to be non-NULL.
+
+	2012-11-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/54127
+	* cfgrtl.c (force_nonfallthru_and_redirect): When redirecting
+	asm goto labels from BB_HEAD (e->dest) to target bb, decrement
+	LABEL_NUSES of BB_HEAD (e->dest) and increment LABEL_NUSES of
+	BB_HEAD (target) appropriately and adjust JUMP_LABEL and/or
+	REG_LABEL_TARGET and REG_LABEL_OPERAND.
+
+2013-02-01  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* fold-const.c (make_range_step) <TRUTH_NOT_EXPR>: Bail out if the
+	range isn't testing for zero.
+
+2013-01-29  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/56113
+	* tree-ssa-structalias.c (equiv_class_lookup): Also return
+	the bitmap leader.
+	(label_visit): Free duplicate bitmaps and record the leader instead.
+	(perform_var_substitution): Adjust.
+
+2013-01-28  Serowk  <serowk@yandex.ru>
+
+	PR target/35294
+	* config/arm/arm.c (arm_expand_binop_builtin): Add new parameter.
+	Fix mode checks to allow for the passing of constants in the
+	second parameter.
+	(arm_expand_builtin): Adjust calls to arm_expand_binop_builtin.
+	Add entries in the switch statement for builtin iwmmxt vector
+	shift and rotate builtins.
+
+2013-01-27  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2013-01-27  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/56114
+	* config/i386/i386.md (*movabs<mode>_1): Add square brackets around
+	operand 0 in movabs insn template for -masm=intel asm alternative.
+	(*movabs<mode>_2): Ditto for operand 1.
+
+2013-01-27  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2013-01-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/56028
+	* config/i386/i386.md (*movti_internal_rex64): Change (o,riF)
+	alternative to (o,r).
+	(*movdi_internal_rex64): Remove (!o,n) alternative.
+	(DImode immediate->memory splitter): Remove.
+	(DImode immediate->memory peephole2): Remove.
+	(movtf): Enable for TARGET_64BIT || TARGET_SSE.
+	(*movtf_internal_rex64): Rename from *movtf_internal. Change (!o,F*r)
+	alternative to (!o,*r).
+	(*movtf_internal_sse): New pattern.
+	(*movxf_internal_rex64): New pattern.
+	(*movxf_internal): Disable for TARGET_64BIT.
+	(*movdf_internal_rex64): Remove (!o,F) alternative.
+
+	2013-01-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (*movdf_internal_rex64): Disparage alternatives
+	involving stack registers slightly.
+
+	2013-01-24  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/constraints.md (Yf): New constraint.
+	* config/i386/i386.md (*movdf_internal_rex64): Use Yf*f instead
+	of f constraint to conditionaly disable x87 register preferences.
+	(*movdf_internal): Ditto.
+	(*movsf_internal): Ditto.
+
+	2012-01-24  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (*movti_internal_rex64): Add (o,e) alternative.
+	(*movtf_internal_rex64): Add (!o,C) alternative
+	(*movxf_internal_rex64): Ditto.
+	(*movdf_internal_rex64): Add (?r,C) and (?m,C) alternatives.
+
+2013-01-25  Georg-Johann Lay  <avr@gjlay.de>
+
+	* doc/invoke.texi (AVR Built-in Macros): Document __XMEGA__.
+
+2013-01-24  Martin Jambor  <mjambor@suse.cz>
+
+	Backport from mainline
+	2013-01-04  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/55755
+	* tree-sra.c (sra_modify_assign): Do not check that an access has no
+	children when trying to avoid producing a VIEW_CONVERT_EXPR.
+
+2013-01-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2013-01-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (enabled): Do not disable fma4 for TARGET_FMA.
+
+2013-01-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR rtl-optimization/56023
+	* haifa-sched.c (fix_inter_tick): Do not update ticks of instructions,
+	dependent on debug instruction.
+
+2013-01-21  Martin Jambor  <mjambor@suse.cz>
+
+	Backport from mainline
+	2013-01-17  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimizations/55264
+	* cgraph.c (cgraph_create_virtual_clone): Mark clones as non-virtual.
+	* cgraph.h (cgraph_only_called_directly_p_or_aliased_p): Return false
+	for virtual functions.
+	* ipa-inline-transform.c (can_remove_node_now_p_1): Never return true
+	for virtual methods.
+	* ipa.c (cgraph_remove_unreachable_nodes): Never return true for
+	virtual methods before inlining is over.
+
+2013-01-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2012-01-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/55981
+	* config/i386/sync.md (atomic_store<mode>): Generate SWImode
+	store through atomic_store<mode>_1.
+	(atomic_store<mode>_1): Macroize insn using SWI mode iterator.
+
+2013-01-16  Richard Biener  <rguenther@suse.de>
+
+	PR middle-end/55882
+	* emit-rtl.c (set_mem_attributes_minus_bitpos): Correctly
+	account for bitpos when computing alignment.
+
+2013-01-14  Georg-Johann Lay  <avr@gjlay.de>
+
+	Backport from 2013-01-14 trunk r195169.
+
+	PR target/55974
+	* config/avr/avr-c.c (avr_cpu_cpp_builtins): Define __FLASH
+	etc. to 1 and not to __flash.
+	Use LL suffix for __INT24_MAX__ with -mint8.
+	Use ULL suffix for __UINT24_MAX__ with -mint8.
+
+2013-01-14  Matthias Klose  <doko@ubuntu.com>
+
+	* doc/invoke.texi: Document -print-multiarch.
+	* doc/install.texi: Document --enable-multiarch.
+	* doc/fragments.texi: Document MULTILIB_OSDIRNAMES, MULTIARCH_DIRNAME.
+	* configure.ac: Add --enable-multiarch option.
+	Substitute with_cpu, with_float.
+	* configure: Regenerate.
+	* Makefile.in (s-mlib): Pass MULTIARCH_DIRNAME to genmultilib.
+	enable_multiarch, with_cpu, with_float: New macros.
+	if_multiarch: New macro, define in terms of enable_multiarch.
+	* genmultilib: Add new argument for the multiarch name.
+	* gcc.c (multiarch_dir): Define.
+	(for_each_path): Search for multiarch suffixes.
+	(driver_handle_option): Handle multiarch option.
+	(do_spec_1): Pass -imultiarch if defined.
+	(main): Print multiarch.
+	(set_multilib_dir): Separate multilib and multiarch names
+	from multilib_select.
+	(print_multilib_info): Ignore multiarch names in multilib_select.
+	* incpath.c (add_standard_paths): Search the multiarch include dirs.
+	* cppdefault.h (default_include): Document multiarch in multilib
+	member.
+	* cppdefault.c: [LOCAL_INCLUDE_DIR, STANDARD_INCLUDE_DIR] Add an
+	include directory for multiarch directories.
+	* common.opt: New options --print-multiarch and -imultilib.
+
+	* config.gcc <i[34567]86-*-linux* | x86_64-*-linux*> (tmake_file):
+	Include i386/t-linux.
+	<i[34567]86-*-kfreebsd*-gnu | x86_64-*-kfreebsd*-gnu> (tmake_file):
+	Include i386/t-kfreebsd.
+	<i[34567]86-*-gnu*> (tmake_file): Include i386/t-gnu.
+	* config/i386/t-linux64: Add multiarch names in
+	MULTILIB_OSDIRNAMES, define MULTIARCH_DIRNAME.
+	* config/i386/t-gnu: New file.
+	* config/i386/t-kfreebsd: Likewise.
+	* config/i386/t-linux: Likewise.
+
+	* config/sparc/t-linux64: Add multiarch names in MULTILIB_OSDIRNAMES.
+	* config/sparc/t-linux: New file; define MULTIARCH_DIRNAME.
+	* config.gcc <sparc-*-linux*> (tmake_file): Include sparc/t-linux
+	for 32bit non-biarch configurations.
+
+	* config/pa/t-linux: New file; define MULTIARCH_DIRNAME.
+	* config.gcc <hppa*64*-*-linux*, hppa*-*-linux*> (tmake_file):
+	Include pa/t-linux.
+
+	* config/mips/t-linux64: Add multiarch names in MULTILIB_OSDIRNAMES.
+
+	* config/arm/t-linux-eabi: Define MULTIARCH_DIRNAME for linux target.
+
+	* config/rs6000/t-linux64: Add multiarch names in MULTILIB_OSDIRNAMES.
+	* config/rs6000/t-linux: New file; define MULTIARCH_DIRNAME.
+	* config/rs6000/t-fprules (SOFT_FLOAT_CPUS): New macro. Add e300c2
+	to the list.
+	(MULTILIB_MATCHES_FLOAT): Define in terms of SOFT_FLOAT_CPUS.
+	* config.gcc <powerpc-*-linux* | powerpc64-*-linux*> (tmake_file):
+	Include rs6000/t-linux for 32bit non-biarch configurations.
+
+	* config/s390/t-linux64: Add multiarch names in MULTILIB_OSDIRNAMES.
+
+	* config/m68k/t-linux: Define MULTIARCH_DIRNAME.
+
+	* config/ia64/t-linux: New file; define MULTIARCH_DIRNAME.
+	* config.gcc <ia64*-*-linux*> (tmake_file): Include ia64/t-linux.
+
+	* config/alpha/t-linux: New file; define MULTIARCH_DIRNAME.
+	* config.gcc <alpha*-*-linux*> (tmake_file): Include alpha/t-linux.
+
+2013-01-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-vectorizer.h (vect_get_single_scalar_iteraion_cost): Fix typo.
+	* tree-vect-loop.c (vect_get_single_scalar_iteraion_cost): Likewise.
+	(vect_estimate_min_profitable_iter): Adjust to above fix.
+	* tree-vect-data-refs.c (vect_peeling_hash_get_lowest_cost): Likewise.
+
+2013-01-11  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	Backport from mainline
+	2013-01-11  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* doc/extend.texi (X86 Built-in Functions): Add whitespace in
+	__builtin_ia32_paddb256 and __builtin_ia32_pavgb256
+	documentation.  Add missing '__' in front of
+	__builtin_ia32_packssdw256.
+
+2013-01-09  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2013-01-09  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (*vec_interleave_highv2df): Change mode
+	attribute of movddup insn to DF.
+	(*vec_interleave_lowv2df): Ditto.
+	(vec_dupv2df): Ditto.
+
+2013-01-07  Georg-Johann Lay  <avr@gjlay.de>
+
+	Backport from 2013-01-07 trunk r194991, r194992.
+
+	PR target/55897
+	* doc/extend.texi (AVR Named Address Spaces): __memx goes into
+	.progmemx.data now.
+
+	* config/avr/avr.h (ADDR_SPACE_COUNT): New enum.
+	(avr_addrspace_t): Add .section_name field.
+	* config/avr/avr.c (progmem_section): Use ADDR_SPACE_COUNT as
+	array size.
+	(avr_addrspace): Same.  Initialize .section_name.  Remove last
+	NULL entry.  Put __memx into .progmemx.data.
+	(progmem_section_prefix): Remove.
+	(avr_asm_init_sections): No need to initialize progmem_section.
+	(avr_asm_named_section): Use avr_addrspace[].section_name to get
+	section name prefix.
+	(avr_asm_select_section): Ditto.  And use get_unnamed_section to
+	retrieve the progmem section.
+	* avr-c.c (avr_cpu_cpp_builtins): Use ADDR_SPACE_COUNT as loop
+	boundary to run over avr_addrspace[].
+	(avr_register_target_pragmas): Ditto.
+
+2013-01-07  Georg-Johann Lay  <avr@gjlay.de>
+
+	Backport from 2013-01-07 trunk r194978.
+
+	PR target/54461
+	* doc/install.texi (Cross-Compiler-Specific Options): Document
+	--with-avrlibc.
+
+2013-01-07  Georg-Johann Lay  <avr@gjlay.de>
+
+	Backport from 2013-01-07 trunk r194968.
+
+	PR other/55243
+	* config/avr/t-avr: Don't automatically rebuild
+	$(srcdir)/config/avr/t-multilib
+	$(srcdir)/config/avr/avr-tables.opt
+	(avr-mcus): New phony target to build them on request.
+	(s-avr-mlib): Remove.
+	* avr/avr-mcus.def: Adjust comments.
+
+2013-01-07  Terry Guo  <terry.guo@arm.com>
+
+	Backport from mainline
+	2012-12-19  Terry Guo  <terry.guo@arm.com>
+
+	* config/arm/arm.c (thumb_find_work_register): Check argument
+	register number based on current PCS.
+
+2013-01-06  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2013-01-03  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/55712
+	* config/i386/i386-c.c (ix86_target_macros_internal): Depending on
+	selected code model, define __code_mode_small__, __code_model_medium__,
+	__code_model_large__, __code_model_32__ or __code_model_kernel__.
+	* config/i386/cpuid.h (__cpuid, __cpuid_count) [__i386__]: Prefix
+	xchg temporary register with %k.  Declare temporary register as
+	early clobbered.
+	[__x86_64__]: For medium and large code models, preserve %rbx register.
+
 2013-01-03  Richard Henderson  <rth@redhat.com>
 
 	* config/i386/i386.c (ix86_expand_move): Always assign to op1

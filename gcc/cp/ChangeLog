@@ -1,3 +1,87 @@
+2013-02-05  Jason Merrill  <jason@redhat.com>
+
+	PR c++/54122
+	* tree.c (lvalue_kind) [INDIRECT_REF]: Don't check for
+	METHOD_TYPE.
+
+2013-02-01  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from mainline
+	2012-12-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/55652
+	* typeck2.c (merge_exception_specifiers): Don't call operand_equal_p
+	if noex is NULL.
+
+	2012-12-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/54207
+	* except.c (build_noexcept_spec): Avoid direct comparison
+	with boolean_true_node or boolean_false_node, instead use
+	operand_equal_p and/or INTEGER_CST check.
+	* pt.c (tsubst_exception_specification): Likewise.
+	* typeck2.c (merge_exception_specifiers): Likewise.
+
+	2012-12-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/55542
+	* pt.c (make_ith_pack_parameter_name): Return NULL if
+	name is NULL.
+	(tsubst_decl): Call make_ith_pack_parameter_name even if
+	DECL_NAME is NULL.
+
+	2012-11-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/54046
+	* cp-objcp-common.h (LANG_HOOKS_BLOCK_MAY_FALLTHRU): Redefine.
+	* cp-objcp-common.c (cxx_block_may_fallthru): New function.
+	* cp-tree.h (cxx_block_may_fallthru): New prototype.
+
+2013-01-25  Jason Merrill  <jason@redhat.com>
+
+	PR c++/56104
+	* typeck.c (get_member_function_from_ptrfunc): Don't fold
+	POINTER_PLUS_EXPR.
+
+2013-01-22  Jason Merrill  <jason@redhat.com>
+
+	* call.c (type_has_extended_temps): Fix C++ism.
+
+	PR c++/53650
+	* call.c (type_has_extended_temps): New.
+	* cp-tree.h: Declare it.
+	* decl.c (check_initializer): Use build_aggr_init for arrays
+	if it is false.
+	* init.c (build_vec_init): Avoid mixed signed/unsigned arithmetic.
+
+	PR c++/56071
+	* pt.c (maybe_instantiate_noexcept): Don't defer access checks.
+
+2013-01-21  Jason Merrill  <jason@redhat.com>
+
+	PR c++/56059
+	* tree.c (strip_typedefs_expr) [TREE_VEC]: Preserve non-default
+	template args count.
+
+2013-01-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/55893
+	* decl.c (cp_finish_decl): Clear TREE_READONLY if the variable
+	needs destruction.
+
+2013-01-08  Joel Brobecker  <brobecker@adacore.com>
+
+	* parser.c (cp_parser_initializer_list): Move declaration
+	of variable non_const to start of lexical block.
+
+2013-01-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/55877
+	* decl.c (reset_type_linkage, bt_reset_linkage): New.
+	(grokdeclarator): Use reset_type_linkage.
+	* name-lookup.c (binding_table_foreach): Handle null table.
+	* tree.c (decl_anon_ns_mem_p): Check TYPE_MAIN_DECL, not TYPE_NAME.
+
 2013-01-03  Jason Merrill  <jason@redhat.com>
 
 	PR c++/55419

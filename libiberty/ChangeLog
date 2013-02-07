@@ -1,3 +1,22 @@
+2013-01-31  Kai Tietz  <ktietz@redhat.com>
+
+	Merged from trunk
+	PR other/54620
+	* sha1.c (sha1_process_block):  Handle case that size_t is
+	a wider-integer-scalar as a 32-bit unsigned integer.
+
+	Merged from trunk.
+	PR other/53413
+	* md5.c (md5_process_block):  Handle case that size_t is
+	a wider-integer-scalar a 32-bit unsigned integer.
+
+        2012-07-31  Mike Frysinger  <vapier@gentoo.org>
+
+	Merged from trunk.
+	PR other/53285
+	* md5.c (md5_finish_ctx): Declare swap_bytes.  Assign SWAP() output
+	to swap_bytes, and then call memcpy to move it to ctx->buffer.
+
 2012-09-20  Release Manager
 
 	* GCC 4.7.2 released.

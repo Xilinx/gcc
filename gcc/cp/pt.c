@@ -2861,6 +2861,8 @@ make_ith_pack_parameter_name (tree name, int i)
   char* newname;
   int newname_len;
 
+  if (name == NULL_TREE)
+    return name;
   snprintf (numbuf, NUMBUF_LEN, "%i", i);
   newname_len = IDENTIFIER_LENGTH (name)
 	        + strlen (numbuf) + 2;
@@ -10164,10 +10166,9 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
                 /* Get the Ith type.  */
                 type = TREE_VEC_ELT (expanded_types, i);
 
-                if (DECL_NAME (r))
-                  /* Rename the parameter to include the index.  */
-                  DECL_NAME (r) =
-                    make_ith_pack_parameter_name (DECL_NAME (r), i);
+		/* Rename the parameter to include the index.  */
+		DECL_NAME (r)
+		  = make_ith_pack_parameter_name (DECL_NAME (r), i);
               }
             else if (!type)
               /* We're dealing with a normal parameter.  */
@@ -10736,7 +10737,7 @@ tsubst_exception_specification (tree fntype,
     {
       /* A noexcept-specifier.  */
       tree expr = TREE_PURPOSE (specs);
-      if (expr == boolean_true_node || expr == boolean_false_node)
+      if (TREE_CODE (expr) == INTEGER_CST)
 	new_specs = expr;
       else if (defer_ok)
 	{
@@ -18086,12 +18087,14 @@ maybe_instantiate_noexcept (tree fn)
       if (push_tinst_level (fn))
 	{
 	  push_access_scope (fn);
+	  push_deferring_access_checks (dk_no_deferred);
 	  input_location = DECL_SOURCE_LOCATION (fn);
 	  noex = tsubst_copy_and_build (DEFERRED_NOEXCEPT_PATTERN (noex),
 					DEFERRED_NOEXCEPT_ARGS (noex),
 					tf_warning_or_error, fn,
 					/*function_p=*/false,
 					/*integral_constant_expression_p=*/true);
+	  pop_deferring_access_checks ();
 	  pop_access_scope (fn);
 	  pop_tinst_level ();
 	  spec = build_noexcept_spec (noex, tf_warning_or_error);
