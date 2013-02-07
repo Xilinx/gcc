@@ -1,5 +1,11 @@
 
 
+2013-02-07  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* gdbinit.in: Explicitly set the number of printed elements
+
+	* melt-runtime.c (melt_compile_source): More debug.
+
 2013-02-05  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-normatch.melt (complete_normstep_if_last): Check

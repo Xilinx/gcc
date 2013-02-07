@@ -6117,8 +6117,8 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
     ourmakefile = melt_module_makefile;
   debugeprintf ("melt_compile_source ourmakefile: %s", ourmakefile);
   gcc_assert (ourmakefile[0]);
-
   ourcflags = melt_argument ("module-cflags");
+  debugeprintf ("melt_compile_source ourcflags from melt_argument:%s", ourcflags);
   if (!ourcflags || !ourcflags[0])
     ourcflags = melt_flag_bootstrapping?NULL
                 :(getenv ("GCCMELT_MODULE_CFLAGS"));
