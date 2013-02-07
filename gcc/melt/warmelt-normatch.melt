@@ -5417,21 +5417,24 @@ normalized expression.}#
 	  (nflag (let ( (f (matchalt_normalize_flag matflag nmctxt)) )
 		   (debug "normstep_mflagset nflag=" f)
 		   f))
-	  (nsetflag (instance  class_nrep_setq 
-			       :nrep_loc nsloc
-			       :nstq_var nflag
-			       :nstq_exp '1))
+	  (nsetflag (let ( (n (instance  class_nrep_setq 
+					 :nrep_loc nsloc
+					 :nstq_var nflag
+					 :nstq_exp '1)) )
+		      (debug "normstep_mflagset nsetflag=" n)
+		      n))
+	  (ncomplsetflag (let ( (n (complete_normstep_if_last step nsetflag nmctxt)) )
+			   (debug "normstep_mflagset ncomplsetflag=" n)
+			   n))
 	  (njump (let ( (j (instance class_nrep_match_jump
 				     :nmjmp_label nthen)) )
 		   (debug "normstep_mflagset njump=" j)
 		   j))
-	  (nlisti (list nsetflag njump))
+	  (res (complete_sequence_as_tuple ncomplsetflag njump))
 	  )
-    (debug "normstep_mflagset nlisti=" nlisti "\n step=" step)
-    (let ( (res (complete_normstep_if_last step nlisti nmctxt)) )
-      (debug "normstep_mflagset return res=" res)
-      (return res)
-      )))
+    (debug "normstep_mflagset return res=" res "\n step=" step)
+    (return res)
+    ))
 (install_method class_match_step_flag_set normalize_step normstep_mflagset)
 
 

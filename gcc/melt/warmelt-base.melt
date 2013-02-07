@@ -2,7 +2,7 @@
 ;; file warmelt-base.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008 - 2012 Free Software Foundation, Inc.
+    Copyright 2008 - 2013 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
                and Pierre Vittet  <piervit@pvittet.com>
 
@@ -3673,6 +3673,84 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
 }#)
 
 
+;;;
+(defun complete_sequence_as_tuple (src :rest) 
+  :doc #{If $SRC is a list, complete it with the rest of arguments and return a fresh tuple,
+  If $SRC is a tuple, make a bigger tuple with the rest of arguments.
+  Otherwise, make a tuple of all the arguments, including the first $SRC}#
+  (let ( (newlist (make_list discr_list)) )
+    (cond 
+     ( (is_multiple src)
+       (foreach_in_multiple
+	(src)
+	(comp :long ix)
+	(list_append newlist comp))
+       )
+     ( (is_list src)
+       (foreach_in_list 
+	(src)
+	(curpair curcomp)
+	(list_append newlist curcomp))
+	)
+     (:else
+      (list_append newlist src)))
+    (forever 
+     argloop
+     (variadic
+      ( ()
+	(exit argloop))
+      ( (:value v)
+	(list_append newlist v))
+      (:else
+      (let ( (vcty (variadic_ctype 0))
+	     )
+	(errormsg_strv "COMPLETE_SEQUENCE_AS_TUPLE with unsupported ctype"
+		       (get_field :named_name vcty))
+	(assert_msg "invalid variadic argument to COMPLETE_SEQUENCE_AS_TUPLE" ())))
+      ))
+    (let ( (res (list_to_multiple newlist))
+	   )
+      (return res))))
+ 
+
+;;;
+(defun complete_sequence_as_list (src :rest) 
+  :doc #{If $SRC is a list, complete it with the rest of arguments and return a fresh list,
+  If $SRC is a tuple, make a bigger list with its components and the rest of arguments.
+  Otherwise, make a list of all the arguments, including the first $SRC}#
+  (let ( (newlist (make_list discr_list)) )
+    (cond 
+     ( (is_multiple src)
+       (foreach_in_multiple
+	(src)
+	(comp :long ix)
+	(list_append newlist comp))
+       )
+     ( (is_list src)
+       (foreach_in_list 
+	(src)
+	(curpair curcomp)
+	(list_append newlist curcomp))
+	)
+     (:else
+      (list_append newlist src)))
+    (forever 
+     argloop
+     (variadic
+      ( ()
+	(exit argloop))
+      ( (:value v)
+	(list_append newlist v))
+      (:else
+      (let ( (vcty (variadic_ctype 0))
+	     )
+	(errormsg_strv "COMPLETE_SEQUENCE_AS_LIST with unsupported ctype"
+		       (get_field :named_name vcty))
+	(assert_msg "invalid variadic argument to COMPLETE_SEQUENCE_AS_LIST" ())))
+      ))
+    (return newlist)))
+ 
+
 
 (defprimitive variadic_type_code (:long delta) :long
   :doc #{Return the type code, i.e. an integer from the MELTBPAR_*
@@ -3827,6 +3905,8 @@ which signals are not handled. It could be dynamically nested.}#
  checkval_dbg
  clone_with_discriminant
  compare_named_alpha
+ complete_sequence_as_list
+ complete_sequence_as_tuple
  cstring_length
  cstring_prefixed
  cstring_same

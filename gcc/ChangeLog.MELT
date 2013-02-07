@@ -2,6 +2,13 @@
 
 2013-02-07  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-base.melt (complete_sequence_as_list)
+	(complete_sequence_as_tuple): New exported functions.
+
+	* melt/warmelt-normatch.melt (normstep_mflagset): Use it.
+
+2013-02-07  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* gdbinit.in: Explicitly set the number of printed elements
 
 	* melt-runtime.c (melt_compile_source): More debug.
