@@ -121,8 +121,8 @@ static const char *const ctr_names[GCOV_COUNTERS] = GCOV_COUNTER_NAMES;
 /* Forward declarations.  */
 static void read_counts_file (void);
 static tree build_var (tree, tree, int);
-static void build_fn_info_type (tree, unsigned, tree);
-static void build_info_type (tree, tree);
+static tree build_fn_info_type (unsigned, tree);
+static tree build_info_type (record_builder &, tree);
 static tree build_fn_info (const struct coverage_data *, tree, tree);
 static tree build_info (tree, tree);
 static bool coverage_obj_init (void);
@@ -693,63 +693,47 @@ build_var (tree fn_decl, tree type, int counter)
   return var;
 }
 
-/* Creates the gcov_fn_info RECORD_TYPE.  */
+/* Creates the gcov_fn_info RECORD_TYPE, given the number of COUNTERS and
+   using the GCOV_INFO_TYPE.  */
 
-static void
-build_fn_info_type (tree type, unsigned counters, tree gcov_info_type)
+static tree
+build_fn_info_type (unsigned counters, tree gcov_info_type)
 {
-  tree ctr_info = lang_hooks.types.make_type (RECORD_TYPE);
-  tree field, fields;
-  tree array_type;
-
   gcc_assert (counters);
-  
-  /* ctr_info::num */
-  field = build_decl (BUILTINS_LOCATION, FIELD_DECL, NULL_TREE,
-		      get_gcov_unsigned_t ());
-  fields = field;
-  
-  /* ctr_info::values */
-  field = build_decl (BUILTINS_LOCATION, FIELD_DECL, NULL_TREE,
-		      build_pointer_type (get_gcov_type ()));
-  DECL_CHAIN (field) = fields;
-  fields = field;
-  
-  finish_builtin_struct (ctr_info, "__gcov_ctr_info", fields, NULL_TREE);
 
+  record_builder bld_ctr_info;
+  tree gcov_type = get_gcov_type ();
+  tree gcov_ptr_type = build_pointer_type (gcov_type);
+  bld_ctr_info.add_field (NULL_TREE, gcov_type, BUILTINS_LOCATION);
+  bld_ctr_info.add_field (NULL_TREE, gcov_ptr_type, BUILTINS_LOCATION);
+  bld_ctr_info.layout ();
+  bld_ctr_info.decl_name ("__gcov_ctr_info", BUILTINS_LOCATION);
+  tree ctr_info = bld_ctr_info.as_tree ();
+
+  record_builder bld_fn_info;
   /* key */
-  field = build_decl (BUILTINS_LOCATION, FIELD_DECL, NULL_TREE,
-		      build_pointer_type (build_qualified_type
-					  (gcov_info_type, TYPE_QUAL_CONST)));
-  fields = field;
-  
+  tree pc_gcov_info
+	= build_pointer_type (build_qualified_type (gcov_info_type,
+						    TYPE_QUAL_CONST));
+  bld_fn_info.add_field (NULL_TREE, pc_gcov_info, BUILTINS_LOCATION);
+
   /* ident */
-  field = build_decl (BUILTINS_LOCATION, FIELD_DECL, NULL_TREE,
-		      get_gcov_unsigned_t ());
-  DECL_CHAIN (field) = fields;
-  fields = field;
-  
+  bld_fn_info.add_field (NULL_TREE, get_gcov_unsigned_t ());
+
   /* lineno_checksum */
-  field = build_decl (BUILTINS_LOCATION, FIELD_DECL, NULL_TREE,
-		      get_gcov_unsigned_t ());
-  DECL_CHAIN (field) = fields;
-  fields = field;
+  bld_fn_info.add_field (NULL_TREE, get_gcov_unsigned_t ());
 
   /* cfg checksum */
-  field = build_decl (BUILTINS_LOCATION, FIELD_DECL, NULL_TREE,
-		      get_gcov_unsigned_t ());
-  DECL_CHAIN (field) = fields;
-  fields = field;
-
-  array_type = build_index_type (size_int (counters - 1));
-  array_type = build_array_type (ctr_info, array_type);
+  bld_fn_info.add_field (NULL_TREE, get_gcov_unsigned_t ());
 
   /* counters */
-  field = build_decl (BUILTINS_LOCATION, FIELD_DECL, NULL_TREE, array_type);
-  DECL_CHAIN (field) = fields;
-  fields = field;
+  tree index_type = build_index_type (size_int (counters - 1));
+  tree array_type = build_array_type (ctr_info, index_type);
 
-  finish_builtin_struct (type, "__gcov_fn_info", fields, NULL_TREE);
+  bld_fn_info.add_field (NULL_TREE, array_type, BUILTINS_LOCATION);
+  bld_fn_info.layout ();
+  bld_fn_info.decl_name ("__gcov_fn_info", BUILTINS_LOCATION);
+  return bld_fn_info.as_tree ();
 }
 
 /* Returns a CONSTRUCTOR for a gcov_fn_info.  DATA is
@@ -819,69 +803,52 @@ build_fn_info (const struct coverage_data *data, tree type, tree key)
   return build_constructor (type, v1);
 }
 
-/* Create gcov_info struct.  TYPE is the incomplete RECORD_TYPE to be
+/* Return gcov_info struct.  BLD_INFO_TYPE is the record_builder to be
    completed, and FN_INFO_PTR_TYPE is a pointer to the function info type.  */
 
-static void
-build_info_type (tree type, tree fn_info_ptr_type)
+static tree
+build_info_type (record_builder &bld_info_type, tree fn_info_ptr_type)
 {
-  tree field, fields = NULL_TREE;
-  tree merge_fn_type;
+  tree uns_type = get_gcov_unsigned_t ();
 
   /* Version ident */
-  field = build_decl (BUILTINS_LOCATION, FIELD_DECL, NULL_TREE,
-		      get_gcov_unsigned_t ());
-  DECL_CHAIN (field) = fields;
-  fields = field;
+  bld_info_type.add_field (NULL_TREE, uns_type, BUILTINS_LOCATION);
 
   /* next pointer */
-  field = build_decl (BUILTINS_LOCATION, FIELD_DECL, NULL_TREE,
-		      build_pointer_type (build_qualified_type
-					  (type, TYPE_QUAL_CONST)));
-  DECL_CHAIN (field) = fields;
-  fields = field;
+  tree self_type = bld_info_type.as_tree ();
+  tree qual_info = build_qualified_type (self_type, TYPE_QUAL_CONST);
+  tree ptr_info = build_pointer_type (qual_info);
+  bld_info_type.add_field (NULL_TREE, ptr_info, BUILTINS_LOCATION);
 
   /* stamp */
-  field = build_decl (BUILTINS_LOCATION, FIELD_DECL, NULL_TREE,
-		      get_gcov_unsigned_t ());
-  DECL_CHAIN (field) = fields;
-  fields = field;
+  bld_info_type.add_field (NULL_TREE, uns_type, BUILTINS_LOCATION);
 
   /* Filename */
-  field = build_decl (BUILTINS_LOCATION, FIELD_DECL, NULL_TREE,
-		      build_pointer_type (build_qualified_type
-					  (char_type_node, TYPE_QUAL_CONST)));
-  DECL_CHAIN (field) = fields;
-  fields = field;
+  tree qual_char = build_qualified_type (char_type_node, TYPE_QUAL_CONST);
+  tree ptr_char = build_pointer_type (qual_char);
+  bld_info_type.add_field (NULL_TREE, ptr_char, BUILTINS_LOCATION);
 
   /* merge fn array */
-  merge_fn_type
+  tree merge_fn_type
     = build_function_type_list (void_type_node,
 				build_pointer_type (get_gcov_type ()),
-				get_gcov_unsigned_t (), NULL_TREE);
-  merge_fn_type
+				uns_type, NULL_TREE);
+  tree array_fn_type
     = build_array_type (build_pointer_type (merge_fn_type),
 			build_index_type (size_int (GCOV_COUNTERS - 1)));
-  field = build_decl (BUILTINS_LOCATION, FIELD_DECL, NULL_TREE,
-		      merge_fn_type);
-  DECL_CHAIN (field) = fields;
-  fields = field;
-  
-  /* n_functions */
-  field = build_decl (BUILTINS_LOCATION, FIELD_DECL, NULL_TREE,
-		      get_gcov_unsigned_t ());
-  DECL_CHAIN (field) = fields;
-  fields = field;
-  
-  /* function_info pointer pointer */
-  fn_info_ptr_type = build_pointer_type
-    (build_qualified_type (fn_info_ptr_type, TYPE_QUAL_CONST));
-  field = build_decl (BUILTINS_LOCATION, FIELD_DECL, NULL_TREE,
-		      fn_info_ptr_type);
-  DECL_CHAIN (field) = fields;
-  fields = field;
+  bld_info_type.add_field (NULL_TREE, array_fn_type, BUILTINS_LOCATION);
 
-  finish_builtin_struct (type, "__gcov_info", fields, NULL_TREE);
+  /* n_functions */
+  bld_info_type.add_field (NULL_TREE, uns_type, BUILTINS_LOCATION);
+
+  /* function_info pointer pointer */
+  tree fn_info_ptr_ptr_type = build_pointer_type
+    (build_qualified_type (fn_info_ptr_type, TYPE_QUAL_CONST));
+  bld_info_type.add_field (NULL_TREE, fn_info_ptr_ptr_type, BUILTINS_LOCATION);
+
+  bld_info_type.layout ();
+  bld_info_type.decl_name ("__gcov_info");
+  return bld_info_type.as_tree ();
 }
 
 /* Returns a CONSTRUCTOR for the gcov_info object.  INFO_TYPE is the
@@ -974,7 +941,7 @@ build_info (tree info_type, tree fn_ary)
 static bool
 coverage_obj_init (void)
 {
-  tree gcov_info_type, ctor, stmt, init_fn;
+  tree ctor, stmt, init_fn;
   unsigned n_counters = 0;
   unsigned ix;
   struct coverage_data *fn;
@@ -1005,12 +972,11 @@ coverage_obj_init (void)
       n_counters++;
   
   /* Build the info and fn_info types.  These are mutually recursive.  */
-  gcov_info_type = lang_hooks.types.make_type (RECORD_TYPE);
-  gcov_fn_info_type = lang_hooks.types.make_type (RECORD_TYPE);
+  record_builder bld_info_type;
+  gcov_fn_info_type = build_fn_info_type (n_counters, bld_info_type.as_tree ());
   gcov_fn_info_ptr_type = build_pointer_type
     (build_qualified_type (gcov_fn_info_type, TYPE_QUAL_CONST));
-  build_fn_info_type (gcov_fn_info_type, n_counters, gcov_info_type);
-  build_info_type (gcov_info_type, gcov_fn_info_ptr_type);
+  tree gcov_info_type = build_info_type (bld_info_type, gcov_fn_info_ptr_type);
   
   /* Build the gcov info var, this is referred to in its own
      initializer.  */

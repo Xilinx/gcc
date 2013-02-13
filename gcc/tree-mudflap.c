@@ -317,23 +317,12 @@ mf_make_builtin (enum tree_code category, const char *name, tree type)
 static inline tree
 mf_make_mf_cache_struct_type (tree field_type)
 {
-  /* There is, abominably, no language-independent way to construct a
-     RECORD_TYPE.  So we have to call the basic type construction
-     primitives by hand.  */
-  tree fieldlo = build_decl (UNKNOWN_LOCATION,
-			     FIELD_DECL, get_identifier ("low"), field_type);
-  tree fieldhi = build_decl (UNKNOWN_LOCATION,
-			     FIELD_DECL, get_identifier ("high"), field_type);
-
-  tree struct_type = make_node (RECORD_TYPE);
-  DECL_CONTEXT (fieldlo) = struct_type;
-  DECL_CONTEXT (fieldhi) = struct_type;
-  DECL_CHAIN (fieldlo) = fieldhi;
-  TYPE_FIELDS (struct_type) = fieldlo;
-  TYPE_NAME (struct_type) = get_identifier ("__mf_cache");
-  layout_type (struct_type);
-
-  return struct_type;
+  record_builder rec;
+  rec.add_field ("low", field_type);
+  rec.add_field ("high", field_type);
+  rec.layout ();
+  rec.tag_name ("__mf_cache");
+  return rec.as_tree ();
 }
 
 /* Initialize the global tree nodes that correspond to mf-runtime.h

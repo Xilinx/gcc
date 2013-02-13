@@ -2741,12 +2741,12 @@ DEFHOOKPOD
  "",
  const char *, NULL)
 
-/* Function to generate field definitions of the proxy variable.  */
+/* Function to generate type of the proxy variable.  */
 DEFHOOK
-(var_fields,
+(object_type,
  "",
- tree, (tree type, tree *name),
- default_emutls_var_fields)
+ tree, (),
+ default_emutls_object_type)
 
 /* Function to initialize a proxy variable.  */
 DEFHOOK

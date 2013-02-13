@@ -6529,4 +6529,28 @@ builtin_decl_implicit_p (enum built_in_function fncode)
 	  && builtin_info.implicit_p[uns_fncode]);
 }
 
+
+/* A class for simplifying the construction of RECORD_TYPE and UNION_TYPE.  */
+
+class record_builder
+{
+public:
+  record_builder (bool is_union = false);
+  void add_field (tree ident, tree type,
+		  source_location loc = UNKNOWN_LOCATION);
+  void add_field (const char *ident, tree type,
+		  source_location loc = UNKNOWN_LOCATION);
+  void layout ();
+  void layout (tree align_type);
+  void tag_name (tree ident);
+  void tag_name (const char *ident);
+  void decl_name (tree ident, source_location loc = UNKNOWN_LOCATION);
+  void decl_name (const char *ident, source_location loc = UNKNOWN_LOCATION);
+  tree as_tree ();
+private:
+  tree building_;
+  tree last_field_;
+}; // class record_builder
+
+
 #endif  /* GCC_TREE_H  */

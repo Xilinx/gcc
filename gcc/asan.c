@@ -1496,28 +1496,16 @@ transform_statements (void)
 static tree
 asan_global_struct (void)
 {
-  static const char *field_names[5]
-    = { "__beg", "__size", "__size_with_redzone",
-	"__name", "__has_dynamic_init" };
-  tree fields[5], ret;
-  int i;
-
-  ret = make_node (RECORD_TYPE);
-  for (i = 0; i < 5; i++)
-    {
-      fields[i]
-	= build_decl (UNKNOWN_LOCATION, FIELD_DECL,
-		      get_identifier (field_names[i]),
-		      (i == 0 || i == 3) ? const_ptr_type_node
-		      : build_nonstandard_integer_type (POINTER_SIZE, 1));
-      DECL_CONTEXT (fields[i]) = ret;
-      if (i)
-	DECL_CHAIN (fields[i - 1]) = fields[i];
-    }
-  TYPE_FIELDS (ret) = fields[0];
-  TYPE_NAME (ret) = get_identifier ("__asan_global");
-  layout_type (ret);
-  return ret;
+  tree ptrint_type = build_nonstandard_integer_type (POINTER_SIZE, 1);
+  record_builder rec;
+  rec.add_field ("__beg", const_ptr_type_node);
+  rec.add_field ("__size", ptrint_type);
+  rec.add_field ("__size_with_redzone", ptrint_type);
+  rec.add_field ("__name", const_ptr_type_node);
+  rec.add_field ("__has_dynamic_init", ptrint_type);
+  rec.layout ();
+  rec.tag_name ("__asan_global");
+  return rec.as_tree ();
 }
 
 /* Append description of a single global DECL into vector V.

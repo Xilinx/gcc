@@ -103,41 +103,22 @@ get_emutls_object_name (tree name)
   return prefix_name (prefix, name);
 }
 
-/* Create the fields of the type for the control variables.  Ordinarily
+/* Create the type for the control variables.  Ordinarily
    this must match struct __emutls_object defined in emutls.c.  However
    this is a target hook so that VxWorks can define its own layout.  */
 
 tree
-default_emutls_var_fields (tree type, tree *name ATTRIBUTE_UNUSED)
+default_emutls_object_type (void)
 {
-  tree word_type_node, field, next_field;
-
-  field = build_decl (UNKNOWN_LOCATION,
-		      FIELD_DECL, get_identifier ("__templ"), ptr_type_node);
-  DECL_CONTEXT (field) = type;
-  next_field = field;
-
-  field = build_decl (UNKNOWN_LOCATION,
-		      FIELD_DECL, get_identifier ("__offset"),
-		      ptr_type_node);
-  DECL_CONTEXT (field) = type;
-  DECL_CHAIN (field) = next_field;
-  next_field = field;
-
-  word_type_node = lang_hooks.types.type_for_mode (word_mode, 1);
-  field = build_decl (UNKNOWN_LOCATION,
-		      FIELD_DECL, get_identifier ("__align"),
-		      word_type_node);
-  DECL_CONTEXT (field) = type;
-  DECL_CHAIN (field) = next_field;
-  next_field = field;
-
-  field = build_decl (UNKNOWN_LOCATION,
-		      FIELD_DECL, get_identifier ("__size"), word_type_node);
-  DECL_CONTEXT (field) = type;
-  DECL_CHAIN (field) = next_field;
-
-  return field;
+  tree word_type_node = lang_hooks.types.type_for_mode (word_mode, 1);
+  record_builder rec;
+  rec.add_field ("__size", word_type_node);
+  rec.add_field ("__align", word_type_node);
+  rec.add_field ("__offset", ptr_type_node);
+  rec.add_field ("__templ", ptr_type_node);
+  rec.layout ();
+  rec.decl_name ("__emutls_object");
+  return rec.as_tree ();
 }
 
 /* Initialize emulated tls object TO, which refers to TLS variable DECL and
@@ -182,24 +163,9 @@ default_emutls_var_init (tree to, tree decl, tree proxy)
 static tree
 get_emutls_object_type (void)
 {
-  tree type, type_name, field;
-
-  type = emutls_object_type;
-  if (type)
-    return type;
-
-  emutls_object_type = type = lang_hooks.types.make_type (RECORD_TYPE);
-  type_name = NULL;
-  field = targetm.emutls.var_fields (type, &type_name);
-  if (!type_name)
-    type_name = get_identifier ("__emutls_object");
-  type_name = build_decl (UNKNOWN_LOCATION,
-			  TYPE_DECL, type_name, type);
-  TYPE_NAME (type) = type_name;
-  TYPE_FIELDS (type) = field;
-  layout_type (type);
-
-  return type;
+  if (!emutls_object_type)
+    emutls_object_type = targetm.emutls.object_type ();
+  return emutls_object_type;
 }
 
 /* Create a read-only variable like DECL, with the same DECL_INITIAL.

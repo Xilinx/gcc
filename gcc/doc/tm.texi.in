@@ -9827,12 +9827,10 @@ Contains the prefix to be prepended to TLS initializer objects.  The
 default of @code{NULL} uses a target-specific prefix.
 @end deftypevr
 
-@hook TARGET_EMUTLS_VAR_FIELDS
-Specifies a function that generates the FIELD_DECLs for a TLS control
-object type.  @var{type} is the RECORD_TYPE the fields are for and
-@var{name} should be filled with the structure tag, if the default of
-@code{__emutls_object} is unsuitable.  The default creates a type suitable
-for libgcc's emulated TLS function.
+@hook TARGET_EMUTLS_OBJECT_TYPE
+Specifies a function that generates the RECORD_TYPE for a TLS control
+object type.  The default creates a type, with structure tag
+@code{__emutls_object}, suitable for libgcc's emulated TLS function.
 @end deftypefn
 
 @hook TARGET_EMUTLS_VAR_INIT

@@ -11624,4 +11624,95 @@ warn_deprecated_use (tree node, tree attr)
     }
 }
 
+
+/* Construct a record builder with the identifier IDENT.
+   It is a union if IS_UNION is true, otherwise it is a RECORD_TYPE.
+   QUAL_RECORD_TYPE is not supported.  */
+
+record_builder::record_builder (bool is_union)
+: building_ (lang_hooks.types.make_type (is_union ? UNION_TYPE : RECORD_TYPE)),
+  last_field_ (NULL)
+{
+}
+
+
+/* Add a field with an identifier IDENT and type TYPE to the record.  */
+
+void
+record_builder::add_field (tree ident, tree type, source_location loc)
+{
+  tree this_field = build_decl (loc, FIELD_DECL, ident, type);
+  DECL_CONTEXT (this_field) = building_;
+  if (last_field_)
+    DECL_CHAIN (last_field_) = this_field;
+  else
+    TYPE_FIELDS (building_) = this_field;
+  last_field_ = this_field;
+}
+
+void
+record_builder::add_field (const char *ident, tree type, source_location loc)
+{
+  add_field (get_identifier (ident), type, loc);
+}
+
+
+/* Add a TYPE_NAME to the record.  This can be a tag name directly from IDENT,
+   or a TYPE_DECL created with the IDENT.  */
+
+void
+record_builder::tag_name (tree ident)
+{
+  gcc_assert (TREE_CODE (ident) == IDENTIFIER_NODE);
+  TYPE_NAME (building_) = ident;
+}
+
+void
+record_builder::tag_name (const char *ident)
+{
+  tag_name (get_identifier (ident));
+}
+
+void
+record_builder::decl_name (tree ident, source_location loc)
+{
+  tree type_decl = build_decl (loc, TYPE_DECL, ident, building_);
+  TYPE_NAME (building_) = type_decl;
+}
+
+void
+record_builder::decl_name (const char *ident, source_location loc)
+{
+  decl_name (get_identifier (ident), loc);
+}
+
+
+/* Layout the fields of the record, aligning with ALIGN_TYPE if given.
+   Ensure that you call one of these functions after adding all fields.  */
+
+void
+record_builder::layout ()
+{
+  layout_type (building_);
+}
+
+void
+record_builder::layout (tree align_type)
+{
+  TYPE_ALIGN (building_) = TYPE_ALIGN (align_type);
+  TYPE_USER_ALIGN (building_) = TYPE_USER_ALIGN (align_type);
+  layout ();
+}
+
+
+/* Return the record as a tree.  You may call this function any time after
+   construction of the builder.  */
+
+tree
+record_builder::as_tree ()
+{
+  return building_;
+}
+
+
 #include "gt-tree.h"

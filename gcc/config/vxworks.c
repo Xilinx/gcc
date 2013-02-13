@@ -56,35 +56,18 @@ vxworks_asm_out_destructor (rtx symbol, int priority)
   assemble_addr_to_section (symbol, sec);
 }
 
-/* Return the list of FIELD_DECLs that make up an emulated TLS
-   variable's control object.  TYPE is the structure these are fields
-   of and *NAME will be filled in with the structure tag that should
-   be used.  */
+/* Return the type of an emulated TLS variable's control object.  */
 
 static tree
-vxworks_emutls_var_fields (tree type, tree *name)
+vxworks_emutls_object_type ()
 {
-  tree field, next_field;
-  
-  *name = get_identifier ("__tls_var");
-  
-  field = build_decl (BUILTINS_LOCATION, FIELD_DECL,
-		      get_identifier ("size"), unsigned_type_node);
-  DECL_CONTEXT (field) = type;
-  next_field = field;
-
-  field = build_decl (BUILTINS_LOCATION, FIELD_DECL,
-		      get_identifier ("module_id"), unsigned_type_node);
-  DECL_CONTEXT (field) = type;
-  DECL_CHAIN (field) = next_field;
-  next_field = field;
-
-  field = build_decl (BUILTINS_LOCATION, FIELD_DECL,
-		      get_identifier ("offset"), unsigned_type_node);
-  DECL_CONTEXT (field) = type;
-  DECL_CHAIN (field) = next_field;
-
-  return field;
+  record_builder rec;
+  rec.add_field ("offset", unsigned_type_node);
+  rec.add_field ("module_id", unsigned_type_node);
+  rec.add_field ("size", unsigned_type_node);
+  rec.layout ();
+  rec.decl_name ("__tls_var");
+  return rec.as_tree ();
 }
 
 /* Return the CONSTRUCTOR to initialize an emulated TLS control
@@ -131,7 +114,7 @@ vxworks_override_options (void)
   targetm.emutls.tmpl_section = ".tls_data";
   targetm.emutls.var_prefix = "__tls__";
   targetm.emutls.tmpl_prefix = "";
-  targetm.emutls.var_fields = vxworks_emutls_var_fields;
+  targetm.emutls.object_type = vxworks_emutls_object_type;
   targetm.emutls.var_init = vxworks_emutls_var_init;
   targetm.emutls.var_align_fixed = true;
   targetm.emutls.debug_form_tls_address = true;
