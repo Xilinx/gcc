@@ -1,3 +1,55 @@
+2013-02-12  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46952
+	* resolve.c (resolve_call): Do not check deferred procedures for
+	recursiveness.
+
+2013-02-09  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/55362
+	* check.c (array_check): It is an error if a procedure is
+	passed.
+
+2013-02-08  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/54107
+	* trans-types.c (gfc_get_function_type): Change a NULL backend_decl
+	to error_mark_node on entry.  Detect recursive types.  Build a variadic
+	procedure type if the type is recursive.  Restore the initial
+	backend_decl.
+
+2013-02-07  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/54339
+	* gfortran.texi (Standards): Mention TS29113.
+	(Varying Length Character): Mention deferred-length
+	strings.
+	(Fortran 2003 Status): Add unlimited polymorphic.
+	(TS 29113 Status): Add TYPE(*) and DIMENSION(..).
+	(C Interop): Update the section about TS29113.
+
+2013-02-06 Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/55789
+	* trans-array.c (trans_array_constructor): Remove condition
+	'dynamic' = true if the loop ubound is a VAR_DECL.
+
+2013-02-04  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/56008
+	PR fortran/47517
+	* trans-array.c (gfc_alloc_allocatable_for_assignment): Save
+	the lhs descriptor before it is modified for reallocation. Use
+	it to deallocate allocatable components in the reallocation
+	block.  Nullify allocatable components for newly (re)allocated
+	arrays.
+
+2013-02-04  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/54195
+	* resolve.c (resolve_typebound_procedures): Recurse through
+	resolve_symbol.
+
 2013-02-04  Mikael Morin  <mikael@gcc.gnu.org>
 
 	PR fortran/54107

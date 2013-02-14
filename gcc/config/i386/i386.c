@@ -5436,7 +5436,9 @@ ix86_legitimate_combined_insn (rtx insn)
 static unsigned HOST_WIDE_INT
 ix86_asan_shadow_offset (void)
 {
-  return (unsigned HOST_WIDE_INT) 1 << (TARGET_LP64 ? 44 : 29);
+  return TARGET_LP64 ? (TARGET_MACHO ? (HOST_WIDE_INT_1 << 44)
+				     : HOST_WIDE_INT_C (0x7fff8000))
+		     : (HOST_WIDE_INT_1 << 29);
 }
 
 /* Argument support functions.  */
@@ -14628,7 +14630,8 @@ ix86_print_operand (FILE *file, rtx x, int code)
 	putc ('$', file);
       /* Sign extend 32bit SFmode immediate to 8 bytes.  */
       if (code == 'q')
-	fprintf (file, "0x%08llx", (unsigned long long) (int) l);
+	fprintf (file, "0x%08" HOST_LONG_LONG_FORMAT "x",
+		 (unsigned long long) (int) l);
       else
 	fprintf (file, "0x%08x", (unsigned int) l);
     }
@@ -28695,6 +28698,9 @@ get_builtin_code_for_version (tree decl, tree *predicate_list)
   gcc_assert (TREE_CODE (attrs) == STRING_CST);
   attrs_str = TREE_STRING_POINTER (attrs);
 
+  /* Return priority zero for default function.  */
+  if (strcmp (attrs_str, "default") == 0)
+    return 0;
 
   /* Handle arch= if specified.  For priority, set it to be 1 more than
      the best instruction set the processor can handle.  For instance, if
@@ -28827,14 +28833,8 @@ get_builtin_code_for_version (tree decl, tree *predicate_list)
 static int
 ix86_compare_version_priority (tree decl1, tree decl2)
 {
-  unsigned int priority1 = 0;
-  unsigned int priority2 = 0;
-
-  if (lookup_attribute ("target", DECL_ATTRIBUTES (decl1)) != NULL)
-    priority1 = get_builtin_code_for_version (decl1, NULL);
-
-  if (lookup_attribute ("target", DECL_ATTRIBUTES (decl2)) != NULL)
-    priority2 = get_builtin_code_for_version (decl2, NULL);
+  unsigned int priority1 = get_builtin_code_for_version (decl1, NULL);
+  unsigned int priority2 = get_builtin_code_for_version (decl2, NULL);
 
   return (int)priority1 - (int)priority2;
 }
@@ -29064,14 +29064,12 @@ ix86_mangle_function_version_assembler_name (tree decl, tree id)
 
   if (DECL_VIRTUAL_P (decl)
       || DECL_VINDEX (decl))
-    error_at (DECL_SOURCE_LOCATION (decl),
-	      "Virtual function versioning not supported\n");
+    sorry ("Virtual function multiversioning not supported");
 
   version_attr = lookup_attribute ("target", DECL_ATTRIBUTES (decl));
 
-  /* target attribute string is NULL for default functions.  */
-  if (version_attr == NULL_TREE)
-    return id;
+  /* target attribute string cannot be NULL.  */
+  gcc_assert (version_attr != NULL_TREE);
 
   orig_name = IDENTIFIER_POINTER (id);
   version_string
@@ -29511,8 +29509,8 @@ ix86_generate_version_dispatcher_body (void *node_p)
 	 virtual methods in base classes but are not explicitly marked as
 	 virtual.  */
       if (DECL_VINDEX (versn->symbol.decl))
-        error_at (DECL_SOURCE_LOCATION (versn->symbol.decl),
-		  "Virtual function multiversioning not supported");
+	sorry ("Virtual function multiversioning not supported");
+
       fn_ver_vec.safe_push (versn->symbol.decl);
     }
 
@@ -42082,9 +42080,8 @@ static reg_class_t
 ix86_spill_class (reg_class_t rclass, enum machine_mode mode)
 {
   if (TARGET_SSE && TARGET_GENERAL_REGS_SSE_SPILL && ! TARGET_MMX
-      && hard_reg_set_subset_p (reg_class_contents[rclass],
-				reg_class_contents[GENERAL_REGS])
-      && (mode == SImode || (TARGET_64BIT && mode == DImode)))
+      && (mode == SImode || (TARGET_64BIT && mode == DImode))
+      && INTEGER_CLASS_P (rclass))
     return SSE_REGS;
   return NO_REGS;
 }

@@ -205,7 +205,8 @@ struct GTY (()) loops {
 };
 
 /* Loop recognition.  */
-extern int flow_loops_find (struct loops *);
+bool bb_loop_header_p (basic_block);
+extern struct loops *flow_loops_find (struct loops *);
 extern void disambiguate_loops_with_multiple_latches (void);
 extern void flow_loops_free (struct loops *);
 extern void flow_loops_dump (FILE *,
@@ -215,7 +216,7 @@ extern void flow_loop_dump (const struct loop *, FILE *,
 struct loop *alloc_loop (void);
 extern void flow_loop_free (struct loop *);
 int flow_loop_nodes_find (basic_block, struct loop *);
-void fix_loop_structure (bitmap changed_bbs);
+unsigned fix_loop_structure (bitmap changed_bbs);
 bool mark_irreducible_loops (void);
 void release_recorded_exits (void);
 void record_loop_exits (void);

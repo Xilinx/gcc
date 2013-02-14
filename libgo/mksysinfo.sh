@@ -309,6 +309,13 @@ for m in SOCK_CLOEXEC SOCK_NONBLOCK; do
   fi
 done
 
+# The syscall package requires AF_LOCAL.
+if ! grep '^const AF_LOCAL ' ${OUT} >/dev/null 2>&1; then
+  if grep '^const AF_UNIX ' ${OUT} >/dev/null 2>&1; then
+    echo "const AF_LOCAL = AF_UNIX" >> ${OUT}
+  fi
+fi
+
 # pathconf constants.
 grep '^const __PC' gen-sysinfo.go |
   sed -e 's/^\(const \)__\(PC[^= ]*\)\(.*\)$/\1\2 = __\2/' >> ${OUT}
@@ -429,8 +436,10 @@ echo "type Socklen_t _socklen_t" >> ${OUT}
 sizeof_int=`grep '^const ___SIZEOF_INT__ = ' gen-sysinfo.go | sed -e 's/.*= //'`
 if test "$sizeof_int" = "4"; then
   echo "type _C_int int32" >> ${OUT}
+  echo "type _C_uint uint32" >> ${OUT}
 elif test "$sizeof_int" = "8"; then
   echo "type _C_int int64" >> ${OUT}
+  echo "type _C_uint uint64" >> ${OUT}
 else
   echo 1>&2 "mksysinfo.sh: could not determine size of int (got $sizeof_int)"
   exit 1
