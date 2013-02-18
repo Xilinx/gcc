@@ -1,3 +1,125 @@
+2013-02-18  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/56366
+	* gcc.dg/torture/pr56366.c: New testcase.
+
+2013-02-18  Richard Biener  <rguenther@suse.de>
+
+	PR middle-end/56349
+	* gcc.dg/torture/pr56349.c: New testcase.
+
+2013-02-18  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/56321
+	* gcc.dg/torture/pr56321.c: New testcase.
+
+2013-02-16  Edgar E. Iglesias  <edgar.iglesias@gmail.com>
+
+	* gcc.dg/20020312-2.c: Define MicroBlaze PIC register
+
+2013-02-16  Jakub Jelinek  <jakub@redhat.com>
+	    Dodji Seketeli  <dodji@redhat.com>
+
+	PR asan/56330
+	* c-c++-common/asan/no-redundant-instrumentation-4.c: New test file.
+	* c-c++-common/asan/no-redundant-instrumentation-5.c: Likewise.
+	* c-c++-common/asan/no-redundant-instrumentation-6.c: Likewise.
+	* c-c++-common/asan/no-redundant-instrumentation-7.c: Likewise.
+	* c-c++-common/asan/no-redundant-instrumentation-8.c: Likewise.
+	* c-c++-common/asan/pr56330.c: Likewise.
+	* c-c++-common/asan/no-redundant-instrumentation-1.c (test1):
+	Ensure the size argument of __builtin_memcpy is a constant.
+
+2013-02-15  Jonathan Wakely  <jwakely.gcc@gmail.com>
+	    Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51242
+	* g++.dg/cpp0x/enum23.C: New.
+
+2013-02-15  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/54685
+	* gcc.target/sh/pr54685.c: Fix scanning of not insn.
+
+2013-02-15  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-optimization/56348
+	* gcc.target/i386/pr56348.c: New test.
+
+2013-02-15  Greta Yorsh  <Greta.Yorsh@arm.com>
+
+	* gcc.target/arm/interrupt-1.c: Fix for thumb mode.
+	* gcc.target/arm/interrupt-2.c: Likewise.
+
+2013-02-15  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/56318
+	* gcc/testsuite/gfortran.dg/matmul_9.f90: New.
+
+2013-02-15  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/53818
+	* gfortran.dg/init_flag_11.f90: New.
+
+2013-02-14  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.dg/debug/dwarf2/pr53948.c: Allow for more whitespace.
+
+2013-02-14  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.dg/debug/dwarf2/pr53948.c: Allow for / and ! as comment
+	characters.
+
+2013-02-14  Dominique d'Humieres  <dominiq@lps.ens.fr>
+	    Tobias Burnus  <burnus@net-b.de>
+
+	PR testsuite/56138
+	* gfortran.dg/allocatable_function_7.f90: New.
+
+2013-02-14  Jakub Jelinek  <jakub@redhat.com>
+
+	* g++.dg/asan/dejagnu-gtest.h: Add multiple inclusion guards.
+	* asan_globals_test-wrapper.cc: New file.
+	* g++.dg/asan/asan_test.C: Use asan_globals_test-wrapper.cc
+	instead of asan_globals_test.cc as dg-additional-sources.
+	Include asan_mem_test.cc, asan_str_test.cc and asan_oob_test.cc.
+	* g++.dg/asan/asan_test_utils.h: Synced from upstream.  Include
+	"sanitizer_test_utils.h" instead of
+	"sanitizer_common/tests/sanitizer_test_utils.h".
+	* g++.dg/asan/asan_str_test.cc: New file, synced from upstream.
+	* g++.dg/asan/asan_mem_test.cc: New file, synced from upstream.
+	* g++.dg/asan/asan_oob_test.cc: New file, synced from upstream.
+	* g++.dg/asan/asan_globals_test.cc: Synced from upstream.
+	* g++.dg/asan/asan_test.cc: Synced from upstream.
+	* g++.dg/asan/sanitizer_test_utils.h: New file, synced from upstream.
+
+2013-02-14  Dodji Seketeli  <dodji@redhat.com>
+
+	Fix an asan crash
+	* c-c++-common/asan/memcmp-2.c: New test.
+
+2013-02-13  Ed Smith-Rowland  <3dw4rd@verizon.net>
+
+	PR c++/55582
+	* g++.dg/cpp0x/udlit-string-literal.h: New.
+	* g++.dg/cpp0x/udlit-string-literal.C: New.
+
+2013-02-13  Sriraman Tallam  <tmsriram@google.com>
+
+	* g++.dg/ext/mv12-aux.C: Add directives to match mv12.C.
+
+2013-02-13  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR target/56184
+	* gcc.target/arm/pr56184.C: New test.
+
+2013-02-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/56302
+	* g++.dg/torture/pr56302.C: New test.
+	* g++.dg/cpp0x/constexpr-56302.C: New test.
+	* c-c++-common/pr56302.c: New test.
+
 2013-02-13  Tobias Burnus  <burnus@net-b.de>
 	    Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 

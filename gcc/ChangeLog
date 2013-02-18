@@ -1,3 +1,138 @@
+2013-02-18  John David Anglin  <dave.anglin@nrc-cnrc.ca>
+
+	PR target/56214
+	* config/pa/predicates.md (base14_operand): Except for BLKmode, QImode
+	and HImode, require all displacements to be an integer multiple of their
+	mode size.
+	* config/pa/pa.c (pa_legitimate_address_p): For REG+BASE addresses,
+	only allow QImode and HImode when reload is in progress and strict is
+	true.  Likewise for symbolic addresses.  Use base14_operand to check
+	displacements in REG+BASE addresses.
+
+2013-02-18  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/56366
+	* tree-vect-loop.c (get_initial_def_for_induction): Properly
+	handle sign-conversion of outer-loop initial induction value.
+
+2013-02-18  Richard Biener  <rguenther@suse.de>
+
+	PR middle-end/56349
+	* cfghooks.c (merge_blocks): If we merge a latch into another
+	block adjust references to it.
+	* cfgloop.c (flow_loops_find): Reset latch before recomputing it.
+	(verify_loop_structure): Verify that a recorded latch is in fact
+	a latch.
+
+2013-02-18  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/56321
+	* tree-ssa-reassoc.c (propagate_op_to_single_use): Properly
+	order SSA name release and virtual operand unlinking.
+
+2013-02-17  Edgar E. Iglesias  <edgar.iglesias@gmail.com>
+
+	* config/microblaze/microblaze.md (save_stack_block): Define.
+	(restore_stack_block): Likewise.
+
+2013-02-16  Edgar E. Iglesias  <edgar.iglesias@gmail.com>
+
+	* config/microblaze/linux.h (TARGET_SUPPORTS_PIC): Define as 1.
+	* config/microblaze/microblaze.h (TARGET_SUPPORTS_PIC): Define as 1.
+	* config/microblaze/microblaze.c (microblaze_option_override):
+	Bail out early for PIC modes when target does not support PIC.
+
+2013-02-16  Edgar E. Iglesias  <edgar.iglesias@gmail.com>
+
+	* config/microblaze/microblaze.c (microblaze_asm_trampoline_template): 
+	Replace with a microblaze version.
+	(microblaze_trampoline_init): Adapt for microblaze.
+	* gcc/config/microblaze/microblaze.h (TRAMPOLINE_SIZE): Adapt for 
+	microblaze.
+
+2013-02-16  Jakub Jelinek  <jakub@redhat.com>
+	    Dodji Seketeli  <dodji@redhat.com>
+
+	PR asan/56330
+	* asan.c (get_mem_refs_of_builtin_call): White space and style
+	cleanup.
+	(instrument_mem_region_access): Do not forget to always put
+	instrumentation of the of 'base' and 'base + len' in a "if (len !=
+	0) statement, even for cases where either 'base' or 'base + len'
+	are not instrumented -- because they have been previously
+	instrumented.  Simplify the logic by putting all the statements
+	instrument 'base + len' inside a sequence, and then insert that
+	sequence right before the current insertion point.  Then, to
+	instrument 'base + len', just get an iterator on that statement.
+	And do not forget to update the pointer to iterator the function
+	received as argument.
+
+2013-02-15  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-optimization/56348
+	* lra-assigns.c (reload_pseudo_compare_func): Prefer bigger pseudos.
+
+2013-02-15  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* graph.c (start_graph_dump): Print dumpfile base as digraph label.
+	(clean_graph_dump_file): Pass base to start_graph_dump.
+
+2013-02-14  Richard Henderson  <rth@redhat.com>
+
+	PR target/55941
+	* lower-subreg.c (simple_move): Check dest mode instead of src mode.
+
+2013-02-14  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* collect2-aix.h: Define F_LOADONLY.
+
+2013-02-14  Richard Biener  <rguenther@suse.de>
+
+	PR lto/50494
+	* varasm.c (output_constant_def_1): Get the decl representing
+	the constant as argument.
+	(output_constant_def): Wrap output_constant_def_1.
+	(make_decl_rtl): Use output_constant_def_1 with the decl
+	representing the constant.
+	(build_constant_desc): Optionally re-use a decl already
+	representing the constant.
+	(tree_output_constant_def): Adjust.
+
+2013-02-14  Dodji Seketeli  <dodji@redhat.com>
+
+	Fix an asan crash
+	* asan.c (instrument_builtin_call):  Really put the length of the
+	second source argument into src1_len.
+
+2013-02-13  Jakub Jelinek  <jakub@redhat.com>
+
+	* asan.c (create_cond_insert_point): Add create_then_fallthru_edge
+	argument.  If it is false, don't create edge from then_bb to
+	fallthru_bb.
+	(insert_if_then_before_iter): Pass true to it.
+	(build_check_stmt): Pass false to it.
+	(transform_statements): Flush hash table only on extended basic
+	block boundaries, rather than at the beginning of every bb.
+	Don't flush hash table on nonfreeing_call_p calls.
+	* tree-flow.h (nonfreeing_call_p): New prototype.
+	* tree-ssa-phiopt.c (nonfreeing_call_p): No longer static.
+
+2013-02-13  David S. Miller  <davem@davemloft.net>
+
+	* expmed.c (expand_shift_1): Only strip scalar integer subregs.
+
+2013-02-13  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR target/56184
+	* ira.c (max_regno_before_ira): Move from ...
+	(ira): ... here.
+	(fix_reg_equiv_init): Use max_regno_before_ira instead of
+	vec_safe_length.
+
+2013-02-13  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/i386/i386.c (ix86_asan_shadow_offset): Revert last change.
+
 2013-02-13  Richard Biener  <rguenther@suse.de>
 
 	PR lto/56295
@@ -59,7 +194,7 @@
 
 	PR inline-asm/56148
 	* lra-constraints.c (process_alt_operands): Match early clobber
-	operand with itself.  Check conflicts with earlyclobner only if
+	operand with itself.  Check conflicts with earlyclobber only if
 	the operand is not reloaded.  Prefer to reload conflicting operand
 	if earlyclobber and matching operands are the same.
 

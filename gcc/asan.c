@@ -747,20 +747,17 @@ get_mem_refs_of_builtin_call (const gimple call,
 
       got_reference_p = true;
     }
-    else
-      {
-	if (dest)
-	  {
-	    dst->start = dest;
-	    dst->access_size = access_size;
-	    *dst_len = NULL_TREE;
-	    *dst_is_store = is_store;
-	    *dest_is_deref = true;
-	    got_reference_p = true;
-	  }
-      }
+  else if (dest)
+    {
+      dst->start = dest;
+      dst->access_size = access_size;
+      *dst_len = NULL_TREE;
+      *dst_is_store = is_store;
+      *dest_is_deref = true;
+      got_reference_p = true;
+    }
 
-    return got_reference_p;
+  return got_reference_p;
 }
 
 /* Return true iff a given gimple statement has been instrumented.
@@ -1185,6 +1182,9 @@ report_error_func (bool is_store, int size_in_bytes)
    'then block' of the condition statement to be inserted by the
    caller.
 
+   If CREATE_THEN_FALLTHRU_EDGE is false, no edge will be created from
+   *THEN_BLOCK to *FALLTHROUGH_BLOCK.
+
    Similarly, the function will set *FALLTRHOUGH_BLOCK to the 'else
    block' of the condition statement to be inserted by the caller.
 
@@ -1201,6 +1201,7 @@ static gimple_stmt_iterator
 create_cond_insert_point (gimple_stmt_iterator *iter,
 			  bool before_p,
 			  bool then_more_likely_p,
+			  bool create_then_fallthru_edge,
 			  basic_block *then_block,
 			  basic_block *fallthrough_block)
 {
@@ -1226,7 +1227,8 @@ create_cond_insert_point (gimple_stmt_iterator *iter,
     ? PROB_VERY_UNLIKELY
     : PROB_ALWAYS - PROB_VERY_UNLIKELY;
   e->probability = PROB_ALWAYS - fallthrough_probability;
-  make_single_succ_edge (then_bb, fallthru_bb, EDGE_FALLTHRU);
+  if (create_then_fallthru_edge)
+    make_single_succ_edge (then_bb, fallthru_bb, EDGE_FALLTHRU);
 
   /* Set up the fallthrough basic block.  */
   e = find_edge (cond_bb, fallthru_bb);
@@ -1277,6 +1279,7 @@ insert_if_then_before_iter (gimple cond,
     create_cond_insert_point (iter,
 			      /*before_p=*/true,
 			      then_more_likely_p,
+			      /*create_then_fallthru_edge=*/true,
 			      then_bb,
 			      fallthrough_bb);
   gsi_insert_after (&cond_insert_point, cond, GSI_NEW_STMT);
@@ -1314,6 +1317,7 @@ build_check_stmt (location_t location, tree base, gimple_stmt_iterator *iter,
      statement for the instrumentation.  */
   gsi = create_cond_insert_point (iter, before_p,
 				  /*then_more_likely_p=*/false,
+				  /*create_then_fallthru_edge=*/false,
 				  &then_bb,
 				  &else_bb);
 
@@ -1528,8 +1532,15 @@ instrument_mem_region_access (tree base, tree len,
 
   /* If the beginning of the memory region has already been
      instrumented, do not instrument it.  */
-  if (has_mem_ref_been_instrumented (base, 1))
-    goto after_first_instrumentation;
+  bool start_instrumented = has_mem_ref_been_instrumented (base, 1);
+
+  /* If the end of the memory region has already been instrumented, do
+     not instrument it. */
+  tree end = asan_mem_ref_get_end (base, len);
+  bool end_instrumented = has_mem_ref_been_instrumented (end, 1);
+
+  if (start_instrumented && end_instrumented)
+    return;
 
   if (!is_gimple_constant (len))
     {
@@ -1555,36 +1566,38 @@ instrument_mem_region_access (tree base, tree len,
 
       /* The 'then block' of the 'if (len != 0) condition is where
 	 we'll generate the asan instrumentation code now.  */
-      gsi = gsi_start_bb (then_bb);
+      gsi = gsi_last_bb (then_bb);
     }
 
-  /* Instrument the beginning of the memory region to be accessed,
-     and arrange for the rest of the intrumentation code to be
-     inserted in the then block *after* the current gsi.  */
-  build_check_stmt (location, base, &gsi, /*before_p=*/true, is_store, 1);
+  if (!start_instrumented)
+    {
+      /* Instrument the beginning of the memory region to be accessed,
+	 and arrange for the rest of the intrumentation code to be
+	 inserted in the then block *after* the current gsi.  */
+      build_check_stmt (location, base, &gsi, /*before_p=*/true, is_store, 1);
 
-  if (then_bb)
-    /* We are in the case where the length of the region is not
-       constant; so instrumentation code is being generated in the
-       'then block' of the 'if (len != 0) condition.  Let's arrange
-       for the subsequent instrumentation statements to go in the
-       'then block'.  */
-    gsi = gsi_last_bb (then_bb);
-  else
-    *iter = gsi;
+      if (then_bb)
+	/* We are in the case where the length of the region is not
+	   constant; so instrumentation code is being generated in the
+	   'then block' of the 'if (len != 0) condition.  Let's arrange
+	   for the subsequent instrumentation statements to go in the
+	   'then block'.  */
+	gsi = gsi_last_bb (then_bb);
+      else
+        {
+          *iter = gsi;
+	  /* Don't remember this access as instrumented, if length
+	     is unknown.  It might be zero and not being actually
+	     instrumented, so we can't rely on it being instrumented.  */
+          update_mem_ref_hash_table (base, 1);
+	}
+    }
 
-  update_mem_ref_hash_table (base, 1);
-
- after_first_instrumentation:
+  if (end_instrumented)
+    return;
 
   /* We want to instrument the access at the end of the memory region,
      which is at (base + len - 1).  */
-
-  /* If the end of the memory region has already been instrumented, do
-     not instrument it. */
-  tree end = asan_mem_ref_get_end (base, len);
-  if (has_mem_ref_been_instrumented (end, 1))
-    return;
 
   /* offset = len - 1;  */
   len = unshare_expr (len);
@@ -1632,8 +1645,6 @@ instrument_mem_region_access (tree base, tree len,
 				  base, NULL);
   gimple_set_location (region_end, location);
   gimple_seq_add_stmt_without_update (&seq, region_end);
-  gsi_insert_seq_before (&gsi, seq, GSI_SAME_STMT);
-  gsi_prev (&gsi);
 
   /* _2 = _1 + offset;  */
   region_end =
@@ -1642,13 +1653,18 @@ instrument_mem_region_access (tree base, tree len,
 				  gimple_assign_lhs (region_end),
 				  offset);
   gimple_set_location (region_end, location);
-  gsi_insert_after (&gsi, region_end, GSI_NEW_STMT);
+  gimple_seq_add_stmt_without_update (&seq, region_end);
+  gsi_insert_seq_before (&gsi, seq, GSI_SAME_STMT);
 
   /* instrument access at _2;  */
+  gsi = gsi_for_stmt (region_end);
   build_check_stmt (location, gimple_assign_lhs (region_end),
 		    &gsi, /*before_p=*/false, is_store, 1);
 
-  update_mem_ref_hash_table (end, 1);
+  if (then_bb == NULL)
+    update_mem_ref_hash_table (end, 1);
+
+  *iter = gsi_for_stmt (gsi_stmt (*iter));
 }
 
 /* Instrument the call (to the builtin strlen function) pointed to by
@@ -1764,7 +1780,7 @@ instrument_builtin_call (gimple_stmt_iterator *iter)
 
       if (get_mem_refs_of_builtin_call (call,
 					&src0, &src0_len, &src0_is_store,
-					&src1, &src0_len, &src1_is_store,
+					&src1, &src1_len, &src1_is_store,
 					&dest, &dest_len, &dest_is_store,
 					&dest_is_deref))
 	{
@@ -1776,7 +1792,7 @@ instrument_builtin_call (gimple_stmt_iterator *iter)
 	    }
 	  else if (src0_len || src1_len || dest_len)
 	    {
-	      if (src0.start)
+	      if (src0.start != NULL_TREE)
 		instrument_mem_region_access (src0.start, src0_len,
 					      iter, loc, /*is_store=*/false);
 	      if (src1.start != NULL_TREE)
@@ -1883,15 +1899,31 @@ maybe_instrument_call (gimple_stmt_iterator *iter)
 static void
 transform_statements (void)
 {
-  basic_block bb;
+  basic_block bb, last_bb = NULL;
   gimple_stmt_iterator i;
   int saved_last_basic_block = last_basic_block;
 
   FOR_EACH_BB (bb)
     {
-      empty_mem_ref_hash_table ();
+      basic_block prev_bb = bb;
 
       if (bb->index >= saved_last_basic_block) continue;
+
+      /* Flush the mem ref hash table, if current bb doesn't have
+	 exactly one predecessor, or if that predecessor (skipping
+	 over asan created basic blocks) isn't the last processed
+	 basic block.  Thus we effectively flush on extended basic
+	 block boundaries.  */
+      while (single_pred_p (prev_bb))
+	{
+	  prev_bb = single_pred (prev_bb);
+	  if (prev_bb->index < saved_last_basic_block)
+	    break;
+	}
+      if (prev_bb != last_bb)
+	empty_mem_ref_hash_table ();
+      last_bb = bb;
+
       for (i = gsi_start_bb (bb); !gsi_end_p (i);)
 	{
 	  gimple s = gsi_stmt (i);
@@ -1909,11 +1941,11 @@ transform_statements (void)
 	    {
 	      /* No instrumentation happened.
 
-		 If the current instruction is a function call, let's
-		 forget about the memory references that got
-		 instrumented.  Otherwise we might miss some
-		 instrumentation opportunities.  */
-	      if (is_gimple_call (s))
+		 If the current instruction is a function call that
+		 might free something, let's forget about the memory
+		 references that got instrumented.  Otherwise we might
+		 miss some instrumentation opportunities.  */
+	      if (is_gimple_call (s) && !nonfreeing_call_p (s))
 		empty_mem_ref_hash_table ();
 
 	      gsi_next (&i);
