@@ -956,7 +956,6 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	std::swap(_M_ranged_hash(), __x._M_ranged_hash());
       }
 
-    protected:
       const _ExtractKey&
       _M_extract() const { return __ebo_extract_key::_S_cget(*this); }
 
