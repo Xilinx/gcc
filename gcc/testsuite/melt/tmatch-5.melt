@@ -18,7 +18,9 @@
 |#
 
 
-#| ;; this test passes with MELT svn rev 195419 of jan 25, 2013
+#| 
+
+;; this test passes with MELT svn rev 195419 of jan 25, 2013
 (defun ttinymicro5 (x g)
   (matchalt x
    (
@@ -26,8 +28,8 @@
 	       :referenced_value ?xxx)
      (g xxx))
    ))
-|#
-	 
+
+;; this test passes with MELT svn rev 196249 of feb 25, 2013	 
 (defun tmicro5 (x g)
   (matchalt x
    (
@@ -39,9 +41,10 @@
       (g xx))
    ))
 
+|#
 
 
-#|
+
 (defun tmini5 (x g)
   (matchalt 
    x
@@ -61,6 +64,19 @@
 
    ))
 
+(letrec ( (t1 (instance class_reference :referenced_value '17))
+	  (t2 (instance class_reference :referenced_value t2))
+	  (gg (lambda (u :long l)
+		(debug "@@gg u=" u "\n .. l="l)))
+	  )
+  (debug "tmatch-5 tmini5 t1=" t1)
+  (tmini5 t1 gg)
+  (debug "tmatch-5 tmini5 t2=" t2)
+  (tmini5 t2 gg)
+  (debug "tmatch-5 tmini5 end gg=" gg)
+  )
+
+#|
 (defun tmatch5 (curexp)
     (match 
      curexp 

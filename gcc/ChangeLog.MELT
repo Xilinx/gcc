@@ -1,6 +1,9 @@
 
 
 2013-02-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tmatch-5.melt (tmini5): test not yet working.
+
+2013-02-25  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.c (melt_argument): Use a switch for the MELT
 	branch.
