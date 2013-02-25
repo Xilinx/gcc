@@ -746,84 +746,118 @@ melt_argument (const char* argname)
 {
   if (!argname || !argname[0])
     return NULL;
-  else if (!strcmp (argname, "arg"))
-    return melt_argument_string;
-  else if (!strcmp (argname, "arglist"))
-    return melt_arglist_string;
-  else if (!strcmp (argname, "bootstrapping"))
-    return melt_flag_bootstrapping?"yes":NULL;
-  else if (!strcmp (argname, "coutput"))
-    return melt_coutput_string;
-  else if (!strcmp (argname, "debug"))
-    return melt_flag_debug?"yes":NULL;
-  else if (!strcmp (argname, "debugging"))
-    return melt_debugging_string;
-  else if (!strcmp (argname, "debugskip") || !strcmp (argname, "debug-skip"))
-    return melt_count_debugskip_string;
-  else if (!strcmp (argname, "debug-depth"))
-    return melt_debug_depth_string;
-  else if (!strcmp (argname, "extra"))
-    return melt_extra_string;
-  else if (!strcmp (argname, "full-period")) 
-    {
-      static char fullperstr[40];
-      if (!fullperstr[0])
-	snprintf(fullperstr, sizeof (fullperstr), "%d",
-		 PARAM_VALUE(PARAM_MELT_FULL_PERIOD));
-      return fullperstr;
-    }
-  else if (!strcmp (argname, "full-threshold")) 
-    {
-      static char fullthrstr[40];
-      if (!fullthrstr[0])
-	snprintf(fullthrstr, sizeof (fullthrstr), "%d",
-		 PARAM_VALUE(PARAM_MELT_FULL_THRESHOLD));
-      return fullthrstr;
-    } 
-  else if (!strcmp (argname, "generated-c-file-list"))
-    return melt_generated_c_file_list_string;
-  else if (!strcmp (argname, "generate-work-link"))
-    return melt_flag_generate_work_link?"yes":NULL;
-  else if (!strcmp (argname, "inhibit-auto-build"))
-    return melt_flag_inhibit_auto_build?"yes":NULL;
-  else if (!strcmp (argname, "init"))
-    return melt_init_string;
-  else if (!strcmp (argname, "keep-temporary-files"))
-    return melt_flag_keep_temporary_files?"yes":NULL;
-  else if (!strcmp (argname, "minor-zone")) 
-    {
-      static char minzonstr[40];
-      if (!minzonstr[0])
-	snprintf(minzonstr, sizeof (minzonstr), "%d",
-		 PARAM_VALUE(PARAM_MELT_MINOR_ZONE));
-      return minzonstr;
-    } 
-  else if (!strcmp (argname, "mode")) 
-    return melt_mode_string;
-  else if (!strcmp (argname, "module-cflags"))
-    return melt_module_cflags_string;
-  else if (!strcmp (argname, "module-makefile"))
-    return melt_module_makefile_string;
-  else if (!strcmp (argname, "module-make-command"))
-    return melt_module_make_command_string;
-  else if (!strcmp (argname, "module-path"))
-    return melt_dynmodpath_string;
-  else if (!strcmp (argname, "print-settings"))
-    return melt_print_settings_string;
-  else if (!strcmp (argname, "probe"))
-    return melt_probe_string;
-  else if (!strcmp (argname, "output"))
-    return melt_output_string;
-  else if (!strcmp (argname, "option"))
-    return melt_option_string;
-  else if (!strcmp (argname, "secondarg"))
-    return melt_secondargument_string;
-  else if (!strcmp (argname, "source-path"))
-    return melt_srcpath_string;
-  else if (!strcmp (argname, "tempdir"))
-    return melt_tempdir_string;
-  else if (!strcmp (argname, "workdir"))
-    return melt_workdir_string;
+  switch (argname[0]) {
+  case 'a':
+    if (!strcmp (argname, "arg"))
+      return melt_argument_string;
+    else if (!strcmp (argname, "arglist"))
+      return melt_arglist_string;
+    break;
+  case 'b':
+    if (!strcmp (argname, "bootstrapping"))
+      return melt_flag_bootstrapping?"yes":NULL;
+    break;
+  case 'c':
+    if (!strcmp (argname, "coutput"))
+      return melt_coutput_string;
+    break;
+  case 'd':
+    if (!strcmp (argname, "debug"))
+      return melt_flag_debug?"yes":NULL;
+    else if (!strcmp (argname, "debugging"))
+      return melt_debugging_string;
+    else if (!strcmp (argname, "debugskip") || !strcmp (argname, "debug-skip"))
+      return melt_count_debugskip_string;
+    else if (!strcmp (argname, "debug-depth"))
+      return melt_debug_depth_string;
+    break;
+  case 'e':
+    if (!strcmp (argname, "extra"))
+      return melt_extra_string;
+    break;
+  case 'f':
+    if (!strcmp (argname, "full-period")) 
+      {
+	static char fullperstr[40];
+	if (!fullperstr[0])
+	  snprintf(fullperstr, sizeof (fullperstr), "%d",
+		   PARAM_VALUE(PARAM_MELT_FULL_PERIOD));
+	return fullperstr;
+      }
+    else if (!strcmp (argname, "full-threshold")) 
+      {
+	static char fullthrstr[40];
+	if (!fullthrstr[0])
+	  snprintf(fullthrstr, sizeof (fullthrstr), "%d",
+		   PARAM_VALUE(PARAM_MELT_FULL_THRESHOLD));
+	return fullthrstr;
+      } 
+    break;
+  case 'g':
+    if (!strcmp (argname, "generated-c-file-list"))
+      return melt_generated_c_file_list_string;
+    else if (!strcmp (argname, "generate-work-link"))
+      return melt_flag_generate_work_link?"yes":NULL;
+    break;
+  case 'i':
+    if (!strcmp (argname, "inhibit-auto-build"))
+      return melt_flag_inhibit_auto_build?"yes":NULL;
+    else if (!strcmp (argname, "init"))
+      return melt_init_string;
+    break;
+  case 'k':
+    if (!strcmp (argname, "keep-temporary-files"))
+      return melt_flag_keep_temporary_files?"yes":NULL;
+    break;
+  case 'm':
+    if (!strcmp (argname, "minor-zone")) 
+      {
+	static char minzonstr[40];
+	if (!minzonstr[0])
+	  snprintf(minzonstr, sizeof (minzonstr), "%d",
+		   PARAM_VALUE(PARAM_MELT_MINOR_ZONE));
+	return minzonstr;
+      } 
+    else if (!strcmp (argname, "mode")) 
+      return melt_mode_string;
+    else if (!strcmp (argname, "module-cflags"))
+      return melt_module_cflags_string;
+    else if (!strcmp (argname, "module-makefile"))
+      return melt_module_makefile_string;
+    else if (!strcmp (argname, "module-make-command"))
+      return melt_module_make_command_string;
+    else if (!strcmp (argname, "module-path"))
+      return melt_dynmodpath_string;
+    break;
+  case 'p':
+    if (!strcmp (argname, "print-settings"))
+      return melt_print_settings_string;
+    else if (!strcmp (argname, "probe"))
+      return melt_probe_string;
+    break;
+  case 'o':
+    if (!strcmp (argname, "output"))
+      return melt_output_string;
+    else if (!strcmp (argname, "option"))
+      return melt_option_string;
+    break;
+  case 's':
+    if (!strcmp (argname, "secondarg"))
+      return melt_secondargument_string;
+    else if (!strcmp (argname, "source-path"))
+      return melt_srcpath_string;
+    break;
+  case 't':
+    if (!strcmp (argname, "tempdir"))
+      return melt_tempdir_string;
+    break;
+  case 'w':
+    if (!strcmp (argname, "workdir"))
+      return melt_workdir_string;
+    break;
+  default:
+    break;
+  }
   return NULL;
 }
 

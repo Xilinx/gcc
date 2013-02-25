@@ -2,6 +2,16 @@
 
 2013-02-25  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.c (melt_argument): Use a switch for the MELT
+	branch.
+
+2013-02-25  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.c (melt_argument): Sort the compares for MELT
+	branch.
+
+2013-02-25  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.c (melt_argument): Sort the compares for MELT
 	branch.
 
