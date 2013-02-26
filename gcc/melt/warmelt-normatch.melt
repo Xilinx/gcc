@@ -5915,37 +5915,34 @@ normalized expression.}#
 	    (vctyp (get_field :nocc_ctyp curvarocc))
 	    (vnloc (or (get_field :nrep_loc curvarocc) nsloc))
 	    (vmdata (get_field :matchbind_data vmbind))
-	   )
+	    )
        (debug "normstep_msuccwhenflag vix=" vix " vmbind=" vmbind " vmdata=" vmdata)
        (assert_msg "check vmbind" (is_a vmbind class_matched_binding))
        (assert_msg "check vmdata" (is_a vmdata class_matched_data))
        (let ( (nvdata (matchalt_normalize_mdata vmdata nmctxt))
 	      (nvbind (instance class_normal_let_binding
-				 :letbind_loc vnloc
-				 :binder vsym
-				 :letbind_type vctyp 
-				 :letbind_expr nvdata
+				:letbind_loc vnloc
+				:binder vsym
+				:letbind_type vctyp 
+				:letbind_expr nvdata
 				))
-	     )
+	      )
 	 (debug "normstep_msuccwhenflag vix=" vix " nvdata=" nvdata " nvbind=" nvbind)
 	 (list_prepend mbinds nvbind)
 	 (put_fields curvarocc :nocc_bind nvbind)
 	 (debug "normstep_msuccwhenflag updated mbinds=" mbinds 
 		"\n& updated curvarocc=" curvarocc	
 		" vix=" vix)
-     )))
+	 )))
     (debug "normstep_msuccwhenflag got mbinds=" mbinds)
     (let (
 	  (nthen (matchalt_normalize_step matthen nmctxt))
 	  (nflag (matchalt_normalize_flag matflag nmctxt))
 	  (matctx (unsafe_get_field :matnorx_matchctxt nmctxt))
 	  (jumpthen (let ( (j (instance class_nrep_match_jump
-			      :nmjmp_label nthen)) )
+					:nmjmp_label nthen)) )
 		      (debug "normstep_msuccwhenflag jumpthen=" j)
 		      j))
-	  (njthen (let ( (n (complete_normstep_if_last step jumpthen nmctxt)) )
-		    (debug "normstep_msuccwhenflag njthen=" n)
-		    n))
 	  (:long matbodylen (multiple_length matbody))
 	  (lastmatbody (multiple_nth matbody -1))
 	  (nsetqres (instance class_nrep_setq
@@ -5955,6 +5952,7 @@ normalized expression.}#
 			      ))
 	  (newmatbody (make_multiple discr_multiple (+i matbodylen 2)))
 	  )
+      (debug "normstep_msuccwhenflag nthen=" nthen "\n nflag=" nflag)
       ;; we build a newmatbody fdrom the matbody and add the setting
       ;; of the match result and the jump
       (foreach_in_multiple
@@ -5963,11 +5961,9 @@ normalized expression.}#
        (multiple_put_nth newmatbody bix curmatbody)
        )
       (multiple_put_nth newmatbody -2 nsetqres)
-      (multiple_put_nth newmatbody -1 njthen)
-      (debug "normstep_msuccwhenflag nthen" nthen)
-      (debug "normstep_msuccwhenflag njthen" njthen)
-      (debug "normstep_msuccwhenflag nflag" nflag)
-      (debug "normstep_msuccwhenflag newmatbody" newmatbody)
+      (multiple_put_nth newmatbody -1 jumpthen)
+      (debug "normstep_msuccwhenflag nthen=" nthen "\n.. njthen=" jumpthen 
+	     "\n.. nflag=" nflag "\n.. newmatbody=" newmatbody)
       (let (
 	    (nifsucc (instance class_nrep_if
 			       :nrep_loc nsloc
@@ -5977,7 +5973,7 @@ normalized expression.}#
 			       :nif_else ()))
 
 	    )
-	(debug "normstep_msuccwhenflag final nifsucc" nifsucc)
+	(debug "normstep_msuccwhenflag final nifsucc=" nifsucc)
 	(return nifsucc)
 	))))
 (install_method class_match_step_success_when_flag normalize_step normstep_msuccwhenflag)

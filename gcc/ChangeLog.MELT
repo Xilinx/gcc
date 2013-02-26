@@ -1,5 +1,13 @@
 
 
+2013-02-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-module.mk (melt_workspace): Also display GCCMELT_CFLAGS.
+
+	* melt/warmelt-normatch.melt (normstep_msuccwhenflag): Don't
+	complete_normstep_if the jumpthen... More debug.
+
+	* testsuite/melt/tmatch-5.melt (tmini5): test still not working.
+
 2013-02-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tmatch-5.melt (tmini5): test not yet working.
 

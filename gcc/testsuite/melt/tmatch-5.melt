@@ -46,21 +46,24 @@
 
 
 (defun tmini5 (x g)
+  (debug "tmini5 start x=" x "\n.. g=" g "\n")
   (matchalt 
    x
    ( ?(instance 
        class_reference 
        :referenced_value 
        ?(integerbox_of ?bx))
+      (debug "tmini5 bx=" bx)
       (g x bx)
       )
 
    (
     ?(and ?xx
-	   ?(instance class_reference 
-		      :referenced_value ?xx)
-      )
-      (g xx))
+	  ?(instance class_reference 
+		     :referenced_value ?xx)
+	  )
+    (debug "tmini5 xx=" xx)
+    (g xx))
 
    ))
 
