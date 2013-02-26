@@ -24391,8 +24391,8 @@ typedef struct accel_table {
   uint32_t magic;
   uint16_t version;
   uint16_t hash_function;
-  uint16_t bucket_count;
-  uint16_t hashes_count;
+  uint32_t bucket_count;
+  uint32_t hashes_count;
   uint32_t header_data_len;
   accel_table_header_data header_data;
 
