@@ -6185,9 +6185,10 @@ normalized expression.}#
 (install_method class_cmatcher normalize_fill_matcher normfillmatch_cmatcher)
 
 
+
 ;;;;;;;;;;;;;;;;
 (defun normstep_mtestmatcher (step nmctxt sloc)
-  (debug "normstep_mtestmatcher step" step)
+  (debug "normstep_mtestmatcher start step=" step "\n.. nmctxt=" nmctxt "\n")
   (assert_msg "check step" (is_a step class_match_step_test_matcher))
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
   (let  ( (nsloc (or (unsafe_get_field :loca_location step) sloc))
@@ -6200,10 +6201,10 @@ normalized expression.}#
 	  (mouts (unsafe_get_field :mstma_outs step))
 	  (matctx (unsafe_get_field :matnorx_matchctxt nmctxt))
 	  )
-    (debug "normstep_mtestmatcher matdata" matdata)
-    (debug "normstep_mtestmatcher mins" mins)
-    (debug "normstep_mtestmatcher mouts" mouts)
-    (debug "normstep_mtestmatcher matmatcher" matmatcher)
+    (debug "normstep_mtestmatcher matdata=" matdata
+	   "\n.. mins=" mins
+	   "\n.. mouts=" mouts
+	   "\n.. matmatcher=" matmatcher)
     (assert_msg "check matmatcher" (is_a matmatcher class_any_matcher))
     (let ( 
 	  (nthen (matchalt_normalize_step matthen nmctxt))
@@ -6213,16 +6214,10 @@ normalized expression.}#
 					:nmjmp_label nthen)) )
 		      (debug "normstep_mtestmatcher jumpthen=" j)
 		      j))
-	  (njthen (let ( (n (complete_normstep_if_last step jumpthen nmctxt)) )
-		    (debug "normstep_mtestmatcher njthen=" n)
-		    n))
 	  (jumpelse (let ( (j (instance class_nrep_match_jump
 					:nmjmp_label nelse)) )
 		      (debug "normstep_mtestmatcher jumpelse=" j)
 		      j))
-	  (njelse (let ( (n (complete_normstep_if_last step jumpelse nmctxt)) )
-		    (debug "normstep_mtestmatcher njelse=" n)
-		    n))
 	  (amin (get_field :amatch_in matmatcher))
 	  (ambind (get_field :amatch_matchbind matmatcher))
 	  (amout (get_field :amatch_out matmatcher))
@@ -6232,13 +6227,11 @@ normalized expression.}#
 	  (:long nbmouts (multiple_length mouts))
 	  (normouts (make_multiple discr_multiple nbmouts))
 	  )
-      (debug "normstep_mtestmatcher njthen" njthen)
-      (debug "normstep_mtestmatcher njelse" njelse)
-      (debug "normstep_mtestmatcher ndata" ndata)
-      (debug "normstep_mtestmatcher ambind" ambind)
-      (debug "normstep_mtestmatcher amin" amin)
-      (debug "normstep_mtestmatcher mins again" mins)
-      (debug "normstep_mtestmatcher matctx" matctx)
+      (debug "normstep_mtestmatcher ndata=" ndata 
+	     "\n.. ambind=" ambind 
+	     "\n.. amin=" amin
+	     "\n.. mins=" mins
+	     "\n.. matctx=" matctx)
       (assert_msg "check env" (is_a env class_environment))
       ;; bind the matched data
       (assert_msg "check ambind" (is_a ambind class_formal_binding))
@@ -6305,10 +6298,8 @@ normalized expression.}#
 	     (list_append newbindlist newbinding)
 	     )
 	   ))
-	(debug "normstep_mtestmatcher newbindlist" newbindlist)
-;;;
-	(debug "normstep_mtestmatcher amout" amout)
-	(debug "normstep_mtestmatcher mouts again" mouts)
+	(debug "normstep_mtestmatcher newbindlist" newbindlist
+	       "\n.. amout" amout "\n.. mouts again" mouts)
 	(if (!=i (multiple_length amout) (multiple_length mouts))
 	    (error_strv nsloc 
 			"mismatch on output arity of matcher" 
@@ -6318,8 +6309,8 @@ normalized expression.}#
 	 (curmoutbind :long mix)
 	 (let ( (curouts (multiple_nth mouts mix))
 		)
-	   (debug "normstep_mtestmatcher curmoutbind" curmoutbind)
-	   (debug "normstep_mtestmatcher curouts" curouts)
+	   (debug "normstep_mtestmatcher curmoutbind=" curmoutbind
+		  "\n.. curouts=" curouts)
 	   (assert_msg "check curmoutbind" (is_a curmoutbind class_formal_binding))
 	   (assert_msg "check curouts" (is_a curouts class_matched_data))
 	   (let (  (nouts (matchalt_normalize_mdata curouts nmctxt))
@@ -6331,23 +6322,24 @@ normalized expression.}#
 	     )
 	   ))
 	;;
-	(debug "normstep_mtestmatcher normouts" normouts)
+	(debug "normstep_mtestmatcher normouts=" normouts)
 	;; we should probably have a selector to make the test part of a matching
 	;; and another selector to make the fill part of it
-	(debug "normstep_mtestmatcher matmatcher before normalize_test_matcher" matmatcher)
+	(debug "normstep_mtestmatcher before normalize_test_matcher matmatcher=" matmatcher
+	       "\n... ndata=" ndata "\n..jumpelse=" jumpelse)
 	(multicall
 	 (ntest testdata)
-	 (normalize_test_matcher matmatcher sloc ndata newbindlist nmctxt njelse)
-	 (debug "normstep_mtestmatcher ntest after normalize_test_matcher" ntest)
-	 (debug "normstep_mtestmatcher testdata after normalize_test_matcher" testdata)
+	 (normalize_test_matcher matmatcher sloc ndata newbindlist nmctxt jumpelse)
+	 (debug "normstep_mtestmatcher after normalize_test_matcher ntest=" ntest 
+		"\n.. testdata=" testdata)
 	 (let ( 
 	       (nfill
 		(normalize_fill_matcher matmatcher 
 					sloc ndata newbindlist normouts nmctxt testdata))
 	       )
-	   (debug "normstep_mtestmatcher after normalize_fill_matcher nfill" nfill)
-	   (let ( (restup (tuple ntest nfill njelse)) )
-	     (debug "normalize_fill_matcher return restup" restup)
+	   (debug "normstep_mtestmatcher after normalize_fill_matcher nfill=" nfill)
+	   (let ( (restup (tuple ntest nfill jumpthen)) )
+	     (debug "normstep_mtestmatcher return restup=" restup)
 	     (return restup)
 	     )))))))
 (install_method class_match_step_test_matcher normalize_step normstep_mtestmatcher)

@@ -1,6 +1,11 @@
 
 
 2013-02-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt (normstep_mtestmatcher): Works better
+	because the appropriate jumps are generated and inserted. tmatch-5
+	tmini5 passes for t1, but not yet for t2...
+
+2013-02-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt (normstep_msuccwhenflag): End the
 	actions with a jump to end, and jump to the then part if the flag
 	is cleared. But still tmini5 in tmatch-5.melt don't pass.
