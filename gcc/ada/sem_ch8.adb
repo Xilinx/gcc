@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2013, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -554,6 +554,14 @@ package body Sem_Ch8 is
             Set_Renamed_Object (Id, Entity (Nam));
          end if;
       end if;
+
+      --  Implementation-defined aspect specifications can appear in a renaming
+      --  declaration, but not language-defined ones. The call to procedure
+      --  Analyze_Aspect_Specifications will take care of this error check.
+
+      if Has_Aspects (N) then
+         Analyze_Aspect_Specifications (N, Id);
+      end if;
    end Analyze_Exception_Renaming;
 
    ---------------------------
@@ -681,6 +689,14 @@ package body Sem_Ch8 is
 
          Check_Library_Unit_Renaming (N, Old_P);
       end if;
+
+      --  Implementation-defined aspect specifications can appear in a renaming
+      --  declaration, but not language-defined ones. The call to procedure
+      --  Analyze_Aspect_Specifications will take care of this error check.
+
+      if Has_Aspects (N) then
+         Analyze_Aspect_Specifications (N, New_P);
+      end if;
    end Analyze_Generic_Renaming;
 
    -----------------------------
@@ -728,8 +744,7 @@ package body Sem_Ch8 is
             then
                null;
 
-            --  A renaming of an unchecked union does not have an
-            --  actual subtype.
+            --  A renaming of an unchecked union has no actual subtype
 
             elsif Is_Unchecked_Union (Typ) then
                null;
@@ -800,9 +815,7 @@ package body Sem_Ch8 is
       --  when the renaming is generated in removing side effects of an
       --  already-analyzed expression.
 
-      if Nkind (Nam) = N_Selected_Component
-        and then Analyzed (Nam)
-      then
+      if Nkind (Nam) = N_Selected_Component and then Analyzed (Nam) then
          T := Etype (Nam);
          Dec :=  Build_Actual_Subtype_Of_Component (Etype (Nam), Nam);
 
@@ -1235,6 +1248,17 @@ package body Sem_Ch8 is
       end if;
 
       Set_Renamed_Object (Id, Nam);
+
+      --  Implementation-defined aspect specifications can appear in a renaming
+      --  declaration, but not language-defined ones. The call to procedure
+      --  Analyze_Aspect_Specifications will take care of this error check.
+
+      if Has_Aspects (N) then
+         Analyze_Aspect_Specifications (N, Id);
+      end if;
+
+      --  Deal with dimensions
+
       Analyze_Dimension (N);
    end Analyze_Object_Renaming;
 
@@ -1380,6 +1404,14 @@ package body Sem_Ch8 is
                end loop;
             end;
          end if;
+      end if;
+
+      --  Implementation-defined aspect specifications can appear in a renaming
+      --  declaration, but not language-defined ones. The call to procedure
+      --  Analyze_Aspect_Specifications will take care of this error check.
+
+      if Has_Aspects (N) then
+         Analyze_Aspect_Specifications (N, New_P);
       end if;
    end Analyze_Package_Renaming;
 
@@ -2772,18 +2804,31 @@ package body Sem_Ch8 is
             end if;
          end if;
 
-         if not Is_Actual
-           and then (Old_S = New_S
-                      or else
-                        (Nkind (Nam) /= N_Expanded_Name
-                          and then Chars (Old_S) = Chars (New_S))
-                      or else
-                        (Nkind (Nam) = N_Expanded_Name
-                          and then Entity (Prefix (Nam)) = Current_Scope
-                          and then
-                            Chars (Selector_Name (Nam)) = Chars (New_S)))
+         if Is_Actual then
+            null;
+
+         --  The following is illegal, because F hides whatever other F may
+         --  be around:
+         --     function F (..)  renames F;
+
+         elsif Old_S = New_S
+           or else (Nkind (Nam) /= N_Expanded_Name
+                     and then Chars (Old_S) = Chars (New_S))
          then
             Error_Msg_N ("subprogram cannot rename itself", N);
+
+         elsif Nkind (Nam) = N_Expanded_Name
+           and then Entity (Prefix (Nam)) = Current_Scope
+           and then Chars (Selector_Name (Nam)) = Chars (New_S)
+         then
+            if Overriding_Renamings then
+               null;
+
+            else
+               Error_Msg_NE
+                  ("implicit operation& is not visible (RM 8.3 (15))",
+                     Nam, Old_S);
+            end if;
          end if;
 
          Set_Convention (New_S, Convention (Old_S));

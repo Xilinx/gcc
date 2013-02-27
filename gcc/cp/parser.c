@@ -7276,8 +7276,9 @@ cp_parser_delete_expression (cp_parser* parser)
    otherwise.  */
 
 static bool
-cp_parser_token_starts_cast_expression (cp_token *token)
+cp_parser_tokens_start_cast_expression (cp_parser *parser)
 {
+  cp_token *token = cp_lexer_peek_token (parser->lexer);
   switch (token->type)
     {
     case CPP_COMMA:
@@ -7317,6 +7318,12 @@ cp_parser_token_starts_cast_expression (cp_token *token)
     case CPP_OR_OR:
     case CPP_EOF:
       return false;
+
+    case CPP_OPEN_PAREN:
+      /* In ((type ()) () the last () isn't a valid cast-expression,
+	 so the whole must be parsed as postfix-expression.  */
+      return cp_lexer_peek_nth_token (parser->lexer, 2)->type
+	     != CPP_CLOSE_PAREN;
 
       /* '[' may start a primary-expression in obj-c++.  */
     case CPP_OPEN_SQUARE:
@@ -7410,8 +7417,7 @@ cp_parser_cast_expression (cp_parser *parser, bool address_p, bool cast_p,
 	 parenthesized ctor such as `(T ())' that looks like a cast to
 	 function returning T.  */
       if (!cp_parser_error_occurred (parser)
-	  && cp_parser_token_starts_cast_expression (cp_lexer_peek_token
-						     (parser->lexer)))
+	  && cp_parser_tokens_start_cast_expression (parser))
 	{
 	  cp_parser_parse_definitely (parser);
 	  expr = cp_parser_cast_expression (parser,
@@ -14854,7 +14860,7 @@ cp_parser_enum_specifier (cp_parser* parser)
 				     /*check_dependency=*/true,
 				     /*ambiguous_decls=*/NULL,
 				     input_location);
-      if (name)
+      if (name && name != error_mark_node)
 	{
 	  type = TREE_TYPE (name);
 	  if (TREE_CODE (type) == TYPENAME_TYPE)
@@ -20049,6 +20055,7 @@ cp_parser_member_declaration (cp_parser* parser)
 		  if (function_declarator_p (declarator)
 		      || (decl_specifiers.type
 			  && TREE_CODE (decl_specifiers.type) == TYPE_DECL
+			  && declarator->kind == cdk_id
 			  && (TREE_CODE (TREE_TYPE (decl_specifiers.type))
 			      == FUNCTION_TYPE)))
 		    initializer = cp_parser_pure_specifier (parser);

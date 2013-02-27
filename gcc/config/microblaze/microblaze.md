@@ -822,14 +822,14 @@
   ""
   { 
      if (which_alternative == 0)
-       output_asm_insn ("addk\t%D0,r0,%1", operands);
+       output_asm_insn ("addk\t%L0,r0,%1", operands);
      else
-       output_asm_insn ("lw%i1\t%D0,%1", operands);
+       output_asm_insn ("lw%i1\t%L0,%1", operands);
 
-     output_asm_insn ("add\t%0,%D0,%D0", operands);
-     output_asm_insn ("addc\t%0,r0,r0", operands);
-     output_asm_insn ("beqi\t%0,.+8", operands);
-     return "addi\t%0,r0,0xffffffff";
+     output_asm_insn ("add\t%M0,%L0,%L0", operands);
+     output_asm_insn ("addc\t%M0,r0,r0", operands);
+     output_asm_insn ("beqi\t%M0,.+8", operands);
+     return "addi\t%M0,r0,0xffffffff";
   }
   [(set_attr "type"	"multi,multi,multi")
   (set_attr "mode"	"DI")
@@ -887,7 +887,7 @@
       case 0:
         return "addk\t%0,%1\n\taddk\t%D0,%d1";
       case 1:
-	return "addik\t%0,r0,%h1\n\taddik\t%D0,r0,%j1 #li => la";
+	return "addik\t%M0,r0,%h1\n\taddik\t%L0,r0,%j1 #li => la";
       case 2:
 	  return "addk\t%0,r0,r0\n\taddk\t%D0,r0,r0";
       case 3:
@@ -1860,6 +1860,32 @@
   }
 )
 
+(define_expand "save_stack_block"
+  [(match_operand 0 "register_operand" "")
+   (match_operand 1 "register_operand" "")]
+  ""
+  {
+    emit_move_insn (operands[0], operands[1]);
+    DONE;
+  }
+)
+
+(define_expand "restore_stack_block"
+  [(match_operand 0 "register_operand" "")
+   (match_operand 1 "register_operand" "")]
+  ""
+  {
+    rtx retaddr = gen_rtx_MEM (Pmode, stack_pointer_rtx);
+    rtx rtmp    = gen_rtx_REG (SImode, R_TMP);
+
+    /* Move the retaddr.  */
+    emit_move_insn (rtmp, retaddr);
+    emit_move_insn (operands[0], operands[1]);
+    emit_move_insn (gen_rtx_MEM (Pmode, operands[0]), rtmp);
+    DONE;
+  }
+)
+
 ;; Trivial return.  Make it look like a normal return insn as that
 ;; allows jump optimizations to work better .
 (define_expand "return"
@@ -2102,9 +2128,17 @@
     register rtx target = operands[1];
     register rtx target2=gen_rtx_REG (Pmode,GP_REG_FIRST + MB_ABI_SUB_RETURN_ADDR_REGNUM);
 
-    if (GET_CODE (target) == SYMBOL_REF){
-	gen_rtx_CLOBBER (VOIDmode,target2);
-	return "brlid\tr15,%1\;%#";
+    if (GET_CODE (target) == SYMBOL_REF)
+    {
+      gen_rtx_CLOBBER (VOIDmode,target2);
+      if (SYMBOL_REF_FLAGS (target) & SYMBOL_FLAG_FUNCTION)
+        {
+	  return "brlid\tr15,%1\;%#";
+        }
+      else
+        {
+	  return "bralid\tr15,%1\;%#";
+        }
     }
     else if (GET_CODE (target) == CONST_INT)
         return "la\t%@,r0,%1\;brald\tr15,%@\;%#";
@@ -2166,3 +2200,13 @@
   [(set_attr "type" "multi")
    (set_attr "length" "12")])
 
+;; This insn gives the count of leading number of zeros for the second
+;; operand and stores the result in first operand.
+(define_insn "clzsi2"
+  [(set (match_operand:SI 0 "register_operand" "=r")
+        (clz:SI (match_operand:SI 1 "register_operand" "r")))]
+  "TARGET_HAS_CLZ"
+  "clz\t%0,%1"
+  [(set_attr "type"     "arith")
+  (set_attr "mode"      "SI")
+  (set_attr "length"    "4")])

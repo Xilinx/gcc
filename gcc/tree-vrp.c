@@ -6027,6 +6027,7 @@ check_array_ref (location_t location, tree ref, bool ignore_off_by_one)
 	{
 	  fprintf (dump_file, "Array bound warning for ");
 	  dump_generic_expr (MSG_NOTE, TDF_SLIM, ref);
+	  fprintf (dump_file, "\n");
 	}
       warning_at (location, OPT_Warray_bounds,
 		  "array subscript is above array bounds");
@@ -6039,6 +6040,7 @@ check_array_ref (location_t location, tree ref, bool ignore_off_by_one)
 	{
 	  fprintf (dump_file, "Array bound warning for ");
 	  dump_generic_expr (MSG_NOTE, TDF_SLIM, ref);
+	  fprintf (dump_file, "\n");
 	}
       warning_at (location, OPT_Warray_bounds,
 		  "array subscript is below array bounds");
@@ -6112,6 +6114,7 @@ search_for_addr_array (tree t, location_t location)
 	    {
 	      fprintf (dump_file, "Array bound warning for ");
 	      dump_generic_expr (MSG_NOTE, TDF_SLIM, t);
+	      fprintf (dump_file, "\n");
 	    }
 	  warning_at (location, OPT_Warray_bounds,
 		      "array subscript is below array bounds");
@@ -6125,6 +6128,7 @@ search_for_addr_array (tree t, location_t location)
 	    {
 	      fprintf (dump_file, "Array bound warning for ");
 	      dump_generic_expr (MSG_NOTE, TDF_SLIM, t);
+	      fprintf (dump_file, "\n");
 	    }
 	  warning_at (location, OPT_Warray_bounds,
 		      "array subscript is above array bounds");

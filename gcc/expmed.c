@@ -1569,7 +1569,11 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
   enum extraction_pattern pattern = unsignedp ? EP_extzv : EP_extv;
   extraction_insn extv;
   if (!MEM_P (op0)
-      && get_best_reg_extraction_insn (&extv, pattern, bitnum + bitsize,
+      /* ??? We could limit the structure size to the part of OP0 that
+	 contains the field, with appropriate checks for endianness
+	 and TRULY_NOOP_TRUNCATION.  */
+      && get_best_reg_extraction_insn (&extv, pattern,
+				       GET_MODE_BITSIZE (GET_MODE (op0)),
 				       tmode))
     {
       rtx result = extract_bit_field_using_extv (&extv, op0, bitsize, bitnum,
@@ -2112,8 +2116,8 @@ expand_shift_1 (enum tree_code code, enum machine_mode mode, rtx shifted,
 		       % GET_MODE_BITSIZE (mode));
       else if (GET_CODE (op1) == SUBREG
 	       && subreg_lowpart_p (op1)
-	       && INTEGRAL_MODE_P (GET_MODE (SUBREG_REG (op1)))
-	       && INTEGRAL_MODE_P (GET_MODE (op1)))
+	       && SCALAR_INT_MODE_P (GET_MODE (SUBREG_REG (op1)))
+	       && SCALAR_INT_MODE_P (GET_MODE (op1)))
 	op1 = SUBREG_REG (op1);
     }
 

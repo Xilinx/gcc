@@ -277,6 +277,8 @@ dump_bb (FILE *outf, basic_block bb, int indent, int flags)
   if (flags & TDF_BLOCKS)
     dump_bb_info (outf, bb, indent, flags, false, true);
   fputc ('\n', outf);
+  if (flag_enable_cilk)
+    fprintf(outf, "pragma_simd_index = %d\n", bb->pragma_simd_index);
 }
 
 /* Dumps basic block BB to pretty-printer PP, for use as a label of
@@ -761,7 +763,12 @@ merge_blocks (basic_block a, basic_block b)
     {
       e->src = a;
       if (current_loops != NULL)
-	rescan_loop_exit (e, true, false);
+	{
+	  /* If b was a latch, a now is.  */
+	  if (e->dest->loop_father->latch == b)
+	    e->dest->loop_father->latch = a;
+	  rescan_loop_exit (e, true, false);
+	}
     }
   a->succs = b->succs;
   a->flags |= b->flags;

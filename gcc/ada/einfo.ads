@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2013, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -659,7 +659,7 @@ package Einfo is
 --       used to constrain a discriminant of the parent type. Points to the
 --       corresponding discriminant in the parent type. Otherwise it is Empty.
 
---    Corresponding_Equality (Node13)
+--    Corresponding_Equality (Node30)
 --       Defined in function entities for implicit inequality operators.
 --       Denotes the explicit or derived equality operation that creates
 --       the implicit inequality. Note that this field is not present in
@@ -1670,6 +1670,11 @@ package Einfo is
 --       Defined in all entities. Set for functions and procedures for which a
 --       pragma Inline_Always applies. Note that if this flag is set, the flag
 --       Has_Pragma_Inline is also set.
+
+--    Has_Pragma_No_Inline (Flag201)
+--       Defined in all entities. Set for functions and procedures for which a
+--       pragma No_Inline applies. Note that if this flag is set, the flag
+--       Has_Pragma_Inline_Always cannot be set.
 
 --    Has_Pragma_Ordered (Flag198) [implementation base type only]
 --       Defined in entities for enumeration types. If set indicates that a
@@ -3725,11 +3730,12 @@ package Einfo is
 
 --    Status_Flag_Or_Transient_Decl (Node15)
 --       Defined in variables and constants. Applies to objects that require
---       special treatment by the finalization machinery. Such examples are
---       extended return results, if and case expression results and objects
---       inside N_Expression_With_Actions nodes. The attribute contains the
---       entity of a flag which specifies particular behavior over a region
---       of code or the declaration of a "hook" object.
+--       special treatment by the finalization machinery, such as extended
+--       return results, IF and CASE expression results, and objects inside
+--       N_Expression_With_Actions nodes. The attribute contains the entity
+--       of a flag which specifies particular behavior over a region of code
+--       or the declaration of a "hook" object.
+--       In which case is it a flag, or a hook object???
 
 --    Storage_Size_Variable (Node15) [implementation base type only]
 --       Defined in access types and task type entities. This flag is set
@@ -3746,7 +3752,7 @@ package Einfo is
 --       all types declared in the package, and that a warning must be emitted
 --       for those types to which static initialization is not available.
 
---    Static_Initialization (Node26)
+--    Static_Initialization (Node30)
 --       Defined in initialization procedures for types whose objects can be
 --       initialized statically. The value of this attribute is a positional
 --       aggregate whose components are compile-time static values. Used
@@ -4832,6 +4838,7 @@ package Einfo is
    --    Has_Pragma_Elaborate_Body           (Flag150)
    --    Has_Pragma_Inline                   (Flag157)
    --    Has_Pragma_Inline_Always            (Flag230)
+   --    Has_Pragma_No_Inline                (Flag201)
    --    Has_Pragma_Pure                     (Flag203)
    --    Has_Pragma_Pure_Function            (Flag179)
    --    Has_Pragma_Thread_Local_Storage     (Flag169)
@@ -5310,8 +5317,7 @@ package Einfo is
    --    Handler_Records                     (List10)   (non-generic case only)
    --    Protected_Body_Subprogram           (Node11)
    --    Next_Inlined_Subprogram             (Node12)
-   --    Corresponding_Equality              (Node13)   (implicit /= only)
-   --    Elaboration_Entity                  (Node13)   (all other cases)
+   --    Elaboration_Entity                  (Node13)   (not implicit /=)
    --    First_Optional_Parameter            (Node14)   (non-generic case only)
    --    DT_Position                         (Uint15)
    --    DTC_Entity                          (Node16)
@@ -5331,6 +5337,7 @@ package Einfo is
    --    Wrapped_Entity                      (Node27)   (non-generic case only)
    --    Extra_Formals                       (Node28)
    --    Subprograms_For_Type                (Node29)
+   --    Corresponding_Equality              (Node30)   (implicit /= only)
    --    Body_Needed_For_SAL                 (Flag40)
    --    Elaboration_Entity_Required         (Flag174)
    --    Default_Expressions_Processed       (Flag108)
@@ -5596,10 +5603,10 @@ package Einfo is
    --    Protection_Object                   (Node23)   (for concurrent kind)
    --    Contract                            (Node24)
    --    Interface_Alias                     (Node25)
-   --    Static_Initialization               (Node26)   (init_proc only)
    --    Overridden_Operation                (Node26)   (never for init proc)
    --    Wrapped_Entity                      (Node27)   (non-generic case only)
    --    Extra_Formals                       (Node28)
+   --    Static_Initialization               (Node30)   (init_proc only)
    --    Body_Needed_For_SAL                 (Flag40)
    --    Delay_Cleanups                      (Flag114)
    --    Discard_Names                       (Flag88)
@@ -6231,6 +6238,7 @@ package Einfo is
    function Has_Pragma_Elaborate_Body           (Id : E) return B;
    function Has_Pragma_Inline                   (Id : E) return B;
    function Has_Pragma_Inline_Always            (Id : E) return B;
+   function Has_Pragma_No_Inline                (Id : E) return B;
    function Has_Pragma_Ordered                  (Id : E) return B;
    function Has_Pragma_Pack                     (Id : E) return B;
    function Has_Pragma_Preelab_Init             (Id : E) return B;
@@ -6830,6 +6838,7 @@ package Einfo is
    procedure Set_Has_Pragma_Elaborate_Body       (Id : E; V : B := True);
    procedure Set_Has_Pragma_Inline               (Id : E; V : B := True);
    procedure Set_Has_Pragma_Inline_Always        (Id : E; V : B := True);
+   procedure Set_Has_Pragma_No_Inline            (Id : E; V : B := True);
    procedure Set_Has_Pragma_Ordered              (Id : E; V : B := True);
    procedure Set_Has_Pragma_Pack                 (Id : E; V : B := True);
    procedure Set_Has_Pragma_Preelab_Init         (Id : E; V : B := True);
@@ -7357,6 +7366,12 @@ package Einfo is
    procedure Write_Field27_Name (Id : Entity_Id);
    procedure Write_Field28_Name (Id : Entity_Id);
    procedure Write_Field29_Name (Id : Entity_Id);
+   procedure Write_Field30_Name (Id : Entity_Id);
+   procedure Write_Field31_Name (Id : Entity_Id);
+   procedure Write_Field32_Name (Id : Entity_Id);
+   procedure Write_Field33_Name (Id : Entity_Id);
+   procedure Write_Field34_Name (Id : Entity_Id);
+   procedure Write_Field35_Name (Id : Entity_Id);
    --  These routines are used in Treepr to output a nice symbolic name for
    --  the given field, depending on the Ekind. No blanks or end of lines are
    --  output, just the characters of the field name.
@@ -7514,6 +7529,7 @@ package Einfo is
    pragma Inline (Has_Pragma_Elaborate_Body);
    pragma Inline (Has_Pragma_Inline);
    pragma Inline (Has_Pragma_Inline_Always);
+   pragma Inline (Has_Pragma_No_Inline);
    pragma Inline (Has_Pragma_Ordered);
    pragma Inline (Has_Pragma_Pack);
    pragma Inline (Has_Pragma_Preelab_Init);
@@ -7964,6 +7980,7 @@ package Einfo is
    pragma Inline (Set_Has_Pragma_Elaborate_Body);
    pragma Inline (Set_Has_Pragma_Inline);
    pragma Inline (Set_Has_Pragma_Inline_Always);
+   pragma Inline (Set_Has_Pragma_No_Inline);
    pragma Inline (Set_Has_Pragma_Ordered);
    pragma Inline (Set_Has_Pragma_Pack);
    pragma Inline (Set_Has_Pragma_Preelab_Init);

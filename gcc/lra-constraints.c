@@ -414,24 +414,38 @@ get_reload_reg (enum op_type type, enum machine_mode mode, rtx original,
 	= lra_create_new_reg_with_unique_value (mode, original, rclass, title);
       return true;
     }
-  for (i = 0; i < curr_insn_input_reloads_num; i++)
-    if (rtx_equal_p (curr_insn_input_reloads[i].input, original)
-	&& in_class_p (curr_insn_input_reloads[i].reg, rclass, &new_class))
-      {
-	lra_assert (! side_effects_p (original));
-	*result_reg = curr_insn_input_reloads[i].reg;
-	regno = REGNO (*result_reg);
-	if (lra_dump_file != NULL)
-	  {
-	    fprintf (lra_dump_file, "	 Reuse r%d for reload ", regno);
-	    dump_value_slim (lra_dump_file, original, 1);
-	  }
-	if (new_class != lra_get_allocno_class (regno))
-	  change_class (regno, new_class, ", change", false);
-	if (lra_dump_file != NULL)
-	  fprintf (lra_dump_file, "\n");
-	return false;
-      }
+  /* Prevent reuse value of expression with side effects,
+     e.g. volatile memory.  */
+  if (! side_effects_p (original))
+    for (i = 0; i < curr_insn_input_reloads_num; i++)
+      if (rtx_equal_p (curr_insn_input_reloads[i].input, original)
+	  && in_class_p (curr_insn_input_reloads[i].reg, rclass, &new_class))
+	{
+	  rtx reg = curr_insn_input_reloads[i].reg;
+	  regno = REGNO (reg);
+	  /* If input is equal to original and both are VOIDmode,
+	     GET_MODE (reg) might be still different from mode.
+	     Ensure we don't return *result_reg with wrong mode.  */
+	  if (GET_MODE (reg) != mode)
+	    {
+	      if (GET_MODE_SIZE (GET_MODE (reg)) < GET_MODE_SIZE (mode))
+		continue;
+	      reg = lowpart_subreg (mode, reg, GET_MODE (reg));
+	      if (reg == NULL_RTX || GET_CODE (reg) != SUBREG)
+		continue;
+	    }
+	  *result_reg = reg;
+	  if (lra_dump_file != NULL)
+	    {
+	      fprintf (lra_dump_file, "	 Reuse r%d for reload ", regno);
+	      dump_value_slim (lra_dump_file, original, 1);
+	    }
+	  if (new_class != lra_get_allocno_class (regno))
+	    change_class (regno, new_class, ", change", false);
+	  if (lra_dump_file != NULL)
+	    fprintf (lra_dump_file, "\n");
+	  return false;
+	}
   *result_reg = lra_create_new_reg (mode, original, rclass, title);
   lra_assert (curr_insn_input_reloads_num < LRA_MAX_INSN_RELOADS);
   curr_insn_input_reloads[curr_insn_input_reloads_num].input = original;
@@ -1199,24 +1213,26 @@ simplify_operand_subreg (int nop, enum machine_mode reg_mode)
       enum reg_class rclass
 	= (enum reg_class) targetm.preferred_reload_class (reg, ALL_REGS);
 
-      new_reg = lra_create_new_reg_with_unique_value (reg_mode, reg, rclass,
-						      "subreg reg");
-      bitmap_set_bit (&lra_optional_reload_pseudos, REGNO (new_reg));
-      if (type != OP_OUT
-	  || GET_MODE_SIZE (GET_MODE (reg)) > GET_MODE_SIZE (mode))
+      if (get_reload_reg (curr_static_id->operand[nop].type, reg_mode, reg,
+			  rclass, "subreg reg", &new_reg))
 	{
-	  push_to_sequence (before);
-	  lra_emit_move (new_reg, reg);
-	  before = get_insns ();
-	  end_sequence ();
-	}
-      if (type != OP_IN)
-	{
-	  start_sequence ();
-	  lra_emit_move (reg, new_reg);
-	  emit_insn (after);
-	  after = get_insns ();
-	  end_sequence ();
+	  bitmap_set_bit (&lra_optional_reload_pseudos, REGNO (new_reg));
+	  if (type != OP_OUT
+	      || GET_MODE_SIZE (GET_MODE (reg)) > GET_MODE_SIZE (mode))
+	    {
+	      push_to_sequence (before);
+	      lra_emit_move (new_reg, reg);
+	      before = get_insns ();
+	      end_sequence ();
+	    }
+	  if (type != OP_IN)
+	    {
+	      start_sequence ();
+	      lra_emit_move (reg, new_reg);
+	      emit_insn (after);
+	      after = get_insns ();
+	      end_sequence ();
+	    }
 	}
       SUBREG_REG (operand) = new_reg;
       lra_process_new_insns (curr_insn, before, after,
@@ -1517,8 +1533,8 @@ process_alt_operands (int only_alternative)
 			if (! curr_static_id->operand[m].early_clobber
 			    || operand_reg[nop] == NULL_RTX
 			    || (find_regno_note (curr_insn, REG_DEAD,
-						 REGNO (operand_reg[nop]))
-						 != NULL_RTX))
+						 REGNO (op))
+				|| REGNO (op) == REGNO (operand_reg[m])))
 			  match_p = true;
 		      }
 		    if (match_p)
@@ -1893,7 +1909,22 @@ process_alt_operands (int only_alternative)
 			? in_hard_reg_set_p (this_alternative_set,
 					     mode, hard_regno[nop])
 			: in_class_p (op, this_alternative, NULL))))
-		losers++;
+		{
+		  /* Strict_low_part requires to reload the register
+		     not the sub-register.  In this case we should
+		     check that a final reload hard reg can hold the
+		     value mode.  */
+		  if (curr_static_id->operand[nop].strict_low
+		      && REG_P (op)
+		      && hard_regno[nop] < 0
+		      && GET_CODE (*curr_id->operand_loc[nop]) == SUBREG
+		      && ira_class_hard_regs_num[this_alternative] > 0
+		      && ! HARD_REGNO_MODE_OK (ira_class_hard_regs
+					       [this_alternative][0],
+					       GET_MODE (op)))
+		    goto fail;
+		  losers++;
+		}
 	      if (operand_reg[nop] != NULL_RTX
 		  /* Output operands and matched input operands are
 		     not inherited.  The following conditions do not
@@ -2028,6 +2059,7 @@ process_alt_operands (int only_alternative)
 	  if ((! curr_alt_win[i] && ! curr_alt_match_win[i])
 	      || hard_regno[i] < 0)
 	    continue;
+	  lra_assert (operand_reg[i] != NULL_RTX);
 	  clobbered_hard_regno = hard_regno[i];
 	  CLEAR_HARD_REG_SET (temp_set);
 	  add_to_hard_reg_set (&temp_set, biggest_mode[i], clobbered_hard_regno);
@@ -2042,30 +2074,49 @@ process_alt_operands (int only_alternative)
 	    else if ((curr_alt_matches[j] == i && curr_alt_match_win[j])
 		     || (curr_alt_matches[i] == j && curr_alt_match_win[i]))
 	      continue;
-	    else if (uses_hard_regs_p (*curr_id->operand_loc[j], temp_set))
+	    /* If we don't reload j-th operand, check conflicts.  */
+	    else if ((curr_alt_win[j] || curr_alt_match_win[j])
+		     && uses_hard_regs_p (*curr_id->operand_loc[j], temp_set))
 	      break;
 	  if (j >= n_operands)
 	    continue;
-	  /* We need to reload early clobbered register.  */
-	  for (j = 0; j < n_operands; j++)
-	    if (curr_alt_matches[j] == i)
-	      {
-		curr_alt_match_win[j] = false;
-		losers++;
-		overall += LRA_LOSER_COST_FACTOR;
-	      }
-	  if (! curr_alt_match_win[i])
-	    curr_alt_dont_inherit_ops[curr_alt_dont_inherit_ops_num++] = i;
+	  /* If earlyclobber operand conflicts with another
+	     non-matching operand which is actually the same register
+	     as the earlyclobber operand, it is better to reload the
+	     another operand as an operand matching the earlyclobber
+	     operand can be also the same.  */
+	  if (operand_reg[j] != NULL_RTX && ! curr_alt_match_win[j]
+	      && REGNO (operand_reg[i]) == REGNO (operand_reg[j]))
+	    {
+	      curr_alt_win[j] = false;
+	      curr_alt_dont_inherit_ops[curr_alt_dont_inherit_ops_num++] = j;
+	      losers++;
+	      overall += LRA_LOSER_COST_FACTOR;
+	    }
 	  else
 	    {
-	      /* Remember pseudos used for match reloads are never
-		 inherited.  */
-	      lra_assert (curr_alt_matches[i] >= 0);
-	      curr_alt_win[curr_alt_matches[i]] = false;
+	      /* We need to reload early clobbered register and the
+		 matched registers.  */
+	      for (j = 0; j < n_operands; j++)
+		if (curr_alt_matches[j] == i)
+		  {
+		    curr_alt_match_win[j] = false;
+		    losers++;
+		    overall += LRA_LOSER_COST_FACTOR;
+		  }
+	      if (! curr_alt_match_win[i])
+		curr_alt_dont_inherit_ops[curr_alt_dont_inherit_ops_num++] = i;
+	      else
+		{
+		  /* Remember pseudos used for match reloads are never
+		     inherited.  */
+		  lra_assert (curr_alt_matches[i] >= 0);
+		  curr_alt_win[curr_alt_matches[i]] = false;
+		}
+	      curr_alt_win[i] = curr_alt_match_win[i] = false;
+	      losers++;
+	      overall += LRA_LOSER_COST_FACTOR;
 	    }
-	  curr_alt_win[i] = curr_alt_match_win[i] = false;
-	  losers++;
-	  overall += LRA_LOSER_COST_FACTOR;
 	}
       small_class_operands_num = 0;
       for (nop = 0; nop < n_operands; nop++)

@@ -2351,6 +2351,7 @@ static void dwarf2out_imported_module_or_decl_1 (tree, tree, tree,
 static void dwarf2out_abstract_function (tree);
 static void dwarf2out_var_location (rtx);
 static void dwarf2out_begin_function (tree);
+static void dwarf2out_end_function (unsigned int);
 static void dwarf2out_set_name (tree, tree);
 
 /* The debug hooks structure.  */
@@ -2378,7 +2379,7 @@ const struct gcc_debug_hooks dwarf2_debug_hooks =
 #endif
   dwarf2out_end_epilogue,
   dwarf2out_begin_function,
-  debug_nothing_int,		/* end_function */
+  dwarf2out_end_function,	/* end_function */
   dwarf2out_function_decl,	/* function_decl */
   dwarf2out_global_decl,
   dwarf2out_type_decl,		/* type_decl */
@@ -10862,7 +10863,16 @@ based_loc_descr (rtx reg, HOST_WIDE_INT offset,
 	}
     }
 
-  regno = DWARF_FRAME_REGNUM (REGNO (reg));
+  regno = REGNO (reg);
+#ifdef LEAF_REG_REMAP
+  if (crtl->uses_only_leaf_regs)
+    {
+      int leaf_reg = LEAF_REG_REMAP (regno);
+      if (leaf_reg != -1)
+	regno = (unsigned) leaf_reg;
+    }
+#endif
+  regno = DWARF_FRAME_REGNUM (regno);
 
   if (!optimize && fde
       && (fde->drap_reg == regno || fde->vdrap_reg == regno))
@@ -17883,7 +17893,7 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 
       /* Compute a displacement from the "steady-state frame pointer" to
 	 the CFA.  The former is what all stack slots and argument slots
-	 will reference in the rtl; the later is what we've told the
+	 will reference in the rtl; the latter is what we've told the
 	 debugger about.  We'll need to adjust all frame_base references
 	 by this displacement.  */
       compute_frame_pointer_to_fb_displacement (cfa_fb_offset);
@@ -19070,6 +19080,10 @@ gen_struct_or_union_type_die (tree type, dw_die_ref context_die,
 
   scope_die = scope_die_for (type, context_die);
 
+  /* Generate child dies for template paramaters.  */
+  if (!type_die && debug_info_level > DINFO_LEVEL_TERSE)
+    schedule_generic_params_dies_gen (type);
+
   if (! type_die || (nested && is_cu_die (scope_die)))
     /* First occurrence of type or toplevel definition of nested class.  */
     {
@@ -19086,11 +19100,6 @@ gen_struct_or_union_type_die (tree type, dw_die_ref context_die,
     }
   else
     remove_AT (type_die, DW_AT_declaration);
-
-  /* Generate child dies for template paramaters.  */
-  if (debug_info_level > DINFO_LEVEL_TERSE
-      && COMPLETE_TYPE_P (type))
-    schedule_generic_params_dies_gen (type);
 
   /* If this type has been completed, then give it a byte_size attribute and
      then give a list of members.  */
@@ -20609,7 +20618,8 @@ gen_scheduled_generic_parms_dies (void)
     return;
   
   FOR_EACH_VEC_ELT (*generic_type_instances, i, t)
-    gen_generic_params_dies (t);
+    if (COMPLETE_TYPE_P (t))
+      gen_generic_params_dies (t);
 }
 
 
@@ -20643,6 +20653,14 @@ dwarf2out_set_name (tree decl, tree name)
   else
     add_name_attribute (die, dname);
 }
+
+/* True if before or during processing of the first function being emitted.  */
+static bool in_first_function_p = true;
+/* True if loc_note during dwarf2out_var_location call might still be
+   before first real instruction at address equal to .Ltext0.  */
+static bool maybe_at_text_label_p = true;
+/* One above highest N where .LVLN label might be equal to .Ltext0 label.  */
+static unsigned int first_loclabel_num_not_at_text_label;
 
 /* Called by the final INSN scan whenever we see a var location.  We
    use it to drop labels in the right places, and throw the location in
@@ -20751,6 +20769,45 @@ dwarf2out_var_location (rtx loc_note)
       ASM_OUTPUT_DEBUG_LABEL (asm_out_file, "LVL", loclabel_num);
       loclabel_num++;
       last_label = ggc_strdup (loclabel);
+      /* See if loclabel might be equal to .Ltext0.  If yes,
+	 bump first_loclabel_num_not_at_text_label.  */
+      if (!have_multiple_function_sections
+	  && in_first_function_p
+	  && maybe_at_text_label_p)
+	{
+	  static rtx last_start;
+	  rtx insn;
+	  for (insn = loc_note; insn; insn = previous_insn (insn))
+	    if (insn == last_start)
+	      break;
+	    else if (!NONDEBUG_INSN_P (insn))
+	      continue;
+	    else
+	      {
+		rtx body = PATTERN (insn);
+		if (GET_CODE (body) == USE || GET_CODE (body) == CLOBBER)
+		  continue;
+		/* Inline asm could occupy zero bytes.  */
+		else if (GET_CODE (body) == ASM_INPUT
+			 || asm_noperands (body) >= 0)
+		  continue;
+#ifdef HAVE_attr_length
+		else if (get_attr_min_length (insn) == 0)
+		  continue;
+#endif
+		else
+		  {
+		    /* Assume insn has non-zero length.  */
+		    maybe_at_text_label_p = false;
+		    break;
+		  }
+	      }
+	  if (maybe_at_text_label_p)
+	    {
+	      last_start = loc_note;
+	      first_loclabel_num_not_at_text_label = loclabel_num;
+	    }
+	}
     }
 
   if (!var_loc_p)
@@ -20924,6 +20981,59 @@ dwarf2out_begin_function (tree fun)
   tail_call_site_count = 0;
 
   set_cur_line_info_table (sec);
+}
+
+/* Helper function of dwarf2out_end_function, called only after emitting
+   the very first function into assembly.  Check if some .debug_loc range
+   might end with a .LVL* label that could be equal to .Ltext0.
+   In that case we must force using absolute addresses in .debug_loc ranges,
+   because this range could be .LVLN-.Ltext0 .. .LVLM-.Ltext0 for
+   .LVLN == .LVLM == .Ltext0, thus 0 .. 0, which is a .debug_loc
+   list terminator.
+   Set have_multiple_function_sections to true in that case and
+   terminate htab traversal.  */
+
+static int
+find_empty_loc_ranges_at_text_label (void **slot, void *)
+{
+  var_loc_list *entry;
+  struct var_loc_node *node;
+
+  entry = (var_loc_list *) *slot;
+  node = entry->first;
+  if (node && node->next && node->next->label)
+    {
+      unsigned int i;
+      const char *label = node->next->label;
+      char loclabel[MAX_ARTIFICIAL_LABEL_BYTES];
+
+      for (i = 0; i < first_loclabel_num_not_at_text_label; i++)
+	{
+	  ASM_GENERATE_INTERNAL_LABEL (loclabel, "LVL", i);
+	  if (strcmp (label, loclabel) == 0)
+	    {
+	      have_multiple_function_sections = true;
+	      return 0;
+	    }
+	}
+    }
+  return 1;
+}
+
+/* Hook called after emitting a function into assembly.
+   This does something only for the very first function emitted.  */
+
+static void
+dwarf2out_end_function (unsigned int)
+{
+  if (in_first_function_p
+      && !have_multiple_function_sections
+      && first_loclabel_num_not_at_text_label
+      && decl_loc_table)
+    htab_traverse (decl_loc_table, find_empty_loc_ranges_at_text_label,
+		   NULL);
+  in_first_function_p = false;
+  maybe_at_text_label_p = false;
 }
 
 /* Add OPCODE+VAL as an entry at the end of the opcode array in TABLE.  */
@@ -21928,9 +22038,11 @@ prune_unused_types_mark (dw_die_ref die, int dokids)
       prune_unused_types_mark_generic_parms_dies (die);
 
       /* We also have to mark its parents as used.
-	 (But we don't want to mark our parents' kids due to this.)  */
+	 (But we don't want to mark our parent's kids due to this,
+	 unless it is a class.)  */
       if (die->die_parent)
-	prune_unused_types_mark (die->die_parent, 0);
+	prune_unused_types_mark (die->die_parent,
+				 class_scope_p (die->die_parent));
 
       /* Mark any referenced nodes.  */
       prune_unused_types_walk_attribs (die);
@@ -22105,7 +22217,6 @@ static void
 prune_unused_types_prune (dw_die_ref die)
 {
   dw_die_ref c;
-  int pruned = 0;
 
   gcc_assert (die->die_mark);
   prune_unused_types_update_strings (die);
@@ -22128,25 +22239,13 @@ prune_unused_types_prune (dw_die_ref die)
 	      prev->die_sib = c->die_sib;
 	      die->die_child = prev;
 	    }
-	  pruned = 1;
-	  goto finished;
+	  return;
 	}
 
     if (c != prev->die_sib)
-      {
-	prev->die_sib = c;
-	pruned = 1;
-      }
+      prev->die_sib = c;
     prune_unused_types_prune (c);
   } while (c != die->die_child);
-
- finished:
-  /* If we pruned children, and this is a class, mark it as a 
-     declaration to inform debuggers that this is not a complete
-     class definition.  */
-  if (pruned && die->die_mark == 1 && class_scope_p (die)
-      && ! is_declaration_die (die))
-    add_AT_flag (die, DW_AT_declaration, 1);
 }
 
 /* Remove dies representing declarations that we never use.  */

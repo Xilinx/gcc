@@ -81,6 +81,30 @@ check_real_for_fixed_mode (REAL_VALUE_TYPE *real_value, enum machine_mode mode)
   return FIXED_OK;
 }
 
+
+/* Construct a CONST_FIXED from a bit payload and machine mode MODE.
+   The bits in PAYLOAD are sign-extended/zero-extended according to MODE.  */
+
+FIXED_VALUE_TYPE
+fixed_from_double_int (double_int payload, enum machine_mode mode)
+{
+  FIXED_VALUE_TYPE value;
+
+  gcc_assert (GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_DOUBLE_INT);
+
+  if (SIGNED_SCALAR_FIXED_POINT_MODE_P (mode))
+    value.data = payload.sext (1 + GET_MODE_IBIT (mode) + GET_MODE_FBIT (mode));
+  else if (UNSIGNED_SCALAR_FIXED_POINT_MODE_P (mode))
+    value.data = payload.zext (GET_MODE_IBIT (mode) + GET_MODE_FBIT (mode));
+  else
+    gcc_unreachable();
+
+  value.mode = mode;
+
+  return value;
+}
+
+
 /* Initialize from a decimal or hexadecimal string.  */
 
 void

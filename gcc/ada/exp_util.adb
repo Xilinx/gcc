@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2013, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -3141,25 +3141,27 @@ package body Exp_Util is
 
       --  N_Raise_xxx_Error is an annoying special case, it is a statement if
       --  it has type Standard_Void_Type, and a subexpression otherwise.
-      --  otherwise. Procedure attribute references are also statements.
+      --  otherwise. Procedure calls, and similarly procedure attribute
+      --  references, are also statements.
 
       if Nkind (Assoc_Node) in N_Subexpr
-        and then (Nkind (Assoc_Node) in N_Raise_xxx_Error
+        and then (Nkind (Assoc_Node) not in N_Raise_xxx_Error
                    or else Etype (Assoc_Node) /= Standard_Void_Type)
+        and then Nkind (Assoc_Node) /= N_Procedure_Call_Statement
         and then (Nkind (Assoc_Node) /= N_Attribute_Reference
                    or else
                      not Is_Procedure_Attribute_Name
                            (Attribute_Name (Assoc_Node)))
       then
-         P := Assoc_Node;             -- ??? does not agree with above!
-         N := Parent (Assoc_Node);
+         N := Assoc_Node;
+         P := Parent (Assoc_Node);
 
       --  Non-subexpression case. Note that N is initially Empty in this case
       --  (N is only guaranteed Non-Empty in the subexpr case).
 
       else
-         P := Assoc_Node;
          N := Empty;
+         P := Assoc_Node;
       end if;
 
       --  Capture root of the transient scope
@@ -3170,6 +3172,13 @@ package body Exp_Util is
 
       loop
          pragma Assert (Present (P));
+
+         --  Make sure that inserted actions stay in the transient scope
+
+         if Present (Wrapped_Node) and then N = Wrapped_Node then
+            Store_Before_Actions_In_Scope (Ins_Actions);
+            return;
+         end if;
 
          case Nkind (P) is
 
@@ -3282,14 +3291,17 @@ package body Exp_Util is
 
                return;
 
-            --  Case of appearing within an Expressions_With_Actions node. We
-            --  append the actions to the list of actions already there, if
-            --  the node has not been analyzed yet. Otherwise find insertion
-            --  location further up the tree.
+            --  Case of appearing within an Expressions_With_Actions node. When
+            --  the new actions come from the expression of the expression with
+            --  actions, they must be added to the existing actions. The other
+            --  alternative is when the new actions are related to one of the
+            --  existing actions of the expression with actions. In that case
+            --  they must be inserted further up the tree.
 
             when N_Expression_With_Actions =>
-               if not Analyzed (P) then
-                  Append_List (Ins_Actions, Actions (P));
+               if N = Expression (P) then
+                  Insert_List_After_And_Analyze
+                    (Last (Actions (P)), Ins_Actions);
                   return;
                end if;
 
@@ -3696,13 +3708,6 @@ package body Exp_Util is
                null;
 
          end case;
-
-         --  Make sure that inserted actions stay in the transient scope
-
-         if P = Wrapped_Node then
-            Store_Before_Actions_In_Scope (Ins_Actions);
-            return;
-         end if;
 
          --  If we fall through above tests, keep climbing tree
 
@@ -7938,6 +7943,43 @@ package body Exp_Util is
          return False;
       end if;
    end Type_May_Have_Bit_Aligned_Components;
+
+   ----------------------------------
+   -- Within_Case_Or_If_Expression --
+   ----------------------------------
+
+   function Within_Case_Or_If_Expression (N : Node_Id) return Boolean is
+      Par : Node_Id;
+
+   begin
+      --  Locate an enclosing case or if expression. Note: these constructs can
+      --  get expanded into Expression_With_Actions, hence the need to test
+      --  using the original node.
+
+      Par := N;
+      while Present (Par) loop
+         if Nkind_In (Original_Node (Par), N_Case_Expression,
+                                           N_If_Expression)
+         then
+            return True;
+
+         --  Prevent the search from going too far
+
+         elsif Nkind_In (Par, N_Entry_Body,
+                              N_Package_Body,
+                              N_Package_Declaration,
+                              N_Protected_Body,
+                              N_Subprogram_Body,
+                              N_Task_Body)
+         then
+            return False;
+         end if;
+
+         Par := Parent (Par);
+      end loop;
+
+      return False;
+   end Within_Case_Or_If_Expression;
 
    ----------------------------
    -- Wrap_Cleanup_Procedure --

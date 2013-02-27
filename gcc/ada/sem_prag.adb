@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2013, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -618,9 +618,9 @@ package body Sem_Prag is
       --  Common processing for first argument of pragma Interrupt_Handler or
       --  pragma Attach_Handler.
 
-      procedure Check_Loop_Invariant_Variant_Placement;
-      --  Verify whether pragma Loop_Invariant or pragma Loop_Variant appear
-      --  immediately within a construct restricted to loops.
+      procedure Check_Loop_Pragma_Placement;
+      --  Verify whether pragma Loop_Invariant or Loop_Optimize or Loop_Variant
+      --  appear immediately within a construct restricted to loops.
 
       procedure Check_Is_In_Decl_Part_Or_Package_Spec;
       --  Check that pragma appears in a declarative part, or in a package
@@ -886,10 +886,15 @@ package body Sem_Prag is
       --  to declare types that match predefined C types, especially for cases
       --  without corresponding Ada predefined type.
 
-      procedure Process_Inline (Active : Boolean);
-      --  Common processing for Inline and Inline_Always. The parameter
-      --  indicates if the inline pragma is active, i.e. if it should actually
-      --  cause inlining to occur.
+      type Inline_Status is (Suppressed, Disabled, Enabled);
+      --  Inline status of a subprogram, indicated as follows:
+      --    Suppressed: inlining is suppressed for the subprogram
+      --    Disabled:   no inlining is requested for the subprogram
+      --    Enabled:    inlining is requested/required for the subprogram
+
+      procedure Process_Inline (Status : Inline_Status);
+      --  Common processing for Inline, Inline_Always and No_Inline. Parameter
+      --  indicates the inline status specified by the pragma.
 
       procedure Process_Interface_Name
         (Subprogram_Def : Entity_Id;
@@ -946,6 +951,10 @@ package body Sem_Prag is
       --  has the right form, and if not issues an error message. If the
       --  argument has the right form then the Mechanism field of Ent is
       --  set appropriately.
+
+      procedure Set_Rational_Profile;
+      --  Activate the set of configuration pragmas and permissions that make
+      --  up the Rational profile.
 
       procedure Set_Ravenscar_Profile (N : Node_Id);
       --  Activate the set of configuration pragmas and restrictions that make
@@ -1918,12 +1927,13 @@ package body Sem_Prag is
          end if;
       end Check_Interrupt_Or_Attach_Handler;
 
-      --------------------------------------------
-      -- Check_Loop_Invariant_Variant_Placement --
-      --------------------------------------------
+      ---------------------------------
+      -- Check_Loop_Pragma_Placement --
+      ---------------------------------
 
-      procedure Check_Loop_Invariant_Variant_Placement is
+      procedure Check_Loop_Pragma_Placement is
          procedure Placement_Error (Constr : Node_Id);
+         pragma No_Return (Placement_Error);
          --  Node Constr denotes the last loop restricted construct before we
          --  encountered an illegal relation between enclosing constructs. Emit
          --  an error depending on what Constr was.
@@ -1950,7 +1960,7 @@ package body Sem_Prag is
          Prev : Node_Id;
          Stmt : Node_Id;
 
-      --  Start of processing for Check_Loop_Invariant_Variant_Placement
+      --  Start of processing for Check_Loop_Pragma_Placement
 
       begin
          Prev := N;
@@ -2006,7 +2016,7 @@ package body Sem_Prag is
                return;
             end if;
          end loop;
-      end Check_Loop_Invariant_Variant_Placement;
+      end Check_Loop_Pragma_Placement;
 
       -------------------------------------------
       -- Check_Is_In_Decl_Part_Or_Package_Spec --
@@ -4907,7 +4917,7 @@ package body Sem_Prag is
       -- Process_Inline --
       --------------------
 
-      procedure Process_Inline (Active : Boolean) is
+      procedure Process_Inline (Status : Inline_Status) is
          Assoc     : Node_Id;
          Decl      : Node_Id;
          Subp_Id   : Node_Id;
@@ -5012,7 +5022,9 @@ package body Sem_Prag is
 
             --  If inlining is not possible, for now do not treat as an error
 
-            elsif Inlining_Not_Possible (Subp) then
+            elsif Status /= Suppressed
+              and then Inlining_Not_Possible (Subp)
+            then
                Applies := True;
                return;
 
@@ -5140,18 +5152,56 @@ package body Sem_Prag is
 
          procedure Set_Inline_Flags (Subp : Entity_Id) is
          begin
-            if Active then
-               Set_Is_Inlined (Subp);
+            --  First set the Has_Pragma_XXX flags and issue the appropriate
+            --  errors and warnings for suspicious combinations.
+
+            if Prag_Id = Pragma_No_Inline then
+               if Has_Pragma_Inline_Always (Subp) then
+                  Error_Msg_N
+                    ("Inline_Always and No_Inline are mutually exclusive", N);
+               elsif Has_Pragma_Inline (Subp) then
+                  Error_Msg_NE
+                    ("Inline and No_Inline both specified for& ??",
+                     N, Entity (Subp_Id));
+               end if;
+
+               Set_Has_Pragma_No_Inline (Subp);
+            else
+               if Prag_Id = Pragma_Inline_Always then
+                  if Has_Pragma_No_Inline (Subp) then
+                     Error_Msg_N
+                       ("Inline_Always and No_Inline are mutually exclusive",
+                        N);
+                  end if;
+
+                  Set_Has_Pragma_Inline_Always (Subp);
+               else
+                  if Has_Pragma_No_Inline (Subp) then
+                     Error_Msg_NE
+                       ("Inline and No_Inline both specified for& ??",
+                        N, Entity (Subp_Id));
+                  end if;
+               end if;
+
+               if not Has_Pragma_Inline (Subp) then
+                  Set_Has_Pragma_Inline (Subp);
+                  Effective := True;
+               end if;
             end if;
 
-            if not Has_Pragma_Inline (Subp) then
-               Set_Has_Pragma_Inline (Subp);
-               Effective := True;
-            end if;
+            --  Then adjust the Is_Inlined flag. It can never be set if the
+            --  subprogram is subject to pragma No_Inline.
 
-            if Prag_Id = Pragma_Inline_Always then
-               Set_Has_Pragma_Inline_Always (Subp);
-            end if;
+            case Status is
+               when Suppressed =>
+                  Set_Is_Inlined (Subp, False);
+               when Disabled =>
+                  null;
+               when Enabled =>
+                  if not Has_Pragma_No_Inline (Subp) then
+                     Set_Is_Inlined (Subp, True);
+                  end if;
+            end case;
          end Set_Inline_Flags;
 
       --  Start of processing for Process_Inline
@@ -5160,7 +5210,7 @@ package body Sem_Prag is
          Check_No_Identifiers;
          Check_At_Least_N_Arguments (1);
 
-         if Active then
+         if Status = Enabled then
             Inline_Processing_Required := True;
          end if;
 
@@ -5206,7 +5256,7 @@ package body Sem_Prag is
 
             elsif not Effective
               and then Warn_On_Redundant_Constructs
-              and then not Suppress_All_Inlining
+              and then not (Status = Suppressed or Suppress_All_Inlining)
             then
                if Inlining_Not_Possible (Subp) then
                   Error_Msg_NE
@@ -6049,6 +6099,7 @@ package body Sem_Prag is
                S2 : constant String_Id := Strval (New_Name);
 
                procedure Mismatch;
+               pragma No_Return (Mismatch);
                --  Called if names do not match
 
                --------------
@@ -6154,9 +6205,11 @@ package body Sem_Prag is
          Mech_Name_Id : Name_Id;
 
          procedure Bad_Class;
+         pragma No_Return (Bad_Class);
          --  Signal bad descriptor class name
 
          procedure Bad_Mechanism;
+         pragma No_Return (Bad_Mechanism);
          --  Signal bad mechanism name
 
          ---------------
@@ -6357,6 +6410,20 @@ package body Sem_Prag is
             Bad_Class;
          end if;
       end Set_Mechanism_Value;
+
+      --------------------------
+      -- Set_Rational_Profile --
+      --------------------------
+
+      --  The Rational profile includes Implicit_Packing, Use_Vads_Size, and
+      --  and extension to the semantics of renaming declarations.
+
+      procedure Set_Rational_Profile is
+      begin
+         Implicit_Packing     := True;
+         Overriding_Renamings := True;
+         Use_VADS_Size        := True;
+      end Set_Rational_Profile;
 
       ---------------------------
       -- Set_Ravenscar_Profile --
@@ -6646,7 +6713,22 @@ package body Sem_Prag is
          -- Abstract_State --
          --------------------
 
-         --  ??? no formal grammar available yet
+         --  pragma Abstract_State (ABSTRACT_STATE_LIST)
+
+         --  ABSTRACT_STATE_LIST        ::=
+         --    null
+         --    | STATE_NAME_WITH_PROPERTIES {, STATE_NAME_WITH_PROPERTIES}
+
+         --  STATE_NAME_WITH_PROPERTIES ::=
+         --    STATE_NAME
+         --    | (STATE_NAME with PROPERTY_LIST)
+
+         --  PROPERTY_LIST              ::= PROPERTY {, PROPERTY}
+         --  PROPERTY                   ::= SIMPLE_PROPERTY
+         --                                 | NAME_VALUE_PROPERTY
+         --  SIMPLE_PROPERTY            ::= IDENTIFIER
+         --  NAME_VALUE_PROPERTY        ::= IDENTIFIER => EXPRESSION
+         --  STATE_NAME                 ::= DEFINING_IDENTIFIER
 
          when Pragma_Abstract_State => Abstract_State : declare
             Pack_Id : Entity_Id;
@@ -7274,8 +7356,7 @@ package body Sem_Prag is
 
             Rewrite (N,
               Make_Pragma (Loc,
-                Chars => Name_Check_Policy,
-
+                Chars                        => Name_Check_Policy,
                 Pragma_Argument_Associations => New_List (
                   Make_Pragma_Argument_Association (Loc,
                     Expression => Make_Identifier (Loc, Name_Assertion)),
@@ -8421,11 +8502,10 @@ package body Sem_Prag is
             Rewrite (N,
               Make_Pragma (Loc,
                 Chars                        => Name_Import,
-                Pragma_Argument_Associations =>
-                  New_List (
-                    Make_Pragma_Argument_Association (Loc,
-                      Expression => Make_Identifier (Loc, Name_CPP)),
-                    New_Copy (First (Pragma_Argument_Associations (N))))));
+                Pragma_Argument_Associations => New_List (
+                  Make_Pragma_Argument_Association (Loc,
+                    Expression => Make_Identifier (Loc, Name_CPP)),
+                  New_Copy (First (Pragma_Argument_Associations (N))))));
             Analyze (N);
          end CPP_Class;
 
@@ -9954,7 +10034,16 @@ package body Sem_Prag is
          -- Global --
          ------------
 
-         --  ??? no formal grammar pragma available yet
+         --  pragma Global (GLOBAL_SPECIFICATION)
+
+         --  GLOBAL_SPECIFICATION ::= MODED_GLOBAL_LIST {, MODED_GLOBAL_LIST}
+         --                           | GLOBAL_LIST
+         --                           | null
+         --  MODED_GLOBAL_LIST    ::= MODE_SELECTOR => GLOBAL_LIST
+         --  MODE_SELECTOR        ::= Input | Output | In_Out | Contract_In
+         --  GLOBAL_LIST          ::= GLOBAL_ITEM
+         --                           | (GLOBAL_ITEM {, GLOBAL_ITEM})
+         --  GLOBAL_ITEM          ::= NAME
 
          when Pragma_Global => Global : declare
             Subp_Id : Entity_Id;
@@ -10054,14 +10143,7 @@ package body Sem_Prag is
                      return;
                   end if;
 
-                  --  Ensure that the formal parameters are visible when
-                  --  processing an item. This falls out of the general rule
-                  --  of aspects pertaining to subprogram declarations.
-
-                  Push_Scope (Subp_Id);
-                  Install_Formals (Subp_Id);
                   Analyze (Item);
-                  Pop_Scope;
 
                   if Is_Entity_Name (Item) then
                      Id := Entity (Item);
@@ -10302,7 +10384,16 @@ package body Sem_Prag is
             --  error messages.
 
             else
+               --  Ensure that the formal parameters are visible when
+               --  processing an item. This falls out of the general rule of
+               --  aspects pertaining to subprogram declarations.
+
+               Push_Scope (Subp_Id);
+               Install_Formals (Subp_Id);
+
                Analyze_Global_List (List);
+
+               Pop_Scope;
             end if;
          end Global;
 
@@ -10454,8 +10545,9 @@ package body Sem_Prag is
          -- Implemented --
          -----------------
 
-         --  pragma Implemented (procedure_LOCAL_NAME, implementation_kind);
-         --  implementation_kind ::=
+         --  pragma Implemented (procedure_LOCAL_NAME, IMPLEMENTATION_KIND);
+
+         --  IMPLEMENTATION_KIND ::=
          --    By_Entry | By_Protected_Procedure | By_Any | Optional
 
          --  "By_Any" and "Optional" are treated as synonyms in order to
@@ -11014,9 +11106,13 @@ package body Sem_Prag is
 
          when Pragma_Inline =>
 
-            --  Pragma is active if inlining option is active
+            --  Inline status is Enabled if inlining option is active
 
-            Process_Inline (Inline_Active);
+            if Inline_Active then
+               Process_Inline (Enabled);
+            else
+               Process_Inline (Disabled);
+            end if;
 
          -------------------
          -- Inline_Always --
@@ -11031,7 +11127,7 @@ package body Sem_Prag is
             --  this causes walk order issues.
 
             if not (CodePeer_Mode or Alfa_Mode) then
-               Process_Inline (True);
+               Process_Inline (Enabled);
             end if;
 
          --------------------
@@ -11095,11 +11191,19 @@ package body Sem_Prag is
             Process_Import_Or_Interface;
 
             --  In Ada 2005, the permission to use Interface (a reserved word)
-            --  as a pragma name is considered an obsolescent feature.
+            --  as a pragma name is considered an obsolescent feature, and this
+            --  pragma was already obsolescent in Ada 95.
 
-            if Ada_Version >= Ada_2005 then
+            if Ada_Version >= Ada_95 then
                Check_Restriction
                  (No_Obsolescent_Features, Pragma_Identifier (N));
+
+               if Warn_On_Obsolescent_Feature then
+                  Error_Msg_N
+                    ("pragma Interface is an obsolescent feature?j?", N);
+                  Error_Msg_N
+                    ("|use pragma Import instead?j?", N);
+               end if;
             end if;
 
          --------------------
@@ -11125,6 +11229,19 @@ package body Sem_Prag is
             Check_At_Most_N_Arguments  (3);
             Id := Get_Pragma_Arg (Arg1);
             Analyze (Id);
+
+            --  This is obsolete from Ada 95 on, but it is an implementation
+            --  defined pragma, so we do not consider that it violates the
+            --  restriction (No_Obsolescent_Features).
+
+            if Ada_Version >= Ada_95 then
+               if Warn_On_Obsolescent_Feature then
+                  Error_Msg_N
+                    ("pragma Interface_Name is an obsolescent feature?j?", N);
+                  Error_Msg_N
+                    ("|use pragma Import instead?j?", N);
+               end if;
+            end if;
 
             if not Is_Entity_Name (Id) then
                Error_Pragma_Arg
@@ -12273,7 +12390,7 @@ package body Sem_Prag is
             GNAT_Pragma;
             S14_Pragma;
             Check_Arg_Count (1);
-            Check_Loop_Invariant_Variant_Placement;
+            Check_Loop_Pragma_Placement;
 
             --  Completely ignore if disabled
 
@@ -12302,6 +12419,30 @@ package body Sem_Prag is
             Analyze (N);
          end Loop_Invariant;
 
+         -------------------
+         -- Loop_Optimize --
+         -------------------
+
+         --  pragma Loop_Optimize ( OPTIMIZATION_HINT {, OPTIMIZATION_HINT } );
+
+         --  OPTIMIZATION_HINT ::= No_Unroll | Unroll | No_Vector | Vector
+
+         when Pragma_Loop_Optimize => Loop_Optimize : declare
+            Hint : Node_Id;
+
+         begin
+            GNAT_Pragma;
+            Check_At_Least_N_Arguments (1);
+            Check_No_Identifiers;
+            Hint := First (Pragma_Argument_Associations (N));
+            while Present (Hint) loop
+               Check_Arg_Is_One_Of (Hint,
+                 Name_No_Unroll, Name_Unroll, Name_No_Vector, Name_Vector);
+               Next (Hint);
+            end loop;
+            Check_Loop_Pragma_Placement;
+         end Loop_Optimize;
+
          ------------------
          -- Loop_Variant --
          ------------------
@@ -12320,7 +12461,7 @@ package body Sem_Prag is
             GNAT_Pragma;
             S14_Pragma;
             Check_At_Least_N_Arguments (1);
-            Check_Loop_Invariant_Variant_Placement;
+            Check_Loop_Pragma_Placement;
 
             --  Completely ignore if disabled
 
@@ -12520,6 +12661,16 @@ package body Sem_Prag is
          when Pragma_No_Body =>
             GNAT_Pragma;
             Pragma_Misplaced;
+
+         ---------------
+         -- No_Inline --
+         ---------------
+
+         --  pragma No_Inline ( NAME {, NAME} );
+
+         when Pragma_No_Inline =>
+            GNAT_Pragma;
+            Process_Inline (Suppressed);
 
          ---------------
          -- No_Return --
@@ -13013,6 +13164,9 @@ package body Sem_Prag is
             end if;
          end Overflow_Mode;
 
+         when Pragma_Overriding_Renamings =>
+            Overriding_Renamings := True;
+
          -------------
          -- Ordered --
          -------------
@@ -13437,7 +13591,7 @@ package body Sem_Prag is
             if In_Body then
                Rewrite (N,
                  Make_Pragma (Loc,
-                   Chars => Name_Check,
+                   Chars                        => Name_Check,
                    Pragma_Argument_Associations => New_List (
                      Make_Pragma_Argument_Association (Loc,
                        Expression => Make_Identifier (Loc, Name_Precondition)),
@@ -13813,7 +13967,7 @@ package body Sem_Prag is
 
          --  pragma Profile (profile_IDENTIFIER);
 
-         --  profile_IDENTIFIER => Restricted | Ravenscar
+         --  profile_IDENTIFIER => Restricted | Ravenscar | Rational
 
          when Pragma_Profile =>
             Ada_2005_Pragma;
@@ -13832,6 +13986,9 @@ package body Sem_Prag is
                   Set_Profile_Restrictions
                     (Restricted,
                      N, Warn => Treat_Restrictions_As_Warnings);
+
+               elsif Chars (Argx) = Name_Rational then
+                  Set_Rational_Profile;
 
                elsif Chars (Argx) = Name_No_Implementation_Extensions then
                   Set_Profile_Restrictions
@@ -14228,6 +14385,15 @@ package body Sem_Prag is
                end if;
             end if;
          end;
+
+         --------------
+         -- Rational --
+         --------------
+
+         --  pragma Rational, for compatibility with foreign compiler
+
+         when Pragma_Rational =>
+            Set_Rational_Profile;
 
          -----------------------
          -- Relative_Deadline --
@@ -14924,15 +15090,17 @@ package body Sem_Prag is
 
                   E := Entity (E_Id);
 
-                  if E = Any_Id then
-                     return;
-                  else
-                     loop
-                        Set_Suppress_Style_Checks (E,
-                          (Chars (Get_Pragma_Arg (Arg1)) = Name_Off));
-                        exit when No (Homonym (E));
-                        E := Homonym (E);
-                     end loop;
+                  if not Ignore_Style_Checks_Pragmas then
+                     if E = Any_Id then
+                        return;
+                     else
+                        loop
+                           Set_Suppress_Style_Checks
+                             (E, Chars (Get_Pragma_Arg (Arg1)) = Name_Off);
+                           exit when No (Homonym (E));
+                           E := Homonym (E);
+                        end loop;
+                     end if;
                   end if;
                end;
 
@@ -14961,7 +15129,10 @@ package body Sem_Prag is
                         --  them in the parser.
 
                         if J = Slen then
-                           Set_Style_Check_Options (Options);
+                           if not Ignore_Style_Checks_Pragmas then
+                              Set_Style_Check_Options (Options);
+                           end if;
+
                            exit;
                         end if;
 
@@ -14971,17 +15142,23 @@ package body Sem_Prag is
 
                elsif Nkind (A) = N_Identifier then
                   if Chars (A) = Name_All_Checks then
-                     if GNAT_Mode then
-                        Set_GNAT_Style_Check_Options;
-                     else
-                        Set_Default_Style_Check_Options;
+                     if not Ignore_Style_Checks_Pragmas then
+                        if GNAT_Mode then
+                           Set_GNAT_Style_Check_Options;
+                        else
+                           Set_Default_Style_Check_Options;
+                        end if;
                      end if;
 
                   elsif Chars (A) = Name_On then
-                     Style_Check := True;
+                     if not Ignore_Style_Checks_Pragmas then
+                        Style_Check := True;
+                     end if;
 
                   elsif Chars (A) = Name_Off then
-                     Style_Check := False;
+                     if not Ignore_Style_Checks_Pragmas then
+                        Style_Check := False;
+                     end if;
                   end if;
                end if;
             end if;
@@ -15958,9 +16135,21 @@ package body Sem_Prag is
                            if OK then
                               Chr := Get_Character (C);
 
+                              --  Dash case: only -Wxxx is accepted
+
+                              if J = 1
+                                and then J < Len
+                                and then Chr = '-'
+                              then
+                                 J := J + 1;
+                                 C := Get_String_Char (Str, J);
+                                 Chr := Get_Character (C);
+                                 exit when Chr = 'W';
+                                 OK := False;
+
                               --  Dot case
 
-                              if J < Len and then Chr = '.' then
+                              elsif J < Len and then Chr = '.' then
                                  J := J + 1;
                                  C := Get_String_Char (Str, J);
                                  Chr := Get_Character (C);
@@ -16492,6 +16681,7 @@ package body Sem_Prag is
       Pragma_Locking_Policy                 => -1,
       Pragma_Long_Float                     => -1,
       Pragma_Loop_Invariant                 => -1,
+      Pragma_Loop_Optimize                  => -1,
       Pragma_Loop_Variant                   => -1,
       Pragma_Machine_Attribute              => -1,
       Pragma_Main                           => -1,
@@ -16499,6 +16689,7 @@ package body Sem_Prag is
       Pragma_Memory_Size                    => -1,
       Pragma_No_Return                      =>  0,
       Pragma_No_Body                        =>  0,
+      Pragma_No_Inline                      =>  0,
       Pragma_No_Run_Time                    => -1,
       Pragma_No_Strict_Aliasing             => -1,
       Pragma_Normalize_Scalars              => -1,
@@ -16506,6 +16697,7 @@ package body Sem_Prag is
       Pragma_Optimize                       => -1,
       Pragma_Optimize_Alignment             => -1,
       Pragma_Overflow_Mode                  =>  0,
+      Pragma_Overriding_Renamings           =>  0,
       Pragma_Ordered                        =>  0,
       Pragma_Pack                           =>  0,
       Pragma_Page                           => -1,
@@ -16530,6 +16722,7 @@ package body Sem_Prag is
       Pragma_Pure_12                        => -1,
       Pragma_Pure_Function                  => -1,
       Pragma_Queuing_Policy                 => -1,
+      Pragma_Rational                       => -1,
       Pragma_Ravenscar                      => -1,
       Pragma_Relative_Deadline              => -1,
       Pragma_Remote_Access_Type             => -1,

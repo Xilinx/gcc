@@ -803,6 +803,11 @@ maybe_process_partial_specialization (tree type)
   if (type == error_mark_node)
     return error_mark_node;
 
+  /* A lambda that appears in specialization context is not itself a
+     specialization.  */
+  if (CLASS_TYPE_P (type) && CLASSTYPE_LAMBDA_EXPR (type))
+    return type;
+
   if (TREE_CODE (type) == BOUND_TEMPLATE_TEMPLATE_PARM)
     {
       error ("name of class shadows template template parameter %qD",
@@ -1462,14 +1467,21 @@ register_specialization (tree spec, tree tmpl, tree args, bool is_friend,
 /* Returns true iff two spec_entry nodes are equivalent.  Only compares the
    TMPL and ARGS members, ignores SPEC.  */
 
+int comparing_specializations;
+
 static int
 eq_specializations (const void *p1, const void *p2)
 {
   const spec_entry *e1 = (const spec_entry *)p1;
   const spec_entry *e2 = (const spec_entry *)p2;
+  int equal;
 
-  return (e1->tmpl == e2->tmpl
-	  && comp_template_args (e1->args, e2->args));
+  ++comparing_specializations;
+  equal = (e1->tmpl == e2->tmpl
+	   && comp_template_args (e1->args, e2->args));
+  --comparing_specializations;
+
+  return equal;
 }
 
 /* Returns a hash for a template TMPL and template arguments ARGS.  */
@@ -10497,7 +10509,8 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 	  tree inst_scope = tsubst_copy (USING_DECL_SCOPE (t), args,
 					 complain, in_decl);
 	  tree name = tsubst_copy (DECL_NAME (t), args, complain, in_decl);
-	  if (TREE_CODE (scope) == TEMPLATE_TYPE_PARM
+	  /* Handle 'using T::T'.  */
+	  if (TYPE_NAME (scope)
 	      && name == TYPE_IDENTIFIER (scope))
 	    name = TYPE_IDENTIFIER (inst_scope);
 	  r = do_class_using_decl (inst_scope, name);
@@ -14537,8 +14550,20 @@ tsubst_copy_and_build (tree t,
 	   than build a new one.  */
 	tree scope = LAMBDA_EXPR_EXTRA_SCOPE (t);
 	if (scope && TREE_CODE (scope) == FUNCTION_DECL)
-	  scope = tsubst (LAMBDA_EXPR_EXTRA_SCOPE (t), args,
-			  complain, in_decl);
+	  scope = tsubst (scope, args, complain, in_decl);
+	else if (scope && TREE_CODE (scope) == PARM_DECL)
+	  {
+	    /* Look up the parameter we want directly, as tsubst_copy
+	       doesn't do what we need.  */
+	    tree fn = tsubst (DECL_CONTEXT (scope), args, complain, in_decl);
+	    tree parm = FUNCTION_FIRST_USER_PARM (fn);
+	    while (DECL_PARM_INDEX (parm) != DECL_PARM_INDEX (scope))
+	      parm = DECL_CHAIN (parm);
+	    scope = parm;
+	    /* FIXME Work around the parm not having DECL_CONTEXT set.  */
+	    if (DECL_CONTEXT (scope) == NULL_TREE)
+	      DECL_CONTEXT (scope) = fn;
+	  }
 	else
 	  scope = RECUR (scope);
 	LAMBDA_EXPR_EXTRA_SCOPE (r) = scope;
@@ -14555,9 +14580,11 @@ tsubst_copy_and_build (tree t,
 	complete_type (type);
 
 	/* The capture list refers to closure members, so this needs to
-	   wait until after we finish instantiating the type.  */
+	   wait until after we finish instantiating the type.  Also keep
+	   any captures that may have been added during instantiation.  */
 	LAMBDA_EXPR_CAPTURE_LIST (r)
-	  = RECUR (LAMBDA_EXPR_CAPTURE_LIST (t));
+	  = chainon (RECUR (LAMBDA_EXPR_CAPTURE_LIST (t)),
+		     LAMBDA_EXPR_CAPTURE_LIST (r));
 	LAMBDA_EXPR_THIS_CAPTURE (r) = NULL_TREE;
 
 	RETURN (build_lambda_object (r));
@@ -15093,6 +15120,12 @@ fn_type_unification (tree fn,
 
       if (fntype == error_mark_node)
 	goto fail;
+
+      /* Throw away these access checks; we'll see them again in
+	 instantiate_template and they might have the wrong
+	 access path at this point.  */
+      pop_deferring_access_checks ();
+      push_deferring_access_checks (dk_deferred);
 
       /* Place the explicitly specified arguments in TARGS.  */
       for (i = NUM_TMPL_ARGS (explicit_targs); i--;)
@@ -16623,6 +16656,14 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict,
                 && PACK_EXPANSION_P (TREE_VEC_ELT (parmvec, len - 1)))
               parm_variadic_p = 1;
             
+             for (i = 0; i < len - parm_variadic_p; ++i)
+	       /* If the template argument list of P contains a pack
+		  expansion that is not the last template argument, the
+		  entire template argument list is a non-deduced
+		  context.  */
+	       if (PACK_EXPANSION_P (TREE_VEC_ELT (parmvec, i)))
+		 return unify_success (explain_p);
+
             if (TREE_VEC_LENGTH (argvec) < len - parm_variadic_p)
               return unify_too_few_arguments (explain_p,
 					      TREE_VEC_LENGTH (argvec), len);
@@ -19968,16 +20009,13 @@ instantiation_dependent_r (tree *tp, int *walk_subtrees,
     case ALIGNOF_EXPR:
     case TYPEID_EXPR:
     case AT_ENCODE_EXPR:
-    case TRAIT_EXPR:
       {
 	tree op = TREE_OPERAND (*tp, 0);
 	if (code == SIZEOF_EXPR && SIZEOF_EXPR_TYPE_P (*tp))
 	  op = TREE_TYPE (op);
 	if (TYPE_P (op))
 	  {
-	    if (dependent_type_p (op)
-		|| (code == TRAIT_EXPR
-		    && dependent_type_p (TREE_OPERAND (*tp, 1))))
+	    if (dependent_type_p (op))
 	      return *tp;
 	    else
 	      {
@@ -19987,6 +20025,13 @@ instantiation_dependent_r (tree *tp, int *walk_subtrees,
 	  }
 	break;
       }
+
+    case TRAIT_EXPR:
+      if (dependent_type_p (TRAIT_EXPR_TYPE1 (*tp))
+	  || dependent_type_p (TRAIT_EXPR_TYPE2 (*tp)))
+	return *tp;
+      *walk_subtrees = false;
+      return NULL_TREE;
 
     case COMPONENT_REF:
       if (TREE_CODE (TREE_OPERAND (*tp, 1)) == IDENTIFIER_NODE)
@@ -20002,6 +20047,10 @@ instantiation_dependent_r (tree *tp, int *walk_subtrees,
 	return *tp;
       else
 	break;
+
+      /* Treat statement-expressions as dependent.  */
+    case BIND_EXPR:
+      return *tp;
 
     default:
       break;
@@ -20446,9 +20495,10 @@ build_non_dependent_expr (tree expr)
   tree inner_expr;
 
 #ifdef ENABLE_CHECKING
-  /* Try to get a constant value for all non-type-dependent expressions in
+  /* Try to get a constant value for all non-dependent expressions in
       order to expose bugs in *_dependent_expression_p and constexpr.  */
-  if (!flag_enable_cilk && cxx_dialect >= cxx0x)
+  if (!flag_enable_cilk && cxx_dialect >= cxx0x
+      && !instantiation_dependent_expression_p (expr))
     maybe_constant_value (fold_non_dependent_expr_sfinae (expr, tf_none));
 #endif
 

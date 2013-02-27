@@ -2,11 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package regexp_test
+package regexp
 
 import (
 	"reflect"
-	. "regexp"
 	"strings"
 	"testing"
 )
@@ -197,6 +196,10 @@ var replaceTests = []ReplaceTest{
 	{"a+", "${oops", "aaa", "${oops"},
 	{"a+", "$$", "aaa", "$"},
 	{"a+", "$", "aaa", "$"},
+
+	// Substitution when subexpression isn't found
+	{"(x)?", "$1", "123", "123"},
+	{"abc", "$1", "123", "123"},
 }
 
 var replaceLiteralTests = []ReplaceTest{

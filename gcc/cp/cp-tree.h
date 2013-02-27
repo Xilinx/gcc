@@ -4264,6 +4264,10 @@ extern GTY(()) tree integer_two_node;
    function, two inside the body of a function in a local class, etc.)  */
 extern int function_depth;
 
+/* Nonzero if we are inside eq_specializations, which affects comparison of
+   PARM_DECLs in cp_tree_equal.  */
+extern int comparing_specializations;
+
 /* In parser.c.  */
 
 /* Nonzero if we are parsing an unevaluated operand: an operand to
@@ -5883,6 +5887,7 @@ extern bool cast_valid_in_integral_constant_expression_p (tree);
 extern bool cxx_type_hash_eq			(const_tree, const_tree);
 
 extern void cxx_print_statistics		(void);
+extern bool maybe_warn_zero_as_null_pointer_constant (tree, location_t);
 
 /* in ptree.c */
 extern void cxx_print_xnode			(FILE *, tree, int);

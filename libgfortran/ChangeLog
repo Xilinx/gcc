@@ -1,3 +1,19 @@
+2013-02-19  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/56347
+	* acinclude.m4 (LIBGFOR_CHECK_FOR_BROKEN_POWF): Remove check for
+	broken powf.
+	* configure.ac (LIBGFOR_CHECK_FOR_BROKEN_POWF): Likewise.
+	* intrinsics/c99_functions.c: Likewise.
+	* configure: Rebuilt.
+	* config.h.in: Rebuilt.
+
+2013-02-06  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/55978
+	* runtime/in_pack_generic.c (internal_pack): Return if base_addr is
+	NULL.
+
 2013-01-23  Janne Blomqvist  <jb@gcc.gnu.org>
 
 	* io/file_pos.c (unformatted_backspace): Use __builtin_bswapXX

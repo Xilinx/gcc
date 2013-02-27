@@ -2307,9 +2307,6 @@ trans_array_constructor (gfc_ss * ss, locus * where)
 	}
     }
 
-  if (TREE_CODE (*loop_ubound0) == VAR_DECL)
-    dynamic = true;
-
   gfc_trans_create_temp_array (&outer_loop->pre, &outer_loop->post, ss, type,
 			       NULL_TREE, dynamic, true, false, where);
 
@@ -6282,7 +6279,7 @@ get_array_charlen (gfc_expr *expr, gfc_se *se)
       /* Map expressions involving the dummy arguments onto the actual
 	 argument expressions.  */
       gfc_init_interface_mapping (&mapping);
-      formal = expr->symtree->n.sym->formal;
+      formal = gfc_sym_get_dummy_args (expr->symtree->n.sym);
       arg = expr->value.function.actual;
 
       /* Set se = NULL in the calls to the interface mapping, to suppress any
@@ -7550,8 +7547,8 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
 	  called_dealloc_with_status = false;
 	  gfc_init_block (&tmpblock);
 
-	  if (c->attr.allocatable
-	      && (c->attr.dimension || c->attr.codimension))
+	  if (c->attr.allocatable && (c->attr.dimension || c->attr.codimension)
+	      && !c->attr.proc_pointer)
 	    {
 	      comp = fold_build3_loc (input_location, COMPONENT_REF, ctype,
 				      decl, cdecl, NULL_TREE);
@@ -7733,7 +7730,8 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
 	      continue;
 	    }
 
-	  if (c->attr.allocatable && !cmp_has_alloc_comps)
+	  if (c->attr.allocatable && !c->attr.proc_pointer
+	      && !cmp_has_alloc_comps)
 	    {
 	      rank = c->as ? c->as->rank : 0;
 	      tmp = gfc_duplicate_allocatable (dcmp, comp, ctype, rank);
@@ -7941,6 +7939,7 @@ gfc_alloc_allocatable_for_assignment (gfc_loopinfo *loop,
   tree lbound;
   tree ubound;
   tree desc;
+  tree old_desc;
   tree desc2;
   tree offset;
   tree jump_label1;
@@ -8091,6 +8090,13 @@ gfc_alloc_allocatable_for_assignment (gfc_loopinfo *loop,
 			  size1, size2);
   neq_size = gfc_evaluate_now (cond, &fblock);
 
+  /* Deallocation of allocatable components will have to occur on
+     reallocation.  Fix the old descriptor now.  */
+  if ((expr1->ts.type == BT_DERIVED)
+	&& expr1->ts.u.derived->attr.alloc_comp)
+    old_desc = gfc_evaluate_now (desc, &fblock);
+  else
+    old_desc = NULL_TREE;
 
   /* Now modify the lhs descriptor and the associated scalarizer
      variables. F2003 7.4.1.3: "If variable is or becomes an
@@ -8201,12 +8207,30 @@ gfc_alloc_allocatable_for_assignment (gfc_loopinfo *loop,
   /* Realloc expression.  Note that the scalarizer uses desc.data
      in the array reference - (*desc.data)[<element>]. */
   gfc_init_block (&realloc_block);
+
+  if ((expr1->ts.type == BT_DERIVED)
+	&& expr1->ts.u.derived->attr.alloc_comp)
+    {
+      tmp = gfc_deallocate_alloc_comp (expr1->ts.u.derived, old_desc,
+				       expr1->rank);
+      gfc_add_expr_to_block (&realloc_block, tmp);
+    }
+
   tmp = build_call_expr_loc (input_location,
 			     builtin_decl_explicit (BUILT_IN_REALLOC), 2,
 			     fold_convert (pvoid_type_node, array1),
 			     size2);
   gfc_conv_descriptor_data_set (&realloc_block,
 				desc, tmp);
+
+  if ((expr1->ts.type == BT_DERIVED)
+	&& expr1->ts.u.derived->attr.alloc_comp)
+    {
+      tmp = gfc_nullify_alloc_comp (expr1->ts.u.derived, desc,
+				    expr1->rank);
+      gfc_add_expr_to_block (&realloc_block, tmp);
+    }
+
   realloc_expr = gfc_finish_block (&realloc_block);
 
   /* Only reallocate if sizes are different.  */
@@ -8224,6 +8248,13 @@ gfc_alloc_allocatable_for_assignment (gfc_loopinfo *loop,
 				desc, tmp);
   tmp = gfc_conv_descriptor_dtype (desc);
   gfc_add_modify (&alloc_block, tmp, gfc_get_dtype (TREE_TYPE (desc)));
+  if ((expr1->ts.type == BT_DERIVED)
+	&& expr1->ts.u.derived->attr.alloc_comp)
+    {
+      tmp = gfc_nullify_alloc_comp (expr1->ts.u.derived, desc,
+				    expr1->rank);
+      gfc_add_expr_to_block (&alloc_block, tmp);
+    }
   alloc_expr = gfc_finish_block (&alloc_block);
 
   /* Malloc if not allocated; realloc otherwise.  */
@@ -8626,7 +8657,7 @@ gfc_walk_elemental_function_args (gfc_ss * ss, gfc_actual_arglist *arg,
   tail = NULL;
 
   if (proc_ifc)
-    dummy_arg = proc_ifc->formal;
+    dummy_arg = gfc_sym_get_dummy_args (proc_ifc);
   else
     dummy_arg = NULL;
 

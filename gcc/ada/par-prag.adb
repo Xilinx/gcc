@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2013, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -935,7 +935,10 @@ begin
                      end if;
 
                      if J = Slen then
-                        Set_Style_Check_Options (Options, OK, Ptr);
+                        if not Ignore_Style_Checks_Pragmas then
+                           Set_Style_Check_Options (Options, OK, Ptr);
+                        end if;
+
                         exit;
 
                      else
@@ -955,17 +958,23 @@ begin
                OK := False;
 
             elsif Chars (A) = Name_All_Checks then
-               if GNAT_Mode then
-                  Stylesw.Set_GNAT_Style_Check_Options;
-               else
-                  Stylesw.Set_Default_Style_Check_Options;
+               if not Ignore_Style_Checks_Pragmas then
+                  if GNAT_Mode then
+                     Stylesw.Set_GNAT_Style_Check_Options;
+                  else
+                     Stylesw.Set_Default_Style_Check_Options;
+                  end if;
                end if;
 
             elsif Chars (A) = Name_On then
-               Style_Check := True;
+               if not Ignore_Style_Checks_Pragmas then
+                  Style_Check := True;
+               end if;
 
             elsif Chars (A) = Name_Off then
-               Style_Check := False;
+               if not Ignore_Style_Checks_Pragmas then
+                  Style_Check := False;
+               end if;
 
             else
                OK := False;
@@ -1194,12 +1203,14 @@ begin
            Pragma_Locking_Policy                 |
            Pragma_Long_Float                     |
            Pragma_Loop_Invariant                 |
+           Pragma_Loop_Optimize                  |
            Pragma_Loop_Variant                   |
            Pragma_Machine_Attribute              |
            Pragma_Main                           |
            Pragma_Main_Storage                   |
            Pragma_Memory_Size                    |
            Pragma_No_Body                        |
+           Pragma_No_Inline                      |
            Pragma_No_Return                      |
            Pragma_No_Run_Time                    |
            Pragma_No_Strict_Aliasing             |
@@ -1209,6 +1220,7 @@ begin
            Pragma_Optimize                       |
            Pragma_Optimize_Alignment             |
            Pragma_Overflow_Mode                  |
+           Pragma_Overriding_Renamings           |
            Pragma_Pack                           |
            Pragma_Partition_Elaboration_Policy   |
            Pragma_Passive                        |
@@ -1236,6 +1248,7 @@ begin
            Pragma_Remote_Call_Interface          |
            Pragma_Remote_Types                   |
            Pragma_Restricted_Run_Time            |
+           Pragma_Rational                       |
            Pragma_Ravenscar                      |
            Pragma_Reviewable                     |
            Pragma_Share_Generic                  |

@@ -5245,13 +5245,14 @@ check_bases_and_members (tree t)
   cant_have_const_ctor = 0;
   no_const_asn_ref = 0;
 
-  /* Deduce noexcept on destructors.  */
-  if (cxx_dialect >= cxx0x)
-    deduce_noexcept_on_destructors (t);
-
   /* Check all the base-classes.  */
   check_bases (t, &cant_have_const_ctor,
 	       &no_const_asn_ref);
+
+  /* Deduce noexcept on destructors.  This needs to happen after we've set
+     triviality flags appropriately for our bases.  */
+  if (cxx_dialect >= cxx0x)
+    deduce_noexcept_on_destructors (t);
 
   /* Check all the method declarations.  */
   check_methods (t);
@@ -8356,6 +8357,12 @@ build_ctor_vtbl_group (tree binfo, tree t)
      construction vtable group.  */
   vtbl = build_vtable (t, id, ptr_type_node);
   DECL_CONSTRUCTION_VTABLE_P (vtbl) = 1;
+  /* Don't export construction vtables from shared libraries.  Even on
+     targets that don't support hidden visibility, this tells
+     can_refer_decl_in_current_unit_p not to assume that it's safe to
+     access from a different compilation unit (bz 54314).  */
+  DECL_VISIBILITY (vtbl) = VISIBILITY_HIDDEN;
+  DECL_VISIBILITY_SPECIFIED (vtbl) = true;
 
   v = NULL;
   accumulate_vtbl_inits (binfo, TYPE_BINFO (TREE_TYPE (binfo)),

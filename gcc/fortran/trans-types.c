@@ -2679,7 +2679,7 @@ create_fn_spec (gfc_symbol *sym, tree fntype)
 	spec[spec_len++] = 'R';
     }
 
-  for (f = sym->formal; f; f = f->next)
+  for (f = gfc_sym_get_dummy_args (sym); f; f = f->next)
     if (spec_len < sizeof (spec))
       {
 	if (!f->sym || f->sym->attr.pointer || f->sym->attr.target
@@ -2711,19 +2711,23 @@ gfc_get_function_type (gfc_symbol * sym)
   gfc_formal_arglist *f;
   gfc_symbol *arg;
   int alternate_return;
-  bool is_varargs = true;
+  bool is_varargs = true, recursive_type = false;
 
   /* Make sure this symbol is a function, a subroutine or the main
      program.  */
   gcc_assert (sym->attr.flavor == FL_PROCEDURE
 	      || sym->attr.flavor == FL_PROGRAM);
 
-  if (sym->backend_decl)
-    {
-      if (sym->attr.proc_pointer)
-	return TREE_TYPE (TREE_TYPE (sym->backend_decl));
-      return TREE_TYPE (sym->backend_decl);
-    }
+  /* To avoid recursing infinitely on recursive types, we use error_mark_node
+     so that they can be detected here and handled further down.  */
+  if (sym->backend_decl == NULL)
+    sym->backend_decl = error_mark_node;
+  else if (sym->backend_decl == error_mark_node)
+    recursive_type = true;
+  else if (sym->attr.proc_pointer)
+    return TREE_TYPE (TREE_TYPE (sym->backend_decl));
+  else
+    return TREE_TYPE (sym->backend_decl);
 
   alternate_return = 0;
   typelist = NULL;
@@ -2763,7 +2767,7 @@ gfc_get_function_type (gfc_symbol * sym)
     }
 
   /* Build the argument types for the function.  */
-  for (f = sym->formal; f; f = f->next)
+  for (f = gfc_sym_get_dummy_args (sym); f; f = f->next)
     {
       arg = f->sym;
       if (arg)
@@ -2775,6 +2779,13 @@ gfc_get_function_type (gfc_symbol * sym)
 
 	  if (arg->attr.flavor == FL_PROCEDURE)
 	    {
+	      /* We don't know in the general case which argument causes
+		 recursion.  But we know that it is a procedure.  So we give up
+		 creating the procedure argument type list at the first
+		 procedure argument.  */
+	      if (recursive_type)
+	        goto arg_type_list_done;
+
 	      type = gfc_get_function_type (arg);
 	      type = build_pointer_type (type);
 	    }
@@ -2806,7 +2817,7 @@ gfc_get_function_type (gfc_symbol * sym)
     }
 
   /* Add hidden string length parameters.  */
-  for (f = sym->formal; f; f = f->next)
+  for (f = gfc_sym_get_dummy_args (sym); f; f = f->next)
     {
       arg = f->sym;
       if (arg && arg->ts.type == BT_CHARACTER && !sym->attr.is_bind_c)
@@ -2827,6 +2838,11 @@ gfc_get_function_type (gfc_symbol * sym)
       || sym->attr.is_main_program
       || sym->attr.if_source != IFSRC_UNKNOWN)
     is_varargs = false;
+
+arg_type_list_done:
+
+  if (!recursive_type && sym->backend_decl == error_mark_node)
+    sym->backend_decl = NULL_TREE;
 
   if (alternate_return)
     type = integer_type_node;
@@ -2865,7 +2881,7 @@ gfc_get_function_type (gfc_symbol * sym)
   else
     type = gfc_sym_type (sym);
 
-  if (is_varargs)
+  if (is_varargs || recursive_type)
     type = build_varargs_function_type_vec (type, typelist);
   else
     type = build_function_type_vec (type, typelist);

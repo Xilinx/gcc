@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2013, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -720,6 +720,11 @@ package Opt is
    --  code from foreign compilers for checking or ASIS purposes. Can be
    --  set True by use of -gnatI.
 
+   Ignore_Style_Checks_Pragmas : Boolean := False;
+   --  GNAT
+   --  Set True to ignore all Style_Checks pragmas. Can be set True by use
+   --  of -gnateY.
+
    Implementation_Unit_Warnings : Boolean := True;
    --  GNAT
    --  Set True to active warnings for use of implementation internal units.
@@ -1176,6 +1181,11 @@ package Opt is
    --  Set to True if the tool should not have any output if there are no
    --  errors or warnings.
 
+   Overriding_Renamings : Boolean := False;
+   --  GNAT
+   --  Set to True to enable compatibility mode with Rational compiler, and
+   --  to accept renamings of implicit operations in their own scope.
+
    Replace_In_Comments : Boolean := False;
    --  GNATPREP
    --  Set to True if -C switch used
@@ -1590,8 +1600,9 @@ package Opt is
 
    Warn_On_Overlap : Boolean := False;
    --  GNAT
-   --  Set to True to generate warnings when a writable actual which is not
-   --  a by-copy type overlaps with another actual in a subprogram call.
+   --  Set to True to generate warnings when a writable actual overlaps with
+   --  another actual in a subprogram call. This applies only in modes before
+   --  Ada 2012. Starting with Ada 2012, such overlaps are illegal.
    --  Modified by use of -gnatw.i/.I.
 
    Warn_On_Questionable_Missing_Parens : Boolean := True;

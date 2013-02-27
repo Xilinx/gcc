@@ -1205,6 +1205,7 @@ gfc_get_symbol_decl (gfc_symbol * sym)
   tree attributes;
   int byref;
   bool intrinsic_array_parameter = false;
+  bool fun_or_res;
 
   gcc_assert (sym->attr.referenced
 	      || sym->attr.flavor == FL_PROCEDURE
@@ -1244,7 +1245,9 @@ gfc_get_symbol_decl (gfc_symbol * sym)
       length = gfc_create_string_length (sym);
     }
 
-  if ((sym->attr.dummy && ! sym->attr.function) || (sym->attr.result && byref))
+  fun_or_res = byref && (sym->attr.result
+			 || (sym->attr.function && sym->ts.deferred));
+  if ((sym->attr.dummy && ! sym->attr.function) || fun_or_res)
     {
       /* Return via extra parameter.  */
       if (sym->attr.result && byref
@@ -1270,7 +1273,7 @@ gfc_get_symbol_decl (gfc_symbol * sym)
 	     (sym->ts.u.cl->passed_length == sym->ts.u.cl->backend_decl))
 	    sym->ts.u.cl->backend_decl = NULL_TREE;
 
-	  if (sym->ts.deferred && sym->attr.result
+	  if (sym->ts.deferred && fun_or_res
 		&& sym->ts.u.cl->passed_length == NULL
 		&& sym->ts.u.cl->backend_decl)
 	    {
@@ -1906,7 +1909,7 @@ build_function_decl (gfc_symbol * sym, bool global)
     {
       /* Look for alternate return placeholders.  */
       int has_alternate_returns = 0;
-      for (f = sym->formal; f; f = f->next)
+      for (f = gfc_sym_get_dummy_args (sym); f; f = f->next)
 	{
 	  if (f->sym == NULL)
 	    {
@@ -2074,11 +2077,11 @@ create_function_arglist (gfc_symbol * sym)
     }
 
   hidden_typelist = typelist;
-  for (f = sym->formal; f; f = f->next)
+  for (f = gfc_sym_get_dummy_args (sym); f; f = f->next)
     if (f->sym != NULL)	/* Ignore alternate returns.  */
       hidden_typelist = TREE_CHAIN (hidden_typelist);
 
-  for (f = sym->formal; f; f = f->next)
+  for (f = gfc_sym_get_dummy_args (sym); f; f = f->next)
     {
       char name[GFC_MAX_SYMBOL_LEN + 2];
 
@@ -2344,7 +2347,8 @@ build_entry_thunks (gfc_namespace * ns, bool global)
 	    }
 	}
 
-      for (formal = ns->proc_name->formal; formal; formal = formal->next)
+      for (formal = gfc_sym_get_dummy_args (ns->proc_name); formal;
+	   formal = formal->next)
 	{
 	  /* Ignore alternate returns.  */
 	  if (formal->sym == NULL)
@@ -2352,7 +2356,7 @@ build_entry_thunks (gfc_namespace * ns, bool global)
 
 	  /* We don't have a clever way of identifying arguments, so resort to
 	     a brute-force search.  */
-	  for (thunk_formal = thunk_sym->formal;
+	  for (thunk_formal = gfc_sym_get_dummy_args (thunk_sym);
 	       thunk_formal;
 	       thunk_formal = thunk_formal->next)
 	    {
@@ -2459,7 +2463,8 @@ build_entry_thunks (gfc_namespace * ns, bool global)
       /* We share the symbols in the formal argument list with other entry
 	 points and the master function.  Clear them so that they are
 	 recreated for each function.  */
-      for (formal = thunk_sym->formal; formal; formal = formal->next)
+      for (formal = gfc_sym_get_dummy_args (thunk_sym); formal;
+	   formal = formal->next)
 	if (formal->sym != NULL)  /* Ignore alternate returns.  */
 	  {
 	    formal->sym->backend_decl = NULL_TREE;
@@ -3458,7 +3463,7 @@ init_intent_out_dt (gfc_symbol * proc_sym, gfc_wrapped_block * block)
   tree present;
 
   gfc_init_block (&init);
-  for (f = proc_sym->formal; f; f = f->next)
+  for (f = gfc_sym_get_dummy_args (proc_sym); f; f = f->next)
     if (f->sym && f->sym->attr.intent == INTENT_OUT
 	&& !f->sym->attr.pointer
 	&& f->sym->ts.type == BT_DERIVED)
@@ -3911,7 +3916,7 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 
   gfc_init_block (&tmpblock);
 
-  for (f = proc_sym->formal; f; f = f->next)
+  for (f = gfc_sym_get_dummy_args (proc_sym); f; f = f->next)
     {
       if (f->sym && f->sym->tlink == NULL && f->sym->ts.type == BT_CHARACTER)
 	{
@@ -4804,7 +4809,7 @@ add_argument_checking (stmtblock_t *block, gfc_symbol *sym)
 {
   gfc_formal_arglist *formal;
 
-  for (formal = sym->formal; formal; formal = formal->next)
+  for (formal = gfc_sym_get_dummy_args (sym); formal; formal = formal->next)
     if (formal->sym && formal->sym->ts.type == BT_CHARACTER
 	&& !formal->sym->ts.deferred)
       {

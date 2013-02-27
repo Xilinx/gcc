@@ -974,8 +974,6 @@ typedef struct gfc_component
   struct gfc_component *next;
 
   /* Needed for procedure pointer components.  */
-  struct gfc_formal_arglist *formal;
-  struct gfc_namespace *formal_ns;
   struct gfc_typebound_proc *tb;
 }
 gfc_component;
@@ -1250,6 +1248,9 @@ typedef struct gfc_symbol
   unsigned equiv_built:1;
   /* Set if this variable is used as an index name in a FORALL.  */
   unsigned forall_index:1;
+  /* Used to avoid multiple resolutions of a single symbol.  */
+  unsigned resolved:1;
+
   int refs;
   struct gfc_namespace *ns;	/* namespace containing this symbol */
 
@@ -2380,7 +2381,7 @@ match gfc_match_char_spec (gfc_typespec *);
 void gfc_scanner_done_1 (void);
 void gfc_scanner_init_1 (void);
 
-void gfc_add_include_path (const char *, bool, bool);
+void gfc_add_include_path (const char *, bool, bool, bool);
 void gfc_add_intrinsic_modules_path (const char *);
 void gfc_release_include_path (void);
 FILE *gfc_open_included_file (const char *, bool, bool);
@@ -2659,9 +2660,7 @@ gfc_symbol* gfc_get_ultimate_derived_super_type (gfc_symbol*);
 bool gfc_type_is_extension_of (gfc_symbol *, gfc_symbol *);
 bool gfc_type_compatible (gfc_typespec *, gfc_typespec *);
 
-void gfc_copy_formal_args (gfc_symbol *, gfc_symbol *, ifsrc);
 void gfc_copy_formal_args_intr (gfc_symbol *, gfc_intrinsic_sym *);
-void gfc_copy_formal_args_ppc (gfc_component *, gfc_symbol *, ifsrc);
 
 void gfc_free_finalizer (gfc_finalizer *el); /* Needed in resolve.c, too  */
 
@@ -2670,6 +2669,7 @@ gfc_namespace* gfc_find_proc_namespace (gfc_namespace*);
 
 bool gfc_is_associate_pointer (gfc_symbol*);
 gfc_symbol * gfc_find_dt_in_generic (gfc_symbol *);
+gfc_formal_arglist *gfc_sym_get_dummy_args (gfc_symbol *);
 
 /* intrinsic.c -- true if working in an init-expr, false otherwise.  */
 extern bool gfc_init_expr_flag;
@@ -2784,8 +2784,6 @@ bool gfc_traverse_expr (gfc_expr *, gfc_symbol *,
 			int);
 void gfc_expr_set_symbols_referenced (gfc_expr *);
 gfc_try gfc_expr_check_typed (gfc_expr*, gfc_namespace*, bool);
-void gfc_expr_replace_symbols (gfc_expr *, gfc_symbol *);
-void gfc_expr_replace_comp (gfc_expr *, gfc_component *);
 
 gfc_component * gfc_get_proc_ptr_comp (gfc_expr *);
 bool gfc_is_proc_ptr_comp (gfc_expr *);

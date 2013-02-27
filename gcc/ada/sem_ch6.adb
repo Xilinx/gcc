@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2013, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -408,6 +408,15 @@ package body Sem_Ch6 is
       --  that the expression can be inlined whenever possible.
 
       else
+         --  An expression function that is not a completion is not a
+         --  subprogram declaration, and thus cannot appear in a protected
+         --  definition.
+
+         if Nkind (Parent (N)) = N_Protected_Definition then
+            Error_Msg_N
+              ("an expression function is not a legal protected operation", N);
+         end if;
+
          New_Decl :=
            Make_Subprogram_Declaration (Loc, Specification => Spec);
 
@@ -501,6 +510,12 @@ package body Sem_Ch6 is
       end if;
 
       Analyze_Call (N);
+
+      --  Mark function call if within assertion
+
+      if In_Assertion_Expr /= 0 then
+         Set_In_Assertion (N);
+      end if;
    end Analyze_Function_Call;
 
    -----------------------------
@@ -972,10 +987,6 @@ package body Sem_Ch6 is
                          & "null-excluding return??",
                Reason => CE_Null_Not_Allowed);
          end if;
-
-         --  Apply checks suggested by AI05-0144 (dangerous order dependence)
-
-         Check_Order_Dependence;
       end if;
    end Analyze_Function_Return;
 
@@ -1260,11 +1271,6 @@ package body Sem_Ch6 is
          if Nkind (N) = N_Procedure_Call_Statement then
             Analyze_Call (N);
             Resolve (N, Standard_Void_Type);
-
-            --  Apply checks suggested by AI05-0144
-
-            Check_Order_Dependence;
-
          else
             Analyze (N);
          end if;
@@ -4258,9 +4264,9 @@ package body Sem_Ch6 is
       --  This body is subsequently used for inline expansions at call sites.
 
       function Can_Split_Unconstrained_Function (N : Node_Id) return Boolean;
-      --  Return true if the function body N has no local declarations and its
-      --  unique statement is a single extended return statement with a handled
-      --  statements sequence.
+      --  Return true if we generate code for the function body N, the function
+      --  body N has no local declarations and its unique statement is a single
+      --  extended return statement with a handled statements sequence.
 
       function Check_Body_To_Inline
         (N    : Node_Id;
@@ -4995,7 +5001,13 @@ package body Sem_Ch6 is
             end loop;
          end if;
 
-         return Present (Ret_Node)
+         --  We only split the inlined function when we are generating the code
+         --  of its body; otherwise we leave duplicated split subprograms in
+         --  the tree which (if referenced) generate wrong references at link
+         --  time.
+
+         return In_Extended_Main_Code_Unit (N)
+           and then Present (Ret_Node)
            and then Nkind (Ret_Node) = N_Extended_Return_Statement
            and then No (Next (Ret_Node))
            and then Present (Handled_Statement_Sequence (Ret_Node));
@@ -9747,6 +9759,30 @@ package body Sem_Ch6 is
 
                Next_Formal (Formal);
             end loop;
+
+         --  Special case: An equality function can be redefined for a type
+         --  occurring in a declarative part, and won't otherwise be treated as
+         --  a primitive because it doesn't occur in a package spec and doesn't
+         --  override an inherited subprogram. It's important that we mark it
+         --  primitive so it can be returned by Collect_Primitive_Operations
+         --  and be used in composing the equality operation of later types
+         --  that have a component of the type.
+
+         elsif Chars (S) = Name_Op_Eq
+           and then Etype (S) = Standard_Boolean
+         then
+            B_Typ := Base_Type (Etype (First_Formal (S)));
+
+            if Scope (B_Typ) = Current_Scope
+              and then
+                Base_Type (Etype (Next_Formal (First_Formal (S)))) = B_Typ
+              and then not Is_Limited_Type (B_Typ)
+            then
+               Is_Primitive := True;
+               Set_Is_Primitive (S);
+               Set_Has_Primitive_Operations (B_Typ);
+               Check_Private_Overriding (B_Typ);
+            end if;
          end if;
       end Check_For_Primitive_Subprogram;
 
@@ -11729,7 +11765,7 @@ package body Sem_Ch6 is
          if not Expander_Active then
             CP :=
               Make_Pragma (Loc,
-                Chars => Name_Postcondition,
+                Chars                        => Name_Postcondition,
                 Pragma_Argument_Associations => New_List (
                   Make_Pragma_Argument_Association (Loc,
                     Chars      => Name_Check,

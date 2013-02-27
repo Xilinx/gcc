@@ -8706,6 +8706,7 @@ force_gimple_operand_1 (tree expr, gimple_seq *stmts,
 {
   enum gimplify_status ret;
   struct gimplify_ctx gctx;
+  location_t saved_location;
 
   *stmts = NULL;
 
@@ -8719,6 +8720,8 @@ force_gimple_operand_1 (tree expr, gimple_seq *stmts,
   push_gimplify_context (&gctx);
   gimplify_ctxp->into_ssa = gimple_in_ssa_p (cfun);
   gimplify_ctxp->allow_rhs_cond_expr = true;
+  saved_location = input_location;
+  input_location = UNKNOWN_LOCATION;
 
   if (var)
     {
@@ -8740,6 +8743,7 @@ force_gimple_operand_1 (tree expr, gimple_seq *stmts,
       gcc_assert (ret != GS_ERROR);
     }
 
+  input_location = saved_location;
   pop_gimplify_context (NULL);
 
   return expr;
