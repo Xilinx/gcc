@@ -9509,7 +9509,6 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
   debugeprintf ("melt_load_module_index absolute sopath %s", sopath);
   if (access (sopath, R_OK))
     melt_fatal_error ("Cannot access MELT module %s - %m", sopath);
-  dlh = NULL;
   dlh = dlopen (sopath, RTLD_NOW | RTLD_GLOBAL);
   if (!dlh)
     melt_fatal_error ("Failed to dlopen MELT module %s - %s", sopath, dlerror ());
