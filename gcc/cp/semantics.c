@@ -5108,6 +5108,7 @@ begin_transaction_stmt (location_t loc, tree *pcompound, int flags)
 			 "transactional memory support enabled")));
 
   TRANSACTION_EXPR_BODY (r) = push_stmt_list ();
+  TREE_SIDE_EFFECTS (r) = 1;
   return r;
 }
 
@@ -5157,6 +5158,7 @@ build_transaction_expr (location_t loc, tree expr, int flags, tree noex)
   ret = build1 (TRANSACTION_EXPR, TREE_TYPE (expr), expr);
   if (flags & TM_STMT_ATTR_RELAXED)
 	TRANSACTION_EXPR_RELAXED (ret) = 1;
+  TREE_SIDE_EFFECTS (ret) = 1;
   SET_EXPR_LOCATION (ret, loc);
   return ret;
 }
@@ -8607,6 +8609,18 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
     case STATIC_CAST_EXPR:
     case REINTERPRET_CAST_EXPR:
     case IMPLICIT_CONV_EXPR:
+      if (cxx_dialect < cxx0x
+	  && !dependent_type_p (TREE_TYPE (t))
+	  && !INTEGRAL_OR_ENUMERATION_TYPE_P (TREE_TYPE (t)))
+	/* In C++98, a conversion to non-integral type can't be part of a
+	   constant expression.  */
+	{
+	  if (flags & tf_error)
+	    error ("cast to non-integral type %qT in a constant expression",
+		   TREE_TYPE (t));
+	  return false;
+	}
+
       return (potential_constant_expression_1
 	      (TREE_OPERAND (t, 0),
 	       TREE_CODE (TREE_TYPE (t)) != REFERENCE_TYPE, flags));

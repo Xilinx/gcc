@@ -1,3 +1,423 @@
+2013-02-27  Jakub Jelinek  <jakub@redhat.com>
+
+	* incpath.c (add_standard_paths): Use reconcat instead of concat
+	where appropriate and avoid leaking memory.
+
+	* opts.h: Include obstack.h.
+	(opts_concat): New prototype.
+	(opts_obstack): New declaration.
+	* opts.c (opts_concat): New function.
+	(opts_obstack): New variable.
+	(init_options_struct): Call gcc_init_obstack on opts_obstack.
+	(finish_options): Use opts_concat instead of concat
+	and XOBNEWVEC instead of XNEWVEC.
+	* opts-common.c (generate_canonical_option, decode_cmdline_option,
+	generate_option): Likewise.
+	* Makefile.in (OPTS_H): Depend on $(OBSTACK_H).
+	* lto-wrapper.c (main): Call gcc_init_obstack on opts_obstack.
+
+	PR target/56455
+	* stmt.c (expand_switch_as_decision_tree_p): If flag_pic
+	and ASM_OUTPUT_ADDR_DIFF_ELT isn't defined, return true.
+
+2013-02-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/56461
+	* lra-spills.c (lra_spill): Free spill_hard_reg at the end.
+
+2013-02-26  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	* config/arm/arm.c (const_ok_for_dimode_op): Back out last change.
+	(arm_block_move_unaligned_straight): Likewise.
+	(arm_adjust_block_mem): Likewise.
+
+2013-02-26  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	PR target/48901
+	* config/lm32/lm32.c (gen_int_relational): Remove unused variables
+	temp, cond and label.
+	* config/lm32/lm32.md (ashlsi3): Remove unused variable one.
+
+	PR target/52500
+	* config/c6x/c6x.c (dbx_register_map): Change to unsigned.
+	* config/c6x/c6x.h (dbx_register_map): Update declaration.
+
+	PR target/52501
+	* config/cr16/cr16-protos.h: Move end of RTX_CODE guard below end
+	of prologue/epilogue functions.
+
+	PR target/52550
+	* config/tilegx/tilegx.c (tilegx_expand_prologue):
+	Remove unused variable cfa_offset.
+	* config/tilepro/tilepro.c (tilepro_expand_prologue): Likewise.
+
+	PR target/54639
+	* config/mn10300/mn10300.c (mn10300_expand_epilogue): Avoid offset
+	type promotion to unsigned.
+
+	PR target/54640
+	* config/arm/arm.c (const_ok_for_dimode_op): Make code consistent
+	for HOST_WIDE_INT of 32 bit / same size as int.
+	(arm_block_move_unaligned_straight): Likewise.
+	(arm_adjust_block_mem): Likewise.
+
+	PR target/54662
+	* config/mep/t-mep (mep-pragma.o): Use ALL_COMPILERFLAGS instead of
+	ALL_CFLAGS.
+
+2013-02-26  Marek Polacek  <polacek@redhat.com>
+
+	PR tree-optimization/56426
+	* tree-ssa-loop.c (tree_ssa_loop_init): Always call
+	scev_initialize.
+
+2013-02-26  Richard Biener  <rguenther@suse.de>
+
+	PR target/56444
+	* config/mn10300/mn10300.c (mn10300_scan_for_setlb_lcc): Remove
+	unused variable loops.
+
+2013-02-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/56448
+	* fold-const.c (operand_equal_p) <case tcc_reference>: Don't look at
+	TREE_SIDE_EFFECTS if flags contain OEP_CONSTANT_ADDRESS_OF.
+	Clear OEP_CONSTANT_ADDRESS_OF from flags before recursing on second or
+	later operands of the references, or even first operand for
+	INDIRECT_REF, TARGET_MEM_REF or MEM_REF.
+
+	PR tree-optimization/56443
+	* tree-vect-stmts.c (get_vectype_for_scalar_type_and_size): For
+	overaligned types, pass TYPE_UNSIGNED (scalar_type) as second argument
+	to type_for_mode langhook.
+
+2013-02-25  Matt Turner  <mattst88@gmail.com>
+
+	* doc/invoke.texi: Document r4700.
+
+2013-02-25  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/56175
+	* tree-ssa-forwprop.c (hoist_conversion_for_bitop_p): New predicate,
+	split out from ...
+	(simplify_bitwise_binary): ... here.  Also guard the conversion
+	of (type) X op CST to (type) (X op ((type-x) CST)) with it.
+
+2013-02-25  Catherine Moore  <clm@codesourcery.com>
+
+	Revert:
+	2013-02-24  Catherine Moore  <clm@codesourcery.com>
+	    Maciej W. Rozycki  <macro@codesourcery.com>
+	    Tom de Vries  <tom@codesourcery.com>
+	    Nathan Sidwell <nathan@codesourcery.com>
+	    Iain Sandoe  <iain@codesourcery.com>
+	    Nathan Froyd  <froydnj@codesourcery.com>
+	    Chao-ying Fu <fu@mips.com>
+	* doc/extend.texi: (micromips, nomicromips, nocompression):
+	Document new function attributes. 
+	* doc/invoke.texi (minterlink-compressed, mmicromips,
+	m14k, m14ke, m14kec): Document new options.
+	(minterlink-mips16): Update documentation.
+	* doc/md.texi (ZC, ZD): Document new constraints.
+	* configure.ac (gcc_cv_as_micromips): Check if linker
+	supports the .set micromips directive.
+	* configure: Regenerate.
+	* config.in: Regenerate.
+	* config/mips/mips-tables.opt: Regenerate.
+	* config/mips/micromips.md: New file.
+	* constraints.md (ZC, AD): New constraints.
+	* config/mips/predicates.md (movep_src_register): New predicate.
+	(movep_src_operand): New predicate.
+	(non_volatile_mem_operand): New predicate.
+	* config/mips/mips.md (multimem): New type.
+	(length): Differentiate between 17-bit and 18-bit branch offsets.
+	(MOVEP1, MOVEP2): New mode iterator.
+	(mov_<load>l): Use ZC constraint.
+	(mov_<load>r): Likewise.
+	(mov_<store>l): Likewise.
+	(mov_<store>r): Likewise.
+	(*branch_equality<mode>_inverted): Add microMIPS support.
+	(*branch_equality<mode>): Likewise.
+	(*jump_absolute): Likewise.
+	(indirect_jump_<mode>): Likewise.
+	(tablejump_<mode>): Likewise.
+	(<optab>_internal): Likewise.
+	(sibcall_internal): Likewise.
+	(sibcall_value_internal): Likewise.
+	(prefetch): Use constraint ZD.
+	* config/mips/mips.opt (minterlink-compressed): New option.
+	(minterlink-mips16): Now an alias for minterlink-compressed.
+	(mmicromips): New option.
+	* config/mips/sync.md (sync_compare_and_swap<mode>): Use ZR constraint.
+	(compare_and_swap_12): Likewise.
+	(sync_add<mode>): Likewise.
+	(sync_<optab>_12): Likewise.
+	(sync_old_<optab>_12): Likewise.
+	(sync_new_<optab>_12): Likewise.
+	(sync_nand_12): Likewise.
+	(sync_old_nand_12): Likewise.
+	(sync_new_nand_12): Likewise.
+	(sync_sub<mode>): Likewise.
+	(sync_old_add<mode>): Likewise.
+	(sync_old_sub<mode>): Likewise.
+	(sync_new_add<mode>): Likewise.
+	(sync_new_sub<mode>): Likewise.
+	(sync_<optab><mode>): Likewise.
+	(sync_old_<optab><mode>): Likewise.
+	(sync_new_<optab><mode>): Likewise.
+	(sync_nand<mode>): Likewise.
+	(sync_old_nand<mode>): Likewise.
+	(sync_new_nand<mode>): Likewise.
+	(sync_lock_test_and_set<mode>): Likewise.
+	(test_and_set_12): Likewise.
+	(atomic_compare_and_swap<mode>): Likewise.
+	(atomic_exchange<mode>_llsc): Likewise.
+	(atomic_fetch_add<mode>_llsc): Likewise.
+	* config/mips/mips-cpus.def (m14kc, m14k): New processors.
+	* config/mips/mips-protos.h (umips_output_save_restore): New prototype.
+	(umips_save_restore_pattern_p): Likewise.
+	(umips_load_store_pair_p): Likewise.
+	(umips_output_load_store_pair): Likewise.
+	(umips_movep_target_p): Likewise.
+	(umips_12bit_offset_address_p): Likewise.
+	* config/mips/mips.c (MIPS_MAX_FIRST_STEP): Update for microMIPS.
+	(mips_base_mips16): Rename this...
+	(mips_base_compression_flags): ...to this. Update all uses.
+	(mips_attribute_table): Add micromips, nomicromips and nocompression.
+	(mips_mips16_decl_p): Delete.
+	(mips_nomips16_decl_p): Delete.
+	(mips_get_compress_on_flags): New function.
+	(mips_get_compress_off_flags): New function.
+	(mips_get_compress_mode): New function.
+	(mips_get_compress_on_name): New function.
+	(mips_get_compress_off_name): New function.
+	(mips_insert_attributes): Support multiple compression types.
+	(mips_merge_decl_attributes): Likewise.
+	(umips_12bit_offset_address_p): New function.
+	(mips_start_function_definition): Emit .set micromips directive.
+	(mips_call_may_need_jalx_p): New function.
+	(mips_function_ok_for_sibcall): Add microMIPS support.
+	(mips_print_operand_punctuation): Support short delay slots and
+	compact jumps.
+	(umips_swm_mask, umips_swm_encoding): New.
+	(umips_build_save_restore): New function.
+	(mips_for_each_saved_gpr_and_fpr): Add microMIPS support.
+	(was_mips16_p): Remove.
+	(old_compression_mode): New.
+	(mips_set_compression_mode): New function.
+	(mips_set_current_function): Add microMIPS support.
+	(mips_option_override): Likewise.
+	(umips_save_restore_pattern_p): New function.
+	(umips_output_save_restore): New function.
+	(umips_load_store_pair_p_1): New function.
+	(umips_load_store_pair_p): New function.
+	(umips_output_load_store_pair_1): New function.
+	(umips_output_load_store_pair): New function.
+	(umips_movep_target_p) New function.
+	(mips_prepare_pch_save): Add microMIPS support.
+	* config/mips/mips.h (TARGET_COMPRESSION): New.
+	(TARGET_CPU_CPP_BUILTINS): Update macro
+	to use new compression flags and to support microMIPS.
+	(MIPS_ISA_LEVEL_SPEC): Add m14k processors.
+	(MIPS_ARCH_FLOAT_SPEC): Likewise.
+	(ISA_HAS_LWXS): Include TARGET_MICROMIPS.
+	(ISA_HAS_LOAD_DELAY): Exclude TARGET_MICROMIPS.
+	(ASM_SPEC): Support mmicromips and mno-micromips.
+	(M16STORE_REG_P): New macro.
+	(MIPS_CALL): Support TARGET_MICROMIPS.
+	(MICROMIPS_J): New macro.
+	(mips_base_mips16): Rename this...
+	(mips_base_compression_flags): ...to this.
+	(UMIPS_12BIT_OFFSET_P): New macro.
+	* config/mips/t-sde: (MULTILIB_OPTIONS): Add microMIPS.
+	(MULTILIB_DIRNAMES): Likewise.
+
+2013-02-25  Tom de Vries  <tom@codesourcery.com>
+
+	PR rtl-optimization/56131
+	* insn-notes.def (INSN_NOTE_BASIC_BLOCK): Update comment.
+	* cfgrtl.c (delete_insn): Don't reorder NOTE_INSN_DELETED_LABEL and
+	NOTE_INSN_BASIC_BLOCK if BLOCK_FOR_INSN == NULL.
+
+2013-02-25  Tobias Burnus  <burnus@net-b.de>
+
+	* doc/invoke.texi (-fsanitize=): Move from optimization
+	to debugging options.
+
+2013-02-25  Andrey Belevantsev  <abel@ispras.ru>
+
+	* sched-deps.c (sched_analyze_insn): Fix typo in comment.
+
+2013-02-25  Andrey Belevantsev  <abel@ispras.ru>
+	    Alexander Monakov  <amonakov@ispras.ru>
+
+	PR middle-end/56077
+	* sched-deps.c (sched_analyze_insn): When reg_pending_barrier,
+	flush pending lists also on non-jumps.  Adjust comment.
+
+2013-02-24  Catherine Moore  <clm@codesourcery.com>
+	    Maciej W. Rozycki  <macro@codesourcery.com>
+	    Tom de Vries  <tom@codesourcery.com>
+	    Nathan Sidwell <nathan@codesourcery.com>
+	    Iain Sandoe  <iain@codesourcery.com>
+	    Nathan Froyd  <froydnj@codesourcery.com>
+	    Chao-ying Fu <fu@mips.com>
+
+	* doc/extend.texi: (micromips, nomicromips, nocompression):
+	Document new function attributes. 
+	* doc/invoke.texi (minterlink-compressed, mmicromips,
+	m14k, m14ke, m14kec): Document new options.
+	(minterlink-mips16): Update documentation.
+	* doc/md.texi (ZC, ZD): Document new constraints.
+	* configure.ac (gcc_cv_as_micromips): Check if linker
+	supports the .set micromips directive.
+	* configure: Regenerate.
+	* config.in: Regenerate.
+	* config/mips/mips-tables.opt: Regenerate.
+	* config/mips/micromips.md: New file.
+	* constraints.md (ZC, AD): New constraints.
+	* config/mips/predicates.md (movep_src_register): New predicate.
+	(movep_src_operand): New predicate.
+	(non_volatile_mem_operand): New predicate.
+	* config/mips/mips.md (multimem): New type.
+	(length): Differentiate between 17-bit and 18-bit branch offsets.
+	(MOVEP1, MOVEP2): New mode iterator.
+	(mov_<load>l): Use ZC constraint.
+	(mov_<load>r): Likewise.
+	(mov_<store>l): Likewise.
+	(mov_<store>r): Likewise.
+	(*branch_equality<mode>_inverted): Add microMIPS support.
+	(*branch_equality<mode>): Likewise.
+	(*jump_absolute): Likewise.
+	(indirect_jump_<mode>): Likewise.
+	(tablejump_<mode>): Likewise.
+	(<optab>_internal): Likewise.
+	(sibcall_internal): Likewise.
+	(sibcall_value_internal): Likewise.
+	(prefetch): Use constraint ZD.
+	* config/mips/mips.opt (minterlink-compressed): New option.
+	(minterlink-mips16): Now an alias for minterlink-compressed.
+	(mmicromips): New option.
+	* config/mips/sync.md (sync_compare_and_swap<mode>): Use ZR constraint.
+	(compare_and_swap_12): Likewise.
+	(sync_add<mode>): Likewise.
+	(sync_<optab>_12): Likewise.
+	(sync_old_<optab>_12): Likewise.
+	(sync_new_<optab>_12): Likewise.
+	(sync_nand_12): Likewise.
+	(sync_old_nand_12): Likewise.
+	(sync_new_nand_12): Likewise.
+	(sync_sub<mode>): Likewise.
+	(sync_old_add<mode>): Likewise.
+	(sync_old_sub<mode>): Likewise.
+	(sync_new_add<mode>): Likewise.
+	(sync_new_sub<mode>): Likewise.
+	(sync_<optab><mode>): Likewise.
+	(sync_old_<optab><mode>): Likewise.
+	(sync_new_<optab><mode>): Likewise.
+	(sync_nand<mode>): Likewise.
+	(sync_old_nand<mode>): Likewise.
+	(sync_new_nand<mode>): Likewise.
+	(sync_lock_test_and_set<mode>): Likewise.
+	(test_and_set_12): Likewise.
+	(atomic_compare_and_swap<mode>): Likewise.
+	(atomic_exchange<mode>_llsc): Likewise.
+	(atomic_fetch_add<mode>_llsc): Likewise.
+	* config/mips/mips-cpus.def (m14kc, m14k): New processors.
+	* config/mips/mips-protos.h (umips_output_save_restore): New prototype.
+	(umips_save_restore_pattern_p): Likewise.
+	(umips_load_store_pair_p): Likewise.
+	(umips_output_load_store_pair): Likewise.
+	(umips_movep_target_p): Likewise.
+	(umips_12bit_offset_address_p): Likewise.
+	* config/mips/mips.c (MIPS_MAX_FIRST_STEP): Update for microMIPS.
+	(mips_base_mips16): Rename this...
+	(mips_base_compression_flags): ...to this. Update all uses.
+	(mips_attribute_table): Add micromips, nomicromips and nocompression.
+	(mips_mips16_decl_p): Delete.
+	(mips_nomips16_decl_p): Delete.
+	(mips_get_compress_on_flags): New function.
+	(mips_get_compress_off_flags): New function.
+	(mips_get_compress_mode): New function.
+	(mips_get_compress_on_name): New function.
+	(mips_get_compress_off_name): New function.
+	(mips_insert_attributes): Support multiple compression types.
+	(mips_merge_decl_attributes): Likewise.
+	(umips_12bit_offset_address_p): New function.
+	(mips_start_function_definition): Emit .set micromips directive.
+	(mips_call_may_need_jalx_p): New function.
+	(mips_function_ok_for_sibcall): Add microMIPS support.
+	(mips_print_operand_punctuation): Support short delay slots and
+	compact jumps.
+	(umips_swm_mask, umips_swm_encoding): New.
+	(umips_build_save_restore): New function.
+	(mips_for_each_saved_gpr_and_fpr): Add microMIPS support.
+	(was_mips16_p): Remove.
+	(old_compression_mode): New.
+	(mips_set_compression_mode): New function.
+	(mips_set_current_function): Add microMIPS support.
+	(mips_option_override): Likewise.
+	(umips_save_restore_pattern_p): New function.
+	(umips_output_save_restore): New function.
+	(umips_load_store_pair_p_1): New function.
+	(umips_load_store_pair_p): New function.
+	(umips_output_load_store_pair_1): New function.
+	(umips_output_load_store_pair): New function.
+	(umips_movep_target_p) New function.
+	(mips_prepare_pch_save): Add microMIPS support.
+	* config/mips/mips.h (TARGET_COMPRESSION): New.
+	(TARGET_CPU_CPP_BUILTINS): Update macro
+	to use new compression flags and to support microMIPS.
+	(MIPS_ISA_LEVEL_SPEC): Add m14k processors.
+	(MIPS_ARCH_FLOAT_SPEC): Likewise.
+	(ISA_HAS_LWXS): Include TARGET_MICROMIPS.
+	(ISA_HAS_LOAD_DELAY): Exclude TARGET_MICROMIPS.
+	(ASM_SPEC): Support mmicromips and mno-micromips.
+	(M16STORE_REG_P): New macro.
+	(MIPS_CALL): Support TARGET_MICROMIPS.
+	(MICROMIPS_J): New macro.
+	(mips_base_mips16): Rename this...
+	(mips_base_compression_flags): ...to this.
+	(UMIPS_12BIT_OFFSET_P): New macro.
+	* config/mips/t-sde: (MULTILIB_OPTIONS): Add microMIPS.
+	(MULTILIB_DIRNAMES): Likewise.
+
+2013-02-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/52555
+	* target-globals.c (save_target_globals): For init_reg_sets and
+	target_reinit remporarily set this_fn_optabs to this_target_optabs.
+
+2013-02-22  James Grennahlgh  <james.greenhalgh@arm.com>
+
+	* config/aarch64/aarch64-simd-builtins.def: Add copyright header.
+	* config/aarch64/t-aarch64
+	(aarch64-builtins.o): Depend on aarch64-simd-builtins.def.
+
+2013-02-22  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR inline-asm/56148
+	* lra-constraints.c (process_alt_operands): Reload operand
+	conflicting with earlier clobber only if no more other conflicting
+	operands.
+
+2013-02-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR sanitizer/56393
+	* config/gnu-user.h (LIBASAN_EARLY_SPEC): Link in libasan_preinit.o
+	if not linking a shared library.
+
+2013-02-22  Seth LaForge  <sethml@google.com>
+
+	* config.gcc (arm*-*-eabi*): Treat arm*eb as big-endian.
+
+2013-02-22  Greta Yorsh  <Greta.Yorsh@arm.com>
+
+	* config/arm/arm.md (split for extendsidi): Update condition.
+	(zero_extend<mode>di2,extend<mode>di2): Add an alternative.
+	* config/arm/iterators.md (qhs_extenddi_cstr): Likewise.
+	(qhs_zextenddi_cstr): Likewise.
+
 2013-02-21  Jakub Jelinek  <jakub@redhat.com>
 
 	PR middle-end/56420
@@ -151,7 +571,7 @@
 	* config/microblaze/microblaze.h: Add TARGET_HAS_CLZ as combined 
 	version and TARGET_PATTERN_COMPARE check
 	* config/microblaze/microblaze.md: New clzsi2 instruction
-	
+
 2012-02-19  Edgar E. Iglesias <edgar.iglesias@gmail.com>
 
 	*  config/microblaze/microblaze.md (call_value_intern): Check symbol is 
