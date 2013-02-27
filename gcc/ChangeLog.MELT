@@ -1,6 +1,10 @@
 
 
 2013-02-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt (normstep_mflagset)
+	(normstep_mflagconj): Better debugging.
+
+2013-02-27  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.c (melt_load_module_index): Remove useless clear of
 	dlh.

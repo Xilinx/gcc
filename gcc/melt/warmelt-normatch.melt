@@ -1,4 +1,4 @@
-;; file warmelt-normatch.melt -*- Lisp -*-
+; file warmelt-normatch.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
     Copyright 2008 - 2013 Free Software Foundation, Inc.
@@ -5405,7 +5405,7 @@ normalized expression.}#
 
 
 (defun normstep_mflagset (step nmctxt sloc)
-  (debug "normstep_mflagset step=" step)
+  (debug "normstep_mflagset step=" step "\n.. nmctxt=" nmctxt)
   (assert_msg "check step" (is_a step class_match_step_flag_set))
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
   (let  ( (nsloc (or (unsafe_get_field :loca_location step) sloc))
@@ -5440,7 +5440,8 @@ normalized expression.}#
 
 
 (defun normstep_mflagconj (step nmctxt sloc)
-  (debug "normstep_mflagconj step=" step " sloc=" sloc)
+  (debug "normstep_mflagconj step=" step 
+	 "\n.. nmctxt=" nmctxt "\n.. sloc=" sloc)
   (assert_msg "check step" (is_a step class_match_step_flag_conjunction))
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
   (let  ( (nsloc (or (unsafe_get_field :loca_location step) sloc))
