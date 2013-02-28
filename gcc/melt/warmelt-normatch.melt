@@ -5508,7 +5508,9 @@ normalized expression.}#
 
 ;;;;;;;;;;;;;;;;
 (defun normstep_mtestinstance (step nmctxt sloc)
-  (debug "normstep_mtestinstance step=" step "\n sloc=" sloc)
+  (debug "normstep_mtestinstance step=" step "\n sloc=" sloc 
+	 "\n nmctxt=" nmctxt)
+  (shortbacktrace_dbg "normstep_mtestinstance" 9)
   (assert_msg "check step" (is_a step class_match_step_test_instance))
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
   (let ( (nsloc (or (unsafe_get_field :loca_location step) sloc))
@@ -6578,6 +6580,7 @@ normalized expression.}#
 	      "\n mstepqueue=" mstepqueue)
        (forever
 	matchstepnormalizeloop
+	(debug "matchalt_handle_normalized_mdata +matchstepnormalizeloop mstepqueue=" mstepqueue)
 	(let ( (freshmstep (list_popfirst mstepqueue)) 
 	       (freshlab (mapobject_get stepmap freshmstep))
 	       )
@@ -6585,8 +6588,9 @@ normalized expression.}#
 	  (if (null freshmstep) (exit matchstepnormalizeloop))
 	  (debug "matchalt_normalize_match_context before normalize_step bodyl=" bodyl
 		 "\n freshmstep=" freshmstep)
-	    (if (null firststeplab) 
-		(setq firststeplab freshlab))
+	  (when (null firststeplab) 
+	    (setq firststeplab freshlab)
+	    (debug "matchalt_normalize_match_context set firststeplab=" firststeplab))
 	  (let ( 
 		(normstep (normalize_step freshmstep nmctxt sloc)) 
 		)
@@ -6797,7 +6801,8 @@ normalized expression.}#
 		 )
 	     (debug "normexp_matchalt nresloc=" nresloc 
 		    "\n* nbodyl=" nbodyl
-		    "\n* nflagmap=" nflagmap)
+		    "\n* nflagmap=" nflagmap
+		    "\n* nstartlab=" nstartlab)
 	     (foreach_in_mapobject
 	      (nflagmap)
 	      (curflag curnormflag)

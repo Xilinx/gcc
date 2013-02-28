@@ -1,8 +1,15 @@
 
 
-2013-02-27  Basile Starynkevitch  <basile@starynkevitch.net>
-	* melt/warmelt-normatch.melt (normstep_mflagset)
-	(normstep_mflagconj): Better debugging.
+2013-02-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt (normstep_mtestinstance): More
+	debugging.
+
+	* melt/warmelt-genobj.melt: Add comment about threshold for
+	splitting.
+	(compile2obj_procedure): Lowered the number of functions per
+	secondary files to 20 and increased the offset for the primary
+	file to 12.
+	(compilobj_nrep_matchalt): More debug.
 
 2013-02-27  Basile Starynkevitch  <basile@starynkevitch.net>
 

@@ -32,6 +32,11 @@
 ;;    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+;; Notice: the threshold governing the splitting and length of
+;; generated secondary C files are wired in constants inside the
+;; compile2obj_procedure function.
+
+
 ;;;; value like objects;; value here is meant in the sense of the C
 ;;;; language so can be any thing.
 (defclass class_objvalue
@@ -1073,11 +1078,11 @@ $SBUF.}#
 	  (nloc (unsafe_get_field :nrep_loc pro))
 	  (nargb (if (is_a pro class_nrep_routproc) (unsafe_get_field :nrpro_argb pro)))
 	  (obodylist (make_list discr_list))
-	  ;; the number 25 below is the ratio of number of functions
+	  ;; the number 20 below is the ratio of number of functions
 	  ;; per secondary generated C file. Change it carefully!  the
-	  ;; offset 20 helps to make the first file less big, since it
+	  ;; offset 12 helps to make the first file less big, since it
 	  ;; already contains the huge initialization functions. 
-	  (:long filenum (/iraw (+i funum 20) 25))
+	  (:long filenum (/iraw (+i funum 12) 20))
 	  (:long nbfiles (multiple_length mofiles))
 	  (obrout (instance class_procroutineobj
 			    :named_name (strbuf2string discr_string namsbuf)
@@ -5968,10 +5973,10 @@ $SBUF.}#
 
 ;;;; compilation of alternate matches
 (defun compilobj_nrep_matchalt (nmat gcx)
-  (assert_msg "check nmat" (is_a nmat class_nrep_matchalt))
-  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug "compilobj_nrep_matchalt nmat=" nmat "\n** gcx=" gcx 
 	 "\n** class_objmatchflagblock=" class_objmatchflagblock "\n")
+  (assert_msg "check nmat" (is_a nmat class_nrep_matchalt))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (let ( 
 	(nloc (unsafe_get_field :nrep_loc nmat))
 	(nctyp (unsafe_get_field :nexpr_ctyp nmat))
@@ -6053,9 +6058,8 @@ $SBUF.}#
 		   (mapobject_put ostepmap labstep stepnum))
 	       ))
 	 )
-	(debug "compilobj_nrep_matchalt ostepmap=" ostepmap)
+	(debug "compilobj_nrep_matchalt ostepmap=" ostepmap "\n.. nbody=" nbody)
 	;;
-	(debug "compilobj_nrep_matchalt nbody=" nbody)
 	(foreach_in_multiple
 	 (nbody)
 	 (curncomp :long bodix)
@@ -6088,7 +6092,7 @@ $SBUF.}#
 	(debug "compilobj_nrep_matchalt obodyl=" obodyl)
 	(dispose_objloc obvares gcx)
 	(put_fields gcx :gncx_altmatch oldaltmatch)
-
+	;;
 	(debug "compilobj_nrep_matchalt restored gcx=" gcx 
 	       "\n* obodyl=" obodyl
 	       "\n* result oblock=" oblock
