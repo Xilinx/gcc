@@ -3733,7 +3733,10 @@ simplify_aggr_init_expr (tree *tp)
   /* If the spawn's detach point is marked, we make sure the call statement
      has this information.  */
   if (flag_enable_cilk)
-    SPAWN_DETACH_POINT (call_expr) = SPAWN_DETACH_POINT (aggr_init_expr);
+    {
+      SPAWN_DETACH_POINT (call_expr) = SPAWN_DETACH_POINT (aggr_init_expr);
+      SPAWN_CALL_P (call_expr) = SPAWN_CALL_P (aggr_init_expr);
+    }
   TREE_NOTHROW (call_expr) = TREE_NOTHROW (aggr_init_expr);
 
   if (style == ctor)

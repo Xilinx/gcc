@@ -485,7 +485,10 @@ cp_gimplify_init_expr (tree *expr_p)
   tree from = TREE_OPERAND (*expr_p, 1);
   tree to = TREE_OPERAND (*expr_p, 0);
   tree t;
+  bool is_from_cilk_spawn = false;
 
+  if (flag_enable_cilk)
+    is_from_cilk_spawn = SPAWN_CALL_P (from);
   /* What about code that pulls out the temp and uses it elsewhere?  I
      think that such code never uses the TARGET_EXPR as an initializer.  If
      I'm wrong, we'll abort because the temp won't have any RTL.  In that
@@ -512,7 +515,8 @@ cp_gimplify_init_expr (tree *expr_p)
 	  else
 	    VEC_INIT_EXPR_SLOT (sub) = to;
 	  *expr_p = from;
-
+	  if (flag_enable_cilk)
+	    SPAWN_CALL_P (*expr_p) = is_from_cilk_spawn;
 	  /* The initialization is now a side-effect, so the container can
 	     become void.  */
 	  if (from != sub)

@@ -1,3 +1,9 @@
+2013-02-27  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cp-gimplify.c (cp_gimplify_init_expr): Copied the _Cilk_spawn func.
+	call marker into the appropriate return expression. 
+	* semantics.c (simplify_aggr_init_expr): Likewise.
+
 2013-02-05  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* mangle.c (write_encoding): Removed adding the return type to the

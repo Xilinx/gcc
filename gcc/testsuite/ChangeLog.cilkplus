@@ -1,3 +1,8 @@
+2013-02-27  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* g++.dg/cilk-plus/cilk_keywords_test/execute/aggr_init_spawn.cc:
+	New test.
+
 2013-02-05  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* gcc.dg/cilk-plus/cilk_keywords_test/errors/no_args_error.c: New test.
