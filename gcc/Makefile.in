@@ -5661,7 +5661,8 @@ upgrade-warmelt: melt-build-settings.sh  melt-build-param.sh $(srcdir)/melt-buil
 	for f in meltbuild-sources/generated/meltrunsup*.[ch] ; do \
 	   indent $$f ; \
 	   bf=`basename $$f` ; \
-	   cp $(srcdir)/melt/generated/$$bf  $(srcdir)/melt/generated/$$bf~ ; \
+	   [ -f "$(srcdir)/melt/generated/$$bf" ]  \
+              && cp $(srcdir)/melt/generated/$$bf  $(srcdir)/melt/generated/$$bf~ ; \
 	   cp $$f $(srcdir)/melt/generated/$$bf ; \
 	done 
 	for f in meltbuild-sources/warmelt*.[ch] ; do \
